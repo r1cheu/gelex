@@ -2,14 +2,15 @@
 #include <armadillo>
 
 namespace chenx {
-namespace dataset {
+using namespace arma;
+template <typename T>
+void value_impute(Mat<T>& genotype, const Col<T>& values);
 
 template <typename T>
-void mean_impute(arma::Mat<T>& genotype);
+Col<T> mean_impute(Mat<T>& genotype);
 
 template <typename T>
-void median_impute(arma::Mat<T>& genotype);
-}  // namespace dataset
+Col<T> median_impute(Mat<T>& genotype);
 }  // namespace chenx
 
 #include "impute_impl.h"

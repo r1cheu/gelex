@@ -41,6 +41,7 @@ def valid_path(input_path: str | Path, suffixes: tuple[str] | None = None) -> Pa
     if not (path.is_file() or path.is_dir()):
         msg = f"The path '{path}' is neither a file nor a directory."
         raise ValueError(msg)
+
     if suffixes:
         suffixes = [s if s.startswith(".") else f".{s}" for s in suffixes]
         if path.suffix not in suffixes:

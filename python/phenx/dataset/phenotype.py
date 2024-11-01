@@ -57,31 +57,7 @@ class Phenotypes(Basetypes):
         pd.DataFrame
             Phenotype data as a pandas DataFrame.
         """
-        return pd.read_csv(path, sep="\t", index_col=0)
-
-    @property
-    def num_phenotypes(self) -> int:
-        """
-        Return number of phenotypes in the dataset.
-
-        Returns
-        -------
-        int
-            Number of phenotypes in the dataset.
-        """
-        return self._data.shape[1]
-
-    @property
-    def phenotypes(self) -> list:
-        """
-        Return list of phenotype names.
-
-        Returns
-        -------
-        list
-            List of phenotype names.
-        """
-        return list(self._data.columns)
+        return pd.read_csv(path, sep="\t", index_col=0, na_values=["."])
 
     def set_nan(self, input: float | int | list[int | float], seed=42) -> pd.DataFrame:
         """
@@ -104,7 +80,7 @@ class Phenotypes(Basetypes):
         """
 
         rng = np.random.default_rng(seed)
-        data_copy = self._data.copy()
+        data_copy = self.data.copy()
 
         if isinstance(input, float) and 0 < input < 1:
             # Set a percentage of values to NaN
@@ -118,20 +94,23 @@ class Phenotypes(Basetypes):
             nan_indices = rng.choice(self.num_samples, num_rows_to_nan, replace=False)
             data_copy.iloc[nan_indices, :] = np.nan
 
-        elif isinstance(input, list):
+        elif isinstance(input, list | np.ndarray):
             # Set values of the list (rows by index or labels) to NaN
             try:
                 data_copy.loc[input, :] = np.nan  # Try to use labels
             except KeyError:
                 data_copy.iloc[input, :] = np.nan  # Fallback to positional indexing
+        else:
+            msg = "Invalid input type. Please provide a float, int, or list."
+            raise ValueError(msg)
 
         return data_copy
 
     def __repr__(self):
         return (
-            f"{self._path}:\n{self.num_samples} samples, {self.num_phenotypes} phenotypes\n"
-            f"Samples:\n{list_to_str(self.samples[:5], 6)}...\n"
-            f"Phenotypes:\n{list_to_str(self.phenotypes, 3)}"
+            f"{self._path}:\n{self.data.shape[0]} samples, {self.data.shape[1]} phenotypes\n"
+            f"Samples:\n{list_to_str(self.data.index[:5], 6)}...\n"
+            f"Phenotypes:\n{list_to_str(self.data.columns, 3)}"
         )
 
     def __getitem__(self, key):
@@ -155,6 +134,9 @@ class Phenotypes(Basetypes):
             If the key is not found in the DataFrame.
         """
         try:
-            return self._data.loc[:, key]
+            return pd.DataFrame(self.data.loc[:, key])
         except KeyError:
-            return self._data.loc[key, :]
+            return pd.DataFrame(self.data.loc[key, :])
+
+    def __len__(self):
+        return self.data.shape[0]

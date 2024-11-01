@@ -14,20 +14,40 @@ find_package(Python3 REQUIRED COMPONENTS NumPy)
 find_package(pybind11 CONFIG REQUIRED)
 find_package(OpenMP)
 
-set(BLA_VENDOR "OpenBLAS")
-find_package(BLAS REQUIRED)
-find_package(fmt REQUIRED)
+option(USE_MKL "Use the MKL" OFF)
+
+if(USE_MKL)
+  find_package(MKL CONFIG REQUIRED)
+else()
+  set(BLA_VENDOR "OpenBLAS")
+  find_package(BLAS REQUIRED)
+endif()
+
 add_compile_definitions(ARMA_DONT_USE_WRAPPER)
-# Add a library using FindPython's tooling (pybind11 also provides a helper like
-# this)
-pybind11_add_module(_core MODULE src/bind_core.cpp)
-target_include_directories(
-  _core
-  PRIVATE ${PhenxCpp_SOURCE_DIR}/extern/carma/include
-          ${PhenxCpp_SOURCE_DIR}/include
-          ${PhenxCpp_SOURCE_DIR}/extern/armadillo/include)
-target_link_libraries(_core PRIVATE fmt::fmt-header-only pybind11::module
-                                    OpenMP::OpenMP_CXX openblas Python3::NumPy)
-set_target_properties(_core PROPERTIES INSTALL_RPATH "$ORIGIN/lib")
-# The install directory is the output (wheel) directory
+add_compile_definitions(FMT_HEADER_ONLY=1)
+
+# Function to add a pybind11 module with common settings
+function(add_pybind11_module module_name source_file)
+  pybind11_add_module(${module_name} MODULE ${source_file})
+  target_include_directories(
+    ${module_name}
+    PRIVATE ${PhenxCpp_SOURCE_DIR}/extern/carma/include
+            ${PhenxCpp_SOURCE_DIR}/extern/fmt/include
+            ${PhenxCpp_SOURCE_DIR}/include
+            ${PhenxCpp_SOURCE_DIR}/extern/armadillo/include)
+  if(USE_MKL)
+    target_link_libraries(
+      ${module_name} PRIVATE pybind11::module Python3::NumPy OpenMP::OpenMP_CXX
+                             $<LINK_ONLY:MKL::MKL>)
+  else()
+    target_link_libraries(
+      ${module_name} PRIVATE pybind11::module Python3::NumPy OpenMP::OpenMP_CXX
+                             openblas)
+  endif()
+endfunction()
+
+# Add _core module
+add_pybind11_module(_core src/bind_core.cpp)
+# Add _optim module set_target_properties(_core PROPERTIES INSTALL_RPATH
+# "$ORIGIN/lib") The install directory is the output (wheel) directory
 install(TARGETS _core DESTINATION .)

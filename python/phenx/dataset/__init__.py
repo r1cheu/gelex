@@ -2,6 +2,7 @@
 
 from .genotype import Genotypes
 from .grm import grm
+from .intersect import intersect
 from .phenotype import Phenotypes
 
-__all__ = ["Genotypes", "Phenotypes", "grm"]
+__all__ = ["Genotypes", "Phenotypes", "grm", "intersect"]

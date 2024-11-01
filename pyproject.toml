@@ -1,10 +1,21 @@
 [project]
 authors = [{ name = "r1cheu", email = "chenrulei@cemps.ac.cn" }]
-dependencies = []
+dependencies = [
+  "numpy>=2.1.1,<3",
+  "pandas>=2.2.3,<3",
+  "tables>=3.10.1,<4",
+  "bed-reader>=1.0.5,<2",
+  "formulaic>=1.0.2,<2",
+]
 description = "Add a short description here"
 name = "phenx"
 requires-python = ">= 3.11"
-version = "0.1.0"
+version = "0.1.2"
+
+[project.optional-dependencies]
+test = ["pytest"]
+dev = ["pytest", "pre-commit", "pybind11>=2.13.6,<3"]
+jupyter = ["jupyterlab", "pixi-kernel"]
 
 [build-system]
 requires = ["scikit-build-core>=0.3.3", "pybind11", "numpy"]
@@ -18,11 +29,40 @@ platforms = ["linux-64"]
 phenx = { path = ".", editable = true }
 
 [tool.pixi.tasks]
+install = "uv pip install -e . --no-deps --reinstall"
 
 [tool.pixi.dependencies]
 python = ">=3.12.6,<4"
 
+[tool.pixi.feature.dev.tasks]
+lint = "pre-commit run --all-files"
+configure = "cmake -G Ninja -S . -B build -D BUILD_TEST=ON -D BUILD_PYTHON_BINDINGS=ON -DCMAKE_PREFIX_PATH=$(python3 -c 'import pybind11; print(pybind11.get_cmake_dir())')"
+build = { cmd = "cmake --build build -j 24", depends-on = ["configure"] }
+lsp = { cmd = "sh tools/lsp.sh", depends-on = ["build"] }
+deving = { depends-on = ["lint", "lsp"] }
+
+[tool.pixi.feature.test.tasks]
+ctest = { cmd = "cd build/tests/ && ctest", depends-on = ["build"] }
+pytest = { cmd = "pytest" }
+test = { depends-on = ["ctest", "pytest"] }
+
+[tool.pixi.feature.jupyter.dependencies]
+jupyterlab = "*"
+pixi-kernel = "*"
+ipykernel = ">=6.29.5,<7"
+
+[tool.pixi.feature.jupyter.tasks]
+jupyter = "jupyter lab --port 8000"
+
+
+[tool.pixi.environments]
+test = { features = ["test"], solve-group = "default" }
+dev = { features = ["dev"], solve-group = "default" }
+juptyer = { features = ["jupyter"], solve-group = "default" }
+
+
 [tool.scikit-build]
+cmake.build-type = "Release"
 wheel.expand-macos-universal-tags = true
 wheel.packages = ["python/phenx"]
 wheel.install-dir = "phenx"
@@ -30,6 +70,7 @@ wheel.install-dir = "phenx"
 [tool.scikit-build.cmake.define]
 BUILD_TEST = "OFF"
 BUILD_PYTHON_BINDINGS = "ON"
+USE_MKL = "OFF"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -41,8 +82,9 @@ testpaths = ["tests"]
 
 
 [tool.cibuildwheel]
+environment = { BUILD_OPENBLAS = "true" }
 build-frontend = "build[uv]"
-before-build = "bash {project}/tools/before_build.sh"
+before-build = "bash {project}/tools/before_build.sh {project} 112"
 # test-command = "pytest {project}/tests"
 # test-extras = ["test"]
 

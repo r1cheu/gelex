@@ -3,23 +3,20 @@
 import logging
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
-from phenx.utils import valid_path
+from phenx.utils.path import valid_path
 
-from .._core import _grm
+from .._core import _Amat, _Amat_rbf, _Dmat, _Dmat_rbf
 from .genotype import Genotypes
-from .reader import save_hdf
-
-logging.basicConfig(format="%(message)s", level=logging.INFO)
 
 
 def grm(
-    genotype: Genotypes,
-    phenotype: pd.Series | str | Path | None = None,
-    encode_method: str = "add",
-    impute_method: str = "mean",
-    save_grm: str | Path | None = None,
+    genotype: Genotypes | str | Path,
+    encode: str = "add",
+    kernel: str | None = None,
+    save_grm: bool = False,
 ) -> pd.DataFrame:
     """
     Compute the Genetic Relationship Matrix (GRM) from genotype data.
@@ -33,7 +30,7 @@ def grm(
     encode_method : str, optional
         The method to encode the genotype data. Default is "add".
     impute_method : str, optional
-        The method to impute missing genotype data. Default is "mean".
+        The method to impute missing genotype data. Default is "median".
     save_grm : str | Path | None, optional
         The path to save the computed GRM. If None, the GRM is not saved.
 
@@ -47,41 +44,52 @@ def grm(
     TypeError
         If the genotype is not a valid path to a `.h5` file or a Genotype object.
     """
-
-    if isinstance(genotype, Genotypes):
-        genotype.encode = encode_method
-        genotype.impute = impute_method
-
-    elif isinstance(genotype, str | Path):
-        genotype = valid_path(genotype, suffixes=(".h5"))
+    if isinstance(genotype, str | Path):
+        genotype = valid_path(genotype, suffixes=(".h5",))
         logging.info("Loading genetic relationship matrix from %s", genotype)
         return pd.read_hdf(genotype, key="grm")
-    else:
+
+    if not isinstance(genotype, Genotypes):
         msg = "Genotype must be a path to a `.h5` file or a Genotype object."
         raise TypeError(msg)
 
-    if encode_method == "hybrid":
-        grm = pd.DataFrame(
-            _grm(genotype(phenotype), encode_method=encode_method),
-            index=genotype.samples,
-            columns=genotype.samples,
-        )
+    genotype_array = np.array(genotype, copy=True, dtype=np.float64)
+
+    grm = None
+    if encode == "add":
+        if kernel is None:
+            grm = _Amat(genotype_array)
+        elif kernel == "rbf":
+            bandwidth = np.sqrt(genotype_array.shape[0] / 2)
+            grm = _Amat_rbf(genotype_array, bandwidth)
+        else:
+            msg = "Kernel method must be either None or 'rbf'."
+            raise ValueError(msg)
+
+    elif encode == "dom":
+        if kernel is None:
+            grm = _Dmat(genotype_array)
+        elif kernel == "rbf":
+            bandwidth = np.sqrt(genotype_array.shape[0] / 2)
+            grm = _Dmat_rbf(genotype_array, bandwidth)
+        else:
+            msg = "Kernel method must be either None or 'rbf'."
+            raise ValueError(msg)
+
     else:
-        grm = pd.DataFrame(
-            _grm(genotype(), encode_method=encode_method),
-            index=genotype.samples,
-            columns=genotype.samples,
+        msg = "Genotype encoding method must be either 'add' or 'dom'."
+        raise ValueError(msg)
+
+    grm = pd.DataFrame(
+        grm,
+        index=genotype.data.columns,
+        columns=genotype.data.columns,
+    )
+
+    if save_grm:
+        grm.to_hdf(
+            genotype.path.with_suffix(f".{encode}.h5"),
+            key="grm",
         )
-
-    if save_grm is not None:
-        save_grm = Path(save_grm)
-
-        if save_grm.suffix != ".h5":
-            warning = "The file extension is not `.h5`. The GRM will be saved with `.h5` extension."
-            logging.warning(warning)
-            save_grm = save_grm.with_suffix(f".{encode_method}.h5")
-
-        save_hdf(save_grm, grm, key="grm")
-        logging.info("GRM saved to %s", save_grm)
 
     return grm

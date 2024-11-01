@@ -2,7 +2,6 @@
 #include "armadillo"
 
 namespace chenx {
-namespace optim {
 using namespace arma;
 template <typename eT>
 class EMUpdater {
@@ -34,5 +33,4 @@ Col<eT> EMUpdater<eT>::update(const Mat<eT>& proj_y, const Cube<eT>& pdv) {
     }
     return Col<eT>(_var);
 }
-}  // namespace optim
 }  // namespace chenx

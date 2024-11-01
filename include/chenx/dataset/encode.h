@@ -1,15 +1,13 @@
 #pragma once
 #include <armadillo>
 
-namespace chenx {
-namespace dataset {
+namespace chenx
+{
+using namespace arma;
 template <typename T>
-void dominance(arma::Mat<T>& genotype);
+Mat<T> hybird_value(const arma::Mat<T>& genotype, const arma::Col<T>& phenotype);
 template <typename T>
-arma::Mat<T> hybird_value(const arma::Mat<T>& genotype, const arma::Col<T>& phenotype);
-template <typename T>
-void hybird(arma::Mat<T>& genotype, const arma::Mat<T>& hybird_value);
-}  // namespace dataset
+void hybird(Mat<T>& genotype, const Mat<T>& hybird_value);
 }  // namespace chenx
 
 #include "encode_impl.h"

@@ -1,12 +1,12 @@
 [submodule "extern/fmt"]
-	path = extern/fmt
-	url = ../../fmtlib/fmt
+    path = extern/fmt
+    url = ../../fmtlib/fmt
 [submodule "extern/carma"]
-	path = extern/carma
-	url = ../../RUrlus/carma
+    path = extern/carma
+    url = ../../RUrlus/carma
 [submodule "extern/googletest"]
-	path = extern/googletest
-	url = ../../google/googletest
+    path = extern/googletest
+    url = ../../google/googletest
 [submodule "extern/armadillo"]
-	path = extern/armadillo
-	url = https://gitlab.com/conradsnicta/armadillo-code.git
+    path = extern/armadillo
+    url = https://gitlab.com/conradsnicta/armadillo-code.git

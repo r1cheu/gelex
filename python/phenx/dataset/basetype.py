@@ -41,7 +41,7 @@ class Basetypes(ABC):
             The path to the data file.
         """
         self._path = valid_path(path, suffixes=self.ALLOWED_INPUT_SUFFIXES)
-        self._data = self._read_data(self._path)
+        self.data = self._read_data(self._path)
 
     @abstractmethod
     def _read_data(self, path) -> pd.DataFrame:
@@ -61,16 +61,16 @@ class Basetypes(ABC):
         raise NotImplementedError
 
     @property
-    def data(self) -> pd.DataFrame:
+    def path(self) -> Path:
         """
-        Return a copy of the dataset.
+        Return the path to the dataset.
 
         Returns
         -------
-        pd.DataFrame
-            A copy of the dataset.
+        Path
+            The path to the dataset.
         """
-        return self._data.copy()
+        return self._path
 
     @property
     def head(self) -> pd.DataFrame:
@@ -82,33 +82,9 @@ class Basetypes(ABC):
         pd.DataFrame
             The first few rows of the dataset.
         """
-        return self._data.head()
+        return self.data.head()
 
-    @property
-    def samples(self) -> list:
-        """
-        Return a list of sample indices from the dataset.
-
-        Returns
-        -------
-        list
-            A list of sample indices.
-        """
-        return list(self._data.index)
-
-    @property
-    def num_samples(self) -> int:
-        """
-        Return the number of samples in the dataset.
-
-        Returns
-        -------
-        int
-            The number of samples in the dataset.
-        """
-        return len(self.samples)
-
-    def to_array(self) -> NDArray:
+    def __array__(self, dtype=None, copy=True) -> NDArray:
         """
         Convert the dataset to a NumPy array.
 
@@ -117,40 +93,4 @@ class Basetypes(ABC):
         NDArray
             The dataset as a NumPy array.
         """
-        return np.array(self._data)
-
-    def __array__(self) -> NDArray:
-        """
-        Convert the dataset to a NumPy array (used for interoperability with NumPy).
-
-        Returns
-        -------
-        NDArray
-            The dataset as a NumPy array.
-        """
-        return self.to_array()
-
-    def __and__(self, other) -> tuple:
-        """
-        Perform an intersection of samples with another `Basetypes`.
-
-        Both `Basetypes` instances are modified in place and return.
-
-        Parameters
-        ----------
-        other : Basetypes
-            Another instance of Basetypes to intersect with.
-
-        Returns
-        -------
-        tuple
-            A tuple containing the two Basetypes instances with intersected data.
-        """
-        if not isinstance(other, Basetypes):
-            msg = f"unsupported operand type(s) for &: 'Basetypes' and '{type(other)}'"
-            raise TypeError(msg)
-        intersection = self._data.index.intersection(other._data.index)
-        intersection = sorted(intersection)
-        self._data = self._data.loc[intersection]
-        other._data = other._data.loc[intersection]
-        return self, other
+        return np.array(self.data, dtype=dtype, copy=copy)

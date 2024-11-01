@@ -1,7 +1,10 @@
 """This module initializes the phenx package, which is designed to provide tools and utilities for genomics selection."""
 
-from .dataset import Genotypes, Phenotypes, grm
+import pandas as pd
 
-# from .optim import REML
+from .dataset import Genotypes, Phenotypes, grm, intersect
+from .model import LinearMixedModel
 
-__all__ = ["Genotypes", "Phenotypes", "grm"]
+pd.options.mode.copy_on_write = True
+
+__all__ = ["Genotypes", "Phenotypes", "grm", "LinearMixedModel", "intersect"]
