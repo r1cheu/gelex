@@ -1,5 +1,0 @@
-CompileFlags:
-  Add:
-    - "-I/home/rlchen/project/phenx/extern/armadillo/include"
-    - "-I/home/rlchen/project/phenx/include"
-    

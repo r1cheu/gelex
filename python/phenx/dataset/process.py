@@ -10,7 +10,7 @@ from numpy.typing import NDArray
 
 from phenx.utils import valid_path
 
-from .._core import _hybrid, _hybrid_value  # noqa
+from .._core import _encode, _hybrid, _hybrid_value, _impute, _value_impute
 
 
 class GenoProcessor(ABC):

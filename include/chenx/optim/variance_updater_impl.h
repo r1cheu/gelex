@@ -7,8 +7,8 @@ namespace chenx
 
 using namespace arma;
 template <typename eT>
-VarianceUpdater<eT>::VarianceUpdater(Col<eT>&& init_var, const Col<eT>& y)
-    : _var{std::move(init_var)}, _y{y}
+VarianceUpdater<eT>::VarianceUpdater(Col<eT> init_var, const Col<eT>& y)
+    : _var{init_var}, _y{y}
 {
     auto n = _var.n_elem;
     y_var = var(y);

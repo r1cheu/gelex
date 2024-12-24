@@ -8,7 +8,7 @@ template <typename eT>
 class VarianceUpdater
 {
   public:
-    VarianceUpdater(Col<eT>&& init_var, const Col<eT>& y);
+    VarianceUpdater(Col<eT> init_var, const Col<eT>& y);
     virtual ~VarianceUpdater() = default;
     Col<eT> update(
         const Mat<eT>& proj_y,
