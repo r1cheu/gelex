@@ -12,69 +12,48 @@ name = "phenx"
 requires-python = ">= 3.11"
 version = "0.1.2"
 
-[project.optional-dependencies]
-test = ["pytest"]
-dev = ["pytest", "pre-commit", "pybind11>=2.13.6,<3"]
-jupyter = ["jupyterlab", "pixi-kernel"]
-
 [build-system]
-requires = ["scikit-build-core>=0.3.3", "pybind11", "numpy"]
+requires = ["scikit-build-core>=0.10", "pybind11", "numpy"]
 build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+cmake.build-type = "Release"
+cmake.source-dir = 'python'
+wheel.expand-macos-universal-tags = true
+wheel.packages = ["python/phenx"]
+wheel.install-dir = "phenx"
+sdist.exclude = [".pixi", ".github"]
+
+[tool.scikit-build.cmake.define]
+USE_MKL = "OFF"
 
 [tool.pixi.project]
 channels = ["conda-forge"]
 platforms = ["linux-64"]
 
-[tool.pixi.pypi-dependencies]
-phenx = { path = ".", editable = true }
+[tool.pixi.environments]
+dev = ["dev"]
+test = ["test"]
 
-[tool.pixi.tasks]
-install = "uv pip install -e . --no-deps --reinstall"
-
-[tool.pixi.dependencies]
-python = ">=3.12.6,<4"
-scipy = "*"
-numpy = "*"
-matplotlib = "*"
-ipykernel = "*"
+# Feature dev
+[tool.pixi.feature.dev.dependencies]
+cmake = ">=3.18,<4"
+cxx-compiler = ">=1.8.0,<2"
+make = ">=4.4.1,<5"
+ninja = ">=1.12.1,<2"
+scikit-build-core = ">=0.10.7,<0.11"
+uv = ">=0.5,<0.6"
+pybind11 = ">=2.13.6,<3"
+pre-commit = ">=4.0, <5.0"
 
 [tool.pixi.feature.dev.tasks]
-lint = "pre-commit run --all-files"
-configure = "cmake -G Ninja -S . -B build -D BUILD_TEST=ON -D BUILD_PYTHON_BINDINGS=ON -DCMAKE_PREFIX_PATH=$(python3 -c 'import pybind11; print(pybind11.get_cmake_dir())')"
-build = { cmd = "cmake --build build -j 24", depends-on = ["configure"] }
-lsp = { cmd = "sh tools/lsp.sh", depends-on = ["build"] }
-deving = { depends-on = ["lint", "lsp"] }
+build = "cmake -G Ninja -S . -B build -D BUILD_TEST=OFF -D BUILD_PYTHON_BINDINGS=ON && cmake --build build"
+lsp = "cmake -G Ninja -S . -B build -D BUILD_TEST=OFF -D BUILD_PYTHON_BINDINGS=ON && cp build/compile_commands.json ./ && rm -rf build"
+ctest = "cmake -G Ninja -S . -B build -D BUILD_TEST=ON -D BUILD_PYTHON_BINDINGS=OFF && cmake --build build && cd build && ctest && cd .. && rm -rf build"
 
-[tool.pixi.feature.test.tasks]
-ctest = { cmd = "cd build/tests/ && ctest", depends-on = ["build"] }
-pytest = { cmd = "pytest" }
-test = { depends-on = ["ctest", "pytest"] }
-
-[tool.pixi.feature.jupyter.dependencies]
-jupyterlab = "*"
-pixi-kernel = "*"
-ipykernel = ">=6.29.5,<7"
-
-[tool.pixi.feature.jupyter.tasks]
-jupyter = "jupyter lab --port 8000"
-
-
-[tool.pixi.environments]
-test = { features = ["test"], solve-group = "default" }
-dev = { features = ["dev"], solve-group = "default" }
-juptyer = { features = ["jupyter"], solve-group = "default" }
-
-
-[tool.scikit-build]
-cmake.build-type = "Release"
-wheel.expand-macos-universal-tags = true
-wheel.packages = ["python/phenx"]
-wheel.install-dir = "phenx"
-
-[tool.scikit-build.cmake.define]
-BUILD_TEST = "OFF"
-BUILD_PYTHON_BINDINGS = "ON"
-USE_MKL = "OFF"
+[tool.pixi.feature.test.pypi-dependencies]
+phenx = { path = ".", editable = true }
+pytest = ">=8.3"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -84,18 +63,12 @@ log_cli_level = "INFO"
 filterwarnings = ["error", "ignore::pytest.PytestCacheWarning"]
 testpaths = ["tests"]
 
-
 [tool.cibuildwheel]
 environment = { BUILD_OPENBLAS = "true" }
 build-frontend = "build[uv]"
-before-build = "bash {project}/tools/before_build.sh {project} 112"
+before-build = "bash {project}/tools/before_build.sh {project} 64"
 # test-command = "pytest {project}/tests"
 # test-extras = ["test"]
-
-[tool.cibuildwheel.pyodide]
-environment.CFLAGS = "-fexceptions"
-environment.LDFLAGS = "-fexceptions"
-build-frontend = { name = "build", args = ["--exports", "whole_archive"] }
 
 [tool.ruff]
 src = ["python/phenx"]

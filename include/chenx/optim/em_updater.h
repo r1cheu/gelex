@@ -9,7 +9,7 @@ template <typename eT>
 class EMUpdater
 {
   public:
-    EMUpdater(Col<eT>&& init_var, const Col<eT>& y);
+    EMUpdater(Col<eT> init_var, const Col<eT>& y);
     Col<eT> update(const Mat<eT>& proj_y, const Cube<eT>& pdv);
 
   private:
@@ -19,8 +19,8 @@ class EMUpdater
 };
 
 template <typename eT>
-EMUpdater<eT>::EMUpdater(Col<eT>&& init_var, const Col<eT>& y)
-    : _y{y}, _var{std::move(init_var)}
+EMUpdater<eT>::EMUpdater(Col<eT> init_var, const Col<eT>& y)
+    : _y{y}, _var{init_var}
 {
     _N = y.n_elem;
 }

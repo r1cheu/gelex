@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.17)
 # Scikit-build-core sets these values for you, or you can just hard-code the
 # name and version.
 project(
-  PhenxCpp
+  chenx
   VERSION 0.0.1
   LANGUAGES CXX)
 

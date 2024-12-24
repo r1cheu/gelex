@@ -7,4 +7,3 @@ echo "CompileFlags:
     - \"-I$(pwd)/extern/armadillo/include\"
     - \"-I$(pwd)/include\"
     " > .clangd
-
