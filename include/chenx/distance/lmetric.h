@@ -1,6 +1,7 @@
 #pragma once
 #include <armadillo>
-namespace chenx {
+namespace chenx
+{
 
 /**
  * The L_p metric for arbitrary integer p, with an option to take the root.
@@ -42,13 +43,16 @@ namespace chenx {
  *    Triangle Inequality (be careful!).
  */
 template <int TPower, bool TTakeRoot = true>
-class LMetric {
-   public:
+class LMetric
+{
+  public:
     /**
      * Default constructor does nothing, but is required to satisfy the Metric
      * policy.
      */
-    LMetric() {}
+    LMetric()
+    {
+    }
 
     /**
      * Computes the distance between two points.
@@ -61,7 +65,9 @@ class LMetric {
      * @return Distance between vectors a and b.
      */
     template <typename VecTypeA, typename VecTypeB>
-    static typename VecTypeA::elem_type Evaluate(const VecTypeA& a, const VecTypeB& b);
+    static typename VecTypeA::elem_type Evaluate(
+        const VecTypeA& a,
+        const VecTypeB& b);
 
     //! The power of the metric.
     static const int Power = TPower;
@@ -92,7 +98,7 @@ typedef LMetric<2, true> EuclideanDistance;
  */
 typedef LMetric<INT_MAX, false> ChebyshevDistance;
 
-}  // namespace chenx
+} // namespace chenx
 
 // Include implementation.
 #include "lmetric_impl.h"

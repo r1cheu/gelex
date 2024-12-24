@@ -33,6 +33,10 @@ install = "uv pip install -e . --no-deps --reinstall"
 
 [tool.pixi.dependencies]
 python = ">=3.12.6,<4"
+scipy = "*"
+numpy = "*"
+matplotlib = "*"
+ipykernel = "*"
 
 [tool.pixi.feature.dev.tasks]
 lint = "pre-commit run --all-files"

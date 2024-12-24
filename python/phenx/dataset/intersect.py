@@ -14,5 +14,6 @@ def intersect(obj1, obj2):
         obj1.data = obj1.data.loc[commom_sample, :]
         obj2.data = obj2.data.loc[:, commom_sample]
         return obj1, obj2
+
     msg = f"Intersection is only supported between Genotypes and Phenotypes objects. But got {type(obj1)} and {type(obj2)}"
     raise ValueError(msg)

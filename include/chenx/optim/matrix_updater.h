@@ -1,20 +1,39 @@
 #pragma once
 #include <armadillo>
 
-namespace chenx {
+namespace chenx
+{
 using namespace arma;
 template <typename eT>
-class MatrixUpdater {
-   public:
+class MatrixUpdater
+{
+  public:
     MatrixUpdater(const Mat<eT>& X, const Col<eT>& y, const Cube<eT>& zkztr);
     void update(const Col<eT>& var);
-    const Mat<eT>& getVi() const { return _v; }
-    const eT getLogdet_v() const { return _log_det_v; }
-    const Col<eT>& getProj_y() const { return _proj_y; }
-    const Cube<eT>& getPdv() const { return _pdv; }
-    const Mat<eT>& getTxvx() const { return _txvx; }
+    const Mat<eT>& getVi() const
+    {
+        return _v;
+    }
+    const eT getLogdet_v() const
+    {
+        return _log_det_v;
+    }
+    const Col<eT>& getProj_y() const
+    {
+        return _proj_y;
+    }
+    const Cube<eT>& getPdv() const
+    {
+        return _pdv;
+    }
+    const Mat<eT>& getTxvx() const
+    {
+        return _txvx;
+    }
 
-   private:
+    static eT inv_log_det_sympd(Mat<eT>& V);
+
+  private:
     const Mat<eT>& _X;
     const Col<eT>& _y;
     const Cube<eT>& _zkztr;
@@ -28,8 +47,6 @@ class MatrixUpdater {
     void _cal_pdv();
 };
 
-template <typename eT>
-eT inv_log_det_sympd(Mat<eT>& V);
-}  // namespace chenx
+} // namespace chenx
 
 #include "matrix_updater_impl.h"

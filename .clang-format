@@ -1,7 +1,7 @@
 ---
 # https://clang.llvm.org/docs/ClangFormatStyleOptions.html
 # customized using https://zed0.co.uk/clang-format-configurator/
-BasedOnStyle: Chromium
+BasedOnStyle: Microsoft
 AllowShortBlocksOnASingleLine: "false"
 AllowShortCaseLabelsOnASingleLine: "false"
 AllowShortIfStatementsOnASingleLine: "false"
@@ -12,12 +12,14 @@ BinPackParameters: "false"
 BreakBeforeBraces: Allman
 BreakBeforeBinaryOperators: All
 BreakInheritanceList: BeforeComma
-ColumnLimit: "120"
+ColumnLimit: "80"
 CompactNamespaces: "false"
 FixNamespaceComments: "true"
 IndentWidth: 4
 UseTab: Never
 ContinuationIndentWidth: 4
 AlignAfterOpenBracket: AlwaysBreak
-IndentCaseLabels: true
-AllowAllParametersOfDeclarationOnNextLine: false
+IndentCaseLabels: "true"
+AllowAllParametersOfDeclarationOnNextLine: "false"
+DerivePointerAlignment: "false"
+PointerAlignment: Left

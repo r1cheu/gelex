@@ -13,8 +13,8 @@
  */
 #pragma once
 
-#include <cmath>
 #include "chenx/distance/lmetric.h"
+#include <cmath>
 namespace chenx
 {
 
@@ -30,18 +30,23 @@ namespace chenx
  */
 class GaussianKernel
 {
-   public:
+  public:
     /**
      * Default constructor; sets bandwidth to 1.0.
      */
-    GaussianKernel() : bandwidth(1.0), gamma(-0.5) {}
+    GaussianKernel() : bandwidth(1.0), gamma(-0.5)
+    {
+    }
 
     /**
      * Construct the Gaussian kernel with a custom bandwidth.
      *
      * @param bandwidth The bandwidth of the kernel (@f$\mu@f$).
      */
-    GaussianKernel(const double bandwidth) : bandwidth(bandwidth), gamma(-0.5 * std::pow(bandwidth, -2.0)) {}
+    GaussianKernel(const double bandwidth)
+        : bandwidth(bandwidth), gamma(-0.5 * std::pow(bandwidth, -2.0))
+    {
+    }
 
     /**
      * Evaluation of the Gaussian kernel.  This could be generalized to use any
@@ -82,7 +87,10 @@ class GaussianKernel
      * @return K(t) using the bandwidth (@f$\mu@f$) specified in the
      *     constructor.
      */
-    double Gradient(const double t) const { return 2 * t * gamma * std::exp(gamma * std::pow(t, 2.0)); }
+    double Gradient(const double t) const
+    {
+        return 2 * t * gamma * std::exp(gamma * std::pow(t, 2.0));
+    }
 
     /**
      * Obtain the normalization constant of the Gaussian kernel.
@@ -90,10 +98,16 @@ class GaussianKernel
      * @param dimension
      * @return the normalization constant
      */
-    double Normalizer(const size_t dimension) { return std::pow(std::sqrt(2.0 * M_PI) * bandwidth, (double)dimension); }
+    double Normalizer(const size_t dimension)
+    {
+        return std::pow(std::sqrt(2.0 * M_PI) * bandwidth, (double)dimension);
+    }
 
     //! Get the bandwidth.
-    double Bandwidth() const { return bandwidth; }
+    double Bandwidth() const
+    {
+        return bandwidth;
+    }
 
     //! Modify the bandwidth.  This takes an argument because we must update the
     //! precalculated constant (gamma).
@@ -104,9 +118,12 @@ class GaussianKernel
     }
 
     //! Get the precalculated constant.
-    double Gamma() const { return gamma; }
+    double Gamma() const
+    {
+        return gamma;
+    }
 
-   private:
+  private:
     //! Kernel bandwidth.
     double bandwidth;
 
@@ -115,4 +132,4 @@ class GaussianKernel
     double gamma;
 };
 
-}  // namespace chenx
+} // namespace chenx

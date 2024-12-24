@@ -81,17 +81,17 @@ class Phenotypes(Basetypes):
 
         rng = np.random.default_rng(seed)
         data_copy = self.data.copy()
-
+        num_samples = data_copy.shape[0]
         if isinstance(input, float) and 0 < input < 1:
             # Set a percentage of values to NaN
-            num_nan = int(self.num_samples * input)
-            nan_indices = rng.choice(self.num_samples, num_nan, replace=False)
+            num_nan = int(num_samples * input)
+            nan_indices = rng.choice(num_samples, num_nan, replace=False)
             data_copy.iloc[nan_indices, :] = np.nan
 
         elif isinstance(input, int | float) and input >= 1:
             # Set a specific number of rows to NaN
             num_rows_to_nan = min(int(input), self.num_samples)
-            nan_indices = rng.choice(self.num_samples, num_rows_to_nan, replace=False)
+            nan_indices = rng.choice(num_samples, num_rows_to_nan, replace=False)
             data_copy.iloc[nan_indices, :] = np.nan
 
         elif isinstance(input, list | np.ndarray):

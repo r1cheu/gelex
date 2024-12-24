@@ -1,21 +1,31 @@
 #pragma once
 #include <armadillo>
 
-namespace chenx {
+namespace chenx
+{
 using namespace arma;
 template <typename eT>
-class VarianceUpdater {
-   public:
-    VarianceUpdater(Col<eT>& init_var, const Col<eT>& y);
+class VarianceUpdater
+{
+  public:
+    VarianceUpdater(Col<eT>&& init_var, const Col<eT>& y);
     virtual ~VarianceUpdater() = default;
-    Col<eT> update(const Mat<eT>& proj_y, const Cube<eT>& pdv, double lambda = 1.0);
+    Col<eT> update(
+        const Mat<eT>& proj_y,
+        const Cube<eT>& pdv,
+        double lambda = 1.0);
     eT get_vardiff();
-    Col<eT> get_var() { return _var; }
+    Col<eT> get_var()
+    {
+        return _var;
+    }
+    const Col<eT>& get_y() const
+    {
+        return _y;
+    }
 
-   protected:
+  private:
     const Col<eT>& _y;
-
-   private:
     Col<eT>& _var;
     double y_var;
     Col<eT> _prev_var;
@@ -25,44 +35,76 @@ class VarianceUpdater {
     void _constrain_var(Col<eT>& var);
     void _cal_score(const Mat<eT>& proj_y, const Cube<eT>& pdv);
     void _cal_info_matrix(const Mat<eT>& proj_y, const Cube<eT>& pdv);
-    virtual eT _cal_info_element(const Mat<eT>& proj_y, const Mat<eT>& pdvi, const Mat<eT>& pdvj) = 0;
+    virtual eT _cal_info_element(
+        const Mat<eT>& proj_y,
+        const Mat<eT>& pdvi,
+        const Mat<eT>& pdvj)
+        = 0;
 };
 
 // Fisher scoring algorithm
 template <typename eT>
-class FisherUpdater : public VarianceUpdater<eT> {
-   public:
-    FisherUpdater(Col<eT>& init_var, const Col<eT>& y) : VarianceUpdater<eT>(init_var, y) {}
+class FisherUpdater : public VarianceUpdater<eT>
+{
+  public:
+    FisherUpdater(Col<eT>& init_var, const Col<eT>& y)
+        : VarianceUpdater<eT>{init_var, y}
+    {
+    }
 
-   private:
-    virtual eT _cal_info_element(const Mat<eT>& proj_y, const Mat<eT>& pdvi, const Mat<eT>& pdvj) override {
+  private:
+    virtual eT _cal_info_element(
+        const Mat<eT>& proj_y,
+        const Mat<eT>& pdvi,
+        const Mat<eT>& pdvj) override
+    {
         return -0.5 * trace(pdvi * pdvj);
     }
 };
 
 // Newton-Raphson algorithm
 template <typename eT>
-class NRUpdater : public VarianceUpdater<eT> {
-   public:
-    NRUpdater(Col<eT>& init_var, const Col<eT>& y) : VarianceUpdater<eT>(init_var, y) {}
+class NRUpdater : public VarianceUpdater<eT>
+{
+  public:
+    NRUpdater(Col<eT>& init_var, const Col<eT>& y)
+        : VarianceUpdater<eT>{init_var, y}
+    {
+    }
 
-   private:
-    virtual eT _cal_info_element(const Mat<eT>& proj_y, const Mat<eT>& pdvi, const Mat<eT>& pdvj) override {
-        return 0.5 * trace(pdvi * pdvj) - as_scalar(this->_y.t() * pdvi * pdvj * proj_y);
+  private:
+    virtual eT _cal_info_element(
+        const Mat<eT>& proj_y,
+        const Mat<eT>& pdvi,
+        const Mat<eT>& pdvj) override
+    {
+        return 0.5 * trace(pdvi * pdvj)
+               - as_scalar(
+                   VarianceUpdater<eT>::get_y().t() * pdvi * pdvj * proj_y);
     }
 };
 
 // Average Information algorithm
 template <typename eT>
-class AIUpdater : public VarianceUpdater<eT> {
-   public:
-    AIUpdater(Col<eT>& init_var, const Col<eT>& y) : VarianceUpdater<eT>(init_var, y) {}
+class AIUpdater : public VarianceUpdater<eT>
+{
+  public:
+    AIUpdater(Col<eT>& init_var, const Col<eT>& y)
+        : VarianceUpdater<eT>{init_var, y}
+    {
+    }
 
-   private:
-    virtual eT _cal_info_element(const Mat<eT>& proj_y, const Mat<eT>& pdvi, const Mat<eT>& pdvj) override {
-        return -0.5 * as_scalar(this->_y.t() * pdvi * pdvj * proj_y);
+  private:
+    virtual eT _cal_info_element(
+        const Mat<eT>& proj_y,
+        const Mat<eT>& pdvi,
+        const Mat<eT>& pdvj) override
+    {
+        return -0.5
+               * as_scalar(
+                   VarianceUpdater<eT>::get_y().t() * pdvi * pdvj * proj_y);
     }
 };
-}  // namespace chenx
+} // namespace chenx
 
 #include "variance_updater_impl.h"

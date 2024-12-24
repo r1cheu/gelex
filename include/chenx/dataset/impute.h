@@ -1,7 +1,8 @@
 #pragma once
 #include <armadillo>
 
-namespace chenx {
+namespace chenx
+{
 using namespace arma;
 template <typename T>
 void value_impute(Mat<T>& genotype, const Col<T>& values);
@@ -11,6 +12,6 @@ Col<T> mean_impute(Mat<T>& genotype);
 
 template <typename T>
 Col<T> median_impute(Mat<T>& genotype);
-}  // namespace chenx
+} // namespace chenx
 
 #include "impute_impl.h"

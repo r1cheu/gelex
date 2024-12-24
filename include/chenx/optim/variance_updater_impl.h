@@ -7,7 +7,8 @@ namespace chenx
 
 using namespace arma;
 template <typename eT>
-VarianceUpdater<eT>::VarianceUpdater(Col<eT>& init_var, const Col<eT>& y) : _var{init_var}, _y{y}
+VarianceUpdater<eT>::VarianceUpdater(Col<eT>&& init_var, const Col<eT>& y)
+    : _var{std::move(init_var)}, _y{y}
 {
     auto n = _var.n_elem;
     y_var = var(y);
@@ -25,10 +26,10 @@ void VarianceUpdater<eT>::_constrain_var(Col<eT>& var)
 
     for (size_t i = 0; i < var.n_elem; i++)
     {
-        if (var(i) < 0)
+        if (var.at(i) < 0)
         {
-            delta += y_var * constr_scale - var(i);
-            var(i) = y_var * constr_scale;
+            delta += y_var * constr_scale - var.at(i);
+            var.at(i) = y_var * constr_scale;
             constrained(i) = 1;
         }
     }
@@ -36,37 +37,46 @@ void VarianceUpdater<eT>::_constrain_var(Col<eT>& var)
 
     for (size_t i = 0; i < var.n_elem; i++)
     {
-        if (constrained(i) == 0 && var(i) > delta)
+        if (constrained.at(i) == 0 && var.at(i) > delta)
         {
-            var(i) -= delta;
+            var.at(i) -= delta;
         }
     }
 
     if (sum(constrained) > var.n_elem / 2)
     {
-        std::cout << "half of the variance components are constrained! The estimate is not reliable. " << std::endl;
+        std::cout << "half of the variance components are constrained! The "
+                     "estimate is not reliable. "
+                  << std::endl;
     }
 }
 
 template <typename eT>
 void VarianceUpdater<eT>::_cal_score(const Mat<eT>& proj_y, const Cube<eT>& pdv)
 {
-    _score(0) = -0.5 * (trace(pdv.slice(0)) - as_scalar(_y.t() * pdv.slice(0) * proj_y));
+    _score(0)
+        = -0.5
+          * (trace(pdv.slice(0)) - as_scalar(_y.t() * pdv.slice(0) * proj_y));
     for (size_t i{1}; i < _var.n_elem; ++i)
     {
-        _score(i) = -0.5 * (trace(pdv.slice(i)) - as_scalar(_y.t() * pdv.slice(i) * proj_y));
+        _score(i) = -0.5
+                    * (trace(pdv.slice(i))
+                       - as_scalar(_y.t() * pdv.slice(i) * proj_y));
     }
 }
 
 template <typename eT>
-void VarianceUpdater<eT>::_cal_info_matrix(const Mat<eT>& proj_y, const Cube<eT>& pdv)
+void VarianceUpdater<eT>::_cal_info_matrix(
+    const Mat<eT>& proj_y,
+    const Cube<eT>& pdv)
 {
     auto n = pdv.n_slices;
     for (size_t i = 0; i < n; i++)
     {
         for (size_t j = 0; j < n; j++)
         {
-            _info_matrix(i, j) = _cal_info_element(proj_y, pdv.slice(i), pdv.slice(j));
+            _info_matrix(i, j)
+                = _cal_info_element(proj_y, pdv.slice(i), pdv.slice(j));
             if (i != j)
             {
                 _info_matrix(j, i) = _info_matrix(i, j);
@@ -76,7 +86,10 @@ void VarianceUpdater<eT>::_cal_info_matrix(const Mat<eT>& proj_y, const Cube<eT>
 }
 
 template <typename eT>
-Col<eT> VarianceUpdater<eT>::update(const Mat<eT>& proj_y, const Cube<eT>& pdv, double lambda)
+Col<eT> VarianceUpdater<eT>::update(
+    const Mat<eT>& proj_y,
+    const Cube<eT>& pdv,
+    const double lambda)
 {
     _prev_var = _var;
     _cal_score(proj_y, pdv);
@@ -98,4 +111,4 @@ eT VarianceUpdater<eT>::get_vardiff()
     return norm(_var - _prev_var) / norm(_var);
 }
 
-}  // namespace chenx
+} // namespace chenx

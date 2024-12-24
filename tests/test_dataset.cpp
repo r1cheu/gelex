@@ -1,20 +1,23 @@
-#include <gtest/gtest.h>
 #include "armadillo"
 #include "chenx/dataset/encode.h"
 #include "chenx/dataset/grm.h"
 #include "chenx/dataset/impute.h"
 #include "chenx/optim/zkztr.h"
+#include <gtest/gtest.h>
 
-namespace chenx {
+namespace chenx
+{
 using namespace arma;
-TEST(FillNaTest, Mean) {
+TEST(FillNaTest, Mean)
+{
     dmat X = {{NAN, 2.0, 3.0}, {4.0, NAN, 6.0}, {7.0, 8.0, NAN}};
     mean_impute(X);
     dmat expected = {{5.5, 2.0, 3.0}, {4.0, 5.0, 6.0}, {7.0, 8.0, 4.5}};
     ASSERT_TRUE(arma::approx_equal(X, expected, "absdiff", 1e-10));
 }
 
-TEST(FillNaTest, MedianEven) {
+TEST(FillNaTest, MedianEven)
+{
     dmat X = {{NAN, 2.0, 3.0}, {4.0, NAN, 6.0}, {7.0, 8.0, NAN}};
     median_impute(X);
 
@@ -23,25 +26,36 @@ TEST(FillNaTest, MedianEven) {
     ASSERT_TRUE(arma::approx_equal(X, expected, "absdiff", 1e-10));
 }
 
-TEST(FillNaTest, MedianOdd) {
-    dmat X = {{NAN, 2.0, 3.0}, {4.0, NAN, 6.0}, {7.0, 8.0, NAN}, {1.0, 2.0, 3.0}};
+TEST(FillNaTest, MedianOdd)
+{
+    dmat X
+        = {{NAN, 2.0, 3.0}, {4.0, NAN, 6.0}, {7.0, 8.0, NAN}, {1.0, 2.0, 3.0}};
     median_impute(X);
 
-    dmat expected = {{4.0, 2.0, 3.0}, {4.0, 2.0, 6.0}, {7.0, 8.0, 3.0}, {1.0, 2.0, 3.0}};
+    dmat expected
+        = {{4.0, 2.0, 3.0}, {4.0, 2.0, 6.0}, {7.0, 8.0, 3.0}, {1.0, 2.0, 3.0}};
 
     ASSERT_TRUE(arma::approx_equal(X, expected, "absdiff", 1e-10));
 }
 
-TEST(EncodeTest, Hybird) {
-    dmat X = {{1, 0, 2, 2}, {1, 2, 2, 1}, {2, 2, 2, 2}, {2, 2, 2, 1}, {1, 0, 2, 2}};
+TEST(EncodeTest, Hybird)
+{
+    dmat X = {
+        {1, 0, 2, 2}, {1, 2, 2, 1}, {2, 2, 2, 2}, {2, 2, 2, 1}, {1, 0, 2, 2}};
     dmat guide = {{0, 0, 0, 2}, {1, 1.5, 2, 2.5}};
     hybird(X, guide);
 
-    dmat Y = {{1, 0, 2, 0}, {1, 2, 2, 2.5}, {2, 2, 2, 0}, {2, 2, 2, 2.5}, {1, 0, 2, 0}};
+    dmat Y
+        = {{1, 0, 2, 0},
+           {1, 2, 2, 2.5},
+           {2, 2, 2, 0},
+           {2, 2, 2, 2.5},
+           {1, 0, 2, 0}};
     bool result = approx_equal(X, Y, "absdiff", 1e-10);
 }
 
-TEST(HybirdValue, Basic) {
+TEST(HybirdValue, Basic)
+{
     dmat X = {
         {0, 1, 2},
         {1, 0, 2},
@@ -54,7 +68,8 @@ TEST(HybirdValue, Basic) {
     ASSERT_TRUE(approx_equal(result, expected, "absdiff", 1e-10));
 }
 
-TEST(HybirdValue, MissGenotypeHandling) {
+TEST(HybirdValue, MissGenotypeHandling)
+{
     dmat X = {
         {0, 1, 2},
         {1, 0, 2},
@@ -70,7 +85,8 @@ TEST(HybirdValue, MissGenotypeHandling) {
     ASSERT_TRUE(approx_equal(result, expected, "absdiff", 1e-10));
 }
 
-TEST(HybirdValue, NaNHandling) {
+TEST(HybirdValue, NaNHandling)
+{
     dmat X = {
         {0, 1, 2},
         {1, 0, datum::nan},
@@ -85,24 +101,28 @@ TEST(HybirdValue, NaNHandling) {
 
 // Helper function to create identity matrix
 template <typename eT>
-Mat<eT> create_identity_matrix(size_t size) {
+Mat<eT> create_identity_matrix(size_t size)
+{
     return eye(size, size);
 }
 
 template <typename eT>
-SpMat<eT> create_identity_sparse_matrix(size_t size) {
+SpMat<eT> create_identity_sparse_matrix(size_t size)
+{
     return speye(size, size);
 }
 
 // Helper function to create non-identity matrix
 template <typename eT>
-Mat<eT> create_non_identity_matrix(size_t size) {
+Mat<eT> create_non_identity_matrix(size_t size)
+{
     Mat<eT> mat(size, size, fill::randu);
     return mat;
 }
 
 // Test when both z and k are identity matrices
-TEST(CalZkzTest, BothIdentity) {
+TEST(CalZkzTest, BothIdentity)
+{
     SpMat<double> z = create_identity_sparse_matrix<double>(3);
     Mat<double> k = create_identity_matrix<double>(3);
     Mat<double> result = cal_zkz(z, k);
@@ -110,7 +130,8 @@ TEST(CalZkzTest, BothIdentity) {
 }
 
 // Test when z is identity and k is non-identity
-TEST(CalZkzTest, ZIdentityKNonIdentity) {
+TEST(CalZkzTest, ZIdentityKNonIdentity)
+{
     SpMat<double> z = create_identity_sparse_matrix<double>(3);
     Mat<double> k = create_non_identity_matrix<double>(3);
     Mat<double> result = cal_zkz(z, k);
@@ -118,7 +139,8 @@ TEST(CalZkzTest, ZIdentityKNonIdentity) {
 }
 
 // Test when z is non-identity and k is identity
-TEST(CalZkzTest, ZNonIdentityKIdentity) {
+TEST(CalZkzTest, ZNonIdentityKIdentity)
+{
     SpMat<double> z = create_identity_sparse_matrix<double>(3);
     Mat<double> k = create_identity_matrix<double>(3);
     Mat<double> result = cal_zkz(z, k);
@@ -127,7 +149,8 @@ TEST(CalZkzTest, ZNonIdentityKIdentity) {
 }
 
 // Test when both z and k are non-identity matrices
-TEST(CalZkzTest, BothNonIdentity) {
+TEST(CalZkzTest, BothNonIdentity)
+{
     SpMat<double> z = create_identity_sparse_matrix<double>(3);
     Mat<double> k = create_non_identity_matrix<double>(3);
     Mat<double> result = cal_zkz(z, k);
@@ -135,4 +158,4 @@ TEST(CalZkzTest, BothNonIdentity) {
     ASSERT_TRUE(approx_equal(result, expected, "absdiff", 0.0001));
 }
 
-}  // namespace chenx
+} // namespace chenx

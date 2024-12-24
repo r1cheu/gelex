@@ -6,13 +6,15 @@ namespace chenx
 template <typename KernelType, typename MatType>
 class NaiveKernelRule
 {
-   public:
+  public:
     /**
      * Construct the exact kernel matrix.
      *
      * @param data Input data points.
      */
-    static MatType ApplyKernelMatrix(const MatType& data, KernelType kernel = KernelType())
+    static MatType ApplyKernelMatrix(
+        const MatType& data,
+        KernelType kernel = KernelType())
     {
         // Construct the kernel matrix.
         MatType kernelMatrix;
@@ -20,15 +22,16 @@ class NaiveKernelRule
         kernelMatrix.set_size(data.n_cols, data.n_cols);
 
         // Note that we only need to calculate the upper triangular part of the
-        // kernel matrix, since it is symmetric. This helps minimize the number of
-        // kernel evaluations.
+        // kernel matrix, since it is symmetric. This helps minimize the number
+        // of kernel evaluations.
 #pragma omp parallel for schedule(dynamic)
         for (size_t i = 0; i < data.n_cols; ++i)
         {
             for (size_t j = i; j < data.n_cols; ++j)
             {
                 // Evaluate the kernel on these two points.
-                kernelMatrix.at(i, j) = kernel.Evaluate(data.unsafe_col(i), data.unsafe_col(j));
+                kernelMatrix.at(i, j)
+                    = kernel.Evaluate(data.unsafe_col(i), data.unsafe_col(j));
             }
         }
 
@@ -40,4 +43,4 @@ class NaiveKernelRule
         return kernelMatrix;
     }
 };
-}  // namespace chenx
+} // namespace chenx

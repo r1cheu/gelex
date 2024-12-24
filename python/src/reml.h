@@ -8,14 +8,16 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
-namespace binds {
+namespace binds
+{
 using namespace arma;
 namespace py = pybind11;
 using namespace chenx;
 
 template <typename eT>
-class REMLLoop {
-   public:
+class REMLLoop
+{
+  public:
     REMLLoop(
         const py::array_t<eT>& y_arr,
         const py::array_t<eT>& X_arr,
@@ -34,7 +36,7 @@ class REMLLoop {
     py::array_t<eT> get_blup() const;
     py::array_t<eT> get_gebv(const py::array_t<eT>& full_X) const;
 
-   private:
+  private:
     Cube<eT> _zkztr;
     const Col<eT> _y;
     const Mat<eT> _X;
@@ -43,9 +45,14 @@ class REMLLoop {
     std::vector<std::string> _rand_names;
     bool _converged = false;
     void _init_varcomp(Col<eT>& varcomp);
-    void
-    _init_var_updater(Col<eT>& varcomp, std::string_view method, std::unique_ptr<VarianceUpdater<eT>>& var_updater);
-    eT _cal_loglik(const double& logdet_v, const Mat<eT>& txvx, const Mat<eT>& proj_y);
+    void _init_var_updater(
+        Col<eT>& varcomp,
+        std::string_view method,
+        std::unique_ptr<VarianceUpdater<eT>>& var_updater);
+    eT _cal_loglik(
+        const double& logdet_v,
+        const Mat<eT>& txvx,
+        const Mat<eT>& proj_y);
     bool _has_converged(eT var_diff, eT log_diff, eT tolerance);
     void set_blup(const Mat<eT>& Vi);
     void set_beta(const Mat<eT>& txvx, const Mat<eT>& Vi);
@@ -53,6 +60,6 @@ class REMLLoop {
     Col<eT> _beta;
     Mat<eT> _blup;
 };
-}  // namespace binds
+} // namespace binds
 
 #include "reml_impl.h"

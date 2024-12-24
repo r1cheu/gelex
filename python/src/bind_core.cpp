@@ -1,11 +1,11 @@
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <carma>
 #include "chenx/dataset/encode.h"
 #include "chenx/dataset/grm.h"
 #include "pybind11/iostream.h"
 #include "reml.h"
+#include <carma>
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 namespace binds
 {
@@ -14,14 +14,18 @@ using namespace carma;
 using namespace chenx;
 namespace py = pybind11;
 
-py::array_t<double> hybird_value(const py::array_t<double>& genotype_arr, const py::array_t<double>& phenotype_arr)
+py::array_t<double> hybird_value(
+    const py::array_t<double>& genotype_arr,
+    const py::array_t<double>& phenotype_arr)
 {
     Mat<double> genotype = carma::arr_to_mat_view(genotype_arr);
     Col<double> phenotype = carma::arr_to_col_view(phenotype_arr);
     return carma::mat_to_arr(chenx::hybird_value(genotype, phenotype));
 }
 
-void hybird(py::array_t<double>& genotype_arr, const py::array_t<double>& hybird_value_arr)
+void hybird(
+    py::array_t<double>& genotype_arr,
+    const py::array_t<double>& hybird_value_arr)
 {
     Mat<double> genotype = carma::arr_to_mat(genotype_arr);
     Mat<double> hybird_value = carma::arr_to_mat_view(hybird_value_arr);
@@ -54,10 +58,28 @@ py::array_t<double> Dmat_rbf(py::array_t<double>& X_arr, double bandwidth)
 
 void bind_dataset(py::module& m)
 {
-    m.def("_hybrid_value", &hybird_value, "calculate hybird value", py::arg("genotype"), py::arg("phenotype"));
-    m.def("_hybrid", &hybird, "Replace D value", py::arg("genotype"), py::arg("hybird_value"));
-    m.def("_Amat", &Amat, "Additive Genetic Relationship Matrix", py::arg("genotype"));
-    m.def("_Dmat", &Dmat, "Dominance Genetic Relationship Matrix", py::arg("genotype"));
+    m.def(
+        "_hybrid_value",
+        &hybird_value,
+        "calculate hybird value",
+        py::arg("genotype"),
+        py::arg("phenotype"));
+    m.def(
+        "_hybrid",
+        &hybird,
+        "Replace D value",
+        py::arg("genotype"),
+        py::arg("hybird_value"));
+    m.def(
+        "_Amat",
+        &Amat,
+        "Additive Genetic Relationship Matrix",
+        py::arg("genotype"));
+    m.def(
+        "_Dmat",
+        &Dmat,
+        "Dominance Genetic Relationship Matrix",
+        py::arg("genotype"));
     m.def(
         "_Amat_rbf",
         &Amat_rbf,
@@ -94,8 +116,15 @@ PYBIND11_MODULE(_core, m)
                bool verbose)
             {
                 // Redirect std::cout to sys.stdout
-                py::scoped_ostream_redirect redirect(std::cout, py::module_::import("sys").attr("stdout"));
-                self.run(varcomp_prior_arr, method, em_init, max_iteration, tolerance, verbose);
+                py::scoped_ostream_redirect redirect(
+                    std::cout, py::module_::import("sys").attr("stdout"));
+                self.run(
+                    varcomp_prior_arr,
+                    method,
+                    em_init,
+                    max_iteration,
+                    tolerance,
+                    verbose);
             },
             py::arg("varcomp"),
             py::arg("method"),
@@ -108,4 +137,4 @@ PYBIND11_MODULE(_core, m)
         .def("get_blup", &REMLLoop<double>::get_blup)
         .def("get_gebv", &REMLLoop<double>::get_gebv, py::arg("full_X_arr"));
 }
-}  // namespace binds
+} // namespace binds
