@@ -1,15 +1,13 @@
-#pragma once
-#include "encode.h"
+#include "chenx/data/encode.h"
+
 #include <omp.h>
 
 namespace chenx
 {
 using namespace arma;
-
-template <typename T>
-Mat<T> hybird_value(const Mat<T>& genotype, const Col<T>& phenotype)
+dmat ComputeHybirdValue(const dmat& genotype, const dvec& phenotype)
 {
-    Mat<T> hybird_value_mat(2, genotype.n_cols);
+    dmat hybird_value_mat(2, genotype.n_cols);
 
 #pragma omp parallel for schedule(static, 8)
     for (size_t i = 0; i < genotype.n_cols; i++)
@@ -43,26 +41,25 @@ Mat<T> hybird_value(const Mat<T>& genotype, const Col<T>& phenotype)
         if (mean[0] > mean[2])
         {
             double d = 2 * (mean[1] - mean[2]) / (mean[0] - mean[2]);
-            hybird_value_mat.col(i) = {2, static_cast<T>(std::max(d, 0.0))};
+            hybird_value_mat.col(i) = {2, std::max(d, 0.0)};
         }
         else if (mean[0] < mean[2])
         {
             double d = 2 * (mean[1] - mean[0]) / (mean[2] - mean[0]);
-            hybird_value_mat.col(i) = {0, static_cast<T>(std::max(d, 0.0))};
+            hybird_value_mat.col(i) = {0, std::max(d, 0.0)};
         }
     }
     return hybird_value_mat;
 }
 
-template <typename T>
-void hybird(Mat<T>& genotype, const Mat<T>& hybird_value)
+void HybridEncode(dmat& genotype, dmat& hybird_value)
 {
 #pragma omp parallel for schedule(static, 8)
     for (size_t i = 0; i < genotype.n_cols; i++)
     {
-        T value = hybird_value(1, i);
+        double value = hybird_value(1, i);
         if (hybird_value(0, i) == 0)
-        { // if 0, only replace 1
+        {  // if 0, only replace 1
             for (size_t j = 0; j < genotype.n_rows; j++)
             {
                 if (genotype(j, i) == 1)
@@ -72,7 +69,7 @@ void hybird(Mat<T>& genotype, const Mat<T>& hybird_value)
             }
         }
         else
-        { // if 2, we swap 0 and 2
+        {  // if 2, we swap 0 and 2
             for (size_t j = 0; j < genotype.n_rows; j++)
             {
                 switch (static_cast<int>(genotype(j, i)))
@@ -91,4 +88,4 @@ void hybird(Mat<T>& genotype, const Mat<T>& hybird_value)
         }
     }
 }
-} // namespace chenx
+}  // namespace chenx

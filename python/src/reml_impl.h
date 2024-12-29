@@ -5,7 +5,7 @@
 // clang-format on
 #include <chenx/log/log.h>
 #include <chenx/optim/em_updater.h>
-#include <chenx/optim/matrix_updater.h>
+#include <chenx/optim/gradient_calculater.h>
 #include <chenx/optim/variance_updater.h>
 #include <chenx/optim/zkztr.h>
 #include <pybind11/numpy.h>
@@ -24,8 +24,10 @@ REMLLoop<eT>::REMLLoop(
     const py::array_t<uword>& z_index_arr,
     const py::array_t<eT>& rands_arr,
     std::vector<std::string> rand_names)
-    : _y{carma::arr_to_col_view(y_arr)}, _X{carma::arr_to_mat_view(X_arr)},
-      _rands{carma::arr_to_cube_view(rands_arr)}, _rand_names{rand_names}
+    : _y{carma::arr_to_col_view(y_arr)},
+      _X{carma::arr_to_mat_view(X_arr)},
+      _rands{carma::arr_to_cube_view(rands_arr)},
+      _rand_names{rand_names}
 {
     Col<uword> z_index = carma::arr_to_col(z_index_arr);
     _Z = create_z<eT>(_rands.n_slices, z_index, _rands.n_rows);
@@ -203,4 +205,4 @@ py::array_t<eT> REMLLoop<eT>::get_gebv(const py::array_t<eT>& full_X_arr) const
     Mat<eT> full_X = carma::arr_to_mat_view(full_X_arr);
     return carma::col_to_arr(Col<eT>(full_X * _beta + sum(_blup, 1)));
 }
-} // namespace binds
+}  // namespace binds

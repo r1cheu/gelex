@@ -1,12 +1,12 @@
 
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <carma>
 #include "chenx/dataset/encode.h"
 #include "chenx/dataset/grm.h"
 #include "pybind11/iostream.h"
 #include "reml.h"
-#include <carma>
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 
 namespace binds
 {
@@ -138,4 +138,4 @@ PYBIND11_MODULE(_core, m)
         .def("get_blup", &REMLLoop<double>::get_blup)
         .def("get_gebv", &REMLLoop<double>::get_gebv, py::arg("full_X_arr"));
 }
-} // namespace binds
+}  // namespace binds
