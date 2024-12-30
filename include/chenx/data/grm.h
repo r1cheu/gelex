@@ -8,7 +8,7 @@
 
 namespace chenx
 {
-using namespace arma;
+using arma::dmat;
 
 dmat AdditiveGrm(dmat& genotype);
 dmat DomainanceGrm(dmat& genotype);

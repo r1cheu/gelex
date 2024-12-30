@@ -4,18 +4,18 @@ namespace chenx
 {
 dvec SecondOrderOptimizer::Step(const LinearMixedModel& model)
 {
-    dvec simga{model.sigma()};
+    dvec sigma{model.sigma()};
     dvec first_grad = ComputeFirstGrad(model);
     dmat hess = ComputeHess(model);
     dmat hess_inv;
     if (!pinv(hess_inv, hess))
     {
-        std::cout << "Hessian matrix is not invertible!" << std::endl;
+        std::cout << "Hessian matrix is not invertible!\n";
         throw std::runtime_error("Hessian matrix is not invertible!");
     }
     dvec delta = -hess_inv * first_grad;
-    simga += delta;
-    return simga;
+    sigma += delta;
+    return OptimizerBase::Constrain(sigma, model.y_var());
 };
 
 dvec SecondOrderOptimizer::ComputeFirstGrad(const LinearMixedModel& model)
@@ -26,7 +26,7 @@ dvec SecondOrderOptimizer::ComputeFirstGrad(const LinearMixedModel& model)
     const dcube& pdv = model.pdv();
     uword n = y.n_elem;
 
-    dvec first_grad(n, fill::zeros);
+    dvec first_grad(n, arma::fill::zeros);
 
     for (size_t i{0}; i < n; ++i)
     {
@@ -40,7 +40,7 @@ dvec SecondOrderOptimizer::ComputeFirstGrad(const LinearMixedModel& model)
 dmat SecondOrderOptimizer::ComputeHess(const LinearMixedModel& model)
 {
     uword n = model.sigma().n_elem;
-    dmat hess(n, n, fill::zeros);
+    dmat hess(n, n, arma::fill::zeros);
     for (size_t i{0}; i < n; ++i)
     {
         for (size_t j{i}; j < n; ++j)

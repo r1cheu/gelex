@@ -1,10 +1,11 @@
 #include "chenx/data/encode.h"
 
 #include <omp.h>
+#include <array>
 
 namespace chenx
 {
-using namespace arma;
+using arma::dvec;
 dmat ComputeHybirdValue(const dmat& genotype, const dvec& phenotype)
 {
     dmat hybird_value_mat(2, genotype.n_cols);
@@ -12,8 +13,8 @@ dmat ComputeHybirdValue(const dmat& genotype, const dvec& phenotype)
 #pragma omp parallel for schedule(static, 8)
     for (size_t i = 0; i < genotype.n_cols; i++)
     {
-        double sum[3] = {0, 0, 0};
-        size_t count[3] = {0, 0, 0};
+        std::array<double, 3> sum{0, 0, 0};
+        std::array<size_t, 3> count{0, 0, 0};
 
         for (size_t j = 0; j < genotype.n_rows; j++)
         {
@@ -30,14 +31,14 @@ dmat ComputeHybirdValue(const dmat& genotype, const dvec& phenotype)
 
         if (count[0] == 0 || count[1] == 0 || count[2] == 0)
         {
-            // TODO add user warning
             hybird_value_mat.col(i) = {0, 1};
             continue;
         }
 
-        double mean[3]
-            = {sum[0] / count[0], sum[1] / count[1], sum[2] / count[2]};
-
+        std::array<double, 3> mean
+            = {sum[0] / static_cast<double>(count[0]),
+               sum[1] / static_cast<double>(count[1]),
+               sum[2] / static_cast<double>(count[2])};
         if (mean[0] > mean[2])
         {
             double d = 2 * (mean[1] - mean[2]) / (mean[0] - mean[2]);
@@ -82,6 +83,8 @@ void HybridEncode(dmat& genotype, dmat& hybird_value)
                         break;
                     case 2:
                         genotype(j, i) = 0;
+                        break;
+                    default:
                         break;
                 }
             }

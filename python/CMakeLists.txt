@@ -22,7 +22,6 @@ else()
   set(BLA_VENDOR "OpenBLAS")
   find_package(BLAS REQUIRED)
 endif()
-add_compile_definitions(ARMA_DONT_USE_WRAPPER)
 add_compile_definitions(FMT_HEADER_ONLY=1)
 
 # Function to add a pybind11 module with common settings

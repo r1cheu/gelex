@@ -1,18 +1,27 @@
 #pragma once
-#include <armadillo>
+#include <memory>
 #include <vector>
+
+#include <spdlog/logger.h>
+#include <armadillo>
 
 namespace chenx
 {
-using namespace arma;
+using arma::dcube;
+using arma::dmat;
+using arma::dvec;
+using arma::sp_dmat;
+using arma::uvec;
+using arma::uword;
+
 class LinearMixedModel
 {
    public:
     LinearMixedModel(
         dvec&& y,
         dmat&& X,
-        const uvec& z_index,
-        dcube&& rands,
+        std::vector<sp_dmat>&& Z,
+        dcube&& covar_matrices_rand,
         std::vector<std::string>&& rand_names);
     const dvec& y() const { return y_; }
     double y_var() const { return y_var_; }
@@ -20,14 +29,15 @@ class LinearMixedModel
     const dvec& beta() const { return beta_; }
     const std::vector<sp_dmat>& Z() const { return Z_; }
     const dcube& zkztr() const { return zkztr_; }
+    const dmat& v() const { return v_; }
     const std::vector<std::string>& rand_names() const { return rand_names_; }
-    const dcube& rands() const { return rands_; }
+    const dcube& covar_matrices_rand() const { return covar_matrices_rand_; }
     const dvec& sigma() const { return sigma_; }
 
-    const double logdet_v() const { return logdet_v_; }
+    double logdet_v() const { return logdet_v_; }
     const dvec& proj_y() const { return proj_y_; }
     const dcube& pdv() const { return pdv_; }
-    const dmat& txvx() const { return txvx_; }
+    const dmat& tx_vinv_x() const { return tx_vinv_x_; }
     void set_sigma(dvec&& sigma)
     {
         sigma_ = std::move(sigma);
@@ -35,6 +45,7 @@ class LinearMixedModel
         ComputeProj();
         ComputePdV();
     }
+    void set_beta(dvec&& beta) { beta_ = std::move(beta); }
     double ComputeLogLikelihood() const;
 
    private:
@@ -48,19 +59,17 @@ class LinearMixedModel
     dcube zkztr_;
 
     std::vector<std::string> rand_names_;
-    dcube rands_;
+    dcube covar_matrices_rand_;
     dvec sigma_;
 
     double logdet_v_{};
     dvec proj_y_;
-    dmat v_, proj_, txvx_;
+    dmat v_, proj_, tx_vinv_x_;
     dcube pdv_;
+    std::shared_ptr<spdlog::logger> logger_;
 
-    std::vector<sp_dmat>
-    CreateZ(const uword& n_z, const uvec& z_index, const uword& n);
-    std::vector<sp_dmat> CreateZ(const uword& n_z, const uword& n);
-    dmat ComputeZKZ(const sp_dmat& z, const dmat& k);
-    dcube ComputeZKZtR(const std::vector<sp_dmat>& z, const dcube& k);
+    static dmat ComputeZKZ(const sp_dmat& z, const dmat& k);
+    dcube ComputeZKZtR();
 
     void ComputeV();
     void ComputeProj();

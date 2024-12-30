@@ -13,14 +13,14 @@ dvec ExpectationMaximizationOptimizer::Step(const LinearMixedModel& model)
 
     for (size_t i{0}; i < model.sigma().n_elem; ++i)
     {
-        sigma.at(i)
-            = as_scalar(
-                  sigma2.at(i) * (y.t() * pdv.slice(i) * model.proj_y())
-                  + trace(
-                      sigma.at(i) * eye(n, n) - sigma2.at(i) * pdv.slice(i)))
-              / n;
+        sigma.at(i) = as_scalar(
+                          sigma2.at(i) * (y.t() * pdv.slice(i) * model.proj_y())
+                          + trace(
+                              sigma.at(i) * arma::eye(n, n)
+                              - sigma2.at(i) * pdv.slice(i)))
+                      / static_cast<double>(n);
     }
-    return sigma;
+    return OptimizerBase::Constrain(sigma, model.y_var());
 }
 
 }  // namespace chenx

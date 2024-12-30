@@ -1,10 +1,11 @@
 #pragma once
 #include <armadillo>
-#include <cmath>
 
 namespace chenx
 {
-using namespace arma;
-bool check_identity(const dmat& inputs);
-bool check_identity(const sp_dmat& inputs);
+using arma::dmat;
+using arma::sp_dmat;
+bool CheckIdentity(const dmat& inputs);
+bool CheckIdentity(const sp_dmat& inputs);
+std::string ToLowercase(std::string_view input);
 }  // namespace chenx

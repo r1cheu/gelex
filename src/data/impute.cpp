@@ -1,23 +1,20 @@
-#pragma once
 #include <chenx/data/impute.h>
-
+#include <iostream>
 #include "omp.h"
 
 namespace chenx
 {
-using namespace arma;
-
 dvec MeanImpute(dmat& genotype)
 {
     dvec means(genotype.n_cols);
 
-#pragma omp parallel for
+#pragma omp parallel for default(none) shared(std::cerr, genotype, means)
     for (size_t i = 0; i < genotype.n_cols; i++)
     {
         double sum = 0;
         size_t elem_count = 0;
-
         std::vector<size_t> index;
+
         for (size_t j = 0; j < genotype.n_rows; j++)
         {
             if (std::isnan(genotype(j, i)))
@@ -33,24 +30,30 @@ dvec MeanImpute(dmat& genotype)
 
         if (elem_count == 0)
         {
-            throw std::runtime_error(
-                "All elements are missing in column " + std::to_string(i));
+#pragma omp critical
+            {
+                std::cerr << "Warning: All elements are missing in column " << i
+                          << ". Skipping imputation." << '\n';
+            }
+            continue;  // 跳过当前列的处理
         }
 
-        double mean = sum / elem_count;
+        double mean = sum / static_cast<double>(elem_count);
         means(i) = mean;
         for (const auto& j : index)
         {
             genotype(j, i) = mean;
         }
     }
+
     return means;
 }
 
 dvec MedianImpute(dmat& genotype)
 {
     dvec medians(genotype.n_cols);
-#pragma omp parallel for
+
+#pragma omp parallel for default(none) shared(std::cerr, genotype, medians)
     for (size_t i = 0; i < genotype.n_cols; i++)
     {
         std::vector<size_t> index;
@@ -70,8 +73,12 @@ dvec MedianImpute(dmat& genotype)
 
         if (elems_to_keep.size() == 0)
         {
-            throw std::runtime_error(
-                "All elements are missing in column " + std::to_string(i));
+#pragma omp critical
+            {
+                std::cerr << "Warning: All elements are missing in column " << i
+                          << ". Skipping imputation." << '\n';
+            }
+            continue;  // 跳过当前列的处理
         }
 
         double median = arma::median(arma::vec(elems_to_keep));
@@ -82,12 +89,13 @@ dvec MedianImpute(dmat& genotype)
             genotype(j, i) = median;
         }
     }
+
     return medians;
 }
 
 void ValueImpute(dmat& genotype, const dvec& values)
 {
-#pragma omp parallel for
+#pragma omp parallel for default(none) shared(std::cerr, genotype, values)
     for (size_t i = 0; i < genotype.n_cols; i++)
     {
         size_t elem_count = 0;
@@ -105,10 +113,13 @@ void ValueImpute(dmat& genotype, const dvec& values)
 
         if (elem_count == 0)
         {
-            throw std::runtime_error(
-                "All elements are missing in column " + std::to_string(i));
+#pragma omp critical
+            {
+                std::cerr << "Warning: All elements are missing in column " << i
+                          << ". Skipping imputation." << '\n';
+            }
+            continue;  // 跳过当前列的处理
         }
     }
 }
-
 }  // namespace chenx

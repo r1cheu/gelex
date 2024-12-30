@@ -1,0 +1,30 @@
+#pragma once
+#include <memory>
+
+#include <spdlog/logger.h>
+
+#include "chenx/model/linear_mixed_model.h"
+#include "chenx/optim/base_optimizer.h"
+
+namespace chenx
+{
+class Estimator
+{
+   public:
+    Estimator(std::string_view optimizer, size_t max_iter, double tol);
+    void set_optimizer(std::string_view optimizer, size_t max_iter, double tol);
+    void Fit(LinearMixedModel& model, bool em_init = true);
+
+   private:
+    template <typename OptimizerType>
+    static std::unique_ptr<OptimizerBase> CreateOptimizer(
+        size_t max_iter,
+        double tol)
+    {
+        return std::make_unique<OptimizerType>(max_iter, tol);
+    }
+    static dvec ComputeBeta(LinearMixedModel& model);
+    std::unique_ptr<OptimizerBase> optimizer_;
+    std::shared_ptr<spdlog::logger> logger_;
+};
+};  // namespace chenx

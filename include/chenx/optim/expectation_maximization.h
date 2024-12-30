@@ -9,5 +9,10 @@ class ExpectationMaximizationOptimizer : public OptimizerBase
 
    public:
     dvec Step(const LinearMixedModel& model) override;
+
+    std::string name() const noexcept override
+    {
+        return "ExpectationMaximization";
+    }
 };
 }  // namespace chenx

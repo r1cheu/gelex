@@ -1,101 +1,76 @@
 #include "chenx/model/linear_mixed_model.h"
+#include <spdlog/spdlog.h>
 
+#include "chenx/logger.h"
 #include "chenx/utils.h"
 
 namespace chenx
 {
-using namespace arma;
 LinearMixedModel::LinearMixedModel(
     dvec&& y,
     dmat&& X,
-    const uvec& z_index,
-    dcube&& rands,
+    std::vector<sp_dmat>&& Z,
+    dcube&& covar_matrices_rand,
     std::vector<std::string>&& rand_names)
     : y_{std::move(y)},
       X_{std::move(X)},
-      rands_{std::move(rands)},
-      rand_names_{std::move(rand_names)}
+      Z_{std::move(Z)},
+      covar_matrices_rand_{std::move(covar_matrices_rand)},
+      rand_names_{std::move(rand_names)},
+      y_var_{var(y)},
+      logger_{spdlog::get(logger_name)}
 {
-    uword n{X.n_rows}, k{X.n_cols},
-        n_rands{rands.n_slices + 1};  // add 1 for sigma_e
-    y_var_ = var(y);
-    Z_ = CreateZ(n_rands - 1, z_index, rands_.n_rows);
-    zkztr_ = ComputeZKZtR(Z_, rands);
-    beta_.zeros(k);
+    uword n{X.n_rows}, m{X.n_cols};
+    zkztr_ = ComputeZKZtR();
+    uword n_rands = zkztr_.n_slices;
+    beta_.zeros(m);
     sigma_.set_size(n_rands).fill(var(y) / static_cast<double>(n_rands));
 
     proj_y_.zeros(n);
     v_.zeros(n, n);
-    txvx_.zeros(k, k);
+    tx_vinv_x_.zeros(m, m);
     pdv_.zeros(n, n, n_rands);
+    logger_->info("Using {:d} samples", n);
 }
 
 double LinearMixedModel::ComputeLogLikelihood() const
 {
     return -0.5
-           * (logdet_v_ + log_det_sympd(txvx_) + as_scalar(y_.t() * proj_y_));
-}
-
-std::vector<sp_dmat> LinearMixedModel::CreateZ(
-    const uword& n_z,
-    const Col<uword>& z_index,
-    const uword& n)
-{
-    std::vector<sp_dmat> z;
-    z.reserve(n_z);
-    for (size_t i = 0; i < n_z; ++i)
-    {
-        z.emplace_back(speye<sp_dmat>(n, n).cols(z_index).t());
-    }
-    return z;
-}
-
-std::vector<sp_dmat> LinearMixedModel::CreateZ(const uword& n_z, const uword& n)
-{
-    std::vector<sp_dmat> z;
-    z.reserve(n_z);
-    for (size_t i = 0; i < n_z; ++i)
-    {
-        z.emplace_back(speye<sp_dmat>(n, n));
-    }
-    return z;
+           * (logdet_v_ + log_det_sympd(tx_vinv_x_)
+              + as_scalar(y_.t() * proj_y_));
 }
 
 dmat LinearMixedModel::ComputeZKZ(const sp_dmat& z, const dmat& k)
 {
-    bool z_identity = check_identity(z);
-    bool k_identity = check_identity(k);
+    bool z_identity = CheckIdentity(z);
+    bool k_identity = CheckIdentity(k);
 
     if (k_identity)
     {
         return z_identity ? k : dmat(z * z.t());
     }
-    else
-    {
-        return z_identity ? k : dmat(z * k * z.t());
-    }
+    return z_identity ? k : dmat(z * k * z.t());
 }
 
-dcube LinearMixedModel::ComputeZKZtR(
-    const std::vector<sp_dmat>& z,
-    const dcube& k)
+dcube LinearMixedModel::ComputeZKZtR()
 {
-    auto n = z[0].n_rows;
-    dcube result(n, n, k.n_slices + 1, fill::zeros);
+    auto n = Z_[0].n_rows;
+    auto n_rands = covar_matrices_rand_.n_slices;
+    dcube result(n, n, n_rands + 1, arma::fill::zeros);
 
-    for (size_t i = 0; i < k.n_slices; ++i)
+    for (size_t i = 0; i < n_rands; ++i)
     {
-        result.slice(i) = ComputeZKZ(z[i], k.slice(i));
+        result.slice(i) = ComputeZKZ(Z_[i], covar_matrices_rand_.slice(i));
     }
+    result.slice(n_rands).eye();
 
-    result.slice(k.n_slices).eye();
     return result;
 }
 
 void LinearMixedModel::ComputeV()
 {
     v_.zeros();
-    for (size_t i{0}; i < rands_.n_slices; ++i)
+    for (size_t i{0}; i < covar_matrices_rand_.n_slices; ++i)
     {
         v_ += sigma_.at(i) * pdv_.slice(i);
     }
@@ -103,16 +78,19 @@ void LinearMixedModel::ComputeV()
 
 void LinearMixedModel::ComputeProj()
 {
-    logdet_v_ = VinvLogdet(v_);
-    dmat vx = v_ * X_;
-    txvx_ = X_.t() * vx;
-    proj_ = v_ - vx * solve(txvx_, vx.t(), solve_opts::likely_sympd);
+    logdet_v_ = VinvLogdet(v_);  // from here the v_ matrix is inverted
+    dmat vinv_x = v_ * X_;
+    tx_vinv_x_ = X_.t() * vinv_x;
+    proj_
+        = v_
+          - vinv_x
+                * solve(tx_vinv_x_, vinv_x.t(), arma::solve_opts::likely_sympd);
     proj_y_ = proj_ * y_;
 }
 
 void LinearMixedModel::ComputePdV()
 {
-    for (size_t i = 0; i < rands_.n_slices; ++i)
+    for (size_t i = 0; i < covar_matrices_rand_.n_slices; ++i)
     {
         pdv_.slice(i) = proj_ * zkztr_.slice(i);
     }
@@ -121,15 +99,15 @@ void LinearMixedModel::ComputePdV()
 double LinearMixedModel::VinvLogdet(dmat& V)
 {
     char uplo = 'L';
-    int n = V.n_cols;
-    int info;
-    lapack::potrf(&uplo, &n, V.memptr(), &n, &info);
+    int n = static_cast<int>(V.n_cols);
+    int info{};
+    arma::lapack::potrf(&uplo, &n, V.memptr(), &n, &info);
     if (info != 0)
     {
         throw std::runtime_error("V Matrix is not symmetric positive definite");
     }
     double logdet = accu(2.0 * log(diagvec(V)));
-    lapack::potri(&uplo, &n, V.memptr(), &n, &info);
+    arma::lapack::potri(&uplo, &n, V.memptr(), &n, &info);
 
     if (info != 0)
     {

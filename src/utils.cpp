@@ -1,11 +1,9 @@
-#pragma once
 #include "chenx/utils.h"
 #include <cmath>
 
 namespace chenx
 {
-using namespace arma;
-bool check_identity(const dmat& inputs)
+bool CheckIdentity(const dmat& inputs)
 {
     if (!inputs.is_square())
     {
@@ -27,7 +25,7 @@ bool check_identity(const dmat& inputs)
     return true;
 }
 
-bool check_identity(const sp_dmat& inputs)
+bool CheckIdentity(const sp_dmat& inputs)
 {
     if (!inputs.is_square())
     {
@@ -48,4 +46,12 @@ bool check_identity(const sp_dmat& inputs)
     }
     return true;
 }
+
+std::string ToLowercase(std::string_view input)
+{
+    std::string result(input.begin(), input.end());
+    std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+    return result;
+}
+
 }  // namespace chenx

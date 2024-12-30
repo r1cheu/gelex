@@ -9,7 +9,7 @@ bool OptimizerBase::Optimize(LinearMixedModel& model)
 {
     for (size_t i{0}; i < max_iter(); ++i)
     {
-        model.set_sigma(Constrain(Step(model), model.y_var()));
+        model.set_sigma(Step(model));
         double loglike{model.ComputeLogLikelihood()};
         CheckConvergence(model.sigma(), loglike);
         if (converged())

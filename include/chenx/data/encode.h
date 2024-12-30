@@ -3,7 +3,7 @@
 
 namespace chenx
 {
-using namespace arma;
+using arma::dmat;
 dmat ComputeHybirdValue(const dmat& genotype, const dmat& phenotype);
 void HybridEncode(dmat& genotype, const dmat& hybird_value);
 }  // namespace chenx
