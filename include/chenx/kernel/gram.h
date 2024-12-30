@@ -6,7 +6,7 @@ namespace chenx
 template <typename KernelType, typename MatType>
 class NaiveKernelRule
 {
-  public:
+   public:
     /**
      * Construct the exact kernel matrix.
      *
@@ -43,4 +43,4 @@ class NaiveKernelRule
         return kernelMatrix;
     }
 };
-} // namespace chenx
+}  // namespace chenx

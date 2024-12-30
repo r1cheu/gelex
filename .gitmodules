@@ -1,6 +1,3 @@
-[submodule "extern/fmt"]
-    path = extern/fmt
-    url = ../../fmtlib/fmt
 [submodule "extern/carma"]
     path = extern/carma
     url = ../../RUrlus/carma

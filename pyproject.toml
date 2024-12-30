@@ -45,9 +45,12 @@ scikit-build-core = ">=0.10.7,<0.11"
 uv = ">=0.5,<0.6"
 pybind11 = ">=2.13.6,<3"
 pre-commit = ">=4.0, <5.0"
+openblas = { version = ">=0.3.28", build = "*openmp*" }
+spdlog = ">=1.15.0,<2"
+catch2 = ">=3.7.1,<4"
 
 [tool.pixi.feature.dev.tasks]
-build = "cmake -G Ninja -S . -B build -D BUILD_TEST=OFF -D BUILD_PYTHON_BINDINGS=ON && cmake --build build"
+build = "cmake -G Ninja -S . -B build -D BUILD_TEST=OFF -D BUILD_PYTHON_BINDINGS=OFF && cmake --build build -j24"
 lsp = "cmake -G Ninja -S . -B build -D BUILD_TEST=OFF -D BUILD_PYTHON_BINDINGS=ON && cp build/compile_commands.json ./ && rm -rf build"
 ctest = "cmake -G Ninja -S . -B build -D BUILD_TEST=ON -D BUILD_PYTHON_BINDINGS=OFF && cmake --build build && cd build && ctest && cd .. && rm -rf build"
 
