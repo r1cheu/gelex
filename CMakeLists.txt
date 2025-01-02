@@ -11,6 +11,7 @@ project(
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_BUILD_TYPE "DEBUG")
 
 option(USE_MKL "Use the MKL" OFF)
 option(BUILD_TEST "Enable testing" OFF)
@@ -25,22 +26,27 @@ endif()
 find_package(OpenMP)
 find_package(spdlog REQUIRED)
 
+set(ARMA_DEFINITIONS ARMA_DONT_USE_WRAPPER ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS
+                     ARMA_OPENMP_THREADS=64)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  list(APPEND ARMA_DEFINITIONS ARMA_DEBUG)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+  list(APPEND ARMA_DEFINITIONS ARMA_NO_DEBUG)
+endif()
+add_compile_definitions(${ARMA_DEFINITIONS})
+
 file(GLOB_RECURSE chenx_SOURCES src/*.cpp)
-
-add_compile_definitions(ARMA_DONT_USE_WRAPPER)
-
 add_library(chenx SHARED ${chenx_SOURCES})
 target_include_directories(chenx PUBLIC include)
-target_include_directories(chenx PRIVATE extern/armadillo/include)
-target_link_libraries(chenx PRIVATE OpenMP::OpenMP_CXX ${BLAS_LIBRARIES}
-                                    spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32>)
+target_include_directories(chenx PUBLIC extern/armadillo/include)
+target_link_libraries(chenx PUBLIC OpenMP::OpenMP_CXX ${BLAS_LIBRARIES}
+                                   spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32>)
 
 if(NOT TARGET phenx AND BUILD_PYTHON_BINDINGS)
   add_subdirectory(python)
 endif()
 
 if(BUILD_TEST)
-  enable_testing()
-  add_subdirectory(extern/googletest)
   add_subdirectory(tests)
 endif()

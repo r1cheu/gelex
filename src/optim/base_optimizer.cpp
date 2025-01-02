@@ -1,20 +1,37 @@
 #include "chenx/optim/base_optimizer.h"
 
+#include <fmt/color.h>
+#include <fmt/ranges.h>
+
+#include "armadillo"
 #include "chenx/model/linear_mixed_model.h"
+#include "chenx/timer.h"
+#include "chenx/utils.h"
 
 namespace chenx
 {
 
 bool OptimizerBase::Optimize(LinearMixedModel& model)
 {
-    for (size_t i{0}; i < max_iter(); ++i)
+    double time_cost{};
+    for (size_t i{1}; i <= max_iter(); ++i)
     {
-        model.set_sigma(Step(model));
+        {
+            Timer time(time_cost);
+            model.set_sigma(Step(model));
+        }
         double loglike{model.ComputeLogLikelihood()};
         CheckConvergence(model.sigma(), loglike);
+        logger_->info(
+            "Iter {:d}: logL={:.2f}, varcomp=[{:.4f}] {:.3f}s",
+            i,
+            loglike,
+            fmt::styled(
+                fmt::join(model.sigma(), " "),
+                fmt::fg(fmt::color::blue_violet)),
+            time_cost);
         if (converged())
         {
-            break;
             return true;
         }
     }
@@ -48,12 +65,13 @@ double OptimizerBase::ObjFunctionDiff(double new_value)
 void OptimizerBase::CheckConvergence(const dvec& new_param, double new_value)
 {
     double param_diff = VecDiff(new_param);
-    double obj_func_value = ObjFunctionDiff(new_value);
-    bool negative = obj_func_value < 0.0;
-    obj_func_value = std::abs(obj_func_value);
+    double obj_func_diff = ObjFunctionDiff(new_value);
+    bool negative = obj_func_diff < 0.0;
+    obj_func_diff = std::abs(obj_func_diff);
+    obj_func_diff_ = obj_func_diff;
 
     if (param_diff < tol_
-        && (obj_func_value < 1e-4 || (negative && obj_func_value < 1e-2)))
+        && (obj_func_diff < 1e-4 || (negative && obj_func_diff < 1e-2)))
     {
         converged_ = true;
     }

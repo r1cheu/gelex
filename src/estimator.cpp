@@ -1,19 +1,24 @@
 #include "chenx/estimator.h"
-#include <spdlog/spdlog.h>
+#include <cmath>
 #include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
+
+#include <fmt/chrono.h>
+#include <fmt/color.h>
+#include <fmt/ranges.h>
 #include "armadillo"
 
 #include "chenx/logger.h"
 #include "chenx/optim/expectation_maximization.h"
 #include "chenx/optim/second_order_optimizer.h"
+#include "chenx/timer.h"
 #include "chenx/utils.h"
 namespace chenx
 {
 Estimator::Estimator(std::string_view optimizer, size_t max_iter, double tol)
-    : logger_{spdlog::get(logger_name)}
+    : logger_{Logger::logger()}
 {
     set_optimizer(optimizer, max_iter, tol);
 }
@@ -49,22 +54,67 @@ void Estimator::set_optimizer(
         throw std::invalid_argument(
             "Unknown optimizer: " + std::string(optimizer) + ", NR(NewtonRaphson), FS(FisherScoring), AI(AverageInformation) are supported.");
     }
-    logger_->info("Optimize using [{}]", optimizer_->name());
 }
 
 void Estimator::Fit(LinearMixedModel& model, bool em_init)
 {
+    logger_->info(
+        "Starting fit with {:d} samples, variance componets: {} at {:%Y-%m-%d "
+        "%H:%M:%S}",
+        model.y().n_elem,
+        model.rand_names(),
+        fmt::localtime(std::time(nullptr)));
+    logger_->info(
+        "Optimizer: [{}](max_iter={:d}, tol={:.3e})",
+        cyan(optimizer_->name()),
+        optimizer_->max_iter(),
+        optimizer_->tol());
     if (em_init)
     {
-        logger_->info("Using [ExpectationMaximization] to initialize");
+        double time_cost{};
         ExpectationMaximizationOptimizer em_optimizer{};
-        model.set_sigma(em_optimizer.Step(model));
+        logger_->info("Using [{}] to initialize.", cyan(em_optimizer.name()));
+
+        // Start timing
+        {
+            Timer timer{time_cost};
+            model.set_sigma(em_optimizer.Step(model));
+        }
+
+        logger_->info(
+            "Initial loglikelihood={:.2f}, variance componets=[{:.4f}] {:.3f}s",
+            model.ComputeLogLikelihood(),
+            fmt::styled(
+                fmt::join(model.sigma(), " "),
+                fmt::fg(fmt::color::blue_violet)),
+            time_cost);
     }
     bool converged{optimizer_->Optimize(model)};
 
     if (converged)
     {
         model.set_beta(ComputeBeta(model));
+        logger_->info(
+            "{} beta=[{:.6f}], variance componets=[{:.6f}]",
+            gold("Converged!!!"),
+            fmt::styled(
+                fmt::join(model.beta(), " "), fmt::fg(fmt::color::blue_violet)),
+            fmt::styled(
+                fmt::join(model.sigma(), " "),
+                fmt::fg(fmt::color::blue_violet)));
+    }
+    else
+    {
+        logger_->warn(
+            "{}, try to increase max_iter({:d}), beta=[{:.6f}], "
+            "variance componets=[{:.6f}]",
+            red("Not converged!!!"),
+            optimizer_->max_iter(),
+            fmt::styled(
+                fmt::join(model.beta(), " "), fmt::fg(fmt::color::blue_violet)),
+            fmt::styled(
+                fmt::join(model.sigma(), " "),
+                fmt::fg(fmt::color::blue_violet)));
     }
 }
 

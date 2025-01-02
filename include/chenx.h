@@ -13,5 +13,7 @@
 #include "chenx/optim/expectation_maximization.h"
 #include "chenx/optim/second_order_optimizer.h"
 
+// estimator
+#include "chenx/estimator.h"
 // util
 #include "chenx/utils.h"

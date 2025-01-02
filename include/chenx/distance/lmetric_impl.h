@@ -28,8 +28,8 @@ typename VecTypeA::elem_type LMetric<Power, TakeRoot>::Evaluate(
     for (size_t i = 0; i < a.n_elem; ++i)
         sum += std::pow(fabs(a[i] - b[i]), Power);
 
-    if (!TakeRoot) // The compiler should optimize this correctly at
-                   // compile-time.
+    if (!TakeRoot)  // The compiler should optimize this correctly at
+                    // compile-time.
         return sum;
 
     return std::pow(sum, (1.0 / Power));
@@ -106,4 +106,4 @@ typename VecTypeA::elem_type LMetric<INT_MAX, false>::Evaluate(
     return arma::as_scalar(arma::max(arma::abs(a - b)));
 }
 
-} // namespace chenx
+}  // namespace chenx

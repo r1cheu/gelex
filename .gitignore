@@ -156,3 +156,4 @@ wheelhouse/
 pixi.lock
 .vscode/
 script/
+*.log
