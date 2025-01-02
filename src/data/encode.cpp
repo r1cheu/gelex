@@ -53,7 +53,7 @@ dmat ComputeHybirdValue(const dmat& genotype, const dvec& phenotype)
     return hybird_value_mat;
 }
 
-void HybridEncode(dmat& genotype, dmat& hybird_value)
+void HybridEncode(dmat& genotype, const dmat& hybird_value)
 {
 #pragma omp parallel for schedule(static, 8)
     for (size_t i = 0; i < genotype.n_cols; i++)

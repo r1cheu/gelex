@@ -45,14 +45,12 @@ namespace chenx
 template <int TPower, bool TTakeRoot = true>
 class LMetric
 {
-  public:
+   public:
     /**
      * Default constructor does nothing, but is required to satisfy the Metric
      * policy.
      */
-    LMetric()
-    {
-    }
+    LMetric() {}
 
     /**
      * Computes the distance between two points.
@@ -98,7 +96,7 @@ typedef LMetric<2, true> EuclideanDistance;
  */
 typedef LMetric<INT_MAX, false> ChebyshevDistance;
 
-} // namespace chenx
+}  // namespace chenx
 
 // Include implementation.
 #include "lmetric_impl.h"

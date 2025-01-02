@@ -1,7 +1,6 @@
 #include "chenx/model/linear_mixed_model.h"
-#include <spdlog/spdlog.h>
 
-#include "chenx/logger.h"
+#include "armadillo"
 #include "chenx/utils.h"
 
 namespace chenx
@@ -16,21 +15,25 @@ LinearMixedModel::LinearMixedModel(
       X_{std::move(X)},
       Z_{std::move(Z)},
       covar_matrices_rand_{std::move(covar_matrices_rand)},
-      rand_names_{std::move(rand_names)},
-      y_var_{var(y)},
-      logger_{spdlog::get(logger_name)}
+      rand_names_{std::move(rand_names)}
 {
-    uword n{X.n_rows}, m{X.n_cols};
+    y_var_ = var(y_);
+    uword n{X_.n_rows}, m{X_.n_cols};
     zkztr_ = ComputeZKZtR();
     uword n_rands = zkztr_.n_slices;
-    beta_.zeros(m);
-    sigma_.set_size(n_rands).fill(var(y) / static_cast<double>(n_rands));
+    beta_.set_size(m);
+    pdv_.set_size(n, n, n_rands);
+    set_sigma(dvec(
+        n_rands, arma::fill::value(y_var_ / static_cast<double>(n_rands))));
+    rand_names_.emplace_back("Residual");
+}
 
-    proj_y_.zeros(n);
-    v_.zeros(n, n);
-    tx_vinv_x_.zeros(m, m);
-    pdv_.zeros(n, n, n_rands);
-    logger_->info("Using {:d} samples", n);
+void LinearMixedModel::set_sigma(dvec&& sigma)
+{
+    sigma_ = std::move(sigma);
+    ComputeV();
+    ComputeProj();
+    ComputePdV();
 }
 
 double LinearMixedModel::ComputeLogLikelihood() const
@@ -69,10 +72,10 @@ dcube LinearMixedModel::ComputeZKZtR()
 
 void LinearMixedModel::ComputeV()
 {
-    v_.zeros();
-    for (size_t i{0}; i < covar_matrices_rand_.n_slices; ++i)
+    v_ = sigma_.at(0) * zkztr_.slice(0);
+    for (size_t i{1}; i < zkztr_.n_slices; ++i)
     {
-        v_ += sigma_.at(i) * pdv_.slice(i);
+        v_ += sigma_.at(i) * zkztr_.slice(i);
     }
 }
 
@@ -90,7 +93,7 @@ void LinearMixedModel::ComputeProj()
 
 void LinearMixedModel::ComputePdV()
 {
-    for (size_t i = 0; i < covar_matrices_rand_.n_slices; ++i)
+    for (size_t i = 0; i < zkztr_.n_slices; ++i)
     {
         pdv_.slice(i) = proj_ * zkztr_.slice(i);
     }

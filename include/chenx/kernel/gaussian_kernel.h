@@ -13,8 +13,8 @@
  */
 #pragma once
 
-#include "chenx/distance/lmetric.h"
 #include <cmath>
+#include "chenx/distance/lmetric.h"
 namespace chenx
 {
 
@@ -30,13 +30,11 @@ namespace chenx
  */
 class GaussianKernel
 {
-  public:
+   public:
     /**
      * Default constructor; sets bandwidth to 1.0.
      */
-    GaussianKernel() : bandwidth(1.0), gamma(-0.5)
-    {
-    }
+    GaussianKernel() : bandwidth(1.0), gamma(-0.5) {}
 
     /**
      * Construct the Gaussian kernel with a custom bandwidth.
@@ -104,10 +102,7 @@ class GaussianKernel
     }
 
     //! Get the bandwidth.
-    double Bandwidth() const
-    {
-        return bandwidth;
-    }
+    double Bandwidth() const { return bandwidth; }
 
     //! Modify the bandwidth.  This takes an argument because we must update the
     //! precalculated constant (gamma).
@@ -118,12 +113,9 @@ class GaussianKernel
     }
 
     //! Get the precalculated constant.
-    double Gamma() const
-    {
-        return gamma;
-    }
+    double Gamma() const { return gamma; }
 
-  private:
+   private:
     //! Kernel bandwidth.
     double bandwidth;
 
@@ -132,4 +124,4 @@ class GaussianKernel
     double gamma;
 };
 
-} // namespace chenx
+}  // namespace chenx

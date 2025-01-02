@@ -1,10 +1,12 @@
 #include "chenx/optim/second_order_optimizer.h"
+#include <iostream>
 
 namespace chenx
 {
 dvec SecondOrderOptimizer::Step(const LinearMixedModel& model)
 {
     dvec sigma{model.sigma()};
+    uword n_rands{sigma.n_elem};
     dvec first_grad = ComputeFirstGrad(model);
     dmat hess = ComputeHess(model);
     dmat hess_inv;
@@ -14,7 +16,14 @@ dvec SecondOrderOptimizer::Step(const LinearMixedModel& model)
         throw std::runtime_error("Hessian matrix is not invertible!");
     }
     dvec delta = -hess_inv * first_grad;
-    sigma += delta;
+    if (obj_func_diff() > 1)
+    {
+        sigma += 0.316 * delta;
+    }
+    else
+    {
+        sigma += delta;
+    }
     return OptimizerBase::Constrain(sigma, model.y_var());
 };
 
@@ -24,7 +33,7 @@ dvec SecondOrderOptimizer::ComputeFirstGrad(const LinearMixedModel& model)
     const dvec& y = model.y();
     const dvec& proj_y = model.proj_y();
     const dcube& pdv = model.pdv();
-    uword n = y.n_elem;
+    uword n = sigma.n_elem;
 
     dvec first_grad(n, arma::fill::zeros);
 

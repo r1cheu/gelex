@@ -1,20 +1,8 @@
 # tests/CMakeLists.txt Dataset Test
+set(CHENX_TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
+add_compile_definitions(CHENX_TESTS_DIR="${CHENX_TESTS_DIR}")
 
-
-if(USE_MKL)
-  find_package(MKL CONFIG REQUIRED)
-else()
-  set(BLA_VENDOR "OpenBLAS")
-  find_package(BLAS REQUIRED)
-endif()
-
-find_package(OpenMP)
-add_compile_definitions(ARMA_DONT_USE_WRAPPER)
-
-add_executable(all_tests test_dataset.cpp) # test_optim.cpp)
-target_include_directories(all_tests PRIVATE ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/extern/armadillo/include)
-target_link_libraries(all_tests ${BLAS_LIBRARIES} OpenMP::OpenMP_CXX GTest::gtest_main)
-
-# Optim Test Discover and enable tests
-include(GoogleTest)
-gtest_discover_tests(all_tests)
+find_package(Catch2 3 REQUIRED)
+file(GLOB test_SOURCE ${PROJECT_SOURCE_DIR}/tests/*.cpp)
+add_executable(test ${test_SOURCE})
+target_link_libraries(test PRIVATE chenx Catch2::Catch2WithMain)

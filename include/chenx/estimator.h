@@ -2,12 +2,12 @@
 #include <memory>
 
 #include <spdlog/logger.h>
-
 #include "chenx/model/linear_mixed_model.h"
 #include "chenx/optim/base_optimizer.h"
 
 namespace chenx
 {
+
 class Estimator
 {
    public:

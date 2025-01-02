@@ -1,8 +1,6 @@
 #pragma once
-#include <memory>
 #include <vector>
 
-#include <spdlog/logger.h>
 #include <armadillo>
 
 namespace chenx
@@ -38,13 +36,7 @@ class LinearMixedModel
     const dvec& proj_y() const { return proj_y_; }
     const dcube& pdv() const { return pdv_; }
     const dmat& tx_vinv_x() const { return tx_vinv_x_; }
-    void set_sigma(dvec&& sigma)
-    {
-        sigma_ = std::move(sigma);
-        ComputeV();
-        ComputeProj();
-        ComputePdV();
-    }
+    void set_sigma(dvec&& sigma);
     void set_beta(dvec&& beta) { beta_ = std::move(beta); }
     double ComputeLogLikelihood() const;
 
@@ -66,7 +58,6 @@ class LinearMixedModel
     dvec proj_y_;
     dmat v_, proj_, tx_vinv_x_;
     dcube pdv_;
-    std::shared_ptr<spdlog::logger> logger_;
 
     static dmat ComputeZKZ(const sp_dmat& z, const dmat& k);
     dcube ComputeZKZtR();

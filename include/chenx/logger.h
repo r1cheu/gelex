@@ -1,14 +1,19 @@
 #pragma once
+#include <spdlog/spdlog.h>
 #include <memory>
-#include <string>
-#include <vector>
-
-#include <spdlog/common.h>
-#include <spdlog/logger.h>
 
 namespace chenx
 {
-extern const std::string logger_name{"default"};
-std::shared_ptr<spdlog::logger> setup_logger(
-    std::vector<spdlog::sink_ptr> sinks);
+
+class Logger
+{
+   public:
+    static std::shared_ptr<spdlog::logger> logger();
+
+   private:
+    Logger();
+    std::shared_ptr<spdlog::logger> GetSpdLogger();
+    std::shared_ptr<spdlog::logger> logger_;
+};
+
 }  // namespace chenx

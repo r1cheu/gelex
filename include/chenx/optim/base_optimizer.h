@@ -1,14 +1,18 @@
 #pragma once
 #include <cstddef>
 
+#include <spdlog/spdlog.h>
+
+#include "chenx/logger.h"
 #include "chenx/model/linear_mixed_model.h"
+
 namespace chenx
 {
 class OptimizerBase
 {
    public:
-    explicit OptimizerBase(double tol = 1e-8, size_t max_iter = 20)
-        : tol_{tol}, max_iter_{max_iter}
+    explicit OptimizerBase(size_t max_iter = 20, double tol = 1e-8)
+        : max_iter_{max_iter}, tol_{tol}, logger_{Logger::logger()}
     {
     }
     OptimizerBase(const OptimizerBase&) = default;
@@ -22,6 +26,7 @@ class OptimizerBase
     size_t max_iter() const noexcept { return max_iter_; }
     double tol() const noexcept { return tol_; }
     bool converged() const noexcept { return converged_; }
+    double obj_func_diff() const noexcept { return obj_func_diff_; }
 
     void set_max_iter(size_t max_iter) noexcept { max_iter_ = max_iter; }
     void set_tol(double tol) noexcept { tol_ = tol; }
@@ -36,9 +41,13 @@ class OptimizerBase
    private:
     size_t max_iter_;
     double tol_;
+    std::shared_ptr<spdlog::logger> logger_;
+
     bool converged_{};
     dvec old_param_;
     double old_obj_func_value_{};
+    double obj_func_diff_{};
+
     double VecDiff(const dvec& new_param);
     double ObjFunctionDiff(double new_value);
     void CheckConvergence(const dvec& new_param, double new_value);

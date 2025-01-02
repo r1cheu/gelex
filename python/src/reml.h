@@ -17,7 +17,7 @@ using namespace chenx;
 template <typename eT>
 class REMLLoop
 {
-  public:
+   public:
     REMLLoop(
         const py::array_t<eT>& y_arr,
         const py::array_t<eT>& X_arr,
@@ -36,7 +36,7 @@ class REMLLoop
     py::array_t<eT> get_blup() const;
     py::array_t<eT> get_gebv(const py::array_t<eT>& full_X) const;
 
-  private:
+   private:
     Cube<eT> _zkztr;
     const Col<eT> _y;
     const Mat<eT> _X;
@@ -60,6 +60,6 @@ class REMLLoop
     Col<eT> _beta;
     Mat<eT> _blup;
 };
-} // namespace binds
+}  // namespace binds
 
 #include "reml_impl.h"
