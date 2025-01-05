@@ -1,5 +1,9 @@
 #pragma once
+#include <cstddef>
 #include <memory>
+#include <string_view>
+
+#include <armadillo>
 
 #include <spdlog/logger.h>
 #include "chenx/model/linear_mixed_model.h"

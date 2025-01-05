@@ -9,34 +9,37 @@ project(
   VERSION ${SKBUILD_PROJECT_VERSION}
   LANGUAGES CXX)
 
-set(PYBIND11_FINDPYTHON ON)
-find_package(Python3 REQUIRED COMPONENTS NumPy)
-find_package(pybind11 CONFIG REQUIRED)
-find_package(OpenMP)
+set(CMAKE_BUILD_TYPE "Debug")
 
-option(USE_MKL "Use the MKL" OFF)
-
-if(USE_MKL)
-  find_package(MKL CONFIG REQUIRED)
-else()
-  set(BLA_VENDOR "OpenBLAS")
-  find_package(BLAS REQUIRED)
+find_package(
+  Python 3.8
+  COMPONENTS Interpreter Development.Module
+  REQUIRED)
+if(NOT TARGET chenx)
+  find_package(chenx CONFIG)
+  if(NOT chenx_FOUND)
+    message(STATUS "Using bundled chenx sources")
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/.. _deps/chenx)
+  endif()
 endif()
-add_compile_definitions(FMT_HEADER_ONLY=1)
 
-# Function to add a pybind11 module with common settings
-function(add_pybind11_module module_name source_file)
-  pybind11_add_module(${module_name} MODULE ${source_file})
-  target_include_directories(
-    ${module_name} PRIVATE ../extern/carma/include ../extern/fmt/include
-                           ../include ../extern/armadillo/include)
-  target_link_libraries(
-    ${module_name} PRIVATE pybind11::module Python3::NumPy OpenMP::OpenMP_CXX
-                           ${BLAS_LIBRARIES})
-endfunction()
+execute_process(
+  COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  OUTPUT_VARIABLE nanobind_ROOT)
+find_package(nanobind CONFIG REQUIRED)
 
-# Add _core module
-add_pybind11_module(_core src/bind_core.cpp)
-# Add _optim module set_target_properties(_core PROPERTIES INSTALL_RPATH
-# "$ORIGIN/lib") The install directory is the output (wheel) directory
-install(TARGETS _core DESTINATION .)
+# the definition won't be passed from chenx due it's another project re-add it
+# set(ARMA_DEFINITIONS ARMA_DONT_USE_WRAPPER ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS
+# ARMA_OPENMP_THREADS=64)
+#
+# if(CMAKE_BUILD_TYPE STREQUAL "Debug") list(APPEND ARMA_DEFINITIONS ARMA_DEBUG)
+# elseif(CMAKE_BUILD_TYPE STREQUAL "Release") list(APPEND ARMA_DEFINITIONS
+# ARMA_NO_DEBUG) endif() add_compile_definitions(${ARMA_DEFINITIONS})
+#
+nanobind_add_module(_chenx src/bind.cpp)
+target_link_libraries(_chenx PRIVATE chenx)
+install(TARGETS _chenx LIBRARY DESTINATION phenx)
+
+set_target_properties(_chenx PROPERTIES BUILD_WITH_INSTALL_RPATH ON
+                                        INSTALL_RPATH "$ORIGIN/../lib")

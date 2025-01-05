@@ -1,19 +1,23 @@
 #include "chenx/estimator.h"
+
 #include <cmath>
+
 #include <functional>
 #include <memory>
+#include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include <fmt/chrono.h>
 #include <fmt/color.h>
 #include <fmt/ranges.h>
-#include "armadillo"
+#include <armadillo>
 
-#include "chenx/logger.h"
+#include "chenx/model/linear_mixed_model.h"
+#include "chenx/optim/base_optimizer.h"
 #include "chenx/optim/expectation_maximization.h"
 #include "chenx/optim/second_order_optimizer.h"
-#include "chenx/timer.h"
 #include "chenx/utils.h"
 namespace chenx
 {

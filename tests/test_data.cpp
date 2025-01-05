@@ -1,6 +1,7 @@
 #include <armadillo>
 #include <catch2/catch_test_macros.hpp>
-#include "chenx.h"
+#include "chenx/data/encode.h"
+#include "chenx/data/impute.h"
 
 TEST_CASE("impute method work correct", "[vector]")
 {

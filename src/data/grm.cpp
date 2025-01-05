@@ -1,9 +1,10 @@
 #include "chenx/data/grm.h"
 
-#include "armadillo"
+#include <armadillo>
 
 namespace chenx
 {
+using arma::dvec;
 dmat ComputeGRM(dmat& genotype)
 {
     dmat grm = genotype.t() * genotype;

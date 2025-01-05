@@ -1,7 +1,13 @@
 #include "chenx/data/encode.h"
 
+#include <cmath>
+#include <cstddef>
+
 #include <omp.h>
+#include <algorithm>
 #include <array>
+
+#include <armadillo>
 
 namespace chenx
 {

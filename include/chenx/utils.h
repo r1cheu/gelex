@@ -1,6 +1,12 @@
 #pragma once
+
+#include <chrono>
+#include <memory>
+#include <string>
+
+#include <fmt/color.h>
+#include <spdlog/logger.h>
 #include <armadillo>
-#include "fmt/color.h"
 
 namespace chenx
 {
@@ -40,5 +46,34 @@ auto red(const T& value)
 {
     return fmt::styled(value, fmt::fg(fmt::color::red));
 }
+
+class Timer
+{
+   public:
+    Timer(const Timer&) = default;
+    Timer(Timer&&) = delete;
+    Timer& operator=(const Timer&) = delete;
+    Timer& operator=(Timer&&) = delete;
+    explicit Timer(double& elapsed_time)
+        : elapsed_time_{elapsed_time},
+          start_{std::chrono::high_resolution_clock::now()} {};
+
+    ~Timer();
+
+   private:
+    double& elapsed_time_;
+    std::chrono::high_resolution_clock::time_point start_;
+};
+
+class Logger
+{
+   public:
+    static std::shared_ptr<spdlog::logger> logger();
+
+   private:
+    Logger();
+    std::shared_ptr<spdlog::logger> GetSpdLogger();
+    std::shared_ptr<spdlog::logger> logger_;
+};
 
 }  // namespace chenx

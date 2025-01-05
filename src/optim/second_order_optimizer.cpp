@@ -1,5 +1,6 @@
 #include "chenx/optim/second_order_optimizer.h"
-#include <iostream>
+
+#include <armadillo>
 
 namespace chenx
 {
@@ -12,7 +13,6 @@ dvec SecondOrderOptimizer::Step(const LinearMixedModel& model)
     dmat hess_inv;
     if (!pinv(hess_inv, hess))
     {
-        std::cout << "Hessian matrix is not invertible!\n";
         throw std::runtime_error("Hessian matrix is not invertible!");
     }
     dvec delta = -hess_inv * first_grad;

@@ -1,4 +1,8 @@
 #pragma once
+#include <armadillo>
+#include <string>
+
+#include "chenx/model/linear_mixed_model.h"
 #include "chenx/optim/base_optimizer.h"
 
 namespace chenx
