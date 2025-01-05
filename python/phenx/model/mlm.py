@@ -14,17 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 class LinearMixedModel:
-    """
-    Efficient implementation of Linear Mixed Model for statistical analysis.
-
-    Key optimizations:
-    - Memory efficient array handling with proper dtype management
-    - Vectorized operations where possible
-    - Improved type hints and validation
-    - Cached properties using dict.get()
-    - Streamlined data preprocessing
-    """
-
     def __init__(
         self,
         formula: str,

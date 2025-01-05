@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include <vector>
 
 #include <armadillo>
@@ -18,25 +19,26 @@ class LinearMixedModel
     LinearMixedModel(
         dvec&& y,
         dmat&& X,
-        std::vector<sp_dmat>&& Z,
         dcube&& covar_matrices_rand,
         std::vector<std::string>&& rand_names);
     const dvec& y() const { return y_; }
-    double y_var() const { return y_var_; }
     const dmat& X() const { return X_; }
-    const dvec& beta() const { return beta_; }
-    const std::vector<sp_dmat>& Z() const { return Z_; }
-    const dcube& zkztr() const { return zkztr_; }
-    const dmat& v() const { return v_; }
-    const std::vector<std::string>& rand_names() const { return rand_names_; }
-    const dcube& covar_matrices_rand() const { return covar_matrices_rand_; }
+    double y_var() const { return y_var_; }
+    const dvec& beta() { return beta_; }
     const dvec& sigma() const { return sigma_; }
-
-    double logdet_v() const { return logdet_v_; }
     const dvec& proj_y() const { return proj_y_; }
     const dcube& pdv() const { return pdv_; }
+    const dmat& v() const { return v_; }
     const dmat& tx_vinv_x() const { return tx_vinv_x_; }
-    void set_sigma(dvec&& sigma);
+    const std::vector<std::string>& rand_names() const { return rand_names_; }
+
+    void set_sigma(dvec&& sigma)
+    {
+        sigma_ = std::move(sigma);
+        ComputeV();
+        ComputeProj();
+        ComputePdV();
+    }
     void set_beta(dvec&& beta) { beta_ = std::move(beta); }
     double ComputeLogLikelihood() const;
 
@@ -47,11 +49,10 @@ class LinearMixedModel
     dmat X_;
     dvec beta_;
 
-    std::vector<sp_dmat> Z_;
-    dcube zkztr_;
+    dcube zkzt_;
+    sp_dmat r_;
 
     std::vector<std::string> rand_names_;
-    dcube covar_matrices_rand_;
     dvec sigma_;
 
     double logdet_v_{};
@@ -59,8 +60,8 @@ class LinearMixedModel
     dmat v_, proj_, tx_vinv_x_;
     dcube pdv_;
 
-    static dmat ComputeZKZ(const sp_dmat& z, const dmat& k);
-    dcube ComputeZKZtR();
+    // static dmat ComputeZKZ(const sp_dmat& z, const dmat& k);
+    //  dcube ComputeZKZtR(dcube&& covar_matrices_rand);
 
     void ComputeV();
     void ComputeProj();

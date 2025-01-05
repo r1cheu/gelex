@@ -1,11 +1,12 @@
 #include "chenx/optim/base_optimizer.h"
 
+#include <cstdlib>
+
 #include <fmt/color.h>
 #include <fmt/ranges.h>
+#include <armadillo>
 
-#include "armadillo"
 #include "chenx/model/linear_mixed_model.h"
-#include "chenx/timer.h"
 #include "chenx/utils.h"
 
 namespace chenx

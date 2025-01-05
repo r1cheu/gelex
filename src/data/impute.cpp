@@ -1,6 +1,13 @@
 #include <chenx/data/impute.h>
+
+#include <cmath>
+#include <cstddef>
+
 #include <iostream>
+#include <vector>
 #include "omp.h"
+
+#include <armadillo>
 
 namespace chenx
 {

@@ -1,8 +1,10 @@
+#include <string>
+
 #include <armadillo>
 #include <catch2/catch_test_macros.hpp>
 
-#include "chenx.h"
 #include "chenx/estimator.h"
+#include "chenx/model/linear_mixed_model.h"
 
 TEST_CASE("Linear Mixed Model Fitted Check")
 {
@@ -14,15 +16,12 @@ TEST_CASE("Linear Mixed Model Fitted Check")
     arma::dmat A;
     A.load(std::string(CHENX_TESTS_DIR) + "/wheat100_grm.bin");
     arma::dmat X = arma::ones<arma::dmat>(Phenotype.n_elem, 1);
-    std::vector<arma::sp_mat> Z;
-    Z.push_back(arma::speye<arma::sp_mat>(Phenotype.n_elem, Phenotype.n_elem));
     arma::dcube rands{Phenotype.n_elem, Phenotype.n_elem, 1};
     rands.slice(0) = A;
 
     chenx::LinearMixedModel model{
         std::move(Phenotype),
         std::move(X),
-        std::move(Z),
         std::move(rands),
         std::vector<std::string>{"random"}};
 

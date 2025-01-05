@@ -1,9 +1,12 @@
 #pragma once
 #include <cstddef>
+#include <memory>
+#include <string>
 
-#include <spdlog/spdlog.h>
+#include <spdlog/logger.h>
+#include <armadillo>
 
-#include "chenx/logger.h"
+#include <chenx/utils.h>
 #include "chenx/model/linear_mixed_model.h"
 
 namespace chenx
