@@ -53,6 +53,9 @@ lsp = "cmake -G Ninja -S . -B build -D BUILD_TEST=OFF -D BUILD_PYTHON_BINDINGS=O
 ctest = "cmake -G Ninja -S . -B build -D BUILD_TEST=ON -D BUILD_PYTHON_BINDINGS=OFF && cmake --build build && ./build/tests/test"
 wheel = "uv build"
 
+[tool.pixi.feature.dev.pypi-dependencies]
+nanobind = ">=2.4.0,<3" # add for lsp
+
 # Feature test
 [tool.pixi.feature.test.pypi-dependencies]
 pytest = ">=8.3"
