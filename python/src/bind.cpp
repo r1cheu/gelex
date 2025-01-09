@@ -48,13 +48,11 @@ NB_MODULE(_chenx, m)
         .def("fit", &chenx::Estimator::Fit)
         .def("set_optimizer", &chenx::Estimator::set_optimizer);
     m.def(
-        "compute_add_grm",
+        "add_grm",
         [](dmat& genotype)
         {
             arma::dmat genotype_ = ToArma(genotype);
-            arma::dmat grm = chenx::AdditiveGrm(genotype_);
-            std::cout << grm.memptr() << '\n';
-            return ToPy(std::move(grm));
+            return ToPy(chenx::AddGrm(genotype_));
         },
         nb::rv_policy::reference);
     m.def(
@@ -63,16 +61,24 @@ NB_MODULE(_chenx, m)
         {
             arma::dmat genotype_ = ToArma(genotype);
             arma::dmat grm_ = ToArma(grm);
-            chenx::AddChunkGrm(genotype_, grm_);
+            chenx::AddGrmChunk(genotype_, grm_);
         });
     m.def(
-        "compute_dom_grm",
+        "dom_grm",
         [](dmat& genotype)
         {
             arma::dmat genotype_ = ToArma(genotype);
-            return ToPy(chenx::DomainanceGrm(genotype_));
+            return ToPy(chenx::DomGrm(genotype_));
         },
         nb::rv_policy::reference);
+    m.def(
+        "add_grm_chunk",
+        [](dmat& genotype, dmat& grm)
+        {
+            arma::dmat genotype_ = ToArma(genotype);
+            arma::dmat grm_ = ToArma(grm);
+            chenx::DomGrmChunk(genotype_, grm_);
+        });
 }
 
 }  // namespace bind

@@ -5,10 +5,12 @@
 namespace chenx
 {
 using arma::dmat;
-
-dmat AdditiveGrm(dmat& genotype);
-void AddChunkGrm(dmat& genotype, dmat& grm);
-dmat DomainanceGrm(dmat& genotype);
+void HandleNaN(dmat& genotype);
+void Normalize(dmat& genotype);
+dmat AddGrm(dmat& genotype);
+void AddGrmChunk(dmat& genotype, dmat& grm);
+dmat DomGrm(dmat& genotype);
+void DomGrmChunk(dmat& genotype, dmat& grm);
 dmat ComputeGRM(dmat& genotype);
 
 }  // namespace chenx
