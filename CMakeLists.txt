@@ -11,21 +11,30 @@ project(
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_BUILD_TYPE "Debug")
+
+if(NOT CMAKE_BUILD_TYPE)
+  if(DEFINED ENV{CMAKE_BUILD_TYPE})
+    set(CMAKE_BUILD_TYPE $ENV{CMAKE_BUILD_TYPE})
+  else()
+    set(CMAKE_BUILD_TYPE Debug)
+  endif()
+endif()
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 option(USE_MKL "Use the MKL" OFF)
 option(BUILD_TEST "Enable testing" OFF)
 option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
 
 if(USE_MKL)
-  find_package(MKL CONFIG REQUIRED)
+  set(BLA_VENDOR Intel10_64lp)
+  find_package(BLAS REQUIRED)
 else()
   set(BLA_VENDOR "OpenBLAS")
   find_package(BLAS REQUIRED)
 endif()
+
 find_package(OpenMP)
 find_package(spdlog REQUIRED)
-
 add_library(armadillo_config INTERFACE)
 
 # Set public definitions
@@ -42,8 +51,6 @@ target_include_directories(chenx PUBLIC extern/armadillo/include)
 target_link_libraries(
   chenx PUBLIC armadillo_config OpenMP::OpenMP_CXX ${BLAS_LIBRARIES}
                spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32>)
-add_executable(main main.cpp)
-target_link_libraries(main PRIVATE chenx)
 
 if(NOT TARGET phenx AND BUILD_PYTHON_BINDINGS)
   add_subdirectory(python)

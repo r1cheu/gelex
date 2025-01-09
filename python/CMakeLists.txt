@@ -1,4 +1,3 @@
-# Require CMake 3.15+ (matching scikit-build-core) Use new versions of all
 # policies up to CMake 3.27
 cmake_minimum_required(VERSION 3.18)
 
@@ -8,8 +7,6 @@ project(
   ${SKBUILD_PROJECT_NAME}
   VERSION ${SKBUILD_PROJECT_VERSION}
   LANGUAGES CXX)
-
-set(CMAKE_BUILD_TYPE "Debug")
 
 find_package(
   Python 3.8
@@ -22,6 +19,21 @@ if(NOT TARGET chenx)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/.. _deps/chenx)
   endif()
 endif()
+
+if(NOT DEFINED ENV{CMAKE_BUILD_TYPE})
+  set(CMAKE_BUILD_TYPE Debug)
+else()
+  set(CMAKE_BUILD_TYPE $ENV{CMAKE_BUILD_TYPE})
+endif()
+
+if(NOT CMAKE_BUILD_TYPE)
+  if(DEFINED ENV{CMAKE_BUILD_TYPE})
+    set(CMAKE_BUILD_TYPE $ENV{CMAKE_BUILD_TYPE})
+  else()
+    set(CMAKE_BUILD_TYPE Debug)
+  endif()
+endif()
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 execute_process(
   COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
