@@ -47,5 +47,15 @@ nanobind_add_module(_chenx src/bind.cpp)
 target_link_libraries(_chenx PRIVATE chenx)
 install(TARGETS _chenx LIBRARY DESTINATION phenx)
 
+nanobind_add_stub(
+  _chenx_stub
+  INSTALL_TIME
+  MODULE
+  _chenx
+  OUTPUT
+  phenx/_chenx.pyi
+  PYTHON_PATH
+  "phenx")
+
 set_target_properties(_chenx PROPERTIES BUILD_WITH_INSTALL_RPATH ON
                                         INSTALL_RPATH "$ORIGIN/../lib")

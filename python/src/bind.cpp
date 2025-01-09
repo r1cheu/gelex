@@ -54,6 +54,7 @@ NB_MODULE(_chenx, m)
             arma::dmat genotype_ = ToArma(genotype);
             return ToPy(chenx::AddGrm(genotype_));
         },
+        nb::arg("genotype").noconvert(),
         nb::rv_policy::reference);
     m.def(
         "add_grm_chunk",
@@ -62,7 +63,9 @@ NB_MODULE(_chenx, m)
             arma::dmat genotype_ = ToArma(genotype);
             arma::dmat grm_ = ToArma(grm);
             chenx::AddGrmChunk(genotype_, grm_);
-        });
+        },
+        nb::arg("genotype").noconvert(),
+        nb::arg("grm").noconvert());
     m.def(
         "dom_grm",
         [](dmat& genotype)
@@ -70,15 +73,18 @@ NB_MODULE(_chenx, m)
             arma::dmat genotype_ = ToArma(genotype);
             return ToPy(chenx::DomGrm(genotype_));
         },
+        nb::arg("genotype").noconvert(),
         nb::rv_policy::reference);
     m.def(
-        "add_grm_chunk",
+        "dom_grm_chunk",
         [](dmat& genotype, dmat& grm)
         {
             arma::dmat genotype_ = ToArma(genotype);
             arma::dmat grm_ = ToArma(grm);
             chenx::DomGrmChunk(genotype_, grm_);
-        });
+        },
+        nb::arg("genotype").noconvert(),
+        nb::arg("grm").noconvert());
 }
 
 }  // namespace bind

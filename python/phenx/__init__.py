@@ -9,4 +9,6 @@
 
 # __all__ = ["Genotypes", "Phenotypes", "grm", "LinearMixedModel", "intersect"]
 
-from ._chenx import *  # noqa: F403
+from .data import _load_grm, make_grm
+
+__all__ = ["_load_grm", "make_grm"]
