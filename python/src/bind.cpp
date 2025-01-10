@@ -42,6 +42,13 @@ NB_MODULE(_chenx, m)
             "n_random_effect",
             [](chenx::LinearMixedModel& self)
             { return self.rand_names().size(); })
+        .def_prop_ro(
+            "beta",
+            [](chenx::LinearMixedModel& self) { return ToPy(self.beta()); })
+        .def_prop_ro(
+            "sigma",
+            [](chenx::LinearMixedModel& self) { return ToPy(self.sigma()); })
+        .def("reset", &chenx::LinearMixedModel::Reset, "reset the model")
         .def(
             "__repr__",
             [](chenx::LinearMixedModel& self)
@@ -54,9 +61,21 @@ NB_MODULE(_chenx, m)
                     fmt::join(self.rand_names(), ", "));
             });
     nb::class_<chenx::Estimator>(m, "Estimator")
-        .def(nb::init<std::string_view, size_t, double>())
-        .def("fit", &chenx::Estimator::Fit)
-        .def("set_optimizer", &chenx::Estimator::set_optimizer);
+        .def(
+            nb::init<std::string_view, size_t, double>(),
+            nb::arg("optimizer"),
+            nb::arg("max_iter"),
+            nb::arg("tol"))
+        .def(
+            "fit",
+            &chenx::Estimator::Fit,
+            nb::arg("model"),
+            nb::arg("em_init") = true,
+            "fit the model")
+        .def(
+            "set_optimizer",
+            &chenx::Estimator::set_optimizer,
+            "reset optimizer");
     m.def(
         "add_grm",
         [](dmat& genotype)

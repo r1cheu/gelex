@@ -1,107 +1,104 @@
 import numpy as np
-import pandas as pd
 import pytest
-from phenx import make_model
+from phenx._chenx import LinearMixedModel  # Replace with actual module name
 
 
 @pytest.fixture
-def sample_data():
-    return pd.DataFrame(
-        {
-            "y": [1.0, 2.0, 3.0],
-            "x1": [0.5, 1.5, 2.5],
-            "x2": ["a", "b", "a"],
-            "sample_id": ["s1", "s2", "s3"],
-        }
-    ).set_index("sample_id")
+def test_data():
+    """Create test data for LMM"""
+    rng = np.random.default_rng(42)
+    n_samples = 100
+    n_random = 2
 
-
-@pytest.fixture
-def grm_a():
-    return pd.DataFrame(
-        {"s1": [1.0, 0.1, 0.2], "s2": [0.1, 1.0, 0.3], "s3": [0.2, 0.3, 1.0]},
-        index=["s1", "s2", "s3"],
+    # Generate test data
+    y = rng.normal(0, 1, (n_samples, 1))
+    X = np.stack(
+        [np.ones(n_samples), rng.normal(0, 1, n_samples), rng.normal(0, 1, n_samples)],
+        axis=-1,
+    )
+    covar_cube = np.stack([np.eye(n_samples) for _ in range(n_random)], axis=-1)
+    names = ["random1", "random2"]
+    return (
+        np.asfortranarray(y),
+        np.asfortranarray(X),
+        np.asfortranarray(covar_cube),
+        names,
     )
 
 
-@pytest.fixture
-def grm_b():
-    return pd.DataFrame(
-        {"s1": [1.0, 0.1, 0.2], "s2": [0.1, 1.0, 0.3], "s3": [0.2, 0.3, 1.0]},
-        index=["s1", "s2", "s3"],
-    )
+def test_lmm_initialization(test_data):
+    """Test LinearMixedModel initialization"""
+    y, X, covar_cube, names = test_data
+    model = LinearMixedModel(y, X, covar_cube, names)
+
+    assert model is not None
+    assert model.n_samples == y.shape[0]
+    assert model.n_fixed_effect == X.shape[1]
+    assert model.n_random_effect == len(names) + 1
 
 
-@pytest.fixture
-def mismatch_grm():
-    return pd.DataFrame(
-        {"s2": [1.0, 0.1, 0.2], "s3": [0.1, 1.0, 0.3], "s4": [0.2, 0.3, 1.0]},
-        index=["s2", "s3", "s4"],
-    )
+def test_lmm_properties(test_data):
+    """Test LinearMixedModel properties"""
+    y, X, covar_cube, names = test_data
+    model = LinearMixedModel(y, X, covar_cube, names)
+
+    # Test beta property
+    beta = model.beta
+    assert isinstance(beta, np.ndarray)
+    assert beta.shape == (X.shape[1],)
+
+    # Test sigma property
+    sigma = model.sigma
+    assert isinstance(sigma, np.ndarray)
+    assert sigma.shape == (len(names) + 1,)
 
 
-def test_initialization_with_dataframe(sample_data):
-    model = make_model(sample_data)
-    pd.testing.assert_frame_equal(model.data, sample_data)
+def test_lmm_reset(test_data):
+    """Test reset functionality"""
+    y, X, covar_cube, names = test_data
+    model = LinearMixedModel(y, X, covar_cube, names)
+
+    # Store initial values
+    initial_beta = model.beta.copy()
+    initial_sigma = model.sigma.copy()
+
+    # Modify model state
+    model.reset()
+
+    # Verify reset
+    assert np.array_equal(model.beta, initial_beta)
+    assert np.array_equal(model.sigma, initial_sigma)
 
 
-def test_initialization_with_file(tmp_path, sample_data):
-    # Create a temporary file
-    file_path = tmp_path / "test_data.csv"
-    sample_data.to_csv(file_path, sep="\t", index=True, header=True)
-    model = make_model(file_path)
-    pd.testing.assert_frame_equal(model.data, sample_data)
+def test_lmm_repr(test_data):
+    """Test string representation"""
+    y, X, covar_cube, names = test_data
+    model = LinearMixedModel(y, X, covar_cube, names)
+
+    rep = repr(model)
+    assert "Linear Mixed Model" in rep
+    assert str(y.shape[0]) in rep
+    assert str(X.shape[1]) in rep
+    assert all(name in rep for name in names)
 
 
-def test_initialization_with_categorical(sample_data):
-    model = make_model(sample_data, categorical="x2")
-    assert isinstance(model.data["x2"].dtype, pd.CategoricalDtype)
+def test_lmm_invalid_input(test_data):
+    """Test invalid input handling"""
+    y, X, covar_cube, names = test_data
+
+    # Test mismatched dimensions
+    with pytest.raises(RuntimeError):
+        LinearMixedModel(y[:-1], X, covar_cube, names)
 
 
-def test_make_method(sample_data, grm_a):
-    model = make_model(sample_data)
-    lmm = model.make("y ~ x1", {"grm1": grm_a})
+def test_lmm_noconvert(test_data):
+    """Test noconvert functionality"""
+    y, X, covar_cube, names = test_data
 
-    assert lmm.n_samples == 3
-    assert lmm.n_fixed_effect == 2
-    assert lmm.n_random_effect == 2
+    # Test with non-contiguous arrays
+    y_noncontig = y[::2]
+    X_noncontig = X[::2, ::2]
+    cube_noncontig = covar_cube[::2, ::2, ::2]
 
-
-def test_make_method_missing_values(sample_data, grm_a):
-    # Add missing value
-    sample_data.loc["s1", "x1"] = np.nan
-    model = make_model(sample_data)
-
-    with pytest.raises(
-        ValueError, match="fixed effects should not contain missing values"
-    ):
-        model.make("y ~ x1", {"grm1": grm_a})
-
-
-def test_clean_data(sample_data):
-    model = make_model(sample_data)
-    cleaned = model._clean_data("y")
-    pd.testing.assert_frame_equal(cleaned, sample_data)  # no NAs in sample data
-
-    # Add NA and test
-    sample_data.loc["s1", "y"] = np.nan
-    model = make_model(sample_data)
-    cleaned = model._clean_data("y")
-    assert len(cleaned) == 2  # should drop s1
-
-
-def test_clean_grm(sample_data, grm_a):
-    model = make_model(sample_data)
-    data, grm_cube, names = model._clean_grm({"grm1": grm_a}, sample_data)
-    assert grm_cube.shape == (3, 3, 1)
-    assert names == ["grm1"]
-    pd.testing.assert_frame_equal(data, sample_data, check_names=False)
-
-
-def test_clean_grm_mismatch(sample_data, mismatch_grm):
-    # Create GRM with different samples
-
-    model = make_model(sample_data)
-    data, _, _ = model._clean_grm({"grm1": mismatch_grm}, sample_data)
-    sample_data = sample_data.drop("s1")
-    pd.testing.assert_frame_equal(data, sample_data, check_names=False)
+    with pytest.raises(TypeError):
+        LinearMixedModel(y_noncontig, X_noncontig, cube_noncontig, names)

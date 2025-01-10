@@ -32,6 +32,13 @@ class LinearMixedModel
     const dmat& tx_vinv_x() const { return tx_vinv_x_; }
     const std::vector<std::string>& rand_names() const { return rand_names_; }
 
+    void Reset()
+    {
+        auto n_rand = rand_names_.size();
+        set_sigma(dvec(
+            n_rand, arma::fill::value(y_var_ / static_cast<double>(n_rand))));
+        set_beta(dvec(X_.n_cols, arma::fill::zeros));
+    };
     void set_sigma(dvec&& sigma)
     {
         sigma_ = std::move(sigma);
