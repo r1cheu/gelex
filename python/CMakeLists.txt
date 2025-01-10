@@ -29,12 +29,11 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-execute_process(
-  COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-  OUTPUT_VARIABLE nanobind_ROOT)
-find_package(nanobind CONFIG REQUIRED)
-
+# execute_process( COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
+# OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_ROOT)
+# find_package(nanobind CONFIG REQUIRED) using the local nanobind until the
+# v.2.5.0 is released
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../extern/nanobind _deps/nanobind)
 # the definition won't be passed from chenx due it's another project re-add it
 # set(ARMA_DEFINITIONS ARMA_DONT_USE_WRAPPER ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS
 # ARMA_OPENMP_THREADS=64)
@@ -46,6 +45,16 @@ find_package(nanobind CONFIG REQUIRED)
 nanobind_add_module(_chenx src/bind.cpp)
 target_link_libraries(_chenx PRIVATE chenx)
 install(TARGETS _chenx LIBRARY DESTINATION phenx)
+
+nanobind_add_stub(
+  _chenx_stub
+  INSTALL_TIME
+  MODULE
+  _chenx
+  OUTPUT
+  phenx/_chenx.pyi
+  PYTHON_PATH
+  "phenx")
 
 set_target_properties(_chenx PROPERTIES BUILD_WITH_INSTALL_RPATH ON
                                         INSTALL_RPATH "$ORIGIN/../lib")

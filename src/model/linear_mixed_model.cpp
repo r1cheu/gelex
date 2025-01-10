@@ -8,7 +8,7 @@
 namespace chenx
 {
 LinearMixedModel::LinearMixedModel(
-    dvec&& y,
+    dmat&& y,
     dmat&& X,
     dcube&& covar_matrices_rand,
     std::vector<std::string>&& rand_names)
@@ -17,10 +17,11 @@ LinearMixedModel::LinearMixedModel(
       zkzt_{covar_matrices_rand},
       rand_names_{std::move(rand_names)}
 {
-    y_var_ = var(y_);
+    y_var_ = arma::as_scalar(arma::cov(y_));  // currently only support scalar
     uword n{X_.n_rows}, m{X_.n_cols};
     // zkztr_ = ComputeZKZtR(std::move(covar_matrices_rand));
     uword n_rands = zkzt_.n_slices + 1;
+    set_beta(dvec(m, arma::fill::zeros));
     pdv_.set_size(n, n, n_rands);
     set_sigma(dvec(
         n_rands, arma::fill::value(y_var_ / static_cast<double>(n_rands))));

@@ -1,86 +1,98 @@
 import numpy as np
 import pandas as pd
 import pytest
-from bed_reader import sample_file
-from phenx.dataset import grm
-
-rng = np.random.default_rng(42)
+from bed_reader import to_bed
+from phenx import make_grm
 
 
-@pytest.mark.filterwarnings("ignore::ResourceWarning")
-def test_grm_with_bed_file():
-    result = grm(str(sample_file("small.bed")))
-    assert isinstance(result, pd.DataFrame)
-
-
-def test_grm_with_h5_file(tmp_path):
-    # Create a temporary .h5 file for testing
-    h5_path = tmp_path / "test.h5"
-    # Write test data to the .h5 file
-    # (Note: This is a placeholder. Actual .h5 file creation depends on the format)
-    data = pd.DataFrame(rng.normal(size=(10, 10)))
-    data.to_hdf(h5_path, key="grm")
-
-    result = grm(str(h5_path))
-    assert isinstance(result, pd.DataFrame)
-
-
-def test_grm_with_dataframe():
-    # Test with a pandas DataFrame
-    genotype_df = pd.DataFrame(rng.normal(size=(10, 10)))
-    result = grm(genotype_df)
-    assert isinstance(result, pd.DataFrame)
-
-
-def test_grm_with_invalid_input():
-    # Test with an invalid input type
-    with pytest.raises(FileNotFoundError):
-        grm("invalid_path.txt")
-
-
-def test_grm_with_hybird_encoding(tmp_path):
-    # Test with hybird encoding method
-    genotype_df = pd.DataFrame()
-    phenotype_series = pd.Series(rng.normal(size=(10,)))
-    save_d_values = tmp_path / "test_d_values.h5"
-
-    result = grm(
-        genotype_df,
-        phenotype=phenotype_series,
-        encode_method="hybird",
-        save_d_values=str(save_d_values),
+@pytest.fixture
+def test_bed_file(tmp_path):
+    """Create a simple test BED file"""
+    bed_path = tmp_path / "test.bed"
+    val = np.array(
+        [[1.0, 0.0, np.nan, 0.0], [2.0, 0.0, np.nan, 2.0], [0.0, 1.0, 2.0, 0.0]],
+        order="F",
     )
-    assert isinstance(result, pd.DataFrame)
-    assert save_d_values.exists()
+    properties = {
+        "fid": ["fid1", "fid1", "fid2"],
+        "iid": ["iid1", "iid2", "iid3"],
+        "father": ["iid23", "iid23", "iid22"],
+        "mother": ["iid34", "iid34", "iid33"],
+        "sex": [1, 2, 0],
+        "pheno": ["red", "red", "blue"],
+        "chromosome": ["1", "1", "5", "Y"],
+        "sid": ["sid1", "sid2", "sid3", "sid4"],
+        "cm_position": [100.4, 2000.5, 4000.7, 7000.9],
+        "bp_position": [1, 100, 1000, 1004],
+        "allele_1": ["A", "T", "A", "T"],
+        "allele_2": ["A", "C", "C", "G"],
+    }
+    to_bed(bed_path, val, properties=properties)
+    return bed_path
 
 
-def test_grm_with_load_hybird_encoding(tmp_path):
-    # Test with hybird encoding method
-    genotype_df = pd.DataFrame(rng.normal(size=(10, 10)))
-    phenotype_series = pd.Series(rng.normal(size=(10,)))
-    save_d_values = tmp_path / "test_d_values.h5"
+def test_make_grm_additive(test_bed_file):
+    """Test additive GRM computation"""
+    grm = make_grm(test_bed_file, method="add", chunk_size=2, save=False)
 
-    result = grm(
-        genotype_df,
-        phenotype=phenotype_series,
-        encode_method="hybird",
-        save_d_values=str(save_d_values),
-    )
-
-    expected = grm(
-        genotype_df,
-        phenotype=save_d_values,
-        encode_method="hybird",
-    )
-    assert isinstance(expected, pd.DataFrame)
-    assert np.array_equal(result.to_numpy(), expected.to_numpy())
+    assert isinstance(grm, pd.DataFrame)
+    assert grm.shape == (3, 3)  # 3 samples
+    assert np.allclose(grm.to_numpy(), grm.to_numpy().T)  # Symmetric
+    assert np.all(np.diag(grm.to_numpy()) >= 0)  # Positive diagonal
 
 
-def test_grm_save_grm(tmp_path):
-    # Test saving the GRM to a file
-    genotype_df = pd.DataFrame(rng.normal(size=(10, 10)))
-    save_grm_path = tmp_path / "test_grm.h5"
+def test_make_grm_dominance(test_bed_file):
+    """Test dominance GRM computation"""
+    grm = make_grm(test_bed_file, method="dom", chunk_size=2, save=False)
 
-    result = grm(genotype_df, save_grm=str(save_grm_path))
-    assert isinstance(result, pd.DataFrame)
-    assert save_grm_path.exists()
+    assert isinstance(grm, pd.DataFrame)
+    assert grm.shape == (3, 3)
+    assert np.allclose(grm.to_numpy(), grm.to_numpy().T)
+    assert np.all(np.diag(grm.values) >= 0)
+
+
+def test_make_grm_invalid_method(test_bed_file):
+    """Test invalid method raises ValueError"""
+    with pytest.raises(ValueError):
+        make_grm(test_bed_file, method="invalid")
+
+
+def test_make_grm_no_chunking(test_bed_file):
+    """Test GRM computation without chunking"""
+    grm_add = make_grm(test_bed_file, method="add", chunk_size=False, save=False)
+    assert isinstance(grm_add, pd.DataFrame)
+    assert grm_add.shape == (3, 3)
+
+    grm_dom = make_grm(test_bed_file, method="dom", chunk_size=False, save=False)
+    assert isinstance(grm_dom, pd.DataFrame)
+    assert grm_dom.shape == (3, 3)
+
+
+def test_make_grm_save_file(test_bed_file):
+    """Test GRM saving to file"""
+    output_path = test_bed_file.with_suffix(".add.grm")
+    grm = make_grm(test_bed_file, method="add", save=True)
+    assert grm.to_numpy().flags["F_CONTIGUOUS"]
+    assert output_path.exists()
+
+
+def test_make_grm_large_chunk_size(test_bed_file):
+    """Test with chunk size larger than number of SNPs"""
+    grm = make_grm(test_bed_file, method="add", chunk_size=100000, save=False)
+    assert isinstance(grm, pd.DataFrame)
+    assert grm.shape == (3, 3)
+
+
+def test_make_grm_chunking_consistency(test_bed_file):
+    """Test that chunked and non-chunked GRM computation gives same result"""
+    # Compute GRM with chunking
+    grm_chunked = make_grm(
+        test_bed_file, method="add", chunk_size=2, save=False
+    ).to_numpy()
+
+    # Compute GRM without chunking
+    grm_no_chunk = make_grm(
+        test_bed_file, method="add", chunk_size=False, save=False
+    ).to_numpy()
+
+    assert np.allclose(grm_chunked, grm_no_chunk)
