@@ -6,6 +6,7 @@ dependencies = [
   "tables>=3.10.1,<4",
   "bed-reader>=1.0.5,<2",
   "formulaic>=1.0.2,<2",
+  "h5py>=3.12.1,<4",
 ]
 description = "Add a short description here"
 name = "phenx"
@@ -13,14 +14,14 @@ requires-python = ">= 3.11"
 version = "0.1.2"
 
 [build-system]
-requires = ["scikit-build-core>=0.10", "nanobind>=2.4.0,<3"]
+requires = ["scikit-build-core>=0.10"]    #"nanobind>=2.5.0,<3"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
 cmake.source-dir = 'python'
 wheel.expand-macos-universal-tags = true
 wheel.packages = ["python/phenx"]
-build-dir = "build"
+build-dir = "pybuild"
 sdist.exclude = [".pixi", ".github"]
 
 [tool.scikit-build.cmake.define]
@@ -53,10 +54,10 @@ build_mkl = "cmake -G Ninja -S . -B build -D BUILD_TEST=OFF -D BUILD_PYTHON_BIND
 lsp = "cmake -G Ninja -S . -B build -D BUILD_TEST=OFF -D BUILD_PYTHON_BINDINGS=ON && cp build/compile_commands.json ./ && rm -rf build"
 ctest = "cmake -G Ninja -S . -B build -D BUILD_TEST=ON -D BUILD_PYTHON_BINDINGS=OFF && cmake --build build && ./build/tests/test"
 wheel = "uv build"
-
-[tool.pixi.feature.dev.pypi-dependencies]
-nanobind = ">=2.4.0,<3" # add for lsp
-
+#
+# [tool.pixi.feature.dev.pypi-dependencies]
+# nanobind = ">=2.4.0,<3" # add for lsp
+#
 # Feature test
 [tool.pixi.feature.test.pypi-dependencies]
 pytest = ">=8.3"
@@ -70,6 +71,7 @@ matplotlib = ">=3.10.0,<4"
 
 [tool.pixi.feature.jupyter.tasks]
 jupyter = "jupyter lab"
+
 
 [tool.pytest.ini_options]
 minversion = "6.0"

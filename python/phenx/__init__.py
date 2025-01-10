@@ -9,6 +9,7 @@
 
 # __all__ = ["Genotypes", "Phenotypes", "grm", "LinearMixedModel", "intersect"]
 
-from .data import _load_grm, make_grm
+from .data import make_grm
+from .model import make_model
 
-__all__ = ["_load_grm", "make_grm"]
+__all__ = ["make_grm", "make_model"]

@@ -29,12 +29,11 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-execute_process(
-  COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-  OUTPUT_VARIABLE nanobind_ROOT)
-find_package(nanobind CONFIG REQUIRED)
-
+# execute_process( COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
+# OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_ROOT)
+# find_package(nanobind CONFIG REQUIRED) using the local nanobind until the
+# v.2.5.0 is released
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../extern/nanobind _deps/nanobind)
 # the definition won't be passed from chenx due it's another project re-add it
 # set(ARMA_DEFINITIONS ARMA_DONT_USE_WRAPPER ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS
 # ARMA_OPENMP_THREADS=64)

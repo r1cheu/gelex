@@ -17,11 +17,11 @@ class LinearMixedModel
 {
    public:
     LinearMixedModel(
-        dvec&& y,
+        dmat&& y,
         dmat&& X,
         dcube&& covar_matrices_rand,
         std::vector<std::string>&& rand_names);
-    const dvec& y() const { return y_; }
+    const dmat& y() const { return y_; }
     const dmat& X() const { return X_; }
     double y_var() const { return y_var_; }
     const dvec& beta() { return beta_; }
@@ -43,7 +43,7 @@ class LinearMixedModel
     double ComputeLogLikelihood() const;
 
    private:
-    dvec y_;
+    dmat y_;
     double y_var_{};
 
     dmat X_;

@@ -71,45 +71,8 @@ def make_grm(
             f"{bed_file.with_suffix('')}.{method}.grm",
             key="grm",
             mode="w",
-            format="table",
         )
     return grm
-
-
-def _load_grm(
-    grm_file: str | Path,
-    samples_col: list[str] | None = None,
-    samples_row: list[str] | None = None,
-) -> np.ndarray:
-    """
-    Load a Genetic Relationship Matrix (GRM) from a file.
-    Usually users don't need to call this function directly.
-
-    Parameters
-    ----------
-    grm_file : str | Path
-        Path to the file containing the GRM.
-    samples_col : list[str], optional
-        List of column sample IDs to load from the GRM. If None, loads all columns.
-    samples_row : list[str], optional
-        List of row sample IDs to load from the GRM. If None, loads all rows.
-
-    Returns
-    -------
-    np.ndarray
-        The loaded Genetic Relationship Matrix (GRM) as a NumPy array.
-    """
-    grm_file = Path(grm_file)
-
-    grm = pd.read_hdf(
-        grm_file,
-        columns=samples_col,
-        where=("index in %r" % samples_row) if samples_row else None,  # noqa: UP031
-    ).to_numpy()
-
-    if grm.flags["F_CONTIGUOUS"]:
-        return grm
-    return np.asfortranarray(grm)
 
 
 def _chunk_grm(

@@ -20,7 +20,7 @@ NB_MODULE(_chenx, m)
         .def(
             "__init__",
             [](chenx::LinearMixedModel* self,
-               const dvec& y,
+               const dmat& y,
                const dmat& X,
                const dcube& covar_mat,
                std::vector<std::string> names)
@@ -32,6 +32,16 @@ NB_MODULE(_chenx, m)
             nb::arg("X").noconvert(),
             nb::arg("covar_mat").noconvert(),
             nb::arg("names"))
+        .def_prop_ro(
+            "n_samples",
+            [](chenx::LinearMixedModel& self) { return self.y().n_rows; })
+        .def_prop_ro(
+            "n_fixed_effect",
+            [](chenx::LinearMixedModel& self) { return self.X().n_cols; })
+        .def_prop_ro(
+            "n_random_effect",
+            [](chenx::LinearMixedModel& self)
+            { return self.rand_names().size(); })
         .def(
             "__repr__",
             [](chenx::LinearMixedModel& self)

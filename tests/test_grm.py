@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from bed_reader import to_bed
-from phenx import _load_grm, make_grm
+from phenx import make_grm
 
 
 @pytest.fixture
@@ -73,25 +73,7 @@ def test_make_grm_save_file(test_bed_file):
     output_path = test_bed_file.with_suffix(".add.grm")
     grm = make_grm(test_bed_file, method="add", save=True)
     assert grm.to_numpy().flags["F_CONTIGUOUS"]
-
     assert output_path.exists()
-    loaded_grm = _load_grm(output_path)
-    assert loaded_grm.flags["F_CONTIGUOUS"]
-    assert np.allclose(grm.to_numpy(), loaded_grm)
-
-    slice_grm = _load_grm(output_path)
-    assert slice_grm.flags["F_CONTIGUOUS"]
-
-    slice_grm = _load_grm(
-        output_path, samples_col=["iid1", "iid2"], samples_row=["iid1", "iid2"]
-    )
-    assert slice_grm.flags["F_CONTIGUOUS"]
-
-    slice_grm = _load_grm(output_path, samples_col=["iid1", "iid2"])
-    assert slice_grm.flags["F_CONTIGUOUS"]
-
-    slice_grm = _load_grm(output_path, samples_row=["iid1", "iid2"])
-    assert slice_grm.flags["F_CONTIGUOUS"]
 
 
 def test_make_grm_large_chunk_size(test_bed_file):
