@@ -1,3 +1,4 @@
+import gc
 from pathlib import Path
 
 import numpy as np
@@ -13,22 +14,67 @@ class make_model:
         data: str | Path | pd.DataFrame,
         categorical: list[str] | str | None = None,
     ):
+        """
+        Initialize the make_model class.
+
+        Parameters
+        ----------
+        data : str | Path | pd.DataFrame
+            Input data for the model. Can be a file path (str or Path) or a pandas DataFrame.
+            If file path is provided, it will be read as a tab-separated file with the first
+            column as index and NA values represented by ["NA", ".", "nan", "NaN"]. Other
+            missing value is not support.
+        categorical : list[str] | str | None, optional
+            List of column names or single column name to be converted to categorical type.
+            If None, no conversion is performed. Default is None.
+
+        Raises
+        ------
+        ValueError
+            If data is neither a file path nor a DataFrame.
+        """
         if isinstance(data, (str | Path)):
-            self.data = pd.read_csv(data, sep="\t", index_col=0)
+            self.data = pd.read_csv(
+                data, sep="\t", index_col=0, na_values=["NA", ".", "nan", "NaN"]
+            )
         elif isinstance(data, pd.DataFrame):
             self.data = data
         else:
             msg = "data must be a path to a file or a DataFrame"
             raise ValueError(msg)
+
         if categorical:
             self.data = with_categorical_cols(self.data, categorical)
 
     def make(
         self, formula: str, grm: dict[str, pd.DataFrame | str | Path]
     ) -> LinearMixedModel:
+        """
+        Create a Linear Mixed Model from the specified formula and genetic relationship matrices.
+
+        Parameters
+        ----------
+        formula : str
+            A formula string specifying the model. The left-hand side specifies the response variable,
+            and the right-hand side specifies the fixed effects. Example: "y ~ x1 + x2"
+        grm : dict[str, pd.DataFrame | str | Path]
+            A dictionary mapping random effect names to their corresponding genetic relationship matrices.
+            The matrices can be provided as DataFrames or paths to files containing the matrices.
+
+        Returns
+        -------
+        LinearMixedModel
+            A LinearMixedModel object containing the response vector, design matrix, genetic relationship
+            matrices, and random effect names.
+
+        Raises
+        ------
+        ValueError
+            If the fixed effects contain missing values.
+        """
         formula = Formula(formula)
         data = self._clean_data(str(formula.lhs))
-        data, grm, random_effect_names = self._clean_grm(grm, data)
+        data, self._grm, random_effect_names = self._clean_grm(grm, data)
 
         try:
             model_matrix = formula.get_model_matrix(data, na_action="raise")
@@ -36,13 +82,13 @@ class make_model:
             msg = "fixed effects should not contain missing values"
             raise ValueError(msg) from e
 
-        response = np.asfortranarray(model_matrix.lhs, dtype=np.float64)
-        design_matrix = np.asfortranarray(model_matrix.rhs, dtype=np.float64)
-
+        self._response = np.asfortranarray(model_matrix.lhs, dtype=np.float64)
+        self._design_matrix = np.asfortranarray(model_matrix.rhs, dtype=np.float64)
+        gc.collect()  # Clean up memory
         return LinearMixedModel(
-            response,
-            design_matrix,
-            grm,
+            self._response,
+            self._design_matrix,
+            self._grm,
             random_effect_names,
         )
 

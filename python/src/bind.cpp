@@ -48,6 +48,13 @@ NB_MODULE(_chenx, m)
         .def_prop_ro(
             "sigma",
             [](chenx::LinearMixedModel& self) { return ToPy(self.sigma()); })
+        .def_prop_ro(
+            "_y", [](chenx::LinearMixedModel& self) { return ToPy(self.y()); })
+        .def_prop_ro(
+            "_X", [](chenx::LinearMixedModel& self) { return ToPy(self.X()); })
+        .def_prop_ro(
+            "_pdv",
+            [](chenx::LinearMixedModel& self) { return ToPy(self.pdv()); })
         .def("reset", &chenx::LinearMixedModel::Reset, "reset the model")
         .def(
             "__repr__",
@@ -63,19 +70,52 @@ NB_MODULE(_chenx, m)
     nb::class_<chenx::Estimator>(m, "Estimator")
         .def(
             nb::init<std::string_view, size_t, double>(),
-            nb::arg("optimizer"),
-            nb::arg("max_iter"),
-            nb::arg("tol"))
+            nb::arg("optimizer") = "NR",
+            nb::arg("max_iter") = 20,
+            nb::arg("tol") = 1e-8,
+            "Initialize the Estimator\n\n"
+            "Parameters\n"
+            "----------\n"
+            "optimizer : str, optional\n"
+            "    The optimization algorithm to use (default: 'NR')\n"
+            "max_iter : int, optional\n"
+            "    Maximum number of iterations (default: 20)\n"
+            "tol : float, optional\n"
+            "    Convergence tolerance (default: 1e-8)")
         .def(
             "fit",
             &chenx::Estimator::Fit,
             nb::arg("model"),
             nb::arg("em_init") = true,
-            "fit the model")
+            "Fit the model\n\n"
+            "Parameters\n"
+            "----------\n"
+            "model : LinearMixedModel\n"
+            "    The linear mixed model to fit\n"
+            "em_init : bool, optional\n"
+            "    Whether to use EM algorithm for initialization (default: "
+            "True)\n\n"
+            "Returns\n"
+            "-------\n"
+            "None")
         .def(
             "set_optimizer",
             &chenx::Estimator::set_optimizer,
-            "reset optimizer");
+            nb::arg("optimizer") = "NR",
+            nb::arg("max_iter") = 20,
+            nb::arg("tol") = 1e-8,
+            "reset optimizer\n\n"
+            "Parameters\n"
+            "----------\n"
+            "optimizer : str, optional\n"
+            "    The optimization algorithm to use (default: 'NR')\n"
+            "max_iter : int, optional\n"
+            "    Maximum number of iterations (default: 20)\n"
+            "tol : float, optional\n"
+            "    Convergence tolerance (default: 1e-8)\n\n"
+            "Returns\n"
+            "-------\n"
+            "None");
     m.def(
         "add_grm",
         [](dmat& genotype)
