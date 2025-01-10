@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from bed_reader import open_bed
 
-from .._chenx import add_grm, add_grm_chunk, dom_grm, dom_grm_chunk
+from .._chenx import _scale_grm, add_grm, add_grm_chunk, dom_grm, dom_grm_chunk
 
 
 # TODO: current we depend on the bed_reader package to read the bed file.
@@ -101,11 +101,15 @@ def _load_grm(
     """
     grm_file = Path(grm_file)
 
-    return pd.read_hdf(
+    grm = pd.read_hdf(
         grm_file,
         columns=samples_col,
         where=("index in %r" % samples_row) if samples_row else None,  # noqa: UP031
     ).to_numpy()
+
+    if grm.flags["F_CONTIGUOUS"]:
+        return grm
+    return np.asfortranarray(grm)
 
 
 def _chunk_grm(
@@ -135,4 +139,5 @@ def _chunk_grm(
         end = min(start + chunk_size, num_snps)
         snp_data = bed.read(np.s_[:, start:end], dtype=np.float64)
         chunk_func(snp_data, grm)
+    _scale_grm(grm)
     return grm

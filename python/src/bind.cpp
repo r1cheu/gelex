@@ -85,6 +85,14 @@ NB_MODULE(_chenx, m)
         },
         nb::arg("genotype").noconvert(),
         nb::arg("grm").noconvert());
+    m.def(
+        "_scale_grm",
+        [](dmat& grm)
+        {
+            arma::dmat grm_ = ToArma(grm);
+            grm_ = grm_ / arma::trace(grm_) * static_cast<double>(grm_.n_rows);
+        },
+        nb::arg("grm").noconvert());
 }
 
 }  // namespace bind

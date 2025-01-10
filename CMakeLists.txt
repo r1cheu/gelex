@@ -14,11 +14,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(NOT CMAKE_BUILD_TYPE)
   if(DEFINED ENV{CMAKE_BUILD_TYPE})
-    set(CMAKE_BUILD_TYPE $ENV{CMAKE_BUILD_TYPE})
+    message(
+      STATUS
+        "Using environment variable CMAKE_BUILD_TYPE: $ENV{CMAKE_BUILD_TYPE}")
+    set(CMAKE_BUILD_TYPE
+        $ENV{CMAKE_BUILD_TYPE}
+        CACHE STRING "Build type" FORCE)
   else()
-    set(CMAKE_BUILD_TYPE Debug)
+    set(CMAKE_BUILD_TYPE
+        Debug
+        CACHE STRING "Build type" FORCE)
   endif()
 endif()
+
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 option(USE_MKL "Use the MKL" OFF)

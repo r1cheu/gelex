@@ -17,8 +17,8 @@ void HandleNaN(dmat& genotype)
 
 void Normalize(dmat& genotype)
 {
-    dvec pA = mean(genotype, 0) / 2;
-    dvec pa = 1 - pA;
+    arma::rowvec pA = mean(genotype, 0) / 2;
+    arma::rowvec pa = 1 - pA;
     genotype.replace(2.0, 0.0);
     genotype.each_row() -= 2 * (pA % pa);
 }

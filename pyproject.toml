@@ -20,6 +20,7 @@ build-backend = "scikit_build_core.build"
 cmake.source-dir = 'python'
 wheel.expand-macos-universal-tags = true
 wheel.packages = ["python/phenx"]
+build-dir = "build"
 sdist.exclude = [".pixi", ".github"]
 
 [tool.scikit-build.cmake.define]
