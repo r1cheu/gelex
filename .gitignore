@@ -158,3 +158,4 @@ pixi.lock
 .vscode/
 script/
 *.log
+/*.cpp
