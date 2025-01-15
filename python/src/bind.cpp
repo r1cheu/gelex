@@ -8,6 +8,7 @@
 #include <armadillo>
 
 #include "array_caster.h"
+#include "chenx/data/bed_reader.h"
 #include "chenx/data/grm.h"
 #include "chenx/estimator.h"
 #include "chenx/model/linear_mixed_model.h"
