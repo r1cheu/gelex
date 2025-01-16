@@ -7,12 +7,8 @@
 /**
  * @brief Construct a new BedReader object
  */
-BedReader::BedReader(
-    const std::string& bed_file,
-    size_t chunk_size,
-    bool dom,
-    int threads)
-    : bed_file_{bed_file}, chunk_size_{chunk_size}, threads_{threads}
+BedReader::BedReader(const std::string& bed_file, size_t chunk_size)
+    : bed_file_{bed_file}, chunk_size_{chunk_size}
 {
     std::string base_path = bed_file_.substr(0, bed_file_.size() - 4);
     std::string fam_file = base_path + ".fam";
@@ -23,15 +19,6 @@ BedReader::BedReader(
     OpenBed();
 
     bytes_per_snp_ = (n_individuals_ + 3) / 4;  // add 3 for correct rounding
-    if (threads_ > 0)
-    {
-        omp_set_num_threads(threads_);
-    }
-    else
-    {
-        omp_set_num_threads(omp_get_max_threads());
-    }
-    m_geno_map = dom ? genotypeMap_dom : genotypeMap_add;
 }
 
 /**
@@ -45,9 +32,6 @@ BedReader::~BedReader()
     }
 }
 
-//------------------------------------------------------------------------------
-// Private utilities
-//------------------------------------------------------------------------------
 uint64_t BedReader::parseFam(const std::string& fam_file)
 {
     std::ifstream fin(fam_file);
@@ -190,7 +174,7 @@ arma::dmat BedReader::GetNextChunk()
                 }
                 const int genotype_code
                     = (byte_val >> (2 * bit)) & 0x03;  // encode byte to int
-                genotype_matrix.at(ind, snp_idx) = m_geno_map[genotype_code];
+                genotype_matrix.at(ind, snp_idx) = genotype_map[genotype_code];
             }
         }
     }

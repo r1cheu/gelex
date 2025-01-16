@@ -3,58 +3,78 @@
 #include <armadillo>
 #include <cmath>
 
+#include "chenx/data/bed_reader.h"
+
 namespace chenx
 {
-using arma::dvec;
-
-void HandleNaN(dmat& genotype)
+Grm::Grm(const std::string& bed_file, uint64_t chunk_size)
+    : bed_{bed_file, chunk_size}
 {
-    if (genotype.has_nan())
+}
+
+double Grm::scale_factor() const noexcept
+{
+    return scale_factor_;
+}
+
+const BedReader& Grm::bed() const noexcept
+{
+    return bed_;
+}
+
+dmat Grm::Compute()
+{
+    const uint64_t n{bed_.n_individuals()};
+    dmat grm{n, n, arma::fill::zeros};
+
+    while (bed_.HasNext())
     {
-        genotype.replace(arma::datum::nan, 1.0);
-    }
+        dmat genotype{bed_.GetNextChunk()};
+        Centerlize(genotype);
+        grm += genotype * genotype.t();
+    };
+    scale_factor_ = Scale(grm);
+    return grm;
 }
 
-void Normalize(dmat& genotype)
+double Grm::Scale(dmat& grm)
 {
-    arma::rowvec pA = mean(genotype, 0) / 2;
-    arma::rowvec pa = 1 - pA;
-    genotype.replace(2.0, 0.0);
-    genotype.each_row() -= 2 * (pA % pa);
+    double scale_factor = arma::trace(grm) / static_cast<double>(grm.n_rows);
+    grm /= scale_factor;
+    return scale_factor;
 }
 
-dmat ComputeGRM(dmat& genotype)
+AddGrm::AddGrm(const std::string& bed_file, uint64_t chunk_size)
+    : Grm{bed_file, chunk_size}
 {
-    dmat grm = genotype * genotype.t();
-    return grm / trace(grm) * static_cast<double>(grm.n_rows);
+    center_.zeros(bed().n_individuals());
 }
 
-dmat AddGrm(dmat& genotype)
+void AddGrm::Centerlize(dmat& genotype)
 {
-    HandleNaN(genotype);
-    genotype.each_row() -= mean(genotype, 0);
-    return ComputeGRM(genotype);
+    rowvec center{arma::mean(genotype, 0)};
+    genotype.each_row() -= center;
+    center_.cols(
+        bed().current_chunk_index(),
+        bed().current_chunk_index() + genotype.n_cols - 1)
+        = center;
 }
 
-void AddGrmChunk(dmat& genotype, dmat& grm)
+DomGrm::DomGrm(const std::string& bed_file, uint64_t chunk_size)
+    : Grm{bed_file, chunk_size}
 {
-    HandleNaN(genotype);
-    genotype.each_row() -= mean(genotype, 0);
-    grm += genotype * genotype.t();
+    center_.zeros(bed().n_individuals());
 }
 
-dmat DomGrm(dmat& genotype)
+void DomGrm::Centerlize(dmat& genotype)
 {
-    HandleNaN(genotype);
-    Normalize(genotype);
-    return ComputeGRM(genotype);
-}
-
-void DomGrmChunk(dmat& genotype, dmat& grm)
-{
-    HandleNaN(genotype);
-    Normalize(genotype);
-    grm += genotype * genotype.t();
+    rowvec pA = arma::mean(genotype, 0) / 2;
+    rowvec center = 2 * (pA % (1 - pA));
+    genotype.each_row() -= center;
+    center_.cols(
+        bed().current_chunk_index(),
+        bed().current_chunk_index() + genotype.n_cols - 1)
+        = center;
 }
 
 }  // namespace chenx

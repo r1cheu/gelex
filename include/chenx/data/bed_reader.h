@@ -28,18 +28,12 @@ class BedReader
      * @brief Construct a new BedReader object
      *
      * @param bed_file Path to the .bed file
-     * @param bim_file Path to the .bim file
-     * @param fam_file Path to the .fam file
      * @param chunk_size Number of SNPs to process per chunk
      * @param dosage If true, use "dosage" encoding
      * @param threads Number of threads for parallel processing (0 = let OpenMP
      * decide)
      */
-    explicit BedReader(
-        const std::string& bed_file,
-        size_t chunk_size = 10000,
-        bool dom = false,
-        int threads = 0);
+    explicit BedReader(const std::string& bed_file, size_t chunk_size = 10000);
 
     /**
      * @brief Destroy the BedReader object
@@ -83,16 +77,12 @@ class BedReader
     std::string bim_file_;
     std::string fam_file_;
     std::vector<SNP> snps_;           ///< Parsed SNP info from .bim
-    uint64_t n_individuals_;          ///< Number of individuals from .fam
+    uint64_t n_individuals_{};        ///< Number of individuals from .fam
     uint64_t chunk_size_;             ///< Number of SNPs to process per chunk
     uint64_t current_chunk_index_{};  ///< Which chunk are we on?
-    uint64_t bytes_per_snp_;          ///< Computed from n_individuals
-    int threads_;                     ///< Number of parallel threads
+    uint64_t bytes_per_snp_{};        ///< Computed from n_individuals
 
-    const double* m_geno_map = nullptr;
-
-    static constexpr double genotypeMap_add[4] = {2.0, 1.0, 1.0, 0.0};
-    static constexpr double genotypeMap_dom[4] = {0.0, 1.0, 1.0, 0.0};
+    static constexpr double genotype_map[4] = {2.0, 1.0, 1.0, 0.0};
 
     static uint64_t parseFam(const std::string& fam_file);
     static std::vector<SNP> parseBim(const std::string& bim_file);
