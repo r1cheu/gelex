@@ -2,7 +2,13 @@
 #include <omp.h>
 #include <cstdint>
 #include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
 #include "armadillo"
+
+namespace chenx
+{
 
 /**
  * @brief Construct a new BedReader object
@@ -54,7 +60,7 @@ uint64_t BedReader::parseFam(const std::string& fam_file)
     return count;
 }
 
-std::vector<SNP> BedReader::parseBim(const std::string& bim_file)
+std::vector<std::string> BedReader::parseBim(const std::string& bim_file)
 {
     std::ifstream fin(bim_file);
     if (!fin.is_open())
@@ -63,20 +69,39 @@ std::vector<SNP> BedReader::parseBim(const std::string& bim_file)
             "Error: Cannot open .bim file [" + bim_file + "].");
     }
 
-    std::vector<SNP> snps;
+    uint64_t idx{};
+    std::vector<std::string> snps;
     std::string line;
+    std::string temp;
+
     while (std::getline(fin, line))
     {
         if (line.empty())
         {
             continue;
         }
-        std::istringstream iss(line);
-        SNP snp;
-        std::string dummy;
-        iss >> snp.chromosome >> dummy >> dummy >> snp.position >> snp.allele1
-            >> snp.allele2;
-        snps.emplace_back(snp);
+        std::istringstream stream{line};
+        std::string snp;
+        for (int i{}; std::getline(stream, temp, '\t'); ++i)
+        {
+            switch (i)
+            {
+                case 0:
+                    snp += temp;
+                    break;
+                case 1:
+                case 2:
+                    break;
+                case 3:
+                case 4:
+                case 5:
+                    snp += ":" + temp;
+                    break;
+                default:
+                    break;
+            }
+        }
+        snps.push_back(snp);
     }
     fin.close();
     return snps;
@@ -181,3 +206,4 @@ arma::dmat BedReader::GetNextChunk()
     current_chunk_index_ += current_chunk_size;
     return genotype_matrix;
 }
+}  // namespace chenx

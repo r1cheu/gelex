@@ -1,22 +1,16 @@
 #pragma once
 
 #include <omp.h>
+#include <algorithm>
 #include <cstdint>
-#include <fstream>
 #include <string>
 #include <vector>
 
 #include <armadillo>
 
 // Structure to hold SNP information from .bim file
-struct SNP
+namespace chenx
 {
-    std::string chromosome;
-    uint64_t position;
-    char allele1;
-    char allele2;
-};
-
 class BedReader
 {
    public:
@@ -59,7 +53,7 @@ class BedReader
      * @brief Get the total number of SNPs (from .bim file)
      */
     uint64_t n_snps() const { return snps_.size(); }
-
+    const std::vector<std::string>& snps() const { return snps_; }
     /**
      * @brief Get the number of individuals (from .fam file)
      */
@@ -76,7 +70,8 @@ class BedReader
     std::string bed_file_;
     std::string bim_file_;
     std::string fam_file_;
-    std::vector<SNP> snps_;           ///< Parsed SNP info from .bim
+
+    std::vector<std::string> snps_;
     uint64_t n_individuals_{};        ///< Number of individuals from .fam
     uint64_t chunk_size_;             ///< Number of SNPs to process per chunk
     uint64_t current_chunk_index_{};  ///< Which chunk are we on?
@@ -85,7 +80,7 @@ class BedReader
     static constexpr double genotype_map[4] = {2.0, 1.0, 1.0, 0.0};
 
     static uint64_t parseFam(const std::string& fam_file);
-    static std::vector<SNP> parseBim(const std::string& bim_file);
+    static std::vector<std::string> parseBim(const std::string& bim_file);
     void OpenBed();
-    double mapGenotype(int genotype_code) const;
 };
+}  // namespace chenx

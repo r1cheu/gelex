@@ -7,6 +7,54 @@
 
 namespace chenx
 {
+
+CrossGrm::CrossGrm(
+    const std::string& train_bed,
+    const std::string& test_bed,
+    rowvec&& center,
+    double scale_factor,
+    uint64_t chunk_size)
+    : train_bed_{train_bed, chunk_size},
+      test_bed_{test_bed, chunk_size},
+      center_{std::move(center)},
+      scale_factor_{scale_factor} {};
+
+dmat CrossGrm::Compute(bool dom)
+{
+    CheckSnpConsistency();
+    dmat grm{
+        test_bed_.n_individuals(),
+        train_bed_.n_individuals(),
+        arma::fill::zeros};
+    while (train_bed_.HasNext())
+    {
+        dmat train_genotype{train_bed_.GetNextChunk()};
+        dmat test_genotype{test_bed_.GetNextChunk()};
+        if (dom)
+        {
+            train_genotype.replace(2.0, 0.0);
+            test_genotype.replace(2.0, 0.0);
+        }
+        train_genotype.each_row() -= center_;
+        test_genotype.each_row() -= center_;
+        grm += test_genotype * train_genotype.t();
+    }
+    grm /= scale_factor_;
+    return grm;
+}
+
+void CrossGrm::CheckSnpConsistency()
+{
+    for (uint64_t i{0}; i < train_bed_.n_snps(); ++i)
+    {
+        if (train_bed_.snps()[i] != test_bed_.snps()[i])
+        {
+            throw std::runtime_error{
+                "SNPs in training and test sets do not match."};
+        }
+    }
+}
+
 Grm::Grm(const std::string& bed_file, uint64_t chunk_size)
     : bed_{bed_file, chunk_size}
 {

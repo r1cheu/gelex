@@ -2,12 +2,34 @@
 
 #include <armadillo>
 #include <cstdint>
+#include <string>
 #include "chenx/data/bed_reader.h"
 
 namespace chenx
 {
 using arma::dmat;
 using arma::rowvec;
+class CrossGrm
+{
+   public:
+    CrossGrm(
+        const std::string& train_bed,
+        const std::string& test_bed,
+        rowvec&& center,
+        double scale_factor,
+        uint64_t chunk_size = 10000);
+
+    dmat Compute(bool dom);
+
+   private:
+    BedReader train_bed_;
+    BedReader test_bed_;
+    rowvec center_;
+    double scale_factor_{};
+
+    void CheckSnpConsistency();
+};
+
 class Grm
 {
    public:
