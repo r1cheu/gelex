@@ -8,13 +8,14 @@
 #include <armadillo>
 
 #include "array_caster.h"
-#include "chenx/data/bed_reader.h"
 #include "chenx/data/grm.h"
 #include "chenx/estimator.h"
 #include "chenx/model/linear_mixed_model.h"
 
 namespace bind
 {
+namespace nb = nanobind;
+using nb::literals::operator""_a;
 NB_MODULE(_chenx, m)
 {
     nb::class_<chenx::LinearMixedModel>(m, "LinearMixedModel")
@@ -29,10 +30,10 @@ NB_MODULE(_chenx, m)
                 new (self) chenx::LinearMixedModel(
                     ToArma(y), ToArma(X), ToArma(covar_mat), std::move(names));
             },
-            nb::arg("y").noconvert(),
-            nb::arg("X").noconvert(),
-            nb::arg("covar_mat").noconvert(),
-            nb::arg("names"))
+            "y"_a.noconvert(),
+            "X"_a.noconvert(),
+            "covar_mat"_a.noconvert(),
+            "names"_a.noconvert())
         .def_prop_ro(
             "n_samples",
             [](chenx::LinearMixedModel& self) { return self.y().n_rows; })
@@ -71,9 +72,9 @@ NB_MODULE(_chenx, m)
     nb::class_<chenx::Estimator>(m, "Estimator")
         .def(
             nb::init<std::string_view, size_t, double>(),
-            nb::arg("optimizer") = "NR",
-            nb::arg("max_iter") = 20,
-            nb::arg("tol") = 1e-8,
+            "optimizer"_a = "NR",
+            "max_iter"_a = 20,
+            "tol"_a = 1e-8,
             "Initialize the Estimator\n\n"
             "Parameters\n"
             "----------\n"
@@ -86,8 +87,8 @@ NB_MODULE(_chenx, m)
         .def(
             "fit",
             &chenx::Estimator::Fit,
-            nb::arg("model"),
-            nb::arg("em_init") = true,
+            "model"_a,
+            "em_init"_a = true,
             "Fit the model\n\n"
             "Parameters\n"
             "----------\n"
@@ -102,9 +103,9 @@ NB_MODULE(_chenx, m)
         .def(
             "set_optimizer",
             &chenx::Estimator::set_optimizer,
-            nb::arg("optimizer") = "NR",
-            nb::arg("max_iter") = 20,
-            nb::arg("tol") = 1e-8,
+            "optimizer"_a = "NR",
+            "max_iter"_a = 20,
+            "tol"_a = 1e-8,
             "reset optimizer\n\n"
             "Parameters\n"
             "----------\n"
@@ -117,52 +118,49 @@ NB_MODULE(_chenx, m)
             "Returns\n"
             "-------\n"
             "None");
-    m.def(
-        "add_grm",
-        [](dmat& genotype)
-        {
-            arma::dmat genotype_ = ToArma(genotype);
-            return ToPy(chenx::AddGrm(genotype_));
-        },
-        nb::arg("genotype").noconvert(),
-        nb::rv_policy::reference);
-    m.def(
-        "add_grm_chunk",
-        [](dmat& genotype, dmat& grm)
-        {
-            arma::dmat genotype_ = ToArma(genotype);
-            arma::dmat grm_ = ToArma(grm);
-            chenx::AddGrmChunk(genotype_, grm_);
-        },
-        nb::arg("genotype").noconvert(),
-        nb::arg("grm").noconvert());
-    m.def(
-        "dom_grm",
-        [](dmat& genotype)
-        {
-            arma::dmat genotype_ = ToArma(genotype);
-            return ToPy(chenx::DomGrm(genotype_));
-        },
-        nb::arg("genotype").noconvert(),
-        nb::rv_policy::reference);
-    m.def(
-        "dom_grm_chunk",
-        [](dmat& genotype, dmat& grm)
-        {
-            arma::dmat genotype_ = ToArma(genotype);
-            arma::dmat grm_ = ToArma(grm);
-            chenx::DomGrmChunk(genotype_, grm_);
-        },
-        nb::arg("genotype").noconvert(),
-        nb::arg("grm").noconvert());
-    m.def(
-        "_scale_grm",
-        [](dmat& grm)
-        {
-            arma::dmat grm_ = ToArma(grm);
-            grm_ = grm_ / arma::trace(grm_) * static_cast<double>(grm_.n_rows);
-        },
-        nb::arg("grm").noconvert());
+    nb::class_<chenx::AddGrm>(m, "add_grm")
+        .def(
+            nb::init<const std::string&, uint64_t>(),
+            "bed_file"_a,
+            "chunk_size"_a = 10000,
+            "Additive Genomic Relationship Matrix calculation.\n\n"
+            "Parameters\n"
+            "----------\n"
+            "bed_file: str\n"
+            "    The plink bed file path\n"
+            "chunk_size: int, optional\n"
+            "    Number of snps to processed per step (default: 10000)\n\n"
+            "Returns\n"
+            "-------\n"
+            "np.ndarray\n")
+        .def(
+            "compute", [](chenx::AddGrm& self) { return ToPy(self.Compute()); })
+        .def_prop_ro(
+            "individuals",
+            [](chenx::AddGrm& self) { return self.bed().individuals(); });
+
+    nb::class_<chenx::DomGrm>(m, "dom_grm")
+        .def(
+            nb::init<const std::string&, uint64_t>(),
+            "bed_file"_a,
+            "chunk_size"_a = 10000,
+            "Dominance Genomic Relationship Matrix calculation.\n\n"
+            "Parameters\n"
+            "----------\n"
+            "bed_file: str\n"
+            "    The plink bed file path\n"
+            "chunk_size: int, optional\n"
+            "    Number of snps to processed per step (default: 10000)\n\n"
+            "Returns\n"
+            "-------\n"
+            "np.ndarray\n")
+        .def(
+            "compute", [](chenx::DomGrm& self) { return ToPy(self.Compute()); })
+        .def_prop_ro(
+            "individuals",
+            [](chenx::DomGrm& self) { return self.bed().individuals(); })
+        .def_prop_ro(
+            "center", [](chenx::DomGrm& self) { return ToPy(self.center()); });
 }
 
 }  // namespace bind

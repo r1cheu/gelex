@@ -51,6 +51,21 @@ struct PyView<arma::Col<T>>
     using type = vec_view<T>;
     static constexpr int ndim = 1;
 };
+
+template <typename T>
+struct PyOwned<arma::Row<T>>
+{
+    using type = vec<T>;
+    static constexpr int ndim = 1;
+};
+
+template <typename T>
+struct PyView<arma::Row<T>>
+{
+    using type = vec_view<T>;
+    static constexpr int ndim = 1;
+};
+
 template <typename T>
 struct PyOwned<arma::Mat<T>>
 {

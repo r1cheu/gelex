@@ -1,6 +1,3 @@
 [submodule "extern/armadillo"]
     path = extern/armadillo
     url = https://gitlab.com/conradsnicta/armadillo-code.git
-[submodule "extern/nanobind"]
-    path = extern/nanobind
-    url = https://github.com/wjakob/nanobind

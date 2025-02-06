@@ -14,18 +14,19 @@ requires-python = ">= 3.11"
 version = "0.1.2"
 
 [build-system]
-requires = ["scikit-build-core>=0.10"]    #"nanobind>=2.5.0,<3"]
+requires = ["scikit-build-core>=0.10", "nanobind>=2.5.0,<3"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
-cmake.source-dir = 'python'
 wheel.expand-macos-universal-tags = true
 wheel.packages = ["python/phenx"]
 build-dir = "pybuild"
 sdist.exclude = [".pixi", ".github"]
 
-[tool.scikit-build.cmake.define]
-USE_MKL = "OFF"
+[tool.scikit-build.cmake]
+source-dir = "python"
+version = ">=3.18"
+define = { USE_MKL = "OFF" }
 
 [tool.pixi.project]
 channels = ["conda-forge", "bioconda"]
@@ -55,8 +56,8 @@ lsp = "cmake -G Ninja -S . -B build -D BUILD_TEST=OFF -D BUILD_PYTHON_BINDINGS=O
 ctest = "cmake -G Ninja -S . -B build -D BUILD_TEST=ON -D BUILD_PYTHON_BINDINGS=OFF && cmake --build build && ./build/tests/test"
 wheel = "uv build"
 #
-# [tool.pixi.feature.dev.pypi-dependencies]
-# nanobind = ">=2.4.0,<3" # add for lsp
+[tool.pixi.feature.dev.pypi-dependencies]
+nanobind = ">=2.5.0,<3" # add for lsp
 #
 # Feature test
 [tool.pixi.feature.test.pypi-dependencies]

@@ -33,7 +33,7 @@ class CrossGrm
 class Grm
 {
    public:
-    Grm(const std::string& bed_file, uint64_t chunk_size);
+    Grm(const std::string& bed_file, uint64_t chunk_size = 10000);
     Grm& operator=(Grm&&) = delete;
     Grm(const Grm&) = delete;
     Grm(Grm&&) = delete;
@@ -58,6 +58,7 @@ class AddGrm : public Grm
 {
    public:
     AddGrm(const std::string& bed_file, uint64_t chunk_size);
+    const rowvec& center() const;
 
    private:
     rowvec center_;
@@ -68,6 +69,7 @@ class DomGrm : public Grm
 {
    public:
     DomGrm(const std::string& bed_file, uint64_t chunk_size);
+    const rowvec& center() const;
 
    private:
     rowvec center_;

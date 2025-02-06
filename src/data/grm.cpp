@@ -28,8 +28,8 @@ dmat CrossGrm::Compute(bool dom)
         arma::fill::zeros};
     while (train_bed_.HasNext())
     {
-        dmat train_genotype{train_bed_.GetNextChunk()};
-        dmat test_genotype{test_bed_.GetNextChunk()};
+        dmat train_genotype{train_bed_.ReadChunk()};
+        dmat test_genotype{test_bed_.ReadChunk()};
         if (dom)
         {
             train_genotype.replace(2.0, 0.0);
@@ -77,7 +77,7 @@ dmat Grm::Compute()
 
     while (bed_.HasNext())
     {
-        dmat genotype{bed_.GetNextChunk()};
+        dmat genotype{bed_.ReadChunk()};
         Centerlize(genotype);
         grm += genotype * genotype.t();
     };
@@ -95,34 +95,40 @@ double Grm::Scale(dmat& grm)
 AddGrm::AddGrm(const std::string& bed_file, uint64_t chunk_size)
     : Grm{bed_file, chunk_size}
 {
-    center_.zeros(bed().n_individuals());
+    center_.zeros(bed().n_snps());
+}
+
+const arma::rowvec& AddGrm::center() const
+{
+    return center_;
 }
 
 void AddGrm::Centerlize(dmat& genotype)
 {
     rowvec center{arma::mean(genotype, 0)};
     genotype.each_row() -= center;
-    center_.cols(
-        bed().current_chunk_index(),
-        bed().current_chunk_index() + genotype.n_cols - 1)
-        = center;
+    auto start_index = bed().current_chunk_index() - center.n_cols;
+    center_.subvec(start_index, arma::size(center)) = center;
 }
 
 DomGrm::DomGrm(const std::string& bed_file, uint64_t chunk_size)
     : Grm{bed_file, chunk_size}
 {
-    center_.zeros(bed().n_individuals());
+    center_.zeros(bed().n_snps());
+}
+
+const arma::rowvec& DomGrm::center() const
+{
+    return center_;
 }
 
 void DomGrm::Centerlize(dmat& genotype)
 {
     rowvec pA = arma::mean(genotype, 0) / 2;
     rowvec center = 2 * (pA % (1 - pA));
+    auto start_index = bed().current_chunk_index() - center.n_cols;
     genotype.each_row() -= center;
-    center_.cols(
-        bed().current_chunk_index(),
-        bed().current_chunk_index() + genotype.n_cols - 1)
-        = center;
+    center_.subvec(start_index, arma::size(center)) = center;
 }
 
 }  // namespace chenx
