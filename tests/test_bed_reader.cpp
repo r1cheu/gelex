@@ -1,0 +1,100 @@
+#include <armadillo>
+#include <catch2/catch_test_macros.hpp>
+#include "chenx/data/bed_reader.h"
+
+TEST_CASE("BedReader initialization", "[bedreader]")
+{
+    const std::string test_bed
+        = std::string(CHENX_TESTS_DIR) + "/test_data.bed";
+    const size_t chunk_size = 100;
+
+    SECTION("Valid file initialization")
+    {
+        REQUIRE_NOTHROW(chenx::BedReader(test_bed, chunk_size));
+
+        chenx::BedReader reader(test_bed, chunk_size);
+        REQUIRE(reader.n_snps() > 0);
+        REQUIRE(reader.n_individuals() > 0);
+    }
+
+    SECTION("Invalid file throws")
+    {
+        REQUIRE_THROWS_AS(
+            chenx::BedReader("invalid_path.bed"), std::runtime_error);
+    }
+}
+
+TEST_CASE("BedReader small chunk reading", "[bedreader]")
+{
+    const std::string test_bed
+        = std::string(CHENX_TESTS_DIR) + "/test_data.bed";
+    chenx::BedReader reader(test_bed, 10);
+
+    SECTION("HasNext returns correct state")
+    {
+        REQUIRE(reader.HasNext());
+
+        // Read all chunks
+        while (reader.HasNext())
+        {
+            reader.ReadChunk();
+        }
+
+        REQUIRE_FALSE(reader.HasNext());
+    }
+
+    SECTION("ReadChunk returns correct matrix dimensions")
+    {
+        auto chunk = reader.ReadChunk();
+        REQUIRE(chunk.n_rows == reader.n_individuals());
+        REQUIRE(chunk.n_cols <= 10);  // chunk_size
+    }
+}
+
+TEST_CASE("BedReader Big chunk reading", "[bedreader]")
+{
+    const std::string test_bed
+        = std::string(CHENX_TESTS_DIR) + "/test_data.bed";
+    chenx::BedReader reader(test_bed, 1000);
+
+    SECTION("HasNext returns correct state")
+    {
+        REQUIRE(reader.HasNext());
+
+        // Read all chunks
+        while (reader.HasNext())
+        {
+            reader.ReadChunk();
+        }
+
+        REQUIRE_FALSE(reader.HasNext());
+    }
+
+    SECTION("ReadChunk returns correct matrix dimensions")
+    {
+        auto chunk = reader.ReadChunk();
+        REQUIRE(chunk.n_rows == reader.n_individuals());
+        REQUIRE(chunk.n_cols <= 1000);  // chunk_size
+    }
+}
+
+TEST_CASE("BedReader metadata access", "[bedreader]")
+{
+    const std::string test_bed
+        = std::string(CHENX_TESTS_DIR) + "/test_data.bed";
+    chenx::BedReader reader(test_bed);
+
+    SECTION("SNP access")
+    {
+        auto snps = reader.snps();
+        REQUIRE_FALSE(snps.empty());
+        REQUIRE(snps.size() == reader.n_snps());
+    }
+
+    SECTION("Individual access")
+    {
+        auto individuals = reader.individuals();
+        REQUIRE_FALSE(individuals.empty());
+        REQUIRE(individuals.size() == reader.n_individuals());
+    }
+}
