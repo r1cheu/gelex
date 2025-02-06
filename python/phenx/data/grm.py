@@ -2,16 +2,10 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from bed_reader import open_bed
 
-from .._chenx import _scale_grm, add_grm, add_grm_chunk, dom_grm, dom_grm_chunk
+from .._chenx import add_grm, dom_grm
 
 
-# TODO: current we depend on the bed_reader package to read the bed file.
-# Thus, the chunk function is less efficient than it could be. When the
-# pgnelib is decoupled from plink2, we can utilize it and write c++ code
-# to read the bed file and compute the GRM in chunks.
-# invoke rust from c++ is kind of ugly.
 def make_grm(
     bed_file: str | Path,
     method: str = "add",
@@ -45,62 +39,22 @@ def make_grm(
         If the method is not 'add' or 'dom'.
     """
     bed_file = Path(bed_file)
-    bed = open_bed(bed_file)
-    grm = (
-        np.zeros((bed.shape[0], bed.shape[0]), order="F", dtype=np.float64)
-        if chunk_size
-        else None
-    )
-
-    chunk_func_map = {"add": (add_grm_chunk, add_grm), "dom": (dom_grm_chunk, dom_grm)}
-
-    if method not in chunk_func_map:
-        msg = "method must be either 'add' or 'dom'."
+    grm_maker = None
+    method = method.lower()
+    if method == "add":
+        grm_maker = add_grm(str(bed_file), chunk_size)
+    elif method == "dom":
+        grm_maker = dom_grm(str(bed_file), chunk_size)
+    else:
+        msg = f"Only support `add` and `dom` for method but got {method}."
         raise ValueError(msg)
 
-    chunk_func, oneshot_func = chunk_func_map[method]
-
-    if chunk_size:
-        grm = _chunk_grm(chunk_func, bed, grm, chunk_size)
-    else:
-        grm = oneshot_func(bed.read(dtype=np.float64))
-
-    grm = pd.DataFrame(grm, index=bed.iid, columns=bed.iid)
+    grm = grm_maker.compute()
+    grm = pd.DataFrame(grm, index=grm_maker.individuals, columns=grm_maker.individuals)
     if save:
         grm.to_hdf(
             f"{bed_file.with_suffix('')}.{method}.grm",
             key="grm",
             mode="w",
         )
-    return grm
-
-
-def _chunk_grm(
-    chunk_func: callable, bed: open_bed, grm: np.ndarray, chunk_size: int
-) -> np.ndarray:
-    """
-    Compute GRM in chunks.
-
-    Parameters
-    ----------
-    chunk_func : callable
-        Function to compute GRM for a chunk of SNP data
-    bed : open_bed
-        BED file object containing SNP data
-    grm : np.ndarray
-        GRM matrix to be updated
-    chunk_size : int
-        Number of SNPs to process in each chunk
-
-    Returns
-    -------
-    np.ndarray
-        Updated GRM matrix after processing all chunks
-    """
-    num_snps = bed.shape[1]
-    for start in range(0, num_snps, chunk_size):  # split the SNP data into chunks
-        end = min(start + chunk_size, num_snps)
-        snp_data = bed.read(np.s_[:, start:end], dtype=np.float64)
-        chunk_func(snp_data, grm)
-    _scale_grm(grm)
-    return grm
+    return grm, grm_maker.center
