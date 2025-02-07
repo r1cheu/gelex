@@ -1,3 +1,22 @@
+"""
+This module contains unit tests for the phenx model initialization and data cleaning functionality.
+
+The tests cover:
+- Model initialization with DataFrame or file input
+- Handling of categorical variables
+- Formula parsing and model creation
+- Data cleaning operations including missing value handling
+- Genomic relationship matrix (GRM) validation and alignment
+
+Key test scenarios include:
+- Basic initialization with sample data
+- File-based initialization using temporary CSV files
+- Categorical variable type checking
+- Fixed and random effect specification
+- Missing value detection and handling
+- GRM matching and sample alignment
+"""
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -90,18 +109,18 @@ def test_clean_data(sample_data):
     assert len(cleaned) == 2  # should drop s1
 
 
-def test_clean_grm(sample_data, grm_a):
+def test_load_grm(sample_data, grm_a):
     model = make_model(sample_data)
-    data, grm_cube, names = model._clean_grm({"grm1": grm_a}, sample_data)
+    data, grm_cube, names = model._load_grm({"grm1": grm_a}, sample_data)
     assert grm_cube.shape == (3, 3, 1)
     assert names == ["grm1"]
     pd.testing.assert_frame_equal(data, sample_data, check_names=False)
 
 
-def test_clean_grm_mismatch(sample_data, mismatch_grm):
+def test_load_grm_mismatch(sample_data, mismatch_grm):
     # Create GRM with different samples
 
     model = make_model(sample_data)
-    data, _, _ = model._clean_grm({"grm1": mismatch_grm}, sample_data)
+    data, _, _ = model._load_grm({"grm1": mismatch_grm}, sample_data)
     sample_data = sample_data.drop("s1")
     pd.testing.assert_frame_equal(data, sample_data, check_names=False)

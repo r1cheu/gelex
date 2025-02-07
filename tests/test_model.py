@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from phenx._chenx import LinearMixedModel  # Replace with actual module name
+from phenx._chenx import LinearMixedModel
 
 
 @pytest.fixture

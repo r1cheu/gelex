@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 from .._chenx import add_grm, dom_grm
@@ -9,7 +8,7 @@ from .._chenx import add_grm, dom_grm
 def make_grm(
     bed_file: str | Path,
     method: str = "add",
-    chunk_size: int | bool = 10000,
+    chunk_size: int = 10000,
     save: bool = True,
 ) -> pd.DataFrame:
     """
@@ -57,4 +56,4 @@ def make_grm(
             key="grm",
             mode="w",
         )
-    return grm, grm_maker.center
+    return grm

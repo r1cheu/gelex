@@ -5,7 +5,7 @@
 TEST_CASE("BedReader initialization", "[bedreader]")
 {
     const std::string test_bed
-        = std::string(CHENX_TESTS_DIR) + "/test_data.bed";
+        = std::string(CHENX_TESTS_DIR) + "/data/test.bed";
     const size_t chunk_size = 100;
 
     SECTION("Valid file initialization")
@@ -27,7 +27,7 @@ TEST_CASE("BedReader initialization", "[bedreader]")
 TEST_CASE("BedReader small chunk reading", "[bedreader]")
 {
     const std::string test_bed
-        = std::string(CHENX_TESTS_DIR) + "/test_data.bed";
+        = std::string(CHENX_TESTS_DIR) + "/data/test.bed";
     chenx::BedReader reader(test_bed, 10);
 
     SECTION("HasNext returns correct state")
@@ -54,7 +54,7 @@ TEST_CASE("BedReader small chunk reading", "[bedreader]")
 TEST_CASE("BedReader Big chunk reading", "[bedreader]")
 {
     const std::string test_bed
-        = std::string(CHENX_TESTS_DIR) + "/test_data.bed";
+        = std::string(CHENX_TESTS_DIR) + "/data/test.bed";
     chenx::BedReader reader(test_bed, 1000);
 
     SECTION("HasNext returns correct state")
@@ -81,7 +81,7 @@ TEST_CASE("BedReader Big chunk reading", "[bedreader]")
 TEST_CASE("BedReader metadata access", "[bedreader]")
 {
     const std::string test_bed
-        = std::string(CHENX_TESTS_DIR) + "/test_data.bed";
+        = std::string(CHENX_TESTS_DIR) + "/data/test.bed";
     chenx::BedReader reader(test_bed);
 
     SECTION("SNP access")
