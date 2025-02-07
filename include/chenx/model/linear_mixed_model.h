@@ -24,7 +24,7 @@ class LinearMixedModel
     const dmat& y() const { return y_; }
     const dmat& X() const { return X_; }
     double y_var() const { return y_var_; }
-    const dvec& beta() { return beta_; }
+    const dvec& beta() const { return beta_; }
     const dvec& sigma() const { return sigma_; }
     const dvec& proj_y() const { return proj_y_; }
     const dcube& pdv() const { return pdv_; }

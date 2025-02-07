@@ -74,7 +74,7 @@ class make_model:
         """
         formula = Formula(formula)
         data = self._clean_data(str(formula.lhs))
-        data, self._grm, random_effect_names = self._clean_grm(grm, data)
+        data, self._grm, random_effect_names = self._load_grm(grm, data)
 
         try:
             model_matrix = formula.get_model_matrix(data, na_action="raise")
@@ -93,11 +93,48 @@ class make_model:
         )
 
     def _clean_data(self, response_name: str) -> pd.DataFrame:
+        """
+        Remove rows containing missing values in the specified response column.
+
+        Parameters
+        ----------
+        response_name : str
+            Name of the response variable column in the DataFrame.
+
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe with rows containing missing values in the response column removed.
+        """
         return self.data.dropna(subset=[response_name])
 
-    def _clean_grm(
+    def _load_grm(
         self, grm: dict[str, pd.DataFrame | str | Path], data: pd.DataFrame
     ) -> tuple[np.ndarray, list[str]]:
+        """
+        Clean and align genetic relationship matrices (GRMs) with the data.
+
+        Parameters
+        ----------
+        grm : dict[str, pd.DataFrame | str | Path]
+            Dictionary mapping effect names to GRM matrices or paths to files.
+        data : pd.DataFrame
+            Dataframe containing the phenotypic and covariate data.
+
+        Returns
+        -------
+        tuple[np.ndarray, list[str]]
+            A tuple containing:
+            - aligned_data: Dataframe with rows restricted to common indices
+            - grm_cube: 3D numpy array of GRM matrices (samples x samples x effects)
+            - random_effect_names: List of effect names
+
+        Raises
+        ------
+        ValueError
+            If no common indices are found between GRMs and data.
+        """
+
         grm_matrices = []
         random_effect_names = []
         common_index = None

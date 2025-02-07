@@ -16,15 +16,16 @@ namespace bind
 {
 namespace nb = nanobind;
 using nb::literals::operator""_a;
+
 NB_MODULE(_chenx, m)
 {
     nb::class_<chenx::LinearMixedModel>(m, "LinearMixedModel")
         .def(
             "__init__",
             [](chenx::LinearMixedModel* self,
-               const dmat& y,
-               const dmat& X,
-               const dcube& covar_mat,
+               arr2d y,
+               arr2d X,
+               arr3d covar_mat,
                std::vector<std::string> names)
             {
                 new (self) chenx::LinearMixedModel(
@@ -137,7 +138,9 @@ NB_MODULE(_chenx, m)
             "compute", [](chenx::AddGrm& self) { return ToPy(self.Compute()); })
         .def_prop_ro(
             "individuals",
-            [](chenx::AddGrm& self) { return self.bed().individuals(); });
+            [](chenx::AddGrm& self) { return self.bed().individuals(); })
+        .def_prop_ro(
+            "center", [](chenx::DomGrm& self) { return ToPy(self.center()); });
 
     nb::class_<chenx::DomGrm>(m, "dom_grm")
         .def(
