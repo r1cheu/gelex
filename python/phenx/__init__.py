@@ -10,7 +10,7 @@
 # __all__ = ["Genotypes", "Phenotypes", "grm", "LinearMixedModel", "intersect"]
 
 from ._chenx import Estimator
-from .data import make_grm
+from .data import load_grm, make_grm
 from .model import make_model
 
-__all__ = ["make_grm", "make_model", "Estimator"]
+__all__ = ["Estimator", "load_grm", "make_grm", "make_model"]

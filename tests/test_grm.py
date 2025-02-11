@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from phenx import make_grm
+from phenx import load_grm, make_grm
 
 
 @pytest.fixture
@@ -38,15 +38,6 @@ def test_make_grm_invalid_method(test_bed_file):
         make_grm(test_bed_file, method="invalid")
 
 
-def test_make_grm_save_file(test_bed_file):
-    """Test GRM saving to file"""
-    output_path: Path = test_bed_file.with_suffix(".add.grm")
-    grm = make_grm(test_bed_file, method="add", save=True)
-    assert grm.to_numpy().flags["F_CONTIGUOUS"]
-    assert output_path.exists()
-    output_path.unlink()
-
-
 def test_make_grm_large_chunk_size(test_bed_file):
     """Test with chunk size larger than number of SNPs"""
     grm = make_grm(test_bed_file, method="add", chunk_size=1000, save=False)
@@ -67,3 +58,21 @@ def test_make_grm_chunking_consistency(test_bed_file):
     ).to_numpy()
 
     assert np.allclose(grm_chunked, grm_no_chunk)
+
+
+def test_make_grm_save_file(test_bed_file):
+    """Test GRM saving to file"""
+    output_path: Path = test_bed_file.with_suffix(".add.grm")
+    grm = make_grm(test_bed_file, method="add", save=True)
+    assert grm.to_numpy().flags["F_CONTIGUOUS"]
+    assert output_path.exists()
+    output_path.unlink()
+
+
+def test_load_grm(test_bed_file):
+    """Test loading GRM from file, make sure f-contiguous"""
+    output_path: Path = test_bed_file.with_suffix(".add.grm")
+    _ = make_grm(test_bed_file, method="add", save=True)
+    loaded_grm = load_grm(output_path, True)
+    assert loaded_grm.flags["F_CONTIGUOUS"]
+    output_path.unlink()

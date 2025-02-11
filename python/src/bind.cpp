@@ -119,6 +119,7 @@ NB_MODULE(_chenx, m)
             "Returns\n"
             "-------\n"
             "None");
+
     nb::class_<chenx::AddGrm>(m, "add_grm")
         .def(
             nb::init<const std::string&, uint64_t>(),
@@ -140,7 +141,10 @@ NB_MODULE(_chenx, m)
             "individuals",
             [](chenx::AddGrm& self) { return self.bed().individuals(); })
         .def_prop_ro(
-            "center", [](chenx::DomGrm& self) { return ToPy(self.center()); });
+            "center", [](chenx::AddGrm& self) { return ToPy(self.center()); })
+        .def_prop_ro(
+            "scale_factor",
+            [](chenx::AddGrm& self) { return self.scale_factor(); });
 
     nb::class_<chenx::DomGrm>(m, "dom_grm")
         .def(
@@ -163,7 +167,10 @@ NB_MODULE(_chenx, m)
             "individuals",
             [](chenx::DomGrm& self) { return self.bed().individuals(); })
         .def_prop_ro(
-            "center", [](chenx::DomGrm& self) { return ToPy(self.center()); });
+            "center", [](chenx::DomGrm& self) { return ToPy(self.center()); })
+        .def_prop_ro(
+            "scale_factor",
+            [](chenx::DomGrm& self) { return self.scale_factor(); });
 }
 
 }  // namespace bind
