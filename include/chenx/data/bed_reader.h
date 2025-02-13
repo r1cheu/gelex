@@ -20,28 +20,34 @@ namespace chenx
 class BedReader
 {
    public:
-    // Disable copy and move constructors/assignment operators
+    // Disable copy constructors/assignment operators
     BedReader(const BedReader&) = delete;
-    BedReader(BedReader&&) = delete;
+    BedReader(BedReader&&) noexcept = default;
     BedReader& operator=(const BedReader&) = delete;
-    BedReader& operator=(BedReader&&) = delete;
+    BedReader& operator=(BedReader&&) noexcept = default;
 
-    explicit BedReader(const std::string& bed_file, size_t chunk_size = 10000);
+    explicit BedReader(std::string_view, size_t chunk_size = 10000);
 
     ~BedReader();
 
     bool HasNext() const;
     arma::dmat ReadChunk();
     // num snps
-    uint64_t n_snps() const { return snps_.size(); }
+    uint64_t num_snps() const { return snps_.size(); }
     // snp id
-    const std::vector<std::string>& snps() const { return snps_; }
+    const std::vector<std::string>& snps() const noexcept { return snps_; }
     // num individuals
-    uint64_t n_individuals() const { return individuals_.size(); }
+    uint64_t num_individuals() const noexcept { return individuals_.size(); }
     // individuals id
-    const std::vector<std::string>& individuals() const { return individuals_; }
+    const std::vector<std::string>& individuals() const noexcept
+    {
+        return individuals_;
+    }
 
-    uint64_t current_chunk_index() const { return current_chunk_index_; }
+    uint64_t current_chunk_index() const noexcept
+    {
+        return current_chunk_index_;
+    }
 
    private:
     std::ifstream fin_;
@@ -57,7 +63,8 @@ class BedReader
     uint64_t current_chunk_size_{};
     uint64_t bytes_per_snp_{};
 
-    static constexpr std::array<double, 4> genotype_map = {0.0, 1.0, 1.0, 2.0};
+    static constexpr std::array<double, 4> genotype_map = {2.0, 1.0, 1.0, 0.0};
+    // std::string_view is not accepted by std::ifstream
     static std::vector<std::string> parseFam(const std::string& fam_file);
     static std::vector<std::string> parseBim(const std::string& bim_file);
 

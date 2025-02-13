@@ -2,38 +2,19 @@
 
 #include <armadillo>
 #include <cstdint>
-#include <string>
+#include <string_view>
 #include "chenx/data/bed_reader.h"
 
 namespace chenx
 {
 using arma::dmat;
 using arma::rowvec;
-class CrossGrm
-{
-   public:
-    CrossGrm(
-        const std::string& train_bed,
-        const std::string& test_bed,
-        rowvec&& center,
-        double scale_factor,
-        uint64_t chunk_size = 10000);
-
-    dmat Compute(bool dom);
-
-   private:
-    BedReader train_bed_;
-    BedReader test_bed_;
-    rowvec center_;
-    double scale_factor_{};
-
-    void CheckSnpConsistency();
-};
+void dom_encode(dmat& genotype);
 
 class Grm
 {
    public:
-    Grm(const std::string& bed_file, uint64_t chunk_size = 10000);
+    explicit Grm(std::string_view bed_file, uint64_t chunk_size = 10000);
     Grm& operator=(Grm&&) = delete;
     Grm(const Grm&) = delete;
     Grm(Grm&&) = delete;
@@ -41,39 +22,38 @@ class Grm
 
     virtual ~Grm() = default;
 
-    double scale_factor() const noexcept;
-    const BedReader& bed() const noexcept;
-
-    dmat Compute();
+    double scale_factor() const noexcept { return scale_factor_; }
+    const BedReader& bed() const noexcept { return bed_; }
+    const rowvec& center() const noexcept { return center_; }
+    virtual dmat Compute();
 
    private:
     BedReader bed_;
     double scale_factor_{};
+    rowvec center_;
 
-    virtual void Centerlize(dmat& genotype) = 0;
+    virtual rowvec ComputeCenter(const dmat& genotype) = 0;
+    virtual void Encode(dmat& genotype) = 0;
+    void Centerlize(dmat& genotype);
     static double Scale(dmat& grm);
 };
 
 class AddGrm : public Grm
 {
-   public:
-    AddGrm(const std::string& bed_file, uint64_t chunk_size);
-    const rowvec& center() const;
+    using Grm::Grm;
 
    private:
-    rowvec center_;
-    void Centerlize(dmat& genotype) override;
+    void Encode(dmat& genotype) override;
+    rowvec ComputeCenter(const dmat& genotype) override;
 };
 
 class DomGrm : public Grm
 {
-   public:
-    DomGrm(const std::string& bed_file, uint64_t chunk_size);
-    const rowvec& center() const;
+    using Grm::Grm;
 
    private:
-    rowvec center_;
-    void Centerlize(dmat& genotype) override;
+    void Encode(dmat& genotype) override;
+    rowvec ComputeCenter(const dmat& genotype) override;
 };
 
 }  // namespace chenx

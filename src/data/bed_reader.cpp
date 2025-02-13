@@ -11,7 +11,7 @@
 namespace chenx
 {
 
-BedReader::BedReader(const std::string& bed_file, size_t chunk_size)
+BedReader::BedReader(std::string_view bed_file, size_t chunk_size)
     : bed_file_{bed_file}, chunk_size_{chunk_size}
 {
     std::string base_path = bed_file_.substr(0, bed_file_.size() - 4);
@@ -22,7 +22,7 @@ BedReader::BedReader(const std::string& bed_file, size_t chunk_size)
     snps_ = parseBim(bim_file);
     OpenBed();
 
-    bytes_per_snp_ = (n_individuals() + 3) / 4;  // add 3 for correct rounding
+    bytes_per_snp_ = (num_individuals() + 3) / 4;  // add 3 for correct rounding
 }
 
 BedReader::~BedReader()
@@ -126,7 +126,7 @@ void BedReader::OpenBed()
 
 bool BedReader::HasNext() const
 {
-    return current_chunk_index() < n_snps();
+    return current_chunk_index() < num_snps();
 }
 
 arma::dmat BedReader::ReadChunk()
@@ -141,7 +141,7 @@ arma::dmat BedReader::ReadChunk()
 
     current_chunk_size_ = std::min(
         chunk_size_,
-        n_snps() - current_chunk_index());  // chunk_size or snp remaining.
+        num_snps() - current_chunk_index());  // chunk_size or snp remaining.
 
     const uint64_t chunk_bytes = current_chunk_size_ * bytes_per_snp_;
     std::vector<char> buffer(chunk_bytes);
@@ -167,7 +167,8 @@ arma::dmat BedReader::Decode(
     const std::vector<char>& buffer,
     uint64_t chunk_size)
 {
-    arma::dmat genotype_matrix(n_individuals(), chunk_size, arma::fill::zeros);
+    arma::dmat genotype_matrix(
+        num_individuals(), chunk_size, arma::fill::zeros);
 
 #pragma omp parallel for schedule(dynamic)
     for (uint64_t snp_idx = 0; snp_idx < chunk_size; ++snp_idx)
@@ -180,7 +181,7 @@ arma::dmat BedReader::Decode(
             for (unsigned int bit = 0; bit < 4; ++bit)
             {
                 uint64_t ind = (byte_idx * 4) + bit;
-                if (ind >= n_individuals())
+                if (ind >= num_individuals())
                 {
                     break;
                 }

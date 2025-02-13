@@ -13,8 +13,8 @@ TEST_CASE("BedReader initialization", "[bedreader]")
         REQUIRE_NOTHROW(chenx::BedReader(test_bed, chunk_size));
 
         chenx::BedReader reader(test_bed, chunk_size);
-        REQUIRE(reader.n_snps() > 0);
-        REQUIRE(reader.n_individuals() > 0);
+        REQUIRE(reader.num_snps() > 0);
+        REQUIRE(reader.num_individuals() > 0);
     }
 
     SECTION("Invalid file throws")
@@ -46,7 +46,7 @@ TEST_CASE("BedReader small chunk reading", "[bedreader]")
     SECTION("ReadChunk returns correct matrix dimensions")
     {
         auto chunk = reader.ReadChunk();
-        REQUIRE(chunk.n_rows == reader.n_individuals());
+        REQUIRE(chunk.n_rows == reader.num_individuals());
         REQUIRE(chunk.n_cols <= 10);  // chunk_size
     }
 }
@@ -73,7 +73,7 @@ TEST_CASE("BedReader Big chunk reading", "[bedreader]")
     SECTION("ReadChunk returns correct matrix dimensions")
     {
         auto chunk = reader.ReadChunk();
-        REQUIRE(chunk.n_rows == reader.n_individuals());
+        REQUIRE(chunk.n_rows == reader.num_individuals());
         REQUIRE(chunk.n_cols <= 1000);  // chunk_size
     }
 }
@@ -88,13 +88,13 @@ TEST_CASE("BedReader metadata access", "[bedreader]")
     {
         auto snps = reader.snps();
         REQUIRE_FALSE(snps.empty());
-        REQUIRE(snps.size() == reader.n_snps());
+        REQUIRE(snps.size() == reader.num_snps());
     }
 
     SECTION("Individual access")
     {
         auto individuals = reader.individuals();
         REQUIRE_FALSE(individuals.empty());
-        REQUIRE(individuals.size() == reader.n_individuals());
+        REQUIRE(individuals.size() == reader.num_individuals());
     }
 }

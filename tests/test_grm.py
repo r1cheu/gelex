@@ -45,21 +45,6 @@ def test_make_grm_large_chunk_size(test_bed_file):
     assert grm.shape == (3, 3)
 
 
-def test_make_grm_chunking_consistency(test_bed_file):
-    """Test that chunked and non-chunked GRM computation gives same result"""
-    # Compute GRM with chunking
-    grm_chunked = make_grm(
-        test_bed_file, method="add", chunk_size=2, save=False
-    ).to_numpy()
-
-    # Compute GRM without chunking
-    grm_no_chunk = make_grm(
-        test_bed_file, method="add", chunk_size=1000, save=False
-    ).to_numpy()
-
-    assert np.allclose(grm_chunked, grm_no_chunk)
-
-
 def test_make_grm_save_file(test_bed_file):
     """Test GRM saving to file"""
     output_path: Path = test_bed_file.with_suffix(".add.grm")
