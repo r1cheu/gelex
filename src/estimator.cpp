@@ -66,7 +66,7 @@ void Estimator::Fit(LinearMixedModel& model, bool em_init)
         "Starting fit with {:d} samples, variance componets: {} at {:%Y-%m-%d "
         "%H:%M:%S}",
         model.y().n_elem,
-        model.rand_names(),
+        model.random_effect_names(),
         fmt::localtime(std::time(nullptr)));
     logger_->info(
         "Optimizer: [{}](max_iter={:d}, tol={:.3e})",
@@ -106,6 +106,7 @@ void Estimator::Fit(LinearMixedModel& model, bool em_init)
             fmt::styled(
                 fmt::join(model.sigma(), " "),
                 fmt::fg(fmt::color::blue_violet)));
+        model.set_U(ComputeU(model));
     }
     else
     {
@@ -126,5 +127,20 @@ dvec Estimator::ComputeBeta(LinearMixedModel& model)
 {
     return arma::inv_sympd(model.tx_vinv_x())
            * (model.X().t() * model.v() * model.y());
+}
+
+dmat Estimator::ComputeU(LinearMixedModel& model)
+{
+    dmat U{
+        model.num_individuals(), model.num_random_effects(), arma::fill::zeros};
+    for (int i = 0; i < model.num_random_effects() - 1;
+         i++)  // last one always identity
+    {
+        U.unsafe_col(i)
+            = model.zkzt().slice(i) * model.proj_y() * model.sigma().at(i);
+    }
+    U.unsafe_col(model.num_random_effects() - 1)
+        = model.proj_y() * model.sigma().back();
+    return U;
 }
 }  // namespace chenx

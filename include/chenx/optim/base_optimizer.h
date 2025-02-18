@@ -38,8 +38,7 @@ class OptimizerBase
     virtual bool Optimize(LinearMixedModel& model);
     virtual dvec Step(const LinearMixedModel& model) = 0;
 
-   protected:
-    dvec Constrain(dvec sigma, double y_var);
+    static dvec Constrain(dvec sigma, double y_var);
 
    private:
     size_t max_iter_;

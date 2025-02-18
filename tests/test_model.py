@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from phenx._chenx import LinearMixedModel
+from phenx.model import LinearMixedModel
 
 
 @pytest.fixture
@@ -32,9 +32,9 @@ def test_lmm_initialization(test_data):
     model = LinearMixedModel(y, X, covar_cube, names)
 
     assert model is not None
-    assert model.n_samples == y.shape[0]
-    assert model.n_fixed_effect == X.shape[1]
-    assert model.n_random_effect == len(names) + 1
+    assert model.num_individuals == y.shape[0]
+    assert model.num_fixed_effects == X.shape[1]
+    assert model.num_random_effects == len(names) + 1
 
 
 def test_lmm_properties(test_data):

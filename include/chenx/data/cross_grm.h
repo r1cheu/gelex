@@ -15,7 +15,7 @@ class BaseCrossGrm
    public:
     BaseCrossGrm(
         BedReader&& train_bed,
-        rowvec center,
+        rowvec&& center,
         double scale_factor) noexcept
         : center_{std::move(center)},
           scale_factor_{scale_factor},

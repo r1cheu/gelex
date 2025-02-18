@@ -28,6 +28,7 @@ class Estimator
         return std::make_unique<OptimizerType>(max_iter, tol);
     }
     static dvec ComputeBeta(LinearMixedModel& model);
+    static dmat ComputeU(LinearMixedModel& model);
     std::unique_ptr<OptimizerBase> optimizer_;
     std::shared_ptr<spdlog::logger> logger_;
 };

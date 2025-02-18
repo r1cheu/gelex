@@ -95,7 +95,7 @@ def load_grm(
     with h5py.File(grm_path, "r") as f:
         grm = np.asfortranarray(f["grm"][:])
         if not return_array:
-            individuals = f["individuals"][:]
+            individuals = f["individuals"].asstr()[:]
             return pd.DataFrame(grm, index=individuals, columns=individuals)
 
     return grm

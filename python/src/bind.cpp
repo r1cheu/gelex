@@ -6,6 +6,7 @@
 #include <nanobind/stl/string_view.h>
 #include <nanobind/stl/vector.h>
 #include <armadillo>
+#include <string>
 
 #include "array_caster.h"
 #include "chenx/data/grm.h"
@@ -19,7 +20,7 @@ using nb::literals::operator""_a;
 
 NB_MODULE(_chenx, m)
 {
-    nb::class_<chenx::LinearMixedModel>(m, "LinearMixedModel")
+    nb::class_<chenx::LinearMixedModel>(m, "_LinearMixedModel")
         .def(
             "__init__",
             [](chenx::LinearMixedModel* self,
@@ -36,40 +37,35 @@ NB_MODULE(_chenx, m)
             "covar_mat"_a.noconvert(),
             "names"_a.noconvert())
         .def_prop_ro(
-            "n_samples",
-            [](chenx::LinearMixedModel& self) { return self.y().n_rows; })
+            "num_fixed_effects", &chenx::LinearMixedModel::num_fixed_effects)
         .def_prop_ro(
-            "n_fixed_effect",
-            [](chenx::LinearMixedModel& self) { return self.X().n_cols; })
+            "num_random_effects", &chenx::LinearMixedModel::num_random_effects)
         .def_prop_ro(
-            "n_random_effect",
-            [](chenx::LinearMixedModel& self)
-            { return self.rand_names().size(); })
+            "num_individuals", &chenx::LinearMixedModel::num_individuals)
+        .def_prop_ro(
+            "random_effect_names",
+            &chenx::LinearMixedModel::random_effect_names)
+        .def_prop_ro(
+            "_U", [](chenx::LinearMixedModel& self) { return ToPy(self.U()); })
         .def_prop_ro(
             "beta",
             [](chenx::LinearMixedModel& self) { return ToPy(self.beta()); })
         .def_prop_ro(
             "sigma",
             [](chenx::LinearMixedModel& self) { return ToPy(self.sigma()); })
-        .def_prop_ro(
-            "_y", [](chenx::LinearMixedModel& self) { return ToPy(self.y()); })
-        .def_prop_ro(
-            "_X", [](chenx::LinearMixedModel& self) { return ToPy(self.X()); })
-        .def_prop_ro(
-            "_pdv",
-            [](chenx::LinearMixedModel& self) { return ToPy(self.pdv()); })
         .def("reset", &chenx::LinearMixedModel::Reset, "reset the model")
         .def(
             "__repr__",
             [](chenx::LinearMixedModel& self)
             {
                 return fmt::format(
-                    "Linear Mixed Model\n{:d} Samples, {:d} Fixed effect, "
+                    "Linear Mixed Model\n{:d} Individuals, {:d} Fixed effect, "
                     "Random Effect: [{}]",
-                    self.y().n_rows,
-                    self.X().n_cols,
-                    fmt::join(self.rand_names(), ", "));
+                    self.num_individuals(),
+                    self.num_fixed_effects(),
+                    fmt::join(self.random_effect_names(), ", "));
             });
+
     nb::class_<chenx::Estimator>(m, "Estimator")
         .def(
             nb::init<std::string_view, size_t, double>(),
@@ -122,7 +118,7 @@ NB_MODULE(_chenx, m)
 
     nb::class_<chenx::AddGrm>(m, "add_grm")
         .def(
-            nb::init<const std::string&, uint64_t>(),
+            nb::init<std::string_view, uint64_t>(),
             "bed_file"_a,
             "chunk_size"_a = 10000,
             "Additive Genomic Relationship Matrix calculation.\n\n"
@@ -148,7 +144,7 @@ NB_MODULE(_chenx, m)
 
     nb::class_<chenx::DomGrm>(m, "dom_grm")
         .def(
-            nb::init<const std::string&, uint64_t>(),
+            nb::init<std::string_view, uint64_t>(),
             "bed_file"_a,
             "chunk_size"_a = 10000,
             "Dominance Genomic Relationship Matrix calculation.\n\n"

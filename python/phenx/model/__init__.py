@@ -1,3 +1,3 @@
-from .linear_mixed_model import make_model
+from .linear_mixed_model import LinearMixedModel, make_model
 
-__all__ = ["make_model"]
+__all__ = ["LinearMixedModel", "make_model"]
