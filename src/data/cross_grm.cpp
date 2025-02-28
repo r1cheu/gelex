@@ -59,47 +59,4 @@ void DomCrossGrm::Encode(dmat& genotype)
 {
     dom_encode(genotype);
 }
-
-CrossOnceGrm::CrossOnceGrm(
-    std::string_view train_bed_file,
-    rowvec&& center,
-    double scale_factor,
-    std::vector<std::string>&& exclude_individuals)
-    : CrossGrm{
-          train_bed_file,
-          std::move(center),
-          scale_factor,
-          std::move(exclude_individuals),
-          std::numeric_limits<uint64_t>::max()}
-
-{
-    train_genotype_ = bed().ReadChunk();
-    train_genotype_.each_row() -= IGrm::center();
-}
-
-dmat CrossOnceGrm::Compute(std::string_view test_bed_path)
-{
-    BedReader test_bed{
-        test_bed_path,
-        bed().dropped_individuals(),
-        std::numeric_limits<uint64_t>::max()};
-
-    CheckSnpConsistency(test_bed);
-
-    dmat grm{
-        test_bed.num_individuals(), train_genotype_.n_cols, arma::fill::zeros};
-
-    dmat test_genotype{test_bed.ReadChunk()};
-    Encode(test_genotype);
-    test_genotype.each_row() -= center();
-    grm += test_genotype * train_genotype_.t();
-    grm /= scale_factor();
-    return grm;
-}
-
-void AddCrossOnceGrm::Encode(dmat& genotype) {}
-void DomCrossOnceGrm::Encode(dmat& genotype)
-{
-    dom_encode(genotype);
-}
 }  // namespace chenx

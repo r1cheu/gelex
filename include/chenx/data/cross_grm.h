@@ -49,42 +49,4 @@ class DomCrossGrm : public CrossGrm
    protected:
     void Encode(dmat& genotype) override;
 };
-
-class CrossOnceGrm : public CrossGrm
-{
-   public:
-    CrossOnceGrm(
-        std::string_view train_bed_file,
-        rowvec&& center,
-        double scale_factor,
-        std::vector<std::string>&& exclude_individuals = {});
-
-    CrossOnceGrm(CrossOnceGrm&&) noexcept = default;
-    CrossOnceGrm(const CrossOnceGrm&) = delete;
-    CrossOnceGrm& operator=(CrossOnceGrm&&) noexcept = default;
-    CrossOnceGrm& operator=(const CrossOnceGrm&) = delete;
-    ~CrossOnceGrm() override = default;
-
-    dmat Compute(std::string_view test_bed_path) override;
-
-   private:
-    dmat train_genotype_;
-};
-
-class AddCrossOnceGrm : public CrossOnceGrm
-{
-    using CrossOnceGrm::CrossOnceGrm;
-
-   protected:
-    void Encode(dmat& genotype) override;
-};
-
-class DomCrossOnceGrm : public CrossOnceGrm
-{
-    using CrossOnceGrm::CrossOnceGrm;
-
-   protected:
-    void Encode(dmat& genotype) override;
-};
-
 }  // namespace chenx
