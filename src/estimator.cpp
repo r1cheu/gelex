@@ -60,8 +60,12 @@ void Estimator::set_optimizer(
     }
 }
 
-void Estimator::Fit(LinearMixedModel& model, bool em_init)
+void Estimator::Fit(LinearMixedModel& model, bool em_init, bool verbose)
 {
+    if (!verbose)
+    {
+        logger_->set_level(spdlog::level::warn);
+    }
     logger_->info(
         "Starting fit with {:d} samples, variance componets: {} at {:%Y-%m-%d "
         "%H:%M:%S}",
@@ -73,6 +77,7 @@ void Estimator::Fit(LinearMixedModel& model, bool em_init)
         cyan(optimizer_->name()),
         optimizer_->max_iter(),
         optimizer_->tol());
+
     if (em_init)
     {
         double time_cost{};

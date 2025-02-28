@@ -17,7 +17,7 @@ class Estimator
    public:
     Estimator(std::string_view optimizer, size_t max_iter, double tol);
     void set_optimizer(std::string_view optimizer, size_t max_iter, double tol);
-    void Fit(LinearMixedModel& model, bool em_init = true);
+    void Fit(LinearMixedModel& model, bool em_init = true, bool verbose = true);
 
    private:
     template <typename OptimizerType>

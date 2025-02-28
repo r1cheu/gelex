@@ -1,12 +1,14 @@
 import gc
 from pathlib import Path
 
+import h5py
 import numpy as np
 import pandas as pd
 from formulaic import Formula
 
 from .._chenx import _LinearMixedModel
 from ..data import load_grm, read_table
+from ..logger import setup_logger
 
 
 class LinearMixedModel(_LinearMixedModel):
@@ -15,6 +17,25 @@ class LinearMixedModel(_LinearMixedModel):
         return pd.DataFrame(
             self._U, index=self.individual_names, columns=self.random_effect_names
         )
+
+    def save_params(self, path: str | Path):
+        """
+        Save the model to a file.
+
+        Parameters
+        ----------
+        path : str | Path
+            Path to the file where the model will be saved.
+        """
+        if path is None:
+            msg = "save() missing 1 required positional argument: 'path'"
+            raise TypeError(msg)
+
+        with h5py.File(path, "w") as f:
+            f.create_dataset("beta", data=self.beta)
+            f.create_dataset("sigma", data=self.sigma)
+            f.create_dataset("individuals", data=self._individuals)
+            f.create_dataset("dropped_individuals", data=self._dropped_individuals)
 
 
 class make_model:
@@ -51,10 +72,9 @@ class make_model:
 
         if categorical:
             self.data = with_categorical_cols(self.data, categorical)
+        self._logger = setup_logger(__name__)
 
-    def make(
-        self, formula: str, grm: dict[str, pd.DataFrame | str | Path]
-    ) -> LinearMixedModel:
+    def make(self, formula: str, grm: dict[str, str | Path]) -> LinearMixedModel:
         """
         Create a Linear Mixed Model from the specified formula and genetic relationship matrices.
 
@@ -79,40 +99,61 @@ class make_model:
             If the fixed effects contain missing values.
         """
         formula = Formula(formula)
+        self._response_name = str(formula.lhs)
+
         data = self.data
+
+        data, dropped_individuals = self._clear_data(data)
 
         try:
             model_matrix = formula.get_model_matrix(data, na_action="raise")
         except ValueError as e:
             error_msg = str(e)
             column_name = error_msg.split("`")[1]
-            msg = (
-                f"`{column_name}` contains missing value."
-                f"Please use `pd.DataFrame.dropna(subset=['{column_name}'])` to remove rows with missing values."
-            )
+            msg = f"`{column_name}` contains missing value. Which is unacceptable in the fixed effects."
             raise ValueError(msg) from None
-        grm, random_effect_names = self._load_grm(grm, data.index, str(formula.lhs))
+
+        grm_cube, random_effect_names, dropped_individuals, individuals = (
+            self._load_grm(grm, data.index, dropped_individuals)
+        )
 
         response = np.asfortranarray(model_matrix.lhs, dtype=np.float64)
         design_matrix = np.asfortranarray(model_matrix.rhs, dtype=np.float64)
 
-        gc.collect()  # Clean up memory
-
         model = LinearMixedModel(
             response,
             design_matrix,
-            grm,
+            grm_cube,
             random_effect_names,
         )
-        model._keep_alive = (response, design_matrix, grm)
+        model._keep_alive = (
+            response,
+            design_matrix,
+            grm_cube,
+        )  # need keep the memory address valid
+
+        model._dropped_individuals = list(dropped_individuals)
+        model._individuals = list(individuals)
+
+        gc.collect()  # grm is quite large, we need to collect the garbage
 
         return model
+
+    def _clear_data(self, data: pd.DataFrame):
+        if data[self._response_name].hasnans:
+            dropped_individuals = data.index[data[self._response_name].isna()]
+            self._logger.info(
+                "Missing values detected in `%s`. These entries will be dropped.",
+                self._response_name,
+            )
+            return data.dropna(subset=[self._response_name]), dropped_individuals
+        return data, pd.Index([])
 
     def _load_grm(
         self,
         grm: dict[str, pd.DataFrame | str | Path],
         data_index: pd.Index,
-        response_name: str,
+        drop_individuals: set[str],
     ) -> tuple[np.ndarray, list[str]]:
         """
         Clean and align genetic relationship matrices (GRMs) with the data.
@@ -147,26 +188,22 @@ class make_model:
                 if isinstance(grm_value, (str | Path))
                 else grm_value
             )
-            if len(matrix) != len(data_index):
-                msg = (
-                    f"Sample size mismatch for '{effect_name}' and '{response_name}'. "
-                    f"Slice the GRM (.loc) to use the same sample indices as '{response_name}'."
-                )
+
+            if not data_index.isin(matrix.index).all():
+                msg = f"Some individuals in the `{self._response_name}` are not present in the GRM. Are you sure you are using the correct GRM?"
                 raise ValueError(msg)
 
-            if not matrix.index.equals(data_index):
-                msg = (
-                    f"GRM sample indices do not align with '{response_name}'. "
-                    f"Slice the GRM (.loc) to use the same sample indices as '{response_name}'."
+            if len(matrix.index) != len(data_index):
+                drop_individuals = drop_individuals.union(
+                    matrix.index.difference(data_index)
                 )
-                raise ValueError(msg)
-
+                matrix = matrix.loc[data_index, data_index]
             grm_matrices.append(matrix)
             random_effect_names.append(str(effect_name))
 
         grm_cube = np.asfortranarray(np.stack(grm_matrices, axis=-1))
 
-        return grm_cube, random_effect_names
+        return grm_cube, random_effect_names, drop_individuals, matrix.index
 
 
 def with_categorical_cols(data: pd.DataFrame, columns) -> pd.DataFrame:

@@ -14,6 +14,14 @@ using arma::sp_dmat;
 using arma::uvec;
 using arma::uword;
 
+struct LinearMixedModelParams
+{
+    dvec beta;
+    dvec sigma;
+    std::vector<std::string> individuals;
+    std::vector<std::string> dropped_individuals;
+};
+
 class LinearMixedModel
 {
    public:

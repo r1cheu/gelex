@@ -2,6 +2,7 @@
 
 #include <armadillo>
 #include <cmath>
+#include <vector>
 
 #include "chenx/data/bed_reader.h"
 
@@ -13,10 +14,19 @@ void dom_encode(dmat& genotype)
     genotype.replace(2, 0);
 }
 
-Grm::Grm(std::string_view bed_file, uint64_t chunk_size)
-    : bed_{bed_file, chunk_size}
+IGrm::IGrm(
+    std::string_view bed_file,
+    std::vector<std::string>&& exclude_individuals,
+    uint64_t chunk_size)
+    : bed_{bed_file, std::move(exclude_individuals), chunk_size} {};
+
+Grm::Grm(
+    std::string_view bed_file,
+    std::vector<std::string>&& exclude_individuals,
+    uint64_t chunk_size)
+    : IGrm{bed_file, std::move(exclude_individuals), chunk_size}
 {
-    center_.zeros(bed().num_snps());
+    set_center(rowvec{bed().num_snps(), arma::fill::zeros});
 }
 
 void Grm::Centerlize(dmat& genotype)
@@ -25,21 +35,21 @@ void Grm::Centerlize(dmat& genotype)
     auto start_index = bed().current_chunk_index() - center.n_cols;
     Encode(genotype);
     genotype.each_row() -= center;
-    center_.subvec(start_index, arma::size(center)) = center;
+    set_center(start_index, center);
 }
 
 dmat Grm::Compute()
 {
-    const uint64_t num_ind{bed_.num_individuals()};
+    const uint64_t num_ind{bed().num_individuals()};
     dmat grm{num_ind, num_ind, arma::fill::zeros};
 
-    while (bed_.HasNext())
+    while (bed().HasNext())
     {
-        dmat genotype{bed_.ReadChunk()};
+        dmat genotype{bed().ReadChunk()};
         Centerlize(genotype);
         grm += genotype * genotype.t();
     };
-    scale_factor_ = Scale(grm);
+    set_scale_factor(Scale(grm));
     return grm;
 }
 

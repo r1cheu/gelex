@@ -2,98 +2,43 @@
 
 #include <armadillo>
 #include <cstdint>
+#include <cstdio>
 #include <string_view>
 
 #include "chenx/data/bed_reader.h"
+#include "chenx/data/grm.h"
 
 namespace chenx
 {
 using arma::dmat;
 using arma::rowvec;
-class BaseCrossGrm
-{
-   public:
-    BaseCrossGrm(
-        BedReader&& train_bed,
-        rowvec&& center,
-        double scale_factor) noexcept
-        : center_{std::move(center)},
-          scale_factor_{scale_factor},
-          train_bed_{std::move(train_bed)}
-    {
-    }
-    BaseCrossGrm(BaseCrossGrm&&) noexcept = default;
-    BaseCrossGrm(const BaseCrossGrm&) = delete;
-    BaseCrossGrm& operator=(BaseCrossGrm&&) noexcept = default;
-    BaseCrossGrm& operator=(const BaseCrossGrm&) = delete;
-
-    const rowvec& center() const noexcept { return center_; }
-    double scale_factor() const noexcept { return scale_factor_; }
-    const BedReader& train_bed() const noexcept { return train_bed_; }
-    BedReader& train_bed() noexcept { return train_bed_; }
-
-    virtual ~BaseCrossGrm() = default;
-    virtual dmat Compute(std::string_view test_bed_path) = 0;
-
-    void CheckSnpConsistency(const BedReader& test_bed);
-
-   private:
-    BedReader train_bed_;
-    rowvec center_;
-    double scale_factor_{};
-};
-
-class CrossChunkGrm : public BaseCrossGrm
-{
-   public:
-    CrossChunkGrm(
-        std::string_view train_bed_path,
-        rowvec&& center,
-        double scale_factor,
-        uint64_t chunk_size = 10000);
-
-    dmat Compute(std::string_view test_bed_path) override;
-
-   private:
-    uint64_t chunk_size_;
-    virtual void Encode(dmat& genotype) = 0;
-};
-
-class AddCrossChunkGrm : public CrossChunkGrm
-{
-    using CrossChunkGrm::CrossChunkGrm;
-
-   private:
-    void Encode(dmat& genotype) override;
-};
-
-class DomCrossChunkGrm : public CrossChunkGrm
-{
-    using CrossChunkGrm::CrossChunkGrm;
-
-   private:
-    void Encode(dmat& genotype) override;
-};
-
-class CrossGrm : public BaseCrossGrm
+class CrossGrm : public IGrm
 {
    public:
     CrossGrm(
-        std::string_view train_bed_path,
+        std::string_view train_bed_file,
         rowvec&& center,
-        double scale_factor);
-    dmat Compute(std::string_view test_bed_path) override;
+        double scale_factor,
+        std::vector<std::string>&& exclude_individuals = {},
+        uint64_t chunk_size = DEFAULT_CHUNK_SIZE);
 
-   private:
-    dmat train_genotype;
-    virtual void Encode(dmat& genotype) = 0;
+    CrossGrm(CrossGrm&&) noexcept = default;
+    CrossGrm(const CrossGrm&) = delete;
+    CrossGrm& operator=(CrossGrm&&) noexcept = default;
+    CrossGrm& operator=(const CrossGrm&) = delete;
+
+    ~CrossGrm() override = default;
+    virtual dmat Compute(std::string_view test_bed_path);
+
+   protected:
+    void CheckSnpConsistency(const BedReader& test_bed) const;
 };
 
 class AddCrossGrm : public CrossGrm
 {
     using CrossGrm::CrossGrm;
 
-   private:
+   protected:
     void Encode(dmat& genotype) override;
 };
 
@@ -101,7 +46,45 @@ class DomCrossGrm : public CrossGrm
 {
     using CrossGrm::CrossGrm;
 
-   private:
+   protected:
     void Encode(dmat& genotype) override;
 };
+
+class CrossOnceGrm : public CrossGrm
+{
+   public:
+    CrossOnceGrm(
+        std::string_view train_bed_file,
+        rowvec&& center,
+        double scale_factor,
+        std::vector<std::string>&& exclude_individuals = {});
+
+    CrossOnceGrm(CrossOnceGrm&&) noexcept = default;
+    CrossOnceGrm(const CrossOnceGrm&) = delete;
+    CrossOnceGrm& operator=(CrossOnceGrm&&) noexcept = default;
+    CrossOnceGrm& operator=(const CrossOnceGrm&) = delete;
+    ~CrossOnceGrm() override = default;
+
+    dmat Compute(std::string_view test_bed_path) override;
+
+   private:
+    dmat train_genotype_;
+};
+
+class AddCrossOnceGrm : public CrossOnceGrm
+{
+    using CrossOnceGrm::CrossOnceGrm;
+
+   protected:
+    void Encode(dmat& genotype) override;
+};
+
+class DomCrossOnceGrm : public CrossOnceGrm
+{
+    using CrossOnceGrm::CrossOnceGrm;
+
+   protected:
+    void Encode(dmat& genotype) override;
+};
+
 }  // namespace chenx

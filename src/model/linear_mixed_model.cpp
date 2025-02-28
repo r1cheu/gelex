@@ -28,7 +28,7 @@ LinearMixedModel::LinearMixedModel(
     set_sigma(dvec(
         num_random_effects_,
         arma::fill::value(y_var_ / static_cast<double>(num_random_effects_))));
-    random_effect_names_.emplace_back("Residual");
+    random_effect_names_.emplace_back("e");
     U_.set_size(num_individuals_, num_random_effects_);
 }
 

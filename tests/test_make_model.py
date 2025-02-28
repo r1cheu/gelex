@@ -38,63 +38,73 @@ def sample_data():
 @pytest.fixture
 def grm_a():
     return pd.DataFrame(
-        {"s1": [1.0, 0.1, 0.2], "s2": [0.1, 1.0, 0.3], "s3": [0.2, 0.3, 1.0]},
+        np.eye(3),
         index=["s1", "s2", "s3"],
+        columns=["s1", "s2", "s3"],
     )
 
 
 @pytest.fixture
 def grm_b():
     return pd.DataFrame(
-        {"s1": [1.0, 0.1, 0.2], "s2": [0.1, 1.0, 0.3], "s3": [0.2, 0.3, 1.0]},
+        np.eye(3),
         index=["s1", "s2", "s3"],
+        columns=["s1", "s2", "s3"],
     )
 
 
 @pytest.fixture
-def grm_with_size_mismatch():
+def grm_with_less_individuals():
     return pd.DataFrame(np.eye(2), index=["s1", "s2"], columns=["s1", "s2"])
 
 
 @pytest.fixture
-def grm_with_index_mismatch():
+def grm_with_more_individuals():
     return pd.DataFrame(
-        np.eye(3),
-        index=["s1", "s2", "s4"],  # 's4' causes mismatch
-        columns=["s1", "s2", "s4"],
+        np.eye(4),
+        index=["s1", "s2", "s3", "s4"],  # 's4' causes mismatch
+        columns=["s1", "s2", "s3", "s4"],
     )
 
 
-def test_sample_size_mismatch(sample_data, grm_with_size_mismatch):
+def test_with_less_individuals_grm(sample_data, grm_with_less_individuals):
     model = make_model(sample_data)
 
-    with pytest.raises(ValueError, match="Sample size mismatch for 'grm1' and 'y'."):
-        model.make("y ~ x1", {"grm1": grm_with_size_mismatch})
+    with pytest.raises(
+        ValueError,
+        match="Some individuals in the `y` are not present in the GRM. Are you sure you are using the correct GRM?",
+    ):
+        model.make("y ~ x1", {"grm1": grm_with_less_individuals})
 
 
-def test_index_mismatch(sample_data, grm_with_index_mismatch):
-    model = make_model(sample_data)
-
-    with pytest.raises(ValueError, match="GRM sample indices do not align with 'y'."):
-        model.make("y ~ x1", {"grm1": grm_with_index_mismatch})
+def test_with_more_individuals(sample_data, grm_with_more_individuals):
+    model_make = make_model(sample_data)
+    model = model_make.make("y ~ x1", {"grm1": grm_with_more_individuals})
+    assert model._dropped_individuals == ["s4"]
+    np.testing.assert_array_equal(
+        model._keep_alive[2], np.asfortranarray(np.stack([np.eye(3)], axis=-1))
+    )
 
 
 def test_initialization_nan_in_response(sample_data, grm_a):
     sample_data.iloc[0, 0] = np.nan
     model = make_model(sample_data)
-    with pytest.raises(ValueError, match="`y` contains missing value"):
-        model.make("y~x1", grm={"a": grm_a})
+    model = model.make("y~x1", {"a": grm_a})
+    assert model._dropped_individuals == ["s1"]
+    np.testing.assert_array_equal(
+        model._keep_alive[2], np.asfortranarray(np.stack([np.eye(2)], axis=-1))
+    )
 
 
 def test_initialization_with_dataframe(sample_data, grm_a):
     model = make_model(sample_data)
-    model.make("y ~ 1", grm={"a": grm_a})
+    model.make("y ~ 1", {"a": grm_a})
     pd.testing.assert_frame_equal(model.data, sample_data)
 
 
 def test_initialization_with_series(sample_data, grm_a):
     model = make_model(sample_data["y"])
-    model.make("y ~ 1", grm={"a": grm_a})
+    model.make("y ~ 1", {"a": grm_a})
     pd.testing.assert_frame_equal(model.data, pd.DataFrame(sample_data["y"]))
 
 

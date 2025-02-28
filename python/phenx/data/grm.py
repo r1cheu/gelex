@@ -60,7 +60,6 @@ def make_grm(
             f.create_dataset("individuals", data=grm_maker.individuals)
             f.create_dataset("center", data=grm_maker.center)
             f.create_dataset("scale_factor", data=grm_maker.scale_factor)
-            f.attrs["method"] = method
     return grm_df
 
 

@@ -20,6 +20,40 @@ using nb::literals::operator""_a;
 
 NB_MODULE(_chenx, m)
 {
+    nb::class_<chenx::LinearMixedModelParams>(m, "LinearMixedModelParams")
+        .def(
+            "__init__",
+            [](chenx::LinearMixedModelParams* self,
+               arr1d beta,
+               arr1d sigma,
+               std::vector<std::string> individuals,
+               std::vector<std::string> dropped_individuals)
+            {
+                new (self) chenx::LinearMixedModelParams{
+                    ToArma(beta),
+                    ToArma(sigma),
+                    std::move(individuals),
+                    std::move(dropped_individuals)};
+            },
+            "beta"_a.noconvert(),
+            "sigma"_a.noconvert(),
+            "individuals"_a.noconvert(),
+            "dropped_individuals"_a.noconvert())
+        .def_prop_ro(
+            "beta",
+            [](chenx::LinearMixedModelParams& self) { return ToPy(self.beta); })
+        .def_prop_ro(
+            "sigma",
+            [](chenx::LinearMixedModelParams& self)
+            { return ToPy(self.sigma); })
+        .def_prop_ro(
+            "individuals",
+            [](chenx::LinearMixedModelParams& self)
+            { return self.individuals; })
+        .def_prop_ro(
+            "dropped_individuals",
+            [](chenx::LinearMixedModelParams& self)
+            { return self.dropped_individuals; });
     nb::class_<chenx::LinearMixedModel>(m, "_LinearMixedModel")
         .def(
             "__init__",
@@ -29,8 +63,8 @@ NB_MODULE(_chenx, m)
                arr3d covar_mat,
                std::vector<std::string> names)
             {
-                new (self) chenx::LinearMixedModel(
-                    ToArma(y), ToArma(X), ToArma(covar_mat), std::move(names));
+                new (self) chenx::LinearMixedModel{
+                    ToArma(y), ToArma(X), ToArma(covar_mat), std::move(names)};
             },
             "y"_a.noconvert(),
             "X"_a.noconvert(),
@@ -86,6 +120,7 @@ NB_MODULE(_chenx, m)
             &chenx::Estimator::Fit,
             "model"_a,
             "em_init"_a = true,
+            "verbose"_a = true,
             "Fit the model\n\n"
             "Parameters\n"
             "----------\n"
@@ -94,6 +129,8 @@ NB_MODULE(_chenx, m)
             "em_init : bool, optional\n"
             "    Whether to use EM algorithm for initialization (default: "
             "True)\n\n"
+            "verbose : bool, optional\n"
+            "    Whether to print the optimization process (default: True)\n\n"
             "Returns\n"
             "-------\n"
             "None")
