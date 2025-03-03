@@ -50,7 +50,7 @@ uv = ">=0.5,<0.6"
 pre-commit = ">=4.0, <5.0"
 openblas = { version = ">=0.3.28", build = "*openmp*" }
 spdlog = ">=1.15.0,<2"
-catch2 = ">=3.7.1,<4"
+catch2 = ">=3.8.0,<4"
 mkl = ">=2024.0.0,<2026"
 
 [tool.pixi.feature.dev.tasks]

@@ -13,9 +13,9 @@ CrossGrm::CrossGrm(
     std::string_view train_bed_file,
     rowvec&& center,
     double scale_factor,
-    std::vector<std::string>&& exclude_individuals,
-    uint64_t chunk_size)
-    : IGrm{train_bed_file, std::move(exclude_individuals), chunk_size}
+    uint64_t chunk_size,
+    const std::vector<std::string>& exclude_individuals)
+    : IGrm{train_bed_file, chunk_size, exclude_individuals}
 {
     set_center(std::move(center));
     set_scale_factor(scale_factor);
@@ -33,21 +33,30 @@ void CrossGrm::CheckSnpConsistency(const BedReader& test_bed) const
     }
 }
 
+void CrossGrm::Reset()
+{
+    bed().Reset();
+}
+
 dmat CrossGrm::Compute(std::string_view test_bed_path)
 {
-    BedReader test_bed{
-        test_bed_path, bed().dropped_individuals(), bed().chunk_size()};
+    Reset();
+    BedReader test_bed{test_bed_path, bed().chunk_size()};
     CheckSnpConsistency(test_bed);
     dmat grm{
         test_bed.num_individuals(), bed().num_individuals(), arma::fill::zeros};
     while (bed().HasNext())
     {
+        auto start = bed().current_chunk_index();
+
         dmat train_genotype{bed().ReadChunk()};
         dmat test_genotype{test_bed.ReadChunk()};
+        auto end = start + train_genotype.n_cols - 1;
+
         Encode(train_genotype);
         Encode(test_genotype);
-        train_genotype.each_row() -= center();
-        test_genotype.each_row() -= center();
+        train_genotype.each_row() -= center().subvec(start, end);
+        test_genotype.each_row() -= center().subvec(start, end);
         grm += test_genotype * train_genotype.t();
     }
     grm /= scale_factor();

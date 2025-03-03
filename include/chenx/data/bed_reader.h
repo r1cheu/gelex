@@ -20,27 +20,26 @@ static constexpr uint64_t DEFAULT_CHUNK_SIZE = 10000;
 //     auto genotype_mat {reader.ReadChunk()}
 // }
 //
+
+std::string find_second(std::string& snps_line);
+
 using strings = std::vector<std::string>;
 class BedReader
 {
    public:
-    // Disable copy constructors/assignment operators
+    explicit BedReader(
+        std::string_view,
+        size_t chunk_size = DEFAULT_CHUNK_SIZE,
+        const strings& dropped_individuals = {});
+
     BedReader(const BedReader&) = delete;
     BedReader(BedReader&&) noexcept = default;
     BedReader& operator=(const BedReader&) = delete;
     BedReader& operator=(BedReader&&) noexcept = default;
 
-    explicit BedReader(
-        std::string_view,
-        strings&& dropped_individuals = {},
-        size_t chunk_size = DEFAULT_CHUNK_SIZE);
-
-    explicit BedReader(
-        std::string_view,
-        const strings& dropped_individuals = {},
-        size_t chunk_size = DEFAULT_CHUNK_SIZE);
-
     ~BedReader();
+
+    void Reset();
 
     uint64_t chunk_size() const noexcept { return chunk_size_; }
     bool HasNext() const;
@@ -49,16 +48,11 @@ class BedReader
     const strings& snps() const noexcept { return snps_; }
     uint64_t num_individuals() const noexcept { return individuals_.size(); }
     const strings& individuals() const noexcept { return individuals_; }
-
-    const strings& dropped_individuals() const noexcept
-    {
-        return dropped_individuals_;
-    }
-
     uint64_t current_chunk_index() const noexcept
     {
         return current_chunk_index_;
     }
+    uint64_t current_chunk_size() const noexcept { return current_chunk_size_; }
 
    private:
     std::ifstream fin_;
@@ -68,7 +62,6 @@ class BedReader
 
     strings snps_;
     strings individuals_;
-    strings dropped_individuals_;
 
     std::unordered_set<uint64_t> exclude_index_;
 
@@ -86,5 +79,6 @@ class BedReader
 
     arma::dmat Decode(const std::vector<char>& buffer, uint64_t chunk_size);
     void OpenBed();
+    void SeekToBedStart();
 };
 }  // namespace chenx

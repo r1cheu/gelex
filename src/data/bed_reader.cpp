@@ -4,7 +4,6 @@
 #include <array>
 #include <cstdint>
 #include <iostream>
-#include <sstream>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -14,31 +13,31 @@
 namespace chenx
 {
 using strings = std::vector<std::string>;
+
+std::string find_second(std::string& snps_line)
+{
+    auto first = snps_line.find('\t') + 1;
+    auto second = snps_line.find('\t', first);
+    return snps_line.substr(first, second - first);
+}
+
 BedReader::BedReader(
     std::string_view bed_file,
-    strings&& dropped_individuals,
-    size_t chunk_size)
-    : bed_file_{bed_file},
-      dropped_individuals_{std::move(dropped_individuals)},
-      chunk_size_{chunk_size}
+    size_t chunk_size,
+    const strings& dropped_individuals)
+    : bed_file_{bed_file}, chunk_size_{chunk_size}
 {
     std::string base_path = bed_file_.substr(0, bed_file_.size() - 4);
     std::string fam_file = base_path + ".fam";
     std::string bim_file = base_path + ".bim";
 
-    individuals_ = parseFam(fam_file, dropped_individuals_);
+    individuals_ = parseFam(fam_file, dropped_individuals);
     snps_ = parseBim(bim_file);
 
     OpenBed();
     bytes_per_snp_ = (num_individuals() + exclude_index_.size() + 3)
                      / 4;  // add 3 for correct rounding
 }
-
-BedReader::BedReader(
-    std::string_view bed_file,
-    const strings& dropped_individuals,
-    size_t chunk_size)
-    : BedReader{bed_file, strings{dropped_individuals}, chunk_size} {};
 
 BedReader::~BedReader()
 {
@@ -69,9 +68,7 @@ std::vector<std::string> BedReader::parseFam(
     {
         if (!line.empty())
         {
-            auto first = line.find('\t') + 1;
-            auto second = line.find('\t', first);
-            auto individual = line.substr(first, second - first);
+            auto individual = find_second(line);
             if (!exclude_set.empty()
                 && exclude_set.find(individual) != exclude_set.end())
             {
@@ -98,7 +95,6 @@ std::vector<std::string> BedReader::parseBim(const std::string& bim_file)
 
     std::vector<std::string> snps;
     std::string line;
-    std::string temp;
 
     while (std::getline(fin, line))
     {
@@ -106,28 +102,7 @@ std::vector<std::string> BedReader::parseBim(const std::string& bim_file)
         {
             continue;
         }
-        std::istringstream stream{line};
-        std::string snp;
-        for (int i{}; std::getline(stream, temp, '\t'); ++i)
-        {
-            switch (i)
-            {
-                case 0:
-                    snp += temp;
-                    break;
-                case 1:
-                case 2:
-                    break;
-                case 3:
-                case 4:
-                case 5:
-                    snp += ":" + temp;
-                    break;
-                default:
-                    break;
-            }
-        }
-        snps.push_back(snp);
+        snps.emplace_back(find_second(line));
     }
     fin.close();
     return snps;
@@ -157,6 +132,32 @@ void BedReader::OpenBed()
 bool BedReader::HasNext() const
 {
     return current_chunk_index() < num_snps();
+}
+
+void BedReader::Reset()
+{
+    if (!fin_.is_open())
+    {
+        OpenBed();
+    }
+    else
+    {
+        // Clear any error flags
+        fin_.clear();
+
+        // Return to the start of data (after the header)
+        SeekToBedStart();
+
+        // Reset the tracking variables
+        current_chunk_index_ = 0;
+        current_chunk_size_ = 0;
+    }
+}
+
+void BedReader::SeekToBedStart()
+{
+    // Seek to the beginning of file + 3 bytes (skip the magic number)
+    fin_.seekg(3, std::ios::beg);
 }
 
 arma::dmat BedReader::ReadChunk()

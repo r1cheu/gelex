@@ -18,8 +18,8 @@ class IGrm
    public:
     explicit IGrm(
         std::string_view bed_file,
-        std::vector<std::string>&& exclude_individuals = {},
-        uint64_t chunk_size = DEFAULT_CHUNK_SIZE);
+        uint64_t chunk_size = DEFAULT_CHUNK_SIZE,
+        const std::vector<std::string>& exclude_individuals = {});
     IGrm(const IGrm&) = delete;
     IGrm(IGrm&&) noexcept = default;
     IGrm& operator=(const IGrm&) = delete;
@@ -41,6 +41,7 @@ class IGrm
 
    protected:
     virtual void Encode(dmat& genotype) = 0;
+    void Reset() noexcept { bed_.Reset(); }
 
    private:
     BedReader bed_;
@@ -53,8 +54,8 @@ class Grm : public IGrm
    public:
     explicit Grm(
         std::string_view bed_file,
-        std::vector<std::string>&& exclude_individuals = {},
-        uint64_t chunk_size = DEFAULT_CHUNK_SIZE);
+        uint64_t chunk_size = DEFAULT_CHUNK_SIZE,
+        const std::vector<std::string>& exclude_individuals = {});
     virtual dmat Compute();
 
    private:

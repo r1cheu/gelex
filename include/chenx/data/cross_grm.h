@@ -19,8 +19,8 @@ class CrossGrm : public IGrm
         std::string_view train_bed_file,
         rowvec&& center,
         double scale_factor,
-        std::vector<std::string>&& exclude_individuals = {},
-        uint64_t chunk_size = DEFAULT_CHUNK_SIZE);
+        uint64_t chunk_size = DEFAULT_CHUNK_SIZE,
+        const std::vector<std::string>& exclude_individuals = {});
 
     CrossGrm(CrossGrm&&) noexcept = default;
     CrossGrm(const CrossGrm&) = delete;
@@ -28,10 +28,13 @@ class CrossGrm : public IGrm
     CrossGrm& operator=(const CrossGrm&) = delete;
 
     ~CrossGrm() override = default;
-    virtual dmat Compute(std::string_view test_bed_path);
+    dmat Compute(std::string_view test_bed_path);
 
    protected:
     void CheckSnpConsistency(const BedReader& test_bed) const;
+
+   private:
+    void Reset();
 };
 
 class AddCrossGrm : public CrossGrm

@@ -6,9 +6,12 @@
 #include <nanobind/stl/string_view.h>
 #include <nanobind/stl/vector.h>
 #include <armadillo>
+#include <cstdint>
 #include <string>
+#include <vector>
 
 #include "array_caster.h"
+#include "chenx/data/bed_reader.h"
 #include "chenx/data/grm.h"
 #include "chenx/estimator.h"
 #include "chenx/model/linear_mixed_model.h"
@@ -154,10 +157,12 @@ NB_MODULE(_chenx, m)
             "None");
 
     nb::class_<chenx::AddGrm>(m, "add_grm")
+
         .def(
-            nb::init<std::string_view, uint64_t>(),
+            nb::init<std::string_view, uint64_t, std::vector<std::string>>(),
             "bed_file"_a,
-            "chunk_size"_a = 10000,
+            "chunk_size"_a = chenx::DEFAULT_CHUNK_SIZE,
+            "exclude_individuals"_a = std::vector<std::string>{},
             "Additive Genomic Relationship Matrix calculation.\n\n"
             "Parameters\n"
             "----------\n"
@@ -181,9 +186,10 @@ NB_MODULE(_chenx, m)
 
     nb::class_<chenx::DomGrm>(m, "dom_grm")
         .def(
-            nb::init<std::string_view, uint64_t>(),
+            nb::init<std::string_view, uint64_t, std::vector<std::string>>(),
             "bed_file"_a,
-            "chunk_size"_a = 10000,
+            "chunk_size"_a = chenx::DEFAULT_CHUNK_SIZE,
+            "exclude_individuals"_a = std::vector<std::string>{},
             "Dominance Genomic Relationship Matrix calculation.\n\n"
             "Parameters\n"
             "----------\n"
