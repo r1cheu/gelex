@@ -60,11 +60,14 @@ def make_grm(
             f.create_dataset("individuals", data=grm_maker.individuals)
             f.create_dataset("center", data=grm_maker.center)
             f.create_dataset("scale_factor", data=grm_maker.scale_factor)
+            f.attrs["method"] = method
     return grm_df
 
 
 def load_grm(
-    grm_path: str | Path, return_array: bool = False
+    grm_path: str | Path,
+    return_array: bool = False,
+    dropped_individual: list | None = None,
 ) -> pd.DataFrame | np.ndarray:
     """
     Load GRM from HDF5 file.
@@ -91,10 +94,13 @@ def load_grm(
         msg = f"GRM file {grm_path} does not exist."
         raise FileNotFoundError(msg)
 
+    grm = None
     with h5py.File(grm_path, "r") as f:
         grm = np.asfortranarray(f["grm"][:])
-        if not return_array:
-            individuals = f["individuals"].asstr()[:]
-            return pd.DataFrame(grm, index=individuals, columns=individuals)
-
+        individuals = f["individuals"].asstr()[:]
+        grm = pd.DataFrame(grm, index=individuals, columns=individuals)
+        if dropped_individual:
+            grm = grm.drop(index=dropped_individual, columns=dropped_individual)
+    if return_array:
+        return np.asfortranarray(grm)
     return grm

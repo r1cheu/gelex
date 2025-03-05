@@ -14,14 +14,6 @@ using arma::sp_dmat;
 using arma::uvec;
 using arma::uword;
 
-struct LinearMixedModelParams
-{
-    dvec beta;
-    dvec sigma;
-    std::vector<std::string> individuals;
-    std::vector<std::string> dropped_individuals;
-};
-
 class LinearMixedModel
 {
    public:
@@ -84,4 +76,43 @@ class LinearMixedModel
     void ComputePdV();
     static double VinvLogdet(dmat& V);
 };
+
+class LinearMixedModelParams
+{
+   public:
+    LinearMixedModelParams(
+        dvec&& beta,
+        dvec&& sigma,
+        dmat&& X,
+        dvec&& y,
+        std::vector<std::string>&& dropped_individuals);
+    LinearMixedModelParams(
+        const LinearMixedModel& model,
+        std::vector<std::string>&& dropped_individuals);
+    const dvec& beta() const { return beta_; }
+    const dvec& sigma() const { return sigma_; }
+    const dmat& X() const { return X_; }
+    const dvec& y() const { return y_; }
+    const std::vector<std::string>& dropped_individuals() const
+    {
+        return dropped_individuals_;
+    }
+
+    void set_beta(dvec&& beta) { beta_ = std::move(beta); }
+    void set_sigma(dvec&& sigma) { sigma_ = std::move(sigma); }
+    void set_X(dmat&& X) { X_ = std::move(X); }
+    void set_y(dvec&& y) { y_ = std::move(y); }
+    void set_dropped_individuals(std::vector<std::string>&& dropped_individuals)
+    {
+        dropped_individuals_ = std::move(dropped_individuals);
+    }
+
+   private:
+    dvec beta_;
+    dvec sigma_;
+    dmat X_;
+    dvec y_;
+    std::vector<std::string> dropped_individuals_;
+};
+
 }  // namespace chenx

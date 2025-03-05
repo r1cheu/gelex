@@ -8,13 +8,16 @@
 #include <armadillo>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "array_caster.h"
 #include "chenx/data/bed_reader.h"
+#include "chenx/data/cross_grm.h"
 #include "chenx/data/grm.h"
 #include "chenx/estimator.h"
 #include "chenx/model/linear_mixed_model.h"
+#include "chenx/predictor.h"
 
 namespace bind
 {
@@ -23,40 +26,65 @@ using nb::literals::operator""_a;
 
 NB_MODULE(_chenx, m)
 {
-    nb::class_<chenx::LinearMixedModelParams>(m, "LinearMixedModelParams")
+    nb::class_<chenx::LinearMixedModelParams>(m, "_LinearMixedModelParams")
         .def(
             "__init__",
             [](chenx::LinearMixedModelParams* self,
                arr1d beta,
                arr1d sigma,
-               std::vector<std::string> individuals,
+               arr2d X,
+               arr1d y,
                std::vector<std::string> dropped_individuals)
             {
                 new (self) chenx::LinearMixedModelParams{
                     ToArma(beta),
                     ToArma(sigma),
-                    std::move(individuals),
+                    ToArma(X),
+                    ToArma(y),
                     std::move(dropped_individuals)};
             },
             "beta"_a.noconvert(),
             "sigma"_a.noconvert(),
-            "individuals"_a.noconvert(),
+            "X"_a.noconvert(),
+            "y"_a.noconvert(),
+            "dropped_individuals"_a.noconvert())
+        .def(
+            "__init__",
+            [](chenx::LinearMixedModelParams* self,
+               chenx::LinearMixedModel& model,
+               std::vector<std::string> dropped_individuals)
+            {
+                new (self) chenx::LinearMixedModelParams{
+                    model, std::move(dropped_individuals)};
+            },
+            "model"_a,
             "dropped_individuals"_a.noconvert())
         .def_prop_ro(
             "beta",
-            [](chenx::LinearMixedModelParams& self) { return ToPy(self.beta); })
+            [](const chenx::LinearMixedModelParams& self)
+            { return ToPy(self.beta()); },
+            nb::rv_policy::reference_internal)
         .def_prop_ro(
             "sigma",
-            [](chenx::LinearMixedModelParams& self)
-            { return ToPy(self.sigma); })
+            [](const chenx::LinearMixedModelParams& self)
+            { return ToPy(self.sigma()); },
+            nb::rv_policy::reference_internal)
         .def_prop_ro(
-            "individuals",
-            [](chenx::LinearMixedModelParams& self)
-            { return self.individuals; })
+            "X",
+            [](const chenx::LinearMixedModelParams& self)
+            { return ToPy(self.X()); },
+            nb::rv_policy::reference_internal)
+        .def_prop_ro(
+            "y",
+            [](const chenx::LinearMixedModelParams& self)
+            { return ToPy(self.y()); },
+            nb::rv_policy::reference_internal)
         .def_prop_ro(
             "dropped_individuals",
-            [](chenx::LinearMixedModelParams& self)
-            { return self.dropped_individuals; });
+            [](const chenx::LinearMixedModelParams& self)
+            { return self.dropped_individuals(); },
+            nb::rv_policy::reference_internal);
+
     nb::class_<chenx::LinearMixedModel>(m, "_LinearMixedModel")
         .def(
             "__init__",
@@ -74,22 +102,45 @@ NB_MODULE(_chenx, m)
             "covar_mat"_a.noconvert(),
             "names"_a.noconvert())
         .def_prop_ro(
-            "num_fixed_effects", &chenx::LinearMixedModel::num_fixed_effects)
+            "num_fixed_effects",
+            &chenx::LinearMixedModel::num_fixed_effects,
+            nb::rv_policy::reference_internal)
         .def_prop_ro(
-            "num_random_effects", &chenx::LinearMixedModel::num_random_effects)
+            "num_random_effects",
+            &chenx::LinearMixedModel::num_random_effects,
+            nb::rv_policy::reference_internal)
         .def_prop_ro(
-            "num_individuals", &chenx::LinearMixedModel::num_individuals)
+            "num_individuals",
+            &chenx::LinearMixedModel::num_individuals,
+            nb::rv_policy::reference_internal)
         .def_prop_ro(
             "random_effect_names",
-            &chenx::LinearMixedModel::random_effect_names)
+            &chenx::LinearMixedModel::random_effect_names,
+            nb::rv_policy::reference_internal)
         .def_prop_ro(
-            "_U", [](chenx::LinearMixedModel& self) { return ToPy(self.U()); })
+            "_U",
+            [](chenx::LinearMixedModel& self) { return ToPy(self.U()); },
+            nb::rv_policy::reference_internal)
+        .def_prop_ro(
+            "_proj_y",
+            [](chenx::LinearMixedModel& self) { return ToPy(self.proj_y()); },
+            nb::rv_policy::reference_internal)
         .def_prop_ro(
             "beta",
-            [](chenx::LinearMixedModel& self) { return ToPy(self.beta()); })
+            [](chenx::LinearMixedModel& self) { return ToPy(self.beta()); },
+            nb::rv_policy::reference_internal)
         .def_prop_ro(
             "sigma",
-            [](chenx::LinearMixedModel& self) { return ToPy(self.sigma()); })
+            [](chenx::LinearMixedModel& self) { return ToPy(self.sigma()); },
+            nb::rv_policy::reference_internal)
+        .def_prop_ro(
+            "y",
+            [](chenx::LinearMixedModel& self) { return ToPy(self.y()); },
+            nb::rv_policy::reference_internal)
+        .def_prop_ro(
+            "X",
+            [](chenx::LinearMixedModel& self) { return ToPy(self.X()); },
+            nb::rv_policy::reference_internal)
         .def("reset", &chenx::LinearMixedModel::Reset, "reset the model")
         .def(
             "__repr__",
@@ -102,6 +153,32 @@ NB_MODULE(_chenx, m)
                     self.num_fixed_effects(),
                     fmt::join(self.random_effect_names(), ", "));
             });
+
+    nb::class_<chenx::Predictor>(m, "_Predictor")
+        .def(
+            nb::init<std::string_view, chenx::LinearMixedModelParams&&>(),
+            "train_bed"_a,
+            "params"_a)
+        .def(
+            "set_cross_grm",
+            [](chenx::Predictor& self,
+               std::string_view method,
+               arr1d center,
+               double scale_factor,
+               uint64_t chuck_size)
+            {
+                self.set_cross_grm(
+                    method, ToRowVec(center), scale_factor, chuck_size);
+            })
+        .def(
+            "set_grm",
+            [](chenx::Predictor& self, arr2d grm)
+            { self.set_grm(ToArma(grm)); })
+        .def(
+            "_predict",
+            [](chenx::Predictor& self, std::string_view test_bed)
+            { return ToPy(self.predict(test_bed)); })
+        .def_prop_ro("test_individuals", &chenx::Predictor::test_individuals);
 
     nb::class_<chenx::Estimator>(m, "Estimator")
         .def(
@@ -174,12 +251,17 @@ NB_MODULE(_chenx, m)
             "-------\n"
             "np.ndarray\n")
         .def(
-            "compute", [](chenx::AddGrm& self) { return ToPy(self.Compute()); })
+            "compute",
+            [](chenx::AddGrm& self) { return ToPy(self.Compute()); },
+            nb::rv_policy::move)
         .def_prop_ro(
             "individuals",
-            [](chenx::AddGrm& self) { return self.bed().individuals(); })
+            [](chenx::AddGrm& self) { return self.bed().individuals(); },
+            nb::rv_policy::reference_internal)
         .def_prop_ro(
-            "center", [](chenx::AddGrm& self) { return ToPy(self.center()); })
+            "center",
+            [](chenx::AddGrm& self) { return ToPy(self.center()); },
+            nb::rv_policy::reference_internal)
         .def_prop_ro(
             "scale_factor",
             [](chenx::AddGrm& self) { return self.scale_factor(); });
@@ -201,15 +283,43 @@ NB_MODULE(_chenx, m)
             "-------\n"
             "np.ndarray\n")
         .def(
-            "compute", [](chenx::DomGrm& self) { return ToPy(self.Compute()); })
+            "compute",
+            [](chenx::DomGrm& self) { return ToPy(self.Compute()); },
+            nb::rv_policy::move)
         .def_prop_ro(
             "individuals",
-            [](chenx::DomGrm& self) { return self.bed().individuals(); })
+            [](chenx::DomGrm& self) { return self.bed().individuals(); },
+            nb::rv_policy::reference_internal)
         .def_prop_ro(
-            "center", [](chenx::DomGrm& self) { return ToPy(self.center()); })
+            "center",
+            [](chenx::DomGrm& self) { return ToPy(self.center()); },
+            nb::rv_policy::reference_internal)
         .def_prop_ro(
             "scale_factor",
             [](chenx::DomGrm& self) { return self.scale_factor(); });
+
+    nb::class_<chenx::AddCrossGrm>(m, "add_cross_grm")
+        .def(
+            "__init__",
+            [](chenx::AddCrossGrm* self,
+               std::string_view train_bed_file,
+               arr1d center,
+               double scale_factor,
+               uint64_t chunk_size,
+               const std::vector<std::string>& exclude_individuals)
+            {
+                new (self) chenx::AddCrossGrm{
+                    train_bed_file,
+                    ToRowVec(center),
+                    scale_factor,
+                    chunk_size,
+                    exclude_individuals};
+            })
+        .def(
+            "compute",
+            [](chenx::AddCrossGrm& self, std::string_view test_bed)
+            { return ToPy(self.Compute(test_bed)); },
+            nb::rv_policy::move);
 }
 
 }  // namespace bind

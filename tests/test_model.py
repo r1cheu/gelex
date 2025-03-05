@@ -2,6 +2,7 @@ import h5py
 import numpy as np
 import pytest
 from phenx.model import LinearMixedModel
+from phenx.model.io import load_params
 
 
 @pytest.fixture
@@ -35,8 +36,8 @@ def model():
 
     random_effect_names = ["effect1"]
     model = LinearMixedModel(response, design_matrix, grm_cube, random_effect_names)
+    model._keep_alive = (response, design_matrix, grm_cube)
     model._dropped_individuals = ["ind1"]
-    model._individuals = ["ind2", "ind3"]
     return model
 
 
@@ -99,12 +100,21 @@ def test_lmm_noconvert(test_data):
         LinearMixedModel(y_noncontig, X_noncontig, cube_noncontig, names)
 
 
-def test_lmm_save(model):
-    save_path = "test.h5"
+def test_lmm_save(tmp_path, model):
+    save_path = tmp_path / "test.h5"
     model.save_params(save_path)
 
     with h5py.File(save_path, "r") as f:
         assert "beta" in f
         assert "sigma" in f
-        assert "individuals" in f
         assert "dropped_individuals" in f
+
+
+def test_lmm_params_from_model(model):
+    model_params = load_params(model)
+
+    np.testing.assert_array_almost_equal(model_params.beta, model.beta)
+    np.testing.assert_array_almost_equal(model_params.sigma, model.sigma)
+    np.testing.assert_array_equal(
+        model_params.dropped_individuals, model._dropped_individuals
+    )

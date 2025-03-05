@@ -23,14 +23,13 @@ static constexpr uint64_t DEFAULT_CHUNK_SIZE = 10000;
 
 std::string find_second(std::string& snps_line);
 
-using strings = std::vector<std::string>;
 class BedReader
 {
    public:
     explicit BedReader(
         std::string_view,
         size_t chunk_size = DEFAULT_CHUNK_SIZE,
-        const strings& dropped_individuals = {});
+        const std::vector<std::string>& dropped_individuals = {});
 
     BedReader(const BedReader&) = delete;
     BedReader(BedReader&&) noexcept = default;
@@ -45,9 +44,12 @@ class BedReader
     bool HasNext() const;
     arma::dmat ReadChunk();
     uint64_t num_snps() const { return snps_.size(); }
-    const strings& snps() const noexcept { return snps_; }
+    const std::vector<std::string>& snps() const noexcept { return snps_; }
     uint64_t num_individuals() const noexcept { return individuals_.size(); }
-    const strings& individuals() const noexcept { return individuals_; }
+    const std::vector<std::string>& individuals() const noexcept
+    {
+        return individuals_;
+    }
     uint64_t current_chunk_index() const noexcept
     {
         return current_chunk_index_;
@@ -60,8 +62,8 @@ class BedReader
     std::string bim_file_;
     std::string fam_file_;
 
-    strings snps_;
-    strings individuals_;
+    std::vector<std::string> snps_;
+    std::vector<std::string> individuals_;
 
     std::unordered_set<uint64_t> exclude_index_;
 
@@ -74,7 +76,7 @@ class BedReader
     // std::string_view is not accepted by std::ifstream
     std::vector<std::string> parseFam(
         const std::string& fam_file,
-        const strings& dropped_individuals);
+        const std::vector<std::string>& dropped_individuals);
     static std::vector<std::string> parseBim(const std::string& bim_file);
 
     arma::dmat Decode(const std::vector<char>& buffer, uint64_t chunk_size);

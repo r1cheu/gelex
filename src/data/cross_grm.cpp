@@ -42,6 +42,7 @@ dmat CrossGrm::Compute(std::string_view test_bed_path)
 {
     Reset();
     BedReader test_bed{test_bed_path, bed().chunk_size()};
+    test_individuals_ = test_bed.individuals();
     CheckSnpConsistency(test_bed);
     dmat grm{
         test_bed.num_individuals(), bed().num_individuals(), arma::fill::zeros};
@@ -55,6 +56,7 @@ dmat CrossGrm::Compute(std::string_view test_bed_path)
 
         Encode(train_genotype);
         Encode(test_genotype);
+
         train_genotype.each_row() -= center().subvec(start, end);
         test_genotype.each_row() -= center().subvec(start, end);
         grm += test_genotype * train_genotype.t();

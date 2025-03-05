@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from formulaic import Formula
 
-from .._chenx import _LinearMixedModel
+from .._chenx import _LinearMixedModel, _LinearMixedModelParams
 from ..data import load_grm, read_table
 from ..logger import setup_logger
 
@@ -15,7 +15,7 @@ class LinearMixedModel(_LinearMixedModel):
     @property
     def U(self):
         return pd.DataFrame(
-            self._U, index=self.individual_names, columns=self.random_effect_names
+            self._U, index=self._individuals, columns=self.random_effect_names
         )
 
     def save_params(self, path: str | Path):
@@ -34,8 +34,14 @@ class LinearMixedModel(_LinearMixedModel):
         with h5py.File(path, "w") as f:
             f.create_dataset("beta", data=self.beta)
             f.create_dataset("sigma", data=self.sigma)
-            f.create_dataset("individuals", data=self._individuals)
+            f.create_dataset("X", data=self.X)
+            f.create_dataset("y", data=self.y)
             f.create_dataset("dropped_individuals", data=self._dropped_individuals)
+            f.attrs["rhs"] = self._rhs
+
+
+class LinearMixedModelParams(_LinearMixedModelParams):
+    pass  # inherit from _LinearMixedModelParams, for the ability to extend class in python
 
 
 class make_model:
@@ -100,6 +106,7 @@ class make_model:
         """
         formula = Formula(formula)
         self._response_name = str(formula.lhs)
+        rhs = str(formula.rhs)
 
         data = self.data
 
@@ -133,6 +140,7 @@ class make_model:
         )  # need keep the memory address valid
 
         model._dropped_individuals = list(dropped_individuals)
+        model._rhs = rhs
         model._individuals = list(individuals)
 
         gc.collect()  # grm is quite large, we need to collect the garbage

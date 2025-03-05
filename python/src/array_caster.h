@@ -122,4 +122,10 @@ auto ToArma(Numpy arr)
     }
 }
 
+template <typename Numpy, typename Scalar = typename Numpy::Scalar>
+arma::Row<Scalar> ToRowVec(Numpy arr)
+{
+    return arma::Row<Scalar>(arr.data(), arr.shape(0), false, true);
+}
+
 }  // namespace bind

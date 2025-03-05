@@ -12,7 +12,6 @@
 
 namespace chenx
 {
-using strings = std::vector<std::string>;
 
 std::string find_second(std::string& snps_line)
 {
@@ -24,7 +23,7 @@ std::string find_second(std::string& snps_line)
 BedReader::BedReader(
     std::string_view bed_file,
     size_t chunk_size,
-    const strings& dropped_individuals)
+    const std::vector<std::string>& dropped_individuals)
     : bed_file_{bed_file}, chunk_size_{chunk_size}
 {
     std::string base_path = bed_file_.substr(0, bed_file_.size() - 4);
@@ -49,7 +48,7 @@ BedReader::~BedReader()
 
 std::vector<std::string> BedReader::parseFam(
     const std::string& fam_file,
-    const strings& dropped_individuals)
+    const std::vector<std::string>& dropped_individuals)
 {
     std::unordered_set<std::string> exclude_set(
         dropped_individuals.begin(), dropped_individuals.end());

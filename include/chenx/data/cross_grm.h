@@ -1,9 +1,11 @@
 #pragma once
 
-#include <armadillo>
 #include <cstdint>
 #include <cstdio>
 #include <string_view>
+
+#include <armadillo>
+#include <vector>
 
 #include "chenx/data/bed_reader.h"
 #include "chenx/data/grm.h"
@@ -30,11 +32,17 @@ class CrossGrm : public IGrm
     ~CrossGrm() override = default;
     dmat Compute(std::string_view test_bed_path);
 
+    const std::vector<std::string>& test_individuals() const noexcept
+    {
+        return test_individuals_;
+    }
+
    protected:
     void CheckSnpConsistency(const BedReader& test_bed) const;
 
    private:
     void Reset();
+    std::vector<std::string> test_individuals_;
 };
 
 class AddCrossGrm : public CrossGrm

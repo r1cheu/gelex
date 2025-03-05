@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import h5py
 import numpy as np
 import pandas as pd
 import pytest
@@ -61,3 +62,65 @@ def test_load_grm(test_bed_file):
     loaded_grm = load_grm(output_path, True)
     assert loaded_grm.flags["F_CONTIGUOUS"]
     output_path.unlink()
+
+
+@pytest.fixture
+def mock_grm_file(tmp_path):
+    """Create a mock GRM file for testing."""
+    grm_path = tmp_path / "test_grm.h5"
+
+    # Sample data
+    mock_grm = np.array([[1.0, 0.5, 0.2], [0.5, 1.0, 0.3], [0.2, 0.3, 1.0]])
+    individuals = ["ind1", "ind2", "ind3"]
+
+    # Create the test H5 file
+    with h5py.File(grm_path, "w") as f:
+        f.create_dataset("grm", data=mock_grm)
+        f.create_dataset("individuals", data=individuals)
+
+    return grm_path
+
+
+def test_load_grm_dataframe(mock_grm_file):
+    """Test loading GRM as a pandas DataFrame."""
+    result = load_grm(mock_grm_file)
+
+    assert isinstance(result, pd.DataFrame)
+    assert result.shape == (3, 3)
+    assert list(result.index) == ["ind1", "ind2", "ind3"]
+    assert list(result.columns) == ["ind1", "ind2", "ind3"]
+    assert result.loc["ind1", "ind2"] == 0.5
+
+
+def test_load_grm_array(mock_grm_file):
+    """Test loading GRM as a NumPy array."""
+    result = load_grm(mock_grm_file, return_array=True)
+
+    assert isinstance(result, np.ndarray)
+    assert result.shape == (3, 3)
+    assert result[0, 1] == 0.5
+
+
+def test_load_grm_with_dropped_individual(mock_grm_file):
+    """Test loading GRM with dropped individuals."""
+    result = load_grm(mock_grm_file, dropped_individual=["ind2"])
+
+    assert isinstance(result, pd.DataFrame)
+    assert result.shape == (2, 2)
+    assert "ind2" not in result.index
+    assert "ind2" not in result.columns
+    assert list(result.index) == ["ind1", "ind3"]
+
+
+def test_load_grm_file_not_found():
+    """Test that FileNotFoundError is raised for non-existent file."""
+    with pytest.raises(FileNotFoundError):
+        load_grm("non_existent_file.h5")
+
+
+def test_load_grm_fcontig(mock_grm_file):
+    result = load_grm(mock_grm_file, return_array=True)
+    assert result.flags["F_CONTIGUOUS"]
+
+    result = load_grm(mock_grm_file)
+    assert result.to_numpy().flags["F_CONTIGUOUS"]

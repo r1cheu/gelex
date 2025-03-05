@@ -117,11 +117,11 @@ TEST_CASE("BedReader metadata access", "[bedreader]")
 TEST_CASE("BedReader exclude individuals", "[bedreader]")
 {
     const std::string test_bed
-        = std::string(CHENX_TESTS_DIR) + "/data/train.bed";
-    std::vector<std::string> dropped_individuals{"iid2"};
+        = std::string(CHENX_TESTS_DIR) + "/data/test_10.bed";
+    std::vector<std::string> dropped_individuals{"iid7", "iid2", "iid3"};
     chenx::BedReader reader(test_bed, SMALL_CHUNK_SIZE, dropped_individuals);
 
-    REQUIRE(reader.num_individuals() == 2);
+    REQUIRE(reader.num_individuals() == 7);
     for (const auto& individual : reader.individuals())
     {
         REQUIRE(individual != "iid2");
@@ -129,10 +129,10 @@ TEST_CASE("BedReader exclude individuals", "[bedreader]")
     while (reader.HasNext())
     {
         arma::dmat chunk{reader.ReadChunk()};
-        REQUIRE(chunk.n_rows == 2);
+        REQUIRE(chunk.n_rows == 7);
     }
 
     chenx::BedReader reader2(test_bed, CHUNK_SIZE, dropped_individuals);
     arma::dmat chunk{reader2.ReadChunk()};
-    REQUIRE(chunk.n_rows == 2);
+    REQUIRE(chunk.n_rows == 7);
 }

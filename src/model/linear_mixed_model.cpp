@@ -7,6 +7,7 @@
 
 namespace chenx
 {
+
 LinearMixedModel::LinearMixedModel(
     dmat&& y,
     dmat&& X,
@@ -109,4 +110,25 @@ double LinearMixedModel::VinvLogdet(dmat& V)
     return logdet;
 }
 
+LinearMixedModelParams::LinearMixedModelParams(
+    dvec&& beta,
+    dvec&& sigma,
+    dmat&& X,
+    dvec&& y,
+    std::vector<std::string>&& dropped_individuals)
+    : beta_{std::move(beta)},
+      sigma_{std::move(sigma)},
+      X_{std::move(X)},
+      y_{std::move(y)},
+      dropped_individuals_{std::move(dropped_individuals)} {};
+
+LinearMixedModelParams::LinearMixedModelParams(
+    const LinearMixedModel& model,
+    std::vector<std::string>&& dropped_individuals)
+    : LinearMixedModelParams{
+          dvec{model.beta()},
+          dvec{model.sigma()},
+          dmat{model.X()},
+          dvec{model.y()},
+          std::move(dropped_individuals)} {};
 }  // namespace chenx
