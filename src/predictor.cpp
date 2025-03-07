@@ -1,5 +1,6 @@
 #include "chenx/predictor.h"
 
+#include <execution>
 #include <memory>
 
 #include <armadillo>
@@ -40,11 +41,6 @@ void Predictor::set_cross_grm(
     }
 };
 
-void Predictor::set_grm(dmat&& grm)
-{
-    grms_.emplace_back(std::move(grm));
-}
-
 std::pair<dmat, dvec>
 Predictor::solver_chol(dmat& V, const dmat& X, const dvec& y)
 {
@@ -67,43 +63,28 @@ Predictor::solver_chol(dmat& V, const dmat& X, const dvec& y)
     return std::make_pair(phi_1, phi_2);
 }
 
-dvec Predictor::ComputePy()
+dmat Predictor::ComputeFixedEffects(const dvec& covariates)
 {
-    dmat V{grms_[0] * params_.sigma()[0]};
-    for (size_t i = 1; i < grms_.size(); ++i)
-    {
-        V += grms_[i] * params_.sigma()[i];
-    }
-    auto [phi_1, phi_2] = solver_chol(V, params_.X(), params_.y());
-    dmat X_t{params_.X().t()};
-    return phi_2 - phi_1 * arma::inv(X_t * phi_1) * X_t * phi_2;
-}
-
-dmat Predictor::predict(std::string_view test_bed)
-{
-    return cross_grms_[0]->Compute(test_bed);
+    return covariates * params_.beta();
 };
 
-/*dmat Predictor::predict(std::string_view test_bed)*/
-/*{*/
-/*    if (Py_.empty())*/
-/*    {*/
-/*        Py_ = ComputePy();*/
-/*    }*/
-/*    dmat U;*/
-/*    for (int i = 0; i < cross_grms_.size(); ++i)*/
-/*    {*/
-/*        dmat new_k = cross_grms_[i]->Compute(test_bed);*/
-/*        dvec u = new_k * Py_ * params_.sigma()[i];*/
-/*        if (U.empty())*/
-/*        {*/
-/*            U = u;*/
-/*        }*/
-/*        else*/
-/*        {*/
-/*            U = arma::join_horiz(U, u);*/
-/*        }*/
-/*    }*/
-/*    return U;*/
-/*};*/
+dmat Predictor::ComputeU(std::string_view test_bed)
+{
+    dmat U;
+    for (int i = 0; i < cross_grms_.size(); ++i)
+    {
+        dmat new_k = cross_grms_[i]->Compute(test_bed);
+        dvec u = new_k * params_.proj_y() * params_.sigma()[i];
+        if (U.empty())
+        {
+            U = u;
+        }
+        else
+        {
+            U = arma::join_horiz(U, u);
+        }
+    }
+    return U;
+};
+
 }  // namespace chenx

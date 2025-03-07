@@ -32,21 +32,18 @@ NB_MODULE(_chenx, m)
             [](chenx::LinearMixedModelParams* self,
                arr1d beta,
                arr1d sigma,
-               arr2d X,
-               arr1d y,
+               arr1d proj_y,
                std::vector<std::string> dropped_individuals)
             {
                 new (self) chenx::LinearMixedModelParams{
                     ToArma(beta),
                     ToArma(sigma),
-                    ToArma(X),
-                    ToArma(y),
+                    ToArma(proj_y),
                     std::move(dropped_individuals)};
             },
             "beta"_a.noconvert(),
             "sigma"_a.noconvert(),
-            "X"_a.noconvert(),
-            "y"_a.noconvert(),
+            "proj_y"_a.noconvert(),
             "dropped_individuals"_a.noconvert())
         .def(
             "__init__",
@@ -70,14 +67,9 @@ NB_MODULE(_chenx, m)
             { return ToPy(self.sigma()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
-            "X",
+            "proj_y",
             [](const chenx::LinearMixedModelParams& self)
-            { return ToPy(self.X()); },
-            nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "y",
-            [](const chenx::LinearMixedModelParams& self)
-            { return ToPy(self.y()); },
+            { return ToPy(self.proj_y()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "dropped_individuals",
@@ -171,13 +163,14 @@ NB_MODULE(_chenx, m)
                     method, ToRowVec(center), scale_factor, chuck_size);
             })
         .def(
-            "set_grm",
-            [](chenx::Predictor& self, arr2d grm)
-            { self.set_grm(ToArma(grm)); })
-        .def(
-            "_predict",
+            "_compute_u",
             [](chenx::Predictor& self, std::string_view test_bed)
-            { return ToPy(self.predict(test_bed)); })
+            { return ToPy(self.ComputeU(test_bed)); })
+        .def(
+            "_compute_covariates",
+            [](chenx::Predictor& self, arr2d covariates)
+            { return ToPy(self.ComputeFixedEffects(ToArma(covariates))); })
+
         .def_prop_ro("test_individuals", &chenx::Predictor::test_individuals);
 
     nb::class_<chenx::Estimator>(m, "Estimator")

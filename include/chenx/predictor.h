@@ -30,7 +30,8 @@ class Predictor
         double scale_factor,
         uint64_t chunk_size);
     void set_grm(dmat&& grm);
-    dmat predict(std::string_view test_bed);
+    dmat ComputeU(std::string_view test_bed);
+    dmat ComputeFixedEffects(const dvec& covariates);
     static std::pair<dmat, dvec>
     solver_chol(dmat& V, const dmat& X, const dvec& y);
     const std::vector<std::string>& test_individuals() const noexcept
@@ -41,7 +42,6 @@ class Predictor
    private:
     std::string train_bed_;
     std::vector<std::unique_ptr<CrossGrm>> cross_grms_;
-    std::vector<dmat> grms_;
     dvec Py_;
     LinearMixedModelParams params_;
     dvec ComputePy();

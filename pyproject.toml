@@ -57,7 +57,7 @@ mkl = ">=2024.0.0,<2026"
 build = "cmake -G Ninja -S . -B build -D BUILD_TEST=OFF -D BUILD_PYTHON_BINDINGS=OFF && cmake --build build -j24"
 build_mkl = "cmake -G Ninja -S . -B build -D BUILD_TEST=OFF -D BUILD_PYTHON_BINDINGS=OFF -D USE_MKL=ON && cmake --build build -j24"
 lsp = "cmake -G Ninja -S . -B build -D BUILD_TEST=OFF -D BUILD_PYTHON_BINDINGS=ON && cp build/compile_commands.json ./ && rm -rf build"
-ct = "cmake -G Ninja -S . -B build -D BUILD_TEST=ON -D BUILD_PYTHON_BINDINGS=OFF -D CMAKE_BUILD_TYPE=Debug && cmake --build build && ./build/tests/test"
+ct = "cmake -G Ninja -S . -B build -D BUILD_TEST=ON -D BUILD_PYTHON_BINDINGS=OFF -D CMAKE_BUILD_TYPE=Release && cmake --build build && ./build/tests/test"
 wheel = "uv build"
 
 [tool.pixi.feature.dev.pypi-dependencies]

@@ -118,13 +118,15 @@ TEST_CASE("BedReader exclude individuals", "[bedreader]")
 {
     const std::string test_bed
         = std::string(CHENX_TESTS_DIR) + "/data/test_10.bed";
-    std::vector<std::string> dropped_individuals{"iid7", "iid2", "iid3"};
+    std::vector<std::string> dropped_individuals{"iid5", "iid2", "iid3"};
     chenx::BedReader reader(test_bed, SMALL_CHUNK_SIZE, dropped_individuals);
 
     REQUIRE(reader.num_individuals() == 7);
     for (const auto& individual : reader.individuals())
     {
         REQUIRE(individual != "iid2");
+        REQUIRE(individual != "iid3");
+        REQUIRE(individual != "iid5");
     }
     while (reader.HasNext())
     {
@@ -135,4 +137,13 @@ TEST_CASE("BedReader exclude individuals", "[bedreader]")
     chenx::BedReader reader2(test_bed, CHUNK_SIZE, dropped_individuals);
     arma::dmat chunk{reader2.ReadChunk()};
     REQUIRE(chunk.n_rows == 7);
+    arma::dmat expect
+        = {{1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0},
+           {1.0, 1.0, 2.0, 0.0, 1.0, 0.0, 0.0, 2.0, 1.0, 0.0},
+           {0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 0.0, 2.0, 1.0},
+           {0.0, 1.0, 2.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 2.0},
+           {1.0, 2.0, 0.0, 1.0, 1.0, 1.0, 2.0, 2.0, 0.0, 1.0},
+           {1.0, 0.0, 1.0, 2.0, 1.0, 2.0, 0.0, 1.0, 1.0, 2.0},
+           {1.0, 1.0, 2.0, 0.0, 2.0, 0.0, 1.0, 1.0, 0.0, 1.0}};
+    REQUIRE(arma::approx_equal(expect, chunk, "absdiff", 1e-5));
 }

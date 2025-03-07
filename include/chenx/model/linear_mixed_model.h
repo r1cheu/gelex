@@ -83,16 +83,14 @@ class LinearMixedModelParams
     LinearMixedModelParams(
         dvec&& beta,
         dvec&& sigma,
-        dmat&& X,
-        dvec&& y,
+        dvec&& proj_y,
         std::vector<std::string>&& dropped_individuals);
     LinearMixedModelParams(
         const LinearMixedModel& model,
         std::vector<std::string>&& dropped_individuals);
     const dvec& beta() const { return beta_; }
     const dvec& sigma() const { return sigma_; }
-    const dmat& X() const { return X_; }
-    const dvec& y() const { return y_; }
+    const dvec& proj_y() const { return proj_y_; }
     const std::vector<std::string>& dropped_individuals() const
     {
         return dropped_individuals_;
@@ -100,8 +98,7 @@ class LinearMixedModelParams
 
     void set_beta(dvec&& beta) { beta_ = std::move(beta); }
     void set_sigma(dvec&& sigma) { sigma_ = std::move(sigma); }
-    void set_X(dmat&& X) { X_ = std::move(X); }
-    void set_y(dvec&& y) { y_ = std::move(y); }
+    void set_proj_y(dvec&& proj_y) { proj_y_ = std::move(proj_y); }
     void set_dropped_individuals(std::vector<std::string>&& dropped_individuals)
     {
         dropped_individuals_ = std::move(dropped_individuals);
@@ -111,7 +108,7 @@ class LinearMixedModelParams
     dvec beta_;
     dvec sigma_;
     dmat X_;
-    dvec y_;
+    dvec proj_y_;
     std::vector<std::string> dropped_individuals_;
 };
 

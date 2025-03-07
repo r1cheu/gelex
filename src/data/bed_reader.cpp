@@ -208,9 +208,9 @@ arma::dmat BedReader::Decode(
     for (uint64_t snp_idx = 0; snp_idx < chunk_size; ++snp_idx)
     {
         const size_t offset = snp_idx * bytes_per_snp_;
+        uint64_t adjust_individul_idx{};  // adjust for excluded individuals
         for (uint64_t byte_idx = 0; byte_idx < bytes_per_snp_; ++byte_idx)
         {
-            uint64_t adjust_individul_idx{};  // adjust for excluded individuals
             auto byte_val
                 = static_cast<unsigned char>(buffer[offset + byte_idx]);
             for (unsigned int bit = 0; bit < 4; ++bit)

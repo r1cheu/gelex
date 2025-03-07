@@ -1,4 +1,5 @@
 import gc
+from datetime import datetime
 from pathlib import Path
 
 import h5py
@@ -18,26 +19,25 @@ class LinearMixedModel(_LinearMixedModel):
             self._U, index=self._individuals, columns=self.random_effect_names
         )
 
-    def save_params(self, path: str | Path):
+    def save(self, path: str | Path | None = None):
         """
         Save the model to a file.
 
         Parameters
         ----------
-        path : str | Path
+        path : str | Path | None
             Path to the file where the model will be saved.
         """
         if path is None:
-            msg = "save() missing 1 required positional argument: 'path'"
-            raise TypeError(msg)
+            path = f"{self._lhs}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.model"
 
         with h5py.File(path, "w") as f:
             f.create_dataset("beta", data=self.beta)
             f.create_dataset("sigma", data=self.sigma)
-            f.create_dataset("X", data=self.X)
-            f.create_dataset("y", data=self.y)
+            f.create_dataset("proj_y", data=self._proj_y)
             f.create_dataset("dropped_individuals", data=self._dropped_individuals)
             f.attrs["rhs"] = self._rhs
+            f.attrs["lhs"] = self._lhs
 
 
 class LinearMixedModelParams(_LinearMixedModelParams):
@@ -105,12 +105,16 @@ class make_model:
             If the fixed effects contain missing values.
         """
         formula = Formula(formula)
-        self._response_name = str(formula.lhs)
+        self._lhs = str(formula.lhs)
         rhs = str(formula.rhs)
 
         data = self.data
 
         data, dropped_individuals = self._clear_data(data)
+
+        grm_cube, data, random_effect_names, dropped_individuals = self._load_grm(
+            grm, data, dropped_individuals
+        )
 
         try:
             model_matrix = formula.get_model_matrix(data, na_action="raise")
@@ -119,10 +123,6 @@ class make_model:
             column_name = error_msg.split("`")[1]
             msg = f"`{column_name}` contains missing value. Which is unacceptable in the fixed effects."
             raise ValueError(msg) from None
-
-        grm_cube, random_effect_names, dropped_individuals, individuals = (
-            self._load_grm(grm, data.index, dropped_individuals)
-        )
 
         response = np.asfortranarray(model_matrix.lhs, dtype=np.float64)
         design_matrix = np.asfortranarray(model_matrix.rhs, dtype=np.float64)
@@ -141,26 +141,25 @@ class make_model:
 
         model._dropped_individuals = list(dropped_individuals)
         model._rhs = rhs
-        model._individuals = list(individuals)
-
+        model._lhs = self._lhs
         gc.collect()  # grm is quite large, we need to collect the garbage
 
         return model
 
     def _clear_data(self, data: pd.DataFrame):
-        if data[self._response_name].hasnans:
-            dropped_individuals = data.index[data[self._response_name].isna()]
+        if data[self._lhs].hasnans:
+            dropped_individuals = data.index[data[self._lhs].isna()]
             self._logger.info(
                 "Missing values detected in `%s`. These entries will be dropped.",
-                self._response_name,
+                self._lhs,
             )
-            return data.dropna(subset=[self._response_name]), dropped_individuals
+            return data.dropna(subset=[self._lhs]), dropped_individuals
         return data, pd.Index([])
 
     def _load_grm(
         self,
         grm: dict[str, pd.DataFrame | str | Path],
-        data_index: pd.Index,
+        data: pd.DataFrame,
         drop_individuals: set[str],
     ) -> tuple[np.ndarray, list[str]]:
         """
@@ -187,6 +186,7 @@ class make_model:
             If no common indices are found between GRMs and data.
         """
 
+        data_index = data.index
         grm_matrices = []
         random_effect_names = []
 
@@ -198,20 +198,26 @@ class make_model:
             )
 
             if not data_index.isin(matrix.index).all():
-                msg = f"Some individuals in the `{self._response_name}` are not present in the GRM. Are you sure you are using the correct GRM?"
+                msg = f"Some individuals in the `{self._lhs}` are not present in the GRM. Are you sure you are using the correct GRM?"
                 raise ValueError(msg)
 
             if len(matrix.index) != len(data_index):
                 drop_individuals = drop_individuals.union(
                     matrix.index.difference(data_index)
                 )
-                matrix = matrix.loc[data_index, data_index]
+                matrix = matrix.drop(index=drop_individuals, columns=drop_individuals)
+
             grm_matrices.append(matrix)
             random_effect_names.append(str(effect_name))
 
         grm_cube = np.asfortranarray(np.stack(grm_matrices, axis=-1))
 
-        return grm_cube, random_effect_names, drop_individuals, matrix.index
+        return (
+            grm_cube,
+            data.loc[matrix.index],
+            random_effect_names,
+            drop_individuals,
+        )
 
 
 def with_categorical_cols(data: pd.DataFrame, columns) -> pd.DataFrame:

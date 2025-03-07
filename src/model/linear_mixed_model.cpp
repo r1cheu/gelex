@@ -113,13 +113,11 @@ double LinearMixedModel::VinvLogdet(dmat& V)
 LinearMixedModelParams::LinearMixedModelParams(
     dvec&& beta,
     dvec&& sigma,
-    dmat&& X,
-    dvec&& y,
+    dvec&& proj_y,
     std::vector<std::string>&& dropped_individuals)
     : beta_{std::move(beta)},
       sigma_{std::move(sigma)},
-      X_{std::move(X)},
-      y_{std::move(y)},
+      proj_y_{std::move(proj_y)},
       dropped_individuals_{std::move(dropped_individuals)} {};
 
 LinearMixedModelParams::LinearMixedModelParams(
@@ -128,7 +126,6 @@ LinearMixedModelParams::LinearMixedModelParams(
     : LinearMixedModelParams{
           dvec{model.beta()},
           dvec{model.sigma()},
-          dmat{model.X()},
-          dvec{model.y()},
+          dvec{model.proj_y()},
           std::move(dropped_individuals)} {};
 }  // namespace chenx
