@@ -13,7 +13,6 @@
 
 #include "array_caster.h"
 #include "chenx/data/bed_reader.h"
-#include "chenx/data/cross_grm.h"
 #include "chenx/data/grm.h"
 #include "chenx/estimator.h"
 #include "chenx/model/linear_mixed_model.h"
@@ -44,7 +43,10 @@ NB_MODULE(_chenx, m)
             "beta"_a.noconvert(),
             "sigma"_a.noconvert(),
             "proj_y"_a.noconvert(),
-            "dropped_individuals"_a.noconvert())
+            "dropped_individuals"_a.noconvert(),
+            nb::keep_alive<1, 2>(),
+            nb::keep_alive<1, 3>(),
+            nb::keep_alive<1, 4>())
         .def(
             "__init__",
             [](chenx::LinearMixedModelParams* self,
@@ -92,7 +94,10 @@ NB_MODULE(_chenx, m)
             "y"_a.noconvert(),
             "X"_a.noconvert(),
             "covar_mat"_a.noconvert(),
-            "names"_a.noconvert())
+            "names"_a.noconvert(),
+            nb::keep_alive<1, 2>(),
+            nb::keep_alive<1, 3>(),
+            nb::keep_alive<1, 4>())
         .def_prop_ro(
             "num_fixed_effects",
             &chenx::LinearMixedModel::num_fixed_effects,
@@ -150,7 +155,8 @@ NB_MODULE(_chenx, m)
         .def(
             nb::init<std::string_view, chenx::LinearMixedModelParams&&>(),
             "train_bed"_a,
-            "params"_a)
+            "params"_a,
+            nanobind::keep_alive<1, 3>())
         .def(
             "set_cross_grm",
             [](chenx::Predictor& self,
@@ -161,7 +167,8 @@ NB_MODULE(_chenx, m)
             {
                 self.set_cross_grm(
                     method, ToRowVec(center), scale_factor, chuck_size);
-            })
+            },
+            nb::keep_alive<1, 3>())
         .def(
             "_compute_u",
             [](chenx::Predictor& self, std::string_view test_bed)
@@ -290,29 +297,6 @@ NB_MODULE(_chenx, m)
         .def_prop_ro(
             "scale_factor",
             [](chenx::DomGrm& self) { return self.scale_factor(); });
-
-    nb::class_<chenx::AddCrossGrm>(m, "add_cross_grm")
-        .def(
-            "__init__",
-            [](chenx::AddCrossGrm* self,
-               std::string_view train_bed_file,
-               arr1d center,
-               double scale_factor,
-               uint64_t chunk_size,
-               const std::vector<std::string>& exclude_individuals)
-            {
-                new (self) chenx::AddCrossGrm{
-                    train_bed_file,
-                    ToRowVec(center),
-                    scale_factor,
-                    chunk_size,
-                    exclude_individuals};
-            })
-        .def(
-            "compute",
-            [](chenx::AddCrossGrm& self, std::string_view test_bed)
-            { return ToPy(self.Compute(test_bed)); },
-            nb::rv_policy::move);
 }
 
 }  // namespace bind

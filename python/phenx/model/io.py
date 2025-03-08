@@ -15,7 +15,6 @@ def load_params(model: str | Path | LinearMixedModel):
             sigma = np.asfortranarray(f["sigma"][:])
             proj_y = np.asfortranarray(f["proj_y"][:])
             dropped_individuals = f["dropped_individuals"].asstr()[:]
-
             params = LinearMixedModelParams(
                 beta=beta,
                 sigma=sigma,
@@ -23,7 +22,6 @@ def load_params(model: str | Path | LinearMixedModel):
                 dropped_individuals=dropped_individuals,
             )
 
-            params._keep_alive = (beta, sigma, proj_y)
             params.rhs = f.attrs["rhs"]
             params.lhs = f.attrs["lhs"]
 

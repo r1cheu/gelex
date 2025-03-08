@@ -92,6 +92,7 @@ auto ToPy(ArmaType&& arma_obj)
         }
         if constexpr (ndim_v<Arma> == 2)
         {
+            std::cout << arma_obj.memptr();
             return Numpy(arma_obj.memptr(), {arma_obj.n_rows, arma_obj.n_cols});
         }
         if constexpr (ndim_v<Arma> == 3)

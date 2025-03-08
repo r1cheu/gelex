@@ -23,17 +23,18 @@ class Predictor(_Predictor):
         covariates = self._set_covariates(self.test_individuals, data)
         pred = u.sum(axis=1, keepdims=True) + self._compute_covariates(covariates)
         return pd.DataFrame(
-            np.hstack([pred, u]), columns=[self._params.lhs, *self._random_effect_names]
+            np.hstack([pred, u]),
+            index=self.test_individuals,
+            columns=[self._lhs, *self._random_effect_names],
         )
 
     def _set_covariates(
         self, test_individuals: list[str], data: str | Path | pd.DataFrame | None = None
     ):
-        rhs = self._params.rhs
-        if rhs == "1":
+        if self._rhs == "1":
             return np.ones((len(test_individuals), 1), order="F")
         if data is None:
-            msg = f"the formula is {rhs}, but no data is provided"
+            msg = f"the formula is {self._rhs}, but no data is provided"
             raise ValueError(msg)
         if isinstance(data, str | Path):
             data = read_table(data)
@@ -48,7 +49,7 @@ class Predictor(_Predictor):
             data = data.reindex(test_individuals)
 
         try:
-            covariates = Formula(rhs).get_model_matrix(data, na_action="raise")
+            covariates = Formula(self._rhs).get_model_matrix(data, na_action="raise")
         except ValueError as e:
             error_msg = str(e)
             column_name = error_msg.split("`")[1]
@@ -72,9 +73,9 @@ class make_predictor:
 
         predictor = Predictor(self._train_bed, params)
 
-        predictor._params = params
         predictor._random_effect_names = []
         predictor._lhs = params.lhs
+        predictor._rhs = params.rhs
 
         for name, grm in grms.items():
             self._set_grm(grm, predictor)
@@ -94,9 +95,6 @@ class make_predictor:
         raise ValueError(msg)
 
     def _set_grm(self, grm: str | Path, predictor: Predictor):
-        if not hasattr(predictor, "_keep_alive"):
-            predictor._keep_alive = []
-
         f = h5py.File(grm, "r")
 
         center = np.asfortranarray(f["center"][:])
@@ -108,4 +106,3 @@ class make_predictor:
         )
 
         f.close()
-        predictor._keep_alive.extend([center])

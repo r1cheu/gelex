@@ -81,9 +81,6 @@ def test_with_more_individuals(sample_data, grm_with_more_individuals):
     model_make = make_model(sample_data)
     model = model_make.make("y ~ x1", {"grm1": grm_with_more_individuals})
     assert model._dropped_individuals == ["s4"]
-    np.testing.assert_array_equal(
-        model._keep_alive[2], np.asfortranarray(np.stack([np.eye(3)], axis=-1))
-    )
 
 
 def test_initialization_nan_in_response(sample_data, grm_a):
@@ -91,9 +88,6 @@ def test_initialization_nan_in_response(sample_data, grm_a):
     model = make_model(sample_data)
     model = model.make("y~x1", {"a": grm_a})
     assert model._dropped_individuals == ["s1"]
-    np.testing.assert_array_equal(
-        model._keep_alive[2], np.asfortranarray(np.stack([np.eye(2)], axis=-1))
-    )
 
 
 def test_initialization_with_dataframe(sample_data, grm_a):

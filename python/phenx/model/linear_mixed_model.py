@@ -133,11 +133,6 @@ class make_model:
             grm_cube,
             random_effect_names,
         )
-        model._keep_alive = (
-            response,
-            design_matrix,
-            grm_cube,
-        )  # need keep the memory address valid
 
         model._dropped_individuals = list(dropped_individuals)
         model._rhs = rhs

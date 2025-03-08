@@ -36,7 +36,6 @@ def model():
 
     random_effect_names = ["effect1"]
     model = LinearMixedModel(response, design_matrix, grm_cube, random_effect_names)
-    model._keep_alive = (response, design_matrix, grm_cube)
     model._dropped_individuals = ["ind1"]
     return model
 
