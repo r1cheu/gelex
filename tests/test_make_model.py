@@ -121,7 +121,10 @@ def test_make_method_missing_values(sample_data, grm_a):
     sample_data.loc["s1", "x1"] = np.nan
     model = make_model(sample_data)
 
-    with pytest.raises(ValueError, match="`x1` contains missing value"):
+    with pytest.raises(
+        ValueError,
+        match="Fixed effects columns contains missing values, which are unacceptable.",
+    ):
         model.make("y ~ x1", {"grm1": grm_a})
 
 

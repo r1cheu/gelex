@@ -9,30 +9,38 @@ from phenx.utils.path import valid_path
 
 from ._chenx import _Predictor
 from .data import read_table
-from .model import LinearMixedModel, LinearMixedModelParams
+from .model import LinearMixedModel, LinearMixedModelParams, check_fixed_effect
 from .model.io import load_params
 
 
 class Predictor(_Predictor):
     def predict(
-        self, test_bed: str | Path, data: str | Path | pd.DataFrame | None = None
+        self,
+        test_bed: str | Path,
+        data: str | Path | pd.DataFrame | None = None,
     ):
         test_bed = valid_path(test_bed, (".bed",))
-        u = self._compute_u(test_bed)
+        random_effects = self._compute_random_effects(test_bed)
 
-        covariates = self._set_covariates(self.test_individuals, data)
-        pred = u.sum(axis=1, keepdims=True) + self._compute_covariates(covariates)
+        prediction = random_effects.sum(
+            axis=1, keepdims=True
+        ) + self._compute_fixed_effects(
+            self._set_covariates(self.test_individuals, data)
+        )
         return pd.DataFrame(
-            np.hstack([pred, u]),
+            np.hstack([prediction, random_effects]),
             index=self.test_individuals,
             columns=[self._lhs, *self._random_effect_names],
         )
 
     def _set_covariates(
-        self, test_individuals: list[str], data: str | Path | pd.DataFrame | None = None
+        self,
+        test_individuals: list[str],
+        data: str | Path | pd.DataFrame | None = None,
     ):
         if self._rhs == "1":
             return np.ones((len(test_individuals), 1), order="F")
+
         if data is None:
             msg = f"the formula is {self._rhs}, but no data is provided"
             raise ValueError(msg)
@@ -40,23 +48,14 @@ class Predictor(_Predictor):
             data = read_table(data)
 
         missing_individuals = set(test_individuals) - set(data.index)
-
         if missing_individuals:
             msg = f"The following individuals are missing in the provided data: {', '.join(missing_individuals)}"
             raise ValueError(msg)
+        data = data.loc[test_individuals]
 
-        if not data.index.equals(pd.Index(test_individuals)):
-            data = data.reindex(test_individuals)
+        covariates = check_fixed_effect(Formula(self._rhs), data).lhs
 
-        try:
-            covariates = Formula(self._rhs).get_model_matrix(data, na_action="raise")
-        except ValueError as e:
-            error_msg = str(e)
-            column_name = error_msg.split("`")[1]
-            msg = f"`{column_name}` contains missing value. Which is unacceptable in the fixed effects."
-            raise ValueError(msg) from None
-
-        return np.asfortranarray(covariates)
+        return np.asfortranarray(covariates, dtype=np.float64)
 
 
 class make_predictor:
@@ -78,7 +77,7 @@ class make_predictor:
         predictor._rhs = params.rhs
 
         for name, grm in grms.items():
-            self._set_grm(grm, predictor)
+            self._set_cross_grm(grm, predictor)
             predictor._random_effect_names.append(name)
         return predictor
 
@@ -94,15 +93,11 @@ class make_predictor:
         msg = "Invalid parameter type. Please provide either a file path to parameters, a LinearMixedModel instance, or a LinearMixedModelParams object."
         raise ValueError(msg)
 
-    def _set_grm(self, grm: str | Path, predictor: Predictor):
-        f = h5py.File(grm, "r")
-
-        center = np.asfortranarray(f["center"][:])
-        predictor.set_cross_grm(
-            f.attrs["method"],
-            center,
-            f["scale_factor"][()],
-            self._chunk_size,
-        )
-
-        f.close()
+    def _set_cross_grm(self, grm: str | Path, predictor: Predictor):
+        with h5py.File(grm, "r") as f:
+            predictor.set_cross_grm(
+                f.attrs["method"],
+                np.asfortranarray(f["center"][:]),
+                f["scale_factor"][()],
+                self._chunk_size,
+            )

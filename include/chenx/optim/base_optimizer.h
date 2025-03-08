@@ -13,8 +13,13 @@ namespace chenx
 {
 class OptimizerBase
 {
+    static constexpr size_t DEFAULT_MAX_ITER = 20;
+    static constexpr double DEFAULT_TOL = 1e-8;
+
    public:
-    explicit OptimizerBase(size_t max_iter = 20, double tol = 1e-8)
+    explicit OptimizerBase(
+        size_t max_iter = DEFAULT_MAX_ITER,
+        double tol = DEFAULT_TOL)
         : max_iter_{max_iter}, tol_{tol}, logger_{Logger::logger()}
     {
     }

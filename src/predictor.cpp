@@ -38,52 +38,31 @@ void Predictor::set_cross_grm(
     {
         throw std::runtime_error("Unknown method: " + std::string(method));
     }
-};
-
-std::pair<dmat, dvec>
-Predictor::solver_chol(dmat& V, const dmat& X, const dvec& y)
-{
-    char uplo = 'L';
-    int n = static_cast<int>(V.n_cols);
-    int info{};
-    arma::lapack::potrf(&uplo, &n, V.memptr(), &n, &info);
-    if (info != 0)
-    {
-        throw std::runtime_error("V Matrix is not symmetric positive definite");
-    }
-
-    dmat rhs = arma::join_horiz(X, y);
-    int m = static_cast<int>(rhs.n_cols);
-    arma::lapack::potrs(&uplo, &n, &m, V.memptr(), &n, rhs.memptr(), &n, &info);
-
-    dmat phi_1 = rhs.cols(0, X.n_cols - 1);
-    dvec phi_2 = rhs.col(X.n_cols);
-
-    return std::make_pair(phi_1, phi_2);
 }
 
-dmat Predictor::ComputeFixedEffects(const dvec& covariates)
+dmat Predictor::ComputeFixedEffects(const dvec& covariates) const noexcept
 {
     return covariates * params_.beta();
-};
+}
 
-dmat Predictor::ComputeU(std::string_view test_bed)
+dmat Predictor::ComputeRandomEffects(std::string_view test_bed)
 {
-    dmat U;
-    for (int i = 0; i < cross_grms_.size(); ++i)
+    const dvec& proj_y = params_.proj_y();
+    const dvec& sigma = params_.sigma();
+    auto num_random_effects = cross_grms_.size();
+
+    dmat RandomEffects;
+
+    for (size_t i = 0; i < num_random_effects; ++i)
     {
         dmat new_k = cross_grms_[i]->Compute(test_bed);
-        dvec u = new_k * params_.proj_y() * params_.sigma()[i];
-        if (U.empty())
+        if (i == 0)
         {
-            U = u;
+            RandomEffects.zeros(new_k.n_rows, num_random_effects);
         }
-        else
-        {
-            U = arma::join_horiz(U, u);
-        }
+        RandomEffects.col(i) = new_k * proj_y * sigma[i];
     }
-    return U;
-};
+    return RandomEffects;
+}
 
 }  // namespace chenx

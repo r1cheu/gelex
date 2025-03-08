@@ -170,11 +170,11 @@ NB_MODULE(_chenx, m)
             },
             nb::keep_alive<1, 3>())
         .def(
-            "_compute_u",
+            "_compute_random_effects",
             [](chenx::Predictor& self, std::string_view test_bed)
-            { return ToPy(self.ComputeU(test_bed)); })
+            { return ToPy(self.ComputeRandomEffects(test_bed)); })
         .def(
-            "_compute_covariates",
+            "_compute_fixed_effects",
             [](chenx::Predictor& self, arr2d covariates)
             { return ToPy(self.ComputeFixedEffects(ToArma(covariates))); })
 

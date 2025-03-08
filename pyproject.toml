@@ -9,7 +9,7 @@ dependencies = [
 description = "Add a short description here"
 name = "phenx"
 requires-python = ">= 3.11"
-version = "0.1.2"
+version = "0.2.0"
 
 [tool.pixi.project]
 channels = ["conda-forge"]
@@ -94,6 +94,10 @@ build-frontend = "build[uv]"
 
 [tool.ruff]
 src = ["python/phenx"]
+line-length = 80
+
+[tool.ruff.format]
+docstring-code-format = true
 
 [tool.ruff.lint]
 extend-select = [

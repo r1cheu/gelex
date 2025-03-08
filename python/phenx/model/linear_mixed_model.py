@@ -29,13 +29,17 @@ class LinearMixedModel(_LinearMixedModel):
             Path to the file where the model will be saved.
         """
         if path is None:
-            path = f"{self._lhs}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.model"
+            path = (
+                f"{self._lhs}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.model"
+            )
 
         with h5py.File(path, "w") as f:
             f.create_dataset("beta", data=self.beta)
             f.create_dataset("sigma", data=self.sigma)
             f.create_dataset("proj_y", data=self._proj_y)
-            f.create_dataset("dropped_individuals", data=self._dropped_individuals)
+            f.create_dataset(
+                "dropped_individuals", data=self._dropped_individuals
+            )
             f.attrs["rhs"] = self._rhs
             f.attrs["lhs"] = self._lhs
 
@@ -78,9 +82,12 @@ class make_model:
 
         if categorical:
             self.data = with_categorical_cols(self.data, categorical)
+
         self._logger = setup_logger(__name__)
 
-    def make(self, formula: str, grm: dict[str, str | Path]) -> LinearMixedModel:
+    def make(
+        self, formula: str, grm: dict[str, str | Path]
+    ) -> LinearMixedModel:
         """
         Create a Linear Mixed Model from the specified formula and genetic relationship matrices.
 
@@ -105,57 +112,48 @@ class make_model:
             If the fixed effects contain missing values.
         """
         formula = Formula(formula)
-        self._lhs = str(formula.lhs)
-        rhs = str(formula.rhs)
+        lhs, rhs = str(formula.lhs), str(formula.rhs)
 
         data = self.data
+        data, dropped_individuals = self._clear_data(data, lhs)
 
-        data, dropped_individuals = self._clear_data(data)
-
-        grm_cube, data, random_effect_names, dropped_individuals = self._load_grm(
-            grm, data, dropped_individuals
+        grm_cube, data, random_effect_names, dropped_individuals = (
+            self._load_grm(grm, data, dropped_individuals, lhs)
         )
 
-        try:
-            model_matrix = formula.get_model_matrix(data, na_action="raise")
-        except ValueError as e:
-            error_msg = str(e)
-            column_name = error_msg.split("`")[1]
-            msg = f"`{column_name}` contains missing value. Which is unacceptable in the fixed effects."
-            raise ValueError(msg) from None
-
-        response = np.asfortranarray(model_matrix.lhs, dtype=np.float64)
-        design_matrix = np.asfortranarray(model_matrix.rhs, dtype=np.float64)
+        model_matrix = check_fixed_effect(formula, data)
 
         model = LinearMixedModel(
-            response,
-            design_matrix,
+            np.asfortranarray(model_matrix.lhs, dtype=np.float64),
+            np.asfortranarray(model_matrix.rhs, dtype=np.float64),
             grm_cube,
             random_effect_names,
         )
 
-        model._dropped_individuals = list(dropped_individuals)
         model._rhs = rhs
-        model._lhs = self._lhs
-        gc.collect()  # grm is quite large, we need to collect the garbage
+        model._lhs = lhs
+        model._dropped_individuals = list(dropped_individuals)
+
+        gc.collect()  # collect the garbage
 
         return model
 
-    def _clear_data(self, data: pd.DataFrame):
-        if data[self._lhs].hasnans:
-            dropped_individuals = data.index[data[self._lhs].isna()]
+    def _clear_data(self, data: pd.DataFrame, lhs: str):
+        if data[lhs].hasnans:
+            dropped_individuals = data.index[data[lhs].isna()]
             self._logger.info(
                 "Missing values detected in `%s`. These entries will be dropped.",
-                self._lhs,
+                lhs,
             )
-            return data.dropna(subset=[self._lhs]), dropped_individuals
+            return data.dropna(subset=[lhs]), dropped_individuals
         return data, pd.Index([])
 
     def _load_grm(
         self,
         grm: dict[str, pd.DataFrame | str | Path],
         data: pd.DataFrame,
-        drop_individuals: set[str],
+        dropped_individuals: pd.Index,
+        lhs: str,
     ) -> tuple[np.ndarray, list[str]]:
         """
         Clean and align genetic relationship matrices (GRMs) with the data.
@@ -193,26 +191,36 @@ class make_model:
             )
 
             if not data_index.isin(matrix.index).all():
-                msg = f"Some individuals in the `{self._lhs}` are not present in the GRM. Are you sure you are using the correct GRM?"
+                msg = f"Some individuals in the `{lhs}` are not present in the GRM. Are you sure you are using the correct GRM?"
                 raise ValueError(msg)
 
-            if len(matrix.index) != len(data_index):
-                drop_individuals = drop_individuals.union(
-                    matrix.index.difference(data_index)
-                )
-                matrix = matrix.drop(index=drop_individuals, columns=drop_individuals)
+            dropped_individuals = dropped_individuals.union(
+                matrix.index.difference(data_index)
+            )
+            matrix = matrix.drop(
+                index=dropped_individuals, columns=dropped_individuals
+            )
 
             grm_matrices.append(matrix)
             random_effect_names.append(str(effect_name))
 
-        grm_cube = np.asfortranarray(np.stack(grm_matrices, axis=-1))
-
         return (
-            grm_cube,
-            data.loc[matrix.index],
+            np.asfortranarray(
+                np.stack(grm_matrices, axis=-1)
+            ),  # stack matrix to cube for easy transfer to cpp
+            data.loc[matrix.index],  # use the order in .bim
             random_effect_names,
-            drop_individuals,
+            dropped_individuals,
         )
+
+
+def check_fixed_effect(formula: Formula, data: pd.DataFrame):
+    try:
+        model_matrix = formula.get_model_matrix(data, na_action="raise")
+    except ValueError as e:
+        msg = "Fixed effects columns contains missing values, which are unacceptable."
+        raise ValueError(msg) from e
+    return model_matrix
 
 
 def with_categorical_cols(data: pd.DataFrame, columns) -> pd.DataFrame:
@@ -223,7 +231,9 @@ def with_categorical_cols(data: pd.DataFrame, columns) -> pd.DataFrame:
     object_columns = list(data.select_dtypes("object").columns)
     to_convert = list(set(object_columns + listify(columns)))
     if to_convert:
-        data[to_convert] = data[to_convert].apply(lambda x: x.astype("category"))
+        data[to_convert] = data[to_convert].apply(
+            lambda x: x.astype("category")
+        )
     return data
 
 

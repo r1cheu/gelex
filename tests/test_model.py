@@ -15,7 +15,11 @@ def test_data():
     # Generate test data
     y = rng.normal(0, 1, (n_samples, 1))
     X = np.stack(
-        [np.ones(n_samples), rng.normal(0, 1, n_samples), rng.normal(0, 1, n_samples)],
+        [
+            np.ones(n_samples),
+            rng.normal(0, 1, n_samples),
+            rng.normal(0, 1, n_samples),
+        ],
         axis=-1,
     )
     covar_cube = np.stack([np.eye(n_samples) for _ in range(n_random)], axis=-1)
@@ -35,8 +39,12 @@ def model():
     grm_cube = np.asfortranarray(np.stack([np.eye(3)], axis=-1))
 
     random_effect_names = ["effect1"]
-    model = LinearMixedModel(response, design_matrix, grm_cube, random_effect_names)
+    model = LinearMixedModel(
+        response, design_matrix, grm_cube, random_effect_names
+    )
     model._dropped_individuals = ["ind1"]
+    model._lhs = "phenotype"
+    model._rhs = "1"
     return model
 
 
@@ -101,11 +109,12 @@ def test_lmm_noconvert(test_data):
 
 def test_lmm_save(tmp_path, model):
     save_path = tmp_path / "test.h5"
-    model.save_params(save_path)
+    model.save(save_path)
 
     with h5py.File(save_path, "r") as f:
         assert "beta" in f
         assert "sigma" in f
+        assert "proj_y" in f
         assert "dropped_individuals" in f
 
 
