@@ -7,26 +7,47 @@
 
 namespace chenx
 {
+
 LinearMixedModel::LinearMixedModel(
     dmat&& y,
     dmat&& X,
     dcube&& covar_matrices_rand,
-    std::vector<std::string>&& rand_names)
+    std::vector<std::string>&& random_effect_names)
     : y_{std::move(y)},
       X_{std::move(X)},
       zkzt_{covar_matrices_rand},
-      rand_names_{std::move(rand_names)}
+      random_effect_names_{std::move(random_effect_names)}
 {
     y_var_ = arma::as_scalar(arma::cov(y_));  // currently only support scalar
-    uword n{X_.n_rows}, m{X_.n_cols};
-    // zkztr_ = ComputeZKZtR(std::move(covar_matrices_rand));
-    uword n_rands = zkzt_.n_slices + 1;
-    set_beta(dvec(m, arma::fill::zeros));
-    pdv_.set_size(n, n, n_rands);
+
+    num_fixed_effects_ = X_.n_cols;
+    num_individuals_ = X_.n_rows;
+    num_random_effects_ = zkzt_.n_slices + 1;
+
+    set_beta(dvec(num_fixed_effects_, arma::fill::zeros));
+    pdv_.set_size(num_individuals_, num_individuals_, num_random_effects_);
     set_sigma(dvec(
-        n_rands, arma::fill::value(y_var_ / static_cast<double>(n_rands))));
-    rand_names_.emplace_back("Residual");
+        num_random_effects_,
+        arma::fill::value(y_var_ / static_cast<double>(num_random_effects_))));
+    random_effect_names_.emplace_back("e");
+    U_.set_size(num_individuals_, num_random_effects_);
 }
+
+void LinearMixedModel::set_sigma(dvec&& sigma)
+{
+    sigma_ = std::move(sigma);
+    ComputeV();
+    ComputeProj();
+    ComputePdV();
+}
+
+void LinearMixedModel::Reset()
+{
+    set_sigma(dvec(
+        num_random_effects_,
+        arma::fill::value(y_var_ / static_cast<double>(num_random_effects_))));
+    set_beta(dvec(num_fixed_effects_, arma::fill::zeros));
+};
 
 double LinearMixedModel::ComputeLogLikelihood() const
 {
@@ -35,37 +56,6 @@ double LinearMixedModel::ComputeLogLikelihood() const
               + as_scalar(y_.t() * proj_y_));
 }
 
-/*dmat LinearMixedModel::ComputeZKZ(const sp_dmat& z, const dmat& k)*/
-/*{*/
-/*    bool z_identity = CheckIdentity(z);*/
-/*    bool k_identity = CheckIdentity(k);*/
-/**/
-/*    if (k_identity)*/
-/*    {*/
-/*        return z_identity ? k : dmat(z * z.t());*/
-/*    }*/
-/*    return z_identity ? k : dmat(z * k * z.t());*/
-/*}*/
-/**/
-/*dcube LinearMixedModel::ComputeZKZtR(*/
-/*    dcube&& covar_matrices_rand)  // the matrices will be moved in and
- * release*/
-/*                                  // the memory*/
-/*{*/
-/*    dcube rands{std::move(covar_matrices_rand)};*/
-/*    auto n = rands.n_rows;*/
-/*    auto n_rands = rands.n_slices;*/
-/*    dcube result(n, n, n_rands + 1, arma::fill::zeros);*/
-/**/
-/*    for (size_t i = 0; i < n_rands; ++i)*/
-/*    {*/
-/*        result.slice(i) = rands.slice(i);*/
-/*    }*/
-/*    result.slice(n_rands).eye();*/
-/**/
-/*    return result;*/
-/*}*/
-/**/
 void LinearMixedModel::ComputeV()
 {
     v_ = sigma_.at(0) * zkzt_.slice(0);
@@ -96,7 +86,6 @@ void LinearMixedModel::ComputePdV()
     {
         pdv_.slice(i) = proj_ * zkzt_.slice(i);
     }
-
     pdv_.slice(zkzt_.n_slices) = proj_;
 }
 
@@ -121,4 +110,22 @@ double LinearMixedModel::VinvLogdet(dmat& V)
     return logdet;
 }
 
+LinearMixedModelParams::LinearMixedModelParams(
+    dvec&& beta,
+    dvec&& sigma,
+    dvec&& proj_y,
+    std::vector<std::string>&& dropped_individuals)
+    : beta_{std::move(beta)},
+      sigma_{std::move(sigma)},
+      proj_y_{std::move(proj_y)},
+      dropped_individuals_{std::move(dropped_individuals)} {};
+
+LinearMixedModelParams::LinearMixedModelParams(
+    const LinearMixedModel& model,
+    std::vector<std::string>&& dropped_individuals)
+    : LinearMixedModelParams{
+          dvec{model.beta()},
+          dvec{model.sigma()},
+          dvec{model.proj_y()},
+          std::move(dropped_individuals)} {};
 }  // namespace chenx

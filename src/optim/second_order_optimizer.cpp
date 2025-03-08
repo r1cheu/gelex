@@ -7,7 +7,7 @@ namespace chenx
 dvec SecondOrderOptimizer::Step(const LinearMixedModel& model)
 {
     dvec sigma{model.sigma()};
-    uword n_rands{sigma.n_elem};
+    uword num_random_effects{sigma.n_elem};
     dvec first_grad = ComputeFirstGrad(model);
     dmat hess = ComputeHess(model);
     dmat hess_inv;

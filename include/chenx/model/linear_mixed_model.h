@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -20,46 +21,49 @@ class LinearMixedModel
         dmat&& y,
         dmat&& X,
         dcube&& covar_matrices_rand,
-        std::vector<std::string>&& rand_names);
+        std::vector<std::string>&& random_effect_names);
+
+    uint64_t num_random_effects() const { return num_random_effects_; }
+    uint64_t num_individuals() const { return num_individuals_; }
+    uint64_t num_fixed_effects() const { return num_fixed_effects_; }
+
     const dmat& y() const { return y_; }
     const dmat& X() const { return X_; }
     double y_var() const { return y_var_; }
+    const dmat& U() const { return U_; }
     const dvec& beta() const { return beta_; }
     const dvec& sigma() const { return sigma_; }
     const dvec& proj_y() const { return proj_y_; }
     const dcube& pdv() const { return pdv_; }
     const dmat& v() const { return v_; }
     const dmat& tx_vinv_x() const { return tx_vinv_x_; }
-    const std::vector<std::string>& rand_names() const { return rand_names_; }
-
-    void Reset()
+    const dcube& zkzt() const { return zkzt_; }
+    const std::vector<std::string>& random_effect_names() const
     {
-        auto n_rand = rand_names_.size();
-        set_sigma(dvec(
-            n_rand, arma::fill::value(y_var_ / static_cast<double>(n_rand))));
-        set_beta(dvec(X_.n_cols, arma::fill::zeros));
-    };
-    void set_sigma(dvec&& sigma)
-    {
-        sigma_ = std::move(sigma);
-        ComputeV();
-        ComputeProj();
-        ComputePdV();
+        return random_effect_names_;
     }
+    void set_sigma(dvec&& sigma);
     void set_beta(dvec&& beta) { beta_ = std::move(beta); }
+    void set_U(dmat&& U) { U_ = std::move(U); }
+
     double ComputeLogLikelihood() const;
+    void Reset();
 
    private:
+    uint64_t num_random_effects_{};
+    uint64_t num_individuals_{};
+    uint64_t num_fixed_effects_{};
+
     dmat y_;
     double y_var_{};
 
     dmat X_;
+    dmat U_;
     dvec beta_;
 
     dcube zkzt_;
-    sp_dmat r_;
 
-    std::vector<std::string> rand_names_;
+    std::vector<std::string> random_effect_names_;
     dvec sigma_;
 
     double logdet_v_{};
@@ -67,12 +71,45 @@ class LinearMixedModel
     dmat v_, proj_, tx_vinv_x_;
     dcube pdv_;
 
-    // static dmat ComputeZKZ(const sp_dmat& z, const dmat& k);
-    //  dcube ComputeZKZtR(dcube&& covar_matrices_rand);
-
     void ComputeV();
     void ComputeProj();
     void ComputePdV();
-    double VinvLogdet(dmat& V);
+    static double VinvLogdet(dmat& V);
 };
+
+class LinearMixedModelParams
+{
+   public:
+    LinearMixedModelParams(
+        dvec&& beta,
+        dvec&& sigma,
+        dvec&& proj_y,
+        std::vector<std::string>&& dropped_individuals);
+    LinearMixedModelParams(
+        const LinearMixedModel& model,
+        std::vector<std::string>&& dropped_individuals);
+    const dvec& beta() const { return beta_; }
+    const dvec& sigma() const { return sigma_; }
+    const dvec& proj_y() const { return proj_y_; }
+    const std::vector<std::string>& dropped_individuals() const
+    {
+        return dropped_individuals_;
+    }
+
+    void set_beta(dvec&& beta) { beta_ = std::move(beta); }
+    void set_sigma(dvec&& sigma) { sigma_ = std::move(sigma); }
+    void set_proj_y(dvec&& proj_y) { proj_y_ = std::move(proj_y); }
+    void set_dropped_individuals(std::vector<std::string>&& dropped_individuals)
+    {
+        dropped_individuals_ = std::move(dropped_individuals);
+    }
+
+   private:
+    dvec beta_;
+    dvec sigma_;
+    dmat X_;
+    dvec proj_y_;
+    std::vector<std::string> dropped_individuals_;
+};
+
 }  // namespace chenx

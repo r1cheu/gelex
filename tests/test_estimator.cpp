@@ -30,21 +30,21 @@ TEST_CASE("Linear Mixed Model Fitted Check")
     SECTION("Newton Raphson")
     {
         chenx::Estimator estimator{"NR", 20, 1e-6};
-        estimator.Fit(model);
+        estimator.Fit(model, true, false);
         REQUIRE(arma::approx_equal(model.sigma(), sigma_hat, "absdiff", 1e-3));
     }
 
     SECTION("Fisher Scoring")
     {
         chenx::Estimator estimator{"FS", 20, 1e-6};
-        estimator.Fit(model);
+        estimator.Fit(model, true, false);
         REQUIRE(arma::approx_equal(model.sigma(), sigma_hat, "absdiff", 1e-3));
     }
 
     SECTION("Average Information")
     {
         chenx::Estimator estimator{"AI", 20, 1e-6};
-        estimator.Fit(model);
+        estimator.Fit(model, true, false);
         REQUIRE(arma::approx_equal(model.sigma(), sigma_hat, "absdiff", 1e-3));
     }
 }

@@ -1,6 +1,8 @@
+import h5py
 import numpy as np
 import pytest
-from phenx._chenx import LinearMixedModel
+from phenx.model import LinearMixedModel
+from phenx.model.io import load_params
 
 
 @pytest.fixture
@@ -13,7 +15,11 @@ def test_data():
     # Generate test data
     y = rng.normal(0, 1, (n_samples, 1))
     X = np.stack(
-        [np.ones(n_samples), rng.normal(0, 1, n_samples), rng.normal(0, 1, n_samples)],
+        [
+            np.ones(n_samples),
+            rng.normal(0, 1, n_samples),
+            rng.normal(0, 1, n_samples),
+        ],
         axis=-1,
     )
     covar_cube = np.stack([np.eye(n_samples) for _ in range(n_random)], axis=-1)
@@ -26,31 +32,41 @@ def test_data():
     )
 
 
-def test_lmm_initialization(test_data):
+@pytest.fixture
+def model():
+    response = np.asfortranarray(np.array([1.0, 2.0, 3.0]).reshape(3, 1))
+    design_matrix = np.asfortranarray(np.ones((3, 1)))
+    grm_cube = np.asfortranarray(np.stack([np.eye(3)], axis=-1))
+
+    random_effect_names = ["effect1"]
+    model = LinearMixedModel(
+        response, design_matrix, grm_cube, random_effect_names
+    )
+    model._dropped_individuals = ["ind1"]
+    model._lhs = "phenotype"
+    model._rhs = "1"
+    return model
+
+
+def test_lmm_initialization(model):
     """Test LinearMixedModel initialization"""
-    y, X, covar_cube, names = test_data
-    model = LinearMixedModel(y, X, covar_cube, names)
 
     assert model is not None
-    assert model.n_samples == y.shape[0]
-    assert model.n_fixed_effect == X.shape[1]
-    assert model.n_random_effect == len(names) + 1
+    assert model.num_individuals == 3
+    assert model.num_fixed_effects == 1
+    assert model.num_random_effects == 2
 
 
-def test_lmm_properties(test_data):
+def test_lmm_properties(model):
     """Test LinearMixedModel properties"""
-    y, X, covar_cube, names = test_data
-    model = LinearMixedModel(y, X, covar_cube, names)
 
-    # Test beta property
     beta = model.beta
     assert isinstance(beta, np.ndarray)
-    assert beta.shape == (X.shape[1],)
+    assert beta.shape == (1,)
 
-    # Test sigma property
     sigma = model.sigma
     assert isinstance(sigma, np.ndarray)
-    assert sigma.shape == (len(names) + 1,)
+    assert sigma.shape == (2,)
 
 
 def test_lmm_reset(test_data):
@@ -66,20 +82,8 @@ def test_lmm_reset(test_data):
     model.reset()
 
     # Verify reset
-    assert np.array_equal(model.beta, initial_beta)
-    assert np.array_equal(model.sigma, initial_sigma)
-
-
-def test_lmm_repr(test_data):
-    """Test string representation"""
-    y, X, covar_cube, names = test_data
-    model = LinearMixedModel(y, X, covar_cube, names)
-
-    rep = repr(model)
-    assert "Linear Mixed Model" in rep
-    assert str(y.shape[0]) in rep
-    assert str(X.shape[1]) in rep
-    assert all(name in rep for name in names)
+    np.testing.assert_array_equal(model.beta, initial_beta)
+    np.testing.assert_array_equal(model.sigma, initial_sigma)
 
 
 def test_lmm_invalid_input(test_data):
@@ -95,10 +99,30 @@ def test_lmm_noconvert(test_data):
     """Test noconvert functionality"""
     y, X, covar_cube, names = test_data
 
-    # Test with non-contiguous arrays
     y_noncontig = y[::2]
     X_noncontig = X[::2, ::2]
     cube_noncontig = covar_cube[::2, ::2, ::2]
 
     with pytest.raises(TypeError):
         LinearMixedModel(y_noncontig, X_noncontig, cube_noncontig, names)
+
+
+def test_lmm_save(tmp_path, model):
+    save_path = tmp_path / "test.h5"
+    model.save(save_path)
+
+    with h5py.File(save_path, "r") as f:
+        assert "beta" in f
+        assert "sigma" in f
+        assert "proj_y" in f
+        assert "dropped_individuals" in f
+
+
+def test_lmm_params_from_model(model):
+    model_params = load_params(model)
+
+    np.testing.assert_array_almost_equal(model_params.beta, model.beta)
+    np.testing.assert_array_almost_equal(model_params.sigma, model.sigma)
+    np.testing.assert_array_equal(
+        model_params.dropped_individuals, model._dropped_individuals
+    )

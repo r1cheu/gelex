@@ -1,28 +1,41 @@
 #include "chenx/data/bed_reader.h"
+
 #include <omp.h>
 #include <array>
 #include <cstdint>
 #include <iostream>
-#include <sstream>
 #include <string>
+#include <unordered_set>
 #include <vector>
-#include "armadillo"
+
+#include <armadillo>
 
 namespace chenx
 {
 
-BedReader::BedReader(const std::string& bed_file, size_t chunk_size)
+std::string find_second(std::string& snps_line)
+{
+    auto first = snps_line.find('\t') + 1;
+    auto second = snps_line.find('\t', first);
+    return snps_line.substr(first, second - first);
+}
+
+BedReader::BedReader(
+    std::string_view bed_file,
+    size_t chunk_size,
+    const std::vector<std::string>& dropped_individuals)
     : bed_file_{bed_file}, chunk_size_{chunk_size}
 {
     std::string base_path = bed_file_.substr(0, bed_file_.size() - 4);
     std::string fam_file = base_path + ".fam";
     std::string bim_file = base_path + ".bim";
 
-    individuals_ = parseFam(fam_file);
+    individuals_ = parseFam(fam_file, dropped_individuals);
     snps_ = parseBim(bim_file);
-    OpenBed();
 
-    bytes_per_snp_ = (n_individuals() + 3) / 4;  // add 3 for correct rounding
+    OpenBed();
+    bytes_per_snp_ = (num_individuals() + exclude_index_.size() + 3)
+                     / 4;  // add 3 for correct rounding
 }
 
 BedReader::~BedReader()
@@ -33,8 +46,13 @@ BedReader::~BedReader()
     }
 }
 
-std::vector<std::string> BedReader::parseFam(const std::string& fam_file)
+std::vector<std::string> BedReader::parseFam(
+    const std::string& fam_file,
+    const std::vector<std::string>& dropped_individuals)
 {
+    std::unordered_set<std::string> exclude_set(
+        dropped_individuals.begin(), dropped_individuals.end());
+
     std::ifstream fin(fam_file);
     if (!fin.is_open())
     {
@@ -44,13 +62,21 @@ std::vector<std::string> BedReader::parseFam(const std::string& fam_file)
 
     std::string line;
     std::vector<std::string> individuals;
+    uint64_t index{};
     while (std::getline(fin, line))
     {
         if (!line.empty())
         {
-            auto first = line.find('\t') + 1;
-            auto second = line.find('\t', first);
-            individuals.push_back(line.substr(first, second - first));
+            auto individual = find_second(line);
+            if (!exclude_set.empty()
+                && exclude_set.find(individual) != exclude_set.end())
+            {
+                exclude_index_.insert(index);
+                ++index;
+                continue;
+            }
+            individuals.emplace_back(individual);
+            ++index;
         }
     }
     fin.close();
@@ -68,7 +94,6 @@ std::vector<std::string> BedReader::parseBim(const std::string& bim_file)
 
     std::vector<std::string> snps;
     std::string line;
-    std::string temp;
 
     while (std::getline(fin, line))
     {
@@ -76,28 +101,7 @@ std::vector<std::string> BedReader::parseBim(const std::string& bim_file)
         {
             continue;
         }
-        std::istringstream stream{line};
-        std::string snp;
-        for (int i{}; std::getline(stream, temp, '\t'); ++i)
-        {
-            switch (i)
-            {
-                case 0:
-                    snp += temp;
-                    break;
-                case 1:
-                case 2:
-                    break;
-                case 3:
-                case 4:
-                case 5:
-                    snp += ":" + temp;
-                    break;
-                default:
-                    break;
-            }
-        }
-        snps.push_back(snp);
+        snps.emplace_back(find_second(line));
     }
     fin.close();
     return snps;
@@ -126,7 +130,33 @@ void BedReader::OpenBed()
 
 bool BedReader::HasNext() const
 {
-    return current_chunk_index() < n_snps();
+    return current_chunk_index() < num_snps();
+}
+
+void BedReader::Reset()
+{
+    if (!fin_.is_open())
+    {
+        OpenBed();
+    }
+    else
+    {
+        // Clear any error flags
+        fin_.clear();
+
+        // Return to the start of data (after the header)
+        SeekToBedStart();
+
+        // Reset the tracking variables
+        current_chunk_index_ = 0;
+        current_chunk_size_ = 0;
+    }
+}
+
+void BedReader::SeekToBedStart()
+{
+    // Seek to the beginning of file + 3 bytes (skip the magic number)
+    fin_.seekg(3, std::ios::beg);
 }
 
 arma::dmat BedReader::ReadChunk()
@@ -141,7 +171,7 @@ arma::dmat BedReader::ReadChunk()
 
     current_chunk_size_ = std::min(
         chunk_size_,
-        n_snps() - current_chunk_index());  // chunk_size or snp remaining.
+        num_snps() - current_chunk_index());  // chunk_size or snp remaining.
 
     const uint64_t chunk_bytes = current_chunk_size_ * bytes_per_snp_;
     std::vector<char> buffer(chunk_bytes);
@@ -167,12 +197,18 @@ arma::dmat BedReader::Decode(
     const std::vector<char>& buffer,
     uint64_t chunk_size)
 {
-    arma::dmat genotype_matrix(n_individuals(), chunk_size, arma::fill::zeros);
+    arma::dmat genotype_matrix(
+        num_individuals(), chunk_size, arma::fill::zeros);
+    uint64_t num_individuals
+        = individuals_.size()
+          + exclude_index_.size();  // add back excluded individuals, since we
+                                    // are read .bed
 
 #pragma omp parallel for schedule(dynamic)
     for (uint64_t snp_idx = 0; snp_idx < chunk_size; ++snp_idx)
     {
         const size_t offset = snp_idx * bytes_per_snp_;
+        uint64_t adjust_individul_idx{};  // adjust for excluded individuals
         for (uint64_t byte_idx = 0; byte_idx < bytes_per_snp_; ++byte_idx)
         {
             auto byte_val
@@ -180,13 +216,19 @@ arma::dmat BedReader::Decode(
             for (unsigned int bit = 0; bit < 4; ++bit)
             {
                 uint64_t ind = (byte_idx * 4) + bit;
-                if (ind >= n_individuals())
+                if (exclude_index_.find(ind) != exclude_index_.end())
+                {
+                    adjust_individul_idx++;
+                    continue;
+                }
+                if (ind >= num_individuals)
                 {
                     break;
                 }
-                int genotype_code
-                    = (byte_val >> (2 * bit)) & 0x03;  // encode byte to int
-                genotype_matrix.at(ind, snp_idx) = genotype_map[genotype_code];
+                unsigned int genotype_code
+                    = (byte_val >> (2U * bit)) & 0x03U;  // encode byte to int
+                genotype_matrix.at(ind - adjust_individul_idx, snp_idx)
+                    = genotype_map[genotype_code];
             }
         }
     }

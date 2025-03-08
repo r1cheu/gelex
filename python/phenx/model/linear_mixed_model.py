@@ -1,11 +1,51 @@
 import gc
+from datetime import datetime
 from pathlib import Path
 
+import h5py
 import numpy as np
 import pandas as pd
 from formulaic import Formula
 
-from .._chenx import LinearMixedModel
+from .._chenx import _LinearMixedModel, _LinearMixedModelParams
+from ..data import load_grm, read_table
+from ..logger import setup_logger
+
+
+class LinearMixedModel(_LinearMixedModel):
+    @property
+    def U(self):
+        return pd.DataFrame(
+            self._U, index=self._individuals, columns=self.random_effect_names
+        )
+
+    def save(self, path: str | Path | None = None):
+        """
+        Save the model to a file.
+
+        Parameters
+        ----------
+        path : str | Path | None
+            Path to the file where the model will be saved.
+        """
+        if path is None:
+            path = (
+                f"{self._lhs}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.model"
+            )
+
+        with h5py.File(path, "w") as f:
+            f.create_dataset("beta", data=self.beta)
+            f.create_dataset("sigma", data=self.sigma)
+            f.create_dataset("proj_y", data=self._proj_y)
+            f.create_dataset(
+                "dropped_individuals", data=self._dropped_individuals
+            )
+            f.attrs["rhs"] = self._rhs
+            f.attrs["lhs"] = self._lhs
+
+
+class LinearMixedModelParams(_LinearMixedModelParams):
+    pass  # inherit from _LinearMixedModelParams, for the ability to extend class in python
 
 
 class make_model:
@@ -20,10 +60,7 @@ class make_model:
         Parameters
         ----------
         data : str | Path | pd.DataFrame
-            Input data for the model. Can be a file path (str or Path) or a pandas DataFrame.
-            If file path is provided, it will be read as a tab-separated file with the first
-            column as index and NA values represented by ["NA", ".", "nan", "NaN"]. Other
-            missing value is not support.
+            Input data for the model. See phenx.read_table for details on accepted formats.
         categorical : list[str] | str | None, optional
             List of column names or single column name to be converted to categorical type.
             If None, no conversion is performed. Default is None.
@@ -34,20 +71,22 @@ class make_model:
             If data is neither a file path nor a DataFrame.
         """
         if isinstance(data, (str | Path)):
-            self.data = pd.read_csv(
-                data, sep="\t", index_col=0, na_values=["NA", ".", "nan", "NaN"]
-            )
+            self.data = read_table(data)
         elif isinstance(data, pd.DataFrame):
             self.data = data
+        elif isinstance(data, pd.Series):
+            self.data = pd.DataFrame(data)
         else:
-            msg = "data must be a path to a file or a DataFrame"
+            msg = "data must be a path to a file, DataFrame or Series object."
             raise ValueError(msg)
 
         if categorical:
             self.data = with_categorical_cols(self.data, categorical)
 
+        self._logger = setup_logger(__name__)
+
     def make(
-        self, formula: str, grm: dict[str, pd.DataFrame | str | Path]
+        self, formula: str, grm: dict[str, str | Path]
     ) -> LinearMixedModel:
         """
         Create a Linear Mixed Model from the specified formula and genetic relationship matrices.
@@ -73,43 +112,48 @@ class make_model:
             If the fixed effects contain missing values.
         """
         formula = Formula(formula)
-        data = self._clean_data(str(formula.lhs))
-        data, self._grm, random_effect_names = self._load_grm(grm, data)
+        lhs, rhs = str(formula.lhs), str(formula.rhs)
 
-        try:
-            model_matrix = formula.get_model_matrix(data, na_action="raise")
-        except ValueError as e:
-            msg = "fixed effects should not contain missing values"
-            raise ValueError(msg) from e
+        data = self.data
+        data, dropped_individuals = self._clear_data(data, lhs)
 
-        self._response = np.asfortranarray(model_matrix.lhs, dtype=np.float64)
-        self._design_matrix = np.asfortranarray(model_matrix.rhs, dtype=np.float64)
-        gc.collect()  # Clean up memory
-        return LinearMixedModel(
-            self._response,
-            self._design_matrix,
-            self._grm,
+        grm_cube, data, random_effect_names, dropped_individuals = (
+            self._load_grm(grm, data, dropped_individuals, lhs)
+        )
+
+        model_matrix = check_fixed_effect(formula, data)
+
+        model = LinearMixedModel(
+            np.asfortranarray(model_matrix.lhs, dtype=np.float64),
+            np.asfortranarray(model_matrix.rhs, dtype=np.float64),
+            grm_cube,
             random_effect_names,
         )
 
-    def _clean_data(self, response_name: str) -> pd.DataFrame:
-        """
-        Remove rows containing missing values in the specified response column.
+        model._rhs = rhs
+        model._lhs = lhs
+        model._dropped_individuals = list(dropped_individuals)
 
-        Parameters
-        ----------
-        response_name : str
-            Name of the response variable column in the DataFrame.
+        gc.collect()  # collect the garbage
 
-        Returns
-        -------
-        pd.DataFrame
-            Dataframe with rows containing missing values in the response column removed.
-        """
-        return self.data.dropna(subset=[response_name])
+        return model
+
+    def _clear_data(self, data: pd.DataFrame, lhs: str):
+        if data[lhs].hasnans:
+            dropped_individuals = data.index[data[lhs].isna()]
+            self._logger.info(
+                "Missing values detected in `%s`. These entries will be dropped.",
+                lhs,
+            )
+            return data.dropna(subset=[lhs]), dropped_individuals
+        return data, pd.Index([])
 
     def _load_grm(
-        self, grm: dict[str, pd.DataFrame | str | Path], data: pd.DataFrame
+        self,
+        grm: dict[str, pd.DataFrame | str | Path],
+        data: pd.DataFrame,
+        dropped_individuals: pd.Index,
+        lhs: str,
     ) -> tuple[np.ndarray, list[str]]:
         """
         Clean and align genetic relationship matrices (GRMs) with the data.
@@ -135,33 +179,48 @@ class make_model:
             If no common indices are found between GRMs and data.
         """
 
+        data_index = data.index
         grm_matrices = []
         random_effect_names = []
-        common_index = None
 
         for effect_name, grm_value in grm.items():
-            # Load GRM matrix if path is provided
             matrix = (
-                pd.read_hdf(grm_value)
+                load_grm(grm_value)
                 if isinstance(grm_value, (str | Path))
                 else grm_value
             )
 
-            # Find common indices between GRM and data
-            if common_index is None:
-                common_index = matrix.index.intersection(data.index)
-            # Align matrix with common indices
-            aligned_matrix = matrix.loc[common_index, common_index]
-            grm_matrices.append(aligned_matrix)
+            if not data_index.isin(matrix.index).all():
+                msg = f"Some individuals in the `{lhs}` are not present in the GRM. Are you sure you are using the correct GRM?"
+                raise ValueError(msg)
+
+            dropped_individuals = dropped_individuals.union(
+                matrix.index.difference(data_index)
+            )
+            matrix = matrix.drop(
+                index=dropped_individuals, columns=dropped_individuals
+            )
+
+            grm_matrices.append(matrix)
             random_effect_names.append(str(effect_name))
 
-        aligned_data = data.loc[common_index]
-        grm_cube = np.stack(grm_matrices, axis=-1)
+        return (
+            np.asfortranarray(
+                np.stack(grm_matrices, axis=-1)
+            ),  # stack matrix to cube for easy transfer to cpp
+            data.loc[matrix.index],  # use the order in .bim
+            random_effect_names,
+            dropped_individuals,
+        )
 
-        if not grm_cube.flags["F_CONTIGUOUS"]:
-            grm_cube = np.asfortranarray(grm_cube)
 
-        return aligned_data, grm_cube, random_effect_names
+def check_fixed_effect(formula: Formula, data: pd.DataFrame):
+    try:
+        model_matrix = formula.get_model_matrix(data, na_action="raise")
+    except ValueError as e:
+        msg = "Fixed effects columns contains missing values, which are unacceptable."
+        raise ValueError(msg) from e
+    return model_matrix
 
 
 def with_categorical_cols(data: pd.DataFrame, columns) -> pd.DataFrame:
@@ -169,11 +228,12 @@ def with_categorical_cols(data: pd.DataFrame, columns) -> pd.DataFrame:
 
     It converts all object columns plus columns specified in the `columns` argument.
     """
-    # Convert 'object' and explicitly asked columns to categorical.
     object_columns = list(data.select_dtypes("object").columns)
     to_convert = list(set(object_columns + listify(columns)))
     if to_convert:
-        data[to_convert] = data[to_convert].apply(lambda x: x.astype("category"))
+        data[to_convert] = data[to_convert].apply(
+            lambda x: x.astype("category")
+        )
     return data
 
 

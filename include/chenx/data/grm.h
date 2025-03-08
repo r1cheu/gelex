@@ -2,78 +2,84 @@
 
 #include <armadillo>
 #include <cstdint>
-#include <string>
+#include <string_view>
+#include <vector>
 #include "chenx/data/bed_reader.h"
 
 namespace chenx
 {
+
 using arma::dmat;
 using arma::rowvec;
-class CrossGrm
+void dom_encode(dmat& genotype);
+
+class IGrm
 {
    public:
-    CrossGrm(
-        const std::string& train_bed,
-        const std::string& test_bed,
-        rowvec&& center,
-        double scale_factor,
-        uint64_t chunk_size = 10000);
+    explicit IGrm(
+        std::string_view bed_file,
+        uint64_t chunk_size = DEFAULT_CHUNK_SIZE,
+        const std::vector<std::string>& exclude_individuals = {});
+    IGrm(const IGrm&) = delete;
+    IGrm(IGrm&&) noexcept = default;
+    IGrm& operator=(const IGrm&) = delete;
+    IGrm& operator=(IGrm&&) noexcept = default;
+    virtual ~IGrm() = default;
 
-    dmat Compute(bool dom);
+    double scale_factor() const noexcept { return scale_factor_; }
+    void set_scale_factor(double scale_factor) { scale_factor_ = scale_factor; }
 
-   private:
-    BedReader train_bed_;
-    BedReader test_bed_;
-    rowvec center_;
-    double scale_factor_{};
+    const BedReader& bed() const noexcept { return bed_; }
+    BedReader& bed() noexcept { return bed_; }
 
-    void CheckSnpConsistency();
-};
+    const rowvec& center() const noexcept { return center_; }
+    void set_center(rowvec&& center) { center_ = std::move(center); }
+    void set_center(uint64_t start, const rowvec& center)
+    {
+        center_.subvec(start, arma::size(center)) = center;
+    }
 
-class Grm
-{
-   public:
-    Grm(const std::string& bed_file, uint64_t chunk_size = 10000);
-    Grm& operator=(Grm&&) = delete;
-    Grm(const Grm&) = delete;
-    Grm(Grm&&) = delete;
-    Grm& operator=(const Grm&) = delete;
-
-    virtual ~Grm() = default;
-
-    double scale_factor() const noexcept;
-    const BedReader& bed() const noexcept;
-
-    dmat Compute();
+   protected:
+    virtual void Encode(dmat& genotype) = 0;
+    void Reset() noexcept { bed_.Reset(); }
 
    private:
     BedReader bed_;
     double scale_factor_{};
+    rowvec center_;
+};
 
-    virtual void Centerlize(dmat& genotype) = 0;
+class Grm : public IGrm
+{
+   public:
+    explicit Grm(
+        std::string_view bed_file,
+        uint64_t chunk_size = DEFAULT_CHUNK_SIZE,
+        const std::vector<std::string>& exclude_individuals = {});
+    virtual dmat Compute();
+
+   private:
+    virtual rowvec ComputeCenter(const dmat& genotype) = 0;
+    void Centerlize(dmat& genotype);
     static double Scale(dmat& grm);
 };
 
 class AddGrm : public Grm
 {
-   public:
-    AddGrm(const std::string& bed_file, uint64_t chunk_size);
-    const rowvec& center() const;
+    using Grm::Grm;
 
    private:
-    rowvec center_;
-    void Centerlize(dmat& genotype) override;
+    void Encode(dmat& genotype) override;
+    rowvec ComputeCenter(const dmat& genotype) override;
 };
 
 class DomGrm : public Grm
 {
-   public:
-    DomGrm(const std::string& bed_file, uint64_t chunk_size);
-    const rowvec& center() const;
+    using Grm::Grm;
 
    private:
-    rowvec center_;
-    void Centerlize(dmat& genotype) override;
+    void Encode(dmat& genotype) override;
+    rowvec ComputeCenter(const dmat& genotype) override;
 };
 
 }  // namespace chenx

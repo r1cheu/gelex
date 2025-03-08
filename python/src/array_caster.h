@@ -3,9 +3,7 @@
 #include <nanobind/ndarray.h>
 
 #include <armadillo>
-#include <array>
 #include <cassert>
-#include <initializer_list>
 #include <type_traits>
 #include <utility>
 
@@ -94,6 +92,7 @@ auto ToPy(ArmaType&& arma_obj)
         }
         if constexpr (ndim_v<Arma> == 2)
         {
+            std::cout << arma_obj.memptr();
             return Numpy(arma_obj.memptr(), {arma_obj.n_rows, arma_obj.n_cols});
         }
         if constexpr (ndim_v<Arma> == 3)
@@ -122,6 +121,12 @@ auto ToArma(Numpy arr)
         return ArmaType(
             arr.data(), arr.shape(0), arr.shape(1), arr.shape(2), false, true);
     }
+}
+
+template <typename Numpy, typename Scalar = typename Numpy::Scalar>
+arma::Row<Scalar> ToRowVec(Numpy arr)
+{
+    return arma::Row<Scalar>(arr.data(), arr.shape(0), false, true);
 }
 
 }  // namespace bind

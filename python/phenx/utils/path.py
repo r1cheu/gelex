@@ -16,8 +16,8 @@ def valid_path(input_path: str | Path, suffixes: tuple[str] | None = None) -> Pa
 
     Returns
     -------
-    Path
-        The validated Path object.
+    Path : str
+        the valid full path.
 
     Raises
     ------
@@ -47,5 +47,4 @@ def valid_path(input_path: str | Path, suffixes: tuple[str] | None = None) -> Pa
         if path.suffix not in suffixes:
             msg = f"The file '{path}' does not have a valid suffix. Expected one of: {suffixes}"
             raise ValueError(msg)
-
-    return path
+    return str(path.absolute())

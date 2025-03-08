@@ -1,0 +1,4 @@
+CompileFlags:            # 编译标志部分
+  Add:
+    - "-Iinclude"       # 包含头文件, 相对路径
+    - "-Iextern/armadillo/include" # 包含头文件, 绝对路径

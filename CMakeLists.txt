@@ -1,33 +1,35 @@
 # Require CMake 3.15+ (matching scikit-build-core) Use new versions of all
 # policies up to CMake 3.27
 cmake_minimum_required(VERSION 3.18)
-# Scikit-build-core sets these values for you, or you can just hard-code the
-# name and version.
-project(
-  chenx
-  VERSION 0.0.1
-  LANGUAGES CXX)
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if(NOT CMAKE_BUILD_TYPE)
-  if(DEFINED ENV{CMAKE_BUILD_TYPE})
-    message(
-      STATUS
-        "Using environment variable CMAKE_BUILD_TYPE: $ENV{CMAKE_BUILD_TYPE}")
-    set(CMAKE_BUILD_TYPE
-        $ENV{CMAKE_BUILD_TYPE}
-        CACHE STRING "Build type" FORCE)
-  else()
-    set(CMAKE_BUILD_TYPE
-        Debug
-        CACHE STRING "Build type" FORCE)
-  endif()
-endif()
+project(chenx)
 
-message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+if(NOT CMAKE_BUILD_TYPE)
+  set(default_build_type "Debug")
+  message(
+    STATUS
+      "Set the build type to `${default_build_type}` as none was specified.")
+  set(CMAKE_BUILD_TYPE
+      ${default_build_type}
+      CACHE STRING "Chooce the build type." FORCE)
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+                                               "MinSizeRel" "RelWithDebInfo")
+endif()
+message(STATUS "chenx Build Type: ${CMAKE_BUILD_TYPE}")
+
+# Set the version
+set(chenx_Version_Major 0)
+set(chenx_Version_Minor 1)
+set(chenx_Version_Patch 0)
+set(chenx_Version_Status "-dev")
+set(PROJECT_VERSION
+    "${chenx_Version_Major}.${chenx_Version_Minor}.${chenx_Version_Patch}${chenx_Version_Status}"
+)
+message(STATUS "${PROJECT_NAME} version: ${PROJECT_VERSION}")
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(USE_MKL "Use the MKL" OFF)
 option(BUILD_TEST "Enable testing" OFF)
