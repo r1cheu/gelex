@@ -1,8 +1,8 @@
 import h5py
 import numpy as np
 import pytest
-from phenx.model import LinearMixedModel
-from phenx.model.io import load_params
+from gelexy.model import LinearMixedModel
+from gelexy.model.io import load_params
 
 
 @pytest.fixture
