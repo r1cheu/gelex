@@ -8,7 +8,7 @@ preview = ["pixi-build"]
 
 [dependencies]
 gelexy = { path = "." }
-_gelex = { path = "deps/gelex_bindings" }
+_gelex = { path = "src/gelex_bindings" }
 
 [tasks]
 start = "python -c 'import gelexy as gx; print(gx.make_model)'"
