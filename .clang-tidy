@@ -1,0 +1,14 @@
+Checks: >
+    -*,
+    clang-analyzer-*,
+    bugprone-*,
+    cert-*
+    modernize-*,
+    readability-*,
+    performance-*,
+    cppcoreguidelines-*,
+    hicpp-*,
+    google-*,
+    openmp-*
+HeaderFilterRegex: "include/*"
+FormatStyle: file
