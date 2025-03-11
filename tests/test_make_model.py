@@ -1,5 +1,5 @@
 """
-This module contains unit tests for the phenx model initialization and data cleaning functionality.
+This module contains unit tests for the gelexy model initialization and data cleaning functionality.
 
 The tests cover:
 - Model initialization with DataFrame or file input
@@ -20,7 +20,7 @@ Key test scenarios include:
 import numpy as np
 import pandas as pd
 import pytest
-from phenx import make_model
+from gelexy import make_model
 
 
 @pytest.fixture

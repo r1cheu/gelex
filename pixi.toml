@@ -1,0 +1,48 @@
+[workspace]
+channels = [
+  "https://prefix.dev/pixi-build-backends",
+  "https://prefix.dev/conda-forge",
+]
+platforms = ["linux-64"]
+preview = ["pixi-build"]
+
+[dependencies]
+gelexy = { path = "." }
+_gelex = { path = "deps/gelex_bindings" }
+
+[tasks]
+start = "python -c 'import gelexy as gx; print(gx.make_model)'"
+
+[feature.jupyter]
+dependencies = { bash_kernel = ">=0.9.3,<0.10" }
+pypi-dependencies = { jupyterlab = ">=4.3.4,<5", ipywidgets = ">=8.1.5,<9", matplotlib = ">=3.10.0,<4", seaborn = ">=0.13.2, <1" }
+tasks = { jupyter = "jupyter lab" }
+
+[feature.test]
+pypi-dependencies = { pytest = "*" }
+tasks = { pytest = "pytest" }
+
+[feature.dev]
+pypi-dependencies = { cibuildwheel = "*" }
+tasks = { ci = { cmd = ["cibuildwheel", "--platform", "linux"] } }
+
+[environments]
+jupyter = ["jupyter"]
+test = ["test"]
+dev = ["dev"]
+
+[package]
+name = "gelexy"
+version = "0.2.0"
+
+[package.build]
+backend = { name = "pixi-build-python", version = "0.1.*" }
+
+[package.host-dependencies]
+hatchling = ">=1.27.0, <2"
+
+[package.run-dependencies]
+numpy = ">=2.2.2,<3"
+pandas = ">=2.2.3,<3"
+formulaic = ">=1.1.1,<2"
+h5py = ">=3.12.1,<4"
