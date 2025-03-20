@@ -1,6 +1,7 @@
 #include "gelex/model/linear_mixed_model.h"
 
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 #include <armadillo>
@@ -9,13 +10,13 @@ namespace gelex
 {
 
 LinearMixedModel::LinearMixedModel(
-    dmat&& y,
-    dmat&& X,
-    dcube&& covar_matrices_rand,
-    std::vector<std::string>&& random_effect_names)
+    dmat y,
+    dmat X,
+    dcube covar_matrices_rand,
+    std::vector<std::string> random_effect_names)
     : y_{std::move(y)},
       X_{std::move(X)},
-      zkzt_{covar_matrices_rand},
+      zkzt_{std::move(covar_matrices_rand)},
       random_effect_names_{std::move(random_effect_names)}
 {
     y_var_ = arma::as_scalar(arma::cov(y_));  // currently only support scalar
@@ -33,7 +34,7 @@ LinearMixedModel::LinearMixedModel(
     U_.set_size(num_individuals_, num_random_effects_);
 }
 
-void LinearMixedModel::set_sigma(dvec&& sigma)
+void LinearMixedModel::set_sigma(dvec sigma)
 {
     sigma_ = std::move(sigma);
     ComputeV();
@@ -111,10 +112,10 @@ double LinearMixedModel::VinvLogdet(dmat& V)
 }
 
 LinearMixedModelParams::LinearMixedModelParams(
-    dvec&& beta,
-    dvec&& sigma,
-    dvec&& proj_y,
-    std::vector<std::string>&& dropped_individuals)
+    dvec beta,
+    dvec sigma,
+    dvec proj_y,
+    std::vector<std::string> dropped_individuals)
     : beta_{std::move(beta)},
       sigma_{std::move(sigma)},
       proj_y_{std::move(proj_y)},
@@ -122,7 +123,7 @@ LinearMixedModelParams::LinearMixedModelParams(
 
 LinearMixedModelParams::LinearMixedModelParams(
     const LinearMixedModel& model,
-    std::vector<std::string>&& dropped_individuals)
+    std::vector<std::string> dropped_individuals)
     : LinearMixedModelParams{
           dvec{model.beta()},
           dvec{model.sigma()},

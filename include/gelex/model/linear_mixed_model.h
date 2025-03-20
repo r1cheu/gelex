@@ -18,10 +18,10 @@ class LinearMixedModel
 {
    public:
     LinearMixedModel(
-        dmat&& y,
-        dmat&& X,
-        dcube&& covar_matrices_rand,
-        std::vector<std::string>&& random_effect_names);
+        dmat y,
+        dmat X,
+        dcube covar_matrices_rand,
+        std::vector<std::string> random_effect_names);
 
     uint64_t num_random_effects() const { return num_random_effects_; }
     uint64_t num_individuals() const { return num_individuals_; }
@@ -42,9 +42,9 @@ class LinearMixedModel
     {
         return random_effect_names_;
     }
-    void set_sigma(dvec&& sigma);
-    void set_beta(dvec&& beta) { beta_ = std::move(beta); }
-    void set_U(dmat&& U) { U_ = std::move(U); }
+    void set_sigma(dvec sigma);
+    void set_beta(dvec beta) { beta_ = std::move(beta); }
+    void set_U(dmat U) { U_ = std::move(U); }
 
     double ComputeLogLikelihood() const;
     void Reset();
@@ -81,13 +81,13 @@ class LinearMixedModelParams
 {
    public:
     LinearMixedModelParams(
-        dvec&& beta,
-        dvec&& sigma,
-        dvec&& proj_y,
-        std::vector<std::string>&& dropped_individuals);
+        dvec beta,
+        dvec sigma,
+        dvec proj_y,
+        std::vector<std::string> dropped_individuals);
     LinearMixedModelParams(
         const LinearMixedModel& model,
-        std::vector<std::string>&& dropped_individuals);
+        std::vector<std::string> dropped_individuals);
     const dvec& beta() const { return beta_; }
     const dvec& sigma() const { return sigma_; }
     const dvec& proj_y() const { return proj_y_; }
@@ -96,10 +96,10 @@ class LinearMixedModelParams
         return dropped_individuals_;
     }
 
-    void set_beta(dvec&& beta) { beta_ = std::move(beta); }
-    void set_sigma(dvec&& sigma) { sigma_ = std::move(sigma); }
-    void set_proj_y(dvec&& proj_y) { proj_y_ = std::move(proj_y); }
-    void set_dropped_individuals(std::vector<std::string>&& dropped_individuals)
+    void set_beta(dvec beta) { beta_ = std::move(beta); }
+    void set_sigma(dvec sigma) { sigma_ = std::move(sigma); }
+    void set_proj_y(dvec proj_y) { proj_y_ = std::move(proj_y); }
+    void set_dropped_individuals(std::vector<std::string> dropped_individuals)
     {
         dropped_individuals_ = std::move(dropped_individuals);
     }

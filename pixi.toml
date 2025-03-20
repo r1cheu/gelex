@@ -17,11 +17,11 @@ catch2 = ">=3.8.0,<4"
 mkl = ">=2024.0.0,<2026"
 
 [dependencies]
-python = ">=3.10"
-numpy = ">=2.2.2,<3"
+python = ">=3.13.2,<3.14"
+numpy = ">=2.2.4,<3"
 pandas = ">=2.2.3,<3"
 formulaic = ">=1.1.1,<2"
-h5py = ">=3.12.1,<4"
+h5py = ">=3.13.0,<4"
 
 [pypi-dependencies]
 gelexy = { path = ".", editable = true }
@@ -33,24 +33,24 @@ no-build-isolation = ["gelexy"]
 start = "python -c 'import gelexy as gx; print(gx.make_model)'"
 
 [feature.jupyter]
-dependencies = { bash_kernel = ">=0.9.3,<0.10" }
-pypi-dependencies = { jupyterlab = ">=4.3.4,<5", ipywidgets = ">=8.1.5,<9", matplotlib = ">=3.10.0,<4", seaborn = ">=0.13.2, <1" }
-tasks = { jupyter = "jupyter lab --notebook-dir=notebooks" }
+dependencies = { bash_kernel = ">=0.9.3,<0.10", ipykernel = ">=6.29.5,<7" }
+pypi-dependencies = { ipywidgets = ">=8.1.5,<9", matplotlib = ">=3.10.0,<4", seaborn = ">=0.13.2, <1" }
 
-[feature.test]
-pypi-dependencies = { pytest = "*" }
-tasks = { test = "pytest -x && .pybuild/test" }
 
 [feature.dev]
-pypi-dependencies = { cibuildwheel = "*" }
-dependencies = { uv = "*" }
+pypi-dependencies = { cibuildwheel = "*", scalene = "*" }
+dependencies = { uv = "*", pytest = ">=8.3.5,<9" }
 
 [feature.dev.tasks]
 ci = { cmd = ["cibuildwheel", "--platform", "linux"] }
 wheel = "uv build"
+test = "pytest -x && .pybuild/test"
+
+[feature.dev.tasks.run]
+args = ["script"]
+cmd = "python {{script}}"
 
 
 [environments]
 jupyter = ["jupyter"]
-test = ["test"]
 dev = ["dev"]

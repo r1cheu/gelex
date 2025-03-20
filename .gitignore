@@ -99,3 +99,4 @@ script/
 *.log
 /*.cpp
 *.grm
+benchmark/

@@ -1,11 +1,12 @@
 #pragma once
+#include <cassert>
+#include <type_traits>
+#include <utility>
+
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
 
 #include <armadillo>
-#include <cassert>
-#include <type_traits>
-#include <utility>
 
 namespace bind
 {

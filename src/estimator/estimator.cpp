@@ -1,4 +1,4 @@
-#include "gelex/estimator.h"
+#include "gelex/estimator/estimator.h"
 
 #include <cmath>
 

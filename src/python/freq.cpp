@@ -1,29 +1,29 @@
-#include <fmt/color.h>
-#include <fmt/ranges.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/ndarray.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/string_view.h>
-#include <nanobind/stl/vector.h>
-#include <armadillo>
 #include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
 
-#include "array_caster.h"
+#include <fmt/color.h>
+#include <fmt/ranges.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/string_view.h>
+#include <nanobind/stl/vector.h>
+#include <armadillo>
+
 #include "gelex/data/bed_reader.h"
 #include "gelex/data/grm.h"
-#include "gelex/estimator.h"
+#include "gelex/estimator/estimator.h"
 #include "gelex/model/linear_mixed_model.h"
 #include "gelex/predictor.h"
+#include "gelex/python/array_caster.h"
 
 namespace bind
 {
 namespace nb = nanobind;
 using nb::literals::operator""_a;
 
-NB_MODULE(_core, m)
+void linear_mixed_model_params(nb::module_& m)
 {
     nb::class_<gelex::LinearMixedModelParams>(m, "_LinearMixedModelParams")
         .def(
@@ -78,7 +78,10 @@ NB_MODULE(_core, m)
             [](const gelex::LinearMixedModelParams& self)
             { return self.dropped_individuals(); },
             nb::rv_policy::reference_internal);
+}
 
+void linear_mixed_model(nb::module_& m)
+{
     nb::class_<gelex::LinearMixedModel>(m, "_LinearMixedModel")
         .def(
             "__init__",
@@ -150,10 +153,13 @@ NB_MODULE(_core, m)
                     self.num_fixed_effects(),
                     fmt::join(self.random_effect_names(), ", "));
             });
+}
 
+void predictor(nb::module_& m)
+{
     nb::class_<gelex::Predictor>(m, "_Predictor")
         .def(
-            nb::init<std::string_view, gelex::LinearMixedModelParams&&>(),
+            nb::init<std::string_view, gelex::LinearMixedModelParams>(),
             "train_bed"_a,
             "params"_a,
             nanobind::keep_alive<1, 3>())
@@ -179,7 +185,10 @@ NB_MODULE(_core, m)
             { return ToPy(self.ComputeFixedEffects(ToArma(covariates))); })
 
         .def_prop_ro("test_individuals", &gelex::Predictor::test_individuals);
+}
 
+void estimator(nb::module_& m)
+{
     nb::class_<gelex::Estimator>(m, "Estimator")
         .def(
             nb::init<std::string_view, size_t, double>(),
@@ -232,7 +241,10 @@ NB_MODULE(_core, m)
             "Returns\n"
             "-------\n"
             "None");
+}
 
+void add_grm(nb::module_& m)
+{
     nb::class_<gelex::AddGrm>(m, "add_grm")
 
         .def(
@@ -265,7 +277,10 @@ NB_MODULE(_core, m)
         .def_prop_ro(
             "scale_factor",
             [](gelex::AddGrm& self) { return self.scale_factor(); });
+}
 
+void dom_grm(nb::module_& m)
+{
     nb::class_<gelex::DomGrm>(m, "dom_grm")
         .def(
             nb::init<std::string_view, uint64_t, std::vector<std::string>>(),

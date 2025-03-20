@@ -12,7 +12,7 @@ namespace gelex
 using arma::rowvec;
 void Predictor::set_cross_grm(
     std::string_view method,
-    rowvec&& center,
+    rowvec center,
     double scale_factor,
     uint64_t chunk_size)
 {
