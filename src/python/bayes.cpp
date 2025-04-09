@@ -7,6 +7,7 @@
 #include <armadillo>
 
 #include "gelex/model/bayes_model.h"
+#include "gelex/model/bayes_prior.h"
 #include "gelex/python/array_caster.h"
 namespace bind
 {
@@ -20,8 +21,8 @@ void register_bayes_model(nb::module_& module, const char* name)
         .def(
             "__init__",
             [](BayesModel* self,
-               arr1d&& phenotype,
-               arr2d&& genotype_mat,
+               arr1d phenotype,
+               arr2d genotype_mat,
                std::optional<arr2d> design_mat_beta,
                std::optional<arr2d> design_mat_r)
             {
@@ -41,7 +42,7 @@ void register_bayes_model(nb::module_& module, const char* name)
             nb::keep_alive<1, 2>(),
             nb::keep_alive<1, 3>(),
             nb::keep_alive<1, 4>(),
-            nb::keep_alive<1, 5>())
+            nb::keep_alive<1, 5>())  // NOLINT
         .def(
             "__repr__",
             [](const BayesModel& self)
@@ -104,6 +105,38 @@ void bayesc(nb::module_& module)
 void bayescpi(nb::module_& module)
 {
     register_bayes_model<gelex::BayesCpi>(module, "BayesCpi");
+}
+
+void sigma_prior(nb::module_& module)
+{
+    nb::class_<gelex::sigma_prior>(module, "sigma_prior")
+        .def(nb::init<double, double>(), "nu"_a, "s2"_a)
+        .def_rw(
+            "nu", &gelex::sigma_prior::nu, nb::rv_policy::reference_internal)
+        .def_rw(
+            "s2", &gelex::sigma_prior::s2, nb::rv_policy::reference_internal);
+}
+
+void priors(nb::module_& module)
+{
+    nb::class_<gelex::Priors>(module, "Priors")
+        .def(nb::init<>())
+        .def(
+            "__init__",
+            [](gelex::Priors* self, arr1d pi)
+            { new (self) gelex::Priors{ToArma(std::move(pi))}; })
+        .def(
+            "sigma_a",
+            &gelex::Priors::sigma_a,
+            nb::rv_policy::reference_internal)
+        .def(
+            "sigma_r",
+            &gelex::Priors::sigma_r,
+            nb::rv_policy::reference_internal)
+        .def(
+            "sigma_e",
+            &gelex::Priors::sigma_e,
+            nb::rv_policy::reference_internal);
 }
 
 }  // namespace bind

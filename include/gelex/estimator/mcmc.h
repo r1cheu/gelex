@@ -116,16 +116,16 @@ class MCMC
         {
             sigma_r_sampler_ = std::make_unique<ScaleInvChiSq>(
                 gen_,
-                model.sigma_priors().sigma_r().nu,
+                model.priors().sigma_r().nu,
                 static_cast<double>(model.r().n_cols),
-                model.sigma_priors().sigma_r().s2);
+                model.priors().sigma_r().s2);
         }
 
         sigma_e_sampler_ = std::make_unique<ScaleInvChiSq>(
             gen_,
-            model.sigma_priors().sigma_e().nu,
+            model.priors().sigma_e().nu,
             static_cast<double>(y_adj_.n_elem),
-            model.sigma_priors().sigma_e().s2);
+            model.priors().sigma_e().s2);
     }
 
     template <GeneticPolicy Genetic>

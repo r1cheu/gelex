@@ -57,6 +57,10 @@ nanobind_add_module(_core NB_STATIC ${CORE_SOURCE})
 target_link_libraries(_core PRIVATE common)
 
 if(BUILD_TEST)
+  nanobind_add_module(_test NB_STATIC tests/python/test_array_caster.cpp)
+  target_link_libraries(_test PRIVATE common)
+  install(TARGETS _test LIBRARY DESTINATION gelexy)
+
   set(GELEX_TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
   add_compile_definitions(GELEX_TESTS_DIR="${GELEX_TESTS_DIR}")
   find_package(Catch2 3 REQUIRED)

@@ -35,9 +35,9 @@ GeneticSampler<BayesRR>::GeneticSampler(
           model),
       chisq_{
           random_generator,
-          model.sigma_priors().sigma_g().nu,
+          model.priors().sigma_g().nu,
           static_cast<double>(model.a().n_elem),
-          model.sigma_priors().sigma_g().s2}
+          model.priors().sigma_g().s2}
 {
 }
 
@@ -77,9 +77,9 @@ GeneticSampler<BayesA>::GeneticSampler(
           model),
       chisq_{
           random_generator,
-          model.sigma_priors().sigma_g().nu,
+          model.priors().sigma_g().nu,
           1,
-          model.sigma_priors().sigma_g().s2}
+          model.priors().sigma_g().s2}
 
 {
 }
@@ -119,9 +119,9 @@ GeneticSampler<BayesB>::GeneticSampler(
       uniform_{random_generator},
       chisq_{
           random_generator,
-          model.sigma_priors().sigma_g().nu,
+          model.priors().sigma_g().nu,
           1,
-          model.sigma_priors().sigma_g().s2},
+          model.priors().sigma_g().s2},
       snp_tracker{model.a().n_elem, arma::fill::zeros},
       fold_(model.pi().n_elem, arma::fill::zeros)
 {
@@ -152,9 +152,9 @@ GeneticSampler<BayesBpi>::GeneticSampler(
       uniform_{random_generator},
       chisq_{
           random_generator,
-          model.sigma_priors().sigma_g().nu,
+          model.priors().sigma_g().nu,
           1,
-          model.sigma_priors().sigma_g().s2},
+          model.priors().sigma_g().s2},
       snp_tracker{model.a().n_elem, arma::fill::zeros},
       fold_(model.pi().n_elem, arma::fill::zeros)
 {
@@ -185,9 +185,9 @@ GeneticSampler<BayesC>::GeneticSampler(
       uniform_{random_generator},
       chisq_{
           random_generator,
-          model.sigma_priors().sigma_g().nu,
+          model.priors().sigma_g().nu,
           1,
-          model.sigma_priors().sigma_g().s2},
+          model.priors().sigma_g().s2},
       snp_tracker{model.a().n_elem, arma::fill::zeros},
       fold_(model.pi().n_elem, arma::fill::zeros)
 {
@@ -218,9 +218,9 @@ GeneticSampler<BayesCpi>::GeneticSampler(
       uniform_{random_generator},
       chisq_{
           random_generator,
-          model.sigma_priors().sigma_g().nu,
+          model.priors().sigma_g().nu,
           1,
-          model.sigma_priors().sigma_g().s2},
+          model.priors().sigma_g().s2},
       snp_tracker{model.a().n_elem, arma::fill::zeros},
       fold_(model.pi().n_elem, arma::fill::zeros)
 {

@@ -24,7 +24,7 @@ class BayesianModel
           genotype_mat_{std::move(genotype_mat)},
           design_mat_beta_{std::move(design_mat_beta)},
           design_mat_r_{std::move(design_mat_r)},
-          sigma_priors_{Genetic::init_pi()}
+          priors_{Genetic::init_pi()}
     {
         a_.zeros(genotype_mat_.n_cols);
         a_cols_norm_ = SumOfSquare(genotype_mat_);
@@ -55,7 +55,7 @@ class BayesianModel
         return design_mat_beta_;
     }
     const std::optional<dmat>& design_mat_r() const { return design_mat_r_; }
-    SimgaPriors& sigma_priors() { return sigma_priors_; }
+    Priors& priors() { return priors_; }
 
     const dvec& pi() const { return pi_; }
     void set_pi(dvec new_pi) { pi_ = std::move(new_pi); }
@@ -102,11 +102,7 @@ class BayesianModel
     bool HasEnv() const { return design_mat_r_.has_value(); }
     bool HasBeta() const { return design_mat_beta_.has_value(); }
 
-    void SetPriors()
-    {
-        pi_ = sigma_priors_.pi();
-        sigma_priors_.set_genomic_effect_s2(phenotype_, genotype_mat_);
-    }
+    void SetPriors() { pi_ = priors_.pi(); }
 
    protected:
     static dvec SumOfSquare(const dmat& mat)
@@ -136,7 +132,7 @@ class BayesianModel
     std::optional<dmat>
         design_mat_beta_;               // Design matrix for beta coefficients
     std::optional<dmat> design_mat_r_;  // Design matrix for rironmental factors
-    SimgaPriors sigma_priors_;
+    Priors priors_;
 
     dvec pi_;  // proportion of each group
 

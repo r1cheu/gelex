@@ -12,6 +12,9 @@ void bayesbpi(nb::module_&);
 void bayesc(nb::module_&);
 void bayescpi(nb::module_&);
 
+void sigma_prior(nb::module_&);
+void priors(nb::module_&);
+
 void linear_mixed_model_params(nb::module_&);
 void linear_mixed_model(nb::module_&);
 void predictor(nb::module_&);
@@ -27,6 +30,8 @@ NB_MODULE(_core, m)  // NOLINT
     bayesbpi(m);
     bayesc(m);
     bayescpi(m);
+    sigma_prior(m);
+    priors(m);
 
     linear_mixed_model_params(m);
     linear_mixed_model(m);
