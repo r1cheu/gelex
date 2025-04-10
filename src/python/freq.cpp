@@ -14,7 +14,7 @@
 #include "gelex/data/bed_reader.h"
 #include "gelex/data/grm.h"
 #include "gelex/estimator/estimator.h"
-#include "gelex/model/linear_mixed_model.h"
+#include "gelex/model/gblup.h"
 #include "gelex/predictor.h"
 #include "gelex/python/array_caster.h"
 
@@ -23,18 +23,18 @@ namespace bind
 namespace nb = nanobind;
 using nb::literals::operator""_a;
 
-void linear_mixed_model_params(nb::module_& m)
+void gblup_params(nb::module_& m)
 {
-    nb::class_<gelex::LinearMixedModelParams>(m, "_LinearMixedModelParams")
+    nb::class_<gelex::GBLUPParams>(m, "_GBLUPParams")
         .def(
             "__init__",
-            [](gelex::LinearMixedModelParams* self,
+            [](gelex::GBLUPParams* self,
                arr1d beta,
                arr1d sigma,
                arr1d proj_y,
                std::vector<std::string> dropped_individuals)
             {
-                new (self) gelex::LinearMixedModelParams{
+                new (self) gelex::GBLUPParams{
                     ToArma(beta),
                     ToArma(sigma),
                     ToArma(proj_y),
@@ -49,49 +49,46 @@ void linear_mixed_model_params(nb::module_& m)
             nb::keep_alive<1, 4>())
         .def(
             "__init__",
-            [](gelex::LinearMixedModelParams* self,
-               gelex::LinearMixedModel& model,
+            [](gelex::GBLUPParams* self,
+               gelex::GBLUP& model,
                std::vector<std::string> dropped_individuals)
             {
-                new (self) gelex::LinearMixedModelParams{
-                    model, std::move(dropped_individuals)};
+                new (self)
+                    gelex::GBLUPParams{model, std::move(dropped_individuals)};
             },
             "model"_a,
             "dropped_individuals"_a.noconvert())
         .def_prop_ro(
             "beta",
-            [](const gelex::LinearMixedModelParams& self)
-            { return ToPy(self.beta()); },
+            [](const gelex::GBLUPParams& self) { return ToPy(self.beta()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "sigma",
-            [](const gelex::LinearMixedModelParams& self)
-            { return ToPy(self.sigma()); },
+            [](const gelex::GBLUPParams& self) { return ToPy(self.sigma()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "proj_y",
-            [](const gelex::LinearMixedModelParams& self)
-            { return ToPy(self.proj_y()); },
+            [](const gelex::GBLUPParams& self) { return ToPy(self.proj_y()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "dropped_individuals",
-            [](const gelex::LinearMixedModelParams& self)
+            [](const gelex::GBLUPParams& self)
             { return self.dropped_individuals(); },
             nb::rv_policy::reference_internal);
 }
 
-void linear_mixed_model(nb::module_& m)
+void gblup(nb::module_& m)
 {
-    nb::class_<gelex::LinearMixedModel>(m, "_LinearMixedModel")
+    nb::class_<gelex::GBLUP>(m, "_GBLUP")
         .def(
             "__init__",
-            [](gelex::LinearMixedModel* self,
+            [](gelex::GBLUP* self,
                arr2d y,
                arr2d X,
                arr3d covar_mat,
                std::vector<std::string> names)
             {
-                new (self) gelex::LinearMixedModel{
+                new (self) gelex::GBLUP{
                     ToArma(y), ToArma(X), ToArma(covar_mat), std::move(names)};
             },
             "y"_a.noconvert(),
@@ -103,55 +100,73 @@ void linear_mixed_model(nb::module_& m)
             nb::keep_alive<1, 4>())
         .def_prop_ro(
             "num_fixed_effects",
-            &gelex::LinearMixedModel::num_fixed_effects,
+            &gelex::GBLUP::num_fixed_effects,
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "num_random_effects",
-            &gelex::LinearMixedModel::num_random_effects,
+            &gelex::GBLUP::num_random_effects,
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "num_individuals",
-            &gelex::LinearMixedModel::num_individuals,
+            &gelex::GBLUP::num_individuals,
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "random_effect_names",
-            &gelex::LinearMixedModel::random_effect_names,
+            &gelex::GBLUP::random_effect_names,
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "_U",
-            [](gelex::LinearMixedModel& self) { return ToPy(self.U()); },
+            [](gelex::GBLUP& self) { return ToPy(self.U()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "_proj_y",
-            [](gelex::LinearMixedModel& self) { return ToPy(self.proj_y()); },
+            [](gelex::GBLUP& self) { return ToPy(self.proj_y()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "beta",
-            [](gelex::LinearMixedModel& self) { return ToPy(self.beta()); },
+            [](gelex::GBLUP& self) { return ToPy(self.beta()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "sigma",
-            [](gelex::LinearMixedModel& self) { return ToPy(self.sigma()); },
+            [](gelex::GBLUP& self) { return ToPy(self.sigma()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "y",
-            [](gelex::LinearMixedModel& self) { return ToPy(self.y()); },
+            [](gelex::GBLUP& self) { return ToPy(self.y()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "X",
-            [](gelex::LinearMixedModel& self) { return ToPy(self.X()); },
+            [](gelex::GBLUP& self) { return ToPy(self.X()); },
             nb::rv_policy::reference_internal)
-        .def("reset", &gelex::LinearMixedModel::Reset, "reset the model")
+        .def("reset", &gelex::GBLUP::Reset, "reset the model")
         .def(
             "__repr__",
-            [](gelex::LinearMixedModel& self)
+            [](const gelex::GBLUP& self)
             {
                 return fmt::format(
-                    "Linear Mixed Model\n{:d} Individuals, {:d} Fixed effect, "
-                    "Random Effect: [{}]",
+                    "<GBLUP object at {:p}: {:d} Individuals, {:d} Fixed "
+                    "effects, "
+                    "Random effects: {}>",
+                    static_cast<const void*>(&self),
                     self.num_individuals(),
                     self.num_fixed_effects(),
                     fmt::join(self.random_effect_names(), ", "));
+            })
+        .def(
+            "__str__",
+            [](const gelex::GBLUP& self)
+            {
+                std::string info = fmt::format(
+                    "┌─ GBLUP Model ─────────────────────────────────\n"
+                    "│ Individuals:    {:6d}\n"
+                    "│ Fixed Effects:  {:6d}\n"
+                    "│ Random Effects: {}\n"
+                    "└───────────────────────────────────────────────",
+                    self.num_individuals(),
+                    self.num_fixed_effects(),
+                    fmt::join(self.random_effect_names(), ", "));
+
+                return info;
             });
 }
 
@@ -159,7 +174,7 @@ void predictor(nb::module_& m)
 {
     nb::class_<gelex::Predictor>(m, "_Predictor")
         .def(
-            nb::init<std::string_view, gelex::LinearMixedModelParams>(),
+            nb::init<std::string_view, gelex::GBLUPParams>(),
             "train_bed"_a,
             "params"_a,
             nanobind::keep_alive<1, 3>())
@@ -213,7 +228,7 @@ void estimator(nb::module_& m)
             "Fit the model\n\n"
             "Parameters\n"
             "----------\n"
-            "model : LinearMixedModel\n"
+            "model : GBLUP\n"
             "    The linear mixed model to fit\n"
             "em_init : bool, optional\n"
             "    Whether to use EM algorithm for initialization (default: "

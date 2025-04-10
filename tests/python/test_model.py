@@ -1,7 +1,7 @@
 import h5py
 import numpy as np
 import pytest
-from gelexy.model import LinearMixedModel
+from gelexy.model import GBLUP
 from gelexy.model.io import load_params
 
 
@@ -39,7 +39,7 @@ def model():
     grm_cube = np.asfortranarray(np.stack([np.eye(3)], axis=-1))
 
     random_effect_names = ["effect1"]
-    model = LinearMixedModel(
+    model = GBLUP(
         response, design_matrix, grm_cube, random_effect_names
     )
     model._dropped_individuals = ["ind1"]
@@ -49,7 +49,7 @@ def model():
 
 
 def test_lmm_initialization(model):
-    """Test LinearMixedModel initialization"""
+    """Test GBLUP initialization"""
 
     assert model is not None
     assert model.num_individuals == 3
@@ -58,7 +58,7 @@ def test_lmm_initialization(model):
 
 
 def test_lmm_properties(model):
-    """Test LinearMixedModel properties"""
+    """Test GBLUP properties"""
 
     beta = model.beta
     assert isinstance(beta, np.ndarray)
@@ -72,7 +72,7 @@ def test_lmm_properties(model):
 def test_lmm_reset(test_data):
     """Test reset functionality"""
     y, X, covar_cube, names = test_data
-    model = LinearMixedModel(y, X, covar_cube, names)
+    model = GBLUP(y, X, covar_cube, names)
 
     # Store initial values
     initial_beta = model.beta.copy()
@@ -92,7 +92,7 @@ def test_lmm_invalid_input(test_data):
 
     # Test mismatched dimensions
     with pytest.raises(RuntimeError):
-        LinearMixedModel(y[:-1], X, covar_cube, names)
+        GBLUP(y[:-1], X, covar_cube, names)
 
 
 def test_lmm_noconvert(test_data):
@@ -104,7 +104,7 @@ def test_lmm_noconvert(test_data):
     cube_noncontig = covar_cube[::2, ::2, ::2]
 
     with pytest.raises(TypeError):
-        LinearMixedModel(y_noncontig, X_noncontig, cube_noncontig, names)
+        GBLUP(y_noncontig, X_noncontig, cube_noncontig, names)
 
 
 def test_lmm_save(tmp_path, model):

@@ -9,7 +9,7 @@ from gelexy._core import _Predictor
 from gelexy.utils.path import valid_path
 
 from .data import read_table
-from .model import LinearMixedModel, LinearMixedModelParams, check_fixed_effect
+from .model import GBLUP, GBLUPParams, check_fixed_effect
 from .model.io import load_params
 
 
@@ -66,7 +66,7 @@ class make_predictor:
     def make(
         self,
         grms: dict[str, str | Path],
-        params: str | Path | LinearMixedModel | LinearMixedModelParams,
+        params: str | Path | GBLUP | GBLUPParams,
     ):
         params = self._set_params(params)
 
@@ -83,14 +83,14 @@ class make_predictor:
 
     def _set_params(
         self,
-        params: str | Path | LinearMixedModel | LinearMixedModelParams,
+        params: str | Path | GBLUP | GBLUPParams,
     ):
-        if not isinstance(params, LinearMixedModelParams):
+        if not isinstance(params, GBLUPParams):
             return load_params(params)
-        if isinstance(params, LinearMixedModelParams):
+        if isinstance(params, GBLUPParams):
             return params
 
-        msg = "Invalid parameter type. Please provide either a file path to parameters, a LinearMixedModel instance, or a LinearMixedModelParams object."
+        msg = "Invalid parameter type. Please provide either a file path to parameters, a GBLUP instance, or a GBLUPParams object."
         raise ValueError(msg)
 
     def _set_cross_grm(self, grm: str | Path, predictor: Predictor):

@@ -7,13 +7,13 @@ import numpy as np
 import pandas as pd
 from formulaic import Formula
 
-from gelexy._core import _LinearMixedModel, _LinearMixedModelParams
+from gelexy._core import _GBLUP, _GBLUPParams
 
 from ..data import load_grm, read_table
 from ..logger import setup_logger
 
 
-class LinearMixedModel(_LinearMixedModel):
+class GBLUP(_GBLUP):
     @property
     def U(self):
         return pd.DataFrame(
@@ -45,8 +45,8 @@ class LinearMixedModel(_LinearMixedModel):
             f.attrs["lhs"] = self._lhs
 
 
-class LinearMixedModelParams(_LinearMixedModelParams):
-    pass  # inherit from _LinearMixedModelParams, for the ability to extend class in python
+class GBLUPParams(_GBLUPParams):
+    pass  # inherit from _GBLUPParams, for the ability to extend class in python
 
 
 class make_model:
@@ -86,9 +86,7 @@ class make_model:
 
         self._logger = setup_logger(__name__)
 
-    def make(
-        self, formula: str, grm: dict[str, str | Path]
-    ) -> LinearMixedModel:
+    def make(self, formula: str, grm: dict[str, str | Path]) -> GBLUP:
         """
         Create a Linear Mixed Model from the specified formula and genetic relationship matrices.
 
@@ -103,8 +101,8 @@ class make_model:
 
         Returns
         -------
-        LinearMixedModel
-            A LinearMixedModel object containing the response vector, design matrix, genetic relationship
+        GBLUP
+            A GBLUP object containing the response vector, design matrix, genetic relationship
             matrices, and random effect names.
 
         Raises
@@ -124,7 +122,7 @@ class make_model:
 
         model_matrix = check_fixed_effect(formula, data)
 
-        model = LinearMixedModel(
+        model = GBLUP(
             np.asfortranarray(model_matrix.lhs, dtype=np.float64),
             np.asfortranarray(model_matrix.rhs, dtype=np.float64),
             grm_cube,

@@ -2,13 +2,13 @@
 
 #include <armadillo>
 
-#include "gelex/model/linear_mixed_model.h"
+#include "gelex/model/gblup.h"
 #include "gelex/optim/base_optimizer.h"
 
 namespace gelex
 {
 
-dvec ExpectationMaximizationOptimizer::Step(const LinearMixedModel& model)
+dvec ExpectationMaximizationOptimizer::Step(const GBLUP& model)
 {
     dvec sigma{model.sigma()};
     dvec sigma2{sigma % sigma};

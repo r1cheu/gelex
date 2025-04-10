@@ -44,6 +44,16 @@ def test_priors_pi_constructor():
     sigma_e = priors.sigma_e()
     assert isinstance(sigma_e, sigma_prior)
 
+    np.testing.assert_allclose(priors.pi(), probabilities)
+
+
+def test_priors_pi_modification():
+    probabilities = np.array([0.2, 0.3, 0.5], dtype=np.float64)
+    priors = Priors(probabilities)
+
+    priors.pi()[0] = 0.1
+    np.testing.assert_allclose(priors.pi(), [0.1, 0.3, 0.5])
+
 
 def test_sigma_prior_modification():
     """Test modifying sigma_prior objects returned by Priors methods."""

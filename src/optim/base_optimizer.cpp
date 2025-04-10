@@ -6,13 +6,13 @@
 #include <fmt/ranges.h>
 #include <armadillo>
 
-#include "gelex/model/linear_mixed_model.h"
+#include "gelex/model/gblup.h"
 #include "gelex/utils.h"
 
 namespace gelex
 {
 
-bool OptimizerBase::Optimize(LinearMixedModel& model)
+bool OptimizerBase::Optimize(GBLUP& model)
 {
     double time_cost{};
     for (size_t i{1}; i <= max_iter(); ++i)

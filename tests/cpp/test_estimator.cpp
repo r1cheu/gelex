@@ -4,7 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/estimator/estimator.h"
-#include "gelex/model/linear_mixed_model.h"
+#include "gelex/model/gblup.h"
 
 TEST_CASE("Linear Mixed Model Fitted Check")
 {
@@ -20,7 +20,7 @@ TEST_CASE("Linear Mixed Model Fitted Check")
     arma::dcube rands{Phenotype.n_elem, Phenotype.n_elem, 1};
     rands.slice(0) = A;
 
-    gelex::LinearMixedModel model{
+    gelex::GBLUP model{
         std::move(Phenotype),
         std::move(X),
         std::move(rands),

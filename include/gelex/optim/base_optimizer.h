@@ -7,7 +7,7 @@
 #include <armadillo>
 
 #include <gelex/utils.h>
-#include "gelex/model/linear_mixed_model.h"
+#include "gelex/model/gblup.h"
 
 namespace gelex
 {
@@ -40,8 +40,8 @@ class OptimizerBase
     void set_tol(double tol) noexcept { tol_ = tol; }
     void set_converged(bool converged) noexcept { converged_ = converged; }
 
-    virtual bool Optimize(LinearMixedModel& model);
-    virtual dvec Step(const LinearMixedModel& model) = 0;
+    virtual bool Optimize(GBLUP& model);
+    virtual dvec Step(const GBLUP& model) = 0;
 
     static dvec Constrain(dvec sigma, double y_var);
 

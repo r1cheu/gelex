@@ -1,4 +1,4 @@
-#include "gelex/model/linear_mixed_model.h"
+#include "gelex/model/gblup.h"
 
 #include <stdexcept>
 #include <utility>
@@ -9,7 +9,7 @@
 namespace gelex
 {
 
-LinearMixedModel::LinearMixedModel(
+GBLUP::GBLUP(
     dmat y,
     dmat X,
     dcube covar_matrices_rand,
@@ -34,7 +34,7 @@ LinearMixedModel::LinearMixedModel(
     U_.set_size(num_individuals_, num_random_effects_);
 }
 
-void LinearMixedModel::set_sigma(dvec sigma)
+void GBLUP::set_sigma(dvec sigma)
 {
     sigma_ = std::move(sigma);
     ComputeV();
@@ -42,7 +42,7 @@ void LinearMixedModel::set_sigma(dvec sigma)
     ComputePdV();
 }
 
-void LinearMixedModel::Reset()
+void GBLUP::Reset()
 {
     set_sigma(dvec(
         num_random_effects_,
@@ -50,14 +50,14 @@ void LinearMixedModel::Reset()
     set_beta(dvec(num_fixed_effects_, arma::fill::zeros));
 };
 
-double LinearMixedModel::ComputeLogLikelihood() const
+double GBLUP::ComputeLogLikelihood() const
 {
     return -0.5
            * (logdet_v_ + log_det_sympd(tx_vinv_x_)
               + as_scalar(y_.t() * proj_y_));
 }
 
-void LinearMixedModel::ComputeV()
+void GBLUP::ComputeV()
 {
     v_ = sigma_.at(0) * zkzt_.slice(0);
     for (size_t i{1}; i < zkzt_.n_slices; ++i)
@@ -68,7 +68,7 @@ void LinearMixedModel::ComputeV()
     v_.diag() += sigma_.back();
 }
 
-void LinearMixedModel::ComputeProj()
+void GBLUP::ComputeProj()
 {
     logdet_v_ = VinvLogdet(v_);  // from here the v_ matrix is inverted
     dmat vinv_x = v_ * X_;
@@ -81,7 +81,7 @@ void LinearMixedModel::ComputeProj()
     proj_y_ = proj_ * y_;
 }
 
-void LinearMixedModel::ComputePdV()
+void GBLUP::ComputePdV()
 {
     for (size_t i = 0; i < zkzt_.n_slices; ++i)
     {
@@ -90,7 +90,7 @@ void LinearMixedModel::ComputePdV()
     pdv_.slice(zkzt_.n_slices) = proj_;
 }
 
-double LinearMixedModel::VinvLogdet(dmat& V)
+double GBLUP::VinvLogdet(dmat& V)
 {
     char uplo = 'L';
     int n = static_cast<int>(V.n_cols);
@@ -111,7 +111,7 @@ double LinearMixedModel::VinvLogdet(dmat& V)
     return logdet;
 }
 
-LinearMixedModelParams::LinearMixedModelParams(
+GBLUPParams::GBLUPParams(
     dvec beta,
     dvec sigma,
     dvec proj_y,
@@ -121,10 +121,10 @@ LinearMixedModelParams::LinearMixedModelParams(
       proj_y_{std::move(proj_y)},
       dropped_individuals_{std::move(dropped_individuals)} {};
 
-LinearMixedModelParams::LinearMixedModelParams(
-    const LinearMixedModel& model,
+GBLUPParams::GBLUPParams(
+    const GBLUP& model,
     std::vector<std::string> dropped_individuals)
-    : LinearMixedModelParams{
+    : GBLUPParams{
           dvec{model.beta()},
           dvec{model.sigma()},
           dvec{model.proj_y()},

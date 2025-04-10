@@ -14,10 +14,10 @@ using arma::sp_dmat;
 using arma::uvec;
 using arma::uword;
 
-class LinearMixedModel
+class GBLUP
 {
    public:
-    LinearMixedModel(
+    GBLUP(
         dmat y,
         dmat X,
         dcube covar_matrices_rand,
@@ -77,16 +77,16 @@ class LinearMixedModel
     static double VinvLogdet(dmat& V);
 };
 
-class LinearMixedModelParams
+class GBLUPParams
 {
    public:
-    LinearMixedModelParams(
+    GBLUPParams(
         dvec beta,
         dvec sigma,
         dvec proj_y,
         std::vector<std::string> dropped_individuals);
-    LinearMixedModelParams(
-        const LinearMixedModel& model,
+    GBLUPParams(
+        const GBLUP& model,
         std::vector<std::string> dropped_individuals);
     const dvec& beta() const { return beta_; }
     const dvec& sigma() const { return sigma_; }

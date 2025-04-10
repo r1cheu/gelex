@@ -15,8 +15,8 @@ void bayescpi(nb::module_&);
 void sigma_prior(nb::module_&);
 void priors(nb::module_&);
 
-void linear_mixed_model_params(nb::module_&);
-void linear_mixed_model(nb::module_&);
+void gblup_params(nb::module_&);
+void gblup(nb::module_&);
 void predictor(nb::module_&);
 void estimator(nb::module_&);
 void add_grm(nb::module_&);
@@ -33,8 +33,8 @@ NB_MODULE(_core, m)  // NOLINT
     sigma_prior(m);
     priors(m);
 
-    linear_mixed_model_params(m);
-    linear_mixed_model(m);
+    gblup_params(m);
+    gblup(m);
     predictor(m);
     estimator(m);
     add_grm(m);

@@ -1,13 +1,13 @@
-from .linear_mixed_model import (
-    LinearMixedModel,
-    LinearMixedModelParams,
+from .gblup import (
+    GBLUP,
+    GBLUPParams,
     check_fixed_effect,
     make_model,
 )
 
 __all__ = [
-    "LinearMixedModel",
-    "LinearMixedModelParams",
+    "GBLUP",
+    "GBLUPParams",
     "check_fixed_effect",
     "make_model",
 ]

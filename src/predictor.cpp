@@ -5,7 +5,7 @@
 #include <armadillo>
 
 #include "gelex/data/cross_grm.h"
-#include "gelex/model/linear_mixed_model.h"
+#include "gelex/model/gblup.h"
 
 namespace gelex
 {

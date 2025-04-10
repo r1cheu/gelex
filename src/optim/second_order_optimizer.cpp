@@ -4,7 +4,7 @@
 
 namespace gelex
 {
-dvec SecondOrderOptimizer::Step(const LinearMixedModel& model)
+dvec SecondOrderOptimizer::Step(const GBLUP& model)
 {
     dvec sigma{model.sigma()};
     uword num_random_effects{sigma.n_elem};
@@ -27,7 +27,7 @@ dvec SecondOrderOptimizer::Step(const LinearMixedModel& model)
     return OptimizerBase::Constrain(sigma, model.y_var());
 };
 
-dvec SecondOrderOptimizer::ComputeFirstGrad(const LinearMixedModel& model)
+dvec SecondOrderOptimizer::ComputeFirstGrad(const GBLUP& model)
 {
     const dvec& sigma = model.sigma();
     const dvec& y = model.y();
@@ -46,7 +46,7 @@ dvec SecondOrderOptimizer::ComputeFirstGrad(const LinearMixedModel& model)
     return first_grad;
 };
 
-dmat SecondOrderOptimizer::ComputeHess(const LinearMixedModel& model)
+dmat SecondOrderOptimizer::ComputeHess(const GBLUP& model)
 {
     uword n = model.sigma().n_elem;
     dmat hess(n, n, arma::fill::zeros);
@@ -64,10 +64,8 @@ dmat SecondOrderOptimizer::ComputeHess(const LinearMixedModel& model)
     return hess;
 }
 
-double NewtonRaphsonOptimizer::ComputeHessElement(
-    const LinearMixedModel& model,
-    uword i,
-    uword j)
+double
+NewtonRaphsonOptimizer::ComputeHessElement(const GBLUP& model, uword i, uword j)
 {
     const dmat& pdvi = model.pdv().slice(i);
     const dmat& pdvj = model.pdv().slice(j);
@@ -76,16 +74,14 @@ double NewtonRaphsonOptimizer::ComputeHessElement(
            - as_scalar(model.y().t() * pdvi * pdvj * model.proj_y());
 }
 
-double FisherScoringOptimizer::ComputeHessElement(
-    const LinearMixedModel& model,
-    uword i,
-    uword j)
+double
+FisherScoringOptimizer::ComputeHessElement(const GBLUP& model, uword i, uword j)
 {
     return -0.5 * trace(model.pdv().slice(i) * model.pdv().slice(j));
 }
 
 double AverageInformationOptimizer::ComputeHessElement(
-    const LinearMixedModel& model,
+    const GBLUP& model,
     uword i,
     uword j)
 {

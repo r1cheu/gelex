@@ -1,6 +1,7 @@
 #pragma once
 #include <armadillo>
 #include <optional>
+#include <string>
 
 #include "gelex/model/bayes_model_policy.h"
 #include "gelex/model/bayes_prior.h"
@@ -47,6 +48,8 @@ class BayesianModel
     };
 
     static constexpr std::string name = Genetic::name;
+    static constexpr bool has_pi = Genetic::has_pi;
+    static constexpr bool fixed_pi = Genetic::fixed_pi;
     using sigma_t = Genetic::sigma_t;
     const dvec& phenotype() const { return phenotype_; }
     const dmat& genotype_mat() const { return genotype_mat_; }
@@ -56,6 +59,7 @@ class BayesianModel
     }
     const std::optional<dmat>& design_mat_r() const { return design_mat_r_; }
     Priors& priors() { return priors_; }
+    const Priors& priors() const { return priors_; }
 
     const dvec& pi() const { return pi_; }
     void set_pi(dvec new_pi) { pi_ = std::move(new_pi); }

@@ -1,7 +1,7 @@
 import h5py
 import numpy as np
 import pytest
-from gelexy.model import LinearMixedModelParams
+from gelexy.model import GBLUPParams
 from gelexy.model.io import load_params
 
 
@@ -21,9 +21,9 @@ def sample_params():
     }
 
 
-def test_linear_mixed_model_params_init(sample_params):
+def test_gblup_params_init(sample_params):
     # Test initialization
-    params = LinearMixedModelParams(
+    params = GBLUPParams(
         beta=sample_params["beta"],
         sigma=sample_params["sigma"],
         proj_y=sample_params["proj_y"],
@@ -32,9 +32,9 @@ def test_linear_mixed_model_params_init(sample_params):
     assert params is not None
 
 
-def test_linear_mixed_model_params_properties(sample_params):
+def test_gblup_params_properties(sample_params):
     # Create instance
-    params = LinearMixedModelParams(
+    params = GBLUPParams(
         beta=sample_params["beta"],
         sigma=sample_params["sigma"],
         proj_y=sample_params["proj_y"],

@@ -14,7 +14,7 @@
 #include <fmt/ranges.h>
 #include <armadillo>
 
-#include "gelex/model/linear_mixed_model.h"
+#include "gelex/model/gblup.h"
 #include "gelex/optim/base_optimizer.h"
 #include "gelex/optim/expectation_maximization.h"
 #include "gelex/optim/second_order_optimizer.h"
@@ -61,7 +61,7 @@ void Estimator::set_optimizer(
     }
 }
 
-void Estimator::Fit(LinearMixedModel& model, bool em_init, bool verbose)
+void Estimator::Fit(GBLUP& model, bool em_init, bool verbose)
 {
     if (!verbose)
     {
@@ -129,13 +129,13 @@ void Estimator::Fit(LinearMixedModel& model, bool em_init, bool verbose)
     }
 }
 
-dvec Estimator::ComputeBeta(LinearMixedModel& model)
+dvec Estimator::ComputeBeta(GBLUP& model)
 {
     return arma::inv_sympd(model.tx_vinv_x())
            * (model.X().t() * model.v() * model.y());
 }
 
-dmat Estimator::ComputeU(LinearMixedModel& model)
+dmat Estimator::ComputeU(GBLUP& model)
 {
     dmat U{
         model.num_individuals(), model.num_random_effects(), arma::fill::zeros};

@@ -55,42 +55,56 @@ struct BayesAPolicy : VectorSigmaPolicy
 {
     static dvec init_pi() { return {0.0, 1.0}; }
     static constexpr std::string name = "BayesA";
+    static constexpr bool has_pi = false;
+    static constexpr bool fixed_pi = false;
 };
 
 struct BayesBPolicy : VectorSigmaPolicy
 {
     static dvec init_pi() { return detail::default_pi_2(); }
     static constexpr std::string name = "BayesB";
+    static constexpr bool has_pi = true;
+    static constexpr bool fixed_pi = false;
 };
 
 struct BayesRPolicy : VectorSigmaPolicy
 {
     static dvec init_pi() { return detail::default_pi_4(); }
     static constexpr std::string name = "BayesR";
+    static constexpr bool has_pi = true;
+    static constexpr bool fixed_pi = true;
 };
 
 struct BayesBpiPolicy : VectorSigmaPolicy
 {
     static dvec init_pi() { return detail::default_pi_2(); }
     static constexpr std::string name = "BayesBpi";
+    static constexpr bool has_pi = true;
+    static constexpr bool fixed_pi = true;
 };
 
 struct BayesCPolicy : ScalarSigmaPolicy
 {
     static dvec init_pi() { return detail::default_pi_2(); }
     static constexpr std::string name = "BayesC";
+    static constexpr bool has_pi = true;
+    static constexpr bool fixed_pi = false;
 };
 
 struct BayesCpiPolicy : ScalarSigmaPolicy
 {
     static dvec init_pi() { return detail::default_pi_2(); }
     static constexpr std::string name = "BayesCpi";
+    static constexpr bool has_pi = true;
+    static constexpr bool fixed_pi = true;
 };
 
 struct BayesRRPolicy : ScalarSigmaPolicy
 {
     static dvec init_pi() { return {0.0, 1.0}; }
     static constexpr std::string name = "BayesRR";
+    static constexpr bool has_pi = false;
+    static constexpr bool fixed_pi = false;
 };
 
 static_assert(GeneticPolicy<BayesAPolicy>);

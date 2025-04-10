@@ -3,15 +3,15 @@ from pathlib import Path
 import h5py
 import numpy as np
 
-from ..model import LinearMixedModel, LinearMixedModelParams
+from ..model import GBLUP, GBLUPParams
 
 
-def load_params(model: str | Path | LinearMixedModel):
+def load_params(model: str | Path | GBLUP):
     params = None
     if isinstance(model, str | Path):
         model = Path(model)
         with h5py.File(model, "r") as f:
-            params = LinearMixedModelParams(
+            params = GBLUPParams(
                 np.asfortranarray(f["beta"][:]),
                 np.asfortranarray(f["sigma"][:]),
                 np.asfortranarray(f["proj_y"][:]),
@@ -20,9 +20,9 @@ def load_params(model: str | Path | LinearMixedModel):
             params.rhs = f.attrs["rhs"]
             params.lhs = f.attrs["lhs"]
 
-    if isinstance(model, LinearMixedModel):
+    if isinstance(model, GBLUP):
         try:
-            params = LinearMixedModelParams(model, model._dropped_individuals)
+            params = GBLUPParams(model, model._dropped_individuals)
             params.rhs = model._rhs
             params.lhs = model._lhs
         except AttributeError as e:

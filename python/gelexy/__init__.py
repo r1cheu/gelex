@@ -3,11 +3,11 @@
 # import pandas as pd
 
 # from .dataset import Genotypes, Phenotypes, grm, intersect
-# from .model import LinearMixedModel
+# from .model import GBLUP
 
 # pd.options.mode.copy_on_write = True
 
-# __all__ = ["Genotypes", "Phenotypes", "grm", "LinearMixedModel", "intersect"]
+# __all__ = ["Genotypes", "Phenotypes", "grm", "GBLUP", "intersect"]
 
 from ._core import Estimator
 from .data import load_grm, make_grm, read_table

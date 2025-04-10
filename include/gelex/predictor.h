@@ -6,7 +6,7 @@
 #include <armadillo>
 
 #include "gelex/data/cross_grm.h"
-#include "gelex/model/linear_mixed_model.h"
+#include "gelex/model/gblup.h"
 
 namespace gelex
 {
@@ -14,7 +14,7 @@ using arma::rowvec;
 class Predictor
 {
    public:
-    Predictor(std::string_view train_bed, LinearMixedModelParams params)
+    Predictor(std::string_view train_bed, GBLUPParams params)
         : train_bed_{train_bed}, params_{std::move(params)} {};
     Predictor(const Predictor&) = delete;
     Predictor(Predictor&&) noexcept = default;
@@ -39,6 +39,6 @@ class Predictor
    private:
     std::string train_bed_;
     std::vector<std::unique_ptr<CrossGrm>> cross_grms_;
-    LinearMixedModelParams params_;
+    GBLUPParams params_;
 };
 }  // namespace gelex
