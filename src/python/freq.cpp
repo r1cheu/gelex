@@ -16,7 +16,7 @@
 #include "gelex/estimator/estimator.h"
 #include "gelex/model/gblup.h"
 #include "gelex/predictor.h"
-#include "gelex/python/array_caster.h"
+#include "gelex/python/dense_caster.h"
 
 namespace bind
 {

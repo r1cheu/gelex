@@ -8,7 +8,7 @@
 
 #include "gelex/model/bayes_model.h"
 #include "gelex/model/bayes_prior.h"
-#include "gelex/python/array_caster.h"
+#include "gelex/python/dense_caster.h"
 namespace bind
 {
 namespace nb = nanobind;

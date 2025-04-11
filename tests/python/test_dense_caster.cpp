@@ -5,7 +5,7 @@
 #include <armadillo>
 #include <utility>
 
-#include "gelex/python/array_caster.h"
+#include "gelex/python/dense_caster.h"
 
 namespace bind
 {
@@ -80,7 +80,7 @@ arr2d modify_and_return_matrix(arr2d input)
     return input;
 }
 
-void register_array_caster_test(nb::module_& m)
+void register_dense_caster_test(nb::module_& m)
 {
     m.def("get_vec_ptr_value", &get_vec_ptr_value);
     m.def("get_mat_ptr_value", &get_mat_ptr_value);
@@ -96,7 +96,7 @@ void register_array_caster_test(nb::module_& m)
 
 NB_MODULE(_test, m)
 {
-    register_array_caster_test(m);
+    register_dense_caster_test(m);
 
     nb::class_<A>(m, "A")
         .def(
