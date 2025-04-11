@@ -1,5 +1,6 @@
 #pragma once
 #include <cassert>
+#include <cstdint>
 #include <type_traits>
 #include <utility>
 
@@ -30,6 +31,7 @@ using array_for_arma_t = nb::ndarray<
 using arr1d = array_for_arma_t<arma::dvec>;
 using arr2d = array_for_arma_t<arma::dmat>;
 using arr3d = array_for_arma_t<arma::dcube>;
+using iarr1d = array_for_arma_t<arma::Col<int32_t>>;
 
 template <typename Numpy, typename Scalar = typename Numpy::Scalar>
 struct arma_for_array;
@@ -50,6 +52,12 @@ template <>
 struct arma_for_array<arr3d>
 {
     using type = arma::dcube;
+};
+
+template <>
+struct arma_for_array<iarr1d>
+{
+    using type = arma::Mat<int32_t>;
 };
 
 template <typename Numpy>

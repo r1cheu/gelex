@@ -1,4 +1,5 @@
 #include <nanobind/nanobind.h>
+#include "gelex/python/sparse_caster.h"
 
 namespace bind
 {
@@ -39,5 +40,6 @@ NB_MODULE(_core, m)  // NOLINT
     estimator(m);
     add_grm(m);
     dom_grm(m);
+    m.def("_to_sparse", &bind::to_sparse);
 }
 }  // namespace bind

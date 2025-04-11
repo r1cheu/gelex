@@ -20,9 +20,10 @@ mkl = ">=2024.0.0,<2026"
 python = ">=3.13.2,<3.14"
 numpy = ">=2.2.4,<3"
 pandas = ">=2.2.3,<3"
-# formulaic = ">=1.1.1,<2"
+formulaic = ">=1.1.1,<2"
 h5py = ">=3.13.0,<4"
 formulae = ">=0.5.4,<0.6"
+scipy = ">=1.15.2,<2"
 
 [pypi-dependencies]
 gelexy = { path = ".", editable = true }
