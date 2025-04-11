@@ -25,7 +25,7 @@ using nb::literals::operator""_a;
 
 void gblup_params(nb::module_& m)
 {
-    nb::class_<gelex::GBLUPParams>(m, "_GBLUPParams")
+    nb::class_<gelex::GBLUPParams>(m, "GBLUPParams")
         .def(
             "__init__",
             [](gelex::GBLUPParams* self,

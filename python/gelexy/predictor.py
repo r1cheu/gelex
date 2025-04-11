@@ -9,7 +9,7 @@ from gelexy._core import _Predictor
 from gelexy.utils.path import valid_path
 
 from .data import read_table
-from .model import GBLUP, GBLUPParams, check_fixed_effect
+from .model import GBLUP, GBLUPParams, check_common_effect
 from .model.io import load_params
 
 
@@ -25,7 +25,7 @@ class Predictor(_Predictor):
         prediction = random_effects.sum(
             axis=1, keepdims=True
         ) + self._compute_fixed_effects(
-            self._set_covariates(self.test_individuals, data)
+            self._set_rhs(self.test_individuals, data)
         )
         return pd.DataFrame(
             np.hstack([prediction, random_effects]),
@@ -33,7 +33,7 @@ class Predictor(_Predictor):
             columns=[self._lhs, *self._random_effect_names],
         )
 
-    def _set_covariates(
+    def _set_rhs(
         self,
         test_individuals: list[str],
         data: str | Path | pd.DataFrame | None = None,
@@ -44,18 +44,38 @@ class Predictor(_Predictor):
         if data is None:
             msg = f"the formula is {self._rhs}, but no data is provided"
             raise ValueError(msg)
+
         if isinstance(data, str | Path):
             data = read_table(data)
 
-        missing_individuals = set(test_individuals) - set(data.index)
-        if missing_individuals:
-            msg = f"The following individuals are missing in the provided data: {', '.join(missing_individuals)}"
-            raise ValueError(msg)
+        check_individuals(test_individuals, data)
+
         data = data.loc[test_individuals]
 
-        covariates = check_fixed_effect(Formula(self._rhs), data).lhs
+        common = check_common_effect(Formula(self._rhs), data).lhs
 
-        return np.asfortranarray(covariates, dtype=np.float64)
+        return np.asfortranarray(common, dtype=np.float64)
+
+
+def check_individuals(individuals: list[str], data: pd.DataFrame):
+    """Check if all specified individuals exist in the provided data.
+
+    Parameters
+    ----------
+    individuals : list[str]
+        List of individual identifiers to check
+    data : pd.DataFrame
+        DataFrame containing the individuals as index
+
+    Raises
+    ------
+    ValueError
+        If any individuals are missing from the data
+    """
+    missing_individuals = set(individuals) - set(data.index)
+    if missing_individuals:
+        msg = f"The following individuals are missing in the provided data: {', '.join(missing_individuals)}"
+        raise ValueError(msg)
 
 
 class make_predictor:

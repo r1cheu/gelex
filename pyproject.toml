@@ -7,7 +7,8 @@ description = "Add a short description here"
 dependencies = [
   "numpy>=2.2.2,<3",
   "pandas>=2.2.3,<3",
-  "formulaic>=1.1.1,<2",
+  #  "formulaic>=1.1.1,<2",
+  "formulae>=0.5.4,<0.6",
   "h5py>=3.12.1,<4",
 ]
 

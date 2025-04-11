@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from formulaic import Formula
 
-from gelexy._core import _GBLUP, _GBLUPParams
+from gelexy._core import _GBLUP
 
 from ..data import load_grm, read_table
 from ..logger import setup_logger
@@ -43,10 +43,6 @@ class GBLUP(_GBLUP):
             )
             f.attrs["rhs"] = self._rhs
             f.attrs["lhs"] = self._lhs
-
-
-class GBLUPParams(_GBLUPParams):
-    pass  # inherit from _GBLUPParams, for the ability to extend class in python
 
 
 class make_model:
@@ -120,7 +116,7 @@ class make_model:
             self._load_grm(grm, data, dropped_individuals, lhs)
         )
 
-        model_matrix = check_fixed_effect(formula, data)
+        model_matrix = check_common_effect(formula, data)
 
         model = GBLUP(
             np.asfortranarray(model_matrix.lhs, dtype=np.float64),
@@ -213,7 +209,7 @@ class make_model:
         )
 
 
-def check_fixed_effect(formula: Formula, data: pd.DataFrame):
+def check_common_effect(formula: Formula, data: pd.DataFrame):
     try:
         model_matrix = formula.get_model_matrix(data, na_action="raise")
     except ValueError as e:
