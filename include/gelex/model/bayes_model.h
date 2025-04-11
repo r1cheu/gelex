@@ -28,8 +28,8 @@ class BayesianModel
           priors_{Genetic::init_pi()}
     {
         a_.zeros(genotype_mat_.n_cols);
-        a_cols_norm_ = SumOfSquare(genotype_mat_);
-        a_cols_var_ = ColsVar(genotype_mat_);
+        a_cols_norm_ = sum_square(genotype_mat_);
+        a_cols_var_ = cols_var(genotype_mat_);
         n_var_0_ = arma::sum(a_cols_var_ == 0.0);
 
         sigma_a_ = Genetic::init_sigma(genotype_mat_.n_cols);  // NOLINT
@@ -37,13 +37,13 @@ class BayesianModel
         if (design_mat_beta_)
         {
             beta_.zeros(design_mat_beta_->n_cols);
-            beta_cols_norm_ = SumOfSquare(*design_mat_beta_);
+            beta_cols_norm_ = sum_square(*design_mat_beta_);
         }
 
         if (design_mat_r_)
         {
             r_.zeros(design_mat_r_->n_cols);
-            r_cols_norm_ = SumOfSquare(*design_mat_r_);
+            r_cols_norm_ = sum_square(*design_mat_r_);
         }
     };
 
@@ -103,13 +103,13 @@ class BayesianModel
     const dvec& beta_cols_norm() const { return beta_cols_norm_; }
     const dvec& r_cols_norm() const { return r_cols_norm_; }
 
-    bool HasEnv() const { return design_mat_r_.has_value(); }
-    bool HasBeta() const { return design_mat_beta_.has_value(); }
+    bool has_env() const { return design_mat_r_.has_value(); }
+    bool has_beta() const { return design_mat_beta_.has_value(); }
 
-    void SetPriors() { pi_ = priors_.pi(); }
+    void set_priors() { pi_ = priors_.pi(); }
 
    protected:
-    static dvec SumOfSquare(const dmat& mat)
+    static dvec sum_square(const dmat& mat)
     {
         dvec out(mat.n_cols);
 #pragma omp parallel for default(none) shared(mat, out)
@@ -119,7 +119,7 @@ class BayesianModel
         }
         return out;
     }
-    static dvec ColsVar(const dmat& mat)
+    static dvec cols_var(const dmat& mat)
     {
         dvec out(mat.n_cols);
 #pragma omp parallel for default(none) shared(mat, out)

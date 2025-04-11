@@ -31,21 +31,21 @@ TEST_CASE("Linear Mixed Model Fitted Check")
     SECTION("Newton Raphson")
     {
         gelex::Estimator estimator{"NR", 20, 1e-6};
-        estimator.Fit(model, true, false);
+        estimator.fit(model, true, false);
         REQUIRE(arma::approx_equal(model.sigma(), sigma_hat, "absdiff", 1e-3));
     }
 
     SECTION("Fisher Scoring")
     {
         gelex::Estimator estimator{"FS", 20, 1e-6};
-        estimator.Fit(model, true, false);
+        estimator.fit(model, true, false);
         REQUIRE(arma::approx_equal(model.sigma(), sigma_hat, "absdiff", 1e-3));
     }
 
     SECTION("Average Information")
     {
         gelex::Estimator estimator{"AI", 20, 1e-6};
-        estimator.Fit(model, true, false);
+        estimator.fit(model, true, false);
         REQUIRE(arma::approx_equal(model.sigma(), sigma_hat, "absdiff", 1e-3));
     }
 }

@@ -29,25 +29,25 @@ Grm::Grm(
     set_center(rowvec{bed().num_snps(), arma::fill::zeros});
 }
 
-void Grm::Centerlize(dmat& genotype)
+void Grm::centerlize(dmat& genotype)
 {
-    rowvec center = ComputeCenter(genotype);
+    rowvec center = compute_center(genotype);
     auto start_index = bed().current_chunk_index() - center.n_cols;
-    Encode(genotype);
+    encode(genotype);
     genotype.each_row() -= center;
     set_center(start_index, center);
 }
 
-dmat Grm::Compute()
+dmat Grm::compute()
 {
-    Reset();
+    reset();
     const uint64_t num_ind{bed().num_individuals()};
     dmat grm{num_ind, num_ind, arma::fill::zeros};
 
-    while (bed().HasNext())
+    while (bed().has_next())
     {
-        dmat genotype{bed().ReadChunk()};
-        Centerlize(genotype);
+        dmat genotype{bed().read_chunk()};
+        centerlize(genotype);
         grm += genotype * genotype.t();
     };
     set_scale_factor(Scale(grm));
@@ -61,20 +61,20 @@ double Grm::Scale(dmat& grm)
     return scale_factor;
 }
 
-void AddGrm::Encode(dmat& genotype) {
+void AddGrm::encode(dmat& genotype) {
 };  // add is the default encoding, so do nothing
 
-rowvec AddGrm::ComputeCenter(const dmat& genotype)
+rowvec AddGrm::compute_center(const dmat& genotype)
 {
     return arma::mean(genotype, 0);
 }
 
-void DomGrm::Encode(dmat& genotype)
+void DomGrm::encode(dmat& genotype)
 {
     dom_encode(genotype);
 }
 
-rowvec DomGrm::ComputeCenter(const dmat& genotype)
+rowvec DomGrm::compute_center(const dmat& genotype)
 {
     rowvec pA = arma::mean(genotype, 0) / 2;
     rowvec center = 2 * (pA % (1 - pA));

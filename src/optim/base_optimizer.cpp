@@ -12,17 +12,17 @@
 namespace gelex
 {
 
-bool OptimizerBase::Optimize(GBLUP& model)
+bool OptimizerBase::optimize(GBLUP& model)
 {
     double time_cost{};
     for (size_t i{1}; i <= max_iter(); ++i)
     {
         {
             Timer time(time_cost);
-            model.set_sigma(Step(model));
+            model.set_sigma(step(model));
         }
-        double loglike{model.ComputeLogLikelihood()};
-        CheckConvergence(model.sigma(), loglike);
+        double loglike{model.computeLogLikelihood()};
+        check_convergence(model.sigma(), loglike);
         logger_->info(
             "Iter {:d}: logL={:.2f}, varcomp=[{:.4f}] {:.3f}s",
             i,
@@ -39,7 +39,7 @@ bool OptimizerBase::Optimize(GBLUP& model)
     return false;
 }
 
-double OptimizerBase::VecDiff(const dvec& new_param)
+double OptimizerBase::compute_vec_diff(const dvec& new_param)
 {
     if (old_param_.is_empty())
     {
@@ -51,7 +51,7 @@ double OptimizerBase::VecDiff(const dvec& new_param)
     return diff;
 }
 
-double OptimizerBase::ObjFunctionDiff(double new_value)
+double OptimizerBase::compute_objfunc_diff(double new_value)
 {
     if (old_obj_func_value_ == 0)
     {
@@ -63,10 +63,10 @@ double OptimizerBase::ObjFunctionDiff(double new_value)
     return diff;
 }
 
-void OptimizerBase::CheckConvergence(const dvec& new_param, double new_value)
+void OptimizerBase::check_convergence(const dvec& new_param, double new_value)
 {
-    double param_diff = VecDiff(new_param);
-    double obj_func_diff = ObjFunctionDiff(new_value);
+    double param_diff = compute_vec_diff(new_param);
+    double obj_func_diff = compute_objfunc_diff(new_value);
     bool negative = obj_func_diff < 0.0;
     obj_func_diff = std::abs(obj_func_diff);
     obj_func_diff_ = obj_func_diff;
@@ -78,7 +78,7 @@ void OptimizerBase::CheckConvergence(const dvec& new_param, double new_value)
     }
 }
 
-dvec OptimizerBase::Constrain(dvec sigma, double y_var)
+dvec OptimizerBase::constrain(dvec sigma, double y_var)
 {
     constexpr double constr_scale = 1e-6;
     arma::vec constrained_sigma = sigma;

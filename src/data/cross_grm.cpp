@@ -21,7 +21,7 @@ CrossGrm::CrossGrm(
     set_scale_factor(scale_factor);
 }
 
-void CrossGrm::CheckSnpConsistency(const BedReader& test_bed) const
+void CrossGrm::check_snp_consistency(const BedReader& test_bed) const
 {
     for (uint64_t i{0}; i < bed().num_snps(); ++i)
     {
@@ -33,29 +33,29 @@ void CrossGrm::CheckSnpConsistency(const BedReader& test_bed) const
     }
 }
 
-void CrossGrm::Reset()
+void CrossGrm::reset()
 {
-    bed().Reset();
+    bed().reset();
 }
 
-dmat CrossGrm::Compute(std::string_view test_bed_path)
+dmat CrossGrm::compute(std::string_view test_bed_path)
 {
-    Reset();
+    reset();
     BedReader test_bed{test_bed_path, bed().chunk_size()};
     test_individuals_ = test_bed.individuals();
-    CheckSnpConsistency(test_bed);
+    check_snp_consistency(test_bed);
     dmat grm{
         test_bed.num_individuals(), bed().num_individuals(), arma::fill::zeros};
-    while (bed().HasNext())
+    while (bed().has_next())
     {
         auto start = bed().current_chunk_index();
 
-        dmat train_genotype{bed().ReadChunk()};
-        dmat test_genotype{test_bed.ReadChunk()};
+        dmat train_genotype{bed().read_chunk()};
+        dmat test_genotype{test_bed.read_chunk()};
         auto end = start + train_genotype.n_cols - 1;
 
-        Encode(train_genotype);
-        Encode(test_genotype);
+        encode(train_genotype);
+        encode(test_genotype);
 
         train_genotype.each_row() -= center().subvec(start, end);
         test_genotype.each_row() -= center().subvec(start, end);
@@ -65,8 +65,8 @@ dmat CrossGrm::Compute(std::string_view test_bed_path)
     return grm;
 }
 
-void AddCrossGrm::Encode(dmat& genotype) {}
-void DomCrossGrm::Encode(dmat& genotype)
+void AddCrossGrm::encode(dmat& genotype) {}
+void DomCrossGrm::encode(dmat& genotype)
 {
     dom_encode(genotype);
 }

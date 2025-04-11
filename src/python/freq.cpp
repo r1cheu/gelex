@@ -35,9 +35,9 @@ void gblup_params(nb::module_& m)
                std::vector<std::string> dropped_individuals)
             {
                 new (self) gelex::GBLUPParams{
-                    ToArma(beta),
-                    ToArma(sigma),
-                    ToArma(proj_y),
+                    to_arma(beta),
+                    to_arma(sigma),
+                    to_arma(proj_y),
                     std::move(dropped_individuals)};
             },
             "beta"_a.noconvert(),
@@ -60,15 +60,15 @@ void gblup_params(nb::module_& m)
             "dropped_individuals"_a.noconvert())
         .def_prop_ro(
             "beta",
-            [](const gelex::GBLUPParams& self) { return ToPy(self.beta()); },
+            [](const gelex::GBLUPParams& self) { return to_py(self.beta()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "sigma",
-            [](const gelex::GBLUPParams& self) { return ToPy(self.sigma()); },
+            [](const gelex::GBLUPParams& self) { return to_py(self.sigma()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "proj_y",
-            [](const gelex::GBLUPParams& self) { return ToPy(self.proj_y()); },
+            [](const gelex::GBLUPParams& self) { return to_py(self.proj_y()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "dropped_individuals",
@@ -89,7 +89,10 @@ void gblup(nb::module_& m)
                std::vector<std::string> names)
             {
                 new (self) gelex::GBLUP{
-                    ToArma(y), ToArma(X), ToArma(covar_mat), std::move(names)};
+                    to_arma(y),
+                    to_arma(X),
+                    to_arma(covar_mat),
+                    std::move(names)};
             },
             "y"_a.noconvert(),
             "X"_a.noconvert(),
@@ -116,29 +119,29 @@ void gblup(nb::module_& m)
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "_U",
-            [](gelex::GBLUP& self) { return ToPy(self.U()); },
+            [](gelex::GBLUP& self) { return to_py(self.U()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "_proj_y",
-            [](gelex::GBLUP& self) { return ToPy(self.proj_y()); },
+            [](gelex::GBLUP& self) { return to_py(self.proj_y()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "beta",
-            [](gelex::GBLUP& self) { return ToPy(self.beta()); },
+            [](gelex::GBLUP& self) { return to_py(self.beta()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "sigma",
-            [](gelex::GBLUP& self) { return ToPy(self.sigma()); },
+            [](gelex::GBLUP& self) { return to_py(self.sigma()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "y",
-            [](gelex::GBLUP& self) { return ToPy(self.y()); },
+            [](gelex::GBLUP& self) { return to_py(self.y()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "X",
-            [](gelex::GBLUP& self) { return ToPy(self.X()); },
+            [](gelex::GBLUP& self) { return to_py(self.X()); },
             nb::rv_policy::reference_internal)
-        .def("reset", &gelex::GBLUP::Reset, "reset the model")
+        .def("reset", &gelex::GBLUP::reset, "reset the model")
         .def(
             "__repr__",
             [](const gelex::GBLUP& self)
@@ -193,11 +196,11 @@ void predictor(nb::module_& m)
         .def(
             "_compute_random_effects",
             [](gelex::Predictor& self, std::string_view test_bed)
-            { return ToPy(self.ComputeRandomEffects(test_bed)); })
+            { return to_py(self.compute_group_effects(test_bed)); })
         .def(
             "_compute_fixed_effects",
             [](gelex::Predictor& self, arr2d covariates)
-            { return ToPy(self.ComputeFixedEffects(ToArma(covariates))); })
+            { return to_py(self.compute_common_effects(to_arma(covariates))); })
 
         .def_prop_ro("test_individuals", &gelex::Predictor::test_individuals);
 }
@@ -221,11 +224,11 @@ void estimator(nb::module_& m)
             "    Convergence tolerance (default: 1e-8)")
         .def(
             "fit",
-            &gelex::Estimator::Fit,
+            &gelex::Estimator::fit,
             "model"_a,
             "em_init"_a = true,
             "verbose"_a = true,
-            "Fit the model\n\n"
+            "fit the model\n\n"
             "Parameters\n"
             "----------\n"
             "model : GBLUP\n"
@@ -279,7 +282,7 @@ void add_grm(nb::module_& m)
             "np.ndarray\n")
         .def(
             "compute",
-            [](gelex::AddGrm& self) { return ToPy(self.Compute()); },
+            [](gelex::AddGrm& self) { return to_py(self.compute()); },
             nb::rv_policy::move)
         .def_prop_ro(
             "individuals",
@@ -287,7 +290,7 @@ void add_grm(nb::module_& m)
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "center",
-            [](gelex::AddGrm& self) { return ToPy(self.center()); },
+            [](gelex::AddGrm& self) { return to_py(self.center()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "scale_factor",
@@ -314,7 +317,7 @@ void dom_grm(nb::module_& m)
             "np.ndarray\n")
         .def(
             "compute",
-            [](gelex::DomGrm& self) { return ToPy(self.Compute()); },
+            [](gelex::DomGrm& self) { return to_py(self.compute()); },
             nb::rv_policy::move)
         .def_prop_ro(
             "individuals",
@@ -322,7 +325,7 @@ void dom_grm(nb::module_& m)
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "center",
-            [](gelex::DomGrm& self) { return ToPy(self.center()); },
+            [](gelex::DomGrm& self) { return to_py(self.center()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "scale_factor",

@@ -4,12 +4,12 @@
 
 namespace gelex
 {
-dvec SecondOrderOptimizer::Step(const GBLUP& model)
+dvec SecondOrderOptimizer::step(const GBLUP& model)
 {
     dvec sigma{model.sigma()};
     uword num_random_effects{sigma.n_elem};
-    dvec first_grad = ComputeFirstGrad(model);
-    dmat hess = ComputeHess(model);
+    dvec first_grad = computeFirstGrad(model);
+    dmat hess = compute_hess(model);
     dmat hess_inv;
     if (!pinv(hess_inv, hess))
     {
@@ -24,10 +24,10 @@ dvec SecondOrderOptimizer::Step(const GBLUP& model)
     {
         sigma += delta;
     }
-    return OptimizerBase::Constrain(sigma, model.y_var());
+    return OptimizerBase::constrain(sigma, model.y_var());
 };
 
-dvec SecondOrderOptimizer::ComputeFirstGrad(const GBLUP& model)
+dvec SecondOrderOptimizer::computeFirstGrad(const GBLUP& model)
 {
     const dvec& sigma = model.sigma();
     const dvec& y = model.y();
@@ -46,7 +46,7 @@ dvec SecondOrderOptimizer::ComputeFirstGrad(const GBLUP& model)
     return first_grad;
 };
 
-dmat SecondOrderOptimizer::ComputeHess(const GBLUP& model)
+dmat SecondOrderOptimizer::compute_hess(const GBLUP& model)
 {
     uword n = model.sigma().n_elem;
     dmat hess(n, n, arma::fill::zeros);
@@ -54,7 +54,7 @@ dmat SecondOrderOptimizer::ComputeHess(const GBLUP& model)
     {
         for (size_t j{i}; j < n; ++j)
         {
-            hess.at(i, j) = ComputeHessElement(model, i, j);
+            hess.at(i, j) = compute_hess_elem(model, i, j);
             if (i != j)
             {
                 hess.at(j, i) = hess.at(i, j);
@@ -65,7 +65,7 @@ dmat SecondOrderOptimizer::ComputeHess(const GBLUP& model)
 }
 
 double
-NewtonRaphsonOptimizer::ComputeHessElement(const GBLUP& model, uword i, uword j)
+NewtonRaphsonOptimizer::compute_hess_elem(const GBLUP& model, uword i, uword j)
 {
     const dmat& pdvi = model.pdv().slice(i);
     const dmat& pdvj = model.pdv().slice(j);
@@ -75,12 +75,12 @@ NewtonRaphsonOptimizer::ComputeHessElement(const GBLUP& model, uword i, uword j)
 }
 
 double
-FisherScoringOptimizer::ComputeHessElement(const GBLUP& model, uword i, uword j)
+FisherScoringOptimizer::compute_hess_elem(const GBLUP& model, uword i, uword j)
 {
     return -0.5 * trace(model.pdv().slice(i) * model.pdv().slice(j));
 }
 
-double AverageInformationOptimizer::ComputeHessElement(
+double AverageInformationOptimizer::compute_hess_elem(
     const GBLUP& model,
     uword i,
     uword j)

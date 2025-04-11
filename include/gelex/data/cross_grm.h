@@ -30,7 +30,7 @@ class CrossGrm : public IGrm
     CrossGrm& operator=(const CrossGrm&) = delete;
 
     ~CrossGrm() override = default;
-    dmat Compute(std::string_view test_bed_path);
+    dmat compute(std::string_view test_bed_path);
 
     const std::vector<std::string>& test_individuals() const noexcept
     {
@@ -38,10 +38,10 @@ class CrossGrm : public IGrm
     }
 
    protected:
-    void CheckSnpConsistency(const BedReader& test_bed) const;
+    void check_snp_consistency(const BedReader& test_bed) const;
 
    private:
-    void Reset();
+    void reset();
     std::vector<std::string> test_individuals_;
 };
 
@@ -50,7 +50,7 @@ class AddCrossGrm : public CrossGrm
     using CrossGrm::CrossGrm;
 
    protected:
-    void Encode(dmat& genotype) override;
+    void encode(dmat& genotype) override;
 };
 
 class DomCrossGrm : public CrossGrm
@@ -58,6 +58,6 @@ class DomCrossGrm : public CrossGrm
     using CrossGrm::CrossGrm;
 
    protected:
-    void Encode(dmat& genotype) override;
+    void encode(dmat& genotype) override;
 };
 }  // namespace gelex

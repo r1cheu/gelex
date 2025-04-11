@@ -56,7 +56,7 @@ template <typename Numpy>
 using arma_for_array_t = typename arma_for_array<Numpy>::type;
 
 template <typename ArmaType>
-auto ToPy(ArmaType&& arma_obj)
+auto to_py(ArmaType&& arma_obj)
 {
     using Arma = std::decay_t<ArmaType>;
     using Numpy = std::conditional_t<
@@ -105,7 +105,7 @@ auto ToPy(ArmaType&& arma_obj)
 }
 
 template <typename Numpy, typename Scalar = typename Numpy::Scalar>
-auto ToArma(Numpy arr)
+auto to_arma(Numpy arr)
 {
     using ArmaType = arma_for_array_t<std::decay_t<Numpy>>;
     if constexpr (arma::is_Col<ArmaType>::value)

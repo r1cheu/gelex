@@ -46,8 +46,8 @@ class GBLUP
     void set_beta(dvec beta) { beta_ = std::move(beta); }
     void set_U(dmat U) { U_ = std::move(U); }
 
-    double ComputeLogLikelihood() const;
-    void Reset();
+    double computeLogLikelihood() const;
+    void reset();
 
    private:
     uint64_t num_random_effects_{};
@@ -64,6 +64,7 @@ class GBLUP
     dcube zkzt_;
 
     std::vector<std::string> random_effect_names_;
+    std::vector<sp_dmat> group_eff;
     dvec sigma_;
 
     double logdet_v_{};
@@ -71,9 +72,9 @@ class GBLUP
     dmat v_, proj_, tx_vinv_x_;
     dcube pdv_;
 
-    void ComputeV();
-    void ComputeProj();
-    void ComputePdV();
+    void computeV();
+    void computeProj();
+    void computePdV();
     static double VinvLogdet(dmat& V);
 };
 

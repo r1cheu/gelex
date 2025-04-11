@@ -12,7 +12,7 @@ class ExpectationMaximizationOptimizer : public OptimizerBase
     using OptimizerBase::OptimizerBase;
 
    public:
-    dvec Step(const GBLUP& model) override;
+    dvec step(const GBLUP& model) override;
 
     std::string name() const noexcept override
     {

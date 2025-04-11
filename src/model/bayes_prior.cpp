@@ -19,7 +19,7 @@ double SumColVar(const dmat& mat)
     return arma::sum(out);
 }
 
-double ComputeMeanDotProduct(const dmat& mat)
+double computeMeanDotProduct(const dmat& mat)
 {
     double sum = 0.0;
 #pragma omp parallel for default(none) shared(mat) reduction(+ : sum) \
@@ -35,10 +35,10 @@ double ComputeMeanDotProduct(const dmat& mat)
 /**/
 /*HyperParams::HyperParams(const BayesLMM& model)*/
 /*{*/
-/*    s2_ga_ = ComputeS2Ga(model);  // NOLINT*/
+/*    s2_ga_ = computeS2Ga(model);  // NOLINT*/
 /*};*/
 /**/
-/*double HyperParams::ComputeS2Ga(const BayesLMM& model) const*/
+/*double HyperParams::computeS2Ga(const BayesLMM& model) const*/
 /*{*/
 /*    return ((nu_ga_ - 2) / nu_ga_) * model.var_y() / (1 - model.pi().at(0))*/
 /*           * additive_h2_;*/

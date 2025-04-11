@@ -28,12 +28,12 @@ void register_bayes_model(nb::module_& module, const char* name)
                std::optional<arr2d> design_mat_r)
             {
                 new (self) BayesModel{
-                    ToArma(std::move(phenotype)),
-                    ToArma(std::move(genotype_mat)),
+                    to_arma(std::move(phenotype)),
+                    to_arma(std::move(genotype_mat)),
                     design_mat_beta
-                        ? std::make_optional(ToArma(*design_mat_beta))
+                        ? std::make_optional(to_arma(*design_mat_beta))
                         : std::nullopt,
-                    design_mat_r ? std::make_optional(ToArma(*design_mat_r))
+                    design_mat_r ? std::make_optional(to_arma(*design_mat_r))
                                  : std::nullopt};
             },
             "phenotype"_a.noconvert(),
@@ -178,10 +178,10 @@ void priors(nb::module_& module)
         .def(
             "__init__",
             [](gx::Priors* self, arr1d pi)
-            { new (self) gelex::Priors{ToArma(std::move(pi))}; })
+            { new (self) gelex::Priors{to_arma(std::move(pi))}; })
         .def(
             "pi",
-            [](gx::Priors& self) -> arr1d { return ToPy(self.pi()); },
+            [](gx::Priors& self) -> arr1d { return to_py(self.pi()); },
             nb::rv_policy::reference_internal)
         .def(
             "sigma_a",

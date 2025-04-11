@@ -37,12 +37,12 @@ GBLUP::GBLUP(
 void GBLUP::set_sigma(dvec sigma)
 {
     sigma_ = std::move(sigma);
-    ComputeV();
-    ComputeProj();
-    ComputePdV();
+    computeV();
+    computeProj();
+    computePdV();
 }
 
-void GBLUP::Reset()
+void GBLUP::reset()
 {
     set_sigma(dvec(
         num_random_effects_,
@@ -50,14 +50,14 @@ void GBLUP::Reset()
     set_beta(dvec(num_fixed_effects_, arma::fill::zeros));
 };
 
-double GBLUP::ComputeLogLikelihood() const
+double GBLUP::computeLogLikelihood() const
 {
     return -0.5
            * (logdet_v_ + log_det_sympd(tx_vinv_x_)
               + as_scalar(y_.t() * proj_y_));
 }
 
-void GBLUP::ComputeV()
+void GBLUP::computeV()
 {
     v_ = sigma_.at(0) * zkzt_.slice(0);
     for (size_t i{1}; i < zkzt_.n_slices; ++i)
@@ -68,7 +68,7 @@ void GBLUP::ComputeV()
     v_.diag() += sigma_.back();
 }
 
-void GBLUP::ComputeProj()
+void GBLUP::computeProj()
 {
     logdet_v_ = VinvLogdet(v_);  // from here the v_ matrix is inverted
     dmat vinv_x = v_ * X_;
@@ -81,7 +81,7 @@ void GBLUP::ComputeProj()
     proj_y_ = proj_ * y_;
 }
 
-void GBLUP::ComputePdV()
+void GBLUP::computePdV()
 {
     for (size_t i = 0; i < zkzt_.n_slices; ++i)
     {

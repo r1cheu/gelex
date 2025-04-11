@@ -42,12 +42,12 @@ void Predictor::set_cross_grm(
     }
 }
 
-dmat Predictor::ComputeFixedEffects(const dvec& covariates) const noexcept
+dmat Predictor::compute_common_effects(const dvec& covariates) const noexcept
 {
     return covariates * params_.beta();
 }
 
-dmat Predictor::ComputeRandomEffects(std::string_view test_bed)
+dmat Predictor::compute_group_effects(std::string_view test_bed)
 {
     const dvec& proj_y = params_.proj_y();
     const dvec& sigma = params_.sigma();
@@ -57,7 +57,7 @@ dmat Predictor::ComputeRandomEffects(std::string_view test_bed)
 
     for (size_t i = 0; i < num_random_effects; ++i)
     {
-        dmat new_k = cross_grms_[i]->Compute(test_bed);
+        dmat new_k = cross_grms_[i]->compute(test_bed);
         if (i == 0)
         {
             RandomEffects.zeros(new_k.n_rows, num_random_effects);
