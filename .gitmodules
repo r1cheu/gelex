@@ -1,3 +1,4 @@
-[submodule "src/gelex/ext/armadillo"]
-    path = src/gelex/ext/armadillo
+
+[submodule "ext/armadillo"]
+    path = ext/armadillo
     url = https://gitlab.com/conradsnicta/armadillo-code.git

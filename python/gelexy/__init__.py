@@ -1,0 +1,24 @@
+"""This module initializes the gelexy package, which is designed to provide tools and utilities for genomics selection."""
+
+# import pandas as pd
+
+# from .dataset import Genotypes, Phenotypes, grm, intersect
+# from .model import GBLUP
+
+# pd.options.mode.copy_on_write = True
+
+# __all__ = ["Genotypes", "Phenotypes", "grm", "GBLUP", "intersect"]
+
+from ._core import Estimator
+from .data import load_grm, make_grm, read_table
+from .model import make_model
+from .predictor import make_predictor
+
+__all__ = [
+    "Estimator",
+    "load_grm",
+    "make_grm",
+    "make_model",
+    "make_predictor",
+    "read_table",
+]

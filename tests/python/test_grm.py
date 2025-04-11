@@ -4,13 +4,14 @@ import h5py
 import numpy as np
 import pandas as pd
 import pytest
+
 from gelexy import load_grm, make_grm
 
 
 @pytest.fixture
 def test_bed_file():
     """Fixture for test BED file path"""
-    return Path(__file__).resolve().parent / "data/test.bed"
+    return Path(__file__).resolve().parent.parent / "data/test.bed"
 
 
 def test_make_grm_additive(test_bed_file):

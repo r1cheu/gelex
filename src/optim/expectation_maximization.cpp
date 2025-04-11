@@ -1,0 +1,31 @@
+#include "gelex/optim/expectation_maximization.h"
+
+#include <armadillo>
+
+#include "gelex/model/gblup.h"
+#include "gelex/optim/base_optimizer.h"
+
+namespace gelex
+{
+
+dvec ExpectationMaximizationOptimizer::Step(const GBLUP& model)
+{
+    dvec sigma{model.sigma()};
+    dvec sigma2{sigma % sigma};
+    const dvec& y = model.y();
+    const dcube& pdv = model.pdv();
+    uword n = y.n_elem;
+
+    for (size_t i{0}; i < model.sigma().n_elem; ++i)
+    {
+        sigma.at(i) = as_scalar(
+                          sigma2.at(i) * (y.t() * pdv.slice(i) * model.proj_y())
+                          + trace(
+                              sigma.at(i) * arma::eye(n, n)
+                              - sigma2.at(i) * pdv.slice(i)))
+                      / static_cast<double>(n);
+    }
+    return OptimizerBase::Constrain(sigma, model.y_var());
+}
+
+}  // namespace gelex

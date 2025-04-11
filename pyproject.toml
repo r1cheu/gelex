@@ -7,13 +7,24 @@ description = "Add a short description here"
 dependencies = [
   "numpy>=2.2.2,<3",
   "pandas>=2.2.3,<3",
-  "formulaic>=1.1.1,<2",
+  #  "formulaic>=1.1.1,<2",
+  "formulae>=0.5.4,<0.6",
   "h5py>=3.12.1,<4",
 ]
 
 [build-system]
-build-backend = "hatchling.build"
-requires = ["hatchling"]
+requires = ["scikit-build-core>=0.11", "nanobind>=2.5.0"]
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+wheel.packages = ["python/gelexy"]
+build-dir = ".pybuild"
+cmake.source-dir = "."
+wheel.expand-macos-universal-tags = true
+cmake.build-type = "Release"
+[tool.scikit-build.cmake.define]
+USE_MKL = "ON"
+BUILD_TEST = "ON"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -21,7 +32,8 @@ addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
 xfail_strict = true
 log_cli_level = "INFO"
 filterwarnings = ["error", "ignore::pytest.PytestCacheWarning"]
-testpaths = ["tests"]
+testpaths = ["tests/python"]
+
 
 [tool.cibuildwheel]
 environment = {}

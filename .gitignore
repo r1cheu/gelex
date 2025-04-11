@@ -11,7 +11,8 @@ __pycache__/
 # Distribution / packaging
 build/
 .build/
-pybuild/
+
+.pybuild/
 develop-eggs/
 dist/
 downloads/
@@ -68,6 +69,7 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+notebooks/
 
 # IPython
 profile_default/
@@ -97,3 +99,4 @@ script/
 *.log
 /*.cpp
 *.grm
+benchmark/

@@ -1,0 +1,13 @@
+Checks: >
+  -*,
+  clang-analyzer-*,
+  bugprone-*,
+  cert-*
+  modernize-*,
+  readability-*,
+  performance-*,
+  cppcoreguidelines-*,
+  hicpp-*,
+  google-*,
+  openmp-*
+FormatStyle: file
