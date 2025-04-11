@@ -30,6 +30,7 @@ gelexy = { path = ".", editable = true }
 [pypi-options]
 no-build-isolation = ["gelexy"]
 
+
 [tasks]
 start = "python -c 'import gelexy as gx; print(gx.make_model)'"
 

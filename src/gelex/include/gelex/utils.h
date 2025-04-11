@@ -1,0 +1,79 @@
+#pragma once
+
+#include <chrono>
+#include <memory>
+#include <string>
+
+#include <fmt/color.h>
+#include <spdlog/logger.h>
+#include <armadillo>
+
+namespace gelex
+{
+using arma::dmat;
+using arma::dvec;
+using arma::sp_dmat;
+bool CheckIdentity(const dmat& inputs);
+bool CheckIdentity(const sp_dmat& inputs);
+std::string ToLowercase(std::string_view input);
+
+template <typename T>
+auto cyan(const T& value)
+{
+    return fmt::styled(value, fmt::fg(fmt::color::cyan));
+}
+
+template <typename T>
+auto rebecca_purple(const T& value)
+{
+    return fmt::styled(value, fmt::fg(fmt::color::blue_violet));
+}
+
+template <typename T>
+auto gray(const T& value)
+{
+    return fmt::styled(value, fmt::fg(fmt::color::gray));
+}
+
+template <typename T>
+auto gold(const T& value)
+{
+    return fmt::styled(value, fmt::fg(fmt::color::gold));
+}
+
+template <typename T>
+auto red(const T& value)
+{
+    return fmt::styled(value, fmt::fg(fmt::color::red));
+}
+
+class Timer
+{
+   public:
+    Timer(const Timer&) = default;
+    Timer(Timer&&) = delete;
+    Timer& operator=(const Timer&) = delete;
+    Timer& operator=(Timer&&) = delete;
+    explicit Timer(double& elapsed_time)
+        : elapsed_time_{elapsed_time},
+          start_{std::chrono::high_resolution_clock::now()} {};
+
+    ~Timer();
+
+   private:
+    double& elapsed_time_;
+    std::chrono::high_resolution_clock::time_point start_;
+};
+
+class Logger
+{
+   public:
+    static std::shared_ptr<spdlog::logger> logger();
+
+   private:
+    Logger();
+    std::shared_ptr<spdlog::logger> GetSpdLogger();
+    std::shared_ptr<spdlog::logger> logger_;
+};
+
+}  // namespace gelex

@@ -1,0 +1,17 @@
+[package]
+name = "_gelex"
+version = "0.2.0"
+
+[package.build]
+backend = { name = "pixi-build-cmake", version = "0.1.*" }
+[package.build.configuration]
+extra-args = ["-DCMAKE_BUILD_TYPE=Release"]
+
+[package.host-dependencies]
+nanobind = ">=2.5.0, <3"
+python = "3.12.*"
+cmake = ">=3.18, <4"
+openblas = { version = ">=0.3.28", build = "*openmp*" }
+spdlog = ">=1.15.0,<2"
+catch2 = ">=3.8.0,<4"
+mkl = ">=2024.0.0,<2026"
