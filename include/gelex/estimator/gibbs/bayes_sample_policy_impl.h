@@ -35,13 +35,13 @@ GeneticSampler<BayesRR>::GeneticSampler(
           model),
       chisq_{
           random_generator,
-          model.priors().sigma_g().nu,
+          model.priors().sigma_a().nu,
           static_cast<double>(model.a().n_elem),
-          model.priors().sigma_g().s2}
+          model.priors().sigma_a().s2}
 {
 }
 
-void GeneticSampler<BayesRR>::SampleImpl(BayesRR& model, dvec& y_adj)
+void GeneticSampler<BayesRR>::sample_impl(BayesRR& model, dvec& y_adj)
 {
     dvec& a = model.a();  // NOLINT
     double sigma_a = model.sigma_a();
@@ -59,7 +59,7 @@ void GeneticSampler<BayesRR>::SampleImpl(BayesRR& model, dvec& y_adj)
         const double col_norm = cols_norm_.at(i);
         const double inv_scaler_i = inv_scaler.at(i);
 
-        double rhs = ComputeRhs(col_i, y_adj, old_i, col_norm);
+        double rhs = compute_rhs(col_i, y_adj, old_i, col_norm);
         double new_i
             = normal_(rhs * inv_scaler_i, sqrt(sigma_e * inv_scaler_i));
 
@@ -77,14 +77,14 @@ GeneticSampler<BayesA>::GeneticSampler(
           model),
       chisq_{
           random_generator,
-          model.priors().sigma_g().nu,
+          model.priors().sigma_a().nu,
           1,
-          model.priors().sigma_g().s2}
+          model.priors().sigma_a().s2}
 
 {
 }
 
-void GeneticSampler<BayesA>::SampleImpl(BayesA& model, dvec& y_adj)
+void GeneticSampler<BayesA>::sample_impl(BayesA& model, dvec& y_adj)
 {
     dvec& a = model.a();  // NOLINT
     dvec& sigma_a = model.sigma_a();
@@ -101,7 +101,7 @@ void GeneticSampler<BayesA>::SampleImpl(BayesA& model, dvec& y_adj)
         const double col_norm = cols_norm_.at(i);
         double inv_scaler = 1.0 / (col_norm + sigma_e / sigma_a.at(i));
 
-        double rhs = ComputeRhs(col_i, y_adj, old_i, col_norm);
+        double rhs = compute_rhs(col_i, y_adj, old_i, col_norm);
         double new_i = normal_(rhs * inv_scaler, sqrt(sigma_e * inv_scaler));
 
         a.at(i) = new_i;
@@ -119,15 +119,15 @@ GeneticSampler<BayesB>::GeneticSampler(
       uniform_{random_generator},
       chisq_{
           random_generator,
-          model.priors().sigma_g().nu,
+          model.priors().sigma_a().nu,
           1,
-          model.priors().sigma_g().s2},
+          model.priors().sigma_a().s2},
       snp_tracker{model.a().n_elem, arma::fill::zeros},
       fold_(model.pi().n_elem, arma::fill::zeros)
 {
 }
 
-void GeneticSampler<BayesB>::SampleImpl(BayesB& model, dvec& y_adj)
+void GeneticSampler<BayesB>::sample_impl(BayesB& model, dvec& y_adj)
 {
     BayesBKernel<BayesB, false>(
         model,
@@ -152,15 +152,15 @@ GeneticSampler<BayesBpi>::GeneticSampler(
       uniform_{random_generator},
       chisq_{
           random_generator,
-          model.priors().sigma_g().nu,
+          model.priors().sigma_a().nu,
           1,
-          model.priors().sigma_g().s2},
+          model.priors().sigma_a().s2},
       snp_tracker{model.a().n_elem, arma::fill::zeros},
       fold_(model.pi().n_elem, arma::fill::zeros)
 {
 }
 
-void GeneticSampler<BayesBpi>::SampleImpl(BayesBpi& model, dvec& y_adj)
+void GeneticSampler<BayesBpi>::sample_impl(BayesBpi& model, dvec& y_adj)
 {
     BayesBKernel<BayesBpi, true>(
         model,
@@ -185,15 +185,15 @@ GeneticSampler<BayesC>::GeneticSampler(
       uniform_{random_generator},
       chisq_{
           random_generator,
-          model.priors().sigma_g().nu,
+          model.priors().sigma_a().nu,
           1,
-          model.priors().sigma_g().s2},
+          model.priors().sigma_a().s2},
       snp_tracker{model.a().n_elem, arma::fill::zeros},
       fold_(model.pi().n_elem, arma::fill::zeros)
 {
 }
 
-void GeneticSampler<BayesC>::SampleImpl(BayesC& model, dvec& y_adj)
+void GeneticSampler<BayesC>::sample_impl(BayesC& model, dvec& y_adj)
 {
     BayesCKernel<BayesC, false>(
         model,
@@ -218,15 +218,15 @@ GeneticSampler<BayesCpi>::GeneticSampler(
       uniform_{random_generator},
       chisq_{
           random_generator,
-          model.priors().sigma_g().nu,
+          model.priors().sigma_a().nu,
           1,
-          model.priors().sigma_g().s2},
+          model.priors().sigma_a().s2},
       snp_tracker{model.a().n_elem, arma::fill::zeros},
       fold_(model.pi().n_elem, arma::fill::zeros)
 {
 }
 
-void GeneticSampler<BayesCpi>::SampleImpl(BayesCpi& model, dvec& y_adj)
+void GeneticSampler<BayesCpi>::sample_impl(BayesCpi& model, dvec& y_adj)
 {
     BayesCKernel<BayesCpi, true>(
         model,

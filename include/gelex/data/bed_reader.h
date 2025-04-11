@@ -16,8 +16,8 @@ static constexpr uint64_t DEFAULT_CHUNK_SIZE = 10000;
 // Read Bed file
 // Example:
 // BedReader reader("test.bed", 1000)
-// while (reader.HasNext()) {
-//     auto genotype_mat {reader.ReadChunk()}
+// while (reader.has_next()) {
+//     auto genotype_mat {reader.read_chunk()}
 // }
 //
 
@@ -38,11 +38,11 @@ class BedReader
 
     ~BedReader();
 
-    void Reset();
+    void reset();
 
     uint64_t chunk_size() const noexcept { return chunk_size_; }
-    bool HasNext() const;
-    arma::dmat ReadChunk();
+    bool has_next() const;
+    arma::dmat read_chunk();
     uint64_t num_snps() const { return snps_.size(); }
     const std::vector<std::string>& snps() const noexcept { return snps_; }
     uint64_t num_individuals() const noexcept { return individuals_.size(); }

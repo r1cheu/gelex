@@ -40,12 +40,12 @@ inline void daxpy_auto(arma::dvec& y, const arma::dvec& x, double alpha)
 }
 
 inline double
-ComputeRhs(const dvec& col_i, const dvec& y_adj, double old_i, double col_norm)
+compute_rhs(const dvec& col_i, const dvec& y_adj, double old_i, double col_norm)
 {
     return arma::dot(col_i, y_adj) + (col_norm * old_i);
 }
 
-inline void SampleEffect(
+inline void sample_effect(
     Normal& normal,
     dvec& coeff,
     dvec& y_adj,
@@ -61,7 +61,7 @@ inline void SampleEffect(
         const double old_i = coeff.at(i);
         const dvec& col_i = design_mat.col(i);
         const double inv_scaler_i = inv_scaler.at(i);
-        double rhs = ComputeRhs(col_i, y_adj, old_i, cols_norm2.at(i));
+        double rhs = compute_rhs(col_i, y_adj, old_i, cols_norm2.at(i));
         double new_i = normal(rhs * inv_scaler_i, sqrt(sigma_e * inv_scaler_i));
         coeff.at(i) = new_i;
         daxpy_auto(y_adj, col_i, old_i - new_i);

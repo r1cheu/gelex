@@ -28,8 +28,8 @@ class Predictor
         rowvec center,
         double scale_factor,
         uint64_t chunk_size);
-    dmat ComputeRandomEffects(std::string_view test_bed);
-    dmat ComputeFixedEffects(const dvec& covariates) const noexcept;
+    dmat compute_group_effects(std::string_view test_bed);
+    dmat compute_common_effects(const dvec& covariates) const noexcept;
 
     const std::vector<std::string>& test_individuals() const noexcept
     {

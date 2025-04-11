@@ -40,8 +40,8 @@ class IGrm
     }
 
    protected:
-    virtual void Encode(dmat& genotype) = 0;
-    void Reset() noexcept { bed_.Reset(); }
+    virtual void encode(dmat& genotype) = 0;
+    void reset() noexcept { bed_.reset(); }
 
    private:
     BedReader bed_;
@@ -56,11 +56,11 @@ class Grm : public IGrm
         std::string_view bed_file,
         uint64_t chunk_size = DEFAULT_CHUNK_SIZE,
         const std::vector<std::string>& exclude_individuals = {});
-    virtual dmat Compute();
+    virtual dmat compute();
 
    private:
-    virtual rowvec ComputeCenter(const dmat& genotype) = 0;
-    void Centerlize(dmat& genotype);
+    virtual rowvec compute_center(const dmat& genotype) = 0;
+    void centerlize(dmat& genotype);
     static double Scale(dmat& grm);
 };
 
@@ -69,8 +69,8 @@ class AddGrm : public Grm
     using Grm::Grm;
 
    private:
-    void Encode(dmat& genotype) override;
-    rowvec ComputeCenter(const dmat& genotype) override;
+    void encode(dmat& genotype) override;
+    rowvec compute_center(const dmat& genotype) override;
 };
 
 class DomGrm : public Grm
@@ -78,8 +78,8 @@ class DomGrm : public Grm
     using Grm::Grm;
 
    private:
-    void Encode(dmat& genotype) override;
-    rowvec ComputeCenter(const dmat& genotype) override;
+    void encode(dmat& genotype) override;
+    rowvec compute_center(const dmat& genotype) override;
 };
 
 }  // namespace gelex

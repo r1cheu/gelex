@@ -18,36 +18,36 @@ class MCMC
     MCMC(uint64_t n_iter, uint64_t n_burnin, uint64_t n_thin, uint64_t seed);
 
     template <GeneticPolicy Genetic>
-    void Run(BayesianModel<Genetic>& model)
+    void run(BayesianModel<Genetic>& model)
     {
-        model.SetPriors();
-        Initization(model);
+        model.set_priors();
+        initialize(model);
         GeneticSampler genetic_sampler(gen_, model);
 
         for (uint64_t i = 0; i < n_iter_; ++i)
         {
-            SampleMu(model);
-            SampleFixedEffects(model);
-            SampleEnvironmentalEffect(model);
+            sample_mu(model);
+            sample_fixed_effects(model);
+            sample_env_effect(model);
 
-            genetic_sampler.Sample(model, y_adj_);
-            SampleErrorVariance(model);
+            genetic_sampler.sample(model, y_adj_);
+            sample_err_var(model);
 
             if (i >= n_burnin_ && i % n_thin_ == 0)
             {
-                StoreSample(model);
+                store(model);
             }
         }
     }
 
    private:
-    auto ComputeNumRecords() const
+    auto compute_num_records() const
     {
         return static_cast<arma::uword>((n_iter_ - n_burnin_) / n_thin_);
     }
 
     template <GeneticPolicy Genetic>
-    void SampleMu(BayesianModel<Genetic>& model)
+    void sample_mu(BayesianModel<Genetic>& model)
     {
         double mu = model.mu();                             // NOLINT
         const auto n = static_cast<double>(y_adj_.n_elem);  // NOLINT
@@ -59,14 +59,14 @@ class MCMC
     }
 
     template <GeneticPolicy Genetic>
-    void SampleFixedEffects(BayesianModel<Genetic>& model)
+    void sample_fixed_effects(BayesianModel<Genetic>& model)
     {
-        if (!model.HasBeta())
+        if (!model.has_beta())
         {
             return;
         }
 
-        SampleEffect(
+        sample_effect(
             *normal_,
             model.beta(),
             y_adj_,
@@ -76,14 +76,14 @@ class MCMC
     }
 
     template <GeneticPolicy Genetic>
-    void SampleEnvironmentalEffect(BayesianModel<Genetic>& model)
+    void sample_env_effect(BayesianModel<Genetic>& model)
     {
-        if (!model.HasEnv())
+        if (!model.has_env())
         {
             return;
         }
 
-        SampleEffect(
+        sample_effect(
             *normal_,
             model.r(),
             y_adj_,
@@ -97,22 +97,22 @@ class MCMC
     }
 
     template <GeneticPolicy Genetic>
-    void SampleErrorVariance(BayesianModel<Genetic>& model)
+    void sample_err_var(BayesianModel<Genetic>& model)
     {
         const double ssq = arma::dot(y_adj_, y_adj_);
         model.set_sigma_e((*sigma_e_sampler_)(ssq));
     }
 
     template <GeneticPolicy Genetic>
-    void Initization(BayesianModel<Genetic>& model)
+    void initialize(BayesianModel<Genetic>& model)
     {
         store_idx_ = 0;
         y_adj_ = model.phenotype() - arma::mean(model.phenotype());
         ones_ = arma::ones<dvec>(y_adj_.n_elem);
-        n_records_ = ComputeNumRecords();
+        n_records_ = compute_num_records();
 
         normal_ = std::make_unique<Normal>(gen_, 0.0, 1.0);
-        if (model.HasEnv())
+        if (model.has_env())
         {
             sigma_r_sampler_ = std::make_unique<ScaleInvChiSq>(
                 gen_,
@@ -126,21 +126,23 @@ class MCMC
             model.priors().sigma_e().nu,
             static_cast<double>(y_adj_.n_elem),
             model.priors().sigma_e().s2);
+
+        init_storage(model);
     }
 
     template <GeneticPolicy Genetic>
-    void InitStorage(BayesianModel<Genetic>& model)
+    void init_storage(BayesianModel<Genetic>& model)
     {
         mu_store = arma::zeros<dvec>(n_records_);
 
-        if (model.HasBeta())
+        if (model.has_beta())
         {
             beta_store = arma::zeros<dmat>(model.beta().n_elem, n_records_);
         }
 
         a_store = arma::zeros<dmat>(model.a().n_elem, n_records_);
 
-        if (model.HasEnv())
+        if (model.has_env())
         {
             r_store = arma::zeros<dmat>(model.r().n_elem, n_records_);
             sigma_r_store = arma::zeros<dvec>(n_records_);
@@ -162,18 +164,18 @@ class MCMC
     }
 
     template <GeneticPolicy Genetic>
-    void StoreSample(BayesianModel<Genetic>& model)
+    void store(BayesianModel<Genetic>& model)
     {
         mu_store.at(store_idx_) = model.mu();
 
-        if (model.HasBeta())
+        if (model.has_beta())
         {
             beta_store.col(store_idx_) = model.beta();
         }
 
         a_store.col(store_idx_) = model.a();
 
-        if (model.HasEnv())
+        if (model.has_env())
         {
             r_store.col(store_idx_) = model.r();
             sigma_r_store.at(store_idx_) = model.sigma_r();

@@ -40,10 +40,10 @@ class OptimizerBase
     void set_tol(double tol) noexcept { tol_ = tol; }
     void set_converged(bool converged) noexcept { converged_ = converged; }
 
-    virtual bool Optimize(GBLUP& model);
-    virtual dvec Step(const GBLUP& model) = 0;
+    virtual bool optimize(GBLUP& model);
+    virtual dvec step(const GBLUP& model) = 0;
 
-    static dvec Constrain(dvec sigma, double y_var);
+    static dvec constrain(dvec sigma, double y_var);
 
    private:
     size_t max_iter_;
@@ -55,8 +55,8 @@ class OptimizerBase
     double old_obj_func_value_{};
     double obj_func_diff_{};
 
-    double VecDiff(const dvec& new_param);
-    double ObjFunctionDiff(double new_value);
-    void CheckConvergence(const dvec& new_param, double new_value);
+    double compute_vec_diff(const dvec& new_param);
+    double compute_objfunc_diff(double new_value);
+    void check_convergence(const dvec& new_param, double new_value);
 };
 }  // namespace gelex

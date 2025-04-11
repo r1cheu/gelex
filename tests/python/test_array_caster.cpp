@@ -23,7 +23,7 @@ class A
     {
         arma::dmat tmp(10, 10, arma::fill::randu);
         arr_ptr_ = reinterpret_cast<intptr_t>(tmp.memptr());
-        return ToPy(std::move(tmp));
+        return to_py(std::move(tmp));
     }
     intptr_t new_arr_ptr() const { return arr_ptr_; }
 
@@ -34,13 +34,13 @@ class A
 
 intptr_t get_vec_ptr_value(arr1d arr)
 {
-    arma::dvec vec = ToArma(arr);
+    arma::dvec vec = to_arma(arr);
     return reinterpret_cast<intptr_t>(vec.memptr());
 }
 
 intptr_t get_mat_ptr_value(arr2d arr)
 {
-    arma::dmat mat = ToArma(arr);
+    arma::dmat mat = to_arma(arr);
     return reinterpret_cast<intptr_t>(mat.memptr());
 }
 
@@ -48,7 +48,7 @@ std::optional<intptr_t> get_optional_mat_ptr_value(std::optional<arr2d> arr)
 {
     if (!arr)
         return std::nullopt;
-    arma::dmat mat = ToArma(*arr);
+    arma::dmat mat = to_arma(*arr);
     return reinterpret_cast<intptr_t>(mat.memptr());
 }
 
@@ -63,19 +63,19 @@ arr2d return_mat_rvalue()
 {
     arma::dmat new_mat(3, 3, arma::fill::randu);
     new_mat(0, 0) = 99.0;
-    return ToPy(std::move(new_mat));
+    return to_py(std::move(new_mat));
 }
 
 arr2d create_test_matrix(double value)
 {
     arma::dmat mat(3, 3, arma::fill::ones);
     mat *= value;
-    return ToPy(std::move(mat));
+    return to_py(std::move(mat));
 }
 
 arr2d modify_and_return_matrix(arr2d input)
 {
-    arma::dmat mat = ToArma(input);
+    arma::dmat mat = to_arma(input);
     mat *= 2.0;
     return input;
 }
@@ -101,7 +101,7 @@ NB_MODULE(_test, m)
     nb::class_<A>(m, "A")
         .def(
             "__init__",
-            [](A* self, arr2d arr) { new (self) A(ToArma(std::move(arr))); })
+            [](A* self, arr2d arr) { new (self) A(to_arma(std::move(arr))); })
         .def(
             "get_arr_ptr",
             [](const A& self)
@@ -110,11 +110,11 @@ NB_MODULE(_test, m)
         .def("new_arr", &A::new_arr, nb::rv_policy::reference)
         .def(
             "const_arr",
-            [](const A& self) { return ToPy(self.arr()); },
+            [](const A& self) { return to_py(self.arr()); },
             nb::rv_policy::reference_internal)
         .def(
             "mutable_arr",
-            [](A& self) { return ToPy(self.arr()); },
+            [](A& self) { return to_py(self.arr()); },
             nb::rv_policy::reference_internal);
 }
 

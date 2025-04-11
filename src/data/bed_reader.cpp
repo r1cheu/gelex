@@ -128,12 +128,12 @@ void BedReader::OpenBed()
     }
 }
 
-bool BedReader::HasNext() const
+bool BedReader::has_next() const
 {
     return current_chunk_index() < num_snps();
 }
 
-void BedReader::Reset()
+void BedReader::reset()
 {
     if (!fin_.is_open())
     {
@@ -147,7 +147,7 @@ void BedReader::Reset()
         // Return to the start of data (after the header)
         SeekToBedStart();
 
-        // Reset the tracking variables
+        // reset the tracking variables
         current_chunk_index_ = 0;
         current_chunk_size_ = 0;
     }
@@ -159,9 +159,9 @@ void BedReader::SeekToBedStart()
     fin_.seekg(3, std::ios::beg);
 }
 
-arma::dmat BedReader::ReadChunk()
+arma::dmat BedReader::read_chunk()
 {
-    if (!HasNext())
+    if (!has_next())
     {
         std::cerr
             << "Warning: No more data to read from BED file. Reload if needed."

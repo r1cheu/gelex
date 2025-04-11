@@ -8,7 +8,7 @@
 namespace gelex
 {
 
-dvec ExpectationMaximizationOptimizer::Step(const GBLUP& model)
+dvec ExpectationMaximizationOptimizer::step(const GBLUP& model)
 {
     dvec sigma{model.sigma()};
     dvec sigma2{sigma % sigma};
@@ -25,7 +25,7 @@ dvec ExpectationMaximizationOptimizer::Step(const GBLUP& model)
                               - sigma2.at(i) * pdv.slice(i)))
                       / static_cast<double>(n);
     }
-    return OptimizerBase::Constrain(sigma, model.y_var());
+    return OptimizerBase::constrain(sigma, model.y_var());
 }
 
 }  // namespace gelex

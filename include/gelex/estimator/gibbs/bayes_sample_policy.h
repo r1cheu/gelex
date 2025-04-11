@@ -30,9 +30,9 @@ class BaseGeneticSampler
     BaseGeneticSampler& operator=(BaseGeneticSampler&&) = delete;
     ~BaseGeneticSampler() = default;
 
-    void Sample(ModelType& model, dvec& y_adj)
+    void sample(ModelType& model, dvec& y_adj)
     {
-        static_cast<Derived*>(this)->SampleImpl(model, y_adj);
+        static_cast<Derived*>(this)->sample_impl(model, y_adj);
     }
 
     friend Derived;
@@ -49,7 +49,7 @@ class GeneticSampler<BayesRR>
 {
    public:
     GeneticSampler(std::mt19937_64& random_generator, BayesRR& model);
-    void SampleImpl(BayesRR& model, dvec& y_adj);
+    void sample_impl(BayesRR& model, dvec& y_adj);
 
    private:
     ScaleInvChiSq chisq_;
@@ -61,7 +61,7 @@ class GeneticSampler<BayesA>
 {
    public:
     GeneticSampler(std::mt19937_64& random_generator, BayesA& model);
-    void SampleImpl(BayesA& model, dvec& y_adj);
+    void sample_impl(BayesA& model, dvec& y_adj);
 
    private:
     ScaleInvChiSq chisq_;
@@ -74,7 +74,7 @@ class GeneticSampler<BayesB>
    public:
     GeneticSampler(std::mt19937_64& random_generator, BayesB& model);
 
-    void SampleImpl(BayesB& model, dvec& y_adj);
+    void sample_impl(BayesB& model, dvec& y_adj);
 
    private:
     ScaleInvChiSq chisq_;
@@ -89,7 +89,7 @@ class GeneticSampler<BayesBpi>
 {
    public:
     GeneticSampler(std::mt19937_64& random_generator, BayesBpi& model);
-    void SampleImpl(BayesBpi& model, dvec& y_adj);
+    void sample_impl(BayesBpi& model, dvec& y_adj);
 
    private:
     ScaleInvChiSq chisq_;
@@ -105,7 +105,7 @@ class GeneticSampler<BayesC>
    public:
     GeneticSampler(std::mt19937_64& random_generator, BayesC& model);
 
-    void SampleImpl(BayesC& model, dvec& y_adj);
+    void sample_impl(BayesC& model, dvec& y_adj);
 
    private:
     ScaleInvChiSq chisq_;
@@ -121,7 +121,7 @@ class GeneticSampler<BayesCpi>
    public:
     GeneticSampler(std::mt19937_64& random_generator, BayesCpi& model);
 
-    void SampleImpl(BayesCpi& model, dvec& y_adj);
+    void sample_impl(BayesCpi& model, dvec& y_adj);
 
    private:
     ScaleInvChiSq chisq_;

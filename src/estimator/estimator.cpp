@@ -38,15 +38,16 @@ void Estimator::set_optimizer(
         std::string,
         std::function<std::unique_ptr<OptimizerBase>(size_t, double)>>
         optimizers
-        = {{"nr", CreateOptimizer<NewtonRaphsonOptimizer>},
-           {"newtonraphson", CreateOptimizer<NewtonRaphsonOptimizer>},
-           {"fs", CreateOptimizer<FisherScoringOptimizer>},
-           {"fisherscoring", CreateOptimizer<FisherScoringOptimizer>},
-           {"ai", CreateOptimizer<AverageInformationOptimizer>},
-           {"averageinformation", CreateOptimizer<AverageInformationOptimizer>},
-           {"em", CreateOptimizer<ExpectationMaximizationOptimizer>},
+        = {{"nr", create_optimizer<NewtonRaphsonOptimizer>},
+           {"newtonraphson", create_optimizer<NewtonRaphsonOptimizer>},
+           {"fs", create_optimizer<FisherScoringOptimizer>},
+           {"fisherscoring", create_optimizer<FisherScoringOptimizer>},
+           {"ai", create_optimizer<AverageInformationOptimizer>},
+           {"averageinformation",
+            create_optimizer<AverageInformationOptimizer>},
+           {"em", create_optimizer<ExpectationMaximizationOptimizer>},
            {"expectationmaximization",
-            CreateOptimizer<ExpectationMaximizationOptimizer>}};
+            create_optimizer<ExpectationMaximizationOptimizer>}};
 
     auto it = optimizers.find(opt_lower);
     if (it != optimizers.end())
@@ -61,7 +62,7 @@ void Estimator::set_optimizer(
     }
 }
 
-void Estimator::Fit(GBLUP& model, bool em_init, bool verbose)
+void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
 {
     if (!verbose)
     {
@@ -88,22 +89,22 @@ void Estimator::Fit(GBLUP& model, bool em_init, bool verbose)
         // Start timing
         {
             Timer timer{time_cost};
-            model.set_sigma(em_optimizer.Step(model));
+            model.set_sigma(em_optimizer.step(model));
         }
 
         logger_->info(
             "Initial loglikelihood={:.2f}, variance componets=[{:.4f}] {:.3f}s",
-            model.ComputeLogLikelihood(),
+            model.computeLogLikelihood(),
             fmt::styled(
                 fmt::join(model.sigma(), " "),
                 fmt::fg(fmt::color::blue_violet)),
             time_cost);
     }
-    bool converged{optimizer_->Optimize(model)};
+    bool converged{optimizer_->optimize(model)};
 
     if (converged)
     {
-        model.set_beta(ComputeBeta(model));
+        model.set_beta(compute_beta(model));
         logger_->info(
             "{} beta=[{:.6f}], variance componets=[{:.6f}]",
             gold("Converged!!!"),
@@ -112,7 +113,7 @@ void Estimator::Fit(GBLUP& model, bool em_init, bool verbose)
             fmt::styled(
                 fmt::join(model.sigma(), " "),
                 fmt::fg(fmt::color::blue_violet)));
-        model.set_U(ComputeU(model));
+        model.set_U(compute_u(model));
     }
     else
     {
@@ -129,13 +130,13 @@ void Estimator::Fit(GBLUP& model, bool em_init, bool verbose)
     }
 }
 
-dvec Estimator::ComputeBeta(GBLUP& model)
+dvec Estimator::compute_beta(GBLUP& model)
 {
     return arma::inv_sympd(model.tx_vinv_x())
            * (model.X().t() * model.v() * model.y());
 }
 
-dmat Estimator::ComputeU(GBLUP& model)
+dmat Estimator::compute_u(GBLUP& model)
 {
     dmat U{
         model.num_individuals(), model.num_random_effects(), arma::fill::zeros};
