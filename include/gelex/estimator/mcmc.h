@@ -170,18 +170,18 @@ class MCMC
 
         if (model.has_beta())
         {
-            beta_store.col(store_idx_) = model.beta();
+            beta_store.unsafe_col(store_idx_) = model.beta();
         }
 
-        a_store.col(store_idx_) = model.a();
+        a_store.unsafe_col(store_idx_) = model.a();
 
         if (model.has_env())
         {
-            r_store.col(store_idx_) = model.r();
+            r_store.unsafe_col(store_idx_) = model.r();
             sigma_r_store.at(store_idx_) = model.sigma_r();
         }
 
-        sigma_a_store.col(store_idx_) = model.sigma_a();
+        sigma_a_store.unsafe_col(store_idx_) = model.sigma_a();
         sigma_e_store.at(store_idx_) = model.sigma_e();
 
         ++store_idx_;

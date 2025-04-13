@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <armadillo>
@@ -17,65 +18,54 @@ using arma::uword;
 class GBLUP
 {
    public:
-    GBLUP(
-        dmat y,
-        dmat X,
-        dcube covar_matrices_rand,
-        std::vector<std::string> random_effect_names);
+    GBLUP(dvec phenotype, dmat design_mat_beta);
 
-    uint64_t num_random_effects() const { return num_random_effects_; }
-    uint64_t num_individuals() const { return num_individuals_; }
-    uint64_t num_fixed_effects() const { return num_fixed_effects_; }
+    uint64_t n_individuals() const { return n_individuals_; }
+    uint64_t n_common_effects() const { return n_common_effects_; }
+    uint64_t n_group_effects() const { return n_group_effects_; }
+    uint64_t n_genetic_effects() const { return n_genetic_effects_; }
+    uint64_t n_random_effects() const { return n_random_effects_; }
 
-    const dmat& y() const { return y_; }
-    const dmat& X() const { return X_; }
-    double y_var() const { return y_var_; }
-    const dmat& U() const { return U_; }
+    const dvec& phenotype() const { return phenotype_; }
+    const dmat& design_mat_beta() const { return design_mat_beta_; }
     const dvec& beta() const { return beta_; }
     const dvec& sigma() const { return sigma_; }
-    const dvec& proj_y() const { return proj_y_; }
-    const dcube& pdv() const { return pdv_; }
-    const dmat& v() const { return v_; }
-    const dmat& tx_vinv_x() const { return tx_vinv_x_; }
-    const dcube& zkzt() const { return zkzt_; }
-    const std::vector<std::string>& random_effect_names() const
-    {
-        return random_effect_names_;
-    }
-    void set_sigma(dvec sigma);
-    void set_beta(dvec beta) { beta_ = std::move(beta); }
-    void set_U(dmat U) { U_ = std::move(U); }
+    const std::vector<std::string>& sigma_names() const { return sigma_names_; }
 
-    double computeLogLikelihood() const;
+    void add_group_effect(std::string name, sp_dmat design_mat_env);
+
+    void add_genetic_effect(std::string name, dmat genetic_covar_mat);
+
+    const std::vector<dmat>& genetic_cov_mats() const
+    {
+        return genetic_cov_mats_;
+    }
+
+    const std::vector<sp_dmat>& env_cov_mats() const { return env_cov_mats_; }
+
+    void set_sigma(dvec sigma) { sigma_ = std::move(sigma); }
+    void set_beta(dvec beta) { beta_ = std::move(beta); }
+
+    void set_model();
     void reset();
 
    private:
-    uint64_t num_random_effects_{};
-    uint64_t num_individuals_{};
-    uint64_t num_fixed_effects_{};
+    uint64_t n_individuals_{};
+    uint64_t n_common_effects_{};
+    uint64_t n_group_effects_{};
+    uint64_t n_genetic_effects_{};
+    uint64_t n_random_effects_{};
 
-    dmat y_;
-    double y_var_{};
+    dvec phenotype_;
+    dmat design_mat_beta_;
 
-    dmat X_;
-    dmat U_;
+    std::vector<sp_dmat> env_cov_mats_;
+    std::vector<dmat> genetic_cov_mats_;
+
+    std::vector<std::string> sigma_names_;
+
     dvec beta_;
-
-    dcube zkzt_;
-
-    std::vector<std::string> random_effect_names_;
-    std::vector<sp_dmat> group_eff;
     dvec sigma_;
-
-    double logdet_v_{};
-    dvec proj_y_;
-    dmat v_, proj_, tx_vinv_x_;
-    dcube pdv_;
-
-    void computeV();
-    void computeProj();
-    void computePdV();
-    static double VinvLogdet(dmat& V);
 };
 
 class GBLUPParams
@@ -85,9 +75,6 @@ class GBLUPParams
         dvec beta,
         dvec sigma,
         dvec proj_y,
-        std::vector<std::string> dropped_individuals);
-    GBLUPParams(
-        const GBLUP& model,
         std::vector<std::string> dropped_individuals);
     const dvec& beta() const { return beta_; }
     const dvec& sigma() const { return sigma_; }

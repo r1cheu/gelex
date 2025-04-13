@@ -62,7 +62,7 @@ dmat Predictor::compute_group_effects(std::string_view test_bed)
         {
             RandomEffects.zeros(new_k.n_rows, num_random_effects);
         }
-        RandomEffects.col(i) = new_k * proj_y * sigma[i];
+        RandomEffects.unsafe_col(i) = new_k * proj_y * sigma[i];
     }
     return RandomEffects;
 }

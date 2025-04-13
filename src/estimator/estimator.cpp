@@ -2,12 +2,10 @@
 
 #include <cmath>
 
-#include <functional>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 
 #include <fmt/chrono.h>
 #include <fmt/color.h>
@@ -16,49 +14,30 @@
 
 #include "gelex/model/gblup.h"
 #include "gelex/optim/base_optimizer.h"
-#include "gelex/optim/expectation_maximization.h"
-#include "gelex/optim/second_order_optimizer.h"
+#include "gelex/optim/optimizers.h"
 #include "gelex/utils.h"
 namespace gelex
 {
 Estimator::Estimator(std::string_view optimizer, size_t max_iter, double tol)
-    : logger_{Logger::logger()}
+    : logger_{Logger::logger()}, max_iter_{max_iter}
 {
-    set_optimizer(optimizer, max_iter, tol);
+    set_optimizer(optimizer, tol);
 }
 
-void Estimator::set_optimizer(
-    std::string_view optimizer,
-    size_t max_iter,
-    double tol)
+void Estimator::set_optimizer(std::string_view optimizer, double tol)
 {
     std::string opt_lower = ToLowercase(optimizer);
     // Map of optimizer names to factory functions
-    static const std::unordered_map<
-        std::string,
-        std::function<std::unique_ptr<OptimizerBase>(size_t, double)>>
-        optimizers
-        = {{"nr", create_optimizer<NewtonRaphsonOptimizer>},
-           {"newtonraphson", create_optimizer<NewtonRaphsonOptimizer>},
-           {"fs", create_optimizer<FisherScoringOptimizer>},
-           {"fisherscoring", create_optimizer<FisherScoringOptimizer>},
-           {"ai", create_optimizer<AverageInformationOptimizer>},
-           {"averageinformation",
-            create_optimizer<AverageInformationOptimizer>},
-           {"em", create_optimizer<ExpectationMaximizationOptimizer>},
-           {"expectationmaximization",
-            create_optimizer<ExpectationMaximizationOptimizer>}};
-
-    auto it = optimizers.find(opt_lower);
-    if (it != optimizers.end())
+    if (opt_lower == "ai")
     {
-        optimizer_ = it->second(max_iter, tol);
+        optimizer_name_ = "AI";
+        tol_ = tol;
     }
     else
     {
-        throw std::invalid_argument("Unknown optimizer: " + std::string(optimizer) +
-                                ", NR(NewtonRaphson), FS(FisherScoring), "
-                                "AI(AverageInformation) are supported.");
+        throw std::invalid_argument(
+            "Unknown optimizer: " + std::string(optimizer)
+            + "AI(Average Information) is supported.");
     }
 }
 
@@ -68,41 +47,76 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
     {
         logger_->set_level(spdlog::level::warn);
     }
-    logger_->info(
-        "Starting fit with {:d} samples, variance componets: {} at {:%Y-%m-%d "
-        "%H:%M:%S}",
-        model.y().n_elem,
-        model.random_effect_names(),
-        fmt::localtime(std::time(nullptr)));
-    logger_->info(
-        "Optimizer: [{}](max_iter={:d}, tol={:.3e})",
-        cyan(optimizer_->name()),
-        optimizer_->max_iter(),
-        optimizer_->tol());
 
+    model.set_model();
+
+    logger_->info(
+        "Start fitting with {:d} samples, {:d} common effects, variance "
+        "componets: {} at {:%Y-%m-%d "
+        "%H:%M:%S}",
+        model.n_individuals(),
+        model.n_common_effects(),
+        fmt::join(model.sigma_names(), ", "),
+        fmt::localtime(std::time(nullptr)));
+
+    logger_->info(
+        "Optimizer: [{}](tol={:.3e}), max_iter = {:d}",
+        cyan(optimizer_name_),
+        tol_,
+        max_iter_);
+
+    double time_cost{};
     if (em_init)
     {
-        double time_cost{};
-        ExpectationMaximizationOptimizer em_optimizer{};
-        logger_->info("Using [{}] to initialize.", cyan(em_optimizer.name()));
+        ExpectationMaximizationOptimizer em_optimizer{tol_};
+        logger_->info("Using [{}] to initialize.", cyan("EM"));
+        em_optimizer.init(model);
 
         // Start timing
         {
             Timer timer{time_cost};
-            model.set_sigma(em_optimizer.step(model));
+            em_optimizer.step(model);
         }
 
         logger_->info(
             "Initial loglikelihood={:.2f}, variance componets=[{:.4f}] {:.3f}s",
-            model.computeLogLikelihood(),
+            em_optimizer.loglike(),
             fmt::styled(
                 fmt::join(model.sigma(), " "),
                 fmt::fg(fmt::color::blue_violet)),
             time_cost);
+        optimizer_ = std::make_unique<AverageInformationOptimizer>(
+            std::move(static_cast<OptimizerBase&>(em_optimizer)));
     }
-    bool converged{optimizer_->optimize(model)};
+    else
+    {
+        optimizer_ = std::make_unique<AverageInformationOptimizer>(tol_);
+        optimizer_->init(model);
+    }
 
-    if (converged)
+    for (uint64_t i{}; i < max_iter_; i++)
+    {
+        {
+            Timer timer{time_cost};
+            optimizer_->step(model);
+            logger_->info(
+                "Iter {:d}: logL={:.2f}, varcomp=[{:.4f}] {:.3f}s",
+                i,
+                optimizer_->loglike(),
+                fmt::styled(
+                    fmt::join(model.sigma(), " "),
+                    fmt::fg(fmt::color::blue_violet)),
+                time_cost);
+        }
+
+        if (optimizer_->converged())
+        {
+            converged_ = true;
+            break;
+        }
+    }
+
+    if (converged_)
     {
         model.set_beta(compute_beta(model));
         logger_->info(
@@ -113,7 +127,7 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
             fmt::styled(
                 fmt::join(model.sigma(), " "),
                 fmt::fg(fmt::color::blue_violet)));
-        model.set_U(compute_u(model));
+        compute_u(model);
     }
     else
     {
@@ -121,7 +135,7 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
             "{}, try to increase max_iter({:d}), beta=[{:.6f}], "
             "variance componets=[{:.6f}]",
             red("Not converged!!!"),
-            optimizer_->max_iter(),
+            max_iter_,
             fmt::styled(
                 fmt::join(model.beta(), " "), fmt::fg(fmt::color::blue_violet)),
             fmt::styled(
@@ -132,22 +146,27 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
 
 dvec Estimator::compute_beta(GBLUP& model)
 {
-    return arma::inv_sympd(model.tx_vinv_x())
-           * (model.X().t() * model.v() * model.y());
+    return arma::inv_sympd(optimizer_->tx_vinv_x())
+           * (model.design_mat_beta().t() * optimizer_->v()
+              * model.phenotype());
 }
 
 dmat Estimator::compute_u(GBLUP& model)
 {
-    dmat U{
-        model.num_individuals(), model.num_random_effects(), arma::fill::zeros};
-    for (int i = 0; i < model.num_random_effects() - 1;
-         i++)  // last one always identity
+    dmat U{model.n_individuals(), model.n_random_effects(), arma::fill::zeros};
+
+    uint64_t idx;
+    for (const sp_dmat& mat : model.env_cov_mats())
     {
-        U.unsafe_col(i)
-            = model.zkzt().slice(i) * model.proj_y() * model.sigma().at(i);
+        U.unsafe_col(idx) += mat * optimizer_->proj_y() * model.sigma().at(idx);
+        ++idx;
     }
-    U.unsafe_col(model.num_random_effects() - 1)
-        = model.proj_y() * model.sigma().back();
+    for (const dmat& mat : model.genetic_cov_mats())
+    {
+        U.unsafe_col(idx) += mat * optimizer_->proj_y() * model.sigma().at(idx);
+        ++idx;
+    }
+    U.unsafe_col(idx) = optimizer_->proj_y() * model.sigma().back();
     return U;
 }
 }  // namespace gelex

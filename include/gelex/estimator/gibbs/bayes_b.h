@@ -35,7 +35,7 @@ void BayesBKernel(
             continue;
         }
         const double old_i = a.at(i);
-        const dvec& col_i = genotype_mat.col(i);
+        const dvec& col_i = genotype_mat.unsafe_col(i);
         const double col_norm = cols_norm.at(i);
         const double sigma_a_i = sigma_a.at(i);
         const double inv_scaler = 1.0 / (col_norm + sigma_e / sigma_a_i);

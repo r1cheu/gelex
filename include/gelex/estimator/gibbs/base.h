@@ -59,7 +59,7 @@ inline void sample_effect(
     for (uint64_t i = 0; i < coeff.n_elem; ++i)
     {
         const double old_i = coeff.at(i);
-        const dvec& col_i = design_mat.col(i);
+        const dvec& col_i = design_mat.unsafe_col(i);
         const double inv_scaler_i = inv_scaler.at(i);
         double rhs = compute_rhs(col_i, y_adj, old_i, cols_norm2.at(i));
         double new_i = normal(rhs * inv_scaler_i, sqrt(sigma_e * inv_scaler_i));

@@ -1,6 +1,5 @@
 #include "gelex/model/gblup.h"
 
-#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -9,106 +8,41 @@
 namespace gelex
 {
 
-GBLUP::GBLUP(
-    dmat y,
-    dmat X,
-    dcube covar_matrices_rand,
-    std::vector<std::string> random_effect_names)
-    : y_{std::move(y)},
-      X_{std::move(X)},
-      zkzt_{std::move(covar_matrices_rand)},
-      random_effect_names_{std::move(random_effect_names)}
+GBLUP::GBLUP(dvec phenotype, dmat design_mat_beta)
+    : phenotype_{std::move(phenotype)},
+      design_mat_beta_{std::move(design_mat_beta)}
 {
-    y_var_ = arma::as_scalar(arma::cov(y_));  // currently only support scalar
-
-    num_fixed_effects_ = X_.n_cols;
-    num_individuals_ = X_.n_rows;
-    num_random_effects_ = zkzt_.n_slices + 1;
-
-    set_beta(dvec(num_fixed_effects_, arma::fill::zeros));
-    pdv_.set_size(num_individuals_, num_individuals_, num_random_effects_);
-    set_sigma(dvec(
-        num_random_effects_,
-        arma::fill::value(y_var_ / static_cast<double>(num_random_effects_))));
-    random_effect_names_.emplace_back("e");
-    U_.set_size(num_individuals_, num_random_effects_);
+    n_common_effects_ = design_mat_beta_.n_cols;
+    beta_ = arma::zeros(n_common_effects_);
 }
 
-void GBLUP::set_sigma(dvec sigma)
+void GBLUP::add_group_effect(std::string name, sp_dmat design_mat_env)
 {
-    sigma_ = std::move(sigma);
-    computeV();
-    computeProj();
-    computePdV();
+    sp_dmat design_mat{std::move(design_mat_env)};
+    env_cov_mats_.emplace_back(design_mat * design_mat.t());
+    sigma_names_.emplace_back(std::move(name));
 }
 
+void GBLUP::set_model()
+{
+    n_group_effects_ = env_cov_mats_.size();
+    n_individuals_ = phenotype_.n_elem;
+    n_genetic_effects_ = genetic_cov_mats_.size();
+    n_random_effects_ = n_group_effects_ + n_genetic_effects_ + 1;
+    sigma_ = arma::zeros(n_group_effects_ + n_genetic_effects_ + 1);
+    sigma_names_.emplace_back("e");
+}
 void GBLUP::reset()
 {
-    set_sigma(dvec(
-        num_random_effects_,
-        arma::fill::value(y_var_ / static_cast<double>(num_random_effects_))));
-    set_beta(dvec(num_fixed_effects_, arma::fill::zeros));
-};
-
-double GBLUP::computeLogLikelihood() const
-{
-    return -0.5
-           * (logdet_v_ + log_det_sympd(tx_vinv_x_)
-              + as_scalar(y_.t() * proj_y_));
+    env_cov_mats_.clear();
+    genetic_cov_mats_.clear();
+    sigma_names_.clear();
 }
 
-void GBLUP::computeV()
+void GBLUP::add_genetic_effect(std::string name, dmat genetic_covar_mat)
 {
-    v_ = sigma_.at(0) * zkzt_.slice(0);
-    for (size_t i{1}; i < zkzt_.n_slices; ++i)
-    {
-        v_ += sigma_.at(i) * zkzt_.slice(i);
-    }
-
-    v_.diag() += sigma_.back();
-}
-
-void GBLUP::computeProj()
-{
-    logdet_v_ = VinvLogdet(v_);  // from here the v_ matrix is inverted
-    dmat vinv_x = v_ * X_;
-    tx_vinv_x_ = X_.t() * vinv_x;
-
-    proj_
-        = v_
-          - vinv_x
-                * solve(tx_vinv_x_, vinv_x.t(), arma::solve_opts::likely_sympd);
-    proj_y_ = proj_ * y_;
-}
-
-void GBLUP::computePdV()
-{
-    for (size_t i = 0; i < zkzt_.n_slices; ++i)
-    {
-        pdv_.slice(i) = proj_ * zkzt_.slice(i);
-    }
-    pdv_.slice(zkzt_.n_slices) = proj_;
-}
-
-double GBLUP::VinvLogdet(dmat& V)
-{
-    char uplo = 'L';
-    int n = static_cast<int>(V.n_cols);
-    int info{};
-    arma::lapack::potrf(&uplo, &n, V.memptr(), &n, &info);
-    if (info != 0)
-    {
-        throw std::runtime_error("V Matrix is not symmetric positive definite");
-    }
-    double logdet = accu(2.0 * log(diagvec(V)));
-    arma::lapack::potri(&uplo, &n, V.memptr(), &n, &info);
-
-    if (info != 0)
-    {
-        throw std::runtime_error("Error during inverse V matrix");
-    }
-    V = arma::symmatl(V);
-    return logdet;
+    genetic_cov_mats_.emplace_back(std::move(genetic_covar_mat));
+    sigma_names_.emplace_back(std::move(name));
 }
 
 GBLUPParams::GBLUPParams(
@@ -120,13 +54,4 @@ GBLUPParams::GBLUPParams(
       sigma_{std::move(sigma)},
       proj_y_{std::move(proj_y)},
       dropped_individuals_{std::move(dropped_individuals)} {};
-
-GBLUPParams::GBLUPParams(
-    const GBLUP& model,
-    std::vector<std::string> dropped_individuals)
-    : GBLUPParams{
-          dvec{model.beta()},
-          dvec{model.sigma()},
-          dvec{model.proj_y()},
-          std::move(dropped_individuals)} {};
 }  // namespace gelex

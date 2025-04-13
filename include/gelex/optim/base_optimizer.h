@@ -1,62 +1,91 @@
 #pragma once
-#include <cstddef>
-#include <memory>
-#include <string>
 
-#include <spdlog/logger.h>
 #include <armadillo>
+#include <cstdint>
 
-#include <gelex/utils.h>
 #include "gelex/model/gblup.h"
+#include "gelex/utils.h"
 
 namespace gelex
 {
 class OptimizerBase
 {
-    static constexpr size_t DEFAULT_MAX_ITER = 20;
     static constexpr double DEFAULT_TOL = 1e-8;
 
    public:
-    explicit OptimizerBase(
-        size_t max_iter = DEFAULT_MAX_ITER,
-        double tol = DEFAULT_TOL)
-        : max_iter_{max_iter}, tol_{tol}, logger_{Logger::logger()}
+    explicit OptimizerBase(double tol = DEFAULT_TOL)
+        : tol_{tol}, logger_{Logger::logger()}
     {
     }
     OptimizerBase(const OptimizerBase&) = default;
-    OptimizerBase(OptimizerBase&&) = delete;
+    OptimizerBase(OptimizerBase&&) noexcept = default;
     OptimizerBase& operator=(const OptimizerBase&) = default;
-    OptimizerBase& operator=(OptimizerBase&&) = delete;
+    OptimizerBase& operator=(OptimizerBase&&) noexcept = default;
     virtual ~OptimizerBase() = default;
 
-    virtual std::string name() const noexcept = 0;
-
-    size_t max_iter() const noexcept { return max_iter_; }
     double tol() const noexcept { return tol_; }
     bool converged() const noexcept { return converged_; }
-    double obj_func_diff() const noexcept { return obj_func_diff_; }
+    double loglike() const noexcept { return loglike_; }
 
-    void set_max_iter(size_t max_iter) noexcept { max_iter_ = max_iter; }
+    void init(GBLUP& model);
+
     void set_tol(double tol) noexcept { tol_ = tol; }
-    void set_converged(bool converged) noexcept { converged_ = converged; }
+    bool step(GBLUP& model);
 
-    virtual bool optimize(GBLUP& model);
-    virtual dvec step(const GBLUP& model) = 0;
+    const dmat& v() const noexcept { return v_; }
+    const dmat& tx_vinv_x() const noexcept { return tx_vinv_x_; }
+    const dmat& proj_y() const noexcept { return proj_y_; }
 
-    static dvec constrain(dvec sigma, double y_var);
+   protected:
+    dvec constrain(const dvec& sigma, double y_var);
+    void prepare_proj(const GBLUP& model);
+
+    const dmat& dvpy() const noexcept { return dvpy_; }
+    const dmat& proj() const noexcept { return proj_; }
+    const dvec& first_grad() const noexcept { return first_grad_; }
+    double loglike_diff() const noexcept { return loglike_diff_; }
+
+    double phenotype_var() const noexcept { return phenotype_var_; }
+    uint64_t n_sigma() const noexcept { return n_sigma_; }
+    uint64_t n_individuals() const noexcept { return n_individuals_; }
+    dvec& sigma() noexcept { return sigma_; }
+
+    void compute_dvpy(const GBLUP& model);
+    void compute_pdv(const GBLUP& model);
+    void compute_first_grad(const GBLUP& model);
+
+    void check_convergence(const GBLUP& model);
 
    private:
-    size_t max_iter_;
+    void compute_v(const GBLUP& model);
+    void compute_proj(const GBLUP& model);
+    virtual void step_inner(GBLUP& model) = 0;
+
+    double compute_loglike(const GBLUP& model);
+    double compute_sigma_diff(const GBLUP& model);
+    double compute_loglike_diff(const GBLUP& model);
+
     double tol_;
-    std::shared_ptr<spdlog::logger> logger_;
+    uint64_t n_sigma_{};
+    uint64_t n_individuals_{};
+    double phenotype_var_{};
 
     bool converged_{};
-    dvec old_param_;
-    double old_obj_func_value_{};
-    double obj_func_diff_{};
+    dvec sigma_;
+    double loglike_{};
+    double loglike_diff_{};
+    double logdet_v_{};
 
-    double compute_vec_diff(const dvec& new_param);
-    double compute_objfunc_diff(double new_value);
-    void check_convergence(const dvec& new_param, double new_value);
+    dmat dvpy_;
+
+    dvec first_grad_;
+    dvec proj_y_;
+    dmat v_, proj_, tx_vinv_x_;
+
+    std::shared_ptr<spdlog::logger> logger_;
 };
+
+double v_inv_logdet(dmat&);
+void solve_sympd(dmat& A, dmat& B);  // NOLINT
+
 }  // namespace gelex
