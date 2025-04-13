@@ -112,18 +112,18 @@ class make_model:
         data = self.data
         data, dropped_individuals = self._clear_data(data, lhs)
 
-        grm_cube, data, random_effect_names, dropped_individuals = (
-            self._load_grm(grm, data, dropped_individuals, lhs)
+        grms, data, dropped_individuals = self._load_grm(
+            grm, data, dropped_individuals, lhs
         )
 
         model_matrix = check_common_effect(formula, data)
 
         model = GBLUP(
-            np.asfortranarray(model_matrix.lhs, dtype=np.float64),
+            np.array(model_matrix.lhs, dtype=np.float64).flatten(order="F"),
             np.asfortranarray(model_matrix.rhs, dtype=np.float64),
-            grm_cube,
-            random_effect_names,
         )
+        for n, g in grms.items():
+            model.add_genetic_effect(n, g)
 
         model._rhs = rhs
         model._lhs = lhs
@@ -175,9 +175,7 @@ class make_model:
         """
 
         data_index = data.index
-        grm_matrices = []
-        random_effect_names = []
-
+        grm_matrices = {}
         for effect_name, grm_value in grm.items():
             matrix = (
                 load_grm(grm_value)
@@ -195,16 +193,11 @@ class make_model:
             matrix = matrix.drop(
                 index=dropped_individuals, columns=dropped_individuals
             )
-
-            grm_matrices.append(matrix)
-            random_effect_names.append(str(effect_name))
+            grm_matrices[effect_name] = np.asfortranarray(matrix)
 
         return (
-            np.asfortranarray(
-                np.stack(grm_matrices, axis=-1)
-            ),  # stack matrix to cube for easy transfer to cpp
+            grm_matrices,
             data.loc[matrix.index],  # use the order in .bim
-            random_effect_names,
             dropped_individuals,
         )
 

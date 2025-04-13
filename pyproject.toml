@@ -22,7 +22,7 @@ wheel.packages = ["python/gelexy"]
 build-dir = ".pybuild"
 cmake.source-dir = "."
 wheel.expand-macos-universal-tags = true
-cmake.build-type = "Release"
+cmake.build-type = "RelWithDebInfo"
 [tool.scikit-build.cmake.define]
 USE_MKL = "ON"
 BUILD_TEST = "ON"

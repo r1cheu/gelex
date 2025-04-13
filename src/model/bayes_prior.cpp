@@ -14,7 +14,7 @@ double SumColVar(const dmat& mat)
 #pragma omp parallel for default(none) shared(mat, out)
     for (size_t i = 0; i < mat.n_cols; ++i)
     {
-        out.at(i) = arma::var(mat.col(i));
+        out.at(i) = arma::var(mat.unsafe_col(i));
     }
     return arma::sum(out);
 }
@@ -26,7 +26,7 @@ double computeMeanDotProduct(const dmat& mat)
     schedule(static)
     for (size_t i = 0; i < mat.n_cols; ++i)
     {
-        double col_mean = arma::mean(mat.col(i));
+        double col_mean = arma::mean(mat.unsafe_col(i));
         sum += 2 * col_mean * (1 - col_mean);
     }
     return sum;

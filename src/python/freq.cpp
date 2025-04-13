@@ -47,17 +47,6 @@ void gblup_params(nb::module_& m)
             nb::keep_alive<1, 2>(),
             nb::keep_alive<1, 3>(),
             nb::keep_alive<1, 4>())
-        .def(
-            "__init__",
-            [](gelex::GBLUPParams* self,
-               gelex::GBLUP& model,
-               std::vector<std::string> dropped_individuals)
-            {
-                new (self)
-                    gelex::GBLUPParams{model, std::move(dropped_individuals)};
-            },
-            "model"_a,
-            "dropped_individuals"_a.noconvert())
         .def_prop_ro(
             "beta",
             [](const gelex::GBLUPParams& self) { return to_py(self.beta()); },
@@ -82,48 +71,22 @@ void gblup(nb::module_& m)
     nb::class_<gelex::GBLUP>(m, "_GBLUP")
         .def(
             "__init__",
-            [](gelex::GBLUP* self,
-               arr2d y,
-               arr2d X,
-               arr3d covar_mat,
-               std::vector<std::string> names)
+            [](gelex::GBLUP* self, arr1d phenotype, arr2d design_mat_beta)
             {
-                new (self) gelex::GBLUP{
-                    to_arma(y),
-                    to_arma(X),
-                    to_arma(covar_mat),
-                    std::move(names)};
+                new (self)
+                    gelex::GBLUP{to_arma(phenotype), to_arma(design_mat_beta)};
             },
-            "y"_a.noconvert(),
-            "X"_a.noconvert(),
-            "covar_mat"_a.noconvert(),
-            "names"_a.noconvert(),
+            "phenotype"_a.noconvert(),
+            "design_mat_beta"_a.noconvert(),
             nb::keep_alive<1, 2>(),
-            nb::keep_alive<1, 3>(),
-            nb::keep_alive<1, 4>())
+            nb::keep_alive<1, 3>())
+        .def_prop_ro("n_common_effects", &gelex::GBLUP::n_common_effects)
+        .def_prop_ro("n_group_effects", &gelex::GBLUP::n_genetic_effects)
+        .def_prop_ro("n_random_effects", &gelex::GBLUP::n_random_effects)
+        .def_prop_ro("n_individuals", &gelex::GBLUP::n_individuals)
         .def_prop_ro(
-            "num_fixed_effects",
-            &gelex::GBLUP::num_fixed_effects,
-            nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "num_random_effects",
-            &gelex::GBLUP::num_random_effects,
-            nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "num_individuals",
-            &gelex::GBLUP::num_individuals,
-            nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "random_effect_names",
-            &gelex::GBLUP::random_effect_names,
-            nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "_U",
-            [](gelex::GBLUP& self) { return to_py(self.U()); },
-            nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "_proj_y",
-            [](gelex::GBLUP& self) { return to_py(self.proj_y()); },
+            "sigma_names",
+            &gelex::GBLUP::sigma_names,
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "beta",
@@ -134,26 +97,33 @@ void gblup(nb::module_& m)
             [](gelex::GBLUP& self) { return to_py(self.sigma()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
-            "y",
-            [](gelex::GBLUP& self) { return to_py(self.y()); },
+            "phenotype",
+            [](gelex::GBLUP& self) { return to_py(self.phenotype()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
-            "X",
-            [](gelex::GBLUP& self) { return to_py(self.X()); },
+            "design_mat_beta",
+            [](gelex::GBLUP& self) { return to_py(self.design_mat_beta()); },
             nb::rv_policy::reference_internal)
+        .def(
+            "add_genetic_effect",
+            [](gelex::GBLUP& self, std::string name, arr2d& covar_mat)
+            { self.add_genetic_effect(std::move(name), to_arma(covar_mat)); },
+            nb::keep_alive<1, 3>())
         .def("reset", &gelex::GBLUP::reset, "reset the model")
         .def(
             "__repr__",
             [](const gelex::GBLUP& self)
             {
                 return fmt::format(
-                    "<GBLUP object at {:p}: {:d} Individuals, {:d} Fixed "
-                    "effects, "
+                    "<GBLUP object at {:p}: {:d} Individuals, {:d} Common"
+                    "effects, {:d} Group effects, {:d} Genetic effects, "
                     "Random effects: {}>",
                     static_cast<const void*>(&self),
-                    self.num_individuals(),
-                    self.num_fixed_effects(),
-                    fmt::join(self.random_effect_names(), ", "));
+                    self.n_individuals(),
+                    self.n_common_effects(),
+                    self.n_group_effects(),
+                    self.n_genetic_effects(),
+                    fmt::join(self.sigma_names(), ", "));
             })
         .def(
             "__str__",
@@ -162,12 +132,16 @@ void gblup(nb::module_& m)
                 std::string info = fmt::format(
                     "┌─ GBLUP Model ─────────────────────────────────\n"
                     "│ Individuals:    {:6d}\n"
-                    "│ Fixed Effects:  {:6d}\n"
-                    "│ Random Effects: {}\n"
+                    "│ Common Effects:    {:6d}\n"
+                    "│ Group Effects:    {:6d}\n"
+                    "│ Genetic Effects:  {:6d}\n"
+                    "│ Sigma Names: {}\n"
                     "└───────────────────────────────────────────────",
-                    self.num_individuals(),
-                    self.num_fixed_effects(),
-                    fmt::join(self.random_effect_names(), ", "));
+                    self.n_individuals(),
+                    self.n_common_effects(),
+                    self.n_group_effects(),
+                    self.n_genetic_effects(),
+                    fmt::join(self.sigma_names(), ", "));
 
                 return info;
             });
@@ -245,7 +219,6 @@ void estimator(nb::module_& m)
             "set_optimizer",
             &gelex::Estimator::set_optimizer,
             "optimizer"_a = "NR",
-            "max_iter"_a = 20,
             "tol"_a = 1e-8,
             "reset optimizer\n\n"
             "Parameters\n"

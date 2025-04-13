@@ -55,7 +55,7 @@ void GeneticSampler<BayesRR>::sample_impl(BayesRR& model, dvec& y_adj)
             continue;
         }
         const double old_i = a.at(i);
-        const dvec& col_i = genotype_mat_.col(i);
+        const dvec& col_i = genotype_mat_.unsafe_col(i);
         const double col_norm = cols_norm_.at(i);
         const double inv_scaler_i = inv_scaler.at(i);
 
@@ -97,7 +97,7 @@ void GeneticSampler<BayesA>::sample_impl(BayesA& model, dvec& y_adj)
             continue;
         }
         const double old_i = a.at(i);
-        const dvec& col_i = genotype_mat_.col(i);
+        const dvec& col_i = genotype_mat_.unsafe_col(i);
         const double col_norm = cols_norm_.at(i);
         double inv_scaler = 1.0 / (col_norm + sigma_e / sigma_a.at(i));
 

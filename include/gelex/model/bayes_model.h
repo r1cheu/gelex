@@ -115,7 +115,7 @@ class BayesianModel
 #pragma omp parallel for default(none) shared(mat, out)
         for (size_t i = 0; i < mat.n_cols; ++i)
         {
-            out.at(i) = arma::dot(mat.col(i), mat.col(i));
+            out.at(i) = arma::dot(mat.unsafe_col(i), mat.unsafe_col(i));
         }
         return out;
     }
@@ -125,7 +125,7 @@ class BayesianModel
 #pragma omp parallel for default(none) shared(mat, out)
         for (size_t i = 0; i < mat.n_cols; ++i)
         {
-            out.at(i) = arma::var(mat.col(i));
+            out.at(i) = arma::var(mat.unsafe_col(i));
         }
         return out;
     }

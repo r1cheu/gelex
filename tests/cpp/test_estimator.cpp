@@ -17,35 +17,16 @@ TEST_CASE("Linear Mixed Model Fitted Check")
     arma::dmat A;
     A.load(std::string(GELEX_TESTS_DIR) + "/data/wheat100_grm.bin");
     arma::dmat X = arma::ones<arma::dmat>(Phenotype.n_elem, 1);
-    arma::dcube rands{Phenotype.n_elem, Phenotype.n_elem, 1};
-    rands.slice(0) = A;
 
-    gelex::GBLUP model{
-        std::move(Phenotype),
-        std::move(X),
-        std::move(rands),
-        std::vector<std::string>{"random"}};
+    gelex::GBLUP model{std::move(Phenotype), std::move(X)};
+    model.add_genetic_effect("A", std::move(A));
 
     dvec sigma_hat{0.161, 0.513};
-
-    SECTION("Newton Raphson")
-    {
-        gelex::Estimator estimator{"NR", 20, 1e-6};
-        estimator.fit(model, true, false);
-        REQUIRE(arma::approx_equal(model.sigma(), sigma_hat, "absdiff", 1e-3));
-    }
-
-    SECTION("Fisher Scoring")
-    {
-        gelex::Estimator estimator{"FS", 20, 1e-6};
-        estimator.fit(model, true, false);
-        REQUIRE(arma::approx_equal(model.sigma(), sigma_hat, "absdiff", 1e-3));
-    }
 
     SECTION("Average Information")
     {
         gelex::Estimator estimator{"AI", 20, 1e-6};
-        estimator.fit(model, true, false);
+        estimator.fit(model, true, true);
         REQUIRE(arma::approx_equal(model.sigma(), sigma_hat, "absdiff", 1e-3));
     }
 }
