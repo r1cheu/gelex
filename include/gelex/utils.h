@@ -5,6 +5,7 @@
 #include <string>
 
 #include <fmt/color.h>
+#include <fmt/ranges.h>
 #include <spdlog/logger.h>
 #include <armadillo>
 
@@ -27,6 +28,12 @@ template <typename T>
 auto rebecca_purple(const T& value)
 {
     return fmt::styled(value, fmt::fg(fmt::color::blue_violet));
+}
+template <typename T>
+auto rebecca_purple_vec(const T& value)
+{
+    return fmt::styled(
+        fmt::join(value, ", "), fmt::fg(fmt::color::blue_violet));
 }
 
 template <typename T>

@@ -15,8 +15,8 @@ namespace gelex
 
 std::string find_second(std::string& snps_line)
 {
-    auto first = snps_line.find('\t') + 1;
-    auto second = snps_line.find('\t', first);
+    auto first = snps_line.find(' ') + 1;
+    auto second = snps_line.find(' ', first);
     return snps_line.substr(first, second - first);
 }
 

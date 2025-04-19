@@ -5,6 +5,7 @@
 
 #include <armadillo>
 
+#include <fmt/ranges.h>
 #include <spdlog/logger.h>
 #include "gelex/model/gblup.h"
 #include "gelex/optim/base_optimizer.h"
@@ -30,4 +31,16 @@ class Estimator
     std::string optimizer_name_;
     bool converged_{};
 };
+
+inline dvec compute_h2(const GBLUP& model)
+{
+    return model.genetic_sigma() / arma::sum(model.sigma());
+}
+
+template <typename eT>
+auto blue_vec(const arma::Col<eT>& vec)
+{
+    return fmt::styled(fmt::join(vec, ", "), fmt::fg(fmt::color::blue_violet));
+}
+
 };  // namespace gelex

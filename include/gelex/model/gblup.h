@@ -18,30 +18,44 @@ using arma::uword;
 class GBLUP
 {
    public:
-    GBLUP(dvec phenotype, dmat design_mat_beta);
+    GBLUP(std::string formula, dvec phenotype, dmat design_mat_beta);
 
     uint64_t n_individuals() const { return n_individuals_; }
     uint64_t n_common_effects() const { return n_common_effects_; }
     uint64_t n_group_effects() const { return n_group_effects_; }
     uint64_t n_genetic_effects() const { return n_genetic_effects_; }
-    uint64_t n_random_effects() const { return n_random_effects_; }
 
+    const std::string& formula() const { return formula_; }
     const dvec& phenotype() const { return phenotype_; }
     const dmat& design_mat_beta() const { return design_mat_beta_; }
     const dvec& beta() const { return beta_; }
     const dvec& sigma() const { return sigma_; }
-    const std::vector<std::string>& sigma_names() const { return sigma_names_; }
+    const std::vector<std::string>& genetic_names() const
+    {
+        return genetic_names_;
+    }
+    const std::vector<std::string>& group_names() const { return group_names_; }
 
     void add_group_effect(std::string name, sp_dmat design_mat_env);
-
     void add_genetic_effect(std::string name, dmat genetic_covar_mat);
+
+    dvec genetic_sigma() const
+    {
+        return sigma_.subvec(
+            n_group_effects_, n_group_effects_ + n_genetic_effects_ - 1);
+    }
+
+    dvec group_sigma() const { return sigma_.subvec(0, n_group_effects_ - 1); }
 
     const std::vector<dmat>& genetic_cov_mats() const
     {
         return genetic_cov_mats_;
     }
 
-    const std::vector<sp_dmat>& env_cov_mats() const { return env_cov_mats_; }
+    const std::vector<sp_dmat>& group_cov_mats() const
+    {
+        return group_cov_mats_;
+    }
 
     void set_sigma(dvec sigma) { sigma_ = std::move(sigma); }
     void set_beta(dvec beta) { beta_ = std::move(beta); }
@@ -54,15 +68,16 @@ class GBLUP
     uint64_t n_common_effects_{};
     uint64_t n_group_effects_{};
     uint64_t n_genetic_effects_{};
-    uint64_t n_random_effects_{};
 
+    std::string formula_;
     dvec phenotype_;
     dmat design_mat_beta_;
 
-    std::vector<sp_dmat> env_cov_mats_;
+    std::vector<sp_dmat> group_cov_mats_;
     std::vector<dmat> genetic_cov_mats_;
 
-    std::vector<std::string> sigma_names_;
+    std::vector<std::string> genetic_names_;
+    std::vector<std::string> group_names_;
 
     dvec beta_;
     dvec sigma_;

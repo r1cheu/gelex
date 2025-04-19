@@ -2,6 +2,7 @@
 #include <armadillo>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "gelex/model/bayes_model_policy.h"
 #include "gelex/model/bayes_prior.h"
@@ -10,6 +11,7 @@ namespace gelex
 {
 using arma::dmat;
 using arma::dvec;
+using arma::sp_dmat;
 using arma::uvec;
 
 template <GeneticPolicy Genetic>
@@ -19,16 +21,14 @@ class BayesianModel
     BayesianModel(
         dvec phenotype,
         dmat genotype_mat,
-        std::optional<dmat> design_mat_beta,
-        std::optional<dmat> design_mat_r)
+        std::optional<dmat> design_mat_beta)
         : phenotype_{std::move(phenotype)},
           genotype_mat_{std::move(genotype_mat)},
           design_mat_beta_{std::move(design_mat_beta)},
-          design_mat_r_{std::move(design_mat_r)},
           priors_{Genetic::init_pi()}
     {
         a_.zeros(genotype_mat_.n_cols);
-        a_cols_norm_ = sum_square(genotype_mat_);
+        a_cols_norm_ = sum_square(genotype_mat_);  // NOLINT
         a_cols_var_ = cols_var(genotype_mat_);
         n_var_0_ = arma::sum(a_cols_var_ == 0.0);
 
@@ -39,12 +39,6 @@ class BayesianModel
             beta_.zeros(design_mat_beta_->n_cols);
             beta_cols_norm_ = sum_square(*design_mat_beta_);
         }
-
-        if (design_mat_r_)
-        {
-            r_.zeros(design_mat_r_->n_cols);
-            r_cols_norm_ = sum_square(*design_mat_r_);
-        }
     };
 
     static constexpr std::string name = Genetic::name;
@@ -53,11 +47,18 @@ class BayesianModel
     using sigma_t = Genetic::sigma_t;
     const dvec& phenotype() const { return phenotype_; }
     const dmat& genotype_mat() const { return genotype_mat_; }
+
+    void add_group_effect(std::string name, sp_dmat design_mat_r)
+    {
+        design_mat_r_.emplace_back(std::move(design_mat_r));
+        group_names_.emplace_back(std::move(name));
+        r_cols_norm_.emplace_back(sum_square(design_mat_r_.back()));
+    }
     const std::optional<dmat>& design_mat_beta() const
     {
         return design_mat_beta_;
     }
-    const std::optional<dmat>& design_mat_r() const { return design_mat_r_; }
+    const std::vector<sp_dmat>& design_mat_r() const { return design_mat_r_; }
     Priors& priors() { return priors_; }
     const Priors& priors() const { return priors_; }
 
@@ -91,8 +92,8 @@ class BayesianModel
         sigma_a_ = sigma_a;
     }
 
-    double sigma_r() { return sigma_r_; }
-    void set_sigma_r(double sigma_r) { sigma_r_ = sigma_r; }
+    dvec sigma_r() { return sigma_r_; }
+    void set_sigma_r(dvec sigma_r) { sigma_r_ = std::move(sigma_r); }
     double sigma_e() { return sigme_e_; }
     void set_sigma_e(double sigma_e) { sigme_e_ = sigma_e; }
 
@@ -101,12 +102,17 @@ class BayesianModel
     uint64_t n_var_0() const { return n_var_0_; }
 
     const dvec& beta_cols_norm() const { return beta_cols_norm_; }
-    const dvec& r_cols_norm() const { return r_cols_norm_; }
+    const std::vector<dvec>& r_cols_norm() const { return r_cols_norm_; }
 
-    bool has_env() const { return design_mat_r_.has_value(); }
+    const std::vector<std::string>& group_names() const { return group_names_; }
+    bool has_group() const { return !design_mat_r_.empty(); }
     bool has_beta() const { return design_mat_beta_.has_value(); }
 
-    void set_priors() { pi_ = priors_.pi(); }
+    void set_model()
+    {
+        pi_ = priors_.pi();
+        sigma_r_ = arma::zeros<dvec>(design_mat_r_.size());
+    }
 
    protected:
     static dvec sum_square(const dmat& mat)
@@ -116,6 +122,17 @@ class BayesianModel
         for (size_t i = 0; i < mat.n_cols; ++i)
         {
             out.at(i) = arma::dot(mat.unsafe_col(i), mat.unsafe_col(i));
+        }
+        return out;
+    }
+
+    static dvec sum_square(const sp_dmat& mat)
+    {
+        dvec out(mat.n_cols);
+#pragma omp parallel for default(none) shared(mat, out)
+        for (size_t i = 0; i < mat.n_cols; ++i)
+        {
+            out.at(i) = arma::dot(mat.col(i), mat.col(i));
         }
         return out;
     }
@@ -134,8 +151,9 @@ class BayesianModel
     dvec phenotype_;     // Phenotype vector
     dmat genotype_mat_;  // Genotype matrix
     std::optional<dmat>
-        design_mat_beta_;               // Design matrix for beta coefficients
-    std::optional<dmat> design_mat_r_;  // Design matrix for rironmental factors
+        design_mat_beta_;  // Design matrix for beta coefficients
+    std::vector<sp_dmat>
+        design_mat_r_;  // Design matrix for rironmental factors
     Priors priors_;
 
     dvec pi_;  // proportion of each group
@@ -150,10 +168,11 @@ class BayesianModel
     dvec a_cols_norm_;
 
     dvec beta_cols_norm_;
-    dvec r_cols_norm_;
+    std::vector<dvec> r_cols_norm_;
 
+    std::vector<std::string> group_names_;
     sigma_t sigma_a_;
-    double sigma_r_{};
+    dvec sigma_r_;
     double sigme_e_{};
 };
 

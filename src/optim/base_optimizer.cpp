@@ -12,23 +12,30 @@
 
 namespace gelex
 {
-bool OptimizerBase::step(GBLUP& model)
+void OptimizerBase::step(GBLUP& model)
 {
     step_inner(model);
     check_convergence(model);
-    return converged_;
 }
 
 void OptimizerBase::init(GBLUP& model)
 {
     phenotype_var_ = arma::var(model.phenotype());
-    n_sigma_ = model.sigma().n_elem;
+    n_sigma_ = model.n_genetic_effects() + model.n_group_effects() + 1;
     n_individuals_ = model.n_individuals();
 
-    sigma_ = dvec(
-        n_sigma_,
-        arma::fill::value(phenotype_var_ / static_cast<double>(n_sigma_)));
-    model.set_sigma(sigma_);
+    if (model.sigma().empty())  // in case user refit the model or given a prior
+                                // for sigma
+    {
+        sigma_ = dvec(
+            n_sigma_,
+            arma::fill::value(phenotype_var_ / static_cast<double>(n_sigma_)));
+        model.set_sigma(sigma_);
+    }
+    else
+    {
+        sigma_ = model.sigma();
+    }
 
     first_grad_ = arma::zeros<dvec>(n_sigma_);
     dvpy_ = arma::zeros<dmat>(n_individuals_, n_sigma_);
@@ -48,7 +55,7 @@ void OptimizerBase::compute_v(const GBLUP& model)
 {
     uint64_t sigma_idx{};
     v_.zeros();
-    for (const sp_dmat& mat : model.env_cov_mats())
+    for (const sp_dmat& mat : model.group_cov_mats())
     {
         v_ += model.sigma().at(sigma_idx) * mat;
         ++sigma_idx;
@@ -85,7 +92,7 @@ double OptimizerBase::compute_loglike(const GBLUP& model)
 void OptimizerBase::compute_dvpy(const GBLUP& model)
 {
     uint64_t counts{};
-    for (const sp_dmat& mat : model.env_cov_mats())
+    for (const sp_dmat& mat : model.group_cov_mats())
     {
         dvpy_.unsafe_col(counts) = (mat * proj_y_);
         ++counts;
@@ -103,7 +110,7 @@ void OptimizerBase::compute_first_grad(const GBLUP& model)
 {
     compute_dvpy(model);
     uint64_t counts{};
-    for (const sp_dmat& mat : model.env_cov_mats())
+    for (const sp_dmat& mat : model.group_cov_mats())
     {
         first_grad_.at(counts)
             = -0.5
