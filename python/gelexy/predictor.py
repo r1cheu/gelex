@@ -9,7 +9,7 @@ from gelexy._core import _Predictor
 from gelexy.utils.path import valid_path
 
 from .data import read_table
-from .model import GBLUP, GBLUPParams, check_common_effect
+from .model import GBLUP, GBLUPParams, check_effect
 from .model.io import load_params
 
 
@@ -52,7 +52,7 @@ class Predictor(_Predictor):
 
         data = data.loc[test_individuals]
 
-        common = check_common_effect(Formula(self._rhs), data).lhs
+        common = check_effect(Formula(self._rhs), data).lhs
 
         return np.asfortranarray(common, dtype=np.float64)
 

@@ -5,7 +5,7 @@ from pathlib import Path
 import h5py
 import numpy as np
 import pandas as pd
-from formulaic import Formula
+from formulae import design_matrices
 
 from gelexy._core import _GBLUP
 
@@ -41,8 +41,7 @@ class GBLUP(_GBLUP):
             f.create_dataset(
                 "dropped_individuals", data=self._dropped_individuals
             )
-            f.attrs["rhs"] = self._rhs
-            f.attrs["lhs"] = self._lhs
+            f.attrs["formula"] = self.formula()
 
 
 class make_model:
@@ -106,41 +105,58 @@ class make_model:
         ValueError
             If the fixed effects contain missing values.
         """
-        formula = Formula(formula)
-        lhs, rhs = str(formula.lhs), str(formula.rhs)
-
+        response = formula.split("~")[0]
         data = self.data
-        data, dropped_individuals = self._clear_data(data, lhs)
 
+        data, dropped_individuals = self._clear_data(data, response)
         grms, data, dropped_individuals = self._load_grm(
-            grm, data, dropped_individuals, lhs
+            grm, data, dropped_individuals, response
+
         )
 
-        model_matrix = check_common_effect(formula, data)
+        design_mat = check_effect(formula, data)
 
         model = GBLUP(
-            np.array(model_matrix.lhs, dtype=np.float64).flatten(order="F"),
-            np.asfortranarray(model_matrix.rhs, dtype=np.float64),
+            formula,
+            np.array(design_mat.response),
+            np.asfortranarray(design_mat.common),
         )
+        # if GxE is not None:
+        #   for term in GxE:
+        #       group, genetic = term.split(:)
+        #       sparse = design_mat.group[group]
+        #       model.add_group_design_mat(sparse)
+
         for n, g in grms.items():
             model.add_genetic_effect(n, g)
 
-        model._rhs = rhs
-        model._lhs = lhs
+        # for n, matrix in design_mat.group.terms.items():
+        #     sparse = csc_matrix(matrix.data)
+        #     model.add_group_effect(
+        #         n,
+        #         sparse.indices,
+        #         sparse.indptr,
+        #         sparse.data,
+        #         sparse.shape[0],
+        #         sparse.shape[1],
+        #     )
+
+
         model._dropped_individuals = list(dropped_individuals)
+        model._formula = formula
 
         gc.collect()  # collect the garbage
 
         return model
 
-    def _clear_data(self, data: pd.DataFrame, lhs: str):
-        if data[lhs].hasnans:
-            dropped_individuals = data.index[data[lhs].isna()]
+    def _clear_data(self, data: pd.DataFrame, response: str):
+        if data[response].hasnans:
+            dropped_individuals = data.index[data[response].isna()]
             self._logger.info(
                 "Missing values detected in `%s`. These entries will be dropped.",
-                lhs,
+                response,
             )
-            return data.dropna(subset=[lhs]), dropped_individuals
+            return data.dropna(subset=[response]), dropped_individuals
         return data, pd.Index([])
 
     def _load_grm(
@@ -176,6 +192,9 @@ class make_model:
 
         data_index = data.index
         grm_matrices = {}
+
+        matrix_indice = data_index
+
         for effect_name, grm_value in grm.items():
             matrix = (
                 load_grm(grm_value)
@@ -183,30 +202,39 @@ class make_model:
                 else grm_value
             )
 
-            if not data_index.isin(matrix.index).all():
-                msg = f"Some individuals in the `{lhs}` are not present in the GRM. Are you sure you are using the correct GRM?"
-                raise ValueError(msg)
+            if isinstance(matrix, pd.DataFrame):
+                if not data_index.isin(matrix.index).all():
+                    msg = f"Some individuals in the `{lhs}` are not present in the GRM. Are you sure you are using the correct GRM?"
+                    raise ValueError(msg)
 
-            dropped_individuals = dropped_individuals.union(
-                matrix.index.difference(data_index)
-            )
-            matrix = matrix.drop(
-                index=dropped_individuals, columns=dropped_individuals
-            )
-            grm_matrices[effect_name] = np.asfortranarray(matrix)
+                dropped_individuals = dropped_individuals.union(
+                    matrix.index.difference(data_index)
+                )
+                matrix = matrix.drop(
+                    index=dropped_individuals, columns=dropped_individuals
+                )
+                grm_matrices[effect_name] = np.asfortranarray(matrix)
+
+                matrix_indice = matrix.index
+            elif isinstance(matrix, np.ndarray):
+                grm_matrices[effect_name] = np.asfortranarray(matrix)
+            else:
+                msg = "GRM must be a DataFrame or a numpy array or path to a grm file."
+                raise ValueError(msg)
 
         return (
             grm_matrices,
-            data.loc[matrix.index],  # use the order in .bim
+            data.loc[matrix_indice],  # use the order in .bim
+
             dropped_individuals,
         )
 
 
-def check_common_effect(formula: Formula, data: pd.DataFrame):
+def check_effect(formula: str, data: pd.DataFrame):
     try:
-        model_matrix = formula.get_model_matrix(data, na_action="raise")
+        model_matrix = design_matrices(formula, data, na_action="error")
     except ValueError as e:
-        msg = "Fixed effects columns contains missing values, which are unacceptable."
+        msg = "Common or Group effects columns contains missing values, which are unacceptable."
         raise ValueError(msg) from e
     return model_matrix
 

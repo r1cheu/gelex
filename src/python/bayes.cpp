@@ -24,26 +24,22 @@ void register_bayes_model(nb::module_& module, const char* name)
             [](BayesModel* self,
                arr1d phenotype,
                arr2d genotype_mat,
-               std::optional<arr2d> design_mat_beta,
-               std::optional<arr2d> design_mat_r)
+               std::optional<arr2d> design_mat_beta)
             {
                 new (self) BayesModel{
                     to_arma(std::move(phenotype)),
                     to_arma(std::move(genotype_mat)),
                     design_mat_beta
                         ? std::make_optional(to_arma(*design_mat_beta))
-                        : std::nullopt,
-                    design_mat_r ? std::make_optional(to_arma(*design_mat_r))
-                                 : std::nullopt};
+                        : std::nullopt};
+
             },
             "phenotype"_a.noconvert(),
             "genotype_mat"_a.noconvert(),
             "design_mat_beta"_a.noconvert() = nb::none(),
-            "design_mat_r"_a.noconvert() = nb::none(),
             nb::keep_alive<1, 2>(),
             nb::keep_alive<1, 3>(),
-            nb::keep_alive<1, 4>(),
-            nb::keep_alive<1, 5>())  // NOLINT
+            nb::keep_alive<1, 4>())
         .def(
             "priors",
             [](BayesModel& self) { return self.priors(); },
@@ -56,17 +52,15 @@ void register_bayes_model(nb::module_& module, const char* name)
                 return fmt::format(
                     "<{} object at {:p}: phenotype({:d}, 1), "
                     "genotype_mat({:d}, {:d}), "
-                    "design_mat_beta({:d}, {:d}), "
-                    "design_mat_r({:d}, {:d})>",
+                    "design_mat_beta({:d}, {:d})",
                     BayesModel::name,
                     static_cast<const void*>(&self),
                     self.phenotype().n_elem,
                     self.genotype_mat().n_rows,
                     self.genotype_mat().n_cols,
                     self.design_mat_beta() ? self.design_mat_beta()->n_rows : 0,
-                    self.design_mat_beta() ? self.design_mat_beta()->n_cols : 0,
-                    self.design_mat_r() ? self.design_mat_r()->n_rows : 0,
-                    self.design_mat_r() ? self.design_mat_r()->n_cols : 0);
+                    self.design_mat_beta() ? self.design_mat_beta()->n_cols
+                                           : 0);
             })
         .def(
             "__str__",
@@ -86,11 +80,12 @@ void register_bayes_model(nb::module_& module, const char* name)
                         self.design_mat_beta()->n_cols);
                 }
                 // Show environmental effects only if they exist
-                if (self.design_mat_r())
+                for (uint64_t i = 0; i < self.design_mat_r().size(); ++i)
                 {
                     info += fmt::format(
-                        "│ Environmental Eff.: {:6d}\n",
-                        self.design_mat_r()->n_cols);
+                        "│ Group Eff. {}:       {:6d}\n",
+                        self.group_names()[i],
+                        self.design_mat_r()[i].n_cols);
                 }
                 info += fmt::format(
                     "│ SNPs:               {:6d}\n",
@@ -103,10 +98,10 @@ void register_bayes_model(nb::module_& module, const char* name)
                     self.priors().sigma_a().nu,
                     self.priors().sigma_a().s2);
 
-                if (self.design_mat_r())
+                if (self.design_mat_r().size() > 0)
                 {
                     info += fmt::format(
-                        "│   σᵣ (environmental): nu = {:6.1f}, s² = {:6.4f}\n",
+                        "│   σᵣ (group): nu = {:6.1f}, s² = {:6.4f}\n",
                         self.priors().sigma_r().nu,
                         self.priors().sigma_r().s2);
                 }

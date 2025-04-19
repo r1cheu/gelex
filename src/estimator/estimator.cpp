@@ -1,6 +1,7 @@
 #include "gelex/estimator/estimator.h"
 
 #include <cmath>
+#include <cstdint>
 
 #include <memory>
 #include <stdexcept>
@@ -27,7 +28,6 @@ Estimator::Estimator(std::string_view optimizer, size_t max_iter, double tol)
 void Estimator::set_optimizer(std::string_view optimizer, double tol)
 {
     std::string opt_lower = ToLowercase(optimizer);
-    // Map of optimizer names to factory functions
     if (opt_lower == "ai")
     {
         optimizer_name_ = "AI";
@@ -43,6 +43,7 @@ void Estimator::set_optimizer(std::string_view optimizer, double tol)
 
 void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
 {
+    auto start = std::chrono::steady_clock::now();
     if (!verbose)
     {
         logger_->set_level(spdlog::level::warn);
@@ -51,39 +52,49 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
     model.set_model();
 
     logger_->info(
-        "Start fitting with {:d} samples, {:d} common effects, variance "
-        "componets: {} at {:%Y-%m-%d "
-        "%H:%M:%S}",
-        model.n_individuals(),
-        model.n_common_effects(),
-        fmt::join(model.sigma_names(), ", "),
-        fmt::localtime(std::time(nullptr)));
-
+        "─────────────────────── GBLUP MODEL ANALYSIS "
+        "───────────────────────");
+    logger_->info("");
+    logger_->info("MODEL SPECIFICATION:");
     logger_->info(
-        "Optimizer: [{}](tol={:.3e}), max_iter = {:d}",
-        cyan(optimizer_name_),
-        tol_,
-        max_iter_);
+        "\u2022 Model:     {} + {} + e",
+        model.formula(),
+        fmt::join(model.genetic_names(), " + "));
+
+    logger_->info("\u2022 Samples:     {:d}", model.n_individuals());
+    logger_->info("\u2022 Common Effects: {:d}", model.n_common_effects());
+    logger_->info("\u2022 Group Effects: {:d}", model.n_group_effects());
+    logger_->info(
+        "\u2022 Genetic Effects: {}", fmt::join(model.genetic_names(), ", "));
+    logger_->info("");
+    logger_->info("OPTIMIZATION SPECIFICATION:");
+    logger_->info("\u2022 Method:    {}", cyan(optimizer_name_));
+    logger_->info("\u2022 tolerance:    {:.2e}", tol_);
+    logger_->info("\u2022 Max Iterations:   {:d}", max_iter_);
+    logger_->info("");
+    logger_->info(
+        "────────────────────────── REML ITERATIONS "
+        "─────────────────────────");
 
     double time_cost{};
     if (em_init)
     {
         ExpectationMaximizationOptimizer em_optimizer{tol_};
-        logger_->info("Using [{}] to initialize.", cyan("EM"));
+
+        logger_->info("Initializing with {} algorithm", cyan("EM"));
+
         em_optimizer.init(model);
 
-        // Start timing
         {
             Timer timer{time_cost};
             em_optimizer.step(model);
         }
 
         logger_->info(
-            "Initial loglikelihood={:.2f}, variance componets=[{:.4f}] {:.3f}s",
+            "Initial: logL={:.3f} | \u03C3\u00B2=[{:.3f}] ({:.3f}s)",
             em_optimizer.loglike(),
-            fmt::styled(
-                fmt::join(model.sigma(), " "),
-                fmt::fg(fmt::color::blue_violet)),
+            rebecca_purple(fmt::join(model.sigma(), ", ")),
+
             time_cost);
         optimizer_ = std::make_unique<AverageInformationOptimizer>(
             std::move(static_cast<OptimizerBase&>(em_optimizer)));
@@ -93,21 +104,20 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
         optimizer_ = std::make_unique<AverageInformationOptimizer>(tol_);
         optimizer_->init(model);
     }
-
-    for (uint64_t i{}; i < max_iter_; i++)
+    uint64_t iter{1};
+    for (; iter <= max_iter_; ++iter)
     {
         {
             Timer timer{time_cost};
             optimizer_->step(model);
-            logger_->info(
-                "Iter {:d}: logL={:.2f}, varcomp=[{:.4f}] {:.3f}s",
-                i,
-                optimizer_->loglike(),
-                fmt::styled(
-                    fmt::join(model.sigma(), " "),
-                    fmt::fg(fmt::color::blue_violet)),
-                time_cost);
         }
+        logger_->info(
+            "{:<2d}  logL={:.3f} | "
+            "\u03C3\u00B2=[{:.3f}] ({:.3f}s)",
+            iter,
+            optimizer_->loglike(),
+            rebecca_purple(fmt::join(model.sigma(), ", ")),
+            time_cost);
 
         if (optimizer_->converged())
         {
@@ -115,33 +125,72 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
             break;
         }
     }
+    logger_->info(
+        "───────────────────────────── Result "
+        "───────────────────────────────");
+    auto end = std::chrono::steady_clock::now();
+    model.set_beta(compute_beta(model));
+    logger_->info("CONVERGENCE:");
 
     if (converged_)
     {
-        model.set_beta(compute_beta(model));
         logger_->info(
-            "{} beta=[{:.6f}], variance componets=[{:.6f}]",
-            gold("Converged!!!"),
-            fmt::styled(
-                fmt::join(model.beta(), " "), fmt::fg(fmt::color::blue_violet)),
-            fmt::styled(
-                fmt::join(model.sigma(), " "),
-                fmt::fg(fmt::color::blue_violet)));
-        compute_u(model);
+            "\u2022 Status:      {} ({} iterations in {:.3f}s)",
+            gold("Success"),
+            iter,
+            std::chrono::duration<double>(end - start).count());
+        logger_->info("");
     }
     else
     {
         logger_->warn(
-            "{}, try to increase max_iter({:d}), beta=[{:.6f}], "
-            "variance componets=[{:.6f}]",
-            red("Not converged!!!"),
+            "\u2022 Status:      {} ({} iterations in {:.3f}s)",
+            red("Failed"),
             max_iter_,
-            fmt::styled(
-                fmt::join(model.beta(), " "), fmt::fg(fmt::color::blue_violet)),
-            fmt::styled(
-                fmt::join(model.sigma(), " "),
-                fmt::fg(fmt::color::blue_violet)));
+            std::chrono::duration<double>(end - start).count());
+        logger_->warn(
+            "Try to increase the max_iter or check the model specification.");
+        logger_->info("");
+
     }
+
+    logger_->info("COMMON EFFECTS: ");
+    logger_->info(
+        "\u2022 \u03B2:    [{:.6f}]",
+        rebecca_purple(fmt::join(model.beta(), ", ")));
+    logger_->info("");
+    logger_->info("VARIANCE COMPONESTS: ");
+    for (size_t i = 0; i < model.n_group_effects(); ++i)
+    {
+        logger_->info(
+            "\u2022 {}:     {:.6f}",
+            model.group_names()[i],
+            rebecca_purple(model.sigma().at(i)));
+    }
+    for (size_t i = 0; i < model.n_genetic_effects(); ++i)
+    {
+        logger_->info(
+            "\u2022 {}:     {:.6f}",
+            model.genetic_names()[i],
+            rebecca_purple(model.sigma().at(i + model.n_group_effects())));
+    }
+    logger_->info("\u2022 e:     {:.6f}", rebecca_purple(model.sigma().back()));
+
+    logger_->info("");
+    logger_->info("HERTIABILITY:");
+
+    dvec h2 = compute_h2(model);
+    for (size_t i{0}; i < model.n_genetic_effects(); ++i)
+    {
+        logger_->info(
+            "\u2022 h\u00B2_{}:     {:.3f}",
+            model.genetic_names()[i],
+            rebecca_purple(h2.at(i)));
+    }
+    logger_->info(
+        "──────────────────────────────────────────"
+        "──────────────────────────");
+    compute_u(model);
 }
 
 dvec Estimator::compute_beta(GBLUP& model)
@@ -153,10 +202,11 @@ dvec Estimator::compute_beta(GBLUP& model)
 
 dmat Estimator::compute_u(GBLUP& model)
 {
-    dmat U{model.n_individuals(), model.n_random_effects(), arma::fill::zeros};
+    dmat U{model.n_individuals(), model.sigma().n_elem, arma::fill::zeros};
 
-    uint64_t idx;
-    for (const sp_dmat& mat : model.env_cov_mats())
+    uint64_t idx{};
+    for (const sp_dmat& mat : model.group_cov_mats())
+
     {
         U.unsafe_col(idx) += mat * optimizer_->proj_y() * model.sigma().at(idx);
         ++idx;
@@ -169,4 +219,5 @@ dmat Estimator::compute_u(GBLUP& model)
     U.unsafe_col(idx) = optimizer_->proj_y() * model.sigma().back();
     return U;
 }
+
 }  // namespace gelex
