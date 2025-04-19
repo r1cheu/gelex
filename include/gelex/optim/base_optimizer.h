@@ -30,9 +30,11 @@ class OptimizerBase
     void init(GBLUP& model);
 
     void set_tol(double tol) noexcept { tol_ = tol; }
+
     void step(GBLUP& model);
 
     double phenotype_var() const noexcept { return phenotype_var_; }
+
     const dmat& v() const noexcept { return v_; }
     const dmat& tx_vinv_x() const noexcept { return tx_vinv_x_; }
     const dmat& proj_y() const noexcept { return proj_y_; }
@@ -45,7 +47,6 @@ class OptimizerBase
     const dmat& proj() const noexcept { return proj_; }
     const dvec& first_grad() const noexcept { return first_grad_; }
     double loglike_diff() const noexcept { return loglike_diff_; }
-
     uint64_t n_sigma() const noexcept { return n_sigma_; }
     uint64_t n_individuals() const noexcept { return n_individuals_; }
     dvec& sigma() noexcept { return sigma_; }

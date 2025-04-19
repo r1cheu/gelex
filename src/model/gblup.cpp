@@ -1,6 +1,7 @@
 #include "gelex/model/gblup.h"
 
 #include <fmt/format.h>
+
 #include <utility>
 #include <vector>
 
@@ -9,9 +10,11 @@
 namespace gelex
 {
 
+
 GBLUP::GBLUP(std::string formula, dvec phenotype, dmat design_mat_beta)
     : formula_{std::move(formula)},
       phenotype_{std::move(phenotype)},
+
       design_mat_beta_{std::move(design_mat_beta)}
 {
     n_common_effects_ = design_mat_beta_.n_cols;
@@ -44,6 +47,7 @@ void GBLUP::add_genetic_effect(std::string name, dmat genetic_covar_mat)
 {
     genetic_cov_mats_.emplace_back(std::move(genetic_covar_mat));
     genetic_names_.emplace_back(fmt::format("G({})", std::move(name)));
+
 }
 
 GBLUPParams::GBLUPParams(

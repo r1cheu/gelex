@@ -32,6 +32,7 @@ void register_bayes_model(nb::module_& module, const char* name)
                     design_mat_beta
                         ? std::make_optional(to_arma(*design_mat_beta))
                         : std::nullopt};
+
             },
             "phenotype"_a.noconvert(),
             "genotype_mat"_a.noconvert(),

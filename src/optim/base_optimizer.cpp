@@ -127,6 +127,7 @@ void OptimizerBase::compute_first_grad(const GBLUP& model)
                  - as_scalar(proj_y_.t() * dvpy_.unsafe_col(counts)));
         counts++;
     }
+
     first_grad_.back()
         = -0.5
           * (arma::trace(proj_)

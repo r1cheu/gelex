@@ -107,9 +107,11 @@ class make_model:
         """
         response = formula.split("~")[0]
         data = self.data
+
         data, dropped_individuals = self._clear_data(data, response)
         grms, data, dropped_individuals = self._load_grm(
             grm, data, dropped_individuals, response
+
         )
 
         design_mat = check_effect(formula, data)
@@ -138,6 +140,7 @@ class make_model:
         #         sparse.shape[0],
         #         sparse.shape[1],
         #     )
+
 
         model._dropped_individuals = list(dropped_individuals)
         model._formula = formula
@@ -189,7 +192,9 @@ class make_model:
 
         data_index = data.index
         grm_matrices = {}
+
         matrix_indice = data_index
+
         for effect_name, grm_value in grm.items():
             matrix = (
                 load_grm(grm_value)
@@ -220,6 +225,7 @@ class make_model:
         return (
             grm_matrices,
             data.loc[matrix_indice],  # use the order in .bim
+
             dropped_individuals,
         )
 

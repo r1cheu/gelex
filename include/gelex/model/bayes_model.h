@@ -29,6 +29,7 @@ class BayesianModel
     {
         a_.zeros(genotype_mat_.n_cols);
         a_cols_norm_ = sum_square(genotype_mat_);  // NOLINT
+
         a_cols_var_ = cols_var(genotype_mat_);
         n_var_0_ = arma::sum(a_cols_var_ == 0.0);
 
@@ -127,12 +128,13 @@ class BayesianModel
     }
 
     static dvec sum_square(const sp_dmat& mat)
+
     {
         dvec out(mat.n_cols);
 #pragma omp parallel for default(none) shared(mat, out)
         for (size_t i = 0; i < mat.n_cols; ++i)
         {
-            out.at(i) = arma::dot(mat.col(i), mat.col(i));
+            out.at(i) = arma::dot(mat.unsafe_col(i), mat.unsafe_col(i));
         }
         return out;
     }

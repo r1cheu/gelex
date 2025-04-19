@@ -13,7 +13,9 @@ void ExpectationMaximizationOptimizer::step_inner(GBLUP& model)
     dvec sigma_2 = {sigma % sigma};
     uint64_t idx{};
     auto n = static_cast<double>(n_individuals());
+
     for (const sp_dmat& mat : model.group_cov_mats())
+
     {
         sigma.at(idx) = as_scalar(
                             sigma_2.at(idx) * proj_y().t() * mat * proj_y()
@@ -53,6 +55,7 @@ void AverageInformationOptimizer::step_inner(GBLUP& model)
     }
     dvec delta = -hess_inv * first_grad();
     sigma += delta;
+
     sigma = constrain(sigma, phenotype_var());
 
     model.set_sigma(OptimizerBase::constrain(sigma, phenotype_var()));

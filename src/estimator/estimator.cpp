@@ -1,8 +1,8 @@
 #include "gelex/estimator/estimator.h"
 
 #include <cmath>
-
 #include <cstdint>
+
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -75,11 +75,14 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
     logger_->info(
         "────────────────────────── REML ITERATIONS "
         "─────────────────────────");
+
     double time_cost{};
     if (em_init)
     {
         ExpectationMaximizationOptimizer em_optimizer{tol_};
+
         logger_->info("Initializing with {} algorithm", cyan("EM"));
+
         em_optimizer.init(model);
 
         {
@@ -91,6 +94,7 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
             "Initial: logL={:.3f} | \u03C3\u00B2=[{:.3f}] ({:.3f}s)",
             em_optimizer.loglike(),
             rebecca_purple(fmt::join(model.sigma(), ", ")),
+
             time_cost);
         optimizer_ = std::make_unique<AverageInformationOptimizer>(
             std::move(static_cast<OptimizerBase&>(em_optimizer)));
@@ -147,6 +151,7 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
         logger_->warn(
             "Try to increase the max_iter or check the model specification.");
         logger_->info("");
+
     }
 
     logger_->info("COMMON EFFECTS: ");
@@ -201,6 +206,7 @@ dmat Estimator::compute_u(GBLUP& model)
 
     uint64_t idx{};
     for (const sp_dmat& mat : model.group_cov_mats())
+
     {
         U.unsafe_col(idx) += mat * optimizer_->proj_y() * model.sigma().at(idx);
         ++idx;

@@ -19,6 +19,7 @@
 #include "gelex/python/dense_caster.h"
 #include "gelex/python/sparse_caster.h"
 
+
 namespace bind
 {
 namespace nb = nanobind;
@@ -36,7 +37,9 @@ void gblup_params(nb::module_& m)
                arr1d& proj_y,
                std::vector<std::string> dropped_individuals)
             {
+
                 new (self) gx::GBLUPParams{
+
                     to_arma(beta),
                     to_arma(sigma),
                     to_arma(proj_y),
@@ -133,6 +136,7 @@ void gblup(nb::module_& m)
                 self.add_group_effect(std::move(name), std::move(sparse_mat));
             },
             nb::keep_alive<1, 3>())
+
         .def("reset", &gelex::GBLUP::reset, "reset the model")
         .def(
             "__repr__",
@@ -141,11 +145,13 @@ void gblup(nb::module_& m)
                 return fmt::format(
                     "<GBLUP object at {:p}: {:d} Individuals, {:d} Common"
                     "effects, {:d} Group effects, {:d} Genetic effects",
+
                     static_cast<const void*>(&self),
                     self.n_individuals(),
                     self.n_common_effects(),
                     self.n_group_effects(),
                     self.n_genetic_effects());
+
             })
         .def(
             "__str__",
@@ -276,6 +282,7 @@ void add_grm(nb::module_& m)
             "np.ndarray\n")
         .def(
             "compute",
+
             [](gx::AddGrm& self) { return to_py(self.compute()); },
             nb::rv_policy::move)
         .def_prop_ro(
@@ -284,6 +291,7 @@ void add_grm(nb::module_& m)
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "center",
+
             [](gx::AddGrm& self) { return to_py(self.center()); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
@@ -311,6 +319,7 @@ void dom_grm(nb::module_& m)
             "np.ndarray\n")
         .def(
             "compute",
+
             [](gx::DomGrm& self) { return to_py(self.compute()); },
             nb::rv_policy::move)
         .def_prop_ro(

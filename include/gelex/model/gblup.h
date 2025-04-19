@@ -18,7 +18,9 @@ using arma::uword;
 class GBLUP
 {
    public:
+
     GBLUP(std::string formula, dvec phenotype, dmat design_mat_beta);
+
 
     uint64_t n_individuals() const { return n_individuals_; }
     uint64_t n_common_effects() const { return n_common_effects_; }
@@ -57,6 +59,7 @@ class GBLUP
         return group_cov_mats_;
     }
 
+
     void set_sigma(dvec sigma) { sigma_ = std::move(sigma); }
     void set_beta(dvec beta) { beta_ = std::move(beta); }
 
@@ -78,6 +81,7 @@ class GBLUP
 
     std::vector<std::string> genetic_names_;
     std::vector<std::string> group_names_;
+
 
     dvec beta_;
     dvec sigma_;
