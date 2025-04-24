@@ -14,9 +14,41 @@ namespace gelex
 using arma::dmat;
 using arma::dvec;
 using arma::sp_dmat;
-bool CheckIdentity(const dmat& inputs);
-bool CheckIdentity(const sp_dmat& inputs);
+template <typename Mat>
+bool check_eye(const Mat& inputs)
+{
+    if (!inputs.is_square())
+    {
+        return false;
+    }
+
+    if (!inputs.is_diagmat())
+    {
+        return false;
+    }
+
+    for (size_t i = 0; i < inputs.n_rows; ++i)
+    {
+        if (inputs.at(i, i) != 1)
+        {
+            return false;
+        }
+    }
+    return true;
+}
 std::string ToLowercase(std::string_view input);
+
+template <typename T>
+auto green(const T& value)
+{
+    return fmt::styled(value, fmt::fg(fmt::color::light_green));
+}
+
+template <typename T>
+auto pink(const T& value)
+{
+    return fmt::styled(value, fmt::fg(fmt::color::pink));
+}
 
 template <typename T>
 auto cyan(const T& value)
@@ -27,13 +59,13 @@ auto cyan(const T& value)
 template <typename T>
 auto rebecca_purple(const T& value)
 {
-    return fmt::styled(value, fmt::fg(fmt::color::blue_violet));
+    return fmt::styled(value, fmt::fg(fmt::color::rebecca_purple));
 }
 template <typename T>
 auto rebecca_purple_vec(const T& value)
 {
     return fmt::styled(
-        fmt::join(value, ", "), fmt::fg(fmt::color::blue_violet));
+        fmt::join(value, ", "), fmt::fg(fmt::color::rebecca_purple));
 }
 
 template <typename T>

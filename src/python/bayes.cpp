@@ -8,32 +8,23 @@
 
 #include "gelex/model/bayes_model.h"
 #include "gelex/model/bayes_prior.h"
-#include "gelex/python/dense_caster.h"
+#include "gelex/python/dense.h"
+#include "gelex/python/sparse.h"
+
 namespace bind
 {
 namespace nb = nanobind;
 using nb::literals::operator""_a;
 namespace gx = gelex;
 
+using arma::dmat;
+using arma::dvec;
 template <typename BayesModel>
 void register_bayes_model(nb::module_& module, const char* name)
 {
     nb::class_<BayesModel>(module, name)
         .def(
-            "__init__",
-            [](BayesModel* self,
-               arr1d phenotype,
-               arr2d genotype_mat,
-               std::optional<arr2d> design_mat_beta)
-            {
-                new (self) BayesModel{
-                    to_arma(std::move(phenotype)),
-                    to_arma(std::move(genotype_mat)),
-                    design_mat_beta
-                        ? std::make_optional(to_arma(*design_mat_beta))
-                        : std::nullopt};
-
-            },
+            nb::init<dvec, dmat, std::optional<dmat>>(),
             "phenotype"_a.noconvert(),
             "genotype_mat"_a.noconvert(),
             "design_mat_beta"_a.noconvert() = nb::none(),
@@ -44,7 +35,6 @@ void register_bayes_model(nb::module_& module, const char* name)
             "priors",
             [](BayesModel& self) { return self.priors(); },
             nb::rv_policy::reference_internal)
-
         .def(
             "__repr__",
             [](const BayesModel& self)
@@ -95,21 +85,21 @@ void register_bayes_model(nb::module_& module, const char* name)
                 info += fmt::format(
                     "│ Variance Priors:\n"
                     "│   σₐ (additive):      nu = {:6.1f}, s² = {:6.4f}\n",
-                    self.priors().sigma_a().nu,
-                    self.priors().sigma_a().s2);
+                    self.priors().sigma_a.nu,
+                    self.priors().sigma_a.s2);
 
                 if (self.design_mat_r().size() > 0)
                 {
                     info += fmt::format(
                         "│   σᵣ (group): nu = {:6.1f}, s² = {:6.4f}\n",
-                        self.priors().sigma_r().nu,
-                        self.priors().sigma_r().s2);
+                        self.priors().sigma_r.nu,
+                        self.priors().sigma_r.s2);
                 }
 
                 info += fmt::format(
                     "│   σₑ (residual):      nu = {:6.1f}, s² = {:6.4f}\n",
-                    self.priors().sigma_e().nu,
-                    self.priors().sigma_e().s2);
+                    self.priors().sigma_e.nu,
+                    self.priors().sigma_e.s2);
 
                 if (BayesModel::has_pi)
                 {
@@ -120,7 +110,7 @@ void register_bayes_model(nb::module_& module, const char* name)
                     }
                     info += ":\n";
                     info += fmt::format(
-                        "│   π = [{}]", fmt::join(self.priors().pi(), ", "));
+                        "│   π = [{}]", fmt::join(self.priors().pi, ", "));
                     info += "\n";
                 }
                 info += "└───────────────────────────────────────────────";
@@ -170,26 +160,13 @@ void priors(nb::module_& module)
 {
     nb::class_<gelex::Priors>(module, "Priors")
         .def(nb::init<>())
-        .def(
-            "__init__",
-            [](gx::Priors* self, arr1d pi)
-            { new (self) gelex::Priors{to_arma(std::move(pi))}; })
-        .def(
-            "pi",
-            [](gx::Priors& self) -> arr1d { return to_py(self.pi()); },
-            nb::rv_policy::reference_internal)
-        .def(
-            "sigma_a",
-            [](gx::Priors& self) -> gx::sigma_prior& { return self.sigma_a(); },
-            nb::rv_policy::reference_internal)
-        .def(
-            "sigma_r",
-            [](gx::Priors& self) -> gx::sigma_prior& { return self.sigma_r(); },
-            nb::rv_policy::reference_internal)
-        .def(
-            "sigma_e",
-            [](gx::Priors& self) -> gx::sigma_prior& { return self.sigma_e(); },
-            nb::rv_policy::reference_internal);
+        .def_rw("pi", &gx::Priors::pi, nb::rv_policy::reference_internal)
+        .def_rw(
+            "sigma_a", &gx::Priors::sigma_a, nb::rv_policy::reference_internal)
+        .def_rw(
+            "sigma_r", &gx::Priors::sigma_r, nb::rv_policy::reference_internal)
+        .def_rw(
+            "sigma_e", &gx::Priors::sigma_e, nb::rv_policy::reference_internal);
 }
 
 }  // namespace bind

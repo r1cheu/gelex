@@ -18,6 +18,4 @@ def read_table(path: str | Path):
     pd.DataFrame
         A DataFrame with the first column as the index.
     """
-    return pd.read_csv(
-        path, sep="\t", index_col=0, na_values=["NA", ".", "nan", "NaN"]
-    )
+    return pd.read_csv(path, sep="\t", na_values=["NA", ".", "nan", "NaN"])

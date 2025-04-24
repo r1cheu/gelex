@@ -24,7 +24,7 @@ void Predictor::set_cross_grm(
                 std::move(center),
                 scale_factor,
                 chunk_size,
-                params_.dropped_individuals()));
+                params_.dropped_individuals));
     }
     else if (method == "dom")
     {
@@ -34,7 +34,7 @@ void Predictor::set_cross_grm(
                 std::move(center),
                 scale_factor,
                 chunk_size,
-                params_.dropped_individuals()));
+                params_.dropped_individuals));
     }
     else
     {
@@ -44,13 +44,13 @@ void Predictor::set_cross_grm(
 
 dmat Predictor::compute_common_effects(const dvec& covariates) const noexcept
 {
-    return covariates * params_.beta();
+    return covariates * params_.beta;
 }
 
 dmat Predictor::compute_group_effects(std::string_view test_bed)
 {
-    const dvec& proj_y = params_.proj_y();
-    const dvec& sigma = params_.sigma();
+    const dvec& proj_y = params_.proj_y;
+    const dvec& sigma = params_.sigma;
     auto num_random_effects = cross_grms_.size();
 
     dmat RandomEffects;

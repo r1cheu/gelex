@@ -57,7 +57,7 @@ nanobind_add_module(_core NB_STATIC ${CORE_SOURCE})
 target_link_libraries(_core PRIVATE common)
 
 if(BUILD_TEST)
-  nanobind_add_module(_test NB_STATIC tests/python/test_dense_caster.cpp)
+  nanobind_add_module(_test NB_STATIC tests/python/test_arma_caster.cpp)
   target_link_libraries(_test PRIVATE common)
   install(TARGETS _test LIBRARY DESTINATION gelexy)
 

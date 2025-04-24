@@ -1,0 +1,86 @@
+#pragma once
+
+#include <armadillo>
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+namespace gelex
+{
+using MatVariant = std::variant<arma::dmat, arma::sp_dmat>;
+using arma::dmat;
+
+enum class effect_type : uint8_t
+{
+    group,
+    genetic,
+    gxe
+};
+
+struct Effect
+{
+    std::string name;
+    effect_type type;
+    MatVariant design_mat;
+    MatVariant cov_mat;
+    double sigma;
+};
+
+class GroupEffectManager
+{
+   public:
+    void add_effect(
+        std::string name,
+        effect_type type,
+        MatVariant design_mat,
+        MatVariant cov_mat);
+    Effect* get(const std::string& name)
+    {
+        auto it = index_map_.find(name);
+        return it != index_map_.end() ? &effects_[it->second] : nullptr;
+    }
+
+    uint64_t size() const
+    {
+        return effects_.size() + 1;
+    }  // add one for residual
+
+    uint64_t n_group_effects() const { return n_group_effects_; }
+    uint64_t n_genetic_effects() const { return n_genetic_effects_; }
+    uint64_t n_gxe_effects() const { return n_gxe_effects_; }
+
+    const std::vector<uint64_t>& genetic_indices() const
+    {
+        return genetic_indices_;
+    }
+    const std::vector<uint64_t>& group_indices() const
+    {
+        return group_indices_;
+    }
+    const std::vector<uint64_t>& gxe_indices() const { return gxe_indices_; }
+    const std::vector<Effect>& effects() const { return effects_; }
+
+    void clear();
+    auto begin() { return effects_.begin(); }
+    auto end() { return effects_.end(); }
+    auto begin() const { return effects_.begin(); }
+    auto end() const { return effects_.end(); }
+
+    const Effect& operator[](size_t i) const { return effects_[i]; }
+    Effect& operator[](size_t i) { return effects_[i]; }
+
+   private:
+    std::vector<Effect> effects_;
+    std::unordered_map<std::string, size_t> index_map_;
+    uint64_t n_group_effects_{};
+    uint64_t n_genetic_effects_{};
+    uint64_t n_gxe_effects_{};
+
+    std::vector<uint64_t> genetic_indices_;
+    std::vector<uint64_t> group_indices_;
+    std::vector<uint64_t> gxe_indices_;
+};
+
+}  // namespace gelex
