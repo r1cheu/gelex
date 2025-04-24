@@ -1,4 +1,5 @@
 import gc
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -105,21 +106,21 @@ class make_model:
         ValueError
             If the fixed effects contain missing values.
         """
+        formula = formula.replace(" ", "")
         response = formula.split("~")[0]
         data = self.data
 
         data, dropped_individuals = self._clear_data(data, response)
         grms, data, dropped_individuals = self._load_grm(
             grm, data, dropped_individuals, response
-
         )
 
         design_mat = check_effect(formula, data)
 
         model = GBLUP(
-            formula,
-            np.array(design_mat.response),
-            np.asfortranarray(design_mat.common),
+            re.sub(r"\s*([+~])\s*", r" \1 ", formula),  # format formula
+            design_mat.response.design_matrix,
+            design_mat.common.design_matrix,
         )
         # if GxE is not None:
         #   for term in GxE:
@@ -128,7 +129,7 @@ class make_model:
         #       model.add_group_design_mat(sparse)
 
         for n, g in grms.items():
-            model.add_genetic_effect(n, g)
+            model.add_genetic_effect(n, eye(g.shape[0], format="csc"), g)
 
         # for n, matrix in design_mat.group.terms.items():
         #     sparse = csc_matrix(matrix.data)
@@ -140,7 +141,6 @@ class make_model:
         #         sparse.shape[0],
         #         sparse.shape[1],
         #     )
-
 
         model._dropped_individuals = list(dropped_individuals)
         model._formula = formula
@@ -213,10 +213,7 @@ class make_model:
                 matrix = matrix.drop(
                     index=dropped_individuals, columns=dropped_individuals
                 )
-                grm_matrices[effect_name] = np.asfortranarray(matrix)
-
                 matrix_indice = matrix.index
-            elif isinstance(matrix, np.ndarray):
                 grm_matrices[effect_name] = np.asfortranarray(matrix)
             else:
                 msg = "GRM must be a DataFrame or a numpy array or path to a grm file."
@@ -225,7 +222,6 @@ class make_model:
         return (
             grm_matrices,
             data.loc[matrix_indice],  # use the order in .bim
-
             dropped_individuals,
         )
 
