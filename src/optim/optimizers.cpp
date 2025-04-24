@@ -14,24 +14,19 @@ void ExpectationMaximizationOptimizer::step_inner(GBLUP& model)
     uint64_t idx{};
     auto n = static_cast<double>(n_individuals());
 
-    for (const sp_dmat& mat : model.group_cov_mats())
-
+    for (const auto& eff : model.effect())
     {
-        sigma.at(idx) = as_scalar(
-                            sigma_2.at(idx) * proj_y().t() * mat * proj_y()
-                            + ((arma::trace(-sigma_2.at(idx) * proj() * mat))
-                               + (sigma.at(idx) * n)))
-                        / n;
-        ++idx;
-    }
-    for (const dmat& mat : model.genetic_cov_mats())
-    {
-        sigma.at(idx) = as_scalar(
-                            sigma_2.at(idx) * proj_y().t() * mat * proj_y()
-                            + ((arma::trace(-sigma_2.at(idx) * proj() * mat))
-                               + (sigma.at(idx) * n)))
-                        / n;
-        ++idx;
+        std::visit(
+            [&](const auto& mat)
+            {
+                sigma.at(idx)
+                    = as_scalar(
+                          sigma_2.at(idx) * proj_y().t() * mat * proj_y()
+                          + ((arma::trace(-sigma_2.at(idx) * proj() * mat))
+                             + (sigma.at(idx) * n)))
+                      / n;
+            },
+            eff.cov_mat);
     }
     sigma.back()
         = as_scalar(
@@ -57,7 +52,6 @@ void AverageInformationOptimizer::step_inner(GBLUP& model)
     sigma += delta;
 
     sigma = constrain(sigma, phenotype_var());
-
     model.set_sigma(OptimizerBase::constrain(sigma, phenotype_var()));
 };
 

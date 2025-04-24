@@ -49,7 +49,6 @@ class OptimizerBase
     double loglike_diff() const noexcept { return loglike_diff_; }
     uint64_t n_sigma() const noexcept { return n_sigma_; }
     uint64_t n_individuals() const noexcept { return n_individuals_; }
-    dvec& sigma() noexcept { return sigma_; }
 
     void compute_dvpy(const GBLUP& model);
     void compute_pdv(const GBLUP& model);
@@ -72,7 +71,7 @@ class OptimizerBase
     double phenotype_var_{};
 
     bool converged_{};
-    dvec sigma_;
+    dvec old_sigma_;
     double loglike_{};
     double loglike_diff_{};
     double logdet_v_{};

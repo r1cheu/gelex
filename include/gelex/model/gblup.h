@@ -1,8 +1,10 @@
 #pragma once
+#include <sys/types.h>
 #include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
+#include "gelex/model/effects.h"
 
 #include <armadillo>
 
@@ -14,109 +16,74 @@ using arma::dvec;
 using arma::sp_dmat;
 using arma::uvec;
 using arma::uword;
+using std::string;
 
 class GBLUP
 {
    public:
-
-    GBLUP(std::string formula, dvec phenotype, dmat design_mat_beta);
-
+    GBLUP(string formula, dvec phenotype, dmat design_mat_beta);
 
     uint64_t n_individuals() const { return n_individuals_; }
     uint64_t n_common_effects() const { return n_common_effects_; }
-    uint64_t n_group_effects() const { return n_group_effects_; }
-    uint64_t n_genetic_effects() const { return n_genetic_effects_; }
+    uint64_t n_group_effects() const { return effects_.n_group_effects(); }
+    uint64_t n_genetic_effects() const { return effects_.n_genetic_effects(); }
+    uint64_t n_gxe_effects() const { return effects_.n_gxe_effects(); }
 
-    const std::string& formula() const { return formula_; }
+    const string& formula() const { return formula_; }
     const dvec& phenotype() const { return phenotype_; }
     const dmat& design_mat_beta() const { return design_mat_beta_; }
     const dvec& beta() const { return beta_; }
     const dvec& sigma() const { return sigma_; }
-    const std::vector<std::string>& genetic_names() const
+
+    void add_group_effect(string name, dmat design_mat_group);
+    void add_genetic_effect(
+        string name,
+        sp_dmat design_mat_genetic,
+        dmat genetic_covar_mat);
+    void add_gxe_effect(
+        string name,
+        const string& genetic_name,
+        const dvec& design_mat_group);
+
+    const GroupEffectManager& effect() const { return effects_; }
+    GroupEffectManager& effect() { return effects_; }
+
+    void set_sigma(dvec sigma)
     {
-        return genetic_names_;
-    }
-    const std::vector<std::string>& group_names() const { return group_names_; }
-
-    void add_group_effect(std::string name, sp_dmat design_mat_env);
-    void add_genetic_effect(std::string name, dmat genetic_covar_mat);
-
-    dvec genetic_sigma() const
-    {
-        return sigma_.subvec(
-            n_group_effects_, n_group_effects_ + n_genetic_effects_ - 1);
-    }
-
-    dvec group_sigma() const { return sigma_.subvec(0, n_group_effects_ - 1); }
-
-    const std::vector<dmat>& genetic_cov_mats() const
-    {
-        return genetic_cov_mats_;
-    }
-
-    const std::vector<sp_dmat>& group_cov_mats() const
-    {
-        return group_cov_mats_;
+        sigma_ = std::move(sigma);
+        uint64_t idx{};
+        for (auto& eff : effects_)
+        {
+            eff.sigma = sigma_.at(idx);
+            ++idx;
+        }
     }
 
-
-    void set_sigma(dvec sigma) { sigma_ = std::move(sigma); }
     void set_beta(dvec beta) { beta_ = std::move(beta); }
 
-    void set_model();
-    void reset();
+    void clear();
 
    private:
     uint64_t n_individuals_{};
     uint64_t n_common_effects_{};
-    uint64_t n_group_effects_{};
-    uint64_t n_genetic_effects_{};
 
     std::string formula_;
     dvec phenotype_;
+
     dmat design_mat_beta_;
 
-    std::vector<sp_dmat> group_cov_mats_;
-    std::vector<dmat> genetic_cov_mats_;
-
-    std::vector<std::string> genetic_names_;
-    std::vector<std::string> group_names_;
-
+    GroupEffectManager effects_;
 
     dvec beta_;
     dvec sigma_;
 };
 
-class GBLUPParams
+struct GBLUPParams
 {
-   public:
-    GBLUPParams(
-        dvec beta,
-        dvec sigma,
-        dvec proj_y,
-        std::vector<std::string> dropped_individuals);
-    const dvec& beta() const { return beta_; }
-    const dvec& sigma() const { return sigma_; }
-    const dvec& proj_y() const { return proj_y_; }
-    const std::vector<std::string>& dropped_individuals() const
-    {
-        return dropped_individuals_;
-    }
-
-    void set_beta(dvec beta) { beta_ = std::move(beta); }
-    void set_sigma(dvec sigma) { sigma_ = std::move(sigma); }
-    void set_proj_y(dvec proj_y) { proj_y_ = std::move(proj_y); }
-    void set_dropped_individuals(std::vector<std::string> dropped_individuals)
-    {
-        dropped_individuals_ = std::move(dropped_individuals);
-    }
-
-   private:
-    dvec beta_;
-    dvec sigma_;
-    dmat X_;
-    dvec proj_y_;
-    std::vector<std::string> dropped_individuals_;
+    dvec beta;
+    dvec sigma;
+    dvec proj_y;
+    std::vector<std::string> dropped_individuals;
 };
 
 }  // namespace gelex

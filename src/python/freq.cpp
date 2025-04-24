@@ -16,9 +16,8 @@
 #include "gelex/estimator/estimator.h"
 #include "gelex/model/gblup.h"
 #include "gelex/predictor.h"
-#include "gelex/python/dense_caster.h"
-#include "gelex/python/sparse_caster.h"
-
+#include "gelex/python/dense.h"
+#include "gelex/python/sparse.h"
 
 namespace bind
 {
@@ -26,66 +25,14 @@ namespace nb = nanobind;
 using nb::literals::operator""_a;
 namespace gx = gelex;
 
-void gblup_params(nb::module_& m)
-{
-    nb::class_<gx::GBLUPParams>(m, "GBLUPParams")
-        .def(
-            "__init__",
-            [](gx::GBLUPParams* self,
-               arr1d& beta,
-               arr1d& sigma,
-               arr1d& proj_y,
-               std::vector<std::string> dropped_individuals)
-            {
-
-                new (self) gx::GBLUPParams{
-
-                    to_arma(beta),
-                    to_arma(sigma),
-                    to_arma(proj_y),
-                    std::move(dropped_individuals)};
-            },
-            "beta"_a.noconvert(),
-            "sigma"_a.noconvert(),
-            "proj_y"_a.noconvert(),
-            "dropped_individuals"_a.noconvert(),
-            nb::keep_alive<1, 2>(),
-            nb::keep_alive<1, 3>(),
-            nb::keep_alive<1, 4>())
-        .def_prop_ro(
-            "beta",
-            [](const gx::GBLUPParams& self) { return to_py(self.beta()); },
-            nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "sigma",
-            [](const gx::GBLUPParams& self) { return to_py(self.sigma()); },
-            nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "proj_y",
-            [](const gx::GBLUPParams& self) { return to_py(self.proj_y()); },
-            nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "dropped_individuals",
-            [](const gx::GBLUPParams& self)
-            { return self.dropped_individuals(); },
-            nb::rv_policy::reference_internal);
-}
+using arma::dmat;
+using arma::dvec;
 
 void gblup(nb::module_& m)
 {
     nb::class_<gx::GBLUP>(m, "_GBLUP")
         .def(
-            "__init__",
-            [](gx::GBLUP* self,
-               std::string formula,
-               arr1d& phenotype,
-               arr2d& design_mat_beta)
-            {
-                new (self) gx::GBLUP{
-                    std::move(formula),
-                    to_arma(phenotype),
-                    to_arma(design_mat_beta)};
-            },
+            nb::init<std::string, dvec, dmat>(),
             nb::keep_alive<1, 3>(),
             nb::keep_alive<1, 4>())
         .def_prop_ro("n_common_effects", &gx::GBLUP::n_common_effects)
@@ -93,51 +40,25 @@ void gblup(nb::module_& m)
         .def_prop_ro("n_individuals", &gx::GBLUP::n_individuals)
         .def_prop_ro("formula", &gx::GBLUP::formula)
         .def_prop_ro(
-            "group_names",
-            &gx::GBLUP::group_names,
-            nb::rv_policy::reference_internal)
+            "beta", &gx::GBLUP::beta, nb::rv_policy::reference_internal)
         .def_prop_ro(
-            "genetic_names",
-            &gx::GBLUP::genetic_names,
-            nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "beta",
-            [](gx::GBLUP& self) { return to_py(self.beta()); },
-            nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "sigma",
-            [](gx::GBLUP& self) { return to_py(self.sigma()); },
-            nb::rv_policy::reference_internal)
+            "sigma", &gx::GBLUP::sigma, nb::rv_policy::reference_internal)
         .def_prop_ro(
             "phenotype",
-            [](gx::GBLUP& self) { return to_py(self.phenotype()); },
+            &gx::GBLUP::phenotype,
             nb::rv_policy::reference_internal)
         .def_prop_ro(
             "design_mat_beta",
-            [](gx::GBLUP& self) { return to_py(self.design_mat_beta()); },
+            &gx::GBLUP::design_mat_beta,
             nb::rv_policy::reference_internal)
+        .def("add_group_effect", &gx::GBLUP::add_group_effect)
         .def(
             "add_genetic_effect",
-            [](gx::GBLUP& self, std::string name, arr2d& covar_mat)
-            { self.add_genetic_effect(std::move(name), to_arma(covar_mat)); },
+            &gx::GBLUP::add_genetic_effect,
+            nb::keep_alive<1, 2>(),
             nb::keep_alive<1, 3>())
-        .def(
-            "add_group_effect",
-            [](gx::GBLUP& self,
-               std::string name,
-               iarr1d& indice,
-               iarr1d& indptr,
-               arr1d& values,
-               uint64_t row,
-               uint64_t col)
-            {
-                arma::sp_mat sparse_mat
-                    = to_sparse(indice, indptr, values, row, col);
-                self.add_group_effect(std::move(name), std::move(sparse_mat));
-            },
-            nb::keep_alive<1, 3>())
-
-        .def("reset", &gelex::GBLUP::reset, "reset the model")
+        .def("add_gxe_effect", &gx::GBLUP::add_gxe_effect)
+        .def("clear", &gelex::GBLUP::clear, "reset the model")
         .def(
             "__repr__",
             [](const gx::GBLUP& self)
@@ -151,7 +72,6 @@ void gblup(nb::module_& m)
                     self.n_common_effects(),
                     self.n_group_effects(),
                     self.n_genetic_effects());
-
             })
         .def(
             "__str__",
@@ -163,14 +83,11 @@ void gblup(nb::module_& m)
                     "│ Common Effects:    {:6d}\n"
                     "│ Group Effects:    {:6d}\n"
                     "│ Genetic Effects:  {:6d}\n"
-                    "│ Sigma Names: {}{}\n"
                     "└───────────────────────────────────────────────",
                     self.n_individuals(),
                     self.n_common_effects(),
                     self.n_group_effects(),
-                    self.n_genetic_effects(),
-                    fmt::join(self.group_names(), ", "),
-                    fmt::join(self.genetic_names(), ", "));
+                    self.n_genetic_effects());
             });
 }
 
@@ -184,25 +101,10 @@ void predictor(nb::module_& m)
             nanobind::keep_alive<1, 3>())
         .def(
             "set_cross_grm",
-            [](gx::Predictor& self,
-               std::string_view method,
-               arr1d& center,
-               double scale_factor,
-               uint64_t chuck_size)
-            {
-                self.set_cross_grm(
-                    method, ToRowVec(center), scale_factor, chuck_size);
-            },
+            &gx::Predictor::set_cross_grm,
             nb::keep_alive<1, 3>())
-        .def(
-            "_compute_random_effects",
-            [](gx::Predictor& self, std::string_view test_bed)
-            { return to_py(self.compute_group_effects(test_bed)); })
-        .def(
-            "_compute_fixed_effects",
-            [](gx::Predictor& self, arr2d& covariates)
-            { return to_py(self.compute_common_effects(to_arma(covariates))); })
-
+        .def("_compute_random_effects", &gx::Predictor::compute_group_effects)
+        .def("_compute_fixed_effects", &gx::Predictor::compute_common_effects)
         .def_prop_ro("test_individuals", &gelex::Predictor::test_individuals);
 }
 
@@ -261,10 +163,15 @@ void estimator(nb::module_& m)
             "None");
 }
 
+void gblup_params(nb::module_& m)
+{
+    nb::class_<gx::GBLUPParams>(m, "GBLUPParams")
+        .def(nb::init<dvec, dvec, dvec, std::vector<std::string>>());
+}
+
 void add_grm(nb::module_& m)
 {
     nb::class_<gx::AddGrm>(m, "add_grm")
-
         .def(
             nb::init<std::string_view, uint64_t, std::vector<std::string>>(),
             "bed_file"_a,
@@ -280,23 +187,14 @@ void add_grm(nb::module_& m)
             "Returns\n"
             "-------\n"
             "np.ndarray\n")
-        .def(
-            "compute",
-
-            [](gx::AddGrm& self) { return to_py(self.compute()); },
-            nb::rv_policy::move)
+        .def("compute", &gx::AddGrm::compute, nb::rv_policy::move)
         .def_prop_ro(
             "individuals",
             [](gx::AddGrm& self) { return self.bed().individuals(); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
-            "center",
-
-            [](gx::AddGrm& self) { return to_py(self.center()); },
-            nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "scale_factor",
-            [](gx::AddGrm& self) { return self.scale_factor(); });
+            "center", &gx::DomGrm::center, nb::rv_policy::reference_internal)
+        .def_prop_ro("scale_factor", &gx::DomGrm::scale_factor);
 }
 
 void dom_grm(nb::module_& m)
@@ -317,22 +215,14 @@ void dom_grm(nb::module_& m)
             "Returns\n"
             "-------\n"
             "np.ndarray\n")
-        .def(
-            "compute",
-
-            [](gx::DomGrm& self) { return to_py(self.compute()); },
-            nb::rv_policy::move)
+        .def("compute", &gx::DomGrm::compute, nb::rv_policy::move)
         .def_prop_ro(
             "individuals",
             [](gx::DomGrm& self) { return self.bed().individuals(); },
             nb::rv_policy::reference_internal)
         .def_prop_ro(
-            "center",
-            [](gx::DomGrm& self) { return to_py(self.center()); },
-            nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "scale_factor",
-            [](gx::DomGrm& self) { return self.scale_factor(); });
+            "center", &gx::DomGrm::center, nb::rv_policy::reference_internal)
+        .def_prop_ro("scale_factor", &gx::DomGrm::scale_factor);
 }
 
 }  // namespace bind

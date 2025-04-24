@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string_view>
 
@@ -7,6 +8,7 @@
 
 #include <fmt/ranges.h>
 #include <spdlog/logger.h>
+#include "gelex/model/effects.h"
 #include "gelex/model/gblup.h"
 #include "gelex/optim/base_optimizer.h"
 
@@ -25,22 +27,30 @@ class Estimator
     dmat compute_u(GBLUP& model);
     std::unique_ptr<OptimizerBase> optimizer_;
     std::shared_ptr<spdlog::logger> logger_;
-
+    void report_variance(
+        const std::string& category,
+        const std::vector<size_t>& indices,
+        const GBLUP& model);
     uint64_t max_iter_{};
     double tol_{};
     std::string optimizer_name_;
     bool converged_{};
 };
 
-inline dvec compute_h2(const GBLUP& model)
-{
-    return model.genetic_sigma() / arma::sum(model.sigma());
-}
-
 template <typename eT>
 auto blue_vec(const arma::Col<eT>& vec)
 {
     return fmt::styled(fmt::join(vec, ", "), fmt::fg(fmt::color::blue_violet));
 }
+
+std::string join_formula(
+    const std::vector<uint64_t>& indices,
+    const GroupEffectManager& effects,
+    std::string_view sep);
+
+std::string join_name(
+    const std::vector<uint64_t>& indices,
+    const GroupEffectManager& effects,
+    std::string_view sep);
 
 };  // namespace gelex

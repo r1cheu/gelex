@@ -24,11 +24,11 @@ class BayesianModel
         std::optional<dmat> design_mat_beta)
         : phenotype_{std::move(phenotype)},
           genotype_mat_{std::move(genotype_mat)},
-          design_mat_beta_{std::move(design_mat_beta)},
-          priors_{Genetic::init_pi()}
+          design_mat_beta_{std::move(design_mat_beta)}
     {
         a_.zeros(genotype_mat_.n_cols);
         a_cols_norm_ = sum_square(genotype_mat_);  // NOLINT
+        priors_.pi = Genetic::init_pi();
 
         a_cols_var_ = cols_var(genotype_mat_);
         n_var_0_ = arma::sum(a_cols_var_ == 0.0);
@@ -111,7 +111,7 @@ class BayesianModel
 
     void set_model()
     {
-        pi_ = priors_.pi();
+        pi_ = priors_.pi;
         sigma_r_ = arma::zeros<dvec>(design_mat_r_.size());
     }
 
@@ -134,7 +134,7 @@ class BayesianModel
 #pragma omp parallel for default(none) shared(mat, out)
         for (size_t i = 0; i < mat.n_cols; ++i)
         {
-            out.at(i) = arma::dot(mat.unsafe_col(i), mat.unsafe_col(i));
+            out.at(i) = arma::dot(mat.col(i), mat.col(i));
         }
         return out;
     }
