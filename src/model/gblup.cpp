@@ -20,9 +20,9 @@ GBLUP::GBLUP(std::string formula, dvec phenotype, dmat design_mat_beta)
     n_individuals_ = phenotype_.n_elem;
 }
 
-void GBLUP::add_group_effect(std::string name, dmat design_mat_group)
+void GBLUP::add_group_effect(std::string name, sp_dmat design_mat_group)
 {
-    sp_dmat cov = sp_dmat{design_mat_group * design_mat_group.t()};
+    sp_dmat cov = design_mat_group * design_mat_group.t();
     effects_.add_effect(
         std::move(name),
         effect_type::group,
@@ -38,7 +38,7 @@ void GBLUP::clear()
 void GBLUP::add_genetic_effect(
     std::string name,
     sp_dmat design_mat_genetic,
-    dmat genetic_covar_mat)
+    const dmat& genetic_covar_mat)
 {
     if (check_eye(design_mat_genetic))
     {
@@ -46,7 +46,7 @@ void GBLUP::add_genetic_effect(
             std::move(name),
             effect_type::genetic,
             std::move(design_mat_genetic),
-            std::move(genetic_covar_mat));
+            genetic_covar_mat);
     }
     else
     {
@@ -62,40 +62,31 @@ void GBLUP::add_genetic_effect(
 
 void GBLUP::add_gxe_effect(
     string name,
-    const string& genetic_name,
-    const dvec& design_mat_group)
+    sp_dmat design_mat_genetic,
+    const dmat& genetic_cov_mat,
+    const dmat& design_mat_group)
+
 {
-    auto* genetic_effect = effects_.get(genetic_name);
-    if (genetic_effect == nullptr)
+    sp_dmat g_design = std::move(design_mat_genetic);
+    dmat g_cov;
+    if (check_eye(g_design))
     {
-        throw std::runtime_error(
-            fmt::format(
-                "Genetic effect {} not found in GBLUP model", genetic_name));
-    }
-
-    const dmat& genetic_cov = std::get<dmat>(genetic_effect->cov_mat);
-    const sp_dmat& design_mat = std::get<sp_dmat>(genetic_effect->design_mat);
-
-    dmat cov = diagmat(design_mat_group) * genetic_cov
-               * diagmat(design_mat_group).t();
-    if (check_eye(design_mat))
-    {
-        effects_.add_effect(
-            std::move(name),
-            effect_type::gxe,
-            sp_dmat(arma::diagmat(design_mat_group)),
-            std::move(cov));
+        g_cov = genetic_cov_mat;
     }
     else
     {
-        sp_dmat design_mat_gxe
-            = sp_dmat(diagmat(design_mat_group) * design_mat);
-        effects_.add_effect(
-            std::move(name),
-            effect_type::gxe,
-            std::move(design_mat_gxe),
-            std::move(cov));
+        g_cov = g_design * genetic_cov_mat * g_design.t();
     }
+
+    dmat r_cov = design_mat_group * design_mat_group.t();
+    g_cov = g_cov % r_cov;
+    g_cov = g_cov / arma::trace(g_cov) * static_cast<double>(n_individuals_);
+
+    effects_.add_effect(
+        std::move(name),
+        effect_type::gxe,
+        design_mat_genetic,
+        std::move(g_cov));
 }
 
 }  // namespace gelex

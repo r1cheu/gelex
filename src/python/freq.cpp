@@ -52,12 +52,14 @@ void gblup(nb::module_& m)
             &gx::GBLUP::design_mat_beta,
             nb::rv_policy::reference_internal)
         .def("add_group_effect", &gx::GBLUP::add_group_effect)
+        .def("add_genetic_effect", &gx::GBLUP::add_genetic_effect)
         .def(
-            "add_genetic_effect",
-            &gx::GBLUP::add_genetic_effect,
-            nb::keep_alive<1, 2>(),
-            nb::keep_alive<1, 3>())
-        .def("add_gxe_effect", &gx::GBLUP::add_gxe_effect)
+            "add_gxe_effect",
+            &gx::GBLUP::add_gxe_effect,
+            "name"_a,
+            "design_mat_genetic"_a,
+            "genetic_cov_mat"_a,
+            "design_mat_env"_a.noconvert())
         .def("clear", &gelex::GBLUP::clear, "reset the model")
         .def(
             "__repr__",
@@ -66,7 +68,6 @@ void gblup(nb::module_& m)
                 return fmt::format(
                     "<GBLUP object at {:p}: {:d} Individuals, {:d} Common"
                     "effects, {:d} Group effects, {:d} Genetic effects",
-
                     static_cast<const void*>(&self),
                     self.n_individuals(),
                     self.n_common_effects(),

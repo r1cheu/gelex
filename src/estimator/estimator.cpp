@@ -57,9 +57,11 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
     logger_->info("");
     logger_->info("MODEL SPECIFICATION:");
     logger_->info(
-        " \u25AA Model:  {} + {}e",
+        " \u25AA Model:  {}{}{}{}e",
         model.formula(),
-        join_formula(model.effect().genetic_indices(), model.effect(), " + "));
+        join_formula(model.effect().group_indices(), model.effect(), " + "),
+        join_formula(model.effect().genetic_indices(), model.effect(), " + "),
+        join_formula(model.effect().gxe_indices(), model.effect(), " + "));
 
     logger_->info(" \u25AA Samples:  {:d}", model.n_individuals());
     logger_->info(" \u25AA Common Effects:  {:d}", model.n_common_effects());
@@ -76,6 +78,13 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
     logger_->info(
         "────────────────────────── REML ITERATIONS "
         "─────────────────────────");
+
+    logger_->info(
+        "{:>5}{:^12}  {}{:<10}",
+        "Iter.",
+        "logL",
+        join_variance(model.effect()),
+        "duration");
 
     double time_cost{};
     if (em_init)
@@ -114,11 +123,11 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
             optimizer_->step(model);
         }
         logger_->info(
-            " {:<2d}  logL={:.3f} | "
-            "\u03C3\u00B2=[{:.3f}] ({:.3f}s)",
+            " {:^2d}{:>12.3f}  "
+            "{:>7.3f} ({:.3f}s)",
             iter,
             pink(optimizer_->loglike()),
-            pink(fmt::join(model.sigma(), ", ")),
+            pink(fmt::join(model.sigma(), " ")),
             time_cost);
 
         if (optimizer_->converged())
@@ -231,6 +240,11 @@ std::string join_formula(
     const GroupEffectManager& effects,
     std::string_view sep)
 {
+    if (indices.empty())
+    {
+        return "";
+    }
+
     std::string result;
     switch (effects[indices[0]].type)
     {
@@ -239,7 +253,7 @@ std::string join_formula(
             for (auto i : indices)
             {
                 result += fmt::format(
-                    "{}({}){}", effects[i].name, green("R[E]"), sep);
+                    "{}[{}]{}", effects[i].name, green("R[E]"), sep);
             }
             break;
         }
@@ -248,7 +262,7 @@ std::string join_formula(
             for (auto i : indices)
             {
                 result += fmt::format(
-                    "{}({}){}", effects[i].name, cyan("R[G]"), sep);
+                    "{}[{}]{}", effects[i].name, cyan("R[G]"), sep);
             }
             break;
         }
@@ -257,7 +271,7 @@ std::string join_formula(
             for (auto i : indices)
             {
                 result += fmt::format(
-                    "{}({}){}", effects[i].name, rebecca_purple("R[GxE]"), sep);
+                    "{}[{}]{}", effects[i].name, rebecca_purple("R[GxE]"), sep);
             }
             break;
         }
@@ -281,4 +295,16 @@ std::string join_name(
     }
     return result;
 }
+
+std::string join_variance(const GroupEffectManager& effects)
+{
+    std::string result;
+    for (const auto& effect : effects)
+    {
+        result += fmt::format(" V[{}] ", effect.name);
+    }
+    result += " V[e]";
+    return result;
+}
+
 }  // namespace gelex

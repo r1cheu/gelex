@@ -118,8 +118,8 @@ TEST_CASE("BedReader exclude individuals", "[bedreader]")
 {
     const std::string test_bed
         = std::string(GELEX_TESTS_DIR) + "/data/test_10.bed";
-    std::vector<std::string> dropped_individuals{"iid5", "iid2", "iid3"};
-    gelex::BedReader reader(test_bed, SMALL_CHUNK_SIZE, dropped_individuals);
+    std::vector<std::string> dropped_ids{"iid5", "iid2", "iid3"};
+    gelex::BedReader reader(test_bed, SMALL_CHUNK_SIZE, dropped_ids);
 
     REQUIRE(reader.num_individuals() == 7);
     for (const auto& individual : reader.individuals())
@@ -134,7 +134,7 @@ TEST_CASE("BedReader exclude individuals", "[bedreader]")
         REQUIRE(chunk.n_rows == 7);
     }
 
-    gelex::BedReader reader2(test_bed, CHUNK_SIZE, dropped_individuals);
+    gelex::BedReader reader2(test_bed, CHUNK_SIZE, dropped_ids);
     arma::dmat chunk{reader2.read_chunk()};
     REQUIRE(chunk.n_rows == 7);
     arma::dmat expect

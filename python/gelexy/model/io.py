@@ -15,14 +15,14 @@ def load_params(model: str | Path | GBLUP):
                 np.asfortranarray(f["beta"][:]),
                 np.asfortranarray(f["sigma"][:]),
                 np.asfortranarray(f["proj_y"][:]),
-                f["dropped_individuals"].asstr()[:],
+                f["dropped_ids"].asstr()[:],
             )
             params.rhs = f.attrs["rhs"]
             params.lhs = f.attrs["lhs"]
 
     if isinstance(model, GBLUP):
         try:
-            params = GBLUPParams(model, model._dropped_individuals)
+            params = GBLUPParams(model, model._dropped_ids)
             params.rhs = model._rhs
             params.lhs = model._lhs
         except AttributeError as e:

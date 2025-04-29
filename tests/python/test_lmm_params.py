@@ -11,13 +11,13 @@ def sample_params():
     beta = np.array([1.0, 2.0, 3.0], dtype=np.float64)
     sigma = np.array([0.5, 0.3, 0.2], dtype=np.float64)
     proj_y = np.array([0.5, 0.3, 0.2, 1.0, 2.0], dtype=np.float64)
-    dropped_individuals = ["dropped1", "dropped2"]
+    dropped_ids = ["dropped1", "dropped2"]
 
     return {
         "beta": beta,
         "sigma": sigma,
         "proj_y": proj_y,
-        "dropped_individuals": dropped_individuals,
+        "dropped_ids": dropped_ids,
     }
 
 
@@ -27,7 +27,7 @@ def test_gblup_params_init(sample_params):
         beta=sample_params["beta"],
         sigma=sample_params["sigma"],
         proj_y=sample_params["proj_y"],
-        dropped_individuals=sample_params["dropped_individuals"],
+        dropped_ids=sample_params["dropped_ids"],
     )
     assert params is not None
 
@@ -38,15 +38,15 @@ def test_gblup_params_properties(sample_params):
         beta=sample_params["beta"],
         sigma=sample_params["sigma"],
         proj_y=sample_params["proj_y"],
-        dropped_individuals=sample_params["dropped_individuals"],
+        dropped_ids=sample_params["dropped_ids"],
     )
 
     np.testing.assert_array_almost_equal(params.beta, sample_params["beta"])
     np.testing.assert_array_almost_equal(params.sigma, sample_params["sigma"])
     np.testing.assert_array_almost_equal(params.proj_y, sample_params["proj_y"])
 
-    # Test dropped_individuals property
-    assert params.dropped_individuals == sample_params["dropped_individuals"]
+    # Test dropped_ids property
+    assert params.dropped_ids == sample_params["dropped_ids"]
 
 
 def test_load_params(tmp_path, sample_params):
@@ -58,7 +58,7 @@ def test_load_params(tmp_path, sample_params):
         f.create_dataset("sigma", data=sample_params["sigma"])
         f.create_dataset("proj_y", data=sample_params["proj_y"])
         f.create_dataset(
-            "dropped_individuals", data=sample_params["dropped_individuals"]
+            "dropped_ids", data=sample_params["dropped_ids"]
         )
         f.attrs["lhs"] = "phenotype"
         f.attrs["rhs"] = "1"
@@ -68,4 +68,4 @@ def test_load_params(tmp_path, sample_params):
     np.testing.assert_array_almost_equal(params.beta, sample_params["beta"])
     np.testing.assert_array_almost_equal(params.sigma, sample_params["sigma"])
     np.testing.assert_array_almost_equal(params.proj_y, sample_params["proj_y"])
-    assert params.dropped_individuals == sample_params["dropped_individuals"]
+    assert params.dropped_ids == sample_params["dropped_ids"]
