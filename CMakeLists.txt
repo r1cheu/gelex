@@ -55,11 +55,34 @@ target_link_libraries(
 file(GLOB_RECURSE CORE_SOURCE src/*.cpp)
 nanobind_add_module(_core NB_STATIC ${CORE_SOURCE})
 target_link_libraries(_core PRIVATE common)
+nanobind_add_stub(
+  _core_stub
+  MODULE
+  _core
+  OUTPUT
+  _core.pyi
+  PYTHON_PATH
+  $<TARGET_FILE_DIR:_core>
+  MARKER_FILE
+  py.typed
+  DEPENDS
+  _core)
 
 if(BUILD_TEST)
   nanobind_add_module(_test NB_STATIC tests/python/test_arma_caster.cpp)
   target_link_libraries(_test PRIVATE common)
+  nanobind_add_stub(
+    _test_stub
+    MODULE
+    _test
+    OUTPUT
+    _test.pyi
+    PYTHON_PATH
+    $<TARGET_FILE_DIR:_test>
+    DEPENDS
+    _test)
   install(TARGETS _test LIBRARY DESTINATION gelexy)
+  install(FILES ${CMAKE_BINARY_DIR}/_test.pyi DESTINATION gelexy)
 
   set(GELEX_TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
   add_compile_definitions(GELEX_TESTS_DIR="${GELEX_TESTS_DIR}")
@@ -71,3 +94,5 @@ if(BUILD_TEST)
 endif()
 
 install(TARGETS _core LIBRARY DESTINATION gelexy)
+install(FILES ${CMAKE_BINARY_DIR}/_core.pyi ${CMAKE_BINARY_DIR}/py.typed
+        DESTINATION gelexy)

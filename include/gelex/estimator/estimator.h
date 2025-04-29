@@ -53,4 +53,6 @@ std::string join_name(
     const GroupEffectManager& effects,
     std::string_view sep);
 
+std::string join_variance(const GroupEffectManager& effects);
+
 };  // namespace gelex

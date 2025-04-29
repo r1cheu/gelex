@@ -67,7 +67,6 @@ def make_grm(
 def load_grm(
     grm_path: str | Path,
     return_array: bool = False,
-    dropped_individual: list | None = None,
 ) -> pd.DataFrame | np.ndarray:
     """
     Load GRM from HDF5 file.
@@ -96,11 +95,11 @@ def load_grm(
 
     grm = None
     with h5py.File(grm_path, "r") as f:
-        grm = np.asfortranarray(f["grm"][:])
+        grm = f["grm"][:]
         individuals = f["individuals"].asstr()[:]
         grm = pd.DataFrame(grm, index=individuals, columns=individuals)
-        if dropped_individual:
-            grm = grm.drop(index=dropped_individual, columns=dropped_individual)
+
     if return_array:
         return np.asfortranarray(grm)
+
     return grm

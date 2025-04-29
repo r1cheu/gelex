@@ -1,5 +1,4 @@
 import gc
-import re
 from datetime import datetime
 from pathlib import Path
 
@@ -7,11 +6,14 @@ import h5py
 import numpy as np
 import pandas as pd
 from formulae import design_matrices
+from scipy.sparse import csc_matrix
 
 from gelexy._core import _GBLUP
+from gelexy.data.grm import load_grm
 
-from ..data import load_grm, read_table
+from ..data import read_table
 from ..logger import setup_logger
+from .formula_parser import FormulaParser
 
 
 class GBLUP(_GBLUP):
@@ -39,9 +41,7 @@ class GBLUP(_GBLUP):
             f.create_dataset("beta", data=self.beta)
             f.create_dataset("sigma", data=self.sigma)
             f.create_dataset("proj_y", data=self._proj_y)
-            f.create_dataset(
-                "dropped_individuals", data=self._dropped_individuals
-            )
+            f.create_dataset("dropped_ids", data=self._dropped_ids)
             f.attrs["formula"] = self.formula()
 
 
@@ -76,13 +76,16 @@ class make_model:
         else:
             msg = "data must be a path to a file, DataFrame or Series object."
             raise ValueError(msg)
+        if "id" not in self.data.columns:
+            msg = "data must contain an 'id' column."
+            raise ValueError(msg)
 
         if categorical:
             self.data = with_categorical_cols(self.data, categorical)
 
         self._logger = setup_logger(__name__)
 
-    def make(self, formula: str, grm: dict[str, str | Path]) -> GBLUP:
+    def make(self, formula: str, grms: dict) -> GBLUP:
         """
         Create a Linear Mixed Model from the specified formula and genetic relationship matrices.
 
@@ -106,124 +109,94 @@ class make_model:
         ValueError
             If the fixed effects contain missing values.
         """
-        formula = formula.replace(" ", "")
-        response = formula.split("~")[0]
+        fparser = FormulaParser(formula, list(grms.keys()))
         data = self.data
+        data = self._clear_data(data, fparser.response)
+        grms = self._load_grms(grms)
 
-        data, dropped_individuals = self._clear_data(data, response)
-        grms, data, dropped_individuals = self._load_grm(
-            grm, data, dropped_individuals, response
+        data, design_matrix_genetic, dropped_ids, grms = (
+            self._create_design_matrix_genetic(data, grms)
         )
 
-        design_mat = check_effect(formula, data)
+        design_mat = design_matrices(fparser.common, data, na_action="error")
 
         model = GBLUP(
-            re.sub(r"\s*([+~])\s*", r" \1 ", formula),  # format formula
-            design_mat.response.design_matrix,
-            design_mat.common.design_matrix,
+            fparser.format_common,
+            np.asfortranarray(design_mat.response),
+            np.asfortranarray(design_mat.common.design_matrix),
         )
-        # if GxE is not None:
-        #   for term in GxE:
-        #       group, genetic = term.split(:)
-        #       sparse = design_mat.group[group]
-        #       model.add_group_design_mat(sparse)
 
-        for n, g in grms.items():
-            model.add_genetic_effect(n, eye(g.shape[0], format="csc"), g)
+        if design_mat.group is not None:
+            for name, matrix in design_mat.group.terms.items():
+                model.add_group_effect(
+                    "(" + name + ")", csc_matrix(matrix.data)
+                )
 
-        # for n, matrix in design_mat.group.terms.items():
-        #     sparse = csc_matrix(matrix.data)
-        #     model.add_group_effect(
-        #         n,
-        #         sparse.indices,
-        #         sparse.indptr,
-        #         sparse.data,
-        #         sparse.shape[0],
-        #         sparse.shape[1],
-        #     )
+        for term in fparser.genetic_terms:
+            model.add_genetic_effect(
+                term.name,
+                design_matrix_genetic,
+                np.asfortranarray(grms[term.genetic]),
+            )
 
-        model._dropped_individuals = list(dropped_individuals)
+        for term in fparser.gxe_terms:
+            dm = design_matrices("0+" + term.env, data, na_action="error")
+            model.add_gxe_effect(
+                term.name,
+                design_matrix_genetic,
+                np.asfortranarray(grms[term.genetic]),
+                np.asfortranarray(dm.common),
+            )
+
+        model._dropped_ids = dropped_ids
         model._formula = formula
 
-        gc.collect()  # collect the garbage
-
+        gc.collect()
         return model
 
     def _clear_data(self, data: pd.DataFrame, response: str):
         if data[response].hasnans:
-            dropped_individuals = data.index[data[response].isna()]
             self._logger.info(
                 "Missing values detected in `%s`. These entries will be dropped.",
                 response,
             )
-            return data.dropna(subset=[response]), dropped_individuals
-        return data, pd.Index([])
+            return data.dropna(subset=[response])
+        return data
 
-    def _load_grm(
-        self,
-        grm: dict[str, pd.DataFrame | str | Path],
-        data: pd.DataFrame,
-        dropped_individuals: pd.Index,
-        lhs: str,
-    ) -> tuple[np.ndarray, list[str]]:
-        """
-        Clean and align genetic relationship matrices (GRMs) with the data.
-
-        Parameters
-        ----------
-        grm : dict[str, pd.DataFrame | str | Path]
-            Dictionary mapping effect names to GRM matrices or paths to files.
-        data : pd.DataFrame
-            Dataframe containing the phenotypic and covariate data.
-
-        Returns
-        -------
-        tuple[np.ndarray, list[str]]
-            A tuple containing:
-            - aligned_data: Dataframe with rows restricted to common indices
-            - grm_cube: 3D numpy array of GRM matrices (samples x samples x effects)
-            - random_effect_names: List of effect names
-
-        Raises
-        ------
-        ValueError
-            If no common indices are found between GRMs and data.
-        """
-
-        data_index = data.index
-        grm_matrices = {}
-
-        matrix_indice = data_index
-
-        for effect_name, grm_value in grm.items():
-            matrix = (
-                load_grm(grm_value)
-                if isinstance(grm_value, (str | Path))
-                else grm_value
-            )
-
-            if isinstance(matrix, pd.DataFrame):
-                if not data_index.isin(matrix.index).all():
-                    msg = f"Some individuals in the `{lhs}` are not present in the GRM. Are you sure you are using the correct GRM?"
-                    raise ValueError(msg)
-
-                dropped_individuals = dropped_individuals.union(
-                    matrix.index.difference(data_index)
-                )
-                matrix = matrix.drop(
-                    index=dropped_individuals, columns=dropped_individuals
-                )
-                matrix_indice = matrix.index
-                grm_matrices[effect_name] = np.asfortranarray(matrix)
+    @staticmethod
+    def _load_grms(grms):
+        for name, grm in grms.items():
+            if isinstance(grm, str | Path):
+                grms[name] = load_grm(grm)
+            elif isinstance(grm, pd.DataFrame):
+                grms[name] = grm
             else:
-                msg = "GRM must be a DataFrame or a numpy array or path to a grm file."
+                msg = f"GRM for {name} must be a path to a file or a DataFrame."
                 raise ValueError(msg)
+        return grms
 
-        return (
-            grm_matrices,
-            data.loc[matrix_indice],  # use the order in .bim
-            dropped_individuals,
+    def _create_design_matrix_genetic(
+        self,
+        data: pd.DataFrame,
+        grms: dict[str, pd.DataFrame],
+    ) -> tuple[np.ndarray, list[str]]:
+        data_ids = data["id"].to_numpy()
+        grm_ids = next(iter(grms.values())).index.to_numpy()
+
+        intersection = np.intersect1d(data_ids, grm_ids)
+        dropped = np.setdiff1d(grm_ids, intersection)
+
+        data_mask = np.isin(data_ids, intersection)
+        data = data[data_mask]
+        grm_mask = np.isin(grm_ids, intersection)
+
+        for name, grm in grms.items():
+            grms[name] = grm.loc[grm_mask, grm_mask]
+
+        design_mat = make_design_matrix(
+            data["id"].to_numpy(), next(iter(grms.values())).index.to_numpy()
         )
+        return data, design_mat, dropped, grms
 
 
 def check_effect(formula: str, data: pd.DataFrame):
@@ -258,3 +231,16 @@ def listify(obj):
         return []
 
     return obj if isinstance(obj, (list | tuple | None)) else [obj]
+
+
+def make_design_matrix(obs_ids, grm_ids):
+    id2idx = {id_: idx for idx, id_ in enumerate(grm_ids)}
+    n_obs = len(obs_ids)
+
+    rows = np.arange(n_obs)
+    cols = np.empty(n_obs, dtype=np.int64)
+
+    for i, id_ in enumerate(obs_ids):
+        cols[i] = id2idx[id_]
+    data = np.ones(n_obs, dtype=np.float64)
+    return csc_matrix((data, (rows, cols)), shape=(n_obs, len(grm_ids)))

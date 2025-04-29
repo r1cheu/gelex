@@ -1,6 +1,5 @@
 #include "gelex/data/bed_reader.h"
 
-#include <omp.h>
 #include <array>
 #include <cstdint>
 #include <iostream>
@@ -23,14 +22,14 @@ std::string find_second(std::string& snps_line)
 BedReader::BedReader(
     std::string_view bed_file,
     size_t chunk_size,
-    const std::vector<std::string>& dropped_individuals)
+    const std::vector<std::string>& dropped_ids)
     : bed_file_{bed_file}, chunk_size_{chunk_size}
 {
     std::string base_path = bed_file_.substr(0, bed_file_.size() - 4);
     std::string fam_file = base_path + ".fam";
     std::string bim_file = base_path + ".bim";
 
-    individuals_ = parseFam(fam_file, dropped_individuals);
+    individuals_ = parseFam(fam_file, dropped_ids);
     snps_ = parseBim(bim_file);
 
     OpenBed();
@@ -48,10 +47,10 @@ BedReader::~BedReader()
 
 std::vector<std::string> BedReader::parseFam(
     const std::string& fam_file,
-    const std::vector<std::string>& dropped_individuals)
+    const std::vector<std::string>& dropped_ids)
 {
     std::unordered_set<std::string> exclude_set(
-        dropped_individuals.begin(), dropped_individuals.end());
+        dropped_ids.begin(), dropped_ids.end());
 
     std::ifstream fin(fam_file);
     if (!fin.is_open())

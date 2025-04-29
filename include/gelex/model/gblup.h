@@ -35,15 +35,16 @@ class GBLUP
     const dvec& beta() const { return beta_; }
     const dvec& sigma() const { return sigma_; }
 
-    void add_group_effect(string name, dmat design_mat_group);
+    void add_group_effect(string name, sp_dmat design_mat_group);
     void add_genetic_effect(
         string name,
         sp_dmat design_mat_genetic,
-        dmat genetic_covar_mat);
+        const dmat& genetic_covar_mat);
     void add_gxe_effect(
         string name,
-        const string& genetic_name,
-        const dvec& design_mat_group);
+        sp_dmat design_mat_genetic,
+        const dmat& genetic_cov_mat,
+        const dmat& design_mat_group);
 
     const GroupEffectManager& effect() const { return effects_; }
     GroupEffectManager& effect() { return effects_; }
@@ -83,7 +84,7 @@ struct GBLUPParams
     dvec beta;
     dvec sigma;
     dvec proj_y;
-    std::vector<std::string> dropped_individuals;
+    std::vector<std::string> dropped_ids;
 };
 
 }  // namespace gelex

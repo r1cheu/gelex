@@ -24,7 +24,7 @@ void Predictor::set_cross_grm(
                 std::move(center),
                 scale_factor,
                 chunk_size,
-                params_.dropped_individuals));
+                params_.dropped_ids));
     }
     else if (method == "dom")
     {
@@ -34,7 +34,7 @@ void Predictor::set_cross_grm(
                 std::move(center),
                 scale_factor,
                 chunk_size,
-                params_.dropped_individuals));
+                params_.dropped_ids));
     }
     else
     {

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <omp.h>
 #include <array>
 #include <cstdint>
 #include <string>
@@ -29,7 +28,7 @@ class BedReader
     explicit BedReader(
         std::string_view,
         size_t chunk_size = DEFAULT_CHUNK_SIZE,
-        const std::vector<std::string>& dropped_individuals = {});
+        const std::vector<std::string>& dropped_ids = {});
 
     BedReader(const BedReader&) = delete;
     BedReader(BedReader&&) noexcept = default;
@@ -76,7 +75,7 @@ class BedReader
     // std::string_view is not accepted by std::ifstream
     std::vector<std::string> parseFam(
         const std::string& fam_file,
-        const std::vector<std::string>& dropped_individuals);
+        const std::vector<std::string>& dropped_ids);
     static std::vector<std::string> parseBim(const std::string& bim_file);
 
     arma::dmat Decode(const std::vector<char>& buffer, uint64_t chunk_size);

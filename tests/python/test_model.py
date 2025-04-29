@@ -42,7 +42,7 @@ def model():
     model = GBLUP(
         response, design_matrix, grm_cube, random_effect_names
     )
-    model._dropped_individuals = ["ind1"]
+    model._dropped_ids = ["ind1"]
     model._lhs = "phenotype"
     model._rhs = "1"
     return model
@@ -115,7 +115,7 @@ def test_lmm_save(tmp_path, model):
         assert "beta" in f
         assert "sigma" in f
         assert "proj_y" in f
-        assert "dropped_individuals" in f
+        assert "dropped_ids" in f
 
 
 def test_lmm_params_from_model(model):
@@ -124,5 +124,5 @@ def test_lmm_params_from_model(model):
     np.testing.assert_array_almost_equal(model_params.beta, model.beta)
     np.testing.assert_array_almost_equal(model_params.sigma, model.sigma)
     np.testing.assert_array_equal(
-        model_params.dropped_individuals, model._dropped_individuals
+        model_params.dropped_ids, model._dropped_ids
     )
