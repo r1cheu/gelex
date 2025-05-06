@@ -68,7 +68,7 @@ void gblup(nb::module_& m)
             {
                 return fmt::format(
                     "<GBLUP object at {:p}: {:d} Individuals, {:d} Common"
-                    "effects, {:d} Group effects, {:d} Genetic effects",
+                    "effects, {:d} Random effects, {:d} Genetic effects",
                     static_cast<const void*>(&self),
                     self.n_individuals(),
                     self.n_common_effects(),
@@ -83,7 +83,7 @@ void gblup(nb::module_& m)
                     "┌─ GBLUP Model ─────────────────────────────────\n"
                     "│ Individuals:    {:6d}\n"
                     "│ Common Effects:    {:6d}\n"
-                    "│ Group Effects:    {:6d}\n"
+                    "│ Random Effects:    {:6d}\n"
                     "│ Genetic Effects:  {:6d}\n"
                     "└───────────────────────────────────────────────",
                     self.n_individuals(),

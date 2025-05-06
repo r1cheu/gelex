@@ -217,7 +217,7 @@ def check_effect(formula: str, data: pd.DataFrame):
     try:
         model_matrix = design_matrices(formula, data, na_action="error")
     except ValueError as e:
-        msg = "Common or Group effects columns contains missing values, which are unacceptable."
+        msg = "Common or Random effects columns contains missing values, which are unacceptable."
         raise ValueError(msg) from e
     return model_matrix
 

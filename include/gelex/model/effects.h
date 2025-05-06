@@ -16,7 +16,7 @@ using arma::dvec;
 
 enum class effect_type : uint8_t
 {
-    group,
+    random,
     genetic,
     gxe
 };

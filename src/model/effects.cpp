@@ -28,7 +28,7 @@ void EffectManager::add_effect(
     }
     switch (type)
     {
-        case effect_type::group:
+        case effect_type::random:
             n_group_effects_++;
             group_indices_.emplace_back(index);
             break;
