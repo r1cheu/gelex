@@ -73,7 +73,7 @@ void register_bayes_model(nb::module_& module, const char* name)
                 for (uint64_t i = 0; i < self.design_mat_r().size(); ++i)
                 {
                     info += fmt::format(
-                        "│ Group Eff. {}:       {:6d}\n",
+                        "│ Random Eff. {}:       {:6d}\n",
                         self.group_names()[i],
                         self.design_mat_r()[i].n_cols);
                 }

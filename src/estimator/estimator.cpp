@@ -244,7 +244,7 @@ void Estimator::report_fixed_effects(const GBLUP& model)
 void Estimator::report_variance_components(const GBLUP& model)
 {
     logger_->info(fmt::format("{}", wine_red("[Variance Componests]")));
-    report_variance("Group", model.effect().group_indices(), model);
+    report_variance("Random", model.effect().group_indices(), model);
     report_variance("Genetic", model.effect().genetic_indices(), model);
     report_variance("GxE", model.effect().gxe_indices(), model);
     logger_->info(" \u25AA Residual:");

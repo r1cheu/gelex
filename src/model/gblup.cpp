@@ -20,7 +20,7 @@ void GBLUP::add_group_effect(std::string name, sp_dmat design_mat_group)
     sp_dmat cov = design_mat_group * design_mat_group.t();
     effects_.add_effect(
         std::move(name),
-        effect_type::group,
+        effect_type::random,
         std::move(design_mat_group),
         std::move(cov));
 }
