@@ -3,7 +3,7 @@
 namespace gelex
 {
 
-void GroupEffectManager::add_effect(
+void EffectManager::add_effect(
     std::string name,
     effect_type type,
     MatVariant design_mat,
@@ -43,13 +43,16 @@ void GroupEffectManager::add_effect(
     }
 }
 
-void GroupEffectManager::clear()
+void EffectManager::clear()
 {
     effects_.clear();
     index_map_.clear();
     n_group_effects_ = 0;
     n_genetic_effects_ = 0;
     n_gxe_effects_ = 0;
+    residual_ = 0;
+    residual_se_ = 0;
+    effect_cov_.clear();
     genetic_indices_.clear();
     group_indices_.clear();
     gxe_indices_.clear();

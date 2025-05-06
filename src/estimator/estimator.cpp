@@ -1,6 +1,5 @@
 #include "gelex/estimator/estimator.h"
 
-#include <cmath>
 #include <cstdint>
 
 #include <memory>
@@ -19,8 +18,10 @@
 #include "gelex/optim/base_optimizer.h"
 #include "gelex/optim/optimizers.h"
 #include "gelex/utils.h"
+
 namespace gelex
 {
+
 Estimator::Estimator(std::string_view optimizer, size_t max_iter, double tol)
     : logger_{Logger::logger()}, max_iter_{max_iter}
 {
@@ -51,26 +52,52 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
         logger_->set_level(spdlog::level::warn);
     }
 
+    log_model_information(model);
+    initialize_optimizer(model, em_init);
+    run_optimization_loop(model);
+    report_results(model, start);
+}
+
+void Estimator::log_model_information(const GBLUP& model)
+{
     logger_->info(
         "─────────────────────── GBLUP MODEL ANALYSIS "
         "───────────────────────");
     logger_->info("");
-    logger_->info("MODEL SPECIFICATION:");
+    logger_->info(fmt::format("{}", wine_red("[Model Specification]")));
     logger_->info(
         " \u25AA Model:  {}{}{}{}e",
         model.formula(),
         join_formula(model.effect().group_indices(), model.effect(), " + "),
         join_formula(model.effect().genetic_indices(), model.effect(), " + "),
         join_formula(model.effect().gxe_indices(), model.effect(), " + "));
-
     logger_->info(" \u25AA Samples:  {:d}", model.n_individuals());
-    logger_->info(" \u25AA Common Effects:  {:d}", model.n_common_effects());
-    logger_->info(" \u25AA Group Effects:  {:d}", model.n_group_effects());
-    logger_->info(
-        " \u25AA Genetic Effects:  {}",
-        join_name(model.effect().genetic_indices(), model.effect(), ", "));
     logger_->info("");
-    logger_->info("OPTIMIZATION SPECIFICATION:");
+
+    logger_->info(fmt::format("{}", wine_red("[Term Summary]")));
+    logger_->info(
+        " \u25AA Fixed:  {}", fmt::join(model.fixed_effect_names(), ", "));
+    if (model.effect().has_group_effects())
+    {
+        logger_->info(
+            " \u25AA Random:  {}",
+            join_name(model.effect().group_indices(), model.effect(), ", "));
+    }
+    if (model.effect().has_genetic_effects())
+    {
+        logger_->info(
+            " \u25AA Genetic:  {}",
+            join_name(model.effect().genetic_indices(), model.effect(), ", "));
+    }
+    if (model.effect().has_gxe_effects())
+    {
+        logger_->info(
+            " \u25AA GxE:  {}",
+            join_name(model.effect().gxe_indices(), model.effect(), ", "));
+    }
+    logger_->info("");
+
+    logger_->info(fmt::format("{}", wine_red("[Optimizer Specification]")));
     logger_->info(" \u25AA Method:  {}", cyan(optimizer_name_));
     logger_->info(" \u25AA tolerance:  {:.2e}", tol_);
     logger_->info(" \u25AA Max Iterations:  {:d}", max_iter_);
@@ -78,14 +105,16 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
     logger_->info(
         "────────────────────────── REML ITERATIONS "
         "─────────────────────────");
-
     logger_->info(
-        "{:>5}{:^12}  {}{:<10}",
+        "{:>5}{:>8}  {}  {:<10}",
         "Iter.",
         "logL",
         join_variance(model.effect()),
         "duration");
+}
 
+void Estimator::initialize_optimizer(GBLUP& model, bool em_init)
+{
     double time_cost{};
     if (em_init)
     {
@@ -104,7 +133,6 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
             "Initial: logL={:.3f} | \u03C3\u00B2=[{:.3f}] ({:.3f}s)",
             em_optimizer.loglike(),
             rebecca_purple(fmt::join(model.sigma(), ", ")),
-
             time_cost);
         optimizer_ = std::make_unique<AverageInformationOptimizer>(
             std::move(static_cast<OptimizerBase&>(em_optimizer)));
@@ -114,8 +142,13 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
         optimizer_ = std::make_unique<AverageInformationOptimizer>(tol_);
         optimizer_->init(model);
     }
+}
 
+void Estimator::run_optimization_loop(GBLUP& model)
+{
     uint64_t iter{1};
+    double time_cost{};
+
     for (; iter <= max_iter_; ++iter)
     {
         {
@@ -136,21 +169,46 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
             break;
         }
     }
+    iter_count_ = iter;
+}
+
+void Estimator::report_results(
+    GBLUP& model,
+    const std::chrono::steady_clock::time_point& start_time)
+{
     logger_->info(
         "───────────────────────────── Result "
         "───────────────────────────────");
     auto end = std::chrono::steady_clock::now();
     model.set_beta(compute_beta(model));
-    logger_->info("CONVERGENCE:");
+    logger_->info(fmt::format("{}", wine_red("[Convergence]")));
+
+    report_convergence_status(model, start_time, end);
+    report_fixed_effects(model);
+    report_variance_components(model);
+    report_heritability(model);
+
+    logger_->info(
+        "──────────────────────────────────────────"
+        "──────────────────────────");
+    compute_u(model);
+}
+
+void Estimator::report_convergence_status(
+    GBLUP& model,
+    const std::chrono::steady_clock::time_point& start_time,
+    const std::chrono::steady_clock::time_point& end_time)
+{
+    double elapsed_time
+        = std::chrono::duration<double>(end_time - start_time).count();
 
     if (converged_)
     {
         logger_->info(
             " \u25AA Status:  {} ({} iterations in {:.3f}s)",
-            gold("Success"),
-            iter,
-            std::chrono::duration<double>(end - start).count());
-        logger_->info("");
+            fmt::format("{}", green("Success")),
+            iter_count_,
+            elapsed_time);
     }
     else
     {
@@ -158,39 +216,62 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
             " \u25AA Status:  {} ({} iterations in {:.3f}s)",
             red("Failed"),
             max_iter_,
-            std::chrono::duration<double>(end - start).count());
+            elapsed_time);
         logger_->warn(
             "Try to increase the max_iter or check the model specification.");
-        logger_->info("");
     }
-
-    logger_->info("COMMON EFFECTS: ");
-    logger_->info(
-        " \u25AA \u03B2:  [{:.6f}]", pink(fmt::join(model.beta(), ", ")));
+    logger_->info(" \u25AA AIC:  {:.3f}", pink(compute_aic(model)));
+    logger_->info(" \u25AA BIC:  {:.3f}", pink(compute_bic(model)));
     logger_->info("");
+}
 
-    logger_->info("VARIANCE COMPONESTS: ");
+void Estimator::report_fixed_effects(const GBLUP& model)
+{
+    logger_->info(fmt::format("{}", wine_red("[Fixed Effects]")));
+    dvec fixed_effse
+        = arma::diagvec(arma::sqrt(arma::inv_sympd(optimizer_->tx_vinv_x())));
+    for (size_t i = 0; i < model.n_common_effects(); ++i)
+    {
+        logger_->info(
+            " \u25AA {}:  {:.6f} \u00B1 {:.4f}",
+            model.fixed_effect_levles()[i],
+            pink(model.beta()[i]),
+            pink(fixed_effse[i]));
+    }
+    logger_->info("");
+}
+
+void Estimator::report_variance_components(const GBLUP& model)
+{
+    logger_->info(fmt::format("{}", wine_red("[Variance Componests]")));
     report_variance("Group", model.effect().group_indices(), model);
     report_variance("Genetic", model.effect().genetic_indices(), model);
     report_variance("GxE", model.effect().gxe_indices(), model);
-    logger_->info(" \u25AA Residual Variance:");
-    logger_->info("  \u2022 e:  {:6f}", pink(model.sigma().back()));
+    logger_->info(" \u25AA Residual:");
+    logger_->info(
+        "  - e:  {:6f} \u00B1 {:.4f}",
+        pink(model.sigma().back()),
+        pink(model.effect().residual_se()));
     logger_->info("");
+}
 
-    logger_->info("HERTIABILITY:");
+void Estimator::report_heritability(const GBLUP& model)
+{
+    logger_->info(fmt::format("{}", wine_red("[Hertiability]")));
+
     const double sum_var = arma::sum(model.sigma());
-    for (auto i : model.effect().genetic_indices())
+    std::vector<double> h2_se = compute_h2_se(sum_var, model.effect());
+    uint64_t index{};
+    for (auto genetic_index : model.effect().genetic_indices())
     {
         logger_->info(
-            " \u25AA {}:  {:.3f}",
-            model.effect()[i].name,
-            pink(model.effect()[i].sigma / sum_var));
+            " \u25AA {}:  {:.4f} \u00B1 {:.4f}",
+            model.effect()[genetic_index].name,
+            pink(model.effect()[genetic_index].sigma / sum_var),
+            pink(h2_se[index]));
+        ++index;
     }
-
-    logger_->info(
-        "──────────────────────────────────────────"
-        "──────────────────────────");
-    compute_u(model);
+    logger_->info("");
 }
 
 dvec Estimator::compute_beta(GBLUP& model)
@@ -225,19 +306,65 @@ void Estimator::report_variance(
         return;
     }
 
-    logger_->info(" \u25AA {} Variance:", category);
+    logger_->info(" \u25AA {}:", category);
     for (auto i : indices)
     {
         logger_->info(
-            "  \u2022 {}:  {:.6f}",
+            "  - {}:  {:.6f} \u00B1 {:.4f}",
             model.effect()[i].name,
-            pink(model.effect()[i].sigma));
+            pink(model.effect()[i].sigma),
+            pink(model.effect()[i].se));
     }
+}
+
+double Estimator::compute_aic(GBLUP& model)
+{
+    auto k
+        = static_cast<double>(model.effect().size() + model.n_common_effects());
+    double aic = (-2 * optimizer_->loglike()) + (2 * k);
+    return aic;
+}
+
+double Estimator::compute_bic(GBLUP& model)
+{
+    auto k
+        = static_cast<double>(model.effect().size() + model.n_common_effects());
+    auto n = static_cast<double>(model.n_individuals());
+    double bic = (-2 * optimizer_->loglike()) + (k * std::log(n));
+    return bic;
+}
+
+std::vector<double> compute_h2_se(double sum_var, const EffectManager& effects)
+{
+    auto n = effects.size();
+    double sum_sq = sum_var * sum_var;
+
+    dvec grad = arma::zeros<dvec>(n);
+    std::vector<double> h2_se;
+    h2_se.reserve(effects.n_genetic_effects());
+    for (auto i : effects.genetic_indices())
+    {
+        for (uint64_t j{}; j < n; ++j)
+        {
+            if (i == j)
+            {
+                grad[j] = (sum_var - effects[i].sigma) / sum_sq;
+            }
+            else
+            {
+                grad[j] = -effects[i].sigma / sum_sq;
+            }
+        }
+        h2_se.emplace_back(
+            std::sqrt(
+                arma::as_scalar(grad.t() * -effects.effect_cov() * grad)));
+    }
+    return h2_se;
 }
 
 std::string join_formula(
     const std::vector<uint64_t>& indices,
-    const GroupEffectManager& effects,
+    const EffectManager& effects,
     std::string_view sep)
 {
     if (indices.empty())
@@ -246,42 +373,16 @@ std::string join_formula(
     }
 
     std::string result;
-    switch (effects[indices[0]].type)
+    for (auto i : indices)
     {
-        case gelex::effect_type::group:
-        {
-            for (auto i : indices)
-            {
-                result += fmt::format(
-                    "{}[{}]{}", effects[i].name, green("R[E]"), sep);
-            }
-            break;
-        }
-        case gelex::effect_type::genetic:
-        {
-            for (auto i : indices)
-            {
-                result += fmt::format(
-                    "{}[{}]{}", effects[i].name, cyan("R[G]"), sep);
-            }
-            break;
-        }
-        case gelex::effect_type::gxe:
-        {
-            for (auto i : indices)
-            {
-                result += fmt::format(
-                    "{}[{}]{}", effects[i].name, rebecca_purple("R[GxE]"), sep);
-            }
-            break;
-        }
-    };
+        result += fmt::format("{}{}", effects[i].name, sep);
+    }
     return result;
 }
 
 std::string join_name(
     const std::vector<uint64_t>& indices,
-    const GroupEffectManager& effects,
+    const EffectManager& effects,
     std::string_view sep)
 {
     std::string result;
@@ -296,7 +397,7 @@ std::string join_name(
     return result;
 }
 
-std::string join_variance(const GroupEffectManager& effects)
+std::string join_variance(const EffectManager& effects)
 {
     std::string result;
     for (const auto& effect : effects)

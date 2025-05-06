@@ -123,6 +123,11 @@ class make_model:
         model = GBLUP(
             fparser.format_common,
             np.asfortranarray(design_mat.response),
+        )
+
+        model.add_fixed_effect(
+            list(design_mat.common.terms),
+            self._get_fixed_levels(design_mat.common.terms),
             np.asfortranarray(design_mat.common.design_matrix),
         )
 
@@ -150,7 +155,6 @@ class make_model:
 
         model._dropped_ids = dropped_ids
         model._formula = formula
-
         gc.collect()
         return model
 
@@ -162,6 +166,16 @@ class make_model:
             )
             return data.dropna(subset=[response])
         return data
+
+    @staticmethod
+    def _get_fixed_levels(fixed_effect: dict):
+        levels = []
+        for name, term in fixed_effect.items():
+            if hasattr(term, "levels"):
+                levels.extend([f"{name}_{level}" for level in term.levels])
+            else:
+                levels.append(name)
+        return levels
 
     @staticmethod
     def _load_grms(grms):

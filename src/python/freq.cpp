@@ -31,10 +31,7 @@ using arma::dvec;
 void gblup(nb::module_& m)
 {
     nb::class_<gx::GBLUP>(m, "_GBLUP")
-        .def(
-            nb::init<std::string, dvec, dmat>(),
-            nb::keep_alive<1, 3>(),
-            nb::keep_alive<1, 4>())
+        .def(nb::init<std::string, dvec>(), nb::keep_alive<1, 3>())
         .def_prop_ro("n_common_effects", &gx::GBLUP::n_common_effects)
         .def_prop_ro("n_group_effects", &gx::GBLUP::n_genetic_effects)
         .def_prop_ro("n_individuals", &gx::GBLUP::n_individuals)
@@ -51,6 +48,10 @@ void gblup(nb::module_& m)
             "design_mat_beta",
             &gx::GBLUP::design_mat_beta,
             nb::rv_policy::reference_internal)
+        .def(
+            "add_fixed_effect",
+            &gx::GBLUP::add_fixed_effect,
+            nb::keep_alive<1, 4>())
         .def("add_group_effect", &gx::GBLUP::add_group_effect)
         .def("add_genetic_effect", &gx::GBLUP::add_genetic_effect)
         .def(
