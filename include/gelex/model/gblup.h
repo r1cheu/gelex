@@ -21,7 +21,7 @@ using std::string;
 class GBLUP
 {
    public:
-    GBLUP(string formula, dvec phenotype, dmat design_mat_beta);
+    GBLUP(string formula, dvec phenotype);
 
     uint64_t n_individuals() const { return n_individuals_; }
     uint64_t n_common_effects() const { return n_common_effects_; }
@@ -35,6 +35,20 @@ class GBLUP
     const dvec& beta() const { return beta_; }
     const dvec& sigma() const { return sigma_; }
 
+    const std::vector<std::string>& fixed_effect_names() const
+    {
+        return fixed_eff_names_;
+    }
+
+    const std::vector<std::string>& fixed_effect_levles() const
+    {
+        return fixed_eff_levels_;
+    }
+
+    void add_fixed_effect(
+        std::vector<std::string>&& names,
+        std::vector<std::string>&& levels,
+        dmat&& design_mat_beta);
     void add_group_effect(string name, sp_dmat design_mat_group);
     void add_genetic_effect(
         string name,
@@ -46,8 +60,8 @@ class GBLUP
         const dmat& genetic_cov_mat,
         const dmat& design_mat_group);
 
-    const GroupEffectManager& effect() const { return effects_; }
-    GroupEffectManager& effect() { return effects_; }
+    const EffectManager& effect() const { return effects_; }
+    EffectManager& effect() { return effects_; }
 
     void set_sigma(dvec sigma)
     {
@@ -58,6 +72,7 @@ class GBLUP
             eff.sigma = sigma_.at(idx);
             ++idx;
         }
+        effects_.set_residual(sigma_.back());
     }
 
     void set_beta(dvec beta) { beta_ = std::move(beta); }
@@ -69,11 +84,13 @@ class GBLUP
     uint64_t n_common_effects_{};
 
     std::string formula_;
+    std::vector<std::string> fixed_eff_names_;
+    std::vector<std::string> fixed_eff_levels_;
     dvec phenotype_;
 
     dmat design_mat_beta_;
 
-    GroupEffectManager effects_;
+    EffectManager effects_;
 
     dvec beta_;
     dvec sigma_;

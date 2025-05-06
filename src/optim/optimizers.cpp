@@ -21,7 +21,7 @@ void ExpectationMaximizationOptimizer::step_inner(GBLUP& model)
             {
                 sigma.at(idx)
                     = as_scalar(
-                          sigma_2.at(idx) * proj_y().t() * mat * proj_y()
+                          (sigma_2.at(idx) * proj_y().t() * mat * proj_y())
                           + ((arma::trace(-sigma_2.at(idx) * proj() * mat))
                              + (sigma.at(idx) * n)))
                       / n;
@@ -51,6 +51,7 @@ void AverageInformationOptimizer::step_inner(GBLUP& model)
     dvec delta = -hess_inv * first_grad();
     sigma += delta;
 
+    model.effect().set_effect_cov(std::move(hess_inv));
     sigma = constrain(sigma, phenotype_var());
     model.set_sigma(OptimizerBase::constrain(sigma, phenotype_var()));
 };

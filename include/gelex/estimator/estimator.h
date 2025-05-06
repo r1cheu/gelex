@@ -27,15 +27,35 @@ class Estimator
     dmat compute_u(GBLUP& model);
     std::unique_ptr<OptimizerBase> optimizer_;
     std::shared_ptr<spdlog::logger> logger_;
+
+    void log_model_information(const GBLUP& model);
+    void initialize_optimizer(GBLUP& model, bool em_init);
+    void run_optimization_loop(GBLUP& model);
+
+    void report_results(
+        GBLUP& model,
+        const std::chrono::steady_clock::time_point& start_time);
+    void report_convergence_status(
+        GBLUP& model,
+        const std::chrono::steady_clock::time_point& start_time,
+        const std::chrono::steady_clock::time_point& end_time);
+    void report_fixed_effects(const GBLUP& model);
+    void report_variance_components(const GBLUP& model);
+    void report_heritability(const GBLUP& model);
     void report_variance(
         const std::string& category,
         const std::vector<size_t>& indices,
         const GBLUP& model);
+    double compute_aic(GBLUP& model);
+    double compute_bic(GBLUP& model);
+    uint64_t iter_count_{};
     uint64_t max_iter_{};
     double tol_{};
     std::string optimizer_name_;
     bool converged_{};
 };
+
+std::vector<double> compute_h2_se(double sum_var, const EffectManager& effects);
 
 template <typename eT>
 auto blue_vec(const arma::Col<eT>& vec)
@@ -45,14 +65,14 @@ auto blue_vec(const arma::Col<eT>& vec)
 
 std::string join_formula(
     const std::vector<uint64_t>& indices,
-    const GroupEffectManager& effects,
+    const EffectManager& effects,
     std::string_view sep);
 
 std::string join_name(
     const std::vector<uint64_t>& indices,
-    const GroupEffectManager& effects,
+    const EffectManager& effects,
     std::string_view sep);
 
-std::string join_variance(const GroupEffectManager& effects);
+std::string join_variance(const EffectManager& effects);
 
 };  // namespace gelex

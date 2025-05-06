@@ -41,7 +41,7 @@ std::string ToLowercase(std::string_view input);
 template <typename T>
 auto green(const T& value)
 {
-    return fmt::styled(value, fmt::fg(fmt::color::light_green));
+    return fmt::styled(value, fmt::fg(fmt::rgb(0x00FF00)));
 }
 
 template <typename T>
@@ -84,6 +84,12 @@ template <typename T>
 auto red(const T& value)
 {
     return fmt::styled(value, fmt::fg(fmt::color::red));
+}
+
+template <typename T>
+auto wine_red(const T& value)
+{
+    return fmt::styled(value, fmt::fg(fmt::rgb(0x982756)));
 }
 
 class Timer
