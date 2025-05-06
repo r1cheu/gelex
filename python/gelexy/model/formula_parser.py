@@ -89,4 +89,6 @@ class FormulaParser:
         formatted_term = self._FORMAT_PATTERN.sub(r" \1 ", common_term)
         formatted_term = self._GROUP_PATTERNL.sub("", formatted_term)
         formatted_term = re.sub(r"\+\++", "+", formatted_term)
-        return formatted_term.strip("+")
+        if not formatted_term.endswith("+ "):
+            formatted_term += " + "
+        return formatted_term

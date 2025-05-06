@@ -30,7 +30,7 @@ TEST_CASE("Linear Mixed Model Fitted Check")
     SECTION("Average Information")
     {
         gelex::Estimator estimator{"AI", 20, 1e-6};
-        estimator.fit(model, false, true);
+        estimator.fit(model, false, false);
         REQUIRE(arma::approx_equal(model.sigma(), sigma_hat, "absdiff", 1e-3));
     }
 }
