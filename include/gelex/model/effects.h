@@ -10,18 +10,31 @@
 
 namespace gelex
 {
+
 using arma::dmat;
-using MatVariant = std::variant<arma::dmat, arma::sp_dmat>;
 using arma::dvec;
+using MatVariant = std::variant<arma::dmat, arma::sp_dmat>;
 
 enum class effect_type : uint8_t
 {
     random,
     genetic,
-    gxe
+    gxe,
+    residual,
 };
 
-struct Effect
+struct FixedEffect
+{
+    std::vector<std::string> names;
+    std::vector<std::string> levels;
+    MatVariant design_mat;
+    dvec beta;
+
+    size_t size() const { return beta.n_elem; }
+    void clear();
+};
+
+struct RandomEffect
 {
     std::string name;
     effect_type type;
@@ -31,86 +44,74 @@ struct Effect
     double se;
 };
 
-class EffectManager
+class RandomEffectManager
 {
    public:
     void add_effect(
-        std::string name,
+        std::string&& name,
         effect_type type,
-        MatVariant design_mat,
-        MatVariant cov_mat);
+        MatVariant&& design_mat,
+        MatVariant&& cov_mat);
 
-    Effect* get(const std::string& name)
-    {
-        auto it = index_map_.find(name);
-        return it != index_map_.end() ? &effects_[it->second] : nullptr;
-    }
+    RandomEffect* get(const std::string& name);
+    const RandomEffect* get(const std::string& name) const;
 
-    uint64_t size() const
-    {
-        return effects_.size() + 1;
-    }  // add one for residual
+    size_t size() const { return effects_.size(); }
 
-    uint64_t n_group_effects() const { return n_group_effects_; }
-    uint64_t n_genetic_effects() const { return n_genetic_effects_; }
-    uint64_t n_gxe_effects() const { return n_gxe_effects_; }
-    bool has_group_effects() const { return n_group_effects_ > 0; }
+    size_t n_random_effects() const { return n_random_effects_; }
+    size_t n_genetic_effects() const { return n_genetic_effects_; }
+    size_t n_gxe_effects() const { return n_gxe_effects_; }
+
+    bool has_random_effects() const { return n_random_effects_ > 0; }
     bool has_genetic_effects() const { return n_genetic_effects_ > 0; }
     bool has_gxe_effects() const { return n_gxe_effects_ > 0; }
 
-    const std::vector<uint64_t>& genetic_indices() const
+    const std::vector<size_t>& genetic_indices() const
     {
         return genetic_indices_;
     }
-    const std::vector<uint64_t>& group_indices() const
+    const std::vector<size_t>& random_indices() const
     {
-        return group_indices_;
+        return random_indices_;
     }
-    const std::vector<uint64_t>& gxe_indices() const { return gxe_indices_; }
-    const std::vector<Effect>& effects() const { return effects_; }
-    const dmat& effect_cov() const { return effect_cov_; }
-    void set_effect_cov(dmat&& cov)
-    {
-        effect_cov_ = std::move(cov);
-        compute_se();
-    }
+    const std::vector<size_t>& gxe_indices() const { return gxe_indices_; }
+    size_t residul_index() const { return residual_index_; }
 
-    void set_residual(double res) { residual_ = res; }
-    double residual() const { return residual_; }
-    double residual_se() const { return residual_se_; }
+    const std::vector<RandomEffect>& effects() const { return effects_; }
+
     void clear();
+
     auto begin() { return effects_.begin(); }
     auto end() { return effects_.end(); }
     auto begin() const { return effects_.begin(); }
     auto end() const { return effects_.end(); }
 
-    const Effect& operator[](size_t i) const { return effects_[i]; }
-    Effect& operator[](size_t i) { return effects_[i]; }
+    const RandomEffect& operator[](size_t idx) const { return effects_[idx]; }
+    RandomEffect& operator[](size_t idx) { return effects_[idx]; }
+
+    void set_sigma(const dvec& sigma);
+
+    void set_se(const dvec& se);
+
+    const dvec& sigma() const { return sigma_; }
+    void set_hess_inv(const dmat& hess_inv) { hess_inv_ = hess_inv; }
+    const dmat& hess_inv() const { return hess_inv_; }
 
    private:
-    void compute_se()
-    {
-        dvec se = arma::sqrt(arma::diagvec(-effect_cov_));
-        for (size_t i = 0; i < effects_.size(); ++i)
-        {
-            effects_[i].se = se[i];
-        }
-        residual_se_ = se.back();
-    }
-    std::vector<Effect> effects_;
+    std::vector<RandomEffect> effects_;
     std::unordered_map<std::string, size_t> index_map_;
-    uint64_t n_group_effects_{};
-    uint64_t n_genetic_effects_{};
-    uint64_t n_gxe_effects_{};
 
-    double residual_{};
-    double residual_se_{};
+    size_t n_random_effects_{};
+    size_t n_genetic_effects_{};
+    size_t n_gxe_effects_{};
 
-    dmat effect_cov_;
+    std::vector<size_t> random_indices_;
+    std::vector<size_t> genetic_indices_;
+    std::vector<size_t> gxe_indices_;
+    size_t residual_index_{};
 
-    std::vector<uint64_t> genetic_indices_;
-    std::vector<uint64_t> group_indices_;
-    std::vector<uint64_t> gxe_indices_;
+    dmat hess_inv_;
+    dvec sigma_;
 };
 
 }  // namespace gelex

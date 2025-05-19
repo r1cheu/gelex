@@ -1,8 +1,5 @@
 #include "gelex/optim/base_optimizer.h"
 
-#include <cstdint>
-#include <cstdlib>
-
 #include <fmt/color.h>
 #include <fmt/ranges.h>
 #include <armadillo>
@@ -22,28 +19,28 @@ void OptimizerBase::step(GBLUP& model)
 void OptimizerBase::init(GBLUP& model)
 {
     phenotype_var_ = arma::var(model.phenotype());
-    n_sigma_ = model.effect().size();
-    n_individuals_ = model.n_individuals();
+    auto n_sigma = model.random().size();
+    auto n_individuals = model.n_individuals();
 
-    if (model.sigma().empty())  // in case user refit the model or given a prior
-                                // for sigma
+    if (model.random().sigma().empty())  // in case user refit the model or
+                                         // given a prior for sigma
     {
         old_sigma_ = dvec(
-            n_sigma_,
-            arma::fill::value(phenotype_var_ / static_cast<double>(n_sigma_)));
-        model.set_sigma(old_sigma_);
+            n_sigma,
+            arma::fill::value(phenotype_var_ / static_cast<double>(n_sigma)));
+        model.random().set_sigma(old_sigma_);
     }
     else
     {
-        old_sigma_ = model.sigma();
+        old_sigma_ = model.random().sigma();
     }
 
-    first_grad_ = arma::zeros<dvec>(n_sigma_);
-    dvpy_ = arma::zeros<dmat>(n_individuals_, n_sigma_);
-    proj_ = arma::zeros<dmat>(n_individuals_, n_individuals_);
-    v_ = arma::zeros<dmat>(n_individuals_, n_individuals_);
+    first_grad_ = arma::zeros<dvec>(n_sigma);
+    dvpy_ = arma::zeros<dmat>(n_individuals, n_sigma);
+    proj_ = arma::zeros<dmat>(n_individuals, n_individuals);
+    v_ = arma::zeros<dmat>(n_individuals, n_individuals);
     tx_vinv_x_
-        = arma::zeros<dmat>(model.n_common_effects(), model.n_common_effects());
+        = arma::zeros<dmat>(model.n_fixed_effects(), model.n_fixed_effects());
 }
 
 void OptimizerBase::prepare_proj(const GBLUP& model)
@@ -55,18 +52,16 @@ void OptimizerBase::prepare_proj(const GBLUP& model)
 void OptimizerBase::compute_v(const GBLUP& model)
 {
     v_.zeros();
-    for (const auto& eff : model.effect())
+    for (const auto& eff : model.random())
     {
         std::visit(
             [&](const auto& mat) { v_ += mat * eff.sigma; }, eff.cov_mat);
     }
-
-    v_.diag() += model.sigma().back();
 }
 
 void OptimizerBase::compute_proj(const GBLUP& model)
 {
-    const dmat& design_mat = model.design_mat_beta();
+    const dmat& design_mat = std::get<dmat>(model.fixed().design_mat);
     logdet_v_ = v_inv_logdet(v_);
     dmat vinv_x = v_ * design_mat;
     tx_vinv_x_ = design_mat.t() * vinv_x;
@@ -87,22 +82,21 @@ double OptimizerBase::compute_loglike(const GBLUP& model)
 
 void OptimizerBase::compute_dvpy(const GBLUP& model)
 {
-    uint64_t counts{};
-    for (const auto& eff : model.effect())
+    size_t counts{};
+    for (const auto& eff : model.random())
     {
         std::visit(
             [&](const auto& mat) { dvpy_.unsafe_col(counts) = mat * proj_y_; },
             eff.cov_mat);
         ++counts;
     }
-    dvpy_.unsafe_col(counts) = proj_y_;
 }
 
 void OptimizerBase::compute_first_grad(const GBLUP& model)
 {
     compute_dvpy(model);
-    uint64_t counts{};
-    for (const auto& eff : model.effect())
+    size_t counts{};
+    for (const auto& eff : model.random())
     {
         std::visit(
             [&](const auto& mat)
@@ -115,16 +109,13 @@ void OptimizerBase::compute_first_grad(const GBLUP& model)
             eff.cov_mat);
         counts++;
     }
-    first_grad_.back()
-        = -0.5
-          * (arma::trace(proj_)
-             - arma::dot(dvpy_.unsafe_col(counts), dvpy_.unsafe_col(counts)));
 }
 
 double OptimizerBase::compute_sigma_diff(const GBLUP& model)
 {
-    double diff = norm(model.sigma() - old_sigma_) / norm(model.sigma());
-    old_sigma_ = model.sigma();
+    double diff = norm(model.random().sigma() - old_sigma_)
+                  / norm(model.random().sigma());
+    old_sigma_ = model.random().sigma();
     return diff;
 }
 

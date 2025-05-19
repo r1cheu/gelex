@@ -1,7 +1,6 @@
 #include "gelex/optim/optimizers.h"
 
 #include <armadillo>
-#include <cstdint>
 
 namespace gelex
 {
@@ -9,12 +8,12 @@ namespace gelex
 void ExpectationMaximizationOptimizer::step_inner(GBLUP& model)
 {
     prepare_proj(model);
-    dvec sigma = model.sigma();
+    dvec sigma = model.random().sigma();
     dvec sigma_2 = {sigma % sigma};
-    uint64_t idx{};
-    auto n = static_cast<double>(n_individuals());
+    size_t idx{};
+    auto n = static_cast<double>(model.n_individuals());
 
-    for (const auto& eff : model.effect())
+    for (const auto& eff : model.random())
     {
         std::visit(
             [&](const auto& mat)
@@ -28,20 +27,15 @@ void ExpectationMaximizationOptimizer::step_inner(GBLUP& model)
             },
             eff.cov_mat);
     }
-    sigma.back()
-        = as_scalar(
-              sigma_2.back() * proj_y().t() * proj_y()
-              + ((arma::trace(-sigma_2.back() * proj())) + (sigma.back() * n)))
-          / n;
     sigma = constrain(sigma, phenotype_var());
-    model.set_sigma(sigma);
+    model.random().set_sigma(sigma);
 };
 
 void AverageInformationOptimizer::step_inner(GBLUP& model)
 {
     prepare_proj(model);
     compute_first_grad(model);
-    dvec sigma = model.sigma();
+    dvec sigma = model.random().sigma();
     dmat hess = compute_hess();
     dmat hess_inv;
     if (!pinv(hess_inv, hess))
@@ -50,19 +44,19 @@ void AverageInformationOptimizer::step_inner(GBLUP& model)
     }
     dvec delta = -hess_inv * first_grad();
     sigma += delta;
-
-    model.effect().set_effect_cov(std::move(hess_inv));
     sigma = constrain(sigma, phenotype_var());
-    model.set_sigma(OptimizerBase::constrain(sigma, phenotype_var()));
+
+    model.random().set_sigma(OptimizerBase::constrain(sigma, phenotype_var()));
+    model.random().set_hess_inv(hess_inv);
 };
 
 dmat AverageInformationOptimizer::compute_hess()
 {
-    uint64_t n{n_sigma()};
+    size_t n{first_grad().n_elem};
     dmat hess(n, n, arma::fill::zeros);
-    for (uint64_t i{0}; i < n; ++i)
+    for (size_t i{0}; i < n; ++i)
     {
-        for (uint64_t j{i}; j < n; ++j)
+        for (size_t j{i}; j < n; ++j)
         {
             hess.at(i, j)
                 = -0.5

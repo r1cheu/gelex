@@ -18,12 +18,13 @@ TEST_CASE("Linear Mixed Model Fitted Check")
     arma::dmat A;
     A.load(std::string(GELEX_TESTS_DIR) + "/data/wheat100_grm.bin");
     arma::dmat X = arma::ones<arma::dmat>(Phenotype.n_elem, 1);
-    gelex::GBLUP model{"yield~1", std::move(Phenotype)};
+    gelex::GBLUP model{"yield ~ 1 + ", std::move(Phenotype)};
     model.add_fixed_effect(
         std::vector<std::string>{"intercept"},
         std::vector<std::string>{"intercept"},
         std::move(X));
     model.add_genetic_effect("A", arma::speye(arma::size(A)), std::move(A));
+    model.add_residual();
 
     dvec sigma_hat{0.161, 0.513};
 
@@ -31,6 +32,8 @@ TEST_CASE("Linear Mixed Model Fitted Check")
     {
         gelex::Estimator estimator{"AI", 20, 1e-6};
         estimator.fit(model, false, false);
-        REQUIRE(arma::approx_equal(model.sigma(), sigma_hat, "absdiff", 1e-3));
+        REQUIRE(
+            arma::approx_equal(
+                model.random().sigma(), sigma_hat, "absdiff", 1e-3));
     }
 }

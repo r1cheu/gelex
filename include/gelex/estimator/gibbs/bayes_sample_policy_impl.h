@@ -48,7 +48,7 @@ void GeneticSampler<BayesRR>::sample_impl(BayesRR& model, dvec& y_adj)
     const double sigma_e = model.sigma_e();
     const dvec& inv_scaler = 1.0 / (cols_norm_ + sigma_e / sigma_a);
 
-    for (uint64_t i = 0; i < a.n_elem; ++i)
+    for (size_t i = 0; i < a.n_elem; ++i)
     {
         if (cols_var_.at(i) == 0.0)
         {
@@ -90,7 +90,7 @@ void GeneticSampler<BayesA>::sample_impl(BayesA& model, dvec& y_adj)
     dvec& sigma_a = model.sigma_a();
     const double sigma_e = model.sigma_e();
 
-    for (uint64_t i = 0; i < a.n_elem; ++i)
+    for (size_t i = 0; i < a.n_elem; ++i)
     {
         if (cols_var_.at(i) == 0.0)
         {

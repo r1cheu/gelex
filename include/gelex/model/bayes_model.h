@@ -49,10 +49,10 @@ class BayesianModel
     const dvec& phenotype() const { return phenotype_; }
     const dmat& genotype_mat() const { return genotype_mat_; }
 
-    void add_group_effect(std::string name, sp_dmat design_mat_r)
+    void add_random_effect(std::string name, sp_dmat design_mat_r)
     {
         design_mat_r_.emplace_back(std::move(design_mat_r));
-        group_names_.emplace_back(std::move(name));
+        random_names_.emplace_back(std::move(name));
         r_cols_norm_.emplace_back(sum_square(design_mat_r_.back()));
     }
     const std::optional<dmat>& design_mat_beta() const
@@ -100,12 +100,15 @@ class BayesianModel
 
     const dvec& a_cols_var() const { return a_cols_var_; }
     const dvec& a_cols_norm() const { return a_cols_norm_; }
-    uint64_t n_var_0() const { return n_var_0_; }
+    size_t n_var_0() const { return n_var_0_; }
 
     const dvec& beta_cols_norm() const { return beta_cols_norm_; }
     const std::vector<dvec>& r_cols_norm() const { return r_cols_norm_; }
 
-    const std::vector<std::string>& group_names() const { return group_names_; }
+    const std::vector<std::string>& random_names() const
+    {
+        return random_names_;
+    }
     bool has_group() const { return !design_mat_r_.empty(); }
     bool has_beta() const { return design_mat_beta_.has_value(); }
 
@@ -155,7 +158,7 @@ class BayesianModel
     std::optional<dmat>
         design_mat_beta_;  // Design matrix for beta coefficients
     std::vector<sp_dmat>
-        design_mat_r_;  // Design matrix for rironmental factors
+        design_mat_r_;  // Design matrix for environmental factors
     Priors priors_;
 
     dvec pi_;  // proportion of each group
@@ -165,14 +168,14 @@ class BayesianModel
     dvec beta_;
     dvec r_;
 
-    dvec a_cols_var_;     // variance of each column in genotype matrix
-    uint64_t n_var_0_{};  // number of columns with zero var
+    dvec a_cols_var_;   // variance of each column in genotype matrix
+    size_t n_var_0_{};  // number of columns with zero var
     dvec a_cols_norm_;
 
     dvec beta_cols_norm_;
     std::vector<dvec> r_cols_norm_;
 
-    std::vector<std::string> group_names_;
+    std::vector<std::string> random_names_;
     sigma_t sigma_a_;
     dvec sigma_r_;
     double sigme_e_{};

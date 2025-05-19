@@ -56,7 +56,7 @@ inline void sample_effect(
 {
     const dvec inv_scaler = 1.0 / (cols_norm2 + sigma_e / sigma);
 
-    for (uint64_t i = 0; i < coeff.n_elem; ++i)
+    for (size_t i = 0; i < coeff.n_elem; ++i)
     {
         const double old_i = coeff.at(i);
         const dvec& col_i = design_mat.unsafe_col(i);

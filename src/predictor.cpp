@@ -14,7 +14,7 @@ void Predictor::set_cross_grm(
     std::string_view method,
     rowvec center,
     double scale_factor,
-    uint64_t chunk_size)
+    size_t chunk_size)
 {
     if (method == "add")
     {
@@ -42,12 +42,12 @@ void Predictor::set_cross_grm(
     }
 }
 
-dmat Predictor::compute_common_effects(const dvec& covariates) const noexcept
+dmat Predictor::compute_fixed_effects(const dvec& covariates) const noexcept
 {
     return covariates * params_.beta;
 }
 
-dmat Predictor::compute_group_effects(std::string_view test_bed)
+dmat Predictor::compute_random_effects(std::string_view test_bed)
 {
     const dvec& proj_y = params_.proj_y;
     const dvec& sigma = params_.sigma;

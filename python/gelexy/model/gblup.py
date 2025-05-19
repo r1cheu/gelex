@@ -133,7 +133,7 @@ class make_model:
 
         if design_mat.group is not None:
             for name, matrix in design_mat.group.terms.items():
-                model.add_group_effect(
+                model.add_random_effect(
                     "(" + name + ")", csc_matrix(matrix.data)
                 )
 
@@ -152,6 +152,7 @@ class make_model:
                 np.asfortranarray(grms[term.genetic]),
                 np.asfortranarray(dm.common),
             )
+        model.add_residual()
 
         model._dropped_ids = dropped_ids
         model._formula = formula

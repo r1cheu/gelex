@@ -11,7 +11,7 @@
 namespace gelex
 {
 
-static constexpr uint64_t DEFAULT_CHUNK_SIZE = 10000;
+static constexpr size_t DEFAULT_CHUNK_SIZE = 10000;
 // Read Bed file
 // Example:
 // BedReader reader("test.bed", 1000)
@@ -39,21 +39,18 @@ class BedReader
 
     void reset();
 
-    uint64_t chunk_size() const noexcept { return chunk_size_; }
+    size_t chunk_size() const noexcept { return chunk_size_; }
     bool has_next() const;
     arma::dmat read_chunk();
-    uint64_t num_snps() const { return snps_.size(); }
+    size_t num_snps() const { return snps_.size(); }
     const std::vector<std::string>& snps() const noexcept { return snps_; }
-    uint64_t num_individuals() const noexcept { return individuals_.size(); }
+    size_t num_individuals() const noexcept { return individuals_.size(); }
     const std::vector<std::string>& individuals() const noexcept
     {
         return individuals_;
     }
-    uint64_t current_chunk_index() const noexcept
-    {
-        return current_chunk_index_;
-    }
-    uint64_t current_chunk_size() const noexcept { return current_chunk_size_; }
+    size_t current_chunk_index() const noexcept { return current_chunk_index_; }
+    size_t current_chunk_size() const noexcept { return current_chunk_size_; }
 
    private:
     std::ifstream fin_;
@@ -64,12 +61,12 @@ class BedReader
     std::vector<std::string> snps_;
     std::vector<std::string> individuals_;
 
-    std::unordered_set<uint64_t> exclude_index_;
+    std::unordered_set<size_t> exclude_index_;
 
-    uint64_t chunk_size_;
-    uint64_t current_chunk_index_{};
-    uint64_t current_chunk_size_{};
-    uint64_t bytes_per_snp_{};
+    size_t chunk_size_;
+    size_t current_chunk_index_{};
+    size_t current_chunk_size_{};
+    size_t bytes_per_snp_{};
 
     static constexpr std::array<double, 4> genotype_map = {2.0, 1.0, 1.0, 0.0};
     // std::string_view is not accepted by std::ifstream
@@ -78,7 +75,7 @@ class BedReader
         const std::vector<std::string>& dropped_ids);
     static std::vector<std::string> parseBim(const std::string& bim_file);
 
-    arma::dmat Decode(const std::vector<char>& buffer, uint64_t chunk_size);
+    arma::dmat Decode(const std::vector<char>& buffer, size_t chunk_size);
     void OpenBed();
     void SeekToBedStart();
 };

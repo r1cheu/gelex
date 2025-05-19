@@ -70,11 +70,11 @@ void register_bayes_model(nb::module_& module, const char* name)
                         self.design_mat_beta()->n_cols);
                 }
                 // Show environmental effects only if they exist
-                for (uint64_t i = 0; i < self.design_mat_r().size(); ++i)
+                for (size_t i = 0; i < self.design_mat_r().size(); ++i)
                 {
                     info += fmt::format(
                         "│ Random Eff. {}:       {:6d}\n",
-                        self.group_names()[i],
+                        self.random_names()[i],
                         self.design_mat_r()[i].n_cols);
                 }
                 info += fmt::format(
@@ -91,7 +91,7 @@ void register_bayes_model(nb::module_& module, const char* name)
                 if (self.design_mat_r().size() > 0)
                 {
                     info += fmt::format(
-                        "│   σᵣ (group): nu = {:6.1f}, s² = {:6.4f}\n",
+                        "│   σᵣ (random): nu = {:6.1f}, s² = {:6.4f}\n",
                         self.priors().sigma_r.nu,
                         self.priors().sigma_r.s2);
                 }
