@@ -13,7 +13,7 @@ CrossGrm::CrossGrm(
     std::string_view train_bed_file,
     rowvec center,
     double scale_factor,
-    uint64_t chunk_size,
+    size_t chunk_size,
     const std::vector<std::string>& exclude_individuals)
     : IGrm{train_bed_file, chunk_size, exclude_individuals}
 {
@@ -23,7 +23,7 @@ CrossGrm::CrossGrm(
 
 void CrossGrm::check_snp_consistency(const BedReader& test_bed) const
 {
-    for (uint64_t i{0}; i < bed().num_snps(); ++i)
+    for (size_t i{0}; i < bed().num_snps(); ++i)
     {
         if (bed().snps()[i] != test_bed.snps()[i])
         {

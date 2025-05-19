@@ -61,14 +61,13 @@ std::vector<std::string> BedReader::parseFam(
 
     std::string line;
     std::vector<std::string> individuals;
-    uint64_t index{};
+    size_t index{};
     while (std::getline(fin, line))
     {
         if (!line.empty())
         {
             auto individual = find_second(line);
-            if (!exclude_set.empty()
-                && exclude_set.find(individual) != exclude_set.end())
+            if (!exclude_set.empty() && exclude_set.contains(individual))
             {
                 exclude_index_.insert(index);
                 ++index;
@@ -172,7 +171,7 @@ arma::dmat BedReader::read_chunk()
         chunk_size_,
         num_snps() - current_chunk_index());  // chunk_size or snp remaining.
 
-    const uint64_t chunk_bytes = current_chunk_size_ * bytes_per_snp_;
+    const size_t chunk_bytes = current_chunk_size_ * bytes_per_snp_;
     std::vector<char> buffer(chunk_bytes);
 
     // Read from the current file position
@@ -192,29 +191,27 @@ arma::dmat BedReader::read_chunk()
     return genotype_matrix;
 }
 
-arma::dmat BedReader::Decode(
-    const std::vector<char>& buffer,
-    uint64_t chunk_size)
+arma::dmat BedReader::Decode(const std::vector<char>& buffer, size_t chunk_size)
 {
     arma::dmat genotype_matrix(
         num_individuals(), chunk_size, arma::fill::zeros);
-    uint64_t num_individuals
+    size_t num_individuals
         = individuals_.size()
           + exclude_index_.size();  // add back excluded individuals, since we
                                     // are read .bed
 
 #pragma omp parallel for schedule(dynamic)
-    for (uint64_t snp_idx = 0; snp_idx < chunk_size; ++snp_idx)
+    for (size_t snp_idx = 0; snp_idx < chunk_size; ++snp_idx)
     {
         const size_t offset = snp_idx * bytes_per_snp_;
-        uint64_t adjust_individul_idx{};  // adjust for excluded individuals
-        for (uint64_t byte_idx = 0; byte_idx < bytes_per_snp_; ++byte_idx)
+        size_t adjust_individul_idx{};  // adjust for excluded individuals
+        for (size_t byte_idx = 0; byte_idx < bytes_per_snp_; ++byte_idx)
         {
             auto byte_val
                 = static_cast<unsigned char>(buffer[offset + byte_idx]);
             for (unsigned int bit = 0; bit < 4; ++bit)
             {
-                uint64_t ind = (byte_idx * 4) + bit;
+                size_t ind = (byte_idx * 4) + bit;
                 if (exclude_index_.find(ind) != exclude_index_.end())
                 {
                     adjust_individul_idx++;

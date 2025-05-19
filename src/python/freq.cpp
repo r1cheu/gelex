@@ -31,28 +31,29 @@ using arma::dvec;
 void gblup(nb::module_& m)
 {
     nb::class_<gx::GBLUP>(m, "_GBLUP")
-        .def(nb::init<std::string, dvec>(), nb::keep_alive<1, 3>())
-        .def_prop_ro("n_common_effects", &gx::GBLUP::n_common_effects)
-        .def_prop_ro("n_group_effects", &gx::GBLUP::n_genetic_effects)
+        .def(
+            nb::init<std::string, dvec>(),
+            "formula"_a,
+            "phenotype"_a,
+            nb::keep_alive<1, 3>())
+
         .def_prop_ro("n_individuals", &gx::GBLUP::n_individuals)
+
+        .def_prop_ro("n_fixed_effects", &gx::GBLUP::n_fixed_effects)
+        .def_prop_ro("n_random_effects", &gx::GBLUP::n_random_effects)
+        .def_prop_ro("n_genetic_effects", &gx::GBLUP::n_genetic_effects)
+        .def_prop_ro("n_gxe_effects", &gx::GBLUP::n_gxe_effects)
+
         .def_prop_ro("formula", &gx::GBLUP::formula)
-        .def_prop_ro(
-            "beta", &gx::GBLUP::beta, nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "sigma", &gx::GBLUP::sigma, nb::rv_policy::reference_internal)
         .def_prop_ro(
             "phenotype",
             &gx::GBLUP::phenotype,
-            nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "design_mat_beta",
-            &gx::GBLUP::design_mat_beta,
             nb::rv_policy::reference_internal)
         .def(
             "add_fixed_effect",
             &gx::GBLUP::add_fixed_effect,
             nb::keep_alive<1, 4>())
-        .def("add_group_effect", &gx::GBLUP::add_group_effect)
+        .def("add_random_effect", &gx::GBLUP::add_random_effect)
         .def("add_genetic_effect", &gx::GBLUP::add_genetic_effect)
         .def(
             "add_gxe_effect",
@@ -61,6 +62,7 @@ void gblup(nb::module_& m)
             "design_mat_genetic"_a,
             "genetic_cov_mat"_a,
             "design_mat_env"_a.noconvert())
+        .def("add_residual", &gx::GBLUP::add_residual)
         .def("clear", &gelex::GBLUP::clear, "reset the model")
         .def(
             "__repr__",
@@ -71,8 +73,8 @@ void gblup(nb::module_& m)
                     "effects, {:d} Random effects, {:d} Genetic effects",
                     static_cast<const void*>(&self),
                     self.n_individuals(),
-                    self.n_common_effects(),
-                    self.n_group_effects(),
+                    self.n_fixed_effects(),
+                    self.n_random_effects(),
                     self.n_genetic_effects());
             })
         .def(
@@ -87,8 +89,8 @@ void gblup(nb::module_& m)
                     "│ Genetic Effects:  {:6d}\n"
                     "└───────────────────────────────────────────────",
                     self.n_individuals(),
-                    self.n_common_effects(),
-                    self.n_group_effects(),
+                    self.n_fixed_effects(),
+                    self.n_random_effects(),
                     self.n_genetic_effects());
             });
 }
@@ -105,8 +107,8 @@ void predictor(nb::module_& m)
             "set_cross_grm",
             &gx::Predictor::set_cross_grm,
             nb::keep_alive<1, 3>())
-        .def("_compute_random_effects", &gx::Predictor::compute_group_effects)
-        .def("_compute_fixed_effects", &gx::Predictor::compute_common_effects)
+        .def("_compute_random_effects", &gx::Predictor::compute_random_effects)
+        .def("_compute_fixed_effects", &gx::Predictor::compute_fixed_effects)
         .def_prop_ro("test_individuals", &gelex::Predictor::test_individuals);
 }
 
@@ -175,7 +177,7 @@ void add_grm(nb::module_& m)
 {
     nb::class_<gx::AddGrm>(m, "add_grm")
         .def(
-            nb::init<std::string_view, uint64_t, std::vector<std::string>>(),
+            nb::init<std::string_view, size_t, std::vector<std::string>>(),
             "bed_file"_a,
             "chunk_size"_a = gelex::DEFAULT_CHUNK_SIZE,
             "exclude_individuals"_a = std::vector<std::string>{},
@@ -203,7 +205,7 @@ void dom_grm(nb::module_& m)
 {
     nb::class_<gx::DomGrm>(m, "dom_grm")
         .def(
-            nb::init<std::string_view, uint64_t, std::vector<std::string>>(),
+            nb::init<std::string_view, size_t, std::vector<std::string>>(),
             "bed_file"_a,
             "chunk_size"_a = gelex::DEFAULT_CHUNK_SIZE,
             "exclude_individuals"_a = std::vector<std::string>{},

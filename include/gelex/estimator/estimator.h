@@ -1,6 +1,5 @@
 #pragma once
 #include <cstddef>
-#include <cstdint>
 #include <memory>
 #include <string_view>
 
@@ -48,14 +47,13 @@ class Estimator
         const GBLUP& model);
     double compute_aic(GBLUP& model);
     double compute_bic(GBLUP& model);
-    uint64_t iter_count_{};
-    uint64_t max_iter_{};
+
+    size_t iter_count_{};
+    size_t max_iter_{};
     double tol_{};
     std::string optimizer_name_;
     bool converged_{};
 };
-
-std::vector<double> compute_h2_se(double sum_var, const EffectManager& effects);
 
 template <typename eT>
 auto blue_vec(const arma::Col<eT>& vec)
@@ -64,15 +62,19 @@ auto blue_vec(const arma::Col<eT>& vec)
 }
 
 std::string join_formula(
-    const std::vector<uint64_t>& indices,
-    const EffectManager& effects,
+    const std::vector<size_t>& indices,
+    const RandomEffectManager& effects,
     std::string_view sep);
 
 std::string join_name(
-    const std::vector<uint64_t>& indices,
-    const EffectManager& effects,
+    const std::vector<size_t>& indices,
+    const RandomEffectManager& effects,
     std::string_view sep);
 
-std::string join_variance(const EffectManager& effects);
+std::string join_variance(const RandomEffectManager& effects);
+
+dvec compute_se(const dmat& hess_inv);
+std::pair<std::vector<double>, double> compute_h2_se(
+    const RandomEffectManager& effects);
 
 };  // namespace gelex

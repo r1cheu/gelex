@@ -18,7 +18,7 @@ class IGrm
    public:
     explicit IGrm(
         std::string_view bed_file,
-        uint64_t chunk_size = DEFAULT_CHUNK_SIZE,
+        size_t chunk_size = DEFAULT_CHUNK_SIZE,
         const std::vector<std::string>& exclude_individuals = {});
     IGrm(const IGrm&) = delete;
     IGrm(IGrm&&) noexcept = default;
@@ -34,7 +34,7 @@ class IGrm
 
     const rowvec& center() const noexcept { return center_; }
     void set_center(rowvec&& center) { center_ = std::move(center); }
-    void set_center(uint64_t start, const rowvec& center)
+    void set_center(size_t start, const rowvec& center)
     {
         center_.subvec(start, arma::size(center)) = center;
     }
@@ -54,7 +54,7 @@ class Grm : public IGrm
    public:
     explicit Grm(
         std::string_view bed_file,
-        uint64_t chunk_size = DEFAULT_CHUNK_SIZE,
+        size_t chunk_size = DEFAULT_CHUNK_SIZE,
         const std::vector<std::string>& exclude_individuals = {});
     virtual dmat compute();
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <armadillo>
-#include <cstdint>
 
 #include "gelex/model/gblup.h"
 #include "gelex/utils.h"
@@ -47,8 +46,6 @@ class OptimizerBase
     const dmat& proj() const noexcept { return proj_; }
     const dvec& first_grad() const noexcept { return first_grad_; }
     double loglike_diff() const noexcept { return loglike_diff_; }
-    uint64_t n_sigma() const noexcept { return n_sigma_; }
-    uint64_t n_individuals() const noexcept { return n_individuals_; }
 
     void compute_dvpy(const GBLUP& model);
     void compute_pdv(const GBLUP& model);
@@ -66,8 +63,6 @@ class OptimizerBase
     double compute_loglike_diff(const GBLUP& model);
 
     double tol_;
-    uint64_t n_sigma_{};
-    uint64_t n_individuals_{};
     double phenotype_var_{};
 
     bool converged_{};
@@ -86,6 +81,5 @@ class OptimizerBase
 };
 
 double v_inv_logdet(dmat&);
-void solve_sympd(dmat& A, dmat& B);  // NOLINT
-
+void solve_sympd(dmat& A, dmat& B);
 }  // namespace gelex

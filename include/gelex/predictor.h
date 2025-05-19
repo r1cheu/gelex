@@ -27,9 +27,9 @@ class Predictor
         std::string_view method,
         rowvec center,
         double scale_factor,
-        uint64_t chunk_size);
-    dmat compute_group_effects(std::string_view test_bed);
-    dmat compute_common_effects(const dvec& covariates) const noexcept;
+        size_t chunk_size);
+    dmat compute_random_effects(std::string_view test_bed);
+    dmat compute_fixed_effects(const dvec& covariates) const noexcept;
 
     const std::vector<std::string>& test_individuals() const noexcept
     {

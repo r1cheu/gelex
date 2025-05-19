@@ -15,7 +15,7 @@ namespace gelex
 class MCMC
 {
    public:
-    MCMC(uint64_t n_iter, uint64_t n_burnin, uint64_t n_thin, uint64_t seed);
+    MCMC(size_t n_iter, size_t n_burnin, size_t n_thin, size_t seed);
 
     template <GeneticPolicy Genetic>
     void run(BayesianModel<Genetic>& model)
@@ -24,7 +24,7 @@ class MCMC
         initialize(model);
         GeneticSampler genetic_sampler(gen_, model);
 
-        for (uint64_t i = 0; i < n_iter_; ++i)
+        for (size_t i = 0; i < n_iter_; ++i)
         {
             sample_mu(model);
             sample_fixed_effects(model);
@@ -188,11 +188,11 @@ class MCMC
     };
 
     // --- random number generator ---
-    uint64_t n_iter_;
-    uint64_t n_burnin_;
-    uint64_t n_thin_;
-    uint64_t n_records_;
-    uint64_t store_idx_{};
+    size_t n_iter_;
+    size_t n_burnin_;
+    size_t n_thin_;
+    size_t n_records_;
+    size_t store_idx_{};
 
     std::unique_ptr<Normal> normal_;
     std::unique_ptr<ScaleInvChiSq> sigma_e_sampler_;

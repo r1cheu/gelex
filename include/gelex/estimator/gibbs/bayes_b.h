@@ -28,7 +28,7 @@ void BayesBKernel(
     const double log_pi0 = std::log(model.pi().at(0));
     const double log_pi1 = std::log(model.pi().at(1));
 
-    for (uint64_t i = 0; i < a.n_elem; ++i)
+    for (size_t i = 0; i < a.n_elem; ++i)
     {
         if (cols_var.at(i) == 0.0)
         {

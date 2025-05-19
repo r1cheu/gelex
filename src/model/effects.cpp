@@ -3,34 +3,22 @@
 namespace gelex
 {
 
-void EffectManager::add_effect(
-    std::string name,
+void RandomEffectManager::add_effect(
+    std::string&& name,
     effect_type type,
-    MatVariant design_mat,
-    MatVariant cov_mat)
+    MatVariant&& design_mat,
+    MatVariant&& cov_mat)
 {
-    auto it = index_map_.find(name);
     auto index = effects_.size();
-    if (it == index_map_.end())
-    {
-        effects_.push_back(
-            {std::move(name),
-             type,
-             std::move(design_mat),
-             std::move(cov_mat),
-             0});
-        index_map_[effects_.back().name] = index;
-    }
-    else
-    {
-        effects_[it->second].design_mat = std::move(design_mat);
-        effects_[it->second].cov_mat = std::move(cov_mat);
-    }
+    effects_.emplace_back(
+        std::move(name), type, std::move(design_mat), std::move(cov_mat), 0, 0);
+    index_map_[effects_.back().name] = index;
+
     switch (type)
     {
         case effect_type::random:
-            n_group_effects_++;
-            group_indices_.emplace_back(index);
+            n_random_effects_++;
+            random_indices_.emplace_back(index);
             break;
         case effect_type::genetic:
             n_genetic_effects_++;
@@ -40,21 +28,20 @@ void EffectManager::add_effect(
             n_gxe_effects_++;
             gxe_indices_.emplace_back(index);
             break;
+        case effect_type::residual:
+            break;
     }
 }
 
-void EffectManager::clear()
+void RandomEffectManager::clear()
 {
     effects_.clear();
     index_map_.clear();
-    n_group_effects_ = 0;
+    n_random_effects_ = 0;
     n_genetic_effects_ = 0;
     n_gxe_effects_ = 0;
-    residual_ = 0;
-    residual_se_ = 0;
-    effect_cov_.clear();
     genetic_indices_.clear();
-    group_indices_.clear();
+    random_indices_.clear();
     gxe_indices_.clear();
 }
 }  // namespace gelex

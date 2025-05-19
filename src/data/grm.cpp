@@ -16,13 +16,13 @@ void dom_encode(dmat& genotype)
 
 IGrm::IGrm(
     std::string_view bed_file,
-    uint64_t chunk_size,
+    size_t chunk_size,
     const std::vector<std::string>& exclude_individuals)
     : bed_{bed_file, chunk_size, exclude_individuals} {};
 
 Grm::Grm(
     std::string_view bed_file,
-    uint64_t chunk_size,
+    size_t chunk_size,
     const std::vector<std::string>& exclude_individuals)
     : IGrm{bed_file, chunk_size, exclude_individuals}
 {
@@ -41,7 +41,7 @@ void Grm::centerlize(dmat& genotype)
 dmat Grm::compute()
 {
     reset();
-    const uint64_t num_ind{bed().num_individuals()};
+    const size_t num_ind{bed().num_individuals()};
     dmat grm{num_ind, num_ind, arma::fill::zeros};
 
     while (bed().has_next())

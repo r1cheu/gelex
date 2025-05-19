@@ -21,7 +21,7 @@ class CrossGrm : public IGrm
         std::string_view train_bed_file,
         rowvec center,
         double scale_factor,
-        uint64_t chunk_size = DEFAULT_CHUNK_SIZE,
+        size_t chunk_size = DEFAULT_CHUNK_SIZE,
         const std::vector<std::string>& exclude_individuals = {});
 
     CrossGrm(CrossGrm&&) noexcept = default;
