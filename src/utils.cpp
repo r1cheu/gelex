@@ -7,6 +7,8 @@
 #include <string>
 #include <string_view>
 
+#include <fmt/chrono.h>
+#include <fmt/format.h>
 #include <spdlog/logger.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
@@ -67,4 +69,28 @@ std::shared_ptr<spdlog::logger> Logger::logger()
     return instance.GetSpdLogger();
 }
 
+std::string compute_time_left(
+    const std::chrono::high_resolution_clock::time_point& start,
+    size_t iter,
+    size_t total_iter)
+{
+    // Handle edge cases
+    if (iter == 0)
+    {
+        return "--:--:--";
+    }
+
+    if (iter >= total_iter)
+    {
+        return "00:00:00";
+    }
+
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    auto time_per_iter = elapsed / iter;
+    auto time_left = time_per_iter * (total_iter - iter);
+
+    auto seconds_left
+        = std::chrono::duration_cast<std::chrono::seconds>(time_left);
+    return fmt::format("{:%H:%M:%S}", seconds_left);
+}
 }  // namespace gelex

@@ -2,7 +2,7 @@
 name = "gelexy"
 authors = [{ name = "r1cheu", email = "chenrulei@cemps.ac.cn" }]
 requires-python = ">= 3.11"
-version = "0.2.0"
+version = "0.3.0"
 description = "Add a short description here"
 dependencies = [
   "numpy>=2.2.2,<3",

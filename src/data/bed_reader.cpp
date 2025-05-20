@@ -12,11 +12,34 @@
 namespace gelex
 {
 
-std::string find_second(std::string& snps_line)
+char detect_separator(const std::string& line)
 {
-    auto first = snps_line.find(' ') + 1;
-    auto second = snps_line.find(' ', first);
-    return snps_line.substr(first, second - first);
+    // Count tabs and spaces in the line
+    size_t tab_count = 0;
+    size_t space_count = 0;
+
+    for (char c : line)
+    {
+        if (c == '\t')
+        {
+            tab_count++;
+        }
+        else if (c == ' ')
+        {
+            space_count++;
+        }
+    }
+
+    // If we have tabs, assume tab-separated
+    // Otherwise, assume space-separated
+    return (tab_count > 0) ? '\t' : ' ';
+}
+
+std::string find_second(const std::string& line, char separator)
+{
+    auto first = line.find(separator) + 1;
+    auto second = line.find(separator, first);
+    return line.substr(first, second - first);
 }
 
 BedReader::BedReader(
@@ -66,7 +89,8 @@ std::vector<std::string> BedReader::parseFam(
     {
         if (!line.empty())
         {
-            auto individual = find_second(line);
+            char separator = detect_separator(line);
+            auto individual = find_second(line, separator);
             if (!exclude_set.empty() && exclude_set.contains(individual))
             {
                 exclude_index_.insert(index);
@@ -99,7 +123,8 @@ std::vector<std::string> BedReader::parseBim(const std::string& bim_file)
         {
             continue;
         }
-        snps.emplace_back(find_second(line));
+        char separator = detect_separator(line);
+        snps.emplace_back(find_second(line, separator));
     }
     fin.close();
     return snps;
@@ -200,7 +225,6 @@ arma::dmat BedReader::Decode(const std::vector<char>& buffer, size_t chunk_size)
           + exclude_index_.size();  // add back excluded individuals, since we
                                     // are read .bed
 
-#pragma omp parallel for schedule(dynamic)
     for (size_t snp_idx = 0; snp_idx < chunk_size; ++snp_idx)
     {
         const size_t offset = snp_idx * bytes_per_snp_;

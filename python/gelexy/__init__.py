@@ -9,16 +9,17 @@
 
 # __all__ = ["Genotypes", "Phenotypes", "grm", "GBLUP", "intersect"]
 
-from ._core import Estimator
+from ._core import MCMC, BayesAlphabet, Estimator
 from .data import load_grm, make_grm, read_table
-from .model import make_model
-from .predictor import make_predictor
+from .model import make_bayes, make_gblup
 
 __all__ = [
+    "MCMC",
+    "BayesAlphabet",
     "Estimator",
     "load_grm",
+    "make_bayes",
+    "make_gblup",
     "make_grm",
-    "make_model",
-    "make_predictor",
     "read_table",
 ]

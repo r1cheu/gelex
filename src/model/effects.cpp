@@ -1,8 +1,14 @@
-#include "gelex/model/effects.h"
+#include "fmt/format.h"
+
+#include "gelex/model/effects/base.h"
+#include "gelex/model/effects/bayes_effects.h"
+#include "gelex/model/effects/freq_effects.h"
 
 namespace gelex
 {
 
+namespace freq
+{
 void FixedEffect::clear()
 {
     auto clear = [](auto& mat) { mat.clear(); };
@@ -24,7 +30,7 @@ const RandomEffect* RandomEffectManager::get(const std::string& name) const
     return item != index_map_.end() ? &effects_[item->second] : nullptr;
 }
 
-void RandomEffectManager::add_effect(
+void RandomEffectManager::add(
     std::string&& name,
     effect_type type,
     MatVariant&& design_mat,
@@ -88,4 +94,61 @@ void RandomEffectManager::clear()
     sigma_.clear();
     hess_inv_.clear();
 };
+}  // namespace freq
+namespace bayes
+{
+
+BaseEffect::BaseEffect(dmat&& design_matrix)
+    : design_mat(std::move(design_matrix))
+{
+    cols_norm = sum_square(design_mat);
+    coeff = arma::zeros<dvec>(design_mat.n_cols);
+};
+
+FixedEffect::FixedEffect(
+    std::vector<std::string>&& names,
+    std::vector<std::string>&& levels,
+    dmat&& design_matrix)
+    : names(std::move(names)),
+      levels(std::move(levels)),
+      exist{true},
+      BaseEffect(std::move(design_matrix))
+{
+}
+
+RandomEffect::RandomEffect(
+    std::string&& name,
+    dvec&& sigma,
+    dmat&& design_matrix)
+    : name(std::move(name)),
+      sigma(std::move(sigma)),
+      BaseEffect(std::move(design_matrix))
+{
+}
+
+GeneticEffect::GeneticEffect(
+    std::string&& name,
+    dvec&& sigma,
+    dmat&& design_matrix,
+    BayesParam&& bayes)
+    : RandomEffect(std::move(name), std::move(sigma), std::move(design_matrix)),
+      bayes(std::move(bayes))
+{
+    cols_var = compute_cols_var(design_mat);  // NOLINT
+    u = arma::zeros<dvec>(design_mat.n_rows);
+    n_zero_var_snp = arma::sum(cols_var == 0);
+}
+
+dvec compute_cols_var(const dmat& mat)
+{
+    dvec out(mat.n_cols);
+#pragma omp parallel for default(none) shared(mat, out)
+    for (size_t i = 0; i < mat.n_cols; ++i)
+    {
+        out.at(i) = arma::var(mat.unsafe_col(i));
+    }
+    return out;
+}
+
+}  // namespace bayes
 }  // namespace gelex

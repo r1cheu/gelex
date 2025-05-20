@@ -1,9 +1,10 @@
 #pragma once
 #include <string>
 #include <vector>
-#include "gelex/model/effects.h"
 
 #include <armadillo>
+
+#include "gelex/model/effects/freq_effects.h"
 
 namespace gelex
 {
@@ -48,28 +49,28 @@ class GBLUP
     void add_fixed_effect(
         std::vector<std::string>&& names,
         std::vector<std::string>&& levels,
-        dmat&& design_mat_beta);
+        dmat&& design_mat);
 
-    void add_random_effect(string&& name, sp_dmat&& design_mat_random);
+    void add_random_effect(string&& name, sp_dmat&& design_mat);
 
     void add_genetic_effect(
         string&& name,
-        sp_dmat&& design_mat_genetic,
-        const dmat& genetic_covar_mat);
+        sp_dmat&& design_mat,
+        const dmat& cov_mat);
 
     void add_gxe_effect(
         string&& name,
         sp_dmat&& design_mat_genetic,
         const dmat& genetic_cov_mat,
-        const dmat& design_mat_group);
+        const dmat& design_mat);
 
     void add_residual();
 
-    const RandomEffectManager& random() const { return random_; }
-    RandomEffectManager& random() { return random_; }
+    const auto& random() const { return random_; }
+    auto& random() { return random_; }
 
-    const FixedEffect& fixed() const { return fixed_; }
-    FixedEffect& fixed() { return fixed_; }
+    const auto& fixed() const { return fixed_; }
+    auto& fixed() { return fixed_; }
 
     void clear();
 
@@ -79,8 +80,8 @@ class GBLUP
     size_t n_individuals_{};
     dvec phenotype_;
 
-    RandomEffectManager random_;
-    FixedEffect fixed_;
+    freq::RandomEffectManager random_;
+    freq::FixedEffect fixed_;
 };
 
 struct GBLUPParams

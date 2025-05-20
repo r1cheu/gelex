@@ -43,12 +43,13 @@ find_package(nanobind CONFIG REQUIRED)
 add_library(common INTERFACE)
 target_compile_definitions(
   common
-  INTERFACE ARMA_DONT_USE_WRAPPER ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS
-            ARMA_OPENMP_THREADS=64 $<$<CONFIG:Debug>:ARMA_DEBUG>
-            $<$<CONFIG:Release>:ARMA_NO_DEBUG>)
+  INTERFACE BARKEEP_ENABLE_FMT_FORMAT ARMA_DONT_USE_WRAPPER
+            ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS ARMA_OPENMP_THREADS=64
+            $<$<CONFIG:Debug>:ARMA_DEBUG> $<$<CONFIG:Release>:ARMA_NO_DEBUG>)
 
 target_include_directories(common INTERFACE include)
 target_include_directories(common INTERFACE ext/armadillo/include)
+target_include_directories(common INTERFACE ext/barkeep/barkeep)
 target_link_libraries(
   common INTERFACE OpenMP::OpenMP_CXX ${BLAS_LIBRARIES} spdlog::spdlog
                    $<$<BOOL:${MINGW}>:ws2_32>)
@@ -88,8 +89,10 @@ if(BUILD_TEST)
   add_compile_definitions(GELEX_TESTS_DIR="${GELEX_TESTS_DIR}")
   find_package(Catch2 3 REQUIRED)
   file(GLOB test_SOURCE ${PROJECT_SOURCE_DIR}/tests/cpp/*.cpp)
-  list(FILTER CORE_SOURCE EXCLUDE REGEX "src/python/")
-  add_executable(test ${test_SOURCE} ${CORE_SOURCE})
+  # Create a copy of CORE_SOURCE and filter out Python bindings
+  set(TEST_CORE_SOURCE ${CORE_SOURCE})
+  list(FILTER TEST_CORE_SOURCE EXCLUDE REGEX "src/python/")
+  add_executable(test ${test_SOURCE} ${TEST_CORE_SOURCE})
   target_link_libraries(test PRIVATE common Catch2::Catch2WithMain)
 endif()
 

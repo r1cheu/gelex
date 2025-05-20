@@ -1,4 +1,3 @@
-#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -229,4 +228,53 @@ void dom_grm(nb::module_& m)
         .def_prop_ro("scale_factor", &gx::DomGrm::scale_factor);
 }
 
+void bed_reader(nb::module_& m)
+{
+    nb::class_<gx::BedReader>(m, "_BedReader")
+        .def(
+            nb::init<std::string_view, size_t, std::vector<std::string>>(),
+            "bed_file"_a,
+            "chunk_size"_a = gx::DEFAULT_CHUNK_SIZE,
+            "dropped_ids"_a = std::vector<std::string>{},
+            "Read a BED file in chunks.\n\n"
+            "Parameters\n"
+            "----------\n"
+            "bed_file: str\n"
+            "    The plink bed file path\n"
+            "chunk_size: int, optional\n"
+            "    Number of snps to processed per step (default: 10000)\n\n"
+            "Returns\n"
+            "-------\n"
+            "None")
+        .def("read_chunk", &gx::BedReader::read_chunk, nb::rv_policy::move)
+        .def_prop_ro("num_snps", &gx::BedReader::num_snps)
+        .def_prop_ro("num_individuals", &gx::BedReader::num_individuals)
+        .def_prop_ro("snps", &gx::BedReader::snps)
+        .def_prop_ro("individuals", &gx::BedReader::individuals);
+}
+
+void sp_dense_dot(nb::module_& m)
+{
+    m.def(
+        "_sp_dense_dot",
+        [](const arma::sp_dmat& a, const arma::dmat& b) -> arma::dmat
+        {
+            if (gelex::check_eye(a))
+            {
+                return b;
+            }
+            return a * b;
+        },
+        "a"_a,
+        "b"_a,
+        "Sparse Dense multiplication\n\n"
+        "Parameters\n"
+        "----------\n"
+        "a : csc_matrix\n"
+        "b : np.ndarray\n"
+        "Returns\n"
+        "-------\n"
+        "np.ndarray\n"
+        "    Resulting vector (individuals x 1)");
+}
 }  // namespace bind

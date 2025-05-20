@@ -121,4 +121,9 @@ class Logger
     std::shared_ptr<spdlog::logger> logger_;
 };
 
+std::string compute_time_left(
+    const std::chrono::high_resolution_clock::time_point& start,
+    size_t iter,
+    size_t total_iter);
+
 }  // namespace gelex
