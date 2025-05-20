@@ -1,14 +1,11 @@
-from gelexy._core import GBLUPParams
-
+from .bayes import make_bayes
 from .gblup import (
     GBLUP,
-    check_effect,
-    make_model,
+    make_gblup,
 )
 
 __all__ = [
     "GBLUP",
-    "GBLUPParams",
-    "check_effect",
-    "make_model",
+    "make_bayes",
+    "make_gblup",
 ]

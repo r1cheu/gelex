@@ -1,6 +1,5 @@
 #pragma once
 #include <cstddef>
-#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -8,20 +7,16 @@
 
 #include <armadillo>
 
+#include "base.h"
+
 namespace gelex
 {
-
 using arma::dmat;
 using arma::dvec;
-using MatVariant = std::variant<arma::dmat, arma::sp_dmat>;
 
-enum class effect_type : uint8_t
+namespace freq
 {
-    random,
-    genetic,
-    gxe,
-    residual,
-};
+using MatVariant = std::variant<arma::dmat, arma::sp_dmat>;
 
 struct FixedEffect
 {
@@ -47,7 +42,7 @@ struct RandomEffect
 class RandomEffectManager
 {
    public:
-    void add_effect(
+    void add(
         std::string&& name,
         effect_type type,
         MatVariant&& design_mat,
@@ -113,5 +108,5 @@ class RandomEffectManager
     dmat hess_inv_;
     dvec sigma_;
 };
-
+}  // namespace freq
 }  // namespace gelex

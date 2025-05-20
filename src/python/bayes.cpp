@@ -1,13 +1,17 @@
-#include <optional>
-
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+
 #include <armadillo>
 
-#include "gelex/model/bayes_model.h"
-#include "gelex/model/bayes_prior.h"
+#include "gelex/estimator/mcmc.h"
+#include "gelex/estimator/mcmc_result.h"
+#include "gelex/estimator/mcmc_storage.h"
+#include "gelex/model/bayes.h"
+#include "gelex/model/effects/bayes_effects.h"
 #include "gelex/python/dense.h"
 #include "gelex/python/sparse.h"
 
@@ -19,154 +23,149 @@ namespace gx = gelex;
 
 using arma::dmat;
 using arma::dvec;
-template <typename BayesModel>
-void register_bayes_model(nb::module_& module, const char* name)
+
+void bayes_param(nb::module_& module)
 {
-    nb::class_<BayesModel>(module, name)
+    nb::class_<gx::bayes::SigmaParam>(module, "SigmaParam")
+        .def(nb::init<>())
+        .def_rw("nu", &gx::bayes::SigmaParam::nu)
+        .def_rw("s2", &gx::bayes::SigmaParam::s2);
+}
+
+void bayesalphabet(nb::module_& module)
+{
+    nb::enum_<gx::BayesAlphabet>(module, "BayesAlphabet")
+        .value("RR", gx::BayesAlphabet::RR)
+        .value("A", gx::BayesAlphabet::A)
+        .value("B", gx::BayesAlphabet::B)
+        .value("Bpi", gx::BayesAlphabet::Bpi)
+        .value("C", gx::BayesAlphabet::C)
+        .value("Cpi", gx::BayesAlphabet::Cpi)
+        .value("R", gx::BayesAlphabet::R)
+        .export_values();
+}
+
+void bayes_model(nb::module_& module)
+{
+    nb::class_<gx::Bayes>(module, "Bayes")
         .def(
-            nb::init<dvec, dmat, std::optional<dmat>>(),
-            "phenotype"_a.noconvert(),
-            "genotype_mat"_a.noconvert(),
-            "design_mat_beta"_a.noconvert() = nb::none(),
+            nb::init<std::string, dvec&&>(),
+            "formula"_a,
+            "phenotype"_a,
             nb::keep_alive<1, 2>(),
-            nb::keep_alive<1, 3>(),
+            nb::keep_alive<1, 3>())
+        .def(
+            "add_fixed_effect",
+            &gx::Bayes::add_fixed_effect,
+            "names"_a,
+            "levels"_a,
+            "design_mat"_a,
             nb::keep_alive<1, 4>())
         .def(
-            "priors",
-            [](BayesModel& self) { return self.priors(); },
-            nb::rv_policy::reference_internal)
+            "add_random_effect",
+            &gx::Bayes::add_random_effect,
+            "name"_a,
+            "design_mat"_a,
+            nb::keep_alive<1, 3>())
         .def(
-            "__repr__",
-            [](const BayesModel& self)
-            {
-                return fmt::format(
-                    "<{} object at {:p}: phenotype({:d}, 1), "
-                    "genotype_mat({:d}, {:d}), "
-                    "design_mat_beta({:d}, {:d})",
-                    BayesModel::name,
-                    static_cast<const void*>(&self),
-                    self.phenotype().n_elem,
-                    self.genotype_mat().n_rows,
-                    self.genotype_mat().n_cols,
-                    self.design_mat_beta() ? self.design_mat_beta()->n_rows : 0,
-                    self.design_mat_beta() ? self.design_mat_beta()->n_cols
-                                           : 0);
-            })
+            "add_genetic_effect",
+            &gx::Bayes::add_genetic_effect,
+            "name"_a,
+            "design_mat"_a,
+            "type"_a,
+            nb::keep_alive<1, 3>())
         .def(
             "__str__",
-            [](const BayesModel& self)
+            [](const gx::Bayes& self)
             {
-                std::string info = fmt::format(
-                    "┌─ {} Model ─────────────────────────────────\n"
-                    "│ Individuals:        {:6d}\n",
-                    BayesModel::name,
-                    self.phenotype().n_elem);
-
-                // Show fixed effects only if they exist
-                if (self.design_mat_beta())
-                {
-                    info += fmt::format(
-                        "│ Fixed Effects:      {:6d}\n",
-                        self.design_mat_beta()->n_cols);
-                }
-                // Show environmental effects only if they exist
-                for (size_t i = 0; i < self.design_mat_r().size(); ++i)
-                {
-                    info += fmt::format(
-                        "│ Random Eff. {}:       {:6d}\n",
-                        self.random_names()[i],
-                        self.design_mat_r()[i].n_cols);
-                }
-                info += fmt::format(
-                    "│ SNPs:               {:6d}\n",
-                    self.genotype_mat().n_cols);
-
-                info += "├─ Priors ──────────────────────────────────────\n";
-                info += fmt::format(
-                    "│ Variance Priors:\n"
-                    "│   σₐ (additive):      nu = {:6.1f}, s² = {:6.4f}\n",
-                    self.priors().sigma_a.nu,
-                    self.priors().sigma_a.s2);
-
-                if (self.design_mat_r().size() > 0)
-                {
-                    info += fmt::format(
-                        "│   σᵣ (random): nu = {:6.1f}, s² = {:6.4f}\n",
-                        self.priors().sigma_r.nu,
-                        self.priors().sigma_r.s2);
-                }
-
-                info += fmt::format(
-                    "│   σₑ (residual):      nu = {:6.1f}, s² = {:6.4f}\n",
-                    self.priors().sigma_e.nu,
-                    self.priors().sigma_e.s2);
-
-                if (BayesModel::has_pi)
-                {
-                    info += "│ Mixture Priors";
-                    if (!BayesModel::fixed_pi)
-                    {
-                        info += " (Fixed)";
-                    }
-                    info += ":\n";
-                    info += fmt::format(
-                        "│   π = [{}]", fmt::join(self.priors().pi, ", "));
-                    info += "\n";
-                }
-                info += "└───────────────────────────────────────────────";
-                return info;
+                return fmt::format(
+                    "┌─ Bayes Model ─────────────────────────────────\n"
+                    "│ Individuals:    {:6d}\n"
+                    "│ Common Effects:    {}\n"
+                    "│ Random Effects:    {}\n"
+                    "│ Genetic Effects:  {}\n"
+                    "└───────────────────────────────────────────────",
+                    self.n_individuals(),
+                    fmt::join(self.fixed().levels, ", "),
+                    fmt::join(self.random().names(), ", "),
+                    fmt::join(self.genetic().names(), ", "));
             });
 }
 
-void bayesa(nb::module_& module)
+void mcmc_params(nb::module_& module)
 {
-    register_bayes_model<gx::BayesA>(module, "BayesA");
+    nb::class_<gx::MCMCParams>(module, "MCMCParams")
+        .def(
+            nb::init<size_t, size_t, size_t, size_t>(),
+            "iter"_a,
+            "n_burnin"_a,
+            "n_thin"_a,
+            "seed"_a)
+        .def_rw("iter", &gx::MCMCParams::iter)
+        .def_rw("n_burnin", &gx::MCMCParams::n_burnin)
+        .def_rw("n_thin", &gx::MCMCParams::n_thin)
+        .def_rw("seed", &gx::MCMCParams::seed);
 }
 
-void bayesrr(nb::module_& module)
+void mcmc_storage(nb::module_& module)
 {
-    register_bayes_model<gx::BayesRR>(module, "BayesRR");
+    nb::class_<gx::MCMCStorage>(module, "MCMCStorage")
+        .def_prop_ro("mu_samples", &gx::MCMCStorage::mu_samples)
+        .def_prop_ro("fixed_samples", &gx::MCMCStorage::fixed_samples)
+        .def_prop_ro("random_samples", &gx::MCMCStorage::random_samples)
+        .def_prop_ro("genetic_samples", &gx::MCMCStorage::genetic_samples)
+        .def_prop_ro("residual_samples", &gx::MCMCStorage::residual_samples)
+        .def_prop_ro(
+            "random_sigma_samples", &gx::MCMCStorage::random_sigma_samples)
+        .def_prop_ro(
+            "genetic_sigma_samples", &gx::MCMCStorage::genetic_sigma_samples);
 }
 
-void bayesb(nb::module_& module)
+void mcmc(nb::module_& module)
 {
-    register_bayes_model<gx::BayesB>(module, "BayesB");
+    nb::class_<gx::MCMC>(module, "MCMC")
+        .def(nb::init<gx::MCMCParams>(), "params"_a)
+        .def("run", &gx::MCMC::run, "model"_a, "log_freq"_a = 100)
+        .def("result", &gx::MCMC::result, nb::rv_policy::reference_internal)
+        .def("storage", &gx::MCMC::storage, nb::rv_policy::reference_internal);
 }
 
-void bayesbpi(nb::module_& module)
+void mcmc_result(nb::module_& module)
 {
-    register_bayes_model<gx::BayesBpi>(module, "BayesBpi");
-}
+    nb::class_<gx::ParameterResult>(module, "ParameterResult")
+        .def_ro("mean", &gx::ParameterResult::mean)
+        .def_ro("std", &gx::ParameterResult::std)
+        .def_ro("median", &gx::ParameterResult::median)
+        .def_ro("q5", &gx::ParameterResult::q5)
+        .def_ro("q95", &gx::ParameterResult::q95)
+        .def_ro("n_eff", &gx::ParameterResult::n_eff)
+        .def_ro("r_hat", &gx::ParameterResult::r_hat);
 
-void bayesc(nb::module_& module)
-{
-    register_bayes_model<gx::BayesC>(module, "BayesC");
-}
+    nb::class_<gx::EffectResult>(module, "EffectResult")
+        .def("mean", &gx::EffectResult::mean, "index"_a = 0)
+        .def("std", &gx::EffectResult::std, "index"_a = 0)
+        .def("median", &gx::EffectResult::median, "index"_a = 0)
+        .def("q5", &gx::EffectResult::q5, "index"_a = 0)
+        .def("q95", &gx::EffectResult::q95, "index"_a = 0)
+        .def("n_eff", &gx::EffectResult::n_eff, "index"_a = 0)
+        .def("r_hat", &gx::EffectResult::r_hat, "index"_a = 0)
+        .def("means", &gx::EffectResult::means)
+        .def("stds", &gx::EffectResult::stds)
+        .def("medians", &gx::EffectResult::medians)
+        .def("q5s", &gx::EffectResult::q5s)
+        .def("q95s", &gx::EffectResult::q95s)
+        .def("n_effs", &gx::EffectResult::n_effs)
+        .def("r_hats", &gx::EffectResult::r_hats);
 
-void bayescpi(nb::module_& module)
-{
-    register_bayes_model<gx::BayesCpi>(module, "BayesCpi");
+    nb::class_<gx::MCMCResult>(module, "MCMCResult")
+        .def_ro("mu", &gx::MCMCResult::mu)
+        .def_ro("fixed", &gx::MCMCResult::fixed)
+        .def_ro("random", &gx::MCMCResult::random)
+        .def_ro("genetic", &gx::MCMCResult::genetic)
+        .def_ro("residual", &gx::MCMCResult::residual)
+        .def_ro("random_sigma", &gx::MCMCResult::random_sigma)
+        .def_ro("genetic_sigma", &gx::MCMCResult::genetic_sigma)
+        .def_ro("random_names", &gx::MCMCResult::random_names)
+        .def_ro("genetic_names", &gx::MCMCResult::genetic_names);
 }
-
-void sigma_prior(nb::module_& module)
-{
-    nb::class_<gx::sigma_prior>(module, "sigma_prior")
-        .def(nb::init<double, double>(), "nu"_a, "s2"_a)
-        .def_rw("nu", &gx::sigma_prior::nu, nb::rv_policy::reference_internal)
-        .def_rw("s2", &gx::sigma_prior::s2, nb::rv_policy::reference_internal);
-}
-
-void priors(nb::module_& module)
-{
-    nb::class_<gelex::Priors>(module, "Priors")
-        .def(nb::init<>())
-        .def_rw("pi", &gx::Priors::pi, nb::rv_policy::reference_internal)
-        .def_rw(
-            "sigma_a", &gx::Priors::sigma_a, nb::rv_policy::reference_internal)
-        .def_rw(
-            "sigma_r", &gx::Priors::sigma_r, nb::rv_policy::reference_internal)
-        .def_rw(
-            "sigma_e", &gx::Priors::sigma_e, nb::rv_policy::reference_internal);
-}
-
 }  // namespace bind

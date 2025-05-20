@@ -1,10 +1,6 @@
 #pragma once
 
 #include <armadillo>
-#include <cmath>
-
-#include "gelex/dist.h"
-
 namespace gelex
 {
 #ifdef ARMA_USE_LAPACK
@@ -24,48 +20,16 @@ extern "C" void arma_fortran(arma_daxpy)(
 
 using dvec = arma::vec;
 
-inline void daxpy_auto(arma::dvec& y, const arma::dvec& x, double alpha)
+inline void daxpy_ptr(int n, double alpha, const double* x, double* y)
 {
-    const int n = x.n_elem;
     static const int inc = 1;
-
-    if (n <= 10000)
-    {
-        y += alpha * x;
-    }
-    else
-    {
-        daxpy_(&n, &alpha, x.memptr(), &inc, y.memptr(), &inc);
-    }
+    daxpy_(&n, &alpha, x, &inc, y, &inc);
 }
 
-inline double
-compute_rhs(const dvec& col_i, const dvec& y_adj, double old_i, double col_norm)
+inline double ddot_ptr(int n, const double* x, const double* y)
 {
-    return arma::dot(col_i, y_adj) + (col_norm * old_i);
-}
-
-inline void sample_effect(
-    Normal& normal,
-    dvec& coeff,
-    dvec& y_adj,
-    const arma::dmat& design_mat,
-    const dvec& cols_norm2,
-    double sigma_e,
-    double sigma)
-{
-    const dvec inv_scaler = 1.0 / (cols_norm2 + sigma_e / sigma);
-
-    for (size_t i = 0; i < coeff.n_elem; ++i)
-    {
-        const double old_i = coeff.at(i);
-        const dvec& col_i = design_mat.unsafe_col(i);
-        const double inv_scaler_i = inv_scaler.at(i);
-        double rhs = compute_rhs(col_i, y_adj, old_i, cols_norm2.at(i));
-        double new_i = normal(rhs * inv_scaler_i, sqrt(sigma_e * inv_scaler_i));
-        coeff.at(i) = new_i;
-        daxpy_auto(y_adj, col_i, old_i - new_i);
-    }
+    static const int inc = 1;
+    return arma::ddot_(&n, x, &inc, y, &inc);
 }
 
 }  // namespace gelex
