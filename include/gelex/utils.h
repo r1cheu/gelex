@@ -36,8 +36,18 @@ bool check_eye(const Mat& inputs)
     }
     return true;
 }
+
 std::string ToLowercase(std::string_view input);
 
+// help functions for logging
+std::string format_sigma_squared(const std::string& name);
+std::string format_value_with_std(double value, double std);
+std::string title(const std::string& text, size_t total_length = 80);
+std::string subtitle(const std::string& str);
+std::string item(const std::string& item);
+std::string subitem(const std::string& item);
+
+// fmt color might be removed
 template <typename T>
 auto green(const T& value)
 {

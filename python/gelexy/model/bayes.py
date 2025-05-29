@@ -5,7 +5,7 @@ import pandas as pd
 from formulae import design_matrices
 
 from gelexy import BayesAlphabet
-from gelexy._core import Bayes, _BedReader, _sp_dense_dot
+from gelexy._core import BayesModel, _BedReader, _sp_dense_dot
 
 from .base import ModelMakerBase, create_design_matrix_genetic
 from .formula_parser import FormulaParser
@@ -51,7 +51,7 @@ class make_bayes(ModelMakerBase):
 
         design_mat = design_matrices(fparser.common, data, na_action="error")
 
-        model = Bayes(
+        model = BayesModel(
             fparser.format_common,
             np.asfortranarray(design_mat.response),
         )
@@ -89,7 +89,7 @@ class make_bayes(ModelMakerBase):
 def load_genotype(bed_file: str):
     reader = _BedReader(bed_file, int(1e9))
     return pd.DataFrame(
-        reader.read_chunk(),
+        reader.read_chunk(True),
         index=reader.individuals,
         columns=reader.snps,
     )

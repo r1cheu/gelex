@@ -6,7 +6,11 @@ level = logging.INFO
 
 class LowercaseLevelnameFormatter(logging.Formatter):
     def format(self, record):
-        record.levelname = record.levelname.lower()
+        # ANSI color codes
+        GREEN = "\033[92m"
+        RESET = "\033[0m"
+
+        record.levelname = f"{GREEN}{record.levelname.lower()}{RESET}"
         return super().format(record)
 
 

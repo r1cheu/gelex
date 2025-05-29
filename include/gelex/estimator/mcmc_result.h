@@ -1,81 +1,78 @@
 #pragma once
-#include <armadillo>
 #include <string>
 #include <vector>
+
+#include <armadillo>
+#include "gelex/estimator/mcmc_samples.h"
 
 namespace gelex
 {
 
-class MCMCStorage;
-class Bayes;
+class MCMCSamples;
+class BayesModel;
 
-struct ParameterResult
+struct PosteriorStats
 {
-    double mean;
-    double std;
-    double median;
-    double q5;     // 5th percentile
-    double q95;    // 95th percentile
-    double n_eff;  // effective sample size
-    double r_hat;  // potential scale reduction factor
+    arma::dvec means;
+    arma::dvec stds;
+    arma::dvec medians;
+    arma::dvec q5s;
+    arma::dvec q95s;
+    arma::dvec n_effs;
+    arma::dvec r_hats;
+
+    explicit operator bool() const { return means.n_elem > 0; }
+
+    double mean(size_t index) const { return means.at(index); }
+    double std(size_t index) const { return stds.at(index); }
+    double median(size_t index) const { return medians.at(index); }
+    double q5(size_t index) const { return q5s.at(index); }
+    double q95(size_t index) const { return q95s.at(index); }
+    double n_eff(size_t index) const { return n_effs.at(index); }
+    double r_hat(size_t index) const { return r_hats.at(index); }
 };
 
-struct EffectResult
+struct PosteriorGroup
 {
-    std::vector<ParameterResult> parameters;
-
-    double mean(size_t index) const { return parameters.at(index).mean; }
-    double std(size_t index) const { return parameters.at(index).std; }
-    double median(size_t index) const { return parameters.at(index).median; }
-    double q5(size_t index) const { return parameters.at(index).q5; }
-    double q95(size_t index) const { return parameters.at(index).q95; }
-    double n_eff(size_t index) const { return parameters.at(index).n_eff; }
-    double r_hat(size_t index) const { return parameters.at(index).r_hat; }
-    arma::dvec means() const { return extract_values(&ParameterResult::mean); }
-    arma::dvec stds() const { return extract_values(&ParameterResult::std); }
-    arma::dvec medians() const
-    {
-        return extract_values(&ParameterResult::median);
-    }
-    arma::dvec q5s() const { return extract_values(&ParameterResult::q5); }
-    arma::dvec q95s() const { return extract_values(&ParameterResult::q95); }
-    arma::dvec n_effs() const
-    {
-        return extract_values(&ParameterResult::n_eff);
-    }
-    arma::dvec r_hats() const
-    {
-        return extract_values(&ParameterResult::r_hat);
-    }
-
-   private:
-    template <typename MemberPtr>
-    arma::dvec extract_values(MemberPtr member) const
-    {
-        arma::dvec result(parameters.size());
-        for (size_t i = 0; i < parameters.size(); ++i)
-        {
-            result.at(i) = parameters[i].*member;
-        }
-        return result;
-    }
+    std::vector<PosteriorStats> coeffs;
+    std::vector<PosteriorStats> sigmas;
+    std::vector<std::string> names;
 };
 
 struct MCMCResult
 {
-    EffectResult mu;
-    EffectResult fixed;
-    std::vector<EffectResult> random;
-    std::vector<EffectResult> genetic;
-    EffectResult residual;
-
-    std::vector<EffectResult> random_sigma;
-    std::vector<EffectResult> genetic_sigma;
-
-    std::vector<std::string> random_names;
-    std::vector<std::string> genetic_names;
+    PosteriorStats mu;
+    PosteriorStats fixed;
+    PosteriorGroup random;
+    PosteriorGroup genetic;
+    PosteriorStats residual;
+    PosteriorStats h2;
 };
 
-MCMCResult compute_mcmc_result(const MCMCStorage& storage, const Bayes& model);
+MCMCResult compute_mcmc_result(
+    const MCMCSamples& samples,
+    const BayesModel& model);
+
+PosteriorStats compute_effect_result(const arma::dvec& samples);
+PosteriorStats compute_effect_result(const arma::dmat& samples);
+
+template <typename EffectManager>
+void process_posterior(
+    const SampleGroup& samples,
+    const EffectManager& effect,
+    PosteriorGroup& result)
+{
+    auto n_eff = effect.size();
+    result.coeffs.reserve(n_eff);
+    result.sigmas.reserve(n_eff);
+    result.names.reserve(n_eff);
+
+    for (size_t i = 0; i < n_eff; ++i)
+    {
+        result.coeffs.push_back(compute_effect_result(samples.coeffs[i]));
+        result.sigmas.push_back(compute_effect_result(samples.sigmas[i]));
+        result.names.push_back(effect[i].name);
+    }
+}
 
 }  // namespace gelex

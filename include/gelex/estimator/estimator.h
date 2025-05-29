@@ -7,7 +7,7 @@
 
 #include <fmt/ranges.h>
 #include "gelex/estimator/estimator_logger.h"
-#include "gelex/model/effects/freq_effects.h"
+#include "gelex/model/freq_effects.h"
 #include "gelex/model/gblup.h"
 #include "gelex/optim/base_optimizer.h"
 
@@ -52,6 +52,6 @@ auto blue_vec(const arma::Col<eT>& vec)
 
 dvec compute_se(const dmat& hess_inv);
 std::pair<std::vector<double>, double> compute_h2_se(
-    const freq::RandomEffectManager& effects);
+    const RandomEffectManager& effects);
 
 };  // namespace gelex

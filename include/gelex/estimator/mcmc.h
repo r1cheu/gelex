@@ -1,13 +1,13 @@
 #pragma once
-#include <memory>
+#include <cstddef>
 #include <random>
 
 #include "gelex/estimator/mcmc_logger.h"
 #include "gelex/estimator/mcmc_params.h"
 #include "gelex/estimator/mcmc_result.h"
-#include "gelex/estimator/mcmc_storage.h"
+#include "gelex/estimator/mcmc_samples.h"
 #include "gelex/model/bayes.h"
-#include "gelex/model/effects/bayes_effects.h"
+#include "gelex/model/bayes_effects.h"
 
 namespace gelex
 {
@@ -16,23 +16,37 @@ class MCMC
    public:
     explicit MCMC(MCMCParams params);
 
-    const MCMCResult& run(Bayes& model, size_t log_freq);
+    void run(const BayesModel& model, size_t n_chains, size_t seed = 42);
     const MCMCResult& result() const { return result_; }
-    const MCMCStorage& storage() const { return *storage_; }
 
    private:
-    void sample_mu(Bayes& model);
-    void sample_fixed_effect(bayes::FixedEffect& effect, double sigma_e);
-    void sample_random_effect(bayes::RandomEffect& effect, double sigma_e);
-    void sample_genetic_effect(bayes::GeneticEffect& effect, double sigma_e);
+    MCMCSamples
+    run_one_chain(const BayesModel& model, size_t seed, size_t& iter);
+    static void
+    sample_mu(Mu& mu, dvec& y_adj, double sigma_e, std::mt19937_64& rng);
+    static void sample_fixed_effect(
+        const FixedEffectDesign& design,
+        FixedEffectState& state,
+        double* y_adj,
+        double sigma_e,
+        std::mt19937_64& rng);
+    static void sample_random_effect(
+        const RandomEffectDesign& design,
+        RandomEffectState& state,
+        double* y_adj,
+        double sigma_e,
+        std::mt19937_64& rng);
+    static void sample_genetic_effect(
+        const GeneticEffectDesign& design,
+        GeneticEffectState& state,
+        double* y_adj,
+        uvec& snp_tracker,
+        double sigma_e,
+        std::mt19937_64& rng);
 
     MCMCLogger logger_;
 
-    std::mt19937_64 rng_;
-    arma::dvec y_adj_;
-    arma::uvec snp_tracker_;
     MCMCParams params_;
-    std::unique_ptr<MCMCStorage> storage_;
     MCMCResult result_;
 };
 }  // namespace gelex

@@ -26,11 +26,8 @@ void EstimatorLogger::log_model_information(
     double tol,
     size_t max_iter)
 {
-    logger_->info(
-        "─────────────────────── GBLUP MODEL ANALYSIS "
-        "───────────────────────");
-    logger_->info("");
-    logger_->info(fmt::format("{}", wine_red("[Model Specification]")));
+    logger_->info(title(" GBLUP MODEL ANALYSIS "));
+    logger_->info(subtitle("Model Specification"));
     logger_->info(
         " \u25AA Model:  {}{}{}{}e",
         model.formula(),
@@ -40,7 +37,7 @@ void EstimatorLogger::log_model_information(
     logger_->info(" \u25AA Samples:  {:d}", model.n_individuals());
     logger_->info("");
 
-    logger_->info(fmt::format("{}", wine_red("[Term Summary]")));
+    logger_->info(subtitle("Term Summary"));
     logger_->info(" \u25AA Fixed:  {}", fmt::join(model.fixed().names, ", "));
     if (model.random().has_random_effects())
     {
@@ -62,14 +59,12 @@ void EstimatorLogger::log_model_information(
     }
     logger_->info("");
 
-    logger_->info(fmt::format("{}", wine_red("[Optimizer Specification]")));
+    logger_->info(subtitle("Optimizer Specification"));
+    logger_->info(item(fmt::format("Method:  {}", cyan(optimizer_name))));
     logger_->info(" \u25AA Method:  {}", cyan(optimizer_name));
     logger_->info(" \u25AA tolerance:  {:.2e}", tol);
     logger_->info(" \u25AA Max Iterations:  {:d}", max_iter);
-    logger_->info("");
-    logger_->info(
-        "────────────────────────── REML ITERATIONS "
-        "─────────────────────────");
+    logger_->info(title(" REML ESTIMATION "));
     logger_->info(
         "{:>5}{:>8}  {}  {:<10}",
         "Iter.",
@@ -80,7 +75,7 @@ void EstimatorLogger::log_model_information(
 
 void EstimatorLogger::log_em_initialization(
     double loglike,
-    const freq::RandomEffectManager& effects,
+    const RandomEffectManager& effects,
     double time_cost)
 {
     logger_->info("Initializing with {} algorithm", cyan("EM"));
@@ -94,23 +89,21 @@ void EstimatorLogger::log_em_initialization(
 void EstimatorLogger::log_iteration(
     size_t iter,
     double loglike,
-    const freq::RandomEffectManager& effects,
+    const RandomEffectManager& effects,
     double time_cost)
 {
     logger_->info(
         " {:^2d}{:>12.3f}  "
         "{:>7.3f} ({:.3f}s)",
         iter,
-        pink(loglike),
-        pink(fmt::join(effects.sigma(), " ")),
+        loglike,
+        fmt::join(effects.sigma(), " "),
         time_cost);
 }
 
 void EstimatorLogger::log_results_header()
 {
-    logger_->info(
-        "───────────────────────────── Result "
-        "───────────────────────────────");
+    logger_->info(title(" RESULT "));
 }
 
 void EstimatorLogger::log_convergence_status(
@@ -121,7 +114,7 @@ void EstimatorLogger::log_convergence_status(
     double aic,
     double bic)
 {
-    logger_->info(fmt::format("{}", wine_red("[Convergence]")));
+    logger_->info(subtitle("Convergence"));
 
     if (converged)
     {
@@ -141,8 +134,8 @@ void EstimatorLogger::log_convergence_status(
         logger_->warn(
             "Try to increase the max_iter or check the model specification.");
     }
-    logger_->info(" \u25AA AIC:  {:.3f}", pink(aic));
-    logger_->info(" \u25AA BIC:  {:.3f}", pink(bic));
+    logger_->info(" \u25AA AIC:  {:.3f}", aic);
+    logger_->info(" \u25AA BIC:  {:.3f}", bic);
     logger_->info("");
 }
 
@@ -150,29 +143,28 @@ void EstimatorLogger::log_fixed_effects(
     const GBLUP& model,
     const dvec& fixed_se)
 {
-    logger_->info(fmt::format("{}", wine_red("[Fixed Effects]")));
+    logger_->info(subtitle("Fixed Effects"));
     for (size_t i = 0; i < model.n_fixed_effects(); ++i)
     {
         logger_->info(
-            " \u25AA {}:  {:.6f} \u00B1 {:.4f}",
+            " \u25AA {}:  {}",
             model.fixed().levels[i],
-            pink(model.fixed().beta.at(i)),
-            pink(fixed_se[i]));
+            format_value_with_std(model.fixed().beta.at(i), fixed_se[i]));
     }
     logger_->info("");
 }
 
 void EstimatorLogger::log_variance_components(const GBLUP& model)
 {
-    logger_->info(fmt::format("{}", wine_red("[Variance Componests]")));
+    logger_->info(subtitle("Variance Components"));
     log_variance_category("Random", model.random().random_indices(), model);
     log_variance_category("Genetic", model.random().genetic_indices(), model);
     log_variance_category("GxE", model.random().gxe_indices(), model);
     logger_->info(" \u25AA Residual:");
     logger_->info(
-        "  - e:  {:6f} \u00B1 {:.4f}",
-        pink(model.random().get("e")->sigma),
-        pink(model.random().get("e")->se));
+        "  - e:  {}",
+        format_value_with_std(
+            model.random().get("e")->sigma, model.random().get("e")->se));
     logger_->info("");
 }
 
@@ -181,25 +173,22 @@ void EstimatorLogger::log_heritability(
     const std::vector<double>& h2_se,
     double sum_var)
 {
-    logger_->info(fmt::format("{}", wine_red("[Hertiability]")));
+    logger_->info(subtitle("Heritability"));
     size_t index{};
     for (auto genetic_index : model.random().genetic_indices())
     {
         logger_->info(
-            " \u25AA {}:  {:.4f} \u00B1 {:.4f}",
+            " \u25AA {}:  {}",
             model.random()[genetic_index].name,
-            pink(model.random()[genetic_index].sigma / sum_var),
-            pink(h2_se[index]));
+            format_value_with_std(
+                model.random()[genetic_index].sigma / sum_var, h2_se[index]));
         ++index;
     }
-    logger_->info("");
 }
 
 void EstimatorLogger::log_results_footer()
 {
-    logger_->info(
-        "──────────────────────────────────────────"
-        "──────────────────────────");
+    logger_->info(title(""));
 }
 
 void EstimatorLogger::log_variance_category(
@@ -216,16 +205,16 @@ void EstimatorLogger::log_variance_category(
     for (auto i : indices)
     {
         logger_->info(
-            "  - {}:  {:.6f} \u00B1 {:.4f}",
+            "  - {}:  {}",
             model.random()[i].name,
-            pink(model.random()[i].sigma),
-            pink(model.random()[i].se));
+            format_value_with_std(
+                model.random()[i].sigma, model.random()[i].se));
     }
 }
 
 std::string join_formula(
     const std::vector<size_t>& indices,
-    const freq::RandomEffectManager& effects,
+    const RandomEffectManager& effects,
     std::string_view sep)
 {
     if (indices.empty())
@@ -243,7 +232,7 @@ std::string join_formula(
 
 std::string join_name(
     const std::vector<size_t>& indices,
-    const freq::RandomEffectManager& effects,
+    const RandomEffectManager& effects,
     std::string_view sep)
 {
     std::string result;
@@ -258,7 +247,7 @@ std::string join_name(
     return result;
 }
 
-std::string join_variance(const freq::RandomEffectManager& effects)
+std::string join_variance(const RandomEffectManager& effects)
 {
     std::string result;
     for (const auto& effect : effects)

@@ -7,15 +7,13 @@
 
 #include <armadillo>
 
-#include "base.h"
+#include "base_effects.h"
 
 namespace gelex
 {
 using arma::dmat;
 using arma::dvec;
 
-namespace freq
-{
 using MatVariant = std::variant<arma::dmat, arma::sp_dmat>;
 
 struct FixedEffect
@@ -108,5 +106,4 @@ class RandomEffectManager
     dmat hess_inv_;
     dvec sigma_;
 };
-}  // namespace freq
 }  // namespace gelex

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <armadillo>
+
 namespace gelex
 {
 #ifdef ARMA_USE_LAPACK

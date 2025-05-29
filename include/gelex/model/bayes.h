@@ -5,17 +5,17 @@
 
 #include <armadillo>
 
-#include "gelex/model/effects/bayes_effects.h"
+#include "gelex/model/bayes_effects.h"
 
 namespace gelex
 {
 using arma::dmat;
 using arma::dvec;
 
-class Bayes
+class BayesModel
 {
    public:
-    Bayes(std::string formula, dvec&& phenotype);
+    BayesModel(std::string formula, dvec&& phenotype);
     void add_fixed_effect(
         std::vector<std::string>&& names,
         std::vector<std::string>&& levels,
@@ -51,13 +51,30 @@ class Bayes
     dvec phenotype_;
     double phenotype_var_{};
 
-    bayes::Mu mu_;
-    bayes::FixedEffect fixed_;
-    bayes::RandomEffectManager random_;
-    bayes::GeneticEffectManager genetic_;
-    bayes::Residual residual_;
+    Mu mu_;
+    std::unique_ptr<FixedEffectDesign> fixed_;
+    RandomEffectDesignManager random_;
+    GeneticEffectDesignManager genetic_;
+    Residual residual_;
+};
 
-    arma::rowvec allele_freq_;
+struct BayesStatus
+{
+    explicit BayesStatus(const BayesModel& model)
+        : mu(model.mu()),
+          fixed(
+              model.fixed() ? FixedEffectState(model.fixed()->design_mat.n_cols)
+                            : FixedEffectState(0)),
+          random(create_thread_states(model.random())),
+          genetic(create_thread_states(model.genetic())),
+          residual(model.residual())
+    {
+    }
+    Mu mu;
+    FixedEffectState fixed;
+    std::vector<RandomEffectState> random;
+    std::vector<GeneticEffectState> genetic;
+    Residual residual;
 };
 
 }  // namespace gelex

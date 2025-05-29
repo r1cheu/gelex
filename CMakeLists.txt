@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.18)
-project(${SKBUILD_PROJECT_NAME})
 project(
   ${SKBUILD_PROJECT_NAME}
   VERSION ${SKBUILD_PROJECT_VERSION}
@@ -25,12 +24,12 @@ option(BUILD_TEST "Enable testing" OFF)
 if(USE_MKL)
   set(BLA_VENDOR Intel10_64lp)
   find_package(BLAS REQUIRED)
+  find_path(BLAS_INCLUDE_DIR mkl.h)
 else()
-  set(BLA_VENDOR "OpenBLAS")
+  set(BLA_VENDOR OpenBLAS)
   find_package(BLAS REQUIRED)
+  find_path(BLAS_INCLUDE_DIR cblas.h)
 endif()
-
-# ---- Dependencies ----
 find_package(OpenMP)
 find_package(spdlog REQUIRED)
 find_package(Python 3.8 REQUIRED COMPONENTS Interpreter Development.Module)
@@ -46,12 +45,16 @@ target_compile_definitions(
   INTERFACE BARKEEP_ENABLE_FMT_FORMAT ARMA_DONT_USE_WRAPPER
             ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS ARMA_OPENMP_THREADS=64
             $<$<CONFIG:Debug>:ARMA_DEBUG> $<$<CONFIG:Release>:ARMA_NO_DEBUG>)
+if(USE_MKL)
+  target_compile_definitions(common INTERFACE USE_MKL)
+endif()
 
 target_include_directories(common INTERFACE include)
 target_include_directories(common INTERFACE ext/armadillo/include)
 target_include_directories(common INTERFACE ext/barkeep/barkeep)
+
 target_link_libraries(
-  common INTERFACE OpenMP::OpenMP_CXX ${BLAS_LIBRARIES} spdlog::spdlog
+  common INTERFACE OpenMP::OpenMP_CXX BLAS::BLAS spdlog::spdlog
                    $<$<BOOL:${MINGW}>:ws2_32>)
 file(GLOB_RECURSE CORE_SOURCE src/*.cpp)
 nanobind_add_module(_core NB_STATIC ${CORE_SOURCE})
@@ -89,7 +92,6 @@ if(BUILD_TEST)
   add_compile_definitions(GELEX_TESTS_DIR="${GELEX_TESTS_DIR}")
   find_package(Catch2 3 REQUIRED)
   file(GLOB test_SOURCE ${PROJECT_SOURCE_DIR}/tests/cpp/*.cpp)
-  # Create a copy of CORE_SOURCE and filter out Python bindings
   set(TEST_CORE_SOURCE ${CORE_SOURCE})
   list(FILTER TEST_CORE_SOURCE EXCLUDE REGEX "src/python/")
   add_executable(test ${test_SOURCE} ${TEST_CORE_SOURCE})

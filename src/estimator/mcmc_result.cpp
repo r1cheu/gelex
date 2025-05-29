@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "gelex/estimator/mcmc_storage.h"
+#include "gelex/estimator/mcmc_samples.h"
 #include "gelex/model/bayes.h"
 
 namespace gelex
@@ -31,88 +31,68 @@ double compute_n_eff(const arma::dvec& samples)
     return static_cast<double>(n) / (1.0 + 2.0 * std::max(0.0, autocorr));
 }
 
-ParameterResult compute_parameter_result(const arma::dvec& samples)
+PosteriorStats compute_effect_result(const arma::dvec& samples)
 {
-    ParameterResult result{};
-
-    result.mean = arma::mean(samples);
-    result.std = arma::stddev(samples);
-    result.median = arma::median(samples);
-
+    PosteriorStats result;
+    result.means = {arma::mean(samples)};
+    result.stds = {arma::stddev(samples)};
+    result.medians = {arma::median(samples)};
     arma::dvec quantiles = arma::quantile(samples, arma::dvec{0.05, 0.95});
-    result.q5 = quantiles[0];
-    result.q95 = quantiles[1];
-
-    result.n_eff = compute_n_eff(samples);
-    result.r_hat = 1.0;  // Single chain, cannot compute R-hat
-
+    result.q5s = {quantiles[0]};
+    result.q95s = {quantiles[1]};
+    result.n_effs = {compute_n_eff(samples)};
+    result.r_hats = {1.0};  // Single chain
     return result;
 }
 
-EffectResult compute_effect_result(const arma::dmat& samples)
+PosteriorStats compute_effect_result(const arma::dmat& samples)
 {
-    EffectResult result;
-    size_t n_params = samples.n_rows;
-    result.parameters.resize(n_params);
+    PosteriorStats result;
+    const size_t n_params = samples.n_rows;
+
+    result.means.set_size(n_params);
+    result.stds.set_size(n_params);
+    result.medians.set_size(n_params);
+    result.q5s.set_size(n_params);
+    result.q95s.set_size(n_params);
+    result.n_effs.set_size(n_params);
+    result.r_hats.set_size(n_params);
+    result.r_hats.fill(1.0);  // Single chain
 
     for (size_t i = 0; i < n_params; ++i)
     {
         arma::dvec param_samples = samples.row(i).t();
-        result.parameters[i] = compute_parameter_result(param_samples);
+        result.means[i] = arma::mean(param_samples);
+        result.stds[i] = arma::stddev(param_samples);
+        result.medians[i] = arma::median(param_samples);
+        arma::dvec quantiles
+            = arma::quantile(param_samples, arma::dvec{0.05, 0.95});
+        result.q5s[i] = quantiles[0];
+        result.q95s[i] = quantiles[1];
+        result.n_effs[i] = compute_n_eff(param_samples);
     }
-
     return result;
 }
 
-EffectResult compute_effect_result(const arma::dvec& samples)
-{
-    EffectResult result;
-    result.parameters.resize(1);
-    result.parameters[0] = compute_parameter_result(samples);
-    return result;
-}
-
-MCMCResult compute_mcmc_result(const MCMCStorage& storage, const Bayes& model)
+MCMCResult compute_mcmc_result(
+    const MCMCSamples& samples,
+    const BayesModel& model)
 {
     MCMCResult result;
 
-    // Compute mu results
-    result.mu = compute_effect_result(storage.mu_samples());
+    // Mu effect (always scalar)
+    result.mu = compute_effect_result(samples.mu());
 
-    // Compute fixed effect results
-    if (model.fixed().exist)
+    // Fixed effects
+    if (samples.fixed().n_rows > 0)
     {
-        result.fixed = compute_effect_result(storage.fixed_samples());
+        result.fixed = compute_effect_result(samples.fixed());
     }
 
-    // Compute random effect results
-    result.random.resize(storage.random_samples().size());
-    result.random_sigma.resize(storage.random_sigma_samples().size());
-    result.random_names.resize(model.random().size());
+    process_posterior(samples.random(), model.random(), result.random);
+    process_posterior(samples.genetic(), model.genetic(), result.genetic);
 
-    for (size_t i = 0; i < storage.random_samples().size(); ++i)
-    {
-        result.random[i] = compute_effect_result(storage.random_samples()[i]);
-        result.random_sigma[i]
-            = compute_effect_result(storage.random_sigma_samples()[i]);
-        result.random_names[i] = model.random()[i].name;
-    }
-
-    // Compute genetic effect results
-    result.genetic.resize(storage.genetic_samples().size());
-    result.genetic_sigma.resize(storage.genetic_sigma_samples().size());
-    result.genetic_names.resize(model.genetic().size());
-
-    for (size_t i = 0; i < storage.genetic_samples().size(); ++i)
-    {
-        result.genetic[i] = compute_effect_result(storage.genetic_samples()[i]);
-        result.genetic_sigma[i]
-            = compute_effect_result(storage.genetic_sigma_samples()[i]);
-        result.genetic_names[i] = model.genetic()[i].name;
-    }
-
-    // Compute residual results
-    result.residual = compute_effect_result(storage.residual_samples());
+    result.residual = compute_effect_result(samples.residual());
 
     return result;
 }

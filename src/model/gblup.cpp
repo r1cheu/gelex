@@ -21,7 +21,7 @@ void GBLUP::add_fixed_effect(
     dmat&& design_mat)
 {
     auto n_levels = levels.size();
-    fixed_ = freq::FixedEffect{
+    fixed_ = FixedEffect{
         std::move(names),
         std::move(levels),
         std::move(design_mat),

@@ -9,5 +9,10 @@ Checks: >
   cppcoreguidelines-*,
   hicpp-*,
   google-*,
-  openmp-*
+  openmp-*,
+  -readability-magic-numbers,
+  -cppcoreguidelines-avoid-magic-numbers,
 FormatStyle: file
+CheckOptions:
+  readability-identifier-length.MinimumParameterNameLength: "0"
+  readability-identifier-length.MinimumVariableNameLength: "0"

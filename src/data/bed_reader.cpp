@@ -182,7 +182,7 @@ void BedReader::SeekToBedStart()
     fin_.seekg(3, std::ios::beg);
 }
 
-arma::dmat BedReader::read_chunk()
+arma::dmat BedReader::read_chunk(bool add)
 {
     if (!has_next())
     {
@@ -211,19 +211,20 @@ arma::dmat BedReader::read_chunk()
             + std::to_string(bytes_read));
     }
 
-    arma::dmat genotype_matrix{Decode(buffer, current_chunk_size_)};
+    arma::dmat genotype_matrix{Decode(buffer, current_chunk_size_, add)};
     current_chunk_index_ += current_chunk_size_;
     return genotype_matrix;
 }
 
-arma::dmat BedReader::Decode(const std::vector<char>& buffer, size_t chunk_size)
+arma::dmat
+BedReader::Decode(const std::vector<char>& buffer, size_t chunk_size, bool add)
 {
     arma::dmat genotype_matrix(
         num_individuals(), chunk_size, arma::fill::zeros);
     size_t num_individuals
         = individuals_.size()
           + exclude_index_.size();  // add back excluded individuals, since we
-                                    // are read .bed
+                                    // read from full bed
 
     for (size_t snp_idx = 0; snp_idx < chunk_size; ++snp_idx)
     {
@@ -247,8 +248,16 @@ arma::dmat BedReader::Decode(const std::vector<char>& buffer, size_t chunk_size)
                 }
                 unsigned int genotype_code
                     = (byte_val >> (2U * bit)) & 0x03U;  // encode byte to int
-                genotype_matrix.at(ind - adjust_individul_idx, snp_idx)
-                    = genotype_map[genotype_code];
+                if (add)
+                {
+                    genotype_matrix.at(ind - adjust_individul_idx, snp_idx)
+                        = add_map[genotype_code];
+                }
+                else
+                {
+                    genotype_matrix.at(ind - adjust_individul_idx, snp_idx)
+                        = dom_map[genotype_code];
+                }
             }
         }
     }

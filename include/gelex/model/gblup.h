@@ -4,7 +4,7 @@
 
 #include <armadillo>
 
-#include "gelex/model/effects/freq_effects.h"
+#include "gelex/model/freq_effects.h"
 
 namespace gelex
 {
@@ -80,8 +80,8 @@ class GBLUP
     size_t n_individuals_{};
     dvec phenotype_;
 
-    freq::RandomEffectManager random_;
-    freq::FixedEffect fixed_;
+    RandomEffectManager random_;
+    FixedEffect fixed_;
 };
 
 struct GBLUPParams

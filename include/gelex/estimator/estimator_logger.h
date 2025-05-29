@@ -5,7 +5,7 @@
 #include <vector>
 
 #include <spdlog/logger.h>
-#include "gelex/model/effects/freq_effects.h"
+#include "gelex/model/freq_effects.h"
 #include "gelex/model/gblup.h"
 
 namespace gelex
@@ -24,12 +24,12 @@ class EstimatorLogger
         size_t max_iter);
     void log_em_initialization(
         double loglike,
-        const freq::RandomEffectManager& effects,
+        const RandomEffectManager& effects,
         double time_cost);
     void log_iteration(
         size_t iter,
         double loglike,
-        const freq::RandomEffectManager& effects,
+        const RandomEffectManager& effects,
         double time_cost);
     void log_results_header();
     void log_convergence_status(
@@ -59,14 +59,14 @@ class EstimatorLogger
 // Helper functions for formatting
 std::string join_formula(
     const std::vector<size_t>& indices,
-    const freq::RandomEffectManager& effects,
+    const RandomEffectManager& effects,
     std::string_view sep);
 
 std::string join_name(
     const std::vector<size_t>& indices,
-    const freq::RandomEffectManager& effects,
+    const RandomEffectManager& effects,
     std::string_view sep);
 
-std::string join_variance(const freq::RandomEffectManager& effects);
+std::string join_variance(const RandomEffectManager& effects);
 
 }  // namespace gelex

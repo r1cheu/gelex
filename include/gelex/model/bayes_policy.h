@@ -2,7 +2,7 @@
 
 #include "gelex/dist.h"
 #include "gelex/estimator/gibbs/base.h"
-#include "gelex/model/effects/bayes_effects.h"
+#include "gelex/model/bayes_effects.h"
 
 namespace gelex
 {
@@ -18,21 +18,22 @@ struct GeneticTrait<BayesAlphabet::A>
     {
         return dvec(X.n_cols, arma::fill::value(DEFAULT_SIGMA));
     }
-    static std::pair<dvec, uvec> pi() { return {dvec(), uvec()}; }
+    static dvec pi() { return dvec(); }
     static void sample(
-        bayes::GeneticEffect& effect,
+        const GeneticEffectDesign& design,
+        GeneticEffectState& state,
         double* y_adj,
         uvec& snp_tracker,
         double sigma_e,
         std::mt19937_64& rng)
     {
-        dvec& coeff = effect.coeff;
-        double* u = effect.u.memptr();
+        dvec& coeff = state.coeff;
+        double* u = state.u.memptr();
 
-        const dvec& cols_norm = effect.cols_norm;
-        const dmat& design_mat = effect.design_mat;
-        dvec& sigma = effect.sigma;
-        const dvec& cols_var = effect.cols_var;
+        const dvec& cols_norm = design.cols_norm;
+        const dmat& design_mat = design.design_mat;
+        dvec& sigma = state.sigma;
+        const dvec& cols_var = design.cols_var;
 
         std::normal_distribution<double> normal{0, 1};
         const int n = static_cast<int>(design_mat.n_rows);
@@ -46,8 +47,8 @@ struct GeneticTrait<BayesAlphabet::A>
             const double old_i = coeff.at(i);
             const double new_sigma = sample_scale_inv_chi_squared(
                 rng,
-                effect.prior.nu + 1,
-                ((old_i * old_i) + (effect.prior.s2 * effect.prior.nu)));
+                design.prior.nu + 1,
+                ((old_i * old_i) + (design.prior.s2 * design.prior.nu)));
             const double* col_i = design_mat.colptr(i);
             const double norm = cols_norm.at(i);
 
@@ -70,23 +71,24 @@ template <>
 struct GeneticTrait<BayesAlphabet::RR>
 {
     static dvec sigma(const dmat& X) { return arma::dvec{DEFAULT_SIGMA}; }
-    static std::pair<dvec, uvec> pi() { return {dvec(), uvec()}; }
+    static dvec pi() { return dvec(); }
     static void sample(
-        bayes::GeneticEffect& effect,
+        const GeneticEffectDesign& design,
+        GeneticEffectState& state,
         double* y_adj,
         uvec& snp_tracker,
         double sigma_e,
         std::mt19937_64& rng)
     {
-        dvec& coeff = effect.coeff;
-        double* u = effect.u.memptr();
-        const dvec& cols_norm = effect.cols_norm;
-        const dmat& design_mat = effect.design_mat;
-        const double sigma = arma::as_scalar(effect.sigma);
-        const dvec& cols_var = effect.cols_var;
+        dvec& coeff = state.coeff;
+        double* u = state.u.memptr();
+        const dvec& cols_norm = design.cols_norm;
+        const dmat& design_mat = design.design_mat;
+        const double sigma_g = arma::as_scalar(state.sigma);
+        const dvec& cols_var = design.cols_var;
 
         const double sigma_e_sqrt = sqrt(sigma_e);
-        const double inv_scaler_base = sigma_e / sigma;
+        const double inv_scaler_base = sigma_e / sigma_g;
 
         std::normal_distribution<double> normal{0, 1};
         const int n = static_cast<int>(design_mat.n_rows);
@@ -97,6 +99,7 @@ struct GeneticTrait<BayesAlphabet::RR>
             {
                 continue;
             }
+
             const double old_i = coeff.at(idx);
             const double norm = cols_norm.at(idx);
             const double inv_scaler = 1.0 / (norm + inv_scaler_base);
@@ -111,13 +114,12 @@ struct GeneticTrait<BayesAlphabet::RR>
             daxpy_ptr(n, diff, col_i, y_adj);
             daxpy_ptr(n, -diff, col_i, u);
         }
-
-        const double ssq = arma::dot(effect.coeff, effect.coeff);
-        effect.sigma.at(0) = sample_scale_inv_chi_squared(
+        const double ssq = arma::dot(state.coeff, state.coeff);
+        state.sigma.at(0) = sample_scale_inv_chi_squared(
             rng,
-            effect.prior.nu
-                + static_cast<double>(coeff.n_elem - effect.n_zero_var_snp),
-            (ssq + (effect.prior.s2 * effect.prior.nu)));
+            design.prior.nu
+                + static_cast<double>(coeff.n_elem - design.n_zero_var_snp),
+            (ssq + (design.prior.s2 * design.prior.nu)));
     }
 };
 
@@ -125,22 +127,24 @@ template <>
 struct GeneticTrait<BayesAlphabet::B>
 {
     static dvec sigma(const dmat& X) { return arma::zeros<dvec>(X.n_cols); }
-    static std::pair<dvec, uvec> pi() { return {dvec{0.95, 0}, uvec()}; }
+
+    static dvec pi() { return dvec{0.95, 0}; }
     static void sample(
-        bayes::GeneticEffect& effect,
+        const GeneticEffectDesign& design,
+        GeneticEffectState& state,
         double* y_adj,
         uvec& snp_tracker,
         double sigma_e,
         std::mt19937_64& rng)
     {
-        dvec logpi = arma::log(effect.bayes.pi);
+        dvec logpi = arma::log(state.pi.prop);
 
-        dvec& coeff = effect.coeff;
-        double* u = effect.u.memptr();
-        const dvec& cols_norm = effect.cols_norm;
-        const dmat& design_mat = effect.design_mat;
-        dvec& sigma = effect.sigma;
-        const dvec& cols_var = effect.cols_var;
+        dvec& coeff = state.coeff;
+        double* u = state.u.memptr();
+        const dvec& cols_norm = design.cols_norm;
+        const dmat& design_mat = design.design_mat;
+        dvec& sigma = state.sigma;
+        const dvec& cols_var = design.cols_var;
 
         std::normal_distribution<double> normal{0, 1};
         std::uniform_real_distribution<double> uniform{0, 1};
@@ -157,8 +161,8 @@ struct GeneticTrait<BayesAlphabet::B>
             const double old_i = coeff.at(i);
             const double new_sigma = sample_scale_inv_chi_squared(
                 rng,
-                effect.prior.nu + 1,
-                ((old_i * old_i) + (effect.prior.s2 * effect.prior.nu)));
+                design.prior.nu + 1,
+                ((old_i * old_i) + (design.prior.s2 * design.prior.nu)));
 
             const double* col_i = design_mat.colptr(i);
             const double norm = cols_norm.at(i);
@@ -194,9 +198,9 @@ struct GeneticTrait<BayesAlphabet::B>
             coeff.at(i) = new_i;
             sigma.at(i) = new_sigma;
         }
-        effect.bayes.pi_num.at(1) = arma::sum(snp_tracker);
-        effect.bayes.pi_num.at(0)
-            = coeff.n_elem - effect.n_zero_var_snp - effect.bayes.pi_num.at(1);
+        state.pi.count.at(1) = arma::sum(snp_tracker);
+        state.pi.count.at(0)
+            = coeff.n_elem - design.n_zero_var_snp - state.pi.count.at(1);
     }
 };
 
@@ -204,18 +208,18 @@ template <>
 struct GeneticTrait<BayesAlphabet::Bpi>
 {
     static dvec sigma(const dmat& X) { return arma::zeros<dvec>(X.n_cols); }
-    static std::pair<dvec, uvec> pi() { return {dvec{0.95, 0}, uvec{0, 0}}; }
+    static dvec pi() { return dvec{0.95, 0}; }
     static void sample(
-        bayes::GeneticEffect& effect,
+        const GeneticEffectDesign& design,
+        GeneticEffectState& state,
         double* y_adj,
         uvec& snp_tracker,
         double sigma_e,
         std::mt19937_64& rng)
     {
         GeneticTrait<BayesAlphabet::B>::sample(
-            effect, y_adj, snp_tracker, sigma_e, rng);
-        effect.bayes.pi
-            = dirichlet(effect.bayes.pi_num + 1, rng);  // 1 for prior
+            design, state, y_adj, snp_tracker, sigma_e, rng);
+        state.pi.prop = dirichlet(state.pi.count + 1, rng);  // 1 for prior
     }
 };
 
@@ -223,23 +227,24 @@ template <>
 struct GeneticTrait<BayesAlphabet::C>
 {
     static dvec sigma(const dmat& X) { return arma::dvec{DEFAULT_SIGMA}; }
-    static std::pair<dvec, uvec> pi() { return {dvec{0.95, 0.05}, uvec{0, 0}}; }
+    static dvec pi() { return dvec{0.95, 0.05}; }
     static void sample(
-        bayes::GeneticEffect& effect,
+        const GeneticEffectDesign& design,
+        GeneticEffectState& state,
         double* y_adj,
         uvec& snp_tracker,
         double sigma_e,
         std::mt19937_64& rng)
     {
-        dvec logpi = arma::log(effect.bayes.pi);
+        dvec logpi = arma::log(state.pi.prop);
 
-        dvec& coeff = effect.coeff;
-        double* u = effect.u.memptr();
-        const dvec& cols_norm = effect.cols_norm;
-        const dmat& design_mat = effect.design_mat;
-        const dvec& cols_var = effect.cols_var;
+        dvec& coeff = state.coeff;
+        double* u = state.u.memptr();
+        const dvec& cols_norm = design.cols_norm;
+        const dmat& design_mat = design.design_mat;
+        const dvec& cols_var = design.cols_var;
 
-        const double sigma = arma::as_scalar(effect.sigma);
+        const double sigma = arma::as_scalar(state.sigma);
 
         double var_a{};
         std::normal_distribution<double> normal{0, 1};
@@ -287,14 +292,14 @@ struct GeneticTrait<BayesAlphabet::C>
             }
             coeff.at(i) = new_i;
         }
-        effect.bayes.pi_num.at(1) = arma::sum(snp_tracker);
-        effect.bayes.pi_num.at(0)
-            = coeff.n_elem - effect.n_zero_var_snp - effect.bayes.pi_num.at(1);
+        state.pi.count.at(1) = arma::sum(snp_tracker);
+        state.pi.count.at(0)
+            = coeff.n_elem - design.n_zero_var_snp - state.pi.count.at(1);
 
-        effect.sigma.at(0) = sample_scale_inv_chi_squared(
+        state.sigma.at(0) = sample_scale_inv_chi_squared(
             rng,
-            effect.prior.nu + static_cast<double>(effect.bayes.pi_num.at(1)),
-            (var_a + (effect.prior.s2 * effect.prior.nu)));
+            design.prior.nu + static_cast<double>(state.pi.count.at(1)),
+            (var_a + (design.prior.s2 * design.prior.nu)));
     }
 };
 
@@ -302,17 +307,18 @@ template <>
 struct GeneticTrait<BayesAlphabet::Cpi>
 {
     static dvec sigma(const dmat& X) { return arma::zeros<dvec>(1); }
-    static std::pair<dvec, uvec> pi() { return {dvec{0.95, 0}, uvec{0, 0}}; }
+    static dvec pi() { return dvec{0.95, 0}; }
     static void sample(
-        bayes::GeneticEffect& effect,
+        const GeneticEffectDesign& design,
+        GeneticEffectState& state,
         double* y_adj,
         uvec& snp_tracker,
         double sigma_e,
         std::mt19937_64& rng)
     {
         GeneticTrait<BayesAlphabet::C>::sample(
-            effect, y_adj, snp_tracker, sigma_e, rng);
-        effect.bayes.pi = dirichlet(effect.bayes.pi_num + 1, rng);
+            design, state, y_adj, snp_tracker, sigma_e, rng);
+        state.pi.prop = dirichlet(state.pi.count + 1, rng);
     }
 };
 
@@ -323,17 +329,23 @@ struct GeneticTrait<BayesAlphabet::R>
     {
         return dvec{0, 1e-4, 1e-3, 1e-2, 0};
     }  // this sigma from 0-3 is the scaler the last one is the ture sigma
-    static std::pair<dvec, uvec> pi()
-    {
-        return {dvec{0.95, 0.02, 0.02, 0.01}, uvec{0, 0, 0, 0}};
-    }
+    static dvec pi() { return dvec{0.95, 0.02, 0.02, 0.01}; }
     static void sample(
-        bayes::GeneticEffect& effect,
+        const GeneticEffectDesign& effect,
+        GeneticEffectState& state,
         double* y_adj,
         uvec& snp_tracker,
         double sigma_e,
         std::mt19937_64& rng)
     {
+        for (size_t i = 0; i < state.coeff.n_elem; ++i)
+        {
+            if (effect.cols_var.at(i) == 0)
+            {
+                continue;
+            }
+            // TODO: Implement R sampler
+        }
     }
 };
 
@@ -343,18 +355,24 @@ constexpr std::size_t to_index(BayesAlphabet e)
 }
 
 using Fn = dvec (*)(const dmat&);
-using FnSample
-    = void (*)(bayes::GeneticEffect&, double*, uvec&, double, std::mt19937_64&);
-using FnPi = std::pair<dvec, uvec> (*)();
+using FnSample = void (*)(
+    const GeneticEffectDesign&,
+    GeneticEffectState&,
+    double*,
+    uvec&,
+    double,
+    std::mt19937_64&);
+using FnPi = dvec (*)();
 
-inline constexpr std::array<Fn, to_index(BayesAlphabet::Count)> bayes_trait = {
-    &GeneticTrait<BayesAlphabet::A>::sigma,
-    &GeneticTrait<BayesAlphabet::RR>::sigma,
-    &GeneticTrait<BayesAlphabet::B>::sigma,
-    &GeneticTrait<BayesAlphabet::Bpi>::sigma,
-    &GeneticTrait<BayesAlphabet::C>::sigma,
-    &GeneticTrait<BayesAlphabet::Cpi>::sigma,
-    &GeneticTrait<BayesAlphabet::R>::sigma,
+inline constexpr std::array<Fn, to_index(BayesAlphabet::Count)>
+    bayes_trait_sigma = {
+        &GeneticTrait<BayesAlphabet::A>::sigma,
+        &GeneticTrait<BayesAlphabet::RR>::sigma,
+        &GeneticTrait<BayesAlphabet::B>::sigma,
+        &GeneticTrait<BayesAlphabet::Bpi>::sigma,
+        &GeneticTrait<BayesAlphabet::C>::sigma,
+        &GeneticTrait<BayesAlphabet::Cpi>::sigma,
+        &GeneticTrait<BayesAlphabet::R>::sigma,
 };
 
 inline constexpr std::array<FnSample, to_index(BayesAlphabet::Count)>
@@ -377,4 +395,4 @@ inline constexpr std::array<FnPi, to_index(BayesAlphabet::Count)> bayes_trait_pi
         &GeneticTrait<BayesAlphabet::Cpi>::pi,
         &GeneticTrait<BayesAlphabet::R>::pi,
 };
-}  // namespace gelex
+};  // namespace gelex

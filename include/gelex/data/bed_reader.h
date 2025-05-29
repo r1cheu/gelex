@@ -40,7 +40,7 @@ class BedReader
 
     size_t chunk_size() const noexcept { return chunk_size_; }
     bool has_next() const;
-    arma::dmat read_chunk();
+    arma::dmat read_chunk(bool add = true);
     size_t num_snps() const { return snps_.size(); }
     const std::vector<std::string>& snps() const noexcept { return snps_; }
     size_t num_individuals() const noexcept { return individuals_.size(); }
@@ -67,14 +67,16 @@ class BedReader
     size_t current_chunk_size_{};
     size_t bytes_per_snp_{};
 
-    static constexpr std::array<double, 4> genotype_map = {2.0, 1.0, 1.0, 0.0};
+    static constexpr std::array<double, 4> add_map = {2.0, 1.0, 1.0, 0.0};
+    static constexpr std::array<double, 4> dom_map = {0.0, 1.0, 1.0, 0.0};
     // std::string_view is not accepted by std::ifstream
     std::vector<std::string> parseFam(
         const std::string& fam_file,
         const std::vector<std::string>& dropped_ids);
     static std::vector<std::string> parseBim(const std::string& bim_file);
 
-    arma::dmat Decode(const std::vector<char>& buffer, size_t chunk_size);
+    arma::dmat
+    Decode(const std::vector<char>& buffer, size_t chunk_size, bool add);
     void OpenBed();
     void SeekToBedStart();
 };

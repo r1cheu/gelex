@@ -10,7 +10,7 @@
 #include <fmt/ranges.h>
 #include <armadillo>
 
-#include "gelex/model/effects/freq_effects.h"
+#include "gelex/model/freq_effects.h"
 #include "gelex/model/gblup.h"
 #include "gelex/optim/base_optimizer.h"
 #include "gelex/optim/optimizers.h"
@@ -189,7 +189,7 @@ dvec compute_se(const dmat& hess_inv)
 }
 
 std::pair<std::vector<double>, double> compute_h2_se(
-    const freq::RandomEffectManager& effects)
+    const RandomEffectManager& effects)
 {
     auto n = effects.size();
     double sum_var = arma::sum(effects.sigma());
