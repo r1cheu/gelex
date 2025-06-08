@@ -18,7 +18,10 @@ struct SampleGroup
 class MCMCSamples
 {
    public:
-    explicit MCMCSamples(const MCMCParams& params, const BayesStatus& status, size_t n_chains);
+    explicit MCMCSamples(
+        const MCMCParams& params,
+        const BayesModel& model,
+        size_t n_chains);
     void store(const BayesStatus& status, size_t record_idx, size_t chain_idx);
 
     const arma::dmat& mu() const { return mu_; }
@@ -40,15 +43,34 @@ class MCMCSamples
     arma::dmat residual_;
     arma::dvec h2_;
 
-    template <typename StatusVector>
-    void init_group(SampleGroup& group, const StatusVector& status)
+    void init_group(
+        SampleGroup& group,
+        const RandomEffectDesignManager& effects) const
     {
-        group.coeffs.resize(status.size());
-        group.sigmas.resize(status.size());
-        for (size_t i = 0; i < status.size(); ++i)
+        auto n_effects = effects.size();
+        group.coeffs.resize(n_effects);
+        group.sigmas.resize(n_effects);
+        for (size_t i = 0; i < n_effects; ++i)
         {
-            group.coeffs[i].set_size(status[i].coeff.n_elem, n_records_);
-            group.sigmas[i].set_size(status[i].sigma.n_elem, n_records_);
+            group.coeffs[i].set_size(
+                effects[i].design_mat.n_cols, n_records_, n_chains_);
+            group.sigmas[i].set_size(1, n_records_, n_chains_);
+        }
+    }
+
+    void init_group(
+        SampleGroup& group,
+        const GeneticEffectDesignManager& effects) const
+    {
+        auto n_effects = effects.size();
+        group.coeffs.resize(n_effects);
+        group.sigmas.resize(n_effects);
+        for (size_t i = 0; i < n_effects; ++i)
+        {
+            group.coeffs[i].set_size(
+                effects[i].design_mat.n_cols, n_records_, n_chains_);
+            group.sigmas[i].set_size(
+                effects[i].sigma.n_elem, n_records_, n_chains_);
         }
     }
 
