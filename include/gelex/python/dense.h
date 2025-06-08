@@ -14,7 +14,18 @@ template <typename T>
 constexpr bool is_mat_v = arma::is_Mat_only<T>::value;
 
 template <typename T>
-constexpr int ndim_v = is_mat_v<T> ? 2 : 1;
+struct is_arma_cube : std::false_type {};
+
+template<typename eT>
+struct is_arma_cube<arma::Cube<eT>> : std::true_type {};
+
+template <typename T>
+constexpr bool is_arma_cube_v = is_arma_cube<T>::value;
+
+template <typename T>
+constexpr int ndim_v = 
+    is_arma_cube_v<T> ? 3 : 
+    (is_mat_v<T> ? 2 : 1);
 
 template <typename T, typename eT = typename T::elem_type>
 constexpr bool is_arma_dense_v = std::is_base_of_v<arma::Mat<eT>, T>;
@@ -51,13 +62,17 @@ struct type_caster<
             return false;
 
         NDArray& t = caster.value;
-        if constexpr (ndim_v<T> == 1)
+        if constexpr (ndim_v<T> == 3)
         {
-            value = T(t.data(), t.shape(0), false, true);
+            value = T(t.data(), t.shape(0), t.shape(1), t.shape(2), false, true);
+        }
+        else if constexpr (ndim_v<T> == 2)
+        {
+            value = T(t.data(), t.shape(0), t.shape(1), false, true);
         }
         else
         {
-            value = T(t.data(), t.shape(0), t.shape(1), false, true);
+            value = T(t.data(), t.shape(0), false, true);
         }
         return true;
     }
@@ -85,17 +100,26 @@ struct type_caster<
         size_t shape[ndim_v<T>];
         int64_t strides[ndim_v<T>];
 
-        if constexpr (ndim_v<T> == 1)
+        if constexpr (ndim_v<T> == 3)
         {
-            shape[0] = v.n_elem;
+            shape[0] = v.n_rows;
+            shape[1] = v.n_cols;
+            shape[2] = v.n_slices;
             strides[0] = 1;
+            strides[1] = v.n_rows;
+            strides[2] = v.n_rows * v.n_cols;
         }
-        else
+        else if constexpr (ndim_v<T> == 2)
         {
             shape[0] = v.n_rows;
             shape[1] = v.n_cols;
             strides[0] = 1;
             strides[1] = v.n_rows;
+        }
+        else
+        {
+            shape[0] = v.n_elem;
+            strides[0] = 1;
         }
 
         void* ptr = (void*)v.memptr();
