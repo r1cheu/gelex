@@ -25,26 +25,17 @@ namespace gelex
 namespace bk = barkeep;
 MCMC::MCMC(MCMCParams params) : params_(params) {}
 
-void MCMC::run(const BayesModel& model, size_t n_chains, size_t seed)
+void MCMC::run(const BayesModel& model, size_t seed)
 {
     omp_set_num_threads(1);
     std::vector<MCMCSamples> all_samples;
     std::vector<std::thread> threads;
+    const size_t n_chains = params_.n_chains;
+
     std::vector<size_t> idxs(n_chains);
 
-    std::vector<std::shared_ptr<bk::BaseDisplay>> displays;
-    for (size_t i = 0; i < n_chains; ++i)
-    {
-        idxs[i] = 0;
-        auto pb_config = barkeep::ProgressBarConfig<size_t>{
-            .total = params_.iter,
-            .message = fmt::format("Chain {}", i + 1),
-            .speed = 0.1,
-            .style = barkeep::ProgressBarStyle::Rich,
-            .show = false};
-        displays.push_back(barkeep::ProgressBar(&idxs[i], pb_config));
-    }
-    auto bars = bk::Composite(displays, "\n");
+    auto bars = MCMCLogger::progress_bar(idxs, params_.iter);
+    logger_.log_model_information(model, params_);
 
     all_samples.reserve(n_chains);
     threads.reserve(n_chains);
@@ -83,7 +74,6 @@ MCMC::run_one_chain(const BayesModel& model, size_t seed, size_t& iter)
     size_t record_idx = 0;
     uvec snp_tracker(model.genetic()[0].design_mat.n_cols, arma::fill::zeros);
 
-    auto start = std::chrono::high_resolution_clock::now();
     for (; iter < params_.iter; ++iter)
     {
         double sigma_e = status.residual.value;

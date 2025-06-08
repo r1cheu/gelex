@@ -19,7 +19,6 @@ double compute_n_eff(const arma::dvec& samples)
         return static_cast<double>(n);
     }
 
-    // Compute autocorrelation at lag 1
     double sum_prod = 0.0;
     for (size_t i = 1; i < n; ++i)
     {
@@ -27,7 +26,6 @@ double compute_n_eff(const arma::dvec& samples)
     }
     double autocorr = sum_prod / ((n - 1) * var_val);
 
-    // Simple effective sample size estimate
     return static_cast<double>(n) / (1.0 + 2.0 * std::max(0.0, autocorr));
 }
 

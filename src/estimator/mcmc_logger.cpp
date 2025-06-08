@@ -2,15 +2,17 @@
 
 #include <vector>
 
+#include <barkeep.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <armadillo>
+
 #include "gelex/model/bayes.h"
 #include "gelex/utils.h"
 
 namespace gelex
 {
-
+namespace bk = barkeep;
 /**
  * @brief Format the scale inverse chi-squared distribution
  * parameters into a human-readable string (e.g., "νS²χ⁻²(ν = nu, S² = s2)").
@@ -51,6 +53,7 @@ void MCMCLogger::log_model_information(
     logger_->info(" \u25AA Iters:  {:d}", params.iter);
     logger_->info(" \u25AA Burn-in:  {:d}", params.n_burnin);
     logger_->info(" \u25AA Thinning:  {:d}", params.n_thin);
+    logger_->info(" \u25AA Chains:  {:d}", params.n_chains);
     logger_->info("");
 
     logger_->info(subtitle("Term Summary"));
@@ -76,8 +79,26 @@ void MCMCLogger::log_model_information(
         " \u25AA {} \u223C {}",
         format_sigma_squared(model.residual().name),
         format_invchi(model.residual().prior.nu, model.residual().prior.s2));
-    logger_->info(title(" MCMC BURNIN "));
-    log_iter_header(model);
+    logger_->info(title(" MCMC "));
+}
+
+std::shared_ptr<barkeep::CompositeDisplay> MCMCLogger::progress_bar(
+    std::vector<size_t>& idxs,
+    size_t total)
+{
+    std::vector<std::shared_ptr<bk::BaseDisplay>> displays;
+    for (size_t i = 0; i < idxs.size(); ++i)
+    {
+        idxs[i] = 0;
+        auto pb_config = bk::ProgressBarConfig<size_t>{
+            .total = total,
+            .message = fmt::format("Chain {}", i + 1),
+            .speed = 0.1,
+            .style = bk::ProgressBarStyle::Rich,
+            .show = false};
+        displays.push_back(bk::ProgressBar(&idxs[i], pb_config));
+    }
+    return bk::Composite(displays, "\n");
 }
 
 void MCMCLogger::log_iter_header(const BayesModel& model)
@@ -106,11 +127,6 @@ void MCMCLogger::log_iter_header(const BayesModel& model)
     }
     header += format_sigma_squared("e") + "  h\u00B2  ETA";
     logger_->info(header);
-}
-
-void MCMCLogger::log_burnin_finished()
-{
-    logger_->info(title(" BURNIN FINISHED "));
 }
 
 void MCMCLogger::log_result(const MCMCResult& result)

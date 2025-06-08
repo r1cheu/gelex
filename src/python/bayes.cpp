@@ -5,6 +5,7 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 #include <armadillo>
+#include <cstddef>
 
 #include "gelex/estimator/mcmc.h"
 #include "gelex/estimator/mcmc_result.h"
@@ -78,13 +79,15 @@ void mcmc_params(nb::module_& module)
 {
     nb::class_<gx::MCMCParams>(module, "MCMCParams")
         .def(
-            nb::init<size_t, size_t, size_t>(),
+            nb::init<size_t, size_t, size_t, size_t>(),
             "iter"_a,
             "n_burnin"_a,
-            "n_thin"_a)
+            "n_thin"_a,
+            "n_chains"_a)
         .def_rw("iter", &gx::MCMCParams::iter)
         .def_rw("n_burnin", &gx::MCMCParams::n_burnin)
-        .def_rw("n_thin", &gx::MCMCParams::n_thin);
+        .def_rw("n_thin", &gx::MCMCParams::n_thin)
+        .def_rw("n_chains", &gx::MCMCParams::n_chains);
 }
 
 void mcmc_storage(nb::module_& module)
@@ -106,7 +109,6 @@ void mcmc(nb::module_& module)
             "run",
             &gx::MCMC::run,
             "model"_a,
-            "n_chains"_a = 2,
             "seed"_a = 42,
             nb::call_guard<nb::gil_scoped_release>());
 }

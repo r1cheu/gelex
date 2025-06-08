@@ -65,7 +65,6 @@ struct formatter<gelex::BayesAlphabet> : formatter<string_view>
                 name = "BayesR";
                 break;
             default:
-                name = "None";
                 break;
         }
         return formatter<string_view>::format(name, ctx);

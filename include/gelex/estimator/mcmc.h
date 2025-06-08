@@ -16,7 +16,7 @@ class MCMC
    public:
     explicit MCMC(MCMCParams params);
 
-    void run(const BayesModel& model, size_t n_chains, size_t seed = 42);
+    void run(const BayesModel& model, size_t seed = 42);
     const MCMCResult& result() const { return result_; }
 
    private:
