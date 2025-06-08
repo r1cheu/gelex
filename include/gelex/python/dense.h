@@ -14,18 +14,10 @@ template <typename T>
 constexpr bool is_mat_v = arma::is_Mat_only<T>::value;
 
 template <typename T>
-struct is_arma_cube : std::false_type {};
-
-template<typename eT>
-struct is_arma_cube<arma::Cube<eT>> : std::true_type {};
+constexpr bool is_cube_v = arma::is_Cube<T>::value;
 
 template <typename T>
-constexpr bool is_arma_cube_v = is_arma_cube<T>::value;
-
-template <typename T>
-constexpr int ndim_v = 
-    is_arma_cube_v<T> ? 3 : 
-    (is_mat_v<T> ? 2 : 1);
+constexpr int ndim_v = is_cube_v<T> ? 3 : (is_mat_v<T> ? 2 : 1);
 
 template <typename T, typename eT = typename T::elem_type>
 constexpr bool is_arma_dense_v = std::is_base_of_v<arma::Mat<eT>, T>;
@@ -64,7 +56,8 @@ struct type_caster<
         NDArray& t = caster.value;
         if constexpr (ndim_v<T> == 3)
         {
-            value = T(t.data(), t.shape(0), t.shape(1), t.shape(2), false, true);
+            value
+                = T(t.data(), t.shape(0), t.shape(1), t.shape(2), false, true);
         }
         else if constexpr (ndim_v<T> == 2)
         {

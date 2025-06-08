@@ -20,8 +20,11 @@ class MCMC
     const MCMCResult& result() const { return result_; }
 
    private:
-    MCMCSamples
-    run_one_chain(const BayesModel& model, size_t seed, size_t& iter);
+    void run_one_chain(
+        const BayesModel& model,
+        size_t chain,
+        size_t seed,
+        size_t& iter);
     static void
     sample_mu(Mu& mu, dvec& y_adj, double sigma_e, std::mt19937_64& rng);
     static void sample_fixed_effect(
@@ -45,7 +48,7 @@ class MCMC
         std::mt19937_64& rng);
 
     MCMCLogger logger_;
-
+    std::unique_ptr<MCMCSamples> samples_;
     MCMCParams params_;
     MCMCResult result_;
 };

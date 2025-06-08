@@ -55,24 +55,24 @@ MCMCResult compute_mcmc_result(
 
 PosteriorStats compute_effect_result(const arma::dvec& samples);
 PosteriorStats compute_effect_result(const arma::dmat& samples);
-
-template <typename EffectManager>
-void process_posterior(
-    const SampleGroup& samples,
-    const EffectManager& effect,
-    PosteriorGroup& result)
-{
-    auto n_eff = effect.size();
-    result.coeffs.reserve(n_eff);
-    result.sigmas.reserve(n_eff);
-    result.names.reserve(n_eff);
-
-    for (size_t i = 0; i < n_eff; ++i)
-    {
-        result.coeffs.push_back(compute_effect_result(samples.coeffs[i]));
-        result.sigmas.push_back(compute_effect_result(samples.sigmas[i]));
-        result.names.push_back(effect[i].name);
-    }
-}
+//
+// template <typename EffectManager>
+// void process_posterior(
+//     const SampleGroup& samples,
+//     const EffectManager& effect,
+//     PosteriorGroup& result)
+// {
+//     auto n_eff = effect.size();
+//     result.coeffs.reserve(n_eff);
+//     result.sigmas.reserve(n_eff);
+//     result.names.reserve(n_eff);
+//
+//     for (size_t i = 0; i < n_eff; ++i)
+//     {
+//         result.coeffs.push_back(compute_effect_result(samples.coeffs[i]));
+//         result.sigmas.push_back(compute_effect_result(samples.sigmas[i]));
+//         result.names.push_back(effect[i].name);
+//     }
+// }
 
 }  // namespace gelex

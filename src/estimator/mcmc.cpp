@@ -28,41 +28,35 @@ MCMC::MCMC(MCMCParams params) : params_(params) {}
 void MCMC::run(const BayesModel& model, size_t seed)
 {
     omp_set_num_threads(1);
-    std::vector<MCMCSamples> all_samples;
+    samples_ = std::make_unique<MCMCSamples>(params_, model, params_.n_chains);
+
     std::vector<std::thread> threads;
     const size_t n_chains = params_.n_chains;
-
     std::vector<size_t> idxs(n_chains);
-
     auto bars = MCMCLogger::progress_bar(idxs, params_.iter);
     logger_.log_model_information(model, params_);
 
-    all_samples.reserve(n_chains);
     threads.reserve(n_chains);
-    std::mutex mtx;
 
     bars->show();
     for (size_t i = 0; i < n_chains; ++i)
     {
-        threads.emplace_back(
-            [this, &model, seed, i, &all_samples, &mtx, &idxs]
-            {
-                MCMCSamples sample = run_one_chain(model, seed + i, idxs[i]);
-                {
-                    std::lock_guard<std::mutex> lock(mtx);
-                    all_samples.push_back(std::move(sample));
-                }
-            });
+        threads.emplace_back([this, &model, seed, i, &idxs]
+                             { run_one_chain(model, i, seed + i, idxs[i]); });
     }
     for (auto& t : threads)
     {
         t.join();
     }
     bars->done();
+    samples_->mu().brief_print("Mu samples");
 }
 
-MCMCSamples
-MCMC::run_one_chain(const BayesModel& model, size_t seed, size_t& iter)
+void MCMC::run_one_chain(
+    const BayesModel& model,
+    size_t chain,
+    size_t seed,
+    size_t& iter)
 {
     std::mt19937_64 rng(seed);
 
@@ -70,7 +64,6 @@ MCMC::run_one_chain(const BayesModel& model, size_t seed, size_t& iter)
     BayesStatus status(model);
     y_adj -= model.mu().value;
 
-    MCMCSamples samples(params_, status);
     size_t record_idx = 0;
     uvec snp_tracker(model.genetic()[0].design_mat.n_cols, arma::fill::zeros);
 
@@ -113,10 +106,9 @@ MCMC::run_one_chain(const BayesModel& model, size_t seed, size_t& iter)
         if (iter >= params_.n_burnin
             && (iter + 1 - params_.n_burnin) % params_.n_thin == 0)
         {
-            samples.store(status, record_idx++);
+            samples_->store(status, record_idx++, chain);
         }
     }
-    return samples;
 }
 
 void MCMC::sample_mu(Mu& mu, dvec& y_adj, double sigma_e, std::mt19937_64& rng)

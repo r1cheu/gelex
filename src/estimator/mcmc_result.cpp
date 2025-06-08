@@ -72,26 +72,26 @@ PosteriorStats compute_effect_result(const arma::dmat& samples)
     return result;
 }
 
-MCMCResult compute_mcmc_result(
-    const MCMCSamples& samples,
-    const BayesModel& model)
-{
-    MCMCResult result;
-
-    // Mu effect (always scalar)
-    result.mu = compute_effect_result(samples.mu());
-
-    // Fixed effects
-    if (samples.fixed().n_rows > 0)
-    {
-        result.fixed = compute_effect_result(samples.fixed());
-    }
-
-    process_posterior(samples.random(), model.random(), result.random);
-    process_posterior(samples.genetic(), model.genetic(), result.genetic);
-
-    result.residual = compute_effect_result(samples.residual());
-
-    return result;
-}
+// MCMCResult compute_mcmc_result(
+//     const MCMCSamples& samples,
+//     const BayesModel& model)
+// {
+//     MCMCResult result;
+//
+//     // Mu effect (always scalar)
+//     result.mu = compute_effect_result(samples.mu());
+//
+//     // Fixed effects
+//     if (samples.fixed().n_rows > 0)
+//     {
+//         result.fixed = compute_effect_result(samples.fixed());
+//     }
+//
+//     process_posterior(samples.random(), model.random(), result.random);
+//     process_posterior(samples.genetic(), model.genetic(), result.genetic);
+//
+//     result.residual = compute_effect_result(samples.residual());
+//
+//     return result;
+// }
 }  // namespace gelex
