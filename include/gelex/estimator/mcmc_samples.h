@@ -11,32 +11,33 @@ struct MCMCParams;  // Forward declaration
 
 struct SampleGroup
 {
-    std::vector<arma::dmat> coeffs;
-    std::vector<arma::dmat> sigmas;
+    std::vector<arma::dcube> coeffs;
+    std::vector<arma::dcube> sigmas;
 };
 
 class MCMCSamples
 {
    public:
-    explicit MCMCSamples(const MCMCParams& params, const BayesStatus& status);
-    void store(const BayesStatus& status, size_t record_idx);
+    explicit MCMCSamples(const MCMCParams& params, const BayesStatus& status, size_t n_chains);
+    void store(const BayesStatus& status, size_t record_idx, size_t chain_idx);
 
-    const arma::dvec& mu() const { return mu_; }
-    const arma::dmat& fixed() const { return fixed_; }
+    const arma::dmat& mu() const { return mu_; }
+    const arma::dcube& fixed() const { return fixed_; }
     const SampleGroup& random() const { return random_; }
     const SampleGroup& genetic() const { return genetic_; }
-    const arma::dvec& residual() const { return residual_; }
+    const arma::dmat& residual() const { return residual_; }
 
     const arma::dvec& h2() const { return h2_; }
 
    private:
     size_t n_records_;
+    size_t n_chains_;
 
-    arma::dvec mu_;
-    arma::dmat fixed_;
+    arma::dmat mu_;
+    arma::dcube fixed_;
     SampleGroup random_;
     SampleGroup genetic_;
-    arma::dvec residual_;
+    arma::dmat residual_;
     arma::dvec h2_;
 
     template <typename StatusVector>
@@ -55,12 +56,13 @@ class MCMCSamples
     void store_group(
         SampleGroup& group,
         const StatusVector& status,
-        size_t record_idx)
+        size_t record_idx,
+        size_t chain_idx)
     {
         for (size_t i = 0; i < status.size(); ++i)
         {
-            group.coeffs[i].col(record_idx) = status[i].coeff;
-            group.sigmas[i].col(record_idx) = status[i].sigma;
+            group.coeffs[i].slice(chain_idx).col(record_idx) = status[i].coeff;
+            group.sigmas[i].slice(chain_idx).col(record_idx) = status[i].sigma;
         }
     }
 };
