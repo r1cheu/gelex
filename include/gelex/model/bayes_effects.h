@@ -10,7 +10,6 @@
 
 namespace gelex
 {
-using arma::uvec;
 
 struct SigmaPrior
 {
@@ -20,22 +19,22 @@ struct SigmaPrior
 
 struct Pi
 {
-    dvec prop;
-    uvec count;
+    arma::dvec prop;
+    arma::uvec count;
 };
 
 struct BaseEffectDesign
 {
-    explicit BaseEffectDesign(dmat&& design_mat_);
+    explicit BaseEffectDesign(arma::dmat&& design_mat_);
 
-    dmat design_mat;
-    dvec cols_norm;
+    arma::dmat design_mat;
+    arma::dvec cols_norm;
 };
 
 struct BaseEffectState
 {
     explicit BaseEffectState(size_t n_coeff);
-    dvec coeff;
+    arma::dvec coeff;
 };
 
 struct FixedEffectDesign : BaseEffectDesign
@@ -43,7 +42,7 @@ struct FixedEffectDesign : BaseEffectDesign
     FixedEffectDesign(
         std::vector<std::string>&& names_,
         std::vector<std::string>&& levels_,
-        dmat&& design_mat_);
+        arma::dmat&& design_mat_);
 
     std::vector<std::string> names;
     std::vector<std::string> levels;
@@ -57,7 +56,7 @@ struct FixedEffectState : BaseEffectState
 
 struct RandomEffectDesign : BaseEffectDesign
 {
-    RandomEffectDesign(std::string&& name_, dmat&& design_mat_);
+    RandomEffectDesign(std::string&& name_, arma::dmat&& design_mat_);
 
     std::string name;
     SigmaPrior prior;
@@ -66,24 +65,24 @@ struct RandomEffectDesign : BaseEffectDesign
 struct RandomEffectState : BaseEffectState
 {
     explicit RandomEffectState(size_t n_coeff);
-    dvec coeff;
-    dvec sigma{0};  // set to dvec (not double) for consistency
+    arma::dvec coeff;
+    arma::dvec sigma{0};  // set to dvec (not double) for consistency
 };
 
 struct GeneticEffectDesign : RandomEffectDesign
 {
     GeneticEffectDesign(
         std::string&& name_,
-        dmat&& design_mat_,
+        arma::dmat&& design_mat_,
         BayesAlphabet type_,
-        dvec&& sigma_,
-        dvec&& pi_);
+        arma::dvec&& sigma_,
+        arma::dvec&& pi_);
 
-    dvec cols_var;
+    arma::dvec cols_var;
     size_t n_zero_var_snp;
     BayesAlphabet type;
-    dvec pi;
-    dvec sigma;
+    arma::dvec pi;
+    arma::dvec sigma;
 };
 
 struct GeneticEffectState : BaseEffectState
@@ -91,11 +90,11 @@ struct GeneticEffectState : BaseEffectState
     explicit GeneticEffectState(
         size_t n_individual,
         size_t n_coeff,
-        const dvec& pi_prop,
-        const dvec& sigma_);
-    dvec u;
+        const arma::dvec& pi_prop,
+        const arma::dvec& sigma_);
+    arma::dvec u;
     Pi pi;
-    dvec sigma;
+    arma::dvec sigma;
 };
 
 struct Residual
@@ -169,9 +168,9 @@ std::vector<GeneticEffectState> create_thread_states(
     const GeneticEffectDesignManager& designs);
 
 template <typename Mat>
-dvec sum_square(const Mat& mat)
+arma::dvec sum_square(const Mat& mat)
 {
-    dvec result(mat.n_cols);
+    arma::dvec result(mat.n_cols);
 
 #pragma omp parallel for default(none) shared(result, mat)
     for (size_t i = 0; i < mat.n_cols; ++i)
@@ -181,6 +180,6 @@ dvec sum_square(const Mat& mat)
     return result;
 }
 
-dvec compute_cols_var(const dmat& mat);
+arma::dvec compute_cols_var(const arma::dmat& mat);
 
 }  // namespace gelex

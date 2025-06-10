@@ -9,7 +9,10 @@
 
 namespace gelex
 {
+using arma::dmat;
+using arma::dvec;
 using arma::rowvec;
+
 void Predictor::set_cross_grm(
     std::string_view method,
     rowvec center,

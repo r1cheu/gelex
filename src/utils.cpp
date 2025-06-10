@@ -86,7 +86,7 @@ Logger::Logger()
         auto console_sink
             = std::make_shared<spdlog::sinks::stdout_color_sink_st>();
         console_sink->set_level(spdlog::level::debug);
-        console_sink->set_pattern("%v");
+        console_sink->set_pattern("[%^%l%$] %v");
 
         auto now = std::chrono::system_clock::now();
         auto file_sink

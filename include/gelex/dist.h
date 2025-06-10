@@ -4,10 +4,8 @@
 
 namespace gelex
 {
-using arma::dvec;
-using arma::uvec;
 
-dvec dirichlet(const uvec& alphas, std::mt19937_64& rng);
+arma::dvec dirichlet(const arma::uvec& alphas, std::mt19937_64& rng);
 
 inline double
 sample_scale_inv_chi_squared(std::mt19937_64& rng, double nu, double s2 = 1.0)

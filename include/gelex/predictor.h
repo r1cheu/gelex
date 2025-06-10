@@ -10,7 +10,6 @@
 
 namespace gelex
 {
-using arma::rowvec;
 class Predictor
 {
    public:
@@ -25,11 +24,12 @@ class Predictor
 
     void set_cross_grm(
         std::string_view method,
-        rowvec center,
+        arma::rowvec center,
         double scale_factor,
         size_t chunk_size);
-    dmat compute_random_effects(std::string_view test_bed);
-    dmat compute_fixed_effects(const dvec& covariates) const noexcept;
+    arma::dmat compute_random_effects(std::string_view test_bed);
+    arma::dmat compute_fixed_effects(
+        const arma::dvec& covariates) const noexcept;
 
     const std::vector<std::string>& test_individuals() const noexcept
     {

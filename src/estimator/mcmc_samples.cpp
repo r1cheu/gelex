@@ -6,12 +6,9 @@
 namespace gelex
 {
 
-MCMCSamples::MCMCSamples(
-    const MCMCParams& params,
-    const BayesModel& model,
-    size_t n_chains)
+MCMCSamples::MCMCSamples(const MCMCParams& params, const BayesModel& model)
     : n_records_((params.iter - params.n_burnin) / params.n_thin),
-      n_chains_(n_chains)
+      n_chains_(params.n_chains)
 {
     mu_.set_size(n_records_, n_chains_);
     if (model.fixed())

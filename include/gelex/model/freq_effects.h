@@ -11,9 +11,6 @@
 
 namespace gelex
 {
-using arma::dmat;
-using arma::dvec;
-
 using MatVariant = std::variant<arma::dmat, arma::sp_dmat>;
 
 struct FixedEffect
@@ -21,7 +18,7 @@ struct FixedEffect
     std::vector<std::string> names;
     std::vector<std::string> levels;
     MatVariant design_mat;
-    dvec beta;
+    arma::dvec beta;
 
     size_t size() const { return beta.n_elem; }
     void clear();
@@ -82,13 +79,13 @@ class RandomEffectManager
     const RandomEffect& operator[](size_t idx) const { return effects_[idx]; }
     RandomEffect& operator[](size_t idx) { return effects_[idx]; }
 
-    void set_sigma(const dvec& sigma);
+    void set_sigma(const arma::dvec& sigma);
 
-    void set_se(const dvec& se);
+    void set_se(const arma::dvec& se);
 
-    const dvec& sigma() const { return sigma_; }
-    void set_hess_inv(const dmat& hess_inv) { hess_inv_ = hess_inv; }
-    const dmat& hess_inv() const { return hess_inv_; }
+    const arma::dvec& sigma() const { return sigma_; }
+    void set_hess_inv(const arma::dmat& hess_inv) { hess_inv_ = hess_inv; }
+    const arma::dmat& hess_inv() const { return hess_inv_; }
 
    private:
     std::vector<RandomEffect> effects_;
@@ -103,7 +100,7 @@ class RandomEffectManager
     std::vector<size_t> gxe_indices_;
     size_t residual_index_{};
 
-    dmat hess_inv_;
-    dvec sigma_;
+    arma::dmat hess_inv_;
+    arma::dvec sigma_;
 };
 }  // namespace gelex

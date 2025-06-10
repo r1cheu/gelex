@@ -18,10 +18,7 @@ struct SampleGroup
 class MCMCSamples
 {
    public:
-    explicit MCMCSamples(
-        const MCMCParams& params,
-        const BayesModel& model,
-        size_t n_chains);
+    explicit MCMCSamples(const MCMCParams& params, const BayesModel& model);
     void store(const BayesStatus& status, size_t record_idx, size_t chain_idx);
 
     const arma::dmat& mu() const { return mu_; }

@@ -34,7 +34,7 @@ class AverageInformationOptimizer : public OptimizerBase
 
    private:
     void step_inner(GBLUP& model) override;
-    dmat compute_hess();
+    arma::dmat compute_hess();
 };
 
 }  // namespace gelex

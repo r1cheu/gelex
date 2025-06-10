@@ -19,8 +19,6 @@ extern "C" void arma_fortran(arma_daxpy)(
     const int* incy);
 #endif
 
-using dvec = arma::vec;
-
 inline void daxpy_ptr(int n, double alpha, const double* x, double* y)
 {
     static const int inc = 1;

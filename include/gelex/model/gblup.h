@@ -8,14 +8,6 @@
 
 namespace gelex
 {
-using arma::dcube;
-using arma::dmat;
-using arma::dvec;
-using arma::sp_dmat;
-using arma::uvec;
-using arma::uword;
-using std::string;
-
 /**
  * @class GBLUP
  * @brief Genomic Best Linear Unbiased Prediction (GBLUP) model for genetic
@@ -34,7 +26,7 @@ using std::string;
 class GBLUP
 {
    public:
-    GBLUP(string formula, dvec phenotype);
+    GBLUP(std::string formula, arma::dvec&& phenotype);
 
     size_t n_individuals() const { return n_individuals_; }
 
@@ -43,26 +35,26 @@ class GBLUP
     size_t n_genetic_effects() const { return random_.n_genetic_effects(); }
     size_t n_gxe_effects() const { return random_.n_gxe_effects(); }
 
-    const string& formula() const { return formula_; }
-    const dvec& phenotype() const { return phenotype_; }
+    const std::string& formula() const { return formula_; }
+    const arma::dvec& phenotype() const { return phenotype_; }
 
     void add_fixed_effect(
         std::vector<std::string>&& names,
         std::vector<std::string>&& levels,
-        dmat&& design_mat);
+        arma::dmat&& design_mat);
 
-    void add_random_effect(string&& name, sp_dmat&& design_mat);
+    void add_random_effect(std::string&& name, arma::sp_dmat&& design_mat);
 
     void add_genetic_effect(
-        string&& name,
-        sp_dmat&& design_mat,
-        const dmat& cov_mat);
+        std::string&& name,
+        arma::sp_dmat&& design_mat,
+        const arma::dmat& cov_mat);
 
     void add_gxe_effect(
-        string&& name,
-        sp_dmat&& design_mat_genetic,
-        const dmat& genetic_cov_mat,
-        const dmat& design_mat);
+        std::string&& name,
+        arma::sp_dmat&& design_mat_genetic,
+        const arma::dmat& genetic_cov_mat,
+        const arma::dmat& design_mat);
 
     void add_residual();
 
@@ -78,7 +70,7 @@ class GBLUP
     std::string formula_;
 
     size_t n_individuals_{};
-    dvec phenotype_;
+    arma::dvec phenotype_;
 
     RandomEffectManager random_;
     FixedEffect fixed_;
@@ -86,9 +78,9 @@ class GBLUP
 
 struct GBLUPParams
 {
-    dvec beta;
-    dvec sigma;
-    dvec proj_y;
+    arma::dvec beta;
+    arma::dvec sigma;
+    arma::dvec proj_y;
     std::vector<std::string> dropped_ids;
 };
 

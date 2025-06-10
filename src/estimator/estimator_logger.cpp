@@ -10,6 +10,7 @@
 namespace gelex
 {
 
+using arma::dvec;
 EstimatorLogger::EstimatorLogger() : logger_{Logger::logger()} {}
 
 void EstimatorLogger::set_verbose(bool verbose)

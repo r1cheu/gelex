@@ -8,6 +8,8 @@
 
 namespace gelex
 {
+using arma::dmat;
+using arma::rowvec;
 
 CrossGrm::CrossGrm(
     std::string_view train_bed_file,

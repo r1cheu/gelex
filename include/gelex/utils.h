@@ -7,13 +7,9 @@
 #include <fmt/color.h>
 #include <fmt/ranges.h>
 #include <spdlog/logger.h>
-#include <armadillo>
 
 namespace gelex
 {
-using arma::dmat;
-using arma::dvec;
-using arma::sp_dmat;
 template <typename Mat>
 bool check_eye(const Mat& inputs)
 {

@@ -32,17 +32,17 @@ class OptimizerBase
 
     double phenotype_var() const noexcept { return phenotype_var_; }
 
-    const dmat& v() const noexcept { return v_; }
-    const dmat& tx_vinv_x() const noexcept { return tx_vinv_x_; }
-    const dmat& proj_y() const noexcept { return proj_y_; }
+    const arma::dmat& v() const noexcept { return v_; }
+    const arma::dmat& tx_vinv_x() const noexcept { return tx_vinv_x_; }
+    const arma::dmat& proj_y() const noexcept { return proj_y_; }
 
    protected:
-    dvec constrain(const dvec& sigma, double y_var);
+    arma::dvec constrain(const arma::dvec& sigma, double y_var);
     void prepare_proj(const GBLUP& model);
 
-    const dmat& dvpy() const noexcept { return dvpy_; }
-    const dmat& proj() const noexcept { return proj_; }
-    const dvec& first_grad() const noexcept { return first_grad_; }
+    const arma::dmat& dvpy() const noexcept { return dvpy_; }
+    const arma::dmat& proj() const noexcept { return proj_; }
+    const arma::dvec& first_grad() const noexcept { return first_grad_; }
     double loglike_diff() const noexcept { return loglike_diff_; }
 
     void compute_dvpy(const GBLUP& model);
@@ -64,20 +64,20 @@ class OptimizerBase
     double phenotype_var_{};
 
     bool converged_{};
-    dvec old_sigma_;
+    arma::dvec old_sigma_;
     double loglike_{};
     double loglike_diff_{};
     double logdet_v_{};
 
-    dmat dvpy_;
+    arma::dmat dvpy_;
 
-    dvec first_grad_;
-    dvec proj_y_;
-    dmat v_, proj_, tx_vinv_x_;
+    arma::dvec first_grad_;
+    arma::dvec proj_y_;
+    arma::dmat v_, proj_, tx_vinv_x_;
 
     std::shared_ptr<spdlog::logger> logger_;
 };
 
-double v_inv_logdet(dmat&);
-void solve_sympd(dmat& A, dmat& B);
+double v_inv_logdet(arma::dmat&);
+void solve_sympd(arma::dmat& A, arma::dmat& B);
 }  // namespace gelex

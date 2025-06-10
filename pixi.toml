@@ -42,6 +42,29 @@ pypi-dependencies = { ipywidgets = ">=8.1.5,<9", matplotlib = ">=3.10.0,<4", sea
 pypi-dependencies = { cibuildwheel = "*", scalene = "*" }
 dependencies = { uv = "*", pytest = ">=8.3.5,<9" }
 
+
+[feature.dev.tasks.configure]
+cmd = [
+  "cmake",
+  "-GNinja",
+  "-S .",
+  "-B.build",
+  "-DBUILD_TEST=ON",
+  "-DUSE_MKL=ON",
+]
+inputs = ["CMakeLists.txt"]
+outputs = [".build/CMakeFiles"]
+
+[feature.dev.tasks.build]
+cmd = ["cmake", "--build", ".build"]
+depends-on = ["configure"]
+inputs = ["CMakeLists.txt", "src/*"]
+outputs = [".build/_core.cpython-313-x86_64-linux-gnu.so", ".build/test"]
+
+[feature.dev.tasks.ctest]
+cmd = ".build/test;rm .build/test"
+depends-on = ["build"]
+
 [feature.dev.tasks]
 ci = { cmd = ["cibuildwheel", "--platform", "linux"] }
 wheel = "uv build"

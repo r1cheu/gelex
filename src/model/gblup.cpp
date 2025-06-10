@@ -9,7 +9,11 @@
 namespace gelex
 {
 
-GBLUP::GBLUP(std::string formula, dvec phenotype)
+using arma::dmat;
+using arma::dvec;
+using arma::sp_dmat;
+
+GBLUP::GBLUP(std::string formula, dvec&& phenotype)
     : formula_{std::move(formula)}, phenotype_{std::move(phenotype)}
 {
     n_individuals_ = phenotype_.n_elem;
@@ -63,7 +67,7 @@ void GBLUP::add_genetic_effect(
 }
 
 void GBLUP::add_gxe_effect(
-    string&& name,
+    std::string&& name,
     sp_dmat&& design_mat_genetic,
     const dmat& genetic_cov_mat,
     const dmat& design_mat)

@@ -9,20 +9,34 @@
 
 namespace gelex
 {
-using arma::dmat;
-using arma::dvec;
-
+/**
+ * @class BayesModel
+ * @brief Bayesian model for genetic analysis with fixed, random, and genetic
+ * effects.
+ *
+ * Supports adding and managing effects (fixed, random, genetic) and provides
+ * accessors for model components (mu, residuals, etc.). Initialized with a
+ * formula and phenotype.
+ */
 class BayesModel
 {
    public:
-    BayesModel(std::string formula, dvec&& phenotype);
+    /**
+     * @brief
+     *
+     * @param formula formula string, only for showing the model structure.
+     * @param phenotype moveable arma dvec.
+     */
+    BayesModel(std::string formula, arma::dvec&& phenotype);
     void add_fixed_effect(
         std::vector<std::string>&& names,
         std::vector<std::string>&& levels,
-        dmat&& design_mat);
-    void add_random_effect(std::string&& name, dmat&& design_mat);
-    void
-    add_genetic_effect(std::string&& name, dmat&& genotype, BayesAlphabet type);
+        arma::dmat&& design_mat);
+    void add_random_effect(std::string&& name, arma::dmat&& design_mat);
+    void add_genetic_effect(
+        std::string&& name,
+        arma::dmat&& genotype,
+        BayesAlphabet type);
 
     const std::string& formula() const { return formula_; }
 
@@ -38,7 +52,7 @@ class BayesModel
     auto& genetic() { return genetic_; }
     auto& residual() { return residual_; }
 
-    const dvec& phenotype() const { return phenotype_; }
+    const arma::dvec& phenotype() const { return phenotype_; }
     double phenotype_var() const { return phenotype_var_; }
 
     size_t n_individuals() const { return n_individuals_; }
@@ -48,7 +62,7 @@ class BayesModel
 
     size_t n_individuals_{};
 
-    dvec phenotype_;
+    arma::dvec phenotype_;
     double phenotype_var_{};
 
     Mu mu_;

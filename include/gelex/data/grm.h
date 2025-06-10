@@ -1,7 +1,7 @@
 #pragma once
 
 #include <armadillo>
-#include <cstdint>
+
 #include <string_view>
 #include <vector>
 #include "gelex/data/bed_reader.h"
@@ -9,9 +9,7 @@
 namespace gelex
 {
 
-using arma::dmat;
-using arma::rowvec;
-void dom_encode(dmat& genotype);
+void dom_encode(arma::dmat& genotype);
 
 class IGrm
 {
@@ -32,21 +30,21 @@ class IGrm
     const BedReader& bed() const noexcept { return bed_; }
     BedReader& bed() noexcept { return bed_; }
 
-    const rowvec& center() const noexcept { return center_; }
-    void set_center(rowvec&& center) { center_ = std::move(center); }
-    void set_center(size_t start, const rowvec& center)
+    const arma::rowvec& center() const noexcept { return center_; }
+    void set_center(arma::rowvec&& center) { center_ = std::move(center); }
+    void set_center(size_t start, const arma::rowvec& center)
     {
         center_.subvec(start, arma::size(center)) = center;
     }
 
    protected:
-    virtual void encode(dmat& genotype) = 0;
+    virtual void encode(arma::dmat& genotype) = 0;
     void reset() noexcept { bed_.reset(); }
 
    private:
     BedReader bed_;
     double scale_factor_{};
-    rowvec center_;
+    arma::rowvec center_;
 };
 
 class Grm : public IGrm
@@ -56,12 +54,12 @@ class Grm : public IGrm
         std::string_view bed_file,
         size_t chunk_size = DEFAULT_CHUNK_SIZE,
         const std::vector<std::string>& exclude_individuals = {});
-    virtual dmat compute();
+    virtual arma::dmat compute();
 
    private:
-    virtual rowvec compute_center(const dmat& genotype) = 0;
-    void centerlize(dmat& genotype);
-    static double Scale(dmat& grm);
+    virtual arma::rowvec compute_center(const arma::dmat& genotype) = 0;
+    void centerlize(arma::dmat& genotype);
+    static double Scale(arma::dmat& grm);
 };
 
 class AddGrm : public Grm
@@ -69,8 +67,8 @@ class AddGrm : public Grm
     using Grm::Grm;
 
    private:
-    void encode(dmat& genotype) override;
-    rowvec compute_center(const dmat& genotype) override;
+    void encode(arma::dmat& genotype) override;
+    arma::rowvec compute_center(const arma::dmat& genotype) override;
 };
 
 class DomGrm : public Grm
@@ -78,8 +76,8 @@ class DomGrm : public Grm
     using Grm::Grm;
 
    private:
-    void encode(dmat& genotype) override;
-    rowvec compute_center(const dmat& genotype) override;
+    void encode(arma::dmat& genotype) override;
+    arma::rowvec compute_center(const arma::dmat& genotype) override;
 };
 
 }  // namespace gelex

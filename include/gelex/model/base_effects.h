@@ -6,8 +6,6 @@
 
 namespace gelex
 {
-using dmat = arma::dmat;
-using dvec = arma::dvec;
 
 enum class effect_type : uint8_t
 {

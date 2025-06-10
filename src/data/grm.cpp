@@ -1,13 +1,15 @@
 #include "gelex/data/grm.h"
 
 #include <armadillo>
-#include <cmath>
 #include <vector>
 
 #include "gelex/data/bed_reader.h"
 
 namespace gelex
 {
+
+using arma::dmat;
+using arma::rowvec;
 
 void dom_encode(dmat& genotype)
 {

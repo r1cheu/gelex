@@ -19,6 +19,9 @@
 namespace gelex
 {
 
+using arma::dmat;
+using arma::dvec;
+
 Estimator::Estimator(std::string_view optimizer, size_t max_iter, double tol)
     : max_iter_{max_iter}
 {

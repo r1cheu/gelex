@@ -3,6 +3,7 @@
 
 namespace gelex
 {
+using arma::dvec;
 
 void FixedEffect::clear()
 {

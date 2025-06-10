@@ -22,8 +22,8 @@ class Estimator
     void fit(GBLUP& model, bool em_init = true, bool verbose = true);
 
    private:
-    dvec compute_beta(GBLUP& model);
-    dmat compute_u(GBLUP& model);
+    arma::dvec compute_beta(GBLUP& model);
+    arma::dmat compute_u(GBLUP& model);
     std::unique_ptr<OptimizerBase> optimizer_;
     EstimatorLogger logger_;
 
@@ -50,7 +50,7 @@ auto blue_vec(const arma::Col<eT>& vec)
     return fmt::styled(fmt::join(vec, ", "), fmt::fg(fmt::color::blue_violet));
 }
 
-dvec compute_se(const dmat& hess_inv);
+arma::dvec compute_se(const arma::dmat& hess_inv);
 std::pair<std::vector<double>, double> compute_h2_se(
     const RandomEffectManager& effects);
 

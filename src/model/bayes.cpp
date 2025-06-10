@@ -5,6 +5,9 @@
 
 namespace gelex
 {
+using arma::dmat;
+using arma::dvec;
+
 BayesModel::BayesModel(std::string formula, dvec&& phenotype)
     : formula_(std::move(formula)), phenotype_(std::move(phenotype))
 {

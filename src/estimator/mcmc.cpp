@@ -22,13 +22,17 @@
 
 namespace gelex
 {
+using arma::dmat;
+using arma::dvec;
+using arma::uvec;
+
 namespace bk = barkeep;
 MCMC::MCMC(MCMCParams params) : params_(params) {}
 
 void MCMC::run(const BayesModel& model, size_t seed)
 {
     omp_set_num_threads(1);
-    samples_ = std::make_unique<MCMCSamples>(params_, model, params_.n_chains);
+    samples_ = std::make_unique<MCMCSamples>(params_, model);
 
     std::vector<std::thread> threads;
     const size_t n_chains = params_.n_chains;
@@ -49,7 +53,6 @@ void MCMC::run(const BayesModel& model, size_t seed)
         t.join();
     }
     bars->done();
-    samples_->mu().brief_print("Mu samples");
 }
 
 void MCMC::run_one_chain(

@@ -2,9 +2,10 @@
 
 namespace gelex
 {
-dvec dirichlet(const uvec& alphas, std::mt19937_64& rng)
+
+arma::dvec dirichlet(const arma::uvec& alphas, std::mt19937_64& rng)
 {
-    dvec pi(alphas.n_elem, arma::fill::zeros);
+    arma::dvec pi(alphas.n_elem, arma::fill::zeros);
     double sum = 0.0;
     for (size_t i = 0; i < alphas.size(); ++i)
     {

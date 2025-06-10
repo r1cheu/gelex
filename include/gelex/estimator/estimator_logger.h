@@ -39,7 +39,7 @@ class EstimatorLogger
         double elapsed_time,
         double aic,
         double bic);
-    void log_fixed_effects(const GBLUP& model, const dvec& fixed_se);
+    void log_fixed_effects(const GBLUP& model, const arma::dvec& fixed_se);
     void log_variance_components(const GBLUP& model);
     void log_heritability(
         const GBLUP& model,

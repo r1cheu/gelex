@@ -4,6 +4,8 @@
 
 namespace gelex
 {
+using arma::dmat;
+using arma::dvec;
 
 void ExpectationMaximizationOptimizer::step_inner(GBLUP& model)
 {

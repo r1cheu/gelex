@@ -10,6 +10,9 @@
 
 namespace gelex
 {
+using arma::dmat;
+using arma::dvec;
+
 void OptimizerBase::step(GBLUP& model)
 {
     step_inner(model);

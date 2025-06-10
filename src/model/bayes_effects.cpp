@@ -3,6 +3,9 @@
 
 namespace gelex
 {
+using arma::dmat;
+using arma::dvec;
+using arma::uvec;
 
 BaseEffectDesign::BaseEffectDesign(dmat&& design_mat_)
     : design_mat(std::move(design_mat_))
