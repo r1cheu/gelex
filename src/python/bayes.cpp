@@ -97,7 +97,6 @@ void mcmc_storage(nb::module_& module)
         .def_prop_ro("fixed", &gx::MCMCSamples::fixed)
         .def_prop_ro("random", &gx::MCMCSamples::random)
         .def_prop_ro("genetic", &gx::MCMCSamples::genetic)
-        .def_prop_ro("h2", &gx::MCMCSamples::h2)
         .def_prop_ro("residual", &gx::MCMCSamples::residual);
 }
 

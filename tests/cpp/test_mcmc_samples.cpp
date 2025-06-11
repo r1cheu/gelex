@@ -69,17 +69,14 @@ TEST_CASE("MCMCSamples stores correctly", "[mcmc_samples]")
     samples.store(status, 0, 1);
     samples.store(status_back, 1, 1);
 
-    REQUIRE(samples.mu().n_rows == 2);
-    REQUIRE(samples.mu().n_cols == 2);
-    REQUIRE(approx_equal(
-        samples.mu(), dmat{{1.0, 2.0}, {2.0, 1.0}}, "absdiff", 1e-5));
+    dcube mu(1, 2, 2);
+    mu.slice(0) = rowvec{1.0, 2.0};
+    mu.slice(1) = rowvec{2.0, 1.0};
+    REQUIRE(approx_equal(samples.mu(), mu, "absdiff", 1e-5));
 
     dcube fixed(1, 2, 2);
     fixed.slice(0) = rowvec{0.5, 1};
     fixed.slice(1) = rowvec{1, 0.5};
-    REQUIRE(samples.fixed().n_rows == 1);    // 1 fixed effect
-    REQUIRE(samples.fixed().n_cols == 2);    // 2 samples
-    REQUIRE(samples.fixed().n_slices == 2);  // 2 chain
     REQUIRE(approx_equal(samples.fixed(), fixed, "absdiff", 1e-5));
 
     dcube random(2, 2, 2);
@@ -87,27 +84,17 @@ TEST_CASE("MCMCSamples stores correctly", "[mcmc_samples]")
     random.slice(1) = dmat{{0.3, 0.1}, {0.4, 0.2}};
 
     REQUIRE(samples.random().coeffs.size() == 1);  // 2 random effects
-    REQUIRE(samples.random().coeffs[0].n_rows == 2);
-    REQUIRE(samples.random().coeffs[0].n_cols == 2);
-    REQUIRE(samples.random().coeffs[0].n_slices == 2);
     REQUIRE(approx_equal(samples.random().coeffs[0], random, "absdiff", 1e-5));
 
     dcube random_sigma(1, 2, 2);
     random_sigma.slice(0) = rowvec{0.5, 0.6};
     random_sigma.slice(1) = rowvec{0.6, 0.5};
     REQUIRE(samples.random().sigmas.size() == 1);  // 1 random effect
-    REQUIRE(samples.random().sigmas[0].n_rows == 1);
-    REQUIRE(samples.random().sigmas[0].n_cols == 2);
-    REQUIRE(samples.random().sigmas[0].n_slices == 2);
     REQUIRE(approx_equal(
         samples.random().sigmas[0], random_sigma, "absdiff", 1e-5));
 
     dcube genetic(3, 2, 2);
     REQUIRE(samples.genetic().coeffs.size() == 1);  // 1 genetic effect
-    REQUIRE(samples.genetic().coeffs[0].n_rows == 3);
-    REQUIRE(samples.genetic().coeffs[0].n_cols == 2);
-    REQUIRE(samples.genetic().coeffs[0].n_slices == 2);
-
     genetic.slice(0) = dmat{{0.1, 0.4}, {0.2, 0.5}, {0.3, 0.6}};
     genetic.slice(1) = dmat{{0.4, 0.1}, {0.5, 0.2}, {0.6, 0.3}};
     REQUIRE(
@@ -115,21 +102,16 @@ TEST_CASE("MCMCSamples stores correctly", "[mcmc_samples]")
 
     dcube genetic_sigma(1, 2, 2);
     REQUIRE(samples.genetic().sigmas.size() == 1);  // 1 genetic effect
-    REQUIRE(samples.genetic().sigmas[0].n_rows == 1);
-    REQUIRE(samples.genetic().sigmas[0].n_cols == 2);
-    REQUIRE(samples.genetic().sigmas[0].n_slices == 2);
-
     genetic_sigma.slice(0) = rowvec{0.01, 0.02};
     genetic_sigma.slice(1) = rowvec{0.02, 0.01};
     REQUIRE(approx_equal(
         samples.genetic().sigmas[0], genetic_sigma, "absdiff", 1e-5));
 
-    dmat residual(1, 2);
+    dcube residual(1, 2, 2);
 
-    REQUIRE(samples.residual().n_rows == 2);
-    REQUIRE(samples.residual().n_cols == 2);
-    REQUIRE(approx_equal(
-        samples.residual(), dmat{{0.1, 0.2}, {0.2, 0.1}}, "absdiff", 1e-5));
+    residual.slice(0) = rowvec{0.1, 0.2};
+    residual.slice(1) = rowvec{0.2, 0.1};
+    REQUIRE(approx_equal(samples.residual(), residual, "absdiff", 1e-5));
 }
 
 TEST_CASE("MCMCSamples handles boundary cases", "[mcmc_samples]")
@@ -152,17 +134,19 @@ TEST_CASE("MCMCSamples handles boundary cases", "[mcmc_samples]")
     BayesStatus status(model);
     status.mu.value = 1.0;
     status.residual.value = 0.1;
+
     samples.store(status, 0, 0);
 
     // Verify no storage occurred and dimensions are correct
-    REQUIRE(samples.mu().n_rows == 0);
-    REQUIRE(samples.mu().n_cols == 1);
+    REQUIRE(samples.mu().n_rows == 1);
+    REQUIRE(samples.mu().n_cols == 0);
+    REQUIRE(samples.mu().n_slices == 1);
     REQUIRE(samples.fixed().empty());
     REQUIRE(samples.random().coeffs.empty());
     REQUIRE(samples.random().sigmas.empty());
     REQUIRE(samples.genetic().coeffs.empty());
     REQUIRE(samples.genetic().sigmas.empty());
-    REQUIRE(samples.residual().n_rows == 0);
-    REQUIRE(samples.residual().n_cols == 1);
-    REQUIRE(samples.h2().n_elem == 0);
+    REQUIRE(samples.residual().n_rows == 1);
+    REQUIRE(samples.residual().n_cols == 0);
+    REQUIRE(samples.residual().n_slices == 1);
 }
