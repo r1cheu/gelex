@@ -30,6 +30,7 @@ else()
   find_package(BLAS REQUIRED)
   find_path(BLAS_INCLUDE_DIR cblas.h)
 endif()
+
 find_package(OpenMP)
 find_package(spdlog REQUIRED)
 find_package(Python 3.8 REQUIRED COMPONENTS Interpreter Development.Module)
@@ -45,35 +46,19 @@ add_library(common_config INTERFACE)
 # Set common properties ONCE
 target_compile_definitions(
   common_config
-  INTERFACE 
-    BARKEEP_ENABLE_FMT_FORMAT
-    ARMA_DONT_USE_WRAPPER
-    ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS
-    ARMA_OPENMP_THREADS=64
-    $<$<CONFIG:Debug>:ARMA_DEBUG>
-    $<$<CONFIG:Release>:ARMA_NO_DEBUG>
-)
+  INTERFACE BARKEEP_ENABLE_FMT_FORMAT ARMA_DONT_USE_WRAPPER
+            ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS ARMA_OPENMP_THREADS=64
+            $<$<CONFIG:Debug>:ARMA_DEBUG> $<$<CONFIG:Release>:ARMA_NO_DEBUG>)
 
 target_include_directories(
   common_config
-  INTERFACE 
-    ${PROJECT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/ext/armadillo/include
-    ${PROJECT_SOURCE_DIR}/ext/barkeep/barkeep
-)
+  INTERFACE ${PROJECT_SOURCE_DIR}/include
+            ${PROJECT_SOURCE_DIR}/ext/armadillo/include
+            ${PROJECT_SOURCE_DIR}/ext/barkeep/barkeep)
 
 target_link_libraries(
-  common_config
-  INTERFACE 
-    OpenMP::OpenMP_CXX 
-    BLAS::BLAS 
-    spdlog::spdlog
-    $<$<BOOL:${MINGW}>:ws2_32>
-)
-
-if(USE_MKL)
-  target_compile_definitions(common_config INTERFACE USE_MKL)
-endif()
+  common_config INTERFACE OpenMP::OpenMP_CXX BLAS::BLAS spdlog::spdlog
+                          $<$<BOOL:${MINGW}>:ws2_32>)
 
 # Update common target to use config
 add_library(common INTERFACE)
@@ -81,10 +66,9 @@ target_link_libraries(common INTERFACE common_config)
 # Core sources (excluding python bindings)
 file(GLOB_RECURSE CORE_SOURCE src/*.cpp)
 list(FILTER CORE_SOURCE EXCLUDE REGEX "src/python/")
-
-# Python bindings
 file(GLOB_RECURSE PYTHON_SOURCE src/python/*.cpp)
-nanobind_add_module(_core NB_STATIC ${PYTHON_SOURCE})
+
+nanobind_add_module(_core NB_STATIC ${PYTHON_SOURCE} ${CORE_SOURCE})
 target_link_libraries(_core PRIVATE common)
 nanobind_add_stub(
   _core_stub
@@ -100,10 +84,7 @@ nanobind_add_stub(
   _core)
 
 if(BUILD_TEST)
-  # Get test sources without recompiling python bindings
   set(TEST_CORE_SOURCE ${CORE_SOURCE})
-  
-  # Add tests subdirectory
   add_subdirectory(tests/cpp)
 endif()
 

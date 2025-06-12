@@ -1,41 +1,41 @@
 #include "gelex/estimator/mcmc_diagnostics.h"
-#include <algorithm>
-#include <cmath>
+
 #include <cstddef>
-#include <vector>
+
+#include <armadillo>
 
 namespace gelex
 {
-namespace diagnostics
-{
 
-namespace
-{
+using arma::dcube;
+using arma::dmat;
+using arma::dvec;
 /**
  * @brief compute within-chain variance and variance estimator, input has shape
  * (n_params, n_draws, n_chains)
  * @param x
  * @return
  */
-arma::dmat compute_chain_variance_stats(const arma::dcube& x)
+std::pair<dvec, dvec> compute_chain_variance_stats(const dcube& x)
 {
     const size_t n_chains = x.n_slices;
     const auto n_draws = static_cast<double>(x.n_cols);
-    arma::dmat chain_vars(n_chains, x.n_rows);
-    arma::dmat chain_means(n_chains, x.n_rows);
+
+    dmat chain_vars(x.n_rows, n_chains);
+    dmat chain_means(x.n_rows, n_chains);
 
     for (size_t c = 0; c < n_chains; ++c)
     {
-        chain_means.row(c) = arma::mean(x.slice(c), 1).t();
-        chain_vars.row(c) = arma::var(x.slice(c), 1, 1).t();
+        chain_means.col(c) = arma::mean(x.slice(c), 1);
+        chain_vars.col(c) = arma::var(x.slice(c), 0, 1);
     }
 
-    arma::dmat var_within = arma::mean(chain_vars, 0);
-    arma::dmat var_estimator = var_within * (n_draws - 1) / n_draws;
+    dvec var_within = arma::mean(chain_vars, 1);
+    dvec var_estimator = var_within * (n_draws - 1) / n_draws;
 
     if (n_chains > 1)
     {
-        arma::dmat var_between = arma::var(chain_means, 1, 0);
+        dmat var_between = arma::var(chain_means, 0, 1);
         var_estimator += var_between;
     }
     else
@@ -43,10 +43,10 @@ arma::dmat compute_chain_variance_stats(const arma::dcube& x)
         var_within = var_estimator;
     }
 
-    return arma::join_vert(var_within, var_estimator);
+    return {var_within, var_estimator};
 }
 
-int fft_next_fast_len(int target)
+size_t fft_next_fast_len(size_t target)
 {
     if (target <= 2)
     {
@@ -54,7 +54,7 @@ int fft_next_fast_len(int target)
     }
     while (true)
     {
-        int m = target;
+        size_t m = target;
         while (m % 2 == 0)
         {
             m /= 2;
@@ -74,131 +74,131 @@ int fft_next_fast_len(int target)
         ++target;
     }
 }
-}  // namespace
 
-arma::dmat gelman_rubin(const arma::dcube& samples)
+dmat gelman_rubin(const dcube& samples)
 {
-    arma::dmat stats = compute_chain_variance_stats(samples);
-    arma::dmat rhat = arma::sqrt(stats.row(1) / stats.row(0));
+    auto [var_within, var_estimator] = compute_chain_variance_stats(samples);
+    dmat rhat = arma::sqrt(var_estimator / var_within);
     return rhat;
 }
 
-arma::dmat split_gelman_rubin(const arma::dcube& samples)
+dmat split_gelman_rubin(const dcube& samples)
 {
     const size_t N_half = samples.n_cols / 2;
-    arma::dcube new_input(samples.n_rows, N_half * 2, samples.n_slices);
-
-    for (int c = 0; c < samples.n_slices; ++c)
-    {
-        new_input.slice(c).cols(0, N_half - 1)
-            = samples.slice(c).cols(0, N_half - 1);
-        new_input.slice(c).cols(N_half, 2 * N_half - 1) = samples.slice(c).cols(
-            samples.n_cols - N_half, samples.n_cols - 1);
-    }
+    dcube new_input = arma::join_slices(
+        samples.cols(0, N_half - 1), samples.cols(N_half, samples.n_cols - 1));
 
     return gelman_rubin(new_input);
 }
 
-arma::dmat autocorrelation(const arma::dmat& chain)
+arma::mat autocorrelation(const dmat& x, bool bias)
 {
-    const size_t N = chain.n_cols;
+    dmat signal = x.t();
+    const size_t N = signal.n_rows;
     const size_t M = fft_next_fast_len(N);
     const size_t M2 = 2 * M;
 
-    arma::cx_mat freqvec(M2 / 2 + 1, chain.n_rows);
-    arma::dmat autocorr(chain.n_rows, N);
+    signal.each_col([](dvec& col) { col -= arma::mean(col); });
 
-    for (int r = 0; r < chain.n_rows; ++r)
+    arma::cx_mat freqvec = arma::fft(signal, M2);
+    arma::cx_mat freqvec_gram = freqvec % arma::conj(freqvec);
+
+    arma::cx_mat autocorr_cx = arma::ifft(freqvec_gram, M2);
+    dmat autocorr = arma::real(autocorr_cx.head_rows(N));
+
+    if (!bias)
     {
-        arma::vec centered
-            = arma::vectorise(chain.row(r) - arma::mean(chain.row(r)));
-        arma::vec padded = arma::zeros(M2);
-        padded.head(N) = centered;
-
-        arma::cx_vec freq = arma::fft(padded);
-        arma::cx_vec freq_gram = freq % arma::conj(freq);
-        arma::vec autocorr_full = arma::real(arma::ifft(freq_gram));
-
-        autocorr.row(r) = autocorr_full.head(N).t();
-        autocorr.row(r) /= autocorr(r, 0);
+        autocorr.each_col() /= arma::regspace(N, -1, 1);
     }
 
-    return autocorr;
+    arma::rowvec variances = autocorr.row(0);
+    autocorr.each_row() /= variances;
+
+    return autocorr.t();
 }
 
-arma::dmat autocovariance(const arma::dmat& chain)
+dcube autocorrelation(const dcube& x, bool bias)
 {
-    arma::dmat autocorr = autocorrelation(chain);
-    arma::vec variances = arma::var(chain, 1, 1);
-    return autocorr.each_col() % variances;
-}
-
-arma::dvec effective_sample_size(const arma::dcube& samples)
-{
-    arma::dmat gamma_k_c(samples.n_rows, samples.n_cols);
-    arma::dvec ess(samples.n_rows);
-
-    for (int r = 0; r < samples.n_rows; ++r)
+    dcube result(x.n_rows, x.n_cols, x.n_slices);
+    for (size_t s = 0; s < x.n_slices; ++s)
     {
-        arma::dmat chain(samples.n_cols, samples.n_slices);
-        for (int c = 0; c < samples.n_slices; ++c)
-        {
-            chain.col(c) = samples.slice(c).row(r).t();
-        }
-        gamma_k_c.row(r) = arma::mean(autocovariance(chain), 0);
+        result.slice(s) = autocorrelation(x.slice(s), bias);
+    }
+    return result;
+}
+
+dcube autocovariance(const dcube& x, bool bias)
+{
+    dcube result = autocorrelation(x, bias);
+
+    dcube x_var(x.n_rows, 1, x.n_slices);
+
+    for (size_t s = 0; s < x.n_slices; ++s)
+    {
+        x_var.slice(s) = arma::var(x.slice(s), 1, 1);
     }
 
-    arma::dmat stats = compute_chain_variance_stats(samples);
-    arma::dmat rho_k = 1.0 - (stats.row(0) - gamma_k_c) / stats.row(1);
-    rho_k.col(0).fill(1.0);
-
-    for (int r = 0; r < rho_k.n_rows; ++r)
+    for (size_t s = 0; s < result.n_slices; ++s)
     {
-        arma::vec Rho_k = rho_k.row(r).t();
-        double tau = -1.0;
-
-        for (int k = 0; k < Rho_k.n_elem - 1; k += 2)
-        {
-            double rho_sum = Rho_k(k) + Rho_k(k + 1);
-            if (rho_sum < 0)
-                break;
-            tau += 2 * rho_sum;
-        }
-
-        ess(r) = samples.n_cols * samples.n_slices / tau;
-    }
-
-    return ess;
-}
-
-arma::dmat hpdi(const arma::dmat& samples, double prob)
-{
-    const int n = samples.n_rows;
-    const int length = static_cast<int>(prob * n);
-    arma::dmat result(2, samples.n_cols);
-
-    for (int c = 0; c < samples.n_cols; ++c)
-    {
-        arma::vec sorted = arma::sort(samples.col(c));
-        double min_width = std::numeric_limits<double>::max();
-        int best_start = 0;
-
-        for (int i = 0; i <= n - length; ++i)
-        {
-            double width = sorted(i + length - 1) - sorted(i);
-            if (width < min_width)
-            {
-                min_width = width;
-                best_start = i;
-            }
-        }
-
-        result(0, c) = sorted(best_start);
-        result(1, c) = sorted(best_start + length - 1);
+        result.slice(s).each_col([&x_var, s](dvec& col)
+                                 { col %= x_var.slice(s); });
     }
 
     return result;
 }
 
-}  // namespace diagnostics
+dvec effect_sample_size(const dcube& x, bool bias)
+{
+    const size_t n_params = x.n_rows;
+    const size_t n_draws = x.n_cols;
+    const size_t n_chains = x.n_slices;
+
+    if (n_draws < 2)
+    {
+        throw std::invalid_argument("At least 2 draws are required");
+    }
+
+    dcube gamma_k_c = autocovariance(x, bias);
+    dmat gamma_k_c_mean = arma::mean(gamma_k_c, 2);
+    auto [var_within, var_estimator] = compute_chain_variance_stats(x);
+
+    dmat var_within_boardcast
+        = var_within * arma::ones<arma::rowvec>(1, n_draws);
+    dmat var_estimator_boardcast
+        = var_estimator * arma::ones<arma::rowvec>(1, n_draws);
+    dmat rho_k(n_params, n_draws, arma::fill::ones);
+    rho_k -= (var_within_boardcast - gamma_k_c_mean) / var_estimator_boardcast;
+    rho_k.col(0).fill(1);
+
+    const size_t n_pairs = n_draws / 2;
+    dmat Rho_k(n_params, n_pairs);
+
+    for (size_t j = 0; j < n_pairs; ++j)
+    {
+        Rho_k.col(j) = rho_k.col(2 * j) + rho_k.col((2 * j) + 1);
+    }
+
+    dmat Rho_mono = Rho_k;
+
+    for (size_t i = 0; i < n_params; ++i)
+    {
+        double current_min = Rho_k(i, 0);
+
+        for (size_t j = 1; j < n_pairs; ++j)
+        {
+            double val = std::max(Rho_k.at(i, j), 0.0);
+            val = std::min(val, current_min);
+            current_min = val;
+            Rho_mono.at(i, j) = val;
+        }
+    }
+
+    dvec Rho_sum = arma::sum(Rho_mono, 1);
+    dvec tau = -1.0 + 2.0 * Rho_sum;
+    auto total_samples = static_cast<double>(n_chains * n_draws);
+    dvec n_eff = total_samples / tau;
+
+    return n_eff;
+}
+
 }  // namespace gelex

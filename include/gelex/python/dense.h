@@ -20,7 +20,8 @@ template <typename T>
 constexpr int ndim_v = is_cube_v<T> ? 3 : (is_mat_v<T> ? 2 : 1);
 
 template <typename T, typename eT = typename T::elem_type>
-constexpr bool is_arma_dense_v = std::is_base_of_v<arma::Mat<eT>, T>;
+constexpr bool is_arma_dense_v = std::is_base_of_v<arma::Mat<eT>, T>
+                                 || std::is_base_of_v<arma::Cube<eT>, T>;
 
 template <typename T, typename eT = typename T::elem_type>
 constexpr bool is_arma_sparse_v = std::is_base_of_v<arma::SpMat<eT>, T>;

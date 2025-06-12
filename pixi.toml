@@ -59,10 +59,13 @@ outputs = [".build/CMakeFiles"]
 cmd = ["cmake", "--build", ".build"]
 depends-on = ["configure"]
 inputs = ["CMakeLists.txt", "src/*"]
-outputs = [".build/_core.cpython-313-x86_64-linux-gnu.so", ".build/test"]
+outputs = [
+  ".build/_core.cpython-313-x86_64-linux-gnu.so",
+  ".build/tests/cpp/test",
+]
 
 [feature.dev.tasks.ctest]
-cmd = ".build/test;rm .build/test"
+cmd = "cd .build/tests/cpp/;ctest --output-on-failure;rm test"
 depends-on = ["build"]
 
 [feature.dev.tasks]

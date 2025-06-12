@@ -2,12 +2,14 @@
 #include <fmt/ranges.h>
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 #include <armadillo>
 #include <cstddef>
 
 #include "gelex/estimator/mcmc.h"
+#include "gelex/estimator/mcmc_diagnostics.h"
 #include "gelex/estimator/mcmc_result.h"
 #include "gelex/estimator/mcmc_samples.h"
 #include "gelex/model/bayes.h"
@@ -102,14 +104,19 @@ void mcmc_storage(nb::module_& module)
 
 void mcmc(nb::module_& module)
 {
+    nb::class_<gx::SampleGroup>(module, "SampleGroup")
+        .def_rw(
+            "coeffs",
+            &gx::SampleGroup::coeffs,
+            nb::rv_policy::reference_internal)
+        .def_rw(
+            "sigmas",
+            &gx::SampleGroup::sigmas,
+            nb::rv_policy::reference_internal);
     nb::class_<gx::MCMC>(module, "MCMC")
         .def(nb::init<gx::MCMCParams>(), "params"_a)
-        .def(
-            "run",
-            &gx::MCMC::run,
-            "model"_a,
-            "seed"_a = 42,
-            nb::call_guard<nb::gil_scoped_release>());
+        .def("run", &gx::MCMC::run, "model"_a, "seed"_a = 42)
+        .def("samples", &gx::MCMC::samples);
 }
 
 void mcmc_result(nb::module_& module)
@@ -180,5 +187,31 @@ void mcmc_result(nb::module_& module)
             "residual",
             &gx::MCMCResult::residual,
             nb::rv_policy::reference_internal);
+}
+
+void mcmc_diagnostics(nb::module_& m)
+{
+    m.def("gelman_rubin", &gelex::gelman_rubin, "samples"_a);
+    m.def(
+        "effective_sample_size",
+        &gelex::effect_sample_size,
+        "samples"_a,
+        "bias"_a = true);
+    m.def(
+        "autocorrelation",
+        &gelex::autocorrelation,
+        "samples"_a,
+        "bias"_a = true);
+    m.def(
+        "autocovariance", &gelex::autocovariance, "samples"_a, "bias"_a = true);
+    m.def("split_gelman_rubin", &gelex::split_gelman_rubin, "samples"_a);
+    m.def(
+        "tran_cube",
+        [](arma::dcube& x)
+        {
+            x.brief_print("before");
+            x.slice(0) += 1;
+            x.brief_print("after");
+        });
 }
 }  // namespace bind

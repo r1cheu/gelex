@@ -1,17 +1,17 @@
-#include <chrono>
 #include <cstddef>
 #include <memory>
-#include <mutex>
 #include <thread>
 #include <vector>
 
 #include <barkeep.h>
+#include <fmt/base.h>
 #include <fmt/format.h>
 
 #include <omp.h>
 
 #include "gelex/estimator/gibbs/base.h"
 #include "gelex/estimator/mcmc.h"
+#include "gelex/estimator/mcmc_diagnostics.h"
 #include "gelex/estimator/mcmc_logger.h"
 #include "gelex/estimator/mcmc_result.h"
 #include "gelex/estimator/mcmc_samples.h"
@@ -53,6 +53,16 @@ void MCMC::run(const BayesModel& model, size_t seed)
         t.join();
     }
     bars->done();
+
+    auto rhat = split_gelman_rubin(samples_->mu());
+    fmt::print("mu rhat: {:.6f}", arma::as_scalar(rhat));
+    auto ess = effect_sample_size(samples_->mu());
+    fmt::print(" mu ess: {:.6f}\n", arma::as_scalar(ess));
+
+    rhat = split_gelman_rubin(samples_->residual());
+    fmt::print("residual rhat: {:.6f}", arma::as_scalar(rhat));
+    ess = effect_sample_size(samples_->residual());
+    fmt::print(" residual ess: {:.6f}\n", arma::as_scalar(ess));
 }
 
 void MCMC::run_one_chain(
@@ -119,9 +129,9 @@ void MCMC::sample_mu(Mu& mu, dvec& y_adj, double sigma_e, std::mt19937_64& rng)
     const auto n = static_cast<double>(y_adj.n_elem);
     std::normal_distribution<double> adjustment_sampler{
         arma::mean(y_adj), sqrt(sigma_e / n)};
-    double adj = adjustment_sampler(rng);
-    mu.value += adj;
-    y_adj -= adj;
+    double adj = -adjustment_sampler(rng);
+    mu.value -= adj;
+    y_adj += adj;
 }
 
 void MCMC::sample_fixed_effect(

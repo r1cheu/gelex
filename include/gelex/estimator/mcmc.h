@@ -18,6 +18,7 @@ class MCMC
 
     void run(const BayesModel& model, size_t seed = 42);
     const MCMCResult& result() const { return result_; }
+    const MCMCSamples& samples() const { return *samples_; }
 
    private:
     void run_one_chain(

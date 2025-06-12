@@ -14,6 +14,7 @@ void mcmc_params(nb::module_&);
 void mcmc(nb::module_&);
 void mcmc_storage(nb::module_&);
 void mcmc_result(nb::module_&);
+void mcmc_diagnostics(nb::module_&);
 
 void gblup_params(nb::module_&);
 void gblup(nb::module_&);
@@ -35,6 +36,7 @@ NB_MODULE(_core, m)  // NOLINT
     mcmc(m);
     mcmc_storage(m);
     mcmc_result(m);
+    mcmc_diagnostics(m);
 
     gblup_params(m);
     gblup(m);
