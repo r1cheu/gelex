@@ -39,25 +39,52 @@ execute_process(
   OUTPUT_VARIABLE nanobind_ROOT)
 find_package(nanobind CONFIG REQUIRED)
 
-add_library(common INTERFACE)
-target_compile_definitions(
-  common
-  INTERFACE BARKEEP_ENABLE_FMT_FORMAT ARMA_DONT_USE_WRAPPER
-            ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS ARMA_OPENMP_THREADS=64
-            $<$<CONFIG:Debug>:ARMA_DEBUG> $<$<CONFIG:Release>:ARMA_NO_DEBUG>)
-if(USE_MKL)
-  target_compile_definitions(common INTERFACE USE_MKL)
-endif()
+# Create common config target
+add_library(common_config INTERFACE)
 
-target_include_directories(common INTERFACE include)
-target_include_directories(common INTERFACE ext/armadillo/include)
-target_include_directories(common INTERFACE ext/barkeep/barkeep)
+# Set common properties ONCE
+target_compile_definitions(
+  common_config
+  INTERFACE 
+    BARKEEP_ENABLE_FMT_FORMAT
+    ARMA_DONT_USE_WRAPPER
+    ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS
+    ARMA_OPENMP_THREADS=64
+    $<$<CONFIG:Debug>:ARMA_DEBUG>
+    $<$<CONFIG:Release>:ARMA_NO_DEBUG>
+)
+
+target_include_directories(
+  common_config
+  INTERFACE 
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/ext/armadillo/include
+    ${PROJECT_SOURCE_DIR}/ext/barkeep/barkeep
+)
 
 target_link_libraries(
-  common INTERFACE OpenMP::OpenMP_CXX BLAS::BLAS spdlog::spdlog
-                   $<$<BOOL:${MINGW}>:ws2_32>)
+  common_config
+  INTERFACE 
+    OpenMP::OpenMP_CXX 
+    BLAS::BLAS 
+    spdlog::spdlog
+    $<$<BOOL:${MINGW}>:ws2_32>
+)
+
+if(USE_MKL)
+  target_compile_definitions(common_config INTERFACE USE_MKL)
+endif()
+
+# Update common target to use config
+add_library(common INTERFACE)
+target_link_libraries(common INTERFACE common_config)
+# Core sources (excluding python bindings)
 file(GLOB_RECURSE CORE_SOURCE src/*.cpp)
-nanobind_add_module(_core NB_STATIC ${CORE_SOURCE})
+list(FILTER CORE_SOURCE EXCLUDE REGEX "src/python/")
+
+# Python bindings
+file(GLOB_RECURSE PYTHON_SOURCE src/python/*.cpp)
+nanobind_add_module(_core NB_STATIC ${PYTHON_SOURCE})
 target_link_libraries(_core PRIVATE common)
 nanobind_add_stub(
   _core_stub
@@ -73,29 +100,11 @@ nanobind_add_stub(
   _core)
 
 if(BUILD_TEST)
-  nanobind_add_module(_test NB_STATIC tests/python/test_arma_caster.cpp)
-  target_link_libraries(_test PRIVATE common)
-  nanobind_add_stub(
-    _test_stub
-    MODULE
-    _test
-    OUTPUT
-    _test.pyi
-    PYTHON_PATH
-    $<TARGET_FILE_DIR:_test>
-    DEPENDS
-    _test)
-  install(TARGETS _test LIBRARY DESTINATION gelexy)
-  install(FILES ${CMAKE_BINARY_DIR}/_test.pyi DESTINATION gelexy)
-
-  set(GELEX_TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
-  add_compile_definitions(GELEX_TESTS_DIR="${GELEX_TESTS_DIR}")
-  find_package(Catch2 3 REQUIRED)
-  file(GLOB test_SOURCE ${PROJECT_SOURCE_DIR}/tests/cpp/*.cpp)
+  # Get test sources without recompiling python bindings
   set(TEST_CORE_SOURCE ${CORE_SOURCE})
-  list(FILTER TEST_CORE_SOURCE EXCLUDE REGEX "src/python/")
-  add_executable(test ${test_SOURCE} ${TEST_CORE_SOURCE})
-  target_link_libraries(test PRIVATE common Catch2::Catch2WithMain)
+  
+  # Add tests subdirectory
+  add_subdirectory(tests/cpp)
 endif()
 
 install(TARGETS _core LIBRARY DESTINATION gelexy)
