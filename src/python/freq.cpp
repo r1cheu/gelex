@@ -10,13 +10,13 @@
 #include <nanobind/stl/vector.h>
 #include <armadillo>
 
+#include "dense.h"
 #include "gelex/data/bed_reader.h"
 #include "gelex/data/grm.h"
-#include "gelex/estimator/estimator.h"
-#include "gelex/model/gblup.h"
+#include "gelex/estimator/freq/estimator.h"
+#include "gelex/model/freq/model.h"
 #include "gelex/predictor.h"
-#include "gelex/python/dense.h"
-#include "gelex/python/sparse.h"
+#include "sparse.h"
 
 namespace bind
 {

@@ -6,7 +6,7 @@
 #include <armadillo>
 
 #include "gelex/data/cross_grm.h"
-#include "gelex/model/gblup.h"
+#include "gelex/model/freq/model.h"
 
 namespace gelex
 {

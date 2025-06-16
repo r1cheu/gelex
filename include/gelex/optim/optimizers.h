@@ -3,8 +3,8 @@
 #include <armadillo>
 #include <utility>
 
-#include "gelex/model/gblup.h"
-#include "gelex/optim/base_optimizer.h"
+#include "gelex/model/freq/model.h"
+#include "gelex/optim/base.h"
 
 namespace gelex
 {

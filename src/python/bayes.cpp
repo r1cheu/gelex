@@ -8,14 +8,14 @@
 #include <armadillo>
 #include <cstddef>
 
-#include "gelex/estimator/mcmc.h"
-#include "gelex/estimator/mcmc_diagnostics.h"
-#include "gelex/estimator/mcmc_result.h"
-#include "gelex/estimator/mcmc_samples.h"
-#include "gelex/model/bayes.h"
-#include "gelex/model/bayes_effects.h"
-#include "gelex/python/dense.h"
-#include "gelex/python/sparse.h"
+#include "dense.h"
+#include "sparse.h"
+#include "gelex/estimator/bayes/diagnostics.h"
+#include "gelex/estimator/bayes/mcmc.h"
+#include "gelex/estimator/bayes/result.h"
+#include "gelex/estimator/bayes/samples.h"
+#include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/effects.h"
 
 namespace bind
 {

@@ -4,8 +4,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <utility>
 
-#include "gelex/estimator/estimator.h"
-#include "gelex/model/gblup.h"
+#include "gelex/estimator/freq/estimator.h"
+#include "gelex/model/freq/model.h"
 
 TEST_CASE("Linear Mixed Model Fitted Check")
 {
