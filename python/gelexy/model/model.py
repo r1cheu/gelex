@@ -47,9 +47,7 @@ class make_bayes(ModelMakerBase):
             genotypes[name] = load_genotype(genotype)
 
         data, design_matrix_genetic, dropped_ids, genotypes = (
-            self._create_design_matrix_genetic(
-                data, genotypes
-            )
+            self._create_design_matrix_genetic(data, genotypes)
         )
 
         design_mat = design_matrices(fparser.common, data, na_action="error")

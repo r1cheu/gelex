@@ -6,16 +6,15 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 #include <armadillo>
-#include <cstddef>
 
 #include "dense.h"
-#include "sparse.h"
 #include "gelex/estimator/bayes/diagnostics.h"
 #include "gelex/estimator/bayes/mcmc.h"
 #include "gelex/estimator/bayes/result.h"
 #include "gelex/estimator/bayes/samples.h"
-#include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/model.h"
+#include "sparse.h"
 
 namespace bind
 {
@@ -74,7 +73,16 @@ void bayes_model(nb::module_& module)
             "name"_a,
             "design_mat"_a,
             "type"_a,
-            nb::keep_alive<1, 3>());
+            nb::keep_alive<1, 3>())
+        .def(
+            "__repr__",
+            [](const gx::BayesModel& model)
+            {
+                return fmt::format(
+                    "<BayesModel(formula='{}') at {}>",
+                    model.formula(),
+                    static_cast<const void*>(&model));
+            });
 };
 
 void mcmc_params(nb::module_& module)
@@ -82,14 +90,49 @@ void mcmc_params(nb::module_& module)
     nb::class_<gx::MCMCParams>(module, "MCMCParams")
         .def(
             nb::init<size_t, size_t, size_t, size_t>(),
-            "iter"_a,
-            "n_burnin"_a,
-            "n_thin"_a,
-            "n_chains"_a)
-        .def_rw("iter", &gx::MCMCParams::iter)
+            "n_iters"_a = 5000,
+            "n_burnin"_a = 3000,
+            "n_thin"_a = 1,
+            "n_chains"_a = 1,
+            "Initialize MCMCParams with sampling parameters.\n\n"
+            "    :param n_iters: Number of MCMC iterations (default: 5000).\n"
+            "    :type n_iters: int\n"
+            "    :param n_burnin: Number of burn-in iterations (default: "
+            "3000).\n"
+            "    :type n_burnin: int\n"
+            "    :param n_thin: Thinning interval for samples (default: 1).\n"
+            "    :type n_thin: int\n"
+            "    :param n_chains: Number of independent chains (default: 1).\n"
+            "    :type n_chains: int")
+        .def_rw("n_iters", &gx::MCMCParams::n_iters)
         .def_rw("n_burnin", &gx::MCMCParams::n_burnin)
         .def_rw("n_thin", &gx::MCMCParams::n_thin)
-        .def_rw("n_chains", &gx::MCMCParams::n_chains);
+        .def_rw("n_chains", &gx::MCMCParams::n_chains)
+        .def(
+            "__repr__",
+            [](const gx::MCMCParams& params)
+            {
+                return fmt::format(
+                    "<MCMCParams(n_iters={}, n_burnin={}, n_thin={}, "
+                    "n_chains={}) at {}>",
+                    params.n_iters,
+                    params.n_burnin,
+                    params.n_thin,
+                    params.n_chains,
+                    static_cast<const void*>(&params));
+            })
+        .def(
+            "__str__",
+            [](const gx::MCMCParams& params)
+            {
+                return fmt::format(
+                    "MCMCParams: iters={}, burnin={}, thin={}, "
+                    "chains={}",
+                    params.n_iters,
+                    params.n_burnin,
+                    params.n_thin,
+                    params.n_chains);
+            });
 }
 
 void mcmc_storage(nb::module_& module)

@@ -50,7 +50,7 @@ void MCMCLogger::log_model_information(
         fmt::join(model.genetic().names(), " +"));
 
     logger_->info(" \u25AA Samples:  {:d}", model.n_individuals());
-    logger_->info(" \u25AA Iters:  {:d}", params.iter);
+    logger_->info(" \u25AA Iters:  {:d}", params.n_iters);
     logger_->info(" \u25AA Burn-in:  {:d}", params.n_burnin);
     logger_->info(" \u25AA Thinning:  {:d}", params.n_thin);
     logger_->info(" \u25AA Chains:  {:d}", params.n_chains);

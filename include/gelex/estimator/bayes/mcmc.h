@@ -6,8 +6,8 @@
 #include "gelex/estimator/bayes/params.h"
 #include "gelex/estimator/bayes/result.h"
 #include "gelex/estimator/bayes/samples.h"
-#include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/model.h"
 
 namespace gelex
 {

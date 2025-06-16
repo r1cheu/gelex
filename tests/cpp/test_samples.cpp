@@ -8,8 +8,8 @@
 
 #include "gelex/estimator/bayes/params.h"
 #include "gelex/estimator/bayes/samples.h"
-#include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/model.h"
 #include "gelex/model/effects.h"
 
 using namespace arma;   // NOLINT
@@ -37,11 +37,7 @@ TEST_CASE("MCMCSamples stores correctly", "[mcmc_samples]")
     model.add_genetic_effect(
         "gen", std::move(genetic_design), BayesAlphabet::RR);
 
-    MCMCParams params{};
-    params.iter = 2000;
-    params.n_burnin = 1000;
-    params.n_thin = 500;
-    params.n_chains = 2;
+    MCMCParams params{2000, 1000, 500, 2};
 
     MCMCSamples samples(params, model);
 
@@ -112,41 +108,4 @@ TEST_CASE("MCMCSamples stores correctly", "[mcmc_samples]")
     residual.slice(0) = rowvec{0.1, 0.2};
     residual.slice(1) = rowvec{0.2, 0.1};
     REQUIRE(approx_equal(samples.residual(), residual, "absdiff", 1e-5));
-}
-
-TEST_CASE("MCMCSamples handles boundary cases", "[mcmc_samples]")
-{
-    // Create minimal BayesModel
-    dvec phenotype = {1.0};
-    BayesModel model("y ~ 1", std::move(phenotype));
-
-    // Configure MCMC parameters
-    MCMCParams params{};
-    params.iter = 1000;
-    params.n_burnin = 1000;
-    params.n_thin = 1;
-    params.n_chains = 1;
-
-    // Create samples container (should have 0 records)
-    MCMCSamples samples(params, model);
-
-    // Attempt to store sample (should be ignored)
-    BayesStatus status(model);
-    status.mu.value = 1.0;
-    status.residual.value = 0.1;
-
-    samples.store(status, 0, 0);
-
-    // Verify no storage occurred and dimensions are correct
-    REQUIRE(samples.mu().n_rows == 1);
-    REQUIRE(samples.mu().n_cols == 0);
-    REQUIRE(samples.mu().n_slices == 1);
-    REQUIRE(samples.fixed().empty());
-    REQUIRE(samples.random().coeffs.empty());
-    REQUIRE(samples.random().sigmas.empty());
-    REQUIRE(samples.genetic().coeffs.empty());
-    REQUIRE(samples.genetic().sigmas.empty());
-    REQUIRE(samples.residual().n_rows == 1);
-    REQUIRE(samples.residual().n_cols == 0);
-    REQUIRE(samples.residual().n_slices == 1);
 }

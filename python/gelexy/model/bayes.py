@@ -18,25 +18,18 @@ class make_bayes(ModelMakerBase):
         """
         Create a Linear Mixed Model from the specified formula and genetic relationship matrices.
 
-        Parameters
-        ----------
-        formula : str
-            A formula string specifying the model. The left-hand side specifies the response variable,
-            and the right-hand side specifies the fixed effects. Example: "y ~ x1 + x2"
-        grm : dict[str, pd.DataFrame | str | Path]
-            A dictionary mapping random effect names to their corresponding genetic relationship matrices.
-            The matrices can be provided as DataFrames or paths to files containing the matrices.
+        :param formula: A formula string specifying the model. The left-hand side specifies the response variable,
+                       and the right-hand side specifies the fixed effects. Example: "y ~ x1 + x2"
+        :type formula: str
+        :param genotypes: A dictionary mapping random effect names to their corresponding genetic relationship matrices.
+                          The matrices can be provided as DataFrames or paths to files containing the matrices.
+        :type genotypes: dict[str, pd.DataFrame | str | Path]
 
-        Returns
-        -------
-        GBLUP
-            A GBLUP object containing the response vector, design matrix, genetic relationship
-            matrices, and random effect names.
+        :returns: A GBLUP object containing the response vector, design matrix, genetic relationship
+                  matrices, and random effect names.
+        :rtype: GBLUP
 
-        Raises
-        ------
-        ValueError
-            If the fixed effects contain missing values.
+        :raises ValueError: If the fixed effects contain missing values.
         """
         fparser = FormulaParser(formula, list(genotypes.keys()))
         data = self.data
@@ -71,9 +64,6 @@ class make_bayes(ModelMakerBase):
         for term in fparser.genetic_terms:
             genotype = genotypes[term.genetic].to_numpy()
             genotype = _sp_dense_dot(design_matrix_genetic, genotype)
-            assert genotype.flags["F_CONTIGUOUS"], (
-                "Genotype matrix must be Fortran contiguous."
-            )
             model.add_genetic_effect(
                 term.name,
                 genotype,

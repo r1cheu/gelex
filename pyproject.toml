@@ -21,7 +21,6 @@ build-backend = "scikit_build_core.build"
 wheel.packages = ["python/gelexy"]
 build-dir = ".pybuild"
 cmake.source-dir = "."
-wheel.expand-macos-universal-tags = true
 
 cmake.build-type = "Release"
 build.tool-args = ["-j16"]
@@ -37,7 +36,6 @@ xfail_strict = true
 log_cli_level = "INFO"
 filterwarnings = ["error", "ignore::pytest.PytestCacheWarning"]
 testpaths = ["tests/python"]
-
 
 [tool.cibuildwheel]
 environment = {}

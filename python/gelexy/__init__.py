@@ -9,7 +9,7 @@
 
 # __all__ = ["Genotypes", "Phenotypes", "grm", "GBLUP", "intersect"]
 
-from ._core import MCMC, BayesAlphabet, Estimator
+from ._core import MCMC, BayesAlphabet, Estimator, MCMCParams
 from .data import load_grm, make_grm, read_table
 from .model import make_bayes, make_gblup
 
@@ -17,6 +17,7 @@ __all__ = [
     "MCMC",
     "BayesAlphabet",
     "Estimator",
+    "MCMCParams",
     "load_grm",
     "make_bayes",
     "make_gblup",

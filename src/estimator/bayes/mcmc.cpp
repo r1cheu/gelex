@@ -15,8 +15,8 @@
 #include "gelex/estimator/bayes/mcmc.h"
 #include "gelex/estimator/bayes/result.h"
 #include "gelex/estimator/bayes/samples.h"
-#include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/policy.h"
 
 namespace gelex
@@ -36,7 +36,7 @@ void MCMC::run(const BayesModel& model, size_t seed)
     std::vector<std::thread> threads;
     const size_t n_chains = params_.n_chains;
     std::vector<size_t> idxs(n_chains);
-    auto bars = MCMCLogger::progress_bar(idxs, params_.iter);
+    auto bars = MCMCLogger::progress_bar(idxs, params_.n_iters);
     logger_.log_model_information(model, params_);
 
     threads.reserve(n_chains);
@@ -79,7 +79,7 @@ void MCMC::run_one_chain(
     size_t record_idx = 0;
     uvec snp_tracker(model.genetic()[0].design_mat.n_cols, arma::fill::zeros);
 
-    for (; iter < params_.iter; ++iter)
+    for (; iter < params_.n_iters; ++iter)
     {
         double sigma_e = status.residual.value;
         sample_mu(status.mu, y_adj, sigma_e, rng);
