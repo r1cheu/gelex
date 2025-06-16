@@ -5,6 +5,7 @@
 #include <fmt/ranges.h>
 #include <armadillo>
 
+#include "gelex/utils/formatter.h"
 #include "gelex/utils/utils.h"
 
 namespace gelex

@@ -1,6 +1,8 @@
 #include "gelex/model/bayes/model.h"
 
-#include "armadillo"
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+#include <armadillo>
 
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/policy.h"
@@ -61,7 +63,12 @@ void BayesModel::set_sigma_prior(const std::string& name, double nu, double s2)
         genetic_effect->prior = {nu, s2};
         return;
     }
-    throw std::runtime_error("Effect not found: " + name);
+    throw std::runtime_error(
+        fmt::format(
+            "Effect not found: {}, `{}, {}` are available.",
+            name,
+            fmt::join(random_.names(), ", "),
+            fmt::join(genetic_.names(), ", ")));
 }
 
 void BayesModel::set_pi_prior(const std::string& name, const arma::dvec& pi)
@@ -71,7 +78,11 @@ void BayesModel::set_pi_prior(const std::string& name, const arma::dvec& pi)
         effect->pi = pi;
         return;
     }
-    throw std::runtime_error("Genetic effect not found: " + name);
+    throw std::runtime_error(
+        fmt::format(
+            "Genetic effect not found: {}, `{}` are available.",
+            name,
+            fmt::join(genetic_.names(), ", ")));
 }
 
 void BayesModel::set_residual_prior(double nu, double s2)

@@ -128,6 +128,14 @@ class EffectDesignManager
         }
         return nullptr;
     }
+    Design* get(const std::string& name)
+    {
+        if (auto it = index_map_.find(name); it != index_map_.end())
+        {
+            return &effects_[it->second];
+        }
+        return nullptr;
+    }
 
     size_t size() const { return effects_.size(); }
     const std::vector<Design>& effects() const { return effects_; }

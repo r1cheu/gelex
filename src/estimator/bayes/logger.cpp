@@ -8,6 +8,7 @@
 #include <armadillo>
 
 #include "gelex/model/bayes/model.h"
+#include "gelex/utils/formatter.h"
 #include "gelex/utils/utils.h"
 
 namespace gelex

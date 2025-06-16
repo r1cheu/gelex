@@ -1,6 +1,5 @@
 #include "gelex/estimator/freq/estimator.h"
 
-
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -15,6 +14,7 @@
 #include "gelex/model/freq/model.h"
 #include "gelex/optim/base.h"
 #include "gelex/optim/optimizers.h"
+#include "gelex/utils/formatter.h"
 #include "gelex/utils/utils.h"
 
 namespace gelex
