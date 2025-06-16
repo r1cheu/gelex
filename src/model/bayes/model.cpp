@@ -49,4 +49,34 @@ void BayesModel::add_genetic_effect(
         std::move(pi)));
 }
 
+void BayesModel::set_sigma_prior(const std::string& name, double nu, double s2)
+{
+    if (auto* random_effect = random_.get(name))
+    {
+        random_effect->prior = {nu, s2};
+        return;
+    }
+    if (auto* genetic_effect = genetic_.get(name))
+    {
+        genetic_effect->prior = {nu, s2};
+        return;
+    }
+    throw std::runtime_error("Effect not found: " + name);
+}
+
+void BayesModel::set_pi_prior(const std::string& name, const arma::dvec& pi)
+{
+    if (auto* effect = genetic_.get(name))
+    {
+        effect->pi = pi;
+        return;
+    }
+    throw std::runtime_error("Genetic effect not found: " + name);
+}
+
+void BayesModel::set_residual_prior(double nu, double s2)
+{
+    residual_.prior = {nu, s2};
+}
+
 }  // namespace gelex

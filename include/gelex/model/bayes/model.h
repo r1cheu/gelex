@@ -52,6 +52,10 @@ class BayesModel
     auto& genetic() { return genetic_; }
     auto& residual() { return residual_; }
 
+    void set_sigma_prior(const std::string& name, double nu, double s2);
+    void set_pi_prior(const std::string& name, const arma::dvec& pi);
+    void set_residual_prior(double nu, double s2);
+
     const arma::dvec& phenotype() const { return phenotype_; }
     double phenotype_var() const { return phenotype_var_; }
 
