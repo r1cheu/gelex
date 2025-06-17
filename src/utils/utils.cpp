@@ -7,15 +7,43 @@
 
 #include <fmt/chrono.h>
 #include <fmt/format.h>
+#include <spdlog/common.h>
+#include <spdlog/formatter.h>
 #include <spdlog/logger.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
+#include "spdlog/pattern_formatter.h"
 
 #include <armadillo>
 
 namespace gelex
 {
+LevelFormatter::LevelFormatter()
+{
+    info_formatter_ = std::make_unique<spdlog::pattern_formatter>("%v");
+    default_formatter_
+        = std::make_unique<spdlog::pattern_formatter>("[%^%l%$] %v");
+}
+
+void LevelFormatter::format(
+    const spdlog::details::log_msg& msg,
+    spdlog::memory_buf_t& dest)
+{
+    if (msg.level == spdlog::level::info)
+    {
+        info_formatter_->format(msg, dest);
+    }
+    else
+    {
+        default_formatter_->format(msg, dest);
+    }
+}
+
+std::unique_ptr<spdlog::formatter> LevelFormatter::clone() const
+{
+    return std::make_unique<LevelFormatter>();
+}
 
 Timer::~Timer()
 {
@@ -31,7 +59,7 @@ Logger::Logger()
         auto console_sink
             = std::make_shared<spdlog::sinks::stdout_color_sink_st>();
         console_sink->set_level(spdlog::level::debug);
-        console_sink->set_pattern("[%^%l%$] %v");
+        console_sink->set_formatter(std::make_unique<LevelFormatter>());
 
         auto now = std::chrono::system_clock::now();
         auto file_sink

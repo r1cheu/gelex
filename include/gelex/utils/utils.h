@@ -6,10 +6,27 @@
 
 #include <fmt/color.h>
 #include <fmt/ranges.h>
+#include <spdlog/common.h>
+#include <spdlog/formatter.h>
 #include <spdlog/logger.h>
+#include <spdlog/spdlog.h>
 
 namespace gelex
 {
+
+class LevelFormatter : public spdlog::formatter
+{
+   private:
+    std::unique_ptr<spdlog::formatter> info_formatter_;
+    std::unique_ptr<spdlog::formatter> default_formatter_;
+
+   public:
+    LevelFormatter();
+    void format(const spdlog::details::log_msg& msg, spdlog::memory_buf_t& dest)
+        override;
+    std::unique_ptr<formatter> clone() const override;
+};
+
 template <typename Mat>
 bool check_eye(const Mat& inputs)
 {

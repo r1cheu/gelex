@@ -11,11 +11,34 @@ std::string ToLowercase(std::string_view input);
 
 // help functions for logging
 std::string format_sigma_squared(const std::string& name);
-std::string format_value_with_std(double value, double std);
+std::string with_std(double value, double std);
 std::string title(const std::string& text, size_t total_length = 80);
 std::string subtitle(const std::string& str);
-std::string item(const std::string& item);
-std::string subitem(const std::string& item);
+
+template <typename... Args>
+std::string item(fmt::format_string<Args...> fmt_str, Args&&... args)
+{
+    return " \u25AA " + fmt::format(fmt_str, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+std::string subitem(fmt::format_string<Args...> fmt_str, Args&&... args)
+{
+    return "  - " + fmt::format(fmt_str, std::forward<Args>(args)...);
+}
+
+/**
+ * @brief Format the scale inverse chi-squared distribution
+ * parameters into a human-readable string (e.g., "νS²χ⁻²(ν = nu, S² = s2)").
+ *
+ * @param nu Degrees of freedom.
+ * @param s2 Scale parameter.
+ * @return A formatted string representing the distribution parameters.
+ */
+std::string scale_inv_chisq(double nu, double s2);
+
+std::string sigma_squared(const std::string& subscript);
+std::string sigma_prior(const std::string& subscript, double nu, double s2);
 
 // fmt color might be removed
 template <typename T>

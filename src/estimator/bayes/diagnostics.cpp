@@ -194,9 +194,9 @@ dvec effect_sample_size(const dcube& x, bool bias)
     }
 
     dvec Rho_sum = arma::sum(Rho_mono, 1);
-    dvec tau = -1.0 + 2.0 * Rho_sum;
+    dvec s2 = -1.0 + 2.0 * Rho_sum;
     auto total_samples = static_cast<double>(n_chains * n_draws);
-    dvec n_eff = total_samples / tau;
+    dvec n_eff = total_samples / s2;
 
     return n_eff;
 }

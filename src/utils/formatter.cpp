@@ -9,12 +9,7 @@
 
 namespace gelex
 {
-std::string format_sigma_squared(const std::string& name)
-{
-    return fmt::format("\u03C3\u00B2_{}", name);
-}
-
-std::string format_value_with_std(double value, double std)
+std::string with_std(double value, double std)
 {
     return fmt::format("{:.6f} \u00B1 {:.4f}", value, std);
 }
@@ -46,20 +41,25 @@ std::string subtitle(const std::string& str)
     return fmt::format("{}", wine_red("[" + str + "]"));
 }
 
-std::string item(const std::string& item)
-{
-    return fmt::format(" \u25AA {}", item);
-}
-
-std::string subitem(const std::string& item)
-{
-    return fmt::format(" - {}", item);
-}
-
 std::string ToLowercase(std::string_view input)
 {
     std::string result(input.begin(), input.end());
     std::transform(result.begin(), result.end(), result.begin(), ::tolower);
     return result;
+}
+std::string scale_inv_chisq(double nu, double s2)
+{
+    return fmt::format("Inv-\u03C7\u00B2(\u03BD={}, s\u00B2={})", nu, s2);
+}
+
+std::string sigma_squared(const std::string& subscript)
+{
+    return fmt::format("\u03C3\u00B2{}", subscript);
+}
+
+std::string sigma_prior(const std::string& subscript, double nu, double s2)
+{
+    return fmt::format(
+        "{} \u223C {}", sigma_squared(subscript), scale_inv_chisq(nu, s2));
 }
 }  // namespace gelex

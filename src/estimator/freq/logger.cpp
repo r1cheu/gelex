@@ -30,42 +30,41 @@ void EstimatorLogger::log_model_information(
 {
     logger_->info(title(" GBLUP MODEL ANALYSIS "));
     logger_->info(subtitle("Model Specification"));
-    logger_->info(
-        " \u25AA Model:  {}{}{}{}e",
+    logger_->info(item(
+        "Model:  {}{}{}{}e",
         model.formula(),
         join_formula(model.random().random_indices(), model.random(), " + "),
         join_formula(model.random().genetic_indices(), model.random(), " + "),
-        join_formula(model.random().gxe_indices(), model.random(), " + "));
-    logger_->info(" \u25AA Samples:  {:d}", model.n_individuals());
+        join_formula(model.random().gxe_indices(), model.random(), " + ")));
+    logger_->info(item("Samples:  {:d}", model.n_individuals()));
     logger_->info("");
 
     logger_->info(subtitle("Term Summary"));
-    logger_->info(" \u25AA Fixed:  {}", fmt::join(model.fixed().names, ", "));
+    logger_->info(item("Fixed:  {}", fmt::join(model.fixed().names, ", ")));
     if (model.random().has_random_effects())
     {
-        logger_->info(
-            " \u25AA Random:  {}",
-            join_name(model.random().random_indices(), model.random(), ", "));
+        logger_->info(item(
+            "Random:  {}",
+            join_name(model.random().random_indices(), model.random(), ", ")));
     }
     if (model.random().has_genetic_effects())
     {
-        logger_->info(
-            " \u25AA Genetic:  {}",
-            join_name(model.random().genetic_indices(), model.random(), ", "));
+        logger_->info(item(
+            "Genetic:  {}",
+            join_name(model.random().genetic_indices(), model.random(), ", ")));
     }
     if (model.random().has_gxe_effects())
     {
-        logger_->info(
-            " \u25AA GxE:  {}",
-            join_name(model.random().gxe_indices(), model.random(), ", "));
+        logger_->info(item(
+            "GxE:  {}",
+            join_name(model.random().gxe_indices(), model.random(), ", ")));
     }
     logger_->info("");
 
     logger_->info(subtitle("Optimizer Specification"));
-    logger_->info(item(fmt::format("Method:  {}", cyan(optimizer_name))));
-    logger_->info(" \u25AA Method:  {}", cyan(optimizer_name));
-    logger_->info(" \u25AA tolerance:  {:.2e}", tol);
-    logger_->info(" \u25AA Max Iterations:  {:d}", max_iter);
+    logger_->info(item("Method:  {}", cyan(optimizer_name)));
+    logger_->info(item("tolerance:  {:.2e}", tol));
+    logger_->info(item("Max Iterations:  {:d}", max_iter));
     logger_->info(title(" REML ESTIMATION "));
     logger_->info(
         "{:>5}{:>8}  {}  {:<10}",
@@ -122,7 +121,7 @@ void EstimatorLogger::log_convergence_status(
     {
         logger_->info(
             " \u25AA Status:  {} ({} iterations in {:.3f}s)",
-            fmt::format("{}", green("Success")),
+            green("Success"),
             iter_count,
             elapsed_time);
     }
@@ -148,10 +147,10 @@ void EstimatorLogger::log_fixed_effects(
     logger_->info(subtitle("Fixed Effects"));
     for (size_t i = 0; i < model.n_fixed_effects(); ++i)
     {
-        logger_->info(
-            " \u25AA {}:  {}",
+        logger_->info(item(
+            "{}:  {}",
             model.fixed().levels[i],
-            format_value_with_std(model.fixed().beta.at(i), fixed_se[i]));
+            with_std(model.fixed().beta.at(i), fixed_se[i])));
     }
     logger_->info("");
 }
@@ -162,11 +161,11 @@ void EstimatorLogger::log_variance_components(const GBLUP& model)
     log_variance_category("Random", model.random().random_indices(), model);
     log_variance_category("Genetic", model.random().genetic_indices(), model);
     log_variance_category("GxE", model.random().gxe_indices(), model);
-    logger_->info(" \u25AA Residual:");
-    logger_->info(
-        "  - e:  {}",
-        format_value_with_std(
-            model.random().get("e")->sigma, model.random().get("e")->se));
+    logger_->info(item("Residual:"));
+
+    logger_->info(subitem(
+        "e:  {}",
+        with_std(model.random().get("e")->sigma, model.random().get("e")->se)));
     logger_->info("");
 }
 
@@ -179,11 +178,11 @@ void EstimatorLogger::log_heritability(
     size_t index{};
     for (auto genetic_index : model.random().genetic_indices())
     {
-        logger_->info(
-            " \u25AA {}:  {}",
+        logger_->info(item(
+            "{}:  {}",
             model.random()[genetic_index].name,
-            format_value_with_std(
-                model.random()[genetic_index].sigma / sum_var, h2_se[index]));
+            with_std(
+                model.random()[genetic_index].sigma / sum_var, h2_se[index])));
         ++index;
     }
 }
@@ -206,11 +205,10 @@ void EstimatorLogger::log_variance_category(
     logger_->info(" \u25AA {}:", category);
     for (auto i : indices)
     {
-        logger_->info(
-            "  - {}:  {}",
+        logger_->info(subitem(
+            "{}:  {}",
             model.random()[i].name,
-            format_value_with_std(
-                model.random()[i].sigma, model.random()[i].se));
+            with_std(model.random()[i].sigma, model.random()[i].se)));
     }
 }
 

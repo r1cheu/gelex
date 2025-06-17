@@ -1,8 +1,11 @@
+#include <fmt/format.h>
 #include <armadillo>
+#include <vector>
 
 #include "gelex/dist.h"
 #include "gelex/estimator/bayes/base.h"
 #include "gelex/model/bayes/effects.h"
+#include "gelex/utils/formatter.h"
 
 namespace gelex
 {
@@ -19,6 +22,17 @@ struct GeneticTrait<BayesAlphabet::A>
         return arma::dvec(X.n_cols, arma::fill::value(DEFAULT_SIGMA));
     }
     static arma::dvec pi() { return arma::dvec(); }
+    static std::vector<std::string>
+    prior_str(double nu, double s2, const arma::dvec& pi)
+    {
+        std::vector<std::string> prior_strings;
+        prior_strings.reserve(3);
+        prior_strings.emplace_back("BayesA\n");
+        prior_strings.emplace_back("    ├─ αᵢ ~ N(0, σ²ᵢ)\n");
+        prior_strings.emplace_back(
+            fmt::format("    └─ σ²ᵢ ~ Inv-χ²(ν={}, s²={})", nu, s2));
+        return prior_strings;
+    }
     static void sample(
         const GeneticEffectDesign& design,
         GeneticEffectState& state,
@@ -75,6 +89,15 @@ struct GeneticTrait<BayesAlphabet::RR>
         return arma::dvec{DEFAULT_SIGMA};
     }
     static arma::dvec pi() { return arma::dvec(); }
+    static std::string prior_str(double nu, double s2, const arma::dvec& pi)
+    {
+        return fmt::format(
+            "BayesRR\n"
+            "    ├─ αᵢ ~ N(0, σ²)\n"
+            "    └─ σ² ~ Inv-χ²(ν={}, s²={})",
+            nu,
+            s2);
+    }
     static void sample(
         const GeneticEffectDesign& design,
         GeneticEffectState& state,
@@ -134,7 +157,16 @@ struct GeneticTrait<BayesAlphabet::B>
         return arma::zeros<arma::dvec>(X.n_cols);
     }
 
-    static arma::dvec pi() { return arma::dvec{0.95, 0}; }
+    static arma::dvec pi() { return arma::dvec{0.95, 0.05}; }
+    static std::string prior_str(double nu, double s2, const arma::dvec& pi)
+    {
+        return fmt::format(
+            "BayesB\n"
+            "    ├─ αᵢ ~ 0.05 N(0, σ²ᵢ) + 0.95δ₀\n"
+            "    └─ σ²ᵢ ~ Inv-χ²(ν={}, s²={})",
+            nu,
+            s2);
+    }
     static void sample(
         const GeneticEffectDesign& design,
         GeneticEffectState& state,
@@ -217,7 +249,18 @@ struct GeneticTrait<BayesAlphabet::Bpi>
     {
         return arma::zeros<arma::dvec>(X.n_cols);
     }
-    static arma::dvec pi() { return arma::dvec{0.95, 0}; }
+    static arma::dvec pi() { return arma::dvec{0.95, 0.05}; }
+    static std::string prior_str(double nu, double s2, const arma::dvec& pi)
+    {
+        return fmt::format(
+            "BayesBπ \n"
+            "    ├─ αᵢ ~ (1-π) N(0, σ²ᵢ) + πδ₀\n"
+            "    ├─ σ²ᵢ ~ Inv-χ²(ν={}, s²={})\n"
+            "    └─ π = {}",
+            nu,
+            s2,
+            pi.at(0));
+    }
     static void sample(
         const GeneticEffectDesign& design,
         GeneticEffectState& state,
@@ -240,6 +283,16 @@ struct GeneticTrait<BayesAlphabet::C>
         return arma::dvec{DEFAULT_SIGMA};
     }
     static arma::dvec pi() { return arma::dvec{0.95, 0.05}; }
+
+    static std::string prior_str(double nu, double s2, const arma::dvec& pi)
+    {
+        return fmt::format(
+            "BayesC \n"
+            "    ├─ αᵢ ~ 0.05 N(0, σ²) + 0.95 δ₀\n"
+            "    └─ σ² ~ Inv-χ²(ν={}, s²={})",
+            nu,
+            s2);
+    }
     static void sample(
         const GeneticEffectDesign& design,
         GeneticEffectState& state,
@@ -323,6 +376,17 @@ struct GeneticTrait<BayesAlphabet::Cpi>
         return arma::zeros<arma::dvec>(1);
     }
     static arma::dvec pi() { return arma::dvec{0.95, 0}; }
+    static std::string prior_str(double nu, double s2, const arma::dvec& pi)
+    {
+        return fmt::format(
+            "BayesCπ \n"
+            "    ├─ αᵢ ~ (1-π) N(0, σ²) + πδ₀\n"
+            "    ├─ σ² ~ Inv-χ²(ν={}, s²={})\n"
+            "    └─ π = {}",
+            nu,
+            s2,
+            pi.at(0));
+    }
     static void sample(
         const GeneticEffectDesign& design,
         GeneticEffectState& state,
@@ -345,6 +409,12 @@ struct GeneticTrait<BayesAlphabet::R>
         return arma::dvec{0, 1e-4, 1e-3, 1e-2, 0};
     }  // this sigma from 0-3 is the scaler the last one is the ture sigma
     static arma::dvec pi() { return arma::dvec{0.95, 0.02, 0.02, 0.01}; }
+    static std::string prior_str(double nu, double s2, const arma::dvec& pi)
+    {
+        return fmt::format(
+            "BayesR (αj ∼ π1 N(0, 10⁻²σ²α) + π2 N(0, 10⁻³σ²α) + π3 N(0, "
+            "10⁻⁴σ²α) + (1-π1-π2-π3)δ0)");
+    }
     static void sample(
         const GeneticEffectDesign& effect,
         GeneticEffectState& state,
@@ -370,6 +440,7 @@ constexpr std::size_t to_index(BayesAlphabet e)
 }
 
 using Fn = arma::dvec (*)(const arma::dmat&);
+using FnPrior_str = std::string (*)(double, double, const arma::dvec&);
 using FnSample = void (*)(
     const GeneticEffectDesign&,
     GeneticEffectState&,
@@ -410,4 +481,15 @@ inline constexpr std::array<FnPi, to_index(BayesAlphabet::Count)> bayes_trait_pi
         &GeneticTrait<BayesAlphabet::Cpi>::pi,
         &GeneticTrait<BayesAlphabet::R>::pi,
 };
-};  // namespace gelex
+
+inline constexpr std::array<FnPrior_str, to_index(BayesAlphabet::Count)>
+    bayes_trait_prior_str = {
+        &GeneticTrait<BayesAlphabet::A>::prior_str,
+        &GeneticTrait<BayesAlphabet::RR>::prior_str,
+        &GeneticTrait<BayesAlphabet::B>::prior_str,
+        &GeneticTrait<BayesAlphabet::Bpi>::prior_str,
+        &GeneticTrait<BayesAlphabet::C>::prior_str,
+        &GeneticTrait<BayesAlphabet::Cpi>::prior_str,
+        &GeneticTrait<BayesAlphabet::R>::prior_str,
+};
+}  // namespace gelex
