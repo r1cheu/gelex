@@ -81,7 +81,17 @@ void MCMCLogger::log_model_information(
         {
             auto prior_str = bayes_trait_prior_str[to_index(effect.type)](
                 effect.prior.nu, effect.prior.s2, effect.pi);
-            logger_->info(item("{}: {}", effect.name, prior_str));
+            for (size_t i{}; i < prior_str.size(); ++i)
+            {
+                if (i == 0)
+                {
+                    logger_->info(item("{}: {}", effect.name, prior_str[i]));
+                }
+                else
+                {
+                    logger_->info("{}", prior_str[i]);
+                }
+            }
         }
     }
 
