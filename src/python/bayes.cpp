@@ -55,25 +55,31 @@ void bayes_model(nb::module_& module)
             "phenotype"_a,
             nb::keep_alive<1, 3>())
         .def(
-            "add_fixed_effect",
+            "_add_fixed_effect",
             &gx::BayesModel::add_fixed_effect,
             "names"_a,
             "levels"_a,
             "design_mat"_a,
             nb::keep_alive<1, 4>())
         .def(
-            "add_random_effect",
+            "_add_random_effect",
             &gx::BayesModel::add_random_effect,
             "name"_a,
             "design_mat"_a,
             nb::keep_alive<1, 3>())
         .def(
-            "add_genetic_effect",
+            "_add_genetic_effect",
             &gx::BayesModel::add_genetic_effect,
             "name"_a,
             "design_mat"_a,
             "type"_a,
             nb::keep_alive<1, 3>())
+        .def("set_sigma_prior", &gx::BayesModel::set_sigma_prior)
+        .def("set_pi_prior", &gx::BayesModel::set_pi_prior)
+        .def(
+            "prior_summary",
+            [](const gx::BayesModel& model)
+            { nb::print(model.prior_summary().c_str()); })
         .def(
             "__repr__",
             [](const gx::BayesModel& model)

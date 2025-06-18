@@ -49,7 +49,7 @@ class make_bayes(ModelMakerBase):
             np.asfortranarray(design_mat.response),
         )
 
-        model.add_fixed_effect(
+        model._add_fixed_effect(
             list(design_mat.common.terms),
             self._get_fixed_levels(design_mat.common.terms),
             np.asfortranarray(design_mat.common.design_matrix),
@@ -57,14 +57,14 @@ class make_bayes(ModelMakerBase):
 
         if design_mat.group is not None:
             for name, matrix in design_mat.group.terms.items():
-                model.add_random_effect(
+                model._add_random_effect(
                     "(" + name + ")", np.asfortranarray(matrix.data)
                 )
 
         for term in fparser.genetic_terms:
             genotype = genotypes[term.genetic].to_numpy()
             genotype = _sp_dense_dot(design_matrix_genetic, genotype)
-            model.add_genetic_effect(
+            model._add_genetic_effect(
                 term.name,
                 genotype,
                 bayes_type,

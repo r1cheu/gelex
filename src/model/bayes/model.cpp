@@ -6,6 +6,7 @@
 
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/policy.h"
+#include "gelex/utils/formatter.h"
 
 namespace gelex
 {
@@ -63,9 +64,16 @@ void BayesModel::set_sigma_prior(const std::string& name, double nu, double s2)
         genetic_effect->prior = {nu, s2};
         return;
     }
+
+    if (name == "e")
+    {
+        residual_.prior = {nu, s2};
+        return;
+    }
+
     throw std::runtime_error(
         fmt::format(
-            "Effect not found: {}, `{}, {}` are available.",
+            "Effect not found: {}, `{} {} e` are available.",
             name,
             fmt::join(random_.names(), ", "),
             fmt::join(genetic_.names(), ", ")));
@@ -85,9 +93,48 @@ void BayesModel::set_pi_prior(const std::string& name, const arma::dvec& pi)
             fmt::join(genetic_.names(), ", ")));
 }
 
-void BayesModel::set_residual_prior(double nu, double s2)
+std::string BayesModel::prior_summary() const
 {
-    residual_.prior = {nu, s2};
+    std::string summary{"prior summary:\n"};
+
+    if (random_)
+    {
+        for (const auto& effect : random_.effects())
+        {
+            summary += fmt::format(
+                "{}: {}",
+                effect.name,
+                sigma_prior(effect.name, effect.prior.nu, effect.prior.s2));
+            summary += '\n';
+        }
+    }
+
+    if (genetic_)
+    {
+        for (const auto& effect : genetic_.effects())
+        {
+            auto prior_str = bayes_trait_prior_str[to_index(effect.type)](
+                effect.prior.nu, effect.prior.s2, effect.pi);
+            for (size_t i{}; i < prior_str.size(); ++i)
+            {
+                if (i == 0)
+                {
+                    summary += fmt::format("{}: {}", effect.name, prior_str[i]);
+                }
+                else
+                {
+                    summary += prior_str[i];
+                }
+                summary += '\n';
+            }
+        }
+    }
+
+    summary += fmt::format(
+        "e: {}", sigma_prior("", residual_.prior.nu, residual_.prior.s2));
+    summary += '\n';
+
+    return summary;
 }
 
 }  // namespace gelex

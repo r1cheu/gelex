@@ -71,7 +71,7 @@ void MCMCLogger::log_model_information(
             logger_->info(item(
                 "{}: {}",
                 effect.name,
-                sigma_prior("_e", effect.prior.nu, effect.prior.s2)));
+                sigma_prior("", effect.prior.nu, effect.prior.s2)));
         }
     }
 
