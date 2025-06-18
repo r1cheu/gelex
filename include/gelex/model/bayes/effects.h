@@ -60,11 +60,12 @@ struct RandomEffectDesign : BaseEffectDesign
 
     std::string name;
     SigmaPrior prior;
+    arma::dvec sigma{0};  // set to dvec (not double) for consistency
 };
 
 struct RandomEffectState : BaseEffectState
 {
-    explicit RandomEffectState(size_t n_coeff);
+    explicit RandomEffectState(size_t n_coeff, const arma::dvec& init_sigma);
     arma::dvec coeff;
     arma::dvec sigma{0};  // set to dvec (not double) for consistency
 };
@@ -78,8 +79,6 @@ struct GeneticEffectDesign : RandomEffectDesign
         arma::dvec&& sigma_,
         arma::dvec&& pi_);
 
-    arma::dvec cols_var;
-    size_t n_zero_var_snp;
     BayesAlphabet type;
     arma::dvec pi;
     arma::dvec sigma;
@@ -159,6 +158,8 @@ class EffectDesignManager
     }
     const Design& operator[](size_t index) const { return effects_[index]; }
     Design& operator[](size_t index) { return effects_[index]; }
+    const Design& back() const { return effects_.back(); }
+    Design& back() { return effects_.back(); }
 
     explicit operator bool() const { return !effects_.empty(); }
 

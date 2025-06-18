@@ -52,14 +52,26 @@ class BayesModel
     auto& genetic() { return genetic_; }
     auto& residual() { return residual_; }
 
-    void set_sigma_prior(const std::string& name, double nu, double s2);
+    // Existing method (keep for expert users)
+    void set_sigma_prior_manul(
+        const std::string& name,
+        double nu,
+        double s2,
+        double init_sigma);
+
+    // New overload with default calculation
+    void set_sigma_prior(
+        const std::string& name,
+        double sigma_prop,
+        double nu = 4.0);
+
+    // Keep existing pi prior method
     void set_pi_prior(const std::string& name, const arma::dvec& pi);
 
     std::string prior_summary() const;
 
     const arma::dvec& phenotype() const { return phenotype_; }
     double phenotype_var() const { return phenotype_var_; }
-
     size_t n_individuals() const { return n_individuals_; }
 
    private:

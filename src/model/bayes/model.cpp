@@ -19,7 +19,7 @@ BayesModel::BayesModel(std::string formula, dvec&& phenotype)
     n_individuals_ = phenotype_.n_elem;      // NOLINT
     mu_.value = arma::mean(phenotype_);      // NOLINT
     phenotype_var_ = arma::var(phenotype_);  // NOLINT
-    residual_.value = 0.01;
+    set_sigma_prior("e", 0.5);
 }
 
 void BayesModel::add_fixed_effect(
@@ -34,6 +34,13 @@ void BayesModel::add_fixed_effect(
 void BayesModel::add_random_effect(std::string&& name, dmat&& design_mat)
 {
     random_.add(RandomEffectDesign(std::move(name), std::move(design_mat)));
+
+    auto nr = static_cast<double>(random_.size());
+    for (auto& effect : random_.effects())
+    {
+        set_sigma_prior(effect.name, 0.5 / (nr + 1));
+    }
+    set_sigma_prior("e", 0.5 / (nr + 1));
 }
 
 void BayesModel::add_genetic_effect(
@@ -50,24 +57,76 @@ void BayesModel::add_genetic_effect(
         type,
         std::move(sigma),
         std::move(pi)));
+    set_sigma_prior(genetic_.back().name, 0.5, 4.0);
 }
 
-void BayesModel::set_sigma_prior(const std::string& name, double nu, double s2)
+// Keep existing implementation for expert users
+void BayesModel::set_sigma_prior_manul(
+    const std::string& name,
+    double nu,
+    double s2,
+    double init_sigma)
 {
     if (auto* random_effect = random_.get(name))
     {
         random_effect->prior = {nu, s2};
+        random_effect->sigma.fill(init_sigma);
         return;
     }
     if (auto* genetic_effect = genetic_.get(name))
     {
         genetic_effect->prior = {nu, s2};
+        genetic_effect->sigma.fill(init_sigma);
         return;
     }
 
     if (name == "e")
     {
         residual_.prior = {nu, s2};
+        residual_.value = init_sigma;
+        return;
+    }
+
+    throw std::runtime_error(
+        fmt::format(
+            "Effect not found: {}, `{} {} e` are available.",
+            name,
+            fmt::join(random_.names(), ", "),
+            fmt::join(genetic_.names(), ", ")));
+}
+
+// New implementation with default calculation
+void BayesModel::set_sigma_prior(
+    const std::string& name,
+    double sigma_prop,
+    double nu)
+{
+    double sigma = sigma_prop * phenotype_var_;
+    double s2 = sigma * (nu - 2) / nu;
+
+    if (name == "e")
+    {  // Residual effect
+        residual_.prior = {nu, s2};
+        residual_.value = sigma;
+        return;
+    }
+
+    if (auto* random_effect = random_.get(name))
+    {
+        random_effect->prior = {nu, s2};
+        random_effect->sigma.fill(sigma);
+        return;
+    }
+
+    if (auto* genetic_effect = genetic_.get(name))
+    {
+        const size_t num_snps = genetic_effect->design_mat.n_cols;
+        const double pi0 = genetic_effect->pi.at(0);
+        const double n_casual_snp = static_cast<double>(num_snps) * (1 - pi0);
+        s2 /= n_casual_snp;
+        sigma /= n_casual_snp;
+        genetic_effect->prior = {nu, s2};
+        genetic_effect->sigma.fill(sigma);
         return;
     }
 

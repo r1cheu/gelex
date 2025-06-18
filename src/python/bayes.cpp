@@ -75,6 +75,7 @@ void bayes_model(nb::module_& module)
             "type"_a,
             nb::keep_alive<1, 3>())
         .def("set_sigma_prior", &gx::BayesModel::set_sigma_prior)
+        .def("set_sigma_prior_manual", &gx::BayesModel::set_sigma_prior_manul)
         .def("set_pi_prior", &gx::BayesModel::set_pi_prior)
         .def(
             "prior_summary",

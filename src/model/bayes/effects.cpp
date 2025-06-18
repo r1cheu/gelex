@@ -31,7 +31,8 @@ FixedEffectDesign::FixedEffectDesign(
 RandomEffectDesign::RandomEffectDesign(std::string&& name_, dmat&& design_mat_)
     : name(std::move(name_)), BaseEffectDesign(std::move(design_mat_)) {};
 
-RandomEffectState::RandomEffectState(size_t n_coeff) : BaseEffectState(n_coeff)
+RandomEffectState::RandomEffectState(size_t n_coeff, const dvec& init_sigma)
+    : BaseEffectState(n_coeff), sigma{init_sigma}
 {
 }
 
@@ -46,8 +47,6 @@ GeneticEffectDesign::GeneticEffectDesign(
       sigma(std::move(sigma_)),
       type(type_)
 {
-    cols_var = compute_cols_var(design_mat);  // NOLINT
-    n_zero_var_snp = arma::sum(cols_var == 0);
 }
 
 GeneticEffectState::GeneticEffectState(
@@ -83,7 +82,7 @@ std::vector<RandomEffectState> create_thread_states(
     states.reserve(designs.size());
     for (const auto& design : designs.effects())
     {
-        states.emplace_back(design.design_mat.n_cols);
+        states.emplace_back(design.design_mat.n_cols, design.sigma);
     }
     return states;
 }

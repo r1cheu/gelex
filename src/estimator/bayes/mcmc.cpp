@@ -54,6 +54,8 @@ void MCMC::run(const BayesModel& model, size_t seed)
     bars->done();
 
     auto rhat = split_gelman_rubin(samples_->mu());
+    fmt::print(
+        "mu mean: {:.6f}", arma::as_scalar(arma::mean(samples_->mu(), 1)));
     fmt::print("mu rhat: {:.6f}", arma::as_scalar(rhat));
     auto ess = effect_sample_size(samples_->mu());
     fmt::print(" mu ess: {:.6f}\n", arma::as_scalar(ess));

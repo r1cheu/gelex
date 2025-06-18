@@ -49,7 +49,7 @@ std::string ToLowercase(std::string_view input)
 }
 std::string scale_inv_chisq(double nu, double s2)
 {
-    return fmt::format("Inv-\u03C7\u00B2(\u03BD={}, s\u00B2={})", nu, s2);
+    return fmt::format("Inv-\u03C7\u00B2(\u03BD={}, s\u00B2={:.4f})", nu, s2);
 }
 
 std::string sigma_squared(const std::string& subscript)
