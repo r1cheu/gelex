@@ -1,5 +1,6 @@
 #include <fmt/format.h>
 #include <armadillo>
+#include <cassert>
 #include <vector>
 
 #include "gelex/dist.h"
@@ -103,7 +104,6 @@ struct GeneticTrait<BayesAlphabet::RR>
         double sigma_e,
         std::mt19937_64& rng)
     {
-        return;
         arma::dvec& coeff = state.coeff;
         double* u = state.u.memptr();
         const arma::dvec& cols_norm = design.cols_norm;

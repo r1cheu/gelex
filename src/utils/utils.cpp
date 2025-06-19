@@ -19,6 +19,42 @@
 
 namespace gelex
 {
+
+arma::dvec centralize(arma::dmat& x)
+{
+    arma::dvec x_mean(x.n_cols, arma::fill::zeros);
+#pragma omp parallel for default(none) shared(x, x_mean)
+    for (size_t i = 0; i < x.n_cols; ++i)
+    {
+        arma::dvec col = x.unsafe_col(i);
+        double mean_i = arma::mean(col);
+        x_mean.at(i) = mean_i;
+        col -= mean_i;
+    }
+    return x_mean;
+}
+
+std::pair<arma::dvec, arma::dvec> standradize(arma::dmat& x)
+{
+    arma::dvec x_mean(x.n_cols, arma::fill::zeros);
+    arma::dvec x_stddev(x.n_cols, arma::fill::zeros);
+#pragma omp parallel for default(none) shared(x, x_mean, x_stddev)
+    for (size_t i = 0; i < x.n_cols; ++i)
+    {
+        arma::dvec col = x.unsafe_col(i);
+        double mean = arma::mean(col);
+        double stddev = arma::stddev(col);
+
+        x_mean.at(i) = mean;
+        x_stddev.at(i) = stddev;
+        col -= mean;
+        if (stddev != 0)
+        {
+            col /= stddev;
+        }
+    }
+    return {x_mean, x_stddev};
+}
 LevelFormatter::LevelFormatter()
 {
     info_formatter_ = std::make_unique<spdlog::pattern_formatter>("%v");

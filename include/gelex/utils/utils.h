@@ -10,9 +10,13 @@
 #include <spdlog/formatter.h>
 #include <spdlog/logger.h>
 #include <spdlog/spdlog.h>
+#include <armadillo>
 
 namespace gelex
 {
+
+arma::dvec centralize(arma::dmat& x);
+std::pair<arma::dvec, arma::dvec> standradize(arma::dmat& x);
 
 class LevelFormatter : public spdlog::formatter
 {
