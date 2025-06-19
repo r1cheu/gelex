@@ -145,7 +145,6 @@ void mcmc_params(nb::module_& module)
 void mcmc_storage(nb::module_& module)
 {
     nb::class_<gx::MCMCSamples>(module, "MCMCSamples")
-        .def_prop_ro("mu", &gx::MCMCSamples::mu)
         .def_prop_ro("fixed", &gx::MCMCSamples::fixed)
         .def_prop_ro("random", &gx::MCMCSamples::random)
         .def_prop_ro("genetic", &gx::MCMCSamples::genetic)

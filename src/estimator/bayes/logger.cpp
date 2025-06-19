@@ -45,11 +45,7 @@ void MCMCLogger::log_model_information(
     logger_->info("");
 
     logger_->info(subtitle("Term Summary"));
-    if (model.fixed())
-    {
-        logger_->info(
-            item("Fixed:  {}", fmt::join(model.fixed()->names, ", ")));
-    }
+    logger_->info(item("Fixed:  {}", fmt::join(model.fixed().names, ", ")));
     if (model.random())
     {
         logger_->info(

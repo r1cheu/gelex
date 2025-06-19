@@ -42,7 +42,6 @@ TEST_CASE("MCMCSamples stores correctly", "[mcmc_samples]")
     MCMCSamples samples(params, model);
 
     BayesStatus status(model);
-    status.mu.value = 1.0;
     status.fixed.coeff = {0.5};
     status.random[0].coeff = {0.1, 0.2};
     status.random[0].sigma = {0.5};
@@ -52,7 +51,6 @@ TEST_CASE("MCMCSamples stores correctly", "[mcmc_samples]")
 
     BayesStatus status_back = status;
 
-    status.mu.value = 2.0;
     status.fixed.coeff = {1.0};
     status.random[0].coeff = {0.3, 0.4};
     status.random[0].sigma = {0.6};
@@ -64,11 +62,6 @@ TEST_CASE("MCMCSamples stores correctly", "[mcmc_samples]")
     samples.store(status, 1, 0);
     samples.store(status, 0, 1);
     samples.store(status_back, 1, 1);
-
-    dcube mu(1, 2, 2);
-    mu.slice(0) = rowvec{1.0, 2.0};
-    mu.slice(1) = rowvec{2.0, 1.0};
-    REQUIRE(approx_equal(samples.mu(), mu, "absdiff", 1e-5));
 
     dcube fixed(1, 2, 2);
     fixed.slice(0) = rowvec{0.5, 1};

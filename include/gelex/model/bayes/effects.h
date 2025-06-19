@@ -103,12 +103,6 @@ struct Residual
     double value{0.0};
 };
 
-struct Mu
-{
-    std::string name{"mu"};
-    double value{0.0};
-};
-
 template <typename Design>
 class EffectDesignManager
 {

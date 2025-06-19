@@ -52,18 +52,6 @@ void MCMC::run(const BayesModel& model, size_t seed)
         t.join();
     }
     bars->done();
-
-    auto rhat = split_gelman_rubin(samples_->mu());
-    fmt::print(
-        "mu mean: {:.6f}", arma::as_scalar(arma::mean(samples_->mu(), 1)));
-    fmt::print("mu rhat: {:.6f}", arma::as_scalar(rhat));
-    auto ess = effect_sample_size(samples_->mu());
-    fmt::print(" mu ess: {:.6f}\n", arma::as_scalar(ess));
-
-    rhat = split_gelman_rubin(samples_->residual());
-    fmt::print("residual rhat: {:.6f}", arma::as_scalar(rhat));
-    ess = effect_sample_size(samples_->residual());
-    fmt::print(" residual ess: {:.6f}\n", arma::as_scalar(ess));
 }
 
 void MCMC::run_one_chain(
@@ -76,7 +64,6 @@ void MCMC::run_one_chain(
 
     arma::dvec y_adj = model.phenotype();
     BayesStatus status(model);
-    y_adj -= model.mu().value;
 
     size_t record_idx = 0;
     uvec snp_tracker(model.genetic()[0].design_mat.n_cols, arma::fill::zeros);
@@ -84,12 +71,8 @@ void MCMC::run_one_chain(
     for (; iter < params_.n_iters; ++iter)
     {
         double sigma_e = status.residual.value;
-        sample_mu(status.mu, y_adj, sigma_e, rng);
-        if (model.fixed())
-        {
-            sample_fixed_effect(
-                *model.fixed(), status.fixed, y_adj.memptr(), sigma_e, rng);
-        }
+        sample_fixed_effect(
+            model.fixed(), status.fixed, y_adj.memptr(), sigma_e, rng);
         for (size_t i = 0; i < model.random().size(); ++i)
         {
             sample_random_effect(
@@ -123,16 +106,6 @@ void MCMC::run_one_chain(
             samples_->store(status, record_idx++, chain);
         }
     }
-}
-
-void MCMC::sample_mu(Mu& mu, dvec& y_adj, double sigma_e, std::mt19937_64& rng)
-{
-    const auto n = static_cast<double>(y_adj.n_elem);
-    std::normal_distribution<double> adjustment_sampler{
-        arma::mean(y_adj), sqrt(sigma_e / n)};
-    double adj = -adjustment_sampler(rng);
-    mu.value -= adj;
-    y_adj += adj;
 }
 
 void MCMC::sample_fixed_effect(

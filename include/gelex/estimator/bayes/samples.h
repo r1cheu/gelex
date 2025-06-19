@@ -21,7 +21,6 @@ class MCMCSamples
     explicit MCMCSamples(const MCMCParams& params, const BayesModel& model);
     void store(const BayesStatus& status, size_t record_idx, size_t chain_idx);
 
-    const auto& mu() const { return mu_; }
     const auto& fixed() const { return fixed_; }
     const auto& random() const { return random_; }
     const auto& genetic() const { return genetic_; }
@@ -32,7 +31,6 @@ class MCMCSamples
     size_t n_chains_;
 
     // we store mu and residule in cube(1, n_records, n_chain)
-    arma::dcube mu_;
     arma::dcube fixed_;
     SampleGroup random_;
     SampleGroup genetic_;

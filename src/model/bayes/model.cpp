@@ -7,6 +7,7 @@
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/policy.h"
 #include "gelex/utils/formatter.h"
+#include "gelex/utils/utils.h"
 
 namespace gelex
 {
@@ -17,7 +18,6 @@ BayesModel::BayesModel(std::string formula, dvec&& phenotype)
     : formula_(std::move(formula)), phenotype_(std::move(phenotype))
 {
     n_individuals_ = phenotype_.n_elem;      // NOLINT
-    mu_.value = arma::mean(phenotype_);      // NOLINT
     phenotype_var_ = arma::var(phenotype_);  // NOLINT
     set_sigma_prior("e", 0.5);
 }
@@ -50,6 +50,8 @@ void BayesModel::add_genetic_effect(
 {
     auto pi = bayes_trait_pi.at(to_index(type))();
     auto sigma = bayes_trait_sigma.at(to_index(type))(genotype);
+
+    auto p2 = centralize(genotype);
 
     genetic_.add(GeneticEffectDesign(
         std::move(name),

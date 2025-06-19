@@ -40,14 +40,12 @@ class BayesModel
 
     const std::string& formula() const { return formula_; }
 
-    const auto& mu() const { return mu_; }
-    const auto& fixed() const { return fixed_; }
+    const auto& fixed() const { return *fixed_; }
     const auto& random() const { return random_; }
     const auto& genetic() const { return genetic_; }
     const auto& residual() const { return residual_; }
 
-    auto& mu() { return mu_; }
-    auto& fixed() { return fixed_; }
+    auto& fixed() { return *fixed_; }
     auto& random() { return random_; }
     auto& genetic() { return genetic_; }
     auto& residual() { return residual_; }
@@ -82,7 +80,6 @@ class BayesModel
     arma::dvec phenotype_;
     double phenotype_var_{};
 
-    Mu mu_;
     std::unique_ptr<FixedEffectDesign> fixed_;
     RandomEffectDesignManager random_;
     GeneticEffectDesignManager genetic_;
@@ -92,16 +89,12 @@ class BayesModel
 struct BayesStatus
 {
     explicit BayesStatus(const BayesModel& model)
-        : mu(model.mu()),
-          fixed(
-              model.fixed() ? FixedEffectState(model.fixed()->design_mat.n_cols)
-                            : FixedEffectState(0)),
+        : fixed(FixedEffectState(model.fixed().design_mat.n_cols)),
           random(create_thread_states(model.random())),
           genetic(create_thread_states(model.genetic())),
           residual(model.residual())
     {
     }
-    Mu mu;
     FixedEffectState fixed;
     std::vector<RandomEffectState> random;
     std::vector<GeneticEffectState> genetic;
