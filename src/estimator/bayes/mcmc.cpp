@@ -30,7 +30,6 @@ MCMC::MCMC(MCMCParams params) : params_(params) {}
 
 void MCMC::run(const BayesModel& model, size_t seed)
 {
-    omp_set_num_threads(1);
     samples_ = std::make_unique<MCMCSamples>(params_, model);
 
     std::vector<std::thread> threads;
@@ -44,8 +43,12 @@ void MCMC::run(const BayesModel& model, size_t seed)
     bars->show();
     for (size_t i = 0; i < n_chains; ++i)
     {
-        threads.emplace_back([this, &model, seed, i, &idxs]
-                             { run_one_chain(model, i, seed + i, idxs[i]); });
+        threads.emplace_back(
+            [this, &model, seed, i, &idxs]
+            {
+                omp_set_num_threads(1);
+                run_one_chain(model, i, seed + i, idxs[i]);
+            });
     }
     for (auto& t : threads)
     {
