@@ -1,4 +1,5 @@
 #include "gelex/estimator/bayes/samples.h"
+#include "armadillo"
 #include "gelex/estimator/bayes/mcmc.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
@@ -13,6 +14,8 @@ MCMCSamples::MCMCSamples(const MCMCParams& params, const BayesModel& model)
     fixed_.set_size(model.fixed().design_mat.n_cols, n_records_, n_chains_);
     init_group(random_, model.random());
     init_group(genetic_, model.genetic());
+    genetic_var_.set_size(model.genetic().size(), n_records_, n_chains_);
+    heritability_.set_size(model.genetic().size(), n_records_, n_chains_);
     residual_.set_size(1, n_records_, n_chains_);
 }
 
@@ -27,6 +30,8 @@ void MCMCSamples::store(
     }
 
     fixed_.slice(chain_idx).col(record_idx) = status.fixed.coeff;
+    genetic_var_.slice(chain_idx).col(record_idx) = status.genetic_var;
+    heritability_.slice(chain_idx).col(record_idx) = status.heritability;
 
     store_group(random_, status.random, record_idx, chain_idx);
     store_group(genetic_, status.genetic, record_idx, chain_idx);

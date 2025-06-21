@@ -6,7 +6,6 @@ level = logging.INFO
 
 class LowercaseLevelnameFormatter(logging.Formatter):
     def format(self, record):
-        # ANSI color codes
         GREEN = "\033[92m"
         RESET = "\033[0m"
 
@@ -20,9 +19,7 @@ def setup_logger(name: str):
     if not logger.hasHandlers():
         handler = logging.StreamHandler(sys.stdout)
         if level == logging.INFO:
-            handler.setFormatter(
-                LowercaseLevelnameFormatter("[%(levelname)s] %(message)s")
-            )
+            handler.setFormatter(LowercaseLevelnameFormatter("%(message)s"))
         else:
             handler.setFormatter(
                 LowercaseLevelnameFormatter(

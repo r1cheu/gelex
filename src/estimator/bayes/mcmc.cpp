@@ -1,16 +1,20 @@
+#include <atomic>
 #include <cstddef>
 #include <memory>
 #include <thread>
 #include <vector>
 
-#include <barkeep.h>
 #include <fmt/base.h>
 #include <fmt/format.h>
+#include <gelex/barkeep.h>
 
 #include <omp.h>
 
+#include "armadillo"
+#include "gelex/dist.h"
 #include "gelex/estimator/bayes/base.h"
 #include "gelex/estimator/bayes/diagnostics.h"
+#include "gelex/estimator/bayes/indicator.h"
 #include "gelex/estimator/bayes/logger.h"
 #include "gelex/estimator/bayes/mcmc.h"
 #include "gelex/estimator/bayes/result.h"
@@ -18,6 +22,7 @@
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/policy.h"
+#include "gelex/utils/formatter.h"
 
 namespace gelex
 {
@@ -32,36 +37,44 @@ void MCMC::run(const BayesModel& model, size_t seed)
 {
     samples_ = std::make_unique<MCMCSamples>(params_, model);
 
-    std::vector<std::thread> threads;
     const size_t n_chains = params_.n_chains;
-    std::vector<size_t> idxs(n_chains);
-    auto bars = MCMCLogger::progress_bar(idxs, params_.n_iters);
+    std::vector<std::atomic<size_t>> idxs(n_chains);
+    for (auto& i : idxs)
+    {
+        i = 0;
+    }
+
+    auto status_names = Indicator::create_status_names(model);
+    Indicator indicator(n_chains, params_.n_iters, idxs, status_names);
+
     logger_.log_model_information(model, params_);
 
+    indicator.show();
+    std::vector<std::thread> threads;
     threads.reserve(n_chains);
 
-    bars->show();
     for (size_t i = 0; i < n_chains; ++i)
     {
         threads.emplace_back(
-            [this, &model, seed, i, &idxs]
+            [this, &model, seed, i, &idxs, &indicator]
             {
                 omp_set_num_threads(1);
-                run_one_chain(model, i, seed + i, idxs[i]);
+                run_one_chain(model, i, seed + i, idxs[i], indicator);
             });
     }
     for (auto& t : threads)
     {
         t.join();
     }
-    bars->done();
+    indicator.done();
 }
 
 void MCMC::run_one_chain(
     const BayesModel& model,
     size_t chain,
     size_t seed,
-    size_t& iter)
+    std::atomic_size_t& iter,
+    Indicator& indicator)
 {
     std::mt19937_64 rng(seed);
 
@@ -71,9 +84,12 @@ void MCMC::run_one_chain(
     size_t record_idx = 0;
     uvec snp_tracker(model.genetic()[0].design_mat.n_cols, arma::fill::zeros);
 
+    ScaledInvChiSq residuel_sample{model.residual().prior};
+
     for (; iter < params_.n_iters; ++iter)
     {
         double sigma_e = status.residual.value;
+
         sample_fixed_effect(
             model.fixed(), status.fixed, y_adj.memptr(), sigma_e, rng);
         for (size_t i = 0; i < model.random().size(); ++i)
@@ -84,6 +100,10 @@ void MCMC::run_one_chain(
                 y_adj.memptr(),
                 sigma_e,
                 rng);
+            indicator.update(
+                chain,
+                sigma_squared("_" + model.random()[i].name),
+                status.random[i].sigma.at(0));
         }
         for (size_t i = 0; i < model.genetic().size(); ++i)
         {
@@ -94,18 +114,31 @@ void MCMC::run_one_chain(
                 snp_tracker,
                 sigma_e,
                 rng);
+            indicator.update(
+                chain,
+                sigma_squared("_" + model.genetic()[i].name),
+                status.genetic_var.at(i));
         }
 
-        const double ssq = arma::dot(y_adj, y_adj);
         auto& residual = status.residual;
-        residual.value = sample_scale_inv_chi_squared(
-            rng,
-            residual.prior.nu + static_cast<double>(model.n_individuals()),
-            (ssq + (residual.prior.s2 * residual.prior.nu)));
+        residuel_sample.update(arma::dot(y_adj, y_adj), model.n_individuals());
+        residual.value = residuel_sample.sample(rng);
+        status.compute_heritability();
+
+        for (size_t i = 0; i < model.genetic().size(); ++i)
+        {
+            indicator.update(
+                chain,
+                h2("_" + model.genetic()[i].name),
+                status.heritability.at(i));
+        }
+
+        indicator.update(chain, sigma_squared("_e"), status.residual.value);
 
         if (iter >= params_.n_burnin
             && (iter + 1 - params_.n_burnin) % params_.n_thin == 0)
         {
+            std::lock_guard<std::mutex> lock(samples_mutex_);
             samples_->store(status, record_idx++, chain);
         }
     }
@@ -169,11 +202,9 @@ void MCMC::sample_random_effect(
         coeff.at(i) = new_i;
         daxpy_ptr(n, old_i - new_i, col_i, y_adj);
     }
-    const double ssq = arma::dot(state.coeff, state.coeff);
-    state.sigma = sample_scale_inv_chi_squared(
-        rng,
-        design.prior.nu + static_cast<double>(coeff.n_elem),
-        (ssq + (design.prior.s2 * design.prior.nu)));
+    ScaledInvChiSq chi_squared{design.prior};
+    chi_squared.update(arma::dot(state.coeff, state.coeff), coeff.n_elem);
+    state.sigma.at(0) = chi_squared.sample(rng);
 }
 
 void MCMC::sample_genetic_effect(

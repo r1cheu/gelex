@@ -51,8 +51,6 @@ void BayesModel::add_genetic_effect(
     auto pi = bayes_trait_pi.at(to_index(type))();
     auto sigma = bayes_trait_sigma.at(to_index(type))(genotype);
 
-    auto p2 = centralize(genotype);
-
     genetic_.add(GeneticEffectDesign(
         std::move(name),
         std::move(genotype),
@@ -62,7 +60,6 @@ void BayesModel::add_genetic_effect(
     set_sigma_prior(genetic_.back().name, 0.5, 4.0);
 }
 
-// Keep existing implementation for expert users
 void BayesModel::set_sigma_prior_manul(
     const std::string& name,
     double nu,
@@ -107,7 +104,7 @@ void BayesModel::set_sigma_prior(
     double s2 = sigma * (nu - 2) / nu;
 
     if (name == "e")
-    {  // Residual effect
+    {
         residual_.prior = {nu, s2};
         residual_.value = sigma;
         return;
@@ -196,6 +193,28 @@ std::string BayesModel::prior_summary() const
     summary += '\n';
 
     return summary;
+}
+
+void BayesStatus::compute_heritability()
+{
+    double sum_var = 0;
+
+    for (const auto& rand : random)
+    {
+        sum_var += arma::as_scalar(rand.sigma);
+    }
+
+    for (size_t i = 0; i < genetic.size(); ++i)
+    {
+        double gen_var = arma::var(genetic[i].u);
+        sum_var += gen_var;
+        genetic_var.at(i) = gen_var;
+    }
+    sum_var += residual.value;
+    for (size_t i = 0; i < genetic.size(); ++i)
+    {
+        heritability.at(i) = genetic_var.at(i) / sum_var;
+    }
 }
 
 }  // namespace gelex

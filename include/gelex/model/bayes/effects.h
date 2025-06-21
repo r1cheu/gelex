@@ -6,16 +6,11 @@
 
 #include <armadillo>
 
+#include "gelex/dist.h"
 #include "gelex/model/effects.h"
 
 namespace gelex
 {
-
-struct SigmaPrior
-{
-    double nu{-2};
-    double s2{0};
-};
 
 struct Pi
 {
@@ -51,7 +46,6 @@ struct FixedEffectDesign : BaseEffectDesign
 struct FixedEffectState : BaseEffectState
 {
     using BaseEffectState::BaseEffectState;
-    explicit operator bool() const { return !coeff.empty(); }
 };
 
 struct RandomEffectDesign : BaseEffectDesign
@@ -59,7 +53,7 @@ struct RandomEffectDesign : BaseEffectDesign
     RandomEffectDesign(std::string&& name_, arma::dmat&& design_mat_);
 
     std::string name;
-    SigmaPrior prior;
+    ScaledInvChiSqParams prior;
     arma::dvec sigma{0};  // set to dvec (not double) for consistency
 };
 
@@ -82,6 +76,7 @@ struct GeneticEffectDesign : RandomEffectDesign
     BayesAlphabet type;
     arma::dvec pi;
     arma::dvec sigma;
+    arma::dvec mean;
 };
 
 struct GeneticEffectState : BaseEffectState
@@ -99,7 +94,7 @@ struct GeneticEffectState : BaseEffectState
 struct Residual
 {
     std::string name{"e"};
-    SigmaPrior prior;
+    ScaledInvChiSqParams prior;
     double value{0.0};
 };
 
@@ -154,6 +149,11 @@ class EffectDesignManager
     Design& operator[](size_t index) { return effects_[index]; }
     const Design& back() const { return effects_.back(); }
     Design& back() { return effects_.back(); }
+
+    auto begin() { return effects_.begin(); }
+    auto end() { return effects_.end(); }
+    auto begin() const { return effects_.begin(); }
+    auto end() const { return effects_.end(); }
 
     explicit operator bool() const { return !effects_.empty(); }
 

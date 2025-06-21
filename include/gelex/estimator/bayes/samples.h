@@ -30,30 +30,16 @@ class MCMCSamples
     size_t n_records_;
     size_t n_chains_;
 
-    // we store mu and residule in cube(1, n_records, n_chain)
     arma::dcube fixed_;
     SampleGroup random_;
     SampleGroup genetic_;
     arma::dcube residual_;
 
-    void init_group(
-        SampleGroup& group,
-        const RandomEffectDesignManager& effects) const
-    {
-        auto n_effects = effects.size();
-        group.coeffs.resize(n_effects);
-        group.sigmas.resize(n_effects);
-        for (size_t i = 0; i < n_effects; ++i)
-        {
-            group.coeffs[i].set_size(
-                effects[i].design_mat.n_cols, n_records_, n_chains_);
-            group.sigmas[i].set_size(1, n_records_, n_chains_);
-        }
-    }
+    arma::dcube genetic_var_;
+    arma::dcube heritability_;
 
-    void init_group(
-        SampleGroup& group,
-        const GeneticEffectDesignManager& effects) const
+    template <typename DesignManager>
+    void init_group(SampleGroup& group, const DesignManager& effects) const
     {
         auto n_effects = effects.size();
         group.coeffs.resize(n_effects);
@@ -80,6 +66,11 @@ class MCMCSamples
             group.sigmas[i].slice(chain_idx).col(record_idx) = status[i].sigma;
         }
     }
+
+    void store_heritability(
+        const std::vector<GeneticEffectState>& status,
+        size_t record_idx,
+        size_t chain_idx);
 };
 
 }  // namespace gelex

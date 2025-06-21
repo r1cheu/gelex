@@ -1,7 +1,9 @@
 #pragma once
 #include <cstddef>
+#include <mutex>
 #include <random>
 
+#include "gelex/estimator/bayes/indicator.h"
 #include "gelex/estimator/bayes/logger.h"
 #include "gelex/estimator/bayes/params.h"
 #include "gelex/estimator/bayes/result.h"
@@ -25,7 +27,8 @@ class MCMC
         const BayesModel& model,
         size_t chain,
         size_t seed,
-        size_t& iter);
+        std::atomic_size_t& iter,
+        Indicator& indicator);
     static void sample_fixed_effect(
         const FixedEffectDesign& design,
         FixedEffectState& state,
@@ -47,7 +50,10 @@ class MCMC
         std::mt19937_64& rng);
 
     MCMCLogger logger_;
+
     std::unique_ptr<MCMCSamples> samples_;
+    std::mutex samples_mutex_;
+
     MCMCParams params_;
     MCMCResult result_;
 };

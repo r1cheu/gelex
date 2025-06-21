@@ -51,10 +51,8 @@ target_compile_definitions(
             $<$<CONFIG:Debug>:ARMA_DEBUG> $<$<CONFIG:Release>:ARMA_NO_DEBUG>)
 
 target_include_directories(
-  common_config
-  INTERFACE ${PROJECT_SOURCE_DIR}/include
-            ${PROJECT_SOURCE_DIR}/ext/armadillo/include
-            ${PROJECT_SOURCE_DIR}/ext/barkeep/barkeep)
+  common_config INTERFACE ${PROJECT_SOURCE_DIR}/include
+                          ${PROJECT_SOURCE_DIR}/ext/armadillo/include)
 
 target_link_libraries(
   common_config INTERFACE OpenMP::OpenMP_CXX BLAS::BLAS spdlog::spdlog

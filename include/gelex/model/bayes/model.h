@@ -94,11 +94,17 @@ struct BayesStatus
           genetic(create_thread_states(model.genetic())),
           residual(model.residual())
     {
+        genetic_var.zeros(genetic.size());
+        heritability.zeros(genetic.size());
     }
+
+    void compute_heritability();
     FixedEffectState fixed;
     std::vector<RandomEffectState> random;
     std::vector<GeneticEffectState> genetic;
     Residual residual;
+    arma::dvec genetic_var;
+    arma::dvec heritability;
 };
 
 }  // namespace gelex

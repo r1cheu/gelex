@@ -2,9 +2,9 @@
 
 #include <vector>
 
-#include <barkeep.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <gelex/barkeep.h>
 #include <armadillo>
 
 #include "gelex/model/bayes/model.h"
@@ -95,25 +95,8 @@ void MCMCLogger::log_model_information(
         "e: {}",
         sigma_prior(
             "_e", model.residual().prior.nu, model.residual().prior.s2)));
-}
 
-std::shared_ptr<barkeep::CompositeDisplay> MCMCLogger::progress_bar(
-    std::vector<size_t>& idxs,
-    size_t total)
-{
-    std::vector<std::shared_ptr<bk::BaseDisplay>> displays;
-    for (size_t i = 0; i < idxs.size(); ++i)
-    {
-        idxs[i] = 0;
-        auto pb_config = bk::ProgressBarConfig<size_t>{
-            .total = total,
-            .message = fmt::format("Chain {}", i + 1),
-            .speed = 0.1,
-            .style = bk::ProgressBarStyle::Rich,
-            .show = false};
-        displays.push_back(bk::ProgressBar(&idxs[i], pb_config));
-    }
-    return bk::Composite(displays, "\n");
+    logger_->info(title(" MCMC "));
 }
 
 void MCMCLogger::log_iter_header(const BayesModel& model)

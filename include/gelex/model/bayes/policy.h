@@ -14,13 +14,12 @@ namespace gelex
 template <BayesAlphabet>
 struct GeneticTrait;
 
-static constexpr double DEFAULT_SIGMA = 0.01;
 template <>
 struct GeneticTrait<BayesAlphabet::A>
 {
     static arma::dvec sigma(const arma::dmat& X)
     {
-        return arma::dvec(X.n_cols, arma::fill::value(DEFAULT_SIGMA));
+        return arma::dvec(X.n_cols, arma::fill::zeros);
     }
     static arma::dvec pi() { return arma::dvec{0.0, 1.0}; }
     static std::vector<std::string>
@@ -48,17 +47,15 @@ struct GeneticTrait<BayesAlphabet::A>
         const arma::dvec& cols_norm = design.cols_norm;
         const arma::dmat& design_mat = design.design_mat;
         arma::dvec& sigma = state.sigma;
-
+        ScaledInvChiSq chi_squared{design.prior};
         std::normal_distribution<double> normal{0, 1};
         const int n = static_cast<int>(design_mat.n_rows);
 
         for (size_t i = 0; i < coeff.n_elem; ++i)
         {
             const double old_i = coeff.at(i);
-            const double new_sigma = sample_scale_inv_chi_squared(
-                rng,
-                design.prior.nu + 1,
-                ((old_i * old_i) + (design.prior.s2 * design.prior.nu)));
+            chi_squared.update(old_i * old_i, 1);
+            const double new_sigma = chi_squared.sample(rng);
             const double* col_i = design_mat.colptr(i);
             const double norm = cols_norm.at(i);
 
@@ -80,10 +77,7 @@ struct GeneticTrait<BayesAlphabet::A>
 template <>
 struct GeneticTrait<BayesAlphabet::RR>
 {
-    static arma::dvec sigma(const arma::dmat& X)
-    {
-        return arma::dvec{DEFAULT_SIGMA};
-    }
+    static arma::dvec sigma(const arma::dmat& X) { return arma::dvec{0}; }
     static arma::dvec pi() { return arma::dvec{0.0, 1.0}; }
     static std::vector<std::string>
     prior_str(double nu, double s2, const arma::dvec& pi)
@@ -112,6 +106,7 @@ struct GeneticTrait<BayesAlphabet::RR>
 
         const double sigma_e_sqrt = sqrt(sigma_e);
         const double inv_scaler_base = sigma_e / sigma_g;
+        ScaledInvChiSq chi_squared{design.prior};
 
         std::normal_distribution<double> normal{0, 1};
         const int n = static_cast<int>(design_mat.n_rows);
@@ -133,10 +128,8 @@ struct GeneticTrait<BayesAlphabet::RR>
             daxpy_ptr(n, -diff, col_i, u);
         }
         const double ssq = arma::dot(state.coeff, state.coeff);
-        state.sigma.at(0) = sample_scale_inv_chi_squared(
-            rng,
-            design.prior.nu + static_cast<double>(coeff.n_elem),
-            (ssq + (design.prior.s2 * design.prior.nu)));
+        chi_squared.update(ssq, coeff.n_elem);
+        state.sigma.at(0) = chi_squared.sample(rng);
     }
 };
 
@@ -176,6 +169,7 @@ struct GeneticTrait<BayesAlphabet::B>
         const arma::dmat& design_mat = design.design_mat;
         arma::dvec& sigma = state.sigma;
 
+        ScaledInvChiSq chi_squared{design.prior};
         std::normal_distribution<double> normal{0, 1};
         std::uniform_real_distribution<double> uniform{0, 1};
 
@@ -184,11 +178,8 @@ struct GeneticTrait<BayesAlphabet::B>
         for (size_t i = 0; i < coeff.n_elem; ++i)
         {
             const double old_i = coeff.at(i);
-            const double new_sigma = sample_scale_inv_chi_squared(
-                rng,
-                design.prior.nu + 1,
-                ((old_i * old_i) + (design.prior.s2 * design.prior.nu)));
-
+            chi_squared.update(old_i * old_i, 1);
+            const double new_sigma = chi_squared.sample(rng);
             const double* col_i = design_mat.colptr(i);
             const double norm = cols_norm.at(i);
             const double inv_scaler = 1 / (norm + sigma_e / new_sigma);
@@ -265,10 +256,7 @@ struct GeneticTrait<BayesAlphabet::Bpi>
 template <>
 struct GeneticTrait<BayesAlphabet::C>
 {
-    static arma::dvec sigma(const arma::dmat& X)
-    {
-        return arma::dvec{DEFAULT_SIGMA};
-    }
+    static arma::dvec sigma(const arma::dmat& X) { return arma::dvec{0}; }
     static arma::dvec pi() { return arma::dvec{0.95, 0.05}; }
 
     static std::vector<std::string>
@@ -344,10 +332,8 @@ struct GeneticTrait<BayesAlphabet::C>
         state.pi.count.at(1) = arma::sum(snp_tracker);
         state.pi.count.at(0) = coeff.n_elem - state.pi.count.at(1);
 
-        state.sigma.at(0) = sample_scale_inv_chi_squared(
-            rng,
-            design.prior.nu + static_cast<double>(state.pi.count.at(1)),
-            (var_a + (design.prior.s2 * design.prior.nu)));
+        ScaledInvChiSq chi_squared{design.prior};
+        chi_squared.update(var_a, static_cast<int>(state.pi.count.at(1)));
     }
 };
 

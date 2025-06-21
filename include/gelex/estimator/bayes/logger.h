@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-#include <barkeep.h>
+#include <gelex/barkeep.h>
 #include <spdlog/logger.h>
 
 #include "gelex/estimator/bayes/params.h"
@@ -21,9 +21,6 @@ class MCMCLogger
     void log_burnin_finished();
 
     void log_result(const MCMCResult& result);
-    static std::shared_ptr<barkeep::CompositeDisplay> progress_bar(
-        std::vector<size_t>& idxs,
-        size_t total);
 
    private:
     void log_iter_header(const BayesModel& model);

@@ -9,8 +9,6 @@ namespace gelex
 {
 std::string ToLowercase(std::string_view input);
 
-// help functions for logging
-std::string format_sigma_squared(const std::string& name);
 std::string with_std(double value, double std);
 std::string title(const std::string& text, size_t total_length = 80);
 std::string subtitle(const std::string& str);
@@ -38,6 +36,7 @@ std::string subitem(fmt::format_string<Args...> fmt_str, Args&&... args)
 std::string scale_inv_chisq(double nu, double s2);
 
 std::string sigma_squared(const std::string& subscript);
+std::string h2(const std::string& subscript);
 std::string sigma_prior(const std::string& subscript, double nu, double s2);
 
 // fmt color might be removed

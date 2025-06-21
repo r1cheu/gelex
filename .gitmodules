@@ -2,6 +2,3 @@
 [submodule "ext/armadillo"]
     path = ext/armadillo
     url = https://gitlab.com/conradsnicta/armadillo-code.git
-[submodule "ext/barkeep"]
-    path = ext/barkeep
-    url = https://github.com/oir/barkeep.git

@@ -27,10 +27,10 @@ using arma::dvec;
 
 void bayes_param(nb::module_& module)
 {
-    nb::class_<gx::SigmaPrior>(module, "SigmaParam")
+    nb::class_<gx::ScaledInvChiSqParams>(module, "SigmaParam")
         .def(nb::init<>())
-        .def_rw("nu", &gx::SigmaPrior::nu)
-        .def_rw("s2", &gx::SigmaPrior::s2);
+        .def_rw("nu", &gx::ScaledInvChiSqParams::nu)
+        .def_rw("s2", &gx::ScaledInvChiSqParams::s2);
 }
 
 void bayesalphabet(nb::module_& module)

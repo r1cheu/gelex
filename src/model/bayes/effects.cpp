@@ -1,5 +1,6 @@
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/effects.h"
+#include "gelex/utils/utils.h"
 
 namespace gelex
 {
@@ -47,6 +48,7 @@ GeneticEffectDesign::GeneticEffectDesign(
       sigma(std::move(sigma_)),
       type(type_)
 {
+    mean = centralize(design_mat);
 }
 
 GeneticEffectState::GeneticEffectState(

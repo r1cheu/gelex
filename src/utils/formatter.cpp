@@ -57,6 +57,11 @@ std::string sigma_squared(const std::string& subscript)
     return fmt::format("\u03C3\u00B2{}", subscript);
 }
 
+std::string h2(const std::string& subscript)
+{
+    return fmt::format("h\u00B2{}", subscript);
+}
+
 std::string sigma_prior(const std::string& subscript, double nu, double s2)
 {
     return fmt::format(
