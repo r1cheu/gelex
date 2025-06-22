@@ -240,27 +240,6 @@ void mcmc_result(nb::module_& module)
 
 void mcmc_diagnostics(nb::module_& m)
 {
-    m.def("gelman_rubin", &gelex::gelman_rubin, "samples"_a);
-    m.def(
-        "effective_sample_size",
-        &gelex::effect_sample_size,
-        "samples"_a,
-        "bias"_a = true);
-    m.def(
-        "autocorrelation",
-        &gelex::autocorrelation,
-        "samples"_a,
-        "bias"_a = true);
-    m.def(
-        "autocovariance", &gelex::autocovariance, "samples"_a, "bias"_a = true);
-    m.def("split_gelman_rubin", &gelex::split_gelman_rubin, "samples"_a);
-    m.def(
-        "tran_cube",
-        [](arma::dcube& x)
-        {
-            x.brief_print("before");
-            x.slice(0) += 1;
-            x.brief_print("after");
-        });
+    m.def("hpdi", &gelex::hpdi, "samples"_a, "prob"_a = 0.94);
 }
 }  // namespace bind

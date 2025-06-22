@@ -10,14 +10,6 @@ using arma::dcube;
 using arma::dmat;
 using arma::zeros;
 
-TEST_CASE("hpdi", "[diagnostics]")
-{
-    std::mt19937_64 rng(42);
-    std::normal_distribution<double> dist(0, 1);
-    dcube x(1, 20000, 1);
-    x.imbue([&]() { return dist(rng); });
-};
-
 TEST_CASE("gelman rubin", "[diagnostics]")
 {
     dcube x = zeros(1, 10, 2);
@@ -111,4 +103,16 @@ TEST_CASE("effective sample size", "[diagnostics]")
 
     auto result = gelex::effect_sample_size(x, false);
     REQUIRE(approx_equal(result, arma::dvec{52.64}, "absdiff", 0.01));
+}
+
+TEST_CASE("hpdi", "[diagnostics]")
+{
+    dcube x(2, 20000, 2);
+    std::mt19937_64 rng(42);
+    std::exponential_distribution<double> dist;
+    x.imbue([&]() { return dist(rng); });
+
+    dmat expected_exp = {{0.0, 0.22}, {0.0, 0.22}};
+    dmat result = gelex::hpdi(x, 0.2);
+    REQUIRE(approx_equal(result, expected_exp, "absdiff", 0.01));
 }
