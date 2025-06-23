@@ -10,5 +10,5 @@ arma::dmat split_gelman_rubin(const arma::dcube& samples);
 arma::dcube autocorrelation(const arma::dcube& x, bool bias = true);
 arma::dcube autocovariance(const arma::dcube& x, bool bias = true);
 arma::dvec effect_sample_size(const arma::dcube& x, bool bias = true);
-arma::dmat hpdi(const arma::dcube& samples, double prob = 0.90);
+std::pair<double, double> hpdi(arma::dvec& samples, double prob);
 }  // namespace gelex

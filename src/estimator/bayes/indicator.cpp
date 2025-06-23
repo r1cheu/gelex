@@ -1,6 +1,7 @@
 #include "gelex/estimator/bayes/indicator.h"
 #include <fmt/format.h>
 #include <vector>
+#include "gelex/model/bayes/policy.h"
 #include "gelex/utils/formatter.h"
 namespace gelex
 {
@@ -77,6 +78,14 @@ std::vector<std::string> Indicator::create_status_names(const BayesModel& model)
     for (const auto& genetic : model.genetic())
     {
         status_names.emplace_back(sigma_squared("_" + genetic.name));
+        if (bayes_trait_estimate_pi[to_index(genetic.type)])
+        {
+            for (size_t i = 0; i < genetic.pi.size(); ++i)
+            {
+                status_names.emplace_back(
+                    fmt::format("π{}_{}", i, genetic.name));
+            }
+        }
     }
 
     status_names.emplace_back(sigma_squared("_e"));

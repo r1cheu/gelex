@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <memory>
 #include <mutex>
 #include <random>
 
@@ -19,7 +20,7 @@ class MCMC
     explicit MCMC(MCMCParams params);
 
     void run(const BayesModel& model, size_t seed = 42);
-    const MCMCResult& result() const { return result_; }
+    const MCMCResult& result() const { return *result_; }
     const MCMCSamples& samples() const { return *samples_; }
 
    private:
@@ -55,6 +56,6 @@ class MCMC
     std::mutex samples_mutex_;
 
     MCMCParams params_;
-    MCMCResult result_;
+    std::unique_ptr<MCMCResult> result_;
 };
 }  // namespace gelex

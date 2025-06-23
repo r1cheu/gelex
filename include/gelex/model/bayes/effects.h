@@ -77,17 +77,23 @@ struct GeneticEffectDesign : RandomEffectDesign
     arma::dvec pi;
     arma::dvec sigma;
     arma::dvec mean;
+    arma::dvec stddev;
 };
 
 struct GeneticEffectState : BaseEffectState
 {
     explicit GeneticEffectState(
+        BayesAlphabet type_,
         size_t n_individual,
         size_t n_coeff,
         const arma::dvec& pi_prop,
         const arma::dvec& sigma_);
+
+    BayesAlphabet type;
     arma::dvec u;
     Pi pi;
+    double genetic_var{};
+    double heritability{};
     arma::dvec sigma;
 };
 

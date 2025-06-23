@@ -67,7 +67,7 @@ void EstimatorLogger::log_model_information(
     logger_->info(item("Max Iterations:  {:d}", max_iter));
     logger_->info(title(" REML ESTIMATION "));
     logger_->info(
-        "{:>5}{:>8}  {}  {:<10}",
+        "{:>9} {:>9} {} {:>9}",
         "Iter.",
         "logL",
         join_variance(model.random()),
@@ -94,8 +94,8 @@ void EstimatorLogger::log_iteration(
     double time_cost)
 {
     logger_->info(
-        " {:^2d}{:>12.3f}  "
-        "{:>7.3f} ({:.3f}s)",
+        "{:>9} {:>9.3f} "
+        "{:>9.3f} {:>9.3f}s",
         iter,
         loglike,
         fmt::join(effects.sigma(), " "),
@@ -252,7 +252,7 @@ std::string join_variance(const RandomEffectManager& effects)
     std::string result;
     for (const auto& effect : effects)
     {
-        result += fmt::format(" V[{}] ", effect.name);
+        result += fmt::format("{:>9}", fmt::format("V[{}]", effect.name));
     }
     return result;
 }

@@ -1,3 +1,4 @@
+#pragma once
 #include <fmt/format.h>
 #include <armadillo>
 #include <cassert>
@@ -21,6 +22,7 @@ struct GeneticTrait<BayesAlphabet::A>
     {
         return arma::dvec(X.n_cols, arma::fill::zeros);
     }
+    static const bool estimate_pi{false};
     static arma::dvec pi() { return arma::dvec{0.0, 1.0}; }
     static std::vector<std::string>
     prior_str(double nu, double s2, const arma::dvec& pi)
@@ -78,8 +80,11 @@ template <>
 struct GeneticTrait<BayesAlphabet::RR>
 {
     static arma::dvec sigma(const arma::dmat& X) { return arma::dvec{0}; }
+
+    static const bool estimate_pi{false};
     static arma::dvec pi() { return arma::dvec{0.0, 1.0}; }
     static std::vector<std::string>
+
     prior_str(double nu, double s2, const arma::dvec& pi)
     {
         std::vector<std::string> prior_strings;
@@ -141,6 +146,7 @@ struct GeneticTrait<BayesAlphabet::B>
         return arma::zeros<arma::dvec>(X.n_cols);
     }
 
+    static const bool estimate_pi{false};
     static arma::dvec pi() { return arma::dvec{0.95, 0.05}; }
     static std::vector<std::string>
     prior_str(double nu, double s2, const arma::dvec& pi)
@@ -226,6 +232,8 @@ struct GeneticTrait<BayesAlphabet::Bpi>
     {
         return arma::zeros<arma::dvec>(X.n_cols);
     }
+
+    static const bool estimate_pi{true};
     static arma::dvec pi() { return arma::dvec{0.95, 0.05}; }
     static std::vector<std::string>
     prior_str(double nu, double s2, const arma::dvec& pi)
@@ -257,6 +265,8 @@ template <>
 struct GeneticTrait<BayesAlphabet::C>
 {
     static arma::dvec sigma(const arma::dmat& X) { return arma::dvec{0}; }
+
+    static const bool estimate_pi{false};
     static arma::dvec pi() { return arma::dvec{0.95, 0.05}; }
 
     static std::vector<std::string>
@@ -344,6 +354,8 @@ struct GeneticTrait<BayesAlphabet::Cpi>
     {
         return arma::zeros<arma::dvec>(1);
     }
+
+    static const bool estimate_pi{true};
     static arma::dvec pi() { return arma::dvec{0.95, 0.05}; }
     static std::vector<std::string>
     prior_str(double nu, double s2, const arma::dvec& pi)
@@ -378,6 +390,7 @@ struct GeneticTrait<BayesAlphabet::R>
     {
         return arma::dvec{0, 1e-4, 1e-3, 1e-2, 0};
     }  // this sigma from 0-3 is the scaler the last one is the ture sigma
+    static const bool estimate_pi{true};
     static arma::dvec pi() { return arma::dvec{0.95, 0.02, 0.02, 0.01}; }
     static std::vector<std::string>
     prior_str(double nu, double s2, const arma::dvec& pi)
@@ -422,46 +435,65 @@ using FnSample = void (*)(
     std::mt19937_64&);
 using FnPi = arma::dvec (*)();
 
+using BayesATrait = GeneticTrait<BayesAlphabet::A>;
+using BayesRRTrait = GeneticTrait<BayesAlphabet::RR>;
+using BayesBTrait = GeneticTrait<BayesAlphabet::B>;
+using BayesBpiTrait = GeneticTrait<BayesAlphabet::Bpi>;
+using BayesCTrait = GeneticTrait<BayesAlphabet::C>;
+using BayesCpiTrait = GeneticTrait<BayesAlphabet::Cpi>;
+using BayesRTrait = GeneticTrait<BayesAlphabet::R>;
+
 inline constexpr std::array<Fn, to_index(BayesAlphabet::Count)>
     bayes_trait_sigma = {
-        &GeneticTrait<BayesAlphabet::A>::sigma,
-        &GeneticTrait<BayesAlphabet::RR>::sigma,
-        &GeneticTrait<BayesAlphabet::B>::sigma,
-        &GeneticTrait<BayesAlphabet::Bpi>::sigma,
-        &GeneticTrait<BayesAlphabet::C>::sigma,
-        &GeneticTrait<BayesAlphabet::Cpi>::sigma,
-        &GeneticTrait<BayesAlphabet::R>::sigma,
+        &BayesATrait::sigma,
+        &BayesRRTrait::sigma,
+        &BayesBTrait::sigma,
+        &BayesBpiTrait::sigma,
+        &BayesCTrait::sigma,
+        &BayesCpiTrait::sigma,
+        &BayesRTrait::sigma,
+};
+
+inline constexpr std::array<bool, to_index(BayesAlphabet::Count)>
+    bayes_trait_estimate_pi = {
+        BayesATrait::estimate_pi,
+        BayesRRTrait::estimate_pi,
+        BayesBTrait::estimate_pi,
+        BayesBpiTrait::estimate_pi,
+        BayesCTrait::estimate_pi,
+        BayesCpiTrait::estimate_pi,
+        BayesRTrait::estimate_pi,
 };
 
 inline constexpr std::array<FnSample, to_index(BayesAlphabet::Count)>
     bayes_trait_sample = {
-        &GeneticTrait<BayesAlphabet::A>::sample,
-        &GeneticTrait<BayesAlphabet::RR>::sample,
-        &GeneticTrait<BayesAlphabet::B>::sample,
-        &GeneticTrait<BayesAlphabet::Bpi>::sample,
-        &GeneticTrait<BayesAlphabet::C>::sample,
-        &GeneticTrait<BayesAlphabet::Cpi>::sample,
-        &GeneticTrait<BayesAlphabet::R>::sample,
+        &BayesATrait::sample,
+        &BayesRRTrait::sample,
+        &BayesBTrait::sample,
+        &BayesBpiTrait::sample,
+        &BayesCTrait::sample,
+        &BayesCpiTrait::sample,
+        &BayesRTrait::sample,
 };
 inline constexpr std::array<FnPi, to_index(BayesAlphabet::Count)> bayes_trait_pi
     = {
-        &GeneticTrait<BayesAlphabet::A>::pi,
-        &GeneticTrait<BayesAlphabet::RR>::pi,
-        &GeneticTrait<BayesAlphabet::B>::pi,
-        &GeneticTrait<BayesAlphabet::Bpi>::pi,
-        &GeneticTrait<BayesAlphabet::C>::pi,
-        &GeneticTrait<BayesAlphabet::Cpi>::pi,
-        &GeneticTrait<BayesAlphabet::R>::pi,
+        &BayesATrait::pi,
+        &BayesRRTrait::pi,
+        &BayesBTrait::pi,
+        &BayesBpiTrait::pi,
+        &BayesCTrait::pi,
+        &BayesCpiTrait::pi,
+        &BayesRTrait::pi,
 };
 
 inline constexpr std::array<FnPrior_str, to_index(BayesAlphabet::Count)>
     bayes_trait_prior_str = {
-        &GeneticTrait<BayesAlphabet::A>::prior_str,
-        &GeneticTrait<BayesAlphabet::RR>::prior_str,
-        &GeneticTrait<BayesAlphabet::B>::prior_str,
-        &GeneticTrait<BayesAlphabet::Bpi>::prior_str,
-        &GeneticTrait<BayesAlphabet::C>::prior_str,
-        &GeneticTrait<BayesAlphabet::Cpi>::prior_str,
-        &GeneticTrait<BayesAlphabet::R>::prior_str,
+        &BayesATrait::prior_str,
+        &BayesRRTrait::prior_str,
+        &BayesBTrait::prior_str,
+        &BayesBpiTrait::prior_str,
+        &BayesCTrait::prior_str,
+        &BayesCpiTrait::prior_str,
+        &BayesRTrait::prior_str,
 };
 }  // namespace gelex

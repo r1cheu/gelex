@@ -208,12 +208,12 @@ void BayesStatus::compute_heritability()
     {
         double gen_var = arma::var(genetic[i].u);
         sum_var += gen_var;
-        genetic_var.at(i) = gen_var;
+        genetic[i].genetic_var = gen_var;
     }
     sum_var += residual.value;
     for (size_t i = 0; i < genetic.size(); ++i)
     {
-        heritability.at(i) = genetic_var.at(i) / sum_var;
+        genetic[i].heritability = genetic[i].genetic_var / sum_var;
     }
 }
 

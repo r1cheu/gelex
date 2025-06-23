@@ -48,16 +48,18 @@ GeneticEffectDesign::GeneticEffectDesign(
       sigma(std::move(sigma_)),
       type(type_)
 {
-    mean = centralize(design_mat);
+    auto [mean, stddev] = standradize(design_mat);
 }
 
 GeneticEffectState::GeneticEffectState(
+    BayesAlphabet type_,
     size_t n_individual,
     size_t n_coeff,
     const dvec& pi_prop,
     const dvec& sigma_)
     : u(n_individual, arma::fill::zeros),
       BaseEffectState(n_coeff),
+      type(type_),
       pi{pi_prop, uvec(pi_prop.n_elem, arma::fill::zeros)},
       sigma(sigma_) {};
 
@@ -69,6 +71,7 @@ std::vector<GeneticEffectState> create_thread_states(
     for (const auto& design : designs.effects())
     {
         states.emplace_back(
+            design.type,
             design.design_mat.n_rows,
             design.design_mat.n_cols,
             design.pi,

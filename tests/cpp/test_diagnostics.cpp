@@ -2,6 +2,7 @@
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <random>
 #include "armadillo"
 
@@ -9,6 +10,7 @@ using arma::approx_equal;
 using arma::dcube;
 using arma::dmat;
 using arma::zeros;
+using Catch::Matchers::WithinAbs;
 
 TEST_CASE("gelman rubin", "[diagnostics]")
 {
@@ -17,7 +19,7 @@ TEST_CASE("gelman rubin", "[diagnostics]")
     x.slice(1) = arma::linspace(0, 9, 10).t() + 1;
 
     double rhat = as_scalar(gelex::gelman_rubin(x));
-    REQUIRE(rhat == Catch::Approx(0.98).margin(0.01));
+    REQUIRE_THAT(rhat, WithinAbs(0.98, 0.01));
 }
 
 TEST_CASE("split gelman rubin", "[diagnostics]")
@@ -107,12 +109,13 @@ TEST_CASE("effective sample size", "[diagnostics]")
 
 TEST_CASE("hpdi", "[diagnostics]")
 {
-    dcube x(2, 20000, 2);
+    arma::dvec x(20000);
     std::mt19937_64 rng(42);
     std::exponential_distribution<double> dist;
     x.imbue([&]() { return dist(rng); });
 
     dmat expected_exp = {{0.0, 0.22}, {0.0, 0.22}};
-    dmat result = gelex::hpdi(x, 0.2);
-    REQUIRE(approx_equal(result, expected_exp, "absdiff", 0.01));
+    auto [left, right] = gelex::hpdi(x, 0.2);
+    REQUIRE_THAT(left, WithinAbs(0.0, 0.01));
+    REQUIRE_THAT(right, WithinAbs(0.22, 0.01));
 }

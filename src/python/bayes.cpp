@@ -153,15 +153,6 @@ void mcmc_storage(nb::module_& module)
 
 void mcmc(nb::module_& module)
 {
-    nb::class_<gx::SampleGroup>(module, "SampleGroup")
-        .def_rw(
-            "coeffs",
-            &gx::SampleGroup::coeffs,
-            nb::rv_policy::reference_internal)
-        .def_rw(
-            "sigmas",
-            &gx::SampleGroup::sigmas,
-            nb::rv_policy::reference_internal);
     nb::class_<gx::MCMC>(module, "MCMC")
         .def(nb::init<gx::MCMCParams>(), "params"_a)
         .def("run", &gx::MCMC::run, "model"_a, "seed"_a = 42)
@@ -170,58 +161,47 @@ void mcmc(nb::module_& module)
 
 void mcmc_result(nb::module_& module)
 {
-    nb::class_<gx::PosteriorGroup>(module, "PosteriorGroup")
+    nb::class_<gx::PostieriorRandomSummary>(module, "PosteriorGroup")
         .def_rw(
             "coeffs",
-            &gx::PosteriorGroup::coeffs,
+            &gx::PostieriorRandomSummary::coeff,
             nb::rv_policy::reference_internal)
         .def_rw(
             "sigmas",
-            &gx::PosteriorGroup::sigmas,
-            nb::rv_policy::reference_internal)
-        .def_rw(
-            "names",
-            &gx::PosteriorGroup::names,
+            &gx::PostieriorRandomSummary::sigma,
             nb::rv_policy::reference_internal);
 
-    nb::class_<gx::PosteriorStats>(module, "PosteriorStats")
-        .def("mean", &gx::PosteriorStats::mean, "index"_a = 0)
-        .def("std", &gx::PosteriorStats::std, "index"_a = 0)
-        .def("median", &gx::PosteriorStats::median, "index"_a = 0)
-        .def("q5", &gx::PosteriorStats::q5, "index"_a = 0)
-        .def("q95", &gx::PosteriorStats::q95, "index"_a = 0)
-        .def("n_eff", &gx::PosteriorStats::n_eff, "index"_a = 0)
-        .def("r_hat", &gx::PosteriorStats::r_hat, "index"_a = 0)
-
+    nb::class_<gx::PosteriorSummary>(module, "PosteriorSummary")
         .def_rw(
-            "means",
-            &gx::PosteriorStats::means,
+            "mean",
+            &gx::PosteriorSummary::mean,
             nb::rv_policy::reference_internal)
         .def_rw(
-            "stds",
-            &gx::PosteriorStats::stds,
+            "std",
+            &gx::PosteriorSummary::stddev,
             nb::rv_policy::reference_internal)
         .def_rw(
-            "medians",
-            &gx::PosteriorStats::medians,
+            "median",
+            &gx::PosteriorSummary::median,
             nb::rv_policy::reference_internal)
         .def_rw(
-            "q5s", &gx::PosteriorStats::q5s, nb::rv_policy::reference_internal)
-        .def_rw(
-            "q95s",
-            &gx::PosteriorStats::q95s,
+            "hpdi_high",
+            &gx::PosteriorSummary::hpdi_high,
             nb::rv_policy::reference_internal)
         .def_rw(
-            "n_effs",
-            &gx::PosteriorStats::n_effs,
+            "hpdi_low",
+            &gx::PosteriorSummary::hpdi_low,
             nb::rv_policy::reference_internal)
         .def_rw(
-            "r_hats",
-            &gx::PosteriorStats::r_hats,
+            "ess",
+            &gx::PosteriorSummary::ess,
+            nb::rv_policy::reference_internal)
+        .def_rw(
+            "rhat",
+            &gx::PosteriorSummary::rhat,
             nb::rv_policy::reference_internal);
 
     nb::class_<gx::MCMCResult>(module, "MCMCResult")
-        .def_rw("mu", &gx::MCMCResult::mu, nb::rv_policy::reference_internal)
         .def_rw(
             "fixed", &gx::MCMCResult::fixed, nb::rv_policy::reference_internal)
         .def_rw(
@@ -240,6 +220,6 @@ void mcmc_result(nb::module_& module)
 
 void mcmc_diagnostics(nb::module_& m)
 {
-    m.def("hpdi", &gelex::hpdi, "samples"_a, "prob"_a = 0.94);
+    m.def("hpdi", &gelex::hpdi, "samples"_a, "prob"_a = 0.90);
 }
 }  // namespace bind

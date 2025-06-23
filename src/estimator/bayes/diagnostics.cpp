@@ -201,7 +201,7 @@ dvec effect_sample_size(const dcube& x, bool bias)
     return n_eff;
 }
 
-arma::rowvec hpdi(arma::dvec samples, double prob)
+std::pair<double, double> hpdi(arma::dvec& samples, double prob)
 {
     std::sort(samples.begin(), samples.end());
     if (prob == 1)
@@ -221,21 +221,6 @@ arma::rowvec hpdi(arma::dvec samples, double prob)
     size_t index_end = index_start + index_length;
 
     return {samples.at(index_start), samples.at(index_end)};
-}
-
-arma::dmat hpdi(const arma::dcube& samples, double prob)
-{
-    if (prob <= 0.0 || prob > 1.0)
-    {
-        throw std::invalid_argument("Probability must be in (0, 1]");
-    }
-    arma::dmat result(samples.n_rows, 2);
-#pragma omp parallel for default(none) shared(samples, result, prob)
-    for (size_t r = 0; r < samples.n_rows; ++r)
-    {
-        result.row(r) = hpdi(arma::vectorise(samples.row(r)), prob);
-    }
-    return result;
 }
 
 }  // namespace gelex

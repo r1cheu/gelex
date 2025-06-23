@@ -13,7 +13,6 @@
 #include "armadillo"
 #include "gelex/dist.h"
 #include "gelex/estimator/bayes/base.h"
-#include "gelex/estimator/bayes/diagnostics.h"
 #include "gelex/estimator/bayes/indicator.h"
 #include "gelex/estimator/bayes/logger.h"
 #include "gelex/estimator/bayes/mcmc.h"
@@ -36,6 +35,7 @@ MCMC::MCMC(MCMCParams params) : params_(params) {}
 void MCMC::run(const BayesModel& model, size_t seed)
 {
     samples_ = std::make_unique<MCMCSamples>(params_, model);
+    result_ = std::make_unique<MCMCResult>(*samples_);
 
     const size_t n_chains = params_.n_chains;
     std::vector<std::atomic<size_t>> idxs(n_chains);
@@ -67,6 +67,8 @@ void MCMC::run(const BayesModel& model, size_t seed)
         t.join();
     }
     indicator.done();
+    result_->compute_summary_statistics(*samples_, 0.9);
+    logger_.log_result(*result_, model);
 }
 
 void MCMC::run_one_chain(
@@ -117,7 +119,18 @@ void MCMC::run_one_chain(
             indicator.update(
                 chain,
                 sigma_squared("_" + model.genetic()[i].name),
-                status.genetic_var.at(i));
+                status.genetic[i].genetic_var);
+
+            if (bayes_trait_estimate_pi[to_index(model.genetic()[i].type)])
+            {
+                for (size_t j = 0; j < model.genetic()[i].pi.size(); ++j)
+                {
+                    indicator.update(
+                        chain,
+                        fmt::format("π{}_{}", j, model.genetic()[i].name),
+                        status.genetic[i].pi.prop.at(j));
+                }
+            }
         }
 
         auto& residual = status.residual;
@@ -130,7 +143,7 @@ void MCMC::run_one_chain(
             indicator.update(
                 chain,
                 h2("_" + model.genetic()[i].name),
-                status.heritability.at(i));
+                status.genetic[i].heritability);
         }
 
         indicator.update(chain, sigma_squared("_e"), status.residual.value);

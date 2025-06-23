@@ -2,17 +2,28 @@
 #include <armadillo>
 #include <vector>
 
+#include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/policy.h"
 
 namespace gelex
 {
 
 struct MCMCParams;  // Forward declaration
 
-struct SampleGroup
+struct RandomGroup
 {
     std::vector<arma::dcube> coeffs;
     std::vector<arma::dcube> sigmas;
+    size_t size() const { return coeffs.size(); }
+};
+
+struct GeneticGroup : RandomGroup
+{
+    std::vector<arma::dcube> genetic_var;
+    std::vector<arma::dcube> heritability;
+    std::vector<arma::dcube> pi;
+    size_t size() const { return coeffs.size(); }
 };
 
 class MCMCSamples
@@ -31,46 +42,26 @@ class MCMCSamples
     size_t n_chains_;
 
     arma::dcube fixed_;
-    SampleGroup random_;
-    SampleGroup genetic_;
+    RandomGroup random_;
+    GeneticGroup genetic_;
     arma::dcube residual_;
 
-    arma::dcube genetic_var_;
-    arma::dcube heritability_;
+    void init_group(
+        RandomGroup& group,
+        const RandomEffectDesignManager& effects) const;
 
-    template <typename DesignManager>
-    void init_group(SampleGroup& group, const DesignManager& effects) const
-    {
-        auto n_effects = effects.size();
-        group.coeffs.resize(n_effects);
-        group.sigmas.resize(n_effects);
-        for (size_t i = 0; i < n_effects; ++i)
-        {
-            group.coeffs[i].set_size(
-                effects[i].design_mat.n_cols, n_records_, n_chains_);
-            group.sigmas[i].set_size(
-                effects[i].sigma.n_elem, n_records_, n_chains_);
-        }
-    }
+    void init_group(
+        GeneticGroup& group,
+        const GeneticEffectDesignManager& effects) const;
 
-    template <typename StatusVector>
     void store_group(
-        SampleGroup& group,
-        const StatusVector& status,
+        const std::vector<RandomEffectState>& status,
         size_t record_idx,
-        size_t chain_idx)
-    {
-        for (size_t i = 0; i < status.size(); ++i)
-        {
-            group.coeffs[i].slice(chain_idx).col(record_idx) = status[i].coeff;
-            group.sigmas[i].slice(chain_idx).col(record_idx) = status[i].sigma;
-        }
-    }
+        size_t chain_idx);
 
-    void store_heritability(
+    void store_group(
         const std::vector<GeneticEffectState>& status,
         size_t record_idx,
         size_t chain_idx);
 };
-
 }  // namespace gelex

@@ -127,13 +127,72 @@ void MCMCLogger::log_iter_header(const BayesModel& model)
     logger_->info(header);
 }
 
-void MCMCLogger::log_result(const MCMCResult& result)
+void MCMCLogger::log_result(const MCMCResult& result, const BayesModel& model)
 {
     logger_->info(title(" Summary "));
-    logger_->info(subtitle("Postier Results"));
-    logger_->info(
-        item("\u03BC: {}", with_std(result.mu.mean(0), result.mu.std(0))));
-    logger_->info(item(
-        "e: {}", with_std(result.residual.mean(0), result.residual.std(0))));
+
+    std::vector<std::string> header{
+        "", "mean", "std", "median", "5%", "95%", "n_eff", "r_hat"};
+
+    auto format_header = [](const std::vector<std::string>& header)
+    {
+        std::string result;
+        for (size_t i = 0; i < header.size(); ++i)
+        {
+            result += fmt::format("{:>9}", header[i]);
+            if (i + 1 < header.size())
+            {
+                result += "  ";
+            }
+        }
+        return result;
+    };
+    logger_->info(format_header(header));
+
+    auto log_summary =
+        [this](
+            size_t i, const PosteriorSummary& summary, const std::string& name)
+    {
+        logger_->info(
+            "{:>9}  {:>9.2f}  {:>9.2f}  {:>9.2f}  {:>9.2f}  {:>9.2f}  "
+            "{:>9.2f}  {:>9.2f}",
+            name,
+            summary.mean.at(i),
+            summary.stddev.at(i),
+            summary.median.at(i),
+            summary.hpdi_low.at(i),
+            summary.hpdi_high.at(i),
+            summary.ess.at(i),
+            summary.rhat.at(i));
+    };
+
+    for (size_t i = 0; i < model.fixed().levels.size(); ++i)
+    {
+        log_summary(i, result.fixed, model.fixed().levels[i]);
+    }
+
+    for (size_t i = 0; i < model.genetic().size(); ++i)
+    {
+        log_summary(
+            i,
+            result.genetic[i].genetic_var,
+            sigma_squared("_" + model.genetic()[i].name));
+        log_summary(
+            i,
+            result.genetic[i].heritability,
+            h2("_" + model.genetic()[i].name));
+
+        if (bayes_trait_estimate_pi[to_index(model.genetic()[i].type)])
+        {
+            for (size_t j = 0; j < result.genetic[i].pi.mean.n_elem; ++j)
+            {
+                log_summary(
+                    j,
+                    result.genetic[i].pi,
+                    fmt::format("π{}_{}", j, model.genetic()[i].name));
+            }
+        }
+    }
+    log_summary(0, result.residual, sigma_squared("_e"));
 };
 }  // namespace gelex
