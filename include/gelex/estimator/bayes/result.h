@@ -72,6 +72,7 @@ class MCMCResult
         double prob = 0.9);
 
     PosteriorSummary fixed;
+    arma::dmat snp_eff;
     std::vector<PostieriorRandomSummary> random;
     std::vector<PostieriorGeneticSummary> genetic;
     PosteriorSummary residual;

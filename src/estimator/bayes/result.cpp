@@ -2,10 +2,12 @@
 #include <omp.h>
 #include <cstddef>
 
+#include "armadillo"
 #include "gelex/estimator/bayes/diagnostics.h"
 
 namespace gelex
 {
+
 void MCMCResult::compute_summary_statistics(
     PosteriorSummary& summary,
     const arma::dcube& samples,
@@ -57,6 +59,9 @@ void MCMCResult::compute_summary_statistics(
     const MCMCSamples& samples,
     double prob)
 {
+    snp_eff.set_size(
+        samples.genetic().coeffs[0].n_rows, samples.genetic().size());
+
     compute_summary_statistics(fixed, samples.fixed(), prob);
 
     for (size_t i = 0; i < samples.random().size(); ++i)
@@ -69,6 +74,9 @@ void MCMCResult::compute_summary_statistics(
 
     for (size_t i = 0; i < samples.genetic().size(); ++i)
     {
+        snp_eff.col(i) = arma::vectorise(
+            arma::mean(arma::mean(samples.genetic().coeffs[i], 2), 1));
+
         compute_summary_statistics(
             genetic[i].pi, samples.genetic().pi[i], prob);
         compute_summary_statistics(
