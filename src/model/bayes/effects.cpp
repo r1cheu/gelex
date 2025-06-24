@@ -48,7 +48,7 @@ GeneticEffectDesign::GeneticEffectDesign(
       sigma(std::move(sigma_)),
       type(type_)
 {
-    auto [mean, stddev] = standradize(design_mat);
+    std::tie(mean, stddev) = standradize(design_mat);
 }
 
 GeneticEffectState::GeneticEffectState(

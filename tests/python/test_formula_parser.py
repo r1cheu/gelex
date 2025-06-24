@@ -24,7 +24,7 @@ def d_grm(tmp_path):
 def test_genetic_term_parsing():
     """Test parsing with genetic terms"""
 
-    formula = "y ~ x1 + g(a) + g(d)"
+    formula = "y ~ x1 + g[a] + g[d]"
     parser = FormulaParser(formula, ["a", "d"])
     assert parser.response == "y"
     assert parser.common == "y~x1"
@@ -39,7 +39,7 @@ def test_genetic_term_parsing():
 def test_gxe_terms_parsing():
     """Test parsing with mixed term types"""
 
-    formula = "y ~ x1 + g(a:scale(e1)) + g(a:e1)"
+    formula = "y ~ x1 + g[a:scale(e1)] + g[a:e1]"
     parser = FormulaParser(formula, ["a"])
     assert parser.response == "y"
     assert parser.common == "y~x1"
@@ -58,7 +58,7 @@ def test_gxe_terms_parsing():
 def test_all_terms_parsing():
     """Test parsing with mixed term types"""
 
-    formula = "y ~ x1 + g(a) + g(a:e1) + x2"
+    formula = "y ~ x1 + g[a] + g[a:e1] + x2"
     parser = FormulaParser(formula, ["a"])
     assert parser.response == "y"
     assert parser.common == "y~x1+x2"

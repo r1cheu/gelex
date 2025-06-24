@@ -5,10 +5,14 @@ import pandas as pd
 from formulae import design_matrices
 
 from gelexy import BayesAlphabet
-from gelexy._core import BayesModel, _BedReader, _sp_dense_dot
+from gelexy._core import _BayesModel, _BedReader, _sp_dense_dot
 
 from .base import ModelMakerBase, create_design_matrix_genetic
 from .formula_parser import FormulaParser
+
+
+class BayesModel(_BayesModel):
+    pass
 
 
 class make_bayes(ModelMakerBase):
@@ -69,9 +73,7 @@ class make_bayes(ModelMakerBase):
                 genotype,
                 bayes_type,
             )
-
-        # model._dropped_ids = dropped_ids
-        # model._formula = formula
+        model._design_matrix = design_mat
         gc.collect()
         return model
 

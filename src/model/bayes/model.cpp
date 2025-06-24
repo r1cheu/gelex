@@ -7,7 +7,6 @@
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/policy.h"
 #include "gelex/utils/formatter.h"
-#include "gelex/utils/utils.h"
 
 namespace gelex
 {

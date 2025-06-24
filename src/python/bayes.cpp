@@ -14,6 +14,7 @@
 #include "gelex/estimator/bayes/samples.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/predictor/bayes/predictor.h"
 #include "sparse.h"
 
 namespace bind
@@ -48,7 +49,7 @@ void bayesalphabet(nb::module_& module)
 
 void bayes_model(nb::module_& module)
 {
-    nb::class_<gx::BayesModel>(module, "BayesModel")
+    nb::class_<gx::BayesModel>(module, "_BayesModel")
         .def(
             nb::init<std::string, dvec&&>(),
             "formula"_a,
@@ -221,5 +222,20 @@ void mcmc_result(nb::module_& module)
 void mcmc_diagnostics(nb::module_& m)
 {
     m.def("hpdi", &gelex::hpdi, "samples"_a, "prob"_a = 0.90);
+}
+
+void bayes_predictor(nb::module_& m)
+{
+    nb::class_<gx::BayesPredictor>(m, "_BayesPredictor")
+        .def(
+            nb::init<const gx::BayesModel&, const gx::MCMCResult&>(),
+            "model"_a,
+            "result"_a)
+        .def(
+            "_predict",
+            &gx::BayesPredictor::predict,
+            "fixed_design"_a,
+            "random_design"_a,
+            "genetic_design"_a);
 }
 }  // namespace bind

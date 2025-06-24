@@ -32,7 +32,7 @@ using arma::uvec;
 namespace bk = barkeep;
 MCMC::MCMC(MCMCParams params) : params_(params) {}
 
-void MCMC::run(const BayesModel& model, size_t seed)
+const MCMCResult& MCMC::run(const BayesModel& model, size_t seed)
 {
     samples_ = std::make_unique<MCMCSamples>(params_, model);
     result_ = std::make_unique<MCMCResult>(*samples_);
@@ -66,9 +66,12 @@ void MCMC::run(const BayesModel& model, size_t seed)
     {
         t.join();
     }
+
     indicator.done();
     result_->compute_summary_statistics(*samples_, 0.9);
     logger_.log_result(*result_, model);
+
+    return *result_;
 }
 
 void MCMC::run_one_chain(

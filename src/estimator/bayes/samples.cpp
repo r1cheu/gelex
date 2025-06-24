@@ -1,8 +1,11 @@
 #include "gelex/estimator/bayes/samples.h"
+
 #include "armadillo"
+
 #include "gelex/estimator/bayes/mcmc.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/policy.h"
 
 namespace gelex
 {

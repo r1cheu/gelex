@@ -11,11 +11,15 @@
 
 from ._core import MCMC, BayesAlphabet, Estimator, MCMCParams
 from .data import load_grm, make_grm, read_table
-from .model import make_bayes, make_gblup
+from .model import GBLUP, BayesModel, make_bayes, make_gblup
+from .predictor import BayesPredictor
 
 __all__ = [
+    "GBLUP",
     "MCMC",
     "BayesAlphabet",
+    "BayesModel",
+    "BayesPredictor",
     "Estimator",
     "MCMCParams",
     "load_grm",

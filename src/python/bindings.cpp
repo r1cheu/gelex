@@ -15,6 +15,7 @@ void mcmc(nb::module_&);
 void mcmc_storage(nb::module_&);
 void mcmc_result(nb::module_&);
 void mcmc_diagnostics(nb::module_&);
+void bayes_predictor(nb::module_&);
 
 void gblup_params(nb::module_&);
 void gblup(nb::module_&);
@@ -31,6 +32,7 @@ NB_MODULE(_core, m)  // NOLINT
     bayesalphabet(m);
     bayes_param(m);
     bayes_model(m);
+    bayes_predictor(m);
 
     mcmc_params(m);
     mcmc(m);

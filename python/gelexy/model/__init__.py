@@ -1,4 +1,4 @@
-from .bayes import make_bayes
+from .bayes import BayesModel, make_bayes
 from .gblup import (
     GBLUP,
     make_gblup,
@@ -6,6 +6,7 @@ from .gblup import (
 
 __all__ = [
     "GBLUP",
+    "BayesModel",
     "make_bayes",
     "make_gblup",
 ]
