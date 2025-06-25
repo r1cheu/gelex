@@ -1,0 +1,24 @@
+name: gelexy
+channels:
+  - https://prefix.dev/conda-forge
+  - nodefaults
+dependencies:
+  - python >=3.13.3,<3.14
+  - numpy >=2.2.5,<3
+  - pandas >=2.2.3,<3
+  - formulaic >=1.1.1,<2
+  - h5py >=3.13.0,<4
+  - formulae >=0.5.4,<0.6
+  - scipy >=1.15.2,<2
+  - nanobind >=2.5.0,<3
+  - openblas >=0.3.28 *openmp*
+  - spdlog >=1.15.0,<2
+  - catch2 >=3.8.0,<4
+  - mkl-devel >=2024.2.2,<2025
+  - cmake >=3.18,<4
+  - cxx-compiler >=1.8.0,<2
+  - ninja >=1.12.1,<2
+  - scikit-build-core >=0.11
+  - pip
+  - pip:
+      - -e .

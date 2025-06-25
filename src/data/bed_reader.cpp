@@ -14,7 +14,6 @@ namespace gelex
 
 char detect_separator(const std::string& line)
 {
-    // Count tabs and spaces in the line
     size_t tab_count = 0;
     size_t space_count = 0;
 
@@ -31,7 +30,6 @@ char detect_separator(const std::string& line)
     }
 
     // If we have tabs, assume tab-separated
-    // Otherwise, assume space-separated
     return (tab_count > 0) ? '\t' : ' ';
 }
 
@@ -52,10 +50,10 @@ BedReader::BedReader(
     std::string fam_file = base_path + ".fam";
     std::string bim_file = base_path + ".bim";
 
-    individuals_ = parseFam(fam_file, dropped_ids);
-    snps_ = parseBim(bim_file);
+    individuals_ = parse_fam(fam_file, dropped_ids);
+    snps_ = parse_bim(bim_file);
 
-    OpenBed();
+    open_bed();
     bytes_per_snp_ = (num_individuals() + exclude_index_.size() + 3)
                      / 4;  // add 3 for correct rounding
 }
@@ -68,7 +66,7 @@ BedReader::~BedReader()
     }
 }
 
-std::vector<std::string> BedReader::parseFam(
+std::vector<std::string> BedReader::parse_fam(
     const std::string& fam_file,
     const std::vector<std::string>& dropped_ids)
 {
@@ -105,7 +103,7 @@ std::vector<std::string> BedReader::parseFam(
     return individuals;
 }
 
-std::vector<std::string> BedReader::parseBim(const std::string& bim_file)
+std::vector<std::string> BedReader::parse_bim(const std::string& bim_file)
 {
     std::ifstream fin(bim_file);
     if (!fin.is_open())
@@ -130,7 +128,7 @@ std::vector<std::string> BedReader::parseBim(const std::string& bim_file)
     return snps;
 }
 
-void BedReader::OpenBed()
+void BedReader::open_bed()
 {
     fin_.open(bed_file_, std::ios::binary);
     if (!fin_.is_open())
@@ -160,7 +158,7 @@ void BedReader::reset()
 {
     if (!fin_.is_open())
     {
-        OpenBed();
+        open_bed();
     }
     else
     {
@@ -168,7 +166,7 @@ void BedReader::reset()
         fin_.clear();
 
         // Return to the start of data (after the header)
-        SeekToBedStart();
+        seek_to_bed_start();
 
         // reset the tracking variables
         current_chunk_index_ = 0;
@@ -176,7 +174,7 @@ void BedReader::reset()
     }
 }
 
-void BedReader::SeekToBedStart()
+void BedReader::seek_to_bed_start()
 {
     // Seek to the beginning of file + 3 bytes (skip the magic number)
     fin_.seekg(3, std::ios::beg);
@@ -211,13 +209,13 @@ arma::dmat BedReader::read_chunk(bool add)
             + std::to_string(bytes_read));
     }
 
-    arma::dmat genotype_matrix{Decode(buffer, current_chunk_size_, add)};
+    arma::dmat genotype_matrix{decode(buffer, current_chunk_size_, add)};
     current_chunk_index_ += current_chunk_size_;
     return genotype_matrix;
 }
 
 arma::dmat
-BedReader::Decode(const std::vector<char>& buffer, size_t chunk_size, bool add)
+BedReader::decode(const std::vector<char>& buffer, size_t chunk_size, bool add)
 {
     arma::dmat genotype_matrix(
         num_individuals(), chunk_size, arma::fill::zeros);

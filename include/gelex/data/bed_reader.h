@@ -69,15 +69,15 @@ class BedReader
 
     static constexpr std::array<double, 4> add_map = {2.0, 1.0, 1.0, 0.0};
     static constexpr std::array<double, 4> dom_map = {0.0, 1.0, 1.0, 0.0};
-    // std::string_view is not accepted by std::ifstream
-    std::vector<std::string> parseFam(
+
+    std::vector<std::string> parse_fam(
         const std::string& fam_file,
         const std::vector<std::string>& dropped_ids);
-    static std::vector<std::string> parseBim(const std::string& bim_file);
+    static std::vector<std::string> parse_bim(const std::string& bim_file);
 
     arma::dmat
-    Decode(const std::vector<char>& buffer, size_t chunk_size, bool add);
-    void OpenBed();
-    void SeekToBedStart();
+    decode(const std::vector<char>& buffer, size_t chunk_size, bool add);
+    void open_bed();
+    void seek_to_bed_start();
 };
 }  // namespace gelex

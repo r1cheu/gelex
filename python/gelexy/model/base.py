@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import csc_matrix
 
-from ..data import read_table
+from ..data import read_pheno
 from ..logger import setup_logger
 
 
@@ -31,7 +31,7 @@ class ModelMakerBase:
             If data is neither a file path nor a DataFrame.
         """
         if isinstance(data, (str | Path)):
-            self.data = read_table(data)
+            self.data = read_pheno(data)
         elif isinstance(data, pd.DataFrame):
             self.data = data
         elif isinstance(data, pd.Series):
@@ -46,9 +46,10 @@ class ModelMakerBase:
         if categorical:
             self.data = with_categorical_cols(self.data, categorical)
 
+        self.aligner = None
         self._logger = setup_logger(__name__)
 
-    def _clear_data(self, data: pd.DataFrame, response: str):
+    def _dropna(self, data: pd.DataFrame, response: str):
         if data[response].hasnans:
             self._logger.info(
                 "Missing values detected in `%s`. These entries will be dropped.",

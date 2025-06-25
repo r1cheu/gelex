@@ -1,4 +1,5 @@
 import gc
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 
@@ -10,8 +11,12 @@ from scipy.sparse import csc_matrix
 
 from gelexy._core import _GBLUP
 from gelexy.data.grm import load_grm
+from gelexy.utils.aligner import Aligner
 
-from .base import ModelMakerBase, create_design_matrix_genetic
+from .base import (
+    ModelMakerBase,
+    make_design_matrix,
+)
 from .formula_parser import FormulaParser
 
 
@@ -71,21 +76,28 @@ class make_gblup(ModelMakerBase):
         """
         fparser = FormulaParser(formula, list(grms.keys()))
         data = self.data
-        data = self._clear_data(data, fparser.response)
+        data = self._dropna(data, fparser.response)
+
+        self.aligner = Aligner(data["id"].astype(str).tolist())
+
         grms = self._load_grms(grms)
 
-        data, design_matrix_genetic, dropped_ids, grms = (
-            create_design_matrix_genetic(data, grms)
-        )
+        grms = {
+            k: self.aligner.align(grm, axis=[0, 1]) for k, grm in grms.items()
+        }
 
         design_mat = design_matrices(fparser.common, data, na_action="error")
+        design_mat_grm = make_design_matrix(
+            data["id"],
+            list(next(iter(grms.values())).index),
+        )
 
         model = GBLUP(
-            fparser.format_common,
+            fparser.formula,
             np.asfortranarray(design_mat.response),
         )
 
-        model.add_fixed_effect(
+        model._add_fixed_effect(
             list(design_mat.common.terms),
             self._get_fixed_levels(design_mat.common.terms),
             np.asfortranarray(design_mat.common.design_matrix),
@@ -93,34 +105,34 @@ class make_gblup(ModelMakerBase):
 
         if design_mat.group is not None:
             for name, matrix in design_mat.group.terms.items():
-                model.add_random_effect(
+                model._add_random_effect(
                     "(" + name + ")", csc_matrix(matrix.data)
                 )
 
         for term in fparser.genetic_terms:
-            model.add_genetic_effect(
+            model._add_genetic_effect(
                 term.name,
-                design_matrix_genetic,
+                design_mat_grm,
                 np.asfortranarray(grms[term.genetic]),
             )
 
         for term in fparser.gxe_terms:
             dm = design_matrices("0+" + term.env, data, na_action="error")
-            model.add_gxe_effect(
+            model._add_gxe_effect(
                 term.name,
-                design_matrix_genetic,
+                design_mat_grm,
                 np.asfortranarray(grms[term.genetic]),
                 np.asfortranarray(dm.common),
             )
-        model.add_residual()
 
-        model._dropped_ids = dropped_ids
+        model._add_residual()
+
+        model._train_id_order = deepcopy(self.aligner.index_ids)
         model._formula = formula
         gc.collect()
         return model
 
-    @staticmethod
-    def _load_grms(grms):
+    def _load_grms(self, grms):
         for name, grm in grms.items():
             if isinstance(grm, str | Path):
                 grms[name] = load_grm(grm)

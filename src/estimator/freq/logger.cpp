@@ -30,35 +30,8 @@ void EstimatorLogger::log_model_information(
 {
     logger_->info(title(" GBLUP MODEL ANALYSIS "));
     logger_->info(subtitle("Model Specification"));
-    logger_->info(item(
-        "Model:  {}{}{}{}e",
-        model.formula(),
-        join_formula(model.random().random_indices(), model.random(), " + "),
-        join_formula(model.random().genetic_indices(), model.random(), " + "),
-        join_formula(model.random().gxe_indices(), model.random(), " + ")));
+    logger_->info(item("Model:  {}", model.formula()));
     logger_->info(item("Samples:  {:d}", model.n_individuals()));
-    logger_->info("");
-
-    logger_->info(subtitle("Term Summary"));
-    logger_->info(item("Fixed:  {}", fmt::join(model.fixed().names, ", ")));
-    if (model.random().has_random_effects())
-    {
-        logger_->info(item(
-            "Random:  {}",
-            join_name(model.random().random_indices(), model.random(), ", ")));
-    }
-    if (model.random().has_genetic_effects())
-    {
-        logger_->info(item(
-            "Genetic:  {}",
-            join_name(model.random().genetic_indices(), model.random(), ", ")));
-    }
-    if (model.random().has_gxe_effects())
-    {
-        logger_->info(item(
-            "GxE:  {}",
-            join_name(model.random().gxe_indices(), model.random(), ", ")));
-    }
     logger_->info("");
 
     logger_->info(subtitle("Optimizer Specification"));

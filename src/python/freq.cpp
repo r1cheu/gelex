@@ -49,19 +49,19 @@ void gblup(nb::module_& m)
             &gx::GBLUP::phenotype,
             nb::rv_policy::reference_internal)
         .def(
-            "add_fixed_effect",
+            "_add_fixed_effect",
             &gx::GBLUP::add_fixed_effect,
             nb::keep_alive<1, 4>())
-        .def("add_random_effect", &gx::GBLUP::add_random_effect)
-        .def("add_genetic_effect", &gx::GBLUP::add_genetic_effect)
+        .def("_add_random_effect", &gx::GBLUP::add_random_effect)
+        .def("_add_genetic_effect", &gx::GBLUP::add_genetic_effect)
         .def(
-            "add_gxe_effect",
+            "_add_gxe_effect",
             &gx::GBLUP::add_gxe_effect,
             "name"_a,
             "design_mat_genetic"_a,
             "genetic_cov_mat"_a,
             "design_mat_env"_a.noconvert())
-        .def("add_residual", &gx::GBLUP::add_residual)
+        .def("_add_residual", &gx::GBLUP::add_residual)
         .def("clear", &gelex::GBLUP::clear, "reset the model")
         .def(
             "__repr__",

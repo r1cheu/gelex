@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 
-def read_table(path: str | Path):
+def read_pheno(path: str | Path):
     """
     Read a tab-separated file into a pandas DataFrame.
 

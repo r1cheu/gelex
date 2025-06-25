@@ -29,6 +29,7 @@ class FormulaParser:
         self.genetic_terms: list[GeneticTerm] = []
         self.gxe_terms: list[GeneticTerm] = []
 
+        self.formula = ""
         self._parse(formula)
 
     def _parse(self, formula: str) -> None:
@@ -39,7 +40,7 @@ class FormulaParser:
 
         self.response = lhs
         self._build_terms(lhs, rhs)
-        self.format_common = self._format_common_term(self.common)
+        self.formula = self._format_formula(cleaned_formula)
 
     def _check_formula(self, formula: str) -> None:
         """Validate formula structure."""
@@ -81,7 +82,7 @@ class FormulaParser:
             genetic = self._check_term(term)
             self.genetic_terms.append(GeneticTerm(term, genetic))
 
-    def _format_common_term(self, common_term: str) -> str:
+    def _format_formula(self, common_term: str) -> str:
         """Format common terms with consistent spacing."""
         operators = r"([~+\-=*\/^])"
         return re.sub(r"\s*" + operators + r"\s*", r" \1 ", common_term).strip()

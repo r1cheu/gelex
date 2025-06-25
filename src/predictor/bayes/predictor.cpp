@@ -3,6 +3,7 @@
 #include "gelex/estimator/bayes/result.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/utils/utils.h"
+
 namespace gelex
 {
 
