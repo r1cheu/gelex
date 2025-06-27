@@ -43,19 +43,19 @@ std::string find_second(const std::string& line, char separator)
 BedReader::BedReader(
     std::string_view bed_file,
     size_t chunk_size,
-    const std::vector<std::string>& dropped_ids)
+    const std::vector<std::string>& target_order)
     : bed_file_{bed_file}, chunk_size_{chunk_size}
 {
     std::string base_path = bed_file_.substr(0, bed_file_.size() - 4);
     std::string fam_file = base_path + ".fam";
     std::string bim_file = base_path + ".bim";
 
-    individuals_ = parse_fam(fam_file, dropped_ids);
+    parse_fam(fam_file, target_order);
     snps_ = parse_bim(bim_file);
 
     open_bed();
-    bytes_per_snp_ = (num_individuals() + exclude_index_.size() + 3)
-                     / 4;  // add 3 for correct rounding
+    bytes_per_snp_
+        = (total_samples_in_file_ + 3) / 4;  // add 3 for correct rounding
 }
 
 BedReader::~BedReader()
@@ -66,41 +66,90 @@ BedReader::~BedReader()
     }
 }
 
-std::vector<std::string> BedReader::parse_fam(
+void BedReader::parse_fam(
     const std::string& fam_file,
-    const std::vector<std::string>& dropped_ids)
+    const std::vector<std::string>& target_order)
 {
-    std::unordered_set<std::string> exclude_set(
-        dropped_ids.begin(), dropped_ids.end());
-
     std::ifstream fin(fam_file);
     if (!fin.is_open())
     {
         throw std::runtime_error(
             "Error: Cannot open .fam file [" + fam_file + "].");
     }
-
+    std::vector<std::string> ids_in_file_order;
     std::string line;
-    std::vector<std::string> individuals;
-    size_t index{};
     while (std::getline(fin, line))
     {
         if (!line.empty())
         {
             char separator = detect_separator(line);
-            auto individual = find_second(line, separator);
-            if (!exclude_set.empty() && exclude_set.contains(individual))
-            {
-                exclude_index_.insert(index);
-                ++index;
-                continue;
-            }
-            individuals.emplace_back(individual);
-            ++index;
+            ids_in_file_order.emplace_back(find_second(line, separator));
         }
     }
     fin.close();
-    return individuals;
+
+    total_samples_in_file_ = ids_in_file_order.size();
+    if (total_samples_in_file_ == 0)
+    {
+        return;
+    }
+
+    file_index_is_kept_.assign(total_samples_in_file_, false);
+    file_index_to_target_index_.assign(total_samples_in_file_, -1);
+
+    if (target_order.empty())
+    {
+        individuals_ = ids_in_file_order;
+        for (size_t i = 0; i < total_samples_in_file_; ++i)
+        {
+            file_index_is_kept_[i] = true;
+            file_index_to_target_index_[i] = i;
+        }
+    }
+    else
+    {
+        individuals_ = target_order;
+        std::unordered_map<std::string, size_t> target_id_to_idx;
+        for (size_t i = 0; i < target_order.size(); ++i)
+        {
+            target_id_to_idx[target_order[i]] = i;
+        }
+
+        std::vector<std::string> found_targets;
+        found_targets.reserve(target_order.size());
+
+        for (size_t i = 0; i < total_samples_in_file_; ++i)
+        {
+            const auto& current_id = ids_in_file_order[i];
+            auto it = target_id_to_idx.find(current_id);
+
+            if (it != target_id_to_idx.end())
+            {
+                auto target_idx = it->second;
+                file_index_is_kept_[i] = true;
+                file_index_to_target_index_[i] = target_idx;
+                found_targets.push_back(current_id);
+            }
+        }
+
+        if (found_targets.size() != target_order.size())
+        {
+            std::unordered_set<std::string> found_set(
+                found_targets.begin(), found_targets.end());
+            std::string missing_ids;
+            for (const auto& id : target_order)
+            {
+                if (!found_set.contains(id))
+                {
+                    missing_ids += " " + id;
+                }
+            }
+            throw std::runtime_error(
+                "Error: The following target individuals were not found in the "
+                ".fam file:"
+                + missing_ids);
+        }
+    }
 }
 
 std::vector<std::string> BedReader::parse_bim(const std::string& bim_file)
@@ -180,7 +229,7 @@ void BedReader::seek_to_bed_start()
     fin_.seekg(3, std::ios::beg);
 }
 
-arma::dmat BedReader::read_chunk(bool add)
+arma::dmat BedReader::read_chunk()
 {
     if (!has_next())
     {
@@ -190,14 +239,12 @@ arma::dmat BedReader::read_chunk(bool add)
         return {};
     }
 
-    current_chunk_size_ = std::min(
-        chunk_size_,
-        num_snps() - current_chunk_index());  // chunk_size or snp remaining.
+    current_chunk_size_
+        = std::min(chunk_size_, num_snps() - current_chunk_index());
 
     const size_t chunk_bytes = current_chunk_size_ * bytes_per_snp_;
     std::vector<char> buffer(chunk_bytes);
 
-    // Read from the current file position
     fin_.read(buffer.data(), static_cast<int64_t>(chunk_bytes));
     size_t bytes_read = fin_.gcount();
     if (bytes_read != chunk_bytes)
@@ -209,56 +256,45 @@ arma::dmat BedReader::read_chunk(bool add)
             + std::to_string(bytes_read));
     }
 
-    arma::dmat genotype_matrix{decode(buffer, current_chunk_size_, add)};
+    arma::dmat genotype_matrix{decode(buffer, current_chunk_size_)};
     current_chunk_index_ += current_chunk_size_;
     return genotype_matrix;
 }
-
-arma::dmat
-BedReader::decode(const std::vector<char>& buffer, size_t chunk_size, bool add)
+arma::dmat BedReader::decode(const std::vector<char>& buffer, size_t chunk_size)
 {
     arma::dmat genotype_matrix(
         num_individuals(), chunk_size, arma::fill::zeros);
-    size_t num_individuals
-        = individuals_.size()
-          + exclude_index_.size();  // add back excluded individuals, since we
-                                    // read from full bed
 
     for (size_t snp_idx = 0; snp_idx < chunk_size; ++snp_idx)
     {
         const size_t offset = snp_idx * bytes_per_snp_;
-        size_t adjust_individul_idx{};  // adjust for excluded individuals
         for (size_t byte_idx = 0; byte_idx < bytes_per_snp_; ++byte_idx)
         {
             auto byte_val
                 = static_cast<unsigned char>(buffer[offset + byte_idx]);
             for (unsigned int bit = 0; bit < 4; ++bit)
             {
-                size_t ind = (byte_idx * 4) + bit;
-                if (exclude_index_.find(ind) != exclude_index_.end())
-                {
-                    adjust_individul_idx++;
-                    continue;
-                }
-                if (ind >= num_individuals)
+                size_t file_index = (byte_idx * 4) + bit;
+
+                if (file_index >= total_samples_in_file_)
                 {
                     break;
                 }
-                unsigned int genotype_code
-                    = (byte_val >> (2U * bit)) & 0x03U;  // encode byte to int
-                if (add)
+
+                if (file_index_is_kept_[file_index])
                 {
-                    genotype_matrix.at(ind - adjust_individul_idx, snp_idx)
+                    arma::uword target_row
+                        = file_index_to_target_index_[file_index];
+
+                    unsigned int genotype_code
+                        = (byte_val >> (2U * bit)) & 0x03U;
+                    genotype_matrix.at(target_row, snp_idx)
                         = add_map[genotype_code];
-                }
-                else
-                {
-                    genotype_matrix.at(ind - adjust_individul_idx, snp_idx)
-                        = dom_map[genotype_code];
                 }
             }
         }
     }
     return genotype_matrix;
 }
+
 }  // namespace gelex

@@ -116,7 +116,8 @@ void Estimator::report_results(
     double elapsed_time
         = std::chrono::duration<double>(end - start_time).count();
 
-    model.fixed().beta = compute_beta(model);
+    compute_beta(model);
+    compute_u(model);
 
     logger_.log_results_header();
     logger_.log_convergence_status(
@@ -136,38 +137,31 @@ void Estimator::report_results(
 
     auto [h2_se, sum_var] = compute_h2_se(model.random());
     logger_.log_heritability(model, h2_se, sum_var);
-
     logger_.log_results_footer();
-    compute_u(model);
 }
 
-dvec Estimator::compute_beta(GBLUP& model)
+void Estimator::compute_beta(GBLUP& model)
 {
     auto compute_beta_visitor = [this, &model](const auto& mat) -> dvec
     {
         return arma::inv_sympd(optimizer_->tx_vinv_x())
                * (mat.t() * optimizer_->v() * model.phenotype());
     };
-    return std::visit(compute_beta_visitor, model.fixed().design_mat);
+    model.fixed().beta
+        = std::visit(compute_beta_visitor, model.fixed().design_mat);
 }
 
-dmat Estimator::compute_u(GBLUP& model)
+void Estimator::compute_u(GBLUP& model)
 {
-    dmat U{
-        model.n_individuals(),
-        model.random().sigma().n_elem,
-        arma::fill::zeros};
-
     size_t idx{};
-    for (const auto& effect : model.random())
+    for (auto& effect : model.random())
     {
         std::visit(
             [&](const auto& cov)
-            { U.unsafe_col(idx) = cov * optimizer_->proj_y() * effect.sigma; },
+            { effect.u = cov * optimizer_->proj_y() * effect.sigma; },
             effect.cov_mat);
         ++idx;
     }
-    return U;
 }
 
 double Estimator::compute_aic(GBLUP& model)

@@ -1,86 +1,135 @@
 #include "gelex/data/grm.h"
 
 #include <armadillo>
-#include <vector>
-
-#include "gelex/data/bed_reader.h"
 
 namespace gelex
 {
 
-using arma::dmat;
-using arma::rowvec;
-
-void dom_encode(dmat& genotype)
-{
-    genotype.replace(2, 0);
-}
-
-IGrm::IGrm(
+GRM::GRM(
     std::string_view bed_file,
     size_t chunk_size,
-    const std::vector<std::string>& exclude_individuals)
-    : bed_{bed_file, chunk_size, exclude_individuals} {};
+    const std::vector<std::string>& target_order)
+    : bed_(bed_file, chunk_size, target_order), p_major_(bed_.num_snps()) {};
 
-Grm::Grm(
-    std::string_view bed_file,
-    size_t chunk_size,
-    const std::vector<std::string>& exclude_individuals)
-    : IGrm{bed_file, chunk_size, exclude_individuals}
+arma::dmat GRM::compute(bool add)
 {
-    set_center(rowvec{bed().num_snps(), arma::fill::zeros});
-}
-
-void Grm::centerlize(dmat& genotype)
-{
-    rowvec center = compute_center(genotype);
-    auto start_index = bed().current_chunk_index() - center.n_cols;
-    encode(genotype);
-    genotype.each_row() -= center;
-    set_center(start_index, center);
-}
-
-dmat Grm::compute()
-{
-    reset();
-    const size_t num_ind{bed().num_individuals()};
-    dmat grm{num_ind, num_ind, arma::fill::zeros};
-
-    while (bed().has_next())
+    const size_t n{bed_.num_individuals()};
+    arma::dmat grm(n, n, arma::fill::zeros);
+    while (bed_.has_next())
     {
-        dmat genotype{bed().read_chunk()};
-        centerlize(genotype);
+        arma::dmat genotype{bed_.read_chunk()};
+        arma::dvec p_major_i{compute_p_major(genotype)};
+        code_method_varden(p_major_i, genotype, add);
+        p_major_.subvec(
+            bed_.current_chunk_index() - p_major_i.n_elem,
+            arma::size(p_major_i))
+            = p_major_i;
         grm += genotype * genotype.t();
-    };
-    set_scale_factor(Scale(grm));
-    return grm;
+    }
+    scale_factor_ = arma::trace(grm) / static_cast<double>(grm.n_rows);
+    return grm / scale_factor_;
 }
 
-double Grm::Scale(dmat& grm)
+CrossGRM::CrossGRM(
+    std::string_view train_bed,
+    arma::dvec p_major,
+    double scale_factor,
+    size_t chunk_size,
+    const std::vector<std::string>& target_order)
+    : bed_(train_bed, chunk_size, target_order),
+      p_major_(std::move(p_major)),
+      scale_factor_{scale_factor},
+      chunk_size_{chunk_size}
 {
-    double scale_factor = arma::trace(grm) / static_cast<double>(grm.n_rows);
-    grm /= scale_factor;
-    return scale_factor;
+    if (p_major_.n_elem != bed_.num_snps())
+    {
+        throw std::runtime_error(
+            "p_major size does not match number of SNPs in training set.");
+    }
 }
 
-void AddGrm::encode(dmat& genotype) {
-};  // add is the default encoding, so do nothing
-
-rowvec AddGrm::compute_center(const dmat& genotype)
+arma::dmat CrossGRM::compute(std::string_view test_bed, bool add)
 {
-    return arma::mean(genotype, 0);
+    BedReader test_bed_reader(test_bed, chunk_size_);
+    individuals_ = test_bed_reader.individuals();
+    check_snp_consistency(test_bed_reader);
+
+    arma::dmat grm(
+        test_bed_reader.num_individuals(),
+        bed_.num_individuals(),
+        arma::fill::zeros);
+    while (bed_.has_next())
+    {
+        auto start = bed_.current_chunk_index();
+        arma::dmat train_genotype{bed_.read_chunk()};
+        arma::dmat test_genotype{test_bed_reader.read_chunk()};
+        auto end = start + train_genotype.n_cols - 1;
+        code_method_varden(p_major_.subvec(start, end), train_genotype, add);
+        code_method_varden(p_major_.subvec(start, end), test_genotype, add);
+        grm += test_genotype * train_genotype.t();
+    }
+    return grm / scale_factor_;
 }
 
-void DomGrm::encode(dmat& genotype)
+void CrossGRM::check_snp_consistency(const BedReader& test_bed) const
 {
-    dom_encode(genotype);
+    if (bed_.num_snps() != test_bed.num_snps())
+    {
+        throw std::runtime_error{
+            "Number of SNPs in training and test sets do not match."};
+    }
+
+    for (size_t i{0}; i < bed_.num_snps(); ++i)
+    {
+        if (bed_.snps()[i] != test_bed.snps()[i])
+        {
+            throw std::runtime_error{
+                "SNPs in training and test sets do not match."};
+        }
+    }
 }
 
-rowvec DomGrm::compute_center(const dmat& genotype)
+arma::dvec compute_p_major(const arma::dmat& genotype)
 {
-    rowvec pA = arma::mean(genotype, 0) / 2;
-    rowvec center = 2 * (pA % (1 - pA));
-    return center;
+    arma::dvec p_major(genotype.n_cols);
+
+#pragma omp parallel for default(none) shared(genotype, p_major)
+    for (size_t i = 0; i < genotype.n_cols; ++i)
+    {
+        p_major.at(i) = arma::mean(genotype.unsafe_col(i)) / 2;
+    }
+    return p_major;
+}
+
+void code_method_varden(arma::dvec p_major, arma::dmat& genotype, bool add)
+{
+    if (p_major.n_elem != genotype.n_cols)
+    {
+        throw std::runtime_error(
+            "allele freq does not match genotype snp number");
+    }
+
+    if (add)
+    {
+        p_major *= 2;
+
+#pragma omp parallel for default(none) shared(genotype, p_major)
+        for (size_t i = 0; i < genotype.n_cols; ++i)
+        {
+            genotype.col(i) -= p_major(i);
+        }
+    }
+
+    else
+    {
+        p_major = 2 * p_major % (1 - p_major);
+        genotype.replace(2, 0);
+#pragma omp parallel for default(none) shared(genotype, p_major)
+        for (size_t i = 0; i < genotype.n_cols; ++i)
+        {
+            genotype.col(i) -= p_major(i);
+        }
+    }
 }
 
 }  // namespace gelex

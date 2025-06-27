@@ -15,7 +15,7 @@
 #include "gelex/data/grm.h"
 #include "gelex/estimator/freq/estimator.h"
 #include "gelex/model/freq/model.h"
-#include "gelex/predictor.h"
+#include "gelex/predictor/freq/predictor.h"
 #include "sparse.h"
 
 namespace bind
@@ -94,23 +94,6 @@ void gblup(nb::module_& m)
             });
 }
 
-void predictor(nb::module_& m)
-{
-    nb::class_<gx::Predictor>(m, "_Predictor")
-        .def(
-            nb::init<std::string_view, gelex::GBLUPParams>(),
-            "train_bed"_a,
-            "params"_a,
-            nanobind::keep_alive<1, 3>())
-        .def(
-            "set_cross_grm",
-            &gx::Predictor::set_cross_grm,
-            nb::keep_alive<1, 3>())
-        .def("_compute_random_effects", &gx::Predictor::compute_random_effects)
-        .def("_compute_fixed_effects", &gx::Predictor::compute_fixed_effects)
-        .def_prop_ro("test_individuals", &gelex::Predictor::test_individuals);
-}
-
 void estimator(nb::module_& m)
 {
     nb::class_<gx::Estimator>(m, "Estimator")
@@ -166,21 +149,18 @@ void estimator(nb::module_& m)
             "None");
 }
 
-void gblup_params(nb::module_& m)
+void grm(nb::module_& m)
 {
-    nb::class_<gx::GBLUPParams>(m, "GBLUPParams")
-        .def(nb::init<dvec, dvec, dvec, std::vector<std::string>>());
-}
-
-void add_grm(nb::module_& m)
-{
-    nb::class_<gx::AddGrm>(m, "add_grm")
+    nb::class_<gx::GRM>(m, "GRM")
         .def(
-            nb::init<std::string_view, size_t, std::vector<std::string>>(),
+            nb::init<
+                std::string_view,
+                size_t,
+                const std::vector<std::string>&>(),
             "bed_file"_a,
             "chunk_size"_a = gelex::DEFAULT_CHUNK_SIZE,
-            "exclude_individuals"_a = std::vector<std::string>{},
-            "Additive Genomic Relationship Matrix calculation.\n\n"
+            "target_order"_a = std::vector<std::string>{},
+            "Genomic Relationship Matrix calculation.\n\n"
             "Parameters\n"
             "----------\n"
             "bed_file: str\n"
@@ -190,25 +170,29 @@ void add_grm(nb::module_& m)
             "Returns\n"
             "-------\n"
             "np.ndarray\n")
-        .def("compute", &gx::AddGrm::compute, nb::rv_policy::move)
+        .def("compute", &gx::GRM::compute, "add"_a, nb::rv_policy::move)
         .def_prop_ro(
-            "individuals",
-            [](gx::AddGrm& self) { return self.bed().individuals(); },
-            nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "center", &gx::DomGrm::center, nb::rv_policy::reference_internal)
-        .def_prop_ro("scale_factor", &gx::DomGrm::scale_factor);
+            "p_major", &gx::GRM::p_major, nb::rv_policy::reference_internal)
+        .def_prop_ro("scale_factor", &gx::GRM::scale_factor)
+        .def_prop_ro("individuals", &gx::GRM::individuals, nb::rv_policy::copy);
 }
 
-void dom_grm(nb::module_& m)
+void cross_grm(nb::module_& m)
 {
-    nb::class_<gx::DomGrm>(m, "dom_grm")
+    nb::class_<gx::CrossGRM>(m, "CrossGRM")
         .def(
-            nb::init<std::string_view, size_t, std::vector<std::string>>(),
+            nb::init<
+                std::string_view,
+                arma::dvec,
+                double,
+                size_t,
+                const std::vector<std::string>&>(),
             "bed_file"_a,
+            "p_major"_a,
+            "scale_factor"_a,
             "chunk_size"_a = gelex::DEFAULT_CHUNK_SIZE,
-            "exclude_individuals"_a = std::vector<std::string>{},
-            "Dominance Genomic Relationship Matrix calculation.\n\n"
+            "target_order"_a = std::vector<std::string>{},
+            "Cross Genomic Relationship Matrix calculation.\n\n"
             "Parameters\n"
             "----------\n"
             "bed_file: str\n"
@@ -218,24 +202,21 @@ void dom_grm(nb::module_& m)
             "Returns\n"
             "-------\n"
             "np.ndarray\n")
-        .def("compute", &gx::DomGrm::compute, nb::rv_policy::move)
-        .def_prop_ro(
-            "individuals",
-            [](gx::DomGrm& self) { return self.bed().individuals(); },
-            nb::rv_policy::reference_internal)
-        .def_prop_ro(
-            "center", &gx::DomGrm::center, nb::rv_policy::reference_internal)
-        .def_prop_ro("scale_factor", &gx::DomGrm::scale_factor);
+        .def("compute", &gx::CrossGRM::compute, nb::rv_policy::move)
+        .def("individuals", &gx::CrossGRM::individuals, nb::rv_policy::copy);
 }
 
 void bed_reader(nb::module_& m)
 {
     nb::class_<gx::BedReader>(m, "_BedReader")
         .def(
-            nb::init<std::string_view, size_t, std::vector<std::string>>(),
+            nb::init<
+                std::string_view,
+                size_t,
+                const std::vector<std::string>&>(),
             "bed_file"_a,
             "chunk_size"_a = gx::DEFAULT_CHUNK_SIZE,
-            "dropped_ids"_a = std::vector<std::string>{},
+            "target_order"_a = std::vector<std::string>{},
             "Read a BED file in chunks.\n\n"
             "Parameters\n"
             "----------\n"

@@ -4,7 +4,7 @@ import h5py
 import numpy as np
 import pandas as pd
 
-from gelexy._core import add_grm, dom_grm
+from gelexy._core import GRM
 
 
 def make_grm(
@@ -42,23 +42,28 @@ def make_grm(
     bed_file = Path(bed_file)
     grm_maker = None
     method = method.lower()
+    grm_maker = GRM(str(bed_file), chunk_size)
+    add = True
     if method == "add":
-        grm_maker = add_grm(str(bed_file), chunk_size)
+        add = True
     elif method == "dom":
-        grm_maker = dom_grm(str(bed_file), chunk_size)
+        add = False
     else:
         msg = f"Only support `add` and `dom` for method but got {method}."
         raise ValueError(msg)
 
-    grm_arr = grm_maker.compute()
+    grm_arr = grm_maker.compute(add)
     grm_df = pd.DataFrame(
         grm_arr, index=grm_maker.individuals, columns=grm_maker.individuals
     )
+    grm_df.index.name = "id"
+    grm_df.columns.name = "id"
+
     if save:
         with h5py.File(f"{bed_file.with_suffix('')}.{method}.grm", "w") as f:
             f.create_dataset("grm", data=grm_arr)
             f.create_dataset("individuals", data=grm_maker.individuals)
-            f.create_dataset("center", data=grm_maker.center)
+            f.create_dataset("p_major", data=grm_maker.p_major)
             f.create_dataset("scale_factor", data=grm_maker.scale_factor)
             f.attrs["method"] = method
     return grm_df
@@ -98,6 +103,8 @@ def load_grm(
         grm = f["grm"][:]
         individuals = f["individuals"].asstr()[:]
         grm = pd.DataFrame(grm, index=individuals, columns=individuals)
+        grm.index.name = "id"
+        grm.columns.name = "id"
 
     if return_array:
         return np.asfortranarray(grm)

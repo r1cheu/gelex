@@ -1,83 +1,80 @@
 #pragma once
 
 #include <armadillo>
+#include <cstddef>
 
-#include <string_view>
-#include <vector>
 #include "gelex/data/bed_reader.h"
 
 namespace gelex
 {
 
-void dom_encode(arma::dmat& genotype);
-
-class IGrm
+class GRM
 {
    public:
-    explicit IGrm(
+    explicit GRM(
         std::string_view bed_file,
-        size_t chunk_size = DEFAULT_CHUNK_SIZE,
-        const std::vector<std::string>& exclude_individuals = {});
-    IGrm(const IGrm&) = delete;
-    IGrm(IGrm&&) noexcept = default;
-    IGrm& operator=(const IGrm&) = delete;
-    IGrm& operator=(IGrm&&) noexcept = default;
-    virtual ~IGrm() = default;
+        size_t chunk_size = 10000,
+        const std::vector<std::string>& target_order = {});
+    GRM(const GRM&) = delete;
+    GRM(GRM&&) noexcept = default;
+    GRM& operator=(const GRM&) = delete;
+    GRM& operator=(GRM&&) noexcept = default;
 
-    double scale_factor() const noexcept { return scale_factor_; }
-    void set_scale_factor(double scale_factor) { scale_factor_ = scale_factor; }
+    ~GRM() = default;
 
-    const BedReader& bed() const noexcept { return bed_; }
-    BedReader& bed() noexcept { return bed_; }
+    arma::dmat compute(bool add = true);
+    arma::dvec p_major() const noexcept { return p_major_; }
+    double scale_factor() const { return scale_factor_; }
 
-    const arma::rowvec& center() const noexcept { return center_; }
-    void set_center(arma::rowvec&& center) { center_ = std::move(center); }
-    void set_center(size_t start, const arma::rowvec& center)
+    const std::vector<std::string>& individuals() const noexcept
     {
-        center_.subvec(start, arma::size(center)) = center;
+        return bed_.individuals();
     }
-
-   protected:
-    virtual void encode(arma::dmat& genotype) = 0;
-    void reset() noexcept { bed_.reset(); }
 
    private:
     BedReader bed_;
-    double scale_factor_{};
-    arma::rowvec center_;
+    double scale_factor_{1.0};
+    arma::dvec p_major_;
 };
 
-class Grm : public IGrm
+class CrossGRM
 {
    public:
-    explicit Grm(
-        std::string_view bed_file,
-        size_t chunk_size = DEFAULT_CHUNK_SIZE,
-        const std::vector<std::string>& exclude_individuals = {});
-    virtual arma::dmat compute();
+    explicit CrossGRM(
+        std::string_view train_bed,
+        arma::dvec p_major,
+        double scale_factor,
+        size_t chunk_size = 10000,
+        const std::vector<std::string>& target_order = {});
+
+    CrossGRM(const CrossGRM&) = delete;
+    CrossGRM(CrossGRM&&) noexcept = default;
+    CrossGRM& operator=(const CrossGRM&) = delete;
+    CrossGRM& operator=(CrossGRM&&) noexcept = default;
+
+    ~CrossGRM() = default;
+
+    const std::vector<std::string>& individuals() const noexcept
+    {
+        return individuals_;
+    }
+
+    arma::dmat compute(std::string_view test_bed, bool add = true);
 
    private:
-    virtual arma::rowvec compute_center(const arma::dmat& genotype) = 0;
-    void centerlize(arma::dmat& genotype);
-    static double Scale(arma::dmat& grm);
+    BedReader bed_;
+    void check_snp_consistency(const BedReader& test_bed) const;
+    arma::dvec p_major_;
+    double scale_factor_;
+
+    std::vector<std::string> individuals_;
+    size_t chunk_size_;
 };
 
-class AddGrm : public Grm
-{
-    using Grm::Grm;
-
-   private:
-    void encode(arma::dmat& genotype) override;
-    arma::rowvec compute_center(const arma::dmat& genotype) override;
-};
-
-class DomGrm : public Grm
-{
-    using Grm::Grm;
-
-   private:
-    void encode(arma::dmat& genotype) override;
-    arma::rowvec compute_center(const arma::dmat& genotype) override;
-};
+arma::dvec compute_p_major(const arma::dmat& genotype);
+void code_method_varden(
+    arma::dvec p_major,
+    arma::dmat& genotype,
+    bool add = true);
 
 }  // namespace gelex

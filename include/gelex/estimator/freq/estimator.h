@@ -22,8 +22,8 @@ class Estimator
     void fit(GBLUP& model, bool em_init = true, bool verbose = true);
 
    private:
-    arma::dvec compute_beta(GBLUP& model);
-    arma::dmat compute_u(GBLUP& model);
+    void compute_beta(GBLUP& model);
+    void compute_u(GBLUP& model);
     std::unique_ptr<OptimizerBase> optimizer_;
     EstimatorLogger logger_;
 

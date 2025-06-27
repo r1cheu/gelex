@@ -1,6 +1,6 @@
-from .aligner import Aligner
+from .aligner import Matcher
 from .cv import CrossValidation
 from .log import RedirectStdoutToLogger
 from .path import valid_path
 
-__all__ = ["Aligner", "CrossValidation", "RedirectStdoutToLogger", "valid_path"]
+__all__ = ["CrossValidation", "Matcher", "RedirectStdoutToLogger", "valid_path"]
