@@ -30,6 +30,7 @@ struct RandomEffect
     effect_type type;
     MatVariant design_mat;
     MatVariant cov_mat;
+    arma::dvec u;
     double sigma;
     double se;
 };

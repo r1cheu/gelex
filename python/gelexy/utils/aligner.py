@@ -1,47 +1,53 @@
 import pandas as pd
 
 
-class Aligner:
+class Matcher:
     def __init__(
         self,
-        index_ids: list[str],
+        phenotype: pd.DataFrame,
+        genotypes: dict[str, pd.DataFrame],
+        axis: int | list[int] = 0,
     ):
-        str_ids = [str(i) for i in index_ids]
-        self.index_ids = list(dict.fromkeys(str_ids))
-        self.index_set = set(self.index_ids)
+        if "id" not in phenotype.columns:
+            msg = "Phenotype DataFrame must have an 'id' column."
+            raise ValueError(msg)
+        self._axis = axis if isinstance(axis, list) else [axis]
 
-    def align(
-        self, other: pd.DataFrame, axis: int | list[int] = 0
-    ) -> pd.DataFrame:
-        axis = [axis] if isinstance(axis, int) else axis
-        for a in axis:
-            if a == 0:
-                other.index = other.index.astype(str)
-                set_other = set(other.index)
-                missing_index = self.index_set.difference(set_other)
-                if missing_index:
-                    msg = f"The following index IDs are missing in the other DataFrame: {missing_index}"
-                    raise KeyError(msg)
-                index_for_reindex = [
-                    id for id in self.index_ids if id in set_other
-                ]
-                other = other.reindex(index=index_for_reindex)
-            elif a == 1:
-                other.columns = other.columns.astype(str)
-                set_other = set(other.columns)
-                missing_columns = self.index_set.difference(set_other)
-                if missing_columns:
-                    msg = f"The following column IDs are missing in the other DataFrame: {missing_columns}"
-                    raise KeyError(msg)
-                columns_for_reindex = [
-                    id for id in self.index_ids if id in set_other
-                ]
-                other = other.reindex(columns=columns_for_reindex)
-            else:
-                msg = "only 0, 1 are supported for axis."
+        self.common_set = set(phenotype["id"].astype(str))
+        self._intersect(genotypes)
+        self.common_order = sorted(self.common_set)
+
+        self.phenotype = self._match_phenotype(phenotype)
+        self.genotypes = self._match_genotype(genotypes)
+
+        self.phenotype_ids = self.phenotype["id"].astype(str).tolist()
+        self.genotype_ids = self.common_order
+
+    def _match_phenotype(self, phenotype: pd.DataFrame) -> pd.DataFrame:
+        return phenotype[phenotype["id"].isin(self.common_set)]
+
+    def _match_genotype(
+        self, genotypes: dict[str, pd.DataFrame]
+    ) -> dict[str, pd.DataFrame]:
+        for k, _ in genotypes.items():
+            for a in self._axis:
+                if a == 0:
+                    genotypes[k] = genotypes[k].loc[self.common_order, :]
+                elif a == 1:
+                    genotypes[k] = genotypes[k].loc[:, self.common_order]
+                else:
+                    msg = (
+                        f"Axis {a} is not supported. Only 0 and 1 are allowed."
+                    )
+                    raise ValueError(msg)
+        return genotypes
+
+    def _intersect(self, genotypes: dict[str, pd.DataFrame]):
+        for k, g in genotypes.items():
+            if not isinstance(g, pd.DataFrame):
+                msg = f"Genotype for {k} must be a DataFrame."
                 raise ValueError(msg)
-        return other
-
-    def difference(self, other: list[str]):
-        set_other = set(other)
-        return self.index_set.difference(set_other)
+            if g.index.name != "id":
+                msg = f"Genotype DataFrame for {k} must have an 'id' index."
+                raise ValueError(msg)
+            self.common_set.intersection_update(set(g.index.astype(str)))

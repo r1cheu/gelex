@@ -17,13 +17,11 @@ void mcmc_result(nb::module_&);
 void mcmc_diagnostics(nb::module_&);
 void bayes_predictor(nb::module_&);
 
-void gblup_params(nb::module_&);
 void gblup(nb::module_&);
-void predictor(nb::module_&);
 void estimator(nb::module_&);
-void add_grm(nb::module_&);
-void dom_grm(nb::module_&);
 void bed_reader(nb::module_&);
+void grm(nb::module_&);
+void cross_grm(nb::module_&);
 
 NB_MODULE(_core, m)  // NOLINT
 {
@@ -40,12 +38,10 @@ NB_MODULE(_core, m)  // NOLINT
     mcmc_result(m);
     mcmc_diagnostics(m);
 
-    gblup_params(m);
+    grm(m);
+    cross_grm(m);
     gblup(m);
-    predictor(m);
     estimator(m);
-    add_grm(m);
-    dom_grm(m);
     bed_reader(m);
 }
 }  // namespace bind

@@ -8,6 +8,7 @@ from formulae import design_matrices
 
 from gelexy import BayesAlphabet
 from gelexy._core import _BayesModel, _BedReader, _sp_dense_dot
+from gelexy.utils.aligner import Matcher
 
 from .base import (
     ModelMakerBase,
@@ -41,20 +42,23 @@ class make_bayes(ModelMakerBase):
         :raises ValueError: If the fixed effects contain missing values.
         """
         fparser = FormulaParser(formula, list(genotypes.keys()))
-        data = self.data
-        data = self._dropna(data, fparser.response)
 
+        data = self.data.copy()
+        data = self._dropna(data, fparser.response)
         genotypes = self._load_genotype(genotypes)
 
-        design_mat = design_matrices(fparser.common, data, na_action="error")
+        self.matcher = Matcher(data, genotypes)
+        data = self.matcher.phenotype
+        genotypes = self.matcher.genotypes
 
+        design_mat = design_matrices(fparser.common, data, na_action="error")
         design_mat_genotype = make_design_matrix(
             data["id"],
-            list(next(iter(genotypes.values())).index),
+            self.matcher.common_order,
         )
 
         model = BayesModel(
-            fparser.format_common,
+            fparser.formula,
             np.asfortranarray(design_mat.response),
         )
 
@@ -67,11 +71,11 @@ class make_bayes(ModelMakerBase):
         if design_mat.group is not None:
             for name, matrix in design_mat.group.terms.items():
                 model._add_random_effect(
-                    "(" + name + ")", np.asfortranarray(matrix.data)
+                    "(" + name + ")", np.asfortranarray(matrix)
                 )
 
         for term in fparser.genetic_terms:
-            genotype = genotypes[term.genetic].to_numpy()
+            genotype = np.asfortranarray(genotypes[term.genetic])
             genotype = _sp_dense_dot(design_mat_genotype, genotype)
             model._add_genetic_effect(
                 term.name,

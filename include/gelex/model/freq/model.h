@@ -75,13 +75,4 @@ class GBLUP
     RandomEffectManager random_;
     FixedEffect fixed_;
 };
-
-struct GBLUPParams
-{
-    arma::dvec beta;
-    arma::dvec sigma;
-    arma::dvec proj_y;
-    std::vector<std::string> dropped_ids;
-};
-
 }  // namespace gelex

@@ -118,8 +118,8 @@ TEST_CASE("BedReader exclude individuals", "[bedreader]")
 {
     const std::string test_bed
         = std::string(GELEX_TESTS_DIR) + "/data/test_10.bed";
-    std::vector<std::string> dropped_ids{"iid5", "iid2", "iid3"};
-    gelex::BedReader reader(test_bed, SMALL_CHUNK_SIZE, dropped_ids);
+    std::vector<std::string> target_order {"iid1", "iid9", "iid6", "iid7", "iid8", "iid4", "iid10"};
+    gelex::BedReader reader(test_bed, SMALL_CHUNK_SIZE, target_order);
 
     REQUIRE(reader.num_individuals() == 7);
     for (const auto& individual : reader.individuals())
@@ -134,16 +134,16 @@ TEST_CASE("BedReader exclude individuals", "[bedreader]")
         REQUIRE(chunk.n_rows == 7);
     }
 
-    gelex::BedReader reader2(test_bed, CHUNK_SIZE, dropped_ids);
+    gelex::BedReader reader2(test_bed, CHUNK_SIZE, target_order);
     arma::dmat chunk{reader2.read_chunk()};
     REQUIRE(chunk.n_rows == 7);
     arma::dmat expect
         = {{1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0},
-           {1.0, 1.0, 2.0, 0.0, 1.0, 0.0, 0.0, 2.0, 1.0, 0.0},
+           {1.0, 0.0, 1.0, 2.0, 1.0, 2.0, 0.0, 1.0, 1.0, 2.0},
            {0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 0.0, 2.0, 1.0},
            {0.0, 1.0, 2.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 2.0},
            {1.0, 2.0, 0.0, 1.0, 1.0, 1.0, 2.0, 2.0, 0.0, 1.0},
-           {1.0, 0.0, 1.0, 2.0, 1.0, 2.0, 0.0, 1.0, 1.0, 2.0},
+           {1.0, 1.0, 2.0, 0.0, 1.0, 0.0, 0.0, 2.0, 1.0, 0.0},
            {1.0, 1.0, 2.0, 0.0, 2.0, 0.0, 1.0, 1.0, 0.0, 1.0}};
     REQUIRE(arma::approx_equal(expect, chunk, "absdiff", 1e-5));
 }

@@ -11,7 +11,7 @@ from scipy.sparse import csc_matrix
 
 from gelexy._core import _GBLUP
 from gelexy.data.grm import load_grm
-from gelexy.utils.aligner import Aligner
+from gelexy.utils.aligner import Matcher
 
 from .base import (
     ModelMakerBase,
@@ -75,21 +75,19 @@ class make_gblup(ModelMakerBase):
             If the fixed effects contain missing values.
         """
         fparser = FormulaParser(formula, list(grms.keys()))
-        data = self.data
+
+        data = self.data.copy()
         data = self._dropna(data, fparser.response)
-
-        self.aligner = Aligner(data["id"].astype(str).tolist())
-
         grms = self._load_grms(grms)
 
-        grms = {
-            k: self.aligner.align(grm, axis=[0, 1]) for k, grm in grms.items()
-        }
+        self.matcher = Matcher(data, grms, axis=[0, 1])
+        data = self.matcher.phenotype
+        grms = self.matcher.genotypes
 
         design_mat = design_matrices(fparser.common, data, na_action="error")
         design_mat_grm = make_design_matrix(
             data["id"],
-            list(next(iter(grms.values())).index),
+            self.matcher.common_order,
         )
 
         model = GBLUP(
@@ -127,7 +125,7 @@ class make_gblup(ModelMakerBase):
 
         model._add_residual()
 
-        model._train_id_order = deepcopy(self.aligner.index_ids)
+        model._genotype_order = deepcopy(self.matcher.common_order)
         model._formula = formula
         gc.collect()
         return model

@@ -34,7 +34,7 @@ void RandomEffectManager::add(
 {
     auto index = effects_.size();
     effects_.emplace_back(
-        std::move(name), type, std::move(design_mat), std::move(cov_mat), 0, 0);
+        std::move(name), type, std::move(design_mat), std::move(cov_mat), arma::dvec{}, 0, 0);
     index_map_[effects_.back().name] = index;
 
     switch (type)

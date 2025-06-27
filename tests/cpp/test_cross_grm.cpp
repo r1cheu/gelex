@@ -6,12 +6,10 @@
 #include <catch2/matchers/catch_matchers.hpp>
 
 #include "gelex/data/bed_reader.h"
-#include "gelex/data/cross_grm.h"
+#include "gelex/data/grm.h"
 
 using arma::dmat;
-using arma::rowvec;
-using gelex::AddCrossGrm;
-using gelex::DomCrossGrm;
+using arma::dvec;
 
 TEST_CASE("CrossGrm computation", "[cross_grm]")
 {
@@ -22,20 +20,17 @@ TEST_CASE("CrossGrm computation", "[cross_grm]")
         = std::string(GELEX_TESTS_DIR) + "/data/test.bed";
     const std::string test_missmatch_bed
         = std::string(GELEX_TESTS_DIR) + "/data/test_missmatch.bed";
-    rowvec add_center{1.0, 0.3333333, 1.3333333, 0.6666667};
+    dvec add_center{1.0, 0.3333333, 1.3333333, 0.6666667};
+    dvec p_major = add_center / 2;
     double add_scale_factor = 2.0;
-
-    rowvec dom_center{0.5, 0.2777778, 0.44444442, 0.44444442};
     double dom_scale_factor = 0.9444445;
 
     using arma::approx_equal;
 
     SECTION("AddCrossGrm computation")
     {
-        // Setup
-        //
-        AddCrossGrm add_grm(train_bed, std::move(add_center), add_scale_factor);
-        dmat grm = add_grm.compute(test_bed);
+        gelex::CrossGRM cgrm (train_bed, std::move(p_major), add_scale_factor);
+        dmat grm = cgrm.compute(test_bed);
 
         dmat expected_grm
             = {{3.3333334e-01, -3.3333334e-01, -3.3113690e-09},
@@ -46,12 +41,10 @@ TEST_CASE("CrossGrm computation", "[cross_grm]")
 
     SECTION("AddCrossGrm chunk computation")
     {
-        rowvec center{1.0, 0.3333333, 1.3333333, 0.6666667};
-        double scale_factor = 2.0;
 
-        AddCrossGrm add_grm(
-            train_bed, std::move(add_center), add_scale_factor, 2);
-        dmat grm = add_grm.compute(test_bed);
+        gelex::CrossGRM cgrm(
+            train_bed, p_major, add_scale_factor, 2);
+        dmat grm = cgrm.compute(test_bed);
 
         dmat expected_grm
             = {{3.3333334e-01, -3.3333334e-01, -3.3113690e-09},
@@ -62,8 +55,8 @@ TEST_CASE("CrossGrm computation", "[cross_grm]")
 
     SECTION("DomCrossGrm computation")
     {
-        DomCrossGrm dom_grm(train_bed, std::move(dom_center), dom_scale_factor);
-        dmat grm = dom_grm.compute(test_bed);
+        gelex::CrossGRM cgrm(train_bed, p_major, dom_scale_factor);
+        dmat grm = cgrm.compute(test_bed, false);
         dmat expected_grm
             = {{0.882353, 0.35294122, -0.5294118},
                {-1.0000001, -0.4705883, 0.76470584},
@@ -73,9 +66,9 @@ TEST_CASE("CrossGrm computation", "[cross_grm]")
 
     SECTION("DomCrossGrm Chunk computation")
     {
-        DomCrossGrm dom_grm(
-            train_bed, std::move(dom_center), dom_scale_factor, 2);
-        dmat grm = dom_grm.compute(test_bed);
+        gelex::CrossGRM dgrm(
+            train_bed, p_major, dom_scale_factor, 2);
+        dmat grm = dgrm.compute(test_bed, false);
 
         dmat expected_grm
             = {{0.882353, 0.35294122, -0.5294118},
@@ -87,24 +80,25 @@ TEST_CASE("CrossGrm computation", "[cross_grm]")
 
     SECTION("CrossGrm with SNP mismatch throws exception")
     {
-        AddCrossGrm add_grm(train_bed, std::move(add_center), add_scale_factor);
+        gelex::CrossGRM add_grm(train_bed, p_major, add_scale_factor);
         REQUIRE_THROWS_WITH(
             add_grm.compute(test_missmatch_bed),
             "SNPs in training and test sets do not match.");
     }
 
-    SECTION("CrossGrm with excluded individuals")
+    SECTION("CrossGrm with target individuals")
     {
-        std::vector<std::string> exclude_individuals = {"iid2"};
-        rowvec center{0.5, 0.5, 1.5, 0.0};
+        std::vector<std::string> target_individuals = {"iid1", "iid3"};
+        dvec center{0.5, 0.5, 1.5, 0.0};
+        p_major = center / 2;
         double scale_factor = 0.75;
 
-        AddCrossGrm add_grm(
+        gelex::CrossGRM add_grm(
             train_bed,
-            std::move(center),
+            p_major,
             scale_factor,
             gelex::DEFAULT_CHUNK_SIZE,
-            exclude_individuals);
+            target_individuals);
 
         dmat grm = add_grm.compute(test_bed);
         dmat expected_grm
