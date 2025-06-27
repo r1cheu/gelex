@@ -19,9 +19,12 @@ GBLUPPredictor::GBLUPPredictor(
       beta_(model.fixed().beta),
       train_id_order_(train_id_order)
 {
-    for (const auto& blup : model.random())
+    for (const auto& effect : model.random())
     {
-        blups_.emplace_back(BLUP{blup.u, blup.name});
+        if (effect.type != effect_type::residual)
+        {
+            blups_.emplace_back(BLUP{effect.level_solutions, effect.name});
+        }
     }
 }
 
@@ -69,7 +72,7 @@ dmat GBLUPPredictor::compute_random_effects(std::string_view test_bed)
         {
             RandomEffects.zeros(new_k.n_rows, num_random_effects);
         }
-        RandomEffects.unsafe_col(i) = new_k * blups_[i].u;
+        RandomEffects.unsafe_col(i) = new_k * blups_[i].level_solutions;
     }
     return RandomEffects;
 }

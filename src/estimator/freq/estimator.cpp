@@ -158,7 +158,14 @@ void Estimator::compute_u(GBLUP& model)
     {
         std::visit(
             [&](const auto& cov)
-            { effect.u = cov * optimizer_->proj_y() * effect.sigma; },
+            {
+                effect.u = cov * optimizer_->proj_y() * effect.sigma;
+                // Compute level solutions
+                effect.level_solutions = std::visit(
+                    [&](const auto& mat) -> arma::dvec
+                    { return mat.t() * optimizer_->proj_y() * effect.sigma; },
+                    effect.design_mat);
+            },
             effect.cov_mat);
         ++idx;
     }
