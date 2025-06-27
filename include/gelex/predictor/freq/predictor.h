@@ -12,7 +12,7 @@ namespace gelex
 
 struct BLUP
 {
-    arma::dvec u;
+    arma::dvec level_solutions;  // Renamed from u to level_solutions
     std::string name;
 };
 

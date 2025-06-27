@@ -31,8 +31,9 @@ struct RandomEffect
     MatVariant design_mat;
     MatVariant cov_mat;
     arma::dvec u;
-    double sigma;
-    double se;
+    arma::dvec level_solutions;  // store design_mat.t() * proj_y * sigma
+    double sigma{};
+    double se{};
 };
 
 class RandomEffectManager
