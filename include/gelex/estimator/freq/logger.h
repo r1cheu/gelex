@@ -17,19 +17,19 @@ class EstimatorLogger
     EstimatorLogger();
 
     void set_verbose(bool verbose);
-    void log_model_information(
+    void log_model_info(
         const GBLUP& model,
         std::string_view optimizer_name,
         double tol,
         size_t max_iter);
     void log_em_initialization(
         double loglike,
-        const RandomEffectManager& effects,
+        const TotalEffects& effects,
         double time_cost);
     void log_iteration(
         size_t iter,
         double loglike,
-        const RandomEffectManager& effects,
+        const TotalEffects& effects,
         double time_cost);
     void log_results_header();
     void log_convergence_status(
@@ -59,14 +59,14 @@ class EstimatorLogger
 // Helper functions for formatting
 std::string join_formula(
     const std::vector<size_t>& indices,
-    const RandomEffectManager& effects,
+    const RandomEffects& effects,
     std::string_view sep);
 
 std::string join_name(
     const std::vector<size_t>& indices,
-    const RandomEffectManager& effects,
+    const RandomEffects& effects,
     std::string_view sep);
 
-std::string join_variance(const RandomEffectManager& effects);
+std::string join_variance(const TotalEffects& effects);
 
 }  // namespace gelex

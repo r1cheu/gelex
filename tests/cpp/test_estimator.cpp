@@ -23,10 +23,9 @@ TEST_CASE("Linear Mixed Model Fitted Check")
         std::vector<std::string>{"intercept"},
         std::vector<std::string>{"intercept"},
         std::move(X));
-    model.add_genetic_effect("A", arma::speye(arma::size(A)), std::move(A));
-    model.add_residual();
+    model.add_genetic_effect("A", arma::speye(arma::size(A)), A);
 
-    dvec sigma_hat{0.161, 0.513};
+    dvec sigma_hat{0.513, 0.161};
 
     SECTION("Average Information")
     {
@@ -34,6 +33,6 @@ TEST_CASE("Linear Mixed Model Fitted Check")
         estimator.fit(model, false, false);
         REQUIRE(
             arma::approx_equal(
-                model.random().sigma(), sigma_hat, "absdiff", 1e-3));
+                dvec(model.effects().values()), sigma_hat, "absdiff", 1e-3));
     }
 }

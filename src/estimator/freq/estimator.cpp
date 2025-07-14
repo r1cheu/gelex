@@ -12,8 +12,8 @@
 
 #include "gelex/model/freq/effects.h"
 #include "gelex/model/freq/model.h"
-#include "gelex/optim/base.h"
-#include "gelex/optim/optimizers.h"
+#include "gelex/optim/optimizer.h"
+#include "gelex/optim/policy.h"
 #include "gelex/utils/formatter.h"
 #include "gelex/utils/utils.h"
 
@@ -50,41 +50,11 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
     auto start = std::chrono::steady_clock::now();
 
     logger_.set_verbose(verbose);
-    logger_.log_model_information(model, optimizer_name_, tol_, max_iter_);
+    logger_.log_model_info(model, optimizer_name_, tol_, max_iter_);
 
-    initialize_optimizer(model, em_init);
-    run_optimization_loop(model);
-    report_results(model, start);
-}
+    optimizer_.init(model);
+    em_step(model, em_init);
 
-void Estimator::initialize_optimizer(GBLUP& model, bool em_init)
-{
-    double time_cost{};
-    if (em_init)
-    {
-        ExpectationMaximizationOptimizer em_optimizer{tol_};
-        em_optimizer.init(model);
-
-        {
-            Timer timer{time_cost};
-            em_optimizer.step(model);
-        }
-
-        logger_.log_em_initialization(
-            em_optimizer.loglike(), model.random(), time_cost);
-
-        optimizer_ = std::make_unique<AverageInformationOptimizer>(
-            std::move(static_cast<OptimizerBase&>(em_optimizer)));
-    }
-    else
-    {
-        optimizer_ = std::make_unique<AverageInformationOptimizer>(tol_);
-        optimizer_->init(model);
-    }
-}
-
-void Estimator::run_optimization_loop(GBLUP& model)
-{
     size_t iter{1};
     double time_cost{};
 
@@ -92,26 +62,47 @@ void Estimator::run_optimization_loop(GBLUP& model)
     {
         {
             Timer timer{time_cost};
-            optimizer_->step(model);
+            if (optimizer_name_ == "AI")
+            {
+                optimizer_.step<AverageInformationPolicy>(model);
+            }
         }
 
         logger_.log_iteration(
-            iter, optimizer_->loglike(), model.random(), time_cost);
+            iter, optimizer_.loglike_, model.effects(), time_cost);
 
-        if (optimizer_->converged())
+        if (optimizer_.converged_)
         {
             converged_ = true;
             break;
         }
     }
     iter_count_ = iter;
+
+    report_results(model, start);
+}
+
+void Estimator::em_step(GBLUP& model, bool em_init)
+{
+    if (em_init)
+    {
+        double time_cost{};
+        {
+            Timer timer{time_cost};
+            optimizer_.step<ExpectationMaximizationPolicy>(model);
+        }
+
+        logger_.log_em_initialization(
+            optimizer_.loglike_, model.effects(), time_cost);
+    }
 }
 
 void Estimator::report_results(
     GBLUP& model,
     const std::chrono::steady_clock::time_point& start_time)
 {
-    model.random().set_se(compute_se(model.random().hess_inv()));
+    compute_var_se(model, optimizer_);
+
     auto end = std::chrono::steady_clock::now();
     double elapsed_time
         = std::chrono::duration<double>(end - start_time).count();
@@ -130,94 +121,97 @@ void Estimator::report_results(
 
     // Compute fixed effects standard errors
     dvec fixed_se
-        = arma::diagvec(arma::sqrt(arma::inv_sympd(optimizer_->tx_vinv_x())));
+        = arma::diagvec(arma::sqrt(arma::inv_sympd(optimizer_.tx_vinv_x_)));
     logger_.log_fixed_effects(model, fixed_se);
 
     logger_.log_variance_components(model);
 
-    auto [h2_se, sum_var] = compute_h2_se(model.random());
+    auto [h2_se, sum_var] = compute_h2_se(model);
     logger_.log_heritability(model, h2_se, sum_var);
     logger_.log_results_footer();
+
+    model.proj_y_ = optimizer_.proj_y_;
 }
 
 void Estimator::compute_beta(GBLUP& model)
 {
-    auto compute_beta_visitor = [this, &model](const auto& mat) -> dvec
-    {
-        return arma::inv_sympd(optimizer_->tx_vinv_x())
-               * (mat.t() * optimizer_->v() * model.phenotype());
-    };
-    model.fixed().beta
-        = std::visit(compute_beta_visitor, model.fixed().design_mat);
+    model.fixed_->coeff = arma::inv_sympd(optimizer_.tx_vinv_x_)
+                          * (model.fixed_->design_matrix.t() * optimizer_.v_
+                             * model.phenotype_);
 }
 
 void Estimator::compute_u(GBLUP& model)
 {
-    size_t idx{};
-    for (auto& effect : model.random())
+    for (auto& effect : model.random_)
     {
-        std::visit(
-            [&](const auto& cov)
-            {
-                effect.u = cov * optimizer_->proj_y() * effect.sigma;
-                // Compute level solutions
-                effect.level_solutions = std::visit(
-                    [&](const auto& mat) -> arma::dvec
-                    { return mat.t() * optimizer_->proj_y() * effect.sigma; },
-                    effect.design_mat);
-            },
-            effect.cov_mat);
-        ++idx;
+        effect.coeff
+            = effect.design_matrix.t() * optimizer_.proj_y_ * effect.sigma;
+    }
+
+    for (auto& effect : model.genetic_)
+    {
+        effect.coeff = effect.genetic_relationship_matrix
+                       * effect.design_matrix.t() * optimizer_.proj_y_
+                       * effect.sigma;
     }
 }
 
-double Estimator::compute_aic(GBLUP& model)
+double Estimator::compute_aic(const GBLUP& model) const
 {
     auto k
-        = static_cast<double>(model.random().size() + model.n_fixed_effects());
-    double aic = (-2 * optimizer_->loglike()) + (2 * k);
+        = static_cast<double>(model.effects().size() + model.n_fixed_effects());
+    double aic = (-2 * optimizer_.loglike_) + (2 * k);
     return aic;
 }
 
-double Estimator::compute_bic(GBLUP& model)
+double Estimator::compute_bic(const GBLUP& model) const
 {
     auto k
-        = static_cast<double>(model.random().size() + model.n_fixed_effects());
-    auto n = static_cast<double>(model.n_individuals());
-    double bic = (-2 * optimizer_->loglike()) + (k * std::log(n));
+        = static_cast<double>(model.effects().size() + model.n_fixed_effects());
+    auto n = static_cast<double>(model.n_individuals_);
+    double bic = (-2 * optimizer_.loglike_) + (k * std::log(n));
     return bic;
 }
 
-dvec compute_se(const dmat& hess_inv)
+void Estimator::compute_var_se(GBLUP& model, const Optimizer& optim) const
 {
-    return arma::sqrt(arma::diagvec(-hess_inv));
+    dvec var_se = arma::sqrt(arma::diagvec(-optim.hess_inv_));
+    for (size_t i = 0; i < model.effects_.size(); ++i)
+    {
+        model.effects_[i].se = var_se.at(i);
+    }
 }
 
-std::pair<std::vector<double>, double> compute_h2_se(
-    const RandomEffectManager& effects)
+std::pair<std::vector<double>, double> Estimator::compute_h2_se(
+    const GBLUP& model) const
 {
-    auto n = effects.size();
-    double sum_var = arma::sum(effects.sigma());
+    auto n = model.effects_.size();
+    double sum_var = arma::sum(arma::dvec(model.effects_.values()));
     double sum_sq = sum_var * sum_var;
 
-    dvec grad = arma::zeros<dvec>(n);
+    std::vector<double> grad;
     std::vector<double> h2_se;
-    h2_se.reserve(effects.n_genetic_effects());
-    for (auto i : effects.genetic_indices())
+    h2_se.reserve(model.n_genetic_effects());
+
+    for (const auto& g_effect : model.genetic_)
     {
-        for (size_t j{}; j < n; ++j)
+        for (const auto& effect : model.effects_)
         {
-            if (i == j)
+            if (effect.name == g_effect.name)
             {
-                grad[j] = (sum_var - effects[i].sigma) / sum_sq;
+                grad.emplace_back((sum_var - effect.sigma) / sum_sq);
             }
             else
             {
-                grad[j] = -effects[i].sigma / sum_sq;
+                grad.emplace_back(-effect.sigma / sum_sq);
             }
         }
+        dvec grad_vec(grad);
+        grad.clear();
         h2_se.emplace_back(
-            std::sqrt(arma::as_scalar(grad.t() * -effects.hess_inv() * grad)));
+            std::sqrt(
+                arma::as_scalar(
+                    grad_vec.t() * -optimizer_.hess_inv_ * grad_vec)));
     }
     return {h2_se, sum_var};
 }

@@ -31,20 +31,20 @@ class MCMC
         std::atomic_size_t& iter,
         Indicator& indicator);
     static void sample_fixed_effect(
-        const FixedEffectDesign& design,
-        FixedEffectState& state,
+        const bayes::FixedEffect& design,
+        bayes::FixedEffectState& state,
         double* y_adj,
         double sigma_e,
         std::mt19937_64& rng);
     static void sample_random_effect(
-        const RandomEffectDesign& design,
-        RandomEffectState& state,
+        const bayes::RandomEffect& design,
+        bayes::RandomEffectState& state,
         double* y_adj,
         double sigma_e,
         std::mt19937_64& rng);
     static void sample_genetic_effect(
-        const GeneticEffectDesign& design,
-        GeneticEffectState& state,
+        const bayes::GeneticEffect& design,
+        bayes::GeneticEffectState& state,
         double* y_adj,
         arma::uvec& snp_tracker,
         double sigma_e,

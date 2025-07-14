@@ -1,100 +1,84 @@
-#include "gelex/model/effects.h"
+#include <string>
+#include <vector>
+
+#include <armadillo>
+#include "gelex/utils/utils.h"
+
 #include "gelex/model/freq/effects.h"
 
 namespace gelex
 {
-using arma::dvec;
 
-void FixedEffect::clear()
+FixedEffect::FixedEffect(
+    std::vector<std::string>&& names,
+    std::vector<std::string>&& levels,
+    arma::dmat&& design_matrix)
+    : names(std::move(names)),
+      levels(std::move(levels)),
+      design_matrix(std::move(design_matrix))
 {
-    auto clear = [](auto& mat) { mat.clear(); };
-    names.clear();
-    levels.clear();
-    std::visit(clear, design_mat);
-    beta.clear();
+    coeff = arma::zeros(this->design_matrix.n_cols);
 }
 
-RandomEffect* RandomEffectManager::get(const std::string& name)
+RandomEffect::RandomEffect(std::string&& name, arma::sp_dmat&& design_matrix)
+    : name(std::move(name)), design_matrix(std::move(design_matrix))
 {
-    auto item = index_map_.find(name);
-    return item != index_map_.end() ? &effects_[item->second] : nullptr;
+    if (check_eye(this->design_matrix))
+    {
+        covariance_matrix = this->design_matrix;
+    }
+    else
+    {
+        covariance_matrix = this->design_matrix * this->design_matrix.t();
+    }
+    coeff = arma::zeros(this->design_matrix.n_cols);
 }
-
-const RandomEffect* RandomEffectManager::get(const std::string& name) const
-{
-    auto item = index_map_.find(name);
-    return item != index_map_.end() ? &effects_[item->second] : nullptr;
-}
-
-void RandomEffectManager::add(
+GeneticEffect::GeneticEffect(
     std::string&& name,
-    effect_type type,
-    MatVariant&& design_mat,
-    MatVariant&& cov_mat)
+    arma::sp_dmat&& design_matrix,
+    const arma::dmat& genetic_relationship_matrix)
+    : name(std::move(name)),
+      design_matrix(std::move(design_matrix)),
+      genetic_relationship_matrix(genetic_relationship_matrix)
 {
-    auto index = effects_.size();
-    effects_.emplace_back(
-        std::move(name),
-        type,
-        std::move(design_mat),
-        std::move(cov_mat),
-        arma::dvec{},
-        arma::dvec{},
-        0,
-        0);
-    index_map_[effects_.back().name] = index;
-
-    switch (type)
+    if (check_eye(this->design_matrix))
     {
-        case effect_type::random:
-            n_random_effects_++;
-            random_indices_.emplace_back(index);
-            break;
-        case effect_type::genetic:
-            n_genetic_effects_++;
-            genetic_indices_.emplace_back(index);
-            break;
-        case effect_type::gxe:
-            n_gxe_effects_++;
-            gxe_indices_.emplace_back(index);
-            break;
-        case effect_type::residual:
-            break;
+        covariance_matrix = this->genetic_relationship_matrix;
     }
+    else
+    {
+        covariance_matrix = this->design_matrix
+                            * this->genetic_relationship_matrix
+                            * this->design_matrix.t();
+    }
+    coeff = arma::zeros(this->design_matrix.n_cols);
 }
 
-void RandomEffectManager::set_sigma(const dvec& sigma)
+GxEEffect::GxEEffect(
+    std::string&& name,
+    arma::sp_dmat&& genetic_design_matrix,
+    const arma::dmat& genetic_relationship_matrix,
+    arma::sp_dmat&& env_design_matrix)
+    : name(std::move(name)),
+      genetic_design_matrix(std::move(genetic_design_matrix)),
+      genetic_relationship_matrix(genetic_relationship_matrix),
+      env_design_matrix(std::move(env_design_matrix))
 {
-    sigma_ = sigma;
-    for (size_t i = 0; i < effects_.size(); ++i)
+    arma::sp_dmat cov_env
+        = this->env_design_matrix * this->env_design_matrix.t();
+
+    if (check_eye(this->genetic_design_matrix))
     {
-        effects_[i].sigma = sigma[i];
+        covariance_matrix = this->genetic_relationship_matrix % cov_env;
     }
+    else
+    {
+        covariance_matrix = this->genetic_design_matrix
+                            * this->genetic_relationship_matrix
+                            * this->genetic_design_matrix.t();
+        covariance_matrix %= cov_env;
+    }
+    coeff = arma::zeros(this->genetic_design_matrix.n_cols);
 }
 
-void RandomEffectManager::set_se(const dvec& se)
-{
-    for (size_t i = 0; i < effects_.size(); ++i)
-    {
-        effects_[i].se = se[i];
-    }
-}
-
-void RandomEffectManager::clear()
-{
-    effects_.clear();
-    index_map_.clear();
-
-    n_random_effects_ = 0;
-    n_genetic_effects_ = 0;
-    n_gxe_effects_ = 0;
-
-    genetic_indices_.clear();
-    random_indices_.clear();
-    gxe_indices_.clear();
-    residual_index_ = 0;
-
-    sigma_.clear();
-    hess_inv_.clear();
-};
 }  // namespace gelex

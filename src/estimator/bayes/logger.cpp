@@ -35,8 +35,8 @@ void MCMCLogger::log_model_information(
     logger_->info(item(
         "formula:  {}{}{} + e",
         model.formula(),
-        fmt::join(model.random().names(), " + "),
-        fmt::join(model.genetic().names(), " + ")));
+        fmt::join(model.random().keys(), " + "),
+        fmt::join(model.genetic().keys(), " + ")));
     logger_->info(item("Samples:  {:d}", model.n_individuals()));
     logger_->info(item("Iters:  {:d}", params.n_iters));
     logger_->info(item("Burn-in:  {:d}", params.n_burnin));
@@ -49,12 +49,12 @@ void MCMCLogger::log_model_information(
     if (model.random())
     {
         logger_->info(
-            item("Random:  {}", fmt::join(model.random().names(), ", ")));
+            item("Random:  {}", fmt::join(model.random().keys(), ", ")));
     }
     if (model.genetic())
     {
         logger_->info(
-            item("Genetic:  {}", fmt::join(model.genetic().names(), ", ")));
+            item("Genetic:  {}", fmt::join(model.genetic().keys(), ", ")));
     }
     logger_->info("");
 
@@ -117,11 +117,11 @@ void MCMCLogger::log_iter_header(const BayesModel& model)
 
     if (model.random())
     {
-        header += format_names(model.random().names()) + "  ";
+        header += format_names(model.random().keys()) + "  ";
     }
     if (model.genetic())
     {
-        header += format_names(model.genetic().names()) + "  ";
+        header += format_names(model.genetic().keys()) + "  ";
     }
     header += sigma_squared("_e") + "  h\u00B2  ETA";
     logger_->info(header);

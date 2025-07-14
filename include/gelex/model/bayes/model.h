@@ -31,8 +31,8 @@ class BayesModel
     void add_fixed_effect(
         std::vector<std::string>&& names,
         std::vector<std::string>&& levels,
-        arma::dmat&& design_mat);
-    void add_random_effect(std::string&& name, arma::dmat&& design_mat);
+        arma::dmat&& design_matrix);
+    void add_random_effect(std::string&& name, arma::dmat&& design_matrix);
     void add_genetic_effect(
         std::string&& name,
         arma::dmat&& genotype,
@@ -80,16 +80,16 @@ class BayesModel
     arma::dvec phenotype_;
     double phenotype_var_{};
 
-    std::unique_ptr<FixedEffectDesign> fixed_;
-    RandomEffectDesignManager random_;
-    GeneticEffectDesignManager genetic_;
-    Residual residual_;
+    std::unique_ptr<bayes::FixedEffect> fixed_;
+    bayes::RandomEffectManager random_;
+    bayes::GeneticEffectManager genetic_;
+    bayes::Residual residual_;
 };
 
 struct BayesStatus
 {
     explicit BayesStatus(const BayesModel& model)
-        : fixed(FixedEffectState(model.fixed().design_mat.n_cols)),
+        : fixed(bayes::FixedEffectState(model.fixed().design_matrix.n_cols)),
           random(create_thread_states(model.random())),
           genetic(create_thread_states(model.genetic())),
           residual(model.residual())
@@ -97,10 +97,10 @@ struct BayesStatus
     }
 
     void compute_heritability();
-    FixedEffectState fixed;
-    std::vector<RandomEffectState> random;
-    std::vector<GeneticEffectState> genetic;
-    Residual residual;
+    bayes::FixedEffectState fixed;
+    std::vector<bayes::RandomEffectState> random;
+    std::vector<bayes::GeneticEffectState> genetic;
+    bayes::Residual residual;
 };
 
 }  // namespace gelex

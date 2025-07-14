@@ -1,10 +1,6 @@
 #include "gelex/model/freq/model.h"
 
-#include <fmt/format.h>
 #include <armadillo>
-#include <utility>
-
-#include "gelex/utils/utils.h"
 
 namespace gelex
 {
@@ -17,91 +13,46 @@ GBLUP::GBLUP(std::string formula, dvec&& phenotype)
     : formula_{std::move(formula)}, phenotype_{std::move(phenotype)}
 {
     n_individuals_ = phenotype_.n_elem;
+    effects_.add("e", effect_type::residual, 0, 0);
 }
 
 void GBLUP::add_fixed_effect(
     std::vector<std::string>&& names,
     std::vector<std::string>&& levels,
-    dmat&& design_mat)
+    dmat&& design_matrix)
 {
-    auto n_levels = levels.size();
-    fixed_ = FixedEffect{
-        std::move(names),
-        std::move(levels),
-        std::move(design_mat),
-        arma::zeros(n_levels)};
+    fixed_ = std::make_unique<FixedEffect>(
+        std::move(names), std::move(levels), std::move(design_matrix));
 }
 
-void GBLUP::add_random_effect(std::string&& name, sp_dmat&& design_mat)
+void GBLUP::add_random_effect(std::string&& name, sp_dmat&& design_matrix)
 {
-    sp_dmat cov = design_mat * design_mat.t();
-    random_.add(
-        std::move(name),
-        effect_type::random,
-        std::move(design_mat),
-        std::move(cov));
+    random_.add(std::move(name), std::move(design_matrix));
+    effects_.add(random_.back().name, effect_type::random, 0, 0);
 }
 
 void GBLUP::add_genetic_effect(
     std::string&& name,
-    sp_dmat&& design_mat,
-    const dmat& cov_mat)
+    sp_dmat&& design_matrix,
+    const dmat& genetic_relationship_matrix)
 {
-    if (check_eye(design_mat))
-    {
-        random_.add(
-            std::move(name),
-            effect_type::genetic,
-            std::move(design_mat),
-            cov_mat);
-    }
-    else
-    {
-        dmat _cov_mat = design_mat * cov_mat * design_mat.t();
-        random_.add(
-            std::move(name),
-            effect_type::genetic,
-            std::move(design_mat),
-            std::move(_cov_mat));
-    }
+    genetic_.add(
+        std::move(name), std::move(design_matrix), genetic_relationship_matrix);
+    effects_.add(genetic_.back().name, effect_type::genetic, 0, 0);
 }
 
 void GBLUP::add_gxe_effect(
     std::string&& name,
-    sp_dmat&& design_mat_genetic,
-    const dmat& genetic_cov_mat,
-    const dmat& design_mat)
-
+    sp_dmat&& genetic_design_matrix,
+    const dmat& genetic_relationship_matrix,
+    arma::sp_dmat&& env_design_matrix)
 {
-    sp_dmat g_design = std::move(design_mat_genetic);
-    dmat g_cov;
-    if (check_eye(g_design))
-    {
-        g_cov = genetic_cov_mat;
-    }
-    else
-    {
-        g_cov = g_design * genetic_cov_mat * g_design.t();
-    }
-
-    dmat r_cov = design_mat * design_mat.t();
-    g_cov = g_cov % r_cov;
-    g_cov = g_cov / arma::trace(g_cov) * static_cast<double>(n_individuals_);
-
-    random_.add(
+    gxe_.add(
         std::move(name),
-        effect_type::gxe,
-        design_mat_genetic,
-        std::move(g_cov));
-}
-
-void GBLUP::add_residual()
-{
-    random_.add(
-        "e",
-        effect_type::residual,
-        arma::dmat(),
-        arma::speye(n_individuals_, n_individuals_));
+        std::move(genetic_design_matrix),
+        genetic_relationship_matrix,
+        std::move(env_design_matrix));
+    effects_.add(gxe_.back().name, effect_type::gxe, 0, 0);
 }
 
 void GBLUP::clear()
@@ -110,8 +61,60 @@ void GBLUP::clear()
     n_individuals_ = 0;
     phenotype_.clear();
 
+    fixed_.reset();
     random_.clear();
-    fixed_.clear();
+    genetic_.clear();
+    gxe_.clear();
+    effects_.clear();
+    residual_.sigma = 0;
 }
 
+dvec GBLUP::var_comp() const
+{
+    std::vector<double> var_comp_values;
+    var_comp_values.emplace_back(residual_.sigma);
+    auto add_var_comp = [&](const auto& effects)
+    {
+        for (const auto& eff : effects)
+        {
+            var_comp_values.emplace_back(eff.sigma);
+        }
+    };
+    add_var_comp(random_);
+    add_var_comp(genetic_);
+    add_var_comp(gxe_);
+    return dvec(var_comp_values);
+}
+
+size_t GBLUP::n_var_comp() const
+{
+    return random_.size() + genetic_.size() + gxe_.size() + 1;
+}
+
+void GBLUP::init_var_comp(double var)
+{
+    var /= static_cast<double>(n_var_comp());
+    arma::dvec var_comp(n_var_comp(), arma::fill::value(var));
+    set_var_comp(var_comp);
+}
+
+void GBLUP::set_var_comp(const dvec& var_comp)
+{
+    size_t idx{0};
+    residual_.sigma = var_comp.at(idx++);
+    effects_.get(residual_.name)->sigma = residual_.sigma;
+
+    auto set_sigma = [&](auto& effects)
+    {
+        for (auto& eff : effects)
+        {
+            double sigma = var_comp.at(idx++);
+            eff.sigma = sigma;
+            effects_.get(eff.name)->sigma = sigma;
+        }
+    };
+    set_sigma(random_);
+    set_sigma(genetic_);
+    set_sigma(gxe_);
+}
 }  // namespace gelex
