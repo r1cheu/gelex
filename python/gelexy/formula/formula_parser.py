@@ -1,29 +1,33 @@
 import re
 from dataclasses import dataclass
-from typing import Final
 
 import pandas as pd
 
 
 @dataclass
 class GeneticTerm:
-    """Represents a genetic term in the formula with its associated GRM."""
+    """
+    Represents a genetic term used in formula parsing.
+
+    :param name: The name of the genetic term.
+    :param method: add or dom.
+    :param genetic: A pandas DataFrame containing genetic data.
+    :param env: An optional environment interaction term.
+    """
 
     name: str
-    genetic: str
+    genetic: pd.DataFrame
     env: str | None = None
 
 
-class FormulaParser:
+class Formula:
     """Parses mixed model formulas with genetic and GxE terms."""
 
-    _GENETIC_PATTERN: Final = re.compile(r"g\[(.*?)\]")
+    _GRM = re.compile(r"g\[(.*?)\]")
 
-    def __init__(self, formula: str, genetic_input: list[str]) -> None:
-        """Initialize parser with formula and capture caller's locals.
-        Args:
-            formula: Mixed model formula (e.g., "y ~ x + g(GRM)")
-        """
+    def __init__(
+        self, formula: str, genetic_input: dict[str, pd.DataFrame]
+    ) -> None:
         self.genetic_input = genetic_input
         self.common = ""
         self.genetic_terms: list[GeneticTerm] = []
@@ -66,7 +70,7 @@ class FormulaParser:
         common_terms = []
 
         for term in terms:
-            if genetic_match := self._GENETIC_PATTERN.match(term):
+            if genetic_match := self._GRM.match(term):
                 self._process_genetic_term(genetic_match.group(1))
             else:
                 common_terms.append(term)

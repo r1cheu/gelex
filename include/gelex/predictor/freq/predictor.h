@@ -10,12 +10,6 @@
 namespace gelex
 {
 
-struct BLUP
-{
-    arma::dvec level_solutions;  // Renamed from u to level_solutions
-    std::string name;
-};
-
 class GBLUPPredictor
 {
    public:
@@ -23,11 +17,6 @@ class GBLUPPredictor
         std::string_view train_bed,
         const std::vector<std::string>& train_id_order,
         const GBLUP& model);
-    GBLUPPredictor(
-        std::string_view train_bed,
-        const std::vector<std::string>& train_id_order,
-        const arma::dvec& beta,
-        const std::vector<BLUP>& blups);
 
     GBLUPPredictor(const GBLUPPredictor&) = delete;
     GBLUPPredictor(GBLUPPredictor&&) noexcept = default;
@@ -42,15 +31,25 @@ class GBLUPPredictor
         double scale_factor,
         size_t chunk_size);
 
-    arma::dmat compute_random_effects(std::string_view test_bed);
     arma::dmat compute_fixed_effects(const arma::dvec& covariates) const;
+    arma::dmat compute_genetic_effects(std::string_view test_bed);
+    arma::dvec compute_random_effects(
+        std::string_view name,
+        const arma::dmat& design_matrix) const;
 
    private:
+    struct Effect
+    {
+        std::string name;
+        arma::sp_dmat design_matrix;
+        double sigma;
+    };
     std::string train_bed_;
     std::vector<std::string> train_id_order_;
     std::vector<CrossGRM> cross_grms_;
 
     arma::dvec beta_;
-    std::vector<BLUP> blups_;
+    arma::dvec proj_y_;
+    std::vector<Effect> blups_;
 };
 }  // namespace gelex

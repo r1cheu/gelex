@@ -1,15 +1,13 @@
 #pragma once
 #include <cstddef>
-#include <memory>
 #include <string_view>
 
 #include <armadillo>
 
 #include <fmt/ranges.h>
 #include "gelex/estimator/freq/logger.h"
-#include "gelex/model/freq/effects.h"
 #include "gelex/model/freq/model.h"
-#include "gelex/optim/base.h"
+#include "gelex/optim/optimizer.h"
 
 namespace gelex
 {
@@ -22,20 +20,22 @@ class Estimator
     void fit(GBLUP& model, bool em_init = true, bool verbose = true);
 
    private:
+    void em_step(GBLUP& model, bool em_init);
+
     void compute_beta(GBLUP& model);
     void compute_u(GBLUP& model);
-    std::unique_ptr<OptimizerBase> optimizer_;
-    EstimatorLogger logger_;
-
-    void initialize_optimizer(GBLUP& model, bool em_init);
-    void run_optimization_loop(GBLUP& model);
-
     void report_results(
         GBLUP& model,
         const std::chrono::steady_clock::time_point& start_time);
 
-    double compute_aic(GBLUP& model);
-    double compute_bic(GBLUP& model);
+    double compute_aic(const GBLUP& model) const;
+    double compute_bic(const GBLUP& model) const;
+    void compute_var_se(GBLUP& model, const Optimizer& optim) const;
+    std::pair<std::vector<double>, double> compute_h2_se(
+        const GBLUP& model) const;
+
+    Optimizer optimizer_;
+    EstimatorLogger logger_;
 
     size_t iter_count_{};
     size_t max_iter_{};
@@ -49,9 +49,5 @@ auto blue_vec(const arma::Col<eT>& vec)
 {
     return fmt::styled(fmt::join(vec, ", "), fmt::fg(fmt::color::blue_violet));
 }
-
-arma::dvec compute_se(const arma::dmat& hess_inv);
-std::pair<std::vector<double>, double> compute_h2_se(
-    const RandomEffectManager& effects);
 
 };  // namespace gelex

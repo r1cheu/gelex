@@ -47,19 +47,19 @@ class MCMCSamples
 
     void init_group(
         RandomGroup& group,
-        const RandomEffectDesignManager& effects) const;
+        const bayes::RandomEffectManager& effects) const;
 
     void init_group(
         GeneticGroup& group,
-        const GeneticEffectDesignManager& effects) const;
+        const bayes::GeneticEffectManager& effects) const;
 
     void store_group(
-        const std::vector<RandomEffectState>& status,
+        const std::vector<bayes::RandomEffectState>& status,
         size_t record_idx,
         size_t chain_idx);
 
     void store_group(
-        const std::vector<GeneticEffectState>& status,
+        const std::vector<bayes::GeneticEffectState>& status,
         size_t record_idx,
         size_t chain_idx);
 };

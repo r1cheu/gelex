@@ -87,7 +87,8 @@ void MCMC::run_one_chain(
     BayesStatus status(model);
 
     size_t record_idx = 0;
-    uvec snp_tracker(model.genetic()[0].design_mat.n_cols, arma::fill::zeros);
+    uvec snp_tracker(
+        model.genetic()[0].design_matrix.n_cols, arma::fill::zeros);
 
     ScaledInvChiSq residuel_sample{model.residual().prior};
 
@@ -161,8 +162,8 @@ void MCMC::run_one_chain(
 }
 
 void MCMC::sample_fixed_effect(
-    const FixedEffectDesign& design,
-    FixedEffectState& state,
+    const bayes::FixedEffect& design,
+    bayes::FixedEffectState& state,
     double* y_adj,
 
     double sigma_e,
@@ -170,15 +171,15 @@ void MCMC::sample_fixed_effect(
 {
     dvec& coeff = state.coeff;
     const dvec& cols_norm = design.cols_norm;
-    const dmat& design_mat = design.design_mat;
+    const dmat& design_matrix = design.design_matrix;
     const dvec& post_sigma = arma::sqrt(sigma_e / cols_norm);
     std::normal_distribution<double> normal{0, 1};
 
-    const int n = static_cast<int>(design_mat.n_rows);
+    const int n = static_cast<int>(design_matrix.n_rows);
     for (size_t i = 0; i < coeff.n_elem; ++i)
     {
         const double old_i = coeff.at(i);
-        const double* col_i = design_mat.colptr(i);
+        const double* col_i = design_matrix.colptr(i);
         const double norm = cols_norm.at(i);
 
         const double rhs = ddot_ptr(n, col_i, y_adj) + (norm * old_i);
@@ -189,26 +190,26 @@ void MCMC::sample_fixed_effect(
 }
 
 void MCMC::sample_random_effect(
-    const RandomEffectDesign& design,
-    RandomEffectState& state,
+    const bayes::RandomEffect& design,
+    bayes::RandomEffectState& state,
     double* y_adj,
     double sigma_e,
     std::mt19937_64& rng)
 {
     dvec& coeff = state.coeff;
     const dvec& cols_norm = design.cols_norm;
-    const dmat& design_mat = design.design_mat;
+    const dmat& design_matrix = design.design_matrix;
     const double sigma = arma::as_scalar(state.sigma);
     const dvec inv_scaler = 1 / (cols_norm + sigma_e / sigma);
     const dvec post_sigma = arma::sqrt(sigma_e * inv_scaler);
 
     std::normal_distribution<double> normal{0, 1};
 
-    const int n = static_cast<int>(design_mat.n_rows);
+    const int n = static_cast<int>(design_matrix.n_rows);
     for (size_t i = 0; i < coeff.n_elem; ++i)
     {
         const double old_i = coeff.at(i);
-        const double* col_i = design_mat.colptr(i);
+        const double* col_i = design_matrix.colptr(i);
         const double norm = cols_norm.at(i);
 
         const double rhs = ddot_ptr(n, col_i, y_adj) + (norm * old_i);
@@ -224,8 +225,8 @@ void MCMC::sample_random_effect(
 }
 
 void MCMC::sample_genetic_effect(
-    const GeneticEffectDesign& design,
-    GeneticEffectState& state,
+    const bayes::GeneticEffect& design,
+    bayes::GeneticEffectState& state,
     double* y_adj,
     uvec& snp_tracker,
     double sigma_e,

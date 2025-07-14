@@ -14,7 +14,7 @@ MCMCSamples::MCMCSamples(const MCMCParams& params, const BayesModel& model)
     : n_records_((params.n_iters - params.n_burnin) / params.n_thin),
       n_chains_(params.n_chains)
 {
-    fixed_.set_size(model.fixed().design_mat.n_cols, n_records_, n_chains_);
+    fixed_.set_size(model.fixed().design_matrix.n_cols, n_records_, n_chains_);
     init_group(random_, model.random());
     init_group(genetic_, model.genetic());
     residual_.set_size(1, n_records_, n_chains_);
@@ -38,7 +38,7 @@ void MCMCSamples::store(
 
 void MCMCSamples::init_group(
     RandomGroup& group,
-    const RandomEffectDesignManager& effects) const
+    const bayes::RandomEffectManager& effects) const
 {
     auto n_effects = effects.size();
     group.coeffs.resize(n_effects);
@@ -46,7 +46,7 @@ void MCMCSamples::init_group(
     for (size_t i = 0; i < n_effects; ++i)
     {
         group.coeffs[i].set_size(
-            effects[i].design_mat.n_cols, n_records_, n_chains_);
+            effects[i].design_matrix.n_cols, n_records_, n_chains_);
         group.sigmas[i].set_size(
             effects[i].sigma.n_elem, n_records_, n_chains_);
     }
@@ -54,7 +54,7 @@ void MCMCSamples::init_group(
 
 void MCMCSamples::init_group(
     GeneticGroup& group,
-    const GeneticEffectDesignManager& effects) const
+    const bayes::GeneticEffectManager& effects) const
 {
     auto n_effects = effects.size();
     group.coeffs.resize(n_effects);
@@ -65,7 +65,7 @@ void MCMCSamples::init_group(
     for (size_t i = 0; i < effects.size(); ++i)
     {
         group.coeffs[i].set_size(
-            effects[i].design_mat.n_cols, n_records_, n_chains_);
+            effects[i].design_matrix.n_cols, n_records_, n_chains_);
         group.sigmas[i].set_size(
             effects[i].sigma.n_elem, n_records_, n_chains_);
         group.genetic_var[i].set_size(1, n_records_, n_chains_);
@@ -78,7 +78,7 @@ void MCMCSamples::init_group(
 }
 
 void MCMCSamples::store_group(
-    const std::vector<RandomEffectState>& status,
+    const std::vector<bayes::RandomEffectState>& status,
     size_t record_idx,
     size_t chain_idx)
 {
@@ -90,7 +90,7 @@ void MCMCSamples::store_group(
 }
 
 void MCMCSamples::store_group(
-    const std::vector<GeneticEffectState>& status,
+    const std::vector<bayes::GeneticEffectState>& status,
     size_t record_idx,
     size_t chain_idx)
 {

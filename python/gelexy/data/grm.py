@@ -4,7 +4,7 @@ import h5py
 import numpy as np
 import pandas as pd
 
-from gelexy._core import GRM
+from gelexy._core import GRM, _BedReader
 
 
 def make_grm(
@@ -14,30 +14,14 @@ def make_grm(
     save: bool = True,
 ) -> pd.DataFrame:
     """
-    Compute the Genetic Relationship Matrix (GRM) from a BED file.
+    Construct a Genetic Relationship Matrix (GRM) from a BED genotype file.
 
-    Parameters
-    ----------
-    bed_file : str | Path
-        Path to the BED(PLINK) file containing SNP data.
-    method : str, optional
-        Method to use for GRM computation. Must be either 'add' (additive) or 'dom' (dominance).
-        Default is 'add'.
-    chunk_size : int | bool, optional
-        Number of SNPs to process in each chunk. If False, the entire dataset is processed at once.
-        Default is 10000.
-    save : bool, optional
-        Save the computed GRM to a file. Default is True.
-
-    Returns
-    -------
-    np.ndarray
-        The computed Genetic Relationship Matrix (GRM).
-
-    Raises
-    ------
-    ValueError
-        If the method is not 'add' or 'dom'.
+    :param bed_file: Path to the BED genotype file.
+    :param method: GRM calculation method, either 'add' (additive) or 'dom' (dominance). Default is 'add'.
+    :param chunk_size: Number of SNPs to process per chunk. Default is 10,000.
+    :param save: Whether to save the resulting GRM and metadata to an HDF5 file. Default is True.
+    :raises ValueError: If an unsupported method is provided.
+    :return: GRM as a pandas DataFrame with individuals as both index and columns.
     """
     bed_file = Path(bed_file)
     grm_maker = None
@@ -70,36 +54,24 @@ def make_grm(
 
 
 def load_grm(
-    grm_path: str | Path,
+    path: str | Path,
     return_array: bool = False,
 ) -> pd.DataFrame | np.ndarray:
     """
-    Load GRM from HDF5 file.
+    Load a Genetic Relationship Matrix (GRM) from an HDF5 file.
 
-    Parameters
-    ----------
-    grm_path : str | Path
-        Path to GRM HDF5 file.
-    return_array : bool, optional
-        Return as NumPy array if True, else pandas DataFrame. Default False.
-
-    Returns
-    -------
-    pd.DataFrame | np.ndarray
-        Loaded GRM data.
-
-    Raises
-    ------
-    FileNotFoundError
-        If GRM file not found.
+    :param path: Path to the HDF5 file containing the GRM.
+    :param return_array: If True, return the GRM as a numpy ndarray; otherwise, return as a pandas DataFrame.
+    :raises FileNotFoundError: If the specified GRM file does not exist.
+    :return: The GRM as a pandas DataFrame or numpy ndarray, depending on `return_array`.
     """
-    grm_path = Path(grm_path)
-    if not grm_path.exists():
-        msg = f"GRM file {grm_path} does not exist."
+    path = Path(path)
+    if not path.exists():
+        msg = f"GRM file {path} does not exist."
         raise FileNotFoundError(msg)
 
     grm = None
-    with h5py.File(grm_path, "r") as f:
+    with h5py.File(path, "r") as f:
         grm = f["grm"][:]
         individuals = f["individuals"].asstr()[:]
         grm = pd.DataFrame(grm, index=individuals, columns=individuals)
@@ -108,5 +80,32 @@ def load_grm(
 
     if return_array:
         return np.asfortranarray(grm)
-
     return grm
+
+
+def load_genotype(
+    path: str | Path,
+    return_array: bool = False,
+) -> pd.DataFrame | np.ndarray:
+    """
+    Load genotype data from a BED file.
+
+    :param path: Path to the BED genotype file.
+    :param return_array: If True, return a numpy array; otherwise, return a pandas DataFrame.
+    :raises FileNotFoundError: If the specified file does not exist.
+    :return: Genotype data as a pandas DataFrame or numpy ndarray, depending on `return_array`.
+    """
+    path = Path(path)
+    if not path.exists():
+        msg = f"Genotype file {path} does not exist."
+        raise FileNotFoundError(msg)
+
+    reader = _BedReader(path, int(1e10))
+    genotype = pd.DataFrame(
+        reader.read_chunk(), index=reader.individuals, columns=reader.snps
+    )
+    genotype.index.name = "id"
+
+    if return_array:
+        return np.asfortranarray(genotype)
+    return genotype

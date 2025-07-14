@@ -13,11 +13,8 @@ from gelexy._core import _GBLUP
 from gelexy.data.grm import load_grm
 from gelexy.utils.aligner import Matcher
 
-from .base import (
-    ModelMakerBase,
-    make_design_matrix,
-)
-from .formula_parser import FormulaParser
+from ..formula import Formula
+from .base import ModelMakerBase, get_fixed_levels, make_design_matrix
 
 
 class GBLUP(_GBLUP):
@@ -27,14 +24,21 @@ class GBLUP(_GBLUP):
             self._U, index=self._individuals, columns=self.random_effect_names
         )
 
+    @property
+    def train_sample(self):
+        if hasattr(self, "_train_sample"):
+            return self._train_sample
+        msg = "Train sample is not set. Are you sure this is a trained model?"
+        raise ValueError(msg)
+
+    @train_sample.setter
+    def train_sample(self, value):
+        self._train_sample = value
+
     def save(self, path: str | Path | None = None):
         """
-        Save the model to a file.
-
-        Parameters
-        ----------
-        path : str | Path | None
-            Path to the file where the model will be saved.
+        Save the model parameters to an HDF5 file.
+        :param path: The file path to save the model. If None, a default name is generated.
         """
         if path is None:
             path = (
@@ -51,30 +55,7 @@ class GBLUP(_GBLUP):
 
 class make_gblup(ModelMakerBase):
     def make(self, formula: str, grms: dict) -> GBLUP:
-        """
-        Create a Linear Mixed Model from the specified formula and genetic relationship matrices.
-
-        Parameters
-        ----------
-        formula : str
-            A formula string specifying the model. The left-hand side specifies the response variable,
-            and the right-hand side specifies the fixed effects. Example: "y ~ x1 + x2"
-        grm : dict[str, pd.DataFrame | str | Path]
-            A dictionary mapping random effect names to their corresponding genetic relationship matrices.
-            The matrices can be provided as DataFrames or paths to files containing the matrices.
-
-        Returns
-        -------
-        GBLUP
-            A GBLUP object containing the response vector, design matrix, genetic relationship
-            matrices, and random effect names.
-
-        Raises
-        ------
-        ValueError
-            If the fixed effects contain missing values.
-        """
-        fparser = FormulaParser(formula, list(grms.keys()))
+        fparser = Formula(formula, list(grms.keys()))
 
         data = self.data.copy()
         data = self._dropna(data, fparser.response)
@@ -84,7 +65,7 @@ class make_gblup(ModelMakerBase):
         data = self.matcher.phenotype
         grms = self.matcher.genotypes
 
-        design_mat = design_matrices(fparser.common, data, na_action="error")
+        design_matrix = design_matrices(fparser.common, data, na_action="error")
         design_mat_grm = make_design_matrix(
             data["id"],
             self.matcher.common_order,
@@ -92,17 +73,17 @@ class make_gblup(ModelMakerBase):
 
         model = GBLUP(
             fparser.formula,
-            np.asfortranarray(design_mat.response),
+            np.asfortranarray(design_matrix.response),
         )
 
         model._add_fixed_effect(
-            list(design_mat.common.terms),
-            self._get_fixed_levels(design_mat.common.terms),
-            np.asfortranarray(design_mat.common.design_matrix),
+            list(design_matrix.common.terms),
+            get_fixed_levels(design_matrix.common.terms),
+            np.asfortranarray(design_matrix.common.design_matrix),
         )
 
-        if design_mat.group is not None:
-            for name, matrix in design_mat.group.terms.items():
+        if design_matrix.group is not None:
+            for name, matrix in design_matrix.group.terms.items():
                 model._add_random_effect(
                     "(" + name + ")", csc_matrix(matrix.data)
                 )
@@ -123,9 +104,7 @@ class make_gblup(ModelMakerBase):
                 np.asfortranarray(dm.common),
             )
 
-        model._add_residual()
-
-        model._genotype_order = deepcopy(self.matcher.common_order)
+        model.train_sample = deepcopy(self.matcher.common_order)
         model._formula = formula
         gc.collect()
         return model

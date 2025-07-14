@@ -5,6 +5,7 @@
 #include <fmt/ranges.h>
 #include <armadillo>
 
+#include "gelex/model/freq/model.h"
 #include "gelex/utils/formatter.h"
 #include "gelex/utils/utils.h"
 
@@ -22,7 +23,7 @@ void EstimatorLogger::set_verbose(bool verbose)
     }
 }
 
-void EstimatorLogger::log_model_information(
+void EstimatorLogger::log_model_info(
     const GBLUP& model,
     std::string_view optimizer_name,
     double tol,
@@ -43,27 +44,27 @@ void EstimatorLogger::log_model_information(
         "{:>9} {:>9} {} {:>9}",
         "Iter.",
         "logL",
-        join_variance(model.random()),
+        join_variance(model.effects()),
         "duration");
 }
 
 void EstimatorLogger::log_em_initialization(
     double loglike,
-    const RandomEffectManager& effects,
+    const TotalEffects& effects,
     double time_cost)
 {
     logger_->info("Initializing with {} algorithm", cyan("EM"));
     logger_->info(
         "Initial: logL={:.3f} | \u03C3\u00B2=[{:.3f}] ({:.3f}s)",
         loglike,
-        rebecca_purple(fmt::join(effects.sigma(), ", ")),
+        rebecca_purple(fmt::join(effects.values(), ", ")),
         time_cost);
 }
 
 void EstimatorLogger::log_iteration(
     size_t iter,
     double loglike,
-    const RandomEffectManager& effects,
+    const TotalEffects& effects,
     double time_cost)
 {
     logger_->info(
@@ -71,7 +72,7 @@ void EstimatorLogger::log_iteration(
         "{:>9.3f} {:>9.3f}s",
         iter,
         loglike,
-        fmt::join(effects.sigma(), " "),
+        fmt::join(effects.values(), " "),
         time_cost);
 }
 
@@ -123,7 +124,7 @@ void EstimatorLogger::log_fixed_effects(
         logger_->info(item(
             "{}:  {}",
             model.fixed().levels[i],
-            with_std(model.fixed().beta.at(i), fixed_se[i])));
+            with_std(model.fixed().coeff.at(i), fixed_se[i])));
     }
     logger_->info("");
 }
@@ -131,14 +132,12 @@ void EstimatorLogger::log_fixed_effects(
 void EstimatorLogger::log_variance_components(const GBLUP& model)
 {
     logger_->info(subtitle("Variance Components"));
-    log_variance_category("Random", model.random().random_indices(), model);
-    log_variance_category("Genetic", model.random().genetic_indices(), model);
-    log_variance_category("GxE", model.random().gxe_indices(), model);
-    logger_->info(item("Residual:"));
 
-    logger_->info(subitem(
-        "e:  {}",
-        with_std(model.random().get("e")->sigma, model.random().get("e")->se)));
+    for (const auto& effect : model.effects())
+    {
+        logger_->info(
+            item("{}:  {}", effect.name, with_std(effect.sigma, effect.se)));
+    }
     logger_->info("");
 }
 
@@ -149,13 +148,17 @@ void EstimatorLogger::log_heritability(
 {
     logger_->info(subtitle("Heritability"));
     size_t index{};
-    for (auto genetic_index : model.random().genetic_indices())
+    for (const auto& effect : model.effects())
     {
+        if (effect.type != effect_type::genetic)
+        {
+            continue;
+        }
+
         logger_->info(item(
             "{}:  {}",
-            model.random()[genetic_index].name,
-            with_std(
-                model.random()[genetic_index].sigma / sum_var, h2_se[index])));
+            effect.name,
+            with_std(effect.sigma / sum_var, h2_se[index])));
         ++index;
     }
 }
@@ -165,29 +168,9 @@ void EstimatorLogger::log_results_footer()
     logger_->info(title(""));
 }
 
-void EstimatorLogger::log_variance_category(
-    const std::string& category,
-    const std::vector<size_t>& indices,
-    const GBLUP& model)
-{
-    if (indices.empty())
-    {
-        return;
-    }
-
-    logger_->info(" \u25AA {}:", category);
-    for (auto i : indices)
-    {
-        logger_->info(subitem(
-            "{}:  {}",
-            model.random()[i].name,
-            with_std(model.random()[i].sigma, model.random()[i].se)));
-    }
-}
-
 std::string join_formula(
     const std::vector<size_t>& indices,
-    const RandomEffectManager& effects,
+    const RandomEffects& effects,
     std::string_view sep)
 {
     if (indices.empty())
@@ -205,7 +188,7 @@ std::string join_formula(
 
 std::string join_name(
     const std::vector<size_t>& indices,
-    const RandomEffectManager& effects,
+    const RandomEffects& effects,
     std::string_view sep)
 {
     std::string result;
@@ -220,9 +203,10 @@ std::string join_name(
     return result;
 }
 
-std::string join_variance(const RandomEffectManager& effects)
+std::string join_variance(const TotalEffects& effects)
 {
     std::string result;
+
     for (const auto& effect : effects)
     {
         result += fmt::format("{:>9}", fmt::format("V[{}]", effect.name));

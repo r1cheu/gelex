@@ -58,10 +58,9 @@ void gblup(nb::module_& m)
             "_add_gxe_effect",
             &gx::GBLUP::add_gxe_effect,
             "name"_a,
-            "design_mat_genetic"_a,
+            "genetic_design_matrix"_a,
             "genetic_cov_mat"_a,
             "design_mat_env"_a.noconvert())
-        .def("_add_residual", &gx::GBLUP::add_residual)
         .def("clear", &gelex::GBLUP::clear, "reset the model")
         .def(
             "__repr__",
@@ -232,6 +231,59 @@ void bed_reader(nb::module_& m)
         .def_prop_ro("num_individuals", &gx::BedReader::num_individuals)
         .def_prop_ro("snps", &gx::BedReader::snps)
         .def_prop_ro("individuals", &gx::BedReader::individuals);
+}
+
+void freq_predictor(nb::module_& m)
+{
+    nb::class_<gx::GBLUPPredictor>(m, "_GBLUPPredictor")
+        .def(
+            nb::init<
+                std::string_view,
+                const std::vector<std::string>&,
+                const gx::GBLUP&>(),
+            "train_bed"_a,
+            "train_id_order"_a,
+            "model"_a,
+            "Initialize the GBLUP predictor\n\n"
+            "Parameters\n"
+            "----------\n"
+            "train_bed : str\n"
+            "    The training bed file path\n"
+            "train_id_order : list of str\n"
+            "    The order of individuals in the training set\n"
+            "model : GBLUP\n"
+            "    The GBLUP model to use for prediction")
+        .def(
+            "add_cross_grm",
+            &gx::GBLUPPredictor::add_cross_grm,
+            "method"_a,
+            "p_major"_a,
+            "scale_factor"_a,
+            "chunk_size"_a = gelex::DEFAULT_CHUNK_SIZE,
+            "Add a cross GRM to the predictor\n\n"
+            "Parameters\n"
+            "----------\n"
+            "method : str\n"
+            "    The method to use for cross GRM calculation\n"
+            "p_major : np.ndarray\n"
+            "    The major allele frequency\n"
+            "scale_factor : float\n"
+            "    The scale factor for the cross GRM\n"
+            "chunk_size : int, optional\n"
+            "    Number of snps to processed per step (default: 10000)")
+        .def(
+            "compute_fixed_effects",
+            &gx::GBLUPPredictor::compute_fixed_effects,
+            "covariates"_a)
+        .def(
+            "compute_genetic_effects",
+            &gx::GBLUPPredictor::compute_genetic_effects,
+            "test_bed"_a)
+        .def(
+            "compute_random_effects",
+            &gx::GBLUPPredictor::compute_random_effects,
+            "name"_a,
+            "design_matrix"_a);
 }
 
 void sp_dense_dot(nb::module_& m)

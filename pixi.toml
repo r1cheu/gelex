@@ -42,7 +42,6 @@ pypi-dependencies = { ipywidgets = ">=8.1.5,<9", matplotlib = ">=3.10.0,<4", sea
 pypi-dependencies = { cibuildwheel = "*", scalene = "*" }
 dependencies = { uv = "*", pytest = ">=8.3.5,<9" }
 
-
 [feature.dev.tasks.configure]
 cmd = [
   "cmake",
