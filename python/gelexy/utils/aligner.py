@@ -1,53 +1,42 @@
 import pandas as pd
 
+from .._logger import setup_logger
 
-class Matcher:
-    def __init__(
-        self,
-        phenotype: pd.DataFrame,
-        genotypes: dict[str, pd.DataFrame],
-        axis: int | list[int] = 0,
-    ):
-        if "id" not in phenotype.columns:
-            msg = "Phenotype DataFrame must have an 'id' column."
-            raise ValueError(msg)
-        self._axis = axis if isinstance(axis, list) else [axis]
 
-        self.common_set = set(phenotype["id"].astype(str))
-        self._intersect(genotypes)
-        self.common_order = sorted(self.common_set)
+def align_gblup(
+    phenotype: pd.DataFrame,
+    genotypes: dict[str, pd.DataFrame],
+):
+    logger = setup_logger(__name__)
+    if "id" not in phenotype.columns:
+        msg = "Phenotype DataFrame must have an 'id' column."
+        raise ValueError(msg)
 
-        self.phenotype = self._match_phenotype(phenotype)
-        self.genotypes = self._match_genotype(genotypes)
+    pid = set(phenotype["id"].astype(str))
+    gid_list = next(iter(genotypes.values())).index.to_list()
+    gid = set(gid_list)
+    drop = pid - gid
+    if drop:
+        pid = pid - drop
+        msg = f"The following IDs {', '.join(list(drop))} have phenotype data but no genotype data. They will be dropped."
+        logger.warning(msg)
 
-        self.phenotype_ids = self.phenotype["id"].astype(str).tolist()
-        self.genotype_ids = self.common_order
+    return phenotype[phenotype["id"].isin(pid)], gid_list
 
-    def _match_phenotype(self, phenotype: pd.DataFrame) -> pd.DataFrame:
-        return phenotype[phenotype["id"].isin(self.common_set)]
 
-    def _match_genotype(
-        self, genotypes: dict[str, pd.DataFrame]
-    ) -> dict[str, pd.DataFrame]:
-        for k, _ in genotypes.items():
-            for a in self._axis:
-                if a == 0:
-                    genotypes[k] = genotypes[k].loc[self.common_order, :]
-                elif a == 1:
-                    genotypes[k] = genotypes[k].loc[:, self.common_order]
-                else:
-                    msg = (
-                        f"Axis {a} is not supported. Only 0 and 1 are allowed."
-                    )
-                    raise ValueError(msg)
-        return genotypes
+def align_bayes(
+    phenotype: pd.DataFrame,
+    genotype: pd.DataFrame,
+):
+    if "id" not in phenotype.columns:
+        msg = "Phenotype DataFrame must have an 'id' column."
+        raise ValueError(msg)
 
-    def _intersect(self, genotypes: dict[str, pd.DataFrame]):
-        for k, g in genotypes.items():
-            if not isinstance(g, pd.DataFrame):
-                msg = f"Genotype for {k} must be a DataFrame."
-                raise ValueError(msg)
-            if g.index.name != "id":
-                msg = f"Genotype DataFrame for {k} must have an 'id' index."
-                raise ValueError(msg)
-            self.common_set.intersection_update(set(g.index.astype(str)))
+    pid = set(phenotype["id"].astype(str))
+    gid = set(genotype.index.to_list())
+    common_ids = pid.intersection(gid)
+    common_ids_list = list(common_ids)
+
+    return phenotype[phenotype["id"].isin(common_ids)], genotype.loc[
+        common_ids_list
+    ]

@@ -1,9 +1,6 @@
 import gc
-from copy import deepcopy
-from datetime import datetime
 from pathlib import Path
 
-import h5py
 import numpy as np
 import pandas as pd
 from formulae import design_matrices
@@ -11,7 +8,7 @@ from scipy.sparse import csc_matrix
 
 from gelexy._core import _GBLUP
 from gelexy.data.grm import load_grm
-from gelexy.utils.aligner import Matcher
+from gelexy.utils import align_gblup
 
 from ..formula import Formula
 from .base import ModelMakerBase, get_fixed_levels, make_design_matrix
@@ -19,38 +16,14 @@ from .base import ModelMakerBase, get_fixed_levels, make_design_matrix
 
 class GBLUP(_GBLUP):
     @property
-    def U(self):
-        return pd.DataFrame(
-            self._U, index=self._individuals, columns=self.random_effect_names
-        )
+    def U(
+        self,
+    ):
+        if not hasattr(self, "_genotype_id"):
+            msg = ""
+            raise AttributeError(msg)
 
-    @property
-    def train_sample(self):
-        if hasattr(self, "_train_sample"):
-            return self._train_sample
-        msg = "Train sample is not set. Are you sure this is a trained model?"
-        raise ValueError(msg)
-
-    @train_sample.setter
-    def train_sample(self, value):
-        self._train_sample = value
-
-    def save(self, path: str | Path | None = None):
-        """
-        Save the model parameters to an HDF5 file.
-        :param path: The file path to save the model. If None, a default name is generated.
-        """
-        if path is None:
-            path = (
-                f"{self._lhs}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.model"
-            )
-
-        with h5py.File(path, "w") as f:
-            f.create_dataset("beta", data=self.beta)
-            f.create_dataset("sigma", data=self.sigma)
-            f.create_dataset("proj_y", data=self._proj_y)
-            f.create_dataset("dropped_ids", data=self._dropped_ids)
-            f.attrs["formula"] = self.formula()
+        return pd.DataFrame(self.u, index=self._genotype_id)
 
 
 class make_gblup(ModelMakerBase):
@@ -58,18 +31,13 @@ class make_gblup(ModelMakerBase):
         fparser = Formula(formula, list(grms.keys()))
 
         data = self.data.copy()
-        data = self._dropna(data, fparser.response)
         grms = self._load_grms(grms)
+        data, genotype_id = align_gblup(data, grms)
 
-        self.matcher = Matcher(data, grms, axis=[0, 1])
-        data = self.matcher.phenotype
-        grms = self.matcher.genotypes
+        data = self._dropna(data, fparser.response)
 
         design_matrix = design_matrices(fparser.common, data, na_action="error")
-        design_mat_grm = make_design_matrix(
-            data["id"],
-            self.matcher.common_order,
-        )
+        design_mat_grm = make_design_matrix(data["id"], genotype_id)
 
         model = GBLUP(
             fparser.formula,
@@ -104,8 +72,8 @@ class make_gblup(ModelMakerBase):
                 np.asfortranarray(dm.common),
             )
 
-        model.train_sample = deepcopy(self.matcher.common_order)
         model._formula = formula
+        model._genotype_id = genotype_id
         gc.collect()
         return model
 

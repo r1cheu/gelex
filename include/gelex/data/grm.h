@@ -71,7 +71,20 @@ class CrossGRM
     size_t chunk_size_;
 };
 
+/**
+ * @brief Compute the allele frequencies for each SNP in the genotype matrix.
+ *
+ * This function calculates the mean of each column (SNP) in the genotype matrix
+ * and divides by 2 to obtain the allele frequency. The result is a vector where
+ * each element represents the frequency of the reference allele for the
+ * corresponding SNP.
+ *
+ * @param genotype The genotype matrix where rows represent individuals and
+ * columns represent SNPs
+ * @return arma::dvec Vector of allele frequencies (mean/2) for each SNP
+ */
 arma::dvec compute_p_major(const arma::dmat& genotype);
+
 void code_method_varden(
     arma::dvec p_major,
     arma::dmat& genotype,

@@ -46,12 +46,13 @@ struct GeneticTrait<BayesAlphabet::A>
         arma::dvec& coeff = state.coeff;
         double* u = state.u.memptr();
 
-        const arma::dvec& cols_norm = design.cols_norm;
         const arma::dmat& design_matrix = design.design_matrix;
         arma::dvec& sigma = state.sigma;
         ScaledInvChiSq chi_squared{design.prior};
         std::normal_distribution<double> normal{0, 1};
         const int n = static_cast<int>(design_matrix.n_rows);
+
+        const auto norm = static_cast<double>(design_matrix.n_rows) - 1.0;
 
         for (size_t i = 0; i < coeff.n_elem; ++i)
         {
@@ -59,8 +60,6 @@ struct GeneticTrait<BayesAlphabet::A>
             chi_squared.update(old_i * old_i, 1);
             const double new_sigma = chi_squared.sample(rng);
             const double* col_i = design_matrix.colptr(i);
-            const double norm = cols_norm.at(i);
-
             const double rhs = ddot_ptr(n, col_i, y_adj) + (norm * old_i);
             const double inv_scaler = 1 / (norm + sigma_e / new_sigma);
             const double new_i = (normal(rng) * sqrt(sigma_e * inv_scaler))
@@ -84,7 +83,6 @@ struct GeneticTrait<BayesAlphabet::RR>
     static const bool estimate_pi{false};
     static arma::dvec pi() { return arma::dvec{0.0, 1.0}; }
     static std::vector<std::string>
-
     prior_str(double nu, double s2, const arma::dvec& pi)
     {
         std::vector<std::string> prior_strings;
@@ -105,23 +103,20 @@ struct GeneticTrait<BayesAlphabet::RR>
     {
         arma::dvec& coeff = state.coeff;
         double* u = state.u.memptr();
-        const arma::dvec& cols_norm = design.cols_norm;
         const arma::dmat& design_matrix = design.design_matrix;
         const double sigma_g = arma::as_scalar(state.sigma);
-
         const double sigma_e_sqrt = sqrt(sigma_e);
         const double inv_scaler_base = sigma_e / sigma_g;
         ScaledInvChiSq chi_squared{design.prior};
 
         std::normal_distribution<double> normal{0, 1};
         const int n = static_cast<int>(design_matrix.n_rows);
+        const auto norm = static_cast<double>(design_matrix.n_rows) - 1.0;
 
         for (size_t idx = 0; idx < coeff.n_elem; ++idx)
         {
             const double old_i = coeff.at(idx);
-            const double norm = cols_norm.at(idx);
             const double inv_scaler = 1.0 / (norm + inv_scaler_base);
-
             const double* col_i = design_matrix.colptr(idx);
             double rhs = ddot_ptr(n, col_i, y_adj) + (norm * old_i);
             const double new_i = (normal(rng) * sigma_e_sqrt * sqrt(inv_scaler))
@@ -171,7 +166,6 @@ struct GeneticTrait<BayesAlphabet::B>
 
         arma::dvec& coeff = state.coeff;
         double* u = state.u.memptr();
-        const arma::dvec& cols_norm = design.cols_norm;
         const arma::dmat& design_matrix = design.design_matrix;
         arma::dvec& sigma = state.sigma;
 
@@ -180,6 +174,7 @@ struct GeneticTrait<BayesAlphabet::B>
         std::uniform_real_distribution<double> uniform{0, 1};
 
         const int n = static_cast<int>(design_matrix.n_rows);
+        const auto norm = static_cast<double>(design_matrix.n_rows) - 1.0;
 
         for (size_t i = 0; i < coeff.n_elem; ++i)
         {
@@ -187,7 +182,6 @@ struct GeneticTrait<BayesAlphabet::B>
             chi_squared.update(old_i * old_i, 1);
             const double new_sigma = chi_squared.sample(rng);
             const double* col_i = design_matrix.colptr(i);
-            const double norm = cols_norm.at(i);
             const double inv_scaler = 1 / (norm + sigma_e / new_sigma);
 
             double rhs = ddot_ptr(n, col_i, y_adj);
@@ -292,7 +286,6 @@ struct GeneticTrait<BayesAlphabet::C>
 
         arma::dvec& coeff = state.coeff;
         double* u = state.u.memptr();
-        const arma::dvec& cols_norm = design.cols_norm;
         const arma::dmat& design_matrix = design.design_matrix;
 
         const double sigma = arma::as_scalar(state.sigma);
@@ -300,13 +293,13 @@ struct GeneticTrait<BayesAlphabet::C>
         double var_a{};
         std::normal_distribution<double> normal{0, 1};
         std::uniform_real_distribution<double> uniform{0, 1};
-
+        const auto norm = static_cast<double>(design_matrix.n_rows) - 1;
         const int n = static_cast<int>(design_matrix.n_rows);
+
         for (size_t i = 0; i < coeff.n_elem; ++i)
         {
             const double old_i = coeff.at(i);
             const double* col_i = design_matrix.colptr(i);
-            const double norm = cols_norm.at(i);
             const double inv_scaler = 1 / (norm + sigma_e / sigma);
 
             double rhs = ddot_ptr(n, col_i, y_adj);
@@ -398,19 +391,34 @@ struct GeneticTrait<BayesAlphabet::R>
         std::vector<std::string> prior_strings;
         prior_strings.reserve(2);
         prior_strings.emplace_back("BayesR");
-        prior_strings.emplace_back(
-            "      └─ αj ∼ π1 N(0, 10⁻²σ²α) + π2 N(0, 10⁻³σ²α) + π3 N(0, "
-            "10⁻⁴σ²α) + (1-π1-π2-π3)δ0");
+        std::string pi_str = "      └─ αj ∼";
+        std::string last_str = " (1";
+        for (size_t i = 0; i < pi.n_elem; ++i)
+        {
+            if (i > 0)
+            {
+                pi_str += " +";
+            }
+            pi_str += fmt::format(" π{}N(0, {}σ²α)", i + 1, pi.at(i));
+            last_str += fmt::format("-π{}", i + 1);
+        }
+        prior_strings.emplace_back(pi_str + last_str + ")δ₀");
         return prior_strings;
     }
     static void sample(
-        const bayes::GeneticEffect& effect,
+        const bayes::GeneticEffect& design,
         bayes::GeneticEffectState& state,
         double* y_adj,
         arma::uvec& snp_tracker,
         double sigma_e,
         std::mt19937_64& rng)
     {
+        arma::dvec logpi = arma::log(state.pi.prop);
+        arma::dvec& coeff = state.coeff;
+        double* u = state.u.memptr();
+        const arma::dmat& design_matrix = design.design_matrix;
+        const auto norm = static_cast<double>(design_matrix.n_rows) - 1;
+
         for (size_t i = 0; i < state.coeff.n_elem; ++i)
         {
             // TODO: Implement R sampler

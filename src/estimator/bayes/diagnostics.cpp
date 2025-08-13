@@ -10,10 +10,10 @@ namespace gelex
 using arma::dcube;
 using arma::dmat;
 using arma::dvec;
+
 /**
- * @brief compute within-chain variance and variance estimator, input has shape
- * (n_params, n_draws, n_chains)
- * @param x
+ * @brief compute within-chain variance and variance estimator for MCMC samples.
+ * @param x the MCMC samples, shape (n_params, n_draws, n_chains)
  * @return
  */
 std::pair<dvec, dvec> compute_chain_variance_stats(const dcube& x)

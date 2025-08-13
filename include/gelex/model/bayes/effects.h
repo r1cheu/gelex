@@ -11,6 +11,11 @@
 namespace gelex
 {
 
+/**
+ * @class Pi
+ * @brief Structure to hold the proportion and counts of snps, use in BayesBpi,
+ * BayesCpi, BayesR etc.
+ */
 struct Pi
 {
     arma::dvec prop;
@@ -20,8 +25,20 @@ struct Pi
 namespace bayes
 {
 
+/**
+ * @class FixedEffect
+ * @brief Structure to hold fixed effect information for Bayesian Models.
+ *
+ */
 struct FixedEffect
 {
+    /**
+     * @brief Initialize a FixedEffect with names, levels, and design matrix.
+     *
+     * @param names names of the fixed effects
+     * @param levels levels for each fixed effect
+     * @param design_matrix the design matrix for the fixed effects
+     */
     FixedEffect(
         std::vector<std::string>&& names,
         std::vector<std::string>&& levels,
@@ -70,7 +87,6 @@ struct GeneticEffect
 
     std::string name;
     arma::dmat design_matrix;
-    arma::dvec cols_norm;
 
     ScaledInvChiSqParams prior;
     arma::dvec sigma;

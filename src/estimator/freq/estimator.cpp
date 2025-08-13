@@ -57,6 +57,7 @@ void Estimator::fit(GBLUP& model, bool em_init, bool verbose)
 
     size_t iter{1};
     double time_cost{};
+    logger_.log_iter_header(model);
 
     for (; iter <= max_iter_; ++iter)
     {
@@ -129,8 +130,6 @@ void Estimator::report_results(
     auto [h2_se, sum_var] = compute_h2_se(model);
     logger_.log_heritability(model, h2_se, sum_var);
     logger_.log_results_footer();
-
-    model.proj_y_ = optimizer_.proj_y_;
 }
 
 void Estimator::compute_beta(GBLUP& model)

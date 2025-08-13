@@ -39,13 +39,7 @@ void EstimatorLogger::log_model_info(
     logger_->info(item("Method:  {}", cyan(optimizer_name)));
     logger_->info(item("tolerance:  {:.2e}", tol));
     logger_->info(item("Max Iterations:  {:d}", max_iter));
-    logger_->info(title(" REML ESTIMATION "));
-    logger_->info(
-        "{:>9} {:>9} {} {:>9}",
-        "Iter.",
-        "logL",
-        join_variance(model.effects()),
-        "duration");
+    logger_->info("");
 }
 
 void EstimatorLogger::log_em_initialization(
@@ -59,6 +53,17 @@ void EstimatorLogger::log_em_initialization(
         loglike,
         rebecca_purple(fmt::join(effects.values(), ", ")),
         time_cost);
+}
+
+void EstimatorLogger::log_iter_header(const GBLUP& model)
+{
+    logger_->info(title(" REML ESTIMATION "));
+    logger_->info(
+        "{:>9} {:>9} {} {:>9}",
+        "Iter.",
+        "logL",
+        join_variance(model.effects()),
+        "duration");
 }
 
 void EstimatorLogger::log_iteration(

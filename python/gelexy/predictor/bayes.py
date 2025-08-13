@@ -1,8 +1,8 @@
 import numpy as np
 from formulae.matrices import DesignMatrices
 
+from gelexy import BayesModel, load_genotype
 from gelexy._core import MCMCResult, _BayesPredictor
-from gelexy.model.bayes import BayesModel, load_genotype
 
 
 class BayesPredictor(_BayesPredictor):

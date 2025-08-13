@@ -48,7 +48,6 @@ GeneticEffect::GeneticEffect(
       sigma(std::move(sigma)),
       type(type)
 {
-    cols_norm = sum_square(this->design_matrix);
     std::tie(mean, stddev) = standradize(this->design_matrix);
 }
 

@@ -37,6 +37,7 @@ GeneticEffect::GeneticEffect(
     std::string&& name,
     arma::sp_dmat&& design_matrix,
     const arma::dmat& genetic_relationship_matrix)
+
     : name(std::move(name)),
       design_matrix(std::move(design_matrix)),
       genetic_relationship_matrix(genetic_relationship_matrix)
