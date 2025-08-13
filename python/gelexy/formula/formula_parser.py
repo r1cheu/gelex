@@ -90,3 +90,9 @@ class Formula:
         """Format common terms with consistent spacing."""
         operators = r"([~+\-=*\/^])"
         return re.sub(r"\s*" + operators + r"\s*", r" \1 ", common_term).strip()
+
+
+def format_formula(formula: str) -> str:
+    """Format a formula string to ensure consistent spacing around operators."""
+    operators = r"([~+\-=*\/^])"
+    return re.sub(r"\s*" + operators + r"\s*", r" \1 ", formula).strip()

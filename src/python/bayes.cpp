@@ -79,6 +79,13 @@ void bayes_model(nb::module_& module)
         .def("set_sigma_prior_manual", &gx::BayesModel::set_sigma_prior_manul)
         .def("set_pi_prior", &gx::BayesModel::set_pi_prior)
         .def(
+            "_mean",
+            [](const gx::BayesModel& model) { return model.genetic()[0].mean; })
+        .def(
+            "_std",
+            [](const gx::BayesModel& model)
+            { return model.genetic()[0].stddev; })
+        .def(
             "prior_summary",
             [](const gx::BayesModel& model)
             { nb::print(model.prior_summary().c_str()); })
@@ -205,6 +212,10 @@ void mcmc_result(nb::module_& module)
     nb::class_<gx::MCMCResult>(module, "MCMCResult")
         .def_rw(
             "fixed", &gx::MCMCResult::fixed, nb::rv_policy::reference_internal)
+        .def_rw(
+            "snp_eff",
+            &gx::MCMCResult::snp_eff,
+            nb::rv_policy::reference_internal)
         .def_rw(
             "random",
             &gx::MCMCResult::random,

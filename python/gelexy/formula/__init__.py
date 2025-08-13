@@ -1,4 +1,4 @@
 from .eval import Environment
-from .formula_parser import Formula
+from .formula_parser import Formula, format_formula
 
-__all__ = ["Environment", "Formula"]
+__all__ = ["Environment", "Formula", "format_formula"]

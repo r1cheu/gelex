@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <armadillo>
@@ -55,6 +56,21 @@ class GBLUP
     arma::dvec var_comp() const;
     size_t n_var_comp() const;
 
+    std::unordered_map<std::string, arma::dvec> u()
+    {
+        std::unordered_map<std::string, arma::dvec> u;
+        for (const auto& effect : random_)
+        {
+            u[effect.name] = effect.coeff;
+        }
+
+        for (const auto& effect : genetic_)
+        {
+            u[effect.name] = effect.coeff;
+        }
+        return u;
+    }
+
     const FixedEffect& fixed() const { return *fixed_; }
     const Effects<GBLUPEffect>& effects() const { return effects_; }
 
@@ -93,8 +109,6 @@ class GBLUP
     GeneticEffects genetic_;
     GxEEffects gxe_;
     RandomEffect residual_{"e", arma::sp_dmat()};
-
-    arma::dvec proj_y_;
 };
 
 }  // namespace gelex

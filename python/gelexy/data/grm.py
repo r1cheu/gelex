@@ -83,29 +83,14 @@ def load_grm(
     return grm
 
 
-def load_genotype(
-    path: str | Path,
-    return_array: bool = False,
-) -> pd.DataFrame | np.ndarray:
-    """
-    Load genotype data from a BED file.
-
-    :param path: Path to the BED genotype file.
-    :param return_array: If True, return a numpy array; otherwise, return a pandas DataFrame.
-    :raises FileNotFoundError: If the specified file does not exist.
-    :return: Genotype data as a pandas DataFrame or numpy ndarray, depending on `return_array`.
-    """
-    path = Path(path)
-    if not path.exists():
-        msg = f"Genotype file {path} does not exist."
-        raise FileNotFoundError(msg)
-
-    reader = _BedReader(path, int(1e10))
+def load_genotype(bed_file: str, individuals: list[str] | None = None):
+    if individuals is None:
+        individuals = []
+    reader = _BedReader(bed_file, int(1e10), individuals)
     genotype = pd.DataFrame(
-        reader.read_chunk(), index=reader.individuals, columns=reader.snps
+        reader.read_chunk(),
+        index=reader.individuals,
+        columns=reader.snps,
     )
     genotype.index.name = "id"
-
-    if return_array:
-        return np.asfortranarray(genotype)
     return genotype

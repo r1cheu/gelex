@@ -26,6 +26,7 @@ class EstimatorLogger
         double loglike,
         const TotalEffects& effects,
         double time_cost);
+    void log_iter_header(const GBLUP& model);
     void log_iteration(
         size_t iter,
         double loglike,

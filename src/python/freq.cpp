@@ -1,5 +1,6 @@
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include <fmt/color.h>
@@ -7,6 +8,7 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/string_view.h>
+#include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
 #include <armadillo>
 
@@ -42,6 +44,10 @@ void gblup(nb::module_& m)
         .def_prop_ro("n_random_effects", &gx::GBLUP::n_random_effects)
         .def_prop_ro("n_genetic_effects", &gx::GBLUP::n_genetic_effects)
         .def_prop_ro("n_gxe_effects", &gx::GBLUP::n_gxe_effects)
+
+        .def_prop_ro("u", &gx::GBLUP::u, nb::rv_policy::move)
+        .def_prop_ro(
+            "beta", [](const gx::GBLUP& self) { return self.fixed().coeff; })
 
         .def_prop_ro("formula", &gx::GBLUP::formula)
         .def_prop_ro(
@@ -125,7 +131,8 @@ void estimator(nb::module_& m)
             "    Whether to use EM algorithm for initialization (default: "
             "True)\n\n"
             "verbose : bool, optional\n"
-            "    Whether to print the optimization process (default: True)\n\n"
+            "    Whether to print the optimization process (default: "
+            "True)\n\n"
             "Returns\n"
             "-------\n"
             "None")
@@ -274,16 +281,16 @@ void freq_predictor(nb::module_& m)
         .def(
             "compute_fixed_effects",
             &gx::GBLUPPredictor::compute_fixed_effects,
-            "covariates"_a)
-        .def(
-            "compute_genetic_effects",
-            &gx::GBLUPPredictor::compute_genetic_effects,
-            "test_bed"_a)
-        .def(
-            "compute_random_effects",
-            &gx::GBLUPPredictor::compute_random_effects,
-            "name"_a,
-            "design_matrix"_a);
+            "covariates"_a);
+    // .def(
+    //     "compute_genetic_effects",
+    //     &gx::GBLUPPredictor::compute_genetic_effects,
+    //     "test_bed"_a)
+    // .def(
+    //     "compute_random_effects",
+    //     &gx::GBLUPPredictor::compute_random_effects,
+    //     "name"_a,
+    //     "design_matrix"_a);
 }
 
 void sp_dense_dot(nb::module_& m)

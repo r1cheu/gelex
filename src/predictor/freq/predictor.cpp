@@ -16,8 +16,7 @@ GBLUPPredictor::GBLUPPredictor(
     const GBLUP& model)
     : train_bed_(train_bed),
       beta_(model.fixed().coeff),
-      train_id_order_(train_id_order),
-      proj_y_(model.proj_y_)
+      train_id_order_(train_id_order)
 {
     for (const auto& effect : model.random_)
     {
@@ -48,39 +47,41 @@ dmat GBLUPPredictor::compute_fixed_effects(const dvec& covariates) const
     return covariates * beta_;
 }
 
-dvec GBLUPPredictor::compute_random_effects(
-    std::string_view name,
-    const dmat& design_matrix) const
-{
-    auto it = std::find_if(
-        blups_.begin(),
-        blups_.end(),
-        [&name](const Effect& blup) { return blup.name == name; });
-    if (it != blups_.end())
-    {
-        return design_matrix * it->design_matrix.t() * proj_y_ * it->sigma;
-    }
-
-    throw std::runtime_error("Random effect not found: " + std::string(name));
-}
-
-dmat GBLUPPredictor::compute_genetic_effects(std::string_view test_bed)
-{
-    auto num_effects = cross_grms_.size();
-
-    dmat genetic_effects;
-
-    for (size_t i = 0; i < num_effects; ++i)
-    {
-        dmat new_k = cross_grms_[i].compute(test_bed);
-        if (i == 0)
-        {
-            genetic_effects.zeros(new_k.n_rows, num_effects);
-        }
-        genetic_effects.unsafe_col(i)
-            = new_k * blups_[i].design_matrix.t() * proj_y_ * blups_[i].sigma;
-    }
-    return genetic_effects;
-}
+// dvec GBLUPPredictor::compute_random_effects(
+//     std::string_view name,
+//     const dmat& design_matrix) const
+// {
+//     auto it = std::find_if(
+//         blups_.begin(),
+//         blups_.end(),
+//         [&name](const Effect& blup) { return blup.name == name; });
+//     if (it != blups_.end())
+//     {
+//         return design_matrix * it->design_matrix.t() * proj_y_ * it->sigma;
+//     }
+//
+//     throw std::runtime_error("Random effect not found: " +
+//     std::string(name));
+// }
+//
+// dmat GBLUPPredictor::compute_genetic_effects(std::string_view test_bed)
+// {
+//     auto num_effects = cross_grms_.size();
+//
+//     dmat genetic_effects;
+//
+//     for (size_t i = 0; i < num_effects; ++i)
+//     {
+//         dmat new_k = cross_grms_[i].compute(test_bed);
+//         if (i == 0)
+//         {
+//             genetic_effects.zeros(new_k.n_rows, num_effects);
+//         }
+//         genetic_effects.unsafe_col(i)
+//             = new_k * blups_[i].design_matrix.t() * proj_y_ *
+//             blups_[i].sigma;
+//     }
+//     return genetic_effects;
+// }
 
 }  // namespace gelex

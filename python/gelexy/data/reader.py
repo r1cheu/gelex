@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 
-def read_pheno(path: str | Path):
+def read_pheno(path: str | Path, **kwargs):
     """
     Read a tab-separated file into a pandas DataFrame.
 
@@ -18,4 +18,4 @@ def read_pheno(path: str | Path):
     pd.DataFrame
         A DataFrame with the first column as the index.
     """
-    return pd.read_csv(path, sep="\t", na_values=["NA", ".", "nan", "NaN"])
+    return pd.read_csv(path, sep="\t", na_values=["NA", ".", "nan", "NaN"], **kwargs)

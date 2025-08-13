@@ -8,7 +8,7 @@ from gelexy.model import GBLUP
 
 class GBLUPPredictor(_GBLUPPredictor):
     def __init__(self, train_bed: str, model: GBLUP):
-        super().__init__(train_bed, model.train_sample, model)
+        super().__init__(train_bed, model.genetic_id, model)
         self._design_matrix: DesignMatrices = model._design_matrix
 
     def predict(self, genotypes: dict, data: pd.DataFrame | None = None):

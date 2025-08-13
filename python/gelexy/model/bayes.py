@@ -1,15 +1,13 @@
 import gc
-from pathlib import Path
 
 import numpy as np
-import pandas as pd
 from formulae import design_matrices
 
-from gelexy import BayesAlphabet
-from gelexy._core import _BayesModel, _BedReader, _sp_dense_dot
-from gelexy.utils.aligner import Matcher
+from gelexy import BayesAlphabet, load_genotype
+from gelexy._core import _BayesModel, _sp_dense_dot
+from gelexy.utils import align_bayes
 
-from ..formula import Formula
+from ..formula import format_formula
 from .base import ModelMakerBase, get_fixed_levels, make_design_matrix
 
 
@@ -18,9 +16,7 @@ class BayesModel(_BayesModel):
 
 
 class make_bayes(ModelMakerBase):
-    def make(
-        self, formula: str, genotypes: dict[str], bayes_type: BayesAlphabet
-    ):
+    def make(self, formula: str, bfile: str, bayes_type: BayesAlphabet):
         """
         Create a Linear Mixed Model from the specified formula and genetic relationship matrices.
 
@@ -29,7 +25,6 @@ class make_bayes(ModelMakerBase):
         :type formula: str
         :param genotypes: A dictionary mapping random effect names to their corresponding genetic relationship matrices.
                           The matrices can be provided as DataFrames or paths to files containing the matrices.
-        :type genotypes: dict[str, pd.DataFrame | str | Path]
 
         :returns: A GBLUP object containing the response vector, design matrix, genetic relationship
                   matrices, and random effect names.
@@ -37,24 +32,24 @@ class make_bayes(ModelMakerBase):
 
         :raises ValueError: If the fixed effects contain missing values.
         """
-        fparser = Formula(formula, list(genotypes.keys()))
+
+        formula = format_formula(formula)
+        response = formula.split("~")[0].strip()
 
         data = self.data.copy()
-        data = self._dropna(data, fparser.response)
-        genotypes = self._load_genotype(genotypes)
+        data = self._dropna(data, response)
+        genotype = load_genotype(bfile)
 
-        self.matcher = Matcher(data, genotypes)
-        data = self.matcher.phenotype
-        genotypes = self.matcher.genotypes
+        data, genotype = align_bayes(data, genotype)
 
-        design_matrix = design_matrices(fparser.common, data, na_action="error")
+        design_matrix = design_matrices(formula, data, na_action="error")
         design_mat_genotype = make_design_matrix(
             data["id"],
-            self.matcher.common_order,
+            genotype.index.to_list(),
         )
 
         model = BayesModel(
-            fparser.formula,
+            formula,
             np.asfortranarray(design_matrix.response),
         )
 
@@ -70,45 +65,12 @@ class make_bayes(ModelMakerBase):
                     "(" + name + ")", np.asfortranarray(matrix)
                 )
 
-        for term in fparser.genetic_terms:
-            genotype = np.asfortranarray(genotypes[term.genetic])
-            genotype = _sp_dense_dot(design_mat_genotype, genotype)
-            model._add_genetic_effect(
-                term.name,
-                genotype,
-                bayes_type,
-            )
+        genotype = np.asfortranarray(genotype.to_numpy())
+        genotype = _sp_dense_dot(design_mat_genotype, genotype)
+        model._add_genetic_effect(
+            "a",
+            genotype,
+            bayes_type,
+        )
         gc.collect()
         return model
-
-    def _load_genotype(self, genotypes: dict[str, pd.DataFrame | str | Path]):
-        """
-        Load genotype data from the provided paths or DataFrames.
-
-        :param genotypes: A dictionary mapping random effect names to their corresponding genetic relationship matrices.
-                          The matrices can be provided as DataFrames or paths to files containing the matrices.
-        :type genotypes: dict[str, pd.DataFrame | str | Path]
-
-        :returns: A dictionary of loaded genotype DataFrames.
-        :rtype: dict[str, pd.DataFrame]
-        """
-        for name, genotype in genotypes.items():
-            if isinstance(genotype, str | Path):
-                genotypes[name] = load_genotype(genotype)
-            elif isinstance(genotype, pd.DataFrame):
-                genotypes[name] = genotype
-            else:
-                msg = f"genotype for {name} must be a path to a plink bed or a DataFrame."
-                raise ValueError(msg)
-        return genotypes
-
-
-def load_genotype(bed_file: str):
-    reader = _BedReader(bed_file, int(1e9))
-    genotype = pd.DataFrame(
-        reader.read_chunk(),
-        index=reader.individuals,
-        columns=reader.snps,
-    )
-    genotype.index.name = "id"
-    return genotype

@@ -32,10 +32,10 @@ class GBLUPPredictor
         size_t chunk_size);
 
     arma::dmat compute_fixed_effects(const arma::dvec& covariates) const;
-    arma::dmat compute_genetic_effects(std::string_view test_bed);
-    arma::dvec compute_random_effects(
-        std::string_view name,
-        const arma::dmat& design_matrix) const;
+    // arma::dmat compute_genetic_effects(std::string_view test_bed);
+    // arma::dvec compute_random_effects(
+    //     std::string_view name,
+    //     const arma::dmat& design_matrix) const;
 
    private:
     struct Effect
@@ -49,7 +49,6 @@ class GBLUPPredictor
     std::vector<CrossGRM> cross_grms_;
 
     arma::dvec beta_;
-    arma::dvec proj_y_;
     std::vector<Effect> blups_;
 };
 }  // namespace gelex
