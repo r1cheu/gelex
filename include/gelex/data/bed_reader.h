@@ -1,15 +1,16 @@
 #pragma once
 
 #include <array>
+#include <fstream>
 #include <string>
 #include <vector>
 
-#include <armadillo>
+#include <Eigen/Core>
 
 namespace gelex
 {
 
-static constexpr size_t DEFAULT_CHUNK_SIZE = 10000;
+static constexpr Eigen::Index DEFAULT_CHUNK_SIZE = 10000;
 // Read Bed file
 // Example:
 // BedReader reader("test.bed", 1000)
@@ -25,7 +26,7 @@ class BedReader
    public:
     explicit BedReader(
         std::string_view,
-        size_t chunk_size = DEFAULT_CHUNK_SIZE,
+        Eigen::Index chunk_size = DEFAULT_CHUNK_SIZE,
         const std::vector<std::string>& target_order = {});
 
     BedReader(const BedReader&) = delete;
@@ -35,17 +36,17 @@ class BedReader
 
     ~BedReader();
 
-    arma::dmat read_chunk();
+    Eigen::MatrixXd read_chunk();
     void reset();
     bool has_next() const;
 
-    size_t num_individuals() const { return individuals_.size(); }
-    size_t num_snps() const { return snps_.size(); }
-    size_t chunk_size() const { return chunk_size_; }
+    Eigen::Index num_individuals() const { return individuals_.size(); }
+    Eigen::Index num_snps() const { return snps_.size(); }
+    Eigen::Index chunk_size() const { return chunk_size_; }
     const std::vector<std::string>& snps() const { return snps_; }
     const std::vector<std::string>& individuals() const { return individuals_; }
-    size_t current_chunk_index() const { return current_chunk_index_; }
-    size_t current_chunk_size() const { return current_chunk_size_; }
+    Eigen::Index current_chunk_index() const { return current_chunk_index_; }
+    Eigen::Index current_chunk_size() const { return current_chunk_size_; }
 
    private:
     void open_bed();
@@ -56,7 +57,9 @@ class BedReader
         const std::vector<std::string>& target_order);
 
     std::vector<std::string> parse_bim(const std::string& bim_file);
-    arma::dmat decode(const std::vector<char>& buffer, size_t chunk_size);
+    Eigen::MatrixXd decode(
+        const std::vector<char>& buffer,
+        Eigen::Index chunk_size);
 
     std::ifstream fin_;
     std::string bed_file_;
@@ -66,14 +69,14 @@ class BedReader
     std::vector<std::string> snps_;
     std::vector<std::string> individuals_;
 
-    std::vector<size_t> file_index_to_target_index_;
+    std::vector<Eigen::Index> file_index_to_target_index_;
     std::vector<bool> file_index_is_kept_;
-    size_t total_samples_in_file_{};
+    Eigen::Index total_samples_in_file_{};
 
-    size_t chunk_size_;
-    size_t current_chunk_index_{};
-    size_t current_chunk_size_{};
-    size_t bytes_per_snp_{};
+    Eigen::Index chunk_size_;
+    Eigen::Index current_chunk_index_{};
+    Eigen::Index current_chunk_size_{};
+    Eigen::Index bytes_per_snp_{};
 
     static constexpr std::array<double, 4> add_map = {2.0, 1.0, 1.0, 0.0};
 };

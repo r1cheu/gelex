@@ -4,11 +4,13 @@
 
 #include <armadillo>
 
-#include "gelex/model/effects.h"
+#include "../effects_manager.h"
 
 namespace gelex
 {
 
+namespace freq
+{
 struct FixedEffect
 {
     FixedEffect(
@@ -75,9 +77,10 @@ struct GxEEffect
     double sigma{};
 };
 
-using RandomEffects = Effects<RandomEffect>;
-using FixedEffects = Effects<FixedEffect>;
-using GeneticEffects = Effects<GeneticEffect>;
-using GxEEffects = Effects<GxEEffect>;
+using RandomEffects = detail::Effects<RandomEffect>;
+using FixedEffects = detail::Effects<FixedEffect>;
+using GeneticEffects = detail::Effects<GeneticEffect>;
+using GxEEffects = detail::Effects<GxEEffect>;
 
+}  // namespace freq
 }  // namespace gelex

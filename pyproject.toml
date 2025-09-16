@@ -22,12 +22,13 @@ wheel.packages = ["python/gelexy"]
 build-dir = ".pybuild"
 cmake.source-dir = "."
 
-cmake.build-type = "Release"
+cmake.build-type = "RelWithDebInfo"
 build.tool-args = ["-j16"]
 
 [tool.scikit-build.cmake.define]
 USE_MKL = "ON"
 BUILD_TEST = "ON"
+BUILD_PYTHON = "ON"
 
 [tool.pytest.ini_options]
 minversion = "6.0"

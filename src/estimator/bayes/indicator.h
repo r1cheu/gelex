@@ -12,17 +12,18 @@
 namespace bk = barkeep;
 namespace gelex
 {
+namespace detail
+{
 class Indicator
 {
    public:
-    Indicator(
-        size_t n_chains,
-        size_t n_iters,
-        std::vector<std::atomic<size_t>>& progress_counters,
-        const std::vector<std::string>& status_names);
+    // Static progress bar style for reuse across the project
+    static const bk::BarParts PROGRESS_BAR_STYLE;
 
-    static std::vector<std::string> create_status_names(
-        const BayesModel& model);
+    Indicator(
+        const BayesModel& model,
+        size_t n_iters,
+        std::vector<std::atomic<size_t>>& progress_counters);
 
     template <typename T>
     void update(size_t chain_index, const std::string& status_name, T value)
@@ -46,6 +47,9 @@ class Indicator
     void done();
 
    private:
+    static std::vector<std::string> create_status_names(
+        const BayesModel& model);
+
     size_t num_chains_;
     std::vector<std::string> status_names_;
     std::map<std::string, size_t> status_name_to_index_;
@@ -56,4 +60,5 @@ class Indicator
     std::shared_ptr<bk::CompositeDisplay> main_indicator_;
 };
 
+}  // namespace detail
 }  // namespace gelex

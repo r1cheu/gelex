@@ -11,7 +11,7 @@ from gelexy.data.grm import load_grm
 from gelexy.utils import align_gblup
 
 from ..formula import Formula
-from .base import ModelMakerBase, get_fixed_levels, make_design_matrix
+from .base import ModelMaker, get_fixed_levels, make_design_matrix
 
 
 class GBLUP(_GBLUP):
@@ -26,7 +26,7 @@ class GBLUP(_GBLUP):
         return pd.DataFrame(self.u, index=self._genotype_id)
 
 
-class make_gblup(ModelMakerBase):
+class make_gblup(ModelMaker):
     def make(self, formula: str, grms: dict) -> GBLUP:
         fparser = Formula(formula, list(grms.keys()))
 

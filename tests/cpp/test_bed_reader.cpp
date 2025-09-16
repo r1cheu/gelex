@@ -1,7 +1,7 @@
 #include <string>
 #include <vector>
 
-#include <armadillo>
+#include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/data/bed_reader.h"
@@ -55,8 +55,8 @@ TEST_CASE("BedReader small chunk reading", "[bedreader]")
     SECTION("read_chunk returns correct matrix dimensions")
     {
         auto chunk = reader.read_chunk();
-        REQUIRE(chunk.n_rows == reader.num_individuals());
-        REQUIRE(chunk.n_cols <= 2);  // chunk_size
+        REQUIRE(chunk.rows() == reader.num_individuals());
+        REQUIRE(chunk.cols() <= 2);  // chunk_size
     }
 }
 
@@ -82,8 +82,8 @@ TEST_CASE("BedReader Big chunk reading", "[bedreader]")
     SECTION("read_chunk returns correct matrix dimensions")
     {
         auto chunk = reader.read_chunk();
-        REQUIRE(chunk.n_rows == reader.num_individuals());
-        REQUIRE(chunk.n_cols <= 10);  // chunk_size
+        REQUIRE(chunk.rows() == reader.num_individuals());
+        REQUIRE(chunk.cols() <= 10);  // chunk_size
     }
 }
 
@@ -130,20 +130,25 @@ TEST_CASE("BedReader exclude individuals", "[bedreader]")
     }
     while (reader.has_next())
     {
-        arma::dmat chunk{reader.read_chunk()};
-        REQUIRE(chunk.n_rows == 7);
+        Eigen::MatrixXd chunk = reader.read_chunk();
+        REQUIRE(chunk.rows() == 7);
     }
 
     gelex::BedReader reader2(test_bed, CHUNK_SIZE, target_order);
-    arma::dmat chunk{reader2.read_chunk()};
-    REQUIRE(chunk.n_rows == 7);
-    arma::dmat expect
-        = {{1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0},
-           {1.0, 0.0, 1.0, 2.0, 1.0, 2.0, 0.0, 1.0, 1.0, 2.0},
-           {0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 0.0, 2.0, 1.0},
-           {0.0, 1.0, 2.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 2.0},
-           {1.0, 2.0, 0.0, 1.0, 1.0, 1.0, 2.0, 2.0, 0.0, 1.0},
-           {1.0, 1.0, 2.0, 0.0, 1.0, 0.0, 0.0, 2.0, 1.0, 0.0},
-           {1.0, 1.0, 2.0, 0.0, 2.0, 0.0, 1.0, 1.0, 0.0, 1.0}};
-    REQUIRE(arma::approx_equal(expect, chunk, "absdiff", 1e-5));
+    Eigen::MatrixXd chunk = reader2.read_chunk();
+    REQUIRE(chunk.rows() == 7);
+    
+    // Expected values for comparison using Eigen initializer list
+    Eigen::MatrixXd expect {{
+        {1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0},
+        {1.0, 0.0, 1.0, 2.0, 1.0, 2.0, 0.0, 1.0, 1.0, 2.0},
+        {0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 0.0, 2.0, 1.0},
+        {0.0, 1.0, 2.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 2.0},
+        {1.0, 2.0, 0.0, 1.0, 1.0, 1.0, 2.0, 2.0, 0.0, 1.0},
+        {1.0, 1.0, 2.0, 0.0, 1.0, 0.0, 0.0, 2.0, 1.0, 0.0},
+        {1.0, 1.0, 2.0, 0.0, 2.0, 0.0, 1.0, 1.0, 0.0, 1.0}
+    }};
+    
+    // Compare matrices with tolerance using Eigen's isApprox
+    REQUIRE(chunk.isApprox(expect, 1e-5));
 }

@@ -5,12 +5,14 @@
  */
 
 #pragma once
-#include <armadillo>
-#include <cstddef>
+#include <Eigen/Core>
+
+#include "gelex/estimator/bayes/samples.h"
 
 namespace gelex
 {
-// the samples shape is (n_params, n_draws, n_chains) here.
+// the samples shape is a vector of MatrixXd. each MatrixXd is (n_params,
+// n_draws). and the vector length is n_chains.
 
 /**
  * @brief find the smallest number >= N such that only divisor are 2, 3, 5.
@@ -18,26 +20,27 @@ namespace gelex
  * @param target N
  * @return the smallest number >= target such that only divisors are 2, 3, 5.
  */
-size_t fft_next_fast_len(size_t target);
+Eigen::Index fft_next_fast_len(Eigen::Index target);
 
 /**
- * @brief Computes R-hat over chains of samples, the shape of samples is
- * (n_params, n_draws, n_chains), It's required that n_chains >= 2 and n_draws
- * >= 2
+ * @brief Computes R-hat over chains of samples. The samples are stored as a
+ * vector of matrices where each matrix is (n_params, n_draws) and the vector
+ * length is n_chains. It's required that n_chains >= 2 and n_draws >= 2
  *
  * @param samples MCMC samples
  * @return R-hat statistic for each parameter, shape (n_params, 1)
  */
-arma::dmat gelman_rubin(const arma::dcube& samples);
+Eigen::MatrixXd gelman_rubin(const Samples& samples);
 
 /**
- * @brief Computes split R-hat over chains of samples, the shape of samples is
- * (n_params, n_draws, n_chains), It's required that n_draws >= 4
+ * @brief Computes split R-hat over chains of samples. The samples are stored as
+ * a vector of matrices where each matrix is (n_params, n_draws) and the vector
+ * length is n_chains. It's required that n_draws >= 4
  *
  * @param samples
  * @return split R-hat statistic for each parameter, shape (n_params, 1)
  */
-arma::dmat split_gelman_rubin(const arma::dcube& samples);
+Eigen::MatrixXd split_gelman_rubin(const Samples& samples);
 
 /**
  * @brief Compute the autocorrelation the samples at dimension n_draws
@@ -46,7 +49,7 @@ arma::dmat split_gelman_rubin(const arma::dcube& samples);
  * @param bias whether to use a biased estimator
  * @return the autocorrelation of the samples
  */
-arma::dcube autocorrelation(const arma::dcube& x, bool bias = true);
+Samples autocorrelation(const Samples& x, bool bias = true);
 
 /**
  * @brief Computes the autocovariance of the samples at dimension n_draws.
@@ -54,22 +57,25 @@ arma::dcube autocorrelation(const arma::dcube& x, bool bias = true);
  * @param x MCMC Samples
  * @param bias whether to use a biased estimator
  */
-arma::dcube autocovariance(const arma::dcube& x, bool bias = true);
+Samples autocovariance(const Samples& x, bool bias = true);
 
 /**
  * @brief Compute the effective sample size of the samples at dimension n_draws
  *
- * @param x MCMC samples, shape (n_params, n_draws, n_chains)
+ * @param x MCMC samples, stored as a vector of matrices where each matrix is
+ * (n_params, n_draws) and the vector length is n_chains
  * @param bias whether to use a biased estimator
  */
-arma::dvec effect_sample_size(const arma::dcube& x, bool bias = true);
+Eigen::VectorXd effect_sample_size(const Samples& x, bool bias = true);
 
 /**
  * @brief Computes "highest posterior density interval" (HPDI) which is the
  narrowest interval with probability mass prob`` at dimension n_draws
  *
- * @param samples MCMC
+ * @param samples MCMC samples as a vector
  * @param prob quantiles of `samples` at `(1 - prob) / 2` and `(1 + prob) / 2`.
  */
-std::pair<double, double> hpdi(arma::dvec& samples, double prob);
+std::pair<double, double> hpdi(
+    Eigen::Ref<Eigen::VectorXd> samples,
+    double prob);
 }  // namespace gelex

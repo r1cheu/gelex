@@ -1,23 +1,23 @@
-import numpy as np
-import pandas as pd
-from formulae.matrices import DesignMatrices
-
-from gelexy._core import _GBLUPPredictor
-from gelexy.model import GBLUP
-
-
-class GBLUPPredictor(_GBLUPPredictor):
-    def __init__(self, train_bed: str, model: GBLUP):
-        super().__init__(train_bed, model.genetic_id, model)
-        self._design_matrix: DesignMatrices = model._design_matrix
-
-    def predict(self, genotypes: dict, data: pd.DataFrame | None = None):
-        fixed = np.array(
-            self._design_matrix.common.evaluate_new_data(data), order="F"
-        )
-
-        return self._predict(fixed, random, genotype)
-
+# import numpy as np
+# import pandas as pd
+# from formulae.matrices import DesignMatrices
+#
+# from gelexy._core import _GBLUPPredictor
+# from gelexy.model import GBLUP
+#
+#
+# class GBLUPPredictor(_GBLUPPredictor):
+#     def __init__(self, train_bed: str, model: GBLUP):
+#         super().__init__(train_bed, model.genetic_id, model)
+#         self._design_matrix: DesignMatrices = model._design_matrix
+#
+#     def predict(self, genotypes: dict, data: pd.DataFrame | None = None):
+#         fixed = np.array(
+#             self._design_matrix.common.evaluate_new_data(data), order="F"
+#         )
+#
+#         return self._predict(fixed, random, genotype)
+#
 
 # class Predictor(_Predictor):
 #     def predict(

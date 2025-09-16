@@ -3,29 +3,27 @@ import gc
 import numpy as np
 from formulae import design_matrices
 
-from gelexy import BayesAlphabet, load_genotype
-from gelexy._core import _BayesModel, _sp_dense_dot
-from gelexy.utils import align_bayes
+from gelexy import BayesAlphabet
+from gelexy._core import _BayesModel
+from gelexy.data import read_fam
+from gelexy.utils import intersection
 
 from ..formula import format_formula
-from .base import ModelMakerBase, get_fixed_levels, make_design_matrix
+from .base import ModelMaker, get_fixed_levels
 
 
 class BayesModel(_BayesModel):
     pass
 
 
-class make_bayes(ModelMakerBase):
+class make_bayes(ModelMaker):
     def make(self, formula: str, bfile: str, bayes_type: BayesAlphabet):
         """
         Create a Linear Mixed Model from the specified formula and genetic relationship matrices.
 
         :param formula: A formula string specifying the model. The left-hand side specifies the response variable,
                        and the right-hand side specifies the fixed effects. Example: "y ~ x1 + x2"
-        :type formula: str
-        :param genotypes: A dictionary mapping random effect names to their corresponding genetic relationship matrices.
-                          The matrices can be provided as DataFrames or paths to files containing the matrices.
-
+        :param bfile: the prefix of plink bed files
         :returns: A GBLUP object containing the response vector, design matrix, genetic relationship
                   matrices, and random effect names.
         :rtype: GBLUP
@@ -38,15 +36,13 @@ class make_bayes(ModelMakerBase):
 
         data = self.data.copy()
         data = self._dropna(data, response)
-        genotype = load_genotype(bfile)
 
-        data, genotype = align_bayes(data, genotype)
+        # intersect with genotype data
+        gid = read_fam(bfile, self._iid_only)
+        data, pid, gid = intersection(data, gid, self._iid_only)
+        self.logger.info("")
 
         design_matrix = design_matrices(formula, data, na_action="error")
-        design_mat_genotype = make_design_matrix(
-            data["id"],
-            genotype.index.to_list(),
-        )
 
         model = BayesModel(
             formula,
@@ -65,12 +61,15 @@ class make_bayes(ModelMakerBase):
                     "(" + name + ")", np.asfortranarray(matrix)
                 )
 
-        genotype = np.asfortranarray(genotype.to_numpy())
-        genotype = _sp_dense_dot(design_mat_genotype, genotype)
         model._add_genetic_effect(
-            "a",
-            genotype,
+            self._iid_only,
+            False,
+            bfile,
+            pid,
+            gid,
             bayes_type,
         )
+
         gc.collect()
+
         return model

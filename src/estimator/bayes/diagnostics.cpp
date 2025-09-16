@@ -1,41 +1,43 @@
-#include "gelex/estimator/bayes/diagnostics.h"
+#include "diagnostics.h"
 
 #include <cstddef>
 
-#include <armadillo>
+#include <Eigen/Core>
+#include <unsupported/Eigen/FFT>
+
+#include "../../data/math_utils.h"
+#include "gelex/estimator/bayes/samples.h"
 
 namespace gelex
 {
 
-using arma::dcube;
-using arma::dmat;
-using arma::dvec;
+using Eigen::Index;
 
-/**
- * @brief compute within-chain variance and variance estimator for MCMC samples.
- * @param x the MCMC samples, shape (n_params, n_draws, n_chains)
- * @return
- */
-std::pair<dvec, dvec> compute_chain_variance_stats(const dcube& x)
+using Eigen::MatrixXd;
+using Eigen::Ref;
+using Eigen::VectorXd;
+
+std::pair<VectorXd, VectorXd> compute_chain_variance_stats(const Samples& x)
 {
-    const size_t n_chains = x.n_slices;
-    const auto n_draws = static_cast<double>(x.n_cols);
+    const size_t n_chains = x.size();
+    const auto n_draws = x[0].cols();
+    const auto n_params = x[0].rows();
 
-    dmat chain_vars(x.n_rows, n_chains);
-    dmat chain_means(x.n_rows, n_chains);
+    MatrixXd chain_vars(n_params, n_chains);
+    MatrixXd chain_means(n_params, n_chains);
 
-    for (size_t c = 0; c < n_chains; ++c)
+    for (Index c = 0; c < n_chains; ++c)
     {
-        chain_means.col(c) = arma::mean(x.slice(c), 1);
-        chain_vars.col(c) = arma::var(x.slice(c), 0, 1);
+        chain_means.col(c) = x[c].rowwise().mean();
+        chain_vars.col(c) = detail::var(x[c], 1, 1);
     }
 
-    dvec var_within = arma::mean(chain_vars, 1);
-    dvec var_estimator = var_within * (n_draws - 1) / n_draws;
+    VectorXd var_within = chain_vars.rowwise().mean();
+    VectorXd var_estimator = var_within * (n_draws - 1) / n_draws;
 
     if (n_chains > 1)
     {
-        dmat var_between = arma::var(chain_means, 0, 1);
+        MatrixXd var_between = detail::var(chain_means, 1, 1);
         var_estimator += var_between;
     }
     else
@@ -46,7 +48,7 @@ std::pair<dvec, dvec> compute_chain_variance_stats(const dcube& x)
     return {var_within, var_estimator};
 }
 
-size_t fft_next_fast_len(size_t target)
+Index fft_next_fast_len(Index target)
 {
     if (target <= 2)
     {
@@ -75,152 +77,197 @@ size_t fft_next_fast_len(size_t target)
     }
 }
 
-dmat gelman_rubin(const dcube& samples)
+MatrixXd gelman_rubin(const Samples& samples)
 {
     auto [var_within, var_estimator] = compute_chain_variance_stats(samples);
-    dmat rhat = arma::sqrt(var_estimator / var_within);
+    MatrixXd rhat = (var_estimator.array() / var_within.array()).sqrt();
     return rhat;
 }
 
-dmat split_gelman_rubin(const dcube& samples)
+MatrixXd split_gelman_rubin(const Samples& samples)
 {
-    const size_t N_half = samples.n_cols / 2;
-    dcube new_input = arma::join_slices(
-        samples.cols(0, N_half - 1), samples.cols(N_half, samples.n_cols - 1));
+    Samples new_samples;
+    new_samples.reserve(samples.size() * 2);
 
-    return gelman_rubin(new_input);
-}
+    const Index n_half = samples[0].cols() / 2;
 
-arma::mat autocorrelation(const dmat& x, bool bias)
-{
-    dmat signal = x.t();
-    const size_t N = signal.n_rows;
-    const size_t M = fft_next_fast_len(N);
-    const size_t M2 = 2 * M;
-
-    signal.each_col([](dvec& col) { col -= arma::mean(col); });
-
-    arma::cx_mat freqvec = arma::fft(signal, M2);
-    arma::cx_mat freqvec_gram = freqvec % arma::conj(freqvec);
-
-    arma::cx_mat autocorr_cx = arma::ifft(freqvec_gram, M2);
-    dmat autocorr = arma::real(autocorr_cx.head_rows(N));
-
-    if (!bias)
+    for (const auto& chain : samples)
     {
-        autocorr.each_col() /= arma::regspace(N, -1, 1);
+        new_samples.emplace_back(chain.leftCols(n_half));
+        new_samples.emplace_back(chain.rightCols(n_half));
     }
 
-    arma::rowvec variances = autocorr.row(0);
-    autocorr.each_row() /= variances;
-
-    return autocorr.t();
+    return gelman_rubin(new_samples);
 }
 
-dcube autocorrelation(const dcube& x, bool bias)
+MatrixXd autocorrelation(const Ref<const MatrixXd>& x, bool bias)
 {
-    dcube result(x.n_rows, x.n_cols, x.n_slices);
-    for (size_t s = 0; s < x.n_slices; ++s)
+    const Index n_draws = x.cols();
+    const Index n_params = x.rows();
+    const Index M = fft_next_fast_len(n_draws);
+    const Index M2 = 2 * M;
+
+    MatrixXd autocorr(n_params, n_draws);
+    Eigen::FFT<double> fft;
+
+    for (Index i = 0; i < n_params; ++i)
     {
-        result.slice(s) = autocorrelation(x.slice(s), bias);
+        // Extract and centralize the parameter time series
+        VectorXd signal = x.row(i);
+        signal.array() -= signal.mean();
+
+        VectorXd padding_signal = VectorXd::Zero(M2);
+        padding_signal.head(n_draws) = signal;
+
+        Eigen::VectorXcd freqvec;
+        fft.fwd(freqvec, padding_signal);
+
+        Eigen::VectorXcd freqvec_gram
+            = freqvec.array() * freqvec.conjugate().array();
+
+        Eigen::VectorXcd autocorr_cx;
+        fft.inv(autocorr_cx, freqvec_gram);
+
+        VectorXd autocorr_param = autocorr_cx.real().head(n_draws);
+
+        if (!bias)
+        {
+            autocorr_param.array()
+                /= VectorXd::LinSpaced(n_draws, static_cast<double>(n_draws), 1)
+                       .array();
+        }
+
+        double variance = autocorr_param(0);
+        autocorr_param /= variance;
+        autocorr.row(i) = autocorr_param;
+    }
+
+    return autocorr;
+}
+
+Samples autocorrelation(const Samples& x, bool bias)
+{
+    Samples result;
+    result.reserve(x.size());
+    for (const auto& chain : x)
+    {
+        result.emplace_back(autocorrelation(chain, bias));
     }
     return result;
 }
 
-dcube autocovariance(const dcube& x, bool bias)
+Samples autocovariance(const Samples& x, bool bias)
 {
-    dcube result = autocorrelation(x, bias);
+    Samples result = autocorrelation(x, bias);
+    MatrixXd x_var(x[0].rows(), x.size());
 
-    dcube x_var(x.n_rows, 1, x.n_slices);
-
-    for (size_t s = 0; s < x.n_slices; ++s)
+    for (Index i = 0; i < result.size(); i++)
     {
-        x_var.slice(s) = arma::var(x.slice(s), 1, 1);
+        x_var.col(i) = detail::var(x[i], 0, 1);
     }
 
-    for (size_t s = 0; s < result.n_slices; ++s)
+    for (Index i = 0; i < result.size(); ++i)
     {
-        result.slice(s).each_col([&x_var, s](dvec& col)
-                                 { col %= x_var.slice(s); });
+        for (Eigen::Index j = 0; j < result[i].cols(); ++j)
+        {
+            result[i].col(j).array() *= x_var.col(i).array();
+        }
     }
-
     return result;
 }
 
-dvec effect_sample_size(const dcube& x, bool bias)
+Eigen::VectorXd effect_sample_size(const Samples& x, bool bias)
 {
-    const size_t n_params = x.n_rows;
-    const size_t n_draws = x.n_cols;
-    const size_t n_chains = x.n_slices;
+    const auto n_chains = static_cast<Index>(x.size());
+    if (n_chains == 0)
+    {
+        throw std::invalid_argument("At least 1 chain is required");
+    }
+
+    const Index n_params = x[0].rows();
+    const Index n_draws = x[0].cols();
 
     if (n_draws < 2)
     {
         throw std::invalid_argument("At least 2 draws are required");
     }
 
-    dcube gamma_k_c = autocovariance(x, bias);
-    dmat gamma_k_c_mean = arma::mean(gamma_k_c, 2);
+    Samples gamma_k_c = autocovariance(x, bias);
+
+    // Compute mean across chains for each parameter and lag
+    Eigen::MatrixXd gamma_k_c_mean(n_params, n_draws);
+    for (const auto& mat : gamma_k_c)
+    {
+        gamma_k_c_mean += mat;
+    }
+    gamma_k_c_mean /= static_cast<double>(n_chains);
+
     auto [var_within, var_estimator] = compute_chain_variance_stats(x);
 
-    dmat var_within_boardcast
-        = var_within * arma::ones<arma::rowvec>(1, n_draws);
-    dmat var_estimator_boardcast
-        = var_estimator * arma::ones<arma::rowvec>(1, n_draws);
-    dmat rho_k(n_params, n_draws, arma::fill::ones);
-    rho_k -= (var_within_boardcast - gamma_k_c_mean) / var_estimator_boardcast;
-    rho_k.col(0).fill(1);
+    Eigen::MatrixXd var_within_broadcast
+        = var_within * Eigen::RowVectorXd::Ones(n_draws);
+    Eigen::MatrixXd var_estimator_broadcast
+        = var_estimator * Eigen::RowVectorXd::Ones(n_draws);
 
-    const size_t n_pairs = n_draws / 2;
-    dmat Rho_k(n_params, n_pairs);
+    Eigen::MatrixXd rho_k = MatrixXd::Ones(n_params, n_draws);
+    rho_k -= ((var_within_broadcast - gamma_k_c_mean).array()
+              / var_estimator_broadcast.array())
+                 .matrix();
+    rho_k.col(0).setOnes();
 
-    for (size_t j = 0; j < n_pairs; ++j)
+    const Index n_pairs = n_draws / 2;
+    Eigen::MatrixXd Rho_k(n_params, n_pairs);
+
+    for (Index j = 0; j < n_pairs; ++j)
     {
         Rho_k.col(j) = rho_k.col(2 * j) + rho_k.col((2 * j) + 1);
     }
 
-    dmat Rho_mono = Rho_k;
+    Eigen::MatrixXd Rho_mono = Rho_k;
 
-    for (size_t i = 0; i < n_params; ++i)
+    for (Index i = 0; i < n_params; ++i)
     {
         double current_min = Rho_k(i, 0);
 
-        for (size_t j = 1; j < n_pairs; ++j)
+        for (Index j = 1; j < n_pairs; ++j)
         {
-            double val = std::max(Rho_k.at(i, j), 0.0);
+            double val = std::max(Rho_k(i, j), 0.0);
             val = std::min(val, current_min);
             current_min = val;
-            Rho_mono.at(i, j) = val;
+            Rho_mono(i, j) = val;
         }
     }
 
-    dvec Rho_sum = arma::sum(Rho_mono, 1);
-    dvec s2 = -1.0 + 2.0 * Rho_sum;
+    Eigen::VectorXd Rho_sum = Rho_mono.rowwise().sum();
+    Eigen::VectorXd s2 = (2.0 * Rho_sum).array() - 1.0;
     auto total_samples = static_cast<double>(n_chains * n_draws);
-    dvec n_eff = total_samples / s2;
+    Eigen::VectorXd n_eff = total_samples / s2.array();
 
     return n_eff;
 }
 
-std::pair<double, double> hpdi(arma::dvec& samples, double prob)
+std::pair<double, double> hpdi(Ref<VectorXd> samples, double prob)
 {
     std::sort(samples.begin(), samples.end());
     if (prob == 1)
     {
-        return {samples.front(), samples.back()};
+        return {samples(0), samples(samples.size() - 1)};
     }
-    size_t mass = samples.n_elem;
-    auto index_length = static_cast<size_t>(prob * static_cast<double>(mass));
-    size_t tails = mass - index_length;
+    Index mass = samples.size();
+    auto index_length = static_cast<Index>(prob * static_cast<double>(mass));
+    Index tails = mass - index_length;
 
-    dvec intervals_left = samples.head(tails);
-    dvec intervals_right = samples.tail(tails);
+    VectorXd intervals_left = samples.head(tails);
+    VectorXd intervals_right = samples.tail(tails);
 
-    dvec intervals = intervals_right - intervals_left;
+    VectorXd intervals = intervals_right - intervals_left;
 
-    size_t index_start = intervals.index_min();
-    size_t index_end = index_start + index_length;
+    Index index_start{};
+    intervals.minCoeff(&index_start);
 
-    return {samples.at(index_start), samples.at(index_end)};
+    Index index_end = index_start + index_length;
+
+    return {samples(index_start), samples(index_end)};
 }
 
 }  // namespace gelex

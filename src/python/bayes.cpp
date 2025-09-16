@@ -1,21 +1,18 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <nanobind/eigen/dense.h>
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
-#include <armadillo>
 
-#include "dense.h"
-#include "gelex/estimator/bayes/diagnostics.h"
+#include "Eigen/Core"
 #include "gelex/estimator/bayes/mcmc.h"
 #include "gelex/estimator/bayes/result.h"
 #include "gelex/estimator/bayes/samples.h"
-#include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/predictor/bayes/predictor.h"
-#include "sparse.h"
+// #include "gelex/predictor/bayes/predictor.h"
 
 namespace bind
 {
@@ -23,16 +20,13 @@ namespace nb = nanobind;
 using nb::literals::operator""_a;
 namespace gx = gelex;
 
-using arma::dmat;
-using arma::dvec;
-
-void bayes_param(nb::module_& module)
-{
-    nb::class_<gx::ScaledInvChiSqParams>(module, "SigmaParam")
-        .def(nb::init<>())
-        .def_rw("nu", &gx::ScaledInvChiSqParams::nu)
-        .def_rw("s2", &gx::ScaledInvChiSqParams::s2);
-}
+// void bayes_param(nb::module_& module)
+// {
+//     nb::class_<gx::ScaledInvChiSqParams>(module, "SigmaParam")
+//         .def(nb::init<>())
+//         .def_rw("nu", &gx::ScaledInvChiSqParams::nu)
+//         .def_rw("s2", &gx::ScaledInvChiSqParams::s2);
+// }
 
 void bayesalphabet(nb::module_& module)
 {
@@ -51,40 +45,31 @@ void bayes_model(nb::module_& module)
 {
     nb::class_<gx::BayesModel>(module, "_BayesModel")
         .def(
-            nb::init<std::string, dvec&&>(),
+            nb::init<std::string, Eigen::VectorXd&&>(),
             "formula"_a,
-            "phenotype"_a,
-            nb::keep_alive<1, 3>())
+            "phenotype"_a)
         .def(
             "_add_fixed_effect",
             &gx::BayesModel::add_fixed_effect,
             "names"_a,
             "levels"_a,
-            "design_mat"_a,
-            nb::keep_alive<1, 4>())
+            "design_mat"_a)
         .def(
             "_add_random_effect",
             &gx::BayesModel::add_random_effect,
             "name"_a,
-            "design_mat"_a,
-            nb::keep_alive<1, 3>())
+            "design_mat"_a)
         .def(
             "_add_genetic_effect",
-            &gx::BayesModel::add_genetic_effect,
-            "name"_a,
-            "design_mat"_a,
-            "type"_a,
-            nb::keep_alive<1, 3>())
+            &gelex::BayesModel::add_genetic_effect,
+            "iid_only"_a,
+            "dom"_a,
+            "bfile"_a,
+            "pid"_a,
+            "gid"_a,
+            "type"_a)
         .def("set_sigma_prior", &gx::BayesModel::set_sigma_prior)
-        .def("set_sigma_prior_manual", &gx::BayesModel::set_sigma_prior_manul)
         .def("set_pi_prior", &gx::BayesModel::set_pi_prior)
-        .def(
-            "_mean",
-            [](const gx::BayesModel& model) { return model.genetic()[0].mean; })
-        .def(
-            "_std",
-            [](const gx::BayesModel& model)
-            { return model.genetic()[0].stddev; })
         .def(
             "prior_summary",
             [](const gx::BayesModel& model)
@@ -155,7 +140,7 @@ void mcmc_storage(nb::module_& module)
     nb::class_<gx::MCMCSamples>(module, "MCMCSamples")
         .def_prop_ro("fixed", &gx::MCMCSamples::fixed)
         .def_prop_ro("random", &gx::MCMCSamples::random)
-        .def_prop_ro("genetic", &gx::MCMCSamples::genetic)
+        .def_prop_ro("additive", &gx::MCMCSamples::additive)
         .def_prop_ro("residual", &gx::MCMCSamples::residual);
 }
 
@@ -163,22 +148,16 @@ void mcmc(nb::module_& module)
 {
     nb::class_<gx::MCMC>(module, "MCMC")
         .def(nb::init<gx::MCMCParams>(), "params"_a)
-        .def("run", &gx::MCMC::run, "model"_a, "seed"_a = 42)
-        .def("samples", &gx::MCMC::samples);
+        .def(
+            "run",
+            &gx::MCMC::run,
+            "model"_a,
+            "seed"_a = 42,
+            nb::rv_policy::reference_internal);
 }
 
 void mcmc_result(nb::module_& module)
 {
-    nb::class_<gx::PostieriorRandomSummary>(module, "PosteriorGroup")
-        .def_rw(
-            "coeffs",
-            &gx::PostieriorRandomSummary::coeff,
-            nb::rv_policy::reference_internal)
-        .def_rw(
-            "sigmas",
-            &gx::PostieriorRandomSummary::sigma,
-            nb::rv_policy::reference_internal);
-
     nb::class_<gx::PosteriorSummary>(module, "PosteriorSummary")
         .def_rw(
             "mean",
@@ -187,10 +166,6 @@ void mcmc_result(nb::module_& module)
         .def_rw(
             "std",
             &gx::PosteriorSummary::stddev,
-            nb::rv_policy::reference_internal)
-        .def_rw(
-            "median",
-            &gx::PosteriorSummary::median,
             nb::rv_policy::reference_internal)
         .def_rw(
             "hpdi_high",
@@ -209,44 +184,37 @@ void mcmc_result(nb::module_& module)
             &gx::PosteriorSummary::rhat,
             nb::rv_policy::reference_internal);
 
-    nb::class_<gx::MCMCResult>(module, "MCMCResult")
-        .def_rw(
-            "fixed", &gx::MCMCResult::fixed, nb::rv_policy::reference_internal)
-        .def_rw(
-            "snp_eff",
-            &gx::MCMCResult::snp_eff,
-            nb::rv_policy::reference_internal)
-        .def_rw(
-            "random",
-            &gx::MCMCResult::random,
-            nb::rv_policy::reference_internal)
-        .def_rw(
-            "genetic",
-            &gx::MCMCResult::genetic,
-            nb::rv_policy::reference_internal)
-        .def_rw(
-            "residual",
-            &gx::MCMCResult::residual,
-            nb::rv_policy::reference_internal);
+    nb::class_<gx::MCMCResult>(module, "MCMCResult");
+    // .def_rw(
+    //     "snp_eff",
+    //     &gx::MCMCResult::snp_eff,
+    //     nb::rv_policy::reference_internal)
+    // .def_rw(
+    //     "random",
+    //     &gx::MCMCResult::random,
+    //     nb::rv_policy::reference_internal)
+    // .def_rw(
+    //     "additive",
+    //     &gx::MCMCResult::additive,
+    //     nb::rv_policy::reference_internal)
+    // .def_rw(
+    //     "residual",
+    //     &gx::MCMCResult::residual,
+    //     nb::rv_policy::reference_internal);
 }
 
-void mcmc_diagnostics(nb::module_& m)
-{
-    m.def("hpdi", &gelex::hpdi, "samples"_a, "prob"_a = 0.90);
-}
-
-void bayes_predictor(nb::module_& m)
-{
-    nb::class_<gx::BayesPredictor>(m, "_BayesPredictor")
-        .def(
-            nb::init<const gx::BayesModel&, const gx::MCMCResult&>(),
-            "model"_a,
-            "result"_a)
-        .def(
-            "_predict",
-            &gx::BayesPredictor::predict,
-            "fixed_design"_a,
-            "random_design"_a,
-            "genetic_design"_a);
-}
+// void bayes_predictor(nb::module_& m)
+// {
+//     nb::class_<gx::BayesPredictor>(m, "_BayesPredictor")
+//         .def(
+//             nb::init<const gx::BayesModel&, const gx::MCMCResult&>(),
+//             "model"_a,
+//             "result"_a)
+//         .def(
+//             "_predict",
+//             &gx::BayesPredictor::predict,
+//             "fixed_design"_a,
+//             "random_design"_a,
+//             "genetic_design"_a);
+// }
 }  // namespace bind

@@ -2,3 +2,14 @@
 [submodule "ext/armadillo"]
     path = ext/armadillo
     url = https://gitlab.com/conradsnicta/armadillo-code.git
+[submodule "ext/eigen"]
+    path = ext/eigen
+    url = https://gitlab.com/libeigen/eigen.git
+[submodule "ext/mio"]
+    path = ext/mio
+    url = https://github.com/mandreyel/mio.git
+    branch = master
+[submodule "ext/CLI11"]
+    path = ext/CLI11
+    url = https://github.com/CLIUtils/CLI11.git
+    branch = main

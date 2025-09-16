@@ -12,12 +12,16 @@
 #include <nanobind/stl/vector.h>
 #include <armadillo>
 
+#include <Eigen/Core>
+
 #include "dense.h"
 #include "gelex/data/bed_reader.h"
 #include "gelex/data/grm.h"
+#include "gelex/data/simulation.h"
 #include "gelex/estimator/freq/estimator.h"
 #include "gelex/model/freq/model.h"
 #include "gelex/predictor/freq/predictor.h"
+#include "gelex/utils/utils.h"
 #include "sparse.h"
 
 namespace bind
@@ -28,6 +32,7 @@ namespace gx = gelex;
 
 using arma::dmat;
 using arma::dvec;
+using Eigen::Index;
 
 void gblup(nb::module_& m)
 {
@@ -161,7 +166,7 @@ void grm(nb::module_& m)
         .def(
             nb::init<
                 std::string_view,
-                size_t,
+                Eigen::Index,
                 const std::vector<std::string>&>(),
             "bed_file"_a,
             "chunk_size"_a = gelex::DEFAULT_CHUNK_SIZE,
@@ -186,12 +191,13 @@ void grm(nb::module_& m)
 void cross_grm(nb::module_& m)
 {
     nb::class_<gx::CrossGRM>(m, "CrossGRM")
+
         .def(
             nb::init<
                 std::string_view,
-                arma::dvec,
+                Eigen::VectorXd,
                 double,
-                size_t,
+                Index,
                 const std::vector<std::string>&>(),
             "bed_file"_a,
             "p_major"_a,
@@ -218,7 +224,7 @@ void bed_reader(nb::module_& m)
         .def(
             nb::init<
                 std::string_view,
-                size_t,
+                Index,
                 const std::vector<std::string>&>(),
             "bed_file"_a,
             "chunk_size"_a = gx::DEFAULT_CHUNK_SIZE,
@@ -242,46 +248,46 @@ void bed_reader(nb::module_& m)
 
 void freq_predictor(nb::module_& m)
 {
-    nb::class_<gx::GBLUPPredictor>(m, "_GBLUPPredictor")
-        .def(
-            nb::init<
-                std::string_view,
-                const std::vector<std::string>&,
-                const gx::GBLUP&>(),
-            "train_bed"_a,
-            "train_id_order"_a,
-            "model"_a,
-            "Initialize the GBLUP predictor\n\n"
-            "Parameters\n"
-            "----------\n"
-            "train_bed : str\n"
-            "    The training bed file path\n"
-            "train_id_order : list of str\n"
-            "    The order of individuals in the training set\n"
-            "model : GBLUP\n"
-            "    The GBLUP model to use for prediction")
-        .def(
-            "add_cross_grm",
-            &gx::GBLUPPredictor::add_cross_grm,
-            "method"_a,
-            "p_major"_a,
-            "scale_factor"_a,
-            "chunk_size"_a = gelex::DEFAULT_CHUNK_SIZE,
-            "Add a cross GRM to the predictor\n\n"
-            "Parameters\n"
-            "----------\n"
-            "method : str\n"
-            "    The method to use for cross GRM calculation\n"
-            "p_major : np.ndarray\n"
-            "    The major allele frequency\n"
-            "scale_factor : float\n"
-            "    The scale factor for the cross GRM\n"
-            "chunk_size : int, optional\n"
-            "    Number of snps to processed per step (default: 10000)")
-        .def(
-            "compute_fixed_effects",
-            &gx::GBLUPPredictor::compute_fixed_effects,
-            "covariates"_a);
+    // nb::class_<gx::GBLUPPredictor>(m, "_GBLUPPredictor")
+    //     .def(
+    //         nb::init<
+    //             std::string_view,
+    //             const std::vector<std::string>&,
+    //             const gx::GBLUP&>(),
+    //         "train_bed"_a,
+    //         "train_id_order"_a,
+    //         "model"_a,
+    //         "Initialize the GBLUP predictor\n\n"
+    //         "Parameters\n"
+    //         "----------\n"
+    //         "train_bed : str\n"
+    //         "    The training bed file path\n"
+    //         "train_id_order : list of str\n"
+    //         "    The order of individuals in the training set\n"
+    //         "model : GBLUP\n"
+    //         "    The GBLUP model to use for prediction")
+    //     .def(
+    //         "add_cross_grm",
+    //         &gx::GBLUPPredictor::add_cross_grm,
+    //         "method"_a,
+    //         "p_major"_a,
+    //         "scale_factor"_a,
+    //         "chunk_size"_a = gelex::DEFAULT_CHUNK_SIZE,
+    //         "Add a cross GRM to the predictor\n\n"
+    //         "Parameters\n"
+    //         "----------\n"
+    //         "method : str\n"
+    //         "    The method to use for cross GRM calculation\n"
+    //         "p_major : np.ndarray\n"
+    //         "    The major allele frequency\n"
+    //         "scale_factor : float\n"
+    //         "    The scale factor for the cross GRM\n"
+    //         "chunk_size : int, optional\n"
+    //         "    Number of snps to processed per step (default: 10000)")
+    //     .def(
+    //         "compute_fixed_effects",
+    //         &gx::GBLUPPredictor::compute_fixed_effects,
+    //         "covariates"_a);
     // .def(
     //     "compute_genetic_effects",
     //     &gx::GBLUPPredictor::compute_genetic_effects,
@@ -316,5 +322,33 @@ void sp_dense_dot(nb::module_& m)
         "-------\n"
         "np.ndarray\n"
         "    Resulting vector (individuals x 1)");
+}
+
+void phenotype_simulator(nb::module_& m)
+{
+    nb::class_<gx::PhenotypeSimulator>(m, "_PhenotypeSimulator")
+        .def(nb::init<>(), "Create a phenotype simulator")
+        .def(
+            "simulate_qt_from_bed",
+            &gx::PhenotypeSimulator::simulate_qt_from_bed,
+            "bfile"_a,
+            "causal_variants_list"_a,
+            "heritability"_a,
+            "seed"_a = -1,
+            "Simulate quantitative traits from BED file\n\n"
+            "Parameters\n"
+            "----------\n"
+            "bfile : str\n"
+            "    PLINK BED file path\n"
+            "causal_variants_list : str\n"
+            "    File containing list of causal variants (one per line)\n"
+            "heritability : float\n"
+            "    Heritability of the trait (between 0 and 1)\n"
+            "seed : int, optional\n"
+            "    Random seed (-1 for random seed)\n"
+            "Returns\n"
+            "-------\n"
+            "None\n"
+            "    Writes phenotype to <bfile>.phen");
 }
 }  // namespace bind

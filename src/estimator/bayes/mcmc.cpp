@@ -1,4 +1,5 @@
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <memory>
 #include <thread>
@@ -7,68 +8,75 @@
 #include <fmt/base.h>
 #include <fmt/format.h>
 #include <gelex/barkeep.h>
-
 #include <omp.h>
+#include <Eigen/Core>
 
-#include "armadillo"
-#include "gelex/dist.h"
-#include "gelex/estimator/bayes/base.h"
-#include "gelex/estimator/bayes/indicator.h"
-#include "gelex/estimator/bayes/logger.h"
+#include "../src/estimator/bayes/indicator.h"
+#include "../src/logger/bayes_logger.h"
+#include "../src/model/bayes/distribution.h"
 #include "gelex/estimator/bayes/mcmc.h"
 #include "gelex/estimator/bayes/result.h"
 #include "gelex/estimator/bayes/samples.h"
-#include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/policy.h"
 #include "gelex/utils/formatter.h"
 
 namespace gelex
 {
-using arma::dmat;
-using arma::dvec;
-using arma::uvec;
+using Eigen::Index;
+using Eigen::Ref;
+
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
+using Eigen::VectorXi;
 
 namespace bk = barkeep;
 MCMC::MCMC(MCMCParams params) : params_(params) {}
 
-const MCMCResult& MCMC::run(const BayesModel& model, size_t seed)
+const MCMCResult& MCMC::run(const BayesModel& model, Index seed)
 {
-    samples_ = std::make_unique<MCMCSamples>(params_, model);
-    result_ = std::make_unique<MCMCResult>(*samples_);
+    MCMCSamples samples(params_, model);
 
     const size_t n_chains = params_.n_chains;
     std::vector<std::atomic<size_t>> idxs(n_chains);
-    for (auto& i : idxs)
-    {
-        i = 0;
-    }
-
-    auto status_names = Indicator::create_status_names(model);
-    Indicator indicator(n_chains, params_.n_iters, idxs, status_names);
+    detail::Indicator indicator(model, params_.n_iters, idxs);
 
     logger_.log_model_information(model, params_);
 
     indicator.show();
     std::vector<std::thread> threads;
     threads.reserve(n_chains);
+    int nthreads = Eigen::nbThreads();
 
-    for (size_t i = 0; i < n_chains; ++i)
+    auto start = std::chrono::high_resolution_clock::now();
+    for (Index i = 0; i < n_chains; ++i)
     {
         threads.emplace_back(
-            [this, &model, seed, i, &idxs, &indicator]
+            [this, &model, &samples, seed, i, &idxs, &indicator]
             {
                 omp_set_num_threads(1);
-                run_one_chain(model, i, seed + i, idxs[i], indicator);
+                Eigen::setNbThreads(1);
+                run_one_chain(model, samples, i, seed + i, idxs[i], indicator);
             });
     }
     for (auto& t : threads)
     {
         t.join();
     }
-
+    Eigen::setNbThreads(nthreads);
     indicator.done();
-    result_->compute_summary_statistics(*samples_, 0.9);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration
+        = std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+              .count();
+
+    logger_.info("");
+    logger_.info(
+        "MCMC sampling completed, Total time: {:.2f} s.",
+        static_cast<double>(duration) / 1000.0);
+
+    result_ = std::make_unique<MCMCResult>(std::move(samples), 0.9);
+    result_->compute();
+    result_->save("/home/rlchen/project/gelexy/develop/test");
     logger_.log_result(*result_, model);
 
     return *result_;
@@ -76,78 +84,77 @@ const MCMCResult& MCMC::run(const BayesModel& model, size_t seed)
 
 void MCMC::run_one_chain(
     const BayesModel& model,
-    size_t chain,
-    size_t seed,
+    MCMCSamples& samples,
+    Index chain,
+    Index seed,
     std::atomic_size_t& iter,
-    Indicator& indicator)
+    detail::Indicator& indicator)
 {
     std::mt19937_64 rng(seed);
 
-    arma::dvec y_adj = model.phenotype();
+    VectorXd y_adj = model.phenotype();
     BayesStatus status(model);
 
-    size_t record_idx = 0;
-    uvec snp_tracker(
-        model.genetic()[0].design_matrix.n_cols, arma::fill::zeros);
+    Index record_idx = 0;
 
-    ScaledInvChiSq residuel_sample{model.residual().prior};
+    detail::ScaledInvChiSq residual_sample{model.residual().prior};
 
     for (; iter < params_.n_iters; ++iter)
     {
         double sigma_e = status.residual.value;
 
-        sample_fixed_effect(
-            model.fixed(), status.fixed, y_adj.memptr(), sigma_e, rng);
-        for (size_t i = 0; i < model.random().size(); ++i)
+        sample_fixed_effect(model.fixed(), status.fixed, y_adj, sigma_e, rng);
+
+        for (Index i = 0; i < model.random().size(); ++i)
         {
             sample_random_effect(
-                model.random()[i],
-                status.random[i],
-                y_adj.memptr(),
-                sigma_e,
-                rng);
+                model.random()[i], status.random[i], y_adj, sigma_e, rng);
             indicator.update(
                 chain,
                 sigma_squared("_" + model.random()[i].name),
-                status.random[i].sigma.at(0));
+                status.random[i].sigma(0));
         }
-        for (size_t i = 0; i < model.genetic().size(); ++i)
+
+        if (model.additive())
         {
-            sample_genetic_effect(
-                model.genetic()[i],
-                status.genetic[i],
-                y_adj.memptr(),
-                snp_tracker,
+            sample_additive_effect(
+                *model.additive(),
+                *status.additive,
+                y_adj,
                 sigma_e,
-                rng);
+                rng,
+                model.trait());
+
             indicator.update(
                 chain,
-                sigma_squared("_" + model.genetic()[i].name),
-                status.genetic[i].genetic_var);
+                sigma_squared("_" + model.additive()->name),
+                status.additive->variance);
 
-            if (bayes_trait_estimate_pi[to_index(model.genetic()[i].type)])
+            if (model.trait()->estimate_pi())
             {
-                for (size_t j = 0; j < model.genetic()[i].pi.size(); ++j)
+                for (int j = 0; j < status.additive->pi.prop.size(); ++j)
                 {
                     indicator.update(
                         chain,
-                        fmt::format("π{}_{}", j, model.genetic()[i].name),
-                        status.genetic[i].pi.prop.at(j));
+                        fmt::format("π_{}", j),
+                        status.additive->pi.prop(j));
                 }
             }
         }
 
         auto& residual = status.residual;
-        residuel_sample.update(arma::dot(y_adj, y_adj), model.n_individuals());
-        residual.value = residuel_sample.sample(rng);
+        // Create new ScaledInvChiSq each iteration to avoid parameter
+        // accumulation
+        residual_sample.update(y_adj.squaredNorm(), model.n_individuals());
+        residual.value = residual_sample(rng);
         status.compute_heritability();
 
-        for (size_t i = 0; i < model.genetic().size(); ++i)
+        if (model.additive())
         {
             indicator.update(
                 chain,
-                h2("_" + model.genetic()[i].name),
-                status.genetic[i].heritability);
+                h2("_" + model.additive()->name),
+                status.additive->heritability);
         }
 
         indicator.update(chain, sigma_squared("_e"), status.residual.value);
@@ -156,84 +163,109 @@ void MCMC::run_one_chain(
             && (iter + 1 - params_.n_burnin) % params_.n_thin == 0)
         {
             std::lock_guard<std::mutex> lock(samples_mutex_);
-            samples_->store(status, record_idx++, chain);
+            samples.store(status, record_idx++, chain);
         }
     }
 }
 
 void MCMC::sample_fixed_effect(
-    const bayes::FixedEffect& design,
-    bayes::FixedEffectState& state,
-    double* y_adj,
-
+    const bayes::FixedEffect& effect,
+    bayes::FixedStatus& status,
+    Ref<VectorXd> y_adj,
     double sigma_e,
     std::mt19937_64& rng)
 {
-    dvec& coeff = state.coeff;
-    const dvec& cols_norm = design.cols_norm;
-    const dmat& design_matrix = design.design_matrix;
-    const dvec& post_sigma = arma::sqrt(sigma_e / cols_norm);
+    // for convenience
+    VectorXd& coeff = status.coeff;
+    const VectorXd& cols_norm = effect.cols_norm;
+    const MatrixXd& design_matrix = effect.design_matrix;
+
+    const int n = static_cast<int>(design_matrix.rows());
+
+    // calculate the posterior standard deviation for all coefficients
+    const VectorXd post_stddev = (sigma_e / cols_norm.array()).sqrt();
+
+    // Setup distributions for sampling
     std::normal_distribution<double> normal{0, 1};
 
-    const int n = static_cast<int>(design_matrix.n_rows);
-    for (size_t i = 0; i < coeff.n_elem; ++i)
+    for (int i = 0; i < coeff.size(); ++i)
     {
-        const double old_i = coeff.at(i);
-        const double* col_i = design_matrix.colptr(i);
-        const double norm = cols_norm.at(i);
+        // for convenience
+        const double old_i = coeff(i);
+        const auto& col = design_matrix.col(i);
+        const double norm = cols_norm(i);
 
-        const double rhs = ddot_ptr(n, col_i, y_adj) + (norm * old_i);
-        const double new_i = (normal(rng) * post_sigma.at(i)) + (rhs / norm);
-        coeff.at(i) = new_i;
-        daxpy_ptr(n, old_i - new_i, col_i, y_adj);
+        // calculate the posterior mean
+        const double rhs = col.dot(y_adj) + (norm * old_i);
+        const double post_mean = rhs / norm;
+
+        // sample a new coefficient
+        const double new_i = (normal(rng) * post_stddev(i)) + post_mean;
+        coeff(i) = new_i;
+
+        // update the y_adj vector
+        const double diff = old_i - new_i;
+        y_adj.array() += diff * col.array();
     }
 }
 
 void MCMC::sample_random_effect(
-    const bayes::RandomEffect& design,
-    bayes::RandomEffectState& state,
-    double* y_adj,
+    const bayes::RandomEffect& effect,
+    bayes::RandomStatus& status,
+    Ref<VectorXd> y_adj,
     double sigma_e,
     std::mt19937_64& rng)
 {
-    dvec& coeff = state.coeff;
-    const dvec& cols_norm = design.cols_norm;
-    const dmat& design_matrix = design.design_matrix;
-    const double sigma = arma::as_scalar(state.sigma);
-    const dvec inv_scaler = 1 / (cols_norm + sigma_e / sigma);
-    const dvec post_sigma = arma::sqrt(sigma_e * inv_scaler);
+    // for convenience
+    VectorXd& coeff = status.coeff;
+    const VectorXd& cols_norm = effect.cols_norm;
+    const MatrixXd& design_matrix = effect.design_matrix;
+    const double sigma = status.sigma(0);
 
+    const int n = static_cast<int>(design_matrix.rows());
+
+    // calculate precision kernel and posterior standard deviation
+    const VectorXd inv_scaler = 1.0 / (cols_norm.array() + sigma_e / sigma);
+    const VectorXd post_stddev = (sigma_e * inv_scaler.array()).sqrt();
+
+    // Setup distributions for sampling
     std::normal_distribution<double> normal{0, 1};
 
-    const int n = static_cast<int>(design_matrix.n_rows);
-    for (size_t i = 0; i < coeff.n_elem; ++i)
+    for (int i = 0; i < coeff.size(); ++i)
     {
-        const double old_i = coeff.at(i);
-        const double* col_i = design_matrix.colptr(i);
-        const double norm = cols_norm.at(i);
+        // for convenience
+        const double old_i = coeff(i);
+        const auto& col = design_matrix.col(i);
+        const double norm = cols_norm(i);
 
-        const double rhs = ddot_ptr(n, col_i, y_adj) + (norm * old_i);
-        const double new_i
-            = (normal(rng) * post_sigma.at(i)) + (rhs * inv_scaler.at(i));
+        // calculate the posterior mean
+        const double rhs = col.dot(y_adj) + (norm * old_i);
+        const double post_mean = rhs * inv_scaler(i);
 
-        coeff.at(i) = new_i;
-        daxpy_ptr(n, old_i - new_i, col_i, y_adj);
+        // sample a new coefficient
+        const double new_i = (normal(rng) * post_stddev(i)) + post_mean;
+        coeff(i) = new_i;
+
+        // update the y_adj vector
+        const double diff = old_i - new_i;
+        y_adj.array() += col.array() * diff;
     }
-    ScaledInvChiSq chi_squared{design.prior};
-    chi_squared.update(arma::dot(state.coeff, state.coeff), coeff.n_elem);
-    state.sigma.at(0) = chi_squared.sample(rng);
+
+    // sample a new variance
+    detail::ScaledInvChiSq chi_squared{effect.prior};
+    chi_squared.update(coeff.squaredNorm(), coeff.size());
+    status.sigma(0) = chi_squared(rng);
 }
 
-void MCMC::sample_genetic_effect(
-    const bayes::GeneticEffect& design,
-    bayes::GeneticEffectState& state,
-    double* y_adj,
-    uvec& snp_tracker,
+void MCMC::sample_additive_effect(
+    const bayes::AdditiveEffect& effect,
+    bayes::AdditiveStatus& status,
+    Ref<VectorXd> y_adj,
     double sigma_e,
-    std::mt19937_64& rng)
+    std::mt19937_64& rng,
+    const std::unique_ptr<GeneticTrait>& trait)
 {
-    bayes_trait_sample.at(to_index(design.type))(
-        design, state, y_adj, snp_tracker, sigma_e, rng);
+    (*trait)(effect, status, y_adj, sigma_e, rng);
 }
 
 }  // namespace gelex

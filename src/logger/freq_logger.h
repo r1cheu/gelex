@@ -5,10 +5,13 @@
 #include <vector>
 
 #include <spdlog/logger.h>
-#include "gelex/model/freq/effects.h"
+
+#include "../src/model/freq/freq_effects.h"
 #include "gelex/model/freq/model.h"
 
 namespace gelex
+{
+namespace detail
 {
 
 class EstimatorLogger
@@ -60,14 +63,15 @@ class EstimatorLogger
 // Helper functions for formatting
 std::string join_formula(
     const std::vector<size_t>& indices,
-    const RandomEffects& effects,
+    const freq::RandomEffects& effects,
     std::string_view sep);
 
 std::string join_name(
     const std::vector<size_t>& indices,
-    const RandomEffects& effects,
+    const freq::RandomEffects& effects,
     std::string_view sep);
 
 std::string join_variance(const TotalEffects& effects);
 
+}  // namespace detail
 }  // namespace gelex

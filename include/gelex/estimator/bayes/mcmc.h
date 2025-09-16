@@ -1,15 +1,16 @@
 #pragma once
-#include <cstddef>
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <random>
 
-#include "gelex/estimator/bayes/indicator.h"
-#include "gelex/estimator/bayes/logger.h"
+#include <Eigen/Core>
+
+#include "../src/estimator/bayes/indicator.h"
+#include "../src/logger/bayes_logger.h"
 #include "gelex/estimator/bayes/params.h"
 #include "gelex/estimator/bayes/result.h"
 #include "gelex/estimator/bayes/samples.h"
-#include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
 
 namespace gelex
@@ -19,40 +20,39 @@ class MCMC
    public:
     explicit MCMC(MCMCParams params);
 
-    const MCMCResult& run(const BayesModel& model, size_t seed = 42);
+    const MCMCResult& run(const BayesModel& model, Eigen::Index seed = 42);
     const MCMCResult& result() const { return *result_; }
-    const MCMCSamples& samples() const { return *samples_; }
 
    private:
     void run_one_chain(
         const BayesModel& model,
-        size_t chain,
-        size_t seed,
+        MCMCSamples& samples,
+        Eigen::Index chain,
+        Eigen::Index seed,
         std::atomic_size_t& iter,
-        Indicator& indicator);
+        detail::Indicator& indicator);
     static void sample_fixed_effect(
-        const bayes::FixedEffect& design,
-        bayes::FixedEffectState& state,
-        double* y_adj,
+        const bayes::FixedEffect& effect,
+        bayes::FixedStatus& status,
+        Eigen::Ref<Eigen::VectorXd> y_adj,
         double sigma_e,
         std::mt19937_64& rng);
     static void sample_random_effect(
-        const bayes::RandomEffect& design,
-        bayes::RandomEffectState& state,
-        double* y_adj,
+        const bayes::RandomEffect& effect,
+        bayes::RandomStatus& status,
+        Eigen::Ref<Eigen::VectorXd> y_adj,
         double sigma_e,
         std::mt19937_64& rng);
-    static void sample_genetic_effect(
-        const bayes::GeneticEffect& design,
-        bayes::GeneticEffectState& state,
-        double* y_adj,
-        arma::uvec& snp_tracker,
+    static void sample_additive_effect(
+        const bayes::AdditiveEffect& effect,
+        bayes::AdditiveStatus& status,
+        Eigen::Ref<Eigen::VectorXd> y_adj,
         double sigma_e,
-        std::mt19937_64& rng);
+        std::mt19937_64& rng,
+        const std::unique_ptr<GeneticTrait>& trait);
 
-    MCMCLogger logger_;
+    detail::MCMCLogger logger_;
 
-    std::unique_ptr<MCMCSamples> samples_;
     std::mutex samples_mutex_;
 
     MCMCParams params_;

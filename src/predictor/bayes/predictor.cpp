@@ -6,6 +6,7 @@
 namespace gelex
 {
 
+/*
 BayesPredictor::BayesPredictor(
     const BayesModel& model,
     const MCMCResult& result)
@@ -63,5 +64,6 @@ void BayesPredictor::standardize_genotype(arma::dcube& genotype) const
         }
     };
 }
+*/
 
 }  // namespace gelex
