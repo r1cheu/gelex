@@ -1,8 +1,15 @@
+/**
+ * @file samples.h
+ * @brief class to save samples in MCMC process easily.
+ */
+
 #pragma once
-#include <armadillo>
+
 #include <vector>
 
-#include "gelex/model/bayes/effects.h"
+#include <Eigen/Core>
+
+#include "../src/model/bayes/bayes_effects.h"
 #include "gelex/model/bayes/model.h"
 
 namespace gelex
@@ -10,57 +17,97 @@ namespace gelex
 
 struct MCMCParams;  // Forward declaration
 
-struct RandomGroup
+// samples for one effect, each element in vector saves one chain's samples. and
+// Matrix have the shape (n_params, n_draws)
+using Samples = std::vector<Eigen::MatrixXd>;
+
+struct FixedSamples
 {
-    std::vector<arma::dcube> coeffs;
-    std::vector<arma::dcube> sigmas;
-    size_t size() const { return coeffs.size(); }
+    Samples coeff;
+    std::vector<std::string> names;
+    std::vector<std::string> levels;
 };
 
-struct GeneticGroup : RandomGroup
+struct RandomSamples
 {
-    std::vector<arma::dcube> genetic_var;
-    std::vector<arma::dcube> heritability;
-    std::vector<arma::dcube> pi;
-    size_t size() const { return coeffs.size(); }
+    Samples coeffs;
+    Samples sigmas;
+    std::string name;
+
+    void reserve(size_t n_chains)
+    {
+        coeffs.reserve(n_chains);
+        sigmas.reserve(n_chains);
+    }
+    explicit operator bool() const { return !coeffs.empty(); }
+};
+
+struct AdditiveSamples : RandomSamples
+{
+    Samples variance;
+    void reserve(size_t n_chains)
+    {
+        RandomSamples::reserve(n_chains);
+        variance.reserve(n_chains);
+    }
+    explicit operator bool() const { return !coeffs.empty(); }
+};
+
+struct DominantSamples
+{
+    Samples coeffs;
+    Samples variance;
+    void reserve(size_t n_chains)
+    {
+        coeffs.reserve(n_chains);
+        variance.reserve(n_chains);
+    }
+    explicit operator bool() const { return !coeffs.empty(); }
+};
+
+struct MultiRandomSamples
+{
+    std::vector<RandomSamples> chain_samples;
+    size_t size() const { return chain_samples.size(); }
+    void reserve(size_t n_effects) { chain_samples.reserve(n_effects); }
+    explicit operator bool() const { return !chain_samples.empty(); }
 };
 
 class MCMCSamples
 {
    public:
     explicit MCMCSamples(const MCMCParams& params, const BayesModel& model);
-    void store(const BayesStatus& status, size_t record_idx, size_t chain_idx);
+    void store(
+        const BayesStatus& status,
+        Eigen::Index record_idx,
+        Eigen::Index chain_idx);
 
     const auto& fixed() const { return fixed_; }
     const auto& random() const { return random_; }
-    const auto& genetic() const { return genetic_; }
+    const auto& additive() const { return additive_; }
+    const auto& dominant() const { return dominant_; }
     const auto& residual() const { return residual_; }
+    const auto& bim_file_path() const { return bim_file_path_; }
 
    private:
     size_t n_records_;
     size_t n_chains_;
 
-    arma::dcube fixed_;
-    RandomGroup random_;
-    GeneticGroup genetic_;
-    arma::dcube residual_;
+    bool store_pi_{false};
+    std::string bim_file_path_;
 
-    void init_group(
-        RandomGroup& group,
-        const bayes::RandomEffectManager& effects) const;
+    FixedSamples fixed_;
+    MultiRandomSamples random_;
+    AdditiveSamples additive_;
+    DominantSamples dominant_;
+    Samples residual_;
+    Samples pi_;
 
-    void init_group(
-        GeneticGroup& group,
-        const bayes::GeneticEffectManager& effects) const;
+    void init_random(const bayes::RandomEffectManager& effects);
 
-    void store_group(
-        const std::vector<bayes::RandomEffectState>& status,
-        size_t record_idx,
-        size_t chain_idx);
-
-    void store_group(
-        const std::vector<bayes::GeneticEffectState>& status,
-        size_t record_idx,
-        size_t chain_idx);
+    void store_random(
+        const std::vector<bayes::RandomStatus>& status,
+        Eigen::Index record_idx,
+        Eigen::Index chain_idx);
 };
 }  // namespace gelex

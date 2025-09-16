@@ -1,13 +1,13 @@
-from .aligner import align_bayes, align_gblup
+from .aligner import align_gblup, intersection
 from .cv import CrossValidation
-from .log import RedirectStdoutToLogger
 from .path import valid_path
+from .timeit import timeit
 
 __all__ = [
     "CrossValidation",
     "Matcher",
-    "RedirectStdoutToLogger",
-    "align_bayes",
     "align_gblup",
+    "intersection",
+    "timeit",
     "valid_path",
 ]

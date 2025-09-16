@@ -1,7 +1,6 @@
 #pragma once
 
 #include <chrono>
-#include <memory>
 #include <string>
 
 #include <fmt/color.h>
@@ -14,22 +13,6 @@
 
 namespace gelex
 {
-
-arma::dvec centralize(arma::dmat& x);
-std::pair<arma::dvec, arma::dvec> standradize(arma::dmat& x);
-
-class LevelFormatter : public spdlog::formatter
-{
-   private:
-    std::unique_ptr<spdlog::formatter> info_formatter_;
-    std::unique_ptr<spdlog::formatter> default_formatter_;
-
-   public:
-    LevelFormatter();
-    void format(const spdlog::details::log_msg& msg, spdlog::memory_buf_t& dest)
-        override;
-    std::unique_ptr<formatter> clone() const override;
-};
 
 template <typename Mat>
 bool check_eye(const Mat& inputs)
@@ -70,17 +53,6 @@ class Timer
    private:
     double& elapsed_time_;
     std::chrono::high_resolution_clock::time_point start_;
-};
-
-class Logger
-{
-   public:
-    static std::shared_ptr<spdlog::logger> logger();
-
-   private:
-    Logger();
-    std::shared_ptr<spdlog::logger> GetSpdLogger();
-    std::shared_ptr<spdlog::logger> logger_;
 };
 
 std::string compute_time_left(

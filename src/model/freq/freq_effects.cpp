@@ -4,9 +4,11 @@
 #include <armadillo>
 #include "gelex/utils/utils.h"
 
-#include "gelex/model/freq/effects.h"
+#include "freq_effects.h"
 
 namespace gelex
+{
+namespace freq
 {
 
 FixedEffect::FixedEffect(
@@ -81,5 +83,6 @@ GxEEffect::GxEEffect(
     }
     coeff = arma::zeros(this->genetic_design_matrix.n_cols);
 }
+}  // namespace freq
 
 }  // namespace gelex

@@ -5,7 +5,8 @@
 
 #include <armadillo>
 
-#include "gelex/model/freq/effects.h"
+#include "../src/model/freq/freq_effects.h"
+#include "gelex/model/effects.h"
 
 namespace gelex
 {
@@ -23,7 +24,7 @@ struct GBLUPEffect
     double se;
 };
 
-using TotalEffects = Effects<GBLUPEffect>;
+using TotalEffects = detail::Effects<GBLUPEffect>;
 
 /**
  * @class GBLUP
@@ -71,8 +72,8 @@ class GBLUP
         return u;
     }
 
-    const FixedEffect& fixed() const { return *fixed_; }
-    const Effects<GBLUPEffect>& effects() const { return effects_; }
+    const freq::FixedEffect& fixed() const { return *fixed_; }
+    const detail::Effects<GBLUPEffect>& effects() const { return effects_; }
 
     void add_fixed_effect(
         std::vector<std::string>&& names,
@@ -102,13 +103,13 @@ class GBLUP
 
     size_t n_individuals_{};
     arma::dvec phenotype_;
-    Effects<GBLUPEffect> effects_;
+    detail::Effects<GBLUPEffect> effects_;
 
-    std::unique_ptr<FixedEffect> fixed_;
-    RandomEffects random_;
-    GeneticEffects genetic_;
-    GxEEffects gxe_;
-    RandomEffect residual_{"e", arma::sp_dmat()};
+    std::unique_ptr<freq::FixedEffect> fixed_;
+    freq::RandomEffects random_;
+    freq::GeneticEffects genetic_;
+    freq::GxEEffects gxe_;
+    freq::RandomEffect residual_{"e", arma::sp_dmat()};
 };
 
 }  // namespace gelex

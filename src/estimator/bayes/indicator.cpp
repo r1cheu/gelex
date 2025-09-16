@@ -1,27 +1,42 @@
-#include "gelex/estimator/bayes/indicator.h"
+#include "indicator.h"
 #include <fmt/format.h>
 #include <vector>
-#include "gelex/model/bayes/policy.h"
-#include "gelex/utils/formatter.h"
+
+#include "../../logger/logger_utils.h"
+#include "gelex/model/bayes/model.h"
+
+// Define the static progress bar style
+const bk::BarParts gelex::detail::Indicator::PROGRESS_BAR_STYLE = []()
+{
+    bk::BarParts style;
+    style.left = "[";
+    style.right = "]";
+    style.fill = {"\033[1;33m━\033[0m"};
+    style.empty = {"─"};
+    return style;
+}();
+
 namespace gelex
 {
+namespace detail
+{
 Indicator::Indicator(
-    size_t n_chains,
-    size_t n_iters,
-    std::vector<std::atomic<size_t>>& progress_counters,
-    const std::vector<std::string>& status_names)
-    : num_chains_(n_chains), status_names_(status_names)
+    const BayesModel& model,
+    size_t n_iter,
+    std::vector<std::atomic<size_t>>& progress_counters)
+    : num_chains_(progress_counters.size()),
+      status_names_(create_status_names(model))
 {
     std::vector<std::shared_ptr<bk::BaseDisplay>> all_chains_displays;
 
-    for (size_t i = 0; i < status_names.size(); ++i)
+    for (int i = 0; i < status_names_.size(); ++i)
     {
-        status_name_to_index_[status_names[i]] = i;
+        status_name_to_index_[status_names_[i]] = i;
     }
 
-    statuses_.resize(n_chains);
+    statuses_.resize(num_chains_);
 
-    for (size_t i = 0; i < n_chains; ++i)
+    for (int i = 0; i < num_chains_; ++i)
     {
         std::vector<std::shared_ptr<bk::BaseDisplay>> line_displays;
 
@@ -32,28 +47,22 @@ Indicator::Indicator(
              .show = false});
         line_displays.push_back(anim);
 
-        bk::BarParts custom_bar_style;
-        custom_bar_style.left = "[";
-        custom_bar_style.right = "]";
-        custom_bar_style.fill = {"\033[1;33m━\033[0m"};
-        custom_bar_style.empty = {"─"};
-
         auto pbar = bk::ProgressBar(
             &progress_counters[i],
-            {.total = n_iters,
+            {.total = n_iter,
              .format = fmt::format("{}", i + 1)
                        + " {bar} {value}/{total} ({speed:.1f}/s)",
              .speed = 0.1,
-             .style = custom_bar_style,
+             .style = PROGRESS_BAR_STYLE,
              .show = false});
         progress_bars_.push_back(pbar);
         line_displays.push_back(pbar);
 
-        statuses_[i].resize(status_names.size());
-        for (size_t j = 0; j < status_names.size(); ++j)
+        statuses_[i].resize(status_names_.size());
+        for (int j = 0; j < status_names_.size(); ++j)
         {
             auto status = bk::Status(
-                {.message = status_names[j] + ": --",
+                {.message = status_names_[j] + ": --",
                  .style = bk::Strings{""},
                  .show = false});
             statuses_[i][j] = status;
@@ -75,25 +84,26 @@ std::vector<std::string> Indicator::create_status_names(const BayesModel& model)
         status_names.emplace_back(sigma_squared("_" + random.name));
     }
 
-    for (const auto& genetic : model.genetic())
+    if (model.additive())
     {
-        status_names.emplace_back(sigma_squared("_" + genetic.name));
-        if (bayes_trait_estimate_pi[to_index(genetic.type)])
+        status_names.emplace_back(sigma_squared("_" + model.additive()->name));
+        if (model.trait()->estimate_pi())
         {
-            for (size_t i = 0; i < genetic.pi.size(); ++i)
+            for (int i = 0; i < model.additive()->pi.size(); ++i)
             {
-                status_names.emplace_back(
-                    fmt::format("π{}_{}", i, genetic.name));
+                status_names.emplace_back(fmt::format("π_{}", i));
             }
         }
     }
 
     status_names.emplace_back(sigma_squared("_e"));
 
+    /*
     for (const auto& genetic : model.genetic())
     {
         status_names.emplace_back(h2("_" + genetic.name));
     }
+    */
 
     return status_names;
 }
@@ -107,4 +117,5 @@ void Indicator::done()
     main_indicator_->done();
 }
 
+}  // namespace detail
 }  // namespace gelex

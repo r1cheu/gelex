@@ -21,7 +21,7 @@ void GBLUP::add_fixed_effect(
     std::vector<std::string>&& levels,
     dmat&& design_matrix)
 {
-    fixed_ = std::make_unique<FixedEffect>(
+    fixed_ = std::make_unique<freq::FixedEffect>(
         std::move(names), std::move(levels), std::move(design_matrix));
 }
 

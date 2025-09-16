@@ -1,13 +1,12 @@
 import pandas as pd
 
-from .._logger import setup_logger
+from gelexy._logger import logger
 
 
 def align_gblup(
     phenotype: pd.DataFrame,
     genotypes: dict[str, pd.DataFrame],
 ):
-    logger = setup_logger(__name__)
     if "id" not in phenotype.columns:
         msg = "Phenotype DataFrame must have an 'id' column."
         raise ValueError(msg)
@@ -24,19 +23,23 @@ def align_gblup(
     return phenotype[phenotype["id"].isin(pid)], gid_list
 
 
-def align_bayes(
+def intersection(
     phenotype: pd.DataFrame,
-    genotype: pd.DataFrame,
-):
-    if "id" not in phenotype.columns:
-        msg = "Phenotype DataFrame must have an 'id' column."
-        raise ValueError(msg)
+    genotype: pd.Index,
+    iid_only: bool = False,
+) -> tuple[pd.DataFrame, list[str], list[str]]:
+    id_column = "IID" if iid_only else "FID_IID"
+    pid = pd.Index(phenotype[id_column])
 
-    pid = set(phenotype["id"].astype(str))
-    gid = set(genotype.index.to_list())
-    common_ids = pid.intersection(gid)
-    common_ids_list = list(common_ids)
+    common_ids = genotype.intersection(pid)
+    logger.info(
+        f"Found {len(common_ids)} individuals with both phenotype and genotype data."
+    )
 
-    return phenotype[phenotype["id"].isin(common_ids)], genotype.loc[
-        common_ids_list
-    ]
+    phenotype = phenotype[phenotype[id_column].isin(common_ids)]
+
+    return (
+        phenotype,
+        phenotype[id_column].tolist(),
+        genotype[genotype.isin(common_ids)].tolist(),
+    )

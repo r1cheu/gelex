@@ -2,10 +2,10 @@
 #include <cstddef>
 #include <string_view>
 
+#include <fmt/ranges.h>
 #include <armadillo>
 
-#include <fmt/ranges.h>
-#include "gelex/estimator/freq/logger.h"
+#include "../src/logger/freq_logger.h"
 #include "gelex/model/freq/model.h"
 #include "gelex/optim/optimizer.h"
 
@@ -35,7 +35,7 @@ class Estimator
         const GBLUP& model) const;
 
     Optimizer optimizer_;
-    EstimatorLogger logger_;
+    detail::EstimatorLogger logger_;
 
     size_t iter_count_{};
     size_t max_iter_{};

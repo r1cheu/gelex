@@ -10,7 +10,6 @@
 #include <fmt/ranges.h>
 #include <armadillo>
 
-#include "gelex/model/freq/effects.h"
 #include "gelex/model/freq/model.h"
 #include "gelex/optim/optimizer.h"
 #include "gelex/optim/policy.h"

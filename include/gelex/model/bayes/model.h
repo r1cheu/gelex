@@ -1,11 +1,14 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
 
-#include <armadillo>
+#include <Eigen/Core>
 
-#include "gelex/model/bayes/effects.h"
+#include "../src/model/bayes/bayes_effects.h"
+#include "../src/model/bayes/trait.h"
+#include "gelex/model/effects.h"
 
 namespace gelex
 {
@@ -27,79 +30,94 @@ class BayesModel
      * @param formula formula string, only for showing the model structure.
      * @param phenotype moveable arma dvec.
      */
-    BayesModel(std::string formula, arma::dvec&& phenotype);
+    explicit BayesModel(Eigen::VectorXd&& phenotype);
     void add_fixed_effect(
         std::vector<std::string>&& names,
         std::vector<std::string>&& levels,
-        arma::dmat&& design_matrix);
-    void add_random_effect(std::string&& name, arma::dmat&& design_matrix);
+        Eigen::MatrixXd&& design_matrix);
+    void add_random_effect(std::string&& name, Eigen::MatrixXd&& design_matrix);
     void add_genetic_effect(
-        std::string&& name,
-        arma::dmat&& genotype,
+        bool iid_only,
+        bool dom,
+        const std::string& bfile,
+        const std::vector<std::string>& pid,
+        const std::vector<std::string>& gid,
         BayesAlphabet type);
-
-    const std::string& formula() const { return formula_; }
 
     const auto& fixed() const { return *fixed_; }
     const auto& random() const { return random_; }
-    const auto& genetic() const { return genetic_; }
+    const auto& additive() const { return additive_; }
+    const auto& dominant() const { return dominant_; }
     const auto& residual() const { return residual_; }
 
     auto& fixed() { return *fixed_; }
     auto& random() { return random_; }
-    auto& genetic() { return genetic_; }
+    auto& additive() { return additive_; }
+    auto& dominant() { return dominant_; }
     auto& residual() { return residual_; }
 
-    // Existing method (keep for expert users)
-    void set_sigma_prior_manul(
+    void set_model_type(BayesAlphabet type)
+    {
+        model_trait_ = create_genetic_trait(type);
+    }
+
+    void set_sigma_prior_manual(
         const std::string& name,
         double nu,
         double s2,
         double init_sigma);
 
-    // New overload with default calculation
-    void set_sigma_prior(
-        const std::string& name,
-        double sigma_prop,
-        double nu = 4.0);
+    void set_sigma_prior(const std::string& name, double nu, double prop);
+
+    const std::unique_ptr<GeneticTrait>& trait() const { return model_trait_; };
 
     // Keep existing pi prior method
-    void set_pi_prior(const std::string& name, const arma::dvec& pi);
+    void set_pi_prior(const std::string& name, const Eigen::VectorXd& pi);
 
     std::string prior_summary() const;
 
-    const arma::dvec& phenotype() const { return phenotype_; }
+    const Eigen::VectorXd& phenotype() const { return phenotype_; }
     double phenotype_var() const { return phenotype_var_; }
-    size_t n_individuals() const { return n_individuals_; }
+    Eigen::Index n_individuals() const { return n_individuals_; }
 
    private:
-    std::string formula_;
+    Eigen::Index n_individuals_{};
 
-    size_t n_individuals_{};
-
-    arma::dvec phenotype_;
+    Eigen::VectorXd phenotype_;
     double phenotype_var_{};
+
+    std::unique_ptr<GeneticTrait> model_trait_;
 
     std::unique_ptr<bayes::FixedEffect> fixed_;
     bayes::RandomEffectManager random_;
-    bayes::GeneticEffectManager genetic_;
+    std::unique_ptr<bayes::AdditiveEffect> additive_;
+    std::unique_ptr<bayes::DominantEffect> dominant_;
     bayes::Residual residual_;
 };
 
 struct BayesStatus
 {
     explicit BayesStatus(const BayesModel& model)
-        : fixed(bayes::FixedEffectState(model.fixed().design_matrix.n_cols)),
-          random(create_thread_states(model.random())),
-          genetic(create_thread_states(model.genetic())),
+        : fixed(bayes::FixedStatus(model.fixed().design_matrix.cols())),
+          random(bayes::create_chain_states(model.random())),
+          additive(
+              model.additive()
+                  ? std::make_unique<bayes::AdditiveStatus>(*model.additive())
+                  : nullptr),
+          dominant(
+              model.dominant()
+                  ? std::make_unique<bayes::DominantStatus>(*model.dominant())
+                  : nullptr),
           residual(model.residual())
     {
     }
 
     void compute_heritability();
-    bayes::FixedEffectState fixed;
-    std::vector<bayes::RandomEffectState> random;
-    std::vector<bayes::GeneticEffectState> genetic;
+
+    bayes::FixedStatus fixed;
+    std::vector<bayes::RandomStatus> random;
+    std::unique_ptr<bayes::AdditiveStatus> additive;
+    std::unique_ptr<bayes::DominantStatus> dominant;
     bayes::Residual residual;
 };
 

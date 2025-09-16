@@ -1,3 +1,3 @@
-from .bayes import BayesPredictor
-
-__all__ = ["BayesPredictor"]
+# from .bayes import BayesPredictor
+#
+# __all__ = ["BayesPredictor"]

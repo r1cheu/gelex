@@ -2,8 +2,8 @@
 
 #include <armadillo>
 
+#include "../src/logger/logger_utils.h"
 #include "gelex/model/freq/model.h"
-#include "gelex/utils/utils.h"
 
 namespace gelex
 {
@@ -14,7 +14,8 @@ class Optimizer
     friend class Estimator;
 
    public:
-    explicit Optimizer(double tol = 1e-8) : tol_{tol}, logger_{Logger::logger()}
+    explicit Optimizer(double tol = 1e-8)
+        : tol_{tol}, logger_{detail::Logger::logger()}
     {
     }
     void init(GBLUP& model);

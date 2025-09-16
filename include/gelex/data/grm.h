@@ -1,7 +1,6 @@
 #pragma once
 
-#include <armadillo>
-#include <cstddef>
+#include <Eigen/Core>
 
 #include "gelex/data/bed_reader.h"
 
@@ -13,7 +12,7 @@ class GRM
    public:
     explicit GRM(
         std::string_view bed_file,
-        size_t chunk_size = 10000,
+        Eigen::Index chunk_size = 10000,
         const std::vector<std::string>& target_order = {});
     GRM(const GRM&) = delete;
     GRM(GRM&&) noexcept = default;
@@ -22,8 +21,8 @@ class GRM
 
     ~GRM() = default;
 
-    arma::dmat compute(bool add = true);
-    arma::dvec p_major() const noexcept { return p_major_; }
+    Eigen::MatrixXd compute(bool add = true);
+    Eigen::VectorXd p_major() const noexcept { return p_major_; }
     double scale_factor() const { return scale_factor_; }
 
     const std::vector<std::string>& individuals() const noexcept
@@ -34,7 +33,7 @@ class GRM
    private:
     BedReader bed_;
     double scale_factor_{1.0};
-    arma::dvec p_major_;
+    Eigen::VectorXd p_major_;
 };
 
 class CrossGRM
@@ -42,9 +41,9 @@ class CrossGRM
    public:
     explicit CrossGRM(
         std::string_view train_bed,
-        arma::dvec p_major,
+        Eigen::VectorXd p_major,
         double scale_factor,
-        size_t chunk_size = 10000,
+        Eigen::Index chunk_size = 10000,
         const std::vector<std::string>& target_order = {});
 
     CrossGRM(const CrossGRM&) = delete;
@@ -59,16 +58,16 @@ class CrossGRM
         return individuals_;
     }
 
-    arma::dmat compute(std::string_view test_bed, bool add = true);
+    Eigen::MatrixXd compute(std::string_view test_bed, bool add = true);
 
    private:
     BedReader bed_;
     void check_snp_consistency(const BedReader& test_bed) const;
-    arma::dvec p_major_;
+    Eigen::VectorXd p_major_;
     double scale_factor_;
 
     std::vector<std::string> individuals_;
-    size_t chunk_size_;
+    Eigen::Index chunk_size_;
 };
 
 /**
@@ -83,11 +82,12 @@ class CrossGRM
  * columns represent SNPs
  * @return arma::dvec Vector of allele frequencies (mean/2) for each SNP
  */
-arma::dvec compute_p_major(const arma::dmat& genotype);
+Eigen::VectorXd compute_p_major(
+    const Eigen::Ref<const Eigen::MatrixXd>& genotype);
 
 void code_method_varden(
-    arma::dvec p_major,
-    arma::dmat& genotype,
+    const Eigen::Ref<const Eigen::VectorXd>& p_major,
+    Eigen::Ref<Eigen::MatrixXd> genotype,
     bool add = true);
 
 }  // namespace gelex

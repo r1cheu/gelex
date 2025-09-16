@@ -7,15 +7,16 @@
 #include <unordered_set>
 #include <vector>
 
-#include <armadillo>
+#include <Eigen/Core>
 
 namespace gelex
 {
+using Eigen::Index;
 
 char detect_separator(const std::string& line)
 {
-    size_t tab_count = 0;
-    size_t space_count = 0;
+    Index tab_count = 0;
+    Index space_count = 0;
 
     for (char c : line)
     {
@@ -42,7 +43,7 @@ std::string find_second(const std::string& line, char separator)
 
 BedReader::BedReader(
     std::string_view bed_file,
-    size_t chunk_size,
+    Index chunk_size,
     const std::vector<std::string>& target_order)
     : bed_file_{bed_file}, chunk_size_{chunk_size}
 {
@@ -100,7 +101,7 @@ void BedReader::parse_fam(
     if (target_order.empty())
     {
         individuals_ = ids_in_file_order;
-        for (size_t i = 0; i < total_samples_in_file_; ++i)
+        for (Index i = 0; i < total_samples_in_file_; ++i)
         {
             file_index_is_kept_[i] = true;
             file_index_to_target_index_[i] = i;
@@ -109,8 +110,8 @@ void BedReader::parse_fam(
     else
     {
         individuals_ = target_order;
-        std::unordered_map<std::string, size_t> target_id_to_idx;
-        for (size_t i = 0; i < target_order.size(); ++i)
+        std::unordered_map<std::string, Index> target_id_to_idx;
+        for (Index i = 0; i < target_order.size(); ++i)
         {
             target_id_to_idx[target_order[i]] = i;
         }
@@ -118,7 +119,7 @@ void BedReader::parse_fam(
         std::vector<std::string> found_targets;
         found_targets.reserve(target_order.size());
 
-        for (size_t i = 0; i < total_samples_in_file_; ++i)
+        for (Index i = 0; i < total_samples_in_file_; ++i)
         {
             const auto& current_id = ids_in_file_order[i];
             auto it = target_id_to_idx.find(current_id);
@@ -229,24 +230,24 @@ void BedReader::seek_to_bed_start()
     fin_.seekg(3, std::ios::beg);
 }
 
-arma::dmat BedReader::read_chunk()
+Eigen::MatrixXd BedReader::read_chunk()
 {
     if (!has_next())
     {
         std::cerr
             << "Warning: No more data to read from BED file. Reload if needed."
             << "\n";
-        return {};
+        return Eigen::MatrixXd();
     }
 
     current_chunk_size_
         = std::min(chunk_size_, num_snps() - current_chunk_index());
 
-    const size_t chunk_bytes = current_chunk_size_ * bytes_per_snp_;
+    const Index chunk_bytes = current_chunk_size_ * bytes_per_snp_;
     std::vector<char> buffer(chunk_bytes);
 
     fin_.read(buffer.data(), static_cast<int64_t>(chunk_bytes));
-    size_t bytes_read = fin_.gcount();
+    Index bytes_read = fin_.gcount();
     if (bytes_read != chunk_bytes)
     {
         throw std::runtime_error(
@@ -256,25 +257,27 @@ arma::dmat BedReader::read_chunk()
             + std::to_string(bytes_read));
     }
 
-    arma::dmat genotype_matrix{decode(buffer, current_chunk_size_)};
+    Eigen::MatrixXd genotype_matrix = decode(buffer, current_chunk_size_);
     current_chunk_index_ += current_chunk_size_;
     return genotype_matrix;
 }
-arma::dmat BedReader::decode(const std::vector<char>& buffer, size_t chunk_size)
+Eigen::MatrixXd BedReader::decode(
+    const std::vector<char>& buffer,
+    Index chunk_size)
 {
-    arma::dmat genotype_matrix(
-        num_individuals(), chunk_size, arma::fill::zeros);
+    Eigen::MatrixXd genotype_matrix
+        = Eigen::MatrixXd::Zero(num_individuals(), chunk_size);
 
-    for (size_t snp_idx = 0; snp_idx < chunk_size; ++snp_idx)
+    for (Index snp_idx = 0; snp_idx < chunk_size; ++snp_idx)
     {
-        const size_t offset = snp_idx * bytes_per_snp_;
-        for (size_t byte_idx = 0; byte_idx < bytes_per_snp_; ++byte_idx)
+        const Index offset = snp_idx * bytes_per_snp_;
+        for (Index byte_idx = 0; byte_idx < bytes_per_snp_; ++byte_idx)
         {
             auto byte_val
                 = static_cast<unsigned char>(buffer[offset + byte_idx]);
             for (unsigned int bit = 0; bit < 4; ++bit)
             {
-                size_t file_index = (byte_idx * 4) + bit;
+                Index file_index = (byte_idx * 4) + bit;
 
                 if (file_index >= total_samples_in_file_)
                 {
@@ -283,12 +286,11 @@ arma::dmat BedReader::decode(const std::vector<char>& buffer, size_t chunk_size)
 
                 if (file_index_is_kept_[file_index])
                 {
-                    arma::uword target_row
-                        = file_index_to_target_index_[file_index];
+                    Index target_row = file_index_to_target_index_[file_index];
 
                     unsigned int genotype_code
                         = (byte_val >> (2U * bit)) & 0x03U;
-                    genotype_matrix.at(target_row, snp_idx)
+                    genotype_matrix(target_row, snp_idx)
                         = add_map[genotype_code];
                 }
             }

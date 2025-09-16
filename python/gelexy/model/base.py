@@ -4,14 +4,15 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import csc_matrix
 
-from .._logger import setup_logger
-from ..data import read_pheno
+from gelexy._logger import get_logger
+from gelexy.data import read_phenotype
 
 
-class ModelMakerBase:
+class ModelMaker:
     def __init__(
         self,
         data: str | Path | pd.DataFrame,
+        iid_only: bool = False,
         categorical: list[str] | str | None = None,
     ):
         """
@@ -21,24 +22,30 @@ class ModelMakerBase:
         :param categorical: List of column names or a single column name to treat as categorical, or None.
         :raises ValueError: If data is not a valid type or does not contain an 'id' column.
         """
-        if isinstance(data, (str | Path)):
-            self.data = read_pheno(data)
-        elif isinstance(data, pd.DataFrame):
-            self.data = data
-        elif isinstance(data, pd.Series):
-            self.data = pd.DataFrame(data)
-        else:
-            msg = "data must be a path to a file, DataFrame or Series object."
-            raise ValueError(msg)
+        self._iid_only = iid_only
+        self.logger = get_logger()
 
-        if "id" not in self.data.columns:
-            msg = "data must contain an 'id' column."
+        if isinstance(data, (str | Path)):
+            self.data = read_phenotype(data, iid_only=self._iid_only)
+            self.logger.info(
+                f"Loaded {len(self.data)} individuals from: [{data}]."  # noqa: G004
+            )
+
+        elif isinstance(data, pd.DataFrame):
+            self.logger.warning(
+                "Using DataFrame as input. Not recommended unless you know what you are doing."
+            )
+            self.data = data
+
+            self.logger.info(
+                f"Loaded {len(self.data)} individuals from DataFrame."  # noqa: G004
+            )
+        else:
+            msg = "data must be a path to a file, DataFrame object."
             raise ValueError(msg)
 
         if categorical:
             self.data = with_categorical_cols(self.data, categorical)
-
-        self._logger = setup_logger(__name__)
 
     def _dropna(self, data: pd.DataFrame, response: str) -> pd.DataFrame:
         """
@@ -49,11 +56,11 @@ class ModelMakerBase:
         :return: DataFrame with rows containing missing values in the response column removed.
         """
         if data[response].hasnans:
-            self._logger.info(
-                "Missing values detected in `%s`. These entries will be dropped.",
-                response,
+            clear_data = data.dropna(subset=[response])
+            self.logger.info(
+                f"Retained {len(clear_data)} individuals after removing missing values."  # noqa: G004
             )
-            return data.dropna(subset=[response])
+            return clear_data
         return data
 
 
