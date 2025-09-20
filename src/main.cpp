@@ -1,6 +1,6 @@
 #include <argparse/argparse.hpp>
 
-#include "gelex/data/datapipe.h"
+#include "gelex/data/data_pipe.h"
 #include "gelex/logger.h"
 
 int main(int argc, char* argv[])

@@ -1,4 +1,4 @@
-#include "gelex/data/bedpipe.h"
+#include "gelex/data/bed_pipe.h"
 
 #include <expected>
 #include <filesystem>
