@@ -3,6 +3,7 @@
 #include <expected>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -32,15 +33,6 @@ BedPipe::BedPipe(
 {
     // File is already validated and opened by create()
     file_stream_.seekg(3);  // Skip the 3-byte magic number
-
-    // Initialize both sample maps with original FAM order
-    const auto& ids = fam_loader_->sample_ids();
-    Eigen::Index index = 0;
-    for (const auto& id : ids)
-    {
-        raw_sample_map_[id] = index;
-        load_sample_map_[id] = index++;
-    }
 }
 
 BedPipe::~BedPipe()
@@ -75,7 +67,6 @@ auto BedPipe::create(const std::filesystem::path& prefix, bool iid_only)
         return std::unexpected(bim_loader.error());
     }
 
-    // Open and validate BED file
     auto file
         = detail::openfile<std::ifstream>(bed_path, detail::file_type::binary);
     if (!file)
@@ -156,15 +147,44 @@ auto BedPipe::validate_variant_index(Eigen::Index variant_index) const
     return {};
 }
 
+auto BedPipe::validate_id_map(
+    const std::unordered_map<std::string, Eigen::Index>& id_map) const
+    -> std::expected<void, Error>
+{
+    if (id_map.empty())
+    {
+        return std::unexpected(
+            Error{ErrorCode::InvalidData, "ID map cannot be empty"});
+    }
+
+    const auto& sample_map = fam_loader_->sample_map();
+
+    for (const auto& [sample_id, load_index] : id_map)
+    {
+        // Check if sample ID exists in original map
+        if (!sample_map.contains(sample_id))
+        {
+            return std::unexpected(
+                Error{
+                    ErrorCode::InvalidData,
+                    "Sample ID '" + sample_id
+                        + "' not found in original data"});
+        }
+    }
+
+    return {};
+}
+
 Eigen::VectorXd BedPipe::reorder_genotypes(
     const Eigen::VectorXd& raw_genotypes,
     const std::unordered_map<std::string, Eigen::Index>& id_map) const
 {
     Eigen::VectorXd reordered(id_map.size());
+    const auto& sample_map = fam_loader_->sample_map();
 
     for (const auto& [sample_id, load_index] : id_map)
     {
-        const Eigen::Index raw_index = raw_sample_map_.at(sample_id);
+        const Eigen::Index raw_index = sample_map.at(sample_id);
         reordered(load_index) = raw_genotypes(raw_index);
     }
 
@@ -204,7 +224,7 @@ auto BedPipe::get_genotypes(Eigen::Index variant_index) const
         const Eigen::Index byte_index = i / 4;
         const Eigen::Index bit_offset = 2 * (i % 4);
         const uint8_t genotype_code = (buffer[byte_index] >> bit_offset) & 0x03;
-        genotypes(i) = add_map_[genotype_code];
+        genotypes(i) = encode_map_[genotype_code];
     }
 
     return genotypes;
@@ -247,13 +267,13 @@ auto BedPipe::get_genotype(
     const Eigen::Index bit_offset = 2 * (sample_index % 4);
     const uint8_t genotype_code = (byte >> bit_offset) & 0x03;
 
-    return add_map_[genotype_code];
+    return encode_map_[genotype_code];
 }
 
 auto BedPipe::get_sample_genotypes(Eigen::Index sample_index) const
     -> std::expected<Eigen::VectorXd, Error>
 {
-    if (sample_index >= raw_sample_ids().size())
+    if (sample_index >= sample_size())
     {
         return std::unexpected(
             Error{ErrorCode::InvalidRange, "Sample index out of range"});
@@ -312,8 +332,8 @@ auto BedPipe::read_variants_bulk(
             bed_path_.string()));
     }
 
-    // Parse all variants from the buffer (in raw sample order)
-    Eigen::MatrixXd raw_genotypes(num_samples, num_variants_in_chunk);
+    // Parse all variants from the buffer
+    Eigen::MatrixXd genotypes(num_samples, num_variants_in_chunk);
 
     for (Eigen::Index variant_idx = 0; variant_idx < num_variants_in_chunk;
          ++variant_idx)
@@ -329,92 +349,56 @@ auto BedPipe::read_variants_bulk(
             const uint8_t genotype_code
                 = (variant_data[byte_index] >> bit_offset) & 0x03;
 
-            raw_genotypes(sample_idx, variant_idx) = add_map_[genotype_code];
+            genotypes(sample_idx, variant_idx) = encode_map_[genotype_code];
         }
     }
 
-    // Reorder samples for each variant using the provided ID map
-    Eigen::MatrixXd reordered_genotypes(id_map.size(), num_variants_in_chunk);
-
-    for (Eigen::Index variant_idx = 0; variant_idx < num_variants_in_chunk;
-         ++variant_idx)
+    // Check if reordering is needed
+    if (&id_map != &fam_loader_->sample_map())
     {
-        reordered_genotypes.col(variant_idx)
-            = reorder_genotypes(raw_genotypes.col(variant_idx), id_map);
+        // Reorder samples for each variant using the provided ID map
+        Eigen::MatrixXd reordered_genotypes(
+            id_map.size(), num_variants_in_chunk);
+
+        for (Eigen::Index variant_idx = 0; variant_idx < num_variants_in_chunk;
+             ++variant_idx)
+        {
+            reordered_genotypes.col(variant_idx)
+                = reorder_genotypes(genotypes.col(variant_idx), id_map);
+        }
+
+        return reordered_genotypes;
     }
 
-    return reordered_genotypes;
+    return genotypes;
 }
 
-auto BedPipe::load() const -> std::expected<Eigen::MatrixXd, Error>
-{
-    const auto num_samples = static_cast<Eigen::Index>(load_sample_map_.size());
-
-    if (num_samples == 0)
-    {
-        return std::unexpected(
-            Error{ErrorCode::InvalidData, "No samples available for loading"});
-    }
-
-    // Use bulk reading for all variants
-    return read_variants_bulk(0, num_variants(), load_sample_map_);
-}
-
-auto BedPipe::load(const std::unordered_map<std::string, Eigen::Index>& id_map)
+auto BedPipe::load(
+    const std::optional<std::unordered_map<std::string, Eigen::Index>>& id_map)
     const -> std::expected<Eigen::MatrixXd, Error>
 {
-    if (id_map.empty())
-    {
-        return std::unexpected(
-            Error{ErrorCode::InvalidData, "No samples available for loading"});
-    }
+    const auto& actual_id_map = id_map.value_or(fam_loader_->sample_map());
 
-    // Use bulk reading for all variants
-    return read_variants_bulk(0, num_variants(), id_map);
-}
-
-auto BedPipe::load_chunk(Eigen::Index start_variant, Eigen::Index end_variant)
-    const -> std::expected<Eigen::MatrixXd, Error>
-{
-    const auto num_samples = static_cast<Eigen::Index>(load_sample_map_.size());
-
-    if (num_samples == 0)
-    {
-        return std::unexpected(
-            Error{ErrorCode::InvalidData, "No samples available for loading"});
-    }
-
-    if (auto validation = validate_variant_index(start_variant); !validation)
-    {
-        return std::unexpected(validation.error());
-    }
-    if (auto validation = validate_variant_index(end_variant - 1); !validation)
+    if (auto validation = validate_id_map(actual_id_map); !validation)
     {
         return std::unexpected(validation.error());
     }
 
-    if (start_variant >= end_variant)
-    {
-        return std::unexpected(
-            Error{
-                ErrorCode::InvalidRange,
-                "Invalid variant range for chunk loading"});
-    }
-
-    // Use bulk reading for the chunk
-    return read_variants_bulk(start_variant, end_variant, load_sample_map_);
+    // Use bulk reading for all variants
+    return read_variants_bulk(0, num_variants(), actual_id_map);
 }
 
 auto BedPipe::load_chunk(
     Eigen::Index start_variant,
     Eigen::Index end_variant,
-    const std::unordered_map<std::string, Eigen::Index>& id_map) const
-    -> std::expected<Eigen::MatrixXd, Error>
+    const std::optional<std::unordered_map<std::string, Eigen::Index>>& id_map)
+    const -> std::expected<Eigen::MatrixXd, Error>
 {
-    if (id_map.empty())
+    const auto& actual_id_map = id_map.value_or(fam_loader_->sample_map());
+
+    if (auto validation = validate_id_map(actual_id_map); !validation)
     {
-        return std::unexpected(
-            Error{ErrorCode::InvalidData, "No samples available for loading"});
+        return std::unexpected(validation.error());
     }
 
     if (auto validation = validate_variant_index(start_variant); !validation)
@@ -435,49 +419,7 @@ auto BedPipe::load_chunk(
     }
 
     // Use bulk reading for the chunk
-    return read_variants_bulk(start_variant, end_variant, id_map);
+    return read_variants_bulk(start_variant, end_variant, actual_id_map);
 }
 
-auto BedPipe::intersect_samples(
-    const std::unordered_set<std::string>& sample_ids)
-    -> std::expected<void, Error>
-{
-    std::unordered_map<std::string, Eigen::Index> new_load_map;
-    Eigen::Index new_index = 0;
-
-    for (const auto& id : sample_ids)
-    {
-        if (raw_sample_map_.contains(id))
-        {
-            new_load_map[id] = new_index++;
-        }
-    }
-
-    if (new_load_map.empty())
-    {
-        load_sample_map_.clear();
-
-        auto logger = gelex::logging::get();
-        logger->warn(
-            "No matching samples found in intersection for BED file [{}]",
-            bed_path_.string());
-
-        return std::unexpected(
-            Error{
-                ErrorCode::InvalidData,
-                "No matching samples found in intersection"});
-    }
-
-    auto logger = gelex::logging::get();
-    logger->info(
-        "Intersected {} samples from BED file [{}] with {} target samples, {} "
-        "matches found",
-        raw_sample_map_.size(),
-        bed_path_.string(),
-        sample_ids.size(),
-        new_load_map.size());
-
-    load_sample_map_ = std::move(new_load_map);
-    return {};
-}
 }  // namespace gelex
