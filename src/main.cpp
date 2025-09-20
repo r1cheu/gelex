@@ -1,9 +1,7 @@
 #include <argparse/argparse.hpp>
 
-#include "Eigen/Core"
-
-#include "gelex/data/io.h"
-#include "gelex/model/bayes/model.h"
+#include "gelex/data/datapipe.h"
+#include "gelex/logger.h"
 
 int main(int argc, char* argv[])
 {
@@ -41,6 +39,7 @@ int main(int argc, char* argv[])
         .flag();
 
     program.add_subparser(fit);
+
     try
     {
         program.parse_args(argc, argv);
@@ -61,13 +60,24 @@ int main(int argc, char* argv[])
 
     if (program.is_subcommand_used("fit"))
     {
-        auto data = gelex::DataReader::Create(
-            fit.get("--pheno"),
-            fit.get("--bfile") + ".fam",
-            fit.get("--qcovar"),
-            fit.get("--covar"),
-            fit.get<int>("--pheno-col"),
-            fit.get<bool>("--iid_only"));
+        gelex::logging::initialize(fit.get("--out"));
+        auto logger = gelex::logging::get();
+
+        gelex::DataPipe::Config config{
+            .phenotype_path = fit.get("--pheno"),
+            .phenotype_column = fit.get<int>("--pheno-col"),
+            .qcovar_path = fit.get("--qcovar"),
+            .covar_path = fit.get("--covar"),
+            .fam_path = fit.get("--bfile") + ".fam",
+            .iid_only = fit.get<bool>("--iid_only"),
+            .output_prefix = fit.get("--out")};
+
+        auto data_pipe = gelex::DataPipe::create(config);
+        if (!data_pipe)
+        {
+            logger->error(data_pipe.error().message);
+            std::exit(1);
+        }
     }
     else
     {

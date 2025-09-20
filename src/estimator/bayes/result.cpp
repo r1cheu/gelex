@@ -8,9 +8,8 @@
 
 #include <Eigen/Core>
 
+#include "../src/data/loader.h"
 #include "estimator/bayes/diagnostics.h"
-#include "gelex/data/bed_io.h"
-#include "gelex/data/io.h"
 
 namespace gelex
 {
@@ -71,20 +70,19 @@ void MCMCResult::compute(std::optional<double> prob)
 void MCMCResult::save(const std::string& prefix) const
 {
     // file setting
-    auto param_stream
-        = detail::open_or_throw<std::ofstream>(prefix + ".params");
-    auto additive_stream
-        = detail::open_or_throw<std::ofstream>(prefix + ".add");
+    auto param_stream = *detail::openfile<std::ofstream>(prefix + ".params");
+    auto additive_stream = *detail::openfile<std::ofstream>(prefix + ".add");
     std::optional<std::ofstream> dom_stream = std::nullopt;
     if (dominant_)
     {
         dom_stream = std::make_optional(
-            detail::open_or_throw<std::ofstream>(prefix + ".dom"));
+            *detail::openfile<std::ofstream>(prefix + ".dom"));
     }
     std::vector<std::string> snp_names;
     if (!samples_.bim_file_path().empty())
     {
-        snp_names = BedIO::read_bim(samples_.bim_file_path());
+        auto bim = *detail::BimLoader::create(samples_.bim_file_path());
+        snp_names = bim.snp_ids();
     }
 
     // header setting

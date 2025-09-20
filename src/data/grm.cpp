@@ -1,6 +1,11 @@
 #include "gelex/data/grm.h"
 
+#include <expected>
+#include <memory>
+
 #include <Eigen/Core>
+
+#include "gelex/data/bedpipe.h"
 
 namespace gelex
 {
@@ -10,28 +15,64 @@ GRM::GRM(
     std::string_view bed_file,
     Index chunk_size,
     const std::vector<std::string>& target_order)
-    : bed_(bed_file, chunk_size, target_order),
-      p_major_(Eigen::VectorXd::Zero(bed_.num_snps())) {};
+{
+    auto bed_pipe = BedPipe::create(bed_file);
+    if (!bed_pipe)
+    {
+        throw std::runtime_error(
+            "Failed to create BedPipe: "
+            + std::string(bed_pipe.error().message));
+    }
+    bed_ = std::make_unique<BedPipe>(std::move(*bed_pipe));
+
+    // Intersect with target order if provided
+    if (!target_order.empty())
+    {
+        std::unordered_set<std::string> target_set(
+            target_order.begin(), target_order.end());
+        auto intersect_result = bed_->intersect_samples(target_set);
+        if (!intersect_result)
+        {
+            throw std::runtime_error(
+                "Failed to intersect samples: "
+                + std::string(intersect_result.error().message));
+        }
+    }
+    chunk_size_ = chunk_size;
+
+    p_major_ = Eigen::VectorXd::Zero(bed_->num_variants());
+}
 
 Eigen::MatrixXd GRM::compute(bool add)
 {
-    const Index n{bed_.num_individuals()};
+    const auto n = static_cast<Eigen::Index>(bed_->load_sample_map().size());
     Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(n, n);
-    while (bed_.has_next())
+
+    // Process in chunks
+    const Index num_variants = bed_->num_variants();
+    const Index chunk_size = 10000;  // Fixed chunk size for BedPipe
+
+    for (Index start = 0; start < num_variants; start += chunk_size)
     {
-        Eigen::MatrixXd genotype = bed_.read_chunk();
+        Index end = std::min(start + chunk_size, num_variants);
+        auto genotype_result = bed_->load_chunk(start, end);
+        if (!genotype_result)
+        {
+            throw std::runtime_error(
+                "Failed to load genotype chunk: "
+                + std::string(genotype_result.error().message));
+        }
+
+        Eigen::MatrixXd genotype = std::move(*genotype_result);
         Eigen::VectorXd p_major_i = compute_p_major(genotype);
         code_method_varden(p_major_i, genotype, add);
 
         // Update p_major_ vector
-        Index start_idx = bed_.current_chunk_index() - p_major_i.size();
-        for (Index i = 0; i < p_major_i.size(); ++i)
-        {
-            p_major_(start_idx + i) = p_major_i(i);
-        }
+        p_major_.segment(start, end - start) = p_major_i;
 
         grm.noalias() += genotype * genotype.transpose();
     }
+
     scale_factor_ = grm.trace() / static_cast<double>(grm.rows());
     return grm / scale_factor_;
 }
@@ -42,50 +83,109 @@ CrossGRM::CrossGRM(
     double scale_factor,
     Index chunk_size,
     const std::vector<std::string>& target_order)
-    : bed_(train_bed, chunk_size, target_order),
-      p_major_(std::move(p_major)),
-      scale_factor_{scale_factor},
-      chunk_size_{chunk_size}
+    : scale_factor_{scale_factor}, chunk_size_{chunk_size}
 {
-    if (p_major_.size() != bed_.num_snps())
+    auto bed_pipe = BedPipe::create(train_bed);
+    if (!bed_pipe)
+    {
+        throw std::runtime_error(
+            "Failed to create BedPipe: "
+            + std::string(bed_pipe.error().message));
+    }
+    bed_ = std::make_unique<BedPipe>(std::move(*bed_pipe));
+
+    // Intersect with target order if provided
+    if (!target_order.empty())
+    {
+        std::unordered_set<std::string> target_set(
+            target_order.begin(), target_order.end());
+        auto intersect_result = bed_->intersect_samples(target_set);
+        if (!intersect_result)
+        {
+            throw std::runtime_error(
+                "Failed to intersect samples: "
+                + std::string(intersect_result.error().message));
+        }
+    }
+
+    if (p_major.size() != bed_->num_variants())
     {
         throw std::runtime_error(
             "p_major size does not match number of SNPs in training set.");
     }
+    p_major_ = std::move(p_major);
 }
 
 Eigen::MatrixXd CrossGRM::compute(std::string_view test_bed, bool add)
 {
-    BedReader test_bed_reader(test_bed, chunk_size_);
-    individuals_ = test_bed_reader.individuals();
-    check_snp_consistency(test_bed_reader);
-
-    Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(
-        test_bed_reader.num_individuals(), bed_.num_individuals());
-    while (bed_.has_next())
+    // Create test BedPipe
+    auto test_bed_pipe = BedPipe::create(test_bed);
+    if (!test_bed_pipe)
     {
-        auto start = bed_.current_chunk_index();
-        Eigen::MatrixXd train_genotype = bed_.read_chunk();
-        Eigen::MatrixXd test_genotype = test_bed_reader.read_chunk();
-        auto n = train_genotype.cols();
-        code_method_varden(p_major_.segment(start, n), train_genotype, add);
-        code_method_varden(p_major_.segment(start, n), test_genotype, add);
+        throw std::runtime_error(
+            "Failed to create test BedPipe: "
+            + std::string(test_bed_pipe.error().message));
+    }
+
+    check_snp_consistency(*test_bed_pipe);
+
+    const Index test_n = test_bed_pipe->raw_sample_size();
+    const auto train_n = static_cast<Index>(bed_->load_sample_map().size());
+    Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(test_n, train_n);
+
+    // Process in chunks
+    const Index num_variants = bed_->num_variants();
+    const Index chunk_size = 10000;
+
+    for (Index start = 0; start < num_variants; start += chunk_size)
+    {
+        Index end = std::min(start + chunk_size, num_variants);
+
+        // Load training chunk
+        auto train_genotype_result = bed_->load_chunk(start, end);
+        if (!train_genotype_result)
+        {
+            throw std::runtime_error(
+                "Failed to load training genotype chunk: "
+                + std::string(train_genotype_result.error().message));
+        }
+        Eigen::MatrixXd train_genotype = std::move(*train_genotype_result);
+
+        // Load test chunk
+        auto test_genotype_result = test_bed_pipe->load_chunk(start, end);
+        if (!test_genotype_result)
+        {
+            throw std::runtime_error(
+                "Failed to load test genotype chunk: "
+                + std::string(test_genotype_result.error().message));
+        }
+        Eigen::MatrixXd test_genotype = std::move(*test_genotype_result);
+
+        // Apply coding
+        Eigen::VectorXd p_major_chunk = p_major_.segment(start, end - start);
+        code_method_varden(p_major_chunk, train_genotype, add);
+        code_method_varden(p_major_chunk, test_genotype, add);
+
         grm.noalias() += test_genotype * train_genotype.transpose();
     }
+
     return grm / scale_factor_;
 }
 
-void CrossGRM::check_snp_consistency(const BedReader& test_bed) const
+void CrossGRM::check_snp_consistency(const BedPipe& test_bed) const
 {
-    if (bed_.num_snps() != test_bed.num_snps())
+    if (bed_->num_variants() != test_bed.num_variants())
     {
         throw std::runtime_error{
             "Number of SNPs in training and test sets do not match."};
     }
 
-    for (Index i{0}; i < bed_.num_snps(); ++i)
+    const auto& train_snps = bed_->snp_ids();
+    const auto& test_snps = test_bed.snp_ids();
+
+    for (Index i{0}; i < bed_->num_variants(); ++i)
     {
-        if (bed_.snps()[i] != test_bed.snps()[i])
+        if (train_snps[i] != test_snps[i])
         {
             throw std::runtime_error{
                 "SNPs in training and test sets do not match."};

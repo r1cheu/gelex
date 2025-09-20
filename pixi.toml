@@ -15,16 +15,7 @@ catch2 = ">=3.8.0,<4"
 mkl-devel = ">=2024.2.2,<2025"
 fftw = ">=3.3.10,<4"
 
-[feature.jupyter]
-dependencies = { bash_kernel = ">=0.9.3,<0.10", ipykernel = ">=6.29.5,<7" }
-pypi-dependencies = { ipywidgets = ">=8.1.5,<9", matplotlib = ">=3.10.0,<4", seaborn = ">=0.13.2, <1" }
-
-[feature.py]
-pypi-dependencies = { cibuildwheel = "*", scalene = "*", gelexy = { path = ".", editable = true } }
-dependencies = { uv = "*", pytest = ">=8.3.5,<9", python = ">=3.13.3,<3.14", numpy = ">=2.2.5,<3", pandas = ">=2.2.3,<3", formulaic = ">=1.1.1,<2", h5py = ">=3.13.0,<4", formulae = ">=0.5.4,<0.6", scipy = ">=1.15.2,<2", scikit-build-core = ">=0.11", nanobind = ">=2.5.0,<3" }
-pypi-options.no-build-isolation = ["gelexy"]
-
-[feature.cpp.tasks.configure]
+[tasks.configure]
 cmd = [
   "cmake",
   "-GNinja",
@@ -34,32 +25,16 @@ cmd = [
   "-DUSE_MKL=ON",
 ]
 
-[feature.cpp.tasks.build]
-cmd = ["cmake", "--build", ".build", "-j"]
+[tasks.build]
+cmd = ["cmake", "--build", ".build", "-j16"]
 depends-on = ["configure"]
 
-[feature.cpp.tasks.install]
+[tasks.install]
 cmd = ["cp", ".build/gelex", "~/.local/bin/"]
 depends-on = ["build"]
 
-[feature.cpp.tasks.cpptest]
-cmd = "cd .build/tests/cpp/;ctest --output-on-failure;"
+[tasks.test]
+cmd = "cd .build/tests/cpp/;./test -a"
 depends-on = ["build"]
-
-[feature.cpp.tasks.rmtest]
-cmd = "cd .build/tests/cpp/; rm test"
-depends-on = ["build"]
-
-[feature.py.tasks]
-ci = { cmd = ["cibuildwheel", "--platform", "linux"] }
-wheel = "uv build"
-test = "pytest -x && .pybuild/test"
-
-[feature.py.tasks.run]
-args = ["script"]
-cmd = "python {{script}}"
 
 [environments]
-jupyter = ["jupyter"]
-cpp = ["cpp"]
-py = ["py"]

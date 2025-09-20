@@ -7,6 +7,7 @@
 
 #include "../src/logger/logger_utils.h"
 #include "../src/model/freq/freq_effects.h"
+#include "gelex/logger.h"
 #include "gelex/model/freq/model.h"
 
 namespace gelex
@@ -15,7 +16,7 @@ namespace detail
 {
 
 using arma::dvec;
-EstimatorLogger::EstimatorLogger() : logger_{detail::Logger::logger()} {}
+EstimatorLogger::EstimatorLogger() : logger_{gelex::logging::get()} {}
 
 void EstimatorLogger::set_verbose(bool verbose)
 {

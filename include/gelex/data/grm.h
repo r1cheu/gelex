@@ -1,8 +1,11 @@
 #pragma once
+#include <memory>
+#include <string>
+#include <unordered_set>
 
 #include <Eigen/Core>
 
-#include "gelex/data/bed_reader.h"
+#include "gelex/data/bedpipe.h"
 
 namespace gelex
 {
@@ -25,15 +28,12 @@ class GRM
     Eigen::VectorXd p_major() const noexcept { return p_major_; }
     double scale_factor() const { return scale_factor_; }
 
-    const std::vector<std::string>& individuals() const noexcept
-    {
-        return bed_.individuals();
-    }
-
    private:
-    BedReader bed_;
     double scale_factor_{1.0};
+    Eigen::Index chunk_size_{10000};
+
     Eigen::VectorXd p_major_;
+    std::unique_ptr<BedPipe> bed_;
 };
 
 class CrossGRM
@@ -53,20 +53,15 @@ class CrossGRM
 
     ~CrossGRM() = default;
 
-    const std::vector<std::string>& individuals() const noexcept
-    {
-        return individuals_;
-    }
-
     Eigen::MatrixXd compute(std::string_view test_bed, bool add = true);
 
    private:
-    BedReader bed_;
-    void check_snp_consistency(const BedReader& test_bed) const;
+    void check_snp_consistency(const BedPipe& test_bed) const;
+
+    std::unique_ptr<BedPipe> bed_;
     Eigen::VectorXd p_major_;
     double scale_factor_;
 
-    std::vector<std::string> individuals_;
     Eigen::Index chunk_size_;
 };
 

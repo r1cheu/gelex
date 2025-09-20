@@ -16,11 +16,9 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
                                                "MinSizeRel" "RelWithDebInfo")
 endif()
 
-message(STATUS "gelexy bindings Build Type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "${PROJECT_NAME} version: ${PROJECT_VERSION}")
 
 option(USE_MKL "Use the MKL" OFF)
-option(BUILD_PYTHON "Python bindings" OFF)
 option(BUILD_TEST "Enable testing" OFF)
 
 find_package(OpenMP)
@@ -38,8 +36,6 @@ FetchContent_MakeAvailable(argparse)
 #
 # core library
 file(GLOB_RECURSE CORE_SOURCE "${PROJECT_SOURCE_DIR}/src/*.cpp")
-file(GLOB_RECURSE PYTHON_BINDING "${PROJECT_SOURCE_DIR}/src/python/*.cpp")
-list(REMOVE_ITEM CORE_SOURCE ${PYTHON_BINDING})
 list(REMOVE_ITEM CORE_SOURCE "${PROJECT_SOURCE_DIR}/src/main.cpp")
 
 add_subdirectory(ext/mio)
@@ -78,10 +74,6 @@ target_link_libraries(core PUBLIC OpenMP::OpenMP_CXX BLAS::BLAS spdlog::spdlog
 add_executable(gelex src/main.cpp)
 target_link_libraries(gelex PRIVATE core argparse)
 
-if(BUILD_PYTHON)
-  add_subdirectory(src/python)
-endif()
-
 if(BUILD_TEST)
-  add_subdirectory(tests/cpp)
+  add_subdirectory(tests/)
 endif()
