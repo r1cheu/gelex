@@ -15,10 +15,10 @@
 #include <Eigen/Core>
 #include <mio/mmap.hpp>
 
+#include "../src/data/loader.h"
 #include "../src/estimator/bayes/indicator.h"
-#include "../src/logger/logger_utils.h"
-#include "gelex/data/bed_io.h"
-#include "gelex/data/io.h"
+#include "gelex/data/bedpipe.h"
+#include "gelex/logger.h"
 
 namespace bk = barkeep;
 
@@ -110,7 +110,12 @@ std::pair<ProcessedGenotype, VectorXd> process_additive_genotype(
     std::span<const Index> g_indices,
     std::span<const Index> p_indices)
 {
-    VectorXd ordered_genotype = BedIO::rearange_locus(g_indices, raw_genotype);
+    // Reorder genotypes using BedPipe equivalent functionality
+    VectorXd ordered_genotype(g_indices.size());
+    for (Index i = 0; i < static_cast<Index>(g_indices.size()); ++i)
+    {
+        ordered_genotype(i) = raw_genotype[g_indices[i]];
+    }
 
     const auto stats = calculate_genotype_stats(ordered_genotype);
     const auto standardized
@@ -173,7 +178,7 @@ std::pair<double, double> get_rows_and_cols(const std::string& bin_file)
     // Read dimensions from metadata file instead of binary file
     const std::string meta_file
         = bin_file.substr(0, bin_file.find_last_of('.')) + ".meta";
-    auto file = detail::open_or_throw<std::ifstream>(
+    auto file = *detail::openfile<std::ifstream>(
         meta_file, detail::file_type::binary);
 
     int64_t rows = 0;
@@ -193,7 +198,7 @@ double get_genetic_variance(const std::string& bin_file)
 {
     const std::string meta_file
         = bin_file.substr(0, bin_file.find_last_of('.')) + ".meta";
-    auto file = detail::open_or_throw<std::ifstream>(
+    auto file = *detail::openfile<std::ifstream>(
         meta_file, detail::file_type::binary);
     constexpr int64_t size = sizeof(int64_t);
 
@@ -225,11 +230,20 @@ void create_genotype_binary(
     std::span<const std::string> g_list,
     bool iid_only)
 {
-    auto bedio = BedIO(bfile, iid_only);
-    const size_t n_snp = bedio.n_snp();
-    const size_t n_individuals = bedio.n_individuals();
+    // Create BedPipe for genotype data processing
+    auto bed_pipe_result = BedPipe::create(bfile, iid_only);
+    if (!bed_pipe_result)
+    {
+        throw std::runtime_error(
+            "Failed to create BedPipe: "
+            + std::string(bed_pipe_result.error().message));
+    }
+    auto bed_pipe = std::move(*bed_pipe_result);
 
-    auto logger = gelex::detail::Logger::logger();
+    const size_t n_snp = bed_pipe.num_variants();
+    const size_t n_individuals = bed_pipe.load_sample_size();
+
+    auto logger = gelex::logging::get();
 
     logger->info("Creating genotype binary files from: [{}].", bfile + ".bed");
     logger->info("Found {} SNPs in [{}].", n_snp, bfile + ".bim");
@@ -248,19 +262,35 @@ void create_genotype_binary(
         logger->info("Generating additive genotype files...");
     }
 
-    const auto g_index = bedio.create_index_vector(g_list);
-    const auto p_index = bedio.create_index_vector(p_list);
+    // Create index vectors using BedPipe's sample maps
+    const auto& raw_sample_map = bed_pipe.raw_sample_map();
+    std::vector<Index> g_index;
+    g_index.reserve(g_list.size());
+    for (const auto& id : g_list)
+    {
+        auto it = raw_sample_map.find(id);
+        if (it == raw_sample_map.end())
+        {
+            throw std::runtime_error("individual ID not found: " + id);
+        }
+        g_index.push_back(it->second);
+    }
 
-    auto bed_file = bedio.create_bed();
+    std::vector<Index> p_index;
+    p_index.reserve(p_list.size());
+    for (const auto& id : p_list)
+    {
+        auto it = raw_sample_map.find(id);
+        if (it == raw_sample_map.end())
+        {
+            throw std::runtime_error("individual ID not found: " + id);
+        }
+        p_index.push_back(it->second);
+    }
 
     // Store dimensions for later header writing
     const auto rows = static_cast<int64_t>(p_list.size());
     const auto cols = static_cast<int64_t>(n_snp);
-
-    // Prepare buffers for BED file reading
-    const std::size_t buffer_size = (n_individuals + 3) / 4;
-    std::vector<std::byte> buffer(buffer_size);
-    std::vector<double> raw_genotype(n_individuals);
 
     std::atomic<int64_t> snp_index{0};
 
@@ -275,26 +305,49 @@ void create_genotype_binary(
             .show = false});
     progress_bar->show();
 
-    // Process each SNP
-    while (bed_file.read(reinterpret_cast<char*>(buffer.data()), buffer_size))
+    // Process each SNP using BedPipe's chunk loading
+    const Index chunk_size = 10000;
+    for (Index start = 0; start < static_cast<Index>(n_snp);
+         start += chunk_size)
     {
-        // Decode BED format to raw genotype data
-        BedIO::read_locus(buffer, raw_genotype);
+        Index end = std::min(start + chunk_size, static_cast<Index>(n_snp));
 
-        // Process additive genotype
-        const auto [add_processed, ordered_genotype]
-            = process_additive_genotype(raw_genotype, g_index, p_index);
-        write_genotype_data(add_file, add_processed, snp_index);
-
-        // Process dominance genotype if requested
-        if (dom_file)
+        // Load genotype chunk
+        auto genotype_result = bed_pipe.load_chunk(start, end);
+        if (!genotype_result)
         {
-            const auto dom_processed = process_dominance_genotype(
-                ordered_genotype, raw_genotype, p_index);
-            write_genotype_data(*dom_file, dom_processed, snp_index);
+            throw std::runtime_error(
+                "Failed to load genotype chunk: "
+                + std::string(genotype_result.error().message));
         }
+        Eigen::MatrixXd genotype_chunk = std::move(*genotype_result);
 
-        ++snp_index;
+        // Process each SNP in the chunk
+        for (Index chunk_idx = 0; chunk_idx < genotype_chunk.cols();
+             ++chunk_idx)
+        {
+            // Extract raw genotype data for this SNP
+            std::vector<double> raw_genotype(n_individuals);
+            for (Index i = 0; i < static_cast<Index>(n_individuals); ++i)
+            {
+                raw_genotype[i] = genotype_chunk(i, chunk_idx);
+            }
+
+            // Process additive genotype
+            const auto [add_processed, ordered_genotype]
+                = process_additive_genotype(raw_genotype, g_index, p_index);
+            write_genotype_data(add_file, add_processed, snp_index);
+
+            // Process dominance genotype if requested
+            if (dom_file)
+            {
+                const auto dom_processed = process_dominance_genotype(
+                    ordered_genotype, raw_genotype, p_index);
+                write_genotype_data(*dom_file, dom_processed, snp_index);
+            }
+
+            ++snp_index;
+        }
     }
 
     // Close progress bar
@@ -336,7 +389,7 @@ GenotypeMap::GenotypeMap(const std::string& bin_file)
     // Read dimensions from metadata file
     const std::string meta_file
         = bin_file.substr(0, bin_file.find_last_of('.')) + ".meta";
-    auto meta_stream = detail::open_or_throw<std::ifstream>(
+    auto meta_stream = *detail::openfile<std::ifstream>(
         meta_file, detail::file_type::binary);
 
     int64_t rows = 0;

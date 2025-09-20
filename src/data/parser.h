@@ -2,27 +2,21 @@
 
 #include <charconv>
 #include <expected>
-#include <filesystem>
 #include <format>
 #include <ranges>
 #include <string_view>
 #include <vector>
+
+#include "gelex/error.h"
 
 namespace gelex
 {
 namespace detail
 {
 
-enum class ParseError : uint8_t
-{
-    NotNumber,
-    InvalidColumn,
-    InvalidFile,
-};
-
 template <std::ranges::range R>
 auto try_parse_double(const R& token_range) noexcept
-    -> std::expected<double, ParseError>
+    -> std::expected<double, Error>
 {
     const std::string_view token{token_range};
     double value{};
@@ -33,37 +27,14 @@ auto try_parse_double(const R& token_range) noexcept
     {
         return value;
     }
-    return std::unexpected(ParseError::NotNumber);
+    return std::unexpected(
+        Error{
+            .code = ErrorCode::NotNumber,
+            .message = std::format("failed to parse '{}' as a number", token)});
 }
 
 }  // namespace detail
 }  // namespace gelex
-
-// namespace std
-namespace std
-{
-template <>
-struct formatter<gelex::detail::ParseError> : std::formatter<std::string_view>
-{
-    auto format(gelex::detail::ParseError p, format_context& ctx) const
-    {
-        std::string_view name = "Unknown Error";
-        switch (p)
-        {
-            case gelex::detail::ParseError::NotNumber:
-                name = "NotNumber";
-                break;
-            case gelex::detail::ParseError::InvalidColumn:
-                name = "InvalidColumn";
-                break;
-            case gelex::detail::ParseError::InvalidFile:
-                name = "InvalidFile";
-                break;
-        }
-        return formatter<string_view>::format(name, ctx);
-    }
-};
-}  // namespace std
 
 namespace gelex
 {
@@ -81,18 +52,22 @@ auto parse_nth_double(
     std::string_view line,
     size_t column_index,
     std::string_view delimiters = "\t") noexcept
-    -> std::expected<double, ParseError>;
+    -> std::expected<double, Error>;
 
 auto parse_id(
     std::string_view line,
     bool iid_only,
     std::string_view delimiters = "\t") noexcept
-    -> std::expected<std::string, ParseError>;
+    -> std::expected<std::string, Error>;
 
 auto parse_header(
     std::string_view line,
-    const std::filesystem::path& path,
-    std::string_view delimiters = "\t") -> std::vector<std::string_view>;
+    std::string_view delimiters = "\t") noexcept
+    -> std::expected<std::vector<std::string_view>, Error>;
+
+size_t count_num_columns(
+    std::string_view line,
+    std::string_view delimiters = "\t") noexcept;
 
 /**
  * @brief Parses a string into tokens based on specified delimiters. Return
@@ -109,7 +84,8 @@ auto parse_header(
 auto parse_string(
     std::string_view line,
     size_t column_offset = 0,
-    std::string_view delimiters = "\t") noexcept -> std::vector<std::string>;
+    std::string_view delimiters = "\t") noexcept
+    -> std::vector<std::string_view>;
 
 /**
  * @brief Parses all double values from a string, starting at a given column
@@ -130,6 +106,6 @@ auto parse_all_doubles(
     std::string_view line,
     size_t column_offset = 0,
     std::string_view delimiters = "\t") noexcept
-    -> std::expected<std::vector<double>, ParseError>;
+    -> std::expected<std::vector<double>, Error>;
 }  // namespace detail
 }  // namespace gelex

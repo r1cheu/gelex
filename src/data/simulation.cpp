@@ -9,9 +9,9 @@
 
 #include <Eigen/Core>
 
+#include "../src/data/loader.h"
 #include "data/math_utils.h"
-#include "gelex/data/bed_io.h"
-#include "gelex/data/io.h"
+#include "gelex/data/bedpipe.h"
 
 namespace gelex
 {
@@ -39,7 +39,7 @@ std::unordered_map<std::string, double>
 PhenotypeSimulator::load_causal_variants(
     const std::string& causal_variants_list)
 {
-    auto file = detail::open_or_throw<std::ifstream>(causal_variants_list);
+    auto file = *detail::openfile<std::ifstream>(causal_variants_list);
     std::normal_distribution<double> dist(0, 1);
 
     std::unordered_map<std::string, double> variants;
@@ -68,7 +68,7 @@ PhenotypeSimulator::load_causal_variants(
 
     if (no_effects)
     {
-        auto outfile = detail::open_or_throw<std::ofstream>(
+        auto outfile = *detail::openfile<std::ofstream>(
             causal_variants_list + ".effects");
         for (const auto& [id, eff] : variants)
         {
@@ -92,46 +92,69 @@ void PhenotypeSimulator::simulate_qt_from_bed(
     auto causal_variants = load_causal_variants(causal_variants_list);
     initialize_rng(seed);
 
-    BedIO bed_io(bfile);
-    const auto& snp_ids = bed_io.snp_ids();
-    const auto& fam_ids = bed_io.fam_ids();
+    // Create BedPipe for genotype data processing
+    auto bed_pipe_result = BedPipe::create(bfile);
+    if (!bed_pipe_result)
+    {
+        throw std::runtime_error(
+            "Failed to create BedPipe: "
+            + std::string(bed_pipe_result.error().message));
+    }
+    auto bed_pipe = std::move(*bed_pipe_result);
 
-    auto bed_stream = bed_io.create_bed();
+    const auto& snp_ids = bed_pipe.snp_ids();
+    const auto& sample_ids = bed_pipe.raw_sample_ids();
 
-    const size_t n_individuals = bed_io.n_individuals();
-    const size_t n_snps = bed_io.n_snp();
-
-    const size_t buffer_size = (n_individuals + 3) / 4;
-    std::vector<std::byte> buffer(buffer_size);
-    Eigen::VectorXd raw_genotype(n_individuals);
+    const size_t n_individuals = bed_pipe.raw_sample_size();
+    const size_t n_snps = bed_pipe.num_variants();
 
     Eigen::VectorXd genetic_values = Eigen::VectorXd::Zero(n_individuals);
 
-    for (size_t snp_idx = 0; snp_idx < n_snps; ++snp_idx)
+    // Process SNPs in chunks for efficiency
+    const Eigen::Index chunk_size = 10000;
+    for (Eigen::Index start = 0; start < static_cast<Eigen::Index>(n_snps);
+         start += chunk_size)
     {
-        const auto& current_snp = snp_ids[snp_idx];
+        Eigen::Index end
+            = std::min(start + chunk_size, static_cast<Eigen::Index>(n_snps));
 
-        auto it = causal_variants.find(current_snp);
-        bed_stream.read(reinterpret_cast<char*>(buffer.data()), buffer_size);
-        if (it == causal_variants.end())
+        // Load genotype chunk
+        auto genotype_result = bed_pipe.load_chunk(start, end);
+        if (!genotype_result)
         {
-            continue;
+            throw std::runtime_error(
+                "Failed to load genotype chunk: "
+                + std::string(genotype_result.error().message));
         }
-        BedIO::read_locus(buffer, raw_genotype);
+        Eigen::MatrixXd genotype_chunk = std::move(*genotype_result);
 
-        double mean = raw_genotype.mean();
-        double sum_sq = (raw_genotype.array() - mean).square().sum();
-        double stddev
-            = std::sqrt(sum_sq / static_cast<double>(n_individuals - 1));
-
-        Eigen::VectorXd standardized = raw_genotype;
-        standardized.array() -= mean;
-        if (stddev > 1e-10)
+        // Process each SNP in the chunk
+        for (Eigen::Index chunk_idx = 0; chunk_idx < genotype_chunk.cols();
+             ++chunk_idx)
         {
-            standardized.array() /= stddev;
+            const auto& current_snp = snp_ids[start + chunk_idx];
+            auto it = causal_variants.find(current_snp);
+            if (it == causal_variants.end())
+            {
+                continue;
+            }
+
+            // Extract raw genotype data for this SNP
+            Eigen::VectorXd raw_genotype = genotype_chunk.col(chunk_idx);
+
+            double mean = raw_genotype.mean();
+            double sum_sq = (raw_genotype.array() - mean).square().sum();
+            double stddev
+                = std::sqrt(sum_sq / static_cast<double>(n_individuals - 1));
+
+            Eigen::VectorXd standardized = raw_genotype;
+            standardized.array() -= mean;
+            if (stddev > 1e-10)
+            {
+                standardized.array() /= stddev;
+            }
+            genetic_values += standardized * it->second;
         }
-        genetic_values += standardized * it->second;
-        break;
     }
 
     double genetic_variance = detail::var(genetic_values)(0);
@@ -146,8 +169,15 @@ void PhenotypeSimulator::simulate_qt_from_bed(
     }
     Eigen::VectorXd phenotype = genetic_values + residuals;
 
-    auto output = detail::open_or_throw<std::ofstream>(bfile + ".phen");
+    auto output = *detail::openfile<std::ofstream>(bfile + ".phen");
     output << "FID\t" << "IID\t" << "phenotype\n";
+    // Convert sample IDs to individual format
+    std::vector<std::string> fam_ids;
+    for (const auto& sample_id : sample_ids)
+    {
+        fam_ids.push_back(sample_id);
+    }
+
     for (int i = 0; i < n_individuals; ++i)
     {
         std::string fid;

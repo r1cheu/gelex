@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <string_view>
 
+#include <fmt/color.h>
 #include <fmt/ranges.h>
 #include <armadillo>
 

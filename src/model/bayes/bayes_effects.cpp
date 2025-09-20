@@ -6,7 +6,7 @@
 
 #include "Eigen/Core"
 
-#include "gelex/data/io.h"
+#include "../src/data/loader.h"
 #include "gelex/model/effects.h"
 
 namespace gelex
@@ -26,7 +26,7 @@ std::unordered_set<Eigen::Index> read_mono_indices(
 {
     const std::string meta_file
         = genotype_bin.substr(0, genotype_bin.find_last_of('.')) + ".meta";
-    auto file = detail::open_or_throw<std::ifstream>(
+    auto file = *detail::openfile<std::ifstream>(
         meta_file, detail::file_type::binary);
 
     // Skip dimensions (rows, cols)

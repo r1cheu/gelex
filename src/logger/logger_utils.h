@@ -34,30 +34,6 @@ std::string sigma_prior(std::string_view subscript, double nu, double s2);
 std::string sigma_squared(std::string_view subscript);
 std::string h2(std::string_view subscript);
 
-class LevelFormatter : public spdlog::formatter
-{
-   private:
-    std::unique_ptr<spdlog::formatter> info_formatter_;
-    std::unique_ptr<spdlog::formatter> default_formatter_;
-
-   public:
-    LevelFormatter();
-    void format(const spdlog::details::log_msg& msg, spdlog::memory_buf_t& dest)
-        override;
-    std::unique_ptr<formatter> clone() const override;
-};
-
-class Logger
-{
-   public:
-    static std::shared_ptr<spdlog::logger> logger();
-
-   private:
-    Logger();
-    std::shared_ptr<spdlog::logger> GetSpdLogger();
-    std::shared_ptr<spdlog::logger> logger_;
-};
-
 template <typename T>
 auto green(const T& value)
 {

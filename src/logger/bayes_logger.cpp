@@ -6,6 +6,7 @@
 #include <fmt/ranges.h>
 #include <gelex/barkeep.h>
 
+#include "gelex/logger.h"
 #include "gelex/model/bayes/model.h"
 #include "logger/logger_utils.h"
 
@@ -16,7 +17,7 @@ namespace bk = barkeep;
 namespace detail
 {
 
-MCMCLogger::MCMCLogger() : logger_{Logger::logger()} {}
+MCMCLogger::MCMCLogger() : logger_{gelex::logging::get()} {}
 
 void MCMCLogger::set_verbose(bool verbose)
 {
