@@ -1,4 +1,4 @@
-#include "gelex/data/datapipe.h"
+#include "gelex/data/data_pipe.h"
 
 #include <algorithm>
 #include <expected>
