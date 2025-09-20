@@ -103,9 +103,9 @@ void PhenotypeSimulator::simulate_qt_from_bed(
     auto bed_pipe = std::move(*bed_pipe_result);
 
     const auto& snp_ids = bed_pipe.snp_ids();
-    const auto& sample_ids = bed_pipe.raw_sample_ids();
+    const auto& sample_ids = bed_pipe.sample_ids();
 
-    const size_t n_individuals = bed_pipe.raw_sample_size();
+    const size_t n_individuals = bed_pipe.sample_size();
     const size_t n_snps = bed_pipe.num_variants();
 
     Eigen::VectorXd genetic_values = Eigen::VectorXd::Zero(n_individuals);

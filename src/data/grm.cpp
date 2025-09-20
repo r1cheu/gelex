@@ -14,7 +14,7 @@ using Eigen::Index;
 GRM::GRM(
     std::string_view bed_file,
     Index chunk_size,
-    const std::vector<std::string>& target_order)
+    const std::unordered_map<std::string, Eigen::Index>& target_order)
 {
     auto bed_pipe = BedPipe::create(bed_file);
     if (!bed_pipe)
@@ -25,17 +25,19 @@ GRM::GRM(
     }
     bed_ = std::make_unique<BedPipe>(std::move(*bed_pipe));
 
-    // Intersect with target order if provided
+    // Use the provided id_map directly
     if (!target_order.empty())
     {
-        std::unordered_set<std::string> target_set(
-            target_order.begin(), target_order.end());
-        auto intersect_result = bed_->intersect_samples(target_set);
-        if (!intersect_result)
+        id_map_ = target_order;
+
+        // Validate that all IDs in id_map exist in the bed file
+        for (const auto& [id, index] : id_map_)
         {
-            throw std::runtime_error(
-                "Failed to intersect samples: "
-                + std::string(intersect_result.error().message));
+            if (!bed_->sample_map().contains(id))
+            {
+                throw std::runtime_error(
+                    "Sample ID '" + id + "' not found in BED file");
+            }
         }
     }
     chunk_size_ = chunk_size;
@@ -45,7 +47,8 @@ GRM::GRM(
 
 Eigen::MatrixXd GRM::compute(bool add)
 {
-    const auto n = static_cast<Eigen::Index>(bed_->load_sample_map().size());
+    const auto n = static_cast<Eigen::Index>(
+        id_map_.empty() ? bed_->sample_map().size() : id_map_.size());
     Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(n, n);
 
     // Process in chunks
@@ -82,7 +85,7 @@ CrossGRM::CrossGRM(
     Eigen::VectorXd p_major,
     double scale_factor,
     Index chunk_size,
-    const std::vector<std::string>& target_order)
+    const std::unordered_map<std::string, Eigen::Index>& target_order)
     : scale_factor_{scale_factor}, chunk_size_{chunk_size}
 {
     auto bed_pipe = BedPipe::create(train_bed);
@@ -94,17 +97,19 @@ CrossGRM::CrossGRM(
     }
     bed_ = std::make_unique<BedPipe>(std::move(*bed_pipe));
 
-    // Intersect with target order if provided
+    // Use the provided id_map directly
     if (!target_order.empty())
     {
-        std::unordered_set<std::string> target_set(
-            target_order.begin(), target_order.end());
-        auto intersect_result = bed_->intersect_samples(target_set);
-        if (!intersect_result)
+        id_map_ = target_order;
+
+        // Validate that all IDs in id_map exist in the bed file
+        for (const auto& [id, index] : id_map_)
         {
-            throw std::runtime_error(
-                "Failed to intersect samples: "
-                + std::string(intersect_result.error().message));
+            if (!bed_->sample_map().contains(id))
+            {
+                throw std::runtime_error(
+                    "Sample ID '" + id + "' not found in BED file");
+            }
         }
     }
 
@@ -129,8 +134,9 @@ Eigen::MatrixXd CrossGRM::compute(std::string_view test_bed, bool add)
 
     check_snp_consistency(*test_bed_pipe);
 
-    const Index test_n = test_bed_pipe->raw_sample_size();
-    const auto train_n = static_cast<Index>(bed_->load_sample_map().size());
+    const Index test_n = test_bed_pipe->sample_size();
+    const auto train_n = static_cast<Index>(
+        id_map_.empty() ? bed_->sample_map().size() : id_map_.size());
     Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(test_n, train_n);
 
     // Process in chunks

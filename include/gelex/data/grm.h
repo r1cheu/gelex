@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 
 #include <Eigen/Core>
@@ -16,7 +17,7 @@ class GRM
     explicit GRM(
         std::string_view bed_file,
         Eigen::Index chunk_size = 10000,
-        const std::vector<std::string>& target_order = {});
+        const std::unordered_map<std::string, Eigen::Index>& target_order = {});
     GRM(const GRM&) = delete;
     GRM(GRM&&) noexcept = default;
     GRM& operator=(const GRM&) = delete;
@@ -34,6 +35,7 @@ class GRM
 
     Eigen::VectorXd p_major_;
     std::unique_ptr<BedPipe> bed_;
+    std::unordered_map<std::string, Eigen::Index> id_map_;
 };
 
 class CrossGRM
@@ -44,7 +46,7 @@ class CrossGRM
         Eigen::VectorXd p_major,
         double scale_factor,
         Eigen::Index chunk_size = 10000,
-        const std::vector<std::string>& target_order = {});
+        const std::unordered_map<std::string, Eigen::Index>& target_order = {});
 
     CrossGRM(const CrossGRM&) = delete;
     CrossGRM(CrossGRM&&) noexcept = default;
@@ -63,6 +65,7 @@ class CrossGRM
     double scale_factor_;
 
     Eigen::Index chunk_size_;
+    std::unordered_map<std::string, Eigen::Index> id_map_;
 };
 
 /**

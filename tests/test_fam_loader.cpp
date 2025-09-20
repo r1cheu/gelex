@@ -72,6 +72,38 @@ TEST_CASE_PERSISTENT_FIXTURE(
         REQUIRE(ids.contains("IND005"));
     }
 
+    SECTION("Valid fam file with IID only mode - sample_map tests")
+    {
+        auto result = gelex::detail::FamLoader::create("test_valid.fam", true);
+
+        REQUIRE(result.has_value());
+
+        const auto& sample_map = result->sample_map();
+        const auto& sample_ids = result->sample_ids();
+
+        // Verify sample_map has same size as sample_ids
+        REQUIRE(sample_map.size() == sample_ids.size());
+        REQUIRE(sample_map.size() == 5);
+
+        // Verify all sample_ids are present in sample_map
+        for (const auto& id : sample_ids)
+        {
+            REQUIRE(sample_map.contains(id));
+        }
+
+        // Verify indices are sequential starting from 0
+        std::vector<Eigen::Index> indices;
+        for (const auto& [id, index] : sample_map)
+        {
+            indices.push_back(index);
+        }
+        std::sort(indices.begin(), indices.end());
+        for (size_t i = 0; i < indices.size(); ++i)
+        {
+            REQUIRE(indices[i] == static_cast<Eigen::Index>(i));
+        }
+    }
+
     SECTION("Valid fam file with full ID mode")
     {
         auto result = gelex::detail::FamLoader::create("test_valid.fam", false);
@@ -85,6 +117,45 @@ TEST_CASE_PERSISTENT_FIXTURE(
         REQUIRE(ids.contains("FAM002_IND003"));
         REQUIRE(ids.contains("FAM003_IND004"));
         REQUIRE(ids.contains("FAM004_IND005"));
+    }
+
+    SECTION("Valid fam file with full ID mode - sample_map tests")
+    {
+        auto result = gelex::detail::FamLoader::create("test_valid.fam", false);
+
+        REQUIRE(result.has_value());
+
+        const auto& sample_map = result->sample_map();
+        const auto& sample_ids = result->sample_ids();
+
+        // Verify sample_map has same size as sample_ids
+        REQUIRE(sample_map.size() == sample_ids.size());
+        REQUIRE(sample_map.size() == 5);
+
+        // Verify all sample_ids are present in sample_map
+        for (const auto& id : sample_ids)
+        {
+            REQUIRE(sample_map.contains(id));
+        }
+
+        // Verify indices are sequential starting from 0
+        std::vector<Eigen::Index> indices;
+        for (const auto& [id, index] : sample_map)
+        {
+            indices.push_back(index);
+        }
+        std::sort(indices.begin(), indices.end());
+        for (size_t i = 0; i < indices.size(); ++i)
+        {
+            REQUIRE(indices[i] == static_cast<Eigen::Index>(i));
+        }
+
+        // Verify specific full IDs are present
+        REQUIRE(sample_map.contains("FAM001_IND001"));
+        REQUIRE(sample_map.contains("FAM001_IND002"));
+        REQUIRE(sample_map.contains("FAM002_IND003"));
+        REQUIRE(sample_map.contains("FAM003_IND004"));
+        REQUIRE(sample_map.contains("FAM004_IND005"));
     }
 
     SECTION("Non-existent file")
@@ -102,6 +173,9 @@ TEST_CASE_PERSISTENT_FIXTURE(
 
         REQUIRE(result.has_value());
         REQUIRE(result->sample_ids().empty());
+
+        // Empty file should also have empty sample_map
+        REQUIRE(result->sample_map().empty());
     }
 }
 

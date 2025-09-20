@@ -34,7 +34,7 @@ cmd = ["cp", ".build/gelex", "~/.local/bin/"]
 depends-on = ["build"]
 
 [tasks.test]
-cmd = "cd .build/tests/cpp/;./test -a"
+cmd = "cd .build/tests/;./test -a"
 depends-on = ["build"]
 
 [environments]

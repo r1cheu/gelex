@@ -257,15 +257,23 @@ class FamLoader
         return sample_ids_;
     }
 
+    const std::unordered_map<std::string, Eigen::Index>& sample_map() const
+    {
+        return sample_map_;
+    }
+
    private:
-    explicit FamLoader(std::unordered_set<std::string>&& individual_ids)
-        : sample_ids_(std::move(individual_ids))
+    explicit FamLoader(
+        std::unordered_set<std::string>&& sample_ids,
+        std::unordered_map<std::string, Eigen::Index>&& sample_map)
+        : sample_ids_(std::move(sample_ids)), sample_map_(std::move(sample_map))
     {
     }
 
     static auto read(std::ifstream& file, bool iid_only)
-        -> std::expected<std::unordered_set<std::string>, Error>;
+        -> std::expected<std::vector<std::string>, Error>;
 
     std::unordered_set<std::string> sample_ids_;
+    std::unordered_map<std::string, Eigen::Index> sample_map_;
 };
 }  // namespace gelex::detail

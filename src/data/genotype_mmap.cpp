@@ -241,7 +241,7 @@ void create_genotype_binary(
     auto bed_pipe = std::move(*bed_pipe_result);
 
     const size_t n_snp = bed_pipe.num_variants();
-    const size_t n_individuals = bed_pipe.load_sample_size();
+    const size_t n_individuals = bed_pipe.sample_size();
 
     auto logger = gelex::logging::get();
 
@@ -263,7 +263,7 @@ void create_genotype_binary(
     }
 
     // Create index vectors using BedPipe's sample maps
-    const auto& raw_sample_map = bed_pipe.raw_sample_map();
+    const auto& raw_sample_map = bed_pipe.sample_map();
     std::vector<Index> g_index;
     g_index.reserve(g_list.size());
     for (const auto& id : g_list)

@@ -1,7 +1,6 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 #include <Eigen/Core>
@@ -119,10 +118,10 @@ TEST_CASE("BedPipe creation and basic functionality", "[bed_pipe]")
         auto bed_pipe = gelex::BedPipe::create(test_prefix, false);
         REQUIRE(bed_pipe.has_value());
 
-        REQUIRE(bed_pipe->raw_sample_size() == 4);
+        REQUIRE(bed_pipe->sample_size() == 4);
         REQUIRE(bed_pipe->num_variants() == 5);
 
-        const auto& sample_ids = bed_pipe->raw_sample_map();
+        const auto& sample_ids = bed_pipe->sample_map();
         REQUIRE(sample_ids.size() == 4);
         REQUIRE(sample_ids.contains("fam1_ind1"));
         REQUIRE(sample_ids.contains("fam2_ind2"));
@@ -153,9 +152,9 @@ TEST_CASE("BedPipe creation and basic functionality", "[bed_pipe]")
 
         auto bed_pipe = gelex::BedPipe::create(test_prefix, true);
         REQUIRE(bed_pipe.has_value());
-        REQUIRE(bed_pipe->raw_sample_size() == 2);
+        REQUIRE(bed_pipe->sample_size() == 2);
 
-        const auto& sample_ids = bed_pipe->raw_sample_map();
+        const auto& sample_ids = bed_pipe->sample_map();
         REQUIRE(sample_ids.size() == 2);
         REQUIRE(sample_ids.contains("ind1"));
         REQUIRE(sample_ids.contains("ind2"));
@@ -184,10 +183,7 @@ TEST_CASE("BedPipe genotype access methods", "[bed_pipe]")
         // Verify genotype values (based on our test pattern)
         // Pattern: 0b11100100 = 11 10 01 00 = 2.0, 1.0, NaN, 0.0
 
-        REQUIRE_THAT((*genotypes)(0), WithinAbs(0.0, 1e-10));
-        REQUIRE_THAT((*genotypes)(1), WithinAbs(1.0, 1e-10));
-        REQUIRE_THAT((*genotypes)(2), WithinAbs(1.0, 1e-10));
-        REQUIRE_THAT((*genotypes)(3), WithinAbs(2.0, 1e-10));
+        REQUIRE(genotypes->isApprox(Eigen::VectorXd{{0, 1, 1, 2}}));
     }
 
     SECTION("get_genotype for valid indices")
@@ -216,11 +212,7 @@ TEST_CASE("BedPipe genotype access methods", "[bed_pipe]")
         REQUIRE(genotypes->size() == 5);
 
         // Sample 0 should have consistent values across variants
-        REQUIRE_THAT((*genotypes)(0), WithinAbs(0.0, 1e-10));
-        REQUIRE_THAT((*genotypes)(1), WithinAbs(2.0, 1e-10));
-        REQUIRE_THAT((*genotypes)(2), WithinAbs(0.0, 1e-10));
-        REQUIRE_THAT((*genotypes)(3), WithinAbs(2.0, 1e-10));
-        REQUIRE_THAT((*genotypes)(4), WithinAbs(0.0, 1e-10));
+        REQUIRE(genotypes->isApprox(Eigen::VectorXd{{0, 2, 0, 2, 0}}));
     }
 }
 
@@ -267,9 +259,9 @@ TEST_CASE("BedPipe error handling", "[bed_pipe]")
     }
 }
 
-TEST_CASE("BedPipe sample intersection", "[bed_pipe]")
+TEST_CASE("BedPipe ID map validation and reordering", "[bed_pipe]")
 {
-    const std::string test_prefix = "test_bed_pipe_intersect";
+    const std::string test_prefix = "test_bed_pipe_id_map";
     test::TestBedManager bed_manager(test_prefix);
 
     std::vector<std::string> fids = {"fam1", "fam2", "fam3", "fam4"};
@@ -278,62 +270,97 @@ TEST_CASE("BedPipe sample intersection", "[bed_pipe]")
 
     auto bed_pipe = gelex::BedPipe::create(test_prefix, true);
     REQUIRE(bed_pipe.has_value());
-    REQUIRE(bed_pipe->raw_sample_size() == 4);
 
-    SECTION("Successful sample intersection")
+    SECTION("Empty ID map validation")
     {
-        std::unordered_set<std::string> target_samples
-            = {"ind1", "ind3", "ind4"};
+        std::unordered_map<std::string, Eigen::Index> empty_map;
 
-        auto bed = bed_pipe->intersect_samples(target_samples);
-        REQUIRE(bed.has_value());
+        // Test direct validation
+        auto validation = bed_pipe->load(empty_map);
+        REQUIRE_FALSE(validation.has_value());
+        REQUIRE(validation.error().code == gelex::ErrorCode::InvalidData);
 
-        REQUIRE(bed_pipe->load_sample_size() == 3);
-
-        const auto& sample_map = bed_pipe->load_sample_map();
-        REQUIRE(sample_map.contains("ind1"));
-        REQUIRE(sample_map.contains("ind3"));
-        REQUIRE(sample_map.contains("ind4"));
-        REQUIRE_FALSE(sample_map.contains("ind2"));
-
-        auto genotypes = bed_pipe->get_genotypes(0);
-        REQUIRE(genotypes.has_value());
-        REQUIRE(genotypes->size() == 4);
-
-        auto result = bed_pipe->load();
-        Eigen::MatrixXd expected{
-            {0, 2, 0, 2, 0}, {1, 1, 1, 1, 1}, {2, 0, 2, 0, 2}};
-        REQUIRE(result->isApprox(expected, 1e-10));
+        // Test chunk loading with empty map
+        auto chunk_validation = bed_pipe->load_chunk(0, 2, empty_map);
+        REQUIRE_FALSE(chunk_validation.has_value());
+        REQUIRE(chunk_validation.error().code == gelex::ErrorCode::InvalidData);
     }
 
-    SECTION("Intersection with no matching samples")
+    SECTION("ID map with invalid sample IDs")
     {
-        std::unordered_set<std::string> target_samples
-            = {"nonexistent1", "nonexistent2"};
+        std::unordered_map<std::string, Eigen::Index> invalid_map
+            = {{"ind1", 0}, {"nonexistent", 1}, {"ind3", 2}};
 
-        auto result = bed_pipe->intersect_samples(target_samples);
-        REQUIRE_FALSE(result.has_value());
-        REQUIRE(result.error().code == gelex::ErrorCode::InvalidData);
-
-        // Original samples should remain unchanged
-        REQUIRE(bed_pipe->raw_sample_size() == 4);
+        auto validation = bed_pipe->load(invalid_map);
+        REQUIRE_FALSE(validation.has_value());
+        REQUIRE(validation.error().code == gelex::ErrorCode::InvalidData);
+        REQUIRE(
+            validation.error().message.find("nonexistent")
+            != std::string::npos);
     }
 
-    SECTION("Intersection with partial matches")
+    SECTION("Successful ID map reordering")
     {
-        std::unordered_set<std::string> target_samples
-            = {"ind1", "ind2", "nonexistent"};
+        // Create a custom ID map with reordered samples
+        std::unordered_map<std::string, Eigen::Index> custom_map = {
+            {"ind4", 0},  // Original index 3 -> new index 0
+            {"ind2", 1},  // Original index 1 -> new index 1
+            {"ind1", 2}   // Original index 0 -> new index 2
+        };
 
-        auto result = bed_pipe->intersect_samples(target_samples);
-        REQUIRE(result.has_value());
+        auto reordered_matrix = bed_pipe->load(custom_map);
+        REQUIRE(reordered_matrix.has_value());
+        REQUIRE(reordered_matrix->rows() == 3);  // Only 3 samples in custom map
+        REQUIRE(reordered_matrix->cols() == 5);  // All 5 variants
 
-        REQUIRE(bed_pipe->load_sample_size() == 2);
+        // Load the original matrix for comparison
+        auto original_matrix = bed_pipe->load();
+        REQUIRE(original_matrix.has_value());
+        REQUIRE(reordered_matrix->row(0).isApprox(original_matrix->row(3)));
+        REQUIRE(reordered_matrix->row(1).isApprox(original_matrix->row(1)));
+        REQUIRE(reordered_matrix->row(2).isApprox(original_matrix->row(0)));
+    }
 
-        const auto& sample_ids = bed_pipe->load_sample_map();
-        REQUIRE(sample_ids.size() == 2);
-        REQUIRE(sample_ids.contains("ind1"));
-        REQUIRE(sample_ids.contains("ind2"));
-        REQUIRE_FALSE(sample_ids.contains("nonexistent"));
+    SECTION("ID map reordering with chunk loading")
+    {
+        std::unordered_map<std::string, Eigen::Index> custom_map = {
+            {"ind3", 0},  // Original index 2 -> new index 0
+            {"ind1", 1}   // Original index 0 -> new index 1
+        };
+
+        auto reordered_chunk = bed_pipe->load_chunk(1, 4, custom_map);
+        REQUIRE(reordered_chunk.has_value());
+        REQUIRE(reordered_chunk->rows() == 2);  // 2 samples in custom map
+        REQUIRE(reordered_chunk->cols() == 3);  // 3 variants (4-1)
+
+        // Load original chunks for comparison
+        auto original_chunk = bed_pipe->load_chunk(1, 4);
+        REQUIRE(original_chunk.has_value());
+
+        // Verify reordering is correct
+        // ind3 (original row 2) should now be row 0
+        REQUIRE(reordered_chunk->row(0).isApprox(original_chunk->row(2)));
+        // ind1 (original row 0) should now be row 1
+        REQUIRE(reordered_chunk->row(1).isApprox(original_chunk->row(0)));
+    }
+
+    SECTION("Optional ID map parameter with std::nullopt")
+    {
+        // Test that std::nullopt uses the original sample map
+        auto matrix_with_nullopt = bed_pipe->load(std::nullopt);
+        auto matrix_with_default = bed_pipe->load();
+
+        REQUIRE(matrix_with_nullopt.has_value());
+        REQUIRE(matrix_with_default.has_value());
+        REQUIRE(matrix_with_nullopt->isApprox(*matrix_with_default));
+
+        // Same test for load_chunk
+        auto chunk_with_nullopt = bed_pipe->load_chunk(0, 2, std::nullopt);
+        auto chunk_with_default = bed_pipe->load_chunk(0, 2);
+
+        REQUIRE(chunk_with_nullopt.has_value());
+        REQUIRE(chunk_with_default.has_value());
+        REQUIRE(chunk_with_nullopt->isApprox(*chunk_with_default));
     }
 }
 
@@ -396,17 +423,6 @@ TEST_CASE("BedPipe bulk loading", "[bed_pipe]")
         REQUIRE_FALSE(invalid_chunk.has_value());
         REQUIRE(invalid_chunk.error().code == gelex::ErrorCode::InvalidRange);
     }
-
-    SECTION("Empty intersection before loading")
-    {
-        std::unordered_set<std::string> empty_samples;
-        auto result = bed_pipe->intersect_samples(empty_samples);
-        REQUIRE_FALSE(result.has_value());
-
-        auto matrix = bed_pipe->load();
-        REQUIRE_FALSE(matrix.has_value());
-        REQUIRE(matrix.error().code == gelex::ErrorCode::InvalidData);
-    }
 }
 
 TEST_CASE("BedPipe edge cases", "[bed_pipe]")
@@ -422,7 +438,7 @@ TEST_CASE("BedPipe edge cases", "[bed_pipe]")
 
         auto bed_pipe = gelex::BedPipe::create(test_prefix);
         REQUIRE(bed_pipe.has_value());
-        REQUIRE(bed_pipe->raw_sample_size() == 1);
+        REQUIRE(bed_pipe->sample_size() == 1);
         REQUIRE(bed_pipe->num_variants() == 3);
 
         auto genotypes = bed_pipe->get_genotypes(0);
@@ -443,7 +459,7 @@ TEST_CASE("BedPipe edge cases", "[bed_pipe]")
 
         auto bed_pipe = gelex::BedPipe::create(test_prefix);
         REQUIRE(bed_pipe.has_value());
-        REQUIRE(bed_pipe->raw_sample_size() == 2);
+        REQUIRE(bed_pipe->sample_size() == 2);
         REQUIRE(bed_pipe->num_variants() == 1);
 
         auto matrix = bed_pipe->load();

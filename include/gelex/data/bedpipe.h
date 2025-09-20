@@ -3,9 +3,9 @@
 #include <expected>
 #include <filesystem>
 #include <memory>
-#include <ranges>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <Eigen/Dense>
@@ -42,46 +42,34 @@ class BedPipe
     {
         return static_cast<Eigen::Index>(bim_loader_->snp_ids().size());
     }
-
-    Eigen::Index raw_sample_size() const
+    Eigen::Index sample_size() const
     {
-        return static_cast<Eigen::Index>(raw_sample_map_.size());
-    }
-    Eigen::Index load_sample_size() const
-    {
-        return static_cast<Eigen::Index>(load_sample_map_.size());
+        return static_cast<Eigen::Index>(fam_loader_->sample_map().size());
     }
 
     const std::vector<std::string>& snp_ids() const
     {
         return bim_loader_->snp_ids();
     }
+    const std::unordered_set<std::string>& sample_ids() const
+    {
+        return fam_loader_->sample_ids();
+    }
+    const std::unordered_map<std::string, Eigen::Index>& sample_map() const
+    {
+        return fam_loader_->sample_map();
+    }
 
-    auto load() const -> std::expected<Eigen::MatrixXd, Error>;
-    auto load(const std::unordered_map<std::string, Eigen::Index>& id_map) const
-        -> std::expected<Eigen::MatrixXd, Error>;
-    auto load_chunk(Eigen::Index start_variant, Eigen::Index end_variant) const
-        -> std::expected<Eigen::MatrixXd, Error>;
+    auto load(
+        const std::optional<std::unordered_map<std::string, Eigen::Index>>&
+            id_map
+        = std::nullopt) const -> std::expected<Eigen::MatrixXd, Error>;
     auto load_chunk(
         Eigen::Index start_variant,
         Eigen::Index end_variant,
-        const std::unordered_map<std::string, Eigen::Index>& id_map) const
-        -> std::expected<Eigen::MatrixXd, Error>;
-
-    auto intersect_samples(const std::unordered_set<std::string>& sample_ids)
-        -> std::expected<void, Error>;
-
-    const std::unordered_map<std::string, Eigen::Index>& raw_sample_map() const
-    {
-        return raw_sample_map_;
-    }
-    const std::unordered_map<std::string, Eigen::Index>& load_sample_map() const
-    {
-        return load_sample_map_;
-    }
-
-    auto raw_sample_ids() const { return std::views::keys(raw_sample_map_); }
-    auto load_sample_ids() const { return std::views::keys(load_sample_map_); }
+        const std::optional<std::unordered_map<std::string, Eigen::Index>>&
+            id_map
+        = std::nullopt) const -> std::expected<Eigen::MatrixXd, Error>;
 
    private:
     BedPipe(
@@ -96,10 +84,14 @@ class BedPipe
         const std::filesystem::path& path) -> std::expected<void, Error>;
     static auto calculate_bytes_per_variant(Eigen::Index num_samples)
         -> Eigen::Index;
-
     Eigen::Index calculate_offset(Eigen::Index variant_index) const;
     auto validate_variant_index(Eigen::Index variant_index) const
         -> std::expected<void, Error>;
+
+    auto validate_id_map(
+        const std::unordered_map<std::string, Eigen::Index>& id_map) const
+        -> std::expected<void, Error>;
+
     Eigen::VectorXd reorder_genotypes(
         const Eigen::VectorXd& raw_genotypes,
         const std::unordered_map<std::string, Eigen::Index>& id_map) const;
@@ -115,10 +107,8 @@ class BedPipe
     std::unique_ptr<detail::BimLoader> bim_loader_;
     Eigen::Index bytes_per_variant_;
     std::filesystem::path bed_path_;
-    std::unordered_map<std::string, Eigen::Index> raw_sample_map_;
-    std::unordered_map<std::string, Eigen::Index> load_sample_map_;
 
-    constexpr static std::array<double, 4> add_map_{0, 1, 1, 2};
+    constexpr static std::array<double, 4> encode_map_{0, 1, 1, 2};
 };
 
 }  // namespace gelex

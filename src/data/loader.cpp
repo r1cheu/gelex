@@ -3,6 +3,7 @@
 #include <expected>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -661,18 +662,30 @@ auto FamLoader::create(std::string_view path, bool iid_only)
     {
         return std::unexpected(file.error());
     }
-    auto individual_ids = read(*file, iid_only);
-    if (!individual_ids)
+    auto sample_ids = read(*file, iid_only);
+    if (!sample_ids)
     {
         return std::unexpected(
-            enrich_with_file_info(std::move(individual_ids.error()), path));
+            enrich_with_file_info(std::move(sample_ids.error()), path));
+    }
+
+    // Build sample map preserving FAM file order
+    std::unordered_map<std::string, Eigen::Index> sample_map;
+    Eigen::Index index = 0;
+    for (const auto& id : *sample_ids)
+    {
+        sample_map[id] = index++;
     }
 
     auto logger = gelex::logging::get();
     logger->info(
-        "Loaded {} samples from fam file[{}]", individual_ids->size(), path);
+        "Loaded {} samples from fam file[{}]", sample_ids->size(), path);
 
-    return FamLoader(std::move(*individual_ids));
+    std::unordered_set<std::string> sample_id_set(
+        std::make_move_iterator(sample_ids->begin()),
+        std::make_move_iterator(sample_ids->end()));
+
+    return FamLoader(std::move(sample_id_set), std::move(sample_map));
 }
 
 void FamLoader::intersect(std::unordered_set<std::string>& id_set) const
@@ -684,10 +697,10 @@ void FamLoader::intersect(std::unordered_set<std::string>& id_set) const
 }
 
 auto FamLoader::read(std::ifstream& file, bool iid_only)
-    -> std::expected<std::unordered_set<std::string>, Error>
+    -> std::expected<std::vector<std::string>, Error>
 {
     constexpr static size_t fam_n_cols = 6;
-    std::unordered_set<std::string> individual_ids;
+    std::vector<std::string> sample_ids;
     std::string line;
     int n_line{};
     while (std::getline(file, line))
@@ -709,7 +722,7 @@ auto FamLoader::read(std::ifstream& file, bool iid_only)
 
         if (auto id_str = parse_id(line, iid_only, " "); id_str)
         {
-            individual_ids.insert(std::move(*id_str));
+            sample_ids.emplace_back(std::move(*id_str));
         }
         else
         {
@@ -718,7 +731,7 @@ auto FamLoader::read(std::ifstream& file, bool iid_only)
         }
         n_line++;
     }
-    return individual_ids;
+    return sample_ids;
 }
 
 }  // namespace gelex::detail
