@@ -2,6 +2,7 @@
 
 #include <expected>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -28,8 +29,7 @@ class BedPipe
     BedPipe(BedPipe&&) noexcept = default;
     BedPipe& operator=(const BedPipe&) = delete;
     BedPipe& operator=(BedPipe&&) noexcept = default;
-
-    ~BedPipe();
+    ~BedPipe() = default;
 
     auto get_genotypes(Eigen::Index variant_index) const
         -> std::expected<Eigen::VectorXd, Error>;

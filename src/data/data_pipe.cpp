@@ -67,9 +67,7 @@ auto DataPipe::load_phenotype(const Config& config)
     -> std::expected<void, Error>
 {
     auto loader = detail::PhenotypeLoader::create(
-        config.phenotype_path.string(),
-        config.phenotype_column,
-        config.iid_only);
+        config.phenotype_path, config.phenotype_column, config.iid_only);
 
     if (!loader)
     {
@@ -86,8 +84,8 @@ auto DataPipe::load_phenotype(const Config& config)
 auto DataPipe::load_qcovariates(const Config& config)
     -> std::expected<void, Error>
 {
-    auto loader = detail::QcovarLoader::create(
-        config.qcovar_path.string(), config.iid_only);
+    auto loader
+        = detail::QcovarLoader::create(config.qcovar_path, config.iid_only);
 
     if (!loader)
     {
@@ -103,8 +101,8 @@ auto DataPipe::load_qcovariates(const Config& config)
 auto DataPipe::load_covariates(const Config& config)
     -> std::expected<void, Error>
 {
-    auto loader = detail::CovarLoader::create(
-        config.covar_path.string(), config.iid_only);
+    auto loader
+        = detail::CovarLoader::create(config.covar_path, config.iid_only);
 
     if (!loader)
     {
@@ -119,8 +117,7 @@ auto DataPipe::load_covariates(const Config& config)
 
 auto DataPipe::load_fam(const Config& config) -> std::expected<void, Error>
 {
-    auto loader
-        = detail::FamLoader::create(config.fam_path.string(), config.iid_only);
+    auto loader = detail::FamLoader::create(config.fam_path, config.iid_only);
 
     if (!loader)
     {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <format>
 #include <string>
 
@@ -45,11 +46,15 @@ constexpr std::string_view to_string_view(ErrorCode code) noexcept
         case ErrorCode::InvalidRange:
             return "Invalid Range specified"sv;
         case ErrorCode::WrongHeader:
-            return "Incorrect CSV header"sv;
+            return "Incorrect header"sv;
         case ErrorCode::InconsistColumnCount:
             return "Inconsistent column count"sv;
+        case ErrorCode::InvalidData:
+            return "Invalid data input"sv;
         case ErrorCode::Unknown:
             return "An unknown error occurred"sv;
+        default:
+            break;
     }
     return "An unknown error occurred"sv;
 }
@@ -63,11 +68,9 @@ E enrich_with_line_info(E&& error, int line_number)
 }
 
 template <typename E>
-E enrich_with_file_info(E&& error, std::string_view path)
+E enrich_with_file_info(E&& error, const std::filesystem::path& path)
 {
-    std::string original_message = std::move(error.message);
-    error.message = std::format("{} (file [{}])", original_message, path);
-    return std::forward<E>(error);
+    return enrich_with_file_info(std::forward<E>(error), path.string());
 }
 
 }  // namespace gelex

@@ -2,6 +2,7 @@
 
 #include <expected>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <optional>
 #include <string>
@@ -35,14 +36,6 @@ BedPipe::BedPipe(
     file_stream_.seekg(3);  // Skip the 3-byte magic number
 }
 
-BedPipe::~BedPipe()
-{
-    if (file_stream_.is_open())
-    {
-        file_stream_.close();
-    }
-}
-
 auto BedPipe::create(const std::filesystem::path& prefix, bool iid_only)
     -> std::expected<BedPipe, Error>
 {
@@ -55,20 +48,20 @@ auto BedPipe::create(const std::filesystem::path& prefix, bool iid_only)
     bim_path.replace_extension(".bim");
 
     // Load fam and bim files
-    auto fam_loader = detail::FamLoader::create(fam_path.string(), iid_only);
+    auto fam_loader = detail::FamLoader::create(fam_path, iid_only);
     if (!fam_loader)
     {
         return std::unexpected(fam_loader.error());
     }
 
-    auto bim_loader = detail::BimLoader::create(bim_path.string());
+    auto bim_loader = detail::BimLoader::create(bim_path);
     if (!bim_loader)
     {
         return std::unexpected(bim_loader.error());
     }
 
-    auto file
-        = detail::openfile<std::ifstream>(bed_path, detail::file_type::binary);
+    auto file = detail::open_file<std::ifstream>(
+        bed_path, std::ios_base::in | std::ios_base::binary);
     if (!file)
     {
         return std::unexpected(file.error());
@@ -111,14 +104,14 @@ auto BedPipe::validate_bed_file(
         return std::unexpected(enrich_with_file_info(
             Error{
                 ErrorCode::InvalidFile, "Failed to read BED file magic number"},
-            path.string()));
+            path));
     }
 
     if (magic[0] != 0x6c || magic[1] != 0x1b || magic[2] != 0x01)
     {
         return std::unexpected(enrich_with_file_info(
             Error{ErrorCode::InvalidFile, "Invalid BED file magic number"},
-            path.string()));
+            path));
     }
 
     return {};
@@ -212,7 +205,7 @@ auto BedPipe::get_genotypes(Eigen::Index variant_index) const
             Error{
                 ErrorCode::FileIOError,
                 "Failed to read genotype data from BED file"},
-            bed_path_.string()));
+            bed_path_));
     }
 
     const auto num_samples
@@ -261,7 +254,7 @@ auto BedPipe::get_genotype(
             Error{
                 ErrorCode::FileIOError,
                 "Failed to read genotype data from BED file"},
-            bed_path_.string()));
+            bed_path_));
     }
 
     const Eigen::Index bit_offset = 2 * (sample_index % 4);
@@ -329,7 +322,7 @@ auto BedPipe::read_variants_bulk(
             Error{
                 ErrorCode::FileIOError,
                 "Failed to read genotype data from BED file in bulk"},
-            bed_path_.string()));
+            bed_path_));
     }
 
     // Parse all variants from the buffer

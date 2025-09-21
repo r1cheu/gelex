@@ -39,6 +39,10 @@ class DataPipe
     const std::vector<std::string>& qcovariate_names() const;
     const std::vector<std::string>& covariate_names() const;
     const std::vector<std::string>& fixed_effect_names() const;
+    const std::unordered_map<std::string, Eigen::Index>& id_map() const
+    {
+        return id_map_;
+    }
 
     size_t num_samples() const { return sample_ids_.size(); }
     size_t num_qcovariates() const { return qcovariate_names_.size(); }

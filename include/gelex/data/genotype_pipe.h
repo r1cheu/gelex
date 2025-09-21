@@ -2,7 +2,8 @@
 
 #include <expected>
 #include <filesystem>
-#include <memory>
+#include <optional>
+#include <unordered_map>
 #include <vector>
 
 #include <Eigen/Core>
@@ -19,11 +20,8 @@ class GenotypePipe
 {
    public:
     static auto create(
-        std::unique_ptr<BedPipe> bed_pipe,
-        std::filesystem::path matrix_path,
-        std::filesystem::path stats_path,
-        std::optional<std::unordered_map<std::string, Eigen::Index>> id_map
-        = std::nullopt,
+        const std::filesystem::path& bed_prefix,
+        bool iid_only,
         double monomorphic_threshold = 1e-6)
         -> std::expected<GenotypePipe, Error>;
 
@@ -34,8 +32,9 @@ class GenotypePipe
     ~GenotypePipe();
 
     auto process(
-        size_t chunk_size = 1000,
-        std::optional<std::unordered_map<std::string, Eigen::Index>> id_map
+        size_t chunk_size = 10000,
+        const std::optional<std::unordered_map<std::string, Eigen::Index>>&
+            id_map
         = std::nullopt) -> std::expected<void, Error>;
 
     const std::vector<double>& means() const noexcept { return means_; }
@@ -45,16 +44,15 @@ class GenotypePipe
         return monomorphic_indices_;
     }
 
-    Eigen::Index num_samples() const noexcept { return num_samples_; }
+    Eigen::Index num_samples() const noexcept { return sample_size_; }
     Eigen::Index num_variants() const noexcept { return num_variants_; }
     size_t num_processed_variants() const noexcept { return means_.size(); }
 
    private:
     GenotypePipe(
-        std::unique_ptr<BedPipe> bed_pipe,
-        std::filesystem::path matrix_path,
-        std::filesystem::path stats_path,
-        std::optional<std::unordered_map<std::string, Eigen::Index>> id_map,
+        BedPipe&& bed_pipe,
+        detail::BinaryMatrixWriter&& matrix_writer,
+        detail::SnpStatsWriter&& stats_writer,
         double monomorphic_threshold);
 
     auto process_chunk(Eigen::MatrixXd&& chunk, size_t global_start)
@@ -62,21 +60,18 @@ class GenotypePipe
 
     auto finalize() -> std::expected<void, Error>;
 
-    std::unique_ptr<BedPipe> bed_pipe_;
-    std::filesystem::path matrix_path_;
-    std::filesystem::path stats_path_;
+    BedPipe bed_pipe_;
     double monomorphic_threshold_;
 
-    Eigen::Index num_samples_;
+    Eigen::Index sample_size_{};
     Eigen::Index num_variants_;
-    std::optional<std::unordered_map<std::string, Eigen::Index>> id_map_;
 
     std::vector<double> means_;
     std::vector<double> stddevs_;
     std::vector<size_t> monomorphic_indices_;
 
-    std::unique_ptr<detail::BinaryMatrixWriter> matrix_writer_;
-    std::unique_ptr<detail::SnpStatsWriter> stats_writer_;
+    detail::BinaryMatrixWriter matrix_writer_;
+    detail::SnpStatsWriter stats_writer_;
 };
 
 }  // namespace gelex

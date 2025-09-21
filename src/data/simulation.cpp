@@ -39,7 +39,8 @@ std::unordered_map<std::string, double>
 PhenotypeSimulator::load_causal_variants(
     const std::string& causal_variants_list)
 {
-    auto file = *detail::openfile<std::ifstream>(causal_variants_list);
+    auto file = *detail::open_file<std::ifstream>(
+        causal_variants_list, std::ios_base::in);
     std::normal_distribution<double> dist(0, 1);
 
     std::unordered_map<std::string, double> variants;
@@ -68,8 +69,8 @@ PhenotypeSimulator::load_causal_variants(
 
     if (no_effects)
     {
-        auto outfile = *detail::openfile<std::ofstream>(
-            causal_variants_list + ".effects");
+        auto outfile = *detail::open_file<std::ofstream>(
+            causal_variants_list + ".effects", std::ios_base::out);
         for (const auto& [id, eff] : variants)
         {
             outfile << id << "\t" << eff << "\n";
@@ -169,7 +170,8 @@ void PhenotypeSimulator::simulate_qt_from_bed(
     }
     Eigen::VectorXd phenotype = genetic_values + residuals;
 
-    auto output = *detail::openfile<std::ofstream>(bfile + ".phen");
+    auto output = *detail::open_file<std::ofstream>(
+        bfile + ".phen", std::ios_base::out);
     output << "FID\t" << "IID\t" << "phenotype\n";
     // Convert sample IDs to individual format
     std::vector<std::string> fam_ids;

@@ -19,37 +19,6 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 using Eigen::VectorXi;
 
-namespace detail
-{
-std::unordered_set<Eigen::Index> read_mono_indices(
-    const std::string& genotype_bin)
-{
-    const std::string meta_file
-        = genotype_bin.substr(0, genotype_bin.find_last_of('.')) + ".meta";
-    auto file = *detail::openfile<std::ifstream>(
-        meta_file, detail::file_type::binary);
-
-    // Skip dimensions (rows, cols)
-    constexpr Index skip = 2 * sizeof(int64_t);
-    file.seekg(skip, std::ios::beg);
-
-    int64_t mono_count = 0;
-    file.read(reinterpret_cast<char*>(&mono_count), sizeof(int64_t));
-
-    std::unordered_set<Eigen::Index> mono_indices;
-    if (mono_count > 0)
-    {
-        std::vector<Eigen::Index> indices(mono_count);
-        file.read(
-            reinterpret_cast<char*>(indices.data()),
-            mono_count * sizeof(Eigen::Index));
-        mono_indices.insert(indices.begin(), indices.end());
-    }
-
-    return mono_indices;
-}
-}  // namespace detail
-
 namespace bayes
 {
 
