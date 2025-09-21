@@ -3,8 +3,6 @@
 #include <expected>
 #include <filesystem>
 #include <format>
-#include <fstream>
-#include <istream>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -20,65 +18,44 @@ namespace gelex::detail
 {
 
 template <typename T>
-concept CppStream = std::derived_from<T, std::ios_base>;
+concept FileStream = std::derived_from<T, std::ios_base>
+                     && std::is_constructible_v<
+                         T,
+                         const std::filesystem::path&,
+                         std::ios_base::openmode>;
 
-enum class file_type : uint8_t
-{
-    text,
-    binary
-};
-
-template <CppStream StreamType>
-[[nodiscard]] std::expected<StreamType, Error> openfile(
+template <FileStream StreamType>
+[[nodiscard]] auto open_file(
     const std::filesystem::path& path,
-    file_type type = file_type::text)
+    std::ios_base::openmode mode) -> std::expected<StreamType, Error>
 {
-    std::ios_base::openmode mode{};
-    if constexpr (std::is_base_of_v<std::istream, StreamType>)
-    {
-        if (!std::filesystem::exists(path))
-        {
-            return std::unexpected(
-                Error{
-                    ErrorCode::FileNotFound,
-                    std::format("file not found [{}].", path.string())});
-        }
-        mode |= std::ios_base::in;
-    }
-    if constexpr (std::is_base_of_v<std::ostream, StreamType>)
-    {
-        mode |= std::ios_base::out;
-        if constexpr (
-            std::is_same_v<StreamType, std::ofstream>
-            || std::is_same_v<StreamType, std::wofstream>)
-        {
-            mode |= std::ios_base::trunc;
-        }
-    }
-
-    if (type == file_type::binary)
-    {
-        mode |= std::ios_base::binary;
-    }
-
     StreamType stream(path, mode);
 
     if (!stream.is_open())
     {
+        if ((mode & std::ios_base::in) && !std::filesystem::exists(path))
+        {
+            return std::unexpected(
+                Error{
+                    ErrorCode::FileNotFound,
+                    std::format("File not found: '{}'", path.string())});
+        }
+
         return std::unexpected(
             Error{
                 ErrorCode::FileIOError,
-                std::format("failed to open file [{}].", path.string())});
+                std::format("Failed to open file: '{}'", path.string())});
     }
-
     return stream;
 }
 
 class PhenotypeLoader
 {
    public:
-    static auto create(std::string_view path, int pheno_column, bool iid_only)
-        -> std::expected<PhenotypeLoader, Error>;
+    static auto create(
+        const std::filesystem::path& path,
+        int pheno_column,
+        bool iid_only) -> std::expected<PhenotypeLoader, Error>;
 
     void intersect(std::unordered_set<std::string>& id_set) const;
 
@@ -116,7 +93,7 @@ class PhenotypeLoader
 class QcovarLoader
 {
    public:
-    static auto create(std::string_view path, bool iid_only)
+    static auto create(const std::filesystem::path& path, bool iid_only)
         -> std::expected<QcovarLoader, Error>;
 
     void intersect(std::unordered_set<std::string>& id_set) const;
@@ -157,7 +134,7 @@ class QcovarLoader
 class CovarLoader
 {
    public:
-    static auto create(std::string_view path, bool iid_only)
+    static auto create(const std::filesystem::path& path, bool iid_only)
         -> std::expected<CovarLoader, Error>;
 
     void intersect(std::unordered_set<std::string>& id_set);
@@ -227,7 +204,7 @@ class CovarLoader
 class BimLoader
 {
    public:
-    static auto create(std::string_view path)
+    static auto create(const std::filesystem::path& path)
         -> std::expected<BimLoader, Error>;
 
     const std::vector<std::string>& snp_ids() const { return snp_ids_; }
@@ -247,7 +224,7 @@ class BimLoader
 class FamLoader
 {
    public:
-    static auto create(std::string_view path, bool iid_only)
+    static auto create(const std::filesystem::path& path, bool iid_only)
         -> std::expected<FamLoader, Error>;
 
     void intersect(std::unordered_set<std::string>& id_set) const;

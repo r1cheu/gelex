@@ -1,6 +1,7 @@
 #include <argparse/argparse.hpp>
 
 #include "gelex/data/data_pipe.h"
+#include "gelex/data/genotype_pipe.h"
 #include "gelex/logger.h"
 
 int main(int argc, char* argv[])
@@ -20,6 +21,13 @@ int main(int argc, char* argv[])
             "specify which phenotype column to use, default is the 3rd column")
         .default_value(3)
         .scan<'i', int>();
+    fit.add_argument("--chunk-size")
+        .help("chunk size for processing snps, default is 10000")
+        .default_value(10000)
+        .scan<'i', int>();
+    fit.add_argument("--dom")
+        .help("enable estimation of dominance effects")
+        .flag();
     fit.add_argument("--qcovar")
         .default_value("")
         .help(
@@ -78,6 +86,20 @@ int main(int argc, char* argv[])
             logger->error(data_pipe.error().message);
             std::exit(1);
         }
+
+        auto genotype_pipe = gelex::GenotypePipe::create(
+            fit.get("--bfile"),
+            fit.get<bool>("--iid_only"),
+            fit.get<bool>("--dom"));
+
+        if (!genotype_pipe)
+        {
+            logger->error(genotype_pipe.error().message);
+            std::exit(1);
+        }
+
+        genotype_pipe->process(
+            fit.get<int>("--chunk-size"), data_pipe->id_map());
     }
     else
     {

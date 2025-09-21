@@ -23,10 +23,10 @@ class TestBedManager
           fam_file_{prefix + ".fam"},
           bim_file_{prefix + ".bim"}
     {
-        bed_ = *gelex::detail::openfile<std::ofstream>(
-            bed_file_, gelex::detail::file_type::binary);
-        bim_ = *gelex::detail::openfile<std::ofstream>(bim_file_);
-        fam_ = *gelex::detail::openfile<std::ofstream>(fam_file_);
+        bed_ = *gelex::detail::open_file<std::ofstream>(
+            bed_file_, std::ios::binary);
+        bim_ = *gelex::detail::open_file<std::ofstream>(bim_file_);
+        fam_ = *gelex::detail::open_file<std::ofstream>(fam_file_);
     }
     TestBedManager(const TestBedManager&) = delete;
     TestBedManager(TestBedManager&&) noexcept = default;

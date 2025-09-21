@@ -22,11 +22,11 @@ namespace gelex::detail
 {
 
 auto PhenotypeLoader::create(
-    std::string_view path,
+    const std::filesystem::path& path,
     int pheno_column,
     bool iid_only) -> std::expected<PhenotypeLoader, Error>
 {
-    auto file = detail::openfile<std::ifstream>(path);
+    auto file = detail::open_file<std::ifstream>(path, std::ios_base::in);
     if (!file)
     {
         return std::unexpected(file.error());
@@ -152,10 +152,10 @@ auto PhenotypeLoader::read(
     return phenotype_data;
 }
 
-auto QcovarLoader::create(std::string_view path, bool iid_only)
+auto QcovarLoader::create(const std::filesystem::path& path, bool iid_only)
     -> std::expected<QcovarLoader, Error>
 {
-    auto file = detail::openfile<std::ifstream>(path);
+    auto file = detail::open_file<std::ifstream>(path, std::ios_base::in);
     if (!file)
     {
         return std::unexpected(file.error());
@@ -300,10 +300,10 @@ auto QcovarLoader::read(
     return covariate_data;
 }
 
-auto CovarLoader::create(std::string_view path, bool iid_only)
+auto CovarLoader::create(const std::filesystem::path& path, bool iid_only)
     -> std::expected<CovarLoader, Error>
 {
-    auto file = detail::openfile<std::ifstream>(path);
+    auto file = detail::open_file<std::ifstream>(path, std::ios_base::in);
     if (!file)
     {
         return std::unexpected(file.error());
@@ -594,9 +594,10 @@ void CovarLoader::rebuild_encode_maps()
     encode_maps_ = build_encode_maps(covariate_data_, covariate_names_);
 }
 
-auto BimLoader::create(std::string_view path) -> std::expected<BimLoader, Error>
+auto BimLoader::create(const std::filesystem::path& path)
+    -> std::expected<BimLoader, Error>
 {
-    auto file = detail::openfile<std::ifstream>(path);
+    auto file = detail::open_file<std::ifstream>(path, std::ios_base::in);
     if (!file)
     {
         return std::unexpected(file.error());
@@ -654,10 +655,10 @@ auto BimLoader::read(std::ifstream& file)
     return snp_ids;
 }
 
-auto FamLoader::create(std::string_view path, bool iid_only)
+auto FamLoader::create(const std::filesystem::path& path, bool iid_only)
     -> std::expected<FamLoader, Error>
 {
-    auto file = detail::openfile<std::ifstream>(path);
+    auto file = detail::open_file<std::ifstream>(path, std::ios_base::in);
     if (!file)
     {
         return std::unexpected(file.error());
@@ -679,7 +680,9 @@ auto FamLoader::create(std::string_view path, bool iid_only)
 
     auto logger = gelex::logging::get();
     logger->info(
-        "Loaded {} samples from fam file[{}]", sample_ids->size(), path);
+        "Loaded {} samples from fam file[{}]",
+        sample_ids->size(),
+        path.string());
 
     std::unordered_set<std::string> sample_id_set(
         std::make_move_iterator(sample_ids->begin()),

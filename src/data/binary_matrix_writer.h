@@ -14,7 +14,8 @@ namespace gelex::detail
 class BinaryMatrixWriter
 {
    public:
-    explicit BinaryMatrixWriter(std::filesystem::path file_path);
+    static auto create(const std::filesystem::path& file_path)
+        -> std::expected<BinaryMatrixWriter, Error>;
 
     BinaryMatrixWriter(const BinaryMatrixWriter&) = delete;
     BinaryMatrixWriter(BinaryMatrixWriter&&) noexcept = default;
@@ -22,21 +23,12 @@ class BinaryMatrixWriter
     BinaryMatrixWriter& operator=(BinaryMatrixWriter&&) noexcept = default;
     ~BinaryMatrixWriter();
 
-    auto open() -> std::expected<void, Error>;
-    auto close() -> std::expected<void, Error>;
-
-    auto append_matrix(const Eigen::MatrixXd& matrix)
-        -> std::expected<void, Error>;
-
-    const std::filesystem::path& file_path() const noexcept
-    {
-        return file_path_;
-    }
-    bool is_open() const noexcept { return file_.is_open(); }
+    auto write(const Eigen::MatrixXd& matrix) -> std::expected<void, Error>;
 
    private:
-    std::filesystem::path file_path_;
+    explicit BinaryMatrixWriter(std::ofstream&& file, std::string&& path);
     std::ofstream file_;
+    std::filesystem::path path_;
 };
 
 }  // namespace gelex::detail

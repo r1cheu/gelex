@@ -15,7 +15,8 @@ namespace gelex::detail
 class SnpStatsWriter
 {
    public:
-    explicit SnpStatsWriter(std::filesystem::path file_path);
+    static auto create(const std::filesystem::path& file_path)
+        -> std::expected<SnpStatsWriter, Error>;
 
     SnpStatsWriter(const SnpStatsWriter&) = delete;
     SnpStatsWriter(SnpStatsWriter&&) noexcept = default;
@@ -23,10 +24,7 @@ class SnpStatsWriter
     SnpStatsWriter& operator=(SnpStatsWriter&&) noexcept = default;
     ~SnpStatsWriter();
 
-    auto open() -> std::expected<void, Error>;
-    auto close() -> std::expected<void, Error>;
-
-    auto write_all(
+    auto write(
         Eigen::Index num_samples,
         Eigen::Index num_variants,
         size_t num_monomorphic,
@@ -34,15 +32,12 @@ class SnpStatsWriter
         const std::vector<double>& means,
         const std::vector<double>& stddevs) -> std::expected<void, Error>;
 
-    const std::filesystem::path& file_path() const noexcept
-    {
-        return file_path_;
-    }
-    bool is_open() const noexcept { return file_.is_open(); }
-
    private:
-    std::filesystem::path file_path_;
+    explicit SnpStatsWriter(
+        std::ofstream&& file,
+        std::filesystem::path&& file_path);
     std::ofstream file_;
+    std::filesystem::path path_;
 };
 
 }  // namespace gelex::detail
