@@ -1,33 +1,39 @@
 #include "gelex/data/genotype_pipe.h"
 
+#include <cstdint>
 #include <expected>
 #include <filesystem>
-#include <optional>
 #include <utility>
 
 #include <Eigen/Core>
 
-#include "../src/data/binary_matrix_writer.h"
-#include "../src/data/snp_stats_writer.h"
+#include "binary_matrix_writer.h"
+#include "estimator/bayes/indicator.h"
+#include "gelex/barkeep.h"
 #include "gelex/error.h"
 #include "gelex/logger.h"
+#include "snp_stats_writer.h"
 
 namespace gelex
 {
 
+namespace bk = barkeep;
 using Eigen::Index;
 
 GenotypePipe::GenotypePipe(
     BedPipe&& bed_pipe,
     detail::BinaryMatrixWriter&& matrix_writer,
     detail::SnpStatsWriter&& stats_writer,
-    double monomorphic_threshold)
+    bool dominant)
     : bed_pipe_(std::move(bed_pipe)),
-      monomorphic_threshold_(monomorphic_threshold),
-      num_variants_(bed_pipe_.num_variants()),
+      monomorphic_threshold_(1e-6),
+      dominant_(dominant),
       matrix_writer_(std::move(matrix_writer)),
       stats_writer_(std::move(stats_writer))
 {
+    num_variants_ = bed_pipe_.num_variants();  // NOLINT
+    sample_size_ = bed_pipe_.sample_size();    // NOLINT
+
     means_.reserve(num_variants_);
     stddevs_.reserve(num_variants_);
     monomorphic_indices_.reserve(num_variants_ / 100);
@@ -36,28 +42,21 @@ GenotypePipe::GenotypePipe(
 GenotypePipe::~GenotypePipe() = default;
 
 auto GenotypePipe::create(
-    const std::filesystem::path& bed_prefix,
-    bool iid_only,
-    double monomorphic_threshold) -> std::expected<GenotypePipe, Error>
+    const std::filesystem::path& bed_path,
+    std::shared_ptr<SampleManager> sample_manager,
+    const std::filesystem::path& output_prefix,
+    bool dominant) -> std::expected<GenotypePipe, Error>
 {
-    auto bed_pipe = BedPipe::create(bed_prefix, iid_only);
+    auto bed_pipe = BedPipe::create(bed_path, std::move(sample_manager));
     if (!bed_pipe)
     {
         return std::unexpected(bed_pipe.error());
     }
 
-    if (monomorphic_threshold <= 0.0)
-    {
-        return std::unexpected(
-            Error{
-                ErrorCode::InvalidData,
-                "Monomorphic threshold must be positive"});
-    }
-
-    std::filesystem::path matrix_path = bed_prefix;
-    matrix_path.replace_extension(".bmat");
-    std::filesystem::path stats_path = bed_prefix;
-    stats_path.replace_extension(".snpstats");
+    std::filesystem::path matrix_path = output_prefix;
+    matrix_path.replace_extension(dominant ? ".dom.bmat" : ".add.bmat");
+    std::filesystem::path stats_path = output_prefix;
+    stats_path.replace_extension(dominant ? ".dom.snpstats" : ".add.snpstats");
 
     auto matrix_writer = detail::BinaryMatrixWriter::create(matrix_path);
     if (!matrix_writer)
@@ -74,31 +73,27 @@ auto GenotypePipe::create(
         std::move(*bed_pipe),
         std::move(*matrix_writer),
         std::move(*stats_writer),
-        monomorphic_threshold};
+        dominant};
 }
 
-auto GenotypePipe::process(
-    size_t chunk_size,
-    const std::optional<std::unordered_map<std::string, Index>>& process_id_map)
-    -> std::expected<void, Error>
+auto GenotypePipe::process(size_t chunk_size) -> std::expected<void, Error>
 {
     auto logger = gelex::logging::get();
-    if (process_id_map)
-    {
-        sample_size_ = static_cast<Index>(process_id_map->size());
-    }
-    else
-    {
-        sample_size_ = bed_pipe_.sample_size();
-    }
+    global_snp_idx_ = 0;
 
-    // Process in chunks
-    for (Index start_variant = 0; start_variant < num_variants_;)
+    auto pbar = bk::ProgressBar(
+        &global_snp_idx_,
+        {.total = static_cast<uint64_t>(num_variants_),
+         .format = "{bar} {value}/{total} ",
+         .style = detail::BAR_STYLE});
+
+    for (int64_t start_variant = 0; start_variant < num_variants_;)
     {
-        Index end_variant = std::min(
-            static_cast<Index>(start_variant + chunk_size), num_variants_);
+        int64_t end_variant = std::min(
+            static_cast<int64_t>(start_variant + chunk_size), num_variants_);
+
         auto chunk
-            = bed_pipe_.load_chunk(start_variant, end_variant, process_id_map);
+            = bed_pipe_.load_chunk(start_variant, end_variant, dominant_);
         if (!chunk)
         {
             return std::unexpected(chunk.error());
@@ -112,8 +107,7 @@ auto GenotypePipe::process(
 
         start_variant = end_variant;
     }
-
-    logger->info("Completed processing all {} variants", num_variants_);
+    pbar->done();
 
     return finalize();
 }
@@ -121,15 +115,16 @@ auto GenotypePipe::process(
 auto GenotypePipe::process_chunk(Eigen::MatrixXd&& chunk, size_t global_start)
     -> std::expected<void, Error>
 {
-    const Index num_variants_in_chunk = chunk.cols();
+    Eigen::MatrixXd matrix = std::move(chunk);
+    const int64_t num_variants_in_chunk = matrix.cols();
 
-    for (Index variant_idx = 0; variant_idx < num_variants_in_chunk;
+    for (int64_t variant_idx = 0; variant_idx < num_variants_in_chunk;
          ++variant_idx)
     {
+        global_snp_idx_++;
         const size_t global_idx = global_start + variant_idx;
-        auto variant = chunk.col(variant_idx);
+        auto variant = matrix.col(variant_idx);
 
-        // Compute statistics in single pass
         const auto n = static_cast<double>(variant.size());
         const double mean = variant.mean();
         const double variance
@@ -139,21 +134,17 @@ auto GenotypePipe::process_chunk(Eigen::MatrixXd&& chunk, size_t global_start)
         means_.push_back(mean);
         stddevs_.push_back(std_dev);
 
-        // Check for monomorphic SNP
         if (std_dev < monomorphic_threshold_)
         {
-            monomorphic_indices_.push_back(global_idx);
-            variant.setZero();  // Standardize to all zeros
+            monomorphic_indices_.push_back(static_cast<int64_t>(global_idx));
         }
         else
         {
-            // Standardize: (x - mean) / std_dev
             variant = (variant.array() - mean) / std_dev;
         }
     }
 
-    // Write processed chunk to binary matrix
-    if (auto result = matrix_writer_.write(chunk); !result)
+    if (auto result = matrix_writer_.write(matrix); !result)
     {
         return std::unexpected(result.error());
     }
@@ -167,7 +158,7 @@ auto GenotypePipe::finalize() -> std::expected<void, Error>
     if (auto result = stats_writer_.write(
             sample_size_,
             num_variants_,
-            monomorphic_indices_.size(),
+            static_cast<int64_t>(monomorphic_indices_.size()),
             monomorphic_indices_,
             means_,
             stddevs_);

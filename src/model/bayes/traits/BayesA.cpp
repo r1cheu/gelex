@@ -58,7 +58,7 @@ void BayesATrait::operator()(
     VectorXd& coeff = state.coeff;
     auto& u = state.u;
     VectorXd& sigma = state.sigma;
-    const auto& design_matrix = effect.design_matrix.mat;
+    const auto& design_matrix = effect.design_matrix.matrix();
     const auto& cols_norm = effect.cols_norm;
 
     // col_norm is n - 1, since we have normalized the design matrix

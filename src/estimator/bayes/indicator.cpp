@@ -5,17 +5,6 @@
 #include "../../logger/logger_utils.h"
 #include "gelex/model/bayes/model.h"
 
-// Define the static progress bar style
-const bk::BarParts gelex::detail::Indicator::PROGRESS_BAR_STYLE = []()
-{
-    bk::BarParts style;
-    style.left = "[";
-    style.right = "]";
-    style.fill = {"\033[1;33m━\033[0m"};
-    style.empty = {"─"};
-    return style;
-}();
-
 namespace gelex
 {
 namespace detail

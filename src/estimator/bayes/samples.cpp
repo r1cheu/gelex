@@ -13,8 +13,7 @@ using Eigen::Index;
 MCMCSamples::MCMCSamples(const MCMCParams& params, const BayesModel& model)
     : n_records_((params.n_iters - params.n_burnin) / params.n_thin),
       n_chains_(params.n_chains),
-      store_pi_(model.trait()->estimate_pi()),
-      bim_file_path_(model.additive() ? model.additive()->bim_file_path : "")
+      store_pi_(model.trait()->estimate_pi())
 {
     // Pre-allocate all matrices upfront for better performance
     fixed_.coeff.reserve(n_chains_);
@@ -35,7 +34,7 @@ MCMCSamples::MCMCSamples(const MCMCParams& params, const BayesModel& model)
 
     if (model.additive())
     {
-        const Index n_coeffs = model.additive()->design_matrix.mat.cols();
+        const Index n_coeffs = model.additive()->design_matrix.cols();
         const Index sigma_size = model.additive()->sigma.size();
 
         additive_.coeffs.reserve(n_chains_);
@@ -52,7 +51,7 @@ MCMCSamples::MCMCSamples(const MCMCParams& params, const BayesModel& model)
 
     if (model.dominant())
     {
-        const Index n_coeffs = model.dominant()->design_matrix.mat.cols();
+        const Index n_coeffs = model.dominant()->design_matrix.cols();
         dominant_.coeffs.reserve(n_chains_);
         dominant_.variance.reserve(n_chains_);
 

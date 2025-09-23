@@ -1,6 +1,4 @@
 #include <fstream>
-#include <string>
-#include <unordered_set>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -63,13 +61,14 @@ TEST_CASE_PERSISTENT_FIXTURE(
 
         REQUIRE(result.has_value());
 
-        const auto& ids = result->sample_ids();
+        const auto& ids = result->ids();
         REQUIRE(ids.size() == 5);
-        REQUIRE(ids.contains("IND001"));
-        REQUIRE(ids.contains("IND002"));
-        REQUIRE(ids.contains("IND003"));
-        REQUIRE(ids.contains("IND004"));
-        REQUIRE(ids.contains("IND005"));
+
+        REQUIRE(ids[0] == "IND001");
+        REQUIRE(ids[1] == "IND002");
+        REQUIRE(ids[2] == "IND003");
+        REQUIRE(ids[3] == "IND004");
+        REQUIRE(ids[4] == "IND005");
     }
 
     SECTION("Valid fam file with IID only mode - sample_map tests")
@@ -78,22 +77,22 @@ TEST_CASE_PERSISTENT_FIXTURE(
 
         REQUIRE(result.has_value());
 
-        const auto& sample_map = result->sample_map();
-        const auto& sample_ids = result->sample_ids();
+        const auto& data = result->data();
+        const auto& ids = result->ids();
 
         // Verify sample_map has same size as sample_ids
-        REQUIRE(sample_map.size() == sample_ids.size());
-        REQUIRE(sample_map.size() == 5);
+        REQUIRE(data.size() == ids.size());
+        REQUIRE(data.size() == 5);
 
         // Verify all sample_ids are present in sample_map
-        for (const auto& id : sample_ids)
+        for (const auto& id : ids)
         {
-            REQUIRE(sample_map.contains(id));
+            REQUIRE(data.contains(id));
         }
 
         // Verify indices are sequential starting from 0
         std::vector<Eigen::Index> indices;
-        for (const auto& [id, index] : sample_map)
+        for (const auto& [id, index] : data)
         {
             indices.push_back(index);
         }
@@ -110,7 +109,7 @@ TEST_CASE_PERSISTENT_FIXTURE(
 
         REQUIRE(result.has_value());
 
-        const auto& ids = result->sample_ids();
+        const auto& ids = result->data();
         REQUIRE(ids.size() == 5);
         REQUIRE(ids.contains("FAM001_IND001"));
         REQUIRE(ids.contains("FAM001_IND002"));
@@ -125,22 +124,22 @@ TEST_CASE_PERSISTENT_FIXTURE(
 
         REQUIRE(result.has_value());
 
-        const auto& sample_map = result->sample_map();
-        const auto& sample_ids = result->sample_ids();
+        const auto& data = result->data();
+        const auto& ids = result->ids();
 
         // Verify sample_map has same size as sample_ids
-        REQUIRE(sample_map.size() == sample_ids.size());
-        REQUIRE(sample_map.size() == 5);
+        REQUIRE(data.size() == ids.size());
+        REQUIRE(data.size() == 5);
 
         // Verify all sample_ids are present in sample_map
-        for (const auto& id : sample_ids)
+        for (const auto& id : ids)
         {
-            REQUIRE(sample_map.contains(id));
+            REQUIRE(data.contains(id));
         }
 
         // Verify indices are sequential starting from 0
         std::vector<Eigen::Index> indices;
-        for (const auto& [id, index] : sample_map)
+        for (const auto& [id, index] : data)
         {
             indices.push_back(index);
         }
@@ -151,11 +150,11 @@ TEST_CASE_PERSISTENT_FIXTURE(
         }
 
         // Verify specific full IDs are present
-        REQUIRE(sample_map.contains("FAM001_IND001"));
-        REQUIRE(sample_map.contains("FAM001_IND002"));
-        REQUIRE(sample_map.contains("FAM002_IND003"));
-        REQUIRE(sample_map.contains("FAM003_IND004"));
-        REQUIRE(sample_map.contains("FAM004_IND005"));
+        REQUIRE(data.contains("FAM001_IND001"));
+        REQUIRE(data.contains("FAM001_IND002"));
+        REQUIRE(data.contains("FAM002_IND003"));
+        REQUIRE(data.contains("FAM003_IND004"));
+        REQUIRE(data.contains("FAM004_IND005"));
     }
 
     SECTION("Non-existent file")
@@ -171,53 +170,8 @@ TEST_CASE_PERSISTENT_FIXTURE(
     {
         auto result = gelex::detail::FamLoader::create("test_empty.fam", true);
 
-        REQUIRE(result.has_value());
-        REQUIRE(result->sample_ids().empty());
-
-        // Empty file should also have empty sample_map
-        REQUIRE(result->sample_map().empty());
-    }
-}
-
-TEST_CASE_PERSISTENT_FIXTURE(
-    FamLoaderTestFixture,
-    "FamLoader::intersect method",
-    "[loader][fam]")
-{
-    auto loader = gelex::detail::FamLoader::create("test_valid.fam", true);
-    REQUIRE(loader.has_value());
-
-    SECTION("Intersect with subset of IDs")
-    {
-        std::unordered_set<std::string> id_set
-            = {"IND001", "IND002", "NON_EXISTENT", "IND003"};
-
-        loader->intersect(id_set);
-
-        REQUIRE(id_set.size() == 3);
-        REQUIRE(id_set.contains("IND001"));
-        REQUIRE(id_set.contains("IND002"));
-        REQUIRE(id_set.contains("IND003"));
-        REQUIRE_FALSE(id_set.contains("NON_EXISTENT"));
-    }
-
-    SECTION("Intersect with empty set")
-    {
-        std::unordered_set<std::string> id_set;
-
-        loader->intersect(id_set);
-
-        REQUIRE(id_set.empty());
-    }
-
-    SECTION("Intersect with no matching IDs")
-    {
-        std::unordered_set<std::string> id_set
-            = {"NON_EXISTENT_1", "NON_EXISTENT_2"};
-
-        loader->intersect(id_set);
-
-        REQUIRE(id_set.empty());
+        REQUIRE_FALSE(result.has_value());
+        REQUIRE(result.error().code == gelex::ErrorCode::InvalidFile);
     }
 }
 

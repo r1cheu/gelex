@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <expected>
 #include <filesystem>
 #include <fstream>
@@ -22,13 +23,13 @@ class SnpStatsWriter
     SnpStatsWriter(SnpStatsWriter&&) noexcept = default;
     SnpStatsWriter& operator=(const SnpStatsWriter&) = delete;
     SnpStatsWriter& operator=(SnpStatsWriter&&) noexcept = default;
-    ~SnpStatsWriter();
+    ~SnpStatsWriter() = default;
 
     auto write(
-        Eigen::Index num_samples,
-        Eigen::Index num_variants,
-        size_t num_monomorphic,
-        const std::vector<size_t>& monomorphic_indices,
+        int64_t num_samples,
+        int64_t num_variants,
+        int64_t num_monomorphic,
+        const std::vector<int64_t>& monomorphic_indices,
         const std::vector<double>& means,
         const std::vector<double>& stddevs) -> std::expected<void, Error>;
 

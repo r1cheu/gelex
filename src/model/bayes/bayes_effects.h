@@ -85,8 +85,7 @@ struct AdditiveEffect
 {
     AdditiveEffect(
         std::string&& name,
-        const std::string& genotype_bin,
-        const std::string& bim_file_path,
+        detail::GenotypeMap&& design_matrix,
         BayesAlphabet type,
         Eigen::VectorXd&& sigma,
         Eigen::VectorXd&& pi);
@@ -94,7 +93,6 @@ struct AdditiveEffect
     std::string name;
     detail::GenotypeMap design_matrix;
     Eigen::VectorXd cols_norm;
-    std::string bim_file_path;
 
     detail::ScaledInvChiSqParams prior;
     Eigen::VectorXd sigma;
@@ -128,7 +126,7 @@ struct DominantEffect
 {
     DominantEffect(
         std::string&& name,
-        const std::string& genotype_bin,
+        detail::GenotypeMap&& design_matrix,
         double prior_mean,
         double prior_var);
 

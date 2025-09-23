@@ -43,7 +43,9 @@ auto BinaryMatrixWriter::write(const Eigen::MatrixXd& matrix)
     // Write matrix data in column-major order (Eigen's default)
     file_.write(
         reinterpret_cast<const char*>(matrix.data()),
-        matrix.size() * sizeof(double));
+        static_cast<std::streamsize>(matrix.size() * sizeof(double)));
+
+    file_.flush();
 
     if (!file_.good())
     {

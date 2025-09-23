@@ -14,6 +14,13 @@ namespace gelex
 {
 namespace detail
 {
+
+const bk::BarParts BAR_STYLE{
+    .left = "[",
+    .right = "]",
+    .fill = {"\033[1;33m━\033[0m"},
+    .empty = {"-"}};
+
 class Indicator
 {
    public:

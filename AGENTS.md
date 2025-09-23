@@ -1,119 +1,105 @@
-# Gelexy Project Handover Document
+# Gelex Project Handover Document
 
 ## Project Overview
 
-**Gelexy** is a high-performance Python package for genomic prediction, leveraging C++ for computational efficiency while maintaining Python usability. The project focuses on Bayesian methods and GBLUP (Genomic Best Linear Unbiased Prediction) models for genomic selection.
+**Gelex** is a high-performance C++ command-line application for genomic prediction, focusing on efficient processing of PLINK binary genotype files and implementing both Bayesian and GBLUP (Genomic Best Linear Unbiased Prediction) methods for genomic selection.
 
 ### Key Features
 
-- **Bayesian Models**: Support for multiple Bayesian alphabets (A, RR, B, Bpi, C, Cpi, R)
+- **Bayesian Models**: Support for multiple Bayesian methods (A, B, Bpi, C, Cpi, R, RR)
 - **GBLUP**: Traditional genomic relationship matrix-based prediction
-- **High Performance**: C++ backend with Python bindings using nanobind
-- **Modern Build System**: scikit-build-core with CMake integration
-- **Cross-Platform**: Supports Linux with MKL or OpenBLAS backends
+- **High Performance**: Optimized C++ implementation with efficient memory management
+- **PLINK Integration**: Native support for PLINK binary format (.bed, .bim, .fam)
+- **Command-line Interface**: Comprehensive CLI with argparse for easy usage
+- **Memory-mapped I/O**: Efficient handling of large genotype files
 
 ## Project Structure
 
 ```
-gelexy/
+gelex/
 ├── include/gelex/          # C++ headers
+│   ├── data/              # Data handling and I/O
 │   ├── model/             # Model definitions
-│   ├── data/              # Data handling
-│   ├── optim/             # Optimization
+│   ├── optim/             # Optimization interfaces
 │   └── utils/             # Utilities
 ├── src/                   # C++ source code
+│   ├── data/              # Data processing implementations
 │   ├── model/             # Model implementations
-│   ├── data/              # Data processing
-│   ├── python/            # Python bindings
-│   ├── optim/             # Optimization algorithms
-│   └── logger/            # Logging utilities
-├── python/gelexy/         # Python package
-│   ├── __init__.py        # Package initialization
-│   ├── model/             # Python model classes
-│   ├── data/              # Data handling utilities
+│   │   ├── bayes/         # Bayesian models
+│   │   └── freq/          # Frequentist models
+│   ├── estimator/         # Estimation algorithms
+│   │   ├── bayes/         # Bayesian estimation
+│   │   └── freq/          # Frequentist estimation
 │   ├── predictor/         # Prediction utilities
-│   └── utils/             # Python utilities
+│   ├── optim/             # Optimization implementations
+│   ├── logger/            # Logging system
+│   └── utils/             # Utility implementations
 ├── tests/                 # Test suite
-│   ├── python/            # Python tests
-│   └── cpp/               # C++ tests
-├── docs/                  # Documentation
-├── notebooks/             # Jupyter notebooks
-├── benchmark/             # Performance benchmarks
-└── ext/                   # External dependencies
-    ├── eigen/             # Eigen library
-    └── mio/               # Memory-mapped I/O library
+│   ├── test_*.cpp         # Unit tests for various components
+│   └── CMakeLists.txt     # Test build configuration
+├── ext/                   # External dependencies
+│   ├── mio/               # Memory-mapped I/O library
+│   ├── eigen/             # Eigen linear algebra library
+│   └── armadillo/         # Armadillo numerical library
+└── docs/                  # Documentation
 ```
 
 ## Build System & Dependencies
 
 ### Core Dependencies
 
-- **Python**: >=3.11 (3.13.3+ recommended)
-- **C++**: C++20 standard
+- **C++**: C++23 standard
 - **BLAS/LAPACK**: MKL or OpenBLAS
-- **Build Tools**: CMake >=3.18, Ninja
-
-### Python Dependencies
-
-```python
-numpy>=2.2.2,<3
-pandas>=2.2.3,<3
-formulaic>=1.1.1,<2
-scipy>=1.15.2,<2
-formulae>=0.5.4,<0.6
-h5py>=3.12.1,<4
-```
-
-### C++ Dependencies
-
-- **nanobind**: Python binding generation
-- **spdlog**: Logging library
-- **Eigen**: Linear algebra
-- **Armadillo**: Numerical library
-- **mio**: Memory-mapped I/O
+- **Build Tools**: CMake >=3.18, Ninja, pixi
+- **External Libraries**:
+  - spdlog: Logging library
+  - argparse: Command-line argument parsing
+  - mio: Memory-mapped I/O
+  - Eigen: Linear algebra
+  - Armadillo: Numerical computations
 
 ### Build Configuration
 
-The project uses **scikit-build-core** with CMake. Key build options:
+The project uses **CMake** with **pixi** for dependency management. Key build options:
 
 - `USE_MKL=ON/OFF`: Use Intel MKL or OpenBLAS
-- `BUILD_PYTHON=ON/OFF`: Build Python bindings
 - `BUILD_TEST=ON/OFF`: Build tests
 
 ## Core Architecture
 
-### C++ Core Components
+### Main Components
 
-1. **Model Layer** (`include/gelex/model/`, `src/model/`)
-   - Bayesian model implementations
+1. **Data Layer** (`include/gelex/data/`, `src/data/`)
+   - PLINK BED file reader
+   - Genotype and phenotype data pipelines
+   - GRM (Genomic Relationship Matrix) calculations
+   - Data validation and processing
+
+2. **Model Layer** (`include/gelex/model/`, `src/model/`)
+   - Bayesian model implementations (A, B, Bpi, C, Cpi, R, RR)
+   - GBLUP model implementation
    - Effect management system
-   - MCMC sampling algorithms
+   - Trait and distribution handling
 
-2. **Data Layer** (`include/gelex/data/`, `src/data/`)
-   - GRM (Genomic Relationship Matrix) handling
-   - BED file reader for genotype data
-   - Design matrix construction
+3. **Estimation Layer** (`src/estimator/`)
+   - MCMC sampling for Bayesian methods
+   - Frequentist estimation algorithms
+   - Diagnostics and result processing
 
-3. **Optimization Layer** (`include/gelex/optim/`, `src/optim/`)
-   - Optimization policies
-   - Estimator implementations
+4. **Utility Layer** (`src/utils/`, `src/logger/`)
+   - Mathematical utilities
+   - Logging system with multiple loggers
+   - Formatter utilities
 
-### Python Bindings (`src/python/`)
+### Main Entry Point
 
-- **Bayes bindings** (`bayes.cpp`): Bayesian model interfaces
-- **Frequentist bindings** (`freq.cpp`): GBLUP interfaces
-- **Core bindings** (`bindings.cpp`): Main binding infrastructure
-
-### Python Package (`python/gelexy/`)
-
-- **Model classes**: GBLUP, BayesModel, ModelMaker
-- **Data utilities**: GRM loading, phenotype reading
-- **Predictors**: Bayesian prediction utilities
-- **Utils**: Cross-validation, alignment, timing
+- `src/main.cpp`: Command-line interface with argparse
+- Supports "fit" subcommand for model fitting
+- Handles file I/O, configuration, and pipeline execution
 
 ## Key Models & Algorithms
 
-### Bayesian Models Supported
+### Supported Methods
 
 - **BayesA**: Single-component Bayes A
 - **BayesRR**: Ridge regression Bayes
@@ -122,56 +108,41 @@ The project uses **scikit-build-core** with CMake. Key build options:
 - **BayesC**: Multi-component mixture
 - **BayesCpi**: Bayes C with variable π
 - **BayesR**: Multi-component with fixed variances
-
-### GBLUP Model
-
-- Standard genomic best linear unbiased prediction
-- Support for multiple random effects
-- Efficient matrix operations
-
-### MCMC Sampling
-
-- Configurable burn-in, thinning, and chain parameters
-- Posterior sampling and summary statistics
-- Convergence diagnostics (ESS, R-hat)
-
-## Data Formats & I/O
-
-### Supported Formats
-
-- **BED**: PLINK binary genotype format
-- **TSV**: Tab-separated phenotype data
-- **HDF5**: Model parameter storage
-- **GRM**: Binary genomic relationship matrices
+- **GBLUP**: Genomic best linear unbiased prediction
 
 ### Data Processing
 
-- Genotype-phenotype alignment
-- Missing value handling
-- Categorical variable conversion
-- Design matrix construction
+- **PLINK Integration**: Native support for .bed, .bim, .fam files
+- **Memory-mapped I/O**: Efficient handling of large genotype files
+- **Chunk Processing**: Configurable chunk size for SNP processing
+- **Sample Alignment**: Automatic alignment of genotype and phenotype data
 
-## Testing Framework
+## Usage Examples
 
-### Python Tests (`tests/python/`)
+### Command-line Usage
 
-- Model initialization and properties
-- Formula parsing
-- GRM functionality
-- Bayesian priors
-- Alignment utilities
+```bash
+# Fit a Bayesian RR model
+./gelex fit --bfile genotype_data --pheno phenotype_data.tsv --pheno-col 3 --method RR --out results
 
-### C++ Tests (`tests/cpp/`)
+# Fit GBLUP with dominance effects
+./gelex fit --bfile genotype_data --pheno phenotype_data.tsv --dom --method GBLUP --out results
 
-- GRM calculations
-- Bed file reading
-- Design matrix construction
-- MCMC parameter testing
-- Mathematical utilities
+# Fit with covariates
+./gelex fit --bfile genotype_data --pheno phenotype_data.tsv --qcovar covariates.tsv --method Bpi --out results
+```
 
-### Test Data
+### Supported Options
 
-Located in `tests/data/` with sample genotype and phenotype files.
+- `--bfile`: PLINK binary file prefix
+- `--pheno`: Phenotype file (TSV format)
+- `--pheno-col`: Phenotype column index (default: 3)
+- `--method`: Prediction method (A, B, Bpi, C, Cpi, R, RR, GBLUP)
+- `--dom`: Enable dominance effects
+- `--qcovar`: Quantitative covariates file
+- `--covar`: Categorical covariates file
+- `--chunk-size`: SNP processing chunk size (default: 10000)
+- `--out`: Output prefix
 
 ## Development Workflow
 
@@ -182,36 +153,26 @@ Located in `tests/data/` with sample genotype and phenotype files.
 pixi install
 pixi run build
 
-# Using conda/mamba
-mamba env create -f environment.yaml
-mamba activate gelexy
-pip install -e .
+# Manual build with CMake
+cmake -B build -DUSE_MKL=ON -DBUILD_TEST=ON
+cmake --build build -j16
 ```
 
-### Building from Source
+### Testing
 
 ```bash
-# Configure with MKL
-cmake -B build -DUSE_MKL=ON -DBUILD_PYTHON=ON -DBUILD_TEST=ON
-
-# Build
-cmake --build build -j16
-
 # Run tests
+pixi run test
+
+# Or manually
 cd build && ctest --output-on-failure
 ```
 
-### Python Development
+### Installation
 
 ```bash
-# Install in development mode
-pip install -e .
-
-# Run Python tests
-pytest tests/python/
-
-# Build wheel
-uv build
+# Install to local bin directory
+pixi run install
 ```
 
 ## Performance Considerations
@@ -225,118 +186,72 @@ uv build
 ### Memory Management
 
 - Uses memory-mapped I/O for large genotype files
+- Configurable chunk processing for memory efficiency
 - Efficient matrix operations with Eigen/Armadillo
-- Sparse matrix support for design matrices
 
 ### Parallelization
 
 - OpenMP support for multi-core operations
 - Thread-safe implementations where appropriate
 
-## Key Files & Entry Points
+## Key Files & Components
 
-### Main Python Interface
+### Core Implementation Files
 
-- `python/gelexy/__init__.py`: Primary package exports
-- `python/gelexy/model/__init__.py`: Model factory functions
-- `python/gelexy/data/__init__.py`: Data loading utilities
-
-### Core C++ Components
-
-- `src/python/bindings.cpp`: Main binding registration
-- `src/model/effects_manager.h`: Effect management system
-- `src/data/bed_reader.cpp`: Genotype file reader
-- `src/data/grm.cpp`: GRM calculations
+- `src/main.cpp`: Main CLI entry point
+- `src/data/`: Data processing and I/O
+- `src/model/bayes/`: Bayesian model implementations
+- `src/model/freq/`: Frequentist model implementations
+- `src/estimator/bayes/`: Bayesian estimation algorithms
+- `src/estimator/freq/`: Frequentist estimation algorithms
 
 ### Configuration Files
 
-- `pyproject.toml`: Python package configuration
 - `CMakeLists.txt`: C++ build configuration
-- `environment.yaml`: Conda environment
-- `pixi.toml`: Pixi task runner configuration
-
-## Common Tasks & Examples
-
-### GBLUP Example
-
-```python
-import gelexy as gx
-
-# Create model maker
-mk_m = gx.make_gblup("phenotype_data.tsv")
-
-# Create GRMs
-a = gx.make_grm("genotype_data.bed", method="additive")
-d = gx.make_grm("genotype_data.bed", method="dominant")
-
-# Build and fit model
-model = mk_m.make("Yield ~ 1 + g[a] + g[d]", {"a": a, "d": d})
-est = gx.Estimator(max_iter=20)
-est.fit(model)
-```
-
-### Bayesian Example
-
-```python
-import gelexy as gx
-
-# Create Bayesian model
-model = gx.make_bayes("phenotype_data.tsv")
-
-# Add effects and run MCMC
-model.add_random_effect("genetic", grm_matrix)
-model.set_sigma_prior("genetic", nu=4, s2=1.0)
-
-mcmc = gx.MCMC(gx.MCMCParams(n_iters=5000, n_burnin=3000))
-result = mcmc.run(model, seed=42)
-```
+- `pixi.toml`: Dependency management and task runner
+- `.clang-format`: Code formatting rules
+- `.clang-tidy`: Static analysis configuration
 
 ## Troubleshooting & Common Issues
 
 ### Build Issues
 
 1. **Missing BLAS/LAPACK**: Ensure MKL or OpenBLAS is installed
-2. **Python version**: Requires Python 3.11+
-3. **CMake version**: Requires CMake 3.18+
+2. **CMake version**: Requires CMake 3.18+
+3. **Compiler support**: Requires C++23 compatible compiler
 
 ### Runtime Issues
 
-1. **Memory**: Large datasets may require significant RAM
-2. **File permissions**: Ensure read access to data files
-3. **Matrix dimensions**: Verify genotype-phenotype alignment
-
-### Performance Tips
-
-1. Use MKL for best performance on Intel systems
-2. Enable OpenMP for multi-core operations
-3. Use memory-mapped I/O for large files
+1. **File permissions**: Ensure read access to data files
+2. **Memory**: Large datasets may require significant RAM
+3. **File formats**: Verify PLINK binary file compatibility
 
 ## Future Development Directions
 
 ### Immediate Priorities
 
-1. **Documentation**: Complete API documentation
-2. **Testing**: Expand test coverage
-3. **Performance**: Optimize critical paths
+1. **Documentation**: Complete user documentation and examples
+2. **Testing**: Expand test coverage for all components
+3. **Performance**: Optimize critical computation paths
 
 ### Medium-term Goals
 
-1. **Additional Models**: Support for more Bayesian methods
-2. **GPU Acceleration**: CUDA/OpenCL support
-3. **Web Interface**: Basic web dashboard
+1. **Additional Formats**: Support for more genotype formats
+2. **GPU Acceleration**: CUDA/OpenCL support for matrix operations
+3. **Pipeline Integration**: Nextflow/Snakemake support
 
 ### Long-term Vision
 
-1. **Cloud Integration**: AWS/Azure deployment options
-2. **Pipeline Integration**: Nextflow/Snakemake support
-3. **Community Features**: Plugin system for custom models
+1. **Cloud Deployment**: Containerized deployment options
+2. **Web Interface**: REST API and web dashboard
+3. **Extended Models**: Support for more complex genetic models
 
 ## Contact & Support
 
 - **Maintainer**: r1cheu (chenrulei@cemps.ac.cn)
-- **Repository**: https://github.com/r1cheu/gelexy
+- **Repository**: https://github.com/r1cheu/gelex
 - **Issues**: GitHub issue tracker
 
 ---
 
-_This handover document was generated on 2025-08-26. Please keep it updated as the project evolves._
+_This handover document was updated on 2025-09-22. Please keep it updated as the project evolves._

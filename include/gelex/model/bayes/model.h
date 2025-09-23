@@ -6,6 +6,7 @@
 
 #include <Eigen/Core>
 
+#include "../src/data/genotype_mmap.h"
 #include "../src/model/bayes/bayes_effects.h"
 #include "../src/model/bayes/trait.h"
 #include "gelex/model/effects.h"
@@ -36,13 +37,8 @@ class BayesModel
         std::vector<std::string>&& levels,
         Eigen::MatrixXd&& design_matrix);
     void add_random_effect(std::string&& name, Eigen::MatrixXd&& design_matrix);
-    void add_genetic_effect(
-        bool iid_only,
-        bool dom,
-        const std::string& bfile,
-        const std::vector<std::string>& pid,
-        const std::vector<std::string>& gid,
-        BayesAlphabet type);
+    void add_additive_effect(detail::GenotypeMap&& matrix, BayesAlphabet type);
+    void add_dominance_effect(detail::GenotypeMap&& matrix, BayesAlphabet type);
 
     const auto& fixed() const { return *fixed_; }
     const auto& random() const { return random_; }

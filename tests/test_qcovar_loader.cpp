@@ -1,7 +1,6 @@
 #include <fstream>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -96,14 +95,14 @@ TEST_CASE_PERSISTENT_FIXTURE(
             = gelex::detail::QcovarLoader::create("test_valid.qcovar", true);
         REQUIRE(result.has_value());
 
-        const auto& names = result->covariate_names();
+        const auto& names = result->names();
         REQUIRE(names.size() == 4);
         REQUIRE(names[0] == "age");
         REQUIRE(names[1] == "bmi");
         REQUIRE(names[2] == "height");
         REQUIRE(names[3] == "weight");
 
-        const auto& data = result->covariate_data();
+        const auto& data = result->data();
         REQUIRE(data.size() == 4);
         REQUIRE(data.contains("IND1001"));
         REQUIRE(data.contains("IND1002"));
@@ -126,11 +125,11 @@ TEST_CASE_PERSISTENT_FIXTURE(
 
         REQUIRE(result.has_value());
 
-        const auto& names = result->covariate_names();
+        const auto& names = result->names();
         REQUIRE(names.size() == 1);
         REQUIRE(names[0] == "age");
 
-        const auto& data = result->covariate_data();
+        const auto& data = result->data();
         REQUIRE(data.size() == 2);
         REQUIRE(data.contains("IND1001"));
         REQUIRE(data.contains("IND1002"));
@@ -154,12 +153,12 @@ TEST_CASE_PERSISTENT_FIXTURE(
         auto iid_only
             = gelex::detail::QcovarLoader::create("test_valid.qcovar", true);
         REQUIRE(iid_only.has_value());
-        REQUIRE(iid_only->covariate_data().contains("IND1001"));
+        REQUIRE(iid_only->data().contains("IND1001"));
 
         auto full_id
             = gelex::detail::QcovarLoader::create("test_valid.qcovar", false);
         REQUIRE(full_id.has_value());
-        REQUIRE(full_id->covariate_data().contains("FAM1001_IND1001"));
+        REQUIRE(full_id->data().contains("FAM1001_IND1001"));
     }
 
     SECTION("File with insufficient columns (no covariates)")
@@ -169,49 +168,6 @@ TEST_CASE_PERSISTENT_FIXTURE(
 
         REQUIRE_FALSE(result.has_value());
         REQUIRE(result.error().code == gelex::ErrorCode::InvalidRange);
-    }
-}
-
-TEST_CASE_PERSISTENT_FIXTURE(
-    QcovarLoaderTestFixture,
-    "QcovarLoader::intersect method",
-    "[loader][qcovar]")
-{
-    auto loader
-        = gelex::detail::QcovarLoader::create("test_valid.qcovar", true);
-    REQUIRE(loader.has_value());
-
-    SECTION("Intersect with subset of IDs")
-    {
-        std::unordered_set<std::string> id_set
-            = {"IND1001", "IND1002", "NON_EXISTENT", "IND1003"};
-
-        loader->intersect(id_set);
-
-        REQUIRE(id_set.size() == 3);
-        REQUIRE(id_set.contains("IND1001"));
-        REQUIRE(id_set.contains("IND1002"));
-        REQUIRE(id_set.contains("IND1003"));
-        REQUIRE_FALSE(id_set.contains("NON_EXISTENT"));
-    }
-
-    SECTION("Intersect with empty set")
-    {
-        std::unordered_set<std::string> id_set;
-
-        loader->intersect(id_set);
-
-        REQUIRE(id_set.empty());
-    }
-
-    SECTION("Intersect with no matching IDs")
-    {
-        std::unordered_set<std::string> id_set
-            = {"NON_EXISTENT_1", "NON_EXISTENT_2"};
-
-        loader->intersect(id_set);
-
-        REQUIRE(id_set.empty());
     }
 }
 
