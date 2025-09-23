@@ -83,7 +83,7 @@ DominantEffect::DominantEffect(
 
 DominantStatus::DominantStatus(const DominantEffect& effect)
     : coeff(VectorXd::Zero(effect.design_matrix.cols())),
-      u(VectorXd::Zero(effect.design_matrix.cols()))
+      u(VectorXd::Zero(effect.design_matrix.rows()))
 {
 }
 

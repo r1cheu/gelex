@@ -4,8 +4,8 @@
 #include <filesystem>
 #include <fstream>
 
+#include <gelex/mio.h>
 #include <Eigen/Core>
-#include <mio/mmap.hpp>
 
 #include "loader.h"
 

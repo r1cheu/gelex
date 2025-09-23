@@ -3,8 +3,8 @@
 #include <expected>
 #include <filesystem>
 
+#include <gelex/mio.h>
 #include <Eigen/Core>
-#include <mio/mmap.hpp>
 
 #include "gelex/error.h"
 

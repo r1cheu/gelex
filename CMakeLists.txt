@@ -10,7 +10,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE
-      RelWithDebInfo
+      Release
       CACHE STRING "Choose the type of build." FORCE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
                                                "MinSizeRel" "RelWithDebInfo")
@@ -37,8 +37,6 @@ FetchContent_MakeAvailable(argparse)
 # core library
 file(GLOB_RECURSE CORE_SOURCE "${PROJECT_SOURCE_DIR}/src/*.cpp")
 list(REMOVE_ITEM CORE_SOURCE "${PROJECT_SOURCE_DIR}/src/main.cpp")
-
-add_subdirectory(ext/mio)
 
 add_library(core ${CORE_SOURCE})
 set_target_properties(core PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -69,7 +67,7 @@ else()
 endif()
 
 target_link_libraries(core PUBLIC OpenMP::OpenMP_CXX BLAS::BLAS spdlog::spdlog
-                                  mio $<$<BOOL:${MINGW}>:ws2_32>)
+                                  $<$<BOOL:${MINGW}>:ws2_32>)
 
 add_executable(gelex src/main.cpp)
 target_link_libraries(gelex PRIVATE core argparse)
