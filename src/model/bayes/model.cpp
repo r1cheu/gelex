@@ -46,37 +46,31 @@ void BayesModel::add_random_effect(std::string&& name, MatrixXd&& design_matrix)
     set_sigma_prior_manual("e", -2, 0, phenotype_var_ * 0.5);
 }
 
-void BayesModel::add_genetic_effect(
-    bool iid_only,
-    bool dom,
-    const std::string& bfile,
-    const std::vector<std::string>& pid,
-    const std::vector<std::string>& gid,
+void BayesModel::add_additive_effect(
+    detail::GenotypeMap&& matrix,
     BayesAlphabet type)
+
 {
-    set_model_type(type);
-    std::string add_bin = bfile + ".add.bin";
-    std::string dom_bin = bfile + ".dom.bin";
-
-    detail::create_genotype_binary(bfile, dom, pid, gid, iid_only);
-    auto [rows, cols] = detail::get_rows_and_cols(add_bin);
-    auto n_snp = static_cast<Eigen::Index>(cols);
-
+    Index n_snp = matrix.cols();
     additive_ = std::make_unique<bayes::AdditiveEffect>(
         "add",
-        add_bin,
-        bfile + ".bim",
+        std::move(matrix),
         type,
         model_trait_->default_sigma(n_snp),
         model_trait_->default_pi());
     set_sigma_prior(additive_->name, 4.0, 0.5);
-
-    if (dom)
-    {
-        dominant_
-            = std::make_unique<bayes::DominantEffect>("dom", dom_bin, 0, 1);
-    }
 }
+
+void BayesModel::add_dominance_effect(
+    detail::GenotypeMap&& matrix,
+    BayesAlphabet type)
+{
+    Index n_snp = matrix.cols();
+    dominant_ = std::make_unique<bayes::DominantEffect>(
+        "dom", std::move(matrix), 0, 2);
+    set_sigma_prior(dominant_->name, 4.0, 0.5);
+}
+
 void BayesModel::set_sigma_prior_manual(
     const std::string& name,
     double nu,
@@ -138,7 +132,7 @@ void BayesModel::set_sigma_prior(
 
     if (additive_ && additive_->name == name)
     {
-        auto n_snp = static_cast<double>(additive_->design_matrix.mat.cols());
+        auto n_snp = static_cast<double>(additive_->design_matrix.cols());
         auto p1 = additive_->pi(1);
         init_sigma = var / n_snp / p1;
         s2 = (nu - 2) / nu * init_sigma;

@@ -2,6 +2,7 @@
 
 #include "gelex/data/data_pipe.h"
 #include "gelex/data/genotype_pipe.h"
+#include "gelex/data/sample_manager.h"
 #include "gelex/logger.h"
 
 int main(int argc, char* argv[])
@@ -71,35 +72,87 @@ int main(int argc, char* argv[])
         gelex::logging::initialize(fit.get("--out"));
         auto logger = gelex::logging::get();
 
+        auto bed = gelex::valid_bed(fit.get("--bfile"));
+
+        if (!bed)
+        {
+            logger->error(bed.error().message);
+            std::exit(1);
+        }
+
+        // Create shared SampleManager
+        auto sample_manager_result = gelex::SampleManager::create(
+            bed->replace_extension(".fam"), fit.get<bool>("--iid_only"));
+
+        if (!sample_manager_result)
+        {
+            logger->error(sample_manager_result.error().message);
+            std::exit(1);
+        }
+
+        auto sample_manager = std::make_shared<gelex::SampleManager>(
+            std::move(*sample_manager_result));
+
         gelex::DataPipe::Config config{
             .phenotype_path = fit.get("--pheno"),
             .phenotype_column = fit.get<int>("--pheno-col"),
             .qcovar_path = fit.get("--qcovar"),
             .covar_path = fit.get("--covar"),
-            .fam_path = fit.get("--bfile") + ".fam",
             .iid_only = fit.get<bool>("--iid_only"),
             .output_prefix = fit.get("--out")};
 
-        auto data_pipe = gelex::DataPipe::create(config);
+        auto data_pipe = gelex::DataPipe::create(config, sample_manager);
+
         if (!data_pipe)
         {
             logger->error(data_pipe.error().message);
             std::exit(1);
         }
-
-        auto genotype_pipe = gelex::GenotypePipe::create(
-            fit.get("--bfile"),
-            fit.get<bool>("--iid_only"),
-            fit.get<bool>("--dom"));
-
-        if (!genotype_pipe)
         {
-            logger->error(genotype_pipe.error().message);
-            std::exit(1);
+            auto genotype_pipe = gelex::GenotypePipe::create(
+                bed->replace_extension(".bed"),
+                sample_manager,
+                fit.get("--out"));
+
+            if (!genotype_pipe)
+            {
+                logger->error(genotype_pipe.error().message);
+                std::exit(1);
+            }
+
+            if (auto process_result
+                = genotype_pipe->process(fit.get<int>("--chunk-size"));
+                !process_result)
+
+            {
+                logger->error(process_result.error().message);
+                std::exit(1);
+            }
         }
 
-        genotype_pipe->process(
-            fit.get<int>("--chunk-size"), data_pipe->id_map());
+        if (fit.get<bool>("--dom"))
+        {
+            auto genotype_pipe = gelex::GenotypePipe::create(
+                bed->replace_extension(".bed"),
+                sample_manager,
+                fit.get("--out"),
+                true);
+
+            if (!genotype_pipe)
+            {
+                logger->error(genotype_pipe.error().message);
+                std::exit(1);
+            }
+
+            if (auto process_result
+                = genotype_pipe->process(fit.get<int>("--chunk-size"));
+                !process_result)
+
+            {
+                logger->error(process_result.error().message);
+                std::exit(1);
+            }
+        }
     }
     else
     {

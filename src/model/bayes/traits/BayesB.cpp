@@ -64,7 +64,7 @@ void BayesBTrait::operator()(
     VectorXd& sigma = state.sigma;
     VectorXi& tracker = state.tracker;
 
-    const auto& design_matrix = effect.design_matrix.mat;
+    const auto& design_matrix = effect.design_matrix.matrix();
     const auto& cols_norm = effect.cols_norm;
 
     // col_norm is n - 1, since we have normalized the design matrix

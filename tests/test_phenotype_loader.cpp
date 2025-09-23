@@ -82,9 +82,9 @@ TEST_CASE_PERSISTENT_FIXTURE(
             = gelex::detail::PhenotypeLoader::create("test_valid.phe", 8, true);
 
         REQUIRE(result.has_value());
-        REQUIRE(result->phenotype_name() == "T1");
+        REQUIRE(result->name() == "T1");
 
-        const auto& data = result->phenotype_data();
+        const auto& data = result->data();
         REQUIRE(data.size() == 4);
 
         REQUIRE_THAT(data.at("IND1001"), WithinAbs(4.7658, 1e-10));
@@ -99,9 +99,9 @@ TEST_CASE_PERSISTENT_FIXTURE(
             = gelex::detail::PhenotypeLoader::create("test_valid.phe", 5, true);
 
         REQUIRE(result.has_value());
-        REQUIRE(result->phenotype_name() == "bwt");
+        REQUIRE(result->name() == "bwt");
 
-        const auto& data = result->phenotype_data();
+        const auto& data = result->data();
         REQUIRE(data.size() == 4);
 
         REQUIRE_THAT(data.at("IND1001"), WithinAbs(1.2, 1e-10));
@@ -142,55 +142,12 @@ TEST_CASE_PERSISTENT_FIXTURE(
         auto iid_only
             = gelex::detail::PhenotypeLoader::create("test_valid.phe", 8, true);
         REQUIRE(iid_only.has_value());
-        REQUIRE(iid_only->phenotype_data().contains("IND1001"));
+        REQUIRE(iid_only->data().contains("IND1001"));
 
         auto full_id = gelex::detail::PhenotypeLoader::create(
             "test_valid.phe", 8, false);
         REQUIRE(full_id.has_value());
-        REQUIRE(full_id->phenotype_data().contains("FAM1001_IND1001"));
-    }
-}
-
-TEST_CASE_PERSISTENT_FIXTURE(
-    PhenotypeLoaderTestFixture,
-    "PhenotypeLoader::intersect method",
-    "[loader][phenotype]")
-{
-    auto loader
-        = gelex::detail::PhenotypeLoader::create("test_valid.phe", 8, true);
-    REQUIRE(loader.has_value());
-
-    SECTION("Intersect with subset of IDs")
-    {
-        std::unordered_set<std::string> id_set
-            = {"IND1001", "IND1002", "NON_EXISTENT", "IND1003"};
-
-        loader->intersect(id_set);
-
-        REQUIRE(id_set.size() == 3);
-        REQUIRE(id_set.contains("IND1001"));
-        REQUIRE(id_set.contains("IND1002"));
-        REQUIRE(id_set.contains("IND1003"));
-        REQUIRE_FALSE(id_set.contains("NON_EXISTENT"));
-    }
-
-    SECTION("Intersect with empty set")
-    {
-        std::unordered_set<std::string> id_set;
-
-        loader->intersect(id_set);
-
-        REQUIRE(id_set.empty());
-    }
-
-    SECTION("Intersect with no matching IDs")
-    {
-        std::unordered_set<std::string> id_set
-            = {"NON_EXISTENT_1", "NON_EXISTENT_2"};
-
-        loader->intersect(id_set);
-
-        REQUIRE(id_set.empty());
+        REQUIRE(full_id->data().contains("FAM1001_IND1001"));
     }
 }
 

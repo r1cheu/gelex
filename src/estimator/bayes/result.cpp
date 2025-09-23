@@ -84,7 +84,7 @@ void MCMCResult::save(const std::string& prefix) const
     if (!samples_.bim_file_path().empty())
     {
         auto bim = *detail::BimLoader::create(samples_.bim_file_path());
-        snp_names = bim.snp_ids();
+        snp_names = bim.ids();
     }
 
     // header setting

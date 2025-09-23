@@ -16,6 +16,7 @@ enum class ErrorCode : uint8_t
     NotNumber,
     InvalidFile,
     InvalidRange,
+    InvalidArgument,
 
     WrongHeader,
     InconsistColumnCount,
@@ -45,6 +46,8 @@ constexpr std::string_view to_string_view(ErrorCode code) noexcept
             return "Invalid file format"sv;
         case ErrorCode::InvalidRange:
             return "Invalid Range specified"sv;
+        case ErrorCode::InvalidArgument:
+            return "Invalid argument"sv;
         case ErrorCode::WrongHeader:
             return "Incorrect header"sv;
         case ErrorCode::InconsistColumnCount:
@@ -68,9 +71,20 @@ E enrich_with_line_info(E&& error, int line_number)
 }
 
 template <typename E>
+E enrich_with_file_info(E&& error, std::string_view path)
+{
+    std::string original_message = std::move(error.message);
+    error.message = std::format("{} (file [{}])", original_message, path);
+    return std::forward<E>(error);
+}
+
+template <typename E>
 E enrich_with_file_info(E&& error, const std::filesystem::path& path)
 {
-    return enrich_with_file_info(std::forward<E>(error), path.string());
+    std::string original_message = std::move(error.message);
+    error.message
+        = std::format("{} (file [{}])", original_message, path.string());
+    return std::forward<E>(error);
 }
 
 }  // namespace gelex

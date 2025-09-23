@@ -1,11 +1,13 @@
 #include "gelex/data/grm.h"
 
+#include <algorithm>
 #include <expected>
 #include <memory>
 
 #include <Eigen/Core>
 
 #include "gelex/data/bed_pipe.h"
+#include "gelex/data/sample_manager.h"
 
 namespace gelex
 {
@@ -16,7 +18,19 @@ GRM::GRM(
     Index chunk_size,
     const std::unordered_map<std::string, Eigen::Index>& target_order)
 {
-    auto bed_pipe = BedPipe::create(bed_file);
+    // Create SampleManager
+    auto sample_manager_result = SampleManager::create(
+        std::filesystem::path(bed_file).replace_extension(".fam"), false);
+    if (!sample_manager_result)
+    {
+        throw std::runtime_error(
+            "Failed to create SampleManager: "
+            + std::string(sample_manager_result.error().message));
+    }
+    auto sample_manager
+        = std::make_shared<SampleManager>(std::move(*sample_manager_result));
+
+    auto bed_pipe = BedPipe::create(bed_file, sample_manager);
     if (!bed_pipe)
     {
         throw std::runtime_error(
@@ -33,7 +47,11 @@ GRM::GRM(
         // Validate that all IDs in id_map exist in the bed file
         for (const auto& [id, index] : id_map_)
         {
-            if (!bed_->sample_map().contains(id))
+            if (std::find(
+                    sample_manager->genotyped_sample_ids().begin(),
+                    sample_manager->genotyped_sample_ids().end(),
+                    id)
+                == sample_manager->genotyped_sample_ids().end())
             {
                 throw std::runtime_error(
                     "Sample ID '" + id + "' not found in BED file");
@@ -48,7 +66,7 @@ GRM::GRM(
 Eigen::MatrixXd GRM::compute(bool add)
 {
     const auto n = static_cast<Eigen::Index>(
-        id_map_.empty() ? bed_->sample_map().size() : id_map_.size());
+        id_map_.empty() ? bed_->sample_size() : id_map_.size());
     Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(n, n);
 
     // Process in chunks
@@ -88,7 +106,18 @@ CrossGRM::CrossGRM(
     const std::unordered_map<std::string, Eigen::Index>& target_order)
     : scale_factor_{scale_factor}, chunk_size_{chunk_size}
 {
-    auto bed_pipe = BedPipe::create(train_bed);
+    auto sample_manager_result = SampleManager::create(
+        std::filesystem::path(train_bed).replace_extension(".fam"), false);
+    if (!sample_manager_result)
+    {
+        throw std::runtime_error(
+            "Failed to create SampleManager: "
+            + std::string(sample_manager_result.error().message));
+    }
+    auto sample_manager
+        = std::make_shared<SampleManager>(std::move(*sample_manager_result));
+
+    auto bed_pipe = BedPipe::create(train_bed, sample_manager);
     if (!bed_pipe)
     {
         throw std::runtime_error(
@@ -105,7 +134,11 @@ CrossGRM::CrossGRM(
         // Validate that all IDs in id_map exist in the bed file
         for (const auto& [id, index] : id_map_)
         {
-            if (!bed_->sample_map().contains(id))
+            if (std::find(
+                    sample_manager->genotyped_sample_ids().begin(),
+                    sample_manager->genotyped_sample_ids().end(),
+                    id)
+                == sample_manager->genotyped_sample_ids().end())
             {
                 throw std::runtime_error(
                     "Sample ID '" + id + "' not found in BED file");
@@ -124,7 +157,18 @@ CrossGRM::CrossGRM(
 Eigen::MatrixXd CrossGRM::compute(std::string_view test_bed, bool add)
 {
     // Create test BedPipe
-    auto test_bed_pipe = BedPipe::create(test_bed);
+    auto test_sample_manager_result = SampleManager::create(
+        std::filesystem::path(test_bed).replace_extension(".fam"), false);
+    if (!test_sample_manager_result)
+    {
+        throw std::runtime_error(
+            "Failed to create test SampleManager: "
+            + std::string(test_sample_manager_result.error().message));
+    }
+    auto test_sample_manager = std::make_shared<SampleManager>(
+        std::move(*test_sample_manager_result));
+
+    auto test_bed_pipe = BedPipe::create(test_bed, test_sample_manager);
     if (!test_bed_pipe)
     {
         throw std::runtime_error(
@@ -136,7 +180,7 @@ Eigen::MatrixXd CrossGRM::compute(std::string_view test_bed, bool add)
 
     const Index test_n = test_bed_pipe->sample_size();
     const auto train_n = static_cast<Index>(
-        id_map_.empty() ? bed_->sample_map().size() : id_map_.size());
+        id_map_.empty() ? bed_->sample_size() : id_map_.size());
     Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(test_n, train_n);
 
     // Process in chunks

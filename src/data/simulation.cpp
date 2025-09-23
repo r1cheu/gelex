@@ -12,6 +12,7 @@
 #include "../src/data/loader.h"
 #include "data/math_utils.h"
 #include "gelex/data/bed_pipe.h"
+#include "gelex/data/sample_manager.h"
 
 namespace gelex
 {
@@ -93,8 +94,19 @@ void PhenotypeSimulator::simulate_qt_from_bed(
     auto causal_variants = load_causal_variants(causal_variants_list);
     initialize_rng(seed);
 
-    // Create BedPipe for genotype data processing
-    auto bed_pipe_result = BedPipe::create(bfile);
+    // Create SampleManager and BedPipe for genotype data processing
+    auto sample_manager_result = SampleManager::create(
+        std::filesystem::path(bfile).replace_extension(".fam"), false);
+    if (!sample_manager_result)
+    {
+        throw std::runtime_error(
+            "Failed to create SampleManager: "
+            + std::string(sample_manager_result.error().message));
+    }
+    auto sample_manager
+        = std::make_shared<SampleManager>(std::move(*sample_manager_result));
+
+    auto bed_pipe_result = BedPipe::create(bfile, sample_manager);
     if (!bed_pipe_result)
     {
         throw std::runtime_error(
@@ -104,9 +116,9 @@ void PhenotypeSimulator::simulate_qt_from_bed(
     auto bed_pipe = std::move(*bed_pipe_result);
 
     const auto& snp_ids = bed_pipe.snp_ids();
-    const auto& sample_ids = bed_pipe.sample_ids();
+    const auto& sample_ids = sample_manager->common_ids();
 
-    const size_t n_individuals = bed_pipe.sample_size();
+    const size_t n_individuals = sample_manager->num_common_samples();
     const size_t n_snps = bed_pipe.num_variants();
 
     Eigen::VectorXd genetic_values = Eigen::VectorXd::Zero(n_individuals);

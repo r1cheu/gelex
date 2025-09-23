@@ -21,7 +21,7 @@ class BinaryMatrixWriter
     BinaryMatrixWriter(BinaryMatrixWriter&&) noexcept = default;
     BinaryMatrixWriter& operator=(const BinaryMatrixWriter&) = delete;
     BinaryMatrixWriter& operator=(BinaryMatrixWriter&&) noexcept = default;
-    ~BinaryMatrixWriter();
+    ~BinaryMatrixWriter() = default;
 
     auto write(const Eigen::MatrixXd& matrix) -> std::expected<void, Error>;
 

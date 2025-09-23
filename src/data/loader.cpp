@@ -3,7 +3,7 @@
 #include <expected>
 #include <filesystem>
 #include <fstream>
-#include <iterator>
+#include <iostream>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -54,20 +54,12 @@ auto PhenotypeLoader::create(
     return PhenotypeLoader(std::move((*header)[pheno_column]), std::move(*map));
 }
 
-void PhenotypeLoader::intersect(std::unordered_set<std::string>& id_set) const
-{
-    std::erase_if(
-        id_set,
-        [this](const std::string& current_id)
-        { return !phenotype_data_.contains(current_id); });
-}
-
 Eigen::VectorXd PhenotypeLoader::load(
     const std::unordered_map<std::string, Eigen::Index>& id_map) const
 {
     Eigen::VectorXd data(id_map.size(), 1);
 
-    for (const auto& [id, value] : phenotype_data_)
+    for (const auto& [id, value] : data_)
     {
         if (auto it = id_map.find(id); it != id_map.end())
         {
@@ -202,21 +194,13 @@ auto QcovarLoader::create(const std::filesystem::path& path, bool iid_only)
     return QcovarLoader(std::move(covar_names), std::move(*map));
 }
 
-void QcovarLoader::intersect(std::unordered_set<std::string>& id_set) const
-{
-    std::erase_if(
-        id_set,
-        [this](const std::string& current_id)
-        { return !covariate_data_.contains(current_id); });
-}
-
 Eigen::MatrixXd QcovarLoader::load(
     const std::unordered_map<std::string, Eigen::Index>& id_map) const
 {
-    Eigen::MatrixXd data(id_map.size(), covariate_names_.size());
+    Eigen::MatrixXd data(id_map.size(), names_.size());
     data.setZero();
 
-    for (const auto& [id, values] : covariate_data_)
+    for (const auto& [id, values] : data_)
     {
         if (auto it = id_map.find(id); it != id_map.end())
         {
@@ -328,70 +312,28 @@ auto CovarLoader::create(const std::filesystem::path& path, bool iid_only)
     {
         covar_names.push_back(std::move((*header)[i]));
     }
-
-    auto encode_maps = build_encode_maps(*map, covar_names);
-
     auto logger = gelex::logging::get();
 
     logger->info(
         "Loaded {} samples with {} covars", map->size(), covar_names.size());
 
-    std::vector<std::string> covar_names_with_levels;
-    for (size_t i = 0; i < covar_names.size(); ++i)
-    {
-        size_t num_levels = encode_maps[i].size();
-        if (num_levels > 0)
-        {
-            covar_names_with_levels.push_back(
-                std::format("{} [{}]", covar_names[i], num_levels));
-        }
-        else
-        {
-            covar_names_with_levels.push_back(covar_names[i]);
-        }
-    }
-
-    if (covar_names_with_levels.size() <= 3)
-    {
-        logger->info(
-            "covar names: {}", fmt::join(covar_names_with_levels, ", "));
-    }
-    else
-    {
-        logger->info(
-            "covar names: {}, {}, {}, ... ({} total)",
-            covar_names_with_levels[0],
-            covar_names_with_levels[1],
-            covar_names_with_levels[2],
-            covar_names_with_levels.size());
-    }
-
-    return CovarLoader(
-        std::move(covar_names), std::move(*map), std::move(encode_maps));
-}
-
-void CovarLoader::intersect(std::unordered_set<std::string>& id_set)
-{
-    size_t initial_count = id_set.size();
-
-    std::erase_if(
-        covariate_data_,
-        [&id_set](const auto& pair) { return !id_set.contains(pair.first); });
-
-    std::erase_if(
-        id_set,
-        [this](const std::string& current_id)
-        { return !covariate_data_.contains(current_id); });
-
-    rebuild_encode_maps();
+    return CovarLoader(std::move(covar_names), std::move(*map));
 }
 
 Eigen::MatrixXd CovarLoader::load(
     const std::unordered_map<std::string, Eigen::Index>& id_map) const
 {
+    auto covariate_data = data_;
+
+    std::erase_if(
+        covariate_data,
+        [&id_map](const auto& pair) { return !id_map.contains(pair.first); });
+
+    auto encode_maps = build_encode_maps(covariate_data, names_);
+
     size_t total_dummy_vars = 0;
     std::vector<Eigen::Index> col_offsets;
-    for (const auto& encode_map : encode_maps_)
+    for (const auto& encode_map : encode_maps)
     {
         col_offsets.push_back(static_cast<Eigen::Index>(total_dummy_vars));
         if (!encode_map.empty())
@@ -403,7 +345,7 @@ Eigen::MatrixXd CovarLoader::load(
     Eigen::MatrixXd data(id_map.size(), total_dummy_vars);
     data.setZero();
 
-    for (const auto& [id, values] : covariate_data_)
+    for (const auto& [id, values] : data_)
     {
         const auto id_it = id_map.find(id);
         if (id_it == id_map.end())
@@ -413,11 +355,11 @@ Eigen::MatrixXd CovarLoader::load(
         const Eigen::Index row_idx = id_it->second;
 
         const size_t num_covars_to_process
-            = std::min(values.size(), encode_maps_.size());
+            = std::min(values.size(), encode_maps.size());
         for (size_t i = 0; i < num_covars_to_process; ++i)
         {
-            if (const auto map_it = encode_maps_[i].find(values[i]);
-                map_it != encode_maps_[i].end())
+            if (const auto map_it = encode_maps[i].find(values[i]);
+                map_it != encode_maps[i].end())
             {
                 const auto& dummy_encoding = map_it->second;
                 const Eigen::Index offset = col_offsets[i];
@@ -589,11 +531,6 @@ auto CovarLoader::create_encoding_for_one_covariate(
     return encode_map;
 }
 
-void CovarLoader::rebuild_encode_maps()
-{
-    encode_maps_ = build_encode_maps(covariate_data_, covariate_names_);
-}
-
 auto BimLoader::create(const std::filesystem::path& path)
     -> std::expected<BimLoader, Error>
 {
@@ -635,7 +572,7 @@ auto BimLoader::read(std::ifstream& file)
                 Error{
                     ErrorCode::InconsistColumnCount,
                     std::format(
-                        "Bim file must have at least 2 columns at line {}",
+                        "Bim file must have exactly 6 columns (line {})",
                         n_line + 1)});
         }
 
@@ -646,7 +583,7 @@ auto BimLoader::read(std::ifstream& file)
                 Error{
                     ErrorCode::InvalidFile,
                     std::format(
-                        "Failed to parse SNP ID from line {}", n_line + 1)});
+                        "Failed to parse SNP ID (line {})", n_line + 1)});
         }
 
         snp_ids.emplace_back(tokens[1]);
@@ -663,6 +600,7 @@ auto FamLoader::create(const std::filesystem::path& path, bool iid_only)
     {
         return std::unexpected(file.error());
     }
+
     auto sample_ids = read(*file, iid_only);
     if (!sample_ids)
     {
@@ -684,19 +622,7 @@ auto FamLoader::create(const std::filesystem::path& path, bool iid_only)
         sample_ids->size(),
         path.string());
 
-    std::unordered_set<std::string> sample_id_set(
-        std::make_move_iterator(sample_ids->begin()),
-        std::make_move_iterator(sample_ids->end()));
-
-    return FamLoader(std::move(sample_id_set), std::move(sample_map));
-}
-
-void FamLoader::intersect(std::unordered_set<std::string>& id_set) const
-{
-    std::erase_if(
-        id_set,
-        [this](const std::string& current_id)
-        { return !sample_ids_.contains(current_id); });
+    return FamLoader(std::move(*sample_ids), std::move(sample_map));
 }
 
 auto FamLoader::read(std::ifstream& file, bool iid_only)

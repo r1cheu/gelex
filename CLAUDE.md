@@ -19,16 +19,19 @@ Gelexy is a C++ library for genomic prediction with Bayesian (BayesAlphabet mode
 This project uses CMake with pixi for dependency management:
 
 **Common Commands:**
+
 - Configure: `pixi run configure`
 - Build: `pixi run build`
 - Test: `pixi run test` (runs C++ tests)
 - Install: `pixi run install` (copies to ~/.local/bin)
 
 **CMake Options:**
+
 - `-DUSE_MKL=ON/OFF`: Use Intel MKL or OpenBLAS (default: OFF)
 - `-DBUILD_TEST=ON/OFF`: Enable testing (default: OFF)
 
 **Single Test Execution:**
+
 ```bash
 cd .build/tests/cpp/
 ./test "TestName*"

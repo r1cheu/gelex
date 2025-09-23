@@ -59,7 +59,7 @@ void BayesRRTrait::operator()(
     VectorXd& coeff = state.coeff;
     auto& u = state.u;
 
-    const auto& design_matrix = effect.design_matrix.mat;
+    const auto& design_matrix = effect.design_matrix.matrix();
 
     // col_norm is n - 1, since we have normalized the design matrix
     const auto& cols_norm = effect.cols_norm;

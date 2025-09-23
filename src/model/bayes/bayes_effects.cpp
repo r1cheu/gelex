@@ -1,12 +1,10 @@
 #include "bayes_effects.h"
 
-#include <fstream>
 #include <unordered_set>
 #include <utility>
 
 #include "Eigen/Core"
 
-#include "../src/data/loader.h"
 #include "gelex/model/effects.h"
 
 namespace gelex
@@ -49,8 +47,7 @@ RandomStatus::RandomStatus(const RandomEffect& effect)
 
 AdditiveEffect::AdditiveEffect(
     std::string&& name,
-    const std::string& genotype_bin,
-    const std::string& bim_file_path,
+    detail::GenotypeMap&& design_matrix,
     BayesAlphabet type,
     VectorXd&& sigma,
     VectorXd&& pi)
@@ -58,38 +55,35 @@ AdditiveEffect::AdditiveEffect(
       pi(std::move(pi)),
       sigma(std::move(sigma)),
       type(type),
-      design_matrix(genotype_bin),
-      bim_file_path(bim_file_path),
-      mono_indices(detail::read_mono_indices(genotype_bin))
+      design_matrix(std::move(design_matrix))
 {
-    cols_norm = this->design_matrix.mat.colwise().squaredNorm();
+    cols_norm = this->design_matrix.matrix().colwise().squaredNorm();
 }
 
 AdditiveStatus::AdditiveStatus(const AdditiveEffect& effect)
-    : u(VectorXd::Zero(effect.design_matrix.mat.rows())),
-      coeff(VectorXd::Zero(effect.design_matrix.mat.cols())),
-      tracker(VectorXi::Zero(effect.design_matrix.mat.cols())),
+    : u(VectorXd::Zero(effect.design_matrix.rows())),
+      coeff(VectorXd::Zero(effect.design_matrix.cols())),
+      tracker(VectorXi::Zero(effect.design_matrix.cols())),
       type(effect.type),
       pi{effect.pi, Eigen::VectorXi::Zero(effect.pi.size())},
       sigma(effect.sigma) {};
 
 DominantEffect::DominantEffect(
     std::string&& name,
-    const std::string& genotype_bin,
+    detail::GenotypeMap&& design_matrix,
     double prior_mean,
     double prior_var)
     : name(std::move(name)),
-      design_matrix(genotype_bin),
+      design_matrix(std::move(design_matrix)),
       prior_mean(prior_mean),
-      prior_var(prior_var),
-      mono_indices(detail::read_mono_indices(genotype_bin))
+      prior_var(prior_var)
 {
-    cols_norm = this->design_matrix.mat.colwise().squaredNorm();
+    cols_norm = this->design_matrix.matrix().colwise().squaredNorm();
 }
 
 DominantStatus::DominantStatus(const DominantEffect& effect)
-    : coeff(VectorXd::Zero(effect.design_matrix.mat.cols())),
-      u(VectorXd::Zero(effect.design_matrix.mat.cols()))
+    : coeff(VectorXd::Zero(effect.design_matrix.cols())),
+      u(VectorXd::Zero(effect.design_matrix.cols()))
 {
 }
 

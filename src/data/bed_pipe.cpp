@@ -3,11 +3,10 @@
 #include <expected>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <memory>
-#include <optional>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -20,15 +19,32 @@
 namespace gelex
 {
 
+auto valid_bed(std::string_view bed_path)
+    -> std::expected<std::filesystem::path, Error>
+{
+    std::filesystem::path bed
+        = bed_path.contains(".bed") ? bed_path : std::string(bed_path) + ".bed";
+    if (!std::filesystem::exists(bed))
+    {
+        return std::unexpected(
+            Error{
+                .code = ErrorCode::FileNotFound,
+                .message = std::format("bed file [{}] not found", bed.string())}
+
+        );
+    }
+    return bed;
+}
+
 BedPipe::BedPipe(
     std::ifstream&& file_stream,
-    std::unique_ptr<detail::FamLoader> fam_loader,
     std::unique_ptr<detail::BimLoader> bim_loader,
-    Eigen::Index bytes_per_variant,
+    std::shared_ptr<SampleManager> sample_manager,
+    const Eigen::Index bytes_per_variant,
     std::filesystem::path bed_path)
     : file_stream_(std::move(file_stream)),
-      fam_loader_(std::move(fam_loader)),
       bim_loader_(std::move(bim_loader)),
+      sample_manager_(std::move(sample_manager)),
       bytes_per_variant_(bytes_per_variant),
       bed_path_(std::move(bed_path))
 {
@@ -36,24 +52,16 @@ BedPipe::BedPipe(
     file_stream_.seekg(3);  // Skip the 3-byte magic number
 }
 
-auto BedPipe::create(const std::filesystem::path& prefix, bool iid_only)
+auto BedPipe::create(
+    const std::filesystem::path& bed_path,
+    std::shared_ptr<SampleManager> sample_manager)
     -> std::expected<BedPipe, Error>
 {
-    // Create file paths
-    std::filesystem::path bed_path = prefix;
-    bed_path.replace_extension(".bed");
-    std::filesystem::path fam_path = prefix;
-    fam_path.replace_extension(".fam");
-    std::filesystem::path bim_path = prefix;
+    // Create bim file path
+    std::filesystem::path bim_path = bed_path;
     bim_path.replace_extension(".bim");
 
-    // Load fam and bim files
-    auto fam_loader = detail::FamLoader::create(fam_path, iid_only);
-    if (!fam_loader)
-    {
-        return std::unexpected(fam_loader.error());
-    }
-
+    // Load bim file
     auto bim_loader = detail::BimLoader::create(bim_path);
     if (!bim_loader)
     {
@@ -73,22 +81,22 @@ auto BedPipe::create(const std::filesystem::path& prefix, bool iid_only)
     }
 
     const auto num_samples
-        = static_cast<Eigen::Index>(fam_loader->sample_ids().size());
+        = static_cast<Eigen::Index>(sample_manager->num_common_samples());
     const Eigen::Index bytes_per_variant
         = calculate_bytes_per_variant(num_samples);
 
     auto logger = gelex::logging::get();
     logger->info(
         "Loaded BED file with {} samples and {} variants",
-        fam_loader->sample_ids().size(),
-        bim_loader->snp_ids().size());
+        sample_manager->num_common_samples(),
+        bim_loader->ids().size());
 
     return BedPipe(
         std::move(*file),
-        std::make_unique<detail::FamLoader>(std::move(*fam_loader)),
         std::make_unique<detail::BimLoader>(std::move(*bim_loader)),
+        std::move(sample_manager),
         bytes_per_variant,
-        std::move(bed_path));
+        bed_path);
 }
 
 auto BedPipe::validate_bed_file(
@@ -140,44 +148,17 @@ auto BedPipe::validate_variant_index(Eigen::Index variant_index) const
     return {};
 }
 
-auto BedPipe::validate_id_map(
-    const std::unordered_map<std::string, Eigen::Index>& id_map) const
-    -> std::expected<void, Error>
-{
-    if (id_map.empty())
-    {
-        return std::unexpected(
-            Error{ErrorCode::InvalidData, "ID map cannot be empty"});
-    }
-
-    const auto& sample_map = fam_loader_->sample_map();
-
-    for (const auto& [sample_id, load_index] : id_map)
-    {
-        // Check if sample ID exists in original map
-        if (!sample_map.contains(sample_id))
-        {
-            return std::unexpected(
-                Error{
-                    ErrorCode::InvalidData,
-                    "Sample ID '" + sample_id
-                        + "' not found in original data"});
-        }
-    }
-
-    return {};
-}
-
 Eigen::VectorXd BedPipe::reorder_genotypes(
-    const Eigen::VectorXd& raw_genotypes,
-    const std::unordered_map<std::string, Eigen::Index>& id_map) const
+    const Eigen::VectorXd& raw_genotypes) const
 {
+    const auto& id_map = sample_manager_->common_id_map();
+    const auto& genotyped_sample_map = sample_manager_->genotyped_sample_map();
+
     Eigen::VectorXd reordered(id_map.size());
-    const auto& sample_map = fam_loader_->sample_map();
 
     for (const auto& [sample_id, load_index] : id_map)
     {
-        const Eigen::Index raw_index = sample_map.at(sample_id);
+        const Eigen::Index raw_index = genotyped_sample_map.at(sample_id);
         reordered(load_index) = raw_genotypes(raw_index);
     }
 
@@ -186,6 +167,12 @@ Eigen::VectorXd BedPipe::reorder_genotypes(
 
 auto BedPipe::get_genotypes(Eigen::Index variant_index) const
     -> std::expected<Eigen::VectorXd, Error>
+{
+    return get_genotypes_impl(variant_index, false);
+}
+
+auto BedPipe::get_genotypes_impl(Eigen::Index variant_index, bool dominant)
+    const -> std::expected<Eigen::VectorXd, Error>
 {
     if (auto validation = validate_variant_index(variant_index); !validation)
     {
@@ -209,7 +196,7 @@ auto BedPipe::get_genotypes(Eigen::Index variant_index) const
     }
 
     const auto num_samples
-        = static_cast<Eigen::Index>(fam_loader_->sample_ids().size());
+        = static_cast<Eigen::Index>(sample_manager_->num_genotyped_samples());
     Eigen::VectorXd genotypes(num_samples);
 
     for (Eigen::Index i = 0; i < num_samples; ++i)
@@ -217,18 +204,20 @@ auto BedPipe::get_genotypes(Eigen::Index variant_index) const
         const Eigen::Index byte_index = i / 4;
         const Eigen::Index bit_offset = 2 * (i % 4);
         const uint8_t genotype_code = (buffer[byte_index] >> bit_offset) & 0x03;
-        genotypes(i) = encode_map_[genotype_code];
+        genotypes(i)
+            = dominant ? dom_map_[genotype_code] : add_map_[genotype_code];
     }
 
-    return genotypes;
+    return reorder_genotypes(genotypes);
 }
 
-auto BedPipe::get_genotype(
+auto BedPipe::get_genotype_impl(
     Eigen::Index variant_index,
-    Eigen::Index sample_index) const -> std::expected<double, Error>
+    Eigen::Index sample_index,
+    bool dominant) const -> std::expected<double, Error>
 {
     const auto num_samples
-        = static_cast<Eigen::Index>(fam_loader_->sample_ids().size());
+        = static_cast<Eigen::Index>(sample_manager_->num_genotyped_samples());
 
     if (auto validation = validate_variant_index(variant_index); !validation)
     {
@@ -260,7 +249,14 @@ auto BedPipe::get_genotype(
     const Eigen::Index bit_offset = 2 * (sample_index % 4);
     const uint8_t genotype_code = (byte >> bit_offset) & 0x03;
 
-    return encode_map_[genotype_code];
+    return dominant ? dom_map_[genotype_code] : add_map_[genotype_code];
+}
+
+auto BedPipe::get_genotype(
+    Eigen::Index variant_index,
+    Eigen::Index sample_index) const -> std::expected<double, Error>
+{
+    return get_genotype_impl(variant_index, sample_index, false);
 }
 
 auto BedPipe::get_sample_genotypes(Eigen::Index sample_index) const
@@ -287,14 +283,50 @@ auto BedPipe::get_sample_genotypes(Eigen::Index sample_index) const
     return genotypes;
 }
 
+auto BedPipe::get_dominant_genotypes(Eigen::Index variant_index) const
+    -> std::expected<Eigen::VectorXd, Error>
+{
+    return get_genotypes_impl(variant_index, true);
+}
+
+auto BedPipe::get_dominant_genotype(
+    Eigen::Index variant_index,
+    Eigen::Index sample_index) const -> std::expected<double, Error>
+{
+    return get_genotype_impl(variant_index, sample_index, true);
+}
+
+auto BedPipe::get_sample_dominant_genotypes(Eigen::Index sample_index) const
+    -> std::expected<Eigen::VectorXd, Error>
+{
+    if (sample_index >= sample_size())
+    {
+        return std::unexpected(
+            Error{ErrorCode::InvalidRange, "Sample index out of range"});
+    }
+
+    Eigen::VectorXd genotypes(num_variants());
+
+    for (Eigen::Index i = 0; i < num_variants(); ++i)
+    {
+        auto result = get_dominant_genotype(i, sample_index);
+        if (!result)
+        {
+            return std::unexpected(result.error());
+        }
+        genotypes(i) = *result;
+    }
+
+    return genotypes;
+}
+
 auto BedPipe::read_variants_bulk(
     Eigen::Index start_variant,
     Eigen::Index end_variant,
-    const std::unordered_map<std::string, Eigen::Index>& id_map) const
-    -> std::expected<Eigen::MatrixXd, Error>
+    bool dominant) const -> std::expected<Eigen::MatrixXd, Error>
 {
     const auto num_samples
-        = static_cast<Eigen::Index>(fam_loader_->sample_ids().size());
+        = static_cast<Eigen::Index>(sample_manager_->num_genotyped_samples());
     const Eigen::Index num_variants_in_chunk = end_variant - start_variant;
 
     if (num_variants_in_chunk <= 0)
@@ -342,58 +374,36 @@ auto BedPipe::read_variants_bulk(
             const uint8_t genotype_code
                 = (variant_data[byte_index] >> bit_offset) & 0x03;
 
-            genotypes(sample_idx, variant_idx) = encode_map_[genotype_code];
+            genotypes(sample_idx, variant_idx)
+                = dominant ? dom_map_[genotype_code] : add_map_[genotype_code];
         }
     }
 
-    // Check if reordering is needed
-    if (&id_map != &fam_loader_->sample_map())
+    // Always reorder genotypes to match the intersected sample order
+    Eigen::MatrixXd reordered_genotypes(
+        sample_manager_->num_common_samples(), num_variants_in_chunk);
+
+    for (Eigen::Index variant_idx = 0; variant_idx < num_variants_in_chunk;
+         ++variant_idx)
     {
-        // Reorder samples for each variant using the provided ID map
-        Eigen::MatrixXd reordered_genotypes(
-            id_map.size(), num_variants_in_chunk);
-
-        for (Eigen::Index variant_idx = 0; variant_idx < num_variants_in_chunk;
-             ++variant_idx)
-        {
-            reordered_genotypes.col(variant_idx)
-                = reorder_genotypes(genotypes.col(variant_idx), id_map);
-        }
-
-        return reordered_genotypes;
+        reordered_genotypes.col(variant_idx)
+            = reorder_genotypes(genotypes.col(variant_idx));
     }
 
-    return genotypes;
+    return reordered_genotypes;
 }
 
-auto BedPipe::load(
-    const std::optional<std::unordered_map<std::string, Eigen::Index>>& id_map)
-    const -> std::expected<Eigen::MatrixXd, Error>
+auto BedPipe::load(bool dominant) const -> std::expected<Eigen::MatrixXd, Error>
 {
-    const auto& actual_id_map = id_map.value_or(fam_loader_->sample_map());
-
-    if (auto validation = validate_id_map(actual_id_map); !validation)
-    {
-        return std::unexpected(validation.error());
-    }
-
     // Use bulk reading for all variants
-    return read_variants_bulk(0, num_variants(), actual_id_map);
+    return read_variants_bulk(0, num_variants(), dominant);
 }
 
 auto BedPipe::load_chunk(
     Eigen::Index start_variant,
     Eigen::Index end_variant,
-    const std::optional<std::unordered_map<std::string, Eigen::Index>>& id_map)
-    const -> std::expected<Eigen::MatrixXd, Error>
+    bool dominant) const -> std::expected<Eigen::MatrixXd, Error>
 {
-    const auto& actual_id_map = id_map.value_or(fam_loader_->sample_map());
-
-    if (auto validation = validate_id_map(actual_id_map); !validation)
-    {
-        return std::unexpected(validation.error());
-    }
-
     if (auto validation = validate_variant_index(start_variant); !validation)
     {
         return std::unexpected(validation.error());
@@ -412,7 +422,7 @@ auto BedPipe::load_chunk(
     }
 
     // Use bulk reading for the chunk
-    return read_variants_bulk(start_variant, end_variant, actual_id_map);
+    return read_variants_bulk(start_variant, end_variant, dominant);
 }
 
 }  // namespace gelex

@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -71,7 +72,7 @@ TEST_CASE_PERSISTENT_FIXTURE(
 
         REQUIRE(result.has_value());
 
-        const auto& snp_ids = result->snp_ids();
+        const auto& snp_ids = result->ids();
         REQUIRE(snp_ids.size() == 5);
         REQUIRE(snp_ids[0] == "rs12345");
         REQUIRE(snp_ids[1] == "rs67890");
@@ -91,9 +92,8 @@ TEST_CASE_PERSISTENT_FIXTURE(
     SECTION("Empty file")
     {
         auto result = gelex::detail::BimLoader::create("test_empty.bim");
-
-        REQUIRE(result.has_value());
-        REQUIRE(result->snp_ids().empty());
+        REQUIRE_FALSE(result.has_value());
+        REQUIRE(result.error().code == gelex::ErrorCode::InvalidFile);
     }
 }
 
@@ -106,7 +106,6 @@ TEST_CASE_PERSISTENT_FIXTURE(
     {
         auto result
             = gelex::detail::BimLoader::create("test_malformed_columns.bim");
-
         REQUIRE_FALSE(result.has_value());
         REQUIRE(result.error().code == gelex::ErrorCode::InconsistColumnCount);
     }
