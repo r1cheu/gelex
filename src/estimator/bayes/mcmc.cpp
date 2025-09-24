@@ -32,7 +32,10 @@ using Eigen::VectorXi;
 namespace bk = barkeep;
 MCMC::MCMC(MCMCParams params) : params_(params) {}
 
-const MCMCResult& MCMC::run(const BayesModel& model, Index seed)
+const MCMCResult& MCMC::run(
+    const BayesModel& model,
+    const std::filesystem::path& out_prefix,
+    Index seed)
 {
     MCMCSamples samples(params_, model);
 
@@ -76,8 +79,8 @@ const MCMCResult& MCMC::run(const BayesModel& model, Index seed)
 
     result_ = std::make_unique<MCMCResult>(std::move(samples), 0.9);
     result_->compute();
-    result_->save("/home/rlchen/project/gelexy/develop/test");
     logger_.log_result(*result_, model);
+    result_->save(out_prefix);
 
     return *result_;
 }

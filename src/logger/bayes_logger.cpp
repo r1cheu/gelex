@@ -140,10 +140,10 @@ void MCMCLogger::log_result(const MCMCResult& result, const BayesModel& model)
     };
 
     for (Eigen::Index i = 0;
-         i < static_cast<Eigen::Index>(model.fixed().levels.size());
+         i < static_cast<Eigen::Index>(model.fixed().names.size());
          ++i)
     {
-        log_summary(i, result.fixed(), model.fixed().levels[i]);
+        log_summary(i, result.fixed(), model.fixed().names[i]);
     }
 
     if (model.additive())

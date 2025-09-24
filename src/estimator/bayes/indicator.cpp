@@ -42,7 +42,7 @@ Indicator::Indicator(
              .format = fmt::format("{}", i + 1)
                        + " {bar} {value}/{total} ({speed:.1f}/s)",
              .speed = 0.1,
-             .style = PROGRESS_BAR_STYLE,
+             .style = BAR_STYLE,
              .show = false});
         progress_bars_.push_back(pbar);
         line_displays.push_back(pbar);

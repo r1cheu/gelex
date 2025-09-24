@@ -5,10 +5,11 @@
 
 #include <gelex/mio.h>
 #include <Eigen/Core>
+#include <unordered_set>
 
 #include "gelex/error.h"
 
-namespace gelex::detail
+namespace gelex
 {
 
 #ifdef USE_AVX512
@@ -36,6 +37,13 @@ class GenotypeMap
         return mat_;
     }
 
+    bool is_monomorphic(Eigen::Index snp_index) const
+    {
+        return mono_set_.contains(snp_index);
+    }
+    const Eigen::VectorXd& mean() const { return mean_; }
+    const Eigen::VectorXd& stddev() const { return stddev_; }
+    int64_t num_mono() const { return static_cast<int64_t>(mono_set_.size()); }
     int64_t rows() const { return rows_; }
     int64_t cols() const { return cols_; }
 
@@ -51,6 +59,9 @@ class GenotypeMap
             const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>,
             Eigen::Aligned32>&& mat,
 #endif
+        std::unordered_set<int64_t>&& mono_set,
+        Eigen::VectorXd&& mean,
+        Eigen::VectorXd&& stddev,
         int64_t rows,
         int64_t cols)
         : mmap_(std::move(mmap)), mat_(std::move(mat)), rows_(rows), cols_(cols)
@@ -69,8 +80,11 @@ class GenotypeMap
         Eigen::Aligned32>
         mat_;
 #endif
+    std::unordered_set<int64_t> mono_set_;
+    Eigen::VectorXd mean_;
+    Eigen::VectorXd stddev_;
     int64_t rows_;
     int64_t cols_;
 };
 
-}  // namespace gelex::detail
+}  // namespace gelex

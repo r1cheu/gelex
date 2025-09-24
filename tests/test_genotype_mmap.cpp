@@ -8,7 +8,7 @@
 
 using Catch::Matchers::WithinAbs;
 
-#include "../src/data/genotype_mmap.h"
+#include "../include/gelex/data/genotype_mmap.h"
 #include "gelex/error.h"
 
 class GenotypeMapTestFixture
@@ -167,7 +167,7 @@ TEST_CASE_PERSISTENT_FIXTURE(
 {
     SECTION("Valid binary and metadata files")
     {
-        auto result = gelex::detail::GenotypeMap::create("test_valid.bin");
+        auto result = gelex::GenotypeMap::create("test_valid.bin");
         REQUIRE(result.has_value());
 
         const auto& genotype_map = result.value();
@@ -195,7 +195,7 @@ TEST_CASE_PERSISTENT_FIXTURE(
         // Create large test files for this specific test
         GenotypeMapTestFixture::createLargeTestFiles();
 
-        auto result = gelex::detail::GenotypeMap::create("test_large.bin");
+        auto result = gelex::GenotypeMap::create("test_large.bin");
         REQUIRE(result.has_value());
 
         const auto& genotype_map = result.value();
@@ -229,7 +229,7 @@ TEST_CASE_PERSISTENT_FIXTURE(
 {
     SECTION("Non-existent binary file")
     {
-        auto result = gelex::detail::GenotypeMap::create("non_existent.bin");
+        auto result = gelex::GenotypeMap::create("non_existent.bin");
         REQUIRE_FALSE(result.has_value());
         REQUIRE(result.error().code == gelex::ErrorCode::FileNotFound);
     }
@@ -245,7 +245,7 @@ TEST_CASE_PERSISTENT_FIXTURE(
             reinterpret_cast<const char*>(matrix.data()),
             static_cast<std::streamsize>(matrix.size() * sizeof(double)));
 
-        auto result = gelex::detail::GenotypeMap::create("test_no_meta.bin");
+        auto result = gelex::GenotypeMap::create("test_no_meta.bin");
         REQUIRE_FALSE(result.has_value());
         REQUIRE(result.error().code == gelex::ErrorCode::FileNotFound);
 
@@ -255,7 +255,7 @@ TEST_CASE_PERSISTENT_FIXTURE(
     SECTION("Invalid metadata dimensions")
     {
         auto result
-            = gelex::detail::GenotypeMap::create("test_invalid_meta.bin");
+            = gelex::GenotypeMap::create("test_invalid_meta.bin");
         REQUIRE_FALSE(result.has_value());
         REQUIRE(result.error().code == gelex::ErrorCode::InvalidData);
     }
@@ -263,7 +263,7 @@ TEST_CASE_PERSISTENT_FIXTURE(
     SECTION("Size mismatch between metadata and binary file")
     {
         auto result
-            = gelex::detail::GenotypeMap::create("test_size_mismatch.bin");
+            = gelex::GenotypeMap::create("test_size_mismatch.bin");
         REQUIRE_FALSE(result.has_value());
         REQUIRE(result.error().code == gelex::ErrorCode::InvalidData);
     }
@@ -276,7 +276,7 @@ TEST_CASE_PERSISTENT_FIXTURE(
 {
     SECTION("Matrix dimensions and properties")
     {
-        auto result = gelex::detail::GenotypeMap::create("test_valid.bin");
+        auto result = gelex::GenotypeMap::create("test_valid.bin");
         REQUIRE(result.has_value());
 
         const auto& genotype_map = result.value();
@@ -298,7 +298,7 @@ TEST_CASE_PERSISTENT_FIXTURE(
 
     SECTION("Matrix data integrity")
     {
-        auto result = gelex::detail::GenotypeMap::create("test_valid.bin");
+        auto result = gelex::GenotypeMap::create("test_valid.bin");
         REQUIRE(result.has_value());
 
         const auto& genotype_map = result.value();
@@ -334,7 +334,7 @@ TEST_CASE_PERSISTENT_FIXTURE(
 {
     SECTION("Matrix data is properly memory mapped")
     {
-        auto result = gelex::detail::GenotypeMap::create("test_valid.bin");
+        auto result = gelex::GenotypeMap::create("test_valid.bin");
         REQUIRE(result.has_value());
 
         const auto& genotype_map = result.value();
@@ -368,7 +368,7 @@ TEST_CASE("GenotypeMap edge cases", "[genotype_mmap][edge]")
         empty_meta.write(reinterpret_cast<const char*>(&rows), sizeof(int64_t));
         empty_meta.write(reinterpret_cast<const char*>(&cols), sizeof(int64_t));
 
-        auto result = gelex::detail::GenotypeMap::create("test_empty.bin");
+        auto result = gelex::GenotypeMap::create("test_empty.bin");
         REQUIRE_FALSE(result.has_value());
         REQUIRE(result.error().code == gelex::ErrorCode::InvalidFile);
 
@@ -399,7 +399,7 @@ TEST_CASE("GenotypeMap edge cases", "[genotype_mmap][edge]")
             reinterpret_cast<const char*>(&cols), sizeof(int64_t));
         single_meta.flush();
 
-        auto result = gelex::detail::GenotypeMap::create("test_single.bin");
+        auto result = gelex::GenotypeMap::create("test_single.bin");
         REQUIRE(result.has_value());
 
         const auto& genotype_map = result.value();

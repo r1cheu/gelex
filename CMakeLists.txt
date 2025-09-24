@@ -10,7 +10,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE
-      Release
+      RelWithDebInfo
       CACHE STRING "Choose the type of build." FORCE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
                                                "MinSizeRel" "RelWithDebInfo")
@@ -51,8 +51,8 @@ target_include_directories(
 target_compile_definitions(
   core
   PUBLIC BARKEEP_ENABLE_FMT_FORMAT ARMA_DONT_USE_WRAPPER
-         ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS ARMA_OPENMP_THREADS=64
-         $<$<CONFIG:Debug>:ARMA_DEBUG> $<$<CONFIG:Release>:ARMA_NO_DEBUG>)
+         ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS ARMA_OPENMP_THREADS=64 ARMA_NO_DEBUG
+         $<$<CONFIG:Release>:EIGEN_NO_DEBUG>)
 
 if(USE_MKL)
   set(BLA_VENDOR Intel10_64lp)

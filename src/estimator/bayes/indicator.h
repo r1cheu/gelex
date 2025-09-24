@@ -25,8 +25,6 @@ class Indicator
 {
    public:
     // Static progress bar style for reuse across the project
-    static const bk::BarParts PROGRESS_BAR_STYLE;
-
     Indicator(
         const BayesModel& model,
         size_t n_iters,

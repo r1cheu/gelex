@@ -67,18 +67,20 @@ void MCMCResult::compute(std::optional<double> prob)
     compute_summary_statistics(residual_, samples_.residual(), prob_);
 }
 
-void MCMCResult::save(const std::string& prefix) const
+void MCMCResult::save(const std::filesystem::path& prefix) const
 {
     // file setting
+    auto out_prefix = prefix;
+
     auto param_stream = *detail::open_file<std::ofstream>(
-        prefix + ".params", std::ios_base::out);
+        out_prefix.replace_extension("params"), std::ios_base::out);
     auto additive_stream = *detail::open_file<std::ofstream>(
-        prefix + ".add", std::ios_base::out);
+        out_prefix.replace_extension(".add.eff"), std::ios_base::out);
     std::optional<std::ofstream> dom_stream = std::nullopt;
     if (dominant_)
     {
         dom_stream = std::make_optional(*detail::open_file<std::ofstream>(
-            prefix + ".dom", std::ios_base::out));
+            out_prefix.replace_extension(".dom.eff"), std::ios_base::out));
     }
     std::vector<std::string> snp_names;
     if (!samples_.bim_file_path().empty())

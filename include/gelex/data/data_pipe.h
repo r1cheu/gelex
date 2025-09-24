@@ -36,6 +36,12 @@ class DataPipe
     const Eigen::VectorXd& phenotype() const { return phenotype_; }
     const Eigen::MatrixXd& fixed_effects() const { return fixed_effects_; }
 
+    Eigen::VectorXd&& take_phenotype() && { return std::move(phenotype_); }
+    Eigen::MatrixXd&& take_fixed_effects() &&
+    {
+        return std::move(fixed_effects_);
+    }
+
     const std::string& phenotype_name() const;
     const std::vector<std::string>& qcovariate_names() const;
     const std::vector<std::string>& covariate_names() const;

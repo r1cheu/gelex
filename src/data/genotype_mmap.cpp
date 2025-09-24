@@ -1,6 +1,7 @@
 
-#include "genotype_mmap.h"
+#include "gelex/data/genotype_mmap.h"
 
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 
@@ -9,7 +10,7 @@
 
 #include "loader.h"
 
-namespace gelex::detail
+namespace gelex
 {
 using std::ifstream;
 
@@ -32,8 +33,10 @@ auto GenotypeMap::create(const std::filesystem::path& bin_file)
 
     int64_t rows = 0;
     int64_t cols = 0;
+    int64_t num_mono_snp = 0;
     meta_stream.read(reinterpret_cast<char*>(&rows), sizeof(int64_t));
     meta_stream.read(reinterpret_cast<char*>(&cols), sizeof(int64_t));
+    meta_stream.read(reinterpret_cast<char*>(&num_mono_snp), sizeof(int64_t));
 
     if (rows <= 0 || cols <= 0)
     {
@@ -46,6 +49,22 @@ auto GenotypeMap::create(const std::filesystem::path& bin_file)
                     rows,
                     cols)});
     }
+    std::vector<int64_t> mono_indices;
+    mono_indices.reserve(static_cast<size_t>(num_mono_snp));
+    meta_stream.read(
+        reinterpret_cast<char*>(mono_indices.data()),
+        sizeof(int64_t) * static_cast<size_t>(num_mono_snp));
+    std::unordered_set<int64_t> mono_set(
+        mono_indices.begin(), mono_indices.end());
+
+    Eigen::VectorXd mean = Eigen::VectorXd::Zero(cols);
+    Eigen::VectorXd stddev = Eigen::VectorXd::Ones(cols);
+    meta_stream.read(
+        reinterpret_cast<char*>(mean.data()),
+        sizeof(double) * static_cast<size_t>(cols));
+    meta_stream.read(
+        reinterpret_cast<char*>(stddev.data()),
+        sizeof(double) * static_cast<size_t>(cols));
 
     // Create memory mapping
     mio::mmap_source mmap;
@@ -93,7 +112,14 @@ auto GenotypeMap::create(const std::filesystem::path& bin_file)
         mat(data_ptr, rows, cols);
 #endif
 
-    return GenotypeMap(std::move(mmap), std::move(mat), rows, cols);
+    return GenotypeMap(
+        std::move(mmap),
+        std::move(mat),
+        std::move(mono_set),
+        std::move(mean),
+        std::move(stddev),
+        rows,
+        cols);
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex

@@ -1,4 +1,5 @@
 #pragma once
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -108,7 +109,7 @@ class MCMCResult
      * @param prob Optional probability threshold for computation.
      */
     void compute(std::optional<double> prob = std::nullopt);
-    void save(const std::string& prefix) const;
+    void save(const std::filesystem::path& prefix) const;
 
     const PosteriorSummary& fixed() const { return *fixed_; }
     const std::vector<RandomSummary>& random() const { return random_; }

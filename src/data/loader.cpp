@@ -1,5 +1,6 @@
 #include "loader.h"
 
+#include <cmath>
 #include <expected>
 #include <filesystem>
 #include <fstream>
@@ -126,7 +127,11 @@ auto PhenotypeLoader::read(
         {
             if (auto value = parse_nth_double(line, target_column))
             {
-                phenotype_data.emplace(std::move(*id_str), *value);
+                // Skip NaN values in phenotype data
+                if (!std::isnan(*value))
+                {
+                    phenotype_data.emplace(std::move(*id_str), *value);
+                }
             }
             else
             {
@@ -270,6 +275,20 @@ auto QcovarLoader::read(
             {
                 return std::unexpected(enrich_with_line_info(
                     std::move(values.error()), n_line + 2));
+            }
+
+            // Check for NaN values in qcovar data
+            for (const auto& value : *values)
+            {
+                if (std::isnan(value))
+                {
+                    return std::unexpected(
+                        Error{
+                            ErrorCode::InvalidData,
+                            std::format(
+                                "NaN value in Qcovar is not allowed (line {})",
+                                n_line + 2)});
+                }
             }
 
             covariate_data.emplace(std::move(*id_str), std::move(*values));

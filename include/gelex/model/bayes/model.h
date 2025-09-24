@@ -6,9 +6,10 @@
 
 #include <Eigen/Core>
 
-#include "../src/data/genotype_mmap.h"
 #include "../src/model/bayes/bayes_effects.h"
 #include "../src/model/bayes/trait.h"
+#include "gelex/data/data_pipe.h"
+#include "gelex/data/genotype_mmap.h"
 #include "gelex/model/effects.h"
 
 namespace gelex
@@ -22,23 +23,22 @@ namespace gelex
  * accessors for model components (mu, residuals, etc.). Initialized with a
  * formula and phenotype.
  */
+
 class BayesModel
 {
    public:
     /**
      * @brief
      *
-     * @param formula formula string, only for showing the model structure.
-     * @param phenotype moveable arma dvec.
+     * @param phenotype
      */
-    explicit BayesModel(Eigen::VectorXd&& phenotype);
-    void add_fixed_effect(
-        std::vector<std::string>&& names,
-        std::vector<std::string>&& levels,
-        Eigen::MatrixXd&& design_matrix);
-    void add_random_effect(std::string&& name, Eigen::MatrixXd&& design_matrix);
-    void add_additive_effect(detail::GenotypeMap&& matrix, BayesAlphabet type);
-    void add_dominance_effect(detail::GenotypeMap&& matrix, BayesAlphabet type);
+    BayesModel(Eigen::VectorXd&& phenotype, BayesAlphabet type);
+
+    static auto create_from_datapipe(DataPipe& data_pipe, BayesAlphabet type)
+        -> std::expected<BayesModel, Error>;
+
+    void add_additive_effect(GenotypeMap&& matrix);
+    void add_dominance_effect(GenotypeMap&& matrix);
 
     const auto& fixed() const { return *fixed_; }
     const auto& random() const { return random_; }
@@ -51,11 +51,6 @@ class BayesModel
     auto& additive() { return additive_; }
     auto& dominant() { return dominant_; }
     auto& residual() { return residual_; }
-
-    void set_model_type(BayesAlphabet type)
-    {
-        model_trait_ = create_genetic_trait(type);
-    }
 
     void set_sigma_prior_manual(
         const std::string& name,
@@ -77,6 +72,10 @@ class BayesModel
     Eigen::Index n_individuals() const { return n_individuals_; }
 
    private:
+    void add_fixed_effect(
+        std::vector<std::string>&& names,
+        Eigen::MatrixXd&& design_matrix);
+    void add_random_effect(std::string&& name, Eigen::MatrixXd&& design_matrix);
     Eigen::Index n_individuals_{};
 
     Eigen::VectorXd phenotype_;

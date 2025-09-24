@@ -6,9 +6,9 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "../src/data/genotype_mmap.h"
 #include "../src/model/effects_manager.h"
 #include "distribution.h"
+#include "gelex/data/genotype_mmap.h"
 #include "gelex/model/effects.h"
 
 namespace gelex
@@ -42,14 +42,12 @@ struct FixedEffect
      */
     FixedEffect(
         std::vector<std::string>&& names,
-        std::vector<std::string>&& levels,
         Eigen::MatrixXd&& design_matrix);
 
     Eigen::MatrixXd design_matrix;
     Eigen::VectorXd cols_norm;
 
     std::vector<std::string> names;
-    std::vector<std::string> levels;
 };
 
 struct FixedStatus
@@ -85,22 +83,18 @@ struct AdditiveEffect
 {
     AdditiveEffect(
         std::string&& name,
-        detail::GenotypeMap&& design_matrix,
-        BayesAlphabet type,
+        GenotypeMap&& design_matrix,
         Eigen::VectorXd&& sigma,
         Eigen::VectorXd&& pi);
 
     std::string name;
-    detail::GenotypeMap design_matrix;
+    GenotypeMap design_matrix;
     Eigen::VectorXd cols_norm;
 
     detail::ScaledInvChiSqParams prior;
     Eigen::VectorXd sigma;
 
-    BayesAlphabet type;
     Eigen::VectorXd pi;
-
-    std::unordered_set<Eigen::Index> mono_indices;
 
     bool is_monomorphic(Eigen::Index snp_index) const;
     Eigen::Index num_mono() const;
@@ -109,8 +103,6 @@ struct AdditiveEffect
 struct AdditiveStatus
 {
     explicit AdditiveStatus(const AdditiveEffect& effect);
-
-    BayesAlphabet type;
 
     Eigen::VectorXd coeff;
     Eigen::VectorXd u;
@@ -126,18 +118,16 @@ struct DominantEffect
 {
     DominantEffect(
         std::string&& name,
-        detail::GenotypeMap&& design_matrix,
+        GenotypeMap&& design_matrix,
         double prior_mean,
         double prior_var);
 
     std::string name;
-    detail::GenotypeMap design_matrix;
+    GenotypeMap design_matrix;
     Eigen::VectorXd cols_norm;
 
     double prior_mean{};
     double prior_var{};
-
-    std::unordered_set<Eigen::Index> mono_indices;
 
     bool is_monomorphic(Eigen::Index snp_index) const;
     Eigen::Index num_mono() const;

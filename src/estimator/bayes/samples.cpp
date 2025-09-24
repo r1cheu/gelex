@@ -17,7 +17,6 @@ MCMCSamples::MCMCSamples(const MCMCParams& params, const BayesModel& model)
 {
     // Pre-allocate all matrices upfront for better performance
     fixed_.coeff.reserve(n_chains_);
-    fixed_.levels = model.fixed().levels;
     fixed_.names = model.fixed().names;
 
     residual_.reserve(n_chains_);

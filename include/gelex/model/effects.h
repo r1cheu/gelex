@@ -1,5 +1,8 @@
 #pragma once
 #include <cstdint>
+#include <optional>
+#include <string_view>
+#include <unordered_map>
 
 #include <fmt/base.h>
 
@@ -24,6 +27,28 @@ enum class BayesAlphabet : uint8_t
     Cpi,
     R,
 };
+
+inline std::optional<BayesAlphabet> get_bayesalphabet(std::string_view sv)
+{
+    static const std::unordered_map<std::string_view, BayesAlphabet>
+        stringToEnumMap = {
+            {"A", BayesAlphabet::A},
+            {"RR", BayesAlphabet::RR},
+            {"B", BayesAlphabet::B},
+            {"Bpi", BayesAlphabet::Bpi},
+            {"C", BayesAlphabet::C},
+            {"Cpi", BayesAlphabet::Cpi},
+            {"R", BayesAlphabet::R},
+        };
+
+    auto it = stringToEnumMap.find(sv);
+
+    if (it != stringToEnumMap.end())
+    {
+        return it->second;
+    }
+    return std::nullopt;
+}
 
 }  // namespace gelex
 

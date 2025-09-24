@@ -22,11 +22,8 @@ namespace bayes
 
 FixedEffect::FixedEffect(
     std::vector<std::string>&& names,
-    std::vector<std::string>&& levels,
     MatrixXd&& design_matrix)
-    : names(std::move(names)),
-      levels(std::move(levels)),
-      design_matrix(std::move(design_matrix))
+    : names(std::move(names)), design_matrix(std::move(design_matrix))
 {
     cols_norm = this->design_matrix.colwise().squaredNorm();
 }
@@ -47,14 +44,12 @@ RandomStatus::RandomStatus(const RandomEffect& effect)
 
 AdditiveEffect::AdditiveEffect(
     std::string&& name,
-    detail::GenotypeMap&& design_matrix,
-    BayesAlphabet type,
+    GenotypeMap&& design_matrix,
     VectorXd&& sigma,
     VectorXd&& pi)
     : name(std::move(name)),
       pi(std::move(pi)),
       sigma(std::move(sigma)),
-      type(type),
       design_matrix(std::move(design_matrix))
 {
     cols_norm = this->design_matrix.matrix().colwise().squaredNorm();
@@ -64,13 +59,12 @@ AdditiveStatus::AdditiveStatus(const AdditiveEffect& effect)
     : u(VectorXd::Zero(effect.design_matrix.rows())),
       coeff(VectorXd::Zero(effect.design_matrix.cols())),
       tracker(VectorXi::Zero(effect.design_matrix.cols())),
-      type(effect.type),
       pi{effect.pi, Eigen::VectorXi::Zero(effect.pi.size())},
       sigma(effect.sigma) {};
 
 DominantEffect::DominantEffect(
     std::string&& name,
-    detail::GenotypeMap&& design_matrix,
+    GenotypeMap&& design_matrix,
     double prior_mean,
     double prior_var)
     : name(std::move(name)),
@@ -89,22 +83,22 @@ DominantStatus::DominantStatus(const DominantEffect& effect)
 
 bool AdditiveEffect::is_monomorphic(Eigen::Index snp_index) const
 {
-    return mono_indices.contains(snp_index);
+    return design_matrix.is_monomorphic(snp_index);
 }
 
 Index AdditiveEffect::num_mono() const
 {
-    return static_cast<Index>(mono_indices.size());
+    return design_matrix.num_mono();
 }
 
 bool DominantEffect::is_monomorphic(Eigen::Index snp_index) const
 {
-    return mono_indices.contains(snp_index);
+    return design_matrix.is_monomorphic(snp_index);
 }
 
 Index DominantEffect::num_mono() const
 {
-    return static_cast<Index>(mono_indices.size());
+    return design_matrix.num_mono();
 }
 
 std::vector<RandomStatus> create_chain_states(

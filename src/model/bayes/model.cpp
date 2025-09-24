@@ -8,10 +8,12 @@
 #include <fmt/ranges.h>
 #include <Eigen/Core>
 
-#include "../src/data/genotype_mmap.h"
 #include "../src/data/math_utils.h"
 #include "../src/model/bayes/bayes_effects.h"
+#include "gelex/data/data_pipe.h"
+#include "gelex/data/genotype_mmap.h"
 #include "gelex/utils/formatter.h"
+#include "model/bayes/traits/base_trait.h"
 
 namespace gelex
 {
@@ -20,20 +22,39 @@ using Eigen::Index;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-BayesModel::BayesModel(VectorXd&& phenotype) : phenotype_(std::move(phenotype))
+BayesModel::BayesModel(VectorXd&& phenotype, BayesAlphabet type)
+    : phenotype_(std::move(phenotype))
 {
-    n_individuals_ = phenotype_.rows();                        // NOLINT
-    phenotype_var_ = detail::var(phenotype_)(0);               // NOLINT
+    n_individuals_ = phenotype_.rows();           // NOLINT
+    phenotype_var_ = detail::var(phenotype_)(0);  // NOLINT
+    model_trait_ = create_genetic_trait(type);
     set_sigma_prior_manual("e", -2, 0, phenotype_var_ * 0.5);  // NOLINT
+}
+
+auto BayesModel::create_from_datapipe(DataPipe& data_pipe, BayesAlphabet type)
+    -> std::expected<BayesModel, Error>
+{
+    // Create model with phenotype from DataPipe
+    BayesModel model(std::move(data_pipe).take_phenotype(), type);
+
+    // Add fixed effects if available
+    if (data_pipe.has_fixed_effects())
+    {
+        auto fixed_effect_names = data_pipe.fixed_effect_names();
+        model.add_fixed_effect(
+            std::move(fixed_effect_names),
+            std::move(data_pipe).take_fixed_effects());
+    }
+
+    return model;
 }
 
 void BayesModel::add_fixed_effect(
     std::vector<std::string>&& names,
-    std::vector<std::string>&& levels,
     MatrixXd&& design_matrix)
 {
     fixed_ = std::make_unique<bayes::FixedEffect>(
-        std::move(names), std::move(levels), std::move(design_matrix));
+        std::move(names), std::move(design_matrix));
 }
 
 void BayesModel::add_random_effect(std::string&& name, MatrixXd&& design_matrix)
@@ -46,28 +67,23 @@ void BayesModel::add_random_effect(std::string&& name, MatrixXd&& design_matrix)
     set_sigma_prior_manual("e", -2, 0, phenotype_var_ * 0.5);
 }
 
-void BayesModel::add_additive_effect(
-    detail::GenotypeMap&& matrix,
-    BayesAlphabet type)
+void BayesModel::add_additive_effect(GenotypeMap&& matrix)
 
 {
     Index n_snp = matrix.cols();
     additive_ = std::make_unique<bayes::AdditiveEffect>(
-        "add",
+        "additive",
         std::move(matrix),
-        type,
         model_trait_->default_sigma(n_snp),
         model_trait_->default_pi());
     set_sigma_prior(additive_->name, 4.0, 0.5);
 }
 
-void BayesModel::add_dominance_effect(
-    detail::GenotypeMap&& matrix,
-    BayesAlphabet type)
+void BayesModel::add_dominance_effect(GenotypeMap&& matrix)
 {
     Index n_snp = matrix.cols();
     dominant_ = std::make_unique<bayes::DominantEffect>(
-        "dom", std::move(matrix), 0, 2);
+        "dominant", std::move(matrix), 0, 2);
     set_sigma_prior(dominant_->name, 4.0, 0.5);
 }
 
