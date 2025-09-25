@@ -22,12 +22,17 @@ auto DataPipe::create(
 {
     DataPipe pipe(std::move(sample_manager));
 
-    if (!config.phenotype_path.empty())
+    if (config.phenotype_path.empty())
     {
-        if (auto result = pipe.load_phenotype(config); !result)
-        {
-            return std::unexpected(result.error());
-        }
+        return std::unexpected(
+            Error{
+                .code = ErrorCode::InvalidArgument,
+                .message = "Phenotype file path is required."});
+    }
+
+    if (auto result = pipe.load_phenotype(config); !result)
+    {
+        return std::unexpected(result.error());
     }
 
     if (!config.qcovar_path.empty())

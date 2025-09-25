@@ -12,6 +12,7 @@ enum class ErrorCode : uint8_t
     FileNotFound,
     FileIOError,
     InvalidData,
+    OutputFileExists,
 
     NotNumber,
     InvalidFile,
@@ -42,6 +43,8 @@ constexpr std::string_view to_string_view(ErrorCode code) noexcept
             return "File io error"sv;
         case ErrorCode::NotNumber:
             return "Not a number"sv;
+        case ErrorCode::OutputFileExists:
+            return "OutputFileExists"sv;
         case ErrorCode::InvalidFile:
             return "Invalid file format"sv;
         case ErrorCode::InvalidRange:

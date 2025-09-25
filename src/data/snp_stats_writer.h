@@ -33,6 +33,8 @@ class SnpStatsWriter
         const std::vector<double>& means,
         const std::vector<double>& stddevs) -> std::expected<void, Error>;
 
+    auto path() const noexcept -> const std::filesystem::path& { return path_; }
+
    private:
     explicit SnpStatsWriter(
         std::ofstream&& file,

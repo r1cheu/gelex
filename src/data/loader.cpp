@@ -658,13 +658,14 @@ auto FamLoader::read(std::ifstream& file, bool iid_only)
             continue;
         }
 
-        if (count_num_columns(line, " ") != fam_n_cols)
+        if (auto n_cols = count_num_columns(line, " "); n_cols != fam_n_cols)
         {
             return std::unexpected(
                 Error{
                     ErrorCode::InconsistColumnCount,
                     std::format(
-                        ".fam file must have at 6 columns (line {})",
+                        ".fam file must have at 6 columns but got {} (line {})",
+                        n_cols,
                         n_line + 1)});
         }
 

@@ -24,6 +24,7 @@ class BinaryMatrixWriter
     ~BinaryMatrixWriter() = default;
 
     auto write(const Eigen::MatrixXd& matrix) -> std::expected<void, Error>;
+    auto path() const noexcept -> const std::filesystem::path& { return path_; }
 
    private:
     explicit BinaryMatrixWriter(std::ofstream&& file, std::string&& path);

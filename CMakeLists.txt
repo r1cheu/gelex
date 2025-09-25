@@ -23,13 +23,6 @@ option(BUILD_TEST "Enable testing" OFF)
 
 find_package(OpenMP)
 find_package(spdlog REQUIRED)
-include(FetchContent)
-FetchContent_Declare(
-  argparse
-  GIT_REPOSITORY https://github.com/p-ranav/argparse.git
-  GIT_TAG d924b84eba1f0f0adf38b20b7b4829f6f65b6570)
-FetchContent_MakeAvailable(argparse)
-
 # FetchContent_Declare( fmt GIT_REPOSITORY https://github.com/fmtlib/fmt GIT_TAG
 # 40626af88bd7df9a5fb80be7b25ac85b122d6c21) # 11.2.0
 # FetchContent_MakeAvailable(fmt)
@@ -70,7 +63,7 @@ target_link_libraries(core PUBLIC OpenMP::OpenMP_CXX BLAS::BLAS spdlog::spdlog
                                   $<$<BOOL:${MINGW}>:ws2_32>)
 
 add_executable(gelex src/main.cpp)
-target_link_libraries(gelex PRIVATE core argparse)
+target_link_libraries(gelex PRIVATE core)
 
 if(BUILD_TEST)
   add_subdirectory(tests/)

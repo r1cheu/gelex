@@ -1,9 +1,9 @@
+#include <catch2/catch_message.hpp>
 #include <filesystem>
 #include <fstream>
 #include <ios>
 #include <iostream>
 #include <memory>
-#include <unordered_map>
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
@@ -137,8 +137,32 @@ class TestGenotypePipeManager
         std::filesystem::remove(bed_file_);
         std::filesystem::remove(fam_file_);
         std::filesystem::remove(bim_file_);
+
+        // Clean up all possible output files
         std::filesystem::remove(bed_file_.replace_extension(".add.bmat"));
         std::filesystem::remove(bed_file_.replace_extension(".add.snpstats"));
+        std::filesystem::remove(bed_file_.replace_extension(".dom.bmat"));
+        std::filesystem::remove(bed_file_.replace_extension(".dom.snpstats"));
+
+        // Clean up any files created by test sections that use different
+        // prefixes
+        std::filesystem::remove("test_genotype_pipe_mono.add.bmat");
+        std::filesystem::remove("test_genotype_pipe_mono.add.snpstats");
+        std::filesystem::remove("test_genotype_pipe_output.add.bmat");
+        std::filesystem::remove("test_genotype_pipe_output.add.snpstats");
+        std::filesystem::remove("test_genotype_pipe_single_sample.add.bmat");
+        std::filesystem::remove(
+            "test_genotype_pipe_single_sample.add.snpstats");
+        std::filesystem::remove("test_genotype_pipe_single_variant.add.bmat");
+        std::filesystem::remove(
+            "test_genotype_pipe_single_variant.add.snpstats");
+        std::filesystem::remove("test_genotype_pipe_file_exists.add.bmat");
+        std::filesystem::remove("test_genotype_pipe_file_exists.add.snpstats");
+
+        std::filesystem::remove("non_existent_file.bin");
+        std::filesystem::remove("test_genotype_pipe_basic.add.snpstats");
+        std::filesystem::remove("test_genotype_pipe_process.add.snpstats");
+        std::filesystem::remove("test_output.bin");
     }
 
     void create(
@@ -207,11 +231,11 @@ class TestGenotypePipeManager
 
 TEST_CASE("GenotypePipe creation and basic functionality", "[genotype_pipe]")
 {
-    std::filesystem::path test_bed = "test_genotype_pipe_basic.bed";
-    test::TestGenotypePipeManager pipe_manager(test_bed);
-
     SECTION("Successful creation with valid files")
     {
+        std::filesystem::path test_bed = "test_genotype_pipe_basic.bed";
+        test::TestGenotypePipeManager pipe_manager(test_bed);
+
         std::vector<std::string> fids = {"fam1", "fam2", "fam3", "fam4"};
         std::vector<std::string> iids = {"ind1", "ind2", "ind3", "ind4"};
         pipe_manager.create(fids, iids, 5, 2);
@@ -230,13 +254,23 @@ TEST_CASE("GenotypePipe creation and basic functionality", "[genotype_pipe]")
         auto result = genotype_pipe->process();
         REQUIRE(result.has_value());
         REQUIRE(genotype_pipe->num_samples() == 4);
-    }
+        test::BinaryMatrixInfo bmat_info = test::read_binary_matrix(
+            test::replace_bed_extension(test_bed, ".add.bmat"), 4, 5);
 
+        Eigen::Map<const Eigen::MatrixXd> bmat(bmat_info.data.data(), 4, 5);
+
+        Eigen::MatrixXd expected_bmat{
+            {-1.22474487, 1.22474487, 0, 1.22474487, -1.22474487},
+            {0., 0., 0., 0., 0.},
+            {0., 0., 0., 0., 0.},
+            {1.22474487, -1.22474487, 0, -1.22474487, 1.22474487}};
+        REQUIRE(bmat.isApprox(expected_bmat, 1e-5));
+    }
 
     SECTION("Creation with non-existent files")
     {
-        auto genotype_pipe
-            = gelex::GenotypePipe::create("nonexistent", nullptr, "test_prefix", false);
+        auto genotype_pipe = gelex::GenotypePipe::create(
+            "nonexistent", nullptr, "test_prefix", false);
         REQUIRE_FALSE(genotype_pipe.has_value());
         REQUIRE(genotype_pipe.error().code == gelex::ErrorCode::FileNotFound);
     }
@@ -251,83 +285,79 @@ TEST_CASE("GenotypePipe processing functionality", "[genotype_pipe]")
     std::vector<std::string> iids = {"ind1", "ind2", "ind3", "ind4"};
     pipe_manager.create(fids, iids, 6);
 
-    SECTION("Process all variants with default chunk size")
-    {
-        auto sample_manager
-            = gelex::SampleManager::create(test_bed.replace_extension(".fam"))
-                  .value();
-        sample_manager.finalize();
-        auto sample_ptr
-            = std::make_shared<gelex::SampleManager>(std::move(sample_manager));
-        auto genotype_pipe = gelex::GenotypePipe::create(
-            test_bed.replace_extension(".bed"), sample_ptr, test_bed.stem(), false);
-        auto result = genotype_pipe->process();
-        REQUIRE(result.has_value());
+    auto sample_manager
+        = gelex::SampleManager::create(test_bed.replace_extension(".fam"))
+              .value();
+    sample_manager.finalize();
+    auto sample_ptr
+        = std::make_shared<gelex::SampleManager>(std::move(sample_manager));
 
-        // Verify output files were created
-        auto bmat_file = test::replace_bed_extension(test_bed, ".add.bmat");
-        auto stats_file = test::replace_bed_extension(test_bed, ".add.snpstats");
-        REQUIRE(std::filesystem::exists(bmat_file));
-        REQUIRE(std::filesystem::exists(stats_file));
+    auto genotype_pipe = gelex::GenotypePipe::create(
+        test_bed.replace_extension(".bed"), sample_ptr, test_bed.stem(), false);
 
-        // Verify file sizes are reasonable
-        auto bmat_size = std::filesystem::file_size(bmat_file);
-        auto stats_size = std::filesystem::file_size(stats_file);
+    auto result = genotype_pipe->process();
+    REQUIRE(result.has_value());
 
-        REQUIRE(bmat_size > 0);
-        REQUIRE(stats_size > 0);
-        test::BinaryMatrixInfo bmat_info
-            = test::read_binary_matrix(bmat_file, 4, 6);
-        test::SnpStatsInfo stats_info = test::read_snp_stats(stats_file);
+    // Verify output files were created
+    auto bmat_file = test::replace_bed_extension(test_bed, ".add.bmat");
+    auto stats_file = test::replace_bed_extension(test_bed, ".add.snpstats");
+    REQUIRE(std::filesystem::exists(bmat_file));
+    REQUIRE(std::filesystem::exists(stats_file));
 
-        REQUIRE(bmat_info.num_samples == 4);
-        REQUIRE(bmat_info.num_variants == 6);
-        REQUIRE(bmat_info.data.size() == 24);
+    // Verify file sizes are reasonable
+    auto bmat_size = std::filesystem::file_size(bmat_file);
+    auto stats_size = std::filesystem::file_size(stats_file);
 
-        REQUIRE(stats_info.num_samples == 4);
-        REQUIRE(stats_info.num_variants == 6);
-        REQUIRE(stats_info.num_monomorphic == 0);
-        REQUIRE(stats_info.monomorphic_indices.empty());
-        REQUIRE(stats_info.means.size() == 6);
-        REQUIRE(stats_info.stddevs.size() == 6);
+    REQUIRE(bmat_size > 0);
+    REQUIRE(stats_size > 0);
+    test::BinaryMatrixInfo bmat_info
+        = test::read_binary_matrix(bmat_file, 4, 6);
+    test::SnpStatsInfo stats_info = test::read_snp_stats(stats_file);
 
-        std::filesystem::remove(bmat_file);
-        std::filesystem::remove(stats_file);
+    REQUIRE(bmat_info.num_samples == 4);
+    REQUIRE(bmat_info.num_variants == 6);
+    REQUIRE(bmat_info.data.size() == 24);
 
-        // Verify chunked processing produces same output
-        // Create a new SampleManager for the second pipe
-        auto genotype_pipe_chunk
-            = gelex::GenotypePipe::create(test_bed, sample_ptr, test_bed.stem(), false);
-        auto chunked_result = genotype_pipe_chunk->process(2);
+    REQUIRE(stats_info.num_samples == 4);
+    REQUIRE(stats_info.num_variants == 6);
+    REQUIRE(stats_info.num_monomorphic == 0);
+    REQUIRE(stats_info.monomorphic_indices.empty());
+    REQUIRE(stats_info.means.size() == 6);
+    REQUIRE(stats_info.stddevs.size() == 6);
 
-        REQUIRE(std::filesystem::exists(bmat_file));
-        REQUIRE(std::filesystem::exists(stats_file));
+    std::filesystem::remove(bmat_file);
+    std::filesystem::remove(stats_file);
+    // Verify chunked processing produces same output
+    // Create a new SampleManager for the second pipe
+    auto genotype_pipe_chunk = gelex::GenotypePipe::create(
+        test_bed, sample_ptr, test_bed.stem(), false);
+    auto chunked_result = genotype_pipe_chunk->process(2);
 
-        test::BinaryMatrixInfo chunked_bmat_info
-            = test::read_binary_matrix(bmat_file, 4, 6);
-        test::SnpStatsInfo chunked_stats_info
-            = test::read_snp_stats(stats_file);
+    REQUIRE(std::filesystem::exists(bmat_file));
+    REQUIRE(std::filesystem::exists(stats_file));
 
-        REQUIRE(chunked_bmat_info.num_samples == bmat_info.num_samples);
-        REQUIRE(chunked_bmat_info.num_variants == bmat_info.num_variants);
-        REQUIRE(chunked_bmat_info.data == bmat_info.data);
-        REQUIRE(chunked_stats_info.num_samples == stats_info.num_samples);
-        REQUIRE(chunked_stats_info.num_variants == stats_info.num_variants);
-        REQUIRE(
-            chunked_stats_info.num_monomorphic == stats_info.num_monomorphic);
-        REQUIRE(
-            chunked_stats_info.monomorphic_indices
-            == stats_info.monomorphic_indices);
-        REQUIRE(chunked_stats_info.means == stats_info.means);
-        REQUIRE(chunked_stats_info.stddevs == stats_info.stddevs);
+    test::BinaryMatrixInfo chunked_bmat_info
+        = test::read_binary_matrix(bmat_file, 4, 6);
+    test::SnpStatsInfo chunked_stats_info = test::read_snp_stats(stats_file);
 
-        // Verify file sizes match original
-        auto chunked_bmat_size = std::filesystem::file_size(bmat_file);
-        auto chunked_stats_size = std::filesystem::file_size(stats_file);
+    REQUIRE(chunked_bmat_info.num_samples == bmat_info.num_samples);
+    REQUIRE(chunked_bmat_info.num_variants == bmat_info.num_variants);
+    REQUIRE(chunked_bmat_info.data == bmat_info.data);
+    REQUIRE(chunked_stats_info.num_samples == stats_info.num_samples);
+    REQUIRE(chunked_stats_info.num_variants == stats_info.num_variants);
+    REQUIRE(chunked_stats_info.num_monomorphic == stats_info.num_monomorphic);
+    REQUIRE(
+        chunked_stats_info.monomorphic_indices
+        == stats_info.monomorphic_indices);
+    REQUIRE(chunked_stats_info.means == stats_info.means);
+    REQUIRE(chunked_stats_info.stddevs == stats_info.stddevs);
 
-        REQUIRE(chunked_bmat_size == bmat_size);
-        REQUIRE(chunked_stats_size == stats_size);
-    }
+    // Verify file sizes match original
+    auto chunked_bmat_size = std::filesystem::file_size(bmat_file);
+    auto chunked_stats_size = std::filesystem::file_size(stats_file);
+
+    REQUIRE(chunked_bmat_size == bmat_size);
+    REQUIRE(chunked_stats_size == stats_size);
 }
 
 TEST_CASE("GenotypePipe monomorphic SNP detection", "[genotype_pipe]")
@@ -352,41 +382,35 @@ TEST_CASE("GenotypePipe monomorphic SNP detection", "[genotype_pipe]")
         false);
     REQUIRE(genotype_pipe.has_value());
 
-    SECTION("Detect monomorphic SNPs during processing")
-    {
-        auto result = genotype_pipe->process();
-        REQUIRE(result.has_value());
+    auto result = genotype_pipe->process();
+    REQUIRE(result.has_value());
 
-        // Read the stats file to verify monomorphic detection
-        auto stats_path = test::replace_bed_extension(test_bed, ".add.snpstats");
-        std::ifstream stats_stream(stats_path, std::ios::binary);
-        REQUIRE(stats_stream.is_open());
+    // Read the stats file to verify monomorphic detection
+    std::ifstream stats_stream(
+        "test_genotype_pipe_mono.add.snpstats", std::ios::binary);
+    REQUIRE(stats_stream.is_open());
 
-        int64_t num_samples = 0;
-        int64_t num_variants = 0;
-        int64_t num_monomorphic = 0;
-        stats_stream.read(
-            reinterpret_cast<char*>(&num_samples), sizeof(int64_t));
-        stats_stream.read(
-            reinterpret_cast<char*>(&num_variants), sizeof(int64_t));
-        stats_stream.read(
-            reinterpret_cast<char*>(&num_monomorphic), sizeof(int64_t));
+    int64_t num_samples = 0;
+    int64_t num_variants = 0;
+    int64_t num_monomorphic = 0;
+    stats_stream.read(reinterpret_cast<char*>(&num_samples), sizeof(int64_t));
+    stats_stream.read(reinterpret_cast<char*>(&num_variants), sizeof(int64_t));
+    stats_stream.read(
+        reinterpret_cast<char*>(&num_monomorphic), sizeof(int64_t));
 
-        REQUIRE(num_samples == 4);
-        REQUIRE(num_variants == 5);
-        REQUIRE(num_monomorphic == 1);  // Should detect 1 monomorphic SNP
+    REQUIRE(num_samples == 4);
+    REQUIRE(num_variants == 5);
+    REQUIRE(num_monomorphic == 1);  // Should detect 1 monomorphic SNP
 
-        // Read monomorphic indices
-        std::vector<int64_t> monomorphic_indices(num_monomorphic);
-        stats_stream.read(
-            reinterpret_cast<char*>(monomorphic_indices.data()),
-            static_cast<std::streamsize>(num_monomorphic * sizeof(int64_t)));
+    // Read monomorphic indices
+    std::vector<int64_t> monomorphic_indices(num_monomorphic);
+    stats_stream.read(
+        reinterpret_cast<char*>(monomorphic_indices.data()),
+        static_cast<std::streamsize>(num_monomorphic * sizeof(int64_t)));
 
-        REQUIRE(monomorphic_indices.size() == 1);
-        REQUIRE(
-            monomorphic_indices[0]
-            == 2);  // SNP at index 2 should be monomorphic
-    }
+    REQUIRE(monomorphic_indices.size() == 1);
+    REQUIRE(
+        monomorphic_indices[0] == 2);  // SNP at index 2 should be monomorphic
 }
 
 TEST_CASE("GenotypePipe output verification", "[genotype_pipe]")
@@ -402,107 +426,86 @@ TEST_CASE("GenotypePipe output verification", "[genotype_pipe]")
         = gelex::SampleManager::create(test_bed.replace_extension(".fam"))
               .value();
     sample_manager.finalize();
+    auto sample_ptr
+        = std::make_shared<gelex::SampleManager>(std::move(sample_manager));
     auto genotype_pipe = gelex::GenotypePipe::create(
-        test_bed.replace_extension(".bed"),
-        std::make_shared<gelex::SampleManager>(std::move(sample_manager)),
-        test_bed.stem(),
-        false);
+        test_bed.replace_extension(".bed"), sample_ptr, test_bed.stem(), false);
+
     REQUIRE(genotype_pipe.has_value());
+    auto result = genotype_pipe->process();
+    REQUIRE(result.has_value());
 
-    SECTION("Verify binary matrix output format")
+    // Load the original genotype data for comparison
+    auto bed_sample_manager
+        = gelex::SampleManager::create(test_bed.replace_extension(".fam"))
+              .value();
+    bed_sample_manager.finalize();
+    auto bed_pipe = gelex::BedPipe::create(
+        test_bed.replace_extension(".bed"), sample_ptr);
+    REQUIRE(bed_pipe.has_value());
+
+    auto original_matrix = bed_pipe->load();
+    REQUIRE(original_matrix.has_value());
+
+    auto bmat_path = test::replace_bed_extension(test_bed, ".add.bmat");
+    std::ifstream bmat_stream(bmat_path, std::ios::binary);
+    REQUIRE(bmat_stream.is_open());
+
+    std::vector<double> processed_data(original_matrix->size());
+    bmat_stream.read(
+        reinterpret_cast<char*>(processed_data.data()),
+        static_cast<std::streamsize>(original_matrix->size() * sizeof(double)));
+    REQUIRE(processed_data.size() == original_matrix->size());
+
+    // check snpstats
+    auto stats_path = test::replace_bed_extension(test_bed, ".add.snpstats");
+    std::ifstream stats_stream(stats_path, std::ios::binary);
+    REQUIRE(stats_stream.is_open());
+
+    int64_t num_samples = 0;
+    int64_t num_variants = 0;
+    int64_t num_monomorphic = 0;
+    stats_stream.read(reinterpret_cast<char*>(&num_samples), sizeof(int64_t));
+    stats_stream.read(reinterpret_cast<char*>(&num_variants), sizeof(int64_t));
+    stats_stream.read(
+        reinterpret_cast<char*>(&num_monomorphic), sizeof(int64_t));
+
+    REQUIRE(num_samples == 2);
+    REQUIRE(num_variants == 3);
+    REQUIRE(num_monomorphic >= 0);
+    REQUIRE(num_monomorphic <= 3);
+
+    // Read the rest of the statistics
+    if (num_monomorphic > 0)
     {
-        auto result = genotype_pipe->process();
-        REQUIRE(result.has_value());
+        std::vector<int64_t> monomorphic_indices(num_monomorphic);
+        stats_stream.read(
+            reinterpret_cast<char*>(monomorphic_indices.data()),
+            static_cast<std::streamsize>(num_monomorphic * sizeof(int64_t)));
 
-        // Load the original genotype data for comparison
-        auto bed_sample_manager
-            = gelex::SampleManager::create(test_bed.replace_extension(".fam"))
-                  .value();
-        bed_sample_manager.finalize();
-        auto bed_pipe = gelex::BedPipe::create(
-
-            test_bed.replace_extension(".bed"),
-            std::make_shared<gelex::SampleManager>(
-                std::move(bed_sample_manager)));
-        REQUIRE(bed_pipe.has_value());
-
-        auto original_matrix = bed_pipe->load();
-        REQUIRE(original_matrix.has_value());
-
-        // Read the processed binary matrix
-        auto bmat_path = test::replace_bed_extension(test_bed, ".add.bmat");
-        std::ifstream bmat_stream(bmat_path, std::ios::binary);
-        REQUIRE(bmat_stream.is_open());
-
-        std::vector<double> processed_data(original_matrix->size());
-        bmat_stream.read(
-            reinterpret_cast<char*>(processed_data.data()),
-            static_cast<std::streamsize>(
-                original_matrix->size() * sizeof(double)));
-
-        // Verify the data was standardized (mean ~0, stddev ~1 for polymorphic
-        // SNPs) We can't compare exact values due to standardization, but we
-        // can check that the data structure is preserved
-        REQUIRE(processed_data.size() == original_matrix->size());
+        for (auto idx : monomorphic_indices)
+        {
+            REQUIRE(idx >= 0);
+            REQUIRE(idx < 3);
+        }
     }
 
-    SECTION("Verify statistics output format")
+    std::vector<double> means(num_variants);
+    stats_stream.read(
+        reinterpret_cast<char*>(means.data()),
+        static_cast<std::streamsize>(num_variants * sizeof(double)));
+
+    std::vector<double> stddevs(num_variants);
+    stats_stream.read(
+        reinterpret_cast<char*>(stddevs.data()),
+        static_cast<std::streamsize>(num_variants * sizeof(double)));
+
+    // Verify statistics are reasonable
+    for (int i = 0; i < num_variants; ++i)
     {
-        auto result = genotype_pipe->process();
-        REQUIRE(result.has_value());
-
-        auto stats_path = test::replace_bed_extension(test_bed, ".add.snpstats");
-        std::ifstream stats_stream(stats_path, std::ios::binary);
-        REQUIRE(stats_stream.is_open());
-
-        int64_t num_samples = 0;
-        int64_t num_variants = 0;
-        int64_t num_monomorphic = 0;
-        stats_stream.read(
-            reinterpret_cast<char*>(&num_samples), sizeof(int64_t));
-        stats_stream.read(
-            reinterpret_cast<char*>(&num_variants), sizeof(int64_t));
-        stats_stream.read(
-            reinterpret_cast<char*>(&num_monomorphic), sizeof(int64_t));
-
-        REQUIRE(num_samples == 2);
-        REQUIRE(num_variants == 3);
-        REQUIRE(num_monomorphic >= 0);
-        REQUIRE(num_monomorphic <= 3);
-
-        // Read the rest of the statistics
-        if (num_monomorphic > 0)
-        {
-            std::vector<int64_t> monomorphic_indices(num_monomorphic);
-            stats_stream.read(
-                reinterpret_cast<char*>(monomorphic_indices.data()),
-                static_cast<std::streamsize>(
-                    num_monomorphic * sizeof(int64_t)));
-
-            for (auto idx : monomorphic_indices)
-            {
-                REQUIRE(idx >= 0);
-                REQUIRE(idx < 3);
-            }
-        }
-
-        std::vector<double> means(num_variants);
-        stats_stream.read(
-            reinterpret_cast<char*>(means.data()),
-            static_cast<std::streamsize>(num_variants * sizeof(double)));
-
-        std::vector<double> stddevs(num_variants);
-        stats_stream.read(
-            reinterpret_cast<char*>(stddevs.data()),
-            static_cast<std::streamsize>(num_variants * sizeof(double)));
-
-        // Verify statistics are reasonable
-        for (int i = 0; i < num_variants; ++i)
-        {
-            REQUIRE(means[i] >= 0.0);
-            REQUIRE(means[i] <= 2.0);  // Genotype values are 0,1,2
-            REQUIRE(stddevs[i] >= 0.0);
-        }
+        REQUIRE(means[i] >= 0.0);
+        REQUIRE(means[i] <= 2.0);  // Genotype values are 0,1,2
+        REQUIRE(stddevs[i] >= 0.0);
     }
 }
 
@@ -532,7 +535,8 @@ TEST_CASE("GenotypePipe edge cases", "[genotype_pipe]")
         REQUIRE(result.has_value());
 
         auto bmat_file = test::replace_bed_extension(test_bed, ".add.bmat");
-        auto stats_file = test::replace_bed_extension(test_bed, ".add.snpstats");
+        auto stats_file
+            = test::replace_bed_extension(test_bed, ".add.snpstats");
         REQUIRE(std::filesystem::exists(bmat_file));
         REQUIRE(std::filesystem::exists(stats_file));
     }
@@ -562,8 +566,103 @@ TEST_CASE("GenotypePipe edge cases", "[genotype_pipe]")
         REQUIRE(result.has_value());
 
         auto bmat_file = test::replace_bed_extension(test_bed, ".add.bmat");
-        auto stats_file = test::replace_bed_extension(test_bed, ".add.snpstats");
+        auto stats_file
+            = test::replace_bed_extension(test_bed, ".add.snpstats");
         REQUIRE(std::filesystem::exists(bmat_file));
         REQUIRE(std::filesystem::exists(stats_file));
+    }
+}
+
+TEST_CASE("GenotypePipe file existence handling", "[genotype_pipe]")
+{
+    std::filesystem::path test_bed = "test_genotype_pipe_file_exists.bed";
+    test::TestGenotypePipeManager pipe_manager(test_bed);
+
+    std::vector<std::string> fids = {"fam1", "fam2"};
+    std::vector<std::string> iids = {"ind1", "ind2"};
+    pipe_manager.create(fids, iids, 3);
+
+    auto sample_manager
+        = gelex::SampleManager::create(test_bed.replace_extension(".fam"))
+              .value();
+    sample_manager.finalize();
+    auto sample_ptr
+        = std::make_shared<gelex::SampleManager>(std::move(sample_manager));
+
+    SECTION("Skip processing when output files already exist")
+    {
+        // First run: create output files
+        auto genotype_pipe1 = gelex::GenotypePipe::create(
+            test_bed.replace_extension(".bed"),
+            sample_ptr,
+            test_bed.stem(),
+            false);
+        REQUIRE(genotype_pipe1.has_value());
+        auto result1 = genotype_pipe1->process();
+        REQUIRE(result1.has_value());
+
+        auto bmat_file = test::replace_bed_extension(test_bed, ".add.bmat");
+        auto stats_file
+            = test::replace_bed_extension(test_bed, ".add.snpstats");
+        REQUIRE(std::filesystem::exists(bmat_file));
+        REQUIRE(std::filesystem::exists(stats_file));
+
+        // Record file sizes and modification times
+        auto original_bmat_size = std::filesystem::file_size(bmat_file);
+        auto original_stats_size = std::filesystem::file_size(stats_file);
+        auto original_bmat_time = std::filesystem::last_write_time(bmat_file);
+        auto original_stats_time = std::filesystem::last_write_time(stats_file);
+
+        // Second run: files exist, should skip processing
+        auto genotype_pipe2 = gelex::GenotypePipe::create(
+            test_bed.replace_extension(".bed"),
+            sample_ptr,
+            test_bed.stem(),
+            false);
+
+        REQUIRE_FALSE(genotype_pipe2.has_value());
+        // Verify files were not modified (skipped processing)
+        REQUIRE(std::filesystem::file_size(bmat_file) == original_bmat_size);
+        REQUIRE(std::filesystem::file_size(stats_file) == original_stats_size);
+        REQUIRE(
+            std::filesystem::last_write_time(bmat_file) == original_bmat_time);
+        REQUIRE(
+            std::filesystem::last_write_time(stats_file)
+            == original_stats_time);
+    }
+
+    SECTION("Process when output files don't exist")
+    {
+        auto bmat_file = test::replace_bed_extension(test_bed, ".add.bmat");
+        auto stats_file
+            = test::replace_bed_extension(test_bed, ".add.snpstats");
+
+        // Ensure files don't exist initially
+        if (std::filesystem::exists(bmat_file))
+        {
+            std::filesystem::remove(bmat_file);
+        }
+        if (std::filesystem::exists(stats_file))
+        {
+            std::filesystem::remove(stats_file);
+        }
+
+        REQUIRE_FALSE(std::filesystem::exists(bmat_file));
+        REQUIRE_FALSE(std::filesystem::exists(stats_file));
+
+        auto genotype_pipe = gelex::GenotypePipe::create(
+            test_bed.replace_extension(".bed"),
+            sample_ptr,
+            test_bed.stem(),
+            false);
+        REQUIRE(genotype_pipe.has_value());
+        auto result = genotype_pipe->process();
+        REQUIRE(result.has_value());
+
+        // Verify files were created
+        REQUIRE(std::filesystem::exists(bmat_file));
+        REQUIRE(std::filesystem::exists(stats_file));
+        REQUIRE(std::filesystem::file_size(bmat_file) > 0);
+        REQUIRE(std::filesystem::file_size(stats_file) > 0);
     }
 }
