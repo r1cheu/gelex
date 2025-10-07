@@ -57,7 +57,7 @@ void BayesATrait::operator()(
     // for convenience
     VectorXd& coeff = state.coeff;
     auto& u = state.u;
-    VectorXd& sigma = state.sigma;
+    VectorXd& sigma = state.marker_variance;
     const auto& design_matrix = effect.design_matrix.matrix();
     const auto& cols_norm = effect.cols_norm;
 
@@ -92,7 +92,7 @@ void BayesATrait::operator()(
         coeff(i) = new_i;
 
         // sample a new variance for current coefficient
-        chi_squared.update(new_i * new_i);
+        chi_squared.compute(new_i * new_i);
         sigma(i) = chi_squared(rng);
 
         // update the y_adj and u vectors
@@ -101,7 +101,7 @@ void BayesATrait::operator()(
         u.array() -= col.array() * diff;
     }
 
-    state.variance = detail::var(state.u)(0);
+    state.effect_variance = detail::var(state.u)(0);
 }
 
 }  // namespace gelex

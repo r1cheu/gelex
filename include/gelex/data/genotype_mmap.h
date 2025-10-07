@@ -42,7 +42,7 @@ class GenotypeMap
         return mono_set_.contains(snp_index);
     }
     const Eigen::VectorXd& mean() const { return mean_; }
-    const Eigen::VectorXd& stddev() const { return stddev_; }
+    const Eigen::VectorXd& variance() const { return variance_; }
     int64_t num_mono() const { return static_cast<int64_t>(mono_set_.size()); }
     int64_t rows() const { return rows_; }
     int64_t cols() const { return cols_; }
@@ -50,21 +50,25 @@ class GenotypeMap
    private:
     explicit GenotypeMap(
         mio::mmap_source&& mmap,
+        Eigen::Map<
+            const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>,
 #ifdef USE_AVX512
-        Eigen::Map<
-            const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>,
-            Eigen::Aligned64>&& mat,
+            Eigen::Aligned64> mat,
 #else
-        Eigen::Map<
-            const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>,
             Eigen::Aligned32>&& mat,
 #endif
         std::unordered_set<int64_t>&& mono_set,
         Eigen::VectorXd&& mean,
-        Eigen::VectorXd&& stddev,
+        Eigen::VectorXd&& variance,
         int64_t rows,
         int64_t cols)
-        : mmap_(std::move(mmap)), mat_(std::move(mat)), rows_(rows), cols_(cols)
+        : mmap_(std::move(mmap)),
+          mat_(std::move(mat)),
+          mean_(std::move(mean)),
+          variance_(std::move(variance)),
+          mono_set_(std::move(mono_set)),
+          rows_(rows),
+          cols_(cols)
     {
     }
 
@@ -82,7 +86,7 @@ class GenotypeMap
 #endif
     std::unordered_set<int64_t> mono_set_;
     Eigen::VectorXd mean_;
-    Eigen::VectorXd stddev_;
+    Eigen::VectorXd variance_;
     int64_t rows_;
     int64_t cols_;
 };

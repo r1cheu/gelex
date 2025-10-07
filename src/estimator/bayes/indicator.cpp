@@ -87,12 +87,11 @@ std::vector<std::string> Indicator::create_status_names(const BayesModel& model)
 
     status_names.emplace_back(sigma_squared("_e"));
 
-    /*
-    for (const auto& genetic : model.genetic())
+    // Add heritability tracking for additive effects
+    if (model.additive())
     {
-        status_names.emplace_back(h2("_" + genetic.name));
+        status_names.emplace_back(h2("_" + model.additive()->name));
     }
-    */
 
     return status_names;
 }

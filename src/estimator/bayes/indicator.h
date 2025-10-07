@@ -9,12 +9,11 @@
 #include "gelex/barkeep.h"
 #include "gelex/model/bayes/model.h"
 
-namespace bk = barkeep;
 namespace gelex
 {
 namespace detail
 {
-
+namespace bk = barkeep;
 const bk::BarParts BAR_STYLE{
     .left = "[",
     .right = "]",

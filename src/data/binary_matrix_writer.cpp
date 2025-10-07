@@ -23,7 +23,7 @@ auto BinaryMatrixWriter::create(const std::filesystem::path& file_path)
     -> std::expected<BinaryMatrixWriter, Error>
 {
     auto file
-        = open_file<std::ofstream>(file_path, std::ios::out | std::ios::app);
+        = open_file<std::ofstream>(file_path, std::ios::binary | std::ios::out);
 
     if (!file)
     {

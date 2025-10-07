@@ -143,7 +143,7 @@ TEST_CASE("BedPipe creation and basic functionality", "[bed_pipe]")
         REQUIRE(result->cols() == 5);  // variants
 
         Eigen::MatrixXd expected{
-            {0, 2, 0, 2, 0}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 0, 2, 0, 2}};
+            {2, 0, 2, 0, 2}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {0, 2, 0, 2, 0}};
         REQUIRE(result->isApprox(expected, 1e-10));
     }
 
@@ -191,14 +191,14 @@ TEST_CASE("BedPipe genotype access methods", "[bed_pipe]")
         // Verify genotype values (based on our test pattern)
         // Pattern: 0b11100100 = 11 10 01 00 = 2.0, 1.0, NaN, 0.0
 
-        REQUIRE(genotypes->isApprox(Eigen::VectorXd{{0, 1, 1, 2}}));
+        REQUIRE(genotypes->isApprox(Eigen::VectorXd{{2, 1, 1, 0}}));
     }
 
     SECTION("get_genotype for valid indices")
     {
         auto genotype = bed_pipe->get_genotype(0, 0);
         REQUIRE(genotype.has_value());
-        REQUIRE_THAT(*genotype, WithinAbs(0.0, 1e-10));
+        REQUIRE_THAT(*genotype, WithinAbs(2.0, 1e-10));
 
         genotype = bed_pipe->get_genotype(0, 1);
         REQUIRE(genotype.has_value());
@@ -210,7 +210,7 @@ TEST_CASE("BedPipe genotype access methods", "[bed_pipe]")
 
         genotype = bed_pipe->get_genotype(0, 3);
         REQUIRE(genotype.has_value());
-        REQUIRE_THAT(*genotype, WithinAbs(2.0, 1e-10));
+        REQUIRE_THAT(*genotype, WithinAbs(0.0, 1e-10));
     }
 
     SECTION("get_sample_genotypes for valid sample index")
@@ -220,7 +220,7 @@ TEST_CASE("BedPipe genotype access methods", "[bed_pipe]")
         REQUIRE(genotypes->size() == 5);
 
         // Sample 0 should have consistent values across variants
-        REQUIRE(genotypes->isApprox(Eigen::VectorXd{{0, 2, 0, 2, 0}}));
+        REQUIRE(genotypes->isApprox(Eigen::VectorXd{{2, 0, 2, 0, 2}}));
     }
 }
 
@@ -407,7 +407,7 @@ TEST_CASE("BedPipe edge cases", "[bed_pipe]")
 
         for (Eigen::Index i = 0; i < genotypes->size(); ++i)
         {
-            REQUIRE_THAT((*genotypes)(i), WithinAbs(0.0, 1e-10));
+            REQUIRE_THAT((*genotypes)(i), WithinAbs(2.0, 1e-10));
         }
     }
 }

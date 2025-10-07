@@ -17,6 +17,7 @@
 #include "gelex/estimator/bayes/mcmc.h"
 #include "gelex/estimator/bayes/result.h"
 #include "gelex/estimator/bayes/samples.h"
+#include "gelex/logger.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/utils/formatter.h"
 
@@ -93,9 +94,10 @@ void MCMC::run_one_chain(
     std::atomic_size_t& iter,
     detail::Indicator& indicator)
 {
+    auto logger = logging::get();
     std::mt19937_64 rng(seed);
 
-    VectorXd y_adj = model.phenotype();
+    VectorXd y_adj = model.phenotype().array() - model.phenotype().mean();
     BayesStatus status(model);
 
     Index record_idx = 0;
@@ -106,7 +108,11 @@ void MCMC::run_one_chain(
     {
         double sigma_e = status.residual.value;
 
-        sample_fixed_effect(model.fixed(), status.fixed, y_adj, sigma_e, rng);
+        if (model.fixed())
+        {
+            sample_fixed_effect(
+                *model.fixed(), *status.fixed, y_adj, sigma_e, rng);
+        }
 
         for (Index i = 0; i < model.random().size(); ++i)
         {
@@ -115,7 +121,7 @@ void MCMC::run_one_chain(
             indicator.update(
                 chain,
                 sigma_squared("_" + model.random()[i].name),
-                status.random[i].sigma(0));
+                status.random[i].effect_variance(0));
         }
 
         if (model.additive())
@@ -131,7 +137,7 @@ void MCMC::run_one_chain(
             indicator.update(
                 chain,
                 sigma_squared("_" + model.additive()->name),
-                status.additive->variance);
+                status.additive->effect_variance);
 
             if (model.trait()->estimate_pi())
             {
@@ -144,12 +150,11 @@ void MCMC::run_one_chain(
                 }
             }
         }
-
         auto& residual = status.residual;
-        // Create new ScaledInvChiSq each iteration to avoid parameter
-        // accumulation
-        residual_sample.update(y_adj.squaredNorm(), model.n_individuals());
+        residual_sample.compute(y_adj.squaredNorm(), model.n_individuals());
+        // std::cout << "before residual: \n" << residual.value << "\n";
         residual.value = residual_sample(rng);
+        // std::cout << "after residual: \n" << residual.value << "\n";
         status.compute_heritability();
 
         if (model.additive())
@@ -185,10 +190,6 @@ void MCMC::sample_fixed_effect(
 
     const int n = static_cast<int>(design_matrix.rows());
 
-    // calculate the posterior standard deviation for all coefficients
-    const VectorXd post_stddev = (sigma_e / cols_norm.array()).sqrt();
-
-    // Setup distributions for sampling
     std::normal_distribution<double> normal{0, 1};
 
     for (int i = 0; i < coeff.size(); ++i)
@@ -201,9 +202,10 @@ void MCMC::sample_fixed_effect(
         // calculate the posterior mean
         const double rhs = col.dot(y_adj) + (norm * old_i);
         const double post_mean = rhs / norm;
+        const double post_stddev = std::sqrt(sigma_e / norm);
 
         // sample a new coefficient
-        const double new_i = (normal(rng) * post_stddev(i)) + post_mean;
+        const double new_i = (normal(rng) * post_stddev) + post_mean;
         coeff(i) = new_i;
 
         // update the y_adj vector
@@ -223,7 +225,7 @@ void MCMC::sample_random_effect(
     VectorXd& coeff = status.coeff;
     const VectorXd& cols_norm = effect.cols_norm;
     const MatrixXd& design_matrix = effect.design_matrix;
-    const double sigma = status.sigma(0);
+    const double sigma = status.effect_variance(0);
 
     const int n = static_cast<int>(design_matrix.rows());
 
@@ -256,8 +258,8 @@ void MCMC::sample_random_effect(
 
     // sample a new variance
     detail::ScaledInvChiSq chi_squared{effect.prior};
-    chi_squared.update(coeff.squaredNorm(), coeff.size());
-    status.sigma(0) = chi_squared(rng);
+    chi_squared.compute(coeff.squaredNorm(), coeff.size());
+    status.effect_variance(0) = chi_squared(rng);
 }
 
 void MCMC::sample_additive_effect(

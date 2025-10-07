@@ -40,7 +40,7 @@ class BayesModel
     void add_additive_effect(GenotypeMap&& matrix);
     void add_dominance_effect(GenotypeMap&& matrix);
 
-    const auto& fixed() const { return *fixed_; }
+    const auto& fixed() const { return fixed_; }
     const auto& random() const { return random_; }
     const auto& additive() const { return additive_; }
     const auto& dominant() const { return dominant_; }
@@ -93,7 +93,10 @@ class BayesModel
 struct BayesStatus
 {
     explicit BayesStatus(const BayesModel& model)
-        : fixed(bayes::FixedStatus(model.fixed().design_matrix.cols())),
+        : fixed(
+              model.fixed() ? std::make_unique<bayes::FixedStatus>(
+                                  model.fixed()->design_matrix.cols())
+                            : nullptr),
           random(bayes::create_chain_states(model.random())),
           additive(
               model.additive()
@@ -109,7 +112,7 @@ struct BayesStatus
 
     void compute_heritability();
 
-    bayes::FixedStatus fixed;
+    std::unique_ptr<bayes::FixedStatus> fixed;
     std::vector<bayes::RandomStatus> random;
     std::unique_ptr<bayes::AdditiveStatus> additive;
     std::unique_ptr<bayes::DominantStatus> dominant;

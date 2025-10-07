@@ -1,10 +1,10 @@
-
 #include "gelex/data/genotype_mmap.h"
 
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
 
+#include <fmt/ranges.h>
 #include <gelex/mio.h>
 #include <Eigen/Core>
 
@@ -17,7 +17,6 @@ using std::ifstream;
 auto GenotypeMap::create(const std::filesystem::path& bin_file)
     -> std::expected<GenotypeMap, Error>
 {
-    // Read dimensions from metadata file
     auto snp_stats = bin_file;
     snp_stats.replace_extension(".snpstats");
 
@@ -35,8 +34,36 @@ auto GenotypeMap::create(const std::filesystem::path& bin_file)
     int64_t cols = 0;
     int64_t num_mono_snp = 0;
     meta_stream.read(reinterpret_cast<char*>(&rows), sizeof(int64_t));
+    if (!meta_stream)
+    {
+        return std::unexpected(
+            Error{
+                ErrorCode::FileIOError,
+                std::format(
+                    "Failed to read number of rows from metadata file: {}",
+                    snp_stats.string())});
+    }
     meta_stream.read(reinterpret_cast<char*>(&cols), sizeof(int64_t));
+    if (!meta_stream)
+    {
+        return std::unexpected(
+            Error{
+                ErrorCode::FileIOError,
+                std::format(
+                    "Failed to read number of columns from metadata file: {}",
+                    snp_stats.string())});
+    }
     meta_stream.read(reinterpret_cast<char*>(&num_mono_snp), sizeof(int64_t));
+    if (!meta_stream)
+    {
+        return std::unexpected(
+            Error{
+                ErrorCode::FileIOError,
+                std::format(
+                    "Failed to read number of monomorphic SNPs from metadata "
+                    "file: {}",
+                    snp_stats.string())});
+    }
 
     if (rows <= 0 || cols <= 0)
     {
@@ -50,20 +77,22 @@ auto GenotypeMap::create(const std::filesystem::path& bin_file)
                     cols)});
     }
     std::vector<int64_t> mono_indices;
-    mono_indices.reserve(static_cast<size_t>(num_mono_snp));
+    mono_indices.resize(static_cast<size_t>(num_mono_snp));
+
     meta_stream.read(
         reinterpret_cast<char*>(mono_indices.data()),
         sizeof(int64_t) * static_cast<size_t>(num_mono_snp));
+
     std::unordered_set<int64_t> mono_set(
         mono_indices.begin(), mono_indices.end());
 
     Eigen::VectorXd mean = Eigen::VectorXd::Zero(cols);
-    Eigen::VectorXd stddev = Eigen::VectorXd::Ones(cols);
+    Eigen::VectorXd variance = Eigen::VectorXd::Ones(cols);
     meta_stream.read(
         reinterpret_cast<char*>(mean.data()),
         sizeof(double) * static_cast<size_t>(cols));
     meta_stream.read(
-        reinterpret_cast<char*>(stddev.data()),
+        reinterpret_cast<char*>(variance.data()),
         sizeof(double) * static_cast<size_t>(cols));
 
     // Create memory mapping
@@ -99,7 +128,8 @@ auto GenotypeMap::create(const std::filesystem::path& bin_file)
     }
 
     // Create Eigen map
-    const double* data_ptr = reinterpret_cast<const double*>(mmap.data());
+    const auto* data_ptr = reinterpret_cast<const double*>(mmap.data());
+
 #ifdef USE_AVX512
     Eigen::Map<
         const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>,
@@ -117,7 +147,7 @@ auto GenotypeMap::create(const std::filesystem::path& bin_file)
         std::move(mat),
         std::move(mono_set),
         std::move(mean),
-        std::move(stddev),
+        std::move(variance),
         rows,
         cols);
 }

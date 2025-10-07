@@ -81,7 +81,7 @@ auto BedPipe::create(
     }
 
     const auto num_samples
-        = static_cast<Eigen::Index>(sample_manager->num_common_samples());
+        = static_cast<Eigen::Index>(sample_manager->num_genotyped_samples());
     const Eigen::Index bytes_per_variant
         = calculate_bytes_per_variant(num_samples);
 

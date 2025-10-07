@@ -1,11 +1,8 @@
 #include "bayes_effects.h"
 
-#include <unordered_set>
 #include <utility>
 
 #include "Eigen/Core"
-
-#include "gelex/model/effects.h"
 
 namespace gelex
 {
@@ -38,7 +35,9 @@ RandomEffect::RandomEffect(std::string&& name, MatrixXd&& design_matrix)
 
 RandomStatus::RandomStatus(const RandomEffect& effect)
     : coeff(VectorXd::Zero(effect.design_matrix.cols())),
-      sigma(effect.sigma)  // Use dvec for consistency with other effects
+      effect_variance(
+          effect
+              .effect_variance)  // Use dvec for consistency with other effects
 {
 }
 
@@ -49,7 +48,7 @@ AdditiveEffect::AdditiveEffect(
     VectorXd&& pi)
     : name(std::move(name)),
       pi(std::move(pi)),
-      sigma(std::move(sigma)),
+      marker_variance(std::move(sigma)),
       design_matrix(std::move(design_matrix))
 {
     cols_norm = this->design_matrix.matrix().colwise().squaredNorm();
@@ -60,7 +59,7 @@ AdditiveStatus::AdditiveStatus(const AdditiveEffect& effect)
       coeff(VectorXd::Zero(effect.design_matrix.cols())),
       tracker(VectorXi::Zero(effect.design_matrix.cols())),
       pi{effect.pi, Eigen::VectorXi::Zero(effect.pi.size())},
-      sigma(effect.sigma) {};
+      marker_variance(effect.marker_variance) {};
 
 DominantEffect::DominantEffect(
     std::string&& name,

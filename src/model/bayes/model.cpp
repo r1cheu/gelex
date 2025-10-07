@@ -1,6 +1,7 @@
 #include "gelex/model/bayes/model.h"
 
 #include <memory>
+#include <random>
 #include <stdexcept>
 #include <string>
 
@@ -13,6 +14,7 @@
 #include "gelex/data/data_pipe.h"
 #include "gelex/data/genotype_mmap.h"
 #include "gelex/utils/formatter.h"
+#include "model/bayes/distribution.h"
 #include "model/bayes/traits/base_trait.h"
 
 namespace gelex
@@ -28,7 +30,7 @@ BayesModel::BayesModel(VectorXd&& phenotype, BayesAlphabet type)
     n_individuals_ = phenotype_.rows();           // NOLINT
     phenotype_var_ = detail::var(phenotype_)(0);  // NOLINT
     model_trait_ = create_genetic_trait(type);
-    set_sigma_prior_manual("e", -2, 0, phenotype_var_ * 0.5);  // NOLINT
+    set_sigma_prior_manual("e", 4, 0, phenotype_var_ * 0.5);  // NOLINT
 }
 
 auto BayesModel::create_from_datapipe(DataPipe& data_pipe, BayesAlphabet type)
@@ -64,7 +66,7 @@ void BayesModel::add_random_effect(std::string&& name, MatrixXd&& design_matrix)
     {
         set_sigma_prior(effect.name, 4, 0.5);
     }
-    set_sigma_prior_manual("e", -2, 0, phenotype_var_ * 0.5);
+    set_sigma_prior_manual("e", 4, 0, phenotype_var_ * 0.5);
 }
 
 void BayesModel::add_additive_effect(GenotypeMap&& matrix)
@@ -96,13 +98,13 @@ void BayesModel::set_sigma_prior_manual(
     if (auto* random_effect = random_.get(name))
     {
         random_effect->prior = {nu, s2};
-        random_effect->sigma.setConstant(init_sigma);
+        random_effect->effect_variance.setConstant(init_sigma);
         return;
     }
     if (additive_ && additive_->name == name)
     {
         additive_->prior = {nu, s2};
-        additive_->sigma.setConstant(init_sigma);
+        additive_->marker_variance.setConstant(init_sigma);
         return;
     }
     if (name == "e")
@@ -145,14 +147,13 @@ void BayesModel::set_sigma_prior(
     {
         nr += effect.design_matrix.cols();
     }
-
     if (additive_ && additive_->name == name)
     {
-        auto n_snp = static_cast<double>(additive_->design_matrix.cols());
-        auto p1 = additive_->pi(1);
-        init_sigma = var / n_snp / p1;
+        init_sigma = var / additive_->design_matrix.variance().sum()
+                     / (1 - additive_->pi(0));
         s2 = (nu - 2) / nu * init_sigma;
     }
+
     else
     {
         init_sigma = var / static_cast<double>(nr + 1);
@@ -223,26 +224,26 @@ void BayesStatus::compute_heritability()
 
     for (const auto& rand : random)
     {
-        sum_var += rand.sigma(0);
+        sum_var += rand.effect_variance(0);
     }
 
     if (additive)
     {
-        sum_var += additive->variance;
+        sum_var += additive->effect_variance;
     }
     if (dominant)
     {
-        sum_var += dominant->variance;
+        sum_var += dominant->effect_variance;
     }
     sum_var += residual.value;
 
     if (additive)
     {
-        additive->heritability = additive->variance / sum_var;
+        additive->heritability = additive->effect_variance / sum_var;
     }
     if (dominant)
     {
-        dominant->heritability = dominant->variance / sum_var;
+        dominant->heritability = dominant->effect_variance / sum_var;
     }
 }
 

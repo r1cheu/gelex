@@ -163,23 +163,24 @@ void DataPipe::convert_to_matrices()
         covariates = std::move(covar_loader_->load(id_map));
     }
     const Eigen::Index num_fixed_effects
-        = 1 + qcovariates.cols() + covariates.cols();
+        = qcovariates.cols() + covariates.cols();
 
-    fixed_effects_ = Eigen::MatrixXd::Ones(num_samples, num_fixed_effects);
+    fixed_effects_ = Eigen::MatrixXd::Zero(num_samples, num_fixed_effects);
 
+    Eigen::Index current_col = 0;
     if (qcovariates.size() != 0)
     {
-        fixed_effects_.middleCols(1, qcovariates.cols()) = qcovariates;
+        fixed_effects_.middleCols(current_col, qcovariates.cols())
+            = qcovariates;
+        current_col += qcovariates.cols();
     }
 
     if (covariates.size() != 0)
     {
-        fixed_effects_.middleCols(1 + qcovariates.cols(), covariates.cols())
-            = covariates;
+        fixed_effects_.middleCols(current_col, covariates.cols()) = covariates;
     }
 
     fixed_effect_names_.clear();
-    fixed_effect_names_.emplace_back("Intercept");
     fixed_effect_names_.insert(
         fixed_effect_names_.end(),
         qcovariate_names_.begin(),

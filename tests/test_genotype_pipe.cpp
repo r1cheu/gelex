@@ -260,10 +260,10 @@ TEST_CASE("GenotypePipe creation and basic functionality", "[genotype_pipe]")
         Eigen::Map<const Eigen::MatrixXd> bmat(bmat_info.data.data(), 4, 5);
 
         Eigen::MatrixXd expected_bmat{
-            {-1.22474487, 1.22474487, 0, 1.22474487, -1.22474487},
-            {0., 0., 0., 0., 0.},
-            {0., 0., 0., 0., 0.},
-            {1.22474487, -1.22474487, 0, -1.22474487, 1.22474487}};
+            {1.22474487, -1.22474487, 2, -1.22474487, 1.22474487},
+            {0., 0., 2., 0., 0.},
+            {0., 0., 2., 0., 0.},
+            {-1.22474487, 1.22474487, 2, 1.22474487, -1.22474487}};
         REQUIRE(bmat.isApprox(expected_bmat, 1e-5));
     }
 

@@ -40,12 +40,13 @@ class ScaledInvChiSq
     explicit ScaledInvChiSq(const ScaledInvChiSqParams& prior_params);
     ScaledInvChiSq(double initial_nu, double initial_s2);
 
-    void update(double sum_of_squared_errors, Eigen::Index num_observations);
+    void compute(double sum_of_squared_errors, Eigen::Index num_observations);
 
-    void update(double single_observation_squared_error);
+    void compute(double single_observation_squared_error);
 
     double operator()(std::mt19937_64& rng) const;
-    const ScaledInvChiSqParams& prior() const;
+    const ScaledInvChiSqParams& prior() { return prior_; }
+    const ScaledInvChiSqParams& posterior() { return posterior_; }
 
    private:
     ScaledInvChiSqParams prior_;

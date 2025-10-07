@@ -254,16 +254,14 @@ TEST_CASE_PERSISTENT_FIXTURE(
 
     SECTION("Invalid metadata dimensions")
     {
-        auto result
-            = gelex::GenotypeMap::create("test_invalid_meta.bin");
+        auto result = gelex::GenotypeMap::create("test_invalid_meta.bin");
         REQUIRE_FALSE(result.has_value());
         REQUIRE(result.error().code == gelex::ErrorCode::InvalidData);
     }
 
     SECTION("Size mismatch between metadata and binary file")
     {
-        auto result
-            = gelex::GenotypeMap::create("test_size_mismatch.bin");
+        auto result = gelex::GenotypeMap::create("test_size_mismatch.bin");
         REQUIRE_FALSE(result.has_value());
         REQUIRE(result.error().code == gelex::ErrorCode::InvalidData);
     }

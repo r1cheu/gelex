@@ -107,7 +107,7 @@ class BedPipe
     Eigen::Index bytes_per_variant_;
     std::filesystem::path bed_path_;
 
-    constexpr static std::array<double, 4> add_map_{0, 1, 1, 2};
+    constexpr static std::array<double, 4> add_map_{2, 1, 1, 0};
     constexpr static std::array<double, 4> dom_map_{0, 1, 1, 0};
 };
 

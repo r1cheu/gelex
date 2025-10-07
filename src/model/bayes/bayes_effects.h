@@ -68,7 +68,8 @@ struct RandomEffect
 
     detail::ScaledInvChiSqParams prior;
 
-    Eigen::VectorXd sigma{{0}};  // set to dvec (not double) for consistency
+    Eigen::VectorXd effect_variance{
+        {0}};  // set to dvec (not double) for consistency
 };
 
 struct RandomStatus
@@ -76,7 +77,8 @@ struct RandomStatus
     explicit RandomStatus(const RandomEffect& effect);
 
     Eigen::VectorXd coeff;
-    Eigen::VectorXd sigma{{0}};  // set to dvec (not double) for consistency
+    Eigen::VectorXd effect_variance{
+        {0}};  // set to dvec (not double) for consistency
 };
 
 struct AdditiveEffect
@@ -92,7 +94,7 @@ struct AdditiveEffect
     Eigen::VectorXd cols_norm;
 
     detail::ScaledInvChiSqParams prior;
-    Eigen::VectorXd sigma;
+    Eigen::VectorXd marker_variance;
 
     Eigen::VectorXd pi;
 
@@ -109,9 +111,9 @@ struct AdditiveStatus
     Eigen::VectorXi tracker;
 
     Pi pi;
-    double variance{};
+    double effect_variance{};
     double heritability{};
-    Eigen::VectorXd sigma;
+    Eigen::VectorXd marker_variance;
 };
 
 struct DominantEffect
@@ -140,7 +142,7 @@ struct DominantStatus
     Eigen::VectorXd coeff;
     Eigen::VectorXd u;
 
-    double variance{};
+    double effect_variance{};
     double heritability{};
 };
 

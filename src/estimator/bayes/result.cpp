@@ -20,8 +20,9 @@ using Eigen::VectorXd;
 MCMCResult::MCMCResult(MCMCSamples&& samples, double prob)
     : samples_(std::move(samples)), prob_(prob), residual_(1)
 {
-    fixed_
-        = std::make_unique<PosteriorSummary>(samples_.fixed().coeff[0].rows());
+    fixed_ = samples_.fixed() ? std::make_unique<PosteriorSummary>(
+                                    samples_.fixed().coeff[0].rows())
+                              : nullptr;
     additive_ = samples_.additive()
                     ? std::make_unique<AdditiveSummary>(samples_.additive())
                     : nullptr;
@@ -128,7 +129,10 @@ void MCMCResult::save(const std::filesystem::path& prefix) const
     };
 
     // saving all parameters except for snp effects
-    write_stats(*fixed_, fixed_->size());
+    if (fixed_)
+    {
+        write_stats(*fixed_, fixed_->size());
+    }
     for (const auto& rand : random_)
     {
         write_stats(rand.coeff, rand.coeff.size());

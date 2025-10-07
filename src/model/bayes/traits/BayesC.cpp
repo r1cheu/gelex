@@ -60,7 +60,7 @@ void BayesCTrait::operator()(
     // for convenience
     VectorXd& coeff = state.coeff;
     auto& u = state.u;
-    const double sigma_g = state.sigma(0);
+    const double sigma_g = state.marker_variance(0);
     VectorXi& tracker = state.tracker;
 
     const auto& design_matrix = effect.design_matrix.matrix();
@@ -129,10 +129,10 @@ void BayesCTrait::operator()(
 
     // sample variance
     detail::ScaledInvChiSq chi_squared{effect.prior};
-    chi_squared.update(var_g, state.pi.count(1));
-    state.sigma(0) = chi_squared(rng);
+    chi_squared.compute(var_g, state.pi.count(1));
+    state.marker_variance(0) = chi_squared(rng);
 
-    state.variance = detail::var(state.u)(0);
+    state.effect_variance = detail::var(state.u)(0);
 }
 
 }  // namespace gelex

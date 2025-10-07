@@ -30,7 +30,7 @@ cmd = ["cmake", "--build", ".build", "-j16"]
 depends-on = ["configure"]
 
 [tasks.install]
-cmd = ["cp", ".build/gelex", "~/.local/bin/"]
+cmd = ["rm", "~/.local/bin/gelex", "&&", "cp", ".build/gelex", "~/.local/bin/"]
 depends-on = ["build"]
 
 [tasks.test]

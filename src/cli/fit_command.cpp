@@ -32,7 +32,6 @@ void fit_command(argparse::ArgumentParser& cmd)
             "specify which phenotype column to use, default is the 3rd column")
         .default_value(3)
         .scan<'i', int>();
-
     cmd.add_argument("--chunk-size")
         .help("chunk size for processing snps, default is 10000")
         .default_value(10000)
@@ -129,7 +128,8 @@ int fit_excute(argparse::ArgumentParser& fit)
         if (genotype_pipe)
         {
             if (auto process_result
-                = genotype_pipe->process(fit.get<int>("--chunk-size"));
+                = genotype_pipe->process<gelex::NonStandardizingProcessor>(
+                    fit.get<int>("--chunk-size"));
                 !process_result)
 
             {
@@ -164,7 +164,8 @@ int fit_excute(argparse::ArgumentParser& fit)
         if (genotype_pipe)
         {
             if (auto process_result
-                = genotype_pipe->process(fit.get<int>("--chunk-size"));
+                = genotype_pipe->process<gelex::NonStandardizingProcessor>(
+                    fit.get<int>("--chunk-size"));
                 !process_result)
 
             {

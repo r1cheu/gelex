@@ -61,7 +61,7 @@ void BayesBTrait::operator()(
     // for convenience
     VectorXd& coeff = state.coeff;
     auto& u = state.u;
-    VectorXd& sigma = state.sigma;
+    VectorXd& sigma = state.marker_variance;
     VectorXi& tracker = state.tracker;
 
     const auto& design_matrix = effect.design_matrix.matrix();
@@ -126,7 +126,7 @@ void BayesBTrait::operator()(
         // Sample variance for this marker (like BayesA but with indicator)
         if (dist_index == 1)
         {
-            chi_squared.update(new_i * new_i);
+            chi_squared.compute(new_i * new_i);
             sigma(i) = chi_squared(rng);
         }
         else
@@ -135,7 +135,7 @@ void BayesBTrait::operator()(
             // This maintains the variance structure for potential reactivation
         }
     }
-    state.variance = detail::var(state.u)(0);
+    state.effect_variance = detail::var(state.u)(0);
 }
 
 }  // namespace gelex

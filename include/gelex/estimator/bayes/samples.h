@@ -26,6 +26,7 @@ struct FixedSamples
     Samples coeff;
     std::vector<std::string> names;
     std::vector<std::string> levels;
+    explicit operator bool() const { return !coeff.empty(); }
 };
 
 struct RandomSamples
