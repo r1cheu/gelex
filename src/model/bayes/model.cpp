@@ -76,7 +76,7 @@ void BayesModel::add_additive_effect(GenotypeMap&& matrix)
     additive_ = std::make_unique<bayes::AdditiveEffect>(
         "additive",
         std::move(matrix),
-        model_trait_->default_sigma(n_snp),
+        model_trait_->default_marker_variance(n_snp),
         model_trait_->default_pi());
     set_sigma_prior(additive_->name, 4.0, 0.5);
 }

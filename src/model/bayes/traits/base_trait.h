@@ -13,7 +13,8 @@ class GeneticTrait
    public:
     virtual ~GeneticTrait() = default;
 
-    virtual Eigen::VectorXd default_sigma(Eigen::Index n_snp) const = 0;
+    virtual Eigen::VectorXd default_marker_variance(Eigen::Index n_snp) const
+        = 0;
     virtual Eigen::VectorXd default_pi() const = 0;
     virtual bool estimate_pi() const = 0;
 

@@ -19,7 +19,7 @@ using Eigen::Index;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-VectorXd BayesRRTrait::default_sigma(Eigen::Index n_snp) const
+VectorXd BayesRRTrait::default_marker_variance(Eigen::Index n_snp) const
 {
     VectorXd sigma = VectorXd::Zero(1);
     return sigma;

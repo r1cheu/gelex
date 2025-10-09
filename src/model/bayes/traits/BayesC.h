@@ -15,7 +15,7 @@ class BayesCTrait : public GeneticTrait
    public:
     std::string name() const override { return "BayesC"; }
 
-    Eigen::VectorXd default_sigma(Eigen::Index n_snp) const override;
+    Eigen::VectorXd default_marker_variance(Eigen::Index n_snp) const override;
     Eigen::VectorXd default_pi() const override;
     bool estimate_pi() const override;
 

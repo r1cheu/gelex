@@ -17,7 +17,7 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 using Eigen::VectorXi;
 
-VectorXd BayesCTrait::default_sigma(Index n_snp) const
+VectorXd BayesCTrait::default_marker_variance(Index n_snp) const
 {
     VectorXd sigma = VectorXd::Zero(1);
     return sigma;
