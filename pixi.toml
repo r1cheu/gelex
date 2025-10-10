@@ -16,22 +16,41 @@ mkl-devel = ">=2024.2.2,<2025"
 fftw = ">=3.3.10,<4"
 
 [tasks.configure]
+args = [
+  { "arg" = "build_dir", "default" = ".build_debug" },
+  { "arg" = "build_type", "default" = "Debug" },
+]
+
 cmd = [
   "cmake",
   "-GNinja",
   "-S .",
-  "-B.build",
+  "-B{{build_dir}}",
   "-DBUILD_TEST=ON",
   "-DUSE_MKL=ON",
+  "-DCMAKE_BUILD_TYPE={{build_type}}",
 ]
 
-[tasks.build]
-cmd = ["cmake", "--build", ".build", "-j16"]
+[tasks.build-debug]
+cmd = ["cmake", "--build", ".build_debug", "-j16"]
 depends-on = ["configure"]
 
-[tasks.install]
-cmd = ["rm", "~/.local/bin/gelex", "&&", "cp", ".build/gelex", "~/.local/bin/"]
-depends-on = ["build"]
+[tasks.install-debug]
+cmd = ["cp", ".build_debug/gelex", "~/.local/bin/"]
+depends-on = ["build-debug"]
+
+[tasks.build-release]
+cmd = ["cmake", "--build", ".build_release", "-j16"]
+depends-on = [
+  { task = "configure", args = [
+    { build_dir = ".build_release" },
+    { build_type = "Release" },
+  ] },
+]
+
+[tasks.install-release]
+cmd = ["cp", ".build_release/gelex", "~/.local/bin/"]
+depends-on = ["build-release"]
 
 [tasks.test]
 cmd = "cd .build/tests;ctest"

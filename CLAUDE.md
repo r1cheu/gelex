@@ -4,7 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Gelexy is a C++ library for genomic prediction with Bayesian (BayesAlphabet models) and frequentist (GBLUP) approaches. It provides high-performance computation for genomic selection with memory-mapped genotype data support.
+Gelexy is a C++ library and CLI tool for genomic prediction with Bayesian (BayesAlphabet models) and frequentist (GBLUP) approaches. It provides high-performance computation for genomic selection with memory-mapped genotype data support.
+
+**CLI Subcommands:**
+- `gelex fit`: Fit genomic prediction models
+- `gelex simulate`: Run simulations
 
 ## Key Architecture
 
@@ -20,20 +24,29 @@ This project uses CMake with pixi for dependency management:
 
 **Common Commands:**
 
-- Configure: `pixi run configure`
-- Build: `pixi run build`
-- Test: `pixi run test` (runs C++ tests)
-- Install: `pixi run install` (copies to ~/.local/bin)
+- Debug build: `pixi run build-debug` (default, includes tests)
+- Release build: `pixi run build-release` (optimized)
+- Install debug: `pixi run install-debug` (copies to ~/.local/bin)
+- Install release: `pixi run install-release` (copies to ~/.local/bin)
+- Test: `pixi run test` (runs all C++ tests with ctest)
+
+**CMake Configuration:**
+
+The `pixi run configure` task accepts arguments:
+- `build_dir`: Build directory (default: `.build_debug`)
+- `build_type`: Build type (default: `Debug`, options: `Debug`, `Release`, `RelWithDebInfo`, `MinSizeRel`)
+
+Example: `pixi run configure --build_dir=.build_release --build_type=Release`
 
 **CMake Options:**
 
-- `-DUSE_MKL=ON/OFF`: Use Intel MKL or OpenBLAS (default: OFF)
-- `-DBUILD_TEST=ON/OFF`: Enable testing (default: OFF)
+- `-DUSE_MKL=ON/OFF`: Use Intel MKL or OpenBLAS (default: ON in pixi tasks)
+- `-DBUILD_TEST=ON/OFF`: Enable testing (default: ON in pixi tasks)
 
 **Single Test Execution:**
 
 ```bash
-cd .build/tests/cpp/
+cd .build_debug/tests/
 ./test "TestName*"
 ```
 
@@ -73,17 +86,20 @@ cd .build/tests/cpp/
 
 ## Development Workflow
 
-1. **Setup**: `pixi install`
-2. **Configure**: `pixi run configure`
-3. **Build**: `pixi run build`
-4. **Test**: `pixi run test` or run individual tests
-5. **Iterate**: Modify code and rebuild
+1. **Setup**: `pixi install` (installs all dependencies)
+2. **Build Debug**: `pixi run build-debug` (includes configure step)
+3. **Test**: `pixi run test` or run individual tests from `.build_debug/tests/`
+4. **Build Release**: `pixi run build-release` (for production builds)
+5. **Install**: `pixi run install-debug` or `pixi run install-release`
 
 ## Testing
 
 - **C++ Tests**: Catch2 framework in `tests/` directory
 - **Test Data**: Uses sample BED files for validation
-- **Test Execution**: All tests: `pixi run test`, Single test: `./test "TestName*"`
+- **Test Execution**:
+  - All tests: `pixi run test`
+  - Single test: `cd .build_debug/tests && ./test "TestName*"`
+  - List tests: `cd .build_debug/tests && ./test --list-tests`
 
 ## Dependencies
 
