@@ -145,7 +145,7 @@ void MCMCLogger::log_result(const MCMCResult& result, const BayesModel& model)
              i < static_cast<Eigen::Index>(model.fixed()->names.size());
              ++i)
         {
-            log_summary(i, result.fixed(), model.fixed()->names[i]);
+            log_summary(i, result.fixed()->coeffs, model.fixed()->names[i]);
         }
     }
 
@@ -153,7 +153,9 @@ void MCMCLogger::log_result(const MCMCResult& result, const BayesModel& model)
     {
         const auto& effect = *model.additive();
         log_summary(
-            0, result.additive()->variance, sigma_squared("_" + effect.name));
+            0,
+            result.additive()->effect_variance,
+            sigma_squared("_" + effect.name));
         if (model.trait() && model.trait()->estimate_pi())
         {
             // Handle pi estimation if the trait supports it
@@ -165,7 +167,9 @@ void MCMCLogger::log_result(const MCMCResult& result, const BayesModel& model)
     {
         const auto& effect = *model.dominant();
         log_summary(
-            0, result.dominant()->variance, sigma_squared("_" + effect.name));
+            0,
+            result.dominant()->effect_variance,
+            sigma_squared("_" + effect.name));
     }
     log_summary(0, result.residual(), sigma_squared("_e"));
 }

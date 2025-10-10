@@ -9,13 +9,14 @@
 
 #include <Eigen/Core>
 
-#include "../src/model/bayes/bayes_effects.h"
-#include "gelex/model/bayes/model.h"
+#include "gelex/estimator/bayes/params.h"
 
 namespace gelex
 {
 
-struct MCMCParams;  // Forward declaration
+struct MCMCParams;   // Forward declaration
+struct BayesStatus;  // Forward declaration
+struct BayesModel;   // Forward declaration
 
 // samples for one effect, each element in vector saves one chain's samples. and
 // Matrix have the shape (n_params, n_draws)
@@ -23,55 +24,88 @@ using Samples = std::vector<Eigen::MatrixXd>;
 
 struct FixedSamples
 {
-    Samples coeff;
+    static FixedSamples create(
+        const MCMCParams& params,
+        const BayesModel& model);
+
+    Samples coeffs;
     std::vector<std::string> names;
     std::vector<std::string> levels;
-    explicit operator bool() const { return !coeff.empty(); }
+    explicit operator bool() const { return !coeffs.empty(); }
 };
 
 struct RandomSamples
 {
     Samples coeffs;
-    Samples sigmas;
+    Samples effect_variance;
     std::string name;
 
     void reserve(size_t n_chains)
     {
         coeffs.reserve(n_chains);
-        sigmas.reserve(n_chains);
+        effect_variance.reserve(n_chains);
     }
     explicit operator bool() const { return !coeffs.empty(); }
 };
 
 struct AdditiveSamples : RandomSamples
 {
-    Samples variance;
+    static AdditiveSamples create(
+        const MCMCParams& params,
+        const BayesModel& model);
+
+    Samples marker_variance;
     void reserve(size_t n_chains)
     {
         RandomSamples::reserve(n_chains);
-        variance.reserve(n_chains);
+        marker_variance.reserve(n_chains);
     }
     explicit operator bool() const { return !coeffs.empty(); }
 };
 
 struct DominantSamples
 {
+    static DominantSamples create(
+        const MCMCParams& params,
+        const BayesModel& model);
     Samples coeffs;
-    Samples variance;
+    Samples effect_variance;
+
     void reserve(size_t n_chains)
     {
         coeffs.reserve(n_chains);
-        variance.reserve(n_chains);
+        effect_variance.reserve(n_chains);
     }
     explicit operator bool() const { return !coeffs.empty(); }
 };
 
 struct MultiRandomSamples
 {
+    static MultiRandomSamples create(
+        const MCMCParams& params,
+        const BayesModel& model);
     std::vector<RandomSamples> chain_samples;
     size_t size() const { return chain_samples.size(); }
     void reserve(size_t n_effects) { chain_samples.reserve(n_effects); }
     explicit operator bool() const { return !chain_samples.empty(); }
+};
+
+struct ResidualSamples
+{
+    static ResidualSamples create(
+        const MCMCParams& params,
+        const BayesModel& model);
+    Samples variance;
+    void reserve(size_t n_chains) { variance.reserve(n_chains); }
+    explicit operator bool() const { return !variance.empty(); }
+};
+
+struct PiSamples
+{
+    static PiSamples create(const MCMCParams& params, const BayesModel& model);
+    Samples prop;
+    void reserve(size_t n_chains) { prop.reserve(n_chains); }
+    explicit operator bool() const { return !prop.empty(); }
 };
 
 class MCMCSamples
@@ -88,27 +122,18 @@ class MCMCSamples
     const auto& additive() const { return additive_; }
     const auto& dominant() const { return dominant_; }
     const auto& residual() const { return residual_; }
-    const auto& bim_file_path() const { return bim_file_path_; }
 
    private:
-    size_t n_records_;
-    size_t n_chains_;
-
+    bool store_fixed_{false};
+    bool store_random_{false};
     bool store_pi_{false};
-    std::string bim_file_path_;
+    bool store_dominant_{false};
 
     FixedSamples fixed_;
     MultiRandomSamples random_;
     AdditiveSamples additive_;
     DominantSamples dominant_;
-    Samples residual_;
-    Samples pi_;
-
-    void init_random(const bayes::RandomEffectManager& effects);
-
-    void store_random(
-        const std::vector<bayes::RandomStatus>& status,
-        Eigen::Index record_idx,
-        Eigen::Index chain_idx);
+    ResidualSamples residual_;
+    PiSamples pi_;
 };
 }  // namespace gelex

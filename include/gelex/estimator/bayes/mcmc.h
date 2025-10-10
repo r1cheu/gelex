@@ -20,10 +20,7 @@ class MCMC
    public:
     explicit MCMC(MCMCParams params);
 
-    const MCMCResult& run(
-        const BayesModel& model,
-        const std::filesystem::path& out_prefix,
-        Eigen::Index seed = 42);
+    const MCMCResult& run(const BayesModel& model, Eigen::Index seed = 42);
     const MCMCResult& result() const { return *result_; }
 
    private:

@@ -10,71 +10,129 @@ namespace gelex
 {
 using Eigen::Index;
 
-MCMCSamples::MCMCSamples(const MCMCParams& params, const BayesModel& model)
-    : n_records_((params.n_iters - params.n_burnin) / params.n_thin),
-      n_chains_(params.n_chains),
-      store_pi_(model.trait()->estimate_pi())
+FixedSamples FixedSamples::create(
+    const MCMCParams& params,
+    const BayesModel& model)
 {
-    // Pre-allocate all matrices upfront for better performance
-    residual_.reserve(n_chains_);
+    FixedSamples samples;
+    samples.coeffs.reserve(params.n_chains);
+    samples.names = model.fixed()->names;
+    const Eigen::Index n_coeffs = model.fixed()->design_matrix.cols();
+    for (Eigen::Index i = 0; i < params.n_chains; ++i)
+    {
+        samples.coeffs.emplace_back(n_coeffs, params.n_records);
+    }
+    return samples;
+}
 
+AdditiveSamples AdditiveSamples::create(
+    const MCMCParams& params,
+    const BayesModel& model)
+{
+    AdditiveSamples samples;
+    samples.reserve(params.n_chains);
+    samples.name = model.additive()->name;
+
+    const Eigen::Index n_coeffs = model.additive()->design_matrix.cols();
+    const Eigen::Index n_variance = model.additive()->marker_variance.size();
+    for (Eigen::Index i = 0; i < params.n_chains; ++i)
+    {
+        samples.coeffs.emplace_back(n_coeffs, params.n_records);
+        samples.effect_variance.emplace_back(n_variance, params.n_records);
+        samples.marker_variance.emplace_back(1, params.n_records);
+    }
+    return samples;
+}
+
+DominantSamples DominantSamples::create(
+    const MCMCParams& params,
+    const BayesModel& model)
+{
+    DominantSamples samples;
+    samples.reserve(params.n_chains);
+
+    const Eigen::Index n_coeffs = model.dominant()->design_matrix.cols();
+    for (Eigen::Index i = 0; i < params.n_chains; ++i)
+    {
+        samples.coeffs.emplace_back(n_coeffs, params.n_records);
+        samples.effect_variance.emplace_back(1, params.n_records);
+    }
+    return samples;
+}
+
+MultiRandomSamples MultiRandomSamples::create(
+    const MCMCParams& params,
+    const BayesModel& model)
+{
+    MultiRandomSamples samples;
+    samples.reserve(model.random().size());
+    for (const auto& effect : model.random())
+    {
+        RandomSamples effect_samples;
+        effect_samples.reserve(params.n_chains);
+        effect_samples.name = effect.name;
+        const Eigen::Index n_coeff = effect.design_matrix.cols();
+        for (Eigen::Index i = 0; i < params.n_chains; ++i)
+        {
+            effect_samples.coeffs.emplace_back(n_coeff, params.n_records);
+            effect_samples.effect_variance.emplace_back(1, params.n_records);
+        }
+        samples.chain_samples.push_back(std::move(effect_samples));
+    }
+    return samples;
+}
+
+ResidualSamples ResidualSamples::create(
+    const MCMCParams& params,
+    const BayesModel& /* model */)
+{
+    ResidualSamples samples;
+    samples.reserve(params.n_chains);
+    for (Eigen::Index i = 0; i < params.n_chains; ++i)
+    {
+        samples.variance.emplace_back(1, params.n_records);
+    }
+    return samples;
+}
+
+PiSamples PiSamples::create(const MCMCParams& params, const BayesModel& model)
+{
+    PiSamples samples;
+    samples.reserve(params.n_chains);
+    const Eigen::Index n_props = model.additive()->pi.size();
+    for (Eigen::Index i = 0; i < params.n_chains; ++i)
+    {
+        samples.prop.emplace_back(n_props, params.n_records);
+    }
+    return samples;
+}
+
+MCMCSamples::MCMCSamples(const MCMCParams& params, const BayesModel& model)
+{
     if (model.fixed())
     {
-        fixed_.coeff.reserve(n_chains_);
-        fixed_.names = model.fixed()->names;
-        const Index n_coeffs = model.fixed()->design_matrix.cols();
-        for (Index i = 0; i < n_chains_; ++i)
-        {
-            fixed_.coeff.emplace_back(n_coeffs, n_records_);
-        }
+        store_fixed_ = true;
+        fixed_ = FixedSamples::create(params, model);
     }
 
-    if (store_pi_)
+    if (model.random().size() > 0)
     {
-        pi_.reserve(n_chains_);
-        const Index pi_size = model.additive()->pi.size();
-        for (Index i = 0; i < n_chains_; i++)
-        {
-            pi_.emplace_back(pi_size, n_records_);
-        }
+        store_random_ = true;
+        random_ = MultiRandomSamples::create(params, model);
     }
 
-    if (model.additive())
+    additive_ = AdditiveSamples::create(params, model);
+    if (model.trait()->estimate_pi())
     {
-        const Index n_coeffs = model.additive()->design_matrix.cols();
-        const Index sigma_size = model.additive()->marker_variance.size();
-
-        additive_.coeffs.reserve(n_chains_);
-        additive_.sigmas.reserve(n_chains_);
-        additive_.variance.reserve(n_chains_);
-
-        for (Index i = 0; i < n_chains_; i++)
-        {
-            additive_.coeffs.emplace_back(n_coeffs, n_records_);
-            additive_.sigmas.emplace_back(sigma_size, n_records_);
-            additive_.variance.emplace_back(1, n_records_);
-        }
+        store_pi_ = true;
+        pi_ = PiSamples::create(params, model);
     }
-
     if (model.dominant())
     {
-        const Index n_coeffs = model.dominant()->design_matrix.cols();
-        dominant_.coeffs.reserve(n_chains_);
-        dominant_.variance.reserve(n_chains_);
-
-        for (Index i = 0; i < n_chains_; i++)
-        {
-            dominant_.coeffs.emplace_back(n_coeffs, n_records_);
-            dominant_.variance.emplace_back(1, n_records_);
-        }
+        store_dominant_ = true;
+        dominant_ = DominantSamples::create(params, model);
     }
-
-    // Pre-allocate residual effects
-    for (Index i = 0; i < n_chains_; ++i)
-    {
-        residual_.emplace_back(1, n_records_);
-    }
-    init_random(model.random());
+    residual_ = ResidualSamples::create(params, model);
 }
 
 void MCMCSamples::store(
@@ -82,77 +140,43 @@ void MCMCSamples::store(
     Eigen::Index record_idx,
     Eigen::Index chain_idx)
 {
-    if (status.fixed)
+    if (store_fixed_)
     {
-        fixed_.coeff[chain_idx].col(record_idx) = status.fixed->coeff;
+        fixed_.coeffs[chain_idx].col(record_idx) = status.fixed->coeff;
     }
 
-    if (status.additive)
+    if (store_random_)
     {
-        additive_.coeffs[chain_idx].col(record_idx) = status.additive->coeff;
-        additive_.sigmas[chain_idx].col(record_idx)
-            = status.additive->marker_variance;
-        additive_.variance[chain_idx](0, record_idx)
-            = status.additive->effect_variance;
-
-        if (store_pi_)
+        for (Index effect_idx = 0; effect_idx < status.random.size();
+             ++effect_idx)
         {
-            pi_[chain_idx].col(record_idx) = status.additive->pi.prop;
+            random_.chain_samples[effect_idx].coeffs[chain_idx].col(record_idx)
+                = status.random[effect_idx].coeff;
+            random_.chain_samples[effect_idx].effect_variance[chain_idx].col(
+                record_idx)
+                = status.random[effect_idx].effect_variance;
         }
     }
 
-    if (status.dominant)
+    additive_.coeffs[chain_idx].col(record_idx) = status.additive->coeff;
+    additive_.effect_variance[chain_idx](0, record_idx)
+        = status.additive->effect_variance;
+    additive_.marker_variance[chain_idx].col(record_idx)
+        = status.additive->marker_variance;
+
+    if (store_pi_)
+    {
+        pi_.prop[chain_idx].col(record_idx) = status.additive->pi.prop;
+    }
+
+    if (store_dominant_)
     {
         dominant_.coeffs[chain_idx].col(record_idx) = status.dominant->coeff;
-        dominant_.variance[chain_idx](0, record_idx)
+        dominant_.effect_variance[chain_idx](0, record_idx)
             = status.dominant->effect_variance;
     }
 
-    residual_[chain_idx](0, record_idx) = status.residual.value;
-}
-
-void MCMCSamples::init_random(const bayes::RandomEffectManager& effects)
-{
-    const auto n_effects = static_cast<Index>(effects.size());
-    if (n_effects == 0)
-    {
-        return;
-    }
-
-    random_.reserve(n_effects);
-
-    for (Index effect_idx = 0; effect_idx < n_effects; ++effect_idx)
-    {
-        RandomSamples effect_samples;
-        effect_samples.coeffs.reserve(n_chains_);
-        effect_samples.sigmas.reserve(n_chains_);
-        effect_samples.name = effects[effect_idx].name;
-
-        const Index n_coeff = effects[effect_idx].design_matrix.cols();
-
-        for (Index chain_idx = 0; chain_idx < n_chains_; ++chain_idx)
-        {
-            effect_samples.coeffs.emplace_back(n_coeff, n_records_);
-            effect_samples.sigmas.emplace_back(1, n_records_);
-        }
-
-        random_.chain_samples.push_back(std::move(effect_samples));
-    }
-}
-
-void MCMCSamples::store_random(
-    const std::vector<bayes::RandomStatus>& status,
-    Eigen::Index record_idx,
-    Eigen::Index chain_idx)
-{
-    const auto n_effects = static_cast<Index>(status.size());
-    for (Index effect_idx = 0; effect_idx < n_effects; ++effect_idx)
-    {
-        random_.chain_samples[effect_idx].coeffs[chain_idx].col(record_idx)
-            = status[effect_idx].coeff;
-        random_.chain_samples[effect_idx].sigmas[chain_idx].col(record_idx)
-            = status[effect_idx].effect_variance;
-    }
+    residual_.variance[chain_idx](0, record_idx) = status.residual.value;
 }
 
 }  // namespace gelex

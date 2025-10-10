@@ -5,6 +5,7 @@
 #include "gelex/error.h"
 #include "gelex/estimator/bayes/mcmc.h"
 #include "gelex/estimator/bayes/params.h"
+#include "gelex/estimator/bayes/result_writer.h"
 #include "gelex/logger.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/effects.h"
@@ -76,6 +77,7 @@ int fit_excute(argparse::ArgumentParser& fit)
     gelex::logging::initialize(out_prefix);
     auto logger = gelex::logging::get();
 
+    // valid bed path, using for accept both prefix and prefix.bed
     auto bed = gelex::valid_bed(fit.get("--bfile"));
 
     if (!bed)
@@ -84,7 +86,7 @@ int fit_excute(argparse::ArgumentParser& fit)
         return 1;
     }
 
-    // Create shared SampleManager
+    // Sample Intersection
     auto sample_manager_result = gelex::SampleManager::create(
         bed->replace_extension(".fam"), fit.get<bool>("--iid_only"));
 
@@ -113,7 +115,10 @@ int fit_excute(argparse::ArgumentParser& fit)
         return 1;
     }
 
+    // Create Bayesian Model
     auto model = gelex::BayesModel::create_from_datapipe(*data_pipe, type);
+
+    // Add Additive Effect
     {
         auto genotype_pipe = gelex::GenotypePipe::create(
             bed->replace_extension(".bed"), sample_manager, fit.get("--out"));
@@ -147,6 +152,7 @@ int fit_excute(argparse::ArgumentParser& fit)
         model->add_additive_effect(std::move(gmap.value()));
     }
 
+    // Add Dominance Effect
     if (fit.get<bool>("--dom"))
     {
         auto genotype_pipe = gelex::GenotypePipe::create(
@@ -183,6 +189,7 @@ int fit_excute(argparse::ArgumentParser& fit)
         model->add_dominance_effect(std::move(gmap.value()));
     }
 
+    // MCMC Sampling
     gelex::MCMCParams mcmc_params(
         fit.get<int>("--iters"),
         fit.get<int>("--burnin"),
@@ -190,6 +197,12 @@ int fit_excute(argparse::ArgumentParser& fit)
         fit.get<int>("--chains"));
 
     gelex::MCMC mcmc(mcmc_params);
-    mcmc.run(model.value(), out_prefix);
+    mcmc.run(model.value());
+
+    // Write Results
+    auto bim_path = bed->replace_extension(".bim");
+    gelex::MCMCResultWriter writer(mcmc.result(), bim_path);
+    writer.save(out_prefix);
+
     return 0;
 }

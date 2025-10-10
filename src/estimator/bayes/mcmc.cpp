@@ -33,10 +33,7 @@ using Eigen::VectorXi;
 namespace bk = barkeep;
 MCMC::MCMC(MCMCParams params) : params_(params) {}
 
-const MCMCResult& MCMC::run(
-    const BayesModel& model,
-    const std::filesystem::path& out_prefix,
-    Index seed)
+const MCMCResult& MCMC::run(const BayesModel& model, Index seed)
 {
     MCMCSamples samples(params_, model);
 
@@ -78,10 +75,9 @@ const MCMCResult& MCMC::run(
         "MCMC sampling completed, Total time: {:.2f} s.",
         static_cast<double>(duration) / 1000.0);
 
-    result_ = std::make_unique<MCMCResult>(std::move(samples), 0.9);
+    result_ = std::make_unique<MCMCResult>(std::move(samples), model, 0.9);
     result_->compute();
     logger_.log_result(*result_, model);
-    result_->save(out_prefix);
 
     return *result_;
 }
@@ -152,9 +148,7 @@ void MCMC::run_one_chain(
         }
         auto& residual = status.residual;
         residual_sample.compute(y_adj.squaredNorm(), model.n_individuals());
-        // std::cout << "before residual: \n" << residual.value << "\n";
         residual.value = residual_sample(rng);
-        // std::cout << "after residual: \n" << residual.value << "\n";
         status.compute_heritability();
 
         if (model.additive())
