@@ -64,7 +64,7 @@ void initialize(std::string_view output_prefix)
                 = std::make_shared<spdlog::sinks::basic_file_sink_st>(
                     log_filename, true);
             file_sink->set_level(spdlog::level::trace);
-            file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] [%t] %v");
+            file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
 
             g_logger = std::make_shared<spdlog::logger>(
                 "gelex_logger",

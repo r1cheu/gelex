@@ -84,6 +84,9 @@ class GenotypePipe
         auto logger = gelex::logging::get();
         global_snp_idx_ = 0;
 
+        logger->info("");
+        logger->info("Starting SNP processing for memory-map...");
+
         auto pbar = bk::ProgressBar(
             &global_snp_idx_,
             {.total = static_cast<uint64_t>(num_variants_),

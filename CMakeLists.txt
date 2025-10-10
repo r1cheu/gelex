@@ -1,12 +1,15 @@
 cmake_minimum_required(VERSION 3.18)
 project(
-  "Gelex"
-  VERSION 0.4.0
+  "gelex"
+  VERSION 0.5.0
   LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+set(CONFIGURE_HEADER "${PROJECT_BINARY_DIR}/config.h")
+configure_file("${PROJECT_SOURCE_DIR}/config.h.in" "${CONFIGURE_HEADER}")
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE
@@ -64,6 +67,7 @@ target_link_libraries(core PUBLIC OpenMP::OpenMP_CXX BLAS::BLAS spdlog::spdlog
                                   $<$<BOOL:${MINGW}>:ws2_32>)
 
 add_executable(gelex src/main.cpp)
+target_include_directories(gelex PUBLIC "${PROJECT_BINARY_DIR}")
 target_link_libraries(gelex PRIVATE core)
 
 if(BUILD_TEST)

@@ -48,7 +48,7 @@ auto PhenotypeLoader::create(
 
     auto logger = gelex::logging::get();
     logger->info(
-        "Loaded {} samples with phenotype '{}'",
+        "Loaded {} samples with phenotype '{}'.",
         map->size(),
         (*header)[pheno_column]);
 
@@ -180,16 +180,16 @@ auto QcovarLoader::create(const std::filesystem::path& path, bool iid_only)
 
     auto logger = gelex::logging::get();
     logger->info(
-        "Loaded {} samples with {} qcovars", map->size(), covar_names.size());
+        "Loaded {} samples with {} qcovars.", map->size(), covar_names.size());
 
     if (covar_names.size() <= 3)
     {
-        logger->info("qcovar names: {}", fmt::join(covar_names, ", "));
+        logger->info("qcovar names: {}.", fmt::join(covar_names, ", "));
     }
     else
     {
         logger->info(
-            "qcovar names: {}, {}, {}, ... ({} total)",
+            "qcovar names: {}, {}, {}, ... ({} total).",
             covar_names[0],
             covar_names[1],
             covar_names[2],
@@ -334,7 +334,7 @@ auto CovarLoader::create(const std::filesystem::path& path, bool iid_only)
     auto logger = gelex::logging::get();
 
     logger->info(
-        "Loaded {} samples with {} covars", map->size(), covar_names.size());
+        "Loaded {} samples with {} covars.", map->size(), covar_names.size());
 
     return CovarLoader(std::move(covar_names), std::move(*map));
 }
@@ -565,9 +565,6 @@ auto BimLoader::create(const std::filesystem::path& path)
             enrich_with_file_info(std::move(snp_ids.error()), path));
     }
 
-    auto logger = gelex::logging::get();
-    logger->info("Loaded {} SNP IDs from bim file", snp_ids->size());
-
     return BimLoader(std::move(*snp_ids));
 }
 
@@ -637,7 +634,7 @@ auto FamLoader::create(const std::filesystem::path& path, bool iid_only)
 
     auto logger = gelex::logging::get();
     logger->info(
-        "Loaded {} samples from fam file[{}]",
+        "Loaded {} samples from fam file[{}].",
         sample_ids->size(),
         path.string());
 

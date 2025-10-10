@@ -1,14 +1,16 @@
 #include <gelex/argparse.h>
 
+#include "config.h"
+
 #include "gelex/cli/fit_command.h"
 #include "gelex/cli/simulation_command.h"
+#include "gelex/cli/utils.h"
 
 int main(int argc, char* argv[])
 {
-    argparse::ArgumentParser program("gelex", "0.4.0");
+    argparse::ArgumentParser program(PROJECT_NAME, PROJECT_VERSION);
     argparse::ArgumentParser fit("fit");
     fit_command(fit);
-
     argparse::ArgumentParser simulate("simulate");
     simulate_command(simulate);
 
@@ -40,12 +42,16 @@ int main(int argc, char* argv[])
 
     if (program.is_subcommand_used("fit"))
     {
-        int code = fit_excute(fit);
+        gelex::cli::log_command(
+            fit, PROJECT_VERSION, gelex::cli::parse_command(argc, argv));
+        int code = fit_execute(fit);
         return code;
     }
 
     if (program.is_subcommand_used("simulate"))
     {
+        gelex::cli::log_command(
+            simulate, PROJECT_VERSION, gelex::cli::parse_command(argc, argv));
         int code = simulate_execute(simulate);
         return code;
     }

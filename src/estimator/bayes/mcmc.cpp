@@ -71,8 +71,10 @@ const MCMCResult& MCMC::run(const BayesModel& model, Index seed)
               .count();
 
     logger_.info("");
+    logger_.info("MCMC sampling completed.");
+    logger_.info("  - Samples collected per parameter: {}.", params_.n_records);
     logger_.info(
-        "MCMC sampling completed, Total time: {:.2f} s.",
+        "  - Total time elapsed: {:.2f} seconds.",
         static_cast<double>(duration) / 1000.0);
 
     result_ = std::make_unique<MCMCResult>(std::move(samples), model, 0.9);

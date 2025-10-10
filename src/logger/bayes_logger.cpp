@@ -32,7 +32,6 @@ void MCMCLogger::log_model_information(
     MCMCParams params)
 {
     logger_->info("");
-    logger_->info("Bayesian analysis started...");
     logger_->info("Model specification:");
     std::string genetic_terms;
     if (model.additive())
@@ -43,13 +42,6 @@ void MCMCLogger::log_model_information(
     {
         genetic_terms += " + " + model.dominant()->name;
     }
-
-    logger_->info(
-        " Iterations: {:d}, Burn-in: {:d}, Thinning: {:d}, Chains: {:d}",
-        params.n_iters,
-        params.n_burnin,
-        params.n_thin,
-        params.n_chains);
 
     logger_->info("Priors:");
 
@@ -102,6 +94,7 @@ void MCMCLogger::log_model_information(
 
 void MCMCLogger::log_result(const MCMCResult& result, const BayesModel& model)
 {
+    logger_->info("");
     logger_->info("MCMC results summary:");
 
     std::vector<std::string> header{

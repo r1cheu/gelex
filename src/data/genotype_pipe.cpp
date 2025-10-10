@@ -116,10 +116,12 @@ auto GenotypePipe::create(
     if (std::filesystem::exists(matrix_path)
         || std::filesystem::exists(stats_path))
     {
-        logger->info(
-            "Exist [{}] and [{}] will be use",
+        logger->warn(
+            "[{}] or [{}] file exists. "
+            "Make sure you are using the same dataset.",
             matrix_path.string(),
             stats_path.string());
+
         return std::unexpected(
             Error{
                 .code = ErrorCode::OutputFileExists,

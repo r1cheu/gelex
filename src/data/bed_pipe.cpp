@@ -87,7 +87,7 @@ auto BedPipe::create(
 
     auto logger = gelex::logging::get();
     logger->info(
-        "Loaded BED file with {} samples and {} variants",
+        "Loaded BED file with {} samples and {} snps.",
         sample_manager->num_common_samples(),
         bim_loader->ids().size());
 

@@ -68,7 +68,7 @@ void fit_command(argparse::ArgumentParser& cmd)
         .scan<'i', int>();
 }
 
-int fit_excute(argparse::ArgumentParser& fit)
+int fit_execute(argparse::ArgumentParser& fit)
 {
     std::string out_prefix = fit.get("--out");
     gelex::BayesAlphabet type = gelex::get_bayesalphabet(fit.get("-m"))

@@ -62,7 +62,7 @@ void SampleManager::finalize()
 
     auto logger = gelex::logging::get();
     logger->info(
-        "{} common samples available for analysis after intersection",
+        "{} common samples available for analysis after intersection.",
         common_ids_.size());
 
     common_id_map_.clear();
