@@ -1,8 +1,7 @@
 #include "gelex/estimator/bayes/result.h"
 
-#include <cstddef>
-#include <memory>
 #include <optional>
+#include <ranges>
 
 #include <Eigen/Core>
 
@@ -20,40 +19,39 @@ MCMCResult::MCMCResult(
     const BayesModel& model,
     double prob)
     : samples_(std::move(samples)),
+      residual_(1),
       prob_(prob),
-      phenotype_var_(model.phenotype_var()),
-      residual_(1)
+      phenotype_var_(model.phenotype_var())
 {
-    // Extract phenotype variance from model
-
-    // Extract additive variances and means if additive effect exists
-    if (model.additive())
+    if (const auto* effect = model.additive(); effect)
     {
-        const auto& additive_matrix = model.additive()->design_matrix;
-        additive_variances_ = additive_matrix.variance();
-        additive_means_ = additive_matrix.mean();
+        additive_means_ = bayes::get_means(effect->design_matrix);
+        additive_variances_ = bayes::get_variances(effect->design_matrix);
     }
 
-    // Extract dominant variances and means if dominant effect exists
-    if (model.dominant())
+    if (const auto* effect = model.dominant(); effect)
     {
-        const auto& dominant_matrix = model.dominant()->design_matrix;
-        dominant_variances_ = dominant_matrix.variance();
-        dominant_means_ = dominant_matrix.mean();
+        dominant_means_ = bayes::get_means(effect->design_matrix);
+        dominant_variances_ = bayes::get_variances(effect->design_matrix);
     }
 
-    fixed_ = samples_.fixed() ? std::make_unique<FixedSummary>(samples_.fixed())
-                              : nullptr;
-    additive_ = samples_.additive()
-                    ? std::make_unique<AdditiveSummary>(samples_.additive())
-                    : nullptr;
-    dominant_ = samples_.dominant()
-                    ? std::make_unique<DominantSummary>(samples_.dominant())
-                    : nullptr;
-
-    for (const auto& sample : samples_.random().chain_samples)
+    if (const auto* sample = samples_.fixed(); sample)
+    {
+        fixed_.emplace(*sample);
+    }
+    for (const auto& sample : samples_.random())
     {
         random_.emplace_back(sample);
+    }
+
+    if (const auto* sample = samples_.additive(); sample)
+    {
+        additive_.emplace(*sample);
+    }
+
+    if (const auto* sample = samples_.dominant(); sample)
+    {
+        dominant_.emplace(*sample);
     }
 }
 
@@ -65,46 +63,50 @@ void MCMCResult::compute(std::optional<double> prob)
     }
 
     // Use PosteriorCalculator for all computations
-    if (samples_.fixed())
+    if (const auto* sample = samples_.fixed(); fixed_ && sample != nullptr)
     {
         fixed_->coeffs = detail::PosteriorCalculator::compute_param_summary(
-            samples_.fixed().coeffs, prob_);
+            samples_.fixed()->coeffs, prob_);
     }
 
-    for (size_t i = 0; i < samples_.random().size(); ++i)
+    for (auto&& [result, sample] : std::views::zip(random_, samples_.random()))
     {
-        random_[i].coeffs = detail::PosteriorCalculator::compute_param_summary(
-            samples_.random().chain_samples[i].coeffs, prob_);
-        random_[i].effect_variance
-            = detail::PosteriorCalculator::compute_param_summary(
-                samples_.random().chain_samples[i].effect_variance, prob_);
+        result.coeffs = detail::PosteriorCalculator::compute_param_summary(
+            sample.coeffs, prob_);
+        result.variance = detail::PosteriorCalculator::compute_param_summary(
+            sample.variance, prob_);
     }
 
-    if (samples_.additive())
+    if (const auto* sample = samples_.additive();
+        additive_ && sample != nullptr)
     {
-        additive_->coeffs = detail::PosteriorCalculator::compute_snp_summary(
-            samples_.additive().coeffs);
-        additive_->effect_variance
+        additive_->coeffs = detail::PosteriorCalculator::compute_param_summary(
+            sample->coeffs, prob_);
+        additive_->variance
             = detail::PosteriorCalculator::compute_param_summary(
-                samples_.additive().effect_variance, prob_);
+                sample->variance, prob_);
 
         detail::PosteriorCalculator::compute_pve(
             additive_->pve,
-            samples_.additive().coeffs,
+            sample->coeffs,
             additive_variances_,
             phenotype_var_);
     }
 
-    if (samples_.dominant())
+    if (const auto* sample = samples_.dominant();
+        dominant_ && sample != nullptr)
     {
-        dominant_->coeffs = detail::PosteriorCalculator::compute_snp_summary(
-            samples_.dominant().coeffs);
-        dominant_->effect_variance
+        dominant_->coeffs = detail::PosteriorCalculator::compute_param_summary(
+            sample->coeffs, prob_);
+        dominant_->variance
             = detail::PosteriorCalculator::compute_param_summary(
-                samples_.dominant().effect_variance, prob_);
+                sample->variance, prob_);
+        dominant_->ratios = detail::PosteriorCalculator::compute_param_summary(
+            sample->ratios, prob_);
+
         detail::PosteriorCalculator::compute_pve(
             dominant_->pve,
-            samples_.dominant().coeffs,
+            sample->coeffs,
             dominant_variances_,
             phenotype_var_);
     }

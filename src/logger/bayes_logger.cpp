@@ -27,72 +27,71 @@ void MCMCLogger::set_verbose(bool verbose)
     }
 }
 
-void MCMCLogger::log_model_information(
-    const BayesModel& model,
-    MCMCParams params)
+void MCMCLogger::log_model_information(const BayesModel& model)
 {
     logger_->info("");
     logger_->info("Model specification:");
     std::string genetic_terms;
-    if (model.additive())
+    if (const auto* effect = model.additive(); effect != nullptr)
     {
-        genetic_terms += " + " + model.additive()->name;
+        genetic_terms += " + add";
     }
-    if (model.dominant())
+    if (const auto* effect = model.dominant(); effect != nullptr)
     {
-        genetic_terms += " + " + model.dominant()->name;
+        genetic_terms += " + dom";
     }
-
     logger_->info("Priors:");
 
-    if (model.random())
+    if (const auto& effects = model.random(); !effects.empty())
     {
-        for (const auto& effect : model.random().effects())
+        for (const auto& effect : effects)
         {
+            std::string name
+                = effect.levels ? effect.levels.value()[0] : "test";
             logger_->info(
                 "  {}: {}",
-                effect.name,
+                name,
                 sigma_prior("", effect.prior.nu, effect.prior.s2));
         }
     }
 
-    if (model.additive() && model.trait())
+    if (const auto* effect = model.additive(); effect != nullptr)
     {
-        const auto& effect = *model.additive();
-        auto prior_str = model.trait()->prior_info(
-            effect.prior.nu, effect.prior.s2, effect.pi);
-        for (size_t i{}; i < prior_str.size(); ++i)
+        logger_->info(
+            "  add: {}", sigma_prior("", effect->prior.nu, effect->prior.s2));
+
+        if (effect->pi.size() > 1)
         {
-            if (i == 0)
+            std::string pi_str = "  π: [";
+            for (Eigen::Index i = 0; i < effect->pi.size(); ++i)
             {
-                logger_->info("  {}: {}", effect.name, prior_str[i]);
+                if (i > 0)
+                {
+                    pi_str += ", ";
+                }
+                pi_str += fmt::format("{:.4f}", effect->pi(i));
             }
-            else
-            {
-                logger_->info("  {}", prior_str[i]);
-            }
+            pi_str += "]";
+            logger_->info(pi_str);
         }
     }
-    if (model.dominant())
+    if (const auto* effect = model.dominant(); effect != nullptr)
     {
-        const auto& effect = *model.dominant();
         logger_->info(
-            "  {}: mean {:.3f}, var {:.3f}",
-            effect.name,
-            effect.prior_mean,
-            effect.prior_var);
+            "  dom_ratio: mean {:.3f}, var {:.3f}",
+            effect->ratio_mean,
+            effect->ratio_variance);
     }
 
+    const auto& residual = model.residual();
     logger_->info(
-        "  e: {}",
-        sigma_prior(
-            "_e", model.residual().prior.nu, model.residual().prior.s2));
+        "  e: {}", sigma_prior("_e", residual.prior.nu, residual.prior.s2));
 
     logger_->info("");
     logger_->info("MCMC sampling started...");
 }
 
-void MCMCLogger::log_result(const MCMCResult& result, const BayesModel& model)
+void MCMCLogger::log_result(const MCMCResult& results, const BayesModel& model)
 {
     logger_->info("");
     logger_->info("MCMC results summary:");
@@ -132,39 +131,37 @@ void MCMCLogger::log_result(const MCMCResult& result, const BayesModel& model)
             summary.rhat(i));
     };
 
-    if (model.fixed())
+    if (auto&& [effect, result]
+        = std::make_pair(model.fixed(), results.fixed());
+        effect != nullptr && result != nullptr)
     {
-        for (Eigen::Index i = 0;
-             i < static_cast<Eigen::Index>(model.fixed()->names.size());
-             ++i)
+        if (effect->levels)
         {
-            log_summary(i, result.fixed()->coeffs, model.fixed()->names[i]);
+            for (Eigen::Index i = 0;
+                 i < static_cast<Eigen::Index>(effect->levels->size());
+                 ++i)
+            {
+                log_summary(i, result->coeffs, effect->levels.value()[i]);
+            }
         }
     }
 
-    if (model.additive())
+    if (const auto* result = results.additive(); result != nullptr)
     {
-        const auto& effect = *model.additive();
-        log_summary(
-            0,
-            result.additive()->effect_variance,
-            sigma_squared("_" + effect.name));
-        if (model.trait() && model.trait()->estimate_pi())
-        {
-            // Handle pi estimation if the trait supports it
-            // This would need access to pi results from the additive summary
-        }
-    }
+        log_summary(0, result->variance, sigma_squared("_add"));
 
-    if (model.dominant())
-    {
-        const auto& effect = *model.dominant();
-        log_summary(
-            0,
-            result.dominant()->effect_variance,
-            sigma_squared("_" + effect.name));
+        // TODO(rlchen): Handle pi estimation for mixture models
+        //  if (effect.pi.size() > 1)
+        //  {
+        //      // Note: Pi results would need to be available in the additive
+        //      // summary Currently, pi results are not stored in MCMCResult
+        //  }
     }
-    log_summary(0, result.residual(), sigma_squared("_e"));
+    if (const auto* result = results.dominant(); result != nullptr)
+    {
+        log_summary(0, result->variance, sigma_squared("_dom"));
+    }
+    log_summary(0, results.residual(), sigma_squared("_e"));
 }
 
 }  // namespace detail

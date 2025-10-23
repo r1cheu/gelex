@@ -207,9 +207,10 @@ Eigen::MatrixXd QcovarLoader::load(
 
     for (const auto& [id, values] : data_)
     {
+        const auto num_values = static_cast<Eigen::Index>(values.size());
         if (auto it = id_map.find(id); it != id_map.end())
         {
-            for (Eigen::Index i = 0; i < values.size(); ++i)
+            for (Eigen::Index i = 0; i < num_values; ++i)
             {
                 data(it->second, i) = values[i];
             }

@@ -5,18 +5,20 @@
 
 #pragma once
 
+#include <optional>
 #include <vector>
 
 #include <Eigen/Core>
 
+#include "../src/model/bayes/bayes_effects.h"
 #include "gelex/estimator/bayes/params.h"
 
 namespace gelex
 {
 
-struct MCMCParams;   // Forward declaration
-struct BayesStatus;  // Forward declaration
-struct BayesModel;   // Forward declaration
+struct MCMCParams;  // Forward declaration
+class BayesState;   // Forward declaration
+class BayesModel;   // Forward declaration
 
 // samples for one effect, each element in vector saves one chain's samples. and
 // Matrix have the shape (n_params, n_draws)
@@ -24,116 +26,113 @@ using Samples = std::vector<Eigen::MatrixXd>;
 
 struct FixedSamples
 {
-    static FixedSamples create(
-        const MCMCParams& params,
-        const BayesModel& model);
+    FixedSamples(const MCMCParams& params, const bayes::FixedEffect& effect);
 
     Samples coeffs;
-    std::vector<std::string> names;
-    std::vector<std::string> levels;
     explicit operator bool() const { return !coeffs.empty(); }
 };
 
 struct RandomSamples
 {
-    Samples coeffs;
-    Samples effect_variance;
-    std::string name;
-
-    void reserve(size_t n_chains)
+    RandomSamples(const MCMCParams& params, const bayes::RandomEffect& effect)
+        : RandomSamples(params, effect.design_matrix.cols())
     {
-        coeffs.reserve(n_chains);
-        effect_variance.reserve(n_chains);
     }
+    Samples coeffs;
+    Samples variance;
     explicit operator bool() const { return !coeffs.empty(); }
+
+   protected:
+    RandomSamples(const MCMCParams& params, Eigen::Index n_coeffs);
 };
 
 struct AdditiveSamples : RandomSamples
 {
-    static AdditiveSamples create(
+    AdditiveSamples(
         const MCMCParams& params,
-        const BayesModel& model);
-
-    Samples marker_variance;
-    void reserve(size_t n_chains)
+        const bayes::AdditiveEffect& state)
+        : RandomSamples(params, bayes::get_cols(state.design_matrix))
     {
-        RandomSamples::reserve(n_chains);
-        marker_variance.reserve(n_chains);
     }
-    explicit operator bool() const { return !coeffs.empty(); }
 };
 
-struct DominantSamples
+struct DominantSamples : RandomSamples
 {
-    static DominantSamples create(
+    DominantSamples(
         const MCMCParams& params,
-        const BayesModel& model);
-    Samples coeffs;
-    Samples effect_variance;
-
-    void reserve(size_t n_chains)
+        const bayes::DominantEffect& effect)
+        : RandomSamples(params, bayes::get_cols(effect.design_matrix))
     {
-        coeffs.reserve(n_chains);
-        effect_variance.reserve(n_chains);
+        ratios.reserve(params.n_chains);
+        for (Eigen::Index i = 0; i < params.n_chains; ++i)
+        {
+            ratios.emplace_back(
+                bayes::get_cols(effect.design_matrix), params.n_records);
+        }
     }
-    explicit operator bool() const { return !coeffs.empty(); }
-};
-
-struct MultiRandomSamples
-{
-    static MultiRandomSamples create(
-        const MCMCParams& params,
-        const BayesModel& model);
-    std::vector<RandomSamples> chain_samples;
-    size_t size() const { return chain_samples.size(); }
-    void reserve(size_t n_effects) { chain_samples.reserve(n_effects); }
-    explicit operator bool() const { return !chain_samples.empty(); }
+    Samples ratios;
 };
 
 struct ResidualSamples
 {
-    static ResidualSamples create(
-        const MCMCParams& params,
-        const BayesModel& model);
+    explicit ResidualSamples(const MCMCParams& params)
+    {
+        variance.reserve(params.n_chains);
+        for (Eigen::Index i = 0; i < params.n_chains; ++i)
+        {
+            variance.emplace_back(1, params.n_records);
+        }
+    }
     Samples variance;
-    void reserve(size_t n_chains) { variance.reserve(n_chains); }
     explicit operator bool() const { return !variance.empty(); }
 };
 
 struct PiSamples
 {
-    static PiSamples create(const MCMCParams& params, const BayesModel& model);
+    PiSamples(const MCMCParams& params, const bayes::AdditiveEffect& effect)
+    {
+        prop.reserve(params.n_chains);
+        const Eigen::Index n_props = effect.pi.size();
+        for (Eigen::Index i = 0; i < params.n_chains; ++i)
+        {
+            prop.emplace_back(n_props, params.n_records);
+        }
+    }
+
     Samples prop;
-    void reserve(size_t n_chains) { prop.reserve(n_chains); }
     explicit operator bool() const { return !prop.empty(); }
 };
 
 class MCMCSamples
 {
    public:
-    explicit MCMCSamples(const MCMCParams& params, const BayesModel& model);
+    MCMCSamples(const MCMCParams& params, const BayesModel& model);
     void store(
-        const BayesStatus& status,
+        const BayesState& states,
         Eigen::Index record_idx,
         Eigen::Index chain_idx);
 
-    const auto& fixed() const { return fixed_; }
-    const auto& random() const { return random_; }
-    const auto& additive() const { return additive_; }
-    const auto& dominant() const { return dominant_; }
-    const auto& residual() const { return residual_; }
+    const FixedSamples* fixed() const
+    {
+        return fixed_ ? &fixed_.value() : nullptr;
+    }
+    const std::vector<RandomSamples>& random() const { return random_; }
+    const AdditiveSamples* additive() const
+    {
+        return additive_ ? &additive_.value() : nullptr;
+    }
+    const DominantSamples* dominant() const
+    {
+        return dominant_ ? &dominant_.value() : nullptr;
+    }
+    const ResidualSamples& residual() const { return residual_; }
 
    private:
-    bool store_fixed_{false};
-    bool store_random_{false};
-    bool store_pi_{false};
-    bool store_dominant_{false};
-
-    FixedSamples fixed_;
-    MultiRandomSamples random_;
-    AdditiveSamples additive_;
-    DominantSamples dominant_;
+    std::optional<FixedSamples> fixed_;
+    std::vector<RandomSamples> random_;
+    std::optional<AdditiveSamples> additive_;
+    std::optional<DominantSamples> dominant_;
     ResidualSamples residual_;
-    PiSamples pi_;
+    std::optional<PiSamples> pi_;
 };
 }  // namespace gelex

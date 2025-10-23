@@ -133,13 +133,12 @@ void compute_rhat(PosteriorSummary& summary, const Samples& samples)
 /**
  * @brief Computes PVE (proportion of variance explained) for each parameter.
  *
- * For each parameter i and each MCMC sample:
- *   pve_sample = (variance[i] * beta_sample[i]^2) / phenotype_var
- * Then computes mean and std of PVE across all samples.
+ * For each parameter i:
+ *   pve = (variance[i] * mean(beta_i)^2) / phenotype_var
+ * Computes PVE using mean coefficients across all MCMC samples.
  *
- * @performance Precalculates variance ratios and uses direct iteration over
- * chains and draws without flattening, parallelizes across parameters with
- * OpenMP.
+ * @performance Computes PVE directly from mean coefficients, avoiding
+ * iteration over individual MCMC samples for PVE calculation.
  */
 void compute_pve(
     PosteriorSummary& summary,
@@ -175,30 +174,21 @@ void compute_pve(
     for (Eigen::Index param_idx = 0; param_idx < n_params; ++param_idx)
     {
         const double var_ratio = var_ratios(param_idx);
-        double sum_pve = 0.0;
-        double sum_pve_sq = 0.0;
+        double sum_beta = 0.0;
 
-        // Compute PVE for each MCMC sample
+        // Compute mean beta across all MCMC samples
         for (const auto& chain_matrix : samples)
         {
             const auto row_view = chain_matrix.row(param_idx);
-            for (Eigen::Index draw = 0; draw < row_view.size(); ++draw)
-            {
-                const double beta = row_view(draw);
-                const double pve_sample = var_ratio * beta * beta;
-                sum_pve += pve_sample;
-                sum_pve_sq += pve_sample * pve_sample;
-            }
+            sum_beta += row_view.sum();
         }
 
-        // Compute mean and std of PVE
-        const double mean_pve = sum_pve / total_draws;
-        const double variance_pve
-            = (sum_pve_sq - total_draws * mean_pve * mean_pve)
-              / (total_draws - 1.0);
+        // Compute mean beta and PVE
+        const double mean_beta = sum_beta / total_draws;
+        const double pve = var_ratio * mean_beta * mean_beta;
 
-        summary.mean(param_idx) = mean_pve;
-        summary.stddev(param_idx) = std::sqrt(std::max(0.0, variance_pve));
+        summary.mean(param_idx) = pve;
+        summary.stddev(param_idx) = 0.0;  // PVEse is no longer calculated
     }
 }
 

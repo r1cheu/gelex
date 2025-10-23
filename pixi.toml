@@ -7,6 +7,7 @@ platforms = ["linux-64"]
 cmake = ">=3.18,<4"
 cxx-compiler = ">=1.8.0,<2"
 ninja = ">=1.12.1,<2"
+clang = ">=21.1.3,<22"
 
 [host-dependencies]
 openblas = { version = ">=0.3.28", build = "*openmp*" }
@@ -19,6 +20,8 @@ fftw = ">=3.3.10,<4"
 args = [
   { "arg" = "build_dir", "default" = ".build_debug" },
   { "arg" = "build_type", "default" = "Debug" },
+  { "arg" = "test", "default" = "ON" },
+  { "arg" = "cxx_compiler", "default" = "clang++-21" },
 ]
 
 cmd = [
@@ -26,9 +29,10 @@ cmd = [
   "-GNinja",
   "-S .",
   "-B{{build_dir}}",
-  "-DBUILD_TEST=ON",
+  "-DBUILD_TEST={{test}}",
   "-DUSE_MKL=ON",
   "-DCMAKE_BUILD_TYPE={{build_type}}",
+  "-DCMAKE_CXX_COMPILER={{cxx_compiler}}",
 ]
 
 [tasks.build-debug]
@@ -45,6 +49,17 @@ depends-on = [
   { task = "configure", args = [
     { build_dir = ".build_release" },
     { build_type = "Release" },
+    { test = "OFF" },
+  ] },
+]
+
+[tasks.build-reldebug]
+cmd = ["cmake", "--build", ".build_reldebug", "-j16"]
+depends-on = [
+  { task = "configure", args = [
+    { build_dir = ".build_reldebug" },
+    { build_type = "RelWithDebInfo" },
+    { test = "OFF" },
   ] },
 ]
 
@@ -52,9 +67,13 @@ depends-on = [
 cmd = ["cp", ".build_release/gelex", "~/.local/bin/"]
 depends-on = ["build-release"]
 
+[tasks.install-reldebug]
+cmd = ["cp", ".build_reldebug/gelex", "~/.local/bin/"]
+depends-on = ["build-reldebug"]
+
 [tasks.test]
-cmd = "cd .build/tests;ctest"
-depends-on = ["build"]
+cmd = "cd .build_debug/tests;ctest"
+depends-on = ["build-debug"]
 
 [environments]
 docs = { features = ["docs"], no-default-feature = true }

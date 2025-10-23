@@ -93,10 +93,11 @@ void compute_rhat(PosteriorSummary& summary, const Samples& samples);
 /**
  * @brief Compute proportion of variance explained (PVE).
  *
- * Calculates PVE = (Var(X_i) * beta_i^2) / Var(y) for each parameter.
+ * Calculates PVE = (Var(X_i) * mean(beta_i)^2) / Var(y) for each parameter.
+ * Uses mean coefficients across all MCMC samples.
  *
- * @param summary Destination PosteriorSummary to populate with PVE mean and
- * stddev.
+ * @param summary Destination PosteriorSummary to populate with PVE mean.
+ * stddev is set to 0.0 as PVEse is no longer calculated.
  * @param samples MCMC samples organized by chain (beta coefficients).
  * @param variances Variance of each predictor (Var(X_i)).
  * @param phenotype_var Variance of the phenotype (Var(y)).

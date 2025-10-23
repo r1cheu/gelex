@@ -31,35 +31,26 @@ struct VariantStats
 };
 
 template <typename T>
-concept VariantProcessor
-    = requires(T processor, Eigen::VectorXd& variant, size_t idx) {
-          {
-              processor.process_variant(variant, idx)
-          } -> std::same_as<VariantStats>;
-      };
+concept VariantProcessor = requires(T processor, Eigen::VectorXd& variant) {
+    { processor.process_variant(variant) } -> std::same_as<VariantStats>;
+};
 
 struct StandardizingProcessor
 {
    public:
-    static VariantStats process_variant(
-        Eigen::Ref<Eigen::VectorXd> variant,
-        size_t global_idx);
+    static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
 };
 
 struct NonStandardizingProcessor
 {
    public:
-    static VariantStats process_variant(
-        Eigen::Ref<Eigen::VectorXd> variant,
-        size_t global_idx);
+    static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
 };
 
 struct HardWenbergProcessor
 {
    public:
-    static VariantStats process_variant(
-        Eigen::Ref<Eigen::VectorXd> variant,
-        size_t global_idx);
+    static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
 };
 
 class GenotypePipe
@@ -156,7 +147,7 @@ class GenotypePipe
             const size_t global_idx = global_start + variant_idx;
             auto variant = matrix.col(variant_idx);
 
-            VariantStats stats = processor.process_variant(variant, global_idx);
+            VariantStats stats = processor.process_variant(variant);
 
             means_.push_back(stats.mean);
             variances_.push_back(stats.variance);

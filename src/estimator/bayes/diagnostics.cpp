@@ -19,7 +19,7 @@ using Eigen::VectorXd;
 
 std::pair<VectorXd, VectorXd> compute_chain_variance_stats(const Samples& x)
 {
-    const size_t n_chains = x.size();
+    const auto n_chains = static_cast<Index>(x.size());
     const auto n_draws = x[0].cols();
     const auto n_params = x[0].rows();
 
@@ -161,12 +161,14 @@ Samples autocovariance(const Samples& x, bool bias)
     Samples result = autocorrelation(x, bias);
     MatrixXd x_var(x[0].rows(), x.size());
 
-    for (Index i = 0; i < result.size(); i++)
+    const auto n_chains = static_cast<Index>(result.size());
+
+    for (Index i = 0; i < n_chains; i++)
     {
         x_var.col(i) = detail::var(x[i], 0, 1);
     }
 
-    for (Index i = 0; i < result.size(); ++i)
+    for (Index i = 0; i < n_chains; ++i)
     {
         for (Eigen::Index j = 0; j < result[i].cols(); ++j)
         {

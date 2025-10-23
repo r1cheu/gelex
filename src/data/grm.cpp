@@ -185,11 +185,10 @@ Eigen::MatrixXd CrossGRM::compute(std::string_view test_bed, bool add)
 
     // Process in chunks
     const Index num_variants = bed_->num_variants();
-    const Index chunk_size = 10000;
 
-    for (Index start = 0; start < num_variants; start += chunk_size)
+    for (Index start = 0; start < num_variants; start += chunk_size_)
     {
-        Index end = std::min(start + chunk_size, num_variants);
+        Index end = std::min(start + chunk_size_, num_variants);
 
         // Load training chunk
         auto train_genotype_result = bed_->load_chunk(start, end);

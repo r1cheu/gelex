@@ -148,19 +148,19 @@ void DataPipe::convert_to_matrices()
         = static_cast<Eigen::Index>(sample_manager_->num_common_samples());
     const auto& id_map = sample_manager_->common_id_map();
 
-    phenotype_ = phenotype_loader_ ? std::move(phenotype_loader_->load(id_map))
+    phenotype_ = phenotype_loader_ ? phenotype_loader_->load(id_map)
                                    : Eigen::VectorXd::Zero();
 
     Eigen::MatrixXd qcovariates;
     if (qcovar_loader_)
     {
-        qcovariates = std::move(qcovar_loader_->load(id_map));
+        qcovariates = qcovar_loader_->load(id_map);
     }
 
     Eigen::MatrixXd covariates;
     if (covar_loader_)
     {
-        covariates = std::move(covar_loader_->load(id_map));
+        covariates = covar_loader_->load(id_map);
     }
     const Eigen::Index num_fixed_effects
         = qcovariates.cols() + covariates.cols();

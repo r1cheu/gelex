@@ -19,7 +19,6 @@ inline Eigen::VectorXd dirichlet(
     std::mt19937_64& rng)
 {
     Eigen::VectorXd pi = Eigen::VectorXd::Zero(alphas.size());
-    double sum = 0.0;
     for (int i = 0; i < alphas.size(); ++i)
     {
         std::gamma_distribution<double> gamma_dist(alphas(i), 1.0);
@@ -32,6 +31,12 @@ struct ScaledInvChiSqParams
 {
     double nu{};
     double s2{};
+};
+
+struct NormalParams
+{
+    double mean{};
+    double var{};
 };
 
 class ScaledInvChiSq

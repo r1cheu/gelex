@@ -4,7 +4,6 @@
 #include <gelex/barkeep.h>
 #include <spdlog/logger.h>
 
-#include "gelex/estimator/bayes/params.h"
 #include "gelex/estimator/bayes/result.h"
 #include "gelex/model/bayes/model.h"
 
@@ -30,7 +29,7 @@ class MCMCLogger
         logger_->warn(fmt, std::forward<Args>(args)...);
     }
 
-    void log_model_information(const BayesModel& model, MCMCParams params);
+    void log_model_information(const BayesModel& model);
 
     void log_result(const MCMCResult& result, const BayesModel& model);
 

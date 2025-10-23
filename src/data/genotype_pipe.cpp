@@ -20,9 +20,7 @@ using Eigen::Index;
 using Eigen::Ref;
 using Eigen::VectorXd;
 
-VariantStats StandardizingProcessor::process_variant(
-    Ref<VectorXd> variant,
-    size_t global_idx)
+VariantStats StandardizingProcessor::process_variant(Ref<VectorXd> variant)
 {
     VariantStats stats;
     const auto n = static_cast<double>(variant.size());
@@ -41,9 +39,7 @@ VariantStats StandardizingProcessor::process_variant(
     return stats;
 }
 
-VariantStats NonStandardizingProcessor::process_variant(
-    Ref<VectorXd> variant,
-    size_t global_idx)
+VariantStats NonStandardizingProcessor::process_variant(Ref<VectorXd> variant)
 {
     VariantStats stats;
     const auto n = static_cast<double>(variant.size());
@@ -56,12 +52,9 @@ VariantStats NonStandardizingProcessor::process_variant(
     return stats;
 }
 
-VariantStats HardWenbergProcessor::process_variant(
-    Ref<VectorXd> variant,
-    size_t global_idx)
+VariantStats HardWenbergProcessor::process_variant(Ref<VectorXd> variant)
 {
     VariantStats stats;
-    const auto n = static_cast<double>(variant.size());
 
     stats.mean = variant.mean();
     stats.variance = stats.mean * (1 - 0.5 * stats.mean);

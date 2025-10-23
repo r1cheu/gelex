@@ -105,3 +105,4 @@ workspace/
 develop
 .build_debug
 .build_release
+.build_reldebug

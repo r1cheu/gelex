@@ -2,11 +2,17 @@
 #include <cstddef>
 #include <stdexcept>
 
+#include <Eigen/Core>
+
 namespace gelex
 {
 struct MCMCParams
 {
-    MCMCParams(size_t n_iters, size_t n_burnin, size_t n_thin, size_t n_chains)
+    MCMCParams(
+        Eigen::Index n_iters,
+        Eigen::Index n_burnin,
+        Eigen::Index n_thin,
+        Eigen::Index n_chains)
         : n_iters{n_iters},
           n_burnin{n_burnin},
           n_thin{n_thin},
@@ -19,10 +25,10 @@ struct MCMCParams
                 "n_burnin must be smaller than n_iters");
         }
     }
-    size_t n_iters;
-    size_t n_burnin;
-    size_t n_thin;
-    size_t n_chains;
-    size_t n_records;
+    Eigen::Index n_iters;
+    Eigen::Index n_burnin;
+    Eigen::Index n_thin;
+    Eigen::Index n_chains;
+    Eigen::Index n_records;
 };
 }  // namespace gelex

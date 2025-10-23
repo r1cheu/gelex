@@ -34,7 +34,7 @@ auto SnpStatsWriter::create(const std::filesystem::path& file_path)
     {
         return std::unexpected(file.error());
     }
-    return SnpStatsWriter(std::move(*file), std::move(file_path.string()));
+    return SnpStatsWriter(std::move(*file), file_path.string());
 }
 
 auto SnpStatsWriter::write(
@@ -51,7 +51,7 @@ auto SnpStatsWriter::write(
             Error{ErrorCode::FileIOError, "Stats file is not open"});
     }
 
-    if (num_monomorphic != monomorphic_indices.size())
+    if (num_monomorphic != static_cast<int64_t>(monomorphic_indices.size()))
     {
         return std::unexpected(
             Error{
