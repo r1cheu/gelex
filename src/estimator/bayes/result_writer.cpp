@@ -61,8 +61,7 @@ void MCMCResultWriter::write_parameter_file(
     for (const auto& rand : result_.random())
     {
         write_summary_statistics(stream, rand.coeffs, rand.coeffs.size());
-        write_summary_statistics(
-            stream, rand.effect_variance, rand.effect_variance.size());
+        write_summary_statistics(stream, rand.variance, rand.variance.size());
     }
 
     // Write residual variance
@@ -74,8 +73,8 @@ void MCMCResultWriter::write_parameter_file(
     {
         write_summary_statistics(
             stream,
-            result_.additive()->effect_variance,
-            result_.additive()->effect_variance.size());
+            result_.additive()->variance,
+            result_.additive()->variance.size());
     }
 
     // Write dominant variance
@@ -83,8 +82,8 @@ void MCMCResultWriter::write_parameter_file(
     {
         write_summary_statistics(
             stream,
-            result_.dominant()->effect_variance,
-            result_.dominant()->effect_variance.size());
+            result_.dominant()->variance,
+            result_.dominant()->variance.size());
     }
 }
 
@@ -115,12 +114,12 @@ void MCMCResultWriter::write_snp_effects(
     if (result_.dominant())
     {
         stream << "Index\tID\tChrom\tPosition\tA1\tA2\tA1Frq\tAdd\tAddSE\tAddPV"
-                  "E\tAddPVESE\tDomEff\tDomSE\tDomPVE\tDomPVESE\n";
+                  "E\tDomEff\tDomSE\tDomPVE\td/a\n";
     }
     else
     {
         stream << "Index\tID\tChrom\tPosition\tA1\tA2\tA1Frq\tAdd\tAddSE\tAddPV"
-                  "E\tAddPVESE\n";
+                  "E\n";
     }
 
     // Write SNP effects for all SNPs
@@ -173,14 +172,11 @@ void MCMCResultWriter::write_snp_effects(
         // Additive PVE statistics
         if (result_.additive()->pve.size() > i)
         {
-            stream << std::format(
-                "\t{}\t{}",
-                result_.additive()->pve.mean(i),
-                result_.additive()->pve.stddev(i));
+            stream << std::format("\t{}", result_.additive()->pve.mean(i));
         }
         else
         {
-            stream << "\t0.0\t0.0";  // Placeholder for PVE
+            stream << "\t0.0";  // Placeholder for PVE
         }
 
         // Dominance effect statistics (if they exist)
@@ -194,14 +190,22 @@ void MCMCResultWriter::write_snp_effects(
             // Dominant PVE statistics
             if (result_.dominant()->pve.size() > i)
             {
-                stream << std::format(
-                    "\t{}\t{}",
-                    result_.dominant()->pve.mean(i),
-                    result_.dominant()->pve.stddev(i));
+                stream << std::format("\t{}", result_.dominant()->pve.mean(i));
             }
             else
             {
-                stream << "\t0.0\t0.0";  // Placeholder for PVE
+                stream << "\t0.0";  // Placeholder for PVE
+            }
+
+            // Ratio (d/a) statistics
+            if (result_.dominant()->ratios.size() > i)
+            {
+                stream << std::format(
+                    "\t{}", result_.dominant()->ratios.mean(i));
+            }
+            else
+            {
+                stream << "\t0.0";  // Placeholder for ratio
             }
         }
 

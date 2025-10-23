@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <unordered_set>
+#include <variant>
 #include <vector>
 
 #include <Eigen/Core>
@@ -8,93 +8,128 @@
 
 #include "../src/model/effects_manager.h"
 #include "distribution.h"
+#include "gelex/data/genotype_matrix.h"
 #include "gelex/data/genotype_mmap.h"
-#include "gelex/model/effects.h"
 
 namespace gelex
 {
 namespace bayes
 {
-/**
- * @class Pi
- * @brief Structure to hold the proportion and counts of snps, use in BayesBpi,
- * BayesCpi, BayesR etc.
- */
+
+// Variant type for genotype storage
+using GenotypeStorage = std::variant<GenotypeMap, GenotypeMatrix>;
+
+// Helper to get matrix reference from either storage type
+// Returns Eigen::Ref which can wrap both Map and MatrixXd
+inline Eigen::Ref<const Eigen::MatrixXd> get_matrix_ref(
+    const GenotypeStorage& storage)
+{
+    return std::visit(
+        [](const auto& s) -> Eigen::Ref<const Eigen::MatrixXd>
+        { return s.matrix(); },
+        storage);
+}
+
+// Helper to get number of rows
+inline Eigen::Index get_rows(const GenotypeStorage& storage)
+{
+    return std::visit([](const auto& s) { return s.rows(); }, storage);
+}
+
+// Helper to get number of columns
+inline Eigen::Index get_cols(const GenotypeStorage& storage)
+{
+    return std::visit([](const auto& s) { return s.cols(); }, storage);
+}
+
+inline const Eigen::VectorXd& get_means(const GenotypeStorage& storage)
+{
+    return std::visit(
+        [](const auto& s) -> const Eigen::VectorXd& { return s.mean(); },
+        storage);
+}
+
+inline const Eigen::VectorXd& get_variances(const GenotypeStorage& storage)
+{
+    return std::visit(
+        [](const auto& s) -> const Eigen::VectorXd& { return s.variance(); },
+        storage);
+}
+
+// Helper to check monomorphic status
+inline bool is_monomorphic_variant(
+    const GenotypeStorage& storage,
+    Eigen::Index idx)
+{
+    return std::visit(
+        [idx](const auto& s) { return s.is_monomorphic(idx); }, storage);
+}
+
+// Helper to get number of monomorphic markers
+inline Eigen::Index num_mono_variant(const GenotypeStorage& storage)
+{
+    return std::visit([](const auto& s) { return s.num_mono(); }, storage);
+}
+
 struct Pi
 {
     Eigen::VectorXd prop;
     Eigen::VectorXi count;
 };
 
-/**
- * @class FixedEffect
- * @brief Structure to hold fixed effect information for Bayesian Models.
- *
- */
 struct FixedEffect
 {
-    /**
-     * @brief Initialize a FixedEffect with names, levels, and design matrix.
-     *
-     * @param names names of the fixed effects
-     * @param levels levels for each fixed effect
-     * @param design_matrix the design matrix for the fixed effects
-     */
     FixedEffect(
-        std::vector<std::string>&& names,
+        std::optional<std::vector<std::string>> levels,
         Eigen::MatrixXd&& design_matrix);
 
     Eigen::MatrixXd design_matrix;
     Eigen::VectorXd cols_norm;
 
-    std::vector<std::string> names;
+    std::optional<std::vector<std::string>> levels;
 };
 
-struct FixedStatus
+struct FixedState
 {
-    explicit FixedStatus(Eigen::Index n_coeff);
-    Eigen::VectorXd coeff;
+    explicit FixedState(const FixedEffect& effect);
+    Eigen::VectorXd coeffs;
 };
 
 struct RandomEffect
 {
-    RandomEffect(std::string&& name, Eigen::MatrixXd&& design_matrix);
-
-    std::string name;
-    std::vector<std::string> levels;
+    RandomEffect(
+        std::optional<std::vector<std::string>> levels,
+        Eigen::MatrixXd&& design_matrix);
 
     Eigen::MatrixXd design_matrix;
     Eigen::VectorXd cols_norm;
 
-    detail::ScaledInvChiSqParams prior;
+    std::optional<std::vector<std::string>> levels;
 
-    Eigen::VectorXd effect_variance{
-        {0}};  // set to dvec (not double) for consistency
+    detail::ScaledInvChiSqParams prior{4, 0};
+    double init_variance{0.0};
 };
 
-struct RandomStatus
+struct RandomState
 {
-    explicit RandomStatus(const RandomEffect& effect);
+    explicit RandomState(const RandomEffect& effect);
 
-    Eigen::VectorXd coeff;
-    Eigen::VectorXd effect_variance{
-        {0}};  // set to dvec (not double) for consistency
+    Eigen::VectorXd coeffs;
+    double variance{0.0};
 };
 
 struct AdditiveEffect
 {
-    AdditiveEffect(
-        std::string&& name,
-        GenotypeMap&& design_matrix,
-        Eigen::VectorXd&& sigma,
-        Eigen::VectorXd&& pi);
+    explicit AdditiveEffect(GenotypeMap&& design_matrix);
+    explicit AdditiveEffect(GenotypeMatrix&& design_matrix);
+    explicit AdditiveEffect(GenotypeStorage&& design_matrix);
 
-    std::string name;
-    GenotypeMap design_matrix;
+    GenotypeStorage design_matrix;
     Eigen::VectorXd cols_norm;
 
-    detail::ScaledInvChiSqParams prior;
-    Eigen::VectorXd marker_variance;
+    detail::ScaledInvChiSqParams prior{4, 0};
+    double init_marker_variance{0.0};
+    Eigen::Index marker_variance_size{0};
 
     Eigen::VectorXd pi;
 
@@ -102,61 +137,62 @@ struct AdditiveEffect
     Eigen::Index num_mono() const;
 };
 
-struct AdditiveStatus
+struct AdditiveState
 {
-    explicit AdditiveStatus(const AdditiveEffect& effect);
+    explicit AdditiveState(const AdditiveEffect& effect);
 
-    Eigen::VectorXd coeff;
+    Eigen::VectorXd coeffs;
     Eigen::VectorXd u;
     Eigen::VectorXi tracker;
 
     Pi pi;
-    double effect_variance{};
+    double variance{};
     double heritability{};
     Eigen::VectorXd marker_variance;
 };
 
 struct DominantEffect
 {
-    DominantEffect(
-        std::string&& name,
-        GenotypeMap&& design_matrix,
-        double prior_mean,
-        double prior_var);
+    explicit DominantEffect(GenotypeMap&& design_matrix);
+    explicit DominantEffect(GenotypeMatrix&& design_matrix);
+    explicit DominantEffect(GenotypeStorage&& design_matrix);
 
-    std::string name;
-    GenotypeMap design_matrix;
+    GenotypeStorage design_matrix;
     Eigen::VectorXd cols_norm;
+    Eigen::VectorXd wj;  // freq_q - freq_p
 
-    double prior_mean{};
-    double prior_var{};
+    double ratio_mean{};
+    double ratio_variance{};
 
     bool is_monomorphic(Eigen::Index snp_index) const;
     Eigen::Index num_mono() const;
 };
 
-struct DominantStatus
+struct DominantState
 {
-    explicit DominantStatus(const DominantEffect& effect);
+    explicit DominantState(const DominantEffect& effect);
 
-    Eigen::VectorXd coeff;
+    Eigen::VectorXd coeffs;
+    Eigen::VectorXd ratios;
     Eigen::VectorXd u;
 
-    double effect_variance{};
+    double ratio_mean{};
+    double ratio_variance{};
+
+    double variance{};
     double heritability{};
 };
 
 struct Residual
 {
-    std::string name{"e"};
-    detail::ScaledInvChiSqParams prior;
-    double value{0.0};
+    detail::ScaledInvChiSqParams prior{-2, 0};
+    double init_variance{0.0};
 };
 
-using RandomEffectManager = detail::Effects<RandomEffect>;
-
-std::vector<RandomStatus> create_chain_states(
-    const RandomEffectManager& effects);
-
+struct ResidualState
+{
+    Eigen::VectorXd y_adj;
+    double variance{0.0};
+};
 }  // namespace bayes
 }  // namespace gelex

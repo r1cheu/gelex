@@ -183,7 +183,6 @@ void Estimator::compute_var_se(GBLUP& model, const Optimizer& optim) const
 std::pair<std::vector<double>, double> Estimator::compute_h2_se(
     const GBLUP& model) const
 {
-    auto n = model.effects_.size();
     double sum_var = arma::sum(arma::dvec(model.effects_.values()));
     double sum_sq = sum_var * sum_var;
 

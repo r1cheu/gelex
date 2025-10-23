@@ -2,7 +2,7 @@
 
 #include <utility>
 
-#include "Eigen/Core"
+#include <Eigen/Core>
 
 namespace gelex
 {
@@ -18,98 +18,103 @@ namespace bayes
 {
 
 FixedEffect::FixedEffect(
-    std::vector<std::string>&& names,
+    std::optional<std::vector<std::string>> levels,
     MatrixXd&& design_matrix)
-    : names(std::move(names)), design_matrix(std::move(design_matrix))
+    : design_matrix(std::move(design_matrix)), levels(std::move(levels))
 {
     cols_norm = this->design_matrix.colwise().squaredNorm();
 }
 
-FixedStatus::FixedStatus(Index n_coeff) : coeff(VectorXd::Zero(n_coeff)) {};
+FixedState::FixedState(const FixedEffect& effect)
+    : coeffs(VectorXd::Zero(effect.design_matrix.cols())) {};
 
-RandomEffect::RandomEffect(std::string&& name, MatrixXd&& design_matrix)
-    : name(std::move(name)), design_matrix(std::move(design_matrix))
+RandomEffect::RandomEffect(
+    std::optional<std::vector<std::string>> levels,
+    MatrixXd&& design_matrix)
+    : design_matrix(std::move(design_matrix)), levels(std::move(levels))
 {
     cols_norm = this->design_matrix.colwise().squaredNorm();
-};
+}
 
-RandomStatus::RandomStatus(const RandomEffect& effect)
-    : coeff(VectorXd::Zero(effect.design_matrix.cols())),
-      effect_variance(
-          effect
-              .effect_variance)  // Use dvec for consistency with other effects
+RandomState::RandomState(const RandomEffect& effect)
+    : coeffs(VectorXd::Zero(effect.design_matrix.cols())),
+      variance{effect.init_variance}
 {
 }
 
-AdditiveEffect::AdditiveEffect(
-    std::string&& name,
-    GenotypeMap&& design_matrix,
-    VectorXd&& sigma,
-    VectorXd&& pi)
-    : name(std::move(name)),
-      pi(std::move(pi)),
-      marker_variance(std::move(sigma)),
-      design_matrix(std::move(design_matrix))
+AdditiveEffect::AdditiveEffect(GenotypeMap&& design_matrix)
+    : design_matrix(std::move(design_matrix))
 {
-    cols_norm = this->design_matrix.matrix().colwise().squaredNorm();
+    cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
 }
 
-AdditiveStatus::AdditiveStatus(const AdditiveEffect& effect)
-    : u(VectorXd::Zero(effect.design_matrix.rows())),
-      coeff(VectorXd::Zero(effect.design_matrix.cols())),
-      tracker(VectorXi::Zero(effect.design_matrix.cols())),
+AdditiveEffect::AdditiveEffect(GenotypeMatrix&& design_matrix)
+    : design_matrix(std::move(design_matrix))
+{
+    cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
+}
+
+AdditiveEffect::AdditiveEffect(GenotypeStorage&& design_matrix)
+    : design_matrix(std::move(design_matrix))
+{
+    cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
+}
+
+AdditiveState::AdditiveState(const AdditiveEffect& effect)
+    : coeffs(VectorXd::Zero(get_cols(effect.design_matrix))),
+      u(VectorXd::Zero(get_rows(effect.design_matrix))),
+      tracker(VectorXi::Zero(get_cols(effect.design_matrix))),
       pi{effect.pi, Eigen::VectorXi::Zero(effect.pi.size())},
-      marker_variance(effect.marker_variance) {};
+      marker_variance(
+          Eigen::VectorXd::Constant(
+              effect.marker_variance_size,
+              effect.init_marker_variance)) {};
 
-DominantEffect::DominantEffect(
-    std::string&& name,
-    GenotypeMap&& design_matrix,
-    double prior_mean,
-    double prior_var)
-    : name(std::move(name)),
-      design_matrix(std::move(design_matrix)),
-      prior_mean(prior_mean),
-      prior_var(prior_var)
+DominantEffect::DominantEffect(GenotypeMap&& design_matrix)
+    : design_matrix(std::move(design_matrix))
 {
-    cols_norm = this->design_matrix.matrix().colwise().squaredNorm();
+    cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
 }
 
-DominantStatus::DominantStatus(const DominantEffect& effect)
-    : coeff(VectorXd::Zero(effect.design_matrix.cols())),
-      u(VectorXd::Zero(effect.design_matrix.rows()))
+DominantEffect::DominantEffect(GenotypeMatrix&& design_matrix)
+    : design_matrix(std::move(design_matrix))
+{
+    cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
+}
+
+DominantEffect::DominantEffect(GenotypeStorage&& design_matrix)
+    : design_matrix(std::move(design_matrix))
+{
+    cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
+}
+
+DominantState::DominantState(const DominantEffect& effect)
+    : coeffs(VectorXd::Zero(get_cols(effect.design_matrix))),
+      ratios(VectorXd::Zero(get_cols(effect.design_matrix))),
+      u(VectorXd::Zero(get_rows(effect.design_matrix))),
+      ratio_mean(effect.ratio_mean),
+      ratio_variance(effect.ratio_variance)
 {
 }
 
 bool AdditiveEffect::is_monomorphic(Eigen::Index snp_index) const
 {
-    return design_matrix.is_monomorphic(snp_index);
+    return is_monomorphic_variant(design_matrix, snp_index);
 }
 
 Index AdditiveEffect::num_mono() const
 {
-    return design_matrix.num_mono();
+    return num_mono_variant(design_matrix);
 }
 
 bool DominantEffect::is_monomorphic(Eigen::Index snp_index) const
 {
-    return design_matrix.is_monomorphic(snp_index);
+    return is_monomorphic_variant(design_matrix, snp_index);
 }
 
 Index DominantEffect::num_mono() const
 {
-    return design_matrix.num_mono();
-}
-
-std::vector<RandomStatus> create_chain_states(
-    const RandomEffectManager& effects)
-{
-    std::vector<RandomStatus> states;
-    states.reserve(effects.size());
-    for (const auto& effect : effects.effects())
-    {
-        states.emplace_back(effect);
-    }
-    return states;
+    return num_mono_variant(design_matrix);
 }
 }  // namespace bayes
 }  // namespace gelex

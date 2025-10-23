@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cmath>    // for erf, sqrt
+#include <numbers>  // for std::numbers::sqrt2
+
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
@@ -13,6 +16,12 @@ std::pair<Eigen::RowVectorXd, Eigen::RowVectorXd> standardize(
 Eigen::VectorXd sum_square(const Eigen::Ref<const Eigen::MatrixXd>& mat);
 Eigen::VectorXd sum_square(const Eigen::Ref<Eigen::SparseMatrix<double>>& mat);
 Eigen::VectorXd cols_var(const Eigen::Ref<const Eigen::MatrixXd>& mat);
+
+// Normal CDF for any mean (mu) and stddev (sigma)
+inline double normal_cdf(double x, double mu = 0.0, double sigma = 1.0)
+{
+    return 0.5 * (1.0 + std::erf((x - mu) / (sigma * std::numbers::sqrt2)));
+}
 
 template <typename Derived>
 Eigen::VectorXd var(

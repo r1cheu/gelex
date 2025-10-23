@@ -32,7 +32,7 @@ void Optimizer::compute_proj(const GBLUP& model)
 {
     v_.zeros();
     v_.diag() += model.residual_.sigma;
-    auto accumulate = [this](const auto& effect, size_t place_holder)
+    auto accumulate = [this](const auto& effect, size_t /*place_holder*/)
     { v_ += effect.covariance_matrix * effect.sigma; };
     visitor_effects(model, accumulate);
 

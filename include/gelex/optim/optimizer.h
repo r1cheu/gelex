@@ -9,8 +9,8 @@ namespace gelex
 {
 class Optimizer
 {
-    friend class ExpectationMaximizationPolicy;
-    friend class AverageInformationPolicy;
+    friend struct ExpectationMaximizationPolicy;
+    friend struct AverageInformationPolicy;
     friend class Estimator;
 
    public:

@@ -64,9 +64,9 @@ class GenotypeMap
         int64_t cols)
         : mmap_(std::move(mmap)),
           mat_(std::move(mat)),
+          mono_set_(std::move(mono_set)),
           mean_(std::move(mean)),
           variance_(std::move(variance)),
-          mono_set_(std::move(mono_set)),
           rows_(rows),
           cols_(cols)
     {

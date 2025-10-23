@@ -1,35 +1,103 @@
-# gelexy
+# Gelex
 
 [![GitHub issues](https://img.shields.io/github/issues/r1cheu/gelexy?color=green)](https://github.com/r1cheu/gelexy/issues/new)
-Gelexy is a Python package used for genomic prediction, leveraging C++ to handle the dense computation part, achieving the best balance between ease of use and performance.
+
+Gelex is a high-performance C++ library and CLI tool for genomic prediction with Bayesian (BayesAlphabet models) and frequentist (GBLUP) approaches. It provides efficient computation for genomic selection with memory-mapped genotype data support.
 
 > [!NOTE]
 > This project is undergoing rapid development.
 
+## Features
+
+- **Bayesian Models**: BayesA, BayesB(pi), BayesC(pi), BayesRR implementations
+- **Frequentist Models**: GBLUP with REML estimation
+- **High Performance**: Multi-threaded computation with BLAS/LAPACK backends (MKL or OpenBLAS)
+- **Memory Efficient**: Memory-mapped BED file reading via mio
+- **Modern C++**: Built with C++23 standards
+- **CLI Interface**: Easy-to-use command-line interface
+
 ## Installation
 
-Currently, Only installation from source is supported.
+### Prerequisites
+
+- CMake 3.18+
+- C++23 compatible compiler (GCC 11+, Clang 14+, or MSVC 2022+)
+- pixi (for dependency management)
+- Git (for cloning with submodules)
+
+### From Source
 
 ```bash
-git clone https://github.com/r1cheu/gelexy.git
-mamba create -f environment.yml
-
+git clone --recurse-submodules https://github.com/r1cheu/gelexy.git
+cd gelexy
+pixi install
 ```
+
+> [!NOTE]
+> This project uses Git submodules for Eigen and Armadillo linear algebra libraries. All other dependencies (spdlog, mio, argparse, Catch2, etc.) are automatically managed by pixi. If you forgot to use `--recurse-submodules` during clone, run:
+>
+> ```bash
+> git submodule update --init --recursive
+> ```
+
+### Build and Install
+
+**Debug Build (with tests):**
+
+```bash
+pixi run build-debug
+pixi run install-debug
+```
+
+**Release Build (optimized):**
+
+```bash
+pixi run build-release
+pixi run install-release
+```
+
+This will install the `gelex` binary to `~/.local/bin`.
 
 ## Quick Start
 
-### GBLUP
+### CLI Usage
 
-```Python
-import gelexy as gx
+Gelex provides two main subcommands:
 
-mk_m = gx.make_gblup("~/project/gelexy/notebooks/data/f1_train.tsv")
-a = gx.make_grm("/home/rlchen/project/gelexy/notebooks/data/f1_train.bed")
-d = gx.make_grm(
-    "/home/rlchen/project/gelexy/notebooks/data/f1_train.bed", method="dom"
-)
-model = mk_m.make("Yield_per_plant ~ 1 + g[a] + g[d]", {"a": a, "d": d})
+**Fit a genomic prediction model:**
 
-est = gx.Estimator(max_iter=20)
-est.fit(model, em_init=False)
+```bash
+gelex fit [options]
 ```
+
+**Run simulations:**
+
+```bash
+gelex simulate [options]
+```
+
+Use `gelex --help` for detailed usage information.
+
+### Example: Bayesian Model
+
+```bash
+gelex fit \
+  --bfile data/genotypes.bed \
+  --pheno data/phenotypes.tsv \
+  --method RR \
+  --iters 10000 \
+  --burnin 2000 \
+  --o output
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+[License information to be added]
+
+## Citation
+
+[Citation information to be added]

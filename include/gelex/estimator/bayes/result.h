@@ -10,6 +10,7 @@
 
 namespace gelex
 {
+
 struct PosteriorSummary
 {
     explicit PosteriorSummary(Eigen::Index n_params)
@@ -35,27 +36,27 @@ struct PosteriorSummary
 struct FixedSummary
 {
     explicit FixedSummary(const FixedSamples& sample)
-        : coeffs(sample.coeffs[0].rows())
+        : FixedSummary(sample.coeffs[0].rows())
     {
     }
     PosteriorSummary coeffs;
+
+   protected:
+    explicit FixedSummary(Eigen::Index n_coeff) : coeffs(n_coeff) {}
 };
 
-struct RandomSummary
+struct RandomSummary : FixedSummary
 {
     explicit RandomSummary(const RandomSamples& sample)
-        : RandomSummary(
-              sample.coeffs[0].rows(),
-              sample.effect_variance[0].rows())
+        : RandomSummary(sample.coeffs[0].rows(), 1)
     {
     }
 
-    PosteriorSummary coeffs;
-    PosteriorSummary effect_variance;
+    PosteriorSummary variance;
 
    protected:
     RandomSummary(Eigen::Index n_coeff, Eigen::Index n_variance)
-        : coeffs(n_coeff), effect_variance(n_variance)
+        : FixedSummary(n_coeff), variance(n_variance)
     {
     }
 };
@@ -63,38 +64,31 @@ struct RandomSummary
 struct AdditiveSummary : RandomSummary
 {
     explicit AdditiveSummary(const AdditiveSamples& samples)
-        : AdditiveSummary(
-              samples.coeffs[0].rows(),
-              samples.effect_variance[0].rows(),
-              samples.marker_variance[0].rows())
+        : AdditiveSummary(samples.coeffs[0].rows())
     {
     }
-    PosteriorSummary marker_variance;
     PosteriorSummary pve;
 
    protected:
-    AdditiveSummary(
-        Eigen::Index n_coeff,
-        Eigen::Index n_effect_variance,
-        Eigen::Index n_marker_variance)
-        : RandomSummary(n_coeff, n_effect_variance),
-          marker_variance(n_marker_variance),
-          pve(n_coeff)
+    explicit AdditiveSummary(Eigen::Index n_coeff)
+        : RandomSummary(n_coeff, 1), pve(n_coeff)
     {
     }
 };
 
-struct DominantSummary : RandomSummary
+struct DominantSummary : AdditiveSummary
 {
     explicit DominantSummary(const DominantSamples& samples)
-        : RandomSummary(
-              samples.coeffs[0].rows(),
-              samples.effect_variance[0].rows()),
-          pve(samples.coeffs[0].rows())
+        : DominantSummary(samples.coeffs[0].rows())
     {
     }
+    PosteriorSummary ratios;
 
-    PosteriorSummary pve;
+   protected:
+    explicit DominantSummary(Eigen::Index n_coeff)
+        : AdditiveSummary(n_coeff), ratios(n_coeff)
+    {
+    }
 };
 
 class MCMCResult
@@ -115,15 +109,18 @@ class MCMCResult
      */
     void compute(std::optional<double> prob = std::nullopt);
 
-    const std::unique_ptr<FixedSummary>& fixed() const { return fixed_; }
-    const std::vector<RandomSummary>& random() const { return random_; }
-    const std::unique_ptr<AdditiveSummary>& additive() const
+    const FixedSummary* fixed() const
     {
-        return additive_;
+        return fixed_ ? &fixed_.value() : nullptr;
     }
-    const std::unique_ptr<DominantSummary>& dominant() const
+    const std::vector<RandomSummary>& random() const { return random_; }
+    const AdditiveSummary* additive() const
     {
-        return dominant_;
+        return additive_ ? &additive_.value() : nullptr;
+    }
+    const DominantSummary* dominant() const
+    {
+        return dominant_ ? &dominant_.value() : nullptr;
     }
     const PosteriorSummary& residual() const { return residual_; }
 
@@ -132,14 +129,15 @@ class MCMCResult
 
     MCMCSamples samples_;
 
-    std::unique_ptr<FixedSummary> fixed_ = nullptr;
+    std::optional<FixedSummary> fixed_;
     std::vector<RandomSummary> random_;
-    std::unique_ptr<AdditiveSummary> additive_ = nullptr;
-    std::unique_ptr<DominantSummary> dominant_ = nullptr;
+    std::optional<AdditiveSummary> additive_;
+    std::optional<DominantSummary> dominant_;
     PosteriorSummary residual_;
 
     double prob_;
     double phenotype_var_;
+
     Eigen::VectorXd additive_variances_;
     Eigen::VectorXd additive_means_;
     Eigen::VectorXd dominant_variances_;

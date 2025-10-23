@@ -41,8 +41,8 @@ set_target_properties(core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(
   core
   PUBLIC ${PROJECT_SOURCE_DIR}/include
-         ${PROJECT_SOURCE_DIR}/ext/armadillo/include
-         ${PROJECT_SOURCE_DIR}/ext/eigen
+  PUBLIC SYSTEM ${PROJECT_SOURCE_DIR}/ext/armadillo/include
+  PUBLIC SYSTEM ${PROJECT_SOURCE_DIR}/ext/eigen
   PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
 target_compile_definitions(
@@ -51,15 +51,16 @@ target_compile_definitions(
          ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS ARMA_OPENMP_THREADS=64 ARMA_NO_DEBUG
          $<$<CONFIG:Release>:EIGEN_NO_DEBUG>)
 
+target_compile_options(core PRIVATE $<$<CONFIG:Release>:-march=native -O3>
+                                    -Wall -Wextra)
+
 if(USE_MKL)
   set(BLA_VENDOR Intel10_64lp)
   find_package(BLAS REQUIRED)
-  find_path(BLAS_INCLUDE_DIR mkl.h)
   target_compile_definitions(core INTERFACE EIGEN_USE_MKL_ALL USE_MKL)
 else()
   set(BLA_VENDOR OpenBLAS)
   find_package(BLAS REQUIRED)
-  find_path(BLAS_INCLUDE_DIR cblas.h)
   target_compile_definitions(core INTERFACE EIGEN_USE_BLAS EIGEN_USE_LAPACK)
 endif()
 

@@ -1,37 +1,28 @@
 #include "indicator.h"
 #include <fmt/format.h>
+#include <atomic>
 #include <vector>
-
-#include "../../logger/logger_utils.h"
-#include "gelex/model/bayes/model.h"
+#include "Eigen/Core"
 
 namespace gelex
 {
 namespace detail
 {
 Indicator::Indicator(
-    const BayesModel& model,
-    size_t n_iter,
-    std::vector<std::atomic<size_t>>& progress_counters)
-    : num_chains_(progress_counters.size()),
-      status_names_(create_status_names(model))
+    Eigen::Index n_iter,
+    std::vector<std::atomic_ptrdiff_t>& progress_counters)
+    : num_chains_(progress_counters.size())
 {
     std::vector<std::shared_ptr<bk::BaseDisplay>> all_chains_displays;
 
-    for (int i = 0; i < status_names_.size(); ++i)
-    {
-        status_name_to_index_[status_names_[i]] = i;
-    }
-
     statuses_.resize(num_chains_);
 
-    for (int i = 0; i < num_chains_; ++i)
+    for (size_t i = 0; i < num_chains_; ++i)
     {
         std::vector<std::shared_ptr<bk::BaseDisplay>> line_displays;
 
         auto anim = bk::Animation(
-            {.style
-             = bk::Strings{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"},
+            {.style = bk::Strings{"⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"},
              .interval = 0.08,
              .show = false});
         line_displays.push_back(anim);
@@ -47,16 +38,11 @@ Indicator::Indicator(
         progress_bars_.push_back(pbar);
         line_displays.push_back(pbar);
 
-        statuses_[i].resize(status_names_.size());
-        for (int j = 0; j < status_names_.size(); ++j)
-        {
-            auto status = bk::Status(
-                {.message = status_names_[j] + ": --",
-                 .style = bk::Strings{""},
-                 .show = false});
-            statuses_[i][j] = status;
-            line_displays.push_back(status);
-        }
+        // Use a single compact status display instead of multiple ones
+        auto compact_status = bk::Status(
+            {.message = "--", .style = bk::Strings{""}, .show = false});
+        statuses_[i].push_back(compact_status);
+        line_displays.push_back(compact_status);
 
         all_chains_displays.push_back(bk::Composite(line_displays, " "));
     }
@@ -64,36 +50,75 @@ Indicator::Indicator(
     main_indicator_ = bk::Composite(all_chains_displays, "\n");
 }
 
-std::vector<std::string> Indicator::create_status_names(const BayesModel& model)
+void Indicator::update_compact_status(size_t chain_index)
 {
-    std::vector<std::string> status_names;
-
-    for (const auto& random : model.random())
+    if (chain_index >= num_chains_ || statuses_[chain_index].empty())
     {
-        status_names.emplace_back(sigma_squared("_" + random.name));
+        return;
     }
 
-    if (model.additive())
+    // Build compact single line display
+    std::string compact_line;
+
+    // Add additive variance and heritability
+    if (current_values_.contains("σ²_additive")
+        && current_values_.contains("h²_additive"))
     {
-        status_names.emplace_back(sigma_squared("_" + model.additive()->name));
-        if (model.trait()->estimate_pi())
+        compact_line += fmt::format(
+            "a(σ², h²): [{:.3f} {:.3f}] ",
+            current_values_.at("σ²_additive"),
+            current_values_.at("h²_additive"));
+    }
+
+    // Add mixture parameters
+    std::vector<double> pi_values;
+
+    // Collect π values in order (π_0, π_1, π_2, ...)
+    size_t i = 0;
+    while (true)
+    {
+        std::string pi_key = fmt::format("π_{}", i);
+        if (current_values_.contains(pi_key))
         {
-            for (int i = 0; i < model.additive()->pi.size(); ++i)
-            {
-                status_names.emplace_back(fmt::format("π_{}", i));
-            }
+            pi_values.push_back(current_values_.at(pi_key));
+            ++i;
+        }
+        else
+        {
+            break;
         }
     }
 
-    status_names.emplace_back(sigma_squared("_e"));
-
-    // Add heritability tracking for additive effects
-    if (model.additive())
+    compact_line += "π [";
+    for (size_t i = 0; i < pi_values.size(); ++i)
     {
-        status_names.emplace_back(h2("_" + model.additive()->name));
+        if (i > 0)
+        {
+            compact_line += ", ";
+        }
+        compact_line += fmt::format("{:.3f}", pi_values[i]);
+    }
+    compact_line += "] ";
+
+    // Add dominance variance and heritability
+    if (current_values_.contains("σ²_dominant")
+        && current_values_.contains("h²_dominant"))
+    {
+        compact_line += fmt::format(
+            "d(σ², h²): [{:.3f} {:.3f}] ",
+            current_values_.at("σ²_dominant"),
+            current_values_.at("h²_dominant"));
     }
 
-    return status_names;
+    // Add residual variance
+    if (current_values_.contains("σ²_e"))
+    {
+        compact_line
+            += fmt::format("σ²_e: {:.2f} ", current_values_.at("σ²_e"));
+    }
+
+    // Update the compact status display
+    statuses_[chain_index][0]->message(compact_line);
 }
 
 void Indicator::show()

@@ -21,7 +21,7 @@ bool is_tty();
  */
 void print_banner(std::string_view version);
 
-std::string repeat(size_t n, std::string_view str);
+std::string repeat(int n, std::string_view str);
 
 std::vector<std::string> parse_command(int argc, char* args[]);
 

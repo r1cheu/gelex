@@ -24,11 +24,11 @@ void print_banner(std::string_view version)
         version,
         std::string(29 - version.length(), ' '));
     logger->info("║  ▔▔▔▔▔▔▔▔▔▔                               ║");
-    logger->info("║  Genomic Prediction with Bayes Models     ║");
+    logger->info("║  Genomic sElEction with Bayesian Models   ║");
     logger->info("╚═══════════════════════════════════════════╝");
 }
 
-std::string repeat(size_t n, std::string_view str)
+std::string repeat(int n, std::string_view str)
 {
     if (n <= 0 || str.empty())
     {
@@ -47,7 +47,7 @@ std::vector<std::string> parse_command(int argc, char* args[])
 {
     std::vector<std::string> command;
     command.emplace_back("gelex");
-    for (size_t i = 1; i < argc; ++i)
+    for (int i = 1; i < argc; ++i)
     {
         std::string arg = args[i];
         if (arg.starts_with("--") || arg.starts_with("-"))

@@ -1,16 +1,17 @@
 #pragma once
 
-#include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
+#include <fmt/format.h>
 #include <Eigen/Core>
 
 #include "../src/model/bayes/bayes_effects.h"
-#include "../src/model/bayes/trait.h"
 #include "gelex/data/data_pipe.h"
+#include "gelex/data/genotype_matrix.h"
 #include "gelex/data/genotype_mmap.h"
-#include "gelex/model/effects.h"
+#include "gelex/error.h"
 
 namespace gelex
 {
@@ -27,96 +28,115 @@ namespace gelex
 class BayesModel
 {
    public:
-    /**
-     * @brief
-     *
-     * @param phenotype
-     */
-    BayesModel(Eigen::VectorXd&& phenotype, BayesAlphabet type);
+    static auto create(DataPipe& data_pipe) -> std::expected<BayesModel, Error>;
 
-    static auto create_from_datapipe(DataPipe& data_pipe, BayesAlphabet type)
-        -> std::expected<BayesModel, Error>;
+    void add_additive(GenotypeMap&& matrix);
+    void add_additive(GenotypeMatrix&& matrix);
+    void add_dominance(GenotypeMap&& matrix);
+    void add_dominance(GenotypeMatrix&& matrix);
 
-    void add_additive_effect(GenotypeMap&& matrix);
-    void add_dominance_effect(GenotypeMap&& matrix);
+    const bayes::FixedEffect* fixed() const
+    {
+        return fixed_.has_value() ? &fixed_.value() : nullptr;
+    }
 
-    const auto& fixed() const { return fixed_; }
-    const auto& random() const { return random_; }
-    const auto& additive() const { return additive_; }
-    const auto& dominant() const { return dominant_; }
-    const auto& residual() const { return residual_; }
+    bayes::FixedEffect* fixed()
+    {
+        return fixed_.has_value() ? &fixed_.value() : nullptr;
+    }
 
-    auto& fixed() { return *fixed_; }
-    auto& random() { return random_; }
-    auto& additive() { return additive_; }
-    auto& dominant() { return dominant_; }
-    auto& residual() { return residual_; }
+    const std::vector<bayes::RandomEffect>& random() const { return random_; }
+    std::vector<bayes::RandomEffect>& random() { return random_; }
 
-    void set_sigma_prior_manual(
-        const std::string& name,
-        double nu,
-        double s2,
-        double init_sigma);
+    const bayes::AdditiveEffect* additive() const
+    {
+        return additive_.has_value() ? &additive_.value() : nullptr;
+    }
+    bayes::AdditiveEffect* additive()
+    {
+        return additive_.has_value() ? &additive_.value() : nullptr;
+    }
 
-    void set_sigma_prior(const std::string& name, double nu, double prop);
+    const bayes::DominantEffect* dominant() const
+    {
+        return dominant_.has_value() ? &dominant_.value() : nullptr;
+    }
+    bayes::DominantEffect* dominant()
+    {
+        return dominant_.has_value() ? &dominant_.value() : nullptr;
+    }
 
-    const std::unique_ptr<GeneticTrait>& trait() const { return model_trait_; };
-
-    // Keep existing pi prior method
-    void set_pi_prior(const std::string& name, const Eigen::VectorXd& pi);
-
-    std::string prior_summary() const;
+    const bayes::Residual& residual() const { return residual_; }
+    bayes::Residual& residual() { return residual_; }
 
     const Eigen::VectorXd& phenotype() const { return phenotype_; }
+
     double phenotype_var() const { return phenotype_var_; }
-    Eigen::Index n_individuals() const { return n_individuals_; }
+    Eigen::Index num_individuals() const { return num_individuals_; }
 
    private:
+    explicit BayesModel(Eigen::VectorXd&& phenotype);
+
     void add_fixed_effect(
-        std::vector<std::string>&& names,
+        std::vector<std::string>&& levels,
         Eigen::MatrixXd&& design_matrix);
-    void add_random_effect(std::string&& name, Eigen::MatrixXd&& design_matrix);
-    Eigen::Index n_individuals_{};
+    void add_random_effect(
+        std::vector<std::string>&& levels,
+        Eigen::MatrixXd&& design_matrix);
+    Eigen::Index num_individuals_{};
 
     Eigen::VectorXd phenotype_;
     double phenotype_var_{};
 
-    std::unique_ptr<GeneticTrait> model_trait_;
-
-    std::unique_ptr<bayes::FixedEffect> fixed_;
-    bayes::RandomEffectManager random_;
-    std::unique_ptr<bayes::AdditiveEffect> additive_;
-    std::unique_ptr<bayes::DominantEffect> dominant_;
+    std::optional<bayes::FixedEffect> fixed_;
+    std::vector<bayes::RandomEffect> random_;
+    std::optional<bayes::AdditiveEffect> additive_;
+    std::optional<bayes::DominantEffect> dominant_;
     bayes::Residual residual_;
 };
 
-struct BayesStatus
+class BayesState
 {
-    explicit BayesStatus(const BayesModel& model)
-        : fixed(
-              model.fixed() ? std::make_unique<bayes::FixedStatus>(
-                                  model.fixed()->design_matrix.cols())
-                            : nullptr),
-          random(bayes::create_chain_states(model.random())),
-          additive(
-              model.additive()
-                  ? std::make_unique<bayes::AdditiveStatus>(*model.additive())
-                  : nullptr),
-          dominant(
-              model.dominant()
-                  ? std::make_unique<bayes::DominantStatus>(*model.dominant())
-                  : nullptr),
-          residual(model.residual())
+   public:
+    explicit BayesState(const BayesModel& model);
+
+    bayes::FixedState* fixed() { return fixed_ ? &fixed_.value() : nullptr; }
+    const bayes::FixedState* fixed() const
     {
+        return fixed_ ? &fixed_.value() : nullptr;
     }
+    std::vector<bayes::RandomState>& random() { return random_; }
+    const std::vector<bayes::RandomState>& random() const { return random_; }
+
+    bayes::AdditiveState* additive()
+    {
+        return additive_ ? &additive_.value() : nullptr;
+    }
+    const bayes::AdditiveState* additive() const
+    {
+        return additive_ ? &additive_.value() : nullptr;
+    }
+
+    bayes::DominantState* dominant()
+    {
+        return dominant_ ? &dominant_.value() : nullptr;
+    }
+    const bayes::DominantState* dominant() const
+    {
+        return dominant_ ? &dominant_.value() : nullptr;
+    }
+
+    bayes::ResidualState& residual() { return residual_; }
+    const bayes::ResidualState& residual() const { return residual_; }
 
     void compute_heritability();
 
-    std::unique_ptr<bayes::FixedStatus> fixed;
-    std::vector<bayes::RandomStatus> random;
-    std::unique_ptr<bayes::AdditiveStatus> additive;
-    std::unique_ptr<bayes::DominantStatus> dominant;
-    bayes::Residual residual;
+   private:
+    std::optional<bayes::FixedState> fixed_;
+    std::vector<bayes::RandomState> random_;
+    std::optional<bayes::AdditiveState> additive_;
+    std::optional<bayes::DominantState> dominant_;
+    bayes::ResidualState residual_;
 };
 
 }  // namespace gelex
