@@ -144,6 +144,18 @@ Eigen::Index get_n_chains(const Samples& samples);
  */
 Eigen::Index get_n_draws(const Samples& samples);
 
+/**
+ * @brief Compute posterior inclusion probability (PIP) from SNP tracker
+ * samples.
+ *
+ * Calculates PIP as the proportion of samples where each SNP is included
+ * (tracker != 0) across all chains and draws.
+ *
+ * @param tracker_samples Integer samples indicating SNP inclusion status.
+ * @return Eigen::VectorXd Posterior inclusion probability for each SNP.
+ */
+Eigen::VectorXd compute_pip(const IntSamples& tracker_samples);
+
 }  // namespace PosteriorCalculator
 
 }  // namespace gelex::detail

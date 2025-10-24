@@ -12,6 +12,7 @@
 #include "gelex/data/genotype_matrix.h"
 #include "gelex/data/genotype_mmap.h"
 #include "gelex/error.h"
+#include "gelex/model/effects.h"
 
 namespace gelex
 {
@@ -28,7 +29,8 @@ namespace gelex
 class BayesModel
 {
    public:
-    static auto create(DataPipe& data_pipe) -> std::expected<BayesModel, Error>;
+    static auto create(DataPipe& data_pipe, BayesAlphabet alphabet)
+        -> std::expected<BayesModel, Error>;
 
     void add_additive(GenotypeMap&& matrix);
     void add_additive(GenotypeMatrix&& matrix);
@@ -74,8 +76,11 @@ class BayesModel
     double phenotype_var() const { return phenotype_var_; }
     Eigen::Index num_individuals() const { return num_individuals_; }
 
+    BayesAlphabet alphabet() const { return alphabet_; }
+    bool is_mixture_model() const { return gelex::is_mixture_model(alphabet_); }
+
    private:
-    explicit BayesModel(Eigen::VectorXd&& phenotype);
+    explicit BayesModel(Eigen::VectorXd&& phenotype, BayesAlphabet alphabet);
 
     void add_fixed_effect(
         std::vector<std::string>&& levels,
@@ -93,6 +98,8 @@ class BayesModel
     std::optional<bayes::AdditiveEffect> additive_;
     std::optional<bayes::DominantEffect> dominant_;
     bayes::Residual residual_;
+
+    BayesAlphabet alphabet_;
 };
 
 class BayesState

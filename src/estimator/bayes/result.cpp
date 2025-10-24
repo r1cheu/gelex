@@ -53,6 +53,16 @@ MCMCResult::MCMCResult(
     {
         dominant_.emplace(*sample);
     }
+
+    if (const auto* sample = samples_.pi(); sample)
+    {
+        pi_.emplace(*sample);
+    }
+
+    if (const auto* sample = samples_.snp_tracker(); sample)
+    {
+        snp_tracker_.emplace(*sample);
+    }
 }
 
 void MCMCResult::compute(std::optional<double> prob)
@@ -109,6 +119,19 @@ void MCMCResult::compute(std::optional<double> prob)
             sample->coeffs,
             dominant_variances_,
             phenotype_var_);
+    }
+
+    if (const auto* sample = samples_.pi(); pi_ && sample != nullptr)
+    {
+        pi_->prop = detail::PosteriorCalculator::compute_param_summary(
+            sample->prop, prob_);
+    }
+
+    if (const auto* sample = samples_.snp_tracker();
+        snp_tracker_ && sample != nullptr)
+    {
+        snp_tracker_->pip
+            = detail::PosteriorCalculator::compute_pip(sample->tracker);
     }
 
     residual_ = detail::PosteriorCalculator::compute_param_summary(

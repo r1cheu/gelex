@@ -11,6 +11,7 @@
 #include "../src/model/bayes/bayes_effects.h"
 #include "gelex/data/data_pipe.h"
 #include "gelex/data/genotype_mmap.h"
+#include "gelex/model/effects.h"
 
 namespace gelex
 {
@@ -19,15 +20,17 @@ using Eigen::Index;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-BayesModel::BayesModel(VectorXd&& phenotype) : phenotype_(std::move(phenotype))
+BayesModel::BayesModel(VectorXd&& phenotype, BayesAlphabet alphabet)
+    : phenotype_(std::move(phenotype)), alphabet_(alphabet)
 {
     num_individuals_ = phenotype_.rows();         // NOLINT
     phenotype_var_ = detail::var(phenotype_)(0);  // NOLINT
 }
 
-auto BayesModel::create(DataPipe& data_pipe) -> std::expected<BayesModel, Error>
+auto BayesModel::create(DataPipe& data_pipe, BayesAlphabet alphabet)
+    -> std::expected<BayesModel, Error>
 {
-    BayesModel model(std::move(data_pipe).take_phenotype());
+    BayesModel model(std::move(data_pipe).take_phenotype(), alphabet);
 
     if (data_pipe.has_fixed_effects())
     {
@@ -83,7 +86,7 @@ BayesState::BayesState(const BayesModel& model)
 
     if (const auto* effect = model.additive(); effect)
     {
-        additive_.emplace(*effect);
+        additive_.emplace(*effect, model.is_mixture_model());
     }
 
     if (const auto* effect = model.dominant(); effect)

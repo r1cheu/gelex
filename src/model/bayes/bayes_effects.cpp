@@ -60,15 +60,22 @@ AdditiveEffect::AdditiveEffect(GenotypeStorage&& design_matrix)
     cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
 }
 
-AdditiveState::AdditiveState(const AdditiveEffect& effect)
+AdditiveState::AdditiveState(
+    const AdditiveEffect& effect,
+    bool is_mixture_model)
     : coeffs(VectorXd::Zero(get_cols(effect.design_matrix))),
       u(VectorXd::Zero(get_rows(effect.design_matrix))),
-      tracker(VectorXi::Zero(get_cols(effect.design_matrix))),
-      pi{effect.pi, Eigen::VectorXi::Zero(effect.pi.size())},
+      tracker(
+          is_mixture_model ? VectorXi::Zero(get_cols(effect.design_matrix))
+                           : VectorXi()),
+      pi{is_mixture_model ? effect.pi : Eigen::VectorXd(),
+         is_mixture_model ? Eigen::VectorXi::Zero(effect.pi.size())
+                          : Eigen::VectorXi()},
       marker_variance(
           Eigen::VectorXd::Constant(
               effect.marker_variance_size,
-              effect.init_marker_variance)) {};
+              effect.init_marker_variance)),
+      is_mixture_model_(is_mixture_model) {};
 
 DominantEffect::DominantEffect(GenotypeMap&& design_matrix)
     : design_matrix(std::move(design_matrix))

@@ -149,13 +149,18 @@ void MCMCLogger::log_result(const MCMCResult& results, const BayesModel& model)
     if (const auto* result = results.additive(); result != nullptr)
     {
         log_summary(0, result->variance, sigma_squared("_add"));
+    }
 
-        // TODO(rlchen): Handle pi estimation for mixture models
-        //  if (effect.pi.size() > 1)
-        //  {
-        //      // Note: Pi results would need to be available in the additive
-        //      // summary Currently, pi results are not stored in MCMCResult
-        //  }
+    if (const auto* effect = model.additive();
+        effect != nullptr && effect->pi.size() > 1)
+    {
+        if (const auto* pi_result = results.pi(); pi_result != nullptr)
+        {
+            for (Eigen::Index i = 0; i < pi_result->prop.size(); ++i)
+            {
+                log_summary(i, pi_result->prop, fmt::format("π[{}]", i));
+            }
+        }
     }
     if (const auto* result = results.dominant(); result != nullptr)
     {

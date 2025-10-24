@@ -145,7 +145,7 @@ int fit_execute(argparse::ArgumentParser& fit)
     }
 
     // Create Bayesian Model
-    auto model = gelex::BayesModel::create(*data_pipe);
+    auto model = gelex::BayesModel::create(*data_pipe, type);
     if (!model)
     {
         logger->error(model.error().message);

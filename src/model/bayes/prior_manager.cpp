@@ -260,43 +260,25 @@ auto PriorManager::set_mixture_prop(
                 "Mixture proportions must sum to 1"});
     }
 
-    switch (alphabet_)
+    if (!is_mixture_model(alphabet_))
     {
-        case BayesAlphabet::A:
-        case BayesAlphabet::RR:
-            return std::unexpected(
-                Error{
-                    ErrorCode::InvalidArgument,
-                    "non-mixture model does not support mixture proportions"});
+        return std::unexpected(
+            Error{
+                ErrorCode::InvalidArgument,
+                "non-mixture model does not support mixture proportions"});
+    }
 
-        case BayesAlphabet::B:
-        case BayesAlphabet::C:
-        case BayesAlphabet::Bpi:
-        case BayesAlphabet::Cpi:
-            if (prop.size() != 2)
-            {
-                return std::unexpected(
-                    Error{
-                        ErrorCode::InvalidArgument,
-                        "Mixture proportion size must be 2 for B, Bpi, C, "
-                        "Cpi"});
-            }
-        case BayesAlphabet::R:
-            if (prop.size() != 5)
-            {
-                return std::unexpected(
-                    Error{
-                        ErrorCode::InvalidArgument,
-                        "Mixture proportion size must be 5 for R"});
-            }
-            break;
-
-        default:
-            return std::unexpected(
-                Error{
-                    ErrorCode::InvalidArgument,
-                    "Unknown Bayes alphabet type for mixture proportions"});
-            break;
+    int expected_components = get_mixture_components(alphabet_);
+    if (prop.size() != expected_components)
+    {
+        return std::unexpected(
+            Error{
+                ErrorCode::InvalidArgument,
+                fmt::format(
+                    "Mixture proportion size must be {} for {}, got {}",
+                    expected_components,
+                    alphabet_,
+                    prop.size())});
     }
 
     model.additive()->pi = prop;

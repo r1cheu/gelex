@@ -223,4 +223,35 @@ Eigen::Index get_n_draws(const Samples& samples)
     return samples.empty() ? 0 : samples[0].cols();
 }
 
+Eigen::VectorXd compute_pip(const IntSamples& tracker_samples)
+{
+    if (tracker_samples.empty() || tracker_samples[0].rows() == 0)
+    {
+        return Eigen::VectorXd::Zero(0);
+    }
+
+    const Eigen::Index n_snps = tracker_samples[0].rows();
+    const Eigen::Index n_chains
+        = static_cast<Eigen::Index>(tracker_samples.size());
+    const Eigen::Index n_draws = tracker_samples[0].cols();
+    const double total_samples = static_cast<double>(n_chains * n_draws);
+
+    Eigen::VectorXd pip = Eigen::VectorXd::Zero(n_snps);
+
+    // Sum across all chains and draws using Eigen array operations
+    for (Eigen::Index chain = 0; chain < n_chains; ++chain)
+    {
+        // Count non-zero elements per row (SNP) using array operations
+        pip.array() += (tracker_samples[chain].array() != 0)
+                           .cast<double>()
+                           .rowwise()
+                           .sum();
+    }
+
+    // Normalize by total number of samples
+    pip /= total_samples;
+
+    return pip;
+}
+
 }  // namespace gelex::detail::PosteriorCalculator

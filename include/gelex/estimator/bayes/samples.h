@@ -23,6 +23,7 @@ class BayesModel;   // Forward declaration
 // samples for one effect, each element in vector saves one chain's samples. and
 // Matrix have the shape (n_params, n_draws)
 using Samples = std::vector<Eigen::MatrixXd>;
+using IntSamples = std::vector<Eigen::MatrixXi>;
 
 struct FixedSamples
 {
@@ -103,6 +104,24 @@ struct PiSamples
     explicit operator bool() const { return !prop.empty(); }
 };
 
+struct SnpTrackerSamples
+{
+    SnpTrackerSamples(
+        const MCMCParams& params,
+        const bayes::AdditiveEffect& effect)
+    {
+        tracker.reserve(params.n_chains);
+        const Eigen::Index n_snps = bayes::get_cols(effect.design_matrix);
+        for (Eigen::Index i = 0; i < params.n_chains; ++i)
+        {
+            tracker.emplace_back(n_snps, params.n_records);
+        }
+    }
+
+    IntSamples tracker;
+    explicit operator bool() const { return !tracker.empty(); }
+};
+
 class MCMCSamples
 {
    public:
@@ -126,6 +145,11 @@ class MCMCSamples
         return dominant_ ? &dominant_.value() : nullptr;
     }
     const ResidualSamples& residual() const { return residual_; }
+    const PiSamples* pi() const { return pi_ ? &pi_.value() : nullptr; }
+    const SnpTrackerSamples* snp_tracker() const
+    {
+        return snp_tracker_ ? &snp_tracker_.value() : nullptr;
+    }
 
    private:
     std::optional<FixedSamples> fixed_;
@@ -134,5 +158,6 @@ class MCMCSamples
     std::optional<DominantSamples> dominant_;
     ResidualSamples residual_;
     std::optional<PiSamples> pi_;
+    std::optional<SnpTrackerSamples> snp_tracker_;
 };
 }  // namespace gelex

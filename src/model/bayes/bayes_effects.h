@@ -139,7 +139,7 @@ struct AdditiveEffect
 
 struct AdditiveState
 {
-    explicit AdditiveState(const AdditiveEffect& effect);
+    explicit AdditiveState(const AdditiveEffect& effect, bool is_mixture_model);
 
     Eigen::VectorXd coeffs;
     Eigen::VectorXd u;
@@ -149,6 +149,8 @@ struct AdditiveState
     double variance{};
     double heritability{};
     Eigen::VectorXd marker_variance;
+
+    bool is_mixture_model_;
 };
 
 struct DominantEffect

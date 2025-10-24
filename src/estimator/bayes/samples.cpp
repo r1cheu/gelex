@@ -54,6 +54,13 @@ MCMCSamples::MCMCSamples(const MCMCParams& params, const BayesModel& model)
     if (const auto* effect = model.additive(); effect)
     {
         additive_.emplace(params, *effect);
+
+        // Only allocate pi and tracker for mixture models
+        if (model.is_mixture_model())
+        {
+            pi_.emplace(params, *effect);
+            snp_tracker_.emplace(params, *effect);
+        }
     }
 
     if (const auto* effect = model.dominant(); effect)
@@ -82,6 +89,16 @@ void MCMCSamples::store(
     {
         additive_->coeffs[chain_idx].col(record_idx) = state->coeffs;
         additive_->variance[chain_idx](0, record_idx) = state->variance;
+
+        // Store pi and tracker for mixture models
+        if (pi_)
+        {
+            pi_->prop[chain_idx].col(record_idx) = state->pi.prop;
+        }
+        if (snp_tracker_)
+        {
+            snp_tracker_->tracker[chain_idx].col(record_idx) = state->tracker;
+        }
     }
 
     if (const auto* state = states.dominant(); dominant_ && state != nullptr)

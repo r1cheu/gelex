@@ -50,6 +50,41 @@ inline std::optional<BayesAlphabet> get_bayesalphabet(std::string_view sv)
     return std::nullopt;
 }
 
+inline bool is_mixture_model(BayesAlphabet alphabet)
+{
+    switch (alphabet)
+    {
+        case BayesAlphabet::B:
+        case BayesAlphabet::Bpi:
+        case BayesAlphabet::C:
+        case BayesAlphabet::Cpi:
+        case BayesAlphabet::R:
+            return true;
+        case BayesAlphabet::A:
+        case BayesAlphabet::RR:
+            return false;
+    }
+    return false;
+}
+
+inline int get_mixture_components(BayesAlphabet alphabet)
+{
+    switch (alphabet)
+    {
+        case BayesAlphabet::B:
+        case BayesAlphabet::Bpi:
+        case BayesAlphabet::C:
+        case BayesAlphabet::Cpi:
+            return 2;
+        case BayesAlphabet::R:
+            return 5;
+        case BayesAlphabet::A:
+        case BayesAlphabet::RR:
+            return 1;
+    }
+    return 1;
+}
+
 }  // namespace gelex
 
 namespace fmt

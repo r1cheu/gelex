@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <optional>
 #include <vector>
 
@@ -36,59 +35,95 @@ struct PosteriorSummary
 struct FixedSummary
 {
     explicit FixedSummary(const FixedSamples& sample)
-        : FixedSummary(sample.coeffs[0].rows())
+        : coeffs(sample.coeffs[0].rows())
     {
     }
-    PosteriorSummary coeffs;
 
-   protected:
     explicit FixedSummary(Eigen::Index n_coeff) : coeffs(n_coeff) {}
+
+    PosteriorSummary coeffs;
 };
 
-struct RandomSummary : FixedSummary
+struct RandomSummary
 {
     explicit RandomSummary(const RandomSamples& sample)
-        : RandomSummary(sample.coeffs[0].rows(), 1)
+        : coeffs(sample.coeffs[0].rows()), variance(1)
     {
     }
 
-    PosteriorSummary variance;
-
-   protected:
     RandomSummary(Eigen::Index n_coeff, Eigen::Index n_variance)
-        : FixedSummary(n_coeff), variance(n_variance)
+        : coeffs(n_coeff), variance(n_variance)
     {
     }
+
+    PosteriorSummary coeffs;
+    PosteriorSummary variance;
 };
 
-struct AdditiveSummary : RandomSummary
+struct AdditiveSummary
 {
     explicit AdditiveSummary(const AdditiveSamples& samples)
-        : AdditiveSummary(samples.coeffs[0].rows())
+        : coeffs(samples.coeffs[0].rows()),
+          variance(1),
+          pve(samples.coeffs[0].rows())
     {
     }
-    PosteriorSummary pve;
 
-   protected:
     explicit AdditiveSummary(Eigen::Index n_coeff)
-        : RandomSummary(n_coeff, 1), pve(n_coeff)
+        : coeffs(n_coeff), variance(1), pve(n_coeff)
     {
     }
+
+    PosteriorSummary coeffs;
+    PosteriorSummary variance;
+    PosteriorSummary pve;
 };
 
-struct DominantSummary : AdditiveSummary
+struct PiSummary
+{
+    explicit PiSummary(const PiSamples& samples) : prop(samples.prop[0].rows())
+    {
+    }
+
+    explicit PiSummary(Eigen::Index n_props) : prop(n_props) {}
+
+    PosteriorSummary prop;
+};
+
+struct SnpTrackerSummary
+{
+    explicit SnpTrackerSummary(const SnpTrackerSamples& samples)
+        : pip(Eigen::VectorXd::Zero(samples.tracker[0].rows()))
+    {
+    }
+
+    explicit SnpTrackerSummary(Eigen::Index n_snps)
+        : pip(Eigen::VectorXd::Zero(n_snps))
+    {
+    }
+
+    Eigen::VectorXd pip;  // Posterior inclusion probability
+};
+
+struct DominantSummary
 {
     explicit DominantSummary(const DominantSamples& samples)
-        : DominantSummary(samples.coeffs[0].rows())
+        : coeffs(samples.coeffs[0].rows()),
+          variance(1),
+          pve(samples.coeffs[0].rows()),
+          ratios(samples.coeffs[0].rows())
     {
     }
-    PosteriorSummary ratios;
 
-   protected:
     explicit DominantSummary(Eigen::Index n_coeff)
-        : AdditiveSummary(n_coeff), ratios(n_coeff)
+        : coeffs(n_coeff), variance(1), pve(n_coeff), ratios(n_coeff)
     {
     }
+
+    PosteriorSummary coeffs;
+    PosteriorSummary variance;
+    PosteriorSummary pve;
+    PosteriorSummary ratios;
 };
 
 class MCMCResult
@@ -123,6 +158,11 @@ class MCMCResult
         return dominant_ ? &dominant_.value() : nullptr;
     }
     const PosteriorSummary& residual() const { return residual_; }
+    const PiSummary* pi() const { return pi_ ? &pi_.value() : nullptr; }
+    const SnpTrackerSummary* snp_tracker() const
+    {
+        return snp_tracker_ ? &snp_tracker_.value() : nullptr;
+    }
 
    private:
     friend class MCMCResultWriter;
@@ -134,6 +174,8 @@ class MCMCResult
     std::optional<AdditiveSummary> additive_;
     std::optional<DominantSummary> dominant_;
     PosteriorSummary residual_;
+    std::optional<PiSummary> pi_;
+    std::optional<SnpTrackerSummary> snp_tracker_;
 
     double prob_;
     double phenotype_var_;

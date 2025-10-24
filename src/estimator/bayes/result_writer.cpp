@@ -114,12 +114,12 @@ void MCMCResultWriter::write_snp_effects(
     if (result_.dominant())
     {
         stream << "Index\tID\tChrom\tPosition\tA1\tA2\tA1Frq\tAdd\tAddSE\tAddPV"
-                  "E\tDomEff\tDomSE\tDomPVE\td/a\n";
+                  "E\tPIP\tDomEff\tDomSE\tDomPVE\td/a\n";
     }
     else
     {
         stream << "Index\tID\tChrom\tPosition\tA1\tA2\tA1Frq\tAdd\tAddSE\tAddPV"
-                  "E\n";
+                  "E\tPIP\n";
     }
 
     // Write SNP effects for all SNPs
@@ -177,6 +177,16 @@ void MCMCResultWriter::write_snp_effects(
         else
         {
             stream << "\t0.0";  // Placeholder for PVE
+        }
+
+        // Posterior inclusion probability (if available)
+        if (result_.snp_tracker() && result_.snp_tracker()->pip.size() > i)
+        {
+            stream << std::format("\t{}", result_.snp_tracker()->pip(i));
+        }
+        else
+        {
+            stream << "\t1.0";  // Default PIP when not tracking
         }
 
         // Dominance effect statistics (if they exist)
