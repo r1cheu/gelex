@@ -14,8 +14,7 @@ Indicator::Indicator(
     : num_chains_(progress_counters.size())
 {
     std::vector<std::shared_ptr<bk::BaseDisplay>> all_chains_displays;
-
-    statuses_.resize(num_chains_);
+    statuses_.reserve(num_chains_);
 
     for (size_t i = 0; i < num_chains_; ++i)
     {
@@ -38,10 +37,9 @@ Indicator::Indicator(
         progress_bars_.push_back(pbar);
         line_displays.push_back(pbar);
 
-        // Use a single compact status display instead of multiple ones
         auto compact_status = bk::Status(
             {.message = "--", .style = bk::Strings{""}, .show = false});
-        statuses_[i].push_back(compact_status);
+        statuses_.push_back(compact_status);
         line_displays.push_back(compact_status);
 
         all_chains_displays.push_back(bk::Composite(line_displays, " "));
@@ -50,75 +48,79 @@ Indicator::Indicator(
     main_indicator_ = bk::Composite(all_chains_displays, "\n");
 }
 
-void Indicator::update_compact_status(size_t chain_index)
+void Indicator::update(
+    size_t chain_index,
+    const std::string& status_name,
+    double value)
 {
-    if (chain_index >= num_chains_ || statuses_[chain_index].empty())
+    if (chain_index >= num_chains_)
     {
         return;
     }
 
-    // Build compact single line display
-    std::string compact_line;
-
-    // Add additive variance and heritability
-    if (current_values_.contains("σ²_additive")
-        && current_values_.contains("h²_additive"))
+    if (status_name == "σ²_add" || status_name == "h²_add"
+        || status_name == "σ²_dom" || status_name == "h²_dom"
+        || status_name == "σ²_e" || status_name.rfind("π_", 0) == 0)
     {
-        compact_line += fmt::format(
-            "a(σ², h²): [{:.3f} {:.3f}] ",
-            current_values_.at("σ²_additive"),
-            current_values_.at("h²_additive"));
+        current_values_[status_name] = value;
+        update_compact_status(chain_index);
+    }
+}
+
+void Indicator::update_compact_status(size_t chain_index)
+{
+    if (chain_index >= num_chains_)
+    {
+        return;
     }
 
-    // Add mixture parameters
-    std::vector<double> pi_values;
+    std::string compact_line;
 
-    // Collect π values in order (π_0, π_1, π_2, ...)
-    size_t i = 0;
-    while (true)
+    auto add_var = current_values_.find("σ²_add");
+    auto add_h2 = current_values_.find("h²_add");
+    if (add_var != current_values_.end() && add_h2 != current_values_.end())
     {
-        std::string pi_key = fmt::format("π_{}", i);
-        if (current_values_.contains(pi_key))
+        compact_line += fmt::format(
+            "a(σ², h²): [{:.3f} {:.3f}] ", add_var->second, add_h2->second);
+    }
+
+    std::string pi_line = "π [";
+    bool has_pi = false;
+    for (size_t i = 0; i < 10; ++i)
+    {
+        auto it = current_values_.find(fmt::format("π_{}", i));
+        if (it != current_values_.end())
         {
-            pi_values.push_back(current_values_.at(pi_key));
-            ++i;
+            if (has_pi)
+                pi_line += ", ";
+            pi_line += fmt::format("{:.3f}", it->second);
+            has_pi = true;
         }
         else
         {
             break;
         }
     }
-
-    compact_line += "π [";
-    for (size_t i = 0; i < pi_values.size(); ++i)
+    if (has_pi)
     {
-        if (i > 0)
-        {
-            compact_line += ", ";
-        }
-        compact_line += fmt::format("{:.3f}", pi_values[i]);
+        compact_line += pi_line + "] ";
     }
-    compact_line += "] ";
 
-    // Add dominance variance and heritability
-    if (current_values_.contains("σ²_dominant")
-        && current_values_.contains("h²_dominant"))
+    auto dom_var = current_values_.find("σ²_dom");
+    auto dom_h2 = current_values_.find("h²_dom");
+    if (dom_var != current_values_.end() && dom_h2 != current_values_.end())
     {
         compact_line += fmt::format(
-            "d(σ², h²): [{:.3f} {:.3f}] ",
-            current_values_.at("σ²_dominant"),
-            current_values_.at("h²_dominant"));
+            "d(σ², h²): [{:.3f} {:.3f}] ", dom_var->second, dom_h2->second);
     }
 
-    // Add residual variance
-    if (current_values_.contains("σ²_e"))
+    auto res_var = current_values_.find("σ²_e");
+    if (res_var != current_values_.end())
     {
-        compact_line
-            += fmt::format("σ²_e: {:.2f} ", current_values_.at("σ²_e"));
+        compact_line += fmt::format("σ²_e: {:.2f} ", res_var->second);
     }
 
-    // Update the compact status display
-    statuses_[chain_index][0]->message(compact_line);
+    statuses_[chain_index]->message(compact_line);
 }
 
 void Indicator::show()
