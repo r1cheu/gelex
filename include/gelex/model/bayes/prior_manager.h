@@ -74,6 +74,8 @@ class PriorManager
         double i_prop) -> std::expected<void, Error>;
     auto set_mixture_prop(BayesModel& model, std::span<double> mixture_prop)
         -> std::expected<void, Error>;
+    auto set_scale(BayesModel& model, std::span<const double> scale)
+        -> std::expected<void, Error>;
 
    private:
     BayesAlphabet alphabet_;
@@ -87,6 +89,7 @@ class PriorManager
         -> std::expected<std::tuple<double, double, double>, Error>;
 
     static Eigen::VectorXd default_mixture_prop(BayesAlphabet type);
+    static Eigen::VectorXd default_variance_scales(BayesAlphabet type);
     static bool is_shared_marker_variance(BayesAlphabet type);
 };
 

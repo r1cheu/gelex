@@ -4,5 +4,6 @@
 #include "additive/a.h"
 #include "additive/b.h"
 #include "additive/c.h"
+#include "additive/r.h"
 #include "additive/rr.h"
 #include "additive/rrd.h"

@@ -75,7 +75,7 @@ AdditiveState::AdditiveState(
           Eigen::VectorXd::Constant(
               effect.marker_variance_size,
               effect.init_marker_variance)),
-      is_mixture_model_(is_mixture_model) {};
+      is_mixture_model(is_mixture_model) {};
 
 DominantEffect::DominantEffect(GenotypeMap&& design_matrix)
     : design_matrix(std::move(design_matrix))

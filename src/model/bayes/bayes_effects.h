@@ -6,7 +6,6 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "../src/model/effects_manager.h"
 #include "distribution.h"
 #include "gelex/data/genotype_matrix.h"
 #include "gelex/data/genotype_mmap.h"
@@ -132,6 +131,7 @@ struct AdditiveEffect
     Eigen::Index marker_variance_size{0};
 
     Eigen::VectorXd pi;
+    Eigen::VectorXd scale;
 
     bool is_monomorphic(Eigen::Index snp_index) const;
     Eigen::Index num_mono() const;
@@ -150,7 +150,7 @@ struct AdditiveState
     double heritability{};
     Eigen::VectorXd marker_variance;
 
-    bool is_mixture_model_;
+    bool is_mixture_model;
 };
 
 struct DominantEffect

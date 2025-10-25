@@ -102,7 +102,9 @@ struct SnpTrackerSummary
     {
     }
 
-    Eigen::VectorXd pip;  // Posterior inclusion probability
+    Eigen::VectorXd pip;         // Posterior inclusion probability
+    Eigen::MatrixXd comp_probs;  // Per-component posterior probabilities
+                                 // (n_snps x n_components)
 };
 
 struct DominantSummary

@@ -145,16 +145,21 @@ Eigen::Index get_n_chains(const Samples& samples);
 Eigen::Index get_n_draws(const Samples& samples);
 
 /**
- * @brief Compute posterior inclusion probability (PIP) from SNP tracker
+ * @brief Compute per-component posterior probabilities from SNP tracker
  * samples.
  *
- * Calculates PIP as the proportion of samples where each SNP is included
- * (tracker != 0) across all chains and draws.
+ * Calculates the posterior probability that each SNP belongs to each component.
+ * For k components (0, 1, ..., k-1), computes the proportion of samples where
+ * tracker == component_index for each SNP across all chains and draws.
  *
- * @param tracker_samples Integer samples indicating SNP inclusion status.
- * @return Eigen::VectorXd Posterior inclusion probability for each SNP.
+ * @param tracker_samples Integer samples indicating component assignment.
+ * @param n_components Number of mixture components.
+ * @return Eigen::MatrixXd Matrix of size (n_snps x n_components) with posterior
+ * probabilities.
  */
-Eigen::VectorXd compute_pip(const IntSamples& tracker_samples);
+Eigen::MatrixXd compute_component_probs(
+    const IntSamples& tracker_samples,
+    Eigen::Index n_components);
 
 }  // namespace PosteriorCalculator
 

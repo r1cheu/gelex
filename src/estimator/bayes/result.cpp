@@ -130,8 +130,17 @@ void MCMCResult::compute(std::optional<double> prob)
     if (const auto* sample = samples_.snp_tracker();
         snp_tracker_ && sample != nullptr)
     {
-        snp_tracker_->pip
-            = detail::PosteriorCalculator::compute_pip(sample->tracker);
+        if (const auto* pi_sample = samples_.pi(); pi_sample)
+        {
+            const Eigen::Index n_components = pi_sample->prop[0].rows();
+            snp_tracker_->comp_probs
+                = detail::PosteriorCalculator::compute_component_probs(
+                    sample->tracker, n_components);
+            snp_tracker_->pip
+                = snp_tracker_->comp_probs.rightCols(n_components - 1)
+                      .rowwise()
+                      .sum();
+        }
     }
 
     residual_ = detail::PosteriorCalculator::compute_param_summary(

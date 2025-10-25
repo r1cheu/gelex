@@ -29,6 +29,10 @@ auto PriorManager::default_prior(BayesModel& model)
     {
         auto default_pi = default_mixture_prop(alphabet_);
         effect->pi = default_pi;
+
+        auto default_scale = default_variance_scales(alphabet_);
+        effect->scale = default_scale;
+
         auto result = set_variance(*effect, 0.5 * y_var);
         if (!result)
         {
@@ -285,6 +289,63 @@ auto PriorManager::set_mixture_prop(
     return {};
 }
 
+auto PriorManager::set_scale(BayesModel& model, std::span<const double> scale)
+    -> std::expected<void, Error>
+{
+    if (!is_mixture_model(alphabet_))
+    {
+        return std::unexpected(
+            Error{
+                ErrorCode::InvalidArgument,
+                "non-mixture model does not support variance scales"});
+    }
+
+    auto* effect = model.additive();
+    if (effect == nullptr)
+    {
+        return std::unexpected(
+            Error{
+                ErrorCode::InvalidArgument,
+                "additive effect is not initialized"});
+    }
+
+    Eigen::VectorXd scale_vec
+        = Eigen::Map<const Eigen::VectorXd>(scale.data(), scale.size());
+
+    if ((scale_vec.array() <= 0.0).any())
+    {
+        return std::unexpected(
+            Error{
+                ErrorCode::InvalidArgument,
+                "all variance scales must be positive"});
+    }
+
+    effect->scale = scale_vec;
+
+    int num_components = scale_vec.size();
+    if (effect->pi.size() != num_components)
+    {
+        Eigen::VectorXd default_pi(num_components);
+        default_pi(0) = 0.95;
+        double remaining = 0.05;
+        for (int i = 1; i < num_components; ++i)
+        {
+            default_pi(i) = remaining / (num_components - 1);
+        }
+        effect->pi = default_pi;
+
+        auto logger = logging::get();
+        logger->info(
+            "Adjusted pi size to match scale: pi = [{}]",
+            fmt::join(
+                std::vector<double>(
+                    effect->pi.data(), effect->pi.data() + effect->pi.size()),
+                ", "));
+    }
+
+    return {};
+}
+
 Eigen::VectorXd PriorManager::default_mixture_prop(BayesAlphabet type)
 {
     switch (type)
@@ -299,7 +360,23 @@ Eigen::VectorXd PriorManager::default_mixture_prop(BayesAlphabet type)
         case BayesAlphabet::Cpi:
             return Eigen::VectorXd{{0.95, 0.05}};
         case BayesAlphabet::R:
-            return Eigen::VectorXd{{0.95, 0.05, 0.02, 0.02, 0.01}};
+            return Eigen::VectorXd{{0.95, 0.02, 0.01, 0.01, 0.01}};
+    }
+}
+
+Eigen::VectorXd PriorManager::default_variance_scales(BayesAlphabet type)
+{
+    switch (type)
+    {
+        case BayesAlphabet::R:
+            return Eigen::VectorXd{{0, 0.001, 0.01, 0.1, 1.0}};
+        case BayesAlphabet::B:
+        case BayesAlphabet::Bpi:
+        case BayesAlphabet::C:
+        case BayesAlphabet::Cpi:
+        case BayesAlphabet::A:
+        case BayesAlphabet::RR:
+            return Eigen::VectorXd{{1.0}};
     }
 }
 

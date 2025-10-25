@@ -51,6 +51,7 @@ using BayesB = TraitBasicDefault<detail::AdditiveSampler::B>;
 using BayesC = TraitBasicDefault<detail::AdditiveSampler::C>;
 using BayesBpi = TraitBasicDefault<detail::AdditiveSampler::B, detail::Pi::Pi>;
 using BayesCpi = TraitBasicDefault<detail::AdditiveSampler::C, detail::Pi::Pi>;
+using BayesR = TraitBasicDefault<detail::AdditiveSampler::R, detail::Pi::Pi>;
 
 using BayesRRD = TraitBasicDefault<
     detail::AdditiveSampler::RRD,

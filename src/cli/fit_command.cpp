@@ -54,6 +54,12 @@ void fit_command(argparse::ArgumentParser& cmd)
         .help("prior variance for dominance to additive ratio, default is 1.0")
         .default_value(1.0)
         .scan<'g', double>();
+    cmd.add_argument("--scale")
+        .help(
+            "variance scales for mixture components (e.g., for BayesR: --scale "
+            "0.0001 0.001 0.01 0.1 1.0)")
+        .nargs(5)
+        .scan<'g', double>();
     cmd.add_argument("-m", "--method")
         .help("genomic prediction method: A, B(pi), C(pi), R, RR, GBLUP")
         .default_value("RR")
@@ -284,6 +290,17 @@ int fit_execute(argparse::ArgumentParser& fit)
             return 1;
         }
 
+        // Set custom scale if provided
+        if (auto scale_args = fit.present<std::vector<double>>("--scale"))
+        {
+            auto scale_result = prior_manager.set_scale(*model, *scale_args);
+            if (!scale_result)
+            {
+                logger->error(scale_result.error().message);
+                return 1;
+            }
+        }
+
         if (fit.get<bool>("--dom"))
         {
             auto dom_result = prior_manager.set_dominant_ratio_prior(
@@ -345,6 +362,8 @@ int fit_execute(argparse::ArgumentParser& fit)
             }
             break;
         case (bt::R):
+            run_and_write(gelex::BayesR{});
+            break;
         default:
             logger->error("Unsupported method: {}", fit.get("-m"));
             break;

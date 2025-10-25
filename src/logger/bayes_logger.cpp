@@ -120,8 +120,8 @@ void MCMCLogger::log_result(const MCMCResult& results, const BayesModel& model)
                            const std::string& name)
     {
         logger_->info(
-            "{:>8} {:>8.2f} {:>8.2f} {:>8.2f} {:>8.2f} "
-            "{:>8.1f} {:>8.2f}",
+            "{:>8} {:>8.4f} {:>8.4f} {:>8.4f} {:>8.4f} "
+            "{:>8.4f} {:>8.4f}",
             name,
             summary.mean(i),
             summary.stddev(i),

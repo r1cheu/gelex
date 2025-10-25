@@ -51,7 +51,7 @@ void MCMCResultWriter::write_parameter_file(
         "term\tmean\tstddev\t{}%\t{}%\tess\trhat\n", hpdi_low, hpdi_high);
 
     // Write fixed effects
-    if (result_.fixed())
+    if (result_.fixed() != nullptr)
     {
         write_summary_statistics(
             stream, result_.fixed()->coeffs, result_.fixed()->coeffs.size());
@@ -69,7 +69,7 @@ void MCMCResultWriter::write_parameter_file(
         stream, result_.residual(), result_.residual().size());
 
     // Write additive variance
-    if (result_.additive())
+    if (result_.additive() != nullptr)
     {
         write_summary_statistics(
             stream,
@@ -78,7 +78,7 @@ void MCMCResultWriter::write_parameter_file(
     }
 
     // Write dominant variance
-    if (result_.dominant())
+    if (result_.dominant() != nullptr)
     {
         write_summary_statistics(
             stream,
@@ -103,24 +103,38 @@ void MCMCResultWriter::write_summary_statistics(
 void MCMCResultWriter::write_snp_effects(
     const std::filesystem::path& path) const
 {
-    if (!result_.additive())
+    if (result_.additive() == nullptr)
     {
         return;
     }
 
     auto stream = *detail::open_file<std::ofstream>(path, std::ios_base::out);
 
-    // Write dynamic header based on whether dominance effects exist
-    if (result_.dominant())
+    // Determine if we have per-component probabilities to write
+    const Eigen::Index n_components = result_.snp_tracker()->comp_probs.cols();
+
+    // Write dynamic header based on whether dominance effects exist and
+    // component probs
+    stream << "Index\tID\tChrom\tPosition\tA1\tA2\tA1Frq\tAdd\tAddSE\tAddPVE";
+    if (n_components > 2)
     {
-        stream << "Index\tID\tChrom\tPosition\tA1\tA2\tA1Frq\tAdd\tAddSE\tAddPV"
-                  "E\tPIP\tDomEff\tDomSE\tDomPVE\td/a\n";
+        for (Eigen::Index comp = 0; comp < n_components; ++comp)
+        {
+            stream << "\tVg" << comp << "";
+        }
+        stream << "\tPIP";
     }
     else
     {
-        stream << "Index\tID\tChrom\tPosition\tA1\tA2\tA1Frq\tAdd\tAddSE\tAddPV"
-                  "E\tPIP\n";
+        stream << "\tPIP";
     }
+
+    if (result_.dominant() != nullptr)
+    {
+        stream << "tDomEff\tDomSE\tDomPVE\td / a";
+    }
+
+    stream << "\n";
 
     // Write SNP effects for all SNPs
     for (Index i = 0; i < result_.additive()->coeffs.size(); ++i)
@@ -150,7 +164,7 @@ void MCMCResultWriter::write_snp_effects(
             {
                 // Calculate A1Frq from genotype mean: mean(X_i) / 2
                 double a1_frq = result_.additive_means_(i) / 2.0;
-                stream << std::format("\t{}", a1_frq);
+                stream << std::format("\t{:.6f}", a1_frq);
             }
             else
             {
@@ -165,24 +179,35 @@ void MCMCResultWriter::write_snp_effects(
 
         // Additive effect statistics
         stream << std::format(
-            "\t{}\t{}",
+            "\t{:.6f}\t{:.6f}",
             result_.additive()->coeffs.mean(i),
             result_.additive()->coeffs.stddev(i));
 
         // Additive PVE statistics
         if (result_.additive()->pve.size() > i)
         {
-            stream << std::format("\t{}", result_.additive()->pve.mean(i));
+            stream << std::format("\t{:.6e}", result_.additive()->pve.mean(i));
         }
         else
         {
             stream << "\t0.0";  // Placeholder for PVE
         }
 
-        // Posterior inclusion probability (if available)
-        if (result_.snp_tracker() && result_.snp_tracker()->pip.size() > i)
+        // Per-component posterior probabilities (if available)
+        if (i < result_.snp_tracker()->comp_probs.rows())
         {
-            stream << std::format("\t{}", result_.snp_tracker()->pip(i));
+            for (Eigen::Index comp = 0; comp < n_components; ++comp)
+            {
+                stream << std::format(
+                    "\t{:.6f}", (result_.snp_tracker()->comp_probs)(i, comp));
+            }
+        }
+
+        // Posterior inclusion probability (if available)
+        if ((result_.snp_tracker() != nullptr)
+            && result_.snp_tracker()->pip.size() > i)
+        {
+            stream << std::format("\t{:.6f}", result_.snp_tracker()->pip(i));
         }
         else
         {
@@ -190,17 +215,19 @@ void MCMCResultWriter::write_snp_effects(
         }
 
         // Dominance effect statistics (if they exist)
-        if (result_.dominant() && i < result_.dominant()->coeffs.size())
+        if ((result_.dominant() != nullptr)
+            && i < result_.dominant()->coeffs.size())
         {
             stream << std::format(
-                "\t{}\t{}",
+                "\t{:.6f}\t{:.6f}",
                 result_.dominant()->coeffs.mean(i),
                 result_.dominant()->coeffs.stddev(i));
 
             // Dominant PVE statistics
             if (result_.dominant()->pve.size() > i)
             {
-                stream << std::format("\t{}", result_.dominant()->pve.mean(i));
+                stream << std::format(
+                    "\t{:.6e}", result_.dominant()->pve.mean(i));
             }
             else
             {
@@ -211,7 +238,7 @@ void MCMCResultWriter::write_snp_effects(
             if (result_.dominant()->ratios.size() > i)
             {
                 stream << std::format(
-                    "\t{}", result_.dominant()->ratios.mean(i));
+                    "\t{:.6f}", result_.dominant()->ratios.mean(i));
             }
             else
             {

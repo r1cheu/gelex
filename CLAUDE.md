@@ -4,19 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Gelexy is a C++ library and CLI tool for genomic prediction with Bayesian (BayesAlphabet models) and frequentist (GBLUP) approaches. It provides high-performance computation for genomic selection with memory-mapped genotype data support.
+Gelex is a C++ library and CLI tool for genomic prediction with Bayesian (BayesAlphabet models) and frequentist (GBLUP) approaches. It provides high-performance computation for genomic selection with memory-mapped genotype data support.
 
 **CLI Subcommands:**
-- `gelex fit`: Fit genomic prediction models
+- `gelex fit`: Fit genomic prediction models (Bayesian or GBLUP)
 - `gelex simulate`: Run simulations
 
 ## Key Architecture
 
 - **Core C++ Library**: Located in `src/` with modern C++23 implementation
-- **Data Handling**: BED file readers, GRM computation, genotype/phenotype alignment
+- **Data Handling**: BED file readers, GRM computation, genotype/phenotype alignment via `DataPipe`
 - **Models**: Bayesian (BayesA, BayesB, BayesC, BayesRR) and GBLUP
 - **Estimation**: MCMC for Bayesian models, REML for GBLUP
 - **Linear Algebra**: Uses Eigen (primary) and Armadillo (legacy) with BLAS/LAPACK backends
+- **Memory Management**: Memory-mapped genotype data with chunk-based processing
 
 ## Build System
 
@@ -43,6 +44,10 @@ Example: `pixi run configure --build_dir=.build_release --build_type=Release`
 - `-DUSE_MKL=ON/OFF`: Use Intel MKL or OpenBLAS (default: ON in pixi tasks)
 - `-DBUILD_TEST=ON/OFF`: Enable testing (default: ON in pixi tasks)
 
+**Compiler Configuration:**
+- Uses Clang 21+ as default compiler
+- OpenMP support enabled for parallel computation
+
 **Single Test Execution:**
 
 ```bash
@@ -59,23 +64,28 @@ cd .build_debug/tests/
 
 ## Core Components
 
-- **Data Processing**: `src/data/` - BED file readers, GRM computation, data pipelines
-- **Bayesian Models**: `src/model/bayes/` - BayesAlphabet implementations
-- **Estimation**: `src/estimator/` - MCMC and REML estimators
+- **Data Processing**: `src/data/` - BED file readers, GRM computation, data pipelines (`DataPipe`, `BedPipe`, `GenotypePipe`)
+- **Bayesian Models**: `src/model/bayes/` - BayesAlphabet implementations (`BayesModel`, trait samplers)
+- **Frequentist Models**: `src/model/freq/` - GBLUP implementation
+- **Estimation**: `src/estimator/` - MCMC for Bayesian models, REML for GBLUP
 - **Optimization**: `src/optim/` - Optimization policies and algorithms
 - **Logging**: `src/logger/` - Performance and diagnostic logging
+- **CLI Interface**: `src/cli/` - Command-line interface implementation
 
 ## Data Handling
 
+- **DataPipe**: Main data processing pipeline (`include/gelex/data/data_pipe.h`) - handles phenotype, covariates, and sample alignment
 - **BedPipe**: Memory-mapped BED file reader (`src/data/bedpipe.cpp`)
+- **GenotypePipe**: Genotype data processing pipeline (`src/data/genotype_pipe.cpp`)
 - **GRM**: Genomic Relationship Matrix computation (`src/data/grm.cpp`)
-- **DataPipe**: Data processing pipeline (`src/data/datapipe.cpp`)
+- **SampleManager**: Sample ID management and alignment (`src/data/sample_manager.cpp`)
 
 ## Model Architecture
 
-- **BayesModel**: Main Bayesian model class (`include/gelex/model/bayes/model.h`)
-- **Genetic Traits**: BayesA/B/C/RR implementations (`src/model/bayes/traits/`)
-- **Effects Management**: Fixed, random, additive, dominant effects
+- **BayesModel**: Main Bayesian model class (`include/gelex/model/bayes/model.h`) - manages fixed, random, additive, and dominant effects
+- **MCMC**: Markov Chain Monte Carlo sampler (`include/gelex/estimator/bayes/mcmc.h`) - template-based implementation for different trait samplers
+- **Trait Samplers**: Additive effect samplers (`src/model/bayes/samplers/additive/`) - A, B, C, RR implementations
+- **Effects Management**: Fixed, random, additive, dominant effects via `BayesEffects` system
 
 ## Performance Features
 
@@ -120,7 +130,9 @@ cd .build_debug/tests/
 
 ## Common Development Tasks
 
-- Adding new Bayesian models: Implement in `src/model/bayes/traits/`
-- Modifying MCMC: See `src/estimator/bayes/mcmc.cpp`
-- Adding data readers: Follow patterns in `src/data/`
-- Adding tests: Use Catch2 framework in `tests/`
+- **Adding new Bayesian models**: Implement trait samplers in `src/model/bayes/samplers/additive/`
+- **Modifying MCMC**: See `include/gelex/estimator/bayes/mcmc.h` and `src/estimator/bayes/mcmc.cpp`
+- **Adding data readers**: Follow patterns in `src/data/` (use `DataPipe` for data processing)
+- **Adding CLI options**: Modify `src/cli/fit_command.cpp` for new command-line arguments
+- **Adding tests**: Use Catch2 framework in `tests/` with sample BED files
+- **Performance optimization**: Use chunk-based processing and memory-mapped I/O for large datasets

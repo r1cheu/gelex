@@ -223,35 +223,41 @@ Eigen::Index get_n_draws(const Samples& samples)
     return samples.empty() ? 0 : samples[0].cols();
 }
 
-Eigen::VectorXd compute_pip(const IntSamples& tracker_samples)
+Eigen::MatrixXd compute_component_probs(
+    const IntSamples& tracker_samples,
+    Eigen::Index n_components)
 {
-    if (tracker_samples.empty() || tracker_samples[0].rows() == 0)
+    if (tracker_samples.empty() || tracker_samples[0].rows() == 0
+        || n_components <= 0)
     {
-        return Eigen::VectorXd::Zero(0);
+        return Eigen::MatrixXd::Zero(0, 0);
     }
 
     const Eigen::Index n_snps = tracker_samples[0].rows();
-    const Eigen::Index n_chains
-        = static_cast<Eigen::Index>(tracker_samples.size());
+    const auto n_chains = static_cast<Eigen::Index>(tracker_samples.size());
     const Eigen::Index n_draws = tracker_samples[0].cols();
     const double total_samples = static_cast<double>(n_chains * n_draws);
 
-    Eigen::VectorXd pip = Eigen::VectorXd::Zero(n_snps);
+    Eigen::MatrixXd comp_probs = Eigen::MatrixXd::Zero(n_snps, n_components);
 
-    // Sum across all chains and draws using Eigen array operations
+    // Count occurrences of each component for each SNP
     for (Eigen::Index chain = 0; chain < n_chains; ++chain)
     {
-        // Count non-zero elements per row (SNP) using array operations
-        pip.array() += (tracker_samples[chain].array() != 0)
-                           .cast<double>()
-                           .rowwise()
-                           .sum();
+        for (int comp = 0; comp < n_components; ++comp)
+        {
+            // Count where tracker == comp for each SNP
+            comp_probs.col(comp).array()
+                += (tracker_samples[chain].array() == comp)
+                       .cast<double>()
+                       .rowwise()
+                       .sum();
+        }
     }
 
     // Normalize by total number of samples
-    pip /= total_samples;
+    comp_probs /= total_samples;
 
-    return pip;
+    return comp_probs;
 }
 
 }  // namespace gelex::detail::PosteriorCalculator
