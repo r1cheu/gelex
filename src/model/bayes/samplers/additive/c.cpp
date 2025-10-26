@@ -1,8 +1,9 @@
 #include "c.h"
 
-#include <random>
-
 #include <Eigen/Core>
+#include <cmath>
+#include <random>
+#include <ranges>
 
 #include "../../bayes_effects.h"
 #include "data/math_utils.h"
@@ -27,9 +28,9 @@ auto C::operator()(
     auto& y_adj = residual.y_adj;
     const double residual_variance = residual.variance;
 
-    VectorXd logpi = state->pi.prop.array().log();
+    const VectorXd logpi = state->pi.prop.array().log();
 
-    VectorXd& coeff = state->coeffs;
+    VectorXd& coeffs = state->coeffs;
     auto& u = state->u;
     const double marker_variance = state->marker_variance(0);
     VectorXi& tracker = state->tracker;
@@ -43,41 +44,38 @@ auto C::operator()(
     const double residual_over_marker_variance
         = residual_variance / marker_variance;
 
-    double sum_square_coeff{};
-    for (Index i = 0; i < coeff.size(); ++i)
+    double sum_square_coeffs{};
+
+    for (const Index i : std::views::iota(0, coeffs.size()))
     {
         if (effect->is_monomorphic(i))
         {
             continue;
         }
 
-        // for convenience
-        const double old_i = coeff(i);
+        const double old_i = coeffs(i);
         const auto& col = design_matrix.col(i);
         const double col_norm = cols_norm(i);
 
-        const double percision_kernel
-            = 1 / (col_norm + residual_over_marker_variance);
-
-        const double post_stddev = sqrt(residual_variance * percision_kernel);
-        const double logdetV
-            = log((marker_variance * col_norm / residual_variance) + 1);
-
-        // calculate the posterior mean
         double rhs = col.dot(y_adj);
-        if (old_i != 0)
+        if (old_i != 0.0)
         {
             rhs += col_norm * old_i;
         }
 
-        const double post_mean = rhs * percision_kernel;
+        auto [post_mean, post_stddev, log_like_kernel]
+            = compute_posterior_params_core(
+                rhs,
+                col_norm,
+                residual_variance,
+                residual_over_marker_variance);
 
-        // determine which distribution to sample from
-        const double L_diff
-            = (-0.5 * (logdetV - post_mean * rhs / residual_variance))
-              + logpi(1) - logpi(0);
-        const double accept_prob = 1 / (1 + std::exp(L_diff));
-        const int dist_index = (uniform(rng) < accept_prob) ? 0 : 1;
+        const double log_like_1_minus_0 = log_like_kernel + logpi(1) - logpi(0);
+
+        const double prob_component_0
+            = 1.0 / (1.0 + std::exp(log_like_1_minus_0));
+
+        const int dist_index = (uniform(rng) < prob_component_0) ? 0 : 1;
         tracker(i) = dist_index;
 
         double new_i = 0.0;
@@ -85,20 +83,20 @@ auto C::operator()(
         {
             new_i = (normal(rng) * post_stddev) + post_mean;
             update_residual_and_gebv(y_adj, u, col, old_i, new_i);
-            sum_square_coeff += new_i * new_i;
+            sum_square_coeffs += new_i * new_i;
         }
         else if (old_i != 0.0)
         {
-            update_residual_and_gebv(y_adj, u, col, old_i);
+            update_residual_and_gebv(y_adj, u, col, old_i, 0.0);
         }
-        coeff(i) = new_i;
+        coeffs(i) = new_i;
     }
-    state->pi.count(1) = tracker.sum();
-    state->pi.count(0) = static_cast<int>(coeff.size() - state->pi.count(1));
 
-    // sample variance
+    state->pi.count(1) = tracker.sum();
+    state->pi.count(0) = static_cast<int>(coeffs.size() - state->pi.count(1));
+
     detail::ScaledInvChiSq chi_squared{effect->prior};
-    chi_squared.compute(sum_square_coeff, state->pi.count(1));
+    chi_squared.compute(sum_square_coeffs, state->pi.count(1));
     state->marker_variance(0) = chi_squared(rng);
 
     state->variance = detail::var(state->u)(0);

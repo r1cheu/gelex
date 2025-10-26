@@ -1,6 +1,7 @@
 #include "r.h"
 
 #include <random>
+#include <ranges>
 
 #include <Eigen/Core>
 
@@ -27,7 +28,7 @@ auto R::operator()(
     auto& y_adj = residual.y_adj;
     const double residual_variance = residual.variance;
 
-    VectorXd logpi = state->pi.prop.array().log();
+    const VectorXd logpi = state->pi.prop.array().log();
 
     VectorXd& coeffs = state->coeffs;
     auto& u = state->u;
@@ -40,13 +41,13 @@ auto R::operator()(
     const auto& cols_norm = effect->cols_norm;
 
     std::normal_distribution<double> normal{0, 1};
-    std::uniform_real_distribution<double> uniform{0, 1};
 
     VectorXd log_likelihoods(num_components);
     VectorXd probs(num_components);
+    std::vector<LikelihoodParams> likelihood_params(num_components);
 
     double sum_square_coeffs{};
-    for (Index i = 0; i < coeffs.size(); ++i)
+    for (const Index i : std::views::iota(0, coeffs.size()))
     {
         if (effect->is_monomorphic(i))
         {
@@ -58,61 +59,41 @@ auto R::operator()(
         const double col_norm = cols_norm(i);
 
         double rhs = col.dot(y_adj);
-        if (old_i != 0)
+        if (old_i != 0.0)
         {
             rhs += col_norm * old_i;
         }
 
-        log_likelihoods(0) = logpi(0);
+        likelihood_params[0] = {logpi(0), 0.0, 0.0};
+        log_likelihoods(0) = likelihood_params[0].log_likelihood;
         for (int k = 1; k < num_components; ++k)
         {
-            log_likelihoods(k) = compute_log_likelihood(
+            likelihood_params[k] = compute_likelihood_params(
                 rhs,
                 marker_variances(k),
                 col_norm,
                 residual_variance,
                 logpi(k));
+            log_likelihoods(k) = likelihood_params[k].log_likelihood;
         }
 
-        for (int k = 0; k < num_components; ++k)
-        {
-            double prob = 0.0;
-            for (int j = 0; j < num_components; ++j)
-            {
-                prob += std::exp(log_likelihoods(j) - log_likelihoods(k));
-            }
-            probs(k) = 1.0 / prob;
-        }
+        const double max_log_like = log_likelihoods.maxCoeff();
+        probs = (log_likelihoods.array() - max_log_like).exp();
 
-        // Sample component based on probabilities
-        const double u_sample = uniform(rng);
-        double cumsum = 0.0;
-        int dist_index = 0;
-        for (int k = 0; k < num_components; ++k)
-        {
-            cumsum += probs(k);
-            if (u_sample <= cumsum)
-            {
-                dist_index = k;
-                break;
-            }
-        }
+        std::discrete_distribution<int> dist(
+            probs.data(), probs.data() + probs.size());
+        const int dist_index = dist(rng);
 
         tracker(i) = dist_index;
 
         double new_i = 0.0;
         if (dist_index > 0)
         {
-            // Use pre-computed posterior parameters from
-            // LogLikelihoodCalculator
-            const double residual_over_marker_variance
-                = residual_variance / marker_variances(dist_index);
-            const double percision_kernel
-                = 1 / (col_norm + residual_over_marker_variance);
+            const auto& params = likelihood_params[dist_index];
 
-            const double post_mean = rhs * percision_kernel;
+            const double post_mean = rhs * params.precision_kernel;
             const double post_stddev
-                = std::sqrt(residual_variance * percision_kernel);
+                = std::sqrt(residual_variance * params.precision_kernel);
 
             new_i = (normal(rng) * post_stddev) + post_mean;
             update_residual_and_gebv(y_adj, u, col, old_i, new_i);
@@ -120,7 +101,7 @@ auto R::operator()(
         }
         else if (old_i != 0.0)
         {
-            update_residual_and_gebv(y_adj, u, col, old_i);
+            update_residual_and_gebv(y_adj, u, col, old_i, 0.0);
         }
         coeffs(i) = new_i;
     }
