@@ -8,7 +8,6 @@
 #include "data/math_utils.h"
 #include "gelex/model/bayes/model.h"
 #include "model/bayes/samplers/additive/common_op.h"
-#include "model/bayes/samplers/additive/log_likelihood_calculator.h"
 
 namespace gelex::detail::AdditiveSampler
 {
@@ -32,7 +31,7 @@ auto R::operator()(
 
     VectorXd& coeffs = state->coeffs;
     auto& u = state->u;
-    const VectorXd& marker_variances
+    const VectorXd marker_variances
         = state->marker_variance(0) * effect->scale.array();
     const Index num_components = marker_variances.size();
     VectorXi& tracker = state->tracker;
@@ -42,6 +41,9 @@ auto R::operator()(
 
     std::normal_distribution<double> normal{0, 1};
     std::uniform_real_distribution<double> uniform{0, 1};
+
+    VectorXd log_likelihoods(num_components);
+    VectorXd probs(num_components);
 
     double sum_square_coeffs{};
     for (Index i = 0; i < coeffs.size(); ++i)
@@ -61,16 +63,26 @@ auto R::operator()(
             rhs += col_norm * old_i;
         }
 
-        LogLikelihoodCalculator calculator(
-            col_norm, rhs, residual_variance, logpi);
+        log_likelihoods(0) = logpi(0);
+        for (int k = 1; k < num_components; ++k)
+        {
+            log_likelihoods(k) = compute_log_likelihood(
+                rhs,
+                marker_variances(k),
+                col_norm,
+                residual_variance,
+                logpi(k));
+        }
 
         for (int k = 0; k < num_components; ++k)
         {
-            calculator.add_component(marker_variances(k));
+            double prob = 0.0;
+            for (int j = 0; j < num_components; ++j)
+            {
+                prob += std::exp(log_likelihoods(j) - log_likelihoods(k));
+            }
+            probs(k) = 1.0 / prob;
         }
-
-        calculator.compute_probabilities();
-        const auto& probs = calculator.probabilities();
 
         // Sample component based on probabilities
         const double u_sample = uniform(rng);
@@ -93,8 +105,14 @@ auto R::operator()(
         {
             // Use pre-computed posterior parameters from
             // LogLikelihoodCalculator
-            const double post_mean = calculator.posterior_mean(dist_index);
-            const double post_stddev = calculator.posterior_stddev(dist_index);
+            const double residual_over_marker_variance
+                = residual_variance / marker_variances(dist_index);
+            const double percision_kernel
+                = 1 / (col_norm + residual_over_marker_variance);
+
+            const double post_mean = rhs * percision_kernel;
+            const double post_stddev
+                = std::sqrt(residual_variance * percision_kernel);
 
             new_i = (normal(rng) * post_stddev) + post_mean;
             update_residual_and_gebv(y_adj, u, col, old_i, new_i);
