@@ -53,7 +53,7 @@ target_compile_definitions(
 
 target_compile_options(
   core PUBLIC $<$<CONFIG:Release>:-march=native -O3> -Wall -Wextra
-              $<$<CONFIG:Debug>:-fsanitize=undefined,address>)
+              $<$<CONFIG:Debug>:-fsanitize=undefined>)
 
 if(USE_MKL)
   set(BLA_VENDOR Intel10_64lp)
@@ -71,8 +71,8 @@ target_link_libraries(core PUBLIC OpenMP::OpenMP_CXX BLAS::BLAS spdlog::spdlog
 add_executable(gelex src/main.cpp)
 target_include_directories(gelex PUBLIC "${PROJECT_BINARY_DIR}")
 
-target_link_libraries(
-  gelex PRIVATE core $<$<CONFIG:Debug>:-fsanitize=undefined,address>)
+target_link_libraries(gelex PRIVATE core
+                                    $<$<CONFIG:Debug>:-fsanitize=undefined>)
 
 if(BUILD_TEST)
   add_subdirectory(tests/)

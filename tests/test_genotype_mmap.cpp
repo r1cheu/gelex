@@ -7,6 +7,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 using Catch::Matchers::WithinAbs;
+using std::cout;
 
 #include "../include/gelex/data/genotype_mmap.h"
 #include "gelex/error.h"
@@ -58,8 +59,11 @@ class GenotypeMapTestFixture
         std::ofstream meta_file("test_valid.snpstats", std::ios::binary);
         int64_t rows = matrix.rows();
         int64_t cols = matrix.cols();
+        int64_t num_mono = 0;
         meta_file.write(reinterpret_cast<const char*>(&rows), sizeof(int64_t));
         meta_file.write(reinterpret_cast<const char*>(&cols), sizeof(int64_t));
+        meta_file.write(
+            reinterpret_cast<const char*>(&num_mono), sizeof(int64_t));
     }
 
     static void createInvalidMetadataFile()
@@ -77,8 +81,11 @@ class GenotypeMapTestFixture
         std::ofstream meta_file("test_invalid_meta.snpstats", std::ios::binary);
         int64_t rows = -1;  // Invalid dimension
         int64_t cols = 2;
+        int64_t num_mono = 0;
         meta_file.write(reinterpret_cast<const char*>(&rows), sizeof(int64_t));
         meta_file.write(reinterpret_cast<const char*>(&cols), sizeof(int64_t));
+        meta_file.write(
+            reinterpret_cast<const char*>(&num_mono), sizeof(int64_t));
     }
 
     static void createSizeMismatchFile()
@@ -97,8 +104,11 @@ class GenotypeMapTestFixture
             "test_size_mismatch.snpstats", std::ios::binary);
         int64_t rows = 3;  // Mismatch with actual data
         int64_t cols = 3;  // Mismatch with actual data
+        int64_t num_mono = 0;
         meta_file.write(reinterpret_cast<const char*>(&rows), sizeof(int64_t));
         meta_file.write(reinterpret_cast<const char*>(&cols), sizeof(int64_t));
+        meta_file.write(
+            reinterpret_cast<const char*>(&num_mono), sizeof(int64_t));
     }
 
     static void createReadOnlyFiles()
@@ -116,8 +126,11 @@ class GenotypeMapTestFixture
         std::ofstream meta_file("test_readonly.snpstats", std::ios::binary);
         int64_t rows = 2;
         int64_t cols = 2;
+        int64_t num_mono = 0;
         meta_file.write(reinterpret_cast<const char*>(&rows), sizeof(int64_t));
         meta_file.write(reinterpret_cast<const char*>(&cols), sizeof(int64_t));
+        meta_file.write(
+            reinterpret_cast<const char*>(&num_mono), sizeof(int64_t));
 
         // Make files read-only
         std::filesystem::permissions(
@@ -148,8 +161,11 @@ class GenotypeMapTestFixture
         std::ofstream meta_file("test_large.snpstats", std::ios::binary);
         int64_t rows = matrix.rows();
         int64_t cols = matrix.cols();
+        int64_t num_mono = 0;
         meta_file.write(reinterpret_cast<const char*>(&rows), sizeof(int64_t));
         meta_file.write(reinterpret_cast<const char*>(&cols), sizeof(int64_t));
+        meta_file.write(
+            reinterpret_cast<const char*>(&num_mono), sizeof(int64_t));
     }
 
     static Eigen::MatrixXd getExpected3x2Matrix()
@@ -391,10 +407,13 @@ TEST_CASE("GenotypeMap edge cases", "[genotype_mmap][edge]")
         std::ofstream single_meta("test_single.snpstats", std::ios::binary);
         int64_t rows = 1;
         int64_t cols = 1;
+        int64_t num_mono = 0;
         single_meta.write(
             reinterpret_cast<const char*>(&rows), sizeof(int64_t));
         single_meta.write(
             reinterpret_cast<const char*>(&cols), sizeof(int64_t));
+        single_meta.write(
+            reinterpret_cast<const char*>(&num_mono), sizeof(int64_t));
         single_meta.flush();
 
         auto result = gelex::GenotypeMap::create("test_single.bin");

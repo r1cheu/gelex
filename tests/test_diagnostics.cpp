@@ -12,6 +12,7 @@
 #include "gelex/estimator/bayes/samples.h"
 
 using Catch::Matchers::WithinAbs;
+using Eigen::RowVectorXd;
 
 TEST_CASE("gelman rubin", "[diagnostics]")
 {
@@ -69,10 +70,10 @@ TEST_CASE("autocorrelation", "[diagnostics]")
 
     SECTION("autocorrelation with biased estimator")
     {
-        Eigen::VectorXd expected{
+        Eigen::RowVectorXd expected{
             {1, 0.78, 0.52, 0.21, -0.13, -0.52, -0.94, -1.4, -1.91, -2.45}};
 
-        Eigen::VectorXd weights = Eigen::VectorXd::LinSpaced(10, 10, 1);
+        RowVectorXd weights = Eigen::VectorXd::LinSpaced(10, 10, 1);
         expected = expected.array() * weights.array() / 10.0;
 
         auto result = gelex::autocorrelation(x, true);
@@ -101,7 +102,7 @@ TEST_CASE("autovariance", "[diagnostics]")
     x.emplace_back(Eigen::RowVectorXd::LinSpaced(10, 0, 9));
     auto actual = gelex::autocovariance(x, false);
 
-    Eigen::VectorXd expected{
+    Eigen::RowVectorXd expected{
         {8.25, 6.42, 4.25, 1.75, -1.08, -4.25, -7.75, -11.58, -15.75, -20.25}};
 
     std::cout << expected << "\n";

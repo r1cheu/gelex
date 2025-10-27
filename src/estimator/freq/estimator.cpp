@@ -10,11 +10,11 @@
 #include <fmt/ranges.h>
 #include <armadillo>
 
+#include "../src/utils/formatter.h"
+#include "../src/utils/utils.h"
 #include "gelex/model/freq/model.h"
 #include "gelex/optim/optimizer.h"
 #include "gelex/optim/policy.h"
-#include "gelex/utils/formatter.h"
-#include "gelex/utils/utils.h"
 
 namespace gelex
 {

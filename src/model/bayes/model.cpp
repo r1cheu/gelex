@@ -102,7 +102,7 @@ BayesState::BayesState(const BayesModel& model)
             random_.emplace_back(effect);
         }
     }
-    residual_.y_adj = model.phenotype().array() - model.phenotype().mean();
+    residual_.y_adj = model.phenotype().array();
     residual_.variance = model.residual().init_variance;
 }
 

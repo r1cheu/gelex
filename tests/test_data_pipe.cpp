@@ -146,7 +146,7 @@ TEST_CASE_PERSISTENT_FIXTURE(
         REQUIRE(result->fixed_effects().rows() == 5);
         // 3 qcovariates + (1 dummy vars for sex) + (2 dummy vars
         // for location) + (1 dummy var for batch)
-        REQUIRE(result->fixed_effects().cols() == 3 + 1 + 2 + 1);
+        REQUIRE(result->fixed_effects().cols() == 1 + 3 + 1 + 2 + 1);
     }
 
     SECTION("Partial configuration - phenotype only")
@@ -167,9 +167,9 @@ TEST_CASE_PERSISTENT_FIXTURE(
         REQUIRE(result.has_value());
 
         REQUIRE(result->has_phenotype());
-        REQUIRE_FALSE(result->has_fixed_effects());
+        REQUIRE(result->has_fixed_effects());
         REQUIRE(result->phenotype().size() == 5);
-        REQUIRE(result->fixed_effects().cols() == 0);
+        REQUIRE(result->fixed_effects().cols() == 1);
     }
 
     SECTION("Partial configuration - qcovariates only")
@@ -195,7 +195,7 @@ TEST_CASE_PERSISTENT_FIXTURE(
         REQUIRE(result->has_fixed_effects());
         REQUIRE(result->phenotype().cols() == 1);
         REQUIRE(result->fixed_effects().rows() == 5);
-        REQUIRE(result->fixed_effects().cols() == 3);  // 3 qcovariates
+        REQUIRE(result->fixed_effects().cols() == 4);  // 4 qcovariates
     }
 
     SECTION("Partial configuration - covariates only")
@@ -223,9 +223,9 @@ TEST_CASE_PERSISTENT_FIXTURE(
         REQUIRE(result->has_fixed_effects());
         REQUIRE(result->phenotype().cols() == 1);
         REQUIRE(result->fixed_effects().rows() == 5);
-        // (1 dummy vars for sex) + (2 dummy vars for location) + (1
+        // intercept + (1 dummy vars for sex) + (2 dummy vars for location) + (1
         // dummy var for batch)
-        REQUIRE(result->fixed_effects().cols() == 1 + 2 + 1);
+        REQUIRE(result->fixed_effects().cols() == 1 + 1 + 2 + 1);
     }
 
     SECTION("IID only vs full ID mode")
@@ -388,15 +388,15 @@ TEST_CASE_PERSISTENT_FIXTURE(
 
         REQUIRE(result->phenotype().size() == 5);
         REQUIRE(result->fixed_effects().rows() == 5);
-        // 3 qcovariates + (1 dummy vars for sex) + (2 dummy vars
+        // intercept + 3 qcovariates + (1 dummy vars for sex) + (2 dummy vars
         // for location) + (1 dummy var for batch)
-        REQUIRE(result->fixed_effects().cols() == 3 + 1 + 2 + 1);
+        REQUIRE(result->fixed_effects().cols() == 1 + 3 + 1 + 2 + 1);
 
         // Verify fixed effect names
-        REQUIRE(result->fixed_effect_names().size() == 6);
-        REQUIRE(result->fixed_effect_names()[0] == "age");
-        REQUIRE(result->fixed_effect_names()[1] == "weight");
-        REQUIRE(result->fixed_effect_names()[2] == "height");
+        REQUIRE(result->fixed_effect_names().size() == 7);
+        REQUIRE(result->fixed_effect_names()[1] == "age");
+        REQUIRE(result->fixed_effect_names()[2] == "weight");
+        REQUIRE(result->fixed_effect_names()[3] == "height");
         // The covariate names should include the original names, not the dummy
         // variable names
     }
@@ -471,7 +471,7 @@ TEST_CASE_PERSISTENT_FIXTURE(
     {
         auto fixed_effects = std::move(*result).take_fixed_effects();
         REQUIRE(fixed_effects.rows() == 5);
-        REQUIRE(fixed_effects.cols() == 3);  // Intercept + 3 qcovariates
+        REQUIRE(fixed_effects.cols() == 4);  // Intercept + 3 qcovariates
 
         // After move, original should be empty
         REQUIRE(result->fixed_effects().cols() == 0);

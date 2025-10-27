@@ -7,9 +7,8 @@ find_package(Catch2 3 REQUIRED)
 file(GLOB test_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 add_executable(test ${test_SOURCE})
 
-target_link_libraries(
-  test PRIVATE core Catch2::Catch2WithMain
-               $<$<CONFIG:Debug>:-fsanitize=undefined,address>)
+target_link_libraries(test PRIVATE core Catch2::Catch2WithMain
+                                   $<$<CONFIG:Debug>:-fsanitize=undefined>)
 
 include(CTest)
 include(Catch)

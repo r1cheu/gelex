@@ -2,7 +2,7 @@
 #include <vector>
 
 #include <armadillo>
-#include "gelex/utils/utils.h"
+#include "../src/utils/utils.h"
 
 #include "freq_effects.h"
 
