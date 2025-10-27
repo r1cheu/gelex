@@ -1,6 +1,7 @@
 #include "gelex/cli/fit_command.h"
 
 #include <omp.h>
+#include <memory>
 
 #include "gelex/data/data_pipe.h"
 #include "gelex/data/genotype_loader.h"
@@ -327,8 +328,8 @@ int fit_execute(argparse::ArgumentParser& fit)
     auto run_and_write = [&](auto trait_model)
     {
         gelex::MCMC mcmc(mcmc_params, trait_model);
-        mcmc.run(model.value());
-        gelex::MCMCResultWriter writer(mcmc.result(), bim_path);
+        gelex::MCMCResult result = mcmc.run(model.value());
+        gelex::MCMCResultWriter writer(result, bim_path);
         writer.save(out_prefix);
     };
 

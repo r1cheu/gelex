@@ -167,7 +167,7 @@ class MCMCResult
     }
 
    private:
-    friend class MCMCResultWriter;
+    friend class SnpEffectsWriter;
 
     MCMCSamples samples_;
 

@@ -8,6 +8,7 @@ Gelex is a C++ library and CLI tool for genomic prediction with Bayesian (BayesA
 
 **CLI Subcommands:**
 - `gelex fit`: Fit genomic prediction models (Bayesian or GBLUP)
+- `gelex predict`: Predict phenotypes/GEBV using saved effects or model checkpoints
 - `gelex simulate`: Run simulations
 
 ## Key Architecture

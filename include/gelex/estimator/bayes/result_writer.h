@@ -1,18 +1,22 @@
 #pragma once
 
 #include <filesystem>
-#include <fstream>
-#include <memory>
-#include <string>
 
-#include <Eigen/Core>
-
-#include "../src/data/snp_info_loader.h"
+#include "../src/estimator/bayes/parameter_writer.h"
+#include "../src/estimator/bayes/snp_effects_writer.h"
 #include "gelex/estimator/bayes/result.h"
 
 namespace gelex
 {
 
+/**
+ * @brief Main result writer that coordinates specialized writers
+ *
+ * This class provides a facade interface that delegates to specialized
+ * writers for different types of MCMC results:
+ * - ParameterWriter: Handles fixed effects, random effects, variances
+ * - SnpEffectsWriter: Handles SNP-specific effects with metadata
+ */
 class MCMCResultWriter
 {
    public:
@@ -33,23 +37,29 @@ class MCMCResultWriter
      */
     void save(const std::filesystem::path& prefix) const;
 
+    /**
+     * @brief Get access to the parameter writer
+     *
+     * @return const ParameterWriter&
+     */
+    const ParameterWriter& parameter_writer() const
+    {
+        return parameter_writer_;
+    }
+
+    /**
+     * @brief Get access to the SNP effects writer
+     *
+     * @return const SnpEffectsWriter&
+     */
+    const SnpEffectsWriter& snp_effects_writer() const
+    {
+        return snp_effects_writer_;
+    }
+
    private:
-    const MCMCResult& result_;
-    std::unique_ptr<SnpInfoLoader> snp_info_loader_;
-
-    // Helper methods for writing different file types
-    void write_parameter_file(const std::filesystem::path& path) const;
-    void write_snp_effects(const std::filesystem::path& path) const;
-
-    // Helper methods for writing summary statistics
-    void write_summary_statistics(
-        std::ofstream& stream,
-        const PosteriorSummary& stats,
-        Eigen::Index n_params) const;
-
-    // Format HPDI labels
-    std::string get_hpdi_low_label() const;
-    std::string get_hpdi_high_label() const;
+    ParameterWriter parameter_writer_;
+    SnpEffectsWriter snp_effects_writer_;
 };
 
 }  // namespace gelex

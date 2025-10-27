@@ -123,9 +123,7 @@ TEST_CASE("BedPipe creation and basic functionality", "[bed_pipe]")
         sample_manager.finalize();
         auto bed_pipe = gelex::BedPipe::create(
             test_bed,
-            std::move(
-                std::make_shared<gelex::SampleManager>(
-                    std::move(sample_manager))));
+            std::make_shared<gelex::SampleManager>(std::move(sample_manager)));
         REQUIRE(bed_pipe.has_value());
 
         REQUIRE(bed_pipe->sample_size() == 4);

@@ -28,8 +28,7 @@ class MCMC
 {
    public:
     explicit MCMC(MCMCParams params, TraitSampler trait_sampler);
-    const MCMCResult& run(const BayesModel& model, Eigen::Index seed = 42);
-    const MCMCResult& result() const { return *result_; }
+    MCMCResult run(const BayesModel& model, Eigen::Index seed = 42);
 
    private:
     void run_one_chain(
@@ -50,7 +49,6 @@ class MCMC
 
     MCMCParams params_;
     TraitSampler trait_sampler_;
-    std::unique_ptr<MCMCResult> result_;
 };
 
 template <typename TraitSampler>
@@ -60,9 +58,7 @@ MCMC<TraitSampler>::MCMC(MCMCParams params, TraitSampler trait_sampler)
 }
 
 template <typename TraitSampler>
-const MCMCResult& MCMC<TraitSampler>::run(
-    const BayesModel& model,
-    Eigen::Index seed)
+MCMCResult MCMC<TraitSampler>::run(const BayesModel& model, Eigen::Index seed)
 {
     MCMCSamples samples(params_, model);
 
@@ -108,11 +104,11 @@ const MCMCResult& MCMC<TraitSampler>::run(
         "  - Total time elapsed: {:.2f} seconds.",
         static_cast<double>(duration) / 1000.0);
 
-    result_ = std::make_unique<MCMCResult>(std::move(samples), model, 0.9);
-    result_->compute();
-    logger_.log_result(*result_, model);
+    MCMCResult result(std::move(samples), model, 0.9);
+    result.compute();
+    logger_.log_result(result, model);
 
-    return *result_;
+    return result;
 }
 
 template <typename TraitSampler>
