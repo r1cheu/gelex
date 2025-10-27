@@ -1,15 +1,6 @@
 #pragma once
 
 #include <chrono>
-#include <string>
-
-#include <fmt/color.h>
-#include <fmt/ranges.h>
-#include <spdlog/common.h>
-#include <spdlog/formatter.h>
-#include <spdlog/logger.h>
-#include <spdlog/spdlog.h>
-#include <armadillo>
 
 namespace gelex
 {

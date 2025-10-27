@@ -13,7 +13,7 @@
 #include <Eigen/Core>
 
 #include "../src/data/loader.h"
-#include "data/math_utils.h"
+#include "../src/utils/math_utils.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/sample_manager.h"
 

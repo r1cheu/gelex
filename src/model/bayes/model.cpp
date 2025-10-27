@@ -7,8 +7,8 @@
 #include <fmt/ranges.h>
 #include <Eigen/Core>
 
-#include "../src/data/math_utils.h"
 #include "../src/model/bayes/bayes_effects.h"
+#include "../src/utils/math_utils.h"
 #include "gelex/data/data_pipe.h"
 #include "gelex/data/genotype_mmap.h"
 #include "gelex/model/effects.h"

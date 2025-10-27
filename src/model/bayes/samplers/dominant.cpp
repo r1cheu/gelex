@@ -5,7 +5,7 @@
 #include <Eigen/Core>
 
 #include "../bayes_effects.h"
-#include "data/math_utils.h"
+#include "../src/utils/math_utils.h"
 #include "gelex/model/bayes/model.h"
 
 namespace gelex::detail::DominantSampler
