@@ -5,6 +5,7 @@
 
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/effects.h"
+#include "model/bayes/bayes_effects.h"
 
 namespace gelex
 {
@@ -22,12 +23,9 @@ class PriorManager
     {
         if constexpr (std::is_same_v<Effect, bayes::AdditiveEffect>)
         {
-            const double genetic_var = std::visit(
-                [](const auto& s) { return s.variance().sum(); },
-                effect.design_matrix);
-
             const double init_marker_variance
-                = target_variance / genetic_var / (1 - effect.pi(0));
+                = target_variance / bayes::get_cols(effect.design_matrix)
+                  / (1 - effect.pi(0));
 
             effect.init_marker_variance = init_marker_variance;
             effect.prior = {4.0, 0.5 * init_marker_variance};

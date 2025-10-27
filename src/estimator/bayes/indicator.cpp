@@ -21,7 +21,10 @@ Indicator::Indicator(
         std::vector<std::shared_ptr<bk::BaseDisplay>> line_displays;
 
         auto anim = bk::Animation(
-            {.style = bk::Strings{"⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"},
+            {.style
+             = bk::Strings{"⠁", "⠁", "⠉", "⠙", "⠚", "⠒", "⠂", "⠂", "⠒", "⠲",
+                           "⠴", "⠤", "⠄", "⠄", "⠤", "⠠", "⠠", "⠤", "⠦", "⠖",
+                           "⠒", "⠐", "⠐", "⠒", "⠓", "⠋", "⠉", "⠈", "⠈", " "},
              .interval = 0.08,
              .show = false});
         line_displays.push_back(anim);

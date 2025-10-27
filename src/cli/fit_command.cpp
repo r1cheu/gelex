@@ -182,8 +182,7 @@ int fit_execute(argparse::ArgumentParser& fit)
             if (genotype_pipe)
             {
                 if (auto process_result
-                    = genotype_pipe->process<gelex::NonStandardizingProcessor>(
-                        fit.get<int>("--chunk-size"));
+                    = genotype_pipe->process(fit.get<int>("--chunk-size"));
                     !process_result)
 
                 {
@@ -202,12 +201,11 @@ int fit_execute(argparse::ArgumentParser& fit)
         }
         else
         {
-            // In-memory mode (new behavior)
             logger->info("Loading additive genotypes in memory...");
             auto genotype_matrix = gelex::GenotypeLoader::load_from_bed(
                 bed->replace_extension(".bed"),
                 sample_manager,
-                false,  // dominant = false for additive
+                false,
                 fit.get<int>("--chunk-size"));
 
             if (!genotype_matrix)
@@ -244,8 +242,7 @@ int fit_execute(argparse::ArgumentParser& fit)
             if (genotype_pipe)
             {
                 if (auto process_result
-                    = genotype_pipe->process<gelex::NonStandardizingProcessor>(
-                        fit.get<int>("--chunk-size"));
+                    = genotype_pipe->process(fit.get<int>("--chunk-size"));
                     !process_result)
 
                 {

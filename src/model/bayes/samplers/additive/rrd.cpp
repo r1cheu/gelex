@@ -39,7 +39,7 @@ auto RRD::operator()(
     const double old_marker_variance = add_state->marker_variance(0);
     const auto& design_matrix
         = bayes::get_matrix_ref(add_effect->design_matrix);
-    const auto& cols_norm = add_effect->cols_norm;
+    const auto col_norm = static_cast<double>(design_matrix.rows() - 1);
 
     std::normal_distribution<double> normal{0, 1};
     std::uniform_real_distribution<double> uniform(0.0, 1.0);
@@ -55,11 +55,10 @@ auto RRD::operator()(
 
         const double old_i = coeff(i);
         const auto& col = design_matrix.col(i);
-        const double norm = cols_norm(i);
-        const double v = norm + (residual_variance / old_marker_variance);
+        const double v = col_norm + (residual_variance / old_marker_variance);
 
         // calculate the candidate posterior mean
-        const double rhs = col.dot(y_adj) + (norm * old_i);
+        const double rhs = col.dot(y_adj) + (col_norm * old_i);
         const double post_mean = rhs / v;
         const double post_stddev = std::sqrt(residual_variance / v);
 

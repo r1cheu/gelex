@@ -38,9 +38,9 @@ auto Coeff::operator()(
 
     const auto& design_matrix
         = bayes::get_matrix_ref(dom_effect->design_matrix);
+    const auto col_norm = static_cast<double>(design_matrix.rows() - 1);
 
-    const VectorXd scaled_cols_norm
-        = dom_effect->cols_norm.array() * add_coeff.array().square();
+    const VectorXd scaled_cols_norm = col_norm * add_coeff.array().square();
 
     std::normal_distribution<double> normal{0, 1};
 

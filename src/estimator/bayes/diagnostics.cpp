@@ -197,7 +197,7 @@ Eigen::VectorXd effect_sample_size(const Samples& x, bool bias)
     Samples gamma_k_c = autocovariance(x, bias);
 
     // Compute mean across chains for each parameter and lag
-    Eigen::MatrixXd gamma_k_c_mean(n_params, n_draws);
+    Eigen::MatrixXd gamma_k_c_mean = Eigen::MatrixXd::Zero(n_params, n_draws);
     for (const auto& mat : gamma_k_c)
     {
         gamma_k_c_mean += mat;

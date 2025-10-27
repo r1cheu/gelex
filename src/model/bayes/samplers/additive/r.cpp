@@ -39,7 +39,7 @@ auto R::operator()(
     VectorXi& tracker = state->tracker;
 
     const auto& design_matrix = bayes::get_matrix_ref(effect->design_matrix);
-    const auto& cols_norm = effect->cols_norm;
+    const auto col_norm = static_cast<double>(design_matrix.rows() - 1);
 
     std::normal_distribution<double> normal{0, 1};
 
@@ -57,7 +57,6 @@ auto R::operator()(
 
         const double old_i = coeffs(i);
         const auto& col = design_matrix.col(i);
-        const double col_norm = cols_norm(i);
 
         double rhs = col.dot(y_adj);
         if (old_i != 0.0)

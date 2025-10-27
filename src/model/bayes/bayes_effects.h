@@ -124,7 +124,6 @@ struct AdditiveEffect
     explicit AdditiveEffect(GenotypeStorage&& design_matrix);
 
     GenotypeStorage design_matrix;
-    Eigen::VectorXd cols_norm;
 
     detail::ScaledInvChiSqParams prior{4, 0};
     double init_marker_variance{0.0};
@@ -160,7 +159,6 @@ struct DominantEffect
     explicit DominantEffect(GenotypeStorage&& design_matrix);
 
     GenotypeStorage design_matrix;
-    Eigen::VectorXd cols_norm;
     Eigen::VectorXd wj;  // freq_q - freq_p
 
     double ratio_mean{};

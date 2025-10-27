@@ -45,19 +45,16 @@ RandomState::RandomState(const RandomEffect& effect)
 AdditiveEffect::AdditiveEffect(GenotypeMap&& design_matrix)
     : design_matrix(std::move(design_matrix))
 {
-    cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
 }
 
 AdditiveEffect::AdditiveEffect(GenotypeMatrix&& design_matrix)
     : design_matrix(std::move(design_matrix))
 {
-    cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
 }
 
 AdditiveEffect::AdditiveEffect(GenotypeStorage&& design_matrix)
     : design_matrix(std::move(design_matrix))
 {
-    cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
 }
 
 AdditiveState::AdditiveState(
@@ -80,19 +77,16 @@ AdditiveState::AdditiveState(
 DominantEffect::DominantEffect(GenotypeMap&& design_matrix)
     : design_matrix(std::move(design_matrix))
 {
-    cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
 }
 
 DominantEffect::DominantEffect(GenotypeMatrix&& design_matrix)
     : design_matrix(std::move(design_matrix))
 {
-    cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
 }
 
 DominantEffect::DominantEffect(GenotypeStorage&& design_matrix)
     : design_matrix(std::move(design_matrix))
 {
-    cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
 }
 
 DominantState::DominantState(const DominantEffect& effect)
