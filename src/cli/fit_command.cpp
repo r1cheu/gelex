@@ -183,20 +183,51 @@ int fit_execute(argparse::ArgumentParser& fit)
                 logger->error(genotype_pipe.error().message);
                 return 1;
             }
-            auto process_result
-                = genotype_pipe->process(fit.get<int>("--chunk-size"));
-            if (!process_result)
+            if (!genotype_pipe
+                && genotype_pipe.error().code
+                       == gelex::ErrorCode::OutputFileExists)
             {
-                logger->error(process_result.error().message);
-                return 1;
+                if (dominance)
+                {
+                    auto result
+                        = gelex::GenotypeMap::create(out_prefix + ".dom.bmat");
+                    if (!result)
+                    {
+                        logger->error(result.error().message);
+                        return 1;
+                    }
+                    (*model).add_dominance(std::move(result.value()));
+                }
+                if (!dominance)
+                {
+                    auto result
+                        = gelex::GenotypeMap::create(out_prefix + ".add.bmat");
+                    if (!result)
+                    {
+                        logger->error(result.error().message);
+                        return 1;
+                    }
+                    (*model).add_additive(std::move(result.value()));
+                }
             }
-            if (dominance)
+
+            if (genotype_pipe)
             {
-                (*model).add_dominance(std::move(process_result.value()));
-            }
-            else
-            {
-                (*model).add_additive(std::move(process_result.value()));
+                auto process_result
+                    = genotype_pipe->process(fit.get<int>("--chunk-size"));
+                if (!process_result)
+                {
+                    logger->error(process_result.error().message);
+                    return 1;
+                }
+                if (dominance)
+                {
+                    (*model).add_dominance(std::move(process_result.value()));
+                }
+                else
+                {
+                    (*model).add_additive(std::move(process_result.value()));
+                }
             }
         }
         else
