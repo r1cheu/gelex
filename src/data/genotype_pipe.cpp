@@ -8,6 +8,7 @@
 #include <Eigen/Core>
 
 #include "binary_matrix_writer.h"
+#include "gelex/data/genotype_mmap.h"
 #include "gelex/error.h"
 #include "gelex/logger.h"
 #include "snp_stats_writer.h"
@@ -139,7 +140,7 @@ auto GenotypePipe::create(
         dominant};
 }
 
-auto GenotypePipe::finalize() -> std::expected<void, Error>
+auto GenotypePipe::finalize() -> std::expected<GenotypeMap, Error>
 {
     // Write final statistics
     if (auto result = stats_writer_.write(
@@ -153,7 +154,8 @@ auto GenotypePipe::finalize() -> std::expected<void, Error>
     {
         return std::unexpected(result.error());
     }
-    return {};
+
+    return GenotypeMap::create(matrix_writer_.path());
 }
 
 }  // namespace gelex

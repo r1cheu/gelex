@@ -97,14 +97,19 @@ void fit_command(argparse::ArgumentParser& cmd)
 
 int fit_execute(argparse::ArgumentParser& fit)
 {
+    // ================================================================
+    // ====================== Preparations ============================
+    // ================================================================
     std::string out_prefix = fit.get("--out");
     gelex::BayesAlphabet type = gelex::get_bayesalphabet(fit.get("-m"))
                                     .value_or(gelex::BayesAlphabet::RR);
-
+    bool dom = fit.get<bool>("--dom");
     gelex::logging::initialize(out_prefix);
     auto logger = gelex::logging::get();
 
-    // Configure OpenMP threads
+    // ================================================================
+    // ====================== Set Parallelization =====================
+    // ================================================================
     int num_threads = fit.get<int>("--threads");
     if (num_threads > 0)
     {
@@ -113,9 +118,10 @@ int fit_execute(argparse::ArgumentParser& fit)
         logger->info("Using {} threads for parallel computation", num_threads);
     }
 
-    // valid bed path, using for accept both prefix and prefix.bed
+    // ================================================================
+    // ======================== Data Clean ============================
+    // ================================================================
     auto bed = gelex::valid_bed(fit.get("--bfile"));
-
     if (!bed)
     {
         logger->error(bed.error().message);
@@ -151,86 +157,25 @@ int fit_execute(argparse::ArgumentParser& fit)
         return 1;
     }
 
-    // Create Bayesian Model
+    // ================================================================
+    // ======================== Model Container =======================
+    // ================================================================
+
     auto model = gelex::BayesModel::create(*data_pipe, type);
     if (!model)
     {
         logger->error(model.error().message);
         return 1;
     }
-
-    // Add Additive Effect
+    auto process_genotype_effect = [&](bool dominance) -> int
     {
-        bool use_mmap = fit.get<bool>("--mmap");
-
-        if (use_mmap)
+        if (fit.get<bool>("--mmap"))
         {
-            // Memory-mapped mode (legacy behavior)
-            auto genotype_pipe = gelex::GenotypePipe::create(
-                bed->replace_extension(".bed"),
-                sample_manager,
-                fit.get("--out"));
-
-            if (!genotype_pipe
-                && genotype_pipe.error().code
-                       != gelex::ErrorCode::OutputFileExists)
-            {
-                logger->error(genotype_pipe.error().message);
-                return 1;
-            }
-
-            if (genotype_pipe)
-            {
-                if (auto process_result
-                    = genotype_pipe->process(fit.get<int>("--chunk-size"));
-                    !process_result)
-
-                {
-                    logger->error(process_result.error().message);
-                    return 1;
-                }
-            }
-
-            auto gmap = gelex::GenotypeMap::create(out_prefix + ".add.bmat");
-            if (!gmap)
-            {
-                logger->error(gmap.error().message);
-                return 1;
-            }
-            model->add_additive(std::move(gmap.value()));
-        }
-        else
-        {
-            logger->info("Loading additive genotypes in memory...");
-            auto genotype_matrix = gelex::GenotypeLoader::load_from_bed(
-                bed->replace_extension(".bed"),
-                sample_manager,
-                false,
-                fit.get<int>("--chunk-size"));
-
-            if (!genotype_matrix)
-            {
-                logger->error(genotype_matrix.error().message);
-                return 1;
-            }
-
-            model->add_additive(std::move(genotype_matrix.value()));
-        }
-    }
-
-    // Add Dominance Effect
-    if (fit.get<bool>("--dom"))
-    {
-        bool use_mmap = fit.get<bool>("--mmap");
-
-        if (use_mmap)
-        {
-            // Memory-mapped mode (legacy behavior)
             auto genotype_pipe = gelex::GenotypePipe::create(
                 bed->replace_extension(".bed"),
                 sample_manager,
                 fit.get("--out"),
-                true);
+                dominance);
             if (!genotype_pipe
                 && genotype_pipe.error().code
                        != gelex::ErrorCode::OutputFileExists)
@@ -238,47 +183,64 @@ int fit_execute(argparse::ArgumentParser& fit)
                 logger->error(genotype_pipe.error().message);
                 return 1;
             }
-
-            if (genotype_pipe)
+            auto process_result
+                = genotype_pipe->process(fit.get<int>("--chunk-size"));
+            if (!process_result)
             {
-                if (auto process_result
-                    = genotype_pipe->process(fit.get<int>("--chunk-size"));
-                    !process_result)
-
-                {
-                    logger->error(process_result.error().message);
-                    return 1;
-                }
-            }
-
-            auto gmap = gelex::GenotypeMap::create(out_prefix + ".dom.bmat");
-            if (!gmap)
-            {
-                logger->error(gmap.error().message);
+                logger->error(process_result.error().message);
                 return 1;
             }
-            model->add_dominance(std::move(gmap.value()));
+            if (dominance)
+            {
+                (*model).add_dominance(std::move(process_result.value()));
+            }
+            else
+            {
+                (*model).add_additive(std::move(process_result.value()));
+            }
         }
         else
         {
-            // In-memory mode (new behavior)
-            logger->info("Loading dominance genotypes in memory...");
-            auto genotype_matrix = gelex::GenotypeLoader::load_from_bed(
-                bed->replace_extension(".bed"),
-                sample_manager,
-                true,  // dominant = true for dominance
-                fit.get<int>("--chunk-size"));
-
-            if (!genotype_matrix)
+            auto genotype_loader = gelex::GenotypeLoader::create(
+                bed->replace_extension(".bed"), sample_manager, dominance);
+            if (!genotype_loader)
             {
-                logger->error(genotype_matrix.error().message);
+                logger->error(genotype_loader.error().message);
                 return 1;
             }
+            auto process_result
+                = genotype_loader->process(fit.get<int>("--chunk-size"));
 
-            model->add_dominance(std::move(genotype_matrix.value()));
+            if (dominance)
+            {
+                (*model).add_dominance(std::move(process_result.value()));
+            }
+            else
+            {
+                (*model).add_additive(std::move(process_result.value()));
+            }
+        }
+        return 0;
+    };
+
+    if (process_genotype_effect(false) != 0)
+    {
+        logger->error("Failed to process additive genotype effect");
+        return 1;
+    }
+
+    if (dom)
+    {
+        if (process_genotype_effect(true) != 0)
+        {
+            logger->error("Failed to process dominance genotype effect");
+            return 1;
         }
     }
 
+    // ================================================================
+    // ======================== Prior Manage ==========================
+    // ================================================================
     auto prior_manager = gelex::PriorManager(type);
     {
         auto result = prior_manager.default_prior(*model);
@@ -288,7 +250,6 @@ int fit_execute(argparse::ArgumentParser& fit)
             return 1;
         }
 
-        // Set custom scale if provided
         if (auto scale_args = fit.present<std::vector<double>>("--scale"))
         {
             auto scale_result = prior_manager.set_scale(*model, *scale_args);
@@ -314,7 +275,9 @@ int fit_execute(argparse::ArgumentParser& fit)
         }
     }
 
-    // MCMC Sampling with TraitModel
+    // ================================================================
+    // ========================== MCMC ================================
+    // ================================================================
     gelex::MCMCParams mcmc_params(
         fit.get<int>("--iters"),
         fit.get<int>("--burnin"),

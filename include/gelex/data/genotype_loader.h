@@ -3,17 +3,23 @@
 #include <expected>
 #include <filesystem>
 #include <memory>
+#include <vector>
 
+#include <gelex/barkeep.h>
 #include <Eigen/Core>
 
+#include "../src/estimator/bayes/indicator.h"  // For BAR_STYLE
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/genotype_matrix.h"
 #include "gelex/data/genotype_pipe.h"  // For VariantStats and VariantProcessor
 #include "gelex/data/sample_manager.h"
 #include "gelex/error.h"
+#include "gelex/logger.h"
 
 namespace gelex
 {
+
+namespace bk = barkeep;
 
 /**
  * @class GenotypeLoader
@@ -27,143 +33,143 @@ class GenotypeLoader
 {
    public:
     /**
-     * @brief Load genotype data from BED file into memory
+     * @brief Create a GenotypeLoader instance
      *
      * @param bed_path Path to PLINK BED file
      * @param sample_manager Sample manager for filtering/ordering samples
      * @param dominant Load dominant encoding (default: false for additive)
-     * @param chunk_size Number of variants to process at once
-     * @return GenotypeMatrix with processed data
+     * @return GenotypeLoader instance
      */
-    static auto load_from_bed(
+    static auto create(
         const std::filesystem::path& bed_path,
         std::shared_ptr<SampleManager> sample_manager,
-        bool dominant = false,
-        size_t chunk_size = 10000) -> std::expected<GenotypeMatrix, Error>;
+        bool dominant = false) -> std::expected<GenotypeLoader, Error>;
+
+    GenotypeLoader(const GenotypeLoader&) = delete;
+    GenotypeLoader(GenotypeLoader&&) noexcept = default;
+    GenotypeLoader& operator=(const GenotypeLoader&) = delete;
+    GenotypeLoader& operator=(GenotypeLoader&&) noexcept = default;
+    ~GenotypeLoader() = default;
 
     /**
-     * @brief Load with custom variant processor
+     * @brief Process genotype data with progress tracking
      *
      * @tparam Processor Variant processing strategy
-     * @param bed_path Path to PLINK BED file
-     * @param sample_manager Sample manager for filtering/ordering samples
-     * @param dominant Load dominant encoding
      * @param chunk_size Number of variants to process at once
-     * @return GenotypeMatrix with processed data
+     * @return Success or error
      */
-    template <VariantProcessor Processor>
-    static auto load_with_processor(
-        const std::filesystem::path& bed_path,
-        std::shared_ptr<SampleManager> sample_manager,
-        bool dominant = false,
-        size_t chunk_size = 10000) -> std::expected<GenotypeMatrix, Error>;
+    template <VariantProcessor Processor = StandardizingProcessor>
+    auto process(size_t chunk_size = 10000)
+        -> std::expected<GenotypeMatrix, Error>;
+
+    // Dimension accessors
+    Eigen::Index num_samples() const noexcept { return sample_size_; }
+    Eigen::Index num_variants() const noexcept { return num_variants_; }
+    size_t num_processed_variants() const noexcept { return means_.size(); }
 
    private:
-    // Internal implementation for template method
+    GenotypeLoader(BedPipe&& bed_pipe, bool dominant);
+
     template <VariantProcessor Processor>
-    static auto load_impl(
-        BedPipe& bed_pipe,
-        bool dominant,
-        size_t chunk_size,
-        Processor& processor) -> std::expected<GenotypeMatrix, Error>;
+    auto process_chunk(
+        Eigen::MatrixXd&& chunk,
+        Eigen::Index global_start,
+        Processor& processor) -> std::expected<void, Error>;
+
+    auto finalize() -> std::expected<GenotypeMatrix, Error>;
+
+    BedPipe bed_pipe_;
+    bool dominant_{false};
+
+    int64_t sample_size_{};
+    int64_t num_variants_{};
+
+    size_t global_snp_idx_{};
+
+    std::vector<double> means_;
+    std::vector<double> variances_;
+    std::vector<int64_t> monomorphic_indices_;
+
+    // Internal storage for building the final matrix
+    Eigen::MatrixXd data_matrix_;
 };
 
-// Template implementation
+// Template implementation for process method
 template <VariantProcessor Processor>
-auto GenotypeLoader::load_with_processor(
-    const std::filesystem::path& bed_path,
-    std::shared_ptr<SampleManager> sample_manager,
-    bool dominant,
-    size_t chunk_size) -> std::expected<GenotypeMatrix, Error>
+auto GenotypeLoader::process(size_t chunk_size)
+    -> std::expected<GenotypeMatrix, Error>
 {
-    auto bed_pipe = BedPipe::create(bed_path, std::move(sample_manager));
-    if (!bed_pipe)
-    {
-        return std::unexpected(bed_pipe.error());
-    }
+    auto logger = gelex::logging::get();
+    global_snp_idx_ = 0;
+
+    logger->info("");
+    logger->info("Loading genotype data into memory...");
+
+    auto pbar = bk::ProgressBar(
+        &global_snp_idx_,
+        {.total = static_cast<uint64_t>(num_variants_),
+         .format = "{bar} {value}/{total} ",
+         .style = detail::BAR_STYLE});
 
     Processor processor;
-    return load_impl(*bed_pipe, dominant, chunk_size, processor);
-}
 
-template <VariantProcessor Processor>
-auto GenotypeLoader::load_impl(
-    BedPipe& bed_pipe,
-    bool dominant,
-    size_t chunk_size,
-    Processor& processor) -> std::expected<GenotypeMatrix, Error>
-{
-    const int64_t num_samples = bed_pipe.sample_size();
-    const int64_t num_variants = bed_pipe.num_variants();
-
-    // Pre-allocate matrix for all genotype data
-    Eigen::MatrixXd data(num_samples, num_variants);
-
-    // Storage for statistics
-    std::vector<double> means;
-    std::vector<double> variances;
-    std::vector<int64_t> monomorphic_indices;
-
-    means.reserve(static_cast<size_t>(num_variants));
-    variances.reserve(static_cast<size_t>(num_variants));
-    monomorphic_indices.reserve(static_cast<size_t>(num_variants) / 100);
-
-    // Process variants in chunks
-    int64_t global_variant_idx = 0;
-
-    for (int64_t start_variant = 0; start_variant < num_variants;)
+    for (int64_t start_variant = 0; start_variant < num_variants_;)
     {
-        const int64_t end_variant = std::min(
-            start_variant + static_cast<int64_t>(chunk_size), num_variants);
+        int64_t end_variant = std::min(
+            static_cast<int64_t>(start_variant + chunk_size), num_variants_);
 
-        auto chunk = bed_pipe.load_chunk(start_variant, end_variant, dominant);
+        auto chunk
+            = bed_pipe_.load_chunk(start_variant, end_variant, dominant_);
         if (!chunk)
         {
             return std::unexpected(chunk.error());
         }
 
-        const int64_t num_variants_in_chunk = chunk->cols();
-
-        // Process each variant in the chunk
-        for (int64_t variant_idx = 0; variant_idx < num_variants_in_chunk;
-             ++variant_idx)
+        if (auto result
+            = process_chunk(std::move(*chunk), start_variant, processor);
+            !result)
         {
-            auto variant = chunk->col(variant_idx);
-
-            VariantStats stats = processor.process_variant(variant);
-
-            data.col(global_variant_idx) = variant;
-
-            // Store statistics
-            means.push_back(stats.mean);
-            variances.push_back(stats.variance);
-
-            if (stats.is_monomorphic)
-            {
-                monomorphic_indices.push_back(global_variant_idx);
-            }
-
-            ++global_variant_idx;
+            return std::unexpected(result.error());
         }
 
         start_variant = end_variant;
     }
+    pbar->done();
 
-    // Convert statistics to Eigen vectors
-    Eigen::VectorXd mean_vec
-        = Eigen::Map<Eigen::VectorXd>(means.data(), means.size());
-    Eigen::VectorXd variance_vec
-        = Eigen::Map<Eigen::VectorXd>(variances.data(), variances.size());
-
-    // Convert monomorphic indices to set
-    std::unordered_set<int64_t> mono_set(
-        monomorphic_indices.begin(), monomorphic_indices.end());
-
-    return GenotypeMatrix::create(
-        std::move(data),
-        std::move(mono_set),
-        std::move(mean_vec),
-        std::move(variance_vec));
+    return finalize();
 }
 
+template <VariantProcessor Processor>
+auto GenotypeLoader::process_chunk(
+    Eigen::MatrixXd&& chunk,
+    Eigen::Index global_start,
+    Processor& processor) -> std::expected<void, Error>
+{
+    Eigen::MatrixXd matrix = std::move(chunk);
+    const int64_t num_variants_in_chunk = matrix.cols();
+
+    for (Eigen::Index variant_idx = 0; variant_idx < num_variants_in_chunk;
+         ++variant_idx)
+    {
+        global_snp_idx_++;
+        const Eigen::Index global_idx = global_start + variant_idx;
+        auto variant = matrix.col(variant_idx);
+
+        VariantStats stats = processor.process_variant(variant);
+
+        // Store processed variant in data matrix
+        data_matrix_.col(global_idx) = variant;
+
+        // Store statistics
+        means_.push_back(stats.mean);
+        variances_.push_back(stats.variance);
+
+        if (stats.is_monomorphic)
+        {
+            monomorphic_indices_.push_back(static_cast<int64_t>(global_idx));
+        }
+    }
+
+    return {};
+}
 }  // namespace gelex

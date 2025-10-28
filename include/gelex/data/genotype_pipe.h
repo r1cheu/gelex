@@ -14,6 +14,7 @@
 #include "../src/data/snp_stats_writer.h"
 #include "../src/estimator/bayes/indicator.h"
 #include "gelex/data/bed_pipe.h"
+#include "gelex/data/genotype_mmap.h"
 #include "gelex/data/sample_manager.h"
 #include "gelex/error.h"
 #include "gelex/logger.h"
@@ -70,7 +71,7 @@ class GenotypePipe
 
     // Template method for processing with different strategies
     template <VariantProcessor Processor = StandardizingProcessor>
-    auto process(size_t chunk_size = 10000) -> std::expected<void, Error>
+    auto process(size_t chunk_size = 10000) -> std::expected<GenotypeMap, Error>
     {
         auto logger = gelex::logging::get();
         global_snp_idx_ = 0;
@@ -111,13 +112,6 @@ class GenotypePipe
         pbar->done();
 
         return finalize();
-    }
-
-    const std::vector<double>& means() const noexcept { return means_; }
-    const std::vector<double>& variances() const noexcept { return variances_; }
-    const std::vector<int64_t>& monomorphic_indices() const noexcept
-    {
-        return monomorphic_indices_;
     }
 
     Eigen::Index num_samples() const noexcept { return sample_size_; }
@@ -167,7 +161,7 @@ class GenotypePipe
         return {};
     }
 
-    auto finalize() -> std::expected<void, Error>;
+    auto finalize() -> std::expected<GenotypeMap, Error>;
 
     BedPipe bed_pipe_;
     bool dominant_{false};
