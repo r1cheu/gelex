@@ -50,7 +50,7 @@ auto RR::operator()(
         const double v = col_norm + residual_over_var;
         const double inv_v = 1.0 / v;
 
-        const double rhs = col.dot(y_adj) + (col_norm * old_i);
+        const double rhs = mkl_ddot(col, y_adj) + (col_norm * old_i);
         const double post_mean = rhs * inv_v;
         const double post_stddev = sqrt_residual_variance * std::sqrt(inv_v);
 

@@ -58,7 +58,7 @@ auto RRD::operator()(
         const double v = col_norm + (residual_variance / old_marker_variance);
 
         // calculate the candidate posterior mean
-        const double rhs = col.dot(y_adj) + (col_norm * old_i);
+        const double rhs = mkl_ddot(col, y_adj) + (col_norm * old_i);
         const double post_mean = rhs / v;
         const double post_stddev = std::sqrt(residual_variance / v);
 

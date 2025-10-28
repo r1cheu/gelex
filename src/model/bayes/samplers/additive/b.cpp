@@ -53,7 +53,7 @@ auto B::operator()(
         const auto& col = design_matrix.col(i);
         const double variance_i = marker_variance(i);
 
-        double rhs = col.dot(y_adj);
+        double rhs = mkl_ddot(col, y_adj);
         if (old_i != 0.0)
         {
             rhs += col_norm * old_i;

@@ -49,7 +49,7 @@ auto A::operator()(
             = 1 / (col_norm + residual_variance / sigma(i));
 
         // calculate the posterior mean and standard deviation
-        const double rhs = col.dot(y_adj) + (col_norm * old_i);
+        const double rhs = mkl_ddot(col, y_adj) + (col_norm * old_i);
         const double post_mean = rhs * percision_kernel;
         const double post_stddev = sqrt(residual_variance * percision_kernel);
 

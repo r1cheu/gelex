@@ -56,7 +56,7 @@ auto C::operator()(
         const double old_i = coeffs(i);
         const auto& col = design_matrix.col(i);
 
-        double rhs = col.dot(y_adj);
+        double rhs = mkl_ddot(col, y_adj);
         if (old_i != 0.0)
         {
             rhs += col_norm * old_i;
