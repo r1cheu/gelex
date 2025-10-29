@@ -80,7 +80,7 @@ auto PriorManager::set_dominant_ratio_prior(
 
     const auto& freq_p_2 = bayes::get_means(model.additive()->design_matrix);
 
-    dom_eff->wj = (1 - freq_p_2.array()).matrix();
+    dom_eff->w = (1 - freq_p_2.array()).matrix();
     dom_eff->ratio_mean = mu;
     dom_eff->ratio_variance = variance;
     return {};

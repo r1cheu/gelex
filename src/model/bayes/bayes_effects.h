@@ -159,10 +159,13 @@ struct DominantEffect
     explicit DominantEffect(GenotypeStorage&& design_matrix);
 
     GenotypeStorage design_matrix;
-    Eigen::VectorXd wj;  // freq_q - freq_p
+    Eigen::VectorXd w;  // freq_q - freq_p
 
     double ratio_mean{};
     double ratio_variance{};
+
+    detail::NormalParams mean_prior{0.2, 1};
+    detail::ScaledInvChiSqParams var_prior{4, 0};
 
     bool is_monomorphic(Eigen::Index snp_index) const;
     Eigen::Index num_mono() const;

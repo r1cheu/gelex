@@ -184,6 +184,7 @@ void MCMC<TraitSampler>::update_indicators(
     {
         indicator.update(chain, sigma_squared("_dom"), state->variance);
         indicator.update(chain, h2("_dom"), state->heritability);
+        indicator.update(chain, "d/|a|", state->ratios.mean());
     }
 
     // Update residual indicators

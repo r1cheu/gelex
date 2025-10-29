@@ -1,4 +1,5 @@
 #include "dominant.h"
+#include <iostream>
 #include <random>
 #include <ranges>
 
@@ -7,6 +8,7 @@
 #include "../bayes_effects.h"
 #include "../src/utils/math_utils.h"
 #include "gelex/model/bayes/model.h"
+#include "model/bayes/samplers/additive/common_op.h"
 
 namespace gelex::detail::DominantSampler
 {
@@ -29,20 +31,20 @@ auto Coeff::operator()(
     const double residual_variance = residual.variance;
 
     VectorXd& coeffs = dom_state->coeffs;
-    VectorXd& dom_ratio = dom_state->ratios;
     VectorXd& u = dom_state->u;
-    const VectorXd& add_coeff = add_state->coeffs;
+    const VectorXd& add_coeffs = add_state->coeffs;
+    const VectorXd& w = dom_effect->w;
 
-    const double ratio_percision = 1 / dom_state->ratio_variance;
-    const double e_over_ratio_var = residual_variance * ratio_percision;
+    const double ratio_mean = dom_effect->ratio_mean;
+    const double ratio_var = dom_state->ratio_variance;
 
     const auto& design_matrix
         = bayes::get_matrix_ref(dom_effect->design_matrix);
     const auto col_norm = static_cast<double>(design_matrix.rows() - 1);
-
-    const VectorXd scaled_cols_norm = col_norm * add_coeff.array().square();
+    auto& ratios = dom_state->ratios;
 
     std::normal_distribution<double> normal{0, 1};
+    std::uniform_real_distribution<double> uniform(0.0, 1.0);
 
     for (Index i : std::views::iota(0, coeffs.size()))
     {
@@ -52,49 +54,101 @@ auto Coeff::operator()(
         }
 
         const double old_i = coeffs(i);
-        const double old_add_i = add_coeff(i);
+        const double add_i = add_coeffs(i);
 
         // don't sample dominant if the additive effect is zero
-        if (std::abs(old_add_i) < 1e-12)
+        if (std::abs(add_i) < 1e-12)
         {
-            dom_ratio(i) = 0.0;
             coeffs(i) = 0.0;
-
             const double diff = old_i - 0.0;
             if (std::abs(diff) > 1e-12)
             {
-                const auto& col = design_matrix.col(i);
-                y_adj.array() += col.array() * diff;
-                u.array() -= col.array() * diff;
+                update_residual_and_gebv(
+                    y_adj, u, design_matrix.col(i), old_i, 0.0);
             }
             continue;
         }
 
-        const double old_ratio_i = dom_ratio(i);
         const auto& col = design_matrix.col(i);
-        const double norm = scaled_cols_norm(i);
 
-        const double v = norm + e_over_ratio_var;
+        const double residual_over_var
+            = residual_variance / (ratio_var * add_i * add_i);
+        const double v = col_norm + residual_over_var;
 
-        const double rhs = (std::abs(old_add_i) * col.dot(y_adj))
-                           + (norm * old_ratio_i)
-                           + (dom_state->ratio_mean * e_over_ratio_var);
+        const double rhs = (col.dot(y_adj)) + (col_norm * old_i)
+                           + (std::abs(add_i) * ratio_mean * residual_over_var);
 
         const double post_mean = rhs / v;
         const double post_stddev = std::sqrt(residual_variance / v);
+        auto [cdf_0, pos_prob] = get_pos(w(i), add_i, post_mean, post_stddev);
+        std::bernoulli_distribution bernoulli_dist(pos_prob);
 
-        const double new_ratio_i = (normal(rng) * post_stddev) + post_mean;
-        const double new_i = new_ratio_i * std::abs(old_add_i);
-        dom_ratio(i) = new_ratio_i;
-        coeffs(i) = new_i;
+        double new_i = 0;
 
-        const double diff = old_i - new_i;
-        if (std::abs(diff) > 1e-12)
+        if (bernoulli_dist(rng))
         {
-            y_adj.array() += col.array() * diff;
-            u.array() -= col.array() * diff;
+            std::uniform_real_distribution<double>(cdf_0, 1);
+            double q = uniform(rng);
+            new_i = inverse_of_normal_cdf(q, post_mean, post_stddev);
         }
+        else
+        {
+            std::uniform_real_distribution<double>(0, cdf_0);
+            double q = uniform(rng);
+            new_i = inverse_of_normal_cdf(q, post_mean, post_stddev);
+        }
+
+        coeffs(i) = new_i;
+        update_residual_and_gebv(y_adj, u, col, old_i, new_i);
+        ratios(i) = new_i / std::abs(add_i);
     }
+
     dom_state->variance = detail::var(dom_state->u)(0);
+}
+
+auto RatioMean::operator()(
+    const BayesModel& model,
+    BayesState& states,
+    std::mt19937_64& rng) const -> void
+{
+    const auto* effect = model.dominant();
+    auto* state = states.dominant();
+
+    auto num_coeffs = static_cast<double>(
+        bayes::get_cols(effect->design_matrix)
+        - bayes::num_mono_variant(effect->design_matrix));
+    const double ratio_var = state->ratio_variance;
+
+    const auto& mean_prior = effect->mean_prior;
+
+    const double post_stddev
+        = std::sqrt(ratio_var / (ratio_var / mean_prior.var + num_coeffs));
+
+    const double post_mean
+        = (mean_prior.mean * (ratio_var / mean_prior.var) + state->ratios.sum())
+          / (ratio_var / mean_prior.var + num_coeffs);
+
+    std::normal_distribution<double> normal{0, 1};
+    state->ratio_mean = post_mean + post_stddev * normal(rng);
+}
+
+auto RatioVar::operator()(
+    const BayesModel& model,
+    BayesState& states,
+    std::mt19937_64& rng) const -> void
+{
+    const auto* effect = model.dominant();
+    auto* state = states.dominant();
+
+    detail::ScaledInvChiSq dist(effect->var_prior);
+
+    const double sum_of_squared_errors
+        = (state->ratios.array() - state->ratio_mean).square().sum();
+
+    const auto num_coeffs
+        = (bayes::get_cols(effect->design_matrix)
+           - bayes::num_mono_variant(effect->design_matrix));
+    dist.compute(sum_of_squared_errors, num_coeffs);
+    state->ratio_variance = dist(rng);
 }
 }  // namespace gelex::detail::DominantSampler

@@ -6,7 +6,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Eigen/Core"
+#include <Eigen/Core>
+
 #include "gelex/barkeep.h"
 
 namespace gelex

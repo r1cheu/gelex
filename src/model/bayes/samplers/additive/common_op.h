@@ -1,13 +1,15 @@
 #pragma once
 
 #include <cassert>
+#include <cmath>
 
 #include <mkl.h>
 
 #include <Eigen/Core>
-#include <cmath>
 
-namespace gelex::detail::AdditiveSampler
+#include "utils/math_utils.h"
+
+namespace gelex::detail
 {
 
 struct LikelihoodParams
@@ -121,4 +123,32 @@ inline auto compute_posterior_params(
     return compute_posterior_params_core(
         rhs, col_norm, residual_variance, res_over_marker_var);
 }
-}  // namespace gelex::detail::AdditiveSampler
+
+inline double sign(double x)
+{
+    return (x > 0.0) ? 1.0 : -1.0;
+}
+
+inline auto g_ad(double w_j, double a, double d) -> double
+{
+    if (std::abs(w_j) < 1e-12)
+    {
+        return 0.5;
+    }
+    return (1 - w_j * sign(a) * sign(d)) / 2;
+};
+
+inline auto get_pos(double w_j, double x, double mu, double stddev)
+    -> std::pair<double, double>
+{
+    double cdf_0 = normal_cdf(0, mu, stddev);
+
+    double is_pos = g_ad(w_j, 1, x);
+    double is_neg = g_ad(w_j, -1, x);
+
+    return {
+        cdf_0,
+        (is_pos * (1 - cdf_0)) / (is_pos * (1 - cdf_0) + is_neg * cdf_0)};
+}
+
+}  // namespace gelex::detail

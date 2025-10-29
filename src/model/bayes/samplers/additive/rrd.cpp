@@ -32,6 +32,7 @@ auto RRD::operator()(
     VectorXd& coeff = add_state->coeffs;
     const VectorXd& dom_coeff = dom_state->coeffs;
     VectorXd& u = add_state->u;
+    const VectorXd& w = dom_effect->w;
 
     const double dom_ratio_mean = dom_effect->ratio_mean;
     const double dom_ratio_var = dom_state->ratio_variance;
@@ -62,7 +63,23 @@ auto RRD::operator()(
         const double post_mean = rhs / v;
         const double post_stddev = std::sqrt(residual_variance / v);
 
-        const double cand_i = (normal(rng) * post_stddev) + post_mean;
+        auto [cdf_0, pos_prob] = get_pos(w(i), dom_i, post_mean, post_stddev);
+        std::bernoulli_distribution bernoulli_dist(pos_prob);
+
+        double cand_i = 0;
+
+        if (bernoulli_dist(rng))
+        {
+            std::uniform_real_distribution<double>(cdf_0, 1);
+            double q = uniform(rng);
+            cand_i = inverse_of_normal_cdf(q, post_mean, post_stddev);
+        }
+        else
+        {
+            std::uniform_real_distribution<double>(0, cdf_0);
+            double q = uniform(rng);
+            cand_i = inverse_of_normal_cdf(q, post_mean, post_stddev);
+        }
 
         auto h = [&](double coeff_i)
         {

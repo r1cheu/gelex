@@ -1,6 +1,5 @@
 #include "gelex/data/genotype_mmap.h"
 
-#include <cstdint>
 #include <filesystem>
 #include <fstream>
 
