@@ -4,42 +4,36 @@
 
 #include <Eigen/Core>
 
-#include "../../bayes_effects.h"
-#include "../src/utils/math_utils.h"
-#include "gelex/model/bayes/model.h"
-#include "model/bayes/samplers/additive/common_op.h"
+#include "model/bayes/samplers/common_op.h"
+#include "types/bayes_effects.h"
 
-namespace gelex::detail::AdditiveSampler
+namespace gelex::detail::MH
 {
 using Eigen::Index;
 using Eigen::VectorXd;
 using Eigen::VectorXi;
 
-auto RRD::operator()(
-    const BayesModel& model,
-    BayesState& states,
-    std::mt19937_64& rng) const -> void
+auto RRD(
+    const bayes::AdditiveEffect& add_effect,
+    bayes::AdditiveState& add_state,
+    const bayes::DominantEffect& dom_effect,
+    bayes::DominantState& dom_state,
+    bayes::ResidualState& residual,
+    std::mt19937_64& rng) -> void
 {
-    const auto* add_effect = model.additive();
-    auto* add_state = states.additive();
-    auto& residual = states.residual();
-    const auto* dom_effect = model.dominant();
-    auto* dom_state = states.dominant();
-
     auto& y_adj = residual.y_adj;
     const double residual_variance = residual.variance;
 
-    VectorXd& coeff = add_state->coeffs;
-    const VectorXd& dom_coeff = dom_state->coeffs;
-    VectorXd& u = add_state->u;
-    const VectorXd& w = dom_effect->w;
+    VectorXd& coeff = add_state.coeffs;
+    const VectorXd& dom_coeff = dom_state.coeffs;
+    VectorXd& u = add_state.u;
+    const VectorXd& w = dom_effect.w;
 
-    const double dom_ratio_mean = dom_effect->ratio_mean;
-    const double dom_ratio_var = dom_state->ratio_variance;
+    const double dom_ratio_mean = dom_effect.ratio_mean;
+    const double dom_ratio_var = dom_state.ratio_variance;
 
-    const double old_marker_variance = add_state->marker_variance(0);
-    const auto& design_matrix
-        = bayes::get_matrix_ref(add_effect->design_matrix);
+    const double old_marker_variance = add_state.marker_variance(0);
+    const auto& design_matrix = bayes::get_matrix_ref(add_effect.design_matrix);
     const auto col_norm = static_cast<double>(design_matrix.rows() - 1);
 
     std::normal_distribution<double> normal{0, 1};
@@ -47,7 +41,7 @@ auto RRD::operator()(
 
     for (Index i = 0; i < coeff.size(); ++i)
     {
-        if (add_effect->is_monomorphic(i))
+        if (add_effect.is_monomorphic(i))
         {
             continue;
         }
@@ -104,13 +98,13 @@ auto RRD::operator()(
             update_residual_and_gebv(y_adj, u, col, old_i, cand_i);
         }
     }
-    add_state->variance = detail::var(add_state->u)(0);
+    add_state.variance = detail::var(add_state.u)(0);
 
-    detail::ScaledInvChiSq chi_squared{add_effect->prior};
+    detail::ScaledInvChiSq chi_squared{add_effect.marker_variance_prior};
     chi_squared.compute(
-        add_state->coeffs.squaredNorm(),
-        add_state->coeffs.size() - add_effect->num_mono());
-    add_state->marker_variance(0) = chi_squared(rng);
+        add_state.coeffs.squaredNorm(),
+        add_state.coeffs.size() - add_effect.num_mono());
+    add_state.marker_variance(0) = chi_squared(rng);
 }
 
-}  // namespace gelex::detail::AdditiveSampler
+}  // namespace gelex::detail::MH

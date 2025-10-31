@@ -7,7 +7,7 @@
 #pragma once
 #include <Eigen/Core>
 
-#include "gelex/estimator/bayes/samples.h"
+#include "gelex/types/mcmc_samples.h"
 
 namespace gelex
 {

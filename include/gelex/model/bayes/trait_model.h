@@ -55,8 +55,28 @@ using BayesR = TraitBasicDefault<detail::AdditiveSampler::R, detail::Pi::Pi>;
 
 using BayesRRD = TraitBasicDefault<
     detail::AdditiveSampler::RRD,
-    detail::DominantSampler::Coeff,
-    detail::DominantSampler::RatioMean,
-    detail::DominantSampler::RatioVar>;
+    detail::DominantSampler::RR>;
+
+using BayesAd
+    = TraitBasicDefault<detail::AdditiveSampler::A, detail::DominantSampler::A>;
+
+using BayesBD
+    = TraitBasicDefault<detail::AdditiveSampler::B, detail::DominantSampler::B>;
+
+using BayesBdpi = TraitBasicDefault<
+    detail::AdditiveSampler::B,
+    detail::Pi::Pi,
+    detail::DominantSampler::B>;
+
+using BayesCd
+    = TraitBasicDefault<detail::AdditiveSampler::C, detail::DominantSampler::C>;
+
+using BayesCdpi = TraitBasicDefault<
+    detail::AdditiveSampler::C,
+    detail::Pi::Pi,
+    detail::DominantSampler::C>;
+
+using BayesRd
+    = TraitBasicDefault<detail::AdditiveSampler::R, detail::DominantSampler::R>;
 
 }  // namespace gelex

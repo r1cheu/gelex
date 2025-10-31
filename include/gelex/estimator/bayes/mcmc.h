@@ -16,10 +16,10 @@
 #include "../src/utils/formatter.h"
 #include "estimator/bayes/posterior_calculator.h"
 #include "gelex/estimator/bayes/params.h"
-#include "gelex/estimator/bayes/result.h"
-#include "gelex/estimator/bayes/samples.h"
 #include "gelex/logger.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/types/mcmc_results.h"
+#include "gelex/types/mcmc_samples.h"
 
 namespace gelex
 {

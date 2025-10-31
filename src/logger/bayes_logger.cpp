@@ -58,18 +58,22 @@ void MCMCLogger::log_model_information(const BayesModel& model)
     if (const auto* effect = model.additive(); effect != nullptr)
     {
         logger_->info(
-            "  add: {}", sigma_prior("", effect->prior.nu, effect->prior.s2));
+            "  add: {}",
+            sigma_prior(
+                "",
+                effect->marker_variance_prior.nu,
+                effect->marker_variance_prior.s2));
 
-        if (effect->pi.size() > 1)
+        if (effect->init_pi && effect->init_pi->size() > 1)
         {
             std::string pi_str = "  π: [";
-            for (Eigen::Index i = 0; i < effect->pi.size(); ++i)
+            for (Eigen::Index i = 0; i < effect->init_pi->size(); ++i)
             {
                 if (i > 0)
                 {
                     pi_str += ", ";
                 }
-                pi_str += fmt::format("{:.4f}", effect->pi(i));
+                pi_str += fmt::format("{:.4f}", (*effect->init_pi)(i));
             }
             pi_str += "]";
             logger_->info(pi_str);
@@ -152,13 +156,14 @@ void MCMCLogger::log_result(const MCMCResult& results, const BayesModel& model)
     }
 
     if (const auto* effect = model.additive();
-        effect != nullptr && effect->pi.size() > 1)
+        effect != nullptr && effect->init_pi && effect->init_pi->size() > 1)
     {
-        if (const auto* pi_result = results.pi(); pi_result != nullptr)
+        if (const auto* additive_result = results.additive();
+            additive_result != nullptr && additive_result->prop.size() > 0)
         {
-            for (Eigen::Index i = 0; i < pi_result->prop.size(); ++i)
+            for (Eigen::Index i = 0; i < additive_result->prop.size(); ++i)
             {
-                log_summary(i, pi_result->prop, fmt::format("π[{}]", i));
+                log_summary(i, additive_result->prop, fmt::format("π[{}]", i));
             }
         }
     }

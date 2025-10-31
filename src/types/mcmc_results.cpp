@@ -1,4 +1,4 @@
-#include "gelex/estimator/bayes/result.h"
+#include "gelex/types/mcmc_results.h"
 
 #include <optional>
 #include <ranges>
@@ -21,7 +21,7 @@ MCMCResult::MCMCResult(
     : samples_(std::move(samples)),
       residual_(1),
       prob_(prob),
-      phenotype_var_(model.phenotype_var())
+      phenotype_var_(model.phenotype_variance())
 {
     if (const auto* effect = model.additive(); effect)
     {
@@ -52,16 +52,6 @@ MCMCResult::MCMCResult(
     if (const auto* sample = samples_.dominant(); sample)
     {
         dominant_.emplace(*sample);
-    }
-
-    if (const auto* sample = samples_.pi(); sample)
-    {
-        pi_.emplace(*sample);
-    }
-
-    if (const auto* sample = samples_.snp_tracker(); sample)
-    {
-        snp_tracker_.emplace(*sample);
     }
 }
 
@@ -121,27 +111,8 @@ void MCMCResult::compute(std::optional<double> prob)
             phenotype_var_);
     }
 
-    if (const auto* sample = samples_.pi(); pi_ && sample != nullptr)
-    {
-        pi_->prop = detail::PosteriorCalculator::compute_param_summary(
-            sample->prop, prob_);
-    }
-
-    if (const auto* sample = samples_.snp_tracker();
-        snp_tracker_ && sample != nullptr)
-    {
-        if (const auto* pi_sample = samples_.pi(); pi_sample)
-        {
-            const Eigen::Index n_components = pi_sample->prop[0].rows();
-            snp_tracker_->comp_probs
-                = detail::PosteriorCalculator::compute_component_probs(
-                    sample->tracker, n_components);
-            snp_tracker_->pip
-                = snp_tracker_->comp_probs.rightCols(n_components - 1)
-                      .rowwise()
-                      .sum();
-        }
-    }
+    // pi and snp_tracker functionality is now handled within AdditiveSummary
+    // and DominantSummary
 
     residual_ = detail::PosteriorCalculator::compute_param_summary(
         samples_.residual().variance, prob_);

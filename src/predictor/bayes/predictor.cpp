@@ -1,7 +1,7 @@
 #include "gelex/predictor/bayes/predictor.h"
 
-#include "gelex/estimator/bayes/result.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/types/mcmc_results.h"
 
 namespace gelex
 {

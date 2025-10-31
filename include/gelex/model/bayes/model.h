@@ -4,15 +4,13 @@
 #include <string>
 #include <vector>
 
-#include <fmt/format.h>
 #include <Eigen/Core>
 
-#include "../src/model/bayes/bayes_effects.h"
 #include "gelex/data/data_pipe.h"
 #include "gelex/data/genotype_matrix.h"
 #include "gelex/data/genotype_mmap.h"
 #include "gelex/error.h"
-#include "gelex/model/effects.h"
+#include "types/bayes_effects.h"
 
 namespace gelex
 {
@@ -29,8 +27,7 @@ namespace gelex
 class BayesModel
 {
    public:
-    static auto create(DataPipe& data_pipe, BayesAlphabet alphabet)
-        -> std::expected<BayesModel, Error>;
+    static auto create(DataPipe& data_pipe) -> std::expected<BayesModel, Error>;
 
     void add_additive(GenotypeMap&& matrix);
     void add_additive(GenotypeMatrix&& matrix);
@@ -73,14 +70,11 @@ class BayesModel
 
     const Eigen::VectorXd& phenotype() const { return phenotype_; }
 
-    double phenotype_var() const { return phenotype_var_; }
+    double phenotype_variance() const { return phenotype_var_; }
     Eigen::Index num_individuals() const { return num_individuals_; }
 
-    BayesAlphabet alphabet() const { return alphabet_; }
-    bool is_mixture_model() const { return gelex::is_mixture_model(alphabet_); }
-
    private:
-    explicit BayesModel(Eigen::VectorXd&& phenotype, BayesAlphabet alphabet);
+    explicit BayesModel(Eigen::VectorXd&& phenotype);
 
     void add_fixed_effect(
         std::vector<std::string>&& levels,
@@ -88,18 +82,17 @@ class BayesModel
     void add_random_effect(
         std::vector<std::string>&& levels,
         Eigen::MatrixXd&& design_matrix);
+
     Eigen::Index num_individuals_{};
+    double phenotype_var_{};
 
     Eigen::VectorXd phenotype_;
-    double phenotype_var_{};
 
     std::optional<bayes::FixedEffect> fixed_;
     std::vector<bayes::RandomEffect> random_;
     std::optional<bayes::AdditiveEffect> additive_;
     std::optional<bayes::DominantEffect> dominant_;
     bayes::Residual residual_;
-
-    BayesAlphabet alphabet_;
 };
 
 class BayesState

@@ -1,9 +1,62 @@
 #pragma once
 
-// Convenience header to include all additive samplers
-#include "additive/a.h"
-#include "additive/b.h"
-#include "additive/c.h"
-#include "additive/r.h"
-#include "additive/rr.h"
-#include "additive/rrd.h"
+#include <random>
+
+namespace gelex
+{
+class BayesModel;
+class BayesState;
+}  // namespace gelex
+
+namespace gelex::detail::AdditiveSampler
+{
+
+struct A
+{
+    auto operator()(
+        const BayesModel& model,
+        BayesState& states,
+        std::mt19937_64& rng) const -> void;
+};
+
+struct B
+{
+    auto operator()(
+        const BayesModel& model,
+        BayesState& states,
+        std::mt19937_64& rng) const -> void;
+};
+
+struct C
+{
+    auto operator()(
+        const BayesModel& model,
+        BayesState& states,
+        std::mt19937_64& rng) const -> void;
+};
+
+struct R
+{
+    auto operator()(
+        const BayesModel& model,
+        BayesState& states,
+        std::mt19937_64& rng) const -> void;
+};
+
+struct RR
+{
+    auto operator()(
+        const BayesModel& model,
+        BayesState& states,
+        std::mt19937_64& rng) const -> void;
+};
+
+struct RRD
+{
+    auto operator()(
+        const BayesModel& model,
+        BayesState& states,
+        std::mt19937_64& rng) const -> void;
+};
+
+}  // namespace gelex::detail::AdditiveSampler

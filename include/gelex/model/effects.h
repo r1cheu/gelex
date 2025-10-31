@@ -26,6 +26,13 @@ enum class BayesAlphabet : uint8_t
     C,
     Cpi,
     R,
+    Ad,
+    RRd,
+    Bd,
+    Bdpi,
+    Cd,
+    Cdpi,
+    Rd,
 };
 
 inline std::optional<BayesAlphabet> get_bayesalphabet(std::string_view sv)
@@ -39,6 +46,13 @@ inline std::optional<BayesAlphabet> get_bayesalphabet(std::string_view sv)
             {"C", BayesAlphabet::C},
             {"Cpi", BayesAlphabet::Cpi},
             {"R", BayesAlphabet::R},
+            {"Ad", BayesAlphabet::Ad},
+            {"RRd", BayesAlphabet::RRd},
+            {"Bd", BayesAlphabet::Bd},
+            {"Bdpi", BayesAlphabet::Bdpi},
+            {"Cd", BayesAlphabet::Cd},
+            {"Cdpi", BayesAlphabet::Cdpi},
+            {"Rd", BayesAlphabet::Rd},
         };
 
     auto it = stringToEnumMap.find(sv);
@@ -50,78 +64,4 @@ inline std::optional<BayesAlphabet> get_bayesalphabet(std::string_view sv)
     return std::nullopt;
 }
 
-inline bool is_mixture_model(BayesAlphabet alphabet)
-{
-    switch (alphabet)
-    {
-        case BayesAlphabet::B:
-        case BayesAlphabet::Bpi:
-        case BayesAlphabet::C:
-        case BayesAlphabet::Cpi:
-        case BayesAlphabet::R:
-            return true;
-        case BayesAlphabet::A:
-        case BayesAlphabet::RR:
-            return false;
-    }
-    return false;
-}
-
-inline int get_mixture_components(BayesAlphabet alphabet)
-{
-    switch (alphabet)
-    {
-        case BayesAlphabet::B:
-        case BayesAlphabet::Bpi:
-        case BayesAlphabet::C:
-        case BayesAlphabet::Cpi:
-            return 2;
-        case BayesAlphabet::R:
-            return 5;
-        case BayesAlphabet::A:
-        case BayesAlphabet::RR:
-            return 1;
-    }
-    return 1;
-}
-
 }  // namespace gelex
-
-namespace fmt
-{
-template <>
-struct formatter<gelex::BayesAlphabet> : formatter<string_view>
-{
-    auto format(gelex::BayesAlphabet t, format_context& ctx) const
-        -> format_context::iterator
-    {
-        string_view name = "unknown";
-        switch (t)
-        {
-            case gelex::BayesAlphabet::A:
-                name = "BayesA";
-                break;
-            case gelex::BayesAlphabet::RR:
-                name = "BayesRR";
-                break;
-            case gelex::BayesAlphabet::B:
-                name = "BayesB";
-                break;
-            case gelex::BayesAlphabet::Bpi:
-                name = "BayesBpi";
-                break;
-            case gelex::BayesAlphabet::C:
-                name = "BayesC";
-                break;
-            case gelex::BayesAlphabet::Cpi:
-                name = "BayesCpi";
-                break;
-            case gelex::BayesAlphabet::R:
-                name = "BayesR";
-                break;
-        }
-        return formatter<string_view>::format(name, ctx);
-    }
-};
-
-}  // namespace fmt

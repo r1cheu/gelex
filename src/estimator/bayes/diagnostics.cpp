@@ -6,7 +6,7 @@
 #include <unsupported/Eigen/FFT>
 
 #include "../src/utils/math_utils.h"
-#include "gelex/estimator/bayes/samples.h"
+#include "gelex/types/mcmc_samples.h"
 
 namespace gelex
 {

@@ -5,7 +5,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/estimator/bayes/result.h"
+#include "gelex/types/mcmc_results.h"
 
 namespace gelex
 {

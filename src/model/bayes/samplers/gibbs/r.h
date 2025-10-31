@@ -1,56 +1,47 @@
-#include "r.h"
+#pragma once
 
 #include <random>
-#include <ranges>
 
-#include <Eigen/Core>
+#include "gibbs_concept.h"
+#include "model/bayes/samplers/common_op.h"
+#include "types/bayes_effects.h"
 
-#include "../../bayes_effects.h"
-
-#include "../src/utils/math_utils.h"
-#include "gelex/model/bayes/model.h"
-#include "model/bayes/samplers/additive/common_op.h"
-
-namespace gelex::detail::AdditiveSampler
+namespace gelex::detail::Gibbs
 {
-using Eigen::Index;
-using Eigen::VectorXd;
-using Eigen::VectorXi;
 
-auto R::operator()(
-    const BayesModel& model,
-    BayesState& states,
-    std::mt19937_64& rng) const -> void
+template <typename EffectT, typename StateT>
+    requires IsValidEffectStatePair<EffectT, StateT>
+auto R(
+    const EffectT& effect,
+    StateT& state,
+    bayes::ResidualState& residual,
+    std::mt19937_64& rng) -> void
 {
-    const auto* effect = model.additive();
-    auto* state = states.additive();
-    auto& residual = states.residual();
-
     auto& y_adj = residual.y_adj;
     const double residual_variance = residual.variance;
 
-    const VectorXd logpi = state->pi.prop.array().log();
+    const Eigen::VectorXd logpi = state.pi.prop.array().log();
 
-    VectorXd& coeffs = state->coeffs;
-    auto& u = state->u;
-    const VectorXd marker_variances
-        = state->marker_variance(0) * effect->scale.array();
-    const Index num_components = marker_variances.size();
-    VectorXi& tracker = state->tracker;
+    Eigen::VectorXd& coeffs = state.coeffs;
+    auto& u = state.u;
+    const Eigen::VectorXd marker_variances
+        = state.marker_variance(0) * effect.scale->array();
+    const Eigen::Index num_components = marker_variances.size();
+    Eigen::VectorXi& tracker = state.tracker;
 
-    const auto& design_matrix = bayes::get_matrix_ref(effect->design_matrix);
+    const auto& design_matrix = bayes::get_matrix_ref(effect.design_matrix);
     const auto col_norm = static_cast<double>(design_matrix.rows() - 1);
 
     std::normal_distribution<double> normal{0, 1};
 
-    VectorXd log_likelihoods(num_components);
-    VectorXd probs(num_components);
+    Eigen::VectorXd log_likelihoods(num_components);
+    Eigen::VectorXd probs(num_components);
     std::vector<LikelihoodParams> likelihood_params(num_components);
 
     double sum_square_coeffs{};
-    for (const Index i : std::views::iota(0, coeffs.size()))
+    for (Eigen::Index i = 0; i < coeffs.size(); ++i)
     {
-        if (effect->is_monomorphic(i))
+        if (effect.is_monomorphic(i))
         {
             continue;
         }
@@ -97,7 +88,7 @@ auto R::operator()(
 
             new_i = (normal(rng) * post_stddev) + post_mean;
             update_residual_and_gebv(y_adj, u, col, old_i, new_i);
-            sum_square_coeffs += (new_i * new_i) / effect->scale(dist_index);
+            sum_square_coeffs += (new_i * new_i) / (*effect.scale)(dist_index);
         }
         else if (old_i != 0.0)
         {
@@ -108,15 +99,14 @@ auto R::operator()(
 
     for (int k = 0; k < num_components; ++k)
     {
-        state->pi.count(k) = static_cast<int>((tracker.array() == k).count());
+        state.pi.count(k) = static_cast<int>((tracker.array() == k).count());
     }
 
-    const Index num_nonzero = coeffs.size() - state->pi.count(0);
-    detail::ScaledInvChiSq chi_squared{effect->prior};
+    const Eigen::Index num_nonzero = coeffs.size() - state.pi.count(0);
+    detail::ScaledInvChiSq chi_squared{effect.marker_variance_prior};
     chi_squared.compute(sum_square_coeffs, num_nonzero);
-    state->marker_variance(0) = chi_squared(rng);
-
-    state->variance = detail::var(state->u)(0);
+    state.marker_variance(0) = chi_squared(rng);
+    state.variance = detail::var(state.u)(0);
 }
 
-}  // namespace gelex::detail::AdditiveSampler
+}  // namespace gelex::detail::Gibbs

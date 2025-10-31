@@ -13,7 +13,7 @@
 #include "gelex/estimator/bayes/result_writer.h"
 #include "gelex/logger.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior_manager.h"
+#include "gelex/model/bayes/prior_strategies.h"
 #include "gelex/model/bayes/trait_model.h"
 #include "gelex/model/effects.h"
 
@@ -57,14 +57,48 @@ void fit_command(argparse::ArgumentParser& cmd)
         .scan<'g', double>();
     cmd.add_argument("--scale")
         .help(
-            "variance scales for mixture components (e.g., for BayesR: --scale "
+            "variance scales for additive mixture components (e.g., for "
+            "BayesR: --scale "
             "0.0001 0.001 0.01 0.1 1.0)")
         .nargs(5)
         .scan<'g', double>();
+
+    cmd.add_argument("--pi")
+        .help("mixture proportions for additive effects (e.g., --pi 0.95 0.05)")
+        .nargs(2)
+        .scan<'g', double>();
+
+    cmd.add_argument("--dscale")
+        .help("variance scales for dominance mixture components")
+        .nargs(5)
+        .scan<'g', double>();
+
+    cmd.add_argument("--dpi")
+        .help(
+            "mixture proportions for dominance effects (e.g., --dpi 0.95 0.05)")
+        .nargs(2)
+        .scan<'g', double>();
     cmd.add_argument("-m", "--method")
-        .help("genomic prediction method: A, B(pi), C(pi), R, RR, GBLUP")
+        .help(
+            "genomic prediction method: A, Ad, B, Bpi, Bd, Bdpi, C, Cpi, Cd, "
+            "Cdpi, R, Rd, RR, RRd, GBLUP")
         .default_value("RR")
-        .choices("A", "B", "Bpi", "C", "Cpi", "R", "RR", "GBLUP")
+        .choices(
+            "A",
+            "Ad",
+            "B",
+            "Bpi",
+            "Bd",
+            "Bdpi",
+            "C",
+            "Cpi",
+            "Cd",
+            "Cdpi",
+            "R",
+            "Rd",
+            "RR",
+            "RRd",
+            "GBLUP")
         .required();
     cmd.add_argument("-o", "--out").help("output prefix").required();
     cmd.add_argument("--iid_only")
@@ -161,7 +195,7 @@ int fit_execute(argparse::ArgumentParser& fit)
     // ======================== Model Container =======================
     // ================================================================
 
-    auto model = gelex::BayesModel::create(*data_pipe, type);
+    auto model = gelex::BayesModel::create(*data_pipe);
     if (!model)
     {
         logger->error(model.error().message);
@@ -270,40 +304,157 @@ int fit_execute(argparse::ArgumentParser& fit)
     }
 
     // ================================================================
-    // ======================== Prior Manage ==========================
+    // ======================== Prior Management ======================
     // ================================================================
-    auto prior_manager = gelex::PriorManager(type);
+    auto prior_strategy = gelex::create_prior_strategy(type);
+    if (!prior_strategy)
     {
-        auto result = prior_manager.default_prior(*model);
-        if (!result)
-        {
-            logger->error(result.error().message);
-            return 1;
-        }
+        logger->error(
+            "Failed to create prior strategy for model type: {}",
+            fit.get("-m"));
+        return 1;
+    }
 
-        if (auto scale_args = fit.present<std::vector<double>>("--scale"))
-        {
-            auto scale_result = prior_manager.set_scale(*model, *scale_args);
-            if (!scale_result)
-            {
-                logger->error(scale_result.error().message);
-                return 1;
-            }
-        }
+    // Create PriorConfig from command-line arguments
+    gelex::PriorConfig prior_config;
 
-        if (fit.get<bool>("--dom"))
-        {
-            auto dom_result = prior_manager.set_dominant_ratio_prior(
-                *model,
-                fit.get<double>("--dr-mean"),
-                fit.get<double>("--dr-var"));
+    // Set default phenotype variance (this should be computed from actual data)
+    // For now, we'll use a placeholder - this should be computed from phenotype
+    // data
+    prior_config.phenotype_variance = model->phenotype_variance();
 
-            if (!dom_result)
-            {
-                logger->error(dom_result.error().message);
-                return 1;
-            }
+    // Handle additive effect parameters
+    if (auto pi_args = fit.present<std::vector<double>>("--pi"))
+    {
+        prior_config.additive.mixture_proportions
+            = Eigen::Map<const Eigen::VectorXd>(
+                pi_args->data(), pi_args->size());
+    }
+    if (auto scale_args = fit.present<std::vector<double>>("--scale"))
+    {
+        prior_config.additive.mixture_scales
+            = Eigen::Map<const Eigen::VectorXd>(
+                scale_args->data(), scale_args->size());
+    }
+
+    // Handle dominance effect parameters
+    if (auto dpi_args = fit.present<std::vector<double>>("--dpi"))
+    {
+        prior_config.dominant.mixture_proportions
+            = Eigen::Map<const Eigen::VectorXd>(
+                dpi_args->data(), dpi_args->size());
+    }
+    if (auto dscale_args = fit.present<std::vector<double>>("--dscale"))
+    {
+        prior_config.dominant.mixture_scales
+            = Eigen::Map<const Eigen::VectorXd>(
+                dscale_args->data(), dscale_args->size());
+    }
+
+    // Set default mixture proportions and scales based on model type
+    // Only set defaults if user didn't provide explicit values
+    if (!fit.present<std::vector<double>>("--pi"))
+    {
+        switch (type)
+        {
+            using bt = gelex::BayesAlphabet;
+            case bt::B:
+            case bt::Bpi:
+            case bt::Bd:
+            case bt::Bdpi:
+            case bt::C:
+            case bt::Cpi:
+            case bt::Cd:
+            case bt::Cdpi:
+                // Default for B/C models: {0.95, 0.05}
+                prior_config.additive.mixture_proportions
+                    = Eigen::Vector2d(0.95, 0.05);
+                break;
+            case bt::R:
+            case bt::Rd:
+                // Default for R models: {0.95, 0.02, 0.01, 0.01, 0.01}
+                prior_config.additive.mixture_proportions = Eigen::VectorXd(5);
+                prior_config.additive.mixture_proportions << 0.95, 0.02, 0.01,
+                    0.01, 0.01;
+                break;
+            default:
+                // For non-mixture models (A, RR, etc.), don't set pi
+                break;
         }
+    }
+
+    // Set default scales for R models if not provided
+    if (!fit.present<std::vector<double>>("--scale"))
+    {
+        switch (type)
+        {
+            using bt = gelex::BayesAlphabet;
+            case bt::R:
+            case bt::Rd:
+                // Default scales for R models: {0, 0.001, 0.01, 0.1, 1}
+                prior_config.additive.mixture_scales = Eigen::VectorXd(5);
+                prior_config.additive.mixture_scales << 0.0, 0.001, 0.01, 0.1,
+                    1.0;
+                break;
+            default:
+                // For non-R models, don't set scales
+                break;
+        }
+    }
+
+    // Set default dominance mixture proportions if not provided
+    if (!fit.present<std::vector<double>>("--dpi"))
+    {
+        switch (type)
+        {
+            using bt = gelex::BayesAlphabet;
+            case bt::Bd:
+            case bt::Bdpi:
+            case bt::Cd:
+            case bt::Cdpi:
+                // Default for dominance B/C models: {0.95, 0.05}
+                prior_config.dominant.mixture_proportions
+                    = Eigen::Vector2d(0.95, 0.05);
+                break;
+            case bt::Rd:
+                // Default for dominance R models: {0.95, 0.02, 0.01, 0.01,
+                // 0.01}
+                prior_config.dominant.mixture_proportions = Eigen::VectorXd(5);
+                prior_config.dominant.mixture_proportions << 0.95, 0.02, 0.01,
+                    0.01, 0.01;
+                break;
+            default:
+                // For non-dominance models, don't set dpi
+                break;
+        }
+    }
+
+    // Set default dominance scales for Rd models if not provided
+    if (!fit.present<std::vector<double>>("--dscale"))
+    {
+        switch (type)
+        {
+            using bt = gelex::BayesAlphabet;
+            case bt::Rd:
+                // Default scales for Rd models: {0, 0.001, 0.01, 0.1, 1}
+                prior_config.dominant.mixture_scales = Eigen::VectorXd(5);
+                prior_config.dominant.mixture_scales << 0.0, 0.001, 0.01, 0.1,
+                    1.0;
+                break;
+            default:
+                // For non-Rd models, don't set dscale
+                break;
+        }
+    }
+
+    // Apply prior configuration
+    auto prior_result = (*prior_strategy)(*model, prior_config);
+    if (!prior_result)
+    {
+        logger->error(
+            "Failed to apply prior configuration: {}",
+            prior_result.error().message);
+        return 1;
     }
 
     // ================================================================
@@ -331,11 +482,20 @@ int fit_execute(argparse::ArgumentParser& fit)
         case (bt::A):
             run_and_write(gelex::BayesA{});
             break;
+        case (bt::Ad):
+            run_and_write(gelex::BayesAd{});
+            break;
         case (bt::B):
             run_and_write(gelex::BayesB{});
             break;
         case (bt::Bpi):
             run_and_write(gelex::BayesBpi{});
+            break;
+        case (bt::Bd):
+            run_and_write(gelex::BayesBD{});
+            break;
+        case (bt::Bdpi):
+            run_and_write(gelex::BayesBdpi{});
             break;
         case (bt::C):
             run_and_write(gelex::BayesC{});
@@ -343,18 +503,23 @@ int fit_execute(argparse::ArgumentParser& fit)
         case (bt::Cpi):
             run_and_write(gelex::BayesCpi{});
             break;
-        case (bt::RR):
-            if (fit.get<bool>("--dom"))
-            {
-                run_and_write(gelex::BayesRRD{});
-            }
-            else
-            {
-                run_and_write(gelex::BayesRR{});
-            }
+        case (bt::Cd):
+            run_and_write(gelex::BayesCd{});
+            break;
+        case (bt::Cdpi):
+            run_and_write(gelex::BayesCdpi{});
             break;
         case (bt::R):
             run_and_write(gelex::BayesR{});
+            break;
+        case (bt::Rd):
+            run_and_write(gelex::BayesRd{});
+            break;
+        case (bt::RR):
+            run_and_write(gelex::BayesRR{});
+            break;
+        case (bt::RRd):
+            run_and_write(gelex::BayesRRD{});
             break;
         default:
             logger->error("Unsupported method: {}", fit.get("-m"));

@@ -9,7 +9,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "Eigen/Core"
-#include "gelex/estimator/bayes/samples.h"
+#include "gelex/types/mcmc_samples.h"
 
 using Catch::Matchers::WithinAbs;
 using Eigen::RowVectorXd;

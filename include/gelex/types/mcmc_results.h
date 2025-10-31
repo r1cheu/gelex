@@ -5,7 +5,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/estimator/bayes/samples.h"
+#include "gelex/types/mcmc_samples.h"
 
 namespace gelex
 {
@@ -21,6 +21,7 @@ struct PosteriorSummary
           rhat(Eigen::VectorXd::Zero(n_params))
     {
     }
+    PosteriorSummary() = default;
 
     Eigen::Index size() const { return mean.size(); }
 
@@ -39,8 +40,6 @@ struct FixedSummary
     {
     }
 
-    explicit FixedSummary(Eigen::Index n_coeff) : coeffs(n_coeff) {}
-
     PosteriorSummary coeffs;
 };
 
@@ -51,80 +50,53 @@ struct RandomSummary
     {
     }
 
-    RandomSummary(Eigen::Index n_coeff, Eigen::Index n_variance)
-        : coeffs(n_coeff), variance(n_variance)
-    {
-    }
-
     PosteriorSummary coeffs;
     PosteriorSummary variance;
 };
 
-struct AdditiveSummary
+struct BaseMarkerSummary
 {
-    explicit AdditiveSummary(const AdditiveSamples& samples)
+    explicit BaseMarkerSummary(const BaseMarkerSamples& samples)
         : coeffs(samples.coeffs[0].rows()),
           variance(1),
           pve(samples.coeffs[0].rows())
     {
-    }
-
-    explicit AdditiveSummary(Eigen::Index n_coeff)
-        : coeffs(n_coeff), variance(1), pve(n_coeff)
-    {
+        if (!samples.prop.empty())
+        {
+            prop = PosteriorSummary(samples.prop[0].rows());
+        }
+        if (!samples.tracker.empty())
+        {
+            pip = Eigen::VectorXd::Zero(samples.tracker[0].rows());
+            comp_probs = Eigen::MatrixXd::Zero(
+                samples.tracker[0].rows(), samples.prop[0].rows());
+        }
     }
 
     PosteriorSummary coeffs;
     PosteriorSummary variance;
     PosteriorSummary pve;
-};
-
-struct PiSummary
-{
-    explicit PiSummary(const PiSamples& samples) : prop(samples.prop[0].rows())
-    {
-    }
-
-    explicit PiSummary(Eigen::Index n_props) : prop(n_props) {}
 
     PosteriorSummary prop;
-};
-
-struct SnpTrackerSummary
-{
-    explicit SnpTrackerSummary(const SnpTrackerSamples& samples)
-        : pip(Eigen::VectorXd::Zero(samples.tracker[0].rows()))
-    {
-    }
-
-    explicit SnpTrackerSummary(Eigen::Index n_snps)
-        : pip(Eigen::VectorXd::Zero(n_snps))
-    {
-    }
-
     Eigen::VectorXd pip;         // Posterior inclusion probability
     Eigen::MatrixXd comp_probs;  // Per-component posterior probabilities
-                                 // (n_snps x n_components)
 };
 
-struct DominantSummary
+struct AdditiveSummary : BaseMarkerSummary
+{
+    explicit AdditiveSummary(const AdditiveSamples& samples)
+        : BaseMarkerSummary(samples)
+    {
+    }
+};
+
+struct DominantSummary : BaseMarkerSummary
 {
     explicit DominantSummary(const DominantSamples& samples)
-        : coeffs(samples.coeffs[0].rows()),
-          variance(1),
-          pve(samples.coeffs[0].rows()),
-          ratios(samples.coeffs[0].rows())
+        : BaseMarkerSummary(samples), ratios(samples.coeffs[0].rows())
     {
     }
 
-    explicit DominantSummary(Eigen::Index n_coeff)
-        : coeffs(n_coeff), variance(1), pve(n_coeff), ratios(n_coeff)
-    {
-    }
-
-    PosteriorSummary coeffs;
-    PosteriorSummary variance;
-    PosteriorSummary pve;
     PosteriorSummary ratios;
 };
 
@@ -160,11 +132,6 @@ class MCMCResult
         return dominant_ ? &dominant_.value() : nullptr;
     }
     const PosteriorSummary& residual() const { return residual_; }
-    const PiSummary* pi() const { return pi_ ? &pi_.value() : nullptr; }
-    const SnpTrackerSummary* snp_tracker() const
-    {
-        return snp_tracker_ ? &snp_tracker_.value() : nullptr;
-    }
 
    private:
     friend class SnpEffectsWriter;
@@ -176,8 +143,6 @@ class MCMCResult
     std::optional<AdditiveSummary> additive_;
     std::optional<DominantSummary> dominant_;
     PosteriorSummary residual_;
-    std::optional<PiSummary> pi_;
-    std::optional<SnpTrackerSummary> snp_tracker_;
 
     double prob_;
     double phenotype_var_;

@@ -3,7 +3,7 @@
 #include <Eigen/Core>
 
 #include "estimator/bayes/diagnostics.h"
-#include "gelex/estimator/bayes/samples.h"
+#include "gelex/types/mcmc_samples.h"
 
 namespace gelex::detail::PosteriorCalculator
 {

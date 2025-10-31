@@ -4,8 +4,8 @@
 #include <gelex/barkeep.h>
 #include <spdlog/logger.h>
 
-#include "gelex/estimator/bayes/result.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/types/mcmc_results.h"
 
 namespace gelex
 {

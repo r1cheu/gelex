@@ -3,7 +3,7 @@
 #include <random>
 
 #include "gelex/model/bayes/model.h"
-#include "model/bayes/bayes_effects.h"
+#include "types/bayes_effects.h"
 namespace gelex::detail::CommonSampler
 {
 

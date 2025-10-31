@@ -2,8 +2,8 @@
 
 #include <Eigen/Core>
 
-#include "gelex/estimator/bayes/result.h"
-#include "gelex/estimator/bayes/samples.h"
+#include "gelex/types/mcmc_results.h"
+#include "gelex/types/mcmc_samples.h"
 
 namespace gelex::detail
 {

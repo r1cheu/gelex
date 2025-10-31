@@ -1,14 +1,19 @@
 #include "dominant.h"
-#include <iostream>
 #include <random>
 #include <ranges>
 
 #include <Eigen/Core>
 
-#include "../bayes_effects.h"
 #include "../src/utils/math_utils.h"
 #include "gelex/model/bayes/model.h"
-#include "model/bayes/samplers/additive/common_op.h"
+#include "model/bayes/samplers/common_op.h"
+#include "types/bayes_effects.h"
+
+#include "model/bayes/samplers/gibbs/a.h"
+#include "model/bayes/samplers/gibbs/b.h"
+#include "model/bayes/samplers/gibbs/c.h"
+#include "model/bayes/samplers/gibbs/r.h"
+#include "model/bayes/samplers/gibbs/rr.h"
 
 namespace gelex::detail::DominantSampler
 {
@@ -16,6 +21,61 @@ namespace gelex::detail::DominantSampler
 using Eigen::Index;
 using Eigen::VectorXd;
 using Eigen::VectorXi;
+
+auto A::operator()(
+    const BayesModel& model,
+    BayesState& states,
+    std::mt19937_64& rng) const -> void
+{
+    const auto* effect = model.dominant();
+    auto* state = states.dominant();
+    auto& residual = states.residual();
+    Gibbs::A(*effect, *state, residual, rng);
+}
+
+auto B::operator()(
+    const BayesModel& model,
+    BayesState& states,
+    std::mt19937_64& rng) const -> void
+{
+    const auto* effect = model.dominant();
+    auto* state = states.dominant();
+    auto& residual = states.residual();
+    Gibbs::B(*effect, *state, residual, rng);
+}
+
+auto C::operator()(
+    const BayesModel& model,
+    BayesState& states,
+    std::mt19937_64& rng) const -> void
+{
+    const auto* effect = model.dominant();
+    auto* state = states.dominant();
+    auto& residual = states.residual();
+    Gibbs::C(*effect, *state, residual, rng);
+}
+
+auto R::operator()(
+    const BayesModel& model,
+    BayesState& states,
+    std::mt19937_64& rng) const -> void
+{
+    const auto* effect = model.dominant();
+    auto* state = states.dominant();
+    auto& residual = states.residual();
+    Gibbs::R(*effect, *state, residual, rng);
+}
+
+auto RR::operator()(
+    const BayesModel& model,
+    BayesState& states,
+    std::mt19937_64& rng) const -> void
+{
+    const auto* effect = model.dominant();
+    auto* state = states.dominant();
+    auto& residual = states.residual();
+    Gibbs::RR(*effect, *state, residual, rng);
+}
 
 auto Coeff::operator()(
     const BayesModel& model,

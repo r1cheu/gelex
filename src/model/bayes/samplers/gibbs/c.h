@@ -1,41 +1,33 @@
-#include "c.h"
+#pragma once
 
-#include <Eigen/Core>
-#include <cmath>
 #include <random>
-#include <ranges>
 
-#include "../../bayes_effects.h"
-#include "../src/utils/math_utils.h"
-#include "gelex/model/bayes/model.h"
-#include "model/bayes/samplers/additive/common_op.h"
+#include "gibbs_concept.h"
+#include "model/bayes/samplers/common_op.h"
+#include "types/bayes_effects.h"
 
-namespace gelex::detail::AdditiveSampler
+namespace gelex::detail::Gibbs
 {
-using Eigen::Index;
-using Eigen::VectorXd;
-using Eigen::VectorXi;
 
-auto C::operator()(
-    const BayesModel& model,
-    BayesState& states,
-    std::mt19937_64& rng) const -> void
+template <typename EffectT, typename StateT>
+    requires IsValidEffectStatePair<EffectT, StateT>
+auto C(
+    const EffectT& effect,
+    StateT& state,
+    bayes::ResidualState& residual,
+    std::mt19937_64& rng) -> void
 {
-    const auto* effect = model.additive();
-    auto* state = states.additive();
-    auto& residual = states.residual();
-
     auto& y_adj = residual.y_adj;
     const double residual_variance = residual.variance;
 
-    const VectorXd logpi = state->pi.prop.array().log();
+    const Eigen::VectorXd logpi = state.pi.prop.array().log();
 
-    VectorXd& coeffs = state->coeffs;
-    auto& u = state->u;
-    const double marker_variance = state->marker_variance(0);
-    VectorXi& tracker = state->tracker;
+    Eigen::VectorXd& coeffs = state.coeffs;
+    auto& u = state.u;
+    const double marker_variance = state.marker_variance(0);
+    Eigen::VectorXi& tracker = state.tracker;
 
-    const auto& design_matrix = bayes::get_matrix_ref(effect->design_matrix);
+    const auto& design_matrix = bayes::get_matrix_ref(effect.design_matrix);
     const auto col_norm = static_cast<double>(design_matrix.rows() - 1);
 
     std::normal_distribution<double> normal{0, 1};
@@ -46,9 +38,9 @@ auto C::operator()(
 
     double sum_square_coeffs{};
 
-    for (const Index i : std::views::iota(0, coeffs.size()))
+    for (Eigen::Index i = 0; i < coeffs.size(); ++i)
     {
-        if (effect->is_monomorphic(i))
+        if (effect.is_monomorphic(i))
         {
             continue;
         }
@@ -91,14 +83,14 @@ auto C::operator()(
         coeffs(i) = new_i;
     }
 
-    state->pi.count(1) = tracker.sum();
-    state->pi.count(0) = static_cast<int>(coeffs.size() - state->pi.count(1));
+    state.pi.count(1) = tracker.sum();
+    state.pi.count(0) = static_cast<int>(coeffs.size() - state.pi.count(1));
 
-    detail::ScaledInvChiSq chi_squared{effect->prior};
-    chi_squared.compute(sum_square_coeffs, state->pi.count(1));
-    state->marker_variance(0) = chi_squared(rng);
+    detail::ScaledInvChiSq chi_squared{effect.marker_variance_prior};
+    chi_squared.compute(sum_square_coeffs, state.pi.count(1));
+    state.marker_variance(0) = chi_squared(rng);
 
-    state->variance = detail::var(state->u)(0);
+    state.variance = detail::var(state.u)(0);
 }
 
-}  // namespace gelex::detail::AdditiveSampler
+}  // namespace gelex::detail::Gibbs

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <armadillo>
-#include "gelex/estimator/bayes/result.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/types/mcmc_results.h"
 namespace gelex
 {
 

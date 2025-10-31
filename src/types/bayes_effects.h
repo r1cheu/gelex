@@ -4,9 +4,8 @@
 #include <vector>
 
 #include <Eigen/Core>
-#include <Eigen/Sparse>
 
-#include "distribution.h"
+#include "../src/model/bayes/distribution.h"
 #include "gelex/data/genotype_matrix.h"
 #include "gelex/data/genotype_mmap.h"
 
@@ -117,73 +116,101 @@ struct RandomState
     double variance{0.0};
 };
 
-struct AdditiveEffect
+struct GeneticEffect
 {
-    explicit AdditiveEffect(GenotypeMap&& design_matrix);
-    explicit AdditiveEffect(GenotypeMatrix&& design_matrix);
-    explicit AdditiveEffect(GenotypeStorage&& design_matrix);
+    explicit GeneticEffect(GenotypeMap&& design_matrix)
+        : design_matrix(std::move(design_matrix))
+    {
+    }
+
+    explicit GeneticEffect(GenotypeMatrix&& design_matrix)
+        : design_matrix(std::move(design_matrix))
+    {
+    }
+
+    explicit GeneticEffect(GenotypeStorage&& design_matrix)
+        : design_matrix(std::move(design_matrix))
+    {
+    }
 
     GenotypeStorage design_matrix;
 
-    detail::ScaledInvChiSqParams prior{4, 0};
+    detail::ScaledInvChiSqParams marker_variance_prior{4, 0};
     double init_marker_variance{0.0};
     Eigen::Index marker_variance_size{0};
 
-    Eigen::VectorXd pi;
-    Eigen::VectorXd scale;
+    std::optional<Eigen::VectorXd> init_pi;
+    std::optional<Eigen::VectorXd> scale;
 
-    bool is_monomorphic(Eigen::Index snp_index) const;
-    Eigen::Index num_mono() const;
+    bool is_monomorphic(Eigen::Index snp_index) const
+    {
+        return is_monomorphic_variant(design_matrix, snp_index);
+    }
+
+    Eigen::Index num_mono() const { return num_mono_variant(design_matrix); }
 };
 
-struct AdditiveState
+struct AdditiveEffect : GeneticEffect
 {
-    explicit AdditiveState(const AdditiveEffect& effect, bool is_mixture_model);
+    using GeneticEffect::GeneticEffect;
+};
 
+struct GeneticState
+{
+    explicit GeneticState(const GeneticEffect& effect)
+        : coeffs(Eigen::VectorXd::Zero(bayes::get_cols(effect.design_matrix))),
+          u(Eigen::VectorXd::Zero(bayes::get_rows(effect.design_matrix))),
+          marker_variance(
+              Eigen::VectorXd::Constant(
+                  effect.marker_variance_size,
+                  effect.init_marker_variance))
+
+    {
+        if (effect.init_pi)
+        {
+            tracker
+                = Eigen::VectorXi::Zero(bayes::get_cols(effect.design_matrix));
+            pi
+                = {effect.init_pi.value(),
+                   Eigen::VectorXi::Zero(effect.init_pi->size())};
+        };
+    }
     Eigen::VectorXd coeffs;
     Eigen::VectorXd u;
-    Eigen::VectorXi tracker;
 
+    Eigen::VectorXi tracker;
     Pi pi;
+
     double variance{};
     double heritability{};
     Eigen::VectorXd marker_variance;
-
-    bool is_mixture_model;
 };
 
-struct DominantEffect
+struct AdditiveState : GeneticState
 {
-    explicit DominantEffect(GenotypeMap&& design_matrix);
-    explicit DominantEffect(GenotypeMatrix&& design_matrix);
-    explicit DominantEffect(GenotypeStorage&& design_matrix);
+    using GeneticState::GeneticState;
+};
 
-    GenotypeStorage design_matrix;
+struct DominantEffect : GeneticEffect
+{
+    using GeneticEffect::GeneticEffect;
+
     Eigen::VectorXd w;  // freq_q - freq_p
-
     double ratio_mean{};
     double ratio_variance{};
 
     detail::NormalParams mean_prior{0.2, 1};
     detail::ScaledInvChiSqParams var_prior{4, 0};
-
-    bool is_monomorphic(Eigen::Index snp_index) const;
-    Eigen::Index num_mono() const;
 };
 
-struct DominantState
+struct DominantState : GeneticState
 {
     explicit DominantState(const DominantEffect& effect);
 
-    Eigen::VectorXd coeffs;
     Eigen::VectorXd ratios;
-    Eigen::VectorXd u;
 
     double ratio_mean{};
     double ratio_variance{};
-
-    double variance{};
-    double heritability{};
 };
 
 struct Residual

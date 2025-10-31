@@ -4,7 +4,7 @@
 
 #include "../src/estimator/bayes/parameter_writer.h"
 #include "../src/estimator/bayes/snp_effects_writer.h"
-#include "gelex/estimator/bayes/result.h"
+#include "gelex/types/mcmc_results.h"
 
 namespace gelex
 {

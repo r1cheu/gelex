@@ -7,7 +7,7 @@
 #include <Eigen/Core>
 
 #include "../src/data/snp_info_loader.h"
-#include "gelex/estimator/bayes/result.h"
+#include "gelex/types/mcmc_results.h"
 
 namespace gelex
 {
