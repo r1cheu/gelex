@@ -151,4 +151,20 @@ inline auto get_pos(double w_j, double x, double mu, double stddev)
         (is_pos * (1 - cdf_0)) / (is_pos * (1 - cdf_0) + is_neg * cdf_0)};
 }
 
+inline auto compute_dominant_ratios(
+    const Eigen::Ref<const Eigen::VectorXd>& dominant_coeffs,
+    const Eigen::Ref<const Eigen::VectorXd>& additive_coeffs) -> Eigen::VectorXd
+{
+    assert(
+        dominant_coeffs.size() == additive_coeffs.size()
+        && "compute_dominant_ratios: vector sizes do not match.");
+
+    // Use Eigen's optimized element-wise operations
+    // d / abs(a) with handling for zero additive effects
+    // When a = 0, set ratio to 0 (matching current behavior)
+    return (additive_coeffs.array().abs()
+            > std::numeric_limits<double>::epsilon())
+        .select(dominant_coeffs.array() / additive_coeffs.array().abs(), 0.0);
+}
+
 }  // namespace gelex::detail

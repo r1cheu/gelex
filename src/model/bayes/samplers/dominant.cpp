@@ -30,7 +30,13 @@ auto A::operator()(
     const auto* effect = model.dominant();
     auto* state = states.dominant();
     auto& residual = states.residual();
+    const auto* add_state = states.additive();
+
     Gibbs::A(*effect, *state, residual, rng);
+
+    // Update ratios using optimized vector operation
+    state->ratios
+        = detail::compute_dominant_ratios(state->coeffs, add_state->coeffs);
 }
 
 auto B::operator()(
@@ -41,7 +47,13 @@ auto B::operator()(
     const auto* effect = model.dominant();
     auto* state = states.dominant();
     auto& residual = states.residual();
+    const auto* add_state = states.additive();
+
     Gibbs::B(*effect, *state, residual, rng);
+
+    // Update ratios using optimized vector operation
+    state->ratios
+        = detail::compute_dominant_ratios(state->coeffs, add_state->coeffs);
 }
 
 auto C::operator()(
@@ -52,7 +64,13 @@ auto C::operator()(
     const auto* effect = model.dominant();
     auto* state = states.dominant();
     auto& residual = states.residual();
+    const auto* add_state = states.additive();
+
     Gibbs::C(*effect, *state, residual, rng);
+
+    // Update ratios using optimized vector operation
+    state->ratios
+        = detail::compute_dominant_ratios(state->coeffs, add_state->coeffs);
 }
 
 auto R::operator()(
@@ -63,7 +81,13 @@ auto R::operator()(
     const auto* effect = model.dominant();
     auto* state = states.dominant();
     auto& residual = states.residual();
+    const auto* add_state = states.additive();
+
     Gibbs::R(*effect, *state, residual, rng);
+
+    // Update ratios using optimized vector operation
+    state->ratios
+        = detail::compute_dominant_ratios(state->coeffs, add_state->coeffs);
 }
 
 auto RR::operator()(
@@ -74,7 +98,13 @@ auto RR::operator()(
     const auto* effect = model.dominant();
     auto* state = states.dominant();
     auto& residual = states.residual();
+    const auto* add_state = states.additive();
+
     Gibbs::RR(*effect, *state, residual, rng);
+
+    // Update ratios using optimized vector operation
+    state->ratios
+        = detail::compute_dominant_ratios(state->coeffs, add_state->coeffs);
 }
 
 auto Coeff::operator()(
@@ -160,8 +190,10 @@ auto Coeff::operator()(
 
         coeffs(i) = new_i;
         update_residual_and_gebv(y_adj, u, col, old_i, new_i);
-        ratios(i) = new_i / std::abs(add_i);
     }
+
+    // Update all ratios using optimized vector operation
+    ratios = detail::compute_dominant_ratios(coeffs, add_coeffs);
 
     dom_state->variance = detail::var(dom_state->u)(0);
 }
