@@ -68,7 +68,7 @@ auto PriorSetter::set_random_effect_prior(
     effect.init_variance = variance;
 }
 
-auto PriorSetter::compute_init_marker_variance(
+auto compute_init_marker_variance(
     double target_variance,
     const Eigen::Ref<const Eigen::MatrixXd>& design_matrix,
     double non_zero_marker_proption) -> std::expected<double, Error>
@@ -102,7 +102,7 @@ auto PriorSetter::compute_init_marker_variance(
     return target_variance / num_non_zero_snps;
 }
 
-auto PriorSetter::compute_init_marker_variance(
+auto compute_init_marker_variance(
     double target_variance,
     const Eigen::Ref<const Eigen::VectorXd>& genetic_variance,
     double non_zero_marker_proption) -> std::expected<double, Error>
