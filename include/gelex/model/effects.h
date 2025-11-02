@@ -65,3 +65,63 @@ inline std::optional<BayesAlphabet> get_bayesalphabet(std::string_view sv)
 }
 
 }  // namespace gelex
+
+namespace fmt
+{
+template <>
+struct formatter<gelex::BayesAlphabet> : formatter<string_view>
+{
+    auto format(gelex::BayesAlphabet t, format_context& ctx) const
+        -> format_context::iterator
+    {
+        string_view name = "unknown";
+        switch (t)
+        {
+            case gelex::BayesAlphabet::A:
+                name = "BayesA";
+                break;
+            case gelex::BayesAlphabet::Ad:
+                name = "BayesAd";
+                break;
+            case gelex::BayesAlphabet::RR:
+                name = "BayesRR";
+                break;
+            case gelex::BayesAlphabet::RRd:
+                name = "BayesRRd";
+                break;
+            case gelex::BayesAlphabet::B:
+                name = "BayesB";
+                break;
+            case gelex::BayesAlphabet::Bpi:
+                name = "BayesBpi";
+                break;
+            case gelex::BayesAlphabet::Bd:
+                name = "BayesBd";
+                break;
+            case gelex::BayesAlphabet::Bdpi:
+                name = "BayesBdpi";
+                break;
+            case gelex::BayesAlphabet::C:
+                name = "BayesC";
+                break;
+            case gelex::BayesAlphabet::Cpi:
+                name = "BayesCpi";
+                break;
+            case gelex::BayesAlphabet::Cd:
+                name = "BayesCd";
+                break;
+            case gelex::BayesAlphabet::Cdpi:
+                name = "BayesCdpi";
+                break;
+            case gelex::BayesAlphabet::R:
+                name = "BayesR";
+                break;
+            case gelex::BayesAlphabet::Rd:
+                name = "BayesRd";
+                break;
+        }
+        return formatter<string_view>::format(name, ctx);
+    }
+};
+
+}  // namespace fmt
