@@ -7,11 +7,13 @@
 #include "gelex/model/bayes/model.h"
 #include "types/bayes_effects.h"
 
-namespace gelex::detail::Pi
+namespace gelex::detail
 {
 using Eigen::VectorXd;
 using Eigen::VectorXi;
 
+namespace AdditiveSampler
+{
 auto Pi::operator()(
     const BayesModel& /*model*/,
     BayesState& states,
@@ -26,22 +28,23 @@ auto Pi::operator()(
         // Sample from Dirichlet distribution
         state->pi.prop = detail::dirichlet(dirichlet_counts, rng);
     }
-
-    // Get current pi counts from the state
-    // For 2-component pi (like BayesCpi, BayesBpi):
-    // - count(0): number of markers with coefficient = 0
-    // - count(1): number of markers with coefficient != 0
-
-    // Update counts based on current state
-    // This assumes the tracker has been updated in the trait operator()
-    // (as seen in BayesBpi.cpp:47-49 and BayesCpi.cpp:43-45)
-
-    // For extensibility: this can be generalized for multi-component pi
-    // by having the trait provide a count update function
-
-    // Sample new pi proportions from Dirichlet distribution
-    // Add 1 to each count for Dirichlet prior (equivalent to Beta(1,1) for 2
-    // components)
 }
 
-}  // namespace gelex::detail::Pi
+}  // namespace AdditiveSampler
+//
+auto DominantSampler::Pi::operator()(
+    const BayesModel& /*model*/,
+    BayesState& states,
+    std::mt19937_64& rng) const -> void
+{
+    // Check if the model has dominant effects with pi estimation
+
+    if (auto* state = states.dominant(); state != nullptr)
+    {
+        VectorXi dirichlet_counts(state->pi.count.array() + 1);
+
+        // Sample from Dirichlet distribution
+        state->pi.prop = detail::dirichlet(dirichlet_counts, rng);
+    }
+}
+}  // namespace gelex::detail

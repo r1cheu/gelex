@@ -4,7 +4,7 @@
 
 #include "gelex/model/bayes/model.h"
 
-namespace gelex::detail::Pi
+namespace gelex::detail
 {
 
 /**
@@ -14,6 +14,8 @@ namespace gelex::detail::Pi
  * Currently supports 2-component pi (like BayesCpi, BayesBpi),
  * but designed to be extensible for multi-component pi (like BayesR).
  */
+namespace AdditiveSampler
+{
 struct Pi
 {
     auto operator()(
@@ -21,5 +23,17 @@ struct Pi
         BayesState& states,
         std::mt19937_64& rng) const -> void;
 };
+}  // namespace AdditiveSampler
 
-}  // namespace gelex::detail::Pi
+namespace DominantSampler
+{
+struct Pi
+{
+    auto operator()(
+        const BayesModel& model,
+        BayesState& states,
+        std::mt19937_64& rng) const -> void;
+};
+}  // namespace DominantSampler
+
+}  // namespace gelex::detail
