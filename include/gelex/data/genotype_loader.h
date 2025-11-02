@@ -42,8 +42,8 @@ class GenotypeLoader
      */
     static auto create(
         const std::filesystem::path& bed_path,
-        std::shared_ptr<SampleManager> sample_manager,
-        bool dominant = false) -> std::expected<GenotypeLoader, Error>;
+        std::shared_ptr<SampleManager> sample_manager)
+        -> std::expected<GenotypeLoader, Error>;
 
     GenotypeLoader(const GenotypeLoader&) = delete;
     GenotypeLoader(GenotypeLoader&&) noexcept = default;
@@ -68,7 +68,7 @@ class GenotypeLoader
     size_t num_processed_variants() const noexcept { return means_.size(); }
 
    private:
-    GenotypeLoader(BedPipe&& bed_pipe, bool dominant);
+    explicit GenotypeLoader(BedPipe&& bed_pipe);
 
     template <VariantProcessor Processor>
     auto process_chunk(
@@ -79,7 +79,6 @@ class GenotypeLoader
     auto finalize() -> std::expected<GenotypeMatrix, Error>;
 
     BedPipe bed_pipe_;
-    bool dominant_{false};
 
     int64_t sample_size_{};
     int64_t num_variants_{};
@@ -118,8 +117,7 @@ auto GenotypeLoader::process(size_t chunk_size)
         int64_t end_variant = std::min(
             static_cast<int64_t>(start_variant + chunk_size), num_variants_);
 
-        auto chunk
-            = bed_pipe_.load_chunk(start_variant, end_variant, dominant_);
+        auto chunk = bed_pipe_.load_chunk(start_variant, end_variant);
         if (!chunk)
         {
             return std::unexpected(chunk.error());

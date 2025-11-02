@@ -17,6 +17,7 @@
 namespace gelex
 {
 
+// return valie path with ".bed" suffix
 auto valid_bed(std::string_view bed_path)
     -> std::expected<std::filesystem::path, Error>;
 
@@ -36,17 +37,10 @@ class BedPipe
 
     auto get_genotypes(Eigen::Index variant_index) const
         -> std::expected<Eigen::VectorXd, Error>;
-    auto get_dominant_genotypes(Eigen::Index variant_index) const
-        -> std::expected<Eigen::VectorXd, Error>;
     auto get_sample_genotypes(Eigen::Index sample_index) const
-        -> std::expected<Eigen::VectorXd, Error>;
-    auto get_sample_dominant_genotypes(Eigen::Index sample_index) const
         -> std::expected<Eigen::VectorXd, Error>;
     auto get_genotype(Eigen::Index variant_index, Eigen::Index sample_index)
         const -> std::expected<double, Error>;
-    auto get_dominant_genotype(
-        Eigen::Index variant_index,
-        Eigen::Index sample_index) const -> std::expected<double, Error>;
 
     Eigen::Index num_variants() const
     {
@@ -62,12 +56,9 @@ class BedPipe
         return bim_loader_->ids();
     }
 
-    auto load(bool dominant = false) const
+    auto load() const -> std::expected<Eigen::MatrixXd, Error>;
+    auto load_chunk(Eigen::Index start_variant, Eigen::Index end_variant) const
         -> std::expected<Eigen::MatrixXd, Error>;
-    auto load_chunk(
-        Eigen::Index start_variant,
-        Eigen::Index end_variant,
-        bool dominant = false) const -> std::expected<Eigen::MatrixXd, Error>;
 
    private:
     BedPipe(
@@ -91,15 +82,8 @@ class BedPipe
 
     auto read_variants_bulk(
         Eigen::Index start_variant,
-        Eigen::Index end_variant,
-        bool dominant = false) const -> std::expected<Eigen::MatrixXd, Error>;
-
-    auto get_genotypes_impl(Eigen::Index variant_index, bool dominant) const
-        -> std::expected<Eigen::VectorXd, Error>;
-    auto get_genotype_impl(
-        Eigen::Index variant_index,
-        Eigen::Index sample_index,
-        bool dominant) const -> std::expected<double, Error>;
+        Eigen::Index end_variant) const
+        -> std::expected<Eigen::MatrixXd, Error>;
 
     mutable std::ifstream file_stream_;
     std::unique_ptr<detail::BimLoader> bim_loader_;
@@ -107,8 +91,7 @@ class BedPipe
     Eigen::Index bytes_per_variant_;
     std::filesystem::path bed_path_;
 
-    constexpr static std::array<double, 4> add_map_{2, 1, 1, 0};
-    constexpr static std::array<double, 4> dom_map_{0, 1, 1, 0};
+    constexpr static std::array<double, 4> encode_map_{2, 1, 1, 0};
 };
 
 }  // namespace gelex

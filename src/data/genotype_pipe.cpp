@@ -1,5 +1,6 @@
 #include "gelex/data/genotype_pipe.h"
 
+#include <cassert>
 #include <cstdint>
 #include <expected>
 #include <filesystem>
@@ -30,7 +31,8 @@ VariantStats StandardizingProcessor::process_variant(Ref<VectorXd> variant)
     stats.variance = (variant.array() - stats.mean).square().sum() / (n - 1);
     const double std_dev = std::sqrt(stats.variance);
 
-    stats.is_monomorphic = (stats.variance - 0) < 1e-8;
+    stats.is_monomorphic
+        = (stats.variance - 0) < std::numeric_limits<double>::epsilon();
 
     if (!stats.is_monomorphic)
     {
@@ -40,7 +42,7 @@ VariantStats StandardizingProcessor::process_variant(Ref<VectorXd> variant)
     return stats;
 }
 
-VariantStats NonStandardizingProcessor::process_variant(Ref<VectorXd> variant)
+VariantStats RawProcessor::process_variant(Ref<VectorXd> variant)
 {
     VariantStats stats;
     const auto n = static_cast<double>(variant.size());
@@ -48,7 +50,8 @@ VariantStats NonStandardizingProcessor::process_variant(Ref<VectorXd> variant)
     stats.mean = variant.mean();
     stats.variance = (variant.array() - stats.mean).square().sum() / (n - 1);
 
-    stats.is_monomorphic = (stats.variance - 0) < 1e-8;
+    stats.is_monomorphic
+        = (stats.variance - 0) < std::numeric_limits<double>::epsilon();
 
     return stats;
 }
@@ -61,7 +64,8 @@ VariantStats HardWenbergProcessor::process_variant(Ref<VectorXd> variant)
     stats.variance = stats.mean * (1 - 0.5 * stats.mean);
     const double std_dev = std::sqrt(stats.variance);
 
-    stats.is_monomorphic = (stats.variance - 0) < 1e-8;
+    stats.is_monomorphic
+        = (stats.variance - 0) < std::numeric_limits<double>::epsilon();
 
     if (!stats.is_monomorphic)
     {
@@ -71,13 +75,87 @@ VariantStats HardWenbergProcessor::process_variant(Ref<VectorXd> variant)
     return stats;
 }
 
+VariantStats DominantStandardizingProcessor::process_variant(
+    Ref<VectorXd> variant)
+{
+    VariantStats stats;
+    const auto n = static_cast<double>(variant.size());
+
+    variant = (variant.array() == 2).select(0, variant.array());
+
+    stats.mean = variant.mean();
+    stats.variance = (variant.array() - stats.mean).square().sum() / (n - 1);
+    const double std_dev = std::sqrt(stats.variance);
+
+    stats.is_monomorphic
+        = (stats.variance - 0) < std::numeric_limits<double>::epsilon();
+
+    if (!stats.is_monomorphic)
+    {
+        variant = (variant.array() - stats.mean) / std_dev;
+    }
+
+    return stats;
+}
+
+VariantStats DominantRawProcessor::process_variant(Ref<VectorXd> variant)
+{
+    VariantStats stats;
+    const auto n = static_cast<double>(variant.size());
+
+    variant = (variant.array() == 2).select(0, variant.array());
+
+    stats.mean = variant.mean();
+    stats.variance = (variant.array() - stats.mean).square().sum() / (n - 1);
+
+    stats.is_monomorphic
+        = (stats.variance - 0) < std::numeric_limits<double>::epsilon();
+
+    return stats;
+}
+
+VariantStats DominantOrthogonalHWEProcessor::process_variant(
+    Ref<VectorXd> variant)
+{
+    VariantStats stats;
+    const double p_freq = variant.mean() / 2;
+
+    stats.mean = 2 * p_freq * p_freq;
+    const double stddev = 2 * p_freq * (1 - p_freq);
+    stats.variance = stddev * stddev;
+
+    const double one_alt_encode = 2 * p_freq;
+    const double two_alt_encode = (4 * p_freq) - 2;
+    auto op = [&one_alt_encode, &two_alt_encode](double x) -> double
+    {
+        if (x == 1.0)
+        {
+            return one_alt_encode;
+        }
+        if (x == 2.0)
+        {
+            return two_alt_encode;
+        }
+        return x;
+    };
+    variant = variant.unaryExpr(op);
+
+    stats.is_monomorphic
+        = (stats.variance - 0) < std::numeric_limits<double>::epsilon();
+
+    if (!stats.is_monomorphic)
+    {
+        variant = (variant.array() - stats.mean) / stddev;
+    }
+
+    return stats;
+}
+
 GenotypePipe::GenotypePipe(
     BedPipe&& bed_pipe,
     detail::BinaryMatrixWriter&& matrix_writer,
-    detail::SnpStatsWriter&& stats_writer,
-    bool dominant)
+    detail::SnpStatsWriter&& stats_writer)
     : bed_pipe_(std::move(bed_pipe)),
-      dominant_(dominant),
       matrix_writer_(std::move(matrix_writer)),
       stats_writer_(std::move(stats_writer))
 {
@@ -92,8 +170,8 @@ GenotypePipe::GenotypePipe(
 auto GenotypePipe::create(
     const std::filesystem::path& bed_path,
     std::shared_ptr<SampleManager> sample_manager,
-    const std::filesystem::path& output_prefix,
-    bool dominant) -> std::expected<GenotypePipe, Error>
+    const std::filesystem::path& output_prefix)
+    -> std::expected<GenotypePipe, Error>
 {
     auto logger = logging::get();
     auto bed_pipe = BedPipe::create(bed_path, std::move(sample_manager));
@@ -103,9 +181,9 @@ auto GenotypePipe::create(
     }
 
     std::filesystem::path matrix_path = output_prefix;
-    matrix_path.replace_extension(dominant ? ".dom.bmat" : ".add.bmat");
+    matrix_path += ".bmat";
     std::filesystem::path stats_path = output_prefix;
-    stats_path.replace_extension(dominant ? ".dom.snpstats" : ".add.snpstats");
+    stats_path += ".snpstats";
 
     if (std::filesystem::exists(matrix_path)
         || std::filesystem::exists(stats_path))
@@ -136,8 +214,7 @@ auto GenotypePipe::create(
     return GenotypePipe{
         std::move(*bed_pipe),
         std::move(*matrix_writer),
-        std::move(*stats_writer),
-        dominant};
+        std::move(*stats_writer)};
 }
 
 auto GenotypePipe::finalize() -> std::expected<GenotypeMap, Error>

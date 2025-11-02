@@ -9,13 +9,12 @@ namespace gelex
 
 namespace bk = barkeep;
 
-GenotypeLoader::GenotypeLoader(BedPipe&& bed_pipe, bool dominant)
-    : bed_pipe_(std::move(bed_pipe)), dominant_(dominant)
+GenotypeLoader::GenotypeLoader(BedPipe&& bed_pipe)
+    : bed_pipe_(std::move(bed_pipe))
 {
     num_variants_ = bed_pipe_.num_variants();
     sample_size_ = bed_pipe_.sample_size();
 
-    // Pre-allocate data matrix
     data_matrix_ = Eigen::MatrixXd(sample_size_, num_variants_);
 
     means_.reserve(num_variants_);
@@ -25,8 +24,8 @@ GenotypeLoader::GenotypeLoader(BedPipe&& bed_pipe, bool dominant)
 
 auto GenotypeLoader::create(
     const std::filesystem::path& bed_path,
-    std::shared_ptr<SampleManager> sample_manager,
-    bool dominant) -> std::expected<GenotypeLoader, Error>
+    std::shared_ptr<SampleManager> sample_manager)
+    -> std::expected<GenotypeLoader, Error>
 {
     auto logger = logging::get();
     auto bed_pipe = BedPipe::create(bed_path, std::move(sample_manager));
@@ -35,7 +34,7 @@ auto GenotypeLoader::create(
         return std::unexpected(bed_pipe.error());
     }
 
-    return GenotypeLoader{std::move(*bed_pipe), dominant};
+    return GenotypeLoader{std::move(*bed_pipe)};
 }
 
 auto GenotypeLoader::finalize() -> std::expected<GenotypeMatrix, Error>

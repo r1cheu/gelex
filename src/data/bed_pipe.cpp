@@ -167,12 +167,7 @@ Eigen::VectorXd BedPipe::reorder_genotypes(
 
 auto BedPipe::get_genotypes(Eigen::Index variant_index) const
     -> std::expected<Eigen::VectorXd, Error>
-{
-    return get_genotypes_impl(variant_index, false);
-}
 
-auto BedPipe::get_genotypes_impl(Eigen::Index variant_index, bool dominant)
-    const -> std::expected<Eigen::VectorXd, Error>
 {
     if (auto validation = validate_variant_index(variant_index); !validation)
     {
@@ -204,17 +199,15 @@ auto BedPipe::get_genotypes_impl(Eigen::Index variant_index, bool dominant)
         const Eigen::Index byte_index = i / 4;
         const Eigen::Index bit_offset = 2 * (i % 4);
         const uint8_t genotype_code = (buffer[byte_index] >> bit_offset) & 0x03;
-        genotypes(i)
-            = dominant ? dom_map_[genotype_code] : add_map_[genotype_code];
+        genotypes(i) = encode_map_[genotype_code];
     }
 
     return reorder_genotypes(genotypes);
 }
 
-auto BedPipe::get_genotype_impl(
+auto BedPipe::get_genotype(
     Eigen::Index variant_index,
-    Eigen::Index sample_index,
-    bool dominant) const -> std::expected<double, Error>
+    Eigen::Index sample_index) const -> std::expected<double, Error>
 {
     const auto num_samples
         = static_cast<Eigen::Index>(sample_manager_->num_genotyped_samples());
@@ -249,14 +242,7 @@ auto BedPipe::get_genotype_impl(
     const Eigen::Index bit_offset = 2 * (sample_index % 4);
     const uint8_t genotype_code = (byte >> bit_offset) & 0x03;
 
-    return dominant ? dom_map_[genotype_code] : add_map_[genotype_code];
-}
-
-auto BedPipe::get_genotype(
-    Eigen::Index variant_index,
-    Eigen::Index sample_index) const -> std::expected<double, Error>
-{
-    return get_genotype_impl(variant_index, sample_index, false);
+    return encode_map_[genotype_code];
 }
 
 auto BedPipe::get_sample_genotypes(Eigen::Index sample_index) const
@@ -283,47 +269,9 @@ auto BedPipe::get_sample_genotypes(Eigen::Index sample_index) const
     return genotypes;
 }
 
-auto BedPipe::get_dominant_genotypes(Eigen::Index variant_index) const
-    -> std::expected<Eigen::VectorXd, Error>
-{
-    return get_genotypes_impl(variant_index, true);
-}
-
-auto BedPipe::get_dominant_genotype(
-    Eigen::Index variant_index,
-    Eigen::Index sample_index) const -> std::expected<double, Error>
-{
-    return get_genotype_impl(variant_index, sample_index, true);
-}
-
-auto BedPipe::get_sample_dominant_genotypes(Eigen::Index sample_index) const
-    -> std::expected<Eigen::VectorXd, Error>
-{
-    if (sample_index >= sample_size())
-    {
-        return std::unexpected(
-            Error{ErrorCode::InvalidRange, "Sample index out of range"});
-    }
-
-    Eigen::VectorXd genotypes(num_variants());
-
-    for (Eigen::Index i = 0; i < num_variants(); ++i)
-    {
-        auto result = get_dominant_genotype(i, sample_index);
-        if (!result)
-        {
-            return std::unexpected(result.error());
-        }
-        genotypes(i) = *result;
-    }
-
-    return genotypes;
-}
-
 auto BedPipe::read_variants_bulk(
     Eigen::Index start_variant,
-    Eigen::Index end_variant,
-    bool dominant) const -> std::expected<Eigen::MatrixXd, Error>
+    Eigen::Index end_variant) const -> std::expected<Eigen::MatrixXd, Error>
 {
     const auto num_samples
         = static_cast<Eigen::Index>(sample_manager_->num_genotyped_samples());
@@ -374,8 +322,7 @@ auto BedPipe::read_variants_bulk(
             const uint8_t genotype_code
                 = (variant_data[byte_index] >> bit_offset) & 0x03;
 
-            genotypes(sample_idx, variant_idx)
-                = dominant ? dom_map_[genotype_code] : add_map_[genotype_code];
+            genotypes(sample_idx, variant_idx) = encode_map_[genotype_code];
         }
     }
 
@@ -393,16 +340,14 @@ auto BedPipe::read_variants_bulk(
     return reordered_genotypes;
 }
 
-auto BedPipe::load(bool dominant) const -> std::expected<Eigen::MatrixXd, Error>
+auto BedPipe::load() const -> std::expected<Eigen::MatrixXd, Error>
 {
     // Use bulk reading for all variants
-    return read_variants_bulk(0, num_variants(), dominant);
+    return read_variants_bulk(0, num_variants());
 }
 
-auto BedPipe::load_chunk(
-    Eigen::Index start_variant,
-    Eigen::Index end_variant,
-    bool dominant) const -> std::expected<Eigen::MatrixXd, Error>
+auto BedPipe::load_chunk(Eigen::Index start_variant, Eigen::Index end_variant)
+    const -> std::expected<Eigen::MatrixXd, Error>
 {
     if (auto validation = validate_variant_index(start_variant); !validation)
     {
@@ -422,7 +367,7 @@ auto BedPipe::load_chunk(
     }
 
     // Use bulk reading for the chunk
-    return read_variants_bulk(start_variant, end_variant, dominant);
+    return read_variants_bulk(start_variant, end_variant);
 }
 
 }  // namespace gelex

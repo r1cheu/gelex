@@ -246,8 +246,7 @@ TEST_CASE("GenotypePipe creation and basic functionality", "[genotype_pipe]")
         auto genotype_pipe = gelex::GenotypePipe::create(
             test_bed.replace_extension(".bed"),
             std::make_shared<gelex::SampleManager>(std::move(sample_manager)),
-            test_bed.stem(),
-            false);
+            test_bed.stem() += ".add");
         REQUIRE(genotype_pipe.has_value());
         REQUIRE(genotype_pipe->num_variants() == 5);
 
@@ -270,7 +269,7 @@ TEST_CASE("GenotypePipe creation and basic functionality", "[genotype_pipe]")
     SECTION("Creation with non-existent files")
     {
         auto genotype_pipe = gelex::GenotypePipe::create(
-            "nonexistent", nullptr, "test_prefix", false);
+            "nonexistent", nullptr, "test_prefix");
         REQUIRE_FALSE(genotype_pipe.has_value());
         REQUIRE(genotype_pipe.error().code == gelex::ErrorCode::FileNotFound);
     }
@@ -293,7 +292,9 @@ TEST_CASE("GenotypePipe processing functionality", "[genotype_pipe]")
         = std::make_shared<gelex::SampleManager>(std::move(sample_manager));
 
     auto genotype_pipe = gelex::GenotypePipe::create(
-        test_bed.replace_extension(".bed"), sample_ptr, test_bed.stem(), false);
+        test_bed.replace_extension(".bed"),
+        sample_ptr,
+        test_bed.stem() += ".add");
 
     auto result = genotype_pipe->process();
     REQUIRE(result.has_value());
@@ -330,7 +331,7 @@ TEST_CASE("GenotypePipe processing functionality", "[genotype_pipe]")
     // Verify chunked processing produces same output
     // Create a new SampleManager for the second pipe
     auto genotype_pipe_chunk = gelex::GenotypePipe::create(
-        test_bed, sample_ptr, test_bed.stem(), false);
+        test_bed, sample_ptr, test_bed.stem() += ".add");
     auto chunked_result = genotype_pipe_chunk->process(2);
 
     REQUIRE(std::filesystem::exists(bmat_file));
@@ -378,8 +379,7 @@ TEST_CASE("GenotypePipe monomorphic SNP detection", "[genotype_pipe]")
     auto genotype_pipe = gelex::GenotypePipe::create(
         test_bed.replace_extension(".bed"),
         std::make_shared<gelex::SampleManager>(std::move(sample_manager)),
-        test_bed.stem(),
-        false);
+        test_bed.stem() += ".add");
     REQUIRE(genotype_pipe.has_value());
 
     auto result = genotype_pipe->process();
@@ -429,7 +429,9 @@ TEST_CASE("GenotypePipe output verification", "[genotype_pipe]")
     auto sample_ptr
         = std::make_shared<gelex::SampleManager>(std::move(sample_manager));
     auto genotype_pipe = gelex::GenotypePipe::create(
-        test_bed.replace_extension(".bed"), sample_ptr, test_bed.stem(), false);
+        test_bed.replace_extension(".bed"),
+        sample_ptr,
+        test_bed.stem() += ".add");
 
     REQUIRE(genotype_pipe.has_value());
     auto result = genotype_pipe->process();
@@ -527,8 +529,7 @@ TEST_CASE("GenotypePipe edge cases", "[genotype_pipe]")
         auto genotype_pipe = gelex::GenotypePipe::create(
             test_bed.replace_extension(".bed"),
             std::make_shared<gelex::SampleManager>(std::move(sample_manager)),
-            test_bed.stem(),
-            false);
+            test_bed.stem() += ".add");
         REQUIRE(genotype_pipe.has_value());
 
         auto result = genotype_pipe->process();
@@ -558,8 +559,7 @@ TEST_CASE("GenotypePipe edge cases", "[genotype_pipe]")
         auto genotype_pipe = gelex::GenotypePipe::create(
             test_bed.replace_extension(".bed"),
             std::make_shared<gelex::SampleManager>(std::move(sample_manager)),
-            test_bed.stem(),
-            false);
+            test_bed.stem() += ".add");
         REQUIRE(genotype_pipe.has_value());
 
         auto result = genotype_pipe->process();
@@ -595,8 +595,7 @@ TEST_CASE("GenotypePipe file existence handling", "[genotype_pipe]")
         auto genotype_pipe1 = gelex::GenotypePipe::create(
             test_bed.replace_extension(".bed"),
             sample_ptr,
-            test_bed.stem(),
-            false);
+            test_bed.stem() += ".add");
         REQUIRE(genotype_pipe1.has_value());
         auto result1 = genotype_pipe1->process();
         REQUIRE(result1.has_value());
@@ -617,8 +616,7 @@ TEST_CASE("GenotypePipe file existence handling", "[genotype_pipe]")
         auto genotype_pipe2 = gelex::GenotypePipe::create(
             test_bed.replace_extension(".bed"),
             sample_ptr,
-            test_bed.stem(),
-            false);
+            test_bed.stem() += ".add");
 
         REQUIRE_FALSE(genotype_pipe2.has_value());
         // Verify files were not modified (skipped processing)
@@ -653,8 +651,7 @@ TEST_CASE("GenotypePipe file existence handling", "[genotype_pipe]")
         auto genotype_pipe = gelex::GenotypePipe::create(
             test_bed.replace_extension(".bed"),
             sample_ptr,
-            test_bed.stem(),
-            false);
+            test_bed.stem() += ".add");
         REQUIRE(genotype_pipe.has_value());
         auto result = genotype_pipe->process();
         REQUIRE(result.has_value());

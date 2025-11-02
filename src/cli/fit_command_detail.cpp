@@ -8,6 +8,7 @@
 #include "gelex/data/genotype_loader.h"
 #include "gelex/data/genotype_matrix.h"
 #include "gelex/data/genotype_mmap.h"
+#include "gelex/data/genotype_pipe.h"
 #include "gelex/estimator/bayes/mcmc.h"
 #include "gelex/estimator/bayes/params.h"
 #include "gelex/estimator/bayes/result_writer.h"
@@ -185,15 +186,21 @@ int process_genotype_mmap(
     bool is_dominance,
     const std::shared_ptr<spdlog::logger>& logger)
 {
-    const std::string mmap_suffix = is_dominance ? ".dom.bmat" : ".add.bmat";
+    const std::string mmap_suffix = is_dominance ? ".dom" : ".add";
     const std::string mmap_path = out_prefix + mmap_suffix;
 
-    auto genotype_pipe_result = gelex::GenotypePipe::create(
-        bed_path, sample_manager, out_prefix, is_dominance);
+    auto genotype_pipe_result
+        = gelex::GenotypePipe::create(bed_path, sample_manager, mmap_path);
 
     if (genotype_pipe_result)
     {
-        auto process_result = genotype_pipe_result->process(chunk_size);
+        auto process_result
+            = is_dominance
+                  ? genotype_pipe_result
+                        ->process<gelex::DominantStandardizingProcessor>(
+                            chunk_size)
+                  : genotype_pipe_result
+                        ->process<gelex::StandardizingProcessor>(chunk_size);
         VALIDATE_RESULT_OR_RETURN(process_result, logger);
         add_effect_to_model(
             model, std::move(process_result.value()), is_dominance);
@@ -201,7 +208,7 @@ int process_genotype_mmap(
     else if (
         genotype_pipe_result.error().code == gelex::ErrorCode::OutputFileExists)
     {
-        auto map_result = gelex::GenotypeMap::create(mmap_path);
+        auto map_result = gelex::GenotypeMap::create(mmap_path + ".bmat");
         VALIDATE_RESULT_OR_RETURN(map_result, logger);
         add_effect_to_model(model, std::move(map_result.value()), is_dominance);
     }
@@ -222,10 +229,15 @@ int process_genotype_in_memory(
     const std::shared_ptr<spdlog::logger>& logger)
 {
     auto genotype_loader
-        = gelex::GenotypeLoader::create(bed_path, sample_manager, is_dominance);
+        = gelex::GenotypeLoader::create(bed_path, sample_manager);
     VALIDATE_RESULT_OR_RETURN(genotype_loader, logger);
 
-    auto process_result = genotype_loader->process(chunk_size);
+    auto process_result
+        = is_dominance
+              ? genotype_loader->process<gelex::DominantStandardizingProcessor>(
+                    chunk_size)
+              : genotype_loader->process<gelex::StandardizingProcessor>(
+                    chunk_size);
     VALIDATE_RESULT_OR_RETURN(process_result, logger);
 
     add_effect_to_model(model, std::move(process_result.value()), is_dominance);
