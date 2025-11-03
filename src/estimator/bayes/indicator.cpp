@@ -63,8 +63,7 @@ void Indicator::update(
 
     if (status_name == "σ²_add" || status_name == "h²_add"
         || status_name == "σ²_dom" || status_name == "h²_dom"
-        || status_name == "d/|a|" || status_name == "σ²_e"
-        || status_name.rfind("π_", 0) == 0)
+        || status_name == "σ²_e" || status_name.rfind("π_", 0) == 0)
     {
         current_values_[status_name] = value;
         update_compact_status(chain_index);
@@ -96,7 +95,9 @@ void Indicator::update_compact_status(size_t chain_index)
         if (it != current_values_.end())
         {
             if (has_pi)
+            {
                 pi_line += ", ";
+            }
             pi_line += fmt::format("{:.3f}", it->second);
             has_pi = true;
         }
@@ -116,11 +117,6 @@ void Indicator::update_compact_status(size_t chain_index)
     {
         compact_line += fmt::format(
             "d(σ², h²): [{:.3f} {:.3f}] ", dom_var->second, dom_h2->second);
-    }
-    auto d_a = current_values_.find("d/|a|");
-    if (d_a != current_values_.end())
-    {
-        compact_line += fmt::format("d/|a|: {:.3f} ", d_a->second);
     }
 
     auto res_var = current_values_.find("σ²_e");

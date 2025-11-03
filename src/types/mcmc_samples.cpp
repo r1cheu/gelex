@@ -69,12 +69,6 @@ DominantSamples::DominantSamples(
     const bayes::DominantEffect& effect)
     : BaseMarkerSamples(params, effect)
 {
-    ratios.reserve(params.n_chains);
-    for (Eigen::Index i = 0; i < params.n_chains; ++i)
-    {
-        ratios.emplace_back(
-            bayes::get_cols(effect.design_matrix), params.n_records);
-    }
 }
 
 ResidualSamples::ResidualSamples(const MCMCParams& params)
@@ -149,7 +143,6 @@ void MCMCSamples::store(
     {
         dominant_->coeffs[chain_idx].col(record_idx) = state->coeffs;
         dominant_->variance[chain_idx](0, record_idx) = state->variance;
-        dominant_->ratios[chain_idx].col(record_idx) = state->ratios;
 
         if (!dominant_->prop.empty() && state->pi.prop.size() != 0)
         {

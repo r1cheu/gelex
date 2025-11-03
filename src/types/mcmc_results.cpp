@@ -39,6 +39,7 @@ MCMCResult::MCMCResult(
     {
         fixed_.emplace(*sample);
     }
+
     for (const auto& sample : samples_.random())
     {
         random_.emplace_back(sample);
@@ -86,6 +87,13 @@ void MCMCResult::compute(std::optional<double> prob)
             = detail::PosteriorCalculator::compute_param_summary(
                 sample->variance, prob_);
 
+        if (additive_->prop.size() > 0)
+        {
+            additive_->prop
+                = detail::PosteriorCalculator::compute_param_summary(
+                    sample->prop, prob_);
+        }
+
         detail::PosteriorCalculator::compute_pve(
             additive_->pve,
             sample->coeffs,
@@ -101,8 +109,6 @@ void MCMCResult::compute(std::optional<double> prob)
         dominant_->variance
             = detail::PosteriorCalculator::compute_param_summary(
                 sample->variance, prob_);
-        dominant_->ratios = detail::PosteriorCalculator::compute_param_summary(
-            sample->ratios, prob_);
 
         detail::PosteriorCalculator::compute_pve(
             dominant_->pve,

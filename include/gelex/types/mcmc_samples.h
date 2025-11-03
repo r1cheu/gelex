@@ -76,8 +76,6 @@ struct DominantSamples : BaseMarkerSamples
     DominantSamples(
         const MCMCParams& params,
         const bayes::DominantEffect& effect);
-
-    Samples ratios;
 };
 
 struct ResidualSamples

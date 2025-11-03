@@ -77,7 +77,7 @@ void SnpEffectsWriter::write_header(std::ofstream& stream) const
 
     if (has_dominant_effects())
     {
-        stream << "tDomEff\tDomSE\tDomPVE\td / a";
+        stream << "\tDomEff\tDomSE\tDomPVE";
     }
 
     stream << "\n";
@@ -228,17 +228,6 @@ void SnpEffectsWriter::write_dominant_effects(
         else
         {
             stream << "\t0.0";  // Placeholder for PVE
-        }
-
-        // Ratio (d/a) statistics
-        if (result_->dominant()->ratios.size() > snp_index)
-        {
-            stream << std::format(
-                "\t{:.6f}", result_->dominant()->ratios.mean(snp_index));
-        }
-        else
-        {
-            stream << "\t0.0";  // Placeholder for ratio
         }
     }
 }

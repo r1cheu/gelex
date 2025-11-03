@@ -93,11 +93,9 @@ struct AdditiveSummary : BaseMarkerSummary
 struct DominantSummary : BaseMarkerSummary
 {
     explicit DominantSummary(const DominantSamples& samples)
-        : BaseMarkerSummary(samples), ratios(samples.coeffs[0].rows())
+        : BaseMarkerSummary(samples)
     {
     }
-
-    PosteriorSummary ratios;
 };
 
 class MCMCResult

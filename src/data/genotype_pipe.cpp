@@ -75,6 +75,46 @@ VariantStats HardWenbergProcessor::process_variant(Ref<VectorXd> variant)
     return stats;
 }
 
+VariantStats NOIAProcessor::process_variant(Ref<VectorXd> variant)
+{
+    VariantStats stats;
+    const double p_Aa = (variant.array() == 1).mean();
+    const double p_AA = (variant.array() == 2).mean();
+    const double p_aa = 1.0 - p_Aa - p_AA;
+
+    const double AA = -(-p_Aa - (2 * p_aa));
+    const double Aa = -(1 - p_Aa - (2 * p_aa));
+    const double aa = -(2 - p_Aa - (2 * p_aa));
+
+    auto op = [&](double x) -> double
+    {
+        if (x == 0.0)
+        {
+            return AA;
+        }
+        if (x == 1.0)
+        {
+            return Aa;
+        }
+        return aa;
+    };
+
+    variant.unaryExpr(op);
+
+    stats.mean = variant.mean();
+    stats.variance = (variant.array() - stats.mean).square().sum()
+                     / (static_cast<double>(variant.size()) - 1);
+    const double std_dev = std::sqrt(stats.variance);
+    stats.is_monomorphic
+        = (stats.variance - 0) < std::numeric_limits<double>::epsilon();
+
+    if (!stats.is_monomorphic)
+    {
+        variant = (variant.array() - stats.mean) / std_dev;
+    }
+    return stats;
+}
+
 VariantStats DominantStandardizingProcessor::process_variant(
     Ref<VectorXd> variant)
 {
@@ -151,6 +191,47 @@ VariantStats DominantOrthogonalHWEProcessor::process_variant(
     return stats;
 }
 
+VariantStats DominantNOIAHWEProcessor::process_variant(Ref<VectorXd> variant)
+{
+    VariantStats stats;
+    const double p_Aa = (variant.array() == 1).mean();
+    const double p_AA = (variant.array() == 2).mean();
+    const double p_aa = 1.0 - p_Aa - p_AA;
+
+    const double denom = p_AA + p_aa - ((p_AA - p_aa) * (p_AA - p_aa));
+
+    const double AA = -(2 * p_Aa * p_aa) / denom;
+    const double Aa = (4 * p_AA * p_aa) / denom;
+    const double aa = -(2 * p_AA * p_Aa) / denom;
+
+    auto op = [&](double x) -> double
+    {
+        if (x == 0.0)
+        {
+            return AA;
+        }
+        if (x == 1.0)
+        {
+            return Aa;
+        }
+        return aa;
+    };
+
+    variant.unaryExpr(op);
+
+    stats.mean = variant.mean();
+    stats.variance = (variant.array() - stats.mean).square().sum()
+                     / (static_cast<double>(variant.size()) - 1);
+    const double std_dev = std::sqrt(stats.variance);
+    stats.is_monomorphic
+        = (stats.variance - 0) < std::numeric_limits<double>::epsilon();
+
+    if (!stats.is_monomorphic)
+    {
+        variant = (variant.array() - stats.mean) / std_dev;
+    }
+    return stats;
+}
 GenotypePipe::GenotypePipe(
     BedPipe&& bed_pipe,
     detail::BinaryMatrixWriter&& matrix_writer,

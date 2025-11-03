@@ -236,7 +236,7 @@ Eigen::MatrixXd compute_component_probs(
     const Eigen::Index n_snps = tracker_samples[0].rows();
     const auto n_chains = static_cast<Eigen::Index>(tracker_samples.size());
     const Eigen::Index n_draws = tracker_samples[0].cols();
-    const double total_samples = static_cast<double>(n_chains * n_draws);
+    const auto total_samples = static_cast<double>(n_chains * n_draws);
 
     Eigen::MatrixXd comp_probs = Eigen::MatrixXd::Zero(n_snps, n_components);
 
