@@ -87,11 +87,11 @@ void MCMCResult::compute(std::optional<double> prob)
             = detail::PosteriorCalculator::compute_param_summary(
                 sample->variance, prob_);
 
-        if (additive_->prop.size() > 0)
+        if (additive_->mixture_proportion.size() > 0)
         {
-            additive_->prop
+            additive_->mixture_proportion
                 = detail::PosteriorCalculator::compute_param_summary(
-                    sample->prop, prob_);
+                    sample->mixture_proportion, prob_);
         }
         if (additive_->pip.size() > 0)
         {
@@ -119,11 +119,11 @@ void MCMCResult::compute(std::optional<double> prob)
             = detail::PosteriorCalculator::compute_param_summary(
                 sample->variance, prob_);
 
-        if (dominant_->prop.size() > 0)
+        if (dominant_->mixture_proportion.size() > 0)
         {
-            dominant_->prop
+            dominant_->mixture_proportion
                 = detail::PosteriorCalculator::compute_param_summary(
-                    sample->prop, prob_);
+                    sample->mixture_proportion, prob_);
         }
         if (dominant_->pip.size() > 0)
         {

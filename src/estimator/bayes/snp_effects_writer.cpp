@@ -47,37 +47,46 @@ void SnpEffectsWriter::write(const std::filesystem::path& path) const
 void SnpEffectsWriter::write_header(std::ofstream& stream) const
 {
     // Determine if we have per-component probabilities to write
-    Index n_components = 0;
+    Index n_alpha_components = 0;
+    Index n_dominant_components = 0;
     if (const auto* additive = result_->additive();
-        additive && additive->comp_probs.cols() > 0)
+        (additive != nullptr) && additive->comp_probs.cols() > 0)
     {
-        n_components = additive->comp_probs.cols();
+        n_alpha_components = additive->comp_probs.cols();
     }
-    else if (const auto* dominant = result_->dominant();
-             dominant && dominant->comp_probs.cols() > 0)
+    if (const auto* dominant = result_->dominant();
+        (dominant != nullptr) && dominant->comp_probs.cols() > 0)
     {
-        n_components = dominant->comp_probs.cols();
+        n_dominant_components = dominant->comp_probs.cols();
     }
 
     // Write dynamic header based on whether dominance effects exist and
     // component probs
     stream << "Index\tID\tChrom\tPosition\tA1\tA2\tA1Frq\tAdd\tAddSE\tAddPVE";
-    if (n_components > 2)
+
+    // Write additive component probability columns for any number of components
+    if (n_alpha_components > 2)
     {
-        for (Index comp = 0; comp < n_components; ++comp)
+        for (Index comp = 0; comp < n_alpha_components; ++comp)
         {
             stream << "\tpi_" << comp << "";
         }
-        stream << "\tPIP";
     }
-    else
-    {
-        stream << "\tPIP";
-    }
+    stream << "\tPIP";
 
-    if (has_dominant_effects())
+    if (result_->dominant() != nullptr)
     {
         stream << "\tDomEff\tDomSE\tDomPVE";
+        // Write dominant component probability columns for any number of
+        // components
+        if (n_dominant_components > 2)
+        {
+            for (Index comp = 0; comp < n_dominant_components; ++comp)
+            {
+                stream << "\tpi_" << comp << "";
+            }
+        }
+        stream << "\tPIP";
     }
 
     stream << "\n";
@@ -90,9 +99,11 @@ void SnpEffectsWriter::write_snp_row(std::ofstream& stream, Index snp_index)
 
     write_snp_basic_info(stream, snp_index);
     write_additive_effects(stream, snp_index);
-    write_component_probabilities(stream, snp_index);
-    write_pip(stream, snp_index);
+    write_add_component_probabilities(stream, snp_index);
+    write_add_pip(stream, snp_index);
     write_dominant_effects(stream, snp_index);
+    write_dom_component_probabilities(stream, snp_index);
+    write_dom_pip(stream, snp_index);
 
     stream << "\n";
 }
@@ -128,13 +139,13 @@ void SnpEffectsWriter::write_snp_basic_info(
         }
         else
         {
-            stream << "\t0.5";  // Placeholder for A1Frq
+            stream << "\tNA";  // Placeholder for A1Frq
         }
     }
     else
     {
         // Placeholder values for missing SNP information
-        stream << "\t1\t1000\tA\tC\t0.5";  // Chrom, Position, A1, A2, A1Frq
+        stream << "\tNA\tNA\tNA\tNA\tNA";  // Chrom, Position, A1, A2, A1Frq
     }
 }
 
@@ -160,23 +171,49 @@ void SnpEffectsWriter::write_additive_effects(
     }
 }
 
-void SnpEffectsWriter::write_component_probabilities(
+void SnpEffectsWriter::write_add_component_probabilities(
     std::ofstream& stream,
     Index snp_index) const
 {
     // Per-component posterior probabilities (if available)
     if (const auto* additive = result_->additive();
-        additive && snp_index < additive->comp_probs.rows())
+        (additive != nullptr) && additive->comp_probs.cols() > 2
+        && snp_index < additive->comp_probs.rows())
     {
         const Index n_components = additive->comp_probs.cols();
+
         for (Index comp = 0; comp < n_components; ++comp)
         {
             stream << std::format(
                 "\t{:.6f}", additive->comp_probs(snp_index, comp));
         }
     }
-    else if (const auto* dominant = result_->dominant();
-             dominant && snp_index < dominant->comp_probs.rows())
+}
+
+void SnpEffectsWriter::write_add_pip(std::ofstream& stream, Index snp_index)
+    const
+{
+    // Posterior inclusion probability (if available)
+    if (const auto* additive = result_->additive();
+        (additive != nullptr) && additive->pip.size() > snp_index)
+    {
+        stream << std::format("\t{:.6f}", additive->pip(snp_index));
+    }
+    else
+    {
+        stream << "\t1.0";  // Default PIP when not tracking
+    }
+}
+
+void SnpEffectsWriter::write_dom_component_probabilities(
+    std::ofstream& stream,
+    Index snp_index) const
+{
+    // Per-component posterior probabilities (if available)
+
+    if (const auto* dominant = result_->dominant();
+        (dominant != nullptr) && dominant->comp_probs.cols() > 2
+        && snp_index < dominant->comp_probs.rows())
     {
         const Index n_components = dominant->comp_probs.cols();
         for (Index comp = 0; comp < n_components; ++comp)
@@ -187,20 +224,15 @@ void SnpEffectsWriter::write_component_probabilities(
     }
 }
 
-void SnpEffectsWriter::write_pip(std::ofstream& stream, Index snp_index) const
+void SnpEffectsWriter::write_dom_pip(std::ofstream& stream, Index snp_index)
+    const
 {
-    // Posterior inclusion probability (if available)
-    if (const auto* additive = result_->additive();
-        additive && additive->pip.size() > snp_index)
-    {
-        stream << std::format("\t{:.6f}", additive->pip(snp_index));
-    }
-    else if (const auto* dominant = result_->dominant();
-             dominant && dominant->pip.size() > snp_index)
+    if (const auto* dominant = result_->dominant();
+        (dominant != nullptr) && dominant->pip.size() > snp_index)
     {
         stream << std::format("\t{:.6f}", dominant->pip(snp_index));
     }
-    else
+    else if (const auto* dominant = result_->dominant(); dominant != nullptr)
     {
         stream << "\t1.0";  // Default PIP when not tracking
     }
@@ -211,8 +243,8 @@ void SnpEffectsWriter::write_dominant_effects(
     Index snp_index) const
 {
     // Dominance effect statistics (if they exist)
-    if (has_dominant_effects()
-        && snp_index < result_->dominant()->coeffs.size())
+    if (const auto* dominant = result_->dominant();
+        (dominant != nullptr) && snp_index < result_->dominant()->coeffs.size())
     {
         stream << std::format(
             "\t{:.6f}\t{:.6f}",
@@ -250,14 +282,6 @@ double SnpEffectsWriter::get_allele_frequency(Index snp_index) const
     }
 
     return 0.5;  // Default allele frequency
-}
-
-// has_component_probabilities is no longer needed - component probabilities are
-// now in AdditiveSummary and DominantSummary
-
-bool SnpEffectsWriter::has_dominant_effects() const
-{
-    return result_->dominant() != nullptr;
 }
 
 }  // namespace gelex

@@ -43,17 +43,19 @@ class SnpEffectsWriter
         const;
     void write_additive_effects(std::ofstream& stream, Eigen::Index snp_index)
         const;
-    void write_component_probabilities(
+    void write_add_component_probabilities(
         std::ofstream& stream,
         Eigen::Index snp_index) const;
-    void write_pip(std::ofstream& stream, Eigen::Index snp_index) const;
+    void write_add_pip(std::ofstream& stream, Eigen::Index snp_index) const;
+    void write_dom_component_probabilities(
+        std::ofstream& stream,
+        Eigen::Index snp_index) const;
+    void write_dom_pip(std::ofstream& stream, Eigen::Index snp_index) const;
     void write_dominant_effects(std::ofstream& stream, Eigen::Index snp_index)
         const;
 
     // Helper methods for data access
     double get_allele_frequency(Eigen::Index snp_index) const;
-    bool has_component_probabilities() const;
-    bool has_dominant_effects() const;
 };
 
 }  // namespace gelex

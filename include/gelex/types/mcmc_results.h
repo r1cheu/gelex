@@ -61,15 +61,17 @@ struct BaseMarkerSummary
           variance(1),
           pve(samples.coeffs[0].rows())
     {
-        if (!samples.prop.empty())
-        {
-            prop = PosteriorSummary(samples.prop[0].rows());
-        }
-        if (!samples.tracker.empty())
+        if (!samples.tracker.empty())  // mixture model
         {
             pip = Eigen::VectorXd::Zero(samples.tracker[0].rows());
             comp_probs = Eigen::MatrixXd::Zero(
-                samples.tracker[0].rows(), samples.n_props);
+                samples.tracker[0].rows(), samples.n_proportions);
+        }
+
+        if (!samples.mixture_proportion.empty())
+        {
+            mixture_proportion
+                = PosteriorSummary(samples.mixture_proportion[0].rows());
         }
     }
 
@@ -77,7 +79,7 @@ struct BaseMarkerSummary
     PosteriorSummary variance;
     PosteriorSummary pve;
 
-    PosteriorSummary prop;
+    PosteriorSummary mixture_proportion;
     Eigen::VectorXd pip;         // Posterior inclusion probability
     Eigen::MatrixXd comp_probs;  // Per-component posterior probabilities
 };

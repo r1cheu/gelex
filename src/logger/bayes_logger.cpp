@@ -159,11 +159,17 @@ void MCMCLogger::log_result(const MCMCResult& results, const BayesModel& model)
         effect != nullptr && effect->init_pi && effect->init_pi->size() > 1)
     {
         if (const auto* additive_result = results.additive();
-            additive_result != nullptr && additive_result->prop.size() > 0)
+            additive_result != nullptr
+            && additive_result->mixture_proportion.size() > 0)
         {
-            for (Eigen::Index i = 0; i < additive_result->prop.size(); ++i)
+            for (Eigen::Index i = 0;
+                 i < additive_result->mixture_proportion.size();
+                 ++i)
             {
-                log_summary(i, additive_result->prop, fmt::format("π[{}]", i));
+                log_summary(
+                    i,
+                    additive_result->mixture_proportion,
+                    fmt::format("π[{}]", i));
             }
         }
     }

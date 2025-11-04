@@ -70,7 +70,6 @@ auto BayesBdpiPrior::set_dominant_effect_prior(
     return result;
 }
 
-// --- BayesC / BayesCD ---
 auto BayesCPrior::set_additive_effect_prior(
     bayes::AdditiveEffect& effect,
     const PriorConfig& prior) -> std::expected<void, Error>

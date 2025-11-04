@@ -203,6 +203,7 @@ auto set_scale_mixture_prior_strategy(
         return core_result;
     }
 
+    effect.init_pi.emplace(effect_prior.mixture_proportions);
     effect.scale.emplace(effect_prior.mixture_scales);
     effect.marker_variance_size = 1;
     return {};

@@ -60,10 +60,10 @@ struct BaseMarkerSamples : RandomSamples
         const MCMCParams& params,
         const bayes::GeneticEffect& effect);
 
-    Samples prop;
+    Samples mixture_proportion;
     IntSamples tracker;
 
-    Eigen::Index n_props
+    Eigen::Index n_proportions
         = 0;  // load the number of prop for no-estimate-pi models.
 };
 
