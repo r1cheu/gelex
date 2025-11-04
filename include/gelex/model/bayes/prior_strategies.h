@@ -28,10 +28,10 @@ class BayesAPrior : public PriorSetter
  *
  * Extends BayesA with dominant effect priors
  */
-class BayesADPrior : public BayesAPrior
+class BayesAdPrior : public BayesAPrior
 {
    public:
-    ~BayesADPrior() override = default;
+    ~BayesAdPrior() override = default;
 
    private:
     auto set_dominant_effect_prior(
@@ -60,10 +60,10 @@ class BayesBPrior : public PriorSetter
  *
  * Extends BayesB with dominant effect priors
  */
-class BayesBDPrior : public BayesBPrior
+class BayesBdPrior : public BayesBPrior
 {
    public:
-    ~BayesBDPrior() override = default;
+    ~BayesBdPrior() override = default;
 
    private:
     auto set_dominant_effect_prior(
@@ -92,10 +92,10 @@ class BayesCPrior : public PriorSetter
  *
  * Extends BayesC with dominant effect priors
  */
-class BayesCDPrior : public BayesCPrior
+class BayesCdPrior : public BayesCPrior
 {
    public:
-    ~BayesCDPrior() override = default;
+    ~BayesCdPrior() override = default;
 
    private:
     auto set_dominant_effect_prior(
@@ -125,10 +125,10 @@ class BayesRRPrior : public PriorSetter
  *
  * Extends BayesRR with dominant effect priors
  */
-class BayesRRDPrior : public BayesRRPrior
+class BayesRRdPrior : public BayesRRPrior
 {
    public:
-    ~BayesRRDPrior() override = default;
+    ~BayesRRdPrior() override = default;
 
    private:
     auto set_dominant_effect_prior(
@@ -157,10 +157,10 @@ class BayesRPrior : public PriorSetter
  *
  * Extends BayesR with dominant effect priors
  */
-class BayesRDPrior : public BayesRPrior
+class BayesRdPrior : public BayesRPrior
 {
    public:
-    ~BayesRDPrior() override = default;
+    ~BayesRdPrior() override = default;
 
    private:
     auto set_dominant_effect_prior(
@@ -184,27 +184,27 @@ inline auto create_prior_strategy(BayesAlphabet type)
         case bt::A:
             return std::make_unique<BayesAPrior>();
         case bt::Ad:
-            return std::make_unique<BayesADPrior>();
+            return std::make_unique<BayesAdPrior>();
         case bt::B:
         case bt::Bpi:
             return std::make_unique<BayesBPrior>();
         case bt::Bd:
         case bt::Bdpi:
-            return std::make_unique<BayesBDPrior>();
+            return std::make_unique<BayesBdPrior>();
         case bt::C:
         case bt::Cpi:
             return std::make_unique<BayesCPrior>();
         case bt::Cd:
         case bt::Cdpi:
-            return std::make_unique<BayesCDPrior>();
+            return std::make_unique<BayesCdPrior>();
         case bt::R:
             return std::make_unique<BayesRPrior>();
         case bt::Rd:
-            return std::make_unique<BayesRDPrior>();
+            return std::make_unique<BayesRdPrior>();
         case bt::RR:
             return std::make_unique<BayesRRPrior>();
         case bt::RRd:
-            return std::make_unique<BayesRRDPrior>();
+            return std::make_unique<BayesRRdPrior>();
         default:
             return nullptr;
     }

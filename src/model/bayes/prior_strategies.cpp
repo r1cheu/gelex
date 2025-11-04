@@ -16,7 +16,7 @@ auto BayesAPrior::set_additive_effect_prior(
         effect, prior.additive, prior);
 }
 
-auto BayesADPrior::set_dominant_effect_prior(
+auto BayesAdPrior::set_dominant_effect_prior(
     bayes::DominantEffect& effect,
     const PriorConfig& prior) -> std::expected<void, Error>
 {
@@ -33,7 +33,7 @@ auto BayesBPrior::set_additive_effect_prior(
         effect, prior.additive, prior, var_size);
 }
 
-auto BayesBDPrior::set_dominant_effect_prior(
+auto BayesBdPrior::set_dominant_effect_prior(
     bayes::DominantEffect& effect,
     const PriorConfig& prior) -> std::expected<void, Error>
 {
@@ -51,7 +51,7 @@ auto BayesCPrior::set_additive_effect_prior(
         effect, prior.additive, prior, 1);
 }
 
-auto BayesCDPrior::set_dominant_effect_prior(
+auto BayesCdPrior::set_dominant_effect_prior(
     bayes::DominantEffect& effect,
     const PriorConfig& prior) -> std::expected<void, Error>
 {
@@ -67,7 +67,7 @@ auto BayesRRPrior::set_additive_effect_prior(
         effect, prior.additive, prior);
 }
 
-auto BayesRRDPrior::set_dominant_effect_prior(
+auto BayesRRdPrior::set_dominant_effect_prior(
     bayes::DominantEffect& effect,
     const PriorConfig& prior) -> std::expected<void, Error>
 {
@@ -84,7 +84,7 @@ auto BayesRPrior::set_additive_effect_prior(
         effect, prior.additive, prior);
 }
 
-auto BayesRDPrior::set_dominant_effect_prior(
+auto BayesRdPrior::set_dominant_effect_prior(
     bayes::DominantEffect& effect,
     const PriorConfig& prior) -> std::expected<void, Error>
 {
