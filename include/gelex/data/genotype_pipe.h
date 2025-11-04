@@ -27,7 +27,7 @@ namespace bk = barkeep;
 struct VariantStats
 {
     double mean{0.0};
-    double variance{0.0};
+    double stddev{0.0};
     bool is_monomorphic{false};
 };
 
@@ -172,7 +172,7 @@ class GenotypePipe
             VariantStats stats = processor.process_variant(variant);
 
             means_.push_back(stats.mean);
-            variances_.push_back(stats.variance);
+            variances_.push_back(stats.stddev);
 
             if (stats.is_monomorphic)
             {

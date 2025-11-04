@@ -160,7 +160,7 @@ auto GenotypeLoader::process_chunk(
 
         // Store statistics
         means_.push_back(stats.mean);
-        variances_.push_back(stats.variance);
+        variances_.push_back(stats.stddev);
 
         if (stats.is_monomorphic)
         {

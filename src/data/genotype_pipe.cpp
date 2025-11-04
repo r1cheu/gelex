@@ -28,15 +28,15 @@ VariantStats StandardizingProcessor::process_variant(Ref<VectorXd> variant)
     const auto n = static_cast<double>(variant.size());
 
     stats.mean = variant.mean();
-    stats.variance = (variant.array() - stats.mean).square().sum() / (n - 1);
-    const double std_dev = std::sqrt(stats.variance);
+    stats.stddev
+        = sqrt((variant.array() - stats.mean).square().sum() / (n - 1));
 
     stats.is_monomorphic
-        = (stats.variance - 0) < std::numeric_limits<double>::epsilon();
+        = (stats.stddev - 0) < std::numeric_limits<double>::epsilon();
 
     if (!stats.is_monomorphic)
     {
-        variant = (variant.array() - stats.mean) / std_dev;
+        variant = (variant.array() - stats.mean) / stats.stddev;
     }
 
     return stats;
@@ -48,10 +48,11 @@ VariantStats RawProcessor::process_variant(Ref<VectorXd> variant)
     const auto n = static_cast<double>(variant.size());
 
     stats.mean = variant.mean();
-    stats.variance = (variant.array() - stats.mean).square().sum() / (n - 1);
+    stats.stddev
+        = sqrt((variant.array() - stats.mean).square().sum() / (n - 1));
 
     stats.is_monomorphic
-        = (stats.variance - 0) < std::numeric_limits<double>::epsilon();
+        = (stats.stddev - 0) < std::numeric_limits<double>::epsilon();
 
     return stats;
 }
@@ -61,15 +62,14 @@ VariantStats HardWenbergProcessor::process_variant(Ref<VectorXd> variant)
     VariantStats stats;
 
     stats.mean = variant.mean();
-    stats.variance = stats.mean * (1 - 0.5 * stats.mean);
-    const double std_dev = std::sqrt(stats.variance);
+    stats.stddev = sqrt(stats.mean * (1 - 0.5 * stats.mean));
 
     stats.is_monomorphic
-        = (stats.variance - 0) < std::numeric_limits<double>::epsilon();
+        = (stats.stddev - 0) < std::numeric_limits<double>::epsilon();
 
     if (!stats.is_monomorphic)
     {
-        variant = (variant.array() - stats.mean) / std_dev;
+        variant = (variant.array() - stats.mean) / stats.stddev;
     }
 
     return stats;
@@ -102,15 +102,15 @@ VariantStats NOIAProcessor::process_variant(Ref<VectorXd> variant)
     variant.unaryExpr(op);
 
     stats.mean = variant.mean();
-    stats.variance = (variant.array() - stats.mean).square().sum()
-                     / (static_cast<double>(variant.size()) - 1);
-    const double std_dev = std::sqrt(stats.variance);
+    stats.stddev = sqrt(
+        (variant.array() - stats.mean).square().sum()
+        / (static_cast<double>(variant.size()) - 1));
     stats.is_monomorphic
-        = (stats.variance - 0) < std::numeric_limits<double>::epsilon();
+        = (stats.stddev - 0) < std::numeric_limits<double>::epsilon();
 
     if (!stats.is_monomorphic)
     {
-        variant = (variant.array() - stats.mean) / std_dev;
+        variant = (variant.array() - stats.mean) / stats.stddev;
     }
     return stats;
 }
@@ -124,15 +124,15 @@ VariantStats DominantStandardizingProcessor::process_variant(
     variant = (variant.array() == 2).select(0, variant.array());
 
     stats.mean = variant.mean();
-    stats.variance = (variant.array() - stats.mean).square().sum() / (n - 1);
-    const double std_dev = std::sqrt(stats.variance);
+    stats.stddev
+        = sqrt((variant.array() - stats.mean).square().sum() / (n - 1));
 
     stats.is_monomorphic
-        = (stats.variance - 0) < std::numeric_limits<double>::epsilon();
+        = (stats.stddev - 0) < std::numeric_limits<double>::epsilon();
 
     if (!stats.is_monomorphic)
     {
-        variant = (variant.array() - stats.mean) / std_dev;
+        variant = (variant.array() - stats.mean) / stats.stddev;
     }
 
     return stats;
@@ -146,10 +146,11 @@ VariantStats DominantRawProcessor::process_variant(Ref<VectorXd> variant)
     variant = (variant.array() == 2).select(0, variant.array());
 
     stats.mean = variant.mean();
-    stats.variance = (variant.array() - stats.mean).square().sum() / (n - 1);
+    stats.stddev
+        = sqrt((variant.array() - stats.mean).square().sum() / (n - 1));
 
     stats.is_monomorphic
-        = (stats.variance - 0) < std::numeric_limits<double>::epsilon();
+        = (stats.stddev - 0) < std::numeric_limits<double>::epsilon();
 
     return stats;
 }
@@ -161,8 +162,7 @@ VariantStats DominantOrthogonalHWEProcessor::process_variant(
     const double p_freq = variant.mean() / 2;
 
     stats.mean = 2 * p_freq * p_freq;
-    const double stddev = 2 * p_freq * (1 - p_freq);
-    stats.variance = stddev * stddev;
+    stats.stddev = 2 * p_freq * (1 - p_freq);
 
     const double one_alt_encode = 2 * p_freq;
     const double two_alt_encode = (4 * p_freq) - 2;
@@ -181,11 +181,11 @@ VariantStats DominantOrthogonalHWEProcessor::process_variant(
     variant = variant.unaryExpr(op);
 
     stats.is_monomorphic
-        = (stats.variance - 0) < std::numeric_limits<double>::epsilon();
+        = (stats.stddev - 0) < std::numeric_limits<double>::epsilon();
 
     if (!stats.is_monomorphic)
     {
-        variant = (variant.array() - stats.mean) / stddev;
+        variant = (variant.array() - stats.mean) / stats.stddev;
     }
 
     return stats;
@@ -220,15 +220,15 @@ VariantStats DominantNOIAHWEProcessor::process_variant(Ref<VectorXd> variant)
     variant.unaryExpr(op);
 
     stats.mean = variant.mean();
-    stats.variance = (variant.array() - stats.mean).square().sum()
-                     / (static_cast<double>(variant.size()) - 1);
-    const double std_dev = std::sqrt(stats.variance);
+    stats.stddev = sqrt(
+        (variant.array() - stats.mean).square().sum()
+        / (static_cast<double>(variant.size()) - 1));
     stats.is_monomorphic
-        = (stats.variance - 0) < std::numeric_limits<double>::epsilon();
+        = (stats.stddev - 0) < std::numeric_limits<double>::epsilon();
 
     if (!stats.is_monomorphic)
     {
-        variant = (variant.array() - stats.mean) / std_dev;
+        variant = (variant.array() - stats.mean) / stats.stddev;
     }
     return stats;
 }

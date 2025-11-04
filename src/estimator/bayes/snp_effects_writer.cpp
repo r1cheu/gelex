@@ -131,10 +131,10 @@ void SnpEffectsWriter::write_snp_basic_info(
         {
             stream << std::format("\t{}", *snp_info.a1_frq);
         }
-        else if (result_->additive_means_.size() > snp_index)
+        else if (result_->p_freq.size() > snp_index)
         {
             // Calculate A1Frq from genotype mean: mean(X_i) / 2
-            double a1_frq = result_->additive_means_(snp_index) / 2.0;
+            double a1_frq = result_->p_freq(snp_index);
             stream << std::format("\t{:.6f}", a1_frq);
         }
         else
@@ -263,25 +263,4 @@ void SnpEffectsWriter::write_dominant_effects(
         }
     }
 }
-
-double SnpEffectsWriter::get_allele_frequency(Index snp_index) const
-{
-    if (snp_info_loader_
-        && snp_index < static_cast<Index>(snp_info_loader_->size()))
-    {
-        const auto& snp_info = (*snp_info_loader_)[snp_index];
-        if (snp_info.a1_frq)
-        {
-            return *snp_info.a1_frq;
-        }
-    }
-
-    if (result_->additive_means_.size() > snp_index)
-    {
-        return result_->additive_means_(snp_index) / 2.0;
-    }
-
-    return 0.5;  // Default allele frequency
-}
-
 }  // namespace gelex

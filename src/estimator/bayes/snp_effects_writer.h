@@ -53,9 +53,6 @@ class SnpEffectsWriter
     void write_dom_pip(std::ofstream& stream, Eigen::Index snp_index) const;
     void write_dominant_effects(std::ofstream& stream, Eigen::Index snp_index)
         const;
-
-    // Helper methods for data access
-    double get_allele_frequency(Eigen::Index snp_index) const;
 };
 
 }  // namespace gelex

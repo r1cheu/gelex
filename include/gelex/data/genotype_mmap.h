@@ -42,7 +42,7 @@ class GenotypeMap
         return mono_set_.contains(snp_index);
     }
     const Eigen::VectorXd& mean() const { return mean_; }
-    const Eigen::VectorXd& variance() const { return variance_; }
+    const Eigen::VectorXd& stddev() const { return stddev_; }
     int64_t num_mono() const { return static_cast<int64_t>(mono_set_.size()); }
     int64_t rows() const { return rows_; }
     int64_t cols() const { return cols_; }
@@ -59,14 +59,14 @@ class GenotypeMap
 #endif
         std::unordered_set<int64_t>&& mono_set,
         Eigen::VectorXd&& mean,
-        Eigen::VectorXd&& variance,
+        Eigen::VectorXd&& stddev,
         int64_t rows,
         int64_t cols)
         : mmap_(std::move(mmap)),
           mat_(std::move(mat)),
           mono_set_(std::move(mono_set)),
           mean_(std::move(mean)),
-          variance_(std::move(variance)),
+          stddev_(std::move(stddev)),
           rows_(rows),
           cols_(cols)
     {
@@ -86,7 +86,7 @@ class GenotypeMap
 #endif
     std::unordered_set<int64_t> mono_set_;
     Eigen::VectorXd mean_;
-    Eigen::VectorXd variance_;
+    Eigen::VectorXd stddev_;
     int64_t rows_;
     int64_t cols_;
 };

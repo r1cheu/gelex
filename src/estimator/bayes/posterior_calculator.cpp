@@ -143,16 +143,10 @@ void compute_rhat(PosteriorSummary& summary, const Samples& samples)
 void compute_pve(
     PosteriorSummary& summary,
     const Samples& samples,
-    const Eigen::VectorXd& variances,
     double phenotype_var)
 {
     const Eigen::Index n_params = get_n_params(samples);
     if (n_params == 0 || phenotype_var <= 0.0)
-    {
-        return;
-    }
-
-    if (variances.size() != n_params)
     {
         return;
     }
@@ -164,16 +158,12 @@ void compute_pve(
         return;
     }
 
-    // Precalculate variance ratios
-    Eigen::VectorXd var_ratios = variances / phenotype_var;
-
     const EigenThreadGuard guard;
 
 #pragma omp parallel for default(none) \
-    shared(summary, samples, var_ratios, n_params, total_draws)
+    shared(summary, samples, n_params, total_draws, phenotype_var)
     for (Eigen::Index param_idx = 0; param_idx < n_params; ++param_idx)
     {
-        const double var_ratio = var_ratios(param_idx);
         double sum_beta = 0.0;
 
         // Compute mean beta across all MCMC samples
@@ -183,12 +173,10 @@ void compute_pve(
             sum_beta += row_view.sum();
         }
 
-        // Compute mean beta and PVE
         const double mean_beta = sum_beta / total_draws;
-        const double pve = var_ratio * mean_beta * mean_beta;
+        const double pve = mean_beta * mean_beta / phenotype_var;
 
         summary.mean(param_idx) = pve;
-        summary.stddev(param_idx) = 0.0;  // PVEse is no longer calculated
     }
 }
 

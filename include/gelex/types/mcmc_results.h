@@ -147,10 +147,7 @@ class MCMCResult
     double prob_;
     double phenotype_var_;
 
-    Eigen::VectorXd additive_variances_;
-    Eigen::VectorXd additive_means_;
-    Eigen::VectorXd dominant_variances_;
-    Eigen::VectorXd dominant_means_;
+    Eigen::VectorXd p_freq;
 };
 
 }  // namespace gelex

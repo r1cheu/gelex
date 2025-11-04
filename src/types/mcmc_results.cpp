@@ -25,14 +25,7 @@ MCMCResult::MCMCResult(
 {
     if (const auto* effect = model.additive(); effect)
     {
-        additive_means_ = bayes::get_means(effect->design_matrix);
-        additive_variances_ = bayes::get_variances(effect->design_matrix);
-    }
-
-    if (const auto* effect = model.dominant(); effect)
-    {
-        dominant_means_ = bayes::get_means(effect->design_matrix);
-        dominant_variances_ = bayes::get_variances(effect->design_matrix);
+        p_freq = bayes::get_means(effect->design_matrix).array() / 2;
     }
 
     if (const auto* sample = samples_.fixed(); sample)
@@ -104,10 +97,7 @@ void MCMCResult::compute(std::optional<double> prob)
         }
 
         detail::PosteriorCalculator::compute_pve(
-            additive_->pve,
-            sample->coeffs,
-            additive_variances_,
-            phenotype_var_);
+            additive_->pve, sample->coeffs, phenotype_var_);
     }
 
     if (const auto* sample = samples_.dominant();
@@ -136,10 +126,7 @@ void MCMCResult::compute(std::optional<double> prob)
         }
 
         detail::PosteriorCalculator::compute_pve(
-            dominant_->pve,
-            sample->coeffs,
-            dominant_variances_,
-            phenotype_var_);
+            dominant_->pve, sample->coeffs, phenotype_var_);
     }
 
     // pi and snp_tracker functionality is now handled within AdditiveSummary

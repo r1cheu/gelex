@@ -105,7 +105,6 @@ void compute_rhat(PosteriorSummary& summary, const Samples& samples);
 void compute_pve(
     PosteriorSummary& summary,
     const Samples& samples,
-    const Eigen::VectorXd& variances,
     double phenotype_var);
 
 /**

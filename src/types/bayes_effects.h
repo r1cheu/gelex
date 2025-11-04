@@ -47,10 +47,10 @@ inline const Eigen::VectorXd& get_means(const GenotypeStorage& storage)
         storage);
 }
 
-inline const Eigen::VectorXd& get_variances(const GenotypeStorage& storage)
+inline const Eigen::VectorXd& get_stddev(const GenotypeStorage& storage)
 {
     return std::visit(
-        [](const auto& s) -> const Eigen::VectorXd& { return s.variance(); },
+        [](const auto& s) -> const Eigen::VectorXd& { return s.stddev(); },
         storage);
 }
 

@@ -36,7 +36,7 @@ class GenotypeMatrix
         Eigen::MatrixXd&& data,
         std::unordered_set<int64_t>&& mono_set,
         Eigen::VectorXd&& mean,
-        Eigen::VectorXd&& variance) -> GenotypeMatrix;
+        Eigen::VectorXd&& stddev) -> GenotypeMatrix;
 
     /**
      * @brief Get reference to the genotype matrix
@@ -59,7 +59,7 @@ class GenotypeMatrix
     /**
      * @brief Get variance values for all markers
      */
-    const Eigen::VectorXd& variance() const { return variance_; }
+    const Eigen::VectorXd& stddev() const { return stddev_; }
 
     /**
      * @brief Get number of monomorphic markers
@@ -81,18 +81,18 @@ class GenotypeMatrix
         Eigen::MatrixXd&& data,
         std::unordered_set<int64_t>&& mono_set,
         Eigen::VectorXd&& mean,
-        Eigen::VectorXd&& variance)
+        Eigen::VectorXd&& stddev)
         : data_(std::move(data)),
           mono_set_(std::move(mono_set)),
           mean_(std::move(mean)),
-          variance_(std::move(variance))
+          stddev_(std::move(stddev))
     {
     }
 
     Eigen::MatrixXd data_;
     std::unordered_set<int64_t> mono_set_;
     Eigen::VectorXd mean_;
-    Eigen::VectorXd variance_;
+    Eigen::VectorXd stddev_;
 };
 
 }  // namespace gelex
