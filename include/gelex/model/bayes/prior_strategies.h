@@ -56,6 +56,22 @@ class BayesBPrior : public PriorSetter
 };
 
 /**
+ * BayesBpi prior strategy
+ *
+ * Mixture prior with some markers having zero effects and estimating pi
+ */
+class BayesBpiPrior : public BayesBPrior
+{
+   public:
+    ~BayesBpiPrior() override = default;
+
+   private:
+    auto set_additive_effect_prior(
+        bayes::AdditiveEffect& effect,
+        const PriorConfig& prior) -> std::expected<void, Error> override;
+};
+
+/**
  * BayesB with Dominance prior strategy
  *
  * Extends BayesB with dominant effect priors
@@ -64,6 +80,22 @@ class BayesBdPrior : public BayesBPrior
 {
    public:
     ~BayesBdPrior() override = default;
+
+   private:
+    auto set_dominant_effect_prior(
+        bayes::DominantEffect& effect,
+        const PriorConfig& prior) -> std::expected<void, Error> override;
+};
+
+/**
+ * BayesBdpi prior strategy
+ *
+ * Extends BayesB with dominant effect priors and estimating pi
+ */
+class BayesBdpiPrior : public BayesBdPrior
+{
+   public:
+    ~BayesBdpiPrior() override = default;
 
    private:
     auto set_dominant_effect_prior(
@@ -88,6 +120,22 @@ class BayesCPrior : public PriorSetter
 };
 
 /**
+ * BayesCpi prior strategy
+ *
+ * Common variance for all non-zero markers and estimating pi
+ */
+class BayesCpiPrior : public BayesCPrior
+{
+   public:
+    ~BayesCpiPrior() override = default;
+
+   private:
+    auto set_additive_effect_prior(
+        bayes::AdditiveEffect& effect,
+        const PriorConfig& prior) -> std::expected<void, Error> override;
+};
+
+/**
  * BayesC with Dominance prior strategy
  *
  * Extends BayesC with dominant effect priors
@@ -96,6 +144,22 @@ class BayesCdPrior : public BayesCPrior
 {
    public:
     ~BayesCdPrior() override = default;
+
+   private:
+    auto set_dominant_effect_prior(
+        bayes::DominantEffect& effect,
+        const PriorConfig& prior) -> std::expected<void, Error> override;
+};
+
+/**
+ * BayesCdpi prior strategy
+ *
+ * Extends BayesC with dominant effect priors and estimating pi
+ */
+class BayesCdpiPrior : public BayesCdPrior
+{
+   public:
+    ~BayesCdpiPrior() override = default;
 
    private:
     auto set_dominant_effect_prior(
@@ -186,17 +250,21 @@ inline auto create_prior_strategy(BayesAlphabet type)
         case bt::Ad:
             return std::make_unique<BayesAdPrior>();
         case bt::B:
-        case bt::Bpi:
             return std::make_unique<BayesBPrior>();
+        case bt::Bpi:
+            return std::make_unique<BayesBpiPrior>();
         case bt::Bd:
-        case bt::Bdpi:
             return std::make_unique<BayesBdPrior>();
+        case bt::Bdpi:
+            return std::make_unique<BayesBdpiPrior>();
         case bt::C:
-        case bt::Cpi:
             return std::make_unique<BayesCPrior>();
+        case bt::Cpi:
+            return std::make_unique<BayesCpiPrior>();
         case bt::Cd:
-        case bt::Cdpi:
             return std::make_unique<BayesCdPrior>();
+        case bt::Cdpi:
+            return std::make_unique<BayesCdpiPrior>();
         case bt::R:
             return std::make_unique<BayesRPrior>();
         case bt::Rd:

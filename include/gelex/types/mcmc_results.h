@@ -69,7 +69,7 @@ struct BaseMarkerSummary
         {
             pip = Eigen::VectorXd::Zero(samples.tracker[0].rows());
             comp_probs = Eigen::MatrixXd::Zero(
-                samples.tracker[0].rows(), samples.prop[0].rows());
+                samples.tracker[0].rows(), samples.n_props);
         }
     }
 

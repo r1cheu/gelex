@@ -145,6 +145,7 @@ struct GeneticEffect
 
     std::optional<Eigen::VectorXd> init_pi;
     std::optional<Eigen::VectorXd> scale;
+    bool estimate_pi{false};
 
     bool is_monomorphic(Eigen::Index snp_index) const
     {

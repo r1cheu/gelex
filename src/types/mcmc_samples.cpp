@@ -45,14 +45,21 @@ BaseMarkerSamples::BaseMarkerSamples(
 {
     if (effect.init_pi)
     {
-        const Eigen::Index n_props = effect.init_pi->size();
         const Eigen::Index num_snp = bayes::get_cols(effect.design_matrix);
-        prop.reserve(params.n_chains);
         tracker.reserve(params.n_chains);
+        n_props = effect.init_pi->size();
+        for (Eigen::Index i = 0; i < params.n_chains; ++i)
+        {
+            tracker.emplace_back(num_snp, params.n_records);
+        }
+    }
+    if (effect.estimate_pi)
+    {
+        const Eigen::Index n_props = effect.init_pi->size();
+        prop.reserve(params.n_chains);
         for (Eigen::Index i = 0; i < params.n_chains; ++i)
         {
             prop.emplace_back(n_props, params.n_records);
-            tracker.emplace_back(num_snp, params.n_records);
         }
     }
 }

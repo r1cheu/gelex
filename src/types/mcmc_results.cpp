@@ -93,6 +93,15 @@ void MCMCResult::compute(std::optional<double> prob)
                 = detail::PosteriorCalculator::compute_param_summary(
                     sample->prop, prob_);
         }
+        if (additive_->pip.size() > 0)
+        {
+            const auto n_comp = additive_->comp_probs.cols();
+            additive_->comp_probs
+                = detail::PosteriorCalculator::compute_component_probs(
+                    sample->tracker, n_comp);
+            additive_->pip
+                = additive_->comp_probs.rightCols(n_comp - 1).rowwise().sum();
+        }
 
         detail::PosteriorCalculator::compute_pve(
             additive_->pve,
@@ -109,6 +118,22 @@ void MCMCResult::compute(std::optional<double> prob)
         dominant_->variance
             = detail::PosteriorCalculator::compute_param_summary(
                 sample->variance, prob_);
+
+        if (dominant_->prop.size() > 0)
+        {
+            dominant_->prop
+                = detail::PosteriorCalculator::compute_param_summary(
+                    sample->prop, prob_);
+        }
+        if (dominant_->pip.size() > 0)
+        {
+            const auto n_comp = dominant_->comp_probs.cols();
+            dominant_->comp_probs
+                = detail::PosteriorCalculator::compute_component_probs(
+                    sample->tracker, n_comp);
+            dominant_->pip
+                = dominant_->comp_probs.rightCols(n_comp - 1).rowwise().sum();
+        }
 
         detail::PosteriorCalculator::compute_pve(
             dominant_->pve,

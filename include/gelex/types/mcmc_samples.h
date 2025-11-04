@@ -62,6 +62,9 @@ struct BaseMarkerSamples : RandomSamples
 
     Samples prop;
     IntSamples tracker;
+
+    Eigen::Index n_props
+        = 0;  // load the number of prop for no-estimate-pi models.
 };
 
 struct AdditiveSamples : BaseMarkerSamples
