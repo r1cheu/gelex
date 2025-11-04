@@ -24,7 +24,7 @@ auto RR(
     const double old_marker_variance = state.marker_variance(0);
     Eigen::VectorXd& u = state.u;
     const auto& design_matrix = bayes::get_matrix_ref(effect.design_matrix);
-    const auto col_norm = static_cast<double>(design_matrix.rows() - 1);
+    const auto& cols_norm = effect.cols_norm;
 
     const double residual_over_var = residual_variance / old_marker_variance;
     const double sqrt_residual_variance = std::sqrt(residual_variance);
@@ -40,10 +40,10 @@ auto RR(
 
         const double old_i = coeff(i);
         const auto col = design_matrix.col(i);
-        const double v = col_norm + residual_over_var;
+        const double v = cols_norm(i) + residual_over_var;
         const double inv_v = 1.0 / v;
 
-        const double rhs = mkl_ddot(col, y_adj) + (col_norm * old_i);
+        const double rhs = mkl_ddot(col, y_adj) + (cols_norm(i) * old_i);
         const double post_mean = rhs * inv_v;
         const double post_stddev = sqrt_residual_variance * std::sqrt(inv_v);
 

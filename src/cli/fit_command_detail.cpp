@@ -197,8 +197,9 @@ int process_genotype_mmap(
         auto process_result
             = is_dominance
                   ? genotype_pipe_result
-                        ->process<gelex::DominantNOIAHWEProcessor>(chunk_size)
-                  : genotype_pipe_result->process<gelex::NOIAProcessor>(
+                        ->process<gelex::DominantOrthogonalHWEProcessor>(
+                            chunk_size)
+                  : genotype_pipe_result->process<gelex::HardWenbergProcessor>(
                         chunk_size);
         VALIDATE_RESULT_OR_RETURN(process_result, logger);
         add_effect_to_model(
@@ -233,9 +234,10 @@ int process_genotype_in_memory(
 
     auto process_result
         = is_dominance
-              ? genotype_loader->process<gelex::DominantNOIAHWEProcessor>(
+              ? genotype_loader->process<gelex::DominantOrthogonalHWEProcessor>(
                     chunk_size)
-              : genotype_loader->process<gelex::NOIAProcessor>(chunk_size);
+              : genotype_loader->process<gelex::HardWenbergProcessor>(
+                    chunk_size);
     VALIDATE_RESULT_OR_RETURN(process_result, logger);
 
     add_effect_to_model(model, std::move(process_result.value()), is_dominance);

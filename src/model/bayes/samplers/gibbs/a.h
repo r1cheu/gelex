@@ -24,7 +24,7 @@ auto A(
     auto& u = state.u;
     Eigen::VectorXd& sigma = state.marker_variance;
     const auto& design_matrix = bayes::get_matrix_ref(effect.design_matrix);
-    const auto col_norm = static_cast<double>(design_matrix.rows() - 1);
+    const auto& cols_norm = effect.cols_norm;
 
     detail::ScaledInvChiSq chi_squared{effect.marker_variance_prior};
     std::normal_distribution<double> normal{0, 1};
@@ -39,10 +39,10 @@ auto A(
         const auto& col = design_matrix.col(i);
 
         const double percision_kernel
-            = 1 / (col_norm + residual_variance / sigma(i));
+            = 1 / (cols_norm(i) + residual_variance / sigma(i));
 
         // calculate the posterior mean and standard deviation
-        const double rhs = mkl_ddot(col, y_adj) + (col_norm * old_i);
+        const double rhs = mkl_ddot(col, y_adj) + (cols_norm(i) * old_i);
         const double post_mean = rhs * percision_kernel;
         const double post_stddev = sqrt(residual_variance * percision_kernel);
 

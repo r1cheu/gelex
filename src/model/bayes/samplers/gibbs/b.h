@@ -28,7 +28,7 @@ auto B(
     Eigen::VectorXi& tracker = state.tracker;
 
     const auto& design_matrix = bayes::get_matrix_ref(effect.design_matrix);
-    const auto col_norm = static_cast<double>(design_matrix.rows() - 1);
+    const auto& cols_norm = effect.cols_norm;
 
     std::normal_distribution<double> normal{0, 1};
     std::uniform_real_distribution<double> uniform{0, 1};
@@ -48,12 +48,12 @@ auto B(
         double rhs = mkl_ddot(col, y_adj);
         if (old_i != 0.0)
         {
-            rhs += col_norm * old_i;
+            rhs += cols_norm(i) * old_i;
         }
 
         auto [post_mean, post_stddev, log_like_kernel]
             = compute_posterior_params(
-                rhs, variance_i, col_norm, residual_variance);
+                rhs, variance_i, cols_norm(i), residual_variance);
 
         const double log_like_1_minus_0 = log_like_kernel + logpi(1) - logpi(0);
 

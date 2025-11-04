@@ -121,19 +121,23 @@ struct GeneticEffect
     explicit GeneticEffect(GenotypeMap&& design_matrix)
         : design_matrix(std::move(design_matrix))
     {
+        cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
     }
 
     explicit GeneticEffect(GenotypeMatrix&& design_matrix)
         : design_matrix(std::move(design_matrix))
     {
+        cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
     }
 
     explicit GeneticEffect(GenotypeStorage&& design_matrix)
         : design_matrix(std::move(design_matrix))
     {
+        cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
     }
 
     GenotypeStorage design_matrix;
+    Eigen::VectorXd cols_norm;
 
     detail::ScaledInvChiSqParams marker_variance_prior{4, 0};
     double init_marker_variance{0.0};
