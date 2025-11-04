@@ -135,6 +135,7 @@ class MCMCResult
 
    private:
     friend class SnpEffectsWriter;
+    friend class SnpQuantGeneticWriter;
 
     MCMCSamples samples_;
 

@@ -2,7 +2,6 @@
 
 #include <expected>
 #include <filesystem>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -20,7 +19,6 @@ struct SnpInfo
     int position;
     std::string a1;
     std::string a2;
-    std::optional<double> a1_frq;
 };
 
 class SnpInfoLoader
@@ -34,13 +32,6 @@ class SnpInfoLoader
      */
     static auto create(const std::filesystem::path& bim_file_path)
         -> std::expected<SnpInfoLoader, Error>;
-
-    /**
-     * @brief Set allele frequencies from external source
-     *
-     * @param frequencies Vector of allele frequencies (A1 frequency)
-     */
-    void set_allele_frequencies(const Eigen::VectorXd& frequencies);
 
     /**
      * @brief Get all SNP information

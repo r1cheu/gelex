@@ -9,7 +9,6 @@
 
 #include "../src/data/loader.h"
 #include "../src/data/parser.h"
-#include "Eigen/Core"
 
 namespace gelex
 {
@@ -24,21 +23,6 @@ auto SnpInfoLoader::create(const std::filesystem::path& bim_file_path)
     }
 
     return SnpInfoLoader(std::move(*snp_info));
-}
-
-void SnpInfoLoader::set_allele_frequencies(const Eigen::VectorXd& frequencies)
-{
-    const auto num_snps = static_cast<Eigen::Index>(snp_info_.size());
-    if (frequencies.size() != num_snps)
-    {
-        throw std::invalid_argument(
-            "Number of frequencies does not match number of SNPs");
-    }
-
-    for (Eigen::Index i = 0; i < num_snps; ++i)
-    {
-        snp_info_[i].a1_frq = frequencies(i);
-    }
 }
 
 auto SnpInfoLoader::read_bim_file(const std::filesystem::path& path)

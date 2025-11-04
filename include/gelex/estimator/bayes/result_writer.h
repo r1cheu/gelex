@@ -4,6 +4,7 @@
 
 #include "../src/estimator/bayes/parameter_writer.h"
 #include "../src/estimator/bayes/snp_effects_writer.h"
+#include "../src/estimator/bayes/snp_quant_genetic_writer.h"
 #include "gelex/types/mcmc_results.h"
 
 namespace gelex
@@ -57,9 +58,20 @@ class MCMCResultWriter
         return snp_effects_writer_;
     }
 
+    /**
+     * @brief Get access to the quantitative genetic effects writer
+     *
+     * @return const SnpQuantGeneticWriter&
+     */
+    const SnpQuantGeneticWriter& snp_quant_genetic_writer() const
+    {
+        return snp_quant_genetic_writer_;
+    }
+
    private:
     ParameterWriter parameter_writer_;
     SnpEffectsWriter snp_effects_writer_;
+    SnpQuantGeneticWriter snp_quant_genetic_writer_;
 };
 
 }  // namespace gelex

@@ -125,13 +125,7 @@ void SnpEffectsWriter::write_snp_basic_info(
             snp_info.a1,
             snp_info.a2);
 
-        // Use allele frequency if available, otherwise calculate from
-        // genotype means
-        if (snp_info.a1_frq)
-        {
-            stream << std::format("\t{}", *snp_info.a1_frq);
-        }
-        else if (result_->p_freq.size() > snp_index)
+        if (result_->p_freq.size() > snp_index)
         {
             // Calculate A1Frq from genotype mean: mean(X_i) / 2
             double a1_frq = result_->p_freq(snp_index);
