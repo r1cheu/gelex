@@ -65,6 +65,8 @@ void SampleManager::finalize()
         "{} common samples available for analysis after intersection.",
         common_ids_.size());
 
+    logger->info("");
+
     common_id_map_.clear();
     for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(common_ids_.size());
          ++i)

@@ -101,9 +101,6 @@ auto GenotypeLoader::process(size_t chunk_size)
     auto logger = gelex::logging::get();
     global_snp_idx_ = 0;
 
-    logger->info("");
-    logger->info("Loading genotype data into memory...");
-
     auto pbar = bk::ProgressBar(
         &global_snp_idx_,
         {.total = static_cast<uint64_t>(num_variants_),

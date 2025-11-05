@@ -61,7 +61,7 @@ void MCMCLogger::log_model_information(const BayesModel& model)
             return;
         }
         logger_->info(
-            "  {}: {}, init: {:.3f}",
+            "  {}: {}, init: {:.6f}",
             label,
             sigma_prior(
                 "",

@@ -194,6 +194,18 @@ int process_genotype_mmap(
 
     if (genotype_pipe_result)
     {
+        if (is_dominance)
+        {
+            logger->info(
+                "Processing dominance genotype with memory-mapped...",
+                mmap_path);
+        }
+        else
+        {
+            logger->info(
+                "Processing additive genotype with memory-mapped...",
+                mmap_path);
+        }
         auto process_result
             = is_dominance
                   ? genotype_pipe_result
@@ -231,6 +243,15 @@ int process_genotype_in_memory(
     auto genotype_loader
         = gelex::GenotypeLoader::create(bed_path, sample_manager);
     VALIDATE_RESULT_OR_RETURN(genotype_loader, logger);
+
+    if (is_dominance)
+    {
+        logger->info("Processing dominance genotype in memory ...");
+    }
+    else
+    {
+        logger->info("Processing additive genotype in memory ...");
+    }
 
     auto process_result
         = is_dominance
