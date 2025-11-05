@@ -3,13 +3,11 @@ name = "gelex"
 channels = ["https://prefix.dev/conda-forge"]
 platforms = ["linux-64"]
 
-[build-dependencies]
+[dependencies]
 cmake = ">=3.18,<4"
 cxx-compiler = ">=1.8.0,<2"
 ninja = ">=1.12.1,<2"
 clang = ">=21.1.3,<22"
-
-[host-dependencies]
 openblas = { version = ">=0.3.28", build = "*openmp*" }
 spdlog = ">=1.15.0,<2"
 catch2 = ">=3.8.0,<4"
