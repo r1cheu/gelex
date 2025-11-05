@@ -8,8 +8,9 @@ Gelex is a C++ library and CLI tool for genomic prediction with Bayesian (BayesA
 
 **CLI Subcommands:**
 - `gelex fit`: Fit genomic prediction models (Bayesian or GBLUP)
-- `gelex predict`: Predict phenotypes/GEBV using saved effects or model checkpoints
 - `gelex simulate`: Run simulations
+
+**Note:** The `gelex predict` subcommand mentioned in README is not yet implemented in the current codebase.
 
 ## Key Architecture
 
@@ -37,6 +38,8 @@ This project uses CMake with pixi for dependency management:
 The `pixi run configure` task accepts arguments:
 - `build_dir`: Build directory (default: `.build_debug`)
 - `build_type`: Build type (default: `Debug`, options: `Debug`, `Release`, `RelWithDebInfo`, `MinSizeRel`)
+- `test`: Enable testing (default: `ON`)
+- `cxx_compiler`: C++ compiler (default: `clang++-21`)
 
 Example: `pixi run configure --build_dir=.build_release --build_type=Release`
 
@@ -56,6 +59,13 @@ cd .build_debug/tests/
 ./test "TestName*"
 ```
 
+**Test Listing:**
+
+```bash
+cd .build_debug/tests/
+./test --list-tests
+```
+
 ## Key Directories
 
 - `src/`: Core C++ implementation
@@ -72,6 +82,7 @@ cd .build_debug/tests/
 - **Optimization**: `src/optim/` - Optimization policies and algorithms
 - **Logging**: `src/logger/` - Performance and diagnostic logging
 - **CLI Interface**: `src/cli/` - Command-line interface implementation
+- **Utilities**: `src/utils/` - Math utilities, formatters, and helper functions
 
 ## Data Handling
 
@@ -84,9 +95,10 @@ cd .build_debug/tests/
 ## Model Architecture
 
 - **BayesModel**: Main Bayesian model class (`include/gelex/model/bayes/model.h`) - manages fixed, random, additive, and dominant effects
-- **MCMC**: Markov Chain Monte Carlo sampler (`include/gelex/estimator/bayes/mcmc.h`) - template-based implementation for different trait samplers
+- **MCMC**: Markov Chain Monte Carlo sampler (`include/gelex/estimator/bayes/mcmc.h`) - template-based implementation for different trait samplers with multi-chain parallel execution
 - **Trait Samplers**: Additive effect samplers (`src/model/bayes/samplers/additive/`) - A, B, C, RR implementations
-- **Effects Management**: Fixed, random, additive, dominant effects via `BayesEffects` system
+- **Effects Management**: Fixed, random, additive, dominant effects via `BayesEffects` system (`types/bayes_effects.h`)
+- **BayesState**: State management for MCMC sampling (`include/gelex/model/bayes/model.h`)
 
 ## Performance Features
 
@@ -137,3 +149,11 @@ cd .build_debug/tests/
 - **Adding CLI options**: Modify `src/cli/fit_command.cpp` for new command-line arguments
 - **Adding tests**: Use Catch2 framework in `tests/` with sample BED files
 - **Performance optimization**: Use chunk-based processing and memory-mapped I/O for large datasets
+
+## Important Implementation Details
+
+- **Memory Management**: The project uses RAII patterns with smart pointers for automatic resource management
+- **Error Handling**: Uses `std::expected` for error propagation with custom `Error` type
+- **Parallelism**: Multi-threaded MCMC with OpenMP, with explicit thread management in MCMC implementation
+- **Template-based Design**: MCMC is template-based to support different trait samplers
+- **Header Organization**: Public headers in `include/gelex/`, implementation details in `src/`
