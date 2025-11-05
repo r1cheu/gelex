@@ -151,33 +151,34 @@ void MCMCLogger::log_result(const MCMCResult& results, const BayesModel& model)
         }
     }
 
+    auto log_mixture = [&](const auto* effect, const auto* result)
+    {
+        if (effect != nullptr && effect->init_pi && effect->init_pi->size() > 1)
+        {
+            if (result != nullptr && result->mixture_proportion.size() > 0)
+            {
+                for (Eigen::Index i = 0; i < result->mixture_proportion.size();
+                     ++i)
+                {
+                    log_summary(
+                        i, result->mixture_proportion, fmt::format("π[{}]", i));
+                }
+            }
+        }
+    };
+
     if (const auto* result = results.additive(); result != nullptr)
     {
         log_summary(0, result->variance, sigma_squared("_add"));
     }
+    log_mixture(model.additive(), results.additive());
 
-    if (const auto* effect = model.additive();
-        effect != nullptr && effect->init_pi && effect->init_pi->size() > 1)
-    {
-        if (const auto* additive_result = results.additive();
-            additive_result != nullptr
-            && additive_result->mixture_proportion.size() > 0)
-        {
-            for (Eigen::Index i = 0;
-                 i < additive_result->mixture_proportion.size();
-                 ++i)
-            {
-                log_summary(
-                    i,
-                    additive_result->mixture_proportion,
-                    fmt::format("π[{}]", i));
-            }
-        }
-    }
     if (const auto* result = results.dominant(); result != nullptr)
     {
         log_summary(0, result->variance, sigma_squared("_dom"));
     }
+    log_mixture(model.dominant(), results.dominant());
+
     log_summary(0, results.residual(), sigma_squared("_e"));
 }
 
