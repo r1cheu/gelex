@@ -90,9 +90,10 @@ class BayesBdPrior : public BayesBPrior
 /**
  * BayesBdpi prior strategy
  *
- * Extends BayesB with dominant effect priors and estimating pi
+ * Extends BayesB with dominant effect priors and estimating pi for both
+ * additive and dominant effects
  */
-class BayesBdpiPrior : public BayesBdPrior
+class BayesBdpiPrior : public BayesBpiPrior
 {
    public:
     ~BayesBdpiPrior() override = default;
@@ -154,9 +155,10 @@ class BayesCdPrior : public BayesCPrior
 /**
  * BayesCdpi prior strategy
  *
- * Extends BayesC with dominant effect priors and estimating pi
+ * Extends BayesC with dominant effect priors and estimating pi for both
+ * additive and dominant effects
  */
-class BayesCdpiPrior : public BayesCdPrior
+class BayesCdpiPrior : public BayesCpiPrior
 {
    public:
     ~BayesCdpiPrior() override = default;

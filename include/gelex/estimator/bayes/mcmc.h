@@ -155,21 +155,32 @@ void MCMC<TraitSampler>::update_indicators(
     detail::Indicator& indicator)
 {
     // Update additive effect indicators
-    if (const auto* state = states.additive(); state != nullptr)
+    auto update_effect_indicators
+        = [&](const auto* state, const auto* effect, std::string_view prefix)
     {
-        indicator.update(chain, sigma_squared("_add"), state->variance);
-        indicator.update(chain, h2("_add"), state->heritability);
-
-        // Update pi for mixture models
-        if (state->pi.prop.size() > 1)
+        if (state != nullptr)
         {
-            for (Eigen::Index j = 0; j < state->pi.prop.size(); ++j)
+            indicator.update(
+                chain, fmt::format("{}_variance", prefix), state->variance);
+            indicator.update(
+                chain,
+                fmt::format("{}_heritability", prefix),
+                state->heritability);
+            if (effect->estimate_pi)
             {
-                indicator.update(
-                    chain, fmt::format("π_{}", j), state->pi.prop(j));
+                for (Eigen::Index j = 0; j < state->pi.prop.size(); ++j)
+                {
+                    indicator.update(
+                        chain,
+                        fmt::format("mixture_proportion_{}_{}", prefix, j),
+                        state->pi.prop(j));
+                }
             }
         }
-    }
+    };
+
+    update_effect_indicators(states.additive(), model.additive(), "additive");
+    update_effect_indicators(states.dominant(), model.dominant(), "dominant");
 
     // Update random effects indicators
     for (auto&& [effect, state] :
@@ -179,16 +190,10 @@ void MCMC<TraitSampler>::update_indicators(
         indicator.update(chain, sigma_squared("_"), state.variance);
     }
 
-    // Update dominance effect indicators
-    if (const auto* state = states.dominant(); state != nullptr)
-    {
-        indicator.update(chain, sigma_squared("_dom"), state->variance);
-        indicator.update(chain, h2("_dom"), state->heritability);
-    }
-
-    // Update residual indicators
     const auto& residual = states.residual();
-    indicator.update(chain, sigma_squared("_e"), residual.variance);
+    indicator.update(chain, "residual_variance", residual.variance);
+
+    indicator.flush_status(chain);
 }
 
 }  // namespace gelex

@@ -1,9 +1,10 @@
 #pragma once
 
 #include <atomic>
+#include <map>
 #include <memory>
 #include <string>
-#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <Eigen/Core>
@@ -26,10 +27,12 @@ class Indicator
    public:
     Indicator(
         Eigen::Index n_iters,
-        std::vector<std::atomic_ptrdiff_t>& progress_counters);
+        std::span<std::atomic_ptrdiff_t> progress_counters);
 
     void
     update(size_t chain_index, const std::string& status_name, double value);
+
+    void flush_status(size_t chain_index);
 
     void show();
     void done();
@@ -38,11 +41,15 @@ class Indicator
     void update_compact_status(size_t chain_index);
     size_t num_chains_;
 
+    static const std::unordered_set<std::string_view> status_names_;
+
     std::vector<std::shared_ptr<bk::ProgressBarDisplay<std::atomic_ptrdiff_t>>>
         progress_bars_;
     std::vector<std::shared_ptr<bk::StatusDisplay>> statuses_;
-    std::unordered_map<std::string, double> current_values_;
     std::shared_ptr<bk::CompositeDisplay> main_indicator_;
+
+    std::vector<std::map<std::string, double>> chain_values_;
+    std::vector<std::atomic_bool> chain_dirty_flags_;
 };
 
 }  // namespace detail

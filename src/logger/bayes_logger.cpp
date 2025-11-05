@@ -54,15 +54,20 @@ void MCMCLogger::log_model_information(const BayesModel& model)
                 sigma_prior("", effect.prior.nu, effect.prior.s2));
         }
     }
-
-    if (const auto* effect = model.additive(); effect != nullptr)
+    auto log_effect = [this](const auto* effect, const char* label)
     {
+        if (!effect)
+        {
+            return;
+        }
         logger_->info(
-            "  add: {}",
+            "  {}: {}, init: {:.3f}",
+            label,
             sigma_prior(
                 "",
                 effect->marker_variance_prior.nu,
-                effect->marker_variance_prior.s2));
+                effect->marker_variance_prior.s2),
+            effect->init_marker_variance);
 
         if (effect->init_pi && effect->init_pi->size() > 1)
         {
@@ -78,14 +83,10 @@ void MCMCLogger::log_model_information(const BayesModel& model)
             pi_str += "]";
             logger_->info(pi_str);
         }
-    }
-    if (const auto* effect = model.dominant(); effect != nullptr)
-    {
-        logger_->info(
-            "  dom_ratio: mean {:.3f}, var {:.3f}",
-            effect->ratio_mean,
-            effect->ratio_variance);
-    }
+    };
+
+    log_effect(model.additive(), "add");
+    log_effect(model.dominant(), "dom");
 
     const auto& residual = model.residual();
     logger_->info(
