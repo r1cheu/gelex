@@ -42,8 +42,7 @@ int main(int argc, char* argv[])
 
     if (program.is_subcommand_used("fit"))
     {
-        gelex::cli::log_command(
-            fit, PROJECT_VERSION, gelex::cli::parse_command(argc, argv));
+        gelex::cli::log_command(fit, gelex::cli::parse_command(argc, argv));
         int code = fit_execute(fit);
         return code;
     }
@@ -51,7 +50,7 @@ int main(int argc, char* argv[])
     if (program.is_subcommand_used("simulate"))
     {
         gelex::cli::log_command(
-            simulate, PROJECT_VERSION, gelex::cli::parse_command(argc, argv));
+            simulate, gelex::cli::parse_command(argc, argv));
         int code = simulate_execute(simulate);
         return code;
     }

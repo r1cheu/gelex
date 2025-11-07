@@ -15,19 +15,6 @@ bool is_tty()
     return isatty(fileno(stdout)) != 0;
 }
 
-void print_banner(std::string_view version)
-{
-    auto logger = gelex::logging::get();
-    logger->info("╔═══════════════════════════════════════════╗");
-    logger->info(
-        "║  G E L E X  v{}{}║",
-        version,
-        std::string(29 - version.length(), ' '));
-    logger->info("║  ▔▔▔▔▔▔▔▔▔▔                               ║");
-    logger->info("║  Genomic sElEction with Bayesian Models   ║");
-    logger->info("╚═══════════════════════════════════════════╝");
-}
-
 std::string repeat(int n, std::string_view str)
 {
     if (n <= 0 || str.empty())
@@ -74,12 +61,9 @@ std::vector<std::string> parse_command(int argc, char* args[])
 
 void log_command(
     const argparse::ArgumentParser& subcommand,
-    std::string_view version,
     std::span<const std::string> cmd)
 {
     gelex::logging::initialize(subcommand.get("--out"));
-    print_banner(version);
-
     auto logger = gelex::logging::get();
 
     logger->info("");

@@ -13,60 +13,55 @@ void fit_command(argparse::ArgumentParser& cmd)
 {
     cmd.add_description(
         "Fit a genomic prediction model using Bayesian or GBLUP methods");
-    cmd.add_argument("--pheno")
+
+    // ================================================================
+    // Required Input Files and Outputs
+    // ================================================================
+    cmd.add_argument("pheno")
         .help("phenotype file with columns [FID, IID, A, B...], sep by tab")
+        .metavar("<PHENOTYPE>")
         .required();
+    cmd.add_argument("bfile")
+        .help("prefix for PLINK1 binary files")
+        .metavar("<BFILE>")
+        .required();
+    cmd.add_argument("-o", "--out")
+        .help("output prefix")
+        .metavar("<OUT>")
+        .required();
+
+    // ================================================================
+    // Optional Input Files
+    // ================================================================
+    cmd.add_group("Optional Input Files");
     cmd.add_argument("--qcovar")
-        .default_value("")
         .help(
             "quantitative covariate file with columns [FID, IID, C1, C2...], "
             "sep by tab");
-    cmd.add_argument("--covar").default_value("").help(
+    cmd.add_argument("--covar").help(
         "categorical covariate file with columns [FID, IID, C1, C2...], sep by "
         "tab");
-    cmd.add_argument("--bfile")
-        .help("prefix for PLINK1 binary files")
-        .required();
+
+    // ================================================================
+    // Data Processing
+    // ================================================================
+    cmd.add_group("Data Processing");
     cmd.add_argument("--pheno-col")
-        .help(
-            "specify which phenotype column to use, default is the 3rd column")
+        .help("specify which phenotype column to use")
         .default_value(3)
         .scan<'i', int>();
     cmd.add_argument("--chunk-size")
-        .help("chunk size for processing snps, default is 10000")
+        .help("chunk size for processing snps")
         .default_value(10000)
         .scan<'i', int>();
-    cmd.add_argument("--dr-mean")
-        .help("prior mean for dominance to additive ratio, default is 0.0")
-        .default_value(0.0)
-        .scan<'g', double>();
-    cmd.add_argument("--dr-var")
-        .help("prior variance for dominance to additive ratio, default is 1.0")
-        .default_value(1.0)
-        .scan<'g', double>();
-    cmd.add_argument("--scale")
-        .help(
-            "variance scales for additive mixture components (e.g., for "
-            "BayesR: --scale "
-            "0.0001 0.001 0.01 0.1 1.0)")
-        .nargs(5)
-        .scan<'g', double>();
+    cmd.add_argument("--iid_only")
+        .help("use IID for sample ID, default is false, which will use FID_IID")
+        .flag();
 
-    cmd.add_argument("--pi")
-        .help("mixture proportions for additive effects (e.g., --pi 0.95 0.05)")
-        .nargs(2)
-        .scan<'g', double>();
-
-    cmd.add_argument("--dscale")
-        .help("variance scales for dominance mixture components")
-        .nargs(5)
-        .scan<'g', double>();
-
-    cmd.add_argument("--dpi")
-        .help(
-            "mixture proportions for dominance effects (e.g., --dpi 0.95 0.05)")
-        .nargs(2)
-        .scan<'g', double>();
+    // ================================================================
+    // Model Configuration
+    // ================================================================
+    cmd.add_group("Model Configuration");
     cmd.add_argument("-m", "--method")
         .help(
             "genomic prediction method: A, Ad, B, Bpi, Bd, Bdpi, C, Cpi, Cd, "
@@ -89,26 +84,53 @@ void fit_command(argparse::ArgumentParser& cmd)
             "RRd",
             "GBLUP")
         .required();
-    cmd.add_argument("-o", "--out").help("output prefix").required();
-    cmd.add_argument("--iid_only")
-        .help("use IID for sample ID, default is false, which will use FID_IID")
-        .flag();
+
+    cmd.add_argument("--scale")
+        .help("variance scales for additive mixture components (for BayesR)")
+        .nargs(5)
+        .default_value(std::vector<double>{0, 0.001, 0.01, 0.1, 1})
+        .scan<'g', double>();
+    cmd.add_argument("--pi")
+        .help("mixture proportions for additive effects")
+        .nargs(2)
+        .default_value(std::vector<double>{0.95, 0.05})
+        .scan<'g', double>();
+    cmd.add_argument("--dscale")
+        .help("variance scales for dominance mixture components")
+        .nargs(5)
+        .default_value(std::vector<double>{0, 0.001, 0.01, 0.1, 1})
+        .scan<'g', double>();
+    cmd.add_argument("--dpi")
+        .help("mixture proportions for dominance effects")
+        .nargs(2)
+        .default_value(std::vector<double>{0.95, 0.05})
+        .scan<'g', double>();
+
+    // ================================================================
+    // MCMC Parameters
+    // ================================================================
+    cmd.add_group("MCMC Parameters");
     cmd.add_argument("--iters")
-        .help("number of total MCMC iterations, default is 3000")
+        .help("number of total MCMC iterations")
         .default_value(3000)
         .scan<'i', int>();
     cmd.add_argument("--burnin")
-        .help("number of burn-in iterations, default is 1000")
+        .help("number of burn-in iterations")
         .default_value(1000)
         .scan<'i', int>();
     cmd.add_argument("--thin")
-        .help("thinning interval, default is 1")
+        .help("thinning interval")
         .default_value(1)
         .scan<'i', int>();
     cmd.add_argument("--chains")
-        .help("number of MCMC chains, default is 1")
+        .help("number of MCMC chains")
         .default_value(1)
         .scan<'i', int>();
+
+    // ================================================================
+    // Performance
+    // ================================================================
+    cmd.add_group("Performance");
     cmd.add_argument("--threads")
         .help("number of threads for parallelization, default is 16")
         .default_value(16)

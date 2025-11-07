@@ -58,6 +58,13 @@ SOFTWARE.
 #include <utility>
 #include <variant>
 #include <vector>
+
+// Platform-specific headers for TTY detection
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 #endif
 
 #ifndef ARGPARSE_CUSTOM_STRTOF
@@ -71,6 +78,37 @@ SOFTWARE.
 #ifndef ARGPARSE_CUSTOM_STRTOLD
 #define ARGPARSE_CUSTOM_STRTOLD strtold
 #endif
+
+// Color support for argparse
+namespace argparse::colors
+{
+// ANSI color codes
+constexpr std::string_view RESET = "\033[0m";
+constexpr std::string_view BOLD = "\033[1m";
+constexpr std::string_view GREEN = "\033[32m";
+constexpr std::string_view CYAN = "\033[36m";
+constexpr std::string_view YELLOW = "\033[33m";
+constexpr std::string_view BLUE = "\033[34m";
+constexpr std::string_view MAGENTA = "\033[35m";
+constexpr std::string_view RED = "\033[31m";
+
+// Check if output is a TTY (terminal)
+inline bool is_tty()
+{
+#ifdef _WIN32
+    return _isatty(_fileno(stdout)) != 0;
+#else
+    return isatty(fileno(stdout)) != 0;
+#endif
+}
+
+// Global flag to enable/disable colors
+inline bool& enabled()
+{
+    static bool colors_enabled = is_tty();
+    return colors_enabled;
+}
+}  // namespace argparse::colors
 
 namespace argparse
 {
@@ -1596,6 +1634,8 @@ class Argument
         std::ostream& stream,
         const Argument& argument)
     {
+        const bool use_colors = colors::enabled();
+
         std::stringstream name_stream;
         name_stream << "  ";  // indent
         if (argument.is_positional(
@@ -1603,23 +1643,57 @@ class Argument
         {
             if (!argument.m_metavar.empty())
             {
-                name_stream << argument.m_metavar;
+                if (use_colors)
+                    name_stream << colors::CYAN << argument.m_metavar
+                                << colors::RESET;
+                else
+                    name_stream << argument.m_metavar;
             }
             else
             {
-                name_stream << details::join(
+                auto names = details::join(
                     argument.m_names.begin(), argument.m_names.end(), " ");
+                if (use_colors)
+                    name_stream << colors::CYAN << names << colors::RESET;
+                else
+                    name_stream << names;
             }
         }
         else
         {
+            // Colorize argument names
+            std::vector<std::string> colored_names;
+            for (const auto& name : argument.m_names)
+            {
+                std::string colored_name;
+                if (use_colors)
+                {
+                    if (name.size() > 2)  // Long option (--help)
+                        colored_name = std::string(colors::CYAN) + name
+                                       + std::string(colors::RESET);
+                    else  // Short option (-h)
+                        colored_name = std::string(colors::CYAN) + name
+                                       + std::string(colors::RESET);
+                }
+                else
+                {
+                    colored_name = name;
+                }
+                colored_names.push_back(colored_name);
+            }
+
             name_stream << details::join(
-                argument.m_names.begin(), argument.m_names.end(), ", ");
+                colored_names.begin(), colored_names.end(), ", ");
+
             // If we have a metavar, and one narg - print the metavar
             if (!argument.m_metavar.empty()
                 && argument.m_num_args_range == NArgsRange{1, 1})
             {
-                name_stream << " " << argument.m_metavar;
+                if (use_colors)
+                    name_stream << " " << colors::CYAN << argument.m_metavar
+                                << colors::RESET;
+                else
+                    name_stream << " " << argument.m_metavar;
             }
             else if (
                 !argument.m_metavar.empty()
@@ -1627,7 +1701,11 @@ class Argument
                        == argument.m_num_args_range.get_max()
                 && argument.m_metavar.find("> <") != std::string::npos)
             {
-                name_stream << " " << argument.m_metavar;
+                if (use_colors)
+                    name_stream << " " << colors::CYAN << argument.m_metavar
+                                << colors::RESET;
+                else
+                    name_stream << " " << argument.m_metavar;
             }
         }
 
@@ -1639,6 +1717,8 @@ class Argument
         auto first_line = true;
         auto hspace = "  ";  // minimal space between name and help message
         stream << name_stream.str();
+
+        // Colorize help text
         std::string_view help_view(argument.m_help);
         while ((pos = argument.m_help.find('\n', prev)) != std::string::npos)
         {
@@ -1675,18 +1755,32 @@ class Argument
         {
             stream << " ";
         }
-        stream << argument.m_num_args_range;
+
+        // Colorize nargs spec
+        if (use_colors)
+            stream << colors::BLUE << argument.m_num_args_range
+                   << colors::RESET;
+        else
+            stream << argument.m_num_args_range;
 
         bool add_space = false;
         if (argument.m_default_value.has_value()
             && argument.m_num_args_range != NArgsRange{0, 0})
         {
-            stream << "[default: " << argument.m_default_value_repr << "]";
+            if (use_colors)
+                stream << colors::BLUE
+                       << "[default: " << argument.m_default_value_repr << "]"
+                       << colors::RESET;
+            else
+                stream << "[default: " << argument.m_default_value_repr << "]";
             add_space = true;
         }
         else if (argument.m_is_required)
         {
-            stream << "[required]";
+            if (use_colors)
+                stream << colors::RED << "[required]" << colors::RESET;
+            else
+                stream << "[required]";
             add_space = true;
         }
         if (argument.m_is_repeatable)
@@ -1695,7 +1789,11 @@ class Argument
             {
                 stream << " ";
             }
-            stream << "[may be repeated]";
+            if (use_colors)
+                stream << colors::MAGENTA << "[may be repeated]"
+                       << colors::RESET;
+            else
+                stream << "[may be repeated]";
         }
         stream << "\n";
         return stream;
@@ -2608,11 +2706,17 @@ class ArgumentParser
     friend auto operator<<(std::ostream& stream, const ArgumentParser& parser)
         -> std::ostream&
     {
+        const bool use_colors = colors::enabled();
+
         stream.setf(std::ios_base::left);
 
         auto longest_arg_length = parser.get_length_of_longest_argument();
 
-        stream << parser.usage() << "\n\n";
+        // Colorize usage output
+        if (use_colors)
+            stream << colors::BOLD << parser.usage() << colors::RESET << "\n\n";
+        else
+            stream << parser.usage() << "\n\n";
 
         if (!parser.m_description.empty())
         {
@@ -2627,7 +2731,11 @@ class ArgumentParser
               != parser.m_positional_arguments.end();
         if (has_visible_positional_args)
         {
-            stream << "Positional arguments:\n";
+            if (use_colors)
+                stream << colors::BOLD << colors::GREEN
+                       << "Arguments:" << colors::RESET << "\n";
+            else
+                stream << "Arguments:\n";
         }
 
         for (const auto& argument : parser.m_positional_arguments)
@@ -2641,8 +2749,13 @@ class ArgumentParser
 
         if (!parser.m_optional_arguments.empty())
         {
-            stream << (!has_visible_positional_args ? "" : "\n")
-                   << "Optional arguments:\n";
+            if (use_colors)
+                stream << (!has_visible_positional_args ? "" : "\n")
+                       << colors::BOLD << colors::GREEN
+                       << "Optional arguments:" << colors::RESET << "\n";
+            else
+                stream << (!has_visible_positional_args ? "" : "\n")
+                       << "Optional arguments:\n";
         }
 
         for (const auto& argument : parser.m_optional_arguments)
@@ -2657,8 +2770,13 @@ class ArgumentParser
         for (size_t i_group = 0; i_group < parser.m_group_names.size();
              ++i_group)
         {
-            stream << "\n"
-                   << parser.m_group_names[i_group] << " (detailed usage):\n";
+            if (use_colors)
+                stream << "\n"
+                       << colors::BOLD << colors::GREEN
+                       << parser.m_group_names[i_group] << ":" << colors::RESET
+                       << "\n";
+            else
+                stream << "\n" << parser.m_group_names[i_group] << ":\n";
             for (const auto& argument : parser.m_optional_arguments)
             {
                 if (argument.m_group_idx == i_group + 1
@@ -2678,11 +2796,19 @@ class ArgumentParser
 
         if (has_visible_subcommands)
         {
-            stream
-                << (parser.m_positional_arguments.empty()
-                        ? (parser.m_optional_arguments.empty() ? "" : "\n")
-                        : "\n")
-                << "Subcommands:\n";
+            if (use_colors)
+                stream
+                    << (parser.m_positional_arguments.empty()
+                            ? (parser.m_optional_arguments.empty() ? "" : "\n")
+                            : "\n")
+                    << colors::BOLD << colors::GREEN
+                    << "Subcommands:" << colors::RESET << "\n";
+            else
+                stream
+                    << (parser.m_positional_arguments.empty()
+                            ? (parser.m_optional_arguments.empty() ? "" : "\n")
+                            : "\n")
+                    << "Subcommands:\n";
             for (const auto& [command, subparser] : parser.m_subparser_map)
             {
                 if (subparser->get().m_suppress)
@@ -2690,9 +2816,9 @@ class ArgumentParser
                     continue;
                 }
 
-                stream << std::setw(2) << " ";
+                stream << colors::CYAN << std::setw(2) << " ";
                 stream << std::setw(static_cast<int>(longest_arg_length - 2))
-                       << command;
+                       << command << colors::RESET;
                 stream << " " << subparser->get().m_description << "\n";
             }
         }
@@ -2733,9 +2859,16 @@ class ArgumentParser
     auto usage() const -> std::string
     {
         std::stringstream stream;
+        const bool use_colors = colors::enabled();
 
         std::string curline("Usage: ");
-        curline += this->m_parser_path;
+        curline
+            = std::string(colors::GREEN) + curline + std::string(colors::RESET);
+        if (use_colors)
+            curline += std::string(colors::BOLD) + std::string(colors::CYAN)
+                       + this->m_parser_path + std::string(colors::RESET);
+        else
+            curline += this->m_parser_path;
         const bool multiline_usage
             = this->m_usage_max_line_width
               < (std::numeric_limits<std::size_t>::max)();
@@ -2832,7 +2965,52 @@ class ArgumentParser
                 {
                     curline += " ";
                 }
-                curline += arg_inline_usage;
+                // Add color to optional arguments in usage
+                if (use_colors)
+                {
+                    // For optional arguments, we want to color the argument
+                    // names The arg_inline_usage contains the formatted
+                    // argument like "[-h]" or "--help VAR" We need to parse and
+                    // color the argument names appropriately
+                    std::string colored_usage;
+                    std::string_view usage_view(arg_inline_usage);
+
+                    // Simple approach: color the first word (argument name) and
+                    // leave the rest
+                    size_t space_pos = usage_view.find(' ');
+                    if (space_pos != std::string::npos)
+                    {
+                        // Has argument name and metavar
+                        std::string_view arg_name
+                            = usage_view.substr(0, space_pos);
+                        std::string_view metavar = usage_view.substr(space_pos);
+
+                        // Color the argument name in green
+                        colored_usage = std::string(colors::GREEN)
+                                        + std::string(arg_name)
+                                        + std::string(colors::RESET);
+
+                        // Color the metavar in cyan if present
+                        if (!metavar.empty())
+                        {
+                            colored_usage += std::string(colors::CYAN)
+                                             + std::string(metavar)
+                                             + std::string(colors::RESET);
+                        }
+                    }
+                    else
+                    {
+                        // Just the argument name
+                        colored_usage = std::string(colors::GREEN)
+                                        + std::string(usage_view)
+                                        + std::string(colors::RESET);
+                    }
+                    curline += colored_usage;
+                }
+                else
+                {
+                    curline += arg_inline_usage;
+                }
             }
             if (cur_mutex != nullptr)
             {
@@ -2870,19 +3048,31 @@ class ArgumentParser
                 && !argument.m_num_args_range.is_right_bounded())
             {
                 curline += "[";
-                curline += pos_arg;
+                if (use_colors)
+                    curline += std::string(colors::CYAN) + pos_arg
+                               + std::string(colors::RESET);
+                else
+                    curline += pos_arg;
                 curline += "]...";
             }
             else if (
                 argument.m_num_args_range.get_min() == 1
                 && !argument.m_num_args_range.is_right_bounded())
             {
-                curline += pos_arg;
+                if (use_colors)
+                    curline += std::string(colors::CYAN) + pos_arg
+                               + std::string(colors::RESET);
+                else
+                    curline += pos_arg;
                 curline += "...";
             }
             else
             {
-                curline += pos_arg;
+                if (use_colors)
+                    curline += std::string(colors::CYAN) + pos_arg
+                               + std::string(colors::RESET);
+                else
+                    curline += pos_arg;
             }
         }
 
@@ -2892,7 +3082,11 @@ class ArgumentParser
             for (std::size_t i = 0; i < m_group_names.size(); ++i)
             {
                 stream << curline << std::endl << std::endl;
-                stream << m_group_names[i] << ":" << std::endl;
+                if (use_colors)
+                    stream << colors::BOLD << m_group_names[i] << ":"
+                           << colors::RESET << std::endl;
+                else
+                    stream << m_group_names[i] << ":" << std::endl;
                 curline = std::string(indent_size, ' ');
                 deal_with_options_of_group(i + 1);
             }
@@ -2914,11 +3108,18 @@ class ArgumentParser
 
                 if (i == 0)
                 {
-                    stream << command;
+                    if (use_colors)
+                        stream << colors::GREEN << command << colors::RESET;
+                    else
+                        stream << command;
                 }
                 else
                 {
-                    stream << "," << command;
+                    if (use_colors)
+                        stream << "," << colors::GREEN << command
+                               << colors::RESET;
+                    else
+                        stream << "," << command;
                 }
                 ++i;
             }
