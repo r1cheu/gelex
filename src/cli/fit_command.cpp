@@ -1,5 +1,6 @@
 #include "gelex/cli/fit_command.h"
 
+#include <thread>
 #include "fit_command_detail.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/data_pipe.h"
@@ -127,9 +128,11 @@ void fit_command(argparse::ArgumentParser& cmd)
     // Performance
     // ================================================================
     cmd.add_group("Performance");
+    const int default_threads
+        = std::max(1u, std::thread::hardware_concurrency() / 2);
     cmd.add_argument("--threads")
         .help("Number of CPU threads to use")
-        .default_value(16)
+        .default_value(default_threads)
         .scan<'i', int>();
     cmd.add_argument("--mmap")
         .help(
