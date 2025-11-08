@@ -3,6 +3,7 @@
 #include <omp.h>
 #include <spdlog/logger.h>
 #include <Eigen/Core>
+#include <vector>
 #include "gelex/argparse.h"
 
 #include "gelex/data/genotype_loader.h"
@@ -71,22 +72,24 @@ auto set_pi_prior(
     argparse::ArgumentParser& fit,
     gelex::PriorConfig& prior_config) -> void
 {
-    if (auto pi = fit.present<std::vector<double>>("--pi"))
+    if (fit.is_used("--pi"))
     {
+        auto pi = fit.get<std::vector<double>>("--pi");
         prior_config.additive.mixture_proportions
             = Eigen::Map<const Eigen::VectorXd>(
-                pi->data(), static_cast<Eigen::Index>(pi->size()));
+                pi.data(), static_cast<Eigen::Index>(pi.size()));
     }
     else
     {
         prior_config.additive.mixture_proportions = set_default_pi_prior(type);
     }
 
-    if (auto dpi = fit.present<std::vector<double>>("--dpi"))
+    if (fit.is_used("--dpi"))
     {
+        auto dpi = fit.get<std::vector<double>>("--dpi");
         prior_config.dominant.mixture_proportions
             = Eigen::Map<const Eigen::VectorXd>(
-                dpi->data(), static_cast<Eigen::Index>(dpi->size()));
+                dpi.data(), static_cast<Eigen::Index>(dpi.size()));
     }
     else
     {
@@ -112,22 +115,24 @@ auto set_scale_prior(
     argparse::ArgumentParser& fit,
     gelex::PriorConfig& prior_config) -> void
 {
-    if (auto scale = fit.present<std::vector<double>>("--scale"))
+    if (fit.is_used("--scale"))
     {
+        auto scale = fit.get<std::vector<double>>("--scale");
         prior_config.additive.mixture_scales
             = Eigen::Map<const Eigen::VectorXd>(
-                scale->data(), static_cast<Eigen::Index>(scale->size()));
+                scale.data(), static_cast<Eigen::Index>(scale.size()));
     }
     else
     {
         prior_config.additive.mixture_scales = set_default_scale_prior(type);
     }
 
-    if (auto dscale = fit.present<std::vector<double>>("--dscale"))
+    if (fit.is_used("--dscale"))
     {
+        auto dscale = fit.get<std::vector<double>>("--dscale");
         prior_config.dominant.mixture_scales
             = Eigen::Map<const Eigen::VectorXd>(
-                dscale->data(), static_cast<Eigen::Index>(dscale->size()));
+                dscale.data(), static_cast<Eigen::Index>(dscale.size()));
     }
     else
     {

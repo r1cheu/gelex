@@ -16,6 +16,7 @@ int main(int argc, char* argv[])
 
     program.add_subparser(fit);
     program.add_subparser(simulate);
+    constexpr std::string_view error_marker = "[\033[31merror\033[0m] ";
 
     try
     {
@@ -23,7 +24,7 @@ int main(int argc, char* argv[])
     }
     catch (const std::exception& err)
     {
-        std::cerr << err.what() << "\n";
+        std::cerr << error_marker << err.what() << "\n";
 
         if (program.is_subcommand_used("fit"))
         {
@@ -57,7 +58,8 @@ int main(int argc, char* argv[])
 
     if (argc <= 1)
     {
-        std::cerr << program;
+        gelex::cli::print_banner_message(PROJECT_VERSION);
+        std::cerr << "\n" << program;
         return 1;
     }
 

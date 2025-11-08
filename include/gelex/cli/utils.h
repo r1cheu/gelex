@@ -23,4 +23,6 @@ void log_command(
     const argparse::ArgumentParser& subcommand,
     std::span<const std::string> cmd);
 
+void print_banner_message(std::string_view version);
+
 }  // namespace gelex::cli

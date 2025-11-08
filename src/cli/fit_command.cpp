@@ -12,50 +12,45 @@
 void fit_command(argparse::ArgumentParser& cmd)
 {
     cmd.add_description(
-        "Fit a genomic prediction model using Bayesian or GBLUP methods");
+        "Fit genomic prediction models using Bayesian or GBLUP methods");
 
     // ================================================================
-    // Required Input Files and Outputs
+    // IO
     // ================================================================
-    cmd.add_argument("pheno")
-        .help("phenotype file with columns [FID, IID, A, B...], sep by tab")
+    cmd.add_group("Data Files");
+    cmd.add_argument("-p", "--pheno")
+        .help("Phenotype file (TSV format: FID, IID, trait1, ...)")
         .metavar("<PHENOTYPE>")
         .required();
-    cmd.add_argument("bfile")
-        .help("prefix for PLINK1 binary files")
+    cmd.add_argument("-b", "--bfile")
+        .help("PLINK binary file prefix (.bed/.bim/.fam)")
         .metavar("<BFILE>")
         .required();
-    cmd.add_argument("-o", "--out")
-        .help("output prefix")
-        .metavar("<OUT>")
-        .required();
-
-    // ================================================================
-    // Optional Input Files
-    // ================================================================
-    cmd.add_group("Optional Input Files");
     cmd.add_argument("--qcovar")
-        .help(
-            "quantitative covariate file with columns [FID, IID, C1, C2...], "
-            "sep by tab");
-    cmd.add_argument("--covar").help(
-        "categorical covariate file with columns [FID, IID, C1, C2...], sep by "
-        "tab");
+        .default_value("")
+        .help("Quantitative covariates (TSV: FID, IID, covar1, ...)");
+    cmd.add_argument("--covar").default_value("").help(
+        "Categorical covariates (TSV: FID, IID, factor1, ...)");
+    cmd.add_argument("-o", "--out")
+        .help("Output file prefix")
+        .metavar("<OUT>")
+        .required()
+        .default_value("gelex");
 
     // ================================================================
     // Data Processing
     // ================================================================
-    cmd.add_group("Data Processing");
+    cmd.add_group("Processing Options");
     cmd.add_argument("--pheno-col")
-        .help("specify which phenotype column to use")
-        .default_value(3)
+        .help("Phenotype column index (0-based)")
+        .default_value(2)
         .scan<'i', int>();
     cmd.add_argument("--chunk-size")
-        .help("chunk size for processing snps")
+        .help("SNPs per chunk (controls memory usage)")
         .default_value(10000)
         .scan<'i', int>();
-    cmd.add_argument("--iid_only")
-        .help("use IID for sample ID, default is false, which will use FID_IID")
+    cmd.add_argument("--iid-only")
+        .help("Use only IID for sample matching (ignore FID)")
         .flag();
 
     // ================================================================
@@ -64,9 +59,10 @@ void fit_command(argparse::ArgumentParser& cmd)
     cmd.add_group("Model Configuration");
     cmd.add_argument("-m", "--method")
         .help(
-            "genomic prediction method: A, Ad, B, Bpi, Bd, Bdpi, C, Cpi, Cd, "
-            "Cdpi, R, Rd, RR, RRd, GBLUP")
+            "Method: A/B/C/R/RR/GBLUP (+d for dominance, +pi to estimate "
+            "mixture), e.g. RRd, Bdpi")
         .default_value("RR")
+        .metavar("<METHOD>")
         .choices(
             "A",
             "Ad",
@@ -86,22 +82,22 @@ void fit_command(argparse::ArgumentParser& cmd)
         .required();
 
     cmd.add_argument("--scale")
-        .help("variance scales for additive mixture components (for BayesR)")
+        .help("Additive variance scales for BayesR (5 values)")
         .nargs(5)
         .default_value(std::vector<double>{0, 0.001, 0.01, 0.1, 1})
         .scan<'g', double>();
     cmd.add_argument("--pi")
-        .help("mixture proportions for additive effects")
+        .help("Additive mixture proportions for BayesB/C/R")
         .nargs(2)
         .default_value(std::vector<double>{0.95, 0.05})
         .scan<'g', double>();
     cmd.add_argument("--dscale")
-        .help("variance scales for dominance mixture components")
+        .help("Dominance variance scales for BayesR (5 values)")
         .nargs(5)
         .default_value(std::vector<double>{0, 0.001, 0.01, 0.1, 1})
         .scan<'g', double>();
     cmd.add_argument("--dpi")
-        .help("mixture proportions for dominance effects")
+        .help("Dominance mixture proportions for BayesB/C/R")
         .nargs(2)
         .default_value(std::vector<double>{0.95, 0.05})
         .scan<'g', double>();
@@ -109,21 +105,21 @@ void fit_command(argparse::ArgumentParser& cmd)
     // ================================================================
     // MCMC Parameters
     // ================================================================
-    cmd.add_group("MCMC Parameters");
+    cmd.add_group("MCMC Configuration");
     cmd.add_argument("--iters")
-        .help("number of total MCMC iterations")
-        .default_value(3000)
+        .help("Total MCMC iterations")
+        .default_value(5000)
         .scan<'i', int>();
     cmd.add_argument("--burnin")
-        .help("number of burn-in iterations")
-        .default_value(1000)
+        .help("Burn-in iterations to discard")
+        .default_value(4000)
         .scan<'i', int>();
     cmd.add_argument("--thin")
-        .help("thinning interval")
+        .help("Thinning interval for samples")
         .default_value(1)
         .scan<'i', int>();
     cmd.add_argument("--chains")
-        .help("number of MCMC chains")
+        .help("Number of MCMC chains")
         .default_value(1)
         .scan<'i', int>();
 
@@ -132,11 +128,13 @@ void fit_command(argparse::ArgumentParser& cmd)
     // ================================================================
     cmd.add_group("Performance");
     cmd.add_argument("--threads")
-        .help("number of threads for parallelization, default is 16")
+        .help("Number of CPU threads to use")
         .default_value(16)
         .scan<'i', int>();
     cmd.add_argument("--mmap")
-        .help("use memory-mapped genotype files instead of in-memory loading")
+        .help(
+            "Use memory-mapped I/O for genotype matrix(much lower RAM, may be "
+            "slower)")
         .flag();
 }
 
@@ -157,7 +155,7 @@ int fit_execute(argparse::ArgumentParser& fit)
 
     app::setup_parallelization(fit.get<int>("--threads"), logger);
 
-    auto bed_result = gelex::valid_bed(fit.get("--bfile"));
+    auto bed_result = gelex::valid_bed(fit.get("bfile"));
     VALIDATE_RESULT_OR_RETURN(bed_result, logger);
     auto bed_path = bed_result.value();
 
@@ -169,7 +167,7 @@ int fit_execute(argparse::ArgumentParser& fit)
         std::move(*sample_manager_result));
 
     gelex::DataPipe::Config config{
-        .phenotype_path = fit.get("--pheno"),
+        .phenotype_path = fit.get("pheno"),
         .phenotype_column = fit.get<int>("--pheno-col"),
         .qcovar_path = fit.get("--qcovar"),
         .covar_path = fit.get("--covar"),

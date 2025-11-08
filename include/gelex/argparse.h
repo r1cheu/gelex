@@ -2869,164 +2869,70 @@ class ArgumentParser
                        + this->m_parser_path + std::string(colors::RESET);
         else
             curline += this->m_parser_path;
-        const bool multiline_usage
-            = this->m_usage_max_line_width
-              < (std::numeric_limits<std::size_t>::max)();
         const size_t indent_size = curline.size();
 
-        const auto deal_with_options_of_group = [&](std::size_t group_idx)
-        {
-            bool found_options = false;
-            // Add any options inline here
-            const MutuallyExclusiveGroup* cur_mutex = nullptr;
-            int usage_newline_counter = -1;
-            for (const auto& argument : this->m_optional_arguments)
-            {
-                if (argument.m_is_hidden)
-                {
-                    continue;
-                }
-                if (multiline_usage)
-                {
-                    if (argument.m_group_idx != group_idx)
-                    {
-                        continue;
-                    }
-                    if (usage_newline_counter
-                        != argument.m_usage_newline_counter)
-                    {
-                        if (usage_newline_counter >= 0)
-                        {
-                            if (curline.size() > indent_size)
-                            {
-                                stream << curline << std::endl;
-                                curline = std::string(indent_size, ' ');
-                            }
-                        }
-                        usage_newline_counter
-                            = argument.m_usage_newline_counter;
-                    }
-                }
-                found_options = true;
-                const std::string arg_inline_usage
-                    = argument.get_inline_usage();
-                const MutuallyExclusiveGroup* arg_mutex
-                    = get_belonging_mutex(&argument);
-                if ((cur_mutex != nullptr) && (arg_mutex == nullptr))
-                {
-                    curline += ']';
-                    if (this->m_usage_break_on_mutex)
-                    {
-                        stream << curline << std::endl;
-                        curline = std::string(indent_size, ' ');
-                    }
-                }
-                else if ((cur_mutex == nullptr) && (arg_mutex != nullptr))
-                {
-                    if ((this->m_usage_break_on_mutex
-                         && curline.size() > indent_size)
-                        || curline.size() + 3 + arg_inline_usage.size()
-                               > this->m_usage_max_line_width)
-                    {
-                        stream << curline << std::endl;
-                        curline = std::string(indent_size, ' ');
-                    }
-                    curline += " [";
-                }
-                else if ((cur_mutex != nullptr) && (arg_mutex != nullptr))
-                {
-                    if (cur_mutex != arg_mutex)
-                    {
-                        curline += ']';
-                        if (this->m_usage_break_on_mutex
-                            || curline.size() + 3 + arg_inline_usage.size()
-                                   > this->m_usage_max_line_width)
-                        {
-                            stream << curline << std::endl;
-                            curline = std::string(indent_size, ' ');
-                        }
-                        curline += " [";
-                    }
-                    else
-                    {
-                        curline += '|';
-                    }
-                }
-                cur_mutex = arg_mutex;
-                if (curline.size() != indent_size
-                    && curline.size() + 1 + arg_inline_usage.size()
-                           > this->m_usage_max_line_width)
-                {
-                    stream << curline << std::endl;
-                    curline = std::string(indent_size, ' ');
-                    curline += " ";
-                }
-                else if (cur_mutex == nullptr)
-                {
-                    curline += " ";
-                }
-                // Add color to optional arguments in usage
-                if (use_colors)
-                {
-                    // For optional arguments, we want to color the argument
-                    // names The arg_inline_usage contains the formatted
-                    // argument like "[-h]" or "--help VAR" We need to parse and
-                    // color the argument names appropriately
-                    std::string colored_usage;
-                    std::string_view usage_view(arg_inline_usage);
-
-                    // Simple approach: color the first word (argument name) and
-                    // leave the rest
-                    size_t space_pos = usage_view.find(' ');
-                    if (space_pos != std::string::npos)
-                    {
-                        // Has argument name and metavar
-                        std::string_view arg_name
-                            = usage_view.substr(0, space_pos);
-                        std::string_view metavar = usage_view.substr(space_pos);
-
-                        // Color the argument name in green
-                        colored_usage = std::string(colors::GREEN)
-                                        + std::string(arg_name)
-                                        + std::string(colors::RESET);
-
-                        // Color the metavar in cyan if present
-                        if (!metavar.empty())
-                        {
-                            colored_usage += std::string(colors::CYAN)
-                                             + std::string(metavar)
-                                             + std::string(colors::RESET);
-                        }
-                    }
-                    else
-                    {
-                        // Just the argument name
-                        colored_usage = std::string(colors::GREEN)
-                                        + std::string(usage_view)
-                                        + std::string(colors::RESET);
-                    }
-                    curline += colored_usage;
-                }
-                else
-                {
-                    curline += arg_inline_usage;
-                }
-            }
-            if (cur_mutex != nullptr)
-            {
-                curline += ']';
-            }
-            return found_options;
-        };
-
-        const bool found_options = deal_with_options_of_group(0);
-
-        if (found_options && multiline_usage
-            && !this->m_positional_arguments.empty())
+        // Add [OPTIONS] placeholder for optional arguments
+        if (curline.size() + 10 > this->m_usage_max_line_width)
         {
             stream << curline << std::endl;
             curline = std::string(indent_size, ' ');
         }
+        if (use_colors)
+            curline += " " + std::string(colors::GREEN) + "[OPTIONS]"
+                       + std::string(colors::RESET);
+        else
+            curline += " [OPTIONS]";
+
+        // Only show required optional arguments
+        for (const auto& argument : this->m_optional_arguments)
+        {
+            if (argument.m_is_hidden || !argument.m_is_required)
+            {
+                continue;
+            }
+
+            const std::string arg_inline_usage = argument.get_inline_usage();
+            if (curline.size() + 1 + arg_inline_usage.size()
+                > this->m_usage_max_line_width)
+            {
+                stream << curline << std::endl;
+                curline = std::string(indent_size, ' ');
+            }
+            curline += " ";
+
+            if (use_colors)
+            {
+                std::string colored_usage;
+                std::string_view usage_view(arg_inline_usage);
+                size_t space_pos = usage_view.find(' ');
+                if (space_pos != std::string::npos)
+                {
+                    std::string_view arg_name = usage_view.substr(0, space_pos);
+                    std::string_view metavar = usage_view.substr(space_pos);
+                    colored_usage = std::string(colors::GREEN)
+                                    + std::string(arg_name)
+                                    + std::string(colors::RESET);
+                    if (!metavar.empty())
+                    {
+                        colored_usage += std::string(colors::CYAN)
+                                         + std::string(metavar)
+                                         + std::string(colors::RESET);
+                    }
+                }
+                else
+                {
+                    colored_usage = std::string(colors::GREEN)
+                                    + std::string(usage_view)
+                                    + std::string(colors::RESET);
+                }
+                curline += colored_usage;
+            }
+            else
+            {
+                curline += arg_inline_usage;
+            }
+        }
+
         // Put positional arguments after the optionals
         for (const auto& argument : this->m_positional_arguments)
         {
@@ -3073,22 +2979,6 @@ class ArgumentParser
                                + std::string(colors::RESET);
                 else
                     curline += pos_arg;
-            }
-        }
-
-        if (multiline_usage)
-        {
-            // Display options of other groups
-            for (std::size_t i = 0; i < m_group_names.size(); ++i)
-            {
-                stream << curline << std::endl << std::endl;
-                if (use_colors)
-                    stream << colors::BOLD << m_group_names[i] << ":"
-                           << colors::RESET << std::endl;
-                else
-                    stream << m_group_names[i] << ":" << std::endl;
-                curline = std::string(indent_size, ' ');
-                deal_with_options_of_group(i + 1);
             }
         }
 
