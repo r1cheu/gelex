@@ -16,10 +16,11 @@ Gelex is a C++ library and CLI tool for genomic prediction with Bayesian (BayesA
 
 - **Core C++ Library**: Located in `src/` with modern C++23 implementation
 - **Data Handling**: BED file readers, GRM computation, genotype/phenotype alignment via `DataPipe`
-- **Models**: Bayesian (BayesA, BayesB, BayesC, BayesRR) and GBLUP
+- **Models**: Bayesian (BayesA, BayesB, BayesC, BayesR, BayesRR, BayesRRD) and GBLUP
 - **Estimation**: MCMC for Bayesian models, REML for GBLUP
 - **Linear Algebra**: Uses Eigen (primary) and Armadillo (legacy) with BLAS/LAPACK backends
 - **Memory Management**: Memory-mapped genotype data with chunk-based processing
+- **Parallelism**: Multi-threaded MCMC with OpenMP, vectorized genotype processing
 
 ## Build System
 
@@ -75,14 +76,27 @@ cd .build_debug/tests/
 
 ## Core Components
 
-- **Data Processing**: `src/data/` - BED file readers, GRM computation, data pipelines (`DataPipe`, `BedPipe`, `GenotypePipe`)
-- **Bayesian Models**: `src/model/bayes/` - BayesAlphabet implementations (`BayesModel`, trait samplers)
+- **Data Processing**: `src/data/` - BED file readers, GRM computation, data pipelines (`DataPipe`, `BedPipe`, `GenotypePipe`, `SampleManager`)
+- **Bayesian Models**: `src/model/bayes/` - BayesAlphabet implementations (`BayesModel`, trait samplers, `BayesState`)
 - **Frequentist Models**: `src/model/freq/` - GBLUP implementation
 - **Estimation**: `src/estimator/` - MCMC for Bayesian models, REML for GBLUP
 - **Optimization**: `src/optim/` - Optimization policies and algorithms
 - **Logging**: `src/logger/` - Performance and diagnostic logging
 - **CLI Interface**: `src/cli/` - Command-line interface implementation
 - **Utilities**: `src/utils/` - Math utilities, formatters, and helper functions
+
+## Data Flow Architecture
+
+1. **Data Loading**: `DataPipe` loads phenotype/covariates, `BedPipe` loads genotypes via memory-mapping
+2. **Sample Alignment**: `SampleManager` aligns samples across all data sources
+3. **Model Setup**: `BayesModel` initializes effects (fixed, random, additive, dominant)
+4. **Estimation**: `MCMC` samples from posterior distribution or `REML` estimates variance components
+5. **Output**: Results written to disk with convergence diagnostics
+
+**Key Data Structures**:
+- `BayesEffects`: Manages fixed, random, additive, dominant, and residual effects
+- `BayesState`: Tracks current state of all model parameters during MCMC
+- `MCMCResult`: Stores posterior samples and convergence statistics
 
 ## Data Handling
 
@@ -96,16 +110,26 @@ cd .build_debug/tests/
 
 - **BayesModel**: Main Bayesian model class (`include/gelex/model/bayes/model.h`) - manages fixed, random, additive, and dominant effects
 - **MCMC**: Markov Chain Monte Carlo sampler (`include/gelex/estimator/bayes/mcmc.h`) - template-based implementation for different trait samplers with multi-chain parallel execution
-- **Trait Samplers**: Additive effect samplers (`src/model/bayes/samplers/additive/`) - A, B, C, RR implementations
-- **Effects Management**: Fixed, random, additive, dominant effects via `BayesEffects` system (`types/bayes_effects.h`)
+- **Trait Samplers**: Additive effect samplers (`src/model/bayes/samplers/additive/`) - A, B, C, R, RR, RRD implementations using Gibbs and Metropolis-Hastings sampling
+- **Effects Management**: Fixed, random, additive, dominant effects via `BayesEffects` system (`src/types/bayes_effects.h`)
 - **BayesState**: State management for MCMC sampling (`include/gelex/model/bayes/model.h`)
+
+**Bayesian Model Types**:
+- **BayesA**: t-distributed marker effects
+- **BayesB**: Mixture model with spike-slab prior
+- **BayesC**: Similar to BayesB with different prior
+- **BayesR**: Multiple variance components
+- **BayesRR**: Ridge regression (Bayesian LASSO)
+- **BayesRRD**: Ridge regression with dominance effects
 
 ## Performance Features
 
-- Memory-mapped genotype data via `mio`
-- Multi-threaded computations with OpenMP
-- BLAS/LAPACK acceleration (MKL or OpenBLAS)
-- Chunk-based processing for large datasets
+- **Memory-mapped genotype data** via `mio` library with AVX512/AVX2 vectorization
+- **Multi-threaded computations** with OpenMP for MCMC chains and matrix operations
+- **BLAS/LAPACK acceleration** (MKL or OpenBLAS) for linear algebra
+- **Chunk-based processing** for large datasets to control memory usage
+- **Vectorized genotype processing** with automatic monomorphic variant detection
+- **Cross-GRM computation** for prediction scenarios
 
 ## Development Workflow
 
@@ -157,3 +181,6 @@ cd .build_debug/tests/
 - **Parallelism**: Multi-threaded MCMC with OpenMP, with explicit thread management in MCMC implementation
 - **Template-based Design**: MCMC is template-based to support different trait samplers
 - **Header Organization**: Public headers in `include/gelex/`, implementation details in `src/`
+- **Effect System**: Hierarchical effect management with `FixedEffect`, `RandomEffect`, `AdditiveEffect`, `DominantEffect`, and `Residual` components
+- **State Tracking**: `BayesState` maintains current parameter states during MCMC sampling
+- **Convergence Diagnostics**: Built-in convergence monitoring and diagnostic tools

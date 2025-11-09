@@ -163,7 +163,7 @@ int fit_execute(argparse::ArgumentParser& fit)
     auto bed_path = bed_result.value();
 
     auto sample_manager_result = gelex::SampleManager::create(
-        bed_path.replace_extension(".fam"), fit.get<bool>("--iid_only"));
+        bed_path.replace_extension(".fam"), fit.get<bool>("--iid-only"));
     VALIDATE_RESULT_OR_RETURN(sample_manager_result, logger);
 
     auto sample_manager = std::make_shared<gelex::SampleManager>(
@@ -174,7 +174,7 @@ int fit_execute(argparse::ArgumentParser& fit)
         .phenotype_column = fit.get<int>("--pheno-col"),
         .qcovar_path = fit.get("--qcovar"),
         .covar_path = fit.get("--covar"),
-        .iid_only = fit.get<bool>("--iid_only"),
+        .iid_only = fit.get<bool>("--iid-only"),
         .output_prefix = fit.get("--out")};
 
     auto data_pipe = gelex::DataPipe::create(config, sample_manager);
