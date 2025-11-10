@@ -61,6 +61,7 @@ struct BaseMarkerSamples : RandomSamples
         const bayes::GeneticEffect& effect);
 
     Samples mixture_proportion;
+    Samples heritability;
     IntSamples tracker;
 
     Eigen::Index n_proportions

@@ -170,12 +170,14 @@ void MCMCLogger::log_result(const MCMCResult& results, const BayesModel& model)
     if (const auto* result = results.additive(); result != nullptr)
     {
         log_summary(0, result->variance, sigma_squared("_add"));
+        log_summary(0, result->heritability, "h²");
     }
     log_mixture(model.additive(), results.additive());
 
     if (const auto* result = results.dominant(); result != nullptr)
     {
         log_summary(0, result->variance, sigma_squared("_dom"));
+        log_summary(0, result->heritability, "δ²");
     }
     log_mixture(model.dominant(), results.dominant());
 

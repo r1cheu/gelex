@@ -34,11 +34,12 @@ class ParameterWriter
     void write_fixed_effects(std::ofstream& stream) const;
     void write_random_effects(std::ofstream& stream) const;
     void write_residual_variance(std::ofstream& stream) const;
-    void write_additive_variance(std::ofstream& stream) const;
-    void write_dominant_variance(std::ofstream& stream) const;
+    void write_additive_effect(std::ofstream& stream) const;
+    void write_dominant_effect(std::ofstream& stream) const;
 
     // Helper method for writing summary statistics
     static void write_summary_statistics(
+        std::span<const std::string> terms,
         std::ofstream& stream,
         const PosteriorSummary& stats,
         Eigen::Index n_params);

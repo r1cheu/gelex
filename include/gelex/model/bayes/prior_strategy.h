@@ -82,8 +82,8 @@ class PriorSetter
         const PriorConfig& prior) -> std::expected<void, Error>
         = 0;
     virtual auto set_dominant_effect_prior(
-        bayes::DominantEffect& effect,
-        const PriorConfig& prior) -> std::expected<void, Error>
+        bayes::DominantEffect& /*effect*/,
+        const PriorConfig& /*prior*/) -> std::expected<void, Error>
     {
         return {};
     };

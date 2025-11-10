@@ -43,6 +43,12 @@ BaseMarkerSamples::BaseMarkerSamples(
     const bayes::GeneticEffect& effect)
     : RandomSamples(params, bayes::get_cols(effect.design_matrix))
 {
+    heritability.reserve(params.n_chains);
+    for (Eigen::Index i = 0; i < params.n_chains; ++i)
+    {
+        heritability.emplace_back(1, params.n_records);
+    }
+
     if (effect.init_pi)  // mixture model
     {
         const Eigen::Index num_snp = bayes::get_cols(effect.design_matrix);
@@ -135,6 +141,7 @@ void MCMCSamples::store(
     {
         additive_->coeffs[chain_idx].col(record_idx) = state->coeffs;
         additive_->variance[chain_idx](0, record_idx) = state->variance;
+        additive_->heritability[chain_idx](0, record_idx) = state->heritability;
 
         if (!additive_->mixture_proportion.empty())
         {
@@ -151,6 +158,7 @@ void MCMCSamples::store(
     {
         dominant_->coeffs[chain_idx].col(record_idx) = state->coeffs;
         dominant_->variance[chain_idx](0, record_idx) = state->variance;
+        dominant_->heritability[chain_idx](0, record_idx) = state->heritability;
 
         if (!dominant_->mixture_proportion.empty()
             && state->pi.prop.size() != 0)

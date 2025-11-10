@@ -59,6 +59,7 @@ struct BaseMarkerSummary
     explicit BaseMarkerSummary(const BaseMarkerSamples& samples)
         : coeffs(samples.coeffs[0].rows()),
           variance(1),
+          heritability(1),
           pve(samples.coeffs[0].rows())
     {
         if (!samples.tracker.empty())  // mixture model
@@ -77,6 +78,7 @@ struct BaseMarkerSummary
 
     PosteriorSummary coeffs;
     PosteriorSummary variance;
+    PosteriorSummary heritability;
     PosteriorSummary pve;
 
     PosteriorSummary mixture_proportion;

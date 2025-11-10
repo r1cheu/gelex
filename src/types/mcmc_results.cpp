@@ -71,62 +71,46 @@ void MCMCResult::compute(std::optional<double> prob)
             sample.variance, prob_);
     }
 
-    if (const auto* sample = samples_.additive();
-        additive_ && sample != nullptr)
+    auto compute_summary = [&](auto& effect, const auto* sample)
     {
-        additive_->coeffs = detail::PosteriorCalculator::compute_param_summary(
+        effect->coeffs = detail::PosteriorCalculator::compute_param_summary(
             sample->coeffs, prob_);
-        additive_->variance
+        effect->variance = detail::PosteriorCalculator::compute_param_summary(
+            sample->variance, prob_);
+        effect->heritability
             = detail::PosteriorCalculator::compute_param_summary(
-                sample->variance, prob_);
+                sample->heritability, prob_);
 
-        if (additive_->mixture_proportion.size() > 0)
+        if (effect->mixture_proportion.size() > 0)
         {
-            additive_->mixture_proportion
+            effect->mixture_proportion
                 = detail::PosteriorCalculator::compute_param_summary(
                     sample->mixture_proportion, prob_);
         }
-        if (additive_->pip.size() > 0)
+        if (effect->pip.size() > 0)
         {
-            const auto n_comp = additive_->comp_probs.cols();
-            additive_->comp_probs
+            const auto n_comp = effect->comp_probs.cols();
+            effect->comp_probs
                 = detail::PosteriorCalculator::compute_component_probs(
                     sample->tracker, n_comp);
-            additive_->pip
-                = additive_->comp_probs.rightCols(n_comp - 1).rowwise().sum();
+            effect->pip
+                = effect->comp_probs.rightCols(n_comp - 1).rowwise().sum();
         }
 
         detail::PosteriorCalculator::compute_pve(
-            additive_->pve, sample->coeffs, phenotype_var_);
+            effect->pve, sample->coeffs, phenotype_var_);
+    };
+
+    if (const auto* sample = samples_.additive();
+        additive_ && sample != nullptr)
+    {
+        compute_summary(additive_, sample);
     }
 
     if (const auto* sample = samples_.dominant();
         dominant_ && sample != nullptr)
     {
-        dominant_->coeffs = detail::PosteriorCalculator::compute_param_summary(
-            sample->coeffs, prob_);
-        dominant_->variance
-            = detail::PosteriorCalculator::compute_param_summary(
-                sample->variance, prob_);
-
-        if (dominant_->mixture_proportion.size() > 0)
-        {
-            dominant_->mixture_proportion
-                = detail::PosteriorCalculator::compute_param_summary(
-                    sample->mixture_proportion, prob_);
-        }
-        if (dominant_->pip.size() > 0)
-        {
-            const auto n_comp = dominant_->comp_probs.cols();
-            dominant_->comp_probs
-                = detail::PosteriorCalculator::compute_component_probs(
-                    sample->tracker, n_comp);
-            dominant_->pip
-                = dominant_->comp_probs.rightCols(n_comp - 1).rowwise().sum();
-        }
-
-        detail::PosteriorCalculator::compute_pve(
-            dominant_->pve, sample->coeffs, phenotype_var_);
+        compute_summary(dominant_, sample);
     }
 
     // pi and snp_tracker functionality is now handled within AdditiveSummary
