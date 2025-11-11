@@ -76,7 +76,7 @@ void SnpEffectsWriter::write_header(std::ofstream& stream) const
 
     if (result_->dominant() != nullptr)
     {
-        stream << "\tDomEff\tDomSE\tDomPVE";
+        stream << "\tDom\tDomSE\tDomPVE";
         // Write dominant component probability columns for any number of
         // components
         if (n_dominant_components > 2)
