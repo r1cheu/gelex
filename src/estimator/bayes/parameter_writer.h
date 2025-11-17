@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <functional>
 
 #include <Eigen/Core>
 
@@ -36,6 +37,13 @@ class ParameterWriter
     void write_residual_variance(std::ofstream& stream) const;
     void write_additive_effect(std::ofstream& stream) const;
     void write_dominant_effect(std::ofstream& stream) const;
+
+    // Helper methods for reducing code repetition
+    static void write_genetic_effect(
+        std::ofstream& stream,
+        const std::string& variance_label,
+        const std::string& heritability_label,
+        const std::function<const BaseMarkerSummary*()>& effect_getter);
 
     // Helper method for writing summary statistics
     static void write_summary_statistics(

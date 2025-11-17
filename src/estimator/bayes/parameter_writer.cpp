@@ -74,28 +74,35 @@ void ParameterWriter::write_residual_variance(std::ofstream& stream) const
         result_->residual().size());
 }
 
-void ParameterWriter::write_additive_effect(std::ofstream& stream) const
+void ParameterWriter::write_genetic_effect(
+    std::ofstream& stream,
+    const std::string& variance_label,
+    const std::string& heritability_label,
+    const std::function<const BaseMarkerSummary*()>& effect_getter)
 {
-    if (result_->additive() != nullptr)
+    const auto* effect = effect_getter();
+    if (effect != nullptr)
     {
         write_summary_statistics(
-            std::vector<std::string>{"σ²_add"},
+            std::vector<std::string>{variance_label},
             stream,
-            result_->additive()->variance,
-            result_->additive()->variance.size());
-        const auto& mixture_proportion
-            = result_->additive()->mixture_proportion;
+            effect->variance,
+            effect->variance.size());
+
+        const auto& mixture_proportion = effect->mixture_proportion;
         std::vector<std::string> proportion_terms;
         proportion_terms.reserve(mixture_proportion.size());
         for (Index i = 0; i < mixture_proportion.size(); ++i)
         {
-            proportion_terms.emplace_back("π[" + std::to_string(1) + "]");
+            proportion_terms.emplace_back("π[" + std::to_string(i) + "]");
         }
+
         write_summary_statistics(
-            std::vector<std::string>{"h²"},
+            std::vector<std::string>{heritability_label},
             stream,
-            result_->additive()->heritability,
-            result_->additive()->heritability.size());
+            effect->heritability,
+            effect->heritability.size());
+
         write_summary_statistics(
             proportion_terms,
             stream,
@@ -104,34 +111,16 @@ void ParameterWriter::write_additive_effect(std::ofstream& stream) const
     }
 }
 
+void ParameterWriter::write_additive_effect(std::ofstream& stream) const
+{
+    write_genetic_effect(
+        stream, "σ²_add", "h²", [this]() { return result_->additive(); });
+}
+
 void ParameterWriter::write_dominant_effect(std::ofstream& stream) const
 {
-    if (result_->dominant() != nullptr)
-    {
-        write_summary_statistics(
-            std::vector<std::string>{"σ²_dom"},
-            stream,
-            result_->dominant()->variance,
-            result_->dominant()->variance.size());
-        const auto& mixture_proportion
-            = result_->dominant()->mixture_proportion;
-        std::vector<std::string> proportion_terms;
-        proportion_terms.reserve(mixture_proportion.size());
-        for (Index i = 0; i < mixture_proportion.size(); ++i)
-        {
-            proportion_terms.emplace_back("π[" + std::to_string(1) + "]");
-        }
-        write_summary_statistics(
-            std::vector<std::string>{"δ²"},
-            stream,
-            result_->dominant()->heritability,
-            result_->dominant()->heritability.size());
-        write_summary_statistics(
-            proportion_terms,
-            stream,
-            mixture_proportion,
-            mixture_proportion.size());
-    }
+    write_genetic_effect(
+        stream, "σ²_dom", "δ²", [this]() { return result_->dominant(); });
 }
 
 void ParameterWriter::write_summary_statistics(
