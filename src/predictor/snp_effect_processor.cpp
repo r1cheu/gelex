@@ -1,72 +1,84 @@
 #include "snp_effect_processor.h"
 
+#include <expected>
 #include <fstream>
-#include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
+
+#include "Eigen/Core"
+#include "data/loader.h"
+#include "data/parser.h"
 
 namespace gelex
 {
 
-std::expected<std::vector<SnpInfo>, Error> SnpEffectProcessor::create(
-    const std::string& snp_eff_file)
+auto SnpEffectProcessor::create(const std::filesystem::path& snp_eff_path)
+    -> std::expected<SnpEffectProcessor, Error>
 {
-    return parse_snp_eff_file(snp_eff_file);
-}
-
-std::expected<std::vector<SnpInfo>, Error>
-SnpEffectProcessor::parse_snp_eff_file(const std::string& snp_eff_file)
-{
-    std::ifstream file(snp_eff_file);
-    if (!file.is_open())
+    auto snp_infos = parse_snp_eff_file(snp_eff_path.string());
+    if (!snp_infos)
     {
-        return std::unexpected(
-            Error{
-                ErrorCode::FileNotFound,
-                "Failed to open .snp.eff file: " + snp_eff_file});
+        return std::unexpected(snp_infos.error());
     }
 
-    std::vector<SnpInfo> snp_infos;
-    std::string line;
+    Eigen::VectorXd add(snp_infos->size());
+    Eigen::VectorXd dom(snp_infos->size());
+    for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(snp_infos->size());
+         ++i)
+    {
+        add(i) = (*snp_infos)[i].add_effect;
+        dom(i) = (*snp_infos)[i].dom_effect;
+    }
+    bool has_dominant_effect = dom.array().isFinite().any();
+    SnpEffectProcessor processor;
+    processor.snp_effects_ = std::move(*snp_infos);
+    processor.add_ = std::move(add);
+    processor.dom_ = std::move(dom);
+    processor.has_dominant_effects_ = has_dominant_effect;
+    return processor;
+}
 
-    // Read and parse header
-    if (!std::getline(file, line))
+std::expected<std::vector<SnpEffect>, Error>
+SnpEffectProcessor::parse_snp_eff_file(const std::string& snp_eff_file)
+{
+    auto file = detail::open_file<std::ifstream>(snp_eff_file, std::ios::in);
+    if (!file)
+    {
+        return std::unexpected(file.error());
+    }
+
+    std::vector<SnpEffect> snp_infos;
+    std::string line;
+    if (!std::getline(*file, line))
     {
         return std::unexpected(
             Error{ErrorCode::InvalidData, "Empty .snp.eff file"});
     }
 
-    auto indices_result = parse_header(line);
-    if (!indices_result)
-    {
-        return std::unexpected(indices_result.error());
-    }
-    const auto& indices = *indices_result;
+    auto header = detail::parse_string(line);
+    const auto indices = assign_column_indices(header);
 
     // Parse data rows
-    while (std::getline(file, line))
+    while (std::getline(*file, line))
     {
-        auto snp_info = parse_snp_row(line, indices);
+        auto row = detail::parse_string(line);
+        auto snp_info = create_snp_info(row, indices);
         if (snp_info)
         {
             snp_infos.push_back(*snp_info);
         }
+        else
+        {
+            return std::unexpected(snp_info.error());
+        }
     }
-
-    if (snp_infos.empty())
-    {
-        return std::unexpected(
-            Error{
-                ErrorCode::InvalidData,
-                "No valid SNP effects found in .snp.eff file"});
-    }
-
     return snp_infos;
 }
 
 std::vector<double> SnpEffectProcessor::calculate_total_genetic_value(
     const std::vector<std::vector<int>>& genotypes,
-    const std::vector<SnpInfo>& snp_infos)
+    const std::vector<SnpEffect>& snp_infos)
 {
     if (genotypes.empty() || snp_infos.empty())
     {
@@ -103,7 +115,7 @@ std::vector<double> SnpEffectProcessor::calculate_total_genetic_value(
 }
 
 ColumnIndices SnpEffectProcessor::assign_column_indices(
-    const std::vector<std::string>& header_columns)
+    std::span<const std::string_view> header_columns)
 {
     ColumnIndices indices;
 
@@ -139,127 +151,38 @@ ColumnIndices SnpEffectProcessor::assign_column_indices(
     return indices;
 }
 
-std::expected<ColumnIndices, Error> SnpEffectProcessor::parse_header(
-    const std::string& header_line)
+auto SnpEffectProcessor::create_snp_info(
+    std::span<const std::string_view> columns,
+    const ColumnIndices& indices) -> std::expected<SnpEffect, Error>
 {
-    if (header_line.empty())
+    SnpEffect info;
+    info.id = columns[indices.id];
+    info.a1 = columns[indices.a1].empty() ? ' ' : columns[indices.a1][0];
+    info.a2 = columns[indices.a2].empty() ? ' ' : columns[indices.a2][0];
+    auto frq = detail::try_parse_double(columns[indices.a1frq]);
+    if (!frq)
     {
-        return std::unexpected(
-            Error{ErrorCode::InvalidData, "Empty header line"});
+        return std::unexpected(frq.error());
     }
+    info.p_freq = *frq;
 
-    // Parse header to understand column structure
-    std::istringstream header_stream(header_line);
-    std::vector<std::string> header_columns;
-    std::string column;
-
-    while (std::getline(header_stream, column, '\t'))
+    auto add_effect = detail::try_parse_double(columns[indices.add]);
+    if (!add_effect)
     {
-        header_columns.push_back(column);
+        return std::unexpected(add_effect.error());
     }
+    info.add_effect = *add_effect;
 
-    // Assign column indices using helper function
-    ColumnIndices indices = assign_column_indices(header_columns);
-
-    // Validate required columns
-    if (!indices.has_required_columns())
+    if (indices.dom != -1)
     {
-        return std::unexpected(
-            Error{
-                ErrorCode::WrongHeader,
-                "Missing required columns in .snp.eff file header"});
-    }
-
-    return indices;
-}
-
-std::optional<SnpInfo> SnpEffectProcessor::parse_snp_row(
-    const std::string& line,
-    const ColumnIndices& indices)
-{
-    if (line.empty())
-    {
-        return std::nullopt;
-    }
-
-    std::istringstream line_stream(line);
-    std::vector<std::string> columns;
-    std::string value;
-
-    while (std::getline(line_stream, value, '\t'))
-    {
-        columns.push_back(value);
-    }
-
-    return create_snp_info(columns, indices);
-}
-
-std::optional<SnpInfo> SnpEffectProcessor::create_snp_info(
-    const std::vector<std::string>& columns,
-    const ColumnIndices& indices)
-{
-    // Skip if we don't have enough columns
-    if (columns.size() <= static_cast<size_t>(std::max(
-            {indices.id, indices.a1, indices.a2, indices.a1frq, indices.add})))
-    {
-        return std::nullopt;
-    }
-
-    try
-    {
-        SnpInfo info;
-        info.id = columns[indices.id];
-        info.a1 = columns[indices.a1].empty() ? ' ' : columns[indices.a1][0];
-        info.a2 = columns[indices.a2].empty() ? ' ' : columns[indices.a2][0];
-
-        // Parse frequency
-        if (columns[indices.a1frq] != "NA" && !columns[indices.a1frq].empty())
+        auto dom_effect = detail::try_parse_double(columns[indices.dom]);
+        if (!dom_effect)
         {
-            info.p_freq = std::stod(columns[indices.a1frq]);
+            return std::unexpected(dom_effect.error());
         }
-        else
-        {
-            // Skip SNPs with missing frequency
-            return std::nullopt;
-        }
-
-        // Parse additive effect
-        if (columns[indices.add] != "NA" && !columns[indices.add].empty())
-        {
-            info.add_effect = std::stod(columns[indices.add]);
-        }
-        else
-        {
-            // Skip SNPs with missing additive effect
-            return std::nullopt;
-        }
-
-        // Parse dominant effect (optional)
-        if (indices.dom != -1
-            && columns.size() > static_cast<size_t>(indices.dom)
-            && columns[indices.dom] != "NA" && !columns[indices.dom].empty())
-        {
-            info.dom_effect = std::stod(columns[indices.dom]);
-        }
-        else
-        {
-            info.dom_effect
-                = 0.0;  // Default to zero if dominant effect not available
-        }
-
-        // Validate frequency range
-        if (info.p_freq < 0.0 || info.p_freq > 1.0)
-        {
-            return std::nullopt;  // Skip invalid frequencies
-        }
-
-        return info;
+        info.dom_effect = *dom_effect;
     }
-    catch (const std::exception& e)
-    {
-        // Skip malformed rows but continue processing
-        return std::nullopt;
-    }
+    return info;
 }
 
 }  // namespace gelex

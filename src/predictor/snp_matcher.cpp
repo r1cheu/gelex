@@ -9,7 +9,7 @@ namespace gelex
 {
 
 SnpMatcher::SnpMatcher(
-    const std::unordered_map<std::string, SnpInfo>& model_snps)
+    const std::unordered_map<std::string, SnpEffect>& model_snps)
     : model_snps_(model_snps)
 {
     // Build reverse index for model SNPs
@@ -33,7 +33,7 @@ std::expected<MatchingPlan, Error> SnpMatcher::match(
 }
 
 std::expected<MatchingPlan, Error> SnpMatcher::match(
-    const std::vector<SnpInfo>& user_snps)
+    const std::vector<SnpEffect>& user_snps)
 {
     MatchingPlan plan;
     plan.total_snps_in_user_file = static_cast<int>(user_snps.size());
@@ -89,8 +89,8 @@ std::expected<MatchingPlan, Error> SnpMatcher::match(
 }
 
 AlleleAction SnpMatcher::determine_allele_action(
-    const SnpInfo& model_snp,
-    const SnpInfo& user_snp)
+    const SnpEffect& model_snp,
+    const SnpEffect& user_snp)
 {
     // Convert alleles to uppercase for case-insensitive comparison
     char model_a1 = std::toupper(model_snp.a1);
@@ -162,7 +162,7 @@ bool SnpMatcher::alleles_match(
     return false;
 }
 
-std::expected<std::vector<SnpInfo>, Error> SnpMatcher::load_user_snps(
+std::expected<std::vector<SnpEffect>, Error> SnpMatcher::load_user_snps(
     const std::string& marker_file)
 {
     std::filesystem::path path(marker_file);
@@ -182,7 +182,7 @@ std::expected<std::vector<SnpInfo>, Error> SnpMatcher::load_user_snps(
     }
 }
 
-std::expected<std::vector<SnpInfo>, Error> SnpMatcher::load_bim_file(
+std::expected<std::vector<SnpEffect>, Error> SnpMatcher::load_bim_file(
     const std::string& bim_file)
 {
     std::ifstream file(bim_file);
@@ -194,7 +194,7 @@ std::expected<std::vector<SnpInfo>, Error> SnpMatcher::load_bim_file(
                 "Failed to open BIM file: " + bim_file});
     }
 
-    std::vector<SnpInfo> snps;
+    std::vector<SnpEffect> snps;
     std::string line;
     int line_number = 0;
 
@@ -213,7 +213,7 @@ std::expected<std::vector<SnpInfo>, Error> SnpMatcher::load_bim_file(
                         + std::to_string(line_number) + ": " + line});
         }
 
-        SnpInfo snp;
+        SnpEffect snp;
         snp.chrom = chrom;
         snp.id = id;
         snp.position = std::stoi(pos);

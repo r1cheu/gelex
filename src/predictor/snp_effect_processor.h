@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "Eigen/Core"
 #include "gelex/error.h"
 #include "snp_matcher.h"
 
@@ -31,7 +32,11 @@ struct ColumnIndices
 class SnpEffectProcessor
 {
    public:
-    static double calculate_gevi(int genotype, const SnpInfo& info)
+    // snp_eff_path: Path to the .snp.eff file
+    static auto create(const std::filesystem::path& snp_eff_path)
+        -> std::expected<SnpEffectProcessor, Error>;
+
+    static double calculate_gevi(int genotype, const SnpEffect& info)
     {
         double p = info.p_freq;
         double q = 1.0 - p;
@@ -78,7 +83,7 @@ class SnpEffectProcessor
     /// @return Vector of calculated genetic values
     static std::vector<double> calculate_gevi_batch(
         const std::vector<int>& genotypes,
-        const SnpInfo& info)
+        const SnpEffect& info)
     {
         std::vector<double> results;
         results.reserve(genotypes.size());
@@ -90,55 +95,32 @@ class SnpEffectProcessor
 
         return results;
     }
-
-    /// Create SnpEffectProcessor from .snp.eff file
-    /// @param snp_eff_file Path to .snp.eff file
-    /// @return Expected containing vector of SnpInfo, or Error on failure
-    static std::expected<std::vector<SnpInfo>, Error> create(
-        const std::string& snp_eff_file);
-
-    /// Parse .snp.eff file and extract SNP effect information
-    /// @param snp_eff_file Path to .snp.eff file
-    /// @return Expected containing vector of SnpInfo, or Error on failure
-    static std::expected<std::vector<SnpInfo>, Error> parse_snp_eff_file(
-        const std::string& snp_eff_file);
-
     /// Calculate total genetic value across multiple SNPs
     /// @param genotypes Vector of genotype vectors (one per SNP)
     /// @param snp_infos Vector of SNP information
     /// @return Vector of total genetic values (one per individual)
     static std::vector<double> calculate_total_genetic_value(
         const std::vector<std::vector<int>>& genotypes,
-        const std::vector<SnpInfo>& snp_infos);
+        const std::vector<SnpEffect>& snp_infos);
+
+    const std::vector<SnpEffect>& snp_effects() const { return snp_effects_; }
 
    private:
-    /// Helper function to assign column indices from header columns
-    /// @param header_columns Vector of header column names
-    /// @return ColumnIndices structure with assigned indices
+    SnpEffectProcessor() = default;
+    static std::expected<std::vector<SnpEffect>, Error> parse_snp_eff_file(
+        const std::string& snp_eff_file);
+
     static ColumnIndices assign_column_indices(
-        const std::vector<std::string>& header_columns);
+        std::span<const std::string_view> header_columns);
 
-    /// Parse header line from .snp.eff file
-    /// @param header_line The header line to parse
-    /// @return Expected containing ColumnIndices, or Error on failure
-    static std::expected<ColumnIndices, Error> parse_header(
-        const std::string& header_line);
+    static auto create_snp_info(
+        std::span<const std::string_view> columns,
+        const ColumnIndices& indices) -> std::expected<SnpEffect, Error>;
 
-    /// Parse a single data row from .snp.eff file
-    /// @param line The data line to parse
-    /// @param indices Column indices for parsing
-    /// @return Optional SnpInfo if row is valid, empty optional if skipped
-    static std::optional<SnpInfo> parse_snp_row(
-        const std::string& line,
-        const ColumnIndices& indices);
-
-    /// Create SnpInfo from parsed column values
-    /// @param columns Parsed column values
-    /// @param indices Column indices for parsing
-    /// @return Optional SnpInfo if data is valid, empty optional if skipped
-    static std::optional<SnpInfo> create_snp_info(
-        const std::vector<std::string>& columns,
-        const ColumnIndices& indices);
+    std::vector<SnpEffect> snp_effects_;
+    Eigen::VectorXd add_;
+    Eigen::VectorXd dom_;
+    bool has_dominant_effects_ = false;
 };
 
 }  // namespace gelex

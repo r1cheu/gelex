@@ -7,7 +7,7 @@ using namespace gelex;
 TEST_CASE("SnpMatcher - Basic SNP matching", "[snp_matcher]")
 {
     // Create model SNPs
-    std::unordered_map<std::string, SnpInfo> model_snps;
+    std::unordered_map<std::string, SnpEffect> model_snps;
 
     model_snps["rs1"] = {"rs1", "1", 1000, 'A', 'T', 0.3, 0.1, 0.02};
     model_snps["rs2"] = {"rs2", "1", 2000, 'C', 'G', 0.4, 0.2, 0.03};
@@ -16,10 +16,13 @@ TEST_CASE("SnpMatcher - Basic SNP matching", "[snp_matcher]")
     SnpMatcher matcher(model_snps);
 
     // Create user SNPs
-    std::vector<SnpInfo> user_snps;
-    user_snps.push_back({"rs1", "1", 1000, 'A', 'T', 0.0, 0.0, 0.0});  // Direct match
-    user_snps.push_back({"rs2", "1", 2000, 'G', 'C', 0.0, 0.0, 0.0});  // Flipped match
-    user_snps.push_back({"rs4", "1", 4000, 'A', 'G', 0.0, 0.0, 0.0});  // Missing SNP
+    std::vector<SnpEffect> user_snps;
+    user_snps.push_back(
+        {"rs1", "1", 1000, 'A', 'T', 0.0, 0.0, 0.0});  // Direct match
+    user_snps.push_back(
+        {"rs2", "1", 2000, 'G', 'C', 0.0, 0.0, 0.0});  // Flipped match
+    user_snps.push_back(
+        {"rs4", "1", 4000, 'A', 'G', 0.0, 0.0, 0.0});  // Missing SNP
 
     auto result = matcher.match(user_snps);
     REQUIRE(result.has_value());
@@ -37,29 +40,37 @@ TEST_CASE("SnpMatcher - Basic SNP matching", "[snp_matcher]")
     REQUIRE(plan.matches.size() == 2);
 
     // Find the direct match
-    auto direct_match = std::find_if(plan.matches.begin(), plan.matches.end(),
-        [](const SnpMatch& match) { return match.action == AlleleAction::KEEP; });
+    auto direct_match = std::find_if(
+        plan.matches.begin(),
+        plan.matches.end(),
+        [](const SnpMatch& match)
+        { return match.action == AlleleAction::KEEP; });
     REQUIRE(direct_match != plan.matches.end());
     REQUIRE(direct_match->user_file_index == 0);
 
     // Find the flipped match
-    auto flipped_match = std::find_if(plan.matches.begin(), plan.matches.end(),
-        [](const SnpMatch& match) { return match.action == AlleleAction::FLIP; });
+    auto flipped_match = std::find_if(
+        plan.matches.begin(),
+        plan.matches.end(),
+        [](const SnpMatch& match)
+        { return match.action == AlleleAction::FLIP; });
     REQUIRE(flipped_match != plan.matches.end());
     REQUIRE(flipped_match->user_file_index == 1);
 }
 
 TEST_CASE("SnpMatcher - Complementary allele matching", "[snp_matcher]")
 {
-    std::unordered_map<std::string, SnpInfo> model_snps;
+    std::unordered_map<std::string, SnpEffect> model_snps;
     model_snps["rs1"] = {"rs1", "1", 1000, 'A', 'T', 0.3, 0.1, 0.02};
     model_snps["rs2"] = {"rs2", "1", 2000, 'C', 'G', 0.4, 0.2, 0.03};
 
     SnpMatcher matcher(model_snps);
 
-    std::vector<SnpInfo> user_snps;
-    user_snps.push_back({"rs1", "1", 1000, 'T', 'A', 0.0, 0.0, 0.0});  // Complementary direct
-    user_snps.push_back({"rs2", "1", 2000, 'G', 'C', 0.0, 0.0, 0.0});  // Complementary flipped
+    std::vector<SnpEffect> user_snps;
+    user_snps.push_back(
+        {"rs1", "1", 1000, 'T', 'A', 0.0, 0.0, 0.0});  // Complementary direct
+    user_snps.push_back(
+        {"rs2", "1", 2000, 'G', 'C', 0.0, 0.0, 0.0});  // Complementary flipped
 
     auto result = matcher.match(user_snps);
     REQUIRE(result.has_value());
@@ -68,18 +79,21 @@ TEST_CASE("SnpMatcher - Complementary allele matching", "[snp_matcher]")
 
     REQUIRE(plan.matches.size() == 2);
     REQUIRE(plan.matched_snps == 0);  // No direct matches
-    REQUIRE(plan.flipped_snps == 2);  // Both complementary cases are treated as flipped
+    REQUIRE(
+        plan.flipped_snps
+        == 2);  // Both complementary cases are treated as flipped
 }
 
 TEST_CASE("SnpMatcher - Allele mismatch handling", "[snp_matcher]")
 {
-    std::unordered_map<std::string, SnpInfo> model_snps;
+    std::unordered_map<std::string, SnpEffect> model_snps;
     model_snps["rs1"] = {"rs1", "1", 1000, 'A', 'T', 0.3, 0.1, 0.02};
 
     SnpMatcher matcher(model_snps);
 
-    std::vector<SnpInfo> user_snps;
-    user_snps.push_back({"rs1", "1", 1000, 'A', 'C', 0.0, 0.0, 0.0});  // Mismatched alleles
+    std::vector<SnpEffect> user_snps;
+    user_snps.push_back(
+        {"rs1", "1", 1000, 'A', 'C', 0.0, 0.0, 0.0});  // Mismatched alleles
 
     auto result = matcher.match(user_snps);
     REQUIRE(result.has_value());
@@ -92,10 +106,10 @@ TEST_CASE("SnpMatcher - Allele mismatch handling", "[snp_matcher]")
 
 TEST_CASE("SnpMatcher - Empty model SNPs", "[snp_matcher]")
 {
-    std::unordered_map<std::string, SnpInfo> model_snps;
+    std::unordered_map<std::string, SnpEffect> model_snps;
     SnpMatcher matcher(model_snps);
 
-    std::vector<SnpInfo> user_snps;
+    std::vector<SnpEffect> user_snps;
     user_snps.push_back({"rs1", "1", 1000, 'A', 'T', 0.0, 0.0, 0.0});
 
     auto result = matcher.match(user_snps);
@@ -113,12 +127,12 @@ TEST_CASE("SnpMatcher - Empty model SNPs", "[snp_matcher]")
 
 TEST_CASE("SnpMatcher - Empty user SNPs", "[snp_matcher]")
 {
-    std::unordered_map<std::string, SnpInfo> model_snps;
+    std::unordered_map<std::string, SnpEffect> model_snps;
     model_snps["rs1"] = {"rs1", "1", 1000, 'A', 'T', 0.3, 0.1, 0.02};
 
     SnpMatcher matcher(model_snps);
 
-    std::vector<SnpInfo> user_snps;
+    std::vector<SnpEffect> user_snps;
 
     auto result = matcher.match(user_snps);
     REQUIRE(result.has_value());
@@ -135,13 +149,14 @@ TEST_CASE("SnpMatcher - Empty user SNPs", "[snp_matcher]")
 
 TEST_CASE("SnpMatcher - Case insensitive allele matching", "[snp_matcher]")
 {
-    std::unordered_map<std::string, SnpInfo> model_snps;
+    std::unordered_map<std::string, SnpEffect> model_snps;
     model_snps["rs1"] = {"rs1", "1", 1000, 'A', 'T', 0.3, 0.1, 0.02};
 
     SnpMatcher matcher(model_snps);
 
-    std::vector<SnpInfo> user_snps;
-    user_snps.push_back({"rs1", "1", 1000, 'a', 't', 0.0, 0.0, 0.0});  // Lowercase alleles
+    std::vector<SnpEffect> user_snps;
+    user_snps.push_back(
+        {"rs1", "1", 1000, 'a', 't', 0.0, 0.0, 0.0});  // Lowercase alleles
 
     auto result = matcher.match(user_snps);
     REQUIRE(result.has_value());
@@ -155,19 +170,24 @@ TEST_CASE("SnpMatcher - Case insensitive allele matching", "[snp_matcher]")
 
 TEST_CASE("SnpMatcher - Mixed allele scenarios", "[snp_matcher]")
 {
-    std::unordered_map<std::string, SnpInfo> model_snps;
+    std::unordered_map<std::string, SnpEffect> model_snps;
     model_snps["rs1"] = {"rs1", "1", 1000, 'A', 'T', 0.3, 0.1, 0.02};
     model_snps["rs2"] = {"rs2", "1", 2000, 'C', 'G', 0.4, 0.2, 0.03};
     model_snps["rs3"] = {"rs3", "1", 3000, 'A', 'C', 0.5, 0.3, 0.04};
 
     SnpMatcher matcher(model_snps);
 
-    std::vector<SnpInfo> user_snps;
-    user_snps.push_back({"rs1", "1", 1000, 'A', 'T', 0.0, 0.0, 0.0});  // Direct match
-    user_snps.push_back({"rs1", "1", 1000, 'T', 'A', 0.0, 0.0, 0.0});  // Flipped match
-    user_snps.push_back({"rs2", "1", 2000, 'G', 'C', 0.0, 0.0, 0.0});  // Complementary flipped
-    user_snps.push_back({"rs3", "1", 3000, 'C', 'A', 0.0, 0.0, 0.0});  // Regular flipped
-    user_snps.push_back({"rs4", "1", 4000, 'A', 'G', 0.0, 0.0, 0.0});  // Missing SNP
+    std::vector<SnpEffect> user_snps;
+    user_snps.push_back(
+        {"rs1", "1", 1000, 'A', 'T', 0.0, 0.0, 0.0});  // Direct match
+    user_snps.push_back(
+        {"rs1", "1", 1000, 'T', 'A', 0.0, 0.0, 0.0});  // Flipped match
+    user_snps.push_back(
+        {"rs2", "1", 2000, 'G', 'C', 0.0, 0.0, 0.0});  // Complementary flipped
+    user_snps.push_back(
+        {"rs3", "1", 3000, 'C', 'A', 0.0, 0.0, 0.0});  // Regular flipped
+    user_snps.push_back(
+        {"rs4", "1", 4000, 'A', 'G', 0.0, 0.0, 0.0});  // Missing SNP
 
     auto result = matcher.match(user_snps);
     REQUIRE(result.has_value());

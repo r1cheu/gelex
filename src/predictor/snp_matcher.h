@@ -1,6 +1,7 @@
 #pragma once
 
 #include <expected>
+#include <limits>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -11,7 +12,7 @@ namespace gelex
 {
 
 /// Unified SNP information structure combining metadata and effect data
-struct SnpInfo
+struct SnpEffect
 {
     std::string id;
     std::string chrom;
@@ -20,7 +21,9 @@ struct SnpInfo
     char a2;
     double p_freq;      // A1 allele frequency
     double add_effect;  // Additive effect coefficient
-    double dom_effect;  // Dominant effect coefficient
+    double dom_effect
+        = std::numeric_limits<double>::quiet_NaN();  // Dominant effect
+                                                     // coefficient
 };
 
 /// Action to take for allele matching
@@ -59,7 +62,7 @@ class SnpMatcher
     /// Constructor with model SNPs
     /// @param model_snps Map of model SNP ID -> SnpInfo
     explicit SnpMatcher(
-        const std::unordered_map<std::string, SnpInfo>& model_snps);
+        const std::unordered_map<std::string, SnpEffect>& model_snps);
 
     /// Create matching plan between model SNPs and user marker file
     /// @param user_marker_info_file Path to user marker file (.bim, .map, or
@@ -72,7 +75,7 @@ class SnpMatcher
     /// @param user_snps Vector of user SNP information
     /// @return Expected containing MatchingPlan, or Error on failure
     std::expected<MatchingPlan, Error> match(
-        const std::vector<SnpInfo>& user_snps);
+        const std::vector<SnpEffect>& user_snps);
 
     /// Check if alleles are complementary (A/T, C/G)
     /// @param a1 First allele
@@ -91,7 +94,7 @@ class SnpMatcher
 
    private:
     /// Model SNPs stored as ID -> SnpInfo map for fast lookup
-    std::unordered_map<std::string, SnpInfo> model_snps_;
+    std::unordered_map<std::string, SnpEffect> model_snps_;
 
     /// Model SNP indices for reverse lookup
     std::unordered_map<std::string, int> model_indices_;
@@ -101,19 +104,19 @@ class SnpMatcher
     /// @param user_snp User SNP information
     /// @return AlleleAction indicating what action to take
     AlleleAction determine_allele_action(
-        const SnpInfo& model_snp,
-        const SnpInfo& user_snp);
+        const SnpEffect& model_snp,
+        const SnpEffect& user_snp);
 
     /// Load user SNP information from marker file
     /// @param marker_file Path to marker file
     /// @return Expected containing vector of SnpInfo, or Error on failure
-    std::expected<std::vector<SnpInfo>, Error> load_user_snps(
+    std::expected<std::vector<SnpEffect>, Error> load_user_snps(
         const std::string& marker_file);
 
     /// Load user SNPs from BIM file
     /// @param bim_file Path to BIM file
     /// @return Expected containing vector of SnpInfo, or Error on failure
-    std::expected<std::vector<SnpInfo>, Error> load_bim_file(
+    std::expected<std::vector<SnpEffect>, Error> load_bim_file(
         const std::string& bim_file);
 };
 
