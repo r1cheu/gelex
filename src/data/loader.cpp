@@ -570,10 +570,10 @@ auto BimLoader::create(const std::filesystem::path& path)
 }
 
 auto BimLoader::read(std::ifstream& file)
-    -> std::expected<std::vector<std::string>, Error>
+    -> std::expected<std::vector<SnpInfo>, Error>
 {
     constexpr static size_t bim_n_cols = 6;
-    std::vector<std::string> snp_ids;
+    std::vector<SnpInfo> snp_info;
     std::string line;
     int n_line{};
     while (std::getline(file, line))
@@ -602,11 +602,33 @@ auto BimLoader::read(std::ifstream& file)
                     std::format(
                         "Failed to parse SNP ID (line {})", n_line + 1)});
         }
+        const std::string_view pos_str = tokens[3];
+        int position = 0;
+        auto result = std::from_chars(
+            pos_str.data(), pos_str.data() + pos_str.size(), position);
 
-        snp_ids.emplace_back(tokens[1]);
+        if (result.ec != std::errc() || position < 0)
+        {
+            return std::unexpected(
+                Error{
+                    ErrorCode::InvalidData,
+                    std::format(
+                        "Invalid position '{}' in BIM file (line {})",
+                        pos_str,
+                        n_line + 1)});
+        }
+
+        SnpInfo info;
+        info.chrom = tokens[0];
+        info.id = tokens[1];
+        info.position = position;
+        info.a1 = tokens[4];
+        info.a2 = tokens[5];
+
+        snp_info.push_back(std::move(info));
         n_line++;
     }
-    return snp_ids;
+    return snp_info;
 }
 
 auto FamLoader::create(const std::filesystem::path& path, bool iid_only)

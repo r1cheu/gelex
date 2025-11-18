@@ -6,11 +6,15 @@
 
 #include <Eigen/Core>
 
-#include "../src/data/snp_info_loader.h"
 #include "gelex/types/mcmc_results.h"
 
 namespace gelex
 {
+namespace detail
+{
+
+class BimLoader;
+}
 
 class SnpQuantGeneticWriter
 {
@@ -34,7 +38,7 @@ class SnpQuantGeneticWriter
 
    private:
     const MCMCResult* result_;
-    std::unique_ptr<SnpInfoLoader> snp_info_loader_;
+    std::unique_ptr<detail::BimLoader> bim_loader_;
 
     // Helper methods for writing different SNP effect components
     void write_header(std::ofstream& stream) const;

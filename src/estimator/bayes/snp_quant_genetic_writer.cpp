@@ -5,6 +5,7 @@
 #include <memory>
 
 #include <Eigen/Core>
+
 #include "data/loader.h"
 
 namespace gelex
@@ -18,11 +19,11 @@ SnpQuantGeneticWriter::SnpQuantGeneticWriter(
     const std::filesystem::path& bim_file_path)
     : result_(&result)
 {
-    auto snp_loader = SnpInfoLoader::create(bim_file_path);
-    if (snp_loader)
+    auto bim_loader_result = detail::BimLoader::create(bim_file_path);
+    if (bim_loader_result)
     {
-        snp_info_loader_
-            = std::make_unique<SnpInfoLoader>(std::move(*snp_loader));
+        bim_loader_ = std::make_unique<detail::BimLoader>(
+            std::move(*bim_loader_result));
     }
 }
 
@@ -83,10 +84,9 @@ double SnpQuantGeneticWriter::write_snp_basic_info(
     Index snp_index) const
 {
     // SNP name and basic information
-    if (snp_info_loader_
-        && snp_index < static_cast<Index>(snp_info_loader_->size()))
+    if (bim_loader_ && snp_index < static_cast<Index>(bim_loader_->size()))
     {
-        const auto& snp_info = (*snp_info_loader_)[snp_index];
+        const auto& snp_info = (*bim_loader_)[snp_index];
         stream << std::format(
             "{}\t{}\t{}\t{}\t{}",
             snp_info.id,

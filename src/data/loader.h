@@ -185,24 +185,42 @@ class CovarLoader
     std::unordered_map<std::string, std::vector<std::string>> data_;
 };
 
+struct SnpInfo
+{
+    std::string id;
+    std::string chrom;
+    int position;
+    std::string a1;
+    std::string a2;
+};
+
 class BimLoader
 {
    public:
     static auto create(const std::filesystem::path& path)
         -> std::expected<BimLoader, Error>;
 
-    const std::vector<std::string>& ids() const { return snp_ids_; }
+    const std::vector<SnpInfo>& info() const { return snp_infos_; }
+    const std::vector<std::string>& ids() const { return ids_; }
+    const SnpInfo& operator[](size_t index) const { return snp_infos_[index]; }
+    size_t size() const { return snp_infos_.size(); }
 
    private:
-    explicit BimLoader(std::vector<std::string>&& snp_ids)
-        : snp_ids_(std::move(snp_ids))
+    explicit BimLoader(std::vector<SnpInfo>&& snp_ids)
+        : snp_infos_(std::move(snp_ids))
     {
+        ids_.reserve(snp_infos_.size());
+        for (const auto& snp : snp_infos_)
+        {
+            ids_.emplace_back(snp.id);
+        }
     }
 
     static auto read(std::ifstream& file)
-        -> std::expected<std::vector<std::string>, Error>;
+        -> std::expected<std::vector<SnpInfo>, Error>;
 
-    std::vector<std::string> snp_ids_;
+    std::vector<SnpInfo> snp_infos_;
+    std::vector<std::string> ids_;
 };
 
 class FamLoader
