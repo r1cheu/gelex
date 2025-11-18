@@ -31,6 +31,7 @@ cmd = [
   "-DUSE_MKL=ON",
   "-DCMAKE_BUILD_TYPE={{build_type}}",
   "-DCMAKE_CXX_COMPILER={{cxx_compiler}}",
+  "-DBENCHMARK_ENABLE_GTEST_TESTS=OFF",
 ]
 
 [tasks.build-debug]

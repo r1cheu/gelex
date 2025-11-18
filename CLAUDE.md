@@ -10,7 +10,7 @@ Gelex is a C++ library and CLI tool for genomic prediction with Bayesian (BayesA
 - `gelex fit`: Fit genomic prediction models (Bayesian or GBLUP)
 - `gelex simulate`: Run simulations
 
-**Note:** The `gelex predict` subcommand mentioned in README is not yet implemented in the current codebase.
+**Note:** The `gelex predict` subcommand mentioned in README is not yet implemented in the current codebase, but prediction utilities are available in `src/predictor/`.
 
 ## Key Architecture
 
@@ -43,6 +43,8 @@ The `pixi run configure` task accepts arguments:
 - `cxx_compiler`: C++ compiler (default: `clang++-21`)
 
 Example: `pixi run configure --build_dir=.build_release --build_type=Release`
+
+**Note:** The pixi configuration automatically sets `USE_MKL=ON` for optimal performance.
 
 **CMake Options:**
 
@@ -84,6 +86,7 @@ cd .build_debug/tests/
 - **Logging**: `src/logger/` - Performance and diagnostic logging
 - **CLI Interface**: `src/cli/` - Command-line interface implementation
 - **Utilities**: `src/utils/` - Math utilities, formatters, and helper functions
+- **Prediction**: `src/predictor/` - SNP effect processing and covariate handling
 
 ## Data Flow Architecture
 
@@ -117,8 +120,10 @@ cd .build_debug/tests/
 **Bayesian Model Types**:
 - **BayesA**: t-distributed marker effects
 - **BayesB**: Mixture model with spike-slab prior
-- **BayesC**: Similar to BayesB with different prior
-- **BayesR**: Multiple variance components
+- **BayesBpi**: Bayes B with variable π
+- **BayesC**: Multi-component mixture
+- **BayesCpi**: Bayes C with variable π
+- **BayesR**: Multi-component with fixed variances
 - **BayesRR**: Ridge regression (Bayesian LASSO)
 - **BayesRRD**: Ridge regression with dominance effects
 
@@ -148,6 +153,11 @@ cd .build_debug/tests/
   - Single test: `cd .build_debug/tests && ./test "TestName*"`
   - List tests: `cd .build_debug/tests && ./test --list-tests`
 
+**Test Organization**:
+- `test_*.cpp` files cover specific components (data loading, GRM computation, MCMC, etc.)
+- Tests use sample PLINK binary files for realistic validation
+- Each test module focuses on a specific subsystem (data, model, estimator, etc.)
+
 ## Dependencies
 
 - **Eigen**: Primary linear algebra library
@@ -156,6 +166,15 @@ cd .build_debug/tests/
 - **mio**: Memory-mapped I/O
 - **argparse**: Command-line argument parsing
 - **Catch2**: Testing framework
+
+## CLI Interface
+
+- **Main Entry**: `src/main.cpp` handles command-line parsing and subcommand dispatch
+- **Subcommands**: Implemented in `src/cli/` directory
+  - `fit_command.cpp`: Model fitting with Bayesian and GBLUP methods
+  - `simulation_command.cpp`: Simulation functionality
+- **Argument Parsing**: Uses argparse library with comprehensive option validation
+- **Configuration**: CLI options mapped to internal configuration objects for model setup
 
 ## Code Style & Standards
 
@@ -173,6 +192,7 @@ cd .build_debug/tests/
 - **Adding CLI options**: Modify `src/cli/fit_command.cpp` for new command-line arguments
 - **Adding tests**: Use Catch2 framework in `tests/` with sample BED files
 - **Performance optimization**: Use chunk-based processing and memory-mapped I/O for large datasets
+- **Adding prediction features**: Extend `src/predictor/` components for new prediction capabilities
 
 ## Important Implementation Details
 
@@ -184,3 +204,5 @@ cd .build_debug/tests/
 - **Effect System**: Hierarchical effect management with `FixedEffect`, `RandomEffect`, `AdditiveEffect`, `DominantEffect`, and `Residual` components
 - **State Tracking**: `BayesState` maintains current parameter states during MCMC sampling
 - **Convergence Diagnostics**: Built-in convergence monitoring and diagnostic tools
+- **Data Alignment**: `SampleManager` ensures consistent sample ordering across genotype and phenotype data
+- **Chunk Processing**: Large genotype datasets processed in configurable chunks to control memory usage

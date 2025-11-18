@@ -100,7 +100,6 @@ script/
 *.log
 /*.cpp
 *.grm
-benchmark/
 workspace/
 develop
 .build_debug

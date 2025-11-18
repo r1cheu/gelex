@@ -28,15 +28,9 @@ struct ColumnIndices
     }
 };
 
-/// Stateless SNP effect processor for calculating genetic values
-/// Implements the specified GEVI (Genetic Value Index) calculation formulas
 class SnpEffectProcessor
 {
    public:
-    /// Calculate Genetic Value Index (GEVI) for a single genotype
-    /// @param genotype Genotype value (0, 1, 2 representing A1 allele count)
-    /// @param info SNP information including effects and frequency
-    /// @return Calculated genetic value
     static double calculate_gevi(int genotype, const SnpInfo& info)
     {
         double p = info.p_freq;

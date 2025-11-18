@@ -77,3 +77,6 @@ target_link_libraries(gelex PRIVATE core
 if(BUILD_TEST)
   add_subdirectory(tests/)
 endif()
+
+# Add benchmarks with test dependencies disabled
+add_subdirectory(benchmark/)
