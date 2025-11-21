@@ -10,17 +10,24 @@
 #include <Eigen/Core>
 
 #include "../src/data/loader.h"
+#include "gelex/data/sample_manager.h"
 #include "gelex/error.h"
 
 namespace gelex
 {
 
-auto DataPipe::create(
-    const Config& config,
-    std::shared_ptr<SampleManager> sample_manager)
-    -> std::expected<DataPipe, Error>
+auto DataPipe::create(const Config& config) -> std::expected<DataPipe, Error>
 {
-    DataPipe pipe(std::move(sample_manager));
+    DataPipe pipe;
+    auto fam_path = config.bed_path;
+    fam_path.replace_extension(".fam");
+    auto sample_manager_result = SampleManager::create(fam_path);
+    if (!sample_manager_result)
+    {
+        return std::unexpected(sample_manager_result.error());
+    }
+    pipe.sample_manager_
+        = std::make_shared<SampleManager>(std::move(*sample_manager_result));
 
     if (config.phenotype_path.empty())
     {
@@ -51,8 +58,18 @@ auto DataPipe::create(
         }
     }
     pipe.intersect();
-    pipe.convert_to_matrices();
 
+    if (auto result = pipe.load_additive(config); !result)
+    {
+        return std::unexpected(result.error());
+    }
+
+    if (auto result = pipe.load_dominance(config); !result)
+    {
+        return std::unexpected(result.error());
+    }
+
+    pipe.convert_to_matrices();
     return pipe;
 }
 
@@ -108,6 +125,23 @@ auto DataPipe::load_covariates(const Config& config)
     return {};
 }
 
+auto DataPipe::load_additive(const Config& config) -> std::expected<void, Error>
+{
+    return load_genotype_impl<gelex::HardWenbergProcessor>(
+        config, ".add", additive_matrix_);
+}
+
+auto DataPipe::load_dominance(const Config& config)
+    -> std::expected<void, Error>
+{
+    if (!config.use_dominance_effect)
+    {
+        return {};
+    }
+    return load_genotype_impl<gelex::DominantOrthogonalHWEProcessor>(
+        config, ".dom", dominance_matrix_);
+}
+
 void DataPipe::intersect()
 {
     auto create_key_views = [](const auto& data)
@@ -138,7 +172,6 @@ void DataPipe::intersect()
         auto key_views = create_key_views(covar_loader_->data());
         sample_manager_->intersect(key_views);
     }
-
     sample_manager_->finalize();
 }
 

@@ -39,25 +39,6 @@ GRM::GRM(
     }
     bed_ = std::make_unique<BedPipe>(std::move(*bed_pipe));
 
-    // Use the provided id_map directly
-    if (!target_order.empty())
-    {
-        id_map_ = target_order;
-
-        // Validate that all IDs in id_map exist in the bed file
-        for (const auto& [id, index] : id_map_)
-        {
-            if (std::find(
-                    sample_manager->genotyped_sample_ids().begin(),
-                    sample_manager->genotyped_sample_ids().end(),
-                    id)
-                == sample_manager->genotyped_sample_ids().end())
-            {
-                throw std::runtime_error(
-                    "Sample ID '" + id + "' not found in BED file");
-            }
-        }
-    }
     chunk_size_ = chunk_size;
 
     p_major_ = Eigen::VectorXd::Zero(bed_->num_variants());
@@ -125,26 +106,6 @@ CrossGRM::CrossGRM(
             + std::string(bed_pipe.error().message));
     }
     bed_ = std::make_unique<BedPipe>(std::move(*bed_pipe));
-
-    // Use the provided id_map directly
-    if (!target_order.empty())
-    {
-        id_map_ = target_order;
-
-        // Validate that all IDs in id_map exist in the bed file
-        for (const auto& [id, index] : id_map_)
-        {
-            if (std::find(
-                    sample_manager->genotyped_sample_ids().begin(),
-                    sample_manager->genotyped_sample_ids().end(),
-                    id)
-                == sample_manager->genotyped_sample_ids().end())
-            {
-                throw std::runtime_error(
-                    "Sample ID '" + id + "' not found in BED file");
-            }
-        }
-    }
 
     if (p_major.size() != bed_->num_variants())
     {

@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <expected>
 #include <filesystem>
-#include <iterator>
 #include <memory>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -32,14 +32,12 @@ auto SampleManager::create(const std::filesystem::path& fam_path, bool iid_only)
         return std::unexpected(fam_loader.error());
     }
 
-    std::unordered_set<std::string> common_ids_set;
-    for (const auto& [id, _] : fam_loader.value().data())
-    {
-        common_ids_set.insert(id);
-    }
+    auto vector_ids = std::move(*fam_loader).take_ids();
 
-    manager.fam_loader_
-        = std::make_unique<detail::FamLoader>(std::move(*fam_loader));
+    std::unordered_set<std::string> common_ids_set{
+        std::make_move_iterator(vector_ids.begin()),
+        std::make_move_iterator(vector_ids.end())};
+
     manager.common_ids_set_ = std::move(common_ids_set);
 
     return manager;
@@ -55,8 +53,7 @@ void SampleManager::intersect(std::span<const std::string_view> ids)
 void SampleManager::finalize()
 {
     std::vector<std::string> id_vec{
-        std::make_move_iterator(common_ids_set_.begin()),
-        std::make_move_iterator(common_ids_set_.end())};
+        common_ids_set_.begin(), common_ids_set_.end()};
     common_ids_ = std::move(id_vec);
     std::ranges::sort(common_ids_);
 
@@ -68,10 +65,10 @@ void SampleManager::finalize()
     logger->info("");
 
     common_id_map_.clear();
-    for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(common_ids_.size());
-         ++i)
+
+    for (auto&& [idx, id] : common_ids_ | std::views::enumerate)
     {
-        common_id_map_.emplace(common_ids_[i], i);
+        common_id_map_.emplace(id, idx);
     }
 }
 

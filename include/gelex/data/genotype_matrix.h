@@ -1,11 +1,8 @@
 #pragma once
 
-#include <expected>
 #include <unordered_set>
 
 #include <Eigen/Core>
-
-#include "gelex/error.h"
 
 namespace gelex
 {

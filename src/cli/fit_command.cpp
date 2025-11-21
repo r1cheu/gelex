@@ -149,8 +149,6 @@ int fit_execute(argparse::ArgumentParser& fit)
     std::string out_prefix = fit.get("--out");
     gelex::BayesAlphabet type = gelex::get_bayesalphabet(fit.get("-m"))
                                     .value_or(gelex::BayesAlphabet::RR);
-    const bool use_mmap = fit.get<bool>("--mmap");
-    const int chunk_size = fit.get<int>("--chunk-size");
     bool dom = app::has_dominance(type);
 
     gelex::logging::initialize(out_prefix);
@@ -162,60 +160,24 @@ int fit_execute(argparse::ArgumentParser& fit)
     VALIDATE_RESULT_OR_RETURN(bed_result, logger);
     auto bed_path = bed_result.value();
 
-    auto sample_manager_result = gelex::SampleManager::create(
-        bed_path.replace_extension(".fam"), fit.get<bool>("--iid-only"));
-    VALIDATE_RESULT_OR_RETURN(sample_manager_result, logger);
-
-    auto sample_manager = std::make_shared<gelex::SampleManager>(
-        std::move(*sample_manager_result));
-
     gelex::DataPipe::Config config{
         .phenotype_path = fit.get("pheno"),
         .phenotype_column = fit.get<int>("--pheno-col"),
+        .bed_path = bed_path,
+        .use_dominance_effect = dom,
+        .use_mmap = fit.get<bool>("--mmap"),
+        .chunk_size = fit.get<int>("--chunk-size"),
         .qcovar_path = fit.get("--qcovar"),
         .covar_path = fit.get("--covar"),
         .iid_only = fit.get<bool>("--iid-only"),
         .output_prefix = fit.get("--out")};
 
-    auto data_pipe = gelex::DataPipe::create(config, sample_manager);
+    auto data_pipe = gelex::DataPipe::create(config);
     VALIDATE_RESULT_OR_RETURN(data_pipe, logger);
 
     auto model_result = gelex::BayesModel::create(*data_pipe);
     VALIDATE_RESULT_OR_RETURN(model_result, logger);
     auto model = std::move(model_result.value());
-
-    if (app::process_genotype_effect(
-            model,
-            sample_manager,
-            bed_path.replace_extension(".bed"),
-            out_prefix,
-            chunk_size,
-            use_mmap,
-            /*is_dominance=*/false,
-            logger)
-        != 0)
-    {
-        logger->error("Failed to process additive genotype effect");
-        return 1;
-    }
-
-    if (dom)
-    {
-        if (app::process_genotype_effect(
-                model,
-                sample_manager,
-                bed_path.replace_extension(".bed"),
-                out_prefix,
-                chunk_size,
-                use_mmap,
-                /*is_dominance=*/true,
-                logger)
-            != 0)
-        {
-            logger->error("Failed to process dominance genotype effect");
-            return 1;
-        }
-    }
 
     if (app::configure_model_priors(model, type, fit, logger) != 0)
     {

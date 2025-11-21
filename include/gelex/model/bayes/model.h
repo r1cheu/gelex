@@ -7,13 +7,14 @@
 #include <Eigen/Core>
 
 #include "gelex/data/data_pipe.h"
-#include "gelex/data/genotype_matrix.h"
-#include "gelex/data/genotype_mmap.h"
 #include "gelex/error.h"
 #include "types/bayes_effects.h"
 
 namespace gelex
 {
+
+class GenotypeMap;
+class GenotypeMatrix;
 /**
  * @class BayesModel
  * @brief Bayesian model for genetic analysis with fixed, random, and genetic
@@ -28,11 +29,6 @@ class BayesModel
 {
    public:
     static auto create(DataPipe& data_pipe) -> std::expected<BayesModel, Error>;
-
-    void add_additive(GenotypeMap&& matrix);
-    void add_additive(GenotypeMatrix&& matrix);
-    void add_dominance(GenotypeMap&& matrix);
-    void add_dominance(GenotypeMatrix&& matrix);
 
     const bayes::FixedEffect* fixed() const
     {
@@ -75,6 +71,10 @@ class BayesModel
 
    private:
     explicit BayesModel(Eigen::VectorXd&& phenotype);
+    void add_additive(GenotypeMap&& matrix);
+    void add_additive(GenotypeMatrix&& matrix);
+    void add_dominance(GenotypeMap&& matrix);
+    void add_dominance(GenotypeMatrix&& matrix);
 
     void add_fixed_effect(
         std::vector<std::string>&& levels,
