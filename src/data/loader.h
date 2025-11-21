@@ -185,13 +185,13 @@ class CovarLoader
     std::unordered_map<std::string, std::vector<std::string>> data_;
 };
 
-struct SnpInfo
+struct SnpMeta
 {
     std::string id;
     std::string chrom;
     int position;
-    std::string a1;
-    std::string a2;
+    char a1;
+    char a2;
 };
 
 class BimLoader
@@ -200,26 +200,28 @@ class BimLoader
     static auto create(const std::filesystem::path& path)
         -> std::expected<BimLoader, Error>;
 
-    const std::vector<SnpInfo>& info() const { return snp_infos_; }
+    const std::vector<SnpMeta>& meta() const { return snp_meta_; }
     const std::vector<std::string>& ids() const { return ids_; }
-    const SnpInfo& operator[](size_t index) const { return snp_infos_[index]; }
-    size_t size() const { return snp_infos_.size(); }
+
+    const SnpMeta& operator[](size_t index) const { return snp_meta_[index]; }
+    size_t size() const { return snp_meta_.size(); }
+    std::vector<SnpMeta>&& take_meta() && { return std::move(snp_meta_); }
 
    private:
-    explicit BimLoader(std::vector<SnpInfo>&& snp_ids)
-        : snp_infos_(std::move(snp_ids))
+    explicit BimLoader(std::vector<SnpMeta>&& snp_ids)
+        : snp_meta_(std::move(snp_ids))
     {
-        ids_.reserve(snp_infos_.size());
-        for (const auto& snp : snp_infos_)
+        ids_.reserve(snp_meta_.size());
+        for (const auto& snp : snp_meta_)
         {
             ids_.emplace_back(snp.id);
         }
     }
 
     static auto read(std::ifstream& file)
-        -> std::expected<std::vector<SnpInfo>, Error>;
+        -> std::expected<std::vector<SnpMeta>, Error>;
 
-    std::vector<SnpInfo> snp_infos_;
+    std::vector<SnpMeta> snp_meta_;
     std::vector<std::string> ids_;
 };
 
@@ -235,6 +237,8 @@ class FamLoader
     {
         return data_;
     }
+
+    std::vector<std::string>&& take_ids() && { return std::move(ids_); }
 
    private:
     explicit FamLoader(

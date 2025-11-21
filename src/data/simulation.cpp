@@ -203,7 +203,7 @@ auto PhenotypeSimulator::calculate_genetic_values(
     const std::unordered_map<std::string, double>& causal_effects)
     -> std::expected<VectorXd, Error>
 {
-    const auto n_individuals = bed_pipe.sample_size();
+    const auto n_individuals = bed_pipe.num_samples();
     const auto n_snps = bed_pipe.num_variants();
     const auto& snp_ids = bed_pipe.snp_ids();
 

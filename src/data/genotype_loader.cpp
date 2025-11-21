@@ -13,7 +13,7 @@ GenotypeLoader::GenotypeLoader(BedPipe&& bed_pipe)
     : bed_pipe_(std::move(bed_pipe))
 {
     num_variants_ = bed_pipe_.num_variants();
-    sample_size_ = bed_pipe_.sample_size();
+    sample_size_ = bed_pipe_.num_samples();
 
     data_matrix_ = Eigen::MatrixXd(sample_size_, num_variants_);
 

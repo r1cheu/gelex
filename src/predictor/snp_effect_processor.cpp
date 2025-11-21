@@ -156,9 +156,9 @@ auto SnpEffectProcessor::create_snp_info(
     const ColumnIndices& indices) -> std::expected<SnpEffect, Error>
 {
     SnpEffect info;
-    info.id = columns[indices.id];
-    info.a1 = columns[indices.a1].empty() ? ' ' : columns[indices.a1][0];
-    info.a2 = columns[indices.a2].empty() ? ' ' : columns[indices.a2][0];
+    info.meta.id = columns[indices.id];
+    info.meta.a1 = columns[indices.a1].empty() ? ' ' : columns[indices.a1][0];
+    info.meta.a2 = columns[indices.a2].empty() ? ' ' : columns[indices.a2][0];
     auto frq = detail::try_parse_double(columns[indices.a1frq]);
     if (!frq)
     {

@@ -47,7 +47,7 @@ int simulate_execute(argparse::ArgumentParser& sim)
 
     gelex::logging::initialize(out_prefix);
     auto logger = gelex::logging::get();
-    auto bed = gelex::valid_bed(sim.get("--bfile"));
+    auto bed = gelex::BedPipe::format_bed_path(sim.get("--bfile"));
     if (!bed)
     {
         logger->error(bed.error().message);

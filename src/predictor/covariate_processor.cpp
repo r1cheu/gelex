@@ -78,8 +78,12 @@ auto CovariateProcessor::parse_param_file(
 
         std::istringstream iss(line);
         std::string term;
-        double mean, stddev, percentile_5, percentile_95, ess, rhat;
-
+        double mean{};
+        double stddev{};
+        double percentile_5{};
+        double percentile_95{};
+        double ess{};
+        double rhat{};
         if (!(iss >> term >> mean >> stddev >> percentile_5 >> percentile_95
               >> ess >> rhat))
         {

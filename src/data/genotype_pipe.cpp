@@ -241,7 +241,7 @@ GenotypePipe::GenotypePipe(
       stats_writer_(std::move(stats_writer))
 {
     num_variants_ = bed_pipe_.num_variants();  // NOLINT
-    sample_size_ = bed_pipe_.sample_size();    // NOLINT
+    sample_size_ = bed_pipe_.num_samples();    // NOLINT
 
     means_.reserve(num_variants_);
     variances_.reserve(num_variants_);

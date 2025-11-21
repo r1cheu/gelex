@@ -570,10 +570,10 @@ auto BimLoader::create(const std::filesystem::path& path)
 }
 
 auto BimLoader::read(std::ifstream& file)
-    -> std::expected<std::vector<SnpInfo>, Error>
+    -> std::expected<std::vector<SnpMeta>, Error>
 {
     constexpr static size_t bim_n_cols = 6;
-    std::vector<SnpInfo> snp_info;
+    std::vector<SnpMeta> snp_info;
     std::string line;
     int n_line{};
     while (std::getline(file, line))
@@ -618,12 +618,12 @@ auto BimLoader::read(std::ifstream& file)
                         n_line + 1)});
         }
 
-        SnpInfo info;
+        SnpMeta info;
         info.chrom = tokens[0];
         info.id = tokens[1];
         info.position = position;
-        info.a1 = tokens[4];
-        info.a2 = tokens[5];
+        info.a1 = tokens[4].empty() ? '0' : tokens[4][0];
+        info.a2 = tokens[5].empty() ? '0' : tokens[5][0];
 
         snp_info.push_back(std::move(info));
         n_line++;

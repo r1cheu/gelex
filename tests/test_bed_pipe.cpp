@@ -126,7 +126,7 @@ TEST_CASE("BedPipe creation and basic functionality", "[bed_pipe]")
             std::make_shared<gelex::SampleManager>(std::move(sample_manager)));
         REQUIRE(bed_pipe.has_value());
 
-        REQUIRE(bed_pipe->sample_size() == 4);
+        REQUIRE(bed_pipe->num_samples() == 4);
         REQUIRE(bed_pipe->num_variants() == 5);
 
         const auto& snp_ids = bed_pipe->snp_ids();
@@ -158,108 +158,8 @@ TEST_CASE("BedPipe creation and basic functionality", "[bed_pipe]")
             test_bed,
             std::make_shared<gelex::SampleManager>(std::move(sample_manager)));
         REQUIRE(bed_pipe.has_value());
-        REQUIRE(bed_pipe->sample_size() == 2);
+        REQUIRE(bed_pipe->num_samples() == 2);
         REQUIRE(bed_pipe->snp_ids().size() == 3);
-    }
-}
-
-TEST_CASE("BedPipe genotype access methods", "[bed_pipe]")
-{
-    const std::string test_bed = "test_bed_pipe_genotypes.bed";
-    const std::string test_fam = "test_bed_pipe_genotypes.fam";
-    test::TestBedManager bed_manager(test_bed);
-    std::vector<std::string> fids = {"fam1", "fam2", "fam3", "fam4"};
-    std::vector<std::string> iids = {"ind1", "ind2", "ind3", "ind4"};
-    bed_manager.create(fids, iids, 5);
-
-    auto sample_manager = gelex::SampleManager::create(test_fam).value();
-    sample_manager.finalize();
-
-    auto bed_pipe = gelex::BedPipe::create(
-        test_bed,
-        std::make_shared<gelex::SampleManager>(std::move(sample_manager)));
-    REQUIRE(bed_pipe.has_value());
-
-    SECTION("get_genotypes for valid variant index")
-    {
-        auto genotypes = bed_pipe->get_genotypes(0);
-        REQUIRE(genotypes.has_value());
-        REQUIRE(genotypes->size() == 4);
-
-        // Verify genotype values (based on our test pattern)
-        // Pattern: 0b11100100 = 11 10 01 00 = 2.0, 1.0, NaN, 0.0
-
-        REQUIRE(genotypes->isApprox(Eigen::VectorXd{{2, 1, 1, 0}}));
-    }
-
-    SECTION("get_genotype for valid indices")
-    {
-        auto genotype = bed_pipe->get_genotype(0, 0);
-        REQUIRE(genotype.has_value());
-        REQUIRE_THAT(*genotype, WithinAbs(2.0, 1e-10));
-
-        genotype = bed_pipe->get_genotype(0, 1);
-        REQUIRE(genotype.has_value());
-        REQUIRE_THAT(*genotype, WithinAbs(1.0, 1e-10));
-
-        genotype = bed_pipe->get_genotype(0, 2);
-        REQUIRE(genotype.has_value());
-        REQUIRE_THAT(*genotype, WithinAbs(1.0, 1e-10));
-
-        genotype = bed_pipe->get_genotype(0, 3);
-        REQUIRE(genotype.has_value());
-        REQUIRE_THAT(*genotype, WithinAbs(0.0, 1e-10));
-    }
-
-    SECTION("get_sample_genotypes for valid sample index")
-    {
-        auto genotypes = bed_pipe->get_sample_genotypes(0);
-        REQUIRE(genotypes.has_value());
-        REQUIRE(genotypes->size() == 5);
-
-        // Sample 0 should have consistent values across variants
-        REQUIRE(genotypes->isApprox(Eigen::VectorXd{{2, 0, 2, 0, 2}}));
-    }
-}
-
-TEST_CASE("BedPipe error handling", "[bed_pipe]")
-{
-    const std::string test_bed = "test_bed_pipe_errors.bed";
-    const std::string test_fam = "test_bed_pipe_errors.fam";
-    test::TestBedManager bed_manager(test_bed);
-
-    std::vector<std::string> fids = {"fam1", "fam2"};
-    std::vector<std::string> iids = {"ind1", "ind2"};
-    bed_manager.create(fids, iids, 3);
-    auto sample_manager = gelex::SampleManager::create(test_fam).value();
-    sample_manager.finalize();
-
-    auto bed_pipe = gelex::BedPipe::create(
-        test_bed,
-        std::make_shared<gelex::SampleManager>(std::move(sample_manager)));
-    REQUIRE(bed_pipe.has_value());
-
-    SECTION("Invalid variant index")
-    {
-        auto genotypes = bed_pipe->get_genotypes(10);
-        REQUIRE_FALSE(genotypes.has_value());
-        REQUIRE(genotypes.error().code == gelex::ErrorCode::InvalidRange);
-
-        auto genotype = bed_pipe->get_genotype(10, 0);
-        REQUIRE_FALSE(genotype.has_value());
-        REQUIRE(genotype.error().code == gelex::ErrorCode::InvalidRange);
-    }
-
-    SECTION("Invalid sample index")
-    {
-        auto genotype = bed_pipe->get_genotype(0, 10);
-        REQUIRE_FALSE(genotype.has_value());
-        REQUIRE(genotype.error().code == gelex::ErrorCode::InvalidRange);
-
-        auto sample_genotypes = bed_pipe->get_sample_genotypes(10);
-        REQUIRE_FALSE(sample_genotypes.has_value());
-        REQUIRE(
-            sample_genotypes.error().code == gelex::ErrorCode::InvalidRange);
     }
 }
 
@@ -279,39 +179,6 @@ TEST_CASE("BedPipe bulk loading", "[bed_pipe]")
         test_bed,
         std::make_shared<gelex::SampleManager>(std::move(sample_manager)));
     REQUIRE(bed_pipe.has_value());
-
-    SECTION("Load entire genotype matrix")
-    {
-        auto matrix = bed_pipe->load();
-        REQUIRE(matrix.has_value());
-
-        REQUIRE(matrix->rows() == 4);   // samples
-        REQUIRE(matrix->cols() == 10);  // variants
-
-        auto first_variant = bed_pipe->get_genotypes(0);
-        REQUIRE(first_variant.has_value());
-        REQUIRE(matrix->col(0).isApprox(*first_variant));
-
-        auto last_variant = bed_pipe->get_genotypes(9);
-        REQUIRE(last_variant.has_value());
-        REQUIRE(matrix->col(9).isApprox(*last_variant));
-    }
-
-    SECTION("Load chunk of genotype matrix")
-    {
-        auto chunk = bed_pipe->load_chunk(2, 6);
-        REQUIRE(chunk.has_value());
-
-        REQUIRE(chunk->rows() == 4);  // samples
-        REQUIRE(chunk->cols() == 4);  // variants (6-2 = 4)
-
-        for (Eigen::Index i = 0; i < 4; ++i)
-        {
-            auto variant = bed_pipe->get_genotypes(2 + i);
-            REQUIRE(variant.has_value());
-            REQUIRE(chunk->col(i).isApprox(*variant));
-        }
-    }
 
     SECTION("Invalid chunk range")
     {
@@ -348,12 +215,8 @@ TEST_CASE("BedPipe edge cases", "[bed_pipe]")
             std::make_shared<gelex::SampleManager>(std::move(sample_manager)));
 
         REQUIRE(bed_pipe.has_value());
-        REQUIRE(bed_pipe->sample_size() == 1);
+        REQUIRE(bed_pipe->num_samples() == 1);
         REQUIRE(bed_pipe->num_variants() == 3);
-
-        auto genotypes = bed_pipe->get_genotypes(0);
-        REQUIRE(genotypes.has_value());
-        REQUIRE(genotypes->size() == 1);
 
         auto matrix = bed_pipe->load();
         REQUIRE(matrix.has_value());
@@ -373,7 +236,7 @@ TEST_CASE("BedPipe edge cases", "[bed_pipe]")
             test_bed,
             std::make_shared<gelex::SampleManager>(std::move(sample_manager)));
         REQUIRE(bed_pipe.has_value());
-        REQUIRE(bed_pipe->sample_size() == 2);
+        REQUIRE(bed_pipe->num_samples() == 2);
         REQUIRE(bed_pipe->num_variants() == 1);
 
         auto matrix = bed_pipe->load();
@@ -384,28 +247,5 @@ TEST_CASE("BedPipe edge cases", "[bed_pipe]")
         auto chunk = bed_pipe->load_chunk(0, 1);
         REQUIRE(chunk.has_value());
         REQUIRE(chunk->isApprox(*matrix));
-    }
-
-    SECTION("Monomorphic SNP")
-    {
-        std::vector<std::string> fids = {"fam1", "fam2", "fam3"};
-        std::vector<std::string> iids = {"ind1", "ind2", "ind3"};
-        bed_manager.create(fids, iids, 5, 2);
-
-        auto sample_manager = gelex::SampleManager::create(test_fam).value();
-        sample_manager.finalize();
-
-        auto bed_pipe = gelex::BedPipe::create(
-            test_bed,
-            std::make_shared<gelex::SampleManager>(std::move(sample_manager)));
-        REQUIRE(bed_pipe.has_value());
-
-        auto genotypes = bed_pipe->get_genotypes(2);
-        REQUIRE(genotypes.has_value());
-
-        for (Eigen::Index i = 0; i < genotypes->size(); ++i)
-        {
-            REQUIRE_THAT((*genotypes)(i), WithinAbs(2.0, 1e-10));
-        }
     }
 }

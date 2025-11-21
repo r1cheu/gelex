@@ -39,6 +39,7 @@ class CovariateProcessor
                 std::map<std::string, double>,
                 std::map<std::string, std::map<std::string, double>>>,
             Error>;
+
     static void parse_flat_name(
         const std::string& flat_name,
         double coefficient,

@@ -1,97 +1,92 @@
 #pragma once
 
+#include <array>
 #include <expected>
 #include <filesystem>
-#include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
 
 #include "../src/data/loader.h"
-#include "Eigen/Core"
 #include "gelex/data/sample_manager.h"
 #include "gelex/error.h"
+#include "gelex/mio.h"
 
 namespace gelex
 {
 
-// return valie path with ".bed" suffix
-auto valid_bed(std::string_view bed_path)
-    -> std::expected<std::filesystem::path, Error>;
+struct VariantInstruction
+{
+    std::string id;
+    Eigen::Index file_idx;
+    bool reverse;
+};
 
 class BedPipe
 {
    public:
     static auto create(
-        const std::filesystem::path& bed_path,
+        const std::filesystem::path& bed_prefix,
         std::shared_ptr<SampleManager> sample_manager)
         -> std::expected<BedPipe, Error>;
 
     BedPipe(const BedPipe&) = delete;
-    BedPipe(BedPipe&&) noexcept = default;
     BedPipe& operator=(const BedPipe&) = delete;
+    BedPipe(BedPipe&&) noexcept = default;
     BedPipe& operator=(BedPipe&&) noexcept = default;
     ~BedPipe() = default;
 
-    auto get_genotypes(Eigen::Index variant_index) const
-        -> std::expected<Eigen::VectorXd, Error>;
-    auto get_sample_genotypes(Eigen::Index sample_index) const
-        -> std::expected<Eigen::VectorXd, Error>;
-    auto get_genotype(Eigen::Index variant_index, Eigen::Index sample_index)
-        const -> std::expected<double, Error>;
-
-    Eigen::Index num_variants() const
-    {
-        return static_cast<Eigen::Index>(bim_loader_->ids().size());
-    }
-    Eigen::Index sample_size() const
-    {
-        return static_cast<Eigen::Index>(sample_manager_->num_common_samples());
-    }
-
-    const std::vector<std::string>& snp_ids() const
-    {
-        return bim_loader_->ids();
-    }
-
     auto load() const -> std::expected<Eigen::MatrixXd, Error>;
-    auto load_chunk(Eigen::Index start_variant, Eigen::Index end_variant) const
+    auto load_chunk(Eigen::Index start_col, Eigen::Index end_col) const
         -> std::expected<Eigen::MatrixXd, Error>;
+
+    void set_read_plan(std::vector<VariantInstruction> instructions);
+    void reset_to_default();
+
+    Eigen::Index num_samples() const;
+    Eigen::Index num_variants() const;
+
+    const std::vector<std::string>& snp_ids() const;
+
+    static auto format_bed_path(std::string_view bed_path)
+        -> std::expected<std::filesystem::path, Error>;
 
    private:
     BedPipe(
-        std::ifstream&& file_stream,
+        mio::mmap_source&& mmap,
         std::unique_ptr<detail::BimLoader> bim_loader,
         std::shared_ptr<SampleManager> sample_manager,
+        std::vector<Eigen::Index> sample_mapping,
+        Eigen::Index raw_sample_count,
         Eigen::Index bytes_per_variant,
         std::filesystem::path bed_path);
 
-    static auto validate_bed_file(
-        std::ifstream& file,
-        const std::filesystem::path& path) -> std::expected<void, Error>;
+    static auto validate_magic(const mio::mmap_source& mmap) -> bool;
     static auto calculate_bytes_per_variant(Eigen::Index num_samples)
         -> Eigen::Index;
-    Eigen::Index calculate_offset(Eigen::Index variant_index) const;
-    auto validate_variant_index(Eigen::Index variant_index) const
-        -> std::expected<void, Error>;
 
-    Eigen::VectorXd reorder_genotypes(
-        const Eigen::VectorXd& raw_genotypes) const;
+    void decode_variant(
+        const uint8_t* data_ptr,
+        bool is_reverse,
+        Eigen::Ref<Eigen::VectorXd> target_col) const;
 
-    auto read_variants_bulk(
-        Eigen::Index start_variant,
-        Eigen::Index end_variant) const
-        -> std::expected<Eigen::MatrixXd, Error>;
-
-    mutable std::ifstream file_stream_;
+    mio::mmap_source mmap_;
     std::unique_ptr<detail::BimLoader> bim_loader_;
     std::shared_ptr<SampleManager> sample_manager_;
+
+    std::vector<Eigen::Index> raw_to_target_sample_idx_;
+
+    std::vector<VariantInstruction> plan_;
+
+    Eigen::Index raw_sample_count_;
     Eigen::Index bytes_per_variant_;
     std::filesystem::path bed_path_;
+    bool use_custom_plan_;
 
-    constexpr static std::array<double, 4> encode_map_{2, 1, 1, 0};
+    constexpr static std::array<double, 4> lut_vals_ = {2.0, 1.0, 1.0, 0.0};
+    constexpr static std::array<double, 4> lut_vals_rev_ = {0.0, 1.0, 1.0, 2.0};
 };
 
 }  // namespace gelex

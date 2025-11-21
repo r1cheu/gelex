@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
+#include "../data/loader.h"
 #include "Eigen/Core"
 #include "gelex/error.h"
-#include "snp_matcher.h"
 
 namespace gelex
 {
@@ -29,12 +29,23 @@ struct ColumnIndices
     }
 };
 
+struct SnpEffect
+{
+    detail::SnpMeta meta;
+    double p_freq = std::numeric_limits<double>::quiet_NaN();
+    double add_effect = std::numeric_limits<double>::quiet_NaN();
+    double dom_effect = std::numeric_limits<double>::quiet_NaN();
+};
+
 class SnpEffectProcessor
 {
    public:
     // snp_eff_path: Path to the .snp.eff file
     static auto create(const std::filesystem::path& snp_eff_path)
         -> std::expected<SnpEffectProcessor, Error>;
+
+    auto calculate_scores(const Eigen::MatrixXd& genotypes) const
+        -> Eigen::VectorXd;
 
     static double calculate_gevi(int genotype, const SnpEffect& info)
     {

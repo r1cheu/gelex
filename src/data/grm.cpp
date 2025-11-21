@@ -66,7 +66,7 @@ GRM::GRM(
 Eigen::MatrixXd GRM::compute(bool add)
 {
     const auto n = static_cast<Eigen::Index>(
-        id_map_.empty() ? bed_->sample_size() : id_map_.size());
+        id_map_.empty() ? bed_->num_samples() : id_map_.size());
     Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(n, n);
 
     // Process in chunks
@@ -178,9 +178,9 @@ Eigen::MatrixXd CrossGRM::compute(std::string_view test_bed, bool add)
 
     check_snp_consistency(*test_bed_pipe);
 
-    const Index test_n = test_bed_pipe->sample_size();
+    const Index test_n = test_bed_pipe->num_samples();
     const auto train_n = static_cast<Index>(
-        id_map_.empty() ? bed_->sample_size() : id_map_.size());
+        id_map_.empty() ? bed_->num_samples() : id_map_.size());
     Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(test_n, train_n);
 
     // Process in chunks

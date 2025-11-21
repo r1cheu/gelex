@@ -158,27 +158,27 @@ TEST_CASE_METHOD(
     REQUIRE(infos.size() == 4);
 
     // Verify first SNP
-    REQUIRE(infos[0].id == "rs123");
-    REQUIRE(infos[0].a1 == 'A');
-    REQUIRE(infos[0].a2 == 'T');
+    REQUIRE(infos[0].meta.id == "rs123");
+    REQUIRE(infos[0].meta.a1 == 'A');
+    REQUIRE(infos[0].meta.a2 == 'T');
     REQUIRE_THAT(infos[0].p_freq, WithinAbs(0.3, 1e-6));
     REQUIRE_THAT(infos[0].add_effect, WithinAbs(0.5, 1e-6));
     REQUIRE_THAT(infos[0].dom_effect, WithinAbs(0.2, 1e-6));
 
     // Verify second SNP
-    REQUIRE(infos[1].id == "rs456");
-    REQUIRE(infos[1].a1 == 'C');
-    REQUIRE(infos[1].a2 == 'G');
+    REQUIRE(infos[1].meta.id == "rs456");
+    REQUIRE(infos[1].meta.a1 == 'C');
+    REQUIRE(infos[1].meta.a2 == 'G');
     REQUIRE_THAT(infos[1].p_freq, WithinAbs(0.7, 1e-6));
     REQUIRE_THAT(infos[1].add_effect, WithinAbs(-0.3, 1e-6));
     REQUIRE_THAT(infos[1].dom_effect, WithinAbs(0.1, 1e-6));
 
     // Verify third SNP (dominant effect is zero)
-    REQUIRE(infos[2].id == "rs789");
+    REQUIRE(infos[2].meta.id == "rs789");
     REQUIRE_THAT(infos[2].dom_effect, WithinAbs(0.0, 1e-6));
 
     // Verify fourth SNP (dominant effect not available, should be zero)
-    REQUIRE(infos[3].id == "rs101");
+    REQUIRE(infos[3].meta.id == "rs101");
     REQUIRE(std::isnan(infos[3].dom_effect));
 }
 

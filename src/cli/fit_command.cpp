@@ -158,7 +158,7 @@ int fit_execute(argparse::ArgumentParser& fit)
 
     app::setup_parallelization(fit.get<int>("--threads"), logger);
 
-    auto bed_result = gelex::valid_bed(fit.get("bfile"));
+    auto bed_result = gelex::BedPipe::format_bed_path(fit.get("bfile"));
     VALIDATE_RESULT_OR_RETURN(bed_result, logger);
     auto bed_path = bed_result.value();
 
