@@ -127,7 +127,7 @@ TEST_CASE("BedPipe creation and basic functionality", "[bed_pipe]")
         REQUIRE(bed_pipe.has_value());
 
         REQUIRE(bed_pipe->num_samples() == 4);
-        REQUIRE(bed_pipe->num_variants() == 5);
+        REQUIRE(bed_pipe->num_snps() == 5);
 
         const auto& snp_ids = bed_pipe->snp_ids();
         REQUIRE(snp_ids.size() == 5);
@@ -216,7 +216,7 @@ TEST_CASE("BedPipe edge cases", "[bed_pipe]")
 
         REQUIRE(bed_pipe.has_value());
         REQUIRE(bed_pipe->num_samples() == 1);
-        REQUIRE(bed_pipe->num_variants() == 3);
+        REQUIRE(bed_pipe->num_snps() == 3);
 
         auto matrix = bed_pipe->load();
         REQUIRE(matrix.has_value());
@@ -237,7 +237,7 @@ TEST_CASE("BedPipe edge cases", "[bed_pipe]")
             std::make_shared<gelex::SampleManager>(std::move(sample_manager)));
         REQUIRE(bed_pipe.has_value());
         REQUIRE(bed_pipe->num_samples() == 2);
-        REQUIRE(bed_pipe->num_variants() == 1);
+        REQUIRE(bed_pipe->num_snps() == 1);
 
         auto matrix = bed_pipe->load();
         REQUIRE(matrix.has_value());

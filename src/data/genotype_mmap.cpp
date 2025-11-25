@@ -1,154 +1,108 @@
 #include "gelex/data/genotype_mmap.h"
 
-#include <filesystem>
-#include <fstream>
+#include <algorithm>
+#include <format>
 
-#include <fmt/ranges.h>
-#include <gelex/mio.h>
-#include <Eigen/Core>
-
-#include "loader.h"
+#include "gelex/exception.h"
 
 namespace gelex
 {
-using std::ifstream;
 
-auto GenotypeMap::create(const std::filesystem::path& bin_file)
-    -> std::expected<GenotypeMap, Error>
+GenotypeMap::GenotypeMap(const std::filesystem::path& bin_file)
+    : mat_(nullptr, 0, 0)
 {
     auto snp_stats = bin_file;
     snp_stats.replace_extension(".snpstats");
 
-    auto meta_stream_result = detail::open_file<ifstream>(
-        snp_stats, std::ios::in | std::ios::binary);
+    load_metadata(snp_stats);
 
-    if (!meta_stream_result)
+    std::error_code ec;
+    mmap_.map(bin_file.string(), ec);
+    if (ec)
     {
-        return std::unexpected(meta_stream_result.error());
+        throw FileIOException(
+            std::format(
+                "Failed to mmap file {}: {}", bin_file.string(), ec.message()));
     }
 
-    auto& meta_stream = *meta_stream_result;
+    const size_t expected_size = static_cast<size_t>(rows_)
+                                 * static_cast<size_t>(cols_) * sizeof(double);
+    if (mmap_.size() != expected_size)
+    {
+        throw InvalidDataException(
+            std::format(
+                "Binary file size mismatch. Expected {} bytes, got {} bytes.",
+                expected_size,
+                mmap_.size()));
+    }
 
-    int64_t rows = 0;
-    int64_t cols = 0;
-    int64_t num_mono_snp = 0;
-    meta_stream.read(reinterpret_cast<char*>(&rows), sizeof(int64_t));
+    const auto* data_ptr = reinterpret_cast<const double*>(mmap_.data());
+
+    validate_alignment(data_ptr);
+
+    new (&mat_) MapType(data_ptr, rows_, cols_);
+}
+
+void GenotypeMap::load_metadata(const std::filesystem::path& meta_path)
+{
+    std::ifstream meta_stream(meta_path, std::ios::in | std::ios::binary);
     if (!meta_stream)
     {
-        return std::unexpected(
-            Error{
-                ErrorCode::FileIOError,
-                std::format(
-                    "Failed to read number of rows from metadata file: {}",
-                    snp_stats.string())});
+        throw FileNotFoundException(meta_path);
     }
-    meta_stream.read(reinterpret_cast<char*>(&cols), sizeof(int64_t));
-    if (!meta_stream)
+
+    rows_ = detail::read_scalar<int64_t>(meta_stream, "rows");
+    cols_ = detail::read_scalar<int64_t>(meta_stream, "cols");
+    auto num_mono_snp
+        = detail::read_scalar<int64_t>(meta_stream, "num_mono_snp");
+
+    if (rows_ <= 0 || cols_ <= 0)
     {
-        return std::unexpected(
-            Error{
-                ErrorCode::FileIOError,
-                std::format(
-                    "Failed to read number of columns from metadata file: {}",
-                    snp_stats.string())});
+        throw InvalidDataException(
+            std::format("Invalid dimensions: {}x{}", rows_, cols_));
     }
-    meta_stream.read(reinterpret_cast<char*>(&num_mono_snp), sizeof(int64_t));
-    if (!meta_stream)
+
+    if (num_mono_snp > 0)
     {
-        return std::unexpected(
-            Error{
-                ErrorCode::FileIOError,
-                std::format(
-                    "Failed to read number of monomorphic SNPs from metadata "
-                    "file: {}",
-                    snp_stats.string())});
+        mono_indices_.resize(static_cast<size_t>(num_mono_snp));
+        detail::read_binary(
+            meta_stream,
+            mono_indices_.data(),
+            mono_indices_.size(),
+            "mono indices");
+        std::ranges::sort(mono_indices_);  // 确保二分查找可用
     }
 
-    if (rows <= 0 || cols <= 0)
+    mean_.resize(cols_);
+    stddev_.resize(cols_);
+
+    detail::read_binary(
+        meta_stream, mean_.data(), static_cast<size_t>(cols_), "mean values");
+    detail::read_binary(
+        meta_stream,
+        stddev_.data(),
+        static_cast<size_t>(cols_),
+        "stddev values");
+}
+
+bool GenotypeMap::is_monomorphic(Eigen::Index snp_index) const noexcept
+{
+    return std::ranges::binary_search(mono_indices_, snp_index);
+}
+
+void GenotypeMap::validate_alignment(const void* ptr)
+{
+    auto addr = reinterpret_cast<std::uintptr_t>(ptr);
+    if (addr % ALIGNMENT_BYTES != 0)
     {
-        return std::unexpected(
-            Error{
-                ErrorCode::InvalidData,
-                std::format(
-                    "Matrix dimensions in metadata are invalid: rows={}, "
-                    "cols={}",
-                    rows,
-                    cols)});
+        throw InvalidDataException(
+            std::format(
+                "Memory alignment error. Address {} is not aligned to {} "
+                "bytes. "
+                "Please check mmap offset or file generation.",
+                addr,
+                ALIGNMENT_BYTES));
     }
-    std::vector<int64_t> mono_indices;
-    mono_indices.resize(static_cast<size_t>(num_mono_snp));
-
-    meta_stream.read(
-        reinterpret_cast<char*>(mono_indices.data()),
-        sizeof(int64_t) * static_cast<size_t>(num_mono_snp));
-
-    std::unordered_set<int64_t> mono_set(
-        mono_indices.begin(), mono_indices.end());
-
-    Eigen::VectorXd mean = Eigen::VectorXd::Zero(cols);
-    Eigen::VectorXd variance = Eigen::VectorXd::Ones(cols);
-    meta_stream.read(
-        reinterpret_cast<char*>(mean.data()),
-        sizeof(double) * static_cast<size_t>(cols));
-    meta_stream.read(
-        reinterpret_cast<char*>(variance.data()),
-        sizeof(double) * static_cast<size_t>(cols));
-
-    // Create memory mapping
-    mio::mmap_source mmap;
-    try
-    {
-        mmap = mio::mmap_source(bin_file.string());
-    }
-    catch (const std::system_error& e)
-    {
-        return std::unexpected(
-            Error{
-                ErrorCode::FileIOError,
-                std::format(
-                    "Failed to memory map file: {} - {}",
-                    bin_file.string(),
-                    e.what())});
-    }
-
-    // Verify binary file size matches expected dimensions
-    const size_t expected_size = static_cast<size_t>(rows)
-                                 * static_cast<size_t>(cols) * sizeof(double);
-    if (mmap.size() != expected_size)
-    {
-        return std::unexpected(
-            Error{
-                ErrorCode::InvalidData,
-                std::format(
-                    "Binary file size does not match dimensions in metadata. "
-                    "Expected: {} bytes, Actual: {} bytes",
-                    expected_size,
-                    mmap.size())});
-    }
-
-    // Create Eigen map
-    const auto* data_ptr = reinterpret_cast<const double*>(mmap.data());
-
-#ifdef USE_AVX512
-    Eigen::Map<
-        const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>,
-        Eigen::Aligned64>
-        mat(data_ptr, rows, cols);
-#else
-    Eigen::Map<
-        const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>,
-        Eigen::Aligned32>
-        mat(data_ptr, rows, cols);
-#endif
-
-    return GenotypeMap(
-        std::move(mmap),
-        std::move(mat),
-        std::move(mono_set),
-        std::move(mean),
-        std::move(variance),
-        rows,
-        cols);
 }
 
 }  // namespace gelex

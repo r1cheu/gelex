@@ -1,125 +1,89 @@
 #include "snp_stats_writer.h"
 
-#include <cstdint>
-#include <expected>
-#include <filesystem>
-#include <fstream>
-#include <ios>
-#include <iostream>
-#include <vector>
+#include <cassert>
+#include <format>
 
-#include <Eigen/Core>
-
-#include "data/loader.h"
-#include "gelex/error.h"
+#include "gelex/exception.h"
+#include "parser.h"
 
 namespace gelex::detail
 {
 
-using Eigen::Index;
-
-SnpStatsWriter::SnpStatsWriter(
-    std::ofstream&& file,
-    std::filesystem::path&& file_path)
-    : file_(std::move(file)), path_(std::move(file_path))
+SnpStatsWriter::SnpStatsWriter(const std::filesystem::path& file_path)
+    : path_(file_path), io_buffer_(kDefaultBufferSize)
 {
+    file_ = detail::open_file<std::ofstream>(
+        path_, std::ios::binary | std::ios::trunc, io_buffer_);
 }
 
-auto SnpStatsWriter::create(const std::filesystem::path& file_path)
-    -> std::expected<SnpStatsWriter, Error>
-{
-    auto file = open_file<std::ofstream>(file_path, std::ios::binary);
-
-    if (!file)
-    {
-        return std::unexpected(file.error());
-    }
-    return SnpStatsWriter(std::move(*file), file_path.string());
-}
-
-auto SnpStatsWriter::write(
+void SnpStatsWriter::write(
     int64_t num_samples,
-    int64_t num_variants,
-    int64_t num_monomorphic,
-    const std::vector<int64_t>& monomorphic_indices,
-    const std::vector<double>& means,
-    const std::vector<double>& stddevs) -> std::expected<void, Error>
+    std::span<const int64_t> monomorphic_indices,
+    std::span<const double> means,
+    std::span<const double> stddevs)
 {
     if (!file_.is_open())
     {
-        return std::unexpected(
-            Error{ErrorCode::FileIOError, "Stats file is not open"});
+        throw FileIOException(
+            enrich_with_file_info("Stats file is not open", path_));
     }
 
-    if (num_monomorphic != static_cast<int64_t>(monomorphic_indices.size()))
+    if (means.size() != stddevs.size())
     {
-        return std::unexpected(
-            Error{
-                ErrorCode::InvalidArgument,
-                "num_monomorphic must equal monomorphic_indices.size()"});
+        throw InvalidArgumentException(
+            std::format(
+                "Size mismatch: means ({}) and stddevs ({}) must have the same "
+                "length.",
+                means.size(),
+                stddevs.size()));
     }
 
-    if (means.size() != static_cast<size_t>(num_variants)
-        || stddevs.size() != static_cast<size_t>(num_variants))
+    if (means.empty())
     {
-        return std::unexpected(
-            Error{
-                ErrorCode::InvalidArgument,
-                "means.size() and stddevs.size() must equal num_variants"});
+        throw InvalidArgumentException("means and stddevs cannot be empty");
     }
 
-    if (means.empty() || stddevs.empty())
-    {
-        return std::unexpected(
-            Error{
-                ErrorCode::InvalidArgument,
-                "means and stddevs vectors cannot be empty"});
-    }
-    constexpr size_t int64_t_size = sizeof(int64_t);
+    const auto num_variants = static_cast<int64_t>(means.size());
+    const auto num_monomorphic
+        = static_cast<int64_t>(monomorphic_indices.size());
 
-    file_.write(reinterpret_cast<const char*>(&num_samples), int64_t_size);
-    file_.write(reinterpret_cast<const char*>(&num_variants), int64_t_size);
-    file_.write(reinterpret_cast<const char*>(&num_monomorphic), int64_t_size);
+    const int64_t header[] = {num_samples, num_variants, num_monomorphic};
+    file_.write(reinterpret_cast<const char*>(header), sizeof(header));
 
     if (!file_.good())
     {
-        return std::unexpected(enrich_with_file_info(
-            Error{
-                ErrorCode::FileIOError, "Failed to write header to stats file"},
-            path_));
+        throw FileIOException(enrich_with_file_info(
+            "Failed to write header to stats file", path_));
     }
 
-    file_.write(
-        reinterpret_cast<const char*>(monomorphic_indices.data()),
-        static_cast<std::streamsize>(
-            monomorphic_indices.size() * int64_t_size));
+    if (!monomorphic_indices.empty())
+    {
+        file_.write(
+            reinterpret_cast<const char*>(monomorphic_indices.data()),
+            static_cast<std::streamsize>(monomorphic_indices.size_bytes()));
+    }
 
     file_.write(
         reinterpret_cast<const char*>(means.data()),
-        static_cast<std::streamsize>(means.size() * sizeof(double)));
+        static_cast<std::streamsize>(means.size_bytes()));
 
     file_.write(
         reinterpret_cast<const char*>(stddevs.data()),
-        static_cast<std::streamsize>(stddevs.size() * sizeof(double)));
+        static_cast<std::streamsize>(stddevs.size_bytes()));
 
     if (!file_.good())
     {
-        return std::unexpected(enrich_with_file_info(
-            Error{ErrorCode::FileIOError, "Failed to write data to stats file"},
-            path_));
+        throw FileIOException(
+            enrich_with_file_info("Failed to write data to stats file", path_));
     }
 
-    // Flush to ensure data is written to disk
     file_.flush();
 
     if (!file_.good())
     {
-        return std::unexpected(enrich_with_file_info(
-            Error{ErrorCode::FileIOError, "Failed to flush stats file"},
-            path_));
+        throw FileIOException(
+            enrich_with_file_info("Failed to flush stats file", path_));
     }
-
-    return {};
 }
 
 }  // namespace gelex::detail

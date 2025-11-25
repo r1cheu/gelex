@@ -1,15 +1,13 @@
 #pragma once
 
-#include <expected>
 #include <filesystem>
+#include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include <Eigen/Core>
-
-#include "gelex/error.h"
 
 namespace gelex
 {
@@ -17,9 +15,9 @@ namespace gelex
 class SampleManager
 {
    public:
-    static auto create(
+    explicit SampleManager(
         const std::filesystem::path& fam_path,
-        bool iid_only = false) -> std::expected<SampleManager, Error>;
+        bool iid_only = false);
 
     SampleManager(const SampleManager&) = delete;
     SampleManager(SampleManager&&) noexcept = default;
@@ -28,21 +26,31 @@ class SampleManager
     ~SampleManager() = default;
 
     void intersect(std::span<const std::string_view> ids);
+
     void finalize();
 
-    const std::vector<std::string>& common_ids() const { return common_ids_; }
-    const std::unordered_map<std::string, Eigen::Index>& common_id_map() const
+    [[nodiscard]] const std::vector<std::string>& common_ids() const
+    {
+        return common_ids_;
+    }
+
+    [[nodiscard]] const std::unordered_map<std::string, Eigen::Index>&
+    common_id_map() const
     {
         return common_id_map_;
     }
-    size_t num_common_samples() const { return common_ids_.size(); }
-    bool has_common_samples() const { return !common_ids_.empty(); }
+
+    [[nodiscard]] size_t num_common_samples() const
+    {
+        return common_ids_.size();
+    }
+    [[nodiscard]] bool has_common_samples() const
+    {
+        return !common_ids_.empty();
+    }
 
    private:
-    SampleManager() = default;
-
     std::vector<std::string> common_ids_;
-    std::unordered_set<std::string> common_ids_set_;
     std::unordered_map<std::string, Eigen::Index> common_id_map_;
 };
 

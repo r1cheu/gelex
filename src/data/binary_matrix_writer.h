@@ -1,12 +1,11 @@
 #pragma once
 
-#include <expected>
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <vector>
 
 #include <Eigen/Core>
-
-#include "gelex/error.h"
 
 namespace gelex::detail
 {
@@ -14,8 +13,10 @@ namespace gelex::detail
 class BinaryMatrixWriter
 {
    public:
-    static auto create(const std::filesystem::path& file_path)
-        -> std::expected<BinaryMatrixWriter, Error>;
+    static constexpr size_t kDefaultBufferSize
+        = static_cast<const size_t>(64 * 1024);
+
+    explicit BinaryMatrixWriter(const std::filesystem::path& file_path);
 
     BinaryMatrixWriter(const BinaryMatrixWriter&) = delete;
     BinaryMatrixWriter(BinaryMatrixWriter&&) noexcept = default;
@@ -23,13 +24,17 @@ class BinaryMatrixWriter
     BinaryMatrixWriter& operator=(BinaryMatrixWriter&&) noexcept = default;
     ~BinaryMatrixWriter() = default;
 
-    auto write(const Eigen::MatrixXd& matrix) -> std::expected<void, Error>;
-    auto path() const noexcept -> const std::filesystem::path& { return path_; }
+    void write(const Eigen::Ref<const Eigen::MatrixXd>& matrix);
+
+    [[nodiscard]] auto path() const noexcept -> const std::filesystem::path&
+    {
+        return path_;
+    }
 
    private:
-    explicit BinaryMatrixWriter(std::ofstream&& file, std::string&& path);
-    std::ofstream file_;
     std::filesystem::path path_;
+    std::vector<char> io_buffer_;
+    std::ofstream file_;
 };
 
 }  // namespace gelex::detail

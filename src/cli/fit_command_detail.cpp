@@ -6,10 +6,6 @@
 #include <vector>
 #include "gelex/argparse.h"
 
-#include "gelex/data/genotype_loader.h"
-#include "gelex/data/genotype_matrix.h"
-#include "gelex/data/genotype_mmap.h"
-#include "gelex/data/genotype_pipe.h"
 #include "gelex/estimator/bayes/mcmc.h"
 #include "gelex/estimator/bayes/params.h"
 #include "gelex/estimator/bayes/result_writer.h"
@@ -172,8 +168,7 @@ int configure_model_priors(
     app::set_pi_prior(type, fit, prior_config);
     app::set_scale_prior(type, fit, prior_config);
 
-    auto prior_result = (*prior_strategy)(model, prior_config);
-    VALIDATE_RESULT_OR_RETURN(prior_result, logger);
+    (*prior_strategy)(model, prior_config);
 
     return 0;
 }

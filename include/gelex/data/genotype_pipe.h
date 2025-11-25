@@ -1,9 +1,8 @@
 #pragma once
 
-#include <concepts>
 #include <cstdint>
-#include <expected>
 #include <filesystem>
+#include <future>
 #include <memory>
 #include <vector>
 
@@ -16,7 +15,7 @@
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/genotype_mmap.h"
 #include "gelex/data/sample_manager.h"
-#include "gelex/error.h"
+#include "gelex/data/variant_processor.h"
 #include "gelex/logger.h"
 
 namespace gelex
@@ -24,95 +23,40 @@ namespace gelex
 
 namespace bk = barkeep;
 
-struct VariantStats
-{
-    double mean{0.0};
-    double stddev{0.0};
-    bool is_monomorphic{false};
-};
-
-template <typename T>
-concept VariantProcessor = requires(T processor, Eigen::VectorXd& variant) {
-    { processor.process_variant(variant) } -> std::same_as<VariantStats>;
-};
-
-struct StandardizingProcessor
-{
-   public:
-    static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
-};
-
-struct RawProcessor
-{
-   public:
-    static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
-};
-
-struct HardWenbergProcessor
-{
-   public:
-    static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
-};
-
-struct NOIAProcessor
-{
-   public:
-    static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
-};
-
-struct DominantStandardizingProcessor
-{
-   public:
-    static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
-};
-
-struct DominantRawProcessor
-{
-   public:
-    static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
-};
-
-struct DominantOrthogonalHWEProcessor
-{
-   public:
-    static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
-};
-
-struct DominantNOIAHWEProcessor
-{
-   public:
-    static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
-};
-
 class GenotypePipe
 {
    public:
-    static auto create(
+    GenotypePipe(
         const std::filesystem::path& bed_path,
         std::shared_ptr<SampleManager> sample_manager,
-        const std::filesystem::path& output_prefix)
-        -> std::expected<GenotypePipe, Error>;
+        const std::filesystem::path& output_prefix,
+        bool force_overwrite = false);
 
     GenotypePipe(const GenotypePipe&) = delete;
     GenotypePipe(GenotypePipe&&) noexcept = default;
     GenotypePipe& operator=(const GenotypePipe&) = delete;
     GenotypePipe& operator=(GenotypePipe&&) noexcept = default;
-    ~GenotypePipe() = default;
 
-    // Template method for processing with different strategies
+    ~GenotypePipe();
+
     template <VariantProcessor Processor = StandardizingProcessor>
-    auto process(size_t chunk_size = 10000) -> std::expected<GenotypeMap, Error>
+    auto process(size_t chunk_size = 10000) -> GenotypeMap
     {
         auto logger = gelex::logging::get();
-        global_snp_idx_ = 0;
+        size_t current_processed_snps = 0;
 
         auto pbar = bk::ProgressBar(
-            &global_snp_idx_,
+            &current_processed_snps,
             {.total = static_cast<uint64_t>(num_variants_),
              .format = "{bar} {value}/{total} ",
              .style = detail::BAR_STYLE});
 
         Processor processor;
+
+        means_.resize(num_variants_);
+        variances_.resize(num_variants_);
+        monomorphic_indices_.clear();
+        monomorphic_indices_.reserve(num_variants_ / 100);
 
         for (int64_t start_variant = 0; start_variant < num_variants_;)
         {
@@ -121,55 +65,53 @@ class GenotypePipe
                 num_variants_);
 
             auto chunk = bed_pipe_.load_chunk(start_variant, end_variant);
-            if (!chunk)
-            {
-                return std::unexpected(chunk.error());
-            }
 
-            if (auto result
-                = process_chunk(std::move(*chunk), start_variant, processor);
-                !result)
-            {
-                return std::unexpected(result.error());
-            }
+            wait_for_write();
 
+            process_chunk<Processor>(chunk, start_variant, processor);
+
+            write_future_ = std::async(
+                std::launch::async,
+                [this, mat = std::move(chunk)]() mutable
+                { this->matrix_writer_->write(mat); });
+
+            current_processed_snps += (end_variant - start_variant);
             start_variant = end_variant;
         }
+
+        wait_for_write();
         pbar->done();
 
         return finalize();
     }
 
-    Eigen::Index num_samples() const noexcept { return sample_size_; }
-    Eigen::Index num_variants() const noexcept { return num_variants_; }
-    size_t num_processed_variants() const noexcept { return means_.size(); }
+    [[nodiscard]] Eigen::Index num_samples() const noexcept
+    {
+        return sample_size_;
+    }
+    [[nodiscard]] Eigen::Index num_variants() const noexcept
+    {
+        return num_variants_;
+    }
 
    private:
-    GenotypePipe(
-        BedPipe&& bed_pipe,
-        detail::BinaryMatrixWriter&& matrix_writer,
-        detail::SnpStatsWriter&& stats_writer);
-
-    template <VariantProcessor Processor>
-    auto process_chunk(
-        Eigen::MatrixXd&& chunk,
+    template <typename Processor>
+    void process_chunk(
+        Eigen::MatrixXd& chunk,
         size_t global_start,
-        Processor& processor) -> std::expected<void, Error>
+        Processor& processor)
     {
-        Eigen::MatrixXd matrix = std::move(chunk);
-        const int64_t num_variants_in_chunk = matrix.cols();
+        const int64_t num_variants_in_chunk = chunk.cols();
 
-        for (int64_t variant_idx = 0; variant_idx < num_variants_in_chunk;
-             ++variant_idx)
+        for (int64_t i = 0; i < num_variants_in_chunk; ++i)
         {
-            global_snp_idx_++;
-            const size_t global_idx = global_start + variant_idx;
-            auto variant = matrix.col(variant_idx);
+            auto variant = chunk.col(i);
 
             VariantStats stats = processor.process_variant(variant);
 
-            means_.push_back(stats.mean);
-            variances_.push_back(stats.stddev);
+            size_t global_idx = global_start + i;
+            means_[global_idx] = stats.mean;
+            variances_[global_idx] = stats.stddev;
 
             if (stats.is_monomorphic)
             {
@@ -177,30 +119,30 @@ class GenotypePipe
                     static_cast<int64_t>(global_idx));
             }
         }
-
-        if (auto result = matrix_writer_.write(matrix); !result)
-        {
-            return std::unexpected(result.error());
-        }
-
-        return {};
     }
 
-    auto finalize() -> std::expected<GenotypeMap, Error>;
+    void wait_for_write()
+    {
+        if (write_future_.valid())
+        {
+            write_future_.get();
+        }
+    }
+
+    GenotypeMap finalize();
 
     BedPipe bed_pipe_;
-
     int64_t sample_size_{};
     int64_t num_variants_{};
-
-    size_t global_snp_idx_{};
 
     std::vector<double> means_;
     std::vector<double> variances_;
     std::vector<int64_t> monomorphic_indices_;
 
-    detail::BinaryMatrixWriter matrix_writer_;
-    detail::SnpStatsWriter stats_writer_;
+    std::unique_ptr<detail::BinaryMatrixWriter> matrix_writer_;
+    std::unique_ptr<detail::SnpStatsWriter> stats_writer_;
+
+    std::future<void> write_future_;
 };
 
 }  // namespace gelex

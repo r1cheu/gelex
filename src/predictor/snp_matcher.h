@@ -1,16 +1,17 @@
 #pragma once
 
-#include <expected>
 #include <filesystem>
-#include <unordered_map>
 #include <vector>
 
-#include "data/loader.h"
-#include "gelex/error.h"
+#include <Eigen/Core>
+#include "predictor/snp_effect_loader.h"
 
+namespace gelex::detail
+{
+struct SnpMeta;
+}
 namespace gelex
 {
-struct SnpEffect;
 
 enum class MatchType : uint8_t
 {
@@ -19,34 +20,32 @@ enum class MatchType : uint8_t
     skip
 };
 
-/// Structure to track matching information between model and prediction SNPs
 struct MatchInfo
 {
-    std::vector<MatchType> read_plan;  ///< Match type for each prediction SNP
-    std::unordered_map<std::string, size_t>
-        model_column_map;  ///< Model SNP ID to column index
-    std::vector<size_t>
-        prediction_column_order;  ///< Column order for prediction genotypes
+    MatchType type = MatchType::skip;
+    Eigen::Index target_col = -1;
 };
+
+using MatchPlan = std::vector<MatchInfo>;
 
 class SnpMatcher
 {
    public:
-    static auto create(const std::filesystem::path& bed_prefix)
-        -> std::expected<SnpMatcher, Error>;
+    explicit SnpMatcher(const std::filesystem::path& snp_effect_path);
 
-    auto match(std::span<const SnpEffect> snp_effects) -> MatchInfo;
+    [[nodiscard]] MatchPlan match(
+        const std::filesystem::path& predict_bed_path) const;
+
+    SnpEffects take_snp_effects() && { return std::move(snp_effects_); }
 
    private:
-    SnpMatcher() = default;
+    static constexpr char normalize_allele(char allele) noexcept;
 
-    // Helper functions for allele matching
-    static char normalize_allele(char allele);
     static MatchType determine_match_type(
-        const detail::SnpMeta& model,
-        const detail::SnpMeta& predict);
+        const SnpEffect& model,
+        const detail::SnpMeta& predict) noexcept;
 
-    std::vector<detail::SnpMeta> predict_snp_meta_;
+    SnpEffects snp_effects_;
 };
 
 }  // namespace gelex

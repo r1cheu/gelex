@@ -1,6 +1,7 @@
 #include "gelex/cli/fit_command.h"
 
 #include <thread>
+
 #include "fit_command_detail.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/data_pipe.h"
@@ -156,9 +157,7 @@ int fit_execute(argparse::ArgumentParser& fit)
 
     app::setup_parallelization(fit.get<int>("--threads"), logger);
 
-    auto bed_result = gelex::BedPipe::format_bed_path(fit.get("bfile"));
-    VALIDATE_RESULT_OR_RETURN(bed_result, logger);
-    auto bed_path = bed_result.value();
+    auto bed_path = gelex::BedPipe::format_bed_path(fit.get("bfile"));
 
     gelex::DataPipe::Config config{
         .phenotype_path = fit.get("pheno"),
@@ -172,12 +171,8 @@ int fit_execute(argparse::ArgumentParser& fit)
         .iid_only = fit.get<bool>("--iid-only"),
         .output_prefix = fit.get("--out")};
 
-    auto data_pipe = gelex::DataPipe::create(config);
-    VALIDATE_RESULT_OR_RETURN(data_pipe, logger);
-
-    auto model_result = gelex::BayesModel::create(*data_pipe);
-    VALIDATE_RESULT_OR_RETURN(model_result, logger);
-    auto model = std::move(model_result.value());
+    gelex::DataPipe data_pipe(config);
+    gelex::BayesModel model(data_pipe);
 
     if (app::configure_model_priors(model, type, fit, logger) != 0)
     {

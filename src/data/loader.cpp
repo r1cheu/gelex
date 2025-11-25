@@ -1,706 +1,490 @@
 #include "loader.h"
 
-#include <cmath>
-#include <expected>
+#include <algorithm>
+#include <charconv>
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <ranges>
-#include <string>
 #include <string_view>
-#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
-#include <fmt/ranges.h>
 #include <Eigen/Core>
 
+#include <fmt/ranges.h>
 #include "../src/data/parser.h"
-#include "gelex/error.h"
+#include "gelex/exception.h"
 #include "gelex/logger.h"
 
 namespace gelex::detail
 {
 
-auto PhenotypeLoader::create(
+// =============================================================================
+// Helper Function: Safe Open
+// =============================================================================
+static std::ifstream open_stream(const std::filesystem::path& path)
+{
+    return detail::open_file<std::ifstream>(path, std::ios_base::in);
+}
+
+// =============================================================================
+// PhenotypeLoader
+// =============================================================================
+
+PhenotypeLoader::PhenotypeLoader(
     const std::filesystem::path& path,
     int pheno_column,
-    bool iid_only) -> std::expected<PhenotypeLoader, Error>
+    bool iid_only)
 {
-    auto file = detail::open_file<std::ifstream>(path, std::ios_base::in);
-    if (!file)
+    auto file = open_stream(path);
+
+    std::string line;
+    if (!std::getline(file, line))
     {
-        return std::unexpected(file.error());
-    }
-    auto header = get_header(*file, pheno_column);
-    if (!header)
-    {
-        return std::unexpected(
-            enrich_with_file_info(std::move(header.error()), path));
-    }
-    size_t cols = header->size();
-    auto map = read(*file, pheno_column, cols, iid_only);
-    if (!map)
-    {
-        return std::unexpected(
-            enrich_with_file_info(std::move(map.error()), path));
+        throw InvalidFileException("Empty phenotype file");
     }
 
-    auto logger = gelex::logging::get();
-    logger->info(
-        "Loaded {} samples with phenotype '{}'.",
-        map->size(),
-        (*header)[pheno_column]);
+    auto header = parse_header(line);
+    if (pheno_column < 2 || static_cast<size_t>(pheno_column) >= header.size())
+    {
+        throw InvalidRangeException(
+            std::format("Phenotype column {} out of range", pheno_column));
+    }
+    name_ = std::string(header[pheno_column]);
 
-    return PhenotypeLoader(std::move((*header)[pheno_column]), std::move(*map));
+    int n_line = 0;
+    data_.reserve(1024);
+
+    while (std::getline(file, line))
+    {
+        n_line++;
+        if (line.empty())
+        {
+            continue;
+        }
+        try
+        {
+            data_.emplace(
+                parse_id(line, iid_only), parse_nth_double(line, pheno_column));
+        }
+        catch (const std::exception& e)
+        {
+            throw InvalidDataException(
+                std::format("{} (line {})", e.what(), n_line + 1));
+        }
+    }
+
+    gelex::logging::get()->info(
+        "Loaded {} samples with phenotype '{}'.", data_.size(), name_);
 }
 
 Eigen::VectorXd PhenotypeLoader::load(
     const std::unordered_map<std::string, Eigen::Index>& id_map) const
 {
-    Eigen::VectorXd data(id_map.size(), 1);
+    Eigen::VectorXd result(id_map.size());
+    result.setConstant(std::numeric_limits<double>::quiet_NaN());
 
     for (const auto& [id, value] : data_)
     {
         if (auto it = id_map.find(id); it != id_map.end())
         {
-            data(it->second) = value;
+            result(it->second) = value;
         }
     }
-    return data;
+    return result;
 }
 
-auto PhenotypeLoader::get_header(std::ifstream& file, size_t target_column)
-    -> std::expected<std::vector<std::string>, Error>
+// =============================================================================
+// QcovarLoader
+// =============================================================================
+
+QcovarLoader::QcovarLoader(const std::filesystem::path& path, bool iid_only)
 {
-    std::string line;
-    std::getline(file, line);
-    const auto header_view = parse_header(line);
-
-    if (!header_view)
-    {
-        return std::unexpected(header_view.error());
-    }
-
-    if (target_column < 2 || target_column >= (header_view->size()))
-    {
-        return std::unexpected(
-            Error{
-                ErrorCode::InvalidRange,
-                std::format(
-                    "Phenotype column index {} is out of range [2, {}) ",
-                    target_column,
-                    header_view->size())});
-    }
-    return std::ranges::to<std::vector<std::string>>(*header_view);
-}
-
-auto PhenotypeLoader::read(
-    std::ifstream& file,
-    size_t target_column,
-    size_t expected_columns,
-    bool iid_only)
-    -> std::expected<std::unordered_map<std::string, double>, Error>
-{
-    std::unordered_map<std::string, double> phenotype_data;
+    auto file = open_stream(path);
 
     std::string line;
-    int n_line{};
+    if (!std::getline(file, line))
+    {
+        throw InvalidFileException("Empty qcovar file");
+    }
+
+    auto header_view = parse_header(line);
+    if (header_view.size() < 3)
+    {
+        throw InvalidRangeException("Qcovar file must have > 2 columns");
+    }
+
+    names_.reserve(header_view.size() - 2);
+    for (size_t i = 2; i < header_view.size(); ++i)
+    {
+        names_.emplace_back(header_view[i]);
+    }
+
+    int n_line = 0;
+    data_.reserve(1024);
+
     while (std::getline(file, line))
     {
+        n_line++;
         if (line.empty())
         {
             continue;
         }
 
-        if (count_num_columns(line) != expected_columns)
+        try
         {
-            return std::unexpected(
-                Error{
-                    ErrorCode::InconsistColumnCount,
-                    std::format(
-                        "Inconsistent number of columns (line {})",
-                        n_line + 2)});
+            data_.emplace(parse_id(line, iid_only), parse_all_doubles(line, 2));
         }
-
-        if (auto id_str = parse_id(line, iid_only); id_str)
+        catch (const std::exception& e)
         {
-            if (auto value = parse_nth_double(line, target_column))
-            {
-                // Skip NaN values in phenotype data
-                if (!std::isnan(*value))
-                {
-                    phenotype_data.emplace(std::move(*id_str), *value);
-                }
-            }
-            else
-            {
-                return std::unexpected(enrich_with_line_info(
-                    std::move(value.error()), n_line + 2));
-            }
+            throw InvalidDataException(
+                std::format("{} (line {})", e.what(), n_line + 1));
         }
-        else
-        {
-            return std::unexpected(
-                enrich_with_line_info(std::move(id_str.error()), n_line + 2));
-        }
-        n_line++;
-    }
-    return phenotype_data;
-}
-
-auto QcovarLoader::create(const std::filesystem::path& path, bool iid_only)
-    -> std::expected<QcovarLoader, Error>
-{
-    auto file = detail::open_file<std::ifstream>(path, std::ios_base::in);
-    if (!file)
-    {
-        return std::unexpected(file.error());
-    }
-    auto header = get_header(*file);
-    if (!header)
-    {
-        return std::unexpected(
-            enrich_with_file_info(std::move(header.error()), path));
-    }
-    size_t cols = header->size();
-    auto map = read(*file, cols, iid_only);
-    if (!map)
-    {
-        return std::unexpected(
-            enrich_with_file_info(std::move(map.error()), path));
     }
 
-    std::vector<std::string> covar_names;
-    covar_names.reserve(cols - 2);
-    for (size_t i = 2; i < cols; ++i)
-    {
-        covar_names.push_back(std::move((*header)[i]));
-    }
-
-    auto logger = gelex::logging::get();
-    logger->info(
-        "Loaded {} samples with {} qcovars.", map->size(), covar_names.size());
-
-    if (covar_names.size() <= 3)
-    {
-        logger->info("qcovar names: {}.", fmt::join(covar_names, ", "));
-    }
-    else
-    {
-        logger->info(
-            "qcovar names: {}, {}, {}, ... ({} total).",
-            covar_names[0],
-            covar_names[1],
-            covar_names[2],
-            covar_names.size());
-    }
-
-    return QcovarLoader(std::move(covar_names), std::move(*map));
+    gelex::logging::get()->info(
+        "Loaded {} samples with {} qcovars.", data_.size(), names_.size());
 }
 
 Eigen::MatrixXd QcovarLoader::load(
     const std::unordered_map<std::string, Eigen::Index>& id_map) const
 {
-    Eigen::MatrixXd data(id_map.size(), names_.size());
-    data.setZero();
+    const auto n_samples = static_cast<Eigen::Index>(id_map.size());
+    const auto n_covars = static_cast<Eigen::Index>(names_.size());
+
+    Eigen::MatrixXd result(n_samples, n_covars);
+    result.setZero();
 
     for (const auto& [id, values] : data_)
     {
-        const auto num_values = static_cast<Eigen::Index>(values.size());
         if (auto it = id_map.find(id); it != id_map.end())
         {
-            for (Eigen::Index i = 0; i < num_values; ++i)
+            const Eigen::Index row_idx = it->second;
+            const size_t copy_len
+                = std::min(static_cast<size_t>(n_covars), values.size());
+            if (copy_len > 0)
             {
-                data(it->second, i) = values[i];
+                std::copy_n(
+                    values.begin(), copy_len, result.row(row_idx).data());
             }
         }
     }
-    return data;
+    return result;
 }
 
-auto QcovarLoader::get_header(std::ifstream& file)
-    -> std::expected<std::vector<std::string>, Error>
+// =============================================================================
+// CovarLoader (Categorical)
+// =============================================================================
+
+CovarLoader::CovarLoader(const std::filesystem::path& path, bool iid_only)
 {
-    std::string line;
-    std::getline(file, line);
-    const auto header_view = parse_header(line);
-
-    if (!header_view)
-    {
-        return std::unexpected(header_view.error());
-    }
-
-    if (header_view->size() < 3)
-    {
-        return std::unexpected(
-            Error{
-                ErrorCode::InvalidRange,
-                std::format(
-                    "Qcovar file must have at least 3 columns, got {}",
-                    header_view->size())});
-    }
-    return std::ranges::to<std::vector<std::string>>(*header_view);
-}
-
-auto QcovarLoader::read(
-    std::ifstream& file,
-    size_t expected_columns,
-    bool iid_only) -> std::
-    expected<std::unordered_map<std::string, std::vector<double>>, Error>
-{
-    std::unordered_map<std::string, std::vector<double>> covariate_data;
+    auto file = open_stream(path);
 
     std::string line;
-    int n_line{};
+    if (!std::getline(file, line))
+    {
+        throw InvalidFileException("Empty covar file");
+    }
+
+    auto header_view = parse_header(line);
+    if (header_view.size() < 3)
+    {
+        throw InvalidRangeException("Covar file too few columns");
+    }
+
+    names_.reserve(header_view.size() - 2);
+    for (size_t i = 2; i < header_view.size(); ++i)
+    {
+        names_.emplace_back(header_view[i]);
+    }
+
+    int n_line = 0;
     while (std::getline(file, line))
     {
+        n_line++;
         if (line.empty())
         {
             continue;
         }
-        if (count_num_columns(line) != expected_columns)
+        try
         {
-            return std::unexpected(
-                Error{
-                    ErrorCode::InconsistColumnCount,
-                    std::format(
-                        "Inconsistent number of columns (line {})",
-                        n_line + 2)});
+            raw_data_.emplace(
+                parse_id(line, iid_only),
+                std::ranges::to<std::vector<std::string>>(
+                    parse_string(line, 2)));
         }
-
-        if (auto id_str = parse_id(line, iid_only); id_str)
+        catch (const std::exception& e)
         {
-            auto values = parse_all_doubles(line, 2);  // skip FID and IID
-            if (!values)
-            {
-                return std::unexpected(enrich_with_line_info(
-                    std::move(values.error()), n_line + 2));
-            }
-
-            // Check for NaN values in qcovar data
-            for (const auto& value : *values)
-            {
-                if (std::isnan(value))
-                {
-                    return std::unexpected(
-                        Error{
-                            ErrorCode::InvalidData,
-                            std::format(
-                                "NaN value in Qcovar is not allowed (line {})",
-                                n_line + 2)});
-                }
-            }
-
-            covariate_data.emplace(std::move(*id_str), std::move(*values));
+            throw InvalidDataException(
+                std::format("{} (line {})", e.what(), n_line + 1));
         }
-        else
-        {
-            return std::unexpected(
-                enrich_with_line_info(std::move(id_str.error()), n_line + 2));
-        }
-        n_line++;
     }
-    return covariate_data;
+
+    build_optimized_encodings();
+
+    gelex::logging::get()->info(
+        "Loaded {} samples with {} categorical covars.",
+        raw_data_.size(),
+        names_.size());
 }
 
-auto CovarLoader::create(const std::filesystem::path& path, bool iid_only)
-    -> std::expected<CovarLoader, Error>
+void CovarLoader::build_optimized_encodings()
 {
-    auto file = detail::open_file<std::ifstream>(path, std::ios_base::in);
-    if (!file)
+    // 1. 收集每个协变量的所有唯一值 (Levels)
+    std::vector<std::unordered_set<std::string_view>> levels_per_col(
+        names_.size());
+
+    for (const auto& [id, row_values] : raw_data_)
     {
-        return std::unexpected(file.error());
-    }
-    auto header = get_header(*file);
-    if (!header)
-    {
-        return std::unexpected(
-            enrich_with_file_info(std::move(header.error()), path));
-    }
-    size_t cols = header->size();
-    auto map = read(*file, cols, iid_only);
-    if (!map)
-    {
-        return std::unexpected(
-            enrich_with_file_info(std::move(map.error()), path));
+        for (size_t i = 0; i < row_values.size() && i < levels_per_col.size();
+             ++i)
+        {
+            if (!row_values[i].empty())
+            {
+                levels_per_col[i].insert(row_values[i]);
+            }
+        }
     }
 
-    std::vector<std::string> covar_names;
-    covar_names.reserve(cols - 2);
-    for (size_t i = 2; i < cols; ++i)
+    // 2. 构建编码映射
+    optimized_encodings_.resize(names_.size());
+    total_dummy_vars_ = 0;
+
+    for (size_t i = 0; i < names_.size(); ++i)
     {
-        covar_names.push_back(std::move((*header)[i]));
+        const auto& levels = levels_per_col[i];
+        if (levels.size() < 2)
+        {
+            continue;  // 只有一个 level 或空，不产生 dummy 变量
+        }
+
+        // 排序以保证确定性
+        std::vector<std::string> sorted_levels(levels.begin(), levels.end());
+        std::ranges::sort(sorted_levels);
+
+        // Reference level method: drop first level
+        // Level[0] -> [0, 0, ...], Level[1] -> [1, 0, ...], Level[2] -> [0, 1,
+        // ...]
+        size_t n_dummies = sorted_levels.size() - 1;
+
+        // 第一个 level 全 0
+        EncodedCovariate ref_enc;
+        ref_enc.encoding.assign(n_dummies, 0);
+        ref_enc.start_col_offset = static_cast<int>(total_dummy_vars_);
+        optimized_encodings_[i].emplace(sorted_levels[0], ref_enc);
+
+        for (size_t j = 1; j < sorted_levels.size(); ++j)
+        {
+            EncodedCovariate enc;
+            enc.encoding.assign(n_dummies, 0);
+            enc.encoding[j - 1] = 1;
+            enc.start_col_offset = static_cast<int>(total_dummy_vars_);
+
+            optimized_encodings_[i].emplace(sorted_levels[j], std::move(enc));
+        }
+        total_dummy_vars_ += n_dummies;
     }
-    auto logger = gelex::logging::get();
-
-    logger->info(
-        "Loaded {} samples with {} covars.", map->size(), covar_names.size());
-
-    return CovarLoader(std::move(covar_names), std::move(*map));
 }
 
 Eigen::MatrixXd CovarLoader::load(
     const std::unordered_map<std::string, Eigen::Index>& id_map) const
 {
-    auto covariate_data = data_;
+    Eigen::MatrixXd result(id_map.size(), total_dummy_vars_);
+    result.setZero();
 
-    std::erase_if(
-        covariate_data,
-        [&id_map](const auto& pair) { return !id_map.contains(pair.first); });
-
-    auto encode_maps = build_encode_maps(covariate_data, names_);
-
-    size_t total_dummy_vars = 0;
-    std::vector<Eigen::Index> col_offsets;
-    for (const auto& encode_map : encode_maps)
+    for (const auto& [id, raw_values] : raw_data_)
     {
-        col_offsets.push_back(static_cast<Eigen::Index>(total_dummy_vars));
-        if (!encode_map.empty())
-        {
-            total_dummy_vars += encode_map.begin()->second.size();
-        }
-    }
-
-    Eigen::MatrixXd data(id_map.size(), total_dummy_vars);
-    data.setZero();
-
-    for (const auto& [id, values] : data_)
-    {
-        const auto id_it = id_map.find(id);
+        auto id_it = id_map.find(id);
         if (id_it == id_map.end())
         {
             continue;
         }
+
         const Eigen::Index row_idx = id_it->second;
 
-        const size_t num_covars_to_process
-            = std::min(values.size(), encode_maps.size());
-        for (size_t i = 0; i < num_covars_to_process; ++i)
-        {
-            if (const auto map_it = encode_maps[i].find(values[i]);
-                map_it != encode_maps[i].end())
-            {
-                const auto& dummy_encoding = map_it->second;
-                const Eigen::Index offset = col_offsets[i];
-                const auto num_vars
-                    = static_cast<Eigen::Index>(dummy_encoding.size());
+        const size_t n_cols_process
+            = std::min(raw_values.size(), optimized_encodings_.size());
 
-                data.row(row_idx).segment(offset, num_vars)
-                    = Eigen::Map<const Eigen::VectorXi>(
-                          dummy_encoding.data(), num_vars)
-                          .template cast<double>();
+        for (size_t i = 0; i < n_cols_process; ++i)
+        {
+            // 查找当前值对应的编码信息
+            const auto& encoding_map = optimized_encodings_[i];
+            if (encoding_map.empty())
+            {
+                continue;
+            }
+
+            if (auto enc_it = encoding_map.find(raw_values[i]);
+                enc_it != encoding_map.end())
+            {
+                const auto& info = enc_it->second;
+                // 只有非零向量才需要写入 (优化稀疏写入)
+                // 实际上 info.encoding 对于 ref level 全是 0，对于其他只有一个
+                // 1 我们可以进一步优化：只存哪个位置是 1，不需要拷贝整个 vector
+
+                // 通用写法：
+                const Eigen::Index offset = info.start_col_offset;
+                const auto len
+                    = static_cast<Eigen::Index>(info.encoding.size());
+
+                // 利用 Eigen 的 map 直接赋值，避免循环
+                if (len > 0)
+                {
+                    // cast<double> 是必须的，因为 encoding 是 int
+                    result.row(row_idx).segment(offset, len)
+                        = Eigen::Map<const Eigen::VectorXi>(
+                              info.encoding.data(), len)
+                              .cast<double>();
+                }
             }
         }
     }
-    return data;
-}
-
-auto CovarLoader::get_header(std::ifstream& file)
-    -> std::expected<std::vector<std::string>, Error>
-{
-    std::string line;
-    std::getline(file, line);
-    const auto header_view = parse_header(line);
-
-    if (!header_view)
-    {
-        return std::unexpected(header_view.error());
-    }
-
-    if (header_view->size() < 3)
-    {
-        return std::unexpected(
-            Error{
-                ErrorCode::InvalidRange,
-                std::format(
-                    "Covar file must have at least 3 columns, got {}",
-                    header_view->size())});
-    }
-    return std::ranges::to<std::vector<std::string>>(*header_view);
-}
-
-auto CovarLoader::read(
-    std::ifstream& file,
-    size_t expected_columns,
-    bool iid_only) -> std::
-    expected<std::unordered_map<std::string, std::vector<std::string>>, Error>
-{
-    std::unordered_map<std::string, std::vector<std::string>> covariate_data;
-
-    std::string line;
-    int n_line{};
-    while (std::getline(file, line))
-    {
-        if (line.empty())
-        {
-            continue;
-        }
-        if (count_num_columns(line) != expected_columns)
-        {
-            return std::unexpected(
-                Error{
-                    ErrorCode::InconsistColumnCount,
-                    std::format(
-                        "Inconsistent number of columns at line {}",
-                        n_line + 2)});
-        }
-
-        if (auto id_str = parse_id(line, iid_only); id_str)
-        {
-            auto values = parse_string(line, 2);  // skip FID and IID
-            if (values.size() != expected_columns - 2)
-            {
-                return std::unexpected(
-                    Error{
-                        ErrorCode::InconsistColumnCount,
-                        std::format(
-                            "Inconsistent number of columns at line {}",
-                            n_line + 2)});
-            }
-
-            std::vector<std::string> string_values;
-            string_values.reserve(values.size());
-            for (const auto& value : values)
-            {
-                string_values.emplace_back(value);
-            }
-
-            covariate_data.emplace(
-                std::move(*id_str), std::move(string_values));
-        }
-        else
-        {
-            return std::unexpected(
-                enrich_with_line_info(std::move(id_str.error()), n_line + 2));
-        }
-        n_line++;
-    }
-    return covariate_data;
-}
-
-auto CovarLoader::build_encode_maps(
-    const std::unordered_map<std::string, std::vector<std::string>>&
-        covariate_data,
-    std::span<const std::string> covariate_names)
-    -> std::vector<std::unordered_map<std::string, std::vector<int>>>
-{
-    if (covariate_names.empty())
-    {
-        return {};
-    }
-
-    auto unique_levels_per_covariate
-        = collect_unique_levels(covariate_data, covariate_names.size());
-
-    std::vector<std::unordered_map<std::string, std::vector<int>>> result;
-    result.reserve(covariate_names.size());
-
-    for (const auto& unique_levels : unique_levels_per_covariate)
-    {
-        result.push_back(create_encoding_for_one_covariate(unique_levels));
-    }
-
     return result;
 }
 
-auto CovarLoader::collect_unique_levels(
-    const std::unordered_map<std::string, std::vector<std::string>>& data,
-    size_t num_covariates) -> std::vector<std::unordered_set<std::string_view>>
+// =============================================================================
+// BimLoader
+// =============================================================================
+
+BimLoader::BimLoader(const std::filesystem::path& path)
 {
-    std::vector<std::unordered_set<std::string_view>> all_levels(
-        num_covariates);
-    for (const auto& [id, values] : data)
+    auto file = open_stream(path);
+
+    // estimate reserve size
+    auto fsize = std::filesystem::file_size(path);
+    snp_meta_.reserve(fsize / 30);
+    char delimiter = detect_delimiter(file);
+
+    std::string line;
+    int n_line = 0;
+    std::array<std::string_view, 6> cols;
+
+    while (std::getline(file, line))
     {
-        for (size_t i = 0; i < num_covariates; ++i)
+        n_line++;
+        if (line.empty())
         {
-            if (!values[i].empty())
+            continue;
+        }
+
+        auto tokens = line | std::views::split(delimiter);
+
+        size_t col_idx = 0;
+        for (auto&& sub_range : tokens)
+        {
+            if (sub_range.empty())
             {
-                all_levels[i].insert(values[i]);
+                continue;
+            }
+            if (col_idx < 6)
+            {
+                cols[col_idx++] = std::string_view(sub_range);
+            }
+            else
+            {
+                break;
             }
         }
+
+        if (col_idx < 6)
+        {
+            throw InconsistentColumnCountException(
+                std::format("Bim line {} has fewer than 6 columns", n_line));
+        }
+
+        SnpMeta meta;
+        meta.chrom = cols[0];
+        meta.id = cols[1];
+
+        auto res = std::from_chars(
+            cols[3].data(), cols[3].data() + cols[3].size(), meta.position);
+
+        if (res.ec != std::errc())
+        {
+            throw InvalidDataException(
+                std::format("Invalid pos at line {}", n_line));
+        }
+
+        meta.A1 = cols[4][0];
+        meta.A2 = cols[5][0];
+
+        snp_meta_.push_back(std::move(meta));
     }
-    return all_levels;
 }
 
-auto CovarLoader::create_encoding_for_one_covariate(
-    const std::unordered_set<std::string_view>& unique_levels)
-    -> std::unordered_map<std::string, std::vector<int>>
+char BimLoader::detect_delimiter(std::ifstream& file)
 {
-    if (unique_levels.size() < 2)
+    char delimiter = '\t';
     {
-        return {};
+        std::string probe_line;
+        while (std::getline(file, probe_line) && probe_line.empty())
+        {
+        }
+
+        if (!probe_line.empty())
+        {
+            if (probe_line.find('\t') == std::string::npos)
+            {
+                delimiter = ' ';
+            }
+        }
+
+        file.clear();
+        file.seekg(0, std::ios::beg);
     }
-
-    std::vector<std::string_view> sorted_levels(
-        unique_levels.begin(), unique_levels.end());
-    std::ranges::sort(sorted_levels);
-
-    const size_t num_dummy_vars = sorted_levels.size() - 1;
-    std::unordered_map<std::string, std::vector<int>> encode_map;
-    encode_map.reserve(sorted_levels.size());
-
-    encode_map.emplace(sorted_levels[0], std::vector<int>(num_dummy_vars, 0));
-
-    for (size_t i = 1; i < sorted_levels.size(); ++i)
-    {
-        std::vector<int> encoding(num_dummy_vars, 0);
-        encoding[i - 1] = 1;
-        encode_map.emplace(sorted_levels[i], std::move(encoding));
-    }
-    return encode_map;
+    return delimiter;
 }
 
-auto BimLoader::create(const std::filesystem::path& path)
-    -> std::expected<BimLoader, Error>
+std::vector<std::string> BimLoader::get_ids() const
 {
-    auto file = detail::open_file<std::ifstream>(path, std::ios_base::in);
-    if (!file)
+    std::vector<std::string> ids;
+    ids.reserve(snp_meta_.size());
+    for (const auto& s : snp_meta_)
     {
-        return std::unexpected(file.error());
+        ids.push_back(s.id);
     }
-    auto snp_ids = read(*file);
-    if (!snp_ids)
-    {
-        return std::unexpected(
-            enrich_with_file_info(std::move(snp_ids.error()), path));
-    }
-
-    return BimLoader(std::move(*snp_ids));
+    return ids;
 }
 
-auto BimLoader::read(std::ifstream& file)
-    -> std::expected<std::vector<SnpMeta>, Error>
+// =============================================================================
+// FamLoader
+// =============================================================================
+
+FamLoader::FamLoader(const std::filesystem::path& path, bool iid_only)
 {
-    constexpr static size_t bim_n_cols = 6;
-    std::vector<SnpMeta> snp_info;
+    auto file = open_stream(path);
+
     std::string line;
-    int n_line{};
+    int n_line = 0;
+    ids_.reserve(1024);  // Start small
+
     while (std::getline(file, line))
     {
+        n_line++;
         if (line.empty())
         {
             continue;
         }
-
-        if (count_num_columns(line) != bim_n_cols)
+        try
         {
-            return std::unexpected(
-                Error{
-                    ErrorCode::InconsistColumnCount,
-                    std::format(
-                        "Bim file must have exactly 6 columns (line {})",
-                        n_line + 1)});
+            ids_.emplace_back(parse_id(line, iid_only, ' '));
         }
-
-        auto tokens = parse_string(line, 0, "\t");
-        if (tokens.size() < 2)
+        catch (const std::exception& e)
         {
-            return std::unexpected(
-                Error{
-                    ErrorCode::InvalidFile,
-                    std::format(
-                        "Failed to parse SNP ID (line {})", n_line + 1)});
+            throw InvalidDataException(
+                std::format(
+                    "{} (line {}) at {}", e.what(), n_line, path.string()));
         }
-        const std::string_view pos_str = tokens[3];
-        int position = 0;
-        auto result = std::from_chars(
-            pos_str.data(), pos_str.data() + pos_str.size(), position);
-
-        if (result.ec != std::errc() || position < 0)
-        {
-            return std::unexpected(
-                Error{
-                    ErrorCode::InvalidData,
-                    std::format(
-                        "Invalid position '{}' in BIM file (line {})",
-                        pos_str,
-                        n_line + 1)});
-        }
-
-        SnpMeta info;
-        info.chrom = tokens[0];
-        info.id = tokens[1];
-        info.position = position;
-        info.a1 = tokens[4].empty() ? '0' : tokens[4][0];
-        info.a2 = tokens[5].empty() ? '0' : tokens[5][0];
-
-        snp_info.push_back(std::move(info));
-        n_line++;
     }
-    return snp_info;
-}
 
-auto FamLoader::create(const std::filesystem::path& path, bool iid_only)
-    -> std::expected<FamLoader, Error>
-{
-    auto file = detail::open_file<std::ifstream>(path, std::ios_base::in);
-    if (!file)
+    data_.reserve(ids_.size());
+    for (size_t i = 0; i < ids_.size(); ++i)
     {
-        return std::unexpected(file.error());
+        data_[ids_[i]] = static_cast<Eigen::Index>(i);
     }
 
-    auto sample_ids = read(*file, iid_only);
-    if (!sample_ids)
-    {
-        return std::unexpected(
-            enrich_with_file_info(std::move(sample_ids.error()), path));
-    }
-
-    // Build sample map preserving FAM file order
-    std::unordered_map<std::string, Eigen::Index> sample_map;
-    Eigen::Index index = 0;
-    for (const auto& id : *sample_ids)
-    {
-        sample_map[id] = index++;
-    }
-
-    auto logger = gelex::logging::get();
-    logger->info(
-        "Loaded {} samples from fam file[{}].",
-        sample_ids->size(),
-        path.string());
-
-    return FamLoader(std::move(*sample_ids), std::move(sample_map));
-}
-
-auto FamLoader::read(std::ifstream& file, bool iid_only)
-    -> std::expected<std::vector<std::string>, Error>
-{
-    constexpr static size_t fam_n_cols = 6;
-    std::vector<std::string> sample_ids;
-    std::string line;
-    int n_line{};
-    while (std::getline(file, line))
-    {
-        if (line.empty())
-        {
-            continue;
-        }
-
-        if (auto n_cols = count_num_columns(line, " "); n_cols != fam_n_cols)
-        {
-            return std::unexpected(
-                Error{
-                    ErrorCode::InconsistColumnCount,
-                    std::format(
-                        ".fam file must have at 6 columns but got {} (line {})",
-                        n_cols,
-                        n_line + 1)});
-        }
-
-        if (auto id_str = parse_id(line, iid_only, " "); id_str)
-        {
-            sample_ids.emplace_back(std::move(*id_str));
-        }
-        else
-        {
-            return std::unexpected(
-                enrich_with_line_info(std::move(id_str.error()), n_line + 1));
-        }
-        n_line++;
-    }
-    return sample_ids;
+    gelex::logging::get()->info(
+        "Loaded {} samples from fam file.", ids_.size());
 }
 
 }  // namespace gelex::detail

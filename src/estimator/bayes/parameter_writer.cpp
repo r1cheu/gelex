@@ -4,7 +4,7 @@
 
 #include <Eigen/Core>
 
-#include "data/loader.h"
+#include "../src/data/parser.h"
 
 namespace gelex
 {
@@ -16,7 +16,7 @@ ParameterWriter::ParameterWriter(const MCMCResult& result) : result_(&result) {}
 
 void ParameterWriter::write(const std::filesystem::path& path) const
 {
-    auto stream = *detail::open_file<std::ofstream>(path, std::ios_base::out);
+    auto stream = detail::open_file<std::ofstream>(path, std::ios_base::out);
 
     // Write header
     stream << "term\tmean\tstddev\t5%\t95%\tess\trhat\n";

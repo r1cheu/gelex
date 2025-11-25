@@ -20,7 +20,7 @@ class BayesAPrior : public PriorSetter
    private:
     auto set_additive_effect_prior(
         bayes::AdditiveEffect& effect,
-        const PriorConfig& prior) -> std::expected<void, Error> override;
+        const PriorConfig& prior) -> void override;
 };
 
 /**
@@ -36,7 +36,7 @@ class BayesAdPrior : public BayesAPrior
    private:
     auto set_dominant_effect_prior(
         bayes::DominantEffect& effect,
-        const PriorConfig& prior) -> std::expected<void, Error> override;
+        const PriorConfig& prior) -> void override;
 };
 
 /**
@@ -52,7 +52,7 @@ class BayesBPrior : public PriorSetter
    private:
     auto set_additive_effect_prior(
         bayes::AdditiveEffect& effect,
-        const PriorConfig& prior) -> std::expected<void, Error> override;
+        const PriorConfig& prior) -> void override;
 };
 
 /**
@@ -68,7 +68,7 @@ class BayesBpiPrior : public BayesBPrior
    private:
     auto set_additive_effect_prior(
         bayes::AdditiveEffect& effect,
-        const PriorConfig& prior) -> std::expected<void, Error> override;
+        const PriorConfig& prior) -> void override;
 };
 
 /**
@@ -84,7 +84,7 @@ class BayesBdPrior : public BayesBPrior
    private:
     auto set_dominant_effect_prior(
         bayes::DominantEffect& effect,
-        const PriorConfig& prior) -> std::expected<void, Error> override;
+        const PriorConfig& prior) -> void override;
 };
 
 /**
@@ -101,7 +101,7 @@ class BayesBdpiPrior : public BayesBpiPrior
    private:
     auto set_dominant_effect_prior(
         bayes::DominantEffect& effect,
-        const PriorConfig& prior) -> std::expected<void, Error> override;
+        const PriorConfig& prior) -> void override;
 };
 
 /**
@@ -117,7 +117,7 @@ class BayesCPrior : public PriorSetter
    private:
     auto set_additive_effect_prior(
         bayes::AdditiveEffect& effect,
-        const PriorConfig& prior) -> std::expected<void, Error> override;
+        const PriorConfig& prior) -> void override;
 };
 
 /**
@@ -133,7 +133,7 @@ class BayesCpiPrior : public BayesCPrior
    private:
     auto set_additive_effect_prior(
         bayes::AdditiveEffect& effect,
-        const PriorConfig& prior) -> std::expected<void, Error> override;
+        const PriorConfig& prior) -> void override;
 };
 
 /**
@@ -149,7 +149,7 @@ class BayesCdPrior : public BayesCPrior
    private:
     auto set_dominant_effect_prior(
         bayes::DominantEffect& effect,
-        const PriorConfig& prior) -> std::expected<void, Error> override;
+        const PriorConfig& prior) -> void override;
 };
 
 /**
@@ -166,7 +166,7 @@ class BayesCdpiPrior : public BayesCpiPrior
    private:
     auto set_dominant_effect_prior(
         bayes::DominantEffect& effect,
-        const PriorConfig& prior) -> std::expected<void, Error> override;
+        const PriorConfig& prior) -> void override;
 };
 
 /**
@@ -183,7 +183,7 @@ class BayesRRPrior : public PriorSetter
    private:
     auto set_additive_effect_prior(
         bayes::AdditiveEffect& effect,
-        const PriorConfig& prior) -> std::expected<void, Error> override;
+        const PriorConfig& prior) -> void override;
 };
 
 /**
@@ -199,7 +199,7 @@ class BayesRRdPrior : public BayesRRPrior
    private:
     auto set_dominant_effect_prior(
         bayes::DominantEffect& effect,
-        const PriorConfig& prior) -> std::expected<void, Error> override;
+        const PriorConfig& prior) -> void override;
 };
 
 /**
@@ -215,7 +215,7 @@ class BayesRPrior : public PriorSetter
    private:
     auto set_additive_effect_prior(
         bayes::AdditiveEffect& effect,
-        const PriorConfig& prior) -> std::expected<void, Error> override;
+        const PriorConfig& prior) -> void override;
 };
 
 /**
@@ -231,7 +231,7 @@ class BayesRdPrior : public BayesRPrior
    private:
     auto set_dominant_effect_prior(
         bayes::DominantEffect& effect,
-        const PriorConfig& prior) -> std::expected<void, Error> override;
+        const PriorConfig& prior) -> void override;
 };
 
 /**

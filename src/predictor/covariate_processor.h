@@ -1,12 +1,10 @@
 #pragma once
 
-#include <expected>
+#include <filesystem>
 #include <limits>
 #include <map>
 #include <string>
 #include <unordered_map>
-
-#include "gelex/error.h"
 
 namespace gelex::detail
 {
@@ -20,25 +18,16 @@ struct IndividualData
 class CovariateProcessor
 {
    public:
-    static auto create(const std::filesystem::path& param_file_path)
-        -> std::expected<CovariateProcessor, Error>;
+    explicit CovariateProcessor(const std::filesystem::path& param_file_path);
 
     double predict(const IndividualData& data) const;
 
    private:
-    explicit CovariateProcessor(
-        double intercept,
-        std::map<std::string, double> continuous_coeffs,
-        std::map<std::string, std::map<std::string, double>>
-            categorical_coeffs);
-
     static auto parse_param_file(const std::filesystem::path& file_path)
-        -> std::expected<
-            std::tuple<
-                double,
-                std::map<std::string, double>,
-                std::map<std::string, std::map<std::string, double>>>,
-            Error>;
+        -> std::tuple<
+            double,
+            std::map<std::string, double>,
+            std::map<std::string, std::map<std::string, double>>>;
 
     static void parse_flat_name(
         const std::string& flat_name,

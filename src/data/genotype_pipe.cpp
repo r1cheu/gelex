@@ -1,319 +1,77 @@
 #include "gelex/data/genotype_pipe.h"
 
-#include <cassert>
-#include <cstdint>
-#include <expected>
 #include <filesystem>
 #include <utility>
 
-#include <Eigen/Core>
-
-#include "binary_matrix_writer.h"
-#include "gelex/data/genotype_mmap.h"
-#include "gelex/error.h"
-#include "gelex/logger.h"
-#include "snp_stats_writer.h"
+#include "gelex/exception.h"
 
 namespace gelex
 {
 
-namespace bk = barkeep;
-using Eigen::Index;
-using Eigen::Ref;
-using Eigen::VectorXd;
-
-VariantStats StandardizingProcessor::process_variant(Ref<VectorXd> variant)
-{
-    VariantStats stats;
-    const auto n = static_cast<double>(variant.size());
-
-    stats.mean = variant.mean();
-    stats.stddev
-        = sqrt((variant.array() - stats.mean).square().sum() / (n - 1));
-
-    stats.is_monomorphic
-        = (stats.stddev - 0) < std::numeric_limits<double>::epsilon();
-
-    if (!stats.is_monomorphic)
-    {
-        variant = (variant.array() - stats.mean) / stats.stddev;
-    }
-
-    return stats;
-}
-
-VariantStats RawProcessor::process_variant(Ref<VectorXd> variant)
-{
-    VariantStats stats;
-    const auto n = static_cast<double>(variant.size());
-
-    stats.mean = variant.mean();
-    stats.stddev
-        = sqrt((variant.array() - stats.mean).square().sum() / (n - 1));
-
-    stats.is_monomorphic
-        = (stats.stddev - 0) < std::numeric_limits<double>::epsilon();
-
-    return stats;
-}
-
-VariantStats HardWenbergProcessor::process_variant(Ref<VectorXd> variant)
-{
-    VariantStats stats;
-
-    stats.mean = variant.mean();
-    stats.stddev = sqrt(stats.mean * (1 - 0.5 * stats.mean));
-
-    stats.is_monomorphic
-        = (stats.stddev - 0) < std::numeric_limits<double>::epsilon();
-
-    if (!stats.is_monomorphic)
-    {
-        variant = (variant.array() - stats.mean) / stats.stddev;
-    }
-
-    return stats;
-}
-
-VariantStats NOIAProcessor::process_variant(Ref<VectorXd> variant)
-{
-    VariantStats stats;
-    const double p_Aa = (variant.array() == 1).mean();
-    const double p_AA = (variant.array() == 2).mean();
-    const double p_aa = 1.0 - p_Aa - p_AA;
-
-    const double AA = -(-p_Aa - (2 * p_aa));
-    const double Aa = -(1 - p_Aa - (2 * p_aa));
-    const double aa = -(2 - p_Aa - (2 * p_aa));
-
-    auto op = [&](double x) -> double
-    {
-        if (x == 0.0)
-        {
-            return AA;
-        }
-        if (x == 1.0)
-        {
-            return Aa;
-        }
-        return aa;
-    };
-
-    variant.unaryExpr(op);
-
-    stats.mean = variant.mean();
-    stats.stddev = sqrt(
-        (variant.array() - stats.mean).square().sum()
-        / (static_cast<double>(variant.size()) - 1));
-    stats.is_monomorphic
-        = (stats.stddev - 0) < std::numeric_limits<double>::epsilon();
-
-    if (!stats.is_monomorphic)
-    {
-        variant = (variant.array() - stats.mean) / stats.stddev;
-    }
-    return stats;
-}
-
-VariantStats DominantStandardizingProcessor::process_variant(
-    Ref<VectorXd> variant)
-{
-    VariantStats stats;
-    const auto n = static_cast<double>(variant.size());
-
-    variant = (variant.array() == 2).select(0, variant.array());
-
-    stats.mean = variant.mean();
-    stats.stddev
-        = sqrt((variant.array() - stats.mean).square().sum() / (n - 1));
-
-    stats.is_monomorphic
-        = (stats.stddev - 0) < std::numeric_limits<double>::epsilon();
-
-    if (!stats.is_monomorphic)
-    {
-        variant = (variant.array() - stats.mean) / stats.stddev;
-    }
-
-    return stats;
-}
-
-VariantStats DominantRawProcessor::process_variant(Ref<VectorXd> variant)
-{
-    VariantStats stats;
-    const auto n = static_cast<double>(variant.size());
-
-    variant = (variant.array() == 2).select(0, variant.array());
-
-    stats.mean = variant.mean();
-    stats.stddev
-        = sqrt((variant.array() - stats.mean).square().sum() / (n - 1));
-
-    stats.is_monomorphic
-        = (stats.stddev - 0) < std::numeric_limits<double>::epsilon();
-
-    return stats;
-}
-
-VariantStats DominantOrthogonalHWEProcessor::process_variant(
-    Ref<VectorXd> variant)
-{
-    VariantStats stats;
-    const double p_freq = variant.mean() / 2;
-
-    stats.mean = 2 * p_freq * p_freq;
-    stats.stddev = 2 * p_freq * (1 - p_freq);
-
-    const double one_alt_encode = 2 * p_freq;
-    const double two_alt_encode = (4 * p_freq) - 2;
-    auto op = [&one_alt_encode, &two_alt_encode](double x) -> double
-    {
-        if (x == 1.0)
-        {
-            return one_alt_encode;
-        }
-        if (x == 2.0)
-        {
-            return two_alt_encode;
-        }
-        return x;
-    };
-    variant = variant.unaryExpr(op);
-
-    stats.is_monomorphic
-        = (stats.stddev - 0) < std::numeric_limits<double>::epsilon();
-
-    if (!stats.is_monomorphic)
-    {
-        variant = (variant.array() - stats.mean) / stats.stddev;
-    }
-
-    return stats;
-}
-
-VariantStats DominantNOIAHWEProcessor::process_variant(Ref<VectorXd> variant)
-{
-    VariantStats stats;
-    const double p_Aa = (variant.array() == 1).mean();
-    const double p_AA = (variant.array() == 2).mean();
-    const double p_aa = 1.0 - p_Aa - p_AA;
-
-    const double denom = p_AA + p_aa - ((p_AA - p_aa) * (p_AA - p_aa));
-
-    const double AA = -(2 * p_Aa * p_aa) / denom;
-    const double Aa = (4 * p_AA * p_aa) / denom;
-    const double aa = -(2 * p_AA * p_Aa) / denom;
-
-    auto op = [&](double x) -> double
-    {
-        if (x == 0.0)
-        {
-            return AA;
-        }
-        if (x == 1.0)
-        {
-            return Aa;
-        }
-        return aa;
-    };
-
-    variant.unaryExpr(op);
-
-    stats.mean = variant.mean();
-    stats.stddev = sqrt(
-        (variant.array() - stats.mean).square().sum()
-        / (static_cast<double>(variant.size()) - 1));
-    stats.is_monomorphic
-        = (stats.stddev - 0) < std::numeric_limits<double>::epsilon();
-
-    if (!stats.is_monomorphic)
-    {
-        variant = (variant.array() - stats.mean) / stats.stddev;
-    }
-    return stats;
-}
 GenotypePipe::GenotypePipe(
-    BedPipe&& bed_pipe,
-    detail::BinaryMatrixWriter&& matrix_writer,
-    detail::SnpStatsWriter&& stats_writer)
-    : bed_pipe_(std::move(bed_pipe)),
-      matrix_writer_(std::move(matrix_writer)),
-      stats_writer_(std::move(stats_writer))
-{
-    num_variants_ = bed_pipe_.num_variants();  // NOLINT
-    sample_size_ = bed_pipe_.num_samples();    // NOLINT
-
-    means_.reserve(num_variants_);
-    variances_.reserve(num_variants_);
-    monomorphic_indices_.reserve(num_variants_ / 100);
-}
-
-auto GenotypePipe::create(
     const std::filesystem::path& bed_path,
     std::shared_ptr<SampleManager> sample_manager,
-    const std::filesystem::path& output_prefix)
-    -> std::expected<GenotypePipe, Error>
+    const std::filesystem::path& output_prefix,
+    bool force_overwrite)
+    : bed_pipe_(bed_path, std::move(sample_manager))
 {
     auto logger = logging::get();
-    auto bed_pipe = BedPipe::create(bed_path, std::move(sample_manager));
-    if (!bed_pipe)
-    {
-        return std::unexpected(bed_pipe.error());
-    }
 
-    std::filesystem::path matrix_path = output_prefix;
+    auto matrix_path = output_prefix;
     matrix_path += ".bmat";
-    std::filesystem::path stats_path = output_prefix;
+    auto stats_path = output_prefix;
     stats_path += ".snpstats";
 
-    if (std::filesystem::exists(matrix_path)
-        || std::filesystem::exists(stats_path))
+    bool exists = std::filesystem::exists(matrix_path)
+                  || std::filesystem::exists(stats_path);
+
+    if (exists)
     {
+        if (!force_overwrite)
+        {
+            logger->error(
+                "Output files already exist: [{}] or [{}]. Use "
+                "force_overwrite=true to bypass.",
+                matrix_path.string(),
+                stats_path.string());
+            throw OutputFileExistsException(matrix_path);
+        }
+
         logger->warn(
-            "[{}] or [{}] file exists. "
-            "Make sure you are using the same dataset.",
-            matrix_path.string(),
-            stats_path.string());
-
-        return std::unexpected(
-            Error{
-                .code = ErrorCode::OutputFileExists,
-                .message = "Output file already exists"});
+            "Overwriting existing output files: [{}]", output_prefix.string());
     }
 
-    auto matrix_writer = detail::BinaryMatrixWriter::create(matrix_path);
-    if (!matrix_writer)
+    if (auto parent = matrix_path.parent_path(); !parent.empty())
     {
-        return std::unexpected(matrix_writer.error());
-    }
-    auto stats_writer = detail::SnpStatsWriter::create(stats_path);
-    if (!stats_writer)
-    {
-        return std::unexpected(stats_writer.error());
+        std::filesystem::create_directories(parent);
     }
 
-    return GenotypePipe{
-        std::move(*bed_pipe),
-        std::move(*matrix_writer),
-        std::move(*stats_writer)};
+    matrix_writer_ = std::make_unique<detail::BinaryMatrixWriter>(matrix_path);
+    stats_writer_ = std::make_unique<detail::SnpStatsWriter>(stats_path);
+
+    num_variants_ = bed_pipe_.num_snps();
+    sample_size_ = bed_pipe_.num_samples();
 }
 
-auto GenotypePipe::finalize() -> std::expected<GenotypeMap, Error>
+GenotypePipe::~GenotypePipe()
 {
-    // Write final statistics
-    if (auto result = stats_writer_.write(
-            sample_size_,
-            num_variants_,
-            static_cast<int64_t>(monomorphic_indices_.size()),
-            monomorphic_indices_,
-            means_,
-            variances_);
-        !result)
+    try
     {
-        return std::unexpected(result.error());
+        wait_for_write();
     }
+    catch (...)
+    {
+    }
+}
 
-    return GenotypeMap::create(matrix_writer_.path());
+GenotypeMap GenotypePipe::finalize()
+{
+    wait_for_write();
+
+    stats_writer_->write(
+        sample_size_, monomorphic_indices_, means_, variances_);
+
+    return GenotypeMap(matrix_writer_->path());
 }
 
 }  // namespace gelex

@@ -1,111 +1,111 @@
 #pragma once
 
 #include <charconv>
-#include <expected>
+#include <concepts>
+#include <filesystem>
 #include <format>
+#include <fstream>
 #include <ranges>
+#include <string>
 #include <string_view>
 #include <vector>
 
-#include "gelex/error.h"
+#include "gelex/exception.h"
 
-namespace gelex
-{
-namespace detail
+namespace gelex::detail
 {
 
-template <std::ranges::range R>
-auto try_parse_double(const R& token_range) noexcept
-    -> std::expected<double, Error>
+template <typename T>
+concept FileStream
+    = std::derived_from<T, std::ios_base>
+      && requires(std::filesystem::path p, std::ios_base::openmode m) {
+             { T() };
+         };
+
+template <FileStream StreamType>
+[[nodiscard]] StreamType open_file(
+    const std::filesystem::path& path,
+    std::ios_base::openmode mode,
+    std::span<char> custom_buffer = {})
 {
-    const std::string_view token{token_range};
+    StreamType stream;
+
+    if (!custom_buffer.empty())
+    {
+        stream.rdbuf()->pubsetbuf(
+            custom_buffer.data(),
+            static_cast<std::streamsize>(custom_buffer.size()));
+    }
+
+    stream.open(path, mode);
+
+    if (!stream.is_open())
+    {
+        if ((mode & std::ios_base::in) && !std::filesystem::exists(path))
+        {
+            throw FileNotFoundException(path);
+        }
+
+        throw FileIOException(
+            enrich_with_file_info("Failed to open file", path));
+    }
+
+    if ((mode & std::ios_base::in) && std::filesystem::is_regular_file(path)
+        && std::filesystem::file_size(path) == 0)
+    {
+        throw InvalidFileException(
+            enrich_with_file_info("File is empty", path));
+    }
+
+    return stream;
+}
+
+template <std::ranges::contiguous_range R>
+double try_parse_double(R&& token_range)
+{
+    const char* begin = std::to_address(std::ranges::begin(token_range));
+    const char* end = std::to_address(std::ranges::end(token_range));
+
     double value{};
-    const auto result
-        = std::from_chars(token.data(), token.data() + token.size(), value);
+    const auto result = std::from_chars(begin, end, value);
 
-    if (result.ec == std::errc() && result.ptr == token.data() + token.size())
+    if (result.ec == std::errc() && result.ptr == end)
     {
         return value;
     }
-    return std::unexpected(
-        Error{
-            .code = ErrorCode::NotNumber,
-            .message = std::format("failed to parse '{}' as a number", token)});
+
+    throw NotNumberException(
+        std::format(
+            "failed to parse '{}' as a number",
+            std::string_view(begin, end - begin)));
 }
 
-}  // namespace detail
-}  // namespace gelex
+size_t count_total_line(const std::filesystem::path& path);
 
-namespace gelex
-{
-namespace detail
-{
+size_t count_total_lines(const std::filesystem::path& path);
 
-/**
- * @brief Parse the nth double from a delimited string.
- *
- * @param line The input string to parse
- * @param column_index column index (0-based)
- * @param delimiters
- */
-auto parse_nth_double(
+double parse_nth_double(
     std::string_view line,
     size_t column_index,
-    std::string_view delimiters = "\t") noexcept
-    -> std::expected<double, Error>;
+    char delimiter = '\t');
 
-auto parse_id(
+std::string
+parse_id(std::string_view line, bool iid_only, char delimiter = '\t');
+
+std::vector<std::string_view> parse_header(
     std::string_view line,
-    bool iid_only,
-    std::string_view delimiters = "\t") noexcept
-    -> std::expected<std::string, Error>;
+    char delimiter = '\t');
 
-auto parse_header(
-    std::string_view line,
-    std::string_view delimiters = "\t") noexcept
-    -> std::expected<std::vector<std::string_view>, Error>;
+size_t count_num_columns(std::string_view line, char delimiter = '\t');
 
-size_t count_num_columns(
-    std::string_view line,
-    std::string_view delimiters = "\t") noexcept;
-
-/**
- * @brief Parses a string into tokens based on specified delimiters. Return
- * vector<string_view> for speed, should be used carefully.
- *
- * @param line The input string to parse.
- * @param column_offset The starting position in the string to begin
- * parsing.
- * @param delimiters A string containing delimiter characters to split the
- * input.
- * @return std::vector<std::string_view> A vector of string views
- * representing the parsed tokens.
- */
-auto parse_string(
+std::vector<std::string_view> parse_string(
     std::string_view line,
     size_t column_offset = 0,
-    std::string_view delimiters = "\t") noexcept
-    -> std::vector<std::string_view>;
+    char delimiter = '\t');
 
-/**
- * @brief Parses all double values from a string, starting at a given column
- * offset and using specified delimiters.
- *
- * This function splits the input string into tokens using the provided
- * delimiters, starting from the specified column offset, and attempts to parse
- * each token as a double. If all tokens are successfully parsed, returns a
- * vector of doubles. If any token cannot be parsed as a double, returns a
- * ParseError.
- *
- * @param line The input string to parse.
- * @param column_offset The starting position in the string to begin parsing.
- * @param delimiters A string containing delimiter characters to split the
- * input.
- */
-auto parse_all_doubles(
+std::vector<double> parse_all_doubles(
     std::string_view line,
     size_t column_offset = 0,
-    std::string_view delimiters = "\t") noexcept
-    -> std::expected<std::vector<double>, Error>;
-}  // namespace detail
-}  // namespace gelex
+    char delimiter = '\t');
+
+}  // namespace gelex::detail

@@ -1,14 +1,11 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
-#include <expected>
 #include <filesystem>
 #include <fstream>
+#include <span>
 #include <vector>
-
-#include <Eigen/Core>
-
-#include "gelex/error.h"
 
 namespace gelex::detail
 {
@@ -16,8 +13,10 @@ namespace gelex::detail
 class SnpStatsWriter
 {
    public:
-    static auto create(const std::filesystem::path& file_path)
-        -> std::expected<SnpStatsWriter, Error>;
+    static constexpr auto kDefaultBufferSize
+        = static_cast<const size_t>(64 * 1024);
+
+    explicit SnpStatsWriter(const std::filesystem::path& file_path);
 
     SnpStatsWriter(const SnpStatsWriter&) = delete;
     SnpStatsWriter(SnpStatsWriter&&) noexcept = default;
@@ -25,22 +24,21 @@ class SnpStatsWriter
     SnpStatsWriter& operator=(SnpStatsWriter&&) noexcept = default;
     ~SnpStatsWriter() = default;
 
-    auto write(
+    void write(
         int64_t num_samples,
-        int64_t num_variants,
-        int64_t num_monomorphic,
-        const std::vector<int64_t>& monomorphic_indices,
-        const std::vector<double>& means,
-        const std::vector<double>& stddevs) -> std::expected<void, Error>;
+        std::span<const int64_t> monomorphic_indices,
+        std::span<const double> means,
+        std::span<const double> stddevs);
 
-    auto path() const noexcept -> const std::filesystem::path& { return path_; }
+    [[nodiscard]] auto path() const noexcept -> const std::filesystem::path&
+    {
+        return path_;
+    }
 
    private:
-    explicit SnpStatsWriter(
-        std::ofstream&& file,
-        std::filesystem::path&& file_path);
-    std::ofstream file_;
     std::filesystem::path path_;
+    std::vector<char> io_buffer_;
+    std::ofstream file_;
 };
 
 }  // namespace gelex::detail

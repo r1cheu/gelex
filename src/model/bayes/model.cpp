@@ -19,34 +19,28 @@ using Eigen::Index;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-BayesModel::BayesModel(VectorXd&& phenotype) : phenotype_(std::move(phenotype))
+BayesModel::BayesModel(DataPipe& data_pipe)
+    : phenotype_(std::move(data_pipe).take_phenotype())
 {
     num_individuals_ = phenotype_.rows();         // NOLINT
     phenotype_var_ = detail::var(phenotype_)(0);  // NOLINT
-}
-
-auto BayesModel::create(DataPipe& data_pipe) -> std::expected<BayesModel, Error>
-{
-    BayesModel model(std::move(data_pipe).take_phenotype());
 
     auto fixed_effect_names = data_pipe.fixed_effect_names();
-    model.add_fixed_effect(
+    add_fixed_effect(
         std::move(fixed_effect_names),
         std::move(data_pipe).take_fixed_effects());
 
     std::visit(
-        [&](auto&& arg)
-        { model.add_additive(std::forward<decltype(arg)>(arg)); },
+        [&](auto&& arg) { add_additive(std::forward<decltype(arg)>(arg)); },
         std::move(data_pipe).take_additive_matrix());
 
     if (data_pipe.has_dominance_matrix())
     {
         std::visit(
             [&](auto&& arg)
-            { model.add_dominance(std::forward<decltype(arg)>(arg)); },
+            { add_dominance(std::forward<decltype(arg)>(arg)); },
             std::move(data_pipe).take_dominance_matrix());
     }
-    return model;
 }
 
 void BayesModel::add_fixed_effect(

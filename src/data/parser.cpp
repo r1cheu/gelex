@@ -1,54 +1,76 @@
 #include "parser.h"
 
-#include <expected>
-#include <ranges>
-#include <string_view>
-#include <vector>
+#include <algorithm>
+#include <cstddef>
 
-#include "gelex/error.h"
-
-namespace gelex
-{
-namespace detail
+namespace gelex::detail
 {
 
-auto parse_nth_double(
-    std::string_view line,
-    size_t column_index,
-    std::string_view delimiters) noexcept -> std::expected<double, Error>
+size_t count_total_lines(const std::filesystem::path& path)
 {
-    auto token_view = line | std::views::split(delimiters)
-                      | std::views::filter([](auto&& r) { return !r.empty(); })
-                      | std::views::drop(column_index) | std::views::take(1);
+    auto file = open_file<std::ifstream>(
+        path, std::ios_base::in | std::ios_base::binary);
 
-    if (auto it = token_view.begin(); it != token_view.end())
+    constexpr auto buffer_size = static_cast<const size_t>(64 * 1024);
+    std::vector<char> buffer(buffer_size);
+
+    size_t line_count = 0;
+    while (file.read(buffer.data(), buffer.size()))
+    {
+        line_count += std::ranges::count(buffer, '\n');
+    }
+
+    if (file.gcount() > 0)
+    {
+        std::span<char> last_chunk(buffer.data(), file.gcount());
+        line_count += std::ranges::count(last_chunk, '\n');
+
+        if (last_chunk.back() != '\n')
+        {
+            line_count++;
+        }
+    }
+
+    return line_count;
+}
+
+auto split_line(std::string_view line, char delimiter)
+{
+    return line | std::views::split(delimiter)
+           | std::views::filter([](auto&& r)
+                                { return !std::ranges::empty(r); });
+}
+
+double
+parse_nth_double(std::string_view line, size_t column_index, char delimiter)
+{
+    auto tokens = split_line(line, delimiter) | std::views::drop(column_index)
+                  | std::views::take(1);
+
+    if (auto it = tokens.begin(); it != tokens.end())
     {
         return try_parse_double(*it);
     }
-    return std::unexpected(
-        Error{
-            .code = ErrorCode::InvalidRange,
-            .message
-            = std::format("column index {} is out of range", column_index)});
+
+    throw InvalidRangeException(
+        std::format("column index {} is out of range", column_index));
 }
 
-auto parse_id(
-    std::string_view line,
-    bool iid_only,
-    std::string_view delimiters) noexcept -> std::expected<std::string, Error>
+std::string parse_id(std::string_view line, bool iid_only, char delimiter)
 {
-    auto ids = line | std::views::split(delimiters) | std::views::take(2)
-               | std::views::filter([](auto&& sr) { return !sr.empty(); })
-               | std::views::transform([](auto&& subrange)
-                                       { return std::string_view(subrange); })
-               | std::ranges::to<std::vector<std::string_view>>();
+    auto tokens = split_line(line, delimiter) | std::views::take(2);
+
+    std::vector<std::string_view> ids;
+    ids.reserve(2);
+
+    for (auto&& sub : tokens)
+    {
+        ids.emplace_back(sub.begin(), sub.end());
+    }
 
     if (ids.size() < 2)
     {
-        return std::unexpected(
-            Error{
-                .code = ErrorCode::InvalidFile,
-                .message = "failed to parse FID and IID"});
+        throw InvalidFileException("failed to parse FID and IID");
     }
 
     if (iid_only)
@@ -59,94 +81,76 @@ auto parse_id(
     return std::format("{}_{}", ids[0], ids[1]);
 }
 
-size_t count_num_columns(
-    std::string_view line,
-    std::string_view delimiters) noexcept
+size_t count_num_columns(std::string_view line, char delimiter)
 {
-    auto tokens = line | std::views::split(delimiters)
-                  | std::views::filter([](auto&& subrange)
-                                       { return !subrange.empty(); });
-
+    auto tokens = split_line(line, delimiter);
     return static_cast<size_t>(std::ranges::distance(tokens));
 }
 
-auto parse_header(std::string_view line, std::string_view delimiters) noexcept
-    -> std::expected<std::vector<std::string_view>, Error>
+std::vector<std::string_view>
+parse_string(std::string_view line, size_t column_offset, char delimiter)
 {
-    auto header = detail::parse_string(line, 0, delimiters);
+    auto tokens_view
+        = split_line(line, delimiter) | std::views::drop(column_offset);
+
+    std::vector<std::string_view> result;
+    for (auto&& rng : tokens_view)
+    {
+        result.emplace_back(rng.begin(), rng.end());
+    }
+    return result;
+}
+
+std::vector<std::string_view> parse_header(
+    std::string_view line,
+    char delimiter)
+{
+    auto header = parse_string(line, 0, delimiter);
+
     if (header.empty())
     {
-        return std::unexpected(
-            Error{.code = ErrorCode::WrongHeader, .message = "empty header"});
+        throw WrongHeaderException("empty header");
     }
 
     if (header.size() < 2)
     {
-        return std::unexpected(
-            Error{
-                .code = ErrorCode::WrongHeader,
-                .message = "header contains less than 2 columns."});
+        throw WrongHeaderException("header contains less than 2 columns.");
     }
 
     if (header[0] != "FID" || header[1] != "IID")
     {
-        return std::unexpected(
-            Error{
-                .code = ErrorCode::WrongHeader,
-                .message = std::format(
-                    "first two columns are {} and {}, but "
-                    "expected 'FID' and 'IID'.",
-                    header[0],
-                    header[1])});
+        throw WrongHeaderException(
+            std::format(
+                "first two columns are '{}' and '{}', but expected 'FID' and "
+                "'IID'.",
+                header[0],
+                header[1]));
     }
     return header;
 }
 
-auto parse_string(
-    std::string_view line,
-    size_t column_offset,
-    std::string_view delimiters) noexcept -> std::vector<std::string_view>
+std::vector<double>
+parse_all_doubles(std::string_view line, size_t column_offset, char delimiter)
 {
-    auto tokens
-        = line | std::views::split(delimiters)
-          | std::views::filter([](auto&& sr) { return !sr.empty(); })
-          | std::views::drop(column_offset)
-          | std::views::transform([](auto&& subrange)
-                                  { return std::string_view(subrange); });
-
-    return std::ranges::to<std::vector<std::string_view>>(tokens);
-}
-
-auto parse_all_doubles(
-    std::string_view line,
-    size_t column_offset,
-    std::string_view delimiters) noexcept
-    -> std::expected<std::vector<double>, Error>
-{
-    auto token_view = line | std::views::split(delimiters)
-                      | std::views::filter([](auto&& r) { return !r.empty(); })
-                      | std::views::drop(column_offset);
+    auto tokens_view
+        = split_line(line, delimiter) | std::views::drop(column_offset);
 
     std::vector<double> result;
-    int column_index{static_cast<int>(column_offset)};
-    for (auto&& token_range : token_view)
+    int column_index = static_cast<int>(column_offset);
+    for (auto&& token_range : tokens_view)
     {
-        auto parsed_value = try_parse_double(token_range);
-        if (parsed_value)
+        try
         {
-            result.push_back(*parsed_value);
+            result.push_back(try_parse_double(token_range));
         }
-        else
+        catch (const NotNumberException& ex)
         {
-            auto& error = parsed_value.error();
-            error.message
-                = std::format("{} at column {}", error.message, column_index);
-            return std::unexpected(parsed_value.error());
+            throw InvalidDataException(
+                std::format("{} at column {}", ex.what(), column_index));
         }
         column_index++;
     }
     return result;
 }
 
-}  // namespace detail
-}  // namespace gelex
+}  // namespace gelex::detail

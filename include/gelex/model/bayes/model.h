@@ -7,7 +7,6 @@
 #include <Eigen/Core>
 
 #include "gelex/data/data_pipe.h"
-#include "gelex/error.h"
 #include "types/bayes_effects.h"
 
 namespace gelex
@@ -15,20 +14,11 @@ namespace gelex
 
 class GenotypeMap;
 class GenotypeMatrix;
-/**
- * @class BayesModel
- * @brief Bayesian model for genetic analysis with fixed, random, and genetic
- * effects.
- *
- * Supports adding and managing effects (fixed, random, genetic) and provides
- * accessors for model components (mu, residuals, etc.). Initialized with a
- * formula and phenotype.
- */
 
 class BayesModel
 {
    public:
-    static auto create(DataPipe& data_pipe) -> std::expected<BayesModel, Error>;
+    explicit BayesModel(DataPipe& data_pipe);
 
     const bayes::FixedEffect* fixed() const
     {
@@ -70,7 +60,6 @@ class BayesModel
     Eigen::Index num_individuals() const { return num_individuals_; }
 
    private:
-    explicit BayesModel(Eigen::VectorXd&& phenotype);
     void add_additive(GenotypeMap&& matrix);
     void add_additive(GenotypeMatrix&& matrix);
     void add_dominance(GenotypeMap&& matrix);

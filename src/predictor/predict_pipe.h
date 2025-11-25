@@ -1,6 +1,5 @@
 #pragma once
 
-#include <expected>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -11,7 +10,7 @@
 #include "../src/data/loader.h"
 #include "Eigen/Core"
 #include "covariate_loader.h"
-#include "gelex/error.h"
+#include "snp_effect_loader.h"
 
 namespace gelex
 {
@@ -26,31 +25,34 @@ class PredictDataPipe
    public:
     struct Config
     {
+        std::filesystem::path bed_path;
         std::filesystem::path qcovar_path;
         std::filesystem::path covar_path;
+
+        std::filesystem::path snp_effect_path;
         bool iid_only = false;
         std::string output_prefix;
     };
 
-    static auto create(
-        const Config& config,
-        std::shared_ptr<SampleManager> sample_manager)
-        -> std::expected<PredictDataPipe, Error>;
+    explicit PredictDataPipe(const Config& config);
 
-    const Eigen::MatrixXd& qcovariates() const { return qcovariates_; }
-    Eigen::MatrixXd&& take_qcovariates() && { return std::move(qcovariates_); }
+    const Eigen::MatrixXd& qcovariates() const;
+    Eigen::MatrixXd take_qcovariates() &&;
+    std::map<std::string, std::vector<std::string>> take_covariates() &&;
 
     const std::vector<std::string>& qcovariate_names() const;
     const std::vector<std::string>& covariate_names() const;
 
-    size_t num_qcovariates() const { return qcovariate_names_.size(); }
-    size_t num_covariates() const { return covariate_names_.size(); }
+    size_t num_qcovariates() const;
+    size_t num_covariates() const;
 
    private:
-    PredictDataPipe() = default;
+    auto load_qcovariates(const Config& config) -> void;
+    auto load_covariates(const Config& config) -> void;
+    auto load_genotype(const Config& config) -> void;
+    auto load_snp_effect(const Config& config) -> void;
 
-    auto load_qcovariates(const Config& config) -> std::expected<void, Error>;
-    auto load_covariates(const Config& config) -> std::expected<void, Error>;
+    auto process_raw_genotype(const Config& config) -> void;
 
     void intersect();
     void format_covariates();
@@ -59,6 +61,10 @@ class PredictDataPipe
     std::unique_ptr<detail::CovarPredictLoader> covar_loader_;
 
     Eigen::MatrixXd qcovariates_;
+    std::map<std::string, std::vector<std::string>> covariates_;
+    SnpEffects snp_effects_;
+    std::vector<Eigen::MatrixXd> genotypes_;
+    bool has_dom_ = false;
 
     std::shared_ptr<SampleManager> sample_manager_;
 

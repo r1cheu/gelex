@@ -7,61 +7,39 @@
 #include <sstream>
 #include <string>
 
-#include "../src/data/loader.h"
+#include "../src/data/parser.h"
 
 namespace gelex::detail
 {
 
-auto CovariateProcessor::create(const std::filesystem::path& param_file_path)
-    -> std::expected<CovariateProcessor, Error>
-{
-    auto parse_result = parse_param_file(param_file_path);
-    if (!parse_result)
-    {
-        return std::unexpected(parse_result.error());
-    }
-
-    auto [intercept, continuous_coeffs, categorical_coeffs]
-        = std::move(*parse_result);
-    return CovariateProcessor(
-        intercept, std::move(continuous_coeffs), std::move(categorical_coeffs));
-}
-
 CovariateProcessor::CovariateProcessor(
-    double intercept,
-    std::map<std::string, double> continuous_coeffs,
-    std::map<std::string, std::map<std::string, double>> categorical_coeffs)
-    : intercept_(intercept),
-      continuous_coeffs_(std::move(continuous_coeffs)),
-      categorical_coeffs_(std::move(categorical_coeffs))
+    const std::filesystem::path& param_file_path)
 {
+    auto [intercept, continuous_coeffs, categorical_coeffs]
+        = parse_param_file(param_file_path);
+
+    intercept_ = intercept;
+    continuous_coeffs_ = std::move(continuous_coeffs);
+    categorical_coeffs_ = std::move(categorical_coeffs);
 }
 
 auto CovariateProcessor::parse_param_file(
     const std::filesystem::path& file_path)
-    -> std::expected<
-        std::tuple<
-            double,
-            std::map<std::string, double>,
-            std::map<std::string, std::map<std::string, double>>>,
-        Error>
+    -> std::tuple<
+        double,
+        std::map<std::string, double>,
+        std::map<std::string, std::map<std::string, double>>>
 {
     auto file = detail::open_file<std::ifstream>(file_path, std::ios_base::in);
-    if (!file)
-    {
-        return std::unexpected(file.error());
-    }
 
     std::string line;
     // Skip header line
-    if (!std::getline(*file, line))
+    if (!std::getline(file, line))
     {
-        return std::unexpected(
-            Error{
-                ErrorCode::InvalidFile,
-                std::format(
-                    "Parameter file '{}' is empty or has no header",
-                    file_path.string())});
+        throw InvalidFileException(
+            std::format(
+                "Parameter file '{}' is empty or has no header",
+                file_path.string()));
     }
 
     double intercept = std::numeric_limits<double>::quiet_NaN();
@@ -69,7 +47,7 @@ auto CovariateProcessor::parse_param_file(
     std::map<std::string, std::map<std::string, double>> categorical_coeffs;
 
     // Process each line
-    while (std::getline(*file, line))
+    while (std::getline(file, line))
     {
         if (line.empty())
         {
@@ -98,12 +76,10 @@ auto CovariateProcessor::parse_param_file(
     // Validate that we found an intercept
     if (std::isnan(intercept))
     {
-        return std::unexpected(
-            Error{
-                ErrorCode::InvalidData,
-                std::format(
-                    "No intercept term found in parameter file '{}'",
-                    file_path.string())});
+        throw InvalidDataException(
+            std::format(
+                "No intercept term found in parameter file '{}'",
+                file_path.string()));
     }
 
     return std::make_tuple(

@@ -1,94 +1,105 @@
 #pragma once
 
-#include <expected>
 #include <filesystem>
+#include <fstream>
+#include <vector>
 
 #include <gelex/mio.h>
-#include <Eigen/Core>
-#include <unordered_set>
 
-#include "gelex/error.h"
+#include <Eigen/Core>
+#include "gelex/exception.h"
 
 namespace gelex
 {
 
 #ifdef USE_AVX512
-static constexpr size_t ALIGNMENT = 64;
+static constexpr int MAP_OPTIONS = Eigen::Aligned64;
+static constexpr size_t ALIGNMENT_BYTES = 64;
 #else
-static constexpr size_t ALIGNMENT = 32;
+static constexpr int MAP_OPTIONS = Eigen::Aligned32;
+static constexpr size_t ALIGNMENT_BYTES = 32;
 #endif
 
+namespace detail
+{
+template <typename T>
+T read_scalar(std::ifstream& ifs, std::string_view context)
+{
+    T value;
+    ifs.read(reinterpret_cast<char*>(&value), sizeof(T));
+    if (!ifs)
+    {
+        throw FileIOException(
+            std::format("Failed to read scalar: {}", context));
+    }
+    return value;
+}
+
+template <typename T>
+void read_binary(
+    std::ifstream& ifs,
+    T* dest,
+    size_t count,
+    std::string_view context)
+{
+    if (count == 0)
+    {
+        return;
+    }
+    ifs.read(reinterpret_cast<char*>(dest), sizeof(T) * count);
+    if (!ifs)
+    {
+        throw FileIOException(std::format("Failed to read {} data.", context));
+    }
+}
+}  // namespace detail
 class GenotypeMap
 {
    public:
-    static auto create(const std::filesystem::path& bin_file)
-        -> std::expected<GenotypeMap, Error>;
+    using MatrixType = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>;
 
-    const Eigen::Map<
-        const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>,
-#ifdef USE_AVX512
-        Eigen::Aligned64
-#else
-        Eigen::Aligned32
-#endif
-        >&
-    matrix() const
+    using MapType = Eigen::Map<const Eigen::MatrixXd, MAP_OPTIONS>;
+
+    explicit GenotypeMap(const std::filesystem::path& bin_file);
+
+    GenotypeMap(const GenotypeMap&) = delete;
+    GenotypeMap& operator=(const GenotypeMap&) = delete;
+    GenotypeMap(GenotypeMap&&) noexcept = default;
+    GenotypeMap& operator=(GenotypeMap&&) noexcept = default;
+    ~GenotypeMap() = default;
+
+    [[nodiscard]] const MapType& matrix() const noexcept { return mat_; }
+
+    [[nodiscard]] bool is_monomorphic(Eigen::Index snp_index) const noexcept;
+
+    [[nodiscard]] const Eigen::VectorXd& mean() const noexcept { return mean_; }
+    [[nodiscard]] const Eigen::VectorXd& stddev() const noexcept
     {
-        return mat_;
+        return stddev_;
     }
 
-    bool is_monomorphic(Eigen::Index snp_index) const
+    [[nodiscard]] int64_t num_mono() const noexcept
     {
-        return mono_set_.contains(snp_index);
+        return static_cast<int64_t>(mono_indices_.size());
     }
-    const Eigen::VectorXd& mean() const { return mean_; }
-    const Eigen::VectorXd& stddev() const { return stddev_; }
-    int64_t num_mono() const { return static_cast<int64_t>(mono_set_.size()); }
-    int64_t rows() const { return rows_; }
-    int64_t cols() const { return cols_; }
+    [[nodiscard]] int64_t rows() const noexcept { return rows_; }
+    [[nodiscard]] int64_t cols() const noexcept { return cols_; }
 
    private:
-    explicit GenotypeMap(
-        mio::mmap_source&& mmap,
-        Eigen::Map<
-            const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>,
-#ifdef USE_AVX512
-            Eigen::Aligned64> mat,
-#else
-            Eigen::Aligned32>&& mat,
-#endif
-        std::unordered_set<int64_t>&& mono_set,
-        Eigen::VectorXd&& mean,
-        Eigen::VectorXd&& stddev,
-        int64_t rows,
-        int64_t cols)
-        : mmap_(std::move(mmap)),
-          mat_(std::move(mat)),
-          mono_set_(std::move(mono_set)),
-          mean_(std::move(mean)),
-          stddev_(std::move(stddev)),
-          rows_(rows),
-          cols_(cols)
-    {
-    }
-
     mio::mmap_source mmap_;
-#ifdef USE_AVX512
-    Eigen::Map<
-        const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>,
-        Eigen::Aligned64>
-        mat_;
-#else
-    Eigen::Map<
-        const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>,
-        Eigen::Aligned32>
-        mat_;
-#endif
-    std::unordered_set<int64_t> mono_set_;
+
+    MapType mat_;
+
+    // 优化后的数据结构
+    std::vector<int64_t> mono_indices_;
     Eigen::VectorXd mean_;
     Eigen::VectorXd stddev_;
-    int64_t rows_;
-    int64_t cols_;
+
+    int64_t rows_{0};
+    int64_t cols_{0};
+
+    void load_metadata(const std::filesystem::path& meta_path);
+    static void validate_alignment(const void* ptr);
 };
 
 }  // namespace gelex

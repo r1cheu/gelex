@@ -13,10 +13,7 @@ namespace gelex
 class GRM
 {
    public:
-    explicit GRM(
-        std::string_view bed_file,
-        Eigen::Index chunk_size = 10000,
-        const std::unordered_map<std::string, Eigen::Index>& target_order = {});
+    explicit GRM(std::string_view bed_file, Eigen::Index chunk_size = 10000);
     GRM(const GRM&) = delete;
     GRM(GRM&&) noexcept = default;
     GRM& operator=(const GRM&) = delete;
@@ -44,8 +41,7 @@ class CrossGRM
         std::string_view train_bed,
         Eigen::VectorXd p_major,
         double scale_factor,
-        Eigen::Index chunk_size = 10000,
-        const std::unordered_map<std::string, Eigen::Index>& target_order = {});
+        Eigen::Index chunk_size = 10000);
 
     CrossGRM(const CrossGRM&) = delete;
     CrossGRM(CrossGRM&&) noexcept = default;

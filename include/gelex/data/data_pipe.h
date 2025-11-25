@@ -1,6 +1,5 @@
 #pragma once
 
-#include <expected>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -17,7 +16,6 @@
 #include "gelex/data/genotype_mmap.h"
 #include "gelex/data/genotype_pipe.h"
 #include "gelex/data/sample_manager.h"
-#include "gelex/error.h"
 
 namespace gelex
 {
@@ -38,7 +36,7 @@ class DataPipe
         std::string output_prefix;
     };
 
-    static auto create(const Config& config) -> std::expected<DataPipe, Error>;
+    explicit DataPipe(const Config& config);
 
     Eigen::VectorXd take_phenotype() && { return std::move(phenotype_); }
     Eigen::MatrixXd take_fixed_effects() &&
@@ -67,17 +65,17 @@ class DataPipe
    private:
     DataPipe() = default;
 
-    auto load_phenotype(const Config& config) -> std::expected<void, Error>;
-    auto load_qcovariates(const Config& config) -> std::expected<void, Error>;
-    auto load_covariates(const Config& config) -> std::expected<void, Error>;
-    auto load_additive(const Config& config) -> std::expected<void, Error>;
-    auto load_dominance(const Config& config) -> std::expected<void, Error>;
+    void load_phenotype(const Config& config);
+    void load_qcovariates(const Config& config);
+    void load_covariates(const Config& config);
+    void load_additive(const Config& config);
+    void load_dominance(const Config& config);
 
     template <typename Processor, typename TargetPtr>
-    auto load_genotype_impl(
+    void load_genotype_impl(
         const Config& config,
         const std::string& suffix,
-        TargetPtr& target) -> std::expected<void, Error>
+        TargetPtr& target)
     {
         auto assign_to_target = [&](auto&& result_value)
         {
@@ -89,34 +87,18 @@ class DataPipe
         if (config.use_mmap)
         {
             std::string file_path = config.output_prefix + suffix;
-            auto pipe_res = gelex::GenotypePipe::create(
+            auto pipe = gelex::GenotypePipe(
                 config.bed_path, sample_manager_, file_path);
-
-            if (pipe_res)
-            {
-                return pipe_res->template process<Processor>(config.chunk_size)
-                    .transform(assign_to_target);
-            }
-
-            if (pipe_res.error().code == ErrorCode::OutputFileExists)
-            {
-                return gelex::GenotypeMap::create(file_path + ".bmat")
-                    .transform(assign_to_target);
-            }
-
-            return std::unexpected(pipe_res.error());
+            auto result = pipe.template process<Processor>(config.chunk_size);
+            assign_to_target(std::move(result));
         }
-        auto loader_res
-            = gelex::GenotypeLoader::create(config.bed_path, sample_manager_);
-
-        return std::move(loader_res)
-            .and_then(
-                [&](auto&& loader)
-                {
-                    return loader.template process<Processor>(
-                        config.chunk_size);
-                })
-            .transform(assign_to_target);
+        else
+        {
+            auto loader
+                = gelex::GenotypeLoader(config.bed_path, sample_manager_);
+            auto result = loader.template process<Processor>(config.chunk_size);
+            assign_to_target(std::move(result));
+        }
     }
 
     void intersect();

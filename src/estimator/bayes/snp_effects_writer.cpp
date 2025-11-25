@@ -2,10 +2,11 @@
 
 #include <format>
 #include <fstream>
-#include <memory>
 
 #include <Eigen/Core>
-#include "data/loader.h"
+
+#include "../src/data/loader.h"
+#include "../src/data/parser.h"
 
 namespace gelex
 {
@@ -16,14 +17,8 @@ using Eigen::VectorXd;
 SnpEffectsWriter::SnpEffectsWriter(
     const MCMCResult& result,
     const std::filesystem::path& bim_file_path)
-    : result_(&result)
+    : result_(&result), bim_loader_(bim_file_path)
 {
-    auto bim_loader_result = detail::BimLoader::create(bim_file_path);
-    if (bim_loader_result)
-    {
-        bim_loader_ = std::make_unique<detail::BimLoader>(
-            std::move(*bim_loader_result));
-    }
 }
 
 void SnpEffectsWriter::write(const std::filesystem::path& path) const
@@ -33,7 +28,7 @@ void SnpEffectsWriter::write(const std::filesystem::path& path) const
         return;
     }
 
-    auto stream = *detail::open_file<std::ofstream>(path, std::ios_base::out);
+    auto stream = detail::open_file<std::ofstream>(path, std::ios_base::out);
 
     write_header(stream);
 
@@ -113,16 +108,16 @@ void SnpEffectsWriter::write_snp_basic_info(
     Index snp_index) const
 {
     // SNP name and basic information
-    if (bim_loader_ && snp_index < static_cast<Index>(bim_loader_->size()))
+    if (snp_index < static_cast<Index>(bim_loader_.size()))
     {
-        const auto& snp_info = (*bim_loader_)[snp_index];
+        const auto& snp_info = (bim_loader_)[snp_index];
         stream << std::format(
             "{}\t{}\t{}\t{}\t{}",
             snp_info.id,
             snp_info.chrom,
             snp_info.position,
-            snp_info.a1,
-            snp_info.a2);
+            snp_info.A1,
+            snp_info.A2);
 
         if (result_->p_freq.size() > snp_index)
         {

@@ -1,61 +1,50 @@
 #include "gelex/data/genotype_loader.h"
 
-#include <gelex/barkeep.h>
-
-#include "gelex/logger.h"
+#include <format>
+#include <new>  // for std::bad_alloc
+#include "Eigen/Core"
 
 namespace gelex
 {
 
-namespace bk = barkeep;
-
-GenotypeLoader::GenotypeLoader(BedPipe&& bed_pipe)
-    : bed_pipe_(std::move(bed_pipe))
-{
-    num_variants_ = bed_pipe_.num_variants();
-    sample_size_ = bed_pipe_.num_samples();
-
-    data_matrix_ = Eigen::MatrixXd(sample_size_, num_variants_);
-
-    means_.reserve(num_variants_);
-    variances_.reserve(num_variants_);
-    monomorphic_indices_.reserve(num_variants_ / 100);
-}
-
-auto GenotypeLoader::create(
+GenotypeLoader::GenotypeLoader(
     const std::filesystem::path& bed_path,
     std::shared_ptr<SampleManager> sample_manager)
-    -> std::expected<GenotypeLoader, Error>
+    : bed_pipe_(bed_path, std::move(sample_manager))
 {
-    auto logger = logging::get();
-    auto bed_pipe = BedPipe::create(bed_path, std::move(sample_manager));
-    if (!bed_pipe)
+    num_variants_ = bed_pipe_.num_snps();    // NOLINT
+    sample_size_ = bed_pipe_.num_samples();  // NOLINT
+
+    try
     {
-        return std::unexpected(bed_pipe.error());
+        data_matrix_.resize(sample_size_, num_variants_);
     }
-
-    return GenotypeLoader{std::move(*bed_pipe)};
+    catch (const std::bad_alloc&)
+    {
+        throw std::runtime_error(
+            std::format(
+                "Memory allocation failed for Genotype Matrix ({} x {}). "
+                "Requires approx {:.2f} GB RAM.",
+                sample_size_,
+                num_variants_,
+                (double)sample_size_ * num_variants_ * sizeof(double) / 1024.0
+                    / 1024.0 / 1024.0));
+    }
 }
 
-auto GenotypeLoader::finalize() -> std::expected<GenotypeMatrix, Error>
+GenotypeMatrix GenotypeLoader::finalize()
 {
-    // Convert statistics to Eigen vectors
-    Eigen::VectorXd mean_vec
-        = Eigen::Map<Eigen::VectorXd>(means_.data(), means_.size());
-    Eigen::VectorXd variance_vec
-        = Eigen::Map<Eigen::VectorXd>(variances_.data(), variances_.size());
+    // 将 std::vector 映射为 Eigen::VectorXd
+    Eigen::VectorXd mean_vec = Eigen::Map<Eigen::VectorXd>(
+        means_.data(), static_cast<Eigen::Index>(means_.size()));
+    Eigen::VectorXd stddev_vec = Eigen::Map<Eigen::VectorXd>(
+        stddevs_.data(), static_cast<Eigen::Index>(stddevs_.size()));
 
-    // Convert monomorphic indices to set
-    std::unordered_set<int64_t> mono_set(
-        monomorphic_indices_.begin(), monomorphic_indices_.end());
-
-    // Create final genotype matrix
-    auto matrix = GenotypeMatrix::create(
+    return GenotypeMatrix(
         std::move(data_matrix_),
-        std::move(mono_set),
+        std::move(monomorphic_indices_),
         std::move(mean_vec),
-        std::move(variance_vec));
-
-    return matrix;
+        std::move(stddev_vec));
 }
+
 }  // namespace gelex

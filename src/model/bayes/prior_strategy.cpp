@@ -1,35 +1,24 @@
 #include "gelex/model/bayes/prior_strategy.h"
 
-#include <expected>
-#include "gelex/error.h"
+#include "gelex/exception.h"
 #include "gelex/model/bayes/prior_constants.h"
 
 namespace gelex
 {
 
 auto PriorSetter::operator()(BayesModel& model, const PriorConfig& config)
-    -> std::expected<void, Error>
+    -> void
 {
     // Set additive effect prior
     if (model.additive() != nullptr)
     {
-        auto additive_result
-            = set_additive_effect_prior(*model.additive(), config);
-        if (!additive_result)
-        {
-            return std::unexpected(additive_result.error());
-        }
+        set_additive_effect_prior(*model.additive(), config);
     }
 
     // Set dominant effect prior
     if (model.dominant() != nullptr)
     {
-        auto dominant_result
-            = set_dominant_effect_prior(*model.dominant(), config);
-        if (!dominant_result)
-        {
-            return std::unexpected(dominant_result.error());
-        }
+        set_dominant_effect_prior(*model.dominant(), config);
     }
 
     const auto num_random_effect = static_cast<double>(model.random().size());
@@ -54,8 +43,6 @@ auto PriorSetter::operator()(BayesModel& model, const PriorConfig& config)
                prior_constants::RESIDUAL_VARIANCE_SCALE};
         model.residual().init_variance = target_variance;
     }
-
-    return {};
 }
 
 auto PriorSetter::set_random_effect_prior(
@@ -71,21 +58,16 @@ auto PriorSetter::set_random_effect_prior(
 auto compute_init_marker_variance(
     double target_variance,
     const Eigen::Ref<const Eigen::MatrixXd>& design_matrix,
-    double non_zero_marker_proption) -> std::expected<double, Error>
+    double non_zero_marker_proption) -> double
 {
     if (target_variance <= 0.0)
     {
-        return std::unexpected(
-            Error{
-                .code = ErrorCode::InvalidArgument,
-                .message = "Target variance must be positive"});
+        throw InvalidArgumentException("Target variance must be positive");
     }
     if (non_zero_marker_proption <= 0.0)
     {
-        return std::unexpected(
-            Error{
-                .code = ErrorCode::InvalidArgument,
-                .message = "Non-zero marker proportion must be positive"});
+        throw InvalidArgumentException(
+            "Non-zero marker proportion must be positive");
     }
 
     auto num_snps = static_cast<double>(design_matrix.cols());
@@ -93,10 +75,8 @@ auto compute_init_marker_variance(
 
     if (num_non_zero_snps <= 0.0)
     {
-        return std::unexpected(
-            Error{
-                .code = ErrorCode::InvalidArgument,
-                .message = "Number of non-zero SNPs must be positive"});
+        throw InvalidArgumentException(
+            "Number of non-zero SNPs must be positive");
     }
 
     return target_variance / num_non_zero_snps;
@@ -105,21 +85,16 @@ auto compute_init_marker_variance(
 auto compute_init_marker_variance(
     double target_variance,
     const Eigen::Ref<const Eigen::VectorXd>& genetic_variance,
-    double non_zero_marker_proption) -> std::expected<double, Error>
+    double non_zero_marker_proption) -> double
 {
     if (target_variance <= 0.0)
     {
-        return std::unexpected(
-            Error{
-                .code = ErrorCode::InvalidArgument,
-                .message = "Target variance must be positive"});
+        throw InvalidArgumentException("Target variance must be positive");
     }
     if (non_zero_marker_proption <= 0.0)
     {
-        return std::unexpected(
-            Error{
-                .code = ErrorCode::InvalidArgument,
-                .message = "Non-zero marker proportion must be positive"});
+        throw InvalidArgumentException(
+            "Non-zero marker proportion must be positive");
     }
 
     auto total_genetic_variance = genetic_variance.sum();
@@ -128,10 +103,8 @@ auto compute_init_marker_variance(
 
     if (non_zero_marker_variance <= 0.0)
     {
-        return std::unexpected(
-            Error{
-                .code = ErrorCode::InvalidArgument,
-                .message = "Non-zero marker variance must be positive"});
+        throw InvalidArgumentException(
+            "Non-zero marker variance must be positive");
     }
 
     return target_variance / non_zero_marker_variance;

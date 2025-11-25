@@ -1,145 +1,82 @@
 #include "gelex/data/data_pipe.h"
 
-#include <expected>
 #include <filesystem>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
 
 #include "../src/data/loader.h"
 #include "gelex/data/sample_manager.h"
-#include "gelex/error.h"
+#include "gelex/exception.h"
 
 namespace gelex
 {
 
-auto DataPipe::create(const Config& config) -> std::expected<DataPipe, Error>
+DataPipe::DataPipe(const Config& config)
 {
-    DataPipe pipe;
     auto fam_path = config.bed_path;
     fam_path.replace_extension(".fam");
-    auto sample_manager_result = SampleManager::create(fam_path);
-    if (!sample_manager_result)
-    {
-        return std::unexpected(sample_manager_result.error());
-    }
-    pipe.sample_manager_
-        = std::make_shared<SampleManager>(std::move(*sample_manager_result));
+    sample_manager_ = std::make_shared<SampleManager>(fam_path);
 
     if (config.phenotype_path.empty())
     {
-        return std::unexpected(
-            Error{
-                .code = ErrorCode::InvalidArgument,
-                .message = "Phenotype file path is required."});
+        throw InvalidArgumentException("Phenotype file path is required.");
     }
 
-    if (auto result = pipe.load_phenotype(config); !result)
-    {
-        return std::unexpected(result.error());
-    }
+    load_phenotype(config);
 
     if (!config.qcovar_path.empty())
     {
-        if (auto result = pipe.load_qcovariates(config); !result)
-        {
-            return std::unexpected(result.error());
-        }
+        load_qcovariates(config);
     }
 
     if (!config.covar_path.empty())
     {
-        if (auto result = pipe.load_covariates(config); !result)
-        {
-            return std::unexpected(result.error());
-        }
-    }
-    pipe.intersect();
-
-    if (auto result = pipe.load_additive(config); !result)
-    {
-        return std::unexpected(result.error());
+        load_covariates(config);
     }
 
-    if (auto result = pipe.load_dominance(config); !result)
-    {
-        return std::unexpected(result.error());
-    }
-
-    pipe.convert_to_matrices();
-    return pipe;
+    intersect();
+    load_additive(config);
+    load_dominance(config);
+    convert_to_matrices();
 }
 
-auto DataPipe::load_phenotype(const Config& config)
-    -> std::expected<void, Error>
+void DataPipe::load_phenotype(const Config& config)
 {
-    auto loader = detail::PhenotypeLoader::create(
+    phenotype_loader_ = std::make_unique<detail::PhenotypeLoader>(
         config.phenotype_path, config.phenotype_column, config.iid_only);
-
-    if (!loader)
-    {
-        return std::unexpected(loader.error());
-    }
-
-    phenotype_loader_
-        = std::make_unique<detail::PhenotypeLoader>(std::move(*loader));
     phenotype_name_ = phenotype_loader_->name();
-
-    return {};
 }
 
-auto DataPipe::load_qcovariates(const Config& config)
-    -> std::expected<void, Error>
+void DataPipe::load_qcovariates(const Config& config)
 {
-    auto loader
-        = detail::QcovarLoader::create(config.qcovar_path, config.iid_only);
-
-    if (!loader)
-    {
-        return std::unexpected(loader.error());
-    }
-
-    qcovar_loader_ = std::make_unique<detail::QcovarLoader>(std::move(*loader));
+    qcovar_loader_ = std::make_unique<detail::QcovarLoader>(
+        config.qcovar_path, config.iid_only);
     qcovariate_names_ = qcovar_loader_->names();
-
-    return {};
 }
 
-auto DataPipe::load_covariates(const Config& config)
-    -> std::expected<void, Error>
+void DataPipe::load_covariates(const Config& config)
 {
-    auto loader
-        = detail::CovarLoader::create(config.covar_path, config.iid_only);
-
-    if (!loader)
-    {
-        return std::unexpected(loader.error());
-    }
-
-    covar_loader_ = std::make_unique<detail::CovarLoader>(std::move(*loader));
+    covar_loader_ = std::make_unique<detail::CovarLoader>(
+        config.covar_path, config.iid_only);
     covariate_names_ = covar_loader_->names();
-
-    return {};
 }
 
-auto DataPipe::load_additive(const Config& config) -> std::expected<void, Error>
+void DataPipe::load_additive(const Config& config)
 {
-    return load_genotype_impl<gelex::HardWenbergProcessor>(
+    load_genotype_impl<gelex::HardWenbergProcessor>(
         config, ".add", additive_matrix_);
 }
 
-auto DataPipe::load_dominance(const Config& config)
-    -> std::expected<void, Error>
+void DataPipe::load_dominance(const Config& config)
 {
-    if (!config.use_dominance_effect)
+    if (config.use_dominance_effect)
     {
-        return {};
+        load_genotype_impl<gelex::DominantOrthogonalHWEProcessor>(
+            config, ".dom", dominance_matrix_);
     }
-    return load_genotype_impl<gelex::DominantOrthogonalHWEProcessor>(
-        config, ".dom", dominance_matrix_);
 }
 
 void DataPipe::intersect()

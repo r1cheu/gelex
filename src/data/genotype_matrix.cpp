@@ -3,17 +3,39 @@
 namespace gelex
 {
 
-auto GenotypeMatrix::create(
+GenotypeMatrix::GenotypeMatrix(
     Eigen::MatrixXd&& data,
-    std::unordered_set<int64_t>&& mono_set,
+    std::vector<int64_t>&& mono_indices,
     Eigen::VectorXd&& mean,
-    Eigen::VectorXd&& variance) -> GenotypeMatrix
+    Eigen::VectorXd&& stddev)
+    : data_(std::move(data)),
+      mono_indices_(std::move(mono_indices)),
+      mean_(std::move(mean)),
+      stddev_(std::move(stddev))
 {
-    return GenotypeMatrix(
-        std::move(data),
-        std::move(mono_set),
-        std::move(mean),
-        std::move(variance));
+    validate_dimensions();
+    std::ranges::sort(mono_indices_);
+}
+
+void GenotypeMatrix::validate_dimensions() const
+{
+    if (data_.cols() != mean_.size())
+    {
+        throw std::invalid_argument(
+            std::format(
+                "Dimension mismatch: Matrix cols ({}) != Mean size ({})",
+                data_.cols(),
+                mean_.size()));
+    }
+
+    if (data_.cols() != stddev_.size())
+    {
+        throw std::invalid_argument(
+            std::format(
+                "Dimension mismatch: Matrix cols ({}) != Stddev size ({})",
+                data_.cols(),
+                stddev_.size()));
+    }
 }
 
 }  // namespace gelex

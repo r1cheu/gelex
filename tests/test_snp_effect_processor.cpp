@@ -159,7 +159,7 @@ TEST_CASE_METHOD(
 
     // Verify first SNP
     REQUIRE(infos[0].meta.id == "rs123");
-    REQUIRE(infos[0].meta.a1 == 'A');
+    REQUIRE(infos[0].meta.A1 == 'A');
     REQUIRE(infos[0].meta.a2 == 'T');
     REQUIRE_THAT(infos[0].p_freq, WithinAbs(0.3, 1e-6));
     REQUIRE_THAT(infos[0].add_effect, WithinAbs(0.5, 1e-6));
@@ -167,7 +167,7 @@ TEST_CASE_METHOD(
 
     // Verify second SNP
     REQUIRE(infos[1].meta.id == "rs456");
-    REQUIRE(infos[1].meta.a1 == 'C');
+    REQUIRE(infos[1].meta.A1 == 'C');
     REQUIRE(infos[1].meta.a2 == 'G');
     REQUIRE_THAT(infos[1].p_freq, WithinAbs(0.7, 1e-6));
     REQUIRE_THAT(infos[1].add_effect, WithinAbs(-0.3, 1e-6));

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <expected>
 #include <filesystem>
 #include <memory>
 #include <random>
@@ -11,7 +10,7 @@
 
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/sample_manager.h"
-#include "gelex/error.h"
+#include "gelex/exception.h"
 
 namespace gelex
 {
@@ -36,14 +35,7 @@ class PhenotypeSimulator
         std::filesystem::path output_path;
     };
 
-    /**
-     * @brief Factory function to create a PhenotypeSimulator instance.
-     * @param config Configuration parameters for the simulation.
-     * @return An expected object containing either a PhenotypeSimulator
-     * instance or an Error.
-     */
-    [[nodiscard]] static auto create(const Config& config)
-        -> std::expected<PhenotypeSimulator, Error>;
+    explicit PhenotypeSimulator(Config config);
 
     PhenotypeSimulator(const PhenotypeSimulator&) = delete;
     PhenotypeSimulator(PhenotypeSimulator&&) noexcept = default;
@@ -53,30 +45,26 @@ class PhenotypeSimulator
 
     /**
      * @brief Runs the phenotype simulation process.
-     * @return An expected object indicating success (void) or an Error.
      */
-    auto simulate() -> std::expected<void, Error>;
+    void simulate();
 
    private:
-    explicit PhenotypeSimulator(Config config);
-
     // --- Helper Methods for Simulation Stages ---
-    auto initialize_rng() -> std::expected<void, Error>;
+    void initialize_rng();
     auto load_or_generate_causal_effects()
-        -> std::expected<std::unordered_map<std::string, double>, Error>;
+        -> std::unordered_map<std::string, double>;
 
     static auto calculate_genetic_values(
         BedPipe& bed_pipe,
         const std::unordered_map<std::string, double>& causal_effects)
-        -> std::expected<Eigen::VectorXd, Error>;
+        -> Eigen::VectorXd;
 
     auto generate_phenotypes(const Eigen::VectorXd& genetic_values)
         -> Eigen::VectorXd;
 
-    auto write_results(
+    void write_results(
         const Eigen::VectorXd& phenotypes,
-        const std::shared_ptr<SampleManager>& sample_manager) const
-        -> std::expected<void, Error>;
+        const std::shared_ptr<SampleManager>& sample_manager) const;
 
     Config config_;
     std::mt19937_64 rng_;

@@ -1,76 +1,30 @@
 #pragma once
 
-#include <expected>
 #include <filesystem>
-#include <format>
+#include <fstream>
 #include <string>
-#include <string_view>
-#include <type_traits>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include <Eigen/Dense>
 
-#include "gelex/error.h"
-
 namespace gelex::detail
 {
 
-template <typename T>
-concept FileStream = std::derived_from<T, std::ios_base>
-                     && std::is_constructible_v<
-                         T,
-                         const std::filesystem::path&,
-                         std::ios_base::openmode>;
-
-template <FileStream StreamType>
-[[nodiscard]] auto open_file(
-    const std::filesystem::path& path,
-    std::ios_base::openmode mode) -> std::expected<StreamType, Error>
-{
-    StreamType stream(path, mode);
-
-    if (!stream.is_open())
-    {
-        if ((mode & std::ios_base::in))
-        {
-            if (!std::filesystem::exists(path))
-            {
-                return std::unexpected(
-                    Error{
-                        ErrorCode::FileNotFound,
-                        std::format("File not found: '{}'", path.string())});
-            }
-        }
-
-        return std::unexpected(
-            Error{
-                ErrorCode::FileIOError,
-                std::format("Failed to open file: '{}'", path.string())});
-    }
-    if ((mode & std::ios_base::in) && std::filesystem::file_size(path) == 0)
-    {
-        return std::unexpected(
-            Error{
-                ErrorCode::InvalidFile,
-                std::format("File is empty: '{}'", path.string())}
-
-        );
-    }
-    return stream;
-}
-
+// -----------------------------------------------------------------------------
+// PhenotypeLoader
+// -----------------------------------------------------------------------------
 class PhenotypeLoader
 {
    public:
-    static auto create(
+    PhenotypeLoader(
         const std::filesystem::path& path,
         int pheno_column,
-        bool iid_only) -> std::expected<PhenotypeLoader, Error>;
+        bool iid_only);
 
-    Eigen::VectorXd load(
+    [[nodiscard]] Eigen::VectorXd load(
         const std::unordered_map<std::string, Eigen::Index>& id_map) const;
+
     const std::string& name() const { return name_; }
     const std::unordered_map<std::string, double>& data() const
     {
@@ -78,34 +32,19 @@ class PhenotypeLoader
     }
 
    private:
-    explicit PhenotypeLoader(
-        std::string&& name,
-        std::unordered_map<std::string, double>&& data)
-        : name_(std::move(name)), data_(std::move(data))
-    {
-    }
-
-    static auto get_header(std::ifstream& file, size_t target_column)
-        -> std::expected<std::vector<std::string>, Error>;
-
-    static auto read(
-        std::ifstream& file,
-        size_t target_column,
-        size_t expected_columns,
-        bool iid_only)
-        -> std::expected<std::unordered_map<std::string, double>, Error>;
-
     std::string name_;
     std::unordered_map<std::string, double> data_;
 };
 
+// -----------------------------------------------------------------------------
+// QcovarLoader (Quantitative Covariates)
+// -----------------------------------------------------------------------------
 class QcovarLoader
 {
    public:
-    static auto create(const std::filesystem::path& path, bool iid_only)
-        -> std::expected<QcovarLoader, Error>;
+    QcovarLoader(const std::filesystem::path& path, bool iid_only);
 
-    Eigen::MatrixXd load(
+    [[nodiscard]] Eigen::MatrixXd load(
         const std::unordered_map<std::string, Eigen::Index>& id_map) const;
 
     const std::vector<std::string>& names() const { return names_; }
@@ -115,124 +54,91 @@ class QcovarLoader
     }
 
    private:
-    explicit QcovarLoader(
-        std::vector<std::string>&& names,
-        std::unordered_map<std::string, std::vector<double>>&& data)
-        : names_(std::move(names)), data_(std::move(data))
-    {
-    }
-
-    static auto get_header(std::ifstream& file)
-        -> std::expected<std::vector<std::string>, Error>;
-
-    static auto
-    read(std::ifstream& file, size_t expected_columns, bool iid_only) -> std::
-        expected<std::unordered_map<std::string, std::vector<double>>, Error>;
-
     std::vector<std::string> names_;
     std::unordered_map<std::string, std::vector<double>> data_;
 };
 
+// -----------------------------------------------------------------------------
+// CovarLoader (Categorical Covariates)
+// -----------------------------------------------------------------------------
 class CovarLoader
 {
    public:
-    static auto create(const std::filesystem::path& path, bool iid_only)
-        -> std::expected<CovarLoader, Error>;
+    using EncodingMap = std::unordered_map<std::string, std::vector<int>>;
 
-    Eigen::MatrixXd load(
+    CovarLoader(const std::filesystem::path& path, bool iid_only);
+
+    [[nodiscard]] Eigen::MatrixXd load(
         const std::unordered_map<std::string, Eigen::Index>& id_map) const;
 
     const std::vector<std::string>& names() const { return names_; }
+
     const std::unordered_map<std::string, std::vector<std::string>>& data()
         const
     {
-        return data_;
+        return raw_data_;
     }
 
    private:
-    explicit CovarLoader(
-        std::vector<std::string>&& names,
-        std::unordered_map<std::string, std::vector<std::string>>&& data)
-        : names_(std::move(names)), data_(std::move(data))
+    struct EncodedCovariate
     {
-    }
+        std::vector<int> encoding;  // The One-Hot vector
+        int start_col_offset;       // Offset in the final matrix
+    };
 
-    static auto get_header(std::ifstream& file)
-        -> std::expected<std::vector<std::string>, Error>;
-
-    static auto
-    read(std::ifstream& file, size_t expected_columns, bool iid_only)
-        -> std::expected<
-            std::unordered_map<std::string, std::vector<std::string>>,
-            Error>;
-
-    static auto build_encode_maps(
-        const std::unordered_map<std::string, std::vector<std::string>>&
-            covariate_data,
-        std::span<const std::string> covariate_names)
-        -> std::vector<std::unordered_map<std::string, std::vector<int>>>;
-
-    static auto create_encoding_for_one_covariate(
-        const std::unordered_set<std::string_view>& unique_levels)
-        -> std::unordered_map<std::string, std::vector<int>>;
-
-    static auto collect_unique_levels(
-        const std::unordered_map<std::string, std::vector<std::string>>& data,
-        size_t num_covariates)
-        -> std::vector<std::unordered_set<std::string_view>>;
+    // 预计算的编码表： CovarIndex -> (ValueString -> EncodedVector)
+    std::vector<std::unordered_map<std::string, EncodedCovariate>>
+        optimized_encodings_;
 
     std::vector<std::string> names_;
-    std::unordered_map<std::string, std::vector<std::string>> data_;
+    std::unordered_map<std::string, std::vector<std::string>> raw_data_;
+
+    // 缓存总的 dummy 变量数量，避免重复计算
+    Eigen::Index total_dummy_vars_ = 0;
+
+    void build_optimized_encodings();
 };
 
+// -----------------------------------------------------------------------------
+// BimLoader (SNP Metadata)
+// -----------------------------------------------------------------------------
 struct SnpMeta
 {
     std::string id;
     std::string chrom;
     int position;
-    char a1;
-    char a2;
+    char A1;
+    char A2;
 };
 
 class BimLoader
 {
    public:
-    static auto create(const std::filesystem::path& path)
-        -> std::expected<BimLoader, Error>;
+    explicit BimLoader(const std::filesystem::path& path);
 
     const std::vector<SnpMeta>& meta() const { return snp_meta_; }
-    const std::vector<std::string>& ids() const { return ids_; }
+
+    std::vector<std::string> get_ids() const;
 
     const SnpMeta& operator[](size_t index) const { return snp_meta_[index]; }
     size_t size() const { return snp_meta_.size(); }
+
     std::vector<SnpMeta>&& take_meta() && { return std::move(snp_meta_); }
 
    private:
-    explicit BimLoader(std::vector<SnpMeta>&& snp_ids)
-        : snp_meta_(std::move(snp_ids))
-    {
-        ids_.reserve(snp_meta_.size());
-        for (const auto& snp : snp_meta_)
-        {
-            ids_.emplace_back(snp.id);
-        }
-    }
-
-    static auto read(std::ifstream& file)
-        -> std::expected<std::vector<SnpMeta>, Error>;
-
     std::vector<SnpMeta> snp_meta_;
-    std::vector<std::string> ids_;
+    static char detect_delimiter(std::ifstream& file);
 };
 
+// -----------------------------------------------------------------------------
+// FamLoader (Sample Info)
+// -----------------------------------------------------------------------------
 class FamLoader
 {
    public:
-    static auto create(const std::filesystem::path& path, bool iid_only)
-        -> std::expected<FamLoader, Error>;
+    explicit FamLoader(const std::filesystem::path& path, bool iid_only);
 
     const std::vector<std::string>& ids() const { return ids_; }
-
     const std::unordered_map<std::string, Eigen::Index>& data() const
     {
         return data_;
@@ -241,17 +147,8 @@ class FamLoader
     std::vector<std::string>&& take_ids() && { return std::move(ids_); }
 
    private:
-    explicit FamLoader(
-        std::vector<std::string>&& ids,
-        std::unordered_map<std::string, Eigen::Index>&& data)
-        : ids_(std::move(ids)), data_(std::move(data))
-    {
-    }
-
-    static auto read(std::ifstream& file, bool iid_only)
-        -> std::expected<std::vector<std::string>, Error>;
-
     std::vector<std::string> ids_;
     std::unordered_map<std::string, Eigen::Index> data_;
 };
+
 }  // namespace gelex::detail

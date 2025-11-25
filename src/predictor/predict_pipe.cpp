@@ -11,56 +11,65 @@
 
 #include "../src/data/loader.h"
 #include "gelex/data/sample_manager.h"
-#include "gelex/error.h"
+#include "gelex/exception.h"
+#include "predict_bed_pipe.h"
 
 namespace gelex
 {
 
-auto PredictDataPipe::create(
-    const Config& config,
-    std::shared_ptr<SampleManager> sample_manager)
-    -> std::expected<PredictDataPipe, Error>
+PredictDataPipe::PredictDataPipe(const Config& config)
 {
-    PredictDataPipe pipe;
-    pipe.sample_manager_ = std::move(sample_manager);
+    auto fam_path = config.bed_path;
+    fam_path.replace_extension(".fam");
+    sample_manager_
+        = std::make_shared<SampleManager>(fam_path, config.iid_only);
 
     if (!config.qcovar_path.empty())
     {
-        if (auto result = pipe.load_qcovariates(config); !result)
-        {
-            return std::unexpected(result.error());
-        }
+        load_qcovariates(config);
     }
 
     if (!config.covar_path.empty())
     {
-        if (auto result = pipe.load_covariates(config); !result)
-        {
-            return std::unexpected(result.error());
-        }
+        load_covariates(config);
     }
 
-    pipe.intersect();
-    pipe.format_covariates();
+    load_snp_effect(config);
 
-    return pipe;
+    intersect();
+    format_covariates();
+    load_genotype(config);
 }
 
-auto PredictDataPipe::load_qcovariates(const Config& config)
-    -> std::expected<void, Error>
+void PredictDataPipe::load_qcovariates(const Config& config)
 {
-    auto loader
-        = detail::QcovarLoader::create(config.qcovar_path, config.iid_only);
-
-    if (!loader)
-    {
-        return std::unexpected(loader.error());
-    }
-
-    qcovar_loader_ = std::make_unique<detail::QcovarLoader>(std::move(*loader));
+    qcovar_loader_ = std::make_unique<detail::QcovarLoader>(
+        config.qcovar_path, config.iid_only);
     qcovariate_names_ = qcovar_loader_->names();
+}
 
-    return {};
+void PredictDataPipe::load_snp_effect(const Config& config)
+{
+    snp_effects_ = SnpEffectLoader::load(config.snp_effect_path);
+}
+
+void PredictDataPipe::load_genotype(const Config& config)
+{
+    PredictBedPipe bed_pipe(
+        config.bed_path, config.snp_effect_path, sample_manager_);
+
+    genotypes_ = bed_pipe.load();
+}
+
+void PredictDataPipe::process_raw_genotype(const Config& config)
+{
+    for (auto& genotype : genotypes_)
+    {
+        // Processing logic here
+        for (Eigen::Index i = 0; i < genotype.cols(); ++i)
+        {
+        }
+    }
 }
 
 void PredictDataPipe::intersect()
@@ -108,6 +117,35 @@ void PredictDataPipe::format_covariates()
     {
         qcovariates_.middleCols(1, qcovariates.cols()) = qcovariates;
     }
+
+    if (covar_loader_)
+    {
+        covariates_ = covar_loader_->load(id_map);
+    }
+}
+
+const Eigen::MatrixXd& PredictDataPipe::qcovariates() const
+{
+    return qcovariates_;
+}
+Eigen::MatrixXd PredictDataPipe::take_qcovariates() &&
+{
+    return std::move(qcovariates_);
+}
+
+std::map<std::string, std::vector<std::string>>
+PredictDataPipe::take_covariates() &&
+{
+    return std::move(covariates_);
+}
+
+size_t PredictDataPipe::num_qcovariates() const
+{
+    return qcovariate_names_.size();
+}
+size_t PredictDataPipe::num_covariates() const
+{
+    return covariate_names_.size();
 }
 
 const std::vector<std::string>& PredictDataPipe::qcovariate_names() const

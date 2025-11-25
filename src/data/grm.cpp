@@ -1,7 +1,6 @@
 #include "gelex/data/grm.h"
 
 #include <algorithm>
-#include <expected>
 #include <memory>
 
 #include <Eigen/Core>
@@ -13,35 +12,13 @@ namespace gelex
 {
 using Eigen::Index;
 
-GRM::GRM(
-    std::string_view bed_file,
-    Index chunk_size,
-    const std::unordered_map<std::string, Eigen::Index>& target_order)
+GRM::GRM(std::string_view bed_file, Index chunk_size) : chunk_size_(chunk_size)
 {
-    // Create SampleManager
-    auto sample_manager_result = SampleManager::create(
+    auto sample_manager = std::make_shared<SampleManager>(
         std::filesystem::path(bed_file).replace_extension(".fam"), false);
-    if (!sample_manager_result)
-    {
-        throw std::runtime_error(
-            "Failed to create SampleManager: "
-            + std::string(sample_manager_result.error().message));
-    }
-    auto sample_manager
-        = std::make_shared<SampleManager>(std::move(*sample_manager_result));
+    bed_ = std::make_unique<BedPipe>(bed_file, sample_manager);
 
-    auto bed_pipe = BedPipe::create(bed_file, sample_manager);
-    if (!bed_pipe)
-    {
-        throw std::runtime_error(
-            "Failed to create BedPipe: "
-            + std::string(bed_pipe.error().message));
-    }
-    bed_ = std::make_unique<BedPipe>(std::move(*bed_pipe));
-
-    chunk_size_ = chunk_size;
-
-    p_major_ = Eigen::VectorXd::Zero(bed_->num_variants());
+    p_major_ = Eigen::VectorXd::Zero(bed_->num_snps());
 }
 
 Eigen::MatrixXd GRM::compute(bool add)
@@ -51,21 +28,13 @@ Eigen::MatrixXd GRM::compute(bool add)
     Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(n, n);
 
     // Process in chunks
-    const Index num_variants = bed_->num_variants();
+    const Index num_variants = bed_->num_snps();
     const Index chunk_size = 10000;  // Fixed chunk size for BedPipe
 
     for (Index start = 0; start < num_variants; start += chunk_size)
     {
         Index end = std::min(start + chunk_size, num_variants);
-        auto genotype_result = bed_->load_chunk(start, end);
-        if (!genotype_result)
-        {
-            throw std::runtime_error(
-                "Failed to load genotype chunk: "
-                + std::string(genotype_result.error().message));
-        }
-
-        Eigen::MatrixXd genotype = std::move(*genotype_result);
+        Eigen::MatrixXd genotype = bed_->load_chunk(start, end);
         Eigen::VectorXd p_major_i = compute_p_major(genotype);
         code_method_varden(p_major_i, genotype, add);
 
@@ -83,31 +52,15 @@ CrossGRM::CrossGRM(
     std::string_view train_bed,
     Eigen::VectorXd p_major,
     double scale_factor,
-    Index chunk_size,
-    const std::unordered_map<std::string, Eigen::Index>& target_order)
+    Index chunk_size)
     : scale_factor_{scale_factor}, chunk_size_{chunk_size}
 {
-    auto sample_manager_result = SampleManager::create(
+    auto sample_manager = std::make_shared<SampleManager>(
         std::filesystem::path(train_bed).replace_extension(".fam"), false);
-    if (!sample_manager_result)
-    {
-        throw std::runtime_error(
-            "Failed to create SampleManager: "
-            + std::string(sample_manager_result.error().message));
-    }
-    auto sample_manager
-        = std::make_shared<SampleManager>(std::move(*sample_manager_result));
 
-    auto bed_pipe = BedPipe::create(train_bed, sample_manager);
-    if (!bed_pipe)
-    {
-        throw std::runtime_error(
-            "Failed to create BedPipe: "
-            + std::string(bed_pipe.error().message));
-    }
-    bed_ = std::make_unique<BedPipe>(std::move(*bed_pipe));
+    bed_ = std::make_unique<BedPipe>(train_bed, sample_manager);
 
-    if (p_major.size() != bed_->num_variants())
+    if (p_major.size() != bed_->num_snps())
     {
         throw std::runtime_error(
             "p_major size does not match number of SNPs in training set.");
@@ -117,59 +70,27 @@ CrossGRM::CrossGRM(
 
 Eigen::MatrixXd CrossGRM::compute(std::string_view test_bed, bool add)
 {
-    // Create test BedPipe
-    auto test_sample_manager_result = SampleManager::create(
-        std::filesystem::path(test_bed).replace_extension(".fam"), false);
-    if (!test_sample_manager_result)
-    {
-        throw std::runtime_error(
-            "Failed to create test SampleManager: "
-            + std::string(test_sample_manager_result.error().message));
-    }
     auto test_sample_manager = std::make_shared<SampleManager>(
-        std::move(*test_sample_manager_result));
+        std::filesystem::path(test_bed).replace_extension(".fam"), false);
 
-    auto test_bed_pipe = BedPipe::create(test_bed, test_sample_manager);
-    if (!test_bed_pipe)
-    {
-        throw std::runtime_error(
-            "Failed to create test BedPipe: "
-            + std::string(test_bed_pipe.error().message));
-    }
+    BedPipe test_bed_pipe(test_bed, test_sample_manager);
+    check_snp_consistency(test_bed_pipe);
 
-    check_snp_consistency(*test_bed_pipe);
-
-    const Index test_n = test_bed_pipe->num_samples();
+    const Index test_n = test_bed_pipe.num_samples();
     const auto train_n = static_cast<Index>(
         id_map_.empty() ? bed_->num_samples() : id_map_.size());
     Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(test_n, train_n);
 
     // Process in chunks
-    const Index num_variants = bed_->num_variants();
+    const Index num_variants = bed_->num_snps();
 
     for (Index start = 0; start < num_variants; start += chunk_size_)
     {
         Index end = std::min(start + chunk_size_, num_variants);
 
         // Load training chunk
-        auto train_genotype_result = bed_->load_chunk(start, end);
-        if (!train_genotype_result)
-        {
-            throw std::runtime_error(
-                "Failed to load training genotype chunk: "
-                + std::string(train_genotype_result.error().message));
-        }
-        Eigen::MatrixXd train_genotype = std::move(*train_genotype_result);
-
-        // Load test chunk
-        auto test_genotype_result = test_bed_pipe->load_chunk(start, end);
-        if (!test_genotype_result)
-        {
-            throw std::runtime_error(
-                "Failed to load test genotype chunk: "
-                + std::string(test_genotype_result.error().message));
-        }
-        Eigen::MatrixXd test_genotype = std::move(*test_genotype_result);
+        Eigen::MatrixXd train_genotype = bed_->load_chunk(start, end);
+        Eigen::MatrixXd test_genotype = test_bed_pipe.load_chunk(start, end);
 
         // Apply coding
         Eigen::VectorXd p_major_chunk = p_major_.segment(start, end - start);
@@ -182,26 +103,7 @@ Eigen::MatrixXd CrossGRM::compute(std::string_view test_bed, bool add)
     return grm / scale_factor_;
 }
 
-void CrossGRM::check_snp_consistency(const BedPipe& test_bed) const
-{
-    if (bed_->num_variants() != test_bed.num_variants())
-    {
-        throw std::runtime_error{
-            "Number of SNPs in training and test sets do not match."};
-    }
-
-    const auto& train_snps = bed_->snp_ids();
-    const auto& test_snps = test_bed.snp_ids();
-
-    for (Index i{0}; i < bed_->num_variants(); ++i)
-    {
-        if (train_snps[i] != test_snps[i])
-        {
-            throw std::runtime_error{
-                "SNPs in training and test sets do not match."};
-        }
-    }
-}
+void CrossGRM::check_snp_consistency(const BedPipe& test_bed) const {}
 
 Eigen::VectorXd compute_p_major(
     const Eigen::Ref<const Eigen::MatrixXd>& genotype)

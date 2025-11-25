@@ -1,62 +1,40 @@
 #include "binary_matrix_writer.h"
 
-#include <Eigen/Core>
-#include <expected>
-#include <filesystem>
-#include <fstream>
-#include <ios>
-
-#include "data/loader.h"
-#include "gelex/error.h"
+#include "gelex/exception.h"
+#include "parser.h"
 
 namespace gelex::detail
 {
 
-using Eigen::Index;
-
-BinaryMatrixWriter::BinaryMatrixWriter(std::ofstream&& file, std::string&& path)
-    : file_(std::move(file)), path_(std::move(path))
+BinaryMatrixWriter::BinaryMatrixWriter(const std::filesystem::path& file_path)
+    : path_(file_path), io_buffer_(kDefaultBufferSize)
 {
+    file_ = detail::open_file<std::ofstream>(
+        path_, std::ios::binary | std::ios::trunc, io_buffer_);
 }
 
-auto BinaryMatrixWriter::create(const std::filesystem::path& file_path)
-    -> std::expected<BinaryMatrixWriter, Error>
+void BinaryMatrixWriter::write(const Eigen::Ref<const Eigen::MatrixXd>& matrix)
 {
-    auto file
-        = open_file<std::ofstream>(file_path, std::ios::binary | std::ios::out);
-
-    if (!file)
+    if (!file_.good())
     {
-        return std::unexpected(file.error());
+        throw FileIOException(enrich_with_file_info(
+            "Binary matrix writer stream is in bad state", path_));
     }
-    return BinaryMatrixWriter(std::move(*file), std::move(file_path));
-}
 
-auto BinaryMatrixWriter::write(const Eigen::MatrixXd& matrix)
-    -> std::expected<void, Error>
-{
     if (matrix.size() == 0)
     {
-        return {};  // Nothing to write
+        return;
     }
 
-    // Write matrix data in column-major order (Eigen's default)
     file_.write(
         reinterpret_cast<const char*>(matrix.data()),
         static_cast<std::streamsize>(matrix.size() * sizeof(double)));
 
-    file_.flush();
-
     if (!file_.good())
     {
-        return std::unexpected(enrich_with_file_info(
-            Error{
-                ErrorCode::FileIOError,
-                "Failed to write matrix data to binary file"},
-            path_));
+        throw FileIOException(enrich_with_file_info(
+            "Failed to write matrix data to binary file", path_));
     }
-
-    return {};
 }
 
 }  // namespace gelex::detail

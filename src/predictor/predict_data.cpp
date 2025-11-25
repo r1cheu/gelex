@@ -31,21 +31,4 @@ struct PredictData
     }
 };
 
-struct PredictResult
-{
-    std::vector<std::string> individual_ids;
-
-    Eigen::VectorXd genetic_values;
-    Eigen::VectorXd covariate_effects;
-    Eigen::VectorXd total_predictions;
-
-    void clear()
-    {
-        individual_ids.clear();
-        genetic_values.resize(0);
-        covariate_effects.resize(0);
-        total_predictions.resize(0);
-    }
-};
-
 }  // namespace gelex
