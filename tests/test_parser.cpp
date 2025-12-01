@@ -1,259 +1,330 @@
-#include <string>
+#include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <string_view>
 #include <vector>
 
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "../src/data/parser.h"
+#include "file_fixture.h"
+#include "gelex/exception.h"
 
-using Catch::Matchers::WithinAbs;
+namespace fs = std::filesystem;
 
-TEST_CASE("try_parse_double function", "[parser]")
+using namespace gelex::detail;  // NOLINT
+using gelex::test::FileFixture;
+
+TEST_CASE("File Stream I/O", "[parser]")
 {
-    SECTION("Valid double values")
+    FileFixture files;
+    SECTION("Happy path - open existing file")
     {
-        REQUIRE_THAT(
-            gelex::detail::try_parse_double("3.14").value(),
-            WithinAbs(3.14, 1e-10));
-        REQUIRE_THAT(
-            gelex::detail::try_parse_double("-2.5").value(),
-            WithinAbs(-2.5, 1e-10));
-        REQUIRE_THAT(
-            gelex::detail::try_parse_double("0").value(),
-            WithinAbs(0.0, 1e-10));
-        REQUIRE_THAT(
-            gelex::detail::try_parse_double("1e6").value(),
-            WithinAbs(1e6, 1e-10));
+        auto file_path = files.create_text_file("content");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                auto file
+                    = open_file<std::ifstream>(file_path, std::ios_base::in);
+                REQUIRE(file.is_open());
+            }());
     }
 
-    SECTION("Invalid double values")
+    SECTION("Exception - file not found")
     {
-        REQUIRE(gelex::detail::try_parse_double("abc").has_value() == false);
-        REQUIRE(
-            gelex::detail::try_parse_double("3.14abc").has_value() == false);
-        REQUIRE(gelex::detail::try_parse_double("").has_value() == false);
+        REQUIRE_THROWS_AS(
+            open_file<std::ifstream>("non_existent_path", std::ios_base::in),
+            gelex::FileNotFoundException);
+    }
+
+    SECTION("Exception - empty file")
+    {
+        auto empty_file_path = files.create_empty_file();
+
+        REQUIRE_THROWS_AS(
+            open_file<std::ifstream>(empty_file_path, std::ios_base::in),
+            gelex::FileFormatException);
     }
 }
 
-TEST_CASE("parse_nth_double function", "[parser]")
+TEST_CASE("Parser Line Counting Tests", "[parser]")
 {
-    const std::string_view line = "FID\tIID\t3.14\t-2.5\t0\t1e6";
-
-    SECTION("Valid column indices")
+    FileFixture files;
+    SECTION("Happy path - count lines")
     {
-        REQUIRE_THAT(
-            gelex::detail::parse_nth_double(line, 2).value(),
-            WithinAbs(3.14, 1e-10));
-        REQUIRE_THAT(
-            gelex::detail::parse_nth_double(line, 3).value(),
-            WithinAbs(-2.5, 1e-10));
-        REQUIRE_THAT(
-            gelex::detail::parse_nth_double(line, 4).value(),
-            WithinAbs(0.0, 1e-10));
-        REQUIRE_THAT(
-            gelex::detail::parse_nth_double(line, 5).value(),
-            WithinAbs(1e6, 1e-10));
+        auto file_path = files.create_text_file("line1\nline2\nline3\nline4\n");
+        REQUIRE(count_total_lines(file_path) == 4);
     }
 
-    SECTION("Invalid column indices")
+    SECTION("Happy path - file without trailing newline")
     {
-        REQUIRE(gelex::detail::parse_nth_double(line, 0).has_value() == false);
-        REQUIRE(gelex::detail::parse_nth_double(line, 1).has_value() == false);
-        REQUIRE(gelex::detail::parse_nth_double(line, 10).has_value() == false);
-    }
-
-    SECTION("Custom delimiters")
-    {
-        const std::string_view comma_line = "FID,IID,3.14,-2.5,0,1e6";
-        REQUIRE_THAT(
-            gelex::detail::parse_nth_double(comma_line, 2, ",").value(),
-            WithinAbs(3.14, 1e-10));
+        auto file_path = files.create_text_file("line1\nline2\nline3");
+        REQUIRE(count_total_lines(file_path) == 3);
     }
 }
 
-TEST_CASE("parse_id function", "[parser]")
+TEST_CASE("Parser Column Count Tests", "[parser]")
 {
-    const std::string_view line = "FAM001\tIND001\t3.14\t-2.5";
-
-    SECTION("IID only mode")
+    SECTION("Happy path - tab delimiter")
     {
-        auto result = gelex::detail::parse_id(line, true);
-        REQUIRE(result.value() == "IND001");
+        std::string_view line = "FID\tIID\tPhenotype\tCovariate";
+
+        REQUIRE(count_num_columns(line, '\t') == 4);
     }
 
-    SECTION("Full ID mode")
+    SECTION("Happy path - comma delimiter")
     {
-        auto result = gelex::detail::parse_id(line, false);
-        REQUIRE(result.value() == "FAM001_IND001");
+        std::string_view line = "FID,IID,Phenotype,Covariate";
+
+        REQUIRE(count_num_columns(line, ',') == 4);
     }
 
-    SECTION("Insufficient columns")
+    SECTION("Edge case - empty line")
     {
-        const std::string_view short_line = "FAM001";
-        auto result = gelex::detail::parse_id(short_line, false);
-        REQUIRE(result.has_value() == false);
+        std::string_view line;
+
+        REQUIRE(count_num_columns(line, '\t') == 0);
     }
 
-    SECTION("Custom delimiters")
+    SECTION("Edge case - trailing delimiter")
     {
-        const std::string_view comma_line = "FAM001,IND001,3.14,-2.5";
-        auto result = gelex::detail::parse_id(comma_line, false, ",");
-        REQUIRE(result.value() == "FAM001_IND001");
+        std::string_view line = "FID\tIID\tPhenotype\t";
+
+        REQUIRE(count_num_columns(line, '\t') == 4);
     }
 }
 
-TEST_CASE("parse_header function", "[parser]")
+TEST_CASE("Parser Double Parsing Tests", "[parser]")
 {
-    SECTION("Valid header")
+    SECTION("Happy path - valid numbers")
     {
-        const std::string_view header_line = "FID\tIID\tTrait1\tTrait2";
-        auto result = gelex::detail::parse_header(header_line);
-
-        REQUIRE(result.has_value());
-        REQUIRE(result->size() == 4);
-        REQUIRE(result->at(0) == "FID");
-        REQUIRE(result->at(1) == "IID");
-        REQUIRE(result->at(2) == "Trait1");
-        REQUIRE(result->at(3) == "Trait2");
+        REQUIRE(parse_number("42") == 42.0);
+        REQUIRE(parse_number("3.14") == 3.14);
+        REQUIRE(parse_number("-1.5") == -1.5);
+        REQUIRE(parse_number("1.23e-4") == 1.23e-4);
+        REQUIRE(std::isnan(parse_number("nan")));
     }
 
-    SECTION("Empty header")
+    SECTION("Exception - invalid numbers")
     {
-        const std::string_view empty_line;
-        auto result = gelex::detail::parse_header(empty_line);
-        REQUIRE(result.has_value() == false);
-    }
-
-    SECTION("Insufficient columns")
-    {
-        const std::string_view short_line = "FID";
-        auto result = gelex::detail::parse_header(short_line);
-        REQUIRE(result.has_value() == false);
-    }
-
-    SECTION("Wrong column names")
-    {
-        const std::string_view wrong_line = "ID\tNAME\tTrait1";
-        auto result = gelex::detail::parse_header(wrong_line);
-        REQUIRE(result.has_value() == false);
-    }
-
-    SECTION("Custom delimiters")
-    {
-        const std::string_view comma_line = "FID,IID,Trait1,Trait2";
-        auto result = gelex::detail::parse_header(comma_line, ",");
-        REQUIRE(result.has_value());
-        REQUIRE(result->size() == 4);
+        REQUIRE_THROWS_AS(parse_number("abc"), gelex::NumberParseException);
+        REQUIRE_THROWS_AS(parse_number("1.2.3"), gelex::NumberParseException);
+        REQUIRE_THROWS_AS(parse_number(""), gelex::NumberParseException);
+        REQUIRE_THROWS_AS(parse_number(" "), gelex::NumberParseException);
     }
 }
 
-TEST_CASE("count_num_columns function", "[parser]")
+TEST_CASE("Parser Column Double Parsing Tests", "[parser]")
 {
-    SECTION("Basic counting")
+    SECTION("Happy path - extract valid doubles")
     {
-        REQUIRE(gelex::detail::count_num_columns("FID\tIID\tTrait1") == 3);
-        REQUIRE(gelex::detail::count_num_columns("a\tb\tc\td\te") == 5);
-        REQUIRE(gelex::detail::count_num_columns("single") == 1);
+        std::string_view line = "FID\tIID\t2.5\t1.0\t0.5";
+
+        REQUIRE(parse_nth_double(line, 2, '\t') == 2.5);
+        REQUIRE(parse_nth_double(line, 3, '\t') == 1.0);
+        REQUIRE(parse_nth_double(line, 4, '\t') == 0.5);
     }
 
-    SECTION("Empty and whitespace handling")
+    SECTION("Happy path - custom delimiter")
     {
-        REQUIRE(gelex::detail::count_num_columns("") == 0);
-        REQUIRE(gelex::detail::count_num_columns("\t\t") == 0);
-        REQUIRE(gelex::detail::count_num_columns("a\t\tb") == 2);
+        std::string_view line = "FID,IID,2.5,1.0,0.5";
+
+        REQUIRE(parse_nth_double(line, 2, ',') == 2.5);
     }
 
-    SECTION("Custom delimiters")
+    SECTION("Exception - column index out of range")
     {
-        REQUIRE(gelex::detail::count_num_columns("a,b,c", ",") == 3);
-        REQUIRE(gelex::detail::count_num_columns("a;b;c", ";") == 3);
+        std::string_view line = "FID\tIID\t2.5";
+
+        REQUIRE_THROWS_AS(
+            parse_nth_double(line, 5, '\t'), gelex::ColumnRangeException);
+    }
+
+    SECTION("Exception - invalid number at column")
+    {
+        std::string_view line = "FID\tIID\tinvalid";
+
+        REQUIRE_THROWS_AS(
+            parse_nth_double(line, 2, '\t'), gelex::NumberParseException);
     }
 }
 
-TEST_CASE("parse_string function", "[parser]")
+TEST_CASE("Parser All Doubles Parsing Tests", "[parser]")
 {
-    const std::string_view line = "FID\tIID\t3.14\t-2.5\t0";
-
-    SECTION("Full line parsing")
+    SECTION("Happy path - parse all doubles")
     {
-        auto result = gelex::detail::parse_string(line);
-        REQUIRE(result.size() == 5);
-        REQUIRE(result[0] == "FID");
-        REQUIRE(result[1] == "IID");
-        REQUIRE(result[2] == "3.14");
-        REQUIRE(result[3] == "-2.5");
-        REQUIRE(result[4] == "0");
+        std::string_view line = "2.5\t1.0\t0.5\t-1.2";
+        std::vector<double> doubles;
+        parse_all_doubles(line, doubles, 0, '\t');
+        REQUIRE(doubles.size() == 4);
+        REQUIRE(doubles[0] == 2.5);
+        REQUIRE(doubles[1] == 1.0);
+        REQUIRE(doubles[2] == 0.5);
+        REQUIRE(doubles[3] == -1.2);
     }
 
-    SECTION("With column offset")
+    SECTION("Happy path - parse with column offset")
     {
-        auto result = gelex::detail::parse_string(line, 2);
-        REQUIRE(result.size() == 3);
-        REQUIRE(result[0] == "3.14");
-        REQUIRE(result[1] == "-2.5");
-        REQUIRE(result[2] == "0");
+        std::string_view line = "FID\tIID\t2.5\t1.0\t0.5";
+        std::vector<double> doubles;
+        parse_all_doubles(line, doubles, 2, '\t');
+        REQUIRE(doubles.size() == 3);
+        REQUIRE(doubles[0] == 2.5);
+        REQUIRE(doubles[1] == 1.0);
+        REQUIRE(doubles[2] == 0.5);
     }
 
-    SECTION("Custom delimiters")
+    SECTION("Exception - invalid number in any column")
     {
-        const std::string_view comma_line = "FID,IID,3.14,-2.5,0";
-        auto result = gelex::detail::parse_string(comma_line, 0, ",");
-        REQUIRE(result.size() == 5);
-        REQUIRE(result[0] == "FID");
+        std::string_view line = "2.5\tinvalid\t0.5";
+
+        std::vector<double> doubles;
+        REQUIRE_THROWS_AS(
+            parse_all_doubles(line, doubles, 0, '\t'),
+            gelex::DataParseException);
     }
 
-    SECTION("Empty and whitespace handling")
+    SECTION("Edge case - empty line")
     {
-        auto empty_result = gelex::detail::parse_string("");
-        REQUIRE(empty_result.empty());
+        std::string_view line;
 
-        auto whitespace_result = gelex::detail::parse_string("\t\t");
-        REQUIRE(whitespace_result.empty());
+        std::vector<double> doubles;
+        parse_all_doubles(line, doubles, 0, '\t');
+        REQUIRE(doubles.empty());
     }
 }
 
-TEST_CASE("parse_all_doubles function", "[parser]")
+TEST_CASE("Parser Header Tests", "[parser]")
 {
-    const std::string_view line = "FID\tIID\t3.14\t-2.5\t0\t1e6";
-
-    SECTION("Valid double parsing")
+    SECTION("Happy path - valid header")
     {
-        auto result = gelex::detail::parse_all_doubles(line, 2);
-        REQUIRE(result.has_value());
-        REQUIRE(result->size() == 4);
-        REQUIRE_THAT(result->at(0), WithinAbs(3.14, 1e-10));
-        REQUIRE_THAT(result->at(1), WithinAbs(-2.5, 1e-10));
-        REQUIRE_THAT(result->at(2), WithinAbs(0.0, 1e-10));
-        REQUIRE_THAT(result->at(3), WithinAbs(1e6, 1e-10));
+        std::string_view line = "FID\tIID\tPhenotype\tCovariate";
+
+        auto header = parse_header(line, '\t');
+        REQUIRE(header.size() == 4);
+        REQUIRE(header[0] == "FID");
+        REQUIRE(header[1] == "IID");
+        REQUIRE(header[2] == "Phenotype");
+        REQUIRE(header[3] == "Covariate");
     }
 
-    SECTION("Invalid double values")
+    SECTION("Happy path - custom delimiter")
     {
-        const std::string_view bad_line = "FID\tIID\t3.14\tabc\t0";
-        auto result = gelex::detail::parse_all_doubles(bad_line, 2);
-        REQUIRE(result.has_value() == false);
+        std::string_view line = "FID,IID,Phenotype,Covariate";
+
+        auto header = parse_header(line, ',');
+        REQUIRE(header.size() == 4);
+        REQUIRE(header[0] == "FID");
+        REQUIRE(header[1] == "IID");
     }
 
-    SECTION("Empty input")
+    SECTION("Exception - missing FID column")
     {
-        auto result = gelex::detail::parse_all_doubles("", 0);
-        REQUIRE(result.has_value());
-        REQUIRE(result->empty());
+        std::string_view line = "ID\tIID\tPhenotype";
+
+        REQUIRE_THROWS_AS(
+            parse_header(line, '\t'), gelex::HeaderFormatException);
     }
 
-    SECTION("Custom delimiters")
+    SECTION("Exception - missing IID column")
     {
-        const std::string_view comma_line = "FID,IID,3.14,-2.5,0,1e6";
-        auto result = gelex::detail::parse_all_doubles(comma_line, 2, ",");
-        REQUIRE(result.has_value());
-        REQUIRE(result->size() == 4);
+        std::string_view line = "FID\tSample\tPhenotype";
+
+        REQUIRE_THROWS_AS(
+            parse_header(line, '\t'), gelex::HeaderFormatException);
     }
 
-    SECTION("Error message includes column index")
+    SECTION("Exception - insufficient columns")
     {
-        const std::string_view bad_line = "FID\tIID\t3.14\tabc\t0";
-        auto result = gelex::detail::parse_all_doubles(bad_line, 2);
-        REQUIRE(result.has_value() == false);
-        REQUIRE(result.error().message.find("at column") != std::string::npos);
+        std::string_view line = "FID";
+
+        REQUIRE_THROWS_AS(
+            parse_header(line, '\t'), gelex::HeaderFormatException);
+    }
+
+    SECTION("Exception - empty header")
+    {
+        std::string_view line;
+
+        REQUIRE_THROWS_AS(
+            parse_header(line, '\t'), gelex::HeaderFormatException);
+    }
+}
+
+TEST_CASE("Parser ID Parsing Tests", "[parser]")
+{
+    SECTION("Happy path - full ID with tab delimiter")
+    {
+        std::string_view line = "1\t2\t2.5\t1.0";
+
+        REQUIRE(parse_id(line, false, '\t') == "1_2");
+    }
+
+    SECTION("Happy path - IID only with tab delimiter")
+    {
+        std::string_view line = "1\t2\t2.5\t1.0";
+
+        REQUIRE(parse_id(line, true, '\t') == "2");
+    }
+
+    SECTION("Happy path - custom delimiter")
+    {
+        std::string_view line = "1,2,2.5,1.0";
+
+        REQUIRE(parse_id(line, false, ',') == "1_2");
+    }
+
+    SECTION("Exception - insufficient columns")
+    {
+        std::string_view line = "1";
+
+        REQUIRE_THROWS_AS(
+            parse_id(line, false, '\t'), gelex::FileFormatException);
+    }
+}
+
+TEST_CASE("Parser String Parsing Tests", "[parser]")
+{
+    SECTION("Happy path - parse all columns")
+    {
+        std::string_view line = "FID\tIID\tPhenotype\tCovariate";
+        std::vector<std::string_view> strings;
+        parse_string(line, strings, 0, '\t');
+
+        REQUIRE(strings.size() == 4);
+        REQUIRE(strings[0] == "FID");
+        REQUIRE(strings[1] == "IID");
+        REQUIRE(strings[2] == "Phenotype");
+        REQUIRE(strings[3] == "Covariate");
+    }
+
+    SECTION("Happy path - parse with column offset")
+    {
+        std::string_view line = "FID\tIID\tPhenotype\tCovariate";
+        std::vector<std::string_view> strings;
+        parse_string(line, strings, 2, '\t');
+
+        REQUIRE(strings.size() == 2);
+        REQUIRE(strings[0] == "Phenotype");
+        REQUIRE(strings[1] == "Covariate");
+    }
+
+    SECTION("Edge case - offset beyond available columns")
+    {
+        std::string_view line = "FID\tIID\tPhenotype";
+        std::vector<std::string_view> strings;
+        parse_string(line, strings, 5, '\t');
+
+        REQUIRE(strings.empty());
+    }
+
+    SECTION("Edge case - empty columns")
+    {
+        std::string_view line = "FID\t\tPhenotype\t";
+        std::vector<std::string_view> strings;
+
+        REQUIRE_THROWS_AS(
+            parse_string(line, strings, 0, '\t'), gelex::DataParseException);
     }
 }

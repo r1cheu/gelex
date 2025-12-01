@@ -17,7 +17,7 @@ VariantStats compute_and_standardize(Eigen::Ref<Eigen::VectorXd> variant)
     const auto n = variant.size();
     if (n < 2)
     {
-        throw InvalidDataException(
+        throw DataParseException(
             std::format("Variant size too small for processing: {}", n));
     }
 
@@ -88,7 +88,7 @@ VariantStats RawProcessor::process_variant(Eigen::Ref<Eigen::VectorXd> variant)
     const auto n = variant.size();
     if (n < 2)
     {
-        throw InvalidDataException("Variant size too small");
+        throw DataParseException("Variant size too small");
     }
 
     VariantStats stats;
@@ -107,7 +107,7 @@ VariantStats HardWenbergProcessor::process_variant(
     const auto n = variant.size();
     if (n < 2)
     {
-        throw InvalidDataException("Variant size too small");
+        throw DataParseException("Variant size too small");
     }
 
     VariantStats stats;

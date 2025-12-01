@@ -1,264 +1,453 @@
-#include <fstream>
-#include <string>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <string_view>
 #include <unordered_map>
-#include <unordered_set>
+#include <vector>
 
+#include <Eigen/Dense>
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_exception.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/data/loader.h"
-#include "Eigen/Core"
-#include "gelex/error.h"
+#include "../src/data/loader/ccovariate_loader.h"
+#include "file_fixture.h"
+#include "gelex/exception.h"
 
-using Catch::Matchers::WithinAbs;
+namespace fs = std::filesystem;
 
-class CovarLoaderTestFixture
+using namespace gelex::detail;  // NOLINT
+using Catch::Matchers::EndsWith;
+using gelex::test::FileFixture;
+
+TEST_CASE("CovarLoader Constructor Tests", "[data][loader][covar]")
 {
-   public:
-    CovarLoaderTestFixture()
+    FileFixture files;
+
+    SECTION("Happy path - valid covar file with full IDs")
     {
-        // Create test files
-        createValidTestFile();
-        createMalformedColumnCountFile();
-        createMinimalColumnsFile();
-        createNoCovariatesFile();
-        createCategoricalDataFile();
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\tPopulation\tRegion\n"
+            "1\t2\tM\tEUR\tNorth\n"
+            "3\t4\tF\tAFR\tSouth\n"
+            "5\t6\tM\tASN\tEast\n");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                CCovarLoader loader(file_path, false);
+                REQUIRE(loader.names().size() == 3);
+                REQUIRE(loader.names()[0] == "Sex");
+                REQUIRE(loader.names()[1] == "Population");
+                REQUIRE(loader.names()[2] == "Region");
+
+                const auto& data = loader.data();
+
+                REQUIRE(data.size() == 3);
+                REQUIRE(data.count("1_2") == 1);
+                REQUIRE(data.count("3_4") == 1);
+                REQUIRE(data.count("5_6") == 1);
+
+                const auto& sample1 = data.at("1_2");
+                REQUIRE(sample1.size() == 3);
+                REQUIRE(sample1[0] == "M");
+                REQUIRE(sample1[1] == "EUR");
+                REQUIRE(sample1[2] == "North");
+
+                const auto& sample2 = data.at("5_6");
+                REQUIRE(sample2.size() == 3);
+                REQUIRE(sample2[0] == "M");
+                REQUIRE(sample2[1] == "ASN");
+                REQUIRE(sample2[2] == "East");
+            }());
     }
 
-    CovarLoaderTestFixture(const CovarLoaderTestFixture&) = default;
-    CovarLoaderTestFixture(CovarLoaderTestFixture&&) = delete;
-    CovarLoaderTestFixture& operator=(const CovarLoaderTestFixture&) = default;
-    CovarLoaderTestFixture& operator=(CovarLoaderTestFixture&&) = delete;
-    ~CovarLoaderTestFixture()
+    SECTION("Happy path - valid covar file with IID only")
     {
-        // Clean up test files
-        std::remove("test_valid.covar");
-        std::remove("test_malformed_columns.covar");
-        std::remove("test_minimal.covar");
-        std::remove("test_no_covariates.covar");
-        std::remove("test_categorical.covar");
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\tPopulation\n"
+            "1\t2\tM\tEUR\n"
+            "3\t4\tF\tAFR\n");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                CCovarLoader loader(file_path, true);
+                REQUIRE(loader.names().size() == 2);
+                REQUIRE(loader.names()[0] == "Sex");
+                REQUIRE(loader.names()[1] == "Population");
+                REQUIRE(loader.data().size() == 2);
+
+                const auto& data = loader.data();
+
+                REQUIRE(data.size() == 2);
+                REQUIRE(data.count("2") == 1);
+                REQUIRE(data.count("4") == 1);
+
+                const auto& sample1 = data.at("2");
+                REQUIRE(sample1.size() == 2);
+                REQUIRE(sample1[0] == "M");
+                REQUIRE(sample1[1] == "EUR");
+
+                const auto& sample2 = data.at("4");
+                REQUIRE(sample2.size() == 2);
+                REQUIRE(sample2[0] == "F");
+                REQUIRE(sample2[1] == "AFR");
+            }());
     }
 
-    static void createValidTestFile()
+    SECTION("Edge case - file with only header")
     {
-        std::ofstream file("test_valid.covar");
-        file << "FID\tIID\tsex\tregion\tage_group\n"
-             << "FAM1001\tIND1001\tMale\tNorth\tYoung\n"
-             << "FAM1001\tIND1002\tFemale\tSouth\tMiddle\n"
-             << "FAM1002\tIND1003\tMale\tEast\tOld\n"
-             << "FAM1252\tIND1252\tFemale\tWest\tYoung\n";
+        auto file_path = files.create_text_file("FID\tIID\tSex\tPopulation\n");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                CCovarLoader loader(file_path, false);
+                REQUIRE(loader.names().size() == 2);
+                REQUIRE(loader.data().empty());
+            }());
     }
 
-    static void createCategoricalDataFile()
+    SECTION("Exception - insufficient columns in header")
     {
-        std::ofstream file("test_categorical.covar");
-        file << "FID\tIID\tgenotype\ttreatment\tresponse\n"
-             << "FAM1001\tIND1001\tAA\tControl\tGood\n"
-             << "FAM1001\tIND1002\tAB\tTreatment\tExcellent\n"
-             << "FAM1002\tIND1003\tBB\tControl\tFair\n"
-             << "FAM1252\tIND1252\tAA\tTreatment\tGood\n"
-             << "FAM1253\tIND1253\tAB\tPlacebo\tPoor\n";
-    }
+        auto file_path = files.create_text_file(
+            "FID\tIID\n"
+            "1\t2\n");
 
-    static void createMalformedColumnCountFile()
-    {
-        std::ofstream file("test_malformed_columns.covar");
-        file
-            << "FID\tIID\tsex\tregion\tage_group\n"
-            << "FAM1001\tIND1001\tMale\tNorth\tYoung\n"
-            << "FAM1001\tIND1002\tFemale\tSouth\n";  // Missing age_group column
-    }
-
-    static void createMinimalColumnsFile()
-    {
-        std::ofstream file("test_minimal.covar");
-        file << "FID\tIID\tsex\n"
-             << "FAM1001\tIND1001\tMale\n"
-             << "FAM1001\tIND1002\tFemale\n";
-    }
-
-    static void createNoCovariatesFile()
-    {
-        std::ofstream file("test_no_covariates.covar");
-        file << "FID\tIID\n"
-             << "FAM1001\tIND1001\n"
-             << "FAM1001\tIND1002\n";
-    }
-};
-
-TEST_CASE_PERSISTENT_FIXTURE(
-    CovarLoaderTestFixture,
-    "CovarLoader::create function",
-    "[loader][covar]")
-{
-    SECTION("Valid covar file with multiple categorical covariates")
-    {
-        auto result
-            = gelex::detail::CovarLoader::create("test_valid.covar", true);
-        REQUIRE(result.has_value());
-
-        const auto& names = result->names();
-        REQUIRE(names.size() == 3);
-        REQUIRE(names[0] == "sex");
-        REQUIRE(names[1] == "region");
-        REQUIRE(names[2] == "age_group");
-
-        const auto& data = result->data();
-        REQUIRE(data.size() == 4);
-        REQUIRE(data.contains("IND1001"));
-        REQUIRE(data.contains("IND1002"));
-        REQUIRE(data.contains("IND1003"));
-        REQUIRE(data.contains("IND1252"));
-
-        // Check specific values
-        const auto& ind1001_data = data.at("IND1001");
-        REQUIRE(ind1001_data.size() == 3);
-        REQUIRE(ind1001_data[0] == "Male");
-        REQUIRE(ind1001_data[1] == "North");
-        REQUIRE(ind1001_data[2] == "Young");
-    }
-
-    SECTION("Valid covar file with complex categorical data")
-    {
-        auto result = gelex::detail::CovarLoader::create(
-            "test_categorical.covar", true);
-        REQUIRE(result.has_value());
-
-        const auto& names = result->names();
-        REQUIRE(names.size() == 3);
-        REQUIRE(names[0] == "genotype");
-        REQUIRE(names[1] == "treatment");
-        REQUIRE(names[2] == "response");
-
-        const auto& data = result->data();
-        REQUIRE(data.size() == 5);
-    }
-
-    SECTION("Valid covar file with minimal covariates")
-    {
-        auto result
-            = gelex::detail::CovarLoader::create("test_minimal.covar", true);
-
-        REQUIRE(result.has_value());
-
-        const auto& names = result->names();
-        REQUIRE(names.size() == 1);
-        REQUIRE(names[0] == "sex");
-
-        const auto& data = result->data();
-        REQUIRE(data.size() == 2);
-        REQUIRE(data.contains("IND1001"));
-        REQUIRE(data.contains("IND1002"));
-
-        const auto& ind1001_data = data.at("IND1001");
-        REQUIRE(ind1001_data.size() == 1);
-        REQUIRE(ind1001_data[0] == "Male");
-    }
-
-    SECTION("Non-existent file")
-    {
-        auto result = gelex::detail::CovarLoader::create(
-            "non_existent_file.covar", true);
-
-        REQUIRE_FALSE(result.has_value());
-        REQUIRE(result.error().code == gelex::ErrorCode::FileNotFound);
-    }
-
-    SECTION("IID only vs full ID mode")
-    {
-        auto iid_only
-            = gelex::detail::CovarLoader::create("test_valid.covar", true);
-        REQUIRE(iid_only.has_value());
-        REQUIRE(iid_only->data().contains("IND1001"));
-
-        auto full_id
-            = gelex::detail::CovarLoader::create("test_valid.covar", false);
-        REQUIRE(full_id.has_value());
-        REQUIRE(full_id->data().contains("FAM1001_IND1001"));
-    }
-
-    SECTION("File with insufficient columns (no covariates)")
-    {
-        auto result = gelex::detail::CovarLoader::create(
-            "test_no_covariates.covar", true);
-
-        REQUIRE_FALSE(result.has_value());
-        REQUIRE(result.error().code == gelex::ErrorCode::InvalidRange);
+        REQUIRE_THROWS_MATCHES(
+            CCovarLoader(file_path, false),
+            gelex::FileFormatException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("categorical covariates must have > 2 columns")));
     }
 }
 
-TEST_CASE_PERSISTENT_FIXTURE(
-    CovarLoaderTestFixture,
-    "CovarLoader::load method",
-    "[loader][covar]")
+TEST_CASE("CovarLoader set_data Tests", "[data][loader][covar]")
 {
-    auto loader
-        = gelex::detail::CovarLoader::create("test_categorical.covar", true);
-    REQUIRE(loader.has_value());
+    FileFixture files;
 
-    SECTION("Load with complete ID mapping")
+    SECTION("Happy path - handle empty lines")
     {
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"IND1001", 0},
-               {"IND1002", 3},
-               {"IND1003", 2},
-               {"IND1252", 1},
-               {"IND1253", 4}};
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\tPopulation\n"
+            "\n"
+            "1\t2\tM\tEUR\n"
+            "\n"
+            "3\t4\tF\tAFR\n"
+            "\n");
 
-        Eigen::MatrixXd result = loader->load(id_map);
-
-        REQUIRE(result.rows() == 5);
-        // Should have 6 columns: genotype (2 dummy vars), treatment (2 dummy
-        // vars), response (3 dummy vars)
-        REQUIRE(result.cols() == 7);  // 2 + 2 + 3 = 7 dummy variables total
-
-        Eigen::MatrixXd expected{
-            {0, 0, 0, 0, 0, 1, 0},
-            {0, 0, 0, 1, 0, 1, 0},
-            {0, 1, 0, 0, 1, 0, 0},
-            {1, 0, 0, 1, 0, 0, 0},
-            {1, 0, 1, 0, 0, 0, 1},
-        };
-
-        REQUIRE(result.isApprox(expected, 1e-8));
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                CCovarLoader loader(file_path, false);
+                REQUIRE(loader.data().size() == 2);
+            }());
     }
 
-    SECTION("Load with partial ID mapping after intersection")
+    SECTION("Happy path - handle missing categorical values")
     {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\tPopulation\tRegion\n"
+            "1\t2\tM\tEUR\t\n"
+            "3\t4\tF\t\tSouth\n"
+            "5\t6\t\tASN\tEast\n");
+
+        REQUIRE_THROWS_MATCHES(
+            CCovarLoader(file_path, false),
+            gelex::FileFormatException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("empty value encountered")));
+    }
+
+    SECTION("Exception - column count mismatch in data row")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\tPopulation\n"
+            "1\t2\tM\n");  // Missing Population value
+
+        REQUIRE_THROWS_AS(
+            CCovarLoader(file_path, false), gelex::FileFormatException);
+    }
+
+    SECTION("Edge case - single categorical covariate")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\n"
+            "1\t2\tM\n"
+            "3\t4\tF\n");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                CCovarLoader loader(file_path, false);
+                REQUIRE(loader.names().size() == 1);
+                REQUIRE(loader.names()[0] == "Sex");
+                REQUIRE(loader.data().size() == 2);
+            }());
+    }
+}
+
+TEST_CASE("CovarLoader load Tests", "[data][loader][covar]")
+{
+    FileFixture files;
+
+    SECTION("Happy path - load with complete ID mapping and one-hot encoding")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\tPopulation\n"
+            "1\t2\tM\tEUR\n"
+            "3\t4\tF\tAFR\n"
+            "5\t6\tM\tASN\n");
+
+        CCovarLoader loader(file_path, false);
+
         std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"IND1001", 0}, {"IND1002", 1}, {"IND1003", 2}};
+            = {{"1_2", 0}, {"3_4", 1}, {"5_6", 2}};
 
-        Eigen::MatrixXd result = loader->load(id_map);
+        Eigen::MatrixXd result = loader.load(id_map);
 
+        // Expected encoding:
+        // Sex: M (baseline), F -> 1 dummy variable
+        // Population: AFR(baseline), ASN, EUR-> 2 dummy variables
+        // Total columns: 1 + 2 = 3
         REQUIRE(result.rows() == 3);
-        // After intersection,
-        // genotype has 3 levels -> 2 dummy variables
-        // treatment has 2 levels -> 1 dummy variable
-        // response has 3 levels -> 2 dummy variables
-        // Total: 2 + 1 + 2 = 5 dummy variables
-        REQUIRE(result.cols() == 5);
+        REQUIRE(result.cols() == 3);
 
-        Eigen::MatrixXd expected{
-            {0, 0, 0, 0, 1},
-            {1, 0, 1, 0, 0},
-            {0, 1, 0, 1, 0},
-        };
+        // Sample 1: M, EUR -> [1, 0, 1] (all baseline)
+        REQUIRE(result(0, 0) == 1.0);  // Sex_F
+        REQUIRE(result(0, 1) == 0.0);  // Population_ASN
+        REQUIRE(result(0, 2) == 1.0);  // Population_EUR
 
-        REQUIRE(result.isApprox(expected, 1e-8));
+        // Sample 2: F, AFR -> [0, 0, 0]
+        REQUIRE(result(1, 0) == 0.0);  // Sex_F
+        REQUIRE(result(1, 1) == 0.0);  // Population_ASN
+        REQUIRE(result(1, 2) == 0.0);  // Population_EUR
+
+        // Sample 3: M, ASN -> [1, 1, 0]
+        REQUIRE(result(2, 0) == 1.0);  // Sex_F
+        REQUIRE(result(2, 1) == 1.0);  // Population_ASN
+        REQUIRE(result(2, 2) == 0.0);  // Population_EUR
+    }
+
+    SECTION("Happy path - load with partial ID mapping")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\tPopulation\n"
+            "1\t2\tM\tEUR\n"
+            "3\t4\tF\tAFR\n"
+            "5\t6\tM\tASN\n");
+
+        CCovarLoader loader(file_path, false);
+
+        std::unordered_map<std::string, Eigen::Index> id_map
+            = {{"1_2", 0}, {"5_6", 1}};
+
+        Eigen::MatrixXd result = loader.load(id_map);
+
+        REQUIRE(result.rows() == 2);
+        REQUIRE(result.cols() == 1);
+
+        // Sample 1: M, EUR -> [1]
+        REQUIRE(result(0, 0) == 1);  // Population_ASN
+        // Sample 3: M, ASN -> [0]
+        REQUIRE(result(1, 0) == 0);  // Population_ASN
+    }
+    SECTION("Happy path - load with partial ID mapping and reordering")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\tPopulation\n"
+            "1\t2\tM\tEUR\n"
+            "3\t4\tF\tAFR\n"
+            "5\t6\tM\tASN\n");
+
+        CCovarLoader loader(file_path, false);
+
+        std::unordered_map<std::string, Eigen::Index> id_map
+            = {{"1_2", 1}, {"5_6", 0}};
+
+        Eigen::MatrixXd result = loader.load(id_map);
+
+        REQUIRE(result.rows() == 2);
+        REQUIRE(result.cols() == 1);
+
+        // Sample 3: M, ASN -> [0]
+        REQUIRE(result(0, 0) == 0);  // Population_ASN
+        // Sample 1: M, EUR -> [1]
+        REQUIRE(result(1, 0) == 1);  // Population_ASN
+    }
+
+    SECTION("Happy path - load with IID only mapping")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\tPopulation\n"
+            "1\t2\tM\tEUR\n"
+            "3\t4\tF\tAFR\n"
+            "5\t6\tM\tASN\n");
+
+        CCovarLoader loader(file_path, true);
+
+        std::unordered_map<std::string, Eigen::Index> id_map
+            = {{"2", 0}, {"4", 1}, {"6", 2}};
+
+        Eigen::MatrixXd result = loader.load(id_map);
+
+        // Expected encoding:
+        // Sex: M (baseline), F -> 1 dummy variable
+        // Population: AFR(baseline), ASN, EUR-> 2 dummy variables
+        // Total columns: 1 + 2 = 3
+        REQUIRE(result.rows() == 3);
+        REQUIRE(result.cols() == 3);
+
+        // Sample 1: M, EUR -> [1, 0, 1] (all baseline)
+        REQUIRE(result(0, 0) == 1.0);  // Sex_F
+        REQUIRE(result(0, 1) == 0.0);  // Population_ASN
+        REQUIRE(result(0, 2) == 1.0);  // Population_EUR
+
+        // Sample 2: F, AFR -> [0, 0, 0]
+        REQUIRE(result(1, 0) == 0.0);  // Sex_F
+        REQUIRE(result(1, 1) == 0.0);  // Population_ASN
+        REQUIRE(result(1, 2) == 0.0);  // Population_EUR
+
+        // Sample 3: M, ASN -> [1, 1, 0]
+        REQUIRE(result(2, 0) == 1.0);  // Sex_F
+        REQUIRE(result(2, 1) == 1.0);  // Population_ASN
+        REQUIRE(result(2, 2) == 0.0);  // Population_EUR
+    }
+
+    SECTION("Edge case - empty ID mapping")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\tPopulation\n"
+            "1\t2\tM\tEUR\n");
+
+        CCovarLoader loader(file_path, false);
+
+        std::unordered_map<std::string, Eigen::Index> id_map;
+
+        Eigen::MatrixXd result = loader.load(id_map);
+
+        REQUIRE(result.rows() == 0);
+        REQUIRE(result.cols() == 0);  // No valid samples, so no dummy variables
+    }
+
+    SECTION("Edge case - ID mapping with no matches")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\tPopulation\n"
+            "1\t2\tM\tEUR\n");
+
+        CCovarLoader loader(file_path, false);
+
+        std::unordered_map<std::string, Eigen::Index> id_map
+            = {{"nonexistent_id", 0}, {"another_missing", 1}};
+
+        Eigen::MatrixXd result = loader.load(id_map);
+
+        REQUIRE(result.rows() == 2);
+        REQUIRE(result.cols() == 0);
+    }
+
+    SECTION("Edge case - single categorical variable with two levels")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\n"
+            "1\t2\tM\n"
+            "3\t4\tF\n");
+
+        CCovarLoader loader(file_path, false);
+
+        std::unordered_map<std::string, Eigen::Index> id_map
+            = {{"1_2", 0}, {"3_4", 1}};
+
+        Eigen::MatrixXd result = loader.load(id_map);
+
+        REQUIRE(result.rows() == 2);
+        REQUIRE(result.cols() == 1);  // One dummy variable for Sex
+
+        REQUIRE(result(0, 0) == 1);  // M
+        REQUIRE(result(1, 0) == 0);  // F (baseline)
+    }
+
+    SECTION("Edge case - categorical variable with single level")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\n"
+            "1\t2\tM\n"
+            "3\t4\tM\n");  // Only one level
+
+        CCovarLoader loader(file_path, false);
+
+        std::unordered_map<std::string, Eigen::Index> id_map
+            = {{"1_2", 0}, {"3_4", 1}};
+
+        Eigen::MatrixXd result = loader.load(id_map);
+
+        REQUIRE(result.rows() == 2);
+        REQUIRE(result.cols() == 0);  // No dummy variables for single level
+        REQUIRE(result.isZero());     // All zeros
+    }
+
+    SECTION("Edge case - categorical variable with missing values")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\tPopulation\n"
+            "1\t2\tM\tEUR\n"
+            "3\t4\t\tAFR\n"  // Missing Sex
+            "5\t6\tF\t\n");  // Missing Population
+
+        REQUIRE_THROWS_MATCHES(
+            CCovarLoader(file_path, false),
+            gelex::FileFormatException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("empty value encountered")));
     }
 }
 
-TEST_CASE_PERSISTENT_FIXTURE(
-    CovarLoaderTestFixture,
-    "CovarLoader error handling",
-    "[loader][covar]")
+TEST_CASE("CovarLoader Integration Tests", "[data][loader][covar]")
 {
-    SECTION("Malformed data - inconsistent column count")
+    FileFixture files;
+    SECTION(
+        "Integration - complex categorical encoding with numeric-like values")
     {
-        auto result = gelex::detail::CovarLoader::create(
-            "test_malformed_columns.covar", true);
+        auto file_path = files.create_text_file(
+            "FID\tIID\tGroup\tCategory\n"
+            "1\t2\t1\tA\n"
+            "3\t4\t2\tB\n"
+            "5\t6\t1\tC\n"
+            "7\t8\t3\tA\n");
 
-        REQUIRE_FALSE(result.has_value());
-        REQUIRE(result.error().code == gelex::ErrorCode::InconsistColumnCount);
+        CCovarLoader loader(file_path, false);
+
+        std::unordered_map<std::string, Eigen::Index> id_map
+            = {{"1_2", 0}, {"3_4", 1}, {"5_6", 2}, {"7_8", 3}};
+
+        Eigen::MatrixXd result = loader.load(id_map);
+
+        REQUIRE(result.rows() == 4);
+        // Group: 1 (baseline), 2, 3 -> 2 dummies
+        // Category: A (baseline), B, C -> 2 dummies
+        // Total: 2 + 2 = 4 columns
+        REQUIRE(result.cols() == 4);
+
+        // Sample 1: Group=1, Category=A -> [0,0,0,0]
+        REQUIRE(result.row(0).isZero());
+
+        // Sample 2: Group=2, Category=B -> [1,0,1,0]
+        REQUIRE(result(1, 0) == 1.0);  // Group_2
+        REQUIRE(result(1, 1) == 0.0);  // Group_3
+        REQUIRE(result(1, 2) == 1.0);  // Category_B
+        REQUIRE(result(1, 3) == 0.0);  // Category_C
+
+        // Sample 3: Group=1, Category=C -> [0,0,0,1]
+        REQUIRE(result(2, 0) == 0.0);  // Group_2
+        REQUIRE(result(2, 1) == 0.0);  // Group_3
+        REQUIRE(result(2, 2) == 0.0);  // Category_B
+        REQUIRE(result(2, 3) == 1.0);  // Category_C
+
+        // Sample 4: Group=3, Category=A -> [0,1,0,0]
+        REQUIRE(result(3, 0) == 0.0);  // Group_2
+        REQUIRE(result(3, 1) == 1.0);  // Group_3
+        REQUIRE(result(3, 2) == 0.0);  // Category_B
+        REQUIRE(result(3, 3) == 0.0);  // Category_C
     }
 }

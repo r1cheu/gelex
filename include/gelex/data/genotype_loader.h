@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 
-#include <gelex/barkeep.h>
+#include <barkeep.h>
 #include <Eigen/Core>
 
 #include "estimator/bayes/indicator.h"

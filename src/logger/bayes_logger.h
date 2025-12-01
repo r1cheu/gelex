@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-#include <gelex/barkeep.h>
+#include <barkeep.h>
 #include <spdlog/logger.h>
 
 #include "gelex/model/bayes/model.h"

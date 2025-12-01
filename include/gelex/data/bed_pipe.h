@@ -9,7 +9,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/sample_manager.h"
-#include "gelex/mio.h"
+#include "mio.h"
 
 #include "../src/predictor/snp_matcher.h"
 

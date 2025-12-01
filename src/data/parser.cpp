@@ -2,30 +2,39 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <filesystem>
+#include <ranges>
+#include <vector>
 
 namespace gelex::detail
 {
 
 size_t count_total_lines(const std::filesystem::path& path)
 {
+    constexpr size_t buffer_size = 128 * 1024;
+
+    std::vector<char> buffer(buffer_size);
+
     auto file = open_file<std::ifstream>(
         path, std::ios_base::in | std::ios_base::binary);
 
-    constexpr auto buffer_size = static_cast<const size_t>(64 * 1024);
-    std::vector<char> buffer(buffer_size);
+    file.rdbuf()->pubsetbuf(buffer.data(), buffer_size);
 
     size_t line_count = 0;
-    while (file.read(buffer.data(), buffer.size()))
-    {
-        line_count += std::ranges::count(buffer, '\n');
-    }
 
-    if (file.gcount() > 0)
+    while (file)
     {
-        std::span<char> last_chunk(buffer.data(), file.gcount());
-        line_count += std::ranges::count(last_chunk, '\n');
+        file.read(buffer.data(), buffer_size);
+        std::streamsize count = file.gcount();
+        if (count == 0)
+        {
+            break;
+        }
 
-        if (last_chunk.back() != '\n')
+        line_count
+            += std::ranges::count(buffer.begin(), buffer.begin() + count, '\n');
+
+        if (file.eof() && count > 0 && buffer[count - 1] != '\n')
         {
             line_count++;
         }
@@ -34,94 +43,104 @@ size_t count_total_lines(const std::filesystem::path& path)
     return line_count;
 }
 
-auto split_line(std::string_view line, char delimiter)
+std::string_view get_nth_token(std::string_view line, size_t n, char delimiter)
 {
-    return line | std::views::split(delimiter)
-           | std::views::filter([](auto&& r)
-                                { return !std::ranges::empty(r); });
+    auto view = line | std::views::split(delimiter) | std::views::drop(n);
+    if (view.begin() == view.end())
+    {
+        return {};
+    }
+    return std::string_view(*view.begin());
 }
 
 double
 parse_nth_double(std::string_view line, size_t column_index, char delimiter)
 {
-    auto tokens = split_line(line, delimiter) | std::views::drop(column_index)
-                  | std::views::take(1);
+    std::string_view token = get_nth_token(line, column_index, delimiter);
 
-    if (auto it = tokens.begin(); it != tokens.end())
+    if (!token.empty() || (line.size() > 0 && column_index == 0))
     {
-        return try_parse_double(*it);
+        return parse_number<double>(token);
     }
 
-    throw InvalidRangeException(
-        std::format("column index {} is out of range", column_index));
+    throw ColumnRangeException(
+        std::format("Column {} is out of range", column_index));
 }
 
 std::string parse_id(std::string_view line, bool iid_only, char delimiter)
 {
-    auto tokens = split_line(line, delimiter) | std::views::take(2);
+    auto parts = line | std::views::split(delimiter) | std::views::take(2);
+    auto it = parts.begin();
+    auto end = parts.end();
 
-    std::vector<std::string_view> ids;
-    ids.reserve(2);
-
-    for (auto&& sub : tokens)
+    if (it == end)
     {
-        ids.emplace_back(sub.begin(), sub.end());
+        throw FileFormatException("failed to parse FID (empty line)");
     }
+    std::string_view fid(*it);
 
-    if (ids.size() < 2)
+    if (++it == end)
     {
-        throw InvalidFileException("failed to parse FID and IID");
+        throw FileFormatException(
+            "failed to parse FID and IID (missing delimiter)");
     }
-
+    std::string_view iid(*it);
     if (iid_only)
     {
-        return std::string(ids[1]);
+        return std::string(iid);
     }
-
-    return std::format("{}_{}", ids[0], ids[1]);
+    return std::format("{}_{}", fid, iid);
 }
 
 size_t count_num_columns(std::string_view line, char delimiter)
 {
-    auto tokens = split_line(line, delimiter);
-    return static_cast<size_t>(std::ranges::distance(tokens));
+    if (line.empty())
+    {
+        return 0;
+    }
+    return static_cast<size_t>(std::ranges::count(line, delimiter)) + 1;
 }
 
-std::vector<std::string_view>
-parse_string(std::string_view line, size_t column_offset, char delimiter)
+void parse_string(
+    std::string_view line,
+    std::vector<std::string_view>& out,
+    size_t column_offset,
+    char delimiter)
 {
-    auto tokens_view
-        = split_line(line, delimiter) | std::views::drop(column_offset);
+    out.clear();
 
-    std::vector<std::string_view> result;
-    for (auto&& rng : tokens_view)
+    auto tokens
+        = line | std::views::split(delimiter) | std::views::drop(column_offset);
+
+    for (auto&& rng : tokens)
     {
-        result.emplace_back(rng.begin(), rng.end());
+        if (rng.empty())
+        {
+            throw DataParseException("empty value encountered");
+        }
+        out.emplace_back(rng);
     }
-    return result;
 }
 
 std::vector<std::string_view> parse_header(
     std::string_view line,
     char delimiter)
 {
-    auto header = parse_string(line, 0, delimiter);
-
-    if (header.empty())
-    {
-        throw WrongHeaderException("empty header");
-    }
+    std::vector<std::string_view> header;
+    header.reserve(16);
+    parse_string(line, header, 0, delimiter);
 
     if (header.size() < 2)
     {
-        throw WrongHeaderException("header contains less than 2 columns.");
+        throw HeaderFormatException(
+            std::format("header contains only {} columns.", header.size()));
     }
 
     if (header[0] != "FID" || header[1] != "IID")
     {
-        throw WrongHeaderException(
+        throw HeaderFormatException(
             std::format(
-                "first two columns are '{}' and '{}', but expected 'FID' and "
+                "first two columns are '{}' and '{}', expected 'FID' and "
                 "'IID'.",
                 header[0],
                 header[1]));
@@ -129,28 +148,36 @@ std::vector<std::string_view> parse_header(
     return header;
 }
 
-std::vector<double>
-parse_all_doubles(std::string_view line, size_t column_offset, char delimiter)
+void parse_all_doubles(
+    std::string_view line,
+    std::vector<double>& out,
+    size_t column_offset,
+    char delimiter)
 {
-    auto tokens_view
-        = split_line(line, delimiter) | std::views::drop(column_offset);
+    out.clear();
+    auto tokens = line | std::views::split(delimiter)
+                  | std::views::drop(column_offset) | std::views::enumerate;
 
-    std::vector<double> result;
-    int column_index = static_cast<int>(column_offset);
-    for (auto&& token_range : tokens_view)
+    for (auto&& [idx, rng] : tokens)
     {
+        std::string_view token(rng);
+
+        if (token.empty())
+        {
+            continue;
+        }
+
         try
         {
-            result.push_back(try_parse_double(token_range));
+            out.push_back(parse_number<double>(token));
         }
-        catch (const NotNumberException& ex)
+        catch (const NumberParseException& ex)
         {
-            throw InvalidDataException(
-                std::format("{} at column {}", ex.what(), column_index));
+            size_t actual_col = idx + column_offset;
+            throw DataParseException(
+                std::format("{} at column {}", ex.what(), actual_col));
         }
-        column_index++;
     }
-    return result;
 }
 
 }  // namespace gelex::detail

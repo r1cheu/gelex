@@ -62,11 +62,11 @@ auto compute_init_marker_variance(
 {
     if (target_variance <= 0.0)
     {
-        throw InvalidArgumentException("Target variance must be positive");
+        throw ArgumentValidationException("Target variance must be positive");
     }
     if (non_zero_marker_proption <= 0.0)
     {
-        throw InvalidArgumentException(
+        throw ArgumentValidationException(
             "Non-zero marker proportion must be positive");
     }
 
@@ -75,7 +75,7 @@ auto compute_init_marker_variance(
 
     if (num_non_zero_snps <= 0.0)
     {
-        throw InvalidArgumentException(
+        throw ArgumentValidationException(
             "Number of non-zero SNPs must be positive");
     }
 
@@ -89,11 +89,11 @@ auto compute_init_marker_variance(
 {
     if (target_variance <= 0.0)
     {
-        throw InvalidArgumentException("Target variance must be positive");
+        throw ArgumentValidationException("Target variance must be positive");
     }
     if (non_zero_marker_proption <= 0.0)
     {
-        throw InvalidArgumentException(
+        throw ArgumentValidationException(
             "Non-zero marker proportion must be positive");
     }
 
@@ -103,7 +103,7 @@ auto compute_init_marker_variance(
 
     if (non_zero_marker_variance <= 0.0)
     {
-        throw InvalidArgumentException(
+        throw ArgumentValidationException(
             "Non-zero marker variance must be positive");
     }
 

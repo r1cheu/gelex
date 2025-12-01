@@ -1,4 +1,4 @@
-#include <gelex/argparse.h>
+#include <argparse.h>
 
 #include "config.h"
 

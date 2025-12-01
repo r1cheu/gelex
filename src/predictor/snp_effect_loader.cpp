@@ -8,7 +8,7 @@
 
 #include <Eigen/Core>
 
-#include "../src/data/parser.h"  // open_file, try_parse_double, parse_string, count_total_lines
+#include "../src/data/parser.h"  // open_file, try_parse_number, parse_string, count_total_lines
 #include "gelex/exception.h"
 
 namespace gelex
@@ -23,16 +23,17 @@ SnpEffects SnpEffectLoader::load(const std::filesystem::path& snp_effect_path)
     std::string line;
     if (!std::getline(file, line))
     {
-        throw InvalidDataException(
+        throw DataParseException(
             std::format("Empty .snp.eff file: {}", snp_effect_path.string()));
     }
 
-    auto header = detail::parse_string(line);
+    std::vector<std::string_view> header;
+    detail::parse_string(line, header);
     const auto indices = assign_column_indices(header);
 
     if (!indices.has_required_columns())
     {
-        throw WrongHeaderException(
+        throw HeaderFormatException(
             std::format(
                 "Missing required columns (ID, A1, A2, A1Frq, Add) in file: {}",
                 snp_effect_path.string()));
@@ -47,7 +48,7 @@ SnpEffects SnpEffectLoader::load(const std::filesystem::path& snp_effect_path)
     Eigen::Index idx = 0;
     int line_number = 1;
     const int min_cols_needed = indices.max_required_index() + 1;
-
+    std::vector<std::string_view> row;
     while (std::getline(file, line))
     {
         line_number++;
@@ -56,7 +57,7 @@ SnpEffects SnpEffectLoader::load(const std::filesystem::path& snp_effect_path)
             continue;
         }
 
-        auto row = detail::parse_string(line);
+        detail::parse_string(line, row);
 
         if (static_cast<int>(row.size()) < min_cols_needed)
         {
@@ -71,13 +72,13 @@ SnpEffects SnpEffectLoader::load(const std::filesystem::path& snp_effect_path)
 
         try
         {
-            double a1_freq = detail::try_parse_double(row[indices.a1frq]);
-            double add_val = detail::try_parse_double(row[indices.add]);
+            auto a1_freq = detail::parse_number<double>(row[indices.a1frq]);
+            auto add_val = detail::parse_number<double>(row[indices.add]);
 
             double dom_val = std::numeric_limits<double>::quiet_NaN();
             if (indices.dom != -1 && indices.dom < static_cast<int>(row.size()))
             {
-                dom_val = detail::try_parse_double(row[indices.dom]);
+                dom_val = detail::parse_number<double>(row[indices.dom]);
             }
 
             SnpEffect effect{
@@ -92,12 +93,12 @@ SnpEffects SnpEffectLoader::load(const std::filesystem::path& snp_effect_path)
         }
         catch (const GelexException& e)
         {
-            throw InvalidDataException(
+            throw DataParseException(
                 enrich_with_line_info(e.what(), line_number));
         }
         catch (const std::exception& e)
         {
-            throw InvalidDataException(
+            throw DataParseException(
                 std::format(
                     "Error parsing line {}: {}", line_number, e.what()));
         }
@@ -114,10 +115,11 @@ bool SnpEffectLoader::has_dom_effects(
     std::string line;
     if (!std::getline(file, line))
     {
-        throw InvalidDataException("Empty .snp.eff file");
+        throw DataParseException("Empty .snp.eff file");
     }
 
-    auto header = detail::parse_string(line);
+    std::vector<std::string_view> header;
+    detail::parse_string(line, header);
     const auto indices = assign_column_indices(header);
 
     return indices.dom != -1;

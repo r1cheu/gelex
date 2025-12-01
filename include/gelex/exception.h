@@ -15,6 +15,9 @@ class GelexException : public std::runtime_error
     using std::runtime_error::runtime_error;
 };
 
+// ----------------------------------------------------------------
+// ----------------- File-related exceptions ----------------------
+// ----------------------------------------------------------------
 class FileNotFoundException : public GelexException
 {
    public:
@@ -24,62 +27,70 @@ class FileNotFoundException : public GelexException
     }
 };
 
-class FileIOException : public GelexException
+class FileOpenException : public GelexException
 {
    public:
-    explicit FileIOException(std::string_view message)
+    explicit FileOpenException(std::string_view message)
         : GelexException(std::string(message))
     {
     }
 };
 
-class InvalidDataException : public GelexException
+class FileExistsException : public GelexException
 {
    public:
-    using GelexException::GelexException;
-};
-
-class OutputFileExistsException : public GelexException
-{
-   public:
-    explicit OutputFileExistsException(const std::filesystem::path& path)
+    explicit FileExistsException(const std::filesystem::path& path)
         : GelexException(
               std::format("Output file already exists: '{}'", path.string()))
     {
     }
 };
 
+class FileFormatException : public GelexException
+{
+   public:
+    using GelexException::GelexException;
+};
+
+// ----------------------------------------------------------------
+// ------------------ Parse-related exceptions ---------------------
+// ----------------------------------------------------------------
+
+class DataParseException : public GelexException
+{
+   public:
+    using GelexException::GelexException;
+};
+
+class NumberParseException : public GelexException
+{
+   public:
+    using GelexException::GelexException;
+};
+
+class HeaderFormatException : public GelexException
+{
+   public:
+    using GelexException::GelexException;
+};
+
+// ---------------------------------------------------------------
+// -------------- Argument-related exceptions --------------------
+// ---------------------------------------------------------------
+
+class ArgumentValidationException : public GelexException
+{
+   public:
+    using GelexException::GelexException;
+};
+
+class ColumnRangeException : public GelexException
+{
+   public:
+    using GelexException::GelexException;
+};
+
 class InvalidOperationException : public GelexException
-{
-   public:
-    using GelexException::GelexException;
-};
-
-class NotNumberException : public GelexException
-{
-   public:
-    using GelexException::GelexException;
-};
-
-class InvalidFileException : public GelexException
-{
-   public:
-    using GelexException::GelexException;
-};
-
-class InvalidRangeException : public GelexException
-{
-   public:
-    using GelexException::GelexException;
-};
-
-class InvalidArgumentException : public GelexException
-{
-   public:
-    using GelexException::GelexException;
-};
-
-class WrongHeaderException : public GelexException
 {
    public:
     using GelexException::GelexException;

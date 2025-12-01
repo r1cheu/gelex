@@ -1,4 +1,3 @@
-#include "../../src/estimator/bayes/diagnostics.h"
 
 #include <iostream>
 #include <random>
@@ -8,7 +7,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "Eigen/Core"
+#include "../src/estimator/bayes/diagnostics.h"
 #include "gelex/types/mcmc_samples.h"
 
 using Catch::Matchers::WithinAbs;

@@ -1,243 +1,410 @@
-#include <fstream>
-#include <string>
+#include <filesystem>
+#include <string_view>
 #include <unordered_map>
+#include <vector>
 
+#include <Eigen/Dense>
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "../src/data/loader.h"
-#include "Eigen/Core"
-#include "gelex/error.h"
+#include "../src/data/loader/qcovariate_loader.h"
+#include "file_fixture.h"
+#include "gelex/exception.h"
 
-using Catch::Matchers::WithinAbs;
+namespace fs = std::filesystem;
 
-class QcovarLoaderTestFixture
+using namespace gelex::detail;  // NOLINT
+using gelex::test::FileFixture;
+
+TEST_CASE("QcovarLoader Constructor Tests", "[data][loader][qcovar]")
 {
-   public:
-    QcovarLoaderTestFixture()
+    FileFixture files;
+
+    SECTION("Happy path - valid qcovar file with full IDs")
     {
-        // Create test files
-        createValidTestFile();
-        createMalformedColumnCountFile();
-        createInvalidValueFile();
-        createMinimalColumnsFile();
-        createNoCovariatesFile();
+        auto file_path = files.create_text_file(
+            "FID\tIID\tAge\tHeight\tWeight\n"
+            "1\t2\t25.5\t170.2\t65.8\n"
+            "3\t4\t30.1\t165.7\t62.3\n"
+            "5\t6\t28.8\t172.1\t68.9\n");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                QcovarLoader loader(file_path, false);
+                REQUIRE(loader.names().size() == 3);
+                REQUIRE(loader.names()[0] == "Age");
+                REQUIRE(loader.names()[1] == "Height");
+                REQUIRE(loader.names()[2] == "Weight");
+
+                const auto& data = loader.data();
+
+                REQUIRE(data.size() == 3);
+                REQUIRE(data.count("1_2") == 1);
+                REQUIRE(data.count("3_4") == 1);
+                REQUIRE(data.count("5_6") == 1);
+
+                const auto& sample1 = data.at("1_2");
+                REQUIRE(sample1.size() == 3);
+                REQUIRE(sample1[0] == 25.5);
+                REQUIRE(sample1[1] == 170.2);
+                REQUIRE(sample1[2] == 65.8);
+
+                const auto& sample2 = data.at("5_6");
+                REQUIRE(sample2.size() == 3);
+                REQUIRE(sample2[0] == 28.8);
+                REQUIRE(sample2[1] == 172.1);
+                REQUIRE(sample2[2] == 68.9);
+            }());
     }
 
-    QcovarLoaderTestFixture(const QcovarLoaderTestFixture&) = default;
-    QcovarLoaderTestFixture(QcovarLoaderTestFixture&&) = delete;
-    QcovarLoaderTestFixture& operator=(const QcovarLoaderTestFixture&)
-        = default;
-    QcovarLoaderTestFixture& operator=(QcovarLoaderTestFixture&&) = delete;
-    ~QcovarLoaderTestFixture()
+    SECTION("Happy path - valid qcovar file with IID only")
     {
-        // Clean up test files
-        std::remove("test_valid.qcovar");
-        std::remove("test_malformed_columns.qcovar");
-        std::remove("test_invalid_value.qcovar");
-        std::remove("test_minimal.qcovar");
-        std::remove("test_no_covariates.qcovar");
+        auto file_path = files.create_text_file(
+            "FID\tIID\tAge\tHeight\n"
+            "1\t2\t25.5\t170.2\n"
+            "3\t4\t30.1\t165.7\n");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                QcovarLoader loader(file_path, true);
+                REQUIRE(loader.names().size() == 2);
+                REQUIRE(loader.names()[0] == "Age");
+                REQUIRE(loader.names()[1] == "Height");
+                REQUIRE(loader.data().size() == 2);
+
+                const auto& data = loader.data();
+
+                REQUIRE(data.size() == 2);
+                REQUIRE(data.count("2") == 1);
+                REQUIRE(data.count("4") == 1);
+
+                const auto& sample1 = data.at("2");
+                REQUIRE(sample1.size() == 2);
+                REQUIRE(sample1[0] == 25.5);
+                REQUIRE(sample1[1] == 170.2);
+
+                const auto& sample2 = data.at("4");
+                REQUIRE(sample2.size() == 2);
+                REQUIRE(sample2[0] == 30.1);
+                REQUIRE(sample2[1] == 165.7);
+            }());
     }
 
-    static void createValidTestFile()
+    SECTION("Edge case - file with only header")
     {
-        std::ofstream file("test_valid.qcovar");
-        file << "FID\tIID\tage\tbmi\theight\tweight\n"
-             << "FAM1001\tIND1001\t25.5\t22.1\t175.2\t68.7\n"
-             << "FAM1001\tIND1002\t30.2\t24.8\t182.5\t82.3\n"
-             << "FAM1002\tIND1003\t28.7\t21.5\t168.9\t61.2\n"
-             << "FAM1252\tIND1252\t35.1\t26.3\t190.1\t95.0\n";
-    }
+        auto file_path = files.create_text_file("FID\tIID\tAge\tHeight\n");
 
-    static void createMalformedColumnCountFile()
-    {
-        std::ofstream file("test_malformed_columns.qcovar");
-        file << "FID\tIID\tage\tbmi\theight\tweight\n"
-             << "FAM1001\tIND1001\t25.5\t22.1\t175.2\t68.7\n"
-             << "FAM1001\tIND1002\t30.2\t24.8\t182.5\n";  // Missing weight
-                                                          // column
-    }
-
-    static void createInvalidValueFile()
-    {
-        std::ofstream file("test_invalid_value.qcovar");
-        file << "FID\tIID\tage\tbmi\theight\tweight\n"
-             << "FAM1001\tIND1001\t25.5\t22.1\t175.2\t68.7\n"
-             << "FAM1001\tIND1002\t30.2\tinvalid\t182.5\t82.3\n";  // Invalid
-                                                                   // bmi value
-    }
-
-    static void createMinimalColumnsFile()
-    {
-        std::ofstream file("test_minimal.qcovar");
-        file << "FID\tIID\tage\n"
-             << "FAM1001\tIND1001\t25.5\n"
-             << "FAM1001\tIND1002\t30.2\n";
-    }
-
-    static void createNoCovariatesFile()
-    {
-        std::ofstream file("test_no_covariates.qcovar");
-        file << "FID\tIID\n"
-             << "FAM1001\tIND1001\n"
-             << "FAM1001\tIND1002\n";
-    }
-};
-
-TEST_CASE_PERSISTENT_FIXTURE(
-    QcovarLoaderTestFixture,
-    "QcovarLoader::create function",
-    "[loader][qcovar]")
-{
-    SECTION("Valid qcovar file with multiple covariates")
-    {
-        auto result
-            = gelex::detail::QcovarLoader::create("test_valid.qcovar", true);
-        REQUIRE(result.has_value());
-
-        const auto& names = result->names();
-        REQUIRE(names.size() == 4);
-        REQUIRE(names[0] == "age");
-        REQUIRE(names[1] == "bmi");
-        REQUIRE(names[2] == "height");
-        REQUIRE(names[3] == "weight");
-
-        const auto& data = result->data();
-        REQUIRE(data.size() == 4);
-        REQUIRE(data.contains("IND1001"));
-        REQUIRE(data.contains("IND1002"));
-        REQUIRE(data.contains("IND1003"));
-        REQUIRE(data.contains("IND1252"));
-
-        // Check specific values
-        const auto& ind1001_data = data.at("IND1001");
-        REQUIRE(ind1001_data.size() == 4);
-        REQUIRE_THAT(ind1001_data[0], WithinAbs(25.5, 1e-10));
-        REQUIRE_THAT(ind1001_data[1], WithinAbs(22.1, 1e-10));
-        REQUIRE_THAT(ind1001_data[2], WithinAbs(175.2, 1e-10));
-        REQUIRE_THAT(ind1001_data[3], WithinAbs(68.7, 1e-10));
-    }
-
-    SECTION("Valid qcovar file with minimal covariates")
-    {
-        auto result
-            = gelex::detail::QcovarLoader::create("test_minimal.qcovar", true);
-
-        REQUIRE(result.has_value());
-
-        const auto& names = result->names();
-        REQUIRE(names.size() == 1);
-        REQUIRE(names[0] == "age");
-
-        const auto& data = result->data();
-        REQUIRE(data.size() == 2);
-        REQUIRE(data.contains("IND1001"));
-        REQUIRE(data.contains("IND1002"));
-
-        const auto& ind1001_data = data.at("IND1001");
-        REQUIRE(ind1001_data.size() == 1);
-        REQUIRE_THAT(ind1001_data[0], WithinAbs(25.5, 1e-10));
-    }
-
-    SECTION("Non-existent file")
-    {
-        auto result = gelex::detail::QcovarLoader::create(
-            "non_existent_file.qcovar", true);
-
-        REQUIRE_FALSE(result.has_value());
-        REQUIRE(result.error().code == gelex::ErrorCode::FileNotFound);
-    }
-
-    SECTION("IID only vs full ID mode")
-    {
-        auto iid_only
-            = gelex::detail::QcovarLoader::create("test_valid.qcovar", true);
-        REQUIRE(iid_only.has_value());
-        REQUIRE(iid_only->data().contains("IND1001"));
-
-        auto full_id
-            = gelex::detail::QcovarLoader::create("test_valid.qcovar", false);
-        REQUIRE(full_id.has_value());
-        REQUIRE(full_id->data().contains("FAM1001_IND1001"));
-    }
-
-    SECTION("File with insufficient columns (no covariates)")
-    {
-        auto result = gelex::detail::QcovarLoader::create(
-            "test_no_covariates.qcovar", true);
-
-        REQUIRE_FALSE(result.has_value());
-        REQUIRE(result.error().code == gelex::ErrorCode::InvalidRange);
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                QcovarLoader loader(file_path, false);
+                REQUIRE(loader.names().size() == 2);
+                REQUIRE(loader.data().empty());
+            }());
     }
 }
 
-TEST_CASE_PERSISTENT_FIXTURE(
-    QcovarLoaderTestFixture,
-    "QcovarLoader::load method",
-    "[loader][qcovar]")
+TEST_CASE("QcovarLoader set_data Tests", "[data][loader][qcovar]")
 {
-    auto loader
-        = gelex::detail::QcovarLoader::create("test_valid.qcovar", true);
-    REQUIRE(loader.has_value());
+    FileFixture files;
 
-    SECTION("Load with complete ID mapping")
+    SECTION("Happy path - handle empty lines")
     {
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"IND1001", 0}, {"IND1002", 2}, {"IND1003", 1}, {"IND1252", 3}};
+        auto file_path = files.create_text_file(
+            "FID\tIID\tAge\tHeight\n"
+            "\n"
+            "1\t2\t25.5\t170.2\n"
+            "\n"
+            "3\t4\t30.1\t165.7\n"
+            "\n");
 
-        Eigen::MatrixXd result = loader->load(id_map);
-
-        REQUIRE(result.rows() == 4);
-        REQUIRE(result.cols() == 4);
-
-        Eigen::MatrixXd expect{
-            {25.5, 22.1, 175.2, 68.7},
-            {28.7, 21.5, 168.9, 61.2},
-            {30.2, 24.8, 182.5, 82.3},
-            {35.1, 26.3, 190.1, 95.0}};
-
-        REQUIRE(result.isApprox(expect, 1e-10));
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                QcovarLoader loader(file_path, false);
+                REQUIRE(loader.data().size() == 2);
+            }());
     }
 
-    SECTION("Load with partial ID mapping")
+    SECTION("Exception - invalid numeric data")
     {
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"IND1001", 1}, {"IND1252", 0}};
+        auto file_path = files.create_text_file(
+            "FID\tIID\tAge\tHeight\n"
+            "1\t2\t25.5\tinvalid\n");
 
-        Eigen::MatrixXd result = loader->load(id_map);
+        REQUIRE_THROWS_AS(
+            QcovarLoader(file_path, false), gelex::FileFormatException);
+    }
+
+    SECTION("Exception - insufficient columns in data row")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tAge\tHeight\n"
+            "1\t2\t25.5\n");
+
+        REQUIRE_THROWS_AS(
+            QcovarLoader(file_path, false), gelex::FileFormatException);
+    }
+
+    SECTION("Edge case - scientific notation numbers")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tValue1\tValue2\n"
+            "1\t2\t1.23e-4\t-5.67e+3\n");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                QcovarLoader loader(file_path, false);
+                const auto& data = loader.data();
+                REQUIRE(data.size() == 1);
+                const auto& values = data.at("1_2");
+                REQUIRE(values[0] == 1.23e-4);
+                REQUIRE(values[1] == -5.67e+3);
+            }());
+    }
+
+    SECTION("Edge case - NaN values")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tAge\tHeight\n"
+            "1\t2\tnan\t170.2\n");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                QcovarLoader loader(file_path, false);
+                const auto& data = loader.data();
+                REQUIRE(data.size() == 1);
+                const auto& values = data.at("1_2");
+                REQUIRE(std::isnan(values[0]));
+                REQUIRE(values[1] == 170.2);
+            }());
+    }
+}
+
+TEST_CASE("QcovarLoader load Tests", "[data][loader][qcovar]")
+{
+    FileFixture files;
+
+    SECTION("Happy path - load with complete ID mapping")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tAge\tHeight\n"
+            "1\t2\t25.5\t170.2\n"
+            "3\t4\t30.1\t165.7\n"
+            "5\t6\t28.8\t172.1\n");
+
+        QcovarLoader loader(file_path, false);
+
+        std::unordered_map<std::string, Eigen::Index> id_map
+            = {{"1_2", 0}, {"3_4", 1}, {"5_6", 2}};
+
+        Eigen::MatrixXd result = loader.load(id_map);
+
+        REQUIRE(result.rows() == 3);
+        REQUIRE(result.cols() == 2);
+
+        REQUIRE(result(0, 0) == 25.5);
+        REQUIRE(result(0, 1) == 170.2);
+        REQUIRE(result(1, 0) == 30.1);
+        REQUIRE(result(1, 1) == 165.7);
+        REQUIRE(result(2, 0) == 28.8);
+        REQUIRE(result(2, 1) == 172.1);
+    }
+
+    SECTION("Happy path - load with partial ID mapping")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tAge\tHeight\n"
+            "1\t2\t25.5\t170.2\n"
+            "3\t4\t30.1\t165.7\n"
+            "5\t6\t28.8\t172.1\n");
+
+        QcovarLoader loader(file_path, false);
+
+        std::unordered_map<std::string, Eigen::Index> id_map = {
+            {"1_2", 0}, {"5_6", 1}  // Note: "3_4" is missing from mapping
+        };
+
+        Eigen::MatrixXd result = loader.load(id_map);
 
         REQUIRE(result.rows() == 2);
-        REQUIRE(result.cols() == 4);
+        REQUIRE(result.cols() == 2);
 
-        Eigen::MatrixXd expect{
-            {35.1, 26.3, 190.1, 95.0},  // IND1252
-            {25.5, 22.1, 175.2, 68.7}   // IND1001
-        };
-        REQUIRE(result.isApprox(expect, 1e-10));
+        REQUIRE(result(0, 0) == 25.5);
+        REQUIRE(result(0, 1) == 170.2);
+        REQUIRE(result(1, 0) == 28.8);
+        REQUIRE(result(1, 1) == 172.1);
+
+        // Check that missing samples are not included
+        REQUIRE(result.rows() == 2);
+    }
+
+    SECTION("Happy path - load with IID only mapping")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tAge\tHeight\n"
+            "1\t2\t25.5\t170.2\n"
+            "3\t4\t30.1\t165.7\n");
+
+        QcovarLoader loader(file_path, true);
+
+        std::unordered_map<std::string, Eigen::Index> id_map
+            = {{"2", 0}, {"4", 1}};
+
+        Eigen::MatrixXd result = loader.load(id_map);
+
+        REQUIRE(result.rows() == 2);
+        REQUIRE(result.cols() == 2);
+
+        REQUIRE(result(0, 0) == 25.5);
+        REQUIRE(result(0, 1) == 170.2);
+        REQUIRE(result(1, 0) == 30.1);
+        REQUIRE(result(1, 1) == 165.7);
+    }
+
+    SECTION("Edge case - empty ID mapping")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tAge\tHeight\n"
+            "1\t2\t25.5\t170.2\n");
+
+        QcovarLoader loader(file_path, false);
+
+        std::unordered_map<std::string, Eigen::Index> id_map;
+
+        Eigen::MatrixXd result = loader.load(id_map);
+
+        REQUIRE(result.rows() == 0);
+        REQUIRE(result.cols() == 2);
+    }
+
+    SECTION("Edge case - ID mapping with no matches")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tAge\tHeight\n"
+            "1\t2\t25.5\t170.2\n");
+
+        QcovarLoader loader(file_path, false);
+
+        std::unordered_map<std::string, Eigen::Index> id_map
+            = {{"nonexistent_id", 0}, {"another_missing", 1}};
+
+        Eigen::MatrixXd result = loader.load(id_map);
+
+        REQUIRE(result.rows() == 2);
+        REQUIRE(result.cols() == 2);
+
+        // All values should be NaN since no matches found
+        REQUIRE(std::isnan(result(0, 0)));
+        REQUIRE(std::isnan(result(0, 1)));
+        REQUIRE(std::isnan(result(1, 0)));
+        REQUIRE(std::isnan(result(1, 1)));
+    }
+
+    SECTION("Edge case - single covariate")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tAge\n"
+            "1\t2\t25.5\n"
+            "3\t4\t30.1\n");
+
+        QcovarLoader loader(file_path, false);
+
+        std::unordered_map<std::string, Eigen::Index> id_map
+            = {{"1_2", 0}, {"3_4", 1}};
+
+        Eigen::MatrixXd result = loader.load(id_map);
+
+        REQUIRE(result.rows() == 2);
+        REQUIRE(result.cols() == 1);
+
+        REQUIRE(result(0, 0) == 25.5);
+        REQUIRE(result(1, 0) == 30.1);
     }
 }
 
-TEST_CASE_PERSISTENT_FIXTURE(
-    QcovarLoaderTestFixture,
-    "QcovarLoader error handling",
-    "[loader][qcovar]")
+TEST_CASE("QcovarLoader Integration Tests", "[data][loader][qcovar]")
 {
-    SECTION("Malformed data - inconsistent column count")
-    {
-        auto result = gelex::detail::QcovarLoader::create(
-            "test_malformed_columns.qcovar", true);
+    FileFixture files;
 
-        REQUIRE_FALSE(result.has_value());
-        REQUIRE(result.error().code == gelex::ErrorCode::InconsistColumnCount);
+    SECTION("Integration - complete workflow with realistic data")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tAge\tHeight\tWeight\tBMI\n"
+            "1001\t2001\t45.2\t175.3\t78.9\t25.7\n"
+            "1002\t2002\t32.8\t168.4\t65.2\t23.0\n"
+            "1003\t2003\t51.6\t182.1\t85.4\t25.7\n"
+            "1004\t2004\t28.3\t160.9\t58.7\t22.7\n"
+            "1005\t2005\t39.7\t172.8\t72.1\t24.1\n");
+
+        QcovarLoader loader(file_path, false);
+
+        // Verify names
+        const auto& names = loader.names();
+        REQUIRE(names.size() == 4);
+        REQUIRE(names[0] == "Age");
+        REQUIRE(names[1] == "Height");
+        REQUIRE(names[2] == "Weight");
+        REQUIRE(names[3] == "BMI");
+
+        // Verify raw data
+        const auto& data = loader.data();
+        REQUIRE(data.size() == 5);
+
+        // Create ID mapping
+        std::unordered_map<std::string, Eigen::Index> id_map
+            = {{"1001_2001", 0},
+               {"1002_2002", 1},
+               {"1003_2003", 2},
+               {"1004_2004", 3},
+               {"1005_2005", 4}};
+
+        // Load into matrix
+        Eigen::MatrixXd result = loader.load(id_map);
+
+        REQUIRE(result.rows() == 5);
+        REQUIRE(result.cols() == 4);
+
+        // Verify specific values
+        REQUIRE(result(0, 0) == 45.2);   // Sample 1 Age
+        REQUIRE(result(0, 1) == 175.3);  // Sample 1 Height
+        REQUIRE(result(1, 2) == 65.2);   // Sample 2 Weight
+        REQUIRE(result(2, 3) == 25.7);   // Sample 3 BMI
+        REQUIRE(result(3, 0) == 28.3);   // Sample 4 Age
+        REQUIRE(result(4, 1) == 172.8);  // Sample 5 Height
     }
 
-    SECTION("Malformed data - invalid double value")
+    SECTION("Integration - mixed ID formats (full and IID only)")
     {
-        auto result = gelex::detail::QcovarLoader::create(
-            "test_invalid_value.qcovar", true);
+        auto file_path = files.create_text_file(
+            "FID\tIID\tCovariate1\tCovariate2\n"
+            "1\t2\t1.5\t2.5\n"
+            "3\t4\t3.5\t4.5\n");
 
-        REQUIRE_FALSE(result.has_value());
-        // Should be a parsing error (NotNumber)
-        REQUIRE(result.error().code == gelex::ErrorCode::NotNumber);
+        // Test with full IDs
+        QcovarLoader loader_full(file_path, false);
+        std::unordered_map<std::string, Eigen::Index> id_map_full
+            = {{"1_2", 0}, {"3_4", 1}};
+        Eigen::MatrixXd result_full = loader_full.load(id_map_full);
+
+        // Test with IID only
+        QcovarLoader loader_iid(file_path, true);
+        std::unordered_map<std::string, Eigen::Index> id_map_iid
+            = {{"2", 0}, {"4", 1}};
+        Eigen::MatrixXd result_iid = loader_iid.load(id_map_iid);
+
+        // Both should produce the same covariate values
+        REQUIRE(result_full.rows() == 2);
+        REQUIRE(result_iid.rows() == 2);
+        REQUIRE(result_full.cols() == 2);
+        REQUIRE(result_iid.cols() == 2);
+
+        REQUIRE(result_full(0, 0) == result_iid(0, 0));
+        REQUIRE(result_full(0, 1) == result_iid(0, 1));
+        REQUIRE(result_full(1, 0) == result_iid(1, 0));
+        REQUIRE(result_full(1, 1) == result_iid(1, 1));
     }
 }

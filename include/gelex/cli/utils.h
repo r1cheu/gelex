@@ -5,7 +5,7 @@
 #include <string_view>
 #include <vector>
 
-#include <gelex/argparse.h>
+#include <argparse.h>
 
 namespace gelex::cli
 {

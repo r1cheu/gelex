@@ -5,16 +5,11 @@
 
 #include <Eigen/Core>
 
-#include "../src/data/loader.h"
+#include "../src/data/loader/bim_loader.h"
 #include "gelex/types/mcmc_results.h"
 
 namespace gelex
 {
-namespace detail
-{
-
-class BimLoader;
-}
 
 class SnpQuantGeneticWriter
 {

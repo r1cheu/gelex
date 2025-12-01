@@ -5,7 +5,7 @@
 
 #include <Eigen/Core>
 
-#include "../src/data/loader.h"
+#include "../src/data/loader/bim_loader.h"
 #include "../src/data/parser.h"
 
 namespace gelex
@@ -85,7 +85,7 @@ double SnpQuantGeneticWriter::write_snp_basic_info(
             "{}\t{}\t{}\t{}\t{}",
             snp_info.id,
             snp_info.chrom,
-            snp_info.position,
+            snp_info.base_coordinate,
             snp_info.A1,
             snp_info.A2);
 

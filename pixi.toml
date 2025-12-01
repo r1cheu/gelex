@@ -13,6 +13,7 @@ spdlog = ">=1.15.0,<2"
 catch2 = ">=3.8.0,<4"
 mkl-devel = ">=2024.2.2,<2025"
 fftw = ">=3.3.10,<4"
+llvm-tools = ">=21.1.3,<22"
 
 [tasks.configure]
 args = [
@@ -20,6 +21,7 @@ args = [
   { "arg" = "build_type", "default" = "Debug" },
   { "arg" = "test", "default" = "ON" },
   { "arg" = "cxx_compiler", "default" = "clang++-21" },
+  { "arg" = "coverage_enabled", "default" = "OFF" },
 ]
 
 cmd = [
@@ -32,6 +34,7 @@ cmd = [
   "-DCMAKE_BUILD_TYPE={{build_type}}",
   "-DCMAKE_CXX_COMPILER={{cxx_compiler}}",
   "-DBENCHMARK_ENABLE_GTEST_TESTS=OFF",
+  "-DENABLE_COVERAGE={{coverage_enabled}}",
 ]
 
 [tasks.build-debug]
@@ -41,6 +44,15 @@ depends-on = ["configure"]
 [tasks.install-debug]
 cmd = ["cp", ".build_debug/gelex", "~/.local/bin/"]
 depends-on = ["build-debug"]
+
+[tasks.build-coverage]
+cmd = ["cmake", "--build", ".build_coverage", "-j16", "--target", "coverage"]
+depends-on = [
+  { task = "configure", args = [
+    { build_dir = ".build_coverage" },
+    { coverage_enabled = "ON" },
+  ] },
+]
 
 [tasks.build-release]
 cmd = ["cmake", "--build", ".build_release", "-j16"]

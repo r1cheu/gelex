@@ -1,221 +1,244 @@
-#include <fstream>
-#include <string>
+#include <cmath>
+#include <string_view>
 #include <unordered_map>
-#include <unordered_set>
 
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "../src/data/loader.h"
-#include "gelex/error.h"
+#include "../src/data/loader/phenotype_loader.h"
+#include "file_fixture.h"
+#include "gelex/exception.h"
 
-using Catch::Matchers::WithinAbs;
+namespace fs = std::filesystem;
 
-class PhenotypeLoaderTestFixture
+using namespace gelex::detail;  // NOLINT
+using gelex::test::FileFixture;
+
+TEST_CASE("PhenotypeLoader - Constructor Tests", "[data][phenotype]")
 {
-   public:
-    PhenotypeLoaderTestFixture()
+    FileFixture files;
+
+    SECTION("Happy path - valid phenotype file with header and data")
     {
-        // Create test files
-        createValidTestFile();
-        createMalformedColumnCountFile();
-        createInvalidValueFile();
+        auto file_path = files.create_text_file(
+            "FID\tIID\tPhenotype1\tPhenotype2\n"
+            "1\t1\t2.5\t1.0\n"
+            "1\t2\t3.1\t0.5\n"
+            "2\t1\t1.8\t2.2\n");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                PhenotypeLoader loader(file_path, 2, false);
+                REQUIRE(loader.name() == "Phenotype1");
+                REQUIRE(loader.data().size() == 3);
+                REQUIRE(loader.data().at("1_1") == 2.5);
+                REQUIRE(loader.data().at("1_2") == 3.1);
+                REQUIRE(loader.data().at("2_1") == 1.8);
+            }());
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                PhenotypeLoader loader(file_path, 3, false);
+                REQUIRE(loader.name() == "Phenotype2");
+                REQUIRE(loader.data().size() == 3);
+                REQUIRE(loader.data().at("1_1") == 1.0);
+                REQUIRE(loader.data().at("1_2") == 0.5);
+                REQUIRE(loader.data().at("2_1") == 2.2);
+            }());
     }
 
-    PhenotypeLoaderTestFixture(const PhenotypeLoaderTestFixture&) = default;
-    PhenotypeLoaderTestFixture(PhenotypeLoaderTestFixture&&) = delete;
-    PhenotypeLoaderTestFixture& operator=(const PhenotypeLoaderTestFixture&)
-        = default;
-    PhenotypeLoaderTestFixture& operator=(PhenotypeLoaderTestFixture&&)
-        = delete;
-    ~PhenotypeLoaderTestFixture()
+    SECTION("Happy path - IID only mode")
     {
-        // Clean up test files
-        std::remove("test_valid.phe");
-        std::remove("test_malformed_columns.phe");
-        std::remove("test_invalid_value.phe");
+        auto file_path = files.create_text_file(
+            "FID\tIID\tPhenotype\n"
+            "1\t1\t2.5\n"
+            "1\t2\t3.1\n"
+            "2\t3\t1.8\n");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                PhenotypeLoader loader(file_path, 2, true);
+                REQUIRE(loader.name() == "Phenotype");
+                REQUIRE(loader.data().size() == 3);
+                REQUIRE(loader.data().at("1") == 2.5);
+                REQUIRE(loader.data().at("2") == 3.1);
+                REQUIRE(loader.data().at("3") == 1.8);
+            }());
     }
 
-    static void createValidTestFile()
+    SECTION("Exception - column index range")
     {
-        std::ofstream file("test_valid.phe");
-        file
-            << "FID\tIID\tsex\tseason\tday\tbwt\tloc\tdam\tT1\n"
-            << "FAM1001\tIND1001\tMale\tWinter\t92\t1.2\tl32\tIND0921\t4.7658\n"
-            << "FAM1001\tIND1002\tMale\tSpring\t88\t2.7\tl36\tIND0921\t12."
-               "4098\n"
-            << "FAM1002\tIND1003\tMale\tSpring\t91\t1.0\tl17\tIND0968\t4.8545\n"
-            << "FAM1252\tIND1252\tFemale\tAutumn\t82\t2.2\tl19\tIND1138\t36."
-               "5418\n";
-    }
+        auto file_path = files.create_text_file(
+            "FID\tIID\tPhenotype\n"
+            "1\t1\t2.5\n");
 
-    static void createMalformedColumnCountFile()
-    {
-        std::ofstream file("test_malformed_columns.phe");
-        file
-            << "FID\tIID\tsex\tseason\tday\tbwt\tloc\tdam\tT1\n"
-            << "FAM1001\tIND1001\tMale\tWinter\t92\t1.2\tl32\tIND0921\t4.7658\n"
-            << "FAM1001\tIND1002\tMale\tSpring\t88\t2.7\tl36\tIND0921\n";  // Missing
-                                                                           // last
-                                                                           // column
-    }
-
-    static void createInvalidValueFile()
-    {
-        std::ofstream file("test_invalid_value.phe");
-        file
-            << "FID\tIID\tsex\tseason\tday\tbwt\tloc\tdam\tT1\n"
-            << "FAM1001\tIND1001\tMale\tWinter\t92\t1.2\tl32\tIND0921\t4.7658\n"
-            << "FAM1001\tIND1002\tMale\tSpring\t88\t2.7\tl36\tIND0921\tinvalid_"
-               "value\n";
-    }
-};
-
-TEST_CASE_PERSISTENT_FIXTURE(
-    PhenotypeLoaderTestFixture,
-    "PhenotypeLoader::create function",
-    "[loader][phenotype]")
-{
-    SECTION("Valid phenotype file with T1 column (index 8)")
-    {
-        auto result
-            = gelex::detail::PhenotypeLoader::create("test_valid.phe", 8, true);
-
-        REQUIRE(result.has_value());
-        REQUIRE(result->name() == "T1");
-
-        const auto& data = result->data();
-        REQUIRE(data.size() == 4);
-
-        REQUIRE_THAT(data.at("IND1001"), WithinAbs(4.7658, 1e-10));
-        REQUIRE_THAT(data.at("IND1002"), WithinAbs(12.4098, 1e-10));
-        REQUIRE_THAT(data.at("IND1003"), WithinAbs(4.8545, 1e-10));
-        REQUIRE_THAT(data.at("IND1252"), WithinAbs(36.5418, 1e-10));
-    }
-
-    SECTION("Valid phenotype file with bwt column (index 6)")
-    {
-        auto result
-            = gelex::detail::PhenotypeLoader::create("test_valid.phe", 5, true);
-
-        REQUIRE(result.has_value());
-        REQUIRE(result->name() == "bwt");
-
-        const auto& data = result->data();
-        REQUIRE(data.size() == 4);
-
-        REQUIRE_THAT(data.at("IND1001"), WithinAbs(1.2, 1e-10));
-        REQUIRE_THAT(data.at("IND1002"), WithinAbs(2.7, 1e-10));
-        REQUIRE_THAT(data.at("IND1003"), WithinAbs(1.0, 1e-10));
-        REQUIRE_THAT(data.at("IND1252"), WithinAbs(2.2, 1e-10));
-    }
-
-    SECTION("Invalid column index (too low)")
-    {
-        auto result
-            = gelex::detail::PhenotypeLoader::create("test_valid.phe", 1, true);
-
-        REQUIRE_FALSE(result.has_value());
-        REQUIRE(result.error().code == gelex::ErrorCode::InvalidRange);
-    }
-
-    SECTION("Invalid column index (too high)")
-    {
-        auto result = gelex::detail::PhenotypeLoader::create(
-            "test_valid.phe", 12, true);
-
-        REQUIRE_FALSE(result.has_value());
-        REQUIRE(result.error().code == gelex::ErrorCode::InvalidRange);
-    }
-
-    SECTION("Non-existent file")
-    {
-        auto result = gelex::detail::PhenotypeLoader::create(
-            "non_existent_file.phe", 2, true);
-
-        REQUIRE_FALSE(result.has_value());
-        REQUIRE(result.error().code == gelex::ErrorCode::FileNotFound);
-    }
-
-    SECTION("IID only vs full ID mode")
-    {
-        auto iid_only
-            = gelex::detail::PhenotypeLoader::create("test_valid.phe", 8, true);
-        REQUIRE(iid_only.has_value());
-        REQUIRE(iid_only->data().contains("IND1001"));
-
-        auto full_id = gelex::detail::PhenotypeLoader::create(
-            "test_valid.phe", 8, false);
-        REQUIRE(full_id.has_value());
-        REQUIRE(full_id->data().contains("FAM1001_IND1001"));
+        REQUIRE_THROWS_AS(
+            PhenotypeLoader(file_path, 0, false), gelex::FileFormatException);
+        REQUIRE_THROWS_AS(
+            PhenotypeLoader(file_path, 5, false), gelex::FileFormatException);
     }
 }
 
-TEST_CASE_PERSISTENT_FIXTURE(
-    PhenotypeLoaderTestFixture,
-    "PhenotypeLoader::load method",
-    "[loader][phenotype]")
+TEST_CASE("PhenotypeLoader - Data Loading Tests", "[data][phenotype]")
 {
-    auto loader
-        = gelex::detail::PhenotypeLoader::create("test_valid.phe", 8, true);
-    REQUIRE(loader.has_value());
+    FileFixture files;
 
-    SECTION("Load with complete ID mapping")
+    SECTION("Happy path - load with ID mapping")
     {
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"IND1001", 0}, {"IND1002", 1}, {"IND1003", 2}, {"IND1252", 3}};
+        auto file_path = files.create_text_file(
+            "FID\tIID\tPhenotype\n"
+            "1\t1\t2.5\n"
+            "1\t2\t3.1\n"
+            "2\t1\t1.8\n");
 
-        Eigen::VectorXd result = loader->load(id_map);
+        PhenotypeLoader loader(file_path, 2, false);
+
+        std::unordered_map<std::string, Eigen::Index> id_map
+            = {{"1_1", 0}, {"1_2", 1}, {"2_1", 2}, {"3_1", 3}};
+
+        auto result = loader.load(id_map);
 
         REQUIRE(result.size() == 4);
-        REQUIRE_THAT(result(0), WithinAbs(4.7658, 1e-10));
-        REQUIRE_THAT(result(1), WithinAbs(12.4098, 1e-10));
-        REQUIRE_THAT(result(2), WithinAbs(4.8545, 1e-10));
-        REQUIRE_THAT(result(3), WithinAbs(36.5418, 1e-10));
+        REQUIRE(result(0) == 2.5);
+        REQUIRE(result(1) == 3.1);
+        REQUIRE(result(2) == 1.8);
+        REQUIRE(std::isnan(result(3)));  // Missing phenotype
     }
 
-    SECTION("Load with disorder ID mapping")
+    SECTION("Happy path - load with IID only mapping")
     {
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"IND1001", 1}, {"IID1002", 0}};
+        auto file_path = files.create_text_file(
+            "FID\tIID\tPhenotype\n"
+            "1\t1\t2.5\n"
+            "1\t2\t3.1\n"
+            "2\t3\t1.8\n");
 
-        Eigen::VectorXd result = loader->load(id_map);
+        PhenotypeLoader loader(file_path, 2, true);
 
-        REQUIRE(result.size() == 2);
-        REQUIRE_THAT(result(1), WithinAbs(4.7658, 1e-10));
+        std::unordered_map<std::string, Eigen::Index> id_map = {
+            {"1", 0}, {"2", 1}, {"3", 2}, {"4", 3}
+            // Extra ID not in phenotype data
+        };
+
+        auto result = loader.load(id_map);
+
+        REQUIRE(result.size() == 4);
+        REQUIRE(result(0) == 2.5);
+        REQUIRE(result(1) == 3.1);
+        REQUIRE(result(2) == 1.8);
+        REQUIRE(std::isnan(result(3)));  // Missing phenotype
     }
 
-    SECTION("Load with empty mapping")
+    SECTION("Happy path - empty ID mapping")
     {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tPhenotype\n"
+            "1\t1\t2.5\n");
+
+        PhenotypeLoader loader(file_path, 2, false);
+
         std::unordered_map<std::string, Eigen::Index> id_map;
 
-        Eigen::VectorXd result = loader->load(id_map);
+        auto result = loader.load(id_map);
 
         REQUIRE(result.size() == 0);
     }
+
+    SECTION("Happy path - partial ID mapping")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tPhenotype\n"
+            "1\t1\t2.5\n"
+            "1\t2\t3.1\n"
+            "2\t1\t1.8\n");
+
+        PhenotypeLoader loader(file_path, 2, false);
+
+        std::unordered_map<std::string, Eigen::Index> id_map = {
+            {"1_1", 0}, {"2_1", 1}  // Only two IDs from phenotype data
+        };
+
+        auto result = loader.load(id_map);
+
+        REQUIRE(result.size() == 2);
+        REQUIRE(result(0) == 2.5);
+        REQUIRE(result(1) == 1.8);
+    }
+    SECTION("Happy path - partial ID mapping and rearrange order")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tPhenotype\n"
+            "1\t1\t2.5\n"
+            "1\t2\t3.1\n"
+            "2\t1\t1.8\n");
+
+        PhenotypeLoader loader(file_path, 2, false);
+
+        std::unordered_map<std::string, Eigen::Index> id_map = {
+            {"1_1", 1}, {"2_1", 0}  // Only two IDs from phenotype data
+        };
+
+        auto result = loader.load(id_map);
+
+        REQUIRE(result.size() == 2);
+        REQUIRE(result(0) == 1.8);
+        REQUIRE(result(1) == 2.5);
+    }
 }
 
-TEST_CASE_PERSISTENT_FIXTURE(
-    PhenotypeLoaderTestFixture,
-    "PhenotypeLoader error handling",
-    "[loader][phenotype]")
+TEST_CASE("PhenotypeLoader - Edge Cases", "[data][phenotype]")
 {
-    SECTION("Malformed data - inconsistent column count")
-    {
-        auto result = gelex::detail::PhenotypeLoader::create(
-            "test_malformed_columns.phe", 8, true);
+    FileFixture files;
 
-        REQUIRE_FALSE(result.has_value());
-        REQUIRE(result.error().code == gelex::ErrorCode::InconsistColumnCount);
+    SECTION("Happy path - file with empty lines")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tPhenotype\n"
+            "\n"  // Empty line
+            "1\t1\t2.5\n"
+            "\n"  // Empty line
+            "1\t2\t3.1\n"
+            "\n"  // Empty line
+        );
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                PhenotypeLoader loader(file_path, 2, false);
+                REQUIRE(loader.data().size() == 2);
+                REQUIRE(loader.data().at("1_1") == 2.5);
+                REQUIRE(loader.data().at("1_2") == 3.1);
+            }());
     }
 
-    SECTION("Malformed data - invalid double value")
+    SECTION("Happy path - file with trailing whitespace")
     {
-        auto result = gelex::detail::PhenotypeLoader::create(
-            "test_invalid_value.phe", 8, true);
+        auto file_path = files.create_text_file(
+            "FID\tIID\tPhenotype\n"
+            "1\t1\t2.5\t\n"  // Trailing tab
+            "1\t2\t3.1\n"    // No trailing space
+        );
 
-        REQUIRE_FALSE(result.has_value());
-        // Should be a parsing error
-        REQUIRE(result.error().code == gelex::ErrorCode::NotNumber);
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                PhenotypeLoader loader(file_path, 2, false);
+                REQUIRE(loader.data().size() == 2);
+                REQUIRE(loader.data().at("1_1") == 2.5);
+                REQUIRE(loader.data().at("1_2") == 3.1);
+            }());
+    }
+
+    SECTION("Exception - insufficient columns in data line")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tPhenotype\n"
+            "1\t1\t2.5\n"
+            "1\t2\n"  // Missing phenotype column
+            "2\t1\t1.8\n");
+
+        REQUIRE_THROWS_AS(
+            PhenotypeLoader(file_path, 2, false), gelex::FileFormatException);
     }
 }

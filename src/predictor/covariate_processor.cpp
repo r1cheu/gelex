@@ -36,7 +36,7 @@ auto CovariateProcessor::parse_param_file(
     // Skip header line
     if (!std::getline(file, line))
     {
-        throw InvalidFileException(
+        throw FileFormatException(
             std::format(
                 "Parameter file '{}' is empty or has no header",
                 file_path.string()));
@@ -76,7 +76,7 @@ auto CovariateProcessor::parse_param_file(
     // Validate that we found an intercept
     if (std::isnan(intercept))
     {
-        throw InvalidDataException(
+        throw DataParseException(
             std::format(
                 "No intercept term found in parameter file '{}'",
                 file_path.string()));

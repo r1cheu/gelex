@@ -6,8 +6,8 @@
 #include <thread>
 #include <vector>
 
+#include <barkeep.h>
 #include <fmt/format.h>
-#include <gelex/barkeep.h>
 #include <omp.h>
 #include <Eigen/Core>
 

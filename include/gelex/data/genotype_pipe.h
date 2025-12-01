@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-#include <gelex/barkeep.h>
+#include <barkeep.h>
 #include <Eigen/Core>
 
 #include "../src/data/binary_matrix_writer.h"

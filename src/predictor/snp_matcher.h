@@ -4,11 +4,11 @@
 #include <vector>
 
 #include <Eigen/Core>
-#include "predictor/snp_effect_loader.h"
+#include "snp_effect_loader.h"
 
 namespace gelex::detail
 {
-struct SnpMeta;
+struct SnpInfo;
 }
 namespace gelex
 {
@@ -43,7 +43,7 @@ class SnpMatcher
 
     static MatchType determine_match_type(
         const SnpEffect& model,
-        const detail::SnpMeta& predict) noexcept;
+        const detail::SnpInfo& predict) noexcept;
 
     SnpEffects snp_effects_;
 };

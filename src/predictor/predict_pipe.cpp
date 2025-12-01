@@ -9,7 +9,7 @@
 
 #include <Eigen/Core>
 
-#include "../src/data/loader.h"
+#include "../src/data/loader/qcovariate_loader.h"
 #include "gelex/data/sample_manager.h"
 #include "gelex/exception.h"
 #include "predict_bed_pipe.h"

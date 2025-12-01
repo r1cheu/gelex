@@ -4,7 +4,7 @@
 
 #include "gelex/exception.h"
 
-#include "../src/data/loader.h"
+#include "../src/data/loader/bim_loader.h"
 
 namespace gelex
 {
@@ -26,8 +26,8 @@ MatchPlan SnpMatcher::match(const std::filesystem::path& predict_bed_path) const
 
     detail::BimLoader bim_loader(bim_path);
 
-    std::vector<detail::SnpMeta> predict_snp_meta
-        = std::move(bim_loader).take_meta();
+    std::vector<detail::SnpInfo> predict_snp_meta
+        = std::move(bim_loader).take_info();
 
     MatchPlan match_info(predict_snp_meta.size());
 
@@ -57,7 +57,7 @@ constexpr char SnpMatcher::normalize_allele(char allele) noexcept
 
 MatchType SnpMatcher::determine_match_type(
     const SnpEffect& model,
-    const detail::SnpMeta& predict) noexcept
+    const detail::SnpInfo& predict) noexcept
 {
     const char model_a1 = normalize_allele(model.A1);
     const char model_a2 = normalize_allele(model.A2);

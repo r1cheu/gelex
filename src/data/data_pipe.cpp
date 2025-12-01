@@ -7,9 +7,13 @@
 
 #include <Eigen/Core>
 
-#include "../src/data/loader.h"
 #include "gelex/data/sample_manager.h"
 #include "gelex/exception.h"
+#include "loader/bim_loader.h"
+#include "loader/ccovariate_loader.h"
+#include "loader/fam_loader.h"
+#include "loader/phenotype_loader.h"
+#include "loader/qcovariate_loader.h"
 
 namespace gelex
 {
@@ -22,7 +26,7 @@ DataPipe::DataPipe(const Config& config)
 
     if (config.phenotype_path.empty())
     {
-        throw InvalidArgumentException("Phenotype file path is required.");
+        throw ArgumentValidationException("Phenotype file path is required.");
     }
 
     load_phenotype(config);
@@ -59,7 +63,7 @@ void DataPipe::load_qcovariates(const Config& config)
 
 void DataPipe::load_covariates(const Config& config)
 {
-    covar_loader_ = std::make_unique<detail::CovarLoader>(
+    covar_loader_ = std::make_unique<detail::CCovarLoader>(
         config.covar_path, config.iid_only);
     covariate_names_ = covar_loader_->names();
 }

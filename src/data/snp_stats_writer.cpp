@@ -24,13 +24,13 @@ void SnpStatsWriter::write(
 {
     if (!file_.is_open())
     {
-        throw FileIOException(
+        throw FileOpenException(
             enrich_with_file_info("Stats file is not open", path_));
     }
 
     if (means.size() != stddevs.size())
     {
-        throw InvalidArgumentException(
+        throw ArgumentValidationException(
             std::format(
                 "Size mismatch: means ({}) and stddevs ({}) must have the same "
                 "length.",
@@ -40,7 +40,7 @@ void SnpStatsWriter::write(
 
     if (means.empty())
     {
-        throw InvalidArgumentException("means and stddevs cannot be empty");
+        throw ArgumentValidationException("means and stddevs cannot be empty");
     }
 
     const auto num_variants = static_cast<int64_t>(means.size());
@@ -52,7 +52,7 @@ void SnpStatsWriter::write(
 
     if (!file_.good())
     {
-        throw FileIOException(enrich_with_file_info(
+        throw FileOpenException(enrich_with_file_info(
             "Failed to write header to stats file", path_));
     }
 
@@ -73,7 +73,7 @@ void SnpStatsWriter::write(
 
     if (!file_.good())
     {
-        throw FileIOException(
+        throw FileOpenException(
             enrich_with_file_info("Failed to write data to stats file", path_));
     }
 
@@ -81,7 +81,7 @@ void SnpStatsWriter::write(
 
     if (!file_.good())
     {
-        throw FileIOException(
+        throw FileOpenException(
             enrich_with_file_info("Failed to flush stats file", path_));
     }
 }

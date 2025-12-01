@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <string_view>
 
-#include <gelex/argparse.h>
+#include <argparse.h>
 
 #include "gelex/logger.h"
 

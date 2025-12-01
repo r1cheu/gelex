@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Gelex is a C++ library and CLI tool for genomic prediction with Bayesian (BayesAlphabet models) and frequentist (GBLUP) approaches. It provides high-performance computation for genomic selection with memory-mapped genotype data support.
 
 **CLI Subcommands:**
+
 - `gelex fit`: Fit genomic prediction models (Bayesian or GBLUP)
 - `gelex simulate`: Run simulations
 
@@ -37,6 +38,7 @@ This project uses CMake with pixi for dependency management:
 **CMake Configuration:**
 
 The `pixi run configure` task accepts arguments:
+
 - `build_dir`: Build directory (default: `.build_debug`)
 - `build_type`: Build type (default: `Debug`, options: `Debug`, `Release`, `RelWithDebInfo`, `MinSizeRel`)
 - `test`: Enable testing (default: `ON`)
@@ -52,6 +54,7 @@ Example: `pixi run configure --build_dir=.build_release --build_type=Release`
 - `-DBUILD_TEST=ON/OFF`: Enable testing (default: ON in pixi tasks)
 
 **Compiler Configuration:**
+
 - Uses Clang 21+ as default compiler
 - OpenMP support enabled for parallel computation
 
@@ -97,6 +100,7 @@ cd .build_debug/tests/
 5. **Output**: Results written to disk with convergence diagnostics
 
 **Key Data Structures**:
+
 - `BayesEffects`: Manages fixed, random, additive, dominant, and residual effects
 - `BayesState`: Tracks current state of all model parameters during MCMC
 - `MCMCResult`: Stores posterior samples and convergence statistics
@@ -118,6 +122,7 @@ cd .build_debug/tests/
 - **BayesState**: State management for MCMC sampling (`include/gelex/model/bayes/model.h`)
 
 **Bayesian Model Types**:
+
 - **BayesA**: t-distributed marker effects
 - **BayesB**: Mixture model with spike-slab prior
 - **BayesBpi**: Bayes B with variable π
@@ -154,6 +159,8 @@ cd .build_debug/tests/
   - List tests: `cd .build_debug/tests && ./test --list-tests`
 
 **Test Organization**:
+
+- test_parser.cpp are the example of test, when adding new tests and refactor older tests, follow the same pattern.
 - `test_*.cpp` files cover specific components (data loading, GRM computation, MCMC, etc.)
 - Tests use sample PLINK binary files for realistic validation
 - Each test module focuses on a specific subsystem (data, model, estimator, etc.)
@@ -197,7 +204,7 @@ cd .build_debug/tests/
 ## Important Implementation Details
 
 - **Memory Management**: The project uses RAII patterns with smart pointers for automatic resource management
-- **Error Handling**: Uses `std::expected` for error propagation with custom `Error` type
+- **Error Handling**: try-catch system in include/gelex/exception.h for robust error reporting
 - **Parallelism**: Multi-threaded MCMC with OpenMP, with explicit thread management in MCMC implementation
 - **Template-based Design**: MCMC is template-based to support different trait samplers
 - **Header Organization**: Public headers in `include/gelex/`, implementation details in `src/`

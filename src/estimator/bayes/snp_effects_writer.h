@@ -7,7 +7,7 @@
 
 #include "gelex/types/mcmc_results.h"
 
-#include "../src/data/loader.h"
+#include "../src/data/loader/bim_loader.h"
 
 namespace gelex
 {

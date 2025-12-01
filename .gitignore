@@ -106,3 +106,4 @@ develop
 .build_release
 .build_reldebug
 ROADMAP.md
+.build_coverage

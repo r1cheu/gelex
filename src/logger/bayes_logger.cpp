@@ -2,9 +2,9 @@
 
 #include <vector>
 
+#include <barkeep.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <gelex/barkeep.h>
 
 #include "gelex/logger.h"
 #include "gelex/model/bayes/model.h"

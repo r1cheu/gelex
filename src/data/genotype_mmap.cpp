@@ -20,7 +20,7 @@ GenotypeMap::GenotypeMap(const std::filesystem::path& bin_file)
     mmap_.map(bin_file.string(), ec);
     if (ec)
     {
-        throw FileIOException(
+        throw FileOpenException(
             std::format(
                 "Failed to mmap file {}: {}", bin_file.string(), ec.message()));
     }
@@ -29,7 +29,7 @@ GenotypeMap::GenotypeMap(const std::filesystem::path& bin_file)
                                  * static_cast<size_t>(cols_) * sizeof(double);
     if (mmap_.size() != expected_size)
     {
-        throw InvalidDataException(
+        throw DataParseException(
             std::format(
                 "Binary file size mismatch. Expected {} bytes, got {} bytes.",
                 expected_size,
@@ -58,7 +58,7 @@ void GenotypeMap::load_metadata(const std::filesystem::path& meta_path)
 
     if (rows_ <= 0 || cols_ <= 0)
     {
-        throw InvalidDataException(
+        throw DataParseException(
             std::format("Invalid dimensions: {}x{}", rows_, cols_));
     }
 
@@ -95,7 +95,7 @@ void GenotypeMap::validate_alignment(const void* ptr)
     auto addr = reinterpret_cast<std::uintptr_t>(ptr);
     if (addr % ALIGNMENT_BYTES != 0)
     {
-        throw InvalidDataException(
+        throw DataParseException(
             std::format(
                 "Memory alignment error. Address {} is not aligned to {} "
                 "bytes. "

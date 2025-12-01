@@ -7,8 +7,8 @@
 #include <utility>
 #include <vector>
 
-#include "../src/data/loader.h"
 #include "gelex/logger.h"
+#include "loader/fam_loader.h"
 
 namespace gelex
 {

@@ -4,7 +4,7 @@
 #include <spdlog/logger.h>
 #include <Eigen/Core>
 #include <vector>
-#include "gelex/argparse.h"
+#include "argparse.h"
 
 #include "gelex/estimator/bayes/mcmc.h"
 #include "gelex/estimator/bayes/params.h"

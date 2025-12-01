@@ -4,7 +4,7 @@
 #include <fstream>
 #include <vector>
 
-#include <gelex/mio.h>
+#include <mio.h>
 
 #include <Eigen/Core>
 #include "gelex/exception.h"
@@ -29,7 +29,7 @@ T read_scalar(std::ifstream& ifs, std::string_view context)
     ifs.read(reinterpret_cast<char*>(&value), sizeof(T));
     if (!ifs)
     {
-        throw FileIOException(
+        throw FileOpenException(
             std::format("Failed to read scalar: {}", context));
     }
     return value;
@@ -49,7 +49,8 @@ void read_binary(
     ifs.read(reinterpret_cast<char*>(dest), sizeof(T) * count);
     if (!ifs)
     {
-        throw FileIOException(std::format("Failed to read {} data.", context));
+        throw FileOpenException(
+            std::format("Failed to read {} data.", context));
     }
 }
 }  // namespace detail

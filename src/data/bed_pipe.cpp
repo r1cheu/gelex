@@ -4,9 +4,9 @@
 #include <limits>
 #include <system_error>
 
-#include "../src/data/loader.h"  // 引入 FamLoader
 #include "../src/data/parser.h"  // 引入 count_total_lines
 #include "gelex/exception.h"
+#include "loader/fam_loader.h"  // 引入 FamLoader
 
 namespace gelex
 {
@@ -62,7 +62,7 @@ BedPipe::BedPipe(
 {
     if (!sample_manager_)
     {
-        throw InvalidArgumentException("SampleManager cannot be null");
+        throw ArgumentValidationException("SampleManager cannot be null");
     }
 
     auto bed_path = bed_prefix;
@@ -116,18 +116,18 @@ BedPipe::BedPipe(
     mmap_.map(bed_path.string(), ec);
     if (ec)
     {
-        throw FileIOException(enrich_with_file_info(
+        throw FileOpenException(enrich_with_file_info(
             "Failed to mmap BED file: " + ec.message(), bed_path));
     }
 
     if (mmap_.size() < 3)
     {
-        throw InvalidFileException(
+        throw FileFormatException(
             enrich_with_file_info("BED file too short", bed_path));
     }
     if (mmap_[0] != 0x6C || mmap_[1] != 0x1B || mmap_[2] != 0x01)
     {
-        throw InvalidFileException(enrich_with_file_info(
+        throw FileFormatException(enrich_with_file_info(
             "Invalid BED magic number or mode (must be SNP-major)", bed_path));
     }
 
@@ -135,7 +135,7 @@ BedPipe::BedPipe(
         = 3 + (static_cast<size_t>(num_raw_snps_) * bytes_per_variant_);
     if (mmap_.size() < expected_size)
     {
-        throw InvalidFileException(
+        throw FileFormatException(
             std::format(
                 "BED file truncated. Expected {} bytes, got {}",
                 expected_size,
@@ -244,7 +244,7 @@ Eigen::MatrixXd BedPipe::load_chunk(
 
     if (start_col < 0 || end_col > max_cols || start_col >= end_col)
     {
-        throw InvalidRangeException(
+        throw ColumnRangeException(
             std::format(
                 "Invalid chunk range: [{}, {}). Total SNPs: {}",
                 start_col,

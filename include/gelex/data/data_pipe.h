@@ -8,7 +8,11 @@
 
 #include <Eigen/Dense>
 
-#include "../src/data/loader.h"
+#include "../src/data/loader/bim_loader.h"
+#include "../src/data/loader/ccovariate_loader.h"
+#include "../src/data/loader/fam_loader.h"
+#include "../src/data/loader/phenotype_loader.h"
+#include "../src/data/loader/qcovariate_loader.h"
 #include "Eigen/Core"
 
 #include "gelex/data/genotype_loader.h"
@@ -106,7 +110,7 @@ class DataPipe
 
     std::unique_ptr<detail::PhenotypeLoader> phenotype_loader_;
     std::unique_ptr<detail::QcovarLoader> qcovar_loader_;
-    std::unique_ptr<detail::CovarLoader> covar_loader_;
+    std::unique_ptr<detail::CCovarLoader> covar_loader_;
 
     Eigen::VectorXd phenotype_;
     Eigen::MatrixXd fixed_effects_;

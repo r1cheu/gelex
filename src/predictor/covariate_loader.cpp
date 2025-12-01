@@ -11,7 +11,6 @@
 #include <fmt/ranges.h>
 #include <Eigen/Core>
 
-#include "../src/data/loader.h"
 #include "../src/data/parser.h"
 #include "gelex/exception.h"
 #include "gelex/logger.h"
@@ -91,7 +90,7 @@ auto CovarPredictLoader::get_header(std::ifstream& file)
 
     if (header_view.size() < 3)
     {
-        throw InvalidRangeException(
+        throw ColumnRangeException(
             std::format(
                 "Covar file must have at least 3 columns, got {}",
                 header_view.size()));
@@ -108,6 +107,7 @@ auto CovarPredictLoader::read(
 
     std::string line;
     int n_line{};
+    std::vector<std::string_view> value_buffer;
     while (std::getline(file, line))
     {
         if (line.empty())
@@ -122,22 +122,17 @@ auto CovarPredictLoader::read(
         }
 
         auto id_str = parse_id(line, iid_only);
-        auto values = parse_string(line, 2);  // skip FID and IID
-        if (values.size() != expected_columns - 2)
+        parse_string(line, value_buffer, 2);  // skip FID and IID
+        if (value_buffer.size() != expected_columns - 2)
         {
             throw InconsistentColumnCountException(
                 std::format(
                     "Inconsistent number of columns at line {}", n_line + 2));
         }
 
-        std::vector<std::string> string_values;
-        string_values.reserve(values.size());
-        for (const auto& value : values)
-        {
-            string_values.emplace_back(value);
-        }
-
-        covariate_data.emplace(std::move(id_str), std::move(string_values));
+        covariate_data.emplace(
+            std::move(id_str),
+            std::ranges::to<std::vector<std::string>>(value_buffer));
         n_line++;
     }
     return covariate_data;

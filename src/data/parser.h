@@ -1,11 +1,11 @@
 #pragma once
 
-#include <charconv>
 #include <concepts>
+#include <cstddef>
 #include <filesystem>
 #include <format>
 #include <fstream>
-#include <ranges>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -45,66 +45,75 @@ template <FileStream StreamType>
         {
             throw FileNotFoundException(path);
         }
-
-        throw FileIOException(
+        throw FileOpenException(
             enrich_with_file_info("Failed to open file", path));
     }
 
-    if ((mode & std::ios_base::in) && std::filesystem::is_regular_file(path)
-        && std::filesystem::file_size(path) == 0)
+    if ((mode & std::ios_base::in) && std::filesystem::is_regular_file(path))
     {
-        throw InvalidFileException(
-            enrich_with_file_info("File is empty", path));
+        std::error_code ec;
+        if (std::filesystem::file_size(path, ec) == 0 && !ec)
+        {
+            throw FileFormatException(
+                enrich_with_file_info("File is empty", path));
+        }
     }
 
     return stream;
 }
 
-template <std::ranges::contiguous_range R>
-double try_parse_double(R&& token_range)
+size_t estimate_line_count(
+    const std::filesystem::path& path,
+    int sample_lines = 5);
+
+// counts total number of lines in a file
+size_t count_total_lines(const std::filesystem::path& path);
+
+size_t count_num_columns(std::string_view line, char delimiter = '\t');
+
+template <typename T = double>
+T parse_number(std::string_view sv)
 {
-    const char* begin = std::to_address(std::ranges::begin(token_range));
-    const char* end = std::to_address(std::ranges::end(token_range));
+    if (sv.empty())
+    {
+        throw NumberParseException(
+            std::format("Empty string cannot be parsed as number"));
+    }
 
-    double value{};
-    const auto result = std::from_chars(begin, end, value);
+    T value{};
+    const char* first = sv.data();
+    const char* last = sv.data() + sv.size();
+    auto [ptr, ec] = std::from_chars(first, last, value);
 
-    if (result.ec == std::errc() && result.ptr == end)
+    if (ec == std::errc() && ptr == last)
     {
         return value;
     }
-
-    throw NotNumberException(
-        std::format(
-            "failed to parse '{}' as a number",
-            std::string_view(begin, end - begin)));
+    throw NumberParseException(
+        std::format("Failed to parse '{}' as number", sv));
 }
-
-size_t count_total_line(const std::filesystem::path& path);
-
-size_t count_total_lines(const std::filesystem::path& path);
 
 double parse_nth_double(
     std::string_view line,
     size_t column_index,
     char delimiter = '\t');
 
-std::string
-parse_id(std::string_view line, bool iid_only, char delimiter = '\t');
+void parse_all_doubles(
+    std::string_view line,
+    std::vector<double>& out,
+    size_t column_offset = 0,
+    char delimiter = '\t');
 
 std::vector<std::string_view> parse_header(
     std::string_view line,
     char delimiter = '\t');
 
-size_t count_num_columns(std::string_view line, char delimiter = '\t');
+std::string
+parse_id(std::string_view line, bool iid_only, char delimiter = '\t');
 
-std::vector<std::string_view> parse_string(
+void parse_string(
     std::string_view line,
-    size_t column_offset = 0,
-    char delimiter = '\t');
-
-std::vector<double> parse_all_doubles(
-    std::string_view line,
+    std::vector<std::string_view>& out,
     size_t column_offset = 0,
     char delimiter = '\t');
 

@@ -27,7 +27,7 @@ PhenotypeSimulator::PhenotypeSimulator(Config config)
 {
     if (config_.heritability <= 0.0 || config_.heritability >= 1.0)
     {
-        throw InvalidArgumentException("Heritability must be in (0, 1)");
+        throw ArgumentValidationException("Heritability must be in (0, 1)");
     }
 
     if (!std::filesystem::is_regular_file(config_.bed_path))
@@ -84,7 +84,7 @@ void PhenotypeSimulator::initialize_rng()
     }
     catch (const std::exception& e)
     {
-        throw InvalidArgumentException(
+        throw ArgumentValidationException(
             std::format("Failed to initialize RNG: {}", e.what()));
     }
 }

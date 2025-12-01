@@ -34,7 +34,7 @@ GenotypePipe::GenotypePipe(
                 "force_overwrite=true to bypass.",
                 matrix_path.string(),
                 stats_path.string());
-            throw OutputFileExistsException(matrix_path);
+            throw FileExistsException(matrix_path);
         }
 
         logger->warn(

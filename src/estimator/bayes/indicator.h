@@ -9,7 +9,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/barkeep.h"
+#include "barkeep.h"
 
 namespace gelex
 {

@@ -1,191 +1,171 @@
-#include <fstream>
+#include <string_view>
+#include <vector>
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "../src/data/loader.h"
-#include "gelex/error.h"
+#include "../src/data/loader/fam_loader.h"
+#include "file_fixture.h"
+#include "gelex/exception.h"
 
-class FamLoaderTestFixture
+namespace fs = std::filesystem;
+
+using namespace gelex::detail;  // NOLINT
+using gelex::test::FileFixture;
+
+TEST_CASE("FamLoader - Valid .fam file loading", "[data][loader]")
 {
-   public:
-    FamLoaderTestFixture()
+    FileFixture files;
+
+    SECTION(
+        "Happy path - Load valid .fam file with multiple samples "
+        "(iid_only=false)")
     {
-        createValidTestFile();
-        createMalformedColumnCountFile();
-        createEmptyFile();
+        const auto* fam_content = R"(1 sample1 0 0 1 2.5
+2 sample2 0 0 2 1.8
+3 sample3 1 2 1 3.2
+4 sample4 3 4 2 2.1
+)";
+        auto file_path = files.create_text_file(fam_content, ".fam");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                FamLoader loader(file_path, false);
+
+                const auto& ids = loader.ids();
+                const auto& data = loader.data();
+
+                REQUIRE(ids.size() == 4);
+                REQUIRE(data.size() == 4);
+
+                // Verify IDs are in "FID_IID" format
+                REQUIRE(ids[0] == "1_sample1");
+                REQUIRE(ids[1] == "2_sample2");
+                REQUIRE(ids[2] == "3_sample3");
+                REQUIRE(ids[3] == "4_sample4");
+
+                // Verify index mapping
+                REQUIRE(data.at("1_sample1") == 0);
+                REQUIRE(data.at("2_sample2") == 1);
+                REQUIRE(data.at("3_sample3") == 2);
+                REQUIRE(data.at("4_sample4") == 3);
+
+                for (Eigen::Index i = 0;
+                     i < static_cast<Eigen::Index>(ids.size());
+                     ++i)
+                {
+                    REQUIRE(data.at(ids[i]) == i);
+                }
+            }());
     }
 
-    FamLoaderTestFixture(const FamLoaderTestFixture&) = default;
-    FamLoaderTestFixture(FamLoaderTestFixture&&) = delete;
-    FamLoaderTestFixture& operator=(const FamLoaderTestFixture&) = default;
-    FamLoaderTestFixture& operator=(FamLoaderTestFixture&&) = delete;
-    ~FamLoaderTestFixture()
+    SECTION(
+        "Happy path - Load valid .fam file with multiple samples "
+        "(iid_only=true)")
     {
-        std::remove("test_valid.fam");
-        std::remove("test_malformed_columns.fam");
-        std::remove("test_empty.fam");
-    }
+        const auto* fam_content = R"(1 sample1 0 0 1 2.5
+2 sample2 0 0 2 1.8
+3 sample3 1 2 1 3.2
+4 sample4 3 4 2 2.1
+)";
+        auto file_path = files.create_text_file(fam_content, ".fam");
 
-    static void createValidTestFile()
-    {
-        std::ofstream file("test_valid.fam");
-        file << "FAM001 IND001 0 0 1 1\n"
-             << "FAM001 IND002 0 0 2 1\n"
-             << "FAM002 IND003 IND001 IND002 1 2\n"
-             << "FAM003 IND004 0 0 1 -9\n"
-             << "FAM004 IND005 IND003 IND004 2 1\n";
-    }
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                FamLoader loader(file_path, true);
 
-    static void createMalformedColumnCountFile()
-    {
-        std::ofstream file("test_malformed_columns.fam");
-        file << "FAM001 IND001 0 0 1 1\n"
-             << "FAM001 IND002 0 0 2\n";  // Missing last column
-    }
+                const auto& ids = loader.ids();
+                const auto& data = loader.data();
 
-    static void createEmptyFile()
-    {
-        std::ofstream file("test_empty.fam");
-        // Empty file
-    }
-};
+                REQUIRE(ids.size() == 4);
+                REQUIRE(data.size() == 4);
 
-TEST_CASE_PERSISTENT_FIXTURE(
-    FamLoaderTestFixture,
-    "FamLoader::create function",
-    "[loader][fam]")
-{
-    SECTION("Valid fam file with IID only mode")
-    {
-        auto result = gelex::detail::FamLoader::create("test_valid.fam", true);
+                // Verify IDs are just IID format
+                REQUIRE(ids[0] == "sample1");
+                REQUIRE(ids[1] == "sample2");
+                REQUIRE(ids[2] == "sample3");
+                REQUIRE(ids[3] == "sample4");
 
-        REQUIRE(result.has_value());
-
-        const auto& ids = result->ids();
-        REQUIRE(ids.size() == 5);
-
-        REQUIRE(ids[0] == "IND001");
-        REQUIRE(ids[1] == "IND002");
-        REQUIRE(ids[2] == "IND003");
-        REQUIRE(ids[3] == "IND004");
-        REQUIRE(ids[4] == "IND005");
-    }
-
-    SECTION("Valid fam file with IID only mode - sample_map tests")
-    {
-        auto result = gelex::detail::FamLoader::create("test_valid.fam", true);
-
-        REQUIRE(result.has_value());
-
-        const auto& data = result->data();
-        const auto& ids = result->ids();
-
-        // Verify sample_map has same size as sample_ids
-        REQUIRE(data.size() == ids.size());
-        REQUIRE(data.size() == 5);
-
-        // Verify all sample_ids are present in sample_map
-        for (const auto& id : ids)
-        {
-            REQUIRE(data.contains(id));
-        }
-
-        // Verify indices are sequential starting from 0
-        std::vector<Eigen::Index> indices;
-        for (const auto& [id, index] : data)
-        {
-            indices.push_back(index);
-        }
-        std::sort(indices.begin(), indices.end());
-        for (size_t i = 0; i < indices.size(); ++i)
-        {
-            REQUIRE(indices[i] == static_cast<Eigen::Index>(i));
-        }
-    }
-
-    SECTION("Valid fam file with full ID mode")
-    {
-        auto result = gelex::detail::FamLoader::create("test_valid.fam", false);
-
-        REQUIRE(result.has_value());
-
-        const auto& ids = result->data();
-        REQUIRE(ids.size() == 5);
-        REQUIRE(ids.contains("FAM001_IND001"));
-        REQUIRE(ids.contains("FAM001_IND002"));
-        REQUIRE(ids.contains("FAM002_IND003"));
-        REQUIRE(ids.contains("FAM003_IND004"));
-        REQUIRE(ids.contains("FAM004_IND005"));
-    }
-
-    SECTION("Valid fam file with full ID mode - sample_map tests")
-    {
-        auto result = gelex::detail::FamLoader::create("test_valid.fam", false);
-
-        REQUIRE(result.has_value());
-
-        const auto& data = result->data();
-        const auto& ids = result->ids();
-
-        // Verify sample_map has same size as sample_ids
-        REQUIRE(data.size() == ids.size());
-        REQUIRE(data.size() == 5);
-
-        // Verify all sample_ids are present in sample_map
-        for (const auto& id : ids)
-        {
-            REQUIRE(data.contains(id));
-        }
-
-        // Verify indices are sequential starting from 0
-        std::vector<Eigen::Index> indices;
-        for (const auto& [id, index] : data)
-        {
-            indices.push_back(index);
-        }
-        std::sort(indices.begin(), indices.end());
-        for (size_t i = 0; i < indices.size(); ++i)
-        {
-            REQUIRE(indices[i] == static_cast<Eigen::Index>(i));
-        }
-
-        // Verify specific full IDs are present
-        REQUIRE(data.contains("FAM001_IND001"));
-        REQUIRE(data.contains("FAM001_IND002"));
-        REQUIRE(data.contains("FAM002_IND003"));
-        REQUIRE(data.contains("FAM003_IND004"));
-        REQUIRE(data.contains("FAM004_IND005"));
-    }
-
-    SECTION("Non-existent file")
-    {
-        auto result
-            = gelex::detail::FamLoader::create("non_existent_file.fam", true);
-
-        REQUIRE_FALSE(result.has_value());
-        REQUIRE(result.error().code == gelex::ErrorCode::FileNotFound);
-    }
-
-    SECTION("Empty file")
-    {
-        auto result = gelex::detail::FamLoader::create("test_empty.fam", true);
-
-        REQUIRE_FALSE(result.has_value());
-        REQUIRE(result.error().code == gelex::ErrorCode::InvalidFile);
+                // Verify index mapping
+                REQUIRE(data.at("sample1") == 0);
+                REQUIRE(data.at("sample2") == 1);
+                REQUIRE(data.at("sample3") == 2);
+                REQUIRE(data.at("sample4") == 3);
+                for (Eigen::Index i = 0;
+                     i < static_cast<Eigen::Index>(ids.size());
+                     ++i)
+                {
+                    REQUIRE(data.at(ids[i]) == i);
+                }
+            }());
     }
 }
 
-TEST_CASE_PERSISTENT_FIXTURE(
-    FamLoaderTestFixture,
-    "FamLoader error handling",
-    "[loader][fam]")
+TEST_CASE("FamLoader - Error conditions", "[data][loader][error]")
 {
-    SECTION("Malformed data - inconsistent column count")
-    {
-        auto result = gelex::detail::FamLoader::create(
-            "test_malformed_columns.fam", true);
+    FileFixture files;
 
-        REQUIRE_FALSE(result.has_value());
-        REQUIRE(result.error().code == gelex::ErrorCode::InconsistColumnCount);
+    SECTION("Exception - Malformed .fam file (missing IID column)")
+    {
+        const auto* malformed_content = "1\n2 sample2\n";
+        auto file_path = files.create_text_file(malformed_content, ".fam");
+
+        REQUIRE_THROWS_AS(
+            FamLoader(file_path, false), gelex::FileFormatException);
+    }
+}
+
+TEST_CASE("FamLoader - Method functionality", "[data][loader][methods]")
+{
+    FileFixture files;
+
+    SECTION("Happy path - take_ids() method moves the vector")
+    {
+        const auto* fam_content = R"(1 sample1 0 0 1 2.5
+2 sample2 0 0 2 1.8
+3 sample3 1 2 1 3.2
+)";
+        auto file_path = files.create_text_file(fam_content, ".fam");
+
+        FamLoader loader(file_path, false);
+
+        // Before move
+        const auto& original_ids = loader.ids();
+        REQUIRE(original_ids.size() == 3);
+
+        // Move the IDs
+        auto moved_ids = std::move(loader).take_ids();
+        REQUIRE(moved_ids.size() == 3);
+        REQUIRE(moved_ids[0] == "1_sample1");
+        REQUIRE(moved_ids[1] == "2_sample2");
+        REQUIRE(moved_ids[2] == "3_sample3");
+
+        // After move, the loader should still be usable but ids() may be empty
+        // This depends on implementation, but at minimum shouldn't crash
+        REQUIRE_NOTHROW(loader.ids());
+        REQUIRE_NOTHROW(loader.data());
+    }
+}
+
+TEST_CASE("FamLoader - Edge cases", "[data][loader][edge]")
+{
+    FileFixture files;
+    SECTION("Edge case - single line")
+    {
+        // FamLoader expects space delimiter, tabs should cause parsing errors
+        const auto* fam_content = "1 sample1 0 0 1 2.5\n";
+        auto file_path = files.create_text_file(fam_content, ".fam");
+        REQUIRE_NOTHROW(FamLoader(file_path, true));
+    }
+
+    SECTION("Edge case - .fam file with tab delimiter (should fail)")
+    {
+        // FamLoader expects space delimiter, tabs should cause parsing errors
+        const auto* fam_content = "1\tsample1\t0\t0\t1\t2.5\n";
+        auto file_path = files.create_text_file(fam_content, ".fam");
+
+        REQUIRE_THROWS_AS(
+            FamLoader(file_path, false), gelex::FileFormatException);
     }
 }
