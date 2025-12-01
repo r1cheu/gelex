@@ -8,7 +8,7 @@
 #include <barkeep.h>
 #include <Eigen/Core>
 
-#include "estimator/bayes/indicator.h"
+#include "../src/estimator/bayes/indicator.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/genotype_matrix.h"
 #include "gelex/data/sample_manager.h"

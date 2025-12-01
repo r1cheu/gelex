@@ -1,11 +1,11 @@
-#include "rrd.h"
+#include "../src/model/bayes/samplers/mh/rrd.h"
 
 #include <random>
 
 #include <Eigen/Core>
 
-#include "model/bayes/samplers/common_op.h"
-#include "types/bayes_effects.h"
+#include "../src/model/bayes/samplers/common_op.h"
+#include "../src/types/bayes_effects.h"
 
 namespace gelex::detail::MH
 {

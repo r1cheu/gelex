@@ -7,10 +7,10 @@
 #include <fmt/ranges.h>
 #include <Eigen/Core>
 
+#include "../src/types/bayes_effects.h"
+#include "../src/utils/math_utils.h"
 #include "gelex/data/data_pipe.h"
 #include "gelex/data/genotype_mmap.h"
-#include "types/bayes_effects.h"
-#include "utils/math_utils.h"
 
 namespace gelex
 {

@@ -1,0 +1,106 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 20,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "GELEX_USE_MKL": "ON",
+                "CMAKE_CXX_COMPILER": "clang++-21"
+            }
+        },
+        {
+            "name": "debug",
+            "displayName": "Debug (Dev)",
+            "description": "Debug build with tests enabled",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "GELEX_BUILD_TESTS": "ON",
+                "GELEX_ENABLE_SANITIZERS": "ON"
+            }
+        },
+        {
+            "name": "release",
+            "displayName": "Release",
+            "description": "Standard Release build",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "GELEX_BUILD_TESTS": "OFF",
+                "GELEX_NATIVE_OPTIMIZATION": "OFF"
+            }
+        },
+        {
+            "name": "release-native",
+            "displayName": "Release (Native Opt)",
+            "description": "Release build with -march=native optimization",
+            "inherits": "release",
+            "cacheVariables": {
+                "GELEX_NATIVE_OPTIMIZATION": "ON"
+            }
+        },
+        {
+            "name": "coverage",
+            "displayName": "Code Coverage",
+            "description": "Debug build with Clang source-based coverage",
+            "inherits": "base",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "GELEX_BUILD_TESTS": "ON",
+                "GELEX_ENABLE_COVERAGE": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "debug",
+            "configurePreset": "debug"
+        },
+        {
+            "name": "release",
+            "configurePreset": "release"
+        },
+        {
+            "name": "release-native",
+            "configurePreset": "release-native"
+        },
+        {
+            "name": "coverage",
+            "configurePreset": "coverage"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "test-debug",
+            "configurePreset": "debug",
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": false
+            }
+        },
+        {
+            "name": "test-coverage",
+            "configurePreset": "coverage",
+            "description": "Run tests to generate coverage profile",
+            "output": {
+                "outputOnFailure": true
+            }
+        }
+    ]
+}

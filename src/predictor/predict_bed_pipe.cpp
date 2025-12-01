@@ -1,7 +1,7 @@
-#include "predictor/predict_bed_pipe.h"
+#include "../src/predictor/predict_bed_pipe.h"
 
+#include "../src/predictor/snp_matcher.h"
 #include "gelex/data/bed_pipe.h"
-#include "predictor/snp_matcher.h"
 
 namespace gelex
 {

@@ -1,19 +1,19 @@
-#include "dominant.h"
+#include "../src/model/bayes/samplers/dominant.h"
 #include <random>
 #include <ranges>
 
 #include <Eigen/Core>
 
+#include "../src/model/bayes/samplers/common_op.h"
+#include "../src/types/bayes_effects.h"
 #include "../src/utils/math_utils.h"
 #include "gelex/model/bayes/model.h"
-#include "model/bayes/samplers/common_op.h"
-#include "types/bayes_effects.h"
 
-#include "model/bayes/samplers/gibbs/a.h"
-#include "model/bayes/samplers/gibbs/b.h"
-#include "model/bayes/samplers/gibbs/c.h"
-#include "model/bayes/samplers/gibbs/r.h"
-#include "model/bayes/samplers/gibbs/rr.h"
+#include "../src/model/bayes/samplers/gibbs/a.h"
+#include "../src/model/bayes/samplers/gibbs/b.h"
+#include "../src/model/bayes/samplers/gibbs/c.h"
+#include "../src/model/bayes/samplers/gibbs/r.h"
+#include "../src/model/bayes/samplers/gibbs/rr.h"
 
 namespace gelex::detail::DominantSampler
 {

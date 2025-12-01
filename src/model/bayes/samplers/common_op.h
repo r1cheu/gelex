@@ -7,7 +7,7 @@
 
 #include <Eigen/Core>
 
-#include "utils/math_utils.h"
+#include "../src/utils/math_utils.h"
 
 namespace gelex::detail
 {

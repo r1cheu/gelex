@@ -1,4 +1,4 @@
-#include "types/bayes_effects.h"
+#include "../src/types/bayes_effects.h"
 
 #include <utility>
 

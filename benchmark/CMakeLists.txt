@@ -1,12 +1,20 @@
-# Benchmark configuration for gelex
+include(FetchContent)
+FetchContent_Declare(
+  googlebenchmark
+  GIT_REPOSITORY https://github.com/google/benchmark.git
+  GIT_TAG v1.8.3)
+set(BENCHMARK_ENABLE_TESTING
+    OFF
+    CACHE BOOL "" FORCE)
+set(BENCHMARK_ENABLE_INSTALL
+    OFF
+    CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googlebenchmark)
 
-# Add Google Benchmark as a subdirectory
-add_subdirectory(benchmark)
-
-# Create benchmark executables
 add_executable(bench_sample benchmark_sample.cpp)
 
-# Link against our core library and benchmark
-target_compile_options(bench_sample PUBLIC -march=native -O3)
+target_link_libraries(bench_sample PRIVATE gelex::core benchmark::benchmark)
 
-target_link_libraries(bench_sample PRIVATE benchmark::benchmark)
+if(GELEX_NATIVE_OPTIMIZATION)
+  target_compile_options(bench_sample PRIVATE -march=native -O3)
+endif()

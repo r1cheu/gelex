@@ -1,9 +1,9 @@
 #pragma once
 
 #include <memory>
+#include "../src/types/bayes_effects.h"
 #include "gelex/model/bayes/prior_strategy.h"
 #include "gelex/model/effects.h"
-#include "types/bayes_effects.h"
 
 namespace gelex
 {

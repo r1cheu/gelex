@@ -1,4 +1,4 @@
-#include "logger/bayes_logger.h"
+#include "../src/logger/bayes_logger.h"
 
 #include <vector>
 
@@ -6,9 +6,9 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
+#include "../src/logger/logger_utils.h"
 #include "gelex/logger.h"
 #include "gelex/model/bayes/model.h"
-#include "logger/logger_utils.h"
 
 namespace gelex
 {

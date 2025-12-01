@@ -12,9 +12,9 @@
 #include <Eigen/Core>
 
 #include "../src/estimator/bayes/indicator.h"
+#include "../src/estimator/bayes/posterior_calculator.h"
 #include "../src/logger/bayes_logger.h"
 #include "../src/utils/formatter.h"
-#include "estimator/bayes/posterior_calculator.h"
 #include "gelex/estimator/bayes/params.h"
 #include "gelex/logger.h"
 #include "gelex/model/bayes/model.h"

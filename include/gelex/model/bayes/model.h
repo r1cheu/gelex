@@ -6,8 +6,8 @@
 
 #include <Eigen/Core>
 
+#include "../src/types/bayes_effects.h"
 #include "gelex/data/data_pipe.h"
-#include "types/bayes_effects.h"
 
 namespace gelex
 {

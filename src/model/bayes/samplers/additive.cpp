@@ -1,14 +1,14 @@
-#include "additive.h"
+#include "../src/model/bayes/samplers/additive.h"
 
 #include <random>
 
+#include "../src/model/bayes/samplers/gibbs/a.h"
+#include "../src/model/bayes/samplers/gibbs/b.h"
+#include "../src/model/bayes/samplers/gibbs/c.h"
+#include "../src/model/bayes/samplers/gibbs/r.h"
+#include "../src/model/bayes/samplers/gibbs/rr.h"
+#include "../src/model/bayes/samplers/mh/rrd.h"
 #include "gelex/model/bayes/model.h"
-#include "model/bayes/samplers/gibbs/a.h"
-#include "model/bayes/samplers/gibbs/b.h"
-#include "model/bayes/samplers/gibbs/c.h"
-#include "model/bayes/samplers/gibbs/r.h"
-#include "model/bayes/samplers/gibbs/rr.h"
-#include "model/bayes/samplers/mh/rrd.h"
 
 namespace gelex::detail::AdditiveSampler
 {

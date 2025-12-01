@@ -1,8 +1,8 @@
 #include "gelex/model/bayes/prior_strategies.h"
 
+#include "../src/types/bayes_effects.h"
 #include "gelex/exception.h"
 #include "gelex/model/bayes/prior_strategy.h"
-#include "types/bayes_effects.h"
 
 namespace gelex
 {

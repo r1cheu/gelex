@@ -4,9 +4,9 @@
 
 #include "../src/model/bayes/samplers/additive.h"
 #include "../src/model/bayes/samplers/common.h"
+#include "../src/model/bayes/samplers/dominant.h"
+#include "../src/model/bayes/samplers/pi.h"
 #include "gelex/model/bayes/model.h"
-#include "model/bayes/samplers/dominant.h"
-#include "model/bayes/samplers/pi.h"
 
 namespace gelex
 {

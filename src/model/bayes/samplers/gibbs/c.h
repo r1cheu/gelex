@@ -2,9 +2,9 @@
 
 #include <random>
 
-#include "gibbs_concept.h"
-#include "model/bayes/samplers/common_op.h"
-#include "types/bayes_effects.h"
+#include "../src/model/bayes/samplers/common_op.h"
+#include "../src/model/bayes/samplers/gibbs/gibbs_concept.h"
+#include "../src/types/bayes_effects.h"
 
 namespace gelex::detail::Gibbs
 {

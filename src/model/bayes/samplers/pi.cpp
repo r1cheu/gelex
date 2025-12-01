@@ -1,11 +1,11 @@
-#include "pi.h"
+#include "../src/model/bayes/samplers/pi.h"
 
 #include <random>
 
 #include <Eigen/Core>
 
+#include "../src/types/bayes_effects.h"
 #include "gelex/model/bayes/model.h"
-#include "types/bayes_effects.h"
 
 namespace gelex::detail
 {

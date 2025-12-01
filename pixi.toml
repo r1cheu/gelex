@@ -4,88 +4,78 @@ channels = ["https://prefix.dev/conda-forge"]
 platforms = ["linux-64"]
 
 [dependencies]
-cmake = ">=3.18,<4"
+cmake = ">=3.20,<4"
 cxx-compiler = ">=1.8.0,<2"
 ninja = ">=1.12.1,<2"
-clang = ">=21.1.3,<22"
+clang = ">=18.0.0,<22"
 openblas = { version = ">=0.3.28", build = "*openmp*" }
 spdlog = ">=1.15.0,<2"
 catch2 = ">=3.8.0,<4"
 mkl-devel = ">=2024.2.2,<2025"
 fftw = ">=3.3.10,<4"
-llvm-tools = ">=21.1.3,<22"
+llvm-tools = ">=18.0.0,<22"
 
-[tasks.configure]
-args = [
-  { "arg" = "build_dir", "default" = ".build_debug" },
-  { "arg" = "build_type", "default" = "Debug" },
-  { "arg" = "test", "default" = "ON" },
-  { "arg" = "cxx_compiler", "default" = "clang++-21" },
-  { "arg" = "coverage_enabled", "default" = "OFF" },
-]
+# ---------------------------------------------------------
+# Configure Tasks
+# ---------------------------------------------------------
+[tasks.config-debug]
+cmd = "cmake --preset debug"
 
-cmd = [
-  "cmake",
-  "-GNinja",
-  "-S .",
-  "-B{{build_dir}}",
-  "-DBUILD_TEST={{test}}",
-  "-DUSE_MKL=ON",
-  "-DCMAKE_BUILD_TYPE={{build_type}}",
-  "-DCMAKE_CXX_COMPILER={{cxx_compiler}}",
-  "-DBENCHMARK_ENABLE_GTEST_TESTS=OFF",
-  "-DENABLE_COVERAGE={{coverage_enabled}}",
-]
+[tasks.config-release]
+cmd = "cmake --preset release"
+
+[tasks.config-native]
+cmd = "cmake --preset release-native"
+
+[tasks.config-coverage]
+cmd = "cmake --preset coverage"
+
+# ---------------------------------------------------------
+# Build Tasks
+# ---------------------------------------------------------
+
+[tasks.build]
+cmd = "cmake --build --preset debug -j16"
+depends-on = ["config-debug"]
 
 [tasks.build-debug]
-cmd = ["cmake", "--build", ".build_debug", "-j16"]
-depends-on = ["configure"]
-
-[tasks.install-debug]
-cmd = ["cp", ".build_debug/gelex", "~/.local/bin/"]
-depends-on = ["build-debug"]
-
-[tasks.build-coverage]
-cmd = ["cmake", "--build", ".build_coverage", "-j16", "--target", "coverage"]
-depends-on = [
-  { task = "configure", args = [
-    { build_dir = ".build_coverage" },
-    { coverage_enabled = "ON" },
-  ] },
-]
+cmd = "cmake --build --preset debug -j16"
+depends-on = ["config-debug"]
 
 [tasks.build-release]
-cmd = ["cmake", "--build", ".build_release", "-j16"]
-depends-on = [
-  { task = "configure", args = [
-    { build_dir = ".build_release" },
-    { build_type = "Release" },
-    { test = "OFF" },
-  ] },
-]
+cmd = "cmake --build --preset release -j16"
+depends-on = ["config-release"]
 
-[tasks.build-reldebug]
-cmd = ["cmake", "--build", ".build_reldebug", "-j16"]
-depends-on = [
-  { task = "configure", args = [
-    { build_dir = ".build_reldebug" },
-    { build_type = "RelWithDebInfo" },
-    { test = "OFF" },
-  ] },
-]
+[tasks.build-native]
+cmd = "cmake --build --preset release-native -j16"
+depends-on = ["config-native"]
 
-[tasks.install-release]
-cmd = ["cp", ".build_release/gelex", "~/.local/bin/"]
-depends-on = ["build-release"]
+[tasks.coverage]
+cmd = "cmake --build --preset coverage --target coverage"
+depends-on = ["build-coverage-bin"]
 
-[tasks.install-reldebug]
-cmd = ["cp", ".build_reldebug/gelex", "~/.local/bin/"]
-depends-on = ["build-reldebug"]
+# ---------------------------------------------------------
+# Test Tasks
+# ---------------------------------------------------------
 
 [tasks.test]
-cmd = "cd .build_debug/tests;ctest"
+cmd = "ctest --preset test-debug"
 depends-on = ["build-debug"]
 
+[tasks.build-coverage-bin]
+cmd = "cmake --build --preset coverage -j16"
+depends-on = ["config-coverage"]
+
+# ---------------------------------------------------------
+# Install & Utils
+# ---------------------------------------------------------
+[tasks.install-debug]
+cmd = "cp build/debug/gelex ~/.local/bin/gelex_debug"
+depends-on = ["build-debug"]
+
+[tasks.install-release]
+cmd = "cp build/release/gelex ~/.local/bin/gelex"
+depends-on = ["build-release"]
 
 [environments]
 docs = { features = ["docs"], no-default-feature = true }

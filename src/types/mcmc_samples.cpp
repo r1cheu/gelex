@@ -4,9 +4,9 @@
 
 #include <Eigen/Core>
 
+#include "../src/types/bayes_effects.h"
 #include "gelex/estimator/bayes/params.h"
 #include "gelex/model/bayes/model.h"
-#include "types/bayes_effects.h"
 
 namespace gelex
 {

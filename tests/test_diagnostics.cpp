@@ -10,6 +10,13 @@
 #include "../src/estimator/bayes/diagnostics.h"
 #include "gelex/types/mcmc_samples.h"
 
+extern "C" const char* __lsan_default_suppressions()
+{
+    return "leak:___kmp_allocate_align\n"  // 屏蔽 OpenMP 的特定分配函数
+           "leak:libomp\n"                 // 屏蔽整个 libomp 库（LLVM OpenMP）
+           "leak:libiomp5";  // 屏蔽整个 libiomp5 库（Intel OpenMP）
+}
+
 using Catch::Matchers::WithinAbs;
 using Eigen::RowVectorXd;
 
