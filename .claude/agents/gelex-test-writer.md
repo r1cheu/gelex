@@ -19,7 +19,7 @@ Your primary responsibilities:
 Testing Methodology:
 
 - **Happy Path Tests**: Verify core functionality with valid inputs and expected outputs
-- **Exception Path Tests**: Test error handling and boundary conditions
+- **Exception Path Tests**: Test error handling and boundary conditions, use REQUIRE_THROWS_MATCHES, Matches::MessageMatches, EndsWith to expect specific error messages
 - **Edge Cases**: Focus on critical boundaries and special scenarios relevant to genomic data
 
 Test Structure Requirements:

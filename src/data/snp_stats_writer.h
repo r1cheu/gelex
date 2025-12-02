@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <span>
+#include <string_view>
 #include <vector>
 
 namespace gelex::detail
@@ -36,6 +37,23 @@ class SnpStatsWriter
     }
 
    private:
+    void write_data(
+        const void* data,
+        std::streamsize size,
+        std::string_view error_msg);
+    template <typename T>
+    void write_data(std::span<const T> data, std::string_view error_msg)
+    {
+        write_data(
+            data.data(),
+            static_cast<std::streamsize>(data.size_bytes()),
+            error_msg);
+    }
+
+    static void check_monomorphic_indices(
+        std::span<const int64_t> monomorphic_indices,
+        int64_t num_variants);
+
     std::filesystem::path path_;
     std::vector<char> io_buffer_;
     std::ofstream file_;

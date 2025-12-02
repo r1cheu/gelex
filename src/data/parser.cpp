@@ -15,8 +15,7 @@ size_t count_total_lines(const std::filesystem::path& path)
 
     std::vector<char> buffer(buffer_size);
 
-    auto file = open_file<std::ifstream>(
-        path, std::ios_base::in | std::ios_base::binary);
+    auto file = open_file<std::ifstream>(path, std::ios::in | std::ios::binary);
 
     file.rdbuf()->pubsetbuf(buffer.data(), buffer_size);
 

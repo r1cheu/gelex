@@ -25,7 +25,7 @@ PhenotypeLoader::PhenotypeLoader(
     int pheno_column,
     bool iid_only)
 {
-    auto file = detail::open_file<std::ifstream>(path, std::ios_base::in);
+    auto file = detail::open_file<std::ifstream>(path, std::ios::in);
     try
     {
         set_name(file, pheno_column);

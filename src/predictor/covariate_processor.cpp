@@ -30,7 +30,7 @@ auto CovariateProcessor::parse_param_file(
         std::map<std::string, double>,
         std::map<std::string, std::map<std::string, double>>>
 {
-    auto file = detail::open_file<std::ifstream>(file_path, std::ios_base::in);
+    auto file = detail::open_file<std::ifstream>(file_path, std::ios::in);
 
     std::string line;
     // Skip header line

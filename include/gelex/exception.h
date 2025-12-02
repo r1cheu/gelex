@@ -36,6 +36,15 @@ class FileOpenException : public GelexException
     }
 };
 
+class FileWriteException : public GelexException
+{
+   public:
+    explicit FileWriteException(std::string_view message)
+        : GelexException(std::string(message))
+    {
+    }
+};
+
 class FileExistsException : public GelexException
 {
    public:

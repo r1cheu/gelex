@@ -28,7 +28,7 @@ void SnpQuantGeneticWriter::write(const std::filesystem::path& path) const
         return;
     }
 
-    auto stream = detail::open_file<std::ofstream>(path, std::ios_base::out);
+    auto stream = detail::open_file<std::ofstream>(path, std::ios::out);
 
     write_header(stream);
 

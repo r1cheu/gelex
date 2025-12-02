@@ -18,7 +18,7 @@ namespace gelex::detail
 
 BimLoader::BimLoader(const std::filesystem::path& path)
 {
-    auto file = detail::open_file<std::ifstream>(path, std::ios_base::in);
+    auto file = detail::open_file<std::ifstream>(path, std::ios::in);
     char delimiter = detect_delimiter(file);
     try
     {
@@ -42,11 +42,6 @@ void BimLoader::set_snp_info(char delimiter, std::ifstream& file)
     while (std::getline(file, line))
     {
         n_line++;
-        if (line.empty())
-        {
-            continue;
-        }
-
         auto tokens = line | std::views::split(delimiter)
                       | std::views::transform([](auto&& rng)
                                               { return std::string_view(rng); })
@@ -60,8 +55,7 @@ void BimLoader::set_snp_info(char delimiter, std::ifstream& file)
         {
             const auto count = std::distance(cols.begin(), out);
             throw InconsistentColumnCountException(
-                std::format(
-                    "Line {}: has {} columns, expected 6", n_line, count));
+                std::format("{}: has {} columns, expected 6", n_line, count));
         }
         try
         {
@@ -85,10 +79,7 @@ char BimLoader::detect_delimiter(std::ifstream& file)
 {
     std::string probe_line;
 
-    // escape empty lines
-    while (std::getline(file, probe_line) && probe_line.empty())
-    {
-    }
+    std::getline(file, probe_line);
     bool is_tab = !probe_line.empty() && probe_line.contains('\t');
 
     file.clear();

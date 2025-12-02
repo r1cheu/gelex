@@ -121,8 +121,8 @@ void FileFixture::write_to_file(
     std::ofstream file(filepath);
     if (!file)
     {
-        throw FileOpenException(
-            std::format("Failed to create file: {}", filepath.string()));
+        throw FileWriteException(
+            std::format("{}:Failed to create file", filepath.string()));
     }
     file << content;
 }
@@ -139,8 +139,8 @@ void FileFixture::write_to_file(
     std::ofstream file(filepath, std::ios::binary);
     if (!file)
     {
-        throw FileOpenException(
-            std::format("Failed to create binary file: {}", filepath.string()));
+        throw FileWriteException(
+            std::format("{}:Failed to create binary file", filepath.string()));
     }
     file.write(
         reinterpret_cast<const char*>(content.data()),  // NOLINT

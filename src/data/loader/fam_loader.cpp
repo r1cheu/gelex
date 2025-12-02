@@ -35,7 +35,7 @@ FamLoader::FamLoader(const std::filesystem::path& path, bool iid_only)
 void FamLoader::set_ids(const std::filesystem::path& path, bool iid_only)
 {
     ids_.clear();
-    auto file = detail::open_file<std::ifstream>(path, std::ios_base::in);
+    auto file = detail::open_file<std::ifstream>(path, std::ios::in);
 
     ids_.reserve(1024);  // Start small
     std::string line;

@@ -213,3 +213,4 @@ cd .build_debug/tests/
 - **Convergence Diagnostics**: Built-in convergence monitoring and diagnostic tools
 - **Data Alignment**: `SampleManager` ensures consistent sample ordering across genotype and phenotype data
 - **Chunk Processing**: Large genotype datasets processed in configurable chunks to control memory usage
+- when picking test in Catch2 always use tag "[sometag]"

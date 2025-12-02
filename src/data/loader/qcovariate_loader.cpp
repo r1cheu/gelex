@@ -22,7 +22,7 @@ namespace gelex::detail
 
 QcovarLoader::QcovarLoader(const std::filesystem::path& path, bool iid_only)
 {
-    auto file = detail::open_file<std::ifstream>(path, std::ios_base::in);
+    auto file = detail::open_file<std::ifstream>(path, std::ios::in);
     try
     {
         set_names(file);

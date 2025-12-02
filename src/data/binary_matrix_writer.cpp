@@ -17,8 +17,10 @@ void BinaryMatrixWriter::write(const Eigen::Ref<const Eigen::MatrixXd>& matrix)
 {
     if (!file_.good())
     {
-        throw FileOpenException(enrich_with_file_info(
-            "Binary matrix writer stream is in bad state", path_));
+        throw FileWriteException(
+            std::format(
+                "{}:Binary matrix writer stream is in bad state",
+                path_.string()));
     }
 
     if (matrix.size() == 0)
@@ -32,8 +34,10 @@ void BinaryMatrixWriter::write(const Eigen::Ref<const Eigen::MatrixXd>& matrix)
 
     if (!file_.good())
     {
-        throw FileOpenException(enrich_with_file_info(
-            "Failed to write matrix data to binary file", path_));
+        throw FileWriteException(
+            std::format(
+                "{}:Failed to write matrix data to binary file",
+                path_.string()));
     }
 }
 

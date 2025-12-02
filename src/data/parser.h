@@ -17,19 +17,25 @@ namespace gelex::detail
 
 template <typename T>
 concept FileStream
-    = std::derived_from<T, std::ios_base>
-      && requires(std::filesystem::path p, std::ios_base::openmode m) {
+    = std::derived_from<T, std::ios>
+      && requires(std::filesystem::path p, std::ios::openmode m) {
              { T() };
          };
 
 template <FileStream StreamType>
 [[nodiscard]] StreamType open_file(
     const std::filesystem::path& path,
-    std::ios_base::openmode mode,
+    std::ios::openmode mode,
     std::span<char> custom_buffer = {})
 {
-    StreamType stream;
+    if (std::filesystem::is_directory(path))
+    {
+        throw gelex::FileOpenException(
+            std::format(
+                "{}: is a directory, not a regular file", path.string()));
+    }
 
+    StreamType stream;
     if (!custom_buffer.empty())
     {
         stream.rdbuf()->pubsetbuf(
@@ -41,21 +47,22 @@ template <FileStream StreamType>
 
     if (!stream.is_open())
     {
-        if ((mode & std::ios_base::in) && !std::filesystem::exists(path))
+        if ((mode & std::ios::in) && !std::filesystem::exists(path))
         {
-            throw FileNotFoundException(path);
+            throw FileNotFoundException(
+                std::format("{}: not found", path.string()));
         }
         throw FileOpenException(
-            enrich_with_file_info("Failed to open file", path));
+            std::format("{}:failed to open file", path.string()));
     }
 
-    if ((mode & std::ios_base::in) && std::filesystem::is_regular_file(path))
+    if ((mode & std::ios::in) && std::filesystem::is_regular_file(path))
     {
         std::error_code ec;
         if (std::filesystem::file_size(path, ec) == 0 && !ec)
         {
             throw FileFormatException(
-                enrich_with_file_info("File is empty", path));
+                std::format("{}:file is empty", path.string()));
         }
     }
 

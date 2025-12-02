@@ -12,6 +12,7 @@ Checks: >
   openmp-*,
   -readability-magic-numbers,
   -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-type-reinterpret-cast
 FormatStyle: file
 CheckOptions:
   readability-identifier-length.MinimumParameterNameLength: "0"

@@ -28,6 +28,7 @@ TEST_CASE("BimLoader - Valid file parsing", "[loader][bim]")
                 BimLoader bim_loader(file_path);
 
                 const auto snp_ids = bim_loader.get_ids();
+                REQUIRE(bim_loader.size() == 5);
                 REQUIRE(snp_ids.size() == 5);
                 REQUIRE(snp_ids[0] == "rs12345");
                 REQUIRE(snp_ids[1] == "rs67890");

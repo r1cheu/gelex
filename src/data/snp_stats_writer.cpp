@@ -1,6 +1,8 @@
 #include "snp_stats_writer.h"
 
+#include <array>
 #include <cassert>
+#include <cstdint>
 #include <format>
 
 #include "gelex/exception.h"
@@ -16,29 +18,36 @@ SnpStatsWriter::SnpStatsWriter(const std::filesystem::path& file_path)
         path_, std::ios::binary | std::ios::trunc, io_buffer_);
 }
 
+void SnpStatsWriter::write_data(
+    const void* data,
+    std::streamsize size,
+    std::string_view error_msg)
+{
+    file_.write(reinterpret_cast<const char*>(data), size);
+    if (!file_.good())
+    {
+        throw FileWriteException(
+            std::format("{}:{}", path_.string(), error_msg));
+    }
+}
+
 void SnpStatsWriter::write(
     int64_t num_samples,
     std::span<const int64_t> monomorphic_indices,
     std::span<const double> means,
     std::span<const double> stddevs)
 {
-    if (!file_.is_open())
-    {
-        throw FileOpenException(
-            enrich_with_file_info("Stats file is not open", path_));
-    }
-
     if (means.size() != stddevs.size())
     {
         throw ArgumentValidationException(
             std::format(
-                "Size mismatch: means ({}) and stddevs ({}) must have the same "
+                "means ({}) and stddevs ({}) must have the same "
                 "length.",
                 means.size(),
                 stddevs.size()));
     }
 
-    if (means.empty())
+    if (means.empty() || stddevs.empty())
     {
         throw ArgumentValidationException("means and stddevs cannot be empty");
     }
@@ -47,42 +56,38 @@ void SnpStatsWriter::write(
     const auto num_monomorphic
         = static_cast<int64_t>(monomorphic_indices.size());
 
-    const int64_t header[] = {num_samples, num_variants, num_monomorphic};
-    file_.write(reinterpret_cast<const char*>(header), sizeof(header));
-
-    if (!file_.good())
-    {
-        throw FileOpenException(enrich_with_file_info(
-            "Failed to write header to stats file", path_));
-    }
+    const std::array<int64_t, 3> header
+        = {num_samples, num_variants, num_monomorphic};
+    check_monomorphic_indices(monomorphic_indices, num_variants);
+    write_data(std::span<const int64_t>(header), "failed to write header");
 
     if (!monomorphic_indices.empty())
     {
-        file_.write(
-            reinterpret_cast<const char*>(monomorphic_indices.data()),
-            static_cast<std::streamsize>(monomorphic_indices.size_bytes()));
+        write_data(
+            monomorphic_indices, "failed to write monomorphic snp indices");
     }
 
-    file_.write(
-        reinterpret_cast<const char*>(means.data()),
-        static_cast<std::streamsize>(means.size_bytes()));
+    write_data(means, "failed to write means");
 
-    file_.write(
-        reinterpret_cast<const char*>(stddevs.data()),
-        static_cast<std::streamsize>(stddevs.size_bytes()));
+    write_data(stddevs, "failed to write stddevs");
+}
 
-    if (!file_.good())
+void SnpStatsWriter::check_monomorphic_indices(
+    std::span<const int64_t> monomorphic_indices,
+    int64_t num_variants)
+{
+    if (monomorphic_indices.empty())
     {
-        throw FileOpenException(
-            enrich_with_file_info("Failed to write data to stats file", path_));
+        return;
     }
-
-    file_.flush();
-
-    if (!file_.good())
+    const int64_t max_value = monomorphic_indices.back();
+    if (max_value >= num_variants || max_value < 0)
     {
-        throw FileOpenException(
-            enrich_with_file_info("Failed to flush stats file", path_));
+        throw ArgumentValidationException(
+            std::format(
+                "Monomorphic SNP index {} is out of range [0, {}).",
+                max_value,
+                num_variants));
     }
 }
 
