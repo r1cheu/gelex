@@ -2,6 +2,26 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Quick Reference
+
+**Common Commands:**
+
+```bash
+# Build and test
+pixi run build-debug    # Debug build with tests
+pixi run test           # Run all tests
+pixi run build-release  # Optimized release build
+
+# Installation
+pixi run install-debug   # Install debug binary
+pixi run install-release # Install release binary
+
+# Testing
+cd build/debug/tests/
+./gelex_tests "TestName*"       # Run specific test
+./gelex_tests --list-tests      # List all tests
+```
+
 ## Project Overview
 
 Gelex is a C++ library and CLI tool for genomic prediction with Bayesian (BayesAlphabet models) and frequentist (GBLUP) approaches. It provides high-performance computation for genomic selection with memory-mapped genotype data support.
@@ -35,41 +55,38 @@ This project uses CMake with pixi for dependency management:
 - Install release: `pixi run install-release` (copies to ~/.local/bin)
 - Test: `pixi run test` (runs all C++ tests with ctest)
 
-**CMake Configuration:**
+**CMake Presets:**
 
-The `pixi run configure` task accepts arguments:
+The project uses CMake presets for different build configurations:
 
-- `build_dir`: Build directory (default: `.build_debug`)
-- `build_type`: Build type (default: `Debug`, options: `Debug`, `Release`, `RelWithDebInfo`, `MinSizeRel`)
-- `test`: Enable testing (default: `ON`)
-- `cxx_compiler`: C++ compiler (default: `clang++-21`)
-
-Example: `pixi run configure --build_dir=.build_release --build_type=Release`
+- `debug`: Debug build with tests and sanitizers enabled (default)
+- `release`: Optimized release build
+- `release-native`: Release build with `-march=native` optimization
+- `coverage`: Debug build with code coverage instrumentation
 
 **Note:** The pixi configuration automatically sets `USE_MKL=ON` for optimal performance.
-
-**CMake Options:**
-
-- `-DUSE_MKL=ON/OFF`: Use Intel MKL or OpenBLAS (default: ON in pixi tasks)
-- `-DBUILD_TEST=ON/OFF`: Enable testing (default: ON in pixi tasks)
 
 **Compiler Configuration:**
 
 - Uses Clang 21+ as default compiler
 - OpenMP support enabled for parallel computation
 
-**Single Test Execution:**
+**Test Execution:**
 
 ```bash
-cd .build_debug/tests/
-./test "TestName*"
-```
+# Run all tests
+pixi run test
 
-**Test Listing:**
+# Run single test
+cd build/debug/tests/
+./gelex_tests "TestName*"
 
-```bash
-cd .build_debug/tests/
-./test --list-tests
+# List all tests
+cd build/debug/tests/
+./gelex_tests --list-tests
+
+# Generate coverage report
+pixi run coverage
 ```
 
 ## Key Directories
@@ -107,19 +124,19 @@ cd .build_debug/tests/
 
 ## Data Handling
 
-- **DataPipe**: Main data processing pipeline (`include/gelex/data/data_pipe.h`) - handles phenotype, covariates, and sample alignment
-- **BedPipe**: Memory-mapped BED file reader (`src/data/bedpipe.cpp`)
-- **GenotypePipe**: Genotype data processing pipeline (`src/data/genotype_pipe.cpp`)
-- **GRM**: Genomic Relationship Matrix computation (`src/data/grm.cpp`)
-- **SampleManager**: Sample ID management and alignment (`src/data/sample_manager.cpp`)
+- **DataPipe**: Main data processing pipeline - handles phenotype, covariates, and sample alignment
+- **BedPipe**: Memory-mapped BED file reader
+- **GenotypePipe**: Genotype data processing pipeline
+- **GRM**: Genomic Relationship Matrix computation
+- **SampleManager**: Sample ID management and alignment
 
 ## Model Architecture
 
-- **BayesModel**: Main Bayesian model class (`include/gelex/model/bayes/model.h`) - manages fixed, random, additive, and dominant effects
-- **MCMC**: Markov Chain Monte Carlo sampler (`include/gelex/estimator/bayes/mcmc.h`) - template-based implementation for different trait samplers with multi-chain parallel execution
-- **Trait Samplers**: Additive effect samplers (`src/model/bayes/samplers/additive/`) - A, B, C, R, RR, RRD implementations using Gibbs and Metropolis-Hastings sampling
-- **Effects Management**: Fixed, random, additive, dominant effects via `BayesEffects` system (`src/types/bayes_effects.h`)
-- **BayesState**: State management for MCMC sampling (`include/gelex/model/bayes/model.h`)
+- **BayesModel**: Main Bayesian model class - manages fixed, random, additive, and dominant effects
+- **MCMC**: Markov Chain Monte Carlo sampler - template-based implementation for different trait samplers with multi-chain parallel execution
+- **Trait Samplers**: Additive effect samplers - A, B, C, R, RR, RRD implementations using Gibbs and Metropolis-Hastings sampling
+- **Effects Management**: Fixed, random, additive, dominant effects via `BayesEffects` system
+- **BayesState**: State management for MCMC sampling
 
 **Bayesian Model Types**:
 
@@ -145,9 +162,15 @@ cd .build_debug/tests/
 
 1. **Setup**: `pixi install` (installs all dependencies)
 2. **Build Debug**: `pixi run build-debug` (includes configure step)
-3. **Test**: `pixi run test` or run individual tests from `.build_debug/tests/`
+3. **Test**: `pixi run test` or run individual tests from `build/debug/tests/`
 4. **Build Release**: `pixi run build-release` (for production builds)
 5. **Install**: `pixi run install-debug` or `pixi run install-release`
+
+**Debug Build Features:**
+
+- AddressSanitizer and UndefinedBehaviorSanitizer enabled
+- Full debug symbols
+- Test binaries included in build directory
 
 ## Testing
 
@@ -155,12 +178,12 @@ cd .build_debug/tests/
 - **Test Data**: Uses sample BED files for validation
 - **Test Execution**:
   - All tests: `pixi run test`
-  - Single test: `cd .build_debug/tests && ./test "TestName*"`
-  - List tests: `cd .build_debug/tests && ./test --list-tests`
+  - Single test: `cd build/debug/tests && ./gelex_tests "TestName*"`
+  - List tests: `cd build/debug/tests && ./gelex_tests --list-tests`
+  - Run by tag: `cd build/debug/tests && ./gelex_tests [tag]`
 
 **Test Organization**:
 
-- test_parser.cpp are the example of test, when adding new tests and refactor older tests, follow the same pattern.
 - `test_*.cpp` files cover specific components (data loading, GRM computation, MCMC, etc.)
 - Tests use sample PLINK binary files for realistic validation
 - Each test module focuses on a specific subsystem (data, model, estimator, etc.)
@@ -187,7 +210,7 @@ cd .build_debug/tests/
 
 - **C++ Standard**: C++23
 - **CMake**: 3.18+
-- **Naming**: CamelCase for classes, snake_case for functions/variables
+- **Naming**: PascalCase for classes, snake_case for functions/variables
 - **Memory**: Smart pointers and RAII patterns
 - **Concurrency**: OpenMP for parallel computation
 
@@ -213,4 +236,3 @@ cd .build_debug/tests/
 - **Convergence Diagnostics**: Built-in convergence monitoring and diagnostic tools
 - **Data Alignment**: `SampleManager` ensures consistent sample ordering across genotype and phenotype data
 - **Chunk Processing**: Large genotype datasets processed in configurable chunks to control memory usage
-- when picking test in Catch2 always use tag "[sometag]"

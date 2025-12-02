@@ -9,18 +9,19 @@ Gelex is a high-performance C++ library and CLI tool for genomic prediction with
 
 ## Features
 
-- **Bayesian Models**: BayesA, BayesB(pi), BayesC(pi), BayesRR implementations
+- **Bayesian Models**: BayesA, BayesB, BayesBpi, BayesC, BayesCpi, BayesR, BayesRR, BayesRRD implementations
 - **Frequentist Models**: GBLUP with REML estimation
-- **High Performance**: Multi-threaded computation with BLAS/LAPACK backends (MKL or OpenBLAS)
-- **Memory Efficient**: Memory-mapped BED file reading via mio
-- **Modern C++**: Built with C++23 standards
-- **CLI Interface**: Easy-to-use command-line interface
+- **High Performance**: Multi-threaded computation with OpenMP, BLAS/LAPACK backends (MKL or OpenBLAS)
+- **Memory Efficient**: Memory-mapped BED file reading via mio with AVX512/AVX2 vectorization
+- **Modern C++**: Built with C++23 standards using RAII and smart pointers
+- **Data Handling**: Chunk-based processing for large datasets, sample alignment across genotype/phenotype data
+- **CLI Interface**: Easy-to-use command-line interface with comprehensive validation
 
 ## Installation
 
 ### Prerequisites
 
-- CMake 3.18+
+- CMake 3.20+
 - C++23 compatible compiler (GCC 11+, Clang 14+, or MSVC 2022+)
 - pixi (for dependency management)
 - Git (for cloning with submodules)
@@ -28,9 +29,9 @@ Gelex is a high-performance C++ library and CLI tool for genomic prediction with
 ### From Source
 
 ```bash
-git clone --recurse-submodules https://github.com/r1cheu/gelexy.git
-cd gelexy
-pixi install
+git clone --recurse-submodules https://github.com/r1cheu/gelex.git
+cd gelex
+pixi r install-release
 ```
 
 > [!NOTE]
@@ -57,6 +58,20 @@ pixi run install-release
 ```
 
 This will install the `gelex` binary to `~/.local/bin`.
+
+### Testing
+
+To verify your installation and run the test suite:
+
+```bash
+# Run all tests
+pixi run test
+
+# Run individual tests
+cd build/debug/tests/
+./gelex_tests --list-tests      # List all tests
+./gelex_tests "TestName*"       # Run specific test
+```
 
 ## Quick Start
 
@@ -90,14 +105,32 @@ gelex fit \
   --o output
 ```
 
+### Example: GBLUP Model
+
+```bash
+gelex fit \
+  --bfile data/genotypes.bed \
+  --pheno data/phenotypes.tsv \
+  --method GBLUP \
+  --o output
+```
+
+> **Note:** The `gelex predict` subcommand mentioned in some documentation is not yet implemented in the current codebase, but prediction utilities are available in the library for programmatic use.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+For development guidelines, build instructions, and codebase architecture, see [CLAUDE.md](CLAUDE.md).
+
 ## License
 
-[License information to be added]
+BSD-style license. See [LICENSE](LICENSE) file for details.
 
 ## Citation
 
-[Citation information to be added]
+If you use Gelex in your research, please cite:
+
+```
+Citation information to be added.
+```
