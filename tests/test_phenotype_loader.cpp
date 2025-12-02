@@ -3,6 +3,8 @@
 #include <unordered_map>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_exception.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "../src/data/loader/phenotype_loader.h"
 #include "file_fixture.h"
@@ -11,6 +13,7 @@
 namespace fs = std::filesystem;
 
 using namespace gelex::detail;  // NOLINT
+using Catch::Matchers::EndsWith;
 using gelex::test::FileFixture;
 
 TEST_CASE("PhenotypeLoader - Constructor Tests", "[data][phenotype]")
@@ -73,10 +76,16 @@ TEST_CASE("PhenotypeLoader - Constructor Tests", "[data][phenotype]")
             "FID\tIID\tPhenotype\n"
             "1\t1\t2.5\n");
 
-        REQUIRE_THROWS_AS(
-            PhenotypeLoader(file_path, 0, false), gelex::FileFormatException);
-        REQUIRE_THROWS_AS(
-            PhenotypeLoader(file_path, 5, false), gelex::FileFormatException);
+        REQUIRE_THROWS_MATCHES(
+            PhenotypeLoader(file_path, 0, false),
+            gelex::FileFormatException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("column 0 is out of range")));
+        REQUIRE_THROWS_MATCHES(
+            PhenotypeLoader(file_path, 5, false),
+            gelex::FileFormatException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("column 5 is out of range")));
     }
 }
 
@@ -238,7 +247,10 @@ TEST_CASE("PhenotypeLoader - Edge Cases", "[data][phenotype]")
             "1\t2\n"  // Missing phenotype column
             "2\t1\t1.8\n");
 
-        REQUIRE_THROWS_AS(
-            PhenotypeLoader(file_path, 2, false), gelex::FileFormatException);
+        REQUIRE_THROWS_MATCHES(
+            PhenotypeLoader(file_path, 2, false),
+            gelex::FileFormatException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("column 2 is out of range")));
     }
 }

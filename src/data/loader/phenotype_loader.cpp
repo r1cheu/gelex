@@ -48,7 +48,7 @@ void PhenotypeLoader::set_name(std::ifstream& file, int pheno_column)
     if (pheno_column < 2 || static_cast<size_t>(pheno_column) >= header.size())
     {
         throw ColumnRangeException(
-            std::format("Phenotype column {} out of range", pheno_column));
+            std::format("Phenotype column {} is out of range", pheno_column));
     }
     name_ = std::string(header[pheno_column]);
 }

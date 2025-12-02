@@ -5,6 +5,8 @@
 #include <vector>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_exception.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "../src/data/parser.h"
 #include "file_fixture.h"
@@ -13,6 +15,7 @@
 namespace fs = std::filesystem;
 
 using namespace gelex::detail;  // NOLINT
+using Catch::Matchers::EndsWith;
 using gelex::test::FileFixture;
 
 TEST_CASE("File Stream I/O", "[parser]")
@@ -105,30 +108,36 @@ TEST_CASE("File Stream I/O", "[parser]")
 
     SECTION("Exception - file not found")
     {
-        REQUIRE_THROWS_AS(
+        REQUIRE_THROWS_MATCHES(
             open_file<std::ifstream>("non_existent_path", std::ios::in),
-            gelex::FileNotFoundException);
+            gelex::FileNotFoundException,
+            Catch::Matchers::MessageMatches(EndsWith("not found")));
     }
 
     SECTION("Exception - empty file")
     {
         auto empty_file_path = files.create_empty_file();
 
-        REQUIRE_THROWS_AS(
+        REQUIRE_THROWS_MATCHES(
             open_file<std::ifstream>(empty_file_path, std::ios::in),
-            gelex::FileFormatException);
+            gelex::FileFormatException,
+            Catch::Matchers::MessageMatches(EndsWith("is empty")));
     }
 
     SECTION("Exception - directory instead of file")
     {
         auto dir_path = files.get_test_dir();
 
-        REQUIRE_THROWS_AS(
+        REQUIRE_THROWS_MATCHES(
             open_file<std::ifstream>(dir_path, std::ios::in),
-            gelex::FileOpenException);
-        REQUIRE_THROWS_AS(
+            gelex::FileOpenException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("is a directory, not a regular file")));
+        REQUIRE_THROWS_MATCHES(
             open_file<std::ofstream>(dir_path, std::ios::out),
-            gelex::FileOpenException);
+            gelex::FileOpenException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("is a directory, not a regular file")));
     }
 
     SECTION("Edge case - empty buffer")
@@ -220,10 +229,29 @@ TEST_CASE("Parser Double Parsing Tests", "[parser]")
 
     SECTION("Exception - invalid numbers")
     {
-        REQUIRE_THROWS_AS(parse_number("abc"), gelex::NumberParseException);
-        REQUIRE_THROWS_AS(parse_number("1.2.3"), gelex::NumberParseException);
-        REQUIRE_THROWS_AS(parse_number(""), gelex::NumberParseException);
-        REQUIRE_THROWS_AS(parse_number(" "), gelex::NumberParseException);
+        REQUIRE_THROWS_MATCHES(
+            parse_number("abc"),
+            gelex::NumberParseException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("failed to parse 'abc' as number")));
+
+        REQUIRE_THROWS_MATCHES(
+            parse_number("1.2.3"),
+            gelex::NumberParseException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("failed to parse '1.2.3' as number")));
+
+        REQUIRE_THROWS_MATCHES(
+            parse_number(""),
+            gelex::NumberParseException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("empty string cannot be parsed as number")));
+
+        REQUIRE_THROWS_MATCHES(
+            parse_number(" "),
+            gelex::NumberParseException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("failed to parse ' ' as number")));
     }
 }
 
@@ -249,16 +277,22 @@ TEST_CASE("Parser Column Double Parsing Tests", "[parser]")
     {
         std::string_view line = "FID\tIID\t2.5";
 
-        REQUIRE_THROWS_AS(
-            parse_nth_double(line, 5, '\t'), gelex::ColumnRangeException);
+        REQUIRE_THROWS_MATCHES(
+            parse_nth_double(line, 5, '\t'),
+            gelex::ColumnRangeException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("column 5 is out of range")));
     }
 
     SECTION("Exception - invalid number at column")
     {
         std::string_view line = "FID\tIID\tinvalid";
 
-        REQUIRE_THROWS_AS(
-            parse_nth_double(line, 2, '\t'), gelex::NumberParseException);
+        REQUIRE_THROWS_MATCHES(
+            parse_nth_double(line, 2, '\t'),
+            gelex::NumberParseException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("failed to parse 'invalid' as number")));
     }
 }
 
@@ -292,9 +326,11 @@ TEST_CASE("Parser All Doubles Parsing Tests", "[parser]")
         std::string_view line = "2.5\tinvalid\t0.5";
 
         std::vector<double> doubles;
-        REQUIRE_THROWS_AS(
+        REQUIRE_THROWS_MATCHES(
             parse_all_doubles(line, doubles, 0, '\t'),
-            gelex::DataParseException);
+            gelex::DataParseException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("failed to parse 'invalid' as number at column 1")));
     }
 
     SECTION("Edge case - empty line")
@@ -335,32 +371,34 @@ TEST_CASE("Parser Header Tests", "[parser]")
     {
         std::string_view line = "ID\tIID\tPhenotype";
 
-        REQUIRE_THROWS_AS(
-            parse_header(line, '\t'), gelex::HeaderFormatException);
-    }
-
-    SECTION("Exception - missing IID column")
-    {
-        std::string_view line = "FID\tSample\tPhenotype";
-
-        REQUIRE_THROWS_AS(
-            parse_header(line, '\t'), gelex::HeaderFormatException);
+        REQUIRE_THROWS_MATCHES(
+            parse_header(line, '\t'),
+            gelex::HeaderFormatException,
+            Catch::Matchers::MessageMatches(EndsWith(
+                "first two columns are 'ID' and 'IID', expected 'FID' and "
+                "'IID'.")));
     }
 
     SECTION("Exception - insufficient columns")
     {
         std::string_view line = "FID";
 
-        REQUIRE_THROWS_AS(
-            parse_header(line, '\t'), gelex::HeaderFormatException);
+        REQUIRE_THROWS_MATCHES(
+            parse_header(line, '\t'),
+            gelex::HeaderFormatException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("header contains only 1 columns.")));
     }
 
     SECTION("Exception - empty header")
     {
         std::string_view line;
 
-        REQUIRE_THROWS_AS(
-            parse_header(line, '\t'), gelex::HeaderFormatException);
+        REQUIRE_THROWS_MATCHES(
+            parse_header(line, '\t'),
+            gelex::HeaderFormatException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("header contains only 0 columns.")));
     }
 }
 
@@ -391,8 +429,11 @@ TEST_CASE("Parser ID Parsing Tests", "[parser]")
     {
         std::string_view line = "1";
 
-        REQUIRE_THROWS_AS(
-            parse_id(line, false, '\t'), gelex::FileFormatException);
+        REQUIRE_THROWS_MATCHES(
+            parse_id(line, false, '\t'),
+            gelex::FileFormatException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("failed to parse FID and IID (missing delimiter)")));
     }
 }
 
@@ -436,7 +477,10 @@ TEST_CASE("Parser String Parsing Tests", "[parser]")
         std::string_view line = "FID\t\tPhenotype\t";
         std::vector<std::string_view> strings;
 
-        REQUIRE_THROWS_AS(
-            parse_string(line, strings, 0, '\t'), gelex::DataParseException);
+        REQUIRE_THROWS_MATCHES(
+            parse_string(line, strings, 0, '\t'),
+            gelex::DataParseException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("empty value encountered")));
     }
 }

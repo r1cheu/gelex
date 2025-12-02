@@ -63,7 +63,7 @@ parse_nth_double(std::string_view line, size_t column_index, char delimiter)
     }
 
     throw ColumnRangeException(
-        std::format("Column {} is out of range", column_index));
+        std::format("column {} is out of range", column_index));
 }
 
 std::string parse_id(std::string_view line, bool iid_only, char delimiter)

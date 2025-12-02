@@ -1,10 +1,12 @@
-#include <catch2/catch_test_macros.hpp>
-
 #include <algorithm>
 #include <array>
 #include <cstdint>
 #include <fstream>
 #include <vector>
+
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_exception.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "file_fixture.h"
 #include "gelex/exception.h"
@@ -14,6 +16,7 @@
 namespace fs = std::filesystem;
 
 using namespace gelex::detail;  // NOLINT
+using Catch::Matchers::EndsWith;
 using gelex::test::FileFixture;
 
 TEST_CASE("SnpStatsWriter - Constructor and path access", "[data][snp_stats]")
@@ -158,9 +161,11 @@ TEST_CASE("SnpStatsWriter - Argument validation", "[data][snp_stats]")
         const std::vector<double> stddevs = {0.1, 0.2};
 
         SnpStatsWriter writer(file_path);
-        REQUIRE_THROWS_AS(
+        REQUIRE_THROWS_MATCHES(
             writer.write(num_samples, monomorphic_indices, means, stddevs),
-            gelex::ArgumentValidationException);
+            gelex::ArgumentValidationException,
+            Catch::Matchers::MessageMatches(EndsWith(
+                "means (3) and stddevs (2) must have the same length.")));
     }
 
     SECTION("Exception - empty means array")
@@ -173,9 +178,11 @@ TEST_CASE("SnpStatsWriter - Argument validation", "[data][snp_stats]")
         const std::vector<double> stddevs = {};
 
         SnpStatsWriter writer(file_path);
-        REQUIRE_THROWS_AS(
+        REQUIRE_THROWS_MATCHES(
             writer.write(num_samples, monomorphic_indices, means, stddevs),
-            gelex::ArgumentValidationException);
+            gelex::ArgumentValidationException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("means and stddevs cannot be empty")));
     }
 
     SECTION("Exception - empty stddevs array")
@@ -188,9 +195,11 @@ TEST_CASE("SnpStatsWriter - Argument validation", "[data][snp_stats]")
         const std::vector<double> stddevs = {};
 
         SnpStatsWriter writer(file_path);
-        REQUIRE_THROWS_AS(
+        REQUIRE_THROWS_MATCHES(
             writer.write(num_samples, monomorphic_indices, means, stddevs),
-            gelex::ArgumentValidationException);
+            gelex::ArgumentValidationException,
+            Catch::Matchers::MessageMatches(EndsWith(
+                "means (1) and stddevs (0) must have the same length.")));
     }
 
     SECTION("Exception - monomorphic index out of range")
@@ -203,8 +212,10 @@ TEST_CASE("SnpStatsWriter - Argument validation", "[data][snp_stats]")
         const std::vector<double> stddevs = {0.1, 0.2, 0.3};
 
         SnpStatsWriter writer(file_path);
-        REQUIRE_THROWS_AS(
+        REQUIRE_THROWS_MATCHES(
             writer.write(num_samples, monomorphic_indices, means, stddevs),
-            gelex::ArgumentValidationException);
+            gelex::ArgumentValidationException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("Monomorphic SNP index 5 is out of range [0, 3).")));
     }
 }

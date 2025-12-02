@@ -34,7 +34,8 @@ GenotypePipe::GenotypePipe(
                 "force_overwrite=true to bypass.",
                 matrix_path.string(),
                 stats_path.string());
-            throw FileExistsException(matrix_path);
+            throw FileExistsException(
+                std::format("{}: existing files", output_prefix.string()));
         }
 
         logger->warn(

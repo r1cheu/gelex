@@ -2,6 +2,8 @@
 #include <vector>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_exception.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "../src/data/loader/fam_loader.h"
 #include "file_fixture.h"
@@ -10,6 +12,7 @@
 namespace fs = std::filesystem;
 
 using namespace gelex::detail;  // NOLINT
+using Catch::Matchers::EndsWith;
 using gelex::test::FileFixture;
 
 TEST_CASE("FamLoader - Valid .fam file loading", "[data][loader]")
@@ -111,8 +114,11 @@ TEST_CASE("FamLoader - Error conditions", "[data][loader][error]")
         const auto* malformed_content = "1\n2 sample2\n";
         auto file_path = files.create_text_file(malformed_content, ".fam");
 
-        REQUIRE_THROWS_AS(
-            FamLoader(file_path, false), gelex::FileFormatException);
+        REQUIRE_THROWS_MATCHES(
+            FamLoader(file_path, false),
+            gelex::FileFormatException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("failed to parse FID and IID (missing delimiter)")));
     }
 }
 
@@ -165,7 +171,10 @@ TEST_CASE("FamLoader - Edge cases", "[data][loader][edge]")
         const auto* fam_content = "1\tsample1\t0\t0\t1\t2.5\n";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        REQUIRE_THROWS_AS(
-            FamLoader(file_path, false), gelex::FileFormatException);
+        REQUIRE_THROWS_MATCHES(
+            FamLoader(file_path, false),
+            gelex::FileFormatException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("failed to parse FID and IID (missing delimiter)")));
     }
 }

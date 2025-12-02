@@ -165,8 +165,10 @@ TEST_CASE("CovarLoader set_data Tests", "[data][loader][covar]")
             "FID\tIID\tSex\tPopulation\n"
             "1\t2\tM\n");  // Missing Population value
 
-        REQUIRE_THROWS_AS(
-            CCovarLoader(file_path, false), gelex::FileFormatException);
+        REQUIRE_THROWS_MATCHES(
+            CCovarLoader(file_path, false),
+            gelex::FileFormatException,
+            Catch::Matchers::MessageMatches(EndsWith("Column count mismatch")));
     }
 
     SECTION("Edge case - single categorical covariate")

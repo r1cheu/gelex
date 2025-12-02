@@ -4,6 +4,8 @@
 
 #include <Eigen/Dense>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_exception.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "../src/data/loader/qcovariate_loader.h"
 #include "file_fixture.h"
@@ -12,6 +14,7 @@
 namespace fs = std::filesystem;
 
 using namespace gelex::detail;  // NOLINT
+using Catch::Matchers::EndsWith;
 using gelex::test::FileFixture;
 
 TEST_CASE("QcovarLoader Constructor Tests", "[data][loader][qcovar]")
@@ -132,8 +135,11 @@ TEST_CASE("QcovarLoader set_data Tests", "[data][loader][qcovar]")
             "FID\tIID\tAge\tHeight\n"
             "1\t2\t25.5\tinvalid\n");
 
-        REQUIRE_THROWS_AS(
-            QcovarLoader(file_path, false), gelex::FileFormatException);
+        REQUIRE_THROWS_MATCHES(
+            QcovarLoader(file_path, false),
+            gelex::FileFormatException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("failed to parse 'invalid' as number at column 3")));
     }
 
     SECTION("Exception - insufficient columns in data row")
@@ -142,8 +148,11 @@ TEST_CASE("QcovarLoader set_data Tests", "[data][loader][qcovar]")
             "FID\tIID\tAge\tHeight\n"
             "1\t2\t25.5\n");
 
-        REQUIRE_THROWS_AS(
-            QcovarLoader(file_path, false), gelex::FileFormatException);
+        REQUIRE_THROWS_MATCHES(
+            QcovarLoader(file_path, false),
+            gelex::FileFormatException,
+            Catch::Matchers::MessageMatches(EndsWith(
+                "expected 2 quantitative covariate values, but found 1")));
     }
 
     SECTION("Edge case - scientific notation numbers")

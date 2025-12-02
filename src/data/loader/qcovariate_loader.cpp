@@ -75,7 +75,8 @@ void QcovarLoader::set_data(std::ifstream& file, bool iid_only)
             {
                 throw DataParseException(
                     std::format(
-                        "expected at least {} covariate values, found {}",
+                        "expected {} quantitative covariate values, but found "
+                        "{}",
                         names_.size(),
                         values_buffer.size()));
             }

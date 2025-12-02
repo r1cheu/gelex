@@ -1,4 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_exception.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "file_fixture.h"
 #include "gelex/exception.h"
@@ -6,6 +8,7 @@
 #include "../src/data/loader/bim_loader.h"
 
 using namespace gelex::detail;  // NOLINT
+using Catch::Matchers::EndsWith;
 using gelex::test::FileFixture;
 
 TEST_CASE("BimLoader - Valid file parsing", "[loader][bim]")
@@ -98,25 +101,11 @@ TEST_CASE("BimLoader - Malformed column count", "[loader][bim]")
             "1\trs12345\t0\t1000\tA\tG\n"
             "1\trs67890\t0.001\t2000\tC",  // Missing last column
             ".bim");
-        REQUIRE_THROWS_AS(BimLoader(file_path), gelex::FileFormatException);
-    }
-}
-
-TEST_CASE("BimLoader - Insufficient columns", "[loader][bim]")
-{
-    FileFixture files;
-
-    SECTION("Exception - single column")
-    {
-        auto file_path = files.create_text_file("1", ".bim");
-        REQUIRE_THROWS_AS(BimLoader(file_path), gelex::FileFormatException);
-    }
-
-    SECTION("Exception - five columns")
-    {
-        auto file_path
-            = files.create_text_file("1\trs12345\t0\t1000\tA", ".bim");
-        REQUIRE_THROWS_AS(BimLoader(file_path), gelex::FileFormatException);
+        REQUIRE_THROWS_MATCHES(
+            BimLoader(file_path),
+            gelex::FileFormatException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("has 5 columns, expected 6")));
     }
 }
 
@@ -128,14 +117,22 @@ TEST_CASE("BimLoader - Invalid position data", "[loader][bim]")
     {
         auto file_path
             = files.create_text_file("1\trs12345\t0\tinvalid\tA\tG", ".bim");
-        REQUIRE_THROWS_AS(BimLoader(file_path), gelex::FileFormatException);
+        REQUIRE_THROWS_MATCHES(
+            BimLoader(file_path),
+            gelex::FileFormatException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("failed to parse 'invalid' as number")));
     }
 
     SECTION("Exception - empty position field")
     {
         auto file_path
             = files.create_text_file("1\trs12345\t0\t\tA\tG", ".bim");
-        REQUIRE_THROWS_AS(BimLoader(file_path), gelex::FileFormatException);
+        REQUIRE_THROWS_MATCHES(
+            BimLoader(file_path),
+            gelex::FileFormatException,
+            Catch::Matchers::MessageMatches(
+                EndsWith("has 5 columns, expected 6")));
     }
 }
 

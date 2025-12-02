@@ -93,8 +93,7 @@ SnpEffects SnpEffectLoader::load(const std::filesystem::path& snp_effect_path)
         }
         catch (const GelexException& e)
         {
-            throw DataParseException(
-                enrich_with_line_info(e.what(), line_number));
+            throw DataParseException(e.what());
         }
         catch (const std::exception& e)
         {

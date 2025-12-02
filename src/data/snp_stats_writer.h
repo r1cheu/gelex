@@ -41,6 +41,7 @@ class SnpStatsWriter
         const void* data,
         std::streamsize size,
         std::string_view error_msg);
+
     template <typename T>
     void write_data(std::span<const T> data, std::string_view error_msg)
     {

@@ -29,16 +29,6 @@ PhenotypeSimulator::PhenotypeSimulator(Config config)
     {
         throw ArgumentValidationException("Heritability must be in (0, 1)");
     }
-
-    if (!std::filesystem::is_regular_file(config_.bed_path))
-    {
-        throw FileNotFoundException(config_.bed_path);
-    }
-
-    if (!std::filesystem::is_regular_file(config_.causal_variants_path))
-    {
-        throw FileNotFoundException(config_.causal_variants_path);
-    }
 }
 
 void PhenotypeSimulator::simulate()

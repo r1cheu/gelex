@@ -48,7 +48,8 @@ void GenotypeMap::load_metadata(const std::filesystem::path& meta_path)
     std::ifstream meta_stream(meta_path, std::ios::in | std::ios::binary);
     if (!meta_stream)
     {
-        throw FileNotFoundException(meta_path);
+        throw FileNotFoundException(
+            std::format("{}: not found", meta_path.string()));
     }
 
     rows_ = detail::read_scalar<int64_t>(meta_stream, "rows");

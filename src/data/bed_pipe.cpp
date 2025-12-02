@@ -116,19 +116,19 @@ BedPipe::BedPipe(
     mmap_.map(bed_path.string(), ec);
     if (ec)
     {
-        throw FileOpenException(enrich_with_file_info(
-            "Failed to mmap BED file: " + ec.message(), bed_path));
+        throw FileOpenException(
+            std::format("{}: failed to mmap bed file", bed_path.string()));
     }
 
     if (mmap_.size() < 3)
     {
         throw FileFormatException(
-            enrich_with_file_info("BED file too short", bed_path));
+            std::format("{}: bed file too short", bed_path.string()));
     }
     if (mmap_[0] != 0x6C || mmap_[1] != 0x1B || mmap_[2] != 0x01)
     {
-        throw FileFormatException(enrich_with_file_info(
-            "Invalid BED magic number or mode (must be SNP-major)", bed_path));
+        throw FileFormatException(
+            std::format("{}: invalid BED magic number", bed_path.string()));
     }
 
     size_t expected_size
@@ -137,7 +137,8 @@ BedPipe::BedPipe(
     {
         throw FileFormatException(
             std::format(
-                "BED file truncated. Expected {} bytes, got {}",
+                "{}: bed file truncated. Expected {} bytes, got {}",
+                bed_path.string(),
                 expected_size,
                 mmap_.size()));
     }
@@ -150,7 +151,7 @@ auto BedPipe::format_bed_path(std::string_view bed_path)
     if (!std::filesystem::exists(bed))
     {
         throw FileNotFoundException(
-            std::format("bed file [{}] not found", bed.string()));
+            std::format("{}: file not found", bed.string()));
     }
     return bed;
 }
@@ -173,7 +174,6 @@ void BedPipe::decode_variant_dense(
 
         if (base_idx + 4 <= total_samples)
         {
-            // 写入 4 个值
             std::memcpy(&target_buf[base_idx], vals.data(), 4 * sizeof(double));
         }
         else
@@ -246,7 +246,7 @@ Eigen::MatrixXd BedPipe::load_chunk(
     {
         throw ColumnRangeException(
             std::format(
-                "Invalid chunk range: [{}, {}). Total SNPs: {}",
+                "invalid chunk range: [{}, {}). Total SNPs: {}",
                 start_col,
                 end_col,
                 max_cols));

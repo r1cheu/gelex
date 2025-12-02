@@ -53,7 +53,7 @@ template <FileStream StreamType>
                 std::format("{}: not found", path.string()));
         }
         throw FileOpenException(
-            std::format("{}:failed to open file", path.string()));
+            std::format("{}: failed to open file", path.string()));
     }
 
     if ((mode & std::ios::in) && std::filesystem::is_regular_file(path))
@@ -62,7 +62,7 @@ template <FileStream StreamType>
         if (std::filesystem::file_size(path, ec) == 0 && !ec)
         {
             throw FileFormatException(
-                std::format("{}:file is empty", path.string()));
+                std::format("{}: is empty", path.string()));
         }
     }
 
@@ -84,7 +84,7 @@ T parse_number(std::string_view sv)
     if (sv.empty())
     {
         throw NumberParseException(
-            std::format("Empty string cannot be parsed as number"));
+            std::format("empty string cannot be parsed as number"));
     }
 
     T value{};
@@ -97,7 +97,7 @@ T parse_number(std::string_view sv)
         return value;
     }
     throw NumberParseException(
-        std::format("Failed to parse '{}' as number", sv));
+        std::format("failed to parse '{}' as number", sv));
 }
 
 double parse_nth_double(
