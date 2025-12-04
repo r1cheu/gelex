@@ -16,6 +16,9 @@
 namespace gelex
 {
 DataPipe::~DataPipe() = default;
+DataPipe::DataPipe(DataPipe&&) noexcept = default;
+DataPipe& DataPipe::operator=(DataPipe&&) noexcept = default;
+
 DataPipe::DataPipe(const Config& config)
 {
     auto fam_path = config.bed_path;

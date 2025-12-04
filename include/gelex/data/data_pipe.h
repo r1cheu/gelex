@@ -43,9 +43,9 @@ class DataPipe
 
     explicit DataPipe(const Config& config);
     DataPipe(const DataPipe&) = delete;
-    DataPipe(DataPipe&&) = default;
+    DataPipe(DataPipe&&) noexcept;
     DataPipe& operator=(const DataPipe&) = delete;
-    DataPipe& operator=(DataPipe&&) = default;
+    DataPipe& operator=(DataPipe&&) noexcept;
     ~DataPipe();
 
     Eigen::VectorXd take_phenotype() && { return std::move(phenotype_); }
