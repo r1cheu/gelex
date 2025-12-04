@@ -25,7 +25,7 @@ TEST_CASE("SnpStatsWriter - Constructor and path access", "[data][snp_stats]")
 
     SECTION("Happy path - create writer with valid path")
     {
-        auto file_path = files.create_empty_file(".snp_stats");
+        auto file_path = files.generate_random_file_path(".snp_stats");
 
         REQUIRE_NOTHROW(
             [&]()
@@ -42,7 +42,7 @@ TEST_CASE("SnpStatsWriter - Write valid data", "[data][snp_stats]")
 
     SECTION("Happy path - write basic data with monomorphic variants")
     {
-        auto file_path = files.create_empty_file(".snp_stats");
+        auto file_path = files.generate_random_file_path(".snp_stats");
 
         const int64_t num_samples = 100;
         const std::vector<int64_t> monomorphic_indices = {2, 5, 8};
@@ -93,7 +93,7 @@ TEST_CASE("SnpStatsWriter - Write valid data", "[data][snp_stats]")
 
     SECTION("Happy path - write data without monomorphic variants")
     {
-        auto file_path = files.create_empty_file(".snp_stats");
+        auto file_path = files.generate_random_file_path(".snp_stats");
 
         const int64_t num_samples = 50;
         const std::vector<int64_t> monomorphic_indices = {};
@@ -124,7 +124,7 @@ TEST_CASE("SnpStatsWriter - Write valid data", "[data][snp_stats]")
 
     SECTION("Happy path - write single variant")
     {
-        auto file_path = files.create_empty_file(".snp_stats");
+        auto file_path = files.generate_random_file_path(".snp_stats");
 
         const int64_t num_samples = 10;
         const std::vector<int64_t> monomorphic_indices = {0};
@@ -153,7 +153,7 @@ TEST_CASE("SnpStatsWriter - Argument validation", "[data][snp_stats]")
 
     SECTION("Exception - means and stddevs size mismatch")
     {
-        auto file_path = files.create_empty_file(".snp_stats");
+        auto file_path = files.generate_random_file_path(".snp_stats");
 
         const int64_t num_samples = 100;
         const std::vector<int64_t> monomorphic_indices = {};
@@ -170,7 +170,7 @@ TEST_CASE("SnpStatsWriter - Argument validation", "[data][snp_stats]")
 
     SECTION("Exception - empty means array")
     {
-        auto file_path = files.create_empty_file(".snp_stats");
+        auto file_path = files.generate_random_file_path(".snp_stats");
 
         const int64_t num_samples = 100;
         const std::vector<int64_t> monomorphic_indices = {};
@@ -187,7 +187,7 @@ TEST_CASE("SnpStatsWriter - Argument validation", "[data][snp_stats]")
 
     SECTION("Exception - empty stddevs array")
     {
-        auto file_path = files.create_empty_file(".snp_stats");
+        auto file_path = files.generate_random_file_path(".snp_stats");
 
         const int64_t num_samples = 100;
         const std::vector<int64_t> monomorphic_indices = {};
@@ -204,7 +204,7 @@ TEST_CASE("SnpStatsWriter - Argument validation", "[data][snp_stats]")
 
     SECTION("Exception - monomorphic index out of range")
     {
-        auto file_path = files.create_empty_file(".snp_stats");
+        auto file_path = files.generate_random_file_path(".snp_stats");
 
         const int64_t num_samples = 100;
         const std::vector<int64_t> monomorphic_indices = {5};

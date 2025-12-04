@@ -10,7 +10,8 @@ namespace gelex
 {
 
 SnpMatcher::SnpMatcher(const std::filesystem::path& snp_effect_path)
-    : snp_effects_(SnpEffectLoader::load(snp_effect_path))
+    : snp_effects_(
+          std::move(detail::SnpEffectLoader(snp_effect_path)).take_effects())
 {
 }
 

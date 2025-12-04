@@ -4,9 +4,9 @@
 #include <limits>
 #include <system_error>
 
-#include "../src/data/parser.h"  // 引入 count_total_lines
+#include "../src/data/parser.h"
 #include "gelex/exception.h"
-#include "loader/fam_loader.h"  // 引入 FamLoader
+#include "loader/fam_loader.h"
 
 namespace gelex
 {

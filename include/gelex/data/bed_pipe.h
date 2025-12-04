@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_DATA_BED_PIPE_H
+#define GELEX_DATA_BED_PIPE_H
 
 #include <array>
 #include <filesystem>
@@ -78,3 +79,4 @@ class BedPipe
 };
 
 }  // namespace gelex
+#endif  // GELEX_DATA_BED_PIPE_H

@@ -11,7 +11,7 @@ PredictBedPipe::PredictBedPipe(
     const std::filesystem::path& snp_effect_path,
     std::shared_ptr<SampleManager> sample_manager)
     : bed_pipe_(bed_path, std::move(sample_manager)),
-      has_dom_(SnpEffectLoader::has_dom_effects(snp_effect_path))
+      has_dom_(detail::SnpEffectLoader(snp_effect_path).has_dom_effects())
 {
     SnpMatcher matcher(snp_effect_path);
     MatchPlan plan = matcher.match(bed_path);

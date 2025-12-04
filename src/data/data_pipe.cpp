@@ -9,15 +9,13 @@
 
 #include "gelex/data/sample_manager.h"
 #include "gelex/exception.h"
-#include "loader/bim_loader.h"
 #include "loader/ccovariate_loader.h"
-#include "loader/fam_loader.h"
 #include "loader/phenotype_loader.h"
 #include "loader/qcovariate_loader.h"
 
 namespace gelex
 {
-
+DataPipe::~DataPipe() = default;
 DataPipe::DataPipe(const Config& config)
 {
     auto fam_path = config.bed_path;

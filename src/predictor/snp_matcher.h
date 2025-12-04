@@ -4,7 +4,7 @@
 #include <vector>
 
 #include <Eigen/Core>
-#include "snp_effect_loader.h"
+#include "../src/data/loader/snp_effect_loader.h"
 
 namespace gelex::detail
 {

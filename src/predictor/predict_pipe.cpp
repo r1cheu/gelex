@@ -50,7 +50,8 @@ void PredictDataPipe::load_qcovariates(const Config& config)
 
 void PredictDataPipe::load_snp_effect(const Config& config)
 {
-    snp_effects_ = SnpEffectLoader::load(config.snp_effect_path);
+    snp_effects_ = std::move(detail::SnpEffectLoader(config.snp_effect_path))
+                       .take_effects();
 }
 
 void PredictDataPipe::load_genotype(const Config& config)

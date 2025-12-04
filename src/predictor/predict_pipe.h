@@ -9,9 +9,9 @@
 
 // #include "../src/data/loader.h"  // 不再需要，使用前向声明
 #include "../src/data/loader/qcovariate_loader.h"
+#include "../src/data/loader/snp_effect_loader.h"
 #include "Eigen/Core"
 #include "covariate_loader.h"
-#include "snp_effect_loader.h"
 
 namespace gelex
 {

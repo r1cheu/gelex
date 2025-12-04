@@ -99,6 +99,11 @@ fs::path FileFixture::create_empty_file(std::string_view suffix)
     return create_text_file("", suffix);
 }
 
+fs::path FileFixture::generate_random_file_path(std::string_view suffix)
+{
+    return next_path(suffix);
+}
+
 const fs::path& FileFixture::get_test_dir() const noexcept
 {
     return test_dir_;

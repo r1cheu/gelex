@@ -8,11 +8,6 @@
 
 #include <Eigen/Dense>
 
-#include "../src/data/loader/bim_loader.h"
-#include "../src/data/loader/ccovariate_loader.h"
-#include "../src/data/loader/fam_loader.h"
-#include "../src/data/loader/phenotype_loader.h"
-#include "../src/data/loader/qcovariate_loader.h"
 #include "Eigen/Core"
 
 #include "gelex/data/genotype_loader.h"
@@ -23,6 +18,12 @@
 
 namespace gelex
 {
+namespace detail
+{
+class PhenotypeLoader;
+class QcovarLoader;
+class CCovarLoader;
+}  // namespace detail
 class DataPipe
 {
    public:
@@ -41,6 +42,11 @@ class DataPipe
     };
 
     explicit DataPipe(const Config& config);
+    DataPipe(const DataPipe&) = delete;
+    DataPipe(DataPipe&&) = default;
+    DataPipe& operator=(const DataPipe&) = delete;
+    DataPipe& operator=(DataPipe&&) = default;
+    ~DataPipe();
 
     Eigen::VectorXd take_phenotype() && { return std::move(phenotype_); }
     Eigen::MatrixXd take_fixed_effects() &&

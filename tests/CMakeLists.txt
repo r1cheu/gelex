@@ -35,7 +35,11 @@ if(GELEX_ENABLE_COVERAGE)
       -format=html -output-dir=${COVERAGE_DIR}
       -ignore-filename-regex="tests/*|ext/*" "${PROJECT_SOURCE_DIR}/src"
       "${PROJECT_SOURCE_DIR}/include"
+    COMMAND
+      ${LLVM_COV} report $<TARGET_FILE:gelex_tests> -instr-profile=${PROF_DATA}
+      -ignore-filename-regex="tests/*|ext/*" "${PROJECT_SOURCE_DIR}/src"
+      "${PROJECT_SOURCE_DIR}/include"
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     DEPENDS gelex_tests
-    COMMENT "Generating HTML coverage report in ${COVERAGE_DIR}")
+    COMMENT "Generating HTML coverage report in ${COVERAGE_DIR} and terminal summary")
 endif()

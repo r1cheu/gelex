@@ -39,6 +39,8 @@ class FileFixture
 
     [[nodiscard]] std::filesystem::path create_empty_file(
         std::string_view suffix = "");
+    [[nodiscard]] std::filesystem::path generate_random_file_path(
+        std::string_view suffix = "");
 
     [[nodiscard]] const std::filesystem::path& get_test_dir() const noexcept;
 
