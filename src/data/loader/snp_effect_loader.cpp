@@ -1,5 +1,6 @@
 #include "snp_effect_loader.h"
 
+#include <format>
 #include <fstream>
 #include <limits>
 #include <string>
@@ -149,6 +150,29 @@ ColumnIndices SnpEffectLoader::assign_column_indices(
     }
 
     return indices;
+}
+
+bool has_dom_effect_column(const std::filesystem::path& snp_effect_path)
+{
+    auto file = detail::open_file<std::ifstream>(snp_effect_path, std::ios::in);
+    std::string line;
+    if (!std::getline(file, line))
+    {
+        throw FileFormatException(
+            std::format("{}: empty file", snp_effect_path.string()));
+    }
+
+    std::vector<std::string_view> header;
+    detail::parse_string(line, header);
+
+    for (const auto& column : header)
+    {
+        if (column == "Dom")
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 }  // namespace gelex::detail

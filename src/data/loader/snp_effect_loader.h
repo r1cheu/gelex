@@ -82,5 +82,11 @@ class SnpEffectLoader
     Eigen::Index current_index_ = 0;
 };
 
+/// Check if a .snp.eff file contains a dominance effect column
+/// @param snp_effect_path Path to the .snp.eff file
+/// @return true if the file contains a "Dom" column, false otherwise
+/// @throws FileFormatException if the file cannot be read or has invalid header
+bool has_dom_effect_column(const std::filesystem::path& snp_effect_path);
+
 }  // namespace gelex::detail
 #endif  // GELEX_DATA_LOADER_SNP_EFFECT_LOADER_H

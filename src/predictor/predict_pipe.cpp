@@ -1,6 +1,5 @@
 #include "predict_pipe.h"
 
-#include <expected>
 #include <filesystem>
 #include <memory>
 #include <string>

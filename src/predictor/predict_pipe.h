@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_PREDICTOR_PREDICT_PIPE_H
+#define GELEX_PREDICTOR_PREDICT_PIPE_H
 
 #include <filesystem>
 #include <memory>
@@ -72,3 +73,4 @@ class PredictDataPipe
 };
 
 }  // namespace gelex
+#endif  // GELEX_PREDICTOR_PREDICT_PIPE_H

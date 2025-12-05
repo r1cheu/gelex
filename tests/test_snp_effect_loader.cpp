@@ -442,3 +442,54 @@ TEST_CASE("SnpEffectLoader - Edge cases", "[data][snp_effect]")
             }());
     }
 }
+
+TEST_CASE("has_dom_effect_column - basic functionality", "[data][snp_effect]")
+{
+    FileFixture files;
+
+    SECTION("Happy path - file with Dom column")
+    {
+        std::string content = create_snp_effect_content(
+            "ID\tA1\tA2\tA1Frq\tAdd\tDom", {"rs001\tA\tC\t0.25\t0.123\t0.045"});
+
+        auto file_path = files.create_text_file(content, ".snp.eff");
+
+        REQUIRE(has_dom_effect_column(file_path) == true);
+    }
+
+    SECTION("Happy path - file without Dom column")
+    {
+        std::string content = create_snp_effect_content(
+            "ID\tA1\tA2\tA1Frq\tAdd", {"rs001\tA\tC\t0.25\t0.123"});
+
+        auto file_path = files.create_text_file(content, ".snp.eff");
+
+        REQUIRE(has_dom_effect_column(file_path) == false);
+    }
+
+    SECTION("Happy path - different column order with Dom")
+    {
+        std::string content = create_snp_effect_content(
+            "Dom\tA1Frq\tAdd\tID\tA2\tA1", {"0.045\t0.25\t0.123\trs001\tC\tA"});
+
+        auto file_path = files.create_text_file(content, ".snp.eff");
+
+        REQUIRE(has_dom_effect_column(file_path) == true);
+    }
+
+    SECTION("Happy path - file with only header containing Dom")
+    {
+        std::string content = "ID\tA1\tA2\tA1Frq\tAdd\tDom\n";
+        auto file_path = files.create_text_file(content, ".snp.eff");
+
+        REQUIRE(has_dom_effect_column(file_path) == true);
+    }
+
+    SECTION("Happy path - file with only header without Dom")
+    {
+        std::string content = "ID\tA1\tA2\tA1Frq\tAdd\n";
+        auto file_path = files.create_text_file(content, ".snp.eff");
+
+        REQUIRE(has_dom_effect_column(file_path) == false);
+    }
+}
