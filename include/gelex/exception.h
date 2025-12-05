@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Eigen/Core>
 #include <stdexcept>
 
 namespace gelex
@@ -68,6 +69,12 @@ class HeaderFormatException : public GelexException
 // ---------------------------------------------------------------
 
 class ArgumentValidationException : public GelexException
+{
+   public:
+    using GelexException::GelexException;
+};
+
+class InvalidInputException : public GelexException
 {
    public:
     using GelexException::GelexException;

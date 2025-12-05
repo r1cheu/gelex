@@ -1,7 +1,6 @@
 #include "gelex/data/variant_processor.h"
 
 #include <cmath>
-#include <cstddef>
 #include <format>
 #include <limits>
 
@@ -17,8 +16,8 @@ VariantStats compute_and_standardize(Eigen::Ref<Eigen::VectorXd> variant)
     const auto n = variant.size();
     if (n < 2)
     {
-        throw DataParseException(
-            std::format("Variant size too small for processing: {}", n));
+        throw InvalidInputException(
+            std::format("variant size {} too small for processing", n));
     }
 
     VariantStats stats;
@@ -41,35 +40,13 @@ VariantStats compute_and_standardize(Eigen::Ref<Eigen::VectorXd> variant)
 GenotypeCounts count_frequencies(
     const Eigen::Ref<const Eigen::VectorXd>& variant)
 {
-    size_t count0 = 0;
-    size_t count1 = 0;
-    size_t count2 = 0;
-    const double* data = variant.data();
-    const auto size = variant.size();
-    const auto stride = variant.innerStride();
+    auto count2 = static_cast<double>((variant.array() == 2.0).count());
+    auto count1 = static_cast<double>((variant.array() == 1.0).count());
+    auto n = static_cast<double>(variant.size());
 
-    for (Eigen::Index i = 0; i < size; ++i)
-    {
-        double val = data[i * stride];
-        if (val == 1.0)
-        {
-            count1++;
-        }
-        else if (val == 2.0)
-        {
-            count2++;
-        }
-        else
-        {
-            count0++;
-        }
-    }
+    double count0 = n - count1 - count2;
 
-    auto n = static_cast<double>(size);
-    return {
-        .p_AA = static_cast<double>(count2) / n,
-        .p_Aa = static_cast<double>(count1) / n,
-        .p_aa = static_cast<double>(count0) / n};
+    return {.p_AA = count2 / n, .p_Aa = count1 / n, .p_aa = count0 / n};
 }
 
 }  // namespace gelex::detail
@@ -88,7 +65,8 @@ VariantStats RawProcessor::process_variant(Eigen::Ref<Eigen::VectorXd> variant)
     const auto n = variant.size();
     if (n < 2)
     {
-        throw DataParseException("Variant size too small");
+        throw InvalidInputException(
+            std::format("variant size {} too small for processing", n));
     }
 
     VariantStats stats;
@@ -107,13 +85,14 @@ VariantStats HardWenbergProcessor::process_variant(
     const auto n = variant.size();
     if (n < 2)
     {
-        throw DataParseException("Variant size too small");
+        throw InvalidInputException(
+            std::format("variant size {} too small for processing", n));
     }
 
     VariantStats stats;
     stats.mean = variant.mean();
-    // HWE 假设下的标准差公式
-    stats.stddev = std::sqrt(stats.mean * (1.0 - 0.5 * stats.mean));
+    stats.stddev
+        = std::sqrt(stats.mean * (1.0 - 0.5 * stats.mean));  // sqrt(2pq)
     stats.is_monomorphic
         = stats.stddev < std::numeric_limits<double>::epsilon();
 
@@ -124,34 +103,15 @@ VariantStats HardWenbergProcessor::process_variant(
     return stats;
 }
 
-VariantStats NOIAProcessor::process_variant(Eigen::Ref<Eigen::VectorXd> variant)
-{
-    auto counts = detail::count_frequencies(variant);
-
-    const double AA = -(-counts.p_Aa - (2 * counts.p_aa));
-    const double Aa = -(1 - counts.p_Aa - (2 * counts.p_aa));
-    const double aa = -(2 - counts.p_Aa - (2 * counts.p_aa));
-
-    variant = variant.unaryExpr(
-        [&](double x) -> double
-        {
-            if (x == 0.0)
-            {
-                return AA;
-            }
-            if (x == 1.0)
-            {
-                return Aa;
-            }
-            return aa;
-        });
-
-    return detail::compute_and_standardize(variant);
-}
-
 VariantStats DominantStandardizingProcessor::process_variant(
     Eigen::Ref<Eigen::VectorXd> variant)
 {
+    const auto n = variant.size();
+    if (n < 2)
+    {
+        throw InvalidInputException(
+            std::format("variant size {} too small for processing", n));
+    }
     variant = (variant.array() == 2.0).select(0.0, variant);
 
     return detail::compute_and_standardize(variant);
@@ -160,6 +120,12 @@ VariantStats DominantStandardizingProcessor::process_variant(
 VariantStats DominantRawProcessor::process_variant(
     Eigen::Ref<Eigen::VectorXd> variant)
 {
+    const auto n = variant.size();
+    if (n < 2)
+    {
+        throw InvalidInputException(
+            std::format("variant size {} too small for processing", n));
+    }
     variant = (variant.array() == 2.0).select(0.0, variant);
     return RawProcessor::process_variant(variant);
 }
@@ -167,6 +133,12 @@ VariantStats DominantRawProcessor::process_variant(
 VariantStats DominantOrthogonalHWEProcessor::process_variant(
     Eigen::Ref<Eigen::VectorXd> variant)
 {
+    const auto n = variant.size();
+    if (n < 2)
+    {
+        throw InvalidInputException(
+            std::format("variant size {} too small for processing", n));
+    }
     const double p_freq = variant.mean() / 2.0;
 
     VariantStats stats;
@@ -197,40 +169,6 @@ VariantStats DominantOrthogonalHWEProcessor::process_variant(
         variant.array() = (variant.array() - stats.mean) / stats.stddev;
     }
     return stats;
-}
-
-VariantStats DominantNOIAHWEProcessor::process_variant(
-    Eigen::Ref<Eigen::VectorXd> variant)
-{
-    auto counts = detail::count_frequencies(variant);
-
-    const double denom
-        = counts.p_AA + counts.p_aa - std::pow(counts.p_AA - counts.p_aa, 2);
-
-    if (std::abs(denom) < std::numeric_limits<double>::epsilon())
-    {
-        throw InvalidOperationException(
-            "DominantNOIAHWE calculation resulted in zero denominator");
-    }
-
-    const double AA = -(2 * counts.p_Aa * counts.p_aa) / denom;
-    const double Aa = (4 * counts.p_AA * counts.p_aa) / denom;
-    const double aa = -(2 * counts.p_AA * counts.p_Aa) / denom;
-
-    variant = variant.unaryExpr(
-        [&](double x) -> double
-        {
-            if (x == 0.0)
-            {
-                return AA;
-            }
-            if (x == 1.0)
-            {
-                return Aa;
-            }
-            return aa;
-        });
-    return detail::compute_and_standardize(variant);
 }
 
 }  // namespace gelex

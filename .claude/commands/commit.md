@@ -144,6 +144,7 @@ Example of splitting commits:
 
 ## Important Notes
 
+- never add message "🤖 Generated with [Claude Code](https://claude.com/claude-code) Co-Authored-By: Claude <noreply@anthropic.com>"
 - By default, pre-commit checks will run to ensure code quality
 - If these checks fail, you can simply run the command again.
 - If specific files are already staged, the command will only commit those files
