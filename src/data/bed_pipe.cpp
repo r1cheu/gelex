@@ -24,13 +24,13 @@ consteval std::array<double, 4> generate_lut_entry(uint8_t byte, bool reverse)
 
     // IsReverse=false:
     // 00(0)->2.0, 01(1)->NaN, 10(2)->1.0, 11(3)->0.0
-    constexpr double std_map[] = {2.0, nan, 1.0, 0.0};
+    constexpr std::array<double, 4> std_map = {2.0, nan, 1.0, 0.0};
 
     // IsReverse=true, swap A1 A2:
     // 00->0.0, 01->NaN, 10->1.0, 11->2.0
-    constexpr double rev_map[] = {0.0, nan, 1.0, 2.0};
+    constexpr std::array<double, 4> rev_map = {0.0, nan, 1.0, 2.0};
 
-    const double* map = reverse ? rev_map : std_map;
+    const std::array<double, 4> map = reverse ? rev_map : std_map;
 
     for (int i = 0; i < 4; ++i)
     {

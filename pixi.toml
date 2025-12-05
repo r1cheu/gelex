@@ -70,11 +70,11 @@ depends-on = ["config-coverage"]
 # Install & Utils
 # ---------------------------------------------------------
 [tasks.install-debug]
-cmd = "cp build/debug/gelex ~/.local/bin/gelex_debug"
+cmd = "cp build/debug/src/gelex ~/.local/bin/gelex_debug"
 depends-on = ["build-debug"]
 
 [tasks.install-release]
-cmd = "cp build/release/gelex ~/.local/bin/gelex"
+cmd = "cp build/release/src/gelex ~/.local/bin/gelex"
 depends-on = ["build-release"]
 
 [environments]

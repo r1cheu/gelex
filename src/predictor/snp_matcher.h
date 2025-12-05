@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_PREDICTOR_SNP_MATCHER_H_
+#define GELEX_PREDICTOR_SNP_MATCHER_H_
 
 #include <filesystem>
 #include <vector>
@@ -49,3 +50,5 @@ class SnpMatcher
 };
 
 }  // namespace gelex
+
+#endif  // guard GELEX_PREDICTOR_SNP_MATCHER_H_
