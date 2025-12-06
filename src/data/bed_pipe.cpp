@@ -120,7 +120,7 @@ BedPipe::BedPipe(
             std::format("{}: failed to mmap bed file", bed_path.string()));
     }
 
-    if (mmap_.size() < 3)
+    if (mmap_.size() <= 3)
     {
         throw FileFormatException(
             std::format("{}: bed file too short", bed_path.string()));

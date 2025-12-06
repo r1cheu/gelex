@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <Eigen/Core>
+#include <utility>
 
 #include "file_fixture.h"
 
@@ -26,19 +27,13 @@ class BedFixture
     BedFixture(BedFixture&&) noexcept = default;
     BedFixture& operator=(BedFixture&&) noexcept = default;
 
-    std::filesystem::path create_random_bed_files(
+    std::pair<std::filesystem::path, Eigen::MatrixXd> create_bed_files(
         Eigen::Index num_samples,
         Eigen::Index num_snps,
         double missing_rate = 0.0,
         double maf_min = 0.05,
         double maf_max = 0.5,
         uint64_t seed = std::random_device{}());
-
-    std::filesystem::path create_bed_files_from_matrix(
-        const Eigen::MatrixXd& genotype_matrix,
-        std::span<const std::string> snp_ids = {},
-        std::span<const std::string> sample_ids = {},
-        std::span<const std::string> chromosomes = {});
 
     [[nodiscard]] std::filesystem::path get_prefix() const noexcept
     {
@@ -55,38 +50,33 @@ class BedFixture
     std::filesystem::path current_prefix_;
     std::mt19937_64 rng_;
 
-    static std::vector<std::byte> encode_variant(const Eigen::VectorXd& variant);
-    
+    static std::vector<std::byte> encode_variant(
+        const Eigen::VectorXd& variant);
+
     void write_bed_file(const Eigen::MatrixXd& genotypes);
-    
+
     void write_bim_file(
         Eigen::Index num_snps,
         std::span<const std::string> snp_ids,
         std::span<const std::string> chromosomes);
-    
+
     void write_fam_file(
         Eigen::Index num_samples,
         std::span<const std::string> sample_ids);
-    
+
     static std::pair<char, char> generate_random_alleles(std::mt19937_64& rng);
-    
+
     static std::vector<std::string> generate_random_sample_ids(
         Eigen::Index num_samples,
         std::mt19937_64& rng);
-    
+
     static std::vector<std::string> generate_random_snp_ids(
         Eigen::Index num_snps,
         std::mt19937_64& rng);
-    
+
     static std::vector<std::string> generate_random_chromosomes(
         Eigen::Index num_snps,
         std::mt19937_64& rng);
-    
-    static void validate_genotype_matrix(const Eigen::MatrixXd& matrix);
-    static void validate_id_span_size(
-        std::span<const std::string> ids,
-        Eigen::Index expected_size,
-        const std::string& id_type);
 };
 
 }  // namespace gelex::test
