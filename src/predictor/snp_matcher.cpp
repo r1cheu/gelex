@@ -1,5 +1,6 @@
 #include "snp_matcher.h"
 
+#include <Eigen/Core>
 #include <ranges>
 
 #include "gelex/exception.h"
@@ -30,9 +31,12 @@ MatchPlan SnpMatcher::match(const std::filesystem::path& predict_bed_path) const
     std::vector<detail::SnpInfo> predict_snp_meta
         = std::move(bim_loader).take_info();
 
-    MatchPlan match_info(predict_snp_meta.size());
+    MatchPlan match_info;
+    match_info.plan.resize(predict_snp_meta.size());
+    match_info.num_snp_in_effect
+        = static_cast<Eigen::Index>(snp_effects_.size());
 
-    for (auto [meta, plan] : std::views::zip(predict_snp_meta, match_info))
+    for (auto [meta, plan] : std::views::zip(predict_snp_meta, match_info.plan))
     {
         auto it = snp_effects_.find(meta.id);
 

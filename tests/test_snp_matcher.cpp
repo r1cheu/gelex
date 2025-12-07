@@ -235,7 +235,7 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
         REQUIRE(match_plan.size() == 3);
 
         // All should be skip
-        for (const auto& info : match_plan)
+        for (const auto& info : match_plan.plan)
         {
             REQUIRE(info.type == MatchType::skip);
             REQUIRE(info.target_col == -1);
@@ -331,7 +331,7 @@ TEST_CASE(
         auto match_plan = matcher.match(bed_path);
 
         REQUIRE(match_plan.size() == 3);
-        for (const auto& info : match_plan)
+        for (const auto& info : match_plan.plan)
         {
             REQUIRE(info.type == MatchType::skip);
             REQUIRE(info.target_col == -1);

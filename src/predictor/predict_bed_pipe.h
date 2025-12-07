@@ -4,6 +4,7 @@
 
 #include <Eigen/Core>
 
+#include "../src/predictor/snp_matcher.h"
 #include "gelex/data/bed_pipe.h"
 
 namespace gelex
@@ -22,6 +23,8 @@ class PredictBedPipe
 
    private:
     BedPipe bed_pipe_;
+    MatchPlan match_plan_;
+    SnpEffects snp_effects_;
     bool has_dom_ = false;
 };
 

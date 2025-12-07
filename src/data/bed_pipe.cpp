@@ -4,56 +4,13 @@
 #include <limits>
 #include <system_error>
 
+#include "../src/data/decode_lut.h"
 #include "../src/data/parser.h"
 #include "gelex/exception.h"
 #include "loader/fam_loader.h"
 
 namespace gelex
 {
-
-consteval std::array<double, 4> generate_lut_entry(uint8_t byte, bool reverse)
-{
-    std::array<double, 4> entry{};
-
-    // 00 -> Homozygote 1
-    // 01 -> Missing
-    // 10 -> Heterozygote
-    // 11 -> Homozygote 2
-
-    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
-
-    // IsReverse=false:
-    // 00(0)->2.0, 01(1)->NaN, 10(2)->1.0, 11(3)->0.0
-    constexpr std::array<double, 4> std_map = {2.0, nan, 1.0, 0.0};
-
-    // IsReverse=true, swap A1 A2:
-    // 00->0.0, 01->NaN, 10->1.0, 11->2.0
-    constexpr std::array<double, 4> rev_map = {0.0, nan, 1.0, 2.0};
-
-    const std::array<double, 4> map = reverse ? rev_map : std_map;
-
-    for (int i = 0; i < 4; ++i)
-    {
-        entry[i] = map[(byte >> (2 * i)) & 0x03];
-    }
-    return entry;
-}
-
-template <bool Reverse>
-consteval std::array<std::array<double, 4>, 256> generate_full_lut()
-{
-    std::array<std::array<double, 4>, 256> table{};
-    for (size_t i = 0; i < 256; ++i)
-    {
-        table[i] = generate_lut_entry(static_cast<uint8_t>(i), Reverse);
-    }
-    return table;
-}
-
-const std::array<std::array<double, 4>, 256> BedPipe::kDecodeLut
-    = generate_full_lut<false>();
-const std::array<std::array<double, 4>, 256> BedPipe::kDecodeLutRev
-    = generate_full_lut<true>();
 
 BedPipe::BedPipe(
     const std::filesystem::path& bed_prefix,
@@ -158,10 +115,9 @@ auto BedPipe::format_bed_path(std::string_view bed_path)
 
 void BedPipe::decode_variant_dense(
     const uint8_t* data_ptr,
-    bool is_reverse,
     std::span<double> target_buf) const
 {
-    const auto& lut = is_reverse ? kDecodeLutRev : kDecodeLut;
+    const auto& lut = kDecodeLut;
     const Eigen::Index num_bytes = bytes_per_variant_;
     const Eigen::Index total_samples = num_raw_samples_;
 
@@ -188,10 +144,9 @@ void BedPipe::decode_variant_dense(
 
 void BedPipe::decode_variant_sparse(
     const uint8_t* data_ptr,
-    bool is_reverse,
     std::span<double> target_buf) const
 {
-    const auto& lut = is_reverse ? kDecodeLutRev : kDecodeLut;
+    const auto& lut = kDecodeLut;
     const Eigen::Index num_bytes = bytes_per_variant_;
 
     for (Eigen::Index i = 0; i < num_bytes; ++i)
@@ -272,33 +227,7 @@ Eigen::MatrixXd BedPipe::load_chunk(
         const Eigen::Index current_col_idx = start_col + j;
 
         Eigen::Index target_matrix_col = j;
-        size_t offset = 0;
-        bool reverse = false;
-        bool skip = false;
-
-        if (use_custom_plan_)
-        {
-            const auto& instruction = plan_[current_col_idx];
-            if (instruction.type == MatchType::skip)
-            {
-                skip = true;
-            }
-            else
-            {
-                target_matrix_col = instruction.target_col;
-                offset = current_col_idx * bytes_per_variant_;
-                reverse = (instruction.type == MatchType::reverse);
-            }
-        }
-        else
-        {
-            offset = current_col_idx * bytes_per_variant_;
-        }
-
-        if (skip)
-        {
-            continue;
-        }
+        size_t offset = current_col_idx * bytes_per_variant_;
 
         if (3 + offset + bytes_per_variant_ > file_size)
         {
@@ -314,11 +243,11 @@ Eigen::MatrixXd BedPipe::load_chunk(
 
         if (is_dense_mapping_)
         {
-            decode_variant_dense(src_ptr, reverse, target_span);
+            decode_variant_dense(src_ptr, target_span);
         }
         else
         {
-            decode_variant_sparse(src_ptr, reverse, target_span);
+            decode_variant_sparse(src_ptr, target_span);
         }
     }
 
@@ -330,18 +259,6 @@ Eigen::MatrixXd BedPipe::load() const
     return load_chunk(0, num_snps());
 }
 
-void BedPipe::set_read_plan(MatchPlan&& instructions)
-{
-    plan_ = std::move(instructions);
-    use_custom_plan_ = true;
-}
-
-void BedPipe::reset_to_default()
-{
-    plan_.clear();
-    use_custom_plan_ = false;
-}
-
 Eigen::Index BedPipe::num_samples() const
 {
     return static_cast<Eigen::Index>(sample_manager_->num_common_samples());
@@ -349,10 +266,6 @@ Eigen::Index BedPipe::num_samples() const
 
 Eigen::Index BedPipe::num_snps() const
 {
-    if (use_custom_plan_)
-    {
-        return static_cast<Eigen::Index>(plan_.size());
-    }
     return num_raw_snps_;
 }
 

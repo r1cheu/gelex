@@ -27,7 +27,21 @@ struct MatchInfo
     Eigen::Index target_col = -1;
 };
 
-using MatchPlan = std::vector<MatchInfo>;
+struct MatchPlan
+{
+    std::vector<MatchInfo> plan;
+    Eigen::Index num_snp_in_effect = 0;
+
+    MatchInfo& operator[](Eigen::Index idx) { return plan[idx]; }
+    const MatchInfo& operator[](Eigen::Index idx) const { return plan[idx]; }
+    void clear() noexcept
+    {
+        plan.clear();
+        num_snp_in_effect = 0;
+    }
+
+    [[nodiscard]] size_t size() const noexcept { return plan.size(); }
+};
 
 class SnpMatcher
 {
