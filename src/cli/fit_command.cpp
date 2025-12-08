@@ -152,7 +152,6 @@ int fit_execute(argparse::ArgumentParser& fit)
                                     .value_or(gelex::BayesAlphabet::RR);
     bool dom = app::has_dominance(type);
 
-    gelex::logging::initialize(out_prefix);
     auto logger = gelex::logging::get();
 
     app::setup_parallelization(fit.get<int>("--threads"), logger);

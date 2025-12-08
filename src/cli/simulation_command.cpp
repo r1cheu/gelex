@@ -45,7 +45,6 @@ int simulate_execute(argparse::ArgumentParser& sim)
 {
     std::string out_prefix = sim.get("--out");
 
-    gelex::logging::initialize(out_prefix);
     auto logger = gelex::logging::get();
     std::filesystem::path bed
         = gelex::BedPipe::format_bed_path(sim.get("--bfile"));

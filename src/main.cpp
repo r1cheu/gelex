@@ -5,6 +5,7 @@
 #include "gelex/cli/fit_command.h"
 #include "gelex/cli/simulation_command.h"
 #include "gelex/cli/utils.h"
+#include "gelex/logger.h"
 
 int main(int argc, char* argv[])
 {
@@ -43,17 +44,49 @@ int main(int argc, char* argv[])
 
     if (program.is_subcommand_used("fit"))
     {
-        gelex::cli::log_command(fit, gelex::cli::parse_command(argc, argv));
-        int code = fit_execute(fit);
-        return code;
+        try
+        {
+            gelex::cli::log_command(fit, gelex::cli::parse_command(argc, argv));
+            int code = fit_execute(fit);
+            return code;
+        }
+        catch (const std::exception& e)
+        {
+            auto logger = gelex::logging::get();
+            if (logger)
+            {
+                logger->error("{}", e.what());
+            }
+            else
+            {
+                std::cerr << error_marker << e.what() << "\n";
+            }
+            return 1;
+        }
     }
 
     if (program.is_subcommand_used("simulate"))
     {
-        gelex::cli::log_command(
-            simulate, gelex::cli::parse_command(argc, argv));
-        int code = simulate_execute(simulate);
-        return code;
+        try
+        {
+            gelex::cli::log_command(
+                simulate, gelex::cli::parse_command(argc, argv));
+            int code = simulate_execute(simulate);
+            return code;
+        }
+        catch (const std::exception& e)
+        {
+            auto logger = gelex::logging::get();
+            if (logger)
+            {
+                logger->error("{}", e.what());
+            }
+            else
+            {
+                std::cerr << error_marker << e.what() << "\n";
+            }
+            return 1;
+        }
     }
 
     if (argc <= 1)
