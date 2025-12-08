@@ -1,5 +1,6 @@
 #include "snp_effect_loader.h"
 
+#include <cmath>
 #include <format>
 #include <fstream>
 #include <limits>
@@ -97,6 +98,16 @@ void SnpEffectLoader::parse_line(
         if (indices.dom != -1 && indices.dom < static_cast<int>(row.size()))
         {
             dom_val = detail::parse_number<double>(row[indices.dom]);
+        }
+
+        // Check for nan/inf values
+        if (std::isnan(a1_freq) || std::isinf(a1_freq) || std::isnan(add_val)
+            || std::isinf(add_val)
+            || (indices.dom != -1
+                && (std::isnan(dom_val) || std::isinf(dom_val))))
+        {
+            // Skip this SNP with invalid values
+            return;
         }
 
         SnpEffect effect{

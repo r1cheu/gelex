@@ -10,7 +10,6 @@
 #include <fmt/ranges.h>
 #include "../parser.h"
 #include "gelex/exception.h"
-#include "gelex/logger.h"
 
 namespace gelex::detail
 {
@@ -27,9 +26,6 @@ FamLoader::FamLoader(const std::filesystem::path& path, bool iid_only)
         throw FileFormatException(
             std::format("{}:{}", path.string(), e.what()));
     }
-
-    gelex::logging::get()->info(
-        "Loaded {} samples from fam file.", ids_.size());
 }
 
 void FamLoader::set_ids(const std::filesystem::path& path, bool iid_only)

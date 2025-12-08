@@ -453,3 +453,73 @@ TEST_CASE("CovarLoader Integration Tests", "[data][loader][covar]")
         REQUIRE(result(3, 3) == 0.0);  // Category_C
     }
 }
+
+TEST_CASE("CovarLoader nan/inf exclusion tests", "[data][loader][covar]")
+{
+    FileFixture files;
+
+    SECTION("Edge case - exclude rows with nan/inf string values")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\tGroup\tCategory\n"
+            "1\t2\tM\tnan\tA\n"
+            "3\t4\tF\tB\tNaN\n"
+            "5\t6\tM\tC\tinf\n"
+            "7\t8\tF\tD\tInf\n"
+            "9\t10\tM\tE\t-inf\n"
+            "11\t12\tF\tF\t+Inf\n"
+            "13\t14\tM\tG\tValid\n");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                CCovarLoader loader(file_path, false);
+                const auto& data = loader.data();
+                // only the last row should be retained
+                REQUIRE(data.size() == 1);
+                REQUIRE(data.count("13_14") == 1);
+                REQUIRE(data.at("13_14")[0] == "M");
+                REQUIRE(data.at("13_14")[1] == "G");
+                REQUIRE(data.at("13_14")[2] == "Valid");
+            }());
+    }
+
+    SECTION("Edge case - mixed valid and invalid values in row")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tSex\tGroup\n"
+            "1\t2\tM\tnan\n"
+            "3\t4\tF\tB\n"
+            "5\t6\tinf\tC\n");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                CCovarLoader loader(file_path, false);
+                const auto& data = loader.data();
+                REQUIRE(data.size() == 1);
+                REQUIRE(data.count("3_4") == 1);
+                REQUIRE(data.at("3_4")[0] == "F");
+                REQUIRE(data.at("3_4")[1] == "B");
+            }());
+    }
+
+    SECTION("Integration - nan/inf values not included in encoding levels")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tGroup\n"
+            "1\t2\tnan\n"
+            "3\t4\tA\n"
+            "5\t6\tinf\n"
+            "7\t8\tA\n");
+
+        CCovarLoader loader(file_path, false);
+        std::unordered_map<std::string, Eigen::Index> id_map
+            = {{"3_4", 0}, {"7_8", 1}};
+        Eigen::MatrixXd result = loader.load(id_map);
+
+        // 只有 "A" 一个水平，没有 dummy 变量
+        REQUIRE(result.rows() == 2);
+        REQUIRE(result.cols() == 0);
+    }
+}

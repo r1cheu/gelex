@@ -3,7 +3,6 @@
 
 #include <array>
 #include <cstdint>
-#include <limits>
 
 namespace gelex
 {
@@ -17,15 +16,15 @@ constexpr std::array<double, 4> generate_lut_entry(uint8_t byte, bool reverse)
     // 10 -> Heterozygote
     // 11 -> Homozygote 2
 
-    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
-
     // IsReverse=false:
-    // 00(0)->2.0, 01(1)->NaN, 10(2)->1.0, 11(3)->0.0
-    constexpr std::array<double, 4> std_map = {2.0, nan, 1.0, 0.0};
+    // 00(0)->2.0, 01(1)->0.0, 10(2)->1.0, 11(3)->0.0 we set the missing to
+    // major allele for simplicity following PLINK convention(major allele is
+    // A2).
+    constexpr std::array<double, 4> std_map = {2.0, 0.0, 1.0, 0.0};
 
     // IsReverse=true, swap A1 A2:
     // 00->0.0, 01->NaN, 10->1.0, 11->2.0
-    constexpr std::array<double, 4> rev_map = {0.0, nan, 1.0, 2.0};
+    constexpr std::array<double, 4> rev_map = {0.0, 0.0, 1.0, 2.0};
 
     const std::array<double, 4> map = reverse ? rev_map : std_map;
 

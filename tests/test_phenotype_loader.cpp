@@ -239,6 +239,55 @@ TEST_CASE("PhenotypeLoader - Edge Cases", "[data][phenotype]")
             }());
     }
 
+    SECTION("Happy path - file with nan values")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tPhenotype\n"
+            "1\t1\t2.5\n"
+            "1\t2\tnan\n"   // nan as missing value
+            "2\t1\tNaN\n"   // NaN as missing value
+            "2\t2\tInf\n"   // Inf as special value
+            "3\t1\t-Inf\n"); // -Inf as special value
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                PhenotypeLoader loader(file_path, 2, false);
+                REQUIRE(loader.data().size() == 1);
+                REQUIRE(loader.data().at("1_1") == 2.5);
+                // IDs with nan/inf should not be in the data
+                REQUIRE(loader.data().find("1_2") == loader.data().end());
+                REQUIRE(loader.data().find("2_1") == loader.data().end());
+                REQUIRE(loader.data().find("2_2") == loader.data().end());
+                REQUIRE(loader.data().find("3_1") == loader.data().end());
+            }());
+    }
+
+    SECTION("PhenotypeLoader should exclude nan values")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tPhenotype\n"
+            "1\t1\t2.5\n"
+            "1\t2\tnan\n"   // This should be excluded
+            "2\t1\t3.1\n"
+            "2\t2\tNaN\n"   // This should also be excluded
+            "3\t1\t1.8\n");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                PhenotypeLoader loader(file_path, 2, false);
+                // Only non-nan values should be loaded
+                REQUIRE(loader.data().size() == 3);
+                REQUIRE(loader.data().at("1_1") == 2.5);
+                REQUIRE(loader.data().at("2_1") == 3.1);
+                REQUIRE(loader.data().at("3_1") == 1.8);
+                // IDs with nan should not be in the data
+                REQUIRE(loader.data().find("1_2") == loader.data().end());
+                REQUIRE(loader.data().find("2_2") == loader.data().end());
+            }());
+    }
+
     SECTION("Exception - insufficient columns in data line")
     {
         auto file_path = files.create_text_file(

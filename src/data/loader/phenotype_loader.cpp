@@ -1,5 +1,6 @@
 #include "phenotype_loader.h"
 
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <vector>
@@ -71,8 +72,12 @@ void PhenotypeLoader::set_data(
         }
         try
         {
-            data_.emplace(
-                parse_id(line, iid_only), parse_nth_double(line, pheno_column));
+            double value = parse_nth_double(line, pheno_column);
+            if (std::isnan(value) || std::isinf(value))
+            {
+                continue;
+            }
+            data_.emplace(parse_id(line, iid_only), value);
         }
         catch (const GelexException& e)
         {

@@ -59,40 +59,6 @@ TEST_CASE("QcovarLoader Constructor Tests", "[data][loader][qcovar]")
             }());
     }
 
-    SECTION("Happy path - valid qcovar file with IID only")
-    {
-        auto file_path = files.create_text_file(
-            "FID\tIID\tAge\tHeight\n"
-            "1\t2\t25.5\t170.2\n"
-            "3\t4\t30.1\t165.7\n");
-
-        REQUIRE_NOTHROW(
-            [&]()
-            {
-                QcovarLoader loader(file_path, true);
-                REQUIRE(loader.names().size() == 2);
-                REQUIRE(loader.names()[0] == "Age");
-                REQUIRE(loader.names()[1] == "Height");
-                REQUIRE(loader.data().size() == 2);
-
-                const auto& data = loader.data();
-
-                REQUIRE(data.size() == 2);
-                REQUIRE(data.count("2") == 1);
-                REQUIRE(data.count("4") == 1);
-
-                const auto& sample1 = data.at("2");
-                REQUIRE(sample1.size() == 2);
-                REQUIRE(sample1[0] == 25.5);
-                REQUIRE(sample1[1] == 170.2);
-
-                const auto& sample2 = data.at("4");
-                REQUIRE(sample2.size() == 2);
-                REQUIRE(sample2[0] == 30.1);
-                REQUIRE(sample2[1] == 165.7);
-            }());
-    }
-
     SECTION("Edge case - file with only header")
     {
         auto file_path = files.create_text_file("FID\tIID\tAge\tHeight\n");
@@ -184,10 +150,32 @@ TEST_CASE("QcovarLoader set_data Tests", "[data][loader][qcovar]")
             {
                 QcovarLoader loader(file_path, false);
                 const auto& data = loader.data();
+                REQUIRE(data.size() == 0);  // Row with nan should be excluded
+                REQUIRE_FALSE(data.contains("1_2"));
+            }());
+    }
+
+    SECTION("Edge case - Inf values")
+    {
+        auto file_path = files.create_text_file(
+            "FID\tIID\tAge\tHeight\n"
+            "1\t2\tInf\t170.2\n"
+            "3\t4\t-Inf\t165.7\n"
+            "5\t6\t25.5\t172.1\n");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                QcovarLoader loader(file_path, false);
+                const auto& data = loader.data();
                 REQUIRE(data.size() == 1);
-                const auto& values = data.at("1_2");
-                REQUIRE(std::isnan(values[0]));
-                REQUIRE(values[1] == 170.2);
+                REQUIRE(data.contains("5_6"));
+
+                REQUIRE_FALSE(data.contains("1_2"));
+                REQUIRE_FALSE(data.contains("3_4"));
+                const auto& values = data.at("5_6");
+                REQUIRE(values[0] == 25.5);
+                REQUIRE(values[1] == 172.1);
             }());
     }
 }

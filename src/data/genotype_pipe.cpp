@@ -60,8 +60,10 @@ GenotypePipe::~GenotypePipe()
     {
         wait_for_write();
     }
-    catch (...)
+    catch (std::exception& e)
     {
+        throw DataParseException(
+            std::format("Error during GenotypePipe destruction: {}", e.what()));
     }
 }
 

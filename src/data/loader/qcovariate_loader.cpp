@@ -1,5 +1,6 @@
 #include "qcovariate_loader.h"
 
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <ranges>
@@ -79,6 +80,20 @@ void QcovarLoader::set_data(std::ifstream& file, bool iid_only)
                         "{}",
                         names_.size(),
                         values_buffer.size()));
+            }
+            // Check for nan/inf values
+            bool has_invalid = false;
+            for (double val : values_buffer)
+            {
+                if (std::isnan(val) || std::isinf(val))
+                {
+                    has_invalid = true;
+                    break;
+                }
+            }
+            if (has_invalid)
+            {
+                continue;
             }
             data_.emplace(parse_id(line, iid_only), values_buffer);
         }

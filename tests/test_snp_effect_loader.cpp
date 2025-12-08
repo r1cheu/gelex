@@ -441,6 +441,43 @@ TEST_CASE("SnpEffectLoader - Edge cases", "[data][snp_effect]")
                 REQUIRE(it->second.dom == 0.045);
             }());
     }
+
+    SECTION("Happy path - exclude SNPs with nan/inf values")
+    {
+        std::string content = create_snp_effect_content(
+            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
+            {"rs1401\tA\tC\tnan\t0.123\t0.045",      // nan in A1Frq
+             "rs1402\tT\tG\t0.75\tInf\t0.089",       // Inf in Add
+             "rs1403\tC\tA\t0.50\t0.789\t-Inf",      // -Inf in Dom
+             "rs1404\tG\tT\t0.33\t0.111\t0.022"});   // Valid SNP
+
+        auto file_path = files.create_text_file(content, ".snp.eff");
+
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                SnpEffectLoader loader(file_path);
+                const auto& effects = loader.effects();
+
+                // Only the valid SNP should be loaded
+                REQUIRE(effects.size() == 1);
+                REQUIRE(loader.has_dom_effects() == true);
+
+                auto it = effects.find("rs1404");
+                REQUIRE(it != effects.end());
+                REQUIRE(it->second.index == 0); // Only one valid SNP, index 0
+                REQUIRE(it->second.A1 == 'G');
+                REQUIRE(it->second.A2 == 'T');
+                REQUIRE(it->second.A1freq == 0.33);
+                REQUIRE(it->second.add == 0.111);
+                REQUIRE(it->second.dom == 0.022);
+
+                // SNPs with nan/inf should not be present
+                REQUIRE(effects.find("rs1401") == effects.end());
+                REQUIRE(effects.find("rs1402") == effects.end());
+                REQUIRE(effects.find("rs1403") == effects.end());
+            }());
+    }
 }
 
 TEST_CASE("has_dom_effect_column - basic functionality", "[data][snp_effect]")

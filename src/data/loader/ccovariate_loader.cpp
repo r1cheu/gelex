@@ -20,6 +20,28 @@
 namespace gelex::detail
 {
 
+namespace
+{
+bool is_nan_or_inf_string(std::string_view sv)
+{
+    if (sv.empty())
+    {
+        return false;
+    }
+
+    // tolower
+    std::string lower;
+    lower.reserve(sv.size());
+    std::ranges::transform(
+        sv,
+        std::back_inserter(lower),
+        [](unsigned char c) { return std::tolower(c); });
+
+    return lower == "nan" || lower == "inf" || lower == "+inf"
+           || lower == "-inf";
+}
+}  // namespace
+
 CCovarLoader::CCovarLoader(const std::filesystem::path& path, bool iid_only)
 {
     auto file = detail::open_file<std::ifstream>(path, std::ios::in);
@@ -81,6 +103,21 @@ void CCovarLoader::set_data(std::ifstream& file, bool iid_only)
             if (value_buffer.size() != names_.size())
             {
                 throw DataParseException("Column count mismatch");
+            }
+
+            // check nan/inf
+            bool has_invalid = false;
+            for (const auto& val : value_buffer)
+            {
+                if (is_nan_or_inf_string(val))
+                {
+                    has_invalid = true;
+                    break;
+                }
+            }
+            if (has_invalid)
+            {
+                continue;  // skip
             }
 
             raw_data_.emplace(
