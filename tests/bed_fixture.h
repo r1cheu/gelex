@@ -15,6 +15,10 @@
 
 namespace gelex::test
 {
+bool are_matrices_equal(
+    const Eigen::Ref<Eigen::MatrixXd>& mat1,
+    const Eigen::Ref<Eigen::MatrixXd>& mat2,
+    double tol = 1e-8);
 
 class BedFixture
 {

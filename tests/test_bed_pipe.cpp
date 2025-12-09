@@ -26,43 +26,9 @@ namespace fs = std::filesystem;
 using namespace gelex;  // NOLINT
 using Catch::Matchers::EndsWith;
 using Catch::Matchers::WithinAbs;
+using gelex::test::are_matrices_equal;
 using gelex::test::BedFixture;
 using gelex::test::FileFixture;
-
-namespace
-{
-
-bool are_matrices_equal(
-    const Eigen::Ref<Eigen::MatrixXd>& mat1,
-    const Eigen::Ref<Eigen::MatrixXd>& mat2,
-    double tol = 1e-8)
-{
-    if (mat1.rows() != mat2.rows() || mat1.cols() != mat2.cols())
-    {
-        return false;
-    }
-
-    for (Eigen::Index j = 0; j < mat1.cols(); ++j)
-    {
-        for (Eigen::Index i = 0; i < mat1.rows(); ++i)
-        {
-            double val1 = mat1(i, j);
-            double val2 = mat2(i, j);
-
-            if (std::isnan(val1) && std::isnan(val2))
-            {
-                continue;
-            }
-            if (std::fabs(val1 - val2) > tol)
-            {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-}  // namespace
 
 TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 {
