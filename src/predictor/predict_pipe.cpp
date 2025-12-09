@@ -10,7 +10,6 @@
 
 #include "../src/data/loader/qcovariate_loader.h"
 #include "gelex/data/sample_manager.h"
-#include "gelex/exception.h"
 #include "predict_bed_pipe.h"
 
 namespace gelex
@@ -58,7 +57,8 @@ void PredictDataPipe::load_genotype(const Config& config)
     PredictBedPipe bed_pipe(
         config.bed_path, config.snp_effect_path, sample_manager_);
 
-    genotypes_ = bed_pipe.load();
+    genotypes_.clear();
+    genotypes_.push_back(bed_pipe.load());
 }
 
 void PredictDataPipe::process_raw_genotype(const Config& config)
@@ -152,7 +152,6 @@ const std::vector<std::string>& PredictDataPipe::qcovariate_names() const
 {
     return qcovariate_names_;
 }
-
 const std::vector<std::string>& PredictDataPipe::covariate_names() const
 {
     return covariate_names_;

@@ -91,7 +91,6 @@ class GenotypeMap
 
     MapType mat_;
 
-    // 优化后的数据结构
     std::vector<int64_t> mono_indices_;
     Eigen::VectorXd mean_;
     Eigen::VectorXd stddev_;

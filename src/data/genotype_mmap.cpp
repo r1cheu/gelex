@@ -71,7 +71,7 @@ void GenotypeMap::load_metadata(const std::filesystem::path& meta_path)
             mono_indices_.data(),
             mono_indices_.size(),
             "mono indices");
-        std::ranges::sort(mono_indices_);  // 确保二分查找可用
+        std::ranges::sort(mono_indices_);
     }
 
     mean_.resize(cols_);

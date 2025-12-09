@@ -11,8 +11,7 @@ namespace gelex
 GenotypePipe::GenotypePipe(
     const std::filesystem::path& bed_path,
     std::shared_ptr<SampleManager> sample_manager,
-    const std::filesystem::path& output_prefix,
-    bool force_overwrite)
+    const std::filesystem::path& output_prefix)
     : bed_pipe_(bed_path, std::move(sample_manager))
 {
     auto logger = logging::get();
@@ -27,24 +26,12 @@ GenotypePipe::GenotypePipe(
 
     if (exists)
     {
-        if (!force_overwrite)
-        {
-            logger->error(
-                "Output files already exist: [{}] or [{}]. Use "
-                "force_overwrite=true to bypass.",
-                matrix_path.string(),
-                stats_path.string());
-            throw FileExistsException(
-                std::format("{}: existing files", output_prefix.string()));
-        }
-
-        logger->warn(
-            "Overwriting existing output files: [{}]", output_prefix.string());
-    }
-
-    if (auto parent = matrix_path.parent_path(); !parent.empty())
-    {
-        std::filesystem::create_directories(parent);
+        logger->error(
+            "Output files already exist: [{}] or [{}]",
+            matrix_path.string(),
+            stats_path.string());
+        throw FileExistsException(
+            std::format("{}: existing files", output_prefix.string()));
     }
 
     matrix_writer_ = std::make_unique<detail::BinaryMatrixWriter>(matrix_path);
@@ -54,23 +41,8 @@ GenotypePipe::GenotypePipe(
     sample_size_ = bed_pipe_.num_samples();
 }
 
-GenotypePipe::~GenotypePipe()
-{
-    try
-    {
-        wait_for_write();
-    }
-    catch (std::exception& e)
-    {
-        throw DataParseException(
-            std::format("Error during GenotypePipe destruction: {}", e.what()));
-    }
-}
-
 GenotypeMap GenotypePipe::finalize()
 {
-    wait_for_write();
-
     stats_writer_->write(
         sample_size_, monomorphic_indices_, means_, variances_);
 

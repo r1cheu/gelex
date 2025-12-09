@@ -1,6 +1,5 @@
-#pragma once
-
-#include <vector>
+#ifndef GELEX_PREDICTOR_PREDICT_BED_PIPE_H
+#define GELEX_PREDICTOR_PREDICT_BED_PIPE_H
 
 #include <Eigen/Core>
 
@@ -9,8 +8,6 @@
 
 namespace gelex
 {
-struct MatchInfo;
-
 class PredictBedPipe
 {
    public:
@@ -19,13 +16,14 @@ class PredictBedPipe
         const std::filesystem::path& snp_effect_path,
         std::shared_ptr<SampleManager> sample_manager);
 
-    auto load() const -> std::vector<Eigen::MatrixXd>;
+    auto load() const -> Eigen::MatrixXd;
 
    private:
     BedPipe bed_pipe_;
     MatchPlan match_plan_;
     SnpEffects snp_effects_;
-    bool has_dom_ = false;
 };
 
 }  // namespace gelex
+
+#endif  // GELEX_PREDICTOR_PREDICT_BED_PIPE_H

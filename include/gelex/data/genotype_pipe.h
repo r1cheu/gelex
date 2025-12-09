@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <filesystem>
-#include <future>
 #include <memory>
 #include <vector>
 
@@ -29,8 +28,7 @@ class GenotypePipe
     GenotypePipe(
         const std::filesystem::path& bed_path,
         std::shared_ptr<SampleManager> sample_manager,
-        const std::filesystem::path& output_prefix,
-        bool force_overwrite = false);
+        const std::filesystem::path& output_prefix);
 
     GenotypePipe(const GenotypePipe&) = delete;
     GenotypePipe(GenotypePipe&&) noexcept = default;
@@ -66,20 +64,11 @@ class GenotypePipe
 
             auto chunk = bed_pipe_.load_chunk(start_variant, end_variant);
 
-            wait_for_write();
-
             process_chunk<Processor>(chunk, start_variant, processor);
-
-            write_future_ = std::async(
-                std::launch::async,
-                [this, mat = std::move(chunk)]() mutable
-                { this->matrix_writer_->write(mat); });
-
+            matrix_writer_->write(chunk);
             current_processed_snps += (end_variant - start_variant);
             start_variant = end_variant;
         }
-
-        wait_for_write();
         pbar->done();
 
         return finalize();
@@ -121,14 +110,6 @@ class GenotypePipe
         }
     }
 
-    void wait_for_write()
-    {
-        if (write_future_.valid())
-        {
-            write_future_.get();
-        }
-    }
-
     GenotypeMap finalize();
 
     BedPipe bed_pipe_;
@@ -141,8 +122,6 @@ class GenotypePipe
 
     std::unique_ptr<detail::BinaryMatrixWriter> matrix_writer_;
     std::unique_ptr<detail::SnpStatsWriter> stats_writer_;
-
-    std::future<void> write_future_;
 };
 
 }  // namespace gelex

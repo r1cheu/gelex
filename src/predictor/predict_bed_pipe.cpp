@@ -1,9 +1,9 @@
 #include "../src/predictor/predict_bed_pipe.h"
 
+#include <Eigen/Core>
+
 #include "../src/predictor/snp_matcher.h"
 #include "gelex/data/bed_pipe.h"
-
-#include <limits>
 
 namespace gelex
 {
@@ -12,23 +12,24 @@ PredictBedPipe::PredictBedPipe(
     const std::filesystem::path& bed_path,
     const std::filesystem::path& snp_effect_path,
     std::shared_ptr<SampleManager> sample_manager)
-    : bed_pipe_(bed_path, std::move(sample_manager)),
-      has_dom_(detail::has_dom_effect_column(snp_effect_path))
+    : bed_pipe_(bed_path, std::move(sample_manager))
 {
     SnpMatcher matcher(snp_effect_path);
     match_plan_ = matcher.match(bed_path);
     snp_effects_ = std::move(matcher).take_snp_effects();
 }
 
-auto PredictBedPipe::load() const -> std::vector<Eigen::MatrixXd>
+auto PredictBedPipe::load() const -> Eigen::MatrixXd
 {
     const Eigen::MatrixXd full_matrix = bed_pipe_.load();
     const Eigen::Index num_samples = bed_pipe_.num_samples();
-    const Eigen::Index num_effect_snps = snp_effects_.size();
+    const auto num_effect_snps = static_cast<Eigen::Index>(snp_effects_.size());
 
-    Eigen::MatrixXd add_matrix(num_samples, num_effect_snps);
-    add_matrix.setConstant(std::numeric_limits<double>::quiet_NaN());
+    Eigen::MatrixXd genotype(num_samples, num_effect_snps);
+    genotype.setZero();
 
+#pragma omp parallel for schedule(dynamic) default(none) \
+    shared(full_matrix, genotype)
     for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(match_plan_.size());
          ++i)
     {
@@ -46,19 +47,9 @@ auto PredictBedPipe::load() const -> std::vector<Eigen::MatrixXd>
             col = 2.0 - col.array();
         }
 
-        add_matrix.col(info.target_col) = col;
+        genotype.col(info.target_col) = col;
     }
 
-    std::vector<Eigen::MatrixXd> genotypes;
-    genotypes.push_back(std::move(add_matrix));
-
-    if (has_dom_)
-    {
-        Eigen::MatrixXd dom_matrix(num_samples, num_effect_snps);
-        dom_matrix.setZero();
-        genotypes.push_back(std::move(dom_matrix));
-    }
-
-    return genotypes;
+    return genotype;
 }
 }  // namespace gelex
