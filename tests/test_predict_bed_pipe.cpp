@@ -8,6 +8,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "../src/predictor/predict_bed_pipe.h"
+#include "../src/predictor/snp_matcher.h"
 #include "bed_fixture.h"
 #include "file_fixture.h"
 #include "gelex/data/sample_manager.h"
@@ -38,6 +39,18 @@ std::string create_snp_effect_content(
     return content;
 }
 
+// Helper function to create SnpEffects from content
+static SnpEffects create_snp_effects(
+    FileFixture& files,
+    const std::string& header,
+    const std::vector<std::string>& rows)
+{
+    std::string content = create_snp_effect_content(header, rows);
+    auto file_path = files.create_text_file(content, ".snp.eff");
+    gelex::detail::SnpEffectLoader loader(file_path);
+    return std::move(loader).take_effects();
+}
+
 }  // namespace
 
 TEST_CASE("PredictBedPipe - Constructor", "[predictor][predict_bed_pipe]")
@@ -53,14 +66,12 @@ TEST_CASE("PredictBedPipe - Constructor", "[predictor][predict_bed_pipe]")
 
         // Create SNP effect file in the same directory as BED files
         auto& file_fixture = bed_fixture.get_file_fixture();
-        std::string snp_effect_content = create_snp_effect_content(
+        auto snp_effects = create_snp_effects(
+            file_fixture,
             "ID\tA1\tA2\tA1Frq\tAdd\tDom",
             {"rs001\tA\tC\t0.25\t0.123\t0.045",
              "rs002\tT\tG\t0.75\t-0.456\t0.089",
              "rs003\tC\tA\t0.50\t0.789\t-0.012"});
-
-        auto snp_effect_path
-            = file_fixture.create_text_file(snp_effect_content, ".snp.eff");
 
         // Update BIM file to match SNP effect file
         auto bim_path = bed_prefix;
@@ -80,8 +91,7 @@ TEST_CASE("PredictBedPipe - Constructor", "[predictor][predict_bed_pipe]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                PredictBedPipe pipe(
-                    bed_prefix, snp_effect_path, sample_manager);
+                PredictBedPipe pipe(bed_prefix, snp_effects, sample_manager);
             }());
     }
 
@@ -95,14 +105,13 @@ TEST_CASE("PredictBedPipe - Constructor", "[predictor][predict_bed_pipe]")
 
         // Create SNP effect file in the same directory as BED files
         auto& file_fixture = bed_fixture.get_file_fixture();
-        std::string snp_effect_content = create_snp_effect_content(
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom", {"rs001\tA\tC\t0.25\t0.123\t0.045"});
-
-        auto snp_effect_path
-            = file_fixture.create_text_file(snp_effect_content, ".snp.eff");
+        auto snp_effects = create_snp_effects(
+            file_fixture,
+            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
+            {"rs001\tA\tC\t0.25\t0.123\t0.045"});
 
         REQUIRE_THROWS_MATCHES(
-            PredictBedPipe(bed_prefix, snp_effect_path, nullptr),
+            PredictBedPipe(bed_prefix, snp_effects, nullptr),
             ArgumentValidationException,
             Catch::Matchers::MessageMatches(
                 EndsWith("SampleManager cannot be null")));
@@ -129,14 +138,12 @@ TEST_CASE(
         // Use the same FileFixture as BedFixture to keep files in same
         // directory
         auto& file_fixture = bed_fixture.get_file_fixture();
-        std::string snp_effect_content = create_snp_effect_content(
+        auto snp_effects = create_snp_effects(
+            file_fixture,
             "ID\tA1\tA2\tA1Frq\tAdd\tDom",
             {"rs001\tA\tC\t0.25\t0.123\t0.045",
              "rs002\tT\tG\t0.75\t-0.456\t0.089",
              "rs003\tC\tA\t0.50\t0.789\t-0.012"});
-
-        auto snp_effect_path
-            = file_fixture.create_text_file(snp_effect_content, ".snp.eff");
 
         // Update BIM file to match alleles (BedFixture creates random SNP IDs,
         // we need to update them)
@@ -155,7 +162,7 @@ TEST_CASE(
         auto sample_manager = std::make_shared<SampleManager>(fam_path, false);
         sample_manager->finalize();
 
-        PredictBedPipe pipe(bed_prefix, snp_effect_path, sample_manager);
+        PredictBedPipe pipe(bed_prefix, snp_effects, sample_manager);
 
         // Load the filtered matrix
         Eigen::MatrixXd filtered = pipe.load();
@@ -191,11 +198,10 @@ TEST_CASE(
 
         // Create SNP effect file in the same directory as BED files
         auto& file_fixture = bed_fixture.get_file_fixture();
-        std::string snp_effect_content = create_snp_effect_content(
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom", {"rs001\tA\tC\t0.25\t0.123\t0.045"});
-
-        auto snp_effect_path
-            = file_fixture.create_text_file(snp_effect_content, ".snp.eff");
+        auto snp_effects = create_snp_effects(
+            file_fixture,
+            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
+            {"rs001\tA\tC\t0.25\t0.123\t0.045"});
 
         // Update BIM file with swapped alleles (to trigger reverse match)
         auto bim_path = bed_prefix;
@@ -205,7 +211,7 @@ TEST_CASE(
             bim_file << "1\trs001\t0\t1000\tC\tA\n";  // Swapped!
         }
 
-        PredictBedPipe pipe(bed_prefix, snp_effect_path, sample_manager);
+        PredictBedPipe pipe(bed_prefix, snp_effects, sample_manager);
         Eigen::MatrixXd filtered = pipe.load();
 
         // Calculate expected reverse: 2.0 - original
@@ -240,13 +246,11 @@ TEST_CASE(
 
         // Create SNP effect file with 2 SNPs (one will be missing)
         auto& file_fixture = bed_fixture.get_file_fixture();
-        std::string snp_effect_content = create_snp_effect_content(
+        auto snp_effects = create_snp_effects(
+            file_fixture,
             "ID\tA1\tA2\tA1Frq\tAdd\tDom",
             {"rs001\tA\tC\t0.25\t0.123\t0.045",     // Will match with keep
              "rs002\tT\tG\t0.75\t-0.456\t0.089"});  // Will match with reverse
-
-        auto snp_effect_path
-            = file_fixture.create_text_file(snp_effect_content, ".snp.eff");
 
         // Update BIM file with mixed scenarios:
         // SNP1: rs001 A C (keep)
@@ -262,7 +266,7 @@ TEST_CASE(
             bim_file << "1\trs003\t0\t3000\tA\tG\n";  // skip
         }
 
-        PredictBedPipe pipe(bed_prefix, snp_effect_path, sample_manager);
+        PredictBedPipe pipe(bed_prefix, snp_effects, sample_manager);
         Eigen::MatrixXd filtered = pipe.load();
 
         // Verify dimensions: should have 2 columns (2 effect SNPs)
@@ -299,13 +303,11 @@ TEST_CASE(
 
         // Create SNP effect file with different SNPs
         auto& file_fixture = bed_fixture.get_file_fixture();
-        std::string snp_effect_content = create_snp_effect_content(
+        auto snp_effects = create_snp_effects(
+            file_fixture,
             "ID\tA1\tA2\tA1Frq\tAdd\tDom",
             {"rs999\tA\tC\t0.25\t0.123\t0.045",  // Different SNP ID
              "rs998\tT\tG\t0.75\t-0.456\t0.089"});
-
-        auto snp_effect_path
-            = file_fixture.create_text_file(snp_effect_content, ".snp.eff");
 
         // Update BIM file with different SNPs
         auto bim_path = bed_prefix;
@@ -322,7 +324,7 @@ TEST_CASE(
         auto sample_manager = std::make_shared<SampleManager>(fam_path, false);
         sample_manager->finalize();
 
-        PredictBedPipe pipe(bed_prefix, snp_effect_path, sample_manager);
+        PredictBedPipe pipe(bed_prefix, snp_effects, sample_manager);
         Eigen::MatrixXd filtered = pipe.load();
 
         // Verify dimensions: should have 2 columns (2 effect SNPs)
@@ -383,14 +385,12 @@ TEST_CASE("PredictBedPipe - Edge cases", "[predictor][predict_bed_pipe]")
 
         // Create SNP effect file matching all SNPs
         auto& file_fixture = bed_fixture.get_file_fixture();
-        std::string snp_effect_content = create_snp_effect_content(
+        auto snp_effects = create_snp_effects(
+            file_fixture,
             "ID\tA1\tA2\tA1Frq\tAdd\tDom",
             {"rs001\tA\tC\t0.25\t0.123\t0.045",
              "rs002\tT\tG\t0.75\t-0.456\t0.089",
              "rs003\tC\tA\t0.50\t0.789\t-0.012"});
-
-        auto snp_effect_path
-            = file_fixture.create_text_file(snp_effect_content, ".snp.eff");
 
         // Update BIM file with matching alleles
         auto bim_path = bed_prefix;
@@ -404,7 +404,7 @@ TEST_CASE("PredictBedPipe - Edge cases", "[predictor][predict_bed_pipe]")
             bim_file << "1\trs004\t0\t4000\tC\tG\n";  // skipped SNP
         }
 
-        PredictBedPipe pipe(bed_prefix, snp_effect_path, sample_manager);
+        PredictBedPipe pipe(bed_prefix, snp_effects, sample_manager);
         Eigen::MatrixXd filtered = pipe.load();
         genotypes
             = genotypes.block(0, 0, 2, 3).eval();  // Keep only first 2 samples

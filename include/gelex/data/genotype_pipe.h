@@ -34,8 +34,7 @@ class GenotypePipe
     GenotypePipe(GenotypePipe&&) noexcept = default;
     GenotypePipe& operator=(const GenotypePipe&) = delete;
     GenotypePipe& operator=(GenotypePipe&&) noexcept = default;
-
-    ~GenotypePipe();
+    ~GenotypePipe() = default;
 
     template <VariantProcessor Processor = StandardizingProcessor>
     auto process(size_t chunk_size = 10000) -> GenotypeMap

@@ -10,11 +10,7 @@
 namespace gelex
 {
 
-SnpMatcher::SnpMatcher(const std::filesystem::path& snp_effect_path)
-    : snp_effects_(
-          std::move(detail::SnpEffectLoader(snp_effect_path)).take_effects())
-{
-}
+SnpMatcher::SnpMatcher(const SnpEffects& effects) : effects_(&effects) {}
 
 MatchPlan SnpMatcher::match(const std::filesystem::path& predict_bed_path) const
 {
@@ -33,14 +29,13 @@ MatchPlan SnpMatcher::match(const std::filesystem::path& predict_bed_path) const
 
     MatchPlan match_info;
     match_info.plan.resize(predict_snp_meta.size());
-    match_info.num_snp_in_effect
-        = static_cast<Eigen::Index>(snp_effects_.size());
+    match_info.num_snp_in_effect = static_cast<Eigen::Index>(effects_->size());
 
     for (auto [meta, plan] : std::views::zip(predict_snp_meta, match_info.plan))
     {
-        auto it = snp_effects_.find(meta.id);
+        auto it = effects_->find(meta.id);
 
-        if (it != snp_effects_.end())
+        if (it != effects_->end())
         {
             const auto& model_meta = it->second;
             plan.type = determine_match_type(model_meta, meta);

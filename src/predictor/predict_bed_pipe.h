@@ -13,7 +13,7 @@ class PredictBedPipe
    public:
     PredictBedPipe(
         const std::filesystem::path& bed_path,
-        const std::filesystem::path& snp_effect_path,
+        const SnpEffects& snp_effects,
         std::shared_ptr<SampleManager> sample_manager);
 
     auto load() const -> Eigen::MatrixXd;
@@ -21,7 +21,7 @@ class PredictBedPipe
    private:
     BedPipe bed_pipe_;
     MatchPlan match_plan_;
-    SnpEffects snp_effects_;
+    Eigen::Index num_snp_effects_ = 0;
 };
 
 }  // namespace gelex

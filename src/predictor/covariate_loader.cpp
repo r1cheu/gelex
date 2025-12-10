@@ -23,21 +23,16 @@ CovarPredictLoader::CovarPredictLoader(
     bool iid_only)
 {
     auto file = detail::open_file<std::ifstream>(path, std::ios::in);
-
-    auto header = get_header(file);
-    size_t cols = header.size();
-    auto map = read(file, cols, iid_only);
-
-    std::vector<std::string> covar_names;
-    covar_names.reserve(cols - 2);
-    for (size_t i = 2; i < cols; ++i)
+    try
     {
-        covar_names.push_back(std::move(header[i]));
+        set_names(file);
+        set_data(file, iid_only);
     }
-
-    names_ = std::move(covar_names);
-    data_ = std::move(map);
-
+    catch (const GelexException& e)
+    {
+        throw FileFormatException(
+            std::format("{}:{}", path.string(), e.what()));
+    }
     auto logger = gelex::logging::get();
     logger->info(
         "Loaded {} samples with {} covars.", data_.size(), names_.size());
@@ -81,8 +76,7 @@ auto CovarPredictLoader::load(
     return formatted_data;
 }
 
-auto CovarPredictLoader::get_header(std::ifstream& file)
-    -> std::vector<std::string>
+void CovarPredictLoader::set_names(std::ifstream& file)
 {
     std::string line;
     std::getline(file, line);
@@ -95,15 +89,18 @@ auto CovarPredictLoader::get_header(std::ifstream& file)
                 "Covar file must have at least 3 columns, got {}",
                 header_view.size()));
     }
-    return std::ranges::to<std::vector<std::string>>(header_view);
+    names_.clear();
+    for (size_t i = 2; i < header_view.size(); ++i)
+    {
+        names_.emplace_back(header_view[i]);
+    }
 }
 
-auto CovarPredictLoader::read(
-    std::ifstream& file,
-    size_t expected_columns,
-    bool iid_only) -> std::unordered_map<std::string, std::vector<std::string>>
+void CovarPredictLoader::set_data(std::ifstream& file, bool iid_only)
 {
-    std::unordered_map<std::string, std::vector<std::string>> covariate_data;
+    const size_t expected_columns = names_.size() + 2;
+    data_.clear();
+    data_.reserve(1024);
 
     std::string line;
     int n_line{};
@@ -130,11 +127,10 @@ auto CovarPredictLoader::read(
                     "Inconsistent number of columns at line {}", n_line + 2));
         }
 
-        covariate_data.emplace(
+        data_.emplace(
             std::move(id_str),
             std::ranges::to<std::vector<std::string>>(value_buffer));
         n_line++;
     }
-    return covariate_data;
 }
 }  // namespace gelex::detail

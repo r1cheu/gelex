@@ -1,4 +1,7 @@
-#include "covariate_processor.h"
+#include "covar_effect_loader.h"
+
+#include "gelex/exception.h"
+#include "gelex/logger.h"
 
 #include <cmath>
 #include <filesystem>
@@ -12,7 +15,7 @@
 namespace gelex::detail
 {
 
-CovariateProcessor::CovariateProcessor(
+CovarEffectLoader::CovarEffectLoader(
     const std::filesystem::path& param_file_path)
 {
     auto [intercept, continuous_coeffs, categorical_coeffs]
@@ -21,10 +24,22 @@ CovariateProcessor::CovariateProcessor(
     intercept_ = intercept;
     continuous_coeffs_ = std::move(continuous_coeffs);
     categorical_coeffs_ = std::move(categorical_coeffs);
+
+    auto logger = gelex::logging::get();
+    size_t categorical_categories = 0;
+    for (const auto& [var, categories] : categorical_coeffs_)
+    {
+        categorical_categories += categories.size();
+    }
+    logger->info(
+        "Loaded covariate effects: intercept={}, continuous vars={}, "
+        "categorical vars={} categories",
+        intercept_,
+        continuous_coeffs_.size(),
+        categorical_categories);
 }
 
-auto CovariateProcessor::parse_param_file(
-    const std::filesystem::path& file_path)
+auto CovarEffectLoader::parse_param_file(const std::filesystem::path& file_path)
     -> std::tuple<
         double,
         std::map<std::string, double>,
@@ -86,7 +101,7 @@ auto CovariateProcessor::parse_param_file(
         intercept, std::move(continuous_coeffs), std::move(categorical_coeffs));
 }
 
-void CovariateProcessor::parse_flat_name(
+void CovarEffectLoader::parse_flat_name(
     const std::string& flat_name,
     double coefficient,
     double& intercept,
@@ -114,7 +129,7 @@ void CovariateProcessor::parse_flat_name(
     }
 }
 
-double CovariateProcessor::predict(const IndividualData& data) const
+double CovarEffectLoader::predict(const IndividualData& data) const
 {
     double score = intercept_;
 
@@ -122,24 +137,34 @@ double CovariateProcessor::predict(const IndividualData& data) const
     for (const auto& [var_name, value] : data.continuous_values)
     {
         auto it = continuous_coeffs_.find(var_name);
-        if (it != continuous_coeffs_.end())
+        if (it == continuous_coeffs_.end())
         {
-            score += value * it->second;
+            throw InvalidInputException(
+                std::format("unknown continuous variable '{}'", var_name));
         }
+        score += value * it->second;
     }
 
     // Add categorical variable contributions
     for (const auto& [var_name, category] : data.categorical_values)
     {
         auto var_it = categorical_coeffs_.find(var_name);
-        if (var_it != categorical_coeffs_.end())
+        if (var_it == categorical_coeffs_.end())
         {
-            auto cat_it = var_it->second.find(category);
-            if (cat_it != var_it->second.end())
-            {
-                score += cat_it->second;
-            }
+            throw InvalidInputException(
+                std::format("unknown categorical variable '{}'", var_name));
         }
+
+        auto cat_it = var_it->second.find(category);
+        if (cat_it == var_it->second.end())
+        {
+            throw InvalidInputException(
+                std::format(
+                    "unknown category '{}' for categorical variable '{}'",
+                    category,
+                    var_name));
+        }
+        score += cat_it->second;
     }
 
     return score;

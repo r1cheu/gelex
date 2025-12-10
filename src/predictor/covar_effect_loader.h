@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_PREDICTOR_COVAR_EFFECT_LOADER_H
+#define GELEX_PREDICTOR_COVAR_EFFECT_LOADER_H
 
 #include <filesystem>
 #include <limits>
@@ -15,11 +16,24 @@ struct IndividualData
     std::unordered_map<std::string, std::string> categorical_values;
 };
 
-class CovariateProcessor
+class CovarEffectLoader
 {
    public:
-    explicit CovariateProcessor(const std::filesystem::path& param_file_path);
+    explicit CovarEffectLoader(const std::filesystem::path& param_file_path);
 
+    double intercept() const { return intercept_; }
+    const std::map<std::string, double>& continuous_coeffs() const
+    {
+        return continuous_coeffs_;
+    }
+    const std::map<std::string, std::map<std::string, double>>&
+    categorical_coeffs() const
+    {
+        return categorical_coeffs_;
+    }
+
+    // Throws InvalidInputException if data contains variables or categories not
+    // present in the parameter file
     double predict(const IndividualData& data) const;
 
    private:
@@ -43,3 +57,5 @@ class CovariateProcessor
 };
 
 }  // namespace gelex::detail
+
+#endif  // GELEX_PREDICTOR_COVAR_EFFECT_LOADER_H

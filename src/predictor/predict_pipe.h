@@ -6,10 +6,10 @@
 #include <string>
 #include <vector>
 
+#include <Eigen/Core>
 #include <Eigen/Dense>
 
 #include "../src/data/loader/snp_effect_loader.h"
-#include "Eigen/Core"
 #include "covariate_loader.h"
 
 namespace gelex
@@ -30,6 +30,8 @@ class PredictDataPipe
         std::filesystem::path covar_path;
 
         std::filesystem::path snp_effect_path;
+        std::filesystem::path param_path;
+
         bool iid_only = false;
         std::string output_prefix;
     };
@@ -50,7 +52,9 @@ class PredictDataPipe
     auto load_qcovariates(const Config& config) -> void;
     auto load_covariates(const Config& config) -> void;
     auto load_genotype(const Config& config) -> void;
+
     auto load_snp_effect(const Config& config) -> void;
+    auto load_param_effect(const Config& config) -> void;
 
     auto process_raw_genotype(const Config& config) -> void;
 

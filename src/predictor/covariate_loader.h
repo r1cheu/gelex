@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_PREDICTOR_COVARIATE_LOADER_H
+#define GELEX_PREDICTOR_COVARIATE_LOADER_H
 
 #include <filesystem>
 #include <map>
@@ -7,8 +8,6 @@
 #include <vector>
 
 #include <Eigen/Dense>
-
-#include "gelex/exception.h"
 
 namespace gelex::detail
 {
@@ -31,13 +30,12 @@ class CovarPredictLoader
     }
 
    private:
-    static auto get_header(std::ifstream& file) -> std::vector<std::string>;
-
-    static auto
-    read(std::ifstream& file, size_t expected_columns, bool iid_only)
-        -> std::unordered_map<std::string, std::vector<std::string>>;
+    void set_names(std::ifstream& file);
+    void set_data(std::ifstream& file, bool iid_only);
 
     std::vector<std::string> names_;
     std::unordered_map<std::string, std::vector<std::string>> data_;
 };
 }  // namespace gelex::detail
+
+#endif  // GELEX_PREDICTOR_COVARIATE_LOADER_H

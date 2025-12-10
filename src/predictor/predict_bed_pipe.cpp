@@ -10,22 +10,21 @@ namespace gelex
 
 PredictBedPipe::PredictBedPipe(
     const std::filesystem::path& bed_path,
-    const std::filesystem::path& snp_effect_path,
+    const SnpEffects& snp_effects,
     std::shared_ptr<SampleManager> sample_manager)
-    : bed_pipe_(bed_path, std::move(sample_manager))
+    : bed_pipe_(bed_path, std::move(sample_manager)),
+      num_snp_effects_(static_cast<Eigen::Index>(snp_effects.size()))
 {
-    SnpMatcher matcher(snp_effect_path);
+    SnpMatcher matcher(snp_effects);
     match_plan_ = matcher.match(bed_path);
-    snp_effects_ = std::move(matcher).take_snp_effects();
 }
 
 auto PredictBedPipe::load() const -> Eigen::MatrixXd
 {
     const Eigen::MatrixXd full_matrix = bed_pipe_.load();
     const Eigen::Index num_samples = bed_pipe_.num_samples();
-    const auto num_effect_snps = static_cast<Eigen::Index>(snp_effects_.size());
 
-    Eigen::MatrixXd genotype(num_samples, num_effect_snps);
+    Eigen::MatrixXd genotype(num_samples, num_snp_effects_);
     genotype.setZero();
 
 #pragma omp parallel for schedule(dynamic) default(none) \

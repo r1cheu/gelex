@@ -38,22 +38,32 @@ static std::string create_bim_content(const std::vector<std::string>& rows)
     return content;
 }
 
+// Helper function to create SnpEffects from content
+static SnpEffects create_snp_effects(
+    FileFixture& files,
+    const std::string& header,
+    const std::vector<std::string>& rows)
+{
+    std::string content = create_snp_effect_content(header, rows);
+    auto file_path = files.create_text_file(content, ".snp.eff");
+    gelex::detail::SnpEffectLoader loader(file_path);
+    return std::move(loader).take_effects();
+}
+
 TEST_CASE("SnpMatcher - Constructor", "[predictor][snp_matcher]")
 {
     FileFixture files;
 
     SECTION("Happy path - successful construction with valid SNP effect file")
     {
-        std::string snp_effect_content = create_snp_effect_content(
+        auto effects = create_snp_effects(
+            files,
             "ID\tA1\tA2\tA1Frq\tAdd\tDom",
             {"rs001\tA\tC\t0.25\t0.123\t0.045",
              "rs002\tT\tG\t0.75\t-0.456\t0.089",
              "rs003\tC\tA\t0.50\t0.789\t-0.012"});
 
-        auto snp_effect_path
-            = files.create_text_file(snp_effect_content, ".snp.eff");
-
-        REQUIRE_NOTHROW([&]() { SnpMatcher matcher(snp_effect_path); }());
+        REQUIRE_NOTHROW([&]() { SnpMatcher matcher(effects); }());
     }
 }
 
@@ -63,15 +73,13 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
 
     SECTION("Happy path - perfect match (all alleles identical)")
     {
-        // Create SNP effect file
-        std::string snp_effect_content = create_snp_effect_content(
+        // Create SNP effects
+        auto effects = create_snp_effects(
+            files,
             "ID\tA1\tA2\tA1Frq\tAdd\tDom",
             {"rs001\tA\tC\t0.25\t0.123\t0.045",
              "rs002\tT\tG\t0.75\t-0.456\t0.089",
              "rs003\tC\tA\t0.50\t0.789\t-0.012"});
-
-        auto snp_effect_path
-            = files.create_text_file(snp_effect_content, ".snp.eff");
 
         // Create BIM file with same SNPs and alleles
         std::string bim_content = create_bim_content(
@@ -83,7 +91,7 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
         auto bed_path = bim_path;
         bed_path.replace_extension(".bed");
 
-        SnpMatcher matcher(snp_effect_path);
+        SnpMatcher matcher(effects);
         auto match_plan = matcher.match(bed_path);
 
         REQUIRE(match_plan.size() == 3);
@@ -102,14 +110,12 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
 
     SECTION("Happy path - reverse match (alleles swapped)")
     {
-        // Create SNP effect file
-        std::string snp_effect_content = create_snp_effect_content(
+        // Create SNP effects
+        auto effects = create_snp_effects(
+            files,
             "ID\tA1\tA2\tA1Frq\tAdd\tDom",
             {"rs001\tA\tC\t0.25\t0.123\t0.045",
              "rs002\tT\tG\t0.75\t-0.456\t0.089"});
-
-        auto snp_effect_path
-            = files.create_text_file(snp_effect_content, ".snp.eff");
 
         // Create BIM file with swapped alleles
         std::string bim_content = create_bim_content(
@@ -120,7 +126,7 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
         auto bed_path = bim_path;
         bed_path.replace_extension(".bed");
 
-        SnpMatcher matcher(snp_effect_path);
+        SnpMatcher matcher(effects);
         auto match_plan = matcher.match(bed_path);
 
         REQUIRE(match_plan.size() == 2);
@@ -135,15 +141,13 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
 
     SECTION("Happy path - partial match (some match, some skip)")
     {
-        // Create SNP effect file
-        std::string snp_effect_content = create_snp_effect_content(
+        // Create SNP effects
+        auto effects = create_snp_effects(
+            files,
             "ID\tA1\tA2\tA1Frq\tAdd\tDom",
             {"rs001\tA\tC\t0.25\t0.123\t0.045",
              "rs002\tT\tG\t0.75\t-0.456\t0.089",
              "rs003\tC\tA\t0.50\t0.789\t-0.012"});
-
-        auto snp_effect_path
-            = files.create_text_file(snp_effect_content, ".snp.eff");
 
         // Create BIM file with mixed matches
         std::string bim_content = create_bim_content(
@@ -156,7 +160,7 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
         auto bed_path = bim_path;
         bed_path.replace_extension(".bed");
 
-        SnpMatcher matcher(snp_effect_path);
+        SnpMatcher matcher(effects);
         auto match_plan = matcher.match(bed_path);
 
         REQUIRE(match_plan.size() == 4);
@@ -177,14 +181,12 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
 
     SECTION("Happy path - case insensitive allele matching")
     {
-        // Create SNP effect file with uppercase alleles
-        std::string snp_effect_content = create_snp_effect_content(
+        // Create SNP effects with uppercase alleles
+        auto effects = create_snp_effects(
+            files,
             "ID\tA1\tA2\tA1Frq\tAdd\tDom",
             {"rs001\tA\tC\t0.25\t0.123\t0.045",
              "rs002\tT\tG\t0.75\t-0.456\t0.089"});
-
-        auto snp_effect_path
-            = files.create_text_file(snp_effect_content, ".snp.eff");
 
         // Create BIM file with lowercase alleles
         std::string bim_content = create_bim_content(
@@ -195,7 +197,7 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
         auto bed_path = bim_path;
         bed_path.replace_extension(".bed");
 
-        SnpMatcher matcher(snp_effect_path);
+        SnpMatcher matcher(effects);
         auto match_plan = matcher.match(bed_path);
 
         REQUIRE(match_plan.size() == 2);
@@ -210,14 +212,12 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
 
     SECTION("Happy path - no matching SNPs")
     {
-        // Create SNP effect file
-        std::string snp_effect_content = create_snp_effect_content(
+        // Create SNP effects
+        auto effects = create_snp_effects(
+            files,
             "ID\tA1\tA2\tA1Frq\tAdd\tDom",
             {"rs001\tA\tC\t0.25\t0.123\t0.045",
              "rs002\tT\tG\t0.75\t-0.456\t0.089"});
-
-        auto snp_effect_path
-            = files.create_text_file(snp_effect_content, ".snp.eff");
 
         // Create BIM file with completely different SNPs
         std::string bim_content = create_bim_content(
@@ -229,7 +229,7 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
         auto bed_path = bim_path;
         bed_path.replace_extension(".bed");
 
-        SnpMatcher matcher(snp_effect_path);
+        SnpMatcher matcher(effects);
         auto match_plan = matcher.match(bed_path);
 
         REQUIRE(match_plan.size() == 3);
@@ -254,14 +254,12 @@ TEST_CASE(
 
     SECTION("Test allele combinations - keep cases")
     {
-        // Create SNP effect file
-        std::string snp_effect_content = create_snp_effect_content(
+        // Create SNP effects
+        auto effects = create_snp_effects(
+            files,
             "ID\tA1\tA2\tA1Frq\tAdd\tDom",
             {"rs001\tA\tC\t0.25\t0.123\t0.045",
              "rs002\ta\tc\t0.25\t0.123\t0.045"});  // lowercase
-
-        auto snp_effect_path
-            = files.create_text_file(snp_effect_content, ".snp.eff");
 
         // Test various keep scenarios
         std::string bim_content = create_bim_content(
@@ -272,7 +270,7 @@ TEST_CASE(
         auto bed_path = bim_path;
         bed_path.replace_extension(".bed");
 
-        SnpMatcher matcher(snp_effect_path);
+        SnpMatcher matcher(effects);
         auto match_plan = matcher.match(bed_path);
 
         REQUIRE(match_plan.size() == 2);
@@ -282,14 +280,12 @@ TEST_CASE(
 
     SECTION("Test allele combinations - reverse cases")
     {
-        // Create SNP effect file
-        std::string snp_effect_content = create_snp_effect_content(
+        // Create SNP effects
+        auto effects = create_snp_effects(
+            files,
             "ID\tA1\tA2\tA1Frq\tAdd\tDom",
             {"rs001\tA\tC\t0.25\t0.123\t0.045",
              "rs002\ta\tc\t0.25\t0.123\t0.045"});  // lowercase
-
-        auto snp_effect_path
-            = files.create_text_file(snp_effect_content, ".snp.eff");
 
         // Test various reverse scenarios
         std::string bim_content = create_bim_content(
@@ -300,7 +296,7 @@ TEST_CASE(
         auto bed_path = bim_path;
         bed_path.replace_extension(".bed");
 
-        SnpMatcher matcher(snp_effect_path);
+        SnpMatcher matcher(effects);
         auto match_plan = matcher.match(bed_path);
 
         REQUIRE(match_plan.size() == 2);
@@ -310,12 +306,11 @@ TEST_CASE(
 
     SECTION("Test allele combinations - skip cases")
     {
-        // Create SNP effect file
-        std::string snp_effect_content = create_snp_effect_content(
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom", {"rs001\tA\tC\t0.25\t0.123\t0.045"});
-
-        auto snp_effect_path
-            = files.create_text_file(snp_effect_content, ".snp.eff");
+        // Create SNP effects
+        auto effects = create_snp_effects(
+            files,
+            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
+            {"rs001\tA\tC\t0.25\t0.123\t0.045"});
 
         // Test various skip scenarios
         std::string bim_content = create_bim_content(
@@ -327,7 +322,7 @@ TEST_CASE(
         auto bed_path = bim_path;
         bed_path.replace_extension(".bed");
 
-        SnpMatcher matcher(snp_effect_path);
+        SnpMatcher matcher(effects);
         auto match_plan = matcher.match(bed_path);
 
         REQUIRE(match_plan.size() == 3);
@@ -340,13 +335,11 @@ TEST_CASE(
 
     SECTION("Test allele combinations - case mixing")
     {
-        // Create SNP effect file with mixed case
-        std::string snp_effect_content = create_snp_effect_content(
+        // Create SNP effects with mixed case
+        auto effects = create_snp_effects(
+            files,
             "ID\tA1\tA2\tA1Frq\tAdd\tDom",
             {"rs001\tA\tc\t0.25\t0.123\t0.045"});  // A uppercase, c lowercase
-
-        auto snp_effect_path
-            = files.create_text_file(snp_effect_content, ".snp.eff");
 
         // Test case mixing scenarios
         std::string bim_content = create_bim_content(
@@ -357,70 +350,12 @@ TEST_CASE(
         auto bed_path = bim_path;
         bed_path.replace_extension(".bed");
 
-        SnpMatcher matcher(snp_effect_path);
+        SnpMatcher matcher(effects);
         auto match_plan = matcher.match(bed_path);
 
         REQUIRE(match_plan.size() == 2);
         REQUIRE(match_plan[0].type == MatchType::keep);     // a/A and c/C match
         REQUIRE(match_plan[1].type == MatchType::reverse);  // c/c and A/A match
-    }
-}
-
-TEST_CASE("SnpMatcher - take_snp_effects()", "[predictor][snp_matcher]")
-{
-    FileFixture files;
-
-    SECTION("Happy path - move semantics work correctly")
-    {
-        std::string snp_effect_content = create_snp_effect_content(
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045",
-             "rs002\tT\tG\t0.75\t-0.456\t0.089"});
-
-        auto snp_effect_path
-            = files.create_text_file(snp_effect_content, ".snp.eff");
-
-        SnpMatcher matcher(snp_effect_path);
-
-        // Create BIM file for match test
-        std::string bim_content
-            = create_bim_content({"1\trs001\t0\t1000\tA\tC"});
-
-        auto bim_path = files.create_named_text_file("test.bim", bim_content);
-        auto bed_path = bim_path;
-        bed_path.replace_extension(".bed");
-
-        // First, test that match works before taking effects
-        auto match_plan = matcher.match(bed_path);
-        REQUIRE(match_plan.size() == 1);
-        REQUIRE(match_plan[0].type == MatchType::keep);
-
-        // Now take the effects
-        auto effects = std::move(matcher).take_snp_effects();
-
-        REQUIRE(effects.size() == 2);
-        REQUIRE(effects.find("rs001") != effects.end());
-        REQUIRE(effects.find("rs002") != effects.end());
-
-        // After taking effects, matcher should be in moved-from state
-        // Note: We can't test this directly as the class doesn't expose state
-        // But we can verify that the effects were moved out
-    }
-
-    SECTION("Happy path - take_snp_effects() on rvalue")
-    {
-        std::string snp_effect_content = create_snp_effect_content(
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom", {"rs001\tA\tC\t0.25\t0.123\t0.045"});
-
-        auto snp_effect_path
-            = files.create_text_file(snp_effect_content, ".snp.eff");
-
-        // Create matcher and immediately take effects
-        auto effects
-            = std::move(SnpMatcher(snp_effect_path)).take_snp_effects();
-
-        REQUIRE(effects.size() == 1);
-        REQUIRE(effects.find("rs001") != effects.end());
     }
 }
 
@@ -430,11 +365,10 @@ TEST_CASE("SnpMatcher - Edge cases", "[predictor][snp_matcher]")
 
     SECTION("Happy path - single SNP in both files")
     {
-        std::string snp_effect_content = create_snp_effect_content(
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom", {"rs001\tA\tC\t0.25\t0.123\t0.045"});
-
-        auto snp_effect_path
-            = files.create_text_file(snp_effect_content, ".snp.eff");
+        auto effects = create_snp_effects(
+            files,
+            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
+            {"rs001\tA\tC\t0.25\t0.123\t0.045"});
 
         std::string bim_content
             = create_bim_content({"1\trs001\t0\t1000\tA\tC"});
@@ -443,7 +377,7 @@ TEST_CASE("SnpMatcher - Edge cases", "[predictor][snp_matcher]")
         auto bed_path = bim_path;
         bed_path.replace_extension(".bed");
 
-        SnpMatcher matcher(snp_effect_path);
+        SnpMatcher matcher(effects);
         auto match_plan = matcher.match(bed_path);
 
         REQUIRE(match_plan.size() == 1);
@@ -456,6 +390,8 @@ TEST_CASE("SnpMatcher - Edge cases", "[predictor][snp_matcher]")
         std::string empty_content = "ID\tA1\tA2\tA1Frq\tAdd\tDom\n";
         auto snp_effect_path
             = files.create_text_file(empty_content, ".snp.eff");
+        gelex::detail::SnpEffectLoader loader(snp_effect_path);
+        auto effects = std::move(loader).take_effects();
 
         std::string bim_content = create_bim_content(
             {"1\trs001\t0\t1000\tA\tC", "1\trs002\t0\t2000\tT\tG"});
@@ -464,7 +400,7 @@ TEST_CASE("SnpMatcher - Edge cases", "[predictor][snp_matcher]")
         auto bed_path = bim_path;
         bed_path.replace_extension(".bed");
 
-        SnpMatcher matcher(snp_effect_path);
+        SnpMatcher matcher(effects);
         auto match_plan = matcher.match(bed_path);
 
         REQUIRE(match_plan.size() == 2);
@@ -476,12 +412,10 @@ TEST_CASE("SnpMatcher - Edge cases", "[predictor][snp_matcher]")
 
     SECTION("Happy path - SNP effect file without Dom column")
     {
-        std::string snp_effect_content = create_snp_effect_content(
+        auto effects = create_snp_effects(
+            files,
             "ID\tA1\tA2\tA1Frq\tAdd",
             {"rs001\tA\tC\t0.25\t0.123", "rs002\tT\tG\t0.75\t-0.456"});
-
-        auto snp_effect_path
-            = files.create_text_file(snp_effect_content, ".snp.eff");
 
         std::string bim_content = create_bim_content(
             {"1\trs001\t0\t1000\tA\tC", "1\trs002\t0\t2000\tT\tG"});
@@ -490,7 +424,7 @@ TEST_CASE("SnpMatcher - Edge cases", "[predictor][snp_matcher]")
         auto bed_path = bim_path;
         bed_path.replace_extension(".bed");
 
-        SnpMatcher matcher(snp_effect_path);
+        SnpMatcher matcher(effects);
         auto match_plan = matcher.match(bed_path);
 
         REQUIRE(match_plan.size() == 2);

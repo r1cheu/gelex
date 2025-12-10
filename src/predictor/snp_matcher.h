@@ -46,12 +46,10 @@ struct MatchPlan
 class SnpMatcher
 {
    public:
-    explicit SnpMatcher(const std::filesystem::path& snp_effect_path);
+    explicit SnpMatcher(const SnpEffects& effects);
 
     [[nodiscard]] MatchPlan match(
         const std::filesystem::path& predict_bed_path) const;
-
-    SnpEffects take_snp_effects() && { return std::move(snp_effects_); }
 
    private:
     static constexpr char normalize_allele(char allele) noexcept;
@@ -60,7 +58,7 @@ class SnpMatcher
         const SnpEffect& model,
         const detail::SnpInfo& predict) noexcept;
 
-    SnpEffects snp_effects_;
+    const SnpEffects* effects_;
 };
 
 }  // namespace gelex

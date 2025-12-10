@@ -33,6 +33,7 @@ PredictDataPipe::PredictDataPipe(const Config& config)
     }
 
     load_snp_effect(config);
+    load_param_effect(config);
 
     intersect();
     format_covariates();
@@ -54,22 +55,10 @@ void PredictDataPipe::load_snp_effect(const Config& config)
 
 void PredictDataPipe::load_genotype(const Config& config)
 {
-    PredictBedPipe bed_pipe(
-        config.bed_path, config.snp_effect_path, sample_manager_);
+    PredictBedPipe bed_pipe(config.bed_path, snp_effects_, sample_manager_);
 
     genotypes_.clear();
     genotypes_.push_back(bed_pipe.load());
-}
-
-void PredictDataPipe::process_raw_genotype(const Config& config)
-{
-    for (auto& genotype : genotypes_)
-    {
-        // Processing logic here
-        for (Eigen::Index i = 0; i < genotype.cols(); ++i)
-        {
-        }
-    }
 }
 
 void PredictDataPipe::intersect()
