@@ -9,8 +9,8 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
-#include "../src/data/loader/snp_effect_loader.h"
 #include "covariate_loader.h"
+#include "data/loader/qcovariate_loader.h"
 
 namespace gelex
 {
@@ -29,34 +29,40 @@ class PredictDataPipe
         std::filesystem::path qcovar_path;
         std::filesystem::path covar_path;
 
-        std::filesystem::path snp_effect_path;
-        std::filesystem::path param_path;
-
         bool iid_only = false;
-        std::string output_prefix;
     };
 
     explicit PredictDataPipe(const Config& config);
 
-    const Eigen::MatrixXd& qcovariates() const;
-    Eigen::MatrixXd take_qcovariates() &&;
-    std::map<std::string, std::vector<std::string>> take_covariates() &&;
+    auto take_qcovariates() && -> Eigen::MatrixXd
+    {
+        return std::move(qcovariates_);
+    }
+    auto take_covariates() && -> std::map<std::string, std::vector<std::string>>
+    {
+        return std::move(covariates_);
+    }
+    auto take_genotypes() && -> Eigen::MatrixXd
+    {
+        return std::move(genotypes_);
+    }
 
-    const std::vector<std::string>& qcovariate_names() const;
-    const std::vector<std::string>& covariate_names() const;
+    auto qcovariate_names() const -> const std::vector<std::string>&
+    {
+        return qcovar_loader_->names();
+    }
+    auto covariate_names() const -> const std::vector<std::string>&
+    {
+        return covar_loader_->names();
+    };
 
-    size_t num_qcovariates() const;
-    size_t num_covariates() const;
+    size_t num_qcovariates() const { return qcovariate_names().size(); }
+    size_t num_covariates() const { return covariate_names().size(); }
 
    private:
     auto load_qcovariates(const Config& config) -> void;
     auto load_covariates(const Config& config) -> void;
     auto load_genotype(const Config& config) -> void;
-
-    auto load_snp_effect(const Config& config) -> void;
-    auto load_param_effect(const Config& config) -> void;
-
-    auto process_raw_genotype(const Config& config) -> void;
 
     void intersect();
     void format_covariates();
@@ -66,14 +72,9 @@ class PredictDataPipe
 
     Eigen::MatrixXd qcovariates_;
     std::map<std::string, std::vector<std::string>> covariates_;
-    SnpEffects snp_effects_;
-    std::vector<Eigen::MatrixXd> genotypes_;
-    bool has_dom_ = false;
+    Eigen::MatrixXd genotypes_;
 
     std::shared_ptr<SampleManager> sample_manager_;
-
-    std::vector<std::string> qcovariate_names_;
-    std::vector<std::string> covariate_names_;
 };
 
 }  // namespace gelex

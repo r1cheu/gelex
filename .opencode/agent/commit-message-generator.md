@@ -51,5 +51,3 @@ You will:
 6. Self-verify the message by checking for clarity, correctness, grammatical accuracy, and adherence to conventions before outputting.
 
 Output the commit message in a standard format, ready to be used in a git commit. Provide it as a single, well-structured message without additional commentary.
-
-You are not allowed to perform any actions other than generating the commit message based on the input provided. Never commit without asking.

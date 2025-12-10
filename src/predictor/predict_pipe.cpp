@@ -2,15 +2,13 @@
 
 #include <filesystem>
 #include <memory>
-#include <string>
-#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
 
 #include "../src/data/loader/qcovariate_loader.h"
+#include "gelex/data/bed_pipe.h"
 #include "gelex/data/sample_manager.h"
-#include "predict_bed_pipe.h"
 
 namespace gelex
 {
@@ -32,11 +30,9 @@ PredictDataPipe::PredictDataPipe(const Config& config)
         load_covariates(config);
     }
 
-    load_snp_effect(config);
-    load_param_effect(config);
-
     intersect();
     format_covariates();
+
     load_genotype(config);
 }
 
@@ -44,21 +40,18 @@ void PredictDataPipe::load_qcovariates(const Config& config)
 {
     qcovar_loader_ = std::make_unique<detail::QcovarLoader>(
         config.qcovar_path, config.iid_only);
-    qcovariate_names_ = qcovar_loader_->names();
 }
 
-void PredictDataPipe::load_snp_effect(const Config& config)
+void PredictDataPipe::load_covariates(const Config& config)
 {
-    snp_effects_ = std::move(detail::SnpEffectLoader(config.snp_effect_path))
-                       .take_effects();
+    covar_loader_ = std::make_unique<detail::CovarPredictLoader>(
+        config.qcovar_path, config.iid_only);
 }
 
 void PredictDataPipe::load_genotype(const Config& config)
 {
-    PredictBedPipe bed_pipe(config.bed_path, snp_effects_, sample_manager_);
-
-    genotypes_.clear();
-    genotypes_.push_back(bed_pipe.load());
+    BedPipe bed_pipe(config.bed_path, sample_manager_);
+    genotypes_ = bed_pipe.load();
 }
 
 void PredictDataPipe::intersect()
@@ -111,39 +104,6 @@ void PredictDataPipe::format_covariates()
     {
         covariates_ = covar_loader_->load(id_map);
     }
-}
-
-const Eigen::MatrixXd& PredictDataPipe::qcovariates() const
-{
-    return qcovariates_;
-}
-Eigen::MatrixXd PredictDataPipe::take_qcovariates() &&
-{
-    return std::move(qcovariates_);
-}
-
-std::map<std::string, std::vector<std::string>>
-PredictDataPipe::take_covariates() &&
-{
-    return std::move(covariates_);
-}
-
-size_t PredictDataPipe::num_qcovariates() const
-{
-    return qcovariate_names_.size();
-}
-size_t PredictDataPipe::num_covariates() const
-{
-    return covariate_names_.size();
-}
-
-const std::vector<std::string>& PredictDataPipe::qcovariate_names() const
-{
-    return qcovariate_names_;
-}
-const std::vector<std::string>& PredictDataPipe::covariate_names() const
-{
-    return covariate_names_;
 }
 
 }  // namespace gelex
