@@ -1,5 +1,5 @@
-#ifndef GELEX_DATA_LOADER_CCOVARIATE_LOADER_H
-#define GELEX_DATA_LOADER_CCOVARIATE_LOADER_H
+#ifndef GELEX_DATA_LOADER_DCOVARIATE_LOADER_H
+#define GELEX_DATA_LOADER_DCOVARIATE_LOADER_H
 
 #include <filesystem>
 #include <fstream>
@@ -15,12 +15,12 @@ namespace gelex::detail
 {
 
 // -----------------------------------------------------------------------------
-// CovarLoader (Categorical Covariates)
+// DcovarLoader (Discrete Covariates)
 // -----------------------------------------------------------------------------
-class CCovarLoader
+class DcovarLoader
 {
    public:
-    CCovarLoader(const std::filesystem::path& path, bool iid_only);
+    DcovarLoader(const std::filesystem::path& path, bool iid_only);
 
     [[nodiscard]] Eigen::MatrixXd load(
         const std::unordered_map<std::string, Eigen::Index>& id_map) const;
@@ -75,4 +75,4 @@ class CCovarLoader
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_DATA_LOADER_CCOVARIATE_LOADER_H
+#endif  // GELEX_DATA_LOADER_DCOVARIATE_LOADER_H

@@ -9,7 +9,7 @@
 
 #include "gelex/data/sample_manager.h"
 #include "gelex/exception.h"
-#include "loader/ccovariate_loader.h"
+#include "loader/dcovariate_loader.h"
 #include "loader/phenotype_loader.h"
 #include "loader/qcovariate_loader.h"
 
@@ -37,9 +37,9 @@ DataPipe::DataPipe(const Config& config)
         load_qcovariates(config);
     }
 
-    if (!config.covar_path.empty())
+    if (!config.dcovar_path.empty())
     {
-        load_covariates(config);
+        load_dcovariates(config);
     }
 
     intersect();
@@ -62,11 +62,11 @@ void DataPipe::load_qcovariates(const Config& config)
     qcovariate_names_ = qcovar_loader_->names();
 }
 
-void DataPipe::load_covariates(const Config& config)
+void DataPipe::load_dcovariates(const Config& config)
 {
-    covar_loader_ = std::make_unique<detail::CCovarLoader>(
-        config.covar_path, config.iid_only);
-    covariate_names_ = covar_loader_->names();
+    dcovar_loader_ = std::make_unique<detail::DcovarLoader>(
+        config.dcovar_path, config.iid_only);
+    dcovariate_names_ = dcovar_loader_->names();
 }
 
 void DataPipe::load_additive(const Config& config)
@@ -109,9 +109,9 @@ void DataPipe::intersect()
         sample_manager_->intersect(key_views);
     }
 
-    if (covar_loader_)
+    if (dcovar_loader_)
     {
-        auto key_views = create_key_views(covar_loader_->data());
+        auto key_views = create_key_views(dcovar_loader_->data());
         sample_manager_->intersect(key_views);
     }
     sample_manager_->finalize();
@@ -133,9 +133,9 @@ void DataPipe::convert_to_matrices()
     }
 
     Eigen::MatrixXd covariates;
-    if (covar_loader_)
+    if (dcovar_loader_)
     {
-        covariates = covar_loader_->load(id_map);
+        covariates = dcovar_loader_->load(id_map);
     }
     const Eigen::Index num_fixed_effects
         = 1 + qcovariates.cols() + covariates.cols();
@@ -163,8 +163,8 @@ void DataPipe::convert_to_matrices()
         qcovariate_names_.end());
     fixed_effect_names_.insert(
         fixed_effect_names_.end(),
-        covariate_names_.begin(),
-        covariate_names_.end());
+        dcovariate_names_.begin(),
+        dcovariate_names_.end());
 }
 
 const std::string& DataPipe::phenotype_name() const
@@ -177,9 +177,9 @@ const std::vector<std::string>& DataPipe::qcovariate_names() const
     return qcovariate_names_;
 }
 
-const std::vector<std::string>& DataPipe::covariate_names() const
+const std::vector<std::string>& DataPipe::dcovariate_names() const
 {
-    return covariate_names_;
+    return dcovariate_names_;
 }
 
 const std::vector<std::string>& DataPipe::fixed_effect_names() const

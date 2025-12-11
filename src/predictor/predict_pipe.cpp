@@ -25,13 +25,13 @@ PredictDataPipe::PredictDataPipe(const Config& config)
         load_qcovariates(config);
     }
 
-    if (!config.covar_path.empty())
+    if (!config.dcovar_path.empty())
     {
-        load_covariates(config);
+        load_dcovariates(config);
     }
 
     intersect();
-    format_covariates();
+    format_dcovariates();
 
     load_genotype(config);
 }
@@ -43,11 +43,11 @@ void PredictDataPipe::load_qcovariates(const Config& config)
     qcovariate_names_ = qcovar_loader_->names();
 }
 
-void PredictDataPipe::load_covariates(const Config& config)
+void PredictDataPipe::load_dcovariates(const Config& config)
 {
-    covar_loader_ = std::make_unique<detail::CovarPredictLoader>(
-        config.covar_path, config.iid_only);
-    covariate_names_ = covar_loader_->names();
+    dcovar_loader_ = std::make_unique<detail::DcovarPredictLoader>(
+        config.dcovar_path, config.iid_only);
+    dcovariate_names_ = dcovar_loader_->names();
 }
 
 void PredictDataPipe::load_genotype(const Config& config)
@@ -75,16 +75,16 @@ void PredictDataPipe::intersect()
         sample_manager_->intersect(key_views);
     }
 
-    if (covar_loader_)
+    if (dcovar_loader_)
     {
-        auto key_views = create_key_views(covar_loader_->data());
+        auto key_views = create_key_views(dcovar_loader_->data());
         sample_manager_->intersect(key_views);
     }
 
     sample_manager_->finalize();
 }
 
-void PredictDataPipe::format_covariates()
+void PredictDataPipe::format_dcovariates()
 {
     const auto num_samples
         = static_cast<Eigen::Index>(sample_manager_->num_common_samples());
@@ -102,9 +102,9 @@ void PredictDataPipe::format_covariates()
         qcovariates_.middleCols(1, qcovariates.cols()) = qcovariates;
     }
 
-    if (covar_loader_)
+    if (dcovar_loader_)
     {
-        covariates_ = covar_loader_->load(id_map);
+        dcovariates_ = dcovar_loader_->load(id_map);
     }
 }
 

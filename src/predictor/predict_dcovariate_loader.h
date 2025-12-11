@@ -1,5 +1,5 @@
-#ifndef GELEX_PREDICTOR_COVARIATE_LOADER_H
-#define GELEX_PREDICTOR_COVARIATE_LOADER_H
+#ifndef GELEX_PREDICTOR_PREDICT_DCOVARIATE_LOADER_H
+#define GELEX_PREDICTOR_PREDICT_DCOVARIATE_LOADER_H
 
 #include <filesystem>
 #include <map>
@@ -12,10 +12,10 @@
 namespace gelex::detail
 {
 
-class CovarPredictLoader
+class DcovarPredictLoader
 {
    public:
-    explicit CovarPredictLoader(
+    explicit DcovarPredictLoader(
         const std::filesystem::path& path,
         bool iid_only);
 
@@ -38,4 +38,4 @@ class CovarPredictLoader
 };
 }  // namespace gelex::detail
 
-#endif  // GELEX_PREDICTOR_COVARIATE_LOADER_H
+#endif  // GELEX_PREDICTOR_PREDICT_DCOVARIATE_LOADER_H

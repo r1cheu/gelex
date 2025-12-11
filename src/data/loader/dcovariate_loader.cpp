@@ -1,4 +1,4 @@
-#include "ccovariate_loader.h"
+#include "dcovariate_loader.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -42,7 +42,7 @@ bool is_nan_or_inf_string(std::string_view sv)
 }
 }  // namespace
 
-CCovarLoader::CCovarLoader(const std::filesystem::path& path, bool iid_only)
+DcovarLoader::DcovarLoader(const std::filesystem::path& path, bool iid_only)
 {
     auto file = detail::open_file<std::ifstream>(path, std::ios::in);
 
@@ -63,7 +63,7 @@ CCovarLoader::CCovarLoader(const std::filesystem::path& path, bool iid_only)
         names_.size());
 }
 
-void CCovarLoader::set_names(std::ifstream& file)
+void DcovarLoader::set_names(std::ifstream& file)
 {
     std::string line;
     std::getline(file, line);
@@ -81,7 +81,7 @@ void CCovarLoader::set_names(std::ifstream& file)
     }
 }
 
-void CCovarLoader::set_data(std::ifstream& file, bool iid_only)
+void DcovarLoader::set_data(std::ifstream& file, bool iid_only)
 {
     std::string line;
     int n_line = 0;
@@ -132,7 +132,7 @@ void CCovarLoader::set_data(std::ifstream& file, bool iid_only)
     }
 }
 
-Eigen::MatrixXd CCovarLoader::load(
+Eigen::MatrixXd DcovarLoader::load(
     const std::unordered_map<std::string, Eigen::Index>& id_map) const
 {
     auto [valid_ids, levels_per_col] = get_valid_samples_and_levels(id_map);
@@ -141,7 +141,7 @@ Eigen::MatrixXd CCovarLoader::load(
     return fill_matrix(id_map, valid_ids, local_encodings, total_cols);
 }
 
-CCovarLoader::IntersectResult CCovarLoader::get_valid_samples_and_levels(
+DcovarLoader::IntersectResult DcovarLoader::get_valid_samples_and_levels(
     const std::unordered_map<std::string, Eigen::Index>& id_map) const
 {
     std::vector<std::string_view> valid_ids;
@@ -170,7 +170,7 @@ CCovarLoader::IntersectResult CCovarLoader::get_valid_samples_and_levels(
     return {std::move(valid_ids), std::move(levels_per_col)};
 }
 
-CCovarLoader::EncodingResult CCovarLoader::build_local_encodings(
+DcovarLoader::EncodingResult DcovarLoader::build_local_encodings(
     const std::vector<std::unordered_set<std::string_view>>& levels_per_col)
     const
 {
@@ -211,7 +211,7 @@ CCovarLoader::EncodingResult CCovarLoader::build_local_encodings(
     return {std::move(encodings), total_dummy_vars};
 }
 
-Eigen::MatrixXd CCovarLoader::fill_matrix(
+Eigen::MatrixXd DcovarLoader::fill_matrix(
     const std::unordered_map<std::string, Eigen::Index>& id_map,
     const std::vector<std::string_view>& valid_ids,
     const std::vector<std::unordered_map<std::string_view, EncodedCovariate>>&

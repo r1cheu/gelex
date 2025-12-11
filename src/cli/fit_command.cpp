@@ -31,8 +31,9 @@ void fit_command(argparse::ArgumentParser& cmd)
     cmd.add_argument("--qcovar")
         .default_value("")
         .help("Quantitative covariates (TSV: FID, IID, covar1, ...)");
-    cmd.add_argument("--covar").default_value("").help(
-        "Categorical covariates (TSV: FID, IID, factor1, ...)");
+    cmd.add_argument("--dcovar")
+        .default_value("")
+        .help("Discrete covariates (TSV: FID, IID, factor1, ...)");
     cmd.add_argument("-o", "--out")
         .help("Output file prefix")
         .metavar("<OUT>")
@@ -166,7 +167,7 @@ int fit_execute(argparse::ArgumentParser& fit)
         .use_mmap = fit.get<bool>("--mmap"),
         .chunk_size = fit.get<int>("--chunk-size"),
         .qcovar_path = fit.get("--qcovar"),
-        .covar_path = fit.get("--covar"),
+        .dcovar_path = fit.get("--dcovar"),
         .iid_only = fit.get<bool>("--iid-only"),
         .output_prefix = fit.get("--out")};
 

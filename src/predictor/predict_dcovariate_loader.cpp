@@ -1,4 +1,4 @@
-#include "covariate_loader.h"
+#include "predict_dcovariate_loader.h"
 
 #include <filesystem>
 #include <fstream>
@@ -18,7 +18,7 @@
 namespace gelex::detail
 {
 
-CovarPredictLoader::CovarPredictLoader(
+DcovarPredictLoader::DcovarPredictLoader(
     const std::filesystem::path& path,
     bool iid_only)
 {
@@ -38,7 +38,7 @@ CovarPredictLoader::CovarPredictLoader(
         "Loaded {} samples with {} covars.", data_.size(), names_.size());
 }
 
-auto CovarPredictLoader::load(
+auto DcovarPredictLoader::load(
     const std::unordered_map<std::string, Eigen::Index>& id_map) const
     -> std::map<std::string, std::vector<std::string>>
 {
@@ -76,7 +76,7 @@ auto CovarPredictLoader::load(
     return formatted_data;
 }
 
-void CovarPredictLoader::set_names(std::ifstream& file)
+void DcovarPredictLoader::set_names(std::ifstream& file)
 {
     std::string line;
     std::getline(file, line);
@@ -96,7 +96,7 @@ void CovarPredictLoader::set_names(std::ifstream& file)
     }
 }
 
-void CovarPredictLoader::set_data(std::ifstream& file, bool iid_only)
+void DcovarPredictLoader::set_data(std::ifstream& file, bool iid_only)
 {
     const size_t expected_columns = names_.size() + 2;
     data_.clear();

@@ -7,7 +7,7 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/predictor/covariate_loader.h"
+#include "../src/predictor/predict_dcovariate_loader.h"
 #include "file_fixture.h"
 #include "gelex/exception.h"
 
@@ -17,7 +17,7 @@ using namespace gelex::detail;  // NOLINT
 using Catch::Matchers::EndsWith;
 using gelex::test::FileFixture;
 
-TEST_CASE("CovarPredictLoader Constructor Tests", "[predictor][covariate]")
+TEST_CASE("DcovarPredictLoader Constructor Tests", "[predictor][covariate]")
 {
     FileFixture files;
 
@@ -32,7 +32,7 @@ TEST_CASE("CovarPredictLoader Constructor Tests", "[predictor][covariate]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                CovarPredictLoader loader(file_path, false);
+                DcovarPredictLoader loader(file_path, false);
                 REQUIRE(loader.names().size() == 3);
                 REQUIRE(loader.names()[0] == "Sex");
                 REQUIRE(loader.names()[1] == "Population");
@@ -69,7 +69,7 @@ TEST_CASE("CovarPredictLoader Constructor Tests", "[predictor][covariate]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                CovarPredictLoader loader(file_path, true);
+                DcovarPredictLoader loader(file_path, true);
                 REQUIRE(loader.names().size() == 2);
                 REQUIRE(loader.names()[0] == "Sex");
                 REQUIRE(loader.names()[1] == "Population");
@@ -100,7 +100,7 @@ TEST_CASE("CovarPredictLoader Constructor Tests", "[predictor][covariate]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                CovarPredictLoader loader(file_path, false);
+                DcovarPredictLoader loader(file_path, false);
                 REQUIRE(loader.names().size() == 2);
                 REQUIRE(loader.data().empty());
             }());
@@ -113,7 +113,7 @@ TEST_CASE("CovarPredictLoader Constructor Tests", "[predictor][covariate]")
             "1\t2\n");
 
         REQUIRE_THROWS_MATCHES(
-            CovarPredictLoader(file_path, false),
+            DcovarPredictLoader(file_path, false),
             gelex::FileFormatException,
             Catch::Matchers::MessageMatches(
                 EndsWith("Covar file must have at least 3 columns, got 2")));
@@ -126,7 +126,7 @@ TEST_CASE("CovarPredictLoader Constructor Tests", "[predictor][covariate]")
             "1\t2\tM\n");  // Missing Population value
 
         REQUIRE_THROWS_MATCHES(
-            CovarPredictLoader(file_path, false),
+            DcovarPredictLoader(file_path, false),
             gelex::FileFormatException,
             Catch::Matchers::MessageMatches(
                 EndsWith("Inconsistent number of columns at line 2")));
@@ -145,7 +145,7 @@ TEST_CASE("CovarPredictLoader Constructor Tests", "[predictor][covariate]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                CovarPredictLoader loader(file_path, false);
+                DcovarPredictLoader loader(file_path, false);
                 REQUIRE(loader.data().size() == 2);
             }());
     }
@@ -160,7 +160,7 @@ TEST_CASE("CovarPredictLoader Constructor Tests", "[predictor][covariate]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                CovarPredictLoader loader(file_path, false);
+                DcovarPredictLoader loader(file_path, false);
                 REQUIRE(loader.names().size() == 1);
                 REQUIRE(loader.names()[0] == "Sex");
                 REQUIRE(loader.data().size() == 2);
@@ -177,7 +177,7 @@ TEST_CASE("CovarPredictLoader Constructor Tests", "[predictor][covariate]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                CovarPredictLoader loader(file_path, false);
+                DcovarPredictLoader loader(file_path, false);
                 REQUIRE(loader.names().size() == 2);
                 REQUIRE(loader.names()[0] == "Sex_Group");
                 REQUIRE(loader.names()[1] == "Population-Region");
@@ -195,7 +195,7 @@ TEST_CASE("CovarPredictLoader Constructor Tests", "[predictor][covariate]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                CovarPredictLoader loader(file_path, false);
+                DcovarPredictLoader loader(file_path, false);
                 REQUIRE(loader.names().size() == 2);
                 REQUIRE(loader.names()[0] == "Sex Group");
                 REQUIRE(loader.names()[1] == "Population Region");
@@ -204,7 +204,7 @@ TEST_CASE("CovarPredictLoader Constructor Tests", "[predictor][covariate]")
     }
 }
 
-TEST_CASE("CovarPredictLoader load Tests", "[predictor][covariate]")
+TEST_CASE("DcovarPredictLoader load Tests", "[predictor][covariate]")
 {
     FileFixture files;
 
@@ -216,7 +216,7 @@ TEST_CASE("CovarPredictLoader load Tests", "[predictor][covariate]")
             "3\t4\tF\tAFR\n"
             "5\t6\tM\tASN\n");
 
-        CovarPredictLoader loader(file_path, false);
+        DcovarPredictLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
             = {{"1_2", 0}, {"3_4", 1}, {"5_6", 2}};
@@ -248,7 +248,7 @@ TEST_CASE("CovarPredictLoader load Tests", "[predictor][covariate]")
             "3\t4\tF\tAFR\n"
             "5\t6\tM\tASN\n");
 
-        CovarPredictLoader loader(file_path, false);
+        DcovarPredictLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
             = {{"1_2", 0}, {"5_6", 1}};
@@ -275,7 +275,7 @@ TEST_CASE("CovarPredictLoader load Tests", "[predictor][covariate]")
             "3\t4\tF\tAFR\n"
             "5\t6\tM\tASN\n");
 
-        CovarPredictLoader loader(file_path, false);
+        DcovarPredictLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
             = {{"5_6", 0}, {"1_2", 1}, {"3_4", 2}};
@@ -302,7 +302,7 @@ TEST_CASE("CovarPredictLoader load Tests", "[predictor][covariate]")
             "FID\tIID\tSex\tPopulation\n"
             "1\t2\tM\tEUR\n");
 
-        CovarPredictLoader loader(file_path, false);
+        DcovarPredictLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map;
 
@@ -321,7 +321,7 @@ TEST_CASE("CovarPredictLoader load Tests", "[predictor][covariate]")
             "FID\tIID\tSex\tPopulation\n"
             "1\t2\tM\tEUR\n");
 
-        CovarPredictLoader loader(file_path, false);
+        DcovarPredictLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
             = {{"nonexistent", 0}, {"another_missing", 1}};
@@ -347,7 +347,7 @@ TEST_CASE("CovarPredictLoader load Tests", "[predictor][covariate]")
             "3\t4\tF\tAFR\n"
             "5\t6\tM\tASN\n");
 
-        CovarPredictLoader loader(file_path, true);
+        DcovarPredictLoader loader(file_path, true);
 
         std::unordered_map<std::string, Eigen::Index> id_map
             = {{"2", 0}, {"4", 1}, {"6", 2}};
@@ -376,7 +376,7 @@ TEST_CASE("CovarPredictLoader load Tests", "[predictor][covariate]")
             "3\t4\tB\n"
             "5\t6\tA\n");
 
-        CovarPredictLoader loader(file_path, false);
+        DcovarPredictLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
             = {{"1_2", 0}, {"3_4", 1}, {"5_6", 2}};
@@ -392,7 +392,7 @@ TEST_CASE("CovarPredictLoader load Tests", "[predictor][covariate]")
     }
 }
 
-TEST_CASE("CovarPredictLoader Data Accessor Tests", "[predictor][covariate]")
+TEST_CASE("DcovarPredictLoader Data Accessor Tests", "[predictor][covariate]")
 {
     FileFixture files;
 
@@ -402,7 +402,7 @@ TEST_CASE("CovarPredictLoader Data Accessor Tests", "[predictor][covariate]")
             "FID\tIID\tCovar1\tCovar2\tCovar3\n"
             "1\t2\tA\tB\tC\n");
 
-        CovarPredictLoader loader(file_path, false);
+        DcovarPredictLoader loader(file_path, false);
 
         const auto& names = loader.names();
         REQUIRE(names.size() == 3);
@@ -418,7 +418,7 @@ TEST_CASE("CovarPredictLoader Data Accessor Tests", "[predictor][covariate]")
             "1\t2\tM\tEUR\n"
             "3\t4\tF\tAFR\n");
 
-        CovarPredictLoader loader(file_path, false);
+        DcovarPredictLoader loader(file_path, false);
 
         const auto& data = loader.data();
         REQUIRE(data.size() == 2);

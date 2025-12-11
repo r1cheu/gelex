@@ -62,15 +62,15 @@ TEST_CASE(
         PredictDataPipe::Config config;
         config.bed_path = bed_prefix;
         config.qcovar_path = "";
-        config.covar_path = "";
+        config.dcovar_path = "";
         config.iid_only = false;
 
         PredictDataPipe pipe(config);
 
         REQUIRE(pipe.num_qcovariates() == 0);
-        REQUIRE(pipe.num_covariates() == 0);
+        REQUIRE(pipe.num_dcovariates() == 0);
         REQUIRE(pipe.qcovariate_names().empty());
-        REQUIRE(pipe.covariate_names().empty());
+        REQUIRE(pipe.dcovariate_names().empty());
 
         auto genotypes = std::move(pipe).take_genotypes();
         REQUIRE(genotypes.rows() == num_samples);
@@ -116,13 +116,13 @@ TEST_CASE(
         PredictDataPipe::Config config;
         config.bed_path = bed_prefix;
         config.qcovar_path = qcovar_path;
-        config.covar_path = "";
+        config.dcovar_path = "";
         config.iid_only = false;
 
         PredictDataPipe pipe(config);
 
         REQUIRE(pipe.num_qcovariates() == 2);
-        REQUIRE(pipe.num_covariates() == 0);
+        REQUIRE(pipe.num_dcovariates() == 0);
 
         const auto& qnames = pipe.qcovariate_names();
         REQUIRE(qnames.size() == 2);
@@ -189,20 +189,20 @@ TEST_CASE(
 
         PredictDataPipe::Config config;
         config.bed_path = bed_prefix;
-        config.covar_path = covar_path;
+        config.dcovar_path = covar_path;
         config.iid_only = false;
 
         PredictDataPipe pipe(config);
 
         REQUIRE(pipe.num_qcovariates() == 0);
-        REQUIRE(pipe.num_covariates() == 2);
+        REQUIRE(pipe.num_dcovariates() == 2);
 
-        const auto& cnames = pipe.covariate_names();
+        const auto& cnames = pipe.dcovariate_names();
         REQUIRE(cnames.size() == 2);
         REQUIRE(cnames[0] == "Sex");
         REQUIRE(cnames[1] == "Population");
 
-        auto covariates = std::move(pipe).take_covariates();
+        auto covariates = std::move(pipe).take_dcovariates();
         REQUIRE(covariates.size() == 2);
         REQUIRE(covariates.count("Sex") == 1);
         REQUIRE(covariates.count("Population") == 1);
@@ -259,7 +259,7 @@ TEST_CASE("PredictDataPipe - Sample intersection", "[predictor][predict_pipe]")
         PredictDataPipe::Config config;
         config.bed_path = bed_prefix;
         config.qcovar_path = qcovar_path;
-        config.covar_path = "";
+        config.dcovar_path = "";
         config.iid_only = false;
 
         PredictDataPipe pipe(config);
@@ -267,8 +267,11 @@ TEST_CASE("PredictDataPipe - Sample intersection", "[predictor][predict_pipe]")
         REQUIRE(pipe.num_qcovariates() == 1);
         auto qcovariates = std::move(pipe).take_qcovariates();
         REQUIRE(qcovariates.rows() == 2);  // Only 2 common samples
-        REQUIRE(qcovariates(0, 0) == 20);
-        REQUIRE(qcovariates(1, 0) == 21);
+        REQUIRE(qcovariates.cols() == 2);  // intercept + 1 covariate
+        REQUIRE(qcovariates(0, 0) == 1.0);  // intercept
+        REQUIRE(qcovariates(1, 0) == 1.0);  // intercept
+        REQUIRE(qcovariates(0, 1) == 20);   // Age for first sample
+        REQUIRE(qcovariates(1, 1) == 21);   // Age for second sample
 
         auto genotypes = std::move(pipe).take_genotypes();
         REQUIRE(genotypes.rows() == 2);
@@ -311,7 +314,7 @@ TEST_CASE("PredictDataPipe - iid_only mode", "[predictor][predict_pipe]")
         PredictDataPipe::Config config;
         config.bed_path = bed_prefix;
         config.qcovar_path = qcovar_path;
-        config.covar_path = "";
+        config.dcovar_path = "";
         config.iid_only = true;
 
         PredictDataPipe pipe(config);
@@ -374,7 +377,7 @@ TEST_CASE(
         PredictDataPipe::Config config;
         config.bed_path = bed_prefix;
         config.qcovar_path = qcovar_path;
-        config.covar_path = "";
+        config.dcovar_path = "";
         config.iid_only = false;
 
         PredictDataPipe pipe(config);
@@ -422,7 +425,7 @@ TEST_CASE("PredictDataPipe - Edge cases", "[predictor][predict_pipe]")
         PredictDataPipe::Config config;
         config.bed_path = bed_prefix;
         config.qcovar_path = qcovar_path;
-        config.covar_path = "";
+        config.dcovar_path = "";
         config.iid_only = false;
 
         PredictDataPipe pipe(config);
@@ -467,7 +470,7 @@ TEST_CASE("PredictDataPipe - Edge cases", "[predictor][predict_pipe]")
         PredictDataPipe::Config config;
         config.bed_path = bed_prefix;
         config.qcovar_path = qcovar_path;
-        config.covar_path = "";
+        config.dcovar_path = "";
         config.iid_only = false;
 
         PredictDataPipe pipe(config);

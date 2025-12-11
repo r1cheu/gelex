@@ -22,7 +22,7 @@ namespace detail
 {
 class PhenotypeLoader;
 class QcovarLoader;
-class CCovarLoader;
+class DcovarLoader;
 }  // namespace detail
 class DataPipe
 {
@@ -36,7 +36,7 @@ class DataPipe
         bool use_mmap = false;
         int chunk_size = 10000;
         std::filesystem::path qcovar_path;
-        std::filesystem::path covar_path;
+        std::filesystem::path dcovar_path;
         bool iid_only = false;
         std::string output_prefix;
     };
@@ -65,11 +65,11 @@ class DataPipe
 
     const std::string& phenotype_name() const;
     const std::vector<std::string>& qcovariate_names() const;
-    const std::vector<std::string>& covariate_names() const;
+    const std::vector<std::string>& dcovariate_names() const;
     const std::vector<std::string>& fixed_effect_names() const;
 
     size_t num_qcovariates() const { return qcovariate_names_.size(); }
-    size_t num_covariates() const { return covariate_names_.size(); }
+    size_t num_dcovariates() const { return dcovariate_names_.size(); }
     size_t num_fixed_effects() const { return fixed_effect_names_.size(); }
 
    private:
@@ -77,7 +77,7 @@ class DataPipe
 
     void load_phenotype(const Config& config);
     void load_qcovariates(const Config& config);
-    void load_covariates(const Config& config);
+    void load_dcovariates(const Config& config);
     void load_additive(const Config& config);
     void load_dominance(const Config& config);
 
@@ -116,7 +116,7 @@ class DataPipe
 
     std::unique_ptr<detail::PhenotypeLoader> phenotype_loader_;
     std::unique_ptr<detail::QcovarLoader> qcovar_loader_;
-    std::unique_ptr<detail::CCovarLoader> covar_loader_;
+    std::unique_ptr<detail::DcovarLoader> dcovar_loader_;
 
     Eigen::VectorXd phenotype_;
     Eigen::MatrixXd fixed_effects_;
@@ -129,7 +129,7 @@ class DataPipe
 
     std::string phenotype_name_;
     std::vector<std::string> qcovariate_names_;
-    std::vector<std::string> covariate_names_;
+    std::vector<std::string> dcovariate_names_;
     std::vector<std::string> fixed_effect_names_;
 };
 

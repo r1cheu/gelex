@@ -9,7 +9,7 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/data/loader/ccovariate_loader.h"
+#include "../src/data/loader/dcovariate_loader.h"
 #include "file_fixture.h"
 #include "gelex/exception.h"
 
@@ -34,7 +34,7 @@ TEST_CASE("CovarLoader Constructor Tests", "[data][loader][covar]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                CCovarLoader loader(file_path, false);
+                DcovarLoader loader(file_path, false);
                 REQUIRE(loader.names().size() == 3);
                 REQUIRE(loader.names()[0] == "Sex");
                 REQUIRE(loader.names()[1] == "Population");
@@ -71,7 +71,7 @@ TEST_CASE("CovarLoader Constructor Tests", "[data][loader][covar]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                CCovarLoader loader(file_path, true);
+                DcovarLoader loader(file_path, true);
                 REQUIRE(loader.names().size() == 2);
                 REQUIRE(loader.names()[0] == "Sex");
                 REQUIRE(loader.names()[1] == "Population");
@@ -102,7 +102,7 @@ TEST_CASE("CovarLoader Constructor Tests", "[data][loader][covar]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                CCovarLoader loader(file_path, false);
+                DcovarLoader loader(file_path, false);
                 REQUIRE(loader.names().size() == 2);
                 REQUIRE(loader.data().empty());
             }());
@@ -115,7 +115,7 @@ TEST_CASE("CovarLoader Constructor Tests", "[data][loader][covar]")
             "1\t2\n");
 
         REQUIRE_THROWS_MATCHES(
-            CCovarLoader(file_path, false),
+            DcovarLoader(file_path, false),
             gelex::FileFormatException,
             Catch::Matchers::MessageMatches(
                 EndsWith("categorical covariates must have > 2 columns")));
@@ -139,7 +139,7 @@ TEST_CASE("CovarLoader set_data Tests", "[data][loader][covar]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                CCovarLoader loader(file_path, false);
+                DcovarLoader loader(file_path, false);
                 REQUIRE(loader.data().size() == 2);
             }());
     }
@@ -153,7 +153,7 @@ TEST_CASE("CovarLoader set_data Tests", "[data][loader][covar]")
             "5\t6\t\tASN\tEast\n");
 
         REQUIRE_THROWS_MATCHES(
-            CCovarLoader(file_path, false),
+            DcovarLoader(file_path, false),
             gelex::FileFormatException,
             Catch::Matchers::MessageMatches(
                 EndsWith("empty value encountered")));
@@ -166,7 +166,7 @@ TEST_CASE("CovarLoader set_data Tests", "[data][loader][covar]")
             "1\t2\tM\n");  // Missing Population value
 
         REQUIRE_THROWS_MATCHES(
-            CCovarLoader(file_path, false),
+            DcovarLoader(file_path, false),
             gelex::FileFormatException,
             Catch::Matchers::MessageMatches(EndsWith("Column count mismatch")));
     }
@@ -181,7 +181,7 @@ TEST_CASE("CovarLoader set_data Tests", "[data][loader][covar]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                CCovarLoader loader(file_path, false);
+                DcovarLoader loader(file_path, false);
                 REQUIRE(loader.names().size() == 1);
                 REQUIRE(loader.names()[0] == "Sex");
                 REQUIRE(loader.data().size() == 2);
@@ -201,7 +201,7 @@ TEST_CASE("CovarLoader load Tests", "[data][loader][covar]")
             "3\t4\tF\tAFR\n"
             "5\t6\tM\tASN\n");
 
-        CCovarLoader loader(file_path, false);
+        DcovarLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
             = {{"1_2", 0}, {"3_4", 1}, {"5_6", 2}};
@@ -239,7 +239,7 @@ TEST_CASE("CovarLoader load Tests", "[data][loader][covar]")
             "3\t4\tF\tAFR\n"
             "5\t6\tM\tASN\n");
 
-        CCovarLoader loader(file_path, false);
+        DcovarLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
             = {{"1_2", 0}, {"5_6", 1}};
@@ -262,7 +262,7 @@ TEST_CASE("CovarLoader load Tests", "[data][loader][covar]")
             "3\t4\tF\tAFR\n"
             "5\t6\tM\tASN\n");
 
-        CCovarLoader loader(file_path, false);
+        DcovarLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
             = {{"1_2", 1}, {"5_6", 0}};
@@ -286,7 +286,7 @@ TEST_CASE("CovarLoader load Tests", "[data][loader][covar]")
             "3\t4\tF\tAFR\n"
             "5\t6\tM\tASN\n");
 
-        CCovarLoader loader(file_path, true);
+        DcovarLoader loader(file_path, true);
 
         std::unordered_map<std::string, Eigen::Index> id_map
             = {{"2", 0}, {"4", 1}, {"6", 2}};
@@ -322,7 +322,7 @@ TEST_CASE("CovarLoader load Tests", "[data][loader][covar]")
             "FID\tIID\tSex\tPopulation\n"
             "1\t2\tM\tEUR\n");
 
-        CCovarLoader loader(file_path, false);
+        DcovarLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map;
 
@@ -338,7 +338,7 @@ TEST_CASE("CovarLoader load Tests", "[data][loader][covar]")
             "FID\tIID\tSex\tPopulation\n"
             "1\t2\tM\tEUR\n");
 
-        CCovarLoader loader(file_path, false);
+        DcovarLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
             = {{"nonexistent_id", 0}, {"another_missing", 1}};
@@ -356,7 +356,7 @@ TEST_CASE("CovarLoader load Tests", "[data][loader][covar]")
             "1\t2\tM\n"
             "3\t4\tF\n");
 
-        CCovarLoader loader(file_path, false);
+        DcovarLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
             = {{"1_2", 0}, {"3_4", 1}};
@@ -377,7 +377,7 @@ TEST_CASE("CovarLoader load Tests", "[data][loader][covar]")
             "1\t2\tM\n"
             "3\t4\tM\n");  // Only one level
 
-        CCovarLoader loader(file_path, false);
+        DcovarLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
             = {{"1_2", 0}, {"3_4", 1}};
@@ -398,7 +398,7 @@ TEST_CASE("CovarLoader load Tests", "[data][loader][covar]")
             "5\t6\tF\t\n");  // Missing Population
 
         REQUIRE_THROWS_MATCHES(
-            CCovarLoader(file_path, false),
+            DcovarLoader(file_path, false),
             gelex::FileFormatException,
             Catch::Matchers::MessageMatches(
                 EndsWith("empty value encountered")));
@@ -418,7 +418,7 @@ TEST_CASE("CovarLoader Integration Tests", "[data][loader][covar]")
             "5\t6\t1\tC\n"
             "7\t8\t3\tA\n");
 
-        CCovarLoader loader(file_path, false);
+        DcovarLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
             = {{"1_2", 0}, {"3_4", 1}, {"5_6", 2}, {"7_8", 3}};
@@ -473,7 +473,7 @@ TEST_CASE("CovarLoader nan/inf exclusion tests", "[data][loader][covar]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                CCovarLoader loader(file_path, false);
+                DcovarLoader loader(file_path, false);
                 const auto& data = loader.data();
                 // only the last row should be retained
                 REQUIRE(data.size() == 1);
@@ -495,7 +495,7 @@ TEST_CASE("CovarLoader nan/inf exclusion tests", "[data][loader][covar]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                CCovarLoader loader(file_path, false);
+                DcovarLoader loader(file_path, false);
                 const auto& data = loader.data();
                 REQUIRE(data.size() == 1);
                 REQUIRE(data.count("3_4") == 1);
@@ -513,7 +513,7 @@ TEST_CASE("CovarLoader nan/inf exclusion tests", "[data][loader][covar]")
             "5\t6\tinf\n"
             "7\t8\tA\n");
 
-        CCovarLoader loader(file_path, false);
+        DcovarLoader loader(file_path, false);
         std::unordered_map<std::string, Eigen::Index> id_map
             = {{"3_4", 0}, {"7_8", 1}};
         Eigen::MatrixXd result = loader.load(id_map);
