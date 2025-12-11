@@ -40,12 +40,14 @@ void PredictDataPipe::load_qcovariates(const Config& config)
 {
     qcovar_loader_ = std::make_unique<detail::QcovarLoader>(
         config.qcovar_path, config.iid_only);
+    qcovariate_names_ = qcovar_loader_->names();
 }
 
 void PredictDataPipe::load_covariates(const Config& config)
 {
     covar_loader_ = std::make_unique<detail::CovarPredictLoader>(
-        config.qcovar_path, config.iid_only);
+        config.covar_path, config.iid_only);
+    covariate_names_ = covar_loader_->names();
 }
 
 void PredictDataPipe::load_genotype(const Config& config)

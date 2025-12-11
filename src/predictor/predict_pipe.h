@@ -7,10 +7,9 @@
 #include <vector>
 
 #include <Eigen/Core>
-#include <Eigen/Dense>
 
-#include "covariate_loader.h"
-#include "data/loader/qcovariate_loader.h"
+#include "../src/data/loader/qcovariate_loader.h"
+#include "../src/predictor/covariate_loader.h"
 
 namespace gelex
 {
@@ -49,15 +48,15 @@ class PredictDataPipe
 
     auto qcovariate_names() const -> const std::vector<std::string>&
     {
-        return qcovar_loader_->names();
+        return qcovariate_names_;
     }
     auto covariate_names() const -> const std::vector<std::string>&
     {
-        return covar_loader_->names();
+        return covariate_names_;
     };
 
-    size_t num_qcovariates() const { return qcovariate_names().size(); }
-    size_t num_covariates() const { return covariate_names().size(); }
+    size_t num_qcovariates() const { return qcovariate_names_.size(); }
+    size_t num_covariates() const { return covariate_names_.size(); }
 
    private:
     auto load_qcovariates(const Config& config) -> void;
@@ -69,9 +68,11 @@ class PredictDataPipe
 
     std::unique_ptr<detail::QcovarLoader> qcovar_loader_;
     std::unique_ptr<detail::CovarPredictLoader> covar_loader_;
-
     Eigen::MatrixXd qcovariates_;
+    std::vector<std::string> qcovariate_names_;
     std::map<std::string, std::vector<std::string>> covariates_;
+    std::vector<std::string> covariate_names_;
+
     Eigen::MatrixXd genotypes_;
 
     std::shared_ptr<SampleManager> sample_manager_;
