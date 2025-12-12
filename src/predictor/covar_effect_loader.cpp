@@ -18,25 +18,24 @@ namespace gelex::detail
 CovarEffectLoader::CovarEffectLoader(
     const std::filesystem::path& param_file_path)
 {
-    auto [intercept, continuous_coeffs, categorical_coeffs]
-        = parse_param_file(param_file_path);
-
-    effects_.intercept = intercept;
-    effects_.continuous_coeffs = std::move(continuous_coeffs);
-    effects_.categorical_coeffs = std::move(categorical_coeffs);
+    try
+    {
+        auto [intercept, continuous_coeffs, categorical_coeffs]
+            = parse_param_file(param_file_path);
+        effects_.intercept = intercept;
+        effects_.continuous_coeffs = std::move(continuous_coeffs);
+        effects_.categorical_coeffs = std::move(categorical_coeffs);
+    }
+    catch (const GelexException& e)
+    {
+        throw FileFormatException(
+            std::format("{}: {}", param_file_path.string(), e.what()));
+    }
 
     auto logger = gelex::logging::get();
-    size_t categorical_categories = 0;
-    for (const auto& [var, categories] : effects_.categorical_coeffs)
-    {
-        categorical_categories += categories.size();
-    }
+
     logger->info(
-        "Loaded covariate effects: intercept={}, continuous vars={}, "
-        "categorical vars={} categories",
-        effects_.intercept,
-        effects_.continuous_coeffs.size(),
-        categorical_categories);
+        "Loaded covariates effects from [{}]", param_file_path.string());
 }
 
 auto CovarEffectLoader::parse_param_file(const std::filesystem::path& file_path)
@@ -53,7 +52,7 @@ auto CovarEffectLoader::parse_param_file(const std::filesystem::path& file_path)
     {
         throw FileFormatException(
             std::format(
-                "Parameter file '{}' is empty or has no header",
+                "parameter file '{}' is empty or has no header",
                 file_path.string()));
     }
 
@@ -93,7 +92,7 @@ auto CovarEffectLoader::parse_param_file(const std::filesystem::path& file_path)
     {
         throw DataParseException(
             std::format(
-                "No intercept term found in parameter file '{}'",
+                "no intercept term found in parameter file '{}'",
                 file_path.string()));
     }
 

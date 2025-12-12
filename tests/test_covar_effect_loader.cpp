@@ -135,7 +135,7 @@ TEST_CASE("CovarEffectLoader Constructor Tests", "[predictor][covar_effect]")
             "Height\t-0.2\t0.02\t-0.23\t-0.17\t1200\t1.02\n");
 
         REQUIRE_THROWS_AS(
-            CovarEffectLoader(file_path), gelex::DataParseException);
+            CovarEffectLoader(file_path), gelex::FileFormatException);
     }
 
     SECTION("Exception - empty file")
@@ -152,7 +152,7 @@ TEST_CASE("CovarEffectLoader Constructor Tests", "[predictor][covar_effect]")
             "term\tmean\tstddev\tpercentile_5\tpercentile_95\tess\trhat\n");
 
         REQUIRE_THROWS_AS(
-            CovarEffectLoader(file_path), gelex::DataParseException);
+            CovarEffectLoader(file_path), gelex::FileFormatException);
     }
 
     SECTION("Happy path - malformed lines are skipped")
