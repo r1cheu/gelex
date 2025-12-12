@@ -21,21 +21,21 @@ CovarEffectLoader::CovarEffectLoader(
     auto [intercept, continuous_coeffs, categorical_coeffs]
         = parse_param_file(param_file_path);
 
-    intercept_ = intercept;
-    continuous_coeffs_ = std::move(continuous_coeffs);
-    categorical_coeffs_ = std::move(categorical_coeffs);
+    effects_.intercept = intercept;
+    effects_.continuous_coeffs = std::move(continuous_coeffs);
+    effects_.categorical_coeffs = std::move(categorical_coeffs);
 
     auto logger = gelex::logging::get();
     size_t categorical_categories = 0;
-    for (const auto& [var, categories] : categorical_coeffs_)
+    for (const auto& [var, categories] : effects_.categorical_coeffs)
     {
         categorical_categories += categories.size();
     }
     logger->info(
         "Loaded covariate effects: intercept={}, continuous vars={}, "
         "categorical vars={} categories",
-        intercept_,
-        continuous_coeffs_.size(),
+        effects_.intercept,
+        effects_.continuous_coeffs.size(),
         categorical_categories);
 }
 
@@ -127,47 +127,6 @@ void CovarEffectLoader::parse_flat_name(
         // Treat as continuous variable
         continuous_coeffs[flat_name] = coefficient;
     }
-}
-
-double CovarEffectLoader::predict(const IndividualData& data) const
-{
-    double score = intercept_;
-
-    // Add continuous variable contributions
-    for (const auto& [var_name, value] : data.continuous_values)
-    {
-        auto it = continuous_coeffs_.find(var_name);
-        if (it == continuous_coeffs_.end())
-        {
-            throw InvalidInputException(
-                std::format("unknown continuous variable '{}'", var_name));
-        }
-        score += value * it->second;
-    }
-
-    // Add categorical variable contributions
-    for (const auto& [var_name, category] : data.categorical_values)
-    {
-        auto var_it = categorical_coeffs_.find(var_name);
-        if (var_it == categorical_coeffs_.end())
-        {
-            throw InvalidInputException(
-                std::format("unknown categorical variable '{}'", var_name));
-        }
-
-        auto cat_it = var_it->second.find(category);
-        if (cat_it == var_it->second.end())
-        {
-            throw InvalidInputException(
-                std::format(
-                    "unknown category '{}' for categorical variable '{}'",
-                    category,
-                    var_name));
-        }
-        score += cat_it->second;
-    }
-
-    return score;
 }
 
 }  // namespace gelex::detail
