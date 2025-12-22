@@ -25,10 +25,10 @@ TEST_CASE(
     SECTION("Happy path - both valid files loaded successfully")
     {
         std::string snp_content
-            = "ID\tA1\tA2\tA1Frq\tAdd\tDom\n"
-              "rs001\tA\tC\t0.25\t0.123\t0.045\n"
-              "rs002\tT\tG\t0.75\t-0.456\t0.089\n"
-              "rs003\tC\tA\t0.50\t0.789\t-0.012\n";
+            = "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom\n"
+              "1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045\n"
+              "1\t2000\trs002\tT\tG\t0.75\t-0.456\t0.089\n"
+              "1\t3000\trs003\tC\tA\t0.50\t0.789\t-0.012\n";
 
         auto snp_path = files.create_text_file(snp_content, ".snp.eff");
 
@@ -58,8 +58,8 @@ TEST_CASE(
     SECTION("Exception - covariate effect file has invalid format (propagated)")
     {
         std::string snp_content
-            = "ID\tA1\tA2\tA1Frq\tAdd\tDom\n"
-              "rs001\tA\tC\t0.25\t0.123\t0.045\n";
+            = "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom\n"
+              "1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045\n";
 
         auto snp_path = files.create_text_file(snp_content, ".snp.eff");
 
@@ -86,8 +86,8 @@ TEST_CASE("PredictParamsPipe - Accessor Methods", "[predictor][predict_params]")
     SECTION("snp_effects() returns const reference")
     {
         std::string snp_content
-            = "ID\tA1\tA2\tA1Frq\tAdd\tDom\n"
-              "rs001\tA\tC\t0.25\t0.123\t0.045\n";
+            = "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom\n"
+              "1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045\n";
 
         auto snp_path = files.create_text_file(snp_content, ".snp.eff");
 
@@ -108,14 +108,14 @@ TEST_CASE("PredictParamsPipe - Accessor Methods", "[predictor][predict_params]")
         REQUIRE(&effects1 == &effects2);  // Same reference
 
         REQUIRE(effects1.size() == 1);
-        REQUIRE(effects1.contains("rs001"));
+        REQUIRE(effects1.find_index("rs001").has_value());
     }
 
     SECTION("covar_effects() returns const reference")
     {
         std::string snp_content
-            = "ID\tA1\tA2\tA1Frq\tAdd\tDom\n"
-              "rs001\tA\tC\t0.25\t0.123\t0.045\n";
+            = "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom\n"
+              "1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045\n";
 
         auto snp_path = files.create_text_file(snp_content, ".snp.eff");
 
@@ -149,9 +149,9 @@ TEST_CASE("PredictParamsPipe - Move Semantics", "[predictor][predict_params]")
     SECTION("take_snp_effects() moves data out")
     {
         std::string snp_content
-            = "ID\tA1\tA2\tA1Frq\tAdd\tDom\n"
-              "rs001\tA\tC\t0.25\t0.123\t0.045\n"
-              "rs002\tT\tG\t0.75\t-0.456\t0.089\n";
+            = "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom\n"
+              "1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045\n"
+              "1\t2000\trs002\tT\tG\t0.75\t-0.456\t0.089\n";
 
         auto snp_path = files.create_text_file(snp_content, ".snp.eff");
 
@@ -170,14 +170,14 @@ TEST_CASE("PredictParamsPipe - Move Semantics", "[predictor][predict_params]")
 
         SnpEffects moved_effects = std::move(pipe).take_snp_effects();
         REQUIRE(moved_effects.size() == 2);
-        REQUIRE(pipe.snp_effects().empty());  // Data moved out
+        REQUIRE(pipe.snp_effects().size() == 0);  // Data moved out
     }
 
     SECTION("take_covar_effects() moves data out")
     {
         std::string snp_content
-            = "ID\tA1\tA2\tA1Frq\tAdd\tDom\n"
-              "rs001\tA\tC\t0.25\t0.123\t0.045\n";
+            = "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom\n"
+              "1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045\n";
 
         auto snp_path = files.create_text_file(snp_content, ".snp.eff");
 
@@ -212,7 +212,7 @@ TEST_CASE("PredictParamsPipe - Edge Cases", "[predictor][predict_params]")
 
     SECTION("Empty SNP effect file (only header)")
     {
-        std::string snp_content = "ID\tA1\tA2\tA1Frq\tAdd\tDom\n";
+        std::string snp_content = "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom\n";
         auto snp_path = files.create_text_file(snp_content, ".snp.eff");
 
         std::string covar_content
@@ -227,15 +227,15 @@ TEST_CASE("PredictParamsPipe - Edge Cases", "[predictor][predict_params]")
 
         PredictParamsPipe pipe(config);
 
-        REQUIRE(pipe.snp_effects().empty());
+        REQUIRE(pipe.snp_effects().size() == 0);
         REQUIRE(pipe.covar_effects().intercept == 1.0);
     }
 
     SECTION("Covariate file with only intercept")
     {
         std::string snp_content
-            = "ID\tA1\tA2\tA1Frq\tAdd\tDom\n"
-              "rs001\tA\tC\t0.25\t0.123\t0.045\n";
+            = "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom\n"
+              "1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045\n";
 
         auto snp_path = files.create_text_file(snp_content, ".snp.eff");
 
@@ -283,8 +283,8 @@ TEST_CASE(
     SECTION("Exception - empty covariate effect path with message")
     {
         std::string snp_content
-            = "ID\tA1\tA2\tA1Frq\tAdd\tDom\n"
-              "rs001\tA\tC\t0.25\t0.123\t0.045\n";
+            = "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom\n"
+              "1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045\n";
 
         auto snp_path = files.create_text_file(snp_content, ".snp.eff");
 

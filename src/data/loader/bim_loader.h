@@ -8,33 +8,25 @@
 
 #include <Eigen/Dense>
 
+#include "gelex/types/snp_info.h"
 namespace gelex::detail
 {
-
-struct SnpInfo
-{
-    char chrom;
-    std::string id;
-    int base_coordinate;
-    char A1;
-    char A2;
-};
 
 class BimLoader
 {
    public:
     explicit BimLoader(const std::filesystem::path& path);
 
-    const std::vector<SnpInfo>& info() const { return snp_info_; }
-    std::vector<SnpInfo>&& take_info() && { return std::move(snp_info_); }
+    const SnpEffects& info() const { return snp_effects_; }
+    SnpEffects& info() { return snp_effects_; }
+    SnpEffects&& take_info() && { return std::move(snp_effects_); }
 
     std::vector<std::string> get_ids() const;
 
-    const SnpInfo& operator[](size_t index) const { return snp_info_[index]; }
-    size_t size() const { return snp_info_.size(); }
+    size_t size() const { return snp_effects_.size(); }
 
    private:
-    std::vector<SnpInfo> snp_info_;
+    SnpEffects snp_effects_;
     void set_snp_info(char delimiter, std::ifstream& file);
     static char detect_delimiter(std::ifstream& file);
 };

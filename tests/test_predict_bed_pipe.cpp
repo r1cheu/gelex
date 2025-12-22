@@ -7,6 +7,7 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include "../src/data/loader/snp_effect_loader.h"
 #include "../src/predictor/predict_bed_pipe.h"
 #include "../src/predictor/snp_matcher.h"
 #include "bed_fixture.h"
@@ -68,10 +69,10 @@ TEST_CASE("PredictBedPipe - Constructor", "[predictor][predict_bed_pipe]")
         auto& file_fixture = bed_fixture.get_file_fixture();
         auto snp_effects = create_snp_effects(
             file_fixture,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045",
-             "rs002\tT\tG\t0.75\t-0.456\t0.089",
-             "rs003\tC\tA\t0.50\t0.789\t-0.012"});
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045",
+             "1\t2000\trs002\tT\tG\t0.75\t-0.456\t0.089",
+             "1\t3000\trs003\tC\tA\t0.50\t0.789\t-0.012"});
 
         // Update BIM file to match SNP effect file
         auto bim_path = bed_prefix;
@@ -107,8 +108,8 @@ TEST_CASE("PredictBedPipe - Constructor", "[predictor][predict_bed_pipe]")
         auto& file_fixture = bed_fixture.get_file_fixture();
         auto snp_effects = create_snp_effects(
             file_fixture,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045"});
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045"});
 
         REQUIRE_THROWS_MATCHES(
             PredictBedPipe(bed_prefix, snp_effects, nullptr),
@@ -140,10 +141,10 @@ TEST_CASE(
         auto& file_fixture = bed_fixture.get_file_fixture();
         auto snp_effects = create_snp_effects(
             file_fixture,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045",
-             "rs002\tT\tG\t0.75\t-0.456\t0.089",
-             "rs003\tC\tA\t0.50\t0.789\t-0.012"});
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045",
+             "1\t2000\trs002\tT\tG\t0.75\t-0.456\t0.089",
+             "1\t3000\trs003\tC\tA\t0.50\t0.789\t-0.012"});
 
         // Update BIM file to match alleles (BedFixture creates random SNP IDs,
         // we need to update them)
@@ -200,8 +201,8 @@ TEST_CASE(
         auto& file_fixture = bed_fixture.get_file_fixture();
         auto snp_effects = create_snp_effects(
             file_fixture,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045"});
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045"});
 
         // Update BIM file with swapped alleles (to trigger reverse match)
         auto bim_path = bed_prefix;
@@ -248,9 +249,9 @@ TEST_CASE(
         auto& file_fixture = bed_fixture.get_file_fixture();
         auto snp_effects = create_snp_effects(
             file_fixture,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045",     // Will match with keep
-             "rs002\tT\tG\t0.75\t-0.456\t0.089"});  // Will match with reverse
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045",     // Will match with keep
+             "1\t2000\trs002\tT\tG\t0.75\t-0.456\t0.089"});  // Will match with reverse
 
         // Update BIM file with mixed scenarios:
         // SNP1: rs001 A C (keep)
@@ -305,9 +306,9 @@ TEST_CASE(
         auto& file_fixture = bed_fixture.get_file_fixture();
         auto snp_effects = create_snp_effects(
             file_fixture,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs999\tA\tC\t0.25\t0.123\t0.045",  // Different SNP ID
-             "rs998\tT\tG\t0.75\t-0.456\t0.089"});
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs999\tA\tC\t0.25\t0.123\t0.045",  // Different SNP ID
+             "1\t2000\trs998\tT\tG\t0.75\t-0.456\t0.089"});
 
         // Update BIM file with different SNPs
         auto bim_path = bed_prefix;
@@ -387,10 +388,10 @@ TEST_CASE("PredictBedPipe - Edge cases", "[predictor][predict_bed_pipe]")
         auto& file_fixture = bed_fixture.get_file_fixture();
         auto snp_effects = create_snp_effects(
             file_fixture,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045",
-             "rs002\tT\tG\t0.75\t-0.456\t0.089",
-             "rs003\tC\tA\t0.50\t0.789\t-0.012"});
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045",
+             "1\t2000\trs002\tT\tG\t0.75\t-0.456\t0.089",
+             "1\t3000\trs003\tC\tA\t0.50\t0.789\t-0.012"});
 
         // Update BIM file with matching alleles
         auto bim_path = bed_prefix;

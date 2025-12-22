@@ -39,17 +39,17 @@ TEST_CASE("BimLoader - Valid file parsing", "[loader][bim]")
                 REQUIRE(snp_ids[3] == "rs13579");
                 REQUIRE(snp_ids[4] == "rs11223");
 
-                const auto& snp1 = bim_loader[0];
-                REQUIRE(snp1.chrom == '1');
+                const auto& snp1 = bim_loader.info()[0];
+                REQUIRE(snp1.chrom == "1");
                 REQUIRE(snp1.id == "rs12345");
-                REQUIRE(snp1.base_coordinate == 1000);
+                REQUIRE(snp1.pos == 1000);
                 REQUIRE(snp1.A1 == 'A');
                 REQUIRE(snp1.A2 == 'G');
 
-                const auto& snp3 = bim_loader[3];
-                REQUIRE(snp3.chrom == 'X');
+                const auto& snp3 = bim_loader.info()[3];
+                REQUIRE(snp3.chrom == "X");
                 REQUIRE(snp3.id == "rs13579");
-                REQUIRE(snp3.base_coordinate == 4000);
+                REQUIRE(snp3.pos == 4000);
                 REQUIRE(snp3.A1 == 'T');
                 REQUIRE(snp3.A2 == 'C');
             }());
@@ -74,17 +74,17 @@ TEST_CASE("BimLoader - Valid file parsing", "[loader][bim]")
                 REQUIRE(snp_ids[1] == "rs67890");
                 REQUIRE(snp_ids[2] == "rs24680");
 
-                const auto& snp1 = bim_loader[0];
-                REQUIRE(snp1.chrom == '1');
+                const auto& snp1 = bim_loader.info()[0];
+                REQUIRE(snp1.chrom == "1");
                 REQUIRE(snp1.id == "rs12345");
-                REQUIRE(snp1.base_coordinate == 1000);
+                REQUIRE(snp1.pos == 1000);
                 REQUIRE(snp1.A1 == 'A');
                 REQUIRE(snp1.A2 == 'G');
 
-                const auto& snp3 = bim_loader[2];
-                REQUIRE(snp3.chrom == '2');
+                const auto& snp3 = bim_loader.info()[2];
+                REQUIRE(snp3.chrom == "2");
                 REQUIRE(snp3.id == "rs24680");
-                REQUIRE(snp3.base_coordinate == 3000);
+                REQUIRE(snp3.pos == 3000);
                 REQUIRE(snp3.A1 == 'G');
                 REQUIRE(snp3.A2 == 'A');
             }());
@@ -162,8 +162,8 @@ TEST_CASE("BimLoader - Comprehensive happy path tests", "[loader][bim]")
         REQUIRE(ids[1] == "rs67890");
 
         // Test operator[]
-        REQUIRE_NOTHROW(bim_loader[0]);
-        REQUIRE(bim_loader[0].id == "rs12345");
+        REQUIRE_NOTHROW(bim_loader.info()[0]);
+        REQUIRE(bim_loader.info()[0].id == "rs12345");
 
         // Test take_meta() method
         auto moved_meta = std::move(bim_loader).take_info();

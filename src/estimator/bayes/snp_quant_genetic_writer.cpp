@@ -41,7 +41,7 @@ void SnpQuantGeneticWriter::write(const std::filesystem::path& path) const
 
 void SnpQuantGeneticWriter::write_header(std::ofstream& stream) const
 {
-    stream << "Index\tID\tChrom\tPosition\tA1\tA2\tA1Frq\t"
+    stream << "Index\tID\tChrom\tPosition\tA1\tA2\tA1Freq\t"
            << "a\t"
            << "d\t"
            << "d/|a|\n";
@@ -80,22 +80,22 @@ double SnpQuantGeneticWriter::write_snp_basic_info(
     // SNP name and basic information
     if (snp_index < static_cast<Index>(bim_loader_.size()))
     {
-        const auto& snp_info = bim_loader_[snp_index];
+        const auto& snp_info = bim_loader_.info()[snp_index];
         stream << std::format(
             "{}\t{}\t{}\t{}\t{}",
             snp_info.id,
             snp_info.chrom,
-            snp_info.base_coordinate,
+            snp_info.pos,
             snp_info.A1,
             snp_info.A2);
 
-        // Calculate A1Frq from genotype mean: mean(X_i) / 2
+        // Calculate A1Freq from genotype mean: mean(X_i) / 2
         double a1_frq = result_->p_freq(snp_index);
         stream << std::format("\t{:.6f}", a1_frq);
         return a1_frq;
     }
     // Placeholder values for missing SNP information
-    stream << "\tNA\tNA\tNA\tNA\tNA";  // Chrom, Position, A1, A2, A1Frq
+    stream << "\tNA\tNA\tNA\tNA\tNA";  // Chrom, Position, A1, A2, A1Freq
     return std::numeric_limits<double>::quiet_NaN();
 }
 

@@ -5,7 +5,7 @@
 #include <vector>
 
 #include <Eigen/Core>
-#include "../src/data/loader/snp_effect_loader.h"
+#include "gelex/types/snp_info.h"
 
 namespace gelex::detail
 {
@@ -55,8 +55,8 @@ class SnpMatcher
     static constexpr char normalize_allele(char allele) noexcept;
 
     static MatchType determine_match_type(
-        const SnpEffect& model,
-        const detail::SnpInfo& predict) noexcept;
+        const SnpMeta& model,
+        const SnpMeta& predict) noexcept;
 
     const SnpEffects* effects_;
 };

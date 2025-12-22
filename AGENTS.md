@@ -19,10 +19,6 @@ cd build/debug/tests/           # Run specific tests:
 # Installation
 pixi run install-debug          # Install debug binary to ~/.local/bin
 pixi run install-release        # Install release binary
-
-# Linting & Formatting
-cmake --build build/debug --target clang-format  # Format code
-cmake --build build/debug --target clang-tidy    # Static analysis
 ```
 
 ## Code Style Guidelines

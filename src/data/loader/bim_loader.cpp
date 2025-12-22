@@ -13,6 +13,8 @@
 
 #include "../src/data/parser.h"
 
+#include "gelex/types/snp_info.h"
+
 namespace gelex::detail
 {
 
@@ -33,8 +35,7 @@ BimLoader::BimLoader(const std::filesystem::path& path)
 
 void BimLoader::set_snp_info(char delimiter, std::ifstream& file)
 {
-    snp_info_.clear();
-    snp_info_.reserve(1024);  // Start small
+    snp_effects_.clear();
     std::string line;
     int n_line = 0;
     std::array<std::string_view, 6> cols;
@@ -59,14 +60,12 @@ void BimLoader::set_snp_info(char delimiter, std::ifstream& file)
         }
         try
         {
-            snp_info_.emplace_back(
-                SnpInfo{
-                    .chrom = cols[0][0],
-                    .id = std::string(cols[1]),
-                    .base_coordinate = detail::parse_number<int>(cols[3]),
-                    .A1 = cols[4][0],
-                    .A2 = cols[5][0],
-                });
+            snp_effects_.emplace_meta(
+                {.chrom = std::string(cols[0]),
+                 .id = std::string(cols[1]),
+                 .pos = detail::parse_number<int>(cols[3]),
+                 .A1 = cols[4][0],
+                 .A2 = cols[5][0]});
         }
         catch (const gelex::GelexException& err)
         {
@@ -91,12 +90,11 @@ char BimLoader::detect_delimiter(std::ifstream& file)
 std::vector<std::string> BimLoader::get_ids() const
 {
     std::vector<std::string> ids;
-    ids.reserve(snp_info_.size());
-    for (const auto& s : snp_info_)
+    ids.reserve(snp_effects_.size());
+    for (const auto& s : snp_effects_)
     {
         ids.emplace_back(s.id);
     }
     return ids;
 }
-
 }  // namespace gelex::detail

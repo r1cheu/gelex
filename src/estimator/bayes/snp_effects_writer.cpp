@@ -57,7 +57,7 @@ void SnpEffectsWriter::write_header(std::ofstream& stream) const
 
     // Write dynamic header based on whether dominance effects exist and
     // component probs
-    stream << "Index\tID\tChrom\tPosition\tA1\tA2\tA1Frq\tAdd\tAddSE\tAddPVE";
+    stream << "Index\tID\tChrom\tPosition\tA1\tA2\tA1Freq\tAdd\tAddSE\tAddPVE";
 
     // Write additive component probability columns for any number of components
     if (n_alpha_components > 2)
@@ -110,30 +110,30 @@ void SnpEffectsWriter::write_snp_basic_info(
     // SNP name and basic information
     if (snp_index < static_cast<Index>(bim_loader_.size()))
     {
-        const auto& snp_info = (bim_loader_)[snp_index];
+        const auto& snp_info = bim_loader_.info()[snp_index];
         stream << std::format(
             "{}\t{}\t{}\t{}\t{}",
             snp_info.id,
             snp_info.chrom,
-            snp_info.base_coordinate,
+            snp_info.pos,
             snp_info.A1,
             snp_info.A2);
 
         if (result_->p_freq.size() > snp_index)
         {
-            // Calculate A1Frq from genotype mean: mean(X_i) / 2
+            // Calculate A1Freq from genotype mean: mean(X_i) / 2
             double a1_frq = result_->p_freq(snp_index);
             stream << std::format("\t{:.6f}", a1_frq);
         }
         else
         {
-            stream << "\tNA";  // Placeholder for A1Frq
+            stream << "\tNA";  // Placeholder for A1Freq
         }
     }
     else
     {
         // Placeholder values for missing SNP information
-        stream << "\tNA\tNA\tNA\tNA\tNA";  // Chrom, Position, A1, A2, A1Frq
+        stream << "\tNA\tNA\tNA\tNA\tNA";  // Chrom, Position, A1, A2, A1Freq
     }
 }
 

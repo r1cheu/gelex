@@ -6,6 +6,7 @@
 #include "gelex/exception.h"
 
 #include "../src/data/loader/bim_loader.h"
+#include "gelex/types/snp_info.h"
 
 namespace gelex
 {
@@ -24,25 +25,25 @@ MatchPlan SnpMatcher::match(const std::filesystem::path& predict_bed_path) const
 
     detail::BimLoader bim_loader(bim_path);
 
-    std::vector<detail::SnpInfo> predict_snp_meta
-        = std::move(bim_loader).take_info();
+    SnpEffects predict_snp_meta = std::move(bim_loader).take_info();
 
     MatchPlan match_info;
     match_info.plan.resize(predict_snp_meta.size());
     match_info.num_snp_in_effect = static_cast<Eigen::Index>(effects_->size());
 
-    for (auto [meta, plan] : std::views::zip(predict_snp_meta, match_info.plan))
+    for (auto&& [meta, plan] :
+         std::views::zip(predict_snp_meta, match_info.plan))
     {
-        auto it = effects_->find(meta.id);
+        const auto snp_index = effects_->find_index(meta.id);
 
-        if (it != effects_->end())
+        if (snp_index)
         {
-            const auto& model_meta = it->second;
+            const auto& model_meta = (*effects_)[*snp_index];
             plan.type = determine_match_type(model_meta, meta);
 
             if (plan.type != MatchType::skip)
             {
-                plan.target_col = model_meta.index;
+                plan.target_col = *snp_index;
             }
         }
     }
@@ -56,8 +57,8 @@ constexpr char SnpMatcher::normalize_allele(char allele) noexcept
 }
 
 MatchType SnpMatcher::determine_match_type(
-    const SnpEffect& model,
-    const detail::SnpInfo& predict) noexcept
+    const SnpMeta& model,
+    const SnpMeta& predict) noexcept
 {
     const char model_a1 = normalize_allele(model.A1);
     const char model_a2 = normalize_allele(model.A2);

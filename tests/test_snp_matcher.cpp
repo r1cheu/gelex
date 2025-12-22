@@ -6,6 +6,7 @@
 
 #include "file_fixture.h"
 
+#include "../src/data/loader/snp_effect_loader.h"
 #include "../src/predictor/snp_matcher.h"
 
 namespace fs = std::filesystem;
@@ -58,10 +59,10 @@ TEST_CASE("SnpMatcher - Constructor", "[predictor][snp_matcher]")
     {
         auto effects = create_snp_effects(
             files,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045",
-             "rs002\tT\tG\t0.75\t-0.456\t0.089",
-             "rs003\tC\tA\t0.50\t0.789\t-0.012"});
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045",
+             "1\t2000\trs002\tT\tG\t0.75\t-0.456\t0.089",
+             "1\t3000\trs003\tC\tA\t0.50\t0.789\t-0.012"});
 
         REQUIRE_NOTHROW([&]() { SnpMatcher matcher(effects); }());
     }
@@ -76,10 +77,10 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
         // Create SNP effects
         auto effects = create_snp_effects(
             files,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045",
-             "rs002\tT\tG\t0.75\t-0.456\t0.089",
-             "rs003\tC\tA\t0.50\t0.789\t-0.012"});
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045",
+             "1\t2000\trs002\tT\tG\t0.75\t-0.456\t0.089",
+             "1\t3000\trs003\tC\tA\t0.50\t0.789\t-0.012"});
 
         // Create BIM file with same SNPs and alleles
         std::string bim_content = create_bim_content(
@@ -113,9 +114,9 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
         // Create SNP effects
         auto effects = create_snp_effects(
             files,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045",
-             "rs002\tT\tG\t0.75\t-0.456\t0.089"});
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045",
+             "1\t2000\trs002\tT\tG\t0.75\t-0.456\t0.089"});
 
         // Create BIM file with swapped alleles
         std::string bim_content = create_bim_content(
@@ -144,10 +145,10 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
         // Create SNP effects
         auto effects = create_snp_effects(
             files,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045",
-             "rs002\tT\tG\t0.75\t-0.456\t0.089",
-             "rs003\tC\tA\t0.50\t0.789\t-0.012"});
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045",
+             "1\t2000\trs002\tT\tG\t0.75\t-0.456\t0.089",
+             "1\t3000\trs003\tC\tA\t0.50\t0.789\t-0.012"});
 
         // Create BIM file with mixed matches
         std::string bim_content = create_bim_content(
@@ -184,9 +185,9 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
         // Create SNP effects with uppercase alleles
         auto effects = create_snp_effects(
             files,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045",
-             "rs002\tT\tG\t0.75\t-0.456\t0.089"});
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045",
+             "1\t2000\trs002\tT\tG\t0.75\t-0.456\t0.089"});
 
         // Create BIM file with lowercase alleles
         std::string bim_content = create_bim_content(
@@ -215,9 +216,9 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
         // Create SNP effects
         auto effects = create_snp_effects(
             files,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045",
-             "rs002\tT\tG\t0.75\t-0.456\t0.089"});
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045",
+             "1\t2000\trs002\tT\tG\t0.75\t-0.456\t0.089"});
 
         // Create BIM file with completely different SNPs
         std::string bim_content = create_bim_content(
@@ -257,9 +258,9 @@ TEST_CASE(
         // Create SNP effects
         auto effects = create_snp_effects(
             files,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045",
-             "rs002\ta\tc\t0.25\t0.123\t0.045"});  // lowercase
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045",
+             "1\t2000\trs002\ta\tc\t0.25\t0.123\t0.045"});  // lowercase
 
         // Test various keep scenarios
         std::string bim_content = create_bim_content(
@@ -283,9 +284,9 @@ TEST_CASE(
         // Create SNP effects
         auto effects = create_snp_effects(
             files,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045",
-             "rs002\ta\tc\t0.25\t0.123\t0.045"});  // lowercase
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045",
+             "1\t2000\trs002\ta\tc\t0.25\t0.123\t0.045"});  // lowercase
 
         // Test various reverse scenarios
         std::string bim_content = create_bim_content(
@@ -309,8 +310,8 @@ TEST_CASE(
         // Create SNP effects
         auto effects = create_snp_effects(
             files,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045"});
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045"});
 
         // Test various skip scenarios
         std::string bim_content = create_bim_content(
@@ -338,8 +339,8 @@ TEST_CASE(
         // Create SNP effects with mixed case
         auto effects = create_snp_effects(
             files,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tc\t0.25\t0.123\t0.045"});  // A uppercase, c lowercase
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tc\t0.25\t0.123\t0.045"});  // A uppercase, c lowercase
 
         // Test case mixing scenarios
         std::string bim_content = create_bim_content(
@@ -367,8 +368,8 @@ TEST_CASE("SnpMatcher - Edge cases", "[predictor][snp_matcher]")
     {
         auto effects = create_snp_effects(
             files,
-            "ID\tA1\tA2\tA1Frq\tAdd\tDom",
-            {"rs001\tA\tC\t0.25\t0.123\t0.045"});
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123\t0.045"});
 
         std::string bim_content
             = create_bim_content({"1\trs001\t0\t1000\tA\tC"});
@@ -387,7 +388,7 @@ TEST_CASE("SnpMatcher - Edge cases", "[predictor][snp_matcher]")
 
     SECTION("Happy path - empty SNP effect file with non-empty BIM")
     {
-        std::string empty_content = "ID\tA1\tA2\tA1Frq\tAdd\tDom\n";
+        std::string empty_content = "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom\n";
         auto snp_effect_path
             = files.create_text_file(empty_content, ".snp.eff");
         gelex::detail::SnpEffectLoader loader(snp_effect_path);
@@ -414,8 +415,8 @@ TEST_CASE("SnpMatcher - Edge cases", "[predictor][snp_matcher]")
     {
         auto effects = create_snp_effects(
             files,
-            "ID\tA1\tA2\tA1Frq\tAdd",
-            {"rs001\tA\tC\t0.25\t0.123", "rs002\tT\tG\t0.75\t-0.456"});
+            "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd",
+            {"1\t1000\trs001\tA\tC\t0.25\t0.123", "1\t2000\trs002\tT\tG\t0.75\t-0.456"});
 
         std::string bim_content = create_bim_content(
             {"1\trs001\t0\t1000\tA\tC", "1\trs002\t0\t2000\tT\tG"});
