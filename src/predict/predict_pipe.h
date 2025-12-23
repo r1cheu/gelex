@@ -20,6 +20,17 @@ class QcovarLoader;
 class DcovarPredictLoader;
 }  // namespace detail
 
+struct PredictData
+{
+    std::vector<std::string> qcovariate_names;
+    Eigen::MatrixXd qcovariates;
+
+    std::vector<std::string> dcovariate_names;
+    std::map<std::string, std::vector<std::string>> dcovariates;
+
+    Eigen::MatrixXd genotype;
+};
+
 class PredictDataPipe
 {
    public:
@@ -34,18 +45,14 @@ class PredictDataPipe
 
     explicit PredictDataPipe(const Config& config);
 
-    auto take_qcovariates() && -> Eigen::MatrixXd
+    auto take_data() && -> PredictData
     {
-        return std::move(qcovariates_);
-    }
-    auto
-    take_dcovariates() && -> std::map<std::string, std::vector<std::string>>
-    {
-        return std::move(dcovariates_);
-    }
-    auto take_genotypes() && -> Eigen::MatrixXd
-    {
-        return std::move(genotypes_);
+        return PredictData{
+            .qcovariate_names = std::move(qcovariate_names_),
+            .qcovariates = std::move(qcovariates_),
+            .dcovariate_names = std::move(dcovariate_names_),
+            .dcovariates = std::move(dcovariates_),
+            .genotype = std::move(genotypes_)};
     }
 
     auto qcovariate_names() const -> const std::vector<std::string>&

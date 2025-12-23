@@ -72,7 +72,7 @@ TEST_CASE(
         REQUIRE(pipe.qcovariate_names().empty());
         REQUIRE(pipe.dcovariate_names().empty());
 
-        auto genotypes = std::move(pipe).take_genotypes();
+        auto genotypes = std::move(pipe).take_data().genotype;
         REQUIRE(genotypes.rows() == num_samples);
         REQUIRE(genotypes.cols() == num_snps);
 
@@ -129,7 +129,9 @@ TEST_CASE(
         REQUIRE(qnames[0] == "Age");
         REQUIRE(qnames[1] == "Height");
 
-        auto qcovariates = std::move(pipe).take_qcovariates();
+        auto data = std::move(pipe).take_data();
+        auto& qcovariates = data.qcovariates;
+        auto& genotypes = data.genotype;
         REQUIRE(qcovariates.rows() == num_samples);
         REQUIRE(qcovariates.cols() == 3);  // intercept + 2 covariates
 
@@ -146,7 +148,6 @@ TEST_CASE(
             REQUIRE(std::abs(qcovariates(i, 2) - (1.6 + i * 0.1)) < 1e-10);
         }
 
-        auto genotypes = std::move(pipe).take_genotypes();
         REQUIRE(genotypes.rows() == num_samples);
         REQUIRE(genotypes.cols() == num_snps);
         gelex::test::are_matrices_equal(genotypes, expected_genotypes, 1e-8);
@@ -202,7 +203,9 @@ TEST_CASE(
         REQUIRE(cnames[0] == "Sex");
         REQUIRE(cnames[1] == "Population");
 
-        auto covariates = std::move(pipe).take_dcovariates();
+        auto data = std::move(pipe).take_data();
+        auto& covariates = data.dcovariates;
+        auto& genotypes = data.genotype;
         REQUIRE(covariates.size() == 2);
         REQUIRE(covariates.count("Sex") == 1);
         REQUIRE(covariates.count("Population") == 1);
@@ -221,7 +224,6 @@ TEST_CASE(
             REQUIRE(pop_values[i] == (i % 3 == 0 ? "EUR" : "AFR"));
         }
 
-        auto genotypes = std::move(pipe).take_genotypes();
         REQUIRE(genotypes.rows() == num_samples);
         REQUIRE(genotypes.cols() == num_snps);
         gelex::test::are_matrices_equal(genotypes, expected_genotypes, 1e-8);
@@ -265,7 +267,9 @@ TEST_CASE("PredictDataPipe - Sample intersection", "[predict][predict_pipe]")
         PredictDataPipe pipe(config);
 
         REQUIRE(pipe.num_qcovariates() == 1);
-        auto qcovariates = std::move(pipe).take_qcovariates();
+        auto data = std::move(pipe).take_data();
+        auto& qcovariates = data.qcovariates;
+        auto& genotypes = data.genotype;
         REQUIRE(qcovariates.rows() == 2);  // Only 2 common samples
         REQUIRE(qcovariates.cols() == 2);  // intercept + 1 covariate
         REQUIRE(qcovariates(0, 0) == 1.0);  // intercept
@@ -273,7 +277,6 @@ TEST_CASE("PredictDataPipe - Sample intersection", "[predict][predict_pipe]")
         REQUIRE(qcovariates(0, 1) == 20);   // Age for first sample
         REQUIRE(qcovariates(1, 1) == 21);   // Age for second sample
 
-        auto genotypes = std::move(pipe).take_genotypes();
         REQUIRE(genotypes.rows() == 2);
         REQUIRE(genotypes.cols() == num_snps);
 
@@ -321,7 +324,9 @@ TEST_CASE("PredictDataPipe - iid_only mode", "[predict][predict_pipe]")
 
         REQUIRE(pipe.num_qcovariates() == 1);
 
-        auto qcovariates = std::move(pipe).take_qcovariates();
+        auto data = std::move(pipe).take_data();
+        auto& qcovariates = data.qcovariates;
+        auto& genotypes = data.genotype;
         REQUIRE(qcovariates.rows() == num_samples);
         REQUIRE(qcovariates.cols() == 2);  // intercept + Age
 
@@ -337,7 +342,6 @@ TEST_CASE("PredictDataPipe - iid_only mode", "[predict][predict_pipe]")
             REQUIRE(qcovariates(i, 1) == 20 + i);
         }
 
-        auto genotypes = std::move(pipe).take_genotypes();
         REQUIRE(genotypes.rows() == num_samples);
         REQUIRE(genotypes.cols() == num_snps);
         gelex::test::are_matrices_equal(genotypes, expected_genotypes, 1e-8);
@@ -383,8 +387,9 @@ TEST_CASE(
         PredictDataPipe pipe(config);
 
         // Take all three components
-        auto qcovariates = std::move(pipe).take_qcovariates();
-        auto genotypes = std::move(pipe).take_genotypes();
+        auto data = std::move(pipe).take_data();
+        auto& qcovariates = data.qcovariates;
+        auto& genotypes = data.genotype;
 
         REQUIRE(qcovariates.rows() == num_samples);
         REQUIRE(qcovariates.cols() == 2);
@@ -432,7 +437,9 @@ TEST_CASE("PredictDataPipe - Edge cases", "[predict][predict_pipe]")
 
         REQUIRE(pipe.num_qcovariates() == 1);
 
-        auto qcovariates = std::move(pipe).take_qcovariates();
+        auto data = std::move(pipe).take_data();
+        auto& qcovariates = data.qcovariates;
+        auto& genotypes = data.genotype;
         REQUIRE(qcovariates.rows() == num_samples);
         REQUIRE(qcovariates.cols() == 2);  // intercept + dummy
 
@@ -447,7 +454,6 @@ TEST_CASE("PredictDataPipe - Edge cases", "[predict][predict_pipe]")
             REQUIRE(qcovariates(i, 1) == 0.0);
         }
 
-        auto genotypes = std::move(pipe).take_genotypes();
         REQUIRE(genotypes.rows() == num_samples);
         REQUIRE(genotypes.cols() == num_snps);
         gelex::test::are_matrices_equal(genotypes, expected_genotypes, 1e-8);
@@ -476,11 +482,12 @@ TEST_CASE("PredictDataPipe - Edge cases", "[predict][predict_pipe]")
         PredictDataPipe pipe(config);
 
         REQUIRE(pipe.num_qcovariates() == 1);
-        auto qcovariates = std::move(pipe).take_qcovariates();
+        auto data = std::move(pipe).take_data();
+        auto& qcovariates = data.qcovariates;
+        auto& genotypes = data.genotype;
         REQUIRE(qcovariates.rows() == 0);  // No common samples
         REQUIRE(qcovariates.cols() == 2);
 
-        auto genotypes = std::move(pipe).take_genotypes();
         REQUIRE(genotypes.rows() == 0);
         REQUIRE(genotypes.cols() == num_snps);
     }
