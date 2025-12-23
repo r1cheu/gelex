@@ -7,7 +7,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/predictor/covar_effect_loader.h"
+#include "../src/predict/covar_effect_loader.h"
 #include "file_fixture.h"
 #include "gelex/exception.h"
 
@@ -18,7 +18,7 @@ using Catch::Matchers::EndsWith;
 using Catch::Matchers::WithinAbs;
 using gelex::test::FileFixture;
 
-TEST_CASE("CovarEffectLoader Constructor Tests", "[predictor][covar_effect]")
+TEST_CASE("CovarEffectLoader Constructor Tests", "[predict][covar_effect]")
 {
     FileFixture files;
 
@@ -216,7 +216,7 @@ TEST_CASE("CovarEffectLoader Constructor Tests", "[predictor][covar_effect]")
     }
 }
 
-TEST_CASE("CovarEffectLoader Accessor Tests", "[predictor][covar_effect]")
+TEST_CASE("CovarEffectLoader Accessor Tests", "[predict][covar_effect]")
 {
     FileFixture files;
 
@@ -290,7 +290,7 @@ TEST_CASE("CovarEffectLoader Accessor Tests", "[predictor][covar_effect]")
     }
 }
 
-TEST_CASE("CovarEffectLoader Error Handling Tests", "[predictor][covar_effect]")
+TEST_CASE("CovarEffectLoader Error Handling Tests", "[predict][covar_effect]")
 {
     FileFixture files;
 

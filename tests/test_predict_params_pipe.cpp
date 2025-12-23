@@ -4,7 +4,7 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/predictor/predict_params_pipe.h"
+#include "../src/predict/predict_params_pipe.h"
 #include "file_fixture.h"
 #include "gelex/exception.h"
 
@@ -18,7 +18,7 @@ using gelex::test::FileFixture;
 
 TEST_CASE(
     "PredictParamsPipe - Constructor Success Scenarios",
-    "[predictor][predict_params]")
+    "[predict][predict_params]")
 {
     FileFixture files;
 
@@ -79,7 +79,7 @@ TEST_CASE(
     }
 }
 
-TEST_CASE("PredictParamsPipe - Accessor Methods", "[predictor][predict_params]")
+TEST_CASE("PredictParamsPipe - Accessor Methods", "[predict][predict_params]")
 {
     FileFixture files;
 
@@ -142,7 +142,7 @@ TEST_CASE("PredictParamsPipe - Accessor Methods", "[predictor][predict_params]")
     }
 }
 
-TEST_CASE("PredictParamsPipe - Move Semantics", "[predictor][predict_params]")
+TEST_CASE("PredictParamsPipe - Move Semantics", "[predict][predict_params]")
 {
     FileFixture files;
 
@@ -206,7 +206,7 @@ TEST_CASE("PredictParamsPipe - Move Semantics", "[predictor][predict_params]")
     }
 }
 
-TEST_CASE("PredictParamsPipe - Edge Cases", "[predictor][predict_params]")
+TEST_CASE("PredictParamsPipe - Edge Cases", "[predict][predict_params]")
 {
     FileFixture files;
 
@@ -260,7 +260,7 @@ TEST_CASE("PredictParamsPipe - Edge Cases", "[predictor][predict_params]")
 
 TEST_CASE(
     "PredictParamsPipe - Constructor Error Scenarios",
-    "[predictor][predict_params]")
+    "[predict][predict_params]")
 {
     FileFixture files;
 

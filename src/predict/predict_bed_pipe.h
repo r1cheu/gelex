@@ -1,9 +1,9 @@
-#ifndef GELEX_PREDICTOR_PREDICT_BED_PIPE_H
-#define GELEX_PREDICTOR_PREDICT_BED_PIPE_H
+#ifndef GELEX_PREDICT_PREDICT_BED_PIPE_H
+#define GELEX_PREDICT_PREDICT_BED_PIPE_H
 
 #include <Eigen/Core>
 
-#include "../src/predictor/snp_matcher.h"
+#include "../src/predict/snp_matcher.h"
 #include "gelex/data/bed_pipe.h"
 
 namespace gelex
@@ -26,4 +26,4 @@ class PredictBedPipe
 
 }  // namespace gelex
 
-#endif  // GELEX_PREDICTOR_PREDICT_BED_PIPE_H
+#endif  // GELEX_PREDICT_PREDICT_BED_PIPE_H

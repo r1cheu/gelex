@@ -7,7 +7,7 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/predictor/predict_dcovariate_loader.h"
+#include "../src/predict/predict_dcovariate_loader.h"
 #include "file_fixture.h"
 #include "gelex/exception.h"
 
@@ -17,7 +17,7 @@ using namespace gelex::detail;  // NOLINT
 using Catch::Matchers::EndsWith;
 using gelex::test::FileFixture;
 
-TEST_CASE("DcovarPredictLoader Constructor Tests", "[predictor][covariate]")
+TEST_CASE("DcovarPredictLoader Constructor Tests", "[predict][covariate]")
 {
     FileFixture files;
 
@@ -204,7 +204,7 @@ TEST_CASE("DcovarPredictLoader Constructor Tests", "[predictor][covariate]")
     }
 }
 
-TEST_CASE("DcovarPredictLoader load Tests", "[predictor][covariate]")
+TEST_CASE("DcovarPredictLoader load Tests", "[predict][covariate]")
 {
     FileFixture files;
 
@@ -392,7 +392,7 @@ TEST_CASE("DcovarPredictLoader load Tests", "[predictor][covariate]")
     }
 }
 
-TEST_CASE("DcovarPredictLoader Data Accessor Tests", "[predictor][covariate]")
+TEST_CASE("DcovarPredictLoader Data Accessor Tests", "[predict][covariate]")
 {
     FileFixture files;
 

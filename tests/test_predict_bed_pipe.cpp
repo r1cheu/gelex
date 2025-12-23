@@ -8,8 +8,8 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "../src/data/loader/snp_effect_loader.h"
-#include "../src/predictor/predict_bed_pipe.h"
-#include "../src/predictor/snp_matcher.h"
+#include "../src/predict/predict_bed_pipe.h"
+#include "../src/predict/snp_matcher.h"
 #include "bed_fixture.h"
 #include "file_fixture.h"
 #include "gelex/data/sample_manager.h"
@@ -54,7 +54,7 @@ static SnpEffects create_snp_effects(
 
 }  // namespace
 
-TEST_CASE("PredictBedPipe - Constructor", "[predictor][predict_bed_pipe]")
+TEST_CASE("PredictBedPipe - Constructor", "[predict][predict_bed_pipe]")
 {
     SECTION("Happy path - successful construction with valid files")
     {
@@ -121,7 +121,7 @@ TEST_CASE("PredictBedPipe - Constructor", "[predictor][predict_bed_pipe]")
 
 TEST_CASE(
     "PredictBedPipe - load() method with MatchPlan filtering",
-    "[predictor][predict_bed_pipe]")
+    "[predict][predict_bed_pipe]")
 {
     // Core test for MatchPlan SNP filtering correctness
 
@@ -344,7 +344,7 @@ TEST_CASE(
     }
 }
 
-TEST_CASE("PredictBedPipe - Edge cases", "[predictor][predict_bed_pipe]")
+TEST_CASE("PredictBedPipe - Edge cases", "[predict][predict_bed_pipe]")
 {
     SECTION("Sparse SampleManager interaction")
     {

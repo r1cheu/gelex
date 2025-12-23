@@ -10,7 +10,7 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/predictor/predict_pipe.h"
+#include "../src/predict/predict_pipe.h"
 #include "bed_fixture.h"
 #include "file_fixture.h"
 
@@ -48,7 +48,7 @@ std::pair<std::vector<std::string>, std::vector<std::string>> read_fam(
 
 TEST_CASE(
     "PredictDataPipe - Construction with BED only",
-    "[predictor][predict_pipe]")
+    "[predict][predict_pipe]")
 {
     BedFixture bed_fixture;
 
@@ -82,7 +82,7 @@ TEST_CASE(
 
 TEST_CASE(
     "PredictDataPipe - With quantitative covariates",
-    "[predictor][predict_pipe]")
+    "[predict][predict_pipe]")
 {
     BedFixture bed_fixture;
     FileFixture file_fixture;
@@ -155,7 +155,7 @@ TEST_CASE(
 
 TEST_CASE(
     "PredictDataPipe - With categorical covariates",
-    "[predictor][predict_pipe]")
+    "[predict][predict_pipe]")
 {
     BedFixture bed_fixture;
 
@@ -228,7 +228,7 @@ TEST_CASE(
     }
 }
 
-TEST_CASE("PredictDataPipe - Sample intersection", "[predictor][predict_pipe]")
+TEST_CASE("PredictDataPipe - Sample intersection", "[predict][predict_pipe]")
 {
     BedFixture bed_fixture;
     FileFixture file_fixture;
@@ -283,7 +283,7 @@ TEST_CASE("PredictDataPipe - Sample intersection", "[predictor][predict_pipe]")
     }
 }
 
-TEST_CASE("PredictDataPipe - iid_only mode", "[predictor][predict_pipe]")
+TEST_CASE("PredictDataPipe - iid_only mode", "[predict][predict_pipe]")
 {
     BedFixture bed_fixture;
     FileFixture file_fixture;
@@ -346,7 +346,7 @@ TEST_CASE("PredictDataPipe - iid_only mode", "[predictor][predict_pipe]")
 
 TEST_CASE(
     "PredictDataPipe - Data movement methods",
-    "[predictor][predict_pipe]")
+    "[predict][predict_pipe]")
 {
     BedFixture bed_fixture;
     FileFixture file_fixture;
@@ -395,7 +395,7 @@ TEST_CASE(
     }
 }
 
-TEST_CASE("PredictDataPipe - Edge cases", "[predictor][predict_pipe]")
+TEST_CASE("PredictDataPipe - Edge cases", "[predict][predict_pipe]")
 {
     BedFixture bed_fixture;
     FileFixture file_fixture;

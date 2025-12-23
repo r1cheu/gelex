@@ -1,5 +1,5 @@
-#ifndef GELEX_PREDICTOR_PREDICT_PIPE_H
-#define GELEX_PREDICTOR_PREDICT_PIPE_H
+#ifndef GELEX_PREDICT_PREDICT_PIPE_H
+#define GELEX_PREDICT_PREDICT_PIPE_H
 
 #include <filesystem>
 #include <memory>
@@ -9,7 +9,7 @@
 #include <Eigen/Core>
 
 #include "../src/data/loader/qcovariate_loader.h"
-#include "../src/predictor/predict_dcovariate_loader.h"
+#include "../src/predict/predict_dcovariate_loader.h"
 
 namespace gelex
 {
@@ -81,4 +81,4 @@ class PredictDataPipe
 };
 
 }  // namespace gelex
-#endif  // GELEX_PREDICTOR_PREDICT_PIPE_H
+#endif  // GELEX_PREDICT_PREDICT_PIPE_H

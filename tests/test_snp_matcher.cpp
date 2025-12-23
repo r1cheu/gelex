@@ -7,7 +7,7 @@
 #include "file_fixture.h"
 
 #include "../src/data/loader/snp_effect_loader.h"
-#include "../src/predictor/snp_matcher.h"
+#include "../src/predict/snp_matcher.h"
 
 namespace fs = std::filesystem;
 
@@ -51,7 +51,7 @@ static SnpEffects create_snp_effects(
     return std::move(loader).take_effects();
 }
 
-TEST_CASE("SnpMatcher - Constructor", "[predictor][snp_matcher]")
+TEST_CASE("SnpMatcher - Constructor", "[predict][snp_matcher]")
 {
     FileFixture files;
 
@@ -68,7 +68,7 @@ TEST_CASE("SnpMatcher - Constructor", "[predictor][snp_matcher]")
     }
 }
 
-TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
+TEST_CASE("SnpMatcher - match() method", "[predict][snp_matcher]")
 {
     FileFixture files;
 
@@ -246,7 +246,7 @@ TEST_CASE("SnpMatcher - match() method", "[predictor][snp_matcher]")
 
 TEST_CASE(
     "SnpMatcher - determine_match_type() logic",
-    "[predictor][snp_matcher]")
+    "[predict][snp_matcher]")
 {
     // Note: Since determine_match_type() is private, we test it indirectly
     // through the public match() method
@@ -360,7 +360,7 @@ TEST_CASE(
     }
 }
 
-TEST_CASE("SnpMatcher - Edge cases", "[predictor][snp_matcher]")
+TEST_CASE("SnpMatcher - Edge cases", "[predict][snp_matcher]")
 {
     FileFixture files;
 

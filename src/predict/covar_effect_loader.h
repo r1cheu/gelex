@@ -1,5 +1,5 @@
-#ifndef GELEX_PREDICTOR_COVAR_EFFECT_LOADER_H
-#define GELEX_PREDICTOR_COVAR_EFFECT_LOADER_H
+#ifndef GELEX_PREDICT_COVAR_EFFECT_LOADER_H
+#define GELEX_PREDICT_COVAR_EFFECT_LOADER_H
 
 #include <filesystem>
 #include <limits>
@@ -43,4 +43,4 @@ class CovarEffectLoader
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_PREDICTOR_COVAR_EFFECT_LOADER_H
+#endif  // GELEX_PREDICT_COVAR_EFFECT_LOADER_H

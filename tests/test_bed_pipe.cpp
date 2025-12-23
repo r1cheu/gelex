@@ -14,7 +14,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/predictor/snp_matcher.h"
+#include "../src/predict/snp_matcher.h"
 #include "bed_fixture.h"
 #include "file_fixture.h"
 #include "gelex/data/bed_pipe.h"

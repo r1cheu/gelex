@@ -1,5 +1,5 @@
-#ifndef GELEX_PREDICTOR_PREDICT_ENGINE_H
-#define GELEX_PREDICTOR_PREDICT_ENGINE_H
+#ifndef GELEX_PREDICT_PREDICT_ENGINE_H
+#define GELEX_PREDICT_PREDICT_ENGINE_H
 
 #include <filesystem>
 #include <memory>
@@ -7,7 +7,7 @@
 
 #include <Eigen/Core>
 #include "../src/data/loader/snp_effect_loader.h"
-#include "../src/predictor/covar_effect_loader.h"
+#include "../src/predict/covar_effect_loader.h"
 
 namespace gelex
 {
@@ -57,4 +57,4 @@ class PredictEngine
 
 }  // namespace gelex
 
-#endif  // GELEX_PREDICTOR_PREDICT_ENGINE_H
+#endif  // GELEX_PREDICT_PREDICT_ENGINE_H
