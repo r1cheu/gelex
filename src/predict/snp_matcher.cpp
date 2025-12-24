@@ -27,28 +27,28 @@ MatchPlan SnpMatcher::match(const std::filesystem::path& predict_bed_path) const
 
     SnpEffects predict_snp_meta = std::move(bim_loader).take_info();
 
-    MatchPlan match_info;
-    match_info.plan.resize(predict_snp_meta.size());
-    match_info.num_snp_in_effect = static_cast<Eigen::Index>(effects_->size());
+    MatchPlan match_plan;
+    match_plan.plan.resize(predict_snp_meta.size());
+    match_plan.num_snp_in_effect = static_cast<Eigen::Index>(effects_->size());
 
-    for (auto&& [meta, plan] :
-         std::views::zip(predict_snp_meta, match_info.plan))
+    for (auto&& [meta, info] :
+         std::views::zip(predict_snp_meta, match_plan.plan))
     {
         const auto snp_index = effects_->find_index(meta.id);
 
         if (snp_index)
         {
             const auto& model_meta = (*effects_)[*snp_index];
-            plan.type = determine_match_type(model_meta, meta);
+            info.type = determine_match_type(model_meta, meta);
 
-            if (plan.type != MatchType::skip)
+            if (info.type != MatchType::skip)
             {
-                plan.target_col = *snp_index;
+                info.target_col = *snp_index;
             }
         }
     }
 
-    return match_info;
+    return match_plan;
 }
 
 constexpr char SnpMatcher::normalize_allele(char allele) noexcept

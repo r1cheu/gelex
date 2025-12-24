@@ -5,6 +5,7 @@
 
 #include "gelex/exception.h"
 #include "gelex/logger.h"
+#include "predict/genotype_aligner.h"
 #include "predict_params_pipe.h"
 #include "predict_pipe.h"
 
@@ -31,28 +32,6 @@ PredictEngine::PredictEngine(const Config& config) : config_(config)
 {
     config_.validate();
 
-    auto logger = logging::get();
-    if (logger)
-    {
-        logger->info("Initializing PredictEngine with:");
-        logger->info("  BED: {}", config_.bed_path.string());
-        logger->info("  SNP effects: {}", config_.snp_effect_path.string());
-        logger->info(
-            "  Covariate effects: {}", config_.covar_effect_path.string());
-        if (!config_.qcovar_path.empty())
-        {
-            logger->info(
-                "  Quantitative covariates: {}", config_.qcovar_path.string());
-        }
-        if (!config_.dcovar_path.empty())
-        {
-            logger->info(
-                "  Discrete covariates: {}", config_.dcovar_path.string());
-        }
-        logger->info(
-            "  IID-only mode: {}", config_.iid_only ? "true" : "false");
-    }
-
     load_parameters();
     load_data();
     validate_dimensions();
@@ -63,10 +42,11 @@ void PredictEngine::load_parameters()
     PredictParamsPipe::Config params_config{
         .snp_effect_path = config_.snp_effect_path,
         .covar_effect_path = config_.covar_effect_path};
-    params_pipe_ = std::make_unique<PredictParamsPipe>(params_config);
 
-    snp_effects_ = std::move(*params_pipe_).take_snp_effects();
-    covar_effects_ = std::move(*params_pipe_).take_covar_effects();
+    PredictParamsPipe params_pipe(params_config);
+
+    snp_effects_ = std::move(params_pipe).take_snp_effects();
+    covar_effects_ = std::move(params_pipe).take_covar_effects();
 }
 
 void PredictEngine::load_data()
@@ -77,44 +57,16 @@ void PredictEngine::load_data()
         .dcovar_path = config_.dcovar_path,
         .iid_only = config_.iid_only};
 
-    data_pipe_ = std::make_unique<PredictDataPipe>(data_config);
+    PredictDataPipe data_pipe(data_config);
+    data_ = std::move(data_pipe).take_data();
+    GenotypeAligner genotype_filter(config_.bed_path, snp_effects_);
+    data_.genotype = genotype_filter.load(std::move(data_.genotype));
 }
 
-void PredictEngine::validate_dimensions()
-{
-    auto logger = logging::get();
-    if (logger)
-    {
-        const auto& snp_effects = params_pipe_->snp_effects();
-        logger->info("Validation: {} SNP effects to match", snp_effects.size());
-    }
-}
+void PredictEngine::run() {}
 
-void PredictEngine::run()
-{
-    auto logger = logging::get();
-    if (logger)
-    {
-        logger->info("Starting prediction computation");
-    }
+void PredictEngine::compute_predictions() {}
 
-    compute_predictions();
-    write_output();
-
-    if (logger)
-    {
-        logger->info("Prediction completed successfully");
-    }
-}
-
-void PredictEngine::compute_predictions()
-{
-    throw InvalidOperationException("compute_predictions not yet implemented");
-}
-
-void PredictEngine::write_output()
-{
-    throw InvalidOperationException("write_output not yet implemented");
-}
+void PredictEngine::write_output() {}
 
 }  // namespace gelex

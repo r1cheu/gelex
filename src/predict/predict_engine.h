@@ -2,12 +2,12 @@
 #define GELEX_PREDICT_PREDICT_ENGINE_H
 
 #include <filesystem>
-#include <memory>
 #include <vector>
 
 #include <Eigen/Core>
 #include "../src/data/loader/snp_effect_loader.h"
 #include "../src/predict/covar_effect_loader.h"
+#include "predict/predict_pipe.h"
 
 namespace gelex
 {
@@ -48,9 +48,7 @@ class PredictEngine
     Eigen::VectorXd predictions_;
     std::vector<std::string> sample_ids_;
 
-    std::unique_ptr<PredictParamsPipe> params_pipe_;
-    std::unique_ptr<PredictDataPipe> data_pipe_;
-
+    PredictData data_;
     SnpEffects snp_effects_;
     detail::CovarEffects covar_effects_;
 };
