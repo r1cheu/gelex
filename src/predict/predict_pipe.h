@@ -22,6 +22,7 @@ class DcovarPredictLoader;
 
 struct PredictData
 {
+    std::vector<std::string> sample_ids;
     std::vector<std::string> qcovariate_names;
     Eigen::MatrixXd qcovariates;
 
@@ -48,6 +49,7 @@ class PredictDataPipe
     auto take_data() && -> PredictData
     {
         return PredictData{
+            .sample_ids = std::move(sample_ids_),
             .qcovariate_names = std::move(qcovariate_names_),
             .qcovariates = std::move(qcovariates_),
             .dcovariate_names = std::move(dcovariate_names_),
@@ -79,6 +81,7 @@ class PredictDataPipe
     std::unique_ptr<detail::DcovarPredictLoader> dcovar_loader_;
     Eigen::MatrixXd qcovariates_;
     std::vector<std::string> qcovariate_names_;
+    std::vector<std::string> sample_ids_;
     std::map<std::string, std::vector<std::string>> dcovariates_;
     std::vector<std::string> dcovariate_names_;
 

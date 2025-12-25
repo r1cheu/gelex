@@ -172,6 +172,83 @@ std::pair<std::filesystem::path, Eigen::MatrixXd> BedFixture::create_bed_files(
     return {current_prefix_, genotypes};
 }
 
+std::pair<std::filesystem::path, Eigen::MatrixXd>
+BedFixture::create_deterministic_bed_files(
+    const Eigen::MatrixXd& genotypes,
+    const std::vector<std::string>& sample_ids,
+    const std::vector<std::string>& snp_ids,
+    const std::vector<std::string>& chromosomes,
+    const std::vector<std::pair<char, char>>& alleles)
+{
+    const Eigen::Index num_samples = genotypes.rows();
+    const Eigen::Index num_snps = genotypes.cols();
+
+    // 验证可选参数维度
+    if (!sample_ids.empty()
+        && static_cast<Eigen::Index>(sample_ids.size()) != num_samples)
+    {
+        throw ArgumentValidationException(
+            std::format(
+                "Sample ID count {} does not match genotype rows {}",
+                sample_ids.size(),
+                num_samples));
+    }
+    if (!snp_ids.empty()
+        && static_cast<Eigen::Index>(snp_ids.size()) != num_snps)
+    {
+        throw ArgumentValidationException(
+            std::format(
+                "SNP ID count {} does not match genotype columns {}",
+                snp_ids.size(),
+                num_snps));
+    }
+    if (!chromosomes.empty()
+        && static_cast<Eigen::Index>(chromosomes.size()) != num_snps)
+    {
+        throw ArgumentValidationException(
+            std::format(
+                "Chromosome count {} does not match genotype columns {}",
+                chromosomes.size(),
+                num_snps));
+    }
+    if (!alleles.empty()
+        && static_cast<Eigen::Index>(alleles.size()) != num_snps)
+    {
+        throw ArgumentValidationException(
+            std::format(
+                "Allele pair count {} does not match genotype columns {}",
+                alleles.size(),
+                num_snps));
+    }
+
+    // 生成默认值（如果未提供）
+    std::vector<std::string> final_sample_ids = sample_ids;
+    if (final_sample_ids.empty())
+    {
+        final_sample_ids = generate_random_sample_ids(num_samples, rng_);
+    }
+
+    std::vector<std::string> final_snp_ids = snp_ids;
+    if (final_snp_ids.empty())
+    {
+        final_snp_ids = generate_random_snp_ids(num_snps, rng_);
+    }
+
+    std::vector<std::string> final_chromosomes = chromosomes;
+    if (final_chromosomes.empty())
+    {
+        final_chromosomes = std::vector<std::string>(
+            num_snps, "1");
+    }
+
+    current_prefix_ = file_fixture_.generate_random_file_path();
+    write_bed_file(genotypes);
+    write_bim_file(num_snps, final_snp_ids, final_chromosomes, alleles);
+    write_fam_file(num_samples, final_sample_ids);
+
+    return {current_prefix_, genotypes};
+}
+
 std::vector<std::byte> BedFixture::encode_variant(
     const Eigen::VectorXd& variant)
 {
@@ -221,7 +298,8 @@ void BedFixture::write_bed_file(const Eigen::MatrixXd& genotypes)
 void BedFixture::write_bim_file(
     Eigen::Index num_snps,
     std::span<const std::string> snp_ids,
-    std::span<const std::string> chromosomes)
+    std::span<const std::string> chromosomes,
+    std::span<const std::pair<char, char>> alleles)
 {
     auto bim_path = current_prefix_;
     bim_path.replace_extension(".bim");
@@ -234,7 +312,15 @@ void BedFixture::write_bim_file(
         std::string snp_id
             = snp_ids.empty() ? std::format("rs{}", i + 1) : snp_ids[i];
 
-        auto alleles = generate_random_alleles(rng_);
+        std::pair<char, char> allele_pair;
+        if (alleles.empty())
+        {
+            allele_pair = generate_random_alleles(rng_);
+        }
+        else
+        {
+            allele_pair = alleles[i];
+        }
 
         bim_content += std::format(
             "{} {} {} {} {} {}\n",
@@ -242,8 +328,8 @@ void BedFixture::write_bim_file(
             snp_id,
             static_cast<double>((i + 1) * 100),
             i + 1,
-            alleles.first,
-            alleles.second);
+            allele_pair.first,
+            allele_pair.second);
     }
 
     [[maybe_unused]] auto bim_file_path = file_fixture_.create_named_text_file(

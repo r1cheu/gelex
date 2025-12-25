@@ -7,7 +7,7 @@
 #include <Eigen/Core>
 #include "../src/data/loader/snp_effect_loader.h"
 #include "../src/predict/covar_effect_loader.h"
-#include "predict/predict_pipe.h"
+#include "predict_pipe.h"
 
 namespace gelex
 {
@@ -25,6 +25,7 @@ class PredictEngine
         std::filesystem::path covar_effect_path;
         std::filesystem::path qcovar_path;
         std::filesystem::path dcovar_path;
+        std::filesystem::path output_path;
         bool iid_only = false;
 
         void validate() const;
@@ -36,17 +37,31 @@ class PredictEngine
 
     const Eigen::VectorXd& predictions() const { return predictions_; }
     const std::vector<std::string>& sample_ids() const { return sample_ids_; }
+    const Eigen::VectorXd& snp_predictions() const { return snp_predictions_; }
+    const Eigen::MatrixXd& covar_predictions() const
+    {
+        return covar_predictions_;
+    }
+    const std::vector<std::string>& covar_prediction_names() const
+    {
+        return covar_prediction_names_;
+    }
 
    private:
     void load_parameters();
     void load_data();
     void validate_dimensions();
     void compute_predictions();
+    void compute_covar_predictions();
+    Eigen::VectorXd compute_snp_predictions();
     void write_output();
 
     Config config_;
     Eigen::VectorXd predictions_;
+    Eigen::VectorXd snp_predictions_;
     std::vector<std::string> sample_ids_;
+    Eigen::MatrixXd covar_predictions_;
+    std::vector<std::string> covar_prediction_names_;
 
     PredictData data_;
     SnpEffects snp_effects_;

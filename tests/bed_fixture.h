@@ -39,6 +39,13 @@ class BedFixture
         double maf_max = 0.5,
         uint64_t seed = std::random_device{}());
 
+    std::pair<std::filesystem::path, Eigen::MatrixXd> create_deterministic_bed_files(
+        const Eigen::MatrixXd& genotypes,
+        const std::vector<std::string>& sample_ids = {},
+        const std::vector<std::string>& snp_ids = {},
+        const std::vector<std::string>& chromosomes = {},
+        const std::vector<std::pair<char, char>>& alleles = {});
+
     [[nodiscard]] std::filesystem::path get_prefix() const noexcept
     {
         return current_prefix_;
@@ -62,7 +69,8 @@ class BedFixture
     void write_bim_file(
         Eigen::Index num_snps,
         std::span<const std::string> snp_ids,
-        std::span<const std::string> chromosomes);
+        std::span<const std::string> chromosomes,
+        std::span<const std::pair<char, char>> alleles = {});
 
     void write_fam_file(
         Eigen::Index num_samples,

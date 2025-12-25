@@ -89,6 +89,7 @@ void PredictDataPipe::format_dcovariates()
     const auto num_samples
         = static_cast<Eigen::Index>(sample_manager_->num_common_samples());
     const auto& id_map = sample_manager_->common_id_map();
+    sample_ids_ = sample_manager_->common_ids();
 
     Eigen::MatrixXd qcovariates;
     if (qcovar_loader_)
