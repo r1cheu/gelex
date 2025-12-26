@@ -2,9 +2,11 @@
 #define GELEX_PREDICT_PREDICT_ENGINE_H
 
 #include <filesystem>
+#include <unordered_map>
 #include <vector>
 
 #include <Eigen/Core>
+
 #include "../src/data/loader/snp_effect_loader.h"
 #include "../src/predict/covar_effect_loader.h"
 #include "predict_pipe.h"
@@ -12,8 +14,7 @@
 namespace gelex
 {
 
-class PredictParamsPipe;
-class PredictDataPipe;
+class PredictWriter;
 
 class PredictEngine
 {
@@ -38,6 +39,8 @@ class PredictEngine
     const Eigen::VectorXd& predictions() const { return predictions_; }
     const std::vector<std::string>& sample_ids() const { return sample_ids_; }
     const Eigen::VectorXd& snp_predictions() const { return snp_predictions_; }
+    const Eigen::VectorXd& add_predictions() const { return add_predictions_; }
+    const Eigen::VectorXd& dom_predictions() const { return dom_predictions_; }
     const Eigen::MatrixXd& covar_predictions() const
     {
         return covar_predictions_;
@@ -46,20 +49,26 @@ class PredictEngine
     {
         return covar_prediction_names_;
     }
+    const std::vector<std::string>& fids() const { return fids_; }
+    const std::vector<std::string>& iids() const { return iids_; }
 
    private:
     void load_parameters();
     void load_data();
     void validate_dimensions();
-    void compute_predictions();
-    void compute_covar_predictions();
-    Eigen::VectorXd compute_snp_predictions();
-    void write_output();
+    void compute();
+    void write();
 
     Config config_;
     Eigen::VectorXd predictions_;
     Eigen::VectorXd snp_predictions_;
+    Eigen::VectorXd add_predictions_;
+    Eigen::VectorXd dom_predictions_;
+
     std::vector<std::string> sample_ids_;
+    std::vector<std::string> fids_;
+    std::vector<std::string> iids_;
+
     Eigen::MatrixXd covar_predictions_;
     std::vector<std::string> covar_prediction_names_;
 

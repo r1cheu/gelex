@@ -1,18 +1,58 @@
 #include "predict_engine.h"
 
-#include <cmath>
-#include <filesystem>
 #include <format>
-
-#include <omp.h>
+#include <fstream>
+#include <ranges>
 
 #include "../src/data/parser.h"
+#include "covar_predictor.h"
+#include "gelex/exception.h"
 #include "predict/genotype_aligner.h"
 #include "predict_params_pipe.h"
 #include "predict_pipe.h"
+#include "predict_writer.h"
+#include "snp_predictor.h"
 
 namespace gelex
 {
+
+namespace
+{
+
+auto load_fam_fid_iid(const std::filesystem::path& fam_path)
+    -> std::pair<std::vector<std::string>, std::vector<std::string>>
+{
+    std::vector<std::string> fids;
+    std::vector<std::string> iids;
+    fids.reserve(1024);
+    iids.reserve(1024);
+
+    auto file = detail::open_file<std::ifstream>(fam_path, std::ios::in);
+    std::string line;
+
+    while (std::getline(file, line))
+    {
+        if (line.empty())
+        {
+            continue;
+        }
+
+        auto parts = line | std::ranges::views::split(' ')
+                     | std::ranges::views::take(2);
+        auto it = parts.begin();
+
+        std::string_view fid(*it);
+        fids.emplace_back(fid);
+
+        ++it;
+        std::string_view iid(*it);
+        iids.emplace_back(iid);
+    }
+
+    return {std::move(fids), std::move(iids)};
+}
+
+}  // namespace
 
 void PredictEngine::Config::validate() const
 {
@@ -37,10 +77,15 @@ void PredictEngine::Config::validate() const
 PredictEngine::PredictEngine(const Config& config) : config_(config)
 {
     config_.validate();
+}
 
+void PredictEngine::run()
+{
     load_parameters();
     load_data();
     validate_dimensions();
+    compute();
+    write();
 }
 
 void PredictEngine::load_parameters()
@@ -66,6 +111,38 @@ void PredictEngine::load_data()
     PredictDataPipe data_pipe(data_config);
     data_ = std::move(data_pipe).take_data();
     sample_ids_ = data_.sample_ids;
+
+    auto fam_path = config_.bed_path;
+    fam_path.replace_extension(".fam");
+    auto [fids, iids] = load_fam_fid_iid(fam_path);
+
+    const auto n_samples = static_cast<Eigen::Index>(sample_ids_.size());
+    fids_.resize(n_samples);
+    iids_.resize(n_samples);
+
+    std::unordered_map<std::string, Eigen::Index> fid_iid_to_idx;
+    fid_iid_to_idx.reserve(n_samples);
+
+    for (Eigen::Index i = 0; i < n_samples; ++i)
+    {
+        fid_iid_to_idx[sample_ids_[i]] = i;
+    }
+
+    for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(fids.size()); ++i)
+    {
+        const auto& fid = fids[i];
+        const auto& iid = iids[i];
+        const auto key
+            = config_.iid_only ? iid : std::format("{}_{}", fid, iid);
+
+        auto it = fid_iid_to_idx.find(key);
+        if (it != fid_iid_to_idx.end())
+        {
+            fids_[it->second] = fid;
+            iids_[it->second] = iid;
+        }
+    }
+
     GenotypeAligner genotype_filter(config_.bed_path, snp_effects_);
     data_.genotype = genotype_filter.load(std::move(data_.genotype));
 }
@@ -86,222 +163,33 @@ void PredictEngine::validate_dimensions()
     }
 }
 
-void PredictEngine::run()
+void PredictEngine::compute()
 {
-    compute_predictions();
+    SnpPredictor snp_predictor(snp_effects_);
+    auto snp_result = snp_predictor.compute_split(data_.genotype);
+    add_predictions_ = std::move(snp_result.add);
+    dom_predictions_ = std::move(snp_result.dom);
+    snp_predictions_ = add_predictions_ + dom_predictions_;
 
-    if (sample_ids_.size() != static_cast<size_t>(predictions_.size()))
-    {
-        throw InvalidInputException(
-            std::format(
-                "Dimension mismatch: {} sample IDs but {} predictions",
-                sample_ids_.size(),
-                predictions_.size()));
-    }
-
-    write_output();
-}
-
-void PredictEngine::compute_predictions()
-{
-    compute_covar_predictions();
-
-    snp_predictions_ = compute_snp_predictions();
+    CovarPredictor covar_predictor(covar_effects_);
+    auto covar_result = covar_predictor.compute(data_);
+    covar_predictions_ = std::move(covar_result.predictions);
+    covar_prediction_names_ = std::move(covar_result.names);
 
     predictions_ = snp_predictions_ + covar_predictions_.rowwise().sum();
 }
 
-void PredictEngine::compute_covar_predictions()
+void PredictEngine::write()
 {
-    const Eigen::Index n_samples = data_.genotype.rows();
-    const size_t n_cont = data_.qcovariate_names.size();
-    const size_t n_cat = data_.dcovariate_names.size();
-
-    covar_predictions_ = Eigen::MatrixXd::Zero(n_samples, 1 + n_cont + n_cat);
-    covar_prediction_names_.clear();
-    covar_prediction_names_.reserve(1 + n_cont + n_cat);
-
-    if (std::isnan(covar_effects_.intercept))
-    {
-        throw InvalidInputException("Intercept coefficient is missing or NaN");
-    }
-    covar_predictions_.col(0).setConstant(covar_effects_.intercept);
-    covar_prediction_names_.emplace_back("Intercept");
-
-    if (data_.qcovariates.cols() != static_cast<Eigen::Index>(n_cont + 1))
-    {
-        throw InvalidInputException(
-            std::format(
-                "qcovariates matrix has {} columns, expected {} ({} continuous "
-                "+ intercept)",
-                data_.qcovariates.cols(),
-                n_cont + 1,
-                n_cont));
-    }
-
-    for (size_t i = 0; i < n_cont; ++i)
-    {
-        const std::string& var_name = data_.qcovariate_names[i];
-        auto it = covar_effects_.continuous_coeffs.find(var_name);
-        if (it == covar_effects_.continuous_coeffs.end())
-        {
-            throw InvalidInputException(
-                std::format(
-                    "Missing coefficient for continuous variable '{}'",
-                    var_name));
-        }
-        covar_predictions_.col(1 + i)
-            = data_.qcovariates.col(i + 1) * it->second;
-        covar_prediction_names_.push_back(var_name);
-    }
-
-    for (size_t i = 0; i < n_cat; ++i)
-    {
-        const std::string& var_name = data_.dcovariate_names[i];
-        auto cat_it = covar_effects_.categorical_coeffs.find(var_name);
-        if (cat_it == covar_effects_.categorical_coeffs.end())
-        {
-            throw InvalidInputException(
-                std::format(
-                    "Missing coefficient for categorical variable '{}'",
-                    var_name));
-        }
-
-        const auto& level_coeffs = cat_it->second;
-        const auto& levels_vec = data_.dcovariates.at(var_name);
-
-        for (Eigen::Index j = 0; j < n_samples; ++j)
-        {
-            const std::string& level = levels_vec[j];
-            auto level_it = level_coeffs.find(level);
-            if (level_it == level_coeffs.end())
-            {
-                throw InvalidInputException(
-                    std::format(
-                        "Missing coefficient for level '{}' of variable '{}'",
-                        level,
-                        var_name));
-            }
-            covar_predictions_(j, 1 + n_cont + i) = level_it->second;
-        }
-        covar_prediction_names_.push_back(var_name);
-    }
-}
-
-Eigen::VectorXd PredictEngine::compute_snp_predictions()
-{
-    const Eigen::Index n_samples = data_.genotype.rows();
-    const Eigen::Index n_snps = data_.genotype.cols();
-
-    Eigen::VectorXd frequencies = snp_effects_.frequencies();
-    Eigen::VectorXd additive_effects = snp_effects_.additive_effects();
-    const bool has_dominant = snp_effects_.dominance_effects().size() > 0;
-    Eigen::VectorXd dominant_effects
-        = has_dominant ? snp_effects_.dominance_effects() : Eigen::VectorXd();
-
-    if (frequencies.size() != n_snps || additive_effects.size() != n_snps)
-    {
-        throw InvalidInputException(
-            std::format(
-                "Dimension mismatch: genotype has {} SNPs, but frequencies has "
-                "{} and additive effects has {}",
-                n_snps,
-                frequencies.size(),
-                additive_effects.size()));
-    }
-    if (has_dominant && dominant_effects.size() != n_snps)
-    {
-        throw InvalidInputException(
-            std::format(
-                "Dimension mismatch: genotype has {} SNPs, but dominant "
-                "effects has {}",
-                n_snps,
-                dominant_effects.size()));
-    }
-
-    const double eps = 1e-10;
-
-    Eigen::VectorXd predictions = Eigen::VectorXd::Zero(n_samples);
-
-#pragma omp parallel
-    {
-        Eigen::VectorXd thread_predictions = Eigen::VectorXd::Zero(n_samples);
-
-#pragma omp for schedule(dynamic) nowait
-        for (Eigen::Index j = 0; j < n_snps; ++j)
-        {
-            const double p = frequencies[j];
-            const double q = 1.0 - p;
-
-            const double scale_add = std::sqrt(std::max(2.0 * p * q, eps));
-            const double mean_add = 2.0 * p;
-            Eigen::VectorXd std_add
-                = (data_.genotype.col(j).array() - mean_add) / scale_add;
-            thread_predictions += std_add * additive_effects[j];
-
-            if (has_dominant)
-            {
-                const double mean_dom = 2.0 * p * p;
-                const double scale_dom = std::max(2.0 * p * q, eps);
-
-                Eigen::VectorXd dom_transformed
-                    = data_.genotype.col(j).unaryExpr(
-                        [p](double x) -> double
-                        {
-                            if (x == 1.0)
-                            {
-                                return 2.0 * p;
-                            }
-                            if (x == 2.0)
-                            {
-                                return (4.0 * p) - 2.0;
-                            }
-                            return 0.0;
-                        });
-
-                Eigen::VectorXd std_dom
-                    = (dom_transformed.array() - mean_dom) / scale_dom;
-                thread_predictions += std_dom * dominant_effects[j];
-            }
-        }
-
-#pragma omp critical
-        predictions += thread_predictions;
-    }
-
-    return predictions;
-}
-
-void PredictEngine::write_output()
-{
-    auto stream
-        = detail::open_file<std::ofstream>(config_.output_path, std::ios::out);
-
-    // 写入表头
-    stream << "sample_id\ttotal_prediction";
-    for (const auto& name : covar_prediction_names_)
-    {
-        stream << "\t" << name;
-    }
-    stream << "\tsnp_contribution\n";
-
-    // 写入每行数据
-    const Eigen::Index n_samples = predictions_.size();
-    for (Eigen::Index i = 0; i < n_samples; ++i)
-    {
-        stream << sample_ids_[i];
-        stream << std::format("\t{:.6f}", predictions_[i]);
-
-        // 协变量贡献
-        for (Eigen::Index j = 0; j < covar_predictions_.cols(); ++j)
-        {
-            stream << std::format("\t{:.6f}", covar_predictions_(i, j));
-        }
-
-        // SNP贡献
-        stream << std::format("\t{:.6f}", snp_predictions_[i]);
-        stream << "\n";
-    }
+    PredictWriter writer(config_.output_path);
+    writer.write(
+        predictions_,
+        fids_,
+        iids_,
+        add_predictions_,
+        dom_predictions_,
+        covar_predictions_,
+        covar_prediction_names_);
 }
 
 }  // namespace gelex

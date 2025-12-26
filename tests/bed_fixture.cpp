@@ -183,7 +183,6 @@ BedFixture::create_deterministic_bed_files(
     const Eigen::Index num_samples = genotypes.rows();
     const Eigen::Index num_snps = genotypes.cols();
 
-    // 验证可选参数维度
     if (!sample_ids.empty()
         && static_cast<Eigen::Index>(sample_ids.size()) != num_samples)
     {
@@ -237,8 +236,7 @@ BedFixture::create_deterministic_bed_files(
     std::vector<std::string> final_chromosomes = chromosomes;
     if (final_chromosomes.empty())
     {
-        final_chromosomes = std::vector<std::string>(
-            num_snps, "1");
+        final_chromosomes = std::vector<std::string>(num_snps, "1");
     }
 
     current_prefix_ = file_fixture_.generate_random_file_path();

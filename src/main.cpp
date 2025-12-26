@@ -3,6 +3,7 @@
 #include "config.h"
 
 #include "gelex/cli/fit_command.h"
+#include "gelex/cli/predict_command.h"
 #include "gelex/cli/simulation_command.h"
 #include "gelex/cli/utils.h"
 #include "gelex/logger.h"
@@ -14,9 +15,12 @@ int main(int argc, char* argv[])
     fit_command(fit);
     argparse::ArgumentParser simulate("simulate");
     simulate_command(simulate);
+    argparse::ArgumentParser predict("predict");
+    predict_command(predict);
 
     program.add_subparser(fit);
     program.add_subparser(simulate);
+    program.add_subparser(predict);
     constexpr std::string_view error_marker = "[\033[31merror\033[0m] ";
 
     try
@@ -34,6 +38,10 @@ int main(int argc, char* argv[])
         else if (program.is_subcommand_used("simulate"))
         {
             std::cerr << simulate;
+        }
+        else if (program.is_subcommand_used("predict"))
+        {
+            std::cerr << predict;
         }
         else
         {
@@ -72,6 +80,30 @@ int main(int argc, char* argv[])
             gelex::cli::log_command(
                 simulate, gelex::cli::parse_command(argc, argv));
             int code = simulate_execute(simulate);
+            return code;
+        }
+        catch (const std::exception& e)
+        {
+            auto logger = gelex::logging::get();
+            if (logger)
+            {
+                logger->error("{}", e.what());
+            }
+            else
+            {
+                std::cerr << error_marker << e.what() << "\n";
+            }
+            return 1;
+        }
+    }
+
+    if (program.is_subcommand_used("predict"))
+    {
+        try
+        {
+            gelex::cli::log_command(
+                predict, gelex::cli::parse_command(argc, argv));
+            int code = predict_execute(predict);
             return code;
         }
         catch (const std::exception& e)
