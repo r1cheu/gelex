@@ -159,22 +159,22 @@ TEST_CASE("FamLoader - Edge cases", "[data][loader][edge]")
     FileFixture files;
     SECTION("Edge case - single line")
     {
-        // FamLoader expects space delimiter, tabs should cause parsing errors
         const auto* fam_content = "1 sample1 0 0 1 2.5\n";
         auto file_path = files.create_text_file(fam_content, ".fam");
         REQUIRE_NOTHROW(FamLoader(file_path, true));
     }
 
-    SECTION("Edge case - .fam file with tab delimiter (should fail)")
+    SECTION("Edge case - .fam file with tab delimiter (should succeed)")
     {
-        // FamLoader expects space delimiter, tabs should cause parsing errors
         const auto* fam_content = "1\tsample1\t0\t0\t1\t2.5\n";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        REQUIRE_THROWS_MATCHES(
-            FamLoader(file_path, false),
-            gelex::FileFormatException,
-            Catch::Matchers::MessageMatches(
-                EndsWith("failed to parse FID and IID (missing delimiter)")));
+        REQUIRE_NOTHROW(
+            [&]()
+            {
+                FamLoader loader(file_path, false);
+                REQUIRE(loader.ids().size() == 1);
+                REQUIRE(loader.ids()[0] == "1_sample1");
+            }());
     }
 }

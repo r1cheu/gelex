@@ -179,4 +179,17 @@ void parse_all_doubles(
     }
 }
 
+char detect_file_delimiter(std::ifstream& file)
+{
+    std::string probe_line;
+
+    std::getline(file, probe_line);
+    bool is_tab = !probe_line.empty() && probe_line.contains('\t');
+
+    file.clear();
+    file.seekg(0);
+
+    return is_tab ? '\t' : ' ';
+}
+
 }  // namespace gelex::detail

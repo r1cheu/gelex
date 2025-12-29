@@ -28,7 +28,6 @@ class BimLoader
    private:
     SnpEffects snp_effects_;
     void set_snp_info(char delimiter, std::ifstream& file);
-    static char detect_delimiter(std::ifstream& file);
 };
 
 }  // namespace gelex::detail

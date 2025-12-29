@@ -32,6 +32,7 @@ void FamLoader::set_ids(const std::filesystem::path& path, bool iid_only)
 {
     ids_.clear();
     auto file = detail::open_file<std::ifstream>(path, std::ios::in);
+    char delimiter = detect_file_delimiter(file);
 
     ids_.reserve(1024);  // Start small
     std::string line;
@@ -46,7 +47,7 @@ void FamLoader::set_ids(const std::filesystem::path& path, bool iid_only)
         }
         try
         {
-            ids_.emplace_back(parse_id(line, iid_only, ' '));
+            ids_.emplace_back(parse_id(line, iid_only, delimiter));
         }
         catch (const GelexException& e)
         {

@@ -118,6 +118,8 @@ std::vector<std::string_view> parse_header(
 std::string
 parse_id(std::string_view line, bool iid_only, char delimiter = '\t');
 
+char detect_file_delimiter(std::ifstream& file);
+
 void parse_string(
     std::string_view line,
     std::vector<std::string_view>& out,

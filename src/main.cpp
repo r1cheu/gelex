@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
     {
         try
         {
-            gelex::cli::log_command(fit, gelex::cli::parse_command(argc, argv));
+            gelex::logging::initialize(fit.get("--out"));
             int code = fit_execute(fit);
             return code;
         }
@@ -77,8 +77,7 @@ int main(int argc, char* argv[])
     {
         try
         {
-            gelex::cli::log_command(
-                simulate, gelex::cli::parse_command(argc, argv));
+            gelex::logging::initialize(simulate.get("--out"));
             int code = simulate_execute(simulate);
             return code;
         }
@@ -101,8 +100,7 @@ int main(int argc, char* argv[])
     {
         try
         {
-            gelex::cli::log_command(
-                predict, gelex::cli::parse_command(argc, argv));
+            gelex::logging::initialize(predict.get("--out"));
             int code = predict_execute(predict);
             return code;
         }

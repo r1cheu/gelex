@@ -17,12 +17,6 @@ bool is_tty();
 
 std::string repeat(int n, std::string_view str);
 
-std::vector<std::string> parse_command(int argc, char* args[]);
-
-void log_command(
-    const argparse::ArgumentParser& subcommand,
-    std::span<const std::string> cmd);
-
 void print_banner_message(std::string_view version);
 
 }  // namespace gelex::cli

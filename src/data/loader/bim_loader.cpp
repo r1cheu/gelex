@@ -21,7 +21,7 @@ namespace gelex::detail
 BimLoader::BimLoader(const std::filesystem::path& path)
 {
     auto file = detail::open_file<std::ifstream>(path, std::ios::in);
-    char delimiter = detect_delimiter(file);
+    char delimiter = detect_file_delimiter(file);
     try
     {
         set_snp_info(delimiter, file);
@@ -72,19 +72,6 @@ void BimLoader::set_snp_info(char delimiter, std::ifstream& file)
             throw DataParseException(std::format("{}: {}", n_line, err.what()));
         };
     }
-}
-
-char BimLoader::detect_delimiter(std::ifstream& file)
-{
-    std::string probe_line;
-
-    std::getline(file, probe_line);
-    bool is_tab = !probe_line.empty() && probe_line.contains('\t');
-
-    file.clear();
-    file.seekg(0);
-
-    return is_tab ? '\t' : ' ';
 }
 
 std::vector<std::string> BimLoader::get_ids() const
