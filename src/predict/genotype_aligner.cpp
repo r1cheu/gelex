@@ -16,7 +16,7 @@ GenotypeAligner::GenotypeAligner(
     match_plan_ = matcher.match(bed_path);
 }
 
-auto GenotypeAligner::load(Eigen::MatrixXd&& raw_genotype) const
+auto GenotypeAligner::align(Eigen::MatrixXd&& raw_genotype) const
     -> Eigen::MatrixXd
 {
     Eigen::MatrixXd genotype = std::move(raw_genotype);

@@ -3,13 +3,30 @@
 #include <format>
 #include <fstream>
 #include <ostream>
-#include <ranges>
 
 #include "../src/data/parser.h"
 #include "gelex/exception.h"
 
 namespace gelex
 {
+namespace
+{
+
+void write_prediction_impl(
+    std::ostream& stream,
+    double total_prediction,
+    const Eigen::Ref<const Eigen::RowVectorXd>& covar_pred)
+{
+    stream << std::format("\t{:.6f}", total_prediction);
+    const Eigen::Index covar_end = covar_pred.cols();
+
+    for (Eigen::Index j = 0; j < covar_end; ++j)
+    {
+        stream << std::format("\t{:.6f}", covar_pred(j));
+    }
+}
+
+}  // namespace
 
 PredictWriter::PredictWriter(
     const std::filesystem::path& output_path,
@@ -24,76 +41,63 @@ PredictWriter::PredictWriter(
 
 void PredictWriter::write_header(
     std::ostream& stream,
-    std::span<const std::string> covar_names) const
+    std::span<const std::string> covar_names,
+    bool has_dom) const
 {
     if (!iid_only_)
     {
         stream << "FID\t";
     }
     stream << "IID\tprediction";
+
     for (const auto& name : covar_names)
     {
         stream << "\t" << name;
     }
+
+    if (!has_dom)
+    {
+        stream << "\tadditive\n";
+        return;
+    }
     stream << "\tadditive\tdominant\n";
 }
-void PredictWriter::write_prediction_with_dom(
+
+void PredictWriter::write_prediction(
     std::ostream& stream,
     double total_prediction,
     const Eigen::Ref<const Eigen::RowVectorXd>& covar_pred,
     double add_pred,
     double dom_pred)
 {
-    stream << std::format("\t{:.6f}", total_prediction);
-    const Eigen::Index covar_end = covar_pred.cols();
-
-    for (Eigen::Index j = 0; j < covar_end; ++j)
-    {
-        stream << std::format("\t{:.6f}", covar_pred(j));
-    }
-
+    write_prediction_impl(stream, total_prediction, covar_pred);
     stream << std::format("\t{:.6f}\t{:.6f}\n", add_pred, dom_pred);
 }
 
-void PredictWriter::write_prediction_no_dom(
+void PredictWriter::write_prediction(
     std::ostream& stream,
     double total_prediction,
     const Eigen::Ref<const Eigen::RowVectorXd>& covar_pred,
     double add_pred)
 {
-    stream << std::format("\t{:.6f}", total_prediction);
-    const Eigen::Index covar_end = covar_pred.cols();
-
-    for (Eigen::Index j = 0; j < covar_end; ++j)
-    {
-        stream << std::format("\t{:.6f}", covar_pred(j));
-    }
-
+    write_prediction_impl(stream, total_prediction, covar_pred);
     stream << std::format("\t{:.6f}\n", add_pred);
 }
 
 void PredictWriter::write_id(std::ostream& stream, std::string_view sample_id)
+    const
 {
-    auto parts = sample_id | std::views::split('_') | std::views::take(2);
-    auto it = parts.begin();
-
     if (iid_only_)
     {
-        if (it != parts.end())
-        {
-            stream << std::string_view(*it);
-        }
+        stream << sample_id;
     }
     else
     {
-        if (it != parts.end())
+        auto pos = sample_id.find('_');
+        if (pos != std::string_view::npos)
         {
-            stream << std::string_view(*it);
-            ++it;
-        }
-        if (it != parts.end())
-        {
-            stream << '\t' << std::string_view(*it);
+            stream << sample_id.substr(0, pos) << '\t'
+                   << sample_id.substr(pos + 1);
         }
     }
 }
@@ -114,17 +118,18 @@ void PredictWriter::write(
                 sample_ids.size(),
                 predictions.size()));
     }
+    bool has_dom = dom_pred.size() > 0;
 
     auto stream = detail::open_file<std::ofstream>(output_path_, std::ios::out);
-    write_header(stream, covar_names);
+    write_header(stream, covar_names, has_dom);
     const Eigen::Index n_samples = predictions.size();
 
-    if (dom_pred.size() > 0)
+    if (has_dom)
     {
         for (Eigen::Index i = 0; i < n_samples; ++i)
         {
             write_id(stream, sample_ids[i]);
-            write_prediction_with_dom(
+            write_prediction(
                 stream,
                 predictions[i],
                 covar_pred.row(i),
@@ -137,7 +142,7 @@ void PredictWriter::write(
         for (Eigen::Index i = 0; i < n_samples; ++i)
         {
             write_id(stream, sample_ids[i]);
-            write_prediction_no_dom(
+            write_prediction(
                 stream, predictions[i], covar_pred.row(i), add_pred[i]);
         }
     }

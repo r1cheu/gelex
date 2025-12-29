@@ -31,11 +31,6 @@ CovarEffectLoader::CovarEffectLoader(
         throw FileFormatException(
             std::format("{}: {}", param_file_path.string(), e.what()));
     }
-
-    auto logger = gelex::logging::get();
-
-    logger->info(
-        "Loaded covariates effects from [{}]", param_file_path.string());
 }
 
 auto CovarEffectLoader::parse_param_file(const std::filesystem::path& file_path)

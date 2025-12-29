@@ -72,7 +72,7 @@ void PredictEngine::load_data()
     sample_ids_ = data_.sample_ids;
 
     GenotypeAligner genotype_filter(config_.bed_path, snp_effects_);
-    data_.genotype = genotype_filter.load(std::move(data_.genotype));
+    data_.genotype = genotype_filter.align(std::move(data_.genotype));
 }
 
 void PredictEngine::validate_dimensions()

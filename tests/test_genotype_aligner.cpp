@@ -125,7 +125,7 @@ TEST_CASE(
         GenotypeAligner aligner(bed_prefix, snp_effects);
         Eigen::MatrixXd original_genotypes
             = genotypes;  // Keep copy for comparison
-        Eigen::MatrixXd filtered = aligner.load(std::move(genotypes));
+        Eigen::MatrixXd filtered = aligner.align(std::move(genotypes));
 
         // Verify dimensions
         REQUIRE(filtered.rows() == num_samples);
@@ -166,7 +166,7 @@ TEST_CASE(
 
         // Create GenotypeAligner and load aligned genotypes
         GenotypeAligner aligner(bed_path, snp_effects);
-        Eigen::MatrixXd filtered = aligner.load(std::move(genotypes));
+        Eigen::MatrixXd filtered = aligner.align(std::move(genotypes));
 
         // Verify dimensions
         REQUIRE(filtered.rows() == num_samples);
@@ -211,7 +211,7 @@ TEST_CASE(
         GenotypeAligner aligner(bed_prefix, snp_effects);
         Eigen::MatrixXd original_genotypes
             = genotypes;  // Keep copy for comparison
-        Eigen::MatrixXd filtered = aligner.load(std::move(genotypes));
+        Eigen::MatrixXd filtered = aligner.align(std::move(genotypes));
 
         // Verify dimensions: should have 2 columns (2 effect SNPs)
         REQUIRE(filtered.rows() == num_samples);
@@ -262,7 +262,7 @@ TEST_CASE(
 
         // Create GenotypeAligner and load aligned genotypes
         GenotypeAligner aligner(bed_prefix, snp_effects);
-        Eigen::MatrixXd filtered = aligner.load(std::move(genotypes));
+        Eigen::MatrixXd filtered = aligner.align(std::move(genotypes));
 
         // Verify dimensions: should have 2 columns (2 effect SNPs)
         REQUIRE(filtered.rows() == num_samples);

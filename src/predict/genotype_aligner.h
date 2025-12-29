@@ -14,7 +14,7 @@ class GenotypeAligner
         const std::filesystem::path& bed_path,
         const SnpEffects& snp_effects);
 
-    auto load(Eigen::MatrixXd&& raw_genotype) const -> Eigen::MatrixXd;
+    auto align(Eigen::MatrixXd&& raw_genotype) const -> Eigen::MatrixXd;
 
    private:
     MatchPlan match_plan_;
