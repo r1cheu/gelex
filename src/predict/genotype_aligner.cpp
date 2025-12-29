@@ -25,8 +25,7 @@ auto GenotypeAligner::load(Eigen::MatrixXd&& raw_genotype) const
     Eigen::MatrixXd result(num_samples, num_snp_effects_);
     result.setZero();
 
-#pragma omp parallel for schedule(dynamic) default(none) \
-    shared(result, genotype)
+#pragma omp parallel for schedule(guided) default(none) shared(result, genotype)
     for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(match_plan_.size());
          ++i)
     {

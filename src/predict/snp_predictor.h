@@ -12,6 +12,14 @@ struct SnpComputeResult
 {
     Eigen::VectorXd add;
     Eigen::VectorXd dom;
+    [[nodiscard]] Eigen::VectorXd total() const
+    {
+        if (dom.size() > 0)
+        {
+            return add + dom;
+        }
+        return add;
+    }
 };
 
 class SnpPredictor
@@ -19,11 +27,13 @@ class SnpPredictor
    public:
     explicit SnpPredictor(const SnpEffects& effects);
 
-    Eigen::VectorXd compute(const Eigen::MatrixXd& genotype);
-    SnpComputeResult compute_split(const Eigen::MatrixXd& genotype);
+    SnpComputeResult compute(
+        const Eigen::Ref<const Eigen::MatrixXd>& genotype) const;
 
    private:
     SnpEffects effects_;
+    void validate_dimensions(
+        const Eigen::Ref<const Eigen::MatrixXd>& genotype) const;
 };
 
 }  // namespace gelex

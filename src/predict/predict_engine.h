@@ -2,7 +2,6 @@
 #define GELEX_PREDICT_PREDICT_ENGINE_H
 
 #include <filesystem>
-#include <unordered_map>
 #include <vector>
 
 #include <Eigen/Core>
@@ -49,8 +48,6 @@ class PredictEngine
     {
         return covar_prediction_names_;
     }
-    const std::vector<std::string>& fids() const { return fids_; }
-    const std::vector<std::string>& iids() const { return iids_; }
 
    private:
     void load_parameters();
@@ -66,8 +63,6 @@ class PredictEngine
     Eigen::VectorXd dom_predictions_;
 
     std::vector<std::string> sample_ids_;
-    std::vector<std::string> fids_;
-    std::vector<std::string> iids_;
 
     Eigen::MatrixXd covar_predictions_;
     std::vector<std::string> covar_prediction_names_;
