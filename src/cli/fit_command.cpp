@@ -2,7 +2,9 @@
 
 #include <thread>
 
+#include "config.h"
 #include "fit_command_detail.h"
+#include "gelex/cli/utils.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/data_pipe.h"
 #include "gelex/data/sample_manager.h"
@@ -155,7 +157,15 @@ int fit_execute(argparse::ArgumentParser& fit)
 
     auto logger = gelex::logging::get();
 
-    app::setup_parallelization(fit.get<int>("--threads"), logger);
+    app::setup_parallelization(fit.get<int>("--threads"));
+
+    gelex::cli::print_fit_header(
+        PROJECT_VERSION,
+        fit.get("-m"),
+        dom,
+        fit.get<int>("--iters"),
+        fit.get<int>("--burnin"),
+        fit.get<int>("--threads"));
 
     auto bed_path = gelex::BedPipe::format_bed_path(fit.get("bfile"));
 

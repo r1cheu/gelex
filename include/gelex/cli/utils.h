@@ -1,9 +1,7 @@
 #pragma once
 
-#include <span>
 #include <string>
 #include <string_view>
-#include <vector>
 
 #include <argparse.h>
 
@@ -15,8 +13,16 @@ namespace gelex::cli
  */
 bool is_tty();
 
-std::string repeat(int n, std::string_view str);
+std::string repeat(size_t n, std::string_view str);
 
 void print_banner_message(std::string_view version);
+
+void print_fit_header(
+    std::string_view version,
+    std::string_view model_name,
+    bool has_dominance,
+    int iters,
+    int burnin,
+    int threads);
 
 }  // namespace gelex::cli
