@@ -36,34 +36,36 @@ PhenoStats DataPipe::load_phenotypes()
 
     phenotype_loader_ = std::make_unique<detail::PhenotypeLoader>(
         config_.phenotype_path, config_.phenotype_column, config_.iid_only);
-    phenotype_name_ = phenotype_loader_->name();
 
     return PhenoStats{
         .samples_loaded = phenotype_loader_->data().size(),
-        .trait_name = phenotype_name_};
+        .trait_name = phenotype_loader_->name()};
 }
 
 CovarStats DataPipe::load_covariates()
 {
+    std::vector<std::string> q_names;
+    std::vector<std::string> d_names;
+
     if (!config_.qcovar_path.empty())
     {
         qcovar_loader_ = std::make_unique<detail::QcovarLoader>(
             config_.qcovar_path, config_.iid_only);
-        qcovariate_names_ = qcovar_loader_->names();
+        q_names = qcovar_loader_->names();
     }
 
     if (!config_.dcovar_path.empty())
     {
         dcovar_loader_ = std::make_unique<detail::DcovarLoader>(
             config_.dcovar_path, config_.iid_only);
-        dcovariate_names_ = dcovar_loader_->names();
+        d_names = dcovar_loader_->names();
     }
 
     return CovarStats{
-        .qcovar_loaded = qcovariate_names_.size(),
-        .dcovar_loaded = dcovariate_names_.size(),
-        .q_names = qcovariate_names_,
-        .d_names = dcovariate_names_};
+        .qcovar_loaded = q_names.size(),
+        .dcovar_loaded = d_names.size(),
+        .q_names = std::move(q_names),
+        .d_names = std::move(d_names)};
 }
 
 IntersectionStats DataPipe::intersect_samples()
@@ -178,29 +180,18 @@ void DataPipe::convert_to_matrices()
 
     fixed_effect_names_.clear();
     fixed_effect_names_.emplace_back("intercept");
-    fixed_effect_names_.insert(
-        fixed_effect_names_.end(),
-        qcovariate_names_.begin(),
-        qcovariate_names_.end());
-    fixed_effect_names_.insert(
-        fixed_effect_names_.end(),
-        dcovariate_names_.begin(),
-        dcovariate_names_.end());
-}
-
-const std::string& DataPipe::phenotype_name() const
-{
-    return phenotype_name_;
-}
-
-const std::vector<std::string>& DataPipe::qcovariate_names() const
-{
-    return qcovariate_names_;
-}
-
-const std::vector<std::string>& DataPipe::dcovariate_names() const
-{
-    return dcovariate_names_;
+    if (qcovar_loader_)
+    {
+        auto names = qcovar_loader_->names();
+        fixed_effect_names_.insert(
+            fixed_effect_names_.end(), names.begin(), names.end());
+    }
+    if (dcovar_loader_)
+    {
+        auto names = dcovar_loader_->names();
+        fixed_effect_names_.insert(
+            fixed_effect_names_.end(), names.begin(), names.end());
+    }
 }
 
 const std::vector<std::string>& DataPipe::fixed_effect_names() const

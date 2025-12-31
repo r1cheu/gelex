@@ -188,22 +188,35 @@ int fit_execute(argparse::ArgumentParser& fit)
     // Data Loading & Pipeline
     // ================================================================
     gelex::DataPipe data_pipe(config);
+    logger->info("");
     logger->info(gelex::step(1, 4, "Loading Data..."));
 
     auto p_stats = data_pipe.load_phenotypes();
     logger->info(
         gelex::success(
-            "Phenotypes '{}' Loaded: {} samples",
-            p_stats.trait_name,
-            p_stats.samples_loaded));
+            "Phenotypes : {} samples ('{}')",
+            p_stats.samples_loaded,
+            p_stats.trait_name));
 
-    // 2. Load Covariates
     auto c_stats = data_pipe.load_covariates();
+    if (c_stats.qcovar_loaded > 0 || c_stats.dcovar_loaded > 0)
+    {
+        logger->info(gelex::task("Covariates : "));
+    }
     if (c_stats.qcovar_loaded > 0)
+    {
         logger->info(
-            "Loaded {} quantitative covariates.", c_stats.qcovar_loaded);
+            gelex::subtask(
+                "Quantitative : {} loaded ",
+                gelex::format_names(c_stats.q_names)));
+    }
     if (c_stats.dcovar_loaded > 0)
-        logger->info("Loaded {} discrete covariates.", c_stats.dcovar_loaded);
+    {
+        logger->info(
+            gelex::subtask(
+                "Discrete     : {} loaded ",
+                gelex::format_names(c_stats.d_names)));
+    }
 
     // 3. Intersect Samples
     auto i_stats = data_pipe.intersect_samples();
@@ -243,7 +256,9 @@ int fit_execute(argparse::ArgumentParser& fit)
     auto g_stats = data_pipe.build_matrices(progress_callback);
 
     if (pbar)
+    {
         pbar->done();
+    }
 
     logger->info("Genotype matrices built: {} SNPs.", g_stats.snps_loaded);
     if (g_stats.dominance_loaded)
