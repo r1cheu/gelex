@@ -1,11 +1,13 @@
 #include "formatter.h"
 
+#include <cstddef>
+#include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <fmt/chrono.h>
 #include <fmt/format.h>
-#include <armadillo>
 
 namespace gelex
 {
@@ -34,6 +36,26 @@ std::string title(const std::string& text, size_t total_length)
     std::string left(left_hyphens, '=');
     std::string right(right_hyphens, '=');
     return left + text + right;
+}
+
+std::string format_names(
+    std::span<const std::string> names,
+    std::ptrdiff_t limit)
+{
+    if (names.empty())
+    {
+        return "None";
+    }
+    if (names.size() <= static_cast<size_t>(limit))
+    {
+        return fmt::format("({})", fmt::join(names, ", "));
+    }
+
+    std::span<const std::string> sub = names.first(limit - 1);
+    return fmt::format(
+        "({}, ... and {} more)",
+        fmt::join(sub, ", "),
+        names.size() - (limit - 1));
 }
 
 std::string subtitle(const std::string& str)

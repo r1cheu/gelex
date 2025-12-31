@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+#include <span>
 #include <string>
 
 #include <fmt/color.h>
@@ -30,7 +32,8 @@ std::string
 step(int n, int total, fmt::format_string<Args...> fmt_str, Args&&... args)
 {
     return fmt::format("[{}/{}] ", n, total)
-           + fmt::format(fmt_str, std::forward<Args>(args)...);
+           + fmt::format(
+               fmt::emphasis::bold, fmt_str, std::forward<Args>(args)...);
 }
 
 template <typename... Args>
@@ -51,6 +54,10 @@ std::string success(fmt::format_string<Args...> fmt_str, Args&&... args)
     auto check_mark = fmt::format(fmt::fg(fmt::color::light_green), "  ✔ ");
     return check_mark + fmt::format(fmt_str, std::forward<Args>(args)...);
 }
+
+std::string format_names(
+    std::span<const std::string> names,
+    std::ptrdiff_t limit = 3);
 
 /**
  * @brief Format the scale inverse chi-squared distribution

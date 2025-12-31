@@ -103,14 +103,7 @@ class DataPipe
     }
     bool has_dominance_matrix() const { return dominance_matrix_ != nullptr; }
 
-    const std::string& phenotype_name() const;
-    const std::vector<std::string>& qcovariate_names() const;
-    const std::vector<std::string>& dcovariate_names() const;
     const std::vector<std::string>& fixed_effect_names() const;
-
-    size_t num_qcovariates() const { return qcovariate_names_.size(); }
-    size_t num_dcovariates() const { return dcovariate_names_.size(); }
-    size_t num_fixed_effects() const { return fixed_effect_names_.size(); }
 
    private:
     DataPipe() = default;
@@ -164,9 +157,6 @@ class DataPipe
     std::unique_ptr<std::variant<GenotypeMap, GenotypeMatrix>>
         dominance_matrix_;
 
-    std::string phenotype_name_;
-    std::vector<std::string> qcovariate_names_;
-    std::vector<std::string> dcovariate_names_;
     std::vector<std::string> fixed_effect_names_;
 };
 

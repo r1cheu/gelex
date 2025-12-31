@@ -103,6 +103,12 @@ VariantStats HardWenbergProcessor::process_variant(
     return stats;
 }
 
+VariantStats NOIAProcessor::process_variant(Eigen::Ref<Eigen::VectorXd> variant)
+{
+    throw InvalidInputException(
+        "Dominant NOIA processing is not implemented yet.");
+}
+
 VariantStats DominantStandardizingProcessor::process_variant(
     Eigen::Ref<Eigen::VectorXd> variant)
 {
@@ -171,4 +177,10 @@ VariantStats DominantOrthogonalHWEProcessor::process_variant(
     return stats;
 }
 
+VariantStats DominantNOIAProcessor::process_variant(
+    Eigen::Ref<Eigen::VectorXd> variant)
+{
+    throw InvalidInputException(
+        "Dominant NOIA processing is not implemented yet.");
+};
 }  // namespace gelex

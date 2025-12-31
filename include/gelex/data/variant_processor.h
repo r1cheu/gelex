@@ -53,6 +53,11 @@ struct HardWenbergProcessor
     static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
 };
 
+struct NOIAProcessor
+{
+    static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
+};
+
 struct DominantStandardizingProcessor
 {
     static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
@@ -64,6 +69,11 @@ struct DominantRawProcessor
 };
 
 struct DominantOrthogonalHWEProcessor
+{
+    static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
+};
+
+struct DominantNOIAProcessor
 {
     static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
 };
