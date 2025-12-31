@@ -2,10 +2,10 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <vector>
 
-#include <barkeep.h>
 #include <Eigen/Core>
 
 #include "../src/data/binary_matrix_writer.h"
@@ -19,8 +19,6 @@
 
 namespace gelex
 {
-
-namespace bk = barkeep;
 
 class GenotypePipe
 {
@@ -37,16 +35,12 @@ class GenotypePipe
     ~GenotypePipe() = default;
 
     template <VariantProcessor Processor = StandardizingProcessor>
-    auto process(size_t chunk_size = 10000) -> GenotypeMap
+    auto process(
+        size_t chunk_size = 10000,
+        std::function<void(size_t processed, size_t total)> progress_callback
+        = nullptr) -> GenotypeMap
     {
-        auto logger = gelex::logging::get();
         size_t current_processed_snps = 0;
-
-        auto pbar = bk::ProgressBar(
-            &current_processed_snps,
-            {.total = static_cast<uint64_t>(num_variants_),
-             .format = "{bar} {value}/{total} ",
-             .style = detail::BAR_STYLE});
 
         Processor processor;
 
@@ -54,6 +48,12 @@ class GenotypePipe
         variances_.resize(num_variants_);
         monomorphic_indices_.clear();
         monomorphic_indices_.reserve(num_variants_ / 100);
+
+        // Initial progress
+        if (progress_callback)
+        {
+            progress_callback(0, num_variants_);
+        }
 
         for (int64_t start_variant = 0; start_variant < num_variants_;)
         {
@@ -67,8 +67,12 @@ class GenotypePipe
             matrix_writer_->write(chunk);
             current_processed_snps += (end_variant - start_variant);
             start_variant = end_variant;
+
+            if (progress_callback)
+            {
+                progress_callback(current_processed_snps, num_variants_);
+            }
         }
-        pbar->done();
 
         return finalize();
     }

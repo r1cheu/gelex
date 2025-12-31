@@ -1,6 +1,7 @@
 #include "gelex/data/data_pipe.h"
 
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -19,73 +20,56 @@ DataPipe::~DataPipe() = default;
 DataPipe::DataPipe(DataPipe&&) noexcept = default;
 DataPipe& DataPipe::operator=(DataPipe&&) noexcept = default;
 
-DataPipe::DataPipe(const Config& config)
+DataPipe::DataPipe(const Config& config) : config_(config)
 {
     auto fam_path = config.bed_path;
     fam_path.replace_extension(".fam");
     sample_manager_ = std::make_shared<SampleManager>(fam_path);
+}
 
-    if (config.phenotype_path.empty())
+PhenoStats DataPipe::load_phenotypes()
+{
+    if (config_.phenotype_path.empty())
     {
         throw ArgumentValidationException("Phenotype file path is required.");
     }
 
-    load_phenotype(config);
-
-    if (!config.qcovar_path.empty())
-    {
-        load_qcovariates(config);
-    }
-
-    if (!config.dcovar_path.empty())
-    {
-        load_dcovariates(config);
-    }
-
-    intersect();
-    load_additive(config);
-    load_dominance(config);
-    convert_to_matrices();
-}
-
-void DataPipe::load_phenotype(const Config& config)
-{
     phenotype_loader_ = std::make_unique<detail::PhenotypeLoader>(
-        config.phenotype_path, config.phenotype_column, config.iid_only);
+        config_.phenotype_path, config_.phenotype_column, config_.iid_only);
     phenotype_name_ = phenotype_loader_->name();
+
+    return PhenoStats{
+        .samples_loaded = phenotype_loader_->data().size(),
+        .trait_name = phenotype_name_};
 }
 
-void DataPipe::load_qcovariates(const Config& config)
+CovarStats DataPipe::load_covariates()
 {
-    qcovar_loader_ = std::make_unique<detail::QcovarLoader>(
-        config.qcovar_path, config.iid_only);
-    qcovariate_names_ = qcovar_loader_->names();
-}
-
-void DataPipe::load_dcovariates(const Config& config)
-{
-    dcovar_loader_ = std::make_unique<detail::DcovarLoader>(
-        config.dcovar_path, config.iid_only);
-    dcovariate_names_ = dcovar_loader_->names();
-}
-
-void DataPipe::load_additive(const Config& config)
-{
-    load_genotype_impl<gelex::HardWenbergProcessor>(
-        config, ".add", additive_matrix_);
-}
-
-void DataPipe::load_dominance(const Config& config)
-{
-    if (config.use_dominance_effect)
+    if (!config_.qcovar_path.empty())
     {
-        load_genotype_impl<gelex::DominantOrthogonalHWEProcessor>(
-            config, ".dom", dominance_matrix_);
+        qcovar_loader_ = std::make_unique<detail::QcovarLoader>(
+            config_.qcovar_path, config_.iid_only);
+        qcovariate_names_ = qcovar_loader_->names();
     }
+
+    if (!config_.dcovar_path.empty())
+    {
+        dcovar_loader_ = std::make_unique<detail::DcovarLoader>(
+            config_.dcovar_path, config_.iid_only);
+        dcovariate_names_ = dcovar_loader_->names();
+    }
+
+    return CovarStats{
+        .qcovar_loaded = qcovariate_names_.size(),
+        .dcovar_loaded = dcovariate_names_.size(),
+        .q_names = qcovariate_names_,
+        .d_names = dcovariate_names_};
 }
 
-void DataPipe::intersect()
+IntersectionStats DataPipe::intersect_samples()
 {
+    size_t total_before = sample_manager_->num_common_samples();
+
     auto create_key_views = [](const auto& data)
     {
         std::vector<std::string_view> key_views;
@@ -115,6 +99,43 @@ void DataPipe::intersect()
         sample_manager_->intersect(key_views);
     }
     sample_manager_->finalize();
+
+    size_t common = sample_manager_->num_common_samples();
+
+    return IntersectionStats{
+        .total_samples = total_before,
+        .common_samples = common,
+        .excluded_samples = total_before - common};
+}
+
+GenotypeStats DataPipe::build_matrices(
+    std::function<void(size_t, size_t)> progress_callback)
+{
+    load_genotype_impl<gelex::HardWenbergProcessor>(
+        ".add", additive_matrix_, progress_callback);
+
+    if (config_.use_dominance_effect)
+    {
+        // For the second pass, if we want to show progress again, we might need
+        // to reset or handle the callback appropriately. For now, we just pass
+        // it again, so the progress bar (if stateful) might need to be reset
+        // externally or the UI should handle two distinct progress phases.
+        load_genotype_impl<gelex::DominantOrthogonalHWEProcessor>(
+            ".dom", dominance_matrix_, progress_callback);
+    }
+
+    convert_to_matrices();
+
+    size_t snps = 0;
+    if (additive_matrix_)
+    {
+        std::visit([&](auto&& arg) { snps = arg.cols(); }, *additive_matrix_);
+    }
+
+    return GenotypeStats{
+        .snps_loaded = snps,
+        .snps_total = snps,
+        .dominance_loaded = config_.use_dominance_effect};
 }
 
 void DataPipe::convert_to_matrices()

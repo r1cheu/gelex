@@ -86,6 +86,7 @@ void print_fit_header(
     width = std::max(width, title.length() + 8);
 
     size_t top_dashes = width - 7 - title.length();
+    logger->info("");  // empty line
     logger->info(" ┌── {} {}┐", title, repeat(top_dashes, "─"));
 
     // logger->info(" │{:^{}}│", "", width - 3); empty line

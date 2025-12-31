@@ -58,11 +58,6 @@ void SampleManager::intersect(std::span<const std::string_view> ids)
 
 void SampleManager::finalize()
 {
-    auto logger = gelex::logging::get();
-    logger->info(
-        "{} common samples available for analysis after intersection.",
-        common_ids_.size());
-
     common_id_map_.clear();
     common_id_map_.reserve(common_ids_.size());
 

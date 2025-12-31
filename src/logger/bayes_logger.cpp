@@ -6,7 +6,7 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
-#include "../src/logger/logger_utils.h"
+#include "../utils/formatter.h"
 #include "gelex/logger.h"
 #include "gelex/model/bayes/model.h"
 

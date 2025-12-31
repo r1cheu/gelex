@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
 #include <variant>
@@ -24,6 +25,35 @@ class PhenotypeLoader;
 class QcovarLoader;
 class DcovarLoader;
 }  // namespace detail
+
+struct PhenoStats
+{
+    size_t samples_loaded;
+    std::string trait_name;
+};
+
+struct CovarStats
+{
+    size_t qcovar_loaded;
+    size_t dcovar_loaded;
+    std::vector<std::string> q_names;
+    std::vector<std::string> d_names;
+};
+
+struct IntersectionStats
+{
+    size_t total_samples;
+    size_t common_samples;
+    size_t excluded_samples;
+};
+
+struct GenotypeStats
+{
+    size_t snps_loaded;
+    size_t snps_total;
+    bool dominance_loaded;
+};
+
 class DataPipe
 {
    public:
@@ -47,6 +77,16 @@ class DataPipe
     DataPipe& operator=(const DataPipe&) = delete;
     DataPipe& operator=(DataPipe&&) noexcept;
     ~DataPipe();
+
+    PhenoStats load_phenotypes();
+    CovarStats load_covariates();
+    IntersectionStats intersect_samples();
+
+    // build_matrices accepts a callback for progress updates.
+    // The callback receives (processed_snps, total_snps) for the current matrix
+    // being built.
+    GenotypeStats build_matrices(
+        std::function<void(size_t, size_t)> progress_callback = nullptr);
 
     Eigen::VectorXd take_phenotype() && { return std::move(phenotype_); }
     Eigen::MatrixXd take_fixed_effects() &&
@@ -75,17 +115,11 @@ class DataPipe
    private:
     DataPipe() = default;
 
-    void load_phenotype(const Config& config);
-    void load_qcovariates(const Config& config);
-    void load_dcovariates(const Config& config);
-    void load_additive(const Config& config);
-    void load_dominance(const Config& config);
-
     template <typename Processor, typename TargetPtr>
     void load_genotype_impl(
-        const Config& config,
         const std::string& suffix,
-        TargetPtr& target)
+        TargetPtr& target,
+        std::function<void(size_t, size_t)> progress_callback)
     {
         auto assign_to_target = [&](auto&& result_value)
         {
@@ -94,25 +128,28 @@ class DataPipe
                 std::forward<decltype(result_value)>(result_value));
         };
 
-        if (config.use_mmap)
+        if (config_.use_mmap)
         {
-            std::string file_path = config.output_prefix + suffix;
+            std::string file_path = config_.output_prefix + suffix;
             auto pipe = gelex::GenotypePipe(
-                config.bed_path, sample_manager_, file_path);
-            auto result = pipe.template process<Processor>(config.chunk_size);
+                config_.bed_path, sample_manager_, file_path);
+            auto result = pipe.template process<Processor>(
+                config_.chunk_size, progress_callback);
             assign_to_target(std::move(result));
         }
         else
         {
             auto loader
-                = gelex::GenotypeLoader(config.bed_path, sample_manager_);
-            auto result = loader.template process<Processor>(config.chunk_size);
+                = gelex::GenotypeLoader(config_.bed_path, sample_manager_);
+            auto result = loader.template process<Processor>(
+                config_.chunk_size, progress_callback);
             assign_to_target(std::move(result));
         }
     }
 
-    void intersect();
     void convert_to_matrices();
+
+    Config config_;
 
     std::unique_ptr<detail::PhenotypeLoader> phenotype_loader_;
     std::unique_ptr<detail::QcovarLoader> qcovar_loader_;

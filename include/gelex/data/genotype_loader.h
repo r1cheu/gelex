@@ -2,10 +2,10 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <vector>
 
-#include <barkeep.h>
 #include <Eigen/Core>
 
 #include "../src/estimator/bayes/indicator.h"
@@ -17,8 +17,6 @@
 
 namespace gelex
 {
-
-namespace bk = barkeep;
 
 class GenotypeLoader
 {
@@ -34,7 +32,10 @@ class GenotypeLoader
     ~GenotypeLoader() = default;
 
     template <VariantProcessor Processor = StandardizingProcessor>
-    GenotypeMatrix process(size_t chunk_size = 10000);
+    GenotypeMatrix process(
+        size_t chunk_size = 10000,
+        std::function<void(size_t processed, size_t total)> progress_callback
+        = nullptr);
 
     [[nodiscard]] Eigen::Index num_samples() const noexcept
     {
@@ -70,22 +71,23 @@ class GenotypeLoader
 };
 
 template <VariantProcessor Processor>
-GenotypeMatrix GenotypeLoader::process(size_t chunk_size)
+GenotypeMatrix GenotypeLoader::process(
+    size_t chunk_size,
+    std::function<void(size_t, size_t)> progress_callback)
 {
-    auto logger = gelex::logging::get();
     global_snp_idx_ = 0;
-
-    auto pbar = bk::ProgressBar(
-        &global_snp_idx_,
-        {.total = static_cast<uint64_t>(num_variants_),
-         .format = "{bar} {value}/{total} ",
-         .style = detail::BAR_STYLE});
 
     Processor processor;
 
     means_.resize(num_variants_);
     stddevs_.resize(num_variants_);
     monomorphic_indices_.reserve(num_variants_ / 100);
+
+    // Initial progress update
+    if (progress_callback)
+    {
+        progress_callback(0, num_variants_);
+    }
 
     for (int64_t start_variant = 0; start_variant < num_variants_;)
     {
@@ -97,8 +99,12 @@ GenotypeMatrix GenotypeLoader::process(size_t chunk_size)
 
         global_snp_idx_ += chunk.cols();
         start_variant = end_variant;
+
+        if (progress_callback)
+        {
+            progress_callback(global_snp_idx_, num_variants_);
+        }
     }
-    pbar->done();
 
     return finalize();
 }

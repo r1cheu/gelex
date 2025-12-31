@@ -16,13 +16,40 @@ std::string subtitle(const std::string& str);
 template <typename... Args>
 std::string item(fmt::format_string<Args...> fmt_str, Args&&... args)
 {
-    return " \u25AA " + fmt::format(fmt_str, std::forward<Args>(args)...);
+    return " ▪ " + fmt::format(fmt_str, std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 std::string subitem(fmt::format_string<Args...> fmt_str, Args&&... args)
 {
     return "  - " + fmt::format(fmt_str, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+std::string
+step(int n, int total, fmt::format_string<Args...> fmt_str, Args&&... args)
+{
+    return fmt::format("[{}/{}] ", n, total)
+           + fmt::format(fmt_str, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+std::string task(fmt::format_string<Args...> fmt_str, Args&&... args)
+{
+    return "  ● " + fmt::format(fmt_str, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+std::string subtask(fmt::format_string<Args...> fmt_str, Args&&... args)
+{
+    return "    - " + fmt::format(fmt_str, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+std::string success(fmt::format_string<Args...> fmt_str, Args&&... args)
+{
+    auto check_mark = fmt::format(fmt::fg(fmt::color::light_green), "  ✔ ");
+    return check_mark + fmt::format(fmt_str, std::forward<Args>(args)...);
 }
 
 /**
