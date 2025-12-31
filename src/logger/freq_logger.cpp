@@ -5,8 +5,8 @@
 #include <fmt/ranges.h>
 #include <armadillo>
 
-#include "../src/logger/logger_utils.h"
 #include "../src/model/freq/freq_effects.h"
+#include "../utils/formatter.h"
 #include "gelex/logger.h"
 #include "gelex/model/freq/model.h"
 
@@ -32,16 +32,16 @@ void EstimatorLogger::log_model_info(
     double tol,
     size_t max_iter)
 {
-    logger_->info(detail::title(" GBLUP MODEL ANALYSIS "));
-    logger_->info(detail::subtitle("Model Specification"));
-    logger_->info(detail::item("Model:  {}", model.formula()));
-    logger_->info(detail::item("Samples:  {:d}", model.n_individuals()));
+    logger_->info(title(" GBLUP MODEL ANALYSIS "));
+    logger_->info(subtitle("Model Specification"));
+    logger_->info(item("Model:  {}", model.formula()));
+    logger_->info(item("Samples:  {:d}", model.n_individuals()));
     logger_->info("");
 
-    logger_->info(detail::subtitle("Optimizer Specification"));
-    logger_->info(detail::item("Method:  {}", detail::cyan(optimizer_name)));
-    logger_->info(detail::item("tolerance:  {:.2e}", tol));
-    logger_->info(detail::item("Max Iterations:  {:d}", max_iter));
+    logger_->info(subtitle("Optimizer Specification"));
+    logger_->info(item("Method:  {}", cyan(optimizer_name)));
+    logger_->info(item("tolerance:  {:.2e}", tol));
+    logger_->info(item("Max Iterations:  {:d}", max_iter));
     logger_->info("");
 }
 
@@ -50,17 +50,17 @@ void EstimatorLogger::log_em_initialization(
     const TotalEffects& effects,
     double time_cost)
 {
-    logger_->info("Initializing with {} algorithm", detail::cyan("EM"));
+    logger_->info("Initializing with {} algorithm", cyan("EM"));
     logger_->info(
         "Initial: logL={:.3f} | \u03C3\u00B2=[{:.3f}] ({:.3f}s)",
         loglike,
-        detail::rebecca_purple(fmt::join(effects.values(), ", ")),
+        rebecca_purple(fmt::join(effects.values(), ", ")),
         time_cost);
 }
 
 void EstimatorLogger::log_iter_header(const GBLUP& model)
 {
-    logger_->info(detail::title(" REML ESTIMATION "));
+    logger_->info(title(" REML ESTIMATION "));
     logger_->info(
         "{:>9} {:>9} {} {:>9}",
         "Iter.",
@@ -86,7 +86,7 @@ void EstimatorLogger::log_iteration(
 
 void EstimatorLogger::log_results_header()
 {
-    logger_->info(detail::title(" RESULT "));
+    logger_->info(title(" RESULT "));
 }
 
 void EstimatorLogger::log_convergence_status(
@@ -97,13 +97,13 @@ void EstimatorLogger::log_convergence_status(
     double aic,
     double bic)
 {
-    logger_->info(detail::subtitle("Convergence"));
+    logger_->info(subtitle("Convergence"));
 
     if (converged)
     {
         logger_->info(
             " \u25AA Status:  {} ({} iterations in {:.3f}s)",
-            detail::green("Success"),
+            green("Success"),
             iter_count,
             elapsed_time);
     }
@@ -111,7 +111,7 @@ void EstimatorLogger::log_convergence_status(
     {
         logger_->warn(
             " \u25AA Status:  {} ({} iterations in {:.3f}s)",
-            detail::red("Failed"),
+            red("Failed"),
             max_iter,
             elapsed_time);
         logger_->warn(
@@ -126,29 +126,25 @@ void EstimatorLogger::log_fixed_effects(
     const GBLUP& model,
     const dvec& fixed_se)
 {
-    logger_->info(detail::subtitle("Fixed Effects"));
+    logger_->info(subtitle("Fixed Effects"));
     for (size_t i = 0; i < model.n_fixed_effects(); ++i)
     {
-        logger_->info(
-            detail::item(
-                "{}:  {}",
-                model.fixed().levels[i],
-                detail::with_std(model.fixed().coeff.at(i), fixed_se[i])));
+        logger_->info(item(
+            "{}:  {}",
+            model.fixed().levels[i],
+            with_std(model.fixed().coeff.at(i), fixed_se[i])));
     }
     logger_->info("");
 }
 
 void EstimatorLogger::log_variance_components(const GBLUP& model)
 {
-    logger_->info(detail::subtitle("Variance Components"));
+    logger_->info(subtitle("Variance Components"));
 
     for (const auto& effect : model.effects())
     {
         logger_->info(
-            detail::item(
-                "{}:  {}",
-                effect.name,
-                detail::with_std(effect.sigma, effect.se)));
+            item("{}:  {}", effect.name, with_std(effect.sigma, effect.se)));
     }
     logger_->info("");
 }
@@ -158,7 +154,7 @@ void EstimatorLogger::log_heritability(
     const std::vector<double>& h2_se,
     double sum_var)
 {
-    logger_->info(detail::subtitle("Heritability"));
+    logger_->info(subtitle("Heritability"));
     size_t index{};
     for (const auto& effect : model.effects())
     {
@@ -167,18 +163,17 @@ void EstimatorLogger::log_heritability(
             continue;
         }
 
-        logger_->info(
-            detail::item(
-                "{}:  {}",
-                effect.name,
-                detail::with_std(effect.sigma / sum_var, h2_se[index])));
+        logger_->info(item(
+            "{}:  {}",
+            effect.name,
+            with_std(effect.sigma / sum_var, h2_se[index])));
         ++index;
     }
 }
 
 void EstimatorLogger::log_results_footer()
 {
-    logger_->info(detail::title(""));
+    logger_->info(title(""));
 }
 
 std::string join_formula(

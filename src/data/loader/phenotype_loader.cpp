@@ -9,7 +9,6 @@
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
-#include "gelex/logger.h"
 
 // Internal
 #include "../src/data/parser.h"
@@ -37,9 +36,6 @@ PhenotypeLoader::PhenotypeLoader(
         throw FileFormatException(
             std::format("{}:{}", path.string(), e.what()));
     }
-
-    gelex::logging::get()->info(
-        "Loaded {} samples with phenotype '{}'.", data_.size(), name_);
 }
 void PhenotypeLoader::set_name(std::ifstream& file, int pheno_column)
 {

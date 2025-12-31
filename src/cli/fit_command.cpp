@@ -1,17 +1,20 @@
 #include "gelex/cli/fit_command.h"
 
+#include <barkeep.h>
 #include <thread>
 
+#include "../src/utils/formatter.h"
 #include "config.h"
 #include "fit_command_detail.h"
 #include "gelex/cli/utils.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/data_pipe.h"
-#include "gelex/data/sample_manager.h"
 #include "gelex/estimator/bayes/params.h"
 #include "gelex/logger.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/effects.h"
+
+namespace bk = barkeep;
 
 void fit_command(argparse::ArgumentParser& cmd)
 {
@@ -181,7 +184,73 @@ int fit_execute(argparse::ArgumentParser& fit)
         .iid_only = fit.get<bool>("--iid-only"),
         .output_prefix = fit.get("--out")};
 
+    // ================================================================
+    // Data Loading & Pipeline
+    // ================================================================
     gelex::DataPipe data_pipe(config);
+    logger->info(gelex::step(1, 4, "Loading Data..."));
+
+    auto p_stats = data_pipe.load_phenotypes();
+    logger->info(
+        gelex::success(
+            "Phenotypes '{}' Loaded: {} samples",
+            p_stats.trait_name,
+            p_stats.samples_loaded));
+
+    // 2. Load Covariates
+    auto c_stats = data_pipe.load_covariates();
+    if (c_stats.qcovar_loaded > 0)
+        logger->info(
+            "Loaded {} quantitative covariates.", c_stats.qcovar_loaded);
+    if (c_stats.dcovar_loaded > 0)
+        logger->info("Loaded {} discrete covariates.", c_stats.dcovar_loaded);
+
+    // 3. Intersect Samples
+    auto i_stats = data_pipe.intersect_samples();
+    logger->info(
+        "Sample intersection: {} common samples ({} excluded).",
+        i_stats.common_samples,
+        i_stats.excluded_samples);
+
+    if (i_stats.common_samples == 0)
+    {
+        logger->error(
+            "No common samples found between phenotype, covariates, and "
+            "genotype files.");
+        return 1;
+    }
+
+    // 4. Build Matrices with Progress Bar
+    logger->info("Building genotype matrices...");
+
+    size_t progress_value = 0;
+    std::shared_ptr<bk::BaseDisplay> pbar;
+
+    auto progress_callback = [&](size_t processed, size_t total)
+    {
+        progress_value = processed;
+        if (!pbar && total > 0)
+        {
+            pbar = bk::ProgressBar(
+                &progress_value,
+                bk::ProgressBarConfig<size_t>{
+                    .total = total,
+                    .format = "{bar} {value}/{total} ",
+                    .style = bk::Blocks});
+        }
+    };
+
+    auto g_stats = data_pipe.build_matrices(progress_callback);
+
+    if (pbar)
+        pbar->done();
+
+    logger->info("Genotype matrices built: {} SNPs.", g_stats.snps_loaded);
+    if (g_stats.dominance_loaded)
+    {
+        logger->info("Dominance matrix included.");
+    }
+
     gelex::BayesModel model(data_pipe);
 
     if (app::configure_model_priors(model, type, fit, logger) != 0)
