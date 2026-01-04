@@ -1025,7 +1025,7 @@ class ProgressBarDisplay : public BaseDisplay
     ProgressProvider progress_provider_;  // work done so far
     std::unique_ptr<Speedometer<ProgressProvider>> speedom_;
     std::string speed_unit_ = "it/s";     // unit of speed text next to speed
-    static constexpr size_t width_ = 20;  // width of progress bar
+    static constexpr size_t width_ = 15;  // width of progress bar
                                           // (TODO: make customizable?)
     ValueType total_{100};                // total work
 

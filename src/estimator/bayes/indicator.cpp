@@ -11,12 +11,9 @@ namespace detail
 {
 
 const std::unordered_set<std::string_view> Indicator::status_names_{
-    "additive_variance",
     "additive_heritability",
-    "dominant_variance",
     "dominant_heritability",
-    "residual_variance",
-};
+    "residual_variance"};
 
 Indicator::Indicator(
     Eigen::Index n_iter,
@@ -47,7 +44,6 @@ Indicator::Indicator(
              .interval = 0.08,
              .show = false});
         line_displays.emplace_back(anim);
-
         auto pbar = bk::ProgressBar(
             &progress_counters[i],
             {.total = n_iter,
@@ -81,8 +77,7 @@ void Indicator::update(
     }
 
     std::string_view name_view = status_name;
-    if (status_names_.contains(name_view)
-        || name_view.starts_with("mixture_proportion_"))
+    if (status_names_.contains(name_view))
     {
         chain_values_[chain_index][status_name] = value;
         chain_dirty_flags_[chain_index].store(true, std::memory_order_relaxed);
@@ -120,56 +115,17 @@ void Indicator::update_compact_status(size_t chain_index)
         return std::nullopt;
     };
 
-    auto format_pi = [&](std::string_view effect) -> void
+    if (auto add_h2 = get_val("additive_heritability"))
     {
-        constexpr size_t MAX_PI_COMPONENTS = 10;
-        std::string pi_line;
-        auto pi_out = std::back_inserter(pi_line);
-        bool has_pi = false;
-
-        for (size_t i = 0; i < MAX_PI_COMPONENTS; ++i)
-        {
-            auto it = current_values.find(
-                fmt::format("mixture_proportion_{}_{}", effect, i));
-            if (it == current_values.end())
-            {
-                break;
-            }
-            if (has_pi)
-            {
-                pi_out = fmt::format_to(pi_out, ", ");
-            }
-            pi_out = fmt::format_to(pi_out, "{:.3f}", it->second);
-            has_pi = true;
-        }
-
-        if (has_pi)
-        {
-            out_it = fmt::format_to(out_it, "π [{}] ", pi_line);
-        }
-    };
-
-    auto add_var = get_val("additive_variance");
-    auto add_h2 = get_val("additive_heritability");
-    if (add_var && add_h2)
-    {
-        out_it = fmt::format_to(
-            out_it, "α(σ², h²): [{:.3f} {:.3f}] ", *add_var, *add_h2);
+        out_it = fmt::format_to(out_it, "h²: {:.3f} ", *add_h2);
     }
-
-    format_pi("additive");
-
-    auto dom_var = get_val("dominant_variance");
-    auto dom_h2 = get_val("dominant_heritability");
-    if (dom_var && dom_h2)
+    if (auto dom_h2 = get_val("dominant_heritability"))
     {
-        out_it = fmt::format_to(
-            out_it, "d(σ², h²): [{:.3f} {:.3f}] ", *dom_var, *dom_h2);
+        out_it = fmt::format_to(out_it, " δ²: {:.3f}", *dom_h2);
     }
-    format_pi("dominant");
     if (auto res_var = get_val("residual_variance"))
     {
-        out_it = fmt::format_to(out_it, "σ²_e: {:.2f} ", *res_var);
+        out_it = fmt::format_to(out_it, " σ²_e: {:.3f} ", *res_var);
     }
 
     statuses_[chain_index]->message(fmt::to_string(line_buffer));

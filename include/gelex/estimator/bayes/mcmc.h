@@ -2,7 +2,6 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
-#include <ranges>
 #include <thread>
 #include <vector>
 
@@ -14,7 +13,6 @@
 #include "../src/estimator/bayes/indicator.h"
 #include "../src/estimator/bayes/posterior_calculator.h"
 #include "../src/logger/bayes_logger.h"
-#include "../src/utils/formatter.h"
 #include "gelex/estimator/bayes/params.h"
 #include "gelex/logger.h"
 #include "gelex/model/bayes/model.h"
@@ -156,39 +154,19 @@ void MCMC<TraitSampler>::update_indicators(
 {
     // Update additive effect indicators
     auto update_effect_indicators
-        = [&](const auto* state, const auto* effect, std::string_view prefix)
+        = [&](const auto* state, std::string_view prefix)
     {
         if (state != nullptr)
         {
             indicator.update(
-                chain, fmt::format("{}_variance", prefix), state->variance);
-            indicator.update(
                 chain,
                 fmt::format("{}_heritability", prefix),
                 state->heritability);
-            if (effect->estimate_pi)
-            {
-                for (Eigen::Index j = 0; j < state->pi.prop.size(); ++j)
-                {
-                    indicator.update(
-                        chain,
-                        fmt::format("mixture_proportion_{}_{}", prefix, j),
-                        state->pi.prop(j));
-                }
-            }
         }
     };
 
-    update_effect_indicators(states.additive(), model.additive(), "additive");
-    update_effect_indicators(states.dominant(), model.dominant(), "dominant");
-
-    // Update random effects indicators
-    for (auto&& [effect, state] :
-         std::views::zip(model.random(), states.random()))
-    {
-        // TODO(rlchen): add correct name according to effect name
-        indicator.update(chain, sigma_squared("_"), state.variance);
-    }
+    update_effect_indicators(states.additive(), "additive");
+    update_effect_indicators(states.dominant(), "dominant");
 
     const auto& residual = states.residual();
     indicator.update(chain, "residual_variance", residual.variance);
