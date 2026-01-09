@@ -43,3 +43,7 @@ pixi run install-release        # Install release binary
 - Frequentist model: GBLUP with REML
 - Data handling: BED file readers, GRM computation via `DataPipe`/`BedPipe`
 - Testing: Catch2 framework with sample PLINK binary files
+
+## Coding practices
+
+- Using span and string_view, if possible, instead of const references.

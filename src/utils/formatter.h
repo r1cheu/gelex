@@ -28,24 +28,31 @@ std::string subitem(fmt::format_string<Args...> fmt_str, Args&&... args)
 }
 
 template <typename... Args>
-std::string
-step(int n, int total, fmt::format_string<Args...> fmt_str, Args&&... args)
+std::string section(fmt::format_string<Args...> fmt_str, Args&&... args)
 {
-    return fmt::format("[{}/{}] ", n, total)
+    return " "
            + fmt::format(
-               fmt::emphasis::bold, fmt_str, std::forward<Args>(args)...);
+               fmt::emphasis::bold | fmt::fg(fmt::color::light_cyan),
+               fmt_str,
+               std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 std::string task(fmt::format_string<Args...> fmt_str, Args&&... args)
 {
-    return "  ● " + fmt::format(fmt_str, std::forward<Args>(args)...);
+    return "   ● " + fmt::format(fmt_str, std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 std::string subtask(fmt::format_string<Args...> fmt_str, Args&&... args)
 {
     return "    - " + fmt::format(fmt_str, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+std::string subsubtask(fmt::format_string<Args...> fmt_str, Args&&... args)
+{
+    return "      └─ " + fmt::format(fmt_str, std::forward<Args>(args)...);
 }
 
 template <typename... Args>
@@ -58,20 +65,6 @@ std::string success(fmt::format_string<Args...> fmt_str, Args&&... args)
 std::string format_names(
     std::span<const std::string> names,
     std::ptrdiff_t limit = 3);
-
-/**
- * @brief Format the scale inverse chi-squared distribution
- * parameters into a human-readable string (e.g., "νS²χ⁻²(ν = nu, S² = s2)").
- *
- * @param nu Degrees of freedom.
- * @param s2 Scale parameter.
- * @return A formatted string representing the distribution parameters.
- */
-std::string scale_inv_chisq(double nu, double s2);
-
-std::string sigma_squared(const std::string& subscript);
-std::string h2(const std::string& subscript);
-std::string sigma_prior(const std::string& subscript, double nu, double s2);
 
 // fmt color might be removed
 template <typename T>

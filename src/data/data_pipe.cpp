@@ -1,18 +1,22 @@
 #include "gelex/data/data_pipe.h"
 
 #include <filesystem>
-#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
+#include "../src/estimator/bayes/indicator.h"
+#include "barkeep.h"
 #include "gelex/data/sample_manager.h"
+#include "gelex/data/variant_processor.h"
 #include "gelex/exception.h"
 #include "loader/dcovariate_loader.h"
 #include "loader/phenotype_loader.h"
 #include "loader/qcovariate_loader.h"
+
+namespace bk = barkeep;
 
 namespace gelex
 {
@@ -25,6 +29,7 @@ DataPipe::DataPipe(const Config& config) : config_(config)
     auto fam_path = config.bed_path;
     fam_path.replace_extension(".fam");
     sample_manager_ = std::make_shared<SampleManager>(fam_path);
+    num_genotype_samples_ = sample_manager_->num_common_samples();
 }
 
 PhenoStats DataPipe::load_phenotypes()
@@ -71,7 +76,6 @@ CovarStats DataPipe::load_covariates()
 IntersectionStats DataPipe::intersect_samples()
 {
     size_t total_before = sample_manager_->num_common_samples();
-
     auto create_key_views = [](const auto& data)
     {
         std::vector<std::string_view> key_views;
@@ -82,24 +86,28 @@ IntersectionStats DataPipe::intersect_samples()
         }
         return key_views;
     };
+    auto intersect = [&](const auto& data)
+    {
+        total_before = std::max(total_before, data.size());
+        auto key_views = create_key_views(data);
+        sample_manager_->intersect(key_views);
+    };
 
     if (phenotype_loader_)
     {
-        auto key_views = create_key_views(phenotype_loader_->data());
-        sample_manager_->intersect(key_views);
+        intersect(phenotype_loader_->data());
     }
 
     if (qcovar_loader_)
     {
-        auto key_views = create_key_views(qcovar_loader_->data());
-        sample_manager_->intersect(key_views);
+        intersect(qcovar_loader_->data());
     }
 
     if (dcovar_loader_)
     {
-        auto key_views = create_key_views(dcovar_loader_->data());
-        sample_manager_->intersect(key_views);
+        intersect(dcovar_loader_->data());
     }
+
     sample_manager_->finalize();
 
     size_t common = sample_manager_->num_common_samples();
@@ -110,37 +118,52 @@ IntersectionStats DataPipe::intersect_samples()
         .excluded_samples = total_before - common};
 }
 
-GenotypeStats DataPipe::build_matrices(
-    std::function<void(size_t, size_t)> progress_callback)
+GenotypeStats DataPipe::load_additive_matrix()
 {
-    load_genotype_impl<gelex::HardWenbergProcessor>(
-        ".add", additive_matrix_, progress_callback);
+    load_genotype_impl<gelex::HardWenbergProcessor>(".add", additive_matrix_);
 
-    if (config_.use_dominance_effect)
-    {
-        // For the second pass, if we want to show progress again, we might need
-        // to reset or handle the callback appropriately. For now, we just pass
-        // it again, so the progress bar (if stateful) might need to be reset
-        // externally or the UI should handle two distinct progress phases.
-        load_genotype_impl<gelex::DominantOrthogonalHWEProcessor>(
-            ".dom", dominance_matrix_, progress_callback);
-    }
+    int64_t num_mono_snps = 0;
+    int64_t total_snps = 0;
 
-    convert_to_matrices();
-
-    size_t snps = 0;
     if (additive_matrix_)
     {
-        std::visit([&](auto&& arg) { snps = arg.cols(); }, *additive_matrix_);
+        std::visit(
+            [&](auto&& arg)
+            {
+                num_mono_snps = arg.num_mono();
+                total_snps = arg.cols();
+            },
+            *additive_matrix_);
     }
 
     return GenotypeStats{
-        .snps_loaded = snps,
-        .snps_total = snps,
-        .dominance_loaded = config_.use_dominance_effect};
+        .num_snps = total_snps, .monomorphic_snps = num_mono_snps};
 }
 
-void DataPipe::convert_to_matrices()
+GenotypeStats DataPipe::load_dominance_matrix()
+{
+    load_genotype_impl<gelex::DominantOrthogonalHWEProcessor>(
+        ".dom", dominance_matrix_);
+
+    int64_t num_mono_snps = 0;
+    int64_t total_snps = 0;
+
+    if (dominance_matrix_)
+    {
+        std::visit(
+            [&](auto&& arg)
+            {
+                num_mono_snps = arg.num_mono();
+                total_snps = arg.cols();
+            },
+            *dominance_matrix_);
+    }
+
+    return GenotypeStats{
+        .num_snps = total_snps, .monomorphic_snps = num_mono_snps};
+}
+
+void DataPipe::finalize()
 {
     const auto num_samples
         = static_cast<Eigen::Index>(sample_manager_->num_common_samples());

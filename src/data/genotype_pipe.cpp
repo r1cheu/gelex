@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "gelex/exception.h"
+#include "gelex/logger.h"
 
 namespace gelex
 {

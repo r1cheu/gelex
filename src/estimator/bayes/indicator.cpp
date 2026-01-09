@@ -9,6 +9,7 @@ namespace gelex
 {
 namespace detail
 {
+namespace bk = barkeep;
 
 const std::unordered_set<std::string_view> Indicator::status_names_{
     "additive_heritability",
@@ -37,7 +38,8 @@ Indicator::Indicator(
         std::vector<std::shared_ptr<bk::BaseDisplay>> line_displays;
 
         auto anim = bk::Animation(
-            {.style
+            {.message = " ",
+             .style
              = bk::Strings{"⠁", "⠁", "⠉", "⠙", "⠚", "⠒", "⠂", "⠂", "⠒", "⠲",
                            "⠴", "⠤", "⠄", "⠄", "⠤", "⠠", "⠠", "⠤", "⠦", "⠖",
                            "⠒", "⠐", "⠐", "⠒", "⠓", "⠋", "⠉", "⠈", "⠈", " "},
@@ -47,8 +49,7 @@ Indicator::Indicator(
         auto pbar = bk::ProgressBar(
             &progress_counters[i],
             {.total = n_iter,
-             .format = fmt::format("{}", i + 1)
-                       + " {bar} {value}/{total} ({speed:.1f}/s)",
+             .format = "{bar} {value}/{total} [{speed:.1f}/s]",
              .speed = 0.1,
              .style = BAR_STYLE,
              .show = false});

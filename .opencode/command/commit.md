@@ -1,7 +1,7 @@
 ---
 description: git commit
 agent: commit-message-generator
-model: deepseek/deepseek-chat
+model: minimax/MiniMax-M2.1
 ---
 
-git commit use agent commit-message-generator.
+commit the message return by agent called "commit-message-generator"
