@@ -22,7 +22,6 @@ class Estimator
 
    private:
     void em_step(GBLUP& model, bool em_init);
-
     void compute_beta(GBLUP& model);
     void compute_u(GBLUP& model);
     void report_results(

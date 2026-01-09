@@ -57,10 +57,6 @@ class Optimizer
         {
             visitor(eff, idx++);
         }
-        for (const auto& eff : model.gxe_)
-        {
-            visitor(eff, idx++);
-        }
     }
 
     double tol_;

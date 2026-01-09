@@ -41,20 +41,6 @@ void GBLUP::add_genetic_effect(
     effects_.add(genetic_.back().name, effect_type::genetic, 0, 0);
 }
 
-void GBLUP::add_gxe_effect(
-    std::string&& name,
-    sp_dmat&& genetic_design_matrix,
-    const dmat& genetic_relationship_matrix,
-    arma::sp_dmat&& env_design_matrix)
-{
-    gxe_.add(
-        std::move(name),
-        std::move(genetic_design_matrix),
-        genetic_relationship_matrix,
-        std::move(env_design_matrix));
-    effects_.add(gxe_.back().name, effect_type::gxe, 0, 0);
-}
-
 void GBLUP::clear()
 {
     formula_ = "";
@@ -64,7 +50,6 @@ void GBLUP::clear()
     fixed_.reset();
     random_.clear();
     genetic_.clear();
-    gxe_.clear();
     effects_.clear();
     residual_.sigma = 0;
 }
@@ -82,13 +67,12 @@ dvec GBLUP::var_comp() const
     };
     add_var_comp(random_);
     add_var_comp(genetic_);
-    add_var_comp(gxe_);
     return dvec(var_comp_values);
 }
 
 size_t GBLUP::n_var_comp() const
 {
-    return random_.size() + genetic_.size() + gxe_.size() + 1;
+    return random_.size() + genetic_.size() + 1;
 }
 
 void GBLUP::init_var_comp(double var)
@@ -115,6 +99,5 @@ void GBLUP::set_var_comp(const dvec& var_comp)
     };
     set_sigma(random_);
     set_sigma(genetic_);
-    set_sigma(gxe_);
 }
 }  // namespace gelex

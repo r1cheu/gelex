@@ -32,7 +32,7 @@ using TotalEffects = detail::Effects<GBLUPEffect>;
  * analysis.
  *
  * This class handles constructing and managing a GBLUP model, including fixed
- * and random effects, genetic effects, and GxE (genotype by environment).
+ * and random effects and genetic effects.
  *
  * Example usage:
  * ```cpp
@@ -50,7 +50,6 @@ class GBLUP
     size_t n_fixed_effects() const { return fixed_->size(); }
     size_t n_random_effects() const { return random_.size(); }
     size_t n_genetic_effects() const { return genetic_.size(); }
-    size_t n_gxe_effects() const { return gxe_.size(); }
 
     const std::string& formula() const { return formula_; }
     const arma::dvec& phenotype() const { return phenotype_; }
@@ -84,11 +83,6 @@ class GBLUP
         std::string&& name,
         arma::sp_dmat&& design_matrix,
         const arma::dmat& genetic_relationship_matrix);
-    void add_gxe_effect(
-        std::string&& name,
-        arma::sp_dmat&& genetic_design_matrix,
-        const arma::dmat& genetic_relationship_matrix,
-        arma::sp_dmat&& env_design_matrix);
     void clear();
 
     friend class Optimizer;
@@ -108,7 +102,6 @@ class GBLUP
     std::unique_ptr<freq::FixedEffect> fixed_;
     freq::RandomEffects random_;
     freq::GeneticEffects genetic_;
-    freq::GxEEffects gxe_;
     freq::RandomEffect residual_{"e", arma::sp_dmat()};
 };
 

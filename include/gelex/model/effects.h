@@ -13,7 +13,6 @@ enum class effect_type : uint8_t
 {
     random,
     genetic,
-    gxe,
     residual,
 };
 

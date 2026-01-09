@@ -56,33 +56,6 @@ GeneticEffect::GeneticEffect(
     }
     coeff = arma::zeros(this->design_matrix.n_cols);
 }
-
-GxEEffect::GxEEffect(
-    std::string&& name,
-    arma::sp_dmat&& genetic_design_matrix,
-    const arma::dmat& genetic_relationship_matrix,
-    arma::sp_dmat&& env_design_matrix)
-    : name(std::move(name)),
-      genetic_design_matrix(std::move(genetic_design_matrix)),
-      genetic_relationship_matrix(genetic_relationship_matrix),
-      env_design_matrix(std::move(env_design_matrix))
-{
-    arma::sp_dmat cov_env
-        = this->env_design_matrix * this->env_design_matrix.t();
-
-    if (check_eye(this->genetic_design_matrix))
-    {
-        covariance_matrix = this->genetic_relationship_matrix % cov_env;
-    }
-    else
-    {
-        covariance_matrix = this->genetic_design_matrix
-                            * this->genetic_relationship_matrix
-                            * this->genetic_design_matrix.t();
-        covariance_matrix %= cov_env;
-    }
-    coeff = arma::zeros(this->genetic_design_matrix.n_cols);
-}
 }  // namespace freq
 
 }  // namespace gelex
