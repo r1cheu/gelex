@@ -9,8 +9,6 @@
 
 #include <Eigen/Dense>
 
-#include "Eigen/Core"
-
 #include "gelex/data/genotype_loader.h"
 #include "gelex/data/genotype_matrix.h"
 #include "gelex/data/genotype_mmap.h"
@@ -49,9 +47,8 @@ struct IntersectionStats
 
 struct GenotypeStats
 {
-    size_t snps_loaded;
-    size_t snps_total;
-    bool dominance_loaded;
+    int64_t num_snps;
+    int64_t monomorphic_snps;
 };
 
 class DataPipe
@@ -80,13 +77,13 @@ class DataPipe
 
     PhenoStats load_phenotypes();
     CovarStats load_covariates();
+    GenotypeStats load_additive_matrix();
+    GenotypeStats load_dominance_matrix();
     IntersectionStats intersect_samples();
 
-    // build_matrices accepts a callback for progress updates.
-    // The callback receives (processed_snps, total_snps) for the current matrix
-    // being built.
-    GenotypeStats build_matrices(
-        std::function<void(size_t, size_t)> progress_callback = nullptr);
+    void finalize();
+
+    size_t num_genotype_samples() const { return num_genotype_samples_; }
 
     Eigen::VectorXd take_phenotype() && { return std::move(phenotype_); }
     Eigen::MatrixXd take_fixed_effects() &&
@@ -108,11 +105,8 @@ class DataPipe
    private:
     DataPipe() = default;
 
-    template <typename Processor, typename TargetPtr>
-    void load_genotype_impl(
-        const std::string& suffix,
-        TargetPtr& target,
-        std::function<void(size_t, size_t)> progress_callback)
+    template <VariantProcessor Processor, typename TargetPtr>
+    void load_genotype_impl(const std::string& suffix, TargetPtr& target)
     {
         auto assign_to_target = [&](auto&& result_value)
         {
@@ -126,23 +120,21 @@ class DataPipe
             std::string file_path = config_.output_prefix + suffix;
             auto pipe = gelex::GenotypePipe(
                 config_.bed_path, sample_manager_, file_path);
-            auto result = pipe.template process<Processor>(
-                config_.chunk_size, progress_callback);
+            auto result = pipe.template process<Processor>(config_.chunk_size);
             assign_to_target(std::move(result));
         }
         else
         {
             auto loader
                 = gelex::GenotypeLoader(config_.bed_path, sample_manager_);
-            auto result = loader.template process<Processor>(
-                config_.chunk_size, progress_callback);
+            auto result
+                = loader.template process<Processor>(config_.chunk_size);
             assign_to_target(std::move(result));
         }
     }
 
-    void convert_to_matrices();
-
     Config config_;
+    size_t num_genotype_samples_;
 
     std::unique_ptr<detail::PhenotypeLoader> phenotype_loader_;
     std::unique_ptr<detail::QcovarLoader> qcovar_loader_;

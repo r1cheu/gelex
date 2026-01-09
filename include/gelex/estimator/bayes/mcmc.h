@@ -93,18 +93,13 @@ MCMCResult MCMC<TraitSampler>::run(const BayesModel& model, Eigen::Index seed)
         = std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
               .count();
 
-    logger_.info("");
-    logger_.info("MCMC sampling completed.");
-    logger_.info(
-        "  - Samples collected per parameter: {}.",
-        params_.n_records * params_.n_chains);
-    logger_.info(
-        "  - Total time elapsed: {:.2f} seconds.",
-        static_cast<double>(duration) / 1000.0);
-
     MCMCResult result(std::move(samples), model, 0.9);
     result.compute();
-    logger_.log_result(result, model);
+    logger_.log_result(
+        result,
+        model,
+        static_cast<double>(duration) / 1000.0,
+        params_.n_records * params_.n_chains);
 
     return result;
 }

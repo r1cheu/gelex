@@ -69,24 +69,4 @@ std::string ToLowercase(std::string_view input)
     std::transform(result.begin(), result.end(), result.begin(), ::tolower);
     return result;
 }
-std::string scale_inv_chisq(double nu, double s2)
-{
-    return fmt::format("Inv-\u03C7\u00B2(\u03BD={}, s\u00B2={:.4f})", nu, s2);
-}
-
-std::string sigma_squared(const std::string& subscript)
-{
-    return fmt::format("\u03C3\u00B2{}", subscript);
-}
-
-std::string h2(const std::string& subscript)
-{
-    return fmt::format("h\u00B2{}", subscript);
-}
-
-std::string sigma_prior(const std::string& subscript, double nu, double s2)
-{
-    return fmt::format(
-        "{} \u223C {}", sigma_squared(subscript), scale_inv_chisq(nu, s2));
-}
 }  // namespace gelex

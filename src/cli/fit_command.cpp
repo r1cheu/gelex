@@ -1,8 +1,11 @@
 #include "gelex/cli/fit_command.h"
 
 #include <barkeep.h>
+#include <fmt/format.h>
+#include <memory>
 #include <thread>
 
+#include "../src/estimator/bayes/indicator.h"
 #include "../src/utils/formatter.h"
 #include "config.h"
 #include "fit_command_detail.h"
@@ -189,14 +192,16 @@ int fit_execute(argparse::ArgumentParser& fit)
     // ================================================================
     gelex::DataPipe data_pipe(config);
     logger->info("");
-    logger->info(gelex::step(1, 4, "Loading Data..."));
-
+    logger->info(gelex::section("Loading Data..."));
     auto p_stats = data_pipe.load_phenotypes();
     logger->info(
         gelex::success(
             "Phenotypes : {} samples ('{}')",
             p_stats.samples_loaded,
             p_stats.trait_name));
+    logger->info(
+        gelex::success(
+            "Genotypes  : {} samples", data_pipe.num_genotype_samples()));
 
     auto c_stats = data_pipe.load_covariates();
     if (c_stats.qcovar_loaded > 0 || c_stats.dcovar_loaded > 0)
@@ -219,11 +224,14 @@ int fit_execute(argparse::ArgumentParser& fit)
     }
 
     // 3. Intersect Samples
+    logger->info("");
+    logger->info(gelex::section("Pre-processing..."));
     auto i_stats = data_pipe.intersect_samples();
+    logger->info(gelex::task("Sample Intersection:"));
     logger->info(
-        "Sample intersection: {} common samples ({} excluded).",
-        i_stats.common_samples,
-        i_stats.excluded_samples);
+        gelex::subtask("Common samples : {} ", i_stats.common_samples));
+    logger->info(
+        gelex::subtask("Excluded       : {} ", i_stats.excluded_samples));
 
     if (i_stats.common_samples == 0)
     {
@@ -233,38 +241,28 @@ int fit_execute(argparse::ArgumentParser& fit)
         return 1;
     }
 
-    // 4. Build Matrices with Progress Bar
-    logger->info("Building genotype matrices...");
+    logger->info(gelex::task("Matrix Construction:"));
+    logger->info(gelex::subtask("Additive:"));
+    auto add_stats = data_pipe.load_additive_matrix();
 
-    size_t progress_value = 0;
-    std::shared_ptr<bk::BaseDisplay> pbar;
+    logger->info(gelex::subsubtask("{} SNPs processed", add_stats.num_snps));
+    logger->info(
+        gelex::subsubtask(
+            "{} monomorphic SNPs excluded", add_stats.monomorphic_snps));
 
-    auto progress_callback = [&](size_t processed, size_t total)
+    if (config.use_dominance_effect)
     {
-        progress_value = processed;
-        if (!pbar && total > 0)
-        {
-            pbar = bk::ProgressBar(
-                &progress_value,
-                bk::ProgressBarConfig<size_t>{
-                    .total = total,
-                    .format = "{bar} {value}/{total} ",
-                    .style = bk::Blocks});
-        }
-    };
+        logger->info(gelex::subtask("Dominance:"));
+        auto dom_stats = data_pipe.load_dominance_matrix();
 
-    auto g_stats = data_pipe.build_matrices(progress_callback);
-
-    if (pbar)
-    {
-        pbar->done();
+        logger->info(
+            gelex::subsubtask("{} SNPs processed", dom_stats.num_snps));
+        logger->info(
+            gelex::subsubtask(
+                "{} monomorphic SNPs excluded", dom_stats.monomorphic_snps));
     }
 
-    logger->info("Genotype matrices built: {} SNPs.", g_stats.snps_loaded);
-    if (g_stats.dominance_loaded)
-    {
-        logger->info("Dominance matrix included.");
-    }
+    data_pipe.finalize();
 
     gelex::BayesModel model(data_pipe);
 
@@ -290,6 +288,15 @@ int fit_execute(argparse::ArgumentParser& fit)
     {
         return 1;
     }
+    logger->info(gelex::success("Parameters saved to  : {}.param", out_prefix));
+    logger->info(
+        gelex::success("SNP Effects saved to : {}.snp.eff", out_prefix));
+    logger->info(gelex::success("Run Log saved to     : {}.log", out_prefix));
+    logger->info(
+        fmt::format(
+            fmt::emphasis::bold | fmt::fg(fmt::color::light_cyan),
+            "───────────────────────────────────"
+            "───────────────────────────────────"));
 
     return 0;
 }

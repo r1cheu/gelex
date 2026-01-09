@@ -2,11 +2,11 @@
 
 #include <cstdint>
 #include <filesystem>
-#include <functional>
 #include <memory>
 #include <vector>
 
 #include <Eigen/Core>
+#include "barkeep.h"
 
 #include "../src/data/binary_matrix_writer.h"
 #include "../src/data/snp_stats_writer.h"
@@ -15,7 +15,6 @@
 #include "gelex/data/genotype_mmap.h"
 #include "gelex/data/sample_manager.h"
 #include "gelex/data/variant_processor.h"
-#include "gelex/logger.h"
 
 namespace gelex
 {
@@ -35,26 +34,18 @@ class GenotypePipe
     ~GenotypePipe() = default;
 
     template <VariantProcessor Processor = StandardizingProcessor>
-    auto process(
-        size_t chunk_size = 10000,
-        std::function<void(size_t processed, size_t total)> progress_callback
-        = nullptr) -> GenotypeMap
+    auto process(size_t chunk_size = 10000) -> GenotypeMap
     {
-        size_t current_processed_snps = 0;
-
+        int64_t current_processed_snps = 0;
         Processor processor;
-
+        auto pbar = detail::create_genotype_process_bar<Processor>(
+            current_processed_snps, num_variants_);
         means_.resize(num_variants_);
         variances_.resize(num_variants_);
         monomorphic_indices_.clear();
         monomorphic_indices_.reserve(num_variants_ / 100);
 
-        // Initial progress
-        if (progress_callback)
-        {
-            progress_callback(0, num_variants_);
-        }
-
+        pbar->show();
         for (int64_t start_variant = 0; start_variant < num_variants_;)
         {
             int64_t end_variant = std::min(
@@ -67,12 +58,8 @@ class GenotypePipe
             matrix_writer_->write(chunk);
             current_processed_snps += (end_variant - start_variant);
             start_variant = end_variant;
-
-            if (progress_callback)
-            {
-                progress_callback(current_processed_snps, num_variants_);
-            }
         }
+        pbar->done();
 
         return finalize();
     }

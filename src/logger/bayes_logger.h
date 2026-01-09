@@ -3,6 +3,7 @@
 
 #include <barkeep.h>
 #include <spdlog/logger.h>
+#include <Eigen/Core>
 
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/mcmc_results.h"
@@ -31,7 +32,11 @@ class MCMCLogger
 
     void log_model_information(const BayesModel& model);
 
-    void log_result(const MCMCResult& result, const BayesModel& model);
+    void log_result(
+        const MCMCResult& result,
+        const BayesModel& model,
+        double elapsed_time,
+        Eigen::Index samples_collected);
 
    private:
     void log_iter_header(const BayesModel& model);

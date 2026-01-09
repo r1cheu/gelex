@@ -40,41 +40,49 @@ namespace gelex
 {
 struct StandardizingProcessor
 {
+    static constexpr bool dom = false;
     static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
 };
 
 struct RawProcessor
 {
+    static constexpr bool dom = false;
     static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
 };
 
 struct HardWenbergProcessor
 {
+    static constexpr bool dom = false;
     static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
 };
 
 struct NOIAProcessor
 {
+    static constexpr bool dom = false;
     static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
 };
 
 struct DominantStandardizingProcessor
 {
+    static constexpr bool dom = true;
     static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
 };
 
 struct DominantRawProcessor
 {
+    static constexpr bool dom = true;
     static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
 };
 
 struct DominantOrthogonalHWEProcessor
 {
+    static constexpr bool dom = true;
     static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
 };
 
 struct DominantNOIAProcessor
 {
+    static constexpr bool dom = true;
     static VariantStats process_variant(Eigen::Ref<Eigen::VectorXd> variant);
 };
 
