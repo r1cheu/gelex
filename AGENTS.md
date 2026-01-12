@@ -33,7 +33,7 @@ pixi run install-release        # Install release binary
 - **Linear algebra**: Use Eigen (primary), avoid Armadillo (legacy)
 - **Parallelism**: OpenMP for multi-threaded computation
 - **Comments**: Only add when code is non-standard or hard to understand
-- **Headers**: Public API in `include/gelex/`, implementation in `src/`
+- **Headers**: Public API in `include/gelex/`, implementation in `src/`, private API in `src/`
 - **Data processing**: Use memory-mapped I/O (mio) with chunk-based processing
 
 ## Key Architecture Notes
@@ -44,6 +44,10 @@ pixi run install-release        # Install release binary
 - Data handling: BED file readers, GRM computation via `DataPipe`/`BedPipe`
 - Testing: Catch2 framework with sample PLINK binary files
 
-## Coding practices
+## Tips
 
+- If you are unsure how to do something, use `gh_grep` to search code examples from GitHub.
+- When you need to search docs, use `context7` tools.
 - Using span and string_view, if possible, instead of const references.
+- Never modify CMakeLists.txt unless user ask to do so.
+- Always use Eigen::Ref<EigenType> for passing references and const Eigen::Ref<const EigenType>& for const references.

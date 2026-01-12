@@ -67,4 +67,33 @@ struct GeneticEffect
     Eigen::MatrixXd K;  // GRM matrix
 };
 
+struct FixedState
+{
+    explicit FixedState(const FixedEffect& effect);
+    Eigen::VectorXd coeff;
+    Eigen::VectorXd se;
+};
+
+struct RandomState
+{
+    explicit RandomState(const RandomEffect& effect);
+    std::string name;
+    Eigen::VectorXd blup;
+    double variance;
+};
+
+struct GeneticState
+{
+    explicit GeneticState(const GeneticEffect& effect);
+    std::string name;
+    Eigen::VectorXd ebv;
+    double variance;
+};
+
+struct ResidualState
+{
+    double variance{};
+    double heritability{};
+};
+
 }  // namespace gelex::freq
