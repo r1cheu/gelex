@@ -16,7 +16,7 @@ namespace gelex
 class SampleManager;
 namespace detail
 {
-class QcovarLoader;
+class QuantitativeCovariateLoader;
 class DcovarPredictLoader;
 }  // namespace detail
 
@@ -77,7 +77,7 @@ class PredictDataPipe
     void intersect();
     void format_dcovariates();
 
-    std::unique_ptr<detail::QcovarLoader> qcovar_loader_;
+    std::unique_ptr<detail::QuantitativeCovariateLoader> qcovar_loader_;
     std::unique_ptr<detail::DcovarPredictLoader> dcovar_loader_;
     Eigen::MatrixXd qcovariates_;
     std::vector<std::string> qcovariate_names_;

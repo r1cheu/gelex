@@ -8,20 +8,20 @@
 #include <vector>
 
 #include <Eigen/Dense>
+#include "../src/types/covariates.h"
 #include "Eigen/Core"
 
 namespace gelex::detail
 {
 
-// -----------------------------------------------------------------------------
-// QcovarLoader (Quantitative Covariates)
-// -----------------------------------------------------------------------------
-class QcovarLoader
+class QuantitativeCovariateLoader
 {
    public:
-    QcovarLoader(const std::filesystem::path& path, bool iid_only);
+    QuantitativeCovariateLoader(
+        const std::filesystem::path& path,
+        bool iid_only);
 
-    [[nodiscard]] Eigen::MatrixXd load(
+    [[nodiscard]] QuantitativeCovariate load(
         const std::unordered_map<std::string, Eigen::Index>& id_map) const;
 
     const std::vector<std::string>& names() const { return names_; }

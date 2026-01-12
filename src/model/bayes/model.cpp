@@ -26,9 +26,8 @@ BayesModel::BayesModel(DataPipe& data_pipe)
     phenotype_var_ = detail::var(phenotype_)(0);  // NOLINT
 
     auto fixed_effect_names = data_pipe.fixed_effect_names();
-    add_fixed_effect(
-        std::move(fixed_effect_names),
-        std::move(data_pipe).take_fixed_effects());
+    auto fixed_effects = std::move(data_pipe).take_fixed_effects();
+    add_fixed_effect(std::move(fixed_effect_names), std::move(fixed_effects).X);
 
     std::visit(
         [&](auto&& arg) { add_additive(std::forward<decltype(arg)>(arg)); },

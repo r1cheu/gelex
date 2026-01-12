@@ -1,24 +1,19 @@
-#include "common_effects.h"
+#include "../src/types/fixed_effects.h"
 
 #include <iterator>
 #include <optional>
-
-#include <Eigen/Core>
 
 #include "gelex/exception.h"
 
 namespace gelex
 {
 
-// builds a FixedEffect design matrix with an intercept and
-// covariates, horizontally concatenate them together
-auto FixedEffect::build_freq(
+auto FixedEffect::build(
     std::optional<QuantitativeCovariate> qcovariate,
     std::optional<DiscreteCovariate> dcovariate) -> FixedEffect
 {
     FixedEffect fe;
 
-    // Determine number of samples from provided covariates
     Eigen::Index n_samples = 0;
     if (qcovariate)
     {
@@ -34,12 +29,10 @@ auto FixedEffect::build_freq(
             "At least one covariate must be provided");
     }
 
-    // Calculate dimensions
     const auto qcov_cols = qcovariate ? qcovariate->X.cols() : 0;
     const auto dcov_cols = dcovariate ? dcovariate->X.cols() : 0;
     const auto n_cols = 1 + qcov_cols + dcov_cols;
 
-    // Build names vector
     fe.names.reserve(n_cols);
     fe.names.emplace_back("Intercept");
 
@@ -62,7 +55,6 @@ auto FixedEffect::build_freq(
             fe.names, dcovariate->names.begin(), dcovariate->names.end());
     }
 
-    // Build levels vector
     fe.levels.reserve(n_cols);
     fe.levels.emplace_back(std::nullopt);
     if (qcovariate)
@@ -76,7 +68,6 @@ auto FixedEffect::build_freq(
             fe.levels, dcovariate->levels.begin(), dcovariate->levels.end());
     }
 
-    // Build reference_levels vector
     fe.reference_levels.reserve(n_cols);
     fe.reference_levels.emplace_back(std::nullopt);
     if (qcovariate)
@@ -92,9 +83,8 @@ auto FixedEffect::build_freq(
             dcovariate->reference_levels.end());
     }
 
-    // Build design matrix
     fe.X = Eigen::MatrixXd::Zero(n_samples, n_cols);
-    fe.X.col(0).setOnes();  // Intercept column
+    fe.X.col(0).setOnes();
 
     Eigen::Index col_offset = 1;
     if (qcovariate)
@@ -110,7 +100,7 @@ auto FixedEffect::build_freq(
     return fe;
 }
 
-auto FixedEffect::build_freq(Eigen::Index n_samples) -> FixedEffect
+auto FixedEffect::build(Eigen::Index n_samples) -> FixedEffect
 {
     FixedEffect fe;
 
@@ -120,11 +110,10 @@ auto FixedEffect::build_freq(Eigen::Index n_samples) -> FixedEffect
     fe.names.emplace_back("Intercept");
 
     fe.levels.reserve(n_cols);
-    fe.levels.emplace_back(std::nullopt);  // Intercept has no levels
+    fe.levels.emplace_back(std::nullopt);
 
     fe.reference_levels.reserve(n_cols);
-    fe.reference_levels.emplace_back(
-        std::nullopt);  // Intercept has no reference level
+    fe.reference_levels.emplace_back(std::nullopt);
 
     fe.X = Eigen::MatrixXd::Zero(n_samples, n_cols);
     fe.X.col(0).setOnes();

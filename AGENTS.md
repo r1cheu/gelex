@@ -36,6 +36,7 @@ pixi run install-release        # Install release binary
 - **Headers**: Public API in `include/gelex/`, implementation in `src/`, private API in `src/`
 - **Data processing**: Use memory-mapped I/O (mio) with chunk-based processing
 - All function declarations and definitions must use the trailing return type syntax (e.g., auto func() -> void)
+- use #ifndef ... #define .. #endif include guards in header files
 
 ## Key Architecture Notes
 

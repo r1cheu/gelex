@@ -1,28 +1,17 @@
-#ifndef GELEX_INTERNAL_TYPES_COMMON_EFFECTS_H_
-#define GELEX_INTERNAL_TYPES_COMMON_EFFECTS_H_
+#ifndef GELEX_TYPES_FIXED_EFFECTS_H_
+#define GELEX_TYPES_FIXED_EFFECTS_H_
 
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
+#include "covariates.h"
+
 namespace gelex
 {
-
-struct QuantitativeCovariate
-{
-    std::vector<std::string> names;
-    Eigen::MatrixXd X;
-};
-
-struct DiscreteCovariate
-{
-    std::vector<std::string> names;
-    std::vector<std::vector<std::string>> levels;
-    std::vector<std::string> reference_levels;
-    Eigen::MatrixXd X;
-};
 
 struct FixedEffect
 {
@@ -39,7 +28,7 @@ struct FixedEffect
         std::string_view reference_level;
     };
 
-    auto operator[](size_t i) -> CovariateInfoView
+    CovariateInfoView operator[](size_t i)
     {
         return CovariateInfoView{
             .name = names[i],
@@ -50,24 +39,24 @@ struct FixedEffect
             = reference_levels[i] ? *reference_levels[i] : std::string_view{}};
     }
 
-    static auto build_freq(
+    static auto build(
         std::optional<QuantitativeCovariate> qcovariate,
         std::optional<DiscreteCovariate> dcovariate) -> FixedEffect;
 
-    static auto build_freq(Eigen::Index n_samples) -> FixedEffect;
+    static auto build(Eigen::Index n_samples) -> FixedEffect;
 
     static auto build_bayes(
         std::optional<QuantitativeCovariate> qcovariate,
         std::optional<DiscreteCovariate> dcovariate) -> FixedEffect
     {
-        auto fe = build_freq(std::move(qcovariate), std::move(dcovariate));
+        auto fe = build(std::move(qcovariate), std::move(dcovariate));
         fe.cols_norm = fe.X.colwise().squaredNorm();
         return fe;
     }
 
     static auto build_bayes(Eigen::Index n_samples) -> FixedEffect
     {
-        auto fe = build_freq(n_samples);
+        auto fe = build(n_samples);
         fe.cols_norm = fe.X.colwise().squaredNorm();
         return fe;
     }
@@ -75,4 +64,4 @@ struct FixedEffect
 
 }  // namespace gelex
 
-#endif  // GELEX_INTERNAL_TYPES_COMMON_EFFECTS_H_
+#endif  // GELEX_TYPES_FIXED_EFFECTS_H_

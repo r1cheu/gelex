@@ -9,6 +9,7 @@
 
 #include <Eigen/Dense>
 
+#include "../src/types/fixed_effects.h"
 #include "gelex/data/genotype_loader.h"
 #include "gelex/data/genotype_matrix.h"
 #include "gelex/data/genotype_mmap.h"
@@ -20,8 +21,8 @@ namespace gelex
 namespace detail
 {
 class PhenotypeLoader;
-class QcovarLoader;
-class DcovarLoader;
+class QuantitativeCovariateLoader;
+class DiscreteCovariateLoader;
 }  // namespace detail
 
 struct PhenoStats
@@ -86,10 +87,8 @@ class DataPipe
     size_t num_genotype_samples() const { return num_genotype_samples_; }
 
     Eigen::VectorXd take_phenotype() && { return std::move(phenotype_); }
-    Eigen::MatrixXd take_fixed_effects() &&
-    {
-        return std::move(fixed_effects_);
-    }
+    FixedEffect take_fixed_effects() && { return std::move(fixed_effects_); }
+    const FixedEffect& fixed_effects() const { return fixed_effects_; }
     std::variant<GenotypeMap, GenotypeMatrix> take_additive_matrix() &&
     {
         return std::move(*additive_matrix_);
@@ -137,11 +136,11 @@ class DataPipe
     size_t num_genotype_samples_;
 
     std::unique_ptr<detail::PhenotypeLoader> phenotype_loader_;
-    std::unique_ptr<detail::QcovarLoader> qcovar_loader_;
-    std::unique_ptr<detail::DcovarLoader> dcovar_loader_;
+    std::unique_ptr<detail::QuantitativeCovariateLoader> qcovar_loader_;
+    std::unique_ptr<detail::DiscreteCovariateLoader> dcovar_loader_;
 
     Eigen::VectorXd phenotype_;
-    Eigen::MatrixXd fixed_effects_;
+    FixedEffect fixed_effects_;
 
     std::shared_ptr<SampleManager> sample_manager_;
 

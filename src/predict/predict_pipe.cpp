@@ -38,7 +38,7 @@ PredictDataPipe::PredictDataPipe(const Config& config)
 
 void PredictDataPipe::load_qcovariates(const Config& config)
 {
-    qcovar_loader_ = std::make_unique<detail::QcovarLoader>(
+    qcovar_loader_ = std::make_unique<detail::QuantitativeCovariateLoader>(
         config.qcovar_path, config.iid_only);
     qcovariate_names_ = qcovar_loader_->names();
 }
@@ -91,16 +91,18 @@ void PredictDataPipe::format_dcovariates()
     const auto& id_map = sample_manager_->common_id_map();
     sample_ids_ = sample_manager_->common_ids();
 
-    Eigen::MatrixXd qcovariates;
     if (qcovar_loader_)
     {
-        qcovariates = qcovar_loader_->load(id_map);
+        auto qcov = qcovar_loader_->load(id_map);
+        qcovariates_ = Eigen::MatrixXd::Ones(num_samples, qcov.X.cols() + 1);
+        if (qcov.X.size() != 0)
+        {
+            qcovariates_.middleCols(1, qcov.X.cols()) = qcov.X;
+        }
     }
-
-    qcovariates_ = Eigen::MatrixXd::Ones(num_samples, qcovariates.cols() + 1);
-    if (qcovariates.size() != 0)
+    else
     {
-        qcovariates_.middleCols(1, qcovariates.cols()) = qcovariates;
+        qcovariates_ = Eigen::MatrixXd::Ones(num_samples, 1);
     }
 
     if (dcovar_loader_)

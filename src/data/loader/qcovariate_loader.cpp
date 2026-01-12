@@ -21,7 +21,9 @@ namespace gelex::detail
 // QcovarLoader
 // =============================================================================
 
-QcovarLoader::QcovarLoader(const std::filesystem::path& path, bool iid_only)
+QuantitativeCovariateLoader::QuantitativeCovariateLoader(
+    const std::filesystem::path& path,
+    bool iid_only)
 {
     auto file = detail::open_file<std::ifstream>(path, std::ios::in);
     try
@@ -38,7 +40,7 @@ QcovarLoader::QcovarLoader(const std::filesystem::path& path, bool iid_only)
         "Loaded {} samples with {} qcovars.", data_.size(), names_.size());
 }
 
-void QcovarLoader::set_names(std::ifstream& file)
+void QuantitativeCovariateLoader::set_names(std::ifstream& file)
 {
     std::string line;
     std::getline(file, line);
@@ -55,7 +57,7 @@ void QcovarLoader::set_names(std::ifstream& file)
     }
 }
 
-void QcovarLoader::set_data(std::ifstream& file, bool iid_only)
+void QuantitativeCovariateLoader::set_data(std::ifstream& file, bool iid_only)
 {
     std::string line;
     int n_line = 0;
@@ -105,7 +107,7 @@ void QcovarLoader::set_data(std::ifstream& file, bool iid_only)
     }
 }
 
-Eigen::MatrixXd QcovarLoader::load(
+QuantitativeCovariate QuantitativeCovariateLoader::load(
     const std::unordered_map<std::string, Eigen::Index>& id_map) const
 {
     const auto n_samples = static_cast<Eigen::Index>(id_map.size());
@@ -123,7 +125,8 @@ Eigen::MatrixXd QcovarLoader::load(
                 = Eigen::Map<const Eigen::RowVectorXd>(values.data(), n_covars);
         }
     }
-    return result;
+
+    return QuantitativeCovariate{.names = names_, .X = std::move(result)};
 }
 
 }  // namespace gelex::detail

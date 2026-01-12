@@ -29,7 +29,6 @@ bool is_nan_or_inf_string(std::string_view sv)
         return false;
     }
 
-    // tolower
     std::string lower;
     lower.reserve(sv.size());
     std::ranges::transform(
@@ -42,7 +41,9 @@ bool is_nan_or_inf_string(std::string_view sv)
 }
 }  // namespace
 
-DcovarLoader::DcovarLoader(const std::filesystem::path& path, bool iid_only)
+DiscreteCovariateLoader::DiscreteCovariateLoader(
+    const std::filesystem::path& path,
+    bool iid_only)
 {
     auto file = detail::open_file<std::ifstream>(path, std::ios::in);
 
@@ -63,7 +64,7 @@ DcovarLoader::DcovarLoader(const std::filesystem::path& path, bool iid_only)
         names_.size());
 }
 
-void DcovarLoader::set_names(std::ifstream& file)
+void DiscreteCovariateLoader::set_names(std::ifstream& file)
 {
     std::string line;
     std::getline(file, line);
@@ -81,7 +82,7 @@ void DcovarLoader::set_names(std::ifstream& file)
     }
 }
 
-void DcovarLoader::set_data(std::ifstream& file, bool iid_only)
+void DiscreteCovariateLoader::set_data(std::ifstream& file, bool iid_only)
 {
     std::string line;
     int n_line = 0;
@@ -105,7 +106,6 @@ void DcovarLoader::set_data(std::ifstream& file, bool iid_only)
                 throw DataParseException("Column count mismatch");
             }
 
-            // check nan/inf
             bool has_invalid = false;
             for (const auto& val : value_buffer)
             {
@@ -117,7 +117,7 @@ void DcovarLoader::set_data(std::ifstream& file, bool iid_only)
             }
             if (has_invalid)
             {
-                continue;  // skip
+                continue;
             }
 
             raw_data_.emplace(
@@ -132,16 +132,17 @@ void DcovarLoader::set_data(std::ifstream& file, bool iid_only)
     }
 }
 
-Eigen::MatrixXd DcovarLoader::load(
+DiscreteCovariate DiscreteCovariateLoader::load(
     const std::unordered_map<std::string, Eigen::Index>& id_map) const
 {
     auto [valid_ids, levels_per_col] = get_valid_samples_and_levels(id_map);
-    auto [local_encodings, total_cols] = build_local_encodings(levels_per_col);
+    auto encoding_result = build_local_encodings(levels_per_col);
 
-    return fill_matrix(id_map, valid_ids, local_encodings, total_cols);
+    return build_result(id_map, valid_ids, levels_per_col, encoding_result);
 }
 
-DcovarLoader::IntersectResult DcovarLoader::get_valid_samples_and_levels(
+DiscreteCovariateLoader::IntersectResult
+DiscreteCovariateLoader::get_valid_samples_and_levels(
     const std::unordered_map<std::string, Eigen::Index>& id_map) const
 {
     std::vector<std::string_view> valid_ids;
@@ -170,7 +171,8 @@ DcovarLoader::IntersectResult DcovarLoader::get_valid_samples_and_levels(
     return {std::move(valid_ids), std::move(levels_per_col)};
 }
 
-DcovarLoader::EncodingResult DcovarLoader::build_local_encodings(
+DiscreteCovariateLoader::EncodingResult
+DiscreteCovariateLoader::build_local_encodings(
     const std::vector<std::unordered_set<std::string_view>>& levels_per_col)
     const
 {
@@ -191,7 +193,7 @@ DcovarLoader::EncodingResult DcovarLoader::build_local_encodings(
             levels.begin(), levels.end());
         std::ranges::sort(sorted_levels);
 
-        Eigen::Index current_offset = (total_dummy_vars);
+        Eigen::Index current_offset = total_dummy_vars;
 
         encodings[i].emplace(
             sorted_levels[0], EncodedCovariate{-1, current_offset});
@@ -211,15 +213,41 @@ DcovarLoader::EncodingResult DcovarLoader::build_local_encodings(
     return {std::move(encodings), total_dummy_vars};
 }
 
-Eigen::MatrixXd DcovarLoader::fill_matrix(
+DiscreteCovariate DiscreteCovariateLoader::build_result(
     const std::unordered_map<std::string, Eigen::Index>& id_map,
     const std::vector<std::string_view>& valid_ids,
-    const std::vector<std::unordered_map<std::string_view, EncodedCovariate>>&
-        local_encodings,
-    Eigen::Index total_cols) const
+    const std::vector<std::unordered_set<std::string_view>>& levels_per_col,
+    const EncodingResult& encoding_result) const
 {
-    Eigen::MatrixXd result(id_map.size(), total_cols);
-    result.setZero();
+    const Eigen::Index n_samples = static_cast<Eigen::Index>(id_map.size());
+    const Eigen::Index total_cols = encoding_result.total_cols;
+
+    Eigen::MatrixXd X(n_samples, total_cols);
+    X.setZero();
+
+    std::vector<std::vector<std::string>> levels(names_.size());
+    std::vector<std::string> reference_levels(names_.size());
+
+    for (size_t i = 0; i < names_.size(); ++i)
+    {
+        const auto& levels_set = levels_per_col[i];
+
+        if (levels_set.size() < 2)
+        {
+            levels[i].clear();
+            reference_levels[i].clear();
+            continue;
+        }
+
+        std::vector<std::string> sorted_levels(
+            levels_set.begin(), levels_set.end());
+        std::ranges::sort(sorted_levels);
+
+        levels[i] = std::move(sorted_levels);
+        reference_levels[i] = levels[i][0];
+    }
+
+    const auto& local_encodings = encoding_result.encodings;
 
     for (const auto& id_sv : valid_ids)
     {
@@ -247,14 +275,17 @@ Eigen::MatrixXd DcovarLoader::fill_matrix(
 
                 if (info.active_index >= 0)
                 {
-                    result(row_idx, info.start_col_offset + info.active_index)
-                        = 1.0;
+                    X(row_idx, info.start_col_offset + info.active_index) = 1.0;
                 }
             }
         }
     }
 
-    return result;
+    return DiscreteCovariate{
+        .names = names_,
+        .levels = std::move(levels),
+        .reference_levels = std::move(reference_levels),
+        .X = std::move(X)};
 }
 
 }  // namespace gelex::detail

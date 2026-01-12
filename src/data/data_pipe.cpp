@@ -54,14 +54,14 @@ CovarStats DataPipe::load_covariates()
 
     if (!config_.qcovar_path.empty())
     {
-        qcovar_loader_ = std::make_unique<detail::QcovarLoader>(
+        qcovar_loader_ = std::make_unique<detail::QuantitativeCovariateLoader>(
             config_.qcovar_path, config_.iid_only);
         q_names = qcovar_loader_->names();
     }
 
     if (!config_.dcovar_path.empty())
     {
-        dcovar_loader_ = std::make_unique<detail::DcovarLoader>(
+        dcovar_loader_ = std::make_unique<detail::DiscreteCovariateLoader>(
             config_.dcovar_path, config_.iid_only);
         d_names = dcovar_loader_->names();
     }
@@ -165,61 +165,30 @@ GenotypeStats DataPipe::load_dominance_matrix()
 
 void DataPipe::finalize()
 {
-    const auto num_samples
-        = static_cast<Eigen::Index>(sample_manager_->num_common_samples());
     const auto& id_map = sample_manager_->common_id_map();
 
     phenotype_ = phenotype_loader_ ? phenotype_loader_->load(id_map)
                                    : Eigen::VectorXd::Zero();
 
-    Eigen::MatrixXd qcovariates;
+    std::optional<QuantitativeCovariate> qcov;
+    std::optional<DiscreteCovariate> dcov;
+
     if (qcovar_loader_)
     {
-        qcovariates = qcovar_loader_->load(id_map);
+        qcov = qcovar_loader_->load(id_map);
     }
 
-    Eigen::MatrixXd covariates;
     if (dcovar_loader_)
     {
-        covariates = dcovar_loader_->load(id_map);
-    }
-    const Eigen::Index num_fixed_effects
-        = 1 + qcovariates.cols() + covariates.cols();
-
-    fixed_effects_ = Eigen::MatrixXd::Ones(num_samples, num_fixed_effects);
-
-    Eigen::Index current_col = 1;
-    if (qcovariates.size() != 0)
-    {
-        fixed_effects_.middleCols(current_col, qcovariates.cols())
-            = qcovariates;
-        current_col += qcovariates.cols();
+        dcov = dcovar_loader_->load(id_map);
     }
 
-    if (covariates.size() != 0)
-    {
-        fixed_effects_.middleCols(current_col, covariates.cols()) = covariates;
-    }
-
-    fixed_effect_names_.clear();
-    fixed_effect_names_.emplace_back("intercept");
-    if (qcovar_loader_)
-    {
-        auto names = qcovar_loader_->names();
-        fixed_effect_names_.insert(
-            fixed_effect_names_.end(), names.begin(), names.end());
-    }
-    if (dcovar_loader_)
-    {
-        auto names = dcovar_loader_->names();
-        fixed_effect_names_.insert(
-            fixed_effect_names_.end(), names.begin(), names.end());
-    }
+    fixed_effects_ = FixedEffect::build(std::move(qcov), std::move(dcov));
 }
 
 const std::vector<std::string>& DataPipe::fixed_effect_names() const
 {
-    return fixed_effect_names_;
+    return fixed_effects_.names;
 }
 
 }  // namespace gelex
