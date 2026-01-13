@@ -7,7 +7,6 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/logger.h"
 #include "loader/fam_loader.h"
 
 namespace gelex
@@ -42,18 +41,35 @@ void SampleManager::intersect(std::span<const std::string_view> ids)
     std::vector<std::string_view> sorted_input(ids.begin(), ids.end());
     std::ranges::sort(sorted_input);
 
-    std::vector<std::string> result;
-    result.reserve(std::min(common_ids_.size(), sorted_input.size()));
+    std::erase_if(
+        common_ids_,
+        [&sorted_input](const std::string& s)
+        {
+            return !std::ranges::binary_search(sorted_input, s, std::less<>{});
+        });
+}
 
-    std::set_intersection(
-        common_ids_.begin(),
-        common_ids_.end(),
-        sorted_input.begin(),
-        sorted_input.end(),
-        std::back_inserter(result),
-        std::less<>{});
+void SampleManager::intersect(std::span<const std::string> ids)
+{
+    if (common_ids_.empty())
+    {
+        return;
+    }
+    if (ids.empty())
+    {
+        common_ids_.clear();
+        return;
+    }
 
-    common_ids_ = std::move(result);
+    std::vector<std::string_view> sorted_input(ids.begin(), ids.end());
+    std::ranges::sort(sorted_input);
+
+    std::erase_if(
+        common_ids_,
+        [&sorted_input](const std::string& s)
+        {
+            return !std::ranges::binary_search(sorted_input, s, std::less<>{});
+        });
 }
 
 void SampleManager::finalize()

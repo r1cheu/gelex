@@ -26,6 +26,7 @@ class SampleManager
     ~SampleManager() = default;
 
     void intersect(std::span<const std::string_view> ids);
+    void intersect(std::span<const std::string> ids);
 
     void finalize();
 

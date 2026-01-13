@@ -3,14 +3,15 @@
 
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include <Eigen/Dense>
+
 #include "../src/types/covariates.h"
-#include "Eigen/Core"
 
 namespace gelex::detail
 {
@@ -20,52 +21,42 @@ class DiscreteCovariateLoader
    public:
     DiscreteCovariateLoader(const std::filesystem::path& path, bool iid_only);
 
-    [[nodiscard]] DiscreteCovariate load(
-        const std::unordered_map<std::string, Eigen::Index>& id_map) const;
+    [[nodiscard]] auto load(
+        const std::unordered_map<std::string, Eigen::Index>& id_map) const
+        -> DiscreteCovariate;
 
-    const std::vector<std::string>& names() const { return names_; }
-    const std::unordered_map<std::string, std::vector<std::string>>& data()
-        const
+    auto sample_ids() const -> const std::vector<std::string>&
     {
-        return raw_data_;
+        return sample_ids_;
     }
 
    private:
-    struct EncodedCovariate
+    struct StringHash
     {
-        Eigen::Index active_index = -1;
-        Eigen::Index start_col_offset = 0;
+        using is_transparent = void;
+        auto operator()(std::string_view sv) const noexcept -> size_t
+        {
+            return std::hash<std::string_view>{}(sv);
+        }
     };
 
-    void set_names(std::ifstream& file);
-    void set_data(std::ifstream& file, bool iid_only);
-
-    struct IntersectResult
+    struct ColumnData
     {
-        std::vector<std::string_view> valid_ids;
-        std::vector<std::unordered_set<std::string_view>> levels_per_col;
+        std::vector<std::string> levels;
+        std::vector<uint16_t> data;
+        std::unordered_map<std::string, uint16_t, StringHash, std::equal_to<>>
+            level_map;
     };
-    IntersectResult get_valid_samples_and_levels(
-        const std::unordered_map<std::string, Eigen::Index>& id_map) const;
 
-    struct EncodingResult
-    {
-        std::vector<std::unordered_map<std::string_view, EncodedCovariate>>
-            encodings;
-        Eigen::Index total_cols;
-    };
-    EncodingResult build_local_encodings(
-        const std::vector<std::unordered_set<std::string_view>>& levels_per_col)
-        const;
+    std::vector<std::string> column_names_;
+    std::vector<std::string> sample_ids_;
+    std::vector<ColumnData> columns_;
 
-    DiscreteCovariate build_result(
-        const std::unordered_map<std::string, Eigen::Index>& id_map,
-        const std::vector<std::string_view>& valid_ids,
-        const std::vector<std::unordered_set<std::string_view>>& levels_per_col,
-        const EncodingResult& encoding_result) const;
-
-    std::vector<std::string> names_;
-    std::unordered_map<std::string, std::vector<std::string>> raw_data_;
+    // set column names and initialize column data structures
+    auto init_columns(std::ifstream& file) -> void;
+    auto fill_columns(std::ifstream& file, bool iid_only) -> void;
+    static auto get_or_add_level(ColumnData& column, std::string_view level)
+        -> uint16_t;
 };
 
 }  // namespace gelex::detail

@@ -63,7 +63,6 @@ CovarStats DataPipe::load_covariates()
     {
         dcovar_loader_ = std::make_unique<detail::DiscreteCovariateLoader>(
             config_.dcovar_path, config_.iid_only);
-        d_names = dcovar_loader_->names();
     }
 
     return CovarStats{
@@ -105,7 +104,7 @@ IntersectionStats DataPipe::intersect_samples()
 
     if (dcovar_loader_)
     {
-        intersect(dcovar_loader_->data());
+        sample_manager_->intersect(dcovar_loader_->sample_ids());
     }
 
     sample_manager_->finalize();

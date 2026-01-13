@@ -35,29 +35,29 @@ TEST_CASE("CovarLoader Constructor Tests", "[data][loader][covar]")
             [&]()
             {
                 DiscreteCovariateLoader loader(file_path, false);
-                REQUIRE(loader.names().size() == 3);
-                REQUIRE(loader.names()[0] == "Sex");
-                REQUIRE(loader.names()[1] == "Population");
-                REQUIRE(loader.names()[2] == "Region");
+                REQUIRE(loader.sample_ids().size() == 3);
+                REQUIRE(loader.sample_ids()[0] == "1_2");
+                REQUIRE(loader.sample_ids()[1] == "3_4");
+                REQUIRE(loader.sample_ids()[2] == "5_6");
 
-                const auto& data = loader.data();
+                std::unordered_map<std::string, Eigen::Index> id_map
+                    = {{"1_2", 0}, {"3_4", 1}, {"5_6", 2}};
 
-                REQUIRE(data.size() == 3);
-                REQUIRE(data.count("1_2") == 1);
-                REQUIRE(data.count("3_4") == 1);
-                REQUIRE(data.count("5_6") == 1);
+                auto dcov = loader.load(id_map);
+                // Sex: F (baseline), M -> 1
+                // Population: AFR (baseline), ASN, EUR -> 2
+                // Region: East (baseline), North, South -> 2
+                // Total columns: 5
+                REQUIRE(dcov.X.cols() == 5);
+                REQUIRE(dcov.X.rows() == 3);
 
-                const auto& sample1 = data.at("1_2");
-                REQUIRE(sample1.size() == 3);
-                REQUIRE(sample1[0] == "M");
-                REQUIRE(sample1[1] == "EUR");
-                REQUIRE(sample1[2] == "North");
-
-                const auto& sample2 = data.at("5_6");
-                REQUIRE(sample2.size() == 3);
-                REQUIRE(sample2[0] == "M");
-                REQUIRE(sample2[1] == "ASN");
-                REQUIRE(sample2[2] == "East");
+                // Sample 1: 1_2 (M, EUR, North)
+                // Sex_M=1, Pop_ASN=0, Pop_EUR=1, Reg_North=1, Reg_South=0
+                REQUIRE(dcov.X(0, 0) == 1.0);
+                REQUIRE(dcov.X(0, 1) == 0.0);
+                REQUIRE(dcov.X(0, 2) == 1.0);
+                REQUIRE(dcov.X(0, 3) == 1.0);
+                REQUIRE(dcov.X(0, 4) == 0.0);
             }());
     }
 
@@ -72,26 +72,22 @@ TEST_CASE("CovarLoader Constructor Tests", "[data][loader][covar]")
             [&]()
             {
                 DiscreteCovariateLoader loader(file_path, true);
-                REQUIRE(loader.names().size() == 2);
-                REQUIRE(loader.names()[0] == "Sex");
-                REQUIRE(loader.names()[1] == "Population");
-                REQUIRE(loader.data().size() == 2);
+                REQUIRE(loader.sample_ids().size() == 2);
+                REQUIRE(loader.sample_ids()[0] == "2");
+                REQUIRE(loader.sample_ids()[1] == "4");
 
-                const auto& data = loader.data();
+                std::unordered_map<std::string, Eigen::Index> id_map
+                    = {{"2", 0}, {"4", 1}};
+                auto dcov = loader.load(id_map);
 
-                REQUIRE(data.size() == 2);
-                REQUIRE(data.count("2") == 1);
-                REQUIRE(data.count("4") == 1);
+                // Sex: F (baseline), M -> 1
+                // Population: AFR (baseline), EUR -> 1
+                REQUIRE(dcov.X.cols() == 2);
+                REQUIRE(dcov.X.rows() == 2);
 
-                const auto& sample1 = data.at("2");
-                REQUIRE(sample1.size() == 2);
-                REQUIRE(sample1[0] == "M");
-                REQUIRE(sample1[1] == "EUR");
-
-                const auto& sample2 = data.at("4");
-                REQUIRE(sample2.size() == 2);
-                REQUIRE(sample2[0] == "F");
-                REQUIRE(sample2[1] == "AFR");
+                // Sample 1: 2 (M, EUR) -> [1, 1]
+                REQUIRE(dcov.X(0, 0) == 1.0);
+                REQUIRE(dcov.X(0, 1) == 1.0);
             }());
     }
 
@@ -103,8 +99,7 @@ TEST_CASE("CovarLoader Constructor Tests", "[data][loader][covar]")
             [&]()
             {
                 DiscreteCovariateLoader loader(file_path, false);
-                REQUIRE(loader.names().size() == 2);
-                REQUIRE(loader.data().empty());
+                REQUIRE(loader.sample_ids().empty());
             }());
     }
 
@@ -140,7 +135,7 @@ TEST_CASE("CovarLoader set_data Tests", "[data][loader][covar]")
             [&]()
             {
                 DiscreteCovariateLoader loader(file_path, false);
-                REQUIRE(loader.data().size() == 2);
+                REQUIRE(loader.sample_ids().size() == 2);
             }());
     }
 
@@ -182,9 +177,10 @@ TEST_CASE("CovarLoader set_data Tests", "[data][loader][covar]")
             [&]()
             {
                 DiscreteCovariateLoader loader(file_path, false);
-                REQUIRE(loader.names().size() == 1);
-                REQUIRE(loader.names()[0] == "Sex");
-                REQUIRE(loader.data().size() == 2);
+                REQUIRE(loader.sample_ids().size() == 2);
+                auto dcov = loader.load({{"1_2", 0}, {"3_4", 1}});
+                REQUIRE(dcov.X.cols() == 1);
+                REQUIRE(dcov.X(0, 0) == 1);
             }());
     }
 }
@@ -483,13 +479,13 @@ TEST_CASE("CovarLoader nan/inf exclusion tests", "[data][loader][covar]")
             [&]()
             {
                 DiscreteCovariateLoader loader(file_path, false);
-                const auto& data = loader.data();
+                const auto& ids = loader.sample_ids();
                 // only the last row should be retained
-                REQUIRE(data.size() == 1);
-                REQUIRE(data.count("13_14") == 1);
-                REQUIRE(data.at("13_14")[0] == "M");
-                REQUIRE(data.at("13_14")[1] == "G");
-                REQUIRE(data.at("13_14")[2] == "Valid");
+                REQUIRE(ids.size() == 1);
+                REQUIRE(ids[0] == "13_14");
+
+                auto dcov = loader.load({{"13_14", 0}});
+                REQUIRE(dcov.X.cols() == 0);  // All single levels
             }());
     }
 
@@ -505,11 +501,9 @@ TEST_CASE("CovarLoader nan/inf exclusion tests", "[data][loader][covar]")
             [&]()
             {
                 DiscreteCovariateLoader loader(file_path, false);
-                const auto& data = loader.data();
-                REQUIRE(data.size() == 1);
-                REQUIRE(data.count("3_4") == 1);
-                REQUIRE(data.at("3_4")[0] == "F");
-                REQUIRE(data.at("3_4")[1] == "B");
+                const auto& ids = loader.sample_ids();
+                REQUIRE(ids.size() == 1);
+                REQUIRE(ids[0] == "3_4");
             }());
     }
 
