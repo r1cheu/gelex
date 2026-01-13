@@ -30,6 +30,11 @@ class DiscreteCovariateLoader
         return sample_ids_;
     }
 
+    auto column_names() const -> const std::vector<std::string>&
+    {
+        return column_names_;
+    }
+
    private:
     struct StringHash
     {

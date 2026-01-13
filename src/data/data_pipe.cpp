@@ -7,8 +7,6 @@
 
 #include <Eigen/Core>
 
-#include "../src/estimator/bayes/indicator.h"
-#include "barkeep.h"
 #include "gelex/data/sample_manager.h"
 #include "gelex/data/variant_processor.h"
 #include "gelex/exception.h"
@@ -56,7 +54,7 @@ CovarStats DataPipe::load_covariates()
     {
         qcovar_loader_ = std::make_unique<detail::QuantitativeCovariateLoader>(
             config_.qcovar_path, config_.iid_only);
-        q_names = qcovar_loader_->names();
+        q_names = qcovar_loader_->column_names();
     }
 
     if (!config_.dcovar_path.empty())
@@ -99,11 +97,15 @@ IntersectionStats DataPipe::intersect_samples()
 
     if (qcovar_loader_)
     {
-        intersect(qcovar_loader_->data());
+        total_before
+            = std::max(total_before, qcovar_loader_->sample_ids().size());
+        sample_manager_->intersect(qcovar_loader_->sample_ids());
     }
 
     if (dcovar_loader_)
     {
+        total_before
+            = std::max(total_before, dcovar_loader_->sample_ids().size());
         sample_manager_->intersect(dcovar_loader_->sample_ids());
     }
 

@@ -40,7 +40,7 @@ void PredictDataPipe::load_qcovariates(const Config& config)
 {
     qcovar_loader_ = std::make_unique<detail::QuantitativeCovariateLoader>(
         config.qcovar_path, config.iid_only);
-    qcovariate_names_ = qcovar_loader_->names();
+    qcovariate_names_ = qcovar_loader_->column_names();
 }
 
 void PredictDataPipe::load_dcovariates(const Config& config)
@@ -71,8 +71,7 @@ void PredictDataPipe::intersect()
 
     if (qcovar_loader_)
     {
-        auto key_views = create_key_views(qcovar_loader_->data());
-        sample_manager_->intersect(key_views);
+        sample_manager_->intersect(qcovar_loader_->sample_ids());
     }
 
     if (dcovar_loader_)

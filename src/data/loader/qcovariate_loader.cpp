@@ -3,7 +3,6 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
-#include <ranges>
 #include <vector>
 
 #include <fmt/ranges.h>
@@ -17,9 +16,6 @@
 
 namespace gelex::detail
 {
-// =============================================================================
-// QcovarLoader
-// =============================================================================
 
 QuantitativeCovariateLoader::QuantitativeCovariateLoader(
     const std::filesystem::path& path,
@@ -28,8 +24,8 @@ QuantitativeCovariateLoader::QuantitativeCovariateLoader(
     auto file = detail::open_file<std::ifstream>(path, std::ios::in);
     try
     {
-        set_names(file);
-        set_data(file, iid_only);
+        init_columns(file);
+        fill_columns(file, iid_only);
     }
     catch (const GelexException& e)
     {
@@ -37,96 +33,124 @@ QuantitativeCovariateLoader::QuantitativeCovariateLoader(
             std::format("{}:{}", path.string(), e.what()));
     }
     gelex::logging::get()->info(
-        "Loaded {} samples with {} qcovars.", data_.size(), names_.size());
+        "Loaded {} samples with {} qcovars.",
+        sample_ids_.size(),
+        column_names_.size());
 }
 
-void QuantitativeCovariateLoader::set_names(std::ifstream& file)
+auto QuantitativeCovariateLoader::init_columns(std::ifstream& file) -> void
 {
     std::string line;
     std::getline(file, line);
 
     auto header = parse_header(line);
-    if (header.size() < 3)
+    if (header.size() <= IdColumnCount)
     {
         throw ColumnRangeException("Qcovar must have > 2 columns");
     }
-    names_.clear();
-    for (size_t i = 2; i < header.size(); ++i)
-    {
-        names_.emplace_back(header[i]);
-    }
+
+    // Skip FID and IID columns (first 2 columns)
+    column_names_.assign(header.begin() + IdColumnCount, header.end());
+    columns_.resize(column_names_.size());
 }
 
-void QuantitativeCovariateLoader::set_data(std::ifstream& file, bool iid_only)
+auto QuantitativeCovariateLoader::fill_columns(
+    std::ifstream& file,
+    bool iid_only) -> void
 {
     std::string line;
-    int n_line = 0;
-    data_.reserve(1024);
+    int line_number = 1;
     std::vector<double> values_buffer;
+    const size_t n_covars = column_names_.size();
 
     while (std::getline(file, line))
     {
-        n_line++;
+        line_number++;
         if (line.empty())
         {
             continue;
         }
         try
         {
-            parse_all_doubles(line, values_buffer, 2);
-            if (values_buffer.size() < names_.size())
+            parse_all_doubles(line, values_buffer, IdColumnCount);
+            if (values_buffer.size() != n_covars)
             {
                 throw DataParseException(
                     std::format(
                         "expected {} quantitative covariate values, but found "
                         "{}",
-                        names_.size(),
+                        n_covars,
                         values_buffer.size()));
             }
-            // Check for nan/inf values
-            bool has_invalid = false;
-            for (double val : values_buffer)
-            {
-                if (std::isnan(val) || std::isinf(val))
-                {
-                    has_invalid = true;
-                    break;
-                }
-            }
-            if (has_invalid)
+
+            // Skip rows with invalid values (NaN or Inf)
+            if (std::ranges::any_of(
+                    values_buffer,
+                    [](double val) { return !is_valid_covariate_value(val); }))
             {
                 continue;
             }
-            data_.emplace(parse_id(line, iid_only), values_buffer);
+
+            sample_ids_.emplace_back(parse_id(line, iid_only));
+            for (size_t i = 0; i < n_covars; ++i)
+            {
+                columns_[i].push_back(values_buffer[i]);
+            }
         }
         catch (const GelexException& e)
         {
             throw DataParseException(
-                std::format("{}: {}", n_line + 1, e.what()));
+                std::format("{}: {}", line_number, e.what()));
         }
     }
 }
 
-QuantitativeCovariate QuantitativeCovariateLoader::load(
+auto QuantitativeCovariateLoader::load(
     const std::unordered_map<std::string, Eigen::Index>& id_map) const
+    -> QuantitativeCovariate
 {
-    const auto n_samples = static_cast<Eigen::Index>(id_map.size());
-    const auto n_covars = static_cast<Eigen::Index>(names_.size());
+    std::vector<Eigen::Index> file_indices;
+    std::vector<Eigen::Index> target_indices;
+    file_indices.reserve(id_map.size());
+    target_indices.reserve(id_map.size());
 
-    Eigen::MatrixXd result(n_samples, n_covars);
-    result.setConstant(std::numeric_limits<double>::quiet_NaN());
-
-    for (const auto& [id, values] : data_)
+    // Build index mapping from sample file IDs to target position
+    for (size_t i = 0; i < sample_ids_.size(); ++i)
     {
-        if (auto it = id_map.find(id); it != id_map.end())
+        if (auto it = id_map.find(sample_ids_[i]); it != id_map.end())
         {
-            const Eigen::Index row_idx = it->second;
-            result.row(row_idx)
-                = Eigen::Map<const Eigen::RowVectorXd>(values.data(), n_covars);
+            file_indices.push_back(static_cast<Eigen::Index>(i));
+            target_indices.push_back(it->second);
         }
     }
 
-    return QuantitativeCovariate{.names = names_, .X = std::move(result)};
+    const auto n_samples = static_cast<Eigen::Index>(id_map.size());
+    const auto n_covars = static_cast<Eigen::Index>(column_names_.size());
+
+    Eigen::MatrixXd X(n_samples, n_covars);
+    X.setConstant(std::numeric_limits<double>::quiet_NaN());
+
+    // Fill matrix with covariate values in row-major access pattern
+    // for better cache locality
+    for (size_t match_idx = 0; match_idx < file_indices.size(); ++match_idx)
+    {
+        const auto file_row = file_indices[match_idx];
+        const auto target_row = target_indices[match_idx];
+
+        for (size_t covar_idx = 0; covar_idx < columns_.size(); ++covar_idx)
+        {
+            X(target_row, static_cast<Eigen::Index>(covar_idx))
+                = columns_[covar_idx][file_row];
+        }
+    }
+
+    return QuantitativeCovariate{.names = column_names_, .X = std::move(X)};
 }
 
 }  // namespace gelex::detail
+
+auto gelex::detail::QuantitativeCovariateLoader::is_valid_covariate_value(
+    double value) -> bool
+{
+    return !std::isnan(value) && !std::isinf(value);
+}

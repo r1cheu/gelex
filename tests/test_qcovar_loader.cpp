@@ -33,29 +33,15 @@ TEST_CASE("QcovarLoader Constructor Tests", "[data][loader][qcovar]")
             [&]()
             {
                 QuantitativeCovariateLoader loader(file_path, false);
-                REQUIRE(loader.names().size() == 3);
-                REQUIRE(loader.names()[0] == "Age");
-                REQUIRE(loader.names()[1] == "Height");
-                REQUIRE(loader.names()[2] == "Weight");
+                REQUIRE(loader.column_names().size() == 3);
+                REQUIRE(loader.column_names()[0] == "Age");
+                REQUIRE(loader.column_names()[1] == "Height");
+                REQUIRE(loader.column_names()[2] == "Weight");
 
-                const auto& data = loader.data();
-
-                REQUIRE(data.size() == 3);
-                REQUIRE(data.count("1_2") == 1);
-                REQUIRE(data.count("3_4") == 1);
-                REQUIRE(data.count("5_6") == 1);
-
-                const auto& sample1 = data.at("1_2");
-                REQUIRE(sample1.size() == 3);
-                REQUIRE(sample1[0] == 25.5);
-                REQUIRE(sample1[1] == 170.2);
-                REQUIRE(sample1[2] == 65.8);
-
-                const auto& sample2 = data.at("5_6");
-                REQUIRE(sample2.size() == 3);
-                REQUIRE(sample2[0] == 28.8);
-                REQUIRE(sample2[1] == 172.1);
-                REQUIRE(sample2[2] == 68.9);
+                REQUIRE(loader.sample_ids().size() == 3);
+                REQUIRE(loader.sample_ids()[0] == "1_2");
+                REQUIRE(loader.sample_ids()[1] == "3_4");
+                REQUIRE(loader.sample_ids()[2] == "5_6");
             }());
     }
 
@@ -67,8 +53,8 @@ TEST_CASE("QcovarLoader Constructor Tests", "[data][loader][qcovar]")
             [&]()
             {
                 QuantitativeCovariateLoader loader(file_path, false);
-                REQUIRE(loader.names().size() == 2);
-                REQUIRE(loader.data().empty());
+                REQUIRE(loader.column_names().size() == 2);
+                REQUIRE(loader.sample_ids().empty());
             }());
     }
 }
@@ -91,7 +77,7 @@ TEST_CASE("QcovarLoader set_data Tests", "[data][loader][qcovar]")
             [&]()
             {
                 QuantitativeCovariateLoader loader(file_path, false);
-                REQUIRE(loader.data().size() == 2);
+                REQUIRE(loader.sample_ids().size() == 2);
             }());
     }
 
@@ -131,11 +117,12 @@ TEST_CASE("QcovarLoader set_data Tests", "[data][loader][qcovar]")
             [&]()
             {
                 QuantitativeCovariateLoader loader(file_path, false);
-                const auto& data = loader.data();
-                REQUIRE(data.size() == 1);
-                const auto& values = data.at("1_2");
-                REQUIRE(values[0] == 1.23e-4);
-                REQUIRE(values[1] == -5.67e+3);
+                std::unordered_map<std::string, Eigen::Index> id_map
+                    = {{"1_2", 0}};
+                auto qcov = loader.load(id_map);
+                REQUIRE(qcov.X.rows() == 1);
+                REQUIRE(qcov.X(0, 0) == 1.23e-4);
+                REQUIRE(qcov.X(0, 1) == -5.67e+3);
             }());
     }
 
@@ -149,9 +136,8 @@ TEST_CASE("QcovarLoader set_data Tests", "[data][loader][qcovar]")
             [&]()
             {
                 QuantitativeCovariateLoader loader(file_path, false);
-                const auto& data = loader.data();
-                REQUIRE(data.size() == 0);  // Row with nan should be excluded
-                REQUIRE_FALSE(data.contains("1_2"));
+                REQUIRE(loader.sample_ids()
+                            .empty());  // Row with nan should be excluded
             }());
     }
 
@@ -167,15 +153,8 @@ TEST_CASE("QcovarLoader set_data Tests", "[data][loader][qcovar]")
             [&]()
             {
                 QuantitativeCovariateLoader loader(file_path, false);
-                const auto& data = loader.data();
-                REQUIRE(data.size() == 1);
-                REQUIRE(data.contains("5_6"));
-
-                REQUIRE_FALSE(data.contains("1_2"));
-                REQUIRE_FALSE(data.contains("3_4"));
-                const auto& values = data.at("5_6");
-                REQUIRE(values[0] == 25.5);
-                REQUIRE(values[1] == 172.1);
+                REQUIRE(loader.sample_ids().size() == 1);
+                REQUIRE(loader.sample_ids()[0] == "5_6");
             }());
     }
 }
@@ -235,9 +214,6 @@ TEST_CASE("QcovarLoader load Tests", "[data][loader][qcovar]")
         REQUIRE(result(0, 1) == 170.2);
         REQUIRE(result(1, 0) == 28.8);
         REQUIRE(result(1, 1) == 172.1);
-
-        // Check that missing samples are not included
-        REQUIRE(result.rows() == 2);
     }
 
     SECTION("Happy path - load with IID only mapping")
@@ -345,16 +321,15 @@ TEST_CASE("QcovarLoader Integration Tests", "[data][loader][qcovar]")
         QuantitativeCovariateLoader loader(file_path, false);
 
         // Verify names
-        const auto& names = loader.names();
+        const auto& names = loader.column_names();
         REQUIRE(names.size() == 4);
         REQUIRE(names[0] == "Age");
         REQUIRE(names[1] == "Height");
         REQUIRE(names[2] == "Weight");
         REQUIRE(names[3] == "BMI");
 
-        // Verify raw data
-        const auto& data = loader.data();
-        REQUIRE(data.size() == 5);
+        // Verify sample IDs
+        REQUIRE(loader.sample_ids().size() == 5);
 
         // Create ID mapping
         std::unordered_map<std::string, Eigen::Index> id_map

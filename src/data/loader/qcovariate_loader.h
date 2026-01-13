@@ -7,9 +7,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
+
 #include "../src/types/covariates.h"
-#include "Eigen/Core"
 
 namespace gelex::detail
 {
@@ -21,20 +21,30 @@ class QuantitativeCovariateLoader
         const std::filesystem::path& path,
         bool iid_only);
 
-    [[nodiscard]] QuantitativeCovariate load(
-        const std::unordered_map<std::string, Eigen::Index>& id_map) const;
+    [[nodiscard]] auto load(
+        const std::unordered_map<std::string, Eigen::Index>& id_map) const
+        -> QuantitativeCovariate;
 
-    const std::vector<std::string>& names() const { return names_; }
-    const std::unordered_map<std::string, std::vector<double>>& data() const
+    auto sample_ids() const -> const std::vector<std::string>&
     {
-        return data_;
+        return sample_ids_;
+    }
+
+    auto column_names() const -> const std::vector<std::string>&
+    {
+        return column_names_;
     }
 
    private:
-    void set_names(std::ifstream& file);
-    void set_data(std::ifstream& file, bool iid_only);
-    std::vector<std::string> names_;
-    std::unordered_map<std::string, std::vector<double>> data_;
+    static constexpr size_t IdColumnCount = 2;
+
+    std::vector<std::string> column_names_;
+    std::vector<std::string> sample_ids_;
+    std::vector<std::vector<double>> columns_;
+
+    auto init_columns(std::ifstream& file) -> void;
+    auto fill_columns(std::ifstream& file, bool iid_only) -> void;
+    [[nodiscard]] static auto is_valid_covariate_value(double value) -> bool;
 };
 
 }  // namespace gelex::detail
