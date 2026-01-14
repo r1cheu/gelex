@@ -2,10 +2,14 @@
 #define GELEX_DATA_GRM_H_
 
 #include <filesystem>
+#include <memory>
+#include <string>
+#include <vector>
 
 #include <Eigen/Core>
 
 #include "gelex/data/bed_pipe.h"
+#include "gelex/data/sample_manager.h"
 
 namespace gelex
 {
@@ -24,8 +28,15 @@ class GRM
     template <typename CodePolicy>
     auto compute(Eigen::Index chunk_size, bool additive) -> Eigen::MatrixXd;
 
+    [[nodiscard]] auto sample_ids() const -> const std::vector<std::string>&
+    {
+        return sample_manager_->common_ids();
+    }
+
    private:
+    std::shared_ptr<SampleManager> sample_manager_;
     BedPipe bed_;
+
     static auto update_grm(
         Eigen::Ref<Eigen::MatrixXd> grm,
         const Eigen::Ref<const Eigen::MatrixXd>& genotype) -> void;

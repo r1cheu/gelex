@@ -17,12 +17,21 @@ namespace gelex
 {
 using Eigen::Index;
 
+namespace
+{
+auto create_sample_manager(const std::filesystem::path& bed_path)
+    -> std::shared_ptr<SampleManager>
+{
+    auto fam_path = std::filesystem::path(bed_path).replace_extension(".fam");
+    auto manager = std::make_shared<SampleManager>(fam_path, false);
+    manager->finalize();
+    return manager;
+}
+}  // namespace
+
 GRM::GRM(std::filesystem::path bed_path)
-    : bed_(
-          bed_path,
-          std::make_shared<SampleManager>(
-              bed_path.replace_extension(".fam"),
-              false))
+    : sample_manager_(create_sample_manager(bed_path)),
+      bed_(bed_path, sample_manager_)
 {
 }
 

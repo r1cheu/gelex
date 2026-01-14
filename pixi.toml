@@ -35,19 +35,19 @@ cmd = "cmake --preset coverage"
 # ---------------------------------------------------------
 
 [tasks.build]
-cmd = "cmake --build --preset debug -j16"
+cmd = "cmake --build --preset debug -j$(nproc)"
 depends-on = ["config-debug"]
 
 [tasks.build-debug]
-cmd = "cmake --build --preset debug -j16"
+cmd = "cmake --build --preset debug -j$(nproc)"
 depends-on = ["config-debug"]
 
 [tasks.build-release]
-cmd = "cmake --build --preset release -j16"
+cmd = "cmake --build --preset release -j$(nproc)"
 depends-on = ["config-release"]
 
 [tasks.build-native]
-cmd = "cmake --build --preset release-native -j16"
+cmd = "cmake --build --preset release-native -j$(nproc)"
 depends-on = ["config-native"]
 
 [tasks.coverage]
@@ -63,7 +63,7 @@ cmd = "ctest --preset test-debug"
 depends-on = ["build-debug"]
 
 [tasks.build-coverage-bin]
-cmd = "cmake --build --preset coverage -j16"
+cmd = "cmake --build --preset coverage -j$(nproc)"
 depends-on = ["config-coverage"]
 
 # ---------------------------------------------------------
