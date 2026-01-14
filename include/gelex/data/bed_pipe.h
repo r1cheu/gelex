@@ -40,14 +40,6 @@ class BedPipe
         -> std::filesystem::path;
 
    private:
-    void decode_variant_dense(
-        const uint8_t* data_ptr,
-        std::span<double> target_buf) const;
-
-    void decode_variant_sparse(
-        const uint8_t* data_ptr,
-        std::span<double> target_buf) const;
-
     mio::mmap_source mmap_;
     std::shared_ptr<SampleManager> sample_manager_;
 
@@ -59,6 +51,16 @@ class BedPipe
     Eigen::Index num_raw_snps_ = 0;
     Eigen::Index bytes_per_variant_ = 0;
     std::filesystem::path bed_path_;
+
+    void decode_variant_dense(
+        const uint8_t* data_ptr,
+        std::span<double> target_buf) const;
+
+    void decode_variant_sparse(
+        const uint8_t* data_ptr,
+        std::span<double> target_buf) const;
+
+    void init_bed_mmap(const std::filesystem::path& bed_path);
 };
 
 }  // namespace gelex

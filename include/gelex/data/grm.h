@@ -1,7 +1,7 @@
-#pragma once
-#include <memory>
-#include <string>
-#include <unordered_map>
+#ifndef GELEX_DATA_GRM_H_
+#define GELEX_DATA_GRM_H_
+
+#include <filesystem>
 
 #include <Eigen/Core>
 
@@ -13,7 +13,7 @@ namespace gelex
 class GRM
 {
    public:
-    explicit GRM(std::string_view bed_file, Eigen::Index chunk_size = 10000);
+    explicit GRM(std::filesystem::path bed_path);
     GRM(const GRM&) = delete;
     GRM(GRM&&) noexcept = default;
     GRM& operator=(const GRM&) = delete;
@@ -21,66 +21,37 @@ class GRM
 
     ~GRM() = default;
 
-    Eigen::MatrixXd compute(bool add = true);
-    Eigen::VectorXd p_major() const noexcept { return p_major_; }
-    double scale_factor() const { return scale_factor_; }
+    template <typename CodePolicy>
+    auto compute(Eigen::Index chunk_size, bool additive) -> Eigen::MatrixXd;
 
    private:
-    double scale_factor_{1.0};
-    Eigen::Index chunk_size_{10000};
-
-    Eigen::VectorXd p_major_;
-    std::unique_ptr<BedPipe> bed_;
-    std::unordered_map<std::string, Eigen::Index> id_map_;
+    BedPipe bed_;
+    static auto update_grm(
+        Eigen::Ref<Eigen::MatrixXd> grm,
+        const Eigen::Ref<const Eigen::MatrixXd>& genotype) -> void;
 };
 
-class CrossGRM
+template <typename CodePolicy>
+auto GRM::compute(Eigen::Index chunk_size, bool add) -> Eigen::MatrixXd
 {
-   public:
-    explicit CrossGRM(
-        std::string_view train_bed,
-        Eigen::VectorXd p_major,
-        double scale_factor,
-        Eigen::Index chunk_size = 10000);
+    const Eigen::Index n = bed_.num_samples();
+    Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(n, n);
 
-    CrossGRM(const CrossGRM&) = delete;
-    CrossGRM(CrossGRM&&) noexcept = default;
-    CrossGRM& operator=(const CrossGRM&) = delete;
-    CrossGRM& operator=(CrossGRM&&) noexcept = default;
+    const Eigen::Index num_snps = bed_.num_snps();
+    for (Eigen::Index start_col = 0; start_col < num_snps;
+         start_col += chunk_size)
+    {
+        const Eigen::Index end_col = std::min(start_col + chunk_size, num_snps);
+        Eigen::MatrixXd genotype_chunk = bed_.load_chunk(start_col, end_col);
 
-    ~CrossGRM() = default;
+        CodePolicy{}(genotype_chunk, add);
+        update_grm(grm, genotype_chunk);
+    }
 
-    Eigen::MatrixXd compute(std::string_view test_bed, bool add = true);
+    grm /= grm.trace() / static_cast<double>(n);
 
-   private:
-    void check_snp_consistency(const BedPipe& test_bed) const;
-
-    std::unique_ptr<BedPipe> bed_;
-    Eigen::VectorXd p_major_;
-    double scale_factor_;
-
-    Eigen::Index chunk_size_;
-    std::unordered_map<std::string, Eigen::Index> id_map_;
-};
-
-/**
- * @brief Compute the allele frequencies for each SNP in the genotype matrix.
- *
- * This function calculates the mean of each column (SNP) in the genotype matrix
- * and divides by 2 to obtain the allele frequency. The result is a vector where
- * each element represents the frequency of the reference allele for the
- * corresponding SNP.
- *
- * @param genotype The genotype matrix where rows represent individuals and
- * columns represent SNPs
- * @return arma::dvec Vector of allele frequencies (mean/2) for each SNP
- */
-Eigen::VectorXd compute_p_major(
-    const Eigen::Ref<const Eigen::MatrixXd>& genotype);
-
-void code_method_varden(
-    const Eigen::Ref<const Eigen::VectorXd>& p_major,
-    Eigen::Ref<Eigen::MatrixXd> genotype,
-    bool add = true);
-
+    return grm;
+}
 }  // namespace gelex
+
+#endif  // GELEX_DATA_GRM_H_

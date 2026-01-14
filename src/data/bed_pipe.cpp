@@ -68,37 +68,7 @@ BedPipe::BedPipe(
     is_dense_mapping_ = sequential && (mapped_count == num_raw_samples_)
                         && (static_cast<size_t>(num_raw_samples_)
                             == sample_manager_->num_common_samples());
-
-    std::error_code ec;
-    mmap_.map(bed_path.string(), ec);
-    if (ec)
-    {
-        throw FileOpenException(
-            std::format("{}: failed to mmap bed file", bed_path.string()));
-    }
-
-    if (mmap_.size() <= 3)
-    {
-        throw FileFormatException(
-            std::format("{}: bed file too short", bed_path.string()));
-    }
-    if (mmap_[0] != 0x6C || mmap_[1] != 0x1B || mmap_[2] != 0x01)
-    {
-        throw FileFormatException(
-            std::format("{}: invalid BED magic number", bed_path.string()));
-    }
-
-    size_t expected_size
-        = 3 + (static_cast<size_t>(num_raw_snps_) * bytes_per_variant_);
-    if (mmap_.size() < expected_size)
-    {
-        throw FileFormatException(
-            std::format(
-                "{}: bed file truncated. Expected {} bytes, got {}",
-                bed_path.string(),
-                expected_size,
-                mmap_.size()));
-    }
+    init_bed_mmap(bed_path_);
 }
 auto BedPipe::format_bed_path(std::string_view bed_path)
     -> std::filesystem::path
@@ -252,6 +222,39 @@ Eigen::MatrixXd BedPipe::load_chunk(
     }
 
     return result;
+}
+void BedPipe::init_bed_mmap(const std::filesystem::path& bed_path)
+{
+    std::error_code ec;
+    mmap_.map(bed_path.string(), ec);
+    if (ec)
+    {
+        throw FileOpenException(
+            std::format("{}: failed to mmap bed file", bed_path.string()));
+    }
+
+    if (mmap_.size() <= 3)
+    {
+        throw FileFormatException(
+            std::format("{}: bed file too short", bed_path.string()));
+    }
+    if (mmap_[0] != 0x6C || mmap_[1] != 0x1B || mmap_[2] != 0x01)
+    {
+        throw FileFormatException(
+            std::format("{}: invalid BED magic number", bed_path.string()));
+    }
+
+    size_t expected_size
+        = 3 + (static_cast<size_t>(num_raw_snps_) * bytes_per_variant_);
+    if (mmap_.size() < expected_size)
+    {
+        throw FileFormatException(
+            std::format(
+                "{}: bed file truncated. Expected {} bytes, got {}",
+                bed_path.string(),
+                expected_size,
+                mmap_.size()));
+    }
 }
 
 Eigen::MatrixXd BedPipe::load() const
