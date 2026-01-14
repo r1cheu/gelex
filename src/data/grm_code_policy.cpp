@@ -56,9 +56,17 @@ auto Zeng::operator()(Eigen::Ref<Eigen::MatrixXd> genotype, bool use_additive)
             double pA = col.mean() / 2.0;
             double pa = 1 - pA;
 
-            col = (col.array() == 2).select(-2 * pa * pa, col);
-            col = (col.array() == 1).select(2 * pA * pa, col);
-            col = (col.array() == 0).select(-2 * pA * pA, col);
+            col = col.unaryExpr(
+                [pA, pa](double val)
+                {
+                    if (val == 2)
+                        return -2 * pa * pa;
+                    if (val == 1)
+                        return 2 * pA * pa;
+                    if (val == 0)
+                        return -2 * pA * pA;
+                    return val;
+                });
         }
     }
 }
@@ -102,10 +110,17 @@ auto Yang::operator()(Eigen::Ref<Eigen::MatrixXd> genotype, bool use_additive)
                 continue;
             }
 
-            col = (col.array() == 2).select(-2 * pa * pa, col);
-            col = (col.array() == 1).select(2 * pA * pa, col);
-            col = (col.array() == 0).select(-2 * pA * pA, col);
-            col.array() /= denom;
+            col = col.unaryExpr(
+                [pA, pa, denom](double val)
+                {
+                    if (val == 2)
+                        return -2 * pa * pa / denom;
+                    if (val == 1)
+                        return 2 * pA * pa / denom;
+                    if (val == 0)
+                        return -2 * pA * pA / denom;
+                    return val;
+                });
         }
     }
 }
@@ -132,25 +147,9 @@ auto Vitezica::operator()(
         {
             auto col = genotype.col(i);
 
-            double nAA = 0;
-            double nAa = 0;
-            double naa = 0;
-            for (Eigen::Index j = 0; j < col.size(); ++j)
-            {
-                const double val = col(j);
-                if (val == 2)
-                {
-                    ++nAA;
-                }
-                else if (val == 1)
-                {
-                    ++nAa;
-                }
-                else if (val == 0)
-                {
-                    ++naa;
-                }
-            }
+            auto nAA = static_cast<double>((col.array() == 2).count());
+            auto nAa = static_cast<double>((col.array() == 1).count());
+            auto naa = static_cast<double>((col.array() == 0).count());
 
             double denom = (nAA + naa - std::pow(nAA - naa, 2));
             if (denom < EPSILON)
@@ -159,10 +158,17 @@ auto Vitezica::operator()(
                 continue;
             }
 
-            col = (col.array() == 2).select(-2 * naa * nAa, col);
-            col = (col.array() == 1).select(4 * nAA * naa, col);
-            col = (col.array() == 0).select(-2 * nAA * nAa, col);
-            col.array() /= denom;
+            col = col.unaryExpr(
+                [nAA, nAa, naa, denom](double val)
+                {
+                    if (val == 2)
+                        return -2 * naa * nAa / denom;
+                    if (val == 1)
+                        return 4 * nAA * naa / denom;
+                    if (val == 0)
+                        return -2 * nAA * nAa / denom;
+                    return val;
+                });
         }
     }
 }
