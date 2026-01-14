@@ -103,4 +103,64 @@ void print_fit_header(
     logger->info(" └{}┘", repeat(width - 3, "─"));
 }
 
+void print_grm_header(
+    std::string_view version,
+    std::string_view method,
+    bool do_additive,
+    bool do_dominant,
+    int chunk_size,
+    int threads)
+{
+    auto logger = gelex::logging::get();
+
+    std::string title = fmt::format("gelex v{} :: GRM Computation", version);
+
+    std::string mode_str;
+    if (do_additive && do_dominant)
+    {
+        mode_str = "Additive + Dominance";
+    }
+    else if (do_additive)
+    {
+        mode_str = "Additive";
+    }
+    else
+    {
+        mode_str = "Dominance";
+    }
+
+    std::string method_str = std::string(method);
+    std::string chunk_str = fmt::format("{}", chunk_size);
+    std::string comp_str = fmt::format("{} threads (OpenMP)", threads);
+
+    size_t min_width = 69;
+    size_t content_prefix_len = 17;
+    size_t max_content_len = std::max(
+        {method_str.length(),
+         mode_str.length(),
+         chunk_str.length(),
+         comp_str.length()});
+
+    size_t required_width = content_prefix_len + max_content_len + 1 + 1;
+    size_t width = std::max(min_width, required_width);
+
+    width = std::max(width, title.length() + 8);
+
+    size_t top_dashes = width - 7 - title.length();
+    logger->info("");
+    logger->info(" ┌── {} {}┐", title, repeat(top_dashes, "─"));
+
+    auto log_row = [&](std::string_view label, std::string_view val)
+    {
+        size_t pad = width - 18 - val.length();
+        logger->info(" │  {:<11}: {}{:<{}}│", label, val, "", pad);
+    };
+
+    log_row("Method", method_str);
+    log_row("Mode", mode_str);
+    log_row("Chunk Size", chunk_str);
+    log_row("Computing", comp_str);
+    logger->info(" └{}┘", repeat(width - 3, "─"));
+}
+
 }  // namespace gelex::cli

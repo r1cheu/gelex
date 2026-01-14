@@ -25,4 +25,12 @@ void print_fit_header(
     int burnin,
     int threads);
 
+void print_grm_header(
+    std::string_view version,
+    std::string_view method,
+    bool do_additive,
+    bool do_dominant,
+    int chunk_size,
+    int threads);
+
 }  // namespace gelex::cli

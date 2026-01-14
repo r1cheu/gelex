@@ -1,16 +1,24 @@
 #include "gelex/cli/grm_command.h"
 
+#include <atomic>
+#include <chrono>
 #include <string>
 
+#include <barkeep.h>
+#include <fmt/format.h>
 #include <omp.h>
 
+#include "../src/utils/formatter.h"
+#include "config.h"
+#include "data/grm_bin_writer.h"
+#include "data/grm_id_writer.h"
+#include "gelex/cli/utils.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/grm.h"
 #include "gelex/data/grm_code_policy.h"
 #include "gelex/logger.h"
 
-#include "data/grm_bin_writer.h"
-#include "data/grm_id_writer.h"
+namespace bk = barkeep;
 
 void grm_command(argparse::ArgumentParser& cmd)
 {
@@ -56,34 +64,50 @@ void grm_command(argparse::ArgumentParser& cmd)
 namespace
 {
 
+const barkeep::BarParts BAR_STYLE{
+    .left = "[",
+    .right = "]",
+    .fill = {"\033[1;36m━\033[0m"},
+    .empty = {"-"}};
+
 template <typename CodePolicy>
-auto compute_grm(gelex::GRM& grm, int chunk_size, bool additive)
+auto compute_grm(
+    gelex::GRM& grm,
+    int chunk_size,
+    bool additive,
+    std::function<void(Eigen::Index, Eigen::Index)> progress_callback = nullptr)
     -> Eigen::MatrixXd
 {
-    return grm.compute<CodePolicy>(chunk_size, additive);
+    return grm.compute<CodePolicy>(chunk_size, additive, progress_callback);
 }
 
 auto compute_grm_with_method(
     gelex::GRM& grm,
     std::string_view method,
     int chunk_size,
-    bool additive) -> Eigen::MatrixXd
+    bool additive,
+    std::function<void(Eigen::Index, Eigen::Index)> progress_callback = nullptr)
+    -> Eigen::MatrixXd
 {
     if (method == "su")
     {
-        return compute_grm<gelex::grm::Su>(grm, chunk_size, additive);
+        return compute_grm<gelex::grm::Su>(
+            grm, chunk_size, additive, progress_callback);
     }
     if (method == "yang")
     {
-        return compute_grm<gelex::grm::Yang>(grm, chunk_size, additive);
+        return compute_grm<gelex::grm::Yang>(
+            grm, chunk_size, additive, progress_callback);
     }
     if (method == "zeng")
     {
-        return compute_grm<gelex::grm::Zeng>(grm, chunk_size, additive);
+        return compute_grm<gelex::grm::Zeng>(
+            grm, chunk_size, additive, progress_callback);
     }
     if (method == "vitezica")
     {
-        return compute_grm<gelex::grm::Vitezica>(grm, chunk_size, additive);
+        return compute_grm<gelex::grm::Vitezica>(
+            grm, chunk_size, additive, progress_callback);
     }
     throw std::invalid_argument(
         "Unknown GRM method: " + std::string(method)
@@ -100,10 +124,40 @@ auto write_grm_files(
     std::string id_path = out_prefix + ".grm.id";
 
     gelex::detail::GrmBinWriter(bin_path).write(G);
-    logger->info("GRM binary written to: {}", bin_path);
+    logger->info(gelex::success("GRM binary written to : {}", bin_path));
 
     gelex::detail::GrmIdWriter(id_path).write(sample_ids);
-    logger->info("Sample IDs written to: {}", id_path);
+    logger->info(gelex::success("Sample IDs written to : {}", id_path));
+}
+
+auto compute_grm_with_progress(
+    gelex::GRM& grm,
+    std::string_view method,
+    int chunk_size,
+    bool additive,
+    Eigen::Index num_snps) -> Eigen::MatrixXd
+{
+    std::atomic<std::ptrdiff_t> progress{0};
+
+    auto pbar = bk::ProgressBar(
+        &progress,
+        {.total = num_snps,
+         .format = "  {bar} {value}/{total} SNPs [{speed:.1f} snp/s]",
+         .speed = 0.1,
+         .style = BAR_STYLE,
+         .show = false});
+
+    pbar->show();
+
+    auto progress_callback = [&progress](Eigen::Index current, Eigen::Index)
+    { progress.store(current, std::memory_order_relaxed); };
+
+    Eigen::MatrixXd result = compute_grm_with_method(
+        grm, method, chunk_size, additive, progress_callback);
+
+    pbar->done();
+
+    return result;
 }
 
 }  // namespace
@@ -111,14 +165,6 @@ auto write_grm_files(
 auto grm_execute(argparse::ArgumentParser& cmd) -> int
 {
     auto logger = gelex::logging::get();
-
-    // Set thread count
-    int threads = cmd.get<int>("--threads");
-    if (threads > 0)
-    {
-        omp_set_num_threads(threads);
-    }
-    logger->info("Using {} threads", omp_get_max_threads());
 
     // Parse arguments
     std::filesystem::path bed_path
@@ -135,44 +181,77 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
         do_additive = true;
     }
 
-    logger->info("Input: {}", bed_path.string());
-    logger->info("Output prefix: {}", out_prefix);
-    logger->info("Method: {}", method);
-    logger->info("Chunk size: {}", chunk_size);
+    // Set thread count
+    int threads = cmd.get<int>("--threads");
+    if (threads > 0)
+    {
+        omp_set_num_threads(threads);
+    }
+    int actual_threads = omp_get_max_threads();
 
-    // Create GRM object
+    // Print header banner
+    gelex::cli::print_grm_header(
+        PROJECT_VERSION,
+        method,
+        do_additive,
+        do_dominant,
+        chunk_size,
+        actual_threads);
+
+    // Loading Data section
+    logger->info("");
+    logger->info(gelex::section("Loading Data..."));
+    logger->info(gelex::success("Input      : {}", bed_path.string()));
+
     gelex::GRM grm(bed_path);
     const auto& sample_ids = grm.sample_ids();
-    logger->info("Number of samples: {}", sample_ids.size());
+    Eigen::Index num_snps = grm.num_snps();
+    logger->info(gelex::success("Samples    : {} samples", sample_ids.size()));
+    logger->info(gelex::success("SNPs       : {} markers", num_snps));
 
-    // Compute and write GRM
+    // Computing GRM section
+    logger->info("");
+    logger->info(gelex::section("Computing GRM..."));
+
+    auto start_time = std::chrono::high_resolution_clock::now();
+
     if (do_additive && do_dominant)
     {
-        logger->info("Computing additive GRM...");
-        Eigen::MatrixXd G_add
-            = compute_grm_with_method(grm, method, chunk_size, true);
+        logger->info(gelex::task("Additive:"));
+        Eigen::MatrixXd G_add = compute_grm_with_progress(
+            grm, method, chunk_size, true, num_snps);
         write_grm_files(G_add, sample_ids, out_prefix + ".add", logger);
 
-        logger->info("Computing dominance GRM...");
-        Eigen::MatrixXd G_dom
-            = compute_grm_with_method(grm, method, chunk_size, false);
+        logger->info(gelex::task("Dominance:"));
+        Eigen::MatrixXd G_dom = compute_grm_with_progress(
+            grm, method, chunk_size, false, num_snps);
         write_grm_files(G_dom, sample_ids, out_prefix + ".dom", logger);
     }
     else if (do_additive)
     {
-        logger->info("Computing additive GRM...");
-        Eigen::MatrixXd G
-            = compute_grm_with_method(grm, method, chunk_size, true);
+        logger->info(gelex::task("Additive:"));
+        Eigen::MatrixXd G = compute_grm_with_progress(
+            grm, method, chunk_size, true, num_snps);
         write_grm_files(G, sample_ids, out_prefix, logger);
     }
     else
     {
-        logger->info("Computing dominance GRM...");
-        Eigen::MatrixXd G
-            = compute_grm_with_method(grm, method, chunk_size, false);
+        logger->info(gelex::task("Dominance:"));
+        Eigen::MatrixXd G = compute_grm_with_progress(
+            grm, method, chunk_size, false, num_snps);
         write_grm_files(G, sample_ids, out_prefix, logger);
     }
 
-    logger->info("GRM computation completed successfully");
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration<double>(end_time - start_time);
+
+    logger->info("");
+    logger->info(gelex::success("Time elapsed: {:.2f}s", duration.count()));
+    logger->info(
+        fmt::format(
+            fmt::emphasis::bold | fmt::fg(fmt::color::light_cyan),
+            "───────────────────────────────────"
+            "───────────────────────────────────"));
+
     return 0;
 }

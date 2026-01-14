@@ -2,6 +2,7 @@
 #define GELEX_DATA_GRM_H_
 
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -26,11 +27,20 @@ class GRM
     ~GRM() = default;
 
     template <typename CodePolicy>
-    auto compute(Eigen::Index chunk_size, bool additive) -> Eigen::MatrixXd;
+    auto compute(
+        Eigen::Index chunk_size,
+        bool additive,
+        std::function<void(Eigen::Index, Eigen::Index)> progress_callback
+        = nullptr) -> Eigen::MatrixXd;
 
     [[nodiscard]] auto sample_ids() const -> const std::vector<std::string>&
     {
         return sample_manager_->common_ids();
+    }
+
+    [[nodiscard]] auto num_snps() const -> Eigen::Index
+    {
+        return bed_.num_snps();
     }
 
    private:
@@ -43,7 +53,11 @@ class GRM
 };
 
 template <typename CodePolicy>
-auto GRM::compute(Eigen::Index chunk_size, bool add) -> Eigen::MatrixXd
+auto GRM::compute(
+    Eigen::Index chunk_size,
+    bool add,
+    std::function<void(Eigen::Index, Eigen::Index)> progress_callback)
+    -> Eigen::MatrixXd
 {
     const Eigen::Index n = bed_.num_samples();
     Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(n, n);
@@ -57,6 +71,11 @@ auto GRM::compute(Eigen::Index chunk_size, bool add) -> Eigen::MatrixXd
 
         CodePolicy{}(genotype_chunk, add);
         update_grm(grm, genotype_chunk);
+
+        if (progress_callback)
+        {
+            progress_callback(end_col, num_snps);
+        }
     }
 
     grm /= grm.trace() / static_cast<double>(n);
