@@ -16,6 +16,10 @@ using namespace gelex::detail;  // NOLINT
 using Catch::Matchers::EndsWith;
 using gelex::test::FileFixture;
 
+namespace
+{
+}  // namespace
+
 TEST_CASE("PhenotypeLoader - Constructor Tests", "[data][phenotype]")
 {
     FileFixture files;
@@ -33,20 +37,26 @@ TEST_CASE("PhenotypeLoader - Constructor Tests", "[data][phenotype]")
             {
                 PhenotypeLoader loader(file_path, 2, false);
                 REQUIRE(loader.name() == "Phenotype1");
-                REQUIRE(loader.data().size() == 3);
-                REQUIRE(loader.data().at("1_1") == 2.5);
-                REQUIRE(loader.data().at("1_2") == 3.1);
-                REQUIRE(loader.data().at("2_1") == 1.8);
+                REQUIRE(loader.sample_ids().size() == 3);
+                std::unordered_map<std::string, Eigen::Index> id_map
+                    = {{"1_1", 0}, {"1_2", 1}, {"2_1", 2}};
+                auto result = loader.load(id_map);
+                REQUIRE(result(0) == 2.5);
+                REQUIRE(result(1) == 3.1);
+                REQUIRE(result(2) == 1.8);
             }());
         REQUIRE_NOTHROW(
             [&]()
             {
                 PhenotypeLoader loader(file_path, 3, false);
                 REQUIRE(loader.name() == "Phenotype2");
-                REQUIRE(loader.data().size() == 3);
-                REQUIRE(loader.data().at("1_1") == 1.0);
-                REQUIRE(loader.data().at("1_2") == 0.5);
-                REQUIRE(loader.data().at("2_1") == 2.2);
+                REQUIRE(loader.sample_ids().size() == 3);
+                std::unordered_map<std::string, Eigen::Index> id_map
+                    = {{"1_1", 0}, {"1_2", 1}, {"2_1", 2}};
+                auto result = loader.load(id_map);
+                REQUIRE(result(0) == 1.0);
+                REQUIRE(result(1) == 0.5);
+                REQUIRE(result(2) == 2.2);
             }());
     }
 
@@ -63,10 +73,13 @@ TEST_CASE("PhenotypeLoader - Constructor Tests", "[data][phenotype]")
             {
                 PhenotypeLoader loader(file_path, 2, true);
                 REQUIRE(loader.name() == "Phenotype");
-                REQUIRE(loader.data().size() == 3);
-                REQUIRE(loader.data().at("1") == 2.5);
-                REQUIRE(loader.data().at("2") == 3.1);
-                REQUIRE(loader.data().at("3") == 1.8);
+                REQUIRE(loader.sample_ids().size() == 3);
+                std::unordered_map<std::string, Eigen::Index> id_map
+                    = {{"1", 0}, {"2", 1}, {"3", 2}};
+                auto result = loader.load(id_map);
+                REQUIRE(result(0) == 2.5);
+                REQUIRE(result(1) == 3.1);
+                REQUIRE(result(2) == 1.8);
             }());
     }
 
@@ -215,9 +228,14 @@ TEST_CASE("PhenotypeLoader - Edge Cases", "[data][phenotype]")
             [&]()
             {
                 PhenotypeLoader loader(file_path, 2, false);
-                REQUIRE(loader.data().size() == 2);
-                REQUIRE(loader.data().at("1_1") == 2.5);
-                REQUIRE(loader.data().at("1_2") == 3.1);
+                REQUIRE(loader.sample_ids().size() == 2);
+                std::unordered_map<std::string, Eigen::Index> id_map
+                    = {{"1_1", 0}, {"1_2", 1}};
+                auto result = loader.load(id_map);
+                REQUIRE(result(0) == 2.5);
+                REQUIRE(result(1) == 3.1);
+                REQUIRE(result.cols() == 1);
+                REQUIRE(result.rows() == 2);
             }());
     }
 
@@ -233,9 +251,14 @@ TEST_CASE("PhenotypeLoader - Edge Cases", "[data][phenotype]")
             [&]()
             {
                 PhenotypeLoader loader(file_path, 2, false);
-                REQUIRE(loader.data().size() == 2);
-                REQUIRE(loader.data().at("1_1") == 2.5);
-                REQUIRE(loader.data().at("1_2") == 3.1);
+                REQUIRE(loader.sample_ids().size() == 2);
+                std::unordered_map<std::string, Eigen::Index> id_map
+                    = {{"1_1", 0}, {"1_2", 1}};
+                auto result = loader.load(id_map);
+                REQUIRE(result(0) == 2.5);
+                REQUIRE(result(1) == 3.1);
+                REQUIRE(result.cols() == 1);
+                REQUIRE(result.rows() == 2);
             }());
     }
 
@@ -244,22 +267,24 @@ TEST_CASE("PhenotypeLoader - Edge Cases", "[data][phenotype]")
         auto file_path = files.create_text_file(
             "FID\tIID\tPhenotype\n"
             "1\t1\t2.5\n"
-            "1\t2\tnan\n"   // nan as missing value
-            "2\t1\tNaN\n"   // NaN as missing value
-            "2\t2\tInf\n"   // Inf as special value
-            "3\t1\t-Inf\n"); // -Inf as special value
+            "1\t2\tnan\n"     // nan as missing value
+            "2\t1\tNaN\n"     // NaN as missing value
+            "2\t2\tInf\n"     // Inf as special value
+            "3\t1\t-Inf\n");  // -Inf as special value
 
         REQUIRE_NOTHROW(
             [&]()
             {
                 PhenotypeLoader loader(file_path, 2, false);
-                REQUIRE(loader.data().size() == 1);
-                REQUIRE(loader.data().at("1_1") == 2.5);
-                // IDs with nan/inf should not be in the data
-                REQUIRE(loader.data().find("1_2") == loader.data().end());
-                REQUIRE(loader.data().find("2_1") == loader.data().end());
-                REQUIRE(loader.data().find("2_2") == loader.data().end());
-                REQUIRE(loader.data().find("3_1") == loader.data().end());
+                REQUIRE(loader.sample_ids().size() == 1);
+                std::unordered_map<std::string, Eigen::Index> id_map = {
+                    {"1_1", 0}, {"1_2", 1}, {"2_1", 2}, {"2_2", 3}, {"3_1", 4}};
+                auto result = loader.load(id_map);
+                REQUIRE(result(0) == 2.5);
+                REQUIRE(std::isnan(result(1)));  // nan should be NaN in result
+                REQUIRE(std::isnan(result(2)));  // NaN should be NaN in result
+                REQUIRE(std::isnan(result(3)));  // Inf should be NaN in result
+                REQUIRE(std::isnan(result(4)));  // -Inf should be NaN in result
             }());
     }
 
@@ -268,9 +293,9 @@ TEST_CASE("PhenotypeLoader - Edge Cases", "[data][phenotype]")
         auto file_path = files.create_text_file(
             "FID\tIID\tPhenotype\n"
             "1\t1\t2.5\n"
-            "1\t2\tnan\n"   // This should be excluded
+            "1\t2\tnan\n"  // This should be excluded
             "2\t1\t3.1\n"
-            "2\t2\tNaN\n"   // This should also be excluded
+            "2\t2\tNaN\n"  // This should also be excluded
             "3\t1\t1.8\n");
 
         REQUIRE_NOTHROW(
@@ -278,13 +303,15 @@ TEST_CASE("PhenotypeLoader - Edge Cases", "[data][phenotype]")
             {
                 PhenotypeLoader loader(file_path, 2, false);
                 // Only non-nan values should be loaded
-                REQUIRE(loader.data().size() == 3);
-                REQUIRE(loader.data().at("1_1") == 2.5);
-                REQUIRE(loader.data().at("2_1") == 3.1);
-                REQUIRE(loader.data().at("3_1") == 1.8);
-                // IDs with nan should not be in the data
-                REQUIRE(loader.data().find("1_2") == loader.data().end());
-                REQUIRE(loader.data().find("2_2") == loader.data().end());
+                REQUIRE(loader.sample_ids().size() == 3);
+                std::unordered_map<std::string, Eigen::Index> id_map = {
+                    {"1_1", 0}, {"1_2", 1}, {"2_1", 2}, {"2_2", 3}, {"3_1", 4}};
+                auto result = loader.load(id_map);
+                REQUIRE(result(0) == 2.5);
+                REQUIRE(std::isnan(result(1)));  // nan should be NaN in result
+                REQUIRE(result(2) == 3.1);
+                REQUIRE(std::isnan(result(3)));  // NaN should be NaN in result
+                REQUIRE(result(4) == 1.8);
             }());
     }
 

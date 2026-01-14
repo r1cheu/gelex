@@ -13,6 +13,7 @@
 #include "loader/dcovariate_loader.h"
 #include "loader/phenotype_loader.h"
 #include "loader/qcovariate_loader.h"
+#include "types/fixed_effects.h"
 
 namespace bk = barkeep;
 
@@ -41,7 +42,7 @@ PhenoStats DataPipe::load_phenotypes()
         config_.phenotype_path, config_.phenotype_column, config_.iid_only);
 
     return PhenoStats{
-        .samples_loaded = phenotype_loader_->data().size(),
+        .samples_loaded = phenotype_loader_->sample_ids().size(),
         .trait_name = phenotype_loader_->name()};
 }
 
@@ -61,6 +62,7 @@ CovarStats DataPipe::load_covariates()
     {
         dcovar_loader_ = std::make_unique<detail::DiscreteCovariateLoader>(
             config_.dcovar_path, config_.iid_only);
+        d_names = dcovar_loader_->column_names();
     }
 
     return CovarStats{
@@ -73,26 +75,12 @@ CovarStats DataPipe::load_covariates()
 IntersectionStats DataPipe::intersect_samples()
 {
     size_t total_before = sample_manager_->num_common_samples();
-    auto create_key_views = [](const auto& data)
-    {
-        std::vector<std::string_view> key_views;
-        key_views.reserve(data.size());
-        for (const auto& [k, v] : data)
-        {
-            key_views.emplace_back(k);
-        }
-        return key_views;
-    };
-    auto intersect = [&](const auto& data)
-    {
-        total_before = std::max(total_before, data.size());
-        auto key_views = create_key_views(data);
-        sample_manager_->intersect(key_views);
-    };
 
     if (phenotype_loader_)
     {
-        intersect(phenotype_loader_->data());
+        total_before
+            = std::max(total_before, phenotype_loader_->sample_ids().size());
+        sample_manager_->intersect(phenotype_loader_->sample_ids());
     }
 
     if (qcovar_loader_)
@@ -183,8 +171,14 @@ void DataPipe::finalize()
     {
         dcov = dcovar_loader_->load(id_map);
     }
-
-    fixed_effects_ = FixedEffect::build(std::move(qcov), std::move(dcov));
+    if (!dcov && !qcov)
+    {
+        fixed_effects_ = FixedEffect::build_bayes(phenotype_.size());
+    }
+    else
+    {
+        fixed_effects_ = FixedEffect::build(std::move(qcov), std::move(dcov));
+    }
 }
 
 const std::vector<std::string>& DataPipe::fixed_effect_names() const

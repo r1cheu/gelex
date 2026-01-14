@@ -100,7 +100,7 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
         SampleManager manager(file_path, false);
 
         // Intersect with IDs that partially overlap
-        std::vector<std::string_view> intersect_ids = {
+        std::vector<std::string> intersect_ids = {
             "2_sample2", "3_sample3", "5_sample5"  // 5_sample5 doesn't exist
         };
         manager.intersect(intersect_ids);
@@ -126,7 +126,7 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
         SampleManager manager(file_path, false);
 
         // Intersect with all existing IDs
-        std::vector<std::string_view> intersect_ids
+        std::vector<std::string> intersect_ids
             = {"1_sample1", "2_sample2", "3_sample3"};
         manager.intersect(intersect_ids);
 
@@ -151,7 +151,7 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
         SampleManager manager(file_path, false);
 
         // Intersect with IDs that don't exist
-        std::vector<std::string_view> intersect_ids
+        std::vector<std::string> intersect_ids
             = {"4_sample4", "5_sample5"};
         manager.intersect(intersect_ids);
 
@@ -176,7 +176,7 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
         REQUIRE(manager.num_common_samples() == 2);
 
         // Intersect with empty list
-        std::vector<std::string_view> intersect_ids = {};
+        std::vector<std::string> intersect_ids = {};
         manager.intersect(intersect_ids);
 
         // Should have no samples after intersection with empty list
@@ -197,7 +197,7 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
         SampleManager manager(file_path, false);
 
         // Clear samples by intersecting with empty list
-        std::vector<std::string_view> empty_ids = {};
+        std::vector<std::string> empty_ids = {};
         manager.intersect(empty_ids);
 
         // Now manager has no samples
@@ -205,7 +205,7 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
         REQUIRE(manager.has_common_samples() == false);
 
         // Intersect with some IDs when manager has no samples
-        std::vector<std::string_view> intersect_ids
+        std::vector<std::string> intersect_ids
             = {"1_sample1", "2_sample2"};
         manager.intersect(intersect_ids);
 
@@ -228,7 +228,7 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
         SampleManager manager(file_path, false);
 
         // Intersect with IDs in unsorted order
-        std::vector<std::string_view> intersect_ids
+        std::vector<std::string> intersect_ids
             = {"5_sample5", "2_sample2", "4_sample4"};
         manager.intersect(intersect_ids);
 
@@ -292,7 +292,7 @@ TEST_CASE("SampleManager - finalize() method", "[data]")
         SampleManager manager(file_path, false);
 
         // Intersect first
-        std::vector<std::string_view> intersect_ids
+        std::vector<std::string> intersect_ids
             = {"2_sample2", "3_sample3"};
         manager.intersect(intersect_ids);
 
@@ -322,7 +322,7 @@ TEST_CASE("SampleManager - finalize() method", "[data]")
         SampleManager manager(file_path, false);
 
         // Clear samples by intersecting with empty list
-        std::vector<std::string_view> empty_ids = {};
+        std::vector<std::string> empty_ids = {};
         manager.intersect(empty_ids);
 
         // Should have no samples
@@ -353,7 +353,7 @@ TEST_CASE("SampleManager - finalize() method", "[data]")
         REQUIRE(id_map1.size() == 2);
 
         // Intersect and finalize again
-        std::vector<std::string_view> intersect_ids = {"2_sample2"};
+        std::vector<std::string> intersect_ids = {"2_sample2"};
         manager.intersect(intersect_ids);
         manager.finalize();
 
@@ -384,7 +384,7 @@ TEST_CASE("SampleManager - Integration tests", "[data]")
         REQUIRE(manager.num_common_samples() == 5);
 
         // 2. Intersect
-        std::vector<std::string_view> intersect_ids = {
+        std::vector<std::string> intersect_ids = {
             "2_sample2",
             "3_sample3",
             "5_sample5",
@@ -425,7 +425,7 @@ TEST_CASE("SampleManager - Integration tests", "[data]")
         REQUIRE(manager.num_common_samples() == 3);
 
         // Intersect with IIDs
-        std::vector<std::string_view> intersect_ids = {"sample2", "sample3"};
+        std::vector<std::string> intersect_ids = {"sample2", "sample3"};
         manager.intersect(intersect_ids);
         REQUIRE(manager.num_common_samples() == 2);
 

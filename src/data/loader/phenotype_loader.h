@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include <Eigen/Dense>
 
@@ -19,20 +20,25 @@ class PhenotypeLoader
         int pheno_column,
         bool iid_only);
 
-    [[nodiscard]] Eigen::VectorXd load(
-        const std::unordered_map<std::string, Eigen::Index>& id_map) const;
+    [[nodiscard]] auto load(
+        const std::unordered_map<std::string, Eigen::Index>& id_map) const
+        -> Eigen::VectorXd;
 
-    const std::string& name() const { return name_; }
-    const std::unordered_map<std::string, double>& data() const
+    auto name() const -> const std::string& { return name_; }
+
+    auto sample_ids() const -> const std::vector<std::string>&
     {
-        return data_;
+        return sample_ids_;
     }
 
    private:
-    void set_name(std::ifstream& file, int pheno_column);
-    void set_data(std::ifstream& file, int pheno_column, bool iid_only);
     std::string name_;
-    std::unordered_map<std::string, double> data_;
+    std::vector<std::string> sample_ids_;
+    std::vector<double> values_;
+
+    auto init_column(std::ifstream& file, int pheno_column) -> void;
+    auto fill_data(std::ifstream& file, int pheno_column, bool iid_only)
+        -> void;
 };
 
 }  // namespace gelex::detail

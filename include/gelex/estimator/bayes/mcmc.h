@@ -38,7 +38,6 @@ class MCMC
         detail::Indicator& indicator);
 
     void update_indicators(
-        const BayesModel& model,
         const BayesState& states,
         Eigen::Index chain,
         detail::Indicator& indicator);
@@ -129,7 +128,7 @@ void MCMC<TraitSampler>::run_one_chain(
         status.compute_heritability();
 
         // Update indicators for monitoring
-        update_indicators(model, status, chain, indicator);
+        update_indicators(status, chain, indicator);
 
         // Record samples after burnin with thinning
         if (iter >= params_.n_burnin
@@ -142,7 +141,6 @@ void MCMC<TraitSampler>::run_one_chain(
 
 template <typename TraitSampler>
 void MCMC<TraitSampler>::update_indicators(
-    const BayesModel& model,
     const BayesState& states,
     Eigen::Index chain,
     detail::Indicator& indicator)

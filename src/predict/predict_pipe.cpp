@@ -60,7 +60,7 @@ void PredictDataPipe::intersect()
 {
     auto create_key_views = [](const auto& data)
     {
-        std::vector<std::string_view> key_views;
+        std::vector<std::string> key_views;
         key_views.reserve(data.size());
         for (const auto& [k, v] : data)
         {

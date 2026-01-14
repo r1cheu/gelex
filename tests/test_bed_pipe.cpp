@@ -73,7 +73,7 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
         }
 
         // 只保留前 5 个样本
-        std::vector<std::string_view> intersect_ids;
+        std::vector<std::string> intersect_ids;
         for (size_t i = 0; i < 5; ++i)
         {
             intersect_ids.push_back(raw_ids[i]);
@@ -285,7 +285,7 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
             raw_ids.push_back(iid);
         }
 
-        std::vector<std::string_view> intersect_ids(5);
+        std::vector<std::string> intersect_ids(5);
         std::array<Eigen::Index, 5> indices = {0, 2, 4, 6, 8};
         for (auto index : indices)
         {
@@ -466,7 +466,7 @@ TEST_CASE("BedPipe - sample mapping tests", "[data][bed_pipe]")
         fam_path.replace_extension(".fam");
         auto sample_manager = std::make_shared<SampleManager>(fam_path, false);
 
-        std::vector<std::string_view> intersect_ids
+        std::vector<std::string> intersect_ids
             = {"nonexistent_1", "nonexistent_2", "nonexistent_3"};
         sample_manager->intersect(intersect_ids);
         sample_manager->finalize();
@@ -507,7 +507,7 @@ TEST_CASE("BedPipe - sample mapping tests", "[data][bed_pipe]")
 //             iss >> fid >> iid;
 //             raw_ids.push_back(fid + "_" + iid);
 //         }
-//         std::vector<std::string_view> intersect_ids;
+//         std::vector<std::string> intersect_ids;
 //         for (size_t i = 0; i < raw_ids.size() - 1; ++i)
 //         {
 //             intersect_ids.push_back(raw_ids[i]);
@@ -944,7 +944,7 @@ TEST_CASE("BedPipe - sample mapping tests", "[data][bed_pipe]")
 //         }
 //
 //         // 只保留前 3 个样本
-//         std::vector<std::string_view> intersect_ids;
+//         std::vector<std::string> intersect_ids;
 //         for (size_t i = 0; i < 3; ++i)
 //         {
 //             intersect_ids.push_back(raw_ids[i]);

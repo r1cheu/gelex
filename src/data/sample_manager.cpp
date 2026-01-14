@@ -26,29 +26,6 @@ SampleManager::SampleManager(
     common_ids_.erase(first, last);
 }
 
-void SampleManager::intersect(std::span<const std::string_view> ids)
-{
-    if (common_ids_.empty())
-    {
-        return;
-    }
-    if (ids.empty())
-    {
-        common_ids_.clear();
-        return;
-    }
-
-    std::vector<std::string_view> sorted_input(ids.begin(), ids.end());
-    std::ranges::sort(sorted_input);
-
-    std::erase_if(
-        common_ids_,
-        [&sorted_input](const std::string& s)
-        {
-            return !std::ranges::binary_search(sorted_input, s, std::less<>{});
-        });
-}
-
 void SampleManager::intersect(std::span<const std::string> ids)
 {
     if (common_ids_.empty())
