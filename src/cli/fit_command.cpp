@@ -5,7 +5,6 @@
 #include <memory>
 #include <thread>
 
-#include "../src/estimator/bayes/indicator.h"
 #include "../src/utils/formatter.h"
 #include "config.h"
 #include "fit_command_detail.h"

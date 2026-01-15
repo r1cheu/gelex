@@ -26,7 +26,7 @@ struct GeneticEffect
 
 struct FixedState
 {
-    explicit FixedState(const FixedEffect& effect);
+    explicit FixedState(const gelex::FixedEffect& effect);
     Eigen::VectorXd coeff;
     Eigen::VectorXd se;
 };

@@ -23,6 +23,7 @@ namespace detail
 class PhenotypeLoader;
 class QuantitativeCovariateLoader;
 class DiscreteCovariateLoader;
+class GrmLoader;
 }  // namespace detail
 
 struct PhenoStats
@@ -52,6 +53,11 @@ struct GenotypeStats
     int64_t monomorphic_snps;
 };
 
+struct GrmStats
+{
+    size_t samples_in_file;
+};
+
 class DataPipe
 {
    public:
@@ -67,6 +73,8 @@ class DataPipe
         std::filesystem::path dcovar_path;
         bool iid_only = false;
         std::string output_prefix;
+        std::filesystem::path additive_grm_path;   // GRM file prefix (加性)
+        std::filesystem::path dominance_grm_path;  // GRM file prefix (显性)
     };
 
     explicit DataPipe(const Config& config);
@@ -78,6 +86,8 @@ class DataPipe
 
     PhenoStats load_phenotypes();
     CovarStats load_covariates();
+    GrmStats load_additive_grm();
+    GrmStats load_dominance_grm();
     GenotypeStats load_additive_matrix();
     GenotypeStats load_dominance_matrix();
     IntersectionStats intersect_samples();
@@ -98,6 +108,14 @@ class DataPipe
         return std::move(*dominance_matrix_);
     }
     bool has_dominance_matrix() const { return dominance_matrix_ != nullptr; }
+
+    Eigen::MatrixXd take_additive_grm() && { return std::move(*additive_grm_); }
+    Eigen::MatrixXd take_dominance_grm() &&
+    {
+        return std::move(*dominance_grm_);
+    }
+    bool has_additive_grm() const { return additive_grm_ != nullptr; }
+    bool has_dominance_grm() const { return dominance_grm_ != nullptr; }
 
     const std::vector<std::string>& fixed_effect_names() const;
 
@@ -147,6 +165,11 @@ class DataPipe
     std::unique_ptr<std::variant<GenotypeMap, GenotypeMatrix>> additive_matrix_;
     std::unique_ptr<std::variant<GenotypeMap, GenotypeMatrix>>
         dominance_matrix_;
+
+    std::unique_ptr<detail::GrmLoader> additive_grm_loader_;
+    std::unique_ptr<detail::GrmLoader> dominance_grm_loader_;
+    std::unique_ptr<Eigen::MatrixXd> additive_grm_;
+    std::unique_ptr<Eigen::MatrixXd> dominance_grm_;
 
     std::vector<std::string> fixed_effect_names_;
 };

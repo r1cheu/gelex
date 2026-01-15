@@ -6,6 +6,7 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
+#include "../src/types/fixed_effects.h"
 #include "../src/types/freq_effect.h"
 #include "gelex/data/data_pipe.h"
 
@@ -16,8 +17,8 @@ class FreqModel
 {
    public:
     explicit FreqModel(DataPipe& data_pipe);
-    auto fixed() const -> const freq::FixedEffect& { return fixed_; }
-    auto fixed() -> freq::FixedEffect& { return fixed_; }
+    auto fixed() const -> const FixedEffect& { return fixed_; }
+    auto fixed() -> FixedEffect& { return fixed_; }
 
     auto random() const -> const std::vector<freq::RandomEffect>&
     {
@@ -43,7 +44,6 @@ class FreqModel
     auto num_individuals() const -> Eigen::Index { return num_individuals_; }
 
    private:
-    auto add_fixed(freq::FixedEffect&& effect) -> void;
     auto add_random(freq::RandomEffect&& effect) -> void;
     auto add_genetic(freq::GeneticEffect&& effect) -> void;
 
@@ -51,7 +51,7 @@ class FreqModel
 
     Eigen::VectorXd phenotype_;
 
-    freq::FixedEffect fixed_;
+    FixedEffect fixed_;
     std::vector<freq::RandomEffect> random_;
     std::vector<freq::GeneticEffect> genetic_;
 
