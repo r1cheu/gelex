@@ -15,6 +15,13 @@ OptimizerState::OptimizerState(const FreqModel& model)
     proj.resize(num_individuals_, num_individuals_);
     proj_y.resize(num_individuals_);
     tx_vinv_x.resize(model.fixed().X.cols(), model.fixed().X.cols());
+
+    // preallocate for AI policy
+    // n_comp = 1 (residual) + n_random + n_genetic
+    auto n_comp = static_cast<Eigen::Index>(
+        1 + model.random().size() + model.genetic().size());
+    dvpy.resize(num_individuals_, n_comp);
+    first_grad.resize(n_comp);
 }
 
 }  // namespace gelex

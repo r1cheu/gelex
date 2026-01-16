@@ -25,6 +25,8 @@ class OptimizerState
 
     // for AI policy
     Eigen::MatrixXd hess_inv;
+    Eigen::MatrixXd dvpy;        // n x n_comp, each column is K_i * Py
+    Eigen::VectorXd first_grad;  // first derivative
 
    private:
     Eigen::Index num_individuals_{};

@@ -3,7 +3,6 @@
 #include <vector>
 
 #include <Eigen/Core>
-#include <Eigen/SparseCore>
 
 #include "../src/types/fixed_effects.h"
 
@@ -14,8 +13,7 @@ struct RandomEffect
 {
     std::string name;
     std::vector<std::string> levels;
-    Eigen::SparseMatrix<double> Z;  // incidence matrix
-    Eigen::SparseMatrix<double> K;  // covariance matrix
+    Eigen::MatrixXd K;  // covariance matrix (n x n)
 };
 
 struct GeneticEffect
@@ -36,7 +34,8 @@ struct RandomState
     explicit RandomState(const RandomEffect& effect);
     std::string name;
     Eigen::VectorXd blup;
-    double variance;
+    double variance{};
+    double variance_se{};
 };
 
 struct GeneticState
@@ -44,13 +43,16 @@ struct GeneticState
     explicit GeneticState(const GeneticEffect& effect);
     std::string name;
     Eigen::VectorXd ebv;
-    double variance;
+    double variance{};
+    double variance_se{};
+    double heritability{};
+    double heritability_se{};
 };
 
 struct ResidualState
 {
     double variance{};
-    double heritability{};
+    double variance_se{};
 };
 
 }  // namespace gelex::freq

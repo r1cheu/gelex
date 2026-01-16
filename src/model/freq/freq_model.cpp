@@ -69,7 +69,10 @@ auto FreqState::compute_heritability() -> void
 
     if (phenotypic_variance_ > 0.0)
     {
-        residual_.heritability = total_genetic_variance / phenotypic_variance_;
+        for (auto& g : genetic_)
+        {
+            g.heritability = g.variance / phenotypic_variance_;
+        }
     }
 }
 

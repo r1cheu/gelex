@@ -21,16 +21,13 @@ auto compute_v(
     // residual: I * sigma_e
     v.diagonal().array() += state.residual().variance;
 
-    // random effects: Z * K * Z' * sigma
+    // random effects: K * sigma
     for (size_t i = 0; i < model.random().size(); ++i)
     {
         const auto& effect = model.random()[i];
         const auto& effect_state = state.random()[i];
 
-        // V += Z * K * Z' * sigma
-        // For sparse Z and K, compute ZK = Z * K first, then ZK * Z'
-        Eigen::MatrixXd zk = effect.Z * effect.K;
-        v.noalias() += effect_state.variance * (zk * effect.Z.transpose());
+        v += effect_state.variance * effect.K;
     }
 
     // genetic effects: K * sigma (no Z matrix, assuming identity incidence)
@@ -39,7 +36,7 @@ auto compute_v(
         const auto& effect = model.genetic()[i];
         const auto& effect_state = state.genetic()[i];
 
-        v.noalias() += effect_state.variance * effect.K;
+        v += effect_state.variance * effect.K;
     }
 }
 
