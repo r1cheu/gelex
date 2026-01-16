@@ -1,10 +1,10 @@
-#ifndef GELEX_OPTIM_OPTIMIZER_NEW_H_
-#define GELEX_OPTIM_OPTIMIZER_NEW_H_
+#ifndef GELEX_OPTIM_OPTIMIZER_H_
+#define GELEX_OPTIM_OPTIMIZER_H_
 
 #include <Eigen/Core>
 
 #include "gelex/logger.h"
-#include "gelex/model/freq/model_new.h"
+#include "gelex/model/freq/model.h"
 #include "gelex/optim/constrain.h"
 #include "gelex/optim/convergence_checker.h"
 #include "gelex/optim/optimizer_state.h"
@@ -13,10 +13,10 @@
 namespace gelex
 {
 
-class OptimizerNew
+class Optimizer
 {
    public:
-    explicit OptimizerNew(double tol = 1e-8)
+    explicit Optimizer(double tol = 1e-8)
         : convergence_checker_(tol), logger_(logging::get())
     {
     }
@@ -49,7 +49,7 @@ auto distribute_variance_components(
 
 // Template implementation
 template <typename Policy>
-auto OptimizerNew::step(
+auto Optimizer::step(
     const FreqModel& model,
     FreqState& state,
     OptimizerState& opt_state) -> bool
@@ -81,4 +81,4 @@ auto OptimizerNew::step(
 
 }  // namespace gelex
 
-#endif  // GELEX_OPTIM_OPTIMIZER_NEW_H_
+#endif  // GELEX_OPTIM_OPTIMIZER_H_

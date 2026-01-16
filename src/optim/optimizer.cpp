@@ -1,4 +1,4 @@
-#include "gelex/optim/optimizer_new.h"
+#include "gelex/optim/optimizer.h"
 
 namespace gelex
 {

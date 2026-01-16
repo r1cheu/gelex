@@ -1,6 +1,6 @@
 #include "gelex/optim/optimizer_state.h"
 
-#include "gelex/model/freq/model_new.h"
+#include "gelex/model/freq/model.h"
 
 namespace gelex
 {

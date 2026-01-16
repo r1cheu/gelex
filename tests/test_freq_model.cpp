@@ -12,7 +12,7 @@
 #include "bed_fixture.h"
 #include "file_fixture.h"
 #include "gelex/data/data_pipe.h"
-#include "gelex/model/freq/model_new.h"
+#include "gelex/model/freq/model.h"
 
 namespace fs = std::filesystem;
 

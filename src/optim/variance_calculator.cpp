@@ -5,7 +5,7 @@
 #include <Eigen/src/misc/lapacke.h>
 #include <Eigen/Cholesky>
 
-#include "gelex/model/freq/model_new.h"
+#include "gelex/model/freq/model.h"
 #include "gelex/optim/optimizer_state.h"
 
 namespace gelex::variance_calculator

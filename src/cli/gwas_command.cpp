@@ -10,12 +10,12 @@
 #include "gelex/cli/utils.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/data_pipe.h"
-#include "gelex/estimator/freq/estimator_new.h"
+#include "gelex/estimator/freq/estimator.h"
 #include "gelex/gwas/association_test.h"
 #include "gelex/gwas/gwas_writer.h"
 #include "gelex/gwas/snp_encoder.h"
 #include "gelex/logger.h"
-#include "gelex/model/freq/model_new.h"
+#include "gelex/model/freq/model.h"
 #include "gelex/optim/optimizer_state.h"
 #include "gelex/optim/variance_calculator.h"
 
@@ -256,7 +256,7 @@ auto gwas_execute(argparse::ArgumentParser& cmd) -> int
             = pheno_var * 0.5 / static_cast<double>(state.genetic().size());
     }
 
-    gelex::EstimatorNew estimator(100, 1e-6);
+    gelex::Estimator estimator(100, 1e-6);
     estimator.fit(model, state, true, true);
 
     if (!estimator.is_converged())

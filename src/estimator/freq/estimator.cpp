@@ -1,4 +1,4 @@
-#include "gelex/estimator/freq/estimator_new.h"
+#include "gelex/estimator/freq/estimator.h"
 
 #include <chrono>
 
@@ -9,19 +9,19 @@
 #include "gelex/estimator/freq/effect_solver.h"
 #include "gelex/estimator/freq/statistics.h"
 #include "gelex/logger.h"
-#include "gelex/model/freq/model_new.h"
-#include "gelex/optim/policy_new.h"
+#include "gelex/model/freq/model.h"
+#include "gelex/optim/policy.h"
 #include "gelex/optim/variance_calculator.h"
 
 namespace gelex
 {
 
-EstimatorNew::EstimatorNew(size_t max_iter, double tol)
+Estimator::Estimator(size_t max_iter, double tol)
     : optimizer_(tol), max_iter_(max_iter), tol_(tol), logger_(logging::get())
 {
 }
 
-auto EstimatorNew::fit(
+auto Estimator::fit(
     const FreqModel& model,
     FreqState& state,
     bool em_init,
@@ -126,7 +126,7 @@ auto EstimatorNew::fit(
     report_results(model, state, opt_state, elapsed);
 }
 
-auto EstimatorNew::em_step(
+auto Estimator::em_step(
     const FreqModel& model,
     FreqState& state,
     OptimizerState& opt_state) -> void
@@ -160,7 +160,7 @@ auto EstimatorNew::em_step(
         time_cost);
 }
 
-auto EstimatorNew::report_results(
+auto Estimator::report_results(
     const FreqModel& model,
     const FreqState& state,
     const OptimizerState& /*opt_state*/,

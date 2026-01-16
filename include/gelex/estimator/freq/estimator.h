@@ -1,12 +1,12 @@
-#ifndef GELEX_ESTIMATOR_FREQ_ESTIMATOR_NEW_H_
-#define GELEX_ESTIMATOR_FREQ_ESTIMATOR_NEW_H_
+#ifndef GELEX_ESTIMATOR_FREQ_ESTIMATOR_H_
+#define GELEX_ESTIMATOR_FREQ_ESTIMATOR_H_
 
 #include <cstddef>
 #include <memory>
 
 #include <spdlog/logger.h>
 
-#include "gelex/optim/optimizer_new.h"
+#include "gelex/optim/optimizer.h"
 #include "gelex/optim/optimizer_state.h"
 
 namespace gelex
@@ -15,10 +15,10 @@ namespace gelex
 class FreqModel;
 class FreqState;
 
-class EstimatorNew
+class Estimator
 {
    public:
-    explicit EstimatorNew(size_t max_iter = 100, double tol = 1e-8);
+    explicit Estimator(size_t max_iter = 100, double tol = 1e-8);
 
     auto fit(
         const FreqModel& model,
@@ -42,7 +42,7 @@ class EstimatorNew
         const OptimizerState& opt_state,
         double elapsed) -> void;
 
-    OptimizerNew optimizer_;
+    Optimizer optimizer_;
     size_t max_iter_{100};
     size_t iter_count_{};
     double tol_{1e-8};
@@ -54,4 +54,4 @@ class EstimatorNew
 
 }  // namespace gelex
 
-#endif  // GELEX_ESTIMATOR_FREQ_ESTIMATOR_NEW_H_
+#endif  // GELEX_ESTIMATOR_FREQ_ESTIMATOR_H_

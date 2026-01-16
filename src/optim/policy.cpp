@@ -1,9 +1,9 @@
-#include "gelex/optim/policy_new.h"
+#include "gelex/optim/policy.h"
 
 #include <Eigen/Dense>
 
-#include "gelex/model/freq/model_new.h"
-#include "gelex/optim/optimizer_new.h"
+#include "gelex/model/freq/model.h"
+#include "gelex/optim/optimizer.h"
 #include "gelex/optim/optimizer_state.h"
 
 namespace gelex

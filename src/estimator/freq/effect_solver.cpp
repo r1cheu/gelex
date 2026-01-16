@@ -2,7 +2,7 @@
 
 #include <Eigen/Cholesky>
 
-#include "gelex/model/freq/model_new.h"
+#include "gelex/model/freq/model.h"
 #include "gelex/optim/optimizer_state.h"
 
 namespace gelex::effect_solver

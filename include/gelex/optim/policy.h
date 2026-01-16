@@ -1,5 +1,5 @@
-#ifndef GELEX_OPTIM_POLICY_NEW_H_
-#define GELEX_OPTIM_POLICY_NEW_H_
+#ifndef GELEX_OPTIM_POLICY_H_
+#define GELEX_OPTIM_POLICY_H_
 
 #include <Eigen/Core>
 
@@ -28,4 +28,4 @@ struct AIPolicy
 
 }  // namespace gelex
 
-#endif  // GELEX_OPTIM_POLICY_NEW_H_
+#endif  // GELEX_OPTIM_POLICY_H_
