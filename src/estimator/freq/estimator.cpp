@@ -34,21 +34,6 @@ auto Estimator::fit(
         logger_->set_level(spdlog::level::warn);
     }
 
-    // log model info
-    logger_->info(title(" GBLUP MODEL ANALYSIS "));
-    logger_->info(subtitle("Model Specification"));
-    logger_->info(item("Samples:  {:d}", model.num_individuals()));
-    logger_->info(item("Fixed effects:  {:d}", model.fixed().X.cols()));
-    logger_->info(item("Random effects:  {:d}", model.random().size()));
-    logger_->info(item("Genetic effects:  {:d}", model.genetic().size()));
-    logger_->info("");
-
-    logger_->info(subtitle("Optimizer Specification"));
-    logger_->info(item("Method:  {}", cyan("AI")));
-    logger_->info(item("tolerance:  {:.2e}", tol_));
-    logger_->info(item("Max Iterations:  {:d}", max_iter_));
-    logger_->info("");
-
     OptimizerState opt_state(model);
 
     // EM initialization
@@ -58,19 +43,20 @@ auto Estimator::fit(
     }
 
     // log iteration header
-    logger_->info(title(" REML ESTIMATION "));
+    logger_->info("");
     std::string var_header;
-    var_header += fmt::format("{:>12}", "V[e]");
+    var_header += fmt::format("{:>12}", "V(e)");
     for (const auto& r : state.random())
     {
-        var_header += fmt::format("{:>12}", fmt::format("V[{}]", r.name));
+        var_header += fmt::format("{:>12}", fmt::format("V({})", r.name));
     }
     for (const auto& g : state.genetic())
     {
-        var_header += fmt::format("{:>12}", fmt::format("V[{}]", g.name));
+        var_header += fmt::format("{:>12}", fmt::format("V({})", g.name));
     }
     logger_->info(
-        "{:>6} {:>12} {} {:>10}", "Iter.", "logL", var_header, "time");
+        "  {:>4} {:>12} {} {:>10}", "Iter", "LogL", var_header, "Time");
+    logger_->info(gelex::table_separator(68));
 
     // AI iterations
     for (size_t iter = 1; iter <= max_iter_; ++iter)
@@ -85,17 +71,17 @@ auto Estimator::fit(
 
         // log iteration
         std::string var_values;
-        var_values += fmt::format("{:>12.4f}", state.residual().variance);
+        var_values += fmt::format("{:>12.2f}", state.residual().variance);
         for (const auto& r : state.random())
         {
-            var_values += fmt::format("{:>12.4f}", r.variance);
+            var_values += fmt::format("{:>12.2f}", r.variance);
         }
         for (const auto& g : state.genetic())
         {
-            var_values += fmt::format("{:>12.4f}", g.variance);
+            var_values += fmt::format("{:>12.2f}", g.variance);
         }
         logger_->info(
-            "{:>6} {:>12.4f} {} {:>9.3f}s",
+            "  {:>4} {:>12.2f} {} {:>9.2f}s",
             iter,
             loglike_,
             var_values,
@@ -108,6 +94,7 @@ auto Estimator::fit(
             break;
         }
     }
+    logger_->info(gelex::table_separator(68));
 
     if (!converged_)
     {
@@ -140,24 +127,23 @@ auto Estimator::em_step(
     double loglike = variance_calculator::compute_loglike(model, opt_state);
 
     // log EM initialization
-    logger_->info("Initializing with {} algorithm", cyan("EM"));
+    logger_->info(progress_mark("Initializing (EM)..."));
 
     std::string var_values;
-    var_values += fmt::format("{:.4f}", state.residual().variance);
+    var_values += fmt::format("{:.2f}", state.residual().variance);
     for (const auto& r : state.random())
     {
-        var_values += fmt::format(", {:.4f}", r.variance);
+        var_values += fmt::format(", {:.2f}", r.variance);
     }
     for (const auto& g : state.genetic())
     {
-        var_values += fmt::format(", {:.4f}", g.variance);
+        var_values += fmt::format(", {:.2f}", g.variance);
     }
 
     logger_->info(
-        "Initial: logL={:.4f} | \u03C3\u00B2=[{}] ({:.3f}s)",
+        "    LogL: {:.2f} | Init Vg: [{}]",
         loglike,
-        rebecca_purple(var_values),
-        time_cost);
+        rebecca_purple(var_values));
 }
 
 auto Estimator::report_results(
@@ -166,36 +152,50 @@ auto Estimator::report_results(
     const OptimizerState& /*opt_state*/,
     double elapsed) -> void
 {
-    logger_->info(title(" RESULT "));
+    logger_->info("");
+    logger_->info(
+        fmt::format(
+            fmt::fg(fmt::color::light_cyan),
+            "── REML Results {}",
+            separator(70 - 16)));
 
     // convergence status
-    logger_->info(subtitle("Convergence"));
+    // convergence status
     if (converged_)
     {
-        logger_->info(
-            " \u25AA Status:  {} ({} iterations in {:.3f}s)",
-            green("Success"),
+        logger_->info(success(
+            "Converged successfully in {} iterations ({:.2f}s)",
             iter_count_,
-            elapsed);
+            elapsed));
     }
     else
     {
         logger_->warn(
-            " \u25AA Status:  {} ({} iterations in {:.3f}s)",
-            red("Failed"),
+            "  ! REML did not converge ({} iterations in {:.2f}s)",
             max_iter_,
             elapsed);
         logger_->warn(
-            "Try to increase the max_iter or check the model specification.");
+            "    Try to increase max_iter or check the model specification.");
     }
-    logger_->info(
-        " \u25AA AIC:  {:.4f}", statistics::compute_aic(model, loglike_));
-    logger_->info(
-        " \u25AA BIC:  {:.4f}", statistics::compute_bic(model, loglike_));
     logger_->info("");
 
-    // fixed effects
-    logger_->info(subtitle("Fixed Effects"));
+    logger_->info("  Model Fit:");
+    logger_->info("  - AIC : {:.2f}", statistics::compute_aic(model, loglike_));
+    logger_->info("  - BIC : {:.2f}", statistics::compute_bic(model, loglike_));
+    logger_->info("");
+
+    // Variance components & heritability table
+    logger_->info("  Variance Components & Heritability:");
+    logger_->info(
+        "  {:12} {:>12} {:>12} {:>15} {:>12}",
+        "Component",
+        "Estimate",
+        "SE",
+        "Ratio (h²)",
+        "SE");
+    logger_->info(table_separator(68));
+
+    // Fixed effects (Intercept)
     for (Eigen::Index i = 0; i < state.fixed().coeff.size(); ++i)
     {
         std::string name = fmt::format("X{}", i);
@@ -203,44 +203,70 @@ auto Estimator::report_results(
         {
             name = model.fixed().names[i];
         }
-        logger_->info(item(
-            "{}:  {}",
+        logger_->info(
+            "  {:12} {:>12.3f} {:>12.3f} {:>15} {:>12}",
             name,
-            with_std(state.fixed().coeff(i), state.fixed().se(i))));
+            state.fixed().coeff(i),
+            state.fixed().se(i),
+            "-",
+            "-");
     }
-    logger_->info("");
 
-    // variance components
-    logger_->info(subtitle("Variance Components"));
-    logger_->info(item(
-        "Residual:  {}",
-        with_std(state.residual().variance, state.residual().variance_se)));
+    // Residual
+    logger_->info(
+        "  {:12} {:>12.3f} {:>12.3f} {:>15} {:>12}",
+        "Residual",
+        state.residual().variance,
+        state.residual().variance_se,
+        "-",
+        "-");
+
+    // Random effects (if any)
     for (const auto& r : state.random())
     {
         logger_->info(
-            item("{}:  {}", r.name, with_std(r.variance, r.variance_se)));
+            "  {:12} {:>12.3f} {:>12.3f} {:>15} {:>12}",
+            r.name,
+            r.variance,
+            r.variance_se,
+            "-",
+            "-");
     }
+
+    // Genetic effects with heritability
+    double total_h2 = 0.0;
     for (const auto& g : state.genetic())
     {
         logger_->info(
-            item("{}:  {}", g.name, with_std(g.variance, g.variance_se)));
+            "  {:12} {:>12.3f} {:>12.3f} {:>15.3f} {:>12.3f}",
+            g.name,
+            g.variance,
+            g.variance_se,
+            g.heritability,
+            g.heritability_se);
+        total_h2 += g.heritability;
     }
-    logger_->info("");
 
-    // heritability
-    if (!state.genetic().empty())
+    // Total genetic variance and heritability
+    if (state.genetic().size() > 1)
     {
-        logger_->info(subtitle("Heritability"));
+        double total_vg = 0.0;
         for (const auto& g : state.genetic())
         {
-            logger_->info(item(
-                "{}:  {}",
-                g.name,
-                with_std(g.heritability, g.heritability_se)));
+            total_vg += g.variance;
         }
+        logger_->info(table_separator(68));
+        logger_->info(
+            "  {:12} {:>12.3f} {:>12} {:>15.3f} {:>12}",
+            "Total Vg",
+            total_vg,
+            "-",
+            total_h2,
+            "-");
     }
 
-    logger_->info(title(""));
+    logger_->info(
+        fmt::format(fmt::fg(fmt::color::light_cyan), "{}", separator(70)));
 }
 
 }  // namespace gelex

@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <span>
 #include <string>
+#include <vector>
 
 #include <fmt/color.h>
 #include <fmt/ranges.h>
@@ -14,6 +15,14 @@ std::string ToLowercase(std::string_view input);
 std::string with_std(double value, double std);
 std::string title(const std::string& text, size_t total_length = 80);
 std::string subtitle(const std::string& str);
+
+std::string header_box(
+    const std::string& title,
+    const std::vector<std::pair<std::string, std::string>>& items,
+    size_t width = 70);
+std::string step_header(int current, int total, const std::string& description);
+std::string separator(size_t width = 70, const std::string& c = "─");
+std::string table_separator(size_t width = 70);
 
 template <typename... Args>
 std::string item(fmt::format_string<Args...> fmt_str, Args&&... args)
@@ -60,6 +69,21 @@ std::string success(fmt::format_string<Args...> fmt_str, Args&&... args)
 {
     auto check_mark = fmt::format(fmt::fg(fmt::color::light_green), "  ✔ ");
     return check_mark + fmt::format(fmt_str, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+std::string warning_inline(fmt::format_string<Args...> fmt_str, Args&&... args)
+{
+    auto warning_mark
+        = fmt::format(fmt::fg(fmt::color::orange), "  ! Warning: ");
+    return warning_mark + fmt::format(fmt_str, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+std::string progress_mark(fmt::format_string<Args...> fmt_str, Args&&... args)
+{
+    auto progress = fmt::format(fmt::fg(fmt::color::light_cyan), "  > ");
+    return progress + fmt::format(fmt_str, std::forward<Args>(args)...);
 }
 
 std::string format_names(
