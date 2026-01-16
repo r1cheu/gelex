@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
 
     if (argc <= 1)
     {
-        gelex::cli::print_banner_message(PROJECT_VERSION);
+        gelex::cli::print_gelex_banner_message(PROJECT_VERSION);
         std::cerr << "\n" << program;
         return 1;
     }

@@ -1,7 +1,6 @@
 #include "gelex/cli/assoc_command.h"
 
 #include <fmt/format.h>
-#include <omp.h>
 #include <memory>
 #include <thread>
 
@@ -21,20 +20,6 @@
 
 #include "../src/data/loader/bim_loader.h"
 
-namespace
-{
-
-void setup_parallelization(int num_threads)
-{
-    if (num_threads > 0)
-    {
-        omp_set_num_threads(num_threads);
-        Eigen::setNbThreads(num_threads);
-    }
-}
-
-}  // namespace
-
 auto assoc_command(argparse::ArgumentParser& cmd) -> void
 {
     cmd.add_description(
@@ -48,6 +33,10 @@ auto assoc_command(argparse::ArgumentParser& cmd) -> void
         .help("Phenotype file (TSV format: FID, IID, trait1, ...)")
         .metavar("<PHENOTYPE>")
         .required();
+    cmd.add_argument("--pheno-col")
+        .help("Phenotype column index (0-based)")
+        .default_value(2)
+        .scan<'i', int>();
     cmd.add_argument("-b", "--bfile")
         .help("PLINK binary file prefix (.bed/.bim/.fam)")
         .metavar("<BFILE>")
@@ -68,15 +57,24 @@ auto assoc_command(argparse::ArgumentParser& cmd) -> void
         .metavar("<OUT>")
         .required()
         .default_value("gelex");
+    // ================================================================
+    // REML Configuration
+    // ================================================================
+    cmd.add_group("REML Options");
+    cmd.add_argument("--max-iter")
+        .help("Max iteration in REML process")
+        .default_value(100)
+        .scan<'i', int>();
+    cmd.add_argument("--tol")
+        .help("tolerance for convergence in REML process")
+        .default_value(1e-6)
+        .scan<'g', double>();
 
     // ================================================================
     // Data Processing
     // ================================================================
     cmd.add_group("Processing Options");
-    cmd.add_argument("--pheno-col")
-        .help("Phenotype column index (0-based)")
-        .default_value(2)
-        .scan<'i', int>();
+
     cmd.add_argument("--chunk-size")
         .help("SNPs per chunk for association testing")
         .default_value(1000)
@@ -121,7 +119,7 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     auto gwas_model = gelex::gwas::parse_gwas_model(cmd.get("--model"));
     auto test_type = gelex::gwas::parse_test_type(cmd.get("--test"));
 
-    setup_parallelization(cmd.get<int>("--threads"));
+    gelex::cli::setup_parallelization(cmd.get<int>("--threads"));
 
     // Get GRM paths
     auto grm_paths = cmd.get<std::vector<std::string>>("--grm");
@@ -149,33 +147,14 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 
     // Load phenotype first to get trait name
     auto p_stats = data_pipe.load_phenotypes();
+    gelex::cli::print_assoc_header(cmd.get<int>("--threads"));
 
-    // Build model description
-    std::string model_desc = "GBLUP (Additive";
-    if (grm_paths.size() > 1)
-    {
-        model_desc += " + Dominance";
-    }
-    model_desc += ")";
-
-    // Print header box
-    std::vector<std::pair<std::string, std::string>> header_items
-        = {{"Model", model_desc},
-           {"Method", "AI-REML (Average Information)"},
-           {"Target", p_stats.trait_name},
-           {"Threads", fmt::format("{}", cmd.get<int>("--threads"))}};
-
+    logger->info(gelex::section("Loading Data..."));
     logger->info(
-        gelex::header_box(
-            fmt::format("gelex v{} :: GWAS Analysis (REML)", PROJECT_VERSION),
-            header_items,
-            70));
-    logger->info("");
-
-    // [1/4] Loading Data
-    logger->info(gelex::step_header(1, 4, "Loading Data..."));
-    logger->info(
-        gelex::success("Phenotypes : {:L} samples", p_stats.samples_loaded));
+        gelex::success(
+            "Phenotypes : {:L} samples ({})",
+            p_stats.samples_loaded,
+            p_stats.trait_name));
 
     logger->info(
         gelex::success(
@@ -202,7 +181,7 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     }
 
     // Load GRM(s)
-    logger->info(gelex::task("GRM Loaded :"));
+    logger->info(gelex::success("GRM : "));
     auto grm_stats = data_pipe.load_additive_grm();
     logger->info(
         gelex::subtask("Additive : {:L} samples", grm_stats.samples_in_file));
@@ -215,9 +194,8 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
                 "Dominance: {:L} samples", dom_grm_stats.samples_in_file));
     }
 
-    // [2/4] Intersect samples
     logger->info("");
-    logger->info(gelex::step_header(2, 4, "Pre-processing..."));
+    logger->info(gelex::section("Pre-processing..."));
     auto i_stats = data_pipe.intersect_samples();
     logger->info(gelex::task("Sample Intersection:"));
     logger->info(gelex::subtask("Common   : {:L}", i_stats.common_samples));
@@ -233,9 +211,8 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 
     data_pipe.finalize();
 
-    // [3/4] Model Configuration
     logger->info("");
-    logger->info(gelex::step_header(3, 4, "Model Configuration..."));
+    logger->info(gelex::section("Model Configuration..."));
 
     gelex::FreqModel model(data_pipe);
     gelex::FreqState state(model);
@@ -249,26 +226,16 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
             model.genetic().size(),
             grm_paths.size() > 1 ? "Additive, Dominance" : "Additive"));
 
+    auto tol = cmd.get<double>("--tol");
+    auto max_iter = cmd.get<int>("--max-iter");
     logger->info(gelex::task("Optimizer (AI):"));
-    const double tol = 1e-6;
-    const size_t max_iter = 100;
     logger->info(gelex::subtask("Tolerance : {:.1e}", tol));
     logger->info(gelex::subtask("Max Iter  : {}", max_iter));
 
-    // [4/4] Build null model and fit with REML
     logger->info("");
-    logger->info(gelex::step_header(4, 4, "Fitting Null Model..."));
+    logger->info(gelex::section("Fitting Null Model..."));
 
-    // Initialize variance components
-    double pheno_var = model.phenotype().array().square().mean();
-    state.residual().variance = pheno_var * 0.5;
-    for (auto& g : state.genetic())
-    {
-        g.variance
-            = pheno_var * 0.5 / static_cast<double>(state.genetic().size());
-    }
-
-    gelex::Estimator estimator(100, 1e-6);
+    gelex::Estimator estimator(max_iter, tol);
     estimator.fit(model, state, true, true);
 
     if (!estimator.is_converged())

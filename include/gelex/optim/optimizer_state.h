@@ -13,7 +13,7 @@ class OptimizerState
    public:
     explicit OptimizerState(const FreqModel& model);
 
-    auto phenotype_var() const -> double { return phenotype_var_; }
+    auto phenotype_variance() const -> double { return phenotype_variance_; }
     auto num_individuals() const -> Eigen::Index { return num_individuals_; }
 
     // computed matrices, public for Policy access
@@ -30,7 +30,7 @@ class OptimizerState
 
    private:
     Eigen::Index num_individuals_{};
-    double phenotype_var_{};
+    double phenotype_variance_{};
 };
 
 }  // namespace gelex

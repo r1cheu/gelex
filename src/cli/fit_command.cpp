@@ -162,10 +162,9 @@ int fit_execute(argparse::ArgumentParser& fit)
 
     auto logger = gelex::logging::get();
 
-    app::setup_parallelization(fit.get<int>("--threads"));
+    gelex::cli::setup_parallelization(fit.get<int>("--threads"));
 
     gelex::cli::print_fit_header(
-        PROJECT_VERSION,
         fit.get("-m"),
         dom,
         fit.get<int>("--iters"),

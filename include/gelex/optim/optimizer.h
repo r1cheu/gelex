@@ -67,7 +67,7 @@ auto Optimizer::step(
     Eigen::VectorXd sigma = Policy::apply(model, state, opt_state);
 
     // 5. constrain variance components to be positive
-    constrain(sigma, opt_state.phenotype_var());
+    constrain(sigma, opt_state.phenotype_variance());
 
     // 6. distribute back to state
     distribute_variance_components(state, sigma);

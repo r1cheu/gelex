@@ -136,15 +136,6 @@ auto set_scale_prior(
     }
 }
 
-void setup_parallelization(int num_threads)
-{
-    if (num_threads > 0)
-    {
-        omp_set_num_threads(num_threads);
-        Eigen::setNbThreads(num_threads);
-    }
-}
-
 int configure_model_priors(
     gelex::BayesModel& model,
     gelex::BayesAlphabet type,

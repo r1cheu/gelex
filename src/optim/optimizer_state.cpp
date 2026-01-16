@@ -7,9 +7,7 @@ namespace gelex
 
 OptimizerState::OptimizerState(const FreqModel& model)
     : num_individuals_(model.num_individuals()),
-      phenotype_var_(
-          model.phenotype().squaredNorm()
-          / static_cast<double>(num_individuals_ - 1))
+      phenotype_variance_(model.phenotype_variance())
 {
     v.resize(num_individuals_, num_individuals_);
     proj.resize(num_individuals_, num_individuals_);

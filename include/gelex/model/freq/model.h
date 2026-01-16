@@ -41,6 +41,7 @@ class FreqModel
     }
 
     auto phenotype() const -> const Eigen::VectorXd& { return phenotype_; }
+    auto phenotype_variance() const -> double { return phenotype_variance_; }
     auto num_individuals() const -> Eigen::Index { return num_individuals_; }
 
    private:
@@ -50,6 +51,7 @@ class FreqModel
     Eigen::Index num_individuals_{};
 
     Eigen::VectorXd phenotype_;
+    double phenotype_variance_;
 
     FixedEffect fixed_;
     std::vector<freq::RandomEffect> random_;
@@ -79,11 +81,13 @@ class FreqState
     void compute_heritability();
 
    private:
-    double phenotypic_variance_{};
+    double phenotype_variance_;
     freq::FixedState fixed_;
     std::vector<freq::RandomState> random_;
     std::vector<freq::GeneticState> genetic_;
     freq::ResidualState residual_;
+
+    void init_variance_components(const FreqModel& model);
 };
 
 }  // namespace gelex

@@ -1,10 +1,13 @@
 #include "gelex/cli/utils.h"
 
 #include <unistd.h>
-#include <algorithm>
 
 #include <fmt/format.h>
+#include <omp.h>
+#include <Eigen/Core>
+#include "config.h"
 
+#include "../src/utils/formatter.h"
 #include "gelex/logger.h"
 
 namespace gelex::cli
@@ -15,22 +18,16 @@ bool is_tty()
     return isatty(fileno(stdout)) != 0;
 }
 
-std::string repeat(size_t n, std::string_view str)
+void setup_parallelization(int num_threads)
 {
-    if (n <= 0 || str.empty())
+    if (num_threads > 0)
     {
-        return "";
+        omp_set_num_threads(num_threads);
+        Eigen::setNbThreads(num_threads);
     }
-    std::string result;
-    result.reserve(n * str.length());
-    for (size_t i = 0; i < n; ++i)
-    {
-        result.append(str);
-    }
-    return result;
 }
 
-void print_banner_message(std::string_view version)
+void print_gelex_banner_message(std::string_view version)
 {
     std::cout << "Gelex [version " << version
               << "] - High-Performance Genomic Prediction with Bayesian and "
@@ -56,55 +53,32 @@ For more information, see the documentation at: https://github.com/r1cheu/gelex
 }
 
 void print_fit_header(
-    std::string_view version,
     std::string_view model_name,
     bool has_dominance,
     int iters,
-    int burnin,
+    int burn_in,
     int threads)
 {
     auto logger = gelex::logging::get();
 
     std::string title
-        = fmt::format("gelex v{} :: Model Fitting (MCMC)", version);
+        = fmt::format("gelex v{} :: Model Fitting (MCMC)", PROJECT_VERSION);
     std::string model_str = fmt::format(
         "Bayes{} ({})",
         model_name,
         has_dominance ? "Additive + Dominance" : "Additive");
     std::string chain_str = fmt::format(
-        "{} iters ({} burn-in, {} sampling)", iters, burnin, iters - burnin);
+        "{} iters ({} burn-in, {} sampling)", iters, burn_in, iters - burn_in);
     std::string comp_str = fmt::format("{} threads (OpenMP)", threads);
 
-    size_t min_width = 69;
-    size_t content_prefix_len = 17;
-    size_t max_content_len
-        = std::max({model_str.length(), chain_str.length(), comp_str.length()});
+    std::vector<std::pair<std::string, std::string>> items
+        = {{"Model", model_str}, {"Chain", chain_str}, {"Computing", comp_str}};
 
-    size_t required_width = content_prefix_len + max_content_len + 1 + 1;
-    size_t width = std::max(min_width, required_width);
-
-    width = std::max(width, title.length() + 8);
-
-    size_t top_dashes = width - 7 - title.length();
-    logger->info("");  // empty line
-    logger->info(" ┌── {} {}┐", title, repeat(top_dashes, "─"));
-
-    // logger->info(" │{:^{}}│", "", width - 3); empty line
-
-    auto log_row = [&](std::string_view label, std::string_view val)
-    {
-        size_t pad = width - 18 - val.length();
-        logger->info(" │  {:<11}: {}{:<{}}│", label, val, "", pad);
-    };
-
-    log_row("Model", model_str);
-    log_row("Chain", chain_str);
-    log_row("Computing", comp_str);
-    logger->info(" └{}┘", repeat(width - 3, "─"));
+    logger->info(gelex::header_box(title, items, 70));
+    logger->info("");
 }
 
 void print_grm_header(
-    std::string_view version,
     std::string_view method,
     bool do_additive,
     bool do_dominant,
@@ -113,7 +87,8 @@ void print_grm_header(
 {
     auto logger = gelex::logging::get();
 
-    std::string title = fmt::format("gelex v{} :: GRM Computation", version);
+    std::string title
+        = fmt::format("gelex v{} :: GRM Computation", PROJECT_VERSION);
 
     std::string mode_str;
     if (do_additive && do_dominant)
@@ -133,34 +108,27 @@ void print_grm_header(
     std::string chunk_str = fmt::format("{}", chunk_size);
     std::string comp_str = fmt::format("{} threads (OpenMP)", threads);
 
-    size_t min_width = 69;
-    size_t content_prefix_len = 17;
-    size_t max_content_len = std::max(
-        {method_str.length(),
-         mode_str.length(),
-         chunk_str.length(),
-         comp_str.length()});
+    std::vector<std::pair<std::string, std::string>> items
+        = {{"Method", method_str},
+           {"Mode", mode_str},
+           {"Chunk Size", chunk_str},
+           {"Computing", comp_str}};
 
-    size_t required_width = content_prefix_len + max_content_len + 1 + 1;
-    size_t width = std::max(min_width, required_width);
-
-    width = std::max(width, title.length() + 8);
-
-    size_t top_dashes = width - 7 - title.length();
+    logger->info(gelex::header_box(title, items, 70));
     logger->info("");
-    logger->info(" ┌── {} {}┐", title, repeat(top_dashes, "─"));
+}
 
-    auto log_row = [&](std::string_view label, std::string_view val)
-    {
-        size_t pad = width - 18 - val.length();
-        logger->info(" │  {:<11}: {}{:<{}}│", label, val, "", pad);
-    };
+void print_assoc_header(int threads)
+{
+    auto logger = gelex::logging::get();
 
-    log_row("Method", method_str);
-    log_row("Mode", mode_str);
-    log_row("Chunk Size", chunk_str);
-    log_row("Computing", comp_str);
-    logger->info(" └{}┘", repeat(width - 3, "─"));
+    std::string title
+        = fmt::format("gelex v{} :: GWAS Analysis", PROJECT_VERSION);
+    std::vector<std::pair<std::string, std::string>> header_items
+        = {{"Method", "AI-REML (Average Information)"},
+           {"Threads", fmt::format("{}", threads)}};
+    logger->info(gelex::header_box(title, header_items, 70));
+    logger->info("");
 }
 
 }  // namespace gelex::cli

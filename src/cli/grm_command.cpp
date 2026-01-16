@@ -191,12 +191,7 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
 
     // Print header banner
     gelex::cli::print_grm_header(
-        PROJECT_VERSION,
-        method,
-        do_additive,
-        do_dominant,
-        chunk_size,
-        actual_threads);
+        method, do_additive, do_dominant, chunk_size, actual_threads);
 
     // Loading Data section
     logger->info("");

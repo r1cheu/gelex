@@ -1,10 +1,12 @@
 #include "gelex/model/freq/model.h"
+#include "utils/math_utils.h"
 
 namespace gelex
 {
 
 FreqModel::FreqModel(DataPipe& data_pipe)
     : phenotype_(std::move(data_pipe).take_phenotype()),
+      phenotype_variance_(detail::var(phenotype_)[0]),
       fixed_(std::move(data_pipe).take_fixed_effects())
 {
     num_individuals_ = phenotype_.size();
@@ -38,7 +40,8 @@ auto FreqModel::add_genetic(freq::GeneticEffect&& effect) -> void
     effects_view_.emplace_back(&genetic_.back());
 }
 
-FreqState::FreqState(const FreqModel& model) : fixed_(model.fixed())
+FreqState::FreqState(const FreqModel& model)
+    : phenotype_variance_(model.phenotype_variance()), fixed_(model.fixed())
 {
     for (const auto& r : model.random())
     {
@@ -48,6 +51,7 @@ FreqState::FreqState(const FreqModel& model) : fixed_(model.fixed())
     {
         genetic_.emplace_back(g);
     }
+    init_variance_components(model);
 }
 
 auto FreqState::compute_heritability() -> void
@@ -64,16 +68,45 @@ auto FreqState::compute_heritability() -> void
         total_random_variance += r.variance;
     }
 
-    phenotypic_variance_
+    phenotype_variance_
         = total_genetic_variance + total_random_variance + residual_.variance;
 
-    if (phenotypic_variance_ > 0.0)
+    if (phenotype_variance_ > 0.0)
     {
         for (auto& g : genetic_)
         {
-            g.heritability = g.variance / phenotypic_variance_;
+            g.heritability = g.variance / phenotype_variance_;
         }
     }
+}
+
+auto FreqState::init_variance_components(const FreqModel& model) -> void
+{
+    const double heritability = 0.5;
+    const double random_proportion = 0.2;  // exclude genetic random effects
+    const double init_residual_variance
+        = phenotype_variance_ * (1.0 - heritability);
+
+    double init_genetic_variance = phenotype_variance_ * heritability;
+    double init_random_variance = phenotype_variance_ * random_proportion;
+
+    const auto num_genetic = static_cast<double>(model.genetic().size());
+    const auto num_random = static_cast<double>(model.random().size());
+
+    init_genetic_variance
+        = num_genetic < 1 ? 0.0 : init_genetic_variance / num_genetic;
+    init_random_variance
+        = num_random < 1 ? 0.0 : init_random_variance / num_random;
+
+    for (auto& g : genetic_)
+    {
+        g.variance = init_genetic_variance;
+    }
+    for (auto& r : random_)
+    {
+        r.variance = init_random_variance;
+    }
+    residual_.variance = init_residual_variance;
 }
 
 }  // namespace gelex

@@ -54,8 +54,6 @@ auto set_scale_prior(
 
 auto has_dominance_support(gelex::BayesAlphabet type) -> bool;
 
-void setup_parallelization(int num_threads);
-
 int process_genotype_effect(
     gelex::BayesModel& model,
     const std::shared_ptr<gelex::SampleManager>& sample_manager,

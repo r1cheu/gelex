@@ -30,7 +30,7 @@ void MCMCLogger::set_verbose(bool verbose)
 void MCMCLogger::log_model_information(const BayesModel& model)
 {
     logger_->info("");
-    logger_->info(gelex::section("Model specification (Priors)..."));
+    logger_->info(gelex::section("Model Configuration..."));
 
     if (const auto& effects = model.random(); !effects.empty())
     {

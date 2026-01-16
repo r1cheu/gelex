@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_DATA_SIMULATION_H_
+#define GELEX_DATA_SIMULATION_H_
 
 #include <filesystem>
 #include <memory>
@@ -74,3 +75,5 @@ class PhenotypeSimulator
 };
 
 }  // namespace gelex
+
+#endif  // GELEX_DATA_SIMULATION_H_

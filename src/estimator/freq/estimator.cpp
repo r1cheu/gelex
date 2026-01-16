@@ -3,6 +3,7 @@
 #include <chrono>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include "../src/utils/formatter.h"
 #include "../src/utils/utils.h"
@@ -45,15 +46,16 @@ auto Estimator::fit(
     // log iteration header
     logger_->info("");
     std::string var_header;
-    var_header += fmt::format("{:>12}", "V(e)");
-    for (const auto& r : state.random())
-    {
-        var_header += fmt::format("{:>12}", fmt::format("V({})", r.name));
-    }
     for (const auto& g : state.genetic())
     {
         var_header += fmt::format("{:>12}", fmt::format("V({})", g.name));
     }
+    for (const auto& r : state.random())
+    {
+        var_header += fmt::format("{:>12}", fmt::format("V({})", r.name));
+    }
+    var_header += fmt::format("{:>12}", "V(e)");
+
     logger_->info(
         "  {:>4} {:>12} {} {:>10}", "Iter", "LogL", var_header, "Time");
     logger_->info(gelex::table_separator(68));
@@ -71,15 +73,15 @@ auto Estimator::fit(
 
         // log iteration
         std::string var_values;
-        var_values += fmt::format("{:>12.2f}", state.residual().variance);
-        for (const auto& r : state.random())
-        {
-            var_values += fmt::format("{:>12.2f}", r.variance);
-        }
         for (const auto& g : state.genetic())
         {
             var_values += fmt::format("{:>12.2f}", g.variance);
         }
+        for (const auto& r : state.random())
+        {
+            var_values += fmt::format("{:>12.2f}", r.variance);
+        }
+        var_values += fmt::format("{:>12.2f}", state.residual().variance);
         logger_->info(
             "  {:>4} {:>12.2f} {} {:>9.2f}s",
             iter,
@@ -126,19 +128,32 @@ auto Estimator::em_step(
 
     double loglike = variance_calculator::compute_loglike(model, opt_state);
 
+    std::string var_values;
+    for (const auto& g : state.genetic())
+    {
+        var_values += fmt::format("{:.2f}, ", g.variance);
+    }
+    for (const auto& r : state.random())
+    {
+        var_values += fmt::format("{:.2f}, ", r.variance);
+    }
+    var_values += fmt::format("{:.2f}", state.residual().variance);
+
+    logger_->info("init variance components: {}", var_values);
+
     // log EM initialization
     logger_->info(progress_mark("Initializing (EM)..."));
 
-    std::string var_values;
-    var_values += fmt::format("{:.2f}", state.residual().variance);
-    for (const auto& r : state.random())
-    {
-        var_values += fmt::format(", {:.2f}", r.variance);
-    }
+    var_values = "";
     for (const auto& g : state.genetic())
     {
-        var_values += fmt::format(", {:.2f}", g.variance);
+        var_values += fmt::format("{:.2f}, ", g.variance);
     }
+    for (const auto& r : state.random())
+    {
+        var_values += fmt::format("{:.2f}, ", r.variance);
+    }
+    var_values += fmt::format("{:.2f}", state.residual().variance);
 
     logger_->info(
         "    LogL: {:.2f} | Init Vg: [{}]",
@@ -159,7 +174,6 @@ auto Estimator::report_results(
             "── REML Results {}",
             separator(70 - 16)));
 
-    // convergence status
     // convergence status
     if (converged_)
     {
@@ -212,27 +226,6 @@ auto Estimator::report_results(
             "-");
     }
 
-    // Residual
-    logger_->info(
-        "  {:12} {:>12.3f} {:>12.3f} {:>15} {:>12}",
-        "Residual",
-        state.residual().variance,
-        state.residual().variance_se,
-        "-",
-        "-");
-
-    // Random effects (if any)
-    for (const auto& r : state.random())
-    {
-        logger_->info(
-            "  {:12} {:>12.3f} {:>12.3f} {:>15} {:>12}",
-            r.name,
-            r.variance,
-            r.variance_se,
-            "-",
-            "-");
-    }
-
     // Genetic effects with heritability
     double total_h2 = 0.0;
     for (const auto& g : state.genetic())
@@ -246,6 +239,25 @@ auto Estimator::report_results(
             g.heritability_se);
         total_h2 += g.heritability;
     }
+    // Random effects (if any)
+    for (const auto& r : state.random())
+    {
+        logger_->info(
+            "  {:12} {:>12.3f} {:>12.3f} {:>15} {:>12}",
+            r.name,
+            r.variance,
+            r.variance_se,
+            "-",
+            "-");
+    }
+    // Residual
+    logger_->info(
+        "  {:12} {:>12.3f} {:>12.3f} {:>15} {:>12}",
+        "Residual",
+        state.residual().variance,
+        state.residual().variance_se,
+        "-",
+        "-");
 
     // Total genetic variance and heritability
     if (state.genetic().size() > 1)
