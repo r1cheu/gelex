@@ -73,34 +73,21 @@ CovarStats DataPipe::load_covariates()
         .d_names = std::move(d_names)};
 }
 
-GrmStats DataPipe::load_additive_grm()
+auto DataPipe::load_grms() -> std::vector<GrmStats>
 {
-    if (config_.additive_grm_path.empty())
+    std::vector<GrmStats> grm_stats;
+    grm_stats.reserve(config_.grm_paths.size());
+
+    for (const auto& grm_path : config_.grm_paths)
     {
-        throw ArgumentValidationException("Additive GRM path is required.");
+        grm_loaders_.emplace_back(grm_path);
+        grm_stats.push_back(
+            GrmStats{
+                .samples_in_file
+                = static_cast<size_t>(grm_loaders_.back().num_samples()),
+                .type = grm_loaders_.back().type()});
     }
-
-    additive_grm_loader_
-        = std::make_unique<detail::GrmLoader>(config_.additive_grm_path);
-
-    return GrmStats{
-        .samples_in_file
-        = static_cast<size_t>(additive_grm_loader_->num_samples())};
-}
-
-GrmStats DataPipe::load_dominance_grm()
-{
-    if (config_.dominance_grm_path.empty())
-    {
-        throw ArgumentValidationException("Dominance GRM path is required.");
-    }
-
-    dominance_grm_loader_
-        = std::make_unique<detail::GrmLoader>(config_.dominance_grm_path);
-
-    return GrmStats{
-        .samples_in_file
-        = static_cast<size_t>(dominance_grm_loader_->num_samples())};
+    return grm_stats;
 }
 
 IntersectionStats DataPipe::intersect_samples()
@@ -128,20 +115,11 @@ IntersectionStats DataPipe::intersect_samples()
         sample_manager_->intersect(dcovar_loader_->sample_ids());
     }
 
-    if (additive_grm_loader_)
+    for (const auto& grm_loader : grm_loaders_)
     {
         total_before = std::max(
-            total_before,
-            static_cast<size_t>(additive_grm_loader_->num_samples()));
-        sample_manager_->intersect(additive_grm_loader_->sample_ids());
-    }
-
-    if (dominance_grm_loader_)
-    {
-        total_before = std::max(
-            total_before,
-            static_cast<size_t>(dominance_grm_loader_->num_samples()));
-        sample_manager_->intersect(dominance_grm_loader_->sample_ids());
+            total_before, static_cast<size_t>(grm_loader.num_samples()));
+        sample_manager_->intersect(grm_loader.sample_ids());
     }
 
     sample_manager_->finalize();
@@ -226,17 +204,10 @@ void DataPipe::finalize()
     {
         fixed_effects_ = FixedEffect::build(std::move(qcov), std::move(dcov));
     }
-
-    if (additive_grm_loader_)
+    grms_.reserve(grm_loaders_.size());
+    for (auto& grm_loader : grm_loaders_)
     {
-        additive_grm_ = std::make_unique<Eigen::MatrixXd>(
-            additive_grm_loader_->load(id_map));
-    }
-
-    if (dominance_grm_loader_)
-    {
-        dominance_grm_ = std::make_unique<Eigen::MatrixXd>(
-            dominance_grm_loader_->load(id_map));
+        grms_.emplace_back(grm_loader.type(), grm_loader.load(id_map));
     }
 }
 

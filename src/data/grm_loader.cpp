@@ -1,4 +1,5 @@
 #include "grm_loader.h"
+#include <fmt/format.h>
 
 #include <algorithm>
 #include <format>
@@ -8,13 +9,30 @@
 
 #include "gelex/exception.h"
 #include "parser.h"
+#include "types/freq_effect.h"
 
+namespace
+{
+auto get_type(std::string_view grm_path_stem) -> gelex::freq::GrmType
+{
+    if (grm_path_stem.contains("add"))
+    {
+        return gelex::freq::GrmType::A;
+    }
+    if (grm_path_stem.contains("dom"))
+    {
+        return gelex::freq::GrmType::D;
+    }
+    return gelex::freq::GrmType::Unknown;
+}
+}  // namespace
 namespace gelex::detail
 {
 
 GrmLoader::GrmLoader(const std::filesystem::path& prefix)
     : bin_path_(prefix.string() + ".grm.bin"),
-      id_path_(prefix.string() + ".grm.id")
+      id_path_(prefix.string() + ".grm.id"),
+      type_(get_type(prefix.string()))
 {
     load_sample_ids();
     init_mmap();
@@ -37,13 +55,13 @@ auto GrmLoader::load_sample_ids() -> void
         if (tab_pos == std::string::npos)
         {
             // No tab found, use the line as both FID and IID
-            sample_ids_.push_back(line + "_" + line);
+            sample_ids_.push_back(fmt::format("{}_{}", line, line));
         }
         else
         {
             auto fid = line.substr(0, tab_pos);
             auto iid = line.substr(tab_pos + 1);
-            sample_ids_.push_back(fid + "_" + iid);
+            sample_ids_.push_back(std::format("{}_{}", fid, iid));
         }
     }
 

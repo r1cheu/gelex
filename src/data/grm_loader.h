@@ -10,6 +10,8 @@
 #include <mio.h>
 #include <Eigen/Core>
 
+#include "../src/types/freq_effect.h"
+
 namespace gelex::detail
 {
 
@@ -46,12 +48,15 @@ class GrmLoader
         return num_samples_;
     }
 
+    [[nodiscard]] auto type() const noexcept -> freq::GrmType { return type_; }
+
    private:
     std::filesystem::path bin_path_;
     std::filesystem::path id_path_;
     mio::mmap_source mmap_;
     std::vector<std::string> sample_ids_;  // "FID_IID" format
     Eigen::Index num_samples_{};
+    freq::GrmType type_;
 
     auto load_sample_ids() -> void;
     auto init_mmap() -> void;

@@ -6,8 +6,11 @@
 #include <string>
 #include <string_view>
 
+#include <fmt/base.h>
 #include <fmt/color.h>
 #include <fmt/ranges.h>
+
+#include "../src/types/freq_effect.h"
 
 namespace gelex
 {
@@ -71,6 +74,19 @@ auto rebecca_purple(const T& value)
 {
     return fmt::styled(value, fmt::fg(fmt::color::rebecca_purple));
 }
+
 }  // namespace gelex
+
+namespace fmt
+{
+template <>
+struct formatter<gelex::freq::GrmType> : formatter<string_view>
+{
+    // parse is inherited from formatter<string_view>.
+
+    auto format(gelex::freq::GrmType t, format_context& ctx) const
+        -> format_context::iterator;
+};
+}  // namespace fmt
 
 #endif  // GELEX_UTILS_FORMATTER_H_

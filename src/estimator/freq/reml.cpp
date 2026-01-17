@@ -8,6 +8,7 @@
 #include "gelex/optim/optimizer_state.h"
 #include "gelex/optim/variance_calculator.h"
 #include "gelex/types/assoc_input.h"
+#include "types/freq_effect.h"
 
 namespace gelex
 {
@@ -58,16 +59,35 @@ auto reml(
 
     // Load GRM(s)
     logger->info(gelex::success("GRM : "));
-    auto grm_stats = data_pipe.load_additive_grm();
-    logger->info(
-        gelex::subtask("Additive : {:L} samples", grm_stats.samples_in_file));
+    auto grm_stats = data_pipe.load_grms();
+    std::string grm_str;
 
-    if (config.dominance_grm_path != "")
+    for (const auto& grm_stat : grm_stats)
     {
-        auto dom_grm_stats = data_pipe.load_dominance_grm();
-        logger->info(
-            gelex::subtask(
-                "Dominance: {:L} samples", dom_grm_stats.samples_in_file));
+        switch (grm_stat.type)
+        {
+            case freq::GrmType::A:
+                logger->info(
+                    gelex::subtask(
+                        "Additive     : {:L} samples",
+                        grm_stat.samples_in_file));
+                grm_str += "Additive, ";
+                break;
+            case freq::GrmType::D:
+                logger->info(
+                    gelex::subtask(
+                        "Dominance    : {:L} samples",
+                        grm_stat.samples_in_file));
+                grm_str += "Dominance, ";
+                break;
+            default:
+                logger->info(
+                    gelex::subtask(
+                        "Unknown      : {:L} samples",
+                        grm_stat.samples_in_file));
+                grm_str += "Unknown, ";
+                break;
+        }
     }
 
     logger->info("");
@@ -94,11 +114,8 @@ auto reml(
     logger->info(gelex::task("Design:"));
     logger->info(
         gelex::subtask("Fixed Effects   : {}", model.fixed().X.cols()));
-    std::string grm_str = config.additive_grm_path != "" ? "Additive" : "";
-    if (config.dominance_grm_path != "")
-    {
-        grm_str += ", Dominance";
-    }
+
+    grm_str = grm_str.substr(0, grm_str.length() - 2);
     logger->info(
         gelex::subtask(
             "Genetic Effects : {} ({})", model.genetic().size(), grm_str));

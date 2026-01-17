@@ -1,6 +1,8 @@
 #include "gelex/cli/assoc_command.h"
 
+#include <filesystem>
 #include <memory>
+#include <ranges>
 #include <thread>
 
 #include <fmt/format.h>
@@ -117,8 +119,8 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 
     gelex::cli::setup_parallelization(cmd.get<int>("--threads"));
 
-    // Get GRM paths
-    auto grm_paths = cmd.get<std::vector<std::string>>("--grm");
+    auto grm_paths = std::ranges::to<std::vector<std::filesystem::path>>(
+        cmd.get<std::vector<std::string>>("--grm"));
 
     auto bed_path = gelex::BedPipe::format_bed_path(cmd.get("bfile"));
 
@@ -136,8 +138,7 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
         .dcovar_path = cmd.get("--dcovar"),
         .iid_only = cmd.get<bool>("--iid-only"),
         .output_prefix = cmd.get("--out"),
-        .additive_grm_path = grm_paths[0],
-        .dominance_grm_path = grm_paths.size() > 1 ? grm_paths[1] : ""};
+        .grm_paths = grm_paths};
 
     gelex::cli::print_assoc_header(cmd.get<int>("--threads"));
     auto [sample_manager, assoc_input] = gelex::reml(

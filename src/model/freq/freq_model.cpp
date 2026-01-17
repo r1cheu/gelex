@@ -11,22 +11,7 @@ FreqModel::FreqModel(DataPipe& data_pipe)
       fixed_(std::move(data_pipe).take_fixed_effects())
 {
     num_individuals_ = phenotype_.size();
-
-    if (data_pipe.has_additive_grm())
-    {
-        genetic_.push_back(
-            freq::GeneticEffect{
-                .name = "Additive",
-                .K = std::move(data_pipe).take_additive_grm()});
-    }
-
-    if (data_pipe.has_dominance_grm())
-    {
-        genetic_.push_back(
-            freq::GeneticEffect{
-                .name = "Dominance",
-                .K = std::move(data_pipe).take_dominance_grm()});
-    }
+    genetic_ = std::move(data_pipe).take_grms();
 }
 
 FreqState::FreqState(const FreqModel& model)

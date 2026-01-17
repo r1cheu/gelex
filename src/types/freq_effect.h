@@ -1,5 +1,6 @@
 #ifndef GELEX_TYPES_FREQ_EFFECT_H_
 #define GELEX_TYPES_FREQ_EFFECT_H_
+
 #include <string>
 #include <vector>
 
@@ -10,6 +11,16 @@
 namespace gelex::freq
 {
 
+enum class GrmType : uint8_t
+{
+    A,
+    D,
+    AD,
+    AA,
+    DD,
+    Unknown
+};
+
 struct RandomEffect
 {
     std::string name;
@@ -19,7 +30,7 @@ struct RandomEffect
 
 struct GeneticEffect
 {
-    std::string name;
+    GrmType type;
     Eigen::MatrixXd K;  // GRM matrix
 };
 
@@ -42,7 +53,7 @@ struct RandomState
 struct GeneticState
 {
     explicit GeneticState(const GeneticEffect& effect);
-    std::string name;
+    GrmType type;
     Eigen::VectorXd ebv;
     double variance{};
     double variance_se{};
@@ -57,5 +68,4 @@ struct ResidualState
 };
 
 }  // namespace gelex::freq
-
 #endif  // GELEX_TYPES_FREQ_EFFECT_H_

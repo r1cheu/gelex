@@ -10,11 +10,13 @@
 #include <Eigen/Dense>
 
 #include "../src/types/fixed_effects.h"
+#include "../src/types/freq_effect.h"
 #include "gelex/data/genotype_loader.h"
 #include "gelex/data/genotype_matrix.h"
 #include "gelex/data/genotype_mmap.h"
 #include "gelex/data/genotype_pipe.h"
 #include "gelex/data/sample_manager.h"
+#include "gelex/model/effects.h"
 
 namespace gelex
 {
@@ -56,6 +58,7 @@ struct GenotypeStats
 struct GrmStats
 {
     size_t samples_in_file;
+    freq::GrmType type;
 };
 
 class DataPipe
@@ -73,8 +76,7 @@ class DataPipe
         std::filesystem::path dcovar_path;
         bool iid_only = false;
         std::string output_prefix;
-        std::filesystem::path additive_grm_path;   // GRM file prefix (加性)
-        std::filesystem::path dominance_grm_path;  // GRM file prefix (显性)
+        std::vector<std::filesystem::path> grm_paths;
     };
 
     explicit DataPipe(const Config& config);
@@ -86,8 +88,7 @@ class DataPipe
 
     PhenoStats load_phenotypes();
     CovarStats load_covariates();
-    GrmStats load_additive_grm();
-    GrmStats load_dominance_grm();
+    std::vector<GrmStats> load_grms();
     GenotypeStats load_additive_matrix();
     GenotypeStats load_dominance_matrix();
     IntersectionStats intersect_samples();
@@ -111,13 +112,10 @@ class DataPipe
     }
     bool has_dominance_matrix() const { return dominance_matrix_ != nullptr; }
 
-    Eigen::MatrixXd take_additive_grm() && { return std::move(*additive_grm_); }
-    Eigen::MatrixXd take_dominance_grm() &&
+    auto take_grms() && -> std::vector<gelex::freq::GeneticEffect>
     {
-        return std::move(*dominance_grm_);
+        return std::move(grms_);
     }
-    bool has_additive_grm() const { return additive_grm_ != nullptr; }
-    bool has_dominance_grm() const { return dominance_grm_ != nullptr; }
 
     const std::vector<std::string>& fixed_effect_names() const;
 
@@ -168,10 +166,8 @@ class DataPipe
     std::unique_ptr<std::variant<GenotypeMap, GenotypeMatrix>>
         dominance_matrix_;
 
-    std::unique_ptr<detail::GrmLoader> additive_grm_loader_;
-    std::unique_ptr<detail::GrmLoader> dominance_grm_loader_;
-    std::unique_ptr<Eigen::MatrixXd> additive_grm_;
-    std::unique_ptr<Eigen::MatrixXd> dominance_grm_;
+    std::vector<detail::GrmLoader> grm_loaders_;
+    std::vector<gelex::freq::GeneticEffect> grms_;
 
     std::vector<std::string> fixed_effect_names_;
 };

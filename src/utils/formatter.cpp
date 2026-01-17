@@ -4,6 +4,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include "../src/types/freq_effect.h"
 
 #include <fmt/chrono.h>
 #include <fmt/format.h>
@@ -109,8 +110,42 @@ std::string format_names(
         return fmt::format("{}", fmt::join(names, ", "));
     }
     std::span<const std::string> displayed = names.first(limit);
-    std::ptrdiff_t remaining = names.size() - limit;
+    std::ptrdiff_t remaining
+        = static_cast<std::ptrdiff_t>(names.size()) - limit;
     return fmt::format(
         "{}, ... and {} more", fmt::join(displayed, ", "), remaining);
 }
 }  // namespace gelex
+
+namespace fmt
+{
+auto formatter<gelex::freq::GrmType>::format(
+    gelex::freq::GrmType t,
+    format_context& ctx) const -> format_context::iterator
+{
+    string_view name = "unknown";
+    switch (t)
+    {
+        case (gelex::freq::GrmType::A):
+            name = "A";
+            break;
+        case (gelex::freq::GrmType::D):
+            name = "D";
+            break;
+        case (gelex::freq::GrmType::AA):
+            name = "AA";
+            break;
+        case (gelex::freq::GrmType::AD):
+            name = "AD";
+            break;
+        case (gelex::freq::GrmType::DD):
+            name = "DD";
+            break;
+        case (gelex::freq::GrmType::Unknown):
+        default:
+            break;
+    }
+    return formatter<string_view>::format(name, ctx);
+}
+
+}  // namespace fmt

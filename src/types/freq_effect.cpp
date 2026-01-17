@@ -20,8 +20,7 @@ RandomState::RandomState(const RandomEffect& effect)
 }
 
 GeneticState::GeneticState(const GeneticEffect& effect)
-    : name(effect.name), ebv(Eigen::VectorXd::Zero(effect.K.rows()))
+    : type(effect.type), ebv(Eigen::VectorXd::Zero(effect.K.rows()))
 {
 }
-
 }  // namespace gelex::freq

@@ -27,8 +27,11 @@ namespace
 class GrmFileFixture
 {
    public:
-    explicit GrmFileFixture(FileFixture& files)
-        : files_(files), prefix_(files.generate_random_file_path(""))
+    explicit GrmFileFixture(FileFixture& files, const std::string& prefix = "")
+        : files_(files),
+          prefix_(
+              prefix.empty() ? files.generate_random_file_path("")
+                             : std::filesystem::path(prefix))
     {
     }
 
@@ -252,7 +255,7 @@ TEST_CASE(
     auto pheno_path = files.create_text_file(pheno_content, ".phen");
 
     // create GRM files
-    GrmFileFixture grm_fixture(files);
+    GrmFileFixture grm_fixture(files, "test.add");
     auto grm_matrix = make_symmetric_grm(num_samples);
     grm_fixture.create(grm_matrix, sample_ids);
 
@@ -260,12 +263,11 @@ TEST_CASE(
         .phenotype_path = pheno_path,
         .phenotype_column = 2,  // 0-indexed
         .bed_path = bed_prefix,
-        .additive_grm_path = grm_fixture.prefix(),
-    };
+        .grm_paths = {grm_fixture.prefix()}};
 
     DataPipe pipe(config);
     pipe.load_phenotypes();
-    pipe.load_additive_grm();
+    pipe.load_grms();
     pipe.intersect_samples();
     pipe.finalize();
 
@@ -278,7 +280,7 @@ TEST_CASE(
 
     SECTION("Verify genetic effect name is 'Additive'")
     {
-        REQUIRE(model.genetic()[0].name == "Additive");
+        REQUIRE(model.genetic()[0].type == gelex::freq::GrmType::A);
     }
 
     SECTION("Verify GRM matrix dimensions")
@@ -322,7 +324,7 @@ TEST_CASE(
     auto pheno_content = make_phenotype_content(sample_ids, pheno_values);
     auto pheno_path = files.create_text_file(pheno_content, ".phen");
 
-    GrmFileFixture grm_fixture(files);
+    GrmFileFixture grm_fixture(files, "test.dom");
     auto grm_matrix = make_symmetric_grm(num_samples);
     grm_fixture.create(grm_matrix, sample_ids);
 
@@ -330,12 +332,11 @@ TEST_CASE(
         .phenotype_path = pheno_path,
         .phenotype_column = 2,  // 0-indexed
         .bed_path = bed_prefix,
-        .dominance_grm_path = grm_fixture.prefix(),
-    };
+        .grm_paths = {grm_fixture.prefix()}};
 
     DataPipe pipe(config);
     pipe.load_phenotypes();
-    pipe.load_dominance_grm();
+    pipe.load_grms();
     pipe.intersect_samples();
     pipe.finalize();
 
@@ -348,7 +349,7 @@ TEST_CASE(
 
     SECTION("Verify genetic effect name is 'Dominance'")
     {
-        REQUIRE(model.genetic()[0].name == "Dominance");
+        REQUIRE(model.genetic()[0].type == gelex::freq::GrmType::D);
     }
 
     SECTION("Verify GRM matrix dimensions")
@@ -381,12 +382,12 @@ TEST_CASE(
     auto pheno_path = files.create_text_file(pheno_content, ".phen");
 
     // create additive GRM
-    GrmFileFixture add_grm_fixture(files);
+    GrmFileFixture add_grm_fixture(files, "test.add");
     auto add_grm_matrix = make_symmetric_grm(num_samples);
     add_grm_fixture.create(add_grm_matrix, sample_ids);
 
     // create dominance GRM
-    GrmFileFixture dom_grm_fixture(files);
+    GrmFileFixture dom_grm_fixture(files, "test.dom");
     auto dom_grm_matrix = make_symmetric_grm(num_samples);
     dom_grm_fixture.create(dom_grm_matrix, sample_ids);
 
@@ -394,14 +395,11 @@ TEST_CASE(
         .phenotype_path = pheno_path,
         .phenotype_column = 2,  // 0-indexed
         .bed_path = bed_prefix,
-        .additive_grm_path = add_grm_fixture.prefix(),
-        .dominance_grm_path = dom_grm_fixture.prefix(),
-    };
+        .grm_paths = {add_grm_fixture.prefix(), dom_grm_fixture.prefix()}};
 
     DataPipe pipe(config);
     pipe.load_phenotypes();
-    pipe.load_additive_grm();
-    pipe.load_dominance_grm();
+    pipe.load_grms();
     pipe.intersect_samples();
     pipe.finalize();
 
@@ -414,8 +412,8 @@ TEST_CASE(
 
     SECTION("Verify genetic effect names")
     {
-        REQUIRE(model.genetic()[0].name == "Additive");
-        REQUIRE(model.genetic()[1].name == "Dominance");
+        REQUIRE(model.genetic()[0].type == gelex::freq::GrmType::A);
+        REQUIRE(model.genetic()[1].type == gelex::freq::GrmType::D);
     }
 
     SECTION("Verify both GRM matrices have correct dimensions")
@@ -468,12 +466,11 @@ TEST_CASE(
         .phenotype_path = pheno_path,
         .phenotype_column = 2,  // 0-indexed
         .bed_path = bed_prefix,
-        .additive_grm_path = grm_fixture.prefix(),
-    };
+        .grm_paths = {grm_fixture.prefix()}};
 
     DataPipe pipe(config);
     pipe.load_phenotypes();
-    pipe.load_additive_grm();
+    pipe.load_grms();
     auto stats = pipe.intersect_samples();
     pipe.finalize();
 
@@ -545,13 +542,12 @@ TEST_CASE(
         .phenotype_column = 2,  // 0-indexed
         .bed_path = bed_prefix,
         .qcovar_path = qcovar_path,
-        .additive_grm_path = grm_fixture.prefix(),
-    };
+        .grm_paths = {grm_fixture.prefix()}};
 
     DataPipe pipe(config);
     pipe.load_phenotypes();
     pipe.load_covariates();
-    pipe.load_additive_grm();
+    pipe.load_grms();
     pipe.intersect_samples();
     pipe.finalize();
 
@@ -613,13 +609,12 @@ TEST_CASE(
         .phenotype_column = 2,  // 0-indexed
         .bed_path = bed_prefix,
         .dcovar_path = dcovar_path,
-        .additive_grm_path = grm_fixture.prefix(),
-    };
+        .grm_paths = {grm_fixture.prefix()}};
 
     DataPipe pipe(config);
     pipe.load_phenotypes();
     pipe.load_covariates();
-    pipe.load_additive_grm();
+    pipe.load_grms();
     pipe.intersect_samples();
     pipe.finalize();
 
@@ -671,12 +666,11 @@ TEST_CASE(
         .phenotype_path = pheno_path,
         .phenotype_column = 2,  // 0-indexed
         .bed_path = bed_prefix,
-        .additive_grm_path = grm_fixture.prefix(),
-    };
+        .grm_paths = {grm_fixture.prefix()}};
 
     DataPipe pipe(config);
     pipe.load_phenotypes();
-    pipe.load_additive_grm();
+    pipe.load_grms();
     pipe.intersect_samples();
     pipe.finalize();
 

@@ -48,7 +48,7 @@ auto Estimator::fit(
     std::string var_header;
     for (const auto& g : state.genetic())
     {
-        var_header += fmt::format("{:>12}", fmt::format("V({})", g.name));
+        var_header += fmt::format("{:>12}", fmt::format("V({})", g.type));
     }
     for (const auto& r : state.random())
     {
@@ -219,7 +219,7 @@ auto Estimator::report_results(
     {
         logger_->info(
             "  {:12} {:>12.3f} {:>12.3f} {:>15.3f} {:>12.3f}",
-            g.name,
+            g.type,
             g.variance,
             g.variance_se,
             g.heritability,
