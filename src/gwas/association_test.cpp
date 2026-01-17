@@ -1,7 +1,6 @@
 #include "gelex/gwas/association_test.h"
 
 #include <cmath>
-#include <stdexcept>
 
 #include <Eigen/Dense>
 
@@ -207,51 +206,13 @@ auto wald_test_joint(
     return result;
 }
 
-// Separate Wald tests for additive and dominance
-auto wald_test_separate(
-    const Eigen::Ref<const Eigen::MatrixXd>& Z,
-    const Eigen::Ref<const Eigen::VectorXd>& residual,
-    const Eigen::Ref<const Eigen::MatrixXd>& v_inv) -> AssociationResult
-{
-    // First do joint to get estimates
-    AssociationResult result = wald_test_joint(Z, residual, v_inv);
-
-    // Z'V⁻¹Z (2×2)
-    const Eigen::MatrixXd Z_vinv = v_inv * Z;
-    const Eigen::Matrix2d Z_vinv_Z = Z.transpose() * Z_vinv;
-
-    const double det = Z_vinv_Z.determinant();
-    if (std::abs(det) < std::numeric_limits<double>::epsilon())
-    {
-        result.pvalue_a = 1.0;
-        result.pvalue_d = 1.0;
-        return result;
-    }
-
-    const Eigen::Matrix2d Z_vinv_Z_inv = Z_vinv_Z.inverse();
-
-    // Separate Wald tests
-    const double stat_a = result.beta_a * result.beta_a / Z_vinv_Z_inv(0, 0);
-    const double stat_d = result.beta_d * result.beta_d / Z_vinv_Z_inv(1, 1);
-
-    result.pvalue_a = chi_sq_pvalue(stat_a, 1);
-    result.pvalue_d = chi_sq_pvalue(stat_d, 1);
-
-    // For separate test, we might want to report the larger single-effect stat
-    // But keep joint stat as primary
-    result.df = 2;
-
-    return result;
-}
-
 }  // namespace
 
 auto wald_test(
     const EncodedSNP& snp,
     const Eigen::Ref<const Eigen::VectorXd>& residual,
     const Eigen::Ref<const Eigen::MatrixXd>& v_inv,
-    GwasModel model,
-    TestType test_type) -> AssociationResult
+    AssocMode model) -> AssociationResult
 {
     if (!snp.is_valid)
     {
@@ -260,13 +221,13 @@ auto wald_test(
 
     switch (model)
     {
-        case GwasModel::Additive:
+        case AssocMode::A:
         {
             auto result = wald_test_single(snp.Z.col(0), residual, v_inv);
             // beta_a is already set, keep beta_d as NaN
             return result;
         }
-        case GwasModel::Dominance:
+        case AssocMode::D:
         {
             auto result = wald_test_single(snp.Z.col(0), residual, v_inv);
             // Swap to beta_d since this is dominance model
@@ -276,35 +237,13 @@ auto wald_test(
             result.se_a = std::nan("");
             return result;
         }
-        case GwasModel::AdditiveDominance:
+        case AssocMode::AD:
         {
-            if (test_type == TestType::Joint)
-            {
-                return wald_test_joint(snp.Z, residual, v_inv);
-            }
-            else
-            {
-                return wald_test_separate(snp.Z, residual, v_inv);
-            }
+            return wald_test_joint(snp.Z, residual, v_inv);
         }
     }
 
     return AssociationResult{};
-}
-
-auto parse_test_type(std::string_view test_str) -> TestType
-{
-    if (test_str == "joint" || test_str == "j")
-    {
-        return TestType::Joint;
-    }
-    if (test_str == "separate" || test_str == "sep" || test_str == "s")
-    {
-        return TestType::Separate;
-    }
-    throw std::invalid_argument(
-        "Invalid test type: " + std::string(test_str)
-        + ". Valid options: joint, separate");
 }
 
 }  // namespace gelex::gwas

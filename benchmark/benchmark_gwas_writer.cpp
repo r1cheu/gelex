@@ -49,8 +49,7 @@ class GwasWriterFixture : public benchmark::Fixture
 BENCHMARK_DEFINE_F(GwasWriterFixture, BM_WriteResult)(benchmark::State& state)
 {
     // 使用 AdditiveDominance 模型，因为它写入的字段最多，压力最大
-    GwasWriter writer(
-        temp_filename, GwasModel::AdditiveDominance, TestType::Separate);
+    GwasWriter writer(temp_filename, GwasModel::AD, TestType::Separate);
     writer.write_header();
 
     for (auto _ : state)

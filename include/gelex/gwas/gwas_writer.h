@@ -21,16 +21,12 @@ struct SNPInfo
     std::string a1;
     std::string a2;
     double freq{};
-    int n{};
 };
 
 class GwasWriter
 {
    public:
-    GwasWriter(
-        std::string_view out_prefix,
-        GwasModel model,
-        TestType test_type);
+    GwasWriter(std::string_view out_prefix, AssocMode model);
     GwasWriter(const GwasWriter&) = delete;
     GwasWriter(GwasWriter&&) = delete;
     GwasWriter& operator=(const GwasWriter&) = delete;
@@ -45,8 +41,7 @@ class GwasWriter
 
    private:
     std::ofstream ofs_;
-    GwasModel model_;
-    TestType test_type_;
+    AssocMode model_;
 
     fmt::memory_buffer line_buffer_;
 };

@@ -9,13 +9,6 @@
 
 namespace gelex::gwas
 {
-
-enum class TestType
-{
-    Joint,    // Joint test H₀: a = d = 0 (for a+d model)
-    Separate  // Separate tests for a and d
-};
-
 struct AssociationResult
 {
     double beta_a{std::nan("")};
@@ -38,12 +31,7 @@ auto wald_test(
     const EncodedSNP& snp,
     const Eigen::Ref<const Eigen::VectorXd>& residual,
     const Eigen::Ref<const Eigen::MatrixXd>& v_inv,
-    GwasModel model,
-    TestType test_type) -> AssociationResult;
-
-// Parse test type string to enum
-auto parse_test_type(std::string_view test_str) -> TestType;
-
+    AssocMode model) -> AssociationResult;
 }  // namespace gelex::gwas
 
 #endif  // GELEX_GWAS_ASSOCIATION_TEST_H

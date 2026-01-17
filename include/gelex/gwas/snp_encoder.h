@@ -6,11 +6,11 @@
 namespace gelex::gwas
 {
 
-enum class GwasModel
+enum class AssocMode : uint8_t
 {
-    Additive,          // a only
-    Dominance,         // d only
-    AdditiveDominance  // a + d
+    A,  // a only
+    D,  // d only
+    AD  // a + d
 };
 
 struct EncodedSNP
@@ -23,10 +23,10 @@ struct EncodedSNP
 // Encode raw genotype {0, 1, 2} based on model type
 // Uses orthogonal HWE encoding for dominance
 // raw genotype will be modified in place for efficiency
-auto encode_snp(Eigen::Ref<Eigen::VectorXd> raw, GwasModel model) -> EncodedSNP;
+auto encode_snp(Eigen::Ref<Eigen::VectorXd> raw, AssocMode model) -> EncodedSNP;
 
 // Parse model string to enum
-auto parse_gwas_model(std::string_view model_str) -> GwasModel;
+auto parse_assoc_mode(std::string_view model_str) -> AssocMode;
 
 }  // namespace gelex::gwas
 

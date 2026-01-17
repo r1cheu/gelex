@@ -10,11 +10,8 @@ namespace gelex::gwas
 
 constexpr size_t BUFFER_FLUSH_THRESHOLD = static_cast<const size_t>(64 * 1024);
 
-GwasWriter::GwasWriter(
-    std::string_view out_prefix,
-    GwasModel model,
-    TestType test_type)
-    : model_(model), test_type_(test_type)
+GwasWriter::GwasWriter(std::string_view out_prefix, AssocMode model)
+    : model_(model)
 {
     std::string filepath = std::string(out_prefix) + ".gwas.tsv";
     ofs_.open(filepath, std::ios::out | std::ios::binary);
@@ -42,16 +39,16 @@ auto GwasWriter::write_header() -> void
 
     switch (model_)
     {
-        case GwasModel::Additive:
+        case AssocMode::A:
             fmt::format_to(
                 std::back_inserter(line_buffer_), FMT_COMPILE("\tBETA\tSE"));
             break;
-        case GwasModel::Dominance:
+        case AssocMode::D:
             fmt::format_to(
                 std::back_inserter(line_buffer_),
                 FMT_COMPILE("\tBETA_D\tSE_D"));
             break;
-        case GwasModel::AdditiveDominance:
+        case AssocMode::AD:
             fmt::format_to(
                 std::back_inserter(line_buffer_),
                 FMT_COMPILE("\tBETA_A\tSE_A\tBETA_D\tSE_D"));
@@ -59,15 +56,7 @@ auto GwasWriter::write_header() -> void
     }
 
     fmt::format_to(std::back_inserter(line_buffer_), FMT_COMPILE("\tSTAT\tP"));
-
-    if (model_ == GwasModel::AdditiveDominance
-        && test_type_ == TestType::Separate)
-    {
-        fmt::format_to(
-            std::back_inserter(line_buffer_), FMT_COMPILE("\tP_A\tP_D"));
-    }
-
-    fmt::format_to(std::back_inserter(line_buffer_), FMT_COMPILE("\tDF\tN\n"));
+    fmt::format_to(std::back_inserter(line_buffer_), FMT_COMPILE("\tDF\n"));
 
     ofs_.write(
         line_buffer_.data(), static_cast<std::streamsize>(line_buffer_.size()));
@@ -90,21 +79,21 @@ auto GwasWriter::write_result(
 
     switch (model_)
     {
-        case GwasModel::Additive:
+        case AssocMode::A:
             fmt::format_to(
                 std::back_inserter(line_buffer_),
                 FMT_COMPILE("\t{:.6g}\t{:.6g}"),
                 result.beta_a,
                 result.se_a);
             break;
-        case GwasModel::Dominance:
+        case AssocMode::D:
             fmt::format_to(
                 std::back_inserter(line_buffer_),
                 FMT_COMPILE("\t{:.6g}\t{:.6g}"),
                 result.beta_d,
                 result.se_d);
             break;
-        case GwasModel::AdditiveDominance:
+        case AssocMode::AD:
             fmt::format_to(
                 std::back_inserter(line_buffer_),
                 FMT_COMPILE("\t{:.6g}\t{:.6g}\t{:.6g}\t{:.6g}"),
@@ -120,22 +109,8 @@ auto GwasWriter::write_result(
         FMT_COMPILE("\t{:.6g}\t{:.6g}"),
         result.stat,
         result.pvalue);
-
-    if (model_ == GwasModel::AdditiveDominance
-        && test_type_ == TestType::Separate)
-    {
-        fmt::format_to(
-            std::back_inserter(line_buffer_),
-            FMT_COMPILE("\t{:.6g}\t{:.6g}"),
-            result.pvalue_a,
-            result.pvalue_d);
-    }
-
     fmt::format_to(
-        std::back_inserter(line_buffer_),
-        FMT_COMPILE("\t{}\t{}\n"),
-        result.df,
-        snp_info.n);
+        std::back_inserter(line_buffer_), FMT_COMPILE("\t{}\n"), result.df);
 
     if (line_buffer_.size() >= BUFFER_FLUSH_THRESHOLD)
     {

@@ -1,5 +1,6 @@
 #include "gelex/cli/assoc_command.h"
 
+#include <Eigen/Core>
 #include <filesystem>
 #include <memory>
 #include <ranges>
@@ -115,8 +116,7 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     std::string out_prefix = cmd.get("--out");
 
     // Parse model and test type
-    auto gwas_model = gelex::gwas::parse_gwas_model(cmd.get("--model"));
-    auto test_type = gelex::gwas::parse_test_type(cmd.get("--test"));
+    auto assoc_mode = gelex::gwas::parse_assoc_mode(cmd.get("--model"));
 
     gelex::cli::setup_parallelization(cmd.get<int>("--threads"));
 
@@ -149,111 +149,107 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
         true,
         true);
 
-    //     gelex::BedPipe bed_pipe(bed_path, sample_manager);
-    //
-    //     const Eigen::Index n_snps = bed_pipe.num_snps();
-    //     const auto n_samples
-    //         =
-    //         static_cast<Eigen::Index>(sample_manager->num_common_samples());
-    //     const int chunk_size = cmd.get<int>("--chunk-size");
-    //
-    //     logger->info("");
-    //     logger->info(gelex::section("Running association tests..."));
-    //     logger->info(gelex::task("SNPs to test : {}", n_snps));
-    //     logger->info(gelex::task("Chunk size   : {}", chunk_size));
-    //
+    const Eigen::MatrixXd& V_inv = assoc_input.V_inv;
+    const Eigen::VectorXd& residual = assoc_input.y_adj;
+
+    gelex::BedPipe bed_pipe(bed_path, sample_manager);
+    auto snp_effects
+        = gelex::detail::BimLoader(bed_path.replace_extension(".bim"))
+              .take_info();
+
+    const Eigen::Index n_snps = bed_pipe.num_snps();
+    const int chunk_size = cmd.get<int>("--chunk-size");
+
+    logger->info("");
+    logger->info(gelex::section("Running association tests..."));
+    logger->info(gelex::task("SNPs to test : {}", n_snps));
+    logger->info(gelex::task("Chunk size   : {}", chunk_size));
+
     //     // ================================================================
     //     // Association testing
     //     // ================================================================
-    //     gelex::gwas::GwasWriter writer(out_prefix, gwas_model, test_type);
-    //     writer.write_header();
-    //
-    //     size_t n_tested = 0;
-    //     size_t n_chunks
-    //         = static_cast<size_t>((n_snps + chunk_size - 1) / chunk_size);
-    //
-    //     for (size_t chunk_idx = 0; chunk_idx < n_chunks; ++chunk_idx)
-    //     {
-    //         Eigen::Index start = static_cast<Eigen::Index>(chunk_idx)
-    //                              * static_cast<Eigen::Index>(chunk_size);
-    //         Eigen::Index end
-    //             = std::min(start + static_cast<Eigen::Index>(chunk_size),
-    //             n_snps);
-    //
-    //         Eigen::MatrixXd geno_chunk = bed_pipe.load_chunk(start, end);
-    //
-    //         // Store results for this chunk (to avoid critical section
-    //         overhead) std::vector<
-    //                 std::pair<gelex::gwas::SNPInfo,
-    //                 gelex::gwas::AssociationResult>>
-    //                 chunk_results(static_cast<size_t>(end - start));
-    //
-    // // Process each SNP in the chunk
-    // #pragma omp parallel for default(none) shared(geno_chunk, residual,
-    // assoc_input, gwas_model, test_type) schedule(dynamic)
-    //         for (Eigen::Index snp_idx = 0; snp_idx < geno_chunk.cols();
-    //         ++snp_idx)
-    //         {
-    //             Eigen::Index global_idx = start + snp_idx;
-    //
-    //             // Get raw genotype
-    //             auto raw_geno = geno_chunk.col(snp_idx);
-    //
-    //             // Encode SNP
-    //             auto encoded = gelex::gwas::encode_snp(raw_geno, gwas_model);
-    //
-    //             // Perform Wald test
-    //             auto result = gelex::gwas::wald_test(
-    //                 encoded, residual, assoc_input.V_inv, gwas_model,
-    //                 test_type);
-    //
-    //             // Get SNP info
-    //             const auto& snp_meta
-    //                 = bim_loader.info()[static_cast<size_t>(global_idx)];
-    //
-    //             gelex::gwas::SNPInfo snp_info{
-    //                 .chrom = snp_meta.chrom,
-    //                 .rsid = snp_meta.id,
-    //                 .bp = snp_meta.pos,
-    //                 .a1 = std::string(1, snp_meta.A1),
-    //                 .a2 = std::string(1, snp_meta.A2),
-    //                 .freq = encoded.maf,
-    //                 .n = static_cast<int>(n_samples)};
-    //
-    //             chunk_results[static_cast<size_t>(snp_idx)]
-    //                 = std::make_pair(std::move(snp_info), result);
-    //         }
-    //
-    //         // Write results sequentially to maintain order
-    //         for (const auto& [snp_info, result] : chunk_results)
-    //         {
-    //             writer.write_result(snp_info, result);
-    //         }
-    //
-    //         n_tested += static_cast<size_t>(end - start);
-    //
-    //         if ((chunk_idx + 1) % 10 == 0 || chunk_idx == n_chunks - 1)
-    //         {
-    //             logger->info(
-    //                 gelex::subtask(
-    //                     "Progress: {}/{} SNPs ({:.1f}%)",
-    //                     n_tested,
-    //                     n_snps,
-    //                     100.0 * static_cast<double>(n_tested)
-    //                         / static_cast<double>(n_snps)));
-    //         }
-    //     }
-    //
-    //     writer.finalize();
-    //
-    //     logger->info("");
-    //     logger->info(gelex::success("GWAS complete!"));
-    //     logger->info(gelex::success("Results saved to : {}.gwas.tsv",
-    //     out_prefix)); logger->info(
-    //         fmt::format(
-    //             fmt::emphasis::bold | fmt::fg(fmt::color::light_cyan),
-    //             "───────────────────────────────────"
-    //             "───────────────────────────────────"));
-    //
+    gelex::gwas::GwasWriter writer(out_prefix, assoc_mode);
+    writer.write_header();
+    Eigen::setNbThreads(1);
+    size_t n_tested = 0;
+    size_t n_chunks
+        = static_cast<size_t>((n_snps + chunk_size - 1) / chunk_size);
+
+    for (size_t chunk_idx = 0; chunk_idx < n_chunks; ++chunk_idx)
+    {
+        Eigen::Index start = static_cast<Eigen::Index>(chunk_idx)
+                             * static_cast<Eigen::Index>(chunk_size);
+        Eigen::Index end
+            = std::min(start + static_cast<Eigen::Index>(chunk_size), n_snps);
+
+        Eigen::MatrixXd geno_chunk = bed_pipe.load_chunk(start, end);
+
+        // Store results for this chunk (to avoid critical section overhead)
+        std::vector<
+            std::pair<gelex::gwas::SNPInfo, gelex::gwas::AssociationResult>>
+            chunk_results(static_cast<size_t>(end - start));
+
+// Process each SNP in the chunk
+#pragma omp parallel for schedule(dynamic)
+        for (Eigen::Index snp_idx = 0; snp_idx < geno_chunk.cols(); ++snp_idx)
+        {
+            Eigen::Index global_idx = start + snp_idx;
+
+            // Get raw genotype
+            auto raw_geno = geno_chunk.col(snp_idx);
+
+            // Encode SNP
+            auto encoded = gelex::gwas::encode_snp(raw_geno, assoc_mode);
+
+            // Perform Wald test
+            auto result
+                = gelex::gwas::wald_test(encoded, residual, V_inv, assoc_mode);
+
+            // Get SNP info
+            const auto& snp_meta = snp_effects[static_cast<size_t>(global_idx)];
+
+            gelex::gwas::SNPInfo snp_info{
+                .chrom = snp_meta.chrom,
+                .rsid = snp_meta.id,
+                .bp = snp_meta.pos,
+                .a1 = std::string(1, snp_meta.A1),
+                .a2 = std::string(1, snp_meta.A2),
+                .freq = encoded.maf};
+
+            chunk_results[static_cast<size_t>(snp_idx)]
+                = std::make_pair(std::move(snp_info), result);
+        }
+
+        // Write results sequentially to maintain order
+        for (const auto& [snp_info, result] : chunk_results)
+        {
+            writer.write_result(snp_info, result);
+        }
+
+        n_tested += static_cast<size_t>(end - start);
+
+        if ((chunk_idx + 1) % 10 == 0 || chunk_idx == n_chunks - 1)
+        {
+            logger->info(
+                gelex::subtask(
+                    "Progress: {}/{} SNPs ({:.1f}%)",
+                    n_tested,
+                    n_snps,
+                    100.0 * static_cast<double>(n_tested)
+                        / static_cast<double>(n_snps)));
+        }
+    }
+
+    writer.finalize();
+
+    logger->info("");
+    logger->info(gelex::success("GWAS complete!"));
+    logger->info(gelex::success("Results saved to : {}.gwas.tsv", out_prefix));
+    logger->info(
+        fmt::format(
+            fmt::emphasis::bold | fmt::fg(fmt::color::light_cyan),
+            "───────────────────────────────────"
+            "───────────────────────────────────"));
+
     return 0;
 }
