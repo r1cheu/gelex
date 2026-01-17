@@ -2,7 +2,6 @@
 #define GELEX_DATA_DATA_PIPE_H_
 
 #include <filesystem>
-#include <functional>
 #include <memory>
 #include <string>
 #include <variant>
@@ -96,6 +95,8 @@ class DataPipe
     void finalize();
 
     size_t num_genotype_samples() const { return num_genotype_samples_; }
+
+    std::shared_ptr<SampleManager> sample_manager() { return sample_manager_; }
 
     Eigen::VectorXd take_phenotype() && { return std::move(phenotype_); }
     FixedEffect take_fixed_effects() && { return std::move(fixed_effects_); }

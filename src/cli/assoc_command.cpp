@@ -1,22 +1,18 @@
 #include "gelex/cli/assoc_command.h"
 
-#include <fmt/format.h>
 #include <memory>
 #include <thread>
 
-#include "../src/utils/formatter.h"
-#include "config.h"
+#include <fmt/format.h>
+
 #include "gelex/cli/utils.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/data_pipe.h"
-#include "gelex/estimator/freq/estimator.h"
+#include "gelex/estimator/freq/reml.h"
 #include "gelex/gwas/association_test.h"
 #include "gelex/gwas/gwas_writer.h"
 #include "gelex/gwas/snp_encoder.h"
 #include "gelex/logger.h"
-#include "gelex/model/freq/model.h"
-#include "gelex/optim/optimizer_state.h"
-#include "gelex/optim/variance_calculator.h"
 
 #include "../src/data/loader/bim_loader.h"
 
@@ -143,105 +139,13 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
         .additive_grm_path = grm_paths[0],
         .dominance_grm_path = grm_paths.size() > 1 ? grm_paths[1] : ""};
 
-    gelex::DataPipe data_pipe(config);
-
-    // Load phenotype first to get trait name
-    auto p_stats = data_pipe.load_phenotypes();
     gelex::cli::print_assoc_header(cmd.get<int>("--threads"));
-
-    logger->info(gelex::section("Loading Data..."));
-    logger->info(
-        gelex::success(
-            "Phenotypes : {:L} samples ({})",
-            p_stats.samples_loaded,
-            p_stats.trait_name));
-
-    logger->info(
-        gelex::success(
-            "Genotypes  : {:L} samples", data_pipe.num_genotype_samples()));
-
-    auto c_stats = data_pipe.load_covariates();
-    if (c_stats.qcovar_loaded > 0 || c_stats.dcovar_loaded > 0)
-    {
-        logger->info(gelex::task("Covariates : "));
-        if (c_stats.qcovar_loaded > 0)
-        {
-            logger->info(
-                gelex::subtask(
-                    "Quantitative : {} loaded ",
-                    gelex::format_names(c_stats.q_names)));
-        }
-        if (c_stats.dcovar_loaded > 0)
-        {
-            logger->info(
-                gelex::subtask(
-                    "Discrete     : {} loaded ",
-                    gelex::format_names(c_stats.d_names)));
-        }
-    }
-
-    // Load GRM(s)
-    logger->info(gelex::success("GRM : "));
-    auto grm_stats = data_pipe.load_additive_grm();
-    logger->info(
-        gelex::subtask("Additive : {:L} samples", grm_stats.samples_in_file));
-
-    if (grm_paths.size() > 1)
-    {
-        auto dom_grm_stats = data_pipe.load_dominance_grm();
-        logger->info(
-            gelex::subtask(
-                "Dominance: {:L} samples", dom_grm_stats.samples_in_file));
-    }
-
-    logger->info("");
-    logger->info(gelex::section("Pre-processing..."));
-    auto i_stats = data_pipe.intersect_samples();
-    logger->info(gelex::task("Sample Intersection:"));
-    logger->info(gelex::subtask("Common   : {:L}", i_stats.common_samples));
-    logger->info(gelex::subtask("Excluded : {:L}", i_stats.excluded_samples));
-
-    if (i_stats.common_samples == 0)
-    {
-        logger->error(
-            "No common samples found between phenotype, covariates, GRM, and "
-            "genotype files.");
-        return 1;
-    }
-
-    data_pipe.finalize();
-
-    logger->info("");
-    logger->info(gelex::section("Model Configuration..."));
-
-    gelex::FreqModel model(data_pipe);
-    gelex::FreqState state(model);
-
-    logger->info(gelex::task("Design:"));
-    logger->info(
-        gelex::subtask("Fixed Effects   : {}", model.fixed().X.cols()));
-    logger->info(
-        gelex::subtask(
-            "Genetic Effects : {} ({})",
-            model.genetic().size(),
-            grm_paths.size() > 1 ? "Additive, Dominance" : "Additive"));
-
-    auto tol = cmd.get<double>("--tol");
-    auto max_iter = cmd.get<int>("--max-iter");
-    logger->info(gelex::task("Optimizer (AI):"));
-    logger->info(gelex::subtask("Tolerance : {:.1e}", tol));
-    logger->info(gelex::subtask("Max Iter  : {}", max_iter));
-
-    logger->info("");
-    logger->info(gelex::section("Fitting Null Model..."));
-
-    gelex::Estimator estimator(max_iter, tol);
-    estimator.fit(model, state, true, true);
-
-    if (!estimator.is_converged())
-    {
-        logger->warn("REML did not converge, results may be unreliable");
-    }
+    auto [sample_manager, assoc_input] = gelex::reml(
+        config,
+        cmd.get<int>("--max-iter"),
+        cmd.get<double>("--tol"),
+        true,
+        true);
 
     //     // Get V^{-1} from optimizer state
     //     // Re-compute it since EstimatorNew doesn't expose internal state

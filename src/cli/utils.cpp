@@ -69,10 +69,10 @@ void print_fit_header(
         has_dominance ? "Additive + Dominance" : "Additive");
     std::string chain_str = fmt::format(
         "{} iters ({} burn-in, {} sampling)", iters, burn_in, iters - burn_in);
-    std::string comp_str = fmt::format("{} threads (OpenMP)", threads);
+    std::string comp_str = fmt::format("{}", threads);
 
     std::vector<std::pair<std::string, std::string>> items
-        = {{"Model", model_str}, {"Chain", chain_str}, {"Computing", comp_str}};
+        = {{"Model", model_str}, {"Chain", chain_str}, {"Threads", comp_str}};
 
     logger->info(gelex::header_box(title, items, 70));
     logger->info("");
@@ -106,13 +106,13 @@ void print_grm_header(
 
     std::string method_str = std::string(method);
     std::string chunk_str = fmt::format("{}", chunk_size);
-    std::string comp_str = fmt::format("{} threads (OpenMP)", threads);
+    std::string comp_str = fmt::format("{}", threads);
 
     std::vector<std::pair<std::string, std::string>> items
         = {{"Method", method_str},
            {"Mode", mode_str},
            {"Chunk Size", chunk_str},
-           {"Computing", comp_str}};
+           {"Threads", comp_str}};
 
     logger->info(gelex::header_box(title, items, 70));
     logger->info("");
