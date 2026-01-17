@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_DOMINANT_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_DOMINANT_H_
 
 #include <random>
 
@@ -76,3 +77,5 @@ struct RatioVar
 };
 
 }  // namespace gelex::detail::DominantSampler
+
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_DOMINANT_H_

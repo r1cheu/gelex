@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_DATA_SAMPLE_MANAGER_H_
+#define GELEX_DATA_SAMPLE_MANAGER_H_
 
 #include <filesystem>
 #include <span>
@@ -54,3 +55,5 @@ class SampleManager
 };
 
 }  // namespace gelex
+
+#endif  // GELEX_DATA_SAMPLE_MANAGER_H_

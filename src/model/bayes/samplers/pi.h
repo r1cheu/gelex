@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_PI_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_PI_H_
 
 #include <random>
 
@@ -37,3 +38,5 @@ struct Pi
 }  // namespace DominantSampler
 
 }  // namespace gelex::detail
+
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_PI_H_

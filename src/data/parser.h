@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_DATA_PARSER_H_
+#define GELEX_DATA_PARSER_H_
 
 #include <concepts>
 #include <cstddef>
@@ -127,3 +128,5 @@ void parse_string(
     char delimiter = '\t');
 
 }  // namespace gelex::detail
+
+#endif  // GELEX_DATA_PARSER_H_

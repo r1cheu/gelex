@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_DATA_VARIANT_PROCESSOR_H_
+#define GELEX_DATA_VARIANT_PROCESSOR_H_
 
 #include <concepts>
 
@@ -87,3 +88,5 @@ struct DominantNOIAProcessor
 };
 
 }  // namespace gelex
+
+#endif  // GELEX_DATA_VARIANT_PROCESSOR_H_

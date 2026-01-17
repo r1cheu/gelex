@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_MODEL_BAYES_MODEL_H_
+#define GELEX_MODEL_BAYES_MODEL_H_
 
 #include <optional>
 #include <string>
@@ -129,3 +130,5 @@ class BayesState
 };
 
 }  // namespace gelex
+
+#endif  // GELEX_MODEL_BAYES_MODEL_H_

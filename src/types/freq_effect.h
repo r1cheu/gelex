@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_TYPES_FREQ_EFFECT_H_
+#define GELEX_TYPES_FREQ_EFFECT_H_
 #include <string>
 #include <vector>
 
@@ -56,3 +57,5 @@ struct ResidualState
 };
 
 }  // namespace gelex::freq
+
+#endif  // GELEX_TYPES_FREQ_EFFECT_H_

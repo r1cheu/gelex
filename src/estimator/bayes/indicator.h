@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_ESTIMATOR_BAYES_INDICATOR_H_
+#define GELEX_ESTIMATOR_BAYES_INDICATOR_H_
 
 #include <atomic>
 #include <map>
@@ -67,3 +68,5 @@ auto create_genotype_process_bar(int64_t& current, int64_t total)
 
 }  // namespace detail
 }  // namespace gelex
+
+#endif  // GELEX_ESTIMATOR_BAYES_INDICATOR_H_

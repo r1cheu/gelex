@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_ESTIMATOR_BAYES_POSTERIOR_CALCULATOR_H_
+#define GELEX_ESTIMATOR_BAYES_POSTERIOR_CALCULATOR_H_
 
 #include <Eigen/Core>
 
@@ -163,3 +164,5 @@ Eigen::MatrixXd compute_component_probs(
 }  // namespace PosteriorCalculator
 
 }  // namespace gelex::detail
+
+#endif  // GELEX_ESTIMATOR_BAYES_POSTERIOR_CALCULATOR_H_

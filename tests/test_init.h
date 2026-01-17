@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TESTS_TEST_INIT_H_
+#define TESTS_TEST_INIT_H_
 
 #include "gelex/logger.h"
 #include <filesystem>
@@ -37,3 +38,5 @@ struct TestInitializer
 inline TestInitializer global_test_initializer;
 
 } // namespace test_utils
+
+#endif  // TESTS_TEST_INIT_H_

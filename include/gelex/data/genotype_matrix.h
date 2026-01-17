@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_DATA_GENOTYPE_MATRIX_H_
+#define GELEX_DATA_GENOTYPE_MATRIX_H_
 
 #include <algorithm>
 #include <vector>
@@ -56,3 +57,5 @@ class GenotypeMatrix
 };
 
 }  // namespace gelex
+
+#endif  // GELEX_DATA_GENOTYPE_MATRIX_H_

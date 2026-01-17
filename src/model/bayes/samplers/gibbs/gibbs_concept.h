@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_GIBBS_GIBBS_CONCEPT_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_GIBBS_GIBBS_CONCEPT_H_
 
 #include <concepts>
 
@@ -21,3 +22,5 @@ concept IsValidEffectStatePair
           && std::same_as<std::remove_cvref_t<S>, bayes::DominantState>);
 
 }  // namespace gelex::detail::Gibbs
+
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_GIBBS_GIBBS_CONCEPT_H_

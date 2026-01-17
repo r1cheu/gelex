@@ -26,30 +26,21 @@ auto EMPolicy::apply(
 
     Eigen::Index idx = 1;
 
-    // random effects: K = effect.K
-    for (const auto& effect : model.random())
+    auto compute_sigma = [&](const auto& effects)
     {
-        double py_k_py = opt_state.proj_y.dot(effect.K * opt_state.proj_y);
-        double tr_pk = (opt_state.proj * effect.K).trace();
+        for (const auto& effect : effects)
+        {
+            double py_k_py = opt_state.proj_y.dot(effect.K * opt_state.proj_y);
+            double tr_pk = (opt_state.proj * effect.K).trace();
+            sigma(idx) = (sigma_sq(idx) * py_k_py - sigma_sq(idx) * tr_pk
+                          + sigma(idx) * n)
+                         / n;
 
-        sigma(idx)
-            = (sigma_sq(idx) * py_k_py - sigma_sq(idx) * tr_pk + sigma(idx) * n)
-              / n;
-        ++idx;
-    }
-
-    // genetic effects: K = effect.K (GRM)
-    for (const auto& effect : model.genetic())
-    {
-        double py_k_py = opt_state.proj_y.dot(effect.K * opt_state.proj_y);
-        double tr_pk = (opt_state.proj * effect.K).trace();
-
-        sigma(idx)
-            = (sigma_sq(idx) * py_k_py - sigma_sq(idx) * tr_pk + sigma(idx) * n)
-              / n;
-        ++idx;
-    }
-
+            ++idx;
+        }
+    };
+    compute_sigma(model.random());
+    compute_sigma(model.genetic());
     return sigma;
 }
 
@@ -63,54 +54,42 @@ auto AIPolicy::apply(
     auto n = opt_state.num_individuals();
 
     // 1. Compute dvpy: dV/dsigma_i * P * y for each component
-    opt_state.dvpy.resize(n, n_comp);
-
     // residual: dV/dsigma_0 = I, so dvpy(:,0) = Py
     opt_state.dvpy.col(0) = opt_state.proj_y;
 
     Eigen::Index idx = 1;
 
-    // random effects
-    for (const auto& effect : model.random())
+    auto compute_dvpy = [&](const auto& effects)
     {
-        opt_state.dvpy.col(idx++).noalias() = effect.K * opt_state.proj_y;
-    }
-
-    // genetic effects
-    for (const auto& effect : model.genetic())
-    {
-        opt_state.dvpy.col(idx++).noalias() = effect.K * opt_state.proj_y;
-    }
+        for (const auto& effect : effects)
+        {
+            opt_state.dvpy.col(idx++).noalias() = effect.K * opt_state.proj_y;
+        }
+    };
+    compute_dvpy(model.random());
+    compute_dvpy(model.genetic());
 
     // 2. Compute first gradient
     // grad(i) = -0.5 * (tr(P * dV/dsigma_i) - Py' * dV/dsigma_i * Py)
     //         = -0.5 * (tr(P * K_i) - Py' * K_i * Py)
-    opt_state.first_grad.resize(n_comp);
-
     // residual: K_0 = I
     opt_state.first_grad(0) = -0.5
                               * (opt_state.proj.trace()
                                  - opt_state.proj_y.dot(opt_state.dvpy.col(0)));
 
     idx = 1;
-
-    // random effects
-    for (const auto& effect : model.random())
+    auto compute_first_grad = [&](const auto& effects)
     {
-        double tr_pk = (opt_state.proj * effect.K).trace();
-        double py_k_py = opt_state.proj_y.dot(opt_state.dvpy.col(idx));
-        opt_state.first_grad(idx) = -0.5 * (tr_pk - py_k_py);
-        ++idx;
-    }
-
-    // genetic effects
-    for (const auto& effect : model.genetic())
-    {
-        double tr_pk = (opt_state.proj * effect.K).trace();
-        double py_k_py = opt_state.proj_y.dot(opt_state.dvpy.col(idx));
-        opt_state.first_grad(idx) = -0.5 * (tr_pk - py_k_py);
-        ++idx;
-    }
+        for (const auto& effect : effects)
+        {
+            double tr_pk = (opt_state.proj * effect.K).trace();
+            double py_k_py = opt_state.proj_y.dot(opt_state.dvpy.col(idx));
+            opt_state.first_grad(idx) = -0.5 * (tr_pk - py_k_py);
+            ++idx;
+        }
+    };
+    compute_first_grad(model.random());
+    compute_first_grad(model.genetic());
 
     // 3. Compute AI Hessian: H(i,j) = -0.5 * dvpy(:,i)' * P * dvpy(:,j)
     // Precompute P * dvpy to avoid redundant matrix-vector products

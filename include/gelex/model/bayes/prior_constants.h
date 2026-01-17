@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_MODEL_BAYES_PRIOR_CONSTANTS_H_
+#define GELEX_MODEL_BAYES_PRIOR_CONSTANTS_H_
 
 namespace gelex
 {
@@ -30,3 +31,5 @@ constexpr double NON_MIXTURE_PROPORTION = 1.0;
 }  // namespace prior_constants
 
 }  // namespace gelex
+
+#endif  // GELEX_MODEL_BAYES_PRIOR_CONSTANTS_H_

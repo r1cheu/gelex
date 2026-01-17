@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_MODEL_BAYES_DISTRIBUTION_H_
+#define GELEX_MODEL_BAYES_DISTRIBUTION_H_
 #include <random>
 
 #include <Eigen/Core>
@@ -60,3 +61,5 @@ class ScaledInvChiSq
 };
 }  // namespace detail
 }  // namespace gelex
+
+#endif  // GELEX_MODEL_BAYES_DISTRIBUTION_H_

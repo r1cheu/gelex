@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_DATA_SNP_STATS_WRITER_H_
+#define GELEX_DATA_SNP_STATS_WRITER_H_
 
 #include <cstddef>
 #include <cstdint>
@@ -61,3 +62,5 @@ class SnpStatsWriter
 };
 
 }  // namespace gelex::detail
+
+#endif  // GELEX_DATA_SNP_STATS_WRITER_H_

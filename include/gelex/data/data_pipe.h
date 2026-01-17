@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_DATA_DATA_PIPE_H_
+#define GELEX_DATA_DATA_PIPE_H_
 
 #include <filesystem>
 #include <functional>
@@ -175,3 +176,5 @@ class DataPipe
 };
 
 }  // namespace gelex
+
+#endif  // GELEX_DATA_DATA_PIPE_H_

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_MODEL_BAYES_PRIOR_STRATEGIES_H_
+#define GELEX_MODEL_BAYES_PRIOR_STRATEGIES_H_
 
 #include <memory>
 #include "../src/types/bayes_effects.h"
@@ -281,3 +282,5 @@ inline auto create_prior_strategy(BayesAlphabet type)
 }
 
 }  // namespace gelex
+
+#endif  // GELEX_MODEL_BAYES_PRIOR_STRATEGIES_H_

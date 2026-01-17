@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_GIBBS_R_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_GIBBS_R_H_
 
 #include <random>
 
@@ -110,3 +111,5 @@ auto R(
 }
 
 }  // namespace gelex::detail::Gibbs
+
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_GIBBS_R_H_

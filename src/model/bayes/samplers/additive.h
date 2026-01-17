@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_ADDITIVE_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_ADDITIVE_H_
 
 #include <random>
 
@@ -60,3 +61,5 @@ struct RRD
 };
 
 }  // namespace gelex::detail::AdditiveSampler
+
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_ADDITIVE_H_

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_ESTIMATOR_BAYES_MCMC_H_
+#define GELEX_ESTIMATOR_BAYES_MCMC_H_
 #include <atomic>
 #include <chrono>
 #include <memory>
@@ -168,3 +169,5 @@ void MCMC<TraitSampler>::update_indicators(
 }
 
 }  // namespace gelex
+
+#endif  // GELEX_ESTIMATOR_BAYES_MCMC_H_

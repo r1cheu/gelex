@@ -1,3 +1,4 @@
+#include <Eigen/SVD>
 #include "gelex/model/freq/model.h"
 #include "utils/math_utils.h"
 
@@ -13,7 +14,7 @@ FreqModel::FreqModel(DataPipe& data_pipe)
 
     if (data_pipe.has_additive_grm())
     {
-        add_genetic(
+        genetic_.push_back(
             freq::GeneticEffect{
                 .name = "Additive",
                 .K = std::move(data_pipe).take_additive_grm()});
@@ -21,23 +22,11 @@ FreqModel::FreqModel(DataPipe& data_pipe)
 
     if (data_pipe.has_dominance_grm())
     {
-        add_genetic(
+        genetic_.push_back(
             freq::GeneticEffect{
                 .name = "Dominance",
                 .K = std::move(data_pipe).take_dominance_grm()});
     }
-}
-
-auto FreqModel::add_random(freq::RandomEffect&& effect) -> void
-{
-    random_.push_back(std::move(effect));
-    effects_view_.emplace_back(&random_.back());
-}
-
-auto FreqModel::add_genetic(freq::GeneticEffect&& effect) -> void
-{
-    genetic_.push_back(std::move(effect));
-    effects_view_.emplace_back(&genetic_.back());
 }
 
 FreqState::FreqState(const FreqModel& model)

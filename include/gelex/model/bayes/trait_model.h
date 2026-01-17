@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_MODEL_BAYES_TRAIT_MODEL_H_
+#define GELEX_MODEL_BAYES_TRAIT_MODEL_H_
 
 #include <random>
 
@@ -91,3 +92,5 @@ using BayesRd = TraitBasicDefault<
     detail::DominantSampler::Pi>;
 
 }  // namespace gelex
+
+#endif  // GELEX_MODEL_BAYES_TRAIT_MODEL_H_

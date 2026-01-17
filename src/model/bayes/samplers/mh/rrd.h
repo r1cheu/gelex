@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_MH_RRD_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_MH_RRD_H_
 
 #include <random>
 
@@ -21,3 +22,5 @@ auto RRD(
     bayes::ResidualState& residual,
     std::mt19937_64& rng) -> void;
 }  // namespace gelex::detail::MH
+
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_MH_RRD_H_

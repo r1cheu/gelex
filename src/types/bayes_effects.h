@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_TYPES_BAYES_EFFECTS_H_
+#define GELEX_TYPES_BAYES_EFFECTS_H_
 #include <string>
 #include <variant>
 #include <vector>
@@ -231,3 +232,5 @@ struct ResidualState
 };
 }  // namespace bayes
 }  // namespace gelex
+
+#endif  // GELEX_TYPES_BAYES_EFFECTS_H_

@@ -128,23 +128,10 @@ auto Estimator::em_step(
 
     double loglike = variance_calculator::compute_loglike(model, opt_state);
 
-    std::string var_values;
-    for (const auto& g : state.genetic())
-    {
-        var_values += fmt::format("{:.2f}, ", g.variance);
-    }
-    for (const auto& r : state.random())
-    {
-        var_values += fmt::format("{:.2f}, ", r.variance);
-    }
-    var_values += fmt::format("{:.2f}", state.residual().variance);
-
-    logger_->info("init variance components: {}", var_values);
-
     // log EM initialization
     logger_->info(progress_mark("Initializing (EM)..."));
 
-    var_values = "";
+    std::string var_values;
     for (const auto& g : state.genetic())
     {
         var_values += fmt::format("{:.2f}, ", g.variance);

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_MODEL_BAYES_PRIOR_STRATEGY_H_
+#define GELEX_MODEL_BAYES_PRIOR_STRATEGY_H_
 
 #include <Eigen/Core>
 
@@ -179,3 +180,5 @@ auto set_scale_mixture_prior_strategy(
 }
 
 }  // namespace gelex::detail
+
+#endif  // GELEX_MODEL_BAYES_PRIOR_STRATEGY_H_

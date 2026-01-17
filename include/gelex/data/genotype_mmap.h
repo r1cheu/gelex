@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_DATA_GENOTYPE_MMAP_H_
+#define GELEX_DATA_GENOTYPE_MMAP_H_
 
 #include <filesystem>
 #include <fstream>
@@ -103,3 +104,5 @@ class GenotypeMap
 };
 
 }  // namespace gelex
+
+#endif  // GELEX_DATA_GENOTYPE_MMAP_H_

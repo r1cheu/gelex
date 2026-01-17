@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_OPTIM_CONVERGENCE_CHECKER_H_
+#define GELEX_OPTIM_CONVERGENCE_CHECKER_H_
 
 #include <Eigen/Dense>
 
@@ -37,3 +38,5 @@ class ConvergenceChecker
     double compute_loglike_diff(double new_loglike) const;
 };
 }  // namespace gelex
+
+#endif  // GELEX_OPTIM_CONVERGENCE_CHECKER_H_

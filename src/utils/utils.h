@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_UTILS_UTILS_H_
+#define GELEX_UTILS_UTILS_H_
 
 #include <chrono>
 
@@ -24,3 +25,5 @@ class Timer
 };
 
 }  // namespace gelex
+
+#endif  // GELEX_UTILS_UTILS_H_

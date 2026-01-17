@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_CLI_FIT_COMMAND_DETAIL_H_
+#define GELEX_CLI_FIT_COMMAND_DETAIL_H_
 #include <filesystem>
 
 #include <Eigen/Core>
@@ -78,3 +79,5 @@ int run_mcmc_analysis(
     std::string_view out_prefix,
     const std::shared_ptr<spdlog::logger>& logger);
 }  // namespace app
+
+#endif  // GELEX_CLI_FIT_COMMAND_DETAIL_H_

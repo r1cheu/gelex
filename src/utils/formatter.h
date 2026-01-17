@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_UTILS_FORMATTER_H_
+#define GELEX_UTILS_FORMATTER_H_
 
 #include <cstddef>
 #include <span>
@@ -71,3 +72,5 @@ auto rebecca_purple(const T& value)
     return fmt::styled(value, fmt::fg(fmt::color::rebecca_purple));
 }
 }  // namespace gelex
+
+#endif  // GELEX_UTILS_FORMATTER_H_

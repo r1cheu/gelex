@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_ESTIMATOR_BAYES_PARAMS_H_
+#define GELEX_ESTIMATOR_BAYES_PARAMS_H_
 #include <cstddef>
 #include <stdexcept>
 
@@ -32,3 +33,5 @@ struct MCMCParams
     Eigen::Index n_records;
 };
 }  // namespace gelex
+
+#endif  // GELEX_ESTIMATOR_BAYES_PARAMS_H_

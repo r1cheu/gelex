@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_ESTIMATOR_BAYES_SNP_QUANT_GENETIC_WRITER_H_
+#define GELEX_ESTIMATOR_BAYES_SNP_QUANT_GENETIC_WRITER_H_
 
 #include <filesystem>
 #include <fstream>
@@ -43,3 +44,5 @@ class SnpQuantGeneticWriter
 };
 
 }  // namespace gelex
+
+#endif  // GELEX_ESTIMATOR_BAYES_SNP_QUANT_GENETIC_WRITER_H_

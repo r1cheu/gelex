@@ -1,5 +1,6 @@
 #include "gelex/optim/variance_calculator.h"
 
+#include <ranges>
 #include <stdexcept>
 
 #include <Eigen/src/misc/lapacke.h>
@@ -21,23 +22,15 @@ auto compute_v(
     // residual: I * sigma_e
     v.diagonal().array() += state.residual().variance;
 
-    // random effects: K * sigma
-    for (size_t i = 0; i < model.random().size(); ++i)
+    auto compute_v = [&](auto& effects, auto& states)
     {
-        const auto& effect = model.random()[i];
-        const auto& effect_state = state.random()[i];
-
-        v += effect_state.variance * effect.K;
-    }
-
-    // genetic effects: K * sigma (no Z matrix, assuming identity incidence)
-    for (size_t i = 0; i < model.genetic().size(); ++i)
-    {
-        const auto& effect = model.genetic()[i];
-        const auto& effect_state = state.genetic()[i];
-
-        v += effect_state.variance * effect.K;
-    }
+        for (auto&& [effect, state] : std::views::zip(effects, states))
+        {
+            v += effect.K * state.variance;
+        }
+    };
+    compute_v(model.random(), state.random());
+    compute_v(model.genetic(), state.genetic());
 }
 
 auto v_inv_logdet(Eigen::Ref<Eigen::MatrixXd> v) -> double

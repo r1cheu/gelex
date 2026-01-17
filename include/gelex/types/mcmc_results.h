@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_TYPES_MCMC_RESULTS_H_
+#define GELEX_TYPES_MCMC_RESULTS_H_
 
 #include <optional>
 #include <vector>
@@ -154,3 +155,5 @@ class MCMCResult
 };
 
 }  // namespace gelex
+
+#endif  // GELEX_TYPES_MCMC_RESULTS_H_

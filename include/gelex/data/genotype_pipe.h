@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_DATA_GENOTYPE_PIPE_H_
+#define GELEX_DATA_GENOTYPE_PIPE_H_
 
 #include <cstdint>
 #include <filesystem>
@@ -115,3 +116,5 @@ class GenotypePipe
 };
 
 }  // namespace gelex
+
+#endif  // GELEX_DATA_GENOTYPE_PIPE_H_

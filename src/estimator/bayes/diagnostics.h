@@ -4,7 +4,8 @@
  * https://github.com/pyro-ppl/numpyro/blob/master/numpyro/diagnostics.py
  */
 
-#pragma once
+#ifndef GELEX_ESTIMATOR_BAYES_DIAGNOSTICS_H_
+#define GELEX_ESTIMATOR_BAYES_DIAGNOSTICS_H_
 #include <Eigen/Core>
 
 #include "gelex/types/mcmc_samples.h"
@@ -79,3 +80,5 @@ std::pair<double, double> hpdi(
     Eigen::Ref<Eigen::VectorXd> samples,
     double prob);
 }  // namespace gelex
+
+#endif  // GELEX_ESTIMATOR_BAYES_DIAGNOSTICS_H_

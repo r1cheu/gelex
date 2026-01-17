@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_EXCEPTION_H_
+#define GELEX_EXCEPTION_H_
 
 #include <Eigen/Core>
 #include <stdexcept>
@@ -98,3 +99,5 @@ class InconsistentColumnCountException : public GelexException
     using GelexException::GelexException;
 };
 }  // namespace gelex
+
+#endif  // GELEX_EXCEPTION_H_

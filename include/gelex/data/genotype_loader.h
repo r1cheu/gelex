@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_DATA_GENOTYPE_LOADER_H_
+#define GELEX_DATA_GENOTYPE_LOADER_H_
 
 #include <algorithm>
 #include <filesystem>
@@ -124,3 +125,5 @@ void GenotypeLoader::process_chunk(
 }
 
 }  // namespace gelex
+
+#endif  // GELEX_DATA_GENOTYPE_LOADER_H_

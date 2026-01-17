@@ -32,22 +32,11 @@ class FreqModel
     }
     auto genetic() -> std::vector<freq::GeneticEffect>& { return genetic_; }
 
-    // return random and genetic effects as a single vector of pointers, for
-    // convenience
-    auto effects_view() const -> const
-        std::vector<std::variant<freq::RandomEffect*, freq::GeneticEffect*>>&
-    {
-        return effects_view_;
-    }
-
     auto phenotype() const -> const Eigen::VectorXd& { return phenotype_; }
     auto phenotype_variance() const -> double { return phenotype_variance_; }
     auto num_individuals() const -> Eigen::Index { return num_individuals_; }
 
    private:
-    auto add_random(freq::RandomEffect&& effect) -> void;
-    auto add_genetic(freq::GeneticEffect&& effect) -> void;
-
     Eigen::Index num_individuals_{};
 
     Eigen::VectorXd phenotype_;
@@ -56,9 +45,6 @@ class FreqModel
     FixedEffect fixed_;
     std::vector<freq::RandomEffect> random_;
     std::vector<freq::GeneticEffect> genetic_;
-
-    std::vector<std::variant<freq::RandomEffect*, freq::GeneticEffect*>>
-        effects_view_;
 };
 
 class FreqState

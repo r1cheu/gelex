@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_COMMON_OP_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_COMMON_OP_H_
 
 #include <cassert>
 #include <cmath>
@@ -168,3 +169,5 @@ inline auto compute_dominant_ratios(
 }
 
 }  // namespace gelex::detail
+
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_COMMON_OP_H_

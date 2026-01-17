@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_UTILS_MATH_UTILS_H_
+#define GELEX_UTILS_MATH_UTILS_H_
 
 #include <cmath>    // for erf, sqrt
 #include <numbers>  // for std::numbers::sqrt2
@@ -190,3 +191,5 @@ Eigen::VectorXd var(
 
 }  // namespace detail
 }  // namespace gelex
+
+#endif  // GELEX_UTILS_MATH_UTILS_H_

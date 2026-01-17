@@ -3,7 +3,8 @@
  * @brief class to save samples in MCMC process easily.
  */
 
-#pragma once
+#ifndef GELEX_TYPES_MCMC_SAMPLES_H_
+#define GELEX_TYPES_MCMC_SAMPLES_H_
 
 #include <optional>
 #include <vector>
@@ -122,3 +123,5 @@ class MCMCSamples
     ResidualSamples residual_;
 };
 }  // namespace gelex
+
+#endif  // GELEX_TYPES_MCMC_SAMPLES_H_

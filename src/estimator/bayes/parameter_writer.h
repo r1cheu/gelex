@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_ESTIMATOR_BAYES_PARAMETER_WRITER_H_
+#define GELEX_ESTIMATOR_BAYES_PARAMETER_WRITER_H_
 
 #include <filesystem>
 #include <fstream>
@@ -54,3 +55,5 @@ class ParameterWriter
 };
 
 }  // namespace gelex
+
+#endif  // GELEX_ESTIMATOR_BAYES_PARAMETER_WRITER_H_

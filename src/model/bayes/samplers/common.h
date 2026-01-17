@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_COMMON_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_COMMON_H_
 
 #include <random>
 
@@ -39,3 +40,5 @@ struct Residual
 };
 
 }  // namespace gelex::detail::CommonSampler
+
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_COMMON_H_

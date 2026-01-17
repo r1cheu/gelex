@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_ESTIMATOR_BAYES_SNP_EFFECTS_WRITER_H_
+#define GELEX_ESTIMATOR_BAYES_SNP_EFFECTS_WRITER_H_
 
 #include <filesystem>
 #include <fstream>
@@ -55,3 +56,5 @@ class SnpEffectsWriter
 };
 
 }  // namespace gelex
+
+#endif  // GELEX_ESTIMATOR_BAYES_SNP_EFFECTS_WRITER_H_

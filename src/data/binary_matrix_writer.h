@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_DATA_BINARY_MATRIX_WRITER_H_
+#define GELEX_DATA_BINARY_MATRIX_WRITER_H_
 
 #include <cstddef>
 #include <filesystem>
@@ -38,3 +39,5 @@ class BinaryMatrixWriter
 };
 
 }  // namespace gelex::detail
+
+#endif  // GELEX_DATA_BINARY_MATRIX_WRITER_H_

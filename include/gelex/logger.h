@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_LOGGER_H_
+#define GELEX_LOGGER_H_
 
 #include <memory>
 #include <string_view>
@@ -27,3 +28,5 @@ class LevelFormatter : public spdlog::formatter
     std::unique_ptr<spdlog::formatter> default_formatter_;
 };
 }  // namespace gelex::logging
+
+#endif  // GELEX_LOGGER_H_

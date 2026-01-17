@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GELEX_ESTIMATOR_BAYES_RESULT_WRITER_H_
+#define GELEX_ESTIMATOR_BAYES_RESULT_WRITER_H_
 
 #include <filesystem>
 
@@ -75,3 +76,5 @@ class MCMCResultWriter
 };
 
 }  // namespace gelex
+
+#endif  // GELEX_ESTIMATOR_BAYES_RESULT_WRITER_H_
