@@ -24,6 +24,7 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "GELEX_BUILD_TESTS": "ON",
+                "GELEX_BUILD_BENCHMARKS": "ON",
                 "GELEX_ENABLE_SANITIZERS": "ON"
             }
         },
@@ -62,6 +63,18 @@
                 "GELEX_BUILD_TESTS": "ON",
                 "GELEX_ENABLE_COVERAGE": "ON"
             }
+        },
+        {
+            "name": "benchmark",
+            "displayName": "Benchmark",
+            "description": "Release build with benchmarks enabled",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "GELEX_BUILD_BENCHMARKS": "ON",
+                "GELEX_BUILD_TESTS": "OFF",
+                "GELEX_NATIVE_OPTIMIZATION": "OFF"
+            }
         }
     ],
     "buildPresets": [
@@ -80,6 +93,10 @@
         {
             "name": "coverage",
             "configurePreset": "coverage"
+        },
+        {
+            "name": "benchmark",
+            "configurePreset": "benchmark"
         }
     ],
     "testPresets": [

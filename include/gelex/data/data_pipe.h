@@ -16,7 +16,6 @@
 #include "gelex/data/genotype_mmap.h"
 #include "gelex/data/genotype_pipe.h"
 #include "gelex/data/sample_manager.h"
-#include "gelex/model/effects.h"
 
 namespace gelex
 {

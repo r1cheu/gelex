@@ -1,5 +1,6 @@
 #include "gelex/estimator/freq/estimator.h"
 
+#include <Eigen/Core>
 #include <chrono>
 
 #include <fmt/format.h>
@@ -26,7 +27,7 @@ auto Estimator::fit(
     const FreqModel& model,
     FreqState& state,
     bool em_init,
-    bool verbose) -> void
+    bool verbose) -> Eigen::MatrixXd
 {
     auto start = std::chrono::steady_clock::now();
 
@@ -113,6 +114,7 @@ auto Estimator::fit(
                        std::chrono::steady_clock::now() - start)
                        .count();
     report_results(model, state, opt_state, elapsed);
+    return std::move(opt_state.v);
 }
 
 auto Estimator::em_step(

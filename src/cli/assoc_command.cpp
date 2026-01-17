@@ -17,6 +17,7 @@
 #include "gelex/logger.h"
 
 #include "../src/data/loader/bim_loader.h"
+#include "../src/utils/formatter.h"
 
 auto assoc_command(argparse::ArgumentParser& cmd) -> void
 {
@@ -148,41 +149,12 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
         true,
         true);
 
-    //     // Get V^{-1} from optimizer state
-    //     // Re-compute it since EstimatorNew doesn't expose internal state
-    //     gelex::OptimizerState opt_state(model);
-    //     gelex::variance_calculator::compute_v(model, state, opt_state.v);
-    //     gelex::variance_calculator::v_inv_logdet(opt_state.v);
-    //     // Now opt_state.v contains V^{-1}
-    //
-    //     // Compute residuals: r = y - Xβ̂
-    //     const Eigen::VectorXd& y = model.phenotype();
-    //     const Eigen::MatrixXd& X = model.fixed().X;
-    //     const Eigen::VectorXd& beta = state.fixed().coeff;
-    //     Eigen::VectorXd residual = y - X * beta;
-    //
-    //     // ================================================================
-    //     // Load BIM file for SNP info
-    //     // ================================================================
-    //     auto bim_path = bed_path;
-    //     bim_path.replace_extension(".bim");
-    //     gelex::detail::BimLoader bim_loader(bim_path);
-    //
-    //     // Create BedPipe for chunk loading using the same sample manager
-    //     auto fam_path = bed_path;
-    //     fam_path.replace_extension(".fam");
-    //     auto sample_manager
-    //         = std::make_shared<gelex::SampleManager>(fam_path,
-    //         config.iid_only);
-    //
-    //     // Note: BedPipe will use all samples from fam file
-    //     // In a full implementation, we should use the same sample ordering
-    //     // as the null model. For now, we assume samples are properly
-    //     aligned. gelex::BedPipe bed_pipe(bed_path, sample_manager);
+    //     gelex::BedPipe bed_pipe(bed_path, sample_manager);
     //
     //     const Eigen::Index n_snps = bed_pipe.num_snps();
-    //     const Eigen::Index n_samples
-    //         = static_cast<Eigen::Index>(i_stats.common_samples);
+    //     const auto n_samples
+    //         =
+    //         static_cast<Eigen::Index>(sample_manager->num_common_samples());
     //     const int chunk_size = cmd.get<int>("--chunk-size");
     //
     //     logger->info("");
@@ -212,26 +184,28 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     //
     //         // Store results for this chunk (to avoid critical section
     //         overhead) std::vector<
-    //             std::pair<gelex::gwas::SNPInfo,
-    //             gelex::gwas::AssociationResult>>
-    //             chunk_results(static_cast<size_t>(end - start));
+    //                 std::pair<gelex::gwas::SNPInfo,
+    //                 gelex::gwas::AssociationResult>>
+    //                 chunk_results(static_cast<size_t>(end - start));
     //
     // // Process each SNP in the chunk
-    // #pragma omp parallel for schedule(dynamic)
+    // #pragma omp parallel for default(none) shared(geno_chunk, residual,
+    // assoc_input, gwas_model, test_type) schedule(dynamic)
     //         for (Eigen::Index snp_idx = 0; snp_idx < geno_chunk.cols();
     //         ++snp_idx)
     //         {
     //             Eigen::Index global_idx = start + snp_idx;
     //
     //             // Get raw genotype
-    //             Eigen::VectorXd raw_geno = geno_chunk.col(snp_idx);
+    //             auto raw_geno = geno_chunk.col(snp_idx);
     //
     //             // Encode SNP
     //             auto encoded = gelex::gwas::encode_snp(raw_geno, gwas_model);
     //
     //             // Perform Wald test
     //             auto result = gelex::gwas::wald_test(
-    //                 encoded, residual, opt_state.v, gwas_model, test_type);
+    //                 encoded, residual, assoc_input.V_inv, gwas_model,
+    //                 test_type);
     //
     //             // Get SNP info
     //             const auto& snp_meta

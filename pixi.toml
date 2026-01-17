@@ -30,6 +30,9 @@ cmd = "cmake --preset release-native"
 [tasks.config-coverage]
 cmd = "cmake --preset coverage"
 
+[tasks.config-benchmark]
+cmd = "cmake --preset benchmark"
+
 # ---------------------------------------------------------
 # Build Tasks
 # ---------------------------------------------------------
@@ -49,6 +52,10 @@ depends-on = ["config-release"]
 [tasks.build-native]
 cmd = "cmake --build --preset release-native -j$(nproc)"
 depends-on = ["config-native"]
+
+[tasks.build-benchmark]
+cmd = "cmake --build --preset benchmark -j$(nproc)"
+depends-on = ["config-benchmark"]
 
 [tasks.coverage]
 cmd = "cmake --build --preset coverage --target coverage"
@@ -76,6 +83,10 @@ depends-on = ["build-debug"]
 [tasks.install-release]
 cmd = "cp build/release/src/gelex ~/.local/bin/gelex"
 depends-on = ["build-release"]
+
+[tasks.benchmark]
+cmd = "build/benchmark/benchmark/bench"
+depends-on = ["build-benchmark"]
 
 [environments]
 docs = { features = ["docs"], no-default-feature = true }

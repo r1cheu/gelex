@@ -2,7 +2,3 @@
 [submodule "ext/eigen"]
     path = ext/eigen
     url = https://gitlab.com/libeigen/eigen.git
-[submodule "benchmark/benchmark"]
-    path = benchmark/benchmark
-    url = https://github.com/google/benchmark.git
-    branch = main

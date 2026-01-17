@@ -1,4 +1,5 @@
 #include "gelex/estimator/freq/reml.h"
+#include <Eigen/Core>
 
 #include "../src/utils/formatter.h"
 #include "gelex/estimator/freq/estimator.h"
@@ -128,13 +129,17 @@ auto reml(
     logger->info(gelex::section("Fitting Null Model..."));
 
     gelex::Estimator estimator(max_iter, tol);
-    estimator.fit(model, state, em_init, verbose);
+    Eigen::MatrixXd v = estimator.fit(model, state, em_init, verbose);
+    Eigen::VectorXd y_adj
+        = model.phenotype() - model.fixed().X * state.fixed().coeff;
 
     if (!estimator.is_converged())
     {
         logger->warn("REML did not converge, results may be unreliable");
     }
-    return {data_pipe.sample_manager(), {}};
+    return {
+        data_pipe.sample_manager(),
+        {.V_inv = std::move(v), .y_adj = std::move(y_adj)}};
 }
 
 }  // namespace gelex

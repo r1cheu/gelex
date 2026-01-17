@@ -11,10 +11,10 @@ set(BENCHMARK_ENABLE_INSTALL
     CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googlebenchmark)
 
-add_executable(bench_sample benchmark_sample.cpp)
+add_executable(bench ./benchmark_gwas_writer.cpp)
 
-target_link_libraries(bench_sample PRIVATE gelex::core benchmark::benchmark)
+target_link_libraries(bench PRIVATE gelex::core benchmark::benchmark)
 
 if(GELEX_NATIVE_OPTIMIZATION)
-  target_compile_options(bench_sample PRIVATE -march=native -O3)
+  target_compile_options(bench PRIVATE -march=native -O3)
 endif()

@@ -24,7 +24,7 @@ class Estimator
         const FreqModel& model,
         FreqState& state,
         bool em_init = true,
-        bool verbose = true) -> void;
+        bool verbose = true) -> Eigen::MatrixXd;
 
     auto is_converged() const -> bool { return converged_; }
     auto iter_count() const -> size_t { return iter_count_; }
