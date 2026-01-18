@@ -1,6 +1,7 @@
 #include <benchmark/benchmark.h>
 #include <cstdio>
 #include "gelex/gwas/gwas_writer.h"
+#include "gelex/types/snp_info.h"
 
 using namespace gelex::gwas;
 
@@ -9,8 +10,8 @@ class GwasWriterFixture : public benchmark::Fixture
 {
    public:
     std::string temp_filename;
-    SNPInfo snp;
-    AssociationResult result;
+    gelex::SnpMeta snp;
+    GwasWriter::AssocResult result;
 
     void SetUp(const benchmark::State&)
     {
@@ -27,16 +28,10 @@ class GwasWriterFixture : public benchmark::Fixture
 #endif
 
         // 初始化测试数据
-        snp = {"1", "rs123456", 100000, "A", "G", 0.25, 5000};
-        result.beta_a = 0.0123;
-        result.se_a = 0.0045;
-        result.beta_d = 0.0012;
-        result.se_d = 0.0033;
-        result.stat = 5.678;
-        result.pvalue = 1.23e-8;
-        result.pvalue_a = 1.0e-5;
-        result.pvalue_d = 0.05;
-        result.df = 2;
+        snp = {"1", "rs123456", 100000, 'A', 'G'};
+        result.beta = 0.0123;
+        result.se = 0.0045;
+        result.p_value = 1.23e-8;
     }
 
     void TearDown(const benchmark::State&)
@@ -49,7 +44,7 @@ class GwasWriterFixture : public benchmark::Fixture
 BENCHMARK_DEFINE_F(GwasWriterFixture, BM_WriteResult)(benchmark::State& state)
 {
     // 使用 AdditiveDominance 模型，因为它写入的字段最多，压力最大
-    GwasWriter writer(temp_filename, GwasModel::AD, TestType::Separate);
+    GwasWriter writer(temp_filename);
     writer.write_header();
 
     for (auto _ : state)

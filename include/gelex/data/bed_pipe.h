@@ -33,6 +33,11 @@ class BedPipe
         Eigen::Index start_col,
         Eigen::Index end_col) const;
 
+    void load_chunk(
+        Eigen::Ref<Eigen::MatrixXd> target_buf,
+        Eigen::Index start_col,
+        Eigen::Index end_col) const;
+
     [[nodiscard]] Eigen::Index num_samples() const;
     [[nodiscard]] Eigen::Index num_snps() const;
 

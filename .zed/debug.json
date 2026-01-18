@@ -1,0 +1,36 @@
+ // Project-local debug tasks
+     //
+     // For more documentation on how to configure debug tasks,
+     // see: https://zed.dev/docs/debugger
+    [
+        {
+            "label": "Debug gelex assoc",
+            "program": "$ZED_WORKTREE_ROOT/build/debug/src/gelex",
+            "args": [
+                "assoc",
+                "--pheno",
+                "f1_2839.tsv",
+                "--bfile",
+                "data/f1",
+                "--grm",
+                "grm.add",
+                "--chunk-size",
+                "1000",
+                "--pheno-col",
+                "2",
+                "--threads",
+                "24",
+            ],
+            "cwd": "$ZED_WORKTREE_ROOT/develop",
+            "request": "launch",
+            "adapter": "CodeLLDB",
+            "build": {
+                "command": "pixi",
+                "args": [
+                    "r",
+                    "build-debug"
+                ],
+                "cwd": "$ZED_WORKTREE_ROOT",
+            },
+        },
+    ]

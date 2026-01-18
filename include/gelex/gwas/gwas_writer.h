@@ -2,31 +2,24 @@
 #define GELEX_GWAS_GWAS_WRITER_H
 
 #include <fstream>
-#include <string>
 #include <string_view>
+#include "gelex/types/snp_info.h"
 
 #include <fmt/format.h>
-
-#include "gelex/gwas/association_test.h"
-#include "gelex/gwas/snp_encoder.h"
 
 namespace gelex::gwas
 {
 
-struct SNPInfo
-{
-    std::string chrom;
-    std::string rsid;
-    int64_t bp{};
-    std::string a1;
-    std::string a2;
-    double freq{};
-};
-
 class GwasWriter
 {
    public:
-    GwasWriter(std::string_view out_prefix, AssocMode model);
+    struct AssocResult
+    {
+        double beta;
+        double se;
+        double p_value;
+    };
+    explicit GwasWriter(std::string_view out_prefix);
     GwasWriter(const GwasWriter&) = delete;
     GwasWriter(GwasWriter&&) = delete;
     GwasWriter& operator=(const GwasWriter&) = delete;
@@ -35,13 +28,11 @@ class GwasWriter
     ~GwasWriter();
 
     auto write_header() -> void;
-    auto write_result(const SNPInfo& snp_info, const AssociationResult& result)
-        -> void;
+    auto write_result(const SnpMeta& snp_meta, AssocResult result) -> void;
     auto finalize() -> void;
 
    private:
     std::ofstream ofs_;
-    AssocMode model_;
 
     fmt::memory_buffer line_buffer_;
 };

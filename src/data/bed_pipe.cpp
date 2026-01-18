@@ -166,6 +166,32 @@ Eigen::MatrixXd BedPipe::load_chunk(
     Eigen::Index end_col) const
 {
     const Eigen::Index max_cols = num_snps();
+    if (start_col < 0 || end_col > max_cols || start_col >= end_col)
+    {
+        throw ColumnRangeException(
+            std::format(
+                "invalid chunk range: [{}, {}). Total SNPs: {}",
+                start_col,
+                end_col,
+                max_cols));
+    }
+
+    Eigen::Index rows = num_samples();
+    Eigen::Index cols = end_col - start_col;
+
+    Eigen::MatrixXd result;
+    result.resize(rows, cols);
+
+    load_chunk(result, start_col, end_col);
+    return result;
+}
+
+void BedPipe::load_chunk(
+    Eigen::Ref<Eigen::MatrixXd> target_buf,
+    Eigen::Index start_col,
+    Eigen::Index end_col) const
+{
+    const Eigen::Index max_cols = num_snps();
 
     if (start_col < 0 || end_col > max_cols || start_col >= end_col)
     {
@@ -180,18 +206,23 @@ Eigen::MatrixXd BedPipe::load_chunk(
     const Eigen::Index num_output_rows = num_samples();
     const Eigen::Index num_output_cols = end_col - start_col;
 
-    Eigen::MatrixXd result(num_output_rows, num_output_cols);
-
     if (!is_dense_mapping_)
     {
-        result.setConstant(std::numeric_limits<double>::quiet_NaN());
+        target_buf.setConstant(std::numeric_limits<double>::quiet_NaN());
+    }
+
+    if (target_buf.rows() != num_output_rows
+        || target_buf.cols() != num_output_cols)
+    {
+        throw std::runtime_error(
+            "BedPipe::load_chunk: target_buf dimension mismatch");
     }
 
     const uint8_t* base_ptr
         = reinterpret_cast<const uint8_t*>(mmap_.data()) + 3;
     const size_t file_size = mmap_.size();
 
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(static)
     for (Eigen::Index j = 0; j < num_output_cols; ++j)
     {
         const Eigen::Index current_col_idx = start_col + j;
@@ -201,12 +232,12 @@ Eigen::MatrixXd BedPipe::load_chunk(
 
         if (3 + offset + bytes_per_variant_ > file_size)
         {
-            result.col(target_matrix_col)
+            target_buf.col(target_matrix_col)
                 .setConstant(std::numeric_limits<double>::quiet_NaN());
             continue;
         }
 
-        double* col_data_ptr = result.col(target_matrix_col).data();
+        double* col_data_ptr = target_buf.col(target_matrix_col).data();
         std::span<double> target_span(col_data_ptr, num_output_rows);
 
         const uint8_t* src_ptr = base_ptr + offset;
@@ -220,9 +251,8 @@ Eigen::MatrixXd BedPipe::load_chunk(
             decode_variant_sparse(src_ptr, target_span);
         }
     }
-
-    return result;
 }
+
 void BedPipe::init_bed_mmap(const std::filesystem::path& bed_path)
 {
     std::error_code ec;

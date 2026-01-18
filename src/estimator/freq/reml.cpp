@@ -8,7 +8,6 @@
 #include "gelex/model/freq/model.h"
 #include "gelex/optim/optimizer_state.h"
 #include "gelex/optim/variance_calculator.h"
-#include "gelex/types/assoc_input.h"
 #include "types/freq_effect.h"
 
 namespace gelex
@@ -19,7 +18,8 @@ auto reml(
     size_t max_iter,
     double tol,
     bool em_init,
-    bool verbose) -> std::pair<std::shared_ptr<SampleManager>, AssocInput>
+    bool verbose) -> std::
+    tuple<std::shared_ptr<SampleManager>, Eigen::MatrixXd, Eigen::VectorXd>
 {
     auto logger = gelex::logging::get();
     DataPipe data_pipe(config);
@@ -130,16 +130,15 @@ auto reml(
 
     gelex::Estimator estimator(max_iter, tol);
     Eigen::MatrixXd v = estimator.fit(model, state, em_init, verbose);
-    Eigen::VectorXd y_adj
-        = model.phenotype() - model.fixed().X * state.fixed().coeff;
+    Eigen::VectorXd v_inv_residual
+        = v * (model.phenotype() - model.fixed().X * state.fixed().coeff);
 
     if (!estimator.is_converged())
     {
         logger->warn("REML did not converge, results may be unreliable");
     }
     return {
-        data_pipe.sample_manager(),
-        {.V_inv = std::move(v), .y_adj = std::move(y_adj)}};
+        data_pipe.sample_manager(), std::move(v), std::move(v_inv_residual)};
 }
 
 }  // namespace gelex

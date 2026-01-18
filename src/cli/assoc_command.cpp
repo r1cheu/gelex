@@ -11,14 +11,15 @@
 #include "gelex/cli/utils.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/data_pipe.h"
+#include "gelex/data/grm_code_policy.h"
 #include "gelex/estimator/freq/reml.h"
 #include "gelex/gwas/association_test.h"
 #include "gelex/gwas/gwas_writer.h"
-#include "gelex/gwas/snp_encoder.h"
 #include "gelex/logger.h"
 
 #include "../src/data/loader/bim_loader.h"
 #include "../src/utils/formatter.h"
+#include "gelex/types/assoc_input.h"
 
 auto assoc_command(argparse::ArgumentParser& cmd) -> void
 {
@@ -92,12 +93,6 @@ auto assoc_command(argparse::ArgumentParser& cmd) -> void
         .default_value("a")
         .metavar("<MODEL>")
         .choices("a", "d", "ad");
-    cmd.add_argument("--test")
-        .help("Test type for ad model: joint or separate")
-        .default_value("joint")
-        .metavar("<TEST>")
-        .choices("joint", "separate");
-
     // ================================================================
     // Performance
     // ================================================================
@@ -116,7 +111,7 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     std::string out_prefix = cmd.get("--out");
 
     // Parse model and test type
-    auto assoc_mode = gelex::gwas::parse_assoc_mode(cmd.get("--model"));
+    // auto assoc_mode = gelex::gwas::parse_assoc_mode(cmd.get("--model"));
 
     gelex::cli::setup_parallelization(cmd.get<int>("--threads"));
 
@@ -142,15 +137,12 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
         .grm_paths = grm_paths};
 
     gelex::cli::print_assoc_header(cmd.get<int>("--threads"));
-    auto [sample_manager, assoc_input] = gelex::reml(
+    auto [sample_manager, v_inv, v_inv_residual] = gelex::reml(
         config,
         cmd.get<int>("--max-iter"),
         cmd.get<double>("--tol"),
         true,
         true);
-
-    const Eigen::MatrixXd& V_inv = assoc_input.V_inv;
-    const Eigen::VectorXd& residual = assoc_input.y_adj;
 
     gelex::BedPipe bed_pipe(bed_path, sample_manager);
     auto snp_effects
@@ -158,6 +150,8 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
               .take_info();
 
     const Eigen::Index n_snps = bed_pipe.num_snps();
+    const auto n_samples
+        = static_cast<Eigen::Index>(sample_manager->num_common_samples());
     const int chunk_size = cmd.get<int>("--chunk-size");
 
     logger->info("");
@@ -165,15 +159,20 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     logger->info(gelex::task("SNPs to test : {}", n_snps));
     logger->info(gelex::task("Chunk size   : {}", chunk_size));
 
-    //     // ================================================================
-    //     // Association testing
-    //     // ================================================================
-    gelex::gwas::GwasWriter writer(out_prefix, assoc_mode);
+    gelex::AssocInput input(
+        chunk_size, std::move(v_inv), std::move(v_inv_residual));
+    gelex::AssocOutput output(chunk_size);
+
+    // ================================================================
+    // Association testing
+    // ================================================================
+    gelex::gwas::GwasWriter writer(out_prefix);
     writer.write_header();
-    Eigen::setNbThreads(1);
     size_t n_tested = 0;
-    size_t n_chunks
-        = static_cast<size_t>((n_snps + chunk_size - 1) / chunk_size);
+    auto n_chunks = static_cast<size_t>((n_snps + chunk_size - 1) / chunk_size);
+
+    gelex::grm::Yang encoder;
+    bool additive = cmd.get("--model") == "a";
 
     for (size_t chunk_idx = 0; chunk_idx < n_chunks; ++chunk_idx)
     {
@@ -181,49 +180,21 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
                              * static_cast<Eigen::Index>(chunk_size);
         Eigen::Index end
             = std::min(start + static_cast<Eigen::Index>(chunk_size), n_snps);
+        input.Z.resize(n_samples, (end - start));
+        bed_pipe.load_chunk(input.Z, start, end);
+        encoder(input.Z, additive);
+        gelex::gwas::wald_test(input, output);
 
-        Eigen::MatrixXd geno_chunk = bed_pipe.load_chunk(start, end);
-
-        // Store results for this chunk (to avoid critical section overhead)
-        std::vector<
-            std::pair<gelex::gwas::SNPInfo, gelex::gwas::AssociationResult>>
-            chunk_results(static_cast<size_t>(end - start));
-
-// Process each SNP in the chunk
-#pragma omp parallel for schedule(dynamic)
-        for (Eigen::Index snp_idx = 0; snp_idx < geno_chunk.cols(); ++snp_idx)
+        for (size_t i = n_tested;
+             i < n_tested + static_cast<size_t>(end - start);
+             ++i)
         {
-            Eigen::Index global_idx = start + snp_idx;
-
-            // Get raw genotype
-            auto raw_geno = geno_chunk.col(snp_idx);
-
-            // Encode SNP
-            auto encoded = gelex::gwas::encode_snp(raw_geno, assoc_mode);
-
-            // Perform Wald test
-            auto result
-                = gelex::gwas::wald_test(encoded, residual, V_inv, assoc_mode);
-
-            // Get SNP info
-            const auto& snp_meta = snp_effects[static_cast<size_t>(global_idx)];
-
-            gelex::gwas::SNPInfo snp_info{
-                .chrom = snp_meta.chrom,
-                .rsid = snp_meta.id,
-                .bp = snp_meta.pos,
-                .a1 = std::string(1, snp_meta.A1),
-                .a2 = std::string(1, snp_meta.A2),
-                .freq = encoded.maf};
-
-            chunk_results[static_cast<size_t>(snp_idx)]
-                = std::make_pair(std::move(snp_info), result);
-        }
-
-        // Write results sequentially to maintain order
-        for (const auto& [snp_info, result] : chunk_results)
-        {
-            writer.write_result(snp_info, result);
+            writer.write_result(
+                snp_effects[i],
+                {.beta = output.beta(static_cast<Eigen::Index>(i - n_tested)),
+                 .se = output.se(static_cast<Eigen::Index>(i - n_tested)),
+                 .p_value
+                 = output.p_value(static_cast<Eigen::Index>(i - n_tested))});
         }
 
         n_tested += static_cast<size_t>(end - start);

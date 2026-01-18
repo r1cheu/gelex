@@ -2,10 +2,8 @@
 #define GELEX_ESTIMATOR_FREQ_REML_H_
 
 #include <memory>
-#include <utility>
 
 #include "gelex/data/data_pipe.h"
-#include "gelex/types/assoc_input.h"
 
 namespace gelex
 {
@@ -17,8 +15,8 @@ auto reml(
     size_t max_iter = 100,
     double tol = 1e-8,
     bool em_init = true,
-    bool verbose = true)
-    -> std::pair<std::shared_ptr<SampleManager>, AssocInput>;
+    bool verbose = true) -> std::
+    tuple<std::shared_ptr<SampleManager>, Eigen::MatrixXd, Eigen::VectorXd>;
 
 }  // namespace gelex
 
