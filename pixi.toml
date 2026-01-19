@@ -84,6 +84,17 @@ depends-on = ["build-debug"]
 cmd = "cp build/release/src/gelex ~/.local/bin/gelex"
 depends-on = ["build-release"]
 
+[tasks.config-reldeb]
+cmd = "cmake --preset reldeb"
+
+[tasks.build-reldeb]
+cmd = "cmake --build --preset reldeb -j$(nproc)"
+depends-on = ["config-reldeb"]
+
+[tasks.install-reldeb]
+cmd = "cp build/reldeb/src/gelex ~/.local/bin/gelex"
+depends-on = ["build-reldeb"]
+
 [tasks.benchmark]
 cmd = "build/benchmark/benchmark/bench"
 depends-on = ["build-benchmark"]

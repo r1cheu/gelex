@@ -11,7 +11,7 @@ set(BENCHMARK_ENABLE_INSTALL
     CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googlebenchmark)
 
-add_executable(bench ./benchmark_gwas_writer.cpp)
+add_executable(bench ./benchmark_zvz.cpp)
 
 target_link_libraries(bench PRIVATE gelex::core benchmark::benchmark)
 

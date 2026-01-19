@@ -49,6 +49,18 @@
             }
         },
         {
+            "name": "reldeb",
+            "displayName": "RelWithDebInfo",
+            "description":
+                "Release build with debug info (-g) and optimizations",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "GELEX_BUILD_TESTS": "OFF",
+                "GELEX_NATIVE_OPTIMIZATION": "OFF"
+            }
+        },
+        {
             "name": "coverage",
             "displayName": "Code Coverage",
             "description": "Debug build with Clang source-based coverage",
@@ -93,6 +105,10 @@
         {
             "name": "coverage",
             "configurePreset": "coverage"
+        },
+        {
+            "name": "reldeb",
+            "configurePreset": "reldeb"
         },
         {
             "name": "benchmark",

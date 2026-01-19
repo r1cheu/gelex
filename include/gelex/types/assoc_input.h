@@ -14,12 +14,14 @@ struct AssocInput
         Eigen::VectorXd y_adj)
         : Z(Eigen::MatrixXd::Zero(V_inv_in.rows(), chunk_size)),
           V_inv(std::move(V_inv_in)),
-          V_inv_y(std::move(y_adj))
+          V_inv_y(std::move(y_adj)),
+          W(Eigen::MatrixXd::Zero(V_inv.rows(), chunk_size))
     {
     }
     Eigen::MatrixXd Z;  // SNP matrix
     Eigen::MatrixXd V_inv;
     Eigen::VectorXd V_inv_y;
+    Eigen::MatrixXd W;  // Intermediate buffer for V^{-1} Z
 };
 
 struct AssocOutput

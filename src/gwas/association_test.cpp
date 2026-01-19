@@ -21,11 +21,11 @@ void chi2_test(
 }
 }  // namespace
 
-void wald_test(const AssocInput& input, AssocOutput& output)
+void wald_test(AssocInput& input, AssocOutput& output)
 {
     output.zt_v_inv_r = (input.Z.transpose() * input.V_inv_y);
-    output.zt_v_inv_z = (input.Z.transpose() * input.V_inv * input.Z)
-                            .diagonal();  // should be optimized by Eigen
+    input.W = input.V_inv * input.Z;
+    output.zt_v_inv_z = (input.Z.transpose() * input.W).diagonal();
 
     output.beta = (output.zt_v_inv_r.array() / output.zt_v_inv_z.array());
     output.se = (1.0 / output.zt_v_inv_z.array()).sqrt();
