@@ -2,6 +2,7 @@
 #include <atomic>
 #include <vector>
 
+#include <barkeep.h>
 #include <fmt/format.h>
 #include <Eigen/Core>
 
@@ -144,6 +145,21 @@ void Indicator::done()
 {
     main_indicator_->done();
 }
+
+auto create_association_progress_bar(size_t& current, size_t total)
+    -> AssociationPbar
+{
+    std::vector<std::shared_ptr<bk::BaseDisplay>> elements{bk::ProgressBar(
+        &current,
+        {.total = total,
+         .format = "   {bar}",
+         .style = BAR_STYLE,
+         .show = false})};
+    auto status = bk::Status(
+        {.message = "--%  --:--:--", .style = bk::Strings{""}, .show = false});
+    elements.push_back(status);
+    return {.pbar = bk::Composite(elements, " "), .status = status};
+};
 
 }  // namespace detail
 }  // namespace gelex

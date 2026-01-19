@@ -97,6 +97,19 @@ std::string table_separator(size_t width)
     return "  " + separator(width - 2);
 }
 
+std::string format_eta(double seconds)
+{
+    if (seconds < 0 || seconds > 3600 * 60 * 99)
+    {
+        return "--:--:--";
+    }
+    int total_seconds = static_cast<int>(seconds);
+    int h = total_seconds / 3600;
+    int m = total_seconds / 60;
+    int s = total_seconds % 60;
+    return std::format("{:02d}:{:02d}:{:02d}", h, m, s);
+}
+
 std::string format_names(
     std::span<const std::string> names,
     std::ptrdiff_t limit)
@@ -146,6 +159,36 @@ auto formatter<gelex::freq::GrmType>::format(
             break;
     }
     return formatter<string_view>::format(name, ctx);
+}
+
+auto fmt::formatter<gelex::HumanReadable>::format(
+    gelex::HumanReadable hr,
+    format_context& ctx) const -> format_context::iterator
+{
+    double v = hr.value;
+    const char* suffix = "";
+
+    if (v >= 1e9)
+    {
+        v /= 1e9;
+        suffix = "G";
+    }
+    else if (v >= 1e6)
+    {
+        v /= 1e6;
+        suffix = "M";
+    }
+    else if (v >= 1e3)
+    {
+        v /= 1e3;
+        suffix = "k";
+    }
+
+    if (v >= 100 || std::abs(v - std::round(v)) < 0.05)
+    {
+        return fmt::format_to(ctx.out(), "{:.0f}{}", v, suffix);
+    }
+    return fmt::format_to(ctx.out(), "{:.1f}{}", v, suffix);
 }
 
 }  // namespace fmt

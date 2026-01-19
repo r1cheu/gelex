@@ -1,10 +1,8 @@
 #include "predict_params_pipe.h"
 
 #include <filesystem>
-#include <memory>
 
 #include "gelex/exception.h"
-#include "gelex/logger.h"
 
 namespace gelex
 {
@@ -22,15 +20,6 @@ PredictParamsPipe::PredictParamsPipe(const Config& config)
         throw InvalidInputException("params effect path must be provided");
     }
     load_covar_effects(config.covar_effect_path);
-
-    auto logger = logging::get();
-    if (logger)
-    {
-        logger->info(
-            "Loaded parameters: SNP effects={}, covariate effects={}",
-            config.snp_effect_path.string(),
-            config.covar_effect_path.string());
-    }
 }
 
 void PredictParamsPipe::load_snp_effects(const std::filesystem::path& path)

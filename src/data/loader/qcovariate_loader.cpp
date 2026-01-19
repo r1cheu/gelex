@@ -9,7 +9,6 @@
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
-#include "gelex/logger.h"
 
 // Internal
 #include "../src/data/parser.h"
@@ -32,10 +31,6 @@ QuantitativeCovariateLoader::QuantitativeCovariateLoader(
         throw FileFormatException(
             std::format("{}:{}", path.string(), e.what()));
     }
-    gelex::logging::get()->info(
-        "Loaded {} samples with {} qcovars.",
-        sample_ids_.size(),
-        column_names_.size());
 }
 
 auto QuantitativeCovariateLoader::init_columns(std::ifstream& file) -> void

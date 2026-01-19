@@ -1,12 +1,12 @@
 #include "gelex/cli/assoc_command.h"
 
-#include <Eigen/Core>
 #include <filesystem>
 #include <memory>
 #include <ranges>
 #include <thread>
 
 #include <fmt/format.h>
+#include <Eigen/Core>
 
 #include "gelex/cli/utils.h"
 #include "gelex/data/bed_pipe.h"
@@ -18,8 +18,10 @@
 #include "gelex/logger.h"
 
 #include "../src/data/loader/bim_loader.h"
+#include "../src/estimator/bayes/indicator.h"
 #include "../src/utils/formatter.h"
 #include "gelex/types/assoc_input.h"
+#include "utils/utils.h"
 
 auto assoc_command(argparse::ArgumentParser& cmd) -> void
 {
@@ -98,7 +100,7 @@ auto assoc_command(argparse::ArgumentParser& cmd) -> void
     // ================================================================
     cmd.add_group("Performance");
     const int default_threads
-        = std::max(1u, std::thread::hardware_concurrency() / 2);
+        = std::max(1U, std::thread::hardware_concurrency() / 2);
     cmd.add_argument("--threads")
         .help("Number of CPU threads to use")
         .default_value(default_threads)
@@ -155,9 +157,10 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     const int chunk_size = cmd.get<int>("--chunk-size");
 
     logger->info("");
-    logger->info(gelex::section("Running association tests..."));
+    logger->info(gelex::section("Running Association Tests..."));
     logger->info(gelex::task("SNPs to test : {}", n_snps));
     logger->info(gelex::task("Chunk size   : {}", chunk_size));
+    logger->info("");
 
     gelex::AssocInput input(
         chunk_size, std::move(v_inv), std::move(v_inv_residual));
@@ -166,13 +169,22 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     // ================================================================
     // Association testing
     // ================================================================
+
     gelex::gwas::GwasWriter writer(out_prefix);
     writer.write_header();
     size_t n_tested = 0;
     auto n_chunks = static_cast<size_t>((n_snps + chunk_size - 1) / chunk_size);
 
+    // barkeep progress bar
+    size_t progress_counter{0};
+    auto pbar = gelex::detail::create_association_progress_bar(
+        progress_counter, static_cast<size_t>(n_snps));
+    pbar.pbar->show();
+
     gelex::grm::Yang encoder;
     bool additive = cmd.get("--model") == "a";
+
+    gelex::SmoothEtaCalculator eta_calculator(n_snps);
 
     for (size_t chunk_idx = 0; chunk_idx < n_chunks; ++chunk_idx)
     {
@@ -198,23 +210,26 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
         }
 
         n_tested += static_cast<size_t>(end - start);
+        progress_counter += static_cast<size_t>(end - start);
+        double finish_percent = static_cast<double>(progress_counter)
+                                / static_cast<double>(n_snps) * 100;
 
-        if ((chunk_idx + 1) % 10 == 0 || chunk_idx == n_chunks - 1)
-        {
-            logger->info(
-                gelex::subtask(
-                    "Progress: {}/{} SNPs ({:.1f}%)",
-                    n_tested,
-                    n_snps,
-                    100.0 * static_cast<double>(n_tested)
-                        / static_cast<double>(n_snps)));
-        }
+        pbar.status->message(
+            fmt::format(
+                "{:.1f}% ({}/{}) | {}",
+                finish_percent,
+                gelex::HumanReadable(n_tested),
+                gelex::HumanReadable(n_snps),
+                eta_calculator.get_eta(n_tested)));
     }
-
+    pbar.pbar->done();
     writer.finalize();
 
     logger->info("");
-    logger->info(gelex::success("GWAS complete!"));
+    logger->info(
+        gelex::success(
+            "Scan complete! Time elapsed: {}",
+            eta_calculator.total_time_consumed()));
     logger->info(gelex::success("Results saved to : {}.gwas.tsv", out_prefix));
     logger->info(
         fmt::format(

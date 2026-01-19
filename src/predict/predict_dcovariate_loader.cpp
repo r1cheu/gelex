@@ -13,7 +13,6 @@
 
 #include "../src/data/parser.h"
 #include "gelex/exception.h"
-#include "gelex/logger.h"
 
 namespace gelex::detail
 {
@@ -33,9 +32,6 @@ DcovarPredictLoader::DcovarPredictLoader(
         throw FileFormatException(
             std::format("{}:{}", path.string(), e.what()));
     }
-    auto logger = gelex::logging::get();
-    logger->info(
-        "Loaded {} samples with {} covars.", data_.size(), names_.size());
 }
 
 auto DcovarPredictLoader::load(

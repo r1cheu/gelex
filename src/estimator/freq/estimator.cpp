@@ -58,8 +58,8 @@ auto Estimator::fit(
     var_header += fmt::format("{:>12}", "V(e)");
 
     logger_->info(
-        "  {:>4} {:>12} {} {:>10}", "Iter", "LogL", var_header, "Time");
-    logger_->info(gelex::table_separator(68));
+        "  {:<4} {:>12} {} {:>10}", "Iter", "LogL", var_header, "Time");
+    logger_->info(gelex::table_separator(67));
 
     // AI iterations
     for (size_t iter = 1; iter <= max_iter_; ++iter)
@@ -84,7 +84,7 @@ auto Estimator::fit(
         }
         var_values += fmt::format("{:>12.2f}", state.residual().variance);
         logger_->info(
-            "  {:>4} {:>12.2f} {} {:>9.2f}s",
+            "  {:<4} {:>12.2f} {} {:>9.2f}s",
             iter,
             loglike_,
             var_values,
@@ -97,7 +97,7 @@ auto Estimator::fit(
             break;
         }
     }
-    logger_->info(gelex::table_separator(68));
+    logger_->info(gelex::table_separator(67));
 
     if (!converged_)
     {
@@ -187,6 +187,24 @@ auto Estimator::report_results(
     logger_->info("  - BIC : {:.2f}", statistics::compute_bic(model, loglike_));
     logger_->info("");
 
+    logger_->info("  Fixed Effects:");
+    logger_->info("  {:12} {:>12} {:>12}", "Effect", "Estimate", "SE");
+    logger_->info(table_separator(40));
+    for (Eigen::Index i = 0; i < state.fixed().coeff.size(); ++i)
+    {
+        std::string name = fmt::format("X{}", i);
+        if (static_cast<size_t>(i) < model.fixed().names.size())
+        {
+            name = model.fixed().names[i];
+        }
+        logger_->info(
+            "  {:12} {:>12.3f} {:>12.3f}",
+            name,
+            state.fixed().coeff(i),
+            state.fixed().se(i));
+    }
+    logger_->info("");
+
     // Variance components & heritability table
     logger_->info("  Variance Components & Heritability:");
     logger_->info(
@@ -196,24 +214,7 @@ auto Estimator::report_results(
         "SE",
         "Ratio (h²)",
         "SE");
-    logger_->info(table_separator(68));
-
-    // Fixed effects (Intercept)
-    for (Eigen::Index i = 0; i < state.fixed().coeff.size(); ++i)
-    {
-        std::string name = fmt::format("X{}", i);
-        if (static_cast<size_t>(i) < model.fixed().names.size())
-        {
-            name = model.fixed().names[i];
-        }
-        logger_->info(
-            "  {:12} {:>12.3f} {:>12.3f} {:>15} {:>12}",
-            name,
-            state.fixed().coeff(i),
-            state.fixed().se(i),
-            "-",
-            "-");
-    }
+    logger_->info(table_separator(69));
 
     // Genetic effects with heritability
     double total_h2 = 0.0;
@@ -256,7 +257,7 @@ auto Estimator::report_results(
         {
             total_vg += g.variance;
         }
-        logger_->info(table_separator(68));
+        logger_->info(table_separator(69));
         logger_->info(
             "  {:12} {:>12.3f} {:>12} {:>15.3f} {:>12}",
             "Total Vg",

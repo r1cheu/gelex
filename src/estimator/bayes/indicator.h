@@ -66,6 +66,13 @@ auto create_genotype_process_bar(int64_t& current, int64_t total)
          .show = false});
 };
 
+struct AssociationPbar
+{
+    std::shared_ptr<barkeep::CompositeDisplay> pbar;
+    std::shared_ptr<barkeep::StatusDisplay> status;
+};
+auto create_association_progress_bar(size_t& current, size_t total)
+    -> AssociationPbar;
 }  // namespace detail
 }  // namespace gelex
 
