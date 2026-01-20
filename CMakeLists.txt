@@ -59,6 +59,7 @@ configure_file("${PROJECT_SOURCE_DIR}/config.h.in"
                "${PROJECT_BINARY_DIR}/config.h")
 
 add_subdirectory(src)
+add_subdirectory(apps)
 
 if(GELEX_BUILD_TESTS)
   enable_testing()

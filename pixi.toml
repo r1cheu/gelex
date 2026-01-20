@@ -33,6 +33,10 @@ cmd = "cmake --preset coverage"
 [tasks.config-benchmark]
 cmd = "cmake --preset benchmark"
 
+[tasks.config-reldeb]
+cmd = "cmake --preset reldeb"
+
+
 # ---------------------------------------------------------
 # Build Tasks
 # ---------------------------------------------------------
@@ -57,6 +61,11 @@ depends-on = ["config-native"]
 cmd = "cmake --build --preset benchmark -j$(nproc)"
 depends-on = ["config-benchmark"]
 
+[tasks.build-reldeb]
+cmd = "cmake --build --preset reldeb -j$(nproc)"
+depends-on = ["config-reldeb"]
+
+
 [tasks.coverage]
 cmd = "cmake --build --preset coverage --target coverage"
 depends-on = ["build-coverage-bin"]
@@ -77,22 +86,15 @@ depends-on = ["config-coverage"]
 # Install & Utils
 # ---------------------------------------------------------
 [tasks.install-debug]
-cmd = "cp build/debug/src/gelex ~/.local/bin/gelex_debug"
+cmd = "cmake --install build/debug --prefix $HOME/.local"
 depends-on = ["build-debug"]
 
 [tasks.install-release]
-cmd = "cp build/release/src/gelex ~/.local/bin/gelex"
+cmd = "cmake --install build/release --prefix $HOME/.local"
 depends-on = ["build-release"]
 
-[tasks.config-reldeb]
-cmd = "cmake --preset reldeb"
-
-[tasks.build-reldeb]
-cmd = "cmake --build --preset reldeb -j$(nproc)"
-depends-on = ["config-reldeb"]
-
 [tasks.install-reldeb]
-cmd = "cp build/reldeb/src/gelex ~/.local/bin/gelex"
+cmd = "cmake --install build/reldeb --prefix $HOME/.local"
 depends-on = ["build-reldeb"]
 
 [tasks.benchmark]

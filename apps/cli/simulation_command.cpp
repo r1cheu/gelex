@@ -1,4 +1,4 @@
-#include "gelex/cli/simulation_command.h"
+#include "simulation_command.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/simulation.h"
 

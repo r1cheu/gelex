@@ -1,4 +1,4 @@
-#include "gelex/cli/predict_command.h"
+#include "predict_command.h"
 
 #include <thread>
 

@@ -1,5 +1,5 @@
-#ifndef GELEX_CLI_UTILS_H_
-#define GELEX_CLI_UTILS_H_
+#ifndef GELEX_CLI_CLI_HELPER_H_
+#define GELEX_CLI_CLI_HELPER_H_
 
 #include <argparse.h>
 #include <string_view>
@@ -34,4 +34,4 @@ void print_assoc_header(int threads);
 
 }  // namespace gelex::cli
 
-#endif  // GELEX_CLI_UTILS_H_
+#endif  // GELEX_CLI_CLI_HELPER_H_

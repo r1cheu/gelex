@@ -1,4 +1,4 @@
-#include "gelex/cli/assoc_command.h"
+#include "assoc_command.h"
 
 #include <filesystem>
 #include <memory>
@@ -8,7 +8,7 @@
 #include <fmt/format.h>
 #include <Eigen/Core>
 
-#include "gelex/cli/utils.h"
+#include "cli_helper.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/data_pipe.h"
 #include "gelex/data/grm_code_policy.h"
@@ -17,10 +17,10 @@
 #include "gelex/gwas/gwas_writer.h"
 #include "gelex/logger.h"
 
-#include "../src/data/loader/bim_loader.h"
-#include "../src/estimator/bayes/indicator.h"
-#include "../src/utils/formatter.h"
+#include "data/loader/bim_loader.h"
+#include "estimator/bayes/indicator.h"
 #include "gelex/types/assoc_input.h"
+#include "utils/formatter.h"
 #include "utils/utils.h"
 
 auto assoc_command(argparse::ArgumentParser& cmd) -> void

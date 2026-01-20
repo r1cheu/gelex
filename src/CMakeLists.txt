@@ -3,7 +3,6 @@
 # --------------------------------------------------
 
 file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS "*.cpp")
-list(REMOVE_ITEM CORE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
 
 add_library(gelex_core ${CORE_SOURCES})
 add_library(gelex::core ALIAS gelex_core)
@@ -49,11 +48,3 @@ if(GELEX_ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   target_link_options(gelex_core PUBLIC -fprofile-instr-generate
                       -fcoverage-mapping)
 endif()
-
-# --------------------------------------------------
-# ------------ Main Executable ---------------------
-# --------------------------------------------------
-add_executable(gelex_cli main.cpp)
-set_target_properties(gelex_cli PROPERTIES OUTPUT_NAME "gelex")
-
-target_link_libraries(gelex_cli PRIVATE gelex::core)

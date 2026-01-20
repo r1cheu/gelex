@@ -1,4 +1,4 @@
-#include "gelex/cli/utils.h"
+#include "cli_helper.h"
 
 #include <unistd.h>
 
@@ -7,8 +7,8 @@
 #include <Eigen/Core>
 #include "config.h"
 
-#include "../src/utils/formatter.h"
 #include "gelex/logger.h"
+#include "utils/formatter.h"
 
 namespace gelex::cli
 {

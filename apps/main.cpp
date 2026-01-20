@@ -6,12 +6,12 @@
 
 #include "config.h"
 
-#include "gelex/cli/assoc_command.h"
-#include "gelex/cli/fit_command.h"
-#include "gelex/cli/grm_command.h"
-#include "gelex/cli/predict_command.h"
-#include "gelex/cli/simulation_command.h"
-#include "gelex/cli/utils.h"
+#include "cli/assoc_command.h"
+#include "cli/cli_helper.h"
+#include "cli/fit_command.h"
+#include "cli/grm_command.h"
+#include "cli/predict_command.h"
+#include "cli/simulation_command.h"
 #include "gelex/logger.h"
 
 struct CommandDescriptor

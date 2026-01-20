@@ -1,4 +1,4 @@
-#include "gelex/cli/grm_command.h"
+#include "grm_command.h"
 
 #include <atomic>
 #include <chrono>
@@ -8,15 +8,15 @@
 #include <fmt/format.h>
 #include <omp.h>
 
-#include "../src/utils/formatter.h"
+#include "cli_helper.h"
 #include "config.h"
 #include "data/grm_bin_writer.h"
 #include "data/grm_id_writer.h"
-#include "gelex/cli/utils.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/grm.h"
 #include "gelex/data/grm_code_policy.h"
 #include "gelex/logger.h"
+#include "utils/formatter.h"
 
 namespace bk = barkeep;
 
