@@ -104,7 +104,7 @@ struct formatter<gelex::freq::GrmType> : formatter<string_view>
 };
 
 template <>
-struct fmt::formatter<gelex::HumanReadable> : fmt::formatter<double>
+struct formatter<gelex::HumanReadable> : formatter<double>
 {
     auto format(gelex::HumanReadable hr, format_context& ctx) const
         -> format_context::iterator;

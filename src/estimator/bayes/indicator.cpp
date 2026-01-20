@@ -40,10 +40,21 @@ Indicator::Indicator(
 
         auto anim = bk::Animation(
             {.message = " ",
-             .style
-             = bk::Strings{"⠁", "⠁", "⠉", "⠙", "⠚", "⠒", "⠂", "⠂", "⠒", "⠲",
-                           "⠴", "⠤", "⠄", "⠄", "⠤", "⠠", "⠠", "⠤", "⠦", "⠖",
-                           "⠒", "⠐", "⠐", "⠒", "⠓", "⠋", "⠉", "⠈", "⠈", " "},
+             .style = bk::Strings{"\033[32m⠁\033[0m", "\033[32m⠁\033[0m",
+                                  "\033[32m⠉\033[0m", "\033[32m⠙\033[0m",
+                                  "\033[32m⠚\033[0m", "\033[32m⠒\033[0m",
+                                  "\033[32m⠂\033[0m", "\033[32m⠂\033[0m",
+                                  "\033[32m⠒\033[0m", "\033[32m⠲\033[0m",
+                                  "\033[32m⠴\033[0m", "\033[32m⠤\033[0m",
+                                  "\033[32m⠄\033[0m", "\033[32m⠄\033[0m",
+                                  "\033[32m⠤\033[0m", "\033[32m⠠\033[0m",
+                                  "\033[32m⠠\033[0m", "\033[32m⠤\033[0m",
+                                  "\033[32m⠦\033[0m", "\033[32m⠖\033[0m",
+                                  "\033[32m⠒\033[0m", "\033[32m⠐\033[0m",
+                                  "\033[32m⠐\033[0m", "\033[32m⠒\033[0m",
+                                  "\033[32m⠓\033[0m", "\033[32m⠋\033[0m",
+                                  "\033[32m⠉\033[0m", "\033[32m⠈\033[0m",
+                                  "\033[32m⠈\033[0m", "\033[32m \033[0m"},
              .interval = 0.08,
              .show = false});
         line_displays.emplace_back(anim);
@@ -149,12 +160,32 @@ void Indicator::done()
 auto create_association_progress_bar(size_t& current, size_t total)
     -> AssociationPbar
 {
-    std::vector<std::shared_ptr<bk::BaseDisplay>> elements{bk::ProgressBar(
-        &current,
-        {.total = total,
-         .format = "   {bar}",
-         .style = BAR_STYLE,
-         .show = false})};
+    std::vector<std::shared_ptr<bk::BaseDisplay>> elements{
+        bk::Animation(
+            {.message = " ",
+             .style = bk::Strings{"\033[32m⠁\033[0m", "\033[32m⠁\033[0m",
+                                  "\033[32m⠉\033[0m", "\033[32m⠙\033[0m",
+                                  "\033[32m⠚\033[0m", "\033[32m⠒\033[0m",
+                                  "\033[32m⠂\033[0m", "\033[32m⠂\033[0m",
+                                  "\033[32m⠒\033[0m", "\033[32m⠲\033[0m",
+                                  "\033[32m⠴\033[0m", "\033[32m⠤\033[0m",
+                                  "\033[32m⠄\033[0m", "\033[32m⠄\033[0m",
+                                  "\033[32m⠤\033[0m", "\033[32m⠠\033[0m",
+                                  "\033[32m⠠\033[0m", "\033[32m⠤\033[0m",
+                                  "\033[32m⠦\033[0m", "\033[32m⠖\033[0m",
+                                  "\033[32m⠒\033[0m", "\033[32m⠐\033[0m",
+                                  "\033[32m⠐\033[0m", "\033[32m⠒\033[0m",
+                                  "\033[32m⠓\033[0m", "\033[32m⠋\033[0m",
+                                  "\033[32m⠉\033[0m", "\033[32m⠈\033[0m",
+                                  "\033[32m⠈\033[0m", "\033[32m \033[0m"},
+             .interval = 0.08,
+             .show = false}),
+        bk::ProgressBar(
+            &current,
+            {.total = total,
+             .format = "{bar}",
+             .style = BAR_STYLE,
+             .show = false})};
     auto status = bk::Status(
         {.message = "--%  --:--:--", .style = bk::Strings{""}, .show = false});
     elements.push_back(status);

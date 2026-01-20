@@ -1,0 +1,48 @@
+context:
+  name: gelex
+  version: 0.7.0
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  path: .
+
+build:
+  number: 0
+  script:
+    - |
+      cmake $CMAKE_ARGS -G "Ninja" \
+        -DGELEX_USE_MKL=ON \
+        -DGELEX_BUILD_TESTS=OFF \
+        -DGELEX_BUILD_BENCHMARKS=OFF \
+        -DGELEX_NATIVE_OPTIMIZATION=OFF \
+        $SRC_DIR
+      cmake --build . --parallel
+      cmake --install .
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - cmake >=3.20
+    - ninja
+  host:
+    - mkl-devel >=2025.3.0
+    - spdlog
+    - fftw
+  run:
+    - mkl >=2025.3.0
+    - spdlog
+    - fftw
+
+tests:
+  - script:
+      - gelex --help
+
+about:
+  homepage: https://github.com/rlchen/gelex
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: Gelex binary distribution (MKL optimized)
+  description: C++23 application built with CMake, Ninja and Intel MKL

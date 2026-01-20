@@ -9,7 +9,7 @@
 namespace gelex::gwas
 {
 
-constexpr size_t BUFFER_FLUSH_THRESHOLD = static_cast<const size_t>(64 * 1024);
+constexpr size_t BUFFER_FLUSH_THRESHOLD = static_cast<size_t>(64 * 1024);
 
 GwasWriter::GwasWriter(std::string_view out_prefix)
 {

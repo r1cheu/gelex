@@ -14,8 +14,7 @@ namespace gelex::detail
 class GrmBinWriter
 {
    public:
-    static constexpr size_t kDefaultBufferSize
-        = static_cast<const size_t>(64 * 1024);
+    static constexpr size_t kDefaultBufferSize = static_cast<size_t>(64 * 1024);
 
     explicit GrmBinWriter(const std::filesystem::path& file_path);
 

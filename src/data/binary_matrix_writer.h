@@ -14,8 +14,7 @@ namespace gelex::detail
 class BinaryMatrixWriter
 {
    public:
-    static constexpr size_t kDefaultBufferSize
-        = static_cast<const size_t>(64 * 1024);
+    static constexpr size_t kDefaultBufferSize = static_cast<size_t>(64 * 1024);
 
     explicit BinaryMatrixWriter(const std::filesystem::path& file_path);
 

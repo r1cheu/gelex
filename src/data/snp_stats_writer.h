@@ -15,8 +15,7 @@ namespace gelex::detail
 class SnpStatsWriter
 {
    public:
-    static constexpr auto kDefaultBufferSize
-        = static_cast<const size_t>(64 * 1024);
+    static constexpr auto kDefaultBufferSize = static_cast<size_t>(64 * 1024);
 
     explicit SnpStatsWriter(const std::filesystem::path& file_path);
 
