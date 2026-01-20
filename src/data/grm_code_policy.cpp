@@ -10,12 +10,49 @@ namespace gelex::grm
 
 namespace detail
 {
+
+struct ColStats
+{
+    double mean;
+    Eigen::Index valid_count;
+};
+
+// Computes mean ignoring NaNs.
+ColStats compute_mean_and_count(const Eigen::Ref<const Eigen::VectorXd>& col)
+{
+    auto is_nan = col.array().isNaN();
+    Eigen::Index valid_count = col.size() - is_nan.count();
+
+    if (valid_count == 0)
+    {
+        return {0.0, 0};
+    }
+
+    double sum = is_nan.select(0.0, col).sum();
+    return {sum / static_cast<double>(valid_count), valid_count};
+}
+
 auto additive_mean_center(Eigen::Ref<Eigen::MatrixXd> genotype) -> void
 {
 #pragma omp parallel for default(none) shared(genotype)
     for (Eigen::Index i = 0; i < genotype.cols(); ++i)
     {
-        genotype.col(i).array() -= genotype.col(i).mean();
+        auto col = genotype.col(i);
+        auto [mean, valid_count] = compute_mean_and_count(col);
+
+        if (valid_count == 0)
+        {
+            col.setZero();
+            continue;
+        }
+
+        col = col.unaryExpr(
+            [mean](double val)
+            {
+                if (std::isnan(val))
+                    return 0.0;
+                return val - mean;
+            });
     }
 }
 }  // namespace detail
@@ -33,9 +70,26 @@ auto Su::operator()(Eigen::Ref<Eigen::MatrixXd> genotype, bool use_additive)
         for (Eigen::Index i = 0; i < genotype.cols(); ++i)
         {
             auto col = genotype.col(i);
-            double pA = col.mean() / 2.0;
-            col = (col.array() == 2).select(0, col);
-            col.array() -= 2 * pA * (1 - pA);
+            auto [mean, valid_count] = detail::compute_mean_and_count(col);
+
+            if (valid_count == 0)
+            {
+                col.setZero();
+                continue;
+            }
+
+            double pA = mean / 2.0;
+            double dominance_mean = 2 * pA * (1 - pA);
+
+            col = col.unaryExpr(
+                [dominance_mean](double val) -> double
+                {
+                    if (std::isnan(val))
+                        return 0.0;
+                    if (val == 2)
+                        return -dominance_mean;
+                    return val - dominance_mean;
+                });
         }
     }
 }
@@ -53,19 +107,30 @@ auto Zeng::operator()(Eigen::Ref<Eigen::MatrixXd> genotype, bool use_additive)
         for (Eigen::Index i = 0; i < genotype.cols(); ++i)
         {
             auto col = genotype.col(i);
-            double pA = col.mean() / 2.0;
+            auto [mean, valid_count] = detail::compute_mean_and_count(col);
+
+            if (valid_count == 0)
+            {
+                col.setZero();
+                continue;
+            }
+
+            double pA = mean / 2.0;
             double pa = 1 - pA;
+            double v2 = -2 * pa * pa;
+            double v1 = 2 * pA * pa;
+            double v0 = -2 * pA * pA;
 
             col = col.unaryExpr(
-                [pA, pa](double val)
+                [v2, v1, v0](double val) -> double
                 {
+                    if (std::isnan(val))
+                        return 0.0;
                     if (val == 2)
-                        return -2 * pa * pa;
+                        return v2;
                     if (val == 1)
-                        return 2 * pA * pa;
-                    if (val == 0)
-                        return -2 * pA * pA;
-                    return val;
+                        return v1;
+                    return v0;
                 });
         }
     }
@@ -80,7 +145,15 @@ auto Yang::operator()(Eigen::Ref<Eigen::MatrixXd> genotype, bool use_additive)
         for (Eigen::Index i = 0; i < genotype.cols(); ++i)
         {
             auto col = genotype.col(i);
-            double pA = col.mean() / 2.0;
+            auto [mean, valid_count] = detail::compute_mean_and_count(col);
+
+            if (valid_count == 0)
+            {
+                col.setZero();
+                continue;
+            }
+
+            double pA = mean / 2.0;
             double pa = 1 - pA;
             double denom = std::sqrt(2 * pA * pa);
 
@@ -90,8 +163,14 @@ auto Yang::operator()(Eigen::Ref<Eigen::MatrixXd> genotype, bool use_additive)
                 continue;
             }
 
-            col.array() -= 2 * pA;
-            col.array() /= denom;
+            double two_pa = 2 * pA;
+            col = col.unaryExpr(
+                [two_pa, denom](double val) -> double
+                {
+                    if (std::isnan(val))
+                        return 0.0;
+                    return (val - two_pa) / denom;
+                });
         }
     }
     else
@@ -100,7 +179,15 @@ auto Yang::operator()(Eigen::Ref<Eigen::MatrixXd> genotype, bool use_additive)
         for (Eigen::Index i = 0; i < genotype.cols(); ++i)
         {
             auto col = genotype.col(i);
-            double pA = col.mean() / 2.0;
+            auto [mean, valid_count] = detail::compute_mean_and_count(col);
+
+            if (valid_count == 0)
+            {
+                col.setZero();
+                continue;
+            }
+
+            double pA = mean / 2.0;
             double pa = 1 - pA;
             double denom = 2 * pA * pa;
 
@@ -110,16 +197,20 @@ auto Yang::operator()(Eigen::Ref<Eigen::MatrixXd> genotype, bool use_additive)
                 continue;
             }
 
+            double v2 = -2 * pa * pa / denom;
+            double v1 = 2 * pA * pa / denom;
+            double v0 = -2 * pA * pA / denom;
+
             col = col.unaryExpr(
-                [pA, pa, denom](double val)
+                [v2, v1, v0](double val) -> double
                 {
+                    if (std::isnan(val))
+                        return 0.0;
                     if (val == 2)
-                        return -2 * pa * pa / denom;
+                        return v2;
                     if (val == 1)
-                        return 2 * pA * pa / denom;
-                    if (val == 0)
-                        return -2 * pA * pA / denom;
-                    return val;
+                        return v1;
+                    return v0;
                 });
         }
     }
@@ -135,9 +226,23 @@ auto Vitezica::operator()(
         for (Eigen::Index i = 0; i < genotype.cols(); ++i)
         {
             auto col = genotype.col(i);
-            auto nAA = static_cast<double>((col.array() == 2).count());
-            auto nAa = static_cast<double>((col.array() == 1).count());
-            col.array() -= (nAa + (2 * nAA));
+            auto [mean, valid_count] = detail::compute_mean_and_count(col);
+
+            if (valid_count == 0)
+            {
+                col.setZero();
+                continue;
+            }
+
+            double subtract_val = mean * static_cast<double>(col.size());
+
+            col = col.unaryExpr(
+                [subtract_val](double val) -> double
+                {
+                    if (std::isnan(val))
+                        return 0.0;
+                    return val - subtract_val;
+                });
         }
     }
     else
@@ -146,28 +251,46 @@ auto Vitezica::operator()(
         for (Eigen::Index i = 0; i < genotype.cols(); ++i)
         {
             auto col = genotype.col(i);
+            auto is_nan = col.array().isNaN();
+            Eigen::Index valid_count = col.size() - is_nan.count();
 
-            auto nAA = static_cast<double>((col.array() == 2).count());
-            auto nAa = static_cast<double>((col.array() == 1).count());
-            auto naa = static_cast<double>((col.array() == 0).count());
+            if (valid_count == 0)
+            {
+                col.setZero();
+                continue;
+            }
 
-            double denom = (nAA + naa - std::pow(nAA - naa, 2));
+            double nAA = (col.array() == 2.0).count();
+            double nAa = (col.array() == 1.0).count();
+            double naa = valid_count - nAA - nAa;
+
+            double scale = static_cast<double>(col.size())
+                           / static_cast<double>(valid_count);
+            double f_nAA = nAA * scale;
+            double f_nAa = nAa * scale;
+            double f_naa = naa * scale;
+
+            double denom = (f_nAA + f_naa - std::pow(f_nAA - f_naa, 2));
             if (denom < EPSILON)
             {
                 col.setZero();
                 continue;
             }
 
+            double v2 = -2 * f_naa * f_nAa / denom;
+            double v1 = 4 * f_nAA * f_naa / denom;
+            double v0 = -2 * f_nAA * f_nAa / denom;
+
             col = col.unaryExpr(
-                [nAA, nAa, naa, denom](double val)
+                [v2, v1, v0](double val) -> double
                 {
+                    if (std::isnan(val))
+                        return 0.0;
                     if (val == 2)
-                        return -2 * naa * nAa / denom;
+                        return v2;
                     if (val == 1)
-                        return 4 * nAA * naa / denom;
-                    if (val == 0)
-                        return -2 * nAA * nAa / denom;
-                    return val;
+                        return v1;
+                    return v0;
                 });
         }
     }

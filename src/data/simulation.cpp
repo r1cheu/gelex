@@ -15,6 +15,7 @@
 #include "../src/utils/math_utils.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/sample_manager.h"
+#include "gelex/data/variant_processor.h"
 #include "gelex/exception.h"
 
 namespace gelex
@@ -140,27 +141,6 @@ auto PhenotypeSimulator::calculate_genetic_values(
 
     VectorXd genetic_values = VectorXd::Zero(n_individuals);
 
-    // Helper lambda for efficient, in-place standardization
-    auto standardize = [n_individuals](Eigen::Ref<VectorXd> vec)
-    {
-        if (vec.size() <= 1)
-        {
-            return;
-        }
-        const double mean = vec.mean();
-        vec.array() -= mean;
-        const double stddev = std::sqrt(
-            vec.squaredNorm() / static_cast<double>(n_individuals - 1));
-        if (stddev > 1e-10)
-        {  // Avoid division by zero for monomorphic variants
-            vec.array() /= stddev;
-        }
-        else
-        {
-            vec.setZero();
-        }
-    };
-
     for (Eigen::Index start = 0; start < n_snps; start += SNP_CHUNK_SIZE)
     {
         const Eigen::Index end = std::min(start + SNP_CHUNK_SIZE, n_snps);
@@ -169,10 +149,15 @@ auto PhenotypeSimulator::calculate_genetic_values(
 
         for (Eigen::Index i = 0; i < genotype_chunk.cols(); ++i)
         {
-            standardize(genotype_chunk.col(i));
+            auto col = genotype_chunk.col(i);
+            const auto stats = StandardizingProcessor::process_variant(col);
+            if (stats.is_monomorphic)
+            {
+                col.setZero();
+            }
             // Note: We removed SNP ID matching since BedPipe doesn't have
             // snp_ids() This assumes all variants in the chunk are causal
-            genetic_values += genotype_chunk.col(i);
+            genetic_values += col;
         }
     }
     return genetic_values;
