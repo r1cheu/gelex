@@ -71,12 +71,15 @@ TEST_CASE("GRM - compute() additive GRM", "[grm][compute]")
             = fixture.create_bed_files(num_samples, num_snps, 0.0);
 
         GRM grm(bed_prefix);
-        Eigen::MatrixXd G
+        GrmResult result
             = grm.compute<grm::Yang>(10, true);  // additive, chunk_size=10
 
         // verify dimensions
-        REQUIRE(G.rows() == num_samples);
-        REQUIRE(G.cols() == num_samples);
+        REQUIRE(result.grm.rows() == num_samples);
+        REQUIRE(result.grm.cols() == num_samples);
+
+        // verify denominator is positive
+        REQUIRE(result.denominator > 0.0);
 
         // Note: cblas_dsyrk only fills lower triangle, upper triangle is 0
         // verify lower triangle has non-zero values (off-diagonal)
@@ -85,7 +88,7 @@ TEST_CASE("GRM - compute() additive GRM", "[grm][compute]")
         {
             for (Eigen::Index j = 0; j < i; ++j)
             {
-                if (std::abs(G(i, j)) > 1e-10)
+                if (std::abs(result.grm(i, j)) > 1e-10)
                 {
                     has_nonzero_lower = true;
                     break;
@@ -98,9 +101,16 @@ TEST_CASE("GRM - compute() additive GRM", "[grm][compute]")
         }
         REQUIRE(has_nonzero_lower);
 
-        // verify trace normalization: trace / n = 1.0
-        double trace_per_n = G.trace() / static_cast<double>(num_samples);
-        REQUIRE_THAT(trace_per_n, WithinAbs(1.0, 1e-10));
+        // verify trace normalization: trace / n equals denominator
+        double trace_per_n
+            = result.grm.trace() / static_cast<double>(num_samples);
+        REQUIRE_THAT(trace_per_n, WithinAbs(result.denominator, 1e-10));
+
+        // verify normalized GRM has trace/n = 1.0
+        Eigen::MatrixXd G_normalized = result.grm / result.denominator;
+        double normalized_trace
+            = G_normalized.trace() / static_cast<double>(num_samples);
+        REQUIRE_THAT(normalized_trace, WithinAbs(1.0, 1e-10));
     }
 }
 
@@ -116,12 +126,15 @@ TEST_CASE("GRM - compute() dominance GRM", "[grm][compute]")
             = fixture.create_bed_files(num_samples, num_snps, 0.0);
 
         GRM grm(bed_prefix);
-        Eigen::MatrixXd D
+        GrmResult result
             = grm.compute<grm::Yang>(10, false);  // dominance, chunk_size=10
 
         // verify dimensions
-        REQUIRE(D.rows() == num_samples);
-        REQUIRE(D.cols() == num_samples);
+        REQUIRE(result.grm.rows() == num_samples);
+        REQUIRE(result.grm.cols() == num_samples);
+
+        // verify denominator is positive
+        REQUIRE(result.denominator > 0.0);
 
         // Note: cblas_dsyrk only fills lower triangle
         // verify lower triangle has non-zero values
@@ -130,7 +143,7 @@ TEST_CASE("GRM - compute() dominance GRM", "[grm][compute]")
         {
             for (Eigen::Index j = 0; j < i; ++j)
             {
-                if (std::abs(D(i, j)) > 1e-10)
+                if (std::abs(result.grm(i, j)) > 1e-10)
                 {
                     has_nonzero_lower = true;
                     break;
@@ -143,8 +156,10 @@ TEST_CASE("GRM - compute() dominance GRM", "[grm][compute]")
         }
         REQUIRE(has_nonzero_lower);
 
-        // verify trace normalization
-        double trace_per_n = D.trace() / static_cast<double>(num_samples);
+        // verify normalized trace
+        Eigen::MatrixXd D_normalized = result.grm / result.denominator;
+        double trace_per_n
+            = D_normalized.trace() / static_cast<double>(num_samples);
         REQUIRE_THAT(trace_per_n, WithinAbs(1.0, 1e-10));
     }
 }
@@ -166,23 +181,30 @@ TEST_CASE("GRM - compute() chunk size consistency", "[grm][compute][chunk]")
 
         // compute with different chunk sizes using same data
         GRM grm1(bed_prefix);
-        Eigen::MatrixXd G1 = grm1.compute<grm::Yang>(1, true);  // chunk_size=1
+        GrmResult result1
+            = grm1.compute<grm::Yang>(1, true);  // chunk_size=1
 
         GRM grm2(bed_prefix);
-        Eigen::MatrixXd G2 = grm2.compute<grm::Yang>(7, true);  // chunk_size=7
+        GrmResult result2
+            = grm2.compute<grm::Yang>(7, true);  // chunk_size=7
 
         GRM grm3(bed_prefix);
-        Eigen::MatrixXd G3
+        GrmResult result3
             = grm3.compute<grm::Yang>(num_snps, true);  // chunk_size=all
 
         GRM grm4(bed_prefix);
-        Eigen::MatrixXd G4
+        GrmResult result4
             = grm4.compute<grm::Yang>(num_snps + 100, true);  // chunk_size > n
 
         // all should be equal
-        REQUIRE(are_matrices_equal(G1, G2, 1e-10));
-        REQUIRE(are_matrices_equal(G2, G3, 1e-10));
-        REQUIRE(are_matrices_equal(G3, G4, 1e-10));
+        REQUIRE(are_matrices_equal(result1.grm, result2.grm, 1e-10));
+        REQUIRE(are_matrices_equal(result2.grm, result3.grm, 1e-10));
+        REQUIRE(are_matrices_equal(result3.grm, result4.grm, 1e-10));
+
+        // denominators should also be equal
+        REQUIRE(std::abs(result1.denominator - result2.denominator) < 1e-10);
+        REQUIRE(std::abs(result2.denominator - result3.denominator) < 1e-10);
+        REQUIRE(std::abs(result3.denominator - result4.denominator) < 1e-10);
     }
 }
 
@@ -250,7 +272,7 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
             = fixture.create_deterministic_bed_files(genotypes);
 
         GRM grm(bed_prefix);
-        Eigen::MatrixXd G = grm.compute<grm::Yang>(10, true);
+        GrmResult result = grm.compute<grm::Yang>(10, true);
 
         // manually compute expected GRM using Yang additive method
         // Step 1: standardize each column
@@ -271,12 +293,19 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
             }
         }
 
-        // Step 2: compute GRM = Z * Z^T
-        Eigen::MatrixXd expected_grm = Z * Z.transpose();
+        // Step 2: compute GRM = Z * Z^T (unnormalized)
+        Eigen::MatrixXd expected_unnormalized_grm = Z * Z.transpose();
 
-        // Step 3: normalize by trace/n
+        // Step 3: compute expected denominator
         auto n = static_cast<double>(genotypes.rows());
-        expected_grm /= expected_grm.trace() / n;
+        double expected_denom = expected_unnormalized_grm.trace() / n;
+
+        // Verify denominator matches
+        REQUIRE_THAT(result.denominator, WithinAbs(expected_denom, 1e-8));
+
+        // Step 4: normalize for comparison
+        Eigen::MatrixXd expected_grm = expected_unnormalized_grm / expected_denom;
+        Eigen::MatrixXd G = result.grm / result.denominator;
 
         // verify diagonal elements
         for (Eigen::Index i = 0; i < 4; ++i)
@@ -308,7 +337,7 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
             = fixture.create_deterministic_bed_files(genotypes);
 
         GRM grm(bed_prefix);
-        Eigen::MatrixXd G = grm.compute<grm::Su>(10, true);
+        GrmResult result = grm.compute<grm::Su>(10, true);
 
         // Su additive: mean centering
         Eigen::MatrixXd Z = genotypes;
@@ -317,9 +346,16 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
             Z.col(j).array() -= Z.col(j).mean();
         }
 
-        Eigen::MatrixXd expected_grm = Z * Z.transpose();
+        Eigen::MatrixXd expected_unnormalized = Z * Z.transpose();
         auto n = static_cast<double>(genotypes.rows());
-        expected_grm /= expected_grm.trace() / n;
+        double expected_denom = expected_unnormalized.trace() / n;
+
+        // Verify denominator
+        REQUIRE_THAT(result.denominator, WithinAbs(expected_denom, 1e-8));
+
+        // Normalize for comparison
+        Eigen::MatrixXd expected_grm = expected_unnormalized / expected_denom;
+        Eigen::MatrixXd G = result.grm / result.denominator;
 
         // verify diagonal elements
         for (Eigen::Index i = 0; i < 3; ++i)
@@ -361,7 +397,7 @@ TEST_CASE("GRM - progress callback", "[grm][compute][callback]")
             = [&progress_calls](Eigen::Index current, Eigen::Index total)
         { progress_calls.emplace_back(current, total); };
 
-        Eigen::MatrixXd G = grm.compute<grm::Yang>(5, true, callback);
+        GrmResult result = grm.compute<grm::Yang>(5, true, callback);
 
         // with chunk_size=5 and num_snps=20, expect 4 callback calls
         REQUIRE(progress_calls.size() == 4);
@@ -377,6 +413,10 @@ TEST_CASE("GRM - progress callback", "[grm][compute][callback]")
         REQUIRE(progress_calls[1].first == 10);
         REQUIRE(progress_calls[2].first == 15);
         REQUIRE(progress_calls[3].first == 20);
+
+        // verify result is valid
+        REQUIRE(result.grm.rows() == num_samples);
+        REQUIRE(result.denominator > 0.0);
     }
 
     SECTION("Null callback does not crash")
@@ -388,6 +428,8 @@ TEST_CASE("GRM - progress callback", "[grm][compute][callback]")
 
         GRM grm(bed_prefix);
 
-        REQUIRE_NOTHROW(grm.compute<grm::Yang>(5, true, nullptr));
+        GrmResult result = grm.compute<grm::Yang>(5, true, nullptr);
+        REQUIRE(result.grm.rows() == num_samples);
+        REQUIRE(result.denominator > 0.0);
     }
 }

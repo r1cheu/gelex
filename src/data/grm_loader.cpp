@@ -2,6 +2,8 @@
 #include <fmt/format.h>
 
 #include <algorithm>
+#include <cmath>
+#include <cstring>
 #include <format>
 #include <fstream>
 #include <string>
@@ -84,22 +86,35 @@ auto GrmLoader::init_mmap() -> void
             std::format("{}: failed to mmap file", bin_path_.string()));
     }
 
-    // GRM binary format: lower triangle stored as float32
-    // n * (n + 1) / 2 elements
+    // New GRM binary format: [8-byte double denominator][float32 lower
+    // triangle] Expected size = 8 + n * (n + 1) / 2 * 4
     size_t expected_elements = static_cast<size_t>(num_samples_)
                                * (static_cast<size_t>(num_samples_) + 1) / 2;
-    size_t expected_size = expected_elements * sizeof(float);
+    size_t expected_size = sizeof(double) + expected_elements * sizeof(float);
 
     if (mmap_.size() != expected_size)
     {
         throw FileFormatException(
             std::format(
-                "{}: file size mismatch. Expected {} bytes ({} samples), got "
-                "{} bytes",
+                "{}: file size mismatch. Expected {} bytes (8-byte header + {} "
+                "samples), got {} bytes",
                 bin_path_.string(),
                 expected_size,
                 num_samples_,
                 mmap_.size()));
+    }
+
+    // Read denominator from file header (first 8 bytes)
+    std::memcpy(&denominator_, mmap_.data(), sizeof(double));
+
+    // Validate denominator
+    if (denominator_ <= 0.0 || !std::isfinite(denominator_))
+    {
+        throw FileFormatException(
+            std::format(
+                "{}: invalid denominator in file header: {}",
+                bin_path_.string(),
+                denominator_));
     }
 }
 
@@ -107,7 +122,9 @@ auto GrmLoader::load() const -> Eigen::MatrixXd
 {
     Eigen::MatrixXd grm(num_samples_, num_samples_);
 
-    const auto* data = reinterpret_cast<const float*>(mmap_.data());
+    // Skip 8-byte denominator header to access matrix data
+    const auto* data
+        = reinterpret_cast<const float*>(mmap_.data() + sizeof(double));
 
     // Fill lower triangle and mirror to upper triangle
     for (Eigen::Index i = 0; i < num_samples_; ++i)
@@ -120,6 +137,9 @@ auto GrmLoader::load() const -> Eigen::MatrixXd
             grm(j, i) = value;
         }
     }
+
+    // Apply normalization
+    grm /= denominator_;
 
     return grm;
 }
@@ -167,7 +187,9 @@ auto GrmLoader::load(
     Eigen::Index out_size = max_target_idx + 1;
     Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(out_size, out_size);
 
-    const auto* data = reinterpret_cast<const float*>(mmap_.data());
+    // Skip 8-byte denominator header to access matrix data
+    const auto* data
+        = reinterpret_cast<const float*>(mmap_.data() + sizeof(double));
 
     // Fill the matrix using index mapping
     for (size_t ii = 0; ii < idx_mapping.size(); ++ii)
@@ -190,6 +212,9 @@ auto GrmLoader::load(
             grm(tgt_i, tgt_j) = static_cast<double>(data[idx]);
         }
     }
+
+    // Apply normalization
+    grm /= denominator_;
 
     return grm;
 }

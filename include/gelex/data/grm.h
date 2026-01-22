@@ -15,6 +15,12 @@
 namespace gelex
 {
 
+struct GrmResult
+{
+    Eigen::MatrixXd grm;
+    double denominator;
+};
+
 class GRM
 {
    public:
@@ -31,7 +37,7 @@ class GRM
         Eigen::Index chunk_size,
         bool additive,
         std::function<void(Eigen::Index, Eigen::Index)> progress_callback
-        = nullptr) -> Eigen::MatrixXd;
+        = nullptr) -> GrmResult;
 
     [[nodiscard]] auto sample_ids() const -> const std::vector<std::string>&
     {
@@ -57,7 +63,7 @@ auto GRM::compute(
     Eigen::Index chunk_size,
     bool add,
     std::function<void(Eigen::Index, Eigen::Index)> progress_callback)
-    -> Eigen::MatrixXd
+    -> GrmResult
 {
     const Eigen::Index n = bed_.num_samples();
     Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(n, n);
@@ -78,9 +84,9 @@ auto GRM::compute(
         }
     }
 
-    grm /= grm.trace() / static_cast<double>(n);
+    double denominator = grm.trace() / static_cast<double>(n);
 
-    return grm;
+    return {grm, denominator};
 }
 }  // namespace gelex
 

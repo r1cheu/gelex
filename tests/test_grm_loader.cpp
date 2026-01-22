@@ -35,13 +35,14 @@ class GrmFileFixture
     // Create GRM files from matrix and IDs
     auto create(
         const Eigen::MatrixXd& matrix,
-        const std::vector<std::string>& ids) -> void
+        const std::vector<std::string>& ids,
+        double denominator = 1.0) -> void
     {
         // Write binary file
         auto bin_path = fs::path(prefix_.string() + ".grm.bin");
         {
             GrmBinWriter writer(bin_path);
-            writer.write(matrix);
+            writer.write(matrix, denominator);
         }
 
         // Write ID file
@@ -61,11 +62,13 @@ class GrmFileFixture
     }
 
     // Create only bin file (for testing missing id file)
-    auto create_bin_only(const Eigen::MatrixXd& matrix) -> void
+    auto create_bin_only(
+        const Eigen::MatrixXd& matrix,
+        double denominator = 1.0) -> void
     {
         auto bin_path = fs::path(prefix_.string() + ".grm.bin");
         GrmBinWriter writer(bin_path);
-        writer.write(matrix);
+        writer.write(matrix, denominator);
     }
 
     [[nodiscard]] auto prefix() const -> const fs::path& { return prefix_; }
@@ -732,5 +735,123 @@ TEST_CASE(
         auto loaded = loader.load();
 
         REQUIRE(std::isnan(loaded(0, 0)));
+    }
+}
+
+// ============================================================================
+// Denominator and normalization tests
+// ============================================================================
+
+TEST_CASE(
+    "GrmLoader - Load with denominator normalization",
+    "[grm_loader][normalize]")
+{
+    FileFixture files;
+    GrmFileFixture grm_files(files);
+
+    SECTION("Happy path - automatic normalization with denominator=2.0")
+    {
+        // Create unnormalized matrix
+        Eigen::MatrixXd unnormalized(3, 3);
+        unnormalized << 2.0, 1.0, 0.6, 1.0, 4.0, 0.8, 0.6, 0.8, 6.0;
+
+        double denominator = 2.0;
+        auto ids = make_sample_ids(3);
+
+        grm_files.create(unnormalized, ids, denominator);
+
+        GrmLoader loader(grm_files.prefix());
+        auto loaded = loader.load();
+
+        // Verify automatic normalization (accounting for float precision)
+        auto to_float = [](double v)
+        { return static_cast<double>(static_cast<float>(v)); };
+
+        REQUIRE(loaded(0, 0) == to_float(1.0));  // 2.0 / 2.0
+        REQUIRE(loaded(1, 1) == to_float(2.0));  // 4.0 / 2.0
+        REQUIRE(loaded(2, 2) == to_float(3.0));  // 6.0 / 2.0
+        REQUIRE(loaded(0, 1) == to_float(0.5));  // 1.0 / 2.0
+        REQUIRE(loaded(0, 2) == to_float(0.3));  // 0.6 / 2.0
+    }
+
+    SECTION("Happy path - denominator accessor returns correct value")
+    {
+        Eigen::MatrixXd matrix(2, 2);
+        matrix << 4.0, 2.0, 2.0, 8.0;
+
+        double denominator = 3.5;
+        auto ids = make_sample_ids(2);
+
+        grm_files.create(matrix, ids, denominator);
+
+        GrmLoader loader(grm_files.prefix());
+
+        REQUIRE(loader.denominator() == denominator);
+    }
+}
+
+TEST_CASE(
+    "GrmLoader - Invalid denominator handling",
+    "[grm_loader][exception]")
+{
+    FileFixture files;
+
+    SECTION("Exception - zero denominator in file")
+    {
+        // Manually create a file with zero denominator
+        auto prefix = files.generate_random_file_path("");
+        auto bin_path = fs::path(prefix.string() + ".grm.bin");
+        auto id_path = fs::path(prefix.string() + ".grm.id");
+
+        // Write ID file
+        {
+            GrmIdWriter writer(id_path);
+            std::vector<std::string> ids = {"FAM1_IND1", "FAM2_IND2"};
+            writer.write(ids);
+        }
+
+        // Manually write bin file with zero denominator
+        {
+            std::ofstream file(bin_path, std::ios::binary);
+            double zero_denom = 0.0;
+            file.write(reinterpret_cast<const char*>(&zero_denom), sizeof(double));
+
+            // Write dummy matrix data
+            for (int i = 0; i < 3; ++i)
+            {  // 2*3/2 = 3 elements
+                float val = 1.0f;
+                file.write(reinterpret_cast<const char*>(&val), sizeof(float));
+            }
+        }
+
+        // Should throw when trying to load
+        REQUIRE_THROWS_AS(GrmLoader(prefix), gelex::FileFormatException);
+    }
+
+    SECTION("Exception - negative denominator in file")
+    {
+        auto prefix = files.generate_random_file_path("");
+        auto bin_path = fs::path(prefix.string() + ".grm.bin");
+        auto id_path = fs::path(prefix.string() + ".grm.id");
+
+        {
+            GrmIdWriter writer(id_path);
+            std::vector<std::string> ids = {"FAM1_IND1", "FAM2_IND2"};
+            writer.write(ids);
+        }
+
+        {
+            std::ofstream file(bin_path, std::ios::binary);
+            double neg_denom = -1.0;
+            file.write(reinterpret_cast<const char*>(&neg_denom), sizeof(double));
+
+            for (int i = 0; i < 3; ++i)
+            {
+                float val = 1.0f;
+                file.write(reinterpret_cast<const char*>(&val), sizeof(float));
+            }
+        }
+
+        REQUIRE_THROWS_AS(GrmLoader(prefix), gelex::FileFormatException);
     }
 }

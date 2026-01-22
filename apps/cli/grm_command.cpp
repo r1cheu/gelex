@@ -76,7 +76,7 @@ auto compute_grm(
     int chunk_size,
     bool additive,
     std::function<void(Eigen::Index, Eigen::Index)> progress_callback = nullptr)
-    -> Eigen::MatrixXd
+    -> gelex::GrmResult
 {
     return grm.compute<CodePolicy>(chunk_size, additive, progress_callback);
 }
@@ -87,7 +87,7 @@ auto compute_grm_with_method(
     int chunk_size,
     bool additive,
     std::function<void(Eigen::Index, Eigen::Index)> progress_callback = nullptr)
-    -> Eigen::MatrixXd
+    -> gelex::GrmResult
 {
     if (method == "su")
     {
@@ -115,7 +115,7 @@ auto compute_grm_with_method(
 }
 
 auto write_grm_files(
-    const Eigen::MatrixXd& G,
+    const gelex::GrmResult& result,
     const std::vector<std::string>& sample_ids,
     const std::string& out_prefix,
     std::shared_ptr<spdlog::logger> logger) -> void
@@ -123,7 +123,7 @@ auto write_grm_files(
     std::string bin_path = out_prefix + ".grm.bin";
     std::string id_path = out_prefix + ".grm.id";
 
-    gelex::detail::GrmBinWriter(bin_path).write(G);
+    gelex::detail::GrmBinWriter(bin_path).write(result.grm, result.denominator);
     logger->info(gelex::success("GRM binary written to : {}", bin_path));
 
     gelex::detail::GrmIdWriter(id_path).write(sample_ids);
@@ -135,7 +135,7 @@ auto compute_grm_with_progress(
     std::string_view method,
     int chunk_size,
     bool additive,
-    Eigen::Index num_snps) -> Eigen::MatrixXd
+    Eigen::Index num_snps) -> gelex::GrmResult
 {
     std::atomic<std::ptrdiff_t> progress{0};
 
@@ -152,7 +152,7 @@ auto compute_grm_with_progress(
     auto progress_callback = [&progress](Eigen::Index current, Eigen::Index)
     { progress.store(current, std::memory_order_relaxed); };
 
-    Eigen::MatrixXd result = compute_grm_with_method(
+    gelex::GrmResult result = compute_grm_with_method(
         grm, method, chunk_size, additive, progress_callback);
 
     pbar->done();
@@ -213,28 +213,28 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
     if (do_additive && do_dominant)
     {
         logger->info(gelex::task("Additive:"));
-        Eigen::MatrixXd G_add = compute_grm_with_progress(
+        gelex::GrmResult result_add = compute_grm_with_progress(
             grm, method, chunk_size, true, num_snps);
-        write_grm_files(G_add, sample_ids, out_prefix + ".add", logger);
+        write_grm_files(result_add, sample_ids, out_prefix + ".add", logger);
 
         logger->info(gelex::task("Dominance:"));
-        Eigen::MatrixXd G_dom = compute_grm_with_progress(
+        gelex::GrmResult result_dom = compute_grm_with_progress(
             grm, method, chunk_size, false, num_snps);
-        write_grm_files(G_dom, sample_ids, out_prefix + ".dom", logger);
+        write_grm_files(result_dom, sample_ids, out_prefix + ".dom", logger);
     }
     else if (do_additive)
     {
         logger->info(gelex::task("Additive:"));
-        Eigen::MatrixXd G = compute_grm_with_progress(
+        gelex::GrmResult result = compute_grm_with_progress(
             grm, method, chunk_size, true, num_snps);
-        write_grm_files(G, sample_ids, out_prefix, logger);
+        write_grm_files(result, sample_ids, out_prefix, logger);
     }
     else
     {
         logger->info(gelex::task("Dominance:"));
-        Eigen::MatrixXd G = compute_grm_with_progress(
+        gelex::GrmResult result = compute_grm_with_progress(
             grm, method, chunk_size, false, num_snps);
-        write_grm_files(G, sample_ids, out_prefix, logger);
+        write_grm_files(result, sample_ids, out_prefix, logger);
     }
 
     auto end_time = std::chrono::high_resolution_clock::now();

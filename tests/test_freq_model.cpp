@@ -37,12 +37,13 @@ class GrmFileFixture
 
     auto create(
         const Eigen::MatrixXd& matrix,
-        const std::vector<std::string>& ids) -> void
+        const std::vector<std::string>& ids,
+        double denominator = 1.0) -> void
     {
         auto bin_path = fs::path(prefix_.string() + ".grm.bin");
         {
             detail::GrmBinWriter writer(bin_path);
-            writer.write(matrix);
+            writer.write(matrix, denominator);
         }
 
         auto id_path = fs::path(prefix_.string() + ".grm.id");

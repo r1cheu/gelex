@@ -21,23 +21,31 @@ using Catch::Matchers::ContainsSubstring;
 using Catch::Matchers::MessageMatches;
 using gelex::test::FileFixture;
 
-// Helper function to calculate expected file size for lower triangle
+// Helper function to calculate expected file size with denominator header
 auto expected_file_size(Eigen::Index n) -> size_t
 {
-    return static_cast<size_t>(n * (n + 1) / 2) * sizeof(float);
+    return sizeof(double)
+           + static_cast<size_t>(n * (n + 1) / 2) * sizeof(float);
 }
 
-// Helper function to read lower triangle values from binary file
-auto read_lower_triangle(const fs::path& file_path, Eigen::Index n)
-    -> std::vector<float>
+// Helper function to read denominator and lower triangle values from binary file
+auto read_grm_file(const fs::path& file_path, Eigen::Index n)
+    -> std::pair<double, std::vector<float>>
 {
     std::ifstream file(file_path, std::ios::binary);
+    
+    // Read denominator
+    double denominator;
+    file.read(reinterpret_cast<char*>(&denominator), sizeof(double));
+    
+    // Read lower triangle
     const auto num_elements = static_cast<size_t>(n * (n + 1) / 2);
     std::vector<float> values(num_elements);
     file.read(
         reinterpret_cast<char*>(values.data()),
         static_cast<std::streamsize>(num_elements * sizeof(float)));
-    return values;
+    
+    return {denominator, values};
 }
 
 // ============================================================================
@@ -81,7 +89,7 @@ TEST_CASE("GrmBinWriter - Write empty matrix", "[grm_bin_writer][empty]")
             [&]()
             {
                 GrmBinWriter writer(file_path);
-                writer.write(empty_matrix);
+                writer.write(empty_matrix, 1.0);
             }());
 
         REQUIRE(fs::exists(file_path));
@@ -108,13 +116,13 @@ TEST_CASE("GrmBinWriter - Write 1x1 matrix", "[grm_bin_writer][basic]")
             [&]()
             {
                 GrmBinWriter writer(file_path);
-                writer.write(matrix);
+                writer.write(matrix, 1.0);
             }());
 
         REQUIRE(fs::exists(file_path));
         REQUIRE(fs::file_size(file_path) == expected_file_size(1));
 
-        auto values = read_lower_triangle(file_path, 1);
+        auto [denom, values] = read_grm_file(file_path, 1);
         REQUIRE(values.size() == 1);
         REQUIRE(values[0] == 1.5F);
     }
@@ -140,14 +148,14 @@ TEST_CASE("GrmBinWriter - Write 3x3 matrix", "[grm_bin_writer][basic]")
             [&]()
             {
                 GrmBinWriter writer(file_path);
-                writer.write(matrix);
+                writer.write(matrix, 1.0);
             }());
 
         REQUIRE(fs::exists(file_path));
         // Lower triangle has 3*(3+1)/2 = 6 elements
         REQUIRE(fs::file_size(file_path) == expected_file_size(3));
 
-        auto values = read_lower_triangle(file_path, 3);
+        auto [denom, values] = read_grm_file(file_path, 3);
         REQUIRE(values.size() == 6);
 
         // Expected order: (0,0), (1,0), (1,1), (2,0), (2,1), (2,2)
@@ -178,13 +186,13 @@ TEST_CASE("GrmBinWriter - Write medium matrix", "[grm_bin_writer][basic]")
             [&]()
             {
                 GrmBinWriter writer(file_path);
-                writer.write(matrix);
+                writer.write(matrix, 1.0);
             }());
 
         REQUIRE(fs::exists(file_path));
         REQUIRE(fs::file_size(file_path) == expected_file_size(n));
 
-        auto values = read_lower_triangle(file_path, n);
+        auto [denom, values] = read_grm_file(file_path, n);
         REQUIRE(values.size() == static_cast<size_t>(n * (n + 1) / 2));
 
         // Verify all lower triangle elements in correct order
@@ -229,10 +237,10 @@ TEST_CASE(
             [&]()
             {
                 GrmBinWriter writer(file_path);
-                writer.write(matrix);
+                writer.write(matrix, 1.0);
             }());
 
-        auto values = read_lower_triangle(file_path, 4);
+        auto [denom, values] = read_grm_file(file_path, 4);
 
         // Expected order: (0,0), (1,0), (1,1), (2,0), (2,1), (2,2), (3,0),
         // (3,1), (3,2), (3,3) Values:     0,    10,    11,    20,    21, 22,
@@ -270,10 +278,10 @@ TEST_CASE(
             [&]()
             {
                 GrmBinWriter writer(file_path);
-                writer.write(matrix);
+                writer.write(matrix, 1.0);
             }());
 
-        auto values = read_lower_triangle(file_path, 2);
+        auto [denom, values] = read_grm_file(file_path, 2);
         REQUIRE(values.size() == 3);
 
         // Verify values are converted to float (reduced precision)
@@ -308,7 +316,7 @@ TEST_CASE(
         matrix.setOnes();
 
         GrmBinWriter writer(file_path);
-        REQUIRE_THROWS_AS(writer.write(matrix), gelex::InvalidInputException);
+        REQUIRE_THROWS_AS(writer.write(matrix, 1.0), gelex::InvalidInputException);
     }
 
     SECTION("Exception - non-square matrix (5x3) throws InvalidInputException")
@@ -319,7 +327,7 @@ TEST_CASE(
         matrix.setOnes();
 
         GrmBinWriter writer(file_path);
-        REQUIRE_THROWS_AS(writer.write(matrix), gelex::InvalidInputException);
+        REQUIRE_THROWS_AS(writer.write(matrix, 1.0), gelex::InvalidInputException);
     }
 
     SECTION("Exception - error message contains dimensions")
@@ -331,7 +339,7 @@ TEST_CASE(
 
         GrmBinWriter writer(file_path);
         REQUIRE_THROWS_MATCHES(
-            writer.write(matrix),
+            writer.write(matrix, 1.0),
             gelex::InvalidInputException,
             MessageMatches(ContainsSubstring("3x7")));
     }
@@ -361,10 +369,10 @@ TEST_CASE(
             [&]()
             {
                 GrmBinWriter writer(file_path);
-                writer.write(matrix);
+                writer.write(matrix, 1.0);
             }());
 
-        auto values = read_lower_triangle(file_path, 2);
+        auto [denom, values] = read_grm_file(file_path, 2);
         REQUIRE(values.size() == 3);
 
         REQUIRE(std::isinf(values[0]));
@@ -387,10 +395,10 @@ TEST_CASE(
             [&]()
             {
                 GrmBinWriter writer(file_path);
-                writer.write(matrix);
+                writer.write(matrix, 1.0);
             }());
 
-        auto values = read_lower_triangle(file_path, 2);
+        auto [denom, values] = read_grm_file(file_path, 2);
         REQUIRE(values.size() == 3);
 
         REQUIRE(std::isnan(values[0]));
@@ -413,10 +421,10 @@ TEST_CASE(
             [&]()
             {
                 GrmBinWriter writer(file_path);
-                writer.write(matrix);
+                writer.write(matrix, 1.0);
             }());
 
-        auto values = read_lower_triangle(file_path, 2);
+        auto [denom, values] = read_grm_file(file_path, 2);
         REQUIRE(values.size() == 3);
 
         REQUIRE(values[0] == static_cast<float>(small_val));
@@ -452,7 +460,7 @@ TEST_CASE("GrmBinWriter - Buffer size verification", "[grm_bin_writer][buffer]")
             [&]()
             {
                 GrmBinWriter writer(file_path);
-                writer.write(matrix);
+                writer.write(matrix, 1.0);
             }());
 
         REQUIRE(fs::exists(file_path));
@@ -478,7 +486,7 @@ TEST_CASE(
 
         {
             GrmBinWriter writer(file_path);
-            writer.write(matrix);
+            writer.write(matrix, 1.0);
         }
 
         REQUIRE(fs::file_size(file_path) == expected_file_size(n));
@@ -492,7 +500,7 @@ TEST_CASE(
 
         {
             GrmBinWriter writer(file_path);
-            writer.write(matrix);
+            writer.write(matrix, 1.0);
         }
 
         REQUIRE(fs::file_size(file_path) == expected_file_size(n));
@@ -506,9 +514,121 @@ TEST_CASE(
 
         {
             GrmBinWriter writer(file_path);
-            writer.write(matrix);
+            writer.write(matrix, 1.0);
         }
 
         REQUIRE(fs::file_size(file_path) == expected_file_size(n));
+    }
+}
+
+// ============================================================================
+// Denominator tests
+// ============================================================================
+
+TEST_CASE(
+    "GrmBinWriter - Write with denominator",
+    "[grm_bin_writer][denominator]")
+{
+    FileFixture files;
+
+    auto expected_file_size_with_denom = [](Eigen::Index n) -> size_t
+    {
+        size_t num_elements = static_cast<size_t>(n) * (static_cast<size_t>(n) + 1) / 2;
+        return sizeof(double) + num_elements * sizeof(float);  // 8 bytes + matrix
+    };
+
+    SECTION("Happy path - write 3x3 matrix with denominator")
+    {
+        auto file_path = files.generate_random_file_path(".grm.bin");
+
+        Eigen::MatrixXd matrix(3, 3);
+        matrix << 2.0, 1.0, 0.6, 1.0, 4.0, 0.8, 0.6, 0.8, 6.0;
+
+        double denominator = 2.5;
+
+        {
+            GrmBinWriter writer(file_path);
+            writer.write(matrix, denominator);
+        }
+
+        // Verify file size: 8 bytes (denominator) + 6 * 4 bytes (lower triangle)
+        REQUIRE(fs::file_size(file_path) == expected_file_size_with_denom(3));
+
+        // Verify file content by reading it back
+        std::ifstream file(file_path, std::ios::binary);
+        
+        // Read denominator
+        double read_denom;
+        file.read(reinterpret_cast<char*>(&read_denom), sizeof(double));
+        REQUIRE(read_denom == denominator);
+
+        // Read first matrix element
+        float first_val;
+        file.read(reinterpret_cast<char*>(&first_val), sizeof(float));
+        REQUIRE(first_val == static_cast<float>(2.0));
+    }
+
+    SECTION("Happy path - file size with denominator for n=10")
+    {
+        auto file_path = files.generate_random_file_path(".grm.bin");
+        const Eigen::Index n = 10;
+        Eigen::MatrixXd matrix = Eigen::MatrixXd::Random(n, n);
+
+        {
+            GrmBinWriter writer(file_path);
+            writer.write(matrix, 1.5);
+        }
+
+        REQUIRE(fs::file_size(file_path) == expected_file_size_with_denom(n));
+    }
+}
+
+TEST_CASE(
+    "GrmBinWriter - Invalid denominator exceptions",
+    "[grm_bin_writer][denominator][exception]")
+{
+    FileFixture files;
+    auto file_path = files.generate_random_file_path(".grm.bin");
+
+    Eigen::MatrixXd matrix(2, 2);
+    matrix << 1.0, 0.5, 0.5, 1.0;
+
+    SECTION("Exception - zero denominator")
+    {
+        GrmBinWriter writer(file_path);
+        REQUIRE_THROWS_AS(
+            writer.write(matrix, 0.0), gelex::InvalidInputException);
+    }
+
+    SECTION("Exception - negative denominator")
+    {
+        GrmBinWriter writer(file_path);
+        REQUIRE_THROWS_AS(
+            writer.write(matrix, -1.0), gelex::InvalidInputException);
+    }
+
+    SECTION("Exception - NaN denominator")
+    {
+        GrmBinWriter writer(file_path);
+        auto nan = std::numeric_limits<double>::quiet_NaN();
+        REQUIRE_THROWS_AS(
+            writer.write(matrix, nan), gelex::InvalidInputException);
+    }
+
+    SECTION("Exception - infinity denominator")
+    {
+        GrmBinWriter writer(file_path);
+        auto inf = std::numeric_limits<double>::infinity();
+        REQUIRE_THROWS_AS(
+            writer.write(matrix, inf), gelex::InvalidInputException);
+    }
+
+    SECTION("Exception - error message contains denominator value")
+    {
+        GrmBinWriter writer(file_path);
+        REQUIRE_THROWS_MATCHES(
+            writer.write(matrix, -2.5),
+            gelex::InvalidInputException,
+            MessageMatches(ContainsSubstring("-2.5")));
     }
 }
