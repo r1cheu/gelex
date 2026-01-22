@@ -165,6 +165,7 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     gelex::AssocInput input(
         chunk_size, std::move(v_inv), std::move(v_inv_residual));
     gelex::AssocOutput output(chunk_size);
+    Eigen::VectorXd freqs(chunk_size);
 
     // ================================================================
     // Association testing
@@ -192,24 +193,29 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
                              * static_cast<Eigen::Index>(chunk_size);
         Eigen::Index end
             = std::min(start + static_cast<Eigen::Index>(chunk_size), n_snps);
-        input.Z.resize(n_samples, (end - start));
+        Eigen::Index current_chunk_size = end - start;
+
+        input.Z.resize(n_samples, current_chunk_size);
+        freqs.resize(current_chunk_size);
+
         bed_pipe.load_chunk(input.Z, start, end);
-        encoder(input.Z, additive);
+        encoder(input.Z, additive, &freqs);
         gelex::gwas::wald_test(input, output);
 
         for (size_t i = n_tested;
-             i < n_tested + static_cast<size_t>(end - start);
+             i < n_tested + static_cast<size_t>(current_chunk_size);
              ++i)
         {
             writer.write_result(
                 snp_effects[i],
-                {.beta = output.beta(static_cast<Eigen::Index>(i - n_tested)),
+                {.freq = freqs(static_cast<Eigen::Index>(i - n_tested)),
+                 .beta = output.beta(static_cast<Eigen::Index>(i - n_tested)),
                  .se = output.se(static_cast<Eigen::Index>(i - n_tested)),
                  .p_value
                  = output.p_value(static_cast<Eigen::Index>(i - n_tested))});
         }
 
-        n_tested += static_cast<size_t>(end - start);
+        n_tested += static_cast<size_t>(current_chunk_size);
         progress_counter += static_cast<size_t>(end - start);
         double finish_percent = static_cast<double>(progress_counter)
                                 / static_cast<double>(n_snps) * 100;

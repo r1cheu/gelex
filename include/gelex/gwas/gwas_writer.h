@@ -15,6 +15,7 @@ class GwasWriter
    public:
     struct AssocResult
     {
+        double freq;
         double beta;
         double se;
         double p_value;

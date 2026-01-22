@@ -32,13 +32,20 @@ ColStats compute_mean_and_count(const Eigen::Ref<const Eigen::VectorXd>& col)
     return {sum / static_cast<double>(valid_count), valid_count};
 }
 
-auto additive_mean_center(Eigen::Ref<Eigen::MatrixXd> genotype) -> void
+auto additive_mean_center(
+    Eigen::Ref<Eigen::MatrixXd> genotype,
+    Eigen::VectorXd* freqs) -> void
 {
-#pragma omp parallel for default(none) shared(genotype)
+#pragma omp parallel for default(none) shared(genotype, freqs)
     for (Eigen::Index i = 0; i < genotype.cols(); ++i)
     {
         auto col = genotype.col(i);
         auto [mean, valid_count] = compute_mean_and_count(col);
+
+        if (freqs != nullptr)
+        {
+            (*freqs)(i) = mean / 2.0;
+        }
 
         if (valid_count == 0)
         {
@@ -50,27 +57,36 @@ auto additive_mean_center(Eigen::Ref<Eigen::MatrixXd> genotype) -> void
             [mean](double val)
             {
                 if (std::isnan(val))
+                {
                     return 0.0;
+                }
                 return val - mean;
             });
     }
 }
 }  // namespace detail
 
-auto Su::operator()(Eigen::Ref<Eigen::MatrixXd> genotype, bool use_additive)
-    const -> void
+auto Su::operator()(
+    Eigen::Ref<Eigen::MatrixXd> genotype,
+    bool use_additive,
+    Eigen::VectorXd* freqs) const -> void
 {
     if (use_additive)
     {
-        detail::additive_mean_center(genotype);
+        detail::additive_mean_center(genotype, freqs);
     }
     else
     {
-#pragma omp parallel for default(none) shared(genotype)
+#pragma omp parallel for default(none) shared(genotype, freqs)
         for (Eigen::Index i = 0; i < genotype.cols(); ++i)
         {
             auto col = genotype.col(i);
             auto [mean, valid_count] = detail::compute_mean_and_count(col);
+
+            if (freqs != nullptr)
+            {
+                (*freqs)(i) = mean / 2.0;
+            }
 
             if (valid_count == 0)
             {
@@ -85,29 +101,40 @@ auto Su::operator()(Eigen::Ref<Eigen::MatrixXd> genotype, bool use_additive)
                 [dominance_mean](double val) -> double
                 {
                     if (std::isnan(val))
+                    {
                         return 0.0;
+                    }
                     if (val == 2)
+                    {
                         return -dominance_mean;
+                    }
                     return val - dominance_mean;
                 });
         }
     }
 }
 
-auto Zeng::operator()(Eigen::Ref<Eigen::MatrixXd> genotype, bool use_additive)
-    const -> void
+auto Zeng::operator()(
+    Eigen::Ref<Eigen::MatrixXd> genotype,
+    bool use_additive,
+    Eigen::VectorXd* freqs) const -> void
 {
     if (use_additive)
     {
-        detail::additive_mean_center(genotype);
+        detail::additive_mean_center(genotype, freqs);
     }
     else
     {
-#pragma omp parallel for default(none) shared(genotype)
+#pragma omp parallel for default(none) shared(genotype, freqs)
         for (Eigen::Index i = 0; i < genotype.cols(); ++i)
         {
             auto col = genotype.col(i);
             auto [mean, valid_count] = detail::compute_mean_and_count(col);
+
+            if (freqs != nullptr)
+            {
+                (*freqs)(i) = mean / 2.0;
+            }
 
             if (valid_count == 0)
             {
@@ -125,27 +152,40 @@ auto Zeng::operator()(Eigen::Ref<Eigen::MatrixXd> genotype, bool use_additive)
                 [v2, v1, v0](double val) -> double
                 {
                     if (std::isnan(val))
+                    {
                         return 0.0;
+                    }
                     if (val == 2)
+                    {
                         return v2;
+                    }
                     if (val == 1)
+                    {
                         return v1;
+                    }
                     return v0;
                 });
         }
     }
 }
 
-auto Yang::operator()(Eigen::Ref<Eigen::MatrixXd> genotype, bool use_additive)
-    const -> void
+auto Yang::operator()(
+    Eigen::Ref<Eigen::MatrixXd> genotype,
+    bool use_additive,
+    Eigen::VectorXd* freqs) const -> void
 {
     if (use_additive)
     {
-#pragma omp parallel for default(none) shared(genotype)
+#pragma omp parallel for default(none) shared(genotype, freqs)
         for (Eigen::Index i = 0; i < genotype.cols(); ++i)
         {
             auto col = genotype.col(i);
             auto [mean, valid_count] = detail::compute_mean_and_count(col);
+
+            if (freqs != nullptr)
+            {
+                (*freqs)(i) = mean / 2.0;
+            }
 
             if (valid_count == 0)
             {
@@ -168,18 +208,25 @@ auto Yang::operator()(Eigen::Ref<Eigen::MatrixXd> genotype, bool use_additive)
                 [two_pa, denom](double val) -> double
                 {
                     if (std::isnan(val))
+                    {
                         return 0.0;
+                    }
                     return (val - two_pa) / denom;
                 });
         }
     }
     else
     {
-#pragma omp parallel for default(none) shared(genotype)
+#pragma omp parallel for default(none) shared(genotype, freqs)
         for (Eigen::Index i = 0; i < genotype.cols(); ++i)
         {
             auto col = genotype.col(i);
             auto [mean, valid_count] = detail::compute_mean_and_count(col);
+
+            if (freqs != nullptr)
+            {
+                (*freqs)(i) = mean / 2.0;
+            }
 
             if (valid_count == 0)
             {
@@ -205,11 +252,17 @@ auto Yang::operator()(Eigen::Ref<Eigen::MatrixXd> genotype, bool use_additive)
                 [v2, v1, v0](double val) -> double
                 {
                     if (std::isnan(val))
+                    {
                         return 0.0;
+                    }
                     if (val == 2)
+                    {
                         return v2;
+                    }
                     if (val == 1)
+                    {
                         return v1;
+                    }
                     return v0;
                 });
         }
@@ -218,15 +271,21 @@ auto Yang::operator()(Eigen::Ref<Eigen::MatrixXd> genotype, bool use_additive)
 
 auto Vitezica::operator()(
     Eigen::Ref<Eigen::MatrixXd> genotype,
-    bool use_additive) const -> void
+    bool use_additive,
+    Eigen::VectorXd* freqs) const -> void
 {
     if (use_additive)
     {
-#pragma omp parallel for default(none) shared(genotype)
+#pragma omp parallel for default(none) shared(genotype, freqs)
         for (Eigen::Index i = 0; i < genotype.cols(); ++i)
         {
             auto col = genotype.col(i);
             auto [mean, valid_count] = detail::compute_mean_and_count(col);
+
+            if (freqs != nullptr)
+            {
+                (*freqs)(i) = mean / 2.0;
+            }
 
             if (valid_count == 0)
             {
@@ -240,19 +299,29 @@ auto Vitezica::operator()(
                 [subtract_val](double val) -> double
                 {
                     if (std::isnan(val))
+                    {
                         return 0.0;
+                    }
                     return val - subtract_val;
                 });
         }
     }
     else
     {
-#pragma omp parallel for default(none) shared(genotype)
+#pragma omp parallel for default(none) shared(genotype, freqs)
         for (Eigen::Index i = 0; i < genotype.cols(); ++i)
         {
             auto col = genotype.col(i);
             auto is_nan = col.array().isNaN();
             Eigen::Index valid_count = col.size() - is_nan.count();
+
+            if (freqs != nullptr)
+            {
+                double nAA = static_cast<double>((col.array() == 2.0).count());
+                double nAa = static_cast<double>((col.array() == 1.0).count());
+                (*freqs)(i) = (2.0 * nAA + nAa)
+                              / (2.0 * static_cast<double>(valid_count));
+            }
 
             if (valid_count == 0)
             {
@@ -260,9 +329,9 @@ auto Vitezica::operator()(
                 continue;
             }
 
-            double nAA = (col.array() == 2.0).count();
-            double nAa = (col.array() == 1.0).count();
-            double naa = valid_count - nAA - nAa;
+            auto nAA = static_cast<double>((col.array() == 2.0).count());
+            auto nAa = static_cast<double>((col.array() == 1.0).count());
+            auto naa = static_cast<double>(valid_count) - nAA - nAa;
 
             double scale = static_cast<double>(col.size())
                            / static_cast<double>(valid_count);
@@ -285,11 +354,17 @@ auto Vitezica::operator()(
                 [v2, v1, v0](double val) -> double
                 {
                     if (std::isnan(val))
+                    {
                         return 0.0;
+                    }
                     if (val == 2)
+                    {
                         return v2;
+                    }
                     if (val == 1)
+                    {
                         return v1;
+                    }
                     return v0;
                 });
         }
