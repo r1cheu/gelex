@@ -39,6 +39,14 @@ class GRM
         std::function<void(Eigen::Index, Eigen::Index)> progress_callback
         = nullptr) -> GrmResult;
 
+    template <typename CodePolicy>
+    auto compute(
+        const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
+        Eigen::Index chunk_size,
+        bool additive,
+        std::function<void(Eigen::Index, Eigen::Index)> progress_callback
+        = nullptr) -> GrmResult;
+
     [[nodiscard]] auto sample_ids() const -> const std::vector<std::string>&
     {
         return sample_manager_->common_ids();
@@ -65,22 +73,46 @@ auto GRM::compute(
     std::function<void(Eigen::Index, Eigen::Index)> progress_callback)
     -> GrmResult
 {
+    return compute<CodePolicy>(
+        {{0, bed_.num_snps()}}, chunk_size, add, progress_callback);
+}
+
+template <typename CodePolicy>
+auto GRM::compute(
+    const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
+    Eigen::Index chunk_size,
+    bool add,
+    std::function<void(Eigen::Index, Eigen::Index)> progress_callback)
+    -> GrmResult
+{
     const Eigen::Index n = bed_.num_samples();
     Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(n, n);
 
-    const Eigen::Index num_snps = bed_.num_snps();
-    for (Eigen::Index start_col = 0; start_col < num_snps;
-         start_col += chunk_size)
+    Eigen::Index total_snps_to_process = 0;
+    for (const auto& [start, end] : ranges)
     {
-        const Eigen::Index end_col = std::min(start_col + chunk_size, num_snps);
-        Eigen::MatrixXd genotype_chunk = bed_.load_chunk(start_col, end_col);
+        total_snps_to_process += (end - start);
+    }
 
-        CodePolicy{}(genotype_chunk, add);
-        update_grm(grm, genotype_chunk);
-
-        if (progress_callback)
+    Eigen::Index processed_snps = 0;
+    for (const auto& [range_start, range_end] : ranges)
+    {
+        for (Eigen::Index start_col = range_start; start_col < range_end;
+             start_col += chunk_size)
         {
-            progress_callback(end_col, num_snps);
+            const Eigen::Index end_col
+                = std::min(start_col + chunk_size, range_end);
+            Eigen::MatrixXd genotype_chunk
+                = bed_.load_chunk(start_col, end_col);
+
+            CodePolicy{}(genotype_chunk, add);
+            update_grm(grm, genotype_chunk);
+
+            processed_snps += (end_col - start_col);
+            if (progress_callback)
+            {
+                progress_callback(processed_snps, total_snps_to_process);
+            }
         }
     }
 
