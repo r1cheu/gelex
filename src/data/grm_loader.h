@@ -30,10 +30,18 @@ class GrmLoader
     // Load complete GRM matrix
     [[nodiscard]] auto load() const -> Eigen::MatrixXd;
 
+    // Load unnormalized GRM (raw X*X' sum)
+    [[nodiscard]] auto load_unnormalized() const -> Eigen::MatrixXd;
+
     // Load GRM with filtering and reordering based on id_map
     // id_map: key = "FID_IID" format ID, value = target matrix row/col index
     // Throws InvalidInputException if any ID in id_map is not found in file
     [[nodiscard]] auto load(
+        const std::unordered_map<std::string, Eigen::Index>& id_map) const
+        -> Eigen::MatrixXd;
+
+    // Load unnormalized GRM with filtering and reordering
+    [[nodiscard]] auto load_unnormalized(
         const std::unordered_map<std::string, Eigen::Index>& id_map) const
         -> Eigen::MatrixXd;
 

@@ -120,6 +120,13 @@ auto GrmLoader::init_mmap() -> void
 
 auto GrmLoader::load() const -> Eigen::MatrixXd
 {
+    Eigen::MatrixXd grm = load_unnormalized();
+    grm /= denominator_;
+    return grm;
+}
+
+auto GrmLoader::load_unnormalized() const -> Eigen::MatrixXd
+{
     Eigen::MatrixXd grm(num_samples_, num_samples_);
 
     // Skip 8-byte denominator header to access matrix data
@@ -138,13 +145,22 @@ auto GrmLoader::load() const -> Eigen::MatrixXd
         }
     }
 
-    // Apply normalization
-    grm /= denominator_;
-
     return grm;
 }
 
 auto GrmLoader::load(
+    const std::unordered_map<std::string, Eigen::Index>& id_map) const
+    -> Eigen::MatrixXd
+{
+    Eigen::MatrixXd grm = load_unnormalized(id_map);
+    if (grm.size() > 0)
+    {
+        grm /= denominator_;
+    }
+    return grm;
+}
+
+auto GrmLoader::load_unnormalized(
     const std::unordered_map<std::string, Eigen::Index>& id_map) const
     -> Eigen::MatrixXd
 {
@@ -212,9 +228,6 @@ auto GrmLoader::load(
             grm(tgt_i, tgt_j) = static_cast<double>(data[idx]);
         }
     }
-
-    // Apply normalization
-    grm /= denominator_;
 
     return grm;
 }
