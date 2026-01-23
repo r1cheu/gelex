@@ -44,7 +44,7 @@ class GRM
         const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
         Eigen::Index chunk_size,
         bool additive,
-        std::function<void(Eigen::Index, Eigen::Index)> progress_callback
+        const std::function<void(Eigen::Index, Eigen::Index)>& progress_callback
         = nullptr) -> GrmResult;
 
     [[nodiscard]] auto sample_ids() const -> const std::vector<std::string>&
@@ -82,7 +82,7 @@ auto GRM::compute(
     const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
     Eigen::Index chunk_size,
     bool add,
-    std::function<void(Eigen::Index, Eigen::Index)> progress_callback)
+    const std::function<void(Eigen::Index, Eigen::Index)>& progress_callback)
     -> GrmResult
 {
     const Eigen::Index n = bed_.num_samples();

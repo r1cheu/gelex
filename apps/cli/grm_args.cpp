@@ -1,5 +1,7 @@
 #include "grm_args.h"
 
+#include <thread>
+
 #include <argparse.h>
 
 void setup_grm_args(argparse::ArgumentParser& cmd)
@@ -37,7 +39,7 @@ void setup_grm_args(argparse::ArgumentParser& cmd)
     cmd.add_argument("--threads")
         .help("Number of threads (-1 for all cores)")
         .metavar("<N>")
-        .default_value(-1)
+        .default_value(std::thread::hardware_concurrency() / 2)
         .scan<'i', int>();
     cmd.add_argument("--additive").help("Compute additive GRM").flag();
     cmd.add_argument("--dominant").help("Compute dominance GRM").flag();
