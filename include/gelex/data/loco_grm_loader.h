@@ -33,8 +33,14 @@ class LocoGRMLoader
      * Formula: G_loco = (G_whole - G_i) / (K_whole - K_i)
      *
      * @param chr_grm_prefix Path prefix for the chromosome-specific GRM files.
-     * @return Eigen::MatrixXd The calculated LOCO GRM.
+     * @param id_map Map for sample IDs to matrix indices.
+     * @param target Output matrix to store the calculated LOCO GRM.
      */
+    auto load_loco_grm(
+        const std::filesystem::path& chr_grm_prefix,
+        const std::unordered_map<std::string, Eigen::Index>& id_map,
+        Eigen::MatrixXd& target) const -> void;
+
     [[nodiscard]] auto load_loco_grm(
         const std::filesystem::path& chr_grm_prefix,
         const std::unordered_map<std::string, Eigen::Index>& id_map) const
@@ -46,6 +52,7 @@ class LocoGRMLoader
     Eigen::MatrixXd
         g_whole_;       // Pre-filtered unnormalized whole matrix (Z * Z')
     double k_whole_{};  // K_whole
+    mutable Eigen::MatrixXd g_chr_buffer_;  // Buffer for chromosome GRM
 };
 
 }  // namespace gelex

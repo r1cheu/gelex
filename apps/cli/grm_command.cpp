@@ -284,7 +284,7 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
     {
         for (const auto& task : tasks)
         {
-            logger->info(gelex::task("{} (chr{}):", task.label, group.name));
+            logger->info(gelex::task("{} ({}):", task.label, group.name));
 
             auto result = compute_grm_with_progress(
                 grm, group.ranges, method, chunk_size, task.is_additive);
@@ -293,12 +293,12 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
             if (do_loco || tasks.size() > 1)
             {
                 std::string suffix
-                    = do_loco ? fmt::format(".chr{}", group.name) : ".grm";
+                    = do_loco ? fmt::format(".chr{}", group.name) : "";
                 path = fmt::format("{}.{}{}", out_prefix, task.name, suffix);
             }
             else
             {
-                path = out_prefix + ".grm";
+                path = out_prefix;
             }
 
             write_grm_files(result, sample_ids, path, logger);

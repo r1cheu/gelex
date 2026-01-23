@@ -12,10 +12,13 @@
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/data_pipe.h"
 #include "gelex/data/grm_code_policy.h"
+#include "gelex/data/loco_grm_loader.h"
+#include "gelex/estimator/freq/estimator.h"
 #include "gelex/estimator/freq/reml.h"
 #include "gelex/gwas/association_test.h"
 #include "gelex/gwas/gwas_writer.h"
 #include "gelex/logger.h"
+#include "gelex/model/freq/model.h"
 
 #include "data/loader/bim_loader.h"
 #include "estimator/bayes/indicator.h"
@@ -85,6 +88,9 @@ auto assoc_command(argparse::ArgumentParser& cmd) -> void
     cmd.add_argument("--iid-only")
         .help("Use only IID for sample matching (ignore FID)")
         .flag();
+    cmd.add_argument("--loco")
+        .help("Enable Leave-One-Chromosome-Out (LOCO) mode")
+        .flag();
 
     // ================================================================
     // Model Configuration
@@ -139,12 +145,11 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
         .grm_paths = grm_paths};
 
     gelex::cli::print_assoc_header(cmd.get<int>("--threads"));
-    auto [sample_manager, v_inv, v_inv_residual] = gelex::reml(
-        config,
-        cmd.get<int>("--max-iter"),
-        cmd.get<double>("--tol"),
-        true,
-        true);
+
+    auto data_pipe = gelex::load_data_for_reml(config);
+    auto sample_manager = data_pipe.sample_manager();
+
+    bool loco = cmd.get<bool>("--loco");
 
     gelex::BedPipe bed_pipe(bed_path, sample_manager);
     auto snp_effects
@@ -156,25 +161,46 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
         = static_cast<Eigen::Index>(sample_manager->num_common_samples());
     const int chunk_size = cmd.get<int>("--chunk-size");
 
+    // Group SNPs by chromosome
+    struct ChrRange
+    {
+        std::string chrom;
+        size_t start_idx;
+        size_t end_idx;
+    };
+    std::vector<ChrRange> chr_ranges;
+    if (n_snps > 0)
+    {
+        std::string current_chr = snp_effects[0].chrom;
+        size_t start = 0;
+        for (size_t i = 1; i < static_cast<size_t>(n_snps); ++i)
+        {
+            if (snp_effects[i].chrom != current_chr)
+            {
+                chr_ranges.push_back({current_chr, start, i});
+                current_chr = snp_effects[i].chrom;
+                start = i;
+            }
+        }
+        chr_ranges.push_back({current_chr, start, static_cast<size_t>(n_snps)});
+    }
+
     logger->info("");
     logger->info(gelex::section("Running Association Tests..."));
     logger->info(gelex::task("SNPs to test : {}", n_snps));
     logger->info(gelex::task("Chunk size   : {}", chunk_size));
+    if (loco)
+    {
+        logger->info(gelex::task("Mode         : LOCO"));
+    }
     logger->info("");
-
-    gelex::AssocInput input(
-        chunk_size, std::move(v_inv), std::move(v_inv_residual));
-    gelex::AssocOutput output(chunk_size);
-    Eigen::VectorXd freqs(chunk_size);
-
-    // ================================================================
-    // Association testing
-    // ================================================================
 
     gelex::gwas::GwasWriter writer(out_prefix);
     writer.write_header();
-    size_t n_tested = 0;
-    auto n_chunks = static_cast<size_t>((n_snps + chunk_size - 1) / chunk_size);
+
+    gelex::grm::Yang encoder;
+    bool additive = cmd.get("--model") == "a";
+    gelex::SmoothEtaCalculator eta_calculator(n_snps);
 
     // barkeep progress bar
     size_t progress_counter{0};
@@ -182,52 +208,124 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
         progress_counter, static_cast<size_t>(n_snps));
     pbar.pbar->show();
 
-    gelex::grm::Yang encoder;
-    bool additive = cmd.get("--model") == "a";
-
-    gelex::SmoothEtaCalculator eta_calculator(n_snps);
-
-    for (size_t chunk_idx = 0; chunk_idx < n_chunks; ++chunk_idx)
+    auto run_assoc_for_range = [&](const ChrRange& range,
+                                   Eigen::MatrixXd&& v_inv,
+                                   Eigen::VectorXd&& v_inv_residual)
     {
-        Eigen::Index start = static_cast<Eigen::Index>(chunk_idx)
-                             * static_cast<Eigen::Index>(chunk_size);
-        Eigen::Index end
-            = std::min(start + static_cast<Eigen::Index>(chunk_size), n_snps);
-        Eigen::Index current_chunk_size = end - start;
+        gelex::AssocInput input(
+            chunk_size, std::move(v_inv), std::move(v_inv_residual));
+        gelex::AssocOutput output(chunk_size);
+        Eigen::VectorXd freqs(chunk_size);
 
-        input.Z.resize(n_samples, current_chunk_size);
-        freqs.resize(current_chunk_size);
+        size_t range_len = range.end_idx - range.start_idx;
+        size_t n_chunks = (range_len + chunk_size - 1) / chunk_size;
 
-        bed_pipe.load_chunk(input.Z, start, end);
-        encoder(input.Z, additive, &freqs);
-        gelex::gwas::wald_test(input, output);
-
-        for (size_t i = n_tested;
-             i < n_tested + static_cast<size_t>(current_chunk_size);
-             ++i)
+        for (size_t chunk_idx = 0; chunk_idx < n_chunks; ++chunk_idx)
         {
-            writer.write_result(
-                snp_effects[i],
-                {.freq = freqs(static_cast<Eigen::Index>(i - n_tested)),
-                 .beta = output.beta(static_cast<Eigen::Index>(i - n_tested)),
-                 .se = output.se(static_cast<Eigen::Index>(i - n_tested)),
-                 .p_value
-                 = output.p_value(static_cast<Eigen::Index>(i - n_tested))});
+            size_t start = range.start_idx + (chunk_idx * chunk_size);
+            size_t end = std::min(start + chunk_size, range.end_idx);
+            Eigen::Index current_chunk_size = end - start;
+
+            input.Z.resize(n_samples, current_chunk_size);
+            freqs.resize(current_chunk_size);
+
+            bed_pipe.load_chunk(
+                input.Z,
+                static_cast<Eigen::Index>(start),
+                static_cast<Eigen::Index>(end));
+            encoder(input.Z, additive, &freqs);
+            gelex::gwas::wald_test(input, output);
+
+            for (size_t i = 0; i < static_cast<size_t>(current_chunk_size); ++i)
+            {
+                writer.write_result(
+                    snp_effects[start + i],
+                    {.freq = freqs(static_cast<Eigen::Index>(i)),
+                     .beta = output.beta(static_cast<Eigen::Index>(i)),
+                     .se = output.se(static_cast<Eigen::Index>(i)),
+                     .p_value = output.p_value(static_cast<Eigen::Index>(i))});
+            }
+
+            progress_counter += static_cast<size_t>(current_chunk_size);
+            double finish_percent = static_cast<double>(progress_counter)
+                                    / static_cast<double>(n_snps) * 100;
+
+            pbar.status->message(
+                fmt::format(
+                    "{:.1f}% ({}/{}) | {}",
+                    finish_percent,
+                    gelex::HumanReadable(progress_counter),
+                    gelex::HumanReadable(n_snps),
+                    eta_calculator.get_eta(progress_counter)));
+        }
+    };
+
+    if (loco)
+    {
+        std::vector<gelex::LocoGRMLoader> loco_loaders;
+        loco_loaders.reserve(grm_paths.size());
+        for (const auto& path : grm_paths)
+        {
+            loco_loaders.emplace_back(path, sample_manager->common_id_map());
         }
 
-        n_tested += static_cast<size_t>(current_chunk_size);
-        progress_counter += static_cast<size_t>(end - start);
-        double finish_percent = static_cast<double>(progress_counter)
-                                / static_cast<double>(n_snps) * 100;
+        gelex::FreqModel model(data_pipe);
+        gelex::FreqState state(model);
+        gelex::Estimator estimator(
+            cmd.get<int>("--max-iter"), cmd.get<double>("--tol"));
 
-        pbar.status->message(
-            fmt::format(
-                "{:.1f}% ({}/{}) | {}",
-                finish_percent,
-                gelex::HumanReadable(n_tested),
-                gelex::HumanReadable(n_snps),
-                eta_calculator.get_eta(n_tested)));
+        if (model.genetic().size() != loco_loaders.size())
+        {
+            throw gelex::InvalidInputException(
+                "Number of genetic components in model does not match number "
+                "of GRMs provided.");
+        }
+
+        for (const auto& range : chr_ranges)
+        {
+            for (size_t i = 0; i < loco_loaders.size(); ++i)
+            {
+                // Load LOCO GRM for this chromosome for each loader
+                std::filesystem::path chr_grm_prefix = grm_paths[i];
+                chr_grm_prefix += ".chr" + range.chrom;
+
+                loco_loaders[i].load_loco_grm(
+                    chr_grm_prefix,
+                    sample_manager->common_id_map(),
+                    model.genetic()[i].K);
+            }
+
+            // Re-fit model
+            Eigen::MatrixXd v_inv
+                = estimator.fit(model, state, true, false);  // verbose=false
+            Eigen::VectorXd v_inv_residual
+                = v_inv
+                  * (model.phenotype() - model.fixed().X * state.fixed().coeff);
+
+            run_assoc_for_range(
+                range, std::move(v_inv), std::move(v_inv_residual));
+        }
     }
+    else
+    {
+        // Standard mode: one REML fit for all chromosomes
+        gelex::FreqModel model(data_pipe);
+        gelex::FreqState state(model);
+        gelex::Estimator estimator(
+            cmd.get<int>("--max-iter"), cmd.get<double>("--tol"));
+
+        Eigen::MatrixXd v_inv = estimator.fit(model, state, true, true);
+        Eigen::VectorXd v_inv_residual
+            = v_inv
+              * (model.phenotype() - model.fixed().X * state.fixed().coeff);
+
+        for (const auto& range : chr_ranges)
+        {
+            run_assoc_for_range(
+                range, std::move(v_inv), std::move(v_inv_residual));
+        }
+    }
+
     pbar.pbar->done();
     writer.finalize();
 

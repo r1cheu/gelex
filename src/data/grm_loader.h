@@ -45,6 +45,11 @@ class GrmLoader
         const std::unordered_map<std::string, Eigen::Index>& id_map) const
         -> Eigen::MatrixXd;
 
+    // Load unnormalized GRM with filtering and reordering into target matrix
+    auto load_unnormalized(
+        const std::unordered_map<std::string, Eigen::Index>& id_map,
+        Eigen::MatrixXd& target) const -> void;
+
     [[nodiscard]] auto sample_ids() const noexcept
         -> const std::vector<std::string>&
     {

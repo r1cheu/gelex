@@ -10,6 +10,8 @@ namespace gelex
 struct AssocInput;
 class SampleManager;
 
+auto load_data_for_reml(const DataPipe::Config& config) -> DataPipe;
+
 auto reml(
     const DataPipe::Config& config,
     size_t max_iter = 100,

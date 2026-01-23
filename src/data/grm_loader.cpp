@@ -32,8 +32,8 @@ namespace gelex::detail
 {
 
 GrmLoader::GrmLoader(const std::filesystem::path& prefix)
-    : bin_path_(prefix.string() + ".grm.bin"),
-      id_path_(prefix.string() + ".grm.id"),
+    : bin_path_(prefix.string() + ".bin"),
+      id_path_(prefix.string() + ".id"),
       type_(get_type(prefix.string()))
 {
     load_sample_ids();
@@ -161,12 +161,13 @@ auto GrmLoader::load(
 }
 
 auto GrmLoader::load_unnormalized(
-    const std::unordered_map<std::string, Eigen::Index>& id_map) const
-    -> Eigen::MatrixXd
+    const std::unordered_map<std::string, Eigen::Index>& id_map,
+    Eigen::MatrixXd& target) const -> void
 {
     if (id_map.empty())
     {
-        return Eigen::MatrixXd();
+        target.resize(0, 0);
+        return;
     }
 
     // Build file_id -> file_index mapping
@@ -201,7 +202,7 @@ auto GrmLoader::load_unnormalized(
 
     // Allocate output matrix
     Eigen::Index out_size = max_target_idx + 1;
-    Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(out_size, out_size);
+    target.setZero(out_size, out_size);
 
     // Skip 8-byte denominator header to access matrix data
     const auto* data
@@ -225,10 +226,17 @@ auto GrmLoader::load_unnormalized(
             }
 
             size_t idx = lower_triangle_index(file_i, file_j);
-            grm(tgt_i, tgt_j) = static_cast<double>(data[idx]);
+            target(tgt_i, tgt_j) = static_cast<double>(data[idx]);
         }
     }
+}
 
+auto GrmLoader::load_unnormalized(
+    const std::unordered_map<std::string, Eigen::Index>& id_map) const
+    -> Eigen::MatrixXd
+{
+    Eigen::MatrixXd grm;
+    load_unnormalized(id_map, grm);
     return grm;
 }
 

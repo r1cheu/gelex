@@ -13,13 +13,7 @@
 namespace gelex
 {
 
-auto reml(
-    const DataPipe::Config& config,
-    size_t max_iter,
-    double tol,
-    bool em_init,
-    bool verbose) -> std::
-    tuple<std::shared_ptr<SampleManager>, Eigen::MatrixXd, Eigen::VectorXd>
+auto load_data_for_reml(const DataPipe::Config& config) -> DataPipe
 {
     auto logger = gelex::logging::get();
     DataPipe data_pipe(config);
@@ -105,6 +99,19 @@ auto reml(
     }
 
     data_pipe.finalize();
+    return data_pipe;
+}
+
+auto reml(
+    const DataPipe::Config& config,
+    size_t max_iter,
+    double tol,
+    bool em_init,
+    bool verbose) -> std::
+    tuple<std::shared_ptr<SampleManager>, Eigen::MatrixXd, Eigen::VectorXd>
+{
+    auto logger = gelex::logging::get();
+    auto data_pipe = load_data_for_reml(config);
 
     logger->info("");
     logger->info(gelex::section("Model Configuration..."));
@@ -116,7 +123,27 @@ auto reml(
     logger->info(
         gelex::subtask("Fixed Effects   : {}", model.fixed().X.cols()));
 
-    grm_str = grm_str.substr(0, grm_str.length() - 2);
+    std::string grm_str;
+    for (const auto& g : model.genetic())
+    {
+        if (g.type == freq::GrmType::A)
+        {
+            grm_str += "Additive, ";
+        }
+        else if (g.type == freq::GrmType::D)
+        {
+            grm_str += "Dominance, ";
+        }
+        else
+        {
+            grm_str += "Unknown, ";
+        }
+    }
+    if (!grm_str.empty())
+    {
+        grm_str = grm_str.substr(0, grm_str.length() - 2);
+    }
+
     logger->info(
         gelex::subtask(
             "Genetic Effects : {} ({})", model.genetic().size(), grm_str));
