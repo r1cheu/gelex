@@ -12,13 +12,20 @@
 
 namespace gelex::cli
 {
+namespace bk = barkeep;
 
-bool is_tty()
+const bk::BarParts BAR_STYLE{
+    .left = "[",
+    .right = "]",
+    .fill = {"\033[1;36m━\033[0m"},
+    .empty = {"-"}};
+
+auto is_tty() -> bool
 {
     return isatty(fileno(stdout)) != 0;
 }
 
-void setup_parallelization(int num_threads)
+auto setup_parallelization(int num_threads) -> void
 {
     if (num_threads > 0)
     {
@@ -27,7 +34,85 @@ void setup_parallelization(int num_threads)
     }
 }
 
-void print_gelex_banner_message(std::string_view version)
+auto build_chr_groups(bool do_loco, const gelex::SnpEffects& snp_effects)
+    -> std::vector<ChrGroup>
+{
+    std::vector<ChrGroup> groups;
+    auto num_snps = static_cast<Eigen::Index>(snp_effects.size());
+
+    if (do_loco)
+    {
+        std::string current_chr;
+        Eigen::Index range_start = 0;
+
+        for (Eigen::Index i = 0; i < num_snps; ++i)
+        {
+            if (snp_effects[i].chrom != current_chr)
+            {
+                if (!current_chr.empty())
+                {
+                    groups.push_back(
+                        {current_chr, {{range_start, i}}, i - range_start});
+                }
+                current_chr = snp_effects[i].chrom;
+                range_start = i;
+            }
+        }
+        if (!current_chr.empty())
+        {
+            groups.push_back(
+                {current_chr,
+                 {{range_start, num_snps}},
+                 num_snps - range_start});
+        }
+    }
+    else
+    {
+        groups.push_back({"all", {{0, num_snps}}, num_snps});
+    }
+    return groups;
+}
+
+auto create_progress_bar(
+    std::atomic<size_t>& counter,
+    size_t total,
+    std::string_view format) -> ProgressBarDisplay
+{
+    std::vector<std::shared_ptr<bk::BaseDisplay>> elements{
+        bk::Animation(
+            {.message = " ",
+             .style = bk::Strings{"\033[32m⠁\033[0m", "\033[32m⠁\033[0m",
+                                  "\033[32m⠉\033[0m", "\033[32m⠙\033[0m",
+                                  "\033[32m⠚\033[0m", "\033[32m⠒\033[0m",
+                                  "\033[32m⠂\033[0m", "\033[32m⠂\033[0m",
+                                  "\033[32m⠒\033[0m", "\033[32m⠲\033[0m",
+                                  "\033[32m⠴\033[0m", "\033[32m⠤\033[0m",
+                                  "\033[32m⠄\033[0m", "\033[32m⠄\033[0m",
+                                  "\033[32m⠤\033[0m", "\033[32m⠠\033[0m",
+                                  "\033[32m⠠\033[0m", "\033[32m⠤\033[0m",
+                                  "\033[32m⠦\033[0m", "\033[32m⠖\033[0m",
+                                  "\033[32m⠒\033[0m", "\033[32m⠐\033[0m",
+                                  "\033[32m⠐\033[0m", "\033[32m⠒\033[0m",
+                                  "\033[32m⠓\033[0m", "\033[32m⠋\033[0m",
+                                  "\033[32m⠉\033[0m", "\033[32m⠈\033[0m",
+                                  "\033[32m⠈\033[0m", "\033[32m \033[0m"},
+             .interval = 0.08,
+             .show = false}),
+        bk::ProgressBar(
+            &counter,
+            {.total = total,
+             .format = std::string(format),
+             .speed = 0.1,
+             .style = BAR_STYLE,
+             .show = false})};
+
+    auto status = bk::Status({.style = bk::Strings{" "}, .show = false});
+    elements.push_back(status);
+
+    return {.display = bk::Composite(elements, " "), .status = status};
+}
+
+auto print_gelex_banner_message(std::string_view version) -> void
 {
     std::cout << "Gelex [version " << version
               << "] - High-Performance Genomic Prediction with Bayesian and "
@@ -52,12 +137,12 @@ For more information, see the documentation at: https://github.com/r1cheu/gelex
 )";
 }
 
-void print_fit_header(
+auto print_fit_header(
     std::string_view model_name,
     bool has_dominance,
     int iters,
     int burn_in,
-    int threads)
+    int threads) -> void
 {
     auto logger = gelex::logging::get();
 
@@ -78,12 +163,12 @@ void print_fit_header(
     logger->info("");
 }
 
-void print_grm_header(
+auto print_grm_header(
     std::string_view method,
     bool do_additive,
     bool do_dominant,
     int chunk_size,
-    int threads)
+    int threads) -> void
 {
     auto logger = gelex::logging::get();
 
@@ -118,7 +203,7 @@ void print_grm_header(
     logger->info("");
 }
 
-void print_assoc_header(int threads)
+auto print_assoc_header(int threads) -> void
 {
     auto logger = gelex::logging::get();
 

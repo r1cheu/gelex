@@ -2,35 +2,62 @@
 #define GELEX_CLI_CLI_HELPER_H_
 
 #include <argparse.h>
+#include <atomic>
+#include <filesystem>
+#include <memory>
+#include <string>
 #include <string_view>
+#include <vector>
+
+#include <barkeep.h>
+#include <Eigen/Core>
+
+#include "gelex/types/snp_info.h"
 
 namespace gelex::cli
 {
-/**
- * @brief Check if the output is a terminal (TTY)
- * @return true if stdout is a terminal, false otherwise
- */
-bool is_tty();
+struct ChrGroup
+{
+    std::string name;
+    std::vector<std::pair<Eigen::Index, Eigen::Index>> ranges;
+    Eigen::Index total_snps;
+};
 
-void setup_parallelization(int num_threads);
+struct ProgressBarDisplay
+{
+    std::shared_ptr<barkeep::CompositeDisplay> display;
+    std::shared_ptr<barkeep::StatusDisplay> status;
+};
 
-void print_gelex_banner_message(std::string_view version);
+auto is_tty() -> bool;
 
-void print_fit_header(
+auto setup_parallelization(int num_threads) -> void;
+
+auto build_chr_groups(bool do_loco, const gelex::SnpEffects& snp_effects)
+    -> std::vector<ChrGroup>;
+
+auto create_progress_bar(
+    std::atomic<size_t>& counter,
+    size_t total,
+    std::string_view format = "{bar}") -> ProgressBarDisplay;
+
+auto print_gelex_banner_message(std::string_view version) -> void;
+
+auto print_fit_header(
     std::string_view model_name,
     bool has_dominance,
     int iters,
     int burn_in,
-    int threads);
+    int threads) -> void;
 
-void print_grm_header(
+auto print_grm_header(
     std::string_view method,
     bool do_additive,
     bool do_dominant,
     int chunk_size,
-    int threads);
+    int threads) -> void;
 
-void print_assoc_header(int threads);
+auto print_assoc_header(int threads) -> void;
 
 }  // namespace gelex::cli
 
