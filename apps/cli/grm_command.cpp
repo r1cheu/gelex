@@ -79,7 +79,7 @@ auto write_grm_files(
     auto bin_path = out_prefix + ".bin";
     auto id_path = out_prefix + ".id";
 
-    gelex::detail::GrmBinWriter(bin_path).write(result.grm, result.denominator);
+    gelex::detail::GrmBinWriter(bin_path).write(result.grm);
     gelex::detail::GrmIdWriter(id_path).write(sample_ids);
 
     return {bin_path, id_path};

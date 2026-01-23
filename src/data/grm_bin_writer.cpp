@@ -1,7 +1,5 @@
 #include "grm_bin_writer.h"
 
-#include <cmath>
-#include <cstring>
 #include <format>
 
 #include "gelex/exception.h"
@@ -17,9 +15,7 @@ GrmBinWriter::GrmBinWriter(const std::filesystem::path& file_path)
         path_, std::ios::binary | std::ios::trunc, io_buffer_);
 }
 
-auto GrmBinWriter::write(
-    const Eigen::Ref<const Eigen::MatrixXd>& grm,
-    double denominator) -> void
+auto GrmBinWriter::write(const Eigen::Ref<const Eigen::MatrixXd>& grm) -> void
 {
     const Eigen::Index n = grm.rows();
     if (n == 0)
@@ -35,27 +31,6 @@ auto GrmBinWriter::write(
                 path_.string(),
                 n,
                 grm.cols()));
-    }
-
-    // Validate denominator
-    if (denominator <= 0.0 || !std::isfinite(denominator))
-    {
-        throw InvalidInputException(
-            std::format(
-                "{}: denominator must be positive and finite, got {}",
-                path_.string(),
-                denominator));
-    }
-
-    // Write denominator as 8-byte double at the beginning
-    file_.write(reinterpret_cast<const char*>(&denominator), sizeof(double));
-
-    if (!file_.good())
-    {
-        throw FileWriteException(
-            std::format(
-                "{}: failed to write denominator to binary file",
-                path_.string()));
     }
 
     // Write lower triangle (including diagonal) as float32

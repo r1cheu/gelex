@@ -63,11 +63,6 @@ class GrmLoader
 
     [[nodiscard]] auto type() const noexcept -> freq::GrmType { return type_; }
 
-    [[nodiscard]] auto denominator() const noexcept -> double
-    {
-        return denominator_;
-    }
-
    private:
     std::filesystem::path bin_path_;
     std::filesystem::path id_path_;
@@ -75,7 +70,6 @@ class GrmLoader
     std::vector<std::string> sample_ids_;  // "FID_IID" format
     Eigen::Index num_samples_{};
     freq::GrmType type_;
-    double denominator_{};  // Normalization denominator from file header
 
     auto load_sample_ids() -> void;
     auto init_mmap() -> void;

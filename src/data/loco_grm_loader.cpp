@@ -13,10 +13,12 @@ LocoGRMLoader::LocoGRMLoader(
     const std::unordered_map<std::string, Eigen::Index>& id_map)
 {
     detail::GrmLoader whole_loader(whole_grm_prefix);
-    k_whole_ = whole_loader.denominator();
     // Load and filter the whole GRM once during construction.
     // load_unnormalized(id_map) returns (X_w * X_w') filtered and reordered.
     g_whole_ = whole_loader.load_unnormalized(id_map);
+    // Compute trace after loading and save for LOCO calculation
+    trace_whole_ = g_whole_.trace();
+    k_whole_ = trace_whole_ / static_cast<double>(g_whole_.rows());
 }
 
 LocoGRMLoader::~LocoGRMLoader() = default;
@@ -40,7 +42,9 @@ auto LocoGRMLoader::load_loco_grm(
     // Use the mutable buffer to avoid reallocations.
     chr_loader.load_unnormalized(id_map, g_chr_buffer_);
 
-    double k_i = chr_loader.denominator();
+    // Compute k_i from the loaded chromosome GRM trace
+    double trace_i = g_chr_buffer_.trace();
+    double k_i = trace_i / static_cast<double>(g_chr_buffer_.rows());
     double k_loco = k_whole_ - k_i;
     if (k_loco <= 0)
     {

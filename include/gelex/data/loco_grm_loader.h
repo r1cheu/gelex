@@ -50,8 +50,9 @@ class LocoGRMLoader
 
    private:
     Eigen::MatrixXd
-        g_whole_;       // Pre-filtered unnormalized whole matrix (Z * Z')
-    double k_whole_{};  // K_whole
+        g_whole_;           // Pre-filtered unnormalized whole matrix (Z * Z')
+    double k_whole_{};      // K_whole (= trace(g_whole_) / n)
+    double trace_whole_{};  // trace(g_whole_), saved for LOCO calculation
     mutable Eigen::MatrixXd g_chr_buffer_;  // Buffer for chromosome GRM
 };
 

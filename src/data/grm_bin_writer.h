@@ -24,11 +24,10 @@ class GrmBinWriter
     GrmBinWriter& operator=(GrmBinWriter&&) noexcept = default;
     ~GrmBinWriter() = default;
 
-    // Write GRM with denominator for normalization
-    // Format: [8-byte double denominator][float32 lower triangle]
+    // Write GRM matrix (unnormalized)
+    // Format: [float32 lower triangle]
     // Order: (0,0), (1,0), (1,1), (2,0), (2,1), (2,2), ...
-    auto write(const Eigen::Ref<const Eigen::MatrixXd>& grm, double denominator)
-        -> void;
+    auto write(const Eigen::Ref<const Eigen::MatrixXd>& grm) -> void;
 
     [[nodiscard]] auto path() const noexcept -> const std::filesystem::path&
     {
