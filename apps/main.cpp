@@ -6,11 +6,16 @@
 
 #include "config.h"
 
+#include "cli/assoc_args.h"
 #include "cli/assoc_command.h"
 #include "cli/cli_helper.h"
+#include "cli/fit_args.h"
 #include "cli/fit_command.h"
+#include "cli/grm_args.h"
 #include "cli/grm_command.h"
+#include "cli/predict_args.h"
 #include "cli/predict_command.h"
+#include "cli/simulation_args.h"
 #include "cli/simulation_command.h"
 #include "gelex/logger.h"
 
@@ -48,26 +53,26 @@ auto execute_command(
 
 int main(int argc, char* argv[])
 {
-    constexpr std::array commands
-        = {CommandDescriptor{"fit", fit_command, fit_execute},
-           CommandDescriptor{"simulate", simulate_command, simulate_execute},
-           CommandDescriptor{"predict", predict_command, predict_execute},
-           CommandDescriptor{"grm", grm_command, grm_execute},
-           CommandDescriptor{"assoc", assoc_command, assoc_execute}};
+    constexpr std::array commands = {
+        CommandDescriptor{"fit", setup_fit_args, fit_execute},
+        CommandDescriptor{"simulate", setup_simulation_args, simulate_execute},
+        CommandDescriptor{"predict", setup_predict_args, predict_execute},
+        CommandDescriptor{"grm", setup_grm_args, grm_execute},
+        CommandDescriptor{"assoc", setup_assoc_args, assoc_execute}};
 
     constexpr std::string_view error_marker = "[\033[31merror\033[0m] ";
 
     argparse::ArgumentParser program(PROJECT_NAME, PROJECT_VERSION);
     argparse::ArgumentParser fit("fit");
-    fit_command(fit);
+    setup_fit_args(fit);
     argparse::ArgumentParser simulate("simulate");
-    simulate_command(simulate);
+    setup_simulation_args(simulate);
     argparse::ArgumentParser predict("predict");
-    predict_command(predict);
+    setup_predict_args(predict);
     argparse::ArgumentParser grm("grm");
-    grm_command(grm);
+    setup_grm_args(grm);
     argparse::ArgumentParser assoc("assoc");
-    assoc_command(assoc);
+    setup_assoc_args(assoc);
 
     program.add_subparser(fit);
     program.add_subparser(simulate);

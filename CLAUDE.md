@@ -2,71 +2,64 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Build & Test Commands
+## Build Commands
 
 ```bash
-# Setup and build
-pixi install                     # Install dependencies
-pixi run build-debug            # Debug build with tests (default)
-pixi run build-release          # Optimized release build
-pixi run build-native           # Release with -march=native
+# Install dependencies
+pixi install
 
-# Testing
-pixi run test                   # Run all C++ tests (ctest)
-./build/debug/tests/gelex_tests --list-tests   # List all tests
-./gelex_tests "TestName*"       # Run tests matching pattern
+# Build
+pixi run build-debug           # Debug build with tests and sanitizers
+pixi run build-release         # Release build
+pixi run build-native          # Release with -march=native optimization
 
-# Installation
-pixi run install-debug          # Install debug binary to ~/.local/bin
-pixi run install-release
+# Test
+pixi run test                  # Run all tests
+./build/debug/tests/gelex_tests "TestName*"   # Run specific test
+
+# Install
+pixi run install-release       # Install to ~/.local/bin
 ```
 
-## Code Conventions
+## Architecture
 
-- **C++ Standard**: C++23
-- **Naming**: `PascalCase` for classes, `snake_case` for functions/variables
-- **Private members**: Trailing underscore (`variable_`)
-- **Function syntax**: Use trailing return type (`auto func() -> void`)
-- **Include guards**: `#ifndef ... #define ... #endif`
-- **Import order**: 1) Standard library, 2) External (Eigen, spdlog), 3) Internal headers
-- **Eigen references**: Use `Eigen::Ref<EigenType>` and `const Eigen::Ref<const EigenType>&`
-- **Comments**: Only when code is non-standard or hard to understand
-- **Error handling**: Use exceptions from `include/gelex/exception.h`
-- **Memory**: RAII patterns with smart pointers; use memory-mapped I/O (mio) for large files
+**Gelex** is a high-performance genomic prediction library implementing Bayesian (BayesA/B/C/R/RR/RRD) and Frequentist (GBLUP) methods.
 
-## Architecture Overview
+### Core Layers
 
-### Core Modules
+- **Data Layer** (`src/data/`): Loaders for PLINK files (BED/BIM/FAM), phenotypes, covariates; GRM computation with LOCO support; memory-mapped genotype access
+- **Model Layer** (`src/model/`): Bayesian models with Gibbs/MH samplers (`src/model/bayes/samplers/`); GBLUP model (`src/model/freq/`)
+- **Optimizer Layer** (`src/optim/`): REML convergence, variance component estimation
+- **Estimator Layer** (`src/estimator/`): MCMC runners, posterior calculation, REML solver
+- **GWAS Layer** (`src/gwas/`): Association testing with optional LOCO correction
+- **Predict Layer** (`src/predict/`): Genomic prediction engine, SNP matching and allele alignment
 
-- **CLI** (`src/cli/`): Entry points (`fit_command`, `simulate_command`, `grm_command`)
-- **Data** (`src/data/`): BED file reading (`BedPipe`), genotype loading, sample alignment, GRM computation
-- **Model** (`src/model/`): `BayesModel` (BayesA/B/C/R/RR/RRD), `GBLUP` (frequentist)
-- **Estimator** (`src/estimator/`): MCMC samplers for Bayesian models, EM optimizer for GBLUP
-- **Predict** (`src/predict/`): Prediction engine with genotype alignment and SNP matching
+### CLI Commands
 
-### Key Design Patterns
+The CLI (`apps/`) provides five subcommands:
+- `fit` - Fit Bayesian/Frequentist models
+- `predict` - Genomic prediction using trained models
+- `grm` - Compute genomic relationship matrix
+- `assoc` - GWAS association testing
+- `simulation` - Simulate genomic data
 
-- **Pipeline**: `DataPipe`, `BedPipe` for chunk-based data processing
-- **Strategy**: `VariantProcessor`, `CodePolicy` for GRM computation
-- **Factory**: `create_prior_strategy()` for BayesAlphabet prior selection
+Each command has separate `*_command.{h,cpp}` (execution) and `*_args.{h,cpp}` (argument parsing) files.
 
-### Data Flow
+### Key Dependencies
 
-```
-BED/BIM/FAM → BedPipe → GenotypeLoader → Model → Estimator → Output
-Phenotype/Covariate → SampleManager (alignment) → Model
-```
+- **Eigen** (`ext/eigen/`): Linear algebra (submodule)
+- **OpenMP**: Parallelization
+- **BLAS/LAPACK**: MKL or OpenBLAS backend
+- **spdlog**: Logging
+- **argparse**: CLI parsing (`ext/argparse.h`)
+- **Catch2**: Testing framework
 
-## Key Dependencies
+## Code Style
 
-- **Linear algebra**: Eigen with MKL/OpenBLAS backend
-- **Testing**: Catch2 v3
-- **Memory mapping**: mio
-- **CLI**: argparse
-- **Parallelism**: OpenMP
-
-## Notes
-
-- Public API in `include/gelex/`, implementation in `src/`
-- PLINK BED format for genotypes, TSV for phenotypes
-- BayesAlphabet models: A, B, Bpi, C, Cpi, R, RR, RRD (plus dominance variants)
+- **Classes**: `PascalCase`
+- **Functions/variables**: `snake_case`
+- **Private members**: trailing underscore (e.g., `variable_`)
+- **C++ standard**: C++23
+- **Return types**: Use trailing syntax `auto func() -> ReturnType`
+- **Comments**: Only when necessary (non-obvious logic)
+- **Format**: Chromium style, 80 columns, Allman braces

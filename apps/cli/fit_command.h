@@ -3,7 +3,8 @@
 
 #include <argparse.h>
 
-void fit_command(argparse::ArgumentParser& cmd);
+#include "fit_args.h"
+
 int fit_execute(argparse::ArgumentParser& fit);
 
 #endif  // GELEX_CLI_FIT_COMMAND_H_

@@ -1,9 +1,14 @@
 set(CLI_SOURCES
     main.cpp
+    cli/assoc_args.cpp
     cli/assoc_command.cpp
+    cli/fit_args.cpp
     cli/fit_command.cpp
+    cli/grm_args.cpp
     cli/grm_command.cpp
+    cli/predict_args.cpp
     cli/predict_command.cpp
+    cli/simulation_args.cpp
     cli/simulation_command.cpp
     cli/cli_helper.cpp)
 
