@@ -4,8 +4,6 @@
 #include <cstddef>
 #include <memory>
 
-#include <spdlog/logger.h>
-
 #include "gelex/optim/optimizer.h"
 #include "gelex/optim/optimizer_state.h"
 
@@ -15,10 +13,20 @@ namespace gelex
 class FreqModel;
 class FreqState;
 
+namespace detail
+{
+class RemlLoggerBase;
+}
+
 class Estimator
 {
    public:
     explicit Estimator(size_t max_iter = 100, double tol = 1e-8);
+    Estimator(
+        size_t max_iter,
+        double tol,
+        std::unique_ptr<detail::RemlLoggerBase> logger);
+    ~Estimator();
 
     auto fit(
         const FreqModel& model,
@@ -36,12 +44,6 @@ class Estimator
         FreqState& state,
         OptimizerState& opt_state) -> void;
 
-    auto report_results(
-        const FreqModel& model,
-        const FreqState& state,
-        const OptimizerState& opt_state,
-        double elapsed) -> void;
-
     Optimizer optimizer_;
     size_t max_iter_{100};
     size_t iter_count_{};
@@ -49,7 +51,7 @@ class Estimator
     double loglike_{};
     bool converged_{false};
 
-    std::shared_ptr<spdlog::logger> logger_;
+    std::unique_ptr<detail::RemlLoggerBase> logger_;
 };
 
 }  // namespace gelex

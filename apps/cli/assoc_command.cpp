@@ -19,6 +19,7 @@
 #include "gelex/gwas/gwas_writer.h"
 #include "gelex/logger.h"
 #include "gelex/model/freq/model.h"
+#include "logger/loco_reml_logger.h"
 
 #include "data/loader/bim_loader.h"
 #include "gelex/types/assoc_input.h"
@@ -95,7 +96,6 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     std::atomic<size_t> progress_counter{0};
     auto pbar = gelex::cli::create_progress_bar(
         progress_counter, static_cast<size_t>(n_snps));
-    pbar.display->show();
 
     auto process_group
         = [&](gelex::AssocInput& input, const gelex::cli::ChrGroup& group)
@@ -163,8 +163,6 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 
         gelex::FreqModel model(data_pipe);
         gelex::FreqState state(model);
-        gelex::Estimator estimator(
-            cmd.get<int>("--max-iter"), cmd.get<double>("--tol"));
 
         if (model.genetic().size() != loco_loaders.size())
         {
@@ -186,14 +184,84 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
                     model.genetic()[i].K);
             }
 
-            auto v_inv = estimator.fit(model, state, true, false);
+            auto loco_logger
+                = std::make_unique<gelex::detail::LocoRemlLogger>(group.name);
+            gelex::Estimator estimator(
+                cmd.get<int>("--max-iter"),
+                cmd.get<double>("--tol"),
+                std::move(loco_logger));
+
+            auto v_inv = estimator.fit(model, state, true, true);
             auto v_inv_residual
                 = v_inv
                   * (model.phenotype() - model.fixed().X * state.fixed().coeff);
 
+            // Create per-chromosome progress bar
+            std::atomic<size_t> chr_counter{0};
+            auto chr_pbar = gelex::cli::create_progress_bar(
+                chr_counter, static_cast<size_t>(group.total_snps));
+            chr_pbar.display->show();
+
             gelex::AssocInput input(
                 chunk_size, std::move(v_inv), std::move(v_inv_residual));
-            process_group(input, group);
+
+            // Inline scan for this chromosome with local progress
+            gelex::AssocOutput output(chunk_size);
+            Eigen::VectorXd freqs(chunk_size);
+
+            for (const auto& [range_start, range_end] : group.ranges)
+            {
+                auto range_len = static_cast<size_t>(range_end - range_start);
+                auto n_chunks = (range_len + chunk_size - 1) / chunk_size;
+
+                for (size_t chunk_idx = 0; chunk_idx < n_chunks; ++chunk_idx)
+                {
+                    auto start = range_start + (chunk_idx * chunk_size);
+                    auto end = std::min(
+                        start + chunk_size, static_cast<size_t>(range_end));
+                    auto current_chunk_size
+                        = static_cast<Eigen::Index>(end - start);
+
+                    input.Z.resize(n_samples, current_chunk_size);
+                    freqs.resize(current_chunk_size);
+
+                    bed_pipe.load_chunk(
+                        input.Z,
+                        static_cast<Eigen::Index>(start),
+                        static_cast<Eigen::Index>(end));
+                    encoder(input.Z, additive, &freqs);
+                    gelex::gwas::wald_test(input, output);
+
+                    for (Eigen::Index j = 0; j < current_chunk_size; ++j)
+                    {
+                        writer.write_result(
+                            snp_effects[start + static_cast<size_t>(j)],
+                            {.freq = freqs(j),
+                             .beta = output.beta(j),
+                             .se = output.se(j),
+                             .p_value = output.p_value(j)});
+                    }
+
+                    auto chr_progress = chr_counter.fetch_add(
+                        static_cast<size_t>(current_chunk_size),
+                        std::memory_order_relaxed);
+                    chr_progress += static_cast<size_t>(current_chunk_size);
+
+                    progress_counter.fetch_add(
+                        static_cast<size_t>(current_chunk_size),
+                        std::memory_order_relaxed);
+
+                    chr_pbar.status->message(
+                        fmt::format(
+                            "{:.1f}% ({}/{}) | {}",
+                            static_cast<double>(chr_progress) / group.total_snps
+                                * 100,
+                            gelex::HumanReadable(chr_progress),
+                            gelex::HumanReadable(group.total_snps),
+                            eta_calculator.get_eta(progress_counter.load())));
+                }
+            }
+            chr_pbar.display->done();
         }
     }
     else
@@ -208,15 +276,17 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
             = v_inv
               * (model.phenotype() - model.fixed().X * state.fixed().coeff);
 
+        pbar.display->show();
+
         gelex::AssocInput input(
             chunk_size, std::move(v_inv), std::move(v_inv_residual));
         for (const auto& group : chr_groups)
         {
             process_group(input, group);
         }
-    }
 
-    pbar.display->done();
+        pbar.display->done();
+    }
     writer.finalize();
 
     logger->info("");
