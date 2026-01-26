@@ -8,33 +8,43 @@ namespace gelex
 
 struct AssocInput
 {
-    AssocInput(
-        Eigen::Index chunk_size,
-        Eigen::MatrixXd V_inv_in,
-        Eigen::VectorXd y_adj)
-        : Z(Eigen::MatrixXd::Zero(V_inv_in.rows(), chunk_size)),
-          V_inv(std::move(V_inv_in)),
-          V_inv_y(std::move(y_adj)),
-          W(Eigen::MatrixXd::Zero(V_inv.rows(), chunk_size))
+    AssocInput() = default;
+
+    AssocInput(Eigen::Index n_samples, Eigen::Index chunk_size)
     {
+        resize(n_samples, chunk_size);
     }
-    Eigen::MatrixXd Z;  // SNP matrix
-    Eigen::MatrixXd V_inv;
+
+    auto resize(Eigen::Index n_samples, Eigen::Index chunk_size) -> void
+    {
+        Z.resize(n_samples, chunk_size);
+        W.resize(n_samples, chunk_size);
+        V_inv.resize(n_samples, n_samples);
+        V_inv_y.resize(n_samples);
+    }
+
+    Eigen::MatrixXd Z;      // SNP matrix
+    Eigen::MatrixXd V_inv;  // Inverse of covariance matrix
     Eigen::VectorXd V_inv_y;
     Eigen::MatrixXd W;  // Intermediate buffer for V^{-1} Z
 };
 
 struct AssocOutput
 {
-    explicit AssocOutput(Eigen::Index chunk_size)
-        : beta(Eigen::VectorXd::Zero(chunk_size)),
-          se(Eigen::VectorXd::Zero(chunk_size)),
-          stats(Eigen::VectorXd::Zero(chunk_size)),
-          p_value(Eigen::VectorXd::Zero(chunk_size)),
-          zt_v_inv_r(Eigen::VectorXd::Zero(chunk_size)),
-          zt_v_inv_z(Eigen::VectorXd::Zero(chunk_size))
+    AssocOutput() = default;
+
+    explicit AssocOutput(Eigen::Index chunk_size) { resize(chunk_size); }
+
+    auto resize(Eigen::Index chunk_size) -> void
     {
+        beta.resize(chunk_size);
+        se.resize(chunk_size);
+        stats.resize(chunk_size);
+        p_value.resize(chunk_size);
+        zt_v_inv_r.resize(chunk_size);
+        zt_v_inv_z.resize(chunk_size);
     }
+
     Eigen::VectorXd beta;
     Eigen::VectorXd se;
     Eigen::VectorXd stats;

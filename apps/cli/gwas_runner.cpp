@@ -28,7 +28,13 @@ GwasRunner::GwasRunner(
       writer_(config_.out_prefix),
       snp_effects_(std::move(snp_effects)),
       eta_calculator_(static_cast<Eigen::Index>(snp_effects_.size())),
-      chr_groups_(build_chr_groups(config_.loco, snp_effects_))
+      chr_groups_(build_chr_groups(config_.loco, snp_effects_)),
+      assoc_input_(
+          static_cast<Eigen::Index>(
+              data_pipe_.sample_manager()->num_common_samples()),
+          static_cast<Eigen::Index>(config_.chunk_size)),
+      assoc_output_(static_cast<Eigen::Index>(config_.chunk_size)),
+      freqs_(static_cast<Eigen::Index>(config_.chunk_size))
 {
 }
 
@@ -78,15 +84,15 @@ auto GwasRunner::print_summary() const -> void
     logger->info("");
 }
 
-auto GwasRunner::compute_assoc_input(
+auto GwasRunner::update_assoc_input(
     const FreqModel& model,
     const FreqState& state,
-    Eigen::MatrixXd&& v_inv) const -> AssocInput
+    Eigen::MatrixXd&& v_inv) -> void
 {
-    Eigen::VectorXd v_inv_residual
-        = v_inv * (model.phenotype() - model.fixed().X * state.fixed().coeff);
-    return AssocInput(
-        config_.chunk_size, std::move(v_inv), std::move(v_inv_residual));
+    assoc_input_.V_inv = std::move(v_inv);
+    assoc_input_.V_inv_y
+        = assoc_input_.V_inv
+          * (model.phenotype() - model.fixed().X * state.fixed().coeff);
 }
 
 auto GwasRunner::run_normal() -> void
@@ -95,8 +101,7 @@ auto GwasRunner::run_normal() -> void
     FreqState state(model);
     Estimator estimator(config_.max_iter, config_.tol);
 
-    auto input = compute_assoc_input(
-        model, state, estimator.fit(model, state, true, true));
+    update_assoc_input(model, state, estimator.fit(model, state, true, true));
 
     std::atomic<size_t> progress_counter{0};
     auto pbar = create_progress_bar(progress_counter, snp_effects_.size());
@@ -117,12 +122,7 @@ auto GwasRunner::run_normal() -> void
     for (const auto& group : chr_groups_)
     {
         scan_chromosome(
-            input,
-            group,
-            progress_counter,
-            snp_effects_.size(),
-            0,
-            progress_callback);
+            group, progress_counter, snp_effects_.size(), 0, progress_callback);
     }
 
     pbar.display->done();
@@ -140,9 +140,9 @@ auto GwasRunner::run_loco() -> void
             "of GRMs provided.");
     }
 
+    const auto id_map = data_pipe_.sample_manager()->common_id_map();
     std::vector<gelex::LocoGRMLoader> loco_loaders;
     loco_loaders.reserve(config_.grm_paths.size());
-    auto id_map = data_pipe_.sample_manager()->common_id_map();
     for (const auto& path : config_.grm_paths)
     {
         loco_loaders.emplace_back(path, id_map);
@@ -154,9 +154,8 @@ auto GwasRunner::run_loco() -> void
     {
         for (size_t i = 0; i < loco_loaders.size(); ++i)
         {
-            auto chr_grm_prefix = config_.grm_paths[i];
-            chr_grm_prefix += ".chr" + group.name;
-
+            const auto chr_grm_prefix
+                = config_.grm_paths[i].string() + ".chr" + group.name;
             loco_loaders[i].load_loco_grm(
                 chr_grm_prefix, id_map, model.genetic()[i].K);
         }
@@ -166,7 +165,7 @@ auto GwasRunner::run_loco() -> void
         Estimator estimator(
             config_.max_iter, config_.tol, std::move(loco_logger));
 
-        auto input = compute_assoc_input(
+        update_assoc_input(
             model, state, estimator.fit(model, state, true, true));
 
         std::atomic<size_t> chr_counter{0};
@@ -187,7 +186,6 @@ auto GwasRunner::run_loco() -> void
         };
 
         scan_chromosome(
-            input,
             group,
             chr_counter,
             group.total_snps,
@@ -200,7 +198,6 @@ auto GwasRunner::run_loco() -> void
 }
 
 auto GwasRunner::scan_chromosome(
-    AssocInput& input,
     const ChrGroup& group,
     std::atomic<size_t>& progress_counter,
     size_t total_snps_to_report,
@@ -208,47 +205,45 @@ auto GwasRunner::scan_chromosome(
     const std::function<void(size_t, size_t, size_t)>& progress_callback)
     -> void
 {
-    const Eigen::Index n_samples = input.V_inv.rows();
-    AssocOutput output(config_.chunk_size);
-    Eigen::VectorXd freqs(config_.chunk_size);
+    const auto n_samples = assoc_input_.V_inv.rows();
+    const auto chunk_size = static_cast<size_t>(config_.chunk_size);
 
     for (const auto& [range_start, range_end] : group.ranges)
     {
-        for (size_t start = range_start; start < range_end;
-             start += static_cast<size_t>(config_.chunk_size))
+        for (auto start = range_start; start < range_end; start += chunk_size)
         {
-            auto end = std::min(
-                start + static_cast<size_t>(config_.chunk_size),
-                static_cast<size_t>(range_end));
-            auto current_chunk_size = static_cast<Eigen::Index>(end - start);
+            const auto end
+                = std::min(start + chunk_size, static_cast<size_t>(range_end));
+            const auto current_chunk_size
+                = static_cast<Eigen::Index>(end - start);
 
-            if (input.Z.cols() != current_chunk_size)
-            {
-                input.Z.resize(n_samples, current_chunk_size);
-                freqs.resize(current_chunk_size);
-            }
+            assoc_input_.resize(n_samples, current_chunk_size);
+            assoc_output_.resize(current_chunk_size);
+            freqs_.resize(current_chunk_size);
 
             bed_pipe_.load_chunk(
-                input.Z,
+                assoc_input_.Z,
                 static_cast<Eigen::Index>(start),
                 static_cast<Eigen::Index>(end));
-            encoder_(input.Z, config_.additive, &freqs);
-            gwas::wald_test(input, output);
+
+            encoder_(assoc_input_.Z, config_.additive, &freqs_);
+            gwas::wald_test(assoc_input_, assoc_output_);
 
             for (Eigen::Index i = 0; i < current_chunk_size; ++i)
             {
                 writer_.write_result(
                     snp_effects_[start + static_cast<size_t>(i)],
-                    {.freq = freqs(i),
-                     .beta = output.beta(i),
-                     .se = output.se(i),
-                     .p_value = output.p_value(i)});
+                    {.freq = freqs_(i),
+                     .beta = assoc_output_.beta(i),
+                     .se = assoc_output_.se(i),
+                     .p_value = assoc_output_.p_value(i)});
             }
 
-            auto current_progress = progress_counter.fetch_add(
-                                        static_cast<size_t>(current_chunk_size),
-                                        std::memory_order_relaxed)
-                                    + static_cast<size_t>(current_chunk_size);
+            const auto current_progress
+                = progress_counter.fetch_add(
+                      static_cast<size_t>(current_chunk_size),
+                      std::memory_order_relaxed)
+                  + static_cast<size_t>(current_chunk_size);
 
             if (progress_callback)
             {

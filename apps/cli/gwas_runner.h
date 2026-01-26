@@ -53,13 +53,12 @@ class GwasRunner
 
     auto run_loco() -> void;
 
-    auto compute_assoc_input(
+    auto update_assoc_input(
         const FreqModel& model,
         const FreqState& state,
-        Eigen::MatrixXd&& v_inv) const -> AssocInput;
+        Eigen::MatrixXd&& v_inv) -> void;
 
     auto scan_chromosome(
-        AssocInput& input,
         const ChrGroup& group,
         std::atomic<size_t>& progress_counter,
         size_t total_snps_to_report,
@@ -73,9 +72,13 @@ class GwasRunner
     gwas::GwasWriter writer_;
     SnpEffects snp_effects_;
 
-    grm::Vitezica encoder_;
+    grm::Zeng encoder_;
     SmoothEtaCalculator eta_calculator_;
     std::vector<ChrGroup> chr_groups_;
+
+    AssocInput assoc_input_;
+    AssocOutput assoc_output_;
+    Eigen::VectorXd freqs_;
 };
 
 }  // namespace gelex::cli
