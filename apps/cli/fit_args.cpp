@@ -29,7 +29,6 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
     cmd.add_argument("-o", "--out")
         .help("Output file prefix")
         .metavar("<OUT>")
-        .required()
         .default_value("gelex");
 
     // ================================================================
@@ -40,7 +39,7 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
         .help("Phenotype column index (0-based)")
         .default_value(2)
         .scan<'i', int>();
-    cmd.add_argument("--chunk-size")
+    cmd.add_argument("-c", "--chunk-size")
         .help("SNPs per chunk (controls memory usage)")
         .default_value(10000)
         .scan<'i', int>();
@@ -72,8 +71,7 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
             "R",
             "Rd",
             "RR",
-            "RRd",
-            "GBLUP")
+            "RRd")
         .required();
 
     cmd.add_argument("--scale")
@@ -122,11 +120,11 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
     // Performance
     // ================================================================
     cmd.add_group("Performance");
-    const int default_threads
-        = std::max(1u, std::thread::hardware_concurrency() / 2);
-    cmd.add_argument("--threads")
+    cmd.add_argument("-t", "--threads")
         .help("Number of CPU threads to use")
-        .default_value(default_threads)
+        .default_value(
+            std::max(
+                1, static_cast<int>(std::thread::hardware_concurrency() / 2)))
         .scan<'i', int>();
     cmd.add_argument("--mmap")
         .help(

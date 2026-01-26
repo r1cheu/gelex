@@ -95,7 +95,7 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
         .bed_path = gelex::BedPipe::format_bed_path(cmd.get("--bfile")),
         .out_prefix = cmd.get("--out"),
         .method = cmd.get("--method"),
-        .chunk_size = cmd.get<int>("--chunk"),
+        .chunk_size = cmd.get<int>("--chunk-size"),
         .do_additive = cmd.get<bool>("--additive"),
         .do_dominant = cmd.get<bool>("--dominant"),
         .do_loco = cmd.get<bool>("--loco"),

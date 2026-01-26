@@ -15,7 +15,7 @@ void setup_simulation_args(argparse::ArgumentParser& cmd)
         .help("PLINK binary file prefix (.bed/.bim/.fam)")
         .metavar("<BFILE>")
         .required();
-    cmd.add_argument("-c", "--causal")
+    cmd.add_argument("--causal")
         .help(
             "Causal variants file (TSV: SNP ID per line, optional effect size)")
         .metavar("<CAUSAL>")

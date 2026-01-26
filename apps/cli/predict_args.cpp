@@ -19,7 +19,7 @@ void setup_predict_args(argparse::ArgumentParser& cmd)
         .help("SNP effects file (.snp.eff)")
         .metavar("<SNP_EFF>")
         .required();
-    cmd.add_argument("-c", "--covar-eff")
+    cmd.add_argument("--covar-eff")
         .help("Covariate effects file (.param)")
         .metavar("<COVAR_EFF>");
     cmd.add_argument("--qcovar")
@@ -42,7 +42,7 @@ void setup_predict_args(argparse::ArgumentParser& cmd)
     cmd.add_argument("--iid-only")
         .help("Use only IID for sample matching (ignore FID)")
         .flag();
-    cmd.add_argument("--chunk-size")
+    cmd.add_argument("-c", "--chunk-size")
         .help("SNPs per chunk (controls memory usage)")
         .default_value(10000)
         .scan<'i', int>();

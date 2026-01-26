@@ -38,7 +38,6 @@ void setup_assoc_args(argparse::ArgumentParser& cmd)
     cmd.add_argument("-o", "--out")
         .help("Output file prefix")
         .metavar("<OUT>")
-        .required()
         .default_value("gelex");
     // ================================================================
     // REML Configuration
@@ -57,10 +56,9 @@ void setup_assoc_args(argparse::ArgumentParser& cmd)
     // Data Processing
     // ================================================================
     cmd.add_group("Processing Options");
-
-    cmd.add_argument("--chunk-size")
+    cmd.add_argument("-c", "--chunk-size")
         .help("SNPs per chunk for association testing")
-        .default_value(1000)
+        .default_value(10000)
         .scan<'i', int>();
     cmd.add_argument("--iid-only")
         .help("Use only IID for sample matching (ignore FID)")
@@ -74,18 +72,20 @@ void setup_assoc_args(argparse::ArgumentParser& cmd)
     // ================================================================
     cmd.add_group("Model Configuration");
     cmd.add_argument("--model")
-        .help("Association model: a (additive), d (dominance), ad (both)")
+        .help(
+            "Association model: a for additive association test, d for "
+            "dominance association test")
         .default_value("a")
         .metavar("<MODEL>")
-        .choices("a", "d", "ad");
+        .choices("a", "d");
     // ================================================================
     // Performance
     // ================================================================
     cmd.add_group("Performance");
-    const int default_threads
-        = std::max(1U, std::thread::hardware_concurrency() / 2);
-    cmd.add_argument("--threads")
+    cmd.add_argument("-t", "--threads")
         .help("Number of CPU threads to use")
-        .default_value(default_threads)
+        .default_value(
+            std::max(
+                1, static_cast<int>(std::thread::hardware_concurrency() / 2)))
         .scan<'i', int>();
 }
