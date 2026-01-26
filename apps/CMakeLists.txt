@@ -6,6 +6,7 @@ set(CLI_SOURCES
     cli/fit_command.cpp
     cli/grm_args.cpp
     cli/grm_command.cpp
+    cli/gwas_runner.cpp
     cli/predict_args.cpp
     cli/predict_command.cpp
     cli/simulation_args.cpp

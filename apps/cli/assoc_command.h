@@ -3,8 +3,6 @@
 
 #include <argparse.h>
 
-#include "assoc_args.h"
-
 auto assoc_execute(argparse::ArgumentParser& cmd) -> int;
 
 #endif  // GELEX_CLI_ASSOC_COMMAND_H
