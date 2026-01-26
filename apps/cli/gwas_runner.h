@@ -16,6 +16,7 @@
 #include "gelex/data/loco_grm_loader.h"
 #include "gelex/estimator/freq/reml.h"
 #include "gelex/gwas/gwas_writer.h"
+#include "gelex/model/freq/model.h"
 #include "gelex/types/assoc_input.h"
 #include "gelex/types/snp_info.h"
 #include "utils/utils.h"
@@ -52,12 +53,19 @@ class GwasRunner
 
     auto run_loco() -> void;
 
+    auto compute_assoc_input(
+        const FreqModel& model,
+        const FreqState& state,
+        Eigen::MatrixXd&& v_inv) const -> AssocInput;
+
     auto scan_chromosome(
         AssocInput& input,
         const ChrGroup& group,
         std::atomic<size_t>& progress_counter,
-        size_t total_snps,
-        const std::function<void(size_t, size_t)>& progress_callback) -> void;
+        size_t total_snps_to_report,
+        size_t total_processed_before,
+        const std::function<void(size_t, size_t, size_t)>& progress_callback)
+        -> void;
 
     Config config_;
     DataPipe data_pipe_;

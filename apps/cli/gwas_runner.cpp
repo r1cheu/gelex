@@ -1,6 +1,7 @@
 #include "cli/gwas_runner.h"
 
 #include <Eigen/Core>
+#include <functional>
 #include <memory>
 
 #include <fmt/format.h>
@@ -77,24 +78,31 @@ auto GwasRunner::print_summary() const -> void
     logger->info("");
 }
 
+auto GwasRunner::compute_assoc_input(
+    const FreqModel& model,
+    const FreqState& state,
+    Eigen::MatrixXd&& v_inv) const -> AssocInput
+{
+    Eigen::VectorXd v_inv_residual
+        = v_inv * (model.phenotype() - model.fixed().X * state.fixed().coeff);
+    return AssocInput(
+        config_.chunk_size, std::move(v_inv), std::move(v_inv_residual));
+}
+
 auto GwasRunner::run_normal() -> void
 {
     FreqModel model(data_pipe_);
     FreqState state(model);
     Estimator estimator(config_.max_iter, config_.tol);
 
-    auto v_inv = estimator.fit(model, state, true, true);
-    Eigen::VectorXd v_inv_residual
-        = v_inv * (model.phenotype() - model.fixed().X * state.fixed().coeff);
+    auto input = compute_assoc_input(
+        model, state, estimator.fit(model, state, true, true));
 
     std::atomic<size_t> progress_counter{0};
     auto pbar = create_progress_bar(progress_counter, snp_effects_.size());
     pbar.display->show();
 
-    AssocInput input(
-        config_.chunk_size, std::move(v_inv), std::move(v_inv_residual));
-
-    auto progress_callback = [&](size_t current, size_t total)
+    auto progress_callback = [&](size_t current, size_t total, size_t offset)
     {
         pbar.status->message(
             fmt::format(
@@ -103,7 +111,7 @@ auto GwasRunner::run_normal() -> void
                     * 100.0,
                 HumanReadable(current),
                 HumanReadable(total),
-                eta_calculator_.get_eta(current)));
+                eta_calculator_.get_eta(current + offset)));
     };
 
     for (const auto& group : chr_groups_)
@@ -113,6 +121,7 @@ auto GwasRunner::run_normal() -> void
             group,
             progress_counter,
             snp_effects_.size(),
+            0,
             progress_callback);
     }
 
@@ -139,7 +148,7 @@ auto GwasRunner::run_loco() -> void
         loco_loaders.emplace_back(path, id_map);
     }
 
-    std::atomic<size_t> total_progress_counter{0};
+    size_t total_processed = 0;
 
     for (const auto& group : chr_groups_)
     {
@@ -149,9 +158,7 @@ auto GwasRunner::run_loco() -> void
             chr_grm_prefix += ".chr" + group.name;
 
             loco_loaders[i].load_loco_grm(
-                chr_grm_prefix,
-                data_pipe_.sample_manager()->common_id_map(),
-                model.genetic()[i].K);
+                chr_grm_prefix, id_map, model.genetic()[i].K);
         }
 
         auto loco_logger
@@ -159,19 +166,15 @@ auto GwasRunner::run_loco() -> void
         Estimator estimator(
             config_.max_iter, config_.tol, std::move(loco_logger));
 
-        auto v_inv = estimator.fit(model, state, true, true);
-        Eigen::VectorXd v_inv_residual
-            = v_inv
-              * (model.phenotype() - model.fixed().X * state.fixed().coeff);
+        auto input = compute_assoc_input(
+            model, state, estimator.fit(model, state, true, true));
 
         std::atomic<size_t> chr_counter{0};
         auto chr_pbar = create_progress_bar(chr_counter, group.total_snps);
         chr_pbar.display->show();
 
-        AssocInput input(
-            config_.chunk_size, std::move(v_inv), std::move(v_inv_residual));
-
-        auto progress_callback = [&](size_t current, size_t total)
+        auto progress_callback
+            = [&](size_t current, size_t total, size_t offset)
         {
             chr_pbar.status->message(
                 fmt::format(
@@ -180,13 +183,18 @@ auto GwasRunner::run_loco() -> void
                         * 100.0,
                     HumanReadable(current),
                     HumanReadable(total),
-                    eta_calculator_.get_eta(total_progress_counter.load())));
+                    eta_calculator_.get_eta(offset + current)));
         };
 
         scan_chromosome(
-            input, group, chr_counter, group.total_snps, progress_callback);
+            input,
+            group,
+            chr_counter,
+            group.total_snps,
+            total_processed,
+            progress_callback);
 
-        total_progress_counter.fetch_add(group.total_snps);
+        total_processed += group.total_snps;
         chr_pbar.display->done();
     }
 }
@@ -195,8 +203,10 @@ auto GwasRunner::scan_chromosome(
     AssocInput& input,
     const ChrGroup& group,
     std::atomic<size_t>& progress_counter,
-    size_t total_snps,
-    const std::function<void(size_t, size_t)>& progress_callback) -> void
+    size_t total_snps_to_report,
+    size_t total_processed_before,
+    const std::function<void(size_t, size_t, size_t)>& progress_callback)
+    -> void
 {
     const Eigen::Index n_samples = input.V_inv.rows();
     AssocOutput output(config_.chunk_size);
@@ -204,19 +214,19 @@ auto GwasRunner::scan_chromosome(
 
     for (const auto& [range_start, range_end] : group.ranges)
     {
-        auto range_len = static_cast<size_t>(range_end - range_start);
-        auto n_chunks
-            = (range_len + config_.chunk_size - 1) / config_.chunk_size;
-
-        for (size_t chunk_idx = 0; chunk_idx < n_chunks; ++chunk_idx)
+        for (size_t start = range_start; start < range_end;
+             start += static_cast<size_t>(config_.chunk_size))
         {
-            auto start = range_start + (chunk_idx * config_.chunk_size);
             auto end = std::min(
-                start + config_.chunk_size, static_cast<size_t>(range_end));
+                start + static_cast<size_t>(config_.chunk_size),
+                static_cast<size_t>(range_end));
             auto current_chunk_size = static_cast<Eigen::Index>(end - start);
 
-            input.Z.resize(n_samples, current_chunk_size);
-            freqs.resize(current_chunk_size);
+            if (input.Z.cols() != current_chunk_size)
+            {
+                input.Z.resize(n_samples, current_chunk_size);
+                freqs.resize(current_chunk_size);
+            }
 
             bed_pipe_.load_chunk(
                 input.Z,
@@ -236,13 +246,16 @@ auto GwasRunner::scan_chromosome(
             }
 
             auto current_progress = progress_counter.fetch_add(
-                static_cast<size_t>(current_chunk_size),
-                std::memory_order_relaxed);
-            current_progress += static_cast<size_t>(current_chunk_size);
+                                        static_cast<size_t>(current_chunk_size),
+                                        std::memory_order_relaxed)
+                                    + static_cast<size_t>(current_chunk_size);
 
             if (progress_callback)
             {
-                progress_callback(current_progress, total_snps);
+                progress_callback(
+                    current_progress,
+                    total_snps_to_report,
+                    total_processed_before);
             }
         }
     }
