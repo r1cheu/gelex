@@ -1,6 +1,6 @@
 ---
 description: git commit
-agent: commit-message-generator
+agent: committer
 ---
 
-commit the message return by agent called "commit-message-generator"
+commit the code change
