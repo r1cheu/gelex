@@ -3,17 +3,58 @@
 
 #include "reml_logger_base.h"
 
+#include <memory>
 #include <string>
+#include <vector>
+
+#include <barkeep.h>
+
+#include "../src/types/freq_effect.h"
 
 namespace gelex::detail
 {
+
+struct VarianceComponent
+{
+    freq::GrmType type{freq::GrmType::Unknown};
+    double variance{};
+    double heritability{};
+};
+
+struct LocoRemlResult
+{
+    std::string chr_name;
+    double loglike{};
+    std::vector<VarianceComponent> genetic;
+    double residual_variance{};
+    bool converged{true};
+    double elapsed{};
+
+    auto total_h2() const -> double
+    {
+        double sum = 0.0;
+        for (const auto& g : genetic)
+        {
+            sum += g.heritability;
+        }
+        return sum;
+    }
+};
 
 class LocoRemlLogger : public RemlLoggerBase
 {
    public:
     explicit LocoRemlLogger(std::string chr_name);
 
+    void set_status(std::shared_ptr<barkeep::StatusDisplay> status);
     void set_verbose(bool verbose) override;
+
+    void log_iteration(
+        size_t iter,
+        double loglike,
+        const FreqState& state,
+        double time_cost) override;
+
     void log_results(
         const FreqModel& model,
         const FreqState& state,
@@ -23,8 +64,13 @@ class LocoRemlLogger : public RemlLoggerBase
         size_t max_iter,
         double elapsed) override;
 
+    auto result() const -> const LocoRemlResult& { return result_; }
+
    private:
     std::string chr_name_;
+    std::shared_ptr<barkeep::StatusDisplay> status_;
+    LocoRemlResult result_;
+    double accumulated_time_{};
 };
 
 }  // namespace gelex::detail

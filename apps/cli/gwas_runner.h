@@ -19,6 +19,7 @@
 #include "gelex/model/freq/model.h"
 #include "gelex/types/assoc_input.h"
 #include "gelex/types/snp_info.h"
+#include "logger/loco_reml_logger.h"
 #include "utils/utils.h"
 
 namespace gelex::cli
@@ -48,6 +49,7 @@ class GwasRunner
 
    private:
     auto print_summary() const -> void;
+    auto print_loco_summary() const -> void;
 
     auto run_normal() -> void;
 
@@ -79,6 +81,8 @@ class GwasRunner
     AssocInput assoc_input_;
     AssocOutput assoc_output_;
     Eigen::VectorXd freqs_;
+
+    std::vector<detail::LocoRemlResult> loco_results_;
 };
 
 }  // namespace gelex::cli

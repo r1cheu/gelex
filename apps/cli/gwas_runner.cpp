@@ -40,7 +40,6 @@ GwasRunner::GwasRunner(
 
 auto GwasRunner::run() -> void
 {
-    print_summary();
     writer_.write_header();
 
     if (config_.loco)
@@ -101,7 +100,12 @@ auto GwasRunner::run_normal() -> void
     FreqState state(model);
     Estimator estimator(config_.max_iter, config_.tol);
 
+    auto logger = gelex::logging::get();
+    logger->info(gelex::section("Estimating Variance Component ..."));
+
     update_assoc_input(model, state, estimator.fit(model, state, true, true));
+
+    print_summary();
 
     std::atomic<size_t> progress_counter{0};
     auto pbar = create_progress_bar(progress_counter, snp_effects_.size());
@@ -148,6 +152,9 @@ auto GwasRunner::run_loco() -> void
         loco_loaders.emplace_back(path, id_map);
     }
 
+    print_summary();
+
+    auto logger = gelex::logging::get();
     size_t total_processed = 0;
 
     for (const auto& group : chr_groups_)
@@ -160,13 +167,26 @@ auto GwasRunner::run_loco() -> void
                 chr_grm_prefix, id_map, model.genetic()[i].K);
         }
 
+        auto reml_spinner = create_reml_spinner();
+        reml_spinner.display->show();
+
         auto loco_logger
             = std::make_unique<gelex::detail::LocoRemlLogger>(group.name);
+        loco_logger->set_status(reml_spinner.status);
+        auto* loco_logger_ptr = loco_logger.get();
         Estimator estimator(
             config_.max_iter, config_.tol, std::move(loco_logger));
 
         update_assoc_input(
             model, state, estimator.fit(model, state, true, true));
+
+        reml_spinner.display->done();
+        std::cout << "\033[1A\033[2K" << std::flush;
+
+        loco_results_.push_back(loco_logger_ptr->result());
+
+        // reset ETA calculator for this chromosome
+        eta_calculator_.reset(group.total_snps);
 
         std::atomic<size_t> chr_counter{0};
         auto chr_pbar = create_progress_bar(chr_counter, group.total_snps);
@@ -182,7 +202,7 @@ auto GwasRunner::run_loco() -> void
                         * 100.0,
                     HumanReadable(current),
                     HumanReadable(total),
-                    eta_calculator_.get_eta(offset + current)));
+                    eta_calculator_.get_eta(current)));
         };
 
         scan_chromosome(
@@ -195,6 +215,8 @@ auto GwasRunner::run_loco() -> void
         total_processed += group.total_snps;
         chr_pbar.display->done();
     }
+
+    print_loco_summary();
 }
 
 auto GwasRunner::scan_chromosome(
@@ -254,6 +276,153 @@ auto GwasRunner::scan_chromosome(
             }
         }
     }
+}
+
+auto GwasRunner::print_loco_summary() const -> void
+{
+    if (loco_results_.empty())
+    {
+        return;
+    }
+
+    auto logger = gelex::logging::get();
+    logger->info("");
+
+    const std::string header_line
+        = "── LOCO REML Summary "
+          "─────────────────────────────────────────────────";
+    const std::string table_line
+        = "  "
+          "───────────────────────────────────────────────────────────────────"
+          "─";
+    const std::string footer_line
+        = "────────────────────────────────────────────────────────────────────"
+          "──";
+
+    logger->info(
+        fmt::format(
+            fmt::emphasis::bold | fmt::fg(fmt::color::light_cyan),
+            "{}",
+            header_line));
+
+    // determine header based on genetic components
+    bool has_multiple_genetic
+        = !loco_results_.empty() && loco_results_[0].genetic.size() > 1;
+
+    if (has_multiple_genetic)
+    {
+        // build header with V(g) columns for each genetic type
+        std::string h2_headers;
+        for (const auto& g : loco_results_[0].genetic)
+        {
+            h2_headers += fmt::format("   h²({})  ", g.type);
+        }
+        logger->info(
+            "  {:>5}   {:>10}   {:>10}   {:>10}  {}  {:>7}  {:>4}",
+            "Chr",
+            "LogL",
+            "V(g)",
+            "V(e)",
+            h2_headers,
+            "Time",
+            "Conv");
+    }
+    else
+    {
+        logger->info(
+            "  {:>5}   {:>10}   {:>10}   {:>10}   {:>8}   {:>7}  {:>4}",
+            "Chr",
+            "LogL",
+            "V(g)",
+            "V(e)",
+            "h²",
+            "Time",
+            "Conv");
+    }
+
+    logger->info("{}", table_line);
+
+    // compute totals for mean calculation
+    double sum_vg = 0.0;
+    double sum_ve = 0.0;
+    double sum_h2 = 0.0;
+    size_t count = 0;
+
+    for (const auto& result : loco_results_)
+    {
+        double total_vg = 0.0;
+        for (const auto& g : result.genetic)
+        {
+            total_vg += g.variance;
+        }
+
+        double h2 = result.total_h2();
+        std::string conv_mark
+            = result.converged
+                  ? fmt::format(fmt::fg(fmt::color::light_green), "✓")
+                  : fmt::format(fmt::fg(fmt::color::orange_red), "✗");
+
+        if (has_multiple_genetic)
+        {
+            std::string h2_values;
+            for (const auto& g : result.genetic)
+            {
+                h2_values += fmt::format("  {:>8.4f}", g.heritability);
+            }
+            logger->info(
+                "  {:>5}   {:>10.2f}   {:>10.4f}   {:>10.4f}  {}  {:>6.2f}s    "
+                "{}",
+                result.chr_name,
+                result.loglike,
+                total_vg,
+                result.residual_variance,
+                h2_values,
+                result.elapsed,
+                conv_mark);
+        }
+        else
+        {
+            logger->info(
+                "  {:>5}   {:>10.2f}   {:>10.4f}   {:>10.4f}   {:>8.4f}   "
+                "{:>6.2f}s    {}",
+                result.chr_name,
+                result.loglike,
+                total_vg,
+                result.residual_variance,
+                h2,
+                result.elapsed,
+                conv_mark);
+        }
+
+        sum_vg += total_vg;
+        sum_ve += result.residual_variance;
+        sum_h2 += h2;
+        ++count;
+    }
+
+    logger->info("{}", table_line);
+
+    // print mean row
+    if (count > 0)
+    {
+        double mean_vg = sum_vg / static_cast<double>(count);
+        double mean_ve = sum_ve / static_cast<double>(count);
+        double mean_h2 = sum_h2 / static_cast<double>(count);
+
+        logger->info(
+            "  {:>5}   {:>10}   {:>10.4f}   {:>10.4f}   {:>8.4f}",
+            "Mean",
+            "",
+            mean_vg,
+            mean_ve,
+            mean_h2);
+    }
+
+    logger->info(
+        fmt::format(
+            fmt::emphasis::bold | fmt::fg(fmt::color::light_cyan),
+            "{}",
+            footer_line));
 }
 
 }  // namespace gelex::cli
