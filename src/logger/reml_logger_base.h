@@ -5,6 +5,7 @@
 #include <memory>
 
 #include <spdlog/logger.h>
+#include "gelex/logger.h"
 
 namespace gelex
 {
@@ -17,7 +18,11 @@ namespace detail
 class RemlLoggerBase
 {
    public:
-    RemlLoggerBase();
+    RemlLoggerBase() : logger_{gelex::logging::get()} {}
+    RemlLoggerBase(const RemlLoggerBase&) = default;
+    RemlLoggerBase(RemlLoggerBase&&) = delete;
+    RemlLoggerBase& operator=(const RemlLoggerBase&) = default;
+    RemlLoggerBase& operator=(RemlLoggerBase&&) = delete;
     virtual ~RemlLoggerBase() = default;
 
     virtual void set_verbose(bool verbose);

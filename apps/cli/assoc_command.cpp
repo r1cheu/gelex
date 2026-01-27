@@ -11,6 +11,7 @@
 #include "cli/gwas_runner.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/data_pipe.h"
+#include "gelex/estimator/freq/reml.h"
 #include "gelex/logger.h"
 
 #include "data/loader/bim_loader.h"

@@ -13,8 +13,6 @@ namespace gelex
 namespace detail
 {
 
-RemlLogger::RemlLogger() : RemlLoggerBase() {}
-
 void RemlLogger::set_verbose(bool verbose)
 {
     RemlLoggerBase::set_verbose(verbose);

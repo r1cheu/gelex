@@ -8,19 +8,21 @@
 
 #include <Eigen/Core>
 
-#include "barkeep.h"
 #include "cli/cli_helper.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/data_pipe.h"
 #include "gelex/data/grm_code_policy.h"
-#include "gelex/data/loco_grm_loader.h"
-#include "gelex/estimator/freq/reml.h"
 #include "gelex/gwas/gwas_writer.h"
-#include "gelex/model/freq/model.h"
 #include "gelex/types/assoc_input.h"
 #include "gelex/types/snp_info.h"
 #include "logger/loco_reml_logger.h"
 #include "utils/utils.h"
+
+namespace gelex
+{
+class FreqModel;
+class FreqState;
+}  // namespace gelex
 
 namespace gelex::cli
 {
@@ -49,7 +51,6 @@ class GwasRunner
 
    private:
     auto print_summary() const -> void;
-    auto print_loco_summary() const -> void;
 
     auto run_normal() -> void;
 

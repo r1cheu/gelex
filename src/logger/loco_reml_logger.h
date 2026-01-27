@@ -73,6 +73,8 @@ class LocoRemlLogger : public RemlLoggerBase
     double accumulated_time_{};
 };
 
+void print_loco_reml_summary(const std::vector<LocoRemlResult>& results);
+
 }  // namespace gelex::detail
 
 #endif  // GELEX_LOGGER_LOCO_REML_LOGGER_H_

@@ -16,7 +16,7 @@ namespace detail
 class RemlLogger : public RemlLoggerBase
 {
    public:
-    RemlLogger();
+    RemlLogger() = default;
 
     void set_verbose(bool verbose) override;
     void log_em_init(const FreqState& state, double loglike) override;

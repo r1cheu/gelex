@@ -1,11 +1,7 @@
 #include "reml_logger_base.h"
 
-#include "gelex/logger.h"
-
 namespace gelex::detail
 {
-
-RemlLoggerBase::RemlLoggerBase() : logger_{gelex::logging::get()} {}
 
 void RemlLoggerBase::set_verbose(bool verbose)
 {

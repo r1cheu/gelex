@@ -58,7 +58,7 @@ std::string subsubtask(fmt::format_string<Args...> fmt_str, Args&&... args)
 template <typename... Args>
 std::string success(fmt::format_string<Args...> fmt_str, Args&&... args)
 {
-    auto check_mark = fmt::format(fmt::fg(fmt::color::light_green), "  ✔ ");
+    auto check_mark = fmt::format(fmt::fg(fmt::color::light_green), "  ✔");
     return check_mark + fmt::format(fmt_str, std::forward<Args>(args)...);
 }
 
