@@ -167,8 +167,7 @@ void MCMCLogger::log_result(
         }
     };
 
-    if (auto&& [effect, result]
-        = std::make_pair(model.fixed(), results.fixed());
+    if (auto [effect, result] = std::make_pair(model.fixed(), results.fixed());
         effect != nullptr && result != nullptr)
     {
         if (effect->levels)

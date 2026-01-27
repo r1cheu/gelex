@@ -93,13 +93,10 @@ void compute_hpdi(
     }
 
     const Eigen::Index n_params = get_n_params(samples);
-    const Eigen::Index n_chains = get_n_chains(samples);
-    const Eigen::Index n_draws = get_n_draws(samples);
 
     const EigenThreadGuard guard;
 
-#pragma omp parallel for default(none) \
-    shared(samples, prob, summary, n_params, n_chains, n_draws)
+#pragma omp parallel for default(none) shared(samples, prob, summary, n_params)
     for (Eigen::Index param_idx = 0; param_idx < n_params; ++param_idx)
     {
         Eigen::VectorXd flat_sample = flatten_samples(samples, param_idx);

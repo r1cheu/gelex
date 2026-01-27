@@ -51,7 +51,6 @@ auto AIPolicy::apply(
 {
     Eigen::VectorXd sigma = collect_variance_components(state);
     auto n_comp = sigma.size();
-    auto n = opt_state.num_individuals();
 
     // 1. Compute dvpy: dV/dsigma_i * P * y for each component
     // residual: dV/dsigma_0 = I, so dvpy(:,0) = Py
