@@ -3,11 +3,8 @@
 
 #include "reml_logger_base.h"
 
-#include <memory>
 #include <string>
 #include <vector>
-
-#include <barkeep.h>
 
 #include "../src/types/freq_effect.h"
 
@@ -46,7 +43,6 @@ class LocoRemlLogger : public RemlLoggerBase
    public:
     explicit LocoRemlLogger(std::string chr_name);
 
-    void set_status(std::shared_ptr<barkeep::StatusDisplay> status);
     void set_verbose(bool verbose) override;
 
     void log_iteration(
@@ -68,9 +64,7 @@ class LocoRemlLogger : public RemlLoggerBase
 
    private:
     std::string chr_name_;
-    std::shared_ptr<barkeep::StatusDisplay> status_;
     LocoRemlResult result_;
-    double accumulated_time_{};
 };
 
 void print_loco_reml_summary(const std::vector<LocoRemlResult>& results);

@@ -111,20 +111,6 @@ auto create_progress_bar(
     return {.display = bk::Composite(elements, " "), .status = status};
 }
 
-auto create_reml_spinner() -> RemlSpinnerDisplay
-{
-    std::vector<std::shared_ptr<bk::BaseDisplay>> elements{bk::Animation(
-        {.message = " ",
-         .style = GREEN_SPINNER,
-         .interval = 0.08,
-         .show = false})};
-
-    auto status = bk::Status({.style = bk::Strings{" "}, .show = false});
-    elements.push_back(status);
-
-    return {.display = bk::Composite(elements, " "), .status = status};
-}
-
 auto print_gelex_banner_message(std::string_view version) -> void
 {
     std::cout << "Gelex [version " << version

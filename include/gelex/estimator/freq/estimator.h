@@ -22,6 +22,10 @@ class Estimator
 {
    public:
     explicit Estimator(size_t max_iter = 100, double tol = 1e-8);
+    Estimator(const Estimator&) = delete;
+    Estimator(Estimator&&) = default;
+    Estimator& operator=(const Estimator&) = delete;
+    Estimator& operator=(Estimator&&) = default;
     Estimator(
         size_t max_iter,
         double tol,
@@ -47,7 +51,6 @@ class Estimator
     Optimizer optimizer_;
     size_t max_iter_{100};
     size_t iter_count_{};
-    double tol_{1e-8};
     double loglike_{};
     bool converged_{false};
 

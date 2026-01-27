@@ -18,7 +18,6 @@ namespace gelex
 Estimator::Estimator(size_t max_iter, double tol)
     : optimizer_(tol),
       max_iter_(max_iter),
-      tol_(tol),
       logger_(std::make_unique<detail::RemlLogger>())
 {
 }
@@ -27,10 +26,7 @@ Estimator::Estimator(
     size_t max_iter,
     double tol,
     std::unique_ptr<detail::RemlLoggerBase> logger)
-    : optimizer_(tol),
-      max_iter_(max_iter),
-      tol_(tol),
-      logger_(std::move(logger))
+    : optimizer_(tol), max_iter_(max_iter), logger_(std::move(logger))
 {
 }
 

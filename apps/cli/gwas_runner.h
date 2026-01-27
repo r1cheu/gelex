@@ -50,7 +50,7 @@ class GwasRunner
     auto run() -> void;
 
    private:
-    auto print_summary() const -> void;
+    auto print_assoc_summary() const -> void;
 
     auto run_normal() -> void;
 
@@ -68,6 +68,8 @@ class GwasRunner
         size_t total_processed_before,
         const std::function<void(size_t, size_t, size_t)>& progress_callback)
         -> void;
+
+    auto print_scan_summary() const -> void;
 
     Config config_;
     DataPipe data_pipe_;

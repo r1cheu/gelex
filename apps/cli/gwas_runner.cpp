@@ -51,9 +51,12 @@ auto GwasRunner::run() -> void
     {
         run_normal();
     }
-
     writer_.finalize();
+    print_scan_summary();
+}
 
+auto GwasRunner::print_scan_summary() const -> void
+{
     auto logger = gelex::logging::get();
     logger->info("");
     logger->info(
@@ -69,7 +72,7 @@ auto GwasRunner::run() -> void
             separator()));
 }
 
-auto GwasRunner::print_summary() const -> void
+auto GwasRunner::print_assoc_summary() const -> void
 {
     auto logger = gelex::logging::get();
     logger->info("");
@@ -106,7 +109,7 @@ auto GwasRunner::run_normal() -> void
 
     update_assoc_input(model, state, estimator.fit(model, state, true, true));
 
-    print_summary();
+    print_assoc_summary();
 
     std::atomic<size_t> progress_counter{0};
     auto pbar = create_progress_bar(progress_counter, snp_effects_.size());
@@ -153,10 +156,11 @@ auto GwasRunner::run_loco() -> void
         loco_loaders.emplace_back(path, id_map);
     }
 
-    print_summary();
+    print_assoc_summary();
 
-    auto logger = gelex::logging::get();
-    size_t total_processed = 0;
+    std::atomic<size_t> progress_counter{0};
+    auto pbar = create_progress_bar(progress_counter, snp_effects_.size());
+    pbar.display->show();
 
     for (const auto& group : chr_groups_)
     {
@@ -168,12 +172,14 @@ auto GwasRunner::run_loco() -> void
                 chr_grm_prefix, id_map, model.genetic()[i].K);
         }
 
-        auto reml_spinner = create_reml_spinner();
-        reml_spinner.display->show();
+        pbar.status->message(
+            fmt::format(
+                "{} [Chr{}]",
+                fmt::format(fmt::fg(fmt::color::yellow), "REML"),
+                group.name));
 
         auto loco_logger
             = std::make_unique<gelex::detail::LocoRemlLogger>(group.name);
-        loco_logger->set_status(reml_spinner.status);
         auto* loco_logger_ptr = loco_logger.get();
         Estimator estimator(
             config_.max_iter, config_.tol, std::move(loco_logger));
@@ -181,42 +187,27 @@ auto GwasRunner::run_loco() -> void
         update_assoc_input(
             model, state, estimator.fit(model, state, true, true));
 
-        reml_spinner.display->done();
-        std::cout << "\033[1A\033[2K" << std::flush;
-
         loco_results_.push_back(loco_logger_ptr->result());
 
-        // reset ETA calculator for this chromosome
-        eta_calculator_.reset(group.total_snps);
-
-        std::atomic<size_t> chr_counter{0};
-        auto chr_pbar = create_progress_bar(chr_counter, group.total_snps);
-        chr_pbar.display->show();
-
-        auto progress_callback
-            = [&](size_t current, size_t total, size_t offset)
+        auto scan_callback = [&](size_t current, size_t total, size_t offset)
         {
-            chr_pbar.status->message(
+            pbar.status->message(
                 fmt::format(
-                    "{:.1f}% ({}/{}) | {}",
-                    static_cast<double>(current) / static_cast<double>(total)
-                        * 100.0,
+                    "{} [Chr{}] {:.1f}% ({}/{}) | {}",
+                    fmt::format(fmt::fg(fmt::color::light_green), "SCAN"),
+                    group.name,
+                    static_cast<double>(current)
+                        / static_cast<double>(snp_effects_.size()) * 100.0,
                     HumanReadable(current),
-                    HumanReadable(total),
+                    HumanReadable(snp_effects_.size()),
                     eta_calculator_.get_eta(current)));
         };
 
         scan_chromosome(
-            group,
-            chr_counter,
-            group.total_snps,
-            total_processed,
-            progress_callback);
-
-        total_processed += group.total_snps;
-        chr_pbar.display->done();
+            group, progress_counter, snp_effects_.size(), 0, scan_callback);
     }
 
+    pbar.display->done();
     detail::print_loco_reml_summary(loco_results_);
 }
 
