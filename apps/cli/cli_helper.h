@@ -29,6 +29,12 @@ struct ProgressBarDisplay
     std::shared_ptr<barkeep::StatusDisplay> status;
 };
 
+struct RemlSpinnerDisplay
+{
+    std::shared_ptr<barkeep::CompositeDisplay> display;
+    std::shared_ptr<barkeep::StatusDisplay> status;
+};
+
 auto is_tty() -> bool;
 
 auto setup_parallelization(int num_threads) -> void;
@@ -40,6 +46,8 @@ auto create_progress_bar(
     std::atomic<size_t>& counter,
     size_t total,
     std::string_view format = "{bar}") -> ProgressBarDisplay;
+
+auto create_reml_spinner() -> RemlSpinnerDisplay;
 
 auto print_gelex_banner_message(std::string_view version) -> void;
 
