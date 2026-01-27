@@ -91,24 +91,30 @@ auto create_progress_bar(
     size_t total,
     std::string_view format) -> ProgressBarDisplay
 {
-    std::vector<std::shared_ptr<bk::BaseDisplay>> elements{
-        bk::Animation(
-            {.message = " ",
-             .style = GREEN_SPINNER,
-             .interval = 0.08,
-             .show = false}),
+    std::vector<std::shared_ptr<bk::BaseDisplay>> elements;
+
+    elements.push_back((bk::Animation(
+        {.message = " ",
+         .style = GREEN_SPINNER,
+         .interval = 0.08,
+         .show = false})));
+    auto before = bk::Status({.style = bk::Strings{" "}, .show = false});
+    elements.push_back(before);
+    elements.push_back(
         bk::ProgressBar(
             &counter,
             {.total = total,
              .format = std::string(format),
              .speed = 0.1,
              .style = BAR_STYLE,
-             .show = false})};
+             .show = false}));
+    auto after = bk::Status({.style = bk::Strings{" "}, .show = false});
+    elements.push_back(after);
 
-    auto status = bk::Status({.style = bk::Strings{" "}, .show = false});
-    elements.push_back(status);
-
-    return {.display = bk::Composite(elements, " "), .status = status};
+    return {
+        .display = bk::Composite(elements, ""),
+        .before = before,
+        .after = after};
 }
 
 auto print_gelex_banner_message(std::string_view version) -> void

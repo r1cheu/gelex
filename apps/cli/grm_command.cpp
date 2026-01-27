@@ -176,7 +176,7 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
                     = completed_snps_base + static_cast<size_t>(current);
                 global_progress.store(current_total, std::memory_order_relaxed);
 
-                pbar.status->message(
+                pbar.after->message(
                     fmt::format(
                         "{:.1f}% ({}/{}) | {}",
                         static_cast<double>(current_total)

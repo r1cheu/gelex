@@ -105,6 +105,7 @@ auto GwasRunner::run_normal() -> void
     Estimator estimator(config_.max_iter, config_.tol);
 
     auto logger = gelex::logging::get();
+    logger->info(gelex::section(""));
     logger->info(gelex::section("Estimating Variance Component ..."));
 
     update_assoc_input(model, state, estimator.fit(model, state, true, true));
@@ -117,9 +118,9 @@ auto GwasRunner::run_normal() -> void
 
     auto progress_callback = [&](size_t current, size_t total, size_t offset)
     {
-        pbar.status->message(
+        pbar.after->message(
             fmt::format(
-                "{:.1f}% ({}/{}) | {}",
+                "{:.1f}% ({}/{}) | ETA: {}",
                 static_cast<double>(current) / static_cast<double>(total)
                     * 100.0,
                 HumanReadable(current),
@@ -172,30 +173,38 @@ auto GwasRunner::run_loco() -> void
                 chr_grm_prefix, id_map, model.genetic()[i].K);
         }
 
-        pbar.status->message(
-            fmt::format(
-                "{} [Chr{}]",
-                fmt::format(fmt::fg(fmt::color::yellow), "REML"),
-                group.name));
-
         auto loco_logger
             = std::make_unique<gelex::detail::LocoRemlLogger>(group.name);
         auto* loco_logger_ptr = loco_logger.get();
         Estimator estimator(
             config_.max_iter, config_.tol, std::move(loco_logger));
 
+        pbar.before->message(
+            fmt::format(
+                " {} [Chr {}]",
+                fmt::format(fmt::fg(fmt::color::yellow), "REML"),
+                group.name)
+
+        );
+
         update_assoc_input(
             model, state, estimator.fit(model, state, true, true));
 
         loco_results_.push_back(loco_logger_ptr->result());
 
+        pbar.before->message(
+            fmt::format(
+                " {} [Chr {}]",
+                fmt::format(fmt::fg(fmt::color::light_green), "SCAN"),
+                group.name)
+
+        );
+
         auto scan_callback = [&](size_t current, size_t total, size_t offset)
         {
-            pbar.status->message(
+            pbar.after->message(
                 fmt::format(
-                    "{} [Chr{}] {:.1f}% ({}/{}) | {}",
-                    fmt::format(fmt::fg(fmt::color::light_green), "SCAN"),
-                    group.name,
+                    "{:.1f}% ({}/{}) ETA: {}",
                     static_cast<double>(current)
                         / static_cast<double>(snp_effects_.size()) * 100.0,
                     HumanReadable(current),

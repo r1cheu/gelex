@@ -15,6 +15,7 @@
 
 namespace gelex::cli
 {
+
 struct ChrGroup
 {
     std::string name;
@@ -25,7 +26,8 @@ struct ChrGroup
 struct ProgressBarDisplay
 {
     std::shared_ptr<barkeep::CompositeDisplay> display;
-    std::shared_ptr<barkeep::StatusDisplay> status;
+    std::shared_ptr<barkeep::StatusDisplay> before;
+    std::shared_ptr<barkeep::StatusDisplay> after;
 };
 
 auto is_tty() -> bool;
