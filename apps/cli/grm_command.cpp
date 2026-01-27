@@ -96,8 +96,8 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
         .out_prefix = cmd.get("--out"),
         .method = cmd.get("--method"),
         .chunk_size = cmd.get<int>("--chunk-size"),
-        .do_additive = cmd.get<bool>("--additive"),
-        .do_dominant = cmd.get<bool>("--dominant"),
+        .do_additive = cmd.get<bool>("--add"),
+        .do_dominant = cmd.get<bool>("--dom"),
         .do_loco = cmd.get<bool>("--loco"),
         .threads = cmd.get<int>("--threads")};
 
