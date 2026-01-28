@@ -44,13 +44,13 @@ This will install the `gelex` binary to `~/.local/bin`.
 
 ## 💡 Quick Start
 
-### 1. Fit a Bayesian Model (BayesB)
+### 1. Fit a Bayesian Model (BayesR)
 
 ```bash
 gelex fit \
   --bfile data/genotypes \
   --pheno data/phenotypes.tsv \
-  --method B \
+  --method R \
   --iters 10000 \
   --burnin 2000 \
   --o result/my_analysis
@@ -98,12 +98,26 @@ For detailed development guidelines (coding style, architecture), please refer t
 
 ## 📄 License
 
-This project is licensed under the **BSD-3-Clause** License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the [Apache-2.0 LICENSE](LICENSE).
 
 ## 📧 Contact & Citation
 
-If you use Gelex in your research, please provide feedback via GitHub Issues.
+If you use Gelex in your research, please cite it using the following BibTeX entry:
 
-```text
-Citation information to be updated.
+```bibtex
+@misc{gelex,
+   author = {RuLei Chen},
+   year = {2026},
+   note = {https://github.com/r1cheu/gelex},
+   title = {Gelex: A high-performance C++ genomic analysis toolkit}
+}
 ```
+
+## 🙏 Acknowledgements
+
+Gelex utilizes several libraries:
+
+- **[Eigen](https://eigen.tuxfamily.org/)**: Eigen is a C++ template library for linear algebra: matrices, vectors, numerical solvers, and related algorithms.
+- **[barkeep](https://github.com/proclab/barkeep)**: Small, single C++ header to display async animations, counters, and progress bars.
+- **[argparse](https://github.com/p-ranav/argparse)**: Argument parser for modern C++.
+- **[mio](https://github.com/mandreyel/mio)**: An easy to use header-only cross-platform C++11 memory mapping library with an MIT license.
