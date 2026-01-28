@@ -30,21 +30,15 @@ Gelex is a high-performance C++ genomic analysis toolkit designed for large-scal
 
 ## 🚀 Installation
 
-### Prerequisites
-
-- **CMake**: 3.20+
-- **Compiler**: C++23 compatible compiler (GCC 11+, Clang 14+, or MSVC 2022+)
-- **Package Management**: [pixi](https://pixi.sh) (Recommended, handles all dependencies automatically)
-
-### Quick Install
+Install the latest nightly version via [pixi](https://pixi.sh) (Recommended) or conda:
 
 ```bash
-git clone --recurse-submodules https://github.com/r1cheu/gelex.git
-cd gelex
-pixi run install-release
-```
+# Using pixi (Global install)
+pixi g install -c conda-forge -c https://prefix.dev/gelex gelex
 
-This will install the `gelex` binary to `~/.local/bin`.
+# Using conda
+conda install -c conda-forge -c https://prefix.dev/gelex gelex
+```
 
 ## 💡 Quick Start
 
