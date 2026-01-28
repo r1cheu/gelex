@@ -99,4 +99,5 @@ jobs:
           pixi run rattler-build upload prefix \
             --channel gelex \
             --api-key ${{ secrets.PREFIX_API_KEY }} \
+            --force \
             dist/**/*.conda

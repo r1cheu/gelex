@@ -25,6 +25,7 @@ build:
 requirements:
   build:
     - ${{ compiler('cxx') }}
+    - sysroot_linux-64 == 2.17
     - cmake >=3.20
     - ninja
   host:
