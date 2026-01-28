@@ -1,6 +1,10 @@
-# Gelex
+# GELEX: GEnome LEX
 
 [![GitHub issues](https://img.shields.io/github/issues/r1cheu/gelexy?color=green)](https://github.com/r1cheu/gelexy/issues/new)
+
+<p align="center">
+  <img src="docs/images/gelex_logo.jpeg" alt="Gelex Logo" width="100%">
+</p>
 
 Gelex is a high-performance C++ genomic analysis toolkit designed for large-scale genomic prediction and association studies. It integrates advanced Bayesian models (BayesAlphabet series) and frequentist methods (GBLUP), optimized for memory efficiency and computational speed on massive datasets.
 
