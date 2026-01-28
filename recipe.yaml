@@ -1,6 +1,6 @@
 context:
   name: gelex
-  version: 0.7.0
+  version: "0.8.0"
 
 package:
   name: ${{ name|lower }}
@@ -30,19 +30,24 @@ requirements:
   host:
     - mkl-devel >=2025.3.0
     - spdlog
-    - fftw
   run:
     - mkl >=2025.3.0
     - spdlog
-    - fftw
 
 tests:
+  - package_contents:
+      bin:
+        - gelex
   - script:
       - gelex --help
 
 about:
-  homepage: https://github.com/rlchen/gelex
-  license: BSD-3-Clause
-  license_file: LICENSE
-  summary: Gelex binary distribution (MKL optimized)
-  description: C++23 application built with CMake, Ninja and Intel MKL
+  homepage: https://github.com/r1cheu/gelex
+  license: Apache-2.0
+  summary: High-performance C++ genomic analysis toolkit
+  description: |
+    GELEX (GEnome LEX) is a high-performance C++ genomic analysis toolkit
+    for large-scale genomic prediction and association studies. Features
+    Bayesian models (BayesA/B/C/R/RR series), GBLUP with REML, GWAS with
+    LOCO support, and GRM computation. Optimized with AVX512/AVX2, OpenMP,
+    and MKL/OpenBLAS backend.

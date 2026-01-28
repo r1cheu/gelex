@@ -89,12 +89,8 @@ notebook/
 build/
 compile_commands.json
 wheelhouse/
-.github/
 .idea/
-# pixi environments
 .pixi
-# ignore for now, untill the pixi is updated with --reinstall option
-pixi.lock
 .vscode/
 script/
 *.log

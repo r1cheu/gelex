@@ -12,8 +12,8 @@ openblas = { version = ">=0.3.30,<0.4", build = "*openmp*" }
 spdlog = ">=1.16.0,<2"
 catch2 = ">=3.8.0,<4"
 mkl-devel = ">=2025.3.0,<2026"
-fftw = ">=3.3.10,<4"
 llvm-tools = ">=21.1.6,<22"
+rattler-build = ">=0.40,<1"
 
 # ---------------------------------------------------------
 # Configure Tasks
