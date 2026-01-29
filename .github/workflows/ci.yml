@@ -34,6 +34,8 @@ jobs:
   build-test:
     name: Build & Test
     runs-on: ubuntu-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,8 +47,8 @@ jobs:
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
 
-      - name: Setup ccache
-        uses: hendrikmuhs/ccache-action@v1.2
+      - name: setup sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
         with:
           key: build-test
 
@@ -80,6 +82,8 @@ jobs:
   nightly:
     name: Nightly Release
     runs-on: ubuntu-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
     needs: build-test
     if: github.event_name == 'push' && github.ref_name == 'main'
     steps:
@@ -93,14 +97,15 @@ jobs:
           cache: true
           cache-write: false
 
-      - name: Setup ccache
-        uses: hendrikmuhs/ccache-action@v1.2
+      - name: setup sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
         with:
           key: nightly
 
       - name: Build conda package
         run: |
           pixi run rattler-build build \
+            --no-build-id \
             --recipe recipe.yaml \
             --output-dir dist/
 
@@ -109,5 +114,4 @@ jobs:
           pixi run rattler-build upload prefix \
             --channel gelex \
             --api-key ${{ secrets.PREFIX_API_KEY }} \
-            --force \
             dist/**/*.conda
