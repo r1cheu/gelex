@@ -18,6 +18,7 @@ build:
         -DGELEX_BUILD_TESTS=OFF \
         -DGELEX_BUILD_BENCHMARKS=OFF \
         -DGELEX_NATIVE_OPTIMIZATION=OFF \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         $SRC_DIR
       cmake --build . --parallel
       cmake --install .
@@ -28,6 +29,7 @@ requirements:
     - sysroot_linux-64 == 2.17
     - cmake >=3.20
     - ninja
+    - ccache
   host:
     - mkl-devel >=2025.3.0
     - spdlog

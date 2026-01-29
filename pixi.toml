@@ -3,17 +3,21 @@ name = "gelex"
 channels = ["https://prefix.dev/conda-forge"]
 platforms = ["linux-64"]
 
+[activation]
+env = { CXX = "g++" }
+
 [dependencies]
-cmake = ">=4.2.0,<5"
+cmake = ">=4.2.3,<5"
 cxx-compiler = ">=1.11.0,<2"
 ninja = ">=1.13.2,<2"
-clang = ">=21.1.6,<22"
-openblas = { version = ">=0.3.30,<0.4", build = "*openmp*" }
-spdlog = ">=1.16.0,<2"
-catch2 = ">=3.8.0,<4"
+clang = ">=21.1.8,<22"
+openblas = { version = ">=0.3.31,<0.4", build = "*openmp*" }
+spdlog = ">=1.17.0,<2"
+catch2 = ">=3.12.0,<4"
 mkl-devel = ">=2025.3.0,<2026"
-llvm-tools = ">=21.1.6,<22"
-rattler-build = ">=0.40,<1"
+llvm-tools = ">=21.1.8,<22"
+rattler-build = ">=0.55.1,<0.56"
+ccache = ">=4.12.2,<5"
 
 # ---------------------------------------------------------
 # Configure Tasks
@@ -105,12 +109,12 @@ depends-on = ["build-benchmark"]
 docs = { features = ["docs"], no-default-feature = true }
 
 [feature.docs.dependencies]
-python = ">=3.14.0,<3.15"
+python = ">=3.14.2,<3.15"
 
 [feature.docs.pypi-dependencies]
 sphinxcontrib-moderncmakedomain = ">=3.29.0, <4"
-furo = ">=2025.9.25, <2026"
-sphinx = ">=8.2.3, <9"
+furo = ">=2025.12.19, <2026"
+sphinx = ">=9.1.0, <10"
 sphinx-copybutton = ">=0.5.2, <0.6"
 sphinxcontrib-svg2pdfconverter = ">=2.0.0, <3"
 sphinx-autobuild = ">=2025.8.25, <2026"

@@ -12,8 +12,7 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
-                "GELEX_USE_MKL": "ON",
-                "CMAKE_CXX_COMPILER": "clang++-21"
+                "GELEX_USE_MKL": "ON"
             }
         },
         {

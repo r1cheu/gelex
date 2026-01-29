@@ -45,6 +45,11 @@ jobs:
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
 
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: build-test
+
       - name: Build & Run tests
         run: pixi run test
 
@@ -87,6 +92,11 @@ jobs:
         with:
           cache: true
           cache-write: false
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: nightly
 
       - name: Build conda package
         run: |
