@@ -27,7 +27,7 @@ sed -i "s/version: \"[0-9]\+\.[0-9]\+\.[0-9]\+\"/version: \"$VERSION\"/" recipe.
 echo "Creating git commit and tag..."
 
 git add CMakeLists.txt recipe.yaml
-git commit -m "chore: bump version to $VERSION"
+git commit -m "🔧 chore: bump version to $VERSION"
 git tag -a "v$VERSION" -m "Release v$VERSION"
 
 echo ""
