@@ -31,8 +31,8 @@
 #include "cli/grm_command.h"
 #include "cli/predict_args.h"
 #include "cli/predict_command.h"
-#include "cli/simulation_args.h"
-#include "cli/simulation_command.h"
+#include "cli/simulate_args.h"
+#include "cli/simulate_command.h"
 #include "gelex/logger.h"
 
 struct CommandDescriptor
@@ -69,12 +69,12 @@ auto execute_command(
 
 int main(int argc, char* argv[])
 {
-    constexpr std::array commands = {
-        CommandDescriptor{"fit", setup_fit_args, fit_execute},
-        CommandDescriptor{"simulate", setup_simulation_args, simulate_execute},
-        CommandDescriptor{"predict", setup_predict_args, predict_execute},
-        CommandDescriptor{"grm", setup_grm_args, grm_execute},
-        CommandDescriptor{"assoc", setup_assoc_args, assoc_execute}};
+    constexpr std::array commands
+        = {CommandDescriptor{"fit", setup_fit_args, fit_execute},
+           CommandDescriptor{"simulate", setup_simulate_args, simulate_execute},
+           CommandDescriptor{"predict", setup_predict_args, predict_execute},
+           CommandDescriptor{"grm", setup_grm_args, grm_execute},
+           CommandDescriptor{"assoc", setup_assoc_args, assoc_execute}};
 
     constexpr std::string_view error_marker = "[\033[31merror\033[0m] ";
 
@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
     argparse::ArgumentParser fit("fit");
     setup_fit_args(fit);
     argparse::ArgumentParser simulate("simulate");
-    setup_simulation_args(simulate);
+    setup_simulate_args(simulate);
     argparse::ArgumentParser predict("predict");
     setup_predict_args(predict);
     argparse::ArgumentParser grm("grm");

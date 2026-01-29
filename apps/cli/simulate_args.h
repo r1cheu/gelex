@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_SIMULATE_COMMAND_H_
-#define GELEX_CLI_SIMULATE_COMMAND_H_
+#ifndef GELEX_CLI_SIMULATE_ARGS_H_
+#define GELEX_CLI_SIMULATE_ARGS_H_
+
 #include <argparse.h>
 
-#include "simulation_args.h"
+void setup_simulate_args(argparse::ArgumentParser& cmd);
 
-int simulate_execute(argparse::ArgumentParser& sim);
-
-#endif  // GELEX_CLI_SIMULATE_COMMAND_H_
+#endif  // GELEX_CLI_SIMULATE_ARGS_H_

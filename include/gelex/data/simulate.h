@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_SIMULATION_H_
-#define GELEX_DATA_SIMULATION_H_
+#ifndef GELEX_DATA_SIMULATE_H_
+#define GELEX_DATA_SIMULATE_H_
 
 #include <filesystem>
 #include <memory>
@@ -92,4 +92,4 @@ class PhenotypeSimulator
 
 }  // namespace gelex
 
-#endif  // GELEX_DATA_SIMULATION_H_
+#endif  // GELEX_DATA_SIMULATE_H_

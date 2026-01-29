@@ -9,8 +9,8 @@ set(CLI_SOURCES
     cli/gwas_runner.cpp
     cli/predict_args.cpp
     cli/predict_command.cpp
-    cli/simulation_args.cpp
-    cli/simulation_command.cpp
+    cli/simulate_args.cpp
+    cli/simulate_command.cpp
     cli/cli_helper.cpp)
 
 add_executable(gelex_cli ${CLI_SOURCES})

@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-#include "simulation_args.h"
+#include "simulate_args.h"
 
 #include <argparse.h>
 
-void setup_simulation_args(argparse::ArgumentParser& cmd)
+#include "cli_helper.h"
+
+void setup_simulate_args(argparse::ArgumentParser& cmd)
 {
     cmd.add_description(
         "Simulate phenotypes based on genetic data and specified parameters");
@@ -53,4 +55,17 @@ void setup_simulation_args(argparse::ArgumentParser& cmd)
         .help("Random seed for reproducibility (-1 for time-based)")
         .default_value(-1)
         .scan<'i', int>();
+
+    cmd.add_epilog(
+        gelex::cli::format_epilog(
+            "{bg}Examples:{rs}\n"
+            "  {gy}# Basic phenotype simulation{rs}\n"
+            "  {bc}gelex simulate{rs} {cy}-b{rs} geno {cy}--causal{rs} "
+            "causal.txt\n\n"
+            "  {gy}# Custom heritability and output{rs}\n"
+            "  {bc}gelex simulate{rs} {cy}-b{rs} geno {cy}--causal{rs} "
+            "causal.txt {cy}--h2{rs} 0.3 {cy}-o{rs} sim_result\n\n"
+            "  {gy}# Reproducible simulation with seed{rs}\n"
+            "  {bc}gelex simulate{rs} {cy}-b{rs} geno {cy}--causal{rs} "
+            "causal.txt {cy}--h2{rs} 0.5 {cy}--seed{rs} 42"));
 }

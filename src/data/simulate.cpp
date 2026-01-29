@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/simulation.h"
+#include "gelex/data/simulate.h"
 
 #include <cmath>
 #include <format>
