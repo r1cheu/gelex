@@ -18,6 +18,8 @@
 
 #include <argparse.h>
 
+#include "cli_helper.h"
+
 void setup_predict_args(argparse::ArgumentParser& cmd)
 {
     cmd.add_description(
@@ -62,4 +64,18 @@ void setup_predict_args(argparse::ArgumentParser& cmd)
         .help("SNPs per chunk (controls memory usage)")
         .default_value(10000)
         .scan<'i', int>();
+
+    cmd.add_epilog(
+        gelex::cli::format_epilog(
+            "{bg}Examples:{rs}\n"
+            "  {gy}# Basic genomic prediction{rs}\n"
+            "  {bc}gelex predict{rs} {cy}-b{rs} geno {cy}-e{rs} model.snp.eff "
+            "{cy}-o{rs} pred.tsv\n\n"
+            "  {gy}# Prediction with covariate effects{rs}\n"
+            "  {bc}gelex predict{rs} {cy}-b{rs} geno {cy}-e{rs} model.snp.eff "
+            "{cy}--covar-eff{rs} model.param {cy}--qcovar{rs} age.txt "
+            "{cy}-o{rs} pred.tsv\n\n"
+            "  {gy}# IID-only sample matching{rs}\n"
+            "  {bc}gelex predict{rs} {cy}-b{rs} geno {cy}-e{rs} model.snp.eff "
+            "{cy}--iid-only{rs} {cy}-o{rs} pred.tsv"));
 }

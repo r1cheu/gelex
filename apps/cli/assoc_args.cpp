@@ -19,6 +19,8 @@
 #include <argparse.h>
 #include <thread>
 
+#include "cli_helper.h"
+
 void setup_assoc_args(argparse::ArgumentParser& cmd)
 {
     cmd.add_description(
@@ -104,4 +106,24 @@ void setup_assoc_args(argparse::ArgumentParser& cmd)
             std::max(
                 1, static_cast<int>(std::thread::hardware_concurrency() / 2)))
         .scan<'i', int>();
+
+    cmd.add_epilog(
+        gelex::cli::format_epilog(
+            "{bg}Examples:{rs}\n"
+            "  {gy}# Basic association test{rs}\n"
+            "  {bc}gelex assoc{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
+            "{cy}--grm{rs} grm_prefix\n\n"
+            "  {gy}# Specify phenotype column (0-based, default=2){rs}\n"
+            "  {bc}gelex assoc{rs} {cy}-p{rs} pheno.tsv {cy}--pheno-col{rs} 3 "
+            "{cy}-b{rs} geno {cy}--grm{rs} grm_prefix\n\n"
+            "  {gy}# With covariates{rs}\n"
+            "  {bc}gelex assoc{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
+            "{cy}--grm{rs} grm_prefix {cy}--qcovar{rs} age.txt "
+            "{cy}--dcovar{rs} sex.txt\n\n"
+            "  {gy}# LOCO mode with dominance model{rs}\n"
+            "  {bc}gelex assoc{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
+            "{cy}--grm{rs} grm_prefix {cy}--loco{rs} {cy}--model{rs} d\n\n"
+            "  {gy}# Multiple GRMs with custom output{rs}\n"
+            "  {bc}gelex assoc{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
+            "{cy}--grm{rs} grm1 grm2 {cy}-o{rs} result"));
 }

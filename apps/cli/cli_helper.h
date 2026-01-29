@@ -76,6 +76,8 @@ auto print_grm_header(
 
 auto print_assoc_header(int threads) -> void;
 
+auto format_epilog(std::string_view text) -> std::string;
+
 }  // namespace gelex::cli
 
 #endif  // GELEX_CLI_CLI_HELPER_H_

@@ -237,4 +237,23 @@ auto print_assoc_header(int threads) -> void
     logger->info("");
 }
 
+auto format_epilog(std::string_view text) -> std::string
+{
+    namespace c = argparse::colors;
+    const bool enabled = c::enabled();
+    std::string bg = enabled ? fmt::format("{}{}", c::BOLD, c::GREEN) : "";
+    std::string bc = enabled ? fmt::format("{}{}", c::BOLD, c::CYAN) : "";
+    std::string cy(enabled ? c::CYAN : "");
+    std::string gy = enabled ? "\033[90m" : "";
+    std::string rs(enabled ? c::RESET : "");
+
+    return fmt::format(
+        fmt::runtime(text),
+        fmt::arg("bg", bg),
+        fmt::arg("bc", bc),
+        fmt::arg("cy", cy),
+        fmt::arg("gy", gy),
+        fmt::arg("rs", rs));
+}
+
 }  // namespace gelex::cli

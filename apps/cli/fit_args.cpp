@@ -19,10 +19,11 @@
 #include <argparse.h>
 #include <thread>
 
+#include "cli_helper.h"
+
 void setup_fit_args(argparse::ArgumentParser& cmd)
 {
-    cmd.add_description(
-        "Fit genomic prediction models using Bayesian or GBLUP methods");
+    cmd.add_description("Fit genomic prediction models using Bayesian methods");
 
     // ================================================================
     // IO
@@ -69,7 +70,7 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
     cmd.add_group("Model Configuration");
     cmd.add_argument("-m", "--method")
         .help(
-            "Method: A/B/C/R/RR/GBLUP (+d for dominance, +pi to estimate "
+            "Method: A/B/C/R/RR (+d for dominance, +pi to estimate "
             "mixture), e.g. RRd, Bdpi")
         .default_value("RR")
         .metavar("<METHOD>")
@@ -147,4 +148,21 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
             "Use memory-mapped I/O for genotype matrix(much lower RAM, may be "
             "slower)")
         .flag();
+
+    cmd.add_epilog(
+        gelex::cli::format_epilog(
+            "{bg}Examples:{rs}\n"
+            "  {gy}# Basic BayesRR model fitting{rs}\n"
+            "  {bc}gelex fit{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
+            "{cy}-m{rs} RR\n\n"
+            "  {gy}# BayesB with dominance effects{rs}\n"
+            "  {bc}gelex fit{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
+            "{cy}-m{rs} Bd\n\n"
+            "  {gy}# BayesR with custom scales and MCMC settings{rs}\n"
+            "  {bc}gelex fit{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
+            "{cy}-m{rs} R {cy}--scale{rs} 0 0.001 0.01 0.1 1 {cy}--iters{rs} "
+            "10000 {cy}--burnin{rs} 5000\n\n"
+            "  {gy}# Memory-efficient mode with mmap{rs}\n"
+            "  {bc}gelex fit{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
+            "{cy}-m{rs} RR {cy}--mmap{rs} {cy}-o{rs} result"));
 }
