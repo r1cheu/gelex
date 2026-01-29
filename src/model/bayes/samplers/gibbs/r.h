@@ -66,7 +66,7 @@ auto R(
         const double old_i = coeffs(i);
         const auto& col = design_matrix.col(i);
 
-        double rhs = mkl_ddot(col, y_adj);
+        double rhs = blas_ddot(col, y_adj);
         if (old_i != 0.0)
         {
             rhs += cols_norm(i) * old_i;

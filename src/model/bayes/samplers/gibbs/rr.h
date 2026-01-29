@@ -60,7 +60,7 @@ auto RR(
         const double v = cols_norm(i) + residual_over_var;
         const double inv_v = 1.0 / v;
 
-        const double rhs = mkl_ddot(col, y_adj) + (cols_norm(i) * old_i);
+        const double rhs = blas_ddot(col, y_adj) + (cols_norm(i) * old_i);
         const double post_mean = rhs * inv_v;
         const double post_stddev = sqrt_residual_variance * std::sqrt(inv_v);
 
