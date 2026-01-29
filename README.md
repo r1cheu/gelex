@@ -6,7 +6,7 @@
   <img src="docs/images/gelex_logo.jpeg" alt="Gelex Logo" width="100%">
 </p>
 
-Gelex is a high-performance C++ genomic analysis toolkit designed for large-scale genomic prediction and association studies. It integrates advanced Bayesian models (BayesAlphabet series) and frequentist methods (GBLUP), optimized for memory efficiency and computational speed on massive datasets.
+Gelex is a high-performance C++ genomic analysis toolkit designed for large-scale genomic prediction and association studies. It integrates advanced Bayesian models (BayesAlphabet series), optimized for memory efficiency and computational speed on massive datasets.
 
 > [!IMPORTANT]
 > This project is under active development. APIs and features are subject to change.
@@ -15,9 +15,8 @@ Gelex is a high-performance C++ genomic analysis toolkit designed for large-scal
 
 - **Comprehensive Model Support**:
   - **Bayesian Series**: BayesA, B, C, R, RR and their counterparts for dominance effects (d) and Pi estimation (pi) (14 prior strategies in total).
-  - **Frequentist Methods**: GBLUP model with REML estimation.
 - **Full-stack Analysis Workflow**:
-  - **Model Fitting (`fit`)**: Efficient MCMC sampling or REML execution.
+  - **Model Fitting (`fit`)**: Efficient MCMC sampling.
   - **Genomic Prediction (`predict`)**: Generate predictions for new samples based on trained effect sizes.
   - **Association Testing (`assoc`)**: Mixed linear model GWAS with LOCO (Leave-One-Chromosome-Out) support.
   - **GRM Computation (`grm`)**: Multiple algorithms (Yang, Zeng, Vitezica) for computing Genomic Relationship Matrices.
