@@ -96,6 +96,17 @@ void setup_assoc_args(argparse::ArgumentParser& cmd)
         .default_value("a")
         .metavar("<MODEL>")
         .choices("a", "d");
+    cmd.add_argument("--transform")
+        .help(
+            "Phenotype transformation: none (default), dint (Direct INT), "
+            "iint (Indirect INT)")
+        .default_value("none")
+        .metavar("<TRANSFORM>")
+        .choices("none", "dint", "iint");
+    cmd.add_argument("--int-offset")
+        .help("INT offset parameter k (default: 3/8 Blom offset)")
+        .default_value(3.0 / 8.0)
+        .scan<'g', double>();
     // ================================================================
     // Performance
     // ================================================================

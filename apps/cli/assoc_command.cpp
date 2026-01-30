@@ -44,6 +44,17 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 
     auto bed_path = gelex::BedPipe::format_bed_path(cmd.get("bfile"));
 
+    std::string transform_str = cmd.get("--transform");
+    auto transform_type = gelex::detail::TransformType::None;
+    if (transform_str == "dint")
+    {
+        transform_type = gelex::detail::TransformType::DINT;
+    }
+    else if (transform_str == "iint")
+    {
+        transform_type = gelex::detail::TransformType::IINT;
+    }
+
     gelex::DataPipe::Config config{
         .phenotype_path = cmd.get("--pheno"),
         .phenotype_column = cmd.get<int>("--pheno-col"),
@@ -55,11 +66,14 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
         .dcovar_path = cmd.get("--dcovar"),
         .iid_only = cmd.get<bool>("--iid-only"),
         .output_prefix = cmd.get("--out"),
-        .grm_paths = grm_paths};
+        .grm_paths = grm_paths,
+        .transform_type = transform_type,
+        .int_offset = cmd.get<double>("--int-offset")};
 
     gelex::cli::print_assoc_header(cmd.get<int>("--threads"));
 
     auto data_pipe = gelex::load_data_for_reml(config);
+
     auto sample_manager = data_pipe.sample_manager();
 
     gelex::BedPipe bed_pipe(bed_path, sample_manager);
