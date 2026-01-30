@@ -154,15 +154,8 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
             "{bg}Examples:{rs}\n"
             "  {gy}# Basic BayesRR model fitting{rs}\n"
             "  {bc}gelex fit{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
-            "{cy}-m{rs} RR\n\n"
-            "  {gy}# BayesB with dominance effects{rs}\n"
+            "{cy}-m{rs} RR\n"
+            "  {gy}# BayesB with dominance effects and covariates{rs}\n"
             "  {bc}gelex fit{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
-            "{cy}-m{rs} Bd\n\n"
-            "  {gy}# BayesR with custom scales and MCMC settings{rs}\n"
-            "  {bc}gelex fit{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
-            "{cy}-m{rs} R {cy}--scale{rs} 0 0.001 0.01 0.1 1 {cy}--iters{rs} "
-            "10000 {cy}--burnin{rs} 5000\n\n"
-            "  {gy}# Memory-efficient mode with mmap{rs}\n"
-            "  {bc}gelex fit{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
-            "{cy}-m{rs} RR {cy}--mmap{rs} {cy}-o{rs} result"));
+            "{cy}-m{rs} Bd {cy}--qcovar{rs} age.txt"));
 }

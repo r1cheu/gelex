@@ -61,11 +61,8 @@ void setup_simulate_args(argparse::ArgumentParser& cmd)
             "{bg}Examples:{rs}\n"
             "  {gy}# Basic phenotype simulation{rs}\n"
             "  {bc}gelex simulate{rs} {cy}-b{rs} geno {cy}--causal{rs} "
-            "causal.txt\n\n"
-            "  {gy}# Custom heritability and output{rs}\n"
+            "causal.txt\n"
+            "  {gy}# Custom heritability with reproducible seed{rs}\n"
             "  {bc}gelex simulate{rs} {cy}-b{rs} geno {cy}--causal{rs} "
-            "causal.txt {cy}--h2{rs} 0.3 {cy}-o{rs} sim_result\n\n"
-            "  {gy}# Reproducible simulation with seed{rs}\n"
-            "  {bc}gelex simulate{rs} {cy}-b{rs} geno {cy}--causal{rs} "
-            "causal.txt {cy}--h2{rs} 0.5 {cy}--seed{rs} 42"));
+            "causal.txt {cy}--h2{rs} 0.3 {cy}--seed{rs} 42"));
 }

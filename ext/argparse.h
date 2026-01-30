@@ -1894,28 +1894,10 @@ class Argument
         std::size_t get_max() const { return m_max; }
 
         // Print help message
-        friend auto operator<<(std::ostream& stream, const NArgsRange& range)
-            -> std::ostream&
+        friend auto operator<<(
+            std::ostream& stream,
+            [[maybe_unused]] const NArgsRange& range) -> std::ostream&
         {
-            if (range.m_min == range.m_max)
-            {
-                if (range.m_min != 0 && range.m_min != 1)
-                {
-                    stream << "[nargs: " << range.m_min << "] ";
-                }
-            }
-            else
-            {
-                if (range.m_max == (std::numeric_limits<std::size_t>::max)())
-                {
-                    stream << "[nargs: " << range.m_min << " or more] ";
-                }
-                else
-                {
-                    stream << "[nargs=" << range.m_min << ".." << range.m_max
-                           << "] ";
-                }
-            }
             return stream;
         }
 
@@ -2909,7 +2891,7 @@ class ArgumentParser
                 {
                     std::string_view arg_name = usage_view.substr(0, space_pos);
                     std::string_view metavar = usage_view.substr(space_pos);
-                    colored_usage = std::string(colors::GREEN)
+                    colored_usage = std::string(colors::CYAN)
                                     + std::string(arg_name)
                                     + std::string(colors::RESET);
                     if (!metavar.empty())
@@ -2921,7 +2903,7 @@ class ArgumentParser
                 }
                 else
                 {
-                    colored_usage = std::string(colors::GREEN)
+                    colored_usage = std::string(colors::CYAN)
                                     + std::string(usage_view)
                                     + std::string(colors::RESET);
                 }

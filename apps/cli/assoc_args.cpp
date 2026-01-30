@@ -123,18 +123,9 @@ void setup_assoc_args(argparse::ArgumentParser& cmd)
             "{bg}Examples:{rs}\n"
             "  {gy}# Basic association test{rs}\n"
             "  {bc}gelex assoc{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
-            "{cy}--grm{rs} grm_prefix\n\n"
-            "  {gy}# Specify phenotype column (0-based, default=2){rs}\n"
-            "  {bc}gelex assoc{rs} {cy}-p{rs} pheno.tsv {cy}--pheno-col{rs} 3 "
-            "{cy}-b{rs} geno {cy}--grm{rs} grm_prefix\n\n"
-            "  {gy}# With covariates{rs}\n"
+            "{cy}--grm{rs} grm_prefix\n"
+            "  {gy}# With covariates and LOCO mode{rs}\n"
             "  {bc}gelex assoc{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
             "{cy}--grm{rs} grm_prefix {cy}--qcovar{rs} age.txt "
-            "{cy}--dcovar{rs} sex.txt\n\n"
-            "  {gy}# LOCO mode with dominance model{rs}\n"
-            "  {bc}gelex assoc{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
-            "{cy}--grm{rs} grm_prefix {cy}--loco{rs} {cy}--model{rs} d\n\n"
-            "  {gy}# Multiple GRMs with custom output{rs}\n"
-            "  {bc}gelex assoc{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
-            "{cy}--grm{rs} grm1 grm2 {cy}-o{rs} result"));
+            "{cy}--loco{rs}"));
 }

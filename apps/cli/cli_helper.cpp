@@ -145,11 +145,10 @@ and BLAS/LAPACK acceleration, Gelex offers seamless integration with PLINK binar
 and efficient processing of large-scale genomic data.
 
 Basic Usage:
-    Fit a Bayesian model:
     $ gelex fit --bfile genotypes --pheno phenotypes.tsv --method RR --out results
-
-    Run simulations:
-    $ gelex simulate [options]
+    $ gelex predict --bfile genotypes --effects results.snp_effects --out pred
+    $ gelex grm --bfile genotypes --out grm_output
+    $ gelex assoc --bfile genotypes --pheno phenotypes.tsv --out gwas_results
 
 Found a Bug or Have a Feature Request?
     Open an issue at: https://github.com/r1cheu/gelex/issues

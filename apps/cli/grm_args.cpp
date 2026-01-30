@@ -68,17 +68,8 @@ void setup_grm_args(argparse::ArgumentParser& cmd)
         gelex::cli::format_epilog(
             "{bg}Examples:{rs}\n"
             "  {gy}# Compute additive GRM{rs}\n"
-            "  {bc}gelex grm{rs} {cy}-b{rs} geno {cy}--add{rs}\n\n"
-            "  {gy}# Compute dominance GRM with custom output{rs}\n"
-            "  {bc}gelex grm{rs} {cy}-b{rs} geno {cy}--dom{rs} {cy}-o{rs} "
-            "dom_grm\n\n"
-            "  {gy}# LOCO GRM (one per chromosome){rs}\n"
+            "  {bc}gelex grm{rs} {cy}-b{rs} geno {cy}--add{rs}\n"
+            "  {gy}# LOCO GRM with both additive and dominance{rs}\n"
             "  {bc}gelex grm{rs} {cy}-b{rs} geno {cy}--add{rs} "
-            "{cy}--loco{rs}\n\n"
-            "  {gy}# Compute both additive and dominance GRMs{rs}\n"
-            "  {bc}gelex grm{rs} {cy}-b{rs} geno {cy}--add{rs} "
-            "{cy}--dom{rs}\n\n"
-            "  {gy}# Use specific method and threads{rs}\n"
-            "  {bc}gelex grm{rs} {cy}-b{rs} geno {cy}--add{rs} {cy}-m{rs} "
-            "vitezica {cy}-t{rs} 8"));
+            "{cy}--dom{rs} {cy}--loco{rs}"));
 }

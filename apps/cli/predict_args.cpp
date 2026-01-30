@@ -70,12 +70,9 @@ void setup_predict_args(argparse::ArgumentParser& cmd)
             "{bg}Examples:{rs}\n"
             "  {gy}# Basic genomic prediction{rs}\n"
             "  {bc}gelex predict{rs} {cy}-b{rs} geno {cy}-e{rs} model.snp.eff "
-            "{cy}-o{rs} pred.tsv\n\n"
+            "{cy}-o{rs} pred.tsv\n"
             "  {gy}# Prediction with covariate effects{rs}\n"
             "  {bc}gelex predict{rs} {cy}-b{rs} geno {cy}-e{rs} model.snp.eff "
             "{cy}--covar-eff{rs} model.param {cy}--qcovar{rs} age.txt "
-            "{cy}-o{rs} pred.tsv\n\n"
-            "  {gy}# IID-only sample matching{rs}\n"
-            "  {bc}gelex predict{rs} {cy}-b{rs} geno {cy}-e{rs} model.snp.eff "
-            "{cy}--iid-only{rs} {cy}-o{rs} pred.tsv"));
+            "{cy}-o{rs} pred.tsv"));
 }
