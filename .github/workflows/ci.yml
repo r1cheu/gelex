@@ -105,9 +105,23 @@ jobs:
             --recipe recipe.yaml \
             --output-dir dist/
 
+      - name: Check if version exists on prefix.dev
+        id: check_version
+        run: |
+          VERSION=$(grep -oP 'version:\s*"\K[^"]+' recipe.yaml | head -1)
+          echo "Package version: $VERSION"
+          if pixi search -c https://prefix.dev/gelex gelex 2>/dev/null | grep -q "$VERSION"; then
+            echo "Version $VERSION already exists, will use --force"
+            echo "upload_flags=--force" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version $VERSION is new"
+            echo "upload_flags=" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Upload to prefix.dev
         run: |
           pixi run rattler-build upload prefix \
             --channel gelex \
             --api-key ${{ secrets.PREFIX_API_KEY }} \
+            ${{ steps.check_version.outputs.upload_flags }} \
             dist/**/*.conda

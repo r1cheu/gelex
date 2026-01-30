@@ -26,7 +26,6 @@ build:
         $SRC_DIR
       cmake --build . --parallel
       cmake --install .
-      sccache --show-stats
 
 requirements:
   build:
