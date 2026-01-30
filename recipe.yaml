@@ -12,7 +12,11 @@ source:
 build:
   number: 0
   script:
-    - |
+    env:
+      SCCACHE_GHA_ENABLED: ${{ env.get("SCCACHE_GHA_ENABLED", default="") }}
+      ACTIONS_CACHE_URL: ${{ env.get("ACTIONS_CACHE_URL", default="") }}
+      ACTIONS_RUNTIME_TOKEN: ${{ env.get("ACTIONS_RUNTIME_TOKEN", default="") }}
+    content: |
       cmake $CMAKE_ARGS -G "Ninja" \
         -DGELEX_USE_MKL=ON \
         -DGELEX_BUILD_TESTS=OFF \
@@ -22,6 +26,7 @@ build:
         $SRC_DIR
       cmake --build . --parallel
       cmake --install .
+      sccache --show-stats
 
 requirements:
   build:
@@ -29,6 +34,7 @@ requirements:
     - sysroot_linux-64 == 2.17
     - cmake >=3.20
     - ninja
+    - sccache
   host:
     - mkl-devel >=2025.3.0
     - spdlog

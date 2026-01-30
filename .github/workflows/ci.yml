@@ -49,8 +49,6 @@ jobs:
 
       - name: setup sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.9
-        with:
-          key: build-test
 
       - name: Build & Run tests
         run: pixi run test
@@ -97,10 +95,8 @@ jobs:
           cache: true
           cache-write: false
 
-      - name: setup sccache-cache
+      - name: Setup sccache
         uses: mozilla-actions/sccache-action@v0.0.9
-        with:
-          key: nightly
 
       - name: Build conda package
         run: |
