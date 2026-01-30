@@ -62,7 +62,11 @@ auto v_inv_logdet(Eigen::Ref<Eigen::MatrixXd> v) -> double
     }
 
     // 2. Compute log|V| = 2 * sum(log(diag(L)))
+    // GCC false positive: deep inlining of Eigen expression templates
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
     double logdet = 2.0 * v.diagonal().array().log().sum();
+#pragma GCC diagnostic pop
 
     // 3. Compute inverse from Cholesky factor: V^{-1}
     info = LAPACKE_dpotri(LAPACK_COL_MAJOR, 'L', n, v.data(), n);
@@ -113,7 +117,10 @@ auto compute_loglike(const FreqModel& model, const OptimizerState& state)
     // log|X'V^{-1}X|
     Eigen::LLT<Eigen::MatrixXd> llt_xvx(state.tx_vinv_x);
     Eigen::MatrixXd L_xvx = llt_xvx.matrixL();
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
     double logdet_xvx = 2.0 * L_xvx.diagonal().array().log().sum();
+#pragma GCC diagnostic pop
 
     // y'Py
     double ypy = model.phenotype().dot(state.proj_y);
