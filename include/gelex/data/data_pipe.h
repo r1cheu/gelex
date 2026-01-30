@@ -41,6 +41,13 @@ class PhenotypeLoader;
 class QuantitativeCovariateLoader;
 class DiscreteCovariateLoader;
 class GrmLoader;
+
+enum class TransformType : uint8_t
+{
+    None,
+    DINT,
+    IINT
+};
 }  // namespace detail
 
 struct PhenoStats
@@ -92,6 +99,8 @@ class DataPipe
         bool iid_only = false;
         std::string output_prefix;
         std::vector<std::filesystem::path> grm_paths;
+        detail::TransformType transform_type = detail::TransformType::None;
+        double int_offset = 3.0 / 8.0;
     };
 
     explicit DataPipe(const Config& config);
@@ -185,6 +194,8 @@ class DataPipe
     std::vector<gelex::freq::GeneticEffect> grms_;
 
     std::vector<std::string> fixed_effect_names_;
+
+    void apply_phenotype_transform(detail::TransformType type, double offset);
 };
 
 }  // namespace gelex

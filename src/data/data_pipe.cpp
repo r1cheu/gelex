@@ -23,14 +23,17 @@
 
 #include <Eigen/Core>
 
+#include "../src/utils/phenotype_transformer.h"
 #include "gelex/data/sample_manager.h"
 #include "gelex/data/variant_processor.h"
 #include "gelex/exception.h"
+#include "gelex/logger.h"
 #include "grm_loader.h"
 #include "loader/dcovariate_loader.h"
 #include "loader/phenotype_loader.h"
 #include "loader/qcovariate_loader.h"
 #include "types/fixed_effects.h"
+#include "utils/formatter.h"
 
 namespace bk = barkeep;
 
@@ -225,11 +228,39 @@ void DataPipe::finalize()
     {
         grms_.emplace_back(grm_loader.type(), grm_loader.load(id_map));
     }
+
+    apply_phenotype_transform(config_.transform_type, config_.int_offset);
 }
 
 const std::vector<std::string>& DataPipe::fixed_effect_names() const
 {
     return fixed_effects_.names;
+}
+
+void DataPipe::apply_phenotype_transform(
+    detail::TransformType type,
+    double offset)
+{
+    if (type == detail::TransformType::None)
+    {
+        return;
+    }
+
+    detail::PhenotypeTransformer transformer(offset);
+    auto logger = gelex::logging::get();
+
+    if (type == detail::TransformType::DINT)
+    {
+        logger->info(task("Method: Direct INT (DINT), offset (k): {}", offset));
+        transformer.apply_dint(phenotype_);
+    }
+    else if (type == detail::TransformType::IINT)
+    {
+        logger->info(
+            task("Method: Indirect INT (IINT), offset (k): {}", offset));
+        transformer.apply_iint(phenotype_, fixed_effects_.X);
+        fixed_effects_ = FixedEffect::build(phenotype_.size());
+    }
 }
 
 }  // namespace gelex
