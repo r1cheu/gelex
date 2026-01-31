@@ -109,3 +109,4 @@ codebook.toml
 code-summary.md
 output
 .opencode/plans
+.claude/skills/semver-bump

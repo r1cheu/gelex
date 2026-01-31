@@ -1,0 +1,5 @@
+sphinx==9.1.0
+furo==2025.12.19
+sphinx-copybutton==0.5.2
+sphinxcontrib-moderncmakedomain==3.29.0
+sphinxcontrib-svg2pdfconverter==2.0.0

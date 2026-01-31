@@ -7,9 +7,9 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "gelex"
-copyright = "2025, rlchen"
-author = "rlchen"
-release = "0.6.0"
+copyright = "2026, RuLei Chen"
+author = "RuLei Chen"
+release = "0.10.1"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
