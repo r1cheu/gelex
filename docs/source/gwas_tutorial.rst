@@ -91,7 +91,6 @@ During analysis (``--loco``), Gelex loads the global GRM and dynamically subtrac
 
 Phenotype Transformation
 ~~~~~~~~~~~~~~~~~~~~~~~~
-~
 
 GWAS assumes approximately normally distributed residuals. For phenotypes that deviate from normality, Gelex provides **Inverse Normal Transformation (INT)** options:
 

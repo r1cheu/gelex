@@ -1,6 +1,10 @@
 # GELEX: GEnome LEX
 
-[![GitHub issues](https://img.shields.io/github/issues/r1cheu/gelexy?color=green)](https://github.com/r1cheu/gelexy/issues/new)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Documentation Status](https://readthedocs.org/projects/gelex/badge/?version=latest)](https://gelex.readthedocs.io/en/latest/?badge=latest)
+[![CI](https://github.com/r1cheu/gelex/actions/workflows/ci.yml/badge.svg)](https://github.com/r1cheu/gelex/actions/workflows/ci.yml)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/r1cheu/gelex)](https://github.com/r1cheu/gelex/releases)
+[![GitHub issues](https://img.shields.io/github/issues/r1cheu/gelex)](https://github.com/r1cheu/gelex/issues)
 
 <p align="center">
   <img src="docs/images/gelex_logo.jpeg" alt="Gelex Logo" width="100%">

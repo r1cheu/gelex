@@ -19,6 +19,7 @@ extensions = [
     "sphinxcontrib.rsvgconverter",
     "sphinxcontrib.moderncmakedomain",
     "sphinx.ext.intersphinx",
+    "sphinx.ext.mathjax",
 ]
 
 templates_path = ["_templates"]
