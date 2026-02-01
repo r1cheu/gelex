@@ -95,33 +95,35 @@ jobs:
           cache: true
           cache-write: false
 
-      - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.9
-
-      - name: Build conda package
-        run: |
-          pixi run rattler-build build \
-            --no-build-id \
-            --recipe recipe.yaml \
-            --output-dir dist/
-
       - name: Check if version exists on prefix.dev
         id: check_version
         run: |
           VERSION=$(grep -oP 'version:\s*"\K[^"]+' recipe.yaml | head -1)
           echo "Package version: $VERSION"
           if pixi search -c https://prefix.dev/gelex gelex 2>/dev/null | grep -q "$VERSION"; then
-            echo "Version $VERSION already exists, will use --force"
-            echo "upload_flags=--force" >> "$GITHUB_OUTPUT"
+            echo "Version $VERSION already exists, skipping build and upload"
+            echo "is_new=false" >> "$GITHUB_OUTPUT"
           else
-            echo "Version $VERSION is new"
-            echo "upload_flags=" >> "$GITHUB_OUTPUT"
+            echo "Version $VERSION is new, will build and upload"
+            echo "is_new=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Setup sccache
+        if: steps.check_version.outputs.is_new == 'true'
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Build conda package
+        if: steps.check_version.outputs.is_new == 'true'
+        run: |
+          pixi run rattler-build build \
+            --no-build-id \
+            --recipe recipe.yaml \
+            --output-dir dist/
+
       - name: Upload to prefix.dev
+        if: steps.check_version.outputs.is_new == 'true'
         run: |
           pixi run rattler-build upload prefix \
             --channel gelex \
             --api-key ${{ secrets.PREFIX_API_KEY }} \
-            ${{ steps.check_version.outputs.upload_flags }} \
             dist/**/*.conda

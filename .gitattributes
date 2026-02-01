@@ -1,2 +1,21 @@
 # GitHub syntax highlighting
 pixi.lock linguist-language=YAML linguist-generated=true
+
+# Exclude from release archives (git archive / GitHub tarball)
+.claude/                    export-ignore
+.opencode/                  export-ignore
+.zed/                       export-ignore
+.github/                    export-ignore
+.clang-format               export-ignore
+.clang-tidy                 export-ignore
+.gitattributes              export-ignore
+.gitignore                  export-ignore
+.gitmodules                 export-ignore
+.pre-commit-config.yaml     export-ignore
+.readthedocs.yaml           export-ignore
+AGENTS.md                   export-ignore
+CLAUDE.md                   export-ignore
+tests/                      export-ignore
+benchmark/                  export-ignore
+scripts/                    export-ignore
+docs/                       export-ignore
