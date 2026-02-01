@@ -26,22 +26,25 @@ Gelex is a high-performance C++ genomic analysis toolkit designed for large-scal
   - **GRM Computation (`grm`)**: Multiple algorithms (Yang, Zeng, Vitezica) for computing Genomic Relationship Matrices.
   - **Phenotype Simulation (`simulate`)**: Simulate complex additive and dominance genetic architectures based on real genotypes.
 - **Exceptional Performance**:
-  - **Vectorized Acceleration**: Optimized data I/O using AVX512/AVX2 instruction sets.
   - **Multi-threaded Parallelism**: OpenMP-based parallelization across all modules.
   - **Memory Efficiency**: Memory-mapped BED file reading via `mio` with chunk-based processing support.
   - **Modern Backend**: Powered by the Eigen linear algebra library with MKL or OpenBLAS support.
 
 ## 🚀 Installation
 
-Install the latest nightly version via [pixi](https://pixi.sh) (Recommended) or conda:
+Install the latest version via [pixi](https://pixi.sh):
 
 ```bash
-# Using pixi (Global install)
-pixi g install -c conda-forge -c https://prefix.dev/gelex gelex
+pixi global install -c conda-forge -c https://prefix.dev/gelex gelex
+```
 
-# Using conda
+via [Conda](https://docs.conda.io/en/latest/):
+
+```bash
 conda install -c conda-forge -c https://prefix.dev/gelex gelex
 ```
+
+For detailed installation instructions, please visit the [Installation Guide](https://gelex.readthedocs.io/en/latest/installation.html).
 
 ## 💡 Quick Start
 
@@ -57,35 +60,7 @@ gelex fit \
   --o result/my_analysis
 ```
 
-### 2. Perform Genomic Prediction
-
-```bash
-gelex predict \
-  --bfile data/new_samples \
-  --snp-eff result/my_analysis.snp.eff \
-  --o result/predictions
-```
-
-### 3. Compute GRM (LOCO Mode)
-
-```bash
-gelex grm \
-  --bfile data/genotypes \
-  --method yang \
-  --loco \
-  --o result/grm_loco
-```
-
-### 4. Run GWAS Association Test
-
-```bash
-gelex assoc \
-  --bfile data/genotypes \
-  --pheno data/phenotypes.tsv \
-  --grm result/grm_loco \
-  --loco \
-  --o result/gwas_results
-```
+For detailed tutorials on Genomic Prediction, GRM computation, and GWAS, please visit our [Documentation](https://gelex.readthedocs.io).
 
 ## 🛠 Development & Testing
 
