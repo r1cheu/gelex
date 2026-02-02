@@ -15,10 +15,48 @@
  */
 
 #include "simulate_command.h"
+
+#include <format>
+#include <stdexcept>
+#include <string_view>
+#include <vector>
+
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/simulate.h"
-
 #include "gelex/logger.h"
+
+namespace
+{
+auto parse_effect_classes(
+    argparse::ArgumentParser& sim,
+    std::string_view var_flag,
+    std::string_view prop_flag) -> std::vector<gelex::EffectSizeClass>
+{
+    auto variances = sim.get<std::vector<double>>(std::string(var_flag));
+    if (!sim.is_used(std::string(prop_flag)))
+    {
+        throw std::runtime_error(
+            std::format(
+                "{} is required when {} is specified", prop_flag, var_flag));
+    }
+    auto proportions = sim.get<std::vector<double>>(std::string(prop_flag));
+    if (variances.size() != proportions.size())
+    {
+        throw std::runtime_error(
+            std::format(
+                "{} and {} must have the same number of values",
+                var_flag,
+                prop_flag));
+    }
+
+    std::vector<gelex::EffectSizeClass> classes(variances.size());
+    for (size_t i = 0; i < variances.size(); ++i)
+    {
+        classes[i] = {proportions[i], variances[i]};
+    }
+    return classes;
+}
+}  // namespace
 
 int simulate_execute(argparse::ArgumentParser& sim)
 {
@@ -28,10 +66,24 @@ int simulate_execute(argparse::ArgumentParser& sim)
 
     gelex::PhenotypeSimulator::Config config{
         .bed_path = bed,
-        .causal_variants_path = sim.get("--causal"),
-        .heritability = sim.get<double>("--h2"),
-        .seed = sim.get<int>("--seed"),
-        .output_path = sim.get("--out")};
+        .add_heritability = sim.get<double>("--h2"),
+        .dom_heritability = sim.get<double>("--d2"),
+    };
+
+    if (sim.is_used("--add-var"))
+    {
+        config.add_effect_classes
+            = parse_effect_classes(sim, "--add-var", "--add-prop");
+    }
+
+    if (sim.is_used("--dom-var"))
+    {
+        config.dom_effect_classes
+            = parse_effect_classes(sim, "--dom-var", "--dom-prop");
+    }
+
+    config.seed = sim.get<int>("--seed");
+    config.output_path = sim.get("--out");
 
     gelex::PhenotypeSimulator simulator(config);
     simulator.simulate();
