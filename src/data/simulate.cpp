@@ -16,46 +16,150 @@
 
 #include "gelex/data/simulate.h"
 
+#include <algorithm>
 #include <cmath>
 #include <format>
 #include <fstream>
 #include <memory>
 #include <random>
-#include <sstream>
-#include <string_view>
+#include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
+#include "../src/data/loader/bim_loader.h"
 #include "../src/data/parser.h"
 #include "../src/utils/math_utils.h"
 #include "gelex/data/bed_pipe.h"
+#include "gelex/data/grm_code_policy.h"
 #include "gelex/data/sample_manager.h"
-#include "gelex/data/variant_processor.h"
 #include "gelex/exception.h"
+#include "gelex/logger.h"
 
 namespace gelex
 {
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
+namespace
+{
+void validate_effect_classes(
+    const std::vector<EffectSizeClass>& classes,
+    const std::string& label)
+{
+    if (classes.empty())
+    {
+        throw ArgumentValidationException(
+            std::format("{} effect classes must not be empty", label));
+    }
+
+    double total_proportion = 0.0;
+    for (const auto& cls : classes)
+    {
+        if (cls.proportion <= 0.0)
+        {
+            throw ArgumentValidationException(
+                std::format("{} effect class proportion must be > 0", label));
+        }
+        if (cls.variance < 0.0)
+        {
+            throw ArgumentValidationException(
+                std::format("{} effect class variance must be >= 0", label));
+        }
+        total_proportion += cls.proportion;
+    }
+
+    if (std::abs(total_proportion - 1.0) > 1e-6)
+    {
+        throw ArgumentValidationException(
+            std::format(
+                "{} effect class proportions must sum to 1.0 (got {})",
+                label,
+                total_proportion));
+    }
+}
+
+// Partition n items into classes by proportion, assigning
+// remainders to the last class, then shuffle the assignments.
+auto assign_effect_classes(
+    const std::vector<EffectSizeClass>& classes,
+    Eigen::Index count,
+    std::mt19937_64& rng) -> std::vector<int>
+{
+    std::vector<int> assignments(count);
+    const auto n_classes = static_cast<int>(classes.size());
+    Eigen::Index offset = 0;
+
+    for (int cls = 0; cls < n_classes; ++cls)
+    {
+        const bool is_last = (cls == n_classes - 1);
+        Eigen::Index class_count
+            = is_last ? count - offset
+                      : std::min(
+                            static_cast<Eigen::Index>(std::round(
+                                static_cast<double>(count)
+                                * classes[cls].proportion)),
+                            count - offset);
+
+        std::fill_n(assignments.begin() + offset, class_count, cls);
+        offset += class_count;
+    }
+
+    std::ranges::shuffle(assignments, rng);
+    return assignments;
+}
+
+auto resolve_output_path(
+    const std::filesystem::path& output_path,
+    const std::filesystem::path& bed_path,
+    const std::string& extension) -> std::filesystem::path
+{
+    auto base = output_path.empty() ? std::filesystem::path(bed_path)
+                                    : std::filesystem::path(output_path);
+    return base.replace_extension(extension);
+}
+}  // namespace
+
 PhenotypeSimulator::PhenotypeSimulator(Config config)
     : config_(std::move(config))
 {
-    if (config_.heritability <= 0.0 || config_.heritability >= 1.0)
+    if (config_.add_heritability <= 0.0 || config_.add_heritability >= 1.0)
     {
         throw ArgumentValidationException("Heritability must be in (0, 1)");
+    }
+    if (config_.dom_heritability < 0.0 || config_.dom_heritability >= 1.0)
+    {
+        throw ArgumentValidationException(
+            "Dominance variance (d2) must be in [0, 1)");
+    }
+    if (config_.add_heritability + config_.dom_heritability >= 1.0)
+    {
+        throw ArgumentValidationException("h2 + d2 must be less than 1");
+    }
+
+    validate_effect_classes(config_.add_effect_classes, "Additive");
+    if (config_.dom_heritability > 0.0)
+    {
+        validate_effect_classes(config_.dom_effect_classes, "Dominance");
     }
 }
 
 void PhenotypeSimulator::simulate()
 {
-    // Stage 1: Initialization
+    auto logger = logging::get();
+
     initialize_rng();
 
-    auto causal_effects = load_or_generate_causal_effects();
+    // Read SNP IDs from .bim file
+    auto bim_path = config_.bed_path;
+    bim_path.replace_extension(".bim");
+    detail::BimLoader bim_loader(bim_path);
+    auto snp_ids = bim_loader.get_ids();
 
-    // Stage 2: Data Processing Pipeline Setup
+    auto causal_effects = select_causal_snps(snp_ids);
+    logger->info("Assigned effect classes to {} SNPs", snp_ids.size());
+
+    // Setup sample manager and BedPipe
     auto fam_path = config_.bed_path;
     fam_path.replace_extension(".fam");
 
@@ -68,12 +172,12 @@ void PhenotypeSimulator::simulate()
 
     auto genetic_values = calculate_genetic_values(bed_pipe, causal_effects);
 
-    VectorXd phenotypes = generate_phenotypes(genetic_values);
+    VectorXd phenotypes = generate_phenotypes(
+        genetic_values.additive, genetic_values.dominance);
 
     write_results(phenotypes, sample_ptr);
+    write_causal_effects(snp_ids, causal_effects);
 }
-
-// --- Private Helper Methods ---
 
 void PhenotypeSimulator::initialize_rng()
 {
@@ -96,120 +200,185 @@ void PhenotypeSimulator::initialize_rng()
     }
 }
 
-auto PhenotypeSimulator::load_or_generate_causal_effects()
-    -> std::unordered_map<std::string, double>
+auto PhenotypeSimulator::select_causal_snps(
+    const std::vector<std::string>& snp_ids)
+    -> std::unordered_map<Eigen::Index, CausalEffect>
 {
-    auto file = detail::open_file<std::ifstream>(
-        config_.causal_variants_path, std::ios::in);
+    const auto n_snps = static_cast<Eigen::Index>(snp_ids.size());
 
-    std::unordered_map<std::string, double> variants;
-    std::normal_distribution<double> dist(0.0, 1.0);
-    std::string line;
-    bool effects_were_generated = false;
+    auto add_assignments
+        = assign_effect_classes(config_.add_effect_classes, n_snps, rng_);
 
-    while (std::getline(file, line))
+    const bool has_dominance = config_.dom_heritability > 0.0;
+    auto dom_assignments
+        = has_dominance
+              ? assign_effect_classes(config_.dom_effect_classes, n_snps, rng_)
+              : std::vector<int>{};
+
+    // Sample effect sizes from class-specific normal distributions
+    auto sample_effect
+        = [&](const std::vector<EffectSizeClass>& classes, int cls) -> double
     {
-        if (line.empty())
+        double variance = classes[cls].variance;
+        if (variance == 0.0)
         {
-            continue;
+            return 0.0;
+        }
+        return std::normal_distribution<double>(0.0, std::sqrt(variance))(rng_);
+    };
+
+    std::unordered_map<Eigen::Index, CausalEffect> causal_effects;
+    causal_effects.reserve(n_snps);
+
+    for (Eigen::Index i = 0; i < n_snps; ++i)
+    {
+        CausalEffect effect{
+            .additive
+            = sample_effect(config_.add_effect_classes, add_assignments[i]),
+            .dominance = 0.0,
+            .add_class = add_assignments[i],
+            .dom_class = 0,
+        };
+
+        if (has_dominance)
+        {
+            effect.dominance
+                = sample_effect(config_.dom_effect_classes, dom_assignments[i]);
+            effect.dom_class = dom_assignments[i];
         }
 
-        std::stringstream ss(line);
-        std::string id;
-        double effect{};
-        ss >> id;
-
-        if (ss >> effect)
-        {
-            variants.emplace(std::move(id), effect);
-        }
-        else
-        {
-            effects_were_generated = true;
-            variants.emplace(std::move(id), dist(rng_));
-        }
+        causal_effects.emplace(i, effect);
     }
 
-    // If we generated effects, write them to a new file as a side-effect.
-    if (effects_were_generated)
-    {
-        auto effects_path = config_.causal_variants_path;
-        effects_path.concat(".effects");
-
-        auto outfile
-            = detail::open_file<std::ofstream>(effects_path, std::ios::out);
-        for (const auto& [id, eff] : variants)
-        {
-            outfile << std::format("{}\t{}\n", id, eff);
-        }
-    }
-
-    return variants;
+    return causal_effects;
 }
 
 auto PhenotypeSimulator::calculate_genetic_values(
     BedPipe& bed_pipe,
-    const std::unordered_map<std::string, double>& /* causal_effects */)
-    -> VectorXd
+    const std::unordered_map<Eigen::Index, CausalEffect>& causal_effects) const
+    -> GeneticValues
 {
     const auto n_individuals = bed_pipe.num_samples();
     const auto n_snps = bed_pipe.num_snps();
+    const bool has_dominance = config_.dom_heritability > 0.0;
 
-    VectorXd genetic_values = VectorXd::Zero(n_individuals);
+    VectorXd additive_values = VectorXd::Zero(n_individuals);
+    VectorXd dominance_values = VectorXd::Zero(n_individuals);
 
     for (Eigen::Index start = 0; start < n_snps; start += SNP_CHUNK_SIZE)
     {
         const Eigen::Index end = std::min(start + SNP_CHUNK_SIZE, n_snps);
 
-        MatrixXd genotype_chunk = bed_pipe.load_chunk(start, end);
-
-        for (Eigen::Index i = 0; i < genotype_chunk.cols(); ++i)
+        // Check if any causal SNPs fall within this chunk
+        bool has_causal_in_chunk = false;
+        for (Eigen::Index i = start; i < end; ++i)
         {
-            auto col = genotype_chunk.col(i);
-            const auto stats = StandardizingProcessor::process_variant(col);
-            if (stats.is_monomorphic)
+            if (causal_effects.contains(i))
             {
-                col.setZero();
+                has_causal_in_chunk = true;
+                break;
             }
-            // Note: We removed SNP ID matching since BedPipe doesn't have
-            // snp_ids() This assumes all variants in the chunk are causal
-            genetic_values += col;
+        }
+        if (!has_causal_in_chunk)
+        {
+            continue;
+        }
+
+        MatrixXd chunk = bed_pipe.load_chunk(start, end);
+
+        MatrixXd dom_chunk;
+        if (has_dominance)
+        {
+            dom_chunk = chunk;
+            grm::Yang{}(dom_chunk, false);
+        }
+
+        grm::Yang{}(chunk, true);
+
+        for (const auto& [global_idx, effect] : causal_effects)
+        {
+            if (global_idx < start || global_idx >= end)
+            {
+                continue;
+            }
+            const Eigen::Index local_idx = global_idx - start;
+
+            additive_values += chunk.col(local_idx) * effect.additive;
+
+            if (has_dominance)
+            {
+                dominance_values += dom_chunk.col(local_idx) * effect.dominance;
+            }
         }
     }
-    return genetic_values;
+
+    return {
+        .additive = std::move(additive_values),
+        .dominance = std::move(dominance_values)};
 }
 
-auto PhenotypeSimulator::generate_phenotypes(const VectorXd& genetic_values)
-    -> VectorXd
+auto PhenotypeSimulator::generate_phenotypes(
+    const VectorXd& additive_values,
+    const VectorXd& dominance_values) -> VectorXd
 {
-    // Calculate variance of genetic values
-    const double genetic_variance = detail::var(genetic_values)(0);
+    const double h2 = config_.add_heritability;
+    const double d2 = config_.dom_heritability;
+    const double genetic_variance = detail::var(additive_values)(0);
 
-    // Derive residual variance from heritability: h^2 = Vg / (Vg + Ve)
-    // => Ve = Vg * (1/h^2 - 1)
-    const double residual_variance
-        = genetic_variance * (1.0 / config_.heritability - 1.0);
+    VectorXd scaled_dominance = VectorXd::Zero(additive_values.size());
+    double residual_variance{};
+
+    if (d2 > 0.0 && genetic_variance > 0.0)
+    {
+        // Scale dominance values so that Var(g_d) = Va * d2 / h2
+        const double dominance_raw_var = detail::var(dominance_values)(0);
+        const double target_dominance_var = genetic_variance * d2 / h2;
+
+        if (dominance_raw_var > 0.0)
+        {
+            const double scale
+                = std::sqrt(target_dominance_var / dominance_raw_var);
+            scaled_dominance = dominance_values * scale;
+        }
+
+        // Ve = Va * (1 - h2 - d2) / h2
+        residual_variance = genetic_variance * (1.0 - h2 - d2) / h2;
+    }
+    else
+    {
+        // d2=0: Ve = Va * (1/h2 - 1)
+        residual_variance = genetic_variance * (1.0 / h2 - 1.0);
+    }
 
     std::normal_distribution<double> residual_dist(
-        0.0, std::sqrt(residual_variance));
+        0.0, std::sqrt(std::max(0.0, residual_variance)));
 
-    VectorXd residuals(genetic_values.size());
+    VectorXd residuals(additive_values.size());
     for (Eigen::Index i = 0; i < residuals.size(); ++i)
     {
         residuals(i) = residual_dist(rng_);
     }
 
-    return genetic_values + residuals;
+    VectorXd phenotypes = additive_values + scaled_dominance + residuals;
+    double var_phen = detail::var(phenotypes)(0);
+
+    auto logger = logging::get();
+    logger->info("True h2: {:.4f}", genetic_variance / var_phen);
+    if (d2 > 0.0)
+    {
+        logger->info(
+            "True d2: {:.4f}", detail::var(scaled_dominance)(0) / var_phen);
+    }
+
+    return phenotypes;
 }
 
 void PhenotypeSimulator::write_results(
     const VectorXd& phenotypes,
     const std::shared_ptr<SampleManager>& sample_manager) const
 {
-    const auto output_path = config_.output_path.empty()
-                                 ? std::filesystem::path(config_.bed_path)
-                                       .replace_extension(".phen")
-                                 : config_.output_path;
+    const auto output_path
+        = resolve_output_path(config_.output_path, config_.bed_path, ".phen");
 
     auto output = detail::open_file<std::ofstream>(output_path, std::ios::out);
 
@@ -231,6 +400,32 @@ void PhenotypeSimulator::write_results(
 
         output << std::format("{}\t{}\t{}\n", fid, iid, phenotypes[i]);
     }
+}
+
+void PhenotypeSimulator::write_causal_effects(
+    const std::vector<std::string>& snp_ids,
+    const std::unordered_map<Eigen::Index, CausalEffect>& causal_effects) const
+{
+    auto effects_path
+        = resolve_output_path(config_.output_path, config_.bed_path, ".causal");
+
+    auto output = detail::open_file<std::ofstream>(effects_path, std::ios::out);
+
+    output << "SNP\tadditive_effect\tdominance_effect\tadd_class\tdom_class\n";
+
+    for (const auto& [idx, effect] : causal_effects)
+    {
+        output << std::format(
+            "{}\t{}\t{}\t{}\t{}\n",
+            snp_ids[idx],
+            effect.additive,
+            effect.dominance,
+            effect.add_class,
+            effect.dom_class);
+    }
+
+    auto logger = logging::get();
+    logger->info("Causal effects written to {}", effects_path.string());
 }
 
 }  // namespace gelex
