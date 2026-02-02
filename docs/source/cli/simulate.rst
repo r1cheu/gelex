@@ -11,7 +11,7 @@ Basic Syntax
 .. code-block:: bash
    :caption: Basic Usage
 
-   gelex simulate --bfile <bfile> --causal <causal_file> [OPTIONS]
+   gelex simulate --bfile <bfile> [OPTIONS]
 
 Options
 -------
@@ -28,9 +28,6 @@ Options
    * - ``-b, --bfile``
      - (required)
      - PLINK binary file prefix (.bed/.bim/.fam)
-   * - ``--causal``
-     - (required)
-     - Causal variants file (TSV: ID, optional effect)
    * - ``-o, --out``
      - "sim.phen"
      - Output file prefix for simulated phenotypes
@@ -47,6 +44,21 @@ Options
    * - ``--h2``
      - 0.5
      - Narrow-sense heritability (0.0 - 1.0)
+   * - ``--d2``
+     - 0.0
+     - Dominance variance proportion (0.0 - 1.0, h2+d2 < 1)
+   * - ``--add-var``
+     -
+     - Variances for additive effect classes
+   * - ``--add-prop``
+     -
+     - Proportions for additive effect classes (must match ``--add-var`` length, sum to 1)
+   * - ``--dom-var``
+     -
+     - Variances for dominance effect classes
+   * - ``--dom-prop``
+     -
+     - Proportions for dominance effect classes (must match ``--dom-var`` length, sum to 1)
    * - ``--seed``
      - -1
      - Random seed for reproducibility (-1 for time-based)
@@ -59,23 +71,21 @@ Examples
 
    gelex simulate \
      -b genotypes \
-     --causal causal_variants.txt \
      -o simulated_phenotypes
 
 .. code-block:: bash
-   :caption: Custom Heritability
+   :caption: Custom Heritability with Dominance
 
    gelex simulate \
      -b genotypes \
-     --causal causal_variants.txt \
-     --h2 0.3 \
-     -o simulated_h2_0.3
+     --h2 0.3 --d2 0.1 \
+     --seed 42
 
 .. code-block:: bash
-   :caption: Reproducible Simulation
+   :caption: Mixture Normal Effect Sizes (BayesR-style)
 
    gelex simulate \
      -b genotypes \
-     --causal causal_variants.txt \
-     --seed 12345 \
-     -o simulated_reproducible
+     --add-var 0 0.01 0.001 0.0001 \
+     --add-prop 0.90 0.003 0.103 0.894 \
+     --h2 0.5 --seed 42
