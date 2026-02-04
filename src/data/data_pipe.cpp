@@ -24,8 +24,8 @@
 #include <Eigen/Core>
 
 #include "../src/utils/phenotype_transformer.h"
+#include "gelex/data/genotype_processor.h"
 #include "gelex/data/sample_manager.h"
-#include "gelex/data/variant_processor.h"
 #include "gelex/exception.h"
 #include "gelex/logger.h"
 #include "grm_loader.h"
@@ -153,7 +153,8 @@ IntersectionStats DataPipe::intersect_samples()
 
 GenotypeStats DataPipe::load_additive_matrix()
 {
-    load_genotype_impl<gelex::HardWenbergProcessor>(".add", additive_matrix_);
+    load_genotype_impl<gelex::AdditiveProcessor<OrthStandardizeMethod>>(
+        ".add", additive_matrix_);
 
     int64_t num_mono_snps = 0;
     int64_t total_snps = 0;
@@ -175,7 +176,7 @@ GenotypeStats DataPipe::load_additive_matrix()
 
 GenotypeStats DataPipe::load_dominance_matrix()
 {
-    load_genotype_impl<gelex::DominantOrthogonalHWEProcessor>(
+    load_genotype_impl<gelex::DominantProcessor<OrthStandardizeMethod>>(
         ".dom", dominance_matrix_);
 
     int64_t num_mono_snps = 0;

@@ -46,9 +46,11 @@ void setup_grm_args(argparse::ArgumentParser& cmd)
     // ================================================================
     cmd.add_group("GRM Options");
     cmd.add_argument("-m", "--method")
-        .help("GRM computation method: su, yang, zeng, vitezica")
+        .help(
+            "GRM computation method: 1 (orth-standardized), "
+            "2 (centered), 3 (orth-centered)")
         .metavar("<METHOD>")
-        .default_value(std::string("yang"));
+        .default_value(std::string("1"));
     cmd.add_argument("-c", "--chunk-size")
         .help("Chunk size for memory-efficient computation")
         .metavar("<SIZE>")

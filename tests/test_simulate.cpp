@@ -29,7 +29,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "bed_fixture.h"
-#include "gelex/data/grm_code_policy.h"
+#include "gelex/data/genotype_processor.h"
 #include "gelex/data/simulate.h"
 #include "gelex/exception.h"
 #include "utils/math_utils.h"
@@ -364,7 +364,7 @@ TEST_CASE("PhenotypeSimulator - additive variance", "[simulate]")
     auto [causal_geno, add_betas, _]
         = extract_causal_columns(stored_geno, effects, snp_to_col);
 
-    grm::Yang{}(causal_geno, true);
+    process_matrix<grm::OrthStandardized::Additive>(causal_geno);
     Eigen::VectorXd g_a = causal_geno * add_betas;
 
     auto phenotypes = parse_phenotypes(
@@ -397,12 +397,12 @@ TEST_CASE("PhenotypeSimulator - additive and dominance variance", "[simulate]")
 
     // Additive genetic values
     Eigen::MatrixXd x_add = causal_geno;
-    grm::Yang{}(x_add, true);
+    process_matrix<grm::OrthStandardized::Additive>(x_add);
     Eigen::VectorXd g_a = x_add * add_betas;
 
     // Dominance genetic values
     Eigen::MatrixXd x_dom = causal_geno;
-    grm::Yang{}(x_dom, false);
+    process_matrix<grm::OrthStandardized::Dominant>(x_dom);
     Eigen::VectorXd g_d = x_dom * dom_betas;
 
     // Scale dominance: scaled_d = d * sqrt(target / raw), target = Va * d2 / h2

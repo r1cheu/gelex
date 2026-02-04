@@ -76,6 +76,8 @@ auto print_grm_header(
 
 auto print_assoc_header(int threads) -> void;
 
+auto print_simulate_header(bool has_dominance) -> void;
+
 auto format_epilog(std::string_view text) -> std::string;
 
 }  // namespace gelex::cli

@@ -60,6 +60,7 @@ class PhenotypeSimulator
         double dom_heritability{0.0};
         std::vector<EffectSizeClass> add_effect_classes{{1.0, 1.0}};
         std::vector<EffectSizeClass> dom_effect_classes{{1.0, 1.0}};
+        double intercept{0.0};
         int seed{-1};
         std::filesystem::path output_path;
     };
@@ -98,8 +99,12 @@ class PhenotypeSimulator
         const std::unordered_map<Eigen::Index, CausalEffect>& causal_effects)
         const;
 
+    void write_params() const;
+
     Config config_;
     std::mt19937_64 rng_;
+    double true_h2_{0.0};
+    double true_d2_{0.0};
 
     static constexpr Eigen::Index SNP_CHUNK_SIZE = 10000;
 };

@@ -146,7 +146,7 @@ class DataPipe
    private:
     DataPipe() = default;
 
-    template <VariantProcessor Processor, typename TargetPtr>
+    template <GenotypeProcessor Processor, typename TargetPtr>
     void load_genotype_impl(const std::string& suffix, TargetPtr& target)
     {
         auto assign_to_target = [&](auto&& result_value)

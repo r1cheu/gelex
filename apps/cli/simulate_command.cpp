@@ -21,9 +21,12 @@
 #include <string_view>
 #include <vector>
 
+#include "cli_helper.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/simulate.h"
+#include "gelex/exception.h"
 #include "gelex/logger.h"
+#include "utils/formatter.h"
 
 namespace
 {
@@ -35,14 +38,14 @@ auto parse_effect_classes(
     auto variances = sim.get<std::vector<double>>(std::string(var_flag));
     if (!sim.is_used(std::string(prop_flag)))
     {
-        throw std::runtime_error(
+        throw gelex::ArgumentValidationException(
             std::format(
                 "{} is required when {} is specified", prop_flag, var_flag));
     }
     auto proportions = sim.get<std::vector<double>>(std::string(prop_flag));
     if (variances.size() != proportions.size())
     {
-        throw std::runtime_error(
+        throw gelex::ArgumentValidationException(
             std::format(
                 "{} and {} must have the same number of values",
                 var_flag,
@@ -82,11 +85,14 @@ int simulate_execute(argparse::ArgumentParser& sim)
             = parse_effect_classes(sim, "--dom-var", "--dom-prop");
     }
 
+    config.intercept = sim.get<double>("--intercept");
     config.seed = sim.get<int>("--seed");
     config.output_path = sim.get("--out");
 
+    gelex::cli::print_simulate_header(config.dom_heritability > 0.0);
+
     gelex::PhenotypeSimulator simulator(config);
     simulator.simulate();
-    logger->info("Phenotype simulation completed successfully");
+    logger->info(gelex::separator());
     return 0;
 }

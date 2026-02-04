@@ -223,6 +223,21 @@ auto print_grm_header(
     logger->info("");
 }
 
+auto print_simulate_header(bool has_dominance) -> void
+{
+    auto logger = gelex::logging::get();
+
+    std::string title
+        = fmt::format("gelex v{} :: Phenotype Simulation", PROJECT_VERSION);
+    std::string mode_str = has_dominance ? "Additive + Dominance" : "Additive";
+
+    std::vector<std::pair<std::string, std::string>> items
+        = {{"Mode", mode_str}};
+
+    logger->info(gelex::header_box(title, items, 70));
+    logger->info("");
+}
+
 auto print_assoc_header(int threads) -> void
 {
     auto logger = gelex::logging::get();

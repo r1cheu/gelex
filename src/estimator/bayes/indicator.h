@@ -26,7 +26,7 @@
 #include <Eigen/Core>
 
 #include "barkeep.h"
-#include "gelex/data/variant_processor.h"
+#include "gelex/data/genotype_processor.h"
 
 namespace gelex
 {
@@ -69,7 +69,7 @@ class Indicator
     std::vector<std::atomic_bool> chain_dirty_flags_;
 };
 
-template <VariantProcessor Processor>
+template <GenotypeProcessor Processor>
 auto create_genotype_process_bar(int64_t& current, int64_t total)
     -> std::shared_ptr<barkeep::ProgressBarDisplay<int64_t>>
 {

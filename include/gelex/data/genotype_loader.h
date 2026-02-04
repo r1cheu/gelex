@@ -27,8 +27,8 @@
 #include "../src/estimator/bayes/indicator.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/genotype_matrix.h"
+#include "gelex/data/genotype_processor.h"
 #include "gelex/data/sample_manager.h"
-#include "gelex/data/variant_processor.h"
 
 namespace gelex
 {
@@ -46,7 +46,8 @@ class GenotypeLoader
     GenotypeLoader& operator=(GenotypeLoader&&) noexcept = default;
     ~GenotypeLoader() = default;
 
-    template <VariantProcessor Processor = StandardizingProcessor>
+    template <
+        GenotypeProcessor Processor = AdditiveProcessor<StandardizeMethod>>
     GenotypeMatrix process(size_t chunk_size = 10000);
 
     [[nodiscard]] Eigen::Index num_samples() const noexcept
@@ -81,7 +82,7 @@ class GenotypeLoader
     Eigen::MatrixXd data_matrix_;
 };
 
-template <VariantProcessor Processor>
+template <GenotypeProcessor Processor>
 GenotypeMatrix GenotypeLoader::process(size_t chunk_size)
 {
     global_snp_idx_ = 0;

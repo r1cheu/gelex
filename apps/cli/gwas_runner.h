@@ -27,7 +27,7 @@
 #include "cli/cli_helper.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/data_pipe.h"
-#include "gelex/data/grm_code_policy.h"
+#include "gelex/data/genotype_processor.h"
 #include "gelex/gwas/gwas_writer.h"
 #include "gelex/types/assoc_input.h"
 #include "gelex/types/snp_info.h"
@@ -93,7 +93,6 @@ class GwasRunner
     gwas::GwasWriter writer_;
     SnpEffects snp_effects_;
 
-    grm::Zeng encoder_;
     SmoothEtaCalculator eta_calculator_;
     std::vector<ChrGroup> chr_groups_;
 

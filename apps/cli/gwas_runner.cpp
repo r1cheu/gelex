@@ -22,7 +22,7 @@
 
 #include <fmt/format.h>
 
-#include "gelex/data/grm_code_policy.h"
+#include "gelex/data/genotype_processor.h"
 #include "gelex/data/loco_grm_loader.h"
 #include "gelex/estimator/freq/estimator.h"
 #include "gelex/gwas/association_test.h"
@@ -265,7 +265,16 @@ auto GwasRunner::scan_chromosome(
                 static_cast<Eigen::Index>(start),
                 static_cast<Eigen::Index>(end));
 
-            encoder_(assoc_input_.Z, config_.additive, &freqs_);
+            if (config_.additive)
+            {
+                process_matrix<grm::OrthCentered::Additive>(
+                    assoc_input_.Z, &freqs_);
+            }
+            else
+            {
+                process_matrix<grm::OrthCentered::Dominant>(
+                    assoc_input_.Z, &freqs_);
+            }
             gwas::wald_test(assoc_input_, assoc_output_);
 
             for (Eigen::Index i = 0; i < current_chunk_size; ++i)

@@ -30,8 +30,8 @@
 #include "../src/estimator/bayes/indicator.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/genotype_mmap.h"
+#include "gelex/data/genotype_processor.h"
 #include "gelex/data/sample_manager.h"
-#include "gelex/data/variant_processor.h"
 
 namespace gelex
 {
@@ -50,7 +50,8 @@ class GenotypePipe
     GenotypePipe& operator=(GenotypePipe&&) noexcept = default;
     ~GenotypePipe() = default;
 
-    template <VariantProcessor Processor = StandardizingProcessor>
+    template <
+        GenotypeProcessor Processor = AdditiveProcessor<StandardizeMethod>>
     auto process(size_t chunk_size = 10000) -> GenotypeMap
     {
         int64_t current_processed_snps = 0;

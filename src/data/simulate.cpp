@@ -29,9 +29,10 @@
 
 #include "../src/data/loader/bim_loader.h"
 #include "../src/data/parser.h"
+#include "../src/utils/formatter.h"
 #include "../src/utils/math_utils.h"
 #include "gelex/data/bed_pipe.h"
-#include "gelex/data/grm_code_policy.h"
+#include "gelex/data/genotype_processor.h"
 #include "gelex/data/sample_manager.h"
 #include "gelex/exception.h"
 #include "gelex/logger.h"
@@ -44,8 +45,8 @@ using Eigen::VectorXd;
 namespace
 {
 void validate_effect_classes(
-    const std::vector<EffectSizeClass>& classes,
-    const std::string& label)
+    std::span<const EffectSizeClass> classes,
+    std::string_view label)
 {
     if (classes.empty())
     {
@@ -82,7 +83,7 @@ void validate_effect_classes(
 // Partition n items into classes by proportion, assigning
 // remainders to the last class, then shuffle the assignments.
 auto assign_effect_classes(
-    const std::vector<EffectSizeClass>& classes,
+    std::span<const EffectSizeClass> classes,
     Eigen::Index count,
     std::mt19937_64& rng) -> std::vector<int>
 {
@@ -112,12 +113,59 @@ auto assign_effect_classes(
 auto resolve_output_path(
     const std::filesystem::path& output_path,
     const std::filesystem::path& bed_path,
-    const std::string& extension) -> std::filesystem::path
+    std::string_view extension) -> std::filesystem::path
 {
     auto base = output_path.empty() ? std::filesystem::path(bed_path)
                                     : std::filesystem::path(output_path);
     return base.replace_extension(extension);
 }
+
+void log_simulation_params(const PhenotypeSimulator::Config& config)
+{
+    auto logger = logging::get();
+    logger->info(section("Simulation Parameters..."));
+    logger->info(
+        task("Heritability (h²)      : {:.2f}", config.add_heritability));
+    if (config.dom_heritability > 0.0)
+    {
+        logger->info(
+            task("Dom-Heritability (δ²)  : {:.2f}", config.dom_heritability));
+    }
+    if (config.intercept != 0.0)
+    {
+        logger->info(task("Intercept              : {:.2f}", config.intercept));
+    }
+    logger->info(task("Seed                   : {}", config.seed));
+    logger->info("");
+}
+
+void log_data_info(Eigen::Index n_snps, Eigen::Index n_samples)
+{
+    auto logger = logging::get();
+    logger->info(section("Loading Data..."));
+    logger->info(task("SNPs                   : {}", n_snps));
+    logger->info(task("Samples                : {}", n_samples));
+    logger->info("");
+}
+
+void log_phenotype_stats(double true_h2, double true_d2)
+{
+    auto logger = logging::get();
+    logger->info(section("Generating Phenotypes..."));
+    logger->info(task("True h²                : {:.4f}", true_h2));
+    if (true_d2 > 0.0)
+    {
+        logger->info(task("True δ²                : {:.4f}", true_d2));
+    }
+    logger->info("");
+}
+
+void log_output_path(std::string_view label, const std::filesystem::path& path)
+{
+    auto logger = logging::get();
+    logger->info(success(" {:<24}: {}", label, path.string()));
+}
+
 }  // namespace
 
 PhenotypeSimulator::PhenotypeSimulator(Config config)
@@ -146,9 +194,9 @@ PhenotypeSimulator::PhenotypeSimulator(Config config)
 
 void PhenotypeSimulator::simulate()
 {
-    auto logger = logging::get();
-
     initialize_rng();
+
+    log_simulation_params(config_);
 
     // Read SNP IDs from .bim file
     auto bim_path = config_.bed_path;
@@ -157,7 +205,6 @@ void PhenotypeSimulator::simulate()
     auto snp_ids = bim_loader.get_ids();
 
     auto causal_effects = select_causal_snps(snp_ids);
-    logger->info("Assigned effect classes to {} SNPs", snp_ids.size());
 
     // Setup sample manager and BedPipe
     auto fam_path = config_.bed_path;
@@ -169,6 +216,10 @@ void PhenotypeSimulator::simulate()
         = std::make_shared<SampleManager>(std::move(sample_manager));
 
     BedPipe bed_pipe(config_.bed_path, sample_ptr);
+
+    log_data_info(
+        static_cast<Eigen::Index>(snp_ids.size()),
+        static_cast<Eigen::Index>(sample_ptr->num_common_samples()));
 
     auto genetic_values = calculate_genetic_values(bed_pipe, causal_effects);
 
@@ -290,10 +341,10 @@ auto PhenotypeSimulator::calculate_genetic_values(
         if (has_dominance)
         {
             dom_chunk = chunk;
-            grm::Yang{}(dom_chunk, false);
+            process_matrix<grm::OrthStandardized::Dominant>(dom_chunk);
         }
 
-        grm::Yang{}(chunk, true);
+        process_matrix<grm::OrthStandardized::Additive>(chunk);
 
         for (const auto& [global_idx, effect] : causal_effects)
         {
@@ -362,13 +413,13 @@ auto PhenotypeSimulator::generate_phenotypes(
     VectorXd phenotypes = additive_values + scaled_dominance + residuals;
     double var_phen = detail::var(phenotypes)(0);
 
-    auto logger = logging::get();
-    logger->info("True h2: {:.4f}", genetic_variance / var_phen);
+    true_h2_ = genetic_variance / var_phen;
     if (d2 > 0.0)
     {
-        logger->info(
-            "True d2: {:.4f}", detail::var(scaled_dominance)(0) / var_phen);
+        true_d2_ = detail::var(scaled_dominance)(0) / var_phen;
     }
+
+    log_phenotype_stats(true_h2_, true_d2_);
 
     return phenotypes;
 }
@@ -400,6 +451,8 @@ void PhenotypeSimulator::write_results(
 
         output << std::format("{}\t{}\t{}\n", fid, iid, phenotypes[i]);
     }
+
+    log_output_path("Phenotypes saved to", output_path);
 }
 
 void PhenotypeSimulator::write_causal_effects(
@@ -413,19 +466,24 @@ void PhenotypeSimulator::write_causal_effects(
 
     output << "SNP\tadditive_effect\tdominance_effect\tadd_class\tdom_class\n";
 
-    for (const auto& [idx, effect] : causal_effects)
+    for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(snp_ids.size()); ++i)
     {
+        auto it = causal_effects.find(i);
+        if (it == causal_effects.end())
+        {
+            continue;
+        }
+        const auto& effect = it->second;
         output << std::format(
             "{}\t{}\t{}\t{}\t{}\n",
-            snp_ids[idx],
+            snp_ids[i],
             effect.additive,
             effect.dominance,
             effect.add_class,
             effect.dom_class);
     }
 
-    auto logger = logging::get();
-    logger->info("Causal effects written to {}", effects_path.string());
+    log_output_path("Causal effects saved to", effects_path);
 }
 
 }  // namespace gelex

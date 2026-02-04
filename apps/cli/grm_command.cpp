@@ -29,8 +29,8 @@
 #include "data/grm_id_writer.h"
 #include "data/loader/bim_loader.h"
 #include "gelex/data/bed_pipe.h"
+#include "gelex/data/genotype_processor.h"
 #include "gelex/data/grm.h"
-#include "gelex/data/grm_code_policy.h"
 #include "gelex/logger.h"
 #include "grm_args.h"
 #include "utils/formatter.h"
@@ -41,8 +41,8 @@ namespace bk = barkeep;
 namespace
 {
 
-template <typename CodePolicy>
-auto compute_grm_impl(
+template <typename Method>
+auto dispatch_grm(
     gelex::GRM& grm,
     const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
     int chunk_size,
@@ -50,8 +50,13 @@ auto compute_grm_impl(
     const std::function<void(Eigen::Index, Eigen::Index)>& progress_callback
     = nullptr) -> gelex::GrmResult
 {
-    return grm.compute<CodePolicy>(
-        ranges, chunk_size, additive, progress_callback);
+    if (additive)
+    {
+        return grm.compute<typename Method::Additive>(
+            ranges, chunk_size, progress_callback);
+    }
+    return grm.compute<typename Method::Dominant>(
+        ranges, chunk_size, progress_callback);
 }
 
 auto compute_grm_with_method(
@@ -63,29 +68,23 @@ auto compute_grm_with_method(
     const std::function<void(Eigen::Index, Eigen::Index)>& progress_callback
     = nullptr) -> gelex::GrmResult
 {
-    if (method == "su")
+    if (method == "1")
     {
-        return compute_grm_impl<gelex::grm::Su>(
+        return dispatch_grm<gelex::grm::OrthStandardized>(
             grm, ranges, chunk_size, additive, progress_callback);
     }
-    if (method == "yang")
+    if (method == "2")
     {
-        return compute_grm_impl<gelex::grm::Yang>(
+        return dispatch_grm<gelex::grm::Centered>(
             grm, ranges, chunk_size, additive, progress_callback);
     }
-    if (method == "zeng")
+    if (method == "3")
     {
-        return compute_grm_impl<gelex::grm::Zeng>(
-            grm, ranges, chunk_size, additive, progress_callback);
-    }
-    if (method == "vitezica")
-    {
-        return compute_grm_impl<gelex::grm::Vitezica>(
+        return dispatch_grm<gelex::grm::OrthCentered>(
             grm, ranges, chunk_size, additive, progress_callback);
     }
     throw std::invalid_argument(
-        fmt::format(
-            "Unknown GRM method: {}. Valid: su, yang, zeng, vitezica", method));
+        fmt::format("Unknown GRM method: {}. Valid: 1, 2, 3", method));
 }
 
 auto write_grm_files(

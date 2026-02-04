@@ -26,6 +26,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/bed_pipe.h"
+#include "gelex/data/genotype_processor.h"
 #include "gelex/data/sample_manager.h"
 
 namespace gelex
@@ -48,18 +49,16 @@ class GRM
 
     ~GRM() = default;
 
-    template <typename CodePolicy>
+    template <GenotypeProcessor P>
     auto compute(
         Eigen::Index chunk_size,
-        bool additive,
         std::function<void(Eigen::Index, Eigen::Index)> progress_callback
         = nullptr) -> GrmResult;
 
-    template <typename CodePolicy>
+    template <GenotypeProcessor P>
     auto compute(
         const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
         Eigen::Index chunk_size,
-        bool additive,
         const std::function<void(Eigen::Index, Eigen::Index)>& progress_callback
         = nullptr) -> GrmResult;
 
@@ -82,22 +81,19 @@ class GRM
         const Eigen::Ref<const Eigen::MatrixXd>& genotype) -> void;
 };
 
-template <typename CodePolicy>
+template <GenotypeProcessor P>
 auto GRM::compute(
     Eigen::Index chunk_size,
-    bool add,
     std::function<void(Eigen::Index, Eigen::Index)> progress_callback)
     -> GrmResult
 {
-    return compute<CodePolicy>(
-        {{0, bed_.num_snps()}}, chunk_size, add, progress_callback);
+    return compute<P>({{0, bed_.num_snps()}}, chunk_size, progress_callback);
 }
 
-template <typename CodePolicy>
+template <GenotypeProcessor P>
 auto GRM::compute(
     const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
     Eigen::Index chunk_size,
-    bool add,
     const std::function<void(Eigen::Index, Eigen::Index)>& progress_callback)
     -> GrmResult
 {
@@ -121,7 +117,7 @@ auto GRM::compute(
             Eigen::MatrixXd genotype_chunk
                 = bed_.load_chunk(start_col, end_col);
 
-            CodePolicy{}(genotype_chunk, add);
+            process_matrix<P>(genotype_chunk);
             update_grm(grm, genotype_chunk);
 
             processed_snps += (end_col - start_col);

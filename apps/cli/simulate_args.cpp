@@ -74,9 +74,13 @@ void setup_simulate_args(argparse::ArgumentParser& cmd)
         .metavar("<PROPORTIONS>")
         .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
+    cmd.add_argument("--intercept")
+        .help("Intercept (mean) term added to phenotypes")
+        .default_value(0.0)
+        .scan<'g', double>();
     cmd.add_argument("--seed")
-        .help("Random seed for reproducibility (-1 for time-based)")
-        .default_value(-1)
+        .help("Random seed for reproducibility")
+        .default_value(42)
         .scan<'i', int>();
 
     cmd.add_epilog(
