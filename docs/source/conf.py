@@ -9,7 +9,7 @@
 project = "gelex"
 copyright = "2026, RuLei Chen"
 author = "RuLei Chen"
-release = "0.11.0"
+release = "0.12.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

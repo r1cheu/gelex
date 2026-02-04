@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.20)
 # --------------------------------------------------
 project(
   gelex
-  VERSION 0.11.0
+  VERSION 0.12.0
   LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
