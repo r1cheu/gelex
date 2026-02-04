@@ -131,6 +131,12 @@ auto process_matrix(
 namespace grm
 {
 
+struct Standardized
+{
+    using Additive = AdditiveProcessor<StandardizeMethod>;
+    using Dominant = DominantProcessor<StandardizeMethod>;
+};
+
 struct OrthStandardized
 {
     using Additive = AdditiveProcessor<OrthStandardizeMethod>;

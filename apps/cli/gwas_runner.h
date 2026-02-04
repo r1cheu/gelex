@@ -27,7 +27,6 @@
 #include "cli/cli_helper.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/data_pipe.h"
-#include "gelex/data/genotype_processor.h"
 #include "gelex/gwas/gwas_writer.h"
 #include "gelex/types/assoc_input.h"
 #include "gelex/types/snp_info.h"

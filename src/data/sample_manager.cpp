@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <memory>
 #include <ranges>
 #include <utility>
 #include <vector>
@@ -73,6 +74,16 @@ void SampleManager::finalize()
     {
         common_id_map_.emplace(id, static_cast<Eigen::Index>(idx));
     }
+}
+
+auto SampleManager::create_finalized(
+    const std::filesystem::path& bed_path,
+    bool iid_only) -> std::shared_ptr<SampleManager>
+{
+    auto fam_path = std::filesystem::path(bed_path).replace_extension(".fam");
+    auto manager = std::make_shared<SampleManager>(fam_path, iid_only);
+    manager->finalize();
+    return manager;
 }
 
 }  // namespace gelex

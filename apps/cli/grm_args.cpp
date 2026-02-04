@@ -47,8 +47,8 @@ void setup_grm_args(argparse::ArgumentParser& cmd)
     cmd.add_group("GRM Options");
     cmd.add_argument("-m", "--method")
         .help(
-            "GRM computation method: 1 (orth-standardized), "
-            "2 (centered), 3 (orth-centered)")
+            "GRM computation method: 1 (standardized), "
+            "2 (centered), 3 (orth-standardized), 4 (orth-centered)")
         .metavar("<METHOD>")
         .default_value(std::string("1"));
     cmd.add_argument("-c", "--chunk-size")

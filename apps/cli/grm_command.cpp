@@ -70,7 +70,7 @@ auto compute_grm_with_method(
 {
     if (method == "1")
     {
-        return dispatch_grm<gelex::grm::OrthStandardized>(
+        return dispatch_grm<gelex::grm::Standardized>(
             grm, ranges, chunk_size, additive, progress_callback);
     }
     if (method == "2")
@@ -80,11 +80,16 @@ auto compute_grm_with_method(
     }
     if (method == "3")
     {
+        return dispatch_grm<gelex::grm::OrthStandardized>(
+            grm, ranges, chunk_size, additive, progress_callback);
+    }
+    if (method == "4")
+    {
         return dispatch_grm<gelex::grm::OrthCentered>(
             grm, ranges, chunk_size, additive, progress_callback);
     }
     throw std::invalid_argument(
-        fmt::format("Unknown GRM method: {}. Valid: 1, 2, 3", method));
+        fmt::format("Unknown GRM method: {}. Valid: 1, 2, 3, 4", method));
 }
 
 auto write_grm_files(
@@ -245,17 +250,23 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
             .parent_path()
             .string());
 
+    auto task_pattern
+        = tasks.size() == 1 ? tasks[0].name : std::string("{add|dom}");
+
     if (config.do_loco)
     {
         logger->info(
-            "  Pattern     : {}.{{add|dom}}.chr{{1..{}}}.{{bin|id}}",
+            "  Pattern     : {}.{}.chr{{1..{}}}.{{bin|id}}",
             config.out_prefix,
+            task_pattern,
             groups.size());
     }
     else
     {
         logger->info(
-            "  Pattern     : {}.{{add|dom}}.{{bin|id}}", config.out_prefix);
+            "  Pattern     : {}.{}.{{bin|id}}",
+            config.out_prefix,
+            task_pattern);
     }
     logger->info(
         fmt::format(

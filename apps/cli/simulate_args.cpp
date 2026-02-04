@@ -51,28 +51,32 @@ void setup_simulate_args(argparse::ArgumentParser& cmd)
         .default_value(0.0)
         .scan<'g', double>();
     cmd.add_argument("--add-var")
-        .help("Variances for additive effect classes")
+        .help("Variances for additive effect classes (default: 0.01)")
         .metavar("<VARIANCES>")
         .nargs(argparse::nargs_pattern::at_least_one)
+        .default_value(std::vector<double>{0.01})
         .scan<'g', double>();
     cmd.add_argument("--add-prop")
         .help(
             "Proportions for additive effect classes "
-            "(must match --add-var length, sum to 1)")
+            "(must match --add-var length, sum to 1, default: 1.0)")
         .metavar("<PROPORTIONS>")
         .nargs(argparse::nargs_pattern::at_least_one)
+        .default_value(std::vector<double>{1.0})
         .scan<'g', double>();
     cmd.add_argument("--dom-var")
-        .help("Variances for dominance effect classes")
+        .help("Variances for dominance effect classes (default: 0.01)")
         .metavar("<VARIANCES>")
         .nargs(argparse::nargs_pattern::at_least_one)
+        .default_value(std::vector<double>{0.01})
         .scan<'g', double>();
     cmd.add_argument("--dom-prop")
         .help(
             "Proportions for dominance effect classes "
-            "(must match --dom-var length, sum to 1)")
+            "(must match --dom-var length, sum to 1, default: 1.0)")
         .metavar("<PROPORTIONS>")
         .nargs(argparse::nargs_pattern::at_least_one)
+        .default_value(std::vector<double>{1.0})
         .scan<'g', double>();
     cmd.add_argument("--intercept")
         .help("Intercept (mean) term added to phenotypes")

@@ -18,6 +18,7 @@
 #define GELEX_DATA_SAMPLE_MANAGER_H_
 
 #include <filesystem>
+#include <memory>
 #include <span>
 #include <string>
 #include <unordered_map>
@@ -44,6 +45,10 @@ class SampleManager
     void intersect(std::span<const std::string> ids);
 
     void finalize();
+
+    static auto create_finalized(
+        const std::filesystem::path& bed_path,
+        bool iid_only = false) -> std::shared_ptr<SampleManager>;
 
     [[nodiscard]] const std::vector<std::string>& common_ids() const
     {

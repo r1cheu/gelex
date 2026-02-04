@@ -17,7 +17,6 @@
 #include "simulate_command.h"
 
 #include <format>
-#include <stdexcept>
 #include <string_view>
 #include <vector>
 
@@ -36,13 +35,8 @@ auto parse_effect_classes(
     std::string_view prop_flag) -> std::vector<gelex::EffectSizeClass>
 {
     auto variances = sim.get<std::vector<double>>(std::string(var_flag));
-    if (!sim.is_used(std::string(prop_flag)))
-    {
-        throw gelex::ArgumentValidationException(
-            std::format(
-                "{} is required when {} is specified", prop_flag, var_flag));
-    }
     auto proportions = sim.get<std::vector<double>>(std::string(prop_flag));
+
     if (variances.size() != proportions.size())
     {
         throw gelex::ArgumentValidationException(
@@ -73,13 +67,10 @@ int simulate_execute(argparse::ArgumentParser& sim)
         .dom_heritability = sim.get<double>("--d2"),
     };
 
-    if (sim.is_used("--add-var"))
-    {
-        config.add_effect_classes
-            = parse_effect_classes(sim, "--add-var", "--add-prop");
-    }
+    config.add_effect_classes
+        = parse_effect_classes(sim, "--add-var", "--add-prop");
 
-    if (sim.is_used("--dom-var"))
+    if (config.dom_heritability > 0.0)
     {
         config.dom_effect_classes
             = parse_effect_classes(sim, "--dom-var", "--dom-prop");
