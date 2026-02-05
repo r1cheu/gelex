@@ -42,13 +42,13 @@ Options
      - Default
      - Description
    * - ``-m, --method``
-     - yang
-     - Computation method: ``yang``, ``su``, ``zeng``, ``vitezica``
+     - 1
+     - Computation method: ``1`` (standardized), ``2`` (centered), ``3`` (orth-standardized), ``4`` (orth-centered)
    * - ``-c, --chunk-size``
      - 10000
      - Chunk size for memory-efficient computation
    * - ``-t, --threads``
-     - 12
+     - half of cores
      - Number of threads (-1 for all cores)
    * - ``--add``
      - false
@@ -64,14 +64,14 @@ Examples
 --------
 
 .. code-block:: bash
-   :caption: Standard Additive GRM (Yang method)
+   :caption: Standard Additive GRM (Standardized method)
 
    gelex grm -b genotypes --add -o my_grm
 
 .. code-block:: bash
-   :caption: Alternative Method (Su et al.)
+   :caption: Alternative Method (Centered)
 
-   gelex grm -b genotypes --add -m su -o my_grm_su
+   gelex grm -b genotypes --add -m 2 -o my_grm_centered
 
 .. code-block:: bash
    :caption: Dominance GRM
