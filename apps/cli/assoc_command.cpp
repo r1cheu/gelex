@@ -59,7 +59,7 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     gelex::cli::setup_parallelization(cmd.get<int>("--threads"));
 
     auto method
-        = gelex::cli::parse_genotype_process_method(cmd.get("--geno-method"));
+        = gelex::parse_genotype_process_method(cmd.get("--geno-method"));
 
     auto grm_paths = std::ranges::to<std::vector<std::filesystem::path>>(
         cmd.get<std::vector<std::string>>("--grm"));

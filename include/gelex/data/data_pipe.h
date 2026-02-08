@@ -20,6 +20,7 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -29,6 +30,7 @@
 #include "../src/types/freq_effect.h"
 #include "gelex/data/genotype_loader.h"
 #include "gelex/data/genotype_matrix.h"
+#include "gelex/data/genotype_method_dispatch.h"
 #include "gelex/data/genotype_mmap.h"
 #include "gelex/data/genotype_pipe.h"
 #include "gelex/data/sample_manager.h"
@@ -101,6 +103,8 @@ class DataPipe
         std::vector<std::filesystem::path> grm_paths;
         detail::TransformType transform_type = detail::TransformType::None;
         double int_offset = 3.0 / 8.0;
+        GenotypeProcessMethod genotype_method
+            = GenotypeProcessMethod::OrthStandardize;
     };
 
     explicit DataPipe(const Config& config);

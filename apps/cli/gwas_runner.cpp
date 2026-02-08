@@ -19,7 +19,6 @@
 #include <Eigen/Core>
 #include <functional>
 #include <memory>
-#include <string_view>
 
 #include <fmt/format.h>
 
@@ -59,41 +58,10 @@ auto dispatch_assoc_chunk_by_method(
     Eigen::Ref<Eigen::MatrixXd> genotype,
     Eigen::VectorXd* freqs) -> void
 {
-    switch (method)
-    {
-        case GenotypeProcessMethod::Center:
-        {
-            dispatch_assoc_chunk<grm::CenteredHWE>(
-                genotype, freqs, is_additive);
-        }
-            return;
-        case GenotypeProcessMethod::OrthCenter:
-        {
-            dispatch_assoc_chunk<grm::OrthCenteredHWE>(
-                genotype, freqs, is_additive);
-        }
-            return;
-        case GenotypeProcessMethod::CenterSample:
-        {
-            dispatch_assoc_chunk<grm::Centered>(genotype, freqs, is_additive);
-        }
-            return;
-        case GenotypeProcessMethod::OrthCenterSample:
-        {
-            dispatch_assoc_chunk<grm::OrthCentered>(
-                genotype, freqs, is_additive);
-        }
-            return;
-        case GenotypeProcessMethod::Standardize:
-        case GenotypeProcessMethod::OrthStandardize:
-        case GenotypeProcessMethod::StandardizeSample:
-        case GenotypeProcessMethod::OrthStandardizeSample:
-            break;
-    }
+    auto visitor = [&]<typename MethodBundle>() -> void
+    { dispatch_assoc_chunk<MethodBundle>(genotype, freqs, is_additive); };
 
-    throw InvalidInputException(
-        "assoc --geno-method supports only center-family methods: center, "
-        "orth-center, center-sample, orth-center-sample");
+    gelex::visit_assoc_method(method, visitor);
 }
 
 }  // namespace

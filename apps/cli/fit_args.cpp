@@ -63,6 +63,13 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
     cmd.add_argument("--iid-only")
         .help("Use only IID for sample matching (ignore FID)")
         .flag();
+    cmd.add_argument("--geno-method")
+        .help(
+            "Genotype processing method: standardize|center|"
+            "orth-standardize|orth-center and with -sample suffix e.g. "
+            "standardize-sample")
+        .default_value("orth-standardize")
+        .metavar("<METHOD>");
 
     // ================================================================
     // Model Configuration

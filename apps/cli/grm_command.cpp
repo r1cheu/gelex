@@ -32,7 +32,6 @@
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/genotype_processor.h"
 #include "gelex/data/grm.h"
-#include "gelex/exception.h"
 #include "gelex/logger.h"
 #include "grm_args.h"
 #include "utils/formatter.h"
@@ -70,34 +69,13 @@ auto compute_grm_with_method(
     const std::function<void(Eigen::Index, Eigen::Index)>& progress_callback
     = nullptr) -> gelex::GrmResult
 {
-    switch (method)
+    auto visitor = [&]<typename MethodBundle>() -> gelex::GrmResult
     {
-        case gelex::cli::GenotypeProcessMethod::Standardize:
-            return dispatch_grm<gelex::grm::StandardizedHWE>(
-                grm, ranges, chunk_size, additive, progress_callback);
-        case gelex::cli::GenotypeProcessMethod::Center:
-            return dispatch_grm<gelex::grm::CenteredHWE>(
-                grm, ranges, chunk_size, additive, progress_callback);
-        case gelex::cli::GenotypeProcessMethod::OrthStandardize:
-            return dispatch_grm<gelex::grm::OrthStandardizedHWE>(
-                grm, ranges, chunk_size, additive, progress_callback);
-        case gelex::cli::GenotypeProcessMethod::OrthCenter:
-            return dispatch_grm<gelex::grm::OrthCenteredHWE>(
-                grm, ranges, chunk_size, additive, progress_callback);
-        case gelex::cli::GenotypeProcessMethod::StandardizeSample:
-            return dispatch_grm<gelex::grm::Standardized>(
-                grm, ranges, chunk_size, additive, progress_callback);
-        case gelex::cli::GenotypeProcessMethod::CenterSample:
-            return dispatch_grm<gelex::grm::Centered>(
-                grm, ranges, chunk_size, additive, progress_callback);
-        case gelex::cli::GenotypeProcessMethod::OrthStandardizeSample:
-            return dispatch_grm<gelex::grm::OrthStandardized>(
-                grm, ranges, chunk_size, additive, progress_callback);
-        case gelex::cli::GenotypeProcessMethod::OrthCenterSample:
-            return dispatch_grm<gelex::grm::OrthCentered>(
-                grm, ranges, chunk_size, additive, progress_callback);
-    }
-    throw gelex::InvalidInputException("Invalid GRM method.");
+        return dispatch_grm<MethodBundle>(
+            grm, ranges, chunk_size, additive, progress_callback);
+    };
+
+    return gelex::visit_genotype_method(method, visitor);
 }
 
 auto write_grm_files(
@@ -134,8 +112,8 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
         config.do_additive = true;
     }
 
-    auto method = gelex::cli::parse_genotype_process_method(config.method);
-    auto method_name = gelex::cli::genotype_process_method_name(method);
+    auto method = gelex::parse_genotype_process_method(config.method);
+    auto method_name = gelex::genotype_process_method_name(method);
 
     gelex::cli::setup_parallelization(config.threads);
 

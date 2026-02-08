@@ -1,6 +1,7 @@
 ---
 description: Generate conventional commit messages with emoji based on code changes or descriptions.
 mode: subagent
+model: google/gemini-3-flash-preview
 tools:
   write: false
   edit: false

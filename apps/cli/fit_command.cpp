@@ -17,9 +17,7 @@
 #include "fit_command.h"
 
 #include <argparse.h>
-#include <barkeep.h>
 #include <fmt/format.h>
-#include <omp.h>
 #include <spdlog/logger.h>
 
 #include <Eigen/Core>
@@ -39,8 +37,6 @@
 #include "gelex/model/bayes/trait_model.h"
 #include "gelex/model/effects.h"
 #include "utils/formatter.h"
-
-namespace bk = barkeep;
 
 namespace
 {
@@ -230,6 +226,8 @@ int fit_execute(argparse::ArgumentParser& fit)
     std::string out_prefix = fit.get("--out");
     gelex::BayesAlphabet type = gelex::get_bayesalphabet(fit.get("-m"))
                                     .value_or(gelex::BayesAlphabet::RR);
+    auto genotype_process_method
+        = gelex::parse_genotype_process_method(fit.get("--geno-method"));
     bool dom = has_dominance(type);
 
     auto logger = gelex::logging::get();
@@ -255,7 +253,8 @@ int fit_execute(argparse::ArgumentParser& fit)
         .qcovar_path = fit.get("--qcovar"),
         .dcovar_path = fit.get("--dcovar"),
         .iid_only = fit.get<bool>("--iid-only"),
-        .output_prefix = fit.get("--out")};
+        .output_prefix = fit.get("--out"),
+        .genotype_method = genotype_process_method};
 
     // ================================================================
     // Data Loading & Pipeline

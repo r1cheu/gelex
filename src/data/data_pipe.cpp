@@ -35,7 +35,32 @@
 #include "types/fixed_effects.h"
 #include "utils/formatter.h"
 
-namespace bk = barkeep;
+namespace
+{
+
+template <typename GenotypeMatrixPtr>
+auto collect_genotype_stats(const GenotypeMatrixPtr& matrix_ptr)
+    -> gelex::GenotypeStats
+{
+    int64_t monomorphic_snps = 0;
+    int64_t num_snps = 0;
+
+    if (matrix_ptr)
+    {
+        std::visit(
+            [&](auto&& matrix)
+            {
+                monomorphic_snps = matrix.num_mono();
+                num_snps = matrix.cols();
+            },
+            *matrix_ptr);
+    }
+
+    return gelex::GenotypeStats{
+        .num_snps = num_snps, .monomorphic_snps = monomorphic_snps};
+}
+
+}  // namespace
 
 namespace gelex
 {
@@ -153,48 +178,30 @@ IntersectionStats DataPipe::intersect_samples()
 
 GenotypeStats DataPipe::load_additive_matrix()
 {
-    load_genotype_impl<gelex::AdditiveProcessor<OrthStandardizeMethod>>(
-        ".add", additive_matrix_);
-
-    int64_t num_mono_snps = 0;
-    int64_t total_snps = 0;
-
-    if (additive_matrix_)
+    auto load_additive_processor = [&]<typename MethodBundle>() -> void
     {
-        std::visit(
-            [&](auto&& arg)
-            {
-                num_mono_snps = arg.num_mono();
-                total_snps = arg.cols();
-            },
-            *additive_matrix_);
-    }
+        load_genotype_impl<typename MethodBundle::Additive>(
+            ".add", additive_matrix_);
+    };
 
-    return GenotypeStats{
-        .num_snps = total_snps, .monomorphic_snps = num_mono_snps};
+    gelex::visit_genotype_method(
+        config_.genotype_method, load_additive_processor);
+
+    return collect_genotype_stats(additive_matrix_);
 }
 
 GenotypeStats DataPipe::load_dominance_matrix()
 {
-    load_genotype_impl<gelex::DominantProcessor<OrthStandardizeMethod>>(
-        ".dom", dominance_matrix_);
-
-    int64_t num_mono_snps = 0;
-    int64_t total_snps = 0;
-
-    if (dominance_matrix_)
+    auto load_dominance_processor = [&]<typename MethodBundle>() -> void
     {
-        std::visit(
-            [&](auto&& arg)
-            {
-                num_mono_snps = arg.num_mono();
-                total_snps = arg.cols();
-            },
-            *dominance_matrix_);
-    }
+        load_genotype_impl<typename MethodBundle::Dominant>(
+            ".dom", dominance_matrix_);
+    };
 
-    return GenotypeStats{
-        .num_snps = total_snps, .monomorphic_snps = num_mono_snps};
+    gelex::visit_genotype_method(
+        config_.genotype_method, load_dominance_processor);
+
+    return collect_genotype_stats(dominance_matrix_);
 }
 
 void DataPipe::finalize()
