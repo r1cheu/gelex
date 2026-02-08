@@ -52,6 +52,7 @@ class GwasRunner
         int chunk_size;
         bool loco;
         bool additive;
+        GenotypeProcessMethod method;
         std::vector<std::filesystem::path> grm_paths;
         std::string out_prefix;
     };

@@ -19,17 +19,35 @@
 #include <barkeep.h>
 #include <unistd.h>
 
+#include <cctype>
+
 #include <fmt/format.h>
 #include <omp.h>
 #include <Eigen/Core>
 #include "config.h"
 
+#include "gelex/exception.h"
 #include "gelex/logger.h"
 #include "utils/formatter.h"
 
 namespace gelex::cli
 {
 namespace bk = barkeep;
+
+namespace
+{
+
+auto to_ascii_lower(std::string_view input) -> std::string
+{
+    std::string value(input);
+    for (auto& ch : value)
+    {
+        ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+    }
+    return value;
+}
+
+}  // namespace
 
 const bk::BarParts BAR_STYLE{
     .left = "[",
@@ -249,6 +267,78 @@ auto print_assoc_header(int threads) -> void
            {"Threads", fmt::format("{}", threads)}};
     logger->info(gelex::header_box(title, header_items, 70));
     logger->info("");
+}
+
+auto parse_genotype_process_method(std::string_view method)
+    -> GenotypeProcessMethod
+{
+    auto normalized = to_ascii_lower(method);
+
+    if (normalized == "standardize")
+    {
+        return GenotypeProcessMethod::Standardize;
+    }
+    if (normalized == "center")
+    {
+        return GenotypeProcessMethod::Center;
+    }
+    if (normalized == "orth-standardize")
+    {
+        return GenotypeProcessMethod::OrthStandardize;
+    }
+    if (normalized == "orth-center")
+    {
+        return GenotypeProcessMethod::OrthCenter;
+    }
+    if (normalized == "standardize-sample")
+    {
+        return GenotypeProcessMethod::StandardizeSample;
+    }
+    if (normalized == "center-sample")
+    {
+        return GenotypeProcessMethod::CenterSample;
+    }
+    if (normalized == "orth-standardize-sample")
+    {
+        return GenotypeProcessMethod::OrthStandardizeSample;
+    }
+    if (normalized == "orth-center-sample")
+    {
+        return GenotypeProcessMethod::OrthCenterSample;
+    }
+
+    throw gelex::InvalidInputException(
+        fmt::format(
+            "Unknown GRM method: {}. Valid: standardize, center, "
+            "orth-standardize, orth-center, standardize-sample, "
+            "center-sample, orth-standardize-sample, "
+            "orth-center-sample",
+            method));
+}
+
+auto genotype_process_method_name(GenotypeProcessMethod method)
+    -> std::string_view
+{
+    switch (method)
+    {
+        case GenotypeProcessMethod::Standardize:
+            return "standardize";
+        case GenotypeProcessMethod::Center:
+            return "center";
+        case GenotypeProcessMethod::OrthStandardize:
+            return "orth-standardize";
+        case GenotypeProcessMethod::OrthCenter:
+            return "orth-center";
+        case GenotypeProcessMethod::StandardizeSample:
+            return "standardize-sample";
+        case GenotypeProcessMethod::CenterSample:
+            return "center-sample";
+        case GenotypeProcessMethod::OrthStandardizeSample:
+            return "orth-standardize-sample";
+        case GenotypeProcessMethod::OrthCenterSample:
+            return "orth-center-sample";
+    }
+    throw gelex::InvalidInputException("Invalid genotype process method.");
 }
 
 auto format_epilog(std::string_view text) -> std::string

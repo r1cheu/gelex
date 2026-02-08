@@ -20,7 +20,6 @@
 
 #include <atomic>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include <fmt/format.h>
@@ -33,6 +32,7 @@
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/genotype_processor.h"
 #include "gelex/data/grm.h"
+#include "gelex/exception.h"
 #include "gelex/logger.h"
 #include "grm_args.h"
 #include "utils/formatter.h"
@@ -64,34 +64,40 @@ auto dispatch_grm(
 auto compute_grm_with_method(
     gelex::GRM& grm,
     const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
-    std::string_view method,
+    gelex::cli::GenotypeProcessMethod method,
     int chunk_size,
     bool additive,
     const std::function<void(Eigen::Index, Eigen::Index)>& progress_callback
     = nullptr) -> gelex::GrmResult
 {
-    if (method == "1")
+    switch (method)
     {
-        return dispatch_grm<gelex::grm::Standardized>(
-            grm, ranges, chunk_size, additive, progress_callback);
+        case gelex::cli::GenotypeProcessMethod::Standardize:
+            return dispatch_grm<gelex::grm::StandardizedHWE>(
+                grm, ranges, chunk_size, additive, progress_callback);
+        case gelex::cli::GenotypeProcessMethod::Center:
+            return dispatch_grm<gelex::grm::CenteredHWE>(
+                grm, ranges, chunk_size, additive, progress_callback);
+        case gelex::cli::GenotypeProcessMethod::OrthStandardize:
+            return dispatch_grm<gelex::grm::OrthStandardizedHWE>(
+                grm, ranges, chunk_size, additive, progress_callback);
+        case gelex::cli::GenotypeProcessMethod::OrthCenter:
+            return dispatch_grm<gelex::grm::OrthCenteredHWE>(
+                grm, ranges, chunk_size, additive, progress_callback);
+        case gelex::cli::GenotypeProcessMethod::StandardizeSample:
+            return dispatch_grm<gelex::grm::Standardized>(
+                grm, ranges, chunk_size, additive, progress_callback);
+        case gelex::cli::GenotypeProcessMethod::CenterSample:
+            return dispatch_grm<gelex::grm::Centered>(
+                grm, ranges, chunk_size, additive, progress_callback);
+        case gelex::cli::GenotypeProcessMethod::OrthStandardizeSample:
+            return dispatch_grm<gelex::grm::OrthStandardized>(
+                grm, ranges, chunk_size, additive, progress_callback);
+        case gelex::cli::GenotypeProcessMethod::OrthCenterSample:
+            return dispatch_grm<gelex::grm::OrthCentered>(
+                grm, ranges, chunk_size, additive, progress_callback);
     }
-    if (method == "2")
-    {
-        return dispatch_grm<gelex::grm::Centered>(
-            grm, ranges, chunk_size, additive, progress_callback);
-    }
-    if (method == "3")
-    {
-        return dispatch_grm<gelex::grm::OrthStandardized>(
-            grm, ranges, chunk_size, additive, progress_callback);
-    }
-    if (method == "4")
-    {
-        return dispatch_grm<gelex::grm::OrthCentered>(
-            grm, ranges, chunk_size, additive, progress_callback);
-    }
-    throw std::invalid_argument(
-        fmt::format("Unknown GRM method: {}. Valid: 1, 2, 3, 4", method));
+    throw gelex::InvalidInputException("Invalid GRM method.");
 }
 
 auto write_grm_files(
@@ -116,7 +122,7 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
     GrmConfig config{
         .bed_path = gelex::BedPipe::format_bed_path(cmd.get("--bfile")),
         .out_prefix = cmd.get("--out"),
-        .method = cmd.get("--method"),
+        .method = cmd.get("--geno-method"),
         .chunk_size = cmd.get<int>("--chunk-size"),
         .do_additive = cmd.get<bool>("--add"),
         .do_dominant = cmd.get<bool>("--dom"),
@@ -128,10 +134,13 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
         config.do_additive = true;
     }
 
+    auto method = gelex::cli::parse_genotype_process_method(config.method);
+    auto method_name = gelex::cli::genotype_process_method_name(method);
+
     gelex::cli::setup_parallelization(config.threads);
 
     gelex::cli::print_grm_header(
-        config.method,
+        method_name,
         config.do_additive,
         config.do_dominant,
         config.chunk_size,
@@ -211,7 +220,7 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
             auto result = compute_grm_with_method(
                 grm,
                 group.ranges,
-                config.method,
+                method,
                 config.chunk_size,
                 task.is_additive,
                 progress_callback);

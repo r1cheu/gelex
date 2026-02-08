@@ -19,6 +19,7 @@
 #include <Eigen/Core>
 #include <functional>
 #include <memory>
+#include <string_view>
 
 #include <fmt/format.h>
 
@@ -33,6 +34,69 @@
 
 namespace gelex::cli
 {
+
+namespace
+{
+
+template <typename MethodBundle>
+auto dispatch_assoc_chunk(
+    Eigen::Ref<Eigen::MatrixXd> genotype,
+    Eigen::VectorXd* freqs,
+    bool is_additive) -> void
+{
+    if (is_additive)
+    {
+        process_matrix<typename MethodBundle::Additive>(genotype, freqs);
+        return;
+    }
+
+    process_matrix<typename MethodBundle::Dominant>(genotype, freqs);
+}
+
+auto dispatch_assoc_chunk_by_method(
+    GenotypeProcessMethod method,
+    bool is_additive,
+    Eigen::Ref<Eigen::MatrixXd> genotype,
+    Eigen::VectorXd* freqs) -> void
+{
+    switch (method)
+    {
+        case GenotypeProcessMethod::Center:
+        {
+            dispatch_assoc_chunk<grm::CenteredHWE>(
+                genotype, freqs, is_additive);
+        }
+            return;
+        case GenotypeProcessMethod::OrthCenter:
+        {
+            dispatch_assoc_chunk<grm::OrthCenteredHWE>(
+                genotype, freqs, is_additive);
+        }
+            return;
+        case GenotypeProcessMethod::CenterSample:
+        {
+            dispatch_assoc_chunk<grm::Centered>(genotype, freqs, is_additive);
+        }
+            return;
+        case GenotypeProcessMethod::OrthCenterSample:
+        {
+            dispatch_assoc_chunk<grm::OrthCentered>(
+                genotype, freqs, is_additive);
+        }
+            return;
+        case GenotypeProcessMethod::Standardize:
+        case GenotypeProcessMethod::OrthStandardize:
+        case GenotypeProcessMethod::StandardizeSample:
+        case GenotypeProcessMethod::OrthStandardizeSample:
+            break;
+    }
+
+    throw InvalidInputException(
+        "assoc --geno-method supports only center-family methods: center, "
+        "orth-center, center-sample, orth-center-sample");
+}
+
+}  // namespace
 
 GwasRunner::GwasRunner(
     GwasRunner::Config config,
@@ -216,7 +280,7 @@ auto GwasRunner::run_loco() -> void
 
         );
 
-        auto scan_callback = [&](size_t current, size_t total, size_t offset)
+        auto scan_callback = [&](size_t current, size_t, size_t)
         {
             pbar.after->message(
                 fmt::format(
@@ -265,16 +329,8 @@ auto GwasRunner::scan_chromosome(
                 static_cast<Eigen::Index>(start),
                 static_cast<Eigen::Index>(end));
 
-            if (config_.additive)
-            {
-                process_matrix<grm::OrthCentered::Additive>(
-                    assoc_input_.Z, &freqs_);
-            }
-            else
-            {
-                process_matrix<grm::OrthCentered::Dominant>(
-                    assoc_input_.Z, &freqs_);
-            }
+            dispatch_assoc_chunk_by_method(
+                config_.method, config_.additive, assoc_input_.Z, &freqs_);
             gwas::wald_test(assoc_input_, assoc_output_);
 
             for (Eigen::Index i = 0; i < current_chunk_size; ++i)

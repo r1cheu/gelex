@@ -19,8 +19,8 @@
 #include <argparse.h>
 
 #include <filesystem>
-#include <memory>
 #include <ranges>
+#include <string_view>
 
 #include <fmt/format.h>
 #include <Eigen/Core>
@@ -30,32 +30,43 @@
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/data_pipe.h"
 #include "gelex/estimator/freq/reml.h"
-#include "gelex/logger.h"
 
 #include "data/loader/bim_loader.h"
 
+namespace
+{
+
+auto parse_transform_type(std::string_view transform)
+    -> gelex::detail::TransformType
+{
+    if (transform == "dint")
+    {
+        return gelex::detail::TransformType::DINT;
+    }
+    if (transform == "iint")
+    {
+        return gelex::detail::TransformType::IINT;
+    }
+    return gelex::detail::TransformType::None;
+}
+
+}  // namespace
+
 auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 {
-    auto logger = gelex::logging::get();
     std::string out_prefix = cmd.get("--out");
 
     gelex::cli::setup_parallelization(cmd.get<int>("--threads"));
+
+    auto method
+        = gelex::cli::parse_genotype_process_method(cmd.get("--geno-method"));
 
     auto grm_paths = std::ranges::to<std::vector<std::filesystem::path>>(
         cmd.get<std::vector<std::string>>("--grm"));
 
     auto bed_path = gelex::BedPipe::format_bed_path(cmd.get("bfile"));
 
-    std::string transform_str = cmd.get("--transform");
-    auto transform_type = gelex::detail::TransformType::None;
-    if (transform_str == "dint")
-    {
-        transform_type = gelex::detail::TransformType::DINT;
-    }
-    else if (transform_str == "iint")
-    {
-        transform_type = gelex::detail::TransformType::IINT;
-    }
+    auto transform_type = parse_transform_type(cmd.get("--transform"));
 
     gelex::DataPipe::Config config{
         .phenotype_path = cmd.get("--pheno"),
@@ -90,6 +101,7 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
         .chunk_size = cmd.get<int>("--chunk-size"),
         .loco = cmd.get<bool>("--loco"),
         .additive = cmd.get("--model") == "a",
+        .method = method,
         .grm_paths = grm_paths,
         .out_prefix = out_prefix};
 

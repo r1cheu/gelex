@@ -46,6 +46,18 @@ struct ProgressBarDisplay
     std::shared_ptr<barkeep::StatusDisplay> after;
 };
 
+enum class GenotypeProcessMethod : uint8_t
+{
+    Standardize,
+    Center,
+    OrthStandardize,
+    OrthCenter,
+    StandardizeSample,
+    CenterSample,
+    OrthStandardizeSample,
+    OrthCenterSample
+};
+
 auto is_tty() -> bool;
 
 auto setup_parallelization(int num_threads) -> void;
@@ -77,6 +89,12 @@ auto print_grm_header(
 auto print_assoc_header(int threads) -> void;
 
 auto print_simulate_header(bool has_dominance) -> void;
+
+auto parse_genotype_process_method(std::string_view method)
+    -> GenotypeProcessMethod;
+
+auto genotype_process_method_name(GenotypeProcessMethod method)
+    -> std::string_view;
 
 auto format_epilog(std::string_view text) -> std::string;
 

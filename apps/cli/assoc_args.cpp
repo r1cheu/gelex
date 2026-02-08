@@ -96,6 +96,14 @@ void setup_assoc_args(argparse::ArgumentParser& cmd)
         .default_value("a")
         .metavar("<MODEL>")
         .choices("a", "d");
+    cmd.add_argument("--geno-method")
+        .help(
+            "Genotype processing method (center-family only): center, "
+            "orth-center, center-sample, orth-center-sample")
+        .default_value("center")
+        .metavar("<METHOD>")
+        .choices(
+            "center", "orth-center", "center-sample", "orth-center-sample");
     cmd.add_argument("--transform")
         .help(
             "Phenotype transformation: none (default), dint (Direct INT), "

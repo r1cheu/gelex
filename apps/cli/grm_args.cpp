@@ -45,12 +45,12 @@ void setup_grm_args(argparse::ArgumentParser& cmd)
     // GRM Options
     // ================================================================
     cmd.add_group("GRM Options");
-    cmd.add_argument("-m", "--method")
+    cmd.add_argument("--geno-method")
         .help(
-            "GRM computation method: 1 (standardized), "
-            "2 (centered), 3 (orth-standardized), 4 (orth-centered)")
+            "GRM method: standardize|center|orth-standardize|"
+            "orth-center (append -sample for sample stats)")
         .metavar("<METHOD>")
-        .default_value(std::string("1"));
+        .default_value(std::string("standardize"));
     cmd.add_argument("-c", "--chunk-size")
         .help("Chunk size for memory-efficient computation")
         .metavar("<SIZE>")
@@ -69,9 +69,12 @@ void setup_grm_args(argparse::ArgumentParser& cmd)
     cmd.add_epilog(
         gelex::cli::format_epilog(
             "{bg}Examples:{rs}\n"
-            "  {gy}# Compute additive GRM{rs}\n"
+            "  {gy}# HWE standardized additive GRM (default){rs}\n"
             "  {bc}gelex grm{rs} {cy}-b{rs} geno {cy}--add{rs}\n"
-            "  {gy}# LOCO GRM with both additive and dominance{rs}\n"
-            "  {bc}gelex grm{rs} {cy}-b{rs} geno {cy}--add{rs} "
-            "{cy}--dom{rs} {cy}--loco{rs}"));
+            "  {gy}# HWE orthogonal centered dominance GRM{rs}\n"
+            "  {bc}gelex grm{rs} {cy}-b{rs} geno {cy}--dom{rs} "
+            "{cy}--geno-method{rs} orth-center\n"
+            "  {gy}# Sample-stat LOCO GRM (add + dom){rs}\n"
+            "  {bc}gelex grm{rs} {cy}-b{rs} geno {cy}--add{rs} {cy}--dom{rs} "
+            "{cy}--loco{rs} {cy}--geno-method{rs} orth-standardize-sample"));
 }
