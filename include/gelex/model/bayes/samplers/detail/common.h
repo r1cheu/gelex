@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_SAMPLERS_COMMON_H_
-#define GELEX_MODEL_BAYES_SAMPLERS_COMMON_H_
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_DETAIL_COMMON_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_DETAIL_COMMON_H_
 
 #include <random>
 
@@ -57,4 +57,4 @@ struct Residual
 
 }  // namespace gelex::detail::CommonSampler
 
-#endif  // GELEX_MODEL_BAYES_SAMPLERS_COMMON_H_
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_DETAIL_COMMON_H_

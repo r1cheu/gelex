@@ -35,7 +35,7 @@ struct FixedEffect
     std::vector<std::optional<std::vector<std::string>>> levels;
     std::vector<std::optional<std::string>> reference_levels;
     Eigen::MatrixXd X;
-    std::optional<Eigen::VectorXd> cols_norm;
+    Eigen::VectorXd cols_norm;
 
     struct CovariateInfoView
     {
@@ -55,27 +55,12 @@ struct FixedEffect
             = reference_levels[i] ? *reference_levels[i] : std::string_view{}};
     }
 
+    // for freq model
     static auto build(
         std::optional<QuantitativeCovariate> qcovariate,
         std::optional<DiscreteCovariate> dcovariate) -> FixedEffect;
 
     static auto build(Eigen::Index n_samples) -> FixedEffect;
-
-    static auto build_bayes(
-        std::optional<QuantitativeCovariate> qcovariate,
-        std::optional<DiscreteCovariate> dcovariate) -> FixedEffect
-    {
-        auto fe = build(std::move(qcovariate), std::move(dcovariate));
-        fe.cols_norm = fe.X.colwise().squaredNorm();
-        return fe;
-    }
-
-    static auto build_bayes(Eigen::Index n_samples) -> FixedEffect
-    {
-        auto fe = build(n_samples);
-        fe.cols_norm = fe.X.colwise().squaredNorm();
-        return fe;
-    }
 };
 
 }  // namespace gelex

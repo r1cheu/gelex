@@ -141,8 +141,6 @@ class DataPipe
         return std::move(grms_);
     }
 
-    const std::vector<std::string>& fixed_effect_names() const;
-
    private:
     DataPipe() = default;
 
@@ -192,8 +190,6 @@ class DataPipe
 
     std::vector<detail::GrmLoader> grm_loaders_;
     std::vector<gelex::freq::GeneticEffect> grms_;
-
-    std::vector<std::string> fixed_effect_names_;
 
     void apply_phenotype_transform(detail::TransformType type, double offset);
 };

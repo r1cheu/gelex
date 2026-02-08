@@ -16,7 +16,11 @@
 
 #ifndef GELEX_CLI_SIMULATE_COMMAND_H_
 #define GELEX_CLI_SIMULATE_COMMAND_H_
-#include <argparse.h>
+
+namespace argparse
+{
+class ArgumentParser;
+}
 
 int simulate_execute(argparse::ArgumentParser& sim);
 

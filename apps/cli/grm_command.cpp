@@ -16,6 +16,8 @@
 
 #include "grm_command.h"
 
+#include <argparse.h>
+
 #include <atomic>
 #include <string>
 #include <string_view>

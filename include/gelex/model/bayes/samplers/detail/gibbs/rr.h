@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_SAMPLERS_GIBBS_RR_H_
-#define GELEX_MODEL_BAYES_SAMPLERS_GIBBS_RR_H_
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_RR_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_RR_H_
 
 #include <random>
 
-#include "../src/model/bayes/samplers/common_op.h"
-#include "../src/model/bayes/samplers/gibbs/gibbs_concept.h"
 #include "../src/types/bayes_effects.h"
+#include "gelex/model/bayes/samplers/detail/common_op.h"
+#include "gelex/model/bayes/samplers/detail/gibbs/gibbs_concept.h"
 
 namespace gelex::detail::Gibbs
 {
@@ -40,7 +40,7 @@ auto RR(
     Eigen::VectorXd& coeff = state.coeffs;
     const double old_marker_variance = state.marker_variance(0);
     Eigen::VectorXd& u = state.u;
-    const auto& design_matrix = bayes::get_matrix_ref(effect.design_matrix);
+    const auto& X = bayes::get_matrix_ref(effect.X);
     const auto& cols_norm = effect.cols_norm;
 
     const double residual_over_var = residual_variance / old_marker_variance;
@@ -56,7 +56,7 @@ auto RR(
         }
 
         const double old_i = coeff(i);
-        const auto col = design_matrix.col(i);
+        const auto col = X.col(i);
         const double v = cols_norm(i) + residual_over_var;
         const double inv_v = 1.0 / v;
 
@@ -77,4 +77,4 @@ auto RR(
 
 }  // namespace gelex::detail::Gibbs
 
-#endif  // GELEX_MODEL_BAYES_SAMPLERS_GIBBS_RR_H_
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_RR_H_

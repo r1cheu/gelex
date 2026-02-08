@@ -16,7 +16,7 @@
 
 #include "predict_command.h"
 
-#include <thread>
+#include <argparse.h>
 
 #include "gelex/data/bed_pipe.h"
 #include "gelex/logger.h"

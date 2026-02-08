@@ -93,23 +93,19 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
 
     cmd.add_argument("--scale")
         .help("Additive variance scales for BayesR (5 values)")
-        .nargs(5)
-        .default_value(std::vector<double>{0, 0.001, 0.01, 0.1, 1})
+        .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
     cmd.add_argument("--pi")
         .help("Additive mixture proportions for BayesB/C/R")
-        .nargs(2)
-        .default_value(std::vector<double>{0.95, 0.05})
+        .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
     cmd.add_argument("--dscale")
         .help("Dominance variance scales for BayesR (5 values)")
-        .nargs(5)
-        .default_value(std::vector<double>{0, 0.001, 0.01, 0.1, 1})
+        .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
     cmd.add_argument("--dpi")
         .help("Dominance mixture proportions for BayesB/C/R")
-        .nargs(2)
-        .default_value(std::vector<double>{0.95, 0.05})
+        .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
 
     // ================================================================
@@ -118,11 +114,11 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
     cmd.add_group("MCMC Configuration");
     cmd.add_argument("--iters")
         .help("Total MCMC iterations")
-        .default_value(5000)
+        .default_value(3000)
         .scan<'i', int>();
     cmd.add_argument("--burnin")
         .help("Burn-in iterations to discard")
-        .default_value(4000)
+        .default_value(2000)
         .scan<'i', int>();
     cmd.add_argument("--thin")
         .help("Thinning interval for samples")

@@ -17,9 +17,10 @@
 #ifndef GELEX_CLI_FIT_COMMAND_H_
 #define GELEX_CLI_FIT_COMMAND_H_
 
-#include <argparse.h>
-
-#include "fit_args.h"
+namespace argparse
+{
+class ArgumentParser;
+}
 
 int fit_execute(argparse::ArgumentParser& fit);
 

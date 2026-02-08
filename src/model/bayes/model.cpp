@@ -41,9 +41,7 @@ BayesModel::BayesModel(DataPipe& data_pipe)
     num_individuals_ = phenotype_.rows();         // NOLINT
     phenotype_var_ = detail::var(phenotype_)(0);  // NOLINT
 
-    auto fixed_effect_names = data_pipe.fixed_effect_names();
-    auto fixed_effects = std::move(data_pipe).take_fixed_effects();
-    add_fixed_effect(std::move(fixed_effect_names), std::move(fixed_effects).X);
+    add_fixed_effect(std::move(data_pipe).take_fixed_effects());
 
     std::visit(
         [&](auto&& arg) { add_additive(std::forward<decltype(arg)>(arg)); },
@@ -58,18 +56,16 @@ BayesModel::BayesModel(DataPipe& data_pipe)
     }
 }
 
-void BayesModel::add_fixed_effect(
-    std::vector<std::string>&& levels,
-    MatrixXd&& design_matrix)
+void BayesModel::add_fixed_effect(FixedEffect&& effect)
 {
-    fixed_.emplace(std::move(levels), std::move(design_matrix));
+    fixed_ = std::move(effect);
 }
 
 void BayesModel::add_random_effect(
     std::vector<std::string>&& levels,
-    MatrixXd&& design_matrix)
+    MatrixXd&& X)
 {
-    random_.emplace_back(std::move(levels), std::move(design_matrix));
+    random_.emplace_back(std::move(levels), std::move(X));
 }
 
 void BayesModel::add_additive(GenotypeMap&& matrix)

@@ -17,283 +17,84 @@
 #ifndef GELEX_MODEL_BAYES_PRIOR_STRATEGIES_H_
 #define GELEX_MODEL_BAYES_PRIOR_STRATEGIES_H_
 
-#include <memory>
-#include "../src/types/bayes_effects.h"
+#include <optional>
+
 #include "gelex/model/bayes/prior_strategy.h"
 #include "gelex/model/effects.h"
 
 namespace gelex
 {
-/**
- * BayesA prior strategy
- *
- * All markers have non-zero effects with common variance
- */
-class BayesAPrior : public PriorSetter
-{
-   public:
-    ~BayesAPrior() override = default;
 
-   private:
-    auto set_additive_effect_prior(
-        bayes::AdditiveEffect& effect,
-        const PriorConfig& prior) -> void override;
-};
-
-/**
- * BayesA with Dominance prior strategy
- *
- * Extends BayesA with dominant effect priors
- */
-class BayesAdPrior : public BayesAPrior
-{
-   public:
-    ~BayesAdPrior() override = default;
-
-   private:
-    auto set_dominant_effect_prior(
-        bayes::DominantEffect& effect,
-        const PriorConfig& prior) -> void override;
-};
-
-/**
- * BayesB prior strategy
- *
- * Mixture prior with some markers having zero effects
- */
-class BayesBPrior : public PriorSetter
-{
-   public:
-    ~BayesBPrior() override = default;
-
-   private:
-    auto set_additive_effect_prior(
-        bayes::AdditiveEffect& effect,
-        const PriorConfig& prior) -> void override;
-};
-
-/**
- * BayesBpi prior strategy
- *
- * Mixture prior with some markers having zero effects and estimating pi
- */
-class BayesBpiPrior : public BayesBPrior
-{
-   public:
-    ~BayesBpiPrior() override = default;
-
-   private:
-    auto set_additive_effect_prior(
-        bayes::AdditiveEffect& effect,
-        const PriorConfig& prior) -> void override;
-};
-
-/**
- * BayesB with Dominance prior strategy
- *
- * Extends BayesB with dominant effect priors
- */
-class BayesBdPrior : public BayesBPrior
-{
-   public:
-    ~BayesBdPrior() override = default;
-
-   private:
-    auto set_dominant_effect_prior(
-        bayes::DominantEffect& effect,
-        const PriorConfig& prior) -> void override;
-};
-
-/**
- * BayesBdpi prior strategy
- *
- * Extends BayesB with dominant effect priors and estimating pi for both
- * additive and dominant effects
- */
-class BayesBdpiPrior : public BayesBpiPrior
-{
-   public:
-    ~BayesBdpiPrior() override = default;
-
-   private:
-    auto set_dominant_effect_prior(
-        bayes::DominantEffect& effect,
-        const PriorConfig& prior) -> void override;
-};
-
-/**
- * BayesC prior strategy
- *
- * Common variance for all non-zero markers
- */
-class BayesCPrior : public PriorSetter
-{
-   public:
-    ~BayesCPrior() override = default;
-
-   private:
-    auto set_additive_effect_prior(
-        bayes::AdditiveEffect& effect,
-        const PriorConfig& prior) -> void override;
-};
-
-/**
- * BayesCpi prior strategy
- *
- * Common variance for all non-zero markers and estimating pi
- */
-class BayesCpiPrior : public BayesCPrior
-{
-   public:
-    ~BayesCpiPrior() override = default;
-
-   private:
-    auto set_additive_effect_prior(
-        bayes::AdditiveEffect& effect,
-        const PriorConfig& prior) -> void override;
-};
-
-/**
- * BayesC with Dominance prior strategy
- *
- * Extends BayesC with dominant effect priors
- */
-class BayesCdPrior : public BayesCPrior
-{
-   public:
-    ~BayesCdPrior() override = default;
-
-   private:
-    auto set_dominant_effect_prior(
-        bayes::DominantEffect& effect,
-        const PriorConfig& prior) -> void override;
-};
-
-/**
- * BayesCdpi prior strategy
- *
- * Extends BayesC with dominant effect priors and estimating pi for both
- * additive and dominant effects
- */
-class BayesCdpiPrior : public BayesCpiPrior
-{
-   public:
-    ~BayesCdpiPrior() override = default;
-
-   private:
-    auto set_dominant_effect_prior(
-        bayes::DominantEffect& effect,
-        const PriorConfig& prior) -> void override;
-};
-
-/**
- * Bayesian Ridge Regression prior strategy
- *
- * All markers have non-zero effects with common variance (equivalent to
- * RR-BLUP)
- */
-class BayesRRPrior : public PriorSetter
-{
-   public:
-    ~BayesRRPrior() override = default;
-
-   private:
-    auto set_additive_effect_prior(
-        bayes::AdditiveEffect& effect,
-        const PriorConfig& prior) -> void override;
-};
-
-/**
- * Bayesian Ridge Regression with Dominance prior strategy
- *
- * Extends BayesRR with dominant effect priors
- */
-class BayesRRdPrior : public BayesRRPrior
-{
-   public:
-    ~BayesRRdPrior() override = default;
-
-   private:
-    auto set_dominant_effect_prior(
-        bayes::DominantEffect& effect,
-        const PriorConfig& prior) -> void override;
-};
-
-/**
- * BayesR prior strategy
- *
- * Mixture prior with scaled variances for different effect sizes
- */
-class BayesRPrior : public PriorSetter
-{
-   public:
-    ~BayesRPrior() override = default;
-
-   private:
-    auto set_additive_effect_prior(
-        bayes::AdditiveEffect& effect,
-        const PriorConfig& prior) -> void override;
-};
-
-/**
- * BayesR with Dominance prior strategy
- *
- * Extends BayesR with dominant effect priors
- */
-class BayesRdPrior : public BayesRPrior
-{
-   public:
-    ~BayesRdPrior() override = default;
-
-   private:
-    auto set_dominant_effect_prior(
-        bayes::DominantEffect& effect,
-        const PriorConfig& prior) -> void override;
-};
-
-/**
- * Factory function to create appropriate prior strategy based on model type
- *
- * @param type The BayesAlphabet model type
- * @return Unique pointer to the appropriate PriorSetter instance
- */
 inline auto create_prior_strategy(BayesAlphabet type)
-    -> std::unique_ptr<PriorSetter>
+    -> std::optional<PriorSetter>
 {
+    using enum PriorType;
+    using enum VarianceScope;
     using bt = BayesAlphabet;
+
+    auto non_mixture = [](VarianceScope scope, bool has_dominant) -> PriorSpec
+    {
+        PriorSpec spec{{NonMixture, scope, false}, std::nullopt};
+        if (has_dominant)
+        {
+            spec.dominant = {NonMixture, scope, false};
+        }
+        return spec;
+    };
+
+    auto pi_mixture
+        = [](VarianceScope scope, bool estimate, bool has_dominant) -> PriorSpec
+    {
+        PriorSpec spec{{PiMixture, scope, estimate}, std::nullopt};
+        if (has_dominant)
+        {
+            spec.dominant = {PiMixture, scope, estimate};
+        }
+        return spec;
+    };
+
+    auto scale_mixture = [](bool has_dominant) -> PriorSpec
+    {
+        PriorSpec spec{{ScaleMixture, Shared, true}, std::nullopt};
+        if (has_dominant)
+        {
+            spec.dominant = {ScaleMixture, Shared, true};
+        }
+        return spec;
+    };
 
     switch (type)
     {
         case bt::A:
-            return std::make_unique<BayesAPrior>();
+            return PriorSetter(non_mixture(PerMarker, false));
         case bt::Ad:
-            return std::make_unique<BayesAdPrior>();
-        case bt::B:
-            return std::make_unique<BayesBPrior>();
-        case bt::Bpi:
-            return std::make_unique<BayesBpiPrior>();
-        case bt::Bd:
-            return std::make_unique<BayesBdPrior>();
-        case bt::Bdpi:
-            return std::make_unique<BayesBdpiPrior>();
-        case bt::C:
-            return std::make_unique<BayesCPrior>();
-        case bt::Cpi:
-            return std::make_unique<BayesCpiPrior>();
-        case bt::Cd:
-            return std::make_unique<BayesCdPrior>();
-        case bt::Cdpi:
-            return std::make_unique<BayesCdpiPrior>();
-        case bt::R:
-            return std::make_unique<BayesRPrior>();
-        case bt::Rd:
-            return std::make_unique<BayesRdPrior>();
+            return PriorSetter(non_mixture(PerMarker, true));
         case bt::RR:
-            return std::make_unique<BayesRRPrior>();
+            return PriorSetter(non_mixture(PerMarker, false));
         case bt::RRd:
-            return std::make_unique<BayesRRdPrior>();
+            return PriorSetter(non_mixture(PerMarker, true));
+        case bt::B:
+            return PriorSetter(pi_mixture(PerMarker, false, false));
+        case bt::Bpi:
+            return PriorSetter(pi_mixture(PerMarker, true, false));
+        case bt::Bd:
+            return PriorSetter(pi_mixture(PerMarker, false, true));
+        case bt::Bdpi:
+            return PriorSetter(pi_mixture(PerMarker, true, true));
+        case bt::C:
+            return PriorSetter(pi_mixture(Shared, false, false));
+        case bt::Cpi:
+            return PriorSetter(pi_mixture(Shared, true, false));
+        case bt::Cd:
+            return PriorSetter(pi_mixture(Shared, false, true));
+        case bt::Cdpi:
+            return PriorSetter(pi_mixture(Shared, true, true));
+        case bt::R:
+            return PriorSetter(scale_mixture(false));
+        case bt::Rd:
+            return PriorSetter(scale_mixture(true));
         default:
-            return nullptr;
+            return std::nullopt;
     }
 }
 

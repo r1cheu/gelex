@@ -91,6 +91,12 @@ struct BaseMarkerSummary
             mixture_proportion
                 = PosteriorSummary(samples.mixture_proportion[0].rows());
         }
+
+        if (!samples.component_variance.empty())
+        {
+            component_variance
+                = PosteriorSummary(samples.component_variance[0].rows());
+        }
     }
 
     PosteriorSummary coeffs;
@@ -99,6 +105,7 @@ struct BaseMarkerSummary
     PosteriorSummary pve;
 
     PosteriorSummary mixture_proportion;
+    PosteriorSummary component_variance;
     Eigen::VectorXd pip;         // Posterior inclusion probability
     Eigen::MatrixXd comp_probs;  // Per-component posterior probabilities
 };

@@ -17,7 +17,10 @@
 #ifndef GELEX_CLI_ASSOC_ARGS_H_
 #define GELEX_CLI_ASSOC_ARGS_H_
 
-#include <argparse.h>
+namespace argparse
+{
+class ArgumentParser;
+}
 
 void setup_assoc_args(argparse::ArgumentParser& cmd);
 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_SAMPLERS_DOMINANT_H_
-#define GELEX_MODEL_BAYES_SAMPLERS_DOMINANT_H_
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_DETAIL_ADDITIVE_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_DETAIL_ADDITIVE_H_
 
 #include <random>
 
@@ -25,7 +25,7 @@ class BayesModel;
 class BayesState;
 }  // namespace gelex
 
-namespace gelex::detail::DominantSampler
+namespace gelex::detail::AdditiveSampler
 {
 
 struct A
@@ -68,30 +68,6 @@ struct RR
         std::mt19937_64& rng) const -> void;
 };
 
-struct Coeff
-{
-    auto operator()(
-        const BayesModel& model,
-        BayesState& states,
-        std::mt19937_64& rng) const -> void;
-};
+}  // namespace gelex::detail::AdditiveSampler
 
-struct RatioMean
-{
-    auto operator()(
-        const BayesModel& model,
-        BayesState& states,
-        std::mt19937_64& rng) const -> void;
-};
-
-struct RatioVar
-{
-    auto operator()(
-        const BayesModel& model,
-        BayesState& states,
-        std::mt19937_64& rng) const -> void;
-};
-
-}  // namespace gelex::detail::DominantSampler
-
-#endif  // GELEX_MODEL_BAYES_SAMPLERS_DOMINANT_H_
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_DETAIL_ADDITIVE_H_

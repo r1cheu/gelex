@@ -19,11 +19,11 @@
 
 #include <random>
 
-#include "../src/model/bayes/samplers/additive.h"
-#include "../src/model/bayes/samplers/common.h"
-#include "../src/model/bayes/samplers/dominant.h"
-#include "../src/model/bayes/samplers/pi.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/samplers/detail/additive.h"
+#include "gelex/model/bayes/samplers/detail/common.h"
+#include "gelex/model/bayes/samplers/detail/dominant.h"
+#include "gelex/model/bayes/samplers/detail/pi.h"
 
 namespace gelex
 {
@@ -66,6 +66,7 @@ using BayesRR = TraitBasicDefault<detail::AdditiveSampler::RR>;
 using BayesA = TraitBasicDefault<detail::AdditiveSampler::A>;
 using BayesB = TraitBasicDefault<detail::AdditiveSampler::B>;
 using BayesC = TraitBasicDefault<detail::AdditiveSampler::C>;
+
 using BayesBpi = TraitBasicDefault<
     detail::AdditiveSampler::B,
     detail::AdditiveSampler::Pi>;

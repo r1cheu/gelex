@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_SAMPLERS_MH_RRD_H_
-#define GELEX_MODEL_BAYES_SAMPLERS_MH_RRD_H_
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_GIBBS_CONCEPT_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_GIBBS_CONCEPT_H_
 
-#include <random>
+#include <concepts>
 
 namespace gelex::bayes
 {
@@ -25,18 +25,18 @@ struct AdditiveEffect;
 struct AdditiveState;
 struct DominantEffect;
 struct DominantState;
-struct ResidualState;
 }  // namespace gelex::bayes
-namespace gelex::detail::MH
+
+namespace gelex::detail::Gibbs
 {
 
-auto RRD(
-    const bayes::AdditiveEffect& add_effect,
-    bayes::AdditiveState& add_state,
-    const bayes::DominantEffect& dom_effect,
-    bayes::DominantState& dom_state,
-    bayes::ResidualState& residual,
-    std::mt19937_64& rng) -> void;
-}  // namespace gelex::detail::MH
+template <typename E, typename S>
+concept IsValidEffectStatePair
+    = (std::same_as<std::remove_cvref_t<E>, bayes::AdditiveEffect>
+       && std::same_as<std::remove_cvref_t<S>, bayes::AdditiveState>)
+      || (std::same_as<std::remove_cvref_t<E>, bayes::DominantEffect>
+          && std::same_as<std::remove_cvref_t<S>, bayes::DominantState>);
 
-#endif  // GELEX_MODEL_BAYES_SAMPLERS_MH_RRD_H_
+}  // namespace gelex::detail::Gibbs
+
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_GIBBS_CONCEPT_H_

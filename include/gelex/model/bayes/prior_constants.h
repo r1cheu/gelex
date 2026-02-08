@@ -32,7 +32,7 @@ constexpr double MARKER_VARIANCE_SCALE_MULTIPLIER = 0.5;
 
 // Inverse-Gamma prior parameters for residual variance
 // Shape parameter for residual variance prior
-constexpr double RESIDUAL_VARIANCE_SHAPE = 4.0;
+constexpr double RESIDUAL_VARIANCE_SHAPE = -2.0;
 // Scale parameter for residual variance prior
 constexpr double RESIDUAL_VARIANCE_SCALE = 0.0;
 

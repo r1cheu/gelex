@@ -26,13 +26,6 @@
 namespace gelex
 {
 
-enum class effect_type : uint8_t
-{
-    random,
-    genetic,
-    residual,
-};
-
 enum class BayesAlphabet : uint8_t
 {
     A,

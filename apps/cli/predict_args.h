@@ -17,7 +17,10 @@
 #ifndef GELEX_CLI_PREDICT_ARGS_H_
 #define GELEX_CLI_PREDICT_ARGS_H_
 
-#include <argparse.h>
+namespace argparse
+{
+class ArgumentParser;
+}
 
 void setup_predict_args(argparse::ArgumentParser& cmd);
 

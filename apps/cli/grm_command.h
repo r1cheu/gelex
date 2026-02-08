@@ -17,7 +17,10 @@
 #ifndef GELEX_CLI_GRM_COMMAND_H_
 #define GELEX_CLI_GRM_COMMAND_H_
 
-#include <argparse.h>
+namespace argparse
+{
+class ArgumentParser;
+}
 
 auto grm_execute(argparse::ArgumentParser& cmd) -> int;
 

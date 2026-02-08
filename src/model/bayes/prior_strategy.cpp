@@ -18,23 +18,26 @@
 
 #include "gelex/exception.h"
 #include "gelex/model/bayes/prior_constants.h"
+#include "utils/math_utils.h"
 
 namespace gelex
 {
 
+PriorSetter::PriorSetter(PriorSpec spec) : spec_(spec) {}
+
 auto PriorSetter::operator()(BayesModel& model, const PriorConfig& config)
     -> void
 {
-    // Set additive effect prior
     if (model.additive() != nullptr)
     {
-        set_additive_effect_prior(*model.additive(), config);
+        apply_effect_prior(
+            *model.additive(), spec_.additive, config.additive, config);
     }
 
-    // Set dominant effect prior
-    if (model.dominant() != nullptr)
+    if (spec_.dominant.has_value() && model.dominant() != nullptr)
     {
-        set_dominant_effect_prior(*model.dominant(), config);
+        apply_effect_prior(
+            *model.dominant(), *spec_.dominant, config.dominant, config);
     }
 
     const auto num_random_effect = static_cast<double>(model.random().size());
@@ -50,7 +53,6 @@ auto PriorSetter::operator()(BayesModel& model, const PriorConfig& config)
         }
     }
 
-    // Set residual prior
     {
         const double target_variance
             = config.residual_variance_proportion * config.phenotype_variance;
@@ -73,7 +75,7 @@ auto PriorSetter::set_random_effect_prior(
 
 auto compute_init_marker_variance(
     double target_variance,
-    const Eigen::Ref<const Eigen::MatrixXd>& design_matrix,
+    const Eigen::Ref<const Eigen::MatrixXd>& X,
     double non_zero_marker_proption) -> double
 {
     if (target_variance <= 0.0)
@@ -86,8 +88,8 @@ auto compute_init_marker_variance(
             "Non-zero marker proportion must be positive");
     }
 
-    auto num_snps = static_cast<double>(design_matrix.cols());
-    auto num_non_zero_snps = num_snps * non_zero_marker_proption;
+    double total_genetic_variance = gelex::detail::var(X).sum();
+    auto num_non_zero_snps = total_genetic_variance * non_zero_marker_proption;
 
     if (num_non_zero_snps <= 0.0)
     {
@@ -96,33 +98,5 @@ auto compute_init_marker_variance(
     }
 
     return target_variance / num_non_zero_snps;
-}
-
-auto compute_init_marker_variance(
-    double target_variance,
-    const Eigen::Ref<const Eigen::VectorXd>& genetic_variance,
-    double non_zero_marker_proption) -> double
-{
-    if (target_variance <= 0.0)
-    {
-        throw ArgumentValidationException("Target variance must be positive");
-    }
-    if (non_zero_marker_proption <= 0.0)
-    {
-        throw ArgumentValidationException(
-            "Non-zero marker proportion must be positive");
-    }
-
-    auto total_genetic_variance = genetic_variance.sum();
-    auto non_zero_marker_variance
-        = total_genetic_variance * non_zero_marker_proption;
-
-    if (non_zero_marker_variance <= 0.0)
-    {
-        throw ArgumentValidationException(
-            "Non-zero marker variance must be positive");
-    }
-
-    return target_variance / non_zero_marker_variance;
 }
 }  // namespace gelex

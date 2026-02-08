@@ -23,6 +23,7 @@
 #include <Eigen/Core>
 
 #include "../src/model/bayes/distribution.h"
+#include "../src/types/fixed_effects.h"
 #include "gelex/data/genotype_matrix.h"
 #include "gelex/data/genotype_mmap.h"
 
@@ -92,21 +93,10 @@ struct Pi
     Eigen::VectorXi count;
 };
 
-struct FixedEffect
-{
-    FixedEffect(
-        std::optional<std::vector<std::string>> levels,
-        Eigen::MatrixXd&& design_matrix);
-
-    Eigen::MatrixXd design_matrix;
-    Eigen::VectorXd cols_norm;
-
-    std::optional<std::vector<std::string>> levels;
-};
-
 struct FixedState
 {
-    explicit FixedState(const FixedEffect& effect);
+    explicit FixedState(const FixedEffect& effect)
+        : coeffs(Eigen::VectorXd::Zero(effect.X.cols())) {};
     Eigen::VectorXd coeffs;
 };
 
@@ -114,9 +104,13 @@ struct RandomEffect
 {
     RandomEffect(
         std::optional<std::vector<std::string>> levels,
-        Eigen::MatrixXd&& design_matrix);
+        Eigen::MatrixXd&& X)
+        : X(std::move(X)), levels(std::move(levels))
+    {
+        cols_norm = this->X.colwise().squaredNorm();
+    }
 
-    Eigen::MatrixXd design_matrix;
+    Eigen::MatrixXd X;
     Eigen::VectorXd cols_norm;
 
     std::optional<std::vector<std::string>> levels;
@@ -127,7 +121,11 @@ struct RandomEffect
 
 struct RandomState
 {
-    explicit RandomState(const RandomEffect& effect);
+    explicit RandomState(const RandomEffect& effect)
+        : coeffs(Eigen::VectorXd::Zero(effect.X.cols())),
+          variance{effect.init_variance}
+    {
+    }
 
     Eigen::VectorXd coeffs;
     double variance{0.0};
@@ -135,25 +133,22 @@ struct RandomState
 
 struct GeneticEffect
 {
-    explicit GeneticEffect(GenotypeMap&& design_matrix)
-        : design_matrix(std::move(design_matrix))
+    explicit GeneticEffect(GenotypeMap&& X) : X(std::move(X))
     {
-        cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
+        cols_norm = get_matrix_ref(this->X).colwise().squaredNorm();
     }
 
-    explicit GeneticEffect(GenotypeMatrix&& design_matrix)
-        : design_matrix(std::move(design_matrix))
+    explicit GeneticEffect(GenotypeMatrix&& X) : X(std::move(X))
     {
-        cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
+        cols_norm = get_matrix_ref(this->X).colwise().squaredNorm();
     }
 
-    explicit GeneticEffect(GenotypeStorage&& design_matrix)
-        : design_matrix(std::move(design_matrix))
+    explicit GeneticEffect(GenotypeStorage&& X) : X(std::move(X))
     {
-        cols_norm = get_matrix_ref(this->design_matrix).colwise().squaredNorm();
+        cols_norm = get_matrix_ref(this->X).colwise().squaredNorm();
     }
 
-    GenotypeStorage design_matrix;
+    GenotypeStorage X;
     Eigen::VectorXd cols_norm;
 
     detail::ScaledInvChiSqParams marker_variance_prior{4, 0};
@@ -166,10 +161,10 @@ struct GeneticEffect
 
     bool is_monomorphic(Eigen::Index snp_index) const
     {
-        return is_monomorphic_variant(design_matrix, snp_index);
+        return is_monomorphic_variant(X, snp_index);
     }
 
-    Eigen::Index num_mono() const { return num_mono_variant(design_matrix); }
+    Eigen::Index num_mono() const { return num_mono_variant(X); }
 };
 
 struct AdditiveEffect : GeneticEffect
@@ -180,8 +175,8 @@ struct AdditiveEffect : GeneticEffect
 struct GeneticState
 {
     explicit GeneticState(const GeneticEffect& effect)
-        : coeffs(Eigen::VectorXd::Zero(bayes::get_cols(effect.design_matrix))),
-          u(Eigen::VectorXd::Zero(bayes::get_rows(effect.design_matrix))),
+        : coeffs(Eigen::VectorXd::Zero(bayes::get_cols(effect.X))),
+          u(Eigen::VectorXd::Zero(bayes::get_rows(effect.X))),
           marker_variance(
               Eigen::VectorXd::Constant(
                   effect.marker_variance_size,
@@ -190,11 +185,21 @@ struct GeneticState
     {
         if (effect.init_pi)
         {
-            tracker
-                = Eigen::VectorXi::Zero(bayes::get_cols(effect.design_matrix));
+            tracker = Eigen::VectorXi::Zero(bayes::get_cols(effect.X));
             pi
                 = {effect.init_pi.value(),
                    Eigen::VectorXi::Zero(effect.init_pi->size())};
+
+            if (const auto num_components = effect.init_pi->size();
+                num_components > 2)
+            {
+                component_u.resize(num_components - 1);
+                for (auto& vec : component_u)
+                {
+                    vec = Eigen::VectorXd::Zero(u.size());
+                }
+                component_variance = Eigen::VectorXd::Zero(num_components - 1);
+            }
         };
     }
     Eigen::VectorXd coeffs;
@@ -206,6 +211,9 @@ struct GeneticState
     double variance{};
     double heritability{};
     Eigen::VectorXd marker_variance;
+
+    std::vector<Eigen::VectorXd> component_u;
+    Eigen::VectorXd component_variance;
 };
 
 struct AdditiveState : GeneticState
@@ -216,23 +224,11 @@ struct AdditiveState : GeneticState
 struct DominantEffect : GeneticEffect
 {
     using GeneticEffect::GeneticEffect;
-
-    Eigen::VectorXd w;  // freq_q - freq_p
-    double ratio_mean{};
-    double ratio_variance{};
-
-    detail::NormalParams mean_prior{0.2, 1};
-    detail::ScaledInvChiSqParams var_prior{4, 0};
 };
 
 struct DominantState : GeneticState
 {
-    explicit DominantState(const DominantEffect& effect);
-
-    Eigen::VectorXd ratios;
-
-    double ratio_mean{};
-    double ratio_variance{};
+    using GeneticState::GeneticState;
 };
 
 struct Residual

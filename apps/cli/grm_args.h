@@ -17,7 +17,13 @@
 #ifndef GELEX_CLI_GRM_ARGS_H_
 #define GELEX_CLI_GRM_ARGS_H_
 
-#include <argparse.h>
+#include <filesystem>
+#include <string>
+
+namespace argparse
+{
+class ArgumentParser;
+}
 
 struct GrmConfig
 {

@@ -16,6 +16,8 @@
 
 #include "simulate_command.h"
 
+#include <argparse.h>
+
 #include <format>
 #include <string_view>
 #include <vector>

@@ -16,6 +16,8 @@
 
 #include "assoc_command.h"
 
+#include <argparse.h>
+
 #include <filesystem>
 #include <memory>
 #include <ranges>

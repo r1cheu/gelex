@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-#include "../src/model/bayes/samplers/additive.h"
+#include "gelex/model/bayes/samplers/detail/additive.h"
 
 #include <random>
 
-#include "../src/model/bayes/samplers/gibbs/a.h"
-#include "../src/model/bayes/samplers/gibbs/b.h"
-#include "../src/model/bayes/samplers/gibbs/c.h"
-#include "../src/model/bayes/samplers/gibbs/r.h"
-#include "../src/model/bayes/samplers/gibbs/rr.h"
-#include "../src/model/bayes/samplers/mh/rrd.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/samplers/detail/gibbs/a.h"
+#include "gelex/model/bayes/samplers/detail/gibbs/b.h"
+#include "gelex/model/bayes/samplers/detail/gibbs/c.h"
+#include "gelex/model/bayes/samplers/detail/gibbs/r.h"
+#include "gelex/model/bayes/samplers/detail/gibbs/rr.h"
 
 namespace gelex::detail::AdditiveSampler
 {
@@ -82,20 +81,6 @@ auto RR::operator()(
     auto* state = states.additive();
     auto& residual = states.residual();
     Gibbs::RR(*effect, *state, residual, rng);
-}
-
-auto RRD::operator()(
-    const BayesModel& model,
-    BayesState& states,
-    std::mt19937_64& rng) const -> void
-{
-    const auto* add_effect = model.additive();
-    auto* add_state = states.additive();
-    const auto* dom_effect = model.dominant();
-    auto* dom_state = states.dominant();
-    auto& residual = states.residual();
-
-    MH::RRD(*add_effect, *add_state, *dom_effect, *dom_state, residual, rng);
 }
 
 }  // namespace gelex::detail::AdditiveSampler

@@ -32,7 +32,6 @@
 namespace gelex::bayes
 {
 
-struct FixedEffect;
 struct RandomEffect;
 struct GeneticEffect;
 struct AdditiveEffect;
@@ -43,6 +42,7 @@ struct DominantEffect;
 namespace gelex
 {
 
+struct FixedEffect;
 struct MCMCParams;
 class BayesState;
 class BayesModel;
@@ -54,7 +54,7 @@ using IntSamples = std::vector<Eigen::MatrixXi>;
 
 struct FixedSamples
 {
-    FixedSamples(const MCMCParams& params, const bayes::FixedEffect& effect);
+    FixedSamples(const MCMCParams& params, const FixedEffect& effect);
 
     Samples coeffs;
     explicit operator bool() const { return !coeffs.empty(); }
@@ -80,6 +80,7 @@ struct BaseMarkerSamples : RandomSamples
     Samples mixture_proportion;
     Samples heritability;
     IntSamples tracker;
+    Samples component_variance;
 
     Eigen::Index n_proportions
         = 0;  // load the number of prop for no-estimate-pi models.

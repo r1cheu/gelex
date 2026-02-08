@@ -218,7 +218,7 @@ void DataPipe::finalize()
     }
     if (!dcov && !qcov)
     {
-        fixed_effects_ = FixedEffect::build_bayes(phenotype_.size());
+        fixed_effects_ = FixedEffect::build(phenotype_.size());
     }
     else
     {
@@ -231,11 +231,6 @@ void DataPipe::finalize()
     }
 
     apply_phenotype_transform(config_.transform_type, config_.int_offset);
-}
-
-const std::vector<std::string>& DataPipe::fixed_effect_names() const
-{
-    return fixed_effects_.names;
 }
 
 void DataPipe::apply_phenotype_transform(

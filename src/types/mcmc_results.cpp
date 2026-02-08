@@ -41,7 +41,7 @@ MCMCResult::MCMCResult(
 {
     if (const auto* effect = model.additive(); effect)
     {
-        p_freq = bayes::get_means(effect->design_matrix).array() / 2;
+        p_freq = bayes::get_means(effect->X).array() / 2;
     }
 
     if (const auto* sample = samples_.fixed(); sample)
@@ -102,6 +102,12 @@ void MCMCResult::compute(std::optional<double> prob)
             effect->mixture_proportion
                 = detail::PosteriorCalculator::compute_param_summary(
                     sample->mixture_proportion, prob_);
+        }
+        if (effect->component_variance.size() > 0)
+        {
+            effect->component_variance
+                = detail::PosteriorCalculator::compute_param_summary(
+                    sample->component_variance, prob_);
         }
         if (effect->pip.size() > 0)
         {

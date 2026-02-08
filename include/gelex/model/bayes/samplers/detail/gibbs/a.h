@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_SAMPLERS_GIBBS_A_H_
-#define GELEX_MODEL_BAYES_SAMPLERS_GIBBS_A_H_
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_A_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_A_H_
 
 #include <random>
 
-#include "../src/model/bayes/samplers/common_op.h"
-#include "../src/model/bayes/samplers/gibbs/gibbs_concept.h"
 #include "../src/types/bayes_effects.h"
+#include "gelex/model/bayes/samplers/detail/common_op.h"
+#include "gelex/model/bayes/samplers/detail/gibbs/gibbs_concept.h"
 
 namespace gelex::detail::Gibbs
 {
@@ -40,7 +40,7 @@ auto A(
     Eigen::VectorXd& coeffs = state.coeffs;
     auto& u = state.u;
     Eigen::VectorXd& sigma = state.marker_variance;
-    const auto& design_matrix = bayes::get_matrix_ref(effect.design_matrix);
+    const auto& X = bayes::get_matrix_ref(effect.X);
     const auto& cols_norm = effect.cols_norm;
 
     detail::ScaledInvChiSq chi_squared{effect.marker_variance_prior};
@@ -53,7 +53,7 @@ auto A(
             continue;
         }
         const double old_i = coeffs(i);
-        const auto& col = design_matrix.col(i);
+        const auto& col = X.col(i);
 
         const double percision_kernel
             = 1 / (cols_norm(i) + residual_variance / sigma(i));
@@ -76,4 +76,4 @@ auto A(
 
 }  // namespace gelex::detail::Gibbs
 
-#endif  // GELEX_MODEL_BAYES_SAMPLERS_GIBBS_A_H_
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_A_H_

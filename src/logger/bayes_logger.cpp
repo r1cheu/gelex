@@ -20,7 +20,6 @@
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include "barkeep.h"
 
 #include "../utils/formatter.h"
 #include "gelex/logger.h"
@@ -155,44 +154,37 @@ void MCMCLogger::log_result(
                            const PosteriorSummary& summary,
                            const std::string& name)
     {
-        if (summary.rhat(i) > 1.1)
-        {
-            logger_->info(
-                "  {:<8} {:>8.4f} {:>8.4f} {:>8.4f} {:>8.4f} "
-                "{:>8.4f} {:>8.4f}*",
-                name,
-                summary.mean(i),
-                summary.stddev(i),
-                summary.hpdi_low(i),
-                summary.hpdi_high(i),
-                summary.ess(i),
-                summary.rhat(i));
-        }
-        else
-        {
-            logger_->info(
-                "  {:<8} {:>8.4f} {:>8.4f} {:>8.4f} {:>8.4f} "
-                "{:>8.4f} {:>8.4f}",
-                name,
-                summary.mean(i),
-                summary.stddev(i),
-                summary.hpdi_low(i),
-                summary.hpdi_high(i),
-                summary.ess(i),
-                summary.rhat(i));
-        }
+        char star = summary.rhat(i) > 1.1 ? '*' : ' ';
+        logger_->info(
+            "  {:<8} {:>8.4f} {:>8.4f} {:>8.4f} {:>8.4f} "
+            "{:>8.4f} {:>8.4f}{}",
+            name,
+            summary.mean(i),
+            summary.stddev(i),
+            summary.hpdi_low(i),
+            summary.hpdi_high(i),
+            summary.ess(i),
+            summary.rhat(i),
+            star);
     };
 
     if (auto [effect, result] = std::make_pair(model.fixed(), results.fixed());
         effect != nullptr && result != nullptr)
     {
-        if (effect->levels)
+        Eigen::Index idx{};
+        for (const auto& covariates : effect->levels)
         {
-            for (Eigen::Index i = 0;
-                 i < static_cast<Eigen::Index>(effect->levels->size());
-                 ++i)
+            if (covariates)
             {
-                log_summary(i, result->coeffs, effect->levels.value()[i]);
+                for (const auto& level : covariates.value())
+                {
+                    log_summary(idx++, result->coeffs, level);
+                }
+            }
+            else
+            {
+                log_summary(idx, result->coeffs, effect->names[idx]);
+                ++idx;
             }
         }
     }
@@ -208,6 +200,18 @@ void MCMCLogger::log_result(
                 {
                     log_summary(
                         i, result->mixture_proportion, fmt::format("π[{}]", i));
+                }
+            }
+
+            if (result != nullptr && result->component_variance.size() > 0)
+            {
+                for (Eigen::Index i = 0; i < result->component_variance.size();
+                     ++i)
+                {
+                    log_summary(
+                        i,
+                        result->component_variance,
+                        fmt::format("σ²_g[{}]", i + 1));
                 }
             }
         }

@@ -37,15 +37,9 @@ class BayesModel
    public:
     explicit BayesModel(DataPipe& data_pipe);
 
-    const bayes::FixedEffect* fixed() const
-    {
-        return fixed_.has_value() ? &fixed_.value() : nullptr;
-    }
+    const FixedEffect* fixed() const { return &fixed_; }
 
-    bayes::FixedEffect* fixed()
-    {
-        return fixed_.has_value() ? &fixed_.value() : nullptr;
-    }
+    FixedEffect* fixed() { return &fixed_; }
 
     const std::vector<bayes::RandomEffect>& random() const { return random_; }
     std::vector<bayes::RandomEffect>& random() { return random_; }
@@ -82,19 +76,17 @@ class BayesModel
     void add_dominance(GenotypeMap&& matrix);
     void add_dominance(GenotypeMatrix&& matrix);
 
-    void add_fixed_effect(
-        std::vector<std::string>&& levels,
-        Eigen::MatrixXd&& design_matrix);
+    void add_fixed_effect(FixedEffect&& effect);
     void add_random_effect(
         std::vector<std::string>&& levels,
-        Eigen::MatrixXd&& design_matrix);
+        Eigen::MatrixXd&& X);
 
     Eigen::Index num_individuals_{};
     double phenotype_var_{};
 
     Eigen::VectorXd phenotype_;
 
-    std::optional<bayes::FixedEffect> fixed_;
+    FixedEffect fixed_;
     std::vector<bayes::RandomEffect> random_;
     std::optional<bayes::AdditiveEffect> additive_;
     std::optional<bayes::DominantEffect> dominant_;

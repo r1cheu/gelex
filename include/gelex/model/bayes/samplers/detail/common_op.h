@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_SAMPLERS_COMMON_OP_H_
-#define GELEX_MODEL_BAYES_SAMPLERS_COMMON_OP_H_
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_DETAIL_COMMON_OP_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_DETAIL_COMMON_OP_H_
 
 #include <cassert>
 #include <cmath>
@@ -145,49 +145,56 @@ inline auto compute_posterior_params(
         rhs, col_norm, residual_variance, res_over_marker_var);
 }
 
-inline double sign(double x)
+template <typename DerivedCol>
+inline void update_component_u(
+    std::vector<Eigen::VectorXd>& component_u,
+    int old_index,
+    double old_val,
+    int new_index,
+    double new_val,
+    const Eigen::DenseBase<DerivedCol>& col)
 {
-    return (x > 0.0) ? 1.0 : -1.0;
-}
-
-inline auto g_ad(double w_j, double a, double d) -> double
-{
-    if (std::abs(w_j) < 1e-12)
+    if (component_u.empty())
     {
-        return 0.5;
+        return;
     }
-    return (1 - w_j * sign(a) * sign(d)) / 2;
-};
 
-inline auto get_pos(double w_j, double x, double mu, double stddev)
-    -> std::pair<double, double>
-{
-    double cdf_0 = normal_cdf(0, mu, stddev);
-
-    double is_pos = g_ad(w_j, 1, x);
-    double is_neg = g_ad(w_j, -1, x);
-
-    return {
-        cdf_0,
-        (is_pos * (1 - cdf_0)) / (is_pos * (1 - cdf_0) + is_neg * cdf_0)};
+    if (old_index == new_index)
+    {
+        if (old_index > 0)
+        {
+            const double diff = new_val - old_val;
+            if (std::abs(diff) > std::numeric_limits<double>::epsilon())
+            {
+                blas_daxpy(diff, col, component_u[old_index - 1]);
+            }
+        }
+    }
+    else
+    {
+        if (old_index > 0)
+        {
+            blas_daxpy(-old_val, col, component_u[old_index - 1]);
+        }
+        if (new_index > 0)
+        {
+            blas_daxpy(new_val, col, component_u[new_index - 1]);
+        }
+    }
 }
 
-inline auto compute_dominant_ratios(
-    const Eigen::Ref<const Eigen::VectorXd>& dominant_coeffs,
-    const Eigen::Ref<const Eigen::VectorXd>& additive_coeffs) -> Eigen::VectorXd
+template <typename StateT>
+inline void compute_component_variances(StateT& state)
 {
-    assert(
-        dominant_coeffs.size() == additive_coeffs.size()
-        && "compute_dominant_ratios: vector sizes do not match.");
-
-    // Use Eigen's optimized element-wise operations
-    // d / abs(a) with handling for zero additive effects
-    // When a = 0, set ratio to 0 (matching current behavior)
-    return (additive_coeffs.array().abs()
-            > std::numeric_limits<double>::epsilon())
-        .select(dominant_coeffs.array() / additive_coeffs.array().abs(), 0.0);
+    if (!state.component_u.empty())
+    {
+        for (size_t k = 0; k < state.component_u.size(); ++k)
+        {
+            state.component_variance(k) = detail::var(state.component_u[k])(0);
+        }
+    }
 }
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_MODEL_BAYES_SAMPLERS_COMMON_OP_H_
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_DETAIL_COMMON_OP_H_

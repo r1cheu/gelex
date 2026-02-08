@@ -16,6 +16,7 @@
 
 #include "fit_command.h"
 
+#include <argparse.h>
 #include <barkeep.h>
 #include <fmt/format.h>
 #include <omp.h>
@@ -24,7 +25,6 @@
 #include <Eigen/Core>
 #include <filesystem>
 #include <memory>
-#include <thread>
 #include <vector>
 
 #include "cli_helper.h"
@@ -76,19 +76,17 @@ auto get_default_pi(BayesAlphabet type) -> Eigen::VectorXd
         case BayesAlphabet::Cpi:
         case BayesAlphabet::Cd:
         case BayesAlphabet::Cdpi:
-            return Eigen::Vector2d(0.95, 0.05);
+            return Eigen::VectorXd{{0.95, 0.05}};
         case BayesAlphabet::R:
         case BayesAlphabet::Rd:
         {
-            Eigen::VectorXd v(5);
-            v << 0.95, 0.02, 0.01, 0.01, 0.01;
-            return v;
+            return Eigen::VectorXd{{0.95, 0.02, 0.01, 0.01, 0.01}};
         }
         case BayesAlphabet::A:
         case BayesAlphabet::RR:
         case BayesAlphabet::Ad:
         case BayesAlphabet::RRd:
-            return Eigen::Vector2d(0.0, 1.0);
+            return Eigen::VectorXd{{0.0, 1.0}};
         default:
             return Eigen::VectorXd{};
     }
@@ -101,9 +99,7 @@ auto get_default_scale(BayesAlphabet type) -> Eigen::VectorXd
         case BayesAlphabet::R:
         case BayesAlphabet::Rd:
         {
-            Eigen::VectorXd v(5);
-            v << 0.0, 0.001, 0.01, 0.1, 1.0;
-            return v;
+            return Eigen::VectorXd{{0.0, 0.001, 0.01, 0.1, 1.0}};
         }
         default:
             return Eigen::VectorXd{};
@@ -128,57 +124,30 @@ auto configure_model_priors(
     gelex::PriorConfig prior_config;
     prior_config.phenotype_variance = model.phenotype_variance();
 
-    // Configure Additive Pi
-    if (fit.is_used("--pi"))
+    auto configure_parameter = [&](std::string_view arg_name,
+                                   Eigen::VectorXd& target,
+                                   auto default_func)
     {
-        auto pi = fit.get<std::vector<double>>("--pi");
-        prior_config.additive.mixture_proportions
-            = Eigen::Map<const Eigen::VectorXd>(
-                pi.data(), static_cast<Eigen::Index>(pi.size()));
-    }
-    else
-    {
-        prior_config.additive.mixture_proportions = get_default_pi(type);
-    }
+        if (fit.is_used(arg_name))
+        {
+            auto values = fit.get<std::vector<double>>(arg_name);
+            target = Eigen::Map<const Eigen::VectorXd>(
+                values.data(), static_cast<Eigen::Index>(values.size()));
+        }
+        else
+        {
+            target = default_func(type);
+        }
+    };
 
-    // Configure Dominance Pi
-    if (fit.is_used("--dpi"))
-    {
-        auto dpi = fit.get<std::vector<double>>("--dpi");
-        prior_config.dominant.mixture_proportions
-            = Eigen::Map<const Eigen::VectorXd>(
-                dpi.data(), static_cast<Eigen::Index>(dpi.size()));
-    }
-    else
-    {
-        prior_config.dominant.mixture_proportions = get_default_pi(type);
-    }
-
-    // Configure Additive Scale
-    if (fit.is_used("--scale"))
-    {
-        auto scale = fit.get<std::vector<double>>("--scale");
-        prior_config.additive.mixture_scales
-            = Eigen::Map<const Eigen::VectorXd>(
-                scale.data(), static_cast<Eigen::Index>(scale.size()));
-    }
-    else
-    {
-        prior_config.additive.mixture_scales = get_default_scale(type);
-    }
-
-    // Configure Dominance Scale
-    if (fit.is_used("--dscale"))
-    {
-        auto dscale = fit.get<std::vector<double>>("--dscale");
-        prior_config.dominant.mixture_scales
-            = Eigen::Map<const Eigen::VectorXd>(
-                dscale.data(), static_cast<Eigen::Index>(dscale.size()));
-    }
-    else
-    {
-        prior_config.dominant.mixture_scales = get_default_scale(type);
-    }
+    configure_parameter(
+        "--pi", prior_config.additive.mixture_proportions, get_default_pi);
+    configure_parameter(
+        "--dpi", prior_config.dominant.mixture_proportions, get_default_pi);
+    configure_parameter(
+        "--scale", prior_config.additive.mixture_scales, get_default_scale);
+    configure_parameter(
+        "--dscale", prior_config.dominant.mixture_scales, get_default_scale);
 
     (*prior_strategy)(model, prior_config);
     return 0;

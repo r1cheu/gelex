@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_SAMPLERS_PI_H_
-#define GELEX_MODEL_BAYES_SAMPLERS_PI_H_
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_DETAIL_PI_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_DETAIL_PI_H_
 
 #include <random>
 
@@ -55,4 +55,4 @@ struct Pi
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_MODEL_BAYES_SAMPLERS_PI_H_
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_DETAIL_PI_H_

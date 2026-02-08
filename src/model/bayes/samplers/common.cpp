@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "../src/model/bayes/samplers/common.h"
+#include "gelex/model/bayes/samplers/detail/common.h"
 
 #include <random>
 
@@ -50,14 +50,14 @@ auto Fixed::operator()(
 
     auto& coeffs = state->coeffs;
     const auto& cols_norm = effect->cols_norm;
-    const auto& design_matrix = effect->design_matrix;
+    const auto& X = effect->X;
 
     std::normal_distribution<double> normal{0, 1};
 
     for (int i = 0; i < coeffs.size(); ++i)
     {
         const double old_i = coeffs(i);
-        const auto& col = design_matrix.col(i);
+        const auto& col = X.col(i);
         const double norm = cols_norm(i);
 
         const double rhs = col.dot(y_adj) + (norm * old_i);
@@ -102,7 +102,7 @@ auto Random::sample_impl(
 {
     VectorXd& coeff = status.coeffs;
     const VectorXd& cols_norm = effect.cols_norm;
-    const MatrixXd& design_matrix = effect.design_matrix;
+    const MatrixXd& X = effect.X;
 
     VectorXd& y_adj = residual.y_adj;
     const double residual_variance = residual.variance;
@@ -122,7 +122,7 @@ auto Random::sample_impl(
     {
         // for convenience
         const double old_i = coeff(i);
-        const auto& col = design_matrix.col(i);
+        const auto& col = X.col(i);
         const double norm = cols_norm(i);
 
         // calculate the posterior mean

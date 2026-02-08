@@ -28,20 +28,18 @@ namespace gelex
 {
 using Eigen::Index;
 
-FixedSamples::FixedSamples(
-    const MCMCParams& params,
-    const bayes::FixedEffect& effect)
+FixedSamples::FixedSamples(const MCMCParams& params, const FixedEffect& effect)
 {
     coeffs.reserve(params.n_chains);
     for (Eigen::Index i = 0; i < params.n_chains; ++i)
     {
-        coeffs.emplace_back(effect.design_matrix.cols(), params.n_records);
+        coeffs.emplace_back(effect.X.cols(), params.n_records);
     }
 }
 RandomSamples::RandomSamples(
     const MCMCParams& params,
     const bayes::RandomEffect& effect)
-    : RandomSamples(params, effect.design_matrix.cols()) {};
+    : RandomSamples(params, effect.X.cols()) {};
 
 RandomSamples::RandomSamples(const MCMCParams& params, Eigen::Index n_coeffs)
 {
@@ -57,7 +55,7 @@ RandomSamples::RandomSamples(const MCMCParams& params, Eigen::Index n_coeffs)
 BaseMarkerSamples::BaseMarkerSamples(
     const MCMCParams& params,
     const bayes::GeneticEffect& effect)
-    : RandomSamples(params, bayes::get_cols(effect.design_matrix))
+    : RandomSamples(params, bayes::get_cols(effect.X))
 {
     heritability.reserve(params.n_chains);
     for (Eigen::Index i = 0; i < params.n_chains; ++i)
@@ -67,12 +65,22 @@ BaseMarkerSamples::BaseMarkerSamples(
 
     if (effect.init_pi)  // mixture model
     {
-        const Eigen::Index num_snp = bayes::get_cols(effect.design_matrix);
+        const Eigen::Index num_snp = bayes::get_cols(effect.X);
         tracker.reserve(params.n_chains);
         n_proportions = effect.init_pi->size();
         for (Eigen::Index i = 0; i < params.n_chains; ++i)
         {
             tracker.emplace_back(num_snp, params.n_records);
+        }
+
+        if (n_proportions > 2)
+        {
+            component_variance.reserve(params.n_chains);
+            for (Eigen::Index i = 0; i < params.n_chains; ++i)
+            {
+                component_variance.emplace_back(
+                    n_proportions - 1, params.n_records);
+            }
         }
     }
     if (effect.estimate_pi)
@@ -168,6 +176,12 @@ void MCMCSamples::store(
         {
             additive_->tracker[chain_idx].col(record_idx) = state->tracker;
         }
+
+        if (!additive_->component_variance.empty())
+        {
+            additive_->component_variance[chain_idx].col(record_idx)
+                = state->component_variance;
+        }
     }
 
     if (const auto* state = states.dominant(); dominant_ && state != nullptr)
@@ -185,6 +199,12 @@ void MCMCSamples::store(
         if (!dominant_->tracker.empty() && state->tracker.size() != 0)
         {
             dominant_->tracker[chain_idx].col(record_idx) = state->tracker;
+        }
+
+        if (!dominant_->component_variance.empty())
+        {
+            dominant_->component_variance[chain_idx].col(record_idx)
+                = state->component_variance;
         }
     }
 

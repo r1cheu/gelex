@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_SAMPLERS_GIBBS_R_H_
-#define GELEX_MODEL_BAYES_SAMPLERS_GIBBS_R_H_
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_R_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_R_H_
 
 #include <random>
 
-#include "../src/model/bayes/samplers/common_op.h"
-#include "../src/model/bayes/samplers/gibbs/gibbs_concept.h"
 #include "../src/types/bayes_effects.h"
+#include "gelex/model/bayes/samplers/detail/common_op.h"
+#include "gelex/model/bayes/samplers/detail/gibbs/gibbs_concept.h"
 
 namespace gelex::detail::Gibbs
 {
@@ -46,7 +46,7 @@ auto R(
     const Eigen::Index num_components = marker_variances.size();
     Eigen::VectorXi& tracker = state.tracker;
 
-    const auto& design_matrix = bayes::get_matrix_ref(effect.design_matrix);
+    const auto& X = bayes::get_matrix_ref(effect.X);
     const auto& cols_norm = effect.cols_norm;
 
     std::normal_distribution<double> normal{0, 1};
@@ -64,7 +64,7 @@ auto R(
         }
 
         const double old_i = coeffs(i);
-        const auto& col = design_matrix.col(i);
+        const auto& col = X.col(i);
 
         double rhs = blas_ddot(col, y_adj);
         if (old_i != 0.0)
@@ -91,6 +91,7 @@ auto R(
         std::discrete_distribution<int> dist(
             probs.data(), probs.data() + probs.size());
         const int dist_index = dist(rng);
+        const int old_index = tracker(i);
 
         tracker(i) = dist_index;
 
@@ -112,6 +113,9 @@ auto R(
             update_residual_and_gebv(y_adj, u, col, old_i, 0.0);
         }
         coeffs(i) = new_i;
+
+        update_component_u(
+            state.component_u, old_index, old_i, dist_index, new_i, col);
     }
 
     for (int k = 0; k < num_components; ++k)
@@ -124,8 +128,10 @@ auto R(
     chi_squared.compute(sum_square_coeffs, num_nonzero);
     state.marker_variance(0) = chi_squared(rng);
     state.variance = detail::var(state.u)(0);
+
+    compute_component_variances(state);
 }
 
 }  // namespace gelex::detail::Gibbs
 
-#endif  // GELEX_MODEL_BAYES_SAMPLERS_GIBBS_R_H_
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_R_H_

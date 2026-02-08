@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "../src/model/bayes/samplers/pi.h"
+#include "gelex/model/bayes/samplers/detail/pi.h"
 
 #include <random>
 
