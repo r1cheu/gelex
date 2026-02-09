@@ -72,11 +72,11 @@ auto get_default_pi(BayesAlphabet type) -> Eigen::VectorXd
         case BayesAlphabet::Cpi:
         case BayesAlphabet::Cd:
         case BayesAlphabet::Cdpi:
-            return Eigen::VectorXd{{0.95, 0.05}};
+            return Eigen::VectorXd{{0.99, 0.01}};
         case BayesAlphabet::R:
         case BayesAlphabet::Rd:
         {
-            return Eigen::VectorXd{{0.95, 0.02, 0.01, 0.01, 0.01}};
+            return Eigen::VectorXd{{0.99, 0.005, 0.001, 0.001, 0.001}};
         }
         case BayesAlphabet::A:
         case BayesAlphabet::RR:

@@ -16,6 +16,7 @@
 
 #include "../src/logger/bayes_logger.h"
 
+#include <Eigen/Core>
 #include <vector>
 
 #include <fmt/format.h>
@@ -87,7 +88,7 @@ void MCMCLogger::log_model_information(const BayesModel& model)
                 {
                     pi_str += ", ";
                 }
-                pi_str += fmt::format("{:.2f}", (*effect->init_pi)(i));
+                pi_str += fmt::format("{:.3f}", (*effect->init_pi)(i));
             }
             pi_str += "]";
             logger_->info(gelex::subtask("Mixture: {}", pi_str));
@@ -211,7 +212,7 @@ void MCMCLogger::log_result(
                     log_summary(
                         i,
                         result->component_variance,
-                        fmt::format("σ²_g[{}]", i + 1));
+                        fmt::format("σ²_[{}]", i + 1));
                 }
             }
         }

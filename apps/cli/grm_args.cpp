@@ -50,7 +50,7 @@ void setup_grm_args(argparse::ArgumentParser& cmd)
             "GRM method: standardize|center|orth-standardize|"
             "orth-center (append -sample for sample stats)")
         .metavar("<METHOD>")
-        .default_value(std::string("standardize"));
+        .default_value("orth-standardize");
     cmd.add_argument("-c", "--chunk-size")
         .help("Chunk size for memory-efficient computation")
         .metavar("<SIZE>")
@@ -68,13 +68,8 @@ void setup_grm_args(argparse::ArgumentParser& cmd)
 
     cmd.add_epilog(
         gelex::cli::format_epilog(
-            "{bg}Examples:{rs}\n"
-            "  {gy}# HWE standardized additive GRM (default){rs}\n"
-            "  {bc}gelex grm{rs} {cy}-b{rs} geno {cy}--add{rs}\n"
-            "  {gy}# HWE orthogonal centered dominance GRM{rs}\n"
-            "  {bc}gelex grm{rs} {cy}-b{rs} geno {cy}--dom{rs} "
-            "{cy}--geno-method{rs} orth-center\n"
-            "  {gy}# Sample-stat LOCO GRM (add + dom){rs}\n"
-            "  {bc}gelex grm{rs} {cy}-b{rs} geno {cy}--add{rs} {cy}--dom{rs} "
-            "{cy}--loco{rs} {cy}--geno-method{rs} orth-standardize-sample"));
+            "{bg}Example:{rs}\n"
+            "  {bc}gelex grm{rs} {cy}-b{rs} geno {cy}--add{rs}\n\n"
+            "{bg}Docs:{rs}\n"
+            "  https://gelex.readthedocs.io/en/latest/cli/grm.html"));
 }

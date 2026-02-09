@@ -100,7 +100,7 @@ void setup_assoc_args(argparse::ArgumentParser& cmd)
         .help(
             "Genotype processing method (center-family only): center, "
             "orth-center, center-sample, orth-center-sample")
-        .default_value("center")
+        .default_value("orth-center")
         .metavar("<METHOD>")
         .choices(
             "center", "orth-center", "center-sample", "orth-center-sample");
@@ -128,12 +128,9 @@ void setup_assoc_args(argparse::ArgumentParser& cmd)
 
     cmd.add_epilog(
         gelex::cli::format_epilog(
-            "{bg}Examples:{rs}\n"
-            "  {gy}# Basic association test{rs}\n"
+            "{bg}Example:{rs}\n"
             "  {bc}gelex assoc{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
-            "{cy}--grm{rs} grm_prefix\n"
-            "  {gy}# With covariates and LOCO mode{rs}\n"
-            "  {bc}gelex assoc{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
-            "{cy}--grm{rs} grm_prefix {cy}--qcovar{rs} age.txt "
-            "{cy}--loco{rs}"));
+            "{cy}--grm{rs} grm_prefix\n\n"
+            "{bg}Docs:{rs}\n"
+            "  https://gelex.readthedocs.io/en/latest/cli/assoc.html"));
 }
