@@ -89,15 +89,8 @@ void setup_simulate_args(argparse::ArgumentParser& cmd)
 
     cmd.add_epilog(
         gelex::cli::format_epilog(
-            "{bg}Examples:{rs}\n"
-            "  {gy}# Basic phenotype simulation{rs}\n"
-            "  {bc}gelex simulate{rs} {cy}-b{rs} geno\n"
-            "  {gy}# Custom heritability with dominance{rs}\n"
-            "  {bc}gelex simulate{rs} {cy}-b{rs} geno "
-            "{cy}--h2{rs} 0.3 {cy}--d2{rs} 0.1 {cy}--seed{rs} 42\n"
-            "  {gy}# Mixture normal effect sizes (BayesR-style){rs}\n"
-            "  {bc}gelex simulate{rs} {cy}-b{rs} geno "
-            "{cy}--add-var{rs} 0 0.01 0.001 0.0001 "
-            "{cy}--add-prop{rs} 0.90 0.003 0.103 0.894 "
-            "{cy}--h2{rs} 0.5 {cy}--seed{rs} 42"));
+            "{bg}Example:{rs}\n"
+            "  {bc}gelex simulate{rs} {cy}-b{rs} geno\n\n"
+            "{bg}Docs:{rs}\n"
+            "  https://gelex.readthedocs.io/en/latest/cli/simulate.html"));
 }

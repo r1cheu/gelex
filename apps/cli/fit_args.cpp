@@ -154,11 +154,9 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
 
     cmd.add_epilog(
         gelex::cli::format_epilog(
-            "{bg}Examples:{rs}\n"
-            "  {gy}# Basic BayesRR model fitting{rs}\n"
+            "{bg}Example:{rs}\n"
             "  {bc}gelex fit{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
-            "{cy}-m{rs} RR\n"
-            "  {gy}# BayesB with dominance effects and covariates{rs}\n"
-            "  {bc}gelex fit{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
-            "{cy}-m{rs} Bd {cy}--qcovar{rs} age.txt"));
+            "{cy}-m{rs} RR\n\n"
+            "{bg}Docs:{rs}\n"
+            "  https://gelex.readthedocs.io/en/latest/cli/fit.html"));
 }

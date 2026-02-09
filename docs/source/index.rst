@@ -112,3 +112,4 @@ Key Features
    data_formats
    cli/index
    api_reference
+   genotype_processor_methods
