@@ -54,3 +54,4 @@ pixi run install-release        # Install release binary
 - Using span and string_view, if possible, instead of const references.
 - Never modify CMakeLists.txt unless user ask to do so.
 - Always use Eigen::Ref<EigenType> for passing references and const Eigen::Ref<const EigenType>& for const references.
+- In tests, prefer Eigen `.isApprox(...)` for vector/matrix numeric comparisons.
