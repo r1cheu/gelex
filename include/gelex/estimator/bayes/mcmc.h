@@ -19,6 +19,7 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -43,7 +44,10 @@ class MCMC
 {
    public:
     explicit MCMC(MCMCParams params, TraitSampler trait_sampler);
-    MCMCResult run(const BayesModel& model, Eigen::Index seed = 42);
+    MCMCResult run(
+        const BayesModel& model,
+        Eigen::Index seed = 42,
+        std::string_view sample_prefix = "");
 
    private:
     void run_one_chain(
@@ -72,9 +76,12 @@ MCMC<TraitSampler>::MCMC(MCMCParams params, TraitSampler trait_sampler)
 }
 
 template <typename TraitSampler>
-MCMCResult MCMC<TraitSampler>::run(const BayesModel& model, Eigen::Index seed)
+MCMCResult MCMC<TraitSampler>::run(
+    const BayesModel& model,
+    Eigen::Index seed,
+    std::string_view sample_prefix)
 {
-    MCMCSamples samples(params_, model);
+    MCMCSamples samples(params_, model, sample_prefix);
 
     const Eigen::Index n_chains = params_.n_chains;
     std::vector<std::atomic_ptrdiff_t> idxs(n_chains);

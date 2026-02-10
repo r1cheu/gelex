@@ -16,6 +16,7 @@
 
 #include "gelex/types/mcmc_samples.h"
 
+#include <memory>
 #include <ranges>
 
 #include <Eigen/Core>
@@ -117,7 +118,10 @@ ResidualSamples::ResidualSamples(const MCMCParams& params)
     }
 }
 
-MCMCSamples::MCMCSamples(const MCMCParams& params, const BayesModel& model)
+MCMCSamples::MCMCSamples(
+    const MCMCParams& params,
+    const BayesModel& model,
+    std::string_view sample_prefix)
     : residual_(params)
 {
     if (const auto* effect = model.fixed(); effect)
@@ -137,11 +141,23 @@ MCMCSamples::MCMCSamples(const MCMCParams& params, const BayesModel& model)
     if (const auto* effect = model.additive(); effect)
     {
         additive_.emplace(params, *effect);
+        add_writer_
+            = sample_prefix.empty()
+                  ? nullptr
+                  : std::make_unique<detail::BinaryMatrixWriter>(
+                        std::filesystem::path(
+                            std::format("{}.add.sample", sample_prefix)));
     }
 
     if (const auto* effect = model.dominant(); effect)
     {
         dominant_.emplace(params, *effect);
+        dom_writer_
+            = sample_prefix.empty()
+                  ? nullptr
+                  : std::make_unique<detail::BinaryMatrixWriter>(
+                        std::filesystem::path(
+                            std::format("{}.dom.sample", sample_prefix)));
     }
 }
 
@@ -164,6 +180,10 @@ void MCMCSamples::store(
     if (const auto* state = states.additive(); additive_ && state != nullptr)
     {
         additive_->coeffs[chain_idx].col(record_idx) = state->coeffs;
+        if (add_writer_)
+        {
+            add_writer_->write(state->coeffs);
+        }
         additive_->variance[chain_idx](0, record_idx) = state->variance;
         additive_->heritability[chain_idx](0, record_idx) = state->heritability;
 
@@ -187,6 +207,10 @@ void MCMCSamples::store(
     if (const auto* state = states.dominant(); dominant_ && state != nullptr)
     {
         dominant_->coeffs[chain_idx].col(record_idx) = state->coeffs;
+        if (dom_writer_)
+        {
+            dom_writer_->write(state->coeffs);
+        }
         dominant_->variance[chain_idx](0, record_idx) = state->variance;
         dominant_->heritability[chain_idx](0, record_idx) = state->heritability;
 

@@ -152,6 +152,7 @@ auto configure_model_priors(
 auto run_mcmc_analysis(
     gelex::BayesModel& model,
     BayesAlphabet type,
+    int seed,
     const gelex::MCMCParams& mcmc_params,
     const std::filesystem::path& bim_path,
     std::string_view out_prefix,
@@ -160,7 +161,7 @@ auto run_mcmc_analysis(
     auto run_and_write = [&](auto trait_model)
     {
         gelex::MCMC mcmc(mcmc_params, trait_model);
-        gelex::MCMCResult result = mcmc.run(model);
+        gelex::MCMCResult result = mcmc.run(model, seed, out_prefix);
         gelex::MCMCResultWriter writer(result, bim_path);
         writer.save(out_prefix);
     };
@@ -348,6 +349,7 @@ int fit_execute(argparse::ArgumentParser& fit)
     if (run_mcmc_analysis(
             model,
             type,
+            fit.get<int>("--seed"),
             mcmc_params,
             bed_path.replace_extension(".bim"),
             out_prefix,

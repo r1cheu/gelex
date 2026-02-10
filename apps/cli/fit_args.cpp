@@ -135,6 +135,10 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
         .help("Number of MCMC chains")
         .default_value(1)
         .scan<'i', int>();
+    cmd.add_argument("--seed")
+        .help("Random seed for MCMC")
+        .default_value(42)
+        .scan<'i', int>();
 
     // ================================================================
     // Performance

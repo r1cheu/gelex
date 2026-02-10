@@ -22,10 +22,12 @@
 #ifndef GELEX_TYPES_MCMC_SAMPLES_H_
 #define GELEX_TYPES_MCMC_SAMPLES_H_
 
+#include <memory>
 #include <optional>
 #include <vector>
 
 #include <Eigen/Core>
+#include "data/binary_matrix_writer.h"
 
 // Forward declaration
 
@@ -111,7 +113,10 @@ struct ResidualSamples
 class MCMCSamples
 {
    public:
-    MCMCSamples(const MCMCParams& params, const BayesModel& model);
+    MCMCSamples(
+        const MCMCParams& params,
+        const BayesModel& model,
+        std::string_view sample_prefix);
     void store(
         const BayesState& states,
         Eigen::Index record_idx,
@@ -138,6 +143,8 @@ class MCMCSamples
     std::optional<AdditiveSamples> additive_;
     std::optional<DominantSamples> dominant_;
     ResidualSamples residual_;
+    std::unique_ptr<detail::BinaryMatrixWriter> add_writer_;
+    std::unique_ptr<detail::BinaryMatrixWriter> dom_writer_;
 };
 }  // namespace gelex
 
