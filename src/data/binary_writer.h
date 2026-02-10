@@ -53,7 +53,7 @@ class BinaryWriter
            std::byte{'W'},
            std::byte{'1'}};
     static constexpr uint32_t kVersion = 1;
-    static constexpr size_t kMetaSize = 8 + 4 + 8 + 8 + 1;
+    static constexpr size_t kMetaSize = 32;
 
     explicit BinaryWriter(std::string_view file_path);
 
@@ -216,6 +216,8 @@ auto BinaryWriter<eT>::write_meta() -> void
 
     const auto dtype = dtype_code();
     file_.write(reinterpret_cast<const char*>(&dtype), 1);
+    constexpr std::array<char, 3> padding = {0, 0, 0};
+    file_.write(padding.data(), static_cast<std::streamsize>(padding.size()));
 
     if (!file_.good())
     {

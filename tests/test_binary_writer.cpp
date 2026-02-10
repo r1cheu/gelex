@@ -54,7 +54,7 @@ constexpr std::array<std::byte, 8> kExpectedMagic
        std::byte{'W'},
        std::byte{'1'}};
 constexpr uint32_t kExpectedVersion = 1;
-constexpr size_t kMetaSize = 8 + 4 + 8 + 8 + 1;
+constexpr size_t kMetaSize = 32;
 
 struct MetaView
 {
