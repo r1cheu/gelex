@@ -18,17 +18,15 @@
 #define GELEX_ESTIMATOR_BAYES_MCMC_H_
 #include <atomic>
 #include <chrono>
-#include <memory>
 #include <string_view>
 
 #include <barkeep.h>
-#include <fmt/format.h>
 #include <omp.h>
 #include <Eigen/Core>
 
-#include "../src/estimator/bayes/indicator.h"
 #include "../src/estimator/bayes/posterior_calculator.h"
 #include "../src/logger/bayes_logger.h"
+#include "gelex/detail/indicator.h"
 #include "gelex/estimator/bayes/params.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/mcmc_results.h"
@@ -47,7 +45,7 @@ class MCMC
         std::string_view sample_prefix = "");
 
    private:
-    void run_one_chain(
+    void run_impl(
         const BayesModel& model,
         MCMCSamples& samples,
         Eigen::Index seed,
@@ -86,11 +84,9 @@ MCMCResult MCMC<TraitSampler>::run(
     indicator.show();
 
     const detail::EigenThreadGuard guard;
-
     auto start = std::chrono::high_resolution_clock::now();
     omp_set_num_threads(1);
-    Eigen::setNbThreads(1);
-    run_one_chain(model, samples, seed, iter, indicator);
+    run_impl(model, samples, seed, iter, indicator);
 
     indicator.done();
     auto end = std::chrono::high_resolution_clock::now();
@@ -110,31 +106,26 @@ MCMCResult MCMC<TraitSampler>::run(
 }
 
 template <typename TraitSampler>
-void MCMC<TraitSampler>::run_one_chain(
+void MCMC<TraitSampler>::run_impl(
     const BayesModel& model,
     MCMCSamples& samples,
     Eigen::Index seed,
     std::atomic_ptrdiff_t& iter,
     detail::Indicator& indicator)
 {
-    std::mt19937_64 rng(seed);
-
     BayesState status{model};
 
+    std::mt19937_64 rng(seed);
     Eigen::Index record_idx = 0;
 
     for (; iter < params_.n_iters; ++iter)
     {
-        // Sample all effects using trait sampler
         trait_sampler_(model, status, rng);
 
-        // Compute heritability
         status.compute_heritability();
 
-        // Update indicators for monitoring
         update_indicators(status, indicator);
 
-        // Record samples after burnin with thinning
         if (iter >= params_.n_burnin
             && (iter + 1 - params_.n_burnin) % params_.n_thin == 0)
         {
@@ -148,22 +139,13 @@ void MCMC<TraitSampler>::update_indicators(
     const BayesState& states,
     detail::Indicator& indicator)
 {
-    // Update additive effect indicators
-    auto update_effect_indicators
-        = [&](const auto* state, std::string_view prefix)
-    {
-        if (state != nullptr)
-        {
-            indicator.update(
-                fmt::format("{}_heritability", prefix), state->heritability);
-        }
-    };
+    using sm = detail::Indicator::StatusMetric;
 
-    update_effect_indicators(states.additive(), "additive");
-    update_effect_indicators(states.dominant(), "dominant");
-
-    const auto& residual = states.residual();
-    indicator.update("residual_variance", residual.variance);
+    indicator.update(
+        sm::additive_heritability, states.additive()->heritability);
+    indicator.update(
+        sm::dominant_heritability, states.dominant()->heritability);
+    indicator.update(sm::residual_variance, states.residual().variance);
 
     indicator.flush_status();
 }

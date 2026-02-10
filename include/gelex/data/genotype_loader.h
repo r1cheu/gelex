@@ -24,11 +24,11 @@
 
 #include <Eigen/Core>
 
-#include "../src/estimator/bayes/indicator.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/genotype_matrix.h"
 #include "gelex/data/genotype_processor.h"
 #include "gelex/data/sample_manager.h"
+#include "gelex/detail/indicator.h"
 
 namespace gelex
 {

@@ -29,26 +29,6 @@
 
 namespace gelex::cli
 {
-namespace bk = barkeep;
-
-const bk::BarParts BAR_STYLE{
-    .left = "[",
-    .right = "]",
-    .fill = {"\033[1;36m━\033[0m"},
-    .empty = {"-"}};
-
-const bk::Strings GREEN_SPINNER{
-    "\033[32m⠁\033[0m", "\033[32m⠁\033[0m", "\033[32m⠉\033[0m",
-    "\033[32m⠙\033[0m", "\033[32m⠚\033[0m", "\033[32m⠒\033[0m",
-    "\033[32m⠂\033[0m", "\033[32m⠂\033[0m", "\033[32m⠒\033[0m",
-    "\033[32m⠲\033[0m", "\033[32m⠴\033[0m", "\033[32m⠤\033[0m",
-    "\033[32m⠄\033[0m", "\033[32m⠄\033[0m", "\033[32m⠤\033[0m",
-    "\033[32m⠠\033[0m", "\033[32m⠠\033[0m", "\033[32m⠤\033[0m",
-    "\033[32m⠦\033[0m", "\033[32m⠖\033[0m", "\033[32m⠒\033[0m",
-    "\033[32m⠐\033[0m", "\033[32m⠐\033[0m", "\033[32m⠒\033[0m",
-    "\033[32m⠓\033[0m", "\033[32m⠋\033[0m", "\033[32m⠉\033[0m",
-    "\033[32m⠈\033[0m", "\033[32m⠈\033[0m", "\033[32m \033[0m"};
-
 auto is_tty() -> bool
 {
     return isatty(fileno(stdout)) != 0;
@@ -100,37 +80,6 @@ auto build_chr_groups(bool do_loco, const gelex::SnpEffects& snp_effects)
         groups.push_back({"all", {{0, num_snps}}, num_snps});
     }
     return groups;
-}
-
-auto create_progress_bar(
-    std::atomic<size_t>& counter,
-    size_t total,
-    std::string_view format) -> ProgressBarDisplay
-{
-    std::vector<std::shared_ptr<bk::BaseDisplay>> elements;
-
-    elements.push_back((bk::Animation(
-        {.message = " ",
-         .style = GREEN_SPINNER,
-         .interval = 0.08,
-         .show = false})));
-    auto before = bk::Status({.style = bk::Strings{" "}, .show = false});
-    elements.push_back(before);
-    elements.push_back(
-        bk::ProgressBar(
-            &counter,
-            {.total = total,
-             .format = std::string(format),
-             .speed = 0.1,
-             .style = BAR_STYLE,
-             .show = false}));
-    auto after = bk::Status({.style = bk::Strings{" "}, .show = false});
-    elements.push_back(after);
-
-    return {
-        .display = bk::Composite(elements, ""),
-        .before = before,
-        .after = after};
 }
 
 auto print_gelex_banner_message(std::string_view version) -> void

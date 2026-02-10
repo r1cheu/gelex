@@ -28,6 +28,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/genotype_method_dispatch.h"
+#include "gelex/detail/indicator.h"
 #include "gelex/types/snp_info.h"
 
 namespace gelex::cli
@@ -40,14 +41,8 @@ struct ChrGroup
     Eigen::Index total_snps;
 };
 
-struct ProgressBarDisplay
-{
-    std::shared_ptr<barkeep::CompositeDisplay> display;
-    std::shared_ptr<barkeep::StatusDisplay> before;
-    std::shared_ptr<barkeep::StatusDisplay> after;
-};
-
 using GenotypeProcessMethod = gelex::GenotypeProcessMethod;
+using ProgressBarDisplay = gelex::detail::ProgressBarDisplay;
 
 auto is_tty() -> bool;
 
@@ -56,10 +51,13 @@ auto setup_parallelization(int num_threads) -> void;
 auto build_chr_groups(bool do_loco, const gelex::SnpEffects& snp_effects)
     -> std::vector<ChrGroup>;
 
-auto create_progress_bar(
+inline auto create_progress_bar(
     std::atomic<size_t>& counter,
     size_t total,
-    std::string_view format = "{bar}") -> ProgressBarDisplay;
+    std::string_view format = "{bar}") -> ProgressBarDisplay
+{
+    return gelex::detail::create_progress_bar(counter, total, format);
+}
 
 auto print_gelex_banner_message(std::string_view version) -> void;
 
