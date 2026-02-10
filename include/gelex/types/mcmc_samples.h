@@ -49,8 +49,8 @@ struct MCMCParams;
 class BayesState;
 class BayesModel;
 
-// samples for one effect, each element in vector saves one chain's samples. and
-// Matrix have the shape (n_params, n_draws)
+// samples for one effect. fit now stores a single chain in index 0.
+// Matrix has shape (n_params, n_draws).
 using Samples = std::vector<Eigen::MatrixXd>;
 using IntSamples = std::vector<Eigen::MatrixXi>;
 
@@ -117,10 +117,7 @@ class MCMCSamples
         const MCMCParams& params,
         const BayesModel& model,
         std::string_view sample_prefix);
-    void store(
-        const BayesState& states,
-        Eigen::Index record_idx,
-        Eigen::Index chain_idx);
+    void store(const BayesState& states, Eigen::Index record_idx);
 
     const FixedSamples* fixed() const
     {

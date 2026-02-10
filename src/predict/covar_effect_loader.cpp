@@ -25,6 +25,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "../src/data/parser.h"
 
@@ -79,23 +80,31 @@ auto CovarEffectLoader::parse_param_file(const std::filesystem::path& file_path)
             continue;
         }
 
-        std::istringstream iss(line);
-        std::string term;
-        double mean{};
-        double stddev{};
-        double percentile_5{};
-        double percentile_95{};
-        double ess{};
-        double rhat{};
-        if (!(iss >> term >> mean >> stddev >> percentile_5 >> percentile_95
-              >> ess >> rhat))
+        std::vector<std::string> fields;
+        std::istringstream row_stream(line);
+        for (std::string token; std::getline(row_stream, token, '\t');)
+        {
+            fields.emplace_back(token);
+        }
+
+        if (fields.size() < 2 || fields[0].empty() || fields[1].empty())
         {
             continue;  // Skip malformed lines
         }
 
+        double mean{};
+        try
+        {
+            mean = std::stod(fields[1]);
+        }
+        catch (const std::exception&)
+        {
+            continue;
+        }
+
         // Parse the term name and store coefficient
         parse_flat_name(
-            term, mean, intercept, continuous_coeffs, categorical_coeffs);
+            fields[0], mean, intercept, continuous_coeffs, categorical_coeffs);
     }
 
     // Validate that we found an intercept

@@ -37,6 +37,7 @@ pixi run install-release        # Install release binary
 - **Data processing**: Use memory-mapped I/O (mio) with chunk-based processing
 - All function declarations and definitions must use the trailing return type syntax (e.g., auto func() -> void)
 - use #ifndef ... #define .. #endif include guards in header files
+- We are in beta stage, api breaking is always allowed.
 
 ## Key Architecture Notes
 

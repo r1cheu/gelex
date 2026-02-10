@@ -18,7 +18,6 @@
 
 #include <Eigen/Core>
 
-#include "../src/estimator/bayes/diagnostics.h"
 #include "gelex/types/mcmc_samples.h"
 
 namespace gelex::detail::PosteriorCalculator
@@ -26,6 +25,8 @@ namespace gelex::detail::PosteriorCalculator
 
 PosteriorSummary compute_param_summary(const Samples& samples, double prob)
 {
+    static_cast<void>(prob);
+
     if (samples.empty() || samples[0].rows() == 0)
     {
         return PosteriorSummary(0);
@@ -33,9 +34,6 @@ PosteriorSummary compute_param_summary(const Samples& samples, double prob)
 
     PosteriorSummary summary(get_n_params(samples));
     compute_mean_std(summary, samples);
-    compute_hpdi(summary, samples, prob);
-    compute_ess(summary, samples);
-    compute_rhat(summary, samples);
     return summary;
 }
 
@@ -96,51 +94,6 @@ void compute_mean_std(PosteriorSummary& summary, const Samples& samples)
         summary.mean(param_idx) = mean;
         summary.stddev(param_idx) = std::sqrt(std::max(0.0, variance));
     }
-}
-
-void compute_hpdi(
-    PosteriorSummary& summary,
-    const Samples& samples,
-    double prob)
-{
-    if (samples.empty() || samples[0].rows() == 0)
-    {
-        return;
-    }
-
-    const Eigen::Index n_params = get_n_params(samples);
-
-    const EigenThreadGuard guard;
-
-#pragma omp parallel for default(none) shared(samples, prob, summary, n_params)
-    for (Eigen::Index param_idx = 0; param_idx < n_params; ++param_idx)
-    {
-        Eigen::VectorXd flat_sample = flatten_samples(samples, param_idx);
-        auto [hpdi_low_val, hpdi_high_val] = hpdi(flat_sample, prob);
-
-        summary.hpdi_low(param_idx) = hpdi_low_val;
-        summary.hpdi_high(param_idx) = hpdi_high_val;
-    }
-}
-
-void compute_ess(PosteriorSummary& summary, const Samples& samples)
-{
-    if (samples.empty() || samples[0].rows() == 0)
-    {
-        return;
-    }
-
-    summary.ess = effect_sample_size(samples, true);
-}
-
-void compute_rhat(PosteriorSummary& summary, const Samples& samples)
-{
-    if (samples.empty() || samples[0].rows() == 0)
-    {
-        return;
-    }
-
-    summary.rhat = split_gelman_rubin(samples);
 }
 
 /**

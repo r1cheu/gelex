@@ -54,12 +54,11 @@ namespace PosteriorCalculator
 {
 
 /**
- * @brief Compute full posterior summary statistics (mean, std, HPDI, ESS,
- * R-hat).
+ * @brief Compute posterior summary statistics (mean, std).
  *
  * @param samples MCMC samples organized by chain (rows=params, cols=draws).
- * @param prob Probability mass for the HPDI (e.g. 0.95).
- * @return PosteriorSummary Computed posterior summary.
+ * @param prob Unused compatibility parameter.
+ * @return PosteriorSummary Computed posterior summary (mean, std only).
  */
 PosteriorSummary compute_param_summary(const Samples& samples, double prob);
 
@@ -78,34 +77,6 @@ PosteriorSummary compute_snp_summary(const Samples& samples);
  * @param samples MCMC samples organized by chain (rows=params, cols=draws).
  */
 void compute_mean_std(PosteriorSummary& summary, const Samples& samples);
-
-/**
- * @brief Compute highest posterior density interval (HPDI).
- *
- * @param summary Destination PosteriorSummary to populate with HPDI.
- * @param samples MCMC samples organized by chain (rows=params, cols=draws).
- * @param prob Probability mass for the HPDI (e.g. 0.95).
- */
-void compute_hpdi(
-    PosteriorSummary& summary,
-    const Samples& samples,
-    double prob);
-
-/**
- * @brief Compute effective sample size (ESS).
- *
- * @param summary Destination PosteriorSummary to populate with ESS.
- * @param samples MCMC samples organized by chain (rows=params, cols=draws).
- */
-void compute_ess(PosteriorSummary& summary, const Samples& samples);
-
-/**
- * @brief Compute Gelman-Rubin diagnostic (R-hat).
- *
- * @param summary Destination PosteriorSummary to populate with R-hat.
- * @param samples MCMC samples organized by chain (rows=params, cols=draws).
- */
-void compute_rhat(PosteriorSummary& summary, const Samples& samples);
 
 /**
  * @brief Compute proportion of variance explained (PVE).

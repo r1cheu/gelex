@@ -343,8 +343,7 @@ int fit_execute(argparse::ArgumentParser& fit)
     const gelex::MCMCParams mcmc_params(
         fit.get<int>("--iters"),
         fit.get<int>("--burnin"),
-        fit.get<int>("--thin"),
-        fit.get<int>("--chains"));
+        fit.get<int>("--thin"));
 
     if (run_mcmc_analysis(
             model,

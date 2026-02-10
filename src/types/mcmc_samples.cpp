@@ -31,11 +31,7 @@ using Eigen::Index;
 
 FixedSamples::FixedSamples(const MCMCParams& params, const FixedEffect& effect)
 {
-    coeffs.reserve(params.n_chains);
-    for (Eigen::Index i = 0; i < params.n_chains; ++i)
-    {
-        coeffs.emplace_back(effect.X.cols(), params.n_records);
-    }
+    coeffs.emplace_back(effect.X.cols(), params.n_records);
 }
 RandomSamples::RandomSamples(
     const MCMCParams& params,
@@ -44,13 +40,8 @@ RandomSamples::RandomSamples(
 
 RandomSamples::RandomSamples(const MCMCParams& params, Eigen::Index n_coeffs)
 {
-    coeffs.reserve(params.n_chains);
-    variance.reserve(params.n_chains);
-    for (Eigen::Index i = 0; i < params.n_chains; ++i)
-    {
-        coeffs.emplace_back(n_coeffs, params.n_records);
-        variance.emplace_back(1, params.n_records);
-    }
+    coeffs.emplace_back(n_coeffs, params.n_records);
+    variance.emplace_back(1, params.n_records);
 }
 
 BaseMarkerSamples::BaseMarkerSamples(
@@ -58,40 +49,24 @@ BaseMarkerSamples::BaseMarkerSamples(
     const bayes::GeneticEffect& effect)
     : RandomSamples(params, bayes::get_cols(effect.X))
 {
-    heritability.reserve(params.n_chains);
-    for (Eigen::Index i = 0; i < params.n_chains; ++i)
-    {
-        heritability.emplace_back(1, params.n_records);
-    }
+    heritability.emplace_back(1, params.n_records);
 
     if (effect.init_pi)  // mixture model
     {
         const Eigen::Index num_snp = bayes::get_cols(effect.X);
-        tracker.reserve(params.n_chains);
         n_proportions = effect.init_pi->size();
-        for (Eigen::Index i = 0; i < params.n_chains; ++i)
-        {
-            tracker.emplace_back(num_snp, params.n_records);
-        }
+        tracker.emplace_back(num_snp, params.n_records);
 
         if (n_proportions > 2)
         {
-            component_variance.reserve(params.n_chains);
-            for (Eigen::Index i = 0; i < params.n_chains; ++i)
-            {
-                component_variance.emplace_back(
-                    n_proportions - 1, params.n_records);
-            }
+            component_variance.emplace_back(
+                n_proportions - 1, params.n_records);
         }
     }
     if (effect.estimate_pi)
     {
         const Eigen::Index n_props = effect.init_pi->size();
-        mixture_proportion.reserve(params.n_chains);
-        for (Eigen::Index i = 0; i < params.n_chains; ++i)
-        {
-            mixture_proportion.emplace_back(n_props, params.n_records);
-        }
+        mixture_proportion.emplace_back(n_props, params.n_records);
     }
 }
 
@@ -111,11 +86,7 @@ DominantSamples::DominantSamples(
 
 ResidualSamples::ResidualSamples(const MCMCParams& params)
 {
-    variance.reserve(params.n_chains);
-    for (Eigen::Index i = 0; i < params.n_chains; ++i)
-    {
-        variance.emplace_back(1, params.n_records);
-    }
+    variance.emplace_back(1, params.n_records);
 }
 
 MCMCSamples::MCMCSamples(
@@ -161,11 +132,9 @@ MCMCSamples::MCMCSamples(
     }
 }
 
-void MCMCSamples::store(
-    const BayesState& states,
-    Eigen::Index record_idx,
-    Eigen::Index chain_idx)
+void MCMCSamples::store(const BayesState& states, Eigen::Index record_idx)
 {
+    constexpr Eigen::Index chain_idx = 0;
     if (const auto* state = states.fixed(); fixed_ && state != nullptr)
     {
         fixed_->coeffs[chain_idx].col(record_idx) = state->coeffs;

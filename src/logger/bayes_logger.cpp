@@ -128,8 +128,7 @@ void MCMCLogger::log_result(
     logger_->info("  Samples collected per parameter: {}", samples_collected);
     logger_->info("");
 
-    std::vector<std::string> header{
-        "Parameter", "Mean", "SD", "5%", "95%", "n_eff", "r_hat"};
+    std::vector<std::string> header{"Parameter", "Mean", "SD"};
 
     auto format_header = [](const std::vector<std::string>& header)
     {
@@ -146,27 +145,18 @@ void MCMCLogger::log_result(
     };
     logger_->info(format_header(header));
 
-    logger_->info(
-        "  ───────────────────"
-        "──────────────────────────────────────────────");
+    logger_->info("  ──────────────────────────────");
 
     auto log_summary = [this](
                            Eigen::Index i,
                            const PosteriorSummary& summary,
                            const std::string& name)
     {
-        char star = summary.rhat(i) > 1.1 ? '*' : ' ';
         logger_->info(
-            "  {:<8} {:>8.4f} {:>8.4f} {:>8.4f} {:>8.4f} "
-            "{:>8.4f} {:>8.4f}{}",
+            "  {:<8} {:>8.6f} {:>8.6f}",
             name,
             summary.mean(i),
-            summary.stddev(i),
-            summary.hpdi_low(i),
-            summary.hpdi_high(i),
-            summary.ess(i),
-            summary.rhat(i),
-            star);
+            summary.stddev(i));
     };
 
     if (auto [effect, result] = std::make_pair(model.fixed(), results.fixed());
@@ -233,11 +223,7 @@ void MCMCLogger::log_result(
     log_mixture(model.dominant(), results.dominant());
 
     log_summary(0, results.residual(), "σ²_e");
-    logger_->info(
-        "  ───────────────────"
-        "──────────────────────────────────────────────");
-    logger_->info(
-        "  * Values with high R-hat (>1.1) indicating poor convergence.");
+    logger_->info("  ──────────────────────────────");
     logger_->info("");
 }
 

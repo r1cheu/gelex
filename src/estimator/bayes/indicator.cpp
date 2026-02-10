@@ -16,6 +16,7 @@
 
 #include "indicator.h"
 #include <atomic>
+#include <optional>
 #include <vector>
 
 #include <barkeep.h>
@@ -35,109 +36,74 @@ const std::unordered_set<std::string_view> Indicator::status_names_{
 
 Indicator::Indicator(
     Eigen::Index n_iter,
-    std::span<std::atomic_ptrdiff_t> progress_counters)
-    : num_chains_(progress_counters.size()),
-      chain_values_(progress_counters.size()),
-      chain_dirty_flags_(progress_counters.size())
+    std::atomic_ptrdiff_t& progress_counter)
+    : dirty_flag_(false)
 {
-    std::vector<std::shared_ptr<bk::BaseDisplay>> all_chains_displays;
-    all_chains_displays.reserve(num_chains_);
-    statuses_.reserve(num_chains_);
-    progress_bars_.reserve(num_chains_);
+    std::vector<std::shared_ptr<bk::BaseDisplay>> displays;
+    auto anim = bk::Animation(
+        {.message = " ",
+         .style = bk::Strings{"\033[32m⠁\033[0m", "\033[32m⠁\033[0m",
+                              "\033[32m⠉\033[0m", "\033[32m⠙\033[0m",
+                              "\033[32m⠚\033[0m", "\033[32m⠒\033[0m",
+                              "\033[32m⠂\033[0m", "\033[32m⠂\033[0m",
+                              "\033[32m⠒\033[0m", "\033[32m⠲\033[0m",
+                              "\033[32m⠴\033[0m", "\033[32m⠤\033[0m",
+                              "\033[32m⠄\033[0m", "\033[32m⠄\033[0m",
+                              "\033[32m⠤\033[0m", "\033[32m⠠\033[0m",
+                              "\033[32m⠠\033[0m", "\033[32m⠤\033[0m",
+                              "\033[32m⠦\033[0m", "\033[32m⠖\033[0m",
+                              "\033[32m⠒\033[0m", "\033[32m⠐\033[0m",
+                              "\033[32m⠐\033[0m", "\033[32m⠒\033[0m",
+                              "\033[32m⠓\033[0m", "\033[32m⠋\033[0m",
+                              "\033[32m⠉\033[0m", "\033[32m⠈\033[0m",
+                              "\033[32m⠈\033[0m", "\033[32m \033[0m"},
+         .interval = 0.08,
+         .show = false});
+    displays.emplace_back(anim);
 
-    for (size_t i = 0; i < num_chains_; ++i)
-    {
-        chain_dirty_flags_[i].store(false, std::memory_order_relaxed);
-    }
+    progress_bar_ = bk::ProgressBar(
+        &progress_counter,
+        {.total = n_iter,
+         .format = "{bar} {value}/{total} [{speed:.1f}/s]",
+         .speed = 0.1,
+         .style = BAR_STYLE,
+         .show = false});
+    displays.emplace_back(progress_bar_);
 
-    for (size_t i = 0; i < num_chains_; ++i)
-    {
-        std::vector<std::shared_ptr<bk::BaseDisplay>> line_displays;
+    status_ = bk::Status(
+        {.message = "--", .style = bk::Strings{""}, .show = false});
+    displays.emplace_back(status_);
 
-        auto anim = bk::Animation(
-            {.message = " ",
-             .style = bk::Strings{"\033[32m⠁\033[0m", "\033[32m⠁\033[0m",
-                                  "\033[32m⠉\033[0m", "\033[32m⠙\033[0m",
-                                  "\033[32m⠚\033[0m", "\033[32m⠒\033[0m",
-                                  "\033[32m⠂\033[0m", "\033[32m⠂\033[0m",
-                                  "\033[32m⠒\033[0m", "\033[32m⠲\033[0m",
-                                  "\033[32m⠴\033[0m", "\033[32m⠤\033[0m",
-                                  "\033[32m⠄\033[0m", "\033[32m⠄\033[0m",
-                                  "\033[32m⠤\033[0m", "\033[32m⠠\033[0m",
-                                  "\033[32m⠠\033[0m", "\033[32m⠤\033[0m",
-                                  "\033[32m⠦\033[0m", "\033[32m⠖\033[0m",
-                                  "\033[32m⠒\033[0m", "\033[32m⠐\033[0m",
-                                  "\033[32m⠐\033[0m", "\033[32m⠒\033[0m",
-                                  "\033[32m⠓\033[0m", "\033[32m⠋\033[0m",
-                                  "\033[32m⠉\033[0m", "\033[32m⠈\033[0m",
-                                  "\033[32m⠈\033[0m", "\033[32m \033[0m"},
-             .interval = 0.08,
-             .show = false});
-        line_displays.emplace_back(anim);
-        auto pbar = bk::ProgressBar(
-            &progress_counters[i],
-            {.total = n_iter,
-             .format = "{bar} {value}/{total} [{speed:.1f}/s]",
-             .speed = 0.1,
-             .style = BAR_STYLE,
-             .show = false});
-        progress_bars_.emplace_back(pbar);
-        line_displays.emplace_back(pbar);
-
-        auto compact_status = bk::Status(
-            {.message = "--", .style = bk::Strings{""}, .show = false});
-        statuses_.emplace_back(compact_status);
-        line_displays.emplace_back(compact_status);
-
-        all_chains_displays.emplace_back(bk::Composite(line_displays, " "));
-    }
-
-    main_indicator_ = bk::Composite(all_chains_displays, "\n");
+    main_indicator_ = bk::Composite(displays, " ");
 }
 
-void Indicator::update(
-    size_t chain_index,
-    const std::string& status_name,
-    double value)
+void Indicator::update(const std::string& status_name, double value)
 {
-    if (chain_index >= num_chains_)
-    {
-        return;
-    }
-
     std::string_view name_view = status_name;
     if (status_names_.contains(name_view))
     {
-        chain_values_[chain_index][status_name] = value;
-        chain_dirty_flags_[chain_index].store(true, std::memory_order_relaxed);
+        current_values_[status_name] = value;
+        dirty_flag_.store(true, std::memory_order_relaxed);
     }
 }
 
-void Indicator::flush_status(size_t chain_index)
+void Indicator::flush_status()
 {
-    if (chain_index >= num_chains_)
+    if (dirty_flag_.exchange(false, std::memory_order_acquire))
     {
-        return;
-    }
-
-    if (chain_dirty_flags_[chain_index].exchange(
-            false, std::memory_order_acquire))
-    {
-        update_compact_status(chain_index);
+        update_compact_status();
     }
 }
 
-void Indicator::update_compact_status(size_t chain_index)
+void Indicator::update_compact_status()
 {
     fmt::memory_buffer line_buffer;
     auto out_it = std::back_inserter(line_buffer);
 
-    const auto& current_values = chain_values_[chain_index];
-
     auto get_val = [&](const std::string& key) -> std::optional<double>
     {
-        auto it = current_values.find(key);
-        if (it != current_values.end())
+        auto it = current_values_.find(key);
+        if (it != current_values_.end())
         {
             return it->second;
         }
@@ -157,11 +123,7 @@ void Indicator::update_compact_status(size_t chain_index)
         out_it = fmt::format_to(out_it, " σ²_e: {:.3f} ", *res_var);
     }
 
-    statuses_[chain_index]->message(fmt::to_string(line_buffer));
-    if (chain_index >= num_chains_)
-    {
-        return;
-    }
+    status_->message(fmt::to_string(line_buffer));
 }
 
 void Indicator::show()

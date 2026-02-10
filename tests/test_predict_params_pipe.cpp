@@ -80,8 +80,8 @@ TEST_CASE(
         auto snp_path = files.create_text_file(snp_content, ".snp.eff");
 
         std::string invalid_covar_content
-            = "term\tmean\tstddev\n"  // Missing required columns
-              "Intercept\t1.0\t0.1\n";
+            = "term\tmean\tstddev\n"
+              "Age\t1.0\t0.1\n";  // Missing intercept term
 
         auto covar_path
             = files.create_text_file(invalid_covar_content, ".covar.eff");
@@ -228,7 +228,8 @@ TEST_CASE("PredictParamsPipe - Edge Cases", "[predict][predict_params]")
 
     SECTION("Empty SNP effect file (only header)")
     {
-        std::string snp_content = "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom\n";
+        std::string snp_content
+            = "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom\n";
         auto snp_path = files.create_text_file(snp_content, ".snp.eff");
 
         std::string covar_content

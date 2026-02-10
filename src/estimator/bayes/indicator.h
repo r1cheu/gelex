@@ -21,7 +21,6 @@
 #include <map>
 #include <string>
 #include <unordered_set>
-#include <vector>
 
 #include <Eigen/Core>
 
@@ -41,32 +40,27 @@ const barkeep::BarParts BAR_STYLE{
 class Indicator
 {
    public:
-    Indicator(
-        Eigen::Index n_iters,
-        std::span<std::atomic_ptrdiff_t> progress_counters);
+    Indicator(Eigen::Index n_iters, std::atomic_ptrdiff_t& progress_counter);
 
-    void
-    update(size_t chain_index, const std::string& status_name, double value);
+    void update(const std::string& status_name, double value);
 
-    void flush_status(size_t chain_index);
+    void flush_status();
 
     void show();
     void done();
 
    private:
-    void update_compact_status(size_t chain_index);
-    size_t num_chains_;
+    void update_compact_status();
 
     static const std::unordered_set<std::string_view> status_names_;
 
-    std::vector<
-        std::shared_ptr<barkeep::ProgressBarDisplay<std::atomic_ptrdiff_t>>>
-        progress_bars_;
-    std::vector<std::shared_ptr<barkeep::StatusDisplay>> statuses_;
+    std::shared_ptr<barkeep::ProgressBarDisplay<std::atomic_ptrdiff_t>>
+        progress_bar_;
+    std::shared_ptr<barkeep::StatusDisplay> status_;
     std::shared_ptr<barkeep::CompositeDisplay> main_indicator_;
 
-    std::vector<std::map<std::string, double>> chain_values_;
-    std::vector<std::atomic_bool> chain_dirty_flags_;
+    std::map<std::string, double> current_values_;
+    std::atomic_bool dirty_flag_;
 };
 
 template <GenotypeProcessor Processor>

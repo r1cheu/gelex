@@ -31,11 +31,7 @@ struct PosteriorSummary
 {
     explicit PosteriorSummary(Eigen::Index n_params)
         : mean(Eigen::VectorXd::Zero(n_params)),
-          stddev(Eigen::VectorXd::Zero(n_params)),
-          hpdi_low(Eigen::VectorXd::Zero(n_params)),
-          hpdi_high(Eigen::VectorXd::Zero(n_params)),
-          ess(Eigen::VectorXd::Zero(n_params)),
-          rhat(Eigen::VectorXd::Zero(n_params))
+          stddev(Eigen::VectorXd::Zero(n_params))
     {
     }
     PosteriorSummary() = default;
@@ -44,10 +40,6 @@ struct PosteriorSummary
 
     Eigen::VectorXd mean;
     Eigen::VectorXd stddev;
-    Eigen::VectorXd hpdi_low;
-    Eigen::VectorXd hpdi_high;
-    Eigen::VectorXd ess;   // Effective sample size
-    Eigen::VectorXd rhat;  // Gelman-Rubin diagnostic
 };
 
 struct FixedSummary

@@ -35,7 +35,7 @@ void ParameterWriter::write(const std::filesystem::path& path) const
     auto stream = detail::open_file<std::ofstream>(path, std::ios::out);
 
     // Write header
-    stream << "term\tmean\tstddev\t5%\t95%\tess\trhat\n";
+    stream << "term\tmean\tstddev\n";
 
     // Write different parameter types
     write_fixed_effects(stream);
@@ -148,8 +148,7 @@ void ParameterWriter::write_summary_statistics(
     for (Index i = 0; i < n_params; ++i)
     {
         stream << terms[i] << "\t" << stats.mean(i) << "\t" << stats.stddev(i)
-               << "\t" << stats.hpdi_low(i) << "\t" << stats.hpdi_high(i)
-               << "\t" << stats.ess(i) << "\t" << stats.rhat(i) << "\n";
+               << "\n";
     }
 }
 

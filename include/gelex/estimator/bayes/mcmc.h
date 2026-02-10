@@ -20,8 +20,6 @@
 #include <chrono>
 #include <memory>
 #include <string_view>
-#include <thread>
-#include <vector>
 
 #include <barkeep.h>
 #include <fmt/format.h>
@@ -32,7 +30,6 @@
 #include "../src/estimator/bayes/posterior_calculator.h"
 #include "../src/logger/bayes_logger.h"
 #include "gelex/estimator/bayes/params.h"
-#include "gelex/logger.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/mcmc_results.h"
 #include "gelex/types/mcmc_samples.h"
@@ -53,14 +50,12 @@ class MCMC
     void run_one_chain(
         const BayesModel& model,
         MCMCSamples& samples,
-        Eigen::Index chain,
         Eigen::Index seed,
         std::atomic_ptrdiff_t& iter,
         detail::Indicator& indicator);
 
     void update_indicators(
         const BayesState& states,
-        Eigen::Index chain,
         detail::Indicator& indicator);
 
     detail::MCMCLogger logger_;
@@ -83,33 +78,20 @@ MCMCResult MCMC<TraitSampler>::run(
 {
     MCMCSamples samples(params_, model, sample_prefix);
 
-    const Eigen::Index n_chains = params_.n_chains;
-    std::vector<std::atomic_ptrdiff_t> idxs(n_chains);
-    detail::Indicator indicator(params_.n_iters, idxs);
+    std::atomic_ptrdiff_t iter{0};
+    detail::Indicator indicator(params_.n_iters, iter);
 
     logger_.log_model_information(model);
 
     indicator.show();
-    std::vector<std::thread> threads;
-    threads.reserve(n_chains);
 
     const detail::EigenThreadGuard guard;
 
     auto start = std::chrono::high_resolution_clock::now();
-    for (Eigen::Index i = 0; i < n_chains; ++i)
-    {
-        threads.emplace_back(
-            [this, &model, &samples, seed, i, &idxs, &indicator]
-            {
-                omp_set_num_threads(1);
-                Eigen::setNbThreads(1);
-                run_one_chain(model, samples, i, seed + i, idxs[i], indicator);
-            });
-    }
-    for (auto& t : threads)
-    {
-        t.join();
-    }
+    omp_set_num_threads(1);
+    Eigen::setNbThreads(1);
+    run_one_chain(model, samples, seed, iter, indicator);
+
     indicator.done();
     auto end = std::chrono::high_resolution_clock::now();
     auto duration
@@ -122,7 +104,7 @@ MCMCResult MCMC<TraitSampler>::run(
         result,
         model,
         static_cast<double>(duration) / 1000.0,
-        params_.n_records * params_.n_chains);
+        params_.n_records);
 
     return result;
 }
@@ -131,12 +113,10 @@ template <typename TraitSampler>
 void MCMC<TraitSampler>::run_one_chain(
     const BayesModel& model,
     MCMCSamples& samples,
-    Eigen::Index chain,
     Eigen::Index seed,
     std::atomic_ptrdiff_t& iter,
     detail::Indicator& indicator)
 {
-    auto logger = logging::get();
     std::mt19937_64 rng(seed);
 
     BayesState status{model};
@@ -152,13 +132,13 @@ void MCMC<TraitSampler>::run_one_chain(
         status.compute_heritability();
 
         // Update indicators for monitoring
-        update_indicators(status, chain, indicator);
+        update_indicators(status, indicator);
 
         // Record samples after burnin with thinning
         if (iter >= params_.n_burnin
             && (iter + 1 - params_.n_burnin) % params_.n_thin == 0)
         {
-            samples.store(status, record_idx++, chain);
+            samples.store(status, record_idx++);
         }
     }
 }
@@ -166,7 +146,6 @@ void MCMC<TraitSampler>::run_one_chain(
 template <typename TraitSampler>
 void MCMC<TraitSampler>::update_indicators(
     const BayesState& states,
-    Eigen::Index chain,
     detail::Indicator& indicator)
 {
     // Update additive effect indicators
@@ -176,9 +155,7 @@ void MCMC<TraitSampler>::update_indicators(
         if (state != nullptr)
         {
             indicator.update(
-                chain,
-                fmt::format("{}_heritability", prefix),
-                state->heritability);
+                fmt::format("{}_heritability", prefix), state->heritability);
         }
     };
 
@@ -186,9 +163,9 @@ void MCMC<TraitSampler>::update_indicators(
     update_effect_indicators(states.dominant(), "dominant");
 
     const auto& residual = states.residual();
-    indicator.update(chain, "residual_variance", residual.variance);
+    indicator.update("residual_variance", residual.variance);
 
-    indicator.flush_status(chain);
+    indicator.flush_status();
 }
 
 }  // namespace gelex
