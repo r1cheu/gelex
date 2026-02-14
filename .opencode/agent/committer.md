@@ -1,7 +1,7 @@
 ---
 description: Generate conventional commit messages with emoji based on code changes or descriptions.
 mode: subagent
-model: google/gemini-3-flash-preview
+model: openai/gpt-5.1-codex-mini
 tools:
   write: false
   edit: false

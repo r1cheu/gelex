@@ -71,6 +71,8 @@
             },
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_COMPILER": "clang++-21",
+                "CMAKE_BUILD_WITH_INSTALL_RPATH": "ON",
                 "GELEX_BUILD_TESTS": "ON",
                 "GELEX_ENABLE_COVERAGE": "ON"
             }

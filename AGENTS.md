@@ -83,9 +83,12 @@ pre-commit run -a
 Common targeted checks:
 
 ```bash
-clang-format -i <changed_files>
+pre-commit run clang-format --files <changed_files>
 clang-tidy -p build/debug <file.cpp>
 ```
+
+If `clang-format` is not directly available in `PATH`, use the
+`pre-commit` command above for formatting.
 
 Pre-commit hooks include `clang-format`, `cmake-format`, YAML checks,
 whitespace hygiene, merge-conflict checks, and debug-statement checks.
