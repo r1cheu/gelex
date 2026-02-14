@@ -1,57 +1,179 @@
 # AGENTS.md - Gelex Development Guide
 
-## Build & Test Commands
+Guidance for coding agents operating in this repository.
+Prefer these commands/conventions over ad-hoc choices.
+
+## Repository Facts
+
+- Language: C++23
+- Build: CMake presets + Ninja
+- Environment manager: pixi
+- Tests: Catch2 v3 (`catch_discover_tests`)
+- Linear algebra: Eigen (OpenBLAS default, MKL optional)
+- Parallelism: OpenMP
+- Status: beta (API breaking changes are acceptable)
+
+## Build Commands
+
+Use pixi tasks when possible (mirrors CI behavior).
 
 ```bash
-# Setup & build
-pixi install                     # Install dependencies
-pixi run build-debug            # Debug build with tests (default)
-pixi run build-release          # Optimized release build
-pixi run build-native           # Release with -march=native
+# setup
+pixi install
 
-# Testing
-pixi run test                   # Run all C++ tests (ctest)
-cd build/debug/tests/           # Run specific tests:
-./gelex_tests "TestName*"       # Run tests matching pattern
-./gelex_tests --list-tests      # List all test names
-./gelex_tests [tag]             # Run tests by tag
+# builds
+pixi run build-debug
+pixi run build-release
+pixi run build-native
+pixi run build-reldeb
+pixi run build-benchmark
 
-# Installation
-pixi run install-debug          # Install debug binary to ~/.local/bin
-pixi run install-release        # Install release binary
+# direct preset equivalents
+cmake --preset debug
+cmake --build --preset debug -j"$(nproc)"
+cmake --preset release
+cmake --build --preset release -j"$(nproc)"
 ```
+
+## Test Commands
+
+Run full suite:
+
+```bash
+pixi run test
+# equivalent:
+ctest --preset test-debug
+```
+
+Run a single test (preferred):
+
+```bash
+# via ctest regex
+ctest --preset test-debug -R "BedPipe - load\(\) method"
+
+# via Catch2 binary
+./build/debug/tests/gelex_tests "BedPipe - load() method"
+```
+
+Discover tests/tags first:
+
+```bash
+./build/debug/tests/gelex_tests --list-tests
+./build/debug/tests/gelex_tests --list-tags
+./build/debug/tests/gelex_tests "[data][bed_pipe]"
+ctest --preset test-debug -N
+```
+
+Coverage workflow:
+
+```bash
+pixi run config-coverage
+pixi run build-coverage-bin
+pixi run coverage
+```
+
+## Lint / Format / Static Analysis
+
+Primary lint entrypoint (same as CI intent):
+
+```bash
+pre-commit run -a
+```
+
+Common targeted checks:
+
+```bash
+clang-format -i <changed_files>
+clang-tidy -p build/debug <file.cpp>
+```
+
+Pre-commit hooks include `clang-format`, `cmake-format`, YAML checks,
+whitespace hygiene, merge-conflict checks, and debug-statement checks.
+
+## Project Layout
+
+- `include/gelex/`: public API headers
+- `src/`: implementation + private/internal headers
+- `apps/`: CLI sources (`gelex`)
+- `tests/`: Catch2 suite
+- `benchmark/`: benchmark targets
+- `ext/`: vendored dependencies (Eigen, argparse, mio, etc.)
 
 ## Code Style Guidelines
 
-- **C++ Standard**: C++23 with CMake 3.18+
-- **Naming**: PascalCase for classes, snake_case for functions/variables
-- **Private members**: Use trailing underscore (variable\_)
-- **Imports order**: 1) Standard library, 2) External libraries (Eigen, spdlog), 3) Internal headers
-- **Error handling**: Use exceptions from `include/gelex/exception.h`
-- **Memory**: RAII patterns with smart pointers (unique_ptr, shared_ptr)
-- **Formatting**: Follow `.clang-format` (Chromium style, 80 columns, Allman braces)
-- **Linear algebra**: Use Eigen (primary), avoid Armadillo (legacy)
-- **Parallelism**: OpenMP for multi-threaded computation
-- **Comments**: Only add when code is non-standard or hard to understand
-- **Headers**: Public API in `include/gelex/`, implementation in `src/`, private API in `src/`
-- **Data processing**: Use memory-mapped I/O (mio) with chunk-based processing
-- All function declarations and definitions must use the trailing return type syntax (e.g., auto func() -> void)
-- use #ifndef ... #define .. #endif include guards in header files
-- We are in beta stage, api breaking is always allowed.
+### Formatting
 
-## Key Architecture Notes
+- Follow `.clang-format` strictly.
+- 4-space indentation, no tabs.
+- Column limit: 80.
+- Brace style: Allman.
+- Pointer alignment: left (`Type* ptr`).
 
-- Primary linear algebra: Eigen with MKL/OpenBLAS backend
-- Bayesian models: BayesAlphabet family (A, B, C, R, RR, RRD) with MCMC
-- Frequentist model: GBLUP with REML
-- Data handling: BED file readers, GRM computation via `DataPipe`/`BedPipe`
-- Testing: Catch2 framework with sample PLINK binary files
+### Includes / Imports
 
-## Tips
+- Include order:
+  1. corresponding header (if applicable)
+  2. C++ standard library
+  3. External libraries (Eigen, Catch2, spdlog, OpenMP)
+  4. Project headers (`gelex/...` or local internal headers)
+- Keep groups separated by blank lines.
 
-- If you are unsure how to do something, use `gh_grep` to search code examples from GitHub.
-- When you need to search docs, use `context7` tools.
-- Using span and string_view, if possible, instead of const references.
-- Never modify CMakeLists.txt unless user ask to do so.
-- Always use Eigen::Ref<EigenType> for passing references and const Eigen::Ref<const EigenType>& for const references.
-- In tests, prefer Eigen `.isApprox(...)` for vector/matrix numeric comparisons.
+### Naming
+
+- Classes/structs/enums: `PascalCase`
+- Functions/variables/files: `snake_case`
+- Private members: trailing underscore (`member_`)
+- Internal constants: prefer `kPrefixName`
+
+### Function Signatures and Types
+
+- Use trailing return types in declarations/definitions (`auto f() -> int`).
+- Prefer `std::span` and `std::string_view` for non-owning inputs.
+- Prefer `Eigen::Ref<T>` / `const Eigen::Ref<const T>&` for Eigen views.
+- Use `Eigen::Index` for Eigen row/column indexing.
+
+### Headers / API Surface
+
+- Use include guards (avoid `#pragma once`).
+- Guard names should be uppercase and path-derived.
+- Keep public API in `include/gelex/`; avoid exposing internals.
+
+### Error Handling
+
+- Prefer exceptions from `include/gelex/exception.h`.
+- Use specific exception classes when possible
+  (`FileNotFoundException`, `ArgumentValidationException`, etc.).
+- Include actionable context in error messages.
+
+### Memory / Resource Management
+
+- Use RAII.
+- Prefer `std::unique_ptr` for single ownership.
+- Use `std::shared_ptr` only for genuine shared lifetime.
+- Avoid manual `new`/`delete`.
+
+### Numeric / Parallel Code
+
+- Use Eigen for linear algebra.
+- Keep dimension checks explicit where safety matters.
+- Use OpenMP for parallel loops; avoid data races.
+
+### Comments and Documentation
+
+- Add comments only for non-obvious intent/constraints.
+- Avoid comments that merely restate code.
+- Preserve existing license headers in source files.
+
+### Testing Conventions
+
+- Use Catch2 macros (`TEST_CASE`, `SECTION`, `REQUIRE`, `REQUIRE_THROWS_*`).
+- Prefer descriptive test names and tags (e.g., `[data][bed_pipe]`).
+- Prefer `.isApprox(...)` for Eigen numeric assertions where appropriate.
+- Put reusable fixtures in `tests/*_fixture.{h,cpp}`.
+
+## Agent Workflow Recommendations
+
+- Prefer `pixi run ...` tasks over custom command variants.
+- Run focused/single tests first, then broader suites.
+- Run formatting/lint before finalizing substantial edits.
+- Do not modify `CMakeLists.txt` unless explicitly requested.
