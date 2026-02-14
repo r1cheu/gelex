@@ -50,7 +50,7 @@ class GrmLoader
     [[nodiscard]] auto load_unnormalized() const -> Eigen::MatrixXd;
 
     // Load GRM with filtering and reordering based on id_map
-    // id_map: key = "FID_IID" format ID, value = target matrix row/col index
+    // id_map: key = canonical sample ID, value = target matrix row/col index
     // Throws InvalidInputException if any ID in id_map is not found in file
     [[nodiscard]] auto load(
         const std::unordered_map<std::string, Eigen::Index>& id_map) const
@@ -83,7 +83,7 @@ class GrmLoader
     std::filesystem::path bin_path_;
     std::filesystem::path id_path_;
     mio::mmap_source mmap_;
-    std::vector<std::string> sample_ids_;  // "FID_IID" format
+    std::vector<std::string> sample_ids_;  // canonical sample ID format
     Eigen::Index num_samples_{};
     freq::GrmType type_;
 

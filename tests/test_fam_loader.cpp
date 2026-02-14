@@ -23,6 +23,7 @@
 
 #include "../src/data/loader/fam_loader.h"
 #include "file_fixture.h"
+#include "gelex/data/dataframe_policy.h"
 #include "gelex/exception.h"
 
 namespace fs = std::filesystem;
@@ -30,6 +31,14 @@ namespace fs = std::filesystem;
 using namespace gelex::detail;  // NOLINT
 using Catch::Matchers::EndsWith;
 using gelex::test::FileFixture;
+
+namespace
+{
+auto sid(std::string_view fid, std::string_view iid) -> std::string
+{
+    return gelex::make_sample_id(fid, iid);
+}
+}  // namespace
 
 TEST_CASE("FamLoader - Valid .fam file loading", "[data][loader]")
 {
@@ -57,17 +66,17 @@ TEST_CASE("FamLoader - Valid .fam file loading", "[data][loader]")
                 REQUIRE(ids.size() == 4);
                 REQUIRE(data.size() == 4);
 
-                // Verify IDs are in "FID_IID" format
-                REQUIRE(ids[0] == "1_sample1");
-                REQUIRE(ids[1] == "2_sample2");
-                REQUIRE(ids[2] == "3_sample3");
-                REQUIRE(ids[3] == "4_sample4");
+                // Verify IDs are in canonical sample ID format
+                REQUIRE(ids[0] == sid("1", "sample1"));
+                REQUIRE(ids[1] == sid("2", "sample2"));
+                REQUIRE(ids[2] == sid("3", "sample3"));
+                REQUIRE(ids[3] == sid("4", "sample4"));
 
                 // Verify index mapping
-                REQUIRE(data.at("1_sample1") == 0);
-                REQUIRE(data.at("2_sample2") == 1);
-                REQUIRE(data.at("3_sample3") == 2);
-                REQUIRE(data.at("4_sample4") == 3);
+                REQUIRE(data.at(sid("1", "sample1")) == 0);
+                REQUIRE(data.at(sid("2", "sample2")) == 1);
+                REQUIRE(data.at(sid("3", "sample3")) == 2);
+                REQUIRE(data.at(sid("4", "sample4")) == 3);
 
                 for (Eigen::Index i = 0;
                      i < static_cast<Eigen::Index>(ids.size());
@@ -159,9 +168,9 @@ TEST_CASE("FamLoader - Method functionality", "[data][loader][methods]")
         // Move the IDs
         auto moved_ids = std::move(loader).take_ids();
         REQUIRE(moved_ids.size() == 3);
-        REQUIRE(moved_ids[0] == "1_sample1");
-        REQUIRE(moved_ids[1] == "2_sample2");
-        REQUIRE(moved_ids[2] == "3_sample3");
+        REQUIRE(moved_ids[0] == sid("1", "sample1"));
+        REQUIRE(moved_ids[1] == sid("2", "sample2"));
+        REQUIRE(moved_ids[2] == sid("3", "sample3"));
 
         // After move, the loader should still be usable but ids() may be empty
         // This depends on implementation, but at minimum shouldn't crash
@@ -190,7 +199,7 @@ TEST_CASE("FamLoader - Edge cases", "[data][loader][edge]")
             {
                 FamLoader loader(file_path, false);
                 REQUIRE(loader.ids().size() == 1);
-                REQUIRE(loader.ids()[0] == "1_sample1");
+                REQUIRE(loader.ids()[0] == sid("1", "sample1"));
             }());
     }
 }

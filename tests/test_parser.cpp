@@ -26,6 +26,7 @@
 
 #include "../src/data/parser.h"
 #include "file_fixture.h"
+#include "gelex/data/dataframe_policy.h"
 #include "gelex/exception.h"
 
 namespace fs = std::filesystem;
@@ -424,7 +425,7 @@ TEST_CASE("Parser ID Parsing Tests", "[parser]")
     {
         std::string_view line = "1\t2\t2.5\t1.0";
 
-        REQUIRE(parse_id(line, false, '\t') == "1_2");
+        REQUIRE(parse_id(line, false, '\t') == gelex::make_sample_id("1", "2"));
     }
 
     SECTION("Happy path - IID only with tab delimiter")
@@ -438,7 +439,7 @@ TEST_CASE("Parser ID Parsing Tests", "[parser]")
     {
         std::string_view line = "1,2,2.5,1.0";
 
-        REQUIRE(parse_id(line, false, ',') == "1_2");
+        REQUIRE(parse_id(line, false, ',') == gelex::make_sample_id("1", "2"));
     }
 
     SECTION("Exception - insufficient columns")

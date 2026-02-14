@@ -27,6 +27,7 @@
 
 #include "../src/data/loader/dcovariate_loader.h"
 #include "file_fixture.h"
+#include "gelex/data/dataframe_policy.h"
 #include "gelex/exception.h"
 
 namespace fs = std::filesystem;
@@ -34,6 +35,14 @@ namespace fs = std::filesystem;
 using namespace gelex::detail;  // NOLINT
 using Catch::Matchers::EndsWith;
 using gelex::test::FileFixture;
+
+namespace
+{
+auto sid(std::string_view fid, std::string_view iid) -> std::string
+{
+    return gelex::make_sample_id(fid, iid);
+}
+}  // namespace
 
 TEST_CASE("CovarLoader Constructor Tests", "[data][loader][covar]")
 {
@@ -52,12 +61,14 @@ TEST_CASE("CovarLoader Constructor Tests", "[data][loader][covar]")
             {
                 DiscreteCovariateLoader loader(file_path, false);
                 REQUIRE(loader.sample_ids().size() == 3);
-                REQUIRE(loader.sample_ids()[0] == "1_2");
-                REQUIRE(loader.sample_ids()[1] == "3_4");
-                REQUIRE(loader.sample_ids()[2] == "5_6");
+                REQUIRE(loader.sample_ids()[0] == sid("1", "2"));
+                REQUIRE(loader.sample_ids()[1] == sid("3", "4"));
+                REQUIRE(loader.sample_ids()[2] == sid("5", "6"));
 
-                std::unordered_map<std::string, Eigen::Index> id_map
-                    = {{"1_2", 0}, {"3_4", 1}, {"5_6", 2}};
+                std::unordered_map<std::string, Eigen::Index> id_map = {
+                    {sid("1", "2"), 0},
+                    {sid("3", "4"), 1},
+                    {sid("5", "6"), 2}};
 
                 auto dcov = loader.load(id_map);
                 // Sex: F (baseline), M -> 1
@@ -194,7 +205,8 @@ TEST_CASE("CovarLoader set_data Tests", "[data][loader][covar]")
             {
                 DiscreteCovariateLoader loader(file_path, false);
                 REQUIRE(loader.sample_ids().size() == 2);
-                auto dcov = loader.load({{"1_2", 0}, {"3_4", 1}});
+                auto dcov
+                    = loader.load({{sid("1", "2"), 0}, {sid("3", "4"), 1}});
                 REQUIRE(dcov.X.cols() == 1);
                 REQUIRE(dcov.X(0, 0) == 1);
             }());
@@ -215,8 +227,10 @@ TEST_CASE("CovarLoader load Tests", "[data][loader][covar]")
 
         DiscreteCovariateLoader loader(file_path, false);
 
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"1_2", 0}, {"3_4", 1}, {"5_6", 2}};
+        std::unordered_map<std::string, Eigen::Index> id_map = {
+            {sid("1", "2"), 0},
+            {sid("3", "4"), 1},
+            {sid("5", "6"), 2}};
 
         auto dcov = loader.load(id_map);
         Eigen::MatrixXd result = std::move(dcov).X;
@@ -255,7 +269,7 @@ TEST_CASE("CovarLoader load Tests", "[data][loader][covar]")
         DiscreteCovariateLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"1_2", 0}, {"5_6", 1}};
+            = {{sid("1", "2"), 0}, {sid("5", "6"), 1}};
 
         auto dcov = loader.load(id_map);
         Eigen::MatrixXd result = std::move(dcov).X;
@@ -279,7 +293,7 @@ TEST_CASE("CovarLoader load Tests", "[data][loader][covar]")
         DiscreteCovariateLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"1_2", 1}, {"5_6", 0}};
+            = {{sid("1", "2"), 1}, {sid("5", "6"), 0}};
 
         auto dcov = loader.load(id_map);
         Eigen::MatrixXd result = std::move(dcov).X;
@@ -377,7 +391,7 @@ TEST_CASE("CovarLoader load Tests", "[data][loader][covar]")
         DiscreteCovariateLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"1_2", 0}, {"3_4", 1}};
+            = {{sid("1", "2"), 0}, {sid("3", "4"), 1}};
 
         auto dcov = loader.load(id_map);
         Eigen::MatrixXd result = std::move(dcov).X;
@@ -399,7 +413,7 @@ TEST_CASE("CovarLoader load Tests", "[data][loader][covar]")
         DiscreteCovariateLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"1_2", 0}, {"3_4", 1}};
+            = {{sid("1", "2"), 0}, {sid("3", "4"), 1}};
 
         auto dcov = loader.load(id_map);
         Eigen::MatrixXd result = std::move(dcov).X;
@@ -440,8 +454,11 @@ TEST_CASE("CovarLoader Integration Tests", "[data][loader][covar]")
 
         DiscreteCovariateLoader loader(file_path, false);
 
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"1_2", 0}, {"3_4", 1}, {"5_6", 2}, {"7_8", 3}};
+        std::unordered_map<std::string, Eigen::Index> id_map = {
+            {sid("1", "2"), 0},
+            {sid("3", "4"), 1},
+            {sid("5", "6"), 2},
+            {sid("7", "8"), 3}};
 
         auto dcov = loader.load(id_map);
         Eigen::MatrixXd result = std::move(dcov).X;
@@ -498,9 +515,9 @@ TEST_CASE("CovarLoader nan/inf exclusion tests", "[data][loader][covar]")
                 const auto& ids = loader.sample_ids();
                 // only the last row should be retained
                 REQUIRE(ids.size() == 1);
-                REQUIRE(ids[0] == "13_14");
+                REQUIRE(ids[0] == sid("13", "14"));
 
-                auto dcov = loader.load({{"13_14", 0}});
+                auto dcov = loader.load({{sid("13", "14"), 0}});
                 REQUIRE(dcov.X.cols() == 0);  // All single levels
             }());
     }
@@ -519,7 +536,7 @@ TEST_CASE("CovarLoader nan/inf exclusion tests", "[data][loader][covar]")
                 DiscreteCovariateLoader loader(file_path, false);
                 const auto& ids = loader.sample_ids();
                 REQUIRE(ids.size() == 1);
-                REQUIRE(ids[0] == "3_4");
+                REQUIRE(ids[0] == sid("3", "4"));
             }());
     }
 
@@ -534,7 +551,7 @@ TEST_CASE("CovarLoader nan/inf exclusion tests", "[data][loader][covar]")
 
         DiscreteCovariateLoader loader(file_path, false);
         std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"3_4", 0}, {"7_8", 1}};
+            = {{sid("3", "4"), 0}, {sid("7", "8"), 1}};
         auto dcov = loader.load(id_map);
         Eigen::MatrixXd result = std::move(dcov).X;
 

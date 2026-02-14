@@ -15,7 +15,6 @@
  */
 
 #include "grm_loader.h"
-#include <fmt/format.h>
 
 #include <algorithm>
 #include <format>
@@ -23,6 +22,7 @@
 #include <string>
 #include <system_error>
 
+#include "gelex/data/dataframe_policy.h"
 #include "gelex/exception.h"
 #include "parser.h"
 #include "types/freq_effect.h"
@@ -66,18 +66,21 @@ auto GrmLoader::load_sample_ids() -> void
             continue;
         }
 
-        // Format: FID\tIID -> convert to FID_IID
+        // Format: FID\tIID -> convert to canonical sample ID
         auto tab_pos = line.find('\t');
         if (tab_pos == std::string::npos)
         {
-            // No tab found, use the line as both FID and IID
-            sample_ids_.push_back(fmt::format("{}_{}", line, line));
+            throw FileFormatException(
+                std::format(
+                    "{}: invalid ID line '{}' (expected FID and IID)",
+                    id_path_.string(),
+                    line));
         }
         else
         {
             auto fid = line.substr(0, tab_pos);
             auto iid = line.substr(tab_pos + 1);
-            sample_ids_.push_back(std::format("{}_{}", fid, iid));
+            sample_ids_.push_back(make_sample_id(fid, iid));
         }
     }
 

@@ -27,6 +27,7 @@
 
 #include "../src/data/parser.h"
 #include "../src/utils/formatter.h"
+#include "gelex/data/dataframe_policy.h"
 #include "gelex/logger.h"
 
 namespace gelex
@@ -65,14 +66,7 @@ void SimulationWriter::write_phenotypes(
          ++i)
     {
         const std::string_view full_id(sample_ids[i]);
-        std::string_view fid = full_id;
-        std::string_view iid = full_id;
-
-        if (const auto pos = full_id.find('_'); pos != std::string_view::npos)
-        {
-            fid = full_id.substr(0, pos);
-            iid = full_id.substr(pos + 1);
-        }
+        auto [fid, iid] = split_sample_id(full_id);
 
         output << std::format("{}\t{}\t{}\n", fid, iid, phenotypes[i]);
     }

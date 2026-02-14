@@ -34,6 +34,7 @@
 #include "bed_fixture.h"
 #include "file_fixture.h"
 #include "gelex/data/bed_pipe.h"
+#include "gelex/data/dataframe_policy.h"
 #include "gelex/data/sample_manager.h"
 #include "gelex/exception.h"
 
@@ -85,7 +86,7 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
             std::string fid;
             std::string iid;
             iss >> fid >> iid;
-            raw_ids.push_back(std::format("{}_{}", fid, iid));
+            raw_ids.push_back(make_sample_id(fid, iid));
         }
 
         // 只保留前 5 个样本
@@ -483,7 +484,9 @@ TEST_CASE("BedPipe - sample mapping tests", "[data][bed_pipe]")
         auto sample_manager = std::make_shared<SampleManager>(fam_path, false);
 
         std::vector<std::string> intersect_ids
-            = {"nonexistent_1", "nonexistent_2", "nonexistent_3"};
+            = {make_sample_id("nonexistent", "1"),
+               make_sample_id("nonexistent", "2"),
+               make_sample_id("nonexistent", "3")};
         sample_manager->intersect(intersect_ids);
         sample_manager->finalize();
 

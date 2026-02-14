@@ -25,6 +25,7 @@
 
 #include "../src/predict/predict_dcovariate_loader.h"
 #include "file_fixture.h"
+#include "gelex/data/dataframe_policy.h"
 #include "gelex/exception.h"
 
 namespace fs = std::filesystem;
@@ -32,6 +33,14 @@ namespace fs = std::filesystem;
 using namespace gelex::detail;  // NOLINT
 using Catch::Matchers::EndsWith;
 using gelex::test::FileFixture;
+
+namespace
+{
+auto sid(std::string_view fid, std::string_view iid) -> std::string
+{
+    return gelex::make_sample_id(fid, iid);
+}
+}  // namespace
 
 TEST_CASE("DcovarPredictLoader Constructor Tests", "[predict][covariate]")
 {
@@ -57,17 +66,17 @@ TEST_CASE("DcovarPredictLoader Constructor Tests", "[predict][covariate]")
                 const auto& data = loader.data();
 
                 REQUIRE(data.size() == 3);
-                REQUIRE(data.count("1_2") == 1);
-                REQUIRE(data.count("3_4") == 1);
-                REQUIRE(data.count("5_6") == 1);
+                REQUIRE(data.count(sid("1", "2")) == 1);
+                REQUIRE(data.count(sid("3", "4")) == 1);
+                REQUIRE(data.count(sid("5", "6")) == 1);
 
-                const auto& sample1 = data.at("1_2");
+                const auto& sample1 = data.at(sid("1", "2"));
                 REQUIRE(sample1.size() == 3);
                 REQUIRE(sample1[0] == "M");
                 REQUIRE(sample1[1] == "EUR");
                 REQUIRE(sample1[2] == "North");
 
-                const auto& sample2 = data.at("5_6");
+                const auto& sample2 = data.at(sid("5", "6"));
                 REQUIRE(sample2.size() == 3);
                 REQUIRE(sample2[0] == "M");
                 REQUIRE(sample2[1] == "ASN");
@@ -234,8 +243,10 @@ TEST_CASE("DcovarPredictLoader load Tests", "[predict][covariate]")
 
         DcovarPredictLoader loader(file_path, false);
 
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"1_2", 0}, {"3_4", 1}, {"5_6", 2}};
+        std::unordered_map<std::string, Eigen::Index> id_map = {
+            {sid("1", "2"), 0},
+            {sid("3", "4"), 1},
+            {sid("5", "6"), 2}};
 
         auto result = loader.load(id_map);
 
@@ -267,7 +278,7 @@ TEST_CASE("DcovarPredictLoader load Tests", "[predict][covariate]")
         DcovarPredictLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"1_2", 0}, {"5_6", 1}};
+            = {{sid("1", "2"), 0}, {sid("5", "6"), 1}};
 
         auto result = loader.load(id_map);
 
@@ -294,7 +305,9 @@ TEST_CASE("DcovarPredictLoader load Tests", "[predict][covariate]")
         DcovarPredictLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"5_6", 0}, {"1_2", 1}, {"3_4", 2}};
+            = {{sid("5", "6"), 0},
+               {sid("1", "2"), 1},
+               {sid("3", "4"), 2}};
 
         auto result = loader.load(id_map);
 
@@ -394,8 +407,10 @@ TEST_CASE("DcovarPredictLoader load Tests", "[predict][covariate]")
 
         DcovarPredictLoader loader(file_path, false);
 
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"1_2", 0}, {"3_4", 1}, {"5_6", 2}};
+        std::unordered_map<std::string, Eigen::Index> id_map = {
+            {sid("1", "2"), 0},
+            {sid("3", "4"), 1},
+            {sid("5", "6"), 2}};
 
         auto result = loader.load(id_map);
 
@@ -438,7 +453,7 @@ TEST_CASE("DcovarPredictLoader Data Accessor Tests", "[predict][covariate]")
 
         const auto& data = loader.data();
         REQUIRE(data.size() == 2);
-        REQUIRE(data.at("1_2") == std::vector<std::string>{"M", "EUR"});
-        REQUIRE(data.at("3_4") == std::vector<std::string>{"F", "AFR"});
+        REQUIRE(data.at(sid("1", "2")) == std::vector<std::string>{"M", "EUR"});
+        REQUIRE(data.at(sid("3", "4")) == std::vector<std::string>{"F", "AFR"});
     }
 }

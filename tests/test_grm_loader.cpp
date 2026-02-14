@@ -30,6 +30,7 @@
 #include "../src/data/grm_id_writer.h"
 #include "../src/data/grm_loader.h"
 #include "file_fixture.h"
+#include "gelex/data/dataframe_policy.h"
 #include "gelex/exception.h"
 
 namespace fs = std::filesystem;
@@ -98,14 +99,16 @@ auto make_symmetric_matrix(Eigen::Index n) -> Eigen::MatrixXd
     return (matrix + matrix.transpose()) / 2.0;
 }
 
-// Helper to create IDs in FID_IID format
+// Helper to create canonical sample IDs
 auto make_sample_ids(Eigen::Index n) -> std::vector<std::string>
 {
     std::vector<std::string> ids;
     ids.reserve(static_cast<size_t>(n));
     for (Eigen::Index i = 0; i < n; ++i)
     {
-        ids.push_back("FAM" + std::to_string(i) + "_IND" + std::to_string(i));
+        ids.push_back(gelex::make_sample_id(
+            "FAM" + std::to_string(i),
+            "IND" + std::to_string(i)));
     }
     return ids;
 }
@@ -142,7 +145,9 @@ TEST_CASE(
 
     SECTION("Exception - missing .grm.bin file")
     {
-        std::vector<std::string> ids = {"FAM1_IND1", "FAM2_IND2"};
+        std::vector<std::string> ids
+            = {gelex::make_sample_id("FAM1", "IND1"),
+               gelex::make_sample_id("FAM2", "IND2")};
         grm_files.create_id_only(ids);
 
         REQUIRE_THROWS_AS(
@@ -174,7 +179,9 @@ TEST_CASE(
         Eigen::MatrixXd matrix(3, 3);
         matrix << 1.0, 0.5, 0.3, 0.5, 1.0, 0.4, 0.3, 0.4, 1.0;
 
-        std::vector<std::string> ids = {"FAM1_IND1", "FAM2_IND2"};
+        std::vector<std::string> ids
+            = {gelex::make_sample_id("FAM1", "IND1"),
+               gelex::make_sample_id("FAM2", "IND2")};
 
         grm_files.create(matrix, ids);
 
@@ -187,7 +194,9 @@ TEST_CASE(
         Eigen::MatrixXd matrix(4, 4);
         matrix.setIdentity();
 
-        std::vector<std::string> ids = {"FAM1_IND1", "FAM2_IND2"};
+        std::vector<std::string> ids
+            = {gelex::make_sample_id("FAM1", "IND1"),
+               gelex::make_sample_id("FAM2", "IND2")};
 
         grm_files.create(matrix, ids);
 
@@ -211,35 +220,36 @@ TEST_CASE("GrmLoader - sample_ids accessor", "[grm_loader][accessor]")
     {
         const Eigen::Index n = 3;
         auto matrix = make_symmetric_matrix(n);
-        std::vector<std::string> ids = {"FAM1_IND1", "FAM2_IND2", "FAM3_IND3"};
+        std::vector<std::string> ids
+            = {gelex::make_sample_id("FAM1", "IND1"),
+               gelex::make_sample_id("FAM2", "IND2"),
+               gelex::make_sample_id("FAM3", "IND3")};
 
         grm_files.create(matrix, ids);
         GrmLoader loader(grm_files.prefix());
 
         auto loaded_ids = loader.sample_ids();
         REQUIRE(loaded_ids.size() == 3);
-        REQUIRE(loaded_ids[0] == "FAM1_IND1");
-        REQUIRE(loaded_ids[1] == "FAM2_IND2");
-        REQUIRE(loaded_ids[2] == "FAM3_IND3");
+        REQUIRE(loaded_ids[0] == gelex::make_sample_id("FAM1", "IND1"));
+        REQUIRE(loaded_ids[1] == gelex::make_sample_id("FAM2", "IND2"));
+        REQUIRE(loaded_ids[2] == gelex::make_sample_id("FAM3", "IND3"));
     }
 
-    SECTION("Happy path - IDs with multiple underscores preserved")
+    SECTION("Happy path - IDs with underscores in FID and IID are preserved")
     {
         const Eigen::Index n = 2;
         auto matrix = make_symmetric_matrix(n);
-        // Writer splits "A_B_C" -> FID="A", IID="B_C"
-        // Loader reads "A\tB_C" -> "A_B_C"
-        std::vector<std::string> ids = {"FAM_1_IND_1", "FAM_2_IND_2"};
+        std::vector<std::string> ids
+            = {gelex::make_sample_id("FAM_1", "IND_1"),
+               gelex::make_sample_id("FAM_2", "IND_2")};
 
         grm_files.create(matrix, ids);
         GrmLoader loader(grm_files.prefix());
 
         auto loaded_ids = loader.sample_ids();
         REQUIRE(loaded_ids.size() == 2);
-        // Writer: "FAM_1_IND_1" -> "FAM\t1_IND_1"
-        // Loader: "FAM\t1_IND_1" -> "FAM_1_IND_1"
-        REQUIRE(loaded_ids[0] == "FAM_1_IND_1");
-        REQUIRE(loaded_ids[1] == "FAM_2_IND_2");
+        REQUIRE(loaded_ids[0] == gelex::make_sample_id("FAM_1", "IND_1"));
+        REQUIRE(loaded_ids[1] == gelex::make_sample_id("FAM_2", "IND_2"));
     }
 }
 
@@ -426,16 +436,20 @@ TEST_CASE("GrmLoader - Load with subset of IDs", "[grm_loader][load_filtered]")
                     0.3, 0.5, 0.6, 4.0;
         // clang-format on
 
-        std::vector<std::string> ids
-            = {"FAM0_IND0", "FAM1_IND1", "FAM2_IND2", "FAM3_IND3"};
+        std::vector<std::string> ids = {
+            gelex::make_sample_id("FAM0", "IND0"),
+            gelex::make_sample_id("FAM1", "IND1"),
+            gelex::make_sample_id("FAM2", "IND2"),
+            gelex::make_sample_id("FAM3", "IND3")};
 
         grm_files.create(original, ids);
 
         GrmLoader loader(grm_files.prefix());
 
         // Load only samples 1 and 3, mapping to indices 0 and 1
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"FAM1_IND1", 0}, {"FAM3_IND3", 1}};
+        std::unordered_map<std::string, Eigen::Index> id_map = {
+            {gelex::make_sample_id("FAM1", "IND1"), 0},
+            {gelex::make_sample_id("FAM3", "IND3"), 1}};
 
         auto loaded = loader.load_unnormalized(id_map);
 
@@ -472,15 +486,20 @@ TEST_CASE("GrmLoader - Load with reordered IDs", "[grm_loader][load_filtered]")
                     0.2, 0.3, 3.0;
         // clang-format on
 
-        std::vector<std::string> ids = {"FAM0_IND0", "FAM1_IND1", "FAM2_IND2"};
+        std::vector<std::string> ids = {
+            gelex::make_sample_id("FAM0", "IND0"),
+            gelex::make_sample_id("FAM1", "IND1"),
+            gelex::make_sample_id("FAM2", "IND2")};
 
         grm_files.create(original, ids);
 
         GrmLoader loader(grm_files.prefix());
 
         // Reverse the order: original[2]->0, original[1]->1, original[0]->2
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"FAM2_IND2", 0}, {"FAM1_IND1", 1}, {"FAM0_IND0", 2}};
+        std::unordered_map<std::string, Eigen::Index> id_map = {
+            {gelex::make_sample_id("FAM2", "IND2"), 0},
+            {gelex::make_sample_id("FAM1", "IND1"), 1},
+            {gelex::make_sample_id("FAM0", "IND0"), 2}};
 
         auto loaded = loader.load_unnormalized(id_map);
 
@@ -542,7 +561,8 @@ TEST_CASE(
         GrmLoader loader(grm_files.prefix());
 
         std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"FAM0_IND0", 0}, {"NONEXISTENT_ID", 1}};
+            = {{gelex::make_sample_id("FAM0", "IND0"), 0},
+               {gelex::make_sample_id("NONEXISTENT", "ID"), 1}};
 
         REQUIRE_THROWS_AS(loader.load(id_map), gelex::InvalidInputException);
     }
@@ -558,12 +578,12 @@ TEST_CASE(
         GrmLoader loader(grm_files.prefix());
 
         std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"MISSING_SAMPLE", 0}};
+            = {{gelex::make_sample_id("MISSING", "SAMPLE"), 0}};
 
         REQUIRE_THROWS_MATCHES(
             loader.load(id_map),
             gelex::InvalidInputException,
-            MessageMatches(ContainsSubstring("MISSING_SAMPLE")));
+            MessageMatches(ContainsSubstring("MISSING")));
     }
 }
 
@@ -583,7 +603,10 @@ TEST_CASE(
                     0.2, 0.3, 3.0;
         // clang-format on
 
-        std::vector<std::string> ids = {"FAM0_IND0", "FAM1_IND1", "FAM2_IND2"};
+        std::vector<std::string> ids = {
+            gelex::make_sample_id("FAM0", "IND0"),
+            gelex::make_sample_id("FAM1", "IND1"),
+            gelex::make_sample_id("FAM2", "IND2")};
 
         grm_files.create(original, ids);
 
@@ -591,8 +614,9 @@ TEST_CASE(
 
         // Map to non-contiguous indices: 0 -> 0, 2 -> 5
         // Output matrix size should be max_idx + 1 = 6
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"FAM0_IND0", 0}, {"FAM2_IND2", 5}};
+        std::unordered_map<std::string, Eigen::Index> id_map = {
+            {gelex::make_sample_id("FAM0", "IND0"), 0},
+            {gelex::make_sample_id("FAM2", "IND2"), 5}};
 
         auto loaded = loader.load_unnormalized(id_map);
 
@@ -625,22 +649,20 @@ TEST_CASE("GrmLoader - ID parsing from file", "[grm_loader][id_parsing]")
     FileFixture files;
     GrmFileFixture grm_files(files);
 
-    SECTION("Happy path - IDs without underscore in original become duplicated")
+    SECTION("Happy path - canonical IDs round-trip through .id file")
     {
-        // When GrmIdWriter writes ID without underscore, it writes "ID\tID"
-        // GrmLoader reads "ID\tID" as "ID_ID"
         const Eigen::Index n = 2;
         auto matrix = make_symmetric_matrix(n);
-        std::vector<std::string> ids = {"SAMPLE1", "SAMPLE2"};
+        std::vector<std::string> ids = {
+            gelex::make_sample_id("SAMPLE", "1"),
+            gelex::make_sample_id("SAMPLE", "2")};
 
         grm_files.create(matrix, ids);
         GrmLoader loader(grm_files.prefix());
 
         auto loaded_ids = loader.sample_ids();
-        // Writer: "SAMPLE1" -> "SAMPLE1\tSAMPLE1"
-        // Loader: "SAMPLE1\tSAMPLE1" -> "SAMPLE1_SAMPLE1"
-        REQUIRE(loaded_ids[0] == "SAMPLE1_SAMPLE1");
-        REQUIRE(loaded_ids[1] == "SAMPLE2_SAMPLE2");
+        REQUIRE(loaded_ids[0] == gelex::make_sample_id("SAMPLE", "1"));
+        REQUIRE(loaded_ids[1] == gelex::make_sample_id("SAMPLE", "2"));
     }
 }
 

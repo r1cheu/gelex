@@ -25,6 +25,7 @@
 
 #include "../src/data/loader/qcovariate_loader.h"
 #include "file_fixture.h"
+#include "gelex/data/dataframe_policy.h"
 #include "gelex/exception.h"
 
 namespace fs = std::filesystem;
@@ -32,6 +33,14 @@ namespace fs = std::filesystem;
 using namespace gelex::detail;  // NOLINT
 using Catch::Matchers::EndsWith;
 using gelex::test::FileFixture;
+
+namespace
+{
+auto sid(std::string_view fid, std::string_view iid) -> std::string
+{
+    return gelex::make_sample_id(fid, iid);
+}
+}  // namespace
 
 TEST_CASE("QcovarLoader Constructor Tests", "[data][loader][qcovar]")
 {
@@ -55,9 +64,9 @@ TEST_CASE("QcovarLoader Constructor Tests", "[data][loader][qcovar]")
                 REQUIRE(loader.column_names()[2] == "Weight");
 
                 REQUIRE(loader.sample_ids().size() == 3);
-                REQUIRE(loader.sample_ids()[0] == "1_2");
-                REQUIRE(loader.sample_ids()[1] == "3_4");
-                REQUIRE(loader.sample_ids()[2] == "5_6");
+                REQUIRE(loader.sample_ids()[0] == sid("1", "2"));
+                REQUIRE(loader.sample_ids()[1] == sid("3", "4"));
+                REQUIRE(loader.sample_ids()[2] == sid("5", "6"));
             }());
     }
 
@@ -134,7 +143,7 @@ TEST_CASE("QcovarLoader set_data Tests", "[data][loader][qcovar]")
             {
                 QuantitativeCovariateLoader loader(file_path, false);
                 std::unordered_map<std::string, Eigen::Index> id_map
-                    = {{"1_2", 0}};
+                    = {{sid("1", "2"), 0}};
                 auto qcov = loader.load(id_map);
                 REQUIRE(qcov.X.rows() == 1);
                 REQUIRE(qcov.X(0, 0) == 1.23e-4);
@@ -170,7 +179,7 @@ TEST_CASE("QcovarLoader set_data Tests", "[data][loader][qcovar]")
             {
                 QuantitativeCovariateLoader loader(file_path, false);
                 REQUIRE(loader.sample_ids().size() == 1);
-                REQUIRE(loader.sample_ids()[0] == "5_6");
+                REQUIRE(loader.sample_ids()[0] == sid("5", "6"));
             }());
     }
 }
@@ -189,8 +198,10 @@ TEST_CASE("QcovarLoader load Tests", "[data][loader][qcovar]")
 
         QuantitativeCovariateLoader loader(file_path, false);
 
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"1_2", 0}, {"3_4", 1}, {"5_6", 2}};
+        std::unordered_map<std::string, Eigen::Index> id_map = {
+            {sid("1", "2"), 0},
+            {sid("3", "4"), 1},
+            {sid("5", "6"), 2}};
 
         auto qcov = loader.load(id_map);
         Eigen::MatrixXd result = std::move(qcov).X;
@@ -217,7 +228,8 @@ TEST_CASE("QcovarLoader load Tests", "[data][loader][qcovar]")
         QuantitativeCovariateLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map = {
-            {"1_2", 0}, {"5_6", 1}  // Note: "3_4" is missing from mapping
+            {sid("1", "2"), 0},
+            {sid("5", "6"), 1}  // Note: "3_4" is missing from mapping
         };
 
         auto qcov = loader.load(id_map);
@@ -307,7 +319,7 @@ TEST_CASE("QcovarLoader load Tests", "[data][loader][qcovar]")
         QuantitativeCovariateLoader loader(file_path, false);
 
         std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"1_2", 0}, {"3_4", 1}};
+            = {{sid("1", "2"), 0}, {sid("3", "4"), 1}};
 
         auto qcov = loader.load(id_map);
         Eigen::MatrixXd result = std::move(qcov).X;
@@ -349,11 +361,11 @@ TEST_CASE("QcovarLoader Integration Tests", "[data][loader][qcovar]")
 
         // Create ID mapping
         std::unordered_map<std::string, Eigen::Index> id_map
-            = {{"1001_2001", 0},
-               {"1002_2002", 1},
-               {"1003_2003", 2},
-               {"1004_2004", 3},
-               {"1005_2005", 4}};
+            = {{sid("1001", "2001"), 0},
+               {sid("1002", "2002"), 1},
+               {sid("1003", "2003"), 2},
+               {sid("1004", "2004"), 3},
+               {sid("1005", "2005"), 4}};
 
         // Load into matrix
         auto qcov = loader.load(id_map);
@@ -381,7 +393,7 @@ TEST_CASE("QcovarLoader Integration Tests", "[data][loader][qcovar]")
         // Test with full IDs
         QuantitativeCovariateLoader loader_full(file_path, false);
         std::unordered_map<std::string, Eigen::Index> id_map_full
-            = {{"1_2", 0}, {"3_4", 1}};
+            = {{sid("1", "2"), 0}, {sid("3", "4"), 1}};
         auto qcov_full = loader_full.load(id_map_full);
         Eigen::MatrixXd result_full = std::move(qcov_full).X;
 

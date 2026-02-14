@@ -21,6 +21,7 @@
 #include <ostream>
 
 #include "../src/data/parser.h"
+#include "gelex/data/dataframe_policy.h"
 #include "gelex/exception.h"
 
 namespace gelex
@@ -109,12 +110,8 @@ void PredictWriter::write_id(std::ostream& stream, std::string_view sample_id)
     }
     else
     {
-        auto pos = sample_id.find('_');
-        if (pos != std::string_view::npos)
-        {
-            stream << sample_id.substr(0, pos) << '\t'
-                   << sample_id.substr(pos + 1);
-        }
+        auto [fid, iid] = split_sample_id(sample_id);
+        stream << fid << '\t' << iid;
     }
 }
 

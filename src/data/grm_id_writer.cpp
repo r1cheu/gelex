@@ -18,6 +18,7 @@
 
 #include <format>
 
+#include "gelex/data/dataframe_policy.h"
 #include "gelex/exception.h"
 #include "parser.h"
 
@@ -34,13 +35,7 @@ GrmIdWriter::GrmIdWriter(const std::filesystem::path& file_path)
 auto GrmIdWriter::split_id(std::string_view id)
     -> std::pair<std::string_view, std::string_view>
 {
-    auto pos = id.find('_');
-    if (pos == std::string_view::npos)
-    {
-        // No '_' found, use the same value for both FID and IID
-        return {id, id};
-    }
-    return {id.substr(0, pos), id.substr(pos + 1)};
+    return split_sample_id(id);
 }
 
 auto GrmIdWriter::write(std::span<const std::string> ids) -> void

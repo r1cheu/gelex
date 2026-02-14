@@ -22,6 +22,8 @@
 #include <ranges>
 #include <vector>
 
+#include "gelex/data/dataframe_policy.h"
+
 namespace gelex::detail
 {
 
@@ -104,7 +106,7 @@ std::string parse_id(std::string_view line, bool iid_only, char delimiter)
     {
         return std::string(iid);
     }
-    return std::format("{}_{}", fid, iid);
+    return make_sample_id(fid, iid);
 }
 
 size_t count_num_columns(std::string_view line, char delimiter)

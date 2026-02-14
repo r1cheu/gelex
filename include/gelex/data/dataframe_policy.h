@@ -23,6 +23,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_set>
+#include <utility>
 
 #include "gelex/exception.h"
 
@@ -44,6 +45,32 @@ inline auto make_sample_id(std::string_view fid, std::string_view iid)
     }
 
     return std::format("{}{}{}", fid, kSampleIdSeparator, iid);
+}
+
+inline auto split_sample_id(std::string_view sample_id)
+    -> std::pair<std::string_view, std::string_view>
+{
+    if (sample_id.empty())
+    {
+        throw ArgumentValidationException("sample ID cannot be empty");
+    }
+
+    auto separator_pos = sample_id.find(kSampleIdSeparator);
+    if (separator_pos == std::string_view::npos)
+    {
+        throw ArgumentValidationException(
+            "sample ID is not in the canonical FID<US>IID format");
+    }
+
+    auto fid = sample_id.substr(0, separator_pos);
+    auto iid = sample_id.substr(separator_pos + 1);
+    if (fid.empty() || iid.empty())
+    {
+        throw ArgumentValidationException(
+            "sample ID must contain non-empty FID and IID");
+    }
+
+    return {fid, iid};
 }
 
 enum class MissingValueAction : uint8_t

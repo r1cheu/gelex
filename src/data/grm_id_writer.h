@@ -39,7 +39,7 @@ class GrmIdWriter
     ~GrmIdWriter() = default;
 
     // Write sample IDs, each line contains: FID\tIID
-    // Input ids are in "FID_IID" format, will be split by first '_'
+    // Input ids use canonical make_sample_id(fid, iid) format
     auto write(std::span<const std::string> ids) -> void;
 
     [[nodiscard]] auto path() const noexcept -> const std::filesystem::path&
@@ -51,8 +51,7 @@ class GrmIdWriter
     std::filesystem::path path_;
     std::ofstream file_;
 
-    // Split "FID_IID" into (FID, IID) by the first '_'
-    // If no '_' found, both FID and IID are set to the original id
+    // Split canonical sample ID into (FID, IID)
     static auto split_id(std::string_view id)
         -> std::pair<std::string_view, std::string_view>;
 };

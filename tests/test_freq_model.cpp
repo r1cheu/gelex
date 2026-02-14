@@ -27,6 +27,7 @@
 #include "../src/data/grm_id_writer.h"
 #include "bed_fixture.h"
 #include "file_fixture.h"
+#include "gelex/data/dataframe_policy.h"
 #include "gelex/data/data_pipe.h"
 #include "gelex/model/freq/model.h"
 
@@ -85,7 +86,12 @@ auto make_symmetric_grm(Eigen::Index n) -> Eigen::MatrixXd
     return matrix;
 }
 
-// Helper to create sample IDs in FID_IID format
+auto sid(std::string_view fid, std::string_view iid) -> std::string
+{
+    return gelex::make_sample_id(fid, iid);
+}
+
+// Helper to create sample IDs in canonical format
 auto make_sample_ids(Eigen::Index n, const std::string& prefix = "fam")
     -> std::vector<std::string>
 {
@@ -93,7 +99,7 @@ auto make_sample_ids(Eigen::Index n, const std::string& prefix = "fam")
     ids.reserve(static_cast<size_t>(n));
     for (Eigen::Index i = 0; i < n; ++i)
     {
-        ids.push_back(std::format("{}{}_{}", prefix, i + 1, i + 1));
+        ids.push_back(sid(std::format("{}{}", prefix, i + 1), std::to_string(i + 1)));
     }
     return ids;
 }
@@ -106,10 +112,7 @@ auto make_phenotype_content(
     std::string content = "FID\tIID\tPhenotype\n";
     for (size_t i = 0; i < ids.size(); ++i)
     {
-        // split "FID_IID" -> "FID", "IID"
-        auto underscore_pos = ids[i].find('_');
-        std::string fid = ids[i].substr(0, underscore_pos);
-        std::string iid = ids[i].substr(underscore_pos + 1);
+        auto [fid, iid] = gelex::split_sample_id(ids[i]);
         content += std::format("{}\t{}\t{}\n", fid, iid, values(i));
     }
     return content;
@@ -130,9 +133,7 @@ auto make_qcovar_content(
 
     for (size_t i = 0; i < ids.size(); ++i)
     {
-        auto underscore_pos = ids[i].find('_');
-        std::string fid = ids[i].substr(0, underscore_pos);
-        std::string iid = ids[i].substr(underscore_pos + 1);
+        auto [fid, iid] = gelex::split_sample_id(ids[i]);
         content += std::format("{}\t{}", fid, iid);
         for (Eigen::Index j = 0; j < values.cols(); ++j)
         {
@@ -158,9 +159,7 @@ auto make_dcovar_content(
 
     for (size_t i = 0; i < ids.size(); ++i)
     {
-        auto underscore_pos = ids[i].find('_');
-        std::string fid = ids[i].substr(0, underscore_pos);
-        std::string iid = ids[i].substr(underscore_pos + 1);
+        auto [fid, iid] = gelex::split_sample_id(ids[i]);
         content += std::format("{}\t{}", fid, iid);
         for (size_t j = 0; j < values[i].size(); ++j)
         {
@@ -197,7 +196,7 @@ TEST_CASE(
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
         bed_sample_ids.push_back(
-            std::format("fam{}_sample{}", (i % 5) + 1, i + 1));
+            sid(std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
     }
 
     Eigen::VectorXd pheno_values
@@ -262,7 +261,8 @@ TEST_CASE(
     sample_ids.reserve(num_samples);
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
-        sample_ids.push_back(std::format("fam{}_sample{}", (i % 5) + 1, i + 1));
+        sample_ids.push_back(
+            sid(std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
     }
 
     // create phenotype file
@@ -333,7 +333,8 @@ TEST_CASE(
     sample_ids.reserve(num_samples);
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
-        sample_ids.push_back(std::format("fam{}_sample{}", (i % 5) + 1, i + 1));
+        sample_ids.push_back(
+            sid(std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
     }
 
     Eigen::VectorXd pheno_values = Eigen::VectorXd::Random(num_samples);
@@ -390,7 +391,8 @@ TEST_CASE(
     sample_ids.reserve(num_samples);
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
-        sample_ids.push_back(std::format("fam{}_sample{}", (i % 5) + 1, i + 1));
+        sample_ids.push_back(
+            sid(std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
     }
 
     Eigen::VectorXd pheno_values = Eigen::VectorXd::Random(num_samples);
@@ -460,7 +462,7 @@ TEST_CASE(
     for (Eigen::Index i = 0; i < bed_samples; ++i)
     {
         bed_sample_ids.push_back(
-            std::format("fam{}_sample{}", (i % 5) + 1, i + 1));
+            sid(std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
     }
 
     // GRM has only first 8 samples (subset)
@@ -530,7 +532,8 @@ TEST_CASE(
     sample_ids.reserve(num_samples);
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
-        sample_ids.push_back(std::format("fam{}_sample{}", (i % 5) + 1, i + 1));
+        sample_ids.push_back(
+            sid(std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
     }
 
     // create phenotype
@@ -600,7 +603,8 @@ TEST_CASE(
     sample_ids.reserve(num_samples);
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
-        sample_ids.push_back(std::format("fam{}_sample{}", (i % 5) + 1, i + 1));
+        sample_ids.push_back(
+            sid(std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
     }
 
     // create phenotype
@@ -659,7 +663,8 @@ TEST_CASE(
     sample_ids.reserve(num_samples);
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
-        sample_ids.push_back(std::format("fam{}_sample{}", (i % 5) + 1, i + 1));
+        sample_ids.push_back(
+            sid(std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
     }
 
     Eigen::VectorXd pheno_values = Eigen::VectorXd::Random(num_samples);
