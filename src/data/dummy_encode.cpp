@@ -48,7 +48,7 @@ class DummyEncoder
     explicit DummyEncoder(const DataFrame<std::string>& frame)
         : frame_(&frame),
           n_rows_(static_cast<Eigen::Index>(frame_->nrows())),
-          n_data_cols_(frame_->ncols() - 1),
+          n_data_cols_(frame_->ncols()),
           col_meta_(n_data_cols_)
     {
     }

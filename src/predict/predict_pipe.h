@@ -14,27 +14,23 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_PREDICT_PREDICT_PIPE_H
-#define GELEX_PREDICT_PREDICT_PIPE_H
+#ifndef GELEX_PREDICT_PREDICT_PIPE_H_
+#define GELEX_PREDICT_PREDICT_PIPE_H_
 
 #include <filesystem>
+#include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
-#include "../src/data/loader/qcovariate_loader.h"
-#include "../src/predict/predict_dcovariate_loader.h"
+#include "gelex/data/dataframe.h"
 
 namespace gelex
 {
 class SampleManager;
-namespace detail
-{
-class QuantitativeCovariateLoader;
-class DcovarPredictLoader;
-}  // namespace detail
 
 struct PredictData
 {
@@ -56,8 +52,6 @@ class PredictDataPipe
         std::filesystem::path bed_path;
         std::filesystem::path qcovar_path;
         std::filesystem::path dcovar_path;
-
-        bool iid_only = false;
     };
 
     explicit PredictDataPipe(const Config& config);
@@ -80,21 +74,21 @@ class PredictDataPipe
     auto dcovariate_names() const -> const std::vector<std::string>&
     {
         return dcovariate_names_;
-    };
+    }
 
-    size_t num_qcovariates() const { return qcovariate_names_.size(); }
-    size_t num_dcovariates() const { return dcovariate_names_.size(); }
+    auto num_qcovariates() const -> size_t { return qcovariate_names_.size(); }
+    auto num_dcovariates() const -> size_t { return dcovariate_names_.size(); }
 
    private:
     auto load_qcovariates(const Config& config) -> void;
     auto load_dcovariates(const Config& config) -> void;
     auto load_genotype(const Config& config) -> void;
 
-    void intersect();
-    void format_dcovariates();
+    auto intersect() -> void;
+    auto format_dcovariates() -> void;
 
-    std::unique_ptr<detail::QuantitativeCovariateLoader> qcovar_loader_;
-    std::unique_ptr<detail::DcovarPredictLoader> dcovar_loader_;
+    std::optional<DataFrame<double>> qcovar_frame_;
+    std::optional<DataFrame<std::string>> dcovar_frame_;
     Eigen::MatrixXd qcovariates_;
     std::vector<std::string> qcovariate_names_;
     std::vector<std::string> sample_ids_;
@@ -107,4 +101,4 @@ class PredictDataPipe
 };
 
 }  // namespace gelex
-#endif  // GELEX_PREDICT_PREDICT_PIPE_H
+#endif  // GELEX_PREDICT_PREDICT_PIPE_H_

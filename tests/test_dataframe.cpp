@@ -69,7 +69,7 @@ TEST_CASE(
     auto frame = DataFrame<double>::read(path, policy);
 
     REQUIRE(frame.nrows() == 3);
-    REQUIRE(frame.ncols() == 3);
+    REQUIRE(frame.ncols() == 2);
     REQUIRE(frame.column(0).name() == "value_a");
     REQUIRE(frame.column(1).name() == "value_b");
     REQUIRE(frame.index_column().data()[0] == make_sample_id("f1", "s1"));
@@ -131,7 +131,7 @@ TEST_CASE(
     auto frame = DataFrame<double>::read(path);
 
     REQUIRE(frame.nrows() == 2);
-    REQUIRE(frame.ncols() == 3);
+    REQUIRE(frame.ncols() == 2);
     REQUIRE(frame.index_column().data()[0] == make_sample_id("f1", "s1"));
     REQUIRE(frame.index_column().data()[1] == make_sample_id("f4", "s4"));
     REQUIRE(frame.column(0).data()[0] == 1.5);
@@ -382,6 +382,68 @@ TEST_CASE("DataFrame column access validates bounds", "[data][dataframe]")
     auto frame = DataFrame<int>::read(path);
 
     REQUIRE_THROWS_AS(frame.column(1), gelex::ColumnRangeException);
+}
+
+TEST_CASE("DataFrame columns returns data column names", "[data][dataframe]")
+{
+    FileFixture files;
+    auto path = files.create_named_text_file(
+        "columns.csv",
+        "FID,IID,age,height\n"
+        "f1,i1,10,1\n"
+        "f2,i2,20,2\n");
+
+    auto frame = DataFrame<int>::read(path);
+    auto names = frame.columns();
+
+    REQUIRE(names.size() == 2);
+    REQUIRE(names[0] == "age");
+    REQUIRE(names[1] == "height");
+}
+
+TEST_CASE("DataFrame eigen materializes data matrix", "[data][dataframe]")
+{
+    FileFixture files;
+    auto path = files.create_named_text_file(
+        "eigen.csv",
+        "FID,IID,age,height\n"
+        "f1,i1,10,1.5\n"
+        "f2,i2,20,2.5\n"
+        "f3,i3,30,3.5\n");
+
+    auto frame = DataFrame<double>::read(path);
+    auto matrix = frame.eigen();
+
+    REQUIRE(matrix.rows() == 3);
+    REQUIRE(matrix.cols() == 2);
+    REQUIRE(matrix(0, 0) == 10.0);
+    REQUIRE(matrix(1, 0) == 20.0);
+    REQUIRE(matrix(2, 0) == 30.0);
+    REQUIRE(matrix(0, 1) == 1.5);
+    REQUIRE(matrix(1, 1) == 2.5);
+    REQUIRE(matrix(2, 1) == 3.5);
+}
+
+TEST_CASE("DataFrame eigen follows intersected row order", "[data][dataframe]")
+{
+    FileFixture files;
+    auto path = files.create_named_text_file(
+        "eigen_intersect.csv",
+        "FID,IID,value\n"
+        "fa,a,1\n"
+        "fb,b,2\n"
+        "fc,c,3\n");
+
+    auto frame = DataFrame<int>::read(path);
+    std::vector<std::string> keys
+        = {make_sample_id("fc", "c"), make_sample_id("fa", "a")};
+    frame.intersect_index_inplace(keys);
+
+    auto matrix = frame.eigen();
+    REQUIRE(matrix.rows() == 2);
+    REQUIRE(matrix.cols() == 1);
+    REQUIRE(matrix(0, 0) == 3);
+    REQUIRE(matrix(1, 0) == 1);
 }
 
 TEST_CASE("Column gather_inplace validates row bounds", "[data][dataframe]")

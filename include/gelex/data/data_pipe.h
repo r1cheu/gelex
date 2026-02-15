@@ -19,6 +19,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <variant>
@@ -28,6 +29,7 @@
 
 #include "../src/types/fixed_effects.h"
 #include "../src/types/freq_effect.h"
+#include "gelex/data/dataframe.h"
 #include "gelex/data/genotype_loader.h"
 #include "gelex/data/genotype_matrix.h"
 #include "gelex/data/genotype_method_dispatch.h"
@@ -39,9 +41,6 @@ namespace gelex
 {
 namespace detail
 {
-class PhenotypeLoader;
-class QuantitativeCovariateLoader;
-class DiscreteCovariateLoader;
 class GrmLoader;
 
 enum class TransformType : uint8_t
@@ -98,7 +97,6 @@ class DataPipe
         int chunk_size = 10000;
         std::filesystem::path qcovar_path;
         std::filesystem::path dcovar_path;
-        bool iid_only = false;
         std::string output_prefix;
         std::vector<std::filesystem::path> grm_paths;
         detail::TransformType transform_type = detail::TransformType::None;
@@ -114,31 +112,46 @@ class DataPipe
     DataPipe& operator=(DataPipe&&) noexcept;
     ~DataPipe();
 
-    PhenoStats load_phenotypes();
-    CovarStats load_covariates();
-    std::vector<GrmStats> load_grms();
-    GenotypeStats load_additive_matrix();
-    GenotypeStats load_dominance_matrix();
-    IntersectionStats intersect_samples();
+    auto load_phenotypes() -> PhenoStats;
+    auto load_covariates() -> CovarStats;
+    auto load_grms() -> std::vector<GrmStats>;
+    auto load_additive_matrix() -> GenotypeStats;
+    auto load_dominance_matrix() -> GenotypeStats;
+    auto intersect_samples() -> IntersectionStats;
 
-    void finalize();
+    auto finalize() -> void;
 
-    size_t num_genotype_samples() const { return num_genotype_samples_; }
+    auto num_genotype_samples() const -> size_t
+    {
+        return num_genotype_samples_;
+    }
 
-    std::shared_ptr<SampleManager> sample_manager() { return sample_manager_; }
+    auto sample_manager() -> std::shared_ptr<SampleManager>
+    {
+        return sample_manager_;
+    }
 
-    Eigen::VectorXd take_phenotype() && { return std::move(phenotype_); }
-    FixedEffect take_fixed_effects() && { return std::move(fixed_effects_); }
-    const FixedEffect& fixed_effects() const { return fixed_effects_; }
-    std::variant<GenotypeMap, GenotypeMatrix> take_additive_matrix() &&
+    auto take_phenotype() && -> Eigen::VectorXd
+    {
+        return std::move(phenotype_);
+    }
+    auto take_fixed_effects() && -> FixedEffect
+    {
+        return std::move(fixed_effects_);
+    }
+    auto fixed_effects() const -> const FixedEffect& { return fixed_effects_; }
+    auto take_additive_matrix() && -> std::variant<GenotypeMap, GenotypeMatrix>
     {
         return std::move(*additive_matrix_);
     }
-    std::variant<GenotypeMap, GenotypeMatrix> take_dominance_matrix() &&
+    auto take_dominance_matrix() && -> std::variant<GenotypeMap, GenotypeMatrix>
     {
         return std::move(*dominance_matrix_);
     }
-    bool has_dominance_matrix() const { return dominance_matrix_ != nullptr; }
+    auto has_dominance_matrix() const -> bool
+    {
+        return dominance_matrix_ != nullptr;
+    }
 
     auto take_grms() && -> std::vector<gelex::freq::GeneticEffect>
     {
@@ -149,7 +162,8 @@ class DataPipe
     DataPipe() = default;
 
     template <GenotypeProcessor Processor, typename TargetPtr>
-    void load_genotype_impl(const std::string& suffix, TargetPtr& target)
+    auto load_genotype_impl(const std::string& suffix, TargetPtr& target)
+        -> void
     {
         auto assign_to_target = [&](auto&& result_value)
         {
@@ -179,9 +193,10 @@ class DataPipe
     Config config_;
     size_t num_genotype_samples_;
 
-    std::unique_ptr<detail::PhenotypeLoader> phenotype_loader_;
-    std::unique_ptr<detail::QuantitativeCovariateLoader> qcovar_loader_;
-    std::unique_ptr<detail::DiscreteCovariateLoader> dcovar_loader_;
+    std::optional<DataFrame<double>> phenotype_frame_;
+    std::optional<DataFrame<double>> qcovar_frame_;
+    std::optional<DataFrame<std::string>> dcovar_frame_;
+    std::string phenotype_name_;
 
     Eigen::VectorXd phenotype_;
     FixedEffect fixed_effects_;
@@ -195,7 +210,8 @@ class DataPipe
     std::vector<detail::GrmLoader> grm_loaders_;
     std::vector<gelex::freq::GeneticEffect> grms_;
 
-    void apply_phenotype_transform(detail::TransformType type, double offset);
+    auto apply_phenotype_transform(detail::TransformType type, double offset)
+        -> void;
 };
 
 }  // namespace gelex

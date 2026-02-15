@@ -77,7 +77,6 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
         .chunk_size = cmd.get<int>("--chunk-size"),
         .qcovar_path = cmd.get("--qcovar"),
         .dcovar_path = cmd.get("--dcovar"),
-        .iid_only = cmd.get<bool>("--iid-only"),
         .output_prefix = cmd.get("--out"),
         .grm_paths = grm_paths,
         .transform_type = transform_type,

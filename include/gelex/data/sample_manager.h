@@ -32,9 +32,7 @@ namespace gelex
 class SampleManager
 {
    public:
-    explicit SampleManager(
-        const std::filesystem::path& fam_path,
-        bool iid_only = false);
+    explicit SampleManager(const std::filesystem::path& fam_path);
 
     SampleManager(const SampleManager&) = delete;
     SampleManager(SampleManager&&) noexcept = default;
@@ -46,9 +44,8 @@ class SampleManager
 
     void finalize();
 
-    static auto create_finalized(
-        const std::filesystem::path& bed_path,
-        bool iid_only = false) -> std::shared_ptr<SampleManager>;
+    static auto create_finalized(const std::filesystem::path& bed_path)
+        -> std::shared_ptr<SampleManager>;
 
     [[nodiscard]] const std::vector<std::string>& common_ids() const
     {

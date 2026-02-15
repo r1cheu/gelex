@@ -42,7 +42,6 @@ class PredictEngine
         std::filesystem::path qcovar_path;
         std::filesystem::path dcovar_path;
         std::filesystem::path output_path;
-        bool iid_only = false;
 
         void validate() const;
     };

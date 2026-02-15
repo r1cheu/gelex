@@ -29,7 +29,7 @@ namespace gelex
 class PredictWriter
 {
    public:
-    PredictWriter(const std::filesystem::path& output_path, bool iid_only);
+    explicit PredictWriter(const std::filesystem::path& output_path);
 
     void write(
         const Eigen::Ref<Eigen::VectorXd>& predictions,
@@ -61,7 +61,6 @@ class PredictWriter
     void write_id(std::ostream& stream, std::string_view sample_id) const;
 
     std::filesystem::path output_path_;
-    bool iid_only_ = false;
 };
 
 }  // namespace gelex

@@ -44,9 +44,7 @@ TEST_CASE("FamLoader - Valid .fam file loading", "[data][loader]")
 {
     FileFixture files;
 
-    SECTION(
-        "Happy path - Load valid .fam file with multiple samples "
-        "(iid_only=false)")
+    SECTION("Happy path - Load valid .fam file with multiple samples")
     {
         const auto* fam_content = R"(1 sample1 0 0 1 2.5
 2 sample2 0 0 2 1.8
@@ -58,7 +56,7 @@ TEST_CASE("FamLoader - Valid .fam file loading", "[data][loader]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                FamLoader loader(file_path, false);
+                FamLoader loader(file_path);
 
                 const auto& ids = loader.ids();
                 const auto& data = loader.data();
@@ -87,47 +85,6 @@ TEST_CASE("FamLoader - Valid .fam file loading", "[data][loader]")
             }());
     }
 
-    SECTION(
-        "Happy path - Load valid .fam file with multiple samples "
-        "(iid_only=true)")
-    {
-        const auto* fam_content = R"(1 sample1 0 0 1 2.5
-2 sample2 0 0 2 1.8
-3 sample3 1 2 1 3.2
-4 sample4 3 4 2 2.1
-)";
-        auto file_path = files.create_text_file(fam_content, ".fam");
-
-        REQUIRE_NOTHROW(
-            [&]()
-            {
-                FamLoader loader(file_path, true);
-
-                const auto& ids = loader.ids();
-                const auto& data = loader.data();
-
-                REQUIRE(ids.size() == 4);
-                REQUIRE(data.size() == 4);
-
-                // Verify IDs are just IID format
-                REQUIRE(ids[0] == "sample1");
-                REQUIRE(ids[1] == "sample2");
-                REQUIRE(ids[2] == "sample3");
-                REQUIRE(ids[3] == "sample4");
-
-                // Verify index mapping
-                REQUIRE(data.at("sample1") == 0);
-                REQUIRE(data.at("sample2") == 1);
-                REQUIRE(data.at("sample3") == 2);
-                REQUIRE(data.at("sample4") == 3);
-                for (Eigen::Index i = 0;
-                     i < static_cast<Eigen::Index>(ids.size());
-                     ++i)
-                {
-                    REQUIRE(data.at(ids[i]) == i);
-                }
-            }());
-    }
 }
 
 TEST_CASE("FamLoader - Error conditions", "[data][loader][error]")
@@ -140,7 +97,7 @@ TEST_CASE("FamLoader - Error conditions", "[data][loader][error]")
         auto file_path = files.create_text_file(malformed_content, ".fam");
 
         REQUIRE_THROWS_MATCHES(
-            FamLoader(file_path, false),
+            FamLoader(file_path),
             gelex::FileFormatException,
             Catch::Matchers::MessageMatches(
                 EndsWith("failed to parse FID and IID (missing delimiter)")));
@@ -159,7 +116,7 @@ TEST_CASE("FamLoader - Method functionality", "[data][loader][methods]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        FamLoader loader(file_path, false);
+        FamLoader loader(file_path);
 
         // Before move
         const auto& original_ids = loader.ids();
@@ -186,7 +143,7 @@ TEST_CASE("FamLoader - Edge cases", "[data][loader][edge]")
     {
         const auto* fam_content = "1 sample1 0 0 1 2.5\n";
         auto file_path = files.create_text_file(fam_content, ".fam");
-        REQUIRE_NOTHROW(FamLoader(file_path, true));
+        REQUIRE_NOTHROW(FamLoader(file_path));
     }
 
     SECTION("Edge case - .fam file with tab delimiter (should succeed)")
@@ -197,7 +154,7 @@ TEST_CASE("FamLoader - Edge cases", "[data][loader][edge]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                FamLoader loader(file_path, false);
+                FamLoader loader(file_path);
                 REQUIRE(loader.ids().size() == 1);
                 REQUIRE(loader.ids()[0] == sid("1", "sample1"));
             }());

@@ -28,11 +28,9 @@
 namespace gelex
 {
 
-SampleManager::SampleManager(
-    const std::filesystem::path& fam_path,
-    bool iid_only)
+SampleManager::SampleManager(const std::filesystem::path& fam_path)
 {
-    detail::FamLoader fam_loader(fam_path, iid_only);
+    detail::FamLoader fam_loader(fam_path);
 
     common_ids_ = std::move(fam_loader).take_ids();
 
@@ -76,12 +74,11 @@ void SampleManager::finalize()
     }
 }
 
-auto SampleManager::create_finalized(
-    const std::filesystem::path& bed_path,
-    bool iid_only) -> std::shared_ptr<SampleManager>
+auto SampleManager::create_finalized(const std::filesystem::path& bed_path)
+    -> std::shared_ptr<SampleManager>
 {
     auto fam_path = std::filesystem::path(bed_path).replace_extension(".fam");
-    auto manager = std::make_shared<SampleManager>(fam_path, iid_only);
+    auto manager = std::make_shared<SampleManager>(fam_path);
     manager->finalize();
     return manager;
 }

@@ -33,7 +33,6 @@ int predict_execute(argparse::ArgumentParser& predict)
     config.qcovar_path = predict.get("--qcovar");
     config.dcovar_path = predict.get("--dcovar");
     config.output_path = predict.get("--out");
-    config.iid_only = predict.get<bool>("--iid-only");
 
     try
     {

@@ -44,7 +44,7 @@ TEST_CASE("SampleManager - Construction and basic functionality", "[data]")
 {
     FileFixture files;
 
-    SECTION("Happy path - Construct with valid .fam file (iid_only=false)")
+    SECTION("Happy path - Construct with valid .fam file")
     {
         const auto* fam_content = R"(1 sample1 0 0 1 2.5
 3 sample3 1 2 1 3.2
@@ -56,7 +56,7 @@ TEST_CASE("SampleManager - Construction and basic functionality", "[data]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                SampleManager manager(file_path, false);
+                SampleManager manager(file_path);
 
                 // Verify basic properties
                 REQUIRE(manager.num_common_samples() == 4);
@@ -76,37 +76,6 @@ TEST_CASE("SampleManager - Construction and basic functionality", "[data]")
             }());
     }
 
-    SECTION("Happy path - Construct with valid .fam file (iid_only=true)")
-    {
-        const auto* fam_content = R"(1 sample1 0 0 1 2.5
-3 sample3 1 2 1 3.2
-2 sample2 0 0 2 1.8
-4 sample4 3 4 2 2.1
-)";
-        auto file_path = files.create_text_file(fam_content, ".fam");
-
-        REQUIRE_NOTHROW(
-            [&]()
-            {
-                SampleManager manager(file_path, true);
-
-                // Verify basic properties
-                REQUIRE(manager.num_common_samples() == 4);
-                REQUIRE(manager.has_common_samples() == true);
-
-                const auto& ids = manager.common_ids();
-                REQUIRE(ids.size() == 4);
-
-                // IDs should be sorted and just IID format
-                REQUIRE(ids[0] == "sample1");
-                REQUIRE(ids[1] == "sample2");
-                REQUIRE(ids[2] == "sample3");
-                REQUIRE(ids[3] == "sample4");
-
-                // common_id_map should be empty before finalize()
-                REQUIRE(manager.common_id_map().empty());
-            }());
-    }
 }
 
 TEST_CASE("SampleManager - intersect() method", "[data]")
@@ -122,7 +91,7 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Intersect with IDs that partially overlap
         std::vector<std::string> intersect_ids = {
@@ -150,7 +119,7 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Intersect with all existing IDs
         std::vector<std::string> intersect_ids
@@ -175,7 +144,7 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Intersect with IDs that don't exist
         std::vector<std::string> intersect_ids
@@ -197,7 +166,7 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Initial state
         REQUIRE(manager.num_common_samples() == 2);
@@ -221,7 +190,7 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
 2 sample2 0 0 2 1.8
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Clear samples by intersecting with empty list
         std::vector<std::string> empty_ids = {};
@@ -252,7 +221,7 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Intersect with IDs in unsorted order
         std::vector<std::string> intersect_ids
@@ -282,7 +251,7 @@ TEST_CASE("SampleManager - finalize() method", "[data]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Before finalize()
         REQUIRE(manager.common_id_map().empty());
@@ -316,7 +285,7 @@ TEST_CASE("SampleManager - finalize() method", "[data]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Intersect first
         std::vector<std::string> intersect_ids
@@ -346,7 +315,7 @@ TEST_CASE("SampleManager - finalize() method", "[data]")
 2 sample2 0 0 2 1.8
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Clear samples by intersecting with empty list
         std::vector<std::string> empty_ids = {};
@@ -371,7 +340,7 @@ TEST_CASE("SampleManager - finalize() method", "[data]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // First finalize()
         manager.finalize();
@@ -407,7 +376,7 @@ TEST_CASE("SampleManager - Integration tests", "[data]")
         auto file_path = files.create_text_file(fam_content, ".fam");
 
         // 1. Construct
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
         REQUIRE(manager.num_common_samples() == 5);
 
         // 2. Intersect
@@ -439,35 +408,4 @@ TEST_CASE("SampleManager - Integration tests", "[data]")
         REQUIRE(id_map.at(sid("5", "sample5")) == 2);
     }
 
-    SECTION("Edge case - Workflow with iid_only=true")
-    {
-        const auto* fam_content = R"(1 sample1 0 0 1 2.5
-2 sample2 0 0 2 1.8
-3 sample3 1 2 1 3.2
-)";
-        auto file_path = files.create_text_file(fam_content, ".fam");
-
-        // Construct with iid_only=true
-        SampleManager manager(file_path, true);
-        REQUIRE(manager.num_common_samples() == 3);
-
-        // Intersect with IIDs
-        std::vector<std::string> intersect_ids = {"sample2", "sample3"};
-        manager.intersect(intersect_ids);
-        REQUIRE(manager.num_common_samples() == 2);
-
-        // Finalize
-        manager.finalize();
-
-        // Verify
-        const auto& ids = manager.common_ids();
-        REQUIRE(ids.size() == 2);
-        REQUIRE(ids[0] == "sample2");
-        REQUIRE(ids[1] == "sample3");
-
-        const auto& id_map = manager.common_id_map();
-        REQUIRE(id_map.size() == 2);
-        REQUIRE(id_map.at("sample2") == 0);
-        REQUIRE(id_map.at("sample3") == 1);
-    }
 }

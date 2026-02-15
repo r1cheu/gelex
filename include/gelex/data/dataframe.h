@@ -19,14 +19,18 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstring>
 #include <filesystem>
 #include <format>
 #include <span>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+#include <Eigen/Core>
 
 #include "gelex/data/column.h"
 #include "gelex/data/dataframe_policy.h"
@@ -67,6 +71,16 @@ class DataFrame
     [[nodiscard]] auto index_column() const -> const Column<std::string>&;
 
     [[nodiscard]] auto column(size_t i) const -> const Column<T>&;
+
+    [[nodiscard]] auto columns() const -> std::vector<std::string>;
+
+    [[nodiscard]] auto eigen() const
+        -> Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>
+        requires(std::is_arithmetic_v<T>);
+
+    auto eigen() const -> void
+        requires(!std::is_arithmetic_v<T>)
+    = delete;
 
    private:
     auto initialize_columns(std::vector<std::string> names) -> void;
@@ -162,7 +176,7 @@ auto DataFrame<T>::nrows() const -> size_t
 template <typename T>
 auto DataFrame<T>::ncols() const -> size_t
 {
-    return columns_.size() + 1;
+    return columns_.size();
 }
 
 template <typename T>
@@ -180,6 +194,59 @@ auto DataFrame<T>::column(size_t i) const -> const Column<T>&
     }
 
     return columns_[i];
+}
+
+template <typename T>
+auto DataFrame<T>::columns() const -> std::vector<std::string>
+{
+    std::vector<std::string> names;
+    names.reserve(columns_.size());
+    for (const auto& column : columns_)
+    {
+        names.push_back(column.name());
+    }
+
+    return names;
+}
+
+template <typename T>
+auto DataFrame<T>::eigen() const
+    -> Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>
+    requires(std::is_arithmetic_v<T>)
+{
+    const auto rows = static_cast<Eigen::Index>(nrows());
+    const auto cols = static_cast<Eigen::Index>(columns_.size());
+
+    Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> matrix(rows, cols);
+    if (rows == 0 || cols == 0)
+    {
+        return matrix;
+    }
+
+    for (Eigen::Index col = 0; col < cols; ++col)
+    {
+        const auto& values = columns_[static_cast<size_t>(col)].data();
+        if (values.size() != static_cast<size_t>(rows))
+        {
+            throw InvalidOperationException(
+                std::format(
+                    "column '{}' size mismatch",
+                    columns_[static_cast<size_t>(col)].name()));
+        }
+
+        auto* dst = matrix.col(col).data();
+        if constexpr (std::is_trivially_copyable_v<T>)
+        {
+            std::memcpy(
+                dst, values.data(), static_cast<size_t>(rows) * sizeof(T));
+        }
+        else
+        {
+            std::copy_n(values.begin(), static_cast<size_t>(rows), dst);
+        }
+    }
+
+    return matrix;
 }
 
 template <typename T>

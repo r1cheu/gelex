@@ -30,11 +30,11 @@
 namespace gelex::detail
 {
 
-FamLoader::FamLoader(const std::filesystem::path& path, bool iid_only)
+FamLoader::FamLoader(const std::filesystem::path& path)
 {
     try
     {
-        set_ids(path, iid_only);
+        set_ids(path);
         set_index_map();
     }
     catch (const GelexException& e)
@@ -44,7 +44,7 @@ FamLoader::FamLoader(const std::filesystem::path& path, bool iid_only)
     }
 }
 
-void FamLoader::set_ids(const std::filesystem::path& path, bool iid_only)
+void FamLoader::set_ids(const std::filesystem::path& path)
 {
     ids_.clear();
     auto file = detail::open_file<std::ifstream>(path, std::ios::in);
@@ -63,7 +63,7 @@ void FamLoader::set_ids(const std::filesystem::path& path, bool iid_only)
         }
         try
         {
-            ids_.emplace_back(parse_id(line, iid_only, delimiter));
+            ids_.emplace_back(parse_id(line, delimiter));
         }
         catch (const GelexException& e)
         {

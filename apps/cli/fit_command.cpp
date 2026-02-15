@@ -253,7 +253,6 @@ int fit_execute(argparse::ArgumentParser& fit)
         .chunk_size = fit.get<int>("--chunk-size"),
         .qcovar_path = fit.get("--qcovar"),
         .dcovar_path = fit.get("--dcovar"),
-        .iid_only = fit.get<bool>("--iid-only"),
         .output_prefix = fit.get("--out"),
         .genotype_method = genotype_process_method};
 

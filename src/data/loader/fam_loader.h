@@ -33,7 +33,7 @@ namespace gelex::detail
 class FamLoader
 {
    public:
-    explicit FamLoader(const std::filesystem::path& path, bool iid_only);
+    explicit FamLoader(const std::filesystem::path& path);
 
     const std::vector<std::string>& ids() const { return ids_; }
     const std::unordered_map<std::string, Eigen::Index>& data() const
@@ -43,7 +43,7 @@ class FamLoader
     std::vector<std::string>&& take_ids() && { return std::move(ids_); }
 
    private:
-    void set_ids(const std::filesystem::path& path, bool iid_only);
+    void set_ids(const std::filesystem::path& path);
     void set_index_map();
     std::vector<std::string> ids_;
     std::unordered_map<std::string, Eigen::Index> data_;

@@ -78,9 +78,6 @@ void setup_assoc_args(argparse::ArgumentParser& cmd)
         .help("SNPs per chunk for association testing")
         .default_value(10000)
         .scan<'i', int>();
-    cmd.add_argument("--iid-only")
-        .help("Use only IID for sample matching (ignore FID)")
-        .flag();
     cmd.add_argument("--loco")
         .help("Enable Leave-One-Chromosome-Out (LOCO) mode")
         .flag();

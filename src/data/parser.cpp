@@ -84,7 +84,7 @@ parse_nth_double(std::string_view line, size_t column_index, char delimiter)
         std::format("column {} is out of range", column_index));
 }
 
-std::string parse_id(std::string_view line, bool iid_only, char delimiter)
+std::string parse_id(std::string_view line, char delimiter)
 {
     auto parts = line | std::views::split(delimiter) | std::views::take(2);
     auto it = parts.begin();
@@ -102,10 +102,6 @@ std::string parse_id(std::string_view line, bool iid_only, char delimiter)
             "failed to parse FID and IID (missing delimiter)");
     }
     std::string_view iid(*it);
-    if (iid_only)
-    {
-        return std::string(iid);
-    }
     return make_sample_id(fid, iid);
 }
 

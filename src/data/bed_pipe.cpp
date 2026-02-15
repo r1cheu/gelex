@@ -51,7 +51,7 @@ BedPipe::BedPipe(
         = static_cast<Eigen::Index>(detail::count_total_lines(bim_path));
 
     std::unique_ptr<detail::FamLoader> fam_loader
-        = std::make_unique<detail::FamLoader>(fam_path, false);
+        = std::make_unique<detail::FamLoader>(fam_path);
 
     const auto& raw_ids = fam_loader->ids();
     num_raw_samples_ = static_cast<Eigen::Index>(raw_ids.size());

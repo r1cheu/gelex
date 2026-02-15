@@ -97,8 +97,7 @@ TEST_CASE(
         .covar_effect_path = param_path,
         .qcovar_path = "",
         .dcovar_path = "",
-        .output_path = "test.predictions",
-        .iid_only = false};
+        .output_path = "test.predictions"};
 
     PredictEngine engine(config);
     REQUIRE_NOTHROW(engine.run());
@@ -182,8 +181,7 @@ TEST_CASE(
         .covar_effect_path = param_path,
         .qcovar_path = qcovar_path.string(),
         .dcovar_path = "",
-        .output_path = "test.predictions",
-        .iid_only = false};
+        .output_path = "test.predictions"};
 
     PredictEngine engine(config);
     REQUIRE_NOTHROW(engine.run());
@@ -274,8 +272,7 @@ TEST_CASE(
         .covar_effect_path = param_path,
         .qcovar_path = "",
         .dcovar_path = dcovar_path.string(),
-        .output_path = "test.predictions",
-        .iid_only = false};
+        .output_path = "test.predictions"};
 
     PredictEngine engine(config);
     REQUIRE_NOTHROW(engine.run());
@@ -349,8 +346,7 @@ TEST_CASE(
         .covar_effect_path = param_path,
         .qcovar_path = qcovar_path.string(),
         .dcovar_path = dcovar_path.string(),
-        .output_path = "test.predictions",
-        .iid_only = false};
+        .output_path = "test.predictions"};
 
     PredictEngine engine(config);
     REQUIRE_NOTHROW(engine.run());
@@ -418,8 +414,7 @@ TEST_CASE(
         .covar_effect_path = param_path,
         .qcovar_path = "",
         .dcovar_path = "",
-        .output_path = "test.predictions",
-        .iid_only = false};
+        .output_path = "test.predictions"};
 
     PredictEngine engine(config);
     REQUIRE_NOTHROW(engine.run());
@@ -465,50 +460,6 @@ TEST_CASE(
     }
 }
 
-TEST_CASE("PredictEngine - iid_only mode", "[predict][predict_engine][mode]")
-{
-    PredictEngineTestFixture fixture;
-
-    Eigen::MatrixXd genotypes(2, 2);
-    genotypes << 0.0, 1.0, 1.0, 2.0;
-
-    std::vector<std::string> snp_ids = {"rs1", "rs2"};
-    std::vector<std::pair<char, char>> alleles = {{'A', 'C'}, {'T', 'G'}};
-    std::vector<std::vector<std::string>> snp_rows
-        = {{"1", "1000", "rs1", "A", "C", "0.30", "0.10"},
-           {"1", "2000", "rs2", "T", "G", "0.40", "-0.05"}};
-
-    auto [bed_prefix, _] = fixture.create_deterministic_bed_files(
-        genotypes,
-        {"sample1", "sample2"},
-        snp_ids,
-        std::vector<std::string>(snp_ids.size(), "1"),
-        alleles);
-
-    auto snp_path = fixture.create_snp_effects_file(snp_rows, false);
-    auto param_path = fixture.create_param_intercept_only(1.0);
-
-    PredictEngine::Config config{
-        .bed_path = bed_prefix,
-        .snp_effect_path = snp_path,
-        .covar_effect_path = param_path,
-        .qcovar_path = "",
-        .dcovar_path = "",
-        .output_path = "test.predictions",
-        .iid_only = true};
-
-    PredictEngine engine(config);
-    REQUIRE_NOTHROW(engine.run());
-
-    const auto& sample_ids = engine.sample_ids();
-    REQUIRE(sample_ids.size() == 2);
-
-    for (size_t i = 0; i < sample_ids.size(); ++i)
-    {
-        REQUIRE(sample_ids[i].find('_') == std::string::npos);
-    }
-}
-
 TEST_CASE("PredictEngine - Error handling", "[predict][predict_engine][error]")
 {
     PredictEngineTestFixture fixture;
@@ -544,8 +495,7 @@ TEST_CASE("PredictEngine - Error handling", "[predict][predict_engine][error]")
             .covar_effect_path = param_path,
             .qcovar_path = "",
             .dcovar_path = "",
-            .output_path = "",
-            .iid_only = false};
+            .output_path = ""};
 
         REQUIRE_THROWS_AS(PredictEngine(config), InvalidInputException);
     }
@@ -561,8 +511,7 @@ TEST_CASE("PredictEngine - Error handling", "[predict][predict_engine][error]")
             .covar_effect_path = param_path,
             .qcovar_path = qcovar_path.string(),
             .dcovar_path = "",
-            .output_path = "test.predictions",
-            .iid_only = false};
+            .output_path = "test.predictions"};
 
         PredictEngine engine(config);
         REQUIRE_THROWS_AS(engine.run(), InvalidInputException);
@@ -581,8 +530,7 @@ TEST_CASE("PredictEngine - Error handling", "[predict][predict_engine][error]")
             .covar_effect_path = param_no_f,
             .qcovar_path = "",
             .dcovar_path = dcovar_path.string(),
-            .output_path = "test.predictions",
-            .iid_only = false};
+            .output_path = "test.predictions"};
 
         PredictEngine engine(config);
         REQUIRE_THROWS_AS(engine.run(), InvalidInputException);

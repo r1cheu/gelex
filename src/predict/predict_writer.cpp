@@ -45,10 +45,8 @@ void write_prediction_impl(
 
 }  // namespace
 
-PredictWriter::PredictWriter(
-    const std::filesystem::path& output_path,
-    bool iid_only)
-    : output_path_(output_path), iid_only_(iid_only)
+PredictWriter::PredictWriter(const std::filesystem::path& output_path)
+    : output_path_(output_path)
 {
     if (output_path_.empty())
     {
@@ -61,11 +59,7 @@ void PredictWriter::write_header(
     std::span<const std::string> covar_names,
     bool has_dom) const
 {
-    if (!iid_only_)
-    {
-        stream << "FID\t";
-    }
-    stream << "IID\tprediction";
+    stream << "FID\tIID\tprediction";
 
     for (const auto& name : covar_names)
     {
@@ -104,15 +98,8 @@ void PredictWriter::write_prediction(
 void PredictWriter::write_id(std::ostream& stream, std::string_view sample_id)
     const
 {
-    if (iid_only_)
-    {
-        stream << sample_id;
-    }
-    else
-    {
-        auto [fid, iid] = split_sample_id(sample_id);
-        stream << fid << '\t' << iid;
-    }
+    auto [fid, iid] = split_sample_id(sample_id);
+    stream << fid << '\t' << iid;
 }
 
 void PredictWriter::write(

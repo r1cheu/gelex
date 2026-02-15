@@ -57,9 +57,6 @@ void setup_predict_args(argparse::ArgumentParser& cmd)
     // Processing Options
     // ================================================================
     cmd.add_group("Processing Options");
-    cmd.add_argument("--iid-only")
-        .help("Use only IID for sample matching (ignore FID)")
-        .flag();
     cmd.add_argument("-c", "--chunk-size")
         .help("SNPs per chunk (controls memory usage)")
         .default_value(10000)

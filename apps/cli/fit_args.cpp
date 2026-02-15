@@ -60,9 +60,6 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
         .help("SNPs per chunk (controls memory usage)")
         .default_value(10000)
         .scan<'i', int>();
-    cmd.add_argument("--iid-only")
-        .help("Use only IID for sample matching (ignore FID)")
-        .flag();
     cmd.add_argument("--geno-method")
         .help(
             "Genotype processing method: standardize|center|"

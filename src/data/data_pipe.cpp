@@ -16,22 +16,23 @@
 
 #include "gelex/data/data_pipe.h"
 
+#include <algorithm>
 #include <filesystem>
+#include <format>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
 #include "../src/utils/phenotype_transformer.h"
+#include "gelex/data/dummy_encode.h"
 #include "gelex/data/genotype_processor.h"
 #include "gelex/data/sample_manager.h"
 #include "gelex/exception.h"
 #include "gelex/logger.h"
 #include "grm_loader.h"
-#include "loader/dcovariate_loader.h"
-#include "loader/phenotype_loader.h"
-#include "loader/qcovariate_loader.h"
 #include "types/fixed_effects.h"
 #include "utils/formatter.h"
 
@@ -76,38 +77,49 @@ DataPipe::DataPipe(const Config& config) : config_(config)
     num_genotype_samples_ = sample_manager_->num_common_samples();
 }
 
-PhenoStats DataPipe::load_phenotypes()
+auto DataPipe::load_phenotypes() -> PhenoStats
 {
     if (config_.phenotype_path.empty())
     {
         throw ArgumentValidationException("Phenotype file path is required.");
     }
 
-    phenotype_loader_ = std::make_unique<detail::PhenotypeLoader>(
-        config_.phenotype_path, config_.phenotype_column, config_.iid_only);
+    auto frame = DataFrame<double>::read(config_.phenotype_path);
+
+    if (config_.phenotype_column < 2
+        || static_cast<size_t>(config_.phenotype_column - 2) >= frame.ncols())
+    {
+        throw ColumnRangeException(
+            std::format(
+                "Phenotype column {} is out of range",
+                config_.phenotype_column));
+    }
+
+    phenotype_name_
+        = frame.column(static_cast<size_t>(config_.phenotype_column - 2))
+              .name();
+    phenotype_frame_ = std::move(frame);
 
     return PhenoStats{
-        .samples_loaded = phenotype_loader_->sample_ids().size(),
-        .trait_name = phenotype_loader_->name()};
+        .samples_loaded = phenotype_frame_->nrows(),
+        .trait_name = phenotype_name_};
 }
 
-CovarStats DataPipe::load_covariates()
+auto DataPipe::load_covariates() -> CovarStats
 {
     std::vector<std::string> q_names;
     std::vector<std::string> d_names;
 
     if (!config_.qcovar_path.empty())
     {
-        qcovar_loader_ = std::make_unique<detail::QuantitativeCovariateLoader>(
-            config_.qcovar_path, config_.iid_only);
-        q_names = qcovar_loader_->column_names();
+        qcovar_frame_ = DataFrame<double>::read(config_.qcovar_path);
+        q_names = qcovar_frame_->columns();
     }
 
     if (!config_.dcovar_path.empty())
     {
-        dcovar_loader_ = std::make_unique<detail::DiscreteCovariateLoader>(
-            config_.dcovar_path, config_.iid_only);
-        d_names = dcovar_loader_->column_names();
+        dcovar_frame_ = DataFrame<std::string>::read(config_.dcovar_path);
+        d_names = dcovar_frame_->columns();
     }
 
     return CovarStats{
@@ -134,29 +146,26 @@ auto DataPipe::load_grms() -> std::vector<GrmStats>
     return grm_stats;
 }
 
-IntersectionStats DataPipe::intersect_samples()
+auto DataPipe::intersect_samples() -> IntersectionStats
 {
     size_t total_before = sample_manager_->num_common_samples();
 
-    if (phenotype_loader_)
+    if (phenotype_frame_)
     {
-        total_before
-            = std::max(total_before, phenotype_loader_->sample_ids().size());
-        sample_manager_->intersect(phenotype_loader_->sample_ids());
+        total_before = std::max(total_before, phenotype_frame_->nrows());
+        sample_manager_->intersect(phenotype_frame_->index_column().data());
     }
 
-    if (qcovar_loader_)
+    if (qcovar_frame_)
     {
-        total_before
-            = std::max(total_before, qcovar_loader_->sample_ids().size());
-        sample_manager_->intersect(qcovar_loader_->sample_ids());
+        total_before = std::max(total_before, qcovar_frame_->nrows());
+        sample_manager_->intersect(qcovar_frame_->index_column().data());
     }
 
-    if (dcovar_loader_)
+    if (dcovar_frame_)
     {
-        total_before
-            = std::max(total_before, dcovar_loader_->sample_ids().size());
-        sample_manager_->intersect(dcovar_loader_->sample_ids());
+        total_before = std::max(total_before, dcovar_frame_->nrows());
+        sample_manager_->intersect(dcovar_frame_->index_column().data());
     }
 
     for (const auto& grm_loader : grm_loaders_)
@@ -176,7 +185,7 @@ IntersectionStats DataPipe::intersect_samples()
         .excluded_samples = total_before - common};
 }
 
-GenotypeStats DataPipe::load_additive_matrix()
+auto DataPipe::load_additive_matrix() -> GenotypeStats
 {
     auto load_additive_processor = [&]<typename MethodBundle>() -> void
     {
@@ -190,7 +199,7 @@ GenotypeStats DataPipe::load_additive_matrix()
     return collect_genotype_stats(additive_matrix_);
 }
 
-GenotypeStats DataPipe::load_dominance_matrix()
+auto DataPipe::load_dominance_matrix() -> GenotypeStats
 {
     auto load_dominance_processor = [&]<typename MethodBundle>() -> void
     {
@@ -204,24 +213,48 @@ GenotypeStats DataPipe::load_dominance_matrix()
     return collect_genotype_stats(dominance_matrix_);
 }
 
-void DataPipe::finalize()
+auto DataPipe::finalize() -> void
 {
+    const auto& common_ids = sample_manager_->common_ids();
     const auto& id_map = sample_manager_->common_id_map();
 
-    phenotype_ = phenotype_loader_ ? phenotype_loader_->load(id_map)
-                                   : Eigen::VectorXd::Zero();
+    if (phenotype_frame_)
+    {
+        auto aligned = *phenotype_frame_;
+        aligned.intersect_index_inplace(common_ids);
+
+        const auto& values
+            = aligned.column(static_cast<size_t>(config_.phenotype_column - 2))
+                  .data();
+        phenotype_ = Eigen::Map<const Eigen::VectorXd>(
+            values.data(), static_cast<Eigen::Index>(values.size()));
+    }
+    else
+    {
+        phenotype_ = Eigen::VectorXd::Zero();
+    }
 
     std::optional<QuantitativeCovariate> qcov;
     std::optional<DiscreteCovariate> dcov;
 
-    if (qcovar_loader_)
+    if (qcovar_frame_)
     {
-        qcov = qcovar_loader_->load(id_map);
+        auto aligned = *qcovar_frame_;
+        aligned.intersect_index_inplace(common_ids);
+
+        auto qcov_matrix = aligned.eigen();
+        auto names = aligned.columns();
+
+        qcov = QuantitativeCovariate{
+            .names = std::move(names), .X = std::move(qcov_matrix)};
     }
 
-    if (dcovar_loader_)
+    if (dcovar_frame_)
     {
-        dcov = dcovar_loader_->load(id_map);
+        auto aligned = *dcovar_frame_;
+        aligned.intersect_index_inplace(common_ids);
+
+        dcov = DummyEncode(aligned);
     }
     if (!dcov && !qcov)
     {
@@ -240,9 +273,9 @@ void DataPipe::finalize()
     apply_phenotype_transform(config_.transform_type, config_.int_offset);
 }
 
-void DataPipe::apply_phenotype_transform(
+auto DataPipe::apply_phenotype_transform(
     detail::TransformType type,
-    double offset)
+    double offset) -> void
 {
     if (type == detail::TransformType::None)
     {

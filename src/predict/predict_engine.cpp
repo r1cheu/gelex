@@ -80,8 +80,7 @@ void PredictEngine::load_data()
     PredictDataPipe::Config data_config{
         .bed_path = config_.bed_path,
         .qcovar_path = config_.qcovar_path,
-        .dcovar_path = config_.dcovar_path,
-        .iid_only = config_.iid_only};
+        .dcovar_path = config_.dcovar_path};
 
     PredictDataPipe data_pipe(data_config);
     data_ = std::move(data_pipe).take_data();
@@ -124,7 +123,7 @@ void PredictEngine::compute()
 
 void PredictEngine::write()
 {
-    PredictWriter writer(config_.output_path, config_.iid_only);
+    PredictWriter writer(config_.output_path);
     writer.write(
         predictions_,
         sample_ids_,
