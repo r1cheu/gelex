@@ -23,7 +23,7 @@
 #include <vector>
 
 #include "cli_helper.h"
-#include "gelex/data/bed_pipe.h"
+#include "gelex/data/bed_path.h"
 #include "gelex/data/simulate.h"
 #include "gelex/exception.h"
 #include "gelex/logger.h"
@@ -60,8 +60,7 @@ auto parse_effect_classes(
 int simulate_execute(argparse::ArgumentParser& sim)
 {
     auto logger = gelex::logging::get();
-    std::filesystem::path bed
-        = gelex::BedPipe::format_bed_path(sim.get("--bfile"));
+    std::filesystem::path bed = gelex::format_bed_path(sim.get("--bfile"));
 
     gelex::PhenotypeSimulator::Config config{
         .bed_path = bed,

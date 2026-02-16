@@ -193,7 +193,7 @@ class DataPipe
     Config config_;
     size_t num_genotype_samples_;
 
-    std::optional<DataFrame<double>> phenotype_frame_;
+    DataFrame<double> phenotype_frame_;
     std::optional<DataFrame<double>> qcovar_frame_;
     std::optional<DataFrame<std::string>> dcovar_frame_;
     std::string phenotype_name_;

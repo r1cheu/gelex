@@ -18,7 +18,7 @@
 
 #include <argparse.h>
 
-#include "gelex/data/bed_pipe.h"
+#include "gelex/data/bed_path.h"
 #include "gelex/logger.h"
 #include "predict/predict_engine.h"
 
@@ -27,7 +27,7 @@ int predict_execute(argparse::ArgumentParser& predict)
     auto logger = gelex::logging::get();
 
     gelex::PredictEngine::Config config;
-    config.bed_path = gelex::BedPipe::format_bed_path(predict.get("bfile"));
+    config.bed_path = gelex::format_bed_path(predict.get("bfile"));
     config.snp_effect_path = predict.get("--snp-eff");
     config.covar_effect_path = predict.get("--covar-eff");
     config.qcovar_path = predict.get("--qcovar");

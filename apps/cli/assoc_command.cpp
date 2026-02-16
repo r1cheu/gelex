@@ -27,6 +27,7 @@
 
 #include "cli/cli_helper.h"
 #include "cli/gwas_runner.h"
+#include "gelex/data/bed_path.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/data_pipe.h"
 #include "gelex/estimator/freq/reml.h"
@@ -64,7 +65,7 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     auto grm_paths = std::ranges::to<std::vector<std::filesystem::path>>(
         cmd.get<std::vector<std::string>>("--grm"));
 
-    auto bed_path = gelex::BedPipe::format_bed_path(cmd.get("bfile"));
+    auto bed_path = gelex::format_bed_path(cmd.get("bfile"));
 
     auto transform_type = parse_transform_type(cmd.get("--transform"));
 

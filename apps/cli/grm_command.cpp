@@ -29,7 +29,7 @@
 #include "data/grm_bin_writer.h"
 #include "data/grm_id_writer.h"
 #include "data/loader/bim_loader.h"
-#include "gelex/data/bed_pipe.h"
+#include "gelex/data/bed_path.h"
 #include "gelex/data/genotype_processor.h"
 #include "gelex/data/grm.h"
 #include "gelex/logger.h"
@@ -98,7 +98,7 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
 {
     auto logger = gelex::logging::get();
     GrmConfig config{
-        .bed_path = gelex::BedPipe::format_bed_path(cmd.get("--bfile")),
+        .bed_path = gelex::format_bed_path(cmd.get("--bfile")),
         .out_prefix = cmd.get("--out"),
         .method = cmd.get("--geno-method"),
         .chunk_size = cmd.get<int>("--chunk-size"),

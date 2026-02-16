@@ -19,16 +19,22 @@
 
 #include <filesystem>
 #include <memory>
-#include <span>
-#include <vector>
 
 #include <Eigen/Core>
 
 #include "gelex/data/sample_manager.h"
-#include "mio.h"
 
 namespace gelex
 {
+
+namespace detail
+{
+
+class SampleProjection;
+class BedMmapReader;
+class BedVariantDecoder;
+
+}  // namespace detail
 
 class BedPipe
 {
@@ -39,9 +45,9 @@ class BedPipe
 
     BedPipe(const BedPipe&) = delete;
     BedPipe& operator=(const BedPipe&) = delete;
-    BedPipe(BedPipe&&) noexcept = default;
-    BedPipe& operator=(BedPipe&&) noexcept = default;
-    ~BedPipe() = default;
+    BedPipe(BedPipe&&) noexcept;
+    BedPipe& operator=(BedPipe&&) noexcept;
+    ~BedPipe();
 
     [[nodiscard]] Eigen::MatrixXd load() const;
 
@@ -57,31 +63,12 @@ class BedPipe
     [[nodiscard]] Eigen::Index num_samples() const;
     [[nodiscard]] Eigen::Index num_snps() const;
 
-    static auto format_bed_path(std::string_view bed_path)
-        -> std::filesystem::path;
-
    private:
-    mio::mmap_source mmap_;
     std::shared_ptr<SampleManager> sample_manager_;
-
-    std::vector<Eigen::Index> raw_to_target_sample_idx_;
-
-    bool is_dense_mapping_ = false;
-
-    Eigen::Index num_raw_samples_ = 0;
+    std::unique_ptr<detail::SampleProjection> projection_;
+    std::unique_ptr<detail::BedMmapReader> bed_reader_;
+    std::unique_ptr<detail::BedVariantDecoder> decoder_;
     Eigen::Index num_raw_snps_ = 0;
-    Eigen::Index bytes_per_variant_ = 0;
-    std::filesystem::path bed_path_;
-
-    void decode_variant_dense(
-        const uint8_t* data_ptr,
-        std::span<double> target_buf) const;
-
-    void decode_variant_sparse(
-        const uint8_t* data_ptr,
-        std::span<double> target_buf) const;
-
-    void init_bed_mmap(const std::filesystem::path& bed_path);
 };
 
 }  // namespace gelex

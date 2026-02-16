@@ -26,7 +26,7 @@
 #include <vector>
 
 #include "cli_helper.h"
-#include "gelex/data/bed_pipe.h"
+#include "gelex/data/bed_path.h"
 #include "gelex/data/data_pipe.h"
 #include "gelex/estimator/bayes/mcmc.h"
 #include "gelex/estimator/bayes/params.h"
@@ -242,7 +242,7 @@ int fit_execute(argparse::ArgumentParser& fit)
         fit.get<int>("--burnin"),
         fit.get<int>("--threads"));
 
-    auto bed_path = gelex::BedPipe::format_bed_path(fit.get("bfile"));
+    auto bed_path = gelex::format_bed_path(fit.get("bfile"));
 
     gelex::DataPipe::Config config{
         .phenotype_path = fit.get("pheno"),

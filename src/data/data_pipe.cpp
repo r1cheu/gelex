@@ -101,7 +101,7 @@ auto DataPipe::load_phenotypes() -> PhenoStats
     phenotype_frame_ = std::move(frame);
 
     return PhenoStats{
-        .samples_loaded = phenotype_frame_->nrows(),
+        .samples_loaded = phenotype_frame_.nrows(),
         .trait_name = phenotype_name_};
 }
 
@@ -150,11 +150,15 @@ auto DataPipe::intersect_samples() -> IntersectionStats
 {
     size_t total_before = sample_manager_->num_common_samples();
 
-    if (phenotype_frame_)
+    if (phenotype_frame_.nrows() == 0)
     {
-        total_before = std::max(total_before, phenotype_frame_->nrows());
-        sample_manager_->intersect(phenotype_frame_->index_column().data());
+        throw InvalidOperationException(
+            "Phenotype frame cannot be empty."
+            " Load a non-empty phenotype file first.");
     }
+
+    total_before = std::max(total_before, phenotype_frame_.nrows());
+    sample_manager_->intersect(phenotype_frame_.index_column().data());
 
     if (qcovar_frame_)
     {
@@ -218,21 +222,21 @@ auto DataPipe::finalize() -> void
     const auto& common_ids = sample_manager_->common_ids();
     const auto& id_map = sample_manager_->common_id_map();
 
-    if (phenotype_frame_)
+    if (phenotype_frame_.nrows() == 0)
     {
-        auto aligned = *phenotype_frame_;
-        aligned.intersect_index_inplace(common_ids);
+        throw InvalidOperationException(
+            "Phenotype frame cannot be empty."
+            " Load a non-empty phenotype file first.");
+    }
 
-        const auto& values
-            = aligned.column(static_cast<size_t>(config_.phenotype_column - 2))
-                  .data();
-        phenotype_ = Eigen::Map<const Eigen::VectorXd>(
-            values.data(), static_cast<Eigen::Index>(values.size()));
-    }
-    else
-    {
-        phenotype_ = Eigen::VectorXd::Zero();
-    }
+    auto aligned = phenotype_frame_;
+    aligned.intersect_index_inplace(common_ids);
+
+    const auto& values
+        = aligned.column(static_cast<size_t>(config_.phenotype_column - 2))
+              .data();
+    phenotype_ = Eigen::Map<const Eigen::VectorXd>(
+        values.data(), static_cast<Eigen::Index>(values.size()));
 
     std::optional<QuantitativeCovariate> qcov;
     std::optional<DiscreteCovariate> dcov;
