@@ -27,7 +27,7 @@
 
 #include "gelex/exception.h"
 
-#include "../src/data/parser.h"
+#include "gelex/io/parser.h"
 
 #include "gelex/types/snp_info.h"
 

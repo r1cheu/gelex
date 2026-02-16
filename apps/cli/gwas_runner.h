@@ -26,8 +26,8 @@
 
 #include "cli/cli_helper.h"
 #include "gelex/data/bed_pipe.h"
-#include "gelex/data/data_pipe.h"
 #include "gelex/gwas/gwas_writer.h"
+#include "gelex/pipeline/data_pipe.h"
 #include "gelex/types/assoc_input.h"
 #include "gelex/types/snp_info.h"
 #include "logger/loco_reml_logger.h"

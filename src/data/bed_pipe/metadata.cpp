@@ -17,7 +17,7 @@
 #include "metadata.h"
 
 #include "data/loader/fam_loader.h"
-#include "data/parser.h"
+#include "gelex/io/parser.h"
 
 namespace gelex::detail
 {

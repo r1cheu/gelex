@@ -27,7 +27,7 @@
 #include <string>
 #include <vector>
 
-#include "../src/data/parser.h"
+#include "gelex/io/parser.h"
 
 namespace gelex::detail
 {

@@ -20,7 +20,7 @@
 
 #include "gelex/data/dataframe_policy.h"
 #include "gelex/exception.h"
-#include "parser.h"
+#include "gelex/io/parser.h"
 
 namespace gelex::detail
 {

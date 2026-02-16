@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/data_pipe.h"
+#include "gelex/pipeline/data_pipe.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -26,15 +26,15 @@
 
 #include <Eigen/Core>
 
-#include "../src/utils/phenotype_transformer.h"
+#include "data/grm_loader.h"
 #include "gelex/data/dummy_encode.h"
 #include "gelex/data/genotype_processor.h"
 #include "gelex/data/sample_manager.h"
 #include "gelex/exception.h"
 #include "gelex/logger.h"
-#include "grm_loader.h"
-#include "types/fixed_effects.h"
+#include "gelex/types/fixed_effects.h"
 #include "utils/formatter.h"
+#include "utils/phenotype_transformer.h"
 
 namespace
 {

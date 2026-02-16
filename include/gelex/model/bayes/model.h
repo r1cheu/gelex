@@ -24,7 +24,7 @@
 #include <Eigen/Core>
 
 #include "../src/types/bayes_effects.h"
-#include "gelex/data/data_pipe.h"
+#include "gelex/pipeline/data_pipe.h"
 
 namespace gelex
 {

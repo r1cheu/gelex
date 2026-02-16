@@ -22,7 +22,7 @@
 #include <Eigen/Core>
 
 #include "../src/data/loader/bim_loader.h"
-#include "../src/data/parser.h"
+#include "gelex/io/parser.h"
 
 namespace gelex
 {

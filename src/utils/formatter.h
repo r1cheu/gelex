@@ -28,7 +28,7 @@
 #include <fmt/color.h>
 #include <fmt/ranges.h>
 
-#include "../src/types/freq_effect.h"
+#include "gelex/types/freq_effect.h"
 
 namespace gelex
 {

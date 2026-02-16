@@ -23,9 +23,9 @@
 #include <Eigen/Core>
 
 #include "../src/model/bayes/distribution.h"
-#include "../src/types/fixed_effects.h"
 #include "gelex/data/genotype_matrix.h"
 #include "gelex/data/genotype_mmap.h"
+#include "gelex/types/fixed_effects.h"
 
 namespace gelex
 {

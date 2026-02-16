@@ -14,17 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_PARSER_H_
-#define GELEX_DATA_PARSER_H_
+#ifndef GELEX_IO_PARSER_H_
+#define GELEX_IO_PARSER_H_
 
+#include <cerrno>
+#include <charconv>
 #include <concepts>
 #include <cstddef>
+#include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <span>
 #include <string>
 #include <string_view>
+#include <system_error>
+#include <type_traits>
 #include <vector>
 
 #include "gelex/exception.h"
@@ -104,15 +109,36 @@ T parse_number(std::string_view sv)
             std::format("empty string cannot be parsed as number"));
     }
 
-    T value{};
-    const char* first = sv.data();
-    const char* last = sv.data() + sv.size();
-    auto [ptr, ec] = std::from_chars(first, last, value);
-
-    if (ec == std::errc() && ptr == last)
+    if constexpr (std::is_integral_v<T>)
     {
-        return value;
+        T value{};
+        const char* first = sv.data();
+        const char* last = sv.data() + sv.size();
+        auto [ptr, ec] = std::from_chars(first, last, value);
+
+        if (ec == std::errc() && ptr == last)
+        {
+            return value;
+        }
     }
+    else if constexpr (std::is_floating_point_v<T>)
+    {
+        std::string token(sv);
+        char* end = nullptr;
+        errno = 0;
+        const long double value = std::strtold(token.c_str(), &end);
+
+        if (end == token.c_str() + token.size() && errno != ERANGE)
+        {
+            return static_cast<T>(value);
+        }
+    }
+    else
+    {
+        static_assert(
+            std::is_arithmetic_v<T>, "parse_number requires arithmetic type");
+    }
+
     throw NumberParseException(
         std::format("failed to parse '{}' as number", sv));
 }
@@ -144,4 +170,4 @@ void parse_string(
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_DATA_PARSER_H_
+#endif  // GELEX_IO_PARSER_H_

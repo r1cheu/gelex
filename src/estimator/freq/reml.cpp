@@ -24,7 +24,7 @@
 #include "gelex/model/freq/model.h"
 #include "gelex/optim/optimizer_state.h"
 #include "gelex/optim/variance_calculator.h"
-#include "types/freq_effect.h"
+#include "gelex/types/freq_effect.h"
 
 namespace gelex
 {

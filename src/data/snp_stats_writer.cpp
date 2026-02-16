@@ -22,7 +22,7 @@
 #include <format>
 
 #include "gelex/exception.h"
-#include "parser.h"
+#include "gelex/io/parser.h"
 
 namespace gelex::detail
 {

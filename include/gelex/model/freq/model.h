@@ -22,9 +22,9 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
-#include "../src/types/fixed_effects.h"
-#include "../src/types/freq_effect.h"
-#include "gelex/data/data_pipe.h"
+#include "gelex/pipeline/data_pipe.h"
+#include "gelex/types/fixed_effects.h"
+#include "gelex/types/freq_effect.h"
 
 namespace gelex
 {

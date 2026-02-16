@@ -26,7 +26,7 @@
 #include <mio.h>
 #include <Eigen/Core>
 
-#include "../src/types/freq_effect.h"
+#include "gelex/types/freq_effect.h"
 
 namespace gelex::detail
 {

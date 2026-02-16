@@ -24,8 +24,8 @@
 
 #include "gelex/data/dataframe_policy.h"
 #include "gelex/exception.h"
-#include "parser.h"
-#include "types/freq_effect.h"
+#include "gelex/io/parser.h"
+#include "gelex/types/freq_effect.h"
 
 namespace
 {

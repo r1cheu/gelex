@@ -24,7 +24,7 @@
 
 #include <Eigen/Core>
 
-#include "covariates.h"
+#include "gelex/types/covariates.h"
 
 namespace gelex
 {
@@ -55,7 +55,6 @@ struct FixedEffect
             = reference_levels[i] ? *reference_levels[i] : std::string_view{}};
     }
 
-    // for freq model
     static auto build(
         std::optional<QuantitativeCovariate> qcovariate,
         std::optional<DiscreteCovariate> dcovariate) -> FixedEffect;

@@ -25,8 +25,8 @@
 
 #include "../src/types/bayes_effects.h"
 #include "../src/utils/math_utils.h"
-#include "gelex/data/data_pipe.h"
 #include "gelex/data/genotype_mmap.h"
+#include "gelex/pipeline/data_pipe.h"
 
 namespace gelex
 {

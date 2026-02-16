@@ -28,7 +28,7 @@
 #include "bed_fixture.h"
 #include "file_fixture.h"
 #include "gelex/data/dataframe_policy.h"
-#include "gelex/data/data_pipe.h"
+#include "gelex/pipeline/data_pipe.h"
 #include "gelex/model/freq/model.h"
 
 namespace fs = std::filesystem;

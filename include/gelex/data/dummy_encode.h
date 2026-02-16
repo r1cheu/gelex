@@ -17,8 +17,8 @@
 #ifndef GELEX_DATA_DUMMY_ENCODE_H_
 #define GELEX_DATA_DUMMY_ENCODE_H_
 
-#include "../src/types/covariates.h"
 #include "gelex/data/dataframe.h"
+#include "gelex/types/covariates.h"
 
 namespace gelex
 {

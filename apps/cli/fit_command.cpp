@@ -27,7 +27,6 @@
 
 #include "cli_helper.h"
 #include "gelex/data/bed_path.h"
-#include "gelex/data/data_pipe.h"
 #include "gelex/estimator/bayes/mcmc.h"
 #include "gelex/estimator/bayes/params.h"
 #include "gelex/estimator/bayes/result_writer.h"
@@ -36,6 +35,7 @@
 #include "gelex/model/bayes/prior_strategies.h"
 #include "gelex/model/bayes/trait_model.h"
 #include "gelex/model/effects.h"
+#include "gelex/pipeline/data_pipe.h"
 #include "utils/formatter.h"
 
 namespace

@@ -25,9 +25,9 @@
 
 #include <Eigen/Core>
 
-#include "../src/data/parser.h"
 #include "../src/utils/formatter.h"
 #include "gelex/data/dataframe_policy.h"
+#include "gelex/io/parser.h"
 #include "gelex/logger.h"
 
 namespace gelex

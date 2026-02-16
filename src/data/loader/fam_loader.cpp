@@ -24,8 +24,8 @@
 #include <Eigen/Core>
 
 #include <fmt/ranges.h>
-#include "../parser.h"
 #include "gelex/exception.h"
+#include "gelex/io/parser.h"
 
 namespace gelex::detail
 {

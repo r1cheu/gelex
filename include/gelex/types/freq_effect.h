@@ -22,7 +22,7 @@
 
 #include <Eigen/Core>
 
-#include "../src/types/fixed_effects.h"
+#include "gelex/types/fixed_effects.h"
 
 namespace gelex::freq
 {
@@ -41,13 +41,13 @@ struct RandomEffect
 {
     std::string name;
     std::vector<std::string> levels;
-    Eigen::MatrixXd K;  // covariance matrix (n x n)
+    Eigen::MatrixXd K;
 };
 
 struct GeneticEffect
 {
     GrmType type;
-    Eigen::MatrixXd K;  // GRM matrix
+    Eigen::MatrixXd K;
 };
 
 struct FixedState
@@ -84,4 +84,5 @@ struct ResidualState
 };
 
 }  // namespace gelex::freq
+
 #endif  // GELEX_TYPES_FREQ_EFFECT_H_

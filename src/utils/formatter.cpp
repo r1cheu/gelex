@@ -20,7 +20,7 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include "../src/types/freq_effect.h"
+#include "gelex/types/freq_effect.h"
 
 #include <fmt/chrono.h>
 #include <fmt/format.h>

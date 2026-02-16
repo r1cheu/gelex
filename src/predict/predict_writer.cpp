@@ -20,9 +20,9 @@
 #include <fstream>
 #include <ostream>
 
-#include "../src/data/parser.h"
 #include "gelex/data/dataframe_policy.h"
 #include "gelex/exception.h"
+#include "gelex/io/parser.h"
 
 namespace gelex
 {

@@ -24,7 +24,7 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/data/parser.h"
+#include "gelex/io/parser.h"
 #include "file_fixture.h"
 #include "gelex/data/dataframe_policy.h"
 #include "gelex/exception.h"

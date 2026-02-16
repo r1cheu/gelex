@@ -17,7 +17,7 @@
 #include "binary_matrix_writer.h"
 
 #include "gelex/exception.h"
-#include "parser.h"
+#include "gelex/io/parser.h"
 
 namespace gelex::detail
 {

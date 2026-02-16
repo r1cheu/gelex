@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_DATA_PIPE_H_
-#define GELEX_DATA_DATA_PIPE_H_
+#ifndef GELEX_PIPELINE_DATA_PIPE_H_
+#define GELEX_PIPELINE_DATA_PIPE_H_
 
 #include <filesystem>
 #include <memory>
@@ -27,8 +27,6 @@
 
 #include <Eigen/Dense>
 
-#include "../src/types/fixed_effects.h"
-#include "../src/types/freq_effect.h"
 #include "gelex/data/dataframe.h"
 #include "gelex/data/genotype_loader.h"
 #include "gelex/data/genotype_matrix.h"
@@ -36,6 +34,8 @@
 #include "gelex/data/genotype_mmap.h"
 #include "gelex/data/genotype_pipe.h"
 #include "gelex/data/sample_manager.h"
+#include "gelex/types/fixed_effects.h"
+#include "gelex/types/freq_effect.h"
 
 namespace gelex
 {
@@ -216,4 +216,4 @@ class DataPipe
 
 }  // namespace gelex
 
-#endif  // GELEX_DATA_DATA_PIPE_H_
+#endif  // GELEX_PIPELINE_DATA_PIPE_H_
