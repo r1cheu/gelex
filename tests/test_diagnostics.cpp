@@ -23,7 +23,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "../src/estimator/bayes/diagnostics.h"
+#include "gelex/algo/stats/diagnostics.h"
 #include "gelex/types/mcmc_samples.h"
 
 extern "C" const char* __lsan_default_suppressions()

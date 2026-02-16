@@ -22,12 +22,13 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
-#include "gelex/pipeline/data_pipe.h"
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/freq_effect.h"
 
 namespace gelex
 {
+
+class DataPipe;
 
 class FreqModel
 {

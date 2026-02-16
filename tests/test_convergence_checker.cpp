@@ -16,7 +16,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/optim/convergence_checker.h"
+#include "gelex/algo/numerics/convergence_checker.h"
 
 namespace gelex
 {

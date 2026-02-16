@@ -22,14 +22,14 @@
 
 #include <fmt/format.h>
 
+#include "gelex/algo/gwas/association_test.h"
+#include "gelex/algo/infer/estimator.h"
+#include "gelex/algo/report/loco_reml_logger.h"
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/data/grm/loco_grm_loader.h"
-#include "gelex/estimator/freq/estimator.h"
-#include "gelex/gwas/association_test.h"
-#include "gelex/logger.h"
+#include "gelex/infra/logger.h"
+#include "gelex/infra/utils/formatter.h"
 #include "gelex/model/freq/model.h"
-#include "logger/loco_reml_logger.h"
-#include "utils/formatter.h"
 
 namespace gelex::cli
 {

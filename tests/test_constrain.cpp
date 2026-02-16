@@ -18,7 +18,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/optim/constrain.h"
+#include "gelex/algo/numerics/constrain.h"
 
 namespace gelex
 {

@@ -19,8 +19,8 @@
 
 #include <Eigen/Core>
 
+#include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/types/bayes_effects.h"
 
 #include "gelex/model/bayes/samplers/detail/gibbs/a.h"
 #include "gelex/model/bayes/samplers/detail/gibbs/b.h"

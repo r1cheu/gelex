@@ -23,11 +23,11 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/internal/data/grm_bin_writer.h"
-#include "gelex/internal/data/grm_id_writer.h"
 #include "bed_fixture.h"
 #include "file_fixture.h"
 #include "gelex/data/frame/dataframe_policy.h"
+#include "gelex/data/grm/grm_bin_writer.h"
+#include "gelex/data/grm/grm_id_writer.h"
 #include "gelex/pipeline/data_pipe.h"
 #include "gelex/model/freq/model.h"
 
@@ -58,13 +58,13 @@ class GrmFileFixture
     {
         auto bin_path = fs::path(prefix_.string() + ".bin");
         {
-            detail::GrmBinWriter writer(bin_path);
+            gelex::GrmBinWriter writer(bin_path);
             writer.write(matrix);
         }
 
         auto id_path = fs::path(prefix_.string() + ".id");
         {
-            detail::GrmIdWriter writer(id_path);
+            gelex::GrmIdWriter writer(id_path);
             writer.write(ids);
         }
     }

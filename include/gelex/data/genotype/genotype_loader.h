@@ -28,7 +28,7 @@
 #include "gelex/data/genotype/genotype_matrix.h"
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/data/genotype/sample_manager.h"
-#include "gelex/detail/indicator.h"
+#include "gelex/infra/detail/indicator.h"
 
 namespace gelex
 {
@@ -88,8 +88,8 @@ GenotypeMatrix GenotypeLoader::process(size_t chunk_size)
     global_snp_idx_ = 0;
 
     Processor processor;
-    auto pbar = detail::create_genotype_process_bar<Processor>(
-        global_snp_idx_, num_variants_);
+    auto pbar
+        = detail::create_genotype_process_bar(global_snp_idx_, num_variants_);
     pbar->show();
     means_.resize(num_variants_);
     stddevs_.resize(num_variants_);

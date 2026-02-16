@@ -29,12 +29,12 @@
 #include "gelex/data/frame/dummy_encode.h"
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/data/genotype/sample_manager.h"
+#include "gelex/data/grm/grm_loader.h"
 #include "gelex/exception.h"
-#include "gelex/internal/data/grm_loader.h"
-#include "gelex/logger.h"
+#include "gelex/infra/logger.h"
+#include "gelex/infra/utils/formatter.h"
+#include "gelex/infra/utils/phenotype_transformer.h"
 #include "gelex/types/fixed_effects.h"
-#include "utils/formatter.h"
-#include "utils/phenotype_transformer.h"
 
 namespace
 {

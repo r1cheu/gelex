@@ -17,10 +17,13 @@
 #ifndef GELEX_TYPES_FREQ_EFFECT_H_
 #define GELEX_TYPES_FREQ_EFFECT_H_
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
 #include <Eigen/Core>
+
+#include <fmt/base.h>
 
 #include "gelex/types/fixed_effects.h"
 
@@ -84,5 +87,41 @@ struct ResidualState
 };
 
 }  // namespace gelex::freq
+
+namespace fmt
+{
+template <>
+struct formatter<gelex::freq::GrmType> : formatter<string_view>
+{
+    auto format(gelex::freq::GrmType t, format_context& ctx) const
+        -> format_context::iterator
+    {
+        string_view name = "unknown";
+        switch (t)
+        {
+            case (gelex::freq::GrmType::A):
+                name = "A";
+                break;
+            case (gelex::freq::GrmType::D):
+                name = "D";
+                break;
+            case (gelex::freq::GrmType::AA):
+                name = "AA";
+                break;
+            case (gelex::freq::GrmType::AD):
+                name = "AD";
+                break;
+            case (gelex::freq::GrmType::DD):
+                name = "DD";
+                break;
+            case (gelex::freq::GrmType::Unknown):
+            default:
+                break;
+        }
+
+        return formatter<string_view>::format(name, ctx);
+    }
+};
+}  // namespace fmt
 
 #endif  // GELEX_TYPES_FREQ_EFFECT_H_

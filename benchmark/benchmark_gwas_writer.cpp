@@ -16,7 +16,7 @@
 
 #include <benchmark/benchmark.h>
 #include <cstdio>
-#include "gelex/gwas/gwas_writer.h"
+#include "gelex/pipeline/report/gwas_writer.h"
 #include "gelex/types/snp_info.h"
 
 using namespace gelex::gwas;

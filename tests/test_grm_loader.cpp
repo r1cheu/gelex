@@ -26,11 +26,11 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "gelex/internal/data/grm_bin_writer.h"
-#include "gelex/internal/data/grm_id_writer.h"
-#include "gelex/internal/data/grm_loader.h"
 #include "file_fixture.h"
 #include "gelex/data/frame/dataframe_policy.h"
+#include "gelex/data/grm/grm_bin_writer.h"
+#include "gelex/data/grm/grm_id_writer.h"
+#include "gelex/data/grm/grm_loader.h"
 #include "gelex/exception.h"
 
 namespace fs = std::filesystem;
@@ -57,14 +57,14 @@ class GrmFileFixture
         // Write binary file
         auto bin_path = fs::path(prefix_.string() + ".bin");
         {
-            GrmBinWriter writer(bin_path);
+            gelex::GrmBinWriter writer(bin_path);
             writer.write(matrix);
         }
 
         // Write ID file
         auto id_path = fs::path(prefix_.string() + ".id");
         {
-            GrmIdWriter writer(id_path);
+            gelex::GrmIdWriter writer(id_path);
             writer.write(ids);
         }
     }
@@ -73,7 +73,7 @@ class GrmFileFixture
     auto create_id_only(const std::vector<std::string>& ids) -> void
     {
         auto id_path = fs::path(prefix_.string() + ".id");
-        GrmIdWriter writer(id_path);
+        gelex::GrmIdWriter writer(id_path);
         writer.write(ids);
     }
 
@@ -81,7 +81,7 @@ class GrmFileFixture
     auto create_bin_only(const Eigen::MatrixXd& matrix) -> void
     {
         auto bin_path = fs::path(prefix_.string() + ".bin");
-        GrmBinWriter writer(bin_path);
+        gelex::GrmBinWriter writer(bin_path);
         writer.write(matrix);
     }
 

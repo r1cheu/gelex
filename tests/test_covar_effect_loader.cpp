@@ -23,9 +23,9 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/predict/covar_effect_loader.h"
 #include "file_fixture.h"
 #include "gelex/exception.h"
+#include "gelex/pipeline/predict/covar_effect_loader.h"
 
 namespace fs = std::filesystem;
 

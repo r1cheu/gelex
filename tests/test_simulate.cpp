@@ -30,9 +30,9 @@
 
 #include "bed_fixture.h"
 #include "gelex/data/genotype/genotype_processor.h"
-#include "gelex/sim/simulate.h"
+#include "gelex/pipeline/sim/simulate.h"
 #include "gelex/exception.h"
-#include "gelex/utils/math_utils.h"
+#include "gelex/infra/utils/math_utils.h"
 
 namespace fs = std::filesystem;
 

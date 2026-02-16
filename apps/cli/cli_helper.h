@@ -28,7 +28,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/genotype/genotype_method_dispatch.h"
-#include "gelex/detail/indicator.h"
+#include "gelex/infra/detail/indicator.h"
 #include "gelex/types/snp_info.h"
 
 namespace gelex::cli

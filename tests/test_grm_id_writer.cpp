@@ -26,16 +26,16 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "gelex/internal/data/grm_id_writer.h"
 #include "file_fixture.h"
 #include "gelex/data/frame/dataframe_policy.h"
+#include "gelex/data/grm/grm_id_writer.h"
 #include "gelex/exception.h"
 
 namespace fs = std::filesystem;
 
-using namespace gelex::detail;  // NOLINT
 using Catch::Matchers::ContainsSubstring;
 using Catch::Matchers::MessageMatches;
+using gelex::GrmIdWriter;
 using gelex::test::FileFixture;
 
 namespace

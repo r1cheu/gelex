@@ -34,9 +34,9 @@
 
 #include "gelex/data/frame/column.h"
 #include "gelex/data/frame/dataframe_policy.h"
+#include "gelex/data/frame/detail/dataframe_loader.h"
+#include "gelex/data/frame/detail/index_intersector.h"
 #include "gelex/exception.h"
-#include "gelex/internal/dataframe/dataframe_loader.h"
-#include "gelex/internal/dataframe/index_intersector.h"
 
 namespace gelex::detail
 {

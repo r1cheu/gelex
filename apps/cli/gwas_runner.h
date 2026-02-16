@@ -25,13 +25,13 @@
 #include <Eigen/Core>
 
 #include "cli/cli_helper.h"
+#include "gelex/algo/report/loco_reml_logger.h"
 #include "gelex/data/genotype/bed_pipe.h"
-#include "gelex/gwas/gwas_writer.h"
+#include "gelex/infra/utils/utils.h"
 #include "gelex/pipeline/data_pipe.h"
+#include "gelex/pipeline/report/gwas_writer.h"
 #include "gelex/types/assoc_input.h"
 #include "gelex/types/snp_info.h"
-#include "logger/loco_reml_logger.h"
-#include "utils/utils.h"
 
 namespace gelex
 {

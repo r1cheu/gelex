@@ -33,7 +33,7 @@
 #include "cli/predict_command.h"
 #include "cli/simulate_args.h"
 #include "cli/simulate_command.h"
-#include "gelex/logger.h"
+#include "gelex/infra/logger.h"
 
 struct CommandDescriptor
 {

@@ -19,8 +19,8 @@
 #include <argparse.h>
 
 #include "gelex/data/genotype/bed_path.h"
-#include "gelex/logger.h"
-#include "predict/predict_engine.h"
+#include "gelex/infra/logger.h"
+#include "gelex/pipeline/predict/predict_engine.h"
 
 int predict_execute(argparse::ArgumentParser& predict)
 {

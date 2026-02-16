@@ -28,14 +28,14 @@
 #include "cli_helper.h"
 #include "gelex/data/genotype/bed_path.h"
 #include "gelex/data/genotype/genotype_processor.h"
-#include "gelex/data/genotype/loader/bim_loader.h"
 #include "gelex/data/grm/grm.h"
-#include "gelex/internal/data/grm_bin_writer.h"
-#include "gelex/internal/data/grm_id_writer.h"
-#include "gelex/logger.h"
+#include "gelex/data/grm/grm_bin_writer.h"
+#include "gelex/data/grm/grm_id_writer.h"
+#include "gelex/data/loader/bim_loader.h"
+#include "gelex/infra/logger.h"
+#include "gelex/infra/utils/formatter.h"
+#include "gelex/infra/utils/utils.h"
 #include "grm_args.h"
-#include "utils/formatter.h"
-#include "utils/utils.h"
 
 namespace bk = barkeep;
 
@@ -86,8 +86,8 @@ auto write_grm_files(
     auto bin_path = out_prefix + ".bin";
     auto id_path = out_prefix + ".id";
 
-    gelex::detail::GrmBinWriter(bin_path).write(result.grm);
-    gelex::detail::GrmIdWriter(id_path).write(sample_ids);
+    gelex::GrmBinWriter(bin_path).write(result.grm);
+    gelex::GrmIdWriter(id_path).write(sample_ids);
 
     return {bin_path, id_path};
 }

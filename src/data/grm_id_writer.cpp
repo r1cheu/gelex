@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#include "gelex/internal/data/grm_id_writer.h"
+#include "gelex/data/grm/grm_id_writer.h"
 
 #include <format>
 
-#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/exception.h"
 #include "gelex/io/parser.h"
+#include "gelex/types/sample_id.h"
 
-namespace gelex::detail
+namespace gelex
 {
 
 GrmIdWriter::GrmIdWriter(const std::filesystem::path& file_path)
@@ -53,4 +53,4 @@ auto GrmIdWriter::write(std::span<const std::string> ids) -> void
     }
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex

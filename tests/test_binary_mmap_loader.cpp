@@ -36,11 +36,8 @@ namespace fs = std::filesystem;
 
 using gelex::test::FileFixture;
 
-#if __has_include("gelex/internal/data/binary_mmap_loader.h") \
-    && __has_include("gelex/internal/data/binary_writer.h")
-
-#include "gelex/internal/data/binary_mmap_loader.h"
-#include "gelex/internal/data/binary_writer.h"
+#include "gelex/data/io/binary_mmap_loader.h"
+#include "gelex/data/io/binary_writer.h"
 
 namespace gelex::detail::test
 {
@@ -324,16 +321,3 @@ TEST_CASE(
     REQUIRE(copied(1, 1) == 5.0);
     REQUIRE(copied(2, 1) == 6.0);
 }
-
-#else
-
-TEST_CASE(
-    "BinaryMmapLoader - tests are gated until implementation header exists",
-    "[data][binary_mmap_loader]")
-{
-    SUCCEED(
-        "binary_mmap_loader.h is not present yet; full tests are compiled once "
-        "it exists");
-}
-
-#endif

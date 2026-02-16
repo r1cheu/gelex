@@ -22,8 +22,8 @@
 
 #include "file_fixture.h"
 #include "gelex/data/frame/dataframe.h"
+#include "gelex/data/frame/detail/text_utils.h"
 #include "gelex/exception.h"
-#include "gelex/internal/dataframe/text_utils.h"
 
 using gelex::compute_common_index_keys;
 using gelex::DataFrame;

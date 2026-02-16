@@ -26,15 +26,15 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "gelex/internal/data/grm_bin_writer.h"
 #include "file_fixture.h"
+#include "gelex/data/grm/grm_bin_writer.h"
 #include "gelex/exception.h"
 
 namespace fs = std::filesystem;
 
-using namespace gelex::detail;  // NOLINT
 using Catch::Matchers::ContainsSubstring;
 using Catch::Matchers::MessageMatches;
+using gelex::GrmBinWriter;
 using gelex::test::FileFixture;
 
 // Helper function to calculate expected file size (no header)

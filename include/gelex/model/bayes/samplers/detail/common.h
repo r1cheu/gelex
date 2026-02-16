@@ -19,8 +19,8 @@
 
 #include <random>
 
+#include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/types/bayes_effects.h"
 namespace gelex::detail::CommonSampler
 {
 

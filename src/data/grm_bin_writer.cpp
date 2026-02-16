@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#include "gelex/internal/data/grm_bin_writer.h"
+#include "gelex/data/grm/grm_bin_writer.h"
 
 #include <format>
 
 #include "gelex/exception.h"
 #include "gelex/io/parser.h"
 
-namespace gelex::detail
+namespace gelex
 {
 
 GrmBinWriter::GrmBinWriter(const std::filesystem::path& file_path)
@@ -68,4 +68,4 @@ auto GrmBinWriter::write(const Eigen::Ref<const Eigen::MatrixXd>& grm) -> void
     }
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex

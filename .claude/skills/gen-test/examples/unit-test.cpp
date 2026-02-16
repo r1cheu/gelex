@@ -20,7 +20,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "gelex/exception.h"
-#include "gelex/sim/effect_sampler.h"
+#include "gelex/pipeline/sim/effect_sampler.h"
 
 using namespace gelex;  // NOLINT
 using Catch::Matchers::WithinAbs;

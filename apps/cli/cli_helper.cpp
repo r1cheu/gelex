@@ -24,8 +24,8 @@
 #include <Eigen/Core>
 #include "config.h"
 
-#include "gelex/logger.h"
-#include "utils/formatter.h"
+#include "gelex/infra/logger.h"
+#include "gelex/infra/utils/formatter.h"
 
 namespace gelex::cli
 {

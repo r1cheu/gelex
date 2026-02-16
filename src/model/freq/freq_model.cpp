@@ -15,8 +15,10 @@
  */
 
 #include <Eigen/SVD>
+
+#include "gelex/infra/utils/math_utils.h"
 #include "gelex/model/freq/model.h"
-#include "gelex/utils/math_utils.h"
+#include "gelex/pipeline/data_pipe.h"
 
 namespace gelex
 {

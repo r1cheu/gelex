@@ -37,9 +37,7 @@ namespace fs = std::filesystem;
 
 using gelex::test::FileFixture;
 
-#if __has_include("gelex/internal/data/binary_writer.h")
-
-#include "gelex/internal/data/binary_writer.h"
+#include "gelex/data/io/binary_writer.h"
 
 namespace gelex::detail::test
 {
@@ -390,16 +388,3 @@ TEST_CASE("BinaryWriter - directory path should throw", "[data][binary_writer]")
         BinaryWriter<double>(std::string_view(dir_path_str)),
         gelex::FileOpenException);
 }
-
-#else
-
-TEST_CASE(
-    "BinaryWriter - tests are gated until implementation header exists",
-    "[data][binary_writer]")
-{
-    SUCCEED(
-        "binary_writer.h is not present yet; full tests are compiled once it "
-        "exists");
-}
-
-#endif

@@ -26,17 +26,17 @@
 #include <vector>
 
 #include "cli_helper.h"
+#include "gelex/algo/infer/mcmc.h"
+#include "gelex/algo/infer/params.h"
 #include "gelex/data/genotype/bed_path.h"
-#include "gelex/estimator/bayes/mcmc.h"
-#include "gelex/estimator/bayes/params.h"
-#include "gelex/estimator/bayes/result_writer.h"
-#include "gelex/logger.h"
+#include "gelex/infra/logger.h"
+#include "gelex/infra/utils/formatter.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior_strategies.h"
 #include "gelex/model/bayes/trait_model.h"
 #include "gelex/model/effects.h"
 #include "gelex/pipeline/data_pipe.h"
-#include "utils/formatter.h"
+#include "gelex/pipeline/report/result_writer.h"
 
 namespace
 {

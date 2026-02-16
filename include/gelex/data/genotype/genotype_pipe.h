@@ -31,7 +31,7 @@
 #include "gelex/data/genotype/sample_manager.h"
 #include "gelex/data/io/binary_matrix_writer.h"
 #include "gelex/data/io/snp_stats_writer.h"
-#include "gelex/detail/indicator.h"
+#include "gelex/infra/detail/indicator.h"
 
 namespace gelex
 {
@@ -56,7 +56,7 @@ class GenotypePipe
     {
         int64_t current_processed_snps = 0;
         Processor processor;
-        auto pbar = detail::create_genotype_process_bar<Processor>(
+        auto pbar = detail::create_genotype_process_bar(
             current_processed_snps, num_variants_);
         means_.resize(num_variants_);
         variances_.resize(num_variants_);

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/internal/data/grm_loader.h"
+#include "gelex/data/grm/grm_loader.h"
 
 #include <algorithm>
 #include <format>

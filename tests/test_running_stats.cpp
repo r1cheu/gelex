@@ -21,7 +21,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/exception.h"
-#include "gelex/utils/running_stats.h"
+#include "gelex/infra/utils/running_stats.h"
 
 namespace gelex
 {

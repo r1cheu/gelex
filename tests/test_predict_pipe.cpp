@@ -26,9 +26,9 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/predict/predict_pipe.h"
 #include "bed_fixture.h"
 #include "file_fixture.h"
+#include "gelex/pipeline/predict/predict_pipe.h"
 
 namespace fs = std::filesystem;
 

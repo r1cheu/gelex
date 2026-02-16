@@ -26,7 +26,7 @@
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
-#include "gelex/logger.h"
+#include "gelex/infra/logger.h"
 
 namespace gelex
 {

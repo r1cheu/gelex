@@ -1,0 +1,151 @@
+/*
+ * Copyright 2026 RuLei Chen
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "gelex/pipeline/predict/covar_effect_loader.h"
+
+#include "gelex/exception.h"
+#include "gelex/infra/logger.h"
+
+#include <cmath>
+#include <filesystem>
+#include <format>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
+
+#include "gelex/io/parser.h"
+
+namespace gelex::detail
+{
+
+CovarEffectLoader::CovarEffectLoader(
+    const std::filesystem::path& param_file_path)
+{
+    try
+    {
+        auto [intercept, continuous_coeffs, categorical_coeffs]
+            = parse_param_file(param_file_path);
+        effects_.intercept = intercept;
+        effects_.continuous_coeffs = std::move(continuous_coeffs);
+        effects_.categorical_coeffs = std::move(categorical_coeffs);
+    }
+    catch (const GelexException& e)
+    {
+        throw FileFormatException(
+            std::format("{}: {}", param_file_path.string(), e.what()));
+    }
+}
+
+auto CovarEffectLoader::parse_param_file(const std::filesystem::path& file_path)
+    -> std::tuple<
+        double,
+        std::map<std::string, double>,
+        std::map<std::string, std::map<std::string, double>>>
+{
+    auto file = detail::open_file<std::ifstream>(file_path, std::ios::in);
+
+    std::string line;
+    // Skip header line
+    if (!std::getline(file, line))
+    {
+        throw FileFormatException(
+            std::format(
+                "parameter file '{}' is empty or has no header",
+                file_path.string()));
+    }
+
+    double intercept = std::numeric_limits<double>::quiet_NaN();
+    std::map<std::string, double> continuous_coeffs;
+    std::map<std::string, std::map<std::string, double>> categorical_coeffs;
+
+    // Process each line
+    while (std::getline(file, line))
+    {
+        if (line.empty())
+        {
+            continue;
+        }
+
+        std::vector<std::string> fields;
+        std::istringstream row_stream(line);
+        for (std::string token; std::getline(row_stream, token, '\t');)
+        {
+            fields.emplace_back(token);
+        }
+
+        if (fields.size() < 2 || fields[0].empty() || fields[1].empty())
+        {
+            continue;  // Skip malformed lines
+        }
+
+        double mean{};
+        try
+        {
+            mean = std::stod(fields[1]);
+        }
+        catch (const std::exception&)
+        {
+            continue;
+        }
+
+        // Parse the term name and store coefficient
+        parse_flat_name(
+            fields[0], mean, intercept, continuous_coeffs, categorical_coeffs);
+    }
+
+    // Validate that we found an intercept
+    if (std::isnan(intercept))
+    {
+        throw DataParseException(
+            std::format(
+                "no intercept term found in parameter file '{}'",
+                file_path.string()));
+    }
+
+    return std::make_tuple(
+        intercept, std::move(continuous_coeffs), std::move(categorical_coeffs));
+}
+
+void CovarEffectLoader::parse_flat_name(
+    const std::string& flat_name,
+    double coefficient,
+    double& intercept,
+    std::map<std::string, double>& continuous_coeffs,
+    std::map<std::string, std::map<std::string, double>>& categorical_coeffs)
+{
+    if (flat_name == "Intercept")
+    {
+        intercept = coefficient;
+        return;
+    }
+
+    // Check for categorical variable pattern (e.g., "Group_A", "Group_B")
+    size_t underscore_pos = flat_name.find('_');
+    if (underscore_pos != std::string::npos)
+    {
+        std::string var_name = flat_name.substr(0, underscore_pos);
+        std::string category = flat_name.substr(underscore_pos + 1);
+        categorical_coeffs[var_name][category] = coefficient;
+    }
+    else
+    {
+        // Treat as continuous variable
+        continuous_coeffs[flat_name] = coefficient;
+    }
+}
+
+}  // namespace gelex::detail

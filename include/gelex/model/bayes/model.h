@@ -23,12 +23,12 @@
 
 #include <Eigen/Core>
 
-#include "gelex/pipeline/data_pipe.h"
-#include "gelex/types/bayes_effects.h"
+#include "gelex/model/bayes/effects.h"
 
 namespace gelex
 {
 
+class DataPipe;
 class GenotypeMap;
 class GenotypeMatrix;
 

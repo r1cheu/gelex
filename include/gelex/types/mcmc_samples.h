@@ -27,9 +27,15 @@
 #include <vector>
 
 #include <Eigen/Core>
-#include "gelex/data/io/binary_matrix_writer.h"
 
 // Forward declaration
+
+namespace gelex::detail
+{
+
+class BinaryMatrixWriter;
+
+}  // namespace gelex::detail
 
 namespace gelex::bayes
 {
@@ -113,6 +119,12 @@ struct ResidualSamples
 class MCMCSamples
 {
    public:
+    MCMCSamples(const MCMCSamples&) = delete;
+    auto operator=(const MCMCSamples&) -> MCMCSamples& = delete;
+    MCMCSamples(MCMCSamples&&) noexcept;
+    auto operator=(MCMCSamples&&) noexcept -> MCMCSamples&;
+    ~MCMCSamples();
+
     MCMCSamples(
         const MCMCParams& params,
         const BayesModel& model,

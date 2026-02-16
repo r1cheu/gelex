@@ -20,9 +20,9 @@
 #include <Eigen/Core>
 #include <optional>
 
+#include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior_constants.h"
-#include "gelex/types/bayes_effects.h"
 
 namespace gelex
 {

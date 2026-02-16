@@ -94,6 +94,11 @@ wheelhouse/
 .vscode/
 script/
 *.log
+test.add.bin
+test.add.id
+test.dom.bin
+test.dom.id
+test.predictions
 /*.cpp
 *.grm
 workspace/

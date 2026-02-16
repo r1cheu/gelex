@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/genotype/loader/bim_loader.h"
+#include "gelex/data/loader/bim_loader.h"
 
 #include <filesystem>
 #include <fstream>

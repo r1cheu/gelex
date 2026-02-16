@@ -21,13 +21,18 @@
 
 #include <Eigen/Core>
 
-#include "gelex/estimator/bayes/params.h"
+#include "gelex/algo/infer/params.h"
+#include "gelex/data/io/binary_matrix_writer.h"
+#include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/types/bayes_effects.h"
 
 namespace gelex
 {
 using Eigen::Index;
+
+MCMCSamples::~MCMCSamples() = default;
+MCMCSamples::MCMCSamples(MCMCSamples&&) noexcept = default;
+auto MCMCSamples::operator=(MCMCSamples&&) noexcept -> MCMCSamples& = default;
 
 FixedSamples::FixedSamples(const MCMCParams& params, const FixedEffect& effect)
 {
