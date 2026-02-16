@@ -25,10 +25,10 @@
 
 #include <Eigen/Core>
 
-#include "../src/utils/formatter.h"
 #include "gelex/data/dataframe_policy.h"
 #include "gelex/io/parser.h"
 #include "gelex/logger.h"
+#include "utils/formatter.h"
 
 namespace gelex
 {

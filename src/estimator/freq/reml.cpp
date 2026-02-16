@@ -17,7 +17,6 @@
 #include "gelex/estimator/freq/reml.h"
 #include <Eigen/Core>
 
-#include "../src/utils/formatter.h"
 #include "gelex/estimator/freq/estimator.h"
 #include "gelex/exception.h"
 #include "gelex/logger.h"
@@ -25,6 +24,7 @@
 #include "gelex/optim/optimizer_state.h"
 #include "gelex/optim/variance_calculator.h"
 #include "gelex/types/freq_effect.h"
+#include "utils/formatter.h"
 
 namespace gelex
 {

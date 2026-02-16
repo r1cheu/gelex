@@ -19,7 +19,7 @@
 
 #include <Eigen/Core>
 
-#include "../src/predict/snp_matcher.h"
+#include "predict/snp_matcher.h"
 
 namespace gelex
 {

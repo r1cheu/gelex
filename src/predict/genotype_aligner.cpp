@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#include "../src/predict/genotype_aligner.h"
+#include "predict/genotype_aligner.h"
 
 #include <Eigen/Core>
 
-#include "../src/predict/snp_matcher.h"
+#include "predict/snp_matcher.h"
 
 namespace gelex
 {

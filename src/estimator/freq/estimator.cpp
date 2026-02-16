@@ -19,14 +19,14 @@
 #include <Eigen/Core>
 #include <chrono>
 
-#include "../src/logger/reml_logger.h"
-#include "../src/logger/reml_logger_base.h"
-#include "../src/utils/utils.h"
 #include "gelex/estimator/freq/effect_solver.h"
 #include "gelex/estimator/freq/statistics.h"
 #include "gelex/model/freq/model.h"
 #include "gelex/optim/policy.h"
 #include "gelex/optim/variance_calculator.h"
+#include "logger/reml_logger.h"
+#include "logger/reml_logger_base.h"
+#include "utils/utils.h"
 
 namespace gelex
 {

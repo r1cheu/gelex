@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "../src/logger/reml_logger.h"
+#include "logger/reml_logger.h"
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>

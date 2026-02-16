@@ -22,7 +22,6 @@
 
 #include <Eigen/Core>
 
-#include "../src/utils/formatter.h"
 #include "gelex/data/bed_pipe.h"
 #include "gelex/data/effect_sampler.h"
 #include "gelex/data/genetic_value_calculator.h"
@@ -31,6 +30,7 @@
 #include "gelex/data/simulation_writer.h"
 #include "gelex/exception.h"
 #include "gelex/logger.h"
+#include "utils/formatter.h"
 
 namespace gelex
 {

@@ -22,8 +22,8 @@
 
 #include <Eigen/Core>
 
-#include "../src/data/loader/snp_effect_loader.h"
-#include "../src/predict/covar_effect_loader.h"
+#include "data/loader/snp_effect_loader.h"
+#include "predict/covar_effect_loader.h"
 #include "predict_pipe.h"
 
 namespace gelex
