@@ -21,8 +21,8 @@
 #include <Eigen/Core>
 #include <unsupported/Eigen/FFT>
 
-#include "../src/utils/math_utils.h"
 #include "gelex/types/mcmc_samples.h"
+#include "gelex/utils/math_utils.h"
 
 namespace gelex
 {

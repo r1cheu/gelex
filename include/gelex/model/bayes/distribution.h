@@ -16,6 +16,7 @@
 
 #ifndef GELEX_MODEL_BAYES_DISTRIBUTION_H_
 #define GELEX_MODEL_BAYES_DISTRIBUTION_H_
+
 #include <random>
 
 #include <Eigen/Core>
@@ -25,12 +26,6 @@ namespace gelex
 namespace detail
 {
 
-/**
- * @brief Sample from a Dirichlet distribution.
- *
- * @param alphas
- * @param rng
- */
 inline Eigen::VectorXd dirichlet(
     const Eigen::Ref<Eigen::VectorXi>& alphas,
     std::mt19937_64& rng)
@@ -75,6 +70,7 @@ class ScaledInvChiSq
     ScaledInvChiSqParams prior_;
     ScaledInvChiSqParams posterior_;
 };
+
 }  // namespace detail
 }  // namespace gelex
 

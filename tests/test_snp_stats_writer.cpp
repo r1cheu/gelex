@@ -27,7 +27,7 @@
 #include "file_fixture.h"
 #include "gelex/exception.h"
 
-#include "../src/data/snp_stats_writer.h"
+#include "gelex/data/snp_stats_writer.h"
 
 namespace fs = std::filesystem;
 

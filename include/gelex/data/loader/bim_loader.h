@@ -25,6 +25,7 @@
 #include <Eigen/Dense>
 
 #include "gelex/types/snp_info.h"
+
 namespace gelex::detail
 {
 

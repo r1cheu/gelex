@@ -21,7 +21,7 @@
 
 #include "gelex/exception.h"
 
-#include "../src/data/loader/bim_loader.h"
+#include "gelex/data/loader/bim_loader.h"
 #include "gelex/types/snp_info.h"
 
 namespace gelex

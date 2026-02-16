@@ -32,7 +32,7 @@
 #include "gelex/data/genotype_processor.h"
 #include "gelex/data/simulate.h"
 #include "gelex/exception.h"
-#include "utils/math_utils.h"
+#include "gelex/utils/math_utils.h"
 
 namespace fs = std::filesystem;
 

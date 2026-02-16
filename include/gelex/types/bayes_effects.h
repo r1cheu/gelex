@@ -16,15 +16,16 @@
 
 #ifndef GELEX_TYPES_BAYES_EFFECTS_H_
 #define GELEX_TYPES_BAYES_EFFECTS_H_
+
 #include <string>
 #include <variant>
 #include <vector>
 
 #include <Eigen/Core>
 
-#include "../src/model/bayes/distribution.h"
 #include "gelex/data/genotype_matrix.h"
 #include "gelex/data/genotype_mmap.h"
+#include "gelex/model/bayes/distribution.h"
 #include "gelex/types/fixed_effects.h"
 
 namespace gelex
@@ -32,11 +33,8 @@ namespace gelex
 namespace bayes
 {
 
-// Variant type for genotype storage
 using GenotypeStorage = std::variant<GenotypeMap, GenotypeMatrix>;
 
-// Helper to get matrix reference from either storage type
-// Returns Eigen::Ref which can wrap both Map and MatrixXd
 inline Eigen::Ref<const Eigen::MatrixXd> get_matrix_ref(
     const GenotypeStorage& storage)
 {
@@ -46,13 +44,11 @@ inline Eigen::Ref<const Eigen::MatrixXd> get_matrix_ref(
         storage);
 }
 
-// Helper to get number of rows
 inline Eigen::Index get_rows(const GenotypeStorage& storage)
 {
     return std::visit([](const auto& s) { return s.rows(); }, storage);
 }
 
-// Helper to get number of columns
 inline Eigen::Index get_cols(const GenotypeStorage& storage)
 {
     return std::visit([](const auto& s) { return s.cols(); }, storage);
@@ -72,7 +68,6 @@ inline const Eigen::VectorXd& get_stddev(const GenotypeStorage& storage)
         storage);
 }
 
-// Helper to check monomorphic status
 inline bool is_monomorphic_variant(
     const GenotypeStorage& storage,
     Eigen::Index idx)
@@ -81,7 +76,6 @@ inline bool is_monomorphic_variant(
         [idx](const auto& s) { return s.is_monomorphic(idx); }, storage);
 }
 
-// Helper to get number of monomorphic markers
 inline Eigen::Index num_mono_variant(const GenotypeStorage& storage)
 {
     return std::visit([](const auto& s) { return s.num_mono(); }, storage);
@@ -242,6 +236,7 @@ struct ResidualState
     Eigen::VectorXd y_adj;
     double variance{0.0};
 };
+
 }  // namespace bayes
 }  // namespace gelex
 

@@ -18,7 +18,7 @@
 
 #include "gelex/exception.h"
 #include "gelex/model/bayes/prior_constants.h"
-#include "utils/math_utils.h"
+#include "gelex/utils/math_utils.h"
 
 namespace gelex
 {

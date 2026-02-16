@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "posterior_calculator.h"
+#include "gelex/estimator/bayes/posterior_calculator.h"
 
 #include <Eigen/Core>
 

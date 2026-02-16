@@ -20,8 +20,8 @@
 
 #include <Eigen/Core>
 
-#include "../src/types/bayes_effects.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/types/bayes_effects.h"
 
 namespace gelex::detail::CommonSampler
 {

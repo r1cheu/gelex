@@ -27,7 +27,7 @@
 #include <vector>
 
 #include <Eigen/Core>
-#include "data/binary_matrix_writer.h"
+#include "gelex/data/binary_matrix_writer.h"
 
 // Forward declaration
 

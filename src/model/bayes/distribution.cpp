@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "distribution.h"
+#include "gelex/model/bayes/distribution.h"
 #include <random>
 
 #include <Eigen/Core>

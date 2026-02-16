@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "math_utils.h"
+#include "gelex/utils/math_utils.h"
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>

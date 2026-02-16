@@ -16,6 +16,7 @@
 
 #ifndef GELEX_LOGGER_BAYES_LOGGER_H_
 #define GELEX_LOGGER_BAYES_LOGGER_H_
+
 #include <memory>
 
 #include <barkeep.h>

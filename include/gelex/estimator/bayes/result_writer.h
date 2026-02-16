@@ -19,9 +19,9 @@
 
 #include <filesystem>
 
-#include "../src/estimator/bayes/parameter_writer.h"
-#include "../src/estimator/bayes/snp_effects_writer.h"
-#include "../src/estimator/bayes/snp_quant_genetic_writer.h"
+#include "gelex/estimator/bayes/parameter_writer.h"
+#include "gelex/estimator/bayes/snp_effects_writer.h"
+#include "gelex/estimator/bayes/snp_quant_genetic_writer.h"
 #include "gelex/types/mcmc_results.h"
 
 namespace gelex

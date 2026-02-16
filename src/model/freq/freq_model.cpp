@@ -16,7 +16,7 @@
 
 #include <Eigen/SVD>
 #include "gelex/model/freq/model.h"
-#include "utils/math_utils.h"
+#include "gelex/utils/math_utils.h"
 
 namespace gelex
 {

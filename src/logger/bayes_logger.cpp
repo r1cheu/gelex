@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "../src/logger/bayes_logger.h"
+#include "gelex/logger/bayes_logger.h"
 
 #include <Eigen/Core>
 #include <vector>

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "parameter_writer.h"
+#include "gelex/estimator/bayes/parameter_writer.h"
 
 #include <fstream>
 

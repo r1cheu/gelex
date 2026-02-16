@@ -24,10 +24,10 @@
 #include <omp.h>
 #include <Eigen/Core>
 
-#include "../src/estimator/bayes/posterior_calculator.h"
-#include "../src/logger/bayes_logger.h"
 #include "gelex/detail/indicator.h"
 #include "gelex/estimator/bayes/params.h"
+#include "gelex/estimator/bayes/posterior_calculator.h"
+#include "gelex/logger/bayes_logger.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/mcmc_results.h"
 #include "gelex/types/mcmc_samples.h"

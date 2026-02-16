@@ -25,12 +25,12 @@
 #include <Eigen/Core>
 #include "barkeep.h"
 
-#include "../src/data/binary_matrix_writer.h"
-#include "../src/data/snp_stats_writer.h"
 #include "gelex/data/bed_pipe.h"
+#include "gelex/data/binary_matrix_writer.h"
 #include "gelex/data/genotype_mmap.h"
 #include "gelex/data/genotype_processor.h"
 #include "gelex/data/sample_manager.h"
+#include "gelex/data/snp_stats_writer.h"
 #include "gelex/detail/indicator.h"
 
 namespace gelex

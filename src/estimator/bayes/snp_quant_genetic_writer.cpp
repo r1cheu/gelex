@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#include "snp_quant_genetic_writer.h"
+#include "gelex/estimator/bayes/snp_quant_genetic_writer.h"
 
 #include <format>
 #include <fstream>
 
 #include <Eigen/Core>
 
-#include "../src/data/loader/bim_loader.h"
+#include "gelex/data/loader/bim_loader.h"
 #include "gelex/io/parser.h"
 
 namespace gelex

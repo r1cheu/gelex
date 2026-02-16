@@ -20,7 +20,7 @@
 #include <ranges>
 #include <vector>
 
-#include "math_utils.h"
+#include "gelex/utils/math_utils.h"
 
 namespace gelex::detail
 {

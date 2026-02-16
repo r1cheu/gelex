@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "bim_loader.h"
+#include "gelex/data/loader/bim_loader.h"
 
 #include <filesystem>
 #include <fstream>

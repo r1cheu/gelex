@@ -17,8 +17,8 @@
 #ifndef GELEX_UTILS_MATH_UTILS_H_
 #define GELEX_UTILS_MATH_UTILS_H_
 
-#include <cmath>    // for erf, sqrt
-#include <numbers>  // for std::numbers::sqrt2
+#include <cmath>
+#include <numbers>
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
@@ -34,7 +34,6 @@ Eigen::VectorXd sum_square(const Eigen::Ref<const Eigen::MatrixXd>& mat);
 Eigen::VectorXd sum_square(const Eigen::Ref<Eigen::SparseMatrix<double>>& mat);
 Eigen::VectorXd cols_var(const Eigen::Ref<const Eigen::MatrixXd>& mat);
 
-// Normal CDF for any mean (mu) and stddev (sigma)
 inline double normal_cdf(double x, double mu = 0.0, double sigma = 1.0)
 {
     return 0.5 * (1.0 + std::erf((x - mu) / (sigma * std::numbers::sqrt2)));
@@ -126,7 +125,7 @@ inline double inverse_of_normal_cdf(double p, double mu, double sigma)
                      + 1);
         }
         else
-        { /* very close to  0 or 1 */
+        {
             r += -5;
             val = (((((((r * 2.01033439929228813265e-7
                          + 2.71155556874348757815e-5)
@@ -191,7 +190,6 @@ Eigen::VectorXd var(
     }
     else
     {
-        // Compute variance along rows (axis=1)
 #pragma omp parallel for default(none) shared(n, a, result, ddof)
         for (Eigen::Index i = 0; i < n; ++i)
         {

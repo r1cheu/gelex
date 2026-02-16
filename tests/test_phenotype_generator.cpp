@@ -23,7 +23,7 @@
 
 #include "gelex/data/genetic_value_calculator.h"
 #include "gelex/data/phenotype_generator.h"
-#include "utils/math_utils.h"
+#include "gelex/utils/math_utils.h"
 
 using namespace gelex;  // NOLINT
 using Catch::Matchers::WithinAbs;

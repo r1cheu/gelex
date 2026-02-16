@@ -32,7 +32,7 @@
 #include "gelex/estimator/freq/reml.h"
 #include "gelex/pipeline/data_pipe.h"
 
-#include "data/loader/bim_loader.h"
+#include "gelex/data/loader/bim_loader.h"
 
 namespace
 {

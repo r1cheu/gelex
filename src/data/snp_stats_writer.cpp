@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "snp_stats_writer.h"
+#include "gelex/data/snp_stats_writer.h"
 
 #include <array>
 #include <cassert>
