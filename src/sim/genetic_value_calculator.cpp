@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#include "gelex/data/genetic_value_calculator.h"
+#include "gelex/sim/genetic_value_calculator.h"
 
 #include <Eigen/Core>
 
-#include "gelex/data/genotype_processor.h"
+#include "gelex/data/genotype/genotype_processor.h"
 
 namespace gelex
 {

@@ -19,7 +19,7 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/data/genotype_processor.h"
+#include "gelex/data/genotype/genotype_processor.h"
 
 using namespace gelex;
 

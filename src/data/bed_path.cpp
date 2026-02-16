@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/bed_path.h"
+#include "gelex/data/genotype/bed_path.h"
 
 #include <format>
 

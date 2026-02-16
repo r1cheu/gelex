@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_GRM_LOADER_H
-#define GELEX_DATA_GRM_LOADER_H
+#ifndef GELEX_INTERNAL_DATA_GRM_LOADER_H_
+#define GELEX_INTERNAL_DATA_GRM_LOADER_H_
 
 #include <cstddef>
 #include <filesystem>
@@ -34,7 +34,6 @@ namespace gelex::detail
 class GrmLoader
 {
    public:
-    // prefix: path without .grm.bin / .grm.id suffix
     explicit GrmLoader(const std::filesystem::path& prefix);
 
     GrmLoader(const GrmLoader&) = delete;
@@ -43,25 +42,17 @@ class GrmLoader
     GrmLoader& operator=(GrmLoader&&) noexcept = default;
     ~GrmLoader() = default;
 
-    // Load complete GRM matrix
     [[nodiscard]] auto load() const -> Eigen::MatrixXd;
-
-    // Load unnormalized GRM (raw X*X' sum)
     [[nodiscard]] auto load_unnormalized() const -> Eigen::MatrixXd;
 
-    // Load GRM with filtering and reordering based on id_map
-    // id_map: key = canonical sample ID, value = target matrix row/col index
-    // Throws InvalidInputException if any ID in id_map is not found in file
     [[nodiscard]] auto load(
         const std::unordered_map<std::string, Eigen::Index>& id_map) const
         -> Eigen::MatrixXd;
 
-    // Load unnormalized GRM with filtering and reordering
     [[nodiscard]] auto load_unnormalized(
         const std::unordered_map<std::string, Eigen::Index>& id_map) const
         -> Eigen::MatrixXd;
 
-    // Load unnormalized GRM with filtering and reordering into target matrix
     auto load_unnormalized(
         const std::unordered_map<std::string, Eigen::Index>& id_map,
         Eigen::MatrixXd& target) const -> void;
@@ -83,14 +74,13 @@ class GrmLoader
     std::filesystem::path bin_path_;
     std::filesystem::path id_path_;
     mio::mmap_source mmap_;
-    std::vector<std::string> sample_ids_;  // canonical sample ID format
+    std::vector<std::string> sample_ids_;
     Eigen::Index num_samples_{};
     freq::GrmType type_;
 
     auto load_sample_ids() -> void;
     auto init_mmap() -> void;
 
-    // Linear index in lower triangle for position (i, j) where i >= j
     [[nodiscard]] static auto lower_triangle_index(
         Eigen::Index i,
         Eigen::Index j) noexcept -> size_t
@@ -101,4 +91,4 @@ class GrmLoader
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_DATA_GRM_LOADER_H
+#endif  // GELEX_INTERNAL_DATA_GRM_LOADER_H_

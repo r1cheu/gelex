@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "fam_loader.h"
+#include "gelex/internal/data/loader/fam_loader.h"
 
 #include <filesystem>
 #include <fstream>

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/dummy_encode.h"
+#include "gelex/data/frame/dummy_encode.h"
 
 #include <format>
 #include <iostream>

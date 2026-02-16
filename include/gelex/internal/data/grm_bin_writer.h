@@ -14,33 +14,33 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_GRM_ID_WRITER_H
-#define GELEX_DATA_GRM_ID_WRITER_H
+#ifndef GELEX_INTERNAL_DATA_GRM_BIN_WRITER_H_
+#define GELEX_INTERNAL_DATA_GRM_BIN_WRITER_H_
 
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
-#include <span>
-#include <string>
-#include <string_view>
-#include <utility>
+#include <vector>
+
+#include <Eigen/Core>
 
 namespace gelex::detail
 {
 
-class GrmIdWriter
+class GrmBinWriter
 {
    public:
-    explicit GrmIdWriter(const std::filesystem::path& file_path);
+    static constexpr size_t kDefaultBufferSize = static_cast<size_t>(64 * 1024);
 
-    GrmIdWriter(const GrmIdWriter&) = delete;
-    GrmIdWriter(GrmIdWriter&&) noexcept = default;
-    GrmIdWriter& operator=(const GrmIdWriter&) = delete;
-    GrmIdWriter& operator=(GrmIdWriter&&) noexcept = default;
-    ~GrmIdWriter() = default;
+    explicit GrmBinWriter(const std::filesystem::path& file_path);
 
-    // Write sample IDs, each line contains: FID\tIID
-    // Input ids use canonical make_sample_id(fid, iid) format
-    auto write(std::span<const std::string> ids) -> void;
+    GrmBinWriter(const GrmBinWriter&) = delete;
+    GrmBinWriter(GrmBinWriter&&) noexcept = default;
+    GrmBinWriter& operator=(const GrmBinWriter&) = delete;
+    GrmBinWriter& operator=(GrmBinWriter&&) noexcept = default;
+    ~GrmBinWriter() = default;
+
+    auto write(const Eigen::Ref<const Eigen::MatrixXd>& grm) -> void;
 
     [[nodiscard]] auto path() const noexcept -> const std::filesystem::path&
     {
@@ -49,13 +49,10 @@ class GrmIdWriter
 
    private:
     std::filesystem::path path_;
+    std::vector<char> io_buffer_;
     std::ofstream file_;
-
-    // Split canonical sample ID into (FID, IID)
-    static auto split_id(std::string_view id)
-        -> std::pair<std::string_view, std::string_view>;
 };
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_DATA_GRM_ID_WRITER_H
+#endif  // GELEX_INTERNAL_DATA_GRM_BIN_WRITER_H_

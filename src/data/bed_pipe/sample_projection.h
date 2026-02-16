@@ -23,7 +23,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/sample_manager.h"
+#include "gelex/data/genotype/sample_manager.h"
 
 namespace gelex::detail
 {

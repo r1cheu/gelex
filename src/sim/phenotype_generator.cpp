@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/phenotype_generator.h"
+#include "gelex/sim/phenotype_generator.h"
 
 #include <algorithm>
 #include <cmath>

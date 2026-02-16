@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "grm_loader.h"
+#include "gelex/internal/data/grm_loader.h"
 
 #include <algorithm>
 #include <format>
@@ -22,7 +22,7 @@
 #include <string>
 #include <system_error>
 
-#include "gelex/data/dataframe_policy.h"
+#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/exception.h"
 #include "gelex/io/parser.h"
 #include "gelex/types/freq_effect.h"

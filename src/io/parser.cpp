@@ -22,7 +22,7 @@
 #include <ranges>
 #include <vector>
 
-#include "gelex/data/dataframe_policy.h"
+#include "gelex/data/frame/dataframe_policy.h"
 
 namespace gelex::detail
 {

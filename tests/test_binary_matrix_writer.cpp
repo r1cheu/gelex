@@ -31,7 +31,7 @@
 #include "file_fixture.h"
 #include "gelex/exception.h"
 
-#include "gelex/data/binary_matrix_writer.h"
+#include "gelex/data/io/binary_matrix_writer.h"
 
 namespace fs = std::filesystem;
 

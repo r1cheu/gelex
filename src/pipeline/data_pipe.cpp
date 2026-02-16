@@ -26,11 +26,11 @@
 
 #include <Eigen/Core>
 
-#include "data/grm_loader.h"
-#include "gelex/data/dummy_encode.h"
-#include "gelex/data/genotype_processor.h"
-#include "gelex/data/sample_manager.h"
+#include "gelex/data/frame/dummy_encode.h"
+#include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/data/genotype/sample_manager.h"
 #include "gelex/exception.h"
+#include "gelex/internal/data/grm_loader.h"
 #include "gelex/logger.h"
 #include "gelex/types/fixed_effects.h"
 #include "utils/formatter.h"

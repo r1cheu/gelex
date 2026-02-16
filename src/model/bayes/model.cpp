@@ -23,7 +23,7 @@
 #include <fmt/ranges.h>
 #include <Eigen/Core>
 
-#include "gelex/data/genotype_mmap.h"
+#include "gelex/data/genotype/genotype_mmap.h"
 #include "gelex/pipeline/data_pipe.h"
 #include "gelex/types/bayes_effects.h"
 #include "gelex/utils/math_utils.h"

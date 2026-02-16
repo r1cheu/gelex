@@ -21,7 +21,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/loader/bim_loader.h"
+#include "gelex/data/genotype/loader/bim_loader.h"
 #include "gelex/io/parser.h"
 
 namespace gelex

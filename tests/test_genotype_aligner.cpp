@@ -23,7 +23,7 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/data/loader/snp_effect_loader.h"
+#include "gelex/internal/data/loader/snp_effect_loader.h"
 #include "../src/predict/genotype_aligner.h"
 #include "../src/predict/snp_matcher.h"
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "grm_bin_writer.h"
+#include "gelex/internal/data/grm_bin_writer.h"
 
 #include <format>
 

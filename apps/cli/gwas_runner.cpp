@@ -22,8 +22,8 @@
 
 #include <fmt/format.h>
 
-#include "gelex/data/genotype_processor.h"
-#include "gelex/data/loco_grm_loader.h"
+#include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/data/grm/loco_grm_loader.h"
 #include "gelex/estimator/freq/estimator.h"
 #include "gelex/gwas/association_test.h"
 #include "gelex/logger.h"

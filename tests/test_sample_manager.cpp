@@ -22,8 +22,8 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "file_fixture.h"
-#include "gelex/data/dataframe_policy.h"
-#include "gelex/data/sample_manager.h"
+#include "gelex/data/frame/dataframe_policy.h"
+#include "gelex/data/genotype/sample_manager.h"
 #include "gelex/exception.h"
 
 namespace fs = std::filesystem;

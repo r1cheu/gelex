@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#include "grm_id_writer.h"
+#include "gelex/internal/data/grm_id_writer.h"
 
 #include <format>
 
-#include "gelex/data/dataframe_policy.h"
+#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/exception.h"
 #include "gelex/io/parser.h"
 

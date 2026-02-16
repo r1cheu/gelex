@@ -19,8 +19,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/data/effect_sampler.h"
 #include "gelex/exception.h"
+#include "gelex/sim/effect_sampler.h"
 
 using namespace gelex;  // NOLINT
 using Catch::Matchers::WithinAbs;

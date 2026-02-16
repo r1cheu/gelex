@@ -26,7 +26,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/dataframe.h"
+#include "gelex/data/frame/dataframe.h"
 
 namespace gelex
 {

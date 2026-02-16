@@ -24,7 +24,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/effect_sampler.h"
+#include "gelex/sim/effect_sampler.h"
 
 namespace gelex
 {

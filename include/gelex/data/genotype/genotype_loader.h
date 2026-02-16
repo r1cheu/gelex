@@ -24,10 +24,10 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/bed_pipe.h"
-#include "gelex/data/genotype_matrix.h"
-#include "gelex/data/genotype_processor.h"
-#include "gelex/data/sample_manager.h"
+#include "gelex/data/genotype/bed_pipe.h"
+#include "gelex/data/genotype/genotype_matrix.h"
+#include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/data/genotype/sample_manager.h"
 #include "gelex/detail/indicator.h"
 
 namespace gelex

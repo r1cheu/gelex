@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_LOADER_SAMPLE_LOADER_H
-#define GELEX_DATA_LOADER_SAMPLE_LOADER_H
+#ifndef GELEX_INTERNAL_DATA_LOADER_FAM_LOADER_H_
+#define GELEX_INTERNAL_DATA_LOADER_FAM_LOADER_H_
 
 #include <filesystem>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Dense>
@@ -27,9 +28,6 @@
 namespace gelex::detail
 {
 
-// -----------------------------------------------------------------------------
-// FamLoader (Sample Info)
-// -----------------------------------------------------------------------------
 class FamLoader
 {
    public:
@@ -51,4 +49,4 @@ class FamLoader
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_DATA_LOADER_SAMPLE_LOADER_H
+#endif  // GELEX_INTERNAL_DATA_LOADER_FAM_LOADER_H_

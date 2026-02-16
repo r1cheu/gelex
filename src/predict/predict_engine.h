@@ -22,7 +22,7 @@
 
 #include <Eigen/Core>
 
-#include "data/loader/snp_effect_loader.h"
+#include "gelex/internal/data/loader/snp_effect_loader.h"
 #include "predict/covar_effect_loader.h"
 #include "predict_pipe.h"
 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_BINARY_MMAP_LOADER_H_
-#define GELEX_DATA_BINARY_MMAP_LOADER_H_
+#ifndef GELEX_INTERNAL_DATA_BINARY_MMAP_LOADER_H_
+#define GELEX_INTERNAL_DATA_BINARY_MMAP_LOADER_H_
 
 #include <array>
 #include <cstddef>
@@ -303,4 +303,4 @@ auto BinaryMmapLoader<eT>::parse_and_validate_meta() -> void
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_DATA_BINARY_MMAP_LOADER_H_
+#endif  // GELEX_INTERNAL_DATA_BINARY_MMAP_LOADER_H_

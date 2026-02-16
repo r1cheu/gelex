@@ -25,7 +25,7 @@
 #include <Eigen/Core>
 
 #include "cli/cli_helper.h"
-#include "gelex/data/bed_pipe.h"
+#include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/gwas/gwas_writer.h"
 #include "gelex/pipeline/data_pipe.h"
 #include "gelex/types/assoc_input.h"

@@ -20,11 +20,11 @@
 
 #include <string_view>
 
-#include "../src/data/grm_bin_writer.h"
-#include "../src/data/grm_id_writer.h"
+#include "gelex/internal/data/grm_bin_writer.h"
+#include "gelex/internal/data/grm_id_writer.h"
 #include "file_fixture.h"
-#include "gelex/data/dataframe_policy.h"
-#include "gelex/data/loco_grm_loader.h"
+#include "gelex/data/frame/dataframe_policy.h"
+#include "gelex/data/grm/loco_grm_loader.h"
 
 namespace fs = std::filesystem;
 using gelex::detail::GrmBinWriter;

@@ -22,7 +22,7 @@
 
 #include "file_fixture.h"
 
-#include "../src/data/loader/snp_effect_loader.h"
+#include "gelex/internal/data/loader/snp_effect_loader.h"
 #include "../src/predict/snp_matcher.h"
 
 namespace fs = std::filesystem;

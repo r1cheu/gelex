@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "snp_effect_loader.h"
+#include "gelex/internal/data/loader/snp_effect_loader.h"
 
 #include <algorithm>
 #include <cmath>

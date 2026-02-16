@@ -18,7 +18,7 @@
 
 #include <argparse.h>
 
-#include "gelex/data/bed_path.h"
+#include "gelex/data/genotype/bed_path.h"
 #include "gelex/logger.h"
 #include "predict/predict_engine.h"
 

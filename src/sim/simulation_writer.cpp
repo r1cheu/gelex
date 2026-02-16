@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/simulation_writer.h"
+#include "gelex/sim/simulation_writer.h"
 
 #include <format>
 #include <fstream>
@@ -25,7 +25,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/dataframe_policy.h"
+#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/io/parser.h"
 #include "gelex/logger.h"
 #include "utils/formatter.h"

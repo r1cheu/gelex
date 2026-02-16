@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/simulate.h"
+#include "gelex/sim/simulate.h"
 
 #include <algorithm>
 #include <memory>
@@ -22,14 +22,14 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/bed_pipe.h"
-#include "gelex/data/effect_sampler.h"
-#include "gelex/data/genetic_value_calculator.h"
-#include "gelex/data/loader/bim_loader.h"
-#include "gelex/data/phenotype_generator.h"
-#include "gelex/data/simulation_writer.h"
+#include "gelex/data/genotype/bed_pipe.h"
+#include "gelex/data/genotype/loader/bim_loader.h"
 #include "gelex/exception.h"
 #include "gelex/logger.h"
+#include "gelex/sim/effect_sampler.h"
+#include "gelex/sim/genetic_value_calculator.h"
+#include "gelex/sim/phenotype_generator.h"
+#include "gelex/sim/simulation_writer.h"
 #include "utils/formatter.h"
 
 namespace gelex

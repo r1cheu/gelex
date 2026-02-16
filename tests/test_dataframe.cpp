@@ -21,7 +21,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "file_fixture.h"
-#include "gelex/data/dataframe.h"
+#include "gelex/data/frame/dataframe.h"
 #include "gelex/exception.h"
 #include "gelex/internal/dataframe/text_utils.h"
 

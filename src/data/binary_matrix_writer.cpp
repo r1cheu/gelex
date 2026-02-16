@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/binary_matrix_writer.h"
+#include "gelex/data/io/binary_matrix_writer.h"
 
 #include "gelex/exception.h"
 #include "gelex/io/parser.h"

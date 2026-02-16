@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/genotype_pipe.h"
+#include "gelex/data/genotype/genotype_pipe.h"
 
 #include <filesystem>
 #include <utility>

@@ -26,9 +26,9 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/data/grm_id_writer.h"
+#include "gelex/internal/data/grm_id_writer.h"
 #include "file_fixture.h"
-#include "gelex/data/dataframe_policy.h"
+#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/exception.h"
 
 namespace fs = std::filesystem;

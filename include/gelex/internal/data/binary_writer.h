@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_BINARY_WRITER_H_
-#define GELEX_DATA_BINARY_WRITER_H_
+#ifndef GELEX_INTERNAL_DATA_BINARY_WRITER_H_
+#define GELEX_INTERNAL_DATA_BINARY_WRITER_H_
 
 #include <array>
 #include <cstddef>
@@ -32,7 +32,6 @@
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
-
 #include "gelex/io/parser.h"
 
 namespace gelex::detail
@@ -260,4 +259,4 @@ auto BinaryWriter<eT>::write_u64_le(uint64_t value) -> void
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_DATA_BINARY_WRITER_H_
+#endif  // GELEX_INTERNAL_DATA_BINARY_WRITER_H_

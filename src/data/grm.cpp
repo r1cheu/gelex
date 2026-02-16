@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/grm.h"
+#include "gelex/data/grm/grm.h"
 
 #include <memory>
 
@@ -26,8 +26,8 @@
 #include <cblas.h>
 #endif
 
-#include "gelex/data/bed_pipe.h"
-#include "gelex/data/sample_manager.h"
+#include "gelex/data/genotype/bed_pipe.h"
+#include "gelex/data/genotype/sample_manager.h"
 
 namespace gelex
 {

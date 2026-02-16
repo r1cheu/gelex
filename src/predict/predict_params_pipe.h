@@ -19,8 +19,8 @@
 
 #include <filesystem>
 
-#include "../data/loader/snp_effect_loader.h"
 #include "covar_effect_loader.h"
+#include "gelex/internal/data/loader/snp_effect_loader.h"
 
 namespace gelex
 {

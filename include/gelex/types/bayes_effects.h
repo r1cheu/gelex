@@ -23,8 +23,8 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/genotype_matrix.h"
-#include "gelex/data/genotype_mmap.h"
+#include "gelex/data/genotype/genotype_matrix.h"
+#include "gelex/data/genotype/genotype_mmap.h"
 #include "gelex/model/bayes/distribution.h"
 #include "gelex/types/fixed_effects.h"
 

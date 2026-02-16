@@ -23,10 +23,10 @@
 #include <vector>
 
 #include "cli_helper.h"
-#include "gelex/data/bed_path.h"
-#include "gelex/data/simulate.h"
+#include "gelex/data/genotype/bed_path.h"
 #include "gelex/exception.h"
 #include "gelex/logger.h"
+#include "gelex/sim/simulate.h"
 #include "utils/formatter.h"
 
 namespace

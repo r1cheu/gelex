@@ -20,7 +20,7 @@
 #include <fstream>
 #include <ostream>
 
-#include "gelex/data/dataframe_policy.h"
+#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/exception.h"
 #include "gelex/io/parser.h"
 

@@ -28,7 +28,7 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/data/dataframe_policy.h"
+#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/exception.h"
 #include "gelex/internal/dataframe/row_validator.h"
 #include "gelex/internal/dataframe/text_utils.h"

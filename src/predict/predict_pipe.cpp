@@ -23,8 +23,8 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/bed_pipe.h"
-#include "gelex/data/sample_manager.h"
+#include "gelex/data/genotype/bed_pipe.h"
+#include "gelex/data/genotype/sample_manager.h"
 
 namespace gelex
 {

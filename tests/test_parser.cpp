@@ -26,7 +26,7 @@
 
 #include "gelex/io/parser.h"
 #include "file_fixture.h"
-#include "gelex/data/dataframe_policy.h"
+#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/exception.h"
 
 namespace fs = std::filesystem;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/bed_pipe.h"
+#include "gelex/data/genotype/bed_pipe.h"
 
 #include <format>
 #include <limits>

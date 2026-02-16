@@ -26,12 +26,12 @@
 #include <omp.h>
 
 #include "cli_helper.h"
-#include "data/grm_bin_writer.h"
-#include "data/grm_id_writer.h"
-#include "gelex/data/bed_path.h"
-#include "gelex/data/genotype_processor.h"
-#include "gelex/data/grm.h"
-#include "gelex/data/loader/bim_loader.h"
+#include "gelex/data/genotype/bed_path.h"
+#include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/data/genotype/loader/bim_loader.h"
+#include "gelex/data/grm/grm.h"
+#include "gelex/internal/data/grm_bin_writer.h"
+#include "gelex/internal/data/grm_id_writer.h"
 #include "gelex/logger.h"
 #include "grm_args.h"
 #include "utils/formatter.h"

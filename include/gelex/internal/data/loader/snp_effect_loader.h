@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_LOADER_SNP_EFFECT_LOADER_H
-#define GELEX_DATA_LOADER_SNP_EFFECT_LOADER_H
+#ifndef GELEX_INTERNAL_DATA_LOADER_SNP_EFFECT_LOADER_H_
+#define GELEX_INTERNAL_DATA_LOADER_SNP_EFFECT_LOADER_H_
 
+#include <algorithm>
 #include <filesystem>
 #include <span>
 #include <string_view>
+#include <utility>
 
 #include <Eigen/Core>
 
 #include "gelex/types/snp_info.h"
 
-// namespace gelex
 namespace gelex::detail
 {
 
-/// Structure to store column indices for .snp.eff file parsing
 struct ColumnIndices
 {
     int chrom = -1;
@@ -41,14 +41,12 @@ struct ColumnIndices
     int add = -1;
     int dom = -1;
 
-    /// Check if all required columns are present
     [[nodiscard]] bool has_required_columns() const
     {
         return chrom != -1 && id != -1 && pos != -1 && a1 != -1 && a2 != -1
                && a1frq != -1 && add != -1;
     }
 
-    /// Get the maximum index required to safely access the row vector
     [[nodiscard]] int max_required_index() const
     {
         int m = std::max({chrom, id, pos, a1, a2, a1frq, add});
@@ -87,4 +85,5 @@ class SnpEffectLoader
 bool check_dom_effect_column(const std::filesystem::path& snp_effect_path);
 
 }  // namespace gelex::detail
-#endif  // GELEX_DATA_LOADER_SNP_EFFECT_LOADER_H
+
+#endif  // GELEX_INTERNAL_DATA_LOADER_SNP_EFFECT_LOADER_H_

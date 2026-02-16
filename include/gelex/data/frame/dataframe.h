@@ -32,8 +32,8 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/column.h"
-#include "gelex/data/dataframe_policy.h"
+#include "gelex/data/frame/column.h"
+#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/exception.h"
 #include "gelex/internal/dataframe/dataframe_loader.h"
 #include "gelex/internal/dataframe/index_intersector.h"

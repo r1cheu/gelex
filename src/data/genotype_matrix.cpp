@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/genotype_matrix.h"
+#include "gelex/data/genotype/genotype_matrix.h"
 
 namespace gelex
 {

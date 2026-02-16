@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/sample_manager.h"
+#include "gelex/data/genotype/sample_manager.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -23,7 +23,7 @@
 #include <utility>
 #include <vector>
 
-#include "loader/fam_loader.h"
+#include "gelex/internal/data/loader/fam_loader.h"
 
 namespace gelex
 {

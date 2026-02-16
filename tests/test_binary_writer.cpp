@@ -37,9 +37,9 @@ namespace fs = std::filesystem;
 
 using gelex::test::FileFixture;
 
-#if __has_include("../src/data/binary_writer.h")
+#if __has_include("gelex/internal/data/binary_writer.h")
 
-#include "../src/data/binary_writer.h"
+#include "gelex/internal/data/binary_writer.h"
 
 namespace gelex::detail::test
 {

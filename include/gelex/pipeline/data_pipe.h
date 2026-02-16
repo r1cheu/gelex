@@ -27,13 +27,13 @@
 
 #include <Eigen/Dense>
 
-#include "gelex/data/dataframe.h"
-#include "gelex/data/genotype_loader.h"
-#include "gelex/data/genotype_matrix.h"
-#include "gelex/data/genotype_method_dispatch.h"
-#include "gelex/data/genotype_mmap.h"
-#include "gelex/data/genotype_pipe.h"
-#include "gelex/data/sample_manager.h"
+#include "gelex/data/frame/dataframe.h"
+#include "gelex/data/genotype/genotype_loader.h"
+#include "gelex/data/genotype/genotype_matrix.h"
+#include "gelex/data/genotype/genotype_method_dispatch.h"
+#include "gelex/data/genotype/genotype_mmap.h"
+#include "gelex/data/genotype/genotype_pipe.h"
+#include "gelex/data/genotype/sample_manager.h"
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/freq_effect.h"
 

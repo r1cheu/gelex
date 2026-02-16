@@ -26,7 +26,7 @@
 #include <vector>
 
 #include "cli_helper.h"
-#include "gelex/data/bed_path.h"
+#include "gelex/data/genotype/bed_path.h"
 #include "gelex/estimator/bayes/mcmc.h"
 #include "gelex/estimator/bayes/params.h"
 #include "gelex/estimator/bayes/result_writer.h"

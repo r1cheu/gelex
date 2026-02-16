@@ -26,7 +26,7 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/data/grm_bin_writer.h"
+#include "gelex/internal/data/grm_bin_writer.h"
 #include "file_fixture.h"
 #include "gelex/exception.h"
 
@@ -531,4 +531,3 @@ TEST_CASE(
         REQUIRE(fs::file_size(file_path) == expected_file_size(n));
     }
 }
-

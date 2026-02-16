@@ -17,8 +17,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "file_fixture.h"
-#include "gelex/data/dataframe.h"
-#include "gelex/data/dummy_encode.h"
+#include "gelex/data/frame/dataframe.h"
+#include "gelex/data/frame/dummy_encode.h"
 
 using gelex::DataFrame;
 using gelex::DummyEncode;

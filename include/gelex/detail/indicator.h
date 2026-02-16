@@ -28,7 +28,7 @@
 #include <Eigen/Core>
 
 #include "barkeep.h"
-#include "gelex/data/genotype_processor.h"
+#include "gelex/data/genotype/genotype_processor.h"
 
 namespace gelex
 {

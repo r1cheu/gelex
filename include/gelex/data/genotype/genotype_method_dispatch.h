@@ -24,7 +24,7 @@
 #include <string_view>
 #include <utility>
 
-#include "gelex/data/genotype_processor.h"
+#include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/exception.h"
 
 namespace gelex

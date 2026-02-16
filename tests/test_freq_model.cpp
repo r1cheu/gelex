@@ -23,11 +23,11 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "../src/data/grm_bin_writer.h"
-#include "../src/data/grm_id_writer.h"
+#include "gelex/internal/data/grm_bin_writer.h"
+#include "gelex/internal/data/grm_id_writer.h"
 #include "bed_fixture.h"
 #include "file_fixture.h"
-#include "gelex/data/dataframe_policy.h"
+#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/pipeline/data_pipe.h"
 #include "gelex/model/freq/model.h"
 

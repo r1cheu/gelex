@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/genotype_loader.h"
+#include "gelex/data/genotype/genotype_loader.h"
 
 #include <format>
 #include <new>  // for std::bad_alloc
