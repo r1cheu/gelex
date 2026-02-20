@@ -94,14 +94,13 @@ auto rebecca_purple(const T& value)
     return fmt::styled(value, fmt::fg(fmt::color::rebecca_purple));
 }
 
-struct HumanReadable
+struct AbbrNumber
 {
-    explicit HumanReadable(size_t value) : value(static_cast<double>(value)) {}
-    explicit HumanReadable(Eigen::Index value)
-        : value(static_cast<double>(value))
+    explicit AbbrNumber(size_t value) : value(static_cast<double>(value)) {}
+    explicit AbbrNumber(Eigen::Index value) : value(static_cast<double>(value))
     {
     }
-    explicit HumanReadable(double value) : value(value) {}
+    explicit AbbrNumber(double value) : value(value) {}
     double value;
 };
 
@@ -110,9 +109,9 @@ struct HumanReadable
 namespace fmt
 {
 template <>
-struct formatter<gelex::HumanReadable> : formatter<double>
+struct formatter<gelex::AbbrNumber> : formatter<double>
 {
-    auto format(gelex::HumanReadable hr, format_context& ctx) const
+    auto format(gelex::AbbrNumber hr, format_context& ctx) const
         -> format_context::iterator;
 };
 }  // namespace fmt

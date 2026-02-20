@@ -123,7 +123,7 @@ inline auto create_genotype_process_bar(int64_t total) -> GenotypeProgressBar
 
     auto status = barkeep::Status(
         {.message = fmt::format(
-             "  0/{} SNPs", gelex::HumanReadable(static_cast<size_t>(total))),
+             "  0/{} SNPs", gelex::AbbrNumber(static_cast<size_t>(total))),
          .style = barkeep::Strings{" "},
          .show = false});
     elements.push_back(status);

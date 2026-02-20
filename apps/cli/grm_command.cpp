@@ -190,8 +190,8 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
                         "{:.1f}% ({}/{}) | {}",
                         static_cast<double>(current_total)
                             / static_cast<double>(total_work_snps) * 100,
-                        gelex::HumanReadable(current_total),
-                        gelex::HumanReadable(total_work_snps),
+                        gelex::AbbrNumber(current_total),
+                        gelex::AbbrNumber(total_work_snps),
                         eta_calculator.get_eta(current_total)));
             };
 

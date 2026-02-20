@@ -80,9 +80,9 @@ class GenotypePipe
             pbar.status->message(
                 fmt::format(
                     "  {}/{} SNPs",
-                    gelex::HumanReadable(
+                    gelex::AbbrNumber(
                         static_cast<size_t>(current_processed_snps)),
-                    gelex::HumanReadable(static_cast<size_t>(num_variants_))));
+                    gelex::AbbrNumber(static_cast<size_t>(num_variants_))));
 
             start_variant = end_variant;
         }

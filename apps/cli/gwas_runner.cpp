@@ -171,8 +171,8 @@ auto GwasRunner::run_normal() -> void
                 "{:.1f}% ({}/{}) | ETA: {}",
                 static_cast<double>(current) / static_cast<double>(total)
                     * 100.0,
-                HumanReadable(current),
-                HumanReadable(total),
+                AbbrNumber(current),
+                AbbrNumber(total),
                 eta_calculator_.get_eta(current + offset)));
     };
 
@@ -255,8 +255,8 @@ auto GwasRunner::run_loco() -> void
                     "{:.1f}% ({}/{}) ETA: {}",
                     static_cast<double>(current)
                         / static_cast<double>(snp_effects_.size()) * 100.0,
-                    HumanReadable(current),
-                    HumanReadable(snp_effects_.size()),
+                    AbbrNumber(current),
+                    AbbrNumber(snp_effects_.size()),
                     eta_calculator_.get_eta(current)));
         };
 

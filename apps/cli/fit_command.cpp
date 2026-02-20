@@ -260,8 +260,7 @@ int fit_execute(argparse::ArgumentParser& fit)
     // Data Loading & Pipeline
     // ================================================================
     gelex::DataPipe data_pipe(config);
-    logger->info("");
-    logger->info(gelex::section("Loading Data..."));
+    logger->info(gelex::section("[Loading Data]"));
     auto p_stats = data_pipe.load_phenotypes();
     logger->info(
         gelex::success(
@@ -277,22 +276,28 @@ int fit_execute(argparse::ArgumentParser& fit)
     {
         std::string parts;
         if (c_stats.qcovar_loaded > 0)
+        {
             parts += fmt::format(
                 "{} quantitative ({})",
                 c_stats.qcovar_loaded,
                 gelex::format_names(c_stats.q_names));
+        }
         if (c_stats.qcovar_loaded > 0 && c_stats.dcovar_loaded > 0)
+        {
             parts += ", ";
+        }
         if (c_stats.dcovar_loaded > 0)
+        {
             parts += fmt::format(
                 "{} discrete ({})",
                 c_stats.dcovar_loaded,
                 gelex::format_names(c_stats.d_names));
+        }
         logger->info(gelex::success("Covariates : {}", parts));
     }
 
     logger->info("");
-    logger->info(gelex::section("Pre-processing..."));
+    logger->info(gelex::section("[Pre-processing]"));
     auto i_stats = data_pipe.intersect_samples();
     logger->info(
         gelex::success(
@@ -311,26 +316,30 @@ int fit_execute(argparse::ArgumentParser& fit)
     auto log_overwrite = [&](const std::string& msg)
     {
         if (gelex::cli::is_tty())
+        {
             logger->info("{}", "\033[A\r" + msg + "\033[K");
+        }
         else
+        {
             logger->info("{}", msg);
+        }
     };
 
     auto add_stats = data_pipe.load_additive_matrix();
     log_overwrite(
         gelex::success(
             "Additive     : {} SNPs ({} monomorphic excluded)",
-            add_stats.num_snps - add_stats.monomorphic_snps,
-            add_stats.monomorphic_snps));
-
+            gelex::AbbrNumber(add_stats.num_snps - add_stats.monomorphic_snps),
+            gelex::AbbrNumber(add_stats.monomorphic_snps)));
     if (config.use_dominance_effect)
     {
         auto dom_stats = data_pipe.load_dominance_matrix();
         log_overwrite(
             gelex::success(
                 "Dominance    : {} SNPs ({} monomorphic excluded)",
-                dom_stats.num_snps - dom_stats.monomorphic_snps,
-                dom_stats.monomorphic_snps));
+                gelex::AbbrNumber(
+                    add_stats.num_snps - add_stats.monomorphic_snps),
+                gelex::AbbrNumber(dom_stats.monomorphic_snps)));
     }
 
     data_pipe.finalize();

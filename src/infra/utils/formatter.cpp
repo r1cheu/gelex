@@ -158,8 +158,8 @@ std::string format_names(
 
 namespace fmt
 {
-auto fmt::formatter<gelex::HumanReadable>::format(
-    gelex::HumanReadable hr,
+auto fmt::formatter<gelex::AbbrNumber>::format(
+    gelex::AbbrNumber hr,
     format_context& ctx) const -> format_context::iterator
 {
     double v = hr.value;
