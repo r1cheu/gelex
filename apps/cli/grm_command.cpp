@@ -223,11 +223,7 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
     pbar.display->done();
 
     logger->info("");
-    logger->info(
-        fmt::format(
-            fmt::fg(fmt::color::light_cyan),
-            "── Computation Summary {}",
-            gelex::separator(70 - 23)));
+    logger->info(gelex::named_section("Computation Summary", 70));
     logger->info(
         gelex::success(
             "Time elapsed: {}", eta_calculator.total_time_consumed()));
@@ -257,10 +253,6 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
             config.out_prefix,
             task_pattern);
     }
-    logger->info(
-        fmt::format(
-            fmt::emphasis::bold | fmt::fg(fmt::color::light_cyan),
-            "──────────────────────────────────────────────────────────────"
-            "────────"));
+    logger->info(gelex::separator());
     return 0;
 }

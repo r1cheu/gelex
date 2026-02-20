@@ -91,11 +91,6 @@ template <FileStream StreamType>
     return stream;
 }
 
-size_t estimate_line_count(
-    const std::filesystem::path& path,
-    int sample_lines = 5);
-
-// counts total number of lines in a file
 size_t count_total_lines(const std::filesystem::path& path);
 
 size_t count_num_columns(std::string_view line, char delimiter = '\t');

@@ -18,10 +18,17 @@
 #define GELEX_PREDICT_PREDICT_WRITER_H
 
 #include <filesystem>
+#include <memory>
 #include <span>
 #include <string>
+#include <string_view>
 
 #include <Eigen/Core>
+
+namespace gelex::detail
+{
+class TextWriter;
+}
 
 namespace gelex
 {
@@ -30,37 +37,31 @@ class PredictWriter
 {
    public:
     explicit PredictWriter(const std::filesystem::path& output_path);
+    ~PredictWriter();
 
-    void write(
-        const Eigen::Ref<Eigen::VectorXd>& predictions,
+    auto write(
+        const Eigen::Ref<const Eigen::VectorXd>& predictions,
         std::span<const std::string> sample_ids,
-        const Eigen::Ref<Eigen::VectorXd>& add_pred,
-        const Eigen::Ref<Eigen::VectorXd>& dom_pred,
-        const Eigen::Ref<Eigen::MatrixXd>& covar_pred,
-        std::span<const std::string> covar_names);
+        const Eigen::Ref<const Eigen::VectorXd>& add_pred,
+        const Eigen::Ref<const Eigen::VectorXd>& dom_pred,
+        const Eigen::Ref<const Eigen::MatrixXd>& covar_pred,
+        std::span<const std::string> covar_names) -> void;
 
    private:
-    void write_header(
-        std::ostream& stream,
-        std::span<const std::string> covar_names,
-        bool has_dom) const;
+    auto write_header(std::span<const std::string> covar_names, bool has_dom)
+        -> void;
 
-    static void write_prediction(
-        std::ostream& stream,
+    auto write_prediction(
         double total_prediction,
         const Eigen::Ref<const Eigen::RowVectorXd>& covar_pred,
         double add_pred,
-        double dom_pred);
+        bool has_dom,
+        double dom_pred) -> void;
 
-    static void write_prediction(
-        std::ostream& stream,
-        double total_prediction,
-        const Eigen::Ref<const Eigen::RowVectorXd>& covar_pred,
-        double add_pred);
+    auto write_id(std::string_view sample_id) -> void;
 
-    void write_id(std::ostream& stream, std::string_view sample_id) const;
-
-    std::filesystem::path output_path_;
+    std::unique_ptr<detail::TextWriter> writer_;
+    std::string row_buf_;
 };
 
 }  // namespace gelex

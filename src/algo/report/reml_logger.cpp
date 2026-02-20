@@ -109,19 +109,14 @@ void RemlLogger::log_results(
     double elapsed)
 {
     logger_->info("");
-    logger_->info(
-        fmt::format(
-            fmt::fg(fmt::color::light_cyan),
-            "── REML Results {}",
-            separator(70 - 16)));
+    logger_->info(named_section("REML Results", 70));
 
     log_convergence(converged, iter_count, max_iter, elapsed);
     log_model_fit(model, loglike);
     log_fixed_effects(model, state);
     log_variance_components(state);
 
-    logger_->info(
-        fmt::format(fmt::fg(fmt::color::light_cyan), "{}", separator(70)));
+    logger_->info(separator(70));
 }
 
 void RemlLogger::log_convergence(

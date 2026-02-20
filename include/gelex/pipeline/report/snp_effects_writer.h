@@ -18,44 +18,49 @@
 #define GELEX_ESTIMATOR_BAYES_SNP_EFFECTS_WRITER_H_
 
 #include <filesystem>
-#include <fstream>
+#include <memory>
+#include <string>
 
 #include <Eigen/Core>
 
 #include "gelex/data/loader/bim_loader.h"
 #include "gelex/types/mcmc_results.h"
 
+namespace gelex::detail
+{
+class TextWriter;
+}
+
 namespace gelex
 {
+
 class SnpEffectsWriter
 {
    public:
-    explicit SnpEffectsWriter(
+    SnpEffectsWriter(
         const MCMCResult& result,
-        const std::filesystem::path& bim_file_path);
+        const std::filesystem::path& bim_file_path,
+        const std::filesystem::path& output_path);
+    ~SnpEffectsWriter();
 
-    void write(const std::filesystem::path& path) const;
+    auto write() -> void;
 
    private:
     const MCMCResult* result_;
     detail::BimLoader bim_loader_;
+    std::unique_ptr<detail::TextWriter> writer_;
+    std::string row_buf_;
 
-    void write_header(std::ofstream& stream) const;
-    void write_snp_row(std::ofstream& stream, Eigen::Index snp_index) const;
-    void write_snp_basic_info(std::ofstream& stream, Eigen::Index snp_index)
-        const;
-    void write_additive_effects(std::ofstream& stream, Eigen::Index snp_index)
-        const;
-    void write_add_component_probabilities(
-        std::ofstream& stream,
-        Eigen::Index snp_index) const;
-    void write_add_pip(std::ofstream& stream, Eigen::Index snp_index) const;
-    void write_dom_component_probabilities(
-        std::ofstream& stream,
-        Eigen::Index snp_index) const;
-    void write_dom_pip(std::ofstream& stream, Eigen::Index snp_index) const;
-    void write_dominant_effects(std::ofstream& stream, Eigen::Index snp_index)
-        const;
+    auto write_header() -> void;
+    auto write_snp_row(Eigen::Index snp_index) -> void;
+    auto write_snp_basic_info(Eigen::Index snp_index) -> void;
+    auto write_effects(const BaseMarkerSummary* effect, Eigen::Index snp_index)
+        -> void;
+    auto write_component_probs(
+        const BaseMarkerSummary* effect,
+        Eigen::Index snp_index) -> void;
+    auto write_pip(const BaseMarkerSummary* effect, Eigen::Index snp_index)
+        -> void;
 };
 
 }  // namespace gelex

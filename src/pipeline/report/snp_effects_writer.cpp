@@ -17,117 +17,112 @@
 #include "gelex/pipeline/report/snp_effects_writer.h"
 
 #include <format>
-#include <fstream>
+#include <memory>
 
-#include <Eigen/Core>
-
-#include "gelex/data/loader/bim_loader.h"
-#include "gelex/io/parser.h"
+#include "gelex/io/text_writer.h"
 
 namespace gelex
 {
 
 using Eigen::Index;
-using Eigen::VectorXd;
 
 SnpEffectsWriter::SnpEffectsWriter(
     const MCMCResult& result,
-    const std::filesystem::path& bim_file_path)
-    : result_(&result), bim_loader_(bim_file_path)
+    const std::filesystem::path& bim_file_path,
+    const std::filesystem::path& output_path)
+    : result_(&result),
+      bim_loader_(bim_file_path),
+      writer_(std::make_unique<detail::TextWriter>(output_path))
 {
 }
 
-void SnpEffectsWriter::write(const std::filesystem::path& path) const
+SnpEffectsWriter::~SnpEffectsWriter() = default;
+
+auto SnpEffectsWriter::write() -> void
 {
-    if (result_->additive() == nullptr)
+    const auto* additive = result_->additive();
+    if (additive == nullptr)
     {
         return;
     }
 
-    auto stream = detail::open_file<std::ofstream>(path, std::ios::out);
+    write_header();
 
-    write_header(stream);
-
-    // Write SNP effects for all SNPs
-    for (Index i = 0; i < result_->additive()->coeffs.size(); ++i)
+    for (Index i = 0; i < additive->coeffs.size(); ++i)
     {
-        write_snp_row(stream, i);
+        row_buf_.clear();
+        write_snp_row(i);
+        writer_->write(row_buf_);
     }
 }
 
-void SnpEffectsWriter::write_header(std::ofstream& stream) const
+auto SnpEffectsWriter::write_header() -> void
 {
-    // Determine if we have per-component probabilities to write
-    Index n_alpha_components = 0;
-    Index n_dominant_components = 0;
-    if (const auto* additive = result_->additive();
-        (additive != nullptr) && additive->comp_probs.cols() > 0)
+    const auto* additive = result_->additive();
+    const auto* dominant = result_->dominant();
+
+    Index n_add_components = 0;
+    Index n_dom_components = 0;
+    if (additive != nullptr && additive->comp_probs.cols() > 0)
     {
-        n_alpha_components = additive->comp_probs.cols();
+        n_add_components = additive->comp_probs.cols();
     }
-    if (const auto* dominant = result_->dominant();
-        (dominant != nullptr) && dominant->comp_probs.cols() > 0)
+    if (dominant != nullptr && dominant->comp_probs.cols() > 0)
     {
-        n_dominant_components = dominant->comp_probs.cols();
+        n_dom_components = dominant->comp_probs.cols();
     }
 
-    // Write dynamic header based on whether dominance effects exist and
-    // component probs
-    stream << "Index\tID\tChrom\tPosition\tA1\tA2\tA1Freq\tAdd\tAddSE\tAddPVE";
+    std::string h
+        = "Index\tID\tChrom\tPosition\tA1\tA2\tA1Freq"
+          "\tAdd\tAddSE\tAddPVE";
 
-    // Write additive component probability columns for any number of components
-    if (n_alpha_components > 2)
+    if (n_add_components > 2)
     {
-        for (Index comp = 0; comp < n_alpha_components; ++comp)
+        for (Index comp = 0; comp < n_add_components; ++comp)
         {
-            stream << "\tpi_" << comp << "";
+            h += std::format("\tpi_{}", comp);
         }
     }
-    stream << "\tPIP";
+    h += "\tPIP";
 
-    if (result_->dominant() != nullptr)
+    if (dominant != nullptr)
     {
-        stream << "\tDom\tDomSE\tDomPVE";
-        // Write dominant component probability columns for any number of
-        // components
-        if (n_dominant_components > 2)
+        h += "\tDom\tDomSE\tDomPVE";
+        if (n_dom_components > 2)
         {
-            for (Index comp = 0; comp < n_dominant_components; ++comp)
+            for (Index comp = 0; comp < n_dom_components; ++comp)
             {
-                stream << "\tpi_" << comp << "";
+                h += std::format("\tpi_{}", comp);
             }
         }
-        stream << "\tPIP";
+        h += "\tPIP";
     }
 
-    stream << "\n";
+    writer_->write(h);
 }
 
-void SnpEffectsWriter::write_snp_row(std::ofstream& stream, Index snp_index)
-    const
+auto SnpEffectsWriter::write_snp_row(Index snp_index) -> void
 {
-    stream << std::format("{}\t", snp_index + 1);  // Index
+    const auto* additive = result_->additive();
+    const auto* dominant = result_->dominant();
 
-    write_snp_basic_info(stream, snp_index);
-    write_additive_effects(stream, snp_index);
-    write_add_component_probabilities(stream, snp_index);
-    write_add_pip(stream, snp_index);
-    write_dominant_effects(stream, snp_index);
-    write_dom_component_probabilities(stream, snp_index);
-    write_dom_pip(stream, snp_index);
+    row_buf_ += std::format("{}\t", snp_index + 1);
 
-    stream << "\n";
+    write_snp_basic_info(snp_index);
+    write_effects(additive, snp_index);
+    write_component_probs(additive, snp_index);
+    write_pip(additive, snp_index);
+    write_effects(dominant, snp_index);
+    write_component_probs(dominant, snp_index);
+    write_pip(dominant, snp_index);
 }
 
-void SnpEffectsWriter::write_snp_basic_info(
-    std::ofstream& stream,
-    Index snp_index) const
+auto SnpEffectsWriter::write_snp_basic_info(Index snp_index) -> void
 {
-    // SNP name and basic information
     if (snp_index < static_cast<Index>(bim_loader_.size()))
     {
         const auto& snp_info = bim_loader_.info()[snp_index];
-        stream << std::format(
+        row_buf_ += std::format(
             "{}\t{}\t{}\t{}\t{}",
             snp_info.id,
             snp_info.chrom,
@@ -137,134 +132,77 @@ void SnpEffectsWriter::write_snp_basic_info(
 
         if (result_->p_freq.size() > snp_index)
         {
-            // Calculate A1Freq from genotype mean: mean(X_i) / 2
-            double a1_frq = result_->p_freq(snp_index);
-            stream << std::format("\t{:.6f}", a1_frq);
+            row_buf_ += std::format("\t{:.6f}", result_->p_freq(snp_index));
         }
         else
         {
-            stream << "\tNA";  // Placeholder for A1Freq
+            row_buf_ += "\tNA";
         }
     }
     else
     {
-        // Placeholder values for missing SNP information
-        stream << "\tNA\tNA\tNA\tNA\tNA";  // Chrom, Position, A1, A2, A1Freq
+        row_buf_ += "\tNA\tNA\tNA\tNA\tNA";
     }
 }
 
-void SnpEffectsWriter::write_additive_effects(
-    std::ofstream& stream,
-    Index snp_index) const
+auto SnpEffectsWriter::write_effects(
+    const BaseMarkerSummary* effect,
+    Index snp_index) -> void
 {
-    // Additive effect statistics
-    stream << std::format(
+    if (effect == nullptr || snp_index >= effect->coeffs.size())
+    {
+        return;
+    }
+
+    row_buf_ += std::format(
         "\t{:.6f}\t{:.6f}",
-        result_->additive()->coeffs.mean(snp_index),
-        result_->additive()->coeffs.stddev(snp_index));
+        effect->coeffs.mean(snp_index),
+        effect->coeffs.stddev(snp_index));
 
-    // Additive PVE statistics
-    if (result_->additive()->pve.size() > snp_index)
+    if (effect->pve.size() > snp_index)
     {
-        stream << std::format(
-            "\t{:.6e}", result_->additive()->pve.mean(snp_index));
+        row_buf_ += std::format("\t{:.6e}", effect->pve.mean(snp_index));
     }
     else
     {
-        stream << "\t0.0";  // Placeholder for PVE
+        row_buf_ += "\t0.0";
     }
 }
 
-void SnpEffectsWriter::write_add_component_probabilities(
-    std::ofstream& stream,
-    Index snp_index) const
+auto SnpEffectsWriter::write_component_probs(
+    const BaseMarkerSummary* effect,
+    Index snp_index) -> void
 {
-    // Per-component posterior probabilities (if available)
-    if (const auto* additive = result_->additive();
-        (additive != nullptr) && additive->comp_probs.cols() > 2
-        && snp_index < additive->comp_probs.rows())
+    if (effect == nullptr || effect->comp_probs.cols() <= 2
+        || snp_index >= effect->comp_probs.rows())
     {
-        const Index n_components = additive->comp_probs.cols();
+        return;
+    }
 
-        for (Index comp = 0; comp < n_components; ++comp)
-        {
-            stream << std::format(
-                "\t{:.6f}", additive->comp_probs(snp_index, comp));
-        }
+    for (Index comp = 0; comp < effect->comp_probs.cols(); ++comp)
+    {
+        row_buf_
+            += std::format("\t{:.6f}", effect->comp_probs(snp_index, comp));
     }
 }
 
-void SnpEffectsWriter::write_add_pip(std::ofstream& stream, Index snp_index)
-    const
+auto SnpEffectsWriter::write_pip(
+    const BaseMarkerSummary* effect,
+    Index snp_index) -> void
 {
-    // Posterior inclusion probability (if available)
-    if (const auto* additive = result_->additive();
-        (additive != nullptr) && additive->pip.size() > snp_index)
+    if (effect == nullptr)
     {
-        stream << std::format("\t{:.6f}", additive->pip(snp_index));
+        return;
+    }
+
+    if (effect->pip.size() > snp_index)
+    {
+        row_buf_ += std::format("\t{:.6f}", effect->pip(snp_index));
     }
     else
     {
-        stream << "\t1.0";  // Default PIP when not tracking
+        row_buf_ += "\t1.0";
     }
 }
 
-void SnpEffectsWriter::write_dom_component_probabilities(
-    std::ofstream& stream,
-    Index snp_index) const
-{
-    // Per-component posterior probabilities (if available)
-
-    if (const auto* dominant = result_->dominant();
-        (dominant != nullptr) && dominant->comp_probs.cols() > 2
-        && snp_index < dominant->comp_probs.rows())
-    {
-        const Index n_components = dominant->comp_probs.cols();
-        for (Index comp = 0; comp < n_components; ++comp)
-        {
-            stream << std::format(
-                "\t{:.6f}", dominant->comp_probs(snp_index, comp));
-        }
-    }
-}
-
-void SnpEffectsWriter::write_dom_pip(std::ofstream& stream, Index snp_index)
-    const
-{
-    if (const auto* dominant = result_->dominant();
-        (dominant != nullptr) && dominant->pip.size() > snp_index)
-    {
-        stream << std::format("\t{:.6f}", dominant->pip(snp_index));
-    }
-    else if (const auto* dominant = result_->dominant(); dominant != nullptr)
-    {
-        stream << "\t1.0";  // Default PIP when not tracking
-    }
-}
-
-void SnpEffectsWriter::write_dominant_effects(
-    std::ofstream& stream,
-    Index snp_index) const
-{
-    // Dominance effect statistics (if they exist)
-    if (const auto* dominant = result_->dominant();
-        (dominant != nullptr) && snp_index < result_->dominant()->coeffs.size())
-    {
-        stream << std::format(
-            "\t{:.6f}\t{:.6f}",
-            result_->dominant()->coeffs.mean(snp_index),
-            result_->dominant()->coeffs.stddev(snp_index));
-
-        // Dominant PVE statistics
-        if (result_->dominant()->pve.size() > snp_index)
-        {
-            stream << std::format(
-                "\t{:.6e}", result_->dominant()->pve.mean(snp_index));
-        }
-        else
-        {
-            stream << "\t0.0";  // Placeholder for PVE
-        }
-    }
-}
 }  // namespace gelex

@@ -18,7 +18,6 @@
 #define GELEX_UTILS_FORMATTER_H_
 
 #include <Eigen/Core>
-#include <cmath>
 #include <cstddef>
 #include <span>
 #include <string>
@@ -38,6 +37,8 @@ std::string header_box(
 std::string step_header(int current, int total, const std::string& description);
 std::string separator(size_t width = 70, const std::string& c = "─");
 std::string table_separator(size_t width = 70);
+std::string
+named_section(std::string_view name, size_t width = 32, size_t indent = 0);
 
 std::string format_eta(double seconds);
 

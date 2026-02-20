@@ -99,11 +99,7 @@ void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
     }
     header += fmt::format("  {:>10}  {:>7}  {:>4}", "V(e)", "Time", "Conv");
 
-    logger->info(
-        fmt::format(
-            fmt::emphasis::bold | fmt::fg(fmt::color::light_cyan),
-            "── LOCO REML Summary {}",
-            separator(70 - 21)));
+    logger->info(named_section("LOCO REML Summary", 70));
     logger->info("{}", header);
     logger->info("{}", table_separator());
 
@@ -159,11 +155,7 @@ void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
         sum_ve / n);
     logger->info("  {:>5}  {:>10}{}", "h²", "", format_variances(mean_h2));
 
-    logger->info(
-        fmt::format(
-            fmt::emphasis::bold | fmt::fg(fmt::color::light_cyan),
-            "{}",
-            separator()));
+    logger->info(separator());
 }
 
 }  // namespace gelex::detail

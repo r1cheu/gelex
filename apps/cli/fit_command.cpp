@@ -360,11 +360,7 @@ int fit_execute(argparse::ArgumentParser& fit)
     logger->info(
         gelex::success("SNP Effects saved to : {}.snp.eff", out_prefix));
     logger->info(gelex::success("Run Log saved to     : {}.log", out_prefix));
-    logger->info(
-        fmt::format(
-            fmt::emphasis::bold | fmt::fg(fmt::color::light_cyan),
-            "───────────────────────────────────"
-            "───────────────────────────────────"));
+    logger->info(gelex::separator());
 
     return 0;
 }

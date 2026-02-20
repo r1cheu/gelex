@@ -111,6 +111,18 @@ std::string table_separator(size_t width)
     return "  " + separator(width - 2);
 }
 
+std::string named_section(std::string_view name, size_t width, size_t indent)
+{
+    std::string result(indent, ' ');
+    result += "── ";
+    result += name;
+    result += " ";
+    size_t used = indent + 3 + name.size() + 1;
+    size_t remaining = used < width ? width - used : 0;
+    result += separator(remaining);
+    return fmt::format(fmt::emphasis::bold, "{}", result);
+}
+
 std::string format_eta(double seconds)
 {
     if (seconds < 0 || seconds > 3600 * 60 * 99)

@@ -18,12 +18,18 @@
 #define GELEX_ESTIMATOR_BAYES_PARAMETER_WRITER_H_
 
 #include <filesystem>
-#include <fstream>
-#include <functional>
+#include <memory>
+#include <span>
+#include <string>
 
 #include <Eigen/Core>
 
 #include "gelex/types/mcmc_results.h"
+
+namespace gelex::detail
+{
+class TextWriter;
+}
 
 namespace gelex
 {
@@ -31,30 +37,30 @@ namespace gelex
 class ParameterWriter
 {
    public:
-    explicit ParameterWriter(const MCMCResult& result);
+    ParameterWriter(
+        const MCMCResult& result,
+        const std::filesystem::path& output_path);
+    ~ParameterWriter();
 
-    void write(const std::filesystem::path& path) const;
+    auto write() -> void;
 
    private:
     const MCMCResult* result_;
+    std::unique_ptr<detail::TextWriter> writer_;
 
-    void write_fixed_effects(std::ofstream& stream) const;
-    void write_random_effects(std::ofstream& stream) const;
-    void write_residual_variance(std::ofstream& stream) const;
-    void write_additive_effect(std::ofstream& stream) const;
-    void write_dominant_effect(std::ofstream& stream) const;
+    auto write_fixed_effects() -> void;
+    auto write_random_effects() -> void;
+    auto write_residual_variance() -> void;
 
-    static void write_genetic_effect(
-        std::ofstream& stream,
+    auto write_genetic_effect(
         const std::string& variance_label,
         const std::string& heritability_label,
-        const std::function<const BaseMarkerSummary*()>& effect_getter);
+        const BaseMarkerSummary* effect) -> void;
 
-    static void write_summary_statistics(
+    auto write_summary_statistics(
         std::span<const std::string> terms,
-        std::ofstream& stream,
         const PosteriorSummary& stats,
-        Eigen::Index n_params);
+        Eigen::Index n_params) -> void;
 };
 
 }  // namespace gelex

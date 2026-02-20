@@ -18,31 +18,34 @@
 
 #include <filesystem>
 
+#include "gelex/pipeline/report/parameter_writer.h"
+#include "gelex/pipeline/report/snp_effects_writer.h"
+#include "gelex/types/mcmc_results.h"
+
 namespace gelex
 {
 
 MCMCResultWriter::MCMCResultWriter(
     const MCMCResult& result,
     const std::filesystem::path& bim_file_path)
-    : parameter_writer_(result),
-      snp_effects_writer_(result, bim_file_path),
-      snp_quant_genetic_writer_(result, bim_file_path)
+    : result_(&result), bim_file_path_(bim_file_path)
 {
 }
 
-void MCMCResultWriter::save(const std::filesystem::path& prefix) const
+auto MCMCResultWriter::save(const std::filesystem::path& prefix) const -> void
 {
     auto params_path = prefix;
     params_path.replace_extension("params");
-    parameter_writer_.write(params_path);
+    ParameterWriter parameter_writer(*result_, params_path);
+    parameter_writer.write();
 
-    auto snp_path = prefix;
-    snp_path.replace_extension(".snp.eff");
-    snp_effects_writer_.write(snp_path);
-
-    auto quant_path = prefix;
-    quant_path.replace_extension(".snp.quant.eff");
-    snp_quant_genetic_writer_.write(quant_path);
+    if (result_->additive() != nullptr)
+    {
+        auto snp_path = prefix;
+        snp_path.replace_extension(".snp.eff");
+        SnpEffectsWriter snp_effects_writer(*result_, bim_file_path_, snp_path);
+        snp_effects_writer.write();
+    }
 }
 
 }  // namespace gelex

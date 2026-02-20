@@ -118,11 +118,7 @@ void MCMCLogger::log_result(
     Eigen::Index samples_collected)
 {
     logger_->info("");
-    logger_->info(
-        fmt::format(
-            fmt::emphasis::bold | fmt::fg(fmt::color::light_cyan),
-            "── Posterior Summary "
-            "─────────────────────────────────────────────────"));
+    logger_->info(gelex::named_section("Posterior Summary", 70));
 
     logger_->info("  Time elapsed: {:.2f}s", elapsed_time);
     logger_->info("  Samples collected per parameter: {}", samples_collected);
@@ -145,7 +141,7 @@ void MCMCLogger::log_result(
     };
     logger_->info(format_header(header));
 
-    logger_->info("  ──────────────────────────────");
+    logger_->info(gelex::table_separator(32));
 
     auto log_summary = [this](
                            Eigen::Index i,
@@ -153,7 +149,7 @@ void MCMCLogger::log_result(
                            const std::string& name)
     {
         logger_->info(
-            "  {:<8} {:>8.6f} {:>8.6f}",
+            "  {:<8} {:>10.6f} {:>10.6f}",
             name,
             summary.mean(i),
             summary.stddev(i));
@@ -202,7 +198,7 @@ void MCMCLogger::log_result(
                     log_summary(
                         i,
                         result->component_variance,
-                        fmt::format("σ²_[{}]", i + 1));
+                        fmt::format("σ²[{}]", i + 1));
                 }
             }
         }
@@ -210,20 +206,23 @@ void MCMCLogger::log_result(
 
     if (const auto* result = results.additive(); result != nullptr)
     {
-        log_summary(0, result->variance, "σ²_add");
+        logger_->info(gelex::named_section("Additive", 32, 2));
+        log_summary(0, result->variance, "σ²");
         log_summary(0, result->heritability, "h²");
     }
     log_mixture(model.additive(), results.additive());
 
     if (const auto* result = results.dominant(); result != nullptr)
     {
-        log_summary(0, result->variance, "σ²_dom");
+        logger_->info(gelex::named_section("Dominance", 32, 2));
+        log_summary(0, result->variance, "σ²");
         log_summary(0, result->heritability, "δ²");
     }
     log_mixture(model.dominant(), results.dominant());
 
-    log_summary(0, results.residual(), "σ²_e");
-    logger_->info("  ──────────────────────────────");
+    logger_->info(gelex::named_section("Residual"));
+    log_summary(0, results.residual(), "σ²");
+    logger_->info(gelex::table_separator(32));
     logger_->info("");
 }
 

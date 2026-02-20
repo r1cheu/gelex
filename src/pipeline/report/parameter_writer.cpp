@@ -16,139 +16,119 @@
 
 #include "gelex/pipeline/report/parameter_writer.h"
 
-#include <fstream>
+#include <format>
+#include <memory>
 
-#include <Eigen/Core>
-
-#include "gelex/io/parser.h"
+#include "gelex/io/text_writer.h"
 
 namespace gelex
 {
 
 using Eigen::Index;
-using Eigen::VectorXd;
 
-ParameterWriter::ParameterWriter(const MCMCResult& result) : result_(&result) {}
-
-void ParameterWriter::write(const std::filesystem::path& path) const
+ParameterWriter::ParameterWriter(
+    const MCMCResult& result,
+    const std::filesystem::path& output_path)
+    : result_(&result),
+      writer_(std::make_unique<detail::TextWriter>(output_path))
 {
-    auto stream = detail::open_file<std::ofstream>(path, std::ios::out);
-
-    // Write header
-    stream << "term\tmean\tstddev\n";
-
-    // Write different parameter types
-    write_fixed_effects(stream);
-    write_random_effects(stream);
-    write_additive_effect(stream);
-    write_dominant_effect(stream);
-    write_residual_variance(stream);
 }
 
-void ParameterWriter::write_fixed_effects(std::ofstream& stream) const
+ParameterWriter::~ParameterWriter() = default;
+
+auto ParameterWriter::write() -> void
 {
-    if (result_->fixed() != nullptr)
+    const auto* additive = result_->additive();
+    const auto* dominant = result_->dominant();
+
+    writer_->write_header({"term", "mean", "stddev"});
+
+    write_fixed_effects();
+    write_random_effects();
+    write_genetic_effect("σ²_add", "h²", additive);
+    write_genetic_effect("σ²_dom", "δ²", dominant);
+    write_residual_variance();
+}
+
+auto ParameterWriter::write_fixed_effects() -> void
+{
+    const auto* fixed = result_->fixed();
+    if (fixed == nullptr)
     {
-        std::vector<std::string> terms;
-        terms.reserve(result_->fixed()->coeffs.size());
-        for (int i = 0; i < result_->fixed()->coeffs.size(); ++i)
-        {
-            terms.emplace_back("Intercept");
-        }
-
-        write_summary_statistics(
-            terms,
-            stream,
-            result_->fixed()->coeffs,
-            result_->fixed()->coeffs.size());
+        return;
     }
+
+    const auto n = fixed->coeffs.size();
+    std::vector<std::string> terms(n, "Intercept");
+    write_summary_statistics(terms, fixed->coeffs, n);
 }
 
-void ParameterWriter::write_random_effects(std::ofstream& stream) const
+auto ParameterWriter::write_random_effects() -> void
 {
     for (const auto& rand : result_->random())
     {
         write_summary_statistics(
             std::vector<std::string>(rand.coeffs.size()),
-            stream,
             rand.coeffs,
             rand.coeffs.size());
         write_summary_statistics(
             std::vector<std::string>(rand.variance.size()),
-            stream,
             rand.variance,
             rand.variance.size());
     }
 }
 
-void ParameterWriter::write_residual_variance(std::ofstream& stream) const
+auto ParameterWriter::write_residual_variance() -> void
 {
     write_summary_statistics(
         std::vector<std::string>{"σ²_e"},
-        stream,
         result_->residual(),
         result_->residual().size());
 }
 
-void ParameterWriter::write_genetic_effect(
-    std::ofstream& stream,
+auto ParameterWriter::write_genetic_effect(
     const std::string& variance_label,
     const std::string& heritability_label,
-    const std::function<const BaseMarkerSummary*()>& effect_getter)
+    const BaseMarkerSummary* effect) -> void
 {
-    const auto* effect = effect_getter();
-    if (effect != nullptr)
+    if (effect == nullptr)
     {
-        write_summary_statistics(
-            std::vector<std::string>{variance_label},
-            stream,
-            effect->variance,
-            effect->variance.size());
-
-        const auto& mixture_proportion = effect->mixture_proportion;
-        std::vector<std::string> proportion_terms;
-        proportion_terms.reserve(mixture_proportion.size());
-        for (Index i = 0; i < mixture_proportion.size(); ++i)
-        {
-            proportion_terms.emplace_back("π[" + std::to_string(i) + "]");
-        }
-
-        write_summary_statistics(
-            std::vector<std::string>{heritability_label},
-            stream,
-            effect->heritability,
-            effect->heritability.size());
-
-        write_summary_statistics(
-            proportion_terms,
-            stream,
-            mixture_proportion,
-            mixture_proportion.size());
+        return;
     }
+
+    write_summary_statistics(
+        std::vector<std::string>{variance_label},
+        effect->variance,
+        effect->variance.size());
+
+    std::vector<std::string> proportion_terms;
+    proportion_terms.reserve(effect->mixture_proportion.size());
+    for (Index i = 0; i < effect->mixture_proportion.size(); ++i)
+    {
+        proportion_terms.emplace_back(std::format("π[{}]", i));
+    }
+
+    write_summary_statistics(
+        std::vector<std::string>{heritability_label},
+        effect->heritability,
+        effect->heritability.size());
+
+    write_summary_statistics(
+        proportion_terms,
+        effect->mixture_proportion,
+        effect->mixture_proportion.size());
 }
 
-void ParameterWriter::write_additive_effect(std::ofstream& stream) const
-{
-    write_genetic_effect(
-        stream, "σ²_add", "h²", [this]() { return result_->additive(); });
-}
-
-void ParameterWriter::write_dominant_effect(std::ofstream& stream) const
-{
-    write_genetic_effect(
-        stream, "σ²_dom", "δ²", [this]() { return result_->dominant(); });
-}
-
-void ParameterWriter::write_summary_statistics(
+auto ParameterWriter::write_summary_statistics(
     std::span<const std::string> terms,
-    std::ofstream& stream,
     const PosteriorSummary& stats,
-    Index n_params)
+    Index n_params) -> void
 {
     for (Index i = 0; i < n_params; ++i)
     {
-        stream << terms[i] << "\t" << stats.mean(i) << "\t" << stats.stddev(i)
-               << "\n";
+        writer_->write(
+            std::format(
+                "{}\t{}\t{}", terms[i], stats.mean(i), stats.stddev(i)));
     }
 }
 
