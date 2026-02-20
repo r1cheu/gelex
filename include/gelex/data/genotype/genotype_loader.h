@@ -22,6 +22,7 @@
 #include <memory>
 #include <vector>
 
+#include <fmt/format.h>
 #include <Eigen/Core>
 
 #include "gelex/data/genotype/bed_pipe.h"
@@ -29,6 +30,7 @@
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/data/genotype/sample_manager.h"
 #include "gelex/infra/detail/indicator.h"
+#include "gelex/infra/utils/formatter.h"
 
 namespace gelex
 {
@@ -88,9 +90,8 @@ GenotypeMatrix GenotypeLoader::process(size_t chunk_size)
     global_snp_idx_ = 0;
 
     Processor processor;
-    auto pbar
-        = detail::create_genotype_process_bar(global_snp_idx_, num_variants_);
-    pbar->show();
+    auto pbar = detail::create_genotype_process_bar(num_variants_);
+    pbar.display->show();
     means_.resize(num_variants_);
     stddevs_.resize(num_variants_);
     monomorphic_indices_.reserve(num_variants_ / 100);
@@ -104,9 +105,16 @@ GenotypeMatrix GenotypeLoader::process(size_t chunk_size)
         process_chunk(chunk, start_variant, processor);
 
         global_snp_idx_ += chunk.cols();
+
+        pbar.status->message(
+            fmt::format(
+                "  {}/{} SNPs",
+                gelex::HumanReadable(static_cast<size_t>(global_snp_idx_)),
+                gelex::HumanReadable(static_cast<size_t>(num_variants_))));
+
         start_variant = end_variant;
     }
-    pbar->done();
+    pbar.display->done();
     return finalize();
 }
 

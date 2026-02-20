@@ -26,6 +26,11 @@
 #include "gelex/infra/utils/formatter.h"
 #include "gelex/model/bayes/model.h"
 
+namespace
+{
+const int TABLE_WIDTH = 40;
+const int SECTION_WIDTH = 70;
+}  // namespace
 namespace gelex
 {
 namespace bk = barkeep;
@@ -118,7 +123,7 @@ void MCMCLogger::log_result(
     Eigen::Index samples_collected)
 {
     logger_->info("");
-    logger_->info(gelex::named_section("Posterior Summary", 70));
+    logger_->info(gelex::named_section("Posterior Summary", SECTION_WIDTH));
 
     logger_->info("  Time elapsed: {:.2f}s", elapsed_time);
     logger_->info("  Samples collected per parameter: {}", samples_collected);
@@ -141,7 +146,7 @@ void MCMCLogger::log_result(
     };
     logger_->info(format_header(header));
 
-    logger_->info(gelex::table_separator(32));
+    logger_->info(gelex::table_separator(TABLE_WIDTH));
 
     auto log_summary = [this](
                            Eigen::Index i,
@@ -206,7 +211,7 @@ void MCMCLogger::log_result(
 
     if (const auto* result = results.additive(); result != nullptr)
     {
-        logger_->info(gelex::named_section("Additive", 32, 2));
+        logger_->info(gelex::named_section("Additive", TABLE_WIDTH, 2));
         log_summary(0, result->variance, "σ²");
         log_summary(0, result->heritability, "h²");
     }
@@ -214,15 +219,15 @@ void MCMCLogger::log_result(
 
     if (const auto* result = results.dominant(); result != nullptr)
     {
-        logger_->info(gelex::named_section("Dominance", 32, 2));
+        logger_->info(gelex::named_section("Dominance", TABLE_WIDTH, 2));
         log_summary(0, result->variance, "σ²");
         log_summary(0, result->heritability, "δ²");
     }
     log_mixture(model.dominant(), results.dominant());
 
-    logger_->info(gelex::named_section("Residual"));
+    logger_->info(gelex::named_section("Residual", TABLE_WIDTH, 2));
     log_summary(0, results.residual(), "σ²");
-    logger_->info(gelex::table_separator(32));
+    logger_->info(gelex::table_separator(TABLE_WIDTH));
     logger_->info("");
 }
 

@@ -275,31 +275,30 @@ int fit_execute(argparse::ArgumentParser& fit)
     auto c_stats = data_pipe.load_covariates();
     if (c_stats.qcovar_loaded > 0 || c_stats.dcovar_loaded > 0)
     {
-        logger->info(gelex::task("Covariates : "));
-    }
-    if (c_stats.qcovar_loaded > 0)
-    {
-        logger->info(
-            gelex::subtask(
-                "Quantitative : {} loaded ",
-                gelex::format_names(c_stats.q_names)));
-    }
-    if (c_stats.dcovar_loaded > 0)
-    {
-        logger->info(
-            gelex::subtask(
-                "Discrete     : {} loaded ",
-                gelex::format_names(c_stats.d_names)));
+        std::string parts;
+        if (c_stats.qcovar_loaded > 0)
+            parts += fmt::format(
+                "{} quantitative ({})",
+                c_stats.qcovar_loaded,
+                gelex::format_names(c_stats.q_names));
+        if (c_stats.qcovar_loaded > 0 && c_stats.dcovar_loaded > 0)
+            parts += ", ";
+        if (c_stats.dcovar_loaded > 0)
+            parts += fmt::format(
+                "{} discrete ({})",
+                c_stats.dcovar_loaded,
+                gelex::format_names(c_stats.d_names));
+        logger->info(gelex::success("Covariates : {}", parts));
     }
 
     logger->info("");
     logger->info(gelex::section("Pre-processing..."));
     auto i_stats = data_pipe.intersect_samples();
-    logger->info(gelex::task("Sample Intersection:"));
     logger->info(
-        gelex::subtask("Common samples : {} ", i_stats.common_samples));
-    logger->info(
-        gelex::subtask("Excluded       : {} ", i_stats.excluded_samples));
+        gelex::success(
+            "Intersection : {} common, {} excluded",
+            i_stats.common_samples,
+            i_stats.excluded_samples));
 
     if (i_stats.common_samples == 0)
     {
@@ -309,25 +308,29 @@ int fit_execute(argparse::ArgumentParser& fit)
         return 1;
     }
 
-    logger->info(gelex::task("Matrix Construction:"));
-    logger->info(gelex::subtask("Additive:"));
-    auto add_stats = data_pipe.load_additive_matrix();
+    auto log_overwrite = [&](const std::string& msg)
+    {
+        if (gelex::cli::is_tty())
+            logger->info("{}", "\033[A\r" + msg + "\033[K");
+        else
+            logger->info("{}", msg);
+    };
 
-    logger->info(gelex::subsubtask("{} SNPs processed", add_stats.num_snps));
-    logger->info(
-        gelex::subsubtask(
-            "{} monomorphic SNPs excluded", add_stats.monomorphic_snps));
+    auto add_stats = data_pipe.load_additive_matrix();
+    log_overwrite(
+        gelex::success(
+            "Additive     : {} SNPs ({} monomorphic excluded)",
+            add_stats.num_snps - add_stats.monomorphic_snps,
+            add_stats.monomorphic_snps));
 
     if (config.use_dominance_effect)
     {
-        logger->info(gelex::subtask("Dominance:"));
         auto dom_stats = data_pipe.load_dominance_matrix();
-
-        logger->info(
-            gelex::subsubtask("{} SNPs processed", dom_stats.num_snps));
-        logger->info(
-            gelex::subsubtask(
-                "{} monomorphic SNPs excluded", dom_stats.monomorphic_snps));
+        log_overwrite(
+            gelex::success(
+                "Dominance    : {} SNPs ({} monomorphic excluded)",
+                dom_stats.num_snps - dom_stats.monomorphic_snps,
+                dom_stats.monomorphic_snps));
     }
 
     data_pipe.finalize();
@@ -356,10 +359,9 @@ int fit_execute(argparse::ArgumentParser& fit)
     {
         return 1;
     }
-    logger->info(gelex::success("Parameters saved to  : {}.param", out_prefix));
     logger->info(
-        gelex::success("SNP Effects saved to : {}.snp.eff", out_prefix));
-    logger->info(gelex::success("Run Log saved to     : {}.log", out_prefix));
+        gelex::success(
+            "Results saved to '{}' (.param, .snp.eff, .log)", out_prefix));
     logger->info(gelex::separator());
 
     return 0;

@@ -24,10 +24,13 @@
 #include <memory>
 #include <optional>
 #include <string_view>
+#include <vector>
 
+#include <fmt/format.h>
 #include <Eigen/Core>
 
 #include "barkeep.h"
+#include "gelex/infra/utils/formatter.h"
 
 namespace gelex
 {
@@ -101,16 +104,31 @@ class Indicator
     StatusSnapshot current_values_;
 };
 
-inline auto create_genotype_process_bar(int64_t& current, int64_t total)
-    -> std::shared_ptr<barkeep::ProgressBarDisplay<int64_t>>
+struct GenotypeProgressBar
 {
-    return barkeep::ProgressBar(
-        &current,
-        {.total = total,
-         .format = "      └─ {value}/{total} SNPs encoded "
-                   "({speed:.1f} snp/s)",
-         .speed = 0.1,
+    std::shared_ptr<barkeep::CompositeDisplay> display;
+    std::shared_ptr<barkeep::StatusDisplay> status;
+};
+
+inline auto create_genotype_process_bar(int64_t total) -> GenotypeProgressBar
+{
+    std::vector<std::shared_ptr<barkeep::BaseDisplay>> elements;
+
+    elements.push_back(
+        barkeep::Animation(
+            {.message = " ",
+             .style = GREEN_SPINNER,
+             .interval = 0.08,
+             .show = false}));
+
+    auto status = barkeep::Status(
+        {.message = fmt::format(
+             "  0/{} SNPs", gelex::HumanReadable(static_cast<size_t>(total))),
+         .style = barkeep::Strings{" "},
          .show = false});
+    elements.push_back(status);
+
+    return {barkeep::Composite(elements, ""), status};
 };
 
 }  // namespace detail

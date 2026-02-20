@@ -22,6 +22,7 @@
 #include <memory>
 #include <vector>
 
+#include <fmt/format.h>
 #include <Eigen/Core>
 #include "barkeep.h"
 
@@ -32,6 +33,7 @@
 #include "gelex/data/io/binary_matrix_writer.h"
 #include "gelex/data/io/snp_stats_writer.h"
 #include "gelex/infra/detail/indicator.h"
+#include "gelex/infra/utils/formatter.h"
 
 namespace gelex
 {
@@ -56,14 +58,13 @@ class GenotypePipe
     {
         int64_t current_processed_snps = 0;
         Processor processor;
-        auto pbar = detail::create_genotype_process_bar(
-            current_processed_snps, num_variants_);
+        auto pbar = detail::create_genotype_process_bar(num_variants_);
         means_.resize(num_variants_);
         variances_.resize(num_variants_);
         monomorphic_indices_.clear();
         monomorphic_indices_.reserve(num_variants_ / 100);
 
-        pbar->show();
+        pbar.display->show();
         for (int64_t start_variant = 0; start_variant < num_variants_;)
         {
             int64_t end_variant = std::min(
@@ -75,9 +76,17 @@ class GenotypePipe
             process_chunk<Processor>(chunk, start_variant, processor);
             matrix_writer_->write(chunk);
             current_processed_snps += (end_variant - start_variant);
+
+            pbar.status->message(
+                fmt::format(
+                    "  {}/{} SNPs",
+                    gelex::HumanReadable(
+                        static_cast<size_t>(current_processed_snps)),
+                    gelex::HumanReadable(static_cast<size_t>(num_variants_))));
+
             start_variant = end_variant;
         }
-        pbar->done();
+        pbar.display->done();
 
         return finalize();
     }
