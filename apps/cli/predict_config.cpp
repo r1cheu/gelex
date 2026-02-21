@@ -14,14 +14,20 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_GRM_ARGS_H_
-#define GELEX_CLI_GRM_ARGS_H_
+#include "predict_config.h"
 
-namespace argparse
+#include <argparse.h>
+
+#include "gelex/data/genotype/bed_path.h"
+
+auto PredictConfig::make(argparse::ArgumentParser& cmd) -> PredictConfig
 {
-class ArgumentParser;
+    PredictConfig config{
+        .bed_path = gelex::format_bed_path(cmd.get("bfile")),
+        .snp_effect_path = cmd.get("--snp-eff"),
+        .covar_effect_path = cmd.get("--covar-eff"),
+        .qcovar_path = cmd.get("--qcovar"),
+        .dcovar_path = cmd.get("--dcovar"),
+        .output_path = cmd.get("--out")};
+    return config;
 }
-
-void setup_grm_args(argparse::ArgumentParser& cmd);
-
-#endif  // GELEX_CLI_GRM_ARGS_H_

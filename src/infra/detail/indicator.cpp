@@ -15,7 +15,10 @@
  */
 
 #include "gelex/infra/detail/indicator.h"
+
+#include <unistd.h>
 #include <atomic>
+#include <cstdio>
 #include <vector>
 
 #include <barkeep.h>
@@ -28,19 +31,33 @@ namespace detail
 {
 namespace bk = barkeep;
 
+namespace
+{
+
+auto should_use_no_tty() -> bool
+{
+    return isatty(fileno(stdout)) == 0;
+}
+
+}  // namespace
+
 auto create_progress_bar(
     std::atomic<size_t>& counter,
     size_t total,
-    std::string_view format) -> ProgressBarDisplay
+    std::string_view format) -> ProgressBar
 {
+    const bool no_tty = should_use_no_tty();
+
     std::vector<std::shared_ptr<bk::BaseDisplay>> elements;
 
     elements.push_back((bk::Animation(
         {.message = " ",
          .style = gelex::detail::GREEN_SPINNER,
          .interval = 0.08,
+         .no_tty = no_tty,
          .show = false})));
-    auto before = bk::Status({.style = bk::Strings{" "}, .show = false});
+    auto before = bk::Status(
+        {.style = bk::Strings{" "}, .no_tty = no_tty, .show = false});
     elements.push_back(before);
     elements.push_back(
         bk::ProgressBar(
@@ -49,14 +66,40 @@ auto create_progress_bar(
              .format = std::string(format),
              .speed = 0.1,
              .style = gelex::detail::BAR_STYLE,
+             .no_tty = no_tty,
              .show = false}));
-    auto after = bk::Status({.style = bk::Strings{" "}, .show = false});
+    auto after = bk::Status(
+        {.style = bk::Strings{" "}, .no_tty = no_tty, .show = false});
     elements.push_back(after);
 
     return {
         .display = bk::Composite(elements, ""),
-        .before = before,
-        .after = after};
+        .before_bar = before,
+        .after_bar = after};
+}
+
+auto create_progress_info() -> ProgressInfo
+{
+    const bool no_tty = should_use_no_tty();
+
+    std::vector<std::shared_ptr<barkeep::BaseDisplay>> elements;
+
+    elements.push_back(
+        barkeep::Animation(
+            {.message = " ",
+             .style = GREEN_SPINNER,
+             .interval = 0.08,
+             .no_tty = no_tty,
+             .show = false}));
+    auto status = barkeep::Status(
+        {.message = " ",
+         .style = barkeep::Strings{" "},
+         .no_tty = no_tty,
+         .show = false});
+    elements.push_back(status);
+
+    return {
+        .display = barkeep::Composite(elements, ""), .progress_info = status};
 }
 
 Indicator::Indicator(
@@ -64,11 +107,14 @@ Indicator::Indicator(
     std::atomic_ptrdiff_t& progress_counter)
     : current_values_()
 {
+    const bool no_tty = should_use_no_tty();
+
     std::vector<std::shared_ptr<bk::BaseDisplay>> displays;
     auto anim = bk::Animation(
         {.message = " ",
          .style = gelex::detail::GREEN_SPINNER,
          .interval = 0.08,
+         .no_tty = no_tty,
          .show = false});
     displays.emplace_back(anim);
 
@@ -78,11 +124,15 @@ Indicator::Indicator(
          .format = "{bar} {value}/{total} [{speed:.1f}/s]",
          .speed = 0.1,
          .style = gelex::detail::BAR_STYLE,
+         .no_tty = no_tty,
          .show = false});
     displays.emplace_back(progress_bar_);
 
     status_ = bk::Status(
-        {.message = "--", .style = bk::Strings{""}, .show = false});
+        {.message = "--",
+         .style = bk::Strings{""},
+         .no_tty = no_tty,
+         .show = false});
     displays.emplace_back(status_);
 
     main_indicator_ = bk::Composite(displays, " ");

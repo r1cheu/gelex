@@ -14,14 +14,26 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_GRM_ARGS_H_
-#define GELEX_CLI_GRM_ARGS_H_
+#ifndef GELEX_CLI_PREDICT_CONFIG_H_
+#define GELEX_CLI_PREDICT_CONFIG_H_
+
+#include <filesystem>
 
 namespace argparse
 {
 class ArgumentParser;
 }
 
-void setup_grm_args(argparse::ArgumentParser& cmd);
+struct PredictConfig
+{
+    std::filesystem::path bed_path;
+    std::filesystem::path snp_effect_path;
+    std::filesystem::path covar_effect_path;
+    std::filesystem::path qcovar_path;
+    std::filesystem::path dcovar_path;
+    std::filesystem::path output_path;
 
-#endif  // GELEX_CLI_GRM_ARGS_H_
+    static auto make(argparse::ArgumentParser& cmd) -> PredictConfig;
+};
+
+#endif  // GELEX_CLI_PREDICT_CONFIG_H_

@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_SIMULATION_WRITER_H_
-#define GELEX_DATA_SIMULATION_WRITER_H_
+#ifndef GELEX_IO_SIM_SIMULATION_WRITER_H_
+#define GELEX_IO_SIM_SIMULATION_WRITER_H_
 
 #include <filesystem>
 #include <span>
 #include <string>
-#include <unordered_map>
 
 #include <Eigen/Core>
 
-#include "gelex/pipeline/sim/effect_sampler.h"
+#include "gelex/algo/sim/effect_sampler.h"
 
 namespace gelex
 {
@@ -40,7 +39,7 @@ class SimulationWriter
 
     void write_causal_effects(
         std::span<const std::string> snp_ids,
-        const std::unordered_map<Eigen::Index, CausalEffect>& effects) const;
+        const CausalEffects& effects) const;
 
     [[nodiscard]] auto phenotype_path() const -> std::filesystem::path;
     [[nodiscard]] auto causal_path() const -> std::filesystem::path;
@@ -51,4 +50,4 @@ class SimulationWriter
 
 }  // namespace gelex
 
-#endif  // GELEX_DATA_SIMULATION_WRITER_H_
+#endif  // GELEX_IO_SIM_SIMULATION_WRITER_H_

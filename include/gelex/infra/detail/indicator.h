@@ -24,13 +24,11 @@
 #include <memory>
 #include <optional>
 #include <string_view>
-#include <vector>
 
 #include <fmt/format.h>
 #include <Eigen/Core>
 
 #include "barkeep.h"
-#include "gelex/infra/utils/formatter.h"
 
 namespace gelex
 {
@@ -55,17 +53,25 @@ inline const barkeep::Strings GREEN_SPINNER{
     "\033[32m⠓\033[0m", "\033[32m⠋\033[0m", "\033[32m⠉\033[0m",
     "\033[32m⠈\033[0m", "\033[32m⠈\033[0m", "\033[32m \033[0m"};
 
-struct ProgressBarDisplay
+struct ProgressBar
 {
     std::shared_ptr<barkeep::CompositeDisplay> display;
-    std::shared_ptr<barkeep::StatusDisplay> before;
-    std::shared_ptr<barkeep::StatusDisplay> after;
+    std::shared_ptr<barkeep::StatusDisplay> before_bar;
+    std::shared_ptr<barkeep::StatusDisplay> after_bar;
+};
+
+struct ProgressInfo
+{
+    std::shared_ptr<barkeep::CompositeDisplay> display;
+    std::shared_ptr<barkeep::StatusDisplay> progress_info;
 };
 
 auto create_progress_bar(
     std::atomic<size_t>& counter,
     size_t total,
-    std::string_view format = "{bar}") -> ProgressBarDisplay;
+    std::string_view format = "{bar}") -> ProgressBar;
+
+auto create_progress_info() -> ProgressInfo;
 
 class Indicator
 {
@@ -102,33 +108,6 @@ class Indicator
     std::shared_ptr<barkeep::CompositeDisplay> main_indicator_;
 
     StatusSnapshot current_values_;
-};
-
-struct GenotypeProgressBar
-{
-    std::shared_ptr<barkeep::CompositeDisplay> display;
-    std::shared_ptr<barkeep::StatusDisplay> status;
-};
-
-inline auto create_genotype_process_bar(int64_t total) -> GenotypeProgressBar
-{
-    std::vector<std::shared_ptr<barkeep::BaseDisplay>> elements;
-
-    elements.push_back(
-        barkeep::Animation(
-            {.message = " ",
-             .style = GREEN_SPINNER,
-             .interval = 0.08,
-             .show = false}));
-
-    auto status = barkeep::Status(
-        {.message = fmt::format(
-             "  0/{} SNPs", gelex::AbbrNumber(static_cast<size_t>(total))),
-         .style = barkeep::Strings{" "},
-         .show = false});
-    elements.push_back(status);
-
-    return {barkeep::Composite(elements, ""), status};
 };
 
 }  // namespace detail

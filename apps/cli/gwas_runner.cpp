@@ -166,7 +166,7 @@ auto GwasRunner::run_normal() -> void
 
     auto progress_callback = [&](size_t current, size_t total, size_t offset)
     {
-        pbar.after->message(
+        pbar.after_bar->message(
             fmt::format(
                 "{:.1f}% ({}/{}) | ETA: {}",
                 static_cast<double>(current) / static_cast<double>(total)
@@ -227,7 +227,7 @@ auto GwasRunner::run_loco() -> void
         Estimator estimator(
             config_.max_iter, config_.tol, std::move(loco_logger));
 
-        pbar.before->message(
+        pbar.before_bar->message(
             fmt::format(
                 " {} [Chr {}]",
                 fmt::format(fmt::fg(fmt::color::yellow), "REML"),
@@ -240,7 +240,7 @@ auto GwasRunner::run_loco() -> void
 
         loco_results_.push_back(loco_logger_ptr->result());
 
-        pbar.before->message(
+        pbar.before_bar->message(
             fmt::format(
                 " {} [Chr {}]",
                 fmt::format(fmt::fg(fmt::color::light_green), "SCAN"),
@@ -250,7 +250,7 @@ auto GwasRunner::run_loco() -> void
 
         auto scan_callback = [&](size_t current, size_t, size_t)
         {
-            pbar.after->message(
+            pbar.after_bar->message(
                 fmt::format(
                     "{:.1f}% ({}/{}) ETA: {}",
                     static_cast<double>(current)

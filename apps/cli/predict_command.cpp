@@ -21,22 +21,25 @@
 #include "gelex/data/genotype/bed_path.h"
 #include "gelex/infra/logger.h"
 #include "gelex/pipeline/predict/predict_engine.h"
+#include "predict_config.h"
 
 int predict_execute(argparse::ArgumentParser& predict)
 {
     auto logger = gelex::logging::get();
 
-    gelex::PredictEngine::Config config;
-    config.bed_path = gelex::format_bed_path(predict.get("bfile"));
-    config.snp_effect_path = predict.get("--snp-eff");
-    config.covar_effect_path = predict.get("--covar-eff");
-    config.qcovar_path = predict.get("--qcovar");
-    config.dcovar_path = predict.get("--dcovar");
-    config.output_path = predict.get("--out");
+    auto config = PredictConfig::make(predict);
+
+    gelex::PredictEngine::Config engine_config{
+        .bed_path = config.bed_path,
+        .snp_effect_path = config.snp_effect_path,
+        .covar_effect_path = config.covar_effect_path,
+        .qcovar_path = config.qcovar_path,
+        .dcovar_path = config.dcovar_path,
+        .output_path = config.output_path};
 
     try
     {
-        config.validate();
+        engine_config.validate();
     }
     catch (const std::exception& e)
     {
@@ -53,7 +56,7 @@ int predict_execute(argparse::ArgumentParser& predict)
 
     try
     {
-        gelex::PredictEngine engine(config);
+        gelex::PredictEngine engine(engine_config);
         engine.run();
     }
     catch (const std::exception& e)

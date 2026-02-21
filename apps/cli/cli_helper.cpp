@@ -22,8 +22,8 @@
 #include <fmt/format.h>
 #include <omp.h>
 #include <Eigen/Core>
-#include "config.h"
 
+#include "config.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/utils/formatter.h"
 

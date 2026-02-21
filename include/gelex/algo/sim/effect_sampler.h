@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_EFFECT_SAMPLER_H_
-#define GELEX_DATA_EFFECT_SAMPLER_H_
+#ifndef GELEX_ALGO_SIM_EFFECT_SAMPLER_H_
+#define GELEX_ALGO_SIM_EFFECT_SAMPLER_H_
 
 #include <random>
 #include <span>
-#include <unordered_map>
+#include <string_view>
 #include <vector>
 
 #include <Eigen/Core>
@@ -33,43 +33,51 @@ struct EffectSizeClass
     double variance;
 };
 
-struct CausalEffect
+struct CausalEffects
 {
-    double additive;
-    double dominance;
-    int add_class;
-    int dom_class;
+    Eigen::VectorXd additive;
+    Eigen::VectorXd dominance;
+    Eigen::VectorXi add_class;
+    Eigen::VectorXi dom_class;
+
+    auto resize(Eigen::Index n_snps) -> void
+    {
+        additive.resize(n_snps);
+        dominance.resize(n_snps);
+        add_class.resize(n_snps);
+        dom_class.resize(n_snps);
+    }
+
+    [[nodiscard]] auto size() const -> Eigen::Index { return additive.size(); }
 };
 
 class EffectSampler
 {
    public:
-    struct Config
-    {
-        std::vector<EffectSizeClass> add_classes;
-        std::vector<EffectSizeClass> dom_classes;
-        bool has_dominance;
-        int seed;
-    };
+    EffectSampler(
+        std::vector<EffectSizeClass> add_classes,
+        std::vector<EffectSizeClass> dom_classes,
+        std::mt19937_64& rng);
 
-    explicit EffectSampler(Config config);
-
-    auto sample(Eigen::Index n_snps)
-        -> std::unordered_map<Eigen::Index, CausalEffect>;
+    auto sample(Eigen::Index n_snps) -> CausalEffects;
 
    private:
     auto assign_effect_classes(
         std::span<const EffectSizeClass> classes,
-        Eigen::Index count) -> std::vector<int>;
+        Eigen::Index n_snps) -> std::vector<int>;
+
+    auto sample_effect_value(std::span<const EffectSizeClass> classes, int cls)
+        -> double;
 
     static void validate_effect_classes(
         std::span<const EffectSizeClass> classes,
         std::string_view label);
 
-    Config config_;
-    std::mt19937_64 rng_;
+    std::vector<EffectSizeClass> add_classes_;
+    std::vector<EffectSizeClass> dom_classes_;
+    std::mt19937_64& rng_;
 };
 
 }  // namespace gelex
 
-#endif  // GELEX_DATA_EFFECT_SAMPLER_H_
+#endif  // GELEX_ALGO_SIM_EFFECT_SAMPLER_H_

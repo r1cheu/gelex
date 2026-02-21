@@ -58,7 +58,7 @@ class GenotypePipe
     {
         int64_t current_processed_snps = 0;
         Processor processor;
-        auto pbar = detail::create_genotype_process_bar(num_variants_);
+        auto pbar = detail::create_progress_info();
         means_.resize(num_variants_);
         variances_.resize(num_variants_);
         monomorphic_indices_.clear();
@@ -77,7 +77,7 @@ class GenotypePipe
             matrix_writer_->write(chunk);
             current_processed_snps += (end_variant - start_variant);
 
-            pbar.status->message(
+            pbar.progress_info->message(
                 fmt::format(
                     "  {}/{} SNPs",
                     gelex::AbbrNumber(

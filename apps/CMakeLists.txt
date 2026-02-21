@@ -1,16 +1,22 @@
 set(CLI_SOURCES
     main.cpp
     cli/assoc_args.cpp
+    cli/assoc_config.cpp
     cli/assoc_command.cpp
     cli/fit_args.cpp
+    cli/fit_config.cpp
     cli/fit_command.cpp
     cli/grm_args.cpp
+    cli/grm_config.cpp
     cli/grm_command.cpp
     cli/gwas_runner.cpp
     cli/predict_args.cpp
+    cli/predict_config.cpp
     cli/predict_command.cpp
     cli/simulate_args.cpp
+    cli/simulate_config.cpp
     cli/simulate_command.cpp
+    cli/simulater_reporter.cpp
     cli/cli_helper.cpp)
 
 add_executable(gelex_cli ${CLI_SOURCES})

@@ -19,91 +19,58 @@
 #include <argparse.h>
 
 #include <filesystem>
-#include <ranges>
-#include <string_view>
 
-#include <fmt/format.h>
 #include <Eigen/Core>
 
+#include "assoc_config.h"
 #include "cli/cli_helper.h"
 #include "cli/gwas_runner.h"
 #include "gelex/algo/infer/reml.h"
-#include "gelex/data/genotype/bed_path.h"
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/pipeline/data_pipe.h"
 
 #include "gelex/data/loader/bim_loader.h"
 
-namespace
-{
-
-auto parse_transform_type(std::string_view transform)
-    -> gelex::detail::TransformType
-{
-    if (transform == "dint")
-    {
-        return gelex::detail::TransformType::DINT;
-    }
-    if (transform == "iint")
-    {
-        return gelex::detail::TransformType::IINT;
-    }
-    return gelex::detail::TransformType::None;
-}
-
-}  // namespace
-
 auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 {
-    std::string out_prefix = cmd.get("--out");
+    auto config = AssocConfig::make(cmd);
 
-    gelex::cli::setup_parallelization(cmd.get<int>("--threads"));
+    gelex::cli::setup_parallelization(config.threads);
+    gelex::cli::print_assoc_header(config.threads);
 
-    auto method
-        = gelex::parse_genotype_process_method(cmd.get("--geno-method"));
-
-    auto grm_paths = std::ranges::to<std::vector<std::filesystem::path>>(
-        cmd.get<std::vector<std::string>>("--grm"));
-
-    auto bed_path = gelex::format_bed_path(cmd.get("bfile"));
-
-    auto transform_type = parse_transform_type(cmd.get("--transform"));
-
-    gelex::DataPipe::Config config{
-        .phenotype_path = cmd.get("--pheno"),
-        .phenotype_column = cmd.get<int>("--pheno-col"),
-        .bed_path = bed_path,
+    gelex::DataPipe::Config data_pipe_config{
+        .phenotype_path = config.phenotype_path,
+        .phenotype_column = config.phenotype_column,
+        .bed_path = config.bed_path,
         .use_dominance_effect = false,
         .use_mmap = false,
-        .chunk_size = cmd.get<int>("--chunk-size"),
-        .qcovar_path = cmd.get("--qcovar"),
-        .dcovar_path = cmd.get("--dcovar"),
-        .output_prefix = cmd.get("--out"),
-        .grm_paths = grm_paths,
-        .transform_type = transform_type,
-        .int_offset = cmd.get<double>("--int-offset")};
+        .chunk_size = config.chunk_size,
+        .qcovar_path = config.qcovar_path,
+        .dcovar_path = config.dcovar_path,
+        .output_prefix = config.out_prefix,
+        .grm_paths = config.grm_paths,
+        .transform_type = config.transform_type,
+        .int_offset = config.int_offset};
 
-    gelex::cli::print_assoc_header(cmd.get<int>("--threads"));
-
-    auto data_pipe = gelex::load_data_for_reml(config);
+    auto data_pipe = gelex::load_data_for_reml(data_pipe_config);
 
     auto sample_manager = data_pipe.sample_manager();
 
-    gelex::BedPipe bed_pipe(bed_path, sample_manager);
-    auto bim_path = bed_path;
+    gelex::BedPipe bed_pipe(config.bed_path, sample_manager);
+    auto bim_path = config.bed_path;
     bim_path.replace_extension(".bim");
     auto snp_effects
         = std::move(gelex::detail::BimLoader(bim_path)).take_info();
 
     gelex::cli::GwasRunner::Config runner_config{
-        .max_iter = cmd.get<int>("--max-iter"),
-        .tol = cmd.get<double>("--tol"),
-        .chunk_size = cmd.get<int>("--chunk-size"),
-        .loco = cmd.get<bool>("--loco"),
-        .additive = cmd.get("--model") == "a",
-        .method = method,
-        .grm_paths = grm_paths,
-        .out_prefix = out_prefix};
+        .max_iter = config.max_iter,
+        .tol = config.tol,
+        .chunk_size = config.chunk_size,
+        .loco = config.loco,
+        .additive = config.additive,
+        .method = config.genotype_method,
+        .grm_paths = config.grm_paths,
+        .out_prefix = config.out_prefix};
 
     gelex::cli::GwasRunner runner(
         runner_config,

@@ -15,6 +15,7 @@
  */
 
 #include "gelex/algo/infer/reml.h"
+
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/estimator.h"

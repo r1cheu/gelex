@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <algorithm>
 #include <cmath>
 #include <random>
 #include <vector>
@@ -22,7 +21,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/pipeline/sim/effect_sampler.h"
+#include "gelex/algo/sim/effect_sampler.h"
 #include "gelex/exception.h"
 
 using namespace gelex;  // NOLINT
@@ -32,90 +31,59 @@ TEST_CASE("EffectSampler - validation", "[effect_sampler]")
 {
     SECTION("Valid config does not throw")
     {
-        EffectSampler::Config config{
-            .add_classes = {{1.0, 1.0}},
-            .dom_classes = {{1.0, 1.0}},
-            .has_dominance = false,
-            .seed = 42,
-        };
-        REQUIRE_NOTHROW(EffectSampler(config));
+        std::mt19937_64 rng(42);
+        REQUIRE_NOTHROW(EffectSampler({{1.0, 1.0}}, {{1.0, 1.0}}, rng));
     }
 
     SECTION("Empty effect classes throws")
     {
-        EffectSampler::Config config{
-            .add_classes = {},
-            .dom_classes = {{1.0, 1.0}},
-            .has_dominance = false,
-            .seed = 42,
-        };
-        REQUIRE_THROWS_AS(EffectSampler(config), ArgumentValidationException);
+        std::mt19937_64 rng(42);
+        REQUIRE_THROWS_AS(
+            EffectSampler({}, {{1.0, 1.0}}, rng), ArgumentValidationException);
     }
 
     SECTION("Proportions must sum to 1")
     {
-        EffectSampler::Config config{
-            .add_classes = {{0.3, 1.0}, {0.3, 1.0}},
-            .dom_classes = {{1.0, 1.0}},
-            .has_dominance = false,
-            .seed = 42,
-        };
-        REQUIRE_THROWS_AS(EffectSampler(config), ArgumentValidationException);
+        std::mt19937_64 rng(42);
+        REQUIRE_THROWS_AS(
+            EffectSampler({{0.3, 1.0}, {0.3, 1.0}}, {{1.0, 1.0}}, rng),
+            ArgumentValidationException);
     }
 
     SECTION("Zero variance is allowed")
     {
-        EffectSampler::Config config{
-            .add_classes = {{1.0, 0.0}},
-            .dom_classes = {{1.0, 1.0}},
-            .has_dominance = false,
-            .seed = 42,
-        };
-        REQUIRE_NOTHROW(EffectSampler(config));
+        std::mt19937_64 rng(42);
+        REQUIRE_NOTHROW(EffectSampler({{1.0, 0.0}}, {{1.0, 1.0}}, rng));
     }
 
     SECTION("Negative variance throws")
     {
-        EffectSampler::Config config{
-            .add_classes = {{1.0, -0.1}},
-            .dom_classes = {{1.0, 1.0}},
-            .has_dominance = false,
-            .seed = 42,
-        };
-        REQUIRE_THROWS_AS(EffectSampler(config), ArgumentValidationException);
+        std::mt19937_64 rng(42);
+        REQUIRE_THROWS_AS(
+            EffectSampler({{1.0, -0.1}}, {{1.0, 1.0}}, rng),
+            ArgumentValidationException);
     }
 
     SECTION("Negative proportion throws")
     {
-        EffectSampler::Config config{
-            .add_classes = {{-0.5, 1.0}, {1.5, 1.0}},
-            .dom_classes = {{1.0, 1.0}},
-            .has_dominance = false,
-            .seed = 42,
-        };
-        REQUIRE_THROWS_AS(EffectSampler(config), ArgumentValidationException);
+        std::mt19937_64 rng(42);
+        REQUIRE_THROWS_AS(
+            EffectSampler({{-0.5, 1.0}, {1.5, 1.0}}, {{1.0, 1.0}}, rng),
+            ArgumentValidationException);
     }
 
-    SECTION("Dominance classes validated when has_dominance is true")
+    SECTION("Dominance classes validated when provided")
     {
-        EffectSampler::Config config{
-            .add_classes = {{1.0, 1.0}},
-            .dom_classes = {{0.3, 1.0}, {0.3, 1.0}},
-            .has_dominance = true,
-            .seed = 42,
-        };
-        REQUIRE_THROWS_AS(EffectSampler(config), ArgumentValidationException);
+        std::mt19937_64 rng(42);
+        REQUIRE_THROWS_AS(
+            EffectSampler({{1.0, 1.0}}, {{0.3, 1.0}, {0.3, 1.0}}, rng),
+            ArgumentValidationException);
     }
 
-    SECTION("Dominance classes not validated when has_dominance is false")
+    SECTION("Dominance classes skipped when vector is empty")
     {
-        EffectSampler::Config config{
-            .add_classes = {{1.0, 1.0}},
-            .dom_classes = {{0.3, 1.0}, {0.3, 1.0}},
-            .has_dominance = false,
-            .seed = 42,
-        };
-        REQUIRE_NOTHROW(EffectSampler(config));
+        std::mt19937_64 rng(42);
+        REQUIRE_NOTHROW(EffectSampler({{1.0, 1.0}}, {}, rng));
     }
 }
 
@@ -123,32 +91,22 @@ TEST_CASE("EffectSampler - sampling", "[effect_sampler]")
 {
     SECTION("Single class produces all same class assignments")
     {
-        EffectSampler::Config config{
-            .add_classes = {{1.0, 1.0}},
-            .dom_classes = {{1.0, 1.0}},
-            .has_dominance = false,
-            .seed = 42,
-        };
-        EffectSampler sampler(config);
+        std::mt19937_64 rng(42);
+        EffectSampler sampler({{1.0, 1.0}}, {}, rng);
 
         auto effects = sampler.sample(100);
 
         REQUIRE(effects.size() == 100);
-        for (const auto& [idx, effect] : effects)
+        for (Eigen::Index i = 0; i < effects.size(); ++i)
         {
-            REQUIRE(effect.add_class == 0);
+            REQUIRE(effects.add_class(i) == 0);
         }
     }
 
     SECTION("Multi-class proportions are approximately correct")
     {
-        EffectSampler::Config config{
-            .add_classes = {{0.5, 0.001}, {0.3, 0.01}, {0.2, 1.0}},
-            .dom_classes = {{1.0, 1.0}},
-            .has_dominance = false,
-            .seed = 42,
-        };
-        EffectSampler sampler(config);
+        std::mt19937_64 rng(42);
+        EffectSampler sampler({{0.5, 0.001}, {0.3, 0.01}, {0.2, 1.0}}, {}, rng);
 
         constexpr Eigen::Index N_SNPS = 1000;
         auto effects = sampler.sample(N_SNPS);
@@ -156,11 +114,12 @@ TEST_CASE("EffectSampler - sampling", "[effect_sampler]")
         REQUIRE(effects.size() == N_SNPS);
 
         std::array<int, 3> class_counts = {0, 0, 0};
-        for (const auto& [idx, effect] : effects)
+        for (Eigen::Index i = 0; i < effects.size(); ++i)
         {
-            REQUIRE(effect.add_class >= 0);
-            REQUIRE(effect.add_class < 3);
-            class_counts[effect.add_class]++;
+            const int add_class = effects.add_class(i);
+            REQUIRE(add_class >= 0);
+            REQUIRE(add_class < 3);
+            class_counts[add_class]++;
         }
 
         // Class proportions should be approximately 50%, 30%, 20%
@@ -177,79 +136,51 @@ TEST_CASE("EffectSampler - sampling", "[effect_sampler]")
 
     SECTION("Zero variance class produces zero effects")
     {
-        EffectSampler::Config config{
-            .add_classes = {{1.0, 0.0}},
-            .dom_classes = {{1.0, 1.0}},
-            .has_dominance = false,
-            .seed = 42,
-        };
-        EffectSampler sampler(config);
+        std::mt19937_64 rng(42);
+        EffectSampler sampler({{1.0, 0.0}}, {}, rng);
 
         auto effects = sampler.sample(100);
 
-        for (const auto& [idx, effect] : effects)
+        for (Eigen::Index i = 0; i < effects.size(); ++i)
         {
-            REQUIRE(effect.additive == 0.0);
+            REQUIRE(effects.additive(i) == 0.0);
         }
     }
 
-    SECTION("Dominance effects sampled when has_dominance is true")
+    SECTION("Dominance effects sampled when dominance classes exist")
     {
-        EffectSampler::Config config{
-            .add_classes = {{1.0, 1.0}},
-            .dom_classes = {{1.0, 1.0}},
-            .has_dominance = true,
-            .seed = 42,
-        };
-        EffectSampler sampler(config);
+        std::mt19937_64 rng(42);
+        EffectSampler sampler({{1.0, 1.0}}, {{1.0, 1.0}}, rng);
 
         auto effects = sampler.sample(100);
 
-        bool has_nonzero_dominance = std::ranges::any_of(
-            effects, [](const auto& kv) {
-                return std::abs(kv.second.dominance) > 1e-10;
-            });
+        bool has_nonzero_dominance = false;
+        for (Eigen::Index i = 0; i < effects.size(); ++i)
+        {
+            if (std::abs(effects.dominance(i)) > 1e-10)
+            {
+                has_nonzero_dominance = true;
+                break;
+            }
+        }
 
         REQUIRE(has_nonzero_dominance);
     }
 
-    SECTION("No dominance effects when has_dominance is false")
-    {
-        EffectSampler::Config config{
-            .add_classes = {{1.0, 1.0}},
-            .dom_classes = {{1.0, 1.0}},
-            .has_dominance = false,
-            .seed = 42,
-        };
-        EffectSampler sampler(config);
-
-        auto effects = sampler.sample(100);
-
-        for (const auto& [idx, effect] : effects)
-        {
-            REQUIRE(effect.dominance == 0.0);
-        }
-    }
-
     SECTION("Reproducibility with same seed")
     {
-        EffectSampler::Config config{
-            .add_classes = {{0.5, 1.0}, {0.5, 0.1}},
-            .dom_classes = {{1.0, 1.0}},
-            .has_dominance = false,
-            .seed = 123,
-        };
-
-        EffectSampler sampler1(config);
+        std::mt19937_64 rng1(123);
+        EffectSampler sampler1({{0.5, 1.0}, {0.5, 0.1}}, {}, rng1);
         auto effects1 = sampler1.sample(50);
 
-        EffectSampler sampler2(config);
+        std::mt19937_64 rng2(123);
+        EffectSampler sampler2({{0.5, 1.0}, {0.5, 0.1}}, {}, rng2);
         auto effects2 = sampler2.sample(50);
 
         for (Eigen::Index i = 0; i < 50; ++i)
         {
-            REQUIRE(effects1[i].additive == effects2[i].additive);
-            REQUIRE(effects1[i].add_class == effects2[i].add_class);
+            REQUIRE(effects1.additive(i) == effects2.additive(i));
+            REQUIRE(effects1.add_class(i) == effects2.add_class(i));
         }
     }
 }

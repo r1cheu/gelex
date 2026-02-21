@@ -14,14 +14,33 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_GRM_ARGS_H_
-#define GELEX_CLI_GRM_ARGS_H_
+#ifndef GELEX_CLI_CONFIG_FACTORY_H_
+#define GELEX_CLI_CONFIG_FACTORY_H_
+
+#include <concepts>
 
 namespace argparse
 {
 class ArgumentParser;
 }
 
-void setup_grm_args(argparse::ArgumentParser& cmd);
+namespace gelex::cli
+{
 
-#endif  // GELEX_CLI_GRM_ARGS_H_
+template <typename T>
+concept CliConfig = requires(argparse::ArgumentParser& args, const T& config) {
+    { T::make(args) } -> std::same_as<T>;
+    { config.validate() } -> std::same_as<void>;
+};
+
+template <CliConfig T>
+auto make_config(argparse::ArgumentParser& args) -> T
+{
+    T config = T::make(args);
+    config.validate();
+    return config;
+}
+
+}  // namespace gelex::cli
+
+#endif  // GELEX_CLI_CONFIG_FACTORY_H_

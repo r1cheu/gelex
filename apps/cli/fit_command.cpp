@@ -26,9 +26,9 @@
 #include <vector>
 
 #include "cli_helper.h"
+#include "fit_config.h"
 #include "gelex/algo/infer/mcmc.h"
 #include "gelex/algo/infer/params.h"
-#include "gelex/data/genotype/bed_path.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/utils/formatter.h"
 #include "gelex/model/bayes/model.h"
@@ -42,23 +42,6 @@ namespace
 {
 
 using gelex::BayesAlphabet;
-
-auto has_dominance(BayesAlphabet type) -> bool
-{
-    switch (type)
-    {
-        case BayesAlphabet::Bd:
-        case BayesAlphabet::Bdpi:
-        case BayesAlphabet::Cd:
-        case BayesAlphabet::Cdpi:
-        case BayesAlphabet::Rd:
-        case BayesAlphabet::Ad:
-        case BayesAlphabet::RRd:
-            return true;
-        default:
-            return false;
-    }
-}
 
 auto get_default_pi(BayesAlphabet type) -> Eigen::VectorXd
 {
@@ -221,45 +204,35 @@ auto run_mcmc_analysis(
 
 int fit_execute(argparse::ArgumentParser& fit)
 {
-    // ================================================================
-    // ====================== Preparations ============================
-    // ================================================================
-    std::string out_prefix = fit.get("--out");
-    gelex::BayesAlphabet type = gelex::get_bayesalphabet(fit.get("-m"))
-                                    .value_or(gelex::BayesAlphabet::RR);
-    auto genotype_process_method
-        = gelex::parse_genotype_process_method(fit.get("--geno-method"));
-    bool dom = has_dominance(type);
+    auto config = FitConfig::make(fit);
 
     auto logger = gelex::logging::get();
 
-    gelex::cli::setup_parallelization(fit.get<int>("--threads"));
+    gelex::cli::setup_parallelization(config.threads);
 
     gelex::cli::print_fit_header(
-        fit.get("-m"),
-        dom,
-        fit.get<int>("--iters"),
-        fit.get<int>("--burnin"),
-        fit.get<int>("--threads"));
-
-    auto bed_path = gelex::format_bed_path(fit.get("bfile"));
-
-    gelex::DataPipe::Config config{
-        .phenotype_path = fit.get("pheno"),
-        .phenotype_column = fit.get<int>("--pheno-col"),
-        .bed_path = bed_path,
-        .use_dominance_effect = dom,
-        .use_mmap = fit.get<bool>("--mmap"),
-        .chunk_size = fit.get<int>("--chunk-size"),
-        .qcovar_path = fit.get("--qcovar"),
-        .dcovar_path = fit.get("--dcovar"),
-        .output_prefix = fit.get("--out"),
-        .genotype_method = genotype_process_method};
+        config.method_name,
+        config.use_dominance,
+        static_cast<int>(config.mcmc_params.n_iters),
+        static_cast<int>(config.mcmc_params.n_burnin),
+        config.threads);
 
     // ================================================================
     // Data Loading & Pipeline
     // ================================================================
-    gelex::DataPipe data_pipe(config);
+    gelex::DataPipe::Config data_pipe_config{
+        .phenotype_path = config.phenotype_path,
+        .phenotype_column = config.phenotype_column,
+        .bed_path = config.bed_path,
+        .use_dominance_effect = config.use_dominance,
+        .use_mmap = config.use_mmap,
+        .chunk_size = config.chunk_size,
+        .qcovar_path = config.qcovar_path,
+        .dcovar_path = config.dcovar_path,
+        .output_prefix = config.out_prefix,
+        .genotype_method = config.genotype_method};
+
+    gelex::DataPipe data_pipe(data_pipe_config);
     logger->info(gelex::section("[Loading Data]"));
     auto p_stats = data_pipe.load_phenotypes();
     logger->info(
@@ -331,7 +304,7 @@ int fit_execute(argparse::ArgumentParser& fit)
             "Additive     : {} SNPs ({} monomorphic excluded)",
             gelex::AbbrNumber(add_stats.num_snps - add_stats.monomorphic_snps),
             gelex::AbbrNumber(add_stats.monomorphic_snps)));
-    if (config.use_dominance_effect)
+    if (config.use_dominance)
     {
         auto dom_stats = data_pipe.load_dominance_matrix();
         log_overwrite(
@@ -346,23 +319,18 @@ int fit_execute(argparse::ArgumentParser& fit)
 
     gelex::BayesModel model(data_pipe);
 
-    if (configure_model_priors(model, type, fit, logger) != 0)
+    if (configure_model_priors(model, config.method, fit, logger) != 0)
     {
         return 1;
     }
 
-    const gelex::MCMCParams mcmc_params(
-        fit.get<int>("--iters"),
-        fit.get<int>("--burnin"),
-        fit.get<int>("--thin"));
-
     if (run_mcmc_analysis(
             model,
-            type,
-            fit.get<int>("--seed"),
-            mcmc_params,
-            bed_path.replace_extension(".bim"),
-            out_prefix,
+            config.method,
+            config.seed,
+            config.mcmc_params,
+            config.bed_path.replace_extension(".bim"),
+            config.out_prefix,
             logger)
         != 0)
     {
@@ -370,7 +338,8 @@ int fit_execute(argparse::ArgumentParser& fit)
     }
     logger->info(
         gelex::success(
-            "Results saved to '{}' (.param, .snp.eff, .log)", out_prefix));
+            "Results saved to '{}' (.param, .snp.eff, .log)",
+            config.out_prefix));
     logger->info(gelex::separator());
 
     return 0;

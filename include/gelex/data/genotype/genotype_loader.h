@@ -90,7 +90,7 @@ GenotypeMatrix GenotypeLoader::process(size_t chunk_size)
     global_snp_idx_ = 0;
 
     Processor processor;
-    auto pbar = detail::create_genotype_process_bar(num_variants_);
+    auto pbar = detail::create_progress_info();
     pbar.display->show();
     means_.resize(num_variants_);
     stddevs_.resize(num_variants_);
@@ -106,7 +106,7 @@ GenotypeMatrix GenotypeLoader::process(size_t chunk_size)
 
         global_snp_idx_ += chunk.cols();
 
-        pbar.status->message(
+        pbar.progress_info->message(
             fmt::format(
                 "  {}/{} SNPs",
                 gelex::AbbrNumber(static_cast<size_t>(global_snp_idx_)),

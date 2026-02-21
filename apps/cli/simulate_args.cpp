@@ -25,9 +25,6 @@ void setup_simulate_args(argparse::ArgumentParser& cmd)
     cmd.add_description(
         "Simulate phenotypes based on genetic data and specified parameters");
 
-    // ================================================================
-    // Data Files
-    // ================================================================
     cmd.add_group("Data Files");
     cmd.add_argument("-b", "--bfile")
         .help("PLINK binary file prefix (.bed/.bim/.fam)")
@@ -38,17 +35,15 @@ void setup_simulate_args(argparse::ArgumentParser& cmd)
         .metavar("<OUT>")
         .default_value("sim.phen");
 
-    // ================================================================
-    // Simulation Parameters
-    // ================================================================
     cmd.add_group("Simulation Parameters");
+    cmd.add_argument("--intercept")
+        .help("Intercept (mean) term added to phenotypes")
+        .default_value(0.0)
+        .scan<'g', double>();
+
     cmd.add_argument("--h2")
         .help("Narrow-sense heritability (range: 0-1)")
         .default_value(0.5)
-        .scan<'g', double>();
-    cmd.add_argument("--d2")
-        .help("Dominance variance proportion (range: 0-1, h2+d2<1)")
-        .default_value(0.0)
         .scan<'g', double>();
     cmd.add_argument("--add-var")
         .help("Variances for additive effect classes (default: 0.01)")
@@ -64,6 +59,11 @@ void setup_simulate_args(argparse::ArgumentParser& cmd)
         .nargs(argparse::nargs_pattern::at_least_one)
         .default_value(std::vector<double>{1.0})
         .scan<'g', double>();
+
+    cmd.add_argument("--d2")
+        .help("Dominance variance proportion (range: 0-1, h2+d2<1)")
+        .default_value(0.0)
+        .scan<'g', double>();
     cmd.add_argument("--dom-var")
         .help("Variances for dominance effect classes (default: 0.01)")
         .metavar("<VARIANCES>")
@@ -78,10 +78,7 @@ void setup_simulate_args(argparse::ArgumentParser& cmd)
         .nargs(argparse::nargs_pattern::at_least_one)
         .default_value(std::vector<double>{1.0})
         .scan<'g', double>();
-    cmd.add_argument("--intercept")
-        .help("Intercept (mean) term added to phenotypes")
-        .default_value(0.0)
-        .scan<'g', double>();
+
     cmd.add_argument("--seed")
         .help("Random seed for reproducibility")
         .default_value(42)

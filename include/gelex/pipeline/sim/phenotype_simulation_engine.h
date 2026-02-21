@@ -14,37 +14,41 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_SIMULATE_H_
-#define GELEX_DATA_SIMULATE_H_
+#ifndef GELEX_PIPELINE_SIM_PHENOTYPE_SIMULATION_ENGINE_H_
+#define GELEX_PIPELINE_SIM_PHENOTYPE_SIMULATION_ENGINE_H_
 
 #include <filesystem>
+#include <optional>
 #include <vector>
 
-#include <Eigen/Core>
-
-#include "gelex/pipeline/sim/effect_sampler.h"
+#include "gelex/algo/sim/effect_sampler.h"
+#include "gelex/infra/logging/simulate_event.h"
 
 namespace gelex
 {
 
-class PhenotypeSimulator
+class PhenotypeSimulationEngine
 {
    public:
     struct Config
     {
         std::filesystem::path bed_path;
-        double add_heritability;
-        double dom_heritability;
-        std::vector<EffectSizeClass> add_effect_classes;
-        std::vector<EffectSizeClass> dom_effect_classes;
-        double intercept;
-        int seed;
         std::filesystem::path output_path;
+
+        double intercept;
+
+        double add_heritability;
+        std::vector<EffectSizeClass> add_effect_classes;
+
+        std::optional<double> dom_heritability;
+        std::vector<EffectSizeClass> dom_effect_classes;
+
+        int seed;
     };
 
-    explicit PhenotypeSimulator(Config config);
+    explicit PhenotypeSimulationEngine(Config config);
 
-    void simulate();
+    auto simulate(const SimulateObserver& observer = {}) -> void;
 
    private:
     static auto resolve_output_path(
@@ -52,10 +56,8 @@ class PhenotypeSimulator
         const std::filesystem::path& bed_path) -> std::filesystem::path;
 
     Config config_;
-
-    static constexpr Eigen::Index SNP_CHUNK_SIZE = 10000;
 };
 
 }  // namespace gelex
 
-#endif  // GELEX_DATA_SIMULATE_H_
+#endif  // GELEX_PIPELINE_SIM_PHENOTYPE_SIMULATION_ENGINE_H_

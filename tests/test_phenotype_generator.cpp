@@ -21,8 +21,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/pipeline/sim/genetic_value_calculator.h"
-#include "gelex/pipeline/sim/phenotype_generator.h"
+#include "gelex/algo/sim/genetic_value_calculator.h"
+#include "gelex/algo/sim/phenotype_generator.h"
 #include "gelex/infra/utils/math_utils.h"
 
 using namespace gelex;  // NOLINT
@@ -50,25 +50,32 @@ TEST_CASE("PhenotypeGenerator - additive only", "[phenotype_generator]")
         .dominance = Eigen::VectorXd::Zero(N_SAMPLES),
     };
 
-    PhenotypeGeneratorConfig config{
-        .h2 = H2, .d2 = 0.0, .intercept = 0.0, .seed = 123};
-    PhenotypeGenerator generator(config);
-
-    auto result = generator.generate(gv);
+    std::mt19937_64 rng(123);
+    PhenotypeGenerator generator(H2, 0.0, 0.0, rng);
+    std::optional<double> observed_h2;
+    std::optional<double> observed_d2;
+    auto phenotypes = generator.generate(gv, [&](const SimulateEvent& event) {
+        if (const auto* h2_event = std::get_if<HeritabilityGeneratedEvent>(&event))
+        {
+            observed_h2 = h2_event->additive;
+            observed_d2 = h2_event->dominance;
+        }
+    });
 
     SECTION("Output size matches input")
     {
-        REQUIRE(result.phenotypes.size() == N_SAMPLES);
+        REQUIRE(phenotypes.size() == N_SAMPLES);
     }
 
     SECTION("True h2 is close to target")
     {
-        REQUIRE_THAT(result.true_h2, WithinAbs(H2, VARIANCE_TOLERANCE));
+        REQUIRE(observed_h2.has_value());
+        REQUIRE_THAT(*observed_h2, WithinAbs(H2, VARIANCE_TOLERANCE));
     }
 
     SECTION("True d2 is zero when d2 config is zero")
     {
-        REQUIRE(result.true_d2 == 0.0);
+        REQUIRE(observed_d2 == std::nullopt);
     }
 
     SECTION("Dominance unchanged when no dominance")
@@ -97,20 +104,29 @@ TEST_CASE("PhenotypeGenerator - with dominance", "[phenotype_generator]")
         .dominance = dominance_values,
     };
 
-    PhenotypeGeneratorConfig config{
-        .h2 = H2, .d2 = D2, .intercept = 0.0, .seed = 123};
-    PhenotypeGenerator generator(config);
-
-    auto result = generator.generate(gv);
+    std::mt19937_64 rng(123);
+    PhenotypeGenerator generator(H2, D2, 0.0, rng);
+    std::optional<double> observed_h2;
+    std::optional<double> observed_d2;
+    auto phenotypes = generator.generate(gv, [&](const SimulateEvent& event) {
+        if (const auto* h2_event = std::get_if<HeritabilityGeneratedEvent>(&event))
+        {
+            observed_h2 = h2_event->additive;
+            observed_d2 = h2_event->dominance;
+        }
+    });
 
     SECTION("True h2 is close to target")
     {
-        REQUIRE_THAT(result.true_h2, WithinAbs(H2, VARIANCE_TOLERANCE));
+        (void)phenotypes;
+        REQUIRE(observed_h2.has_value());
+        REQUIRE_THAT(*observed_h2, WithinAbs(H2, VARIANCE_TOLERANCE));
     }
 
     SECTION("True d2 is close to target")
     {
-        REQUIRE_THAT(result.true_d2, WithinAbs(D2, VARIANCE_TOLERANCE));
+        REQUIRE(observed_d2.has_value());
+        REQUIRE_THAT(*observed_d2, WithinAbs(D2, VARIANCE_TOLERANCE));
     }
 
     SECTION("Dominance values are scaled in place")
@@ -134,13 +150,12 @@ TEST_CASE("PhenotypeGenerator - intercept", "[phenotype_generator]")
         .dominance = Eigen::VectorXd::Zero(N_SAMPLES),
     };
 
-    PhenotypeGeneratorConfig config{
-        .h2 = 0.5, .d2 = 0.0, .intercept = INTERCEPT, .seed = 123};
-    PhenotypeGenerator generator(config);
+    std::mt19937_64 rng(123);
+    PhenotypeGenerator generator(0.5, 0.0, INTERCEPT, rng);
 
-    auto result = generator.generate(gv);
+    auto phenotypes = generator.generate(gv);
 
-    double mean_phenotype = result.phenotypes.mean();
+    double mean_phenotype = phenotypes.mean();
     REQUIRE_THAT(mean_phenotype, WithinAbs(INTERCEPT, 1.0));
 }
 
@@ -160,16 +175,16 @@ TEST_CASE("PhenotypeGenerator - reproducibility", "[phenotype_generator]")
         .dominance = Eigen::VectorXd::Zero(N_SAMPLES),
     };
 
-    PhenotypeGeneratorConfig config{
-        .h2 = 0.5, .d2 = 0.0, .intercept = 0.0, .seed = 123};
-    PhenotypeGenerator generator1(config);
+    std::mt19937_64 rng1(123);
+    PhenotypeGenerator generator1(0.5, 0.0, 0.0, rng1);
     auto result1 = generator1.generate(gv);
 
-    PhenotypeGenerator generator2(config);
+    std::mt19937_64 rng2(123);
+    PhenotypeGenerator generator2(0.5, 0.0, 0.0, rng2);
     auto result2 = generator2.generate(gv);
 
     for (Eigen::Index i = 0; i < N_SAMPLES; ++i)
     {
-        REQUIRE(result1.phenotypes(i) == result2.phenotypes(i));
+        REQUIRE(result1(i) == result2(i));
     }
 }

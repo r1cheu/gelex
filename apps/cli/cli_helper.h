@@ -19,7 +19,6 @@
 
 #include <argparse.h>
 #include <atomic>
-#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -42,7 +41,7 @@ struct ChrGroup
 };
 
 using GenotypeProcessMethod = gelex::GenotypeProcessMethod;
-using ProgressBarDisplay = gelex::detail::ProgressBarDisplay;
+using ProgressBarDisplay = gelex::detail::ProgressBar;
 
 auto is_tty() -> bool;
 

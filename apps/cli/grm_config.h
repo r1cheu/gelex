@@ -14,14 +14,29 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_GRM_ARGS_H_
-#define GELEX_CLI_GRM_ARGS_H_
+#ifndef GELEX_CLI_GRM_CONFIG_H_
+#define GELEX_CLI_GRM_CONFIG_H_
+
+#include <filesystem>
+#include <string>
 
 namespace argparse
 {
 class ArgumentParser;
 }
 
-void setup_grm_args(argparse::ArgumentParser& cmd);
+struct GrmConfig
+{
+    std::filesystem::path bed_path;
+    std::string out_prefix;
+    std::string method;
+    int chunk_size;
+    bool do_additive;
+    bool do_dominant;
+    bool do_loco;
+    int threads;
 
-#endif  // GELEX_CLI_GRM_ARGS_H_
+    static auto make(argparse::ArgumentParser& cmd) -> GrmConfig;
+};
+
+#endif  // GELEX_CLI_GRM_CONFIG_H_

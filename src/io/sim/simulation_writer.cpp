@@ -14,21 +14,18 @@
  * limitations under the License.
  */
 
-#include "gelex/pipeline/sim/simulation_writer.h"
+#include "gelex/io/sim/simulation_writer.h"
 
+#include <algorithm>
 #include <format>
-#include <fstream>
 #include <span>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 
 #include <Eigen/Core>
 
-#include "gelex/data/frame/dataframe_policy.h"
-#include "gelex/infra/logger.h"
-#include "gelex/infra/utils/formatter.h"
-#include "gelex/io/parser.h"
+#include "gelex/io/text_writer.h"
+#include "gelex/types/sample_id.h"
 
 namespace gelex
 {
@@ -58,54 +55,49 @@ void SimulationWriter::write_phenotypes(
 {
     const auto output_path = phenotype_path();
 
-    auto output = detail::open_file<std::ofstream>(output_path, std::ios::out);
+    detail::TextWriter writer(output_path);
 
-    output << "FID\tIID\tphenotype\n";
+    writer.write_header({"FID", "IID", "phenotype"});
 
     for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(sample_ids.size());
          ++i)
     {
         const std::string_view full_id(sample_ids[i]);
         auto [fid, iid] = split_sample_id(full_id);
-
-        output << std::format("{}\t{}\t{}\n", fid, iid, phenotypes[i]);
+        writer.write(std::format("{}\t{}\t{}", fid, iid, phenotypes[i]));
     }
-
-    auto logger = logging::get();
-    logger->info(
-        success(" {:<24}: {}", "Phenotypes saved to", output_path.string()));
 }
 
 void SimulationWriter::write_causal_effects(
     std::span<const std::string> snp_ids,
-    const std::unordered_map<Eigen::Index, CausalEffect>& effects) const
+    const CausalEffects& effects) const
 {
     const auto effects_path = causal_path();
 
-    auto output = detail::open_file<std::ofstream>(effects_path, std::ios::out);
+    detail::TextWriter writer(effects_path);
 
-    output << "SNP\tadditive_effect\tdominance_effect\tadd_class\tdom_class\n";
+    writer.write_header(
+        {"SNP",
+         "additive_effect",
+         "dominance_effect",
+         "add_class",
+         "dom_class"});
 
-    for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(snp_ids.size()); ++i)
+    const Eigen::Index effect_count = effects.size();
+    const Eigen::Index row_count
+        = std::min(static_cast<Eigen::Index>(snp_ids.size()), effect_count);
+
+    for (Eigen::Index i = 0; i < row_count; ++i)
     {
-        auto it = effects.find(i);
-        if (it == effects.end())
-        {
-            continue;
-        }
-        const auto& effect = it->second;
-        output << std::format(
-            "{}\t{}\t{}\t{}\t{}\n",
-            snp_ids[i],
-            effect.additive,
-            effect.dominance,
-            effect.add_class,
-            effect.dom_class);
+        writer.write(
+            std::format(
+                "{}\t{}\t{}\t{}\t{}",
+                snp_ids[i],
+                effects.additive(i),
+                effects.dominance(i),
+                effects.add_class(i),
+                effects.dom_class(i)));
     }
-
-    auto logger = logging::get();
-    logger->info(success(
-        " {:<24}: {}", "Causal effects saved to", effects_path.string()));
 }
 
 }  // namespace gelex

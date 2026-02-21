@@ -17,37 +17,24 @@
 #include "simulate_command.h"
 
 #include <argparse.h>
-
-#include <format>
-#include <string_view>
+#include <optional>
+#include <variant>
 #include <vector>
 
 #include "cli_helper.h"
-#include "gelex/data/genotype/bed_path.h"
-#include "gelex/exception.h"
-#include "gelex/infra/logger.h"
-#include "gelex/infra/utils/formatter.h"
-#include "gelex/pipeline/sim/simulate.h"
+#include "config_factory.h"
+#include "gelex/algo/sim/effect_sampler.h"
+#include "gelex/pipeline/sim/phenotype_simulation_engine.h"
+#include "simulate_config.h"
+#include "simulater_reporter.h"
 
 namespace
 {
-auto parse_effect_classes(
-    argparse::ArgumentParser& sim,
-    std::string_view var_flag,
-    std::string_view prop_flag) -> std::vector<gelex::EffectSizeClass>
+
+auto create_effectsize_vec(
+    std::span<const double> variances,
+    std::span<const double> proportions) -> std::vector<gelex::EffectSizeClass>
 {
-    auto variances = sim.get<std::vector<double>>(std::string(var_flag));
-    auto proportions = sim.get<std::vector<double>>(std::string(prop_flag));
-
-    if (variances.size() != proportions.size())
-    {
-        throw gelex::ArgumentValidationException(
-            std::format(
-                "{} and {} must have the same number of values",
-                var_flag,
-                prop_flag));
-    }
-
     std::vector<gelex::EffectSizeClass> classes(variances.size());
     for (size_t i = 0; i < variances.size(); ++i)
     {
@@ -55,36 +42,51 @@ auto parse_effect_classes(
     }
     return classes;
 }
+
 }  // namespace
 
 int simulate_execute(argparse::ArgumentParser& sim)
 {
-    auto logger = gelex::logging::get();
-    std::filesystem::path bed = gelex::format_bed_path(sim.get("--bfile"));
+    auto config = gelex::cli::make_config<SimulateConfig>(sim);
+    gelex::cli::SimulaterReporter logger;
 
-    gelex::PhenotypeSimulator::Config config{
-        .bed_path = bed,
-        .add_heritability = sim.get<double>("--h2"),
-        .dom_heritability = sim.get<double>("--d2"),
+    gelex::PhenotypeSimulationEngine::Config simulator_config{
+        .bed_path = config.bed_path,
+        .output_path = config.output_path,
+
+        .intercept = config.intercept,
+
+        .add_heritability = config.add_heritability,
+        .add_effect_classes = create_effectsize_vec(
+            config.additive_variances, config.additive_proportions),
+
+        .dom_heritability = config.dom_heritability,
+        .dom_effect_classes
+        = config.dom_heritability
+              ? create_effectsize_vec(
+                    config.dominance_variances, config.dominance_proportions)
+              : std::vector<gelex::EffectSizeClass>{},
+        .seed = config.seed,
     };
 
-    config.add_effect_classes
-        = parse_effect_classes(sim, "--add-var", "--add-prop");
+    gelex::cli::print_simulate_header(config.dom_heritability.has_value());
 
-    if (config.dom_heritability > 0.0)
-    {
-        config.dom_effect_classes
-            = parse_effect_classes(sim, "--dom-var", "--dom-prop");
-    }
+    logger.on_event(
+        gelex::ParameterLoadedEvent{
+            .intercept = config.intercept,
+            .add_heritability = config.add_heritability,
+            .dom_heritability = config.dom_heritability,
+            .seed = config.seed,
+        });
 
-    config.intercept = sim.get<double>("--intercept");
-    config.seed = sim.get<int>("--seed");
-    config.output_path = sim.get("--out");
-
-    gelex::cli::print_simulate_header(config.dom_heritability > 0.0);
-
-    gelex::PhenotypeSimulator simulator(config);
-    simulator.simulate();
-    logger->info(gelex::separator());
+    gelex::PhenotypeSimulationEngine simulator(simulator_config);
+    simulator.simulate(
+        [&logger](const gelex::SimulateEvent& event)
+        {
+            std::visit(
+                [&logger](const auto& concrete_event)
+                { logger.on_event(concrete_event); },
+                event);
+        });
     return 0;
 }

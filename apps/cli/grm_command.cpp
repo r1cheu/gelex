@@ -35,7 +35,7 @@
 #include "gelex/infra/logger.h"
 #include "gelex/infra/utils/formatter.h"
 #include "gelex/infra/utils/utils.h"
-#include "grm_args.h"
+#include "grm_config.h"
 
 namespace bk = barkeep;
 
@@ -97,20 +97,7 @@ auto write_grm_files(
 auto grm_execute(argparse::ArgumentParser& cmd) -> int
 {
     auto logger = gelex::logging::get();
-    GrmConfig config{
-        .bed_path = gelex::format_bed_path(cmd.get("--bfile")),
-        .out_prefix = cmd.get("--out"),
-        .method = cmd.get("--geno-method"),
-        .chunk_size = cmd.get<int>("--chunk-size"),
-        .do_additive = cmd.get<bool>("--add"),
-        .do_dominant = cmd.get<bool>("--dom"),
-        .do_loco = cmd.get<bool>("--loco"),
-        .threads = cmd.get<int>("--threads")};
-
-    if (!config.do_additive && !config.do_dominant)
-    {
-        config.do_additive = true;
-    }
+    auto config = GrmConfig::make(cmd);
 
     auto method = gelex::parse_genotype_process_method(config.method);
     auto method_name = gelex::genotype_process_method_name(method);
@@ -185,7 +172,7 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
                     = completed_snps_base + static_cast<size_t>(current);
                 global_progress.store(current_total, std::memory_order_relaxed);
 
-                pbar.after->message(
+                pbar.after_bar->message(
                     fmt::format(
                         "{:.1f}% ({}/{}) | {}",
                         static_cast<double>(current_total)
