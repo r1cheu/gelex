@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cli/gwas_runner.h"
+#include "gwas_runner.h"
 
 #include <Eigen/Core>
 #include <functional>

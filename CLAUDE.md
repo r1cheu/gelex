@@ -11,8 +11,8 @@ Prefer these commands/conventions over ad-hoc choices.
 
 ```bash
 # useful command
-pixi r install-release # install release binaries to PATH
-pixi r install-debug # install debug binaries to PATH
+pixi r build-release # compile release binaries
+pixi r build-debug # compile debug binaries
 pixi r test # run all tests
 pre-commit run clang-format --files <changed_files> # format files
 

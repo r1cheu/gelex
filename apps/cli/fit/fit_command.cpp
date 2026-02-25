@@ -25,7 +25,7 @@
 #include <memory>
 #include <vector>
 
-#include "cli_helper.h"
+#include "cli/cli_helper.h"
 #include "fit_config.h"
 #include "gelex/algo/infer/mcmc.h"
 #include "gelex/algo/infer/params.h"

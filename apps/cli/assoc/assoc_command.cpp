@@ -24,10 +24,10 @@
 
 #include "assoc_config.h"
 #include "cli/cli_helper.h"
-#include "cli/gwas_runner.h"
 #include "gelex/algo/infer/reml.h"
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/pipeline/data_pipe.h"
+#include "gwas_runner.h"
 
 #include "gelex/data/loader/bim_loader.h"
 

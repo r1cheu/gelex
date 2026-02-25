@@ -21,8 +21,8 @@
 #include <variant>
 #include <vector>
 
-#include "cli_helper.h"
-#include "config_factory.h"
+#include "cli/cli_helper.h"
+#include "cli/config_factory.h"
 #include "gelex/algo/sim/effect_sampler.h"
 #include "gelex/pipeline/sim/phenotype_simulation_engine.h"
 #include "simulate_config.h"

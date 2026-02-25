@@ -19,7 +19,7 @@
 #include <argparse.h>
 #include <thread>
 
-#include "cli_helper.h"
+#include "cli/cli_helper.h"
 
 void setup_assoc_args(argparse::ArgumentParser& cmd)
 {

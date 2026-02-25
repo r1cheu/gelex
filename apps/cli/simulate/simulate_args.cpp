@@ -18,7 +18,7 @@
 
 #include <argparse.h>
 
-#include "cli_helper.h"
+#include "cli/cli_helper.h"
 
 void setup_simulate_args(argparse::ArgumentParser& cmd)
 {

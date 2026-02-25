@@ -19,8 +19,8 @@
 #include <argparse.h>
 #include <variant>
 
-#include "cli_helper.h"
-#include "config_factory.h"
+#include "cli/cli_helper.h"
+#include "cli/config_factory.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/pipeline/grm/grm_engine.h"
 #include "grm_config.h"

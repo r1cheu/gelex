@@ -20,7 +20,7 @@
 
 #include <argparse.h>
 
-#include "cli_helper.h"
+#include "cli/cli_helper.h"
 
 void setup_grm_args(argparse::ArgumentParser& cmd)
 {
