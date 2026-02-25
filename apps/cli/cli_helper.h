@@ -28,6 +28,7 @@
 
 #include "gelex/data/genotype/genotype_method_dispatch.h"
 #include "gelex/infra/detail/indicator.h"
+#include "gelex/types/freq_effect.h"
 #include "gelex/types/snp_info.h"
 
 namespace gelex::cli
@@ -69,8 +70,7 @@ auto print_fit_header(
 
 auto print_grm_header(
     std::string_view method,
-    bool do_additive,
-    bool do_dominant,
+    gelex::freq::GrmType mode,
     int chunk_size,
     int threads) -> void;
 

@@ -134,8 +134,7 @@ auto print_fit_header(
 
 auto print_grm_header(
     std::string_view method,
-    bool do_additive,
-    bool do_dominant,
+    gelex::freq::GrmType mode,
     int chunk_size,
     int threads) -> void
 {
@@ -144,29 +143,11 @@ auto print_grm_header(
     std::string title
         = fmt::format("gelex v{} :: GRM Computation", PROJECT_VERSION);
 
-    std::string mode_str;
-    if (do_additive && do_dominant)
-    {
-        mode_str = "Additive + Dominance";
-    }
-    else if (do_additive)
-    {
-        mode_str = "Additive";
-    }
-    else
-    {
-        mode_str = "Dominance";
-    }
-
-    std::string method_str = std::string(method);
-    std::string chunk_str = fmt::format("{}", chunk_size);
-    std::string comp_str = fmt::format("{}", threads);
-
     std::vector<std::pair<std::string, std::string>> items
-        = {{"Method", method_str},
-           {"Mode", mode_str},
-           {"Chunk Size", chunk_str},
-           {"Threads", comp_str}};
+        = {{"Method", std::string(method)},
+           {"Mode", fmt::format("{}", mode)},
+           {"Chunk Size", fmt::format("{}", chunk_size)},
+           {"Threads", fmt::format("{}", threads)}};
 
     logger->info(gelex::header_box(title, items, 70));
     logger->info("");

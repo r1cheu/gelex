@@ -9,6 +9,7 @@ set(CLI_SOURCES
     cli/grm_args.cpp
     cli/grm_config.cpp
     cli/grm_command.cpp
+    cli/grm_reporter.cpp
     cli/gwas_runner.cpp
     cli/predict_args.cpp
     cli/predict_config.cpp

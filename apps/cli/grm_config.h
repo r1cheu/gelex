@@ -20,6 +20,8 @@
 #include <filesystem>
 #include <string>
 
+#include "gelex/types/freq_effect.h"
+
 namespace argparse
 {
 class ArgumentParser;
@@ -30,13 +32,14 @@ struct GrmConfig
     std::filesystem::path bed_path;
     std::string out_prefix;
     std::string method;
+    gelex::freq::GrmType mode;
     int chunk_size;
-    bool do_additive;
-    bool do_dominant;
     bool do_loco;
     int threads;
 
     static auto make(argparse::ArgumentParser& cmd) -> GrmConfig;
+
+    auto validate() const -> void;
 };
 
 #endif  // GELEX_CLI_GRM_CONFIG_H_

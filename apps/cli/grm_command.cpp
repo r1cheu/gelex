@@ -105,11 +105,7 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
     gelex::cli::setup_parallelization(config.threads);
 
     gelex::cli::print_grm_header(
-        method_name,
-        config.do_additive,
-        config.do_dominant,
-        config.chunk_size,
-        config.threads);
+        method_name, config.mode, config.chunk_size, config.threads);
 
     logger->info(gelex::section("Loading Data..."));
     logger->info(gelex::success("Input      : {}", config.bed_path.string()));
@@ -138,11 +134,11 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
     };
 
     std::vector<GrmTask> tasks;
-    if (config.do_additive)
+    if (config.mode != gelex::freq::GrmType::D)
     {
         tasks.push_back({"add", "Additive", true});
     }
-    if (config.do_dominant)
+    if (config.mode != gelex::freq::GrmType::A)
     {
         tasks.push_back({"dom", "Dominance", false});
     }
