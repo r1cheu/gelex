@@ -28,6 +28,8 @@
 #include "cli/fit_command.h"
 #include "cli/grm_args.h"
 #include "cli/grm_command.h"
+#include "cli/post_args.h"
+#include "cli/post_command.h"
 #include "cli/predict_args.h"
 #include "cli/predict_command.h"
 #include "cli/simulate_args.h"
@@ -92,6 +94,7 @@ auto main(int argc, char* argv[]) -> int
     argparse::ArgumentParser predict("predict");
     argparse::ArgumentParser grm("grm");
     argparse::ArgumentParser assoc("assoc");
+    argparse::ArgumentParser post("post");
 
     const std::array commands
         = {CommandDescriptor{"fit", &fit, setup_fit_args, fit_execute},
@@ -100,7 +103,8 @@ auto main(int argc, char* argv[]) -> int
            CommandDescriptor{
                "predict", &predict, setup_predict_args, predict_execute},
            CommandDescriptor{"grm", &grm, setup_grm_args, grm_execute},
-           CommandDescriptor{"assoc", &assoc, setup_assoc_args, assoc_execute}};
+           CommandDescriptor{"assoc", &assoc, setup_assoc_args, assoc_execute},
+           CommandDescriptor{"post", &post, setup_post_args, post_execute}};
 
     for (const auto& cmd : commands)
     {

@@ -17,6 +17,10 @@ set(CLI_SOURCES
     cli/simulate_config.cpp
     cli/simulate_command.cpp
     cli/simulater_reporter.cpp
+    cli/post_args.cpp
+    cli/post_config.cpp
+    cli/post_command.cpp
+    cli/post_reporter.cpp
     cli/cli_helper.cpp)
 
 add_executable(gelex_cli ${CLI_SOURCES})
