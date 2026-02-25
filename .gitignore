@@ -117,3 +117,5 @@ output
 .claude/skills/semver-bump
 docs/codebase_summary.md
 .claude/agents/cpp-file-summarizer.md
+.claude/worktrees/
+.worktrees/
