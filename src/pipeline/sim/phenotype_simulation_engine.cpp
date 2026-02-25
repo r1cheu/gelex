@@ -67,8 +67,7 @@ auto PhenotypeSimulationEngine::resolve_output_path(
     return output_path.empty() ? std::filesystem::path(bed_path) : output_path;
 }
 
-auto PhenotypeSimulationEngine::simulate(const SimulateObserver& observer)
-    -> void
+auto PhenotypeSimulationEngine::run(const SimulateObserver& observer) -> void
 {
     std::mt19937_64 rng(config_.seed);
 

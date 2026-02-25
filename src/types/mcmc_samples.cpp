@@ -22,7 +22,7 @@
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/params.h"
-#include "gelex/data/io/binary_matrix_writer.h"
+#include "gelex/data/io/binary_writer.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
 
@@ -117,23 +117,25 @@ MCMCSamples::MCMCSamples(
     if (const auto* effect = model.additive(); effect)
     {
         additive_.emplace(params, *effect);
-        add_writer_
-            = sample_prefix.empty()
-                  ? nullptr
-                  : std::make_unique<detail::BinaryMatrixWriter>(
-                        std::filesystem::path(
-                            std::format("{}.add.sample", sample_prefix)));
+        add_writer_ = sample_prefix.empty()
+                          ? nullptr
+                          : std::make_unique<detail::BinaryWriter<double>>(
+                                std::format("{}.add.sample", sample_prefix));
     }
 
     if (const auto* effect = model.dominant(); effect)
     {
         dominant_.emplace(params, *effect);
-        dom_writer_
-            = sample_prefix.empty()
-                  ? nullptr
-                  : std::make_unique<detail::BinaryMatrixWriter>(
-                        std::filesystem::path(
-                            std::format("{}.dom.sample", sample_prefix)));
+        dom_writer_ = sample_prefix.empty()
+                          ? nullptr
+                          : std::make_unique<detail::BinaryWriter<double>>(
+                                std::format("{}.dom.sample", sample_prefix));
+    }
+
+    if (!sample_prefix.empty() && additive_)
+    {
+        scalar_writer_ = std::make_unique<detail::BinaryWriter<double>>(
+            std::format("{}.scalar_chain", sample_prefix));
     }
 }
 
@@ -207,6 +209,26 @@ void MCMCSamples::store(const BayesState& states, Eigen::Index record_idx)
     }
 
     residual_.variance[chain_idx](0, record_idx) = states.residual().variance;
+
+    if (scalar_writer_)
+    {
+        Eigen::VectorXd scalars(dominant_ ? 5 : 3);
+        scalars(0) = states.residual().variance;
+        if (const auto* state = states.additive())
+        {
+            scalars(1) = state->variance;
+            scalars(2) = state->heritability;
+        }
+        if (dominant_)
+        {
+            if (const auto* state = states.dominant())
+            {
+                scalars(3) = state->variance;
+                scalars(4) = state->heritability;
+            }
+        }
+        scalar_writer_->write(scalars);
+    }
 }
 
 }  // namespace gelex

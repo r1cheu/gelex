@@ -48,7 +48,7 @@ class PhenotypeSimulationEngine
 
     explicit PhenotypeSimulationEngine(Config config);
 
-    auto simulate(const SimulateObserver& observer = {}) -> void;
+    auto run(const SimulateObserver& observer = {}) -> void;
 
    private:
     static auto resolve_output_path(

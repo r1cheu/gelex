@@ -80,7 +80,7 @@ int simulate_execute(argparse::ArgumentParser& sim)
         });
 
     gelex::PhenotypeSimulationEngine simulator(simulator_config);
-    simulator.simulate(
+    simulator.run(
         [&logger](const gelex::SimulateEvent& event)
         {
             std::visit(

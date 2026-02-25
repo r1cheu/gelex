@@ -33,7 +33,8 @@
 namespace gelex::detail
 {
 
-class BinaryMatrixWriter;
+template <typename eT>
+class BinaryWriter;
 
 }  // namespace gelex::detail
 
@@ -152,8 +153,9 @@ class MCMCSamples
     std::optional<AdditiveSamples> additive_;
     std::optional<DominantSamples> dominant_;
     ResidualSamples residual_;
-    std::unique_ptr<detail::BinaryMatrixWriter> add_writer_;
-    std::unique_ptr<detail::BinaryMatrixWriter> dom_writer_;
+    std::unique_ptr<detail::BinaryWriter<double>> add_writer_;
+    std::unique_ptr<detail::BinaryWriter<double>> dom_writer_;
+    std::unique_ptr<detail::BinaryWriter<double>> scalar_writer_;
 };
 }  // namespace gelex
 

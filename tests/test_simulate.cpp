@@ -30,8 +30,8 @@
 
 #include "bed_fixture.h"
 #include "gelex/data/genotype/genotype_processor.h"
-#include "gelex/pipeline/sim/phenotype_simulation_engine.h"
 #include "gelex/infra/utils/math_utils.h"
+#include "gelex/pipeline/sim/phenotype_simulation_engine.h"
 
 namespace fs = std::filesystem;
 
@@ -226,13 +226,16 @@ TEST_CASE("PhenotypeSimulationEngine - parameter validation", "[simulate]")
 
     SECTION("Engine construction accepts unvalidated d2 values")
     {
-        REQUIRE_NOTHROW(PhenotypeSimulationEngine(make_config(bed_path, 0.5, -0.1)));
-        REQUIRE_NOTHROW(PhenotypeSimulationEngine(make_config(bed_path, 0.5, 1.0)));
+        REQUIRE_NOTHROW(
+            PhenotypeSimulationEngine(make_config(bed_path, 0.5, -0.1)));
+        REQUIRE_NOTHROW(
+            PhenotypeSimulationEngine(make_config(bed_path, 0.5, 1.0)));
     }
 
     SECTION("Engine construction accepts unvalidated h2 and d2 combinations")
     {
-        REQUIRE_NOTHROW(PhenotypeSimulationEngine(make_config(bed_path, 0.6, 0.5)));
+        REQUIRE_NOTHROW(
+            PhenotypeSimulationEngine(make_config(bed_path, 0.6, 0.5)));
     }
 }
 
@@ -246,7 +249,7 @@ TEST_CASE("PhenotypeSimulationEngine - basic simulation", "[simulate]")
 
     SECTION("Default output generates .phen and .causal files")
     {
-        PhenotypeSimulationEngine(make_config(bed_path)).simulate();
+        PhenotypeSimulationEngine(make_config(bed_path)).run();
 
         REQUIRE(fs::exists(fs::path(bed_path).replace_extension(".phen")));
         REQUIRE(fs::exists(fs::path(bed_path).replace_extension(".causal")));
@@ -259,7 +262,7 @@ TEST_CASE("PhenotypeSimulationEngine - basic simulation", "[simulate]")
         auto config = make_config(bed_path);
         config.output_path = output_path;
 
-        PhenotypeSimulationEngine(config).simulate();
+        PhenotypeSimulationEngine(config).run();
 
         REQUIRE(fs::exists(output_path));
         REQUIRE(fs::exists(fs::path(output_path).replace_extension(".causal")));
@@ -267,7 +270,7 @@ TEST_CASE("PhenotypeSimulationEngine - basic simulation", "[simulate]")
 
     SECTION("Phenotype file format")
     {
-        PhenotypeSimulationEngine(make_config(bed_path)).simulate();
+        PhenotypeSimulationEngine(make_config(bed_path)).run();
 
         auto phen_path = fs::path(bed_path).replace_extension(".phen");
         REQUIRE(read_first_line(phen_path) == "FID\tIID\tphenotype");
@@ -276,7 +279,7 @@ TEST_CASE("PhenotypeSimulationEngine - basic simulation", "[simulate]")
 
     SECTION("Causal file format")
     {
-        PhenotypeSimulationEngine(make_config(bed_path)).simulate();
+        PhenotypeSimulationEngine(make_config(bed_path)).run();
 
         auto causal_path = fs::path(bed_path).replace_extension(".causal");
         REQUIRE(
@@ -300,10 +303,10 @@ TEST_CASE("PhenotypeSimulationEngine - reproducibility", "[simulate]")
 
     auto config = make_config(bed_path, 0.5, 0.0, 123);
     config.output_path = output1;
-    PhenotypeSimulationEngine(config).simulate();
+    PhenotypeSimulationEngine(config).run();
 
     config.output_path = output2;
-    PhenotypeSimulationEngine(config).simulate();
+    PhenotypeSimulationEngine(config).run();
 
     REQUIRE(read_file_content(output1) == read_file_content(output2));
     REQUIRE(
@@ -316,7 +319,7 @@ TEST_CASE("PhenotypeSimulationEngine - dominance effects", "[simulate]")
     BedFixture fixture;
     auto [bed_path, _] = fixture.create_bed_files(50, 100, 0.0, 0.05, 0.5, 42);
 
-    PhenotypeSimulationEngine(make_config(bed_path, 0.5, 0.2)).simulate();
+    PhenotypeSimulationEngine(make_config(bed_path, 0.5, 0.2)).run();
 
     auto causal_path = fs::path(bed_path).replace_extension(".causal");
     REQUIRE(fs::exists(causal_path));
@@ -341,7 +344,7 @@ TEST_CASE("PhenotypeSimulationEngine - additive variance", "[simulate]")
     auto [bed_path, stored_geno]
         = fixture.create_deterministic_bed_files(genotypes);
 
-    PhenotypeSimulationEngine(make_config(bed_path, H2)).simulate();
+    PhenotypeSimulationEngine(make_config(bed_path, H2)).run();
 
     auto effects
         = parse_causal_effects(fs::path(bed_path).replace_extension(".causal"));
@@ -360,7 +363,9 @@ TEST_CASE("PhenotypeSimulationEngine - additive variance", "[simulate]")
     REQUIRE_THAT(observed_h2, WithinAbs(H2, VARIANCE_TOLERANCE));
 }
 
-TEST_CASE("PhenotypeSimulationEngine - additive and dominance variance", "[simulate]")
+TEST_CASE(
+    "PhenotypeSimulationEngine - additive and dominance variance",
+    "[simulate]")
 {
     BedFixture fixture;
     constexpr Eigen::Index N_SAMPLES = 500;
@@ -372,7 +377,7 @@ TEST_CASE("PhenotypeSimulationEngine - additive and dominance variance", "[simul
     auto [bed_path, stored_geno]
         = fixture.create_deterministic_bed_files(genotypes);
 
-    PhenotypeSimulationEngine(make_config(bed_path, H2, D2)).simulate();
+    PhenotypeSimulationEngine(make_config(bed_path, H2, D2)).run();
 
     auto effects
         = parse_causal_effects(fs::path(bed_path).replace_extension(".causal"));
@@ -407,7 +412,9 @@ TEST_CASE("PhenotypeSimulationEngine - additive and dominance variance", "[simul
         WithinAbs(D2, VARIANCE_TOLERANCE));
 }
 
-TEST_CASE("PhenotypeSimulationEngine - mixture normal effect classes", "[simulate]")
+TEST_CASE(
+    "PhenotypeSimulationEngine - mixture normal effect classes",
+    "[simulate]")
 {
     BedFixture fixture;
     constexpr Eigen::Index N_SAMPLES = 200;
@@ -421,7 +428,7 @@ TEST_CASE("PhenotypeSimulationEngine - mixture normal effect classes", "[simulat
         = {{0.5, 0.0001}, {0.3, 0.01}, {0.2, 1.0}};
 
     auto config = make_config(bed_path, 0.5, 0.0, 42, add_classes);
-    PhenotypeSimulationEngine(config).simulate();
+    PhenotypeSimulationEngine(config).run();
 
     auto causal_path = fs::path(bed_path).replace_extension(".causal");
     auto effects = parse_causal_effects(causal_path);
@@ -447,4 +454,5 @@ TEST_CASE("PhenotypeSimulationEngine - mixture normal effect classes", "[simulat
     REQUIRE(class_counts[0] > class_counts[2]);
 }
 
-// Effect class validation is now handled by EffectSampler (see test_effect_sampler.cpp)
+// Effect class validation is now handled by EffectSampler (see
+// test_effect_sampler.cpp)
