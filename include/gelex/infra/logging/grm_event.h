@@ -52,7 +52,7 @@ struct GrmProgressEvent
 struct GrmFilesWrittenEvent
 {
     std::vector<std::string> file_paths;
-    double time_elapsed;
+    std::string time_elapsed;
     std::string output_dir;
     std::string file_pattern;
 };

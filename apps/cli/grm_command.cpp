@@ -17,225 +17,51 @@
 #include "grm_command.h"
 
 #include <argparse.h>
-
-#include <atomic>
-#include <string>
-#include <vector>
-
-#include <fmt/format.h>
-#include <omp.h>
+#include <variant>
 
 #include "cli_helper.h"
-#include "gelex/data/genotype/bed_path.h"
-#include "gelex/data/genotype/genotype_processor.h"
-#include "gelex/data/grm/grm.h"
-#include "gelex/data/grm/grm_bin_writer.h"
-#include "gelex/data/grm/grm_id_writer.h"
-#include "gelex/data/loader/bim_loader.h"
-#include "gelex/infra/logger.h"
-#include "gelex/infra/utils/formatter.h"
-#include "gelex/infra/utils/utils.h"
+#include "config_factory.h"
+#include "gelex/infra/logging/grm_event.h"
+#include "gelex/pipeline/grm/grm_engine.h"
 #include "grm_config.h"
-
-namespace bk = barkeep;
-
-namespace
-{
-
-template <typename Method>
-auto dispatch_grm(
-    gelex::GRM& grm,
-    const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
-    int chunk_size,
-    bool additive,
-    const std::function<void(Eigen::Index, Eigen::Index)>& progress_callback
-    = nullptr) -> gelex::GrmResult
-{
-    if (additive)
-    {
-        return grm.compute<typename Method::Additive>(
-            ranges, chunk_size, progress_callback);
-    }
-    return grm.compute<typename Method::Dominant>(
-        ranges, chunk_size, progress_callback);
-}
-
-auto compute_grm_with_method(
-    gelex::GRM& grm,
-    const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
-    gelex::cli::GenotypeProcessMethod method,
-    int chunk_size,
-    bool additive,
-    const std::function<void(Eigen::Index, Eigen::Index)>& progress_callback
-    = nullptr) -> gelex::GrmResult
-{
-    auto visitor = [&]<typename MethodBundle>() -> gelex::GrmResult
-    {
-        return dispatch_grm<MethodBundle>(
-            grm, ranges, chunk_size, additive, progress_callback);
-    };
-
-    return gelex::visit_genotype_method(method, visitor);
-}
-
-auto write_grm_files(
-    const gelex::GrmResult& result,
-    const std::vector<std::string>& sample_ids,
-    const std::string& out_prefix) -> std::vector<std::string>
-{
-    auto bin_path = out_prefix + ".bin";
-    auto id_path = out_prefix + ".id";
-
-    gelex::GrmBinWriter(bin_path).write(result.grm);
-    gelex::GrmIdWriter(id_path).write(sample_ids);
-
-    return {bin_path, id_path};
-}
-
-}  // namespace
+#include "grm_reporter.h"
 
 auto grm_execute(argparse::ArgumentParser& cmd) -> int
 {
-    auto logger = gelex::logging::get();
-    auto config = GrmConfig::make(cmd);
+    auto config = gelex::cli::make_config<GrmConfig>(cmd);
+    gelex::cli::GrmReporter reporter;
 
     auto method = gelex::parse_genotype_process_method(config.method);
     auto method_name = gelex::genotype_process_method_name(method);
 
     gelex::cli::setup_parallelization(config.threads);
-
     gelex::cli::print_grm_header(
         method_name, config.mode, config.chunk_size, config.threads);
 
-    logger->info(gelex::section("Loading Data..."));
-    logger->info(gelex::success("Input      : {}", config.bed_path.string()));
+    reporter.on_event(
+        gelex::GrmConfigLoadedEvent{
+            .method = std::string(method_name),
+            .mode = config.mode,
+            .do_loco = config.do_loco,
+            .chunk_size = config.chunk_size,
+            .threads = config.threads,
+        });
 
-    gelex::GRM grm(config.bed_path);
-    const auto& sample_ids = grm.sample_ids();
-    auto num_snps = grm.num_snps();
-    logger->info(gelex::success("Samples    : {} samples", sample_ids.size()));
-    logger->info(gelex::success("SNPs       : {} markers", num_snps));
+    gelex::GrmEngine engine({
+        .bed_path = config.bed_path,
+        .out_prefix = config.out_prefix,
+        .method = method,
+        .mode = config.mode,
+        .chunk_size = config.chunk_size,
+        .do_loco = config.do_loco,
+    });
 
-    logger->info("");
-    logger->info(gelex::section("Computing GRM..."));
-
-    auto bim_path = config.bed_path;
-    bim_path.replace_extension(".bim");
-    gelex::detail::BimLoader bim_loader(bim_path);
-
-    auto groups
-        = gelex::cli::build_chr_groups(config.do_loco, bim_loader.info());
-
-    struct GrmTask
-    {
-        std::string name;
-        std::string label;
-        bool is_additive;
-    };
-
-    std::vector<GrmTask> tasks;
-    if (config.mode != gelex::freq::GrmType::D)
-    {
-        tasks.push_back({"add", "Additive", true});
-    }
-    if (config.mode != gelex::freq::GrmType::A)
-    {
-        tasks.push_back({"dom", "Dominance", false});
-    }
-
-    size_t total_work_snps = 0;
-    for (const auto& group : groups)
-    {
-        total_work_snps += static_cast<size_t>(group.total_snps) * tasks.size();
-    }
-
-    std::atomic<size_t> global_progress{0};
-    auto pbar = gelex::cli::create_progress_bar(
-        global_progress, total_work_snps, "{bar}");
-    pbar.display->show();
-
-    gelex::SmoothEtaCalculator eta_calculator(total_work_snps);
-    std::vector<std::string> generated_files;
-    size_t completed_snps_base = 0;
-
-    for (const auto& group : groups)
-    {
-        for (const auto& task : tasks)
+    engine.compute(
+        [&reporter](const gelex::GrmEvent& event)
         {
-            auto progress_callback = [&](Eigen::Index current, Eigen::Index)
-            {
-                auto current_total
-                    = completed_snps_base + static_cast<size_t>(current);
-                global_progress.store(current_total, std::memory_order_relaxed);
+            std::visit(
+                [&reporter](const auto& e) { reporter.on_event(e); }, event);
+        });
 
-                pbar.after_bar->message(
-                    fmt::format(
-                        "{:.1f}% ({}/{}) | {}",
-                        static_cast<double>(current_total)
-                            / static_cast<double>(total_work_snps) * 100,
-                        gelex::AbbrNumber(current_total),
-                        gelex::AbbrNumber(total_work_snps),
-                        eta_calculator.get_eta(current_total)));
-            };
-
-            auto result = compute_grm_with_method(
-                grm,
-                group.ranges,
-                method,
-                config.chunk_size,
-                task.is_additive,
-                progress_callback);
-
-            auto path = config.out_prefix;
-            if (config.do_loco || tasks.size() > 1)
-            {
-                auto suffix
-                    = config.do_loco ? fmt::format(".chr{}", group.name) : "";
-                path = fmt::format(
-                    "{}.{}{}", config.out_prefix, task.name, suffix);
-            }
-
-            auto files = write_grm_files(result, sample_ids, path);
-            generated_files.insert(
-                generated_files.end(), files.begin(), files.end());
-
-            completed_snps_base += static_cast<size_t>(group.total_snps);
-        }
-    }
-
-    pbar.display->done();
-
-    logger->info("");
-    logger->info(gelex::named_section("Computation Summary", 70));
-    logger->info(
-        gelex::success(
-            "Time elapsed: {}", eta_calculator.total_time_consumed()));
-
-    logger->info("  Total Files : {}", generated_files.size());
-    logger->info(
-        "  Output Dir  : {}",
-        std::filesystem::absolute(std::filesystem::path(config.out_prefix))
-            .parent_path()
-            .string());
-
-    auto task_pattern
-        = tasks.size() == 1 ? tasks[0].name : std::string("{add|dom}");
-
-    if (config.do_loco)
-    {
-        logger->info(
-            "  Pattern     : {}.{}.chr{{1..{}}}.{{bin|id}}",
-            config.out_prefix,
-            task_pattern,
-            groups.size());
-    }
-    else
-    {
-        logger->info(
-            "  Pattern     : {}.{}.{{bin|id}}",
-            config.out_prefix,
-            task_pattern);
-    }
-    logger->info(gelex::separator());
     return 0;
 }
