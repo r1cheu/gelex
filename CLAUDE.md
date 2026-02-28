@@ -33,6 +33,15 @@ pre-commit run clang-format --files <changed_files> # format files
 - Prefer `std::span` and `std::string_view` for non-owning inputs.
 - Prefer `Eigen::Ref<T>` / `const Eigen::Ref<const T>&` for Eigen views.
 - Use `Eigen::Index` for Eigen row/column indexing.
+
+### Eigen Function Parameters
+
+- **Read-only**: templatize on `MatrixBase<Derived>` / `ArrayBase<Derived>` to accept expressions without copies.
+- **Writable output**: take `const MatrixBase<Derived>&` and `const_cast` internally to prevent binding to temporaries; call `.derived() = ...` to assign.
+- **Resizable output**: call `.derived().resize()`, not `.resize()` on the base.
+- **Multiple args**: use a separate template parameter per argument to support mixed types.
+- **Base class choice**: `MatrixBase` (dense matrices), `ArrayBase` (arrays), `DenseBase` (both), `EigenBase` (any, incl. sparse/permutation).
+- **Non-template alternative**: `Ref<MatrixXd>` for a single fixed layout; `Ref<Matrix<Scalar,-1,-1,RowMajor>>` for row-major — avoids copies when layout matches, creates a temporary otherwise.
 - Use include guards (avoid `#pragma once`).
 - Guard names should be uppercase and path-derived.
 - Keep public API in `include/gelex/`; avoid exposing internals.
