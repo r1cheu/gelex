@@ -36,7 +36,7 @@ auto MCMCSamples::operator=(MCMCSamples&&) noexcept -> MCMCSamples& = default;
 
 FixedSamples::FixedSamples(const MCMCParams& params, const FixedEffect& effect)
 {
-    coeffs.emplace_back(effect.X.cols(), params.n_records);
+    coeffs.resize(effect.X.cols(), params.n_records);
 }
 RandomSamples::RandomSamples(
     const MCMCParams& params,
@@ -45,8 +45,8 @@ RandomSamples::RandomSamples(
 
 RandomSamples::RandomSamples(const MCMCParams& params, Eigen::Index n_coeffs)
 {
-    coeffs.emplace_back(n_coeffs, params.n_records);
-    variance.emplace_back(1, params.n_records);
+    coeffs.resize(n_coeffs, params.n_records);
+    variance.resize(params.n_records);
 }
 
 BaseMarkerSamples::BaseMarkerSamples(
@@ -54,24 +54,23 @@ BaseMarkerSamples::BaseMarkerSamples(
     const bayes::GeneticEffect& effect)
     : RandomSamples(params, bayes::get_cols(effect.X))
 {
-    heritability.emplace_back(1, params.n_records);
+    heritability.resize(params.n_records);
 
     if (effect.init_pi)  // mixture model
     {
         const Eigen::Index num_snp = bayes::get_cols(effect.X);
         n_proportions = effect.init_pi->size();
-        tracker.emplace_back(num_snp, params.n_records);
+        tracker.resize(num_snp, params.n_records);
 
         if (n_proportions > 2)
         {
-            component_variance.emplace_back(
-                n_proportions - 1, params.n_records);
+            component_variance.resize(n_proportions - 1, params.n_records);
         }
     }
     if (effect.estimate_pi)
     {
         const Eigen::Index n_props = effect.init_pi->size();
-        mixture_proportion.emplace_back(n_props, params.n_records);
+        mixture_proportion.resize(n_props, params.n_records);
     }
 }
 
@@ -91,7 +90,7 @@ DominantSamples::DominantSamples(
 
 ResidualSamples::ResidualSamples(const MCMCParams& params)
 {
-    variance.emplace_back(1, params.n_records);
+    variance.resize(params.n_records);
 }
 
 MCMCSamples::MCMCSamples(
@@ -141,74 +140,71 @@ MCMCSamples::MCMCSamples(
 
 void MCMCSamples::store(const BayesState& states, Eigen::Index record_idx)
 {
-    constexpr Eigen::Index chain_idx = 0;
     if (const auto* state = states.fixed(); fixed_ && state != nullptr)
     {
-        fixed_->coeffs[chain_idx].col(record_idx) = state->coeffs;
+        fixed_->coeffs.col(record_idx) = state->coeffs;
     }
 
     for (auto&& [sample, state] : std::views::zip(random_, states.random()))
     {
-        sample.coeffs[chain_idx].col(record_idx) = state.coeffs;
-        sample.variance[chain_idx](0, record_idx) = state.variance;
+        sample.coeffs.col(record_idx) = state.coeffs;
+        sample.variance(record_idx) = state.variance;
     }
 
     if (const auto* state = states.additive(); additive_ && state != nullptr)
     {
-        additive_->coeffs[chain_idx].col(record_idx) = state->coeffs;
+        additive_->coeffs.col(record_idx) = state->coeffs;
         if (add_writer_)
         {
             add_writer_->write(state->coeffs);
         }
-        additive_->variance[chain_idx](0, record_idx) = state->variance;
-        additive_->heritability[chain_idx](0, record_idx) = state->heritability;
+        additive_->variance(record_idx) = state->variance;
+        additive_->heritability(record_idx) = state->heritability;
 
-        if (!additive_->mixture_proportion.empty())
+        if (additive_->mixture_proportion.size() > 0)
         {
-            additive_->mixture_proportion[chain_idx].col(record_idx)
-                = state->pi.prop;
+            additive_->mixture_proportion.col(record_idx) = state->pi.prop;
         }
-        if (!additive_->tracker.empty())
+        if (additive_->tracker.size() > 0)
         {
-            additive_->tracker[chain_idx].col(record_idx) = state->tracker;
+            additive_->tracker.col(record_idx) = state->tracker;
         }
 
-        if (!additive_->component_variance.empty())
+        if (additive_->component_variance.size() > 0)
         {
-            additive_->component_variance[chain_idx].col(record_idx)
+            additive_->component_variance.col(record_idx)
                 = state->component_variance;
         }
     }
 
     if (const auto* state = states.dominant(); dominant_ && state != nullptr)
     {
-        dominant_->coeffs[chain_idx].col(record_idx) = state->coeffs;
+        dominant_->coeffs.col(record_idx) = state->coeffs;
         if (dom_writer_)
         {
             dom_writer_->write(state->coeffs);
         }
-        dominant_->variance[chain_idx](0, record_idx) = state->variance;
-        dominant_->heritability[chain_idx](0, record_idx) = state->heritability;
+        dominant_->variance(record_idx) = state->variance;
+        dominant_->heritability(record_idx) = state->heritability;
 
-        if (!dominant_->mixture_proportion.empty()
+        if (dominant_->mixture_proportion.size() > 0
             && state->pi.prop.size() != 0)
         {
-            dominant_->mixture_proportion[chain_idx].col(record_idx)
-                = state->pi.prop;
+            dominant_->mixture_proportion.col(record_idx) = state->pi.prop;
         }
-        if (!dominant_->tracker.empty() && state->tracker.size() != 0)
+        if (dominant_->tracker.size() > 0 && state->tracker.size() != 0)
         {
-            dominant_->tracker[chain_idx].col(record_idx) = state->tracker;
+            dominant_->tracker.col(record_idx) = state->tracker;
         }
 
-        if (!dominant_->component_variance.empty())
+        if (dominant_->component_variance.size() > 0)
         {
-            dominant_->component_variance[chain_idx].col(record_idx)
+            dominant_->component_variance.col(record_idx)
                 = state->component_variance;
         }
     }
 
-    residual_.variance[chain_idx](0, record_idx) = states.residual().variance;
+    residual_.variance(record_idx) = states.residual().variance;
 
     if (scalar_writer_)
     {

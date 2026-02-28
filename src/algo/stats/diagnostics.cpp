@@ -22,7 +22,6 @@
 #include <unsupported/Eigen/FFT>
 
 #include "gelex/infra/utils/math_utils.h"
-#include "gelex/types/mcmc_samples.h"
 
 namespace gelex
 {
@@ -33,7 +32,7 @@ using Eigen::MatrixXd;
 using Eigen::Ref;
 using Eigen::VectorXd;
 
-std::pair<VectorXd, VectorXd> compute_chain_variance_stats(const Samples& x)
+std::pair<VectorXd, VectorXd> compute_chain_variance_stats(const Chains& x)
 {
     const auto n_chains = static_cast<Index>(x.size());
     const auto n_draws = x[0].cols();
@@ -93,16 +92,16 @@ Index fft_next_fast_len(Index target)
     }
 }
 
-MatrixXd gelman_rubin(const Samples& samples)
+MatrixXd gelman_rubin(const Chains& samples)
 {
     auto [var_within, var_estimator] = compute_chain_variance_stats(samples);
     MatrixXd rhat = (var_estimator.array() / var_within.array()).sqrt();
     return rhat;
 }
 
-MatrixXd split_gelman_rubin(const Samples& samples)
+MatrixXd split_gelman_rubin(const Chains& samples)
 {
-    Samples new_samples;
+    Chains new_samples;
     new_samples.reserve(samples.size() * 2);
 
     const Index n_half = samples[0].cols() / 2;
@@ -161,9 +160,9 @@ MatrixXd autocorrelation(const Ref<const MatrixXd>& x, bool bias)
     return autocorr;
 }
 
-Samples autocorrelation(const Samples& x, bool bias)
+Chains autocorrelation(const Chains& x, bool bias)
 {
-    Samples result;
+    Chains result;
     result.reserve(x.size());
     for (const auto& chain : x)
     {
@@ -172,9 +171,9 @@ Samples autocorrelation(const Samples& x, bool bias)
     return result;
 }
 
-Samples autocovariance(const Samples& x, bool bias)
+Chains autocovariance(const Chains& x, bool bias)
 {
-    Samples result = autocorrelation(x, bias);
+    Chains result = autocorrelation(x, bias);
     MatrixXd x_var(x[0].rows(), x.size());
 
     const auto n_chains = static_cast<Index>(result.size());
@@ -194,7 +193,7 @@ Samples autocovariance(const Samples& x, bool bias)
     return result;
 }
 
-Eigen::VectorXd effect_sample_size(const Samples& x, bool bias)
+Eigen::VectorXd effect_sample_size(const Chains& x, bool bias)
 {
     const auto n_chains = static_cast<Index>(x.size());
     if (n_chains == 0)
@@ -210,7 +209,7 @@ Eigen::VectorXd effect_sample_size(const Samples& x, bool bias)
         throw std::invalid_argument("At least 2 draws are required");
     }
 
-    Samples gamma_k_c = autocovariance(x, bias);
+    Chains gamma_k_c = autocovariance(x, bias);
 
     // Compute mean across chains for each parameter and lag
     Eigen::MatrixXd gamma_k_c_mean = Eigen::MatrixXd::Zero(n_params, n_draws);

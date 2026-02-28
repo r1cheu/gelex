@@ -56,25 +56,20 @@ struct MCMCParams;
 class BayesState;
 class BayesModel;
 
-// samples for one effect. fit now stores a single chain in index 0.
-// Matrix has shape (n_params, n_draws).
-using Samples = std::vector<Eigen::MatrixXd>;
-using IntSamples = std::vector<Eigen::MatrixXi>;
-
 struct FixedSamples
 {
     FixedSamples(const MCMCParams& params, const FixedEffect& effect);
 
-    Samples coeffs;
-    explicit operator bool() const { return !coeffs.empty(); }
+    Eigen::MatrixXd coeffs;
+    explicit operator bool() const { return coeffs.size() > 0; }
 };
 
 struct RandomSamples
 {
     RandomSamples(const MCMCParams& params, const bayes::RandomEffect& effect);
-    Samples coeffs;
-    Samples variance;
-    explicit operator bool() const { return !coeffs.empty(); }
+    Eigen::MatrixXd coeffs;
+    Eigen::RowVectorXd variance;
+    explicit operator bool() const { return coeffs.size() > 0; }
 
    protected:
     RandomSamples(const MCMCParams& params, Eigen::Index n_coeffs);
@@ -86,10 +81,10 @@ struct BaseMarkerSamples : RandomSamples
         const MCMCParams& params,
         const bayes::GeneticEffect& effect);
 
-    Samples mixture_proportion;
-    Samples heritability;
-    IntSamples tracker;
-    Samples component_variance;
+    Eigen::MatrixXd mixture_proportion;
+    Eigen::RowVectorXd heritability;
+    Eigen::MatrixXi tracker;
+    Eigen::MatrixXd component_variance;
 
     Eigen::Index n_proportions
         = 0;  // load the number of prop for no-estimate-pi models.
@@ -113,8 +108,8 @@ struct ResidualSamples
 {
     explicit ResidualSamples(const MCMCParams& params);
 
-    Samples variance;
-    explicit operator bool() const { return !variance.empty(); }
+    Eigen::RowVectorXd variance;
+    explicit operator bool() const { return variance.size() > 0; }
 };
 
 class MCMCSamples

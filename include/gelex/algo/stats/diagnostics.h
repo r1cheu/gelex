@@ -22,14 +22,16 @@
 
 #ifndef GELEX_ESTIMATOR_BAYES_DIAGNOSTICS_H_
 #define GELEX_ESTIMATOR_BAYES_DIAGNOSTICS_H_
-#include <Eigen/Core>
+#include <vector>
 
-#include "gelex/types/mcmc_samples.h"
+#include <Eigen/Core>
 
 namespace gelex
 {
-// the samples shape is a vector of MatrixXd. each MatrixXd is (n_params,
-// n_draws). and the vector length is n_chains.
+
+// Each MatrixXd in Chains has shape (n_params, n_draws); vector length =
+// n_chains.
+using Chains = std::vector<Eigen::MatrixXd>;
 
 /**
  * @brief find the smallest number >= N such that only divisor are 2, 3, 5.
@@ -47,7 +49,7 @@ Eigen::Index fft_next_fast_len(Eigen::Index target);
  * @param samples MCMC samples
  * @return R-hat statistic for each parameter, shape (n_params, 1)
  */
-Eigen::MatrixXd gelman_rubin(const Samples& samples);
+Eigen::MatrixXd gelman_rubin(const Chains& samples);
 
 /**
  * @brief Computes split R-hat over chains of samples. The samples are stored as
@@ -57,7 +59,7 @@ Eigen::MatrixXd gelman_rubin(const Samples& samples);
  * @param samples
  * @return split R-hat statistic for each parameter, shape (n_params, 1)
  */
-Eigen::MatrixXd split_gelman_rubin(const Samples& samples);
+Eigen::MatrixXd split_gelman_rubin(const Chains& samples);
 
 /**
  * @brief Compute the autocorrelation the samples at dimension n_draws
@@ -66,7 +68,7 @@ Eigen::MatrixXd split_gelman_rubin(const Samples& samples);
  * @param bias whether to use a biased estimator
  * @return the autocorrelation of the samples
  */
-Samples autocorrelation(const Samples& x, bool bias = true);
+Chains autocorrelation(const Chains& x, bool bias = true);
 
 /**
  * @brief Computes the autocovariance of the samples at dimension n_draws.
@@ -74,7 +76,7 @@ Samples autocorrelation(const Samples& x, bool bias = true);
  * @param x MCMC Samples
  * @param bias whether to use a biased estimator
  */
-Samples autocovariance(const Samples& x, bool bias = true);
+Chains autocovariance(const Chains& x, bool bias = true);
 
 /**
  * @brief Compute the effective sample size of the samples at dimension n_draws
@@ -83,7 +85,7 @@ Samples autocovariance(const Samples& x, bool bias = true);
  * (n_params, n_draws) and the vector length is n_chains
  * @param bias whether to use a biased estimator
  */
-Eigen::VectorXd effect_sample_size(const Samples& x, bool bias = true);
+Eigen::VectorXd effect_sample_size(const Chains& x, bool bias = true);
 
 /**
  * @brief Computes "highest posterior density interval" (HPDI) which is the

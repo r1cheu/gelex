@@ -18,16 +18,16 @@
 
 #include <Eigen/Core>
 
-#include "gelex/types/mcmc_samples.h"
-
 namespace gelex::detail::PosteriorCalculator
 {
 
-PosteriorSummary compute_param_summary(const Samples& samples, double prob)
+PosteriorSummary compute_param_summary(
+    const Eigen::Ref<const Eigen::MatrixXd>& samples,
+    double prob)
 {
     static_cast<void>(prob);
 
-    if (samples.empty() || samples[0].rows() == 0)
+    if (samples.cols() == 0 || samples.rows() == 0)
     {
         return PosteriorSummary(0);
     }
@@ -37,9 +37,10 @@ PosteriorSummary compute_param_summary(const Samples& samples, double prob)
     return summary;
 }
 
-PosteriorSummary compute_snp_summary(const Samples& samples)
+PosteriorSummary compute_snp_summary(
+    const Eigen::Ref<const Eigen::MatrixXd>& samples)
 {
-    if (samples.empty() || samples[0].rows() == 0)
+    if (samples.cols() == 0 || samples.rows() == 0)
     {
         return PosteriorSummary(0);
     }
@@ -56,7 +57,9 @@ PosteriorSummary compute_snp_summary(const Samples& samples)
  * flattening the samples by iterating directly over the original data,
  * dramatically reducing memory allocation and data copying.
  */
-void compute_mean_std(PosteriorSummary& summary, const Samples& samples)
+void compute_mean_std(
+    PosteriorSummary& summary,
+    const Eigen::Ref<const Eigen::MatrixXd>& samples)
 {
     const Eigen::Index n_params = get_n_params(samples);
     if (n_params == 0)
@@ -64,8 +67,7 @@ void compute_mean_std(PosteriorSummary& summary, const Samples& samples)
         return;
     }
 
-    const auto total_draws
-        = static_cast<double>(get_n_chains(samples) * get_n_draws(samples));
+    const auto total_draws = static_cast<double>(samples.cols());
     if (total_draws <= 1.0)
     {
         return;
@@ -77,15 +79,9 @@ void compute_mean_std(PosteriorSummary& summary, const Samples& samples)
     shared(summary, samples, n_params, total_draws)
     for (Eigen::Index param_idx = 0; param_idx < n_params; ++param_idx)
     {
-        double sum = 0.0;
-        double sum_sq = 0.0;
-
-        for (const auto& chain_matrix : samples)
-        {
-            const auto row_view = chain_matrix.row(param_idx);
-            sum += row_view.sum();
-            sum_sq += row_view.array().square().sum();
-        }
+        const auto row_view = samples.row(param_idx);
+        const double sum = row_view.sum();
+        const double sum_sq = row_view.array().square().sum();
 
         const double mean = sum / total_draws;
         const double variance
@@ -108,7 +104,7 @@ void compute_mean_std(PosteriorSummary& summary, const Samples& samples)
  */
 void compute_pve(
     PosteriorSummary& summary,
-    const Samples& samples,
+    const Eigen::Ref<const Eigen::MatrixXd>& samples,
     double phenotype_var)
 {
     const Eigen::Index n_params = get_n_params(samples);
@@ -117,8 +113,7 @@ void compute_pve(
         return;
     }
 
-    const auto total_draws
-        = static_cast<double>(get_n_chains(samples) * get_n_draws(samples));
+    const auto total_draws = static_cast<double>(samples.cols());
     if (total_draws <= 1.0)
     {
         return;
@@ -130,85 +125,38 @@ void compute_pve(
     shared(summary, samples, n_params, total_draws, phenotype_var)
     for (Eigen::Index param_idx = 0; param_idx < n_params; ++param_idx)
     {
-        double sum_beta = 0.0;
-
-        // Compute mean beta across all MCMC samples
-        for (const auto& chain_matrix : samples)
-        {
-            const auto row_view = chain_matrix.row(param_idx);
-            sum_beta += row_view.sum();
-        }
-
-        const double mean_beta = sum_beta / total_draws;
+        const double mean_beta = samples.row(param_idx).sum() / total_draws;
         const double pve = mean_beta * mean_beta / phenotype_var;
 
         summary.mean(param_idx) = pve;
     }
 }
 
-Eigen::VectorXd flatten_samples(
-    const Samples& samples,
-    Eigen::Index param_index)
+Eigen::Index get_n_params(const Eigen::Ref<const Eigen::MatrixXd>& samples)
 {
-    const Eigen::Index n_chains = get_n_chains(samples);
-    const Eigen::Index n_draws = get_n_draws(samples);
-
-    Eigen::VectorXd flat_sample(n_chains * n_draws);
-    for (Eigen::Index chain = 0; chain < n_chains; ++chain)
-    {
-        flat_sample.segment(chain * n_draws, n_draws)
-            = samples[chain].row(param_index).transpose();
-    }
-    return flat_sample;
-}
-
-Eigen::Index get_n_params(const Samples& samples)
-{
-    return samples.empty() ? 0 : samples[0].rows();
-}
-
-Eigen::Index get_n_chains(const Samples& samples)
-{
-    return static_cast<Eigen::Index>(samples.size());
-}
-
-Eigen::Index get_n_draws(const Samples& samples)
-{
-    return samples.empty() ? 0 : samples[0].cols();
+    return samples.rows();
 }
 
 Eigen::MatrixXd compute_component_probs(
-    const IntSamples& tracker_samples,
+    const Eigen::Ref<const Eigen::MatrixXi>& tracker_samples,
     Eigen::Index n_components)
 {
-    if (tracker_samples.empty() || tracker_samples[0].rows() == 0
-        || n_components <= 0)
+    if (tracker_samples.size() == 0 || n_components <= 0)
     {
         return Eigen::MatrixXd::Zero(0, 0);
     }
 
-    const Eigen::Index n_snps = tracker_samples[0].rows();
-    const auto n_chains = static_cast<Eigen::Index>(tracker_samples.size());
-    const Eigen::Index n_draws = tracker_samples[0].cols();
-    const auto total_samples = static_cast<double>(n_chains * n_draws);
+    const Eigen::Index n_snps = tracker_samples.rows();
+    const auto total_samples = static_cast<double>(tracker_samples.cols());
 
     Eigen::MatrixXd comp_probs = Eigen::MatrixXd::Zero(n_snps, n_components);
 
-    // Count occurrences of each component for each SNP
-    for (Eigen::Index chain = 0; chain < n_chains; ++chain)
+    for (int comp = 0; comp < n_components; ++comp)
     {
-        for (int comp = 0; comp < n_components; ++comp)
-        {
-            // Count where tracker == comp for each SNP
-            comp_probs.col(comp).array()
-                += (tracker_samples[chain].array() == comp)
-                       .cast<double>()
-                       .rowwise()
-                       .sum();
-        }
+        comp_probs.col(comp).array()
+            += (tracker_samples.array() == comp).cast<double>().rowwise().sum();
     }
 
-    // Normalize by total number of samples
     comp_probs /= total_samples;
 
     return comp_probs;

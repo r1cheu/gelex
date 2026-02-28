@@ -27,7 +27,6 @@
 #include "gelex/data/io/binary_mmap_loader.h"
 #include "gelex/exception.h"  // FileFormatException, InvalidInputException
 #include "gelex/infra/logging/post_event.h"
-#include "gelex/types/mcmc_samples.h"
 
 namespace
 {
@@ -41,7 +40,7 @@ constexpr Eigen::Index kIdxDomH2 = 4;
 auto compute_diag(
     Eigen::Index row,
     std::string_view name,
-    const gelex::Samples& chains,
+    const gelex::Chains& chains,
     const Eigen::VectorXd& ess_vec,
     const Eigen::MatrixXd& rhat_mat) -> gelex::ParamDiag
 {
@@ -82,7 +81,7 @@ auto PosteriorAnalysisEngine::run(const PostObserver& observer) -> void
 {
     const auto n_chains = static_cast<Eigen::Index>(config_.in_prefixes.size());
 
-    Samples chains;
+    Chains chains;
     chains.reserve(static_cast<size_t>(n_chains));
 
     Eigen::Index n_scalars = -1;

@@ -20,7 +20,6 @@
 #include <Eigen/Core>
 
 #include "gelex/types/mcmc_results.h"
-#include "gelex/types/mcmc_samples.h"
 
 namespace gelex::detail
 {
@@ -47,29 +46,26 @@ class EigenThreadGuard
 namespace PosteriorCalculator
 {
 
-PosteriorSummary compute_param_summary(const Samples& samples, double prob);
+PosteriorSummary compute_param_summary(
+    const Eigen::Ref<const Eigen::MatrixXd>& samples,
+    double prob);
 
-PosteriorSummary compute_snp_summary(const Samples& samples);
+PosteriorSummary compute_snp_summary(
+    const Eigen::Ref<const Eigen::MatrixXd>& samples);
 
-void compute_mean_std(PosteriorSummary& summary, const Samples& samples);
+void compute_mean_std(
+    PosteriorSummary& summary,
+    const Eigen::Ref<const Eigen::MatrixXd>& samples);
 
 void compute_pve(
     PosteriorSummary& summary,
-    const Samples& samples,
+    const Eigen::Ref<const Eigen::MatrixXd>& samples,
     double phenotype_var);
 
-Eigen::VectorXd flatten_samples(
-    const Samples& samples,
-    Eigen::Index param_index);
-
-Eigen::Index get_n_params(const Samples& samples);
-
-Eigen::Index get_n_chains(const Samples& samples);
-
-Eigen::Index get_n_draws(const Samples& samples);
+Eigen::Index get_n_params(const Eigen::Ref<const Eigen::MatrixXd>& samples);
 
 Eigen::MatrixXd compute_component_probs(
-    const IntSamples& tracker_samples,
+    const Eigen::Ref<const Eigen::MatrixXi>& tracker_samples,
     Eigen::Index n_components);
 
 }  // namespace PosteriorCalculator
