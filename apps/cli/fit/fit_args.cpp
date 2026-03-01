@@ -65,7 +65,7 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
             "Genotype method: 1=standardize-hwe, 2=center-hwe, "
             "3=orth-standardize-hwe, 4=orth-center-hwe, "
             "5=standardize, 6=center, 7=orth-standardize, 8=orth-center")
-        .default_value(7)
+        .default_value(3)
         .scan<'i', int>()
         .metavar("<INT>");
 

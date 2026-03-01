@@ -51,7 +51,7 @@ void setup_grm_args(argparse::ArgumentParser& cmd)
             "3=orth-standardize-hwe, 4=orth-center-hwe, "
             "5=standardize, 6=center, 7=orth-standardize, 8=orth-center")
         .metavar("<INT>")
-        .default_value(7)
+        .default_value(3)
         .scan<'i', int>();
     cmd.add_argument("-c", "--chunk-size")
         .help("Chunk size for memory-efficient computation")

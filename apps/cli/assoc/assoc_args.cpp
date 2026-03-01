@@ -97,7 +97,7 @@ void setup_assoc_args(argparse::ArgumentParser& cmd)
         .help(
             "Genotype method (center-family only): "
             "2=center-hwe, 4=orth-center-hwe, 6=center, 8=orth-center")
-        .default_value(8)
+        .default_value(4)
         .scan<'i', int>()
         .metavar("<INT>");
     cmd.add_argument("--transform")
