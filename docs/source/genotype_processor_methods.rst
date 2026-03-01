@@ -150,7 +150,7 @@ Example Commands
 
 .. code-block:: bash
 
-   # Centered version
+   # Center version
    gelex grm -b genotypes --geno-method center -o grm_center
 
 .. code-block:: bash

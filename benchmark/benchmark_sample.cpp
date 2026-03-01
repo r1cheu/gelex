@@ -14,23 +14,28 @@
  * limitations under the License.
  */
 
-#include <benchmark/benchmark.h>
+#include <nanobench.h>
 
-static void BM_StringCreation(benchmark::State& state)
-{
-    for (auto _ : state)
-        std::string empty_string;
-}
-// Register the function as a benchmark
-BENCHMARK(BM_StringCreation);
+#include <string>
 
-// Define another benchmark
-static void BM_StringCopy(benchmark::State& state)
+int main()
 {
+    ankerl::nanobench::Bench b;
+
+    b.run(
+        "StringCreation",
+        [&]()
+        {
+            std::string empty_string;
+            ankerl::nanobench::doNotOptimizeAway(empty_string);
+        });
+
     std::string x = "hello";
-    for (auto _ : state)
-        std::string copy(x);
+    b.run(
+        "StringCopy",
+        [&]()
+        {
+            std::string copy(x);
+            ankerl::nanobench::doNotOptimizeAway(copy);
+        });
 }
-BENCHMARK(BM_StringCopy);
-
-BENCHMARK_MAIN();
