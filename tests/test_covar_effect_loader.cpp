@@ -23,9 +23,9 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/predict/covar_effect_loader.h"
 #include "file_fixture.h"
 #include "gelex/exception.h"
+#include "gelex/pipeline/predict/covar_effect_loader.h"
 
 namespace fs = std::filesystem;
 
@@ -317,13 +317,13 @@ TEST_CASE("CovarEffectLoader Error Handling Tests", "[predict][covar_effect]")
         REQUIRE_THROWS(CovarEffectLoader(non_existent_path));
     }
 
-    SECTION("Happy path - insufficient columns in data line (skipped)")
+    SECTION("Happy path - malformed data line (skipped)")
     {
         auto file_path = files.create_text_file(
             "term\tmean\tstddev\tpercentile_5\tpercentile_"
             "95\tess\trhat\n"
             "Intercept\t1.0\t0.1\t0.8\t1.2\t1000\t1.0\n"
-            "Age\t0.5\t0.05\t0.4\t0.6\t800\n"  // Missing rhat column
+            "Age\tnot_a_number\t0.05\t0.4\t0.6\t800\n"
             "Height\t0.2\t0.03\t0.14\t0.26\t900\t1."
             "02\tExtraColumn\n");  // Extra column
 
@@ -333,7 +333,7 @@ TEST_CASE("CovarEffectLoader Error Handling Tests", "[predict][covar_effect]")
                 CovarEffectLoader loader(file_path);
                 REQUIRE(loader.effects().intercept == 1.0);
 
-                // Age line should be skipped due to missing column
+                // Age line should be skipped due to non-numeric mean
                 // Height line should parse successfully (extra column ignored)
                 const auto& continuous = loader.effects().continuous_coeffs;
                 REQUIRE(continuous.size() == 1);

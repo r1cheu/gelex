@@ -22,33 +22,13 @@
 #include <fmt/format.h>
 #include <omp.h>
 #include <Eigen/Core>
-#include "config.h"
 
-#include "gelex/logger.h"
-#include "utils/formatter.h"
+#include "config.h"
+#include "gelex/infra/logger.h"
+#include "gelex/infra/utils/formatter.h"
 
 namespace gelex::cli
 {
-namespace bk = barkeep;
-
-const bk::BarParts BAR_STYLE{
-    .left = "[",
-    .right = "]",
-    .fill = {"\033[1;36m━\033[0m"},
-    .empty = {"-"}};
-
-const bk::Strings GREEN_SPINNER{
-    "\033[32m⠁\033[0m", "\033[32m⠁\033[0m", "\033[32m⠉\033[0m",
-    "\033[32m⠙\033[0m", "\033[32m⠚\033[0m", "\033[32m⠒\033[0m",
-    "\033[32m⠂\033[0m", "\033[32m⠂\033[0m", "\033[32m⠒\033[0m",
-    "\033[32m⠲\033[0m", "\033[32m⠴\033[0m", "\033[32m⠤\033[0m",
-    "\033[32m⠄\033[0m", "\033[32m⠄\033[0m", "\033[32m⠤\033[0m",
-    "\033[32m⠠\033[0m", "\033[32m⠠\033[0m", "\033[32m⠤\033[0m",
-    "\033[32m⠦\033[0m", "\033[32m⠖\033[0m", "\033[32m⠒\033[0m",
-    "\033[32m⠐\033[0m", "\033[32m⠐\033[0m", "\033[32m⠒\033[0m",
-    "\033[32m⠓\033[0m", "\033[32m⠋\033[0m", "\033[32m⠉\033[0m",
-    "\033[32m⠈\033[0m", "\033[32m⠈\033[0m", "\033[32m \033[0m"};
-
 auto is_tty() -> bool
 {
     return isatty(fileno(stdout)) != 0;
@@ -100,37 +80,6 @@ auto build_chr_groups(bool do_loco, const gelex::SnpEffects& snp_effects)
         groups.push_back({"all", {{0, num_snps}}, num_snps});
     }
     return groups;
-}
-
-auto create_progress_bar(
-    std::atomic<size_t>& counter,
-    size_t total,
-    std::string_view format) -> ProgressBarDisplay
-{
-    std::vector<std::shared_ptr<bk::BaseDisplay>> elements;
-
-    elements.push_back((bk::Animation(
-        {.message = " ",
-         .style = GREEN_SPINNER,
-         .interval = 0.08,
-         .show = false})));
-    auto before = bk::Status({.style = bk::Strings{" "}, .show = false});
-    elements.push_back(before);
-    elements.push_back(
-        bk::ProgressBar(
-            &counter,
-            {.total = total,
-             .format = std::string(format),
-             .speed = 0.1,
-             .style = BAR_STYLE,
-             .show = false}));
-    auto after = bk::Status({.style = bk::Strings{" "}, .show = false});
-    elements.push_back(after);
-
-    return {
-        .display = bk::Composite(elements, ""),
-        .before = before,
-        .after = after};
 }
 
 auto print_gelex_banner_message(std::string_view version) -> void
@@ -185,8 +134,7 @@ auto print_fit_header(
 
 auto print_grm_header(
     std::string_view method,
-    bool do_additive,
-    bool do_dominant,
+    gelex::freq::GrmType mode,
     int chunk_size,
     int threads) -> void
 {
@@ -195,29 +143,11 @@ auto print_grm_header(
     std::string title
         = fmt::format("gelex v{} :: GRM Computation", PROJECT_VERSION);
 
-    std::string mode_str;
-    if (do_additive && do_dominant)
-    {
-        mode_str = "Additive + Dominance";
-    }
-    else if (do_additive)
-    {
-        mode_str = "Additive";
-    }
-    else
-    {
-        mode_str = "Dominance";
-    }
-
-    std::string method_str = std::string(method);
-    std::string chunk_str = fmt::format("{}", chunk_size);
-    std::string comp_str = fmt::format("{}", threads);
-
     std::vector<std::pair<std::string, std::string>> items
-        = {{"Method", method_str},
-           {"Mode", mode_str},
-           {"Chunk Size", chunk_str},
-           {"Threads", comp_str}};
+        = {{"Method", std::string(method)},
+           {"Mode", fmt::format("{}", mode)},
+           {"Chunk Size", fmt::format("{}", chunk_size)},
+           {"Threads", fmt::format("{}", threads)}};
 
     logger->info(gelex::header_box(title, items, 70));
     logger->info("");

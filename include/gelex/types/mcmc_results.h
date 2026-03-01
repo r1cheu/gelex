@@ -31,11 +31,7 @@ struct PosteriorSummary
 {
     explicit PosteriorSummary(Eigen::Index n_params)
         : mean(Eigen::VectorXd::Zero(n_params)),
-          stddev(Eigen::VectorXd::Zero(n_params)),
-          hpdi_low(Eigen::VectorXd::Zero(n_params)),
-          hpdi_high(Eigen::VectorXd::Zero(n_params)),
-          ess(Eigen::VectorXd::Zero(n_params)),
-          rhat(Eigen::VectorXd::Zero(n_params))
+          stddev(Eigen::VectorXd::Zero(n_params))
     {
     }
     PosteriorSummary() = default;
@@ -44,16 +40,12 @@ struct PosteriorSummary
 
     Eigen::VectorXd mean;
     Eigen::VectorXd stddev;
-    Eigen::VectorXd hpdi_low;
-    Eigen::VectorXd hpdi_high;
-    Eigen::VectorXd ess;   // Effective sample size
-    Eigen::VectorXd rhat;  // Gelman-Rubin diagnostic
 };
 
 struct FixedSummary
 {
     explicit FixedSummary(const FixedSamples& sample)
-        : coeffs(sample.coeffs[0].rows())
+        : coeffs(sample.coeffs.rows())
     {
     }
 
@@ -63,7 +55,7 @@ struct FixedSummary
 struct RandomSummary
 {
     explicit RandomSummary(const RandomSamples& sample)
-        : coeffs(sample.coeffs[0].rows()), variance(1)
+        : coeffs(sample.coeffs.rows()), variance(1)
     {
     }
 
@@ -74,28 +66,28 @@ struct RandomSummary
 struct BaseMarkerSummary
 {
     explicit BaseMarkerSummary(const BaseMarkerSamples& samples)
-        : coeffs(samples.coeffs[0].rows()),
+        : coeffs(samples.coeffs.rows()),
           variance(1),
           heritability(1),
-          pve(samples.coeffs[0].rows())
+          pve(samples.coeffs.rows())
     {
-        if (!samples.tracker.empty())  // mixture model
+        if (samples.tracker.size() > 0)  // mixture model
         {
-            pip = Eigen::VectorXd::Zero(samples.tracker[0].rows());
+            pip = Eigen::VectorXd::Zero(samples.tracker.rows());
             comp_probs = Eigen::MatrixXd::Zero(
-                samples.tracker[0].rows(), samples.n_proportions);
+                samples.tracker.rows(), samples.n_proportions);
         }
 
-        if (!samples.mixture_proportion.empty())
+        if (samples.mixture_proportion.size() > 0)
         {
             mixture_proportion
-                = PosteriorSummary(samples.mixture_proportion[0].rows());
+                = PosteriorSummary(samples.mixture_proportion.rows());
         }
 
-        if (!samples.component_variance.empty())
+        if (samples.component_variance.size() > 0)
         {
             component_variance
-                = PosteriorSummary(samples.component_variance[0].rows());
+                = PosteriorSummary(samples.component_variance.rows());
         }
     }
 
@@ -161,7 +153,6 @@ class MCMCResult
 
    private:
     friend class SnpEffectsWriter;
-    friend class SnpQuantGeneticWriter;
 
     MCMCSamples samples_;
 

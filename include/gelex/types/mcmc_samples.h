@@ -22,12 +22,21 @@
 #ifndef GELEX_TYPES_MCMC_SAMPLES_H_
 #define GELEX_TYPES_MCMC_SAMPLES_H_
 
+#include <memory>
 #include <optional>
 #include <vector>
 
 #include <Eigen/Core>
 
 // Forward declaration
+
+namespace gelex::detail
+{
+
+template <typename eT>
+class BinaryWriter;
+
+}  // namespace gelex::detail
 
 namespace gelex::bayes
 {
@@ -47,25 +56,20 @@ struct MCMCParams;
 class BayesState;
 class BayesModel;
 
-// samples for one effect, each element in vector saves one chain's samples. and
-// Matrix have the shape (n_params, n_draws)
-using Samples = std::vector<Eigen::MatrixXd>;
-using IntSamples = std::vector<Eigen::MatrixXi>;
-
 struct FixedSamples
 {
     FixedSamples(const MCMCParams& params, const FixedEffect& effect);
 
-    Samples coeffs;
-    explicit operator bool() const { return !coeffs.empty(); }
+    Eigen::MatrixXd coeffs;
+    explicit operator bool() const { return coeffs.size() > 0; }
 };
 
 struct RandomSamples
 {
     RandomSamples(const MCMCParams& params, const bayes::RandomEffect& effect);
-    Samples coeffs;
-    Samples variance;
-    explicit operator bool() const { return !coeffs.empty(); }
+    Eigen::MatrixXd coeffs;
+    Eigen::RowVectorXd variance;
+    explicit operator bool() const { return coeffs.size() > 0; }
 
    protected:
     RandomSamples(const MCMCParams& params, Eigen::Index n_coeffs);
@@ -77,10 +81,10 @@ struct BaseMarkerSamples : RandomSamples
         const MCMCParams& params,
         const bayes::GeneticEffect& effect);
 
-    Samples mixture_proportion;
-    Samples heritability;
-    IntSamples tracker;
-    Samples component_variance;
+    Eigen::MatrixXd mixture_proportion;
+    Eigen::RowVectorXd heritability;
+    Eigen::MatrixXi tracker;
+    Eigen::MatrixXd component_variance;
 
     Eigen::Index n_proportions
         = 0;  // load the number of prop for no-estimate-pi models.
@@ -104,18 +108,24 @@ struct ResidualSamples
 {
     explicit ResidualSamples(const MCMCParams& params);
 
-    Samples variance;
-    explicit operator bool() const { return !variance.empty(); }
+    Eigen::RowVectorXd variance;
+    explicit operator bool() const { return variance.size() > 0; }
 };
 
 class MCMCSamples
 {
    public:
-    MCMCSamples(const MCMCParams& params, const BayesModel& model);
-    void store(
-        const BayesState& states,
-        Eigen::Index record_idx,
-        Eigen::Index chain_idx);
+    MCMCSamples(const MCMCSamples&) = delete;
+    auto operator=(const MCMCSamples&) -> MCMCSamples& = delete;
+    MCMCSamples(MCMCSamples&&) noexcept;
+    auto operator=(MCMCSamples&&) noexcept -> MCMCSamples&;
+    ~MCMCSamples();
+
+    MCMCSamples(
+        const MCMCParams& params,
+        const BayesModel& model,
+        std::string_view sample_prefix);
+    void store(const BayesState& states, Eigen::Index record_idx);
 
     const FixedSamples* fixed() const
     {
@@ -138,6 +148,9 @@ class MCMCSamples
     std::optional<AdditiveSamples> additive_;
     std::optional<DominantSamples> dominant_;
     ResidualSamples residual_;
+    std::unique_ptr<detail::BinaryWriter<double>> add_writer_;
+    std::unique_ptr<detail::BinaryWriter<double>> dom_writer_;
+    std::unique_ptr<detail::BinaryWriter<double>> scalar_writer_;
 };
 }  // namespace gelex
 

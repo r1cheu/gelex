@@ -16,25 +16,27 @@
 
 #include "gelex/types/mcmc_samples.h"
 
+#include <memory>
 #include <ranges>
 
 #include <Eigen/Core>
 
-#include "../src/types/bayes_effects.h"
-#include "gelex/estimator/bayes/params.h"
+#include "gelex/algo/infer/params.h"
+#include "gelex/data/io/binary_writer.h"
+#include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
 
 namespace gelex
 {
 using Eigen::Index;
 
+MCMCSamples::~MCMCSamples() = default;
+MCMCSamples::MCMCSamples(MCMCSamples&&) noexcept = default;
+auto MCMCSamples::operator=(MCMCSamples&&) noexcept -> MCMCSamples& = default;
+
 FixedSamples::FixedSamples(const MCMCParams& params, const FixedEffect& effect)
 {
-    coeffs.reserve(params.n_chains);
-    for (Eigen::Index i = 0; i < params.n_chains; ++i)
-    {
-        coeffs.emplace_back(effect.X.cols(), params.n_records);
-    }
+    coeffs.resize(effect.X.cols(), params.n_records);
 }
 RandomSamples::RandomSamples(
     const MCMCParams& params,
@@ -43,13 +45,8 @@ RandomSamples::RandomSamples(
 
 RandomSamples::RandomSamples(const MCMCParams& params, Eigen::Index n_coeffs)
 {
-    coeffs.reserve(params.n_chains);
-    variance.reserve(params.n_chains);
-    for (Eigen::Index i = 0; i < params.n_chains; ++i)
-    {
-        coeffs.emplace_back(n_coeffs, params.n_records);
-        variance.emplace_back(1, params.n_records);
-    }
+    coeffs.resize(n_coeffs, params.n_records);
+    variance.resize(params.n_records);
 }
 
 BaseMarkerSamples::BaseMarkerSamples(
@@ -57,40 +54,23 @@ BaseMarkerSamples::BaseMarkerSamples(
     const bayes::GeneticEffect& effect)
     : RandomSamples(params, bayes::get_cols(effect.X))
 {
-    heritability.reserve(params.n_chains);
-    for (Eigen::Index i = 0; i < params.n_chains; ++i)
-    {
-        heritability.emplace_back(1, params.n_records);
-    }
+    heritability.resize(params.n_records);
 
     if (effect.init_pi)  // mixture model
     {
         const Eigen::Index num_snp = bayes::get_cols(effect.X);
-        tracker.reserve(params.n_chains);
         n_proportions = effect.init_pi->size();
-        for (Eigen::Index i = 0; i < params.n_chains; ++i)
-        {
-            tracker.emplace_back(num_snp, params.n_records);
-        }
+        tracker.resize(num_snp, params.n_records);
 
         if (n_proportions > 2)
         {
-            component_variance.reserve(params.n_chains);
-            for (Eigen::Index i = 0; i < params.n_chains; ++i)
-            {
-                component_variance.emplace_back(
-                    n_proportions - 1, params.n_records);
-            }
+            component_variance.resize(n_proportions - 1, params.n_records);
         }
     }
     if (effect.estimate_pi)
     {
         const Eigen::Index n_props = effect.init_pi->size();
-        mixture_proportion.reserve(params.n_chains);
-        for (Eigen::Index i = 0; i < params.n_chains; ++i)
-        {
-            mixture_proportion.emplace_back(n_props, params.n_records);
-        }
+        mixture_proportion.resize(n_props, params.n_records);
     }
 }
 
@@ -110,14 +90,13 @@ DominantSamples::DominantSamples(
 
 ResidualSamples::ResidualSamples(const MCMCParams& params)
 {
-    variance.reserve(params.n_chains);
-    for (Eigen::Index i = 0; i < params.n_chains; ++i)
-    {
-        variance.emplace_back(1, params.n_records);
-    }
+    variance.resize(params.n_records);
 }
 
-MCMCSamples::MCMCSamples(const MCMCParams& params, const BayesModel& model)
+MCMCSamples::MCMCSamples(
+    const MCMCParams& params,
+    const BayesModel& model,
+    std::string_view sample_prefix)
     : residual_(params)
 {
     if (const auto* effect = model.fixed(); effect)
@@ -137,78 +116,115 @@ MCMCSamples::MCMCSamples(const MCMCParams& params, const BayesModel& model)
     if (const auto* effect = model.additive(); effect)
     {
         additive_.emplace(params, *effect);
+        add_writer_ = sample_prefix.empty()
+                          ? nullptr
+                          : std::make_unique<detail::BinaryWriter<double>>(
+                                std::format("{}.add.sample", sample_prefix));
     }
 
     if (const auto* effect = model.dominant(); effect)
     {
         dominant_.emplace(params, *effect);
+        dom_writer_ = sample_prefix.empty()
+                          ? nullptr
+                          : std::make_unique<detail::BinaryWriter<double>>(
+                                std::format("{}.dom.sample", sample_prefix));
+    }
+
+    if (!sample_prefix.empty() && additive_)
+    {
+        scalar_writer_ = std::make_unique<detail::BinaryWriter<double>>(
+            std::format("{}.scalar_chain", sample_prefix));
     }
 }
 
-void MCMCSamples::store(
-    const BayesState& states,
-    Eigen::Index record_idx,
-    Eigen::Index chain_idx)
+void MCMCSamples::store(const BayesState& states, Eigen::Index record_idx)
 {
     if (const auto* state = states.fixed(); fixed_ && state != nullptr)
     {
-        fixed_->coeffs[chain_idx].col(record_idx) = state->coeffs;
+        fixed_->coeffs.col(record_idx) = state->coeffs;
     }
 
     for (auto&& [sample, state] : std::views::zip(random_, states.random()))
     {
-        sample.coeffs[chain_idx].col(record_idx) = state.coeffs;
-        sample.variance[chain_idx](0, record_idx) = state.variance;
+        sample.coeffs.col(record_idx) = state.coeffs;
+        sample.variance(record_idx) = state.variance;
     }
 
     if (const auto* state = states.additive(); additive_ && state != nullptr)
     {
-        additive_->coeffs[chain_idx].col(record_idx) = state->coeffs;
-        additive_->variance[chain_idx](0, record_idx) = state->variance;
-        additive_->heritability[chain_idx](0, record_idx) = state->heritability;
-
-        if (!additive_->mixture_proportion.empty())
+        additive_->coeffs.col(record_idx) = state->coeffs;
+        if (add_writer_)
         {
-            additive_->mixture_proportion[chain_idx].col(record_idx)
-                = state->pi.prop;
+            add_writer_->write(state->coeffs);
         }
-        if (!additive_->tracker.empty())
+        additive_->variance(record_idx) = state->variance;
+        additive_->heritability(record_idx) = state->heritability;
+
+        if (additive_->mixture_proportion.size() > 0)
         {
-            additive_->tracker[chain_idx].col(record_idx) = state->tracker;
+            additive_->mixture_proportion.col(record_idx) = state->pi.prop;
+        }
+        if (additive_->tracker.size() > 0)
+        {
+            additive_->tracker.col(record_idx) = state->tracker;
         }
 
-        if (!additive_->component_variance.empty())
+        if (additive_->component_variance.size() > 0)
         {
-            additive_->component_variance[chain_idx].col(record_idx)
+            additive_->component_variance.col(record_idx)
                 = state->component_variance;
         }
     }
 
     if (const auto* state = states.dominant(); dominant_ && state != nullptr)
     {
-        dominant_->coeffs[chain_idx].col(record_idx) = state->coeffs;
-        dominant_->variance[chain_idx](0, record_idx) = state->variance;
-        dominant_->heritability[chain_idx](0, record_idx) = state->heritability;
+        dominant_->coeffs.col(record_idx) = state->coeffs;
+        if (dom_writer_)
+        {
+            dom_writer_->write(state->coeffs);
+        }
+        dominant_->variance(record_idx) = state->variance;
+        dominant_->heritability(record_idx) = state->heritability;
 
-        if (!dominant_->mixture_proportion.empty()
+        if (dominant_->mixture_proportion.size() > 0
             && state->pi.prop.size() != 0)
         {
-            dominant_->mixture_proportion[chain_idx].col(record_idx)
-                = state->pi.prop;
+            dominant_->mixture_proportion.col(record_idx) = state->pi.prop;
         }
-        if (!dominant_->tracker.empty() && state->tracker.size() != 0)
+        if (dominant_->tracker.size() > 0 && state->tracker.size() != 0)
         {
-            dominant_->tracker[chain_idx].col(record_idx) = state->tracker;
+            dominant_->tracker.col(record_idx) = state->tracker;
         }
 
-        if (!dominant_->component_variance.empty())
+        if (dominant_->component_variance.size() > 0)
         {
-            dominant_->component_variance[chain_idx].col(record_idx)
+            dominant_->component_variance.col(record_idx)
                 = state->component_variance;
         }
     }
 
-    residual_.variance[chain_idx](0, record_idx) = states.residual().variance;
+    residual_.variance(record_idx) = states.residual().variance;
+
+    if (scalar_writer_)
+    {
+        Eigen::VectorXd scalars(dominant_ ? 5 : 3);
+        scalars(0) = states.residual().variance;
+        if (const auto* state = states.additive())
+        {
+            scalars(1) = state->variance;
+            scalars(2) = state->heritability;
+        }
+        if (dominant_)
+        {
+            if (const auto* state = states.dominant())
+            {
+                scalars(3) = state->variance;
+                scalars(4) = state->heritability;
+            }
+        }
+        scalar_writer_->write(scalars);
+    }
 }
 
 }  // namespace gelex
