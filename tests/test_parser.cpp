@@ -24,8 +24,9 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/data/parser.h"
+#include "gelex/io/parser.h"
 #include "file_fixture.h"
+#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/exception.h"
 
 namespace fs = std::filesystem;
@@ -424,29 +425,22 @@ TEST_CASE("Parser ID Parsing Tests", "[parser]")
     {
         std::string_view line = "1\t2\t2.5\t1.0";
 
-        REQUIRE(parse_id(line, false, '\t') == "1_2");
-    }
-
-    SECTION("Happy path - IID only with tab delimiter")
-    {
-        std::string_view line = "1\t2\t2.5\t1.0";
-
-        REQUIRE(parse_id(line, true, '\t') == "2");
+        REQUIRE(parse_id(line, '\t') == gelex::make_sample_id("1", "2"));
     }
 
     SECTION("Happy path - custom delimiter")
     {
         std::string_view line = "1,2,2.5,1.0";
 
-        REQUIRE(parse_id(line, false, ',') == "1_2");
+        REQUIRE(parse_id(line, ',') == gelex::make_sample_id("1", "2"));
     }
 
     SECTION("Exception - insufficient columns")
     {
-        std::string_view line = "1";
+            std::string_view line = "1";
 
         REQUIRE_THROWS_MATCHES(
-            parse_id(line, false, '\t'),
+            parse_id(line, '\t'),
             gelex::FileFormatException,
             Catch::Matchers::MessageMatches(
                 EndsWith("failed to parse FID and IID (missing delimiter)")));

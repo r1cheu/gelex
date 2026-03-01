@@ -18,18 +18,26 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "../src/data/grm_bin_writer.h"
-#include "../src/data/grm_id_writer.h"
+#include <string_view>
+
 #include "file_fixture.h"
-#include "gelex/data/loco_grm_loader.h"
+#include "gelex/data/frame/dataframe_policy.h"
+#include "gelex/data/grm/grm_bin_writer.h"
+#include "gelex/data/grm/grm_id_writer.h"
+#include "gelex/data/grm/loco_grm_loader.h"
 
 namespace fs = std::filesystem;
-using gelex::detail::GrmBinWriter;
-using gelex::detail::GrmIdWriter;
+using gelex::GrmBinWriter;
+using gelex::GrmIdWriter;
 using gelex::test::FileFixture;
 
 namespace
 {
+auto sid(std::string_view fid, std::string_view iid) -> std::string
+{
+    return gelex::make_sample_id(fid, iid);
+}
+
 struct GrmFiles
 {
     fs::path prefix;
@@ -56,7 +64,8 @@ TEST_CASE("LocoGRMLoader - Basic Calculation", "[data][grm][loco]")
     fs::create_directories(tmp_dir);
 
     Eigen::Index n = 3;
-    std::vector<std::string> ids = {"F1_I1", "F1_I2", "F1_I3"};
+    std::vector<std::string> ids
+        = {sid("F1", "I1"), sid("F1", "I2"), sid("F1", "I3")};
 
     // G_loco = (G_w - G_i) / (k_w - k_i)
     // where k = trace(G) / n
@@ -107,7 +116,8 @@ TEST_CASE("LocoGRMLoader - Filtered Loading", "[data][grm][loco]")
     fs::create_directories(tmp_dir);
 
     Eigen::Index n = 3;
-    std::vector<std::string> ids = {"F1_I1", "F1_I2", "F1_I3"};
+    std::vector<std::string> ids
+        = {sid("F1", "I1"), sid("F1", "I2"), sid("F1", "I3")};
 
     Eigen::MatrixXd x_w = Eigen::MatrixXd::Random(n, 10);
     Eigen::MatrixXd x_i = Eigen::MatrixXd::Random(n, 3);
@@ -123,7 +133,7 @@ TEST_CASE("LocoGRMLoader - Filtered Loading", "[data][grm][loco]")
 
     // Test with subset of IDs and reordering
     std::unordered_map<std::string, Eigen::Index> id_map
-        = {{"F1_I3", 0}, {"F1_I1", 1}};
+        = {{sid("F1", "I3"), 0}, {sid("F1", "I1"), 1}};
 
     gelex::LocoGRMLoader loco_loader(whole_files.prefix, id_map);
 

@@ -26,9 +26,9 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/predict/predict_pipe.h"
 #include "bed_fixture.h"
 #include "file_fixture.h"
+#include "gelex/pipeline/predict/predict_pipe.h"
 
 namespace fs = std::filesystem;
 
@@ -79,7 +79,6 @@ TEST_CASE(
         config.bed_path = bed_prefix;
         config.qcovar_path = "";
         config.dcovar_path = "";
-        config.iid_only = false;
 
         PredictDataPipe pipe(config);
 
@@ -133,7 +132,6 @@ TEST_CASE(
         config.bed_path = bed_prefix;
         config.qcovar_path = qcovar_path;
         config.dcovar_path = "";
-        config.iid_only = false;
 
         PredictDataPipe pipe(config);
 
@@ -207,7 +205,6 @@ TEST_CASE(
         PredictDataPipe::Config config;
         config.bed_path = bed_prefix;
         config.dcovar_path = covar_path;
-        config.iid_only = false;
 
         PredictDataPipe pipe(config);
 
@@ -278,7 +275,6 @@ TEST_CASE("PredictDataPipe - Sample intersection", "[predict][predict_pipe]")
         config.bed_path = bed_prefix;
         config.qcovar_path = qcovar_path;
         config.dcovar_path = "";
-        config.iid_only = false;
 
         PredictDataPipe pipe(config);
 
@@ -299,68 +295,6 @@ TEST_CASE("PredictDataPipe - Sample intersection", "[predict][predict_pipe]")
         // Check that genotypes are for first 2 samples
         Eigen::MatrixXd expected_subset = expected_genotypes.topRows(2);
         gelex::test::are_matrices_equal(genotypes, expected_subset, 1e-8);
-    }
-}
-
-TEST_CASE("PredictDataPipe - iid_only mode", "[predict][predict_pipe]")
-{
-    BedFixture bed_fixture;
-    FileFixture file_fixture;
-
-    SECTION("iid_only = true")
-    {
-        const Eigen::Index num_samples = 3;
-        const Eigen::Index num_snps = 5;
-        auto [bed_prefix, expected_genotypes]
-            = bed_fixture.create_bed_files(num_samples, num_snps, 0.0);
-
-        // Read FAM file to get IIDs
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto [_, iids] = read_fam(fam_path);
-
-        // Create qcovar file using only IIDs
-        std::string qcovar_content = "FID\tIID\tAge\n";
-        for (size_t i = 0; i < iids.size(); ++i)
-        {
-            qcovar_content += "1\t" + iids[i] + "\t";
-            qcovar_content += std::to_string(20 + i) + "\n";
-        }
-
-        auto qcovar_path
-            = file_fixture.create_text_file(qcovar_content, ".qcovar");
-
-        PredictDataPipe::Config config;
-        config.bed_path = bed_prefix;
-        config.qcovar_path = qcovar_path;
-        config.dcovar_path = "";
-        config.iid_only = true;
-
-        PredictDataPipe pipe(config);
-
-        REQUIRE(pipe.num_qcovariates() == 1);
-
-        auto data = std::move(pipe).take_data();
-        auto& qcovariates = data.qcovariates;
-        auto& genotypes = data.genotype;
-        REQUIRE(qcovariates.rows() == num_samples);
-        REQUIRE(qcovariates.cols() == 2);  // intercept + Age
-
-        // Check intercept column
-        for (Eigen::Index i = 0; i < qcovariates.rows(); ++i)
-        {
-            REQUIRE(qcovariates(i, 0) == 1.0);
-        }
-
-        // Check Age values
-        for (size_t i = 0; i < iids.size(); ++i)
-        {
-            REQUIRE(qcovariates(i, 1) == 20 + i);
-        }
-
-        REQUIRE(genotypes.rows() == num_samples);
-        REQUIRE(genotypes.cols() == num_snps);
-        gelex::test::are_matrices_equal(genotypes, expected_genotypes, 1e-8);
     }
 }
 
@@ -398,7 +332,6 @@ TEST_CASE(
         config.bed_path = bed_prefix;
         config.qcovar_path = qcovar_path;
         config.dcovar_path = "";
-        config.iid_only = false;
 
         PredictDataPipe pipe(config);
 
@@ -447,7 +380,6 @@ TEST_CASE("PredictDataPipe - Edge cases", "[predict][predict_pipe]")
         config.bed_path = bed_prefix;
         config.qcovar_path = qcovar_path;
         config.dcovar_path = "";
-        config.iid_only = false;
 
         PredictDataPipe pipe(config);
 
@@ -493,7 +425,6 @@ TEST_CASE("PredictDataPipe - Edge cases", "[predict][predict_pipe]")
         config.bed_path = bed_prefix;
         config.qcovar_path = qcovar_path;
         config.dcovar_path = "";
-        config.iid_only = false;
 
         PredictDataPipe pipe(config);
 

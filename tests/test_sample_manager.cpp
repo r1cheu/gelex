@@ -22,7 +22,8 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "file_fixture.h"
-#include "gelex/data/sample_manager.h"
+#include "gelex/data/frame/dataframe_policy.h"
+#include "gelex/data/genotype/sample_manager.h"
 #include "gelex/exception.h"
 
 namespace fs = std::filesystem;
@@ -31,11 +32,19 @@ using namespace gelex;  // NOLINT
 using Catch::Matchers::EndsWith;
 using gelex::test::FileFixture;
 
+namespace
+{
+auto sid(std::string_view fid, std::string_view iid) -> std::string
+{
+    return make_sample_id(fid, iid);
+}
+}  // namespace
+
 TEST_CASE("SampleManager - Construction and basic functionality", "[data]")
 {
     FileFixture files;
 
-    SECTION("Happy path - Construct with valid .fam file (iid_only=false)")
+    SECTION("Happy path - Construct with valid .fam file")
     {
         const auto* fam_content = R"(1 sample1 0 0 1 2.5
 3 sample3 1 2 1 3.2
@@ -47,7 +56,7 @@ TEST_CASE("SampleManager - Construction and basic functionality", "[data]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                SampleManager manager(file_path, false);
+                SampleManager manager(file_path);
 
                 // Verify basic properties
                 REQUIRE(manager.num_common_samples() == 4);
@@ -56,48 +65,17 @@ TEST_CASE("SampleManager - Construction and basic functionality", "[data]")
                 const auto& ids = manager.common_ids();
                 REQUIRE(ids.size() == 4);
 
-                // IDs should be sorted and in "FID_IID" format
-                REQUIRE(ids[0] == "1_sample1");
-                REQUIRE(ids[1] == "2_sample2");
-                REQUIRE(ids[2] == "3_sample3");
-                REQUIRE(ids[3] == "4_sample4");
+                // IDs should be sorted and in canonical sample ID format
+                REQUIRE(ids[0] == sid("1", "sample1"));
+                REQUIRE(ids[1] == sid("2", "sample2"));
+                REQUIRE(ids[2] == sid("3", "sample3"));
+                REQUIRE(ids[3] == sid("4", "sample4"));
 
                 // common_id_map should be empty before finalize()
                 REQUIRE(manager.common_id_map().empty());
             }());
     }
 
-    SECTION("Happy path - Construct with valid .fam file (iid_only=true)")
-    {
-        const auto* fam_content = R"(1 sample1 0 0 1 2.5
-3 sample3 1 2 1 3.2
-2 sample2 0 0 2 1.8
-4 sample4 3 4 2 2.1
-)";
-        auto file_path = files.create_text_file(fam_content, ".fam");
-
-        REQUIRE_NOTHROW(
-            [&]()
-            {
-                SampleManager manager(file_path, true);
-
-                // Verify basic properties
-                REQUIRE(manager.num_common_samples() == 4);
-                REQUIRE(manager.has_common_samples() == true);
-
-                const auto& ids = manager.common_ids();
-                REQUIRE(ids.size() == 4);
-
-                // IDs should be sorted and just IID format
-                REQUIRE(ids[0] == "sample1");
-                REQUIRE(ids[1] == "sample2");
-                REQUIRE(ids[2] == "sample3");
-                REQUIRE(ids[3] == "sample4");
-
-                // common_id_map should be empty before finalize()
-                REQUIRE(manager.common_id_map().empty());
-            }());
-    }
 }
 
 TEST_CASE("SampleManager - intersect() method", "[data]")
@@ -113,11 +91,13 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Intersect with IDs that partially overlap
         std::vector<std::string> intersect_ids = {
-            "2_sample2", "3_sample3", "5_sample5"  // 5_sample5 doesn't exist
+            sid("2", "sample2"),
+            sid("3", "sample3"),
+            sid("5", "sample5")  // 5_sample5 doesn't exist
         };
         manager.intersect(intersect_ids);
 
@@ -127,8 +107,8 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
 
         const auto& ids = manager.common_ids();
         REQUIRE(ids.size() == 2);
-        REQUIRE(ids[0] == "2_sample2");
-        REQUIRE(ids[1] == "3_sample3");
+        REQUIRE(ids[0] == sid("2", "sample2"));
+        REQUIRE(ids[1] == sid("3", "sample3"));
     }
 
     SECTION("Happy path - Intersect with all matching IDs")
@@ -139,11 +119,11 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Intersect with all existing IDs
         std::vector<std::string> intersect_ids
-            = {"1_sample1", "2_sample2", "3_sample3"};
+            = {sid("1", "sample1"), sid("2", "sample2"), sid("3", "sample3")};
         manager.intersect(intersect_ids);
 
         // Should have all 3 samples
@@ -151,9 +131,9 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
 
         const auto& ids = manager.common_ids();
         REQUIRE(ids.size() == 3);
-        REQUIRE(ids[0] == "1_sample1");
-        REQUIRE(ids[1] == "2_sample2");
-        REQUIRE(ids[2] == "3_sample3");
+        REQUIRE(ids[0] == sid("1", "sample1"));
+        REQUIRE(ids[1] == sid("2", "sample2"));
+        REQUIRE(ids[2] == sid("3", "sample3"));
     }
 
     SECTION("Happy path - Intersect with no overlapping IDs")
@@ -164,11 +144,11 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Intersect with IDs that don't exist
         std::vector<std::string> intersect_ids
-            = {"4_sample4", "5_sample5"};
+            = {sid("4", "sample4"), sid("5", "sample5")};
         manager.intersect(intersect_ids);
 
         // Should have no common samples after intersection
@@ -186,7 +166,7 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Initial state
         REQUIRE(manager.num_common_samples() == 2);
@@ -210,7 +190,7 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
 2 sample2 0 0 2 1.8
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Clear samples by intersecting with empty list
         std::vector<std::string> empty_ids = {};
@@ -222,7 +202,7 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
 
         // Intersect with some IDs when manager has no samples
         std::vector<std::string> intersect_ids
-            = {"1_sample1", "2_sample2"};
+            = {sid("1", "sample1"), sid("2", "sample2")};
         manager.intersect(intersect_ids);
 
         // Should still have no samples (intersect should return early when
@@ -241,11 +221,11 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Intersect with IDs in unsorted order
         std::vector<std::string> intersect_ids
-            = {"5_sample5", "2_sample2", "4_sample4"};
+            = {sid("5", "sample5"), sid("2", "sample2"), sid("4", "sample4")};
         manager.intersect(intersect_ids);
 
         // Result should still be sorted
@@ -253,9 +233,9 @@ TEST_CASE("SampleManager - intersect() method", "[data]")
 
         const auto& ids = manager.common_ids();
         REQUIRE(ids.size() == 3);
-        REQUIRE(ids[0] == "2_sample2");
-        REQUIRE(ids[1] == "4_sample4");
-        REQUIRE(ids[2] == "5_sample5");
+        REQUIRE(ids[0] == sid("2", "sample2"));
+        REQUIRE(ids[1] == sid("4", "sample4"));
+        REQUIRE(ids[2] == sid("5", "sample5"));
     }
 }
 
@@ -271,7 +251,7 @@ TEST_CASE("SampleManager - finalize() method", "[data]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Before finalize()
         REQUIRE(manager.common_id_map().empty());
@@ -284,9 +264,9 @@ TEST_CASE("SampleManager - finalize() method", "[data]")
         REQUIRE(id_map.size() == 3);
 
         // Verify mapping is correct
-        REQUIRE(id_map.at("1_sample1") == 0);
-        REQUIRE(id_map.at("2_sample2") == 1);
-        REQUIRE(id_map.at("3_sample3") == 2);
+        REQUIRE(id_map.at(sid("1", "sample1")) == 0);
+        REQUIRE(id_map.at(sid("2", "sample2")) == 1);
+        REQUIRE(id_map.at(sid("3", "sample3")) == 2);
 
         // Verify consistency with common_ids()
         const auto& ids = manager.common_ids();
@@ -305,11 +285,11 @@ TEST_CASE("SampleManager - finalize() method", "[data]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Intersect first
         std::vector<std::string> intersect_ids
-            = {"2_sample2", "3_sample3"};
+            = {sid("2", "sample2"), sid("3", "sample3")};
         manager.intersect(intersect_ids);
 
         // Then finalize
@@ -318,14 +298,14 @@ TEST_CASE("SampleManager - finalize() method", "[data]")
         // Verify mapping
         const auto& id_map = manager.common_id_map();
         REQUIRE(id_map.size() == 2);
-        REQUIRE(id_map.at("2_sample2") == 0);
-        REQUIRE(id_map.at("3_sample3") == 1);
+        REQUIRE(id_map.at(sid("2", "sample2")) == 0);
+        REQUIRE(id_map.at(sid("3", "sample3")) == 1);
 
         // Verify consistency
         const auto& ids = manager.common_ids();
         REQUIRE(ids.size() == 2);
-        REQUIRE(ids[0] == "2_sample2");
-        REQUIRE(ids[1] == "3_sample3");
+        REQUIRE(ids[0] == sid("2", "sample2"));
+        REQUIRE(ids[1] == sid("3", "sample3"));
     }
 
     SECTION("Edge case - finalize() with no samples")
@@ -335,7 +315,7 @@ TEST_CASE("SampleManager - finalize() method", "[data]")
 2 sample2 0 0 2 1.8
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // Clear samples by intersecting with empty list
         std::vector<std::string> empty_ids = {};
@@ -360,7 +340,7 @@ TEST_CASE("SampleManager - finalize() method", "[data]")
 )";
         auto file_path = files.create_text_file(fam_content, ".fam");
 
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
 
         // First finalize()
         manager.finalize();
@@ -369,14 +349,14 @@ TEST_CASE("SampleManager - finalize() method", "[data]")
         REQUIRE(id_map1.size() == 2);
 
         // Intersect and finalize again
-        std::vector<std::string> intersect_ids = {"2_sample2"};
+        std::vector<std::string> intersect_ids = {sid("2", "sample2")};
         manager.intersect(intersect_ids);
         manager.finalize();
 
         // Mapping should be updated
         const auto& id_map2 = manager.common_id_map();
         REQUIRE(id_map2.size() == 1);
-        REQUIRE(id_map2.at("2_sample2") == 0);
+        REQUIRE(id_map2.at(sid("2", "sample2")) == 0);
     }
 }
 
@@ -396,15 +376,15 @@ TEST_CASE("SampleManager - Integration tests", "[data]")
         auto file_path = files.create_text_file(fam_content, ".fam");
 
         // 1. Construct
-        SampleManager manager(file_path, false);
+        SampleManager manager(file_path);
         REQUIRE(manager.num_common_samples() == 5);
 
         // 2. Intersect
         std::vector<std::string> intersect_ids = {
-            "2_sample2",
-            "3_sample3",
-            "5_sample5",
-            "6_sample6"  // 6_sample6 doesn't exist
+            sid("2", "sample2"),
+            sid("3", "sample3"),
+            sid("5", "sample5"),
+            sid("6", "sample6")  // 6_sample6 doesn't exist
         };
         manager.intersect(intersect_ids);
         REQUIRE(manager.num_common_samples() == 3);
@@ -417,46 +397,15 @@ TEST_CASE("SampleManager - Integration tests", "[data]")
 
         const auto& ids = manager.common_ids();
         REQUIRE(ids.size() == 3);
-        REQUIRE(ids[0] == "2_sample2");
-        REQUIRE(ids[1] == "3_sample3");
-        REQUIRE(ids[2] == "5_sample5");
+        REQUIRE(ids[0] == sid("2", "sample2"));
+        REQUIRE(ids[1] == sid("3", "sample3"));
+        REQUIRE(ids[2] == sid("5", "sample5"));
 
         const auto& id_map = manager.common_id_map();
         REQUIRE(id_map.size() == 3);
-        REQUIRE(id_map.at("2_sample2") == 0);
-        REQUIRE(id_map.at("3_sample3") == 1);
-        REQUIRE(id_map.at("5_sample5") == 2);
+        REQUIRE(id_map.at(sid("2", "sample2")) == 0);
+        REQUIRE(id_map.at(sid("3", "sample3")) == 1);
+        REQUIRE(id_map.at(sid("5", "sample5")) == 2);
     }
 
-    SECTION("Edge case - Workflow with iid_only=true")
-    {
-        const auto* fam_content = R"(1 sample1 0 0 1 2.5
-2 sample2 0 0 2 1.8
-3 sample3 1 2 1 3.2
-)";
-        auto file_path = files.create_text_file(fam_content, ".fam");
-
-        // Construct with iid_only=true
-        SampleManager manager(file_path, true);
-        REQUIRE(manager.num_common_samples() == 3);
-
-        // Intersect with IIDs
-        std::vector<std::string> intersect_ids = {"sample2", "sample3"};
-        manager.intersect(intersect_ids);
-        REQUIRE(manager.num_common_samples() == 2);
-
-        // Finalize
-        manager.finalize();
-
-        // Verify
-        const auto& ids = manager.common_ids();
-        REQUIRE(ids.size() == 2);
-        REQUIRE(ids[0] == "sample2");
-        REQUIRE(ids[1] == "sample3");
-
-        const auto& id_map = manager.common_id_map();
-        REQUIRE(id_map.size() == 2);
-        REQUIRE(id_map.at("sample2") == 0);
-        REQUIRE(id_map.at("sample3") == 1);
-    }
 }

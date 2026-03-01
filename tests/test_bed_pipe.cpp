@@ -23,6 +23,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include <catch2/catch_test_macros.hpp>
@@ -30,11 +31,12 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "../src/predict/snp_matcher.h"
 #include "bed_fixture.h"
 #include "file_fixture.h"
-#include "gelex/data/bed_pipe.h"
-#include "gelex/data/sample_manager.h"
+#include "gelex/data/genotype/bed_pipe.h"
+#include "gelex/data/frame/dataframe_policy.h"
+#include "gelex/data/genotype/sample_manager.h"
+#include "gelex/pipeline/predict/snp_matcher.h"
 #include "gelex/exception.h"
 
 namespace fs = std::filesystem;
@@ -46,6 +48,49 @@ using gelex::test::are_matrices_equal;
 using gelex::test::BedFixture;
 using gelex::test::FileFixture;
 
+namespace
+{
+
+auto read_fam_ids(const std::filesystem::path& fam_path) -> std::vector<std::string>
+{
+    std::ifstream fam_file(fam_path);
+    std::vector<std::string> raw_ids;
+    std::string line;
+
+    while (std::getline(fam_file, line))
+    {
+        std::istringstream iss(line);
+        std::string fid;
+        std::string iid;
+        iss >> fid >> iid;
+        raw_ids.push_back(make_sample_id(fid, iid));
+    }
+
+    return raw_ids;
+}
+
+auto align_rows_to_id_map(
+    const Eigen::MatrixXd& raw_matrix,
+    const std::vector<std::string>& raw_ids,
+    const std::unordered_map<std::string, Eigen::Index>& id_map)
+    -> Eigen::MatrixXd
+{
+    Eigen::MatrixXd aligned(
+        static_cast<Eigen::Index>(id_map.size()), raw_matrix.cols());
+
+    for (size_t i = 0; i < raw_ids.size(); ++i)
+    {
+        if (auto it = id_map.find(raw_ids[i]); it != id_map.end())
+        {
+            aligned.row(it->second) = raw_matrix.row(static_cast<Eigen::Index>(i));
+        }
+    }
+
+    return aligned;
+}
+
+}  // namespace
+
 TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 {
     BedFixture fixture;
@@ -56,7 +101,7 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path, false);
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
         sample_manager->finalize();
 
         REQUIRE_NOTHROW(
@@ -74,7 +119,7 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path, false);
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
 
         std::ifstream fam_file(fam_path);
         std::vector<std::string> raw_ids;
@@ -85,7 +130,7 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
             std::string fid;
             std::string iid;
             iss >> fid >> iid;
-            raw_ids.push_back(std::format("{}_{}", fid, iid));
+            raw_ids.push_back(make_sample_id(fid, iid));
         }
 
         // 只保留前 5 个样本
@@ -117,7 +162,7 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path, false);
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
         sample_manager->finalize();
 
         REQUIRE_THROWS_MATCHES(
@@ -145,7 +190,7 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path, false);
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
         sample_manager->finalize();
 
         REQUIRE_THROWS_MATCHES(
@@ -172,7 +217,7 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path, false);
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
         sample_manager->finalize();
 
         REQUIRE_THROWS_AS(
@@ -202,7 +247,7 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path, false);
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
         sample_manager->finalize();
 
         REQUIRE_THROWS_MATCHES(
@@ -225,8 +270,12 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path, true);
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
         sample_manager->finalize();
+
+        auto raw_ids = read_fam_ids(fam_path);
+        auto expected = align_rows_to_id_map(
+            genotypes, raw_ids, sample_manager->common_id_map());
 
         BedPipe pipe(bed_prefix, sample_manager);
 
@@ -234,7 +283,7 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
 
         REQUIRE(loaded.rows() == num_samples);
         REQUIRE(loaded.cols() == num_snps);
-        REQUIRE(are_matrices_equal(loaded, genotypes, 1e-8));
+        REQUIRE(are_matrices_equal(loaded, expected, 1e-8));
     }
 
     SECTION("Edge case - minimal samples (1 sample)")
@@ -246,7 +295,7 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path, false);
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
         sample_manager->finalize();
 
         BedPipe pipe(bed_prefix, sample_manager);
@@ -266,7 +315,7 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path, false);
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
         sample_manager->finalize();
 
         BedPipe pipe(bed_prefix, sample_manager);
@@ -286,22 +335,12 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(
-            fam_path, true);  // set true to avoid reorder
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
 
-        std::ifstream fam_file(fam_path);
-        std::vector<std::string> raw_ids;
-        std::string line;
-        while (std::getline(fam_file, line))
-        {
-            std::istringstream iss(line);
-            std::string fid;
-            std::string iid;
-            iss >> fid >> iid;
-            raw_ids.push_back(iid);
-        }
+        auto raw_ids = read_fam_ids(fam_path);
 
-        std::vector<std::string> intersect_ids(5);
+        std::vector<std::string> intersect_ids;
+        intersect_ids.reserve(5);
         std::array<Eigen::Index, 5> indices = {0, 2, 4, 6, 8};
         for (auto index : indices)
         {
@@ -312,11 +351,8 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
 
         BedPipe pipe(bed_prefix, sample_manager);
 
-        Eigen::MatrixXd expected(num_raw_samples / 2, num_snps);
-        for (Eigen::Index i = 0; i < 5; ++i)
-        {
-            expected.row(i) = genotypes.row(i * 2);
-        }
+        auto expected = align_rows_to_id_map(
+            genotypes, raw_ids, sample_manager->common_id_map());
 
         Eigen::MatrixXd loaded = pipe.load();
         REQUIRE(loaded.rows() == 5);
@@ -338,8 +374,12 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path, true);
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
         sample_manager->finalize();
+
+        auto raw_ids = read_fam_ids(fam_path);
+        auto expected = align_rows_to_id_map(
+            genotypes, raw_ids, sample_manager->common_id_map());
 
         BedPipe pipe(bed_prefix, sample_manager);
 
@@ -351,7 +391,7 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
         REQUIRE(full_chunk.rows() == full_load.rows());
         REQUIRE(full_chunk.cols() == full_load.cols());
         REQUIRE(are_matrices_equal(full_chunk, full_load, 1e-8));
-        REQUIRE(are_matrices_equal(full_chunk, genotypes, 1e-8));
+        REQUIRE(are_matrices_equal(full_chunk, expected, 1e-8));
     }
 
     SECTION("Happy path - load single column chunk")
@@ -363,8 +403,12 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path, true);
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
         sample_manager->finalize();
+
+        auto raw_ids = read_fam_ids(fam_path);
+        auto expected = align_rows_to_id_map(
+            genotypes, raw_ids, sample_manager->common_id_map());
 
         BedPipe pipe(bed_prefix, sample_manager);
 
@@ -373,7 +417,7 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
 
         REQUIRE(chunk.rows() == num_samples);
         REQUIRE(chunk.cols() == 1);
-        REQUIRE(are_matrices_equal(chunk, genotypes.col(col_idx), 1e-8));
+        REQUIRE(are_matrices_equal(chunk, expected.col(col_idx), 1e-8));
     }
 
     SECTION("Happy path - load middle chunk")
@@ -385,8 +429,12 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path, true);
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
         sample_manager->finalize();
+
+        auto raw_ids = read_fam_ids(fam_path);
+        auto expected = align_rows_to_id_map(
+            genotypes, raw_ids, sample_manager->common_id_map());
 
         BedPipe pipe(bed_prefix, sample_manager);
 
@@ -398,7 +446,7 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
         REQUIRE(chunk.cols() == (end - start));
 
         REQUIRE(are_matrices_equal(
-            chunk, genotypes.middleCols(start, end - start), 1e-8));
+            chunk, expected.middleCols(start, end - start), 1e-8));
     }
 
     SECTION("Exception - invalid chunk range: start < 0")
@@ -410,7 +458,7 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path, false);
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
         sample_manager->finalize();
 
         BedPipe pipe(bed_prefix, sample_manager);
@@ -435,7 +483,7 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path, false);
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
         sample_manager->finalize();
 
         BedPipe pipe(bed_prefix, sample_manager);
@@ -455,7 +503,7 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path, false);
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
         sample_manager->finalize();
 
         BedPipe pipe(bed_prefix, sample_manager);
@@ -480,10 +528,12 @@ TEST_CASE("BedPipe - sample mapping tests", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path, false);
+        auto sample_manager = std::make_shared<SampleManager>(fam_path);
 
         std::vector<std::string> intersect_ids
-            = {"nonexistent_1", "nonexistent_2", "nonexistent_3"};
+            = {make_sample_id("nonexistent", "1"),
+               make_sample_id("nonexistent", "2"),
+               make_sample_id("nonexistent", "3")};
         sample_manager->intersect(intersect_ids);
         sample_manager->finalize();
 

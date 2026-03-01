@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-#include "grm_id_writer.h"
+#include "gelex/data/grm/grm_id_writer.h"
 
 #include <format>
 
 #include "gelex/exception.h"
-#include "parser.h"
+#include "gelex/io/parser.h"
+#include "gelex/types/sample_id.h"
 
-namespace gelex::detail
+namespace gelex
 {
 
 GrmIdWriter::GrmIdWriter(const std::filesystem::path& file_path)
@@ -34,13 +35,7 @@ GrmIdWriter::GrmIdWriter(const std::filesystem::path& file_path)
 auto GrmIdWriter::split_id(std::string_view id)
     -> std::pair<std::string_view, std::string_view>
 {
-    auto pos = id.find('_');
-    if (pos == std::string_view::npos)
-    {
-        // No '_' found, use the same value for both FID and IID
-        return {id, id};
-    }
-    return {id.substr(0, pos), id.substr(pos + 1)};
+    return split_sample_id(id);
 }
 
 auto GrmIdWriter::write(std::span<const std::string> ids) -> void
@@ -58,4 +53,4 @@ auto GrmIdWriter::write(std::span<const std::string> ids) -> void
     }
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex
