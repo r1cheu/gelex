@@ -14,29 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_GRM_ARGS_H_
-#define GELEX_CLI_GRM_ARGS_H_
+#include "post_config.h"
 
-#include <filesystem>
-#include <string>
+#include <argparse.h>
 
-namespace argparse
+auto PostConfig::make(argparse::ArgumentParser& cmd) -> PostConfig
 {
-class ArgumentParser;
+    return PostConfig{
+        .in_prefixes = cmd.get<std::vector<std::string>>("--in"),
+        .out_prefix = cmd.get("--out")};
 }
-
-struct GrmConfig
-{
-    std::filesystem::path bed_path;
-    std::string out_prefix;
-    std::string method;
-    int chunk_size;
-    bool do_additive;
-    bool do_dominant;
-    bool do_loco;
-    int threads;
-};
-
-void setup_grm_args(argparse::ArgumentParser& cmd);
-
-#endif  // GELEX_CLI_GRM_ARGS_H_

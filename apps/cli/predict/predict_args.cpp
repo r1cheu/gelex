@@ -14,62 +14,59 @@
  * limitations under the License.
  */
 
-#include "grm_args.h"
-
-#include <thread>
+#include "predict_args.h"
 
 #include <argparse.h>
 
-#include "cli_helper.h"
+#include "cli/cli_helper.h"
 
-void setup_grm_args(argparse::ArgumentParser& cmd)
+void setup_predict_args(argparse::ArgumentParser& cmd)
 {
     cmd.add_description(
-        "Compute genomic relationship matrix (GRM) from PLINK "
-        "binary files and output in GCTA format");
+        "Generate genomic predictions using fitted SNP effects");
 
     // ================================================================
     // Data Files
     // ================================================================
     cmd.add_group("Data Files");
     cmd.add_argument("-b", "--bfile")
-        .help("PLINK binary file prefix (.bed/.bim/.fam)")
+        .help("PLINK binary file prefix for prediction data (.bed/.bim/.fam)")
         .metavar("<BFILE>")
         .required();
+    cmd.add_argument("-e", "--snp-eff")
+        .help("SNP effects file (.snp.eff)")
+        .metavar("<SNP_EFF>")
+        .required();
+    cmd.add_argument("--covar-eff")
+        .help("Covariate effects file (.param)")
+        .metavar("<COVAR_EFF>");
+    cmd.add_argument("--qcovar")
+        .help("Quantitative covariates file (TSV: FID, IID, covar1, ...)")
+        .default_value("")
+        .metavar("<QCOVAR>");
+    cmd.add_argument("--dcovar")
+        .help("Discrete covariates file (TSV: FID, IID, factor1, ...)")
+        .default_value("")
+        .metavar("<DCOVAR>");
     cmd.add_argument("-o", "--out")
-        .help("Output file prefix")
+        .help("Output file path for predictions")
         .metavar("<OUT>")
-        .default_value(std::string("grm"));
+        .required();
 
     // ================================================================
-    // GRM Options
+    // Processing Options
     // ================================================================
-    cmd.add_group("GRM Options");
-    cmd.add_argument("--geno-method")
-        .help(
-            "GRM method: standardize|center|orth-standardize|"
-            "orth-center (append -sample for sample stats)")
-        .metavar("<METHOD>")
-        .default_value("orth-standardize");
+    cmd.add_group("Processing Options");
     cmd.add_argument("-c", "--chunk-size")
-        .help("Chunk size for memory-efficient computation")
-        .metavar("<SIZE>")
+        .help("SNPs per chunk (controls memory usage)")
         .default_value(10000)
         .scan<'i', int>();
-    cmd.add_argument("-t", "--threads")
-        .help("Number of threads (-1 for all cores)")
-        .metavar("<N>")
-        .default_value(
-            static_cast<int>(std::thread::hardware_concurrency() / 2))
-        .scan<'i', int>();
-    cmd.add_argument("--add").help("Compute additive GRM").flag();
-    cmd.add_argument("--dom").help("Compute dominance GRM").flag();
-    cmd.add_argument("--loco").help("Compute GRM for each chromosome").flag();
 
     cmd.add_epilog(
         gelex::cli::format_epilog(
             "{bg}Example:{rs}\n"
-            "  {bc}gelex grm{rs} {cy}-b{rs} geno {cy}--add{rs}\n\n"
+            "  {bc}gelex predict{rs} {cy}-b{rs} geno {cy}-e{rs} model.snp.eff "
+            "{cy}-o{rs} pred.tsv\n\n"
             "{bg}Docs:{rs}\n"
-            "  https://gelex.readthedocs.io/en/latest/cli/grm.html"));
+            "  https://gelex.readthedocs.io/en/latest/cli/predict.html"));
 }

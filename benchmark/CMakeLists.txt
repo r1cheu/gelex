@@ -1,20 +1,22 @@
-include(FetchContent)
-FetchContent_Declare(
-  googlebenchmark
-  GIT_REPOSITORY https://github.com/google/benchmark.git
-  GIT_TAG v1.8.3)
-set(BENCHMARK_ENABLE_TESTING
-    OFF
-    CACHE BOOL "" FORCE)
-set(BENCHMARK_ENABLE_INSTALL
-    OFF
-    CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googlebenchmark)
+add_library(nanobench STATIC nanobench.cpp)
+target_include_directories(
+  nanobench PUBLIC ${PROJECT_SOURCE_DIR}/ext ${PROJECT_SOURCE_DIR}/include
+                   ${PROJECT_SOURCE_DIR}/ext/eigen)
 
-add_executable(bench ./benchmark_zvz.cpp)
+add_executable(bench_sample ./benchmark_sample.cpp)
+target_link_libraries(bench_sample PRIVATE nanobench)
 
-target_link_libraries(bench PRIVATE gelex::core benchmark::benchmark)
+add_executable(bench_tsv ./benchmark_tsv_approaches.cpp)
+target_link_libraries(bench_tsv PRIVATE gelex::core nanobench)
+
+add_executable(bench_zvz ./benchmark_zvz.cpp)
+target_link_libraries(bench_zvz PRIVATE gelex::core nanobench)
+
+add_executable(bench_gwas ./benchmark_gwas_writer.cpp)
+target_link_libraries(bench_gwas PRIVATE gelex::core nanobench)
 
 if(GELEX_NATIVE_OPTIMIZATION)
-  target_compile_options(bench PRIVATE -march=native -O3)
+  foreach(target bench_sample bench_tsv bench_zvz bench_gwas)
+    target_compile_options(${target} PRIVATE -march=native -O3)
+  endforeach()
 endif()
