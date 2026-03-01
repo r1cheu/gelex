@@ -1,65 +1,51 @@
-# CLAUDE.md
+# AGENTS.md - Gelex Development Guide
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for coding agents operating in this repository.
+Prefer these commands/conventions over ad-hoc choices.
+
+- C++23
+- Tests: Catch2 v3 (`catch_discover_tests`)
+- Status: beta (API breaking changes are acceptable)
 
 ## Build Commands
 
 ```bash
-# Install dependencies
-pixi install
+# useful command
+pixi r build-release # compile release binaries
+pixi r build-debug # compile debug binaries
+pixi r test # run all tests
+pre-commit run clang-format --files <changed_files> # format files
 
-# Build
-pixi run build-debug           # Debug build with tests and sanitizers
-pixi run build-release         # Release build
-pixi run build-native          # Release with -march=native optimization
-
-# Test
-pixi run test                  # Run all tests
-./build/debug/tests/gelex_tests "TestName*"   # Run specific test
-
-# Install
-pixi run install-release       # Install to ~/.local/bin
 ```
 
-## Architecture
+## Code Style Guidelines
 
-**Gelex** is a high-performance genomic prediction library implementing Bayesian (BayesA/B/C/R/RR/RRD) and Frequentist (GBLUP) methods.
+### Naming
 
-### Core Layers
+- Classes/structs/enums: `PascalCase`
+- Functions/variables/files: `snake_case`
+- Private members: trailing underscore (`member_`)
+- Internal constants: prefer `kPrefixName`
 
-- **Data Layer** (`src/data/`): Loaders for PLINK files (BED/BIM/FAM), phenotypes, covariates; GRM computation with LOCO support; memory-mapped genotype access
-- **Model Layer** (`src/model/`): Bayesian models with Gibbs/MH samplers (`src/model/bayes/samplers/`); GBLUP model (`src/model/freq/`)
-- **Optimizer Layer** (`src/optim/`): REML convergence, variance component estimation
-- **Estimator Layer** (`src/estimator/`): MCMC runners, posterior calculation, REML solver
-- **GWAS Layer** (`src/gwas/`): Association testing with optional LOCO correction
-- **Predict Layer** (`src/predict/`): Genomic prediction engine, SNP matching and allele alignment
+### Function Signatures and Types
 
-### CLI Commands
+- Use trailing return types in declarations/definitions (`auto f() -> int`).
+- Prefer `std::span` and `std::string_view` for non-owning inputs.
+- Prefer `Eigen::Ref<T>` / `const Eigen::Ref<const T>&` for Eigen views.
+- Use `Eigen::Index` for Eigen row/column indexing.
 
-The CLI (`apps/`) provides five subcommands:
-- `fit` - Fit Bayesian/Frequentist models
-- `predict` - Genomic prediction using trained models
-- `grm` - Compute genomic relationship matrix
-- `assoc` - GWAS association testing
-- `simulation` - Simulate genomic data
+### Eigen Function Parameters
 
-Each command has separate `*_command.{h,cpp}` (execution) and `*_args.{h,cpp}` (argument parsing) files.
-
-### Key Dependencies
-
-- **Eigen** (`ext/eigen/`): Linear algebra (submodule)
-- **OpenMP**: Parallelization
-- **BLAS/LAPACK**: MKL or OpenBLAS backend
-- **spdlog**: Logging
-- **argparse**: CLI parsing (`ext/argparse.h`)
-- **Catch2**: Testing framework
-
-## Code Style
-
-- **Classes**: `PascalCase`
-- **Functions/variables**: `snake_case`
-- **Private members**: trailing underscore (e.g., `variable_`)
-- **C++ standard**: C++23
-- **Return types**: Use trailing syntax `auto func() -> ReturnType`
-- **Comments**: Only when necessary (non-obvious logic)
-- **Format**: Chromium style, 80 columns, Allman braces
+- **Read-only**: templatize on `MatrixBase<Derived>` / `ArrayBase<Derived>` to accept expressions without copies.
+- **Writable output**: take `const MatrixBase<Derived>&` and `const_cast` internally to prevent binding to temporaries; call `.derived() = ...` to assign.
+- **Resizable output**: call `.derived().resize()`, not `.resize()` on the base.
+- **Multiple args**: use a separate template parameter per argument to support mixed types.
+- **Base class choice**: `MatrixBase` (dense matrices), `ArrayBase` (arrays), `DenseBase` (both), `EigenBase` (any, incl. sparse/permutation).
+- **Non-template alternative**: `Ref<MatrixXd>` for a single fixed layout; `Ref<Matrix<Scalar,-1,-1,RowMajor>>` for row-major — avoids copies when layout matches, creates a temporary otherwise.
+- Use include guards (avoid `#pragma once`).
+- Guard names should be uppercase and path-derived.
+- Keep public API in `include/gelex/`; avoid exposing internals.
+- Use exceptions from `include/gelex/exception.h`.
+- Add comments only for non-obvious intent/constraints.
+- Preserve existing license headers in source files.
+- Put reusable fixtures in `tests/*_fixture.{h,cpp}`.

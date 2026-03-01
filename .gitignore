@@ -94,6 +94,11 @@ wheelhouse/
 .vscode/
 script/
 *.log
+test.add.bin
+test.add.id
+test.dom.bin
+test.dom.id
+test.predictions
 /*.cpp
 *.grm
 workspace/
@@ -112,3 +117,5 @@ output
 .claude/skills/semver-bump
 docs/codebase_summary.md
 .claude/agents/cpp-file-summarizer.md
+.claude/worktrees/
+.worktrees/

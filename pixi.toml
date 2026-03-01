@@ -8,15 +8,14 @@ env = { CXX = "g++" }
 
 [dependencies]
 cmake = ">=4.2.3,<5"
-cxx-compiler = ">=1.11.0,<2"
 ninja = ">=1.13.2,<2"
-clang = ">=21.1.8,<22"
 openblas = { version = ">=0.3.31,<0.4", build = "*openmp*" }
 spdlog = ">=1.17.0,<2"
 catch2 = ">=3.12.0,<4"
 mkl-devel = ">=2025.3.0,<2026"
-llvm-tools = ">=21.1.8,<22"
 rattler-build = ">=0.55.1,<0.56"
+gxx = ">=15.2.0,<15.3"
+gcc = ">=15.2.0,<15.3"
 
 # ---------------------------------------------------------
 # Configure Tasks
@@ -101,7 +100,7 @@ cmd = "cmake --install build/reldeb --prefix $HOME/.local"
 depends-on = ["build-reldeb"]
 
 [tasks.benchmark]
-cmd = "build/benchmark/benchmark/bench"
+cmd = "build/benchmark/benchmark/bench_tsv"
 depends-on = ["build-benchmark"]
 
 [environments]
