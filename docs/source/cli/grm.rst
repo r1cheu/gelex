@@ -31,28 +31,28 @@ Detailed formulas and method definitions: :ref:`genotype-processor-methods`.
 
 .. list-table::
    :header-rows: 1
-   :widths: 22 43 35
+   :widths: 10 43 47
 
-   * - Method
+   * - Int
      - Use when
-     - Trade-off
-   * - ``standardize``
-     - You want the default HWE-standardized GRM.
-     - Most common baseline.
-   * - ``center``
-     - You prefer centered (non-standardized) coding.
-     - Simpler scaling assumptions.
-   * - ``orth-standardize``
-     - You need orthogonalized standardized coding.
-     - More specialized interpretation.
-   * - ``orth-center``
-     - You need orthogonalized centered coding.
-     - Usually for method-specific workflows.
-   * - ``*-sample`` variants
-     - You want sample-based statistics instead of population-based.
+     - Notes
+   * - ``3`` (default)
+     - You want the default orthogonal HWE-standardized GRM.
+     - Orthogonal dominance, HWE moments. Best for most workflows.
+   * - ``1``
+     - You want HWE standardization without orthogonal dominance.
+     - Simpler encoding, HWE moments.
+   * - ``2``
+     - You prefer HWE centering without variance scaling.
+     - Preserves original scale, HWE moments.
+   * - ``4``
+     - You need orthogonal HWE centering (no scaling).
+     - Matches assoc default; HWE moments.
+   * - ``5``–``8``
+     - You want sample-based statistics instead of HWE-based.
      - More data-dependent estimates.
 
-If unsure, start with ``standardize``.
+If unsure, use the default (``3``).
 
 Options
 -------
@@ -65,9 +65,13 @@ Options
 ``-o, --out`` ``grm``
    Output prefix for GRM files.
 
-``--geno-method`` ``standardize``
-   GRM method. Supported: ``standardize``, ``center``,
-   ``orth-standardize``, ``orth-center`` and ``-sample`` variants.
+``--geno-method`` ``3``
+   GRM method as integer 1–8.
+   ``1``\ =standardize-hwe, ``2``\ =center-hwe,
+   ``3``\ =orth-standardize-hwe, ``4``\ =orth-center-hwe,
+   ``5``\ =standardize, ``6``\ =center, ``7``\ =orth-standardize,
+   ``8``\ =orth-center.
+   See :ref:`genotype-processor-methods`.
 
 .. rubric:: Matrix Selection
 
@@ -135,12 +139,12 @@ Examples
       -o my_grm
 
 .. code-block:: bash
-   :caption: Dominance GRM with Orthogonal Centering
+   :caption: Dominance GRM with Orthogonal HWE Centering
 
    gelex grm \
       -b genotypes \
       --dom \
-      --geno-method orth-center \
+      --geno-method 4 \
       -o my_grm_dom
 
 .. code-block:: bash
@@ -150,7 +154,7 @@ Examples
       -b genotypes \
       --add \
       --dom \
-      --geno-method standardize \
+      --geno-method 3 \
       -o my_grm_both
 
 .. code-block:: bash
@@ -160,7 +164,7 @@ Examples
       -b genotypes \
       --add \
       --loco \
-      --geno-method standardize-sample \
+      --geno-method 5 \
       -o my_grm_loco
 
 See Also

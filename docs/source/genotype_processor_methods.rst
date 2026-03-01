@@ -35,16 +35,14 @@ HWE vs Sample: Practical Difference
 Quick Selection Guide
 ---------------------
 
-If you are unsure, start with ``standardize``.
+If you are unsure, use ``3`` (``orth-standardize-hwe``, default for GRM and fit).
 
-- Use ``standardize`` when you want the default, robust baseline.
-- Use ``center`` when you want centered values without variance scaling.
-- Use ``orth-*`` when your workflow explicitly requires orthogonal dominance
-  coding.
-- Use ``*-sample`` when you prefer sample-estimated moments over HWE-based
-  moments.
-- For fitting-focused workflows, consider starting with
-  ``standardize-sample``.
+- Use ``3`` (orth-standardize-hwe) for the default GRM/fit baseline.
+- Use ``1`` (standardize-hwe) when orthogonal dominance coding is not needed.
+- Use even-numbered methods (``2``, ``4``, ``6``, ``8``) when only centering is needed.
+- Use ``orth`` methods (``3``, ``4``, ``7``, ``8``) when orthogonal dominance coding is required.
+- Use ``*-hwe`` methods (``1``–``4``) when you prefer population-genetics expectations.
+- Use sample methods (``5``–``8``) for data-driven moments.
 
 Method Families
 ---------------
@@ -72,63 +70,72 @@ Orthogonal vs Non-orthogonal Dominance
 
 Moment family:
 
-- default methods: HWE-based expected moments
-- ``-sample`` methods: moments estimated directly from your sample
+- Methods ``1``–``4`` (``*-hwe``): HWE-based expected moments
+- Methods ``5``–``8``: moments estimated directly from your sample
 
 Method Matrix (User View)
 -------------------------
 
 .. list-table::
    :header-rows: 1
-   :widths: 24 30 24 22
+   :widths: 8 30 32 15 15
 
-   * - CLI method
+   * - Int
+     - CLI name
      - Best for
-     - Moments source
+     - Moments
      - Scaling
-   * - ``standardize``
-     - Default GRM analysis
+   * - ``1``
+     - ``standardize-hwe``
+     - HWE standardization, no orthogonal dominance
      - HWE
      - Standardize
-   * - ``center``
-     - Keep original scale after centering
-     - HWE
-     - Center
-   * - ``orth-standardize``
-     - Orthogonal dominance workflows
-     - HWE
-     - Standardize
-   * - ``orth-center``
-     - Orthogonal coding without scaling
+   * - ``2``
+     - ``center-hwe``
+     - HWE centering, no variance scaling
      - HWE
      - Center
-   * - ``standardize-sample``
-     - Data-driven moments, standardized
+   * - ``3``
+     - ``orth-standardize-hwe``
+     - Default GRM/fit: orthogonal dominance + HWE
+     - HWE
+     - Standardize
+   * - ``4``
+     - ``orth-center-hwe``
+     - Default assoc: orthogonal dominance + HWE centering
+     - HWE
+     - Center
+   * - ``5``
+     - ``standardize``
+     - Sample-based standardization
      - Sample
      - Standardize
-   * - ``center-sample``
-     - Data-driven moments, centered only
+   * - ``6``
+     - ``center``
+     - Sample-based centering, no scaling
      - Sample
      - Center
-   * - ``orth-standardize-sample``
-     - Orthogonal + sample moments + scaling
+   * - ``7``
+     - ``orth-standardize``
+     - Orthogonal dominance + sample standardization
      - Sample
      - Standardize
-   * - ``orth-center-sample``
-     - Orthogonal + sample moments, no scaling
+   * - ``8``
+     - ``orth-center``
+     - Orthogonal dominance + sample centering
      - Sample
      - Center
 
 Practical Recommendations
 -------------------------
 
-- Start with ``standardize`` for most production runs.
-- If biological interpretability is your top priority, prefer HWE methods.
+- Start with ``3`` (orth-standardize-hwe) for most production runs.
+- If biological interpretability is your top priority, prefer HWE methods (``1``–``4``).
 - If optimizer stability and convergence speed are your top priority, test
-  ``*-sample`` methods first.
-- If comparing with older centered pipelines, use ``center``.
-- Use ``*-sample`` only when you intentionally want sample-dependent centering
-  and variance.
+  sample methods (``5``–``8``) first.
+- If comparing with older centered pipelines, use ``2`` (center-hwe).
+- Use sample methods (``5``–``8``) only when you intentionally want
+  sample-dependent centering and variance.
 - Keep method choice fixed across comparable runs to avoid scale mismatch.
 
 Minimal Technical Notes
@@ -145,18 +152,18 @@ Example Commands
 
 .. code-block:: bash
 
-   # Recommended default
-   gelex grm -b genotypes --geno-method standardize -o grm_std
+   # Recommended default (orth-standardize-hwe)
+   gelex grm -b genotypes --geno-method 3 -o grm_orth_hwe
 
 .. code-block:: bash
 
-   # Center version
-   gelex grm -b genotypes --geno-method center -o grm_center
+   # HWE centering, no scaling
+   gelex grm -b genotypes --geno-method 2 -o grm_center_hwe
 
 .. code-block:: bash
 
-   # Orthogonal coding with sample moments
-   gelex grm -b genotypes --dom --geno-method orth-standardize-sample -o grm_orth
+   # Orthogonal dominance with sample moments
+   gelex grm -b genotypes --dom --geno-method 7 -o grm_orth_sample
 
 See Also
 --------

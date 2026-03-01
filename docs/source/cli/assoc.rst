@@ -47,9 +47,9 @@ Pick model and preprocessing strategy before tuning runtime options.
    * - ``--transform dint`` / ``iint``
       - The phenotype distribution is skewed or heavy-tailed.
       - Often improves calibration, but effect sizes are on transformed scale.
-   * - ``--geno-method center``
+   * - ``--geno-method 4``
       - You want the default genotype preprocessing pipeline.
-      - Good default for stability and comparability across runs.
+      - Orthogonal HWE centering. Good default for stability and comparability.
 
 .. warning::
 
@@ -85,17 +85,14 @@ Options
 ``--dcovar``
    Categorical covariate TSV in format ``FID IID factor1 ...``.
 
-``--iid-only`` ``false``
-   Match samples by IID only and ignore FID.
-
 .. rubric:: Model Configuration
 
 ``--model`` ``a``
    Association model: ``a`` (additive) or ``d`` (dominance).
 
-``--geno-method`` ``center``
-   Genotype method (center-family): ``center``, ``orth-center``,
-   ``center-sample``, ``orth-center-sample``.
+``--geno-method`` ``4``
+   Genotype method, center-family only (integer):
+   ``2``\ =center-hwe, ``4``\ =orth-center-hwe, ``6``\ =center, ``8``\ =orth-center.
 
 ``--transform`` ``none``
    Phenotype transform: ``none``, ``dint`` (Direct INT), ``iint`` (Indirect INT).
@@ -148,10 +145,6 @@ Warnings and Notes
 
    For ``--model d``, provide GRM inputs consistent with the dominance model
    setup (typically additive + dominance GRMs).
-
-.. warning::
-
-   Use ``--iid-only`` only when IID uniquely identifies all individuals.
 
 Examples
 --------

@@ -93,15 +93,16 @@ Options
 ``--dcovar``
    Categorical covariate TSV in format ``FID IID factor1 ...``.
 
-``--iid-only`` ``false``
-   Match samples by IID only and ignore FID.
-
 .. rubric:: Model Options
 
 ``-m, --method`` ``RR``
    BayesAlphabet method. Supported: ``A/B/C/R/RR``; add ``d`` for dominance
    (for example ``Rd``); add ``pi`` to estimate mixture proportions (for
    example ``Cpi``).
+
+``--geno-method`` ``3``
+   Genotype processing method (integer 1–8, default ``3`` = orth-standardize-hwe).
+   See :ref:`genotype-processor-methods`.
 
 ``--scale`` ``0 0.001 0.01 0.1 1``
    Additive variance scales, typically used in BayesR-style models.
@@ -119,17 +120,17 @@ Options
 
 .. rubric:: MCMC Options
 
-``--iters`` ``5000``
+``--iters`` ``3000``
    Total MCMC iterations.
 
-``--burnin`` ``4000``
+``--burnin`` ``2000``
    Initial iterations discarded before sampling.
 
 ``--thin`` ``1``
    Keep one sample every ``thin`` iterations.
 
-``--chains`` ``1``
-   Number of independent MCMC chains.
+``--seed`` ``42``
+   Random seed for reproducible MCMC.
 
 .. rubric:: Performance and Output
 
@@ -176,12 +177,6 @@ Warnings and Notes
    20%-50% of ``--iters``. Increase ``--iters`` when posterior summaries are
    unstable across runs.
 
-.. warning::
-
-   Use ``--iid-only`` only when IID uniquely identifies individuals in all
-   files. If FID+IID pairs are required for your dataset, enabling this flag
-   can silently mismatch samples.
-
 .. note::
 
    If memory is limited, reduce ``--chunk-size`` first, then enable
@@ -208,7 +203,6 @@ Expected outputs: ``model_rr.snp.eff``, ``model_rr.param``.
       -b train_data \
       -p phenotypes.tsv \
       -m R \
-      --chains 4 \
       -o model_bayesr
 
 Expected outputs: ``model_bayesr.snp.eff``, ``model_bayesr.param``.
