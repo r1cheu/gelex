@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "snp_effect_loader.h"
+#include "gelex/data/loader/snp_effect_loader.h"
 
 #include <algorithm>
 #include <cmath>
@@ -27,8 +27,8 @@
 
 #include <Eigen/Core>
 
-#include "../src/data/parser.h"  // open_file, try_parse_number, parse_string, count_total_lines
 #include "gelex/exception.h"
+#include "gelex/io/parser.h"  // open_file, try_parse_number, parse_string, count_total_lines
 
 namespace gelex::detail
 {

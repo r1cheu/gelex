@@ -23,7 +23,7 @@
 #include "file_fixture.h"
 #include "gelex/exception.h"
 
-#include "../src/data/loader/snp_effect_loader.h"
+#include "gelex/data/loader/snp_effect_loader.h"
 
 namespace fs = std::filesystem;
 

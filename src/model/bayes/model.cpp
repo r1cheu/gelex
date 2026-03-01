@@ -23,10 +23,10 @@
 #include <fmt/ranges.h>
 #include <Eigen/Core>
 
-#include "../src/types/bayes_effects.h"
-#include "../src/utils/math_utils.h"
-#include "gelex/data/data_pipe.h"
-#include "gelex/data/genotype_mmap.h"
+#include "gelex/data/genotype/genotype_mmap.h"
+#include "gelex/infra/utils/math_utils.h"
+#include "gelex/model/bayes/effects.h"
+#include "gelex/pipeline/data_pipe.h"
 
 namespace gelex
 {

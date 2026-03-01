@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/genotype_mmap.h"
+#include "gelex/data/genotype/genotype_mmap.h"
 
 #include <algorithm>
 #include <format>

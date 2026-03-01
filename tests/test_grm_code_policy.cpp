@@ -19,7 +19,7 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/data/genotype_processor.h"
+#include "gelex/data/genotype/genotype_processor.h"
 
 using namespace gelex;
 
@@ -27,7 +27,9 @@ using namespace gelex;
 // AdditiveProcessor<CenterMethod>
 // ============================================================================
 
-TEST_CASE("AdditiveProcessor<CenterMethod> single column via process_matrix", "[grm]")
+TEST_CASE(
+    "AdditiveProcessor<CenterMethod> single column via process_matrix",
+    "[grm]")
 {
     Eigen::MatrixXd geno(5, 1);
     geno << 0, 1, 2, 1, 0;
@@ -36,12 +38,14 @@ TEST_CASE("AdditiveProcessor<CenterMethod> single column via process_matrix", "[
     Eigen::MatrixXd expected(5, 1);
     expected << -0.8, 0.2, 1.2, 0.2, -0.8;
 
-    process_matrix<grm::Centered::Additive>(geno);
+    process_matrix<GeneticEffectType::Add>(GenotypeProcessMethod::Center, geno);
 
     REQUIRE(geno.isApprox(expected));
 }
 
-TEST_CASE("AdditiveProcessor<CenterMethod> multiple columns via process_matrix", "[grm]")
+TEST_CASE(
+    "AdditiveProcessor<CenterMethod> multiple columns via process_matrix",
+    "[grm]")
 {
     Eigen::MatrixXd geno(4, 3);
     geno << 0, 2, 1, 1, 1, 1, 2, 0, 1, 1, 1, 1;
@@ -52,28 +56,30 @@ TEST_CASE("AdditiveProcessor<CenterMethod> multiple columns via process_matrix",
     Eigen::MatrixXd expected(4, 3);
     expected << -1, 1, 0, 0, 0, 0, 1, -1, 0, 0, 0, 0;
 
-    process_matrix<grm::Centered::Additive>(geno);
+    process_matrix<GeneticEffectType::Add>(GenotypeProcessMethod::Center, geno);
 
     REQUIRE(geno.isApprox(expected));
 }
 
-TEST_CASE("AdditiveProcessor<CenterMethod> already centered via process_matrix", "[grm]")
+TEST_CASE(
+    "AdditiveProcessor<CenterMethod> already centered via process_matrix",
+    "[grm]")
 {
     Eigen::MatrixXd geno(4, 1);
     geno << -1, 1, -1, 1;  // mean = 0
 
     Eigen::MatrixXd expected = geno;
 
-    process_matrix<grm::Centered::Additive>(geno);
+    process_matrix<GeneticEffectType::Add>(GenotypeProcessMethod::Center, geno);
 
     REQUIRE(geno.isApprox(expected));
 }
 
 // ============================================================================
-// Centered additive (= AdditiveProcessor<CenterMethod> via process_matrix)
+// Center additive (= AdditiveProcessor<CenterMethod> via process_matrix)
 // ============================================================================
 
-TEST_CASE("Centered additive mode", "[grm][Centered]")
+TEST_CASE("Center additive mode", "[grm][Center]")
 {
     SECTION("basic centering")
     {
@@ -84,7 +90,8 @@ TEST_CASE("Centered additive mode", "[grm][Centered]")
         Eigen::MatrixXd expected(5, 1);
         expected << -0.8, 0.2, 1.2, 0.2, -0.8;
 
-        process_matrix<grm::Centered::Additive>(geno);
+        process_matrix<GeneticEffectType::Add>(
+            GenotypeProcessMethod::Center, geno);
 
         REQUIRE(geno.isApprox(expected));
     }
@@ -98,28 +105,31 @@ TEST_CASE("Centered additive mode", "[grm][Centered]")
         Eigen::MatrixXd expected(4, 2);
         expected << -1, 1, 0, 0, 1, -1, 0, 0;
 
-        process_matrix<grm::Centered::Additive>(geno);
+        process_matrix<GeneticEffectType::Add>(
+            GenotypeProcessMethod::Center, geno);
 
         REQUIRE(geno.isApprox(expected));
     }
 }
 
 // ============================================================================
-// Centered dominance (= DominantProcessor<CenterMethod> via process_matrix)
+// Center dominance (= DominantProcessor<CenterMethod> via process_matrix)
 // ============================================================================
 
-TEST_CASE("Centered dominance mode", "[grm][Centered]")
+TEST_CASE("Center dominance mode", "[grm][Center]")
 {
     SECTION("basic transformation")
     {
         Eigen::MatrixXd geno(5, 1);
         geno << 0, 1, 2, 1, 0;
 
-        // 2→0: [0, 1, 0, 1, 0], mean=0.4, centered: [-0.4, 0.6, -0.4, 0.6, -0.4]
+        // 2→0: [0, 1, 0, 1, 0], mean=0.4, centered: [-0.4, 0.6, -0.4, 0.6,
+        // -0.4]
         Eigen::MatrixXd expected(5, 1);
         expected << -0.4, 0.6, -0.4, 0.6, -0.4;
 
-        process_matrix<grm::Centered::Dominant>(geno);
+        process_matrix<GeneticEffectType::Dom>(
+            GenotypeProcessMethod::Center, geno);
 
         REQUIRE(geno.isApprox(expected, 1e-10));
     }
@@ -133,17 +143,19 @@ TEST_CASE("Centered dominance mode", "[grm][Centered]")
         Eigen::MatrixXd expected(4, 1);
         expected << 0, 0, 0, 0;
 
-        process_matrix<grm::Centered::Dominant>(geno);
+        process_matrix<GeneticEffectType::Dom>(
+            GenotypeProcessMethod::Center, geno);
 
         REQUIRE(geno.isApprox(expected, 1e-10));
     }
 }
 
 // ============================================================================
-// OrthCentered additive (= AdditiveProcessor<OrthCenterMethod> via process_matrix)
+// OrthCenter additive (= AdditiveProcessor<OrthCenterMethod> via
+// process_matrix)
 // ============================================================================
 
-TEST_CASE("OrthCentered additive mode", "[grm][OrthCentered]")
+TEST_CASE("OrthCenter additive mode", "[grm][OrthCenter]")
 {
     SECTION("basic centering")
     {
@@ -153,25 +165,27 @@ TEST_CASE("OrthCentered additive mode", "[grm][OrthCentered]")
         Eigen::MatrixXd expected(5, 1);
         expected << -0.8, 0.2, 1.2, 0.2, -0.8;
 
-        process_matrix<grm::OrthCentered::Additive>(geno);
+        process_matrix<GeneticEffectType::Add>(
+            GenotypeProcessMethod::OrthCenter, geno);
 
         REQUIRE(geno.isApprox(expected));
     }
 }
 
 // ============================================================================
-// OrthCentered dominance (= DominantProcessor<OrthCenterMethod> via process_matrix)
+// OrthCenter dominance (= DominantProcessor<OrthCenterMethod> via
+// process_matrix)
 // ============================================================================
 
-TEST_CASE("OrthCentered dominance mode", "[grm][OrthCentered]")
+TEST_CASE("OrthCenter dominance mode", "[grm][OrthCenter]")
 {
     SECTION("basic transformation")
     {
         // genotype: 0, 1, 2, 1, 0
         // maf = 0.8/2 = 0.4
-        // OrthCenter recodes: 0→0.0, 1→2*0.4=0.8, 2→4*0.4-2=-0.4
+        // orthogonal Dom recodes: 0→0.0, 1→2*0.4=0.8, 2→4*0.4-2=-0.4
         // recoded: [0, 0.8, -0.4, 0.8, 0]
-        // CenterMethod: mean = (0+0.8-0.4+0.8+0)/5 = 0.24
+        // sample mean = (0+0.8-0.4+0.8+0)/5 = 0.24
         // centered: [-0.24, 0.56, -0.64, 0.56, -0.24]
         Eigen::MatrixXd geno(5, 1);
         geno << 0, 1, 2, 1, 0;
@@ -179,7 +193,8 @@ TEST_CASE("OrthCentered dominance mode", "[grm][OrthCentered]")
         Eigen::MatrixXd expected(5, 1);
         expected << -0.24, 0.56, -0.64, 0.56, -0.24;
 
-        process_matrix<grm::OrthCentered::Dominant>(geno);
+        process_matrix<GeneticEffectType::Dom>(
+            GenotypeProcessMethod::OrthCenter, geno);
 
         REQUIRE(geno.isApprox(expected, 1e-10));
     }
@@ -196,7 +211,8 @@ TEST_CASE("OrthCentered dominance mode", "[grm][OrthCentered]")
         Eigen::MatrixXd expected(4, 1);
         expected << 0, 0, 0, 0;
 
-        process_matrix<grm::OrthCentered::Dominant>(geno);
+        process_matrix<GeneticEffectType::Dom>(
+            GenotypeProcessMethod::OrthCenter, geno);
 
         REQUIRE(geno.isApprox(expected, 1e-10));
     }
@@ -213,17 +229,46 @@ TEST_CASE("OrthCentered dominance mode", "[grm][OrthCentered]")
         Eigen::MatrixXd expected(4, 1);
         expected << 0, 0, 0, 0;
 
-        process_matrix<grm::OrthCentered::Dominant>(geno);
+        process_matrix<GeneticEffectType::Dom>(
+            GenotypeProcessMethod::OrthCenter, geno);
 
         REQUIRE(geno.isApprox(expected));
     }
 }
 
 // ============================================================================
-// OrthStandardized additive (= AdditiveProcessor<OrthStandardizeMethod> via process_matrix)
+// OrthCenterHWE dominance
 // ============================================================================
 
-TEST_CASE("OrthStandardized additive mode", "[grm][OrthStandardized]")
+TEST_CASE("OrthCenterHWE dominance mode", "[grm][OrthCenterHWE]")
+{
+    SECTION("basic transformation")
+    {
+        // genotype: 0, 1, 2, 1, 0
+        // maf = 0.8/2 = 0.4
+        // orthogonal Dom recodes: 0→0.0, 1→2*0.4=0.8, 2→4*0.4-2=-0.4
+        // recoded: [0, 0.8, -0.4, 0.8, 0]
+        // OrthHWE mean = 2*maf² = 2*0.16 = 0.32
+        // centered: [-0.32, 0.48, -0.72, 0.48, -0.32]
+        Eigen::MatrixXd geno(5, 1);
+        geno << 0, 1, 2, 1, 0;
+
+        Eigen::MatrixXd expected(5, 1);
+        expected << -0.32, 0.48, -0.72, 0.48, -0.32;
+
+        process_matrix<GeneticEffectType::Dom>(
+            GenotypeProcessMethod::OrthCenterHWE, geno);
+
+        REQUIRE(geno.isApprox(expected, 1e-10));
+    }
+}
+
+// ============================================================================
+// OrthStandardize additive (= AdditiveProcessor<OrthStandardizeMethod> via
+// process_matrix)
+// ============================================================================
+
+TEST_CASE("OrthStandardize additive mode", "[grm][OrthStandardize]")
 {
     SECTION("basic standardization")
     {
@@ -241,7 +286,8 @@ TEST_CASE("OrthStandardized additive mode", "[grm][OrthStandardized]")
         expected << (0 - mean) / stddev, (1 - mean) / stddev,
             (2 - mean) / stddev, (1 - mean) / stddev, (0 - mean) / stddev;
 
-        process_matrix<grm::OrthStandardized::Additive>(geno);
+        process_matrix<GeneticEffectType::Add>(
+            GenotypeProcessMethod::OrthStandardize, geno);
 
         REQUIRE(geno.isApprox(expected));
     }
@@ -251,7 +297,8 @@ TEST_CASE("OrthStandardized additive mode", "[grm][OrthStandardized]")
         Eigen::MatrixXd geno(4, 1);
         geno << 0, 0, 0, 0;
 
-        process_matrix<grm::OrthStandardized::Additive>(geno);
+        process_matrix<GeneticEffectType::Add>(
+            GenotypeProcessMethod::OrthStandardize, geno);
 
         REQUIRE(geno.isApproxToConstant(0.0));
     }
@@ -261,24 +308,26 @@ TEST_CASE("OrthStandardized additive mode", "[grm][OrthStandardized]")
         Eigen::MatrixXd geno(4, 1);
         geno << 2, 2, 2, 2;
 
-        process_matrix<grm::OrthStandardized::Additive>(geno);
+        process_matrix<GeneticEffectType::Add>(
+            GenotypeProcessMethod::OrthStandardize, geno);
 
         REQUIRE(geno.isApproxToConstant(0.0));
     }
 }
 
 // ============================================================================
-// OrthStandardized dominance (= DominantProcessor<OrthStandardizeMethod> via process_matrix)
+// OrthStandardize dominance (= DominantProcessor<OrthStandardizeMethod> via
+// process_matrix)
 // ============================================================================
 
-TEST_CASE("OrthStandardized dominance mode", "[grm][OrthStandardized]")
+TEST_CASE("OrthStandardize dominance mode", "[grm][OrthStandardize]")
 {
     SECTION("basic transformation")
     {
         // genotype: 0, 1, 2, 1, 0
-        // maf=0.4, OrthCenter recodes: 0→0, 1→0.8, 2→-0.4
+        // maf=0.4, orthogonal Dom recodes: 0→0, 1→0.8, 2→-0.4
         // recoded: [0, 0.8, -0.4, 0.8, 0]
-        // CenterMethod: mean=0.24, centered: [-0.24, 0.56, -0.64, 0.56, -0.24]
+        // sample mean=0.24, centered: [-0.24, 0.56, -0.64, 0.56, -0.24]
         // sample stddev = sqrt(1.152/4) = sqrt(0.288)
         // divided by stddev
         Eigen::MatrixXd geno(5, 1);
@@ -290,7 +339,8 @@ TEST_CASE("OrthStandardized dominance mode", "[grm][OrthStandardized]")
         expected << -0.24 / stddev, 0.56 / stddev, -0.64 / stddev,
             0.56 / stddev, -0.24 / stddev;
 
-        process_matrix<grm::OrthStandardized::Dominant>(geno);
+        process_matrix<GeneticEffectType::Dom>(
+            GenotypeProcessMethod::OrthStandardize, geno);
 
         REQUIRE(geno.isApprox(expected));
     }
@@ -300,7 +350,8 @@ TEST_CASE("OrthStandardized dominance mode", "[grm][OrthStandardized]")
         Eigen::MatrixXd geno(4, 1);
         geno << 0, 0, 0, 0;
 
-        process_matrix<grm::OrthStandardized::Dominant>(geno);
+        process_matrix<GeneticEffectType::Dom>(
+            GenotypeProcessMethod::OrthStandardize, geno);
 
         REQUIRE(geno.isApproxToConstant(0.0));
     }
@@ -315,9 +366,41 @@ TEST_CASE("OrthStandardized dominance mode", "[grm][OrthStandardized]")
         Eigen::MatrixXd geno(4, 1);
         geno << 1, 1, 1, 1;
 
-        process_matrix<grm::OrthStandardized::Dominant>(geno);
+        process_matrix<GeneticEffectType::Dom>(
+            GenotypeProcessMethod::OrthStandardize, geno);
 
         REQUIRE(geno.isApproxToConstant(0.0));
+    }
+}
+
+// ============================================================================
+// OrthStandardizeHWE dominance
+// ============================================================================
+
+TEST_CASE("OrthStandardizeHWE dominance mode", "[grm][OrthStandardizeHWE]")
+{
+    SECTION("basic transformation")
+    {
+        // genotype: 0, 1, 2, 1, 0
+        // maf=0.4, orthogonal Dom recodes: 0→0, 1→0.8, 2→-0.4
+        // recoded: [0, 0.8, -0.4, 0.8, 0]
+        // OrthHWE mean = 2*maf² = 0.32
+        // centered: [-0.32, 0.48, -0.72, 0.48, -0.32]
+        // OrthHWE stddev = 2*maf*(1-maf) = 0.48
+        // divided by stddev
+        Eigen::MatrixXd geno(5, 1);
+        geno << 0, 1, 2, 1, 0;
+
+        double stddev = 2.0 * 0.4 * 0.6;
+
+        Eigen::MatrixXd expected(5, 1);
+        expected << -0.32 / stddev, 0.48 / stddev, -0.72 / stddev,
+            0.48 / stddev, -0.32 / stddev;
+
+        process_matrix<GeneticEffectType::Dom>(
+            GenotypeProcessMethod::OrthStandardizeHWE, geno);
+
+        REQUIRE(geno.isApprox(expected));
     }
 }
 
@@ -330,10 +413,11 @@ TEST_CASE("All policies handle multiple columns", "[grm]")
     Eigen::MatrixXd geno(5, 3);
     geno << 0, 1, 2, 1, 2, 0, 2, 1, 1, 1, 0, 2, 0, 2, 1;
 
-    SECTION("Centered additive")
+    SECTION("Center additive")
     {
         Eigen::MatrixXd g = geno;
-        process_matrix<grm::Centered::Additive>(g);
+        process_matrix<GeneticEffectType::Add>(
+            GenotypeProcessMethod::Center, g);
         // verify each column is mean-centered
         for (Eigen::Index i = 0; i < g.cols(); ++i)
         {
@@ -341,20 +425,22 @@ TEST_CASE("All policies handle multiple columns", "[grm]")
         }
     }
 
-    SECTION("OrthCentered additive")
+    SECTION("OrthCenter additive")
     {
         Eigen::MatrixXd g = geno;
-        process_matrix<grm::OrthCentered::Additive>(g);
+        process_matrix<GeneticEffectType::Add>(
+            GenotypeProcessMethod::OrthCenter, g);
         for (Eigen::Index i = 0; i < g.cols(); ++i)
         {
             REQUIRE(std::abs(g.col(i).mean()) < 1e-10);
         }
     }
 
-    SECTION("OrthStandardized additive - columns standardized")
+    SECTION("OrthStandardize additive - columns standardized")
     {
         Eigen::MatrixXd g = geno;
-        process_matrix<grm::OrthStandardized::Additive>(g);
+        process_matrix<GeneticEffectType::Add>(
+            GenotypeProcessMethod::OrthStandardize, g);
         // each column should have mean ~ 0
         for (Eigen::Index i = 0; i < g.cols(); ++i)
         {

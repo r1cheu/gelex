@@ -1,0 +1,45 @@
+/*
+ * Copyright 2026 RuLei Chen
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef GELEX_DATA_GENOTYPE_METHOD_DISPATCH_H_
+#define GELEX_DATA_GENOTYPE_METHOD_DISPATCH_H_
+
+#include <string>
+
+#include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/exception.h"
+
+namespace gelex
+{
+
+inline auto parse_genotype_process_method(int value) -> GenotypeProcessMethod
+{
+    constexpr auto kMin
+        = static_cast<int>(GenotypeProcessMethod::StandardizeHWE);
+    constexpr auto kMax = static_cast<int>(GenotypeProcessMethod::OrthCenter);
+    if (value < kMin || value > kMax)
+    {
+        throw InvalidInputException(
+            "Invalid genotype process method: " + std::to_string(value)
+            + ". Valid range: " + std::to_string(kMin) + "-"
+            + std::to_string(kMax));
+    }
+    return static_cast<GenotypeProcessMethod>(value);
+}
+
+}  // namespace gelex
+
+#endif  // GELEX_DATA_GENOTYPE_METHOD_DISPATCH_H_

@@ -1,0 +1,102 @@
+/*
+ * Copyright 2026 RuLei Chen
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * @file diagnostics.h
+ * @brief Diagnostics for MCMC process. refer to
+ * https://github.com/pyro-ppl/numpyro/blob/master/numpyro/diagnostics.py
+ */
+
+#ifndef GELEX_ESTIMATOR_BAYES_DIAGNOSTICS_H_
+#define GELEX_ESTIMATOR_BAYES_DIAGNOSTICS_H_
+#include <vector>
+
+#include <Eigen/Core>
+
+namespace gelex
+{
+
+// Each MatrixXd in Chains has shape (n_params, n_draws); vector length =
+// n_chains.
+using Chains = std::vector<Eigen::MatrixXd>;
+
+/**
+ * @brief find the smallest number >= N such that only divisor are 2, 3, 5.
+ * Works just like scipy.fftpack.next_fast_len.
+ * @param target N
+ * @return the smallest number >= target such that only divisors are 2, 3, 5.
+ */
+Eigen::Index fft_next_fast_len(Eigen::Index target);
+
+/**
+ * @brief Computes R-hat over chains of samples. The samples are stored as a
+ * vector of matrices where each matrix is (n_params, n_draws) and the vector
+ * length is n_chains. It's required that n_chains >= 2 and n_draws >= 2
+ *
+ * @param samples MCMC samples
+ * @return R-hat statistic for each parameter, shape (n_params, 1)
+ */
+Eigen::MatrixXd gelman_rubin(const Chains& samples);
+
+/**
+ * @brief Computes split R-hat over chains of samples. The samples are stored as
+ * a vector of matrices where each matrix is (n_params, n_draws) and the vector
+ * length is n_chains. It's required that n_draws >= 4
+ *
+ * @param samples
+ * @return split R-hat statistic for each parameter, shape (n_params, 1)
+ */
+Eigen::MatrixXd split_gelman_rubin(const Chains& samples);
+
+/**
+ * @brief Compute the autocorrelation the samples at dimension n_draws
+ *
+ * @param x MCMC samples
+ * @param bias whether to use a biased estimator
+ * @return the autocorrelation of the samples
+ */
+Chains autocorrelation(const Chains& x, bool bias = true);
+
+/**
+ * @brief Computes the autocovariance of the samples at dimension n_draws.
+ *
+ * @param x MCMC Samples
+ * @param bias whether to use a biased estimator
+ */
+Chains autocovariance(const Chains& x, bool bias = true);
+
+/**
+ * @brief Compute the effective sample size of the samples at dimension n_draws
+ *
+ * @param x MCMC samples, stored as a vector of matrices where each matrix is
+ * (n_params, n_draws) and the vector length is n_chains
+ * @param bias whether to use a biased estimator
+ */
+Eigen::VectorXd effect_sample_size(const Chains& x, bool bias = true);
+
+/**
+ * @brief Computes "highest posterior density interval" (HPDI) which is the
+ narrowest interval with probability mass prob`` at dimension n_draws
+ *
+ * @param samples MCMC samples as a vector
+ * @param prob quantiles of `samples` at `(1 - prob) / 2` and `(1 + prob) / 2`.
+ */
+std::pair<double, double> hpdi(
+    Eigen::Ref<Eigen::VectorXd> samples,
+    double prob);
+}  // namespace gelex
+
+#endif  // GELEX_ESTIMATOR_BAYES_DIAGNOSTICS_H_

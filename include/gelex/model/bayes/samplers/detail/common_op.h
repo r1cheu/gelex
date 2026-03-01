@@ -28,7 +28,7 @@
 
 #include <Eigen/Core>
 
-#include "../src/utils/math_utils.h"
+#include "gelex/infra/utils/math_utils.h"
 
 namespace gelex::detail
 {

@@ -20,7 +20,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/data/genotype_processor.h"
+#include "gelex/data/genotype/genotype_processor.h"
 
 using namespace gelex;
 using Catch::Matchers::WithinAbs;
@@ -68,16 +68,13 @@ auto require_vector_within_abs(
 
 }  // namespace
 
-TEST_CASE(
-    "AdditiveProcessor<StandardizeMethod> - Basic functionality",
-    "[data]")
+TEST_CASE("Standardize<Add> - Basic functionality", "[data]")
 {
     SECTION("Happy path - polymorphic variant")
     {
         Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
 
-        auto stats
-            = AdditiveProcessor<StandardizeMethod>::process_variant(variant);
+        auto stats = Standardize<GeneticEffectType::Add>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(0.8, k_tolerance));
         REQUIRE_THAT(stats.stddev, WithinRel(0.8366600265340756, k_tolerance));
@@ -96,8 +93,7 @@ TEST_CASE(
     {
         Eigen::VectorXd variant = make_vector({2.0, 2.0, 2.0, 2.0, 2.0});
 
-        auto stats
-            = AdditiveProcessor<StandardizeMethod>::process_variant(variant);
+        auto stats = Standardize<GeneticEffectType::Add>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(2.0, k_tolerance));
         REQUIRE_THAT(stats.stddev, WithinAbs(0.0, k_tolerance));
@@ -106,16 +102,13 @@ TEST_CASE(
     }
 }
 
-TEST_CASE(
-    "AdditiveProcessor<OrthStandardizeMethod> - Basic functionality",
-    "[data]")
+TEST_CASE("OrthStandardize<Add> - Basic functionality", "[data]")
 {
     SECTION("Happy path - polymorphic variant")
     {
         Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
 
-        auto stats = AdditiveProcessor<OrthStandardizeMethod>::process_variant(
-            variant);
+        auto stats = OrthStandardize<GeneticEffectType::Add>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(0.8, k_tolerance));
         double expected_stddev = std::sqrt(0.7);
@@ -135,8 +128,7 @@ TEST_CASE(
     {
         Eigen::VectorXd variant = make_vector({2.0, 2.0, 2.0, 2.0, 2.0});
 
-        auto stats = AdditiveProcessor<OrthStandardizeMethod>::process_variant(
-            variant);
+        auto stats = OrthStandardize<GeneticEffectType::Add>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(2.0, k_tolerance));
         REQUIRE_THAT(stats.stddev, WithinAbs(0.0, k_tolerance));
@@ -145,16 +137,13 @@ TEST_CASE(
     }
 }
 
-TEST_CASE(
-    "DominantProcessor<StandardizeMethod> - Basic functionality",
-    "[data]")
+TEST_CASE("Standardize<Dom> - Basic functionality", "[data]")
 {
     SECTION("Happy path - polymorphic variant with heterozygotes")
     {
         Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0, 2.0});
 
-        auto stats
-            = DominantProcessor<StandardizeMethod>::process_variant(variant);
+        auto stats = Standardize<GeneticEffectType::Dom>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(0.3333333333333333, k_tolerance));
         REQUIRE_THAT(stats.stddev, WithinRel(0.5163977794943222, k_tolerance));
@@ -168,8 +157,7 @@ TEST_CASE(
     {
         Eigen::VectorXd variant = make_vector({0.0, 2.0, 0.0, 2.0});
 
-        auto stats
-            = DominantProcessor<StandardizeMethod>::process_variant(variant);
+        auto stats = Standardize<GeneticEffectType::Dom>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(0.0, k_tolerance));
         REQUIRE_THAT(stats.stddev, WithinAbs(0.0, k_tolerance));
@@ -177,16 +165,13 @@ TEST_CASE(
     }
 }
 
-TEST_CASE(
-    "DominantProcessor<OrthStandardizeMethod> - Basic functionality",
-    "[data]")
+TEST_CASE("OrthStandardize<Dom> - Basic functionality", "[data]")
 {
     SECTION("Happy path - polymorphic variant")
     {
         Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
 
-        auto stats = DominantProcessor<OrthStandardizeMethod>::process_variant(
-            variant);
+        auto stats = OrthStandardize<GeneticEffectType::Dom>::process(variant);
 
         double expected_mean = 0.24;
         double expected_stddev = std::sqrt(0.288);
@@ -208,8 +193,7 @@ TEST_CASE(
     {
         Eigen::VectorXd variant = make_vector({2.0, 2.0, 2.0, 2.0, 2.0});
 
-        auto stats = DominantProcessor<OrthStandardizeMethod>::process_variant(
-            variant);
+        auto stats = OrthStandardize<GeneticEffectType::Dom>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(2.0, k_tolerance));
         REQUIRE_THAT(stats.stddev, WithinAbs(0.0, k_tolerance));
@@ -218,12 +202,11 @@ TEST_CASE(
     }
 }
 
-TEST_CASE("AdditiveProcessor<StandardizeHWEMethod> uses HWE moments", "[data]")
+TEST_CASE("StandardizeHWE<Add> uses HWE moments", "[data]")
 {
     Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
 
-    auto stats
-        = AdditiveProcessor<StandardizeHWEMethod>::process_variant(variant);
+    auto stats = StandardizeHWE<GeneticEffectType::Add>::process(variant);
 
     double expected_mean = 0.8;
     double expected_stddev = std::sqrt(2.0 * 0.4 * 0.6);
@@ -241,14 +224,11 @@ TEST_CASE("AdditiveProcessor<StandardizeHWEMethod> uses HWE moments", "[data]")
     require_vector_within_rel(variant, expected);
 }
 
-TEST_CASE(
-    "DominantProcessor<StandardizeHWEMethod> uses [0,1,0] HWE moments",
-    "[data]")
+TEST_CASE("StandardizeHWE<Dom> uses [0,1,0] HWE moments", "[data]")
 {
     Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
 
-    auto stats
-        = DominantProcessor<StandardizeHWEMethod>::process_variant(variant);
+    auto stats = StandardizeHWE<GeneticEffectType::Dom>::process(variant);
 
     double expected_mean = 2.0 * 0.4 * 0.6;
     double expected_stddev
@@ -267,14 +247,11 @@ TEST_CASE(
     require_vector_within_rel(variant, expected);
 }
 
-TEST_CASE(
-    "DominantProcessor<OrthStandardizeHWEMethod> uses [0,2p,4p-2] HWE moments",
-    "[data]")
+TEST_CASE("OrthStandardizeHWE<Dom> uses [0,2p,4p-2] HWE moments", "[data]")
 {
     Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
 
-    auto stats
-        = DominantProcessor<OrthStandardizeHWEMethod>::process_variant(variant);
+    auto stats = OrthStandardizeHWE<GeneticEffectType::Dom>::process(variant);
 
     double expected_mean = 2.0 * 0.4 * 0.4;
     double expected_stddev = 2.0 * 0.4 * 0.6;

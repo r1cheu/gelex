@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/grm.h"
+#include "gelex/data/grm/grm.h"
 
 #include <memory>
 
@@ -26,14 +26,14 @@
 #include <cblas.h>
 #endif
 
-#include "gelex/data/bed_pipe.h"
-#include "gelex/data/sample_manager.h"
+#include "gelex/data/genotype/bed_pipe.h"
+#include "gelex/data/genotype/sample_manager.h"
 
 namespace gelex
 {
 using Eigen::Index;
 
-GRM::GRM(std::filesystem::path bed_path)
+GRM::GRM(const std::filesystem::path& bed_path)
     : sample_manager_(SampleManager::create_finalized(bed_path)),
       bed_(bed_path, sample_manager_)
 {

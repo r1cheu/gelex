@@ -19,7 +19,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/data/effect_sampler.h"
+#include "gelex/algo/sim/effect_sampler.h"
 #include "gelex/exception.h"
 
 using namespace gelex;  // NOLINT
@@ -29,23 +29,14 @@ TEST_CASE("EffectSampler - validation", "[effect_sampler]")
 {
     SECTION("Valid config does not throw")
     {
-        EffectSampler::Config config{
-            .add_classes = {{1.0, 1.0}},
-            .dom_classes = {{1.0, 1.0}},
-            .has_dominance = false,
-            .seed = 42,
-        };
-        REQUIRE_NOTHROW(EffectSampler(config));
+        std::mt19937_64 rng(42);
+        REQUIRE_NOTHROW(EffectSampler({{1.0, 1.0}}, {{1.0, 1.0}}, rng));
     }
 
     SECTION("Empty effect classes throws")
     {
-        EffectSampler::Config config{
-            .add_classes = {},
-            .dom_classes = {{1.0, 1.0}},
-            .has_dominance = false,
-            .seed = 42,
-        };
-        REQUIRE_THROWS_AS(EffectSampler(config), ArgumentValidationException);
+        std::mt19937_64 rng(42);
+        REQUIRE_THROWS_AS(
+            EffectSampler({}, {{1.0, 1.0}}, rng), ArgumentValidationException);
     }
 }

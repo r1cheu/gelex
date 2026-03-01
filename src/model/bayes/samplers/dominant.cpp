@@ -19,7 +19,7 @@
 
 #include <Eigen/Core>
 
-#include "../src/types/bayes_effects.h"
+#include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
 
 #include "gelex/model/bayes/samplers/detail/gibbs/a.h"

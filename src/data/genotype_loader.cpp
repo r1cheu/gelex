@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/genotype_loader.h"
+#include "gelex/data/genotype/genotype_loader.h"
 
 #include <format>
 #include <new>  // for std::bad_alloc
@@ -46,6 +46,36 @@ GenotypeLoader::GenotypeLoader(
                 (double)sample_size_ * num_variants_ * sizeof(double) / 1024.0
                     / 1024.0 / 1024.0));
     }
+}
+
+void GenotypeLoader::process_chunk(
+    Eigen::MatrixXd& chunk,
+    Eigen::Index global_start,
+    LocusStatistic (*fn)(Eigen::Ref<Eigen::VectorXd>))
+{
+    const Eigen::Index num_variants_in_chunk = chunk.cols();
+
+#pragma omp parallel for schedule(static)
+    for (Eigen::Index i = 0; i < num_variants_in_chunk; ++i)
+    {
+        auto variant = chunk.col(i);
+        LocusStatistic stats = fn(variant);
+
+        Eigen::Index global_idx = global_start + i;
+        means_[global_idx] = stats.mean;
+        stddevs_[global_idx] = stats.stddev;
+
+        if (stats.is_monomorphic)
+        {
+#pragma omp critical(genotype_loader_mono)
+            {
+                monomorphic_indices_.push_back(
+                    static_cast<int64_t>(global_idx));
+            }
+        }
+    }
+
+    data_matrix_.middleCols(global_start, num_variants_in_chunk) = chunk;
 }
 
 GenotypeMatrix GenotypeLoader::finalize()

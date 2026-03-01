@@ -15,119 +15,106 @@
  */
 
 #include <cmath>
-#include <unordered_map>
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/data/effect_sampler.h"
-#include "gelex/data/genetic_value_calculator.h"
+#include "bed_fixture.h"
+#include "gelex/algo/sim/effect_sampler.h"
+#include "gelex/algo/sim/genetic_value_calculator.h"
 
 using namespace gelex;  // NOLINT
-using Catch::Matchers::WithinAbs;
 
-TEST_CASE("GeneticValueCalculator - basic calculation", "[genetic_calc]")
+namespace
+{
+
+auto make_effects(Eigen::Index n_snps) -> CausalEffects
+{
+    CausalEffects effects;
+    effects.resize(n_snps);
+    effects.additive.setZero();
+    effects.dominance.setZero();
+    effects.add_class.setZero();
+    effects.dom_class.setZero();
+    return effects;
+}
+
+auto calculate_values(
+    const Eigen::Ref<const Eigen::MatrixXd>& genotypes,
+    const CausalEffects& effects,
+    bool has_dominance) -> GeneticValues
+{
+    gelex::test::BedFixture bed_fixture;
+    auto [bed_path, genotype_matrix]
+        = bed_fixture.create_deterministic_bed_files(genotypes);
+    (void)genotype_matrix;
+
+    GeneticValueCalculator calculator(bed_path, has_dominance);
+    return calculator.calculate(effects);
+}
+
+}  // namespace
+
+TEST_CASE("GeneticValueCalculator - additive calculation", "[genetic_calc]")
 {
     SECTION("Single SNP with unit effect")
     {
-        // 3 individuals, 1 SNP
         Eigen::MatrixXd geno(3, 1);
         geno << 0, 1, 2;
 
-        std::unordered_map<Eigen::Index, CausalEffect> effects{
-            {0, {.additive = 1.0, .dominance = 0.0, .add_class = 0, .dom_class = 0}},
-        };
+        auto effects = make_effects(1);
+        effects.additive(0) = 1.0;
 
-        auto result = GeneticValueCalculator::calculate_chunk(
-            geno, effects, 0, geno.cols(), false);
+        auto result = calculate_values(geno, effects, false);
 
         REQUIRE(result.additive.size() == 3);
-        REQUIRE(result.dominance.size() == 3);
-
-        // Dominance values should be zero
-        for (Eigen::Index i = 0; i < 3; ++i)
-        {
-            REQUIRE(result.dominance(i) == 0.0);
-        }
+        REQUIRE(result.dominance.size() == 0);
     }
 
-    SECTION("Multiple SNPs with different effects")
+    SECTION("Multiple SNPs with sparse effects")
     {
-        // 4 individuals, 3 SNPs
-        Eigen::MatrixXd geno(4, 3);
-        geno << 0, 1, 2, 1, 1, 1, 2, 0, 0, 1, 2, 1;
+        Eigen::MatrixXd geno(4, 5);
+        geno << 0, 1, 2, 1, 0, 1, 1, 1, 2, 1, 2, 0, 0, 0, 2, 1, 2, 1, 0, 1;
 
-        std::unordered_map<Eigen::Index, CausalEffect> effects{
-            {0, {.additive = 1.0, .dominance = 0.0, .add_class = 0, .dom_class = 0}},
-            {1, {.additive = 0.5, .dominance = 0.0, .add_class = 0, .dom_class = 0}},
-            {2, {.additive = -0.5, .dominance = 0.0, .add_class = 0, .dom_class = 0}},
-        };
+        auto effects = make_effects(5);
+        effects.additive(1) = 1.0;
+        effects.additive(3) = -0.5;
 
-        auto result = GeneticValueCalculator::calculate_chunk(
-            geno, effects, 0, geno.cols(), false);
+        auto result = calculate_values(geno, effects, false);
 
         REQUIRE(result.additive.size() == 4);
-    }
 
-    SECTION("Only subset of SNPs have effects")
-    {
-        Eigen::MatrixXd geno(3, 5);
-        geno.setOnes();
-
-        // Only SNP 1 and SNP 3 have effects
-        std::unordered_map<Eigen::Index, CausalEffect> effects{
-            {1, {.additive = 1.0, .dominance = 0.0, .add_class = 0, .dom_class = 0}},
-            {3, {.additive = 2.0, .dominance = 0.0, .add_class = 0, .dom_class = 0}},
-        };
-
-        auto result = GeneticValueCalculator::calculate_chunk(
-            geno, effects, 0, geno.cols(), false);
-
-        REQUIRE(result.additive.size() == 3);
-    }
-
-    SECTION("Empty effects produces zero genetic values")
-    {
-        Eigen::MatrixXd geno(3, 5);
-        geno.setRandom();
-
-        std::unordered_map<Eigen::Index, CausalEffect> effects;
-
-        auto result = GeneticValueCalculator::calculate_chunk(
-            geno, effects, 0, geno.cols(), false);
-
-        for (Eigen::Index i = 0; i < 3; ++i)
+        bool all_zero = true;
+        for (Eigen::Index i = 0; i < result.additive.size(); ++i)
         {
-            REQUIRE(result.additive(i) == 0.0);
-            REQUIRE(result.dominance(i) == 0.0);
+            if (std::abs(result.additive(i)) > 1e-10)
+            {
+                all_zero = false;
+                break;
+            }
         }
+        REQUIRE_FALSE(all_zero);
     }
 }
 
-TEST_CASE("GeneticValueCalculator - dominance effects", "[genetic_calc]")
+TEST_CASE("GeneticValueCalculator - dominance calculation", "[genetic_calc]")
 {
-    SECTION("Dominance values computed when has_dominance is true")
+    SECTION("Dominance values computed when enabled")
     {
         Eigen::MatrixXd geno(3, 2);
         geno << 0, 2, 1, 1, 2, 0;
 
-        std::unordered_map<Eigen::Index, CausalEffect> effects{
-            {0,
-             {.additive = 1.0, .dominance = 0.5, .add_class = 0, .dom_class = 0}},
-            {1,
-             {.additive = 0.5, .dominance = 1.0, .add_class = 0, .dom_class = 0}},
-        };
+        auto effects = make_effects(2);
+        effects.additive << 1.0, 0.5;
+        effects.dominance << 0.5, 1.0;
 
-        auto result = GeneticValueCalculator::calculate_chunk(
-            geno, effects, 0, geno.cols(), true);
+        auto result = calculate_values(geno, effects, true);
 
         REQUIRE(result.additive.size() == 3);
         REQUIRE(result.dominance.size() == 3);
 
-        // Check that dominance values are not all zero
         bool has_nonzero = false;
-        for (Eigen::Index i = 0; i < 3; ++i)
+        for (Eigen::Index i = 0; i < result.dominance.size(); ++i)
         {
             if (std::abs(result.dominance(i)) > 1e-10)
             {
@@ -138,88 +125,18 @@ TEST_CASE("GeneticValueCalculator - dominance effects", "[genetic_calc]")
         REQUIRE(has_nonzero);
     }
 
-    SECTION("Dominance values are zero when has_dominance is false")
+    SECTION("Dominance vector is empty when disabled")
     {
         Eigen::MatrixXd geno(3, 2);
         geno << 0, 2, 1, 1, 2, 0;
 
-        std::unordered_map<Eigen::Index, CausalEffect> effects{
-            {0,
-             {.additive = 1.0, .dominance = 0.5, .add_class = 0, .dom_class = 0}},
-        };
+        auto effects = make_effects(2);
+        effects.additive << 1.0, 0.5;
+        effects.dominance << 0.5, 1.0;
 
-        auto result = GeneticValueCalculator::calculate_chunk(
-            geno, effects, 0, geno.cols(), false);
-
-        for (Eigen::Index i = 0; i < 3; ++i)
-        {
-            REQUIRE(result.dominance(i) == 0.0);
-        }
-    }
-}
-
-TEST_CASE("GeneticValueCalculator - chunk calculation", "[genetic_calc]")
-{
-    SECTION("Chunk calculation filters by index range")
-    {
-        // Use varying genotypes to avoid all-zero after standardization
-        Eigen::MatrixXd chunk(3, 5);
-        chunk << 0, 1, 2, 1, 0, 1, 1, 1, 2, 1, 2, 0, 0, 0, 2;
-
-        // Global indices 10-14, only 12 has effect
-        std::unordered_map<Eigen::Index, CausalEffect> effects{
-            {5,
-             {.additive = 100.0,
-              .dominance = 0.0,
-              .add_class = 0,
-              .dom_class = 0}},  // outside range
-            {12,
-             {.additive = 1.0,
-              .dominance = 0.0,
-              .add_class = 0,
-              .dom_class = 0}},  // inside range (col 2)
-            {20,
-             {.additive = 100.0,
-              .dominance = 0.0,
-              .add_class = 0,
-              .dom_class = 0}},  // outside range
-        };
-
-        auto result = GeneticValueCalculator::calculate_chunk(
-            chunk, effects, 10, 15, false);
+        auto result = calculate_values(geno, effects, false);
 
         REQUIRE(result.additive.size() == 3);
-
-        // Values should be non-zero only due to effect at index 12
-        // Not all zeros (because SNP 12 has effect with varying genotypes)
-        bool all_zero = true;
-        for (Eigen::Index i = 0; i < 3; ++i)
-        {
-            if (std::abs(result.additive(i)) > 1e-10)
-            {
-                all_zero = false;
-                break;
-            }
-        }
-        REQUIRE_FALSE(all_zero);
-    }
-
-    SECTION("No effects in range produces zero values")
-    {
-        Eigen::MatrixXd chunk(3, 5);
-        chunk.setRandom();
-
-        std::unordered_map<Eigen::Index, CausalEffect> effects{
-            {0, {.additive = 1.0, .dominance = 0.0, .add_class = 0, .dom_class = 0}},
-            {100, {.additive = 1.0, .dominance = 0.0, .add_class = 0, .dom_class = 0}},
-        };
-
-        auto result = GeneticValueCalculator::calculate_chunk(
-            chunk, effects, 10, 15, false);
-
-        for (Eigen::Index i = 0; i < 3; ++i)
-        {
-            REQUIRE(result.additive(i) == 0.0);
-        }
+        REQUIRE(result.dominance.size() == 0);
     }
 }

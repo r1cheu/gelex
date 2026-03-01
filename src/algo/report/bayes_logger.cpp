@@ -1,0 +1,235 @@
+/*
+ * Copyright 2026 RuLei Chen
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "gelex/algo/report/bayes_logger.h"
+
+#include <Eigen/Core>
+#include <vector>
+
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+
+#include "gelex/infra/logger.h"
+#include "gelex/infra/utils/formatter.h"
+#include "gelex/model/bayes/model.h"
+
+namespace
+{
+const int TABLE_WIDTH = 40;
+const int SECTION_WIDTH = 70;
+}  // namespace
+namespace gelex
+{
+namespace bk = barkeep;
+
+namespace detail
+{
+
+MCMCLogger::MCMCLogger() : logger_{gelex::logging::get()} {}
+
+void MCMCLogger::set_verbose(bool verbose)
+{
+    if (!verbose)
+    {
+        logger_->set_level(spdlog::level::warn);
+    }
+}
+
+void MCMCLogger::log_model_information(const BayesModel& model)
+{
+    logger_->info("");
+    logger_->info(gelex::section("Model Configuration..."));
+
+    if (const auto& effects = model.random(); !effects.empty())
+    {
+        for (const auto& effect : effects)
+        {
+            std::string name
+                = effect.levels ? effect.levels.value()[0] : "test";
+            logger_->info(gelex::task("{}(rand)", name));
+            logger_->info(
+                gelex::subtask(
+                    "Variance: Scaled Inv-χ²(ν={:.4f}, S²={:.4f}), init: "
+                    "{:.4f}",
+                    effect.prior.nu,
+                    effect.prior.s2,
+                    effect.init_variance));
+        }
+    }
+    auto log_effect = [this](const auto* effect, bool dom)
+    {
+        if (!effect)
+        {
+            return;
+        }
+        std::string label = dom ? "Dominance" : "Additive";
+        logger_->info(gelex::task("{} effect:", label));
+        logger_->info(
+            gelex::subtask(
+                "Variance: Scaled Inv-χ²(ν={:.4f}, S²={:.4f}), init: {:.4f}",
+                effect->marker_variance_prior.nu,
+                effect->marker_variance_prior.s2,
+                effect->init_marker_variance));
+
+        if (effect->init_pi && effect->init_pi->size() > 1)
+        {
+            std::string pi_str = "[";
+            for (Eigen::Index i = 0; i < effect->init_pi->size(); ++i)
+            {
+                if (i > 0)
+                {
+                    pi_str += ", ";
+                }
+                pi_str += fmt::format("{:.3f}", (*effect->init_pi)(i));
+            }
+            pi_str += "]";
+            logger_->info(gelex::subtask("Mixture: {}", pi_str));
+        }
+    };
+
+    log_effect(model.additive(), false);
+    log_effect(model.dominant(), true);
+
+    const auto& residual = model.residual();
+    logger_->info(gelex::task("Residual:"));
+    logger_->info(
+        gelex::subtask(
+            "Variance: Scaled Inv-χ²(ν={:.4f}, S²={:.4f}), init: {:.4f}",
+            residual.prior.nu,
+            residual.prior.s2,
+            residual.init_variance));
+
+    logger_->info("");
+    logger_->info(gelex::section("MCMC Sampling..."));
+}
+
+void MCMCLogger::log_result(
+    const MCMCResult& results,
+    const BayesModel& model,
+    double elapsed_time,
+    Eigen::Index samples_collected)
+{
+    logger_->info("");
+    logger_->info(gelex::named_section("Posterior Summary", SECTION_WIDTH));
+
+    logger_->info("  Time elapsed: {:.2f}s", elapsed_time);
+    logger_->info("  Samples collected per parameter: {}", samples_collected);
+    logger_->info("");
+
+    std::vector<std::string> header{"Parameter", "Mean", "SD"};
+
+    auto format_header = [](const std::vector<std::string>& header)
+    {
+        std::string result = fmt::format("  {:<8} ", header[0]);
+        for (size_t i = 1; i < header.size(); ++i)
+        {
+            result += fmt::format("{:>8}", header[i]);
+            if (i + 1 < header.size())
+            {
+                result += " ";
+            }
+        }
+        return result;
+    };
+    logger_->info(format_header(header));
+
+    logger_->info(gelex::table_separator(TABLE_WIDTH));
+
+    auto log_summary = [this](
+                           Eigen::Index i,
+                           const PosteriorSummary& summary,
+                           const std::string& name)
+    {
+        logger_->info(
+            "  {:<8} {:>10.6f} {:>10.6f}",
+            name,
+            summary.mean(i),
+            summary.stddev(i));
+    };
+
+    if (auto [effect, result] = std::make_pair(model.fixed(), results.fixed());
+        effect != nullptr && result != nullptr)
+    {
+        Eigen::Index idx{};
+        for (const auto& covariates : effect->levels)
+        {
+            if (covariates)
+            {
+                for (const auto& level : covariates.value())
+                {
+                    log_summary(idx++, result->coeffs, level);
+                }
+            }
+            else
+            {
+                log_summary(idx, result->coeffs, effect->names[idx]);
+                ++idx;
+            }
+        }
+    }
+
+    auto log_mixture = [&](const auto* effect, const auto* result)
+    {
+        if (effect != nullptr && effect->init_pi && effect->init_pi->size() > 1)
+        {
+            if (result != nullptr && result->mixture_proportion.size() > 0)
+            {
+                for (Eigen::Index i = 0; i < result->mixture_proportion.size();
+                     ++i)
+                {
+                    log_summary(
+                        i, result->mixture_proportion, fmt::format("π[{}]", i));
+                }
+            }
+
+            if (result != nullptr && result->component_variance.size() > 0)
+            {
+                for (Eigen::Index i = 0; i < result->component_variance.size();
+                     ++i)
+                {
+                    log_summary(
+                        i,
+                        result->component_variance,
+                        fmt::format("σ²[{}]", i + 1));
+                }
+            }
+        }
+    };
+
+    if (const auto* result = results.additive(); result != nullptr)
+    {
+        logger_->info(gelex::named_section("Additive", TABLE_WIDTH, 2));
+        log_summary(0, result->variance, "σ²");
+        log_summary(0, result->heritability, "h²");
+    }
+    log_mixture(model.additive(), results.additive());
+
+    if (const auto* result = results.dominant(); result != nullptr)
+    {
+        logger_->info(gelex::named_section("Dominance", TABLE_WIDTH, 2));
+        log_summary(0, result->variance, "σ²");
+        log_summary(0, result->heritability, "δ²");
+    }
+    log_mixture(model.dominant(), results.dominant());
+
+    logger_->info(gelex::named_section("Residual", TABLE_WIDTH, 2));
+    log_summary(0, results.residual(), "σ²");
+    logger_->info(gelex::table_separator(TABLE_WIDTH));
+    logger_->info("");
+}
+
+}  // namespace detail
+}  // namespace gelex

@@ -21,7 +21,7 @@
 
 #include <Eigen/Core>
 
-#include "../src/estimator/bayes/posterior_calculator.h"
+#include "gelex/algo/infer/posterior_calculator.h"
 #include "gelex/model/bayes/model.h"
 
 namespace gelex

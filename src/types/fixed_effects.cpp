@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "../src/types/fixed_effects.h"
+#include "gelex/types/fixed_effects.h"
 
 #include <iterator>
 #include <optional>

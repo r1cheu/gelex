@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "snp_stats_writer.h"
+#include "gelex/data/io/snp_stats_writer.h"
 
 #include <array>
 #include <cassert>
@@ -22,7 +22,7 @@
 #include <format>
 
 #include "gelex/exception.h"
-#include "parser.h"
+#include "gelex/io/parser.h"
 
 namespace gelex::detail
 {

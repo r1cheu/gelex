@@ -17,7 +17,7 @@
 #ifndef TESTS_TEST_INIT_H_
 #define TESTS_TEST_INIT_H_
 
-#include "gelex/logger.h"
+#include "gelex/infra/logger.h"
 #include <filesystem>
 
 namespace test_utils

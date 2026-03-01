@@ -17,8 +17,8 @@
 #include "gelex/model/bayes/prior_strategy.h"
 
 #include "gelex/exception.h"
+#include "gelex/infra/utils/math_utils.h"
 #include "gelex/model/bayes/prior_constants.h"
-#include "utils/math_utils.h"
 
 namespace gelex
 {

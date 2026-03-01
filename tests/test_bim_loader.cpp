@@ -21,7 +21,7 @@
 #include "file_fixture.h"
 #include "gelex/exception.h"
 
-#include "../src/data/loader/bim_loader.h"
+#include "gelex/data/loader/bim_loader.h"
 
 using namespace gelex::detail;  // NOLINT
 using Catch::Matchers::EndsWith;

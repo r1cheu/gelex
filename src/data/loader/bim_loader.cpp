@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "bim_loader.h"
+#include "gelex/data/loader/bim_loader.h"
 
 #include <filesystem>
 #include <fstream>
@@ -27,7 +27,7 @@
 
 #include "gelex/exception.h"
 
-#include "../src/data/parser.h"
+#include "gelex/io/parser.h"
 
 #include "gelex/types/snp_info.h"
 

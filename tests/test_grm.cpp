@@ -25,8 +25,8 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "bed_fixture.h"
-#include "gelex/data/genotype_processor.h"
-#include "gelex/data/grm.h"
+#include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/data/grm/grm.h"
 
 namespace fs = std::filesystem;
 
@@ -79,7 +79,7 @@ TEST_CASE("GRM - compute() additive GRM", "[grm][compute]")
 {
     BedFixture fixture;
 
-    SECTION("Happy path - OrthStandardized additive GRM properties")
+    SECTION("Happy path - OrthStandardize additive GRM properties")
     {
         const Eigen::Index num_samples = 15;
         const Eigen::Index num_snps = 50;
@@ -87,8 +87,8 @@ TEST_CASE("GRM - compute() additive GRM", "[grm][compute]")
             = fixture.create_bed_files(num_samples, num_snps, 0.0);
 
         GRM grm(bed_prefix);
-        GrmResult result
-            = grm.compute<grm::OrthStandardized::Additive>(10);
+        GrmResult result = grm.compute<GeneticEffectType::Add>(
+            GenotypeProcessMethod::OrthStandardize, 10);
 
         // verify dimensions
         REQUIRE(result.grm.rows() == num_samples);
@@ -134,7 +134,7 @@ TEST_CASE("GRM - compute() dominance GRM", "[grm][compute]")
 {
     BedFixture fixture;
 
-    SECTION("Happy path - OrthStandardized dominance GRM properties")
+    SECTION("Happy path - OrthStandardize dominance GRM properties")
     {
         const Eigen::Index num_samples = 12;
         const Eigen::Index num_snps = 40;
@@ -142,8 +142,8 @@ TEST_CASE("GRM - compute() dominance GRM", "[grm][compute]")
             = fixture.create_bed_files(num_samples, num_snps, 0.0);
 
         GRM grm(bed_prefix);
-        GrmResult result
-            = grm.compute<grm::OrthStandardized::Dominant>(10);
+        GrmResult result = grm.compute<GeneticEffectType::Dom>(
+            GenotypeProcessMethod::OrthStandardize, 10);
 
         // verify dimensions
         REQUIRE(result.grm.rows() == num_samples);
@@ -197,20 +197,20 @@ TEST_CASE("GRM - compute() chunk size consistency", "[grm][compute][chunk]")
 
         // compute with different chunk sizes using same data
         GRM grm1(bed_prefix);
-        GrmResult result1
-            = grm1.compute<grm::OrthStandardized::Additive>(1);
+        GrmResult result1 = grm1.compute<GeneticEffectType::Add>(
+            GenotypeProcessMethod::OrthStandardize, 1);
 
         GRM grm2(bed_prefix);
-        GrmResult result2
-            = grm2.compute<grm::OrthStandardized::Additive>(7);
+        GrmResult result2 = grm2.compute<GeneticEffectType::Add>(
+            GenotypeProcessMethod::OrthStandardize, 7);
 
         GRM grm3(bed_prefix);
-        GrmResult result3
-            = grm3.compute<grm::OrthStandardized::Additive>(num_snps);
+        GrmResult result3 = grm3.compute<GeneticEffectType::Add>(
+            GenotypeProcessMethod::OrthStandardize, num_snps);
 
         GRM grm4(bed_prefix);
-        GrmResult result4
-            = grm4.compute<grm::OrthStandardized::Additive>(num_snps + 100);
+        GrmResult result4 = grm4.compute<GeneticEffectType::Add>(
+            GenotypeProcessMethod::OrthStandardize, num_snps + 100);
 
         // all should be equal
         REQUIRE(are_matrices_equal(result1.grm, result2.grm, 1e-10));
@@ -272,7 +272,7 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
 {
     BedFixture fixture;
 
-    SECTION("OrthStandardized additive GRM with deterministic genotype")
+    SECTION("OrthStandardize additive GRM with deterministic genotype")
     {
         // create a simple deterministic genotype matrix
         // 4 samples, 3 SNPs
@@ -288,9 +288,10 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
             = fixture.create_deterministic_bed_files(genotypes);
 
         GRM grm(bed_prefix);
-        GrmResult result = grm.compute<grm::OrthStandardized::Additive>(10);
+        GrmResult result = grm.compute<GeneticEffectType::Add>(
+            GenotypeProcessMethod::OrthStandardize, 10);
 
-        // manually compute expected GRM using OrthStandardized additive method
+        // manually compute expected GRM using OrthStandardize additive method
         // OrthStandardizeMethod = CenterMethod + divide by sample stddev
         Eigen::MatrixXd Z = genotypes;
         for (Eigen::Index j = 0; j < Z.cols(); ++j)
@@ -298,7 +299,7 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
             double mean = Z.col(j).mean();
             Z.col(j).array() -= mean;
             double var = Z.col(j).squaredNorm()
-                / (static_cast<double>(Z.rows()) - 1.0);
+                         / (static_cast<double>(Z.rows()) - 1.0);
             double denom = std::sqrt(var);
             if (denom > 1e-10)
             {
@@ -321,7 +322,8 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
         REQUIRE_THAT(result.denominator, WithinAbs(expected_denom, 1e-8));
 
         // Step 4: normalize for comparison
-        Eigen::MatrixXd expected_grm = expected_unnormalized_grm / expected_denom;
+        Eigen::MatrixXd expected_grm
+            = expected_unnormalized_grm / expected_denom;
         Eigen::MatrixXd G = result.grm / result.denominator;
 
         // verify diagonal elements
@@ -340,7 +342,7 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
         }
     }
 
-    SECTION("Centered additive GRM with deterministic genotype")
+    SECTION("Center additive GRM with deterministic genotype")
     {
         // 3 samples, 2 SNPs
         Eigen::MatrixXd genotypes(3, 2);
@@ -354,9 +356,10 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
             = fixture.create_deterministic_bed_files(genotypes);
 
         GRM grm(bed_prefix);
-        GrmResult result = grm.compute<grm::Centered::Additive>(10);
+        GrmResult result = grm.compute<GeneticEffectType::Add>(
+            GenotypeProcessMethod::Center, 10);
 
-        // Centered additive: mean centering
+        // Center additive: mean centering
         Eigen::MatrixXd Z = genotypes;
         for (Eigen::Index j = 0; j < Z.cols(); ++j)
         {
@@ -414,7 +417,8 @@ TEST_CASE("GRM - progress callback", "[grm][compute][callback]")
             = [&progress_calls](Eigen::Index current, Eigen::Index total)
         { progress_calls.emplace_back(current, total); };
 
-        GrmResult result = grm.compute<grm::OrthStandardized::Additive>(5, callback);
+        GrmResult result = grm.compute<GeneticEffectType::Add>(
+            GenotypeProcessMethod::OrthStandardize, 5, callback);
 
         // with chunk_size=5 and num_snps=20, expect 4 callback calls
         REQUIRE(progress_calls.size() == 4);
@@ -445,7 +449,8 @@ TEST_CASE("GRM - progress callback", "[grm][compute][callback]")
 
         GRM grm(bed_prefix);
 
-        GrmResult result = grm.compute<grm::OrthStandardized::Additive>(5, nullptr);
+        GrmResult result = grm.compute<GeneticEffectType::Add>(
+            GenotypeProcessMethod::OrthStandardize, 5, nullptr);
         REQUIRE(result.grm.rows() == num_samples);
         REQUIRE(result.denominator > 0.0);
     }

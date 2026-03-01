@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#include "gelex/data/loco_grm_loader.h"
+#include "gelex/data/grm/loco_grm_loader.h"
 
 #include <format>
 
+#include "gelex/data/grm/grm_loader.h"
 #include "gelex/exception.h"
-#include "grm_loader.h"
 
 namespace gelex
 {

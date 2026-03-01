@@ -14,16 +14,39 @@
  * limitations under the License.
  */
 
-#include "gelex/data/genotype_pipe.h"
+#include "gelex/data/genotype/genotype_pipe.h"
 
 #include <filesystem>
 #include <utility>
 
 #include "gelex/exception.h"
-#include "gelex/logger.h"
+#include "gelex/infra/logger.h"
 
 namespace gelex
 {
+
+void GenotypePipe::process_chunk(
+    Eigen::MatrixXd& chunk,
+    size_t global_start,
+    LocusStatistic (*fn)(Eigen::Ref<Eigen::VectorXd>))
+{
+    const int64_t num_variants_in_chunk = chunk.cols();
+
+    for (int64_t i = 0; i < num_variants_in_chunk; ++i)
+    {
+        auto variant = chunk.col(i);
+        LocusStatistic stats = fn(variant);
+
+        size_t global_idx = global_start + i;
+        means_[global_idx] = stats.mean;
+        variances_[global_idx] = stats.stddev;
+
+        if (stats.is_monomorphic)
+        {
+            monomorphic_indices_.push_back(static_cast<int64_t>(global_idx));
+        }
+    }
+}
 
 GenotypePipe::GenotypePipe(
     const std::filesystem::path& bed_path,

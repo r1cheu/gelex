@@ -23,8 +23,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "../src/estimator/bayes/diagnostics.h"
-#include "gelex/types/mcmc_samples.h"
+#include "gelex/algo/stats/diagnostics.h"
 
 extern "C" const char* __lsan_default_suppressions()
 {
@@ -38,7 +37,7 @@ using Eigen::RowVectorXd;
 
 TEST_CASE("gelman rubin", "[diagnostics]")
 {
-    gelex::Samples samples(2);
+    gelex::Chains samples(2);
     samples[0] = Eigen::RowVectorXd::LinSpaced(10, 0, 9);
     samples[1] = Eigen::RowVectorXd::LinSpaced(10, 0, 9).array() + 1;
 
@@ -51,12 +50,12 @@ TEST_CASE("split gelman rubin", "[diagnostics]")
     std::mt19937_64 rng(42);
     std::normal_distribution<double> dist(0, 1);
 
-    gelex::Samples samples(2);
+    gelex::Chains samples(2);
     samples[0]
         = Eigen::RowVectorXd::NullaryExpr(10, [&]() { return dist(rng); });
     samples[1]
         = Eigen::RowVectorXd::NullaryExpr(10, [&]() { return dist(rng); });
-    gelex::Samples repeated_samples(4);
+    gelex::Chains repeated_samples(4);
 
     for (Eigen::Index i = 0; i < 2; ++i)
     {
@@ -72,10 +71,10 @@ TEST_CASE("split gelman rubin", "[diagnostics]")
 
 TEST_CASE("autocorrelation", "[diagnostics]")
 {
-    gelex::Samples x(1);
+    gelex::Chains x(1);
     x[0] = Eigen::RowVectorXd::LinSpaced(10, 0, 9);
 
-    gelex::Samples random_x(1);
+    gelex::Chains random_x(1);
     std::mt19937_64 rng(42);
     std::normal_distribution<double> dist(0, 1);
     random_x[0]
@@ -120,7 +119,7 @@ TEST_CASE("autocorrelation", "[diagnostics]")
 
 TEST_CASE("autovariance", "[diagnostics]")
 {
-    gelex::Samples x;
+    gelex::Chains x;
     x.emplace_back(Eigen::RowVectorXd::LinSpaced(10, 0, 9));
     auto actual = gelex::autocovariance(x, false);
 
@@ -134,7 +133,7 @@ TEST_CASE("autovariance", "[diagnostics]")
 
 TEST_CASE("effective sample size", "[diagnostics]")
 {
-    gelex::Samples x;
+    gelex::Chains x;
 
     Eigen::RowVectorXd raw_x = Eigen::RowVectorXd::LinSpaced(1000, 0, 999);
     for (Eigen::Index i = 0; i < 100; ++i)
