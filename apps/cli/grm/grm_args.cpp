@@ -45,7 +45,7 @@ void setup_grm_args(argparse::ArgumentParser& cmd)
     // GRM Options
     // ================================================================
     cmd.add_group("GRM Options");
-    cmd.add_argument("--geno-method")
+    cmd.add_argument("--geno-method", "--gm")
         .help(
             "Genotype method: StandardizeHWE(SH), CenterHWE(CH),"
             " OrthStandardizeHWE(OSH), OrthCenterHWE(OCH),"

@@ -93,7 +93,7 @@ void setup_assoc_args(argparse::ArgumentParser& cmd)
         .default_value("a")
         .metavar("<MODEL>")
         .choices("a", "d");
-    cmd.add_argument("--geno-method")
+    cmd.add_argument("--geno-method", "--gm")
         .help(
             "Genotype method: StandardizeHWE(SH), CenterHWE(CH),"
             " OrthStandardizeHWE(OSH), OrthCenterHWE(OCH),"

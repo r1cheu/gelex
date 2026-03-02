@@ -60,7 +60,7 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
         .help("SNPs per chunk (controls memory usage)")
         .default_value(10000)
         .scan<'i', int>();
-    cmd.add_argument("--geno-method")
+    cmd.add_argument("--geno-method", "--gm")
         .help(
             "Genotype method: StandardizeHWE(SH), CenterHWE(CH),"
             " OrthStandardizeHWE(OSH), OrthCenterHWE(OCH),"
