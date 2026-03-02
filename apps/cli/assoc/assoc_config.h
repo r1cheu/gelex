@@ -21,7 +21,6 @@
 #include <string>
 #include <vector>
 
-#include "gelex/data/genotype/genotype_method_dispatch.h"
 #include "gelex/pipeline/data_pipe.h"
 
 namespace argparse

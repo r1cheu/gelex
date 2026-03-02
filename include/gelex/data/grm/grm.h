@@ -18,7 +18,6 @@
 #define GELEX_DATA_GRM_H_
 
 #include <filesystem>
-#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -28,6 +27,7 @@
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/data/genotype/sample_manager.h"
+#include "gelex/infra/logging/grm_event.h"
 
 namespace gelex
 {
@@ -53,16 +53,14 @@ class GRM
     auto compute(
         GenotypeProcessMethod method,
         Eigen::Index chunk_size,
-        std::function<void(Eigen::Index, Eigen::Index)> progress_callback
-        = nullptr) -> GrmResult;
+        const GrmObserver& observer = {}) -> GrmResult;
 
     template <GeneticEffectType GT>
     auto compute(
         GenotypeProcessMethod method,
         const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
         Eigen::Index chunk_size,
-        const std::function<void(Eigen::Index, Eigen::Index)>& progress_callback
-        = nullptr) -> GrmResult;
+        const GrmObserver& observer = {}) -> GrmResult;
 
     [[nodiscard]] auto sample_ids() const -> const std::vector<std::string>&
     {
@@ -87,11 +85,9 @@ template <GeneticEffectType GT>
 auto GRM::compute(
     GenotypeProcessMethod method,
     Eigen::Index chunk_size,
-    std::function<void(Eigen::Index, Eigen::Index)> progress_callback)
-    -> GrmResult
+    const GrmObserver& observer) -> GrmResult
 {
-    return compute<GT>(
-        method, {{0, bed_.num_snps()}}, chunk_size, progress_callback);
+    return compute<GT>(method, {{0, bed_.num_snps()}}, chunk_size, observer);
 }
 
 template <GeneticEffectType GT>
@@ -99,8 +95,7 @@ auto GRM::compute(
     GenotypeProcessMethod method,
     const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
     Eigen::Index chunk_size,
-    const std::function<void(Eigen::Index, Eigen::Index)>& progress_callback)
-    -> GrmResult
+    const GrmObserver& observer) -> GrmResult
 {
     const Eigen::Index n = bed_.num_samples();
     Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(n, n);
@@ -126,9 +121,14 @@ auto GRM::compute(
             update_grm(grm, genotype_chunk);
 
             processed_snps += (end_col - start_col);
-            if (progress_callback)
+            if (observer)
             {
-                progress_callback(processed_snps, total_snps_to_process);
+                GrmEvent event;
+                event.emplace<GrmProgressEvent>(
+                    static_cast<size_t>(processed_snps),
+                    static_cast<size_t>(total_snps_to_process),
+                    false);
+                observer(event);
             }
         }
     }

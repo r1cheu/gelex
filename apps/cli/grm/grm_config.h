@@ -20,7 +20,7 @@
 #include <filesystem>
 #include <string>
 
-#include "gelex/data/genotype/genotype_method_dispatch.h"
+#include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/types/freq_effect.h"
 
 namespace argparse

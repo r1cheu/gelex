@@ -18,17 +18,20 @@
 #define GELEX_CLI_CLI_HELPER_H_
 
 #include <argparse.h>
+#include <algorithm>
 #include <atomic>
+#include <cctype>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include <barkeep.h>
 #include <Eigen/Core>
 
-#include "gelex/data/genotype/genotype_method_dispatch.h"
+#include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/exception.h"
 #include "gelex/infra/detail/indicator.h"
-#include "gelex/types/freq_effect.h"
 #include "gelex/types/snp_info.h"
 
 namespace gelex::cli
@@ -41,8 +44,48 @@ struct ChrGroup
     Eigen::Index total_snps;
 };
 
-using GenotypeProcessMethod = gelex::GenotypeProcessMethod;
-using ProgressBarDisplay = gelex::detail::ProgressBar;
+inline auto parse_genotype_process_method(std::string_view value)
+    -> GenotypeProcessMethod
+{
+    std::string lower(value);
+    std::transform(
+        lower.begin(),
+        lower.end(),
+        lower.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+
+    static const std::unordered_map<std::string, GenotypeProcessMethod>
+        kMethodMap = {
+            {"standardizehwe", GenotypeProcessMethod::StandardizeHWE},
+            {"sh", GenotypeProcessMethod::StandardizeHWE},
+            {"centerhwe", GenotypeProcessMethod::CenterHWE},
+            {"ch", GenotypeProcessMethod::CenterHWE},
+            {"orthstandardizehwe", GenotypeProcessMethod::OrthStandardizeHWE},
+            {"osh", GenotypeProcessMethod::OrthStandardizeHWE},
+            {"orthcenterhwe", GenotypeProcessMethod::OrthCenterHWE},
+            {"och", GenotypeProcessMethod::OrthCenterHWE},
+            {"standardize", GenotypeProcessMethod::Standardize},
+            {"s", GenotypeProcessMethod::Standardize},
+            {"center", GenotypeProcessMethod::Center},
+            {"c", GenotypeProcessMethod::Center},
+            {"orthstandardize", GenotypeProcessMethod::OrthStandardize},
+            {"os", GenotypeProcessMethod::OrthStandardize},
+            {"orthcenter", GenotypeProcessMethod::OrthCenter},
+            {"oc", GenotypeProcessMethod::OrthCenter},
+        };
+
+    auto it = kMethodMap.find(lower);
+    if (it == kMethodMap.end())
+    {
+        throw gelex::InvalidInputException(
+            "Invalid genotype process method: \"" + std::string(value)
+            + "\". Valid: StandardizeHWE(SH), CenterHWE(CH),"
+              " OrthStandardizeHWE(OSH), OrthCenterHWE(OCH),"
+              " Standardize(S), Center(C), OrthStandardize(OS),"
+              " OrthCenter(OC)");
+    }
+    return it->second;
+}
 
 auto is_tty() -> bool;
 
@@ -54,7 +97,7 @@ auto build_chr_groups(bool do_loco, const gelex::SnpEffects& snp_effects)
 inline auto create_progress_bar(
     std::atomic<size_t>& counter,
     size_t total,
-    std::string_view format = "{bar}") -> ProgressBarDisplay
+    std::string_view format = "{bar}") -> gelex::detail::ProgressBar
 {
     return gelex::detail::create_progress_bar(counter, total, format);
 }
@@ -68,15 +111,7 @@ auto print_fit_header(
     int burn_in,
     int threads) -> void;
 
-auto print_grm_header(
-    std::string_view method,
-    gelex::freq::GrmType mode,
-    int chunk_size,
-    int threads) -> void;
-
 auto print_assoc_header(int threads) -> void;
-
-auto print_simulate_header(bool has_dominance) -> void;
 
 auto format_epilog(std::string_view text) -> std::string;
 

@@ -39,7 +39,10 @@ auto PostReporter::on_event(const PostStartEvent& event) const -> void
         = fmt::format("gelex v{} :: MCMC Posterior Analysis", PROJECT_VERSION);
     std::vector<std::pair<std::string, std::string>> items
         = {{"Chains", fmt::format("{}", n_chains)}, {"Input", input_str}};
-    logger_->info(gelex::header_box(title, items, 70));
+    for (const auto& line : gelex::header_box(title, items, 70))
+    {
+        logger_->info(line);
+    }
     logger_->info("");
 }
 

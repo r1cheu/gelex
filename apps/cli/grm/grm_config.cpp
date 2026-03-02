@@ -18,6 +18,7 @@
 
 #include <argparse.h>
 
+#include "cli/cli_helper.h"
 #include "gelex/data/genotype/bed_path.h"
 #include "gelex/exception.h"
 
@@ -38,8 +39,8 @@ auto GrmConfig::make(argparse::ArgumentParser& cmd) -> GrmConfig
     return GrmConfig{
         .bed_path = gelex::format_bed_path(cmd.get("--bfile")),
         .out_prefix = cmd.get("--out"),
-        .method
-        = gelex::parse_genotype_process_method(cmd.get<int>("--geno-method")),
+        .method = gelex::cli::parse_genotype_process_method(
+            cmd.get<std::string>("--geno-method")),
         .mode = mode,
         .chunk_size = cmd.get<int>("--chunk-size"),
         .do_loco = cmd.get<bool>("--loco"),

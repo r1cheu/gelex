@@ -37,7 +37,7 @@ struct SimulateProgressEvent
     bool done;
 };
 
-struct ParameterLoadedEvent
+struct SimulateConfigLoadedEvent
 {
     double intercept{};
     double add_heritability{};
@@ -52,7 +52,7 @@ struct OutputsWrittenEvent
 };
 
 using SimulateEvent = std::variant<
-    ParameterLoadedEvent,
+    SimulateConfigLoadedEvent,
     SimulateProgressEvent,
     HeritabilityGeneratedEvent,
     OutputsWrittenEvent>;

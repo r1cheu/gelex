@@ -42,6 +42,11 @@ struct GrmDataLoadedEvent
     size_t num_snps;
 };
 
+struct GrmComputeStartedEvent
+{
+    size_t total_snps;
+};
+
 struct GrmProgressEvent
 {
     size_t current;
@@ -60,6 +65,7 @@ struct GrmFilesWrittenEvent
 using GrmEvent = std::variant<
     GrmConfigLoadedEvent,
     GrmDataLoadedEvent,
+    GrmComputeStartedEvent,
     GrmProgressEvent,
     GrmFilesWrittenEvent>;
 

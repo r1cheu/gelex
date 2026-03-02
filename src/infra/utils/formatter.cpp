@@ -22,68 +22,71 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace gelex
 {
 
-std::string header_box(
+std::vector<std::string> header_box(
     const std::string_view title,
     const std::span<std::pair<std::string, std::string>>& items,
     size_t width)
 {
-    std::string result = "\n";
+    std::vector<std::string> lines;
     const std::string h_line = "─";
     const std::string v_line = "│";
 
+    lines.emplace_back("");
+
     // Top border
-    result += fmt::format(fmt::fg(fmt::color::light_cyan), "┌── {} ", title);
+    std::string top
+        = fmt::format(fmt::fg(fmt::color::light_cyan), "┌── {} ", title);
     size_t title_len = 4 + title.length() + 1;  // "┌── " + title + " "
     if (title_len < width - 1)
     {
         for (size_t i = 0; i < width - title_len - 1; ++i)
         {
-            result
-                += fmt::format(fmt::fg(fmt::color::light_cyan), "{}", h_line);
+            top += fmt::format(fmt::fg(fmt::color::light_cyan), "{}", h_line);
         }
-        result += fmt::format(fmt::fg(fmt::color::light_cyan), "┐\n");
     }
-    else
-    {
-        result += fmt::format(fmt::fg(fmt::color::light_cyan), "┐\n");
-    }
+    top += fmt::format(fmt::fg(fmt::color::light_cyan), "┐");
+    lines.push_back(std::move(top));
 
     // Items
     for (const auto& [key, value] : items)
     {
-        std::string line = fmt::format(
+        std::string content = fmt::format(
             "  {}{}  : {}", key, std::string(12 - key.length(), ' '), value);
         size_t line_len = 2 + key.length() + (12 - key.length()) + 5
                           + value.length();  // visible length
+        std::string row;
         if (line_len < width - 2)
         {
-            result += fmt::format(
+            row = fmt::format(
                 fmt::fg(fmt::color::light_cyan),
-                "{}{}{}│\n",
+                "{}{}{}│",
                 v_line,
-                line,
+                content,
                 std::string(width - line_len - 1, ' '));
         }
         else
         {
-            result += fmt::format(
-                fmt::fg(fmt::color::light_cyan), "{}{}│\n", v_line, line);
+            row = fmt::format(
+                fmt::fg(fmt::color::light_cyan), "{}{}│", v_line, content);
         }
+        lines.push_back(std::move(row));
     }
 
     // Bottom border
-    result += fmt::format(fmt::fg(fmt::color::light_cyan), "└");
+    std::string bottom = fmt::format(fmt::fg(fmt::color::light_cyan), "└");
     for (size_t i = 0; i < width - 2; ++i)
     {
-        result += fmt::format(fmt::fg(fmt::color::light_cyan), "{}", h_line);
+        bottom += fmt::format(fmt::fg(fmt::color::light_cyan), "{}", h_line);
     }
-    result += fmt::format(fmt::fg(fmt::color::light_cyan), "┘");
+    bottom += fmt::format(fmt::fg(fmt::color::light_cyan), "┘");
+    lines.push_back(std::move(bottom));
 
-    return result;
+    return lines;
 }
 
 std::string step_header(int current, int total, const std::string& description)

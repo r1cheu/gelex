@@ -16,6 +16,7 @@
 
 #include "grm_reporter.h"
 
+#include "config.h"
 #include "gelex/infra/detail/indicator.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/grm_event.h"
@@ -31,12 +32,18 @@ GrmReporter::GrmReporter()
 
 auto GrmReporter::on_event(const GrmConfigLoadedEvent& event) const -> void
 {
-    logger_->info(gelex::section("[GRM Parameters]"));
-    logger_->info(gelex::task("Method     : {}", event.method));
-    logger_->info(gelex::task("Mode       : {}", event.mode));
-    logger_->info(gelex::task("LOCO       : {}", event.do_loco ? "yes" : "no"));
-    logger_->info(gelex::task("Chunk Size : {}", event.chunk_size));
-    logger_->info(gelex::task("Threads    : {}", event.threads));
+    std::string title
+        = fmt::format("gelex v{} :: GRM Computation", PROJECT_VERSION);
+    std::vector<std::pair<std::string, std::string>> items
+        = {{"Method", event.method},
+           {"Mode", fmt::format("{}", event.mode)},
+           {"LOCO", event.do_loco ? "yes" : "no"},
+           {"Chunk Size", fmt::format("{}", event.chunk_size)},
+           {"Threads", fmt::format("{}", event.threads)}};
+    for (const auto& line : gelex::header_box(title, items, 70))
+    {
+        logger_->info(line);
+    }
     logger_->info("");
 }
 
@@ -48,6 +55,12 @@ auto GrmReporter::on_event(const GrmDataLoadedEvent& event) const -> void
     logger_->info("");
 }
 
+auto GrmReporter::on_event(const GrmComputeStartedEvent& event) -> void
+{
+    global_total_ = event.total_snps;
+    accumulated_base_ = 0;
+}
+
 auto GrmReporter::on_event(const GrmProgressEvent& event) -> void
 {
     if (!init_progress_)
@@ -55,16 +68,20 @@ auto GrmReporter::on_event(const GrmProgressEvent& event) -> void
         init_progress_ = true;
         info_.display->show();
     }
-
-    info_.progress_info->message(
-        fmt::format(
-            " Computing GRM {}/{} SNPs...",
-            gelex::AbbrNumber(event.current),
-            gelex::AbbrNumber(event.total)));
     if (event.done)
     {
         info_.display->done();
         logger_->info("");
+        return;
+    }
+    info_.progress_info->message(
+        fmt::format(
+            " Computing GRM {}/{} SNPs...",
+            gelex::AbbrNumber(accumulated_base_ + event.current),
+            gelex::AbbrNumber(global_total_)));
+    if (event.current == event.total)
+    {
+        accumulated_base_ += event.total;
     }
 }
 
@@ -76,11 +93,6 @@ auto GrmReporter::on_event(const GrmFilesWrittenEvent& event) const -> void
     logger_->info("  Total Files : {}", event.file_paths.size());
     logger_->info("  Output Dir  : {}", event.output_dir);
     logger_->info("  Pattern     : {}", event.file_pattern);
-    logger_->info(gelex::separator());
-    for (const auto& path : event.file_paths)
-    {
-        logger_->info(gelex::success("{}", path));
-    }
 }
 
 }  // namespace gelex::cli

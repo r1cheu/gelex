@@ -22,7 +22,7 @@
 
 namespace gelex
 {
-struct ParameterLoadedEvent;
+struct SimulateConfigLoadedEvent;
 struct SimulateProgressEvent;
 struct HeritabilityGeneratedEvent;
 struct OutputsWrittenEvent;
@@ -39,7 +39,7 @@ class SimulaterReporter
    public:
     SimulaterReporter();
 
-    auto on_event(const ParameterLoadedEvent& event) const -> void;
+    auto on_event(const SimulateConfigLoadedEvent& event) const -> void;
     auto on_event(const SimulateProgressEvent& event) -> void;
     auto on_event(const HeritabilityGeneratedEvent& event) const -> void;
     auto on_event(const OutputsWrittenEvent& event) const -> void;

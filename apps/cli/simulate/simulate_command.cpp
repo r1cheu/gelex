@@ -21,7 +21,6 @@
 #include <variant>
 #include <vector>
 
-#include "cli/cli_helper.h"
 #include "cli/config_factory.h"
 #include "gelex/algo/sim/effect_sampler.h"
 #include "gelex/pipeline/sim/phenotype_simulation_engine.h"
@@ -69,10 +68,8 @@ int simulate_execute(argparse::ArgumentParser& sim)
         .seed = config.seed,
     };
 
-    gelex::cli::print_simulate_header(config.dom_heritability.has_value());
-
     logger.on_event(
-        gelex::ParameterLoadedEvent{
+        gelex::SimulateConfigLoadedEvent{
             .intercept = config.intercept,
             .add_heritability = config.add_heritability,
             .dom_heritability = config.dom_heritability,

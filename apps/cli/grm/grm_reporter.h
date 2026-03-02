@@ -25,6 +25,7 @@ namespace gelex
 {
 struct GrmConfigLoadedEvent;
 struct GrmDataLoadedEvent;
+struct GrmComputeStartedEvent;
 struct GrmProgressEvent;
 struct GrmFilesWrittenEvent;
 }  // namespace gelex
@@ -44,6 +45,7 @@ class GrmReporter
 
     auto on_event(const GrmConfigLoadedEvent& event) const -> void;
     auto on_event(const GrmDataLoadedEvent& event) const -> void;
+    auto on_event(const GrmComputeStartedEvent& event) -> void;
     auto on_event(const GrmProgressEvent& event) -> void;
     auto on_event(const GrmFilesWrittenEvent& event) const -> void;
 
@@ -51,6 +53,8 @@ class GrmReporter
     std::shared_ptr<spdlog::logger> logger_;
     detail::ProgressInfo info_;
     bool init_progress_ = false;
+    size_t global_total_ = 0;
+    size_t accumulated_base_ = 0;
 };
 
 }  // namespace gelex::cli

@@ -47,12 +47,11 @@ void setup_grm_args(argparse::ArgumentParser& cmd)
     cmd.add_group("GRM Options");
     cmd.add_argument("--geno-method")
         .help(
-            "GRM method: 1=standardize-hwe, 2=center-hwe, "
-            "3=orth-standardize-hwe, 4=orth-center-hwe, "
-            "5=standardize, 6=center, 7=orth-standardize, 8=orth-center")
-        .metavar("<INT>")
-        .default_value(3)
-        .scan<'i', int>();
+            "Genotype method: StandardizeHWE(SH), CenterHWE(CH),"
+            " OrthStandardizeHWE(OSH), OrthCenterHWE(OCH),"
+            " Standardize(S), Center(C), OrthStandardize(OS), OrthCenter(OC)")
+        .metavar("<STR>")
+        .default_value(std::string("OSH"));
     cmd.add_argument("-c", "--chunk-size")
         .help("Chunk size for memory-efficient computation")
         .metavar("<SIZE>")

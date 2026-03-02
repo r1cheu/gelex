@@ -18,6 +18,7 @@
 
 #include <argparse.h>
 
+#include "cli/cli_helper.h"
 #include "gelex/data/genotype/bed_path.h"
 
 namespace
@@ -67,8 +68,8 @@ auto FitConfig::make(argparse::ArgumentParser& cmd) -> FitConfig
         .chunk_size = cmd.get<int>("--chunk-size"),
         .qcovar_path = cmd.get("--qcovar"),
         .dcovar_path = cmd.get("--dcovar"),
-        .genotype_method
-        = gelex::parse_genotype_process_method(cmd.get<int>("--geno-method"))};
+        .genotype_method = gelex::cli::parse_genotype_process_method(
+            cmd.get<std::string>("--geno-method"))};
 
     return config;
 }

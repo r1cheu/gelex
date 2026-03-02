@@ -22,6 +22,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <fmt/base.h>
 #include <fmt/color.h>
@@ -30,7 +31,7 @@
 namespace gelex
 {
 
-std::string header_box(
+std::vector<std::string> header_box(
     std::string_view title,
     const std::span<std::pair<std::string, std::string>>& items,
     size_t width = 70);

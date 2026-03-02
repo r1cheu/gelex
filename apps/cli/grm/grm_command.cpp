@@ -35,8 +35,6 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
     const auto method_name = fmt::format("{}", config.method);
 
     gelex::cli::setup_parallelization(config.threads);
-    gelex::cli::print_grm_header(
-        method_name, config.mode, config.chunk_size, config.threads);
 
     reporter.on_event(
         gelex::GrmConfigLoadedEvent{

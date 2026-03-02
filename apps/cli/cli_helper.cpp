@@ -128,43 +128,10 @@ auto print_fit_header(
     std::vector<std::pair<std::string, std::string>> items
         = {{"Model", model_str}, {"Chain", chain_str}, {"Threads", comp_str}};
 
-    logger->info(gelex::header_box(title, items, 70));
-    logger->info("");
-}
-
-auto print_grm_header(
-    std::string_view method,
-    gelex::freq::GrmType mode,
-    int chunk_size,
-    int threads) -> void
-{
-    auto logger = gelex::logging::get();
-
-    std::string title
-        = fmt::format("gelex v{} :: GRM Computation", PROJECT_VERSION);
-
-    std::vector<std::pair<std::string, std::string>> items
-        = {{"Method", std::string(method)},
-           {"Mode", fmt::format("{}", mode)},
-           {"Chunk Size", fmt::format("{}", chunk_size)},
-           {"Threads", fmt::format("{}", threads)}};
-
-    logger->info(gelex::header_box(title, items, 70));
-    logger->info("");
-}
-
-auto print_simulate_header(bool has_dominance) -> void
-{
-    auto logger = gelex::logging::get();
-
-    std::string title
-        = fmt::format("gelex v{} :: Phenotype Simulation", PROJECT_VERSION);
-    std::string mode_str = has_dominance ? "Additive + Dominance" : "Additive";
-
-    std::vector<std::pair<std::string, std::string>> items
-        = {{"Mode", mode_str}};
-
-    logger->info(gelex::header_box(title, items, 70));
+    for (const auto& line : gelex::header_box(title, items, 70))
+    {
+        logger->info(line);
+    }
     logger->info("");
 }
 
@@ -177,7 +144,10 @@ auto print_assoc_header(int threads) -> void
     std::vector<std::pair<std::string, std::string>> header_items
         = {{"Method", "AI-REML (Average Information)"},
            {"Threads", fmt::format("{}", threads)}};
-    logger->info(gelex::header_box(title, header_items, 70));
+    for (const auto& line : gelex::header_box(title, header_items, 70))
+    {
+        logger->info(line);
+    }
     logger->info("");
 }
 

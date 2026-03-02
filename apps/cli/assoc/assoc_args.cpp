@@ -95,11 +95,11 @@ void setup_assoc_args(argparse::ArgumentParser& cmd)
         .choices("a", "d");
     cmd.add_argument("--geno-method")
         .help(
-            "Genotype method (center-family only): "
-            "2=center-hwe, 4=orth-center-hwe, 6=center, 8=orth-center")
-        .default_value(4)
-        .scan<'i', int>()
-        .metavar("<INT>");
+            "Genotype method: StandardizeHWE(SH), CenterHWE(CH),"
+            " OrthStandardizeHWE(OSH), OrthCenterHWE(OCH),"
+            " Standardize(S), Center(C), OrthStandardize(OS), OrthCenter(OC)")
+        .default_value(std::string("OCH"))
+        .metavar("<STR>");
     cmd.add_argument("--transform")
         .help(
             "Phenotype transformation: none (default), dint (Direct INT), "

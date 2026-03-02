@@ -62,12 +62,11 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
         .scan<'i', int>();
     cmd.add_argument("--geno-method")
         .help(
-            "Genotype method: 1=standardize-hwe, 2=center-hwe, "
-            "3=orth-standardize-hwe, 4=orth-center-hwe, "
-            "5=standardize, 6=center, 7=orth-standardize, 8=orth-center")
-        .default_value(3)
-        .scan<'i', int>()
-        .metavar("<INT>");
+            "Genotype method: StandardizeHWE(SH), CenterHWE(CH),"
+            " OrthStandardizeHWE(OSH), OrthCenterHWE(OCH),"
+            " Standardize(S), Center(C), OrthStandardize(OS), OrthCenter(OC)")
+        .default_value(std::string("OSH"))
+        .metavar("<STR>");
 
     // ================================================================
     // Model Configuration

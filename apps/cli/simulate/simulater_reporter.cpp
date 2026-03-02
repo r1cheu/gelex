@@ -16,6 +16,7 @@
 
 #include "simulater_reporter.h"
 
+#include "config.h"
 #include "gelex/infra/detail/indicator.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/simulate_event.h"
@@ -29,24 +30,30 @@ SimulaterReporter::SimulaterReporter()
 {
 }
 
-auto SimulaterReporter::on_event(const ParameterLoadedEvent& event) const
+auto SimulaterReporter::on_event(const SimulateConfigLoadedEvent& event) const
     -> void
 {
-    logger_->info(gelex::section("[Simulation Parameters]"));
-    logger_->info(
-        gelex::task("Heritability (h2)      : {:.2f}", event.add_heritability));
+    std::string title
+        = fmt::format("gelex v{} :: Phenotype Simulation", PROJECT_VERSION);
+    std::string mode_str
+        = event.dom_heritability ? "Additive + Dominance" : "Additive";
+    std::vector<std::pair<std::string, std::string>> items
+        = {{"Mode", mode_str},
+           {"h\u00b2", fmt::format("{:.4f}", event.add_heritability)}};
     if (event.dom_heritability)
     {
-        logger_->info(
-            gelex::task(
-                "Dom-Heritability (d2)  : {:.2f}", *event.dom_heritability));
+        items.emplace_back(
+            "d\u00b2", fmt::format("{:.4f}", *event.dom_heritability));
     }
     if (event.intercept != 0.0)
     {
-        logger_->info(
-            gelex::task("Intercept             : {:.2f}", event.intercept));
+        items.emplace_back("Intercept", fmt::format("{:.4f}", event.intercept));
     }
-    logger_->info(gelex::task("Seed                  : {}", event.seed));
+    items.emplace_back("Seed", fmt::format("{}", event.seed));
+    for (const auto& line : gelex::header_box(title, items, 70))
+    {
+        logger_->info(line);
+    }
     logger_->info("");
 }
 

@@ -22,6 +22,7 @@
 #include <string_view>
 #include <vector>
 
+#include "cli/cli_helper.h"
 #include "gelex/data/genotype/bed_path.h"
 
 namespace
@@ -54,8 +55,8 @@ auto AssocConfig::make(argparse::ArgumentParser& cmd) -> AssocConfig
     auto bed_path = gelex::format_bed_path(cmd.get("bfile"));
     auto transform_type = parse_transform_type(cmd.get("--transform"));
 
-    auto genotype_method
-        = gelex::parse_genotype_process_method(cmd.get<int>("--geno-method"));
+    auto genotype_method = gelex::cli::parse_genotype_process_method(
+        cmd.get<std::string>("--geno-method"));
 
     AssocConfig config{
         .threads = cmd.get<int>("--threads"),

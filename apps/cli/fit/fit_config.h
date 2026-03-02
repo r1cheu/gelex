@@ -21,7 +21,7 @@
 #include <string>
 
 #include "gelex/algo/infer/params.h"
-#include "gelex/data/genotype/genotype_method_dispatch.h"
+#include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/model/effects.h"
 
 namespace argparse

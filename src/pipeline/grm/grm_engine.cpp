@@ -17,14 +17,12 @@
 #include "gelex/pipeline/grm/grm_engine.h"
 
 #include <filesystem>
-#include <functional>
 #include <string>
 #include <vector>
 
 #include <fmt/format.h>
 #include <Eigen/Core>
 
-#include "gelex/data/genotype/genotype_method_dispatch.h"
 #include "gelex/data/grm/grm.h"
 #include "gelex/data/grm/grm_bin_writer.h"
 #include "gelex/data/grm/grm_id_writer.h"
@@ -59,16 +57,13 @@ auto dispatch_grm(
     const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
     int chunk_size,
     bool additive,
-    const std::function<void(Eigen::Index, Eigen::Index)>& progress_callback
-    = nullptr) -> GrmResult
+    const GrmObserver& observer = {}) -> GrmResult
 {
     if (additive)
-    {
         return grm.compute<GeneticEffectType::Add>(
-            method, ranges, chunk_size, progress_callback);
-    }
+            method, ranges, chunk_size, observer);
     return grm.compute<GeneticEffectType::Dom>(
-        method, ranges, chunk_size, progress_callback);
+        method, ranges, chunk_size, observer);
 }
 
 auto write_grm_files(
@@ -138,7 +133,7 @@ auto build_tasks(gelex::freq::GrmType mode) -> std::vector<GrmTask>
     return tasks;
 }
 
-auto notify(const GrmObserver& observer, GrmEvent event) -> void
+auto notify(const GrmObserver& observer, const GrmEvent& event) -> void
 {
     if (observer)
     {
@@ -178,32 +173,20 @@ auto GrmEngine::compute(const GrmObserver& observer) -> void
 
     SmoothEtaCalculator eta(total_work);
     std::vector<std::string> generated_files;
-    size_t completed_base = 0;
+
+    notify(observer, GrmComputeStartedEvent{.total_snps = total_work});
 
     for (const auto& group : groups)
     {
         for (const auto& task : tasks)
         {
-            auto progress_callback = [&](Eigen::Index current, Eigen::Index)
-            {
-                auto current_total
-                    = completed_base + static_cast<size_t>(current);
-                notify(
-                    observer,
-                    GrmProgressEvent{
-                        .current = current_total,
-                        .total = total_work,
-                        .done = false,
-                    });
-            };
-
             auto result = dispatch_grm(
                 grm,
                 config_.method,
                 group.ranges,
                 config_.chunk_size,
                 task.is_additive,
-                progress_callback);
+                observer);
 
             auto suffix = config_.do_loco ? fmt::format(".chr{}", group.name)
                                           : std::string{};
@@ -213,8 +196,6 @@ auto GrmEngine::compute(const GrmObserver& observer) -> void
             auto files = write_grm_files(result, sample_ids, path);
             generated_files.insert(
                 generated_files.end(), files.begin(), files.end());
-
-            completed_base += static_cast<size_t>(group.total_snps);
         }
     }
 
