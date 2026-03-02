@@ -38,7 +38,7 @@ auto load_data_for_reml(const DataPipe::Config& config) -> DataPipe
     // Load phenotype first to get trait name
     auto p_stats = data_pipe.load_phenotypes();
 
-    logger->info(gelex::section("Loading Data..."));
+    logger->info(gelex::section("[Dataset Summary"));
     logger->info(
         gelex::success(
             "Phenotypes : {:L} samples ({})",
@@ -102,8 +102,6 @@ auto load_data_for_reml(const DataPipe::Config& config) -> DataPipe
         }
     }
 
-    logger->info("");
-    logger->info(gelex::section("Pre-processing..."));
     auto i_stats = data_pipe.intersect_samples();
     logger->info(gelex::task("Sample Intersection:"));
     logger->info(gelex::subtask("Common   : {:L}", i_stats.common_samples));
@@ -131,7 +129,7 @@ auto reml(
     auto data_pipe = load_data_for_reml(config);
 
     logger->info("");
-    logger->info(gelex::section("Model Configuration..."));
+    logger->info(gelex::section("[Model Configuration]"));
 
     gelex::FreqModel model(data_pipe);
     gelex::FreqState state(model);

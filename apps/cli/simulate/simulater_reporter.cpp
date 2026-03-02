@@ -33,8 +33,7 @@ SimulaterReporter::SimulaterReporter()
 auto SimulaterReporter::on_event(const SimulateConfigLoadedEvent& event) const
     -> void
 {
-    std::string mode_str
-        = event.dom_heritability ? "Additive + Dominance" : "Additive";
+    std::string mode_str = event.dom_heritability ? "AD" : "A";
 
     logger_->info(
         gelex::command_banner(PROJECT_VERSION, "Phenotype Simulation"));
@@ -77,25 +76,24 @@ auto SimulaterReporter::on_event(const SimulateProgressEvent& event) -> void
 auto SimulaterReporter::on_event(const HeritabilityGeneratedEvent& event) const
     -> void
 {
-    logger_->info(gelex::section("[Generating Phenotypes]"));
-    logger_->info(
-        gelex::task("True h²                : {:.4f}", event.additive));
+    logger_->info(gelex::section("[True Heritability]"));
+    logger_->info(gelex::success("h²                : {:.4f}", event.additive));
     if (event.dominance)
     {
         logger_->info(
-            gelex::task("True d²                : {:.4f}", *event.dominance));
+            gelex::success("δ²                : {:.4f}", *event.dominance));
     }
     logger_->info("");
 }
 
 auto SimulaterReporter::on_event(const OutputsWrittenEvent& event) const -> void
 {
+    logger_->info(gelex::section("[File Summary]"));
+    logger_->info(
+        gelex::success("{:<24}: {}", "Phenotype file", event.phenotype_path));
     logger_->info(
         gelex::success(
-            "{:<24}: {}", "Phenotypes saved to", event.phenotype_path));
-    logger_->info(
-        gelex::success(
-            "{:<24}: {}", "Snp effects saved to", event.snp_effect_path));
+            "{:<24}: {}", "Snp effects file", event.snp_effect_path));
 }
 
 }  // namespace gelex::cli

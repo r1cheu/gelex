@@ -46,7 +46,7 @@ auto PostReporter::on_event(const PostStartEvent& event) const -> void
 
 auto PostReporter::on_event(const DiagnosticsReadyEvent& event) const -> void
 {
-    logger_->info(gelex::named_section("MCMC Summary", 80));
+    logger_->info(gelex::section("[MCMC Summary]"));
     logger_->info("");
 
     logger_->info(
@@ -71,8 +71,6 @@ auto PostReporter::on_event(const DiagnosticsReadyEvent& event) const -> void
             d.ess,
             d.rhat);
     }
-
-    logger_->info(gelex::separator(80));
 }
 
 }  // namespace gelex::cli

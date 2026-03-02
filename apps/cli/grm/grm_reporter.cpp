@@ -45,7 +45,7 @@ auto GrmReporter::on_event(const GrmConfigLoadedEvent& event) const -> void
 
 auto GrmReporter::on_event(const GrmDataLoadedEvent& event) const -> void
 {
-    logger_->info(gelex::section("[Loading Data]"));
+    logger_->info(gelex::section("[Dataset Summary]"));
     logger_->info(gelex::success("Samples    : {} samples", event.num_samples));
     logger_->info(gelex::success("SNPs       : {} markers", event.num_snps));
     logger_->info("");
@@ -83,10 +83,8 @@ auto GrmReporter::on_event(const GrmProgressEvent& event) -> void
 
 auto GrmReporter::on_event(const GrmFilesWrittenEvent& event) const -> void
 {
-    logger_->info(gelex::named_section("Computation Summary", 70));
-    logger_->info(
-        gelex::success("{:<14}: {}", "Time elapsed", event.time_elapsed));
-    logger_->info("  Total Files : {}", event.file_paths.size());
+    logger_->info(gelex::section("[File Summary]"));
+    logger_->info("  Num Files : {}", event.num_files);
     logger_->info("  Output Dir  : {}", event.output_dir);
     logger_->info("  Pattern     : {}", event.file_pattern);
 }

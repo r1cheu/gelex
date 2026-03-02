@@ -233,7 +233,7 @@ int fit_execute(argparse::ArgumentParser& fit)
         .genotype_method = config.genotype_method};
 
     gelex::DataPipe data_pipe(data_pipe_config);
-    logger->info(gelex::section("[Loading Data]"));
+    logger->info(gelex::section("[Dataset Summary]"));
     auto p_stats = data_pipe.load_phenotypes();
     logger->info(
         gelex::success(
@@ -268,9 +268,6 @@ int fit_execute(argparse::ArgumentParser& fit)
         }
         logger->info(gelex::success("Covariates : {}", parts));
     }
-
-    logger->info("");
-    logger->info(gelex::section("[Pre-processing]"));
     auto i_stats = data_pipe.intersect_samples();
     logger->info(
         gelex::success(
@@ -340,7 +337,6 @@ int fit_execute(argparse::ArgumentParser& fit)
         gelex::success(
             "Results saved to '{}' (.param, .snp.eff, .log)",
             config.out_prefix));
-    logger->info(gelex::separator());
 
     return 0;
 }
