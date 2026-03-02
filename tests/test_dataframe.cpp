@@ -455,3 +455,24 @@ TEST_CASE("Column gather_inplace validates row bounds", "[data][dataframe]")
     REQUIRE_THROWS_AS(
         column.gather_inplace(keep_rows), gelex::ColumnRangeException);
 }
+
+// Reproduce and fix for issue #53: Windows CRLF (\r\n) files leave a trailing
+// \r on each token after std::getline, causing parse failure with an invisible
+// character in the error message.
+TEST_CASE(
+    "DataFrame handles Windows CRLF line endings (issue #53)",
+    "[data][dataframe]")
+{
+    FileFixture files;
+    auto path = files.create_text_file(
+        "FID\tIID\tpheno\r\n"
+        "f1\ts1\t42.0\r\n"
+        "f2\ts2\t47.0\r\n",
+        ".tsv");
+
+    auto frame = DataFrame<double>::read(path);
+
+    REQUIRE(frame.nrows() == 2);
+    REQUIRE(frame.column(0).data()[0] == 42.0);
+    REQUIRE(frame.column(0).data()[1] == 47.0);
+}

@@ -78,6 +78,10 @@ class DataFrameLoader
             throw FileFormatException(
                 std::format("{}: is empty", path.string()));
         }
+        if (!line.empty() && line.back() == '\r')
+        {
+            line.pop_back();
+        }
 
         char delimiter = detect_delimiter(line);
         auto header_tokens = split_line_preserve_empty(line, delimiter);
@@ -95,6 +99,10 @@ class DataFrameLoader
         while (std::getline(file, line))
         {
             ++line_number;
+            if (!line.empty() && line.back() == '\r')
+            {
+                line.pop_back();
+            }
             auto tokens = split_line_preserve_empty(line, delimiter);
             append_row(frame, tokens, expected_columns, line_number, policy);
         }
