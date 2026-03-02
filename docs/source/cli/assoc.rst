@@ -47,7 +47,7 @@ Pick model and preprocessing strategy before tuning runtime options.
    * - ``--transform dint`` / ``iint``
       - The phenotype distribution is skewed or heavy-tailed.
       - Often improves calibration, but effect sizes are on transformed scale.
-   * - ``--geno-method 4``
+   * - ``--geno-method OrthCenterHWE`` (``OCH``)
       - You want the default genotype preprocessing pipeline.
       - Orthogonal HWE centering. Good default for stability and comparability.
 
@@ -90,9 +90,14 @@ Options
 ``--model`` ``a``
    Association model: ``a`` (additive) or ``d`` (dominance).
 
-``--geno-method`` ``4``
-   Genotype method, center-family only (integer):
-   ``2``\ =center-hwe, ``4``\ =orth-center-hwe, ``6``\ =center, ``8``\ =orth-center.
+``--geno-method`` ``OrthCenterHWE``
+   Genotype processing method. Available methods:
+   ``StandardizeHWE`` (``SH``), ``CenterHWE`` (``CH``),
+   ``OrthStandardizeHWE`` (``OSH``), ``OrthCenterHWE`` (``OCH``),
+   ``Standardize`` (``S``), ``Center`` (``C``),
+   ``OrthStandardize`` (``OS``), ``OrthCenter`` (``OC``).
+   Abbreviations accepted.
+   See :ref:`genotype-processor-methods`.
 
 ``--transform`` ``none``
    Phenotype transform: ``none``, ``dint`` (Direct INT), ``iint`` (Indirect INT).

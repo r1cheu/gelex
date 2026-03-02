@@ -100,8 +100,13 @@ Options
    (for example ``Rd``); add ``pi`` to estimate mixture proportions (for
    example ``Cpi``).
 
-``--geno-method`` ``3``
-   Genotype processing method (integer 1–8, default ``3`` = orth-standardize-hwe).
+``--geno-method`` ``OrthStandardizeHWE``
+   Genotype processing method. Available methods:
+   ``StandardizeHWE`` (``SH``), ``CenterHWE`` (``CH``),
+   ``OrthStandardizeHWE`` (``OSH``), ``OrthCenterHWE`` (``OCH``),
+   ``Standardize`` (``S``), ``Center`` (``C``),
+   ``OrthStandardize`` (``OS``), ``OrthCenter`` (``OC``).
+   Abbreviations accepted.
    See :ref:`genotype-processor-methods`.
 
 ``--scale`` ``0 0.001 0.01 0.1 1``

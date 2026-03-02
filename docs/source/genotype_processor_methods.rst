@@ -35,14 +35,14 @@ HWE vs Sample: Practical Difference
 Quick Selection Guide
 ---------------------
 
-If you are unsure, use ``3`` (``orth-standardize-hwe``, default for GRM and fit).
+If you are unsure, use ``OrthStandardizeHWE`` (default for GRM and fit). You can also use the short alias ``OSH``.
 
-- Use ``3`` (orth-standardize-hwe) for the default GRM/fit baseline.
-- Use ``1`` (standardize-hwe) when orthogonal dominance coding is not needed.
-- Use even-numbered methods (``2``, ``4``, ``6``, ``8``) when only centering is needed.
-- Use ``orth`` methods (``3``, ``4``, ``7``, ``8``) when orthogonal dominance coding is required.
-- Use ``*-hwe`` methods (``1``–``4``) when you prefer population-genetics expectations.
-- Use sample methods (``5``–``8``) for data-driven moments.
+- Use ``OrthStandardizeHWE`` (alias: ``OSH``) for the default GRM/fit baseline.
+- Use ``StandardizeHWE`` (alias: ``SH``) when orthogonal dominance coding is not needed.
+- Use center methods (``CenterHWE``, ``OrthCenterHWE``, ``Center``, ``OrthCenter``) when only centering is needed.
+- Use orthogonal methods (``OrthStandardizeHWE``, ``OrthCenterHWE``, ``OrthStandardize``, ``OrthCenter``) when orthogonal dominance coding is required.
+- Use HWE methods (``StandardizeHWE``, ``CenterHWE``, ``OrthStandardizeHWE``, ``OrthCenterHWE``) when you prefer population-genetics expectations.
+- Use sample methods (``Standardize``, ``Center``, ``OrthStandardize``, ``OrthCenter``) for data-driven moments.
 
 Method Families
 ---------------
@@ -70,58 +70,49 @@ Orthogonal vs Non-orthogonal Dominance
 
 Moment family:
 
-- Methods ``1``–``4`` (``*-hwe``): HWE-based expected moments
-- Methods ``5``–``8``: moments estimated directly from your sample
+- HWE methods: ``StandardizeHWE``, ``CenterHWE``, ``OrthStandardizeHWE``, ``OrthCenterHWE`` (alias: ``SH``, ``CH``, ``OSH``, ``OCH``): HWE-based expected moments
+- Sample methods: ``Standardize``, ``Center``, ``OrthStandardize``, ``OrthCenter`` (alias: ``S``, ``C``, ``OS``, ``OC``): moments estimated directly from your sample
 
 Method Matrix (User View)
 -------------------------
 
 .. list-table::
    :header-rows: 1
-   :widths: 8 30 32 15 15
+   :widths: 38 32 15 15
 
-   * - Int
-     - CLI name
+   * - Method (alias)
      - Best for
      - Moments
      - Scaling
-   * - ``1``
-     - ``standardize-hwe``
+   * - ``StandardizeHWE`` (``SH``)
      - HWE standardization, no orthogonal dominance
      - HWE
      - Standardize
-   * - ``2``
-     - ``center-hwe``
+   * - ``CenterHWE`` (``CH``)
      - HWE centering, no variance scaling
      - HWE
      - Center
-   * - ``3``
-     - ``orth-standardize-hwe``
+   * - ``OrthStandardizeHWE`` (``OSH``)
      - Default GRM/fit: orthogonal dominance + HWE
      - HWE
      - Standardize
-   * - ``4``
-     - ``orth-center-hwe``
+   * - ``OrthCenterHWE`` (``OCH``)
      - Default assoc: orthogonal dominance + HWE centering
      - HWE
      - Center
-   * - ``5``
-     - ``standardize``
+   * - ``Standardize`` (``S``)
      - Sample-based standardization
      - Sample
      - Standardize
-   * - ``6``
-     - ``center``
+   * - ``Center`` (``C``)
      - Sample-based centering, no scaling
      - Sample
      - Center
-   * - ``7``
-     - ``orth-standardize``
+   * - ``OrthStandardize`` (``OS``)
      - Orthogonal dominance + sample standardization
      - Sample
      - Standardize
-   * - ``8``
-     - ``orth-center``
+   * - ``OrthCenter`` (``OC``)
      - Orthogonal dominance + sample centering
      - Sample
      - Center
@@ -129,13 +120,14 @@ Method Matrix (User View)
 Practical Recommendations
 -------------------------
 
-- Start with ``3`` (orth-standardize-hwe) for most production runs.
-- If biological interpretability is your top priority, prefer HWE methods (``1``–``4``).
+- Start with ``OrthStandardizeHWE`` (alias: ``OSH``) for most production runs.
+- If biological interpretability is your top priority, prefer HWE methods
+  (``StandardizeHWE``, ``CenterHWE``, ``OrthStandardizeHWE``, ``OrthCenterHWE``).
 - If optimizer stability and convergence speed are your top priority, test
-  sample methods (``5``–``8``) first.
-- If comparing with older centered pipelines, use ``2`` (center-hwe).
-- Use sample methods (``5``–``8``) only when you intentionally want
-  sample-dependent centering and variance.
+  sample methods (``Standardize``, ``Center``, ``OrthStandardize``, ``OrthCenter``) first.
+- If comparing with older centered pipelines, use ``CenterHWE`` (alias: ``CH``).
+- Use sample methods (``Standardize``, ``Center``, ``OrthStandardize``, ``OrthCenter``)
+  only when you intentionally want sample-dependent centering and variance.
 - Keep method choice fixed across comparable runs to avoid scale mismatch.
 
 Minimal Technical Notes
@@ -152,18 +144,18 @@ Example Commands
 
 .. code-block:: bash
 
-   # Recommended default (orth-standardize-hwe)
-   gelex grm -b genotypes --geno-method 3 -o grm_orth_hwe
+   # Recommended default (OrthStandardizeHWE)
+   gelex grm -b genotypes --geno-method OSH -o grm_orth_hwe
 
 .. code-block:: bash
 
    # HWE centering, no scaling
-   gelex grm -b genotypes --geno-method 2 -o grm_center_hwe
+   gelex grm -b genotypes --geno-method CH -o grm_center_hwe
 
 .. code-block:: bash
 
    # Orthogonal dominance with sample moments
-   gelex grm -b genotypes --dom --geno-method 7 -o grm_orth_sample
+   gelex grm -b genotypes --dom --geno-method OS -o grm_orth_sample
 
 See Also
 --------

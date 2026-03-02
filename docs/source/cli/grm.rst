@@ -31,28 +31,28 @@ Detailed formulas and method definitions: :ref:`genotype-processor-methods`.
 
 .. list-table::
    :header-rows: 1
-   :widths: 10 43 47
+   :widths: 24 43 33
 
-   * - Int
+   * - Method (alias)
      - Use when
      - Notes
-   * - ``3`` (default)
+   * - ``OrthStandardizeHWE`` (``OSH``), default
      - You want the default orthogonal HWE-standardized GRM.
      - Orthogonal dominance, HWE moments. Best for most workflows.
-   * - ``1``
+   * - ``StandardizeHWE`` (``SH``)
      - You want HWE standardization without orthogonal dominance.
      - Simpler encoding, HWE moments.
-   * - ``2``
+   * - ``CenterHWE`` (``CH``)
      - You prefer HWE centering without variance scaling.
      - Preserves original scale, HWE moments.
-   * - ``4``
+   * - ``OrthCenterHWE`` (``OCH``)
      - You need orthogonal HWE centering (no scaling).
      - Matches assoc default; HWE moments.
-   * - ``5``–``8``
+   * - ``Standardize``, ``Center``, ``OrthStandardize``, ``OrthCenter``
      - You want sample-based statistics instead of HWE-based.
      - More data-dependent estimates.
 
-If unsure, use the default (``3``).
+If unsure, use the default (``OrthStandardizeHWE``).
 
 Options
 -------
@@ -65,12 +65,13 @@ Options
 ``-o, --out`` ``grm``
    Output prefix for GRM files.
 
-``--geno-method`` ``3``
-   GRM method as integer 1–8.
-   ``1``\ =standardize-hwe, ``2``\ =center-hwe,
-   ``3``\ =orth-standardize-hwe, ``4``\ =orth-center-hwe,
-   ``5``\ =standardize, ``6``\ =center, ``7``\ =orth-standardize,
-   ``8``\ =orth-center.
+``--geno-method`` ``OrthStandardizeHWE``
+   GRM method. Available methods:
+   ``StandardizeHWE`` (``SH``), ``CenterHWE`` (``CH``),
+   ``OrthStandardizeHWE`` (``OSH``), ``OrthCenterHWE`` (``OCH``),
+   ``Standardize`` (``S``), ``Center`` (``C``),
+   ``OrthStandardize`` (``OS``), ``OrthCenter`` (``OC``).
+   Abbreviations (e.g. ``OSH``) are also accepted.
    See :ref:`genotype-processor-methods`.
 
 .. rubric:: Matrix Selection
@@ -144,7 +145,7 @@ Examples
    gelex grm \
       -b genotypes \
       --dom \
-      --geno-method 4 \
+      --geno-method OCH \
       -o my_grm_dom
 
 .. code-block:: bash
@@ -154,7 +155,7 @@ Examples
       -b genotypes \
       --add \
       --dom \
-      --geno-method 3 \
+      --geno-method OSH \
       -o my_grm_both
 
 .. code-block:: bash
@@ -164,7 +165,7 @@ Examples
       -b genotypes \
       --add \
       --loco \
-      --geno-method 5 \
+      --geno-method S \
       -o my_grm_loco
 
 See Also
