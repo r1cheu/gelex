@@ -21,35 +21,19 @@
 #include <vector>
 
 #include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/data/grm/grm.h"
 #include "gelex/data/grm/grm_bin_writer.h"
 #include "gelex/data/grm/grm_id_writer.h"
-#include "gelex/data/loader/bim_loader.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/utils/utils.h"
-#include "gelex/types/freq_effect.h"
-#include "gelex/types/snp_info.h"
+#include "pipeline/grm_work_plan.h"
 
 namespace gelex
 {
 
 namespace
 {
-
-struct ChrRange
-{
-    std::string name;
-    std::vector<std::pair<Eigen::Index, Eigen::Index>> ranges;
-    Eigen::Index total_snps;
-};
-
-struct GrmTask
-{
-    std::string name;
-    bool is_additive;
-};
 
 auto dispatch_grm(
     GRM& grm,
@@ -60,8 +44,10 @@ auto dispatch_grm(
     const GrmObserver& observer = {}) -> GrmResult
 {
     if (additive)
+    {
         return grm.compute<GeneticEffectType::Add>(
             method, ranges, chunk_size, observer);
+    }
     return grm.compute<GeneticEffectType::Dom>(
         method, ranges, chunk_size, observer);
 }
@@ -69,68 +55,10 @@ auto dispatch_grm(
 auto write_grm_files(
     const GrmResult& result,
     const std::vector<std::string>& sample_ids,
-    const std::string& out_prefix) -> std::vector<std::string>
+    const std::string& out_prefix) -> void
 {
-    auto bin_path = out_prefix + ".bin";
-    auto id_path = out_prefix + ".id";
-
-    GrmBinWriter(bin_path).write(result.grm);
-    GrmIdWriter(id_path).write(sample_ids);
-
-    return {bin_path, id_path};
-}
-
-auto build_chr_ranges(bool do_loco, const SnpEffects& snp_effects)
-    -> std::vector<ChrRange>
-{
-    std::vector<ChrRange> groups;
-    auto num_snps = static_cast<Eigen::Index>(snp_effects.size());
-
-    if (do_loco)
-    {
-        std::string current_chr;
-        Eigen::Index range_start = 0;
-
-        for (Eigen::Index i = 0; i < num_snps; ++i)
-        {
-            if (snp_effects[i].chrom != current_chr)
-            {
-                if (!current_chr.empty())
-                {
-                    groups.push_back(
-                        {current_chr, {{range_start, i}}, i - range_start});
-                }
-                current_chr = snp_effects[i].chrom;
-                range_start = i;
-            }
-        }
-        if (!current_chr.empty())
-        {
-            groups.push_back(
-                {current_chr,
-                 {{range_start, num_snps}},
-                 num_snps - range_start});
-        }
-    }
-    else
-    {
-        groups.push_back({"all", {{0, num_snps}}, num_snps});
-    }
-    return groups;
-}
-
-auto build_tasks(gelex::freq::GrmType mode) -> std::vector<GrmTask>
-{
-    std::vector<GrmTask> tasks;
-    if (mode != gelex::freq::GrmType::D)
-    {
-        tasks.push_back({"add", true});
-    }
-    if (mode != gelex::freq::GrmType::A)
-    {
-        tasks.push_back({"dom", false});
-    }
-    return tasks;
+    GrmBinWriter(out_prefix + ".bin").write(result.grm);
+    GrmIdWriter(out_prefix + ".id").write(sample_ids);
 }
 
 auto notify(const GrmObserver& observer, const GrmEvent& event) -> void
@@ -149,91 +77,54 @@ auto GrmEngine::compute(const GrmObserver& observer) -> void
 {
     GRM grm(config_.bed_path);
     const auto& sample_ids = grm.sample_ids();
-    auto num_snps = static_cast<size_t>(grm.num_snps());
 
     notify(
         observer,
         GrmDataLoadedEvent{
             .num_samples = sample_ids.size(),
-            .num_snps = num_snps,
+            .num_snps = static_cast<size_t>(grm.num_snps()),
         });
 
     auto bim_path = config_.bed_path;
     bim_path.replace_extension(".bim");
-    detail::BimLoader bim_loader(bim_path);
+    GrmWorkPlan plan(bim_path, config_.do_loco, config_.mode);
 
-    auto groups = build_chr_ranges(config_.do_loco, bim_loader.info());
-    auto tasks = build_tasks(config_.mode);
+    const auto total_snps = static_cast<size_t>(plan.total_work());
+    notify(observer, GrmComputeStartedEvent{.total_snps = total_snps});
 
-    size_t total_work = 0;
-    for (const auto& group : groups)
+    SmoothEtaCalculator eta(total_snps);
+
+    for (const auto& item : plan.items())
     {
-        total_work += static_cast<size_t>(group.total_snps) * tasks.size();
-    }
+        auto result = dispatch_grm(
+            grm,
+            config_.method,
+            item.ranges,
+            config_.chunk_size,
+            item.is_additive,
+            observer);
 
-    SmoothEtaCalculator eta(total_work);
-    std::vector<std::string> generated_files;
-
-    notify(observer, GrmComputeStartedEvent{.total_snps = total_work});
-
-    for (const auto& group : groups)
-    {
-        for (const auto& task : tasks)
-        {
-            auto result = dispatch_grm(
-                grm,
-                config_.method,
-                group.ranges,
-                config_.chunk_size,
-                task.is_additive,
-                observer);
-
-            auto suffix = config_.do_loco ? fmt::format(".chr{}", group.name)
-                                          : std::string{};
-            auto path
-                = fmt::format("{}.{}{}", config_.out_prefix, task.name, suffix);
-
-            auto files = write_grm_files(result, sample_ids, path);
-            generated_files.insert(
-                generated_files.end(), files.begin(), files.end());
-        }
+        auto path = fmt::format("{}.{}", config_.out_prefix, item.output_name);
+        write_grm_files(result, sample_ids, path);
     }
 
     notify(
         observer,
         GrmProgressEvent{
-            .current = total_work,
-            .total = total_work,
+            .current = total_snps,
+            .total = total_snps,
             .done = true,
         });
-
-    auto task_pattern
-        = tasks.size() == 1 ? tasks[0].name : std::string("{add|dom}");
-    std::string file_pattern;
-    if (config_.do_loco)
-    {
-        file_pattern = fmt::format(
-            "{}.{}.chr{{1..{}}}.{{bin|id}}",
-            config_.out_prefix,
-            task_pattern,
-            groups.size());
-    }
-    else
-    {
-        file_pattern
-            = fmt::format("{}.{}.{{bin|id}}", config_.out_prefix, task_pattern);
-    }
 
     notify(
         observer,
         GrmFilesWrittenEvent{
-            .file_paths = generated_files,
-            .time_elapsed = eta.total_time_consumed(),
+            .num_files = plan.items().size() * 2,
             .output_dir = std::filesystem::absolute(
                               std::filesystem::path(config_.out_prefix))
                               .parent_path()
                               .string(),
-            .file_pattern = file_pattern,
+            .file_pattern = plan.output_pattern(config_.out_prefix),
         });
 }
 

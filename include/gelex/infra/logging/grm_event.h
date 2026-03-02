@@ -20,8 +20,6 @@
 #include <functional>
 #include <string>
 #include <variant>
-#include <vector>
-
 #include "gelex/types/freq_effect.h"
 
 namespace gelex
@@ -56,8 +54,7 @@ struct GrmProgressEvent
 
 struct GrmFilesWrittenEvent
 {
-    std::vector<std::string> file_paths;
-    std::string time_elapsed;
+    size_t num_files;
     std::string output_dir;
     std::string file_pattern;
 };
