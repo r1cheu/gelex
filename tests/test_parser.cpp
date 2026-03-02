@@ -24,10 +24,10 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "gelex/io/parser.h"
 #include "file_fixture.h"
-#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/exception.h"
+#include "gelex/io/parser.h"
+#include "gelex/types/sample_id.h"
 
 namespace fs = std::filesystem;
 
@@ -202,37 +202,6 @@ TEST_CASE("Parser Line Counting Tests", "[parser]")
     }
 }
 
-TEST_CASE("Parser Column Count Tests", "[parser]")
-{
-    SECTION("Happy path - tab delimiter")
-    {
-        std::string_view line = "FID\tIID\tPhenotype\tCovariate";
-
-        REQUIRE(count_num_columns(line, '\t') == 4);
-    }
-
-    SECTION("Happy path - comma delimiter")
-    {
-        std::string_view line = "FID,IID,Phenotype,Covariate";
-
-        REQUIRE(count_num_columns(line, ',') == 4);
-    }
-
-    SECTION("Edge case - empty line")
-    {
-        std::string_view line;
-
-        REQUIRE(count_num_columns(line, '\t') == 0);
-    }
-
-    SECTION("Edge case - trailing delimiter")
-    {
-        std::string_view line = "FID\tIID\tPhenotype\t";
-
-        REQUIRE(count_num_columns(line, '\t') == 4);
-    }
-}
-
 TEST_CASE("Parser Double Parsing Tests", "[parser]")
 {
     SECTION("Happy path - valid numbers")
@@ -272,153 +241,6 @@ TEST_CASE("Parser Double Parsing Tests", "[parser]")
     }
 }
 
-TEST_CASE("Parser Column Double Parsing Tests", "[parser]")
-{
-    SECTION("Happy path - extract valid doubles")
-    {
-        std::string_view line = "FID\tIID\t2.5\t1.0\t0.5";
-
-        REQUIRE(parse_nth_double(line, 2, '\t') == 2.5);
-        REQUIRE(parse_nth_double(line, 3, '\t') == 1.0);
-        REQUIRE(parse_nth_double(line, 4, '\t') == 0.5);
-    }
-
-    SECTION("Happy path - custom delimiter")
-    {
-        std::string_view line = "FID,IID,2.5,1.0,0.5";
-
-        REQUIRE(parse_nth_double(line, 2, ',') == 2.5);
-    }
-
-    SECTION("Exception - column index out of range")
-    {
-        std::string_view line = "FID\tIID\t2.5";
-
-        REQUIRE_THROWS_MATCHES(
-            parse_nth_double(line, 5, '\t'),
-            gelex::ColumnRangeException,
-            Catch::Matchers::MessageMatches(
-                EndsWith("column 5 is out of range")));
-    }
-
-    SECTION("Exception - invalid number at column")
-    {
-        std::string_view line = "FID\tIID\tinvalid";
-
-        REQUIRE_THROWS_MATCHES(
-            parse_nth_double(line, 2, '\t'),
-            gelex::NumberParseException,
-            Catch::Matchers::MessageMatches(
-                EndsWith("failed to parse 'invalid' as number")));
-    }
-}
-
-TEST_CASE("Parser All Doubles Parsing Tests", "[parser]")
-{
-    SECTION("Happy path - parse all doubles")
-    {
-        std::string_view line = "2.5\t1.0\t0.5\t-1.2";
-        std::vector<double> doubles;
-        parse_all_doubles(line, doubles, 0, '\t');
-        REQUIRE(doubles.size() == 4);
-        REQUIRE(doubles[0] == 2.5);
-        REQUIRE(doubles[1] == 1.0);
-        REQUIRE(doubles[2] == 0.5);
-        REQUIRE(doubles[3] == -1.2);
-    }
-
-    SECTION("Happy path - parse with column offset")
-    {
-        std::string_view line = "FID\tIID\t2.5\t1.0\t0.5";
-        std::vector<double> doubles;
-        parse_all_doubles(line, doubles, 2, '\t');
-        REQUIRE(doubles.size() == 3);
-        REQUIRE(doubles[0] == 2.5);
-        REQUIRE(doubles[1] == 1.0);
-        REQUIRE(doubles[2] == 0.5);
-    }
-
-    SECTION("Exception - invalid number in any column")
-    {
-        std::string_view line = "2.5\tinvalid\t0.5";
-
-        std::vector<double> doubles;
-        REQUIRE_THROWS_MATCHES(
-            parse_all_doubles(line, doubles, 0, '\t'),
-            gelex::DataParseException,
-            Catch::Matchers::MessageMatches(
-                EndsWith("failed to parse 'invalid' as number at column 1")));
-    }
-
-    SECTION("Edge case - empty line")
-    {
-        std::string_view line;
-
-        std::vector<double> doubles;
-        parse_all_doubles(line, doubles, 0, '\t');
-        REQUIRE(doubles.empty());
-    }
-}
-
-TEST_CASE("Parser Header Tests", "[parser]")
-{
-    SECTION("Happy path - valid header")
-    {
-        std::string_view line = "FID\tIID\tPhenotype\tCovariate";
-
-        auto header = parse_header(line, '\t');
-        REQUIRE(header.size() == 4);
-        REQUIRE(header[0] == "FID");
-        REQUIRE(header[1] == "IID");
-        REQUIRE(header[2] == "Phenotype");
-        REQUIRE(header[3] == "Covariate");
-    }
-
-    SECTION("Happy path - custom delimiter")
-    {
-        std::string_view line = "FID,IID,Phenotype,Covariate";
-
-        auto header = parse_header(line, ',');
-        REQUIRE(header.size() == 4);
-        REQUIRE(header[0] == "FID");
-        REQUIRE(header[1] == "IID");
-    }
-
-    SECTION("Exception - missing FID column")
-    {
-        std::string_view line = "ID\tIID\tPhenotype";
-
-        REQUIRE_THROWS_MATCHES(
-            parse_header(line, '\t'),
-            gelex::HeaderFormatException,
-            Catch::Matchers::MessageMatches(EndsWith(
-                "first two columns are 'ID' and 'IID', expected 'FID' and "
-                "'IID'.")));
-    }
-
-    SECTION("Exception - insufficient columns")
-    {
-        std::string_view line = "FID";
-
-        REQUIRE_THROWS_MATCHES(
-            parse_header(line, '\t'),
-            gelex::HeaderFormatException,
-            Catch::Matchers::MessageMatches(
-                EndsWith("header contains only 1 columns.")));
-    }
-
-    SECTION("Exception - empty header")
-    {
-        std::string_view line;
-
-        REQUIRE_THROWS_MATCHES(
-            parse_header(line, '\t'),
-            gelex::HeaderFormatException,
-            Catch::Matchers::MessageMatches(
-                EndsWith("header contains only 0 columns.")));
-    }
-}
-
 TEST_CASE("Parser ID Parsing Tests", "[parser]")
 {
     SECTION("Happy path - full ID with tab delimiter")
@@ -437,7 +259,7 @@ TEST_CASE("Parser ID Parsing Tests", "[parser]")
 
     SECTION("Exception - insufficient columns")
     {
-            std::string_view line = "1";
+        std::string_view line = "1";
 
         REQUIRE_THROWS_MATCHES(
             parse_id(line, '\t'),

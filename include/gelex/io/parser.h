@@ -93,8 +93,6 @@ template <FileStream StreamType>
 
 size_t count_total_lines(const std::filesystem::path& path);
 
-size_t count_num_columns(std::string_view line, char delimiter = '\t');
-
 template <typename T = double>
 T parse_number(std::string_view sv)
 {
@@ -137,21 +135,6 @@ T parse_number(std::string_view sv)
     throw NumberParseException(
         std::format("failed to parse '{}' as number", sv));
 }
-
-double parse_nth_double(
-    std::string_view line,
-    size_t column_index,
-    char delimiter = '\t');
-
-void parse_all_doubles(
-    std::string_view line,
-    std::vector<double>& out,
-    size_t column_offset = 0,
-    char delimiter = '\t');
-
-std::vector<std::string_view> parse_header(
-    std::string_view line,
-    char delimiter = '\t');
 
 std::string parse_id(std::string_view line, char delimiter = '\t');
 
