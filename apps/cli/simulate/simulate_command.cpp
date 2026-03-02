@@ -23,7 +23,7 @@
 
 #include "cli/config_factory.h"
 #include "gelex/algo/sim/effect_sampler.h"
-#include "gelex/pipeline/sim/phenotype_simulation_engine.h"
+#include "gelex/pipeline/phenotype_simulation_engine.h"
 #include "simulate_config.h"
 #include "simulater_reporter.h"
 

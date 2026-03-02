@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/pipeline/grm/grm_engine.h"
+#include "gelex/pipeline/grm_engine.h"
 
 #include <filesystem>
 #include <string>

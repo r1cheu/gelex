@@ -23,7 +23,7 @@
 #include "cli/cli_helper.h"
 #include "cli/config_factory.h"
 #include "gelex/infra/logging/grm_event.h"
-#include "gelex/pipeline/grm/grm_engine.h"
+#include "gelex/pipeline/grm_engine.h"
 #include "grm_config.h"
 #include "grm_reporter.h"
 

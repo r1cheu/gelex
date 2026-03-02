@@ -31,7 +31,7 @@
 #include "bed_fixture.h"
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/infra/utils/math_utils.h"
-#include "gelex/pipeline/sim/phenotype_simulation_engine.h"
+#include "gelex/pipeline/phenotype_simulation_engine.h"
 
 namespace fs = std::filesystem;
 

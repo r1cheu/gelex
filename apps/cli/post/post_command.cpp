@@ -23,7 +23,7 @@
 #include "cli/config_factory.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/post_event.h"
-#include "gelex/pipeline/post/posterior_analysis_engine.h"
+#include "gelex/pipeline/posterior_analysis_engine.h"
 #include "post_config.h"
 #include "post_reporter.h"
 

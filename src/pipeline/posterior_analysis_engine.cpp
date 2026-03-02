@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/pipeline/post/posterior_analysis_engine.h"
+#include "gelex/pipeline/posterior_analysis_engine.h"
 
 #include <fmt/format.h>
 

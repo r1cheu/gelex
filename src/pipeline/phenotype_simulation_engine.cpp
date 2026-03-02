@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/pipeline/sim/phenotype_simulation_engine.h"
+#include "gelex/pipeline/phenotype_simulation_engine.h"
 
 #include <random>
 #include <vector>
