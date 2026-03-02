@@ -22,71 +22,34 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace gelex
 {
 
-std::vector<std::string> header_box(
-    const std::string_view title,
-    const std::span<std::pair<std::string, std::string>>& items,
-    size_t width)
+std::string
+command_banner(std::string_view version, std::string_view task, size_t width)
 {
-    std::vector<std::string> lines;
-    const std::string h_line = "─";
-    const std::string v_line = "│";
+    // ▐ GELEX ▌  (9 visible chars, bold + light_cyan)
+    std::string badge = fmt::format(
+        fmt::emphasis::bold | fmt::fg(fmt::color::light_cyan),
+        "\u258c GELEX \u2590");
 
-    lines.emplace_back("");
+    // "  v{version}  " plain text; visible = version.size() + 5
+    std::string ver_str = fmt::format("  v{}  ", version);
 
-    // Top border
-    std::string top
-        = fmt::format(fmt::fg(fmt::color::light_cyan), "┌── {} ", title);
-    size_t title_len = 4 + title.length() + 1;  // "┌── " + title + " "
-    if (title_len < width - 1)
+    // ──  {task} {fill}  (bold); prefix visible = 4 + task.size() + 1
+    size_t visible = 9 + (version.size() + 5) + 4 + task.size() + 1;
+    size_t fill_count = visible < width ? width - visible : 0;
+    std::string fill;
+    fill.reserve(fill_count * 3);  // U+2500 encodes as 3 UTF-8 bytes
+    for (size_t i = 0; i < fill_count; ++i)
     {
-        for (size_t i = 0; i < width - title_len - 1; ++i)
-        {
-            top += fmt::format(fmt::fg(fmt::color::light_cyan), "{}", h_line);
-        }
+        fill += "\u2500";
     }
-    top += fmt::format(fmt::fg(fmt::color::light_cyan), "┐");
-    lines.push_back(std::move(top));
+    std::string sep_task
+        = fmt::format(fmt::emphasis::bold, "\u2500\u2500  {} {}", task, fill);
 
-    // Items
-    for (const auto& [key, value] : items)
-    {
-        std::string content = fmt::format(
-            "  {}{}  : {}", key, std::string(12 - key.length(), ' '), value);
-        size_t line_len = 2 + key.length() + (12 - key.length()) + 5
-                          + value.length();  // visible length
-        std::string row;
-        if (line_len < width - 2)
-        {
-            row = fmt::format(
-                fmt::fg(fmt::color::light_cyan),
-                "{}{}{}│",
-                v_line,
-                content,
-                std::string(width - line_len - 1, ' '));
-        }
-        else
-        {
-            row = fmt::format(
-                fmt::fg(fmt::color::light_cyan), "{}{}│", v_line, content);
-        }
-        lines.push_back(std::move(row));
-    }
-
-    // Bottom border
-    std::string bottom = fmt::format(fmt::fg(fmt::color::light_cyan), "└");
-    for (size_t i = 0; i < width - 2; ++i)
-    {
-        bottom += fmt::format(fmt::fg(fmt::color::light_cyan), "{}", h_line);
-    }
-    bottom += fmt::format(fmt::fg(fmt::color::light_cyan), "┘");
-    lines.push_back(std::move(bottom));
-
-    return lines;
+    return badge + ver_str + sep_task;
 }
 
 std::string step_header(int current, int total, const std::string& description)

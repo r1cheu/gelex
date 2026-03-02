@@ -22,7 +22,6 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <vector>
 
 #include <fmt/base.h>
 #include <fmt/color.h>
@@ -31,9 +30,9 @@
 namespace gelex
 {
 
-std::vector<std::string> header_box(
-    std::string_view title,
-    const std::span<std::pair<std::string, std::string>>& items,
+std::string command_banner(
+    std::string_view version,
+    std::string_view task,
     size_t width = 70);
 std::string step_header(int current, int total, const std::string& description);
 std::string separator(size_t width = 70, const std::string& c = "─");
@@ -74,7 +73,7 @@ std::string subsubtask(fmt::format_string<Args...> fmt_str, Args&&... args)
 template <typename... Args>
 std::string success(fmt::format_string<Args...> fmt_str, Args&&... args)
 {
-    auto check_mark = fmt::format(fmt::fg(fmt::color::light_green), "  ✔ ");
+    auto check_mark = fmt::format(fmt::fg(fmt::color::light_green), "  ✔");
     return check_mark + fmt::format(fmt_str, std::forward<Args>(args)...);
 }
 

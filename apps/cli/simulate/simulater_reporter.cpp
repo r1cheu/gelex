@@ -33,27 +33,24 @@ SimulaterReporter::SimulaterReporter()
 auto SimulaterReporter::on_event(const SimulateConfigLoadedEvent& event) const
     -> void
 {
-    std::string title
-        = fmt::format("gelex v{} :: Phenotype Simulation", PROJECT_VERSION);
     std::string mode_str
         = event.dom_heritability ? "Additive + Dominance" : "Additive";
-    std::vector<std::pair<std::string, std::string>> items
-        = {{"Mode", mode_str},
-           {"h\u00b2", fmt::format("{:.4f}", event.add_heritability)}};
+
+    logger_->info(
+        gelex::command_banner(PROJECT_VERSION, "Phenotype Simulation"));
+    logger_->info("");
+    logger_->info(gelex::section("[Config]"));
+    logger_->info("  {:<12}: {}", "Mode", mode_str);
+    logger_->info("  {:<12}: {:.4f}", "h\u00b2", event.add_heritability);
     if (event.dom_heritability)
     {
-        items.emplace_back(
-            "d\u00b2", fmt::format("{:.4f}", *event.dom_heritability));
+        logger_->info("  {:<12}: {:.4f}", "d\u00b2", *event.dom_heritability);
     }
     if (event.intercept != 0.0)
     {
-        items.emplace_back("Intercept", fmt::format("{:.4f}", event.intercept));
+        logger_->info("  {:<12}: {:.4f}", "Intercept", event.intercept);
     }
-    items.emplace_back("Seed", fmt::format("{}", event.seed));
-    for (const auto& line : gelex::header_box(title, items, 70))
-    {
-        logger_->info(line);
-    }
+    logger_->info("  {:<12}: {}", "Seed", event.seed);
     logger_->info("");
 }
 

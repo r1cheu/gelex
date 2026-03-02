@@ -115,23 +115,20 @@ auto print_fit_header(
 {
     auto logger = gelex::logging::get();
 
-    std::string title
-        = fmt::format("gelex v{} :: Model Fitting (MCMC)", PROJECT_VERSION);
     std::string model_str = fmt::format(
         "Bayes{} ({})",
         model_name,
         has_dominance ? "Additive + Dominance" : "Additive");
     std::string chain_str = fmt::format(
         "{} iters ({} burn-in, {} sampling)", iters, burn_in, iters - burn_in);
-    std::string comp_str = fmt::format("{}", threads);
 
-    std::vector<std::pair<std::string, std::string>> items
-        = {{"Model", model_str}, {"Chain", chain_str}, {"Threads", comp_str}};
-
-    for (const auto& line : gelex::header_box(title, items, 70))
-    {
-        logger->info(line);
-    }
+    logger->info(
+        gelex::command_banner(PROJECT_VERSION, "Model Fitting (MCMC)"));
+    logger->info("");
+    logger->info(gelex::section("[Config]"));
+    logger->info("  {:<12}: {}", "Model", model_str);
+    logger->info("  {:<12}: {}", "Chain", chain_str);
+    logger->info("  {:<12}: {}", "Threads", threads);
     logger->info("");
 }
 
@@ -139,15 +136,11 @@ auto print_assoc_header(int threads) -> void
 {
     auto logger = gelex::logging::get();
 
-    std::string title
-        = fmt::format("gelex v{} :: GWAS Analysis", PROJECT_VERSION);
-    std::vector<std::pair<std::string, std::string>> header_items
-        = {{"Method", "AI-REML (Average Information)"},
-           {"Threads", fmt::format("{}", threads)}};
-    for (const auto& line : gelex::header_box(title, header_items, 70))
-    {
-        logger->info(line);
-    }
+    logger->info(gelex::command_banner(PROJECT_VERSION, "GWAS Analysis"));
+    logger->info("");
+    logger->info(gelex::section("[Config]"));
+    logger->info("  {:<12}: {}", "Method", "AI-REML (Average Information)");
+    logger->info("  {:<12}: {}", "Threads", threads);
     logger->info("");
 }
 

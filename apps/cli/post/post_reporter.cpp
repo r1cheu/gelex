@@ -35,14 +35,12 @@ auto PostReporter::on_event(const PostStartEvent& event) const -> void
         = event.in_prefixes[0]
           + (n_chains > 1 ? fmt::format(" (+{} more)", n_chains - 1) : "");
 
-    std::string title
-        = fmt::format("gelex v{} :: MCMC Posterior Analysis", PROJECT_VERSION);
-    std::vector<std::pair<std::string, std::string>> items
-        = {{"Chains", fmt::format("{}", n_chains)}, {"Input", input_str}};
-    for (const auto& line : gelex::header_box(title, items, 70))
-    {
-        logger_->info(line);
-    }
+    logger_->info(
+        gelex::command_banner(PROJECT_VERSION, "MCMC Posterior Analysis"));
+    logger_->info("");
+    logger_->info(gelex::section("[Config]"));
+    logger_->info("  {:<12}: {}", "Chains", n_chains);
+    logger_->info("  {:<12}: {}", "Input", input_str);
     logger_->info("");
 }
 

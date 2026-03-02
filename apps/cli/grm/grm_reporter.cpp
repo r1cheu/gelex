@@ -32,18 +32,14 @@ GrmReporter::GrmReporter()
 
 auto GrmReporter::on_event(const GrmConfigLoadedEvent& event) const -> void
 {
-    std::string title
-        = fmt::format("gelex v{} :: GRM Computation", PROJECT_VERSION);
-    std::vector<std::pair<std::string, std::string>> items
-        = {{"Method", event.method},
-           {"Mode", fmt::format("{}", event.mode)},
-           {"LOCO", event.do_loco ? "yes" : "no"},
-           {"Chunk Size", fmt::format("{}", event.chunk_size)},
-           {"Threads", fmt::format("{}", event.threads)}};
-    for (const auto& line : gelex::header_box(title, items, 70))
-    {
-        logger_->info(line);
-    }
+    logger_->info(gelex::command_banner(PROJECT_VERSION, "GRM Computation"));
+    logger_->info("");
+    logger_->info(gelex::section("[Config]"));
+    logger_->info("  {:<12}: {}", "Method", event.method);
+    logger_->info("  {:<12}: {}", "Mode", fmt::format("{}", event.mode));
+    logger_->info("  {:<12}: {}", "LOCO", event.do_loco ? "yes" : "no");
+    logger_->info("  {:<12}: {}", "Chunk Size", event.chunk_size);
+    logger_->info("  {:<12}: {}", "Threads", event.threads);
     logger_->info("");
 }
 
