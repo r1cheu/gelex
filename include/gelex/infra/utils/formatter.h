@@ -41,6 +41,7 @@ std::string
 named_section(std::string_view name, size_t width = 32, size_t indent = 0);
 
 std::string format_eta(double seconds);
+std::string done_message(double elapsed_seconds);
 
 template <typename... Args>
 std::string section(fmt::format_string<Args...> fmt_str, Args&&... args)

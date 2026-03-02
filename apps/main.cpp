@@ -15,6 +15,7 @@
  */
 
 #include <array>
+#include <chrono>
 #include <string_view>
 
 #include <argparse.h>
@@ -35,6 +36,7 @@
 #include "cli/simulate/simulate_args.h"
 #include "cli/simulate/simulate_command.h"
 #include "gelex/infra/logger.h"
+#include "gelex/infra/utils/formatter.h"
 
 namespace
 {
@@ -56,7 +58,17 @@ auto execute_command(
     try
     {
         gelex::logging::initialize(parser.get("--out"));
-        return execute_fn(parser);
+        auto start = std::chrono::steady_clock::now();
+        auto result = execute_fn(parser);
+        auto elapsed = std::chrono::duration<double>(
+                           std::chrono::steady_clock::now() - start)
+                           .count();
+        if (auto logger = gelex::logging::get())
+        {
+            logger->info("");
+            logger->info("{}", gelex::done_message(elapsed));
+        }
+        return result;
     }
     catch (const std::exception& e)
     {

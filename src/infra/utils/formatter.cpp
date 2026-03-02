@@ -39,15 +39,15 @@ command_banner(std::string_view version, std::string_view task, size_t width)
 
     // ──  {task} {fill}  (bold); prefix visible = 4 + task.size() + 1
     size_t visible = 9 + (version.size() + 5) + 4 + task.size() + 1;
-    size_t fill_count = visible < width ? width - visible : 0;
+    size_t fill_count = visible < width ? width - visible - 1 : 0;
     std::string fill;
     fill.reserve(fill_count * 3);  // U+2500 encodes as 3 UTF-8 bytes
     for (size_t i = 0; i < fill_count; ++i)
     {
         fill += "\u2500";
     }
-    std::string sep_task
-        = fmt::format(fmt::emphasis::bold, "\u2500\u2500  {} {}", task, fill);
+    std::string sep_task = fmt::format(
+        fmt::emphasis::bold, "\u2500\u2500  {} {}\u256e", task, fill);
 
     return badge + ver_str + sep_task;
 }
@@ -100,6 +100,12 @@ std::string format_eta(double seconds)
     int m = total_seconds / 60;
     int s = total_seconds % 60;
     return std::format("{:02d}:{:02d}:{:02d}", h, m, s);
+}
+
+std::string done_message(double elapsed_seconds)
+{
+    auto sparkle = fmt::format(fmt::fg(fmt::color::yellow), "✨");
+    return fmt::format("╰── {} Done in {:.2f}s", sparkle, elapsed_seconds);
 }
 
 std::string format_names(

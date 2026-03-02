@@ -29,7 +29,6 @@
 namespace
 {
 const int TABLE_WIDTH = 40;
-const int SECTION_WIDTH = 70;
 }  // namespace
 namespace gelex
 {
@@ -51,7 +50,7 @@ void MCMCLogger::set_verbose(bool verbose)
 void MCMCLogger::log_model_information(const BayesModel& model)
 {
     logger_->info("");
-    logger_->info(gelex::section("Model Configuration..."));
+    logger_->info(gelex::section("[Model Configuration]"));
 
     if (const auto& effects = model.random(); !effects.empty())
     {
@@ -113,19 +112,17 @@ void MCMCLogger::log_model_information(const BayesModel& model)
             residual.init_variance));
 
     logger_->info("");
-    logger_->info(gelex::section("MCMC Sampling..."));
+    logger_->info(gelex::section("[MCMC Sampling]"));
 }
 
 void MCMCLogger::log_result(
     const MCMCResult& results,
     const BayesModel& model,
-    double elapsed_time,
     Eigen::Index samples_collected)
 {
     logger_->info("");
-    logger_->info(gelex::named_section("Posterior Summary", SECTION_WIDTH));
+    logger_->info(gelex::section("[Posterior Summary]"));
 
-    logger_->info("  Time elapsed: {:.2f}s", elapsed_time);
     logger_->info("  Samples collected per parameter: {}", samples_collected);
     logger_->info("");
 

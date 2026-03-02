@@ -96,11 +96,7 @@ MCMCResult MCMC<TraitSampler>::run(
 
     MCMCResult result(std::move(samples), model, 0.9);
     result.compute();
-    logger_.log_result(
-        result,
-        model,
-        static_cast<double>(duration) / 1000.0,
-        params_.n_records);
+    logger_.log_result(result, model, params_.n_records);
 
     return result;
 }

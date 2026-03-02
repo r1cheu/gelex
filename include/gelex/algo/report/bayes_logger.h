@@ -53,7 +53,6 @@ class MCMCLogger
     void log_result(
         const MCMCResult& result,
         const BayesModel& model,
-        double elapsed_time,
         Eigen::Index samples_collected);
 
    private:
