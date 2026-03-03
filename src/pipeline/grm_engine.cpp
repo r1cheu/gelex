@@ -35,23 +35,6 @@ namespace gelex
 namespace
 {
 
-auto dispatch_grm(
-    GRM& grm,
-    GenotypeProcessMethod method,
-    const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
-    int chunk_size,
-    bool additive,
-    const GrmObserver& observer = {}) -> GrmResult
-{
-    if (additive)
-    {
-        return grm.compute<GeneticEffectType::Add>(
-            method, ranges, chunk_size, observer);
-    }
-    return grm.compute<GeneticEffectType::Dom>(
-        method, ranges, chunk_size, observer);
-}
-
 auto write_grm_files(
     const GrmResult& result,
     const std::vector<std::string>& sample_ids,
@@ -85,47 +68,66 @@ auto GrmEngine::compute(const GrmObserver& observer) -> void
             .num_snps = static_cast<size_t>(grm.num_snps()),
         });
 
+    auto dispatch_grm = [&](const auto& ranges, bool is_additive) -> GrmResult
+    {
+        if (is_additive)
+        {
+            return grm.compute<GeneticEffectType::Add>(
+                config_.method, ranges, config_.chunk_size, observer);
+        }
+        return grm.compute<GeneticEffectType::Dom>(
+            config_.method, ranges, config_.chunk_size, observer);
+    };
+
     auto bim_path = config_.bed_path;
     bim_path.replace_extension(".bim");
-    GrmWorkPlan plan(bim_path, config_.do_loco, config_.mode);
 
-    const auto total_snps = static_cast<size_t>(plan.total_work());
-    notify(observer, GrmComputeStartedEvent{.total_snps = total_snps});
-
-    SmoothEtaCalculator eta(total_snps);
-
-    for (const auto& item : plan.items())
+    auto run_plan = [&](auto& plan)
     {
-        auto result = dispatch_grm(
-            grm,
-            config_.method,
-            item.ranges,
-            config_.chunk_size,
-            item.is_additive,
-            observer);
+        const auto total_snps = static_cast<size_t>(plan.total_work());
+        notify(observer, GrmComputeStartedEvent{.total_snps = total_snps});
 
-        auto path = fmt::format("{}.{}", config_.out_prefix, item.output_name);
-        write_grm_files(result, sample_ids, path);
+        SmoothEtaCalculator eta(total_snps);
+
+        for (const auto& item : plan.items())
+        {
+            auto result = dispatch_grm(item.ranges, item.is_additive);
+
+            auto path
+                = fmt::format("{}.{}", config_.out_prefix, item.output_name);
+            write_grm_files(result, sample_ids, path);
+        }
+
+        notify(
+            observer,
+            GrmProgressEvent{
+                .current = total_snps,
+                .total = total_snps,
+                .done = true,
+            });
+
+        notify(
+            observer,
+            GrmFilesWrittenEvent{
+                .num_files = plan.items().size() * 2,
+                .output_dir = std::filesystem::absolute(
+                                  std::filesystem::path(config_.out_prefix))
+                                  .parent_path()
+                                  .string(),
+                .file_pattern = plan.output_pattern(config_.out_prefix),
+            });
+    };
+
+    if (config_.do_loco)
+    {
+        GrmLocoPlan plan(bim_path, config_.mode);
+        run_plan(plan);
     }
-
-    notify(
-        observer,
-        GrmProgressEvent{
-            .current = total_snps,
-            .total = total_snps,
-            .done = true,
-        });
-
-    notify(
-        observer,
-        GrmFilesWrittenEvent{
-            .num_files = plan.items().size() * 2,
-            .output_dir = std::filesystem::absolute(
-                              std::filesystem::path(config_.out_prefix))
-                              .parent_path()
-                              .string(),
-            .file_pattern = plan.output_pattern(config_.out_prefix),
-        });
+    else
+    {
+        GrmNormalPlan plan(bim_path, config_.mode);
+        run_plan(plan);
+    }
 }
 
 }  // namespace gelex

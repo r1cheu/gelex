@@ -18,6 +18,7 @@
 #define GELEX_GWAS_ASSOCIATION_TEST_H
 
 #include <Eigen/Core>
+
 #include "gelex/types/assoc_input.h"
 
 namespace gelex::gwas

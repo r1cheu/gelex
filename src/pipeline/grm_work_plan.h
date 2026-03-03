@@ -38,13 +38,25 @@ struct GrmWorkItem
     std::string output_name;
 };
 
-class GrmWorkPlan
+class GrmNormalPlan
 {
    public:
-    GrmWorkPlan(
-        const std::filesystem::path& bim_path,
-        bool do_loco,
-        freq::GrmType mode);
+    GrmNormalPlan(const std::filesystem::path& bim_path, freq::GrmType mode);
+
+    auto items() const -> const std::vector<GrmWorkItem>&;
+    auto total_work() const -> Eigen::Index;
+    auto output_pattern(std::string_view out_prefix) const -> std::string;
+
+   private:
+    std::vector<GrmWorkItem> items_;
+    Eigen::Index total_work_ = 0;
+    std::string task_pattern_;
+};
+
+class GrmLocoPlan
+{
+   public:
+    GrmLocoPlan(const std::filesystem::path& bim_path, freq::GrmType mode);
 
     auto items() const -> const std::vector<GrmWorkItem>&;
     auto total_work() const -> Eigen::Index;
@@ -58,21 +70,13 @@ class GrmWorkPlan
         Eigen::Index total_snps;
     };
 
-    struct GrmTask
-    {
-        std::string name;
-        bool is_additive;
-    };
-
-    static auto build_chr_ranges(bool do_loco, const SnpEffects& snp_effects)
+    static auto build_loco_ranges(const SnpEffects& snp_effects)
         -> std::vector<ChrRange>;
-    static auto build_tasks(freq::GrmType mode) -> std::vector<GrmTask>;
 
     std::vector<GrmWorkItem> items_;
     Eigen::Index total_work_ = 0;
     size_t num_groups_ = 0;
     std::string task_pattern_;
-    bool do_loco_ = false;
 };
 
 }  // namespace gelex
