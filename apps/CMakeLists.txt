@@ -23,6 +23,7 @@ set(CLI_SOURCES
     cli/post/post_config.cpp
     cli/post/post_command.cpp
     cli/post/post_reporter.cpp
+    cli/data_pipe_reporter.cpp
     cli/cli_helper.cpp)
 
 add_executable(gelex_cli ${CLI_SOURCES})
