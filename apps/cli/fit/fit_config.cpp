@@ -20,6 +20,7 @@
 
 #include "cli/cli_helper.h"
 #include "gelex/data/genotype/bed_path.h"
+#include "gelex/exception.h"
 
 namespace
 {
@@ -71,5 +72,37 @@ auto FitConfig::make(argparse::ArgumentParser& cmd) -> FitConfig
         .genotype_method = gelex::cli::parse_genotype_process_method(
             cmd.get<std::string>("--geno-method"))};
 
+    auto extract_opt_vec
+        = [&](std::string_view arg) -> std::optional<std::vector<double>>
+    {
+        if (cmd.is_used(arg))
+        {
+            return cmd.get<std::vector<double>>(arg);
+        }
+        return std::nullopt;
+    };
+
+    config.pi = extract_opt_vec("--pi");
+    config.dpi = extract_opt_vec("--dpi");
+    config.scale = extract_opt_vec("--scale");
+    config.dscale = extract_opt_vec("--dscale");
+
     return config;
+}
+
+auto FitConfig::validate() const -> void
+{
+    if (chunk_size <= 0)
+    {
+        throw gelex::InvalidInputException("chunk_size must be > 0");
+    }
+    if (threads != -1 && threads <= 0)
+    {
+        throw gelex::InvalidInputException("threads must be -1 or > 0");
+    }
+    if (mcmc_params.n_burnin >= mcmc_params.n_iters)
+    {
+        throw gelex::InvalidInputException(
+            "n_burnin must be less than n_iters");
+    }
 }

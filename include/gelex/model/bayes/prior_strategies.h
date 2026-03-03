@@ -20,7 +20,7 @@
 #include <optional>
 
 #include "gelex/model/bayes/prior_strategy.h"
-#include "gelex/model/effects.h"
+#include "gelex/types/effects.h"
 
 namespace gelex
 {

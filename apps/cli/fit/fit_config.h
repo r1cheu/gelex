@@ -18,11 +18,13 @@
 #define GELEX_CLI_FIT_CONFIG_H_
 
 #include <filesystem>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "gelex/algo/infer/params.h"
 #include "gelex/data/genotype/genotype_processor.h"
-#include "gelex/model/effects.h"
+#include "gelex/types/effects.h"
 
 namespace argparse
 {
@@ -46,8 +48,13 @@ struct FitConfig
     std::filesystem::path qcovar_path;
     std::filesystem::path dcovar_path;
     gelex::GenotypeProcessMethod genotype_method;
+    std::optional<std::vector<double>> pi;
+    std::optional<std::vector<double>> dpi;
+    std::optional<std::vector<double>> scale;
+    std::optional<std::vector<double>> dscale;
 
     static auto make(argparse::ArgumentParser& cmd) -> FitConfig;
+    auto validate() const -> void;
 };
 
 #endif  // GELEX_CLI_FIT_CONFIG_H_

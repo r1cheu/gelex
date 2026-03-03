@@ -104,13 +104,6 @@ inline auto create_progress_bar(
 
 auto print_gelex_banner_message(std::string_view version) -> void;
 
-auto print_fit_header(
-    std::string_view model_name,
-    bool has_dominance,
-    int iters,
-    int burn_in,
-    int threads) -> void;
-
 auto print_assoc_header(int threads) -> void;
 
 auto format_epilog(std::string_view text) -> std::string;

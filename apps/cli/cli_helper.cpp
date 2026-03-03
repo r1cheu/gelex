@@ -106,32 +106,6 @@ For more information, see the documentation at: https://github.com/r1cheu/gelex
 )";
 }
 
-auto print_fit_header(
-    std::string_view model_name,
-    bool has_dominance,
-    int iters,
-    int burn_in,
-    int threads) -> void
-{
-    auto logger = gelex::logging::get();
-
-    std::string model_str = fmt::format(
-        "Bayes{} ({})",
-        model_name,
-        has_dominance ? "Additive + Dominance" : "Additive");
-    std::string chain_str = fmt::format(
-        "{} iters ({} burn-in, {} sampling)", iters, burn_in, iters - burn_in);
-
-    logger->info(
-        gelex::command_banner(PROJECT_VERSION, "Model Fitting (MCMC)"));
-    logger->info("");
-    logger->info(gelex::section("[Config]"));
-    logger->info("  {:<12}: {}", "Model", model_str);
-    logger->info("  {:<12}: {}", "Chain", chain_str);
-    logger->info("  {:<12}: {}", "Threads", threads);
-    logger->info("");
-}
-
 auto print_assoc_header(int threads) -> void
 {
     auto logger = gelex::logging::get();

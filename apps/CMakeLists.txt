@@ -7,6 +7,7 @@ set(CLI_SOURCES
     cli/fit/fit_args.cpp
     cli/fit/fit_config.cpp
     cli/fit/fit_command.cpp
+    cli/fit/fit_reporter.cpp
     cli/grm/grm_args.cpp
     cli/grm/grm_config.cpp
     cli/grm/grm_command.cpp

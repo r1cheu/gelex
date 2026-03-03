@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_EFFECTS_H_
-#define GELEX_MODEL_EFFECTS_H_
+#ifndef GELEX_TYPES_EFFECTS_H_
+#define GELEX_TYPES_EFFECTS_H_
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -135,4 +135,4 @@ struct formatter<gelex::BayesAlphabet> : formatter<string_view>
 
 }  // namespace fmt
 
-#endif  // GELEX_MODEL_EFFECTS_H_
+#endif  // GELEX_TYPES_EFFECTS_H_

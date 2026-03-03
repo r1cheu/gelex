@@ -16,18 +16,15 @@
 
 #ifndef GELEX_ESTIMATOR_BAYES_MCMC_H_
 #define GELEX_ESTIMATOR_BAYES_MCMC_H_
-#include <atomic>
-#include <chrono>
 #include <string_view>
 
-#include <barkeep.h>
 #include <omp.h>
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/params.h"
 #include "gelex/algo/infer/posterior_calculator.h"
 #include "gelex/algo/report/bayes_logger.h"
-#include "gelex/infra/detail/indicator.h"
+#include "gelex/infra/logging/fit_event.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/mcmc_results.h"
 #include "gelex/types/mcmc_samples.h"
@@ -42,19 +39,15 @@ class MCMC
     MCMCResult run(
         const BayesModel& model,
         Eigen::Index seed = 42,
-        std::string_view sample_prefix = "");
+        std::string_view sample_prefix = "",
+        const FitObserver& observer = {});
 
    private:
     void run_impl(
         const BayesModel& model,
         MCMCSamples& samples,
         Eigen::Index seed,
-        std::atomic_ptrdiff_t& iter,
-        detail::Indicator& indicator);
-
-    void update_indicators(
-        const BayesState& states,
-        detail::Indicator& indicator);
+        const FitObserver& observer);
 
     detail::MCMCLogger logger_;
 
@@ -72,27 +65,29 @@ template <typename TraitSampler>
 MCMCResult MCMC<TraitSampler>::run(
     const BayesModel& model,
     Eigen::Index seed,
-    std::string_view sample_prefix)
+    std::string_view sample_prefix,
+    const FitObserver& observer)
 {
     MCMCSamples samples(params_, model, sample_prefix);
 
-    std::atomic_ptrdiff_t iter{0};
-    detail::Indicator indicator(params_.n_iters, iter);
-
     logger_.log_model_information(model);
 
-    indicator.show();
-
     const detail::EigenThreadGuard guard;
-    auto start = std::chrono::high_resolution_clock::now();
     omp_set_num_threads(1);
-    run_impl(model, samples, seed, iter, indicator);
+    run_impl(model, samples, seed, observer);
 
-    indicator.done();
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration
-        = std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
-              .count();
+    if (observer)
+    {
+        observer(
+            FitMcmcProgressEvent{
+                .current = static_cast<size_t>(params_.n_iters),
+                .total = static_cast<size_t>(params_.n_iters),
+                .done = true,
+                .h2 = std::nullopt,
+                .h2_dom = std::nullopt,
+                .sigma2_e = std::nullopt,
+            });
+    }
 
     MCMCResult result(std::move(samples), model, 0.9);
     result.compute();
@@ -106,21 +101,36 @@ void MCMC<TraitSampler>::run_impl(
     const BayesModel& model,
     MCMCSamples& samples,
     Eigen::Index seed,
-    std::atomic_ptrdiff_t& iter,
-    detail::Indicator& indicator)
+    const FitObserver& observer)
 {
     BayesState status{model};
 
     std::mt19937_64 rng(seed);
     Eigen::Index record_idx = 0;
 
-    for (; iter < params_.n_iters; ++iter)
+    for (Eigen::Index iter = 0; iter < params_.n_iters; ++iter)
     {
         trait_sampler_(model, status, rng);
 
         status.compute_heritability();
 
-        update_indicators(status, indicator);
+        if (observer)
+        {
+            observer(
+                FitMcmcProgressEvent{
+                    .current = static_cast<size_t>(iter + 1),
+                    .total = static_cast<size_t>(params_.n_iters),
+                    .done = false,
+                    .h2 = status.additive()
+                              ? std::optional{status.additive()->heritability}
+                              : std::nullopt,
+                    .h2_dom
+                    = status.dominant()
+                          ? std::optional{status.dominant()->heritability}
+                          : std::nullopt,
+                    .sigma2_e = status.residual().variance,
+                });
+        }
 
         if (iter >= params_.n_burnin
             && (iter + 1 - params_.n_burnin) % params_.n_thin == 0)
@@ -128,22 +138,6 @@ void MCMC<TraitSampler>::run_impl(
             samples.store(status, record_idx++);
         }
     }
-}
-
-template <typename TraitSampler>
-void MCMC<TraitSampler>::update_indicators(
-    const BayesState& states,
-    detail::Indicator& indicator)
-{
-    using sm = detail::Indicator::StatusMetric;
-
-    indicator.update(
-        sm::additive_heritability, states.additive()->heritability);
-    indicator.update(
-        sm::dominant_heritability, states.dominant()->heritability);
-    indicator.update(sm::residual_variance, states.residual().variance);
-
-    indicator.flush_status();
 }
 
 }  // namespace gelex
