@@ -20,14 +20,18 @@
 
 #include "gelex/data/genotype/bed_path.h"
 
-auto PredictConfig::make(argparse::ArgumentParser& cmd) -> PredictConfig
+namespace gelex::cli
 {
-    PredictConfig config{
+
+auto make_predict_config(argparse::ArgumentParser& cmd) -> PredictEngine::Config
+{
+    return PredictEngine::Config{
         .bed_path = gelex::format_bed_path(cmd.get("bfile")),
         .snp_effect_path = cmd.get("--snp-eff"),
         .covar_effect_path = cmd.get("--covar-eff"),
         .qcovar_path = cmd.get("--qcovar"),
         .dcovar_path = cmd.get("--dcovar"),
         .output_path = cmd.get("--out")};
-    return config;
 }
+
+}  // namespace gelex::cli

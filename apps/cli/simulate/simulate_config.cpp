@@ -19,7 +19,6 @@
 #include <argparse.h>
 
 #include <format>
-#include <optional>
 #include <span>
 #include <string_view>
 #include <vector>
@@ -47,7 +46,10 @@ auto validate_effect_classes(
 
 }  // namespace
 
-auto SimulateConfig::make(argparse::ArgumentParser& cmd) -> SimulateConfig
+namespace gelex::cli
+{
+
+auto make_simulate_config(argparse::ArgumentParser& cmd) -> SimulateConfig
 {
     auto dom_heritability = cmd.is_used("--d2")
                                 ? std::make_optional(cmd.get<double>("--d2"))
@@ -68,34 +70,37 @@ auto SimulateConfig::make(argparse::ArgumentParser& cmd) -> SimulateConfig
         .dominance_proportions = cmd.get<std::vector<double>>("--dom-prop"),
 
         .seed = cmd.get<int>("--seed")};
-    return config;
-}
 
-auto SimulateConfig::validate() const -> void
-{
-    if (add_heritability <= 0.0 || add_heritability >= 1.0)
+    if (config.add_heritability <= 0.0 || config.add_heritability >= 1.0)
     {
         throw gelex::ArgumentValidationException(
             "Heritability must be in (0, 1)");
     }
-    if (dom_heritability
-        && (*dom_heritability < 0.0 || *dom_heritability >= 1.0))
+    if (config.dom_heritability
+        && (*config.dom_heritability < 0.0 || *config.dom_heritability >= 1.0))
     {
         throw gelex::ArgumentValidationException(
             "Dominance variance (d2) must be in [0, 1)");
     }
-    if (dom_heritability && add_heritability + *dom_heritability >= 1.0)
+    if (config.dom_heritability
+        && config.add_heritability + *config.dom_heritability >= 1.0)
     {
         throw gelex::ArgumentValidationException("h2 + d2 must be less than 1");
     }
 
     validate_effect_classes(
-        additive_variances, additive_proportions, "Additive effect class");
-    if (dom_heritability)
+        config.additive_variances,
+        config.additive_proportions,
+        "Additive effect class");
+    if (config.dom_heritability)
     {
         validate_effect_classes(
-            dominance_variances,
-            dominance_proportions,
+            config.dominance_variances,
+            config.dominance_proportions,
             "Dominance effect class");
     }
+
+    return config;
 }
+
+}  // namespace gelex::cli

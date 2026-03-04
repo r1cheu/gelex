@@ -22,6 +22,6 @@ namespace argparse
 class ArgumentParser;
 }
 
-void setup_post_args(argparse::ArgumentParser& cmd);
+auto setup_post_args(argparse::ArgumentParser& cmd) -> void;
 
 #endif  // GELEX_CLI_POST_ARGS_H_

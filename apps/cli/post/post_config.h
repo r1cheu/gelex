@@ -25,15 +25,17 @@ namespace argparse
 class ArgumentParser;
 }
 
+namespace gelex::cli
+{
+
 struct PostConfig
 {
     std::vector<std::string> in_prefixes;
     std::string out_prefix;
-
-    static auto make(argparse::ArgumentParser& cmd) -> PostConfig;
-    auto validate() const -> void {
-        // placeholder for future validation logic
-    };
 };
+
+auto make_post_config(argparse::ArgumentParser& cmd) -> PostConfig;
+
+}  // namespace gelex::cli
 
 #endif  // GELEX_CLI_POST_CONFIG_H_

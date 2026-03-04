@@ -22,6 +22,8 @@
 #include <variant>
 #include <vector>
 
+#include "gelex/types/freq_effect.h"
+
 namespace gelex
 {
 
@@ -29,40 +31,47 @@ struct DataPipeSectionEvent
 {
 };
 
-struct DataPipePhenoLoadedEvent
+struct PhenotypeLoadedEvent
 {
     size_t pheno_samples;
     std::string trait_name;
     size_t geno_samples;
 };
 
-struct DataPipeCovarsLoadedEvent  // 仅当有协变量时发射
+struct CovariatesLoadedEvent
 {
-    size_t qcovar_loaded;
-    size_t dcovar_loaded;
-    std::vector<std::string> q_names;
-    std::vector<std::string> d_names;
+    std::optional<size_t> num_quantitative_covariates;
+    std::optional<size_t> num_discrete_covariates;
+    std::vector<std::string> quantitative_names;
+    std::vector<std::string> discrete_names;
 };
 
-struct DataPipeIntersectedEvent
+struct IntersectionEvent
 {
     size_t common_samples;
     size_t excluded_samples;
 };
 
-struct DataPipeGenotypeLoadedEvent
+struct GenotypeLoadedEvent
 {
     bool is_dominance;  // false = Additive, true = Dominance
     int64_t num_snps;
     int64_t monomorphic_snps;
 };
 
+struct GrmLoadedEvent
+{
+    size_t num_samples;
+    freq::GrmType type;
+};
+
 using DataPipeEvent = std::variant<
     DataPipeSectionEvent,
-    DataPipePhenoLoadedEvent,
-    DataPipeCovarsLoadedEvent,
-    DataPipeIntersectedEvent,
-    DataPipeGenotypeLoadedEvent>;
+    PhenotypeLoadedEvent,
+    CovariatesLoadedEvent,
+    IntersectionEvent,
+    GenotypeLoadedEvent,
+    GrmLoadedEvent>;
 
 using DataPipeObserver = std::function<void(const DataPipeEvent&)>;
 

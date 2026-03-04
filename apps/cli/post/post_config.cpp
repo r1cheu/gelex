@@ -18,9 +18,14 @@
 
 #include <argparse.h>
 
-auto PostConfig::make(argparse::ArgumentParser& cmd) -> PostConfig
+namespace gelex::cli
+{
+
+auto make_post_config(argparse::ArgumentParser& cmd) -> PostConfig
 {
     return PostConfig{
         .in_prefixes = cmd.get<std::vector<std::string>>("--in"),
         .out_prefix = cmd.get("--out")};
 }
+
+}  // namespace gelex::cli

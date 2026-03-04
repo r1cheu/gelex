@@ -22,10 +22,11 @@
 namespace gelex
 {
 struct DataPipeSectionEvent;
-struct DataPipePhenoLoadedEvent;
-struct DataPipeCovarsLoadedEvent;
-struct DataPipeIntersectedEvent;
-struct DataPipeGenotypeLoadedEvent;
+struct PhenotypeLoadedEvent;
+struct CovariatesLoadedEvent;
+struct IntersectionEvent;
+struct GenotypeLoadedEvent;
+struct GrmLoadedEvent;
 }  // namespace gelex
 
 namespace spdlog
@@ -42,10 +43,11 @@ class DataPipeReporter
     DataPipeReporter();
 
     auto on_event(const DataPipeSectionEvent& event) const -> void;
-    auto on_event(const DataPipePhenoLoadedEvent& event) const -> void;
-    auto on_event(const DataPipeCovarsLoadedEvent& event) const -> void;
-    auto on_event(const DataPipeIntersectedEvent& event) const -> void;
-    auto on_event(const DataPipeGenotypeLoadedEvent& event) const -> void;
+    auto on_event(const PhenotypeLoadedEvent& event) const -> void;
+    auto on_event(const CovariatesLoadedEvent& event) const -> void;
+    auto on_event(const IntersectionEvent& event) const -> void;
+    auto on_event(const GenotypeLoadedEvent& event) const -> void;
+    auto on_event(const GrmLoadedEvent& event) const -> void;
 
    private:
     std::shared_ptr<spdlog::logger> logger_;

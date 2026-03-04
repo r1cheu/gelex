@@ -20,7 +20,7 @@
 
 #include "cli/cli_helper.h"
 
-void setup_simulate_args(argparse::ArgumentParser& cmd)
+auto setup_simulate_args(argparse::ArgumentParser& cmd) -> void
 {
     cmd.add_description(
         "Simulate phenotypes based on genetic data and specified parameters");

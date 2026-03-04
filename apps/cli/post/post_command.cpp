@@ -20,7 +20,6 @@
 
 #include <variant>
 
-#include "cli/config_factory.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/pipeline/posterior_analysis_engine.h"
@@ -29,7 +28,7 @@
 
 auto post_execute(argparse::ArgumentParser& post) -> int
 {
-    auto config = gelex::cli::make_config<PostConfig>(post);
+    auto config = gelex::cli::make_post_config(post);
     auto logger = gelex::logging::get();
 
     gelex::cli::PostReporter reporter;

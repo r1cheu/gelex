@@ -17,72 +17,61 @@
 #include "assoc_command.h"
 
 #include <argparse.h>
-
-#include <filesystem>
-
-#include <Eigen/Core>
+#include <variant>
 
 #include "assoc_config.h"
 #include "cli/cli_helper.h"
+#include "cli/data_pipe_config.h"
 #include "cli/data_pipe_reporter.h"
-#include "gelex/algo/infer/reml.h"
 #include "gelex/data/genotype/bed_pipe.h"
+#include "gelex/data/loader/bim_loader.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/pipeline/data_pipe.h"
 #include "gwas_runner.h"
 
-#include "gelex/data/loader/bim_loader.h"
-
 auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 {
-    auto config = AssocConfig::make(cmd);
+    auto assoc_config = gelex::cli::make_assoc_config(cmd);
+    auto data_config = gelex::cli::make_data_config(cmd);
 
-    gelex::cli::setup_parallelization(config.threads);
-    gelex::cli::print_assoc_header(config.threads);
+    data_config.model_type = gelex::ModelType::A;
+    data_config.grm_paths = assoc_config.grm_paths;
+    data_config.transform_type = assoc_config.transform_type;
+    data_config.int_offset = assoc_config.int_offset;
 
-    gelex::DataPipe::Config data_pipe_config{
-        .phenotype_path = config.phenotype_path,
-        .phenotype_column = config.phenotype_column,
-        .bed_path = config.bed_path,
-        .use_dominance_effect = false,
-        .use_mmap = false,
-        .chunk_size = config.chunk_size,
-        .qcovar_path = config.qcovar_path,
-        .dcovar_path = config.dcovar_path,
-        .output_prefix = config.out_prefix,
-        .grm_paths = config.grm_paths,
-        .transform_type = config.transform_type,
-        .int_offset = config.int_offset};
+    int threads = cmd.get<int>("--threads");
+    gelex::cli::setup_parallelization(threads);
+    gelex::cli::print_assoc_header(threads);
 
-    gelex::cli::DataPipeReporter pipe_reporter;
-    auto data_pipe = gelex::load_data_for_reml(
-        data_pipe_config,
-        [&pipe_reporter](const gelex::DataPipeEvent& e)
+    gelex::cli::DataPipeReporter data_reporter;
+    gelex::DataPipe data(
+        data_config,
+        [&data_reporter](const gelex::DataPipeEvent& e)
         {
-            std::visit([&](const auto& ev) { pipe_reporter.on_event(ev); }, e);
+            std::visit([&](const auto& ev) { data_reporter.on_event(ev); }, e);
         });
 
-    auto sample_manager = data_pipe.sample_manager();
+    data.load();
 
-    gelex::BedPipe bed_pipe(config.bed_path, sample_manager);
-    auto bim_path = config.bed_path;
-    bim_path.replace_extension(".bim");
+    gelex::BedPipe bed_pipe(data_config.bed_path, data.sample_manager());
+    auto bim = data_config.bed_path;
     auto snp_effects
-        = std::move(gelex::detail::BimLoader(bim_path)).take_info();
+        = std::move(gelex::detail::BimLoader(bim.replace_extension(".bim")))
+              .take_info();
 
     gelex::cli::GwasRunner::Config runner_config{
-        .max_iter = config.max_iter,
-        .tol = config.tol,
-        .chunk_size = config.chunk_size,
-        .loco = config.loco,
-        .additive = config.additive,
-        .method = config.genotype_method,
-        .grm_paths = config.grm_paths,
-        .out_prefix = config.out_prefix};
+        .max_iter = assoc_config.max_iter,
+        .tol = assoc_config.tol,
+        .chunk_size = data_config.chunk_size,
+        .loco = assoc_config.loco,
+        .additive = assoc_config.additive,
+        .method = data_config.genotype_method,
+        .grm_paths = assoc_config.grm_paths,
+        .out_prefix = data_config.output_prefix};
 
     gelex::cli::GwasRunner runner(
         runner_config,
-        std::move(data_pipe),
+        std::move(data),
         std::move(bed_pipe),
         std::move(snp_effects));
 

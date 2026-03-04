@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_CONFIG_FACTORY_H_
-#define GELEX_CLI_CONFIG_FACTORY_H_
+#ifndef GELEX_CLI_DATA_PIPE_CONFIG_H_
+#define GELEX_CLI_DATA_PIPE_CONFIG_H_
 
-#include <concepts>
+#include "gelex/pipeline/data_pipe.h"
 
 namespace argparse
 {
@@ -27,20 +27,9 @@ class ArgumentParser;
 namespace gelex::cli
 {
 
-template <typename T>
-concept CliConfig = requires(argparse::ArgumentParser& args, const T& config) {
-    { T::make(args) } -> std::same_as<T>;
-    { config.validate() } -> std::same_as<void>;
-};
-
-template <CliConfig T>
-auto make_config(argparse::ArgumentParser& args) -> T
-{
-    T config = T::make(args);
-    config.validate();
-    return config;
-}
+auto make_data_config(argparse::ArgumentParser& cmd, bool use_mmap = false)
+    -> gelex::DataPipe::Config;
 
 }  // namespace gelex::cli
 
-#endif  // GELEX_CLI_CONFIG_FACTORY_H_
+#endif  // GELEX_CLI_DATA_PIPE_CONFIG_H_

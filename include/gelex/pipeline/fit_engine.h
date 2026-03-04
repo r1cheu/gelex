@@ -17,48 +17,38 @@
 #ifndef GELEX_PIPELINE_FIT_ENGINE_H_
 #define GELEX_PIPELINE_FIT_ENGINE_H_
 
-#include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "gelex/algo/infer/params.h"
-#include "gelex/data/genotype/genotype_processor.h"
-#include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/types/effects.h"
 
 namespace gelex
 {
-
+class DataPipe;
 class FitEngine
 {
    public:
     struct Config
     {
-        std::filesystem::path bed_path;
-        std::string out_prefix;
+        std::string bfile_prefix;
         BayesAlphabet method;
-        bool use_dominance;
+
         int seed;
         MCMCParams mcmc_params;
-        std::filesystem::path phenotype_path;
-        int phenotype_column;
-        bool use_mmap;
-        int chunk_size;
-        std::filesystem::path qcovar_path;
-        std::filesystem::path dcovar_path;
-        GenotypeProcessMethod genotype_method;
+
         std::optional<std::vector<double>> pi;
         std::optional<std::vector<double>> dpi;
         std::optional<std::vector<double>> scale;
         std::optional<std::vector<double>> dscale;
+
+        std::string out_prefix;
     };
 
     explicit FitEngine(Config config);
-    auto run(
-        const FitObserver& observer = {},
-        const DataPipeObserver& pipe_observer = {}) -> void;
+    auto run(DataPipe&& data, const FitObserver& observer = {}) -> void;
 
    private:
     Config config_;

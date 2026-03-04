@@ -18,7 +18,6 @@
 #define GELEX_CLI_ASSOC_CONFIG_H_
 
 #include <filesystem>
-#include <string>
 #include <vector>
 
 #include "gelex/pipeline/data_pipe.h"
@@ -28,26 +27,22 @@ namespace argparse
 class ArgumentParser;
 }
 
+namespace gelex::cli
+{
+
 struct AssocConfig
 {
-    int threads;
-    std::filesystem::path phenotype_path;
-    int phenotype_column;
-    std::filesystem::path bed_path;
-    int chunk_size;
-    std::filesystem::path qcovar_path;
-    std::filesystem::path dcovar_path;
-    std::string out_prefix;
-    std::vector<std::filesystem::path> grm_paths;
-    gelex::detail::TransformType transform_type;
-    double int_offset;
     int max_iter;
     double tol;
     bool loco;
     bool additive;
-    gelex::GenotypeProcessMethod genotype_method;
-
-    static auto make(argparse::ArgumentParser& cmd) -> AssocConfig;
+    std::vector<std::filesystem::path> grm_paths;
+    detail::TransformType transform_type;
+    double int_offset;
 };
+
+auto make_assoc_config(argparse::ArgumentParser& cmd) -> AssocConfig;
+
+}  // namespace gelex::cli
 
 #endif  // GELEX_CLI_ASSOC_CONFIG_H_

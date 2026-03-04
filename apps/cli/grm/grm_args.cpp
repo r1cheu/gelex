@@ -22,7 +22,7 @@
 
 #include "cli/cli_helper.h"
 
-void setup_grm_args(argparse::ArgumentParser& cmd)
+auto setup_grm_args(argparse::ArgumentParser& cmd) -> void
 {
     cmd.add_description(
         "Compute genomic relationship matrix (GRM) from PLINK "

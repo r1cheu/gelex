@@ -25,7 +25,6 @@
 
 namespace gelex
 {
-
 enum class BayesAlphabet : uint8_t
 {
     A,

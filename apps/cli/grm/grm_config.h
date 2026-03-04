@@ -17,30 +17,15 @@
 #ifndef GELEX_CLI_GRM_CONFIG_H_
 #define GELEX_CLI_GRM_CONFIG_H_
 
-#include <filesystem>
-#include <string>
-
-#include "gelex/data/genotype/genotype_processor.h"
-#include "gelex/types/freq_effect.h"
+#include "gelex/pipeline/grm_engine.h"
 
 namespace argparse
 {
 class ArgumentParser;
 }
 
-struct GrmConfig
+namespace gelex::cli
 {
-    std::filesystem::path bed_path;
-    std::string out_prefix;
-    gelex::GenotypeProcessMethod method;
-    gelex::freq::GrmType mode;
-    int chunk_size;
-    bool do_loco;
-    int threads;
-
-    static auto make(argparse::ArgumentParser& cmd) -> GrmConfig;
-
-    auto validate() const -> void;
-};
-
+auto make_grm_config(argparse::ArgumentParser& cmd) -> gelex::GrmEngine::Config;
+}
 #endif  // GELEX_CLI_GRM_CONFIG_H_

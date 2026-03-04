@@ -47,7 +47,6 @@ class SmoothEtaCalculator
    public:
     explicit SmoothEtaCalculator(
         size_t total_items,
-        double alpha = 0.1,
         size_t min_update_interval_ms = 500);
 
     std::string get_eta(size_t current_items);
@@ -55,10 +54,12 @@ class SmoothEtaCalculator
     std::string total_time_consumed() const;
 
    private:
+    auto compute_adaptive_alpha(double instant_rate) const -> double;
     double calculate_eta_from_rate(size_t current, double rate) const;
 
     size_t total_items_;
-    double alpha_;
+    double alpha_min_;
+    double alpha_max_;
     std::chrono::milliseconds min_update_interval_;
 
     std::chrono::steady_clock::time_point start_time_;

@@ -3,7 +3,7 @@
 Each subcommand lives in `apps/cli/<name>/` with four layers:
 
 - **Args** `<name>_args.h/.cpp` — register flags on `ArgumentParser`
-- **Config** `<name>_config.h/.cpp` — satisfies `CliConfig` concept so `make_config<T>()` calls both
+- **Config** `<name>_config.h/.cpp` — `make_*_config`
 - **Command** `<name>_command.h/.cpp` — `int <name>_execute(parser)`: calls `make_config`, constructs reporter + engine, runs engine with event visitor
 - **Reporter** `<name>_reporter.h/.cpp` — one `on_event(const XxxEvent&)` overload per engine event type (optional if no progress/logging needed)
 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_GWAS_RUNNER_H
-#define GELEX_CLI_GWAS_RUNNER_H
+#ifndef GELEX_CLI_GWAS_RUNNER_H_
+#define GELEX_CLI_GWAS_RUNNER_H_
 
 #include <atomic>
 #include <filesystem>
@@ -105,4 +105,4 @@ class GwasRunner
 
 }  // namespace gelex::cli
 
-#endif  // GELEX_CLI_GWAS_RUNNER_H
+#endif  // GELEX_CLI_GWAS_RUNNER_H_

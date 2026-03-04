@@ -131,8 +131,7 @@ auto run_mcmc_analysis(
         MCMC mcmc(config.mcmc_params, trait_model);
         MCMCResult result
             = mcmc.run(model, config.seed, config.out_prefix, observer);
-        auto bim_path = config.bed_path;
-        bim_path.replace_extension(".bim");
+        auto bim_path = config.bfile_prefix + ".bim";
         MCMCResultWriter writer(result, bim_path);
         writer.save(config.out_prefix);
     };
@@ -190,40 +189,11 @@ auto run_mcmc_analysis(
 
 FitEngine::FitEngine(Config config) : config_(std::move(config)) {}
 
-auto FitEngine::run(
-    const FitObserver& observer,
-    const DataPipeObserver& pipe_observer) -> void
+auto FitEngine::run(DataPipe&& data, const FitObserver& observer) -> void
 {
     auto logger = gelex::logging::get();
 
-    DataPipe::Config data_pipe_config{
-        .phenotype_path = config_.phenotype_path,
-        .phenotype_column = config_.phenotype_column,
-        .bed_path = config_.bed_path,
-        .use_dominance_effect = config_.use_dominance,
-        .use_mmap = config_.use_mmap,
-        .chunk_size = config_.chunk_size,
-        .qcovar_path = config_.qcovar_path,
-        .dcovar_path = config_.dcovar_path,
-        .output_prefix = config_.out_prefix,
-        .grm_paths = {},
-        .genotype_method = config_.genotype_method,
-    };
-
-    DataPipe data_pipe(data_pipe_config, pipe_observer);
-
-    data_pipe.load_phenotypes();
-    data_pipe.load_covariates();
-    data_pipe.intersect_samples();
-    data_pipe.load_additive_matrix();
-
-    if (config_.use_dominance)
-    {
-        data_pipe.load_dominance_matrix();
-    }
-
-    data_pipe.finalize();
-
+    auto data_pipe = std::move(data);
     BayesModel model(data_pipe);
     configure_model_priors(model, config_, logger);
 

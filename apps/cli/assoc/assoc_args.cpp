@@ -21,7 +21,7 @@
 
 #include "cli/cli_helper.h"
 
-void setup_assoc_args(argparse::ArgumentParser& cmd)
+auto setup_assoc_args(argparse::ArgumentParser& cmd) -> void
 {
     cmd.add_description(
         "Perform genome-wide association study using mixed linear model");
@@ -48,10 +48,8 @@ void setup_assoc_args(argparse::ArgumentParser& cmd)
         .nargs(argparse::nargs_pattern::at_least_one)
         .required();
     cmd.add_argument("--qcovar")
-        .default_value("")
         .help("Quantitative covariates (TSV: FID, IID, covar1, ...)");
     cmd.add_argument("--dcovar")
-        .default_value("")
         .help("Discrete covariates (TSV: FID, IID, factor1, ...)");
     cmd.add_argument("-o", "--out")
         .help("Output file prefix")

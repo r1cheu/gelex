@@ -22,6 +22,6 @@ namespace argparse
 class ArgumentParser;
 }
 
-void setup_predict_args(argparse::ArgumentParser& cmd);
+auto setup_predict_args(argparse::ArgumentParser& cmd) -> void;
 
 #endif  // GELEX_CLI_PREDICT_ARGS_H_

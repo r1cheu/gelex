@@ -37,6 +37,7 @@
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/freq_effect.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -52,12 +53,6 @@ enum class TransformType : uint8_t
 };
 }  // namespace detail
 
-struct GrmStats
-{
-    size_t samples_in_file;
-    freq::GrmType type;
-};
-
 class DataPipe
 {
    public:
@@ -65,18 +60,21 @@ class DataPipe
     {
         std::filesystem::path phenotype_path;
         int phenotype_column = 3;
+
+        ModelType model_type;
+
         std::filesystem::path bed_path;
-        bool use_dominance_effect = false;
+        GenotypeProcessMethod genotype_method;
+        std::vector<std::filesystem::path> grm_paths;
         bool use_mmap = false;
         int chunk_size = 10000;
-        std::filesystem::path qcovar_path;
-        std::filesystem::path dcovar_path;
+
+        std::optional<std::filesystem::path> quantitative_covar_path;
+        std::optional<std::filesystem::path> discrete_covar_path;
+
         std::string output_prefix;
-        std::vector<std::filesystem::path> grm_paths;
         detail::TransformType transform_type = detail::TransformType::None;
         double int_offset = 3.0 / 8.0;
-        GenotypeProcessMethod genotype_method
-            = GenotypeProcessMethod::OrthStandardizeHWE;
     };
 
     explicit DataPipe(const Config& config, DataPipeObserver observer = {});
@@ -86,14 +84,7 @@ class DataPipe
     DataPipe& operator=(DataPipe&&) noexcept;
     ~DataPipe();
 
-    auto load_phenotypes() -> void;
-    auto load_covariates() -> void;
-    auto load_grms() -> std::vector<GrmStats>;
-    auto load_additive_matrix() -> void;
-    auto load_dominance_matrix() -> void;
-    auto intersect_samples() -> void;
-
-    auto finalize() -> void;
+    auto load() -> void;
 
     auto num_genotype_samples() const -> size_t
     {
@@ -135,6 +126,15 @@ class DataPipe
    private:
     DataPipe() = default;
 
+    auto load_phenotypes() -> void;
+    auto load_covariates() -> void;
+    auto load_grms() -> void;
+    auto load_additive_matrix() -> void;
+    auto load_dominance_matrix() -> void;
+    auto intersect_samples() -> void;
+
+    auto finalize() -> void;
+
     using GenotypeMatrixPtr
         = std::unique_ptr<std::variant<GenotypeMap, GenotypeMatrix>>;
 
@@ -164,7 +164,7 @@ class DataPipe
     }
 
     Config config_;
-    size_t num_genotype_samples_;
+    size_t num_genotype_samples_{};
 
     DataFrame<double> phenotype_frame_;
     std::optional<DataFrame<double>> qcovar_frame_;

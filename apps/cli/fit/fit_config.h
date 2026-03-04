@@ -17,44 +17,18 @@
 #ifndef GELEX_CLI_FIT_CONFIG_H_
 #define GELEX_CLI_FIT_CONFIG_H_
 
-#include <filesystem>
-#include <optional>
-#include <string>
-#include <vector>
-
-#include "gelex/algo/infer/params.h"
-#include "gelex/data/genotype/genotype_processor.h"
-#include "gelex/types/effects.h"
+#include "gelex/pipeline/fit_engine.h"
 
 namespace argparse
 {
 class ArgumentParser;
 }
 
-struct FitConfig
+namespace gelex::cli
 {
-    std::string method_name;
-    gelex::BayesAlphabet method;
-    bool use_dominance;
-    int threads;
-    int seed;
-    std::string out_prefix;
-    gelex::MCMCParams mcmc_params;
-    std::filesystem::path phenotype_path;
-    int phenotype_column;
-    std::filesystem::path bed_path;
-    bool use_mmap;
-    int chunk_size;
-    std::filesystem::path qcovar_path;
-    std::filesystem::path dcovar_path;
-    gelex::GenotypeProcessMethod genotype_method;
-    std::optional<std::vector<double>> pi;
-    std::optional<std::vector<double>> dpi;
-    std::optional<std::vector<double>> scale;
-    std::optional<std::vector<double>> dscale;
+auto make_fit_config(argparse::ArgumentParser& cmd) -> FitEngine::Config;
+auto has_dominance(BayesAlphabet type) -> bool;
 
-    static auto make(argparse::ArgumentParser& cmd) -> FitConfig;
-    auto validate() const -> void;
-};
+}  // namespace gelex::cli
 
 #endif  // GELEX_CLI_FIT_CONFIG_H_

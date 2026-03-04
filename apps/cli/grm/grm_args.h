@@ -22,6 +22,6 @@ namespace argparse
 class ArgumentParser;
 }
 
-void setup_grm_args(argparse::ArgumentParser& cmd);
+auto setup_grm_args(argparse::ArgumentParser& cmd) -> void;
 
 #endif  // GELEX_CLI_GRM_ARGS_H_

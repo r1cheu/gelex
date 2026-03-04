@@ -21,7 +21,6 @@
 #include <variant>
 
 #include "cli/cli_helper.h"
-#include "cli/config_factory.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/pipeline/grm_engine.h"
 #include "grm_config.h"
@@ -29,12 +28,13 @@
 
 auto grm_execute(argparse::ArgumentParser& cmd) -> int
 {
-    auto config = gelex::cli::make_config<GrmConfig>(cmd);
+    auto config = gelex::cli::make_grm_config(cmd);
     gelex::cli::GrmReporter reporter;
 
     const auto method_name = fmt::format("{}", config.method);
 
-    gelex::cli::setup_parallelization(config.threads);
+    auto threads = cmd.get<int>("--threads");
+    gelex::cli::setup_parallelization(threads);
 
     reporter.on_event(
         gelex::GrmConfigLoadedEvent{
@@ -42,17 +42,10 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
             .mode = config.mode,
             .do_loco = config.do_loco,
             .chunk_size = config.chunk_size,
-            .threads = config.threads,
+            .threads = threads,
         });
 
-    gelex::GrmEngine engine({
-        .bed_path = config.bed_path,
-        .out_prefix = config.out_prefix,
-        .method = config.method,
-        .mode = config.mode,
-        .chunk_size = config.chunk_size,
-        .do_loco = config.do_loco,
-    });
+    gelex::GrmEngine engine(std::move(config));
 
     engine.compute(
         [&reporter](const gelex::GrmEvent& event)

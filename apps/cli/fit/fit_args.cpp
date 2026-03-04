@@ -21,7 +21,7 @@
 
 #include "cli/cli_helper.h"
 
-void setup_fit_args(argparse::ArgumentParser& cmd)
+auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
 {
     cmd.add_description("Fit genomic prediction models using Bayesian methods");
 
@@ -38,10 +38,8 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
         .metavar("<BFILE>")
         .required();
     cmd.add_argument("--qcovar")
-        .default_value("")
         .help("Quantitative covariates (TSV: FID, IID, covar1, ...)");
     cmd.add_argument("--dcovar")
-        .default_value("")
         .help("Discrete covariates (TSV: FID, IID, factor1, ...)");
     cmd.add_argument("-o", "--out")
         .help("Output file prefix")
@@ -118,11 +116,11 @@ void setup_fit_args(argparse::ArgumentParser& cmd)
     cmd.add_group("MCMC Configuration");
     cmd.add_argument("--iters")
         .help("Total MCMC iterations")
-        .default_value(3000)
+        .default_value(5000)
         .scan<'i', int>();
-    cmd.add_argument("--burnin")
+    cmd.add_argument("--burn-in")
         .help("Burn-in iterations to discard")
-        .default_value(2000)
+        .default_value(3000)
         .scan<'i', int>();
     cmd.add_argument("--thin")
         .help("Thinning interval for samples")

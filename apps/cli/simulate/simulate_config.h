@@ -18,12 +18,16 @@
 #define GELEX_CLI_SIMULATE_CONFIG_H_
 
 #include <filesystem>
+#include <optional>
 #include <vector>
 
 namespace argparse
 {
 class ArgumentParser;
 }
+
+namespace gelex::cli
+{
 
 struct SimulateConfig
 {
@@ -41,9 +45,10 @@ struct SimulateConfig
     std::vector<double> dominance_proportions;
 
     int seed;
-
-    static auto make(argparse::ArgumentParser& cmd) -> SimulateConfig;
-    auto validate() const -> void;
 };
+
+auto make_simulate_config(argparse::ArgumentParser& cmd) -> SimulateConfig;
+
+}  // namespace gelex::cli
 
 #endif  // GELEX_CLI_SIMULATE_CONFIG_H_

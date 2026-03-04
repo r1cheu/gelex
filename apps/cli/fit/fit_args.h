@@ -22,6 +22,6 @@ namespace argparse
 class ArgumentParser;
 }
 
-void setup_fit_args(argparse::ArgumentParser& cmd);
+auto setup_fit_args(argparse::ArgumentParser& cmd) -> void;
 
 #endif  // GELEX_CLI_FIT_ARGS_H_

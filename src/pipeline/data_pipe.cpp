@@ -27,7 +27,6 @@
 #include <Eigen/Core>
 
 #include "gelex/data/frame/dummy_encode.h"
-#include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/data/genotype/sample_manager.h"
 #include "gelex/data/grm/grm_loader.h"
 #include "gelex/exception.h"
@@ -47,9 +46,39 @@ DataPipe::DataPipe(const Config& config, DataPipeObserver observer)
     : config_(config), observer_(std::move(observer))
 {
     auto fam_path = config.bed_path;
-    fam_path.replace_extension(".fam");
-    sample_manager_ = std::make_shared<SampleManager>(fam_path);
+    sample_manager_
+        = std::make_shared<SampleManager>(fam_path.replace_extension(".fam"));
     num_genotype_samples_ = sample_manager_->num_common_samples();
+}
+
+auto DataPipe::load() -> void
+{
+    load_phenotypes();
+    load_covariates();
+
+    intersect_samples();
+
+    if (!config_.grm_paths.empty())
+    {
+        load_grms();
+    }
+    else
+    {
+        if (config_.model_type == ModelType::A)
+        {
+            load_additive_matrix();
+        }
+        else if (config_.model_type == ModelType::D)
+        {
+            load_dominance_matrix();
+        }
+        else
+        {
+            load_additive_matrix();
+            load_dominance_matrix();
+        }
+    }
+    finalize();
 }
 
 auto DataPipe::load_phenotypes() -> void
@@ -59,76 +88,79 @@ auto DataPipe::load_phenotypes() -> void
         throw ArgumentValidationException("Phenotype file path is required.");
     }
 
+    PhenotypeLoadedEvent event;
+    event.geno_samples = num_genotype_samples_;
+
+    int column_index
+        = config_.phenotype_column - 2;  // zero-based index for data frame
+
     auto frame = DataFrame<double>::read(config_.phenotype_path);
 
-    if (config_.phenotype_column < 2
-        || static_cast<size_t>(config_.phenotype_column - 2) >= frame.ncols())
+    if (column_index < 0 || column_index >= static_cast<int>(frame.ncols()))
     {
         throw ColumnRangeException(
             std::format(
-                "Phenotype column {} is out of range",
-                config_.phenotype_column));
+                "Phenotype column {} is out of range, expected [2, {}]",
+                config_.phenotype_column,
+                frame.ncols() + 2));
     }
 
     phenotype_name_
         = frame.column(static_cast<size_t>(config_.phenotype_column - 2))
               .name();
+
     phenotype_frame_ = std::move(frame);
+    event.pheno_samples = phenotype_frame_.nrows();
+    event.trait_name = phenotype_name_;
 
     if (observer_)
     {
         observer_(DataPipeSectionEvent{});
-        observer_(
-            DataPipePhenoLoadedEvent{
-                .pheno_samples = phenotype_frame_.nrows(),
-                .trait_name = phenotype_name_,
-                .geno_samples = num_genotype_samples_});
+        observer_(event);
     }
 }
 
 auto DataPipe::load_covariates() -> void
 {
-    std::vector<std::string> q_names;
-    std::vector<std::string> d_names;
+    CovariatesLoadedEvent event;
 
-    if (!config_.qcovar_path.empty())
+    if (config_.quantitative_covar_path)
     {
-        qcovar_frame_ = DataFrame<double>::read(config_.qcovar_path);
-        q_names = qcovar_frame_->columns();
+        qcovar_frame_
+            = DataFrame<double>::read(*config_.quantitative_covar_path);
+        event.num_quantitative_covariates = qcovar_frame_->ncols();
+        event.quantitative_names = qcovar_frame_->columns();
     }
 
-    if (!config_.dcovar_path.empty())
+    if (config_.discrete_covar_path)
     {
-        dcovar_frame_ = DataFrame<std::string>::read(config_.dcovar_path);
-        d_names = dcovar_frame_->columns();
+        dcovar_frame_
+            = DataFrame<std::string>::read(*config_.discrete_covar_path);
+        event.num_discrete_covariates = dcovar_frame_->ncols();
+        event.discrete_names = dcovar_frame_->columns();
     }
 
-    if (observer_ && (!q_names.empty() || !d_names.empty()))
+    if (observer_
+        && (event.num_quantitative_covariates || event.num_discrete_covariates))
     {
-        observer_(
-            DataPipeCovarsLoadedEvent{
-                .qcovar_loaded = q_names.size(),
-                .dcovar_loaded = d_names.size(),
-                .q_names = std::move(q_names),
-                .d_names = std::move(d_names)});
+        observer_(event);
     }
 }
 
-auto DataPipe::load_grms() -> std::vector<GrmStats>
+auto DataPipe::load_grms() -> void
 {
-    std::vector<GrmStats> grm_stats;
-    grm_stats.reserve(config_.grm_paths.size());
-
     for (const auto& grm_path : config_.grm_paths)
     {
         grm_loaders_.emplace_back(grm_path);
-        grm_stats.push_back(
-            GrmStats{
-                .samples_in_file
-                = static_cast<size_t>(grm_loaders_.back().num_samples()),
-                .type = grm_loaders_.back().type()});
+        if (observer_)
+        {
+            observer_(
+                GrmLoadedEvent{
+                    .num_samples
+                    = static_cast<size_t>(grm_loaders_.back().num_samples()),
+                    .type = grm_loaders_.back().type()});
+        }
     }
-    return grm_stats;
 }
 
 auto DataPipe::intersect_samples() -> void
@@ -178,7 +210,7 @@ auto DataPipe::intersect_samples() -> void
     if (observer_)
     {
         observer_(
-            DataPipeIntersectedEvent{
+            IntersectionEvent{
                 .common_samples = common,
                 .excluded_samples = total_before - common});
     }
@@ -200,7 +232,7 @@ auto DataPipe::load_additive_matrix() -> void
             },
             *additive_matrix_);
         observer_(
-            DataPipeGenotypeLoadedEvent{
+            GenotypeLoadedEvent{
                 .is_dominance = false,
                 .num_snps = total,
                 .monomorphic_snps = mono});
@@ -223,7 +255,7 @@ auto DataPipe::load_dominance_matrix() -> void
             },
             *dominance_matrix_);
         observer_(
-            DataPipeGenotypeLoadedEvent{
+            GenotypeLoadedEvent{
                 .is_dominance = true,
                 .num_snps = total,
                 .monomorphic_snps = mono});

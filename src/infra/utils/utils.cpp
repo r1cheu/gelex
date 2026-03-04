@@ -16,7 +16,10 @@
 
 #include "gelex/infra/utils/utils.h"
 
+#include <algorithm>
 #include <chrono>
+#include <cmath>
+
 #include "gelex/infra/utils/formatter.h"
 
 namespace gelex
@@ -31,10 +34,10 @@ Timer::~Timer()
 
 SmoothEtaCalculator::SmoothEtaCalculator(
     size_t total_items,
-    double alpha,
     size_t min_update_interval_ms)
     : total_items_(total_items),
-      alpha_(alpha),
+      alpha_min_(0.05),
+      alpha_max_(0.5),
       min_update_interval_(min_update_interval_ms),
       start_time_(std::chrono::steady_clock::now()),
       last_time_(start_time_),
@@ -88,8 +91,8 @@ std::string SmoothEtaCalculator::get_eta(size_t current_items)
     }
     else
     {
-        smooth_rate_
-            = (instant_rate * alpha_) + (smooth_rate_ * (1.0 - alpha_));
+        double alpha = compute_adaptive_alpha(instant_rate);
+        smooth_rate_ = (instant_rate * alpha) + (smooth_rate_ * (1.0 - alpha));
     }
 
     last_time_ = now;
@@ -116,6 +119,16 @@ void SmoothEtaCalculator::reset(size_t new_total)
     smooth_rate_ = 0.0;
     is_first_update_ = true;
     cached_eta_seconds_ = 0.0;
+}
+
+auto SmoothEtaCalculator::compute_adaptive_alpha(double instant_rate) const
+    -> double
+{
+    constexpr double kEpsilon = 1e-9;
+    double deviation = std::abs(instant_rate - smooth_rate_)
+                       / std::max(smooth_rate_, kEpsilon);
+    double clamped = std::clamp(deviation, 0.0, 1.0);
+    return alpha_min_ + ((alpha_max_ - alpha_min_) * clamped);
 }
 
 double SmoothEtaCalculator::calculate_eta_from_rate(size_t current, double rate)

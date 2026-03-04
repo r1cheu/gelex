@@ -20,59 +20,54 @@
 #include <variant>
 
 #include "cli/cli_helper.h"
-#include "cli/config_factory.h"
+#include "cli/data_pipe_config.h"
 #include "cli/data_pipe_reporter.h"
 #include "fit_config.h"
 #include "fit_reporter.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/fit_event.h"
+#include "gelex/pipeline/data_pipe.h"
 #include "gelex/pipeline/fit_engine.h"
 
-int fit_execute(argparse::ArgumentParser& fit)
+auto fit_execute(argparse::ArgumentParser& fit) -> int
 {
-    auto config = gelex::cli::make_config<FitConfig>(fit);
-    gelex::cli::FitReporter reporter;
+    auto fit_config = gelex::cli::make_fit_config(fit);
+    auto data_config
+        = gelex::cli::make_data_config(fit, fit.get<bool>("--mmap"));
 
-    gelex::cli::setup_parallelization(config.threads);
-    gelex::cli::DataPipeReporter pipe_reporter;
+    data_config.model_type = gelex::cli::has_dominance(fit_config.method)
+                                 ? gelex::ModelType::AD
+                                 : gelex::ModelType::A;
+
+    int threads = fit.get<int>("--threads");
+    gelex::cli::FitReporter reporter;
+    gelex::cli::DataPipeReporter data_reporter;
+    gelex::cli::setup_parallelization(threads);
 
     reporter.on_event(
         gelex::FitConfigLoadedEvent{
-            .method = config.method,
-            .use_dominance = config.use_dominance,
-            .n_iters = static_cast<int>(config.mcmc_params.n_iters),
-            .n_burnin = static_cast<int>(config.mcmc_params.n_burnin),
-            .seed = config.seed,
-            .threads = config.threads,
+            .method = fit_config.method,
+            .n_iters = static_cast<int>(fit_config.mcmc_params.n_iters),
+            .n_burnin = static_cast<int>(fit_config.mcmc_params.n_burnin),
+            .seed = fit_config.seed,
+            .threads = threads,
         });
 
-    gelex::FitEngine engine({
-        .bed_path = config.bed_path,
-        .out_prefix = config.out_prefix,
-        .method = config.method,
-        .use_dominance = config.use_dominance,
-        .seed = config.seed,
-        .mcmc_params = config.mcmc_params,
-        .phenotype_path = config.phenotype_path,
-        .phenotype_column = config.phenotype_column,
-        .use_mmap = config.use_mmap,
-        .chunk_size = config.chunk_size,
-        .qcovar_path = config.qcovar_path,
-        .dcovar_path = config.dcovar_path,
-        .genotype_method = config.genotype_method,
-        .pi = config.pi,
-        .dpi = config.dpi,
-        .scale = config.scale,
-        .dscale = config.dscale,
-    });
+    gelex::DataPipe data(
+        data_config,
+        [&data_reporter](const gelex::DataPipeEvent& e)
+        {
+            std::visit([&](const auto& ev) { data_reporter.on_event(ev); }, e);
+        });
+
+    data.load();
+
+    gelex::FitEngine engine(std::move(fit_config));
 
     engine.run(
+        std::move(data),
         [&reporter](const gelex::FitEvent& e)
-        { std::visit([&](const auto& ev) { reporter.on_event(ev); }, e); },
-        [&pipe_reporter](const gelex::DataPipeEvent& e)
-        {
-            std::visit([&](const auto& ev) { pipe_reporter.on_event(ev); }, e);
-        });
+        { std::visit([&](const auto& ev) { reporter.on_event(ev); }, e); });
 
     return 0;
 }

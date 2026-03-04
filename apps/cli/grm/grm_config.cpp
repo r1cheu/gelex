@@ -21,8 +21,12 @@
 #include "cli/cli_helper.h"
 #include "gelex/data/genotype/bed_path.h"
 #include "gelex/exception.h"
+#include "gelex/types/freq_effect.h"
 
-auto GrmConfig::make(argparse::ArgumentParser& cmd) -> GrmConfig
+namespace gelex::cli
+{
+
+auto make_grm_config(argparse::ArgumentParser& cmd) -> gelex::GrmEngine::Config
 {
     bool add = cmd.get<bool>("--add");
     bool dom = cmd.get<bool>("--dom");
@@ -35,27 +39,19 @@ auto GrmConfig::make(argparse::ArgumentParser& cmd) -> GrmConfig
     {
         mode = gelex::freq::GrmType::D;
     }
+    auto chunk_size = cmd.get<int>("--chunk-size");
+    if (chunk_size <= 0)
+    {
+        throw gelex::ArgumentValidationException("chunk_size must be positive");
+    }
 
-    return GrmConfig{
+    return gelex::GrmEngine::Config{
         .bed_path = gelex::format_bed_path(cmd.get("--bfile")),
         .out_prefix = cmd.get("--out"),
         .method = gelex::cli::parse_genotype_process_method(
             cmd.get<std::string>("--geno-method")),
         .mode = mode,
-        .chunk_size = cmd.get<int>("--chunk-size"),
-        .do_loco = cmd.get<bool>("--loco"),
-        .threads = cmd.get<int>("--threads")};
+        .chunk_size = chunk_size,
+        .do_loco = cmd.get<bool>("--loco")};
 }
-
-auto GrmConfig::validate() const -> void
-{
-    if (chunk_size <= 0)
-    {
-        throw gelex::ArgumentValidationException("chunk_size must be positive");
-    }
-    if (threads == 0 || threads < -1)
-    {
-        throw gelex::ArgumentValidationException(
-            "threads must be -1 (auto) or a positive integer");
-    }
-}
+}  // namespace gelex::cli

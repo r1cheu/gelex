@@ -33,11 +33,9 @@ auto DataPipeReporter::on_event(const DataPipeSectionEvent& /*event*/) const
     -> void
 {
     logger_->info(gelex::section("[Dataset Summary]"));
-    logger_->info("");
 }
 
-auto DataPipeReporter::on_event(const DataPipePhenoLoadedEvent& event) const
-    -> void
+auto DataPipeReporter::on_event(const PhenotypeLoadedEvent& event) const -> void
 {
     logger_->info(
         gelex::success(
@@ -48,33 +46,32 @@ auto DataPipeReporter::on_event(const DataPipePhenoLoadedEvent& event) const
         gelex::success("Genotypes  : {} samples", event.geno_samples));
 }
 
-auto DataPipeReporter::on_event(const DataPipeCovarsLoadedEvent& event) const
+auto DataPipeReporter::on_event(const CovariatesLoadedEvent& event) const
     -> void
 {
     std::string parts;
-    if (event.qcovar_loaded > 0)
+    if (event.num_quantitative_covariates)
     {
         parts += fmt::format(
             "{} quantitative ({})",
-            event.qcovar_loaded,
-            gelex::format_names(event.q_names));
+            *event.num_quantitative_covariates,
+            gelex::format_names(event.quantitative_names));
     }
-    if (event.qcovar_loaded > 0 && event.dcovar_loaded > 0)
+    if (event.num_quantitative_covariates && event.num_discrete_covariates)
     {
         parts += ", ";
     }
-    if (event.dcovar_loaded > 0)
+    if (event.num_discrete_covariates)
     {
         parts += fmt::format(
             "{} discrete ({})",
-            event.dcovar_loaded,
-            gelex::format_names(event.d_names));
+            *event.num_discrete_covariates,
+            gelex::format_names(event.discrete_names));
     }
     logger_->info(gelex::success("Covariates : {}", parts));
 }
 
-auto DataPipeReporter::on_event(const DataPipeIntersectedEvent& event) const
-    -> void
+auto DataPipeReporter::on_event(const IntersectionEvent& event) const -> void
 {
     logger_->info(
         gelex::success(
@@ -83,8 +80,7 @@ auto DataPipeReporter::on_event(const DataPipeIntersectedEvent& event) const
             event.excluded_samples));
 }
 
-auto DataPipeReporter::on_event(const DataPipeGenotypeLoadedEvent& event) const
-    -> void
+auto DataPipeReporter::on_event(const GenotypeLoadedEvent& event) const -> void
 {
     const auto effective_snps = event.num_snps - event.monomorphic_snps;
     const std::string label = event.is_dominance ? "Dominance" : "Additive";
@@ -102,6 +98,13 @@ auto DataPipeReporter::on_event(const DataPipeGenotypeLoadedEvent& event) const
     {
         logger_->info("{}", msg);
     }
+}
+
+auto DataPipeReporter::on_event(const GrmLoadedEvent& event) const -> void
+{
+    logger_->info(
+        gelex::success(
+            "GRM        : {} samples ({})", event.num_samples, event.type));
 }
 
 }  // namespace gelex::cli

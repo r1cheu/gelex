@@ -10,6 +10,13 @@ enum class GeneticEffectType : uint8_t
     Dom
 };
 
+enum class ModelType : uint8_t
+{
+    A,
+    D,
+    AD
+};
+
 struct LocusStatistic
 {
     double mean{0};

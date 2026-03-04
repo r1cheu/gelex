@@ -17,23 +17,19 @@
 #ifndef GELEX_CLI_PREDICT_CONFIG_H_
 #define GELEX_CLI_PREDICT_CONFIG_H_
 
-#include <filesystem>
+#include "gelex/pipeline/predict/predict_engine.h"
 
 namespace argparse
 {
 class ArgumentParser;
 }
 
-struct PredictConfig
+namespace gelex::cli
 {
-    std::filesystem::path bed_path;
-    std::filesystem::path snp_effect_path;
-    std::filesystem::path covar_effect_path;
-    std::filesystem::path qcovar_path;
-    std::filesystem::path dcovar_path;
-    std::filesystem::path output_path;
 
-    static auto make(argparse::ArgumentParser& cmd) -> PredictConfig;
-};
+auto make_predict_config(argparse::ArgumentParser& cmd)
+    -> PredictEngine::Config;
+
+}  // namespace gelex::cli
 
 #endif  // GELEX_CLI_PREDICT_CONFIG_H_

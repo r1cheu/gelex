@@ -34,43 +34,8 @@ auto load_data_for_reml(
     const DataPipe::Config& config,
     DataPipeObserver observer) -> DataPipe
 {
-    auto logger = gelex::logging::get();
     DataPipe data_pipe(config, std::move(observer));
-
-    data_pipe.load_phenotypes();
-    data_pipe.load_covariates();
-
-    // GRM 直接日志保留（本阶段无 DataPipeGrmLoadedEvent）
-    logger->info(gelex::success("GRM : "));
-    auto grm_stats = data_pipe.load_grms();
-
-    for (const auto& grm_stat : grm_stats)
-    {
-        switch (grm_stat.type)
-        {
-            case freq::GrmType::A:
-                logger->info(
-                    gelex::subtask(
-                        "Additive     : {:L} samples",
-                        grm_stat.samples_in_file));
-                break;
-            case freq::GrmType::D:
-                logger->info(
-                    gelex::subtask(
-                        "Dominance    : {:L} samples",
-                        grm_stat.samples_in_file));
-                break;
-            default:
-                logger->info(
-                    gelex::subtask(
-                        "Unknown      : {:L} samples",
-                        grm_stat.samples_in_file));
-                break;
-        }
-    }
-
-    data_pipe.intersect_samples();
-    data_pipe.finalize();
+    data_pipe.load();
     return data_pipe;
 }
 

@@ -17,15 +17,13 @@
 #include "simulate_command.h"
 
 #include <argparse.h>
-#include <optional>
 #include <variant>
 #include <vector>
 
-#include "cli/config_factory.h"
 #include "gelex/algo/sim/effect_sampler.h"
 #include "gelex/pipeline/phenotype_simulation_engine.h"
 #include "simulate_config.h"
-#include "simulater_reporter.h"
+#include "simulator_reporter.h"
 
 namespace
 {
@@ -44,10 +42,10 @@ auto create_effectsize_vec(
 
 }  // namespace
 
-int simulate_execute(argparse::ArgumentParser& sim)
+auto simulate_execute(argparse::ArgumentParser& sim) -> int
 {
-    auto config = gelex::cli::make_config<SimulateConfig>(sim);
-    gelex::cli::SimulaterReporter logger;
+    auto config = gelex::cli::make_simulate_config(sim);
+    gelex::cli::SimulatorReporter reporter;
 
     gelex::PhenotypeSimulationEngine::Config simulator_config{
         .bed_path = config.bed_path,
@@ -68,7 +66,7 @@ int simulate_execute(argparse::ArgumentParser& sim)
         .seed = config.seed,
     };
 
-    logger.on_event(
+    reporter.on_event(
         gelex::SimulateConfigLoadedEvent{
             .intercept = config.intercept,
             .add_heritability = config.add_heritability,
@@ -78,11 +76,11 @@ int simulate_execute(argparse::ArgumentParser& sim)
 
     gelex::PhenotypeSimulationEngine simulator(simulator_config);
     simulator.run(
-        [&logger](const gelex::SimulateEvent& event)
+        [&reporter](const gelex::SimulateEvent& event)
         {
             std::visit(
-                [&logger](const auto& concrete_event)
-                { logger.on_event(concrete_event); },
+                [&reporter](const auto& concrete_event)
+                { reporter.on_event(concrete_event); },
                 event);
         });
     return 0;

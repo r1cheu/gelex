@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_ASSOC_COMMAND_H
-#define GELEX_CLI_ASSOC_COMMAND_H
+#ifndef GELEX_CLI_ASSOC_COMMAND_H_
+#define GELEX_CLI_ASSOC_COMMAND_H_
 
 namespace argparse
 {
@@ -24,4 +24,4 @@ class ArgumentParser;
 
 auto assoc_execute(argparse::ArgumentParser& cmd) -> int;
 
-#endif  // GELEX_CLI_ASSOC_COMMAND_H
+#endif  // GELEX_CLI_ASSOC_COMMAND_H_

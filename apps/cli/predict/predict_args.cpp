@@ -20,7 +20,7 @@
 
 #include "cli/cli_helper.h"
 
-void setup_predict_args(argparse::ArgumentParser& cmd)
+auto setup_predict_args(argparse::ArgumentParser& cmd) -> void
 {
     cmd.add_description(
         "Generate genomic predictions using fitted SNP effects");

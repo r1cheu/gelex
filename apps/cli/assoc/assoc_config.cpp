@@ -18,12 +18,8 @@
 
 #include <argparse.h>
 
-#include <filesystem>
 #include <string_view>
 #include <vector>
-
-#include "cli/cli_helper.h"
-#include "gelex/data/genotype/bed_path.h"
 
 namespace
 {
@@ -44,37 +40,25 @@ auto parse_transform_type(std::string_view transform)
 
 }  // namespace
 
-auto AssocConfig::make(argparse::ArgumentParser& cmd) -> AssocConfig
+namespace gelex::cli
+{
+
+auto make_assoc_config(argparse::ArgumentParser& cmd) -> AssocConfig
 {
     std::vector<std::filesystem::path> grm_paths;
-    for (const auto& grm_path : cmd.get<std::vector<std::string>>("--grm"))
+    for (const auto& p : cmd.get<std::vector<std::string>>("--grm"))
     {
-        grm_paths.push_back(grm_path);
+        grm_paths.push_back(p);
     }
 
-    auto bed_path = gelex::format_bed_path(cmd.get("bfile"));
-    auto transform_type = parse_transform_type(cmd.get("--transform"));
-
-    auto genotype_method = gelex::cli::parse_genotype_process_method(
-        cmd.get<std::string>("--geno-method"));
-
-    AssocConfig config{
-        .threads = cmd.get<int>("--threads"),
-        .phenotype_path = cmd.get("--pheno"),
-        .phenotype_column = cmd.get<int>("--pheno-col"),
-        .bed_path = bed_path,
-        .chunk_size = cmd.get<int>("--chunk-size"),
-        .qcovar_path = cmd.get("--qcovar"),
-        .dcovar_path = cmd.get("--dcovar"),
-        .out_prefix = cmd.get("--out"),
-        .grm_paths = grm_paths,
-        .transform_type = transform_type,
-        .int_offset = cmd.get<double>("--int-offset"),
+    return AssocConfig{
         .max_iter = cmd.get<int>("--max-iter"),
         .tol = cmd.get<double>("--tol"),
         .loco = cmd.get<bool>("--loco"),
         .additive = cmd.get("--model") == "a",
-        .genotype_method = genotype_method};
-
-    return config;
+        .grm_paths = std::move(grm_paths),
+        .transform_type = parse_transform_type(cmd.get("--transform")),
+        .int_offset = cmd.get<double>("--int-offset")};
 }
+
+}  // namespace gelex::cli

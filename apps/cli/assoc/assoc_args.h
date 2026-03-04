@@ -22,6 +22,6 @@ namespace argparse
 class ArgumentParser;
 }
 
-void setup_assoc_args(argparse::ArgumentParser& cmd);
+auto setup_assoc_args(argparse::ArgumentParser& cmd) -> void;
 
 #endif  // GELEX_CLI_ASSOC_ARGS_H_

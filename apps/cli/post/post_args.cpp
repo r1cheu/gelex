@@ -20,7 +20,7 @@
 
 #include "cli/cli_helper.h"
 
-void setup_post_args(argparse::ArgumentParser& cmd)
+auto setup_post_args(argparse::ArgumentParser& cmd) -> void
 {
     cmd.add_description(
         "MCMC posterior analysis: diagnostics (ESS, R-hat, HPDI) from fit "

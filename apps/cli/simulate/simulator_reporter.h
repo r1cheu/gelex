@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_SIMULATER_REPORTER_H_
-#define GELEX_CLI_SIMULATER_REPORTER_H_
+#ifndef GELEX_CLI_SIMULATOR_REPORTER_H_
+#define GELEX_CLI_SIMULATOR_REPORTER_H_
+
 #include <memory>
 
 #include "gelex/infra/detail/indicator.h"
@@ -27,6 +28,7 @@ struct SimulateProgressEvent;
 struct HeritabilityGeneratedEvent;
 struct OutputsWrittenEvent;
 }  // namespace gelex
+
 namespace spdlog
 {
 class logger;
@@ -34,10 +36,10 @@ class logger;
 namespace gelex::cli
 {
 
-class SimulaterReporter
+class SimulatorReporter
 {
    public:
-    SimulaterReporter();
+    SimulatorReporter();
 
     auto on_event(const SimulateConfigLoadedEvent& event) const -> void;
     auto on_event(const SimulateProgressEvent& event) -> void;
@@ -52,4 +54,4 @@ class SimulaterReporter
 
 }  // namespace gelex::cli
 
-#endif  // GELEX_CLI_SIMULATER_REPORTER_H_
+#endif  // GELEX_CLI_SIMULATOR_REPORTER_H_

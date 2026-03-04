@@ -22,6 +22,6 @@ namespace argparse
 class ArgumentParser;
 }
 
-int simulate_execute(argparse::ArgumentParser& sim);
+auto simulate_execute(argparse::ArgumentParser& sim) -> int;
 
 #endif  // GELEX_CLI_SIMULATE_COMMAND_H_

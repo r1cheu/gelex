@@ -22,6 +22,6 @@ namespace argparse
 class ArgumentParser;
 }
 
-void setup_simulate_args(argparse::ArgumentParser& cmd);
+auto setup_simulate_args(argparse::ArgumentParser& cmd) -> void;
 
 #endif  // GELEX_CLI_SIMULATE_ARGS_H_

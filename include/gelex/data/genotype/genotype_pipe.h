@@ -24,7 +24,6 @@
 
 #include <fmt/format.h>
 #include <Eigen/Core>
-#include "barkeep.h"
 
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/genotype/genotype_mmap.h"

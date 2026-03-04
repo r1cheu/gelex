@@ -22,6 +22,6 @@ namespace argparse
 class ArgumentParser;
 }
 
-int fit_execute(argparse::ArgumentParser& fit);
+auto fit_execute(argparse::ArgumentParser& fit) -> int;
 
 #endif  // GELEX_CLI_FIT_COMMAND_H_

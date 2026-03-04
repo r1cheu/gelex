@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "simulater_reporter.h"
+#include "simulator_reporter.h"
 
 #include "config.h"
 #include "gelex/infra/detail/indicator.h"
@@ -25,12 +25,12 @@
 namespace gelex::cli
 {
 
-SimulaterReporter::SimulaterReporter()
+SimulatorReporter::SimulatorReporter()
     : logger_(gelex::logging::get()), info_(detail::create_progress_info())
 {
 }
 
-auto SimulaterReporter::on_event(const SimulateConfigLoadedEvent& event) const
+auto SimulatorReporter::on_event(const SimulateConfigLoadedEvent& event) const
     -> void
 {
     std::string mode_str = event.dom_heritability ? "AD" : "A";
@@ -53,7 +53,7 @@ auto SimulaterReporter::on_event(const SimulateConfigLoadedEvent& event) const
     logger_->info("");
 }
 
-auto SimulaterReporter::on_event(const SimulateProgressEvent& event) -> void
+auto SimulatorReporter::on_event(const SimulateProgressEvent& event) -> void
 {
     if (!init_progress_)
     {
@@ -73,7 +73,7 @@ auto SimulaterReporter::on_event(const SimulateProgressEvent& event) -> void
     }
 }
 
-auto SimulaterReporter::on_event(const HeritabilityGeneratedEvent& event) const
+auto SimulatorReporter::on_event(const HeritabilityGeneratedEvent& event) const
     -> void
 {
     logger_->info(gelex::section("[True Heritability]"));
@@ -86,7 +86,7 @@ auto SimulaterReporter::on_event(const HeritabilityGeneratedEvent& event) const
     logger_->info("");
 }
 
-auto SimulaterReporter::on_event(const OutputsWrittenEvent& event) const -> void
+auto SimulatorReporter::on_event(const OutputsWrittenEvent& event) const -> void
 {
     logger_->info(gelex::section("[File Summary]"));
     logger_->info(
