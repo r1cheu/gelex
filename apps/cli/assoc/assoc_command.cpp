@@ -24,8 +24,10 @@
 
 #include "assoc_config.h"
 #include "cli/cli_helper.h"
+#include "cli/data_pipe_reporter.h"
 #include "gelex/algo/infer/reml.h"
 #include "gelex/data/genotype/bed_pipe.h"
+#include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/pipeline/data_pipe.h"
 #include "gwas_runner.h"
 
@@ -52,7 +54,13 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
         .transform_type = config.transform_type,
         .int_offset = config.int_offset};
 
-    auto data_pipe = gelex::load_data_for_reml(data_pipe_config);
+    gelex::cli::DataPipeReporter pipe_reporter;
+    auto data_pipe = gelex::load_data_for_reml(
+        data_pipe_config,
+        [&pipe_reporter](const gelex::DataPipeEvent& e)
+        {
+            std::visit([&](const auto& ev) { pipe_reporter.on_event(ev); }, e);
+        });
 
     auto sample_manager = data_pipe.sample_manager();
 

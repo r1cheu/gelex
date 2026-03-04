@@ -30,49 +30,19 @@
 namespace gelex
 {
 
-auto load_data_for_reml(const DataPipe::Config& config) -> DataPipe
+auto load_data_for_reml(
+    const DataPipe::Config& config,
+    DataPipeObserver observer) -> DataPipe
 {
     auto logger = gelex::logging::get();
-    DataPipe data_pipe(config);
+    DataPipe data_pipe(config, std::move(observer));
 
-    // Load phenotype first to get trait name
-    auto p_stats = data_pipe.load_phenotypes();
+    data_pipe.load_phenotypes();
+    data_pipe.load_covariates();
 
-    logger->info(gelex::section("[Dataset Summary"));
-    logger->info(
-        gelex::success(
-            "Phenotypes : {:L} samples ({})",
-            p_stats.samples_loaded,
-            p_stats.trait_name));
-
-    logger->info(
-        gelex::success(
-            "Genotypes  : {:L} samples", data_pipe.num_genotype_samples()));
-
-    auto c_stats = data_pipe.load_covariates();
-    if (c_stats.qcovar_loaded > 0 || c_stats.dcovar_loaded > 0)
-    {
-        logger->info(gelex::task("Covariates : "));
-        if (c_stats.qcovar_loaded > 0)
-        {
-            logger->info(
-                gelex::subtask(
-                    "Quantitative : {} loaded ",
-                    gelex::format_names(c_stats.q_names)));
-        }
-        if (c_stats.dcovar_loaded > 0)
-        {
-            logger->info(
-                gelex::subtask(
-                    "Discrete     : {} loaded ",
-                    gelex::format_names(c_stats.d_names)));
-        }
-    }
-
-    // Load GRM(s)
+    // GRM 直接日志保留（本阶段无 DataPipeGrmLoadedEvent）
     logger->info(gelex::success("GRM : "));
     auto grm_stats = data_pipe.load_grms();
-    std::string grm_str;
 
     for (const auto& grm_stat : grm_stats)
     {
@@ -83,36 +53,23 @@ auto load_data_for_reml(const DataPipe::Config& config) -> DataPipe
                     gelex::subtask(
                         "Additive     : {:L} samples",
                         grm_stat.samples_in_file));
-                grm_str += "Additive, ";
                 break;
             case freq::GrmType::D:
                 logger->info(
                     gelex::subtask(
                         "Dominance    : {:L} samples",
                         grm_stat.samples_in_file));
-                grm_str += "Dominance, ";
                 break;
             default:
                 logger->info(
                     gelex::subtask(
                         "Unknown      : {:L} samples",
                         grm_stat.samples_in_file));
-                grm_str += "Unknown, ";
                 break;
         }
     }
 
-    auto i_stats = data_pipe.intersect_samples();
-    logger->info(gelex::task("Sample Intersection:"));
-    logger->info(gelex::subtask("Common   : {:L}", i_stats.common_samples));
-    logger->info(gelex::subtask("Excluded : {:L}", i_stats.excluded_samples));
-
-    if (i_stats.common_samples == 0)
-    {
-        throw gelex::InvalidInputException(
-            "No common samples found between phenotype, covariates, GRM");
-    }
-
+    data_pipe.intersect_samples();
     data_pipe.finalize();
     return data_pipe;
 }

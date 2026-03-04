@@ -28,8 +28,8 @@
 #include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/data/grm/grm_bin_writer.h"
 #include "gelex/data/grm/grm_id_writer.h"
-#include "gelex/pipeline/data_pipe.h"
 #include "gelex/model/freq/model.h"
+#include "gelex/pipeline/data_pipe.h"
 
 namespace fs = std::filesystem;
 
@@ -99,7 +99,8 @@ auto make_sample_ids(Eigen::Index n, const std::string& prefix = "fam")
     ids.reserve(static_cast<size_t>(n));
     for (Eigen::Index i = 0; i < n; ++i)
     {
-        ids.push_back(sid(std::format("{}{}", prefix, i + 1), std::to_string(i + 1)));
+        ids.push_back(
+            sid(std::format("{}{}", prefix, i + 1), std::to_string(i + 1)));
     }
     return ids;
 }
@@ -195,8 +196,8 @@ TEST_CASE(
     bed_sample_ids.reserve(num_samples);
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
-        bed_sample_ids.push_back(
-            sid(std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
+        bed_sample_ids.push_back(sid(
+            std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
     }
 
     Eigen::VectorXd pheno_values
@@ -261,8 +262,8 @@ TEST_CASE(
     sample_ids.reserve(num_samples);
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
-        sample_ids.push_back(
-            sid(std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
+        sample_ids.push_back(sid(
+            std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
     }
 
     // create phenotype file
@@ -333,8 +334,8 @@ TEST_CASE(
     sample_ids.reserve(num_samples);
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
-        sample_ids.push_back(
-            sid(std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
+        sample_ids.push_back(sid(
+            std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
     }
 
     Eigen::VectorXd pheno_values = Eigen::VectorXd::Random(num_samples);
@@ -391,8 +392,8 @@ TEST_CASE(
     sample_ids.reserve(num_samples);
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
-        sample_ids.push_back(
-            sid(std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
+        sample_ids.push_back(sid(
+            std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
     }
 
     Eigen::VectorXd pheno_values = Eigen::VectorXd::Random(num_samples);
@@ -461,8 +462,8 @@ TEST_CASE(
     bed_sample_ids.reserve(bed_samples);
     for (Eigen::Index i = 0; i < bed_samples; ++i)
     {
-        bed_sample_ids.push_back(
-            sid(std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
+        bed_sample_ids.push_back(sid(
+            std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
     }
 
     // GRM has only first 8 samples (subset)
@@ -489,7 +490,7 @@ TEST_CASE(
     DataPipe pipe(config);
     pipe.load_phenotypes();
     pipe.load_grms();
-    auto stats = pipe.intersect_samples();
+    pipe.intersect_samples();
     pipe.finalize();
 
     FreqModel model(pipe);
@@ -532,8 +533,8 @@ TEST_CASE(
     sample_ids.reserve(num_samples);
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
-        sample_ids.push_back(
-            sid(std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
+        sample_ids.push_back(sid(
+            std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
     }
 
     // create phenotype
@@ -603,8 +604,8 @@ TEST_CASE(
     sample_ids.reserve(num_samples);
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
-        sample_ids.push_back(
-            sid(std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
+        sample_ids.push_back(sid(
+            std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
     }
 
     // create phenotype
@@ -663,8 +664,8 @@ TEST_CASE(
     sample_ids.reserve(num_samples);
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
-        sample_ids.push_back(
-            sid(std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
+        sample_ids.push_back(sid(
+            std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
     }
 
     Eigen::VectorXd pheno_values = Eigen::VectorXd::Random(num_samples);

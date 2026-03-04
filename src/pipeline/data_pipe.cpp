@@ -32,36 +32,10 @@
 #include "gelex/data/grm/grm_loader.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logger.h"
+#include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/utils/formatter.h"
 #include "gelex/infra/utils/phenotype_transformer.h"
 #include "gelex/types/fixed_effects.h"
-
-namespace
-{
-
-template <typename GenotypeMatrixPtr>
-auto collect_genotype_stats(const GenotypeMatrixPtr& matrix_ptr)
-    -> gelex::GenotypeStats
-{
-    int64_t monomorphic_snps = 0;
-    int64_t num_snps = 0;
-
-    if (matrix_ptr)
-    {
-        std::visit(
-            [&](auto&& matrix)
-            {
-                monomorphic_snps = matrix.num_mono();
-                num_snps = matrix.cols();
-            },
-            *matrix_ptr);
-    }
-
-    return gelex::GenotypeStats{
-        .num_snps = num_snps, .monomorphic_snps = monomorphic_snps};
-}
-
-}  // namespace
 
 namespace gelex
 {
@@ -69,7 +43,8 @@ DataPipe::~DataPipe() = default;
 DataPipe::DataPipe(DataPipe&&) noexcept = default;
 DataPipe& DataPipe::operator=(DataPipe&&) noexcept = default;
 
-DataPipe::DataPipe(const Config& config) : config_(config)
+DataPipe::DataPipe(const Config& config, DataPipeObserver observer)
+    : config_(config), observer_(std::move(observer))
 {
     auto fam_path = config.bed_path;
     fam_path.replace_extension(".fam");
@@ -77,7 +52,7 @@ DataPipe::DataPipe(const Config& config) : config_(config)
     num_genotype_samples_ = sample_manager_->num_common_samples();
 }
 
-auto DataPipe::load_phenotypes() -> PhenoStats
+auto DataPipe::load_phenotypes() -> void
 {
     if (config_.phenotype_path.empty())
     {
@@ -100,12 +75,18 @@ auto DataPipe::load_phenotypes() -> PhenoStats
               .name();
     phenotype_frame_ = std::move(frame);
 
-    return PhenoStats{
-        .samples_loaded = phenotype_frame_.nrows(),
-        .trait_name = phenotype_name_};
+    if (observer_)
+    {
+        observer_(DataPipeSectionEvent{});
+        observer_(
+            DataPipePhenoLoadedEvent{
+                .pheno_samples = phenotype_frame_.nrows(),
+                .trait_name = phenotype_name_,
+                .geno_samples = num_genotype_samples_});
+    }
 }
 
-auto DataPipe::load_covariates() -> CovarStats
+auto DataPipe::load_covariates() -> void
 {
     std::vector<std::string> q_names;
     std::vector<std::string> d_names;
@@ -122,11 +103,15 @@ auto DataPipe::load_covariates() -> CovarStats
         d_names = dcovar_frame_->columns();
     }
 
-    return CovarStats{
-        .qcovar_loaded = q_names.size(),
-        .dcovar_loaded = d_names.size(),
-        .q_names = std::move(q_names),
-        .d_names = std::move(d_names)};
+    if (observer_ && (!q_names.empty() || !d_names.empty()))
+    {
+        observer_(
+            DataPipeCovarsLoadedEvent{
+                .qcovar_loaded = q_names.size(),
+                .dcovar_loaded = d_names.size(),
+                .q_names = std::move(q_names),
+                .d_names = std::move(d_names)});
+    }
 }
 
 auto DataPipe::load_grms() -> std::vector<GrmStats>
@@ -146,7 +131,7 @@ auto DataPipe::load_grms() -> std::vector<GrmStats>
     return grm_stats;
 }
 
-auto DataPipe::intersect_samples() -> IntersectionStats
+auto DataPipe::intersect_samples() -> void
 {
     size_t total_before = sample_manager_->num_common_samples();
 
@@ -183,24 +168,66 @@ auto DataPipe::intersect_samples() -> IntersectionStats
 
     size_t common = sample_manager_->num_common_samples();
 
-    return IntersectionStats{
-        .total_samples = total_before,
-        .common_samples = common,
-        .excluded_samples = total_before - common};
+    if (common == 0)
+    {
+        throw InvalidInputException(
+            "No common samples found between phenotype, covariates, and "
+            "genotype");
+    }
+
+    if (observer_)
+    {
+        observer_(
+            DataPipeIntersectedEvent{
+                .common_samples = common,
+                .excluded_samples = total_before - common});
+    }
 }
 
-auto DataPipe::load_additive_matrix() -> GenotypeStats
+auto DataPipe::load_additive_matrix() -> void
 {
     load_genotype_impl<GeneticEffectType::Add>(
         ".add", config_.genotype_method, additive_matrix_);
-    return collect_genotype_stats(additive_matrix_);
+    if (observer_)
+    {
+        int64_t mono = 0;
+        int64_t total = 0;
+        std::visit(
+            [&](auto&& m)
+            {
+                mono = m.num_mono();
+                total = m.cols();
+            },
+            *additive_matrix_);
+        observer_(
+            DataPipeGenotypeLoadedEvent{
+                .is_dominance = false,
+                .num_snps = total,
+                .monomorphic_snps = mono});
+    }
 }
 
-auto DataPipe::load_dominance_matrix() -> GenotypeStats
+auto DataPipe::load_dominance_matrix() -> void
 {
     load_genotype_impl<GeneticEffectType::Dom>(
         ".dom", config_.genotype_method, dominance_matrix_);
-    return collect_genotype_stats(dominance_matrix_);
+    if (observer_)
+    {
+        int64_t mono = 0;
+        int64_t total = 0;
+        std::visit(
+            [&](auto&& m)
+            {
+                mono = m.num_mono();
+                total = m.cols();
+            },
+            *dominance_matrix_);
+        observer_(
+            DataPipeGenotypeLoadedEvent{
+                .is_dominance = true,
+                .num_snps = total,
+                .monomorphic_snps = mono});
+    }
 }
 
 auto DataPipe::finalize() -> void

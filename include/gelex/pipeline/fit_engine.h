@@ -24,6 +24,7 @@
 
 #include "gelex/algo/infer/params.h"
 #include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/types/effects.h"
 
@@ -55,7 +56,9 @@ class FitEngine
     };
 
     explicit FitEngine(Config config);
-    auto run(const FitObserver& observer = {}) -> void;
+    auto run(
+        const FitObserver& observer = {},
+        const DataPipeObserver& pipe_observer = {}) -> void;
 
    private:
     Config config_;

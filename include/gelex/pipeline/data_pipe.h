@@ -34,6 +34,7 @@
 #include "gelex/data/genotype/genotype_pipe.h"
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/data/genotype/sample_manager.h"
+#include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/freq_effect.h"
 
@@ -50,33 +51,6 @@ enum class TransformType : uint8_t
     IINT
 };
 }  // namespace detail
-
-struct PhenoStats
-{
-    size_t samples_loaded;
-    std::string trait_name;
-};
-
-struct CovarStats
-{
-    size_t qcovar_loaded;
-    size_t dcovar_loaded;
-    std::vector<std::string> q_names;
-    std::vector<std::string> d_names;
-};
-
-struct IntersectionStats
-{
-    size_t total_samples;
-    size_t common_samples;
-    size_t excluded_samples;
-};
-
-struct GenotypeStats
-{
-    int64_t num_snps;
-    int64_t monomorphic_snps;
-};
 
 struct GrmStats
 {
@@ -105,19 +79,19 @@ class DataPipe
             = GenotypeProcessMethod::OrthStandardizeHWE;
     };
 
-    explicit DataPipe(const Config& config);
+    explicit DataPipe(const Config& config, DataPipeObserver observer = {});
     DataPipe(const DataPipe&) = delete;
     DataPipe(DataPipe&&) noexcept;
     DataPipe& operator=(const DataPipe&) = delete;
     DataPipe& operator=(DataPipe&&) noexcept;
     ~DataPipe();
 
-    auto load_phenotypes() -> PhenoStats;
-    auto load_covariates() -> CovarStats;
+    auto load_phenotypes() -> void;
+    auto load_covariates() -> void;
     auto load_grms() -> std::vector<GrmStats>;
-    auto load_additive_matrix() -> GenotypeStats;
-    auto load_dominance_matrix() -> GenotypeStats;
-    auto intersect_samples() -> IntersectionStats;
+    auto load_additive_matrix() -> void;
+    auto load_dominance_matrix() -> void;
+    auto intersect_samples() -> void;
 
     auto finalize() -> void;
 
@@ -208,6 +182,8 @@ class DataPipe
 
     std::vector<detail::GrmLoader> grm_loaders_;
     std::vector<gelex::freq::GeneticEffect> grms_;
+
+    DataPipeObserver observer_;
 
     auto apply_phenotype_transform(detail::TransformType type, double offset)
         -> void;

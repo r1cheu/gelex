@@ -16,16 +16,12 @@
 
 #include "gelex/pipeline/fit_engine.h"
 
-#include <unistd.h>
-
-#include <fmt/format.h>
 #include <Eigen/Core>
 
 #include <memory>
 
 #include "gelex/algo/infer/mcmc.h"
 #include "gelex/infra/logger.h"
-#include "gelex/infra/utils/formatter.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior_strategies.h"
 #include "gelex/model/bayes/trait_model.h"
@@ -194,7 +190,9 @@ auto run_mcmc_analysis(
 
 FitEngine::FitEngine(Config config) : config_(std::move(config)) {}
 
-auto FitEngine::run(const FitObserver& observer) -> void
+auto FitEngine::run(
+    const FitObserver& observer,
+    const DataPipeObserver& pipe_observer) -> void
 {
     auto logger = gelex::logging::get();
 
@@ -212,87 +210,16 @@ auto FitEngine::run(const FitObserver& observer) -> void
         .genotype_method = config_.genotype_method,
     };
 
-    DataPipe data_pipe(data_pipe_config);
+    DataPipe data_pipe(data_pipe_config, pipe_observer);
 
-    logger->info(gelex::section("[Dataset Summary]"));
-    auto p_stats = data_pipe.load_phenotypes();
-    logger->info(
-        gelex::success(
-            "Phenotypes : {} samples ('{}')",
-            p_stats.samples_loaded,
-            p_stats.trait_name));
-    logger->info(
-        gelex::success(
-            "Genotypes  : {} samples", data_pipe.num_genotype_samples()));
-
-    auto c_stats = data_pipe.load_covariates();
-    if (c_stats.qcovar_loaded > 0 || c_stats.dcovar_loaded > 0)
-    {
-        std::string parts;
-        if (c_stats.qcovar_loaded > 0)
-        {
-            parts += fmt::format(
-                "{} quantitative ({})",
-                c_stats.qcovar_loaded,
-                gelex::format_names(c_stats.q_names));
-        }
-        if (c_stats.qcovar_loaded > 0 && c_stats.dcovar_loaded > 0)
-        {
-            parts += ", ";
-        }
-        if (c_stats.dcovar_loaded > 0)
-        {
-            parts += fmt::format(
-                "{} discrete ({})",
-                c_stats.dcovar_loaded,
-                gelex::format_names(c_stats.d_names));
-        }
-        logger->info(gelex::success("Covariates : {}", parts));
-    }
-
-    auto i_stats = data_pipe.intersect_samples();
-    logger->info(
-        gelex::success(
-            "Intersection : {} common, {} excluded",
-            i_stats.common_samples,
-            i_stats.excluded_samples));
-
-    if (i_stats.common_samples == 0)
-    {
-        logger->error(
-            "No common samples found between phenotype, covariates, and "
-            "genotype files.");
-        return;
-    }
-
-    auto log_overwrite = [&](const std::string& msg)
-    {
-        if (isatty(fileno(stdout)) != 0)
-        {
-            logger->info("{}", "\033[A\r" + msg + "\033[K");
-        }
-        else
-        {
-            logger->info("{}", msg);
-        }
-    };
-
-    auto add_stats = data_pipe.load_additive_matrix();
-    log_overwrite(
-        gelex::success(
-            "Additive     : {} SNPs ({} monomorphic excluded)",
-            gelex::AbbrNumber(add_stats.num_snps - add_stats.monomorphic_snps),
-            gelex::AbbrNumber(add_stats.monomorphic_snps)));
+    data_pipe.load_phenotypes();
+    data_pipe.load_covariates();
+    data_pipe.intersect_samples();
+    data_pipe.load_additive_matrix();
 
     if (config_.use_dominance)
     {
-        auto dom_stats = data_pipe.load_dominance_matrix();
-        log_overwrite(
-            gelex::success(
-                "Dominance    : {} SNPs ({} monomorphic excluded)",
-                gelex::AbbrNumber(
-                    add_stats.num_snps - add_stats.monomorphic_snps),
-                gelex::AbbrNumber(dom_stats.monomorphic_snps)));
+        data_pipe.load_dominance_matrix();
     }
 
     data_pipe.finalize();

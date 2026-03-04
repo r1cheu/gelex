@@ -19,6 +19,7 @@
 
 #include <memory>
 
+#include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/pipeline/data_pipe.h"
 
 namespace gelex
@@ -26,7 +27,9 @@ namespace gelex
 struct AssocInput;
 class SampleManager;
 
-auto load_data_for_reml(const DataPipe::Config& config) -> DataPipe;
+auto load_data_for_reml(
+    const DataPipe::Config& config,
+    DataPipeObserver observer = {}) -> DataPipe;
 
 auto reml(
     const DataPipe::Config& config,

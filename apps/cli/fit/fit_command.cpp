@@ -21,8 +21,10 @@
 
 #include "cli/cli_helper.h"
 #include "cli/config_factory.h"
+#include "cli/data_pipe_reporter.h"
 #include "fit_config.h"
 #include "fit_reporter.h"
+#include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/pipeline/fit_engine.h"
 
@@ -32,6 +34,7 @@ int fit_execute(argparse::ArgumentParser& fit)
     gelex::cli::FitReporter reporter;
 
     gelex::cli::setup_parallelization(config.threads);
+    gelex::cli::DataPipeReporter pipe_reporter;
 
     reporter.on_event(
         gelex::FitConfigLoadedEvent{
@@ -64,10 +67,11 @@ int fit_execute(argparse::ArgumentParser& fit)
     });
 
     engine.run(
-        [&reporter](const gelex::FitEvent& event)
+        [&reporter](const gelex::FitEvent& e)
+        { std::visit([&](const auto& ev) { reporter.on_event(ev); }, e); },
+        [&pipe_reporter](const gelex::DataPipeEvent& e)
         {
-            std::visit(
-                [&reporter](const auto& e) { reporter.on_event(e); }, event);
+            std::visit([&](const auto& ev) { pipe_reporter.on_event(ev); }, e);
         });
 
     return 0;
