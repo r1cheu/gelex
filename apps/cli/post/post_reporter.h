@@ -19,6 +19,8 @@
 
 #include <memory>
 
+#include "gelex/infra/logging/post_event.h"
+
 namespace gelex
 {
 struct PostStartEvent;
@@ -40,6 +42,12 @@ class PostReporter
 
     auto on_event(const PostStartEvent& event) const -> void;
     auto on_event(const DiagnosticsReadyEvent& event) const -> void;
+
+    auto as_observer() -> PostObserver
+    {
+        return [this](const PostEvent& e)
+        { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
+    }
 
    private:
     std::shared_ptr<spdlog::logger> logger_;

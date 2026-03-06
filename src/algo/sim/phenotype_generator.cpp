@@ -16,12 +16,12 @@
 
 #include "gelex/algo/sim/phenotype_generator.h"
 
-#include <algorithm>
 #include <cmath>
 #include <random>
 
 #include <Eigen/Core>
 
+#include "gelex/infra/logging/notify.h"
 #include "gelex/infra/utils/math_utils.h"
 
 namespace gelex
@@ -65,12 +65,7 @@ auto PhenotypeGenerator::generate(
                             detail::var(genetic_values.dominance)(0) / var_phen)
                       : std::nullopt;
 
-    if (observer)
-    {
-        SimulateEvent event;
-        event.emplace<HeritabilityGeneratedEvent>(true_h2, true_d2);
-        observer(event);
-    }
+    notify(observer, HeritabilityGeneratedEvent{true_h2, true_d2});
 
     return phenotypes;
 }

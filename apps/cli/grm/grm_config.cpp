@@ -30,7 +30,7 @@ auto make_grm_config(argparse::ArgumentParser& cmd) -> gelex::GrmEngine::Config
 {
     bool add = cmd.get<bool>("--add");
     bool dom = cmd.get<bool>("--dom");
-    gelex::freq::GrmType mode = gelex::freq::GrmType::A;
+    auto mode = gelex::freq::GrmType::A;
     if (add && dom)
     {
         mode = gelex::freq::GrmType::AD;
@@ -47,11 +47,11 @@ auto make_grm_config(argparse::ArgumentParser& cmd) -> gelex::GrmEngine::Config
 
     return gelex::GrmEngine::Config{
         .bed_path = gelex::format_bed_path(cmd.get("--bfile")),
-        .out_prefix = cmd.get("--out"),
+        .mode = mode,
         .method = gelex::cli::parse_genotype_process_method(
             cmd.get<std::string>("--geno-method")),
-        .mode = mode,
-        .chunk_size = chunk_size,
-        .do_loco = cmd.get<bool>("--loco")};
+        .do_loco = cmd.get<bool>("--loco"),
+        .out_prefix = cmd.get("--out"),
+        .chunk_size = chunk_size};
 }
 }  // namespace gelex::cli

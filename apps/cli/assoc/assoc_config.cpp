@@ -18,47 +18,46 @@
 
 #include <argparse.h>
 
-#include <string_view>
-#include <vector>
-
-namespace
-{
-
-auto parse_transform_type(std::string_view transform)
-    -> gelex::detail::TransformType
-{
-    if (transform == "dint")
-    {
-        return gelex::detail::TransformType::DINT;
-    }
-    if (transform == "iint")
-    {
-        return gelex::detail::TransformType::IINT;
-    }
-    return gelex::detail::TransformType::None;
-}
-
-}  // namespace
+#include "cli/cli_helper.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::cli
 {
 
-auto make_assoc_config(argparse::ArgumentParser& cmd) -> AssocConfig
+auto parse_model_type(std::string_view model) -> ModelType
 {
-    std::vector<std::filesystem::path> grm_paths;
-    for (const auto& p : cmd.get<std::vector<std::string>>("--grm"))
+    if (model == "a")
     {
-        grm_paths.push_back(p);
+        return ModelType::A;
     }
+    return ModelType::D;
+}
 
-    return AssocConfig{
+auto parse_transform_type(std::string_view transform) -> detail::TransformType
+{
+    if (transform == "dint")
+    {
+        return detail::TransformType::DINT;
+    }
+    if (transform == "iint")
+    {
+        return detail::TransformType::IINT;
+    }
+    return detail::TransformType::None;
+}
+
+auto make_assoc_config(argparse::ArgumentParser& cmd)
+    -> AssocNormalEngine::Config
+{
+    return AssocNormalEngine::Config{
+        .model_type = parse_model_type(cmd.get("--model")),
+        .method
+        = parse_genotype_process_method(cmd.get<std::string>("--geno-method")),
+        .chunk_size = cmd.get<int>("--chunk-size"),
         .max_iter = cmd.get<int>("--max-iter"),
         .tol = cmd.get<double>("--tol"),
-        .loco = cmd.get<bool>("--loco"),
-        .additive = cmd.get("--model") == "a",
-        .grm_paths = std::move(grm_paths),
-        .transform_type = parse_transform_type(cmd.get("--transform")),
-        .int_offset = cmd.get<double>("--int-offset")};
+        .bed_path = cmd.get("--bfile"),
+        .out_prefix = cmd.get("--out")};
 }
 
 }  // namespace gelex::cli

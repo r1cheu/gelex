@@ -23,6 +23,7 @@
 #include <string_view>
 #include <vector>
 
+#include "gelex/algo/sim/effect_sampler.h"
 #include "gelex/data/genotype/bed_path.h"
 #include "gelex/exception.h"
 
@@ -44,63 +45,79 @@ auto validate_effect_classes(
     }
 }
 
+auto create_effectsize_vec(
+    std::span<const double> variances,
+    std::span<const double> proportions) -> std::vector<gelex::EffectSizeClass>
+{
+    std::vector<gelex::EffectSizeClass> classes(variances.size());
+    for (size_t i = 0; i < variances.size(); ++i)
+    {
+        classes[i] = {proportions[i], variances[i]};
+    }
+    return classes;
+}
+
 }  // namespace
 
 namespace gelex::cli
 {
 
-auto make_simulate_config(argparse::ArgumentParser& cmd) -> SimulateConfig
+auto make_simulate_config(argparse::ArgumentParser& cmd)
+    -> PhenotypeSimulationEngine::Config
 {
     auto dom_heritability = cmd.is_used("--d2")
                                 ? std::make_optional(cmd.get<double>("--d2"))
                                 : std::nullopt;
 
-    SimulateConfig config{
-        .bed_path = gelex::format_bed_path(cmd.get("--bfile")),
-        .output_path = cmd.get("--out"),
+    auto add_variances = cmd.get<std::vector<double>>("--add-var");
+    auto add_proportions = cmd.get<std::vector<double>>("--add-prop");
+    auto dom_variances = cmd.get<std::vector<double>>("--dom-var");
+    auto dom_proportions = cmd.get<std::vector<double>>("--dom-prop");
 
-        .intercept = cmd.get<double>("--intercept"),
+    auto add_heritability = cmd.get<double>("--h2");
 
-        .add_heritability = cmd.get<double>("--h2"),
-        .additive_variances = cmd.get<std::vector<double>>("--add-var"),
-        .additive_proportions = cmd.get<std::vector<double>>("--add-prop"),
-
-        .dom_heritability = dom_heritability,
-        .dominance_variances = cmd.get<std::vector<double>>("--dom-var"),
-        .dominance_proportions = cmd.get<std::vector<double>>("--dom-prop"),
-
-        .seed = cmd.get<int>("--seed")};
-
-    if (config.add_heritability <= 0.0 || config.add_heritability >= 1.0)
+    if (add_heritability <= 0.0 || add_heritability >= 1.0)
     {
         throw gelex::ArgumentValidationException(
             "Heritability must be in (0, 1)");
     }
-    if (config.dom_heritability
-        && (*config.dom_heritability < 0.0 || *config.dom_heritability >= 1.0))
+    if (dom_heritability
+        && (*dom_heritability < 0.0 || *dom_heritability >= 1.0))
     {
         throw gelex::ArgumentValidationException(
             "Dominance variance (d2) must be in [0, 1)");
     }
-    if (config.dom_heritability
-        && config.add_heritability + *config.dom_heritability >= 1.0)
+    if (dom_heritability && add_heritability + *dom_heritability >= 1.0)
     {
         throw gelex::ArgumentValidationException("h2 + d2 must be less than 1");
     }
 
     validate_effect_classes(
-        config.additive_variances,
-        config.additive_proportions,
-        "Additive effect class");
-    if (config.dom_heritability)
+        add_variances, add_proportions, "Additive effect class");
+    if (dom_heritability)
     {
         validate_effect_classes(
-            config.dominance_variances,
-            config.dominance_proportions,
-            "Dominance effect class");
+            dom_variances, dom_proportions, "Dominance effect class");
     }
 
-    return config;
+    return PhenotypeSimulationEngine::Config{
+        .bed_path = gelex::format_bed_path(cmd.get("--bfile")),
+        .output_path = cmd.get("--out"),
+
+        .intercept = cmd.get<double>("--intercept"),
+
+        .add_heritability = add_heritability,
+        .add_effect_classes
+        = create_effectsize_vec(add_variances, add_proportions),
+
+        .dom_heritability = dom_heritability,
+        .dom_effect_classes
+        = dom_heritability
+              ? create_effectsize_vec(dom_variances, dom_proportions)
+              : std::vector<gelex::EffectSizeClass>{},
+
+        .seed = cmd.get<int>("--seed"),
+    };
 }
 
 }  // namespace gelex::cli

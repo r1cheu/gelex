@@ -25,6 +25,7 @@
 #include "gelex/algo/sim/genetic_value_calculator.h"
 #include "gelex/algo/sim/phenotype_generator.h"
 #include "gelex/data/loader/bim_loader.h"
+#include "gelex/infra/logging/notify.h"
 #include "gelex/io/sim/simulation_writer.h"
 
 namespace gelex
@@ -108,14 +109,11 @@ auto PhenotypeSimulationEngine::run(const SimulateObserver& observer) -> void
     writer.write_phenotypes(phenotypes, calculator.sample_ids());
     writer.write_causal_effects(snp_ids, causal_effects);
 
-    if (observer)
-    {
-        SimulateEvent event;
-        event.emplace<OutputsWrittenEvent>(OutputsWrittenEvent{
+    notify(
+        observer,
+        OutputsWrittenEvent{
             .phenotype_path = writer.phenotype_path().string(),
             .snp_effect_path = writer.causal_path().string(),
         });
-        observer(event);
-    }
 }
 }  // namespace gelex

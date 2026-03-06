@@ -30,8 +30,6 @@ struct GrmConfigLoadedEvent
     std::string method;
     gelex::freq::GrmType mode;
     bool do_loco;
-    int chunk_size;
-    int threads;
 };
 
 struct GrmDataLoadedEvent

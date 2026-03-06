@@ -25,11 +25,11 @@
 
 #include "bed_fixture.h"
 #include "file_fixture.h"
-#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/data/grm/grm_bin_writer.h"
 #include "gelex/data/grm/grm_id_writer.h"
 #include "gelex/model/freq/model.h"
-#include "gelex/pipeline/data_pipe.h"
+#include "gelex/pipeline/grm_pipe.h"
+#include "gelex/pipeline/pheno_pipe.h"
 
 namespace fs = std::filesystem;
 
@@ -171,10 +171,25 @@ auto make_dcovar_content(
     return content;
 }
 
+// Helper to build PhenoPipe + GrmPipe and FreqModel
+auto make_freq_model(
+    PhenoPipe::Config pheno_config,
+    const std::vector<std::filesystem::path>& grm_paths = {}) -> FreqModel
+{
+    GrmPipe grm(grm_paths);
+
+    PhenoPipe pheno(pheno_config);
+    pheno.load(grm.sample_id_sets());
+
+    grm.load(pheno.sample_manager());
+
+    return FreqModel(pheno, grm);
+}
+
 }  // namespace
 
 // ============================================================================
-// FreqModel construction tests via DataPipe
+// FreqModel construction tests via PhenoPipe + GrmPipe
 // ============================================================================
 
 TEST_CASE(
@@ -189,7 +204,6 @@ TEST_CASE(
 
     // create phenotype file with same samples
     auto& files = bed_fixture.get_file_fixture();
-    auto sample_ids = make_sample_ids(num_samples, "fam");
 
     // BedFixture creates samples as "fam{i%5+1}_sample{i+1}"
     std::vector<std::string> bed_sample_ids;
@@ -205,18 +219,13 @@ TEST_CASE(
     auto pheno_content = make_phenotype_content(bed_sample_ids, pheno_values);
     auto pheno_path = files.create_text_file(pheno_content, ".phen");
 
-    DataPipe::Config config{
+    PhenoPipe::Config pheno_config{
         .phenotype_path = pheno_path,
-        .phenotype_column = 2,  // 0-indexed: FID=0, IID=1, Phenotype=2
+        .phenotype_column = 2,
         .bed_path = bed_prefix,
     };
 
-    DataPipe pipe(config);
-    pipe.load_phenotypes();
-    pipe.intersect_samples();
-    pipe.finalize();
-
-    FreqModel model(pipe);
+    auto model = make_freq_model(pheno_config);
 
     SECTION("Verify num_individuals")
     {
@@ -276,19 +285,13 @@ TEST_CASE(
     auto grm_matrix = make_symmetric_grm(num_samples);
     grm_fixture.create(grm_matrix, sample_ids);
 
-    DataPipe::Config config{
+    PhenoPipe::Config pheno_config{
         .phenotype_path = pheno_path,
-        .phenotype_column = 2,  // 0-indexed
+        .phenotype_column = 2,
         .bed_path = bed_prefix,
-        .grm_paths = {grm_fixture.prefix()}};
+    };
 
-    DataPipe pipe(config);
-    pipe.load_phenotypes();
-    pipe.load_grms();
-    pipe.intersect_samples();
-    pipe.finalize();
-
-    FreqModel model(pipe);
+    auto model = make_freq_model(pheno_config, {grm_fixture.prefix()});
 
     SECTION("Verify one genetic effect")
     {
@@ -346,19 +349,13 @@ TEST_CASE(
     auto grm_matrix = make_symmetric_grm(num_samples);
     grm_fixture.create(grm_matrix, sample_ids);
 
-    DataPipe::Config config{
+    PhenoPipe::Config pheno_config{
         .phenotype_path = pheno_path,
-        .phenotype_column = 2,  // 0-indexed
+        .phenotype_column = 2,
         .bed_path = bed_prefix,
-        .grm_paths = {grm_fixture.prefix()}};
+    };
 
-    DataPipe pipe(config);
-    pipe.load_phenotypes();
-    pipe.load_grms();
-    pipe.intersect_samples();
-    pipe.finalize();
-
-    FreqModel model(pipe);
+    auto model = make_freq_model(pheno_config, {grm_fixture.prefix()});
 
     SECTION("Verify one genetic effect")
     {
@@ -410,19 +407,14 @@ TEST_CASE(
     auto dom_grm_matrix = make_symmetric_grm(num_samples);
     dom_grm_fixture.create(dom_grm_matrix, sample_ids);
 
-    DataPipe::Config config{
+    PhenoPipe::Config pheno_config{
         .phenotype_path = pheno_path,
-        .phenotype_column = 2,  // 0-indexed
+        .phenotype_column = 2,
         .bed_path = bed_prefix,
-        .grm_paths = {add_grm_fixture.prefix(), dom_grm_fixture.prefix()}};
+    };
 
-    DataPipe pipe(config);
-    pipe.load_phenotypes();
-    pipe.load_grms();
-    pipe.intersect_samples();
-    pipe.finalize();
-
-    FreqModel model(pipe);
+    auto model = make_freq_model(
+        pheno_config, {add_grm_fixture.prefix(), dom_grm_fixture.prefix()});
 
     SECTION("Verify two genetic effects")
     {
@@ -481,19 +473,13 @@ TEST_CASE(
     auto grm_matrix = make_symmetric_grm(grm_samples);
     grm_fixture.create(grm_matrix, grm_sample_ids);
 
-    DataPipe::Config config{
+    PhenoPipe::Config pheno_config{
         .phenotype_path = pheno_path,
-        .phenotype_column = 2,  // 0-indexed
+        .phenotype_column = 2,
         .bed_path = bed_prefix,
-        .grm_paths = {grm_fixture.prefix()}};
+    };
 
-    DataPipe pipe(config);
-    pipe.load_phenotypes();
-    pipe.load_grms();
-    pipe.intersect_samples();
-    pipe.finalize();
-
-    FreqModel model(pipe);
+    auto model = make_freq_model(pheno_config, {grm_fixture.prefix()});
 
     SECTION("Verify sample count reflects intersection")
     {
@@ -557,21 +543,14 @@ TEST_CASE(
     auto grm_matrix = make_symmetric_grm(num_samples);
     grm_fixture.create(grm_matrix, sample_ids);
 
-    DataPipe::Config config{
+    PhenoPipe::Config pheno_config{
         .phenotype_path = pheno_path,
-        .phenotype_column = 2,  // 0-indexed
+        .phenotype_column = 2,
         .bed_path = bed_prefix,
-        .qcovar_path = qcovar_path,
-        .grm_paths = {grm_fixture.prefix()}};
+        .quantitative_covariates_path = qcovar_path,
+    };
 
-    DataPipe pipe(config);
-    pipe.load_phenotypes();
-    pipe.load_covariates();
-    pipe.load_grms();
-    pipe.intersect_samples();
-    pipe.finalize();
-
-    FreqModel model(pipe);
+    auto model = make_freq_model(pheno_config, {grm_fixture.prefix()});
 
     SECTION("Verify fixed effects include covariates")
     {
@@ -625,21 +604,14 @@ TEST_CASE(
     auto grm_matrix = make_symmetric_grm(num_samples);
     grm_fixture.create(grm_matrix, sample_ids);
 
-    DataPipe::Config config{
+    PhenoPipe::Config pheno_config{
         .phenotype_path = pheno_path,
-        .phenotype_column = 2,  // 0-indexed
+        .phenotype_column = 2,
         .bed_path = bed_prefix,
-        .dcovar_path = dcovar_path,
-        .grm_paths = {grm_fixture.prefix()}};
+        .discrete_covariates_path = dcovar_path,
+    };
 
-    DataPipe pipe(config);
-    pipe.load_phenotypes();
-    pipe.load_covariates();
-    pipe.load_grms();
-    pipe.intersect_samples();
-    pipe.finalize();
-
-    FreqModel model(pipe);
+    auto model = make_freq_model(pheno_config, {grm_fixture.prefix()});
 
     SECTION("Verify fixed effects include dummy coded discrete covariate")
     {
@@ -684,19 +656,13 @@ TEST_CASE(
     GrmFileFixture grm_fixture(files);
     grm_fixture.create(original_grm, sample_ids);
 
-    DataPipe::Config config{
+    PhenoPipe::Config pheno_config{
         .phenotype_path = pheno_path,
-        .phenotype_column = 2,  // 0-indexed
+        .phenotype_column = 2,
         .bed_path = bed_prefix,
-        .grm_paths = {grm_fixture.prefix()}};
+    };
 
-    DataPipe pipe(config);
-    pipe.load_phenotypes();
-    pipe.load_grms();
-    pipe.intersect_samples();
-    pipe.finalize();
-
-    FreqModel model(pipe);
+    auto model = make_freq_model(pheno_config, {grm_fixture.prefix()});
 
     SECTION("Verify GRM values match original (accounting for float precision)")
     {

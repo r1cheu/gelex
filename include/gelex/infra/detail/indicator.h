@@ -17,16 +17,9 @@
 #ifndef GELEX_INFRA_DETAIL_INDICATOR_H_
 #define GELEX_INFRA_DETAIL_INDICATOR_H_
 
-#include <array>
-#include <atomic>
 #include <cstddef>
-#include <cstdint>
 #include <memory>
-#include <optional>
 #include <string_view>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "barkeep.h"
 
@@ -67,48 +60,11 @@ struct ProgressInfo
 };
 
 auto create_progress_bar(
-    std::atomic<size_t>& counter,
+    size_t& counter,
     size_t total,
     std::string_view format = "{bar}") -> ProgressBar;
 
 auto create_progress_info() -> ProgressInfo;
-
-class Indicator
-{
-   public:
-    enum class StatusMetric : uint8_t
-    {
-        additive_heritability = 0,
-        dominant_heritability = 1,
-        residual_variance = 2,
-    };
-
-    Indicator(Eigen::Index n_iters, std::atomic_ptrdiff_t& progress_counter);
-
-    auto update(StatusMetric metric, double value) -> void;
-
-    auto flush_status() -> void;
-
-    auto show() -> void;
-    auto done() -> void;
-
-   private:
-    static constexpr size_t status_metric_count = 3;
-    using StatusSnapshot
-        = std::array<std::optional<double>, status_metric_count>;
-
-    static auto status_metric_index(StatusMetric metric) -> size_t;
-    static auto format_status_line(const StatusSnapshot& values) -> std::string;
-
-    auto update_compact_status() -> void;
-
-    std::shared_ptr<barkeep::ProgressBarDisplay<std::atomic_ptrdiff_t>>
-        progress_bar_;
-    std::shared_ptr<barkeep::StatusDisplay> status_;
-    std::shared_ptr<barkeep::CompositeDisplay> main_indicator_;
-
-    StatusSnapshot current_values_;
-};
 
 }  // namespace detail
 }  // namespace gelex

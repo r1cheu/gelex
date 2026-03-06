@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-#include "gelex/pipeline/data_pipe.h"
+#include "gelex/pipeline/pheno_pipe.h"
 
 #include <algorithm>
-#include <filesystem>
 #include <format>
-#include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -28,60 +27,38 @@
 
 #include "gelex/data/frame/dummy_encode.h"
 #include "gelex/data/genotype/sample_manager.h"
-#include "gelex/data/grm/grm_loader.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/data_pipe_event.h"
+#include "gelex/infra/logging/notify.h"
 #include "gelex/infra/utils/formatter.h"
 #include "gelex/infra/utils/phenotype_transformer.h"
 #include "gelex/types/fixed_effects.h"
 
 namespace gelex
 {
-DataPipe::~DataPipe() = default;
-DataPipe::DataPipe(DataPipe&&) noexcept = default;
-DataPipe& DataPipe::operator=(DataPipe&&) noexcept = default;
 
-DataPipe::DataPipe(const Config& config, DataPipeObserver observer)
+PhenoPipe::PhenoPipe(const Config& config, DataPipeObserver observer)
     : config_(config), observer_(std::move(observer))
 {
     auto fam_path = config.bed_path;
     sample_manager_
         = std::make_shared<SampleManager>(fam_path.replace_extension(".fam"));
     num_genotype_samples_ = sample_manager_->num_common_samples();
+
+    notify(observer_, DataPipeSectionEvent{});
 }
 
-auto DataPipe::load() -> void
+auto PhenoPipe::load(const std::vector<std::span<const std::string>>& extra_ids)
+    -> void
 {
     load_phenotypes();
     load_covariates();
-
-    intersect_samples();
-
-    if (!config_.grm_paths.empty())
-    {
-        load_grms();
-    }
-    else
-    {
-        if (config_.model_type == ModelType::A)
-        {
-            load_additive_matrix();
-        }
-        else if (config_.model_type == ModelType::D)
-        {
-            load_dominance_matrix();
-        }
-        else
-        {
-            load_additive_matrix();
-            load_dominance_matrix();
-        }
-    }
+    intersect_samples(extra_ids);
     finalize();
 }
 
-auto DataPipe::load_phenotypes() -> void
+auto PhenoPipe::load_phenotypes() -> void
 {
     if (config_.phenotype_path.empty())
     {
@@ -113,57 +90,37 @@ auto DataPipe::load_phenotypes() -> void
     event.pheno_samples = phenotype_frame_.nrows();
     event.trait_name = phenotype_name_;
 
-    if (observer_)
-    {
-        observer_(DataPipeSectionEvent{});
-        observer_(event);
-    }
+    notify(observer_, event);
 }
 
-auto DataPipe::load_covariates() -> void
+auto PhenoPipe::load_covariates() -> void
 {
     CovariatesLoadedEvent event;
 
-    if (config_.quantitative_covar_path)
+    if (config_.quantitative_covariates_path)
     {
         qcovar_frame_
-            = DataFrame<double>::read(*config_.quantitative_covar_path);
+            = DataFrame<double>::read(*config_.quantitative_covariates_path);
         event.num_quantitative_covariates = qcovar_frame_->ncols();
         event.quantitative_names = qcovar_frame_->columns();
     }
 
-    if (config_.discrete_covar_path)
+    if (config_.discrete_covariates_path)
     {
         dcovar_frame_
-            = DataFrame<std::string>::read(*config_.discrete_covar_path);
+            = DataFrame<std::string>::read(*config_.discrete_covariates_path);
         event.num_discrete_covariates = dcovar_frame_->ncols();
         event.discrete_names = dcovar_frame_->columns();
     }
 
-    if (observer_
-        && (event.num_quantitative_covariates || event.num_discrete_covariates))
+    if (event.num_quantitative_covariates || event.num_discrete_covariates)
     {
-        observer_(event);
+        notify(observer_, event);
     }
 }
 
-auto DataPipe::load_grms() -> void
-{
-    for (const auto& grm_path : config_.grm_paths)
-    {
-        grm_loaders_.emplace_back(grm_path);
-        if (observer_)
-        {
-            observer_(
-                GrmLoadedEvent{
-                    .num_samples
-                    = static_cast<size_t>(grm_loaders_.back().num_samples()),
-                    .type = grm_loaders_.back().type()});
-        }
-    }
-}
-
-auto DataPipe::intersect_samples() -> void
+auto PhenoPipe::intersect_samples(
+    const std::vector<std::span<const std::string>>& extra_ids) -> void
 {
     size_t total_before = sample_manager_->num_common_samples();
 
@@ -189,11 +146,10 @@ auto DataPipe::intersect_samples() -> void
         sample_manager_->intersect(dcovar_frame_->index_column().data());
     }
 
-    for (const auto& grm_loader : grm_loaders_)
+    for (const auto& ids : extra_ids)
     {
-        total_before = std::max(
-            total_before, static_cast<size_t>(grm_loader.num_samples()));
-        sample_manager_->intersect(grm_loader.sample_ids());
+        total_before = std::max(total_before, ids.size());
+        sample_manager_->intersect(ids);
     }
 
     sample_manager_->finalize();
@@ -207,65 +163,16 @@ auto DataPipe::intersect_samples() -> void
             "genotype");
     }
 
-    if (observer_)
-    {
-        observer_(
-            IntersectionEvent{
-                .common_samples = common,
-                .excluded_samples = total_before - common});
-    }
+    notify(
+        observer_,
+        IntersectionEvent{
+            .common_samples = common,
+            .excluded_samples = total_before - common});
 }
 
-auto DataPipe::load_additive_matrix() -> void
-{
-    load_genotype_impl<GeneticEffectType::Add>(
-        ".add", config_.genotype_method, additive_matrix_);
-    if (observer_)
-    {
-        int64_t mono = 0;
-        int64_t total = 0;
-        std::visit(
-            [&](auto&& m)
-            {
-                mono = m.num_mono();
-                total = m.cols();
-            },
-            *additive_matrix_);
-        observer_(
-            GenotypeLoadedEvent{
-                .is_dominance = false,
-                .num_snps = total,
-                .monomorphic_snps = mono});
-    }
-}
-
-auto DataPipe::load_dominance_matrix() -> void
-{
-    load_genotype_impl<GeneticEffectType::Dom>(
-        ".dom", config_.genotype_method, dominance_matrix_);
-    if (observer_)
-    {
-        int64_t mono = 0;
-        int64_t total = 0;
-        std::visit(
-            [&](auto&& m)
-            {
-                mono = m.num_mono();
-                total = m.cols();
-            },
-            *dominance_matrix_);
-        observer_(
-            GenotypeLoadedEvent{
-                .is_dominance = true,
-                .num_snps = total,
-                .monomorphic_snps = mono});
-    }
-}
-
-auto DataPipe::finalize() -> void
+auto PhenoPipe::finalize() -> void
 {
     const auto& common_ids = sample_manager_->common_ids();
-    const auto& id_map = sample_manager_->common_id_map();
 
     if (phenotype_frame_.nrows() == 0)
     {
@@ -288,11 +195,11 @@ auto DataPipe::finalize() -> void
 
     if (qcovar_frame_)
     {
-        auto aligned = *qcovar_frame_;
-        aligned.intersect_index_inplace(common_ids);
+        auto qcovar_aligned = *qcovar_frame_;
+        qcovar_aligned.intersect_index_inplace(common_ids);
 
-        auto qcov_matrix = aligned.eigen();
-        auto names = aligned.columns();
+        auto qcov_matrix = qcovar_aligned.eigen();
+        auto names = qcovar_aligned.columns();
 
         qcov = QuantitativeCovariate{
             .names = std::move(names), .X = std::move(qcov_matrix)};
@@ -300,10 +207,10 @@ auto DataPipe::finalize() -> void
 
     if (dcovar_frame_)
     {
-        auto aligned = *dcovar_frame_;
-        aligned.intersect_index_inplace(common_ids);
+        auto dcovar_aligned = *dcovar_frame_;
+        dcovar_aligned.intersect_index_inplace(common_ids);
 
-        dcov = DummyEncode(aligned);
+        dcov = DummyEncode(dcovar_aligned);
     }
     if (!dcov && !qcov)
     {
@@ -313,16 +220,11 @@ auto DataPipe::finalize() -> void
     {
         fixed_effects_ = FixedEffect::build(std::move(qcov), std::move(dcov));
     }
-    grms_.reserve(grm_loaders_.size());
-    for (auto& grm_loader : grm_loaders_)
-    {
-        grms_.emplace_back(grm_loader.type(), grm_loader.load(id_map));
-    }
 
     apply_phenotype_transform(config_.transform_type, config_.int_offset);
 }
 
-auto DataPipe::apply_phenotype_transform(
+auto PhenoPipe::apply_phenotype_transform(
     detail::TransformType type,
     double offset) -> void
 {

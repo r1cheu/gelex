@@ -14,23 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_GRM_REPORTER_H_
-#define GELEX_CLI_GRM_REPORTER_H_
+#ifndef GELEX_CLI_ASSOC_REPORTER_H_
+#define GELEX_CLI_ASSOC_REPORTER_H_
 
 #include <cstddef>
 #include <memory>
 
 #include "gelex/infra/detail/indicator.h"
-#include "gelex/infra/logging/grm_event.h"
+#include "gelex/infra/logging/assoc_event.h"
 #include "gelex/infra/utils/utils.h"
 
 namespace gelex
 {
-struct GrmConfigLoadedEvent;
-struct GrmDataLoadedEvent;
-struct GrmComputeStartedEvent;
-struct GrmProgressEvent;
-struct GrmFilesWrittenEvent;
+struct AssocConfigLoadedEvent;
+struct AssocRemlStartedEvent;
+struct AssocScanSummaryEvent;
+struct AssocScanProgressEvent;
+struct AssocLocoPhaseEvent;
+struct AssocLocoRemlSummaryEvent;
+struct AssocCompleteEvent;
 }  // namespace gelex
 
 namespace spdlog
@@ -41,20 +43,22 @@ class logger;
 namespace gelex::cli
 {
 
-class GrmReporter
+class AssocReporter
 {
    public:
-    GrmReporter();
+    AssocReporter();
 
-    auto on_event(const GrmConfigLoadedEvent& event) const -> void;
-    auto on_event(const GrmDataLoadedEvent& event) const -> void;
-    auto on_event(const GrmComputeStartedEvent& event) -> void;
-    auto on_event(const GrmProgressEvent& event) -> void;
-    auto on_event(const GrmFilesWrittenEvent& event) const -> void;
+    auto on_event(const AssocConfigLoadedEvent& event) const -> void;
+    auto on_event(const AssocRemlStartedEvent& event) const -> void;
+    auto on_event(const AssocScanSummaryEvent& event) -> void;
+    auto on_event(const AssocScanProgressEvent& event) -> void;
+    auto on_event(const AssocLocoPhaseEvent& event) -> void;
+    auto on_event(const AssocLocoRemlSummaryEvent& event) -> void;
+    auto on_event(const AssocCompleteEvent& event) -> void;
 
-    auto as_observer() -> GrmObserver
+    auto as_observer() -> AssocObserver
     {
-        return [this](const GrmEvent& e)
+        return [this](const AssocEvent& e)
         { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
     }
 
@@ -64,10 +68,8 @@ class GrmReporter
     detail::ProgressBar bar_;
     bool bar_active_ = false;
     SmoothEtaCalculator eta_;
-    size_t global_total_ = 0;
-    size_t accumulated_base_ = 0;
 };
 
 }  // namespace gelex::cli
 
-#endif  // GELEX_CLI_GRM_REPORTER_H_
+#endif  // GELEX_CLI_ASSOC_REPORTER_H_

@@ -32,17 +32,11 @@
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/exception.h"
 #include "gelex/infra/detail/indicator.h"
+#include "gelex/types/chr_group.h"
 #include "gelex/types/snp_info.h"
 
 namespace gelex::cli
 {
-
-struct ChrGroup
-{
-    std::string name;
-    std::vector<std::pair<Eigen::Index, Eigen::Index>> ranges;
-    Eigen::Index total_snps;
-};
 
 inline auto parse_genotype_process_method(std::string_view value)
     -> GenotypeProcessMethod
@@ -91,11 +85,8 @@ auto is_tty() -> bool;
 
 auto setup_parallelization(int num_threads) -> void;
 
-auto build_chr_groups(bool do_loco, const gelex::SnpEffects& snp_effects)
-    -> std::vector<ChrGroup>;
-
 inline auto create_progress_bar(
-    std::atomic<size_t>& counter,
+    size_t& counter,
     size_t total,
     std::string_view format = "{bar}") -> gelex::detail::ProgressBar
 {
@@ -103,8 +94,6 @@ inline auto create_progress_bar(
 }
 
 auto print_gelex_banner_message(std::string_view version) -> void;
-
-auto print_assoc_header(int threads) -> void;
 
 auto format_epilog(std::string_view text) -> std::string;
 

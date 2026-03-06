@@ -17,13 +17,10 @@
 #include "gelex/infra/detail/indicator.h"
 
 #include <unistd.h>
-#include <atomic>
 #include <cstdio>
 #include <vector>
 
 #include <barkeep.h>
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 namespace gelex
 {
@@ -41,10 +38,8 @@ auto should_use_no_tty() -> bool
 
 }  // namespace
 
-auto create_progress_bar(
-    std::atomic<size_t>& counter,
-    size_t total,
-    std::string_view format) -> ProgressBar
+auto create_progress_bar(size_t& counter, size_t total, std::string_view format)
+    -> ProgressBar
 {
     const bool no_tty = should_use_no_tty();
 
@@ -100,112 +95,6 @@ auto create_progress_info() -> ProgressInfo
 
     return {
         .display = barkeep::Composite(elements, ""), .progress_info = status};
-}
-
-Indicator::Indicator(
-    Eigen::Index n_iter,
-    std::atomic_ptrdiff_t& progress_counter)
-    : current_values_()
-{
-    const bool no_tty = should_use_no_tty();
-
-    std::vector<std::shared_ptr<bk::BaseDisplay>> displays;
-    auto anim = bk::Animation(
-        {.message = " ",
-         .style = gelex::detail::GREEN_SPINNER,
-         .interval = 0.08,
-         .no_tty = no_tty,
-         .show = false});
-    displays.emplace_back(anim);
-
-    progress_bar_ = bk::ProgressBar(
-        &progress_counter,
-        {.total = n_iter,
-         .format = "{bar} {value}/{total} [{speed:.1f}/s]",
-         .speed = 0.1,
-         .style = gelex::detail::BAR_STYLE,
-         .no_tty = no_tty,
-         .show = false});
-    displays.emplace_back(progress_bar_);
-
-    status_ = bk::Status(
-        {.message = "--",
-         .style = bk::Strings{""},
-         .no_tty = no_tty,
-         .show = false});
-    displays.emplace_back(status_);
-
-    main_indicator_ = bk::Composite(displays, " ");
-}
-
-auto Indicator::update(StatusMetric metric, double value) -> void
-{
-    current_values_[status_metric_index(metric)] = value;
-}
-
-auto Indicator::flush_status() -> void
-{
-    update_compact_status();
-}
-
-auto Indicator::status_metric_index(StatusMetric metric) -> size_t
-{
-    return static_cast<size_t>(metric);
-}
-
-auto Indicator::format_status_line(const StatusSnapshot& values) -> std::string
-{
-    fmt::memory_buffer line_buffer;
-    auto out_it = std::back_inserter(line_buffer);
-    bool has_previous = false;
-
-    auto append_metric = [&](std::string_view label, double value) -> void
-    {
-        if (has_previous)
-        {
-            out_it = fmt::format_to(out_it, " | ");
-        }
-        out_it = fmt::format_to(out_it, "{}: {:.3f}", label, value);
-        has_previous = true;
-    };
-
-    if (const auto& add_h2
-        = values[status_metric_index(StatusMetric::additive_heritability)])
-    {
-        append_metric("h²", *add_h2);
-    }
-    if (const auto& dom_h2
-        = values[status_metric_index(StatusMetric::dominant_heritability)])
-    {
-        append_metric("δ²", *dom_h2);
-    }
-    if (const auto& res_var
-        = values[status_metric_index(StatusMetric::residual_variance)])
-    {
-        append_metric("σ²_e", *res_var);
-    }
-
-    if (!has_previous)
-    {
-        return "--";
-    }
-
-    return fmt::to_string(line_buffer);
-}
-
-auto Indicator::update_compact_status() -> void
-{
-    status_->message(format_status_line(current_values_));
-}
-
-auto Indicator::show() -> void
-{
-    main_indicator_->show();
-}
-
-auto Indicator::done() -> void
-{
-    main_indicator_->done();
 }
 
 }  // namespace detail

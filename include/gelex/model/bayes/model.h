@@ -28,14 +28,15 @@
 namespace gelex
 {
 
-class DataPipe;
+class PhenoPipe;
+class GenoPipe;
 class GenotypeMap;
 class GenotypeMatrix;
 
 class BayesModel
 {
    public:
-    explicit BayesModel(DataPipe& data_pipe);
+    BayesModel(PhenoPipe& pheno_pipe, GenoPipe& geno_pipe);
 
     const FixedEffect* fixed() const { return &fixed_; }
 

@@ -43,45 +43,6 @@ auto setup_parallelization(int num_threads) -> void
     }
 }
 
-auto build_chr_groups(bool do_loco, const gelex::SnpEffects& snp_effects)
-    -> std::vector<ChrGroup>
-{
-    std::vector<ChrGroup> groups;
-    auto num_snps = static_cast<Eigen::Index>(snp_effects.size());
-
-    if (do_loco)
-    {
-        std::string current_chr;
-        Eigen::Index range_start = 0;
-
-        for (Eigen::Index i = 0; i < num_snps; ++i)
-        {
-            if (snp_effects[i].chrom != current_chr)
-            {
-                if (!current_chr.empty())
-                {
-                    groups.push_back(
-                        {current_chr, {{range_start, i}}, i - range_start});
-                }
-                current_chr = snp_effects[i].chrom;
-                range_start = i;
-            }
-        }
-        if (!current_chr.empty())
-        {
-            groups.push_back(
-                {current_chr,
-                 {{range_start, num_snps}},
-                 num_snps - range_start});
-        }
-    }
-    else
-    {
-        groups.push_back({"all", {{0, num_snps}}, num_snps});
-    }
-    return groups;
-}
-
 auto print_gelex_banner_message(std::string_view version) -> void
 {
     std::cout << "Gelex [version " << version
@@ -104,18 +65,6 @@ Found a Bug or Have a Feature Request?
 
 For more information, see the documentation at: https://github.com/r1cheu/gelex
 )";
-}
-
-auto print_assoc_header(int threads) -> void
-{
-    auto logger = gelex::logging::get();
-
-    logger->info(gelex::command_banner(PROJECT_VERSION, "GWAS Analysis"));
-    logger->info("");
-    logger->info(gelex::section("[Config]"));
-    logger->info("  {:<12}: {}", "Method", "AI-REML (Average Information)");
-    logger->info("  {:<12}: {}", "Threads", threads);
-    logger->info("");
 }
 
 auto format_epilog(std::string_view text) -> std::string

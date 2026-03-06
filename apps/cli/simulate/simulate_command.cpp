@@ -17,54 +17,15 @@
 #include "simulate_command.h"
 
 #include <argparse.h>
-#include <variant>
-#include <vector>
 
-#include "gelex/algo/sim/effect_sampler.h"
 #include "gelex/pipeline/phenotype_simulation_engine.h"
 #include "simulate_config.h"
 #include "simulator_reporter.h"
-
-namespace
-{
-
-auto create_effectsize_vec(
-    std::span<const double> variances,
-    std::span<const double> proportions) -> std::vector<gelex::EffectSizeClass>
-{
-    std::vector<gelex::EffectSizeClass> classes(variances.size());
-    for (size_t i = 0; i < variances.size(); ++i)
-    {
-        classes[i] = {proportions[i], variances[i]};
-    }
-    return classes;
-}
-
-}  // namespace
 
 auto simulate_execute(argparse::ArgumentParser& sim) -> int
 {
     auto config = gelex::cli::make_simulate_config(sim);
     gelex::cli::SimulatorReporter reporter;
-
-    gelex::PhenotypeSimulationEngine::Config simulator_config{
-        .bed_path = config.bed_path,
-        .output_path = config.output_path,
-
-        .intercept = config.intercept,
-
-        .add_heritability = config.add_heritability,
-        .add_effect_classes = create_effectsize_vec(
-            config.additive_variances, config.additive_proportions),
-
-        .dom_heritability = config.dom_heritability,
-        .dom_effect_classes
-        = config.dom_heritability
-              ? create_effectsize_vec(
-                    config.dominance_variances, config.dominance_proportions)
-              : std::vector<gelex::EffectSizeClass>{},
-        .seed = config.seed,
-    };
 
     reporter.on_event(
         gelex::SimulateConfigLoadedEvent{
@@ -74,14 +35,7 @@ auto simulate_execute(argparse::ArgumentParser& sim) -> int
             .seed = config.seed,
         });
 
-    gelex::PhenotypeSimulationEngine simulator(simulator_config);
-    simulator.run(
-        [&reporter](const gelex::SimulateEvent& event)
-        {
-            std::visit(
-                [&reporter](const auto& concrete_event)
-                { reporter.on_event(concrete_event); },
-                event);
-        });
+    gelex::PhenotypeSimulationEngine simulator(std::move(config));
+    simulator.run(reporter.as_observer());
     return 0;
 }

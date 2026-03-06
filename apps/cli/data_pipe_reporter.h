@@ -19,6 +19,8 @@
 
 #include <memory>
 
+#include "gelex/infra/logging/data_pipe_event.h"
+
 namespace gelex
 {
 struct DataPipeSectionEvent;
@@ -48,6 +50,12 @@ class DataPipeReporter
     auto on_event(const IntersectionEvent& event) const -> void;
     auto on_event(const GenotypeLoadedEvent& event) const -> void;
     auto on_event(const GrmLoadedEvent& event) const -> void;
+
+    auto as_observer() -> DataPipeObserver
+    {
+        return [this](const DataPipeEvent& e)
+        { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
+    }
 
    private:
     std::shared_ptr<spdlog::logger> logger_;

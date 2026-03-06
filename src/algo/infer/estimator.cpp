@@ -16,48 +16,27 @@
 
 #include "gelex/algo/infer/estimator.h"
 
+#include <fmt/format.h>
 #include <Eigen/Core>
-#include <chrono>
 
-#include "algo/report/reml_logger.h"
 #include "gelex/algo/infer/effect_solver.h"
 #include "gelex/algo/numerics/policy.h"
 #include "gelex/algo/numerics/variance_calculator.h"
-#include "gelex/algo/report/reml_logger_base.h"
 #include "gelex/algo/stats/statistics.h"
-#include "gelex/infra/utils/utils.h"
+#include "gelex/infra/logging/notify.h"
 #include "gelex/model/freq/model.h"
 
 namespace gelex
 {
 
-Estimator::Estimator(size_t max_iter, double tol)
-    : optimizer_(tol),
-      max_iter_(max_iter),
-      logger_(std::make_unique<detail::RemlLogger>())
+Estimator::Estimator(size_t max_iter, double tol, RemlObserver observer)
+    : optimizer_(tol), max_iter_(max_iter), observer_(std::move(observer))
 {
 }
 
-Estimator::Estimator(
-    size_t max_iter,
-    double tol,
-    std::unique_ptr<detail::RemlLoggerBase> logger)
-    : optimizer_(tol), max_iter_(max_iter), logger_(std::move(logger))
+auto Estimator::fit(const FreqModel& model, FreqState& state, bool em_init)
+    -> Eigen::MatrixXd
 {
-}
-
-Estimator::~Estimator() = default;
-
-auto Estimator::fit(
-    const FreqModel& model,
-    FreqState& state,
-    bool em_init,
-    bool verbose) -> Eigen::MatrixXd
-{
-    auto start = std::chrono::steady_clock::now();
-
-    logger_->set_verbose(verbose);
-
     OptimizerState opt_state(model);
 
     // EM initialization
@@ -66,20 +45,35 @@ auto Estimator::fit(
         em_step(model, state, opt_state);
     }
 
-    logger_->log_iter_header(state);
-
     // AI iterations
     for (size_t iter = 1; iter <= max_iter_; ++iter)
     {
-        double time_cost{};
-        {
-            Timer timer{time_cost};
-            optimizer_.step<AIPolicy>(model, state, opt_state);
-        }
+        optimizer_.step<AIPolicy>(model, state, opt_state);
 
         loglike_ = variance_calculator::compute_loglike(model, opt_state);
 
-        logger_->log_iteration(iter, loglike_, state, time_cost);
+        std::vector<std::string> labels;
+        std::vector<double> variances;
+        for (const auto& g : state.genetic())
+        {
+            labels.push_back(fmt::format("V({})", g.type));
+            variances.push_back(g.variance);
+        }
+        for (const auto& r : state.random())
+        {
+            labels.push_back(fmt::format("V({})", r.name));
+            variances.push_back(r.variance);
+        }
+        labels.emplace_back("V(e)");
+        variances.push_back(state.residual().variance);
+
+        notify(
+            observer_,
+            RemlIterationEvent{
+                .iter = iter,
+                .loglike = loglike_,
+                .labels = std::move(labels),
+                .variances = std::move(variances)});
 
         if (optimizer_.is_converged())
         {
@@ -88,7 +82,6 @@ auto Estimator::fit(
             break;
         }
     }
-    logger_->log_iter_footer();
 
     if (!converged_)
     {
@@ -101,11 +94,16 @@ auto Estimator::fit(
     statistics::compute_variance_se(state, opt_state);
     statistics::compute_heritability(state, opt_state);
 
-    auto elapsed = std::chrono::duration<double>(
-                       std::chrono::steady_clock::now() - start)
-                       .count();
-    logger_->log_results(
-        model, state, loglike_, converged_, iter_count_, max_iter_, elapsed);
+    notify(
+        observer_,
+        RemlCompleteEvent{
+            .model = &model,
+            .state = &state,
+            .converged = converged_,
+            .iter_count = iter_count_,
+            .max_iter = max_iter_,
+            .loglike = loglike_});
+
     return std::move(opt_state.v);
 }
 
@@ -114,14 +112,25 @@ auto Estimator::em_step(
     FreqState& state,
     OptimizerState& opt_state) -> void
 {
-    double time_cost{};
-    {
-        Timer timer{time_cost};
-        optimizer_.step<EMPolicy>(model, state, opt_state);
-    }
+    optimizer_.step<EMPolicy>(model, state, opt_state);
 
     double loglike = variance_calculator::compute_loglike(model, opt_state);
-    logger_->log_em_init(state, loglike);
+
+    std::vector<double> init_variances;
+    for (const auto& g : state.genetic())
+    {
+        init_variances.push_back(g.variance);
+    }
+    for (const auto& r : state.random())
+    {
+        init_variances.push_back(r.variance);
+    }
+    init_variances.push_back(state.residual().variance);
+
+    notify(
+        observer_,
+        RemlEmInitEvent{
+            .loglike = loglike, .init_variances = std::move(init_variances)});
 }
 
 }  // namespace gelex

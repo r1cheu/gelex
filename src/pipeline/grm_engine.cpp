@@ -26,6 +26,7 @@
 #include "gelex/data/grm/grm_bin_writer.h"
 #include "gelex/data/grm/grm_id_writer.h"
 #include "gelex/infra/logging/grm_event.h"
+#include "gelex/infra/logging/notify.h"
 #include "gelex/infra/utils/utils.h"
 #include "pipeline/grm_work_plan.h"
 
@@ -42,14 +43,6 @@ auto write_grm_files(
 {
     GrmBinWriter(out_prefix + ".bin").write(result.grm);
     GrmIdWriter(out_prefix + ".id").write(sample_ids);
-}
-
-auto notify(const GrmObserver& observer, const GrmEvent& event) -> void
-{
-    if (observer)
-    {
-        observer(event);
-    }
 }
 
 }  // namespace

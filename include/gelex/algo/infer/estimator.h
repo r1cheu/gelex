@@ -18,10 +18,10 @@
 #define GELEX_ESTIMATOR_FREQ_ESTIMATOR_H_
 
 #include <cstddef>
-#include <memory>
 
 #include "gelex/algo/numerics/optimizer.h"
 #include "gelex/algo/numerics/optimizer_state.h"
+#include "gelex/infra/logging/reml_event.h"
 
 namespace gelex
 {
@@ -29,30 +29,16 @@ namespace gelex
 class FreqModel;
 class FreqState;
 
-namespace detail
-{
-class RemlLoggerBase;
-}
-
 class Estimator
 {
    public:
-    explicit Estimator(size_t max_iter = 100, double tol = 1e-8);
-    Estimator(const Estimator&) = delete;
-    Estimator(Estimator&&) = default;
-    Estimator& operator=(const Estimator&) = delete;
-    Estimator& operator=(Estimator&&) = default;
-    Estimator(
-        size_t max_iter,
-        double tol,
-        std::unique_ptr<detail::RemlLoggerBase> logger);
-    ~Estimator();
+    explicit Estimator(
+        size_t max_iter = 100,
+        double tol = 1e-8,
+        RemlObserver observer = {});
 
-    auto fit(
-        const FreqModel& model,
-        FreqState& state,
-        bool em_init = true,
-        bool verbose = true) -> Eigen::MatrixXd;
+    auto fit(const FreqModel& model, FreqState& state, bool em_init = true)
+        -> Eigen::MatrixXd;
 
     auto is_converged() const -> bool { return converged_; }
     auto iter_count() const -> size_t { return iter_count_; }
@@ -70,7 +56,7 @@ class Estimator
     double loglike_{};
     bool converged_{false};
 
-    std::unique_ptr<detail::RemlLoggerBase> logger_;
+    RemlObserver observer_;
 };
 
 }  // namespace gelex

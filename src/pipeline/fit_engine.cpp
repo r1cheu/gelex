@@ -18,14 +18,16 @@
 
 #include <Eigen/Core>
 
-#include <memory>
+#include <fmt/format.h>
 
 #include "gelex/algo/infer/mcmc.h"
-#include "gelex/infra/logger.h"
+#include "gelex/exception.h"
+#include "gelex/infra/logging/notify.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior_strategies.h"
 #include "gelex/model/bayes/trait_model.h"
-#include "gelex/pipeline/data_pipe.h"
+#include "gelex/pipeline/geno_pipe.h"
+#include "gelex/pipeline/pheno_pipe.h"
 #include "gelex/pipeline/report/result_writer.h"
 
 namespace gelex
@@ -85,18 +87,16 @@ auto to_eigen(
     return default_func(type);
 }
 
-auto configure_model_priors(
-    BayesModel& model,
-    const FitEngine::Config& config,
-    const std::shared_ptr<spdlog::logger>& logger) -> void
+auto configure_model_priors(BayesModel& model, const FitEngine::Config& config)
+    -> void
 {
     auto prior_strategy = create_prior_strategy(config.method);
     if (!prior_strategy)
     {
-        logger->error(
-            "Failed to create prior strategy for model type: {}",
-            config.method);
-        return;
+        throw GelexException(
+            fmt::format(
+                "Failed to create prior strategy for model type: {}",
+                config.method));
     }
 
     PriorConfig prior_config;
@@ -111,14 +111,6 @@ auto configure_model_priors(
         = to_eigen(config.dscale, config.method, get_default_scale);
 
     (*prior_strategy)(model, prior_config);
-}
-
-auto notify(const FitObserver& observer, const FitEvent& event) -> void
-{
-    if (observer)
-    {
-        observer(event);
-    }
 }
 
 auto run_mcmc_analysis(
@@ -189,13 +181,15 @@ auto run_mcmc_analysis(
 
 FitEngine::FitEngine(Config config) : config_(std::move(config)) {}
 
-auto FitEngine::run(DataPipe&& data, const FitObserver& observer) -> void
+auto FitEngine::run(
+    PhenoPipe&& pheno,
+    GenoPipe&& geno,
+    const FitObserver& observer) -> void
 {
-    auto logger = gelex::logging::get();
-
-    auto data_pipe = std::move(data);
-    BayesModel model(data_pipe);
-    configure_model_priors(model, config_, logger);
+    auto pheno_pipe = std::move(pheno);
+    auto geno_pipe = std::move(geno);
+    BayesModel model(pheno_pipe, geno_pipe);
+    configure_model_priors(model, config_);
 
     run_mcmc_analysis(model, config_, observer);
 

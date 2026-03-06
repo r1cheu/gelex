@@ -14,45 +14,47 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_PIPELINE_FIT_ENGINE_H_
-#define GELEX_PIPELINE_FIT_ENGINE_H_
+#ifndef GELEX_PIPELINE_ASSOC_NORMAL_ENGINE_H_
+#define GELEX_PIPELINE_ASSOC_NORMAL_ENGINE_H_
 
-#include <optional>
+#include <filesystem>
 #include <string>
-#include <vector>
 
-#include "gelex/algo/infer/params.h"
-#include "gelex/infra/logging/fit_event.h"
-#include "gelex/types/effects.h"
+#include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/infra/logging/assoc_event.h"
+#include "gelex/infra/logging/reml_event.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
+
 class PhenoPipe;
-class GenoPipe;
-class FitEngine
+class GrmPipe;
+
+class AssocNormalEngine
 {
    public:
     struct Config
     {
-        std::string bfile_prefix;
-        BayesAlphabet method;
+        ModelType model_type;
 
-        int seed;
-        MCMCParams mcmc_params;
+        GenotypeProcessMethod method;
+        int chunk_size;
 
-        std::optional<std::vector<double>> pi;
-        std::optional<std::vector<double>> dpi;
-        std::optional<std::vector<double>> scale;
-        std::optional<std::vector<double>> dscale;
+        int max_iter;
+        double tol;
 
+        std::filesystem::path bed_path;
         std::string out_prefix;
     };
 
-    explicit FitEngine(Config config);
+    explicit AssocNormalEngine(Config config);
+
     auto run(
-        PhenoPipe&& pheno,
-        GenoPipe&& geno,
-        const FitObserver& observer = {}) -> void;
+        PhenoPipe& pheno,
+        GrmPipe& grm,
+        const AssocObserver& observer = {},
+        const RemlObserver& reml_observer = {}) -> void;
 
    private:
     Config config_;
@@ -60,4 +62,4 @@ class FitEngine
 
 }  // namespace gelex
 
-#endif  // GELEX_PIPELINE_FIT_ENGINE_H_
+#endif  // GELEX_PIPELINE_ASSOC_NORMAL_ENGINE_H_

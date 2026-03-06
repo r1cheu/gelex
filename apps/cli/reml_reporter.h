@@ -14,51 +14,44 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_SIMULATOR_REPORTER_H_
-#define GELEX_CLI_SIMULATOR_REPORTER_H_
+#ifndef GELEX_CLI_REML_REPORTER_H_
+#define GELEX_CLI_REML_REPORTER_H_
 
 #include <memory>
+#include <vector>
 
-#include "gelex/infra/detail/indicator.h"
-#include "gelex/infra/logging/simulate_event.h"
-
-namespace gelex
-{
-struct SimulateConfigLoadedEvent;
-struct SimulateProgressEvent;
-struct HeritabilityGeneratedEvent;
-struct OutputsWrittenEvent;
-}  // namespace gelex
+#include "gelex/infra/logging/reml_event.h"
 
 namespace spdlog
 {
 class logger;
 }
+
 namespace gelex::cli
 {
 
-class SimulatorReporter
+class RemlReporter
 {
    public:
-    SimulatorReporter();
+    RemlReporter();
 
-    auto on_event(const SimulateConfigLoadedEvent& event) const -> void;
-    auto on_event(const SimulateProgressEvent& event) -> void;
-    auto on_event(const HeritabilityGeneratedEvent& event) const -> void;
-    auto on_event(const OutputsWrittenEvent& event) const -> void;
+    auto on_event(const RemlEmInitEvent& e) -> void;
+    auto on_event(const RemlIterationEvent& e) -> void;
+    auto on_event(const RemlCompleteEvent& e) const -> void;
 
-    auto as_observer() -> SimulateObserver
+    auto as_observer() -> RemlObserver
     {
-        return [this](const SimulateEvent& e)
+        return [this](const RemlEvent& e)
         { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
     }
 
    private:
     std::shared_ptr<spdlog::logger> logger_;
-    detail::ProgressInfo info_;
-    bool init_progress_ = false;
+    bool header_printed_ = false;
 };
+
+void print_loco_reml_summary(const std::vector<LocoRemlResult>& results);
 
 }  // namespace gelex::cli
 
-#endif  // GELEX_CLI_SIMULATOR_REPORTER_H_
+#endif  // GELEX_CLI_REML_REPORTER_H_

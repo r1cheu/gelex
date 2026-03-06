@@ -26,7 +26,8 @@
 #include "gelex/data/genotype/genotype_mmap.h"
 #include "gelex/infra/utils/math_utils.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/pipeline/data_pipe.h"
+#include "gelex/pipeline/geno_pipe.h"
+#include "gelex/pipeline/pheno_pipe.h"
 
 namespace gelex
 {
@@ -35,24 +36,24 @@ using Eigen::Index;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-BayesModel::BayesModel(DataPipe& data_pipe)
-    : phenotype_(std::move(data_pipe).take_phenotype())
+BayesModel::BayesModel(PhenoPipe& pheno_pipe, GenoPipe& geno_pipe)
+    : phenotype_(std::move(pheno_pipe).take_phenotype())
 {
     num_individuals_ = phenotype_.rows();         // NOLINT
     phenotype_var_ = detail::var(phenotype_)(0);  // NOLINT
 
-    add_fixed_effect(std::move(data_pipe).take_fixed_effects());
+    add_fixed_effect(std::move(pheno_pipe).take_fixed_effects());
 
     std::visit(
         [&](auto&& arg) { add_additive(std::forward<decltype(arg)>(arg)); },
-        std::move(data_pipe).take_additive_matrix());
+        std::move(geno_pipe).take_additive_matrix());
 
-    if (data_pipe.has_dominance_matrix())
+    if (geno_pipe.has_dominance_matrix())
     {
         std::visit(
             [&](auto&& arg)
             { add_dominance(std::forward<decltype(arg)>(arg)); },
-            std::move(data_pipe).take_dominance_matrix());
+            std::move(geno_pipe).take_dominance_matrix());
     }
 }
 

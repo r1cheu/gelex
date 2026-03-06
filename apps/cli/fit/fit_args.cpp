@@ -25,9 +25,6 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
 {
     cmd.add_description("Fit genomic prediction models using Bayesian methods");
 
-    // ================================================================
-    // IO
-    // ================================================================
     cmd.add_group("Data Files");
     cmd.add_argument("-p", "--pheno")
         .help("Phenotype file (TSV format: FID, IID, trait1, ...)")
@@ -46,9 +43,6 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         .metavar("<OUT>")
         .default_value("gelex");
 
-    // ================================================================
-    // Data Processing
-    // ================================================================
     cmd.add_group("Processing Options");
     cmd.add_argument("--pheno-col")
         .help("Phenotype column index (0-based)")
@@ -66,9 +60,6 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         .default_value(std::string("OSH"))
         .metavar("<STR>");
 
-    // ================================================================
-    // Model Configuration
-    // ================================================================
     cmd.add_group("Model Configuration");
     cmd.add_argument("-m", "--method")
         .help(
@@ -92,7 +83,6 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
             "RR",
             "RRd")
         .required();
-
     cmd.add_argument("--scale")
         .help("Additive variance scales for BayesR (5 values)")
         .nargs(argparse::nargs_pattern::at_least_one)
@@ -110,9 +100,6 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
 
-    // ================================================================
-    // MCMC Parameters
-    // ================================================================
     cmd.add_group("MCMC Configuration");
     cmd.add_argument("--iters")
         .help("Total MCMC iterations")
@@ -131,9 +118,6 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         .default_value(42)
         .scan<'i', int>();
 
-    // ================================================================
-    // Performance
-    // ================================================================
     cmd.add_group("Performance");
     cmd.add_argument("-t", "--threads")
         .help("Number of CPU threads to use")

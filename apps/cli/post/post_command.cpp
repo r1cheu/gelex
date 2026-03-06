@@ -18,8 +18,6 @@
 
 #include <argparse.h>
 
-#include <variant>
-
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/pipeline/posterior_analysis_engine.h"
@@ -38,11 +36,6 @@ auto post_execute(argparse::ArgumentParser& post) -> int
         gelex::PosteriorAnalysisEngine::Config{
             .in_prefixes = config.in_prefixes});
 
-    engine.run(
-        [&reporter](const gelex::PostEvent& event)
-        {
-            std::visit(
-                [&reporter](const auto& ev) { reporter.on_event(ev); }, event);
-        });
+    engine.run(reporter.as_observer());
     return 0;
 }

@@ -28,9 +28,6 @@ auto setup_grm_args(argparse::ArgumentParser& cmd) -> void
         "Compute genomic relationship matrix (GRM) from PLINK "
         "binary files and output in GCTA format");
 
-    // ================================================================
-    // Data Files
-    // ================================================================
     cmd.add_group("Data Files");
     cmd.add_argument("-b", "--bfile")
         .help("PLINK binary file prefix (.bed/.bim/.fam)")
@@ -41,9 +38,6 @@ auto setup_grm_args(argparse::ArgumentParser& cmd) -> void
         .metavar("<OUT>")
         .default_value(std::string("grm"));
 
-    // ================================================================
-    // GRM Options
-    // ================================================================
     cmd.add_group("GRM Options");
     cmd.add_argument("--geno-method", "--gm")
         .help(

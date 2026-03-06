@@ -14,25 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_ASSOC_CONFIG_H_
-#define GELEX_CLI_ASSOC_CONFIG_H_
+#ifndef GELEX_INFRA_LOGGING_NOTIFY_H_
+#define GELEX_INFRA_LOGGING_NOTIFY_H_
 
-#include "gelex/pipeline/assoc_normal_engine.h"
-#include "gelex/pipeline/pheno_pipe.h"
+#include <utility>
 
-namespace argparse
+namespace gelex
 {
-class ArgumentParser;
+
+template <typename Observer, typename Event>
+auto notify(const Observer& observer, Event&& event) -> void
+{
+    if (observer)
+    {
+        observer(std::forward<Event>(event));
+    }
 }
 
-namespace gelex::cli
-{
-
-auto make_assoc_config(argparse::ArgumentParser& cmd)
-    -> AssocNormalEngine::Config;
-
-auto parse_transform_type(std::string_view transform) -> detail::TransformType;
-
-}  // namespace gelex::cli
-
-#endif  // GELEX_CLI_ASSOC_CONFIG_H_
+}  // namespace gelex
+#endif  // GELEX_INFRA_LOGGING_NOTIFY_H_

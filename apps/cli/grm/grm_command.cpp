@@ -18,7 +18,6 @@
 
 #include <argparse.h>
 #include <fmt/format.h>
-#include <variant>
 
 #include "cli/cli_helper.h"
 #include "gelex/infra/logging/grm_event.h"
@@ -41,18 +40,11 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
             .method = std::string(method_name),
             .mode = config.mode,
             .do_loco = config.do_loco,
-            .chunk_size = config.chunk_size,
-            .threads = threads,
         });
 
     gelex::GrmEngine engine(std::move(config));
 
-    engine.compute(
-        [&reporter](const gelex::GrmEvent& event)
-        {
-            std::visit(
-                [&reporter](const auto& e) { reporter.on_event(e); }, event);
-        });
+    engine.compute(reporter.as_observer());
 
     return 0;
 }

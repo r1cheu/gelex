@@ -33,11 +33,13 @@ class GrmEngine
     struct Config
     {
         std::filesystem::path bed_path;
-        std::string out_prefix;
-        GenotypeProcessMethod method;
+
         gelex::freq::GrmType mode;
-        int chunk_size;
+        GenotypeProcessMethod method;
         bool do_loco;
+
+        std::string out_prefix;
+        int chunk_size;
     };
 
     explicit GrmEngine(Config config);

@@ -18,18 +18,19 @@
 
 #include "gelex/infra/utils/math_utils.h"
 #include "gelex/model/freq/model.h"
-#include "gelex/pipeline/data_pipe.h"
+#include "gelex/pipeline/grm_pipe.h"
+#include "gelex/pipeline/pheno_pipe.h"
 
 namespace gelex
 {
 
-FreqModel::FreqModel(DataPipe& data_pipe)
-    : phenotype_(std::move(data_pipe).take_phenotype()),
+FreqModel::FreqModel(PhenoPipe& pheno_pipe, GrmPipe& grm_pipe)
+    : phenotype_(std::move(pheno_pipe).take_phenotype()),
       phenotype_variance_(detail::var(phenotype_)[0]),
-      fixed_(std::move(data_pipe).take_fixed_effects())
+      fixed_(std::move(pheno_pipe).take_fixed_effects())
 {
     num_individuals_ = phenotype_.size();
-    genetic_ = std::move(data_pipe).take_grms();
+    genetic_ = std::move(grm_pipe).take_grms();
 }
 
 FreqState::FreqState(const FreqModel& model)

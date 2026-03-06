@@ -28,12 +28,13 @@
 namespace gelex
 {
 
-class DataPipe;
+class PhenoPipe;
+class GrmPipe;
 
 class FreqModel
 {
    public:
-    explicit FreqModel(DataPipe& data_pipe);
+    FreqModel(PhenoPipe& pheno_pipe, GrmPipe& grm_pipe);
     auto fixed() const -> const FixedEffect& { return fixed_; }
     auto fixed() -> FixedEffect& { return fixed_; }
 

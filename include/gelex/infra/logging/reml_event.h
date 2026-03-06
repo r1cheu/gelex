@@ -14,18 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_LOGGER_LOCO_REML_LOGGER_H_
-#define GELEX_LOGGER_LOCO_REML_LOGGER_H_
+#ifndef GELEX_INFRA_LOGGING_REML_EVENT_H_
+#define GELEX_INFRA_LOGGING_REML_EVENT_H_
 
-#include "reml_logger_base.h"
-
+#include <cstddef>
+#include <functional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "gelex/types/freq_effect.h"
 
-namespace gelex::detail
+namespace gelex
 {
+
+class FreqModel;
+class FreqState;
 
 struct VarianceComponent
 {
@@ -41,7 +45,6 @@ struct LocoRemlResult
     std::vector<VarianceComponent> genetic;
     double residual_variance{};
     bool converged{true};
-    double elapsed{};
 
     auto total_h2() const -> double
     {
@@ -54,37 +57,35 @@ struct LocoRemlResult
     }
 };
 
-class LocoRemlLogger : public RemlLoggerBase
+struct RemlEmInitEvent
 {
-   public:
-    explicit LocoRemlLogger(std::string chr_name);
-
-    void set_verbose(bool verbose) override;
-
-    void log_iteration(
-        size_t iter,
-        double loglike,
-        const FreqState& state,
-        double time_cost) override;
-
-    void log_results(
-        const FreqModel& model,
-        const FreqState& state,
-        double loglike,
-        bool converged,
-        size_t iter_count,
-        size_t max_iter,
-        double elapsed) override;
-
-    auto result() const -> const LocoRemlResult& { return result_; }
-
-   private:
-    std::string chr_name_;
-    LocoRemlResult result_;
+    double loglike;
+    std::vector<double> init_variances;
 };
 
-void print_loco_reml_summary(const std::vector<LocoRemlResult>& results);
+struct RemlIterationEvent
+{
+    size_t iter;
+    double loglike;
+    std::vector<std::string> labels;
+    std::vector<double> variances;
+};
 
-}  // namespace gelex::detail
+struct RemlCompleteEvent
+{
+    const FreqModel* model;
+    const FreqState* state;
+    bool converged;
+    size_t iter_count;
+    size_t max_iter;
+    double loglike;
+};
 
-#endif  // GELEX_LOGGER_LOCO_REML_LOGGER_H_
+using RemlEvent
+    = std::variant<RemlEmInitEvent, RemlIterationEvent, RemlCompleteEvent>;
+
+using RemlObserver = std::function<void(const RemlEvent&)>;
+
+}  // namespace gelex
+
+#endif  // GELEX_INFRA_LOGGING_REML_EVENT_H_

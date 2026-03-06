@@ -17,9 +17,7 @@
 #ifndef GELEX_CLI_SIMULATE_CONFIG_H_
 #define GELEX_CLI_SIMULATE_CONFIG_H_
 
-#include <filesystem>
-#include <optional>
-#include <vector>
+#include "gelex/pipeline/phenotype_simulation_engine.h"
 
 namespace argparse
 {
@@ -29,25 +27,8 @@ class ArgumentParser;
 namespace gelex::cli
 {
 
-struct SimulateConfig
-{
-    std::filesystem::path bed_path;
-    std::filesystem::path output_path;
-
-    double intercept;
-
-    double add_heritability;
-    std::vector<double> additive_variances;
-    std::vector<double> additive_proportions;
-
-    std::optional<double> dom_heritability;
-    std::vector<double> dominance_variances;
-    std::vector<double> dominance_proportions;
-
-    int seed;
-};
-
-auto make_simulate_config(argparse::ArgumentParser& cmd) -> SimulateConfig;
+auto make_simulate_config(argparse::ArgumentParser& cmd)
+    -> PhenotypeSimulationEngine::Config;
 
 }  // namespace gelex::cli
 

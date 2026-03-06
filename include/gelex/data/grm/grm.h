@@ -28,6 +28,7 @@
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/data/genotype/sample_manager.h"
 #include "gelex/infra/logging/grm_event.h"
+#include "gelex/infra/logging/notify.h"
 
 namespace gelex
 {
@@ -121,15 +122,12 @@ auto GRM::compute(
             update_grm(grm, genotype_chunk);
 
             processed_snps += (end_col - start_col);
-            if (observer)
-            {
-                GrmEvent event;
-                event.emplace<GrmProgressEvent>(
+            notify(
+                observer,
+                GrmProgressEvent{
                     static_cast<size_t>(processed_snps),
                     static_cast<size_t>(total_snps_to_process),
-                    false);
-                observer(event);
-            }
+                    false});
         }
     }
 

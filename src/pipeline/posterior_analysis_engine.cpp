@@ -26,6 +26,7 @@
 #include "gelex/algo/stats/diagnostics.h"
 #include "gelex/data/io/binary_mmap_loader.h"
 #include "gelex/exception.h"  // FileFormatException, InvalidInputException
+#include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/post_event.h"
 
 namespace
@@ -141,14 +142,12 @@ auto PosteriorAnalysisEngine::run(const PostObserver& observer) -> void
         diags.push_back(compute_diag(kIdxDomH2, "h²_dom", chains, ess, rhat));
     }
 
-    if (observer)
-    {
-        observer(
-            DiagnosticsReadyEvent{
-                .diags = std::move(diags),
-                .n_chains = n_chains,
-                .n_records = n_records});
-    }
+    notify(
+        observer,
+        DiagnosticsReadyEvent{
+            .diags = std::move(diags),
+            .n_chains = n_chains,
+            .n_records = n_records});
 }
 
 }  // namespace gelex

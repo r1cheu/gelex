@@ -14,25 +14,36 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_ASSOC_CONFIG_H_
-#define GELEX_CLI_ASSOC_CONFIG_H_
+#ifndef GELEX_PIPELINE_ASSOC_LOCO_ENGINE_H_
+#define GELEX_PIPELINE_ASSOC_LOCO_ENGINE_H_
 
+#include "gelex/infra/logging/assoc_event.h"
+#include "gelex/infra/logging/reml_event.h"
 #include "gelex/pipeline/assoc_normal_engine.h"
-#include "gelex/pipeline/pheno_pipe.h"
 
-namespace argparse
-{
-class ArgumentParser;
-}
-
-namespace gelex::cli
+namespace gelex
 {
 
-auto make_assoc_config(argparse::ArgumentParser& cmd)
-    -> AssocNormalEngine::Config;
+class PhenoPipe;
+class GrmPipe;
 
-auto parse_transform_type(std::string_view transform) -> detail::TransformType;
+class AssocLocoEngine
+{
+   public:
+    using Config = AssocNormalEngine::Config;
 
-}  // namespace gelex::cli
+    explicit AssocLocoEngine(Config config);
 
-#endif  // GELEX_CLI_ASSOC_CONFIG_H_
+    auto run(
+        PhenoPipe& pheno,
+        GrmPipe& grm,
+        const AssocObserver& observer = {},
+        const RemlObserver& reml_observer = {}) -> void;
+
+   private:
+    Config config_;
+};
+
+}  // namespace gelex
+
+#endif  // GELEX_PIPELINE_ASSOC_LOCO_ENGINE_H_

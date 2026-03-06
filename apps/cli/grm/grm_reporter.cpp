@@ -25,10 +25,7 @@
 namespace gelex::cli
 {
 
-GrmReporter::GrmReporter()
-    : logger_(gelex::logging::get()), info_(detail::create_progress_info())
-{
-}
+GrmReporter::GrmReporter() : logger_(gelex::logging::get()), eta_(1) {}
 
 auto GrmReporter::on_event(const GrmConfigLoadedEvent& event) const -> void
 {
@@ -38,8 +35,6 @@ auto GrmReporter::on_event(const GrmConfigLoadedEvent& event) const -> void
     logger_->info("  {:<12}: {}", "Method", event.method);
     logger_->info("  {:<12}: {}", "Mode", fmt::format("{}", event.mode));
     logger_->info("  {:<12}: {}", "LOCO", event.do_loco ? "yes" : "no");
-    logger_->info("  {:<12}: {}", "Chunk Size", event.chunk_size);
-    logger_->info("  {:<12}: {}", "Threads", event.threads);
     logger_->info("");
 }
 
@@ -55,26 +50,35 @@ auto GrmReporter::on_event(const GrmComputeStartedEvent& event) -> void
 {
     global_total_ = event.total_snps;
     accumulated_base_ = 0;
+    progress_ = 0;
+    eta_.reset(global_total_);
+
+    bar_ = detail::create_progress_bar(progress_, global_total_);
+    bar_.display->show();
+    bar_active_ = true;
 }
 
 auto GrmReporter::on_event(const GrmProgressEvent& event) -> void
 {
-    if (!init_progress_)
-    {
-        init_progress_ = true;
-        info_.display->show();
-    }
     if (event.done)
     {
-        info_.display->done();
+        bar_.display->done();
+        bar_active_ = false;
         logger_->info("");
         return;
     }
-    info_.progress_info->message(
-        fmt::format(
-            " Computing GRM {}/{} SNPs...",
-            gelex::AbbrNumber(accumulated_base_ + event.current),
-            gelex::AbbrNumber(global_total_)));
+    progress_ = accumulated_base_ + event.current;
+    if (bar_.after_bar)
+    {
+        bar_.after_bar->message(
+            fmt::format(
+                "{:.1f}% ({}/{}) | ETA: {}",
+                static_cast<double>(progress_)
+                    / static_cast<double>(global_total_) * 100.0,
+                AbbrNumber(progress_),
+                AbbrNumber(global_total_),
+                eta_.get_eta(progress_)));
+    }
     if (event.current == event.total)
     {
         accumulated_base_ += event.total;

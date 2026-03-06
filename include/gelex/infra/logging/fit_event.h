@@ -17,24 +17,33 @@
 #ifndef GELEX_INFRA_LOGGING_FIT_EVENT_H_
 #define GELEX_INFRA_LOGGING_FIT_EVENT_H_
 
+#include <cstddef>
 #include <functional>
 #include <optional>
 #include <string>
 #include <variant>
 
 #include "gelex/types/effects.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
 
+class BayesModel;
+class MCMCResult;
+
 struct FitConfigLoadedEvent
 {
     gelex::BayesAlphabet method;
-    bool use_dominance;
+    ModelType model_type;
     int n_iters;
     int n_burnin;
     int seed;
-    int threads;
+};
+
+struct FitModelReadyEvent
+{
+    const BayesModel* model;
 };
 
 struct FitMcmcProgressEvent
@@ -43,8 +52,15 @@ struct FitMcmcProgressEvent
     size_t total{};
     bool done{};
     std::optional<double> h2;
-    std::optional<double> h2_dom;
+    std::optional<double> d2;
     std::optional<double> sigma2_e;
+};
+
+struct FitMcmcCompleteEvent
+{
+    const MCMCResult* result;
+    const BayesModel* model;
+    std::ptrdiff_t samples_collected;
 };
 
 struct FitResultsSavedEvent
@@ -52,8 +68,12 @@ struct FitResultsSavedEvent
     std::string out_prefix;
 };
 
-using FitEvent = std::
-    variant<FitConfigLoadedEvent, FitMcmcProgressEvent, FitResultsSavedEvent>;
+using FitEvent = std::variant<
+    FitConfigLoadedEvent,
+    FitModelReadyEvent,
+    FitMcmcProgressEvent,
+    FitMcmcCompleteEvent,
+    FitResultsSavedEvent>;
 
 using FitObserver = std::function<void(const FitEvent&)>;
 

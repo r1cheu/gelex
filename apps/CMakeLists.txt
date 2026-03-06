@@ -3,7 +3,7 @@ set(CLI_SOURCES
     cli/assoc/assoc_args.cpp
     cli/assoc/assoc_config.cpp
     cli/assoc/assoc_command.cpp
-    cli/assoc/gwas_runner.cpp
+    cli/assoc/assoc_reporter.cpp
     cli/fit/fit_args.cpp
     cli/fit/fit_config.cpp
     cli/fit/fit_command.cpp
@@ -23,6 +23,7 @@ set(CLI_SOURCES
     cli/post/post_config.cpp
     cli/post/post_command.cpp
     cli/post/post_reporter.cpp
+    cli/reml_reporter.cpp
     cli/data_pipe_reporter.cpp
     cli/data_pipe_config.cpp
     cli/cli_helper.cpp)

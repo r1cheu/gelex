@@ -17,7 +17,10 @@
 #ifndef GELEX_CLI_DATA_PIPE_CONFIG_H_
 #define GELEX_CLI_DATA_PIPE_CONFIG_H_
 
-#include "gelex/pipeline/data_pipe.h"
+#include <utility>
+
+#include "gelex/pipeline/geno_pipe.h"
+#include "gelex/pipeline/pheno_pipe.h"
 
 namespace argparse
 {
@@ -27,8 +30,10 @@ class ArgumentParser;
 namespace gelex::cli
 {
 
-auto make_data_config(argparse::ArgumentParser& cmd, bool use_mmap = false)
-    -> gelex::DataPipe::Config;
+auto make_pheno_config(argparse::ArgumentParser& cmd) -> PhenoPipe::Config;
+
+auto make_fit_data_configs(argparse::ArgumentParser& cmd, bool use_mmap)
+    -> std::pair<PhenoPipe::Config, GenoPipe::Config>;
 
 }  // namespace gelex::cli
 

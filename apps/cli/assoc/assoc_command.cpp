@@ -17,65 +17,72 @@
 #include "assoc_command.h"
 
 #include <argparse.h>
-#include <variant>
 
 #include "assoc_config.h"
+#include "assoc_reporter.h"
 #include "cli/cli_helper.h"
 #include "cli/data_pipe_config.h"
 #include "cli/data_pipe_reporter.h"
-#include "gelex/data/genotype/bed_pipe.h"
-#include "gelex/data/loader/bim_loader.h"
-#include "gelex/infra/logging/data_pipe_event.h"
-#include "gelex/pipeline/data_pipe.h"
-#include "gwas_runner.h"
+#include "cli/reml_reporter.h"
+#include "gelex/infra/logging/assoc_event.h"
+#include "gelex/pipeline/assoc_loco_engine.h"
+#include "gelex/pipeline/assoc_normal_engine.h"
+#include "gelex/pipeline/grm_pipe.h"
+#include "gelex/pipeline/pheno_pipe.h"
+#include "gelex/types/genetic_effect_type.h"
 
 auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 {
-    auto assoc_config = gelex::cli::make_assoc_config(cmd);
-    auto data_config = gelex::cli::make_data_config(cmd);
-
-    data_config.model_type = gelex::ModelType::A;
-    data_config.grm_paths = assoc_config.grm_paths;
-    data_config.transform_type = assoc_config.transform_type;
-    data_config.int_offset = assoc_config.int_offset;
-
+    bool loco = cmd.get<bool>("--loco");
     int threads = cmd.get<int>("--threads");
     gelex::cli::setup_parallelization(threads);
-    gelex::cli::print_assoc_header(threads);
 
+    auto pheno_config = gelex::cli::make_pheno_config(cmd);
+    pheno_config.transform_type
+        = gelex::cli::parse_transform_type(cmd.get("--transform"));
+    pheno_config.int_offset = cmd.get<double>("--int-offset");
+
+    gelex::cli::AssocReporter reporter;
     gelex::cli::DataPipeReporter data_reporter;
-    gelex::DataPipe data(
-        data_config,
-        [&data_reporter](const gelex::DataPipeEvent& e)
-        {
-            std::visit([&](const auto& ev) { data_reporter.on_event(ev); }, e);
+
+    reporter.on_event(
+        gelex::AssocConfigLoadedEvent{
+            .model_type = cmd.get("--model") == "a" ? gelex::ModelType::A
+                                                    : gelex::ModelType::D,
+            .loco = loco,
+
+            .geno_method = gelex::cli::parse_genotype_process_method(
+                cmd.get<std::string>("--geno-method")),
+
+            .max_iter = cmd.get<int>("--max-iter"),
+            .tol = cmd.get<double>("--tol"),
         });
 
-    data.load();
+    std::vector<std::filesystem::path> grm_paths;
+    for (const auto& p : cmd.get<std::vector<std::string>>("--grm"))
+    {
+        grm_paths.emplace_back(p);
+    }
 
-    gelex::BedPipe bed_pipe(data_config.bed_path, data.sample_manager());
-    auto bim = data_config.bed_path;
-    auto snp_effects
-        = std::move(gelex::detail::BimLoader(bim.replace_extension(".bim")))
-              .take_info();
+    gelex::PhenoPipe pheno(pheno_config, data_reporter.as_observer());
+    gelex::GrmPipe grm(grm_paths, data_reporter.as_observer());
+    pheno.load(grm.sample_id_sets());
+    grm.load(pheno.sample_manager());
 
-    gelex::cli::GwasRunner::Config runner_config{
-        .max_iter = assoc_config.max_iter,
-        .tol = assoc_config.tol,
-        .chunk_size = data_config.chunk_size,
-        .loco = assoc_config.loco,
-        .additive = assoc_config.additive,
-        .method = data_config.genotype_method,
-        .grm_paths = assoc_config.grm_paths,
-        .out_prefix = data_config.output_prefix};
+    auto config = gelex::cli::make_assoc_config(cmd);
 
-    gelex::cli::GwasRunner runner(
-        runner_config,
-        std::move(data),
-        std::move(bed_pipe),
-        std::move(snp_effects));
-
-    runner.run();
+    if (loco)
+    {
+        gelex::AssocLocoEngine engine(std::move(config));
+        engine.run(pheno, grm, reporter.as_observer());
+    }
+    else
+    {
+        gelex::cli::RemlReporter reml_reporter;
+        gelex::AssocNormalEngine engine(std::move(config));
+        engine.run(
+            pheno, grm, reporter.as_observer(), reml_reporter.as_observer());
+    }
 
     return 0;
 }

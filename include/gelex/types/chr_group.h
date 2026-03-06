@@ -14,31 +14,30 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ESTIMATOR_FREQ_REML_H_
-#define GELEX_ESTIMATOR_FREQ_REML_H_
+#ifndef GELEX_TYPES_CHR_GROUP_H_
+#define GELEX_TYPES_CHR_GROUP_H_
 
-#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
-#include "gelex/infra/logging/data_pipe_event.h"
-#include "gelex/pipeline/data_pipe.h"
+#include <Eigen/Core>
 
 namespace gelex
 {
-struct AssocInput;
-class SampleManager;
 
-auto load_data_for_reml(
-    const DataPipe::Config& config,
-    DataPipeObserver observer = {}) -> DataPipe;
+class SnpEffects;
 
-auto reml(
-    const DataPipe::Config& config,
-    size_t max_iter = 100,
-    double tol = 1e-8,
-    bool em_init = true,
-    bool verbose = true) -> std::
-    tuple<std::shared_ptr<SampleManager>, Eigen::MatrixXd, Eigen::VectorXd>;
+struct ChrGroup
+{
+    std::string name;
+    std::vector<std::pair<Eigen::Index, Eigen::Index>> ranges;
+    Eigen::Index total_snps;
+};
+
+auto build_chr_groups(bool do_loco, const SnpEffects& snp_effects)
+    -> std::vector<ChrGroup>;
 
 }  // namespace gelex
 
-#endif  // GELEX_ESTIMATOR_FREQ_REML_H_
+#endif  // GELEX_TYPES_CHR_GROUP_H_

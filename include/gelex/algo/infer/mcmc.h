@@ -23,14 +23,15 @@
 
 #include "gelex/algo/infer/params.h"
 #include "gelex/algo/infer/posterior_calculator.h"
-#include "gelex/algo/report/bayes_logger.h"
 #include "gelex/infra/logging/fit_event.h"
+#include "gelex/infra/logging/notify.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/mcmc_results.h"
 #include "gelex/types/mcmc_samples.h"
 
 namespace gelex
 {
+
 template <typename TraitSampler>
 class MCMC
 {
@@ -48,8 +49,6 @@ class MCMC
         MCMCSamples& samples,
         Eigen::Index seed,
         const FitObserver& observer);
-
-    detail::MCMCLogger logger_;
 
     MCMCParams params_;
     TraitSampler trait_sampler_;
@@ -70,28 +69,27 @@ MCMCResult MCMC<TraitSampler>::run(
 {
     MCMCSamples samples(params_, model, sample_prefix);
 
-    logger_.log_model_information(model);
+    notify(observer, FitModelReadyEvent{&model});
 
     const detail::EigenThreadGuard guard;
     omp_set_num_threads(1);
     run_impl(model, samples, seed, observer);
 
-    if (observer)
-    {
-        observer(
-            FitMcmcProgressEvent{
-                .current = static_cast<size_t>(params_.n_iters),
-                .total = static_cast<size_t>(params_.n_iters),
-                .done = true,
-                .h2 = std::nullopt,
-                .h2_dom = std::nullopt,
-                .sigma2_e = std::nullopt,
-            });
-    }
+    notify(
+        observer,
+        FitMcmcProgressEvent{
+            .current = static_cast<size_t>(params_.n_iters),
+            .total = static_cast<size_t>(params_.n_iters),
+            .done = true,
+            .h2 = std::nullopt,
+            .d2 = std::nullopt,
+            .sigma2_e = std::nullopt,
+        });
 
     MCMCResult result(std::move(samples), model, 0.9);
     result.compute();
-    logger_.log_result(result, model, params_.n_records);
+
+    notify(observer, FitMcmcCompleteEvent{&result, &model, params_.n_records});
 
     return result;
 }
@@ -114,23 +112,20 @@ void MCMC<TraitSampler>::run_impl(
 
         status.compute_heritability();
 
-        if (observer)
-        {
-            observer(
-                FitMcmcProgressEvent{
-                    .current = static_cast<size_t>(iter + 1),
-                    .total = static_cast<size_t>(params_.n_iters),
-                    .done = false,
-                    .h2 = status.additive()
-                              ? std::optional{status.additive()->heritability}
-                              : std::nullopt,
-                    .h2_dom
-                    = status.dominant()
+        notify(
+            observer,
+            FitMcmcProgressEvent{
+                .current = static_cast<size_t>(iter + 1),
+                .total = static_cast<size_t>(params_.n_iters),
+                .done = false,
+                .h2 = (status.additive() != nullptr)
+                          ? std::optional{status.additive()->heritability}
+                          : std::nullopt,
+                .d2 = (status.dominant() != nullptr)
                           ? std::optional{status.dominant()->heritability}
                           : std::nullopt,
-                    .sigma2_e = status.residual().variance,
-                });
-        }
+                .sigma2_e = status.residual().variance,
+            });
 
         if (iter >= params_.n_burnin
             && (iter + 1 - params_.n_burnin) % params_.n_thin == 0)
