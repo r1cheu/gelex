@@ -23,11 +23,8 @@
 #include <fmt/ranges.h>
 #include <Eigen/Core>
 
-#include "gelex/data/genotype/genotype_mmap.h"
-#include "gelex/infra/utils/math_utils.h"
+#include "gelex/infra/stats/descriptive.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/pipeline/geno_pipe.h"
-#include "gelex/pipeline/pheno_pipe.h"
 
 namespace gelex
 {
@@ -36,24 +33,20 @@ using Eigen::Index;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-BayesModel::BayesModel(PhenoPipe& pheno_pipe, GenoPipe& geno_pipe)
-    : phenotype_(std::move(pheno_pipe).take_phenotype())
+BayesModel::BayesModel(
+    Eigen::VectorXd phenotype,
+    FixedEffect fixed_effects,
+    bayes::GenotypeStorage additive,
+    std::optional<bayes::GenotypeStorage> dominance)
+    : phenotype_(std::move(phenotype))
 {
-    num_individuals_ = phenotype_.rows();         // NOLINT
-    phenotype_var_ = detail::var(phenotype_)(0);  // NOLINT
-
-    add_fixed_effect(std::move(pheno_pipe).take_fixed_effects());
-
-    std::visit(
-        [&](auto&& arg) { add_additive(std::forward<decltype(arg)>(arg)); },
-        std::move(geno_pipe).take_additive_matrix());
-
-    if (geno_pipe.has_dominance_matrix())
+    num_individuals_ = phenotype_.rows();
+    phenotype_var_ = detail::var(phenotype_)(0);
+    add_fixed_effect(std::move(fixed_effects));
+    genetics_.emplace_back(GeneticEffectType::Add, std::move(additive));
+    if (dominance)
     {
-        std::visit(
-            [&](auto&& arg)
-            { add_dominance(std::forward<decltype(arg)>(arg)); },
-            std::move(geno_pipe).take_dominance_matrix());
+        genetics_.emplace_back(GeneticEffectType::Dom, std::move(*dominance));
     }
 }
 
@@ -69,41 +62,11 @@ void BayesModel::add_random_effect(
     random_.emplace_back(std::move(levels), std::move(X));
 }
 
-void BayesModel::add_additive(GenotypeMap&& matrix)
+BayesState::BayesState(const BayesModel& model) : fixed_(model.fixed())
 {
-    additive_.emplace(std::move(matrix));
-}
-
-void BayesModel::add_additive(GenotypeMatrix&& matrix)
-{
-    additive_.emplace(std::move(matrix));
-}
-
-void BayesModel::add_dominance(GenotypeMap&& matrix)
-{
-    dominant_.emplace(std::move(matrix));
-}
-
-void BayesModel::add_dominance(GenotypeMatrix&& matrix)
-{
-    dominant_.emplace(std::move(matrix));
-}
-
-BayesState::BayesState(const BayesModel& model)
-{
-    if (const auto* effect = model.fixed(); effect)
+    for (const auto& effect : model.genetics())
     {
-        fixed_.emplace(*effect);
-    }
-
-    if (const auto* effect = model.additive(); effect)
-    {
-        additive_.emplace(*effect);
-    }
-
-    if (const auto* effect = model.dominant(); effect)
-    {
-        dominant_.emplace(*effect);
+        genetics_.emplace_back(effect);
     }
 
     if (const auto& effects = model.random(); !effects.empty())
@@ -127,24 +90,16 @@ void BayesState::compute_heritability()
         sum_var += rand.variance;
     }
 
-    if (additive_)
+    for (const auto& gen : genetics_)
     {
-        sum_var += additive_->variance;
-    }
-    if (dominant_)
-    {
-        sum_var += dominant_->variance;
+        sum_var += gen.variance;
     }
 
     sum_var += residual_.variance;
 
-    if (additive_)
+    for (auto& gen : genetics_)
     {
-        additive_->heritability = additive_->variance / sum_var;
-    }
-    if (dominant_)
-    {
-        dominant_->heritability = dominant_->variance / sum_var;
+        gen.heritability = gen.variance / sum_var;
     }
 }
 

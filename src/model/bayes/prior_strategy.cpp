@@ -17,7 +17,7 @@
 #include "gelex/model/bayes/prior_strategy.h"
 
 #include "gelex/exception.h"
-#include "gelex/infra/utils/math_utils.h"
+#include "gelex/infra/stats/descriptive.h"
 #include "gelex/model/bayes/prior_constants.h"
 
 namespace gelex
@@ -28,16 +28,15 @@ PriorSetter::PriorSetter(PriorSpec spec) : spec_(spec) {}
 auto PriorSetter::operator()(BayesModel& model, const PriorConfig& config)
     -> void
 {
-    if (model.additive() != nullptr)
+    for (auto& effect : model.genetics())
     {
-        apply_effect_prior(
-            *model.additive(), spec_.additive, config.additive, config);
-    }
-
-    if (spec_.dominant.has_value() && model.dominant() != nullptr)
-    {
-        apply_effect_prior(
-            *model.dominant(), *spec_.dominant, config.dominant, config);
+        if (const auto* spec = spec_.genetic_spec(effect.type))
+        {
+            if (const auto* prior = config.genetic_prior(effect.type))
+            {
+                apply_effect_prior(effect, *spec, *prior, config);
+            }
+        }
     }
 
     const auto num_random_effect = static_cast<double>(model.random().size());

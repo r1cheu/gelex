@@ -46,27 +46,10 @@ class EigenThreadGuard
 namespace PosteriorCalculator
 {
 
-PosteriorSummary compute_param_summary(
-    const Eigen::Ref<const Eigen::MatrixXd>& samples,
-    double prob);
-
-PosteriorSummary compute_snp_summary(
-    const Eigen::Ref<const Eigen::MatrixXd>& samples);
-
-void compute_mean_std(
-    PosteriorSummary& summary,
-    const Eigen::Ref<const Eigen::MatrixXd>& samples);
-
 void compute_pve(
     PosteriorSummary& summary,
-    const Eigen::Ref<const Eigen::MatrixXd>& samples,
+    const Eigen::Ref<const Eigen::VectorXd>& mean_coeffs,
     double phenotype_var);
-
-Eigen::Index get_n_params(const Eigen::Ref<const Eigen::MatrixXd>& samples);
-
-Eigen::MatrixXd compute_component_probs(
-    const Eigen::Ref<const Eigen::MatrixXi>& tracker_samples,
-    Eigen::Index n_components);
 
 }  // namespace PosteriorCalculator
 

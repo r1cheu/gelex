@@ -22,6 +22,7 @@
 
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/states.h"
 
 namespace gelex::detail::CommonSampler
 {
@@ -36,29 +37,24 @@ auto Fixed::operator()(
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
-    if (const auto* effect = model.fixed(); effect == nullptr)
-    {
-        return;
-    }
-
-    const auto* effect = model.fixed();
-    auto* state = states.fixed();
+    const auto& effect = model.fixed();
+    auto& state = states.fixed();
     auto& residual = states.residual();
 
     auto& y_adj = residual.y_adj;
     const double residual_variance = residual.variance;
 
-    auto& coeffs = state->coeffs;
-    const auto& cols_norm = effect->cols_norm;
-    const auto& X = effect->X;
+    auto& coeffs = state.coeffs;
+    const auto& cols_squared_norm = effect.cols_squared_norm;
+    const auto& X = effect.X;
 
     std::normal_distribution<double> normal{0, 1};
 
-    for (int i = 0; i < coeffs.size(); ++i)
+    for (Eigen::Index i = 0; i < coeffs.size(); ++i)
     {
         const double old_i = coeffs(i);
         const auto& col = X.col(i);
-        const double norm = cols_norm(i);
+        const double norm = cols_squared_norm(i);
 
         const double rhs = col.dot(y_adj) + (norm * old_i);
         const double post_mean = rhs / norm;
@@ -101,7 +97,7 @@ auto Random::sample_impl(
     std::mt19937_64& rng) -> void
 {
     VectorXd& coeff = status.coeffs;
-    const VectorXd& cols_norm = effect.cols_norm;
+    const VectorXd& cols_squared_norm = effect.cols_squared_norm;
     const MatrixXd& X = effect.X;
 
     VectorXd& y_adj = residual.y_adj;
@@ -111,19 +107,19 @@ auto Random::sample_impl(
 
     // calculate precision kernel and posterior standard deviation
     const VectorXd inv_scaler
-        = 1.0 / (cols_norm.array() + residual_variance / sigma);
+        = 1.0 / (cols_squared_norm.array() + residual_variance / sigma);
     const VectorXd post_stddev
         = (residual_variance * inv_scaler.array()).sqrt();
 
     // Setup distributions for sampling
     std::normal_distribution<double> normal{0, 1};
 
-    for (int i = 0; i < coeff.size(); ++i)
+    for (Eigen::Index i = 0; i < coeff.size(); ++i)
     {
         // for convenience
         const double old_i = coeff(i);
         const auto& col = X.col(i);
-        const double norm = cols_norm(i);
+        const double norm = cols_squared_norm(i);
 
         // calculate the posterior mean
         const double rhs = col.dot(y_adj) + (norm * old_i);

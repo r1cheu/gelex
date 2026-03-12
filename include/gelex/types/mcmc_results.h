@@ -17,11 +17,14 @@
 #ifndef GELEX_TYPES_MCMC_RESULTS_H_
 #define GELEX_TYPES_MCMC_RESULTS_H_
 
+#include <algorithm>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
+#include "gelex/types/genetic_effect_type.h"
 #include "gelex/types/mcmc_samples.h"
 
 namespace gelex
@@ -34,6 +37,7 @@ struct PosteriorSummary
           stddev(Eigen::VectorXd::Zero(n_params))
     {
     }
+    explicit PosteriorSummary(RunningStatsResult result);
     PosteriorSummary() = default;
 
     Eigen::Index size() const { return mean.size(); }
@@ -45,127 +49,174 @@ struct PosteriorSummary
 struct FixedSummary
 {
     explicit FixedSummary(const FixedSamples& sample)
-        : coeffs(sample.coeffs.rows())
+        : names(sample.names), levels(sample.levels), coeffs(sample.n_coeffs())
     {
     }
 
+    void compute(const FixedSamples& sample);
+
+    template <typename F>
+    void for_each_term(const F& fn) const
+    {
+        Eigen::Index coeff_idx = 0;
+        for (size_t group_idx = 0; group_idx < levels.size(); ++group_idx)
+        {
+            const auto& group_levels = levels[group_idx];
+            if (group_levels)
+            {
+                for (const auto& level : *group_levels)
+                {
+                    fn(names[group_idx] + "_" + level, coeff_idx);
+                    ++coeff_idx;
+                }
+            }
+            else
+            {
+                fn(names[group_idx], coeff_idx);
+                ++coeff_idx;
+            }
+        }
+    }
+
+    std::vector<std::string> names;
+    std::vector<std::optional<std::vector<std::string>>> levels;
     PosteriorSummary coeffs;
 };
 
 struct RandomSummary
 {
     explicit RandomSummary(const RandomSamples& sample)
-        : coeffs(sample.coeffs.rows()), variance(1)
+        : name(sample.name),
+          levels(sample.levels),
+          coeffs(sample.n_coeffs()),
+          variance(1)
     {
     }
 
+    void compute(const RandomSamples& sample);
+
+    template <typename F>
+    void for_each_term(const F& fn) const
+    {
+        Eigen::Index coeff_idx = 0;
+        if (levels)
+        {
+            for (const auto& level : *levels)
+            {
+                fn(name.empty() ? level : name + "_" + level, coeff_idx);
+                ++coeff_idx;
+            }
+        }
+        else
+        {
+            fn(name, coeff_idx);
+            ++coeff_idx;
+        }
+    }
+
+    std::string name;
+    std::optional<std::vector<std::string>> levels;
     PosteriorSummary coeffs;
     PosteriorSummary variance;
 };
 
-struct BaseMarkerSummary
+struct MixtureSummary
 {
-    explicit BaseMarkerSummary(const BaseMarkerSamples& samples)
-        : coeffs(samples.coeffs.rows()),
-          variance(1),
-          heritability(1),
-          pve(samples.coeffs.rows())
+    explicit MixtureSummary(const MixtureSamples& samples)
+        : pip(Eigen::VectorXd::Zero(samples.n_snps())),
+          comp_probs(
+              Eigen::MatrixXd::Zero(samples.n_snps(), samples.n_proportions()))
     {
-        if (samples.tracker.size() > 0)  // mixture model
+        if (samples.estimate_pi())
         {
-            pip = Eigen::VectorXd::Zero(samples.tracker.rows());
-            comp_probs = Eigen::MatrixXd::Zero(
-                samples.tracker.rows(), samples.n_proportions);
+            mixture_proportion = PosteriorSummary(samples.n_proportions());
         }
 
-        if (samples.mixture_proportion.size() > 0)
+        if (samples.n_proportions() > 2)
         {
-            mixture_proportion
-                = PosteriorSummary(samples.mixture_proportion.rows());
-        }
-
-        if (samples.component_variance.size() > 0)
-        {
-            component_variance
-                = PosteriorSummary(samples.component_variance.rows());
+            component_variance = PosteriorSummary(samples.n_proportions() - 1);
         }
     }
 
+    void compute(const MixtureSamples& sample);
+
+    PosteriorSummary mixture_proportion;
+    PosteriorSummary component_variance;
+    Eigen::VectorXd pip;
+    Eigen::MatrixXd comp_probs;
+};
+
+struct SignSummary
+{
+    explicit SignSummary(const SignSamples& samples);
+    void compute(const SignSamples& samples);
+
+    PosteriorSummary positive_prob;
+};
+
+struct GeneticSummary
+{
+    explicit GeneticSummary(const GeneticSamples& samples)
+        : type(samples.type),
+          coeffs(samples.n_coeffs()),
+          variance(1),
+          heritability(1),
+          pve(samples.n_coeffs())
+    {
+        if (samples.mixture)
+        {
+            mixture.emplace(*samples.mixture);
+        }
+        if (samples.sign)
+        {
+            sign.emplace(*samples.sign);
+        }
+    }
+
+    void compute(const GeneticSamples& sample, double phenotype_var);
+
+    GeneticEffectType type;
     PosteriorSummary coeffs;
     PosteriorSummary variance;
     PosteriorSummary heritability;
     PosteriorSummary pve;
 
-    PosteriorSummary mixture_proportion;
-    PosteriorSummary component_variance;
-    Eigen::VectorXd pip;         // Posterior inclusion probability
-    Eigen::MatrixXd comp_probs;  // Per-component posterior probabilities
-};
-
-struct AdditiveSummary : BaseMarkerSummary
-{
-    explicit AdditiveSummary(const AdditiveSamples& samples)
-        : BaseMarkerSummary(samples)
-    {
-    }
-};
-
-struct DominantSummary : BaseMarkerSummary
-{
-    explicit DominantSummary(const DominantSamples& samples)
-        : BaseMarkerSummary(samples)
-    {
-    }
+    std::optional<MixtureSummary> mixture;
+    std::optional<SignSummary> sign;
 };
 
 class MCMCResult
 {
    public:
-    explicit MCMCResult(
-        MCMCSamples&& samples,
-        const BayesModel& model,
-        double prob = 0.9);
+    MCMCResult(MCMCSamples&& samples, const BayesModel& model);
 
-    /**
-     * @brief Compute posterior statistics.
-     *
-     * If prob is provided, uses it as the probability threshold for
-     * computation. Otherwise, uses default prob.
-     *
-     * @param prob Optional probability threshold for computation.
-     */
-    void compute(std::optional<double> prob = std::nullopt);
+    void compute();
 
-    const FixedSummary* fixed() const
-    {
-        return fixed_ ? &fixed_.value() : nullptr;
-    }
+    const FixedSummary& fixed() const { return fixed_; }
     const std::vector<RandomSummary>& random() const { return random_; }
-    const AdditiveSummary* additive() const
+
+    const std::vector<GeneticSummary>& genetics() const { return genetics_; }
+    const GeneticSummary* genetic(GeneticEffectType type) const
     {
-        return additive_ ? &additive_.value() : nullptr;
+        auto it = std::ranges::find(genetics_, type, &GeneticSummary::type);
+        return it != genetics_.end() ? &*it : nullptr;
     }
-    const DominantSummary* dominant() const
-    {
-        return dominant_ ? &dominant_.value() : nullptr;
-    }
+
     const PosteriorSummary& residual() const { return residual_; }
 
-   private:
-    friend class SnpEffectsWriter;
+    const Eigen::VectorXd& allele_freq() const { return p_freq_; }
 
+   private:
     MCMCSamples samples_;
 
-    std::optional<FixedSummary> fixed_;
+    FixedSummary fixed_;
     std::vector<RandomSummary> random_;
-    std::optional<AdditiveSummary> additive_;
-    std::optional<DominantSummary> dominant_;
+    std::vector<GeneticSummary> genetics_;
     PosteriorSummary residual_;
 
-    double prob_;
     double phenotype_var_;
 
-    Eigen::VectorXd p_freq;
+    Eigen::VectorXd p_freq_;
 };
 
 }  // namespace gelex

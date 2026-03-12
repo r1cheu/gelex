@@ -28,10 +28,12 @@
 
 #include <Eigen/Core>
 
-#include "gelex/infra/utils/math_utils.h"
+#include "gelex/infra/stats/descriptive.h"
 
 namespace gelex::detail
 {
+
+constexpr int kMaxMixtureComponents = 10;
 
 struct LikelihoodParams
 {
@@ -99,14 +101,15 @@ inline auto update_residual_and_gebv(
 inline auto compute_likelihood_params(
     double rhs,
     double marker_variance,
-    double col_norm,
+    double col_squared_norm,
     double residual_variance,
     double logpi) -> LikelihoodParams
 {
     const double res_over_marker_var = residual_variance / marker_variance;
-    const double precision_k = 1.0 / (col_norm + res_over_marker_var);
+    const double precision_k = 1.0 / (col_squared_norm + res_over_marker_var);
 
-    const double logdetV = std::log((col_norm / res_over_marker_var) + 1.0);
+    const double logdetV
+        = std::log((col_squared_norm / res_over_marker_var) + 1.0);
 
     const double log_like
         = (-0.5 * (logdetV - rhs * rhs * precision_k / residual_variance))
@@ -117,16 +120,18 @@ inline auto compute_likelihood_params(
 
 inline auto compute_posterior_params_core(
     double rhs,
-    double col_norm,
+    double col_squared_norm,
     double residual_variance,
     double res_over_marker_var) -> PosteriorParams
 {
-    const double precision_kernel = 1.0 / (col_norm + res_over_marker_var);
+    const double precision_kernel
+        = 1.0 / (col_squared_norm + res_over_marker_var);
 
     const double post_mean = rhs * precision_kernel;
     const double post_stddev = std::sqrt(residual_variance * precision_kernel);
 
-    const double logdetV = std::log(col_norm / res_over_marker_var + 1.0);
+    const double logdetV
+        = std::log(col_squared_norm / res_over_marker_var + 1.0);
 
     const double log_like_kernel
         = -0.5 * (logdetV - post_mean * rhs / residual_variance);
@@ -137,12 +142,12 @@ inline auto compute_posterior_params_core(
 inline auto compute_posterior_params(
     double rhs,
     double marker_variance_i,
-    double col_norm,
+    double col_squared_norm,
     double residual_variance) -> PosteriorParams
 {
     const double res_over_marker_var = residual_variance / marker_variance_i;
     return compute_posterior_params_core(
-        rhs, col_norm, residual_variance, res_over_marker_var);
+        rhs, col_squared_norm, residual_variance, res_over_marker_var);
 }
 
 template <typename DerivedCol>
@@ -186,11 +191,12 @@ inline void update_component_u(
 template <typename StateT>
 inline void compute_component_variances(StateT& state)
 {
-    if (!state.component_u.empty())
+    if (state.mixture && !state.mixture->component_u.empty())
     {
-        for (size_t k = 0; k < state.component_u.size(); ++k)
+        auto& ms = *state.mixture;
+        for (size_t k = 0; k < ms.component_u.size(); ++k)
         {
-            state.component_variance(k) = detail::var(state.component_u[k])(0);
+            ms.component_variance(k) = detail::var(ms.component_u[k])(0);
         }
     }
 }

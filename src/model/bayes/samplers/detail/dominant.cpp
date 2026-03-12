@@ -15,14 +15,12 @@
  */
 
 #include "gelex/model/bayes/samplers/detail/dominant.h"
+
 #include <random>
 
-#include <Eigen/Core>
-
-#include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
-
 #include "gelex/model/bayes/samplers/detail/gibbs/a.h"
+#include "gelex/model/bayes/samplers/detail/gibbs/at.h"
 #include "gelex/model/bayes/samplers/detail/gibbs/b.h"
 #include "gelex/model/bayes/samplers/detail/gibbs/c.h"
 #include "gelex/model/bayes/samplers/detail/gibbs/r.h"
@@ -36,11 +34,11 @@ auto A::operator()(
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
-    const auto* effect = model.dominant();
-    auto* state = states.dominant();
-    auto& residual = states.residual();
-
-    Gibbs::A(*effect, *state, residual, rng);
+    Gibbs::A(
+        *model.genetic(GeneticEffectType::Dom),
+        *states.genetic(GeneticEffectType::Dom),
+        states.residual(),
+        rng);
 }
 
 auto B::operator()(
@@ -48,11 +46,11 @@ auto B::operator()(
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
-    const auto* effect = model.dominant();
-    auto* state = states.dominant();
-    auto& residual = states.residual();
-
-    Gibbs::B(*effect, *state, residual, rng);
+    Gibbs::B(
+        *model.genetic(GeneticEffectType::Dom),
+        *states.genetic(GeneticEffectType::Dom),
+        states.residual(),
+        rng);
 }
 
 auto C::operator()(
@@ -60,11 +58,11 @@ auto C::operator()(
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
-    const auto* effect = model.dominant();
-    auto* state = states.dominant();
-    auto& residual = states.residual();
-
-    Gibbs::C(*effect, *state, residual, rng);
+    Gibbs::C(
+        *model.genetic(GeneticEffectType::Dom),
+        *states.genetic(GeneticEffectType::Dom),
+        states.residual(),
+        rng);
 }
 
 auto R::operator()(
@@ -72,11 +70,11 @@ auto R::operator()(
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
-    const auto* effect = model.dominant();
-    auto* state = states.dominant();
-    auto& residual = states.residual();
-
-    Gibbs::R(*effect, *state, residual, rng);
+    Gibbs::R(
+        *model.genetic(GeneticEffectType::Dom),
+        *states.genetic(GeneticEffectType::Dom),
+        states.residual(),
+        rng);
 }
 
 auto RR::operator()(
@@ -84,11 +82,23 @@ auto RR::operator()(
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
-    const auto* effect = model.dominant();
-    auto* state = states.dominant();
-    auto& residual = states.residual();
+    Gibbs::RR(
+        *model.genetic(GeneticEffectType::Dom),
+        *states.genetic(GeneticEffectType::Dom),
+        states.residual(),
+        rng);
+}
 
-    Gibbs::RR(*effect, *state, residual, rng);
+auto AT::operator()(
+    const BayesModel& model,
+    BayesState& states,
+    std::mt19937_64& rng) const -> void
+{
+    Gibbs::R<Gibbs::policy::AT>(
+        *model.genetic(GeneticEffectType::Dom),
+        *states.genetic(GeneticEffectType::Dom),
+        states.residual(),
+        rng);
 }
 
 }  // namespace gelex::detail::DominantSampler

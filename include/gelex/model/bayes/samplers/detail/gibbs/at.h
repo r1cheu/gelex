@@ -14,25 +14,10 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/infer/posterior_calculator.h"
+#ifndef GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_AT_H_
+#define GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_AT_H_
 
-#include <Eigen/Core>
+// AT is now implemented as R<policy::AT>; see r.h and r_policy.h
+#include "gelex/model/bayes/samplers/detail/gibbs/r.h"
 
-namespace gelex::detail::PosteriorCalculator
-{
-
-void compute_pve(
-    PosteriorSummary& summary,
-    const Eigen::Ref<const Eigen::VectorXd>& mean_coeffs,
-    double phenotype_var)
-{
-    const Eigen::Index n_params = mean_coeffs.size();
-    if (n_params == 0 || phenotype_var <= 0.0)
-    {
-        return;
-    }
-
-    summary.mean = mean_coeffs.array().square() / phenotype_var;
-}
-
-}  // namespace gelex::detail::PosteriorCalculator
+#endif  // GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_AT_H_

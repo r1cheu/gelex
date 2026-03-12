@@ -16,56 +16,75 @@
 
 #ifndef GELEX_TYPES_EFFECTS_H_
 #define GELEX_TYPES_EFFECTS_H_
+#include <algorithm>
+#include <array>
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 
 #include <fmt/base.h>
+#include <fmt/format.h>
 
 namespace gelex
 {
-enum class BayesAlphabet : uint8_t
+enum class BayesBase : uint8_t
 {
     A,
-    RR,
     B,
-    Bpi,
     C,
-    Cpi,
     R,
-    Ad,
-    RRd,
-    Bd,
-    Bdpi,
-    Cd,
-    Cdpi,
-    Rd,
+    RR,
 };
 
-inline std::optional<BayesAlphabet> get_bayesalphabet(std::string_view sv)
+struct BayesMethodConfig
 {
-    static const std::unordered_map<std::string_view, BayesAlphabet>
-        stringToEnumMap = {
-            {"A", BayesAlphabet::A},
-            {"RR", BayesAlphabet::RR},
-            {"B", BayesAlphabet::B},
-            {"Bpi", BayesAlphabet::Bpi},
-            {"C", BayesAlphabet::C},
-            {"Cpi", BayesAlphabet::Cpi},
-            {"R", BayesAlphabet::R},
-            {"Ad", BayesAlphabet::Ad},
-            {"RRd", BayesAlphabet::RRd},
-            {"Bd", BayesAlphabet::Bd},
-            {"Bdpi", BayesAlphabet::Bdpi},
-            {"Cd", BayesAlphabet::Cd},
-            {"Cdpi", BayesAlphabet::Cdpi},
-            {"Rd", BayesAlphabet::Rd},
+    BayesBase base{};
+    bool dominance = false;
+    bool asymmetric = false;
+    bool estimate_pi = false;
+
+    constexpr auto operator==(const BayesMethodConfig&) const -> bool = default;
+};
+
+// {base, dominance, asymmetric, estimate_pi}
+inline constexpr auto kValidMethods = std::array<BayesMethodConfig, 15>{{
+    {BayesBase::A, false, false, false},
+    {BayesBase::A, true, false, false},
+    {BayesBase::B, false, false, false},
+    {BayesBase::B, false, false, true},
+    {BayesBase::B, true, false, false},
+    {BayesBase::B, true, false, true},
+    {BayesBase::C, false, false, false},
+    {BayesBase::C, false, false, true},
+    {BayesBase::C, true, false, false},
+    {BayesBase::C, true, false, true},
+    {BayesBase::R, false, false, false},
+    {BayesBase::R, true, false, false},
+    {BayesBase::R, true, true, false},
+    {BayesBase::RR, false, false, false},
+    {BayesBase::RR, true, false, false},
+}};
+
+constexpr auto is_valid_method(const BayesMethodConfig& m) -> bool
+{
+    return std::ranges::find(kValidMethods, m) != kValidMethods.end();
+}
+
+inline auto get_bayes_base(std::string_view sv) -> std::optional<BayesBase>
+{
+    static const std::unordered_map<std::string_view, BayesBase> string_to_base
+        = {
+            {"A", BayesBase::A},
+            {"B", BayesBase::B},
+            {"C", BayesBase::C},
+            {"R", BayesBase::R},
+            {"RR", BayesBase::RR},
         };
 
-    auto it = stringToEnumMap.find(sv);
-
-    if (it != stringToEnumMap.end())
+    auto it = string_to_base.find(sv);
+    if (it != string_to_base.end())
     {
         return it->second;
     }
@@ -77,58 +96,54 @@ inline std::optional<BayesAlphabet> get_bayesalphabet(std::string_view sv)
 namespace fmt
 {
 template <>
-struct formatter<gelex::BayesAlphabet> : formatter<string_view>
+struct formatter<gelex::BayesBase> : formatter<string_view>
 {
-    auto format(gelex::BayesAlphabet t, format_context& ctx) const
+    auto format(gelex::BayesBase b, format_context& ctx) const
         -> format_context::iterator
     {
         string_view name = "unknown";
-        switch (t)
+        switch (b)
         {
-            case gelex::BayesAlphabet::A:
-                name = "BayesA";
+            case gelex::BayesBase::A:
+                name = "A";
                 break;
-            case gelex::BayesAlphabet::Ad:
-                name = "BayesAd";
+            case gelex::BayesBase::B:
+                name = "B";
                 break;
-            case gelex::BayesAlphabet::RR:
-                name = "BayesRR";
+            case gelex::BayesBase::C:
+                name = "C";
                 break;
-            case gelex::BayesAlphabet::RRd:
-                name = "BayesRRd";
+            case gelex::BayesBase::R:
+                name = "R";
                 break;
-            case gelex::BayesAlphabet::B:
-                name = "BayesB";
-                break;
-            case gelex::BayesAlphabet::Bpi:
-                name = "BayesBpi";
-                break;
-            case gelex::BayesAlphabet::Bd:
-                name = "BayesBd";
-                break;
-            case gelex::BayesAlphabet::Bdpi:
-                name = "BayesBdpi";
-                break;
-            case gelex::BayesAlphabet::C:
-                name = "BayesC";
-                break;
-            case gelex::BayesAlphabet::Cpi:
-                name = "BayesCpi";
-                break;
-            case gelex::BayesAlphabet::Cd:
-                name = "BayesCd";
-                break;
-            case gelex::BayesAlphabet::Cdpi:
-                name = "BayesCdpi";
-                break;
-            case gelex::BayesAlphabet::R:
-                name = "BayesR";
-                break;
-            case gelex::BayesAlphabet::Rd:
-                name = "BayesRd";
+            case gelex::BayesBase::RR:
+                name = "RR";
                 break;
         }
         return formatter<string_view>::format(name, ctx);
+    }
+};
+
+template <>
+struct formatter<gelex::BayesMethodConfig> : formatter<string_view>
+{
+    static auto format(const gelex::BayesMethodConfig& c, format_context& ctx)
+        -> format_context::iterator
+    {
+        auto name = fmt::format("Bayes{}", c.base);
+        if (c.estimate_pi)
+        {
+            name += "pi";
+        }
+        if (c.asymmetric)
+        {
+            name += " + asymmetric dominance";
+        }
+        else if (c.dominance)
+        {
+            name += " + dominance";
+        }
+        return fmt::format_to(ctx.out(), "{}", name);
     }
 };
 

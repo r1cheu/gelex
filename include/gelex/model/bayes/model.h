@@ -17,6 +17,7 @@
 #ifndef GELEX_MODEL_BAYES_MODEL_H_
 #define GELEX_MODEL_BAYES_MODEL_H_
 
+#include <algorithm>
 #include <optional>
 #include <string>
 #include <vector>
@@ -24,43 +25,45 @@
 #include <Eigen/Core>
 
 #include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/genotype_storage.h"
+#include "gelex/model/bayes/states.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
 
-class PhenoPipe;
-class GenoPipe;
-class GenotypeMap;
-class GenotypeMatrix;
-
 class BayesModel
 {
    public:
-    BayesModel(PhenoPipe& pheno_pipe, GenoPipe& geno_pipe);
+    BayesModel(
+        Eigen::VectorXd phenotype,
+        FixedEffect fixed_effects,
+        bayes::GenotypeStorage additive,
+        std::optional<bayes::GenotypeStorage> dominance = std::nullopt);
 
-    const FixedEffect* fixed() const { return &fixed_; }
-
-    FixedEffect* fixed() { return &fixed_; }
+    const FixedEffect& fixed() const { return fixed_; }
+    FixedEffect& fixed() { return fixed_; }
 
     const std::vector<bayes::RandomEffect>& random() const { return random_; }
     std::vector<bayes::RandomEffect>& random() { return random_; }
 
-    const bayes::AdditiveEffect* additive() const
+    const std::vector<bayes::GeneticEffect>& genetics() const
     {
-        return additive_.has_value() ? &additive_.value() : nullptr;
+        return genetics_;
     }
-    bayes::AdditiveEffect* additive()
-    {
-        return additive_.has_value() ? &additive_.value() : nullptr;
-    }
+    std::vector<bayes::GeneticEffect>& genetics() { return genetics_; }
 
-    const bayes::DominantEffect* dominant() const
+    const bayes::GeneticEffect* genetic(GeneticEffectType type) const
     {
-        return dominant_.has_value() ? &dominant_.value() : nullptr;
+        auto it
+            = std::ranges::find(genetics_, type, &bayes::GeneticEffect::type);
+        return it != genetics_.end() ? &*it : nullptr;
     }
-    bayes::DominantEffect* dominant()
+    bayes::GeneticEffect* genetic(GeneticEffectType type)
     {
-        return dominant_.has_value() ? &dominant_.value() : nullptr;
+        auto it
+            = std::ranges::find(genetics_, type, &bayes::GeneticEffect::type);
+        return it != genetics_.end() ? &*it : nullptr;
     }
 
     const bayes::Residual& residual() const { return residual_; }
@@ -72,11 +75,6 @@ class BayesModel
     Eigen::Index num_individuals() const { return num_individuals_; }
 
    private:
-    void add_additive(GenotypeMap&& matrix);
-    void add_additive(GenotypeMatrix&& matrix);
-    void add_dominance(GenotypeMap&& matrix);
-    void add_dominance(GenotypeMatrix&& matrix);
-
     void add_fixed_effect(FixedEffect&& effect);
     void add_random_effect(
         std::vector<std::string>&& levels,
@@ -89,8 +87,7 @@ class BayesModel
 
     FixedEffect fixed_;
     std::vector<bayes::RandomEffect> random_;
-    std::optional<bayes::AdditiveEffect> additive_;
-    std::optional<bayes::DominantEffect> dominant_;
+    std::vector<bayes::GeneticEffect> genetics_;
     bayes::Residual residual_;
 };
 
@@ -99,30 +96,28 @@ class BayesState
    public:
     explicit BayesState(const BayesModel& model);
 
-    bayes::FixedState* fixed() { return fixed_ ? &fixed_.value() : nullptr; }
-    const bayes::FixedState* fixed() const
-    {
-        return fixed_ ? &fixed_.value() : nullptr;
-    }
+    bayes::FixedState& fixed() { return fixed_; }
+    const bayes::FixedState& fixed() const { return fixed_; }
     std::vector<bayes::RandomState>& random() { return random_; }
     const std::vector<bayes::RandomState>& random() const { return random_; }
 
-    bayes::AdditiveState* additive()
+    const std::vector<bayes::GeneticState>& genetics() const
     {
-        return additive_ ? &additive_.value() : nullptr;
+        return genetics_;
     }
-    const bayes::AdditiveState* additive() const
-    {
-        return additive_ ? &additive_.value() : nullptr;
-    }
+    std::vector<bayes::GeneticState>& genetics() { return genetics_; }
 
-    bayes::DominantState* dominant()
+    const bayes::GeneticState* genetic(GeneticEffectType type) const
     {
-        return dominant_ ? &dominant_.value() : nullptr;
+        auto it
+            = std::ranges::find(genetics_, type, &bayes::GeneticState::type);
+        return it != genetics_.end() ? &*it : nullptr;
     }
-    const bayes::DominantState* dominant() const
+    bayes::GeneticState* genetic(GeneticEffectType type)
     {
-        return dominant_ ? &dominant_.value() : nullptr;
+        auto it
+            = std::ranges::find(genetics_, type, &bayes::GeneticState::type);
+        return it != genetics_.end() ? &*it : nullptr;
     }
 
     bayes::ResidualState& residual() { return residual_; }
@@ -131,10 +126,9 @@ class BayesState
     void compute_heritability();
 
    private:
-    std::optional<bayes::FixedState> fixed_;
+    bayes::FixedState fixed_;
     std::vector<bayes::RandomState> random_;
-    std::optional<bayes::AdditiveState> additive_;
-    std::optional<bayes::DominantState> dominant_;
+    std::vector<bayes::GeneticState> genetics_;
     bayes::ResidualState residual_;
 };
 

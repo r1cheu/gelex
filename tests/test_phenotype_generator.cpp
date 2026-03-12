@@ -23,7 +23,7 @@
 
 #include "gelex/algo/sim/genetic_value_calculator.h"
 #include "gelex/algo/sim/phenotype_generator.h"
-#include "gelex/infra/utils/math_utils.h"
+#include "gelex/infra/stats/descriptive.h"
 
 using namespace gelex;  // NOLINT
 using Catch::Matchers::WithinAbs;
@@ -42,7 +42,8 @@ TEST_CASE("PhenotypeGenerator - additive only", "[phenotype_generator]")
     Eigen::VectorXd additive_values(N_SAMPLES);
     for (Eigen::Index i = 0; i < N_SAMPLES; ++i)
     {
-        additive_values(i) = std::normal_distribution<double>(0.0, 1.0)(setup_rng);
+        additive_values(i)
+            = std::normal_distribution<double>(0.0, 1.0)(setup_rng);
     }
 
     GeneticValues gv{
@@ -54,13 +55,17 @@ TEST_CASE("PhenotypeGenerator - additive only", "[phenotype_generator]")
     PhenotypeGenerator generator(H2, 0.0, 0.0, rng);
     std::optional<double> observed_h2;
     std::optional<double> observed_d2;
-    auto phenotypes = generator.generate(gv, [&](const SimulateEvent& event) {
-        if (const auto* h2_event = std::get_if<HeritabilityGeneratedEvent>(&event))
+    auto phenotypes = generator.generate(
+        gv,
+        [&](const SimulateEvent& event)
         {
-            observed_h2 = h2_event->additive;
-            observed_d2 = h2_event->dominance;
-        }
-    });
+            if (const auto* h2_event
+                = std::get_if<HeritabilityGeneratedEvent>(&event))
+            {
+                observed_h2 = h2_event->additive;
+                observed_d2 = h2_event->dominance;
+            }
+        });
 
     SECTION("Output size matches input")
     {
@@ -95,8 +100,10 @@ TEST_CASE("PhenotypeGenerator - with dominance", "[phenotype_generator]")
     Eigen::VectorXd dominance_values(N_SAMPLES);
     for (Eigen::Index i = 0; i < N_SAMPLES; ++i)
     {
-        additive_values(i) = std::normal_distribution<double>(0.0, 1.0)(setup_rng);
-        dominance_values(i) = std::normal_distribution<double>(0.0, 0.5)(setup_rng);
+        additive_values(i)
+            = std::normal_distribution<double>(0.0, 1.0)(setup_rng);
+        dominance_values(i)
+            = std::normal_distribution<double>(0.0, 0.5)(setup_rng);
     }
 
     GeneticValues gv{
@@ -108,13 +115,17 @@ TEST_CASE("PhenotypeGenerator - with dominance", "[phenotype_generator]")
     PhenotypeGenerator generator(H2, D2, 0.0, rng);
     std::optional<double> observed_h2;
     std::optional<double> observed_d2;
-    auto phenotypes = generator.generate(gv, [&](const SimulateEvent& event) {
-        if (const auto* h2_event = std::get_if<HeritabilityGeneratedEvent>(&event))
+    auto phenotypes = generator.generate(
+        gv,
+        [&](const SimulateEvent& event)
         {
-            observed_h2 = h2_event->additive;
-            observed_d2 = h2_event->dominance;
-        }
-    });
+            if (const auto* h2_event
+                = std::get_if<HeritabilityGeneratedEvent>(&event))
+            {
+                observed_h2 = h2_event->additive;
+                observed_d2 = h2_event->dominance;
+            }
+        });
 
     SECTION("True h2 is close to target")
     {
@@ -134,7 +145,9 @@ TEST_CASE("PhenotypeGenerator - with dominance", "[phenotype_generator]")
         double genetic_var = detail::var(gv.additive)(0);
         double dom_var = detail::var(gv.dominance)(0);
         double target_dom_var = genetic_var * D2 / H2;
-        REQUIRE_THAT(dom_var, WithinAbs(target_dom_var, target_dom_var * VARIANCE_TOLERANCE));
+        REQUIRE_THAT(
+            dom_var,
+            WithinAbs(target_dom_var, target_dom_var * VARIANCE_TOLERANCE));
     }
 }
 
@@ -167,7 +180,8 @@ TEST_CASE("PhenotypeGenerator - reproducibility", "[phenotype_generator]")
     Eigen::VectorXd additive_values(N_SAMPLES);
     for (Eigen::Index i = 0; i < N_SAMPLES; ++i)
     {
-        additive_values(i) = std::normal_distribution<double>(0.0, 1.0)(setup_rng);
+        additive_values(i)
+            = std::normal_distribution<double>(0.0, 1.0)(setup_rng);
     }
 
     GeneticValues gv{

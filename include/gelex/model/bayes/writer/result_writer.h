@@ -14,25 +14,30 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/infer/posterior_calculator.h"
+#ifndef GELEX_MODEL_BAYES_WRITER_RESULT_WRITER_H_
+#define GELEX_MODEL_BAYES_WRITER_RESULT_WRITER_H_
 
-#include <Eigen/Core>
+#include <filesystem>
 
-namespace gelex::detail::PosteriorCalculator
+namespace gelex
 {
 
-void compute_pve(
-    PosteriorSummary& summary,
-    const Eigen::Ref<const Eigen::VectorXd>& mean_coeffs,
-    double phenotype_var)
+class MCMCResult;
+
+class MCMCResultWriter
 {
-    const Eigen::Index n_params = mean_coeffs.size();
-    if (n_params == 0 || phenotype_var <= 0.0)
-    {
-        return;
-    }
+   public:
+    MCMCResultWriter(
+        const MCMCResult& result,
+        const std::filesystem::path& bim_file_path);
 
-    summary.mean = mean_coeffs.array().square() / phenotype_var;
-}
+    auto save(const std::filesystem::path& prefix) const -> void;
 
-}  // namespace gelex::detail::PosteriorCalculator
+   private:
+    const MCMCResult* result_;
+    std::filesystem::path bim_file_path_;
+};
+
+}  // namespace gelex
+
+#endif  // GELEX_MODEL_BAYES_WRITER_RESULT_WRITER_H_

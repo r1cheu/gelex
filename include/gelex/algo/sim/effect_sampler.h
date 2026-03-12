@@ -24,32 +24,10 @@
 
 #include <Eigen/Core>
 
+#include "gelex/types/sim_types.h"
+
 namespace gelex
 {
-
-struct EffectSizeClass
-{
-    double proportion;
-    double variance;
-};
-
-struct CausalEffects
-{
-    Eigen::VectorXd additive;
-    Eigen::VectorXd dominance;
-    Eigen::VectorXi add_class;
-    Eigen::VectorXi dom_class;
-
-    auto resize(Eigen::Index n_snps) -> void
-    {
-        additive.resize(n_snps);
-        dominance.resize(n_snps);
-        add_class.resize(n_snps);
-        dom_class.resize(n_snps);
-    }
-
-    [[nodiscard]] auto size() const -> Eigen::Index { return additive.size(); }
-};
 
 class EffectSampler
 {

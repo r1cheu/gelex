@@ -25,19 +25,19 @@
 namespace gelex
 {
 
-inline auto create_prior_strategy(BayesAlphabet type)
+inline auto create_prior_strategy(const BayesMethodConfig& method)
     -> std::optional<PriorSetter>
 {
     using enum PriorType;
     using enum VarianceScope;
-    using bt = BayesAlphabet;
+    using enum GeneticEffectType;
 
     auto non_mixture = [](VarianceScope scope, bool has_dominant) -> PriorSpec
     {
-        PriorSpec spec{{NonMixture, scope, false}, std::nullopt};
+        PriorSpec spec{{{Add, {NonMixture, scope, false}}}};
         if (has_dominant)
         {
-            spec.dominant = {NonMixture, scope, false};
+            spec.genetics.push_back({Dom, {NonMixture, scope, false}});
         }
         return spec;
     };
@@ -45,57 +45,40 @@ inline auto create_prior_strategy(BayesAlphabet type)
     auto pi_mixture
         = [](VarianceScope scope, bool estimate, bool has_dominant) -> PriorSpec
     {
-        PriorSpec spec{{PiMixture, scope, estimate}, std::nullopt};
+        PriorSpec spec{{{Add, {PiMixture, scope, estimate}}}};
         if (has_dominant)
         {
-            spec.dominant = {PiMixture, scope, estimate};
+            spec.genetics.push_back({Dom, {PiMixture, scope, estimate}});
         }
         return spec;
     };
 
-    auto scale_mixture = [](bool has_dominant) -> PriorSpec
+    auto scale_mixture = [](bool has_dominant, bool asymmetric) -> PriorSpec
     {
-        PriorSpec spec{{ScaleMixture, Shared, true}, std::nullopt};
+        PriorSpec spec{{{Add, {ScaleMixture, Shared, true}}}};
         if (has_dominant)
         {
-            spec.dominant = {ScaleMixture, Shared, true};
+            spec.genetics.push_back(
+                {Dom, {ScaleMixture, Shared, true, asymmetric}});
         }
         return spec;
     };
 
-    switch (type)
+    bool dom = method.dominance;
+
+    switch (method.base)
     {
-        case bt::A:
-            return PriorSetter(non_mixture(PerMarker, false));
-        case bt::Ad:
-            return PriorSetter(non_mixture(PerMarker, true));
-        case bt::RR:
-            return PriorSetter(non_mixture(PerMarker, false));
-        case bt::RRd:
-            return PriorSetter(non_mixture(PerMarker, true));
-        case bt::B:
-            return PriorSetter(pi_mixture(PerMarker, false, false));
-        case bt::Bpi:
-            return PriorSetter(pi_mixture(PerMarker, true, false));
-        case bt::Bd:
-            return PriorSetter(pi_mixture(PerMarker, false, true));
-        case bt::Bdpi:
-            return PriorSetter(pi_mixture(PerMarker, true, true));
-        case bt::C:
-            return PriorSetter(pi_mixture(Shared, false, false));
-        case bt::Cpi:
-            return PriorSetter(pi_mixture(Shared, true, false));
-        case bt::Cd:
-            return PriorSetter(pi_mixture(Shared, false, true));
-        case bt::Cdpi:
-            return PriorSetter(pi_mixture(Shared, true, true));
-        case bt::R:
-            return PriorSetter(scale_mixture(false));
-        case bt::Rd:
-            return PriorSetter(scale_mixture(true));
-        default:
-            return std::nullopt;
+        case BayesBase::A:
+        case BayesBase::RR:
+            return PriorSetter(non_mixture(PerMarker, dom));
+        case BayesBase::B:
+            return PriorSetter(pi_mixture(PerMarker, method.estimate_pi, dom));
+        case BayesBase::C:
+            return PriorSetter(pi_mixture(Shared, method.estimate_pi, dom));
+        case BayesBase::R:
+            return PriorSetter(scale_mixture(dom, method.asymmetric));
     }
+    return std::nullopt;
 }
 
 }  // namespace gelex

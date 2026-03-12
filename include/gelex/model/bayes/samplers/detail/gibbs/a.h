@@ -22,6 +22,7 @@
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/samplers/detail/common_op.h"
 #include "gelex/model/bayes/samplers/detail/gibbs/gibbs_concept.h"
+#include "gelex/model/bayes/states.h"
 
 namespace gelex::detail::Gibbs
 {
@@ -41,7 +42,7 @@ auto A(
     auto& u = state.u;
     Eigen::VectorXd& sigma = state.marker_variance;
     const auto& X = bayes::get_matrix_ref(effect.X);
-    const auto& cols_norm = effect.cols_norm;
+    const auto& cols_squared_norm = effect.cols_squared_norm;
 
     detail::ScaledInvChiSq chi_squared{effect.marker_variance_prior};
     std::normal_distribution<double> normal{0, 1};
@@ -55,13 +56,14 @@ auto A(
         const double old_i = coeffs(i);
         const auto& col = X.col(i);
 
-        const double percision_kernel
-            = 1 / (cols_norm(i) + residual_variance / sigma(i));
+        const double precision_kernel
+            = 1 / (cols_squared_norm(i) + residual_variance / sigma(i));
 
         // calculate the posterior mean and standard deviation
-        const double rhs = blas_ddot(col, y_adj) + (cols_norm(i) * old_i);
-        const double post_mean = rhs * percision_kernel;
-        const double post_stddev = sqrt(residual_variance * percision_kernel);
+        const double rhs
+            = blas_ddot(col, y_adj) + (cols_squared_norm(i) * old_i);
+        const double post_mean = rhs * precision_kernel;
+        const double post_stddev = sqrt(residual_variance * precision_kernel);
 
         // sample a new coefficient
         const double new_i = (normal(rng) * post_stddev) + post_mean;

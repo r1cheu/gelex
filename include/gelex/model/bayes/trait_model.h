@@ -108,6 +108,12 @@ using BayesRd = TraitBasicDefault<
     detail::DominantSampler::R,
     detail::DominantSampler::Pi>;
 
+using BayesRdAt = TraitBasicDefault<
+    detail::AdditiveSampler::R,
+    detail::AdditiveSampler::Pi,
+    detail::DominantSampler::AT,
+    detail::DominantSampler::Pi>;
+
 }  // namespace gelex
 
 #endif  // GELEX_MODEL_BAYES_TRAIT_MODEL_H_

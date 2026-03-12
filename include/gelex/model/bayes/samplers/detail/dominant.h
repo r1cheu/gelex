@@ -68,6 +68,14 @@ struct RR
         std::mt19937_64& rng) const -> void;
 };
 
+struct AT
+{
+    auto operator()(
+        const BayesModel& model,
+        BayesState& states,
+        std::mt19937_64& rng) const -> void;
+};
+
 }  // namespace gelex::detail::DominantSampler
 
 #endif  // GELEX_MODEL_BAYES_SAMPLERS_DETAIL_DOMINANT_H_

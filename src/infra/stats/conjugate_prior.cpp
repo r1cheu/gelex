@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/model/bayes/distribution.h"
+#include "gelex/infra/stats/conjugate_prior.h"
 #include <random>
 
 #include <Eigen/Core>

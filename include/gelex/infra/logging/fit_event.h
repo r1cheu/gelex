@@ -21,7 +21,9 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <utility>
 #include <variant>
+#include <vector>
 
 #include "gelex/types/effects.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -34,7 +36,7 @@ class MCMCResult;
 
 struct FitConfigLoadedEvent
 {
-    gelex::BayesAlphabet method;
+    gelex::BayesMethodConfig method;
     ModelType model_type;
     int n_iters;
     int n_burnin;
@@ -51,8 +53,8 @@ struct FitMcmcProgressEvent
     size_t current{};
     size_t total{};
     bool done{};
-    std::optional<double> h2;
-    std::optional<double> d2;
+    std::vector<std::pair<GeneticEffectType, double>> genetic_heritabilities;
+    std::optional<double> dom_positive_prob;
     std::optional<double> sigma2_e;
 };
 

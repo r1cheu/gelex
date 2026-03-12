@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_DISTRIBUTION_H_
-#define GELEX_MODEL_BAYES_DISTRIBUTION_H_
+#ifndef GELEX_INFRA_STATS_CONJUGATE_PRIOR_H_
+#define GELEX_INFRA_STATS_CONJUGATE_PRIOR_H_
 
 #include <random>
 
@@ -74,4 +74,4 @@ class ScaledInvChiSq
 }  // namespace detail
 }  // namespace gelex
 
-#endif  // GELEX_MODEL_BAYES_DISTRIBUTION_H_
+#endif  // GELEX_INFRA_STATS_CONJUGATE_PRIOR_H_

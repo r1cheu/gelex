@@ -20,8 +20,8 @@
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/states.h"
 
 namespace gelex::detail
 {
@@ -37,12 +37,12 @@ auto Pi::operator()(
 {
     // Check if the model has additive effects with pi estimation
 
-    if (auto* state = states.additive(); state != nullptr)
+    if (auto* state = states.genetic(GeneticEffectType::Add);
+        state != nullptr && state->mixture)
     {
-        VectorXi dirichlet_counts(state->pi.count.array() + 1);
-
-        // Sample from Dirichlet distribution
-        state->pi.prop = detail::dirichlet(dirichlet_counts, rng);
+        auto& ms = *state->mixture;
+        VectorXi dirichlet_counts(ms.pi.count.array() + 1);
+        ms.pi.proportion = detail::dirichlet(dirichlet_counts, rng);
     }
 }
 
@@ -55,12 +55,12 @@ auto DominantSampler::Pi::operator()(
 {
     // Check if the model has dominant effects with pi estimation
 
-    if (auto* state = states.dominant(); state != nullptr)
+    if (auto* state = states.genetic(GeneticEffectType::Dom);
+        state != nullptr && state->mixture)
     {
-        VectorXi dirichlet_counts(state->pi.count.array() + 1);
-
-        // Sample from Dirichlet distribution
-        state->pi.prop = detail::dirichlet(dirichlet_counts, rng);
+        auto& ms = *state->mixture;
+        VectorXi dirichlet_counts(ms.pi.count.array() + 1);
+        ms.pi.proportion = detail::dirichlet(dirichlet_counts, rng);
     }
 }
 }  // namespace gelex::detail

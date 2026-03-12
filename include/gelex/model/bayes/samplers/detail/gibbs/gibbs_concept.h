@@ -21,10 +21,8 @@
 
 namespace gelex::bayes
 {
-struct AdditiveEffect;
-struct AdditiveState;
-struct DominantEffect;
-struct DominantState;
+struct GeneticEffect;
+struct GeneticState;
 }  // namespace gelex::bayes
 
 namespace gelex::detail::Gibbs
@@ -32,10 +30,8 @@ namespace gelex::detail::Gibbs
 
 template <typename E, typename S>
 concept IsValidEffectStatePair
-    = (std::same_as<std::remove_cvref_t<E>, bayes::AdditiveEffect>
-       && std::same_as<std::remove_cvref_t<S>, bayes::AdditiveState>)
-      || (std::same_as<std::remove_cvref_t<E>, bayes::DominantEffect>
-          && std::same_as<std::remove_cvref_t<S>, bayes::DominantState>);
+    = std::same_as<std::remove_cvref_t<E>, bayes::GeneticEffect>
+      && std::same_as<std::remove_cvref_t<S>, bayes::GeneticState>;
 
 }  // namespace gelex::detail::Gibbs
 

@@ -22,29 +22,29 @@
 #ifndef GELEX_TYPES_MCMC_SAMPLES_H_
 #define GELEX_TYPES_MCMC_SAMPLES_H_
 
+#include <algorithm>
+#include <cstddef>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
-// Forward declaration
-
-namespace gelex::detail
-{
-
-template <typename eT>
-class BinaryWriter;
-
-}  // namespace gelex::detail
+#include "gelex/infra/stats/running_stats.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
 {
 
 struct RandomEffect;
 struct GeneticEffect;
-struct AdditiveEffect;
-struct DominantEffect;
+struct FixedState;
+struct RandomState;
+struct GeneticState;
+struct MixtureState;
+struct SignState;
+struct ResidualState;
 
 };  // namespace gelex::bayes
 
@@ -52,64 +52,130 @@ namespace gelex
 {
 
 struct FixedEffect;
-struct MCMCParams;
 class BayesState;
 class BayesModel;
+class MCMCWriter;
 
 struct FixedSamples
 {
-    FixedSamples(const MCMCParams& params, const FixedEffect& effect);
+    explicit FixedSamples(const FixedEffect& effect);
+    void store(const bayes::FixedState& state);
 
-    Eigen::MatrixXd coeffs;
-    explicit operator bool() const { return coeffs.size() > 0; }
+    auto n_coeffs() const -> Eigen::Index { return n_coeffs_; }
+    auto coeffs() const -> RunningStatsResult { return coeffs_stats_.result(); }
+
+    std::vector<std::string> names;
+    std::vector<std::optional<std::vector<std::string>>> levels;
+
+   private:
+    Eigen::Index n_coeffs_;
+    RunningStats coeffs_stats_;
 };
 
 struct RandomSamples
 {
-    RandomSamples(const MCMCParams& params, const bayes::RandomEffect& effect);
-    Eigen::MatrixXd coeffs;
-    Eigen::RowVectorXd variance;
-    explicit operator bool() const { return coeffs.size() > 0; }
+    explicit RandomSamples(const bayes::RandomEffect& effect);
+    void store(const bayes::RandomState& state);
 
-   protected:
-    RandomSamples(const MCMCParams& params, Eigen::Index n_coeffs);
+    auto n_coeffs() const -> Eigen::Index { return n_coeffs_; }
+    auto coeffs() const -> RunningStatsResult { return coeffs_stats_.result(); }
+    auto variance() const -> RunningStatsResult
+    {
+        return variance_stats_.result();
+    }
+
+    std::string name;
+    std::optional<std::vector<std::string>> levels;
+
+   private:
+    Eigen::Index n_coeffs_;
+    RunningStats coeffs_stats_;
+    RunningStats variance_stats_;
 };
 
-struct BaseMarkerSamples : RandomSamples
+struct MixtureSamples
 {
-    BaseMarkerSamples(
-        const MCMCParams& params,
-        const bayes::GeneticEffect& effect);
+    explicit MixtureSamples(const bayes::GeneticEffect& effect);
 
-    Eigen::MatrixXd mixture_proportion;
-    Eigen::RowVectorXd heritability;
-    Eigen::MatrixXi tracker;
-    Eigen::MatrixXd component_variance;
+    void store(const bayes::MixtureState& state);
 
-    Eigen::Index n_proportions
-        = 0;  // load the number of prop for no-estimate-pi models.
+    auto n_snps() const -> Eigen::Index { return n_snps_; }
+    auto n_proportions() const -> Eigen::Index { return n_proportions_; }
+    auto estimate_pi() const -> bool { return estimate_pi_; }
+    auto proportion() const -> RunningStatsResult
+    {
+        return proportion_stats_.result();
+    }
+    auto comp_var() const -> RunningStatsResult
+    {
+        return comp_var_stats_.result();
+    }
+    auto component_probs() const -> Eigen::MatrixXd
+    {
+        return comp_counts_ / static_cast<double>(n_samples_);
+    }
+
+   private:
+    Eigen::Index n_snps_;
+    Eigen::Index n_proportions_;
+    bool estimate_pi_;
+    RunningStats proportion_stats_;
+    RunningStats comp_var_stats_;
+    Eigen::MatrixXd comp_counts_;
+    std::size_t n_samples_{0};
 };
 
-struct AdditiveSamples : BaseMarkerSamples
+struct SignSamples
 {
-    AdditiveSamples(
-        const MCMCParams& params,
-        const bayes::AdditiveEffect& effect);
+    void store(const bayes::SignState& state);
+    auto positive_prob() const -> RunningStatsResult
+    {
+        return positive_prob_stats_.result();
+    }
+
+   private:
+    RunningStats positive_prob_stats_;
 };
 
-struct DominantSamples : BaseMarkerSamples
+struct GeneticSamples
 {
-    DominantSamples(
-        const MCMCParams& params,
-        const bayes::DominantEffect& effect);
+    explicit GeneticSamples(const bayes::GeneticEffect& effect);
+    void store(const bayes::GeneticState& state);
+
+    auto n_coeffs() const -> Eigen::Index { return n_coeffs_; }
+    auto coeffs() const -> RunningStatsResult { return coeffs_stats_.result(); }
+    auto variance() const -> RunningStatsResult
+    {
+        return variance_stats_.result();
+    }
+    auto heritability() const -> RunningStatsResult
+    {
+        return heritability_stats_.result();
+    }
+
+    GeneticEffectType type;
+    std::optional<MixtureSamples> mixture;
+    std::optional<SignSamples> sign;
+
+   private:
+    Eigen::Index n_coeffs_;
+    RunningStats coeffs_stats_;
+    RunningStats variance_stats_;
+    RunningStats heritability_stats_;
 };
 
 struct ResidualSamples
 {
-    explicit ResidualSamples(const MCMCParams& params);
+    ResidualSamples() = default;
+    void store(const bayes::ResidualState& state);
 
-    Eigen::RowVectorXd variance;
-    explicit operator bool() const { return variance.size() > 0; }
+    auto variance() const -> RunningStatsResult
+    {
+        return variance_stats_.result();
+    }
+
+   private:
+    RunningStats variance_stats_;
 };
 
 class MCMCSamples
@@ -122,35 +188,30 @@ class MCMCSamples
     ~MCMCSamples();
 
     MCMCSamples(
-        const MCMCParams& params,
         const BayesModel& model,
-        std::string_view sample_prefix);
-    void store(const BayesState& states, Eigen::Index record_idx);
+        std::string_view sample_prefix,
+        Eigen::Index n_records);
+    void store(const BayesState& states);
+    void finalize();
 
-    const FixedSamples* fixed() const
-    {
-        return fixed_ ? &fixed_.value() : nullptr;
-    }
+    const FixedSamples& fixed() const { return fixed_; }
     const std::vector<RandomSamples>& random() const { return random_; }
-    const AdditiveSamples* additive() const
+
+    const std::vector<GeneticSamples>& genetics() const { return genetics_; }
+    const GeneticSamples* genetic(GeneticEffectType type) const
     {
-        return additive_ ? &additive_.value() : nullptr;
+        auto it = std::ranges::find(genetics_, type, &GeneticSamples::type);
+        return it != genetics_.end() ? &*it : nullptr;
     }
-    const DominantSamples* dominant() const
-    {
-        return dominant_ ? &dominant_.value() : nullptr;
-    }
+
     const ResidualSamples& residual() const { return residual_; }
 
    private:
-    std::optional<FixedSamples> fixed_;
+    FixedSamples fixed_;
     std::vector<RandomSamples> random_;
-    std::optional<AdditiveSamples> additive_;
-    std::optional<DominantSamples> dominant_;
+    std::vector<GeneticSamples> genetics_;
     ResidualSamples residual_;
-    std::unique_ptr<detail::BinaryWriter<double>> add_writer_;
-    std::unique_ptr<detail::BinaryWriter<double>> dom_writer_;
-    std::unique_ptr<detail::BinaryWriter<double>> scalar_writer_;
+    std::unique_ptr<MCMCWriter> writer_;
 };
 }  // namespace gelex
 

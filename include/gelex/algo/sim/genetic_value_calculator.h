@@ -24,10 +24,10 @@
 
 #include <Eigen/Core>
 
-#include "gelex/algo/sim/effect_sampler.h"
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/genotype/sample_manager.h"
 #include "gelex/infra/logging/simulate_event.h"
+#include "gelex/types/sim_types.h"
 
 namespace gelex
 {

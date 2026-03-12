@@ -16,37 +16,31 @@
 
 #include "gelex/types/mcmc_results.h"
 
-#include <optional>
 #include <ranges>
 
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/posterior_calculator.h"
+#include "gelex/infra/stats/running_stats.h"
 #include "gelex/model/bayes/model.h"
 
 namespace gelex
 {
 
-using Eigen::Index;
-using Eigen::VectorXd;
+PosteriorSummary::PosteriorSummary(RunningStatsResult result)
+    : mean(std::move(result.mean)), stddev(std::move(result.stddev))
+{
+}
 
-MCMCResult::MCMCResult(
-    MCMCSamples&& samples,
-    const BayesModel& model,
-    double prob)
+MCMCResult::MCMCResult(MCMCSamples&& samples, const BayesModel& model)
     : samples_(std::move(samples)),
+      fixed_(samples_.fixed()),
       residual_(1),
-      prob_(prob),
       phenotype_var_(model.phenotype_variance())
 {
-    if (const auto* effect = model.additive(); effect)
+    if (const auto* effect = model.genetic(GeneticEffectType::Add); effect)
     {
-        p_freq = bayes::get_means(effect->X).array() / 2;
-    }
-
-    if (const auto* sample = samples_.fixed(); sample)
-    {
-        fixed_.emplace(*sample);
+        p_freq_ = bayes::get_means(effect->X).array() / 2;
     }
 
     for (const auto& sample : samples_.random())
@@ -54,91 +48,77 @@ MCMCResult::MCMCResult(
         random_.emplace_back(sample);
     }
 
-    if (const auto* sample = samples_.additive(); sample)
+    for (const auto& sample : samples_.genetics())
     {
-        additive_.emplace(*sample);
-    }
-
-    if (const auto* sample = samples_.dominant(); sample)
-    {
-        dominant_.emplace(*sample);
+        genetics_.emplace_back(sample);
     }
 }
 
-void MCMCResult::compute(std::optional<double> prob)
+void FixedSummary::compute(const FixedSamples& sample)
 {
-    if (prob)
+    coeffs = PosteriorSummary(sample.coeffs());
+}
+
+void RandomSummary::compute(const RandomSamples& sample)
+{
+    coeffs = PosteriorSummary(sample.coeffs());
+    variance = PosteriorSummary(sample.variance());
+}
+
+void MixtureSummary::compute(const MixtureSamples& sample)
+{
+    if (mixture_proportion.size() > 0)
     {
-        prob_ = prob.value();
+        mixture_proportion = PosteriorSummary(sample.proportion());
+    }
+    if (component_variance.size() > 0)
+    {
+        component_variance = PosteriorSummary(sample.comp_var());
+    }
+    comp_probs = sample.component_probs();
+    pip = Eigen::VectorXd::Ones(comp_probs.rows()) - comp_probs.col(0);
+}
+
+SignSummary::SignSummary(const SignSamples& /*samples*/) : positive_prob(1) {}
+
+void SignSummary::compute(const SignSamples& samples)
+{
+    positive_prob = PosteriorSummary(samples.positive_prob());
+}
+
+void GeneticSummary::compute(const GeneticSamples& sample, double phenotype_var)
+{
+    coeffs = PosteriorSummary(sample.coeffs());
+    variance = PosteriorSummary(sample.variance());
+    heritability = PosteriorSummary(sample.heritability());
+
+    if (mixture && sample.mixture)
+    {
+        mixture->compute(*sample.mixture);
+    }
+    if (sign && sample.sign)
+    {
+        sign->compute(*sample.sign);
     }
 
-    // Use PosteriorCalculator for all computations
-    if (const auto* sample = samples_.fixed(); fixed_ && sample != nullptr)
-    {
-        fixed_->coeffs = detail::PosteriorCalculator::compute_param_summary(
-            samples_.fixed()->coeffs, prob_);
-    }
+    detail::PosteriorCalculator::compute_pve(pve, coeffs.mean, phenotype_var);
+}
+
+void MCMCResult::compute()
+{
+    fixed_.compute(samples_.fixed());
 
     for (auto&& [result, sample] : std::views::zip(random_, samples_.random()))
     {
-        result.coeffs = detail::PosteriorCalculator::compute_param_summary(
-            sample.coeffs, prob_);
-        result.variance = detail::PosteriorCalculator::compute_param_summary(
-            sample.variance, prob_);
+        result.compute(sample);
     }
 
-    auto compute_summary = [&](auto& effect, const auto* sample)
+    for (auto&& [summary, sample] :
+         std::views::zip(genetics_, samples_.genetics()))
     {
-        effect->coeffs = detail::PosteriorCalculator::compute_param_summary(
-            sample->coeffs, prob_);
-        effect->variance = detail::PosteriorCalculator::compute_param_summary(
-            sample->variance, prob_);
-        effect->heritability
-            = detail::PosteriorCalculator::compute_param_summary(
-                sample->heritability, prob_);
-
-        if (effect->mixture_proportion.size() > 0)
-        {
-            effect->mixture_proportion
-                = detail::PosteriorCalculator::compute_param_summary(
-                    sample->mixture_proportion, prob_);
-        }
-        if (effect->component_variance.size() > 0)
-        {
-            effect->component_variance
-                = detail::PosteriorCalculator::compute_param_summary(
-                    sample->component_variance, prob_);
-        }
-        if (effect->pip.size() > 0)
-        {
-            const auto n_comp = effect->comp_probs.cols();
-            effect->comp_probs
-                = detail::PosteriorCalculator::compute_component_probs(
-                    sample->tracker, n_comp);
-            effect->pip
-                = effect->comp_probs.rightCols(n_comp - 1).rowwise().sum();
-        }
-
-        detail::PosteriorCalculator::compute_pve(
-            effect->pve, sample->coeffs, phenotype_var_);
-    };
-
-    if (const auto* sample = samples_.additive();
-        additive_ && sample != nullptr)
-    {
-        compute_summary(additive_, sample);
+        summary.compute(sample, phenotype_var_);
     }
 
-    if (const auto* sample = samples_.dominant();
-        dominant_ && sample != nullptr)
-    {
-        compute_summary(dominant_, sample);
-    }
-
-    // pi and snp_tracker functionality is now handled within AdditiveSummary
-    // and DominantSummary
-
-    residual_ = detail::PosteriorCalculator::compute_param_summary(
-        samples_.residual().variance, prob_);
+    residual_ = PosteriorSummary(samples_.residual().variance());
 }
 }  // namespace gelex

@@ -21,7 +21,7 @@
 #include <Eigen/Core>
 #include <unsupported/Eigen/FFT>
 
-#include "gelex/infra/utils/math_utils.h"
+#include "gelex/infra/stats/descriptive.h"
 
 namespace gelex
 {

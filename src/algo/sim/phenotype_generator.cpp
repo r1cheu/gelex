@@ -22,7 +22,7 @@
 #include <Eigen/Core>
 
 #include "gelex/infra/logging/notify.h"
-#include "gelex/infra/utils/math_utils.h"
+#include "gelex/infra/stats/descriptive.h"
 
 namespace gelex
 {

@@ -18,11 +18,14 @@
 #define GELEX_MODEL_BAYES_PRIOR_STRATEGY_H_
 
 #include <Eigen/Core>
+#include <algorithm>
 #include <optional>
+#include <vector>
 
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior_constants.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -39,13 +42,25 @@ auto compute_init_marker_variance(
     const Eigen::Ref<const Eigen::MatrixXd>& X,
     double non_zero_marker_proption) -> double;
 
+struct GeneticPriorConfig
+{
+    GeneticEffectType type;
+    Prior prior;
+};
+
 struct PriorConfig
 {
     double phenotype_variance{0.0};
-    Prior additive{Eigen::VectorXd::Zero(2), Eigen::VectorXd(5), 0.5};
-    Prior dominant{Eigen::VectorXd::Zero(2), Eigen::VectorXd(5), 0.2};
+    std::vector<GeneticPriorConfig> genetics;
     double random_variance_proportion{0.1};
     double residual_variance_proportion{0.3};
+    double positive_prob{0.5};
+
+    const Prior* genetic_prior(GeneticEffectType type) const
+    {
+        auto it = std::ranges::find(genetics, type, &GeneticPriorConfig::type);
+        return it != genetics.end() ? &it->prior : nullptr;
+    }
 };
 
 enum class PriorType : uint8_t
@@ -66,12 +81,24 @@ struct EffectPriorSpec
     PriorType type;
     VarianceScope scope;
     bool estimate_pi;
+    bool asymmetric{false};
+};
+
+struct GeneticPriorSpec
+{
+    GeneticEffectType type;
+    EffectPriorSpec spec;
 };
 
 struct PriorSpec
 {
-    EffectPriorSpec additive;
-    std::optional<EffectPriorSpec> dominant;
+    std::vector<GeneticPriorSpec> genetics;
+
+    const EffectPriorSpec* genetic_spec(GeneticEffectType type) const
+    {
+        auto it = std::ranges::find(genetics, type, &GeneticPriorSpec::type);
+        return it != genetics.end() ? &it->spec : nullptr;
+    }
 };
 
 class PriorSetter
@@ -138,7 +165,10 @@ auto PriorSetter::apply_effect_prior(
                 = {prior_constants::MARKER_VARIANCE_SHAPE,
                    prior_constants::MARKER_VARIANCE_SCALE_MULTIPLIER
                        * init_marker_variance};
-            effect.init_pi.emplace(effect_prior.mixture_proportions);
+            effect.mixture = bayes::MixtureConfig{
+                effect_prior.mixture_proportions,
+                std::nullopt,
+                spec.estimate_pi};
             effect.marker_variance_size
                 = (spec.scope == VarianceScope::PerMarker)
                       ? bayes::get_cols(effect.X)
@@ -159,16 +189,18 @@ auto PriorSetter::apply_effect_prior(
                 = {prior_constants::MARKER_VARIANCE_SHAPE,
                    prior_constants::MARKER_VARIANCE_SCALE_MULTIPLIER
                        * init_marker_variance};
-            effect.init_pi.emplace(effect_prior.mixture_proportions);
-            effect.scale.emplace(effect_prior.mixture_scales);
+            effect.mixture = bayes::MixtureConfig{
+                effect_prior.mixture_proportions,
+                effect_prior.mixture_scales,
+                spec.estimate_pi};
             effect.marker_variance_size = 1;
             break;
         }
     }
 
-    if (spec.estimate_pi)
+    if (spec.asymmetric)
     {
-        effect.estimate_pi = true;
+        effect.sign = bayes::SignConfig{config.positive_prob};
     }
 }
 

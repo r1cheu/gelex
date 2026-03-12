@@ -35,7 +35,7 @@ struct FixedEffect
     std::vector<std::optional<std::vector<std::string>>> levels;
     std::vector<std::optional<std::string>> reference_levels;
     Eigen::MatrixXd X;
-    Eigen::VectorXd cols_norm;
+    Eigen::VectorXd cols_squared_norm;
 
     struct CovariateInfoView
     {

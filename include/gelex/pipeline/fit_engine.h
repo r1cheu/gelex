@@ -35,7 +35,7 @@ class FitEngine
     struct Config
     {
         std::string bfile_prefix;
-        BayesAlphabet method;
+        BayesMethodConfig method;
 
         int seed;
         MCMCParams mcmc_params;
@@ -45,6 +45,7 @@ class FitEngine
         std::optional<std::vector<double>> scale;
         std::optional<std::vector<double>> dscale;
 
+        double positive_prob{0.5};
         std::string out_prefix;
     };
 

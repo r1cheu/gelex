@@ -22,6 +22,7 @@
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/samplers/detail/common_op.h"
 #include "gelex/model/bayes/samplers/detail/gibbs/gibbs_concept.h"
+#include "gelex/model/bayes/states.h"
 
 namespace gelex::detail::Gibbs
 {
@@ -37,24 +38,28 @@ auto B(
     auto& y_adj = residual.y_adj;
     const double residual_variance = residual.variance;
 
-    const Eigen::VectorXd logpi = state.pi.prop.array().log();
+    auto& ms = *state.mixture;
+    const double logpi_0 = std::log(ms.pi.proportion(0));
+    const double logpi_1 = std::log(ms.pi.proportion(1));
 
     Eigen::VectorXd& coeffs = state.coeffs;
     auto& u = state.u;
     Eigen::VectorXd& marker_variance = state.marker_variance;
-    Eigen::VectorXi& tracker = state.tracker;
+    auto& tracker = ms.tracker;
 
     const auto& X = bayes::get_matrix_ref(effect.X);
-    const auto& cols_norm = effect.cols_norm;
+    const auto& cols_squared_norm = effect.cols_squared_norm;
 
     std::normal_distribution<double> normal{0, 1};
     std::uniform_real_distribution<double> uniform{0, 1};
     detail::ScaledInvChiSq chi_squared{effect.marker_variance_prior};
 
+    int count_1 = 0;
     for (Eigen::Index i = 0; i < coeffs.size(); ++i)
     {
         if (effect.is_monomorphic(i))
         {
+            count_1 += tracker(i);
             continue;
         }
 
@@ -65,20 +70,21 @@ auto B(
         double rhs = blas_ddot(col, y_adj);
         if (old_i != 0.0)
         {
-            rhs += cols_norm(i) * old_i;
+            rhs += cols_squared_norm(i) * old_i;
         }
 
         auto [post_mean, post_stddev, log_like_kernel]
             = compute_posterior_params(
-                rhs, variance_i, cols_norm(i), residual_variance);
+                rhs, variance_i, cols_squared_norm(i), residual_variance);
 
-        const double log_like_1_minus_0 = log_like_kernel + logpi(1) - logpi(0);
+        const double log_like_1_minus_0 = log_like_kernel + logpi_1 - logpi_0;
 
         const double prob_component_0
             = 1.0 / (1.0 + std::exp(log_like_1_minus_0));
 
-        const int dist_index = (uniform(rng) < prob_component_0) ? 0 : 1;
+        const int8_t dist_index = (uniform(rng) < prob_component_0) ? 0 : 1;
         tracker(i) = dist_index;
+        count_1 += dist_index;
 
         double new_i = 0.0;
         if (dist_index == 1)
@@ -96,8 +102,8 @@ auto B(
         coeffs(i) = new_i;
     }
 
-    state.pi.count(1) = tracker.sum();
-    state.pi.count(0) = static_cast<int>(coeffs.size() - state.pi.count(1));
+    ms.pi.count(1) = count_1;
+    ms.pi.count(0) = static_cast<int>(coeffs.size()) - count_1;
 
     state.variance = detail::var(state.u)(0);
 }

@@ -16,6 +16,8 @@
 
 #include "gelex/pipeline/fit_engine.h"
 
+#include <optional>
+
 #include <Eigen/Core>
 
 #include <fmt/format.h>
@@ -26,9 +28,9 @@
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior_strategies.h"
 #include "gelex/model/bayes/trait_model.h"
+#include "gelex/model/bayes/writer/result_writer.h"
 #include "gelex/pipeline/geno_pipe.h"
 #include "gelex/pipeline/pheno_pipe.h"
-#include "gelex/pipeline/report/result_writer.h"
 
 namespace gelex
 {
@@ -36,55 +38,46 @@ namespace gelex
 namespace
 {
 
-auto get_default_pi(BayesAlphabet type) -> Eigen::VectorXd
+auto get_default_pi(BayesBase base) -> Eigen::VectorXd
 {
-    switch (type)
+    switch (base)
     {
-        case BayesAlphabet::B:
-        case BayesAlphabet::Bpi:
-        case BayesAlphabet::Bd:
-        case BayesAlphabet::Bdpi:
-        case BayesAlphabet::C:
-        case BayesAlphabet::Cpi:
-        case BayesAlphabet::Cd:
-        case BayesAlphabet::Cdpi:
+        case BayesBase::B:
+        case BayesBase::C:
             return Eigen::VectorXd{{0.99, 0.01}};
-        case BayesAlphabet::R:
-        case BayesAlphabet::Rd:
+        case BayesBase::R:
             return Eigen::VectorXd{{0.99, 0.005, 0.001, 0.001, 0.001}};
-        case BayesAlphabet::A:
-        case BayesAlphabet::RR:
-        case BayesAlphabet::Ad:
-        case BayesAlphabet::RRd:
+        case BayesBase::A:
+        case BayesBase::RR:
             return Eigen::VectorXd{{0.0, 1.0}};
-        default:
-            return Eigen::VectorXd{};
     }
+    return Eigen::VectorXd{};
 }
 
-auto get_default_scale(BayesAlphabet type) -> Eigen::VectorXd
+auto get_default_scale(BayesBase base) -> Eigen::VectorXd
 {
-    switch (type)
+    switch (base)
     {
-        case BayesAlphabet::R:
-        case BayesAlphabet::Rd:
+        case BayesBase::R:
             return Eigen::VectorXd{{0.0, 0.001, 0.01, 0.1, 1.0}};
         default:
             return Eigen::VectorXd{};
     }
 }
 
+using DefaultFunc = Eigen::VectorXd (*)(BayesBase);
+
 auto to_eigen(
     const std::optional<std::vector<double>>& opt_vec,
-    BayesAlphabet type,
-    Eigen::VectorXd (*default_func)(BayesAlphabet)) -> Eigen::VectorXd
+    BayesBase base,
+    DefaultFunc default_func) -> Eigen::VectorXd
 {
     if (opt_vec)
     {
         return Eigen::Map<const Eigen::VectorXd>(
             opt_vec->data(), static_cast<Eigen::Index>(opt_vec->size()));
     }
-    return default_func(type);
+    return default_func(base);
 }
 
 auto configure_model_priors(BayesModel& model, const FitEngine::Config& config)
@@ -99,16 +92,20 @@ auto configure_model_priors(BayesModel& model, const FitEngine::Config& config)
                 config.method));
     }
 
+    auto base = config.method.base;
     PriorConfig prior_config;
     prior_config.phenotype_variance = model.phenotype_variance();
-    prior_config.additive.mixture_proportions
-        = to_eigen(config.pi, config.method, get_default_pi);
-    prior_config.dominant.mixture_proportions
-        = to_eigen(config.dpi, config.method, get_default_pi);
-    prior_config.additive.mixture_scales
-        = to_eigen(config.scale, config.method, get_default_scale);
-    prior_config.dominant.mixture_scales
-        = to_eigen(config.dscale, config.method, get_default_scale);
+    prior_config.positive_prob = config.positive_prob;
+    prior_config.genetics.push_back(
+        {GeneticEffectType::Add,
+         {to_eigen(config.pi, base, get_default_pi),
+          to_eigen(config.scale, base, get_default_scale),
+          0.5}});
+    prior_config.genetics.push_back(
+        {GeneticEffectType::Dom,
+         {to_eigen(config.dpi, base, get_default_pi),
+          to_eigen(config.dscale, base, get_default_scale),
+          0.2}});
 
     (*prior_strategy)(model, prior_config);
 }
@@ -128,51 +125,78 @@ auto run_mcmc_analysis(
         writer.save(config.out_prefix);
     };
 
-    switch (config.method)
+    const auto& m = config.method;
+    switch (m.base)
     {
-        case BayesAlphabet::A:
-            run_and_write(BayesA{});
+        case BayesBase::A:
+            if (m.dominance)
+            {
+                run_and_write(BayesAd{});
+            }
+            else
+            {
+                run_and_write(BayesA{});
+            }
             break;
-        case BayesAlphabet::Ad:
-            run_and_write(BayesAd{});
+        case BayesBase::B:
+            if (m.dominance && m.estimate_pi)
+            {
+                run_and_write(BayesBdpi{});
+            }
+            else if (m.dominance)
+            {
+                run_and_write(BayesBd{});
+            }
+            else if (m.estimate_pi)
+            {
+                run_and_write(BayesBpi{});
+            }
+            else
+            {
+                run_and_write(BayesB{});
+            }
             break;
-        case BayesAlphabet::B:
-            run_and_write(BayesB{});
+        case BayesBase::C:
+            if (m.dominance && m.estimate_pi)
+            {
+                run_and_write(BayesCdpi{});
+            }
+            else if (m.dominance)
+            {
+                run_and_write(BayesCd{});
+            }
+            else if (m.estimate_pi)
+            {
+                run_and_write(BayesCpi{});
+            }
+            else
+            {
+                run_and_write(BayesC{});
+            }
             break;
-        case BayesAlphabet::Bpi:
-            run_and_write(BayesBpi{});
+        case BayesBase::R:
+            if (m.dominance && m.asymmetric)
+            {
+                run_and_write(BayesRdAt{});
+            }
+            else if (m.dominance)
+            {
+                run_and_write(BayesRd{});
+            }
+            else
+            {
+                run_and_write(BayesR{});
+            }
             break;
-        case BayesAlphabet::Bd:
-            run_and_write(BayesBd{});
-            break;
-        case BayesAlphabet::Bdpi:
-            run_and_write(BayesBdpi{});
-            break;
-        case BayesAlphabet::C:
-            run_and_write(BayesC{});
-            break;
-        case BayesAlphabet::Cpi:
-            run_and_write(BayesCpi{});
-            break;
-        case BayesAlphabet::Cd:
-            run_and_write(BayesCd{});
-            break;
-        case BayesAlphabet::Cdpi:
-            run_and_write(BayesCdpi{});
-            break;
-        case BayesAlphabet::R:
-            run_and_write(BayesR{});
-            break;
-        case BayesAlphabet::Rd:
-            run_and_write(BayesRd{});
-            break;
-        case BayesAlphabet::RR:
-            run_and_write(BayesRR{});
-            break;
-        case BayesAlphabet::RRd:
-            run_and_write(BayesRRd{});
-            break;
-        default:
+        case BayesBase::RR:
+            if (m.dominance)
+            {
+                run_and_write(BayesRRd{});
+            }
+            else
+            {
+                run_and_write(BayesRR{});
+            }
             break;
     }
 }
@@ -186,9 +210,19 @@ auto FitEngine::run(
     GenoPipe&& geno,
     const FitObserver& observer) -> void
 {
-    auto pheno_pipe = std::move(pheno);
-    auto geno_pipe = std::move(geno);
-    BayesModel model(pheno_pipe, geno_pipe);
+    auto phenotype = std::move(pheno).take_phenotype();
+    auto fixed_effects = std::move(pheno).take_fixed_effects();
+    auto additive = std::move(geno).take_additive_matrix();
+    std::optional<bayes::GenotypeStorage> dominance;
+    if (geno.has_dominance_matrix())
+    {
+        dominance.emplace(std::move(geno).take_dominance_matrix());
+    }
+    BayesModel model(
+        std::move(phenotype),
+        std::move(fixed_effects),
+        std::move(additive),
+        std::move(dominance));
     configure_model_priors(model, config_);
 
     run_mcmc_analysis(model, config_, observer);

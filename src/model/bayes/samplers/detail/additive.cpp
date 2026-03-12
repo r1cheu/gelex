@@ -33,10 +33,11 @@ auto A::operator()(
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
-    const auto* effect = model.additive();
-    auto* state = states.additive();
-    auto& residual = states.residual();
-    Gibbs::A(*effect, *state, residual, rng);
+    Gibbs::A(
+        *model.genetic(GeneticEffectType::Add),
+        *states.genetic(GeneticEffectType::Add),
+        states.residual(),
+        rng);
 }
 
 auto B::operator()(
@@ -44,10 +45,11 @@ auto B::operator()(
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
-    const auto* effect = model.additive();
-    auto* state = states.additive();
-    auto& residual = states.residual();
-    Gibbs::B(*effect, *state, residual, rng);
+    Gibbs::B(
+        *model.genetic(GeneticEffectType::Add),
+        *states.genetic(GeneticEffectType::Add),
+        states.residual(),
+        rng);
 }
 
 auto C::operator()(
@@ -55,10 +57,11 @@ auto C::operator()(
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
-    const auto* effect = model.additive();
-    auto* state = states.additive();
-    auto& residual = states.residual();
-    Gibbs::C(*effect, *state, residual, rng);
+    Gibbs::C(
+        *model.genetic(GeneticEffectType::Add),
+        *states.genetic(GeneticEffectType::Add),
+        states.residual(),
+        rng);
 }
 
 auto R::operator()(
@@ -66,10 +69,11 @@ auto R::operator()(
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
-    const auto* effect = model.additive();
-    auto* state = states.additive();
-    auto& residual = states.residual();
-    Gibbs::R(*effect, *state, residual, rng);
+    Gibbs::R(
+        *model.genetic(GeneticEffectType::Add),
+        *states.genetic(GeneticEffectType::Add),
+        states.residual(),
+        rng);
 }
 
 auto RR::operator()(
@@ -77,10 +81,11 @@ auto RR::operator()(
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
-    const auto* effect = model.additive();
-    auto* state = states.additive();
-    auto& residual = states.residual();
-    Gibbs::RR(*effect, *state, residual, rng);
+    Gibbs::RR(
+        *model.genetic(GeneticEffectType::Add),
+        *states.genetic(GeneticEffectType::Add),
+        states.residual(),
+        rng);
 }
 
 }  // namespace gelex::detail::AdditiveSampler

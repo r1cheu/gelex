@@ -17,16 +17,23 @@
 #ifndef GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_R_H_
 #define GELEX_MODEL_BAYES_SAMPLERS_DETAIL_GIBBS_R_H_
 
+#include <array>
 #include <random>
+#include <type_traits>
 
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/samplers/detail/common_op.h"
 #include "gelex/model/bayes/samplers/detail/gibbs/gibbs_concept.h"
+#include "gelex/model/bayes/samplers/detail/gibbs/r_policy.h"
+#include "gelex/model/bayes/states.h"
 
 namespace gelex::detail::Gibbs
 {
 
-template <typename EffectT, typename StateT>
+template <
+    typename Policy = policy::Symmetric,
+    typename EffectT,
+    typename StateT>
     requires IsValidEffectStatePair<EffectT, StateT>
 auto R(
     const EffectT& effect,
@@ -37,29 +44,49 @@ auto R(
     auto& y_adj = residual.y_adj;
     const double residual_variance = residual.variance;
 
-    const Eigen::VectorXd logpi = state.pi.prop.array().log();
-
+    auto& ms = *state.mixture;
     Eigen::VectorXd& coeffs = state.coeffs;
     auto& u = state.u;
+    const auto& scale = *effect.mixture->scale;
     const Eigen::VectorXd marker_variances
-        = state.marker_variance(0) * effect.scale->array();
-    const Eigen::Index num_components = marker_variances.size();
-    Eigen::VectorXi& tracker = state.tracker;
+        = state.marker_variance(0) * scale.array();
+    const Eigen::Index num_scale_classes = marker_variances.size();
+    auto& tracker = ms.tracker;
 
     const auto& X = bayes::get_matrix_ref(effect.X);
-    const auto& cols_norm = effect.cols_norm;
+    const auto& cols_squared_norm = effect.cols_squared_norm;
 
-    std::normal_distribution<double> normal{0, 1};
+    std::uniform_real_distribution<double> uniform{0.0, 1.0};
 
-    Eigen::VectorXd log_likelihoods(num_components);
-    Eigen::VectorXd probs(num_components);
-    std::vector<LikelihoodParams> likelihood_params(num_components);
+    Policy policy;
+    if constexpr (std::is_same_v<Policy, policy::AT>)
+    {
+        policy.init(*state.sign);
+    }
+    else
+    {
+        policy.init();
+    }
+    const int num_options
+        = Policy::num_options(static_cast<int>(num_scale_classes));
+
+    std::array<PosteriorParams, kMaxMixtureComponents> scale_pp{};
+    std::array<double, kMaxMixtureComponents> logpi_buf{};
+    std::array<double, kMaxMixtureComponents> ll_buf{};
+    std::array<double, kMaxMixtureComponents> probs_buf{};
+    std::array<int, kMaxMixtureComponents> pi_count{};
+
+    for (Eigen::Index k = 0; k < num_scale_classes; ++k)
+    {
+        logpi_buf[k] = std::log(ms.pi.proportion(k));
+    }
 
     double sum_square_coeffs{};
     for (Eigen::Index i = 0; i < coeffs.size(); ++i)
     {
         if (effect.is_monomorphic(i))
         {
+            pi_count[tracker(i)]++;
             continue;
         }
 
@@ -69,44 +96,54 @@ auto R(
         double rhs = blas_ddot(col, y_adj);
         if (old_i != 0.0)
         {
-            rhs += cols_norm(i) * old_i;
+            rhs += cols_squared_norm(i) * old_i;
         }
 
-        likelihood_params[0] = {logpi(0), 0.0, 0.0};
-        log_likelihoods(0) = likelihood_params[0].log_likelihood;
-        for (int k = 1; k < num_components; ++k)
+        for (int c = 1; c < num_scale_classes; ++c)
         {
-            likelihood_params[k] = compute_likelihood_params(
+            scale_pp[c] = compute_posterior_params(
                 rhs,
-                marker_variances(k),
-                cols_norm(i),
-                residual_variance,
-                logpi(k));
-            log_likelihoods(k) = likelihood_params[k].log_likelihood;
+                marker_variances(c),
+                cols_squared_norm(i),
+                residual_variance);
         }
 
-        const double max_log_like = log_likelihoods.maxCoeff();
-        probs = (log_likelihoods.array() - max_log_like).exp();
+        double max_ll = policy.compute_log_probs(
+            ll_buf, logpi_buf, scale_pp, static_cast<int>(num_scale_classes));
 
-        std::discrete_distribution<int> dist(
-            probs.data(), probs.data() + probs.size());
-        const int dist_index = dist(rng);
-        const int old_index = tracker(i);
+        double total = 0.0;
+        for (int k = 0; k < num_options; ++k)
+        {
+            probs_buf[k] = std::exp(ll_buf[k] - max_ll);
+            total += probs_buf[k];
+        }
 
-        tracker(i) = dist_index;
+        const double u_val = uniform(rng) * total;
+        int8_t dist_index = num_options - 1;
+        double cumsum = 0.0;
+        for (int k = 0; k < num_options; ++k)
+        {
+            cumsum += probs_buf[k];
+            if (u_val < cumsum)
+            {
+                dist_index = k;
+                break;
+            }
+        }
 
-        double new_i = 0.0;
+        const int8_t old_index = tracker(i);
+
+        auto [class_index, new_i]
+            = (dist_index > 0) ? policy.sample_effect(dist_index, scale_pp, rng)
+                               : std::pair<int, double>{0, 0.0};
+
+        tracker(i) = class_index;
+        pi_count[class_index]++;
+
         if (dist_index > 0)
         {
-            const auto& params = likelihood_params[dist_index];
-
-            const double post_mean = rhs * params.precision_kernel;
-            const double post_stddev
-                = std::sqrt(residual_variance * params.precision_kernel);
-
-            new_i = (normal(rng) * post_stddev) + post_mean;
             update_residual_and_gebv(y_adj, u, col, old_i, new_i);
-            sum_square_coeffs += (new_i * new_i) / (*effect.scale)(dist_index);
+            sum_square_coeffs += (new_i * new_i) / scale(class_index);
         }
         else if (old_i != 0.0)
         {
@@ -114,22 +151,47 @@ auto R(
         }
         coeffs(i) = new_i;
 
+        if constexpr (std::is_same_v<Policy, policy::AT>)
+        {
+            if (dist_index == 0)
+            {
+                state.sign->tracker(i) = 0;
+            }
+            else if (dist_index % 2 == 1)
+            {
+                state.sign->tracker(i) = 1;
+            }
+            else
+            {
+                state.sign->tracker(i) = -1;
+            }
+        }
+
         update_component_u(
-            state.component_u, old_index, old_i, dist_index, new_i, col);
+            ms.component_u, old_index, old_i, class_index, new_i, col);
     }
 
-    for (int k = 0; k < num_components; ++k)
+    for (int k = 0; k < num_scale_classes; ++k)
     {
-        state.pi.count(k) = static_cast<int>((tracker.array() == k).count());
+        ms.pi.count(k) = pi_count[k];
     }
 
-    const Eigen::Index num_nonzero = coeffs.size() - state.pi.count(0);
+    const Eigen::Index num_nonzero = coeffs.size() - ms.pi.count(0);
     detail::ScaledInvChiSq chi_squared{effect.marker_variance_prior};
     chi_squared.compute(sum_square_coeffs, num_nonzero);
     state.marker_variance(0) = chi_squared(rng);
     state.variance = detail::var(state.u)(0);
 
     compute_component_variances(state);
+
+    if constexpr (std::is_same_v<Policy, policy::AT>)
+    {
+        policy.finalize(*state.sign, rng);
+    }
+    else
+    {
+        policy.finalize(rng);
+    }
 }
 
 }  // namespace gelex::detail::Gibbs
