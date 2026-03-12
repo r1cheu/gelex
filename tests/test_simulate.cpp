@@ -30,8 +30,8 @@
 
 #include "bed_fixture.h"
 #include "gelex/data/genotype/genotype_processor.h"
-#include "gelex/infra/utils/math_utils.h"
-#include "gelex/pipeline/phenotype_simulation_engine.h"
+#include "gelex/infra/stats/descriptive.h"
+#include "gelex/pipeline/simulation_engine.h"
 
 namespace fs = std::filesystem;
 
@@ -84,7 +84,7 @@ auto make_config(
     int seed = 42,
     std::vector<gelex::EffectSizeClass> add_classes = {{1.0, 1.0}},
     std::vector<gelex::EffectSizeClass> dom_classes = {{1.0, 1.0}})
-    -> PhenotypeSimulationEngine::Config
+    -> SimulationEngine::Config
 {
     return {
         .bed_path = bed_path,
@@ -206,40 +206,37 @@ auto extract_causal_columns(
 
 }  // namespace
 
-TEST_CASE("PhenotypeSimulationEngine - parameter validation", "[simulate]")
+TEST_CASE("SimulationEngine - parameter validation", "[simulate]")
 {
     BedFixture fixture;
     auto [bed_path, _] = fixture.create_bed_files(10, 20, 0.0, 0.05, 0.5, 42);
 
     SECTION("Valid config does not throw")
     {
-        REQUIRE_NOTHROW(PhenotypeSimulationEngine(make_config(bed_path)));
+        REQUIRE_NOTHROW(SimulationEngine(make_config(bed_path)));
     }
 
     SECTION("Engine construction does not perform CLI-level validation")
     {
-        REQUIRE_NOTHROW(PhenotypeSimulationEngine(make_config(bed_path, 0.0)));
-        REQUIRE_NOTHROW(PhenotypeSimulationEngine(make_config(bed_path, -0.1)));
-        REQUIRE_NOTHROW(PhenotypeSimulationEngine(make_config(bed_path, 1.0)));
-        REQUIRE_NOTHROW(PhenotypeSimulationEngine(make_config(bed_path, 1.5)));
+        REQUIRE_NOTHROW(SimulationEngine(make_config(bed_path, 0.0)));
+        REQUIRE_NOTHROW(SimulationEngine(make_config(bed_path, -0.1)));
+        REQUIRE_NOTHROW(SimulationEngine(make_config(bed_path, 1.0)));
+        REQUIRE_NOTHROW(SimulationEngine(make_config(bed_path, 1.5)));
     }
 
     SECTION("Engine construction accepts unvalidated d2 values")
     {
-        REQUIRE_NOTHROW(
-            PhenotypeSimulationEngine(make_config(bed_path, 0.5, -0.1)));
-        REQUIRE_NOTHROW(
-            PhenotypeSimulationEngine(make_config(bed_path, 0.5, 1.0)));
+        REQUIRE_NOTHROW(SimulationEngine(make_config(bed_path, 0.5, -0.1)));
+        REQUIRE_NOTHROW(SimulationEngine(make_config(bed_path, 0.5, 1.0)));
     }
 
     SECTION("Engine construction accepts unvalidated h2 and d2 combinations")
     {
-        REQUIRE_NOTHROW(
-            PhenotypeSimulationEngine(make_config(bed_path, 0.6, 0.5)));
+        REQUIRE_NOTHROW(SimulationEngine(make_config(bed_path, 0.6, 0.5)));
     }
 }
 
-TEST_CASE("PhenotypeSimulationEngine - basic simulation", "[simulate]")
+TEST_CASE("SimulationEngine - basic simulation", "[simulate]")
 {
     BedFixture fixture;
     constexpr Eigen::Index N_SAMPLES = 50;
@@ -249,7 +246,7 @@ TEST_CASE("PhenotypeSimulationEngine - basic simulation", "[simulate]")
 
     SECTION("Default output generates .phen and .causal files")
     {
-        PhenotypeSimulationEngine(make_config(bed_path)).run();
+        SimulationEngine(make_config(bed_path)).run();
 
         REQUIRE(fs::exists(fs::path(bed_path).replace_extension(".phen")));
         REQUIRE(fs::exists(fs::path(bed_path).replace_extension(".causal")));
@@ -262,7 +259,7 @@ TEST_CASE("PhenotypeSimulationEngine - basic simulation", "[simulate]")
         auto config = make_config(bed_path);
         config.output_path = output_path;
 
-        PhenotypeSimulationEngine(config).run();
+        SimulationEngine(config).run();
 
         REQUIRE(fs::exists(output_path));
         REQUIRE(fs::exists(fs::path(output_path).replace_extension(".causal")));
@@ -270,7 +267,7 @@ TEST_CASE("PhenotypeSimulationEngine - basic simulation", "[simulate]")
 
     SECTION("Phenotype file format")
     {
-        PhenotypeSimulationEngine(make_config(bed_path)).run();
+        SimulationEngine(make_config(bed_path)).run();
 
         auto phen_path = fs::path(bed_path).replace_extension(".phen");
         REQUIRE(read_first_line(phen_path) == "FID\tIID\tphenotype");
@@ -279,7 +276,7 @@ TEST_CASE("PhenotypeSimulationEngine - basic simulation", "[simulate]")
 
     SECTION("Causal file format")
     {
-        PhenotypeSimulationEngine(make_config(bed_path)).run();
+        SimulationEngine(make_config(bed_path)).run();
 
         auto causal_path = fs::path(bed_path).replace_extension(".causal");
         REQUIRE(
@@ -291,7 +288,7 @@ TEST_CASE("PhenotypeSimulationEngine - basic simulation", "[simulate]")
     }
 }
 
-TEST_CASE("PhenotypeSimulationEngine - reproducibility", "[simulate]")
+TEST_CASE("SimulationEngine - reproducibility", "[simulate]")
 {
     BedFixture fixture;
     auto [bed_path, _] = fixture.create_bed_files(50, 100, 0.0, 0.05, 0.5, 42);
@@ -303,10 +300,10 @@ TEST_CASE("PhenotypeSimulationEngine - reproducibility", "[simulate]")
 
     auto config = make_config(bed_path, 0.5, 0.0, 123);
     config.output_path = output1;
-    PhenotypeSimulationEngine(config).run();
+    SimulationEngine(config).run();
 
     config.output_path = output2;
-    PhenotypeSimulationEngine(config).run();
+    SimulationEngine(config).run();
 
     REQUIRE(read_file_content(output1) == read_file_content(output2));
     REQUIRE(
@@ -314,12 +311,12 @@ TEST_CASE("PhenotypeSimulationEngine - reproducibility", "[simulate]")
         == read_file_content(fs::path(output2).replace_extension(".causal")));
 }
 
-TEST_CASE("PhenotypeSimulationEngine - dominance effects", "[simulate]")
+TEST_CASE("SimulationEngine - dominance effects", "[simulate]")
 {
     BedFixture fixture;
     auto [bed_path, _] = fixture.create_bed_files(50, 100, 0.0, 0.05, 0.5, 42);
 
-    PhenotypeSimulationEngine(make_config(bed_path, 0.5, 0.2)).run();
+    SimulationEngine(make_config(bed_path, 0.5, 0.2)).run();
 
     auto causal_path = fs::path(bed_path).replace_extension(".causal");
     REQUIRE(fs::exists(causal_path));
@@ -333,7 +330,7 @@ TEST_CASE("PhenotypeSimulationEngine - dominance effects", "[simulate]")
     REQUIRE(has_nonzero_dominance);
 }
 
-TEST_CASE("PhenotypeSimulationEngine - additive variance", "[simulate]")
+TEST_CASE("SimulationEngine - additive variance", "[simulate]")
 {
     BedFixture fixture;
     constexpr Eigen::Index N_SAMPLES = 500;
@@ -344,7 +341,7 @@ TEST_CASE("PhenotypeSimulationEngine - additive variance", "[simulate]")
     auto [bed_path, stored_geno]
         = fixture.create_deterministic_bed_files(genotypes);
 
-    PhenotypeSimulationEngine(make_config(bed_path, H2)).run();
+    SimulationEngine(make_config(bed_path, H2)).run();
 
     auto effects
         = parse_causal_effects(fs::path(bed_path).replace_extension(".causal"));
@@ -364,9 +361,7 @@ TEST_CASE("PhenotypeSimulationEngine - additive variance", "[simulate]")
     REQUIRE_THAT(observed_h2, WithinAbs(H2, VARIANCE_TOLERANCE));
 }
 
-TEST_CASE(
-    "PhenotypeSimulationEngine - additive and dominance variance",
-    "[simulate]")
+TEST_CASE("SimulationEngine - additive and dominance variance", "[simulate]")
 {
     BedFixture fixture;
     constexpr Eigen::Index N_SAMPLES = 500;
@@ -378,7 +373,7 @@ TEST_CASE(
     auto [bed_path, stored_geno]
         = fixture.create_deterministic_bed_files(genotypes);
 
-    PhenotypeSimulationEngine(make_config(bed_path, H2, D2)).run();
+    SimulationEngine(make_config(bed_path, H2, D2)).run();
 
     auto effects
         = parse_causal_effects(fs::path(bed_path).replace_extension(".causal"));
@@ -415,9 +410,7 @@ TEST_CASE(
         WithinAbs(D2, VARIANCE_TOLERANCE));
 }
 
-TEST_CASE(
-    "PhenotypeSimulationEngine - mixture normal effect classes",
-    "[simulate]")
+TEST_CASE("SimulationEngine - mixture normal effect classes", "[simulate]")
 {
     BedFixture fixture;
     constexpr Eigen::Index N_SAMPLES = 200;
@@ -431,7 +424,7 @@ TEST_CASE(
         = {{0.5, 0.0001}, {0.3, 0.01}, {0.2, 1.0}};
 
     auto config = make_config(bed_path, 0.5, 0.0, 42, add_classes);
-    PhenotypeSimulationEngine(config).run();
+    SimulationEngine(config).run();
 
     auto causal_path = fs::path(bed_path).replace_extension(".causal");
     auto effects = parse_causal_effects(causal_path);

@@ -30,6 +30,7 @@
 #include "gelex/model/freq/model.h"
 #include "gelex/pipeline/grm_pipe.h"
 #include "gelex/pipeline/pheno_pipe.h"
+#include "gelex/types/sample_id.h"
 
 namespace fs = std::filesystem;
 
@@ -44,11 +45,11 @@ namespace
 class GrmFileFixture
 {
    public:
-    explicit GrmFileFixture(FileFixture& files, const std::string& prefix = "")
+    explicit GrmFileFixture(FileFixture& files, const std::string& suffix = "")
         : files_(files),
           prefix_(
-              prefix.empty() ? files.generate_random_file_path("")
-                             : std::filesystem::path(prefix))
+              suffix.empty() ? files.generate_random_file_path("")
+                             : files.get_test_dir() / suffix)
     {
     }
 
@@ -183,7 +184,10 @@ auto make_freq_model(
 
     grm.load(pheno.sample_manager());
 
-    return FreqModel(pheno, grm);
+    return FreqModel(
+        std::move(pheno).take_phenotype(),
+        std::move(pheno).take_fixed_effects(),
+        std::move(grm).take_grms());
 }
 
 }  // namespace

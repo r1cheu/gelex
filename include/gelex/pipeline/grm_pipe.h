@@ -32,7 +32,7 @@ namespace gelex
 
 namespace detail
 {
-class GrmLoader;
+class GrmReader;
 }
 
 class GrmPipe
@@ -63,7 +63,7 @@ class GrmPipe
 
    private:
     std::vector<std::filesystem::path> grm_paths_;
-    std::vector<detail::GrmLoader> grm_loaders_;
+    std::vector<detail::GrmReader> grm_readers_;
     std::vector<freq::GeneticEffect> grms_;
     DataPipeObserver observer_;
 };

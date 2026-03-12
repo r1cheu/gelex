@@ -27,7 +27,6 @@ class ArgumentParser;
 namespace gelex::cli
 {
 auto make_fit_config(argparse::ArgumentParser& cmd) -> FitEngine::Config;
-auto has_dominance(BayesAlphabet type) -> bool;
 
 }  // namespace gelex::cli
 

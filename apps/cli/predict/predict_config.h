@@ -17,7 +17,7 @@
 #ifndef GELEX_CLI_PREDICT_CONFIG_H_
 #define GELEX_CLI_PREDICT_CONFIG_H_
 
-#include "gelex/pipeline/predict/predict_engine.h"
+#include "gelex/pipeline/predict_engine.h"
 
 namespace argparse
 {

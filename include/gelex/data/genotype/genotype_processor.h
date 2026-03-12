@@ -26,6 +26,7 @@
 #include "gelex/exception.h"
 #include "gelex/internal/genotype_processor/genotype_processor.h"
 #include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genotype_process_method.h"
 
 namespace gelex
 {
@@ -34,18 +35,6 @@ concept GenotypeProcessor
     = requires(T processor, Eigen::Ref<Eigen::VectorXd> variant) {
           { T::process(variant) } -> std::same_as<LocusStatistic>;
       };
-
-enum class GenotypeProcessMethod : uint8_t
-{
-    StandardizeHWE = 1,
-    CenterHWE,
-    OrthStandardizeHWE,
-    OrthCenterHWE,
-    Standardize,
-    Center,
-    OrthStandardize,
-    OrthCenter
-};
 
 template <GeneticEffectType GT, detail::StatisticPolicy Stats, bool Scale>
 using RawProcessor
@@ -80,24 +69,6 @@ constexpr bool is_center_method_v
     = std::is_same_v<T, Center<GT>> || std::is_same_v<T, CenterHWE<GT>>
       || std::is_same_v<T, OrthCenter<GT>>
       || std::is_same_v<T, OrthCenterHWE<GT>>;
-
-inline auto is_center_family_method(GenotypeProcessMethod method) -> bool
-{
-    switch (method)
-    {
-        case GenotypeProcessMethod::CenterHWE:
-        case GenotypeProcessMethod::OrthCenterHWE:
-        case GenotypeProcessMethod::Center:
-        case GenotypeProcessMethod::OrthCenter:
-            return true;
-        case GenotypeProcessMethod::StandardizeHWE:
-        case GenotypeProcessMethod::OrthStandardizeHWE:
-        case GenotypeProcessMethod::Standardize:
-        case GenotypeProcessMethod::OrthStandardize:
-            return false;
-    }
-    throw InvalidInputException("Invalid genotype process method.");
-}
 
 template <GeneticEffectType GT>
 auto get_genotype_process_method(GenotypeProcessMethod method)
@@ -157,51 +128,5 @@ auto process_matrix(
     }
 }
 }  // namespace gelex
-
-namespace fmt
-{
-template <>
-struct formatter<gelex::GenotypeProcessMethod> : formatter<string_view>
-{
-    auto format(gelex::GenotypeProcessMethod t, format_context& ctx) const
-        -> format_context::iterator
-    {
-        string_view name = "unknown";
-        using gelex::GenotypeProcessMethod;
-        switch (t)
-        {
-            case GenotypeProcessMethod::StandardizeHWE:
-                name = "StandardizeHWE";
-                break;
-            case GenotypeProcessMethod::CenterHWE:
-                name = "CenterHWE";
-                break;
-            case GenotypeProcessMethod::OrthStandardizeHWE:
-                name = "OrthStandardizeHWE";
-                break;
-            case GenotypeProcessMethod::OrthCenterHWE:
-                name = "OrthCenterHWE";
-                break;
-            case GenotypeProcessMethod::Standardize:
-                name = "Standardize";
-                break;
-            case GenotypeProcessMethod::Center:
-                name = "Center";
-                break;
-            case GenotypeProcessMethod::OrthStandardize:
-                name = "OrthStandardize";
-                break;
-            case GenotypeProcessMethod::OrthCenter:
-                name = "OrthCenter";
-                break;
-            default:
-                name = "Unknown Genotype Process Method";
-                break;
-        }
-
-        return formatter<string_view>::format(name, ctx);
-    }
-};
-}  // namespace fmt
 
 #endif  // GELEX_DATA_GENOTYPE_PROCESSOR_H_

@@ -25,7 +25,7 @@
 
 #include "config.h"
 #include "gelex/infra/logger.h"
-#include "gelex/infra/utils/formatter.h"
+#include "gelex/infra/logging/formatter.h"
 
 namespace gelex::cli
 {

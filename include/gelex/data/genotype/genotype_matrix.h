@@ -56,6 +56,10 @@ class GenotypeMatrix
         return stddev_;
     }
 
+    [[nodiscard]] const std::vector<int64_t>& mono_indices() const noexcept
+    {
+        return mono_indices_;
+    }
     [[nodiscard]] int64_t num_mono() const noexcept
     {
         return static_cast<int64_t>(mono_indices_.size());

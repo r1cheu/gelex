@@ -23,7 +23,7 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/data/grm/grm_loader.h"
+#include "gelex/data/grm/grm_reader.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
 
@@ -37,13 +37,13 @@ GrmPipe::GrmPipe(
 {
     for (const auto& grm_path : grm_paths_)
     {
-        grm_loaders_.emplace_back(grm_path);
+        grm_readers_.emplace_back(grm_path);
         notify(
             observer_,
             GrmLoadedEvent{
                 .num_samples
-                = static_cast<size_t>(grm_loaders_.back().num_samples()),
-                .type = grm_loaders_.back().type()});
+                = static_cast<size_t>(grm_readers_.back().num_samples()),
+                .type = grm_readers_.back().type()});
     }
 }
 
@@ -55,10 +55,10 @@ auto GrmPipe::sample_id_sets() const
     -> std::vector<std::span<const std::string>>
 {
     std::vector<std::span<const std::string>> result;
-    result.reserve(grm_loaders_.size());
-    for (const auto& loader : grm_loaders_)
+    result.reserve(grm_readers_.size());
+    for (const auto& reader : grm_readers_)
     {
-        result.emplace_back(loader.sample_ids());
+        result.emplace_back(reader.sample_ids());
     }
     return result;
 }
@@ -66,10 +66,10 @@ auto GrmPipe::sample_id_sets() const
 auto GrmPipe::load(const std::shared_ptr<SampleManager>& sample_manager) -> void
 {
     const auto& id_map = sample_manager->common_id_map();
-    grms_.reserve(grm_loaders_.size());
-    for (auto& loader : grm_loaders_)
+    grms_.reserve(grm_readers_.size());
+    for (auto& reader : grm_readers_)
     {
-        grms_.emplace_back(loader.type(), loader.load(id_map));
+        grms_.emplace_back(reader.type(), reader.load(id_map));
     }
 }
 

@@ -31,9 +31,9 @@
 
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/exception.h"
-#include "gelex/infra/detail/indicator.h"
+#include "gelex/infra/logging/progress_bar.h"
 #include "gelex/types/chr_group.h"
-#include "gelex/types/snp_info.h"
+#include "gelex/types/snp_index.h"
 
 namespace gelex::cli
 {
@@ -88,9 +88,9 @@ auto setup_parallelization(int num_threads) -> void;
 inline auto create_progress_bar(
     size_t& counter,
     size_t total,
-    std::string_view format = "{bar}") -> gelex::detail::ProgressBar
+    std::string_view format = "{bar}") -> gelex::ProgressBar
 {
-    return gelex::detail::create_progress_bar(counter, total, format);
+    return gelex::create_progress_bar(counter, total, format);
 }
 
 auto print_gelex_banner_message(std::string_view version) -> void;

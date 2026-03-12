@@ -28,13 +28,13 @@
 namespace gelex
 {
 
-class PhenoPipe;
-class GrmPipe;
-
 class FreqModel
 {
    public:
-    FreqModel(PhenoPipe& pheno_pipe, GrmPipe& grm_pipe);
+    FreqModel(
+        Eigen::VectorXd phenotype,
+        FixedEffect fixed_effects,
+        std::vector<freq::GeneticEffect> genetics);
     auto fixed() const -> const FixedEffect& { return fixed_; }
     auto fixed() -> FixedEffect& { return fixed_; }
 

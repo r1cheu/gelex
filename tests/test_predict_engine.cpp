@@ -22,7 +22,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "gelex/exception.h"
-#include "gelex/pipeline/predict/predict_engine.h"
+#include "gelex/pipeline/predict_engine.h"
 #include "predict_engine_fixture.h"
 
 using namespace gelex;
@@ -97,7 +97,8 @@ TEST_CASE(
         .covar_effect_path = param_path,
         .qcovar_path = "",
         .dcovar_path = "",
-        .output_path = "test.predictions"};
+        .output_path
+        = fixture.get_file_fixture().get_test_dir() / "test.predictions"};
 
     PredictEngine engine(config);
     REQUIRE_NOTHROW(engine.run());
@@ -181,7 +182,8 @@ TEST_CASE(
         .covar_effect_path = param_path,
         .qcovar_path = qcovar_path.string(),
         .dcovar_path = "",
-        .output_path = "test.predictions"};
+        .output_path
+        = fixture.get_file_fixture().get_test_dir() / "test.predictions"};
 
     PredictEngine engine(config);
     REQUIRE_NOTHROW(engine.run());
@@ -272,7 +274,8 @@ TEST_CASE(
         .covar_effect_path = param_path,
         .qcovar_path = "",
         .dcovar_path = dcovar_path.string(),
-        .output_path = "test.predictions"};
+        .output_path
+        = fixture.get_file_fixture().get_test_dir() / "test.predictions"};
 
     PredictEngine engine(config);
     REQUIRE_NOTHROW(engine.run());
@@ -346,7 +349,8 @@ TEST_CASE(
         .covar_effect_path = param_path,
         .qcovar_path = qcovar_path.string(),
         .dcovar_path = dcovar_path.string(),
-        .output_path = "test.predictions"};
+        .output_path
+        = fixture.get_file_fixture().get_test_dir() / "test.predictions"};
 
     PredictEngine engine(config);
     REQUIRE_NOTHROW(engine.run());
@@ -414,7 +418,8 @@ TEST_CASE(
         .covar_effect_path = param_path,
         .qcovar_path = "",
         .dcovar_path = "",
-        .output_path = "test.predictions"};
+        .output_path
+        = fixture.get_file_fixture().get_test_dir() / "test.predictions"};
 
     PredictEngine engine(config);
     REQUIRE_NOTHROW(engine.run());
@@ -511,7 +516,8 @@ TEST_CASE("PredictEngine - Error handling", "[predict][predict_engine][error]")
             .covar_effect_path = param_path,
             .qcovar_path = qcovar_path.string(),
             .dcovar_path = "",
-            .output_path = "test.predictions"};
+            .output_path
+            = fixture.get_file_fixture().get_test_dir() / "test.predictions"};
 
         PredictEngine engine(config);
         REQUIRE_THROWS_AS(engine.run(), InvalidInputException);
@@ -530,7 +536,8 @@ TEST_CASE("PredictEngine - Error handling", "[predict][predict_engine][error]")
             .covar_effect_path = param_no_f,
             .qcovar_path = "",
             .dcovar_path = dcovar_path.string(),
-            .output_path = "test.predictions"};
+            .output_path
+            = fixture.get_file_fixture().get_test_dir() / "test.predictions"};
 
         PredictEngine engine(config);
         REQUIRE_THROWS_AS(engine.run(), InvalidInputException);

@@ -19,7 +19,7 @@
 #include <argparse.h>
 
 #include "gelex/infra/logger.h"
-#include "gelex/pipeline/predict/predict_engine.h"
+#include "gelex/pipeline/predict_engine.h"
 #include "predict_config.h"
 
 int predict_execute(argparse::ArgumentParser& predict)

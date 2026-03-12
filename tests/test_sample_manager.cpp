@@ -25,6 +25,7 @@
 #include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/data/genotype/sample_manager.h"
 #include "gelex/exception.h"
+#include "gelex/types/sample_id.h"
 
 namespace fs = std::filesystem;
 
@@ -75,7 +76,6 @@ TEST_CASE("SampleManager - Construction and basic functionality", "[data]")
                 REQUIRE(manager.common_id_map().empty());
             }());
     }
-
 }
 
 TEST_CASE("SampleManager - intersect() method", "[data]")
@@ -407,5 +407,4 @@ TEST_CASE("SampleManager - Integration tests", "[data]")
         REQUIRE(id_map.at(sid("3", "sample3")) == 1);
         REQUIRE(id_map.at(sid("5", "sample5")) == 2);
     }
-
 }

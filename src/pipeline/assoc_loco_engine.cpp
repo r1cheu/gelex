@@ -21,14 +21,14 @@
 #include "assoc_detail.h"
 #include "gelex/algo/infer/estimator.h"
 #include "gelex/data/genotype/bed_pipe.h"
-#include "gelex/data/grm/loco_grm_loader.h"
-#include "gelex/data/loader/bim_loader.h"
+#include "gelex/data/grm/loco_grm_reader.h"
+#include "gelex/data/reader/bim_reader.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
+#include "gelex/io/gwas_writer.h"
 #include "gelex/model/freq/model.h"
 #include "gelex/pipeline/grm_pipe.h"
 #include "gelex/pipeline/pheno_pipe.h"
-#include "gelex/pipeline/report/gwas_writer.h"
 #include "gelex/types/chr_group.h"
 
 namespace gelex
@@ -44,14 +44,18 @@ auto AssocLocoEngine::run(
 {
     BedPipe bed_pipe(config_.bed_path, pheno.sample_manager());
     auto bim_path = config_.bed_path;
-    auto snp_effects
-        = std::move(detail::BimLoader(bim_path.replace_extension(".bim")))
+    auto snp_index
+        = std::move(detail::BimReader(bim_path.replace_extension(".bim")))
               .take_info();
 
-    FreqModel model(pheno, grm);
-    FreqState state(model);
+    const auto grm_paths = grm.grm_paths();
+    const auto id_map = pheno.sample_manager()->common_id_map();
 
-    const auto& grm_paths = grm.grm_paths();
+    FreqModel model(
+        std::move(pheno).take_phenotype(),
+        std::move(pheno).take_fixed_effects(),
+        std::move(grm).take_grms());
+    FreqState state(model);
 
     if (model.genetic().size() != grm_paths.size())
     {
@@ -59,21 +63,19 @@ auto AssocLocoEngine::run(
             "Number of genetic components in model does not match number "
             "of GRMs provided.");
     }
-
-    const auto id_map = pheno.sample_manager()->common_id_map();
-    std::vector<LocoGRMLoader> loco_loaders;
-    loco_loaders.reserve(grm_paths.size());
+    std::vector<LocoGRMReader> loco_readers;
+    loco_readers.reserve(grm_paths.size());
     for (const auto& path : grm_paths)
     {
-        loco_loaders.emplace_back(path, id_map);
+        loco_readers.emplace_back(path, id_map);
     }
 
-    auto chr_groups = build_chr_groups(true, snp_effects);
+    auto chr_groups = build_chr_groups(true, snp_index);
 
     notify(
         observer,
         AssocScanSummaryEvent{
-            .total_snps = snp_effects.size(),
+            .total_snps = snp_index.size(),
             .chunk_size = config_.chunk_size,
             .loco = true});
 
@@ -81,7 +83,7 @@ auto AssocLocoEngine::run(
     writer.write_header();
 
     detail::ChrScanner scanner(
-        {config_.chunk_size, snp_effects.size()}, bed_pipe, observer);
+        {config_.chunk_size, snp_index.size()}, bed_pipe, observer);
 
     auto processor = [&](Eigen::Ref<Eigen::MatrixXd> geno, Eigen::VectorXd* f)
     {
@@ -91,7 +93,7 @@ auto AssocLocoEngine::run(
     auto result_writer = [&](size_t idx, const detail::ChrScanner::SnpResult& r)
     {
         writer.write_result(
-            snp_effects[idx],
+            snp_index[idx],
             {.freq = r.freq, .beta = r.beta, .se = r.se, .p_value = r.p_value});
     };
 
@@ -99,11 +101,11 @@ auto AssocLocoEngine::run(
 
     for (const auto& group : chr_groups)
     {
-        for (size_t i = 0; i < loco_loaders.size(); ++i)
+        for (size_t i = 0; i < loco_readers.size(); ++i)
         {
             const auto chr_grm_prefix
                 = grm_paths[i].string() + ".chr" + group.name;
-            loco_loaders[i].load_loco_grm(
+            loco_readers[i].load_loco_grm(
                 chr_grm_prefix, id_map, model.genetic()[i].K);
         }
 

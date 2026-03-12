@@ -36,7 +36,7 @@
 #include "cli/simulate/simulate_args.h"
 #include "cli/simulate/simulate_command.h"
 #include "gelex/infra/logger.h"
-#include "gelex/infra/utils/formatter.h"
+#include "gelex/infra/logging/formatter.h"
 
 namespace
 {

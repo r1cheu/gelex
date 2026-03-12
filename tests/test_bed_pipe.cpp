@@ -33,11 +33,11 @@
 
 #include "bed_fixture.h"
 #include "file_fixture.h"
-#include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/frame/dataframe_policy.h"
+#include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/genotype/sample_manager.h"
-#include "gelex/pipeline/predict/snp_matcher.h"
 #include "gelex/exception.h"
+#include "gelex/types/sample_id.h"
 
 namespace fs = std::filesystem;
 
@@ -51,7 +51,8 @@ using gelex::test::FileFixture;
 namespace
 {
 
-auto read_fam_ids(const std::filesystem::path& fam_path) -> std::vector<std::string>
+auto read_fam_ids(const std::filesystem::path& fam_path)
+    -> std::vector<std::string>
 {
     std::ifstream fam_file(fam_path);
     std::vector<std::string> raw_ids;
@@ -82,7 +83,8 @@ auto align_rows_to_id_map(
     {
         if (auto it = id_map.find(raw_ids[i]); it != id_map.end())
         {
-            aligned.row(it->second) = raw_matrix.row(static_cast<Eigen::Index>(i));
+            aligned.row(it->second)
+                = raw_matrix.row(static_cast<Eigen::Index>(i));
         }
     }
 

@@ -24,28 +24,23 @@
 namespace gelex::cli
 {
 
-auto has_dominance(BayesAlphabet type) -> bool
-{
-    switch (type)
-    {
-        case BayesAlphabet::Bd:
-        case BayesAlphabet::Bdpi:
-        case BayesAlphabet::Cd:
-        case BayesAlphabet::Cdpi:
-        case BayesAlphabet::Rd:
-        case BayesAlphabet::Ad:
-        case BayesAlphabet::RRd:
-            return true;
-        default:
-            return false;
-    }
-}
-
 auto make_fit_config(argparse::ArgumentParser& cmd) -> FitEngine::Config
 {
-    auto method = gelex::get_bayesalphabet(cmd.get("-m"))
-                      .value_or(gelex::BayesAlphabet::RR);
-    auto use_dominance = has_dominance(method);
+    auto base
+        = gelex::get_bayes_base(cmd.get("-m")).value_or(gelex::BayesBase::RR);
+
+    auto method = gelex::BayesMethodConfig{
+        .base = base,
+        .dominance = cmd.get<bool>("--dom"),
+        .asymmetric = cmd.get<bool>("--asym"),
+        .estimate_pi = cmd.get<bool>("--estimate-pi"),
+    };
+
+    if (!gelex::is_valid_method(method))
+    {
+        throw gelex::InvalidInputException(
+            fmt::format("invalid method combination: {}", method));
+    }
 
     FitEngine::Config config{
         .bfile_prefix = cmd.get("--bfile"),
@@ -72,6 +67,7 @@ auto make_fit_config(argparse::ArgumentParser& cmd) -> FitEngine::Config
     config.dpi = extract_opt_vec("--dpi");
     config.scale = extract_opt_vec("--scale");
     config.dscale = extract_opt_vec("--dscale");
+    config.positive_prob = cmd.get<double>("--positive-prob");
     if (config.mcmc_params.n_burnin >= config.mcmc_params.n_iters)
     {
         throw gelex::InvalidInputException(

@@ -16,21 +16,22 @@
 
 #include <Eigen/SVD>
 
-#include "gelex/infra/utils/math_utils.h"
+#include "gelex/infra/stats/descriptive.h"
 #include "gelex/model/freq/model.h"
-#include "gelex/pipeline/grm_pipe.h"
-#include "gelex/pipeline/pheno_pipe.h"
 
 namespace gelex
 {
 
-FreqModel::FreqModel(PhenoPipe& pheno_pipe, GrmPipe& grm_pipe)
-    : phenotype_(std::move(pheno_pipe).take_phenotype()),
+FreqModel::FreqModel(
+    Eigen::VectorXd phenotype,
+    FixedEffect fixed_effects,
+    std::vector<freq::GeneticEffect> genetics)
+    : phenotype_(std::move(phenotype)),
       phenotype_variance_(detail::var(phenotype_)[0]),
-      fixed_(std::move(pheno_pipe).take_fixed_effects())
+      fixed_(std::move(fixed_effects))
 {
     num_individuals_ = phenotype_.size();
-    genetic_ = std::move(grm_pipe).take_grms();
+    genetic_ = std::move(genetics);
 }
 
 FreqState::FreqState(const FreqModel& model)

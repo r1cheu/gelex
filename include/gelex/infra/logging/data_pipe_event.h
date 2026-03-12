@@ -65,13 +65,21 @@ struct GrmLoadedEvent
     freq::GrmType type;
 };
 
+struct GenotypeProgressEvent
+{
+    size_t current;
+    size_t total;
+    bool done;
+};
+
 using DataPipeEvent = std::variant<
     DataPipeSectionEvent,
     PhenotypeLoadedEvent,
     CovariatesLoadedEvent,
     IntersectionEvent,
     GenotypeLoadedEvent,
-    GrmLoadedEvent>;
+    GrmLoadedEvent,
+    GenotypeProgressEvent>;
 
 using DataPipeObserver = std::function<void(const DataPipeEvent&)>;
 

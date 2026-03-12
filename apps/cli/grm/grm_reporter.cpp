@@ -17,10 +17,10 @@
 #include "grm_reporter.h"
 
 #include "config.h"
-#include "gelex/infra/detail/indicator.h"
 #include "gelex/infra/logger.h"
+#include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/grm_event.h"
-#include "gelex/infra/utils/formatter.h"
+#include "gelex/infra/logging/progress_bar.h"
 
 namespace gelex::cli
 {
@@ -41,8 +41,8 @@ auto GrmReporter::on_event(const GrmConfigLoadedEvent& event) const -> void
 auto GrmReporter::on_event(const GrmDataLoadedEvent& event) const -> void
 {
     logger_->info(gelex::section("[Dataset Summary]"));
-    logger_->info(gelex::success("Samples    : {} samples", event.num_samples));
-    logger_->info(gelex::success("SNPs       : {} markers", event.num_snps));
+    logger_->info("   Samples    : {} samples", event.num_samples);
+    logger_->info("   SNPs       : {} markers", event.num_snps);
     logger_->info("");
 }
 
@@ -53,7 +53,7 @@ auto GrmReporter::on_event(const GrmComputeStartedEvent& event) -> void
     progress_ = 0;
     eta_.reset(global_total_);
 
-    bar_ = detail::create_progress_bar(progress_, global_total_);
+    bar_ = create_progress_bar(progress_, global_total_);
     bar_.display->show();
     bar_active_ = true;
 }

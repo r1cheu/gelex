@@ -23,9 +23,9 @@
 #include <string_view>
 #include <vector>
 
-#include "gelex/algo/sim/effect_sampler.h"
 #include "gelex/data/genotype/bed_path.h"
 #include "gelex/exception.h"
+#include "gelex/types/sim_types.h"
 
 namespace
 {
@@ -63,7 +63,7 @@ namespace gelex::cli
 {
 
 auto make_simulate_config(argparse::ArgumentParser& cmd)
-    -> PhenotypeSimulationEngine::Config
+    -> SimulationEngine::Config
 {
     auto dom_heritability = cmd.is_used("--d2")
                                 ? std::make_optional(cmd.get<double>("--d2"))
@@ -100,7 +100,7 @@ auto make_simulate_config(argparse::ArgumentParser& cmd)
             dom_variances, dom_proportions, "Dominance effect class");
     }
 
-    return PhenotypeSimulationEngine::Config{
+    return SimulationEngine::Config{
         .bed_path = gelex::format_bed_path(cmd.get("--bfile")),
         .output_path = cmd.get("--out"),
 

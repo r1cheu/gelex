@@ -22,12 +22,16 @@
 
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/data_pipe_event.h"
-#include "gelex/infra/utils/formatter.h"
+#include "gelex/infra/logging/formatter.h"
+#include "gelex/infra/logging/progress_bar.h"
 
 namespace gelex::cli
 {
 
-DataPipeReporter::DataPipeReporter() : logger_(gelex::logging::get()) {}
+DataPipeReporter::DataPipeReporter()
+    : logger_(gelex::logging::get()), progress_info_(create_progress_info())
+{
+}
 
 auto DataPipeReporter::on_event(const DataPipeSectionEvent& /*event*/) const
     -> void
@@ -38,12 +42,10 @@ auto DataPipeReporter::on_event(const DataPipeSectionEvent& /*event*/) const
 auto DataPipeReporter::on_event(const PhenotypeLoadedEvent& event) const -> void
 {
     logger_->info(
-        gelex::success(
-            "Phenotypes : {} samples ('{}')",
-            event.pheno_samples,
-            event.trait_name));
-    logger_->info(
-        gelex::success("Genotypes  : {} samples", event.geno_samples));
+        "   Phenotypes : {} samples ('{}')",
+        event.pheno_samples,
+        event.trait_name);
+    logger_->info("   Genotypes  : {} samples", event.geno_samples);
 }
 
 auto DataPipeReporter::on_event(const CovariatesLoadedEvent& event) const
@@ -68,24 +70,23 @@ auto DataPipeReporter::on_event(const CovariatesLoadedEvent& event) const
             *event.num_discrete_covariates,
             gelex::format_names(event.discrete_names));
     }
-    logger_->info(gelex::success("Covariates : {}", parts));
+    logger_->info("   Covariates : {}", parts);
 }
 
 auto DataPipeReporter::on_event(const IntersectionEvent& event) const -> void
 {
     logger_->info(
-        gelex::success(
-            "Intersection : {} common, {} excluded",
-            event.common_samples,
-            event.excluded_samples));
+        "   Intersection : {} common, {} excluded",
+        event.common_samples,
+        event.excluded_samples);
 }
 
 auto DataPipeReporter::on_event(const GenotypeLoadedEvent& event) const -> void
 {
     const auto effective_snps = event.num_snps - event.monomorphic_snps;
     const std::string label = event.is_dominance ? "Dominance" : "Additive";
-    const std::string msg = gelex::success(
-        "{:<13}: {} SNPs ({} monomorphic excluded)",
+    const std::string msg = fmt::format(
+        "   {:<13}: {} SNPs ({} monomorphic excluded)",
         label,
         gelex::AbbrNumber(effective_snps),
         gelex::AbbrNumber(event.monomorphic_snps));
@@ -103,8 +104,28 @@ auto DataPipeReporter::on_event(const GenotypeLoadedEvent& event) const -> void
 auto DataPipeReporter::on_event(const GrmLoadedEvent& event) const -> void
 {
     logger_->info(
-        gelex::success(
-            "GRM        : {} samples ({})", event.num_samples, event.type));
+        "   GRM        : {} samples ({})", event.num_samples, event.type);
+}
+
+auto DataPipeReporter::on_event(const GenotypeProgressEvent& event) -> void
+{
+    if (!init_progress_)
+    {
+        init_progress_ = true;
+        progress_info_.display->show();
+    }
+
+    progress_info_.progress_info->message(
+        fmt::format(
+            "  {}/{} SNPs",
+            gelex::AbbrNumber(event.current),
+            gelex::AbbrNumber(event.total)));
+
+    if (event.done)
+    {
+        progress_info_.display->done();
+        init_progress_ = false;
+    }
 }
 
 }  // namespace gelex::cli

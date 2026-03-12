@@ -24,8 +24,8 @@
 
 #include <Eigen/Core>
 
-#include "gelex/infra/detail/indicator.h"
 #include "gelex/infra/logging/fit_event.h"
+#include "gelex/infra/logging/progress_bar.h"
 
 namespace gelex
 {
@@ -37,7 +37,7 @@ struct FitResultsSavedEvent;
 
 class BayesModel;
 class MCMCResult;
-struct BaseMarkerSummary;
+struct GeneticSummary;
 struct PosteriorSummary;
 
 namespace detail
@@ -89,10 +89,9 @@ class FitReporter
 
     auto print_fixed_summary(
         const MCMCResult& result,
-        const BayesModel& model,
         std::ptrdiff_t samples_collected) const -> void;
     auto print_genetic_summary(
-        const BaseMarkerSummary* summary,
+        const GeneticSummary* summary,
         const bayes::GeneticEffect* effect,
         GeneticEffectType type) const -> void;
     auto print_residual_summary(const MCMCResult& result) const -> void;
@@ -107,7 +106,7 @@ class FitReporter
 
     std::shared_ptr<spdlog::logger> logger_;
     size_t iter_{0};
-    detail::ProgressBar bar_;
+    ProgressBar bar_;
     bool init_progress_ = false;
     std::string stats_;
 };

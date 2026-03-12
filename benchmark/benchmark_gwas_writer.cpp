@@ -17,8 +17,8 @@
 #include <nanobench.h>
 
 #include <cstdio>
-#include "gelex/pipeline/report/gwas_writer.h"
-#include "gelex/types/snp_info.h"
+#include "gelex/io/gwas_writer.h"
+#include "gelex/types/snp_index.h"
 
 using namespace gelex::gwas;
 

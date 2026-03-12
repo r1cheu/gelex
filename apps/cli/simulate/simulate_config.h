@@ -17,7 +17,7 @@
 #ifndef GELEX_CLI_SIMULATE_CONFIG_H_
 #define GELEX_CLI_SIMULATE_CONFIG_H_
 
-#include "gelex/pipeline/phenotype_simulation_engine.h"
+#include "gelex/pipeline/simulation_engine.h"
 
 namespace argparse
 {
@@ -28,7 +28,7 @@ namespace gelex::cli
 {
 
 auto make_simulate_config(argparse::ArgumentParser& cmd)
-    -> PhenotypeSimulationEngine::Config;
+    -> SimulationEngine::Config;
 
 }  // namespace gelex::cli
 

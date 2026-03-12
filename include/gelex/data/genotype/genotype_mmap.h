@@ -17,68 +17,28 @@
 #ifndef GELEX_DATA_GENOTYPE_MMAP_H_
 #define GELEX_DATA_GENOTYPE_MMAP_H_
 
+#include <cstdint>
 #include <filesystem>
-#include <fstream>
+#include <memory>
 #include <vector>
 
-#include <mio.h>
-
 #include <Eigen/Core>
-#include "gelex/exception.h"
+
+#include "gelex/io/binary_reader.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
 
-#ifdef USE_AVX512
-static constexpr int MAP_OPTIONS = Eigen::Aligned64;
-static constexpr size_t ALIGNMENT_BYTES = 64;
-#else
-static constexpr int MAP_OPTIONS = Eigen::Aligned32;
-static constexpr size_t ALIGNMENT_BYTES = 32;
-#endif
-
-namespace detail
-{
-template <typename T>
-T read_scalar(std::ifstream& ifs, std::string_view context)
-{
-    T value;
-    ifs.read(reinterpret_cast<char*>(&value), sizeof(T));
-    if (!ifs)
-    {
-        throw FileOpenException(
-            std::format("Failed to read scalar: {}", context));
-    }
-    return value;
-}
-
-template <typename T>
-void read_binary(
-    std::ifstream& ifs,
-    T* dest,
-    size_t count,
-    std::string_view context)
-{
-    if (count == 0)
-    {
-        return;
-    }
-    ifs.read(reinterpret_cast<char*>(dest), sizeof(T) * count);
-    if (!ifs)
-    {
-        throw FileOpenException(
-            std::format("Failed to read {} data.", context));
-    }
-}
-}  // namespace detail
 class GenotypeMap
 {
    public:
     using MatrixType = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>;
+    using MapType = Eigen::Map<const Eigen::MatrixXd, Eigen::Unaligned>;
 
-    using MapType = Eigen::Map<const Eigen::MatrixXd, MAP_OPTIONS>;
-
-    explicit GenotypeMap(const std::filesystem::path& bin_file);
+    explicit GenotypeMap(
+        const std::filesystem::path& bin_file,
+        GeneticEffectType effect_type = GeneticEffectType::Add);
 
     GenotypeMap(const GenotypeMap&) = delete;
     GenotypeMap& operator=(const GenotypeMap&) = delete;
@@ -96,6 +56,10 @@ class GenotypeMap
         return stddev_;
     }
 
+    [[nodiscard]] const std::vector<int64_t>& mono_indices() const noexcept
+    {
+        return mono_indices_;
+    }
     [[nodiscard]] int64_t num_mono() const noexcept
     {
         return static_cast<int64_t>(mono_indices_.size());
@@ -104,8 +68,7 @@ class GenotypeMap
     [[nodiscard]] int64_t cols() const noexcept { return cols_; }
 
    private:
-    mio::mmap_source mmap_;
-
+    std::unique_ptr<detail::BinaryReader> reader_;
     MapType mat_;
 
     std::vector<int64_t> mono_indices_;
@@ -114,9 +77,6 @@ class GenotypeMap
 
     int64_t rows_{0};
     int64_t cols_{0};
-
-    void load_metadata(const std::filesystem::path& meta_path);
-    static void validate_alignment(const void* ptr);
 };
 
 }  // namespace gelex

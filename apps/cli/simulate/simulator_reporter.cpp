@@ -17,16 +17,16 @@
 #include "simulator_reporter.h"
 
 #include "config.h"
-#include "gelex/infra/detail/indicator.h"
 #include "gelex/infra/logger.h"
+#include "gelex/infra/logging/formatter.h"
+#include "gelex/infra/logging/progress_bar.h"
 #include "gelex/infra/logging/simulate_event.h"
-#include "gelex/infra/utils/formatter.h"
 
 namespace gelex::cli
 {
 
 SimulatorReporter::SimulatorReporter()
-    : logger_(gelex::logging::get()), info_(detail::create_progress_info())
+    : logger_(gelex::logging::get()), info_(create_progress_info())
 {
 }
 
@@ -77,11 +77,10 @@ auto SimulatorReporter::on_event(const HeritabilityGeneratedEvent& event) const
     -> void
 {
     logger_->info(gelex::section("[True Heritability]"));
-    logger_->info(gelex::success("h²                : {:.4f}", event.additive));
+    logger_->info("   h²                : {:.4f}", event.additive);
     if (event.dominance)
     {
-        logger_->info(
-            gelex::success("δ²                : {:.4f}", *event.dominance));
+        logger_->info("   δ²                : {:.4f}", *event.dominance);
     }
     logger_->info("");
 }
@@ -89,11 +88,8 @@ auto SimulatorReporter::on_event(const HeritabilityGeneratedEvent& event) const
 auto SimulatorReporter::on_event(const OutputsWrittenEvent& event) const -> void
 {
     logger_->info(gelex::section("[File Summary]"));
-    logger_->info(
-        gelex::success("{:<24}: {}", "Phenotype file", event.phenotype_path));
-    logger_->info(
-        gelex::success(
-            "{:<24}: {}", "Snp effects file", event.snp_effect_path));
+    logger_->info("   {:<24}: {}", "Phenotype file", event.phenotype_path);
+    logger_->info("   {:<24}: {}", "Snp effects file", event.snp_effect_path);
 }
 
 }  // namespace gelex::cli

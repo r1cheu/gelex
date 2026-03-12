@@ -16,11 +16,13 @@
 
 #include "file_fixture.h"
 
-#include <ctime>
+#include <atomic>
 #include <format>
 #include <fstream>
 #include <ios>
 #include <utility>
+
+#include <unistd.h>
 
 #include "gelex/exception.h"
 
@@ -31,13 +33,11 @@ namespace gelex::test
 
 FileFixture::FileFixture()
 {
-    auto dir_name = std::format("gelex_test_{}", std::time(nullptr));
+    static std::atomic<int> counter{0};
+    auto dir_name
+        = std::format("gelex_test_{}_{}", ::getpid(), counter.fetch_add(1));
     test_dir_ = fs::temp_directory_path() / dir_name;
 
-    if (fs::exists(test_dir_))
-    {
-        fs::remove_all(test_dir_);
-    }
     fs::create_directories(test_dir_);
 }
 

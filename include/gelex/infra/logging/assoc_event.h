@@ -23,9 +23,9 @@
 #include <variant>
 #include <vector>
 
-#include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/infra/logging/reml_event.h"
 #include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genotype_process_method.h"
 
 namespace gelex
 {

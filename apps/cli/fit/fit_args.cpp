@@ -62,27 +62,22 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
 
     cmd.add_group("Model Configuration");
     cmd.add_argument("-m", "--method")
-        .help(
-            "Method: A/B/C/R/RR (+d for dominance, +pi to estimate "
-            "mixture), e.g. RRd, Bdpi")
+        .help("Bayesian method: A, B, C, R, RR")
         .default_value("RR")
         .metavar("<METHOD>")
-        .choices(
-            "A",
-            "Ad",
-            "B",
-            "Bpi",
-            "Bd",
-            "Bdpi",
-            "C",
-            "Cpi",
-            "Cd",
-            "Cdpi",
-            "R",
-            "Rd",
-            "RR",
-            "RRd")
+        .choices("A", "B", "C", "R", "RR")
         .required();
+    cmd.add_argument("--dom").help("Enable dominance effect").flag();
+    cmd.add_argument("--asym")
+        .help("Use asymmetric truncation for dominance effect")
+        .flag();
+    cmd.add_argument("--positive-prob")
+        .help("Positive prob prior for dominance effect")
+        .scan<'g', double>()
+        .default_value(0.5);
+    cmd.add_argument("--estimate-pi")
+        .help("Estimate mixture proportions (BayesB/C only)")
+        .flag();
     cmd.add_argument("--scale")
         .help("Additive variance scales for BayesR (5 values)")
         .nargs(argparse::nargs_pattern::at_least_one)
@@ -135,7 +130,7 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         gelex::cli::format_epilog(
             "{bg}Example:{rs}\n"
             "  {bc}gelex fit{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
-            "{cy}-m{rs} RR\n\n"
+            "{cy}-m{rs} R {cy}--dom --asym{rs}\n\n"
             "{bg}Docs:{rs}\n"
             "  https://gelex.readthedocs.io/en/latest/cli/fit.html"));
 }

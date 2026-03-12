@@ -25,14 +25,14 @@
 
 #include <Eigen/Core>
 
+#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/data/frame/dummy_encode.h"
 #include "gelex/data/genotype/sample_manager.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
-#include "gelex/infra/utils/formatter.h"
-#include "gelex/infra/utils/phenotype_transformer.h"
+#include "gelex/infra/stats/rank_inverse_norm_transform.h"
 #include "gelex/types/fixed_effects.h"
 
 namespace gelex
@@ -71,20 +71,20 @@ auto PhenoPipe::load_phenotypes() -> void
     int column_index
         = config_.phenotype_column - 2;  // zero-based index for data frame
 
-    auto frame = DataFrame<double>::read(config_.phenotype_path);
-
-    if (column_index < 0 || column_index >= static_cast<int>(frame.ncols()))
+    if (column_index < 0)
     {
         throw ColumnRangeException(
             std::format(
-                "Phenotype column {} is out of range, expected [2, {}]",
-                config_.phenotype_column,
-                frame.ncols() + 2));
+                "Phenotype column {} is out of range, expected >= 2",
+                config_.phenotype_column));
     }
 
-    phenotype_name_
-        = frame.column(static_cast<size_t>(config_.phenotype_column - 2))
-              .name();
+    DataFrameLoadPolicy policy;
+    policy.select_columns
+        = std::vector<size_t>{static_cast<size_t>(column_index)};
+    auto frame = DataFrame<double>::read(config_.phenotype_path, policy);
+
+    phenotype_name_ = frame.column(0).name();
 
     phenotype_frame_ = std::move(frame);
     event.pheno_samples = phenotype_frame_.nrows();
@@ -184,9 +184,7 @@ auto PhenoPipe::finalize() -> void
     auto aligned = phenotype_frame_;
     aligned.intersect_index_inplace(common_ids);
 
-    const auto& values
-        = aligned.column(static_cast<size_t>(config_.phenotype_column - 2))
-              .data();
+    const auto& values = aligned.column(0).data();
     phenotype_ = Eigen::Map<const Eigen::VectorXd>(
         values.data(), static_cast<Eigen::Index>(values.size()));
 
@@ -233,18 +231,17 @@ auto PhenoPipe::apply_phenotype_transform(
         return;
     }
 
-    detail::PhenotypeTransformer transformer(offset);
+    RankInverseNormTransform transformer(offset);
     auto logger = gelex::logging::get();
 
     if (type == detail::TransformType::DINT)
     {
-        logger->info(task("Method: Direct INT (DINT), offset (k): {}", offset));
+        logger->info("   Method: Direct INT (DINT), offset (k): {}", offset);
         transformer.apply_dint(phenotype_);
     }
     else if (type == detail::TransformType::IINT)
     {
-        logger->info(
-            task("Method: Indirect INT (IINT), offset (k): {}", offset));
+        logger->info("   Method: Indirect INT (IINT), offset (k): {}", offset);
         transformer.apply_iint(phenotype_, fixed_effects_.X);
         fixed_effects_ = FixedEffect::build(phenotype_.size());
     }

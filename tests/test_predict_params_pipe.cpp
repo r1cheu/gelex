@@ -22,7 +22,7 @@
 
 #include "file_fixture.h"
 #include "gelex/exception.h"
-#include "gelex/pipeline/predict/predict_params_pipe.h"
+#include "gelex/predict/predict_params_pipe.h"
 
 namespace fs = std::filesystem;
 

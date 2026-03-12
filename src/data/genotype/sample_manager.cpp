@@ -23,16 +23,16 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/data/loader/fam_loader.h"
+#include "gelex/data/reader/fam_reader.h"
 
 namespace gelex
 {
 
 SampleManager::SampleManager(const std::filesystem::path& fam_path)
 {
-    detail::FamLoader fam_loader(fam_path);
+    detail::FamReader fam_reader(fam_path);
 
-    common_ids_ = std::move(fam_loader).take_ids();
+    common_ids_ = std::move(fam_reader).take_ids();
 
     std::ranges::sort(common_ids_);
 

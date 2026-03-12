@@ -21,7 +21,7 @@
 
 #include "gelex/algo/stats/statistics.h"
 #include "gelex/infra/logger.h"
-#include "gelex/infra/utils/formatter.h"
+#include "gelex/infra/logging/formatter.h"
 #include "gelex/model/freq/model.h"
 
 namespace gelex::cli
@@ -32,7 +32,7 @@ RemlReporter::RemlReporter() : logger_(gelex::logging::get()) {}
 auto RemlReporter::on_event(const RemlEmInitEvent& e) -> void
 {
     header_printed_ = false;
-    logger_->info(progress_mark("Initializing (EM)..."));
+    logger_->info("   Initializing (EM)...");
 
     logger_->info(
         "    LogL: {:.2f} | Init Vg: [{}]",

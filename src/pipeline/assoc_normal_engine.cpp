@@ -21,12 +21,12 @@
 #include "assoc_detail.h"
 #include "gelex/algo/infer/estimator.h"
 #include "gelex/data/genotype/bed_pipe.h"
-#include "gelex/data/loader/bim_loader.h"
+#include "gelex/data/reader/bim_reader.h"
 #include "gelex/infra/logging/notify.h"
+#include "gelex/io/gwas_writer.h"
 #include "gelex/model/freq/model.h"
 #include "gelex/pipeline/grm_pipe.h"
 #include "gelex/pipeline/pheno_pipe.h"
-#include "gelex/pipeline/report/gwas_writer.h"
 #include "gelex/types/chr_group.h"
 
 namespace gelex
@@ -44,23 +44,26 @@ auto AssocNormalEngine::run(
 {
     BedPipe bed_pipe(config_.bed_path, pheno.sample_manager());
     auto bim_path = config_.bed_path;
-    auto snp_effects
-        = std::move(detail::BimLoader(bim_path.replace_extension(".bim")))
+    auto snp_index
+        = std::move(detail::BimReader(bim_path.replace_extension(".bim")))
               .take_info();
 
-    FreqModel model(pheno, grm);
+    FreqModel model(
+        std::move(pheno).take_phenotype(),
+        std::move(pheno).take_fixed_effects(),
+        std::move(grm).take_grms());
     FreqState state(model);
     Estimator estimator(config_.max_iter, config_.tol, reml_observer);
 
     notify(observer, AssocRemlStartedEvent{.chr_name = ""});
 
     auto v_inv = estimator.fit(model, state);
-    auto chr_groups = build_chr_groups(false, snp_effects);
+    auto chr_groups = build_chr_groups(false, snp_index);
 
     notify(
         observer,
         AssocScanSummaryEvent{
-            .total_snps = snp_effects.size(),
+            .total_snps = snp_index.size(),
             .chunk_size = config_.chunk_size,
             .loco = false});
 
@@ -68,7 +71,7 @@ auto AssocNormalEngine::run(
     writer.write_header();
 
     detail::ChrScanner scanner(
-        {config_.chunk_size, snp_effects.size()}, bed_pipe, observer);
+        {config_.chunk_size, snp_index.size()}, bed_pipe, observer);
     detail::update_assoc_input(
         scanner.assoc_input(), model, state, std::move(v_inv));
 
@@ -80,7 +83,7 @@ auto AssocNormalEngine::run(
     auto result_writer = [&](size_t idx, const detail::ChrScanner::SnpResult& r)
     {
         writer.write_result(
-            snp_effects[idx],
+            snp_index[idx],
             {.freq = r.freq, .beta = r.beta, .se = r.se, .p_value = r.p_value});
     };
     for (const auto& group : chr_groups)

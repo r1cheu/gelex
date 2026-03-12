@@ -19,7 +19,7 @@
 
 #include <memory>
 
-#include "gelex/infra/detail/indicator.h"
+#include "gelex/infra/logging/progress_bar.h"
 #include "gelex/infra/logging/simulate_event.h"
 
 namespace gelex
@@ -55,7 +55,7 @@ class SimulatorReporter
 
    private:
     std::shared_ptr<spdlog::logger> logger_;
-    detail::ProgressInfo info_;
+    ProgressInfo info_;
     bool init_progress_ = false;
 };
 

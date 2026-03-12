@@ -20,6 +20,7 @@
 #include <memory>
 
 #include "gelex/infra/logging/data_pipe_event.h"
+#include "gelex/infra/logging/progress_bar.h"
 
 namespace gelex
 {
@@ -29,6 +30,7 @@ struct CovariatesLoadedEvent;
 struct IntersectionEvent;
 struct GenotypeLoadedEvent;
 struct GrmLoadedEvent;
+struct GenotypeProgressEvent;
 }  // namespace gelex
 
 namespace spdlog
@@ -50,6 +52,7 @@ class DataPipeReporter
     auto on_event(const IntersectionEvent& event) const -> void;
     auto on_event(const GenotypeLoadedEvent& event) const -> void;
     auto on_event(const GrmLoadedEvent& event) const -> void;
+    auto on_event(const GenotypeProgressEvent& event) -> void;
 
     auto as_observer() -> DataPipeObserver
     {
@@ -59,6 +62,8 @@ class DataPipeReporter
 
    private:
     std::shared_ptr<spdlog::logger> logger_;
+    ProgressInfo progress_info_;
+    bool init_progress_ = false;
 };
 
 }  // namespace gelex::cli

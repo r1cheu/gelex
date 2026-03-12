@@ -22,7 +22,7 @@
 #include "config.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/assoc_event.h"
-#include "gelex/infra/utils/formatter.h"
+#include "gelex/infra/logging/formatter.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::cli
@@ -69,15 +69,15 @@ auto AssocReporter::on_event(const AssocScanSummaryEvent& event) -> void
 
     logger_->info("");
     logger_->info(gelex::section("[Association Scan]"));
-    logger_->info(gelex::task("SNPs to test : {}", event.total_snps));
-    logger_->info(gelex::task("Chunk size   : {}", event.chunk_size));
+    logger_->info("   SNPs to test : {}", event.total_snps);
+    logger_->info("   Chunk size   : {}", event.chunk_size);
     if (event.loco)
     {
-        logger_->info(gelex::task("Mode         : LOCO"));
+        logger_->info("   Mode         : LOCO");
     }
     logger_->info("");
 
-    bar_ = detail::create_progress_bar(progress_, event.total_snps);
+    bar_ = create_progress_bar(progress_, event.total_snps);
     bar_.display->show();
     bar_active_ = true;
 }

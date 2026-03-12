@@ -34,7 +34,7 @@
 
 #include "gelex/data/frame/column.h"
 #include "gelex/data/frame/dataframe_policy.h"
-#include "gelex/data/frame/detail/dataframe_loader.h"
+#include "gelex/data/frame/detail/dataframe_reader.h"
 #include "gelex/data/frame/detail/index_intersector.h"
 #include "gelex/exception.h"
 
@@ -42,7 +42,7 @@ namespace gelex::detail
 {
 
 template <typename T>
-class DataFrameLoader;
+class DataFrameReader;
 
 template <typename T>
 struct IndexIntersector;
@@ -91,7 +91,7 @@ class DataFrame
     std::vector<Column<T>> columns_;
     std::unordered_map<std::string, size_t> index_map_;
 
-    friend class detail::DataFrameLoader<T>;
+    friend class detail::DataFrameReader<T>;
     friend struct detail::IndexIntersector<T>;
 };
 
@@ -157,7 +157,7 @@ auto DataFrame<T>::read(
     const std::filesystem::path& path,
     const DataFrameLoadPolicy& policy) -> DataFrame
 {
-    return detail::DataFrameLoader<T>::load(path, policy);
+    return detail::DataFrameReader<T>::load(path, policy);
 }
 
 template <typename T>

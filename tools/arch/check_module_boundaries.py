@@ -238,8 +238,8 @@ def check_boundaries(root: Path) -> list[Violation]:
             ):
                 replacements = {
                     "gelex/types/logger.h": "gelex/infra/logger.h",
-                    "gelex/types/utils/math_utils.h": "gelex/infra/utils/math_utils.h",
-                    "gelex/types/utils/running_stats.h": "gelex/infra/utils/running_stats.h",
+                    "gelex/types/utils/math_utils.h": "gelex/infra/stats/descriptive.h",
+                    "gelex/types/utils/running_stats.h": "gelex/infra/stats/running_stats.h",
                 }
                 violations.append(
                     Violation(

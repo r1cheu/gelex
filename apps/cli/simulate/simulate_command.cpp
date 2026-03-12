@@ -18,7 +18,7 @@
 
 #include <argparse.h>
 
-#include "gelex/pipeline/phenotype_simulation_engine.h"
+#include "gelex/pipeline/simulation_engine.h"
 #include "simulate_config.h"
 #include "simulator_reporter.h"
 
@@ -35,7 +35,7 @@ auto simulate_execute(argparse::ArgumentParser& sim) -> int
             .seed = config.seed,
         });
 
-    gelex::PhenotypeSimulationEngine simulator(std::move(config));
+    gelex::SimulationEngine simulator(std::move(config));
     simulator.run(reporter.as_observer());
     return 0;
 }

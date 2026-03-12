@@ -21,6 +21,7 @@
 
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
+#include "gelex/io/sbin_writer.h"
 
 namespace gelex
 {
@@ -47,6 +48,8 @@ auto GenoPipe::load(std::shared_ptr<SampleManager> sample_manager) -> void
         load_additive_matrix();
         load_dominance_matrix();
     }
+
+    write_sbin();
 }
 
 auto GenoPipe::load_additive_matrix() -> void
@@ -87,6 +90,41 @@ auto GenoPipe::load_dominance_matrix() -> void
         observer_,
         GenotypeLoadedEvent{
             .is_dominance = true, .num_snps = total, .monomorphic_snps = mono});
+}
+
+auto GenoPipe::write_sbin() -> void
+{
+    SbinWriter writer(config_.output_prefix + ".sbin");
+
+    if (additive_matrix_)
+    {
+        std::visit(
+            [&](const auto& m)
+            {
+                writer.write(
+                    detail::EffectType::Add,
+                    m.mean(),
+                    m.stddev(),
+                    m.mono_indices());
+            },
+            *additive_matrix_);
+    }
+
+    if (dominance_matrix_)
+    {
+        std::visit(
+            [&](const auto& m)
+            {
+                writer.write(
+                    detail::EffectType::Dom,
+                    m.mean(),
+                    m.stddev(),
+                    m.mono_indices());
+            },
+            *dominance_matrix_);
+    }
+
+    writer.finalize();
 }
 
 }  // namespace gelex

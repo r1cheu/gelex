@@ -30,6 +30,7 @@
 #include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/data/grm/grm_id_writer.h"
 #include "gelex/exception.h"
+#include "gelex/types/sample_id.h"
 
 namespace fs = std::filesystem;
 

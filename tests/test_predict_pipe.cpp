@@ -28,7 +28,7 @@
 
 #include "bed_fixture.h"
 #include "file_fixture.h"
-#include "gelex/pipeline/predict/predict_pipe.h"
+#include "gelex/predict/predict_pipe.h"
 
 namespace fs = std::filesystem;
 

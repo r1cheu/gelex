@@ -20,9 +20,9 @@
 #include <cstddef>
 #include <memory>
 
-#include "gelex/infra/detail/indicator.h"
 #include "gelex/infra/logging/assoc_event.h"
-#include "gelex/infra/utils/utils.h"
+#include "gelex/infra/logging/progress_bar.h"
+#include "gelex/infra/logging/timer.h"
 
 namespace gelex
 {
@@ -65,7 +65,7 @@ class AssocReporter
    private:
     std::shared_ptr<spdlog::logger> logger_;
     size_t progress_{0};
-    detail::ProgressBar bar_;
+    ProgressBar bar_;
     bool bar_active_ = false;
     SmoothEtaCalculator eta_;
 };

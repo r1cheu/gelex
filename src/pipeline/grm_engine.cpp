@@ -27,7 +27,7 @@
 #include "gelex/data/grm/grm_id_writer.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/logging/notify.h"
-#include "gelex/infra/utils/utils.h"
+#include "gelex/infra/logging/timer.h"
 #include "pipeline/grm_work_plan.h"
 
 namespace gelex

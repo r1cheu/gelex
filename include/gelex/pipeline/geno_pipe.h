@@ -22,10 +22,10 @@
 #include <string>
 #include <variant>
 
-#include "gelex/data/genotype/genotype_loader.h"
+#include "gelex/data/genotype/genotype_map_reader.h"
+#include "gelex/data/genotype/genotype_mat_reader.h"
 #include "gelex/data/genotype/genotype_matrix.h"
 #include "gelex/data/genotype/genotype_mmap.h"
-#include "gelex/data/genotype/genotype_pipe.h"
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -87,24 +87,25 @@ class GenoPipe
         if (config_.use_mmap)
         {
             std::string file_path = config_.output_prefix + suffix;
-            auto pipe = gelex::GenotypePipe(
-                config_.bed_path, sample_manager_, file_path);
+            auto pipe = gelex::GenotypeMapReader(
+                config_.bed_path, sample_manager_, file_path, observer_);
             target
                 = std::make_unique<std::variant<GenotypeMap, GenotypeMatrix>>(
                     pipe.process<GT>(method, config_.chunk_size));
         }
         else
         {
-            auto loader
-                = gelex::GenotypeLoader(config_.bed_path, sample_manager_);
+            auto reader = gelex::GenotypeMatReader(
+                config_.bed_path, sample_manager_, observer_);
             target
                 = std::make_unique<std::variant<GenotypeMap, GenotypeMatrix>>(
-                    loader.process<GT>(method, config_.chunk_size));
+                    reader.process<GT>(method, config_.chunk_size));
         }
     }
 
     auto load_additive_matrix() -> void;
     auto load_dominance_matrix() -> void;
+    auto write_sbin() -> void;
 
     Config config_;
     std::shared_ptr<SampleManager> sample_manager_;

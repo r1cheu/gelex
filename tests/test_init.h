@@ -17,8 +17,11 @@
 #ifndef TESTS_TEST_INIT_H_
 #define TESTS_TEST_INIT_H_
 
-#include "gelex/infra/logger.h"
 #include <filesystem>
+#include <format>
+#include "gelex/infra/logger.h"
+
+#include <unistd.h>
 
 namespace test_utils
 {
@@ -27,22 +30,22 @@ struct TestInitializer
 {
     TestInitializer()
     {
-        // Initialize logger with test output
-        gelex::logging::initialize("test_output");
-
+        gelex::logging::initialize(log_prefix());
         clean_test_files();
     }
 
-    ~TestInitializer()
+    ~TestInitializer() { clean_test_files(); }
+
+    static auto log_prefix() -> std::string
     {
-        clean_test_files();
+        return std::format("test_output_{}", ::getpid());
     }
 
     static void clean_test_files()
     {
         try
         {
-            std::filesystem::remove("test_output.log");
+            std::filesystem::remove(log_prefix() + ".log");
         }
         catch (const std::filesystem::filesystem_error&)
         {
@@ -53,6 +56,6 @@ struct TestInitializer
 // Global test initializer - will be constructed before any tests run
 inline TestInitializer global_test_initializer;
 
-} // namespace test_utils
+}  // namespace test_utils
 
 #endif  // TESTS_TEST_INIT_H_
