@@ -24,6 +24,7 @@
 #include "gelex/data/frame/dataframe.h"
 #include "gelex/data/frame/detail/text_utils.h"
 #include "gelex/exception.h"
+#include "gelex/types/sample_id.h"
 
 using gelex::compute_common_index_keys;
 using gelex::DataFrame;
@@ -475,4 +476,69 @@ TEST_CASE(
     REQUIRE(frame.nrows() == 2);
     REQUIRE(frame.column(0).data()[0] == 42.0);
     REQUIRE(frame.column(0).data()[1] == 47.0);
+}
+
+TEST_CASE(
+    "DataFrame select_columns loads only specified columns",
+    "[data][dataframe]")
+{
+    FileFixture files;
+    auto path = files.create_named_text_file(
+        "select_cols.csv",
+        "FID,IID,value_a,value_b,value_c\n"
+        "f1,s1,1.0,10.0,100.0\n"
+        "f2,s2,2.0,NA,200.0\n"
+        "f3,s3,NA,30.0,300.0\n"
+        "f4,s4,4.0,40.0,400.0\n");
+
+    SECTION("single column avoids NaN in other columns")
+    {
+        DataFrameLoadPolicy policy;
+        policy.select_columns = std::vector<size_t>{0};
+        auto frame = DataFrame<double>::read(path, policy);
+
+        REQUIRE(frame.ncols() == 1);
+        REQUIRE(frame.column(0).name() == "value_a");
+        REQUIRE(frame.nrows() == 3);
+        REQUIRE(frame.column(0).data()[0] == 1.0);
+        REQUIRE(frame.column(0).data()[1] == 2.0);
+        REQUIRE(frame.column(0).data()[2] == 4.0);
+    }
+
+    SECTION("select second column skips only its own NaN")
+    {
+        DataFrameLoadPolicy policy;
+        policy.select_columns = std::vector<size_t>{1};
+        auto frame = DataFrame<double>::read(path, policy);
+
+        REQUIRE(frame.ncols() == 1);
+        REQUIRE(frame.column(0).name() == "value_b");
+        REQUIRE(frame.nrows() == 3);
+        REQUIRE(frame.column(0).data()[0] == 10.0);
+        REQUIRE(frame.column(0).data()[1] == 30.0);
+        REQUIRE(frame.column(0).data()[2] == 40.0);
+    }
+
+    SECTION("select multiple columns checks only those")
+    {
+        DataFrameLoadPolicy policy;
+        policy.select_columns = std::vector<size_t>{0, 2};
+        auto frame = DataFrame<double>::read(path, policy);
+
+        REQUIRE(frame.ncols() == 2);
+        REQUIRE(frame.column(0).name() == "value_a");
+        REQUIRE(frame.column(1).name() == "value_c");
+        REQUIRE(frame.nrows() == 3);
+        REQUIRE(frame.index_column().data()[0] == make_sample_id("f1", "s1"));
+        REQUIRE(frame.index_column().data()[1] == make_sample_id("f2", "s2"));
+        REQUIRE(frame.index_column().data()[2] == make_sample_id("f4", "s4"));
+    }
+
+    SECTION("out of range select_columns throws")
+    {
+        DataFrameLoadPolicy policy;
+        policy.select_columns = std::vector<size_t>{5};
+        REQUIRE_THROWS_AS(
+            DataFrame<double>::read(path, policy), gelex::ColumnRangeException);
+    }
 }
