@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/io/sim/simulation_writer.h"
+#include "gelex/io/simulation_writer.h"
 
 #include <algorithm>
 #include <format>

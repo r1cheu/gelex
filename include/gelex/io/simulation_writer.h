@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_SIM_SIMULATION_WRITER_H_
-#define GELEX_IO_SIM_SIMULATION_WRITER_H_
+#ifndef GELEX_IO_SIMULATION_WRITER_H_
+#define GELEX_IO_SIMULATION_WRITER_H_
 
 #include <filesystem>
 #include <span>
@@ -23,7 +23,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/algo/sim/effect_sampler.h"
+#include "gelex/types/sim_types.h"
 
 namespace gelex
 {
@@ -50,4 +50,4 @@ class SimulationWriter
 
 }  // namespace gelex
 
-#endif  // GELEX_IO_SIM_SIMULATION_WRITER_H_
+#endif  // GELEX_IO_SIMULATION_WRITER_H_
