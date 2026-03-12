@@ -14,30 +14,38 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_TYPES_CHR_GROUP_H_
-#define GELEX_TYPES_CHR_GROUP_H_
-
-#include <string>
-#include <utility>
-#include <vector>
+#ifndef GELEX_TYPES_SIM_TYPES_H_
+#define GELEX_TYPES_SIM_TYPES_H_
 
 #include <Eigen/Core>
 
 namespace gelex
 {
 
-class SnpIndex;
-
-struct ChrGroup
+struct EffectSizeClass
 {
-    std::string name;
-    std::vector<std::pair<Eigen::Index, Eigen::Index>> ranges;
-    Eigen::Index total_snps;
+    double proportion;
+    double variance;
 };
 
-auto build_chr_groups(bool do_loco, const SnpIndex& snp_index)
-    -> std::vector<ChrGroup>;
+struct CausalEffects
+{
+    Eigen::VectorXd additive;
+    Eigen::VectorXd dominance;
+    Eigen::VectorXi add_class;
+    Eigen::VectorXi dom_class;
+
+    auto resize(Eigen::Index n_snps) -> void
+    {
+        additive.resize(n_snps);
+        dominance.resize(n_snps);
+        add_class.resize(n_snps);
+        dom_class.resize(n_snps);
+    }
+
+    [[nodiscard]] auto size() const -> Eigen::Index { return additive.size(); }
+};
 
 }  // namespace gelex
 
-#endif  // GELEX_TYPES_CHR_GROUP_H_
+#endif  // GELEX_TYPES_SIM_TYPES_H_

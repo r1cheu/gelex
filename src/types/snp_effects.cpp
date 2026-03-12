@@ -14,30 +14,34 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_TYPES_CHR_GROUP_H_
-#define GELEX_TYPES_CHR_GROUP_H_
-
-#include <string>
-#include <utility>
-#include <vector>
-
-#include <Eigen/Core>
+#include "gelex/types/snp_effects.h"
 
 namespace gelex
 {
 
-class SnpIndex;
-
-struct ChrGroup
+SnpEffects::SnpEffects(size_t initial_capacity) : index_(initial_capacity)
 {
-    std::string name;
-    std::vector<std::pair<Eigen::Index, Eigen::Index>> ranges;
-    Eigen::Index total_snps;
-};
+    if (initial_capacity > 0)
+    {
+        additive_data_.reserve(initial_capacity);
+        frequencies_data_.reserve(initial_capacity);
+    }
+}
 
-auto build_chr_groups(bool do_loco, const SnpIndex& snp_index)
-    -> std::vector<ChrGroup>;
+auto SnpEffects::shrink_to_fit() -> void
+{
+    index_.shrink_to_fit();
+    additive_data_.shrink_to_fit();
+    frequencies_data_.shrink_to_fit();
+    dominance_data_.shrink_to_fit();
+}
+
+auto SnpEffects::clear() -> void
+{
+    index_.clear();
+    additive_data_.clear();
+    frequencies_data_.clear();
+    dominance_data_.clear();
+}
 
 }  // namespace gelex
-
-#endif  // GELEX_TYPES_CHR_GROUP_H_
