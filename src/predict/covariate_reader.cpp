@@ -28,21 +28,6 @@
 namespace gelex
 {
 
-CovariateReader::CovariateReader(const std::filesystem::path& param_file_path)
-    : params_(parse(param_file_path))
-{
-}
-
-auto CovariateReader::params() const -> const CovariateParams&
-{
-    return params_;
-}
-
-auto CovariateReader::take_params() && -> CovariateParams
-{
-    return std::move(params_);
-}
-
 auto CovariateReader::parse(const std::filesystem::path& path)
     -> CovariateParams
 {

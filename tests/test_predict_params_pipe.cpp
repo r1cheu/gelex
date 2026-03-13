@@ -27,9 +27,9 @@
 namespace fs = std::filesystem;
 
 using Catch::Matchers::EndsWith;
+using gelex::CovariateParams;
 using gelex::PredictParamsPipe;
 using gelex::SnpEffects;
-using gelex::detail::CovarEffects;
 using gelex::test::FileFixture;
 
 TEST_CASE(
@@ -66,12 +66,12 @@ TEST_CASE(
         REQUIRE(snp_effects.size() == 3);
 
         const auto& covar_effects = pipe.covar_effects();
-        REQUIRE(covar_effects.intercept == 2.5);
-        REQUIRE(covar_effects.continuous_coeffs.size() == 2);
-        REQUIRE(covar_effects.categorical_coeffs.empty());
+        REQUIRE(covar_effects.term_names.size() == 3);
+        REQUIRE(covar_effects.term_names[0] == "Intercept");
+        REQUIRE(covar_effects.coefficients(0) == 2.5);
     }
 
-    SECTION("Exception - covariate effect file has invalid format (propagated)")
+    SECTION("No intercept is valid - reader does not enforce it")
     {
         std::string snp_content
             = "Chrom\tPosition\tID\tA1\tA2\tA1Freq\tAdd\tDom\n"
@@ -79,19 +79,19 @@ TEST_CASE(
 
         auto snp_path = files.create_text_file(snp_content, ".snp.eff");
 
-        std::string invalid_covar_content
+        std::string covar_content
             = "term\tmean\tstddev\n"
-              "Age\t1.0\t0.1\n";  // Missing intercept term
+              "Age\t1.0\t0.1\n";
 
-        auto covar_path
-            = files.create_text_file(invalid_covar_content, ".covar.eff");
+        auto covar_path = files.create_text_file(covar_content, ".covar.eff");
 
         PredictParamsPipe::Config config;
         config.snp_effect_path = snp_path;
         config.covar_effect_path = covar_path;
 
-        REQUIRE_THROWS_AS(
-            PredictParamsPipe(config), gelex::FileFormatException);
+        PredictParamsPipe pipe(config);
+        REQUIRE(pipe.covar_effects().term_names.size() == 1);
+        REQUIRE(pipe.covar_effects().term_names[0] == "Age");
     }
 }
 
@@ -152,9 +152,9 @@ TEST_CASE("PredictParamsPipe - Accessor Methods", "[predict][predict_params]")
         const auto& effects2 = pipe.covar_effects();
         REQUIRE(&effects1 == &effects2);  // Same reference
 
-        REQUIRE(effects1.intercept == 3.0);
-        REQUIRE(effects1.continuous_coeffs.size() == 1);
-        REQUIRE(effects1.continuous_coeffs.at("Age") == 0.5);
+        REQUIRE(effects1.term_names.size() == 2);
+        REQUIRE(effects1.term_names[0] == "Intercept");
+        REQUIRE(effects1.coefficients(0) == 3.0);
     }
 }
 
@@ -209,16 +209,14 @@ TEST_CASE("PredictParamsPipe - Move Semantics", "[predict][predict_params]")
         config.covar_effect_path = covar_path;
 
         PredictParamsPipe pipe(config);
-        REQUIRE(pipe.covar_effects().intercept == 3.0);
+        REQUIRE(pipe.covar_effects().term_names.size() == 2);
 
-        CovarEffects moved_effects = std::move(pipe).take_covar_effects();
-        REQUIRE(moved_effects.intercept == 3.0);
-        REQUIRE(moved_effects.continuous_coeffs.size() == 1);
+        CovariateParams moved_effects = std::move(pipe).take_covar_effects();
+        REQUIRE(moved_effects.term_names.size() == 2);
+        REQUIRE(moved_effects.coefficients(0) == 3.0);
 
-        // After move, covar_effects maps are empty (data moved out)
-        const auto& after_effects = pipe.covar_effects();
-        REQUIRE(after_effects.continuous_coeffs.empty());
-        REQUIRE(after_effects.categorical_coeffs.empty());
+        // After move, term_names is empty (data moved out)
+        REQUIRE(pipe.covar_effects().term_names.empty());
     }
 }
 
@@ -245,7 +243,8 @@ TEST_CASE("PredictParamsPipe - Edge Cases", "[predict][predict_params]")
         PredictParamsPipe pipe(config);
 
         REQUIRE(pipe.snp_effects().size() == 0);
-        REQUIRE(pipe.covar_effects().intercept == 1.0);
+        REQUIRE(pipe.covar_effects().term_names.size() == 1);
+        REQUIRE(pipe.covar_effects().coefficients(0) == 1.0);
     }
 
     SECTION("Covariate file with only intercept")
@@ -269,9 +268,9 @@ TEST_CASE("PredictParamsPipe - Edge Cases", "[predict][predict_params]")
         PredictParamsPipe pipe(config);
 
         REQUIRE(pipe.snp_effects().size() == 1);
-        REQUIRE(pipe.covar_effects().intercept == 0.0);
-        REQUIRE(pipe.covar_effects().continuous_coeffs.empty());
-        REQUIRE(pipe.covar_effects().categorical_coeffs.empty());
+        REQUIRE(pipe.covar_effects().term_names.size() == 1);
+        REQUIRE(pipe.covar_effects().term_names[0] == "Intercept");
+        REQUIRE(pipe.covar_effects().coefficients(0) == 0.0);
     }
 }
 

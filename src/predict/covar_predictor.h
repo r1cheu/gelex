@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-#include "gelex/predict/covar_effect_reader.h"
+#include "gelex/predict/covariate_reader.h"
 #include "gelex/predict/predict_pipe.h"
 
 namespace gelex
@@ -36,26 +36,12 @@ class CovarPredictor
         std::vector<std::string> names;
     };
 
-    explicit CovarPredictor(const detail::CovarEffects& effects);
+    explicit CovarPredictor(const CovariateParams& params);
 
-    Result compute(const PredictData& data);
+    auto compute(const PredictData& data) -> Result;
 
    private:
-    void validate_intercept() const;
-    void validate_qcovariates() const;
-    void validate_continuous_coefficients() const;
-    void validate_categorical_coefficients() const;
-
-    void compute_intercept();
-    void compute_continuous();
-    void compute_categorical();
-
-    const detail::CovarEffects* effects_;
-    const PredictData* data_;
-    Eigen::Index n_samples_;
-    size_t n_cont_;
-    size_t n_cat_;
-    Result result_;
+    const CovariateParams* params_;
 };
 
 }  // namespace gelex

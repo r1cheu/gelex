@@ -46,8 +46,8 @@ void PredictParamsPipe::load_snp_effects(const std::filesystem::path& path)
 
 void PredictParamsPipe::load_covar_effects(const std::filesystem::path& path)
 {
-    detail::CovarEffectReader reader(path);
-    covar_effects_ = std::move(reader).take_effects();
+    CovariateReader reader(path);
+    covar_effects_ = std::move(reader).take_params();
 }
 
 }  // namespace gelex

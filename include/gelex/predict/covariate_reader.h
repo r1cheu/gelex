@@ -35,10 +35,13 @@ struct CovariateParams
 class CovariateReader
 {
    public:
-    explicit CovariateReader(const std::filesystem::path& param_file_path);
+    explicit CovariateReader(const std::filesystem::path& param_file_path)
+        : params_(parse(param_file_path))
+    {
+    }
 
-    auto params() const -> const CovariateParams&;
-    auto take_params() && -> CovariateParams;
+    auto params() const -> const CovariateParams& { return params_; }
+    auto take_params() && -> CovariateParams { return std::move(params_); }
 
    private:
     static auto parse(const std::filesystem::path& path) -> CovariateParams;

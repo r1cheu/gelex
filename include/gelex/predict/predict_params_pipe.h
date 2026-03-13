@@ -20,7 +20,7 @@
 #include <filesystem>
 
 #include "gelex/data/reader/snp_effect_reader.h"
-#include "gelex/predict/covar_effect_reader.h"
+#include "gelex/predict/covariate_reader.h"
 
 namespace gelex
 {
@@ -37,9 +37,9 @@ class PredictParamsPipe
     explicit PredictParamsPipe(const Config& config);
 
     const SnpEffects& snp_effects() const { return snp_effects_; }
-    const detail::CovarEffects& covar_effects() const { return covar_effects_; }
+    const CovariateParams& covar_effects() const { return covar_effects_; }
     SnpEffects take_snp_effects() && { return std::move(snp_effects_); }
-    detail::CovarEffects&& take_covar_effects() &&
+    CovariateParams take_covar_effects() &&
     {
         return std::move(covar_effects_);
     }
@@ -49,7 +49,7 @@ class PredictParamsPipe
     void load_covar_effects(const std::filesystem::path& path);
 
     SnpEffects snp_effects_;
-    detail::CovarEffects covar_effects_;
+    CovariateParams covar_effects_;
 };
 
 }  // namespace gelex

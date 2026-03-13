@@ -23,7 +23,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/reader/snp_effect_reader.h"
-#include "gelex/predict/covar_effect_reader.h"
+#include "gelex/predict/covariate_reader.h"
 #include "gelex/predict/predict_pipe.h"
 
 namespace gelex
@@ -84,7 +84,7 @@ class PredictEngine
 
     PredictData data_;
     SnpEffects snp_effects_;
-    detail::CovarEffects covar_effects_;
+    CovariateParams covar_effects_;
 };
 
 }  // namespace gelex

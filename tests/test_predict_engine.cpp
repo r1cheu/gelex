@@ -265,8 +265,8 @@ TEST_CASE(
     auto snp_path = fixture.create_snp_effects_file(snp_rows, false);
     auto dcovar_path = fixture.create_dcovar_file(
         fids, loaded_iids, {{"Sex", {"M", "F", "M"}}});
-    auto param_path = fixture.create_param_with_dcovar(
-        1.5, {{"Sex_M", -0.3}, {"Sex_F", 0.2}});
+    // Dummy coding: only non-reference level (Sex_M) has a coefficient
+    auto param_path = fixture.create_param_with_dcovar(1.5, {{"Sex_M", -0.3}});
 
     PredictEngine::Config config{
         .bed_path = bed_prefix,
@@ -282,29 +282,29 @@ TEST_CASE(
 
     const double intercept = 1.5;
     const double sex_m_coef = -0.3;
-    const double sex_f_coef = 0.2;
-    const std::vector<double> expected_sex_effects
-        = {sex_m_coef, sex_f_coef, sex_m_coef};
 
     const auto& predictions = engine.predictions();
     const auto& covar_preds = engine.covar_predictions();
 
     REQUIRE(predictions.size() == 3);
-    REQUIRE(covar_preds.cols() == 2);
+    REQUIRE(covar_preds.cols() == 2);  // Intercept, Sex_M
 
     const double eps = 1e-8;
-    for (size_t i = 0; i < 3; ++i)
-    {
-        REQUIRE_THAT(
-            covar_preds(i, 0), Catch::Matchers::WithinAbs(intercept, eps));
-        REQUIRE_THAT(
-            covar_preds(i, 1),
-            Catch::Matchers::WithinAbs(expected_sex_effects[i], eps));
-    }
+    // s1: Sex=M, s2: Sex=F, s3: Sex=M
+    REQUIRE_THAT(covar_preds(0, 0), Catch::Matchers::WithinAbs(intercept, eps));
+    REQUIRE_THAT(
+        covar_preds(0, 1), Catch::Matchers::WithinAbs(sex_m_coef, eps));
+
+    REQUIRE_THAT(covar_preds(1, 0), Catch::Matchers::WithinAbs(intercept, eps));
+    REQUIRE_THAT(covar_preds(1, 1), Catch::Matchers::WithinAbs(0.0, eps));
+
+    REQUIRE_THAT(covar_preds(2, 0), Catch::Matchers::WithinAbs(intercept, eps));
+    REQUIRE_THAT(
+        covar_preds(2, 1), Catch::Matchers::WithinAbs(sex_m_coef, eps));
 
     const auto& covar_names = engine.covar_prediction_names();
     REQUIRE(covar_names[0] == "Intercept");
-    REQUIRE(covar_names[1] == "Sex");
+    REQUIRE(covar_names[1] == "Sex_M");
 }
 
 TEST_CASE(
@@ -340,8 +340,9 @@ TEST_CASE(
         fids, loaded_iids, {{"Age", {25.0, 30.0, 35.0}}});
     auto dcovar_path = fixture.create_dcovar_file(
         fids, loaded_iids, {{"Sex", {"M", "F", "M"}}});
-    auto param_path = fixture.create_param_full(
-        1.0, {{"Age", 0.2}}, {{"Sex_M", -0.3}, {"Sex_F", 0.1}});
+    // Dummy coding: only non-reference level
+    auto param_path
+        = fixture.create_param_full(1.0, {{"Age", 0.2}}, {{"Sex_M", -0.3}});
 
     PredictEngine::Config config{
         .bed_path = bed_prefix,
@@ -358,16 +359,13 @@ TEST_CASE(
     const double intercept = 1.0;
     const double age_coef = 0.2;
     const double sex_m_coef = -0.3;
-    const double sex_f_coef = 0.1;
     const std::vector<double> ages = {25.0, 30.0, 35.0};
-    const std::vector<double> sex_effects
-        = {sex_m_coef, sex_f_coef, sex_m_coef};
 
     const auto& predictions = engine.predictions();
     const auto& covar_preds = engine.covar_predictions();
 
     REQUIRE(predictions.size() == 3);
-    REQUIRE(covar_preds.cols() == 3);
+    REQUIRE(covar_preds.cols() == 3);  // Intercept, Age, Sex_M
 
     const double eps = 1e-8;
     for (size_t i = 0; i < 3; ++i)
@@ -377,14 +375,18 @@ TEST_CASE(
         REQUIRE_THAT(
             covar_preds(i, 1),
             Catch::Matchers::WithinAbs(age_coef * ages[i], eps));
-        REQUIRE_THAT(
-            covar_preds(i, 2), Catch::Matchers::WithinAbs(sex_effects[i], eps));
     }
+    // s1: Sex=M, s2: Sex=F, s3: Sex=M
+    REQUIRE_THAT(
+        covar_preds(0, 2), Catch::Matchers::WithinAbs(sex_m_coef, eps));
+    REQUIRE_THAT(covar_preds(1, 2), Catch::Matchers::WithinAbs(0.0, eps));
+    REQUIRE_THAT(
+        covar_preds(2, 2), Catch::Matchers::WithinAbs(sex_m_coef, eps));
 
     const auto& covar_names = engine.covar_prediction_names();
     REQUIRE(covar_names[0] == "Intercept");
     REQUIRE(covar_names[1] == "Age");
-    REQUIRE(covar_names[2] == "Sex");
+    REQUIRE(covar_names[2] == "Sex_M");
 }
 
 TEST_CASE(
@@ -505,7 +507,7 @@ TEST_CASE("PredictEngine - Error handling", "[predict][predict_engine][error]")
         REQUIRE_THROWS_AS(PredictEngine(config), InvalidInputException);
     }
 
-    SECTION("Missing covariate coefficient")
+    SECTION("Extra data covariates not in params are ignored")
     {
         auto qcovar_path
             = fixture.create_qcovar_file(fids, iids, {{"Age", {25.0, 30.0}}});
@@ -520,10 +522,10 @@ TEST_CASE("PredictEngine - Error handling", "[predict][predict_engine][error]")
             = fixture.get_file_fixture().get_test_dir() / "test.predictions"};
 
         PredictEngine engine(config);
-        REQUIRE_THROWS_AS(engine.run(), InvalidInputException);
+        REQUIRE_NOTHROW(engine.run());
     }
 
-    SECTION("Missing categorical level coefficient")
+    SECTION("Categorical data not fully covered by params is OK")
     {
         auto dcovar_path
             = fixture.create_dcovar_file(fids, iids, {{"Sex", {"M", "F"}}});
@@ -540,6 +542,6 @@ TEST_CASE("PredictEngine - Error handling", "[predict][predict_engine][error]")
             = fixture.get_file_fixture().get_test_dir() / "test.predictions"};
 
         PredictEngine engine(config);
-        REQUIRE_THROWS_AS(engine.run(), InvalidInputException);
+        REQUIRE_NOTHROW(engine.run());
     }
 }
