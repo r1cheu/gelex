@@ -37,7 +37,7 @@ class SbinWriter
     auto write(
         detail::EffectType effect,
         const Eigen::VectorXd& mean,
-        const Eigen::VectorXd& stddev,
+        const Eigen::VectorXd* stddev = nullptr,
         std::span<const int64_t> mono_indices = {}) -> void;
 
     auto finalize() -> void;

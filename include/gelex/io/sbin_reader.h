@@ -18,6 +18,7 @@
 #define GELEX_IO_SBIN_READER_H_
 
 #include <cstdint>
+#include <optional>
 #include <string_view>
 #include <vector>
 
@@ -32,7 +33,7 @@ namespace gelex
 struct SbinData
 {
     Eigen::VectorXd mean;
-    Eigen::VectorXd stddev;
+    std::optional<Eigen::VectorXd> stddev;
     std::vector<int64_t> mono_indices;
 };
 

@@ -16,7 +16,6 @@
 
 #include "gelex/io/sbin_reader.h"
 
-#include <algorithm>
 #include <cstdint>
 #include <string_view>
 
@@ -36,7 +35,11 @@ auto SbinReader::read(detail::EffectType effect) const -> SbinData
 
     SbinData data;
     data.mean = stats_map.col(0);
-    data.stddev = stats_map.col(1);
+
+    if (stats_map.cols() == 2)
+    {
+        data.stddev = Eigen::VectorXd(stats_map.col(1));
+    }
 
     if (reader_.has_section(effect, detail::DataKind::MonoIndices))
     {

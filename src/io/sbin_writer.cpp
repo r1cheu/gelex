@@ -31,33 +31,38 @@ SbinWriter::SbinWriter(std::string_view output_path) : writer_(output_path) {}
 auto SbinWriter::write(
     detail::EffectType effect,
     const Eigen::VectorXd& mean,
-    const Eigen::VectorXd& stddev,
+    const Eigen::VectorXd* stddev,
     std::span<const int64_t> mono_indices) -> void
 {
-    if (mean.size() != stddev.size())
+    if (stddev != nullptr && mean.size() != stddev->size())
     {
         throw ArgumentValidationException(
             std::format(
                 "SbinWriter: mean size ({}) != stddev size ({})",
                 mean.size(),
-                stddev.size()));
+                stddev->size()));
     }
 
     const auto n_snps = static_cast<uint64_t>(mean.size());
+    const uint64_t n_cols = (stddev != nullptr) ? 2 : 1;
 
     auto stats_handle = writer_.reserve(
         {effect, detail::DataKind::SnpStats},
         detail::binary_format::dtype_code<double>(),
         n_snps,
-        2);
+        n_cols);
     writer_.write(
         stats_handle,
         reinterpret_cast<const char*>(mean.data()),
         static_cast<std::streamsize>(mean.size() * sizeof(double)));
-    writer_.write(
-        stats_handle,
-        reinterpret_cast<const char*>(stddev.data()),
-        static_cast<std::streamsize>(stddev.size() * sizeof(double)));
+
+    if (stddev != nullptr)
+    {
+        writer_.write(
+            stats_handle,
+            reinterpret_cast<const char*>(stddev->data()),
+            static_cast<std::streamsize>(stddev->size() * sizeof(double)));
+    }
 
     if (!mono_indices.empty())
     {

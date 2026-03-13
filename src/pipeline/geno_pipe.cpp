@@ -22,6 +22,7 @@
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/sbin_writer.h"
+#include "gelex/types/genotype_process_method.h"
 
 namespace gelex
 {
@@ -95,6 +96,7 @@ auto GenoPipe::load_dominance_matrix() -> void
 auto GenoPipe::write_sbin() -> void
 {
     SbinWriter writer(config_.output_prefix + ".sbin");
+    const bool is_center = is_center_family_method(config_.genotype_method);
 
     if (additive_matrix_)
     {
@@ -104,7 +106,8 @@ auto GenoPipe::write_sbin() -> void
                 writer.write(
                     detail::EffectType::Add,
                     m.mean(),
-                    m.stddev(),
+                    is_center ? static_cast<const Eigen::VectorXd*>(nullptr)
+                              : &m.stddev(),
                     m.mono_indices());
             },
             *additive_matrix_);
@@ -118,7 +121,8 @@ auto GenoPipe::write_sbin() -> void
                 writer.write(
                     detail::EffectType::Dom,
                     m.mean(),
-                    m.stddev(),
+                    is_center ? static_cast<const Eigen::VectorXd*>(nullptr)
+                              : &m.stddev(),
                     m.mono_indices());
             },
             *dominance_matrix_);

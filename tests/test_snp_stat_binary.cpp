@@ -44,7 +44,7 @@ TEST_CASE("sbin round-trip additive only", "[sbin][snpstats]")
     auto sbin_path = dir / "test.sbin";
     {
         SbinWriter writer(sbin_path.string());
-        writer.write(EffectType::Add, mean, stddev, mono);
+        writer.write(EffectType::Add, mean, &stddev, mono);
         writer.finalize();
     }
 
@@ -56,9 +56,9 @@ TEST_CASE("sbin round-trip additive only", "[sbin][snpstats]")
     auto data = reader.read(EffectType::Add);
 
     REQUIRE(data.mean.size() == kNumSnps);
-    REQUIRE(data.stddev.size() == kNumSnps);
+    REQUIRE(data.stddev.has_value());
     REQUIRE(data.mean.isApprox(mean));
-    REQUIRE(data.stddev.isApprox(stddev));
+    REQUIRE(data.stddev->isApprox(stddev));
     REQUIRE(data.mono_indices == mono);
 }
 
@@ -80,8 +80,8 @@ TEST_CASE("sbin round-trip additive and dominance", "[sbin][snpstats]")
     auto sbin_path = dir / "test_ad.sbin";
     {
         SbinWriter writer(sbin_path.string());
-        writer.write(EffectType::Add, add_mean, add_stddev, add_mono);
-        writer.write(EffectType::Dom, dom_mean, dom_stddev);
+        writer.write(EffectType::Add, add_mean, &add_stddev, add_mono);
+        writer.write(EffectType::Dom, dom_mean, &dom_stddev);
         writer.finalize();
     }
 
@@ -92,11 +92,41 @@ TEST_CASE("sbin round-trip additive and dominance", "[sbin][snpstats]")
 
     auto add_data = reader.read(EffectType::Add);
     REQUIRE(add_data.mean.isApprox(add_mean));
-    REQUIRE(add_data.stddev.isApprox(add_stddev));
+    REQUIRE(add_data.stddev.has_value());
+    REQUIRE(add_data.stddev->isApprox(add_stddev));
     REQUIRE(add_data.mono_indices == add_mono);
 
     auto dom_data = reader.read(EffectType::Dom);
     REQUIRE(dom_data.mean.isApprox(dom_mean));
-    REQUIRE(dom_data.stddev.isApprox(dom_stddev));
+    REQUIRE(dom_data.stddev.has_value());
+    REQUIRE(dom_data.stddev->isApprox(dom_stddev));
     REQUIRE(dom_data.mono_indices.empty());
+}
+
+TEST_CASE("sbin round-trip center only (no stddev)", "[sbin][snpstats]")
+{
+    gelex::test::FileFixture fixture;
+    const auto& dir = fixture.get_test_dir();
+
+    constexpr int kNumSnps = 100;
+    Eigen::VectorXd mean = Eigen::VectorXd::LinSpaced(kNumSnps, 0.1, 0.9);
+    std::vector<int64_t> mono = {5, 50};
+
+    auto sbin_path = dir / "test_center.sbin";
+    {
+        SbinWriter writer(sbin_path.string());
+        writer.write(EffectType::Add, mean, nullptr, mono);
+        writer.finalize();
+    }
+
+    SbinReader reader(sbin_path.string());
+
+    REQUIRE(reader.has(EffectType::Add));
+
+    auto data = reader.read(EffectType::Add);
+
+    REQUIRE(data.mean.size() == kNumSnps);
+    REQUIRE_FALSE(data.stddev.has_value());
+    REQUIRE(data.mean.isApprox(mean));
+    REQUIRE(data.mono_indices == mono);
 }
