@@ -115,7 +115,7 @@ struct GeneticState
             sign->positive_prob = effect.sign->init_positive_prob;
         }
     }
-    GeneticEffectType type;
+    GeneticKind type;
     Eigen::VectorXd coeffs;
     Eigen::VectorXd u;
 

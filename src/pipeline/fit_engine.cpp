@@ -97,12 +97,12 @@ auto configure_model_priors(BayesModel& model, const FitEngine::Config& config)
     prior_config.phenotype_variance = model.phenotype_variance();
     prior_config.positive_prob = config.positive_prob;
     prior_config.genetics.push_back(
-        {GeneticEffectType::Add,
+        {GeneticKind::Add,
          {to_eigen(config.pi, base, get_default_pi),
           to_eigen(config.scale, base, get_default_scale),
           0.5}});
     prior_config.genetics.push_back(
-        {GeneticEffectType::Dom,
+        {GeneticKind::Dom,
          {to_eigen(config.dpi, base, get_default_pi),
           to_eigen(config.dscale, base, get_default_scale),
           0.2}});

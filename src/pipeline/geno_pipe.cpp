@@ -21,7 +21,7 @@
 
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
-#include "gelex/io/sbin_writer.h"
+#include "gelex/io/locistats_writer.h"
 #include "gelex/types/genotype_process_method.h"
 
 namespace gelex
@@ -55,7 +55,7 @@ auto GenoPipe::load(std::shared_ptr<SampleManager> sample_manager) -> void
 
 auto GenoPipe::load_additive_matrix() -> void
 {
-    load_genotype_impl<GeneticEffectType::Add>(
+    load_genotype_impl<GeneticKind::Add>(
         ".add", config_.genotype_method, additive_matrix_);
     int64_t mono = 0;
     int64_t total = 0;
@@ -76,7 +76,7 @@ auto GenoPipe::load_additive_matrix() -> void
 
 auto GenoPipe::load_dominance_matrix() -> void
 {
-    load_genotype_impl<GeneticEffectType::Dom>(
+    load_genotype_impl<GeneticKind::Dom>(
         ".dom", config_.genotype_method, dominance_matrix_);
     int64_t mono = 0;
     int64_t total = 0;
@@ -95,7 +95,8 @@ auto GenoPipe::load_dominance_matrix() -> void
 
 auto GenoPipe::write_sbin() -> void
 {
-    SbinWriter writer(config_.output_prefix + ".sbin");
+    LociStatsWriter writer(config_.output_prefix + ".sbin");
+    auto method_code = static_cast<uint8_t>(config_.genotype_method);
     const bool is_center = is_center_family_method(config_.genotype_method);
 
     if (additive_matrix_)
@@ -104,7 +105,8 @@ auto GenoPipe::write_sbin() -> void
             [&](const auto& m)
             {
                 writer.write(
-                    detail::EffectType::Add,
+                    EffectType::add(),
+                    method_code,
                     m.mean(),
                     is_center ? static_cast<const Eigen::VectorXd*>(nullptr)
                               : &m.stddev(),
@@ -119,7 +121,8 @@ auto GenoPipe::write_sbin() -> void
             [&](const auto& m)
             {
                 writer.write(
-                    detail::EffectType::Dom,
+                    EffectType::dom(),
+                    method_code,
                     m.mean(),
                     is_center ? static_cast<const Eigen::VectorXd*>(nullptr)
                               : &m.stddev(),

@@ -30,6 +30,7 @@
 #include "gelex/data/genotype/sample_manager.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
+#include "gelex/types/genotype_process_method.h"
 
 namespace gelex
 {
@@ -48,7 +49,7 @@ class GenotypeMatReader
     GenotypeMatReader& operator=(GenotypeMatReader&&) noexcept = default;
     ~GenotypeMatReader() = default;
 
-    template <GeneticEffectType GT>
+    template <GeneticKind GT>
     auto process(GenotypeProcessMethod method, size_t chunk_size = 10000)
         -> GenotypeMatrix
     {

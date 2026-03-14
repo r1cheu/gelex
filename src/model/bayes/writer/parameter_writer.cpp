@@ -47,9 +47,8 @@ auto ParameterWriter::write() -> void
     for (const auto& summary : result_->genetics())
     {
         write_genetic_effect(
-            std::string{genetic_effect_type::to_variance_label(summary.type)},
-            std::string{
-                genetic_effect_type::to_heritability_label(summary.type)},
+            std::string{genetic_kind::to_variance_label(summary.type)},
+            std::string{genetic_kind::to_heritability_label(summary.type)},
             &summary);
     }
     write_residual_variance();

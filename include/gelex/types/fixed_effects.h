@@ -24,10 +24,22 @@
 
 #include <Eigen/Core>
 
-#include "gelex/types/covariates.h"
-
 namespace gelex
 {
+
+struct QuantitativeCovariate
+{
+    std::vector<std::string> names;
+    Eigen::MatrixXd X;
+};
+
+struct DiscreteCovariate
+{
+    std::vector<std::string> names;
+    std::vector<std::vector<std::string>> levels;
+    std::vector<std::string> reference_levels;
+    Eigen::MatrixXd X;
+};
 
 struct FixedEffect
 {

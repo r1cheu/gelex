@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/io/sbin_reader.h"
+#include "gelex/io/locistats_reader.h"
 
 #include <cstdint>
 #include <string_view>
@@ -22,19 +22,29 @@
 namespace gelex
 {
 
-SbinReader::SbinReader(std::string_view file_path) : reader_(file_path) {}
-
-auto SbinReader::has(detail::EffectType effect) const -> bool
+LociStatsReader::LociStatsReader(std::string_view file_path)
+    : reader_(file_path)
 {
-    return reader_.has_section(effect, detail::DataKind::SnpStats);
 }
 
-auto SbinReader::read(detail::EffectType effect) const -> SbinData
+auto LociStatsReader::has(EffectType effect) const -> bool
 {
-    auto stats_map = reader_.map<double>(effect, detail::DataKind::SnpStats);
+    return reader_.has_section(effect, detail::DataKind::LociStats);
+}
 
-    SbinData data;
+auto LociStatsReader::read(EffectType effect) const -> LociStats
+{
+    auto stats_map = reader_.map<double>(effect, detail::DataKind::LociStats);
+
+    LociStats data;
     data.mean = stats_map.col(0);
+
+    if (reader_.has_section(effect, detail::DataKind::GenoMethod))
+    {
+        auto method_map
+            = reader_.map<uint8_t>(effect, detail::DataKind::GenoMethod);
+        data.method = static_cast<GenotypeProcessMethod>(method_map(0, 0));
+    }
 
     if (stats_map.cols() == 2)
     {

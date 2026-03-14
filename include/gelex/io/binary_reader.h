@@ -17,6 +17,7 @@
 #ifndef GELEX_IO_BINARY_READER_H_
 #define GELEX_IO_BINARY_READER_H_
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -49,32 +50,34 @@ class BinaryReader
     ~BinaryReader() = default;
 
     [[nodiscard]] auto has_section(
-        EffectType effect,
+        gelex::EffectType effect,
         DataKind kind,
         uint8_t index = 0) const -> bool;
 
     template <typename eT>
         requires std::is_arithmetic_v<eT>
-    [[nodiscard]] auto map(EffectType effect, DataKind kind, uint8_t index = 0)
-        const -> Eigen::Map<
+    [[nodiscard]] auto
+    map(gelex::EffectType effect, DataKind kind, uint8_t index = 0) const
+        -> Eigen::Map<
             const Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>,
             Eigen::Unaligned>;
 
     template <typename eT>
         requires std::is_arithmetic_v<eT>
-    [[nodiscard]] auto mat(EffectType effect, DataKind kind, uint8_t index = 0)
-        const -> Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>;
+    [[nodiscard]] auto
+    mat(gelex::EffectType effect, DataKind kind, uint8_t index = 0) const
+        -> Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>;
 
-    [[nodiscard]] auto n_sections() const -> uint32_t
+    [[nodiscard]] auto n_sections() const -> uint64_t
     {
-        return static_cast<uint32_t>(toc_.size());
+        return static_cast<uint64_t>(toc_.size());
     }
 
    private:
     auto parse_footer_and_toc() -> void;
 
     [[nodiscard]] auto find_entry(
-        EffectType effect,
+        gelex::EffectType effect,
         DataKind kind,
         uint8_t index = 0) const -> const TocEntry&;
 
@@ -121,22 +124,17 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
     // Read footer (last 32 bytes)
     const auto* footer = data + file_size - binary_format::kFooterSize;
 
-    binary_format::validate_magic(
-        footer, binary_format::kBinaryFormatMagic, path_str, "container");
-
-    const auto version = binary_format::decode<uint32_t>(footer + 8);
-    if (version != binary_format::kBinaryFormatVersion)
+    if (!std::equal(
+            binary_format::kBinaryFormatMagic.begin(),
+            binary_format::kBinaryFormatMagic.end(),
+            footer))
     {
         throw FileFormatException(
-            std::format(
-                "{}: unsupported container version {}, expected {}",
-                path_str,
-                version,
-                binary_format::kBinaryFormatVersion));
+            std::format("{}: invalid container magic", path_str));
     }
 
-    const auto toc_offset = binary_format::decode<uint64_t>(footer + 12);
-    const auto n_entries = binary_format::decode<uint32_t>(footer + 20);
+    const auto toc_offset = binary_format::decode<uint64_t>(footer + 8);
+    const auto n_entries = binary_format::decode<uint64_t>(footer + 16);
 
     // Validate TOC region fits in file
     const auto toc_region_size
@@ -150,19 +148,11 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
     // Read TOC entries
     const auto* toc_data = data + toc_offset;
 
-    for (uint32_t i = 0; i < n_entries; ++i)
+    for (uint64_t i = 0; i < n_entries; ++i)
     {
         const auto* entry_buf
             = toc_data + static_cast<size_t>(i) * binary_format::kTocEntrySize;
-
-        TocEntry entry{
-            .key
-            = SectionKey{.effect = static_cast<EffectType>(entry_buf[0]), .kind = static_cast<DataKind>(entry_buf[1]), .index = static_cast<uint8_t>(entry_buf[3])},
-            .dtype = static_cast<uint8_t>(entry_buf[2]),
-            .offset = binary_format::decode<uint64_t>(entry_buf + 8),
-            .size = binary_format::decode<uint64_t>(entry_buf + 16),
-            .rows = binary_format::decode<uint64_t>(entry_buf + 24),
-            .cols = binary_format::decode<uint64_t>(entry_buf + 32)};
+        auto entry = TocEntry::from_bytes(entry_buf);
 
         // Validate section data fits in file
         if (entry.offset + entry.size > toc_offset)
@@ -177,7 +167,7 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
 }
 
 inline auto BinaryReader::has_section(
-    EffectType effect,
+    gelex::EffectType effect,
     DataKind kind,
     uint8_t index) const -> bool
 {
@@ -186,7 +176,7 @@ inline auto BinaryReader::has_section(
 }
 
 inline auto BinaryReader::find_entry(
-    EffectType effect,
+    gelex::EffectType effect,
     DataKind kind,
     uint8_t index) const -> const TocEntry&
 {
@@ -199,7 +189,7 @@ inline auto BinaryReader::find_entry(
             std::format(
                 "{}: section not found (effect={}, kind={})",
                 path_.string(),
-                static_cast<int>(effect),
+                static_cast<int>(effect.to_byte()),
                 static_cast<int>(kind)));
     }
     return it->second;
@@ -207,33 +197,27 @@ inline auto BinaryReader::find_entry(
 
 template <typename eT>
     requires std::is_arithmetic_v<eT>
-auto BinaryReader::map(EffectType effect, DataKind kind, uint8_t index) const
-    -> Eigen::Map<
+auto BinaryReader::map(gelex::EffectType effect, DataKind kind, uint8_t index)
+    const -> Eigen::Map<
         const Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>,
         Eigen::Unaligned>
 {
     const auto& entry = find_entry(effect, kind, index);
     const auto path_str = path_.string();
 
-    if (entry.dtype != binary_format::dtype_code<eT>())
+    if (entry.dtype != binary_format::kTypeByte<eT>)
     {
         throw ArgumentValidationException(
             std::format(
                 "{}: dtype mismatch, section={}, requested={}",
                 path_str,
                 entry.dtype,
-                binary_format::dtype_code<eT>()));
+                binary_format::kTypeByte<eT>));
     }
 
-    const auto expected_bytes = binary_format::checked_mul(
-        binary_format::checked_mul(
-            static_cast<size_t>(entry.rows),
-            static_cast<size_t>(entry.cols),
-            path_str,
-            "number of elements"),
-        sizeof(eT),
-        path_str,
-        "payload bytes");
+    const auto n_elements
+        = static_cast<size_t>(entry.rows) * static_cast<size_t>(entry.cols);
+    const auto expected_bytes = n_elements * sizeof(eT);
 
     if (expected_bytes != entry.size)
     {
@@ -259,8 +243,8 @@ auto BinaryReader::map(EffectType effect, DataKind kind, uint8_t index) const
 
 template <typename eT>
     requires std::is_arithmetic_v<eT>
-auto BinaryReader::mat(EffectType effect, DataKind kind, uint8_t index) const
-    -> Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>
+auto BinaryReader::mat(gelex::EffectType effect, DataKind kind, uint8_t index)
+    const -> Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>
 {
     return Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>(
         map<eT>(effect, kind, index));

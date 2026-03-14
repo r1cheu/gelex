@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_TYPES_EFFECTS_H_
-#define GELEX_TYPES_EFFECTS_H_
+#ifndef GELEX_TYPES_BAYES_METHOD_H_
+#define GELEX_TYPES_BAYES_METHOD_H_
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -149,4 +149,4 @@ struct formatter<gelex::BayesMethodConfig> : formatter<string_view>
 
 }  // namespace fmt
 
-#endif  // GELEX_TYPES_EFFECTS_H_
+#endif  // GELEX_TYPES_BAYES_METHOD_H_

@@ -35,11 +35,11 @@ namespace
 {
 
 using gelex::Chains;
+using gelex::EffectType;
 using gelex::hpdi;
 using gelex::ParamDiag;
 using gelex::detail::BinaryReader;
 using gelex::detail::DataKind;
-using gelex::detail::EffectType;
 
 auto compute_diag(
     Eigen::Index row,
@@ -86,14 +86,14 @@ auto build_scalar_chain(const BinaryReader& reader) -> ScalarChainResult
 {
     // Residual variance (zero-copy mmap view)
     auto resid_var
-        = reader.map<double>(EffectType::Residual, DataKind::Variance);
+        = reader.map<double>(EffectType::residual(), DataKind::Variance);
     const Eigen::Index n_records = resid_var.cols();
 
     // Count random effect variances
     Eigen::Index n_random = 0;
     for (uint8_t i = 0;; ++i)
     {
-        if (!reader.has_section(EffectType::Random, DataKind::Variance, i))
+        if (!reader.has_section(EffectType::random(), DataKind::Variance, i))
         {
             break;
         }
@@ -101,9 +101,9 @@ auto build_scalar_chain(const BinaryReader& reader) -> ScalarChainResult
     }
 
     const bool has_add
-        = reader.has_section(EffectType::Add, DataKind::Variance);
+        = reader.has_section(EffectType::add(), DataKind::Variance);
     const bool has_dom
-        = reader.has_section(EffectType::Dom, DataKind::Variance);
+        = reader.has_section(EffectType::dom(), DataKind::Variance);
 
     // Count rows: 1 (resid) + n_random + 2 per genetic (var + h2)
     Eigen::Index n_rows = 1 + n_random + (has_add ? 2 : 0) + (has_dom ? 2 : 0);
@@ -116,7 +116,7 @@ auto build_scalar_chain(const BinaryReader& reader) -> ScalarChainResult
     {
         total_var += reader
                          .map<double>(
-                             EffectType::Random,
+                             EffectType::random(),
                              DataKind::Variance,
                              static_cast<uint8_t>(i))
                          .row(0);
@@ -124,12 +124,12 @@ auto build_scalar_chain(const BinaryReader& reader) -> ScalarChainResult
     if (has_add)
     {
         total_var
-            += reader.map<double>(EffectType::Add, DataKind::Variance).row(0);
+            += reader.map<double>(EffectType::add(), DataKind::Variance).row(0);
     }
     if (has_dom)
     {
         total_var
-            += reader.map<double>(EffectType::Dom, DataKind::Variance).row(0);
+            += reader.map<double>(EffectType::dom(), DataKind::Variance).row(0);
     }
 
     // Fill result matrix
@@ -140,7 +140,7 @@ auto build_scalar_chain(const BinaryReader& reader) -> ScalarChainResult
     {
         result.row(row++) = reader
                                 .map<double>(
-                                    EffectType::Random,
+                                    EffectType::random(),
                                     DataKind::Variance,
                                     static_cast<uint8_t>(i))
                                 .row(0);
@@ -148,13 +148,15 @@ auto build_scalar_chain(const BinaryReader& reader) -> ScalarChainResult
 
     if (has_add)
     {
-        auto add_var = reader.map<double>(EffectType::Add, DataKind::Variance);
+        auto add_var
+            = reader.map<double>(EffectType::add(), DataKind::Variance);
         result.row(row++) = add_var.row(0);
         result.row(row++) = add_var.row(0).array() / total_var.array();
     }
     if (has_dom)
     {
-        auto dom_var = reader.map<double>(EffectType::Dom, DataKind::Variance);
+        auto dom_var
+            = reader.map<double>(EffectType::dom(), DataKind::Variance);
         result.row(row++) = dom_var.row(0);
         result.row(row++) = dom_var.row(0).array() / total_var.array();
     }

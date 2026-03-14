@@ -36,41 +36,41 @@ concept GenotypeProcessor
           { T::process(variant) } -> std::same_as<LocusStatistic>;
       };
 
-template <GeneticEffectType GT, detail::StatisticPolicy Stats, bool Scale>
+template <GeneticKind GT, detail::StatisticPolicy Stats, bool Scale>
 using RawProcessor
     = detail::GenotypeProcessorStrategy<detail::RawPolicy<GT>, Stats, Scale>;
 
-template <GeneticEffectType GT>
+template <GeneticKind GT>
 using Standardize = RawProcessor<GT, detail::SamplePolicy<GT>, true>;
-template <GeneticEffectType GT>
+template <GeneticKind GT>
 using Center = RawProcessor<GT, detail::SamplePolicy<GT>, false>;
 
-template <GeneticEffectType GT>
+template <GeneticKind GT>
 using StandardizeHWE = RawProcessor<GT, detail::HWEPolicy<GT>, true>;
-template <GeneticEffectType GT>
+template <GeneticKind GT>
 using CenterHWE = RawProcessor<GT, detail::HWEPolicy<GT>, false>;
 
-template <GeneticEffectType GT, detail::StatisticPolicy Stats, bool Scale>
+template <GeneticKind GT, detail::StatisticPolicy Stats, bool Scale>
 using OrthProcessor = detail::
     GenotypeProcessorStrategy<detail::OrthogonalPolicy<GT>, Stats, Scale>;
 
-template <GeneticEffectType GT>
+template <GeneticKind GT>
 using OrthStandardize = OrthProcessor<GT, detail::SamplePolicy<GT>, true>;
-template <GeneticEffectType GT>
+template <GeneticKind GT>
 using OrthCenter = OrthProcessor<GT, detail::SamplePolicy<GT>, false>;
 
-template <GeneticEffectType GT>
+template <GeneticKind GT>
 using OrthStandardizeHWE = OrthProcessor<GT, detail::OrthHWEPolicy<GT>, true>;
-template <GeneticEffectType GT>
+template <GeneticKind GT>
 using OrthCenterHWE = OrthProcessor<GT, detail::OrthHWEPolicy<GT>, false>;
 
-template <typename T, GeneticEffectType GT>
+template <typename T, GeneticKind GT>
 constexpr bool is_center_method_v
     = std::is_same_v<T, Center<GT>> || std::is_same_v<T, CenterHWE<GT>>
       || std::is_same_v<T, OrthCenter<GT>>
       || std::is_same_v<T, OrthCenterHWE<GT>>;
 
-template <GeneticEffectType GT>
+template <GeneticKind GT>
 auto get_genotype_process_method(GenotypeProcessMethod method)
     -> LocusStatistic (*)(Eigen::Ref<Eigen::VectorXd>)
 {
@@ -96,7 +96,7 @@ auto get_genotype_process_method(GenotypeProcessMethod method)
     throw InvalidInputException("Invalid genotype process method.");
 }
 
-template <GeneticEffectType GT>
+template <GeneticKind GT>
 auto get_center_genotype_method(GenotypeProcessMethod method)
     -> LocusStatistic (*)(Eigen::Ref<Eigen::VectorXd>)
 {
@@ -109,7 +109,7 @@ auto get_center_genotype_method(GenotypeProcessMethod method)
     return get_genotype_process_method<GT>(method);
 }
 
-template <GeneticEffectType GT>
+template <GeneticKind GT>
 auto process_matrix(
     GenotypeProcessMethod method,
     Eigen::Ref<Eigen::MatrixXd> genotype,

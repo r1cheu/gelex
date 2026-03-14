@@ -44,7 +44,7 @@ auto compute_init_marker_variance(
 
 struct GeneticPriorConfig
 {
-    GeneticEffectType type;
+    GeneticKind type;
     Prior prior;
 };
 
@@ -56,7 +56,7 @@ struct PriorConfig
     double residual_variance_proportion{0.3};
     double positive_prob{0.5};
 
-    const Prior* genetic_prior(GeneticEffectType type) const
+    const Prior* genetic_prior(GeneticKind type) const
     {
         auto it = std::ranges::find(genetics, type, &GeneticPriorConfig::type);
         return it != genetics.end() ? &it->prior : nullptr;
@@ -86,7 +86,7 @@ struct EffectPriorSpec
 
 struct GeneticPriorSpec
 {
-    GeneticEffectType type;
+    GeneticKind type;
     EffectPriorSpec spec;
 };
 
@@ -94,7 +94,7 @@ struct PriorSpec
 {
     std::vector<GeneticPriorSpec> genetics;
 
-    const EffectPriorSpec* genetic_spec(GeneticEffectType type) const
+    const EffectPriorSpec* genetic_spec(GeneticKind type) const
     {
         auto it = std::ranges::find(genetics, type, &GeneticPriorSpec::type);
         return it != genetics.end() ? &it->spec : nullptr;

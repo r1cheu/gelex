@@ -21,15 +21,15 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/io/binary_format.h"
-#include "gelex/io/sbin_reader.h"
-#include "gelex/io/sbin_writer.h"
+#include "gelex/io/locistats_reader.h"
+#include "gelex/io/locistats_writer.h"
+#include "gelex/types/genotype_process_method.h"
 
 #include "file_fixture.h"
 
-using gelex::SbinReader;
-using gelex::SbinWriter;
-using gelex::detail::EffectType;
+using gelex::EffectType;
+using gelex::LociStatsReader;
+using gelex::LociStatsWriter;
 
 TEST_CASE("sbin round-trip additive only", "[sbin][snpstats]")
 {
@@ -41,25 +41,33 @@ TEST_CASE("sbin round-trip additive only", "[sbin][snpstats]")
     Eigen::VectorXd stddev = Eigen::VectorXd::LinSpaced(kNumSnps, 0.01, 0.50);
     std::vector<int64_t> mono = {3, 42, 101};
 
+    constexpr auto kMethod = gelex::GenotypeProcessMethod::StandardizeHWE;
+
     auto sbin_path = dir / "test.sbin";
     {
-        SbinWriter writer(sbin_path.string());
-        writer.write(EffectType::Add, mean, &stddev, mono);
+        LociStatsWriter writer(sbin_path.string());
+        writer.write(
+            EffectType::add(),
+            static_cast<uint8_t>(kMethod),
+            mean,
+            &stddev,
+            mono);
         writer.finalize();
     }
 
-    SbinReader reader(sbin_path.string());
+    LociStatsReader reader(sbin_path.string());
 
-    REQUIRE(reader.has(EffectType::Add));
-    REQUIRE_FALSE(reader.has(EffectType::Dom));
+    REQUIRE(reader.has(EffectType::add()));
+    REQUIRE_FALSE(reader.has(EffectType::dom()));
 
-    auto data = reader.read(EffectType::Add);
+    auto data = reader.read(EffectType::add());
 
     REQUIRE(data.mean.size() == kNumSnps);
     REQUIRE(data.stddev.has_value());
     REQUIRE(data.mean.isApprox(mean));
     REQUIRE(data.stddev->isApprox(stddev));
     REQUIRE(data.mono_indices == mono);
+    REQUIRE(data.method == kMethod);
 }
 
 TEST_CASE("sbin round-trip additive and dominance", "[sbin][snpstats]")
@@ -77,30 +85,45 @@ TEST_CASE("sbin round-trip additive and dominance", "[sbin][snpstats]")
     Eigen::VectorXd dom_stddev
         = Eigen::VectorXd::LinSpaced(kNumSnps, 0.05, 0.25);
 
+    constexpr auto kAddMethod = gelex::GenotypeProcessMethod::StandardizeHWE;
+    constexpr auto kDomMethod
+        = gelex::GenotypeProcessMethod::OrthStandardizeHWE;
+
     auto sbin_path = dir / "test_ad.sbin";
     {
-        SbinWriter writer(sbin_path.string());
-        writer.write(EffectType::Add, add_mean, &add_stddev, add_mono);
-        writer.write(EffectType::Dom, dom_mean, &dom_stddev);
+        LociStatsWriter writer(sbin_path.string());
+        writer.write(
+            EffectType::add(),
+            static_cast<uint8_t>(kAddMethod),
+            add_mean,
+            &add_stddev,
+            add_mono);
+        writer.write(
+            EffectType::dom(),
+            static_cast<uint8_t>(kDomMethod),
+            dom_mean,
+            &dom_stddev);
         writer.finalize();
     }
 
-    SbinReader reader(sbin_path.string());
+    LociStatsReader reader(sbin_path.string());
 
-    REQUIRE(reader.has(EffectType::Add));
-    REQUIRE(reader.has(EffectType::Dom));
+    REQUIRE(reader.has(EffectType::add()));
+    REQUIRE(reader.has(EffectType::dom()));
 
-    auto add_data = reader.read(EffectType::Add);
+    auto add_data = reader.read(EffectType::add());
     REQUIRE(add_data.mean.isApprox(add_mean));
     REQUIRE(add_data.stddev.has_value());
     REQUIRE(add_data.stddev->isApprox(add_stddev));
     REQUIRE(add_data.mono_indices == add_mono);
+    REQUIRE(add_data.method == kAddMethod);
 
-    auto dom_data = reader.read(EffectType::Dom);
+    auto dom_data = reader.read(EffectType::dom());
     REQUIRE(dom_data.mean.isApprox(dom_mean));
     REQUIRE(dom_data.stddev.has_value());
     REQUIRE(dom_data.stddev->isApprox(dom_stddev));
     REQUIRE(dom_data.mono_indices.empty());
+    REQUIRE(dom_data.method == kDomMethod);
 }
 
 TEST_CASE("sbin round-trip center only (no stddev)", "[sbin][snpstats]")
@@ -114,16 +137,16 @@ TEST_CASE("sbin round-trip center only (no stddev)", "[sbin][snpstats]")
 
     auto sbin_path = dir / "test_center.sbin";
     {
-        SbinWriter writer(sbin_path.string());
-        writer.write(EffectType::Add, mean, nullptr, mono);
+        LociStatsWriter writer(sbin_path.string());
+        writer.write(EffectType::add(), 0, mean, nullptr, mono);
         writer.finalize();
     }
 
-    SbinReader reader(sbin_path.string());
+    LociStatsReader reader(sbin_path.string());
 
-    REQUIRE(reader.has(EffectType::Add));
+    REQUIRE(reader.has(EffectType::add()));
 
-    auto data = reader.read(EffectType::Add);
+    auto data = reader.read(EffectType::add());
 
     REQUIRE(data.mean.size() == kNumSnps);
     REQUIRE_FALSE(data.stddev.has_value());

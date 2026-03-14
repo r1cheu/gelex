@@ -40,23 +40,6 @@ namespace fs = std::filesystem;
 using namespace gelex;
 using namespace gelex::detail;
 
-template <typename Scalar>
-auto reserve_and_write(
-    BinaryWriter& writer,
-    SectionKey key,
-    const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& data) -> void
-{
-    auto h = writer.reserve(
-        key,
-        binary_format::dtype_code<Scalar>(),
-        static_cast<uint64_t>(data.rows()),
-        static_cast<uint64_t>(data.cols()));
-    writer.write(
-        h,
-        reinterpret_cast<const char*>(data.data()),
-        static_cast<std::streamsize>(data.size() * sizeof(Scalar)));
-}
-
 }  // namespace
 
 TEST_CASE("Container round-trip with mixed dtypes", "[binary_container]")
@@ -78,11 +61,9 @@ TEST_CASE("Container round-trip with mixed dtypes", "[binary_container]")
     auto container_path = dir / "test.samples";
     {
         BinaryWriter writer(container_path.string());
-        reserve_and_write(writer, {EffectType::Add, DataKind::Coeff}, coeffs);
-        reserve_and_write(
-            writer, {EffectType::Add, DataKind::Mixture}, tracker);
-        reserve_and_write(
-            writer, {EffectType::Residual, DataKind::Variance}, scalars);
+        writer.write({EffectType::add(), DataKind::Coeff}, coeffs);
+        writer.write({EffectType::add(), DataKind::MixtureTracker}, tracker);
+        writer.write({EffectType::residual(), DataKind::Variance}, scalars);
         writer.finalize();
     }
 
@@ -92,7 +73,7 @@ TEST_CASE("Container round-trip with mixed dtypes", "[binary_container]")
 
     SECTION("double section")
     {
-        auto mat = reader.map<double>(EffectType::Add, DataKind::Coeff);
+        auto mat = reader.map<double>(EffectType::add(), DataKind::Coeff);
         REQUIRE(mat.rows() == 3);
         REQUIRE(mat.cols() == 5);
         REQUIRE(mat.isApprox(coeffs));
@@ -100,7 +81,8 @@ TEST_CASE("Container round-trip with mixed dtypes", "[binary_container]")
 
     SECTION("int8_t section")
     {
-        auto mat = reader.map<int8_t>(EffectType::Add, DataKind::Mixture);
+        auto mat
+            = reader.map<int8_t>(EffectType::add(), DataKind::MixtureTracker);
         REQUIRE(mat.rows() == 3);
         REQUIRE(mat.cols() == 5);
         REQUIRE(mat == tracker);
@@ -108,7 +90,8 @@ TEST_CASE("Container round-trip with mixed dtypes", "[binary_container]")
 
     SECTION("scalar section")
     {
-        auto mat = reader.mat<double>(EffectType::Residual, DataKind::Variance);
+        auto mat
+            = reader.mat<double>(EffectType::residual(), DataKind::Variance);
         REQUIRE(mat.rows() == 3);
         REQUIRE(mat.cols() == 5);
         REQUIRE(mat.isApprox(scalars));
@@ -126,13 +109,13 @@ TEST_CASE("Container has_section", "[binary_container]")
     auto container_path = dir / "test.samples";
     {
         BinaryWriter writer(container_path.string());
-        reserve_and_write(writer, {EffectType::Add, DataKind::Coeff}, data);
+        writer.write({EffectType::add(), DataKind::Coeff}, data);
         writer.finalize();
     }
 
     BinaryReader reader(container_path.string());
-    REQUIRE(reader.has_section(EffectType::Add, DataKind::Coeff));
-    REQUIRE_FALSE(reader.has_section(EffectType::Dom, DataKind::Coeff));
+    REQUIRE(reader.has_section(EffectType::add(), DataKind::Coeff));
+    REQUIRE_FALSE(reader.has_section(EffectType::dom(), DataKind::Coeff));
 }
 
 TEST_CASE("Container section not found throws", "[binary_container]")
@@ -146,13 +129,13 @@ TEST_CASE("Container section not found throws", "[binary_container]")
     auto container_path = dir / "test.samples";
     {
         BinaryWriter writer(container_path.string());
-        reserve_and_write(writer, {EffectType::Add, DataKind::Coeff}, data);
+        writer.write({EffectType::add(), DataKind::Coeff}, data);
         writer.finalize();
     }
 
     BinaryReader reader(container_path.string());
     REQUIRE_THROWS_AS(
-        reader.map<double>(EffectType::Dom, DataKind::Coeff),
+        reader.map<double>(EffectType::dom(), DataKind::Coeff),
         FileFormatException);
 }
 
@@ -167,13 +150,13 @@ TEST_CASE("Container dtype mismatch throws", "[binary_container]")
     auto container_path = dir / "test.samples";
     {
         BinaryWriter writer(container_path.string());
-        reserve_and_write(writer, {EffectType::Add, DataKind::Coeff}, data);
+        writer.write({EffectType::add(), DataKind::Coeff}, data);
         writer.finalize();
     }
 
     BinaryReader reader(container_path.string());
     REQUIRE_THROWS_AS(
-        reader.map<int8_t>(EffectType::Add, DataKind::Coeff),
+        reader.map<int8_t>(EffectType::add(), DataKind::Coeff),
         ArgumentValidationException);
 }
 
@@ -211,17 +194,9 @@ TEST_CASE("Container duplicate section key throws", "[binary_container]")
     const auto& dir = fixture.get_test_dir();
 
     BinaryWriter writer((dir / "test.samples").string());
-    writer.reserve(
-        {EffectType::Add, DataKind::Coeff},
-        binary_format::dtype_code<double>(),
-        2,
-        2);
+    writer.reserve<double>({EffectType::add(), DataKind::Coeff}, 2, 2);
     REQUIRE_THROWS_AS(
-        writer.reserve(
-            {EffectType::Add, DataKind::Coeff},
-            binary_format::dtype_code<double>(),
-            2,
-            2),
+        (writer.reserve<double>({EffectType::add(), DataKind::Coeff}, 2, 2)),
         ArgumentValidationException);
 }
 
@@ -245,27 +220,23 @@ TEST_CASE("Container sections with different indices", "[binary_container]")
     auto container_path = dir / "multi_index.samples";
     {
         BinaryWriter writer(container_path.string());
-        reserve_and_write(
-            writer, {EffectType::Random, DataKind::Coeff, 0}, random0);
-        reserve_and_write(
-            writer, {EffectType::Random, DataKind::Coeff, 1}, random1);
-        reserve_and_write(
-            writer, {EffectType::Random, DataKind::Variance, 0}, var0);
-        reserve_and_write(
-            writer, {EffectType::Random, DataKind::Variance, 1}, var1);
+        writer.write({EffectType::random(), DataKind::Coeff, 0}, random0);
+        writer.write({EffectType::random(), DataKind::Coeff, 1}, random1);
+        writer.write({EffectType::random(), DataKind::Variance, 0}, var0);
+        writer.write({EffectType::random(), DataKind::Variance, 1}, var1);
         writer.finalize();
     }
 
     BinaryReader reader(container_path.string());
     REQUIRE(reader.n_sections() == 4);
 
-    REQUIRE(reader.has_section(EffectType::Random, DataKind::Coeff, 0));
-    REQUIRE(reader.has_section(EffectType::Random, DataKind::Coeff, 1));
-    REQUIRE_FALSE(reader.has_section(EffectType::Random, DataKind::Coeff, 2));
+    REQUIRE(reader.has_section(EffectType::random(), DataKind::Coeff, 0));
+    REQUIRE(reader.has_section(EffectType::random(), DataKind::Coeff, 1));
+    REQUIRE_FALSE(reader.has_section(EffectType::random(), DataKind::Coeff, 2));
 
     SECTION("index 0 coeffs")
     {
-        auto mat = reader.map<double>(EffectType::Random, DataKind::Coeff, 0);
+        auto mat = reader.map<double>(EffectType::random(), DataKind::Coeff, 0);
         REQUIRE(mat.rows() == 2);
         REQUIRE(mat.cols() == 4);
         REQUIRE(mat.isApprox(random0));
@@ -273,7 +244,7 @@ TEST_CASE("Container sections with different indices", "[binary_container]")
 
     SECTION("index 1 coeffs")
     {
-        auto mat = reader.map<double>(EffectType::Random, DataKind::Coeff, 1);
+        auto mat = reader.map<double>(EffectType::random(), DataKind::Coeff, 1);
         REQUIRE(mat.rows() == 3);
         REQUIRE(mat.cols() == 4);
         REQUIRE(mat.isApprox(random1));
@@ -282,7 +253,7 @@ TEST_CASE("Container sections with different indices", "[binary_container]")
     SECTION("index 0 variance")
     {
         auto mat
-            = reader.map<double>(EffectType::Random, DataKind::Variance, 0);
+            = reader.map<double>(EffectType::random(), DataKind::Variance, 0);
         REQUIRE(mat.rows() == 1);
         REQUIRE(mat.cols() == 4);
         REQUIRE(mat.isApprox(var0));
@@ -291,7 +262,7 @@ TEST_CASE("Container sections with different indices", "[binary_container]")
     SECTION("index 1 variance")
     {
         auto mat
-            = reader.map<double>(EffectType::Random, DataKind::Variance, 1);
+            = reader.map<double>(EffectType::random(), DataKind::Variance, 1);
         REQUIRE(mat.rows() == 1);
         REQUIRE(mat.cols() == 4);
         REQUIRE(mat.isApprox(var1));
@@ -328,27 +299,15 @@ TEST_CASE("Reserve round-trip with column-wise writes", "[binary_container]")
     auto container_path = dir / "reserve.samples";
     {
         BinaryWriter writer(container_path.string());
-        auto h_double = writer.reserve(
-            {EffectType::Add, DataKind::Coeff},
-            binary_format::dtype_code<double>(),
-            kRows,
-            kCols);
-        auto h_int8 = writer.reserve(
-            {EffectType::Add, DataKind::Mixture},
-            binary_format::dtype_code<int8_t>(),
-            kRows,
-            kCols);
+        auto h_double = writer.reserve<double>(
+            {EffectType::add(), DataKind::Coeff}, kRows, kCols);
+        auto h_int8 = writer.reserve<int8_t>(
+            {EffectType::add(), DataKind::MixtureTracker}, kRows, kCols);
 
         for (int c = 0; c < kCols; ++c)
         {
-            writer.write(
-                h_double,
-                reinterpret_cast<const char*>(expected_double.col(c).data()),
-                kRows * sizeof(double));
-            writer.write(
-                h_int8,
-                reinterpret_cast<const char*>(expected_int8.col(c).data()),
-                kRows * sizeof(int8_t));
+            writer.write(h_double, expected_double.col(c));
+            writer.write(h_int8, expected_int8.col(c));
         }
         writer.finalize();
     }
@@ -356,12 +315,13 @@ TEST_CASE("Reserve round-trip with column-wise writes", "[binary_container]")
     BinaryReader reader(container_path.string());
     REQUIRE(reader.n_sections() == 2);
 
-    auto mat_d = reader.map<double>(EffectType::Add, DataKind::Coeff);
+    auto mat_d = reader.map<double>(EffectType::add(), DataKind::Coeff);
     REQUIRE(mat_d.rows() == kRows);
     REQUIRE(mat_d.cols() == kCols);
     REQUIRE(mat_d.isApprox(expected_double));
 
-    auto mat_i = reader.map<int8_t>(EffectType::Add, DataKind::Mixture);
+    auto mat_i
+        = reader.map<int8_t>(EffectType::add(), DataKind::MixtureTracker);
     REQUIRE(mat_i.rows() == kRows);
     REQUIRE(mat_i.cols() == kCols);
     REQUIRE(mat_i == expected_int8);
@@ -374,20 +334,12 @@ TEST_CASE("Reserve write overflow throws", "[binary_container]")
 
     auto container_path = dir / "overflow.samples";
     BinaryWriter writer(container_path.string());
-    auto h = writer.reserve(
-        {EffectType::Add, DataKind::Coeff},
-        binary_format::dtype_code<double>(),
-        2,
-        1);
+    auto h = writer.reserve<double>({EffectType::add(), DataKind::Coeff}, 2, 1);
 
     Eigen::Vector3d too_large;
     too_large << 1.0, 2.0, 3.0;
     REQUIRE_THROWS_AS(
-        writer.write(
-            h,
-            reinterpret_cast<const char*>(too_large.data()),
-            static_cast<std::streamsize>(too_large.size() * sizeof(double))),
-        ArgumentValidationException);
+        (writer.write(h, too_large)), ArgumentValidationException);
 }
 
 TEST_CASE(
@@ -408,14 +360,14 @@ TEST_CASE(
 
     // Load via GenotypeMatReader (in-memory)
     GenotypeMatReader mat_reader(prefix, sample_mgr);
-    auto mat_result = mat_reader.process<GeneticEffectType::Add>(
+    auto mat_result = mat_reader.process<GeneticKind::Add>(
         GenotypeProcessMethod::StandardizeHWE);
 
     // Load via GenotypeMapReader (mmap)
     auto output_prefix
         = bed_fixture.get_file_fixture().get_test_dir() / "mmap_out";
     GenotypeMapReader map_reader(prefix, sample_mgr, output_prefix);
-    auto map_result = map_reader.process<GeneticEffectType::Add>(
+    auto map_result = map_reader.process<GeneticKind::Add>(
         GenotypeProcessMethod::StandardizeHWE);
 
     SECTION("matrix dimensions match")
@@ -531,24 +483,15 @@ TEST_CASE(
     {
         BinaryWriter writer(container_path.string());
 
-        auto stats_handle = writer.reserve(
-            {EffectType::Add, DataKind::SnpStats},
-            binary_format::dtype_code<double>(),
-            kNumVariants,
-            2);
-        writer.write(
-            stats_handle,
-            reinterpret_cast<const char*>(means.data()),
-            static_cast<std::streamsize>(means.size() * sizeof(double)));
-        writer.write(
-            stats_handle,
-            reinterpret_cast<const char*>(variances.data()),
-            static_cast<std::streamsize>(variances.size() * sizeof(double)));
+        auto stats_handle = writer.reserve<double>(
+            {EffectType::add(), DataKind::LociStats}, kNumVariants, 2);
+        writer.write(stats_handle, means);
+        writer.write(stats_handle, variances);
         writer.finalize();
     }
 
     BinaryReader reader(container_path.string());
-    auto stats_mat = reader.mat<double>(EffectType::Add, DataKind::SnpStats);
+    auto stats_mat = reader.mat<double>(EffectType::add(), DataKind::LociStats);
 
     REQUIRE(stats_mat.rows() == kNumVariants);
     REQUIRE(stats_mat.cols() == 2);

@@ -29,6 +29,7 @@
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genotype_process_method.h"
 
 namespace gelex
 {
@@ -78,7 +79,7 @@ class GenoPipe
     using GenotypeMatrixPtr
         = std::unique_ptr<std::variant<GenotypeMap, GenotypeMatrix>>;
 
-    template <GeneticEffectType GT>
+    template <GeneticKind GT>
     auto load_genotype_impl(
         const std::string& suffix,
         GenotypeProcessMethod method,

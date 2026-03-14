@@ -34,8 +34,8 @@ auto A::operator()(
     std::mt19937_64& rng) const -> void
 {
     Gibbs::A(
-        *model.genetic(GeneticEffectType::Add),
-        *states.genetic(GeneticEffectType::Add),
+        *model.genetic(GeneticKind::Add),
+        *states.genetic(GeneticKind::Add),
         states.residual(),
         rng);
 }
@@ -46,8 +46,8 @@ auto B::operator()(
     std::mt19937_64& rng) const -> void
 {
     Gibbs::B(
-        *model.genetic(GeneticEffectType::Add),
-        *states.genetic(GeneticEffectType::Add),
+        *model.genetic(GeneticKind::Add),
+        *states.genetic(GeneticKind::Add),
         states.residual(),
         rng);
 }
@@ -58,8 +58,8 @@ auto C::operator()(
     std::mt19937_64& rng) const -> void
 {
     Gibbs::C(
-        *model.genetic(GeneticEffectType::Add),
-        *states.genetic(GeneticEffectType::Add),
+        *model.genetic(GeneticKind::Add),
+        *states.genetic(GeneticKind::Add),
         states.residual(),
         rng);
 }
@@ -70,8 +70,8 @@ auto R::operator()(
     std::mt19937_64& rng) const -> void
 {
     Gibbs::R(
-        *model.genetic(GeneticEffectType::Add),
-        *states.genetic(GeneticEffectType::Add),
+        *model.genetic(GeneticKind::Add),
+        *states.genetic(GeneticKind::Add),
         states.residual(),
         rng);
 }
@@ -82,8 +82,8 @@ auto RR::operator()(
     std::mt19937_64& rng) const -> void
 {
     Gibbs::RR(
-        *model.genetic(GeneticEffectType::Add),
-        *states.genetic(GeneticEffectType::Add),
+        *model.genetic(GeneticKind::Add),
+        *states.genetic(GeneticKind::Add),
         states.residual(),
         rng);
 }

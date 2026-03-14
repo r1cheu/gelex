@@ -33,6 +33,7 @@
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/binary_format.h"
 #include "gelex/io/binary_writer.h"
+#include "gelex/types/genotype_process_method.h"
 
 namespace gelex
 {
@@ -46,22 +47,13 @@ class GenotypeMapReader
         const std::filesystem::path& output_prefix,
         DataPipeObserver observer = {});
 
-    GenotypeMapReader(const GenotypeMapReader&) = delete;
-    GenotypeMapReader(GenotypeMapReader&&) noexcept = default;
-    GenotypeMapReader& operator=(const GenotypeMapReader&) = delete;
-    GenotypeMapReader& operator=(GenotypeMapReader&&) noexcept = default;
-    ~GenotypeMapReader() = default;
-
-    template <GeneticEffectType GT>
+    template <GeneticKind GT>
     auto process(GenotypeProcessMethod method, size_t chunk_size = 10000)
         -> GenotypeMap
     {
-        constexpr auto effect = detail::to_section_effect_type(GT);
-        genotype_handle_ = writer_->reserve(
-            {effect, detail::DataKind::Genotype},
-            detail::binary_format::dtype_code<double>(),
-            static_cast<uint64_t>(sample_size_),
-            static_cast<uint64_t>(num_variants_));
+        constexpr auto effect = EffectType::from_genetic(GT);
+        genotype_handle_ = writer_->reserve<double>(
+            {effect, detail::DataKind::Genotype}, sample_size_, num_variants_);
 
         int64_t current_processed_snps = 0;
         auto fn = get_genotype_process_method<GT>(method);
@@ -78,10 +70,7 @@ class GenotypeMapReader
 
             auto chunk = bed_pipe_.load_chunk(start_variant, end_variant);
             process_chunk(chunk, start_variant, fn);
-            writer_->write(
-                genotype_handle_,
-                reinterpret_cast<const char*>(chunk.data()),
-                static_cast<std::streamsize>(chunk.size() * sizeof(double)));
+            writer_->write(genotype_handle_, chunk);
             current_processed_snps += (end_variant - start_variant);
 
             notify(
@@ -118,37 +107,23 @@ class GenotypeMapReader
         size_t global_start,
         LocusStatistic (*fn)(Eigen::Ref<Eigen::VectorXd>));
 
-    template <GeneticEffectType GT>
+    template <GeneticKind GT>
     auto finalize() -> GenotypeMap
     {
-        constexpr auto effect = detail::to_section_effect_type(GT);
+        constexpr auto effect = EffectType::from_genetic(GT);
 
-        auto stats_handle = writer_->reserve(
-            {effect, detail::DataKind::SnpStats},
-            detail::binary_format::dtype_code<double>(),
-            static_cast<uint64_t>(num_variants_),
-            2);
-        writer_->write(
-            stats_handle,
-            reinterpret_cast<const char*>(means_.data()),
-            static_cast<std::streamsize>(means_.size() * sizeof(double)));
-        writer_->write(
-            stats_handle,
-            reinterpret_cast<const char*>(variances_.data()),
-            static_cast<std::streamsize>(variances_.size() * sizeof(double)));
+        auto stats_handle = writer_->reserve<double>(
+            {effect, detail::DataKind::LociStats}, num_variants_, 2);
+        writer_->write(stats_handle, means_);
+        writer_->write(stats_handle, variances_);
 
         if (!monomorphic_indices_.empty())
         {
-            auto mono_handle = writer_->reserve(
+            auto mono_handle = writer_->reserve<int64_t>(
                 {effect, detail::DataKind::MonoIndices},
-                detail::binary_format::dtype_code<int64_t>(),
-                static_cast<uint64_t>(monomorphic_indices_.size()),
+                monomorphic_indices_.size(),
                 1);
-            writer_->write(
-                mono_handle,
-                reinterpret_cast<const char*>(monomorphic_indices_.data()),
-                static_cast<std::streamsize>(
-                    monomorphic_indices_.size() * sizeof(int64_t)));
+            writer_->write(mono_handle, monomorphic_indices_);
         }
 
         writer_->finalize();
@@ -168,7 +143,7 @@ class GenotypeMapReader
     std::vector<int64_t> monomorphic_indices_;
 
     std::unique_ptr<detail::BinaryWriter> writer_;
-    size_t genotype_handle_{};
+    detail::SectionHandle<double> genotype_handle_{};
     std::filesystem::path output_prefix_;
 };
 

@@ -33,15 +33,7 @@ class SampleManager
 {
    public:
     explicit SampleManager(const std::filesystem::path& fam_path);
-
-    SampleManager(const SampleManager&) = delete;
-    SampleManager(SampleManager&&) noexcept = default;
-    SampleManager& operator=(const SampleManager&) = delete;
-    SampleManager& operator=(SampleManager&&) noexcept = default;
-    ~SampleManager() = default;
-
     void intersect(std::span<const std::string> ids);
-
     void finalize();
 
     static auto create_finalized(const std::filesystem::path& bed_path)

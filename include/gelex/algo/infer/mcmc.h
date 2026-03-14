@@ -106,7 +106,7 @@ void MCMC<TraitSampler>::run_impl(
 
     std::mt19937_64 rng(seed);
 
-    std::vector<std::pair<GeneticEffectType, double>> gen_h2;
+    std::vector<std::pair<GeneticKind, double>> gen_h2;
     gen_h2.reserve(status.genetics().size());
 
     for (Eigen::Index iter = 0; iter < params_.n_iters; ++iter)
@@ -121,12 +121,12 @@ void MCMC<TraitSampler>::run_impl(
         for (const auto& gen : status.genetics())
         {
             gen_h2.emplace_back(gen.type, gen.heritability);
-            if (gen.type == GeneticEffectType::Dom && gen.mixture)
+            if (gen.type == GeneticKind::Dom && gen.mixture)
             {
                 const auto& prop = gen.mixture->pi.proportion;
                 dom_pi.emplace(std::vector<double>(prop.begin(), prop.end()));
             }
-            if (gen.type == GeneticEffectType::Dom && gen.sign)
+            if (gen.type == GeneticKind::Dom && gen.sign)
             {
                 dom_positive_prob = gen.sign->positive_prob;
             }

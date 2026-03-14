@@ -53,13 +53,13 @@ class BayesModel
     }
     std::vector<bayes::GeneticEffect>& genetics() { return genetics_; }
 
-    const bayes::GeneticEffect* genetic(GeneticEffectType type) const
+    const bayes::GeneticEffect* genetic(GeneticKind type) const
     {
         auto it
             = std::ranges::find(genetics_, type, &bayes::GeneticEffect::type);
         return it != genetics_.end() ? &*it : nullptr;
     }
-    bayes::GeneticEffect* genetic(GeneticEffectType type)
+    bayes::GeneticEffect* genetic(GeneticKind type)
     {
         auto it
             = std::ranges::find(genetics_, type, &bayes::GeneticEffect::type);
@@ -107,13 +107,13 @@ class BayesState
     }
     std::vector<bayes::GeneticState>& genetics() { return genetics_; }
 
-    const bayes::GeneticState* genetic(GeneticEffectType type) const
+    const bayes::GeneticState* genetic(GeneticKind type) const
     {
         auto it
             = std::ranges::find(genetics_, type, &bayes::GeneticState::type);
         return it != genetics_.end() ? &*it : nullptr;
     }
-    bayes::GeneticState* genetic(GeneticEffectType type)
+    bayes::GeneticState* genetic(GeneticKind type)
     {
         auto it
             = std::ranges::find(genetics_, type, &bayes::GeneticState::type);

@@ -38,7 +38,7 @@ MCMCResult::MCMCResult(MCMCSamples&& samples, const BayesModel& model)
       residual_(1),
       phenotype_var_(model.phenotype_variance())
 {
-    if (const auto* effect = model.genetic(GeneticEffectType::Add); effect)
+    if (const auto* effect = model.genetic(GeneticKind::Add); effect)
     {
         p_freq_ = bayes::get_means(effect->X).array() / 2;
     }

@@ -20,6 +20,8 @@
 #include <new>  // for std::bad_alloc
 #include "Eigen/Core"
 
+#include "gelex/types/genotype_process_method.h"
+
 namespace gelex
 {
 

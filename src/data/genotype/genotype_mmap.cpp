@@ -28,10 +28,10 @@ namespace gelex
 
 GenotypeMap::GenotypeMap(
     const std::filesystem::path& bin_file,
-    GeneticEffectType effect_type)
+    GeneticKind effect_type)
     : mat_(nullptr, 0, 0)
 {
-    const auto effect = detail::to_section_effect_type(effect_type);
+    const auto effect = EffectType::from_genetic(effect_type);
     reader_ = std::make_unique<detail::BinaryReader>(bin_file.string());
 
     auto geno_map = reader_->map<double>(effect, detail::DataKind::Genotype);
@@ -39,7 +39,7 @@ GenotypeMap::GenotypeMap(
     cols_ = geno_map.cols();
     new (&mat_) MapType(geno_map.data(), rows_, cols_);
 
-    auto stats_mat = reader_->mat<double>(effect, detail::DataKind::SnpStats);
+    auto stats_mat = reader_->mat<double>(effect, detail::DataKind::LociStats);
     mean_ = stats_mat.col(0);
     stddev_ = stats_mat.col(1);
 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_SBIN_WRITER_H_
-#define GELEX_IO_SBIN_WRITER_H_
+#ifndef GELEX_IO_LOCISTATS_WRITER_H_
+#define GELEX_IO_LOCISTATS_WRITER_H_
 
 #include <cstdint>
 #include <span>
@@ -23,19 +23,19 @@
 
 #include <Eigen/Core>
 
-#include "gelex/io/binary_format.h"
 #include "gelex/io/binary_writer.h"
 
 namespace gelex
 {
 
-class SbinWriter
+class LociStatsWriter
 {
    public:
-    explicit SbinWriter(std::string_view output_path);
+    explicit LociStatsWriter(std::string_view output_path);
 
     auto write(
-        detail::EffectType effect,
+        EffectType effect,
+        uint8_t method,
         const Eigen::VectorXd& mean,
         const Eigen::VectorXd* stddev = nullptr,
         std::span<const int64_t> mono_indices = {}) -> void;
@@ -48,4 +48,4 @@ class SbinWriter
 
 }  // namespace gelex
 
-#endif  // GELEX_IO_SBIN_WRITER_H_
+#endif  // GELEX_IO_LOCISTATS_WRITER_H_

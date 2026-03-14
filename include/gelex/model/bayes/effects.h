@@ -63,13 +63,13 @@ struct SignConfig
 
 struct GeneticEffect
 {
-    GeneticEffect(GeneticEffectType type, GenotypeStorage&& X)
+    GeneticEffect(GeneticKind type, GenotypeStorage&& X)
         : type(type), X(std::move(X))
     {
         cols_squared_norm = get_matrix_ref(this->X).colwise().squaredNorm();
     }
 
-    GeneticEffectType type;
+    GeneticKind type;
     GenotypeStorage X;
     Eigen::VectorXd cols_squared_norm;
 

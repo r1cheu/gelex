@@ -29,13 +29,13 @@ concept EncodePolicy
           { T::encode(locus, maf) } -> std::same_as<void>;
       };
 
-template <gelex::GeneticEffectType GT>
+template <gelex::GeneticKind GT>
 struct RawPolicy
 {
     static auto encode(Eigen::Ref<Eigen::VectorXd> locus, double /*maf*/)
         -> void
     {
-        if constexpr (GT == gelex::GeneticEffectType::Add)
+        if constexpr (GT == gelex::GeneticKind::Add)
         {
         }
         else
@@ -53,12 +53,12 @@ struct RawPolicy
     };
 };
 
-template <gelex::GeneticEffectType GT>
+template <gelex::GeneticKind GT>
 struct OrthogonalPolicy
 {
     static auto encode(Eigen::Ref<Eigen::VectorXd> locus, double maf) -> void
     {
-        if constexpr (GT == gelex::GeneticEffectType::Add)
+        if constexpr (GT == gelex::GeneticKind::Add)
         {
         }
         else

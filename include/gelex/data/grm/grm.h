@@ -50,13 +50,13 @@ class GRM
 
     ~GRM() = default;
 
-    template <GeneticEffectType GT>
+    template <GeneticKind GT>
     auto compute(
         GenotypeProcessMethod method,
         Eigen::Index chunk_size,
         const GrmObserver& observer = {}) -> GrmResult;
 
-    template <GeneticEffectType GT>
+    template <GeneticKind GT>
     auto compute(
         GenotypeProcessMethod method,
         const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
@@ -82,7 +82,7 @@ class GRM
         const Eigen::Ref<const Eigen::MatrixXd>& genotype) -> void;
 };
 
-template <GeneticEffectType GT>
+template <GeneticKind GT>
 auto GRM::compute(
     GenotypeProcessMethod method,
     Eigen::Index chunk_size,
@@ -91,7 +91,7 @@ auto GRM::compute(
     return compute<GT>(method, {{0, bed_.num_snps()}}, chunk_size, observer);
 }
 
-template <GeneticEffectType GT>
+template <GeneticKind GT>
 auto GRM::compute(
     GenotypeProcessMethod method,
     const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,

@@ -24,6 +24,7 @@
 
 #include "gelex/exception.h"
 #include "gelex/infra/logger.h"
+#include "gelex/types/genotype_process_method.h"
 
 namespace gelex
 {

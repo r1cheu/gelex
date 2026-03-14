@@ -37,8 +37,6 @@ LocoGRMReader::LocoGRMReader(
     k_whole_ = trace_whole_ / static_cast<double>(g_whole_.rows());
 }
 
-LocoGRMReader::~LocoGRMReader() = default;
-
 auto LocoGRMReader::load_loco_grm(
     const std::filesystem::path& chr_grm_prefix,
     const std::unordered_map<std::string, Eigen::Index>& id_map,

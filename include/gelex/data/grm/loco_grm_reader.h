@@ -25,10 +25,6 @@
 
 namespace gelex
 {
-namespace detail
-{
-class GrmReader;
-}
 
 class LocoGRMReader
 {
@@ -37,11 +33,11 @@ class LocoGRMReader
         const std::filesystem::path& whole_grm_prefix,
         const std::unordered_map<std::string, Eigen::Index>& id_map);
 
+    ~LocoGRMReader() = default;
     LocoGRMReader(const LocoGRMReader&) = delete;
-    LocoGRMReader(LocoGRMReader&&) noexcept = default;
     LocoGRMReader& operator=(const LocoGRMReader&) = delete;
+    LocoGRMReader(LocoGRMReader&&) noexcept = default;
     LocoGRMReader& operator=(LocoGRMReader&&) noexcept = default;
-    ~LocoGRMReader();
 
     /**
      * @brief Load the LOCO GRM for a specific chromosome.

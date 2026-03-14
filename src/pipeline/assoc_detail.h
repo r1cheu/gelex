@@ -26,13 +26,12 @@
 #include "gelex/infra/logging/assoc_event.h"
 #include "gelex/types/assoc_input.h"
 #include "gelex/types/chr_group.h"
+#include "gelex/types/genotype_process_method.h"
 
 namespace gelex
 {
 class FreqModel;
 class FreqState;
-enum class GenotypeProcessMethod : uint8_t;
-enum class ModelType : uint8_t;
 
 namespace detail
 {
@@ -73,8 +72,11 @@ class ChrScanner
 
     ChrScanner(Config config, BedPipe& bed, AssocObserver observer);
 
+    ~ChrScanner() = default;
     ChrScanner(const ChrScanner&) = delete;
     auto operator=(const ChrScanner&) -> ChrScanner& = delete;
+    ChrScanner(ChrScanner&&) = delete;
+    auto operator=(ChrScanner&&) -> ChrScanner& = delete;
 
     auto scan(
         const ChrGroup& group,

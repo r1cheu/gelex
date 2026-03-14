@@ -52,26 +52,26 @@ class MCMCWriter
    private:
     struct RandomHandles
     {
-        size_t coeffs;
-        size_t variance;
+        detail::SectionHandle<double> coeffs;
+        detail::SectionHandle<double> variance;
     };
 
     struct GeneticHandles
     {
-        detail::EffectType section_effect{};
-        size_t coeffs{0};
-        size_t variance{0};
-        std::optional<size_t> mixture_tracker;
-        std::optional<size_t> pi;
-        std::optional<size_t> sign_tracker;
-        std::optional<size_t> positive_prob;
+        EffectType section_effect{};
+        detail::SectionHandle<double> coeffs{};
+        detail::SectionHandle<double> variance{};
+        std::optional<detail::SectionHandle<int8_t>> mixture_tracker;
+        std::optional<detail::SectionHandle<double>> pi;
+        std::optional<detail::SectionHandle<int8_t>> sign_tracker;
+        std::optional<detail::SectionHandle<double>> positive_prob;
     };
 
     detail::BinaryWriter writer_;
-    size_t fixed_coeffs_;
+    detail::SectionHandle<double> fixed_coeffs_{};
     std::vector<RandomHandles> random_;
     std::vector<GeneticHandles> genetic_;
-    size_t residual_variance_;
+    detail::SectionHandle<double> residual_variance_{};
 };
 
 }  // namespace gelex

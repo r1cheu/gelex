@@ -43,10 +43,10 @@ BayesModel::BayesModel(
     num_individuals_ = phenotype_.rows();
     phenotype_var_ = detail::var(phenotype_)(0);
     add_fixed_effect(std::move(fixed_effects));
-    genetics_.emplace_back(GeneticEffectType::Add, std::move(additive));
+    genetics_.emplace_back(GeneticKind::Add, std::move(additive));
     if (dominance)
     {
-        genetics_.emplace_back(GeneticEffectType::Dom, std::move(*dominance));
+        genetics_.emplace_back(GeneticKind::Dom, std::move(*dominance));
     }
 }
 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_SBIN_READER_H_
-#define GELEX_IO_SBIN_READER_H_
+#ifndef GELEX_IO_LOCISTATS_READER_H_
+#define GELEX_IO_LOCISTATS_READER_H_
 
 #include <cstdint>
 #include <optional>
@@ -24,26 +24,27 @@
 
 #include <Eigen/Core>
 
-#include "gelex/io/binary_format.h"
 #include "gelex/io/binary_reader.h"
+#include "gelex/types/genotype_process_method.h"
 
 namespace gelex
 {
 
-struct SbinData
+struct LociStats
 {
+    GenotypeProcessMethod method;
     Eigen::VectorXd mean;
     std::optional<Eigen::VectorXd> stddev;
     std::vector<int64_t> mono_indices;
 };
 
-class SbinReader
+class LociStatsReader
 {
    public:
-    explicit SbinReader(std::string_view file_path);
+    explicit LociStatsReader(std::string_view file_path);
 
-    [[nodiscard]] auto read(detail::EffectType effect) const -> SbinData;
-    [[nodiscard]] auto has(detail::EffectType effect) const -> bool;
+    [[nodiscard]] auto read(EffectType effect) const -> LociStats;
+    [[nodiscard]] auto has(EffectType effect) const -> bool;
 
    private:
     detail::BinaryReader reader_;
@@ -51,4 +52,4 @@ class SbinReader
 
 }  // namespace gelex
 
-#endif  // GELEX_IO_SBIN_READER_H_
+#endif  // GELEX_IO_LOCISTATS_READER_H_

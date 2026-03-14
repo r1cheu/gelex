@@ -40,8 +40,8 @@ SnpEffectsWriter::~SnpEffectsWriter() = default;
 
 auto SnpEffectsWriter::write() -> void
 {
-    additive_ = result_->genetic(GeneticEffectType::Add);
-    dominant_ = result_->genetic(GeneticEffectType::Dom);
+    additive_ = result_->genetic(GeneticKind::Add);
+    dominant_ = result_->genetic(GeneticKind::Dom);
     if (additive_ == nullptr)
     {
         return;

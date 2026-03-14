@@ -20,7 +20,7 @@
 #include <optional>
 
 #include "gelex/model/bayes/prior_strategy.h"
-#include "gelex/types/effects.h"
+#include "gelex/types/bayes_method.h"
 
 namespace gelex
 {
@@ -30,7 +30,7 @@ inline auto create_prior_strategy(const BayesMethodConfig& method)
 {
     using enum PriorType;
     using enum VarianceScope;
-    using enum GeneticEffectType;
+    using enum GeneticKind;
 
     auto non_mixture = [](VarianceScope scope, bool has_dominant) -> PriorSpec
     {

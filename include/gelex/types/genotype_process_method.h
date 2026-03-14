@@ -56,6 +56,21 @@ inline auto is_center_family_method(GenotypeProcessMethod method) -> bool
     throw InvalidInputException("Invalid genotype process method.");
 }
 
+enum class ModelType : uint8_t
+{
+    A,
+    D,
+    AD
+};
+
+struct LocusStatistic
+{
+    double mean{0};
+    double stddev{0};
+    double maf{0};
+    bool is_monomorphic{false};
+};
+
 }  // namespace gelex
 
 namespace fmt

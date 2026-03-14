@@ -22,6 +22,7 @@
 #include "gelex/internal/genotype_processor/encode_policy.h"
 #include "gelex/internal/genotype_processor/statistic_policy.h"
 #include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genotype_process_method.h"
 
 namespace gelex::detail
 {

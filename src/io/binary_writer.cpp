@@ -25,62 +25,21 @@
 
 #include "gelex/exception.h"
 #include "gelex/io/binary_format.h"
+#include "gelex/io/parser.h"
 
 namespace gelex::detail
 {
 
-namespace
-{
-
-auto align_up(uint64_t value, uint64_t alignment) -> uint64_t
-{
-    return (value + alignment - 1) / alignment * alignment;
-}
-
-auto write_toc_entry(std::ofstream& out, const TocEntry& entry) -> void
-{
-    std::array<std::byte, binary_format::kTocEntrySize> buf{};
-    buf[0] = static_cast<std::byte>(entry.key.effect);
-    buf[1] = static_cast<std::byte>(entry.key.kind);
-    buf[2] = static_cast<std::byte>(entry.dtype);
-    buf[3] = static_cast<std::byte>(entry.key.index);
-    // buf[4..7] = padding (already zero)
-    binary_format::encode(entry.offset, &buf[8]);
-    binary_format::encode(entry.size, &buf[16]);
-    binary_format::encode(entry.rows, &buf[24]);
-    binary_format::encode(entry.cols, &buf[32]);
-
-    out.write(
-        reinterpret_cast<const char*>(buf.data()),
-        static_cast<std::streamsize>(buf.size()));
-}
-
-auto write_footer(std::ofstream& out, uint64_t toc_offset, uint32_t n_sections)
-    -> void
-{
-    std::array<std::byte, binary_format::kFooterSize> buf{};
-    std::copy(
-        binary_format::kBinaryFormatMagic.begin(),
-        binary_format::kBinaryFormatMagic.end(),
-        buf.begin());
-    binary_format::encode(binary_format::kBinaryFormatVersion, &buf[8]);
-    binary_format::encode(toc_offset, &buf[12]);
-    binary_format::encode(n_sections, &buf[20]);
-    // buf[24..31] = reserved padding (already zero)
-
-    out.write(
-        reinterpret_cast<const char*>(buf.data()),
-        static_cast<std::streamsize>(buf.size()));
-}
-
-}  // namespace
-
 BinaryWriter::BinaryWriter(std::string_view output_path)
-    : output_path_(std::string(output_path))
+    : output_path_(std::string(output_path)),
+      file_(
+          open_file<std::ofstream>(
+              output_path_,
+              std::ios::binary | std::ios::trunc))
 {
 }
 
-auto BinaryWriter::check_duplicate_key(const SectionKey& key) -> void
+auto BinaryWriter::check_duplicate_key(const SectionKey& key) const -> void
 {
     for (const auto& rs : reserved_)
     {
@@ -88,29 +47,13 @@ auto BinaryWriter::check_duplicate_key(const SectionKey& key) -> void
         {
             throw ArgumentValidationException(
                 std::format(
-                    "{}: duplicate section key (effect={}, kind={}, index={})",
+                    "{}: duplicate section key ({}, kind={}, index={})",
                     output_path_.string(),
-                    static_cast<int>(key.effect),
+                    key.effect,
                     static_cast<int>(key.kind),
                     key.index));
         }
     }
-}
-
-auto BinaryWriter::open() -> std::ofstream&
-{
-    if (!file_.is_open())
-    {
-        file_.open(output_path_, std::ios::binary | std::ios::trunc);
-        if (!file_.is_open())
-        {
-            throw FileOpenException(
-                std::format(
-                    "{}: failed to open container output",
-                    output_path_.string()));
-        }
-    }
-    return file_;
 }
 
 auto BinaryWriter::reserve(
@@ -120,7 +63,6 @@ auto BinaryWriter::reserve(
     uint64_t cols) -> size_t
 {
     check_duplicate_key(key);
-    open();
 
     const auto element_size
         = static_cast<uint64_t>(static_cast<unsigned>(dtype) >> 2U);
@@ -128,7 +70,6 @@ auto BinaryWriter::reserve(
     const auto aligned_offset
         = align_up(next_offset_, binary_format::kPageAlignment);
     next_offset_ = aligned_offset + total_bytes;
-
     reserved_.push_back(
         ReservedSection{
             .entry
@@ -138,8 +79,10 @@ auto BinaryWriter::reserve(
     return reserved_.size() - 1;
 }
 
-auto BinaryWriter::write(size_t handle, const char* data, std::streamsize bytes)
-    -> void
+auto BinaryWriter::write_raw(
+    size_t handle,
+    const char* data,
+    std::streamsize bytes) -> void
 {
     if (handle >= reserved_.size())
     {
@@ -163,9 +106,35 @@ auto BinaryWriter::write(size_t handle, const char* data, std::streamsize bytes)
                 end_bound));
     }
 
-    file_.seekp(static_cast<std::streamoff>(rs.cursor));
+    if (rs.cursor != file_cursor_)
+    {
+        file_.seekp(static_cast<std::streamoff>(rs.cursor));
+    }
     file_.write(data, bytes);
     rs.cursor += static_cast<uint64_t>(bytes);
+    file_cursor_ = rs.cursor;
+}
+
+auto BinaryWriter::align_up(uint64_t value, uint64_t alignment) noexcept
+    -> uint64_t
+{
+    return (value + alignment - 1) / alignment * alignment;
+}
+
+auto BinaryWriter::write_footer(uint64_t toc_offset, uint64_t n_sections)
+    -> void
+{
+    std::array<std::byte, binary_format::kFooterSize> buf{};
+    std::copy(
+        binary_format::kBinaryFormatMagic.begin(),
+        binary_format::kBinaryFormatMagic.end(),
+        buf.begin());
+    binary_format::encode(toc_offset, &buf[8]);
+    binary_format::encode(n_sections, &buf[16]);
+
+    file_.write(
+        reinterpret_cast<const char*>(buf.data()),
+        static_cast<std::streamsize>(buf.size()));
 }
 
 auto BinaryWriter::finalize() -> void
@@ -185,25 +154,25 @@ auto BinaryWriter::finalize() -> void
         }
     }
 
-    auto& out = open();
-
-    const auto toc_pos = align_up(next_offset_, binary_format::kPageAlignment);
-    out.seekp(static_cast<std::streamoff>(toc_pos));
-
-    const auto toc_offset = static_cast<uint64_t>(out.tellp());
+    const auto toc_offset
+        = align_up(next_offset_, binary_format::kPageAlignment);
+    file_.seekp(static_cast<std::streamoff>(toc_offset));
     for (const auto& rs : reserved_)
     {
-        write_toc_entry(out, rs.entry);
+        auto buf = rs.entry.to_bytes();
+        file_.write(
+            reinterpret_cast<const char*>(buf.data()),
+            static_cast<std::streamsize>(buf.size()));
     }
 
-    write_footer(out, toc_offset, static_cast<uint32_t>(reserved_.size()));
+    write_footer(toc_offset, static_cast<uint64_t>(reserved_.size()));
 
-    out.flush();
-    if (!out.good())
+    file_.flush();
+    if (!file_.good())
     {
         throw FileWriteException(
             std::format(
-                "{}: failed to write container", output_path_.string()));
+                "{}: failed to write binary file", output_path_.string()));
     }
 }
 

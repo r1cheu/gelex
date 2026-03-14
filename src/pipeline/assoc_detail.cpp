@@ -21,6 +21,7 @@
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/model/freq/model.h"
+#include "gelex/types/genotype_process_method.h"
 
 namespace gelex::detail
 {
@@ -39,11 +40,11 @@ auto dispatch_assoc_chunk_by_method(
     }
     if (model_type == ModelType::A)
     {
-        process_matrix<GeneticEffectType::Add>(method, genotype, freqs);
+        process_matrix<GeneticKind::Add>(method, genotype, freqs);
     }
     else
     {
-        process_matrix<GeneticEffectType::Dom>(method, genotype, freqs);
+        process_matrix<GeneticKind::Dom>(method, genotype, freqs);
     }
 }
 

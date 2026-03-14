@@ -37,7 +37,7 @@ auto Pi::operator()(
 {
     // Check if the model has additive effects with pi estimation
 
-    if (auto* state = states.genetic(GeneticEffectType::Add);
+    if (auto* state = states.genetic(GeneticKind::Add);
         state != nullptr && state->mixture)
     {
         auto& ms = *state->mixture;
@@ -55,7 +55,7 @@ auto DominantSampler::Pi::operator()(
 {
     // Check if the model has dominant effects with pi estimation
 
-    if (auto* state = states.genetic(GeneticEffectType::Dom);
+    if (auto* state = states.genetic(GeneticKind::Dom);
         state != nullptr && state->mixture)
     {
         auto& ms = *state->mixture;

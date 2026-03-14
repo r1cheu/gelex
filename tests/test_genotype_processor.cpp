@@ -74,7 +74,7 @@ TEST_CASE("Standardize<Add> - Basic functionality", "[data]")
     {
         Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
 
-        auto stats = Standardize<GeneticEffectType::Add>::process(variant);
+        auto stats = Standardize<GeneticKind::Add>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(0.8, k_tolerance));
         REQUIRE_THAT(stats.stddev, WithinRel(0.8366600265340756, k_tolerance));
@@ -93,7 +93,7 @@ TEST_CASE("Standardize<Add> - Basic functionality", "[data]")
     {
         Eigen::VectorXd variant = make_vector({2.0, 2.0, 2.0, 2.0, 2.0});
 
-        auto stats = Standardize<GeneticEffectType::Add>::process(variant);
+        auto stats = Standardize<GeneticKind::Add>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(2.0, k_tolerance));
         REQUIRE_THAT(stats.stddev, WithinAbs(0.0, k_tolerance));
@@ -108,7 +108,7 @@ TEST_CASE("OrthStandardize<Add> - Basic functionality", "[data]")
     {
         Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
 
-        auto stats = OrthStandardize<GeneticEffectType::Add>::process(variant);
+        auto stats = OrthStandardize<GeneticKind::Add>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(0.8, k_tolerance));
         double expected_stddev = std::sqrt(0.7);
@@ -128,7 +128,7 @@ TEST_CASE("OrthStandardize<Add> - Basic functionality", "[data]")
     {
         Eigen::VectorXd variant = make_vector({2.0, 2.0, 2.0, 2.0, 2.0});
 
-        auto stats = OrthStandardize<GeneticEffectType::Add>::process(variant);
+        auto stats = OrthStandardize<GeneticKind::Add>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(2.0, k_tolerance));
         REQUIRE_THAT(stats.stddev, WithinAbs(0.0, k_tolerance));
@@ -143,7 +143,7 @@ TEST_CASE("Standardize<Dom> - Basic functionality", "[data]")
     {
         Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0, 2.0});
 
-        auto stats = Standardize<GeneticEffectType::Dom>::process(variant);
+        auto stats = Standardize<GeneticKind::Dom>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(0.3333333333333333, k_tolerance));
         REQUIRE_THAT(stats.stddev, WithinRel(0.5163977794943222, k_tolerance));
@@ -157,7 +157,7 @@ TEST_CASE("Standardize<Dom> - Basic functionality", "[data]")
     {
         Eigen::VectorXd variant = make_vector({0.0, 2.0, 0.0, 2.0});
 
-        auto stats = Standardize<GeneticEffectType::Dom>::process(variant);
+        auto stats = Standardize<GeneticKind::Dom>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(0.0, k_tolerance));
         REQUIRE_THAT(stats.stddev, WithinAbs(0.0, k_tolerance));
@@ -171,7 +171,7 @@ TEST_CASE("OrthStandardize<Dom> - Basic functionality", "[data]")
     {
         Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
 
-        auto stats = OrthStandardize<GeneticEffectType::Dom>::process(variant);
+        auto stats = OrthStandardize<GeneticKind::Dom>::process(variant);
 
         double expected_mean = 0.24;
         double expected_stddev = std::sqrt(0.288);
@@ -193,7 +193,7 @@ TEST_CASE("OrthStandardize<Dom> - Basic functionality", "[data]")
     {
         Eigen::VectorXd variant = make_vector({2.0, 2.0, 2.0, 2.0, 2.0});
 
-        auto stats = OrthStandardize<GeneticEffectType::Dom>::process(variant);
+        auto stats = OrthStandardize<GeneticKind::Dom>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(2.0, k_tolerance));
         REQUIRE_THAT(stats.stddev, WithinAbs(0.0, k_tolerance));
@@ -206,7 +206,7 @@ TEST_CASE("StandardizeHWE<Add> uses HWE moments", "[data]")
 {
     Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
 
-    auto stats = StandardizeHWE<GeneticEffectType::Add>::process(variant);
+    auto stats = StandardizeHWE<GeneticKind::Add>::process(variant);
 
     double expected_mean = 0.8;
     double expected_stddev = std::sqrt(2.0 * 0.4 * 0.6);
@@ -228,7 +228,7 @@ TEST_CASE("StandardizeHWE<Dom> uses [0,1,0] HWE moments", "[data]")
 {
     Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
 
-    auto stats = StandardizeHWE<GeneticEffectType::Dom>::process(variant);
+    auto stats = StandardizeHWE<GeneticKind::Dom>::process(variant);
 
     double expected_mean = 2.0 * 0.4 * 0.6;
     double expected_stddev
@@ -251,7 +251,7 @@ TEST_CASE("OrthStandardizeHWE<Dom> uses [0,2p,4p-2] HWE moments", "[data]")
 {
     Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
 
-    auto stats = OrthStandardizeHWE<GeneticEffectType::Dom>::process(variant);
+    auto stats = OrthStandardizeHWE<GeneticKind::Dom>::process(variant);
 
     double expected_mean = 2.0 * 0.4 * 0.4;
     double expected_stddev = 2.0 * 0.4 * 0.6;
