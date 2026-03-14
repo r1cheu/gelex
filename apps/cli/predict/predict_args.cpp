@@ -25,37 +25,26 @@ auto setup_predict_args(argparse::ArgumentParser& cmd) -> void
     cmd.add_description(
         "Generate genomic predictions using fitted SNP effects");
 
-    // ================================================================
-    // Data Files
-    // ================================================================
     cmd.add_group("Data Files");
     cmd.add_argument("-b", "--bfile")
         .help("PLINK binary file prefix for prediction data (.bed/.bim/.fam)")
         .metavar("<BFILE>")
         .required();
-    cmd.add_argument("-e", "--snp-eff")
-        .help("SNP effects file (.snp.eff)")
-        .metavar("<SNP_EFF>")
+    cmd.add_argument("-g", "--gfile")
+        .help("Fitted model file prefix (.snp.eff, .sbin, .param)")
+        .metavar("<GFILE>")
         .required();
-    cmd.add_argument("--covar-eff")
-        .help("Covariate effects file (.param)")
-        .metavar("<COVAR_EFF>");
     cmd.add_argument("--qcovar")
         .help("Quantitative covariates file (TSV: FID, IID, covar1, ...)")
-        .default_value("")
         .metavar("<QCOVAR>");
     cmd.add_argument("--dcovar")
         .help("Discrete covariates file (TSV: FID, IID, factor1, ...)")
-        .default_value("")
         .metavar("<DCOVAR>");
     cmd.add_argument("-o", "--out")
         .help("Output file path for predictions")
         .metavar("<OUT>")
         .required();
 
-    // ================================================================
-    // Processing Options
-    // ================================================================
     cmd.add_group("Processing Options");
     cmd.add_argument("-c", "--chunk-size")
         .help("SNPs per chunk (controls memory usage)")
@@ -65,7 +54,7 @@ auto setup_predict_args(argparse::ArgumentParser& cmd) -> void
     cmd.add_epilog(
         gelex::cli::format_epilog(
             "{bg}Example:{rs}\n"
-            "  {bc}gelex predict{rs} {cy}-b{rs} geno {cy}-e{rs} model.snp.eff "
+            "  {bc}gelex predict{rs} {cy}-b{rs} geno {cy}-g{rs} model "
             "{cy}-o{rs} pred.tsv\n\n"
             "{bg}Docs:{rs}\n"
             "  https://gelex.readthedocs.io/en/latest/cli/predict.html"));

@@ -24,15 +24,6 @@
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/infra/logging/timer.h"
 
-namespace gelex
-{
-struct GrmConfigLoadedEvent;
-struct GrmDataLoadedEvent;
-struct GrmComputeStartedEvent;
-struct GrmProgressEvent;
-struct GrmFilesWrittenEvent;
-}  // namespace gelex
-
 namespace spdlog
 {
 class logger;

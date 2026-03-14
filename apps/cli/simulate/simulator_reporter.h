@@ -22,14 +22,6 @@
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/infra/logging/simulate_event.h"
 
-namespace gelex
-{
-struct SimulateConfigLoadedEvent;
-struct SimulateProgressEvent;
-struct HeritabilityGeneratedEvent;
-struct OutputsWrittenEvent;
-}  // namespace gelex
-
 namespace spdlog
 {
 class logger;

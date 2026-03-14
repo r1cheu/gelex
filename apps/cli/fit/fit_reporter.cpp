@@ -68,8 +68,7 @@ auto FitReporter::on_event(const FitModelReadyEvent& event) const -> void
     {
         print_genetic_prior(
             &effect,
-            fmt::format(
-                "{} effect:", genetic_effect_type::to_string(effect.type)));
+            fmt::format("{} effect:", genetic_kind::to_string(effect.type)));
     }
     print_residual_prior(event.model->residual());
 }
@@ -102,7 +101,7 @@ auto FitReporter::on_event(const FitMcmcProgressEvent& event) -> void
             std::back_inserter(stats_),
             "{}{}:{:.3f}",
             stats_.empty() ? "" : " | ",
-            genetic_effect_type::to_heritability_label(type),
+            genetic_kind::to_heritability_label(type),
             h);
     }
     if (event.sigma2_e)
@@ -236,15 +235,15 @@ auto FitReporter::print_fixed_summary(
 auto FitReporter::print_genetic_summary(
     const GeneticSummary* summary,
     const bayes::GeneticEffect* effect,
-    GeneticEffectType type) const -> void
+    GeneticKind type) const -> void
 {
     if (summary == nullptr)
     {
         return;
     }
 
-    std::string label{genetic_effect_type::to_string(type)};
-    std::string h_name{genetic_effect_type::to_heritability_label(type)};
+    std::string label{genetic_kind::to_string(type)};
+    std::string h_name{genetic_kind::to_heritability_label(type)};
 
     logger_->info(gelex::named_section(label, kTableWidth, 2));
     print_summary_row("σ²", summary->variance);

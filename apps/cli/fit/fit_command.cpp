@@ -23,11 +23,11 @@
 #include "cli/data_pipe_reporter.h"
 #include "fit_config.h"
 #include "fit_reporter.h"
-#include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/pipeline/fit_engine.h"
 #include "gelex/pipeline/geno_pipe.h"
 #include "gelex/pipeline/pheno_pipe.h"
+#include "gelex/types/genotype_process_method.h"
 
 auto fit_execute(argparse::ArgumentParser& fit) -> int
 {

@@ -15,6 +15,7 @@ set(CLI_SOURCES
     cli/predict/predict_args.cpp
     cli/predict/predict_config.cpp
     cli/predict/predict_command.cpp
+    cli/predict/predict_reporter.cpp
     cli/simulate/simulate_args.cpp
     cli/simulate/simulate_config.cpp
     cli/simulate/simulate_command.cpp

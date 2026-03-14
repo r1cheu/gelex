@@ -21,12 +21,6 @@
 
 #include "gelex/infra/logging/post_event.h"
 
-namespace gelex
-{
-struct PostStartEvent;
-struct DiagnosticsReadyEvent;
-}  // namespace gelex
-
 namespace spdlog
 {
 class logger;

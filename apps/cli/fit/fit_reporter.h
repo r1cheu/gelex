@@ -29,12 +29,6 @@
 
 namespace gelex
 {
-struct FitConfigLoadedEvent;
-struct FitModelReadyEvent;
-struct FitMcmcProgressEvent;
-struct FitMcmcCompleteEvent;
-struct FitResultsSavedEvent;
-
 class BayesModel;
 class MCMCResult;
 struct GeneticSummary;
@@ -52,7 +46,7 @@ struct GeneticEffect;
 struct Residual;
 }  // namespace bayes
 
-enum class GeneticEffectType : uint8_t;
+enum class GeneticKind : uint8_t;
 }  // namespace gelex
 
 namespace spdlog
@@ -93,7 +87,7 @@ class FitReporter
     auto print_genetic_summary(
         const GeneticSummary* summary,
         const bayes::GeneticEffect* effect,
-        GeneticEffectType type) const -> void;
+        GeneticKind type) const -> void;
     auto print_residual_summary(const MCMCResult& result) const -> void;
 
     auto print_variance_prior(

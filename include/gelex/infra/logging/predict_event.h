@@ -19,10 +19,22 @@
 
 #include <cstddef>
 #include <functional>
+#include <string>
 #include <variant>
+
+#include <Eigen/Core>
+
+#include "gelex/types/genotype_process_method.h"
 
 namespace gelex
 {
+
+struct PredictParamsLoadedEvent
+{
+    size_t num_snp_effects{};
+    size_t num_covar_terms{};
+    GenotypeProcessMethod geno_method{};
+};
 
 struct PredictSnpSelectionEvent
 {
@@ -31,7 +43,26 @@ struct PredictSnpSelectionEvent
     size_t num_total{};
 };
 
-using PredictEvent = std::variant<PredictSnpSelectionEvent>;
+struct PredictDataLoadedEvent
+{
+    size_t num_samples{};
+    size_t num_snps{};
+    size_t num_covar_terms{};
+    Eigen::Index design_rows{};
+    Eigen::Index design_cols{};
+};
+
+struct PredictResultsWrittenEvent
+{
+    std::string output_path;
+    size_t num_samples{};
+};
+
+using PredictEvent = std::variant<
+    PredictParamsLoadedEvent,
+    PredictSnpSelectionEvent,
+    PredictDataLoadedEvent,
+    PredictResultsWrittenEvent>;
 using PredictObserver = std::function<void(const PredictEvent&)>;
 
 }  // namespace gelex

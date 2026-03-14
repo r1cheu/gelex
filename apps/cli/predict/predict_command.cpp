@@ -18,54 +18,27 @@
 
 #include <argparse.h>
 
-#include "gelex/infra/logger.h"
 #include "gelex/pipeline/predict_engine.h"
 #include "predict_config.h"
+#include "predict_reporter.h"
 
-int predict_execute(argparse::ArgumentParser& predict)
+auto predict_execute(argparse::ArgumentParser& predict) -> int
 {
-    auto logger = gelex::logging::get();
-    auto config = gelex::cli::make_predict_config(predict);
+    auto configs = gelex::cli::make_predict_configs(predict);
+    gelex::cli::PredictReporter reporter;
 
-    try
-    {
-        config.validate();
-    }
-    catch (const std::exception& e)
-    {
-        if (logger)
-        {
-            logger->error("Configuration validation failed: {}", e.what());
-        }
-        else
-        {
-            std::cerr << "[error] " << e.what() << "\n";
-        }
-        return 1;
-    }
+    gelex::PredictParamsPipe params_pipe(
+        configs.params, reporter.as_observer());
 
-    try
-    {
-        gelex::PredictEngine engine(config);
-        engine.run();
-    }
-    catch (const std::exception& e)
-    {
-        if (logger)
-        {
-            logger->error("Prediction failed: {}", e.what());
-        }
-        else
-        {
-            std::cerr << "[error] " << e.what() << "\n";
-        }
-        return 1;
-    }
+    gelex::PredictDataPipe data_pipe(
+        configs.data,
+        params_pipe.snp_effects(),
+        params_pipe.covar_params(),
+        reporter.as_observer());
 
-    if (logger)
-    {
-        logger->info("Prediction completed successfully");
-    }
+    gelex::PredictEngine engine(std::move(configs.engine));
+    engine.run(
+        std::move(params_pipe), std::move(data_pipe), reporter.as_observer());
 
     return 0;
 }

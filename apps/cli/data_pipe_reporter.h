@@ -22,17 +22,6 @@
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/progress_bar.h"
 
-namespace gelex
-{
-struct DataPipeSectionEvent;
-struct PhenotypeLoadedEvent;
-struct CovariatesLoadedEvent;
-struct IntersectionEvent;
-struct GenotypeLoadedEvent;
-struct GrmLoadedEvent;
-struct GenotypeProgressEvent;
-}  // namespace gelex
-
 namespace spdlog
 {
 class logger;

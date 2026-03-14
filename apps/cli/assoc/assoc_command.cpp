@@ -30,6 +30,7 @@
 #include "gelex/pipeline/grm_pipe.h"
 #include "gelex/pipeline/pheno_pipe.h"
 #include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genotype_process_method.h"
 
 auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 {

@@ -18,6 +18,8 @@
 #define GELEX_CLI_PREDICT_CONFIG_H_
 
 #include "gelex/pipeline/predict_engine.h"
+#include "gelex/predict/predict_params_pipe.h"
+#include "gelex/predict/predict_pipe.h"
 
 namespace argparse
 {
@@ -27,8 +29,14 @@ class ArgumentParser;
 namespace gelex::cli
 {
 
-auto make_predict_config(argparse::ArgumentParser& cmd)
-    -> PredictEngine::Config;
+struct PredictConfigs
+{
+    PredictParamsPipe::Config params;
+    PredictDataPipe::Config data;
+    PredictEngine::Config engine;
+};
+
+auto make_predict_configs(argparse::ArgumentParser& cmd) -> PredictConfigs;
 
 }  // namespace gelex::cli
 

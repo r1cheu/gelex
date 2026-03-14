@@ -16,6 +16,10 @@
 
 #include "predict_config.h"
 
+#include <filesystem>
+#include <optional>
+#include <string>
+
 #include <argparse.h>
 
 #include "gelex/data/genotype/bed_path.h"
@@ -23,15 +27,32 @@
 namespace gelex::cli
 {
 
-auto make_predict_config(argparse::ArgumentParser& cmd) -> PredictEngine::Config
+auto make_predict_configs(argparse::ArgumentParser& cmd) -> PredictConfigs
 {
-    return PredictEngine::Config{
-        .bed_path = gelex::format_bed_path(cmd.get("bfile")),
-        .snp_effect_path = cmd.get("--snp-eff"),
-        .covar_effect_path = cmd.get("--covar-eff"),
-        .qcovar_path = cmd.get("--qcovar"),
-        .dcovar_path = cmd.get("--dcovar"),
-        .output_path = cmd.get("--out")};
+    using std::filesystem::path;
+
+    PredictConfigs configs;
+
+    auto gfile = cmd.get<std::string>("--gfile");
+
+    configs.params.snp_effect_path = gfile + ".snp.eff";
+    configs.params.covar_effect_path = gfile + ".covar.eff";
+    configs.params.sbin_path = gfile + ".sbin";
+
+    configs.data.bed_path = gelex::format_bed_path(cmd.get("bfile"));
+    configs.data.qcovar_path
+        = cmd.is_used("--qcovar")
+              ? std::make_optional<path>(cmd.get("--qcovar"))
+              : std::nullopt;
+    configs.data.dcovar_path
+        = cmd.is_used("--dcovar")
+              ? std::make_optional<path>(cmd.get("--dcovar"))
+              : std::nullopt;
+
+    configs.engine.output_path = cmd.get("--out");
+    configs.engine.chunk_size = cmd.get<int>("--chunk-size");
+
+    return configs;
 }
 
 }  // namespace gelex::cli
