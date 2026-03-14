@@ -10,12 +10,14 @@ Prefer these commands/conventions over ad-hoc choices.
 ## Build Commands
 
 ```bash
-# useful command
 pixi r build-debug # compile debug binaries
+pixi r build-release # compile release binaries
 pixi r test # run all tests
+pixi r test "[tag]" # run tests by tag
 pre-commit run clang-format --files <changed_files> # format files
-
 ```
+
+- **Never** use `ctest` directly — always use `pixi r test`
 
 ## Code Style Guidelines
 
@@ -46,3 +48,4 @@ pre-commit run clang-format --files <changed_files> # format files
 - **DO** fix test call sites to match the current API when tests break after refactoring.
 - **DON'T** modify header APIs or add overloads just to make old test code compile.
 - **DO** leave simple getter setter or functions in header file.
+- Avoid using free functions in anonymous namespaces; if a function is only used by a specific class, define it as a private static member function instead.

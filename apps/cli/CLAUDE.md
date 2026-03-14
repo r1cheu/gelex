@@ -12,6 +12,11 @@ Each subcommand lives in `apps/cli/<name>/` with four layers:
 Engine emits a `std::variant<Event1, Event2, ...>` type. Command layer dispatches
 via `std::visit` to reporter overloads. Define event structs in `gelex/infra/logging/`.
 
+## Reporter Headers
+
+- Forward-declare `spdlog::logger` in reporter headers; `#include <spdlog/logger.h>` only in `.cpp` files.
+- Do not forward-declare event structs when their event header is already included.
+
 ## Registration
 
 In `main.cpp`: declare `argparse::ArgumentParser <name>("<name>")`, add a

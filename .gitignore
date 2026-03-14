@@ -120,3 +120,4 @@ docs/codebase_summary.md
 .claude/worktrees/
 .worktrees/
 docs/superpowers/plans
+cspell.json
