@@ -41,6 +41,10 @@ class ParameterWriter
         const MCMCResult& result,
         const std::filesystem::path& output_path);
     ~ParameterWriter();
+    ParameterWriter(const ParameterWriter&) = delete;
+    ParameterWriter& operator=(const ParameterWriter&) = delete;
+    ParameterWriter(ParameterWriter&&) = delete;
+    ParameterWriter& operator=(ParameterWriter&&) = delete;
 
     auto write() -> void;
 

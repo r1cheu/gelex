@@ -40,6 +40,10 @@ class CovariateWriter
         std::span<const RandomSummary> random,
         const std::filesystem::path& output_path);
     ~CovariateWriter();
+    CovariateWriter(const CovariateWriter&) = delete;
+    CovariateWriter& operator=(const CovariateWriter&) = delete;
+    CovariateWriter(CovariateWriter&&) = delete;
+    CovariateWriter& operator=(CovariateWriter&&) = delete;
 
     auto write() -> void;
 

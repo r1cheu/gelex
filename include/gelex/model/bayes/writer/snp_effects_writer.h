@@ -42,6 +42,10 @@ class SnpEffectsWriter
         const std::filesystem::path& bim_file_path,
         const std::filesystem::path& output_path);
     ~SnpEffectsWriter();
+    SnpEffectsWriter(const SnpEffectsWriter&) = delete;
+    SnpEffectsWriter& operator=(const SnpEffectsWriter&) = delete;
+    SnpEffectsWriter(SnpEffectsWriter&&) = delete;
+    SnpEffectsWriter& operator=(SnpEffectsWriter&&) = delete;
 
     auto write() -> void;
 
