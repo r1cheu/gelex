@@ -1,0 +1,128 @@
+/*
+ * Copyright 2026 RuLei Chen
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef GELEX_DATA_DATAFRAME_COLUMN_H
+#define GELEX_DATA_DATAFRAME_COLUMN_H
+
+#include <cstddef>
+#include <cstdint>
+#include <format>
+#include <span>
+#include <string>
+#include <string_view>
+#include <variant>
+#include <vector>
+
+#include "gelex/data/dataframe/key_type.h"
+#include "gelex/exception.h"
+
+namespace gelex::df
+{
+
+enum class ColumnType : std::uint8_t
+{
+    Int,
+    Float,
+    Double,
+    String
+};
+
+using ColumnStorage = std::variant<
+    std::monostate,
+    std::vector<int32_t>,
+    std::vector<float>,
+    std::vector<double>,
+    std::vector<std::string>>;
+
+class Column
+{
+   public:
+    explicit Column(std::string_view name) : name_(name) {}
+
+    template <ValueType T>
+    Column(std::string_view name, std::vector<T> data)
+        : name_(name), storage_(std::move(data))
+    {
+    }
+
+    template <ValueType T>
+    auto push_back(T&& value) -> void;
+
+    auto name() const -> std::string_view { return name_; }
+
+    auto size() const -> std::size_t;
+
+    // reorders rows to match the given index order; indices may be in any order
+    auto gather(std::span<const std::size_t> indices) -> void;
+
+    template <ValueType T>
+    auto as() -> std::span<T>;
+
+    template <ValueType T>
+    auto as() const -> std::span<const T>;
+
+   private:
+    std::string name_;
+    ColumnStorage storage_;
+};
+
+// --- Implementation ---
+
+template <ValueType T>
+auto Column::push_back(T&& value) -> void
+{
+    using Raw = std::remove_cvref_t<T>;
+    if (std::holds_alternative<std::monostate>(storage_))
+    {
+        storage_ = std::vector<Raw>{std::forward<T>(value)};
+        return;
+    }
+    auto* vec = std::get_if<std::vector<Raw>>(&storage_);
+    if (!vec)
+    {
+        throw InvalidInputException(
+            std::format("column '{}': push_back type mismatch", name_));
+    }
+    vec->push_back(std::forward<T>(value));
+}
+
+template <ValueType T>
+auto Column::as() -> std::span<T>
+{
+    auto* vec = std::get_if<std::vector<T>>(&storage_);
+    if (!vec)
+    {
+        throw InvalidInputException(
+            std::format("column '{}': type mismatch in as<>()", name_));
+    }
+    return *vec;
+}
+
+template <ValueType T>
+auto Column::as() const -> std::span<const T>
+{
+    const auto* vec = std::get_if<std::vector<T>>(&storage_);
+    if (!vec)
+    {
+        throw InvalidInputException(
+            std::format("column '{}': type mismatch in as<>()", name_));
+    }
+    return *vec;
+}
+
+}  // namespace gelex::df
+
+#endif  // GELEX_DATA_DATAFRAME_COLUMN_H

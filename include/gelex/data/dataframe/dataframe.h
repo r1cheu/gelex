@@ -1,0 +1,165 @@
+/*
+ * Copyright 2026 RuLei Chen
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef GELEX_DATA_DATAFRAME_DATAFRAME_H
+#define GELEX_DATA_DATAFRAME_DATAFRAME_H
+
+#include <cstddef>
+#include <format>
+#include <initializer_list>
+#include <ranges>
+#include <span>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <vector>
+
+#include "gelex/data/dataframe/column.h"
+#include "gelex/data/dataframe/index.h"
+#include "gelex/data/dataframe/key_type.h"
+#include "gelex/data/dataframe/string_hash.h"
+#include "gelex/exception.h"
+
+namespace gelex::df
+{
+
+template <KeyType Key>
+class DataFrameReader;
+
+template <KeyType Key>
+class DataFrame
+{
+   public:
+    ~DataFrame() = default;
+    DataFrame(const DataFrame&) = delete;
+    auto operator=(const DataFrame&) -> DataFrame& = delete;
+    DataFrame(DataFrame&&) = default;
+    auto operator=(DataFrame&&) -> DataFrame& = default;
+
+    template <ValueType T, typename Self>
+    auto col(this Self& self, std::string_view name);
+    template <ValueType T, typename Self>
+    auto col(this Self& self, std::size_t index);
+
+    auto names() const -> std::span<const std::string> { return names_; }
+    auto cols() const -> std::size_t { return columns_.size(); }
+
+    auto rows() const -> std::size_t { return index_.size(); }
+    auto row_position(const Key& key) const -> std::size_t
+    {
+        return index_[key];
+    }
+
+    auto clone() const -> DataFrame;
+    auto gather(std::span<const std::size_t> indices) -> void;
+
+    static auto intersect(std::span<DataFrame*> dfs) -> void;
+    static auto intersect(std::initializer_list<DataFrame*> dfs) -> void;
+
+   private:
+    DataFrame() = default;
+    friend DataFrameReader<Key>;
+
+    Index<Key> index_;
+    std::vector<std::string> names_;
+    std::vector<Column> columns_;
+    std::unordered_map<
+        std::string,
+        std::size_t,
+        TransparentHash<std::string>,
+        TransparentEqual<std::string>>
+        col_lookup_;
+};
+
+// --- Implementation ---
+
+template <KeyType Key>
+template <ValueType T, typename Self>
+auto DataFrame<Key>::col(this Self& self, std::string_view name)
+{
+    auto it = self.col_lookup_.find(name);
+    if (it == self.col_lookup_.end())
+    {
+        throw InvalidInputException(
+            std::format("column not found: '{}'", name));
+    }
+    return self.template col<T>(it->second);
+}
+
+template <KeyType Key>
+template <ValueType T, typename Self>
+auto DataFrame<Key>::col(this Self& self, std::size_t index)
+{
+    if (index >= self.columns_.size())
+    {
+        throw InvalidInputException(
+            std::format("column index out of range: {}", index));
+    }
+    return self.columns_[index].template as<T>();
+}
+
+template <KeyType Key>
+auto DataFrame<Key>::clone() const -> DataFrame
+{
+    DataFrame result;
+    result.index_ = index_;
+    result.names_ = names_;
+    result.columns_ = columns_;
+    result.col_lookup_ = col_lookup_;
+    return result;
+}
+
+template <KeyType Key>
+auto DataFrame<Key>::gather(std::span<const std::size_t> indices) -> void
+{
+    for (auto& col : columns_)
+    {
+        col.gather(indices);
+    }
+    index_.gather(indices);
+}
+
+template <KeyType Key>
+auto DataFrame<Key>::intersect(std::span<DataFrame*> dfs) -> void
+{
+    if (dfs.empty())
+    {
+        return;
+    }
+
+    std::vector<const Index<Key>*> idx_ptrs;
+    idx_ptrs.reserve(dfs.size());
+    for (const auto* df : dfs)
+    {
+        idx_ptrs.push_back(&df->index_);
+    }
+    auto positions = Index<Key>::intersect(idx_ptrs);
+
+    for (auto&& [df, pos] : std::views::zip(dfs, positions))
+    {
+        df->gather(pos);
+    }
+}
+
+template <KeyType Key>
+auto DataFrame<Key>::intersect(std::initializer_list<DataFrame*> dfs) -> void
+{
+    intersect(std::span{dfs.begin(), dfs.size()});
+}
+
+}  // namespace gelex::df
+
+#endif  // GELEX_DATA_DATAFRAME_DATAFRAME_H
