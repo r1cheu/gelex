@@ -1,51 +1,37 @@
-# AGENTS.md - Gelex Development Guide
+# Gelex Development Guide
 
-Guidance for coding agents operating in this repository.
-Prefer these commands/conventions over ad-hoc choices.
+C++23 · Catch2 v3 · Beta (breaking changes OK)
 
-- C++23
-- Tests: Catch2 v3 (`catch_discover_tests`)
-- Status: beta (API breaking changes are acceptable)
-
-## Build Commands
+## Build
 
 ```bash
-pixi r build-debug # compile debug binaries
-pixi r build-release # compile release binaries
-pixi r test # run all tests
-pixi r test "[tag]" # run tests by tag
-pre-commit run clang-format --files <changed_files> # format files
+pixi r build-debug          # debug build
+pixi r build-release         # release build
+pixi r test                  # all tests
+pixi r test "[tag]"          # tests by tag
+pre-commit run clang-format --files <changed_files>  # format
 ```
 
-- **Never** use `ctest` directly — always use `pixi r test`
+**Never** use `ctest` directly — always `pixi r test`.
 
-## Code Style Guidelines
+## Naming
 
-### Naming
-
-- Classes/structs/enums: `PascalCase`
+- Types (class/struct/enum): `PascalCase`
 - Functions/variables/files: `snake_case`
 - Private members: trailing underscore (`member_`)
-- Internal constants: prefer `kPrefixName`
+- Constants: `kPrefixName`
 
-### Function Signatures and Types
+## Code Style
 
-- Use trailing return types in declarations/definitions (`auto f() -> int`).
-- Prefer `std::span` and `std::string_view` for non-owning inputs.
-- Prefer `Eigen::Ref<T>` / `const Eigen::Ref<const T>&` for Eigen views.
-- Use `Eigen::Index` for Eigen row/column indexing.
-- Always `#include` the headers you directly use; never rely on transitive (indirect) includes.
-- Use include guards (avoid `#pragma once`).
-- Guard names should be uppercase and path-derived.
-- Keep public API in `include/gelex/`; avoid exposing internals.
-- Use exceptions from `include/gelex/exception.h`.
-- Add comments only for non-obvious intent/constraints.
-- Preserve existing license headers in source files.
-- Put reusable fixtures in `tests/*_fixture.{h,cpp}`.
-- **DO** use `git mv` when renaming or moving files so git tracks history.
-- **DO** use direct `switch`/`if` on enums or integer tags for type dispatch.
-- **DO** keep commit messages to one concise line (subject only, no body).
-- **DO** fix test call sites to match the current API when tests break after refactoring.
-- **DON'T** modify header APIs or add overloads just to make old test code compile.
-- **DO** leave simple getter setter or functions in header file.
-- Avoid using free functions in anonymous namespaces; if a function is only used by a specific class, define it as a private static member function instead.
+- Trailing return types: `auto f() -> int`
+- Non-owning inputs: `std::span`, `std::string_view`
+- Eigen views: `Eigen::Ref<T>` / `const Eigen::Ref<const T>&`; index with `Eigen::Index`
+- Explicit `#include` only — no transitive includes
+- Include guards (not `#pragma once`), uppercase path-derived names
+- Public API in `include/gelex/`; avoid exposing internals
+- Exceptions from `include/gelex/exception.h`
+- Simple getters/setters stay in headers
+- Class-private static methods over anonymous-namespace free functions
+- `switch`/`if` on enums for type dispatch
+- Preserve existing license headers
+- Reusable test fixtures in `tests/*_fixture.{h,cpp}`
