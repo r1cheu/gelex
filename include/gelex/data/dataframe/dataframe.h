@@ -66,8 +66,8 @@ class DataFrame
     auto clone() const -> DataFrame;
     auto gather(std::span<const std::size_t> indices) -> void;
 
-    static auto intersect(std::span<DataFrame*> dfs) -> void;
-    static auto intersect(std::initializer_list<DataFrame*> dfs) -> void;
+    static auto intersect(std::span<DataFrame* const> dfs) -> void;
+    static auto intersect(std::initializer_list<DataFrame* const> dfs) -> void;
 
    private:
     DataFrame() = default;
@@ -133,7 +133,7 @@ auto DataFrame<Key>::gather(std::span<const std::size_t> indices) -> void
 }
 
 template <KeyType Key>
-auto DataFrame<Key>::intersect(std::span<DataFrame*> dfs) -> void
+auto DataFrame<Key>::intersect(std::span<DataFrame* const> dfs) -> void
 {
     if (dfs.empty())
     {
@@ -155,7 +155,8 @@ auto DataFrame<Key>::intersect(std::span<DataFrame*> dfs) -> void
 }
 
 template <KeyType Key>
-auto DataFrame<Key>::intersect(std::initializer_list<DataFrame*> dfs) -> void
+auto DataFrame<Key>::intersect(std::initializer_list<DataFrame* const> dfs)
+    -> void
 {
     intersect(std::span{dfs.begin(), dfs.size()});
 }

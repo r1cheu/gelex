@@ -74,7 +74,22 @@ class Column
     template <ValueType T>
     auto as() const -> std::span<const T>;
 
+    template <ValueType T>
+    auto take() && -> std::vector<T>;
+
    private:
+    template <ValueType T, typename Storage>
+    static auto checked(Storage& storage, std::string_view col_name) -> auto&
+    {
+        auto* vec = std::get_if<std::vector<T>>(&storage);
+        if (!vec)
+        {
+            throw InvalidInputException(
+                std::format("column '{}': type mismatch", col_name));
+        }
+        return *vec;
+    }
+
     std::string name_;
     ColumnStorage storage_;
 };
@@ -102,25 +117,19 @@ auto Column::push_back(T&& value) -> void
 template <ValueType T>
 auto Column::as() -> std::span<T>
 {
-    auto* vec = std::get_if<std::vector<T>>(&storage_);
-    if (!vec)
-    {
-        throw InvalidInputException(
-            std::format("column '{}': type mismatch in as<>()", name_));
-    }
-    return *vec;
+    return checked<T>(storage_, name_);
 }
 
 template <ValueType T>
 auto Column::as() const -> std::span<const T>
 {
-    const auto* vec = std::get_if<std::vector<T>>(&storage_);
-    if (!vec)
-    {
-        throw InvalidInputException(
-            std::format("column '{}': type mismatch in as<>()", name_));
-    }
-    return *vec;
+    return checked<T>(storage_, name_);
+}
+
+template <ValueType T>
+auto Column::take() && -> std::vector<T>
+{
+    return std::move(checked<T>(storage_, name_));
 }
 
 }  // namespace gelex::df

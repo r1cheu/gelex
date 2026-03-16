@@ -7,12 +7,12 @@ C++23 · Catch2 v3 · Beta (breaking changes OK)
 ```bash
 pixi r build-debug          # debug build
 pixi r build-release         # release build
-pixi r test                  # all tests
-pixi r test "[tag]"          # tests by tag
+pixi r test                  # all tests (via ctest)
+pixi r test-catch "[tag]"    # tests by Catch2 tag
 pre-commit run clang-format --files <changed_files>  # format
 ```
 
-**Never** use `ctest` directly — always `pixi r test`.
+**Never** use `ctest` directly — always `pixi r test` or `pixi r test-catch`.
 
 ## Naming
 

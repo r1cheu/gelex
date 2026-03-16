@@ -48,12 +48,15 @@ class Index
         return lookup_.contains(key);
     }
     auto size() const -> std::size_t { return keys_.size(); }
+    auto keys() const -> std::span<const Key> { return keys_; }
+    auto take_keys() && -> std::vector<Key> { return std::move(keys_); }
 
     auto gather(std::span<const std::size_t> indices) -> void;
 
-    static auto intersect(std::span<const Index<Key>*> indices)
+    static auto intersect(std::span<const Index<Key>* const> indices)
         -> std::vector<std::vector<std::size_t>>;
-    static auto intersect(std::initializer_list<const Index<Key>*> indices)
+    static auto intersect(
+        std::initializer_list<const Index<Key>* const> indices)
         -> std::vector<std::vector<std::size_t>>
     {
         return intersect(std::span{indices.begin(), indices.size()});
@@ -136,7 +139,7 @@ auto Index<Key>::rebuild_lookup() -> void
 }
 
 template <KeyType Key>
-auto Index<Key>::intersect(std::span<const Index<Key>*> indices)
+auto Index<Key>::intersect(std::span<const Index<Key>* const> indices)
     -> std::vector<std::vector<std::size_t>>
 {
     if (indices.empty())
