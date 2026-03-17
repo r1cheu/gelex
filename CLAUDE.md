@@ -35,3 +35,5 @@ pre-commit run clang-format --files <changed_files>  # format
 - `switch`/`if` on enums for type dispatch
 - Preserve existing license headers
 - Reusable test fixtures in `tests/*_fixture.{h,cpp}`
+- When designing the API, adhere to STL conventions.
+- Use Eigen::isApprox for testing instead of element-wise comparisons.

@@ -34,6 +34,7 @@
 #include <vector>
 
 #include "gelex/data/dataframe/column.h"
+#include "gelex/data/dataframe/constants.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/key_type.h"
 #include "gelex/data/dataframe/string_hash.h"
@@ -58,11 +59,9 @@ struct ReadOptions
         std::string,
         TransparentHash<std::string>,
         TransparentEqual<std::string>>
-        na_rep = {"NA", "NaN", "nan", "null", "NULL", "."};
+        na_rep = {kDefaultNaRep.begin(), kDefaultNaRep.end()};
     NaAction na_action = NaAction::Exclude;
 };
-
-inline constexpr char kCompositeKeySeparator = '\x1F';
 
 template <KeyType Key>
 class DataFrameReader
@@ -146,7 +145,7 @@ auto DataFrameReader<Key>::read() -> DataFrame<Key>
                         std::format(
                             "{}{}{}",
                             tokens_[index_pos_[0]],
-                            kCompositeKeySeparator,
+                            kSeparator,
                             tokens_[index_pos_[1]]));
                 }
             }

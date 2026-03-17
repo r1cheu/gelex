@@ -30,7 +30,7 @@
 using gelex::InvalidInputException;
 using gelex::df::ColumnType;
 using gelex::df::DataFrame;
-using gelex::df::kCompositeKeySeparator;
+using gelex::df::kSeparator;
 using gelex::df::NaAction;
 using gelex::df::read_dataframe;
 using gelex::df::ReadOptions;
@@ -224,9 +224,9 @@ TEST_CASE(
 
     REQUIRE(df.rows() == 3);
 
-    auto key0 = std::format("{}{}{}", "F1", kCompositeKeySeparator, "I1");
-    auto key1 = std::format("{}{}{}", "F1", kCompositeKeySeparator, "I2");
-    auto key2 = std::format("{}{}{}", "F2", kCompositeKeySeparator, "I1");
+    auto key0 = std::format("{}{}{}", "F1", kSeparator, "I1");
+    auto key1 = std::format("{}{}{}", "F1", kSeparator, "I2");
+    auto key2 = std::format("{}{}{}", "F2", kSeparator, "I1");
 
     REQUIRE(df.row_position(key0) == 0);
     REQUIRE(df.row_position(key1) == 1);
