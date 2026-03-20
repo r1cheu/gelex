@@ -56,6 +56,24 @@ inline auto is_center_family_method(GenotypeProcessMethod method) -> bool
     throw InvalidInputException("Invalid genotype process method.");
 }
 
+inline auto is_orthogonal_method(GenotypeProcessMethod method) -> bool
+{
+    switch (method)
+    {
+        case GenotypeProcessMethod::OrthStandardizeHWE:
+        case GenotypeProcessMethod::OrthCenterHWE:
+        case GenotypeProcessMethod::OrthStandardize:
+        case GenotypeProcessMethod::OrthCenter:
+            return true;
+        case GenotypeProcessMethod::StandardizeHWE:
+        case GenotypeProcessMethod::CenterHWE:
+        case GenotypeProcessMethod::Standardize:
+        case GenotypeProcessMethod::Center:
+            return false;
+    }
+    throw InvalidInputException("Invalid genotype process method.");
+}
+
 enum class ModelType : uint8_t
 {
     A,

@@ -19,11 +19,9 @@
 
 #include <filesystem>
 #include <memory>
-#include <span>
 #include <string>
-#include <string_view>
 
-#include <Eigen/Core>
+#include "gelex/predict/predict_types.h"
 
 namespace gelex::detail
 {
@@ -38,27 +36,24 @@ class PredictWriter
    public:
     explicit PredictWriter(const std::filesystem::path& output_path);
     ~PredictWriter();
+    PredictWriter(const PredictWriter&) = delete;
+    PredictWriter& operator=(const PredictWriter&) = delete;
+    PredictWriter(PredictWriter&&) = delete;
+    PredictWriter& operator=(PredictWriter&&) = delete;
 
-    auto write(
-        const Eigen::Ref<const Eigen::VectorXd>& predictions,
-        std::span<const std::string> sample_ids,
-        const Eigen::Ref<const Eigen::VectorXd>& add_pred,
-        const Eigen::Ref<const Eigen::VectorXd>& dom_pred,
-        const Eigen::Ref<const Eigen::MatrixXd>& covar_pred,
-        std::span<const std::string> covar_names) -> void;
+    auto write(const PredictResult& result) -> void;
 
    private:
-    auto write_header(std::span<const std::string> covar_names, bool has_dom)
+    auto write_header(const std::vector<std::string>& covar_names, bool has_dom)
         -> void;
 
-    auto write_prediction(
+    auto write_row(
+        std::string_view sample_id,
         double total_prediction,
         const Eigen::Ref<const Eigen::RowVectorXd>& covar_pred,
         double add_pred,
         bool has_dom,
         double dom_pred) -> void;
-
-    auto write_id(std::string_view sample_id) -> void;
 
     std::unique_ptr<detail::TextWriter> writer_;
     std::string row_buf_;

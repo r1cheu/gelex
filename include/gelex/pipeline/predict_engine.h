@@ -18,73 +18,66 @@
 #define GELEX_PREDICT_PREDICT_ENGINE_H
 
 #include <filesystem>
-#include <vector>
+#include <optional>
 
 #include <Eigen/Core>
 
-#include "gelex/data/reader/snp_effect_reader.h"
-#include "gelex/predict/covariate_reader.h"
-#include "gelex/predict/predict_pipe.h"
+#include "gelex/data/dataframe/dataframe.h"
+#include "gelex/infra/logging/predict_event.h"
+#include "gelex/predict/predict_types.h"
+#include "gelex/predict/reader.h"
+#include "gelex/predict/snp_alignment.h"
 
 namespace gelex
 {
-
-class PredictWriter;
 
 class PredictEngine
 {
    public:
     struct Config
     {
+        std::string bfile_prefix;
+        std::string gfile_prefix;
         std::filesystem::path bed_path;
-        std::filesystem::path snp_effect_path;
-        std::filesystem::path covar_effect_path;
-        std::filesystem::path qcovar_path;
-        std::filesystem::path dcovar_path;
-        std::filesystem::path output_path;
 
-        void validate() const;
+        std::optional<std::filesystem::path> qcovar_path;
+        std::optional<std::filesystem::path> dcovar_path;
+        std::filesystem::path output_path;
     };
 
-    explicit PredictEngine(const Config& config);
-
-    void run();
-
-    const Eigen::VectorXd& predictions() const { return predictions_; }
-    const std::vector<std::string>& sample_ids() const { return sample_ids_; }
-    const Eigen::VectorXd& snp_predictions() const { return snp_predictions_; }
-    const Eigen::VectorXd& add_predictions() const { return add_predictions_; }
-    const Eigen::VectorXd& dom_predictions() const { return dom_predictions_; }
-    const Eigen::MatrixXd& covar_predictions() const
+    struct PredictParams
     {
-        return covar_predictions_;
-    }
-    const std::vector<std::string>& covar_prediction_names() const
+        df::DataFrame<std::string> snp_effects;
+        Eigen::VectorXd add_effects;
+        std::optional<Eigen::VectorXd> dom_effects;
+        Coefficients coefficients;
+        SbinData sbin;
+    };
+
+    struct PredictData
     {
-        return covar_prediction_names_;
-    }
+        df::DataFrame<std::string> fam_df;
+        df::DataFrame<std::string> bim_df;
+        Eigen::MatrixXd covariates;
+    };
+
+    explicit PredictEngine(Config config);
+    auto run(const PredictObserver& observer = {}) -> void;
 
    private:
-    void load_parameters();
-    void load_data();
-    void validate_dimensions();
-    void compute();
-    void write();
+    static auto load_sbin(const std::filesystem::path& path) -> SbinData;
 
+    auto load_params() const -> PredictParams;
+    auto load_data(const PredictParams& params) const -> PredictData;
+    auto align(
+        const PredictParams& params,
+        const PredictData& data,
+        const PredictObserver& observer) const -> SnpAlignment;
+    auto select(
+        const PredictData& data,
+        const SnpAlignment& alignment,
+        bool has_dom) const -> GenotypeData;
     Config config_;
-    Eigen::VectorXd predictions_;
-    Eigen::VectorXd snp_predictions_;
-    Eigen::VectorXd add_predictions_;
-    Eigen::VectorXd dom_predictions_;
-
-    std::vector<std::string> sample_ids_;
-
-    Eigen::MatrixXd covar_predictions_;
-    std::vector<std::string> covar_prediction_names_;
-
-    PredictData data_;
-    SnpEffects snp_effects_;
-    CovariateParams covar_effects_;
 };
 
 }  // namespace gelex

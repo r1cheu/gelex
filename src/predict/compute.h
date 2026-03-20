@@ -14,36 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_PREDICT_COVAR_PREDICTOR_H
-#define GELEX_PREDICT_COVAR_PREDICTOR_H
+#ifndef GELEX_PREDICT_COMPUTE_H_
+#define GELEX_PREDICT_COMPUTE_H_
 
 #include <Eigen/Core>
-#include <string>
-#include <vector>
 
-#include "gelex/predict/covariate_reader.h"
-#include "gelex/predict/predict_pipe.h"
+#include "gelex/predict/predict_types.h"
+#include "gelex/predict/reader.h"
 
 namespace gelex
 {
 
-class CovarPredictor
-{
-   public:
-    struct Result
-    {
-        Eigen::MatrixXd predictions;
-        std::vector<std::string> names;
-    };
+[[nodiscard]] auto compute_gebv(
+    const GenotypeData& geno,
+    const SnpEffects& effects) -> GEBVResult;
 
-    explicit CovarPredictor(const CovariateParams& params);
-
-    auto compute(const PredictData& data) -> Result;
-
-   private:
-    const CovariateParams* params_;
-};
+[[nodiscard]] auto compute_covariate_effects(
+    const Eigen::MatrixXd& covariates,
+    const Coefficients& coefficients) -> CovariateResult;
 
 }  // namespace gelex
 
-#endif  // GELEX_PREDICT_COVAR_PREDICTOR_H
+#endif  // GELEX_PREDICT_COMPUTE_H_

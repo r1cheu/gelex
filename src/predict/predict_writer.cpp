@@ -18,9 +18,7 @@
 
 #include <cstddef>
 #include <format>
-#include <memory>
 
-#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/exception.h"
 #include "gelex/io/text_writer.h"
 #include "gelex/types/sample_id.h"
@@ -40,7 +38,7 @@ PredictWriter::PredictWriter(const std::filesystem::path& output_path)
 PredictWriter::~PredictWriter() = default;
 
 auto PredictWriter::write_header(
-    std::span<const std::string> covar_names,
+    const std::vector<std::string>& covar_names,
     bool has_dom) -> void
 {
     std::string h = "FID\tIID\tprediction";
@@ -60,13 +58,17 @@ auto PredictWriter::write_header(
     writer_->write(h);
 }
 
-auto PredictWriter::write_prediction(
+auto PredictWriter::write_row(
+    std::string_view sample_id,
     double total_prediction,
     const Eigen::Ref<const Eigen::RowVectorXd>& covar_pred,
     double add_pred,
     bool has_dom,
     double dom_pred) -> void
 {
+    row_buf_.clear();
+    auto [fid, iid] = split_sample_id(sample_id);
+    row_buf_ += std::format("{}\t{}", fid, iid);
     row_buf_ += std::format("\t{:.6f}", total_prediction);
 
     for (Eigen::Index j = 0; j < covar_pred.cols(); ++j)
@@ -79,43 +81,35 @@ auto PredictWriter::write_prediction(
     {
         row_buf_ += std::format("\t{:.6f}", dom_pred);
     }
+
+    writer_->write(row_buf_);
 }
 
-auto PredictWriter::write_id(std::string_view sample_id) -> void
+auto PredictWriter::write(const PredictResult& result) -> void
 {
-    auto [fid, iid] = split_sample_id(sample_id);
-    row_buf_ += std::format("{}\t{}", fid, iid);
-}
-
-auto PredictWriter::write(
-    const Eigen::Ref<const Eigen::VectorXd>& predictions,
-    std::span<const std::string> sample_ids,
-    const Eigen::Ref<const Eigen::VectorXd>& add_pred,
-    const Eigen::Ref<const Eigen::VectorXd>& dom_pred,
-    const Eigen::Ref<const Eigen::MatrixXd>& covar_pred,
-    std::span<const std::string> covar_names) -> void
-{
-    if (sample_ids.size() != static_cast<std::size_t>(predictions.size()))
+    const auto n_samples = static_cast<Eigen::Index>(result.sample_ids.size());
+    if (n_samples != result.predictions.size())
     {
         throw InvalidInputException(
             std::format(
-                "Dimension mismatch: {} FIDs but {} predictions",
-                sample_ids.size(),
-                predictions.size()));
+                "Dimension mismatch: {} sample IDs but {} predictions",
+                result.sample_ids.size(),
+                result.predictions.size()));
     }
 
-    const bool has_dom = dom_pred.size() > 0;
-    write_header(covar_names, has_dom);
+    const bool has_dom = result.dom_predictions.has_value();
+    write_header(result.covar_names, has_dom);
 
-    const Eigen::Index n_samples = predictions.size();
     for (Eigen::Index i = 0; i < n_samples; ++i)
     {
-        row_buf_.clear();
-        write_id(sample_ids[i]);
-        const double dom_value = has_dom ? dom_pred[i] : 0.0;
-        write_prediction(
-            predictions[i], covar_pred.row(i), add_pred[i], has_dom, dom_value);
-        writer_->write(row_buf_);
+        const double dom_value = has_dom ? (*result.dom_predictions)[i] : 0.0;
+        write_row(
+            result.sample_ids[static_cast<size_t>(i)],
+            result.predictions[i],
+            result.covar_predictions.row(i),
+            result.add_predictions[i],
+            has_dom,
+            dom_value);
     }
 }
 

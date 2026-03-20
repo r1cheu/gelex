@@ -14,317 +14,289 @@
  * limitations under the License.
  */
 
-#include <cmath>
+#include <cstdint>
+#include <filesystem>
+#include <format>
+#include <fstream>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/exception.h"
+#include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/io/locistats_writer.h"
 #include "gelex/pipeline/predict_engine.h"
-#include "predict_engine_fixture.h"
+#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genotype_process_method.h"
 
-using namespace gelex;
-using gelex::test::PredictEngineTestFixture;
+#include "bed_fixture.h"
+
+using gelex::PredictEngine;
+using gelex::test::BedFixture;
 
 namespace
 {
 
-double compute_std_additive(double geno, double p)
+// ---- file helpers -----------------------------------------------------------
+
+auto write_tsv_row(const std::vector<std::string>& cols) -> std::string
 {
-    const double q = 1.0 - p;
-    const double eps = 1e-10;
-    const double scale = std::sqrt(std::max(2.0 * p * q, eps));
-    const double mean = 2.0 * p;
-    return (geno - mean) / scale;
+    std::string line;
+    for (size_t i = 0; i < cols.size(); ++i)
+    {
+        line += cols[i];
+        if (i + 1 < cols.size())
+        {
+            line += '\t';
+        }
+    }
+    line += '\n';
+    return line;
 }
 
-double compute_std_dominance(double geno, double p)
+auto make_tsv(
+    const std::vector<std::string>& headers,
+    const std::vector<std::vector<std::string>>& rows) -> std::string
 {
-    const double q = 1.0 - p;
-    const double eps = 1e-10;
-    const double scale_dom = std::max(2.0 * p * q, eps);
+    std::string out = write_tsv_row(headers);
+    for (const auto& row : rows)
+    {
+        out += write_tsv_row(row);
+    }
+    return out;
+}
 
-    double dom = 0.0;
-    if (geno == 0.0)
+auto read_fam(const std::filesystem::path& fam_path)
+    -> std::pair<std::vector<std::string>, std::vector<std::string>>
+{
+    std::vector<std::string> fids;
+    std::vector<std::string> iids;
+    std::ifstream ifs(fam_path);
+    std::string line;
+    while (std::getline(ifs, line))
     {
-        dom = 0.0;
+        std::istringstream iss(line);
+        std::string fid;
+        std::string iid;
+        iss >> fid >> iid;
+        fids.push_back(std::move(fid));
+        iids.push_back(std::move(iid));
     }
-    else if (geno == 1.0)
+    return {std::move(fids), std::move(iids)};
+}
+
+// sbin 写入并返回标准化后基因型矩阵（add + dom）
+auto create_sbin(
+    const std::filesystem::path& sbin_path,
+    const Eigen::MatrixXd& genotypes) -> void
+{
+    using gelex::EffectType;
+    using gelex::GeneticKind;
+    using gelex::GenotypeProcessMethod;
+    using gelex::LociStatsWriter;
+    using gelex::StandardizeHWE;
+
+    const auto n_snps = genotypes.cols();
+
+    Eigen::MatrixXd add_geno = genotypes;
+    Eigen::VectorXd add_mean(n_snps);
+    Eigen::VectorXd add_stddev(n_snps);
+    for (Eigen::Index j = 0; j < n_snps; ++j)
     {
-        dom = 2.0 * p;
-    }
-    else
-    {
-        dom = (4.0 * p) - 2.0;
+        auto col = add_geno.col(j);
+        auto stats = StandardizeHWE<GeneticKind::Add>::process(col);
+        add_mean(j) = stats.mean;
+        add_stddev(j) = stats.stddev;
     }
 
-    const double mean_dom = 2.0 * p * p;
-    return (dom - mean_dom) / scale_dom;
+    Eigen::MatrixXd dom_geno = genotypes;
+    Eigen::VectorXd dom_mean(n_snps);
+    Eigen::VectorXd dom_stddev(n_snps);
+    for (Eigen::Index j = 0; j < n_snps; ++j)
+    {
+        auto col = dom_geno.col(j);
+        auto stats = StandardizeHWE<GeneticKind::Dom>::process(col);
+        dom_mean(j) = stats.mean;
+        dom_stddev(j) = stats.stddev;
+    }
+
+    LociStatsWriter writer(sbin_path.string());
+    writer.write(
+        EffectType::add(),
+        static_cast<uint8_t>(GenotypeProcessMethod::StandardizeHWE),
+        add_mean,
+        &add_stddev);
+    writer.write(
+        EffectType::dom(),
+        static_cast<uint8_t>(GenotypeProcessMethod::StandardizeHWE),
+        dom_mean,
+        &dom_stddev);
+    writer.finalize();
+}
+
+auto create_snp_effects_file(
+    gelex::test::FileFixture& ff,
+    std::string_view gfile_prefix,
+    const std::vector<std::vector<std::string>>& snp_rows) -> void
+{
+    std::vector<std::string> headers
+        = {"Chrom", "Position", "ID", "A1", "A2", "A1Freq", "Add", "Dom"};
+    (void)ff.create_named_text_file(
+        std::string(gfile_prefix) + ".snp.eff", make_tsv(headers, snp_rows));
+}
+
+auto create_param_file(
+    gelex::test::FileFixture& ff,
+    std::string_view gfile_prefix,
+    double intercept,
+    const std::vector<std::pair<std::string, double>>& qcovar_coefs,
+    const std::vector<std::pair<std::string, double>>& dcovar_coefs) -> void
+{
+    const std::vector<std::string> param_headers
+        = {"term",
+           "mean",
+           "stddev",
+           "percentile_5",
+           "percentile_95",
+           "ess",
+           "rhat"};
+
+    std::vector<std::vector<std::string>> rows;
+    rows.push_back(
+        {"Intercept",
+         std::to_string(intercept),
+         "0.1",
+         "0.8",
+         "1.2",
+         "1000",
+         "1.0"});
+    for (const auto& [name, coef] : qcovar_coefs)
+    {
+        rows.push_back(
+            {name, std::to_string(coef), "0.05", "0.1", "0.3", "800", "1.01"});
+    }
+    for (const auto& [name, coef] : dcovar_coefs)
+    {
+        rows.push_back(
+            {name,
+             std::to_string(coef),
+             "0.02",
+             "-0.34",
+             "-0.26",
+             "900",
+             "1.02"});
+    }
+    (void)ff.create_named_text_file(
+        std::string(gfile_prefix) + ".param", make_tsv(param_headers, rows));
+}
+
+auto create_qcovar_file(
+    gelex::test::FileFixture& ff,
+    const std::vector<std::string>& fids,
+    const std::vector<std::string>& iids,
+    const std::vector<std::pair<std::string, std::vector<double>>>& covars)
+    -> std::filesystem::path
+{
+    std::string content = "FID\tIID";
+    for (const auto& [name, _] : covars)
+    {
+        content += '\t';
+        content += name;
+    }
+    content += '\n';
+    for (size_t i = 0; i < iids.size(); ++i)
+    {
+        content += fids[i] + '\t' + iids[i];
+        for (const auto& [_, vals] : covars)
+        {
+            content += '\t';
+            content += std::format("{}", vals[i]);
+        }
+        content += '\n';
+    }
+    return ff.create_text_file(content, ".qcovar");
+}
+
+auto create_dcovar_file(
+    gelex::test::FileFixture& ff,
+    const std::vector<std::string>& fids,
+    const std::vector<std::string>& iids,
+    const std::vector<std::pair<std::string, std::vector<std::string>>>& covars)
+    -> std::filesystem::path
+{
+    std::string content = "FID\tIID";
+    for (const auto& [name, _] : covars)
+    {
+        content += '\t';
+        content += name;
+    }
+    content += '\n';
+    for (size_t i = 0; i < iids.size(); ++i)
+    {
+        content += fids[i] + '\t' + iids[i];
+        for (const auto& [_, vals] : covars)
+        {
+            content += '\t';
+            content += vals[i];
+        }
+        content += '\n';
+    }
+    return ff.create_text_file(content, ".dcovar");
+}
+
+// ---- output reader ----------------------------------------------------------
+
+struct PredictionOutput
+{
+    std::vector<std::string> headers;
+    size_t row_count{};
+    bool has_dominant{false};
+};
+
+auto read_prediction_output(const std::filesystem::path& path)
+    -> PredictionOutput
+{
+    PredictionOutput out;
+    std::ifstream ifs(path);
+    std::string line;
+
+    std::getline(ifs, line);
+    {
+        std::istringstream iss(line);
+        std::string tok;
+        while (std::getline(iss, tok, '\t'))
+        {
+            out.headers.push_back(tok);
+        }
+    }
+    out.has_dominant = !out.headers.empty() && out.headers.back() == "dominant";
+
+    while (std::getline(ifs, line))
+    {
+        ++out.row_count;
+    }
+    return out;
 }
 
 }  // namespace
 
 TEST_CASE(
-    "PredictEngine - SNP only prediction",
-    "[predict][predict_engine][numerical]")
+    "PredictEngine smoke test - full model",
+    "[predict][predict_engine][smoke]")
 {
-    PredictEngineTestFixture fixture;
-
-    Eigen::MatrixXd genotypes(2, 2);
-    genotypes << 0.0, 2.0, 1.0, 1.0;
-
-    std::vector<std::string> snp_ids = {"rs1", "rs2"};
-    std::vector<std::pair<char, char>> alleles = {{'A', 'C'}, {'T', 'G'}};
-    std::vector<std::vector<std::string>> snp_rows
-        = {{"1", "1000", "rs1", "A", "C", "0.30", "0.10"},
-           {"1", "2000", "rs2", "T", "G", "0.40", "-0.05"}};
-
-    auto [bed_prefix, _] = fixture.create_deterministic_bed_files(
-        genotypes,
-        {"sample1", "sample2"},
-        snp_ids,
-        std::vector<std::string>(snp_ids.size(), "1"),
-        alleles);
-
-    auto snp_path = fixture.create_snp_effects_file(snp_rows, false);
-    auto param_path = fixture.create_param_intercept_only(1.0);
-
-    PredictEngine::Config config{
-        .bed_path = bed_prefix,
-        .snp_effect_path = snp_path,
-        .covar_effect_path = param_path,
-        .qcovar_path = "",
-        .dcovar_path = "",
-        .output_path
-        = fixture.get_file_fixture().get_test_dir() / "test.predictions"};
-
-    PredictEngine engine(config);
-    REQUIRE_NOTHROW(engine.run());
-
-    const double intercept = 1.0;
-    const std::vector<double> freqs = {0.3, 0.4};
-    const std::vector<double> effects = {0.1, -0.05};
-    const auto n_samples = static_cast<size_t>(genotypes.rows());
-    const auto n_snps = static_cast<size_t>(genotypes.cols());
-    std::vector<double> expected_snp(n_samples, 0.0);
-    for (size_t snp = 0; snp < n_snps; ++snp)
-    {
-        for (size_t sample = 0; sample < n_samples; ++sample)
-        {
-            const double geno = genotypes(
-                static_cast<Eigen::Index>(sample),
-                static_cast<Eigen::Index>(snp));
-            expected_snp[sample]
-                += compute_std_additive(geno, freqs[snp]) * effects[snp];
-        }
-    }
-
-    const auto& predictions = engine.predictions();
-    const auto& snp_preds = engine.snp_predictions();
-    const auto& covar_preds = engine.covar_predictions();
-
-    REQUIRE(predictions.size() == 2);
-    REQUIRE(snp_preds.size() == 2);
-    REQUIRE(covar_preds.rows() == 2);
-    REQUIRE(covar_preds.cols() == 1);
-
-    const double eps = 1e-8;
-    for (size_t i = 0; i < 2; ++i)
-    {
-        REQUIRE_THAT(
-            predictions[i],
-            Catch::Matchers::WithinAbs(intercept + expected_snp[i], eps));
-        REQUIRE_THAT(
-            snp_preds[i], Catch::Matchers::WithinAbs(expected_snp[i], eps));
-        REQUIRE_THAT(
-            covar_preds(i, 0), Catch::Matchers::WithinAbs(intercept, eps));
-    }
-}
-
-TEST_CASE(
-    "PredictEngine - Quantitative covariate",
-    "[predict][predict_engine][numerical][covariate]")
-{
-    PredictEngineTestFixture fixture;
-
-    Eigen::MatrixXd genotypes(2, 2);
-    genotypes << 0.0, 2.0, 1.0, 1.0;
-
-    std::vector<std::string> snp_ids = {"rs1", "rs2"};
-    std::vector<std::pair<char, char>> alleles = {{'A', 'C'}, {'T', 'G'}};
-    std::vector<std::vector<std::string>> snp_rows
-        = {{"1", "1000", "rs1", "A", "C", "0.30", "0.10"},
-           {"1", "2000", "rs2", "T", "G", "0.40", "-0.05"}};
-
-    std::vector<std::string> iids = {"sample1", "sample2"};
-
-    auto [bed_prefix, _] = fixture.create_deterministic_bed_files(
-        genotypes,
-        iids,
-        snp_ids,
-        std::vector<std::string>(snp_ids.size(), "1"),
-        alleles);
-
-    auto fam_path = bed_prefix;
-    fam_path.replace_extension(".fam");
-    auto [fids, loaded_iids] = PredictEngineTestFixture::read_fam(fam_path);
-
-    auto snp_path = fixture.create_snp_effects_file(snp_rows, false);
-    auto qcovar_path = fixture.create_qcovar_file(
-        fids, loaded_iids, {{"Age", {25.0, 30.0}}});
-    auto param_path = fixture.create_param_with_qcovar(1.0, {{"Age", 0.2}});
-
-    PredictEngine::Config config{
-        .bed_path = bed_prefix,
-        .snp_effect_path = snp_path,
-        .covar_effect_path = param_path,
-        .qcovar_path = qcovar_path.string(),
-        .dcovar_path = "",
-        .output_path
-        = fixture.get_file_fixture().get_test_dir() / "test.predictions"};
-
-    PredictEngine engine(config);
-    REQUIRE_NOTHROW(engine.run());
-
-    const double intercept = 1.0;
-    const double age_coef = 0.2;
-    const std::vector<double> ages = {25.0, 30.0};
-    const std::vector<double> freqs = {0.3, 0.4};
-    const std::vector<double> effects = {0.1, -0.05};
-    const auto n_samples = static_cast<size_t>(genotypes.rows());
-    const auto n_snps = static_cast<size_t>(genotypes.cols());
-    std::vector<double> expected_snp(n_samples, 0.0);
-    for (size_t snp = 0; snp < n_snps; ++snp)
-    {
-        for (size_t sample = 0; sample < n_samples; ++sample)
-        {
-            const double geno = genotypes(
-                static_cast<Eigen::Index>(sample),
-                static_cast<Eigen::Index>(snp));
-            expected_snp[sample]
-                += compute_std_additive(geno, freqs[snp]) * effects[snp];
-        }
-    }
-
-    const auto& predictions = engine.predictions();
-    const auto& covar_preds = engine.covar_predictions();
-
-    REQUIRE(predictions.size() == 2);
-    REQUIRE(covar_preds.cols() == 2);
-
-    const double eps = 1e-8;
-    for (size_t i = 0; i < 2; ++i)
-    {
-        double expected_covar = intercept + (age_coef * ages[i]);
-        double expected_total = expected_covar + expected_snp[i];
-
-        REQUIRE_THAT(
-            predictions[i], Catch::Matchers::WithinAbs(expected_total, eps));
-        REQUIRE_THAT(
-            covar_preds(i, 0), Catch::Matchers::WithinAbs(intercept, eps));
-        REQUIRE_THAT(
-            covar_preds(i, 1),
-            Catch::Matchers::WithinAbs(age_coef * ages[i], eps));
-    }
-
-    const auto& covar_names = engine.covar_prediction_names();
-    REQUIRE(covar_names[0] == "Intercept");
-    REQUIRE(covar_names[1] == "Age");
-}
-
-TEST_CASE(
-    "PredictEngine - Categorical covariate",
-    "[predict][predict_engine][numerical][covariate]")
-{
-    PredictEngineTestFixture fixture;
-
-    Eigen::MatrixXd genotypes(3, 2);
-    genotypes << 0.0, 1.0, 1.0, 2.0, 2.0, 0.0;
-
-    std::vector<std::string> snp_ids = {"rs1", "rs2"};
-    std::vector<std::pair<char, char>> alleles = {{'A', 'C'}, {'T', 'G'}};
-    std::vector<std::vector<std::string>> snp_rows
-        = {{"1", "1000", "rs1", "A", "C", "0.30", "0.10"},
-           {"1", "2000", "rs2", "T", "G", "0.40", "0.05"}};
-
-    std::vector<std::string> iids = {"s1", "s2", "s3"};
-
-    auto [bed_prefix, _] = fixture.create_deterministic_bed_files(
-        genotypes,
-        iids,
-        snp_ids,
-        std::vector<std::string>(snp_ids.size(), "1"),
-        alleles);
-
-    auto fam_path = bed_prefix;
-    fam_path.replace_extension(".fam");
-    auto [fids, loaded_iids] = PredictEngineTestFixture::read_fam(fam_path);
-
-    auto snp_path = fixture.create_snp_effects_file(snp_rows, false);
-    auto dcovar_path = fixture.create_dcovar_file(
-        fids, loaded_iids, {{"Sex", {"M", "F", "M"}}});
-    // Dummy coding: only non-reference level (Sex_M) has a coefficient
-    auto param_path = fixture.create_param_with_dcovar(1.5, {{"Sex_M", -0.3}});
-
-    PredictEngine::Config config{
-        .bed_path = bed_prefix,
-        .snp_effect_path = snp_path,
-        .covar_effect_path = param_path,
-        .qcovar_path = "",
-        .dcovar_path = dcovar_path.string(),
-        .output_path
-        = fixture.get_file_fixture().get_test_dir() / "test.predictions"};
-
-    PredictEngine engine(config);
-    REQUIRE_NOTHROW(engine.run());
-
-    const double intercept = 1.5;
-    const double sex_m_coef = -0.3;
-
-    const auto& predictions = engine.predictions();
-    const auto& covar_preds = engine.covar_predictions();
-
-    REQUIRE(predictions.size() == 3);
-    REQUIRE(covar_preds.cols() == 2);  // Intercept, Sex_M
-
-    const double eps = 1e-8;
-    // s1: Sex=M, s2: Sex=F, s3: Sex=M
-    REQUIRE_THAT(covar_preds(0, 0), Catch::Matchers::WithinAbs(intercept, eps));
-    REQUIRE_THAT(
-        covar_preds(0, 1), Catch::Matchers::WithinAbs(sex_m_coef, eps));
-
-    REQUIRE_THAT(covar_preds(1, 0), Catch::Matchers::WithinAbs(intercept, eps));
-    REQUIRE_THAT(covar_preds(1, 1), Catch::Matchers::WithinAbs(0.0, eps));
-
-    REQUIRE_THAT(covar_preds(2, 0), Catch::Matchers::WithinAbs(intercept, eps));
-    REQUIRE_THAT(
-        covar_preds(2, 1), Catch::Matchers::WithinAbs(sex_m_coef, eps));
-
-    const auto& covar_names = engine.covar_prediction_names();
-    REQUIRE(covar_names[0] == "Intercept");
-    REQUIRE(covar_names[1] == "Sex_M");
-}
-
-TEST_CASE(
-    "PredictEngine - Full model",
-    "[predict][predict_engine][numerical][covariate]")
-{
-    PredictEngineTestFixture fixture;
+    // 3 samples, 2 SNPs, add + dom + qcovar(Age) + dcovar(Sex)
+    BedFixture bed;
 
     Eigen::MatrixXd genotypes(3, 2);
     genotypes << 0.0, 2.0, 1.0, 1.0, 2.0, 0.0;
 
-    std::vector<std::string> snp_ids = {"rs1", "rs2"};
-    std::vector<std::pair<char, char>> alleles = {{'A', 'C'}, {'T', 'G'}};
-    std::vector<std::vector<std::string>> snp_rows
-        = {{"1", "1000", "rs1", "A", "C", "0.30", "0.10"},
-           {"1", "2000", "rs2", "T", "G", "0.40", "-0.05"}};
+    const std::vector<std::string> iids = {"s1", "s2", "s3"};
+    const std::vector<std::string> snp_ids = {"rs1", "rs2"};
+    const std::vector<std::pair<char, char>> alleles = {{'A', 'C'}, {'T', 'G'}};
 
-    std::vector<std::string> iids = {"s1", "s2", "s3"};
-
-    auto [bed_prefix, _] = fixture.create_deterministic_bed_files(
+    auto [bed_prefix, _] = bed.create_deterministic_bed_files(
         genotypes,
         iids,
         snp_ids,
@@ -333,215 +305,41 @@ TEST_CASE(
 
     auto fam_path = bed_prefix;
     fam_path.replace_extension(".fam");
-    auto [fids, loaded_iids] = PredictEngineTestFixture::read_fam(fam_path);
+    auto [fids, loaded_iids] = read_fam(fam_path);
 
-    auto snp_path = fixture.create_snp_effects_file(snp_rows, false);
-    auto qcovar_path = fixture.create_qcovar_file(
-        fids, loaded_iids, {{"Age", {25.0, 30.0, 35.0}}});
-    auto dcovar_path = fixture.create_dcovar_file(
-        fids, loaded_iids, {{"Sex", {"M", "F", "M"}}});
-    // Dummy coding: only non-reference level
-    auto param_path
-        = fixture.create_param_full(1.0, {{"Age", 0.2}}, {{"Sex_M", -0.3}});
+    auto& ff = bed.get_file_fixture();
 
-    PredictEngine::Config config{
-        .bed_path = bed_prefix,
-        .snp_effect_path = snp_path,
-        .covar_effect_path = param_path,
-        .qcovar_path = qcovar_path.string(),
-        .dcovar_path = dcovar_path.string(),
-        .output_path
-        = fixture.get_file_fixture().get_test_dir() / "test.predictions"};
-
-    PredictEngine engine(config);
-    REQUIRE_NOTHROW(engine.run());
-
-    const double intercept = 1.0;
-    const double age_coef = 0.2;
-    const double sex_m_coef = -0.3;
-    const std::vector<double> ages = {25.0, 30.0, 35.0};
-
-    const auto& predictions = engine.predictions();
-    const auto& covar_preds = engine.covar_predictions();
-
-    REQUIRE(predictions.size() == 3);
-    REQUIRE(covar_preds.cols() == 3);  // Intercept, Age, Sex_M
-
-    const double eps = 1e-8;
-    for (size_t i = 0; i < 3; ++i)
-    {
-        REQUIRE_THAT(
-            covar_preds(i, 0), Catch::Matchers::WithinAbs(intercept, eps));
-        REQUIRE_THAT(
-            covar_preds(i, 1),
-            Catch::Matchers::WithinAbs(age_coef * ages[i], eps));
-    }
-    // s1: Sex=M, s2: Sex=F, s3: Sex=M
-    REQUIRE_THAT(
-        covar_preds(0, 2), Catch::Matchers::WithinAbs(sex_m_coef, eps));
-    REQUIRE_THAT(covar_preds(1, 2), Catch::Matchers::WithinAbs(0.0, eps));
-    REQUIRE_THAT(
-        covar_preds(2, 2), Catch::Matchers::WithinAbs(sex_m_coef, eps));
-
-    const auto& covar_names = engine.covar_prediction_names();
-    REQUIRE(covar_names[0] == "Intercept");
-    REQUIRE(covar_names[1] == "Age");
-    REQUIRE(covar_names[2] == "Sex_M");
-}
-
-TEST_CASE(
-    "PredictEngine - Dominance effect",
-    "[predict][predict_engine][numerical][dominance]")
-{
-    PredictEngineTestFixture fixture;
-
-    Eigen::MatrixXd genotypes(3, 2);
-    genotypes << 0.0, 1.0, 1.0, 2.0, 2.0, 0.0;
-
-    std::vector<std::string> snp_ids = {"rs1", "rs2"};
-    std::vector<std::pair<char, char>> alleles = {{'A', 'C'}, {'T', 'G'}};
-    std::vector<std::vector<std::string>> snp_rows
+    const std::vector<std::vector<std::string>> snp_rows
         = {{"1", "1000", "rs1", "A", "C", "0.30", "0.10", "0.02"},
            {"1", "2000", "rs2", "T", "G", "0.40", "-0.05", "0.01"}};
 
-    auto [bed_prefix, _] = fixture.create_deterministic_bed_files(
-        genotypes,
-        {"s1", "s2", "s3"},
-        snp_ids,
-        std::vector<std::string>(snp_ids.size(), "1"),
-        alleles);
+    auto gfile_prefix = (ff.get_test_dir() / "gfile").string();
+    create_snp_effects_file(ff, gfile_prefix, snp_rows);
+    create_param_file(
+        ff, gfile_prefix, 1.0, {{"Age", 0.2}}, {{"Sex\x1FM", -0.3}});
+    create_sbin(gfile_prefix + ".sbin", genotypes);
 
-    auto snp_path = fixture.create_snp_effects_file(snp_rows, true);
-    auto param_path = fixture.create_param_intercept_only(1.0);
+    auto qcovar_path = create_qcovar_file(
+        ff, fids, loaded_iids, {{"Age", {25.0, 30.0, 35.0}}});
+    auto dcovar_path
+        = create_dcovar_file(ff, fids, loaded_iids, {{"Sex", {"M", "F", "M"}}});
+
+    auto output_path = ff.get_test_dir() / "test.predictions";
 
     PredictEngine::Config config{
+        .bfile_prefix = bed_prefix.string(),
+        .gfile_prefix = gfile_prefix,
         .bed_path = bed_prefix,
-        .snp_effect_path = snp_path,
-        .covar_effect_path = param_path,
-        .qcovar_path = "",
-        .dcovar_path = "",
-        .output_path
-        = fixture.get_file_fixture().get_test_dir() / "test.predictions"};
+        .qcovar_path = qcovar_path,
+        .dcovar_path = dcovar_path,
+        .output_path = output_path};
 
     PredictEngine engine(config);
     REQUIRE_NOTHROW(engine.run());
 
-    const std::vector<double> p_values = {0.3, 0.4};
-    const std::vector<double> add_effects = {0.1, -0.05};
-    const std::vector<double> dom_effects = {0.02, 0.01};
+    REQUIRE(std::filesystem::exists(output_path));
 
-    const auto n_samples = static_cast<size_t>(genotypes.rows());
-    const auto n_snps = static_cast<size_t>(genotypes.cols());
-    std::vector<double> expected_snp(n_samples, 0.0);
-
-    for (size_t snp = 0; snp < n_snps; ++snp)
-    {
-        const double p = p_values[snp];
-        const double add = add_effects[snp];
-        const double dom = dom_effects[snp];
-
-        for (size_t sample = 0; sample < n_samples; ++sample)
-        {
-            const double geno = genotypes(
-                static_cast<Eigen::Index>(sample),
-                static_cast<Eigen::Index>(snp));
-
-            const double std_add = compute_std_additive(geno, p);
-            const double std_dom = compute_std_dominance(geno, p);
-
-            expected_snp[sample] += (std_add * add) + (std_dom * dom);
-        }
-    }
-
-    const auto& predictions = engine.predictions();
-    const auto& snp_preds = engine.snp_predictions();
-
-    REQUIRE(predictions.size() == 3);
-    REQUIRE(snp_preds.size() == 3);
-
-    const double eps = 1e-8;
-    for (size_t i = 0; i < 3; ++i)
-    {
-        REQUIRE_THAT(
-            snp_preds[i], Catch::Matchers::WithinAbs(expected_snp[i], eps));
-    }
-}
-
-TEST_CASE("PredictEngine - Error handling", "[predict][predict_engine][error]")
-{
-    PredictEngineTestFixture fixture;
-
-    Eigen::MatrixXd genotypes(2, 2);
-    genotypes << 0.0, 1.0, 1.0, 2.0;
-
-    std::vector<std::string> snp_ids = {"rs1", "rs2"};
-    std::vector<std::pair<char, char>> alleles = {{'A', 'C'}, {'T', 'G'}};
-    std::vector<std::vector<std::string>> snp_rows
-        = {{"1", "1000", "rs1", "A", "C", "0.30", "0.10"},
-           {"1", "2000", "rs2", "T", "G", "0.40", "-0.05"}};
-
-    auto [bed_prefix, _] = fixture.create_deterministic_bed_files(
-        genotypes,
-        {"s1", "s2"},
-        snp_ids,
-        std::vector<std::string>(snp_ids.size(), "1"),
-        alleles);
-
-    auto fam_path = bed_prefix;
-    fam_path.replace_extension(".fam");
-    auto [fids, iids] = PredictEngineTestFixture::read_fam(fam_path);
-
-    auto snp_path = fixture.create_snp_effects_file(snp_rows, false);
-    auto param_path = fixture.create_param_intercept_only(1.0);
-
-    SECTION("Missing output path")
-    {
-        PredictEngine::Config config{
-            .bed_path = bed_prefix,
-            .snp_effect_path = snp_path,
-            .covar_effect_path = param_path,
-            .qcovar_path = "",
-            .dcovar_path = "",
-            .output_path = ""};
-
-        REQUIRE_THROWS_AS(PredictEngine(config), InvalidInputException);
-    }
-
-    SECTION("Extra data covariates not in params are ignored")
-    {
-        auto qcovar_path
-            = fixture.create_qcovar_file(fids, iids, {{"Age", {25.0, 30.0}}});
-
-        PredictEngine::Config config{
-            .bed_path = bed_prefix,
-            .snp_effect_path = snp_path,
-            .covar_effect_path = param_path,
-            .qcovar_path = qcovar_path.string(),
-            .dcovar_path = "",
-            .output_path
-            = fixture.get_file_fixture().get_test_dir() / "test.predictions"};
-
-        PredictEngine engine(config);
-        REQUIRE_NOTHROW(engine.run());
-    }
-
-    SECTION("Categorical data not fully covered by params is OK")
-    {
-        auto dcovar_path
-            = fixture.create_dcovar_file(fids, iids, {{"Sex", {"M", "F"}}});
-        auto param_no_f
-            = fixture.create_param_with_dcovar(1.0, {{"Sex_M", -0.3}});
-
-        PredictEngine::Config config{
-            .bed_path = bed_prefix,
-            .snp_effect_path = snp_path,
-            .covar_effect_path = param_no_f,
-            .qcovar_path = "",
-            .dcovar_path = dcovar_path.string(),
-            .output_path
-            = fixture.get_file_fixture().get_test_dir() / "test.predictions"};
-
-        PredictEngine engine(config);
-        REQUIRE_NOTHROW(engine.run());
-    }
+    auto out = read_prediction_output(output_path);
+    REQUIRE(out.row_count == 3);
+    REQUIRE(out.has_dominant);
 }

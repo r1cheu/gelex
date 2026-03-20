@@ -22,8 +22,6 @@
 #include <string>
 #include <variant>
 
-#include <Eigen/Core>
-
 #include "gelex/types/genotype_process_method.h"
 
 namespace gelex
@@ -31,8 +29,8 @@ namespace gelex
 
 struct PredictParamsLoadedEvent
 {
-    size_t num_snp_effects{};
-    size_t num_covar_terms{};
+    std::string_view bfile_prefix;
+    std::string_view gfile_prefix;
     GenotypeProcessMethod geno_method{};
 };
 
@@ -40,7 +38,10 @@ struct PredictSnpSelectionEvent
 {
     size_t num_matched{};
     size_t num_missing{};
+    size_t num_mismatched{};
     size_t num_total{};
+    std::string bfile_path;
+    std::string snp_effect_path;
 };
 
 struct PredictDataLoadedEvent
@@ -48,8 +49,6 @@ struct PredictDataLoadedEvent
     size_t num_samples{};
     size_t num_snps{};
     size_t num_covar_terms{};
-    Eigen::Index design_rows{};
-    Eigen::Index design_cols{};
 };
 
 struct PredictResultsWrittenEvent

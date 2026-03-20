@@ -14,40 +14,39 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_PREDICT_COVARIATE_READER_H
-#define GELEX_PREDICT_COVARIATE_READER_H
+#ifndef GELEX_PREDICT_READER_H_
+#define GELEX_PREDICT_READER_H_
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
+#include "gelex/data/dataframe/dataframe.h"
+
 namespace gelex
 {
 
-struct CovariateParams
+struct Coefficients
 {
-    std::vector<std::string> term_names;
-    Eigen::VectorXd coefficients;
+    std::vector<std::string> names;
+    Eigen::VectorXd values;
 };
 
-class CovariateReader
-{
-   public:
-    explicit CovariateReader(const std::filesystem::path& param_file_path)
-        : params_(parse(param_file_path))
-    {
-    }
+[[nodiscard]] auto read_coefficients(const std::filesystem::path& path)
+    -> Coefficients;
 
-    auto params() const -> const CovariateParams& { return params_; }
-    auto take_params() && -> CovariateParams { return std::move(params_); }
+[[nodiscard]] auto read_snp_effects(const std::filesystem::path& path)
+    -> df::DataFrame<std::string>;
 
-   private:
-    static auto parse(const std::filesystem::path& path) -> CovariateParams;
-    CovariateParams params_;
-};
+[[nodiscard]] auto read_covariates(
+    const std::optional<std::filesystem::path>& qcovar_path,
+    const std::optional<std::filesystem::path>& dcovar_path,
+    const Coefficients& coefficients,
+    df::DataFrame<std::string>& sample_df) -> Eigen::MatrixXd;
 
 }  // namespace gelex
 
-#endif  // GELEX_PREDICT_COVARIATE_READER_H
+#endif  // GELEX_PREDICT_READER_H_

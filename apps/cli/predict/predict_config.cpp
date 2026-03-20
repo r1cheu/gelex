@@ -27,32 +27,29 @@
 namespace gelex::cli
 {
 
-auto make_predict_configs(argparse::ArgumentParser& cmd) -> PredictConfigs
+auto make_predict_config(argparse::ArgumentParser& cmd) -> PredictEngine::Config
 {
     using std::filesystem::path;
 
-    PredictConfigs configs;
+    PredictEngine::Config config;
 
     auto gfile = cmd.get<std::string>("--gfile");
+    auto bfile = cmd.get<std::string>("--bfile");
 
-    configs.params.snp_effect_path = gfile + ".snp.eff";
-    configs.params.covar_effect_path = gfile + ".covar.eff";
-    configs.params.sbin_path = gfile + ".sbin";
+    config.bed_path = gelex::format_bed_path(bfile);
+    config.bfile_prefix = bfile;
+    config.gfile_prefix = gfile;
 
-    configs.data.bed_path = gelex::format_bed_path(cmd.get("bfile"));
-    configs.data.qcovar_path
-        = cmd.is_used("--qcovar")
-              ? std::make_optional<path>(cmd.get("--qcovar"))
-              : std::nullopt;
-    configs.data.dcovar_path
-        = cmd.is_used("--dcovar")
-              ? std::make_optional<path>(cmd.get("--dcovar"))
-              : std::nullopt;
+    config.qcovar_path = cmd.is_used("--qcovar")
+                             ? std::make_optional<path>(cmd.get("--qcovar"))
+                             : std::nullopt;
+    config.dcovar_path = cmd.is_used("--dcovar")
+                             ? std::make_optional<path>(cmd.get("--dcovar"))
+                             : std::nullopt;
 
-    configs.engine.output_path = cmd.get("--out");
-    configs.engine.chunk_size = cmd.get<int>("--chunk-size");
+    config.output_path = cmd.get("--out");
 
-    return configs;
+    return config;
 }
 
 }  // namespace gelex::cli

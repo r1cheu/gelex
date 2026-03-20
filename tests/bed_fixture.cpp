@@ -337,7 +337,7 @@ void BedFixture::write_bim_file(
         }
 
         bim_content += std::format(
-            "{} {} {} {} {} {}\n",
+            "{}\t{}\t{}\t{}\t{}\t{}\n",
             chrom,
             snp_id,
             static_cast<double>((i + 1) * 100),

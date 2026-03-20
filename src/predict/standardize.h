@@ -14,19 +14,16 @@
  * limitations under the License.
  */
 
-#include "predict_command.h"
+#ifndef GELEX_PREDICT_STANDARDIZE_H_
+#define GELEX_PREDICT_STANDARDIZE_H_
 
-#include <argparse.h>
+#include "gelex/predict/predict_types.h"
 
-#include "gelex/pipeline/predict_engine.h"
-#include "predict_config.h"
-#include "predict_reporter.h"
-
-auto predict_execute(argparse::ArgumentParser& predict) -> int
+namespace gelex
 {
-    auto config = gelex::cli::make_predict_config(predict);
-    gelex::cli::PredictReporter reporter;
-    gelex::PredictEngine engine(std::move(config));
-    engine.run(reporter.as_observer());
-    return 0;
-}
+
+auto standardize_genotypes(GenotypeData& geno, const SbinData& sbin) -> void;
+
+}  // namespace gelex
+
+#endif  // GELEX_PREDICT_STANDARDIZE_H_

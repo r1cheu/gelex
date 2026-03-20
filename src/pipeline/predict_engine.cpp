@@ -16,121 +16,181 @@
 
 #include "gelex/pipeline/predict_engine.h"
 
-#include <format>
+#include <cstddef>
+#include <string>
+#include <utility>
+#include <vector>
 
-#include "gelex/exception.h"
-#include "gelex/predict/genotype_selector.h"
-#include "gelex/predict/predict_params_pipe.h"
-#include "gelex/predict/predict_pipe.h"
-#include "predict/covar_predictor.h"
+#include <Eigen/Core>
+
+#include "gelex/data/genotype/bed_pipe.h"
+#include "gelex/data/reader.h"
+#include "gelex/infra/logging/notify.h"
+#include "gelex/io/locistats_reader.h"
+#include "gelex/predict/reader.h"
+#include "gelex/predict/snp_alignment.h"
+#include "predict/compute.h"
 #include "predict/predict_writer.h"
-#include "predict/snp_predictor.h"
+#include "predict/standardize.h"
 
 namespace gelex
 {
 
-void PredictEngine::Config::validate() const
+PredictEngine::PredictEngine(Config config) : config_(std::move(config)) {}
+
+auto PredictEngine::load_sbin(const std::filesystem::path& path) -> SbinData
 {
-    if (bed_path.empty())
+    LociStatsReader reader(path.string());
+    SbinData data;
+    data.add = reader.read(EffectType::add());
+    if (reader.has(EffectType::dom()))
     {
-        throw InvalidInputException("BED path must be provided");
+        data.dom = reader.read(EffectType::dom());
+        data.has_dom = true;
     }
-    if (snp_effect_path.empty())
+    return data;
+}
+
+auto PredictEngine::load_params() const -> PredictParams
+{
+    auto snp_effects = read_snp_effects(config_.gfile_prefix + ".snp.eff");
+    auto sbin = load_sbin(config_.gfile_prefix + ".sbin");
+
+    bool enable_dom{};
+    if (sbin.has_dom)
     {
-        throw InvalidInputException("SNP effect path must be provided");
+        if (!snp_effects.contains("Dom"))
+        {
+            throw InvalidInputException(
+                "Sbin file contains dominance effects, but SNP effects file "
+                "does not have 'Dom' column.");
+        }
+        enable_dom = true;
     }
-    if (covar_effect_path.empty())
+
+    Eigen::VectorXd add_effects = snp_effects.col("Add").to_map<double>();
+    auto dom_effects = enable_dom ? std::make_optional<Eigen::VectorXd>(
+                                        snp_effects.col("Dom").to_mat<double>())
+                                  : std::nullopt;
+
+    return PredictParams{
+        .snp_effects = std::move(snp_effects),
+        .add_effects = std::move(add_effects),
+        .dom_effects = std::move(dom_effects),
+        .coefficients = read_coefficients(config_.gfile_prefix + ".param"),
+        .sbin = std::move(sbin)};
+}
+
+auto PredictEngine::load_data(const PredictParams& params) const -> PredictData
+{
+    auto fam_path = config_.bed_path;
+    fam_path.replace_extension(".fam");
+    auto bim_path = config_.bed_path;
+    bim_path.replace_extension(".bim");
+
+    auto fam_df = read_fam(fam_path);
+    auto bim_df = read_bim(bim_path);
+    auto covariates = read_covariates(
+        config_.qcovar_path, config_.dcovar_path, params.coefficients, fam_df);
+
+    return PredictData{
+        .fam_df = std::move(fam_df),
+        .bim_df = std::move(bim_df),
+        .covariates = std::move(covariates)};
+}
+
+auto PredictEngine::align(
+    const PredictParams& params,
+    const PredictData& data,
+    const PredictObserver& observer) const -> SnpAlignment
+{
+    auto alignment = build_snp_alignment(params.snp_effects, data.bim_df);
+    const auto n_snps = static_cast<size_t>(params.snp_effects.rows());
+
+    if (alignment.num_missing > 0 || alignment.num_mismatched > 0)
     {
-        throw InvalidInputException("Covariate effect path must be provided");
+        notify(
+            observer,
+            PredictSnpSelectionEvent{
+                .num_matched = n_snps
+                               - static_cast<size_t>(alignment.num_missing)
+                               - static_cast<size_t>(alignment.num_mismatched),
+                .num_missing = static_cast<size_t>(alignment.num_missing),
+                .num_mismatched = static_cast<size_t>(alignment.num_mismatched),
+                .num_total = n_snps,
+                .bfile_path = config_.bfile_prefix,
+                .snp_effect_path = config_.gfile_prefix + ".snp.eff"});
     }
-    if (output_path.empty())
+
+    return alignment;
+}
+
+auto PredictEngine::select(
+    const PredictData& data,
+    const SnpAlignment& alignment,
+    bool has_dom) const -> GenotypeData
+{
+    BedPipe bed_pipe(config_.bed_path, data.fam_df.index());
+    auto genotype = bed_pipe.select(alignment.column_map);
+
+    GenotypeData geno;
+    if (has_dom)
     {
-        throw InvalidInputException("Output path must be provided");
+        geno.dom = genotype;
     }
+    geno.add = std::move(genotype);
+    return geno;
 }
 
-PredictEngine::PredictEngine(const Config& config) : config_(config)
+auto PredictEngine::run(const PredictObserver& observer) -> void
 {
-    config_.validate();
-}
+    auto params = load_params();
 
-void PredictEngine::run()
-{
-    load_parameters();
-    load_data();
-    validate_dimensions();
-    compute();
-    write();
-}
+    notify(
+        observer,
+        PredictParamsLoadedEvent{
+            .bfile_prefix = config_.bfile_prefix,
+            .gfile_prefix = config_.gfile_prefix,
+            .geno_method = params.sbin.add.method});
 
-void PredictEngine::load_parameters()
-{
-    PredictParamsPipe::Config params_config{
-        .snp_effect_path = config_.snp_effect_path,
-        .covar_effect_path = config_.covar_effect_path};
+    auto data = load_data(params);
+    auto alignment = align(params, data, observer);
+    auto geno = select(data, alignment, params.sbin.has_dom);
 
-    PredictParamsPipe params_pipe(params_config);
+    notify(
+        observer,
+        PredictDataLoadedEvent{
+            .num_samples = static_cast<size_t>(data.fam_df.rows()),
+            .num_snps = static_cast<size_t>(params.snp_effects.rows()),
+            .num_covar_terms = params.coefficients.names.size()});
 
-    snp_effects_ = std::move(params_pipe).take_snp_effects();
-    covar_effects_ = std::move(params_pipe).take_covar_effects();
-}
+    standardize_genotypes(geno, params.sbin);
 
-void PredictEngine::load_data()
-{
-    PredictDataPipe::Config data_config{
-        .bed_path = config_.bed_path,
-        .qcovar_path = config_.qcovar_path,
-        .dcovar_path = config_.dcovar_path};
+    SnpEffects effects{.add = params.add_effects, .dom = params.dom_effects};
+    auto gebv = compute_gebv(geno, effects);
+    auto covar
+        = compute_covariate_effects(data.covariates, params.coefficients);
 
-    PredictDataPipe data_pipe(data_config);
-    data_ = std::move(data_pipe).take_data();
-    sample_ids_ = data_.sample_ids;
+    auto sample_keys = data.fam_df.index().data();
+    std::vector<std::string> sample_ids(sample_keys.begin(), sample_keys.end());
 
-    GenotypeSelector genotype_selector(config_.bed_path, snp_effects_, {});
-    data_.genotype = genotype_selector.select(std::move(data_.genotype));
-}
+    PredictResult result{
+        .sample_ids = std::move(sample_ids),
+        .predictions = gebv.total + covar.total,
+        .snp_predictions = std::move(gebv.total),
+        .add_predictions = std::move(gebv.add_predictions),
+        .dom_predictions = std::move(gebv.dom_predictions),
+        .covar_predictions = std::move(covar.per_covariate),
+        .covar_names = std::move(covar.covar_names)};
 
-void PredictEngine::validate_dimensions()
-{
-    const Eigen::Index n_snps = data_.genotype.cols();
-    const auto n_snp_effects = static_cast<Eigen::Index>(snp_effects_.size());
-
-    if (n_snps != n_snp_effects)
-    {
-        throw InvalidInputException(
-            std::format(
-                "Dimension mismatch: genotype matrix has {} SNPs, but SNP "
-                "effects has {}",
-                n_snps,
-                n_snp_effects));
-    }
-}
-
-void PredictEngine::compute()
-{
-    SnpPredictor snp_predictor(snp_effects_);
-    auto snp_result = snp_predictor.compute(data_.genotype);
-    snp_predictions_ = snp_result.total();
-    add_predictions_ = std::move(snp_result.add);
-    dom_predictions_ = std::move(snp_result.dom);
-
-    CovarPredictor covar_predictor(covar_effects_);
-    auto covar_result = covar_predictor.compute(data_);
-    covar_predictions_ = std::move(covar_result.predictions);
-    covar_prediction_names_ = std::move(covar_result.names);
-    predictions_ = snp_predictions_ + covar_predictions_.rowwise().sum();
-}
-
-void PredictEngine::write()
-{
     PredictWriter writer(config_.output_path);
-    writer.write(
-        predictions_,
-        sample_ids_,
-        add_predictions_,
-        dom_predictions_,
-        covar_predictions_,
-        covar_prediction_names_);
+    writer.write(result);
+
+    notify(
+        observer,
+        PredictResultsWrittenEvent{
+            .output_path = config_.output_path.string(),
+            .num_samples = result.sample_ids.size()});
 }
 
 }  // namespace gelex
