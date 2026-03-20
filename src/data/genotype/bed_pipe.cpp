@@ -21,6 +21,8 @@
 #include <memory>
 #include <span>
 
+#include "gelex/data/dataframe/index.h"
+
 #include <omp.h>
 
 #include "data/bed_pipe/metadata.h"
@@ -91,6 +93,29 @@ BedPipe::BedPipe(
         projection_->is_dense());
 
     num_raw_snps_ = metadata.num_raw_snps;
+    num_output_samples_ = projection_->num_output_samples();
+}
+
+BedPipe::BedPipe(
+    const std::filesystem::path& bed_prefix,
+    const df::Index<std::string>& sample_index)
+{
+    auto metadata = detail::load_bed_metadata(bed_prefix);
+
+    projection_ = std::make_unique<detail::SampleProjection>(
+        metadata.raw_ids, sample_index);
+
+    bed_reader_ = std::make_unique<detail::BedMmapReader>(
+        metadata.bed_path, metadata.num_raw_snps, metadata.bytes_per_variant);
+
+    decoder_ = std::make_unique<detail::BedVariantDecoder>(
+        metadata.num_raw_samples,
+        metadata.bytes_per_variant,
+        projection_->mapping(),
+        projection_->is_dense());
+
+    num_raw_snps_ = metadata.num_raw_snps;
+    num_output_samples_ = projection_->num_output_samples();
 }
 
 BedPipe::BedPipe(BedPipe&&) noexcept = default;
@@ -159,12 +184,44 @@ void BedPipe::load_chunk(
 
 auto BedPipe::num_samples() const -> Eigen::Index
 {
-    return static_cast<Eigen::Index>(sample_manager_->num_common_samples());
+    return num_output_samples_;
 }
 
 auto BedPipe::num_snps() const -> Eigen::Index
 {
     return num_raw_snps_;
+}
+
+auto BedPipe::select(std::span<const Eigen::Index> col_indices) const
+    -> Eigen::MatrixXd
+{
+    const Eigen::Index num_output_rows = num_samples();
+    const auto num_output_cols = static_cast<Eigen::Index>(col_indices.size());
+
+    Eigen::MatrixXd result(num_output_rows, num_output_cols);
+    result.setConstant(std::numeric_limits<double>::quiet_NaN());
+
+#pragma omp parallel for schedule(static)
+    for (Eigen::Index j = 0; j < num_output_cols; ++j)
+    {
+        const Eigen::Index snp_idx = col_indices[static_cast<size_t>(j)];
+        if (snp_idx < 0 || snp_idx >= num_raw_snps_)
+        {
+            continue;
+        }
+
+        const uint8_t* src_ptr = bed_reader_->chunk_ptr(snp_idx, 1);
+        if (src_ptr == nullptr)
+        {
+            continue;
+        }
+
+        double* col_data_ptr = result.col(j).data();
+        std::span<double> target_span(col_data_ptr, num_output_rows);
+        decoder_->decode(src_ptr, target_span);
+    }
+
+    return result;
 }
 
 }  // namespace gelex

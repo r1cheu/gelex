@@ -22,6 +22,7 @@
 
 #include <Eigen/Core>
 
+#include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/sample_manager.h"
 
 namespace gelex
@@ -43,6 +44,10 @@ class BedPipe
         const std::filesystem::path& bed_prefix,
         std::shared_ptr<SampleManager> sample_manager);
 
+    BedPipe(
+        const std::filesystem::path& bed_prefix,
+        const df::Index<std::string>& sample_index);
+
     BedPipe(const BedPipe&) = delete;
     BedPipe& operator=(const BedPipe&) = delete;
     BedPipe(BedPipe&&) noexcept;
@@ -60,6 +65,9 @@ class BedPipe
         Eigen::Index start_col,
         Eigen::Index end_col) const;
 
+    [[nodiscard]] Eigen::MatrixXd select(
+        std::span<const Eigen::Index> col_indices) const;
+
     [[nodiscard]] Eigen::Index num_samples() const;
     [[nodiscard]] Eigen::Index num_snps() const;
 
@@ -69,6 +77,7 @@ class BedPipe
     std::unique_ptr<detail::BedMmapReader> bed_reader_;
     std::unique_ptr<detail::BedVariantDecoder> decoder_;
     Eigen::Index num_raw_snps_ = 0;
+    Eigen::Index num_output_samples_ = 0;
 };
 
 }  // namespace gelex

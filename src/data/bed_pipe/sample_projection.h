@@ -23,6 +23,7 @@
 
 #include <Eigen/Core>
 
+#include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/sample_manager.h"
 
 namespace gelex::detail
@@ -35,13 +36,23 @@ class SampleProjection
         const std::vector<std::string>& raw_ids,
         const std::shared_ptr<SampleManager>& sample_manager);
 
+    SampleProjection(
+        const std::vector<std::string>& raw_ids,
+        const df::Index<std::string>& target_index);
+
     [[nodiscard]] auto mapping() const -> const std::vector<Eigen::Index>&;
 
     [[nodiscard]] auto is_dense() const -> bool;
 
+    [[nodiscard]] auto num_output_samples() const -> Eigen::Index;
+
    private:
+    auto detect_dense_mapping(Eigen::Index mapped_count, bool sequential)
+        -> void;
+
     std::vector<Eigen::Index> raw_to_target_sample_idx_;
     bool is_dense_mapping_ = false;
+    Eigen::Index num_output_samples_ = 0;
 };
 
 }  // namespace gelex::detail

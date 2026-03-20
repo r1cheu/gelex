@@ -50,9 +50,59 @@ SampleProjection::SampleProjection(
         }
     }
 
-    is_dense_mapping_ = sequential && (mapped_count == num_raw_samples)
-                        && (static_cast<size_t>(num_raw_samples)
-                            == sample_manager->num_common_samples());
+    num_output_samples_
+        = static_cast<Eigen::Index>(sample_manager->num_common_samples());
+    detect_dense_mapping(
+        mapped_count,
+        sequential
+            && (static_cast<size_t>(num_raw_samples)
+                == sample_manager->num_common_samples()));
+}
+
+SampleProjection::SampleProjection(
+    const std::vector<std::string>& raw_ids,
+    const df::Index<std::string>& target_index)
+{
+    const auto num_raw_samples = static_cast<Eigen::Index>(raw_ids.size());
+
+    raw_to_target_sample_idx_.assign(num_raw_samples, -1);
+
+    Eigen::Index mapped_count = 0;
+    bool sequential = true;
+    for (Eigen::Index i = 0; i < num_raw_samples; ++i)
+    {
+        const auto& id = raw_ids[static_cast<size_t>(i)];
+        if (target_index.contains(id))
+        {
+            auto target_pos = static_cast<Eigen::Index>(target_index[id]);
+            raw_to_target_sample_idx_[i] = target_pos;
+            ++mapped_count;
+
+            if (target_pos != i)
+            {
+                sequential = false;
+            }
+        }
+        else
+        {
+            sequential = false;
+        }
+    }
+
+    num_output_samples_ = static_cast<Eigen::Index>(target_index.size());
+    detect_dense_mapping(
+        mapped_count,
+        sequential
+            && (static_cast<size_t>(num_raw_samples) == target_index.size()));
+}
+
+auto SampleProjection::detect_dense_mapping(
+    Eigen::Index mapped_count,
+    bool sequential) -> void
+{
+    const auto num_raw_samples
+        = static_cast<Eigen::Index>(raw_to_target_sample_idx_.size());
+    is_dense_mapping_ = sequential && (mapped_count == num_raw_samples);
 }
 
 auto SampleProjection::mapping() const -> const std::vector<Eigen::Index>&
@@ -63,6 +113,11 @@ auto SampleProjection::mapping() const -> const std::vector<Eigen::Index>&
 auto SampleProjection::is_dense() const -> bool
 {
     return is_dense_mapping_;
+}
+
+auto SampleProjection::num_output_samples() const -> Eigen::Index
+{
+    return num_output_samples_;
 }
 
 }  // namespace gelex::detail
