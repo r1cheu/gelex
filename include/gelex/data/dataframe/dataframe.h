@@ -49,14 +49,40 @@ class DataFrame
     DataFrame(DataFrame&&) = default;
     auto operator=(DataFrame&&) -> DataFrame& = default;
 
-    template <ValueType T, typename Self>
-    auto col(this Self& self, std::string_view name);
-    template <ValueType T, typename Self>
-    auto col(this Self& self, std::size_t index);
+    template <typename Self>
+    auto&& col(this Self&& self, std::string_view name)
+    {
+        auto it = self.col_lookup_.find(name);
+        if (it == self.col_lookup_.end())
+        {
+            throw InvalidInputException(
+                std::format("column not found: '{}'", name));
+        }
+        return std::forward<Self>(self).col(it->second);
+    }
+    template <typename Self>
+    auto&& col(this Self&& self, std::size_t index)
+    {
+        if (index >= self.columns_.size())
+        {
+            throw InvalidInputException(
+                std::format("column index out of range: {}", index));
+        }
+        return std::forward<Self>(self).columns_[index];
+    }
 
     auto names() const -> std::span<const std::string> { return names_; }
     auto cols() const -> std::size_t { return columns_.size(); }
+    auto contains(std::string_view name) const -> bool
+    {
+        return col_lookup_.contains(name);
+    }
 
+    template <typename Self>
+    auto&& index(this Self&& self)
+    {
+        return std::forward<Self>(self).index_;
+    }
     auto rows() const -> std::size_t { return index_.size(); }
     auto row_position(const Key& key) const -> std::size_t
     {
@@ -68,6 +94,16 @@ class DataFrame
 
     static auto intersect(std::span<DataFrame* const> dfs) -> void;
     static auto intersect(std::initializer_list<DataFrame* const> dfs) -> void;
+
+    template <ValueType T = double>
+        requires std::is_arithmetic_v<T>
+    auto to_mat(std::span<const std::size_t> col_indices = {}) const
+        -> Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
+
+    template <ValueType T = double>
+        requires std::is_arithmetic_v<T>
+    auto to_mat(std::span<const std::string_view> col_names) const
+        -> Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
 
    private:
     DataFrame() = default;
@@ -85,31 +121,6 @@ class DataFrame
 };
 
 // --- Implementation ---
-
-template <KeyType Key>
-template <ValueType T, typename Self>
-auto DataFrame<Key>::col(this Self& self, std::string_view name)
-{
-    auto it = self.col_lookup_.find(name);
-    if (it == self.col_lookup_.end())
-    {
-        throw InvalidInputException(
-            std::format("column not found: '{}'", name));
-    }
-    return self.template col<T>(it->second);
-}
-
-template <KeyType Key>
-template <ValueType T, typename Self>
-auto DataFrame<Key>::col(this Self& self, std::size_t index)
-{
-    if (index >= self.columns_.size())
-    {
-        throw InvalidInputException(
-            std::format("column index out of range: {}", index));
-    }
-    return self.columns_[index].template as<T>();
-}
 
 template <KeyType Key>
 auto DataFrame<Key>::clone() const -> DataFrame
@@ -159,6 +170,50 @@ auto DataFrame<Key>::intersect(std::initializer_list<DataFrame* const> dfs)
     -> void
 {
     intersect(std::span{dfs.begin(), dfs.size()});
+}
+
+template <KeyType Key>
+template <ValueType T>
+    requires std::is_arithmetic_v<T>
+auto DataFrame<Key>::to_mat(std::span<const std::size_t> col_indices) const
+    -> Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>
+{
+    auto c = col_indices.empty()
+                 ? static_cast<Eigen::Index>(columns_.size())
+                 : static_cast<Eigen::Index>(col_indices.size());
+    Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> mat(
+        static_cast<Eigen::Index>(rows()), c);
+    for (Eigen::Index j = 0; j < c; ++j)
+    {
+        auto idx = col_indices.empty()
+                       ? static_cast<std::size_t>(j)
+                       : col_indices[static_cast<std::size_t>(j)];
+        auto data = col(idx).template as<T>();
+        mat.col(j) = Eigen::Map<const Eigen::Vector<T, Eigen::Dynamic>>(
+            data.data(), static_cast<Eigen::Index>(data.size()));
+    }
+    return mat;
+}
+
+template <KeyType Key>
+template <ValueType T>
+    requires std::is_arithmetic_v<T>
+auto DataFrame<Key>::to_mat(std::span<const std::string_view> col_names) const
+    -> Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>
+{
+    std::vector<std::size_t> indices;
+    indices.reserve(col_names.size());
+    for (auto name : col_names)
+    {
+        auto it = col_lookup_.find(name);
+        if (it == col_lookup_.end())
+        {
+            throw InvalidInputException(
+                std::format("column not found: '{}'", name));
+        }
+        indices.push_back(it->second);
+    }
+    return to_mat<T>(std::span<const std::size_t>{indices});
 }
 
 }  // namespace gelex::df

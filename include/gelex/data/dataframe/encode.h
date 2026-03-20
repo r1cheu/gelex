@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_DATAFRAME_ENCODE_H
-#define GELEX_DATA_DATAFRAME_ENCODE_H
+#ifndef GELEX_DATA_DATAFRAME_ENCODE_H_
+#define GELEX_DATA_DATAFRAME_ENCODE_H_
 
 #include <format>
 #include <span>
@@ -171,4 +171,4 @@ template <typename Scalar = double>
 
 }  // namespace gelex::df
 
-#endif  // GELEX_DATA_DATAFRAME_ENCODE_H
+#endif  // GELEX_DATA_DATAFRAME_ENCODE_H_

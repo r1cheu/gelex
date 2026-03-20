@@ -17,6 +17,8 @@
 #ifndef GELEX_EXCEPTION_H_
 #define GELEX_EXCEPTION_H_
 
+#include <format>
+
 #include <Eigen/Core>
 #include <stdexcept>
 
@@ -113,6 +115,17 @@ class InconsistentColumnCountException : public GelexException
 {
    public:
     using GelexException::GelexException;
+};
+
+class DuplicateIndexException : public GelexException
+{
+   public:
+    template <typename T>
+        requires std::formattable<T, char>
+    explicit DuplicateIndexException(const T& index)
+        : GelexException(std::format("duplicate index: {}", index))
+    {
+    }
 };
 }  // namespace gelex
 

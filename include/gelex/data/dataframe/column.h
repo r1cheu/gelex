@@ -26,6 +26,8 @@
 #include <variant>
 #include <vector>
 
+#include <Eigen/Core>
+
 #include "gelex/data/dataframe/key_type.h"
 #include "gelex/exception.h"
 
@@ -76,6 +78,14 @@ class Column
 
     template <ValueType T>
     auto take() && -> std::vector<T>;
+
+    template <ValueType T>
+        requires std::is_arithmetic_v<T>
+    auto to_map() const -> Eigen::Map<const Eigen::Vector<T, Eigen::Dynamic>>;
+
+    template <ValueType T>
+        requires std::is_arithmetic_v<T>
+    auto to_mat() const -> Eigen::Vector<T, Eigen::Dynamic>;
 
    private:
     template <ValueType T, typename Storage>
@@ -130,6 +140,22 @@ template <ValueType T>
 auto Column::take() && -> std::vector<T>
 {
     return std::move(checked<T>(storage_, name_));
+}
+
+template <ValueType T>
+    requires std::is_arithmetic_v<T>
+auto Column::to_map() const
+    -> Eigen::Map<const Eigen::Vector<T, Eigen::Dynamic>>
+{
+    const auto& vec = checked<T>(storage_, name_);
+    return {vec.data(), static_cast<Eigen::Index>(vec.size())};
+}
+
+template <ValueType T>
+    requires std::is_arithmetic_v<T>
+auto Column::to_mat() const -> Eigen::Vector<T, Eigen::Dynamic>
+{
+    return to_map<T>();
 }
 
 }  // namespace gelex::df

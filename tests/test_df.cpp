@@ -18,8 +18,10 @@
 #include <format>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
+#include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
 #include "file_fixture.h"
@@ -50,7 +52,7 @@ auto make_basic_df(FileFixture& files) -> DataFrame<std::string>
     auto path = files.create_text_file(kContent, ".tsv");
     ReadOptions opts;
     opts.index_cols = {"id"};
-    opts.schema = {ColumnType::Double, ColumnType::Double};
+    opts.schema = ColumnType::Double;
     return read_dataframe<std::string>(path.string(), opts);
 }
 
@@ -89,12 +91,12 @@ TEST_CASE(
     FileFixture files;
     auto df = make_basic_df(files);
 
-    auto x = df.col<double>("x");
+    auto x = df.col("x").as<double>();
     REQUIRE(x[0] == 1.5);
     REQUIRE(x[1] == 3.0);
     REQUIRE(x[2] == 5.0);
 
-    auto y = df.col<double>("y");
+    auto y = df.col("y").as<double>();
     REQUIRE(y[0] == 2.5);
     REQUIRE(y[1] == 4.0);
     REQUIRE(y[2] == 6.0);
@@ -130,7 +132,7 @@ TEST_CASE(
     ReadOptions opts;
     opts.index_cols = {"id"};
     opts.select_cols = {"b", "d"};
-    opts.schema = {ColumnType::Int, ColumnType::Int};
+    opts.schema = ColumnType::Int;
     auto df = read_dataframe<std::string>(path.string(), opts);
 
     REQUIRE(df.cols() == 2);
@@ -138,11 +140,11 @@ TEST_CASE(
     REQUIRE(names[0] == "b");
     REQUIRE(names[1] == "d");
 
-    auto b = df.col<std::int32_t>("b");
+    auto b = df.col("b").as<std::int32_t>();
     REQUIRE(b[0] == 2);
     REQUIRE(b[1] == 6);
 
-    auto d = df.col<std::int32_t>("d");
+    auto d = df.col("d").as<std::int32_t>();
     REQUIRE(d[0] == 4);
     REQUIRE(d[1] == 8);
 }
@@ -164,7 +166,7 @@ TEST_CASE(
     auto path = files.create_text_file(kContent, ".tsv");
     ReadOptions opts;
     opts.header = false;
-    opts.schema = {ColumnType::Int, ColumnType::Double};
+    opts.schema = std::vector{ColumnType::Int, ColumnType::Double};
     auto df = read_dataframe<std::int32_t>(path.string(), opts);
 
     REQUIRE(df.rows() == 3);
@@ -192,7 +194,7 @@ TEST_CASE(
 
     auto path = files.create_text_file(kContent, ".tsv");
     ReadOptions opts;
-    opts.schema = {ColumnType::Double, ColumnType::Double};
+    opts.schema = ColumnType::Double;
     auto df = read_dataframe<std::int32_t>(path.string(), opts);
 
     REQUIRE(df.rows() == 3);
@@ -219,7 +221,7 @@ TEST_CASE(
     auto path = files.create_text_file(kContent, ".tsv");
     ReadOptions opts;
     opts.index_cols = {"fid", "iid"};
-    opts.schema = {ColumnType::Double};
+    opts.schema = ColumnType::Double;
     auto df = read_dataframe<std::string>(path.string(), opts);
 
     REQUIRE(df.rows() == 3);
@@ -251,7 +253,7 @@ TEST_CASE(
     auto path = files.create_text_file(kContent, ".tsv");
     ReadOptions opts;
     opts.index_cols = {"id"};
-    opts.schema = {ColumnType::Double};
+    opts.schema = ColumnType::Double;
     opts.na_action = NaAction::Exclude;
     auto df = read_dataframe<std::string>(path.string(), opts);
 
@@ -273,7 +275,7 @@ TEST_CASE(
     auto path = files.create_text_file(kContent, ".tsv");
     ReadOptions opts;
     opts.index_cols = {"id"};
-    opts.schema = {ColumnType::Double};
+    opts.schema = ColumnType::Double;
     opts.na_action = NaAction::Throw;
 
     REQUIRE_THROWS_AS(
@@ -297,7 +299,7 @@ TEST_CASE(
     auto path = files.create_text_file(kContent, ".tsv");
     ReadOptions opts;
     opts.index_cols = {"id"};
-    opts.schema = {ColumnType::Double};
+    opts.schema = ColumnType::Double;
 
     REQUIRE_THROWS_AS(
         read_dataframe<std::string>(path.string(), opts),
@@ -322,36 +324,36 @@ TEST_CASE(
     ReadOptions opts;
     opts.delimiter = ',';
     opts.index_cols = {"id"};
-    opts.schema = {ColumnType::Double, ColumnType::Double};
+    opts.schema = ColumnType::Double;
     auto df = read_dataframe<std::string>(path.string(), opts);
 
     REQUIRE(df.rows() == 2);
-    REQUIRE(df.col<double>("x")[0] == 1.5);
-    REQUIRE(df.col<double>("y")[1] == 4.0);
+    REQUIRE(df.col("x").as<double>()[0] == 1.5);
+    REQUIRE(df.col("y").as<double>()[1] == 4.0);
 }
 
 // ================================================================
-// DataFrame — col<T> error cases
+// DataFrame — col error cases
 // ================================================================
 
 TEST_CASE(
-    "DataFrame col<T> by non-existent name throws InvalidInputException",
+    "DataFrame col by non-existent name throws InvalidInputException",
     "[dataframe]")
 {
     FileFixture files;
     auto df = make_basic_df(files);
 
-    REQUIRE_THROWS_AS(df.col<double>("missing"), InvalidInputException);
+    REQUIRE_THROWS_AS(df.col("missing"), InvalidInputException);
 }
 
 TEST_CASE(
-    "DataFrame col<T> by out-of-range index throws InvalidInputException",
+    "DataFrame col by out-of-range index throws InvalidInputException",
     "[dataframe]")
 {
     FileFixture files;
     auto df = make_basic_df(files);
 
-    REQUIRE_THROWS_AS(df.col<double>(99), InvalidInputException);
+    REQUIRE_THROWS_AS(df.col(99), InvalidInputException);
 }
 
 // ================================================================
@@ -365,11 +367,11 @@ TEST_CASE("DataFrame clone produces independent copy", "[dataframe]")
     auto cloned = df.clone();
 
     // Mutate clone's column data
-    cloned.col<double>("x")[0] = 999.0;
+    cloned.col("x").as<double>()[0] = 999.0;
 
     // Original must be unchanged
-    REQUIRE(df.col<double>("x")[0] == 1.5);
-    REQUIRE(cloned.col<double>("x")[0] == 999.0);
+    REQUIRE(df.col("x").as<double>()[0] == 1.5);
+    REQUIRE(cloned.col("x").as<double>()[0] == 999.0);
 }
 
 TEST_CASE(
@@ -415,7 +417,7 @@ TEST_CASE(
     std::vector<std::size_t> indices = {1, 0};
     df.gather(indices);
 
-    auto x = df.col<double>("x");
+    auto x = df.col("x").as<double>();
     // s2.x==3.0 now at row 0; s1.x==1.5 at row 1
     REQUIRE(x[0] == 3.0);
     REQUIRE(x[1] == 1.5);
@@ -445,7 +447,7 @@ TEST_CASE(
 
     ReadOptions opts;
     opts.index_cols = {"id"};
-    opts.schema = {ColumnType::Double};
+    opts.schema = ColumnType::Double;
 
     auto path1 = files.create_text_file(kContent1, ".tsv");
     auto path2 = files.create_text_file(kContent2, ".tsv");
@@ -478,7 +480,7 @@ TEST_CASE(
 
     ReadOptions opts;
     opts.index_cols = {"id"};
-    opts.schema = {ColumnType::Double};
+    opts.schema = ColumnType::Double;
 
     auto path1 = files.create_text_file(kContent1, ".tsv");
     auto path2 = files.create_text_file(kContent2, ".tsv");
@@ -494,12 +496,71 @@ TEST_CASE(
     REQUIRE(df2.row_position("s3") == 1);
 
     // df1: s2.v==2.0, s3.v==3.0
-    auto v1 = df1.col<double>("v");
+    auto v1 = df1.col("v").as<double>();
     REQUIRE(v1[0] == 2.0);
     REQUIRE(v1[1] == 3.0);
 
     // df2: s2.v==20.0, s3.v==30.0
-    auto v2 = df2.col<double>("v");
+    auto v2 = df2.col("v").as<double>();
     REQUIRE(v2[0] == 20.0);
     REQUIRE(v2[1] == 30.0);
+}
+
+// ================================================================
+// DataFrame — to_mat
+// ================================================================
+
+TEST_CASE("DataFrame to_mat with no args returns all columns", "[dataframe]")
+{
+    FileFixture files;
+    auto df = make_basic_df(files);
+
+    auto mat = df.to_mat();
+
+    REQUIRE(mat.rows() == 3);
+    REQUIRE(mat.cols() == 2);
+    Eigen::MatrixXd expected(3, 2);
+    expected << 1.5, 2.5, 3.0, 4.0, 5.0, 6.0;
+    REQUIRE(mat.isApprox(expected));
+}
+
+TEST_CASE("DataFrame to_mat with col_indices selects columns", "[dataframe]")
+{
+    FileFixture files;
+    auto df = make_basic_df(files);
+
+    std::vector<std::size_t> indices = {1};
+    auto mat = df.to_mat(indices);
+
+    REQUIRE(mat.rows() == 3);
+    REQUIRE(mat.cols() == 1);
+    REQUIRE(mat(0, 0) == 2.5);
+    REQUIRE(mat(1, 0) == 4.0);
+    REQUIRE(mat(2, 0) == 6.0);
+}
+
+TEST_CASE("DataFrame to_mat with col_names selects columns", "[dataframe]")
+{
+    FileFixture files;
+    auto df = make_basic_df(files);
+
+    std::vector<std::string_view> names = {"y", "x"};
+    auto mat = df.to_mat(std::span<const std::string_view>{names});
+
+    REQUIRE(mat.rows() == 3);
+    REQUIRE(mat.cols() == 2);
+    // columns in requested order: y first, then x
+    REQUIRE(mat(0, 0) == 2.5);
+    REQUIRE(mat(0, 1) == 1.5);
+}
+
+TEST_CASE("DataFrame to_mat with invalid col_name throws", "[dataframe]")
+{
+    FileFixture files;
+    auto df = make_basic_df(files);
+
+    std::vector<std::string_view> names = {"nonexistent"};
+    REQUIRE_THROWS_AS(
+        df.to_mat(std::span<const std::string_view>{names}),
+        InvalidInputException);
 }

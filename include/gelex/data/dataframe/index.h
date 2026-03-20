@@ -48,8 +48,8 @@ class Index
         return lookup_.contains(key);
     }
     auto size() const -> std::size_t { return keys_.size(); }
-    auto keys() const -> std::span<const Key> { return keys_; }
-    auto take_keys() && -> std::vector<Key> { return std::move(keys_); }
+    auto data() const -> std::span<const Key> { return keys_; }
+    auto take_data() && -> std::vector<Key> { return std::move(keys_); }
 
     auto gather(std::span<const std::size_t> indices) -> void;
 

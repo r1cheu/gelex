@@ -198,11 +198,11 @@ TEST_CASE(
 // keys
 // ================================================================
 
-TEST_CASE("Index<string> keys returns span over stored keys", "[dataframe]")
+TEST_CASE("Index<string> data returns span over stored keys", "[dataframe]")
 {
     auto idx = make_str_index({"a", "b", "c"});
 
-    auto k = idx.keys();
+    auto k = idx.data();
 
     REQUIRE(k.size() == 3);
     REQUIRE(k[0] == "a");
@@ -210,11 +210,11 @@ TEST_CASE("Index<string> keys returns span over stored keys", "[dataframe]")
     REQUIRE(k[2] == "c");
 }
 
-TEST_CASE("Index<int32_t> keys returns span over stored keys", "[dataframe]")
+TEST_CASE("Index<int32_t> data returns span over stored keys", "[dataframe]")
 {
     auto idx = make_int_index({10, 20, 30});
 
-    auto k = idx.keys();
+    auto k = idx.data();
 
     REQUIRE(k.size() == 3);
     REQUIRE(k[0] == 10);
@@ -222,21 +222,21 @@ TEST_CASE("Index<int32_t> keys returns span over stored keys", "[dataframe]")
     REQUIRE(k[2] == 30);
 }
 
-TEST_CASE("Index<string> keys on empty index returns empty span", "[dataframe]")
+TEST_CASE("Index<string> data on empty index returns empty span", "[dataframe]")
 {
     Index<std::string> idx;
-    REQUIRE(idx.keys().empty());
+    REQUIRE(idx.data().empty());
 }
 
 // ================================================================
 // take_keys
 // ================================================================
 
-TEST_CASE("Index<string> take_keys moves out underlying vector", "[dataframe]")
+TEST_CASE("Index<string> take_data moves out underlying vector", "[dataframe]")
 {
     auto idx = make_str_index({"x", "y", "z"});
 
-    auto taken = std::move(idx).take_keys();
+    auto taken = std::move(idx).take_data();
 
     REQUIRE(taken.size() == 3);
     REQUIRE(taken[0] == "x");
@@ -244,11 +244,11 @@ TEST_CASE("Index<string> take_keys moves out underlying vector", "[dataframe]")
     REQUIRE(taken[2] == "z");
 }
 
-TEST_CASE("Index<int32_t> take_keys moves out underlying vector", "[dataframe]")
+TEST_CASE("Index<int32_t> take_data moves out underlying vector", "[dataframe]")
 {
     auto idx = make_int_index({100, 200, 300});
 
-    auto taken = std::move(idx).take_keys();
+    auto taken = std::move(idx).take_data();
 
     REQUIRE(taken.size() == 3);
     REQUIRE(taken[0] == 100);
@@ -257,11 +257,11 @@ TEST_CASE("Index<int32_t> take_keys moves out underlying vector", "[dataframe]")
 }
 
 TEST_CASE(
-    "Index<string> take_keys on empty index returns empty vector",
+    "Index<string> take_data on empty index returns empty vector",
     "[dataframe]")
 {
     Index<std::string> idx;
-    auto taken = std::move(idx).take_keys();
+    auto taken = std::move(idx).take_data();
     REQUIRE(taken.empty());
 }
 

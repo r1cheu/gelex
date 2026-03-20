@@ -46,11 +46,11 @@ auto split_line_preserve_empty(std::string_view line, char delimiter)
 
 auto detect_delimiter(std::string_view probe) -> char
 {
-    if (probe.find('\t') != std::string_view::npos)
+    if (probe.contains('\t'))
     {
         return '\t';
     }
-    if (probe.find(',') != std::string_view::npos)
+    if (probe.contains(','))
     {
         return ',';
     }

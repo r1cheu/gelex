@@ -26,11 +26,17 @@
 #include <format>
 #include <fstream>
 #include <numeric>
+#include <optional>
+#include <ranges>
 #include <string>
 #include <string_view>
+
+#include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
+#include <variant>
 #include <vector>
 
 #include "gelex/data/dataframe/column.h"
@@ -48,9 +54,11 @@ enum class NaAction : std::uint8_t
     Exclude
 };
 
+using Schema = std::variant<ColumnType, std::vector<ColumnType>>;
+
 struct ReadOptions
 {
-    std::vector<ColumnType> schema;
+    std::optional<Schema> schema;
     char delimiter = '\t';
     bool header = true;
     std::vector<std::string> index_cols;
@@ -67,7 +75,9 @@ template <KeyType Key>
 class DataFrameReader
 {
    public:
-    DataFrameReader(const std::string& path, const ReadOptions& options)
+    DataFrameReader(
+        const std::filesystem::path& path,
+        const ReadOptions& options)
         : path_(path), options_(&options)
     {
     }
@@ -93,11 +103,13 @@ class DataFrameReader
     std::vector<std::string> header_;
     std::vector<std::size_t> select_pos_;
     std::vector<std::size_t> index_pos_;
+    std::vector<ColumnType> resolved_schema_;
 };
 
 template <KeyType Key>
-auto read_dataframe(const std::string& path, const ReadOptions& options)
-    -> DataFrame<Key>;
+auto read_dataframe(
+    const std::filesystem::path& path,
+    const ReadOptions& options) -> DataFrame<Key>;
 
 // --- Implementation ---
 
@@ -142,11 +154,13 @@ auto DataFrameReader<Key>::read() -> DataFrame<Key>
                 else
                 {
                     df.index_.push_back(
-                        std::format(
-                            "{}{}{}",
-                            tokens_[index_pos_[0]],
-                            kSeparator,
-                            tokens_[index_pos_[1]]));
+                        fmt::format(
+                            "{}",
+                            fmt::join(
+                                index_pos_
+                                    | std::views::transform(
+                                        [&](auto i) { return tokens_[i]; }),
+                                std::string_view(&kSeparator, 1))));
                 }
             }
         }
@@ -154,7 +168,7 @@ auto DataFrameReader<Key>::read() -> DataFrame<Key>
         for (std::size_t i = 0; i < select_pos_.size(); ++i)
         {
             parse_value(
-                tokens_[select_pos_[i]], options_->schema[i], df.columns_[i]);
+                tokens_[select_pos_[i]], resolved_schema_[i], df.columns_[i]);
         }
     }
 
@@ -307,6 +321,11 @@ auto DataFrameReader<Key>::parse_header() -> void
         index_pos_.push_back(lookup(col));
     }
 
+    if (!options_->schema && options_->select_cols.empty())
+    {
+        return;
+    }
+
     if (options_->select_cols.empty())
     {
         for (std::size_t i = 0; i < tokens_.size(); ++i)
@@ -325,7 +344,27 @@ auto DataFrameReader<Key>::parse_header() -> void
         }
     }
 
-    assert(options_->schema.size() == select_pos_.size());
+    if (options_->schema)
+    {
+        std::visit(
+            [this](const auto& s)
+            {
+                if constexpr (std::is_same_v<
+                                  std::remove_cvref_t<decltype(s)>,
+                                  ColumnType>)
+                {
+                    resolved_schema_.assign(select_pos_.size(), s);
+                }
+                else
+                {
+                    assert(
+                        s.size() == select_pos_.size()
+                        && "schema size must match selected columns");
+                    resolved_schema_ = s;
+                }
+            },
+            *options_->schema);
+    }
 }
 
 template <KeyType Key>
@@ -362,8 +401,9 @@ auto DataFrameReader<Key>::check_row() -> bool
 }
 
 template <KeyType Key>
-auto read_dataframe(const std::string& path, const ReadOptions& options)
-    -> DataFrame<Key>
+auto read_dataframe(
+    const std::filesystem::path& path,
+    const ReadOptions& options) -> DataFrame<Key>
 {
     return DataFrameReader<Key>(path, options).read();
 }

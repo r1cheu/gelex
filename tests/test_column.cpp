@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 
+#include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/data/dataframe/column.h"
@@ -309,4 +310,58 @@ TEST_CASE(
     auto span = col.as<std::int32_t>();
     REQUIRE(span[0] == 40);
     REQUIRE(span[1] == 20);
+}
+
+// ================================================================
+// to_map
+// ================================================================
+
+TEST_CASE("to_map<double> returns view over column data", "[dataframe]")
+{
+    Column col("v", std::vector<double>{1.0, 2.0, 3.0});
+
+    auto map = col.to_map<double>();
+
+    REQUIRE(map.size() == 3);
+    REQUIRE(map.data() == col.as<double>().data());
+    REQUIRE(map.isApprox(Eigen::Vector3d{1.0, 2.0, 3.0}));
+}
+
+TEST_CASE("to_map<int32_t> returns view over int column data", "[dataframe]")
+{
+    Column col("i", std::vector<std::int32_t>{10, 20, 30});
+
+    auto map = col.to_map<std::int32_t>();
+
+    REQUIRE(map.size() == 3);
+    REQUIRE(map.data() == col.as<std::int32_t>().data());
+}
+
+TEST_CASE("to_map with wrong type throws InvalidInputException", "[dataframe]")
+{
+    Column col("v", std::vector<double>{1.0, 2.0});
+
+    REQUIRE_THROWS_AS(col.to_map<std::int32_t>(), InvalidInputException);
+}
+
+// ================================================================
+// to_mat
+// ================================================================
+
+TEST_CASE("to_mat<double> returns copy of column data", "[dataframe]")
+{
+    Column col("v", std::vector<double>{1.0, 2.0, 3.0});
+
+    auto vec = col.to_mat<double>();
+
+    REQUIRE(vec.size() == 3);
+    REQUIRE(vec.data() != col.as<double>().data());
+    REQUIRE(vec.isApprox(Eigen::Vector3d{1.0, 2.0, 3.0}));
+}
+
+TEST_CASE("to_mat with wrong type throws InvalidInputException", "[dataframe]")
+{
+    Column col("v", std::vector<double>{1.0});
+
+    REQUIRE_THROWS_AS(col.to_mat<std::int32_t>(), InvalidInputException);
 }
