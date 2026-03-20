@@ -51,7 +51,7 @@ auto GwasWriter::write_header() -> void
 
     fmt::format_to(
         std::back_inserter(line_buffer_),
-        FMT_COMPILE("CHR\tSNP\tBP\tA1\tA2\tA1FREQ\tBETA\tSE\tP\n"));
+        FMT_COMPILE("CHR\tSNP\tBP\tA1\tA2\tA1FREQ\tBETA\tSE\tP\tPVE\n"));
     ofs_.write(
         line_buffer_.data(), static_cast<std::streamsize>(line_buffer_.size()));
     line_buffer_.clear();
@@ -72,10 +72,11 @@ auto GwasWriter::write_result(const SnpMeta& snp_meta, AssocResult result)
 
     fmt::format_to(
         std::back_inserter(line_buffer_),
-        FMT_COMPILE("{:.6g}\t{:.6g}\t{:.6e}\n"),
+        FMT_COMPILE("{:.6g}\t{:.6g}\t{:.6e}\t{:.6e}\n"),
         result.beta,
         result.se,
-        result.p_value);
+        result.p_value,
+        result.pve);
 
     if (line_buffer_.size() >= BUFFER_FLUSH_THRESHOLD)
     {

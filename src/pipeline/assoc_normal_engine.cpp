@@ -84,7 +84,11 @@ auto AssocNormalEngine::run(
     {
         writer.write_result(
             snp_index[idx],
-            {.freq = r.freq, .beta = r.beta, .se = r.se, .p_value = r.p_value});
+            {.freq = r.freq,
+             .beta = r.beta,
+             .se = r.se,
+             .p_value = r.p_value,
+             .pve = r.pve});
     };
     for (const auto& group : chr_groups)
     {

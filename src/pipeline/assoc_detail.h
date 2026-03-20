@@ -63,6 +63,7 @@ class ChrScanner
         double beta;
         double se;
         double p_value;
+        double pve;
     };
 
     using GenoProcessor

@@ -20,6 +20,7 @@
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
+#include "gelex/infra/stats/descriptive.h"
 #include "gelex/model/freq/model.h"
 #include "gelex/types/genotype_process_method.h"
 
@@ -55,9 +56,10 @@ auto update_assoc_input(
     Eigen::MatrixXd&& v_inv) -> void
 {
     input.V_inv = std::move(v_inv);
-    input.V_inv_y
-        = input.V_inv
-          * (model.phenotype() - model.fixed().X * state.fixed().coeff);
+    auto adjust_phenotype
+        = model.phenotype() - model.fixed().X * state.fixed().coeff;
+    input.V_inv_y = input.V_inv * adjust_phenotype;
+    input.phenotype_var = detail::var(adjust_phenotype).value();
 }
 
 ChrScanner::ChrScanner(Config config, BedPipe& bed, AssocObserver observer)
@@ -101,7 +103,8 @@ auto ChrScanner::scan(
                     {.freq = freqs_(i),
                      .beta = output_.beta(i),
                      .se = output_.se(i),
-                     .p_value = output_.p_value(i)});
+                     .p_value = output_.p_value(i),
+                     .pve = output_.pve(i)});
             }
 
             progress_counter_ += static_cast<size_t>(current_chunk_size);

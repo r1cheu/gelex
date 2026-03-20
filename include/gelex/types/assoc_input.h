@@ -26,7 +26,11 @@ struct AssocInput
 {
     AssocInput() = default;
 
-    AssocInput(Eigen::Index n_samples, Eigen::Index chunk_size)
+    AssocInput(
+        Eigen::Index n_samples,
+        Eigen::Index chunk_size,
+        double total_var)
+        : phenotype_var(total_var)
     {
         resize(n_samples, chunk_size);
     }
@@ -42,7 +46,9 @@ struct AssocInput
     Eigen::MatrixXd Z;      // SNP matrix
     Eigen::MatrixXd V_inv;  // Inverse of covariance matrix
     Eigen::VectorXd V_inv_y;
-    Eigen::MatrixXd W;  // Intermediate buffer for V^{-1} Z
+    Eigen::MatrixXd W;       // Intermediate buffer for V^{-1} Z
+    double phenotype_var{};  // Total variance of the phenotype (for PVE
+                             // calculation)
 };
 
 struct AssocOutput
@@ -57,6 +63,7 @@ struct AssocOutput
         se.resize(chunk_size);
         stats.resize(chunk_size);
         p_value.resize(chunk_size);
+        pve.resize(chunk_size);
         zt_v_inv_r.resize(chunk_size);
         zt_v_inv_z.resize(chunk_size);
     }
@@ -65,6 +72,7 @@ struct AssocOutput
     Eigen::VectorXd se;
     Eigen::VectorXd stats;
     Eigen::VectorXd p_value;
+    Eigen::VectorXd pve;
 
     Eigen::VectorXd zt_v_inv_r;  // Z^t V^{-1} residual
     Eigen::VectorXd zt_v_inv_z;  // Z^t V^{-1} Z

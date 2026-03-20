@@ -19,6 +19,8 @@
 #include <Eigen/Dense>
 #include <unsupported/Eigen/SpecialFunctions>
 
+#include "gelex/infra/stats/descriptive.h"
+
 namespace gelex::gwas
 {
 
@@ -29,6 +31,8 @@ void wald_test(AssocInput& input, AssocOutput& output)
     output.zt_v_inv_z = (input.Z.transpose() * input.W).diagonal();
 
     output.beta = (output.zt_v_inv_r.array() / output.zt_v_inv_z.array());
+    output.pve = detail::var(input.Z * output.beta.asDiagonal()).array()
+                 / input.phenotype_var;
     output.se = (1.0 / output.zt_v_inv_z.array()).sqrt();
     output.stats = (output.beta.array() / output.se.array()).square();
     output.p_value = (output.stats.array() * 0.5).sqrt().erfc();

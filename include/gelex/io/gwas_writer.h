@@ -35,6 +35,7 @@ class GwasWriter
         double beta;
         double se;
         double p_value;
+        double pve;
     };
     explicit GwasWriter(std::string_view out_prefix);
     GwasWriter(const GwasWriter&) = delete;
