@@ -121,3 +121,5 @@ docs/codebase_summary.md
 .worktrees/
 docs/superpowers/plans
 cspell.json
+.claude/agent-memory
+docs/superpowers/specs
