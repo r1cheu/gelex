@@ -120,32 +120,32 @@ TEST_CASE(
     FileFixture files;
 
     constexpr std::string_view kContent
-        = "ID\tChrom\tPosition\tA1\tA2\tA1Freq\tAdd\tDom\n"
-          "rs1\t1\t1000\tA\tG\t0.3\t0.5\t0.1\n"
-          "rs2\t1\t2000\tC\tT\t0.4\t-0.2\t0.0\n"
-          "rs3\t2\t500\tA\tT\t0.1\t0.8\t-0.3\n";
+        = "Chrom\tID\tPosition\tA1\tA2\tA1Freq\tAdd\tDom\n"
+          "1\trs1\t1000\tA\tG\t0.3\t0.5\t0.1\n"
+          "1\trs2\t2000\tC\tT\t0.4\t-0.2\t0.0\n"
+          "2\trs3\t500\tA\tT\t0.1\t0.8\t-0.3\n";
 
     auto path = files.create_text_file(kContent, ".snp.eff");
     auto df = gelex::read_snp_effects(path);
 
     REQUIRE(df.rows() == 3);
 
-    REQUIRE(df.row_position("rs1") == 0);
-    REQUIRE(df.row_position("rs2") == 1);
-    REQUIRE(df.row_position("rs3") == 2);
+    REQUIRE(df.index().at("rs1") == 0);
+    REQUIRE(df.index().at("rs2") == 1);
+    REQUIRE(df.index().at("rs3") == 2);
 
-    auto add = df.col("Add").as<double>();
+    auto add = df["Add"].as<double>();
     REQUIRE(add[0] == 0.5);
     REQUIRE(add[1] == -0.2);
     REQUIRE(add[2] == 0.8);
 
-    auto freq = df.col("A1Freq").as<double>();
+    auto freq = df["A1Freq"].as<double>();
     REQUIRE(freq[0] == 0.3);
     REQUIRE(freq[1] == 0.4);
     REQUIRE(freq[2] == 0.1);
 
     REQUIRE(std::ranges::find(df.names(), "Dom") != df.names().end());
-    auto dom = df.col("Dom").as<double>();
+    auto dom = df["Dom"].as<double>();
     REQUIRE(dom[0] == 0.1);
     REQUIRE(dom[1] == 0.0);
     REQUIRE(dom[2] == -0.3);
@@ -160,10 +160,10 @@ TEST_CASE(
     SECTION("happy path: all SNPs match")
     {
         auto eff_path = files.create_text_file(
-            "ID\tA1\tA2\tAdd\n"
-            "rs1\tA\tG\t0.5\n"
-            "rs2\tC\tT\t-0.2\n"
-            "rs3\tA\tT\t0.8\n",
+            "Chrom\tID\tA1\tA2\tAdd\n"
+            "1\trs1\tA\tG\t0.5\n"
+            "1\trs2\tC\tT\t-0.2\n"
+            "2\trs3\tA\tT\t0.8\n",
             ".snp.eff");
         auto bim_path = files.create_text_file(
             "1\trs1\t0\t1000\tA\tG\n"
@@ -186,10 +186,10 @@ TEST_CASE(
     SECTION("partial match: some SNPs missing from bim")
     {
         auto eff_path = files.create_text_file(
-            "ID\tA1\tA2\tAdd\n"
-            "rs1\tA\tG\t0.5\n"
-            "rs2\tC\tT\t-0.2\n"
-            "rs3\tA\tT\t0.8\n",
+            "Chrom\tID\tA1\tA2\tAdd\n"
+            "1\trs1\tA\tG\t0.5\n"
+            "1\trs2\tC\tT\t-0.2\n"
+            "2\trs3\tA\tT\t0.8\n",
             ".snp.eff");
         auto bim_path = files.create_text_file(
             "1\trs1\t0\t1000\tA\tG\n"
@@ -211,10 +211,10 @@ TEST_CASE(
     SECTION("allele mismatch: ID matches but alleles differ")
     {
         auto eff_path = files.create_text_file(
-            "ID\tA1\tA2\tAdd\n"
-            "rs1\tA\tG\t0.5\n"
-            "rs2\tC\tT\t-0.2\n"
-            "rs3\tA\tT\t0.8\n",
+            "Chrom\tID\tA1\tA2\tAdd\n"
+            "1\trs1\tA\tG\t0.5\n"
+            "1\trs2\tC\tT\t-0.2\n"
+            "2\trs3\tA\tT\t0.8\n",
             ".snp.eff");
         auto bim_path = files.create_text_file(
             "1\trs1\t0\t1000\tA\tG\n"
@@ -237,9 +237,9 @@ TEST_CASE(
     SECTION("no match: all SNPs missing from bim")
     {
         auto eff_path = files.create_text_file(
-            "ID\tA1\tA2\tAdd\n"
-            "rs1\tA\tG\t0.5\n"
-            "rs2\tC\tT\t-0.2\n",
+            "Chrom\tID\tA1\tA2\tAdd\n"
+            "1\trs1\tA\tG\t0.5\n"
+            "1\trs2\tC\tT\t-0.2\n",
             ".snp.eff");
         auto bim_path = files.create_text_file(
             "1\trs4\t0\t1000\tA\tG\n"

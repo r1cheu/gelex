@@ -27,6 +27,7 @@
 using gelex::DuplicateIndexException;
 using gelex::InvalidInputException;
 using gelex::df::Index;
+using gelex::df::intersect;
 
 // ----------------------------------------------------------------
 // Helper: build an Index<string> from a brace-list
@@ -58,9 +59,9 @@ TEST_CASE("Index<string> construction from vector", "[dataframe]")
     REQUIRE(idx.contains("a"));
     REQUIRE(idx.contains("b"));
     REQUIRE(idx.contains("c"));
-    REQUIRE(idx["a"] == 0);
-    REQUIRE(idx["b"] == 1);
-    REQUIRE(idx["c"] == 2);
+    REQUIRE(idx.at("a") == 0);
+    REQUIRE(idx.at("b") == 1);
+    REQUIRE(idx.at("c") == 2);
 }
 
 TEST_CASE("Index<int32_t> construction from vector", "[dataframe]")
@@ -71,9 +72,9 @@ TEST_CASE("Index<int32_t> construction from vector", "[dataframe]")
     REQUIRE(idx.contains(10));
     REQUIRE(idx.contains(20));
     REQUIRE(idx.contains(30));
-    REQUIRE(idx[10] == 0);
-    REQUIRE(idx[20] == 1);
-    REQUIRE(idx[30] == 2);
+    REQUIRE(idx.at(10) == 0);
+    REQUIRE(idx.at(20) == 1);
+    REQUIRE(idx.at(30) == 2);
 }
 
 TEST_CASE(
@@ -108,15 +109,15 @@ TEST_CASE(
 
     idx.push_back("x");
     REQUIRE(idx.size() == 1);
-    REQUIRE(idx["x"] == 0);
+    REQUIRE(idx.at("x") == 0);
 
     idx.push_back("y");
     REQUIRE(idx.size() == 2);
-    REQUIRE(idx["y"] == 1);
+    REQUIRE(idx.at("y") == 1);
 
     idx.push_back("z");
     REQUIRE(idx.size() == 3);
-    REQUIRE(idx["z"] == 2);
+    REQUIRE(idx.at("z") == 2);
 }
 
 TEST_CASE(
@@ -127,15 +128,15 @@ TEST_CASE(
 
     idx.push_back(100);
     REQUIRE(idx.size() == 1);
-    REQUIRE(idx[100] == 0);
+    REQUIRE(idx.at(100) == 0);
 
     idx.push_back(200);
     REQUIRE(idx.size() == 2);
-    REQUIRE(idx[200] == 1);
+    REQUIRE(idx.at(200) == 1);
 
     idx.push_back(300);
     REQUIRE(idx.size() == 3);
-    REQUIRE(idx[300] == 2);
+    REQUIRE(idx.at(300) == 2);
 }
 
 TEST_CASE("Index<string> push_back of existing key throws", "[dataframe]")
@@ -157,21 +158,21 @@ TEST_CASE("Index<int32_t> push_back of existing key throws", "[dataframe]")
 TEST_CASE("Index<string> operator[] returns correct position", "[dataframe]")
 {
     auto idx = make_str_index({"foo", "bar", "baz"});
-    REQUIRE(idx["foo"] == 0);
-    REQUIRE(idx["bar"] == 1);
-    REQUIRE(idx["baz"] == 2);
+    REQUIRE(idx.at("foo") == 0);
+    REQUIRE(idx.at("bar") == 1);
+    REQUIRE(idx.at("baz") == 2);
 }
 
 TEST_CASE("Index<string> operator[] for missing key throws", "[dataframe]")
 {
     auto idx = make_str_index({"a", "b"});
-    REQUIRE_THROWS_AS(idx["missing"], InvalidInputException);
+    REQUIRE_THROWS_AS(idx.at("missing"), InvalidInputException);
 }
 
 TEST_CASE("Index<int32_t> operator[] for missing key throws", "[dataframe]")
 {
     auto idx = make_int_index({1, 2, 3});
-    REQUIRE_THROWS_AS(idx[99], InvalidInputException);
+    REQUIRE_THROWS_AS(idx.at(99), InvalidInputException);
 }
 
 TEST_CASE(
@@ -202,7 +203,7 @@ TEST_CASE("Index<string> data returns span over stored keys", "[dataframe]")
 {
     auto idx = make_str_index({"a", "b", "c"});
 
-    auto k = idx.data();
+    auto k = idx.keys();
 
     REQUIRE(k.size() == 3);
     REQUIRE(k[0] == "a");
@@ -214,7 +215,7 @@ TEST_CASE("Index<int32_t> data returns span over stored keys", "[dataframe]")
 {
     auto idx = make_int_index({10, 20, 30});
 
-    auto k = idx.data();
+    auto k = idx.keys();
 
     REQUIRE(k.size() == 3);
     REQUIRE(k[0] == 10);
@@ -225,7 +226,7 @@ TEST_CASE("Index<int32_t> data returns span over stored keys", "[dataframe]")
 TEST_CASE("Index<string> data on empty index returns empty span", "[dataframe]")
 {
     Index<std::string> idx;
-    REQUIRE(idx.data().empty());
+    REQUIRE(idx.keys().empty());
 }
 
 // ================================================================
@@ -236,7 +237,7 @@ TEST_CASE("Index<string> take_data moves out underlying vector", "[dataframe]")
 {
     auto idx = make_str_index({"x", "y", "z"});
 
-    auto taken = std::move(idx).take_data();
+    auto taken = std::move(idx).take_keys();
 
     REQUIRE(taken.size() == 3);
     REQUIRE(taken[0] == "x");
@@ -248,7 +249,7 @@ TEST_CASE("Index<int32_t> take_data moves out underlying vector", "[dataframe]")
 {
     auto idx = make_int_index({100, 200, 300});
 
-    auto taken = std::move(idx).take_data();
+    auto taken = std::move(idx).take_keys();
 
     REQUIRE(taken.size() == 3);
     REQUIRE(taken[0] == 100);
@@ -261,7 +262,7 @@ TEST_CASE(
     "[dataframe]")
 {
     Index<std::string> idx;
-    auto taken = std::move(idx).take_data();
+    auto taken = std::move(idx).take_keys();
     REQUIRE(taken.empty());
 }
 
@@ -280,9 +281,9 @@ TEST_CASE(
 
     REQUIRE(idx.size() == 3);
     // After gather: [c, a, d]
-    REQUIRE(idx["c"] == 0);
-    REQUIRE(idx["a"] == 1);
-    REQUIRE(idx["d"] == 2);
+    REQUIRE(idx.at("c") == 0);
+    REQUIRE(idx.at("a") == 1);
+    REQUIRE(idx.at("d") == 2);
     REQUIRE_FALSE(idx.contains("b"));
 }
 
@@ -296,8 +297,8 @@ TEST_CASE(
     idx.gather(indices);
 
     REQUIRE(idx.size() == 2);
-    REQUIRE(idx[40] == 0);
-    REQUIRE(idx[20] == 1);
+    REQUIRE(idx.at(40) == 0);
+    REQUIRE(idx.at(20) == 1);
     REQUIRE_FALSE(idx.contains(10));
     REQUIRE_FALSE(idx.contains(30));
 }
@@ -324,7 +325,7 @@ TEST_CASE(
     auto idx1 = make_str_index({"b", "c", "d"});
 
     // common keys sorted: {b, c}
-    auto positions = Index<std::string>::intersect({&idx0, &idx1});
+    auto positions = intersect({&idx0, &idx1});
 
     REQUIRE(positions.size() == 2);
     // positions[0]: b→1, c→2 in idx0
@@ -343,7 +344,7 @@ TEST_CASE(
     auto idx2 = make_str_index({"c", "d", "e"});
 
     // common key: {c} only
-    auto positions = Index<std::string>::intersect({&idx0, &idx1, &idx2});
+    auto positions = intersect({&idx0, &idx1, &idx2});
 
     REQUIRE(positions.size() == 3);
     REQUIRE(positions[0] == std::vector<std::size_t>{2});  // c→2 in idx0
@@ -358,7 +359,7 @@ TEST_CASE(
     auto idx0 = make_str_index({"a", "b"});
     auto idx1 = make_str_index({"c", "d"});
 
-    auto positions = Index<std::string>::intersect({&idx0, &idx1});
+    auto positions = intersect({&idx0, &idx1});
 
     REQUIRE(positions.size() == 2);
     REQUIRE(positions[0].empty());
@@ -369,8 +370,8 @@ TEST_CASE(
     "Index<string> intersect with empty span returns empty result",
     "[dataframe]")
 {
-    std::span<const Index<std::string>*> empty_span;
-    auto positions = Index<std::string>::intersect(empty_span);
+    std::span<const Index<std::string>* const> empty_span;
+    auto positions = intersect(empty_span);
     REQUIRE(positions.empty());
 }
 
@@ -382,7 +383,7 @@ TEST_CASE(
     auto idx1 = make_int_index({20, 30, 40});
 
     // common keys sorted numerically: {20, 30}
-    auto positions = Index<std::int32_t>::intersect({&idx0, &idx1});
+    auto positions = intersect({&idx0, &idx1});
 
     REQUIRE(positions.size() == 2);
     // positions[0]: 20→1, 30→2 in idx0

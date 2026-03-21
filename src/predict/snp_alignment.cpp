@@ -32,24 +32,24 @@ auto build_snp_alignment(
 {
     const auto& eff_index = snp_effects.index();
     const auto& bim_index = bim_df.index();
-    auto eff_a1 = snp_effects.col("A1").as<std::string>();
-    auto eff_a2 = snp_effects.col("A2").as<std::string>();
-    auto bim_a1 = bim_df.col("4").as<std::string>();
-    auto bim_a2 = bim_df.col("5").as<std::string>();
+    auto eff_a1 = snp_effects["A1"].as<std::string>();
+    auto eff_a2 = snp_effects["A2"].as<std::string>();
+    auto bim_a1 = bim_df["A1"].as<std::string>();
+    auto bim_a2 = bim_df["A2"].as<std::string>();
 
     SnpAlignment result;
     result.column_map.reserve(eff_index.size());
 
     for (std::size_t i = 0; i < eff_index.size(); ++i)
     {
-        const auto& key = eff_index.data()[i];
+        const auto& key = eff_index.keys()[i];
         if (!bim_index.contains(key))
         {
             result.column_map.push_back(-1);
             result.num_missing++;
             continue;
         }
-        auto bim_row = bim_index[key];
+        auto bim_row = bim_index.at(key);
         if (eff_a1[i] == bim_a1[bim_row] && eff_a2[i] == bim_a2[bim_row])
         {
             result.column_map.push_back(static_cast<std::ptrdiff_t>(bim_row));

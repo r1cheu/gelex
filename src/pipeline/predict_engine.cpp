@@ -68,9 +68,9 @@ auto PredictEngine::load_params() const -> PredictParams
         enable_dom = true;
     }
 
-    Eigen::VectorXd add_effects = snp_effects.col("Add").to_map<double>();
+    Eigen::VectorXd add_effects = snp_effects["Add"].to_map<double>();
     auto dom_effects = enable_dom ? std::make_optional<Eigen::VectorXd>(
-                                        snp_effects.col("Dom").to_mat<double>())
+                                        snp_effects["Dom"].to_mat<double>())
                                   : std::nullopt;
 
     return PredictParams{
@@ -171,7 +171,7 @@ auto PredictEngine::run(const PredictObserver& observer) -> void
     auto covar
         = compute_covariate_effects(data.covariates, params.coefficients);
 
-    auto sample_keys = data.fam_df.index().data();
+    auto sample_keys = data.fam_df.index().keys();
     std::vector<std::string> sample_ids(sample_keys.begin(), sample_keys.end());
 
     PredictResult result{

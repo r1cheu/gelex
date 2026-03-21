@@ -43,14 +43,14 @@ template <KeyType Key>
 class DataFrame
 {
    public:
-    ~DataFrame() = default;
     DataFrame(const DataFrame&) = delete;
     auto operator=(const DataFrame&) -> DataFrame& = delete;
     DataFrame(DataFrame&&) = default;
     auto operator=(DataFrame&&) -> DataFrame& = default;
+    ~DataFrame() = default;
 
     template <typename Self>
-    auto&& col(this Self&& self, std::string_view name)
+    auto&& operator[](this Self&& self, std::string_view name)
     {
         auto it = self.col_lookup_.find(name);
         if (it == self.col_lookup_.end())
@@ -78,22 +78,17 @@ class DataFrame
         return col_lookup_.contains(name);
     }
 
+    auto rename(std::span<const std::string> new_names) -> void;
+
     template <typename Self>
     auto&& index(this Self&& self)
     {
         return std::forward<Self>(self).index_;
     }
     auto rows() const -> std::size_t { return index_.size(); }
-    auto row_position(const Key& key) const -> std::size_t
-    {
-        return index_[key];
-    }
 
     auto clone() const -> DataFrame;
     auto gather(std::span<const std::size_t> indices) -> void;
-
-    static auto intersect(std::span<DataFrame* const> dfs) -> void;
-    static auto intersect(std::initializer_list<DataFrame* const> dfs) -> void;
 
     template <ValueType T = double>
         requires std::is_arithmetic_v<T>
@@ -109,6 +104,8 @@ class DataFrame
     DataFrame() = default;
     friend DataFrameReader<Key>;
 
+    auto set_name(std::size_t index, std::string_view new_name) -> void;
+
     Index<Key> index_;
     std::vector<std::string> names_;
     std::vector<Column> columns_;
@@ -119,6 +116,15 @@ class DataFrame
         TransparentEqual<std::string>>
         col_lookup_;
 };
+
+template <KeyType Key>
+auto intersect(std::span<DataFrame<Key>* const> dfs) -> void;
+
+template <KeyType Key>
+auto intersect(std::initializer_list<DataFrame<Key>* const> dfs) -> void
+{
+    intersect(std::span{dfs.begin(), dfs.size()});
+}
 
 // --- Implementation ---
 
@@ -134,17 +140,50 @@ auto DataFrame<Key>::clone() const -> DataFrame
 }
 
 template <KeyType Key>
+auto DataFrame<Key>::set_name(std::size_t index, std::string_view new_name)
+    -> void
+{
+    std::string name(new_name);
+    auto [it, inserted] = col_lookup_.emplace(name, index);
+    if (!inserted)
+    {
+        throw InvalidInputException(
+            std::format("duplicate column name: '{}'", new_name));
+    }
+    names_[index] = it->first;
+    columns_[index].rename(it->first);
+}
+
+template <KeyType Key>
+auto DataFrame<Key>::rename(std::span<const std::string> new_names) -> void
+{
+    if (new_names.size() != columns_.size())
+    {
+        throw InvalidInputException(
+            std::format(
+                "rename: {} names given but DataFrame has {} columns",
+                new_names.size(),
+                columns_.size()));
+    }
+    col_lookup_.clear();
+    for (std::size_t i = 0; i < new_names.size(); ++i)
+    {
+        set_name(i, new_names[i]);
+    }
+}
+
+template <KeyType Key>
 auto DataFrame<Key>::gather(std::span<const std::size_t> indices) -> void
 {
-    for (auto& col : columns_)
+    for (auto& c : columns_)
     {
-        col.gather(indices);
+        c.gather(indices);
     }
     index_.gather(indices);
 }
 
 template <KeyType Key>
-auto DataFrame<Key>::intersect(std::span<DataFrame* const> dfs) -> void
+auto intersect(std::span<DataFrame<Key>* const> dfs) -> void
 {
     if (dfs.empty())
     {
@@ -155,21 +194,14 @@ auto DataFrame<Key>::intersect(std::span<DataFrame* const> dfs) -> void
     idx_ptrs.reserve(dfs.size());
     for (const auto* df : dfs)
     {
-        idx_ptrs.push_back(&df->index_);
+        idx_ptrs.push_back(&df->index());
     }
-    auto positions = Index<Key>::intersect(idx_ptrs);
+    auto positions = intersect(std::span<const Index<Key>* const>{idx_ptrs});
 
     for (auto&& [df, pos] : std::views::zip(dfs, positions))
     {
         df->gather(pos);
     }
-}
-
-template <KeyType Key>
-auto DataFrame<Key>::intersect(std::initializer_list<DataFrame* const> dfs)
-    -> void
-{
-    intersect(std::span{dfs.begin(), dfs.size()});
 }
 
 template <KeyType Key>

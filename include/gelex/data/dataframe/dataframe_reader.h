@@ -34,8 +34,6 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <type_traits>
-#include <unordered_map>
-#include <unordered_set>
 #include <variant>
 #include <vector>
 
@@ -61,14 +59,11 @@ struct ReadOptions
     std::optional<Schema> schema;
     char delimiter = '\t';
     bool header = true;
-    std::vector<std::string> index_cols;
-    std::vector<std::string> select_cols;
-    std::unordered_set<
-        std::string,
-        TransparentHash<std::string>,
-        TransparentEqual<std::string>>
-        na_rep = {kDefaultNaRep.begin(), kDefaultNaRep.end()};
-    NaAction na_action = NaAction::Exclude;
+    std::vector<std::size_t> index_cols;
+    std::vector<std::size_t> select_cols;
+    std::vector<std::string> names;
+    StringSet na_rep = {kDefaultNaRep.begin(), kDefaultNaRep.end()};
+    NaAction na_action = NaAction::Throw;
 };
 
 template <KeyType Key>
@@ -85,7 +80,8 @@ class DataFrameReader
 
    private:
     auto parse_header() -> void;
-    auto check_row() -> bool;
+    auto check_col_range(std::size_t idx) -> void;
+    auto filter_row() -> bool;
     auto prepare_header(std::ifstream& file) -> void;
 
     template <typename T>
@@ -123,17 +119,21 @@ auto DataFrameReader<Key>::read() -> DataFrame<Key>
     DataFrame<Key> df;
     for (std::size_t i = 0; i < select_pos_.size(); ++i)
     {
-        auto name = header_[select_pos_[i]];
-        df.col_lookup_[name] = i;
-        df.names_.push_back(name);
-        df.columns_.emplace_back(name);
+        df.names_.emplace_back();
+        df.columns_.emplace_back(header_[select_pos_[i]]);
+        df.set_name(i, header_[select_pos_[i]]);
+    }
+
+    if (!options_->names.empty())
+    {
+        df.rename(options_->names);
     }
 
     std::string line;
     while (std::getline(file, line))
     {
         tokenize(line);
-        if (!check_row())
+        if (!filter_row())
         {
             continue;
         }
@@ -296,29 +296,25 @@ auto DataFrameReader<Key>::parse_key(std::string_view token) -> Key
 }
 
 template <KeyType Key>
+auto DataFrameReader<Key>::check_col_range(std::size_t idx) -> void
+{
+    if (idx >= n_cols_)
+    {
+        throw InvalidInputException(
+            std::format(
+                "column index {} out of range (file has {} columns)",
+                idx,
+                n_cols_));
+    }
+}
+
+template <KeyType Key>
 auto DataFrameReader<Key>::parse_header() -> void
 {
-    std::unordered_map<std::string_view, std::size_t> name_to_pos;
-    name_to_pos.reserve(header_.size());
-    for (std::size_t i = 0; i < header_.size(); ++i)
+    for (auto idx : options_->index_cols)
     {
-        name_to_pos[header_[i]] = i;
-    }
-
-    auto lookup = [&](const auto& col) -> std::size_t
-    {
-        auto it = name_to_pos.find(col);
-        if (it == name_to_pos.end())
-        {
-            throw InvalidInputException(
-                std::format("column not found: '{}'", col));
-        }
-        return it->second;
-    };
-
-    for (const auto& col : options_->index_cols)
-    {
-        index_pos_.push_back(lookup(col));
+        check_col_range(idx);
+        index_pos_.push_back(idx);
     }
 
     if (!options_->schema && options_->select_cols.empty())
@@ -328,7 +324,7 @@ auto DataFrameReader<Key>::parse_header() -> void
 
     if (options_->select_cols.empty())
     {
-        for (std::size_t i = 0; i < tokens_.size(); ++i)
+        for (std::size_t i = 0; i < n_cols_; ++i)
         {
             if (std::ranges::find(index_pos_, i) == index_pos_.end())
             {
@@ -338,9 +334,10 @@ auto DataFrameReader<Key>::parse_header() -> void
     }
     else
     {
-        for (const auto& col : options_->select_cols)
+        for (auto idx : options_->select_cols)
         {
-            select_pos_.push_back(lookup(col));
+            check_col_range(idx);
+            select_pos_.push_back(idx);
         }
     }
 
@@ -367,37 +364,27 @@ auto DataFrameReader<Key>::parse_header() -> void
     }
 }
 
+// filter row based on NA values in index and selected columns
 template <KeyType Key>
-auto DataFrameReader<Key>::check_row() -> bool
+auto DataFrameReader<Key>::filter_row() -> bool
 {
-    auto check = [this](std::size_t pos)
+    auto check = [this](const auto& positions) -> bool
     {
-        if (is_na(tokens_[pos]))
+        for (auto pos : positions)
         {
-            if (options_->na_action == NaAction::Throw)
+            if (is_na(tokens_[pos]))
             {
-                throw InvalidInputException(
-                    std::format("NA value found in column {}", pos));
+                if (options_->na_action == NaAction::Throw)
+                {
+                    throw InvalidInputException(
+                        std::format("NA value found in column {}", pos));
+                }
+                return false;
             }
-            return false;
         }
         return true;
     };
-    for (auto pos : index_pos_)
-    {
-        if (!check(pos))
-        {
-            return false;
-        }
-    }
-    for (auto pos : select_pos_)
-    {
-        if (!check(pos))
-        {
-            return false;
-        }
-    }
-    return true;
+    return check(index_pos_) && check(select_pos_);
 }
 
 template <KeyType Key>

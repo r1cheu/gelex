@@ -74,7 +74,7 @@ SampleProjection::SampleProjection(
         const auto& id = raw_ids[static_cast<size_t>(i)];
         if (target_index.contains(id))
         {
-            auto target_pos = static_cast<Eigen::Index>(target_index[id]);
+            auto target_pos = static_cast<Eigen::Index>(target_index.at(id));
             raw_to_target_sample_idx_[i] = target_pos;
             ++mapped_count;
 

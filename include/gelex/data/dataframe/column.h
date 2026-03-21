@@ -64,6 +64,7 @@ class Column
     auto push_back(T&& value) -> void;
 
     auto name() const -> std::string_view { return name_; }
+    auto rename(std::string_view new_name) -> void { name_ = new_name; }
 
     auto size() const -> std::size_t;
 

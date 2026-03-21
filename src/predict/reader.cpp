@@ -31,6 +31,7 @@
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/dataframe/dataframe_reader.h"
 #include "gelex/data/dataframe/encode.h"
+#include "gelex/data/reader.h"
 #include "gelex/exception.h"
 
 namespace gelex
@@ -78,31 +79,24 @@ auto snp_effects_schema(const std::filesystem::path& path)
 
 auto read_coefficients(const std::filesystem::path& path) -> Coefficients
 {
-    df::ReadOptions options{
-        .schema = df::ColumnType::Double,
-        .delimiter = '\t',
-        .header = true,
-        .index_cols = {"term"},
-        .select_cols = {"mean"},
-        .na_action = df::NaAction::Throw,
-    };
+    df::ReadOptions options;
+    options.schema = df::ColumnType::Double;
+    options.index_cols = {0};
+    options.select_cols = {1};
 
     auto df = df::read_dataframe<std::string>(path, options);
     return Coefficients{
-        .names = std::move(df).index().take_data(),
-        .values = df.col("mean").to_map<double>(),
+        .names = std::move(df).index().take_keys(),
+        .values = df["mean"].to_map<double>(),
     };
 }
 
 auto read_snp_effects(const std::filesystem::path& path)
     -> df::DataFrame<std::string>
 {
-    df::ReadOptions options{
-        .schema = detail::snp_effects_schema(path),
-        .index_cols = {"ID"},
-        .select_cols = {},
-        .na_action = df::NaAction::Throw,
-    };
+    df::ReadOptions options;
+    options.schema = detail::snp_effects_schema(path);
+    options.index_cols = {1};
     return df::read_dataframe<std::string>(path, options);
 }
 
@@ -118,26 +112,12 @@ auto read_covariates(
 
     if (qcovar_path)
     {
-        qcovar_df = df::read_dataframe<std::string>(
-            *qcovar_path,
-            df::ReadOptions{
-                .schema = df::ColumnType::Double,
-                .index_cols = {"FID", "IID"},
-                .select_cols = {},
-                .na_action = df::NaAction::Throw,
-            });
+        qcovar_df = read_qcovar(*qcovar_path);
     }
 
     if (dcovar_path)
     {
-        dcovar_df = df::read_dataframe<std::string>(
-            *dcovar_path,
-            df::ReadOptions{
-                .schema = df::ColumnType::String,
-                .index_cols = {"FID", "IID"},
-                .select_cols = {},
-                .na_action = df::NaAction::Throw,
-            });
+        dcovar_df = read_dcovar(*dcovar_path);
     }
 
     // 2. intersect all DataFrames
@@ -151,7 +131,7 @@ auto read_covariates(
     {
         dfs.push_back(&*dcovar_df);
     }
-    df::DataFrame<std::string>::intersect(dfs);
+    df::intersect(std::span<df::DataFrame<std::string>* const>{dfs});
 
     // 3. group dcovar terms by column name
     //    "Sex\x1FM" → col="Sex", level="M"
@@ -176,7 +156,7 @@ auto read_covariates(
                     "discrete covariate file required for term '{}'",
                     col_name));
         }
-        auto& col = dcovar_df->col(col_name);
+        auto& col = (*dcovar_df)[col_name];
         // TODO(rlchen): report level mismatch via observer
         [[maybe_unused]] auto mismatch = df::check_levels(col, levels);
         encoded[col_name] = df::encode(col, levels);
@@ -215,7 +195,7 @@ auto read_covariates(
                         "quantitative covariate file required for term '{}'",
                         term));
             }
-            X.col(i) = qcovar_df->col(term).to_map<double>();
+            X.col(i) = (*qcovar_df)[term].to_map<double>();
         }
     }
     return X;

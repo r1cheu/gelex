@@ -21,6 +21,7 @@
 #include <concepts>
 #include <cstddef>
 #include <format>
+#include <initializer_list>
 #include <span>
 #include <unordered_map>
 #include <vector>
@@ -42,28 +43,23 @@ class Index
     template <typename K>
         requires std::convertible_to<K, Key>
     auto push_back(K&& key) -> void;
-    auto operator[](const Key& key) const -> std::size_t;
+    auto at(const Key& key) const -> std::size_t;
     auto contains(const Key& key) const -> bool
     {
         return lookup_.contains(key);
     }
     auto size() const -> std::size_t { return keys_.size(); }
-    auto data() const -> std::span<const Key> { return keys_; }
-    auto take_data() && -> std::vector<Key> { return std::move(keys_); }
+    auto keys() const -> std::span<const Key> { return keys_; }
+    auto take_keys() && -> std::vector<Key> { return std::move(keys_); }
 
     auto gather(std::span<const std::size_t> indices) -> void;
 
-    static auto intersect(std::span<const Index<Key>* const> indices)
-        -> std::vector<std::vector<std::size_t>>;
-    static auto intersect(
-        std::initializer_list<const Index<Key>* const> indices)
-        -> std::vector<std::vector<std::size_t>>
-    {
-        return intersect(std::span{indices.begin(), indices.size()});
-    }
-
    private:
     auto rebuild_lookup() -> void;
+
+    template <KeyType K>
+    friend auto intersect(std::span<const Index<K>* const> indices)
+        -> std::vector<std::vector<std::size_t>>;
 
     std::vector<Key> keys_;
     std::unordered_map<
@@ -73,6 +69,17 @@ class Index
         TransparentEqual<Key>>
         lookup_;
 };
+
+template <KeyType Key>
+auto intersect(std::span<const Index<Key>* const> indices)
+    -> std::vector<std::vector<std::size_t>>;
+
+template <KeyType Key>
+auto intersect(std::initializer_list<const Index<Key>* const> indices)
+    -> std::vector<std::vector<std::size_t>>
+{
+    return intersect(std::span{indices.begin(), indices.size()});
+}
 
 // --- Implementation ---
 
@@ -104,7 +111,7 @@ auto Index<Key>::push_back(K&& key) -> void
 }
 
 template <KeyType Key>
-auto Index<Key>::operator[](const Key& key) const -> std::size_t
+auto Index<Key>::at(const Key& key) const -> std::size_t
 {
     auto it = lookup_.find(key);
     if (it == lookup_.end())
@@ -139,7 +146,7 @@ auto Index<Key>::rebuild_lookup() -> void
 }
 
 template <KeyType Key>
-auto Index<Key>::intersect(std::span<const Index<Key>* const> indices)
+auto intersect(std::span<const Index<Key>* const> indices)
     -> std::vector<std::vector<std::size_t>>
 {
     if (indices.empty())

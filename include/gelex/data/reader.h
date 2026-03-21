@@ -25,24 +25,54 @@ namespace gelex
 inline auto read_fam(const std::filesystem::path& path)
     -> df::DataFrame<std::string>
 {
-    df::ReadOptions options{
-        .schema = std::nullopt,
-        .delimiter = ' ',
-        .header = false,
-        .index_cols = {"0", "1"},
-        .select_cols = {}};
+    df::ReadOptions options;
+    options.delimiter = ' ';
+    options.header = false;
+    options.index_cols = {0, 1};
     return df::read_dataframe<std::string>(path, options);
 }
 
 inline auto read_bim(const std::filesystem::path& path)
     -> df::DataFrame<std::string>
 {
-    df::ReadOptions options{
-        .schema = df::ColumnType::String,
-        .delimiter = '\t',
-        .header = false,
-        .index_cols = {"1"},
-        .select_cols = {"4", "5"}};
+    df::ReadOptions options;
+    options.schema = df::ColumnType::String;
+    options.header = false;
+    options.index_cols = {1};
+    options.select_cols = {4, 5};
+    options.names = {"A1", "A2"};
+    return df::read_dataframe<std::string>(path, options);
+}
+
+inline auto read_pheno(
+    const std::filesystem::path& path,
+    const std::size_t* pheno_col = nullptr) -> df::DataFrame<std::string>
+{
+    df::ReadOptions options;
+    options.schema = df::ColumnType::Double;
+    options.index_cols = {0, 1};
+    if (pheno_col != nullptr)
+    {
+        options.select_cols = {*pheno_col + 2};
+    }
+    return df::read_dataframe<std::string>(path, options);
+}
+
+inline auto read_qcovar(const std::filesystem::path& path)
+    -> df::DataFrame<std::string>
+{
+    df::ReadOptions options;
+    options.schema = df::ColumnType::Double;
+    options.index_cols = {0, 1};
+    return df::read_dataframe<std::string>(path, options);
+}
+
+inline auto read_dcovar(const std::filesystem::path& path)
+    -> df::DataFrame<std::string>
+{
+    df::ReadOptions options;
+    options.schema = df::ColumnType::String;
+    options.index_cols = {0, 1};
     return df::read_dataframe<std::string>(path, options);
 }
 
