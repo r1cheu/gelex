@@ -25,20 +25,23 @@ namespace gelex
 {
 struct MCMCParams
 {
-    MCMCParams(Eigen::Index n_iters, Eigen::Index n_burnin, Eigen::Index n_thin)
+    MCMCParams(
+        Eigen::Index n_iters,
+        Eigen::Index n_burn_in,
+        Eigen::Index n_thin)
         : n_iters{n_iters},
-          n_burnin{n_burnin},
+          n_burn_in{n_burn_in},
           n_thin{n_thin},
-          n_records{(n_iters - n_burnin) / n_thin}
+          n_records{(n_iters - n_burn_in) / n_thin}
     {
-        if (n_burnin >= n_iters)
+        if (n_burn_in >= n_iters)
         {
             throw std::invalid_argument(
-                "n_burnin must be smaller than n_iters");
+                "n_burn_in must be smaller than n_iters");
         }
     }
     Eigen::Index n_iters;
-    Eigen::Index n_burnin;
+    Eigen::Index n_burn_in;
     Eigen::Index n_thin;
     Eigen::Index n_records;
 };

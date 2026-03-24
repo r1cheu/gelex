@@ -20,15 +20,45 @@
 #include <format>
 #include <ranges>
 #include <string_view>
+#include <variant>
 
 #include <Eigen/Core>
 
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
 
 namespace gelex
 {
+
+namespace
+{
+
+auto has_group_prior(const bayes::MarkerPrior& marker) -> bool
+{
+    return !std::holds_alternative<bayes::ContinuousPrior>(marker);
+}
+
+auto group_prior_estimate_pi(const bayes::MarkerPrior& marker) -> bool
+{
+    if (const auto* sp = std::get_if<bayes::SpikePrior>(&marker))
+    {
+        return sp->proportion.estimate;
+    }
+    return std::get<bayes::MixturePrior>(marker).proportion.estimate;
+}
+
+auto group_prior_n_proportions(const bayes::MarkerPrior& marker) -> Eigen::Index
+{
+    if (const auto* sp = std::get_if<bayes::SpikePrior>(&marker))
+    {
+        return sp->proportion.init.size();
+    }
+    return std::get<bayes::MixturePrior>(marker).proportion.init.size();
+}
+
+}  // namespace
 
 MCMCWriter::MCMCWriter(
     const BayesModel& model,
@@ -60,6 +90,7 @@ MCMCWriter::MCMCWriter(
     {
         auto sect = EffectType::from_genetic(effect.type);
         const auto n_snps = bayes::get_cols(effect.X);
+        const auto* prior = model.priors().genetic(effect.type);
 
         GeneticHandles gh;
         gh.section_effect = sect;
@@ -68,18 +99,18 @@ MCMCWriter::MCMCWriter(
         gh.variance = writer_.reserve<double>(
             {sect, detail::DataKind::Variance}, 1, cols);
 
-        if (effect.mixture)
+        if ((prior != nullptr) && has_group_prior(prior->marker))
         {
             gh.mixture_tracker = writer_.reserve<int8_t>(
                 {sect, detail::DataKind::MixtureTracker}, n_snps, cols);
-            if (effect.mixture->estimate_pi)
+            if (group_prior_estimate_pi(prior->marker))
             {
-                const auto n_pi = effect.mixture->init_proportion.size();
+                const auto n_pi = group_prior_n_proportions(prior->marker);
                 gh.pi = writer_.reserve<double>(
                     {sect, detail::DataKind::MixtureProportion}, n_pi, cols);
             }
         }
-        if (effect.sign)
+        if ((prior != nullptr) && prior->sign)
         {
             gh.sign_tracker = writer_.reserve<int8_t>(
                 {sect, detail::DataKind::SignTracker}, n_snps, cols);
@@ -113,18 +144,36 @@ void MCMCWriter::write(const BayesState& state)
         writer_.write(gh.coeffs, gs.coeffs);
         writer_.write(gh.variance, gs.variance);
 
-        if (gh.mixture_tracker && gs.mixture)
+        if (gh.mixture_tracker && gs.group)
         {
-            writer_.write(*gh.mixture_tracker, gs.mixture->tracker);
-            if (gh.pi)
-            {
-                writer_.write(*gh.pi, gs.mixture->pi.proportion);
-            }
+            std::visit(
+                [&](const auto& alloc)
+                {
+                    using T = std::decay_t<decltype(alloc)>;
+                    const auto& assignment = [&]() -> const bayes::Assignment&
+                    {
+                        if constexpr (std::is_same_v<T, bayes::Assignment>)
+                        {
+                            return alloc;
+                        }
+                        else
+                        {
+                            return alloc.assignment;
+                        }
+                    }();
+                    writer_.write(*gh.mixture_tracker, assignment.tracker);
+                    if (gh.pi)
+                    {
+                        writer_.write(*gh.pi, assignment.proportion);
+                    }
+                },
+                *gs.group);
         }
         if (gh.sign_tracker && gs.sign)
         {
             writer_.write(*gh.sign_tracker, gs.sign->tracker);
-            writer_.write(*gh.positive_prob, gs.sign->positive_prob);
+            const double pos_prob = gs.sign->proportion(1);
+            writer_.write(*gh.positive_prob, pos_prob);
         }
     }
 

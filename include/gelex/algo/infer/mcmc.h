@@ -69,8 +69,6 @@ MCMCResult MCMC<TraitSampler>::run(
 {
     MCMCSamples samples(model, sample_prefix, params_.n_records);
 
-    notify(observer, FitModelReadyEvent{&model});
-
     const detail::EigenThreadGuard guard;
     omp_set_num_threads(1);
     run_impl(model, samples, seed, observer);
@@ -82,9 +80,6 @@ MCMCResult MCMC<TraitSampler>::run(
             .current = static_cast<size_t>(params_.n_iters),
             .total = static_cast<size_t>(params_.n_iters),
             .done = true,
-            .genetic_heritabilities = {},
-            .dom_positive_prob = std::nullopt,
-            .sigma2_e = std::nullopt,
         });
 
     MCMCResult result(std::move(samples), model);
@@ -106,44 +101,22 @@ void MCMC<TraitSampler>::run_impl(
 
     std::mt19937_64 rng(seed);
 
-    std::vector<std::pair<GeneticKind, double>> gen_h2;
-    gen_h2.reserve(status.genetics().size());
-
     for (Eigen::Index iter = 0; iter < params_.n_iters; ++iter)
     {
         trait_sampler_(model, status, rng);
 
         status.compute_heritability();
 
-        gen_h2.clear();
-        std::optional<std::vector<double>> dom_pi;
-        std::optional<double> dom_positive_prob;
-        for (const auto& gen : status.genetics())
-        {
-            gen_h2.emplace_back(gen.type, gen.heritability);
-            if (gen.type == GeneticKind::Dom && gen.mixture)
-            {
-                const auto& prop = gen.mixture->pi.proportion;
-                dom_pi.emplace(std::vector<double>(prop.begin(), prop.end()));
-            }
-            if (gen.type == GeneticKind::Dom && gen.sign)
-            {
-                dom_positive_prob = gen.sign->positive_prob;
-            }
-        }
         notify(
             observer,
             FitMcmcProgressEvent{
                 .current = static_cast<size_t>(iter + 1),
                 .total = static_cast<size_t>(params_.n_iters),
-                .done = false,
-                .genetic_heritabilities = gen_h2,
-                .dom_positive_prob = dom_positive_prob,
-                .sigma2_e = status.residual().variance,
+                .state = &status,
             });
 
-        if (iter >= params_.n_burnin
-            && (iter + 1 - params_.n_burnin) % params_.n_thin == 0)
+        if (iter >= params_.n_burn_in
+            && (iter + 1 - params_.n_burn_in) % params_.n_thin == 0)
         {
             samples.store(status);
         }

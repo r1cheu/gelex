@@ -17,6 +17,8 @@
 #include "fit_reporter.h"
 
 #include <iterator>
+#include <ranges>
+#include <span>
 
 #include <fmt/format.h>
 
@@ -25,6 +27,8 @@
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/states.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "gelex/types/mcmc_results.h"
 
@@ -49,8 +53,8 @@ auto FitReporter::on_event(const FitConfigLoadedEvent& event) const -> void
         "  {:<12}: {} iters ({} burn-in, {} sampling)",
         "Chain",
         event.n_iters,
-        event.n_burnin,
-        event.n_iters - event.n_burnin);
+        event.n_burn_in,
+        event.n_iters - event.n_burn_in);
     logger_->info("  {:<12}: {}", "Seed", event.seed);
     logger_->info("");
 }
@@ -59,18 +63,20 @@ auto FitReporter::on_event(const FitModelReadyEvent& event) const -> void
 {
     logger_->info(gelex::section("[Model Configuration]"));
 
-    for (const auto& effect : event.model->random())
+    const auto& priors = event.model->priors();
+    for (std::size_t i = 0; i < event.model->random().size(); ++i)
     {
-        print_random_prior(effect);
+        print_random_prior(event.model->random()[i], priors.random[i]);
     }
 
     for (const auto& effect : event.model->genetics())
     {
         print_genetic_prior(
             &effect,
+            priors.genetic(effect.type),
             fmt::format("{} effect:", genetic_kind::to_string(effect.type)));
     }
-    print_residual_prior(event.model->residual());
+    print_residual_prior(priors.residual);
 }
 
 auto FitReporter::on_event(const FitMcmcProgressEvent& event) -> void
@@ -94,30 +100,30 @@ auto FitReporter::on_event(const FitMcmcProgressEvent& event) -> void
 
     iter_ = event.current;
 
+    const auto* state = event.state;
     stats_.clear();
-    for (const auto& [type, h] : event.genetic_heritabilities)
+    for (const auto& gen : state->genetics())
     {
         fmt::format_to(
             std::back_inserter(stats_),
             "{}{}:{:.3f}",
             stats_.empty() ? "" : " | ",
-            genetic_kind::to_heritability_label(type),
-            h);
+            genetic_kind::to_heritability_label(gen.type),
+            gen.heritability);
     }
-    if (event.sigma2_e)
-    {
-        fmt::format_to(
-            std::back_inserter(stats_),
-            "{}σ²_e: {:.3f}",
-            stats_.empty() ? "" : " | ",
-            *event.sigma2_e);
-    }
-    if (event.dom_positive_prob)
+    fmt::format_to(
+        std::back_inserter(stats_),
+        "{}σ²_e: {:.3f}",
+        stats_.empty() ? "" : " | ",
+        state->residual().variance);
+
+    const auto* dom = state->genetic(GeneticKind::Dom);
+    if (dom != nullptr && dom->sign)
     {
         fmt::format_to(
             std::back_inserter(stats_),
             " | p: {:.3f}",
-            *event.dom_positive_prob);
+            dom->sign->proportion(1));
     }
 
     if (bar_.after_bar)
@@ -170,48 +176,50 @@ auto FitReporter::print_summary_row(
         summary.stddev(index));
 }
 
-auto FitReporter::print_random_prior(const bayes::RandomEffect& effect) const
-    -> void
+auto FitReporter::print_random_prior(
+    const bayes::RandomEffect& effect,
+    const bayes::VariancePrior& prior) const -> void
 {
-    std::string name = effect.levels ? effect.levels.value()[0] : "intercept";
-    logger_->info("   {}(rand)", name);
-    print_variance_prior(effect.prior, effect.init_variance);
+    logger_->info("   {}(rand)", effect.name);
+    print_variance_prior(prior.param, prior.init);
 }
 
 auto FitReporter::print_genetic_prior(
     const bayes::GeneticEffect* effect,
+    const bayes::GeneticPrior* prior,
     std::string_view label) const -> void
 {
-    if (effect == nullptr)
+    if (effect == nullptr || prior == nullptr)
     {
         return;
     }
     logger_->info("   {}", label);
-    print_variance_prior(
-        effect->marker_variance_prior, effect->init_marker_variance);
-
-    if (effect->mixture && effect->mixture->init_proportion.size() > 1)
-    {
-        const auto& init_proportion = effect->mixture->init_proportion;
-        std::string pi_str = "[";
-        for (Eigen::Index i = 0; i < init_proportion.size(); ++i)
+    std::visit(
+        [&](const auto& mp)
         {
-            if (i > 0)
+            print_variance_prior(mp.variance.param, mp.variance.init);
+
+            if constexpr (!std::is_same_v<
+                              std::decay_t<decltype(mp)>,
+                              bayes::ContinuousPrior>)
             {
-                pi_str += ", ";
+                const auto& p = mp.proportion.init;
+                auto formatted
+                    = std::span(p.data(), p.size())
+                      | std::views::transform(
+                          [](double v) { return fmt::format("{:.3f}", v); });
+                logger_->info(
+                    "    Proportion: [{}]", fmt::join(formatted, ", "));
             }
-            pi_str += fmt::format("{:.3f}", init_proportion(i));
-        }
-        pi_str += "]";
-        logger_->info("    Mixture: {}", pi_str);
-    }
+        },
+        prior->marker);
 }
 
-auto FitReporter::print_residual_prior(const bayes::Residual& residual) const
+auto FitReporter::print_residual_prior(const bayes::VariancePrior& prior) const
     -> void
 {
     logger_->info("   Residual:");
-    print_variance_prior(residual.prior, residual.init_variance);
+    print_variance_prior(prior.param, prior.init);
 }
 
 auto FitReporter::print_fixed_summary(
@@ -249,24 +257,27 @@ auto FitReporter::print_genetic_summary(
     print_summary_row("σ²", summary->variance);
     print_summary_row(h_name, summary->heritability);
 
-    if (summary->mixture)
+    if (summary->group)
     {
-        const auto& mix = *summary->mixture;
-        for (Eigen::Index i = 0; i < mix.mixture_proportion.size(); ++i)
+        const auto& base = assignment(*summary->group);
+        for (Eigen::Index i = 0; i < base.mixture_proportion.size(); ++i)
         {
             print_summary_row(
-                fmt::format("π[{}]", i), mix.mixture_proportion, i);
+                fmt::format("π[{}]", i), base.mixture_proportion, i);
         }
-        for (Eigen::Index i = 0; i < mix.component_variance.size(); ++i)
+        if (const auto* comp = std::get_if<ComponentSummary>(&*summary->group))
         {
-            print_summary_row(
-                fmt::format("σ²[{}]", i + 1), mix.component_variance, i);
+            for (Eigen::Index i = 0; i < comp->component_variance.size(); ++i)
+            {
+                print_summary_row(
+                    fmt::format("σ²[{}]", i + 1), comp->component_variance, i);
+            }
         }
     }
 
     if (summary->sign)
     {
-        print_summary_row("p(+)", summary->sign->positive_prob);
+        print_summary_row("p(+)", summary->sign->mixture_proportion, 1);
     }
 }
 

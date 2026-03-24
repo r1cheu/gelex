@@ -19,11 +19,13 @@
 
 #include <cstdint>
 #include <optional>
+#include <variant>
 #include <vector>
 
 #include <Eigen/Core>
 
 #include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/prior.h"
 #include "gelex/types/fixed_effects.h"
 
 namespace gelex::bayes
@@ -31,49 +33,42 @@ namespace gelex::bayes
 
 using TrackerVector = Eigen::VectorX<int8_t>;
 
-struct Pi
+struct Assignment
 {
+    Assignment(Eigen::Index num_markers, const Eigen::VectorXd& init_proportion)
+        : tracker(TrackerVector::Zero(num_markers)),
+          proportion(init_proportion),
+          count(Eigen::VectorXi::Zero(init_proportion.size()))
+    {
+    }
+
+    TrackerVector tracker;
     Eigen::VectorXd proportion;
     Eigen::VectorXi count;
 };
 
-struct MixtureState
+struct ComponentAllocation
 {
-    explicit MixtureState(const GeneticEffect& effect)
-        : tracker(TrackerVector::Zero(bayes::get_cols(effect.X))),
-          pi{effect.mixture->init_proportion,
-             Eigen::VectorXi::Zero(effect.mixture->init_proportion.size())}
+    ComponentAllocation(
+        Eigen::Index num_markers,
+        Eigen::Index num_samples,
+        const Eigen::VectorXd& init_proportion)
+        : assignment(num_markers, init_proportion),
+          component_u(init_proportion.size() - 1),
+          component_variance(Eigen::VectorXd::Zero(init_proportion.size() - 1))
     {
-        if (const auto num_components = effect.mixture->init_proportion.size();
-            num_components > 2)
+        for (auto& vec : component_u)
         {
-            const auto num_samples = bayes::get_rows(effect.X);
-            component_u.resize(num_components - 1);
-            for (auto& vec : component_u)
-            {
-                vec = Eigen::VectorXd::Zero(num_samples);
-            }
-            component_variance = Eigen::VectorXd::Zero(num_components - 1);
+            vec = Eigen::VectorXd::Zero(num_samples);
         }
     }
 
-    TrackerVector tracker;
-    Pi pi;
+    Assignment assignment;
     std::vector<Eigen::VectorXd> component_u;
     Eigen::VectorXd component_variance;
 };
 
-struct SignState
-{
-    explicit SignState(Eigen::Index n_snps)
-        : tracker(TrackerVector::Zero(n_snps))
-    {
-    }
-    SignState() = default;
-
-    TrackerVector tracker;
-    double positive_prob{0.5};
-};
+using MarkerAllocation = std::variant<Assignment, ComponentAllocation>;
 
 struct FixedState
 {
@@ -84,9 +79,8 @@ struct FixedState
 
 struct RandomState
 {
-    explicit RandomState(const RandomEffect& effect)
-        : coeffs(Eigen::VectorXd::Zero(effect.X.cols())),
-          variance{effect.init_variance}
+    RandomState(const RandomEffect& effect, const RandomPrior& prior)
+        : coeffs(Eigen::VectorXd::Zero(effect.X.cols())), variance{prior.init}
     {
     }
 
@@ -96,25 +90,41 @@ struct RandomState
 
 struct GeneticState
 {
-    explicit GeneticState(const GeneticEffect& effect)
+    GeneticState(const GeneticEffect& effect, const GeneticPrior& prior)
         : type(effect.type),
           coeffs(Eigen::VectorXd::Zero(bayes::get_cols(effect.X))),
-          u(Eigen::VectorXd::Zero(bayes::get_rows(effect.X))),
-          marker_variance(
-              Eigen::VectorXd::Constant(
-                  effect.marker_variance_size,
-                  effect.init_marker_variance))
+          u(Eigen::VectorXd::Zero(bayes::get_rows(effect.X)))
     {
-        if (effect.mixture)
+        auto num_markers = bayes::get_cols(effect.X);
+        auto num_samples = bayes::get_rows(effect.X);
+
+        std::visit(
+            [&](const auto& p)
+            {
+                using T = std::decay_t<decltype(p)>;
+                marker_variance = Eigen::VectorXd::Constant(
+                    p.variance.size, p.variance.init);
+
+                if constexpr (std::is_same_v<T, SpikePrior>)
+                {
+                    group.emplace(Assignment(num_markers, p.proportion.init));
+                }
+                else if constexpr (std::is_same_v<T, MixturePrior>)
+                {
+                    group.emplace(ComponentAllocation(
+                        num_markers, num_samples, p.proportion.init));
+                }
+            },
+            prior.marker);
+
+        if (prior.sign)
         {
-            mixture.emplace(effect);
-        }
-        if (effect.sign)
-        {
-            sign.emplace(bayes::get_cols(effect.X));
-            sign->positive_prob = effect.sign->init_positive_prob;
+            Eigen::Vector3d sign_proportion{
+                {0.0, prior.sign->init_value, 1.0 - prior.sign->init_value}};
+            sign.emplace(num_markers, sign_proportion);
         }
     }
+
     GeneticKind type;
     Eigen::VectorXd coeffs;
     Eigen::VectorXd u;
@@ -123,8 +133,8 @@ struct GeneticState
     double heritability{};
     Eigen::VectorXd marker_variance;
 
-    std::optional<MixtureState> mixture;
-    std::optional<SignState> sign;
+    std::optional<MarkerAllocation> group;
+    std::optional<Assignment> sign;
 };
 
 struct ResidualState

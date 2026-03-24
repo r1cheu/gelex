@@ -17,48 +17,33 @@
 #ifndef GELEX_MODEL_BAYES_EFFECTS_H_
 #define GELEX_MODEL_BAYES_EFFECTS_H_
 
-#include <optional>
 #include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
-#include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/genotype_storage.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
 {
 
-struct MixtureConfig
-{
-    Eigen::VectorXd init_proportion;
-    std::optional<Eigen::VectorXd> scale;
-    bool estimate_pi{false};
-};
-
 struct RandomEffect
 {
     RandomEffect(
-        std::optional<std::vector<std::string>> levels,
+        std::string name,
+        std::vector<std::string> levels,
         Eigen::MatrixXd&& X)
-        : X(std::move(X)), levels(std::move(levels))
+        : name(std::move(name)), levels(std::move(levels)), X(std::move(X))
     {
         cols_squared_norm = this->X.colwise().squaredNorm();
     }
 
+    std::string name;
+    std::vector<std::string> levels;
+
     Eigen::MatrixXd X;
     Eigen::VectorXd cols_squared_norm;
-
-    std::optional<std::vector<std::string>> levels;
-
-    detail::ScaledInvChiSqParams prior{4, 0};
-    double init_variance{0.0};
-};
-
-struct SignConfig
-{
-    double init_positive_prob{0.5};
 };
 
 struct GeneticEffect
@@ -73,25 +58,12 @@ struct GeneticEffect
     GenotypeStorage X;
     Eigen::VectorXd cols_squared_norm;
 
-    detail::ScaledInvChiSqParams marker_variance_prior{4, 0};
-    double init_marker_variance{0.0};
-    Eigen::Index marker_variance_size{0};
-
-    std::optional<MixtureConfig> mixture;
-    std::optional<SignConfig> sign;
-
     auto is_monomorphic(Eigen::Index snp_index) const -> bool
     {
         return is_monomorphic_variant(X, snp_index);
     }
 
     auto num_mono() const -> Eigen::Index { return num_mono_variant(X); }
-};
-
-struct Residual
-{
-    detail::ScaledInvChiSqParams prior{-2, 0};
-    double init_variance{0.0};
 };
 
 }  // namespace gelex::bayes

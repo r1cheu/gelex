@@ -20,6 +20,7 @@
 #include <random>
 
 #include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/samplers/detail/common_op.h"
 #include "gelex/model/bayes/samplers/detail/gibbs/gibbs_concept.h"
 #include "gelex/model/bayes/states.h"
@@ -31,6 +32,7 @@ template <typename EffectT, typename StateT>
     requires IsValidEffectStatePair<EffectT, StateT>
 auto RR(
     const EffectT& effect,
+    const bayes::GeneticPrior& prior,
     StateT& state,
     bayes::ResidualState& residual,
     std::mt19937_64& rng) -> void
@@ -72,7 +74,8 @@ auto RR(
     }
     state.variance = detail::var(state.u)(0);
 
-    detail::ScaledInvChiSq chi_squared{effect.marker_variance_prior};
+    const auto& marker_prior = std::get<bayes::ContinuousPrior>(prior.marker);
+    detail::ScaledInvChiSq chi_squared{marker_prior.variance.param};
     chi_squared.compute(coeff.squaredNorm(), coeff.size() - effect.num_mono());
     state.marker_variance(0) = chi_squared(rng);
 }

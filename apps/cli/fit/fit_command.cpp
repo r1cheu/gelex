@@ -50,7 +50,7 @@ auto fit_execute(argparse::ArgumentParser& fit) -> int
             .method = fit_config.method,
             .model_type = model_type,
             .n_iters = static_cast<int>(fit_config.mcmc_params.n_iters),
-            .n_burnin = static_cast<int>(fit_config.mcmc_params.n_burnin),
+            .n_burn_in = static_cast<int>(fit_config.mcmc_params.n_burn_in),
             .seed = fit_config.seed,
         });
 

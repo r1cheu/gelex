@@ -21,6 +21,7 @@
 
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
 namespace gelex::detail::CommonSampler
 {
 
@@ -42,6 +43,7 @@ struct Random
    private:
     auto static sample_impl(
         const bayes::RandomEffect& effect,
+        const bayes::RandomPrior& prior,
         bayes::RandomState& status,
         bayes::ResidualState& residual,
         std::mt19937_64& rng) -> void;

@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include <Eigen/Core>
@@ -120,58 +121,47 @@ struct RandomSummary
     PosteriorSummary variance;
 };
 
-struct MixtureSummary
+struct AssignmentSummary
 {
-    explicit MixtureSummary(const MixtureSamples& samples)
-        : pip(Eigen::VectorXd::Zero(samples.n_snps())),
-          comp_probs(
-              Eigen::MatrixXd::Zero(samples.n_snps(), samples.n_proportions()))
-    {
-        if (samples.estimate_pi())
-        {
-            mixture_proportion = PosteriorSummary(samples.n_proportions());
-        }
-
-        if (samples.n_proportions() > 2)
-        {
-            component_variance = PosteriorSummary(samples.n_proportions() - 1);
-        }
-    }
-
-    void compute(const MixtureSamples& sample);
+    explicit AssignmentSummary(const AssignmentSamples& samples);
+    void compute(const AssignmentSamples& sample);
 
     PosteriorSummary mixture_proportion;
-    PosteriorSummary component_variance;
     Eigen::VectorXd pip;
     Eigen::MatrixXd comp_probs;
 };
 
-struct SignSummary
+struct ComponentSummary
 {
-    explicit SignSummary(const SignSamples& samples);
-    void compute(const SignSamples& samples);
+    explicit ComponentSummary(const ComponentSamples& samples);
+    void compute(const ComponentSamples& sample);
 
-    PosteriorSummary positive_prob;
+    AssignmentSummary assignment;
+    PosteriorSummary component_variance;
 };
+
+using MixtureSummary = std::variant<AssignmentSummary, ComponentSummary>;
+
+inline auto assignment(const MixtureSummary& s) -> const AssignmentSummary&
+{
+    return std::visit(
+        []<typename T>(const T& v) -> const AssignmentSummary&
+        {
+            if constexpr (std::is_same_v<T, AssignmentSummary>)
+            {
+                return v;
+            }
+            else
+            {
+                return v.assignment;
+            }
+        },
+        s);
+}
 
 struct GeneticSummary
 {
-    explicit GeneticSummary(const GeneticSamples& samples)
-        : type(samples.type),
-          coeffs(samples.n_coeffs()),
-          variance(1),
-          heritability(1),
-          pve(samples.n_coeffs())
-    {
-        if (samples.mixture)
-        {
-            mixture.emplace(*samples.mixture);
-        }
-        if (samples.sign)
-        {
-            sign.emplace(*samples.sign);
-        }
-    }
+    explicit GeneticSummary(const GeneticSamples& samples);
 
     void compute(const GeneticSamples& sample, double phenotype_var);
 
@@ -181,8 +171,8 @@ struct GeneticSummary
     PosteriorSummary heritability;
     PosteriorSummary pve;
 
-    std::optional<MixtureSummary> mixture;
-    std::optional<SignSummary> sign;
+    std::optional<MixtureSummary> group;
+    std::optional<AssignmentSummary> sign;
 };
 
 class MCMCResult

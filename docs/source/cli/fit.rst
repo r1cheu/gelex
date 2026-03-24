@@ -128,7 +128,7 @@ Options
 ``--iters`` ``3000``
    Total MCMC iterations.
 
-``--burnin`` ``2000``
+``--burn-in`` ``2000``
    Initial iterations discarded before sampling.
 
 ``--thin`` ``1``
@@ -178,7 +178,7 @@ Warnings and Notes
 
 .. note::
 
-   For many datasets, a practical starting point is ``--burnin`` around
+   For many datasets, a practical starting point is ``--burn_in`` around
    20%-50% of ``--iters``. Increase ``--iters`` when posterior summaries are
    unstable across runs.
 
@@ -241,7 +241,7 @@ Expected outputs: ``model_bayesr.snp.eff``, ``model_bayesr.param``.
       -p phenotypes.tsv \
       -m R \
       --iters 50000 \
-      --burnin 10000 \
+      --burn-in 10000 \
       --thin 5 \
       -o model_high_prec
 
@@ -252,7 +252,7 @@ Expected outputs: ``model_bayesr.snp.eff``, ``model_bayesr.param``.
       -b train_data \
       -p phenotypes.tsv \
       -m Rd \
-      --dscale 0.0001 0.001 0.01 0.1 1.0 \
+      --dmult 0.0001 0.001 0.01 0.1 1.0 \
       --dpi 0.95 0.05 \
       -o model_dom
 

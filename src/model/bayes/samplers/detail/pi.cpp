@@ -17,6 +17,8 @@
 #include "gelex/model/bayes/samplers/detail/pi.h"
 
 #include <random>
+#include <type_traits>
+#include <variant>
 
 #include <Eigen/Core>
 
@@ -28,6 +30,38 @@ namespace gelex::detail
 using Eigen::VectorXd;
 using Eigen::VectorXi;
 
+namespace
+{
+
+auto sample_pi(bayes::GeneticState& state, std::mt19937_64& rng) -> void
+{
+    if (!state.group)
+    {
+        return;
+    }
+    auto update_pi = [&](bayes::Assignment& asgn)
+    {
+        VectorXi dirichlet_counts(asgn.count.array() + 1);
+        asgn.proportion = detail::dirichlet(dirichlet_counts, rng);
+    };
+    std::visit(
+        [&](auto& alloc)
+        {
+            using T = std::decay_t<decltype(alloc)>;
+            if constexpr (std::is_same_v<T, bayes::Assignment>)
+            {
+                update_pi(alloc);
+            }
+            else
+            {
+                update_pi(alloc.assignment);
+            }
+        },
+        *state.group);
+}
+
+}  // namespace
+
 namespace AdditiveSampler
 {
 auto Pi::operator()(
@@ -35,32 +69,23 @@ auto Pi::operator()(
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
-    // Check if the model has additive effects with pi estimation
-
-    if (auto* state = states.genetic(GeneticKind::Add);
-        state != nullptr && state->mixture)
+    if (auto* state = states.genetic(GeneticKind::Add); state != nullptr)
     {
-        auto& ms = *state->mixture;
-        VectorXi dirichlet_counts(ms.pi.count.array() + 1);
-        ms.pi.proportion = detail::dirichlet(dirichlet_counts, rng);
+        sample_pi(*state, rng);
     }
 }
 
 }  // namespace AdditiveSampler
-//
+
 auto DominantSampler::Pi::operator()(
     const BayesModel& /*model*/,
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
-    // Check if the model has dominant effects with pi estimation
-
-    if (auto* state = states.genetic(GeneticKind::Dom);
-        state != nullptr && state->mixture)
+    if (auto* state = states.genetic(GeneticKind::Dom); state != nullptr)
     {
-        auto& ms = *state->mixture;
-        VectorXi dirichlet_counts(ms.pi.count.array() + 1);
-        ms.pi.proportion = detail::dirichlet(dirichlet_counts, rng);
+        sample_pi(*state, rng);
     }
 }
+
 }  // namespace gelex::detail

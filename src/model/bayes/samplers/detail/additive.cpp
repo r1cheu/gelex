@@ -35,6 +35,7 @@ auto A::operator()(
 {
     Gibbs::A(
         *model.genetic(GeneticKind::Add),
+        *model.priors().genetic(GeneticKind::Add),
         *states.genetic(GeneticKind::Add),
         states.residual(),
         rng);
@@ -47,6 +48,7 @@ auto B::operator()(
 {
     Gibbs::B(
         *model.genetic(GeneticKind::Add),
+        *model.priors().genetic(GeneticKind::Add),
         *states.genetic(GeneticKind::Add),
         states.residual(),
         rng);
@@ -59,6 +61,7 @@ auto C::operator()(
 {
     Gibbs::C(
         *model.genetic(GeneticKind::Add),
+        *model.priors().genetic(GeneticKind::Add),
         *states.genetic(GeneticKind::Add),
         states.residual(),
         rng);
@@ -71,6 +74,7 @@ auto R::operator()(
 {
     Gibbs::R(
         *model.genetic(GeneticKind::Add),
+        *model.priors().genetic(GeneticKind::Add),
         *states.genetic(GeneticKind::Add),
         states.residual(),
         rng);
@@ -83,6 +87,7 @@ auto RR::operator()(
 {
     Gibbs::RR(
         *model.genetic(GeneticKind::Add),
+        *model.priors().genetic(GeneticKind::Add),
         *states.genetic(GeneticKind::Add),
         states.residual(),
         rng);

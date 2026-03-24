@@ -65,13 +65,13 @@ auto make_fit_config(argparse::ArgumentParser& cmd) -> FitEngine::Config
 
     config.pi = extract_opt_vec("--pi");
     config.dpi = extract_opt_vec("--dpi");
-    config.scale = extract_opt_vec("--scale");
-    config.dscale = extract_opt_vec("--dscale");
+    config.multiplier = extract_opt_vec("--mult");
+    config.dmultiplier = extract_opt_vec("--dmult");
     config.positive_prob = cmd.get<double>("--positive-prob");
-    if (config.mcmc_params.n_burnin >= config.mcmc_params.n_iters)
+    if (config.mcmc_params.n_burn_in >= config.mcmc_params.n_iters)
     {
         throw gelex::InvalidInputException(
-            "n_burnin must be less than n_iters");
+            "n_burn_in must be less than n_iters");
     }
 
     return config;

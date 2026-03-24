@@ -78,16 +78,16 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
     cmd.add_argument("--estimate-pi")
         .help("Estimate mixture proportions (BayesB/C only)")
         .flag();
-    cmd.add_argument("--scale")
-        .help("Additive variance scales for BayesR (5 values)")
+    cmd.add_argument("--mult")
+        .help("Additive variance multipliers for BayesR (5 values)")
         .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
     cmd.add_argument("--pi")
         .help("Additive mixture proportions for BayesB/C/R")
         .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
-    cmd.add_argument("--dscale")
-        .help("Dominance variance scales for BayesR (5 values)")
+    cmd.add_argument("--dmult")
+        .help("Dominance variance multipliers for BayesR (5 values)")
         .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
     cmd.add_argument("--dpi")

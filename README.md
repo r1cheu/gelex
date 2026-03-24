@@ -56,7 +56,7 @@ gelex fit \
   --pheno data/phenotypes.tsv \
   --method R \
   --iters 10000 \
-  --burnin 2000 \
+  --burn-in 2000 \
   --o result/my_analysis
 ```
 

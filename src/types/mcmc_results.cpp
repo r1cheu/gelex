@@ -65,25 +65,67 @@ void RandomSummary::compute(const RandomSamples& sample)
     variance = PosteriorSummary(sample.variance());
 }
 
-void MixtureSummary::compute(const MixtureSamples& sample)
+AssignmentSummary::AssignmentSummary(const AssignmentSamples& samples)
+    : pip(Eigen::VectorXd::Zero(samples.n_snps())),
+      comp_probs(
+          Eigen::MatrixXd::Zero(samples.n_snps(), samples.n_proportions()))
+{
+    if (samples.estimate_pi())
+    {
+        mixture_proportion = PosteriorSummary(samples.n_proportions());
+    }
+}
+
+void AssignmentSummary::compute(const AssignmentSamples& sample)
 {
     if (mixture_proportion.size() > 0)
     {
         mixture_proportion = PosteriorSummary(sample.proportion());
     }
-    if (component_variance.size() > 0)
-    {
-        component_variance = PosteriorSummary(sample.comp_var());
-    }
     comp_probs = sample.component_probs();
     pip = Eigen::VectorXd::Ones(comp_probs.rows()) - comp_probs.col(0);
 }
 
-SignSummary::SignSummary(const SignSamples& /*samples*/) : positive_prob(1) {}
-
-void SignSummary::compute(const SignSamples& samples)
+ComponentSummary::ComponentSummary(const ComponentSamples& samples)
+    : assignment(samples.assignment),
+      component_variance(samples.assignment.n_proportions() - 1)
 {
-    positive_prob = PosteriorSummary(samples.positive_prob());
+}
+
+void ComponentSummary::compute(const ComponentSamples& sample)
+{
+    assignment.compute(sample.assignment);
+    component_variance = PosteriorSummary(sample.comp_var());
+}
+
+GeneticSummary::GeneticSummary(const GeneticSamples& samples)
+    : type(samples.type),
+      coeffs(samples.n_coeffs()),
+      variance(1),
+      heritability(1),
+      pve(samples.n_coeffs())
+{
+    if (samples.group)
+    {
+        std::visit(
+            [&](const auto& s)
+            {
+                using T = std::decay_t<decltype(s)>;
+                if constexpr (std::is_same_v<T, AssignmentSamples>)
+                {
+                    group.emplace(std::in_place_type<AssignmentSummary>, s);
+                }
+                else
+                {
+                    group.emplace(std::in_place_type<ComponentSummary>, s);
+                }
+            },
+            *samples.group);
+    }
+    if (samples.sign)
+    {
+        sign.emplace(*samples.sign);
+    }
 }
 
 void GeneticSummary::compute(const GeneticSamples& sample, double phenotype_var)
@@ -92,9 +134,24 @@ void GeneticSummary::compute(const GeneticSamples& sample, double phenotype_var)
     variance = PosteriorSummary(sample.variance());
     heritability = PosteriorSummary(sample.heritability());
 
-    if (mixture && sample.mixture)
+    if (group && sample.group)
     {
-        mixture->compute(*sample.mixture);
+        std::visit(
+            [](auto& g, const auto& s)
+            {
+                using G = std::decay_t<decltype(g)>;
+                using S = std::decay_t<decltype(s)>;
+                if constexpr (
+                    (std::is_same_v<G, AssignmentSummary>
+                     && std::is_same_v<S, AssignmentSamples>)
+                    || (std::is_same_v<G, ComponentSummary>
+                        && std::is_same_v<S, ComponentSamples>))
+                {
+                    g.compute(s);
+                }
+            },
+            *group,
+            *sample.group);
     }
     if (sign && sample.sign)
     {

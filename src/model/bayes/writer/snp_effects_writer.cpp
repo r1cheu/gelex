@@ -61,13 +61,13 @@ auto SnpEffectsWriter::write_header() -> void
 {
     Index n_add_components = 0;
     Index n_dom_components = 0;
-    if (additive_ != nullptr && additive_->mixture)
+    if (additive_ != nullptr && additive_->group)
     {
-        n_add_components = additive_->mixture->comp_probs.cols();
+        n_add_components = assignment(*additive_->group).comp_probs.cols();
     }
-    if (dominant_ != nullptr && dominant_->mixture)
+    if (dominant_ != nullptr && dominant_->group)
     {
-        n_dom_components = dominant_->mixture->comp_probs.cols();
+        n_dom_components = assignment(*dominant_->group).comp_probs.cols();
     }
 
     std::string h
@@ -169,17 +169,19 @@ auto SnpEffectsWriter::write_component_probs(
     const GeneticSummary* effect,
     Index snp_index) -> void
 {
-    if (effect == nullptr || !effect->mixture
-        || effect->mixture->comp_probs.cols() <= 2
-        || snp_index >= effect->mixture->comp_probs.rows())
+    if (effect == nullptr || !effect->group)
+    {
+        return;
+    }
+    const auto& base = assignment(*effect->group);
+    if (base.comp_probs.cols() <= 2 || snp_index >= base.comp_probs.rows())
     {
         return;
     }
 
-    const auto& comp_probs = effect->mixture->comp_probs;
-    for (Index comp = 0; comp < comp_probs.cols(); ++comp)
+    for (Index comp = 0; comp < base.comp_probs.cols(); ++comp)
     {
-        row_buf_ += std::format("\t{:.6f}", comp_probs(snp_index, comp));
+        row_buf_ += std::format("\t{:.6f}", base.comp_probs(snp_index, comp));
     }
 }
 
@@ -191,9 +193,10 @@ auto SnpEffectsWriter::write_pip(const GeneticSummary* effect, Index snp_index)
         return;
     }
 
-    if (effect->mixture && effect->mixture->pip.size() > snp_index)
+    if (effect->group && assignment(*effect->group).pip.size() > snp_index)
     {
-        row_buf_ += std::format("\t{:.6f}", effect->mixture->pip(snp_index));
+        row_buf_ += std::format(
+            "\t{:.6f}", assignment(*effect->group).pip(snp_index));
     }
     else
     {

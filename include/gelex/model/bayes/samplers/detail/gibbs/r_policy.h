@@ -78,10 +78,10 @@ struct AT
     int n_positive_{};
     int n_negative_{};
 
-    void init(const bayes::SignState& ss)
+    void init(const bayes::Assignment& sa)
     {
-        log_p_ = std::log(ss.positive_prob);
-        log_1mp_ = std::log(1.0 - ss.positive_prob);
+        log_p_ = std::log(sa.proportion(1));
+        log_1mp_ = std::log(sa.proportion(2));
         n_positive_ = 0;
         n_negative_ = 0;
     }
@@ -150,13 +150,15 @@ struct AT
         return {class_index, new_i};
     }
 
-    void finalize(bayes::SignState& ss, std::mt19937_64& rng) const
+    void finalize(bayes::Assignment& sa, std::mt19937_64& rng) const
     {
         std::gamma_distribution<double> gamma_a(1.0 + n_positive_, 1.0);
         std::gamma_distribution<double> gamma_b(1.0 + n_negative_, 1.0);
         const double xa = gamma_a(rng);
         const double xb = gamma_b(rng);
-        ss.positive_prob = xa / (xa + xb);
+        const double p = xa / (xa + xb);
+        sa.proportion(1) = p;
+        sa.proportion(2) = 1.0 - p;
     }
 };
 

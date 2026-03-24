@@ -22,6 +22,7 @@
 #include <type_traits>
 
 #include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/samplers/detail/common_op.h"
 #include "gelex/model/bayes/samplers/detail/gibbs/gibbs_concept.h"
 #include "gelex/model/bayes/samplers/detail/gibbs/r_policy.h"
@@ -37,6 +38,7 @@ template <
     requires IsValidEffectStatePair<EffectT, StateT>
 auto R(
     const EffectT& effect,
+    const bayes::GeneticPrior& prior,
     StateT& state,
     bayes::ResidualState& residual,
     std::mt19937_64& rng) -> void
@@ -44,14 +46,16 @@ auto R(
     auto& y_adj = residual.y_adj;
     const double residual_variance = residual.variance;
 
-    auto& ms = *state.mixture;
+    auto& marker_assignment
+        = std::get<bayes::ComponentAllocation>(*state.group);
     Eigen::VectorXd& coeffs = state.coeffs;
     auto& u = state.u;
-    const auto& scale = *effect.mixture->scale;
+    const auto& multiplier
+        = std::get<bayes::MixturePrior>(prior.marker).multiplier;
     const Eigen::VectorXd marker_variances
-        = state.marker_variance(0) * scale.array();
+        = state.marker_variance(0) * multiplier.array();
     const Eigen::Index num_scale_classes = marker_variances.size();
-    auto& tracker = ms.tracker;
+    auto& tracker = marker_assignment.assignment.tracker;
 
     const auto& X = bayes::get_matrix_ref(effect.X);
     const auto& cols_squared_norm = effect.cols_squared_norm;
@@ -78,7 +82,7 @@ auto R(
 
     for (Eigen::Index k = 0; k < num_scale_classes; ++k)
     {
-        logpi_buf[k] = std::log(ms.pi.proportion(k));
+        logpi_buf[k] = std::log(marker_assignment.assignment.proportion(k));
     }
 
     double sum_square_coeffs{};
@@ -143,7 +147,7 @@ auto R(
         if (dist_index > 0)
         {
             update_residual_and_gebv(y_adj, u, col, old_i, new_i);
-            sum_square_coeffs += (new_i * new_i) / scale(class_index);
+            sum_square_coeffs += (new_i * new_i) / multiplier(class_index);
         }
         else if (old_i != 0.0)
         {
@@ -153,31 +157,40 @@ auto R(
 
         if constexpr (std::is_same_v<Policy, policy::AT>)
         {
+            int8_t new_sign_index{};
             if (dist_index == 0)
             {
-                state.sign->tracker(i) = 0;
+                new_sign_index = 0;
             }
             else if (dist_index % 2 == 1)
             {
-                state.sign->tracker(i) = 1;
+                new_sign_index = 1;
             }
             else
             {
-                state.sign->tracker(i) = -1;
+                new_sign_index = 2;
             }
+            state.sign->tracker(i) = new_sign_index;
         }
 
         update_component_u(
-            ms.component_u, old_index, old_i, class_index, new_i, col);
+            marker_assignment.component_u,
+            old_index,
+            old_i,
+            class_index,
+            new_i,
+            col);
     }
 
     for (int k = 0; k < num_scale_classes; ++k)
     {
-        ms.pi.count(k) = pi_count[k];
+        marker_assignment.assignment.count(k) = pi_count[k];
     }
 
-    const Eigen::Index num_nonzero = coeffs.size() - ms.pi.count(0);
-    detail::ScaledInvChiSq chi_squared{effect.marker_variance_prior};
+    const Eigen::Index num_nonzero
+        = coeffs.size() - marker_assignment.assignment.count(0);
+    const auto& marker_prior = std::get<bayes::MixturePrior>(prior.marker);
+    detail::ScaledInvChiSq chi_squared{marker_prior.variance.param};
     chi_squared.compute(sum_square_coeffs, num_nonzero);
     state.marker_variance(0) = chi_squared(rng);
     state.variance = detail::var(state.u)(0);

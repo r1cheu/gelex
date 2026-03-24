@@ -49,7 +49,7 @@ Here is how to fit a Bayesian model (BayesR) in one command:
      --pheno data/phenotypes.tsv \
      --method R \
      --iters 10000 \
-     --burnin 2000 \
+     --burn-in 2000 \
      --o result/my_analysis
 
 For more examples, check out the :doc:`gwas_tutorial`.

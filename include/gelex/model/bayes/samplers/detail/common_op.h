@@ -29,6 +29,7 @@
 #include <Eigen/Core>
 
 #include "gelex/infra/stats/descriptive.h"
+#include "gelex/model/bayes/states.h"
 
 namespace gelex::detail
 {
@@ -188,16 +189,27 @@ inline void update_component_u(
     }
 }
 
+inline void compute_component_variances(
+    bayes::ComponentAllocation& marker_assignment)
+{
+    for (size_t k = 0; k < marker_assignment.component_u.size(); ++k)
+    {
+        marker_assignment.component_variance(k)
+            = detail::var(marker_assignment.component_u[k])(0);
+    }
+}
+
 template <typename StateT>
 inline void compute_component_variances(StateT& state)
 {
-    if (state.mixture && !state.mixture->component_u.empty())
+    if (!state.group)
     {
-        auto& ms = *state.mixture;
-        for (size_t k = 0; k < ms.component_u.size(); ++k)
-        {
-            ms.component_variance(k) = detail::var(ms.component_u[k])(0);
-        }
+        return;
+    }
+    auto* ma = std::get_if<bayes::ComponentAllocation>(&*state.group);
+    if (ma && !ma->component_u.empty())
+    {
+        compute_component_variances(*ma);
     }
 }
 

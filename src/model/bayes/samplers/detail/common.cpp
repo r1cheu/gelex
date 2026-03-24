@@ -84,14 +84,16 @@ auto Random::operator()(
     auto& state = states.random();
     auto& residual = states.residual();
 
+    const auto& priors = model.priors().random;
     for (Index i = 0; i < static_cast<Index>(effects.size()); ++i)
     {
-        sample_impl(effects[i], state[i], residual, rng);
+        sample_impl(effects[i], priors[i], state[i], residual, rng);
     }
 }
 
 auto Random::sample_impl(
     const bayes::RandomEffect& effect,
+    const bayes::RandomPrior& prior,
     bayes::RandomState& status,
     bayes::ResidualState& residual,
     std::mt19937_64& rng) -> void
@@ -134,7 +136,7 @@ auto Random::sample_impl(
         y_adj.array() += col.array() * diff;
     }
 
-    detail::ScaledInvChiSq chi_squared{effect.prior};
+    detail::ScaledInvChiSq chi_squared{prior.param};
     chi_squared.compute(coeff.squaredNorm(), coeff.size());
     status.variance = chi_squared(rng);
 }
@@ -145,7 +147,7 @@ auto Residual::operator()(
     std::mt19937_64& rng) const -> void
 {
     auto& residual = states.residual();
-    detail::ScaledInvChiSq chi_squared{model.residual().prior};
+    detail::ScaledInvChiSq chi_squared{model.priors().residual.param};
     chi_squared.compute(residual.y_adj.squaredNorm(), model.num_individuals());
     residual.variance = chi_squared(rng);
 }

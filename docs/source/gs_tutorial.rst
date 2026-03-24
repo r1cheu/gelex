@@ -13,7 +13,7 @@ Genomic Selection Tutorial
         --bfile train_data \
         --pheno train_pheno.tsv \
         --method R \
-        --iters 20000 --burnin 5000 \
+        --iters 20000 --burn-in 5000 \
         --out trained_model
 
    .. code-block:: bash

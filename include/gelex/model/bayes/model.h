@@ -18,14 +18,13 @@
 #define GELEX_MODEL_BAYES_MODEL_H_
 
 #include <algorithm>
-#include <optional>
 #include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/genotype_storage.h"
+#include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -38,8 +37,8 @@ class BayesModel
     BayesModel(
         Eigen::VectorXd phenotype,
         FixedEffect fixed_effects,
-        bayes::GenotypeStorage additive,
-        std::optional<bayes::GenotypeStorage> dominance = std::nullopt);
+        std::vector<bayes::GeneticEffect> genetics,
+        bayes::PriorSet priors);
 
     const FixedEffect& fixed() const { return fixed_; }
     FixedEffect& fixed() { return fixed_; }
@@ -66,8 +65,8 @@ class BayesModel
         return it != genetics_.end() ? &*it : nullptr;
     }
 
-    const bayes::Residual& residual() const { return residual_; }
-    bayes::Residual& residual() { return residual_; }
+    const bayes::PriorSet& priors() const { return priors_; }
+    bayes::PriorSet& priors() { return priors_; }
 
     const Eigen::VectorXd& phenotype() const { return phenotype_; }
 
@@ -77,6 +76,7 @@ class BayesModel
    private:
     void add_fixed_effect(FixedEffect&& effect);
     void add_random_effect(
+        std::string name,
         std::vector<std::string>&& levels,
         Eigen::MatrixXd&& X);
 
@@ -88,7 +88,7 @@ class BayesModel
     FixedEffect fixed_;
     std::vector<bayes::RandomEffect> random_;
     std::vector<bayes::GeneticEffect> genetics_;
-    bayes::Residual residual_;
+    bayes::PriorSet priors_;
 };
 
 class BayesState

@@ -19,11 +19,13 @@
 #include <memory>
 #include <ranges>
 #include <string_view>
+#include <variant>
 
 #include <Eigen/Core>
 
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
 #include "gelex/model/bayes/writer/mcmc_writer.h"
 #include "gelex/types/fixed_effects.h"
@@ -62,46 +64,71 @@ void ResidualSamples::store(const bayes::ResidualState& state)
     variance_stats_.update(state.variance);
 }
 
-MixtureSamples::MixtureSamples(const bayes::GeneticEffect& effect)
-    : n_snps_(bayes::get_cols(effect.X)),
-      n_proportions_(effect.mixture->init_proportion.size()),
-      estimate_pi_(effect.mixture->estimate_pi)
+AssignmentSamples::AssignmentSamples(
+    Eigen::Index n_snps,
+    Eigen::Index n_proportions,
+    bool estimate_pi)
+    : estimate_pi_(estimate_pi),
+      comp_counts_(Eigen::MatrixXd::Zero(n_snps, n_proportions))
 {
-    comp_counts_ = Eigen::MatrixXd::Zero(n_snps_, n_proportions_);
 }
 
-void MixtureSamples::store(const bayes::MixtureState& state)
+void AssignmentSamples::store(const bayes::Assignment& alloc)
 {
     if (estimate_pi_)
     {
-        proportion_stats_.update(state.pi.proportion);
-    }
-    if (n_proportions_ > 2)
-    {
-        comp_var_stats_.update(state.component_variance);
+        proportion_stats_.update(alloc.proportion);
     }
     ++n_samples_;
-    for (Index i = 0; i < state.tracker.size(); ++i)
+    for (Index i = 0; i < alloc.tracker.size(); ++i)
     {
-        comp_counts_(i, state.tracker(i)) += 1.0;
+        comp_counts_(i, alloc.tracker(i)) += 1.0;
     }
 }
 
-void SignSamples::store(const bayes::SignState& state)
+ComponentSamples::ComponentSamples(
+    Eigen::Index n_snps,
+    Eigen::Index n_proportions,
+    bool estimate_pi)
+    : assignment(n_snps, n_proportions, estimate_pi)
 {
-    positive_prob_stats_.update(state.positive_prob);
 }
 
-GeneticSamples::GeneticSamples(const bayes::GeneticEffect& effect)
-    : type(effect.type), n_coeffs_(bayes::get_cols(effect.X))
+void ComponentSamples::store(const bayes::ComponentAllocation& alloc)
 {
-    if (effect.mixture)
+    assignment.store(alloc.assignment);
+    comp_var_stats_.update(alloc.component_variance);
+}
+
+auto GeneticSamples::make_group_samples(
+    const bayes::GeneticEffect& effect,
+    const bayes::GeneticPrior& prior) -> std::optional<MixtureSamples>
+{
+    const auto n_snps = bayes::get_cols(effect.X);
+    if (const auto* sp = std::get_if<bayes::SpikePrior>(&prior.marker))
     {
-        mixture.emplace(effect);
+        return AssignmentSamples{
+            n_snps, sp->proportion.init.size(), sp->proportion.estimate};
     }
-    if (effect.sign)
+    if (const auto* mp = std::get_if<bayes::MixturePrior>(&prior.marker))
     {
-        sign.emplace();
+        return ComponentSamples{
+            n_snps, mp->proportion.init.size(), mp->proportion.estimate};
+    }
+    return std::nullopt;
+}
+
+GeneticSamples::GeneticSamples(
+    const bayes::GeneticEffect& effect,
+    const bayes::GeneticPrior& prior)
+    : type(effect.type),
+      group(make_group_samples(effect, prior)),
+      n_coeffs_(bayes::get_cols(effect.X))
+{
+    if (prior.sign)
+    {
+        const auto n_snps = bayes::get_cols(effect.X);
+        sign.emplace(n_snps, 3, true);
     }
 }
 
@@ -111,9 +138,24 @@ void GeneticSamples::store(const bayes::GeneticState& state)
     variance_stats_.update(state.variance);
     heritability_stats_.update(state.heritability);
 
-    if (mixture && state.mixture)
+    if (group && state.group)
     {
-        mixture->store(*state.mixture);
+        std::visit(
+            [&](auto& g, const auto& s)
+            {
+                using G = std::decay_t<decltype(g)>;
+                using S = std::decay_t<decltype(s)>;
+                if constexpr (
+                    (std::is_same_v<G, AssignmentSamples>
+                     && std::is_same_v<S, bayes::Assignment>)
+                    || (std::is_same_v<G, ComponentSamples>
+                        && std::is_same_v<S, bayes::ComponentAllocation>))
+                {
+                    g.store(s);
+                }
+            },
+            *group,
+            *state.group);
     }
     if (sign && state.sign)
     {
@@ -138,7 +180,8 @@ MCMCSamples::MCMCSamples(
 
     for (const auto& effect : model.genetics())
     {
-        genetics_.emplace_back(effect);
+        const auto* prior = model.priors().genetic(effect.type);
+        genetics_.emplace_back(effect, *prior);
     }
 
     if (!sample_prefix.empty())

@@ -19,20 +19,17 @@
 
 #include <cstddef>
 #include <functional>
-#include <optional>
 #include <string>
-#include <utility>
 #include <variant>
-#include <vector>
 
 #include "gelex/types/bayes_method.h"
-#include "gelex/types/genetic_effect_type.h"
 #include "gelex/types/genotype_process_method.h"
 
 namespace gelex
 {
 
 class BayesModel;
+class BayesState;
 class MCMCResult;
 
 struct FitConfigLoadedEvent
@@ -40,7 +37,7 @@ struct FitConfigLoadedEvent
     gelex::BayesMethodConfig method;
     ModelType model_type;
     int n_iters;
-    int n_burnin;
+    int n_burn_in;
     int seed;
 };
 
@@ -54,9 +51,7 @@ struct FitMcmcProgressEvent
     size_t current{};
     size_t total{};
     bool done{};
-    std::vector<std::pair<GeneticKind, double>> genetic_heritabilities;
-    std::optional<double> dom_positive_prob;
-    std::optional<double> sigma2_e;
+    const BayesState* state{};
 };
 
 struct FitMcmcCompleteEvent

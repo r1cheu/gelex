@@ -36,18 +36,15 @@ using Eigen::VectorXd;
 BayesModel::BayesModel(
     Eigen::VectorXd phenotype,
     FixedEffect fixed_effects,
-    bayes::GenotypeStorage additive,
-    std::optional<bayes::GenotypeStorage> dominance)
-    : phenotype_(std::move(phenotype))
+    std::vector<bayes::GeneticEffect> genetics,
+    bayes::PriorSet priors)
+    : phenotype_(std::move(phenotype)),
+      genetics_(std::move(genetics)),
+      priors_(std::move(priors))
 {
     num_individuals_ = phenotype_.rows();
     phenotype_var_ = detail::var(phenotype_)(0);
     add_fixed_effect(std::move(fixed_effects));
-    genetics_.emplace_back(GeneticKind::Add, std::move(additive));
-    if (dominance)
-    {
-        genetics_.emplace_back(GeneticKind::Dom, std::move(*dominance));
-    }
 }
 
 void BayesModel::add_fixed_effect(FixedEffect&& effect)
@@ -56,29 +53,33 @@ void BayesModel::add_fixed_effect(FixedEffect&& effect)
 }
 
 void BayesModel::add_random_effect(
+    std::string name,
     std::vector<std::string>&& levels,
     MatrixXd&& X)
 {
-    random_.emplace_back(std::move(levels), std::move(X));
+    random_.emplace_back(std::move(name), std::move(levels), std::move(X));
 }
 
 BayesState::BayesState(const BayesModel& model) : fixed_(model.fixed())
 {
+    const auto& priors = model.priors();
+
     for (const auto& effect : model.genetics())
     {
-        genetics_.emplace_back(effect);
+        const auto* prior = priors.genetic(effect.type);
+        genetics_.emplace_back(effect, *prior);
     }
 
-    if (const auto& effects = model.random(); !effects.empty())
+    const auto& random_effects = model.random();
+    const auto& random_priors = priors.random;
+    random_.reserve(random_effects.size());
+    for (std::size_t i = 0; i < random_effects.size(); ++i)
     {
-        random_.reserve(effects.size());
-        for (const auto& effect : effects)
-        {
-            random_.emplace_back(effect);
-        }
+        random_.emplace_back(random_effects[i], random_priors[i]);
     }
+
     residual_.y_adj = model.phenotype().array();
-    residual_.variance = model.residual().init_variance;
+    residual_.variance = priors.residual.init;
 }
 
 void BayesState::compute_heritability()

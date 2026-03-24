@@ -43,7 +43,8 @@ namespace bayes
 {
 struct RandomEffect;
 struct GeneticEffect;
-struct Residual;
+struct GeneticPrior;
+struct VariancePrior;
 }  // namespace bayes
 
 enum class GeneticKind : uint8_t;
@@ -75,11 +76,14 @@ class FitReporter
     }
 
    private:
-    auto print_random_prior(const bayes::RandomEffect& effect) const -> void;
+    auto print_random_prior(
+        const bayes::RandomEffect& effect,
+        const bayes::VariancePrior& prior) const -> void;
     auto print_genetic_prior(
         const bayes::GeneticEffect* effect,
+        const bayes::GeneticPrior* prior,
         std::string_view label) const -> void;
-    auto print_residual_prior(const bayes::Residual& residual) const -> void;
+    auto print_residual_prior(const bayes::VariancePrior& prior) const -> void;
 
     auto print_fixed_summary(
         const MCMCResult& result,

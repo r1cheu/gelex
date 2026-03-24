@@ -115,17 +115,17 @@ auto ParameterWriter::write_genetic_effect(
     write_summary_statistics(
         std::vector<std::string>{heritability_label}, effect->heritability);
 
-    if (effect->mixture)
+    if (effect->group)
     {
-        const auto& mix = *effect->mixture;
+        const auto& base = assignment(*effect->group);
         std::vector<std::string> proportion_terms;
-        proportion_terms.reserve(mix.mixture_proportion.size());
-        for (Index i = 0; i < mix.mixture_proportion.size(); ++i)
+        proportion_terms.reserve(base.mixture_proportion.size());
+        for (Index i = 0; i < base.mixture_proportion.size(); ++i)
         {
             proportion_terms.emplace_back(std::format("π[{}]", i));
         }
 
-        write_summary_statistics(proportion_terms, mix.mixture_proportion);
+        write_summary_statistics(proportion_terms, base.mixture_proportion);
     }
 }
 

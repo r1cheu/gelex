@@ -14,11 +14,6 @@
  * limitations under the License.
  */
 
-/**
- * @file mcmc_samples.h
- * @brief class to save samples in MCMC process easily.
- */
-
 #ifndef GELEX_TYPES_MCMC_SAMPLES_H_
 #define GELEX_TYPES_MCMC_SAMPLES_H_
 
@@ -27,11 +22,13 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include <Eigen/Core>
 
 #include "gelex/infra/stats/running_stats.h"
+#include "gelex/model/bayes/states.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
@@ -39,12 +36,13 @@ namespace gelex::bayes
 
 struct RandomEffect;
 struct GeneticEffect;
+struct GeneticPrior;
 struct FixedState;
 struct RandomState;
 struct GeneticState;
-struct MixtureState;
-struct SignState;
 struct ResidualState;
+struct Assignment;
+struct ComponentAllocation;
 
 };  // namespace gelex::bayes
 
@@ -93,22 +91,21 @@ struct RandomSamples
     RunningStats variance_stats_;
 };
 
-struct MixtureSamples
+struct AssignmentSamples
 {
-    explicit MixtureSamples(const bayes::GeneticEffect& effect);
+    AssignmentSamples(
+        Eigen::Index n_snps,
+        Eigen::Index n_proportions,
+        bool estimate_pi);
 
-    void store(const bayes::MixtureState& state);
+    void store(const bayes::Assignment& alloc);
 
-    auto n_snps() const -> Eigen::Index { return n_snps_; }
-    auto n_proportions() const -> Eigen::Index { return n_proportions_; }
+    auto n_snps() const -> Eigen::Index { return comp_counts_.rows(); }
+    auto n_proportions() const -> Eigen::Index { return comp_counts_.cols(); }
     auto estimate_pi() const -> bool { return estimate_pi_; }
     auto proportion() const -> RunningStatsResult
     {
         return proportion_stats_.result();
-    }
-    auto comp_var() const -> RunningStatsResult
-    {
-        return comp_var_stats_.result();
     }
     auto component_probs() const -> Eigen::MatrixXd
     {
@@ -116,30 +113,56 @@ struct MixtureSamples
     }
 
    private:
-    Eigen::Index n_snps_;
-    Eigen::Index n_proportions_;
     bool estimate_pi_;
     RunningStats proportion_stats_;
-    RunningStats comp_var_stats_;
     Eigen::MatrixXd comp_counts_;
     std::size_t n_samples_{0};
 };
 
-struct SignSamples
+struct ComponentSamples
 {
-    void store(const bayes::SignState& state);
-    auto positive_prob() const -> RunningStatsResult
+    ComponentSamples(
+        Eigen::Index n_snps,
+        Eigen::Index n_proportions,
+        bool estimate_pi);
+
+    void store(const bayes::ComponentAllocation& alloc);
+
+    auto comp_var() const -> RunningStatsResult
     {
-        return positive_prob_stats_.result();
+        return comp_var_stats_.result();
     }
 
+    AssignmentSamples assignment;
+
    private:
-    RunningStats positive_prob_stats_;
+    RunningStats comp_var_stats_;
 };
+
+using MixtureSamples = std::variant<AssignmentSamples, ComponentSamples>;
+
+inline auto assignment(const MixtureSamples& s) -> const AssignmentSamples&
+{
+    return std::visit(
+        []<typename T>(const T& v) -> const AssignmentSamples&
+        {
+            if constexpr (std::is_same_v<T, AssignmentSamples>)
+            {
+                return v;
+            }
+            else
+            {
+                return v.assignment;
+            }
+        },
+        s);
+}
 
 struct GeneticSamples
 {
-    explicit GeneticSamples(const bayes::GeneticEffect& effect);
+    GeneticSamples(
+        const bayes::GeneticEffect& effect,
+        const bayes::GeneticPrior& prior);
     void store(const bayes::GeneticState& state);
 
     auto n_coeffs() const -> Eigen::Index { return n_coeffs_; }
@@ -154,10 +177,14 @@ struct GeneticSamples
     }
 
     GeneticKind type;
-    std::optional<MixtureSamples> mixture;
-    std::optional<SignSamples> sign;
+    std::optional<MixtureSamples> group;
+    std::optional<AssignmentSamples> sign;
 
    private:
+    static auto make_group_samples(
+        const bayes::GeneticEffect& effect,
+        const bayes::GeneticPrior& prior) -> std::optional<MixtureSamples>;
+
     Eigen::Index n_coeffs_;
     RunningStats coeffs_stats_;
     RunningStats variance_stats_;

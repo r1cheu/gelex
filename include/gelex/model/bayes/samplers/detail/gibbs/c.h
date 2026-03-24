@@ -20,6 +20,7 @@
 #include <random>
 
 #include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/samplers/detail/common_op.h"
 #include "gelex/model/bayes/samplers/detail/gibbs/gibbs_concept.h"
 #include "gelex/model/bayes/states.h"
@@ -31,6 +32,7 @@ template <typename EffectT, typename StateT>
     requires IsValidEffectStatePair<EffectT, StateT>
 auto C(
     const EffectT& effect,
+    const bayes::GeneticPrior& prior,
     StateT& state,
     bayes::ResidualState& residual,
     std::mt19937_64& rng) -> void
@@ -38,14 +40,14 @@ auto C(
     auto& y_adj = residual.y_adj;
     const double residual_variance = residual.variance;
 
-    auto& ms = *state.mixture;
-    const double logpi_0 = std::log(ms.pi.proportion(0));
-    const double logpi_1 = std::log(ms.pi.proportion(1));
+    auto& marker_assignment = std::get<bayes::Assignment>(*state.group);
+    const double logpi_0 = std::log(marker_assignment.proportion(0));
+    const double logpi_1 = std::log(marker_assignment.proportion(1));
 
     Eigen::VectorXd& coeffs = state.coeffs;
     auto& u = state.u;
     const double marker_variance = state.marker_variance(0);
-    auto& tracker = ms.tracker;
+    auto& tracker = marker_assignment.tracker;
 
     const auto& X = bayes::get_matrix_ref(effect.X);
     const auto& cols_squared_norm = effect.cols_squared_norm;
@@ -106,10 +108,11 @@ auto C(
         coeffs(i) = new_i;
     }
 
-    ms.pi.count(1) = count_1;
-    ms.pi.count(0) = static_cast<int>(coeffs.size()) - count_1;
+    marker_assignment.count(1) = count_1;
+    marker_assignment.count(0) = static_cast<int>(coeffs.size()) - count_1;
 
-    detail::ScaledInvChiSq chi_squared{effect.marker_variance_prior};
+    const auto& marker_prior = std::get<bayes::SpikePrior>(prior.marker);
+    detail::ScaledInvChiSq chi_squared{marker_prior.variance.param};
     chi_squared.compute(sum_square_coeffs, count_1);
     state.marker_variance(0) = chi_squared(rng);
 

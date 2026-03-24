@@ -29,6 +29,7 @@ namespace gelex
 {
 class PhenoPipe;
 class GenoPipe;
+class BayesModel;
 class FitEngine
 {
    public:
@@ -42,8 +43,8 @@ class FitEngine
 
         std::optional<std::vector<double>> pi;
         std::optional<std::vector<double>> dpi;
-        std::optional<std::vector<double>> scale;
-        std::optional<std::vector<double>> dscale;
+        std::optional<std::vector<double>> multiplier;
+        std::optional<std::vector<double>> dmultiplier;
 
         double positive_prob{0.5};
         std::string out_prefix;
@@ -56,6 +57,11 @@ class FitEngine
         const FitObserver& observer = {}) -> void;
 
    private:
+    static auto build_model(
+        PhenoPipe&& pheno,
+        GenoPipe&& geno,
+        const Config& config) -> BayesModel;
+
     Config config_;
 };
 
