@@ -38,7 +38,7 @@ struct GeneticPriorConfig
 
 namespace bayes
 {
-struct PriorSet;
+class Priors;
 }
 
 class PriorSetConfig
@@ -53,7 +53,7 @@ class PriorSetConfig
     auto override_positive_prob(double value) -> PriorSetConfig&;
 
    private:
-    friend struct bayes::PriorSet;
+    friend class bayes::Priors;
 
     [[nodiscard]] auto find_genetic(GeneticKind type) -> GeneticPriorConfig*;
     [[nodiscard]] auto find_genetic(GeneticKind type) const

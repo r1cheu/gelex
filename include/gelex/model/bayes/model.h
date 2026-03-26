@@ -37,20 +37,16 @@ class BayesModel
     BayesModel(
         Eigen::VectorXd phenotype,
         FixedEffect fixed_effects,
-        std::vector<bayes::GeneticEffect> genetics,
-        bayes::PriorSet priors);
+        std::vector<bayes::GeneticEffect> genetics);
 
     const FixedEffect& fixed() const { return fixed_; }
-    FixedEffect& fixed() { return fixed_; }
 
     const std::vector<bayes::RandomEffect>& random() const { return random_; }
-    std::vector<bayes::RandomEffect>& random() { return random_; }
 
     const std::vector<bayes::GeneticEffect>& genetics() const
     {
         return genetics_;
     }
-    std::vector<bayes::GeneticEffect>& genetics() { return genetics_; }
 
     const bayes::GeneticEffect* genetic(GeneticKind type) const
     {
@@ -58,15 +54,6 @@ class BayesModel
             = std::ranges::find(genetics_, type, &bayes::GeneticEffect::type);
         return it != genetics_.end() ? &*it : nullptr;
     }
-    bayes::GeneticEffect* genetic(GeneticKind type)
-    {
-        auto it
-            = std::ranges::find(genetics_, type, &bayes::GeneticEffect::type);
-        return it != genetics_.end() ? &*it : nullptr;
-    }
-
-    const bayes::PriorSet& priors() const { return priors_; }
-    bayes::PriorSet& priors() { return priors_; }
 
     const Eigen::VectorXd& phenotype() const { return phenotype_; }
 
@@ -88,13 +75,17 @@ class BayesModel
     FixedEffect fixed_;
     std::vector<bayes::RandomEffect> random_;
     std::vector<bayes::GeneticEffect> genetics_;
-    bayes::PriorSet priors_;
 };
 
 class BayesState
 {
    public:
-    explicit BayesState(const BayesModel& model);
+    explicit BayesState(const BayesModel& model, const bayes::Priors& priors);
+    BayesState(
+        bayes::FixedState fixed,
+        std::vector<bayes::RandomState> random,
+        std::vector<bayes::GeneticState> genetics,
+        bayes::ResidualState residual);
 
     bayes::FixedState& fixed() { return fixed_; }
     const bayes::FixedState& fixed() const { return fixed_; }

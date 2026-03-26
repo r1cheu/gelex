@@ -17,12 +17,14 @@
 #ifndef GELEX_PIPELINE_FIT_ENGINE_H_
 #define GELEX_PIPELINE_FIT_ENGINE_H_
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "gelex/algo/infer/params.h"
 #include "gelex/infra/logging/fit_event.h"
+#include "gelex/model/bayes/prior.h"
 #include "gelex/types/bayes_method.h"
 
 namespace gelex
@@ -48,6 +50,7 @@ class FitEngine
 
         double positive_prob{0.5};
         std::string out_prefix;
+        std::optional<std::filesystem::path> resume_path;
     };
 
     explicit FitEngine(Config config);
@@ -57,10 +60,9 @@ class FitEngine
         const FitObserver& observer = {}) -> void;
 
    private:
-    static auto build_model(
-        PhenoPipe&& pheno,
-        GenoPipe&& geno,
-        const Config& config) -> BayesModel;
+    static auto build_model(PhenoPipe&& pheno, GenoPipe&& geno) -> BayesModel;
+    static auto build_priors(const Config& config, const BayesModel& model)
+        -> bayes::Priors;
 
     Config config_;
 };

@@ -29,6 +29,7 @@ struct Fixed
 {
     auto operator()(
         const BayesModel& model,
+        const bayes::Priors& priors,
         BayesState& states,
         std::mt19937_64& rng) const -> void;
 };
@@ -37,6 +38,7 @@ struct Random
 {
     auto operator()(
         const BayesModel& model,
+        const bayes::Priors& priors,
         BayesState& states,
         std::mt19937_64& rng) const -> void;
 
@@ -53,6 +55,7 @@ struct Residual
 {
     auto operator()(
         const BayesModel& model,
+        const bayes::Priors& priors,
         BayesState& states,
         std::mt19937_64& rng) const -> void;
 };

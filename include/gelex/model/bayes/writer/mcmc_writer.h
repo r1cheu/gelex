@@ -17,15 +17,14 @@
 #ifndef GELEX_MODEL_BAYES_WRITER_MCMC_WRITER_H_
 #define GELEX_MODEL_BAYES_WRITER_MCMC_WRITER_H_
 
-#include <cstddef>
 #include <optional>
 #include <string_view>
 #include <vector>
 
 #include <Eigen/Core>
 
-#include "gelex/io/binary_format.h"
 #include "gelex/io/binary_writer.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -33,11 +32,17 @@ namespace gelex
 class BayesModel;
 class BayesState;
 
+namespace bayes
+{
+class Priors;
+}
+
 class MCMCWriter
 {
    public:
     MCMCWriter(
         const BayesModel& model,
+        const bayes::Priors& priors,
         std::string_view prefix,
         Eigen::Index n_records);
     MCMCWriter(const MCMCWriter&) = delete;

@@ -16,9 +16,11 @@
 
 #include "gelex/io/binary_writer.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <format>
 #include <fstream>
 #include <string>
@@ -39,42 +41,57 @@ BinaryWriter::BinaryWriter(std::string_view output_path)
 {
 }
 
-auto BinaryWriter::check_duplicate_key(const SectionKey& key) const -> void
+auto BinaryWriter::check_duplicate_path(std::string_view path) const -> void
 {
     for (const auto& rs : reserved_)
     {
-        if (rs.entry.key == key)
+        if (binary_format::path_as_view(rs.entry.path) == path)
         {
             throw ArgumentValidationException(
                 std::format(
-                    "{}: duplicate section key ({}, kind={}, index={})",
+                    "{}: duplicate section path \"{}\"",
                     output_path_.string(),
-                    key.effect,
-                    static_cast<int>(key.kind),
-                    key.index));
+                    path));
         }
     }
 }
 
 auto BinaryWriter::reserve(
-    SectionKey key,
+    std::string_view path,
     uint8_t dtype,
     uint64_t rows,
     uint64_t cols) -> size_t
 {
-    check_duplicate_key(key);
+    if (path.size() > binary_format::kMaxPathLength)
+    {
+        throw ArgumentValidationException(
+            std::format(
+                "{}: path too long ({} > {}): \"{}\"",
+                output_path_.string(),
+                path.size(),
+                binary_format::kMaxPathLength,
+                path));
+    }
+
+    check_duplicate_path(path);
+
+    TocEntry entry;
+    std::copy(path.begin(), path.end(), entry.path.begin());
+    entry.dtype = dtype;
 
     const auto element_size
         = static_cast<uint64_t>(static_cast<unsigned>(dtype) >> 2U);
     const auto total_bytes = rows * cols * element_size;
     const auto aligned_offset
         = align_up(next_offset_, binary_format::kPageAlignment);
+    entry.offset = aligned_offset;
+    entry.size = total_bytes;
+    entry.rows = rows;
+    entry.cols = cols;
+
     next_offset_ = aligned_offset + total_bytes;
     reserved_.push_back(
-        ReservedSection{
-            .entry
-            = TocEntry{.key = key, .dtype = dtype, .offset = aligned_offset, .size = total_bytes, .rows = rows, .cols = cols},
-            .cursor = aligned_offset});
+        ReservedSection{.entry = entry, .cursor = aligned_offset});
 
     return reserved_.size() - 1;
 }

@@ -58,10 +58,11 @@ class BinaryWriter
 
     template <typename T, std::integral Rows, std::integral Cols>
         requires std::is_arithmetic_v<T>
-    auto reserve(SectionKey key, Rows rows, Cols cols) -> SectionHandle<T>
+    auto reserve(std::string_view path, Rows rows, Cols cols)
+        -> SectionHandle<T>
     {
         return {reserve(
-            key,
+            path,
             binary_format::kTypeByte<T>,
             static_cast<uint64_t>(rows),
             static_cast<uint64_t>(cols))};
@@ -88,10 +89,10 @@ class BinaryWriter
     }
 
     template <MatrixBuffer Matrix>
-    auto write(SectionKey key, const Matrix& data) -> void
+    auto write(std::string_view path, const Matrix& data) -> void
     {
         using T = element_t<Matrix>;
-        auto h = reserve<T>(key, data.rows(), data.cols());
+        auto h = reserve<T>(path, data.rows(), data.cols());
         write(h, data);
     }
 
@@ -104,11 +105,12 @@ class BinaryWriter
         uint64_t cursor{0};
     };
 
-    auto reserve(SectionKey key, uint8_t dtype, uint64_t rows, uint64_t cols)
+    auto
+    reserve(std::string_view path, uint8_t dtype, uint64_t rows, uint64_t cols)
         -> size_t;
     auto write_raw(size_t handle, const char* data, std::streamsize bytes)
         -> void;
-    auto check_duplicate_key(const SectionKey& key) const -> void;
+    auto check_duplicate_path(std::string_view path) const -> void;
     static auto align_up(uint64_t value, uint64_t alignment) noexcept
         -> uint64_t;
     auto write_footer(uint64_t toc_offset, uint64_t n_sections) -> void;

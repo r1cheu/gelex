@@ -19,6 +19,7 @@
 #include <random>
 
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/samplers/detail/gibbs/a.h"
 #include "gelex/model/bayes/samplers/detail/gibbs/at.h"
 #include "gelex/model/bayes/samplers/detail/gibbs/b.h"
@@ -31,12 +32,13 @@ namespace gelex::detail::DominantSampler
 
 auto A::operator()(
     const BayesModel& model,
+    const bayes::Priors& priors,
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
     Gibbs::A(
         *model.genetic(GeneticKind::Dom),
-        *model.priors().genetic(GeneticKind::Dom),
+        *priors.genetic(GeneticKind::Dom),
         *states.genetic(GeneticKind::Dom),
         states.residual(),
         rng);
@@ -44,12 +46,13 @@ auto A::operator()(
 
 auto B::operator()(
     const BayesModel& model,
+    const bayes::Priors& priors,
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
     Gibbs::B(
         *model.genetic(GeneticKind::Dom),
-        *model.priors().genetic(GeneticKind::Dom),
+        *priors.genetic(GeneticKind::Dom),
         *states.genetic(GeneticKind::Dom),
         states.residual(),
         rng);
@@ -57,12 +60,13 @@ auto B::operator()(
 
 auto C::operator()(
     const BayesModel& model,
+    const bayes::Priors& priors,
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
     Gibbs::C(
         *model.genetic(GeneticKind::Dom),
-        *model.priors().genetic(GeneticKind::Dom),
+        *priors.genetic(GeneticKind::Dom),
         *states.genetic(GeneticKind::Dom),
         states.residual(),
         rng);
@@ -70,12 +74,13 @@ auto C::operator()(
 
 auto R::operator()(
     const BayesModel& model,
+    const bayes::Priors& priors,
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
     Gibbs::R(
         *model.genetic(GeneticKind::Dom),
-        *model.priors().genetic(GeneticKind::Dom),
+        *priors.genetic(GeneticKind::Dom),
         *states.genetic(GeneticKind::Dom),
         states.residual(),
         rng);
@@ -83,12 +88,13 @@ auto R::operator()(
 
 auto RR::operator()(
     const BayesModel& model,
+    const bayes::Priors& priors,
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
     Gibbs::RR(
         *model.genetic(GeneticKind::Dom),
-        *model.priors().genetic(GeneticKind::Dom),
+        *priors.genetic(GeneticKind::Dom),
         *states.genetic(GeneticKind::Dom),
         states.residual(),
         rng);
@@ -96,12 +102,13 @@ auto RR::operator()(
 
 auto AT::operator()(
     const BayesModel& model,
+    const bayes::Priors& priors,
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
     Gibbs::R<Gibbs::policy::AT>(
         *model.genetic(GeneticKind::Dom),
-        *model.priors().genetic(GeneticKind::Dom),
+        *priors.genetic(GeneticKind::Dom),
         *states.genetic(GeneticKind::Dom),
         states.residual(),
         rng);

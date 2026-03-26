@@ -59,24 +59,24 @@ auto FitReporter::on_event(const FitConfigLoadedEvent& event) const -> void
     logger_->info("");
 }
 
-auto FitReporter::on_event(const FitModelReadyEvent& event) const -> void
+auto FitReporter::on_event(const FitPriorSetEvent& event) const -> void
 {
-    logger_->info(gelex::section("[Model Configuration]"));
+    logger_->info(gelex::section("[Prior Configuration]"));
 
-    const auto& priors = event.model->priors();
-    for (std::size_t i = 0; i < event.model->random().size(); ++i)
+    if (event.priors == nullptr)
     {
-        print_random_prior(event.model->random()[i], priors.random[i]);
+        return;
     }
-
-    for (const auto& effect : event.model->genetics())
+    const auto& priors = *event.priors;
+    for (const auto& rp : priors.random())
     {
-        print_genetic_prior(
-            &effect,
-            priors.genetic(effect.type),
-            fmt::format("{} effect:", genetic_kind::to_string(effect.type)));
+        print_random_prior(rp);
     }
-    print_residual_prior(priors.residual);
+    for (const auto& gp : priors.genetics())
+    {
+        print_genetic_prior(gp);
+    }
+    print_residual_prior(priors.residual());
 }
 
 auto FitReporter::on_event(const FitMcmcProgressEvent& event) -> void
@@ -99,6 +99,7 @@ auto FitReporter::on_event(const FitMcmcProgressEvent& event) -> void
     }
 
     iter_ = event.current;
+    bar_.before_bar->message("");
 
     const auto* state = event.state;
     stats_.clear();
@@ -151,6 +152,11 @@ auto FitReporter::on_event(const FitResultsSavedEvent& event) const -> void
             event.out_prefix));
 }
 
+auto FitReporter::on_event(const FitCheckpointSavedEvent& event) -> void
+{
+    bar_.before_bar->message(fmt::format(" ckpt saved"));
+}
+
 // --- Private helpers ---
 
 auto FitReporter::print_variance_prior(
@@ -176,24 +182,26 @@ auto FitReporter::print_summary_row(
         summary.stddev(index));
 }
 
-auto FitReporter::print_random_prior(
-    const bayes::RandomEffect& effect,
-    const bayes::VariancePrior& prior) const -> void
+auto FitReporter::print_random_prior(const bayes::VariancePrior& prior) const
+    -> void
 {
-    logger_->info("   {}(rand)", effect.name);
+    logger_->info("   Random effect:");
     print_variance_prior(prior.param, prior.init);
 }
 
-auto FitReporter::print_genetic_prior(
-    const bayes::GeneticEffect* effect,
-    const bayes::GeneticPrior* prior,
-    std::string_view label) const -> void
+auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) const
+    -> void
 {
-    if (effect == nullptr || prior == nullptr)
+    logger_->info("   {} effect:", genetic_kind::to_string(prior.type));
+
+    auto format_vec = [](const auto& p)
     {
-        return;
-    }
-    logger_->info("   {}", label);
+        auto formatted = std::span(p.data(), p.size())
+                         | std::views::transform(
+                             [](double v) { return fmt::format("{:.3f}", v); });
+        return fmt::join(formatted, ", ");
+    };
+
     std::visit(
         [&](const auto& mp)
         {
@@ -203,16 +211,18 @@ auto FitReporter::print_genetic_prior(
                               std::decay_t<decltype(mp)>,
                               bayes::ContinuousPrior>)
             {
-                const auto& p = mp.proportion.init;
-                auto formatted
-                    = std::span(p.data(), p.size())
-                      | std::views::transform(
-                          [](double v) { return fmt::format("{:.3f}", v); });
                 logger_->info(
-                    "    Proportion: [{}]", fmt::join(formatted, ", "));
+                    "    Proportion: [{}]", format_vec(mp.proportion.init));
+            }
+            if constexpr (std::is_same_v<
+                              std::decay_t<decltype(mp)>,
+                              bayes::MixturePrior>)
+            {
+                logger_->info(
+                    "    Multiplier: [{}]", format_vec(mp.multiplier));
             }
         },
-        prior->marker);
+        prior.marker);
 }
 
 auto FitReporter::print_residual_prior(const bayes::VariancePrior& prior) const

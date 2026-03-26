@@ -50,7 +50,9 @@ auto make_fit_config(argparse::ArgumentParser& cmd) -> FitEngine::Config
         .mcmc_params = gelex::MCMCParams(
             cmd.get<int>("--iters"),
             cmd.get<int>("--burn-in"),
-            cmd.get<int>("--thin")),
+            cmd.get<int>("--thin"),
+            cmd.is_used("--checkpoint-step") ? cmd.get<int>("--checkpoint-step")
+                                             : 0),
         .out_prefix = cmd.get("--out")};
 
     auto extract_opt_vec
@@ -72,6 +74,11 @@ auto make_fit_config(argparse::ArgumentParser& cmd) -> FitEngine::Config
     {
         throw gelex::InvalidInputException(
             "n_burn_in must be less than n_iters");
+    }
+
+    if (cmd.is_used("--resume"))
+    {
+        config.resume_path = cmd.get("--resume");
     }
 
     return config;

@@ -14,22 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_DATAFRAME_STRING_HASH_H
-#define GELEX_DATA_DATAFRAME_STRING_HASH_H
+#ifndef GELEX_MODEL_BAYES_READER_CHECKPOINT_READER_H_
+#define GELEX_MODEL_BAYES_READER_CHECKPOINT_READER_H_
 
-#include <string>
-#include <unordered_set>
+#include <filesystem>
 
-#include "gelex/infra/string_hash.h"
+#include "gelex/model/bayes/checkpoint.h"
 
-namespace gelex::df
+namespace gelex
 {
 
-using StringSet = std::unordered_set<
-    std::string,
-    infra::TransparentHash<std::string>,
-    infra::TransparentEqual<std::string>>;
+[[nodiscard]] auto read_checkpoint(const std::filesystem::path& path)
+    -> Checkpoint;
 
-}  // namespace gelex::df
+}  // namespace gelex
 
-#endif  // GELEX_DATA_DATAFRAME_STRING_HASH_H
+#endif  // GELEX_MODEL_BAYES_READER_CHECKPOINT_READER_H_

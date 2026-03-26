@@ -17,13 +17,13 @@
 #ifndef GELEX_IO_BINARY_FORMAT_H_
 #define GELEX_IO_BINARY_FORMAT_H_
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <string_view>
 #include <type_traits>
-
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::detail::binary_format
 {
@@ -35,10 +35,11 @@ inline constexpr std::array<std::byte, 8> kBinaryFormatMagic
        std::byte{'X'},
        std::byte{'B'},
        std::byte{'F'},
-       std::byte{'1'}};
+       std::byte{'2'}};
 inline constexpr size_t kFooterSize = 24;
-inline constexpr size_t kTocEntrySize = 40;
+inline constexpr size_t kTocEntrySize = 104;
 inline constexpr size_t kPageAlignment = 4096;
+inline constexpr size_t kMaxPathLength = 63;
 
 template <typename eT>
     requires std::is_arithmetic_v<eT>
@@ -63,47 +64,20 @@ inline auto encode(T value, std::byte* out) -> void
     std::memcpy(out, &value, sizeof(value));
 }
 
+inline auto path_as_view(const std::array<char, 64>& p) -> std::string_view
+{
+    auto len = std::find(p.begin(), p.end(), '\0') - p.begin();
+    return {p.data(), static_cast<size_t>(len)};
+}
+
 }  // namespace gelex::detail::binary_format
 
 namespace gelex::detail
 {
 
-enum class DataKind : uint8_t
-{
-    Coeff = 0,
-    MixtureTracker = 1,
-    SignTracker = 2,
-    Variance = 3,
-    MixtureProportion = 4,
-    SignProportion = 5,
-    Genotype = 6,
-    LociStats = 7,
-    MonoIndices = 8,
-    GenoMethod = 9,
-};
-
-struct SectionKey
-{
-    gelex::EffectType effect{};
-    DataKind kind{};
-    uint8_t index{0};
-
-    auto operator==(const SectionKey&) const -> bool = default;
-};
-
-struct SectionKeyHash
-{
-    auto operator()(const SectionKey& k) const noexcept -> size_t
-    {
-        return (static_cast<size_t>(k.effect.to_byte()) << 16U)
-               | (static_cast<size_t>(k.kind) << 8U)
-               | static_cast<size_t>(k.index);
-    }
-};
-
 struct TocEntry
 {
-    SectionKey key;
+    std::array<char, 64> path{};
     uint8_t dtype{};
     uint64_t offset{};
     uint64_t size{};
@@ -113,27 +87,26 @@ struct TocEntry
     auto to_bytes() const -> std::array<std::byte, binary_format::kTocEntrySize>
     {
         std::array<std::byte, binary_format::kTocEntrySize> buf{};
-        buf[0] = static_cast<std::byte>(key.effect.to_byte());
-        buf[1] = static_cast<std::byte>(key.kind);
-        buf[2] = static_cast<std::byte>(dtype);
-        buf[3] = static_cast<std::byte>(key.index);
-        binary_format::encode(offset, &buf[8]);
-        binary_format::encode(size, &buf[16]);
-        binary_format::encode(rows, &buf[24]);
-        binary_format::encode(cols, &buf[32]);
+        std::memcpy(buf.data(), path.data(), 64);
+        buf[64] = static_cast<std::byte>(dtype);
+        // buf[65..71] padding — already zero from aggregate init
+        binary_format::encode(offset, &buf[72]);
+        binary_format::encode(size, &buf[80]);
+        binary_format::encode(rows, &buf[88]);
+        binary_format::encode(cols, &buf[96]);
         return buf;
     }
 
     static auto from_bytes(const std::byte* buf) -> TocEntry
     {
-        return {
-            .key
-            = SectionKey{.effect = gelex::EffectType::from_byte(static_cast<uint8_t>(buf[0])), .kind = static_cast<DataKind>(buf[1]), .index = static_cast<uint8_t>(buf[3])},
-            .dtype = static_cast<uint8_t>(buf[2]),
-            .offset = binary_format::decode<uint64_t>(buf + 8),
-            .size = binary_format::decode<uint64_t>(buf + 16),
-            .rows = binary_format::decode<uint64_t>(buf + 24),
-            .cols = binary_format::decode<uint64_t>(buf + 32)};
+        TocEntry e;
+        std::memcpy(e.path.data(), buf, 64);
+        e.dtype = static_cast<uint8_t>(buf[64]);
+        e.offset = binary_format::decode<uint64_t>(buf + 72);
+        e.size = binary_format::decode<uint64_t>(buf + 80);
+        e.rows = binary_format::decode<uint64_t>(buf + 88);
+        e.cols = binary_format::decode<uint64_t>(buf + 96);
+        return e;
     }
 };
 

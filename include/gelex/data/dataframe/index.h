@@ -27,8 +27,8 @@
 #include <vector>
 
 #include "gelex/data/dataframe/key_type.h"
-#include "gelex/data/dataframe/string_hash.h"
 #include "gelex/exception.h"
+#include "gelex/infra/string_hash.h"
 
 namespace gelex::df
 {
@@ -65,8 +65,8 @@ class Index
     std::unordered_map<
         Key,
         std::size_t,
-        TransparentHash<Key>,
-        TransparentEqual<Key>>
+        infra::TransparentHash<Key>,
+        infra::TransparentEqual<Key>>
         lookup_;
 };
 

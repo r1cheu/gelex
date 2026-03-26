@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <format>
 #include <memory>
 #include <vector>
 
@@ -31,7 +32,6 @@
 #include "gelex/data/genotype/sample_manager.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
-#include "gelex/io/binary_format.h"
 #include "gelex/io/binary_writer.h"
 #include "gelex/types/genotype_process_method.h"
 
@@ -52,8 +52,9 @@ class GenotypeMapReader
         -> GenotypeMap
     {
         constexpr auto effect = EffectType::from_genetic(GT);
-        genotype_handle_ = writer_->reserve<double>(
-            {effect, detail::DataKind::Genotype}, sample_size_, num_variants_);
+        const auto geno_path = std::format("{}/genotype", effect);
+        genotype_handle_
+            = writer_->reserve<double>(geno_path, sample_size_, num_variants_);
 
         int64_t current_processed_snps = 0;
         auto fn = get_genotype_process_method<GT>(method);
@@ -113,14 +114,14 @@ class GenotypeMapReader
         constexpr auto effect = EffectType::from_genetic(GT);
 
         auto stats_handle = writer_->reserve<double>(
-            {effect, detail::DataKind::LociStats}, num_variants_, 2);
+            std::format("{}/loci_stats", effect), num_variants_, 2);
         writer_->write(stats_handle, means_);
         writer_->write(stats_handle, variances_);
 
         if (!monomorphic_indices_.empty())
         {
             auto mono_handle = writer_->reserve<int64_t>(
-                {effect, detail::DataKind::MonoIndices},
+                std::format("{}/mono_indices", effect),
                 monomorphic_indices_.size(),
                 1);
             writer_->write(mono_handle, monomorphic_indices_);

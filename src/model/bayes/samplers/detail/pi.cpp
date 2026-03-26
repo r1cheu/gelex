@@ -23,6 +23,7 @@
 #include <Eigen/Core>
 
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
 
 namespace gelex::detail
@@ -66,6 +67,7 @@ namespace AdditiveSampler
 {
 auto Pi::operator()(
     const BayesModel& /*model*/,
+    const bayes::Priors& /*priors*/,
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
@@ -79,6 +81,7 @@ auto Pi::operator()(
 
 auto DominantSampler::Pi::operator()(
     const BayesModel& /*model*/,
+    const bayes::Priors& /*priors*/,
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {

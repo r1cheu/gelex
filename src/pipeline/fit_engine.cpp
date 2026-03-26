@@ -18,22 +18,20 @@
 
 #include <algorithm>
 #include <array>
-#include <string_view>
+#include <string>
 #include <utility>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include <fmt/format.h>
 
 #include "gelex/algo/infer/mcmc.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
-#include "gelex/infra/stats/descriptive.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_config.h"
+#include "gelex/model/bayes/reader/checkpoint_reader.h"
 #include "gelex/model/bayes/trait_model.h"
 #include "gelex/model/bayes/writer/result_writer.h"
 #include "gelex/pipeline/geno_pipe.h"
@@ -42,10 +40,7 @@
 namespace gelex
 {
 
-auto FitEngine::build_model(
-    PhenoPipe&& pheno,
-    GenoPipe&& geno,
-    const Config& config) -> BayesModel
+auto FitEngine::build_model(PhenoPipe&& pheno, GenoPipe&& geno) -> BayesModel
 {
     auto phenotype = std::move(pheno).take_phenotype();
     auto fixed_effects = std::move(pheno).take_fixed_effects();
@@ -59,7 +54,14 @@ auto FitEngine::build_model(
             GeneticKind::Dom, std::move(geno).take_dominance_matrix());
     }
 
-    PriorSetConfig pc(config.method, detail::var(phenotype)(0));
+    return BayesModel(
+        std::move(phenotype), std::move(fixed_effects), std::move(genetics));
+}
+
+auto FitEngine::build_priors(const Config& config, const BayesModel& model)
+    -> bayes::Priors
+{
+    PriorSetConfig pc(config.method, model.phenotype_variance());
     if (config.pi)
     {
         pc.override_proportion(GeneticKind::Add, *config.pi);
@@ -77,13 +79,7 @@ auto FitEngine::build_model(
         pc.override_multiplier(GeneticKind::Dom, *config.dmultiplier);
     }
     pc.override_positive_prob(config.positive_prob);
-    auto priors = bayes::PriorSet::build(pc, genetics, 0);
-
-    return BayesModel(
-        std::move(phenotype),
-        std::move(fixed_effects),
-        std::move(genetics),
-        std::move(priors));
+    return bayes::Priors(pc, model.genetics(), 0);
 }
 
 namespace
@@ -91,21 +87,25 @@ namespace
 
 using TraitRunner = MCMCResult (*)(
     BayesModel&,
-    const MCMCParams&,
-    Eigen::Index,
-    std::string_view,
+    const bayes::Priors&,
+    const FitEngine::Config&,
     const FitObserver&);
 
 template <typename TM>
 auto run_trait_model(
     BayesModel& model,
-    const MCMCParams& params,
-    Eigen::Index seed,
-    std::string_view out_prefix,
+    const bayes::Priors& priors,
+    const FitEngine::Config& config,
     const FitObserver& observer) -> MCMCResult
 {
-    MCMC mcmc(params, TM{});
-    return mcmc.run(model, seed, out_prefix, observer);
+    MCMC mcmc(config.mcmc_params, TM{}, std::string(config.out_prefix));
+    if (config.resume_path)
+    {
+        auto checkpoint = read_checkpoint(*config.resume_path);
+        return mcmc.resume(
+            model, std::move(checkpoint), config.out_prefix, observer);
+    }
+    return mcmc.run(model, priors, config.seed, config.out_prefix, observer);
 }
 
 // clang-format off
@@ -152,13 +152,10 @@ auto FitEngine::run(
     GenoPipe&& geno,
     const FitObserver& observer) -> void
 {
-    auto model = build_model(std::move(pheno), std::move(geno), config_);
-
-    notify(observer, FitModelReadyEvent{.model = &model});
-
+    auto model = build_model(std::move(pheno), std::move(geno));
+    auto priors = build_priors(config_, model);
     auto runner = find_runner(config_.method);
-    auto result = runner(
-        model, config_.mcmc_params, config_.seed, config_.out_prefix, observer);
+    auto result = runner(model, priors, config_, observer);
 
     MCMCResultWriter writer(result, config_.bfile_prefix + ".bim");
     writer.save(config_.out_prefix);

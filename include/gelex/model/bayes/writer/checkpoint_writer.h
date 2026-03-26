@@ -14,22 +14,28 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_DATAFRAME_STRING_HASH_H
-#define GELEX_DATA_DATAFRAME_STRING_HASH_H
+#ifndef GELEX_MODEL_BAYES_WRITER_CHECKPOINT_WRITER_H_
+#define GELEX_MODEL_BAYES_WRITER_CHECKPOINT_WRITER_H_
 
-#include <string>
-#include <unordered_set>
+#include <random>
+#include <string_view>
 
-#include "gelex/infra/string_hash.h"
-
-namespace gelex::df
+namespace gelex
 {
 
-using StringSet = std::unordered_set<
-    std::string,
-    infra::TransparentHash<std::string>,
-    infra::TransparentEqual<std::string>>;
+class BayesState;
 
-}  // namespace gelex::df
+namespace bayes
+{
+class Priors;
+}
 
-#endif  // GELEX_DATA_DATAFRAME_STRING_HASH_H
+auto write_checkpoint(
+    const BayesState& state,
+    const std::mt19937_64& rng,
+    const bayes::Priors& priors,
+    std::string_view prefix) -> void;
+
+}  // namespace gelex
+
+#endif  // GELEX_MODEL_BAYES_WRITER_CHECKPOINT_WRITER_H_

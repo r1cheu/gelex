@@ -17,7 +17,11 @@
 #include "gelex/io/locistats_reader.h"
 
 #include <cstdint>
+#include <format>
+#include <string>
 #include <string_view>
+
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -29,20 +33,21 @@ LociStatsReader::LociStatsReader(std::string_view file_path)
 
 auto LociStatsReader::has(EffectType effect) const -> bool
 {
-    return reader_.has_section(effect, detail::DataKind::LociStats);
+    return reader_.contains(std::format("{}/loci_stats", effect));
 }
 
 auto LociStatsReader::read(EffectType effect) const -> LociStats
 {
-    auto stats_map = reader_.map<double>(effect, detail::DataKind::LociStats);
+    auto stats_map
+        = reader_.to_map<double>(std::format("{}/loci_stats", effect));
 
     LociStats data;
     data.mean = stats_map.col(0);
 
-    if (reader_.has_section(effect, detail::DataKind::GenoMethod))
+    if (const auto path = std::format("{}/geno_method", effect);
+        reader_.contains(path))
     {
-        auto method_map
-            = reader_.map<uint8_t>(effect, detail::DataKind::GenoMethod);
+        auto method_map = reader_.to_map<uint8_t>(path);
         data.method = static_cast<GenotypeProcessMethod>(method_map(0, 0));
     }
 
@@ -51,10 +56,10 @@ auto LociStatsReader::read(EffectType effect) const -> LociStats
         data.stddev = Eigen::VectorXd(stats_map.col(1));
     }
 
-    if (reader_.has_section(effect, detail::DataKind::MonoIndices))
+    if (const auto path = std::format("{}/mono_indices", effect);
+        reader_.contains(path))
     {
-        auto mono_mat
-            = reader_.map<int64_t>(effect, detail::DataKind::MonoIndices);
+        auto mono_mat = reader_.to_map<int64_t>(path);
         const auto* src = mono_mat.col(0).data();
         data.mono_indices.assign(src, src + mono_mat.rows());
     }

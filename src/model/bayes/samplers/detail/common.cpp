@@ -34,6 +34,7 @@ using Eigen::VectorXi;
 
 auto Fixed::operator()(
     const BayesModel& model,
+    const bayes::Priors& /*priors*/,
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
@@ -72,6 +73,7 @@ auto Fixed::operator()(
 
 auto Random::operator()(
     const BayesModel& model,
+    const bayes::Priors& priors,
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
@@ -84,10 +86,9 @@ auto Random::operator()(
     auto& state = states.random();
     auto& residual = states.residual();
 
-    const auto& priors = model.priors().random;
     for (Index i = 0; i < static_cast<Index>(effects.size()); ++i)
     {
-        sample_impl(effects[i], priors[i], state[i], residual, rng);
+        sample_impl(effects[i], priors.random()[i], state[i], residual, rng);
     }
 }
 
@@ -143,11 +144,12 @@ auto Random::sample_impl(
 
 auto Residual::operator()(
     const BayesModel& model,
+    const bayes::Priors& priors,
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
     auto& residual = states.residual();
-    detail::ScaledInvChiSq chi_squared{model.priors().residual.param};
+    detail::ScaledInvChiSq chi_squared{priors.residual().param};
     chi_squared.compute(residual.y_adj.squaredNorm(), model.num_individuals());
     residual.variance = chi_squared(rng);
 }

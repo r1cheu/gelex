@@ -19,8 +19,8 @@
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>
+#include <format>
 
-#include "gelex/io/binary_format.h"
 #include "gelex/io/binary_reader.h"
 
 namespace gelex
@@ -34,19 +34,20 @@ GenotypeMap::GenotypeMap(
     const auto effect = EffectType::from_genetic(effect_type);
     reader_ = std::make_unique<detail::BinaryReader>(bin_file.string());
 
-    auto geno_map = reader_->map<double>(effect, detail::DataKind::Genotype);
+    auto geno_map = reader_->to_map<double>(std::format("{}/genotype", effect));
     rows_ = geno_map.rows();
     cols_ = geno_map.cols();
     new (&mat_) MapType(geno_map.data(), rows_, cols_);
 
-    auto stats_mat = reader_->mat<double>(effect, detail::DataKind::LociStats);
+    auto stats_mat
+        = reader_->to_mat<double>(std::format("{}/loci_stats", effect));
     mean_ = stats_mat.col(0);
     stddev_ = stats_mat.col(1);
 
-    if (reader_->has_section(effect, detail::DataKind::MonoIndices))
+    if (const auto path = std::format("{}/mono_indices", effect);
+        reader_->contains(path))
     {
-        auto mono_mat
-            = reader_->mat<int64_t>(effect, detail::DataKind::MonoIndices);
+        auto mono_mat = reader_->to_mat<int64_t>(path);
         const auto* src = mono_mat.col(0).data();
         mono_indices_.assign(src, src + mono_mat.rows());
         std::ranges::sort(mono_indices_);

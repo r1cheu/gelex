@@ -19,9 +19,11 @@
 #include <cstdint>
 #include <format>
 #include <span>
+#include <string>
 #include <string_view>
 
 #include "gelex/exception.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -50,12 +52,12 @@ auto LociStatsWriter::write(
     const auto n_snps = mean.size();
     const Eigen::Index n_cols = (stddev != nullptr) ? 2 : 1;
 
-    auto handle = writer_.reserve<uint8_t>(
-        {effect, detail::DataKind::GenoMethod}, 1, 1);
+    auto handle
+        = writer_.reserve<uint8_t>(std::format("{}/geno_method", effect), 1, 1);
     writer_.write(handle, method);
 
     auto stats_handle = writer_.reserve<double>(
-        {effect, detail::DataKind::LociStats}, n_snps, n_cols);
+        std::format("{}/loci_stats", effect), n_snps, n_cols);
 
     writer_.write(stats_handle, mean);
 
@@ -67,7 +69,7 @@ auto LociStatsWriter::write(
     if (!mono_indices.empty())
     {
         auto mono_handle = writer_.reserve<int64_t>(
-            {effect, detail::DataKind::MonoIndices}, mono_indices.size(), 1);
+            std::format("{}/mono_indices", effect), mono_indices.size(), 1);
         writer_.write(mono_handle, mono_indices);
     }
 }

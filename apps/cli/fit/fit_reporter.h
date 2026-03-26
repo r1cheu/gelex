@@ -41,7 +41,6 @@ struct ScaledInvChiSqParams;
 
 namespace bayes
 {
-struct RandomEffect;
 struct GeneticEffect;
 struct GeneticPrior;
 struct VariancePrior;
@@ -64,10 +63,11 @@ class FitReporter
     FitReporter();
 
     auto on_event(const FitConfigLoadedEvent& event) const -> void;
-    auto on_event(const FitModelReadyEvent& event) const -> void;
+    auto on_event(const FitPriorSetEvent& event) const -> void;
     auto on_event(const FitMcmcProgressEvent& event) -> void;
     auto on_event(const FitMcmcCompleteEvent& event) const -> void;
     auto on_event(const FitResultsSavedEvent& event) const -> void;
+    auto on_event(const FitCheckpointSavedEvent& event) -> void;
 
     auto as_observer() -> FitObserver
     {
@@ -76,13 +76,8 @@ class FitReporter
     }
 
    private:
-    auto print_random_prior(
-        const bayes::RandomEffect& effect,
-        const bayes::VariancePrior& prior) const -> void;
-    auto print_genetic_prior(
-        const bayes::GeneticEffect* effect,
-        const bayes::GeneticPrior* prior,
-        std::string_view label) const -> void;
+    auto print_random_prior(const bayes::VariancePrior& prior) const -> void;
+    auto print_genetic_prior(const bayes::GeneticPrior& prior) const -> void;
     auto print_residual_prior(const bayes::VariancePrior& prior) const -> void;
 
     auto print_fixed_summary(

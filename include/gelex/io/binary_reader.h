@@ -33,6 +33,7 @@
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
+#include "gelex/infra/string_hash.h"
 #include "gelex/io/binary_format.h"
 
 namespace gelex::detail
@@ -49,23 +50,17 @@ class BinaryReader
     auto operator=(BinaryReader&&) noexcept -> BinaryReader& = default;
     ~BinaryReader() = default;
 
-    [[nodiscard]] auto has_section(
-        gelex::EffectType effect,
-        DataKind kind,
-        uint8_t index = 0) const -> bool;
+    [[nodiscard]] auto contains(std::string_view path) const -> bool;
 
     template <typename eT>
         requires std::is_arithmetic_v<eT>
-    [[nodiscard]] auto
-    map(gelex::EffectType effect, DataKind kind, uint8_t index = 0) const
-        -> Eigen::Map<
-            const Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>,
-            Eigen::Unaligned>;
+    [[nodiscard]] auto to_map(std::string_view path) const -> Eigen::Map<
+        const Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>,
+        Eigen::Unaligned>;
 
     template <typename eT>
         requires std::is_arithmetic_v<eT>
-    [[nodiscard]] auto
-    mat(gelex::EffectType effect, DataKind kind, uint8_t index = 0) const
+    [[nodiscard]] auto to_mat(std::string_view path) const
         -> Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>;
 
     [[nodiscard]] auto n_sections() const -> uint64_t
@@ -76,14 +71,17 @@ class BinaryReader
    private:
     auto parse_footer_and_toc() -> void;
 
-    [[nodiscard]] auto find_entry(
-        gelex::EffectType effect,
-        DataKind kind,
-        uint8_t index = 0) const -> const TocEntry&;
+    [[nodiscard]] auto find_entry(std::string_view path) const
+        -> const TocEntry&;
 
     std::filesystem::path path_;
     mio::mmap_source mmap_;
-    std::unordered_map<SectionKey, TocEntry, SectionKeyHash> toc_;
+    std::unordered_map<
+        std::string,
+        TocEntry,
+        infra::TransparentHash<std::string>,
+        infra::TransparentEqual<std::string>>
+        toc_;
 };
 
 // --- Implementation ---
@@ -121,7 +119,6 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
     const auto* data = reinterpret_cast<const std::byte*>(mmap_.data());
     const auto path_str = path_.string();
 
-    // Read footer (last 32 bytes)
     const auto* footer = data + file_size - binary_format::kFooterSize;
 
     if (!std::equal(
@@ -136,7 +133,6 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
     const auto toc_offset = binary_format::decode<uint64_t>(footer + 8);
     const auto n_entries = binary_format::decode<uint64_t>(footer + 16);
 
-    // Validate TOC region fits in file
     const auto toc_region_size
         = static_cast<uint64_t>(n_entries) * binary_format::kTocEntrySize;
     if (toc_offset + toc_region_size + binary_format::kFooterSize != file_size)
@@ -145,7 +141,6 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
             std::format("{}: TOC region does not match file size", path_str));
     }
 
-    // Read TOC entries
     const auto* toc_data = data + toc_offset;
 
     for (uint64_t i = 0; i < n_entries; ++i)
@@ -154,7 +149,6 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
             = toc_data + static_cast<size_t>(i) * binary_format::kTocEntrySize;
         auto entry = TocEntry::from_bytes(entry_buf);
 
-        // Validate section data fits in file
         if (entry.offset + entry.size > toc_offset)
         {
             throw FileFormatException(
@@ -162,47 +156,35 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
                     "{}: section {} data exceeds TOC boundary", path_str, i));
         }
 
-        toc_.emplace(entry.key, entry);
+        auto key = std::string(binary_format::path_as_view(entry.path));
+        toc_.emplace(std::move(key), entry);
     }
 }
 
-inline auto BinaryReader::has_section(
-    gelex::EffectType effect,
-    DataKind kind,
-    uint8_t index) const -> bool
+inline auto BinaryReader::contains(std::string_view path) const -> bool
 {
-    return toc_.contains(
-        SectionKey{.effect = effect, .kind = kind, .index = index});
+    return toc_.contains(path);
 }
 
-inline auto BinaryReader::find_entry(
-    gelex::EffectType effect,
-    DataKind kind,
-    uint8_t index) const -> const TocEntry&
+inline auto BinaryReader::find_entry(std::string_view path) const
+    -> const TocEntry&
 {
-    const SectionKey key{.effect = effect, .kind = kind, .index = index};
-
-    auto it = toc_.find(key);
+    auto it = toc_.find(path);
     if (it == toc_.end())
     {
         throw FileFormatException(
-            std::format(
-                "{}: section not found (effect={}, kind={})",
-                path_.string(),
-                static_cast<int>(effect.to_byte()),
-                static_cast<int>(kind)));
+            std::format("{}: section not found: \"{}\"", path_.string(), path));
     }
     return it->second;
 }
 
 template <typename eT>
     requires std::is_arithmetic_v<eT>
-auto BinaryReader::map(gelex::EffectType effect, DataKind kind, uint8_t index)
-    const -> Eigen::Map<
-        const Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>,
-        Eigen::Unaligned>
+auto BinaryReader::to_map(std::string_view path) const -> Eigen::Map<
+    const Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>,
+    Eigen::Unaligned>
 {
-    const auto& entry = find_entry(effect, kind, index);
+    const auto& entry = find_entry(path);
     const auto path_str = path_.string();
 
     if (entry.dtype != binary_format::kTypeByte<eT>)
@@ -243,11 +225,10 @@ auto BinaryReader::map(gelex::EffectType effect, DataKind kind, uint8_t index)
 
 template <typename eT>
     requires std::is_arithmetic_v<eT>
-auto BinaryReader::mat(gelex::EffectType effect, DataKind kind, uint8_t index)
-    const -> Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>
+auto BinaryReader::to_mat(std::string_view path) const
+    -> Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>
 {
-    return Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>(
-        map<eT>(effect, kind, index));
+    return Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>(to_map<eT>(path));
 }
 
 }  // namespace gelex::detail

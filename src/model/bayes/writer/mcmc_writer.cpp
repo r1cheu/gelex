@@ -62,6 +62,7 @@ auto group_prior_n_proportions(const bayes::MarkerPrior& marker) -> Eigen::Index
 
 MCMCWriter::MCMCWriter(
     const BayesModel& model,
+    const bayes::Priors& priors,
     std::string_view prefix,
     Eigen::Index n_records)
     : writer_(std::format("{}.samples", prefix))
@@ -70,7 +71,7 @@ MCMCWriter::MCMCWriter(
 
     // Fixed
     fixed_coeffs_ = writer_.reserve<double>(
-        {EffectType::fixed(), detail::DataKind::Coeff},
+        std::format("{}/coeff", EffectType::fixed()),
         model.fixed().X.cols(),
         cols);
 
@@ -79,9 +80,11 @@ MCMCWriter::MCMCWriter(
     {
         const auto n_coeffs = model.random()[i].X.cols();
         auto coeffs_h = writer_.reserve<double>(
-            {EffectType::random(), detail::DataKind::Coeff, i}, n_coeffs, cols);
+            std::format("{}/coeff/{}", EffectType::random(), i),
+            n_coeffs,
+            cols);
         auto variance_h = writer_.reserve<double>(
-            {EffectType::random(), detail::DataKind::Variance, i}, 1, cols);
+            std::format("{}/variance/{}", EffectType::random(), i), 1, cols);
         random_.push_back({.coeffs = coeffs_h, .variance = variance_h});
     }
 
@@ -90,32 +93,32 @@ MCMCWriter::MCMCWriter(
     {
         auto sect = EffectType::from_genetic(effect.type);
         const auto n_snps = bayes::get_cols(effect.X);
-        const auto* prior = model.priors().genetic(effect.type);
+        const auto* prior = priors.genetic(effect.type);
 
         GeneticHandles gh;
         gh.section_effect = sect;
         gh.coeffs = writer_.reserve<double>(
-            {sect, detail::DataKind::Coeff}, n_snps, cols);
+            std::format("{}/coeff", sect), n_snps, cols);
         gh.variance = writer_.reserve<double>(
-            {sect, detail::DataKind::Variance}, 1, cols);
+            std::format("{}/variance", sect), 1, cols);
 
         if ((prior != nullptr) && has_group_prior(prior->marker))
         {
             gh.mixture_tracker = writer_.reserve<int8_t>(
-                {sect, detail::DataKind::MixtureTracker}, n_snps, cols);
+                std::format("{}/group/assignment", sect), n_snps, cols);
             if (group_prior_estimate_pi(prior->marker))
             {
                 const auto n_pi = group_prior_n_proportions(prior->marker);
                 gh.pi = writer_.reserve<double>(
-                    {sect, detail::DataKind::MixtureProportion}, n_pi, cols);
+                    std::format("{}/group/proportion", sect), n_pi, cols);
             }
         }
         if ((prior != nullptr) && prior->sign)
         {
             gh.sign_tracker = writer_.reserve<int8_t>(
-                {sect, detail::DataKind::SignTracker}, n_snps, cols);
+                std::format("{}/sign/assignment", sect), n_snps, cols);
             gh.positive_prob = writer_.reserve<double>(
-                {sect, detail::DataKind::SignProportion}, 1, cols);
+                std::format("{}/sign/proportion", sect), 1, cols);
         }
 
         genetic_.push_back(gh);
@@ -123,7 +126,7 @@ MCMCWriter::MCMCWriter(
 
     // Residual
     residual_variance_ = writer_.reserve<double>(
-        {EffectType::residual(), detail::DataKind::Variance}, 1, cols);
+        std::format("{}/variance", EffectType::residual()), 1, cols);
 }
 
 void MCMCWriter::write(const BayesState& state)

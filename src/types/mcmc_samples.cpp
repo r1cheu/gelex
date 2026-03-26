@@ -165,6 +165,7 @@ void GeneticSamples::store(const bayes::GeneticState& state)
 
 MCMCSamples::MCMCSamples(
     const BayesModel& model,
+    const bayes::Priors& priors,
     std::string_view sample_prefix,
     Eigen::Index n_records)
     : fixed_(model.fixed())
@@ -180,13 +181,14 @@ MCMCSamples::MCMCSamples(
 
     for (const auto& effect : model.genetics())
     {
-        const auto* prior = model.priors().genetic(effect.type);
+        const auto* prior = priors.genetic(effect.type);
         genetics_.emplace_back(effect, *prior);
     }
 
     if (!sample_prefix.empty())
     {
-        writer_ = std::make_unique<MCMCWriter>(model, sample_prefix, n_records);
+        writer_ = std::make_unique<MCMCWriter>(
+            model, priors, sample_prefix, n_records);
     }
 }
 

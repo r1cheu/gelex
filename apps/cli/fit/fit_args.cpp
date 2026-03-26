@@ -112,6 +112,12 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         .help("Random seed for MCMC")
         .default_value(42)
         .scan<'i', int>();
+    cmd.add_argument("--checkpoint-step")
+        .help("Save checkpoint every N iterations (default: only at end)")
+        .scan<'i', int>();
+    cmd.add_argument("--resume")
+        .help("Resume from checkpoint file")
+        .metavar("<CKPT>");
 
     cmd.add_group("Performance");
     cmd.add_argument("-t", "--threads")

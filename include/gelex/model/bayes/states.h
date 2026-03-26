@@ -42,6 +42,16 @@ struct Assignment
     {
     }
 
+    Assignment(
+        TrackerVector tracker,
+        Eigen::VectorXd proportion,
+        Eigen::VectorXi count)
+        : tracker(std::move(tracker)),
+          proportion(std::move(proportion)),
+          count(std::move(count))
+    {
+    }
+
     TrackerVector tracker;
     Eigen::VectorXd proportion;
     Eigen::VectorXi count;
@@ -63,6 +73,16 @@ struct ComponentAllocation
         }
     }
 
+    ComponentAllocation(
+        Assignment assignment,
+        std::vector<Eigen::VectorXd> component_u,
+        Eigen::VectorXd component_variance)
+        : assignment(std::move(assignment)),
+          component_u(std::move(component_u)),
+          component_variance(std::move(component_variance))
+    {
+    }
+
     Assignment assignment;
     std::vector<Eigen::VectorXd> component_u;
     Eigen::VectorXd component_variance;
@@ -74,6 +94,7 @@ struct FixedState
 {
     explicit FixedState(const FixedEffect& effect)
         : coeffs(Eigen::VectorXd::Zero(effect.X.cols())) {};
+    explicit FixedState(Eigen::VectorXd coeffs) : coeffs(std::move(coeffs)) {}
     Eigen::VectorXd coeffs;
 };
 
@@ -84,12 +105,35 @@ struct RandomState
     {
     }
 
+    RandomState(Eigen::VectorXd coeffs, double variance)
+        : coeffs(std::move(coeffs)), variance{variance}
+    {
+    }
+
     Eigen::VectorXd coeffs;
     double variance{0.0};
 };
 
 struct GeneticState
 {
+    GeneticState(
+        GeneticKind type,
+        Eigen::VectorXd coeffs,
+        Eigen::VectorXd u,
+        double variance,
+        Eigen::VectorXd marker_variance,
+        std::optional<MarkerAllocation> group,
+        std::optional<Assignment> sign)
+        : type(type),
+          coeffs(std::move(coeffs)),
+          u(std::move(u)),
+          variance(variance),
+          marker_variance(std::move(marker_variance)),
+          group(std::move(group)),
+          sign(std::move(sign))
+    {
+    }
+
     GeneticState(const GeneticEffect& effect, const GeneticPrior& prior)
         : type(effect.type),
           coeffs(Eigen::VectorXd::Zero(bayes::get_cols(effect.X))),

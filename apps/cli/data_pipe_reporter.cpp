@@ -112,6 +112,7 @@ auto DataPipeReporter::on_event(const GenotypeProgressEvent& event) -> void
     if (!init_progress_)
     {
         init_progress_ = true;
+        progress_info_ = create_progress_info();
         progress_info_.display->show();
     }
 

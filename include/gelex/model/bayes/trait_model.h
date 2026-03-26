@@ -20,6 +20,7 @@
 #include <random>
 
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/samplers/detail/additive.h"
 #include "gelex/model/bayes/samplers/detail/common.h"
 #include "gelex/model/bayes/samplers/detail/dominant.h"
@@ -32,9 +33,10 @@ template <typename T>
 concept Sampler = requires(
     const T& op,
     const BayesModel& model,
+    const bayes::Priors& priors,
     BayesState& status,
     std::mt19937_64& rng) {
-    { op(model, status, rng) } -> std::same_as<void>;
+    { op(model, priors, status, rng) } -> std::same_as<void>;
 };
 
 template <Sampler... Samplers>
@@ -43,11 +45,13 @@ class TraitModel
    public:
     auto operator()(
         const BayesModel& model,
+        const bayes::Priors& priors,
         BayesState& status,
         std::mt19937_64& rng) const -> void
     {
         std::apply(
-            [&](const auto&... sampler) { (sampler(model, status, rng), ...); },
+            [&](const auto&... sampler)
+            { (sampler(model, priors, status, rng), ...); },
             samplers_);
     }
 

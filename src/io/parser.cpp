@@ -29,7 +29,7 @@ namespace gelex::detail
 
 size_t count_total_lines(const std::filesystem::path& path)
 {
-    constexpr auto buffer_size = static_cast<const size_t>(1024 * 128);
+    constexpr auto buffer_size = static_cast<size_t>(1024 * 128);
 
     std::vector<char> buffer(buffer_size);
 

@@ -32,6 +32,11 @@ class BayesModel;
 class BayesState;
 class MCMCResult;
 
+namespace bayes
+{
+class Priors;
+}
+
 struct FitConfigLoadedEvent
 {
     gelex::BayesMethodConfig method;
@@ -41,9 +46,9 @@ struct FitConfigLoadedEvent
     int seed;
 };
 
-struct FitModelReadyEvent
+struct FitPriorSetEvent
 {
-    const BayesModel* model;
+    const bayes::Priors* priors{};
 };
 
 struct FitMcmcProgressEvent
@@ -66,12 +71,17 @@ struct FitResultsSavedEvent
     std::string out_prefix;
 };
 
+struct FitCheckpointSavedEvent
+{
+};
+
 using FitEvent = std::variant<
     FitConfigLoadedEvent,
-    FitModelReadyEvent,
+    FitPriorSetEvent,
     FitMcmcProgressEvent,
     FitMcmcCompleteEvent,
-    FitResultsSavedEvent>;
+    FitResultsSavedEvent,
+    FitCheckpointSavedEvent>;
 
 using FitObserver = std::function<void(const FitEvent&)>;
 

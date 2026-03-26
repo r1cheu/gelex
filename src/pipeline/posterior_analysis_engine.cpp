@@ -17,6 +17,8 @@
 #include "gelex/pipeline/posterior_analysis_engine.h"
 
 #include <cmath>
+#include <cstdint>
+#include <format>
 #include <string>
 #include <vector>
 
@@ -28,8 +30,8 @@
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/post_event.h"
-#include "gelex/io/binary_format.h"
 #include "gelex/io/binary_reader.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace
 {
@@ -39,7 +41,6 @@ using gelex::EffectType;
 using gelex::hpdi;
 using gelex::ParamDiag;
 using gelex::detail::BinaryReader;
-using gelex::detail::DataKind;
 
 auto compute_diag(
     Eigen::Index row,
@@ -84,79 +85,68 @@ struct ScalarChainResult
 // dom_h2] h2 = genetic_var / total_var  (computed on-the-fly)
 auto build_scalar_chain(const BinaryReader& reader) -> ScalarChainResult
 {
-    // Residual variance (zero-copy mmap view)
-    auto resid_var
-        = reader.map<double>(EffectType::residual(), DataKind::Variance);
+    const auto resid_var_path
+        = std::format("{}/variance", EffectType::residual());
+    auto resid_var = reader.to_map<double>(resid_var_path);
     const Eigen::Index n_records = resid_var.cols();
 
-    // Count random effect variances
     Eigen::Index n_random = 0;
     for (uint8_t i = 0;; ++i)
     {
-        if (!reader.has_section(EffectType::random(), DataKind::Variance, i))
+        if (!reader.contains(
+                std::format("{}/variance/{}", EffectType::random(), i)))
         {
             break;
         }
         ++n_random;
     }
 
-    const bool has_add
-        = reader.has_section(EffectType::add(), DataKind::Variance);
-    const bool has_dom
-        = reader.has_section(EffectType::dom(), DataKind::Variance);
+    const auto add_var_path = std::format("{}/variance", EffectType::add());
+    const auto dom_var_path = std::format("{}/variance", EffectType::dom());
+    const bool has_add = reader.contains(add_var_path);
+    const bool has_dom = reader.contains(dom_var_path);
 
-    // Count rows: 1 (resid) + n_random + 2 per genetic (var + h2)
     Eigen::Index n_rows = 1 + n_random + (has_add ? 2 : 0) + (has_dom ? 2 : 0);
 
     Eigen::MatrixXd result(n_rows, n_records);
 
-    // Compute total variance per sample for h2 calculation
     Eigen::RowVectorXd total_var = resid_var.row(0);
     for (Eigen::Index i = 0; i < n_random; ++i)
     {
         total_var += reader
-                         .map<double>(
-                             EffectType::random(),
-                             DataKind::Variance,
-                             static_cast<uint8_t>(i))
+                         .to_map<double>(std::format(
+                             "{}/variance/{}", EffectType::random(), i))
                          .row(0);
     }
     if (has_add)
     {
-        total_var
-            += reader.map<double>(EffectType::add(), DataKind::Variance).row(0);
+        total_var += reader.to_map<double>(add_var_path).row(0);
     }
     if (has_dom)
     {
-        total_var
-            += reader.map<double>(EffectType::dom(), DataKind::Variance).row(0);
+        total_var += reader.to_map<double>(dom_var_path).row(0);
     }
 
-    // Fill result matrix
     Eigen::Index row = 0;
     result.row(row++) = resid_var.row(0);
 
     for (Eigen::Index i = 0; i < n_random; ++i)
     {
         result.row(row++) = reader
-                                .map<double>(
-                                    EffectType::random(),
-                                    DataKind::Variance,
-                                    static_cast<uint8_t>(i))
+                                .to_map<double>(std::format(
+                                    "{}/variance/{}", EffectType::random(), i))
                                 .row(0);
     }
 
     if (has_add)
     {
-        auto add_var
-            = reader.map<double>(EffectType::add(), DataKind::Variance);
+        auto add_var = reader.to_map<double>(add_var_path);
         result.row(row++) = add_var.row(0);
         result.row(row++) = add_var.row(0).array() / total_var.array();
     }
     if (has_dom)
     {
-        auto dom_var
-            = reader.map<double>(EffectType::dom(), DataKind::Variance);
+        auto dom_var = reader.to_map<double>(dom_var_path);
         result.row(row++) = dom_var.row(0);
         result.row(row++) = dom_var.row(0).array() / total_var.array();
     }

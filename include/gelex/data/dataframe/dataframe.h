@@ -30,8 +30,8 @@
 #include "gelex/data/dataframe/column.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/dataframe/key_type.h"
-#include "gelex/data/dataframe/string_hash.h"
 #include "gelex/exception.h"
+#include "gelex/infra/string_hash.h"
 
 namespace gelex::df
 {
@@ -112,8 +112,8 @@ class DataFrame
     std::unordered_map<
         std::string,
         std::size_t,
-        TransparentHash<std::string>,
-        TransparentEqual<std::string>>
+        infra::TransparentHash<std::string>,
+        infra::TransparentEqual<std::string>>
         col_lookup_;
 };
 

@@ -14,41 +14,24 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_SAMPLERS_DETAIL_PI_H_
-#define GELEX_MODEL_BAYES_SAMPLERS_DETAIL_PI_H_
+#ifndef GELEX_MODEL_BAYES_CHECKPOINT_H_
+#define GELEX_MODEL_BAYES_CHECKPOINT_H_
 
 #include <random>
 
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 
-namespace gelex::detail
+namespace gelex
 {
 
-namespace AdditiveSampler
+struct Checkpoint
 {
-struct Pi
-{
-    auto operator()(
-        const BayesModel& model,
-        const bayes::Priors& priors,
-        BayesState& states,
-        std::mt19937_64& rng) const -> void;
+    BayesState state;
+    std::mt19937_64 rng;
+    bayes::Priors priors;
 };
-}  // namespace AdditiveSampler
 
-namespace DominantSampler
-{
-struct Pi
-{
-    auto operator()(
-        const BayesModel& model,
-        const bayes::Priors& priors,
-        BayesState& states,
-        std::mt19937_64& rng) const -> void;
-};
-}  // namespace DominantSampler
+}  // namespace gelex
 
-}  // namespace gelex::detail
-
-#endif  // GELEX_MODEL_BAYES_SAMPLERS_DETAIL_PI_H_
+#endif  // GELEX_MODEL_BAYES_CHECKPOINT_H_

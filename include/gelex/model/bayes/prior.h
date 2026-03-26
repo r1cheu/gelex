@@ -89,30 +89,45 @@ struct GeneticPrior
 using RandomPrior = VariancePrior;
 using ResidualPrior = VariancePrior;
 
-struct PriorSet
+class Priors
 {
-    static auto build(
+   public:
+    Priors(
         const PriorSetConfig& config,
         const std::vector<GeneticEffect>& genetics,
-        std::size_t num_random_effects) -> PriorSet;
+        std::size_t num_random_effects);
+
+    Priors(
+        std::vector<GeneticPrior> genetics,
+        std::vector<RandomPrior> random,
+        ResidualPrior residual);
 
     [[nodiscard]] auto genetic(GeneticKind type) const -> const GeneticPrior*
     {
-        auto it = std::ranges::find(genetics, type, &GeneticPrior::type);
-        return it != genetics.end() ? &*it : nullptr;
+        auto it = std::ranges::find(genetics_, type, &GeneticPrior::type);
+        return it != genetics_.end() ? &*it : nullptr;
     }
 
-    [[nodiscard]] auto genetic(GeneticKind type) -> GeneticPrior*
+    [[nodiscard]] auto genetics() const -> const std::vector<GeneticPrior>&
     {
-        auto it = std::ranges::find(genetics, type, &GeneticPrior::type);
-        return it != genetics.end() ? &*it : nullptr;
+        return genetics_;
     }
 
-    std::vector<GeneticPrior> genetics;
-    std::vector<RandomPrior> random;
-    ResidualPrior residual;
+    [[nodiscard]] auto random() const -> const std::vector<RandomPrior>&
+    {
+        return random_;
+    }
+
+    [[nodiscard]] auto residual() const -> const ResidualPrior&
+    {
+        return residual_;
+    }
 
    private:
+    std::vector<GeneticPrior> genetics_;
+    std::vector<RandomPrior> random_;
+    ResidualPrior residual_;
+
     static auto build_genetic_prior(
         const GeneticEffect& effect,
         const GeneticPriorConfig& prior,

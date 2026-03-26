@@ -37,6 +37,7 @@ namespace gelex::bayes
 struct RandomEffect;
 struct GeneticEffect;
 struct GeneticPrior;
+class Priors;
 struct FixedState;
 struct RandomState;
 struct GeneticState;
@@ -216,6 +217,7 @@ class MCMCSamples
 
     MCMCSamples(
         const BayesModel& model,
+        const bayes::Priors& priors,
         std::string_view sample_prefix,
         Eigen::Index n_records);
     void store(const BayesState& states);

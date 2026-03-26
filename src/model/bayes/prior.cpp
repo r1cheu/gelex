@@ -65,7 +65,7 @@ auto make_variance_prior(double init) -> detail::ScaledInvChiSqParams
 
 }  // namespace
 
-auto PriorSet::build_genetic_prior(
+auto Priors::build_genetic_prior(
     const GeneticEffect& effect,
     const GeneticPriorConfig& prior,
     const PriorSetConfig& config) -> GeneticPrior
@@ -130,20 +130,22 @@ auto PriorSet::build_genetic_prior(
     return {effect.type, std::move(marker), sign};
 }
 
-auto PriorSet::build(
+Priors::Priors(
     const PriorSetConfig& config,
-    const std::vector<GeneticEffect>& genetics,
-    std::size_t num_random_effects) -> PriorSet
+    const std::vector<GeneticEffect>& genetics_in,
+    std::size_t num_random_effects)
+    : residual_{
+          {prior_constants::RESIDUAL_VARIANCE_SHAPE,
+           prior_constants::RESIDUAL_VARIANCE_SCALE},
+          config.residual_variance_proportion_ * config.phenotype_variance_,
+          1}
 {
-    PriorSet result;
-
-    for (const auto& effect : genetics)
+    for (const auto& effect : genetics_in)
     {
         const auto* prior = config.find_genetic(effect.type);
         if (prior != nullptr)
         {
-            result.genetics.push_back(
-                build_genetic_prior(effect, *prior, config));
+            genetics_.push_back(build_genetic_prior(effect, *prior, config));
         }
     }
 
@@ -156,23 +158,23 @@ auto PriorSet::build(
 
         for (std::size_t i = 0; i < num_random_effects; ++i)
         {
-            result.random.push_back(
+            random_.push_back(
                 {{prior_constants::RANDOM_EFFECTS_SHAPE,
                   prior_constants::RANDOM_EFFECTS_SCALE},
                  per_effect,
                  1});
         }
     }
+}
 
-    const double residual_variance
-        = config.residual_variance_proportion_ * config.phenotype_variance_;
-    result.residual
-        = {{prior_constants::RESIDUAL_VARIANCE_SHAPE,
-            prior_constants::RESIDUAL_VARIANCE_SCALE},
-           residual_variance,
-           1};
-
-    return result;
+Priors::Priors(
+    std::vector<GeneticPrior> genetics_in,
+    std::vector<RandomPrior> random_in,
+    ResidualPrior residual_in)
+    : genetics_(std::move(genetics_in)),
+      random_(std::move(random_in)),
+      residual_(residual_in)
+{
 }
 
 }  // namespace gelex::bayes
