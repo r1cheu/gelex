@@ -61,7 +61,7 @@ auto PredictEngine::load_params() const -> PredictParams
     {
         if (!snp_effects.contains("Dom"))
         {
-            throw InvalidInputException(
+            throw GelexException(
                 "Sbin file contains dominance effects, but SNP effects file "
                 "does not have 'Dom' column.");
         }

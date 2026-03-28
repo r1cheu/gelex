@@ -48,7 +48,7 @@ BedMmapReader::BedMmapReader(
 {
     if (bytes_per_variant_ <= 0)
     {
-        throw FileFormatException(
+        throw GelexException(
             std::format("{}: invalid bytes per variant", bed_path.string()));
     }
 
@@ -56,19 +56,19 @@ BedMmapReader::BedMmapReader(
     mmap_.map(bed_path.string(), ec);
     if (ec)
     {
-        throw FileOpenException(
+        throw GelexException(
             std::format("{}: failed to mmap bed file", bed_path.string()));
     }
 
     if (mmap_.size() <= kBedHeaderSize)
     {
-        throw FileFormatException(
+        throw GelexException(
             std::format("{}: bed file too short", bed_path.string()));
     }
 
     if (!has_valid_bed_magic(mmap_))
     {
-        throw FileFormatException(
+        throw GelexException(
             std::format("{}: invalid BED magic number", bed_path.string()));
     }
 
@@ -77,7 +77,7 @@ BedMmapReader::BedMmapReader(
                                     * static_cast<size_t>(bytes_per_variant_));
     if (mmap_.size() < expected_size)
     {
-        throw FileFormatException(
+        throw GelexException(
             std::format(
                 "{}: bed file truncated. Expected {} bytes, got {}",
                 bed_path.string(),

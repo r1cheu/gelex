@@ -106,7 +106,7 @@ auto compute_common_index_keys(std::span<const DataFrame<T>* const> frames)
 
     if (frames[0] == nullptr)
     {
-        throw ArgumentValidationException("frames[0] cannot be null");
+        throw GelexException("frames[0] cannot be null");
     }
 
     std::vector<std::string> common = frames[0]->index_column().data();
@@ -116,8 +116,7 @@ auto compute_common_index_keys(std::span<const DataFrame<T>* const> frames)
         const DataFrame<T>* frame = frames[i];
         if (frame == nullptr)
         {
-            throw ArgumentValidationException(
-                std::format("frames[{}] cannot be null", i));
+            throw GelexException(std::format("frames[{}] cannot be null", i));
         }
 
         std::unordered_set<std::string> next_keys;
@@ -190,7 +189,7 @@ auto DataFrame<T>::column(size_t i) const -> const Column<T>&
 {
     if (i >= columns_.size())
     {
-        throw ColumnRangeException(std::format("column {} is out of range", i));
+        throw GelexException(std::format("column {} is out of range", i));
     }
 
     return columns_[i];
@@ -228,7 +227,7 @@ auto DataFrame<T>::eigen() const
         const auto& values = columns_[static_cast<size_t>(col)].data();
         if (values.size() != static_cast<size_t>(rows))
         {
-            throw InvalidOperationException(
+            throw GelexException(
                 std::format(
                     "column '{}' size mismatch",
                     columns_[static_cast<size_t>(col)].name()));
@@ -272,7 +271,7 @@ auto DataFrame<T>::rebuild_index_map() -> void
         auto [_, inserted] = index_map_.emplace(idx[i], i);
         if (!inserted)
         {
-            throw InvalidOperationException("duplicated index key");
+            throw GelexException("duplicated index key");
         }
     }
 }

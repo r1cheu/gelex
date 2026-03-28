@@ -42,7 +42,7 @@ auto make_grm_config(argparse::ArgumentParser& cmd) -> gelex::GrmEngine::Config
     auto chunk_size = cmd.get<int>("--chunk-size");
     if (chunk_size <= 0)
     {
-        throw gelex::ArgumentValidationException("chunk_size must be positive");
+        throw gelex::GelexException("chunk_size must be positive");
     }
 
     return gelex::GrmEngine::Config{

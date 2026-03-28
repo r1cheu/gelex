@@ -74,7 +74,7 @@ struct EffectType
             case 4:
                 return residual();
             default:
-                throw FileFormatException(
+                throw GelexException(
                     "EffectType::from_byte: unknown wire value");
         }
     }

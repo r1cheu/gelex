@@ -93,7 +93,7 @@ TEST_CASE("one_hot_encode matrix has correct values", "[encode][dataframe]")
 TEST_CASE("one_hot_encode single level throws", "[encode][dataframe]")
 {
     auto col = make_col("x", {"only", "only", "only"});
-    REQUIRE_THROWS_AS(one_hot_encode(col), gelex::InvalidInputException);
+    REQUIRE_THROWS_AS(one_hot_encode(col), gelex::GelexException);
 }
 
 TEST_CASE(
@@ -174,7 +174,7 @@ TEST_CASE(
 TEST_CASE("dummy_encode single level throws", "[encode][dataframe]")
 {
     auto col = make_col("mono", {"X", "X", "X"});
-    REQUIRE_THROWS_AS(dummy_encode(col), gelex::InvalidInputException);
+    REQUIRE_THROWS_AS(dummy_encode(col), gelex::GelexException);
 }
 
 // ================================================================
@@ -265,14 +265,14 @@ TEST_CASE("encode duplicate levels throws", "[encode][dataframe]")
 {
     auto col = make_col("g", {"A", "B"});
     std::vector<std::string> levels = {"A", "B", "A"};
-    REQUIRE_THROWS_AS(encode(col, levels), gelex::InvalidInputException);
+    REQUIRE_THROWS_AS(encode(col, levels), gelex::GelexException);
 }
 
 TEST_CASE("encode empty levels throws", "[encode][dataframe]")
 {
     auto col = make_col("g", {"A", "B"});
     std::vector<std::string> levels = {};
-    REQUIRE_THROWS_AS(encode(col, levels), gelex::InvalidInputException);
+    REQUIRE_THROWS_AS(encode(col, levels), gelex::GelexException);
 }
 
 // ================================================================

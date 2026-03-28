@@ -65,7 +65,7 @@ inline auto norm_ppf(double p) -> double
 
     if (p <= 0.0 || p >= 1.0)
     {
-        throw InvalidInputException("norm_ppf: p must be in (0, 1)");
+        throw GelexException("norm_ppf: p must be in (0, 1)");
     }
 
     double r = 0;

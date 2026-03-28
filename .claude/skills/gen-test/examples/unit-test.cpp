@@ -36,7 +36,6 @@ TEST_CASE("EffectSampler - validation", "[effect_sampler]")
     SECTION("Empty effect classes throws")
     {
         std::mt19937_64 rng(42);
-        REQUIRE_THROWS_AS(
-            EffectSampler({}, {{1.0, 1.0}}, rng), ArgumentValidationException);
+        REQUIRE_THROWS_AS(EffectSampler({}, {{1.0, 1.0}}, rng), GelexException);
     }
 }

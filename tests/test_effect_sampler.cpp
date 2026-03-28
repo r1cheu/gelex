@@ -38,8 +38,7 @@ TEST_CASE("EffectSampler - validation", "[effect_sampler]")
     SECTION("Empty effect classes throws")
     {
         std::mt19937_64 rng(42);
-        REQUIRE_THROWS_AS(
-            EffectSampler({}, {{1.0, 1.0}}, rng), ArgumentValidationException);
+        REQUIRE_THROWS_AS(EffectSampler({}, {{1.0, 1.0}}, rng), GelexException);
     }
 
     SECTION("Proportions must sum to 1")
@@ -47,7 +46,7 @@ TEST_CASE("EffectSampler - validation", "[effect_sampler]")
         std::mt19937_64 rng(42);
         REQUIRE_THROWS_AS(
             EffectSampler({{0.3, 1.0}, {0.3, 1.0}}, {{1.0, 1.0}}, rng),
-            ArgumentValidationException);
+            GelexException);
     }
 
     SECTION("Zero variance is allowed")
@@ -60,8 +59,7 @@ TEST_CASE("EffectSampler - validation", "[effect_sampler]")
     {
         std::mt19937_64 rng(42);
         REQUIRE_THROWS_AS(
-            EffectSampler({{1.0, -0.1}}, {{1.0, 1.0}}, rng),
-            ArgumentValidationException);
+            EffectSampler({{1.0, -0.1}}, {{1.0, 1.0}}, rng), GelexException);
     }
 
     SECTION("Negative proportion throws")
@@ -69,7 +67,7 @@ TEST_CASE("EffectSampler - validation", "[effect_sampler]")
         std::mt19937_64 rng(42);
         REQUIRE_THROWS_AS(
             EffectSampler({{-0.5, 1.0}, {1.5, 1.0}}, {{1.0, 1.0}}, rng),
-            ArgumentValidationException);
+            GelexException);
     }
 
     SECTION("Dominance classes validated when provided")
@@ -77,7 +75,7 @@ TEST_CASE("EffectSampler - validation", "[effect_sampler]")
         std::mt19937_64 rng(42);
         REQUIRE_THROWS_AS(
             EffectSampler({{1.0, 1.0}}, {{0.3, 1.0}, {0.3, 1.0}}, rng),
-            ArgumentValidationException);
+            GelexException);
     }
 
     SECTION("Dominance classes skipped when vector is empty")

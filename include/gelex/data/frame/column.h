@@ -46,7 +46,7 @@ class Column
         {
             if (row >= data_.size())
             {
-                throw ColumnRangeException(
+                throw GelexException(
                     std::format("row {} is out of range", row));
             }
             filtered.emplace_back(std::move(data_[row]));

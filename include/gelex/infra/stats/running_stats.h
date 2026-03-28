@@ -49,13 +49,11 @@ class RunningStats
         }
         if (rows_ != 1)
         {
-            throw InvalidInputException(
-                "Scalar update on multi-row RunningStats");
+            throw GelexException("Scalar update on multi-row RunningStats");
         }
         if (!std::isfinite(value))
         {
-            throw InvalidInputException(
-                "Non-finite value in RunningStats::update");
+            throw GelexException("Non-finite value in RunningStats::update");
         }
         ++count_;
         const double delta = value - mean_(0);
@@ -70,8 +68,7 @@ class RunningStats
     {
         if (rows_ != 0 && block.rows() != rows_)
         {
-            throw InvalidInputException(
-                "Row size mismatch in RunningStats::update");
+            throw GelexException("Row size mismatch in RunningStats::update");
         }
 
         if (block.cols() == 0)
@@ -81,14 +78,12 @@ class RunningStats
 
         if (rows_ == 0 && block.rows() == 0)
         {
-            throw InvalidInputException(
-                "Zero-row block in RunningStats::update");
+            throw GelexException("Zero-row block in RunningStats::update");
         }
 
         if (!block.derived().allFinite())
         {
-            throw InvalidInputException(
-                "Non-finite value in RunningStats::update");
+            throw GelexException("Non-finite value in RunningStats::update");
         }
 
         if (rows_ == 0)

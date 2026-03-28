@@ -25,7 +25,7 @@
 #include "gelex/data/dataframe/column.h"
 #include "gelex/exception.h"
 
-using gelex::InvalidInputException;
+using gelex::GelexException;
 using gelex::df::Column;
 
 // ================================================================
@@ -135,14 +135,13 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "push_back type mismatch after int init throws InvalidInputException",
+    "push_back type mismatch after int init throws GelexException",
     "[dataframe]")
 {
     Column col("mixed");
 
     col.push_back(std::int32_t{10});
-    REQUIRE_THROWS_AS(
-        col.push_back(std::string{"oops"}), InvalidInputException);
+    REQUIRE_THROWS_AS(col.push_back(std::string{"oops"}), GelexException);
 }
 
 // ================================================================
@@ -170,41 +169,41 @@ TEST_CASE("as<T> const overload returns read-only span", "[dataframe]")
 }
 
 TEST_CASE(
-    "as<T> with wrong type on int column throws InvalidInputException",
+    "as<T> with wrong type on int column throws GelexException",
     "[dataframe]")
 {
     Column col("c", std::vector<std::int32_t>{1, 2});
 
-    REQUIRE_THROWS_AS(col.as<double>(), InvalidInputException);
+    REQUIRE_THROWS_AS(col.as<double>(), GelexException);
 }
 
 TEST_CASE(
-    "as<T> const overload with wrong type throws InvalidInputException",
+    "as<T> const overload with wrong type throws GelexException",
     "[dataframe]")
 {
     const Column col("c", std::vector<std::int32_t>{1, 2});
 
-    REQUIRE_THROWS_AS(col.as<double>(), InvalidInputException);
+    REQUIRE_THROWS_AS(col.as<double>(), GelexException);
 }
 
 TEST_CASE(
-    "as<T> on empty monostate column throws InvalidInputException",
+    "as<T> on empty monostate column throws GelexException",
     "[dataframe]")
 {
     Column col("empty");
 
-    REQUIRE_THROWS_AS(col.as<std::int32_t>(), InvalidInputException);
-    REQUIRE_THROWS_AS(col.as<double>(), InvalidInputException);
-    REQUIRE_THROWS_AS(col.as<std::string>(), InvalidInputException);
+    REQUIRE_THROWS_AS(col.as<std::int32_t>(), GelexException);
+    REQUIRE_THROWS_AS(col.as<double>(), GelexException);
+    REQUIRE_THROWS_AS(col.as<std::string>(), GelexException);
 }
 
 TEST_CASE(
-    "as<T> const on empty monostate column throws InvalidInputException",
+    "as<T> const on empty monostate column throws GelexException",
     "[dataframe]")
 {
     const Column col("empty");
 
-    REQUIRE_THROWS_AS(col.as<std::int32_t>(), InvalidInputException);
+    REQUIRE_THROWS_AS(col.as<std::int32_t>(), GelexException);
 }
 
 // ================================================================
@@ -246,21 +245,18 @@ TEST_CASE("take<string> moves out underlying vector", "[dataframe]")
     REQUIRE(taken[1] == "beta");
 }
 
-TEST_CASE("take with wrong type throws InvalidInputException", "[dataframe]")
+TEST_CASE("take with wrong type throws GelexException", "[dataframe]")
 {
     Column col("c", std::vector<std::int32_t>{1, 2});
 
-    REQUIRE_THROWS_AS(std::move(col).take<double>(), InvalidInputException);
+    REQUIRE_THROWS_AS(std::move(col).take<double>(), GelexException);
 }
 
-TEST_CASE(
-    "take on empty monostate column throws InvalidInputException",
-    "[dataframe]")
+TEST_CASE("take on empty monostate column throws GelexException", "[dataframe]")
 {
     Column col("empty");
 
-    REQUIRE_THROWS_AS(
-        std::move(col).take<std::int32_t>(), InvalidInputException);
+    REQUIRE_THROWS_AS(std::move(col).take<std::int32_t>(), GelexException);
 }
 
 // ================================================================
@@ -337,11 +333,11 @@ TEST_CASE("to_map<int32_t> returns view over int column data", "[dataframe]")
     REQUIRE(map.data() == col.as<std::int32_t>().data());
 }
 
-TEST_CASE("to_map with wrong type throws InvalidInputException", "[dataframe]")
+TEST_CASE("to_map with wrong type throws GelexException", "[dataframe]")
 {
     Column col("v", std::vector<double>{1.0, 2.0});
 
-    REQUIRE_THROWS_AS(col.to_map<std::int32_t>(), InvalidInputException);
+    REQUIRE_THROWS_AS(col.to_map<std::int32_t>(), GelexException);
 }
 
 // ================================================================
@@ -359,9 +355,9 @@ TEST_CASE("to_mat<double> returns copy of column data", "[dataframe]")
     REQUIRE(vec.isApprox(Eigen::Vector3d{1.0, 2.0, 3.0}));
 }
 
-TEST_CASE("to_mat with wrong type throws InvalidInputException", "[dataframe]")
+TEST_CASE("to_mat with wrong type throws GelexException", "[dataframe]")
 {
     Column col("v", std::vector<double>{1.0});
 
-    REQUIRE_THROWS_AS(col.to_mat<std::int32_t>(), InvalidInputException);
+    REQUIRE_THROWS_AS(col.to_mat<std::int32_t>(), GelexException);
 }

@@ -36,12 +36,11 @@ auto compute_init_marker_variance(
 {
     if (target_variance <= 0.0)
     {
-        throw ArgumentValidationException("Target variance must be positive");
+        throw GelexException("Target variance must be positive");
     }
     if (non_zero_proportion <= 0.0)
     {
-        throw ArgumentValidationException(
-            "Non-zero marker proportion must be positive");
+        throw GelexException("Non-zero marker proportion must be positive");
     }
 
     double total_genetic_variance = detail::var(X).sum();
@@ -49,8 +48,7 @@ auto compute_init_marker_variance(
 
     if (num_non_zero_snps <= 0.0)
     {
-        throw ArgumentValidationException(
-            "Number of non-zero SNPs must be positive");
+        throw GelexException("Number of non-zero SNPs must be positive");
     }
 
     return target_variance / num_non_zero_snps;

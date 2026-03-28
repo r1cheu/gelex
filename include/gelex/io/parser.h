@@ -52,7 +52,7 @@ template <FileStream StreamType>
 {
     if (std::filesystem::is_directory(path))
     {
-        throw gelex::FileOpenException(
+        throw gelex::GelexException(
             std::format(
                 "{}: is a directory, not a regular file", path.string()));
     }
@@ -71,10 +71,9 @@ template <FileStream StreamType>
     {
         if ((mode & std::ios::in) && !std::filesystem::exists(path))
         {
-            throw FileNotFoundException(
-                std::format("{}: not found", path.string()));
+            throw GelexException(std::format("{}: not found", path.string()));
         }
-        throw FileOpenException(
+        throw GelexException(
             std::format("{}: failed to open file", path.string()));
     }
 
@@ -83,8 +82,7 @@ template <FileStream StreamType>
         std::error_code ec;
         if (std::filesystem::file_size(path, ec) == 0 && !ec)
         {
-            throw FileFormatException(
-                std::format("{}: is empty", path.string()));
+            throw GelexException(std::format("{}: is empty", path.string()));
         }
     }
 
@@ -98,7 +96,7 @@ T parse_number(std::string_view sv)
 {
     if (sv.empty())
     {
-        throw NumberParseException(
+        throw GelexException(
             std::format("empty string cannot be parsed as number"));
     }
 
@@ -132,8 +130,7 @@ T parse_number(std::string_view sv)
             std::is_arithmetic_v<T>, "parse_number requires arithmetic type");
     }
 
-    throw NumberParseException(
-        std::format("failed to parse '{}' as number", sv));
+    throw GelexException(std::format("failed to parse '{}' as number", sv));
 }
 
 std::string parse_id(std::string_view line, char delimiter = '\t');

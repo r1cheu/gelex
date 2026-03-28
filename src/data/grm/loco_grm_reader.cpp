@@ -45,7 +45,7 @@ auto LocoGRMReader::load_loco_grm(
     std::filesystem::path bin_path = chr_grm_prefix.string() + ".bin";
     if (!std::filesystem::exists(bin_path))
     {
-        throw InvalidInputException(
+        throw GelexException(
             std::format(
                 "LOCO error: GRM file not found: {}", bin_path.string()));
     }
@@ -62,7 +62,7 @@ auto LocoGRMReader::load_loco_grm(
     double k_loco = k_whole_ - k_i;
     if (k_loco <= 0)
     {
-        throw InvalidInputException(
+        throw GelexException(
             std::format(
                 "LOCO error: Chromosome GRM denominator ({}) is greater than "
                 "or equal to Whole GRM denominator ({})",

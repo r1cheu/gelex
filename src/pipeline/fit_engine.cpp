@@ -137,7 +137,7 @@ auto find_runner(BayesMethodConfig method) -> TraitRunner
         &std::pair<BayesMethodConfig, TraitRunner>::first);
     if (it == kTraitRunners.end())
     {
-        throw ArgumentValidationException(
+        throw GelexException(
             fmt::format("Unsupported Bayes method: {}", method));
     }
     return it->second;

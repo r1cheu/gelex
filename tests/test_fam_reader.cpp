@@ -98,7 +98,7 @@ TEST_CASE("FamReader - Error conditions", "[data][reader][error]")
 
         REQUIRE_THROWS_MATCHES(
             FamReader(file_path),
-            gelex::FileFormatException,
+            gelex::GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("failed to parse FID and IID (missing delimiter)")));
     }

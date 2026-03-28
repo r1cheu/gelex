@@ -42,7 +42,7 @@ auto LociStatsWriter::write(
 {
     if (stddev != nullptr && mean.size() != stddev->size())
     {
-        throw ArgumentValidationException(
+        throw GelexException(
             std::format(
                 "LociStatsWriter: mean size ({}) != stddev size ({})",
                 mean.size(),

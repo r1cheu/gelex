@@ -44,7 +44,7 @@ auto validate_chunk_range(
 {
     if (start_col < 0 || end_col > max_cols || start_col >= end_col)
     {
-        throw ColumnRangeException(
+        throw GelexException(
             std::format(
                 "invalid chunk range: [{}, {}). Total SNPs: {}",
                 start_col,
@@ -75,7 +75,7 @@ BedPipe::BedPipe(
 {
     if (!sample_manager_)
     {
-        throw ArgumentValidationException("SampleManager cannot be null");
+        throw GelexException("SampleManager cannot be null");
     }
 
     auto metadata = detail::load_bed_metadata(bed_prefix);
@@ -164,7 +164,7 @@ void BedPipe::load_chunk(
         = bed_reader_->chunk_ptr(start_col, num_output_cols);
     if (chunk_ptr == nullptr)
     {
-        throw FileFormatException(
+        throw GelexException(
             "BedPipe::load_chunk: mapped BED payload is truncated");
     }
 

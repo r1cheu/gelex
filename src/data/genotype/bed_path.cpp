@@ -33,8 +33,7 @@ auto format_bed_path(std::string_view bed_path) -> std::filesystem::path
 
     if (!std::filesystem::exists(bed))
     {
-        throw FileNotFoundException(
-            std::format("{}: file not found", bed.string()));
+        throw GelexException(std::format("{}: file not found", bed.string()));
     }
     return bed;
 }

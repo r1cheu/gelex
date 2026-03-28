@@ -33,7 +33,7 @@ inline auto validate_expected_columns(
 {
     if (actual != expected)
     {
-        throw InconsistentColumnCountException(
+        throw GelexException(
             std::format(
                 "line {} has {} columns, expected {}",
                 line_number,
@@ -49,7 +49,7 @@ inline auto validate_minimum_columns(
 {
     if (actual < minimum)
     {
-        throw InconsistentColumnCountException(
+        throw GelexException(
             std::format(
                 "line {} has {} columns, expected {}",
                 line_number,
@@ -65,7 +65,7 @@ inline auto validate_non_empty_token(
 {
     if (token.empty())
     {
-        throw DataParseException(
+        throw GelexException(
             std::format("line {} has missing {}", line_number, token_name));
     }
 }

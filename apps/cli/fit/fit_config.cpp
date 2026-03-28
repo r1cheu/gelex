@@ -38,7 +38,7 @@ auto make_fit_config(argparse::ArgumentParser& cmd) -> FitEngine::Config
 
     if (!gelex::is_valid_method(method))
     {
-        throw gelex::InvalidInputException(
+        throw gelex::GelexException(
             fmt::format("invalid method combination: {}", method));
     }
 
@@ -72,8 +72,7 @@ auto make_fit_config(argparse::ArgumentParser& cmd) -> FitEngine::Config
     config.positive_prob = cmd.get<double>("--positive-prob");
     if (config.mcmc_params.n_burn_in >= config.mcmc_params.n_iters)
     {
-        throw gelex::InvalidInputException(
-            "n_burn_in must be less than n_iters");
+        throw gelex::GelexException("n_burn_in must be less than n_iters");
     }
 
     if (cmd.is_used("--resume"))

@@ -20,10 +20,10 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <format>
 #include <fstream>
 #include <string>
+#include <string_view>
 
 #include "gelex/exception.h"
 #include "gelex/io/binary_format.h"
@@ -47,7 +47,7 @@ auto BinaryWriter::check_duplicate_path(std::string_view path) const -> void
     {
         if (binary_format::path_as_view(rs.entry.path) == path)
         {
-            throw ArgumentValidationException(
+            throw GelexException(
                 std::format(
                     "{}: duplicate section path \"{}\"",
                     output_path_.string(),
@@ -64,7 +64,7 @@ auto BinaryWriter::reserve(
 {
     if (path.size() > binary_format::kMaxPathLength)
     {
-        throw ArgumentValidationException(
+        throw GelexException(
             std::format(
                 "{}: path too long ({} > {}): \"{}\"",
                 output_path_.string(),
@@ -103,7 +103,7 @@ auto BinaryWriter::write_raw(
 {
     if (handle >= reserved_.size())
     {
-        throw ArgumentValidationException(
+        throw GelexException(
             std::format(
                 "{}: invalid section handle {}",
                 output_path_.string(),
@@ -114,7 +114,7 @@ auto BinaryWriter::write_raw(
     const auto end_bound = rs.entry.offset + rs.entry.size;
     if (rs.cursor + static_cast<uint64_t>(bytes) > end_bound)
     {
-        throw ArgumentValidationException(
+        throw GelexException(
             std::format(
                 "{}: write overflow: cursor={}, bytes={}, limit={}",
                 output_path_.string(),
@@ -161,7 +161,7 @@ auto BinaryWriter::finalize() -> void
         const auto expected = rs.entry.offset + rs.entry.size;
         if (rs.cursor != expected)
         {
-            throw FileWriteException(
+            throw GelexException(
                 std::format(
                     "{}: section not fully written: cursor={}, "
                     "expected={}",
@@ -187,7 +187,7 @@ auto BinaryWriter::finalize() -> void
     file_.flush();
     if (!file_.good())
     {
-        throw FileWriteException(
+        throw GelexException(
             std::format(
                 "{}: failed to write binary file", output_path_.string()));
     }

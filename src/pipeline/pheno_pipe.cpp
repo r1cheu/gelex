@@ -62,7 +62,7 @@ auto PhenoPipe::load_phenotypes() -> void
 {
     if (config_.phenotype_path.empty())
     {
-        throw ArgumentValidationException("Phenotype file path is required.");
+        throw GelexException("Phenotype file path is required.");
     }
 
     PhenotypeLoadedEvent event;
@@ -73,7 +73,7 @@ auto PhenoPipe::load_phenotypes() -> void
 
     if (column_index < 0)
     {
-        throw ColumnRangeException(
+        throw GelexException(
             std::format(
                 "Phenotype column {} is out of range, expected >= 2",
                 config_.phenotype_column));
@@ -126,7 +126,7 @@ auto PhenoPipe::intersect_samples(
 
     if (phenotype_frame_.nrows() == 0)
     {
-        throw InvalidOperationException(
+        throw GelexException(
             "Phenotype frame cannot be empty."
             " Load a non-empty phenotype file first.");
     }
@@ -158,7 +158,7 @@ auto PhenoPipe::intersect_samples(
 
     if (common == 0)
     {
-        throw InvalidInputException(
+        throw GelexException(
             "No common samples found between phenotype, covariates, and "
             "genotype");
     }
@@ -176,7 +176,7 @@ auto PhenoPipe::finalize() -> void
 
     if (phenotype_frame_.nrows() == 0)
     {
-        throw InvalidOperationException(
+        throw GelexException(
             "Phenotype frame cannot be empty."
             " Load a non-empty phenotype file first.");
     }

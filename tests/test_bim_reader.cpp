@@ -119,7 +119,7 @@ TEST_CASE("BimReader - Malformed column count", "[reader][bim]")
             ".bim");
         REQUIRE_THROWS_MATCHES(
             BimReader(file_path),
-            gelex::FileFormatException,
+            gelex::GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("has 5 columns, expected 6")));
     }
@@ -135,7 +135,7 @@ TEST_CASE("BimReader - Invalid position data", "[reader][bim]")
             = files.create_text_file("1\trs12345\t0\tinvalid\tA\tG", ".bim");
         REQUIRE_THROWS_MATCHES(
             BimReader(file_path),
-            gelex::FileFormatException,
+            gelex::GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("failed to parse 'invalid' as number")));
     }
@@ -146,7 +146,7 @@ TEST_CASE("BimReader - Invalid position data", "[reader][bim]")
             = files.create_text_file("1\trs12345\t0\t\tA\tG", ".bim");
         REQUIRE_THROWS_MATCHES(
             BimReader(file_path),
-            gelex::FileFormatException,
+            gelex::GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("has 5 columns, expected 6")));
     }

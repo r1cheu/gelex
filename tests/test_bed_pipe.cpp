@@ -169,7 +169,7 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         REQUIRE_THROWS_MATCHES(
             BedPipe(bed_prefix, sample_manager),
-            FileOpenException,
+            GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("failed to mmap bed file")));
     }
@@ -197,7 +197,7 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         REQUIRE_THROWS_MATCHES(
             BedPipe(bed_prefix, sample_manager),
-            FileFormatException,
+            GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("invalid BED magic number")));
     }
@@ -222,8 +222,7 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
         auto sample_manager = std::make_shared<SampleManager>(fam_path);
         sample_manager->finalize();
 
-        REQUIRE_THROWS_AS(
-            BedPipe(bed_prefix, sample_manager), FileFormatException);
+        REQUIRE_THROWS_AS(BedPipe(bed_prefix, sample_manager), GelexException);
     }
 
     SECTION("Exception - sample manager is nullptr")
@@ -233,7 +232,7 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         REQUIRE_THROWS_MATCHES(
             BedPipe(bed_prefix, nullptr),
-            ArgumentValidationException,
+            GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("SampleManager cannot be null")));
     }
@@ -254,7 +253,7 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         REQUIRE_THROWS_MATCHES(
             BedPipe(bed_prefix, sample_manager),
-            FileNotFoundException,
+            GelexException,
             Catch::Matchers::MessageMatches(EndsWith("not found")));
     }
 }
@@ -465,15 +464,14 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
 
         BedPipe pipe(bed_prefix, sample_manager);
 
-        REQUIRE_THROWS_AS(pipe.load_chunk(-1, 3), ColumnRangeException);
-        REQUIRE_THROWS_AS(
-            pipe.load_chunk(0, num_snps + 1), ColumnRangeException);
+        REQUIRE_THROWS_AS(pipe.load_chunk(-1, 3), GelexException);
+        REQUIRE_THROWS_AS(pipe.load_chunk(0, num_snps + 1), GelexException);
         REQUIRE_THROWS_AS(
             pipe.load_chunk(3, 3),  // start == end
-            ColumnRangeException);
+            GelexException);
         REQUIRE_THROWS_AS(
             pipe.load_chunk(5, 3),  // start > end
-            ColumnRangeException);
+            GelexException);
     }
 
     SECTION("Happy path - chunk at beginning")
@@ -919,12 +917,12 @@ TEST_CASE("BedPipe - sample mapping tests", "[data][bed_pipe]")
 //     {
 //         REQUIRE_THROWS_MATCHES(
 //             BedPipe::format_bed_path("non_existent_file"),
-//             FileNotFoundException,
+//             GelexException,
 //             Catch::Matchers::MessageMatches(EndsWith("file not found")));
 //
 //         REQUIRE_THROWS_MATCHES(
 //             BedPipe::format_bed_path("non_existent_file.bed"),
-//             FileNotFoundException,
+//             GelexException,
 //             Catch::Matchers::MessageMatches(EndsWith("file not found")));
 //     }
 // }

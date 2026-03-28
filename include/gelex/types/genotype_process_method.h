@@ -53,7 +53,7 @@ inline auto is_center_family_method(GenotypeProcessMethod method) -> bool
         case GenotypeProcessMethod::OrthStandardize:
             return false;
     }
-    throw InvalidInputException("Invalid genotype process method.");
+    throw GelexException("Invalid genotype process method.");
 }
 
 inline auto is_orthogonal_method(GenotypeProcessMethod method) -> bool
@@ -71,7 +71,7 @@ inline auto is_orthogonal_method(GenotypeProcessMethod method) -> bool
         case GenotypeProcessMethod::Center:
             return false;
     }
-    throw InvalidInputException("Invalid genotype process method.");
+    throw GelexException("Invalid genotype process method.");
 }
 
 enum class ModelType : uint8_t

@@ -29,10 +29,7 @@
 using gelex::compute_common_index_keys;
 using gelex::DataFrame;
 using gelex::DataFrameLoadPolicy;
-using gelex::FileFormatException;
-using gelex::FileOpenException;
-using gelex::InconsistentColumnCountException;
-using gelex::InvalidOperationException;
+using gelex::GelexException;
 using gelex::make_sample_id;
 using gelex::MissingValueAction;
 using gelex::detail::detect_delimiter;
@@ -88,10 +85,8 @@ TEST_CASE("make_sample_id validates and composes keys", "[data][dataframe]")
 {
     std::string key = make_sample_id("fam", "id1");
     REQUIRE(key == std::string("fam") + gelex::kSampleIdSeparator + "id1");
-    REQUIRE_THROWS_AS(
-        make_sample_id("", "id1"), gelex::ArgumentValidationException);
-    REQUIRE_THROWS_AS(
-        make_sample_id("fam", ""), gelex::ArgumentValidationException);
+    REQUIRE_THROWS_AS(make_sample_id("", "id1"), gelex::GelexException);
+    REQUIRE_THROWS_AS(make_sample_id("fam", ""), gelex::GelexException);
 }
 
 TEST_CASE(
@@ -150,7 +145,7 @@ TEST_CASE("DataFrame rejects inconsistent column counts", "[data][dataframe]")
         "f1,i1,1\n"
         "f2,i2,2,3\n");
 
-    require_read_throws<InconsistentColumnCountException, int>(path);
+    require_read_throws<GelexException, int>(path);
 }
 
 TEST_CASE("DataFrame rejects duplicated index key on load", "[data][dataframe]")
@@ -162,7 +157,7 @@ TEST_CASE("DataFrame rejects duplicated index key on load", "[data][dataframe]")
         "f1,i1,1\n"
         "f1,i1,2\n");
 
-    require_read_throws<InvalidOperationException, int>(path);
+    require_read_throws<GelexException, int>(path);
 }
 
 TEST_CASE(
@@ -176,7 +171,7 @@ TEST_CASE(
         "f1,i1\n"
         "f2,i2\n");
 
-    require_read_throws<InconsistentColumnCountException, int>(path);
+    require_read_throws<GelexException, int>(path);
 }
 
 TEST_CASE(
@@ -190,7 +185,7 @@ TEST_CASE(
         "f1,i1,1\n"
         "f2,i2,2\n");
 
-    require_read_throws<FileFormatException, int>(path);
+    require_read_throws<GelexException, int>(path);
 }
 
 TEST_CASE("DataFrame rejects rows with empty FID or IID", "[data][dataframe]")
@@ -201,13 +196,13 @@ TEST_CASE("DataFrame rejects rows with empty FID or IID", "[data][dataframe]")
         "empty_fid.csv",
         "FID,IID,value\n"
         ",i1,1\n");
-    require_read_throws<gelex::DataParseException, int>(empty_fid);
+    require_read_throws<gelex::GelexException, int>(empty_fid);
 
     auto empty_iid = files.create_named_text_file(
         "empty_iid.csv",
         "FID,IID,value\n"
         "f1,,1\n");
-    require_read_throws<gelex::DataParseException, int>(empty_iid);
+    require_read_throws<gelex::GelexException, int>(empty_iid);
 }
 
 TEST_CASE(
@@ -224,7 +219,7 @@ TEST_CASE(
     policy.missing_value_action = MissingValueAction::Throw;
 
     REQUIRE_THROWS_AS(
-        DataFrame<double>::read(path, policy), gelex::DataParseException);
+        DataFrame<double>::read(path, policy), gelex::GelexException);
 }
 
 TEST_CASE("DataFrame rejects invalid numeric tokens", "[data][dataframe]")
@@ -235,7 +230,7 @@ TEST_CASE("DataFrame rejects invalid numeric tokens", "[data][dataframe]")
         "FID,IID,value\n"
         "f1,i1,abc\n");
 
-    REQUIRE_THROWS_AS(DataFrame<double>::read(path), gelex::DataParseException);
+    REQUIRE_THROWS_AS(DataFrame<double>::read(path), gelex::GelexException);
 }
 
 TEST_CASE(
@@ -248,7 +243,7 @@ TEST_CASE(
         "FID,IID,value\n"
         "f1,i1,1x\n");
 
-    REQUIRE_THROWS_AS(DataFrame<double>::read(path), gelex::DataParseException);
+    REQUIRE_THROWS_AS(DataFrame<double>::read(path), gelex::GelexException);
 }
 
 TEST_CASE("DataFrame read throws on missing file", "[data][dataframe]")
@@ -256,7 +251,7 @@ TEST_CASE("DataFrame read throws on missing file", "[data][dataframe]")
     std::filesystem::path missing
         = std::filesystem::temp_directory_path() / "gelex_missing_file.csv";
 
-    REQUIRE_THROWS_AS(DataFrame<int>::read(missing), FileOpenException);
+    REQUIRE_THROWS_AS(DataFrame<int>::read(missing), GelexException);
 }
 
 TEST_CASE("DataFrame read throws on empty file", "[data][dataframe]")
@@ -264,7 +259,7 @@ TEST_CASE("DataFrame read throws on empty file", "[data][dataframe]")
     FileFixture files;
     auto path = files.create_named_text_file("empty.csv", "");
 
-    REQUIRE_THROWS_AS(DataFrame<int>::read(path), FileFormatException);
+    REQUIRE_THROWS_AS(DataFrame<int>::read(path), GelexException);
 }
 
 TEST_CASE(
@@ -310,8 +305,7 @@ TEST_CASE(
 
     std::string key = make_sample_id("fa", "a");
     std::vector<std::string> keys = {key, key};
-    REQUIRE_THROWS_AS(
-        frame.intersect_index_inplace(keys), InvalidOperationException);
+    REQUIRE_THROWS_AS(frame.intersect_index_inplace(keys), GelexException);
 }
 
 TEST_CASE("compute_common_index_keys finds shared ids", "[data][dataframe]")
@@ -357,8 +351,7 @@ TEST_CASE(
 
     std::vector<const DataFrame<int>*> null_first = {nullptr};
     REQUIRE_THROWS_AS(
-        compute_common_index_keys<int>(null_first),
-        gelex::ArgumentValidationException);
+        compute_common_index_keys<int>(null_first), gelex::GelexException);
 
     FileFixture files;
     auto path = files.create_named_text_file(
@@ -369,8 +362,7 @@ TEST_CASE(
 
     std::vector<const DataFrame<int>*> null_later = {&frame, nullptr};
     REQUIRE_THROWS_AS(
-        compute_common_index_keys<int>(null_later),
-        gelex::ArgumentValidationException);
+        compute_common_index_keys<int>(null_later), gelex::GelexException);
 }
 
 TEST_CASE("DataFrame column access validates bounds", "[data][dataframe]")
@@ -382,7 +374,7 @@ TEST_CASE("DataFrame column access validates bounds", "[data][dataframe]")
         "f1,i1,1\n");
     auto frame = DataFrame<int>::read(path);
 
-    REQUIRE_THROWS_AS(frame.column(1), gelex::ColumnRangeException);
+    REQUIRE_THROWS_AS(frame.column(1), gelex::GelexException);
 }
 
 TEST_CASE("DataFrame columns returns data column names", "[data][dataframe]")
@@ -453,8 +445,7 @@ TEST_CASE("Column gather_inplace validates row bounds", "[data][dataframe]")
     column.append(10);
 
     std::vector<size_t> keep_rows = {1};
-    REQUIRE_THROWS_AS(
-        column.gather_inplace(keep_rows), gelex::ColumnRangeException);
+    REQUIRE_THROWS_AS(column.gather_inplace(keep_rows), gelex::GelexException);
 }
 
 // Reproduce and fix for issue #53: Windows CRLF (\r\n) files leave a trailing
@@ -539,6 +530,6 @@ TEST_CASE(
         DataFrameLoadPolicy policy;
         policy.select_columns = std::vector<size_t>{5};
         REQUIRE_THROWS_AS(
-            DataFrame<double>::read(path, policy), gelex::ColumnRangeException);
+            DataFrame<double>::read(path, policy), gelex::GelexException);
     }
 }

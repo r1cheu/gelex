@@ -93,7 +93,7 @@ auto get_genotype_process_method(GenotypeProcessMethod method)
         case GenotypeProcessMethod::OrthCenter:
             return &OrthCenter<GT>::process;
     }
-    throw InvalidInputException("Invalid genotype process method.");
+    throw GelexException("Invalid genotype process method.");
 }
 
 template <GeneticKind GT>
@@ -102,7 +102,7 @@ auto get_center_genotype_method(GenotypeProcessMethod method)
 {
     if (!is_center_family_method(method))
     {
-        throw InvalidInputException(
+        throw GelexException(
             "assoc --geno-method supports only center-family methods: "
             "2 (center-hwe), 4 (orth-center-hwe), 6 (center), 8 (orth-center)");
     }

@@ -44,8 +44,7 @@ BimReader::BimReader(const std::filesystem::path& path)
     }
     catch (const GelexException& e)
     {
-        throw FileFormatException(
-            std::format("{}:{}", path.string(), e.what()));
+        throw GelexException(std::format("{}:{}", path.string(), e.what()));
     }
 }
 
@@ -71,7 +70,7 @@ void BimReader::set_snp_info(char delimiter, std::ifstream& file)
         if (out != cols.end())
         {
             const auto count = std::distance(cols.begin(), out);
-            throw InconsistentColumnCountException(
+            throw GelexException(
                 std::format("{}: has {} columns, expected 6", n_line, count));
         }
         try
@@ -85,7 +84,7 @@ void BimReader::set_snp_info(char delimiter, std::ifstream& file)
         }
         catch (const gelex::GelexException& err)
         {
-            throw DataParseException(std::format("{}: {}", n_line, err.what()));
+            throw GelexException(std::format("{}: {}", n_line, err.what()));
         };
     }
 }

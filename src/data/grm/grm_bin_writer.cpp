@@ -41,7 +41,7 @@ auto GrmBinWriter::write(const Eigen::Ref<const Eigen::MatrixXd>& grm) -> void
 
     if (grm.rows() != grm.cols())
     {
-        throw InvalidInputException(
+        throw GelexException(
             std::format(
                 "{}: GRM must be square, got {}x{}",
                 path_.string(),
@@ -62,7 +62,7 @@ auto GrmBinWriter::write(const Eigen::Ref<const Eigen::MatrixXd>& grm) -> void
 
     if (!file_.good())
     {
-        throw FileWriteException(
+        throw GelexException(
             std::format(
                 "{}: failed to write GRM data to binary file", path_.string()));
     }

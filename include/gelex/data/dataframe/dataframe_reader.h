@@ -148,8 +148,7 @@ auto DataFrameReader<Key>::read() -> DataFrame<Key>
             {
                 if constexpr (!std::is_same_v<Key, std::string>)
                 {
-                    throw InvalidInputException(
-                        "composite index requires string Key");
+                    throw GelexException("composite index requires string Key");
                 }
                 else
                 {
@@ -176,7 +175,7 @@ auto DataFrameReader<Key>::read() -> DataFrame<Key>
     {
         if constexpr (std::is_same_v<Key, std::string>)
         {
-            throw InvalidInputException(
+            throw GelexException(
                 "auto-generated index requires arithmetic Key");
         }
         else
@@ -253,7 +252,7 @@ auto DataFrameReader<Key>::parse_arithmetic(std::string_view token) -> T
     auto [ptr, ec] = std::from_chars(token.data(), end, val);
     if (ec != std::errc{} || ptr != end)
     {
-        throw InvalidInputException(
+        throw GelexException(
             std::format("failed to parse '{}' as numeric", token));
     }
     return val;
@@ -300,7 +299,7 @@ auto DataFrameReader<Key>::check_col_range(std::size_t idx) -> void
 {
     if (idx >= n_cols_)
     {
-        throw InvalidInputException(
+        throw GelexException(
             std::format(
                 "column index {} out of range (file has {} columns)",
                 idx,
@@ -376,7 +375,7 @@ auto DataFrameReader<Key>::filter_row() -> bool
             {
                 if (options_->na_action == NaAction::Throw)
                 {
-                    throw InvalidInputException(
+                    throw GelexException(
                         std::format("NA value found in column {}", pos));
                 }
                 return false;

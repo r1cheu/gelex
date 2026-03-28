@@ -178,7 +178,7 @@ TEST_CASE(
     stats.update(valid);
     RunningStatsResult before = stats.result();
 
-    REQUIRE_THROWS_AS(stats.update(mismatch), InvalidInputException);
+    REQUIRE_THROWS_AS(stats.update(mismatch), GelexException);
 
     RunningStatsResult after = stats.result();
     require_vector_is_approx(after.mean, before.mean);
@@ -196,9 +196,9 @@ TEST_CASE("RunningStats rejects NaN and Inf", "[utils][running_stats]")
     Eigen::MatrixXd with_neg_inf(2, 2);
     with_neg_inf << 1.0, -std::numeric_limits<double>::infinity(), 3.0, 4.0;
 
-    REQUIRE_THROWS_AS(stats.update(with_nan), InvalidInputException);
-    REQUIRE_THROWS_AS(stats.update(with_inf), InvalidInputException);
-    REQUIRE_THROWS_AS(stats.update(with_neg_inf), InvalidInputException);
+    REQUIRE_THROWS_AS(stats.update(with_nan), GelexException);
+    REQUIRE_THROWS_AS(stats.update(with_inf), GelexException);
+    REQUIRE_THROWS_AS(stats.update(with_neg_inf), GelexException);
 }
 
 TEST_CASE(
@@ -210,7 +210,7 @@ TEST_CASE(
     Eigen::MatrixXd with_nan(2, 2);
     with_nan << 1.0, std::numeric_limits<double>::quiet_NaN(), 3.0, 4.0;
 
-    REQUIRE_THROWS_AS(stats.update(with_nan), InvalidInputException);
+    REQUIRE_THROWS_AS(stats.update(with_nan), GelexException);
 
     RunningStatsResult result = stats.result();
     REQUIRE(result.mean.size() == 0);
@@ -224,7 +224,7 @@ TEST_CASE(
     RunningStats stats;
     Eigen::MatrixXd zero_rows(0, 2);
 
-    REQUIRE_THROWS_AS(stats.update(zero_rows), InvalidInputException);
+    REQUIRE_THROWS_AS(stats.update(zero_rows), GelexException);
 
     RunningStatsResult result = stats.result();
     REQUIRE(result.mean.size() == 0);
@@ -244,7 +244,7 @@ TEST_CASE(
 
     Eigen::MatrixXd invalid(2, 2);
     invalid << 4.0, std::numeric_limits<double>::quiet_NaN(), 10.0, 11.0;
-    REQUIRE_THROWS_AS(stats.update(invalid), InvalidInputException);
+    REQUIRE_THROWS_AS(stats.update(invalid), GelexException);
 
     RunningStatsResult after = stats.result();
     require_vector_is_approx(after.mean, before.mean);

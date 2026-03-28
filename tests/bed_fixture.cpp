@@ -88,7 +88,7 @@ uint8_t genotype_to_code(double value)
         return 0b00;
     }
 
-    throw ArgumentValidationException(
+    throw GelexException(
         std::format(
             "Invalid genotype value: {}, must be 0.0, 1.0, 2.0, or NaN",
             value));
@@ -108,31 +108,27 @@ std::pair<std::filesystem::path, Eigen::MatrixXd> BedFixture::create_bed_files(
 {
     if (num_samples <= 0)
     {
-        throw ArgumentValidationException("number of samples must be positive");
+        throw GelexException("number of samples must be positive");
     }
     if (num_snps <= 0)
     {
-        throw ArgumentValidationException("number of SNPs must be positive");
+        throw GelexException("number of SNPs must be positive");
     }
     if (missing_rate < 0.0 || missing_rate > 1.0)
     {
-        throw ArgumentValidationException(
-            "missing rate must be in [0.0, 1.0] range");
+        throw GelexException("missing rate must be in [0.0, 1.0] range");
     }
     if (maf_min < 0.0 || maf_min > 0.5)
     {
-        throw ArgumentValidationException(
-            "minimum MAF must be in [0.0, 0.5] range");
+        throw GelexException("minimum MAF must be in [0.0, 0.5] range");
     }
     if (maf_max < 0.0 || maf_max > 0.5)
     {
-        throw ArgumentValidationException(
-            "maximum MAF must be in [0.0, 0.5] range");
+        throw GelexException("maximum MAF must be in [0.0, 0.5] range");
     }
     if (maf_min > maf_max)
     {
-        throw ArgumentValidationException(
-            "minimum MAF cannot be greater than maximum MAF");
+        throw GelexException("minimum MAF cannot be greater than maximum MAF");
     }
 
     rng_.seed(seed);
@@ -202,7 +198,7 @@ BedFixture::create_deterministic_bed_files(
     if (!sample_ids.empty()
         && static_cast<Eigen::Index>(sample_ids.size()) != num_samples)
     {
-        throw ArgumentValidationException(
+        throw GelexException(
             std::format(
                 "Sample ID count {} does not match genotype rows {}",
                 sample_ids.size(),
@@ -211,7 +207,7 @@ BedFixture::create_deterministic_bed_files(
     if (!snp_ids.empty()
         && static_cast<Eigen::Index>(snp_ids.size()) != num_snps)
     {
-        throw ArgumentValidationException(
+        throw GelexException(
             std::format(
                 "SNP ID count {} does not match genotype columns {}",
                 snp_ids.size(),
@@ -220,7 +216,7 @@ BedFixture::create_deterministic_bed_files(
     if (!chromosomes.empty()
         && static_cast<Eigen::Index>(chromosomes.size()) != num_snps)
     {
-        throw ArgumentValidationException(
+        throw GelexException(
             std::format(
                 "Chromosome count {} does not match genotype columns {}",
                 chromosomes.size(),
@@ -229,7 +225,7 @@ BedFixture::create_deterministic_bed_files(
     if (!alleles.empty()
         && static_cast<Eigen::Index>(alleles.size()) != num_snps)
     {
-        throw ArgumentValidationException(
+        throw GelexException(
             std::format(
                 "Allele pair count {} does not match genotype columns {}",
                 alleles.size(),

@@ -41,8 +41,7 @@ auto FixedEffect::build(
     }
     else
     {
-        throw gelex::InvalidInputException(
-            "At least one covariate must be provided");
+        throw gelex::GelexException("At least one covariate must be provided");
     }
 
     const auto qcov_cols = qcovariate ? qcovariate->X.cols() : 0;

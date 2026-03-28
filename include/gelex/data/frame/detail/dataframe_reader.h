@@ -69,15 +69,14 @@ class DataFrameReader
         std::ifstream file(path);
         if (!file.is_open())
         {
-            throw FileOpenException(
+            throw GelexException(
                 std::format("{}: failed to open file", path.string()));
         }
 
         std::string line;
         if (!std::getline(file, line))
         {
-            throw FileFormatException(
-                std::format("{}: is empty", path.string()));
+            throw GelexException(std::format("{}: is empty", path.string()));
         }
         if (!line.empty() && line.back() == '\r')
         {
@@ -104,7 +103,7 @@ class DataFrameReader
             {
                 if (col >= num_data_columns)
                 {
-                    throw ColumnRangeException(
+                    throw GelexException(
                         std::format(
                             "select_columns index {} is out of range [0, {})",
                             col,
@@ -163,7 +162,7 @@ class DataFrameReader
 
         if (frame.index_map_.contains(index_key))
         {
-            throw InvalidOperationException(
+            throw GelexException(
                 std::format("line {} has duplicated index key", line_number));
         }
 
@@ -196,7 +195,7 @@ class DataFrameReader
         if (header_tokens[kFidColumnIndex] != "FID"
             || header_tokens[kIidColumnIndex] != "IID")
         {
-            throw FileFormatException(
+            throw GelexException(
                 std::format(
                     "line {} header must start with FID and IID", line_number));
         }
@@ -240,7 +239,7 @@ class DataFrameReader
             switch (policy.missing_value_action)
             {
                 case MissingValueAction::Throw:
-                    throw DataParseException(
+                    throw GelexException(
                         std::format(
                             "line {} column {} has missing value",
                             line_number,
@@ -256,9 +255,9 @@ class DataFrameReader
         {
             return ValueParser<T>::parse(token);
         }
-        catch (const NumberParseException& ex)
+        catch (const GelexException& ex)
         {
-            throw DataParseException(
+            throw GelexException(
                 std::format(
                     "line {} column {} parse failed: {}",
                     line_number,

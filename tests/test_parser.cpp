@@ -127,7 +127,7 @@ TEST_CASE("File Stream I/O", "[parser]")
     {
         REQUIRE_THROWS_MATCHES(
             open_file<std::ifstream>("non_existent_path", std::ios::in),
-            gelex::FileNotFoundException,
+            gelex::GelexException,
             Catch::Matchers::MessageMatches(EndsWith("not found")));
     }
 
@@ -137,7 +137,7 @@ TEST_CASE("File Stream I/O", "[parser]")
 
         REQUIRE_THROWS_MATCHES(
             open_file<std::ifstream>(empty_file_path, std::ios::in),
-            gelex::FileFormatException,
+            gelex::GelexException,
             Catch::Matchers::MessageMatches(EndsWith("is empty")));
     }
 
@@ -147,12 +147,12 @@ TEST_CASE("File Stream I/O", "[parser]")
 
         REQUIRE_THROWS_MATCHES(
             open_file<std::ifstream>(dir_path, std::ios::in),
-            gelex::FileOpenException,
+            gelex::GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("is a directory, not a regular file")));
         REQUIRE_THROWS_MATCHES(
             open_file<std::ofstream>(dir_path, std::ios::out),
-            gelex::FileOpenException,
+            gelex::GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("is a directory, not a regular file")));
     }
@@ -217,25 +217,25 @@ TEST_CASE("Parser Double Parsing Tests", "[parser]")
     {
         REQUIRE_THROWS_MATCHES(
             parse_number("abc"),
-            gelex::NumberParseException,
+            gelex::GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("failed to parse 'abc' as number")));
 
         REQUIRE_THROWS_MATCHES(
             parse_number("1.2.3"),
-            gelex::NumberParseException,
+            gelex::GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("failed to parse '1.2.3' as number")));
 
         REQUIRE_THROWS_MATCHES(
             parse_number(""),
-            gelex::NumberParseException,
+            gelex::GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("empty string cannot be parsed as number")));
 
         REQUIRE_THROWS_MATCHES(
             parse_number(" "),
-            gelex::NumberParseException,
+            gelex::GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("failed to parse ' ' as number")));
     }
@@ -263,7 +263,7 @@ TEST_CASE("Parser ID Parsing Tests", "[parser]")
 
         REQUIRE_THROWS_MATCHES(
             parse_id(line, '\t'),
-            gelex::FileFormatException,
+            gelex::GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("failed to parse FID and IID (missing delimiter)")));
     }
@@ -311,7 +311,7 @@ TEST_CASE("Parser String Parsing Tests", "[parser]")
 
         REQUIRE_THROWS_MATCHES(
             parse_string(line, strings, 0, '\t'),
-            gelex::DataParseException,
+            gelex::GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("empty value encountered")));
     }

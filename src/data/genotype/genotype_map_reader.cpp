@@ -69,7 +69,7 @@ GenotypeMapReader::GenotypeMapReader(
     if (std::filesystem::exists(gbin_path))
     {
         logger->error("Output file already exists: [{}]", gbin_path.string());
-        throw FileExistsException(
+        throw GelexException(
             std::format("{}: existing file", gbin_path.string()));
     }
 

@@ -68,10 +68,10 @@ TEST_CASE("norm_ppf known values", "[math_utils]")
 
 TEST_CASE("norm_ppf boundary throws", "[math_utils]")
 {
-    CHECK_THROWS_AS(norm_ppf(0.0), gelex::InvalidInputException);
-    CHECK_THROWS_AS(norm_ppf(1.0), gelex::InvalidInputException);
-    CHECK_THROWS_AS(norm_ppf(-0.1), gelex::InvalidInputException);
-    CHECK_THROWS_AS(norm_ppf(1.1), gelex::InvalidInputException);
+    CHECK_THROWS_AS(norm_ppf(0.0), gelex::GelexException);
+    CHECK_THROWS_AS(norm_ppf(1.0), gelex::GelexException);
+    CHECK_THROWS_AS(norm_ppf(-0.1), gelex::GelexException);
+    CHECK_THROWS_AS(norm_ppf(1.1), gelex::GelexException);
 }
 
 TEST_CASE("norm_ppf symmetry", "[math_utils]")

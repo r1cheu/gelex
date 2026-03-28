@@ -91,7 +91,7 @@ Index<Key>::Index(std::vector<Key> keys) : keys_(std::move(keys))
         const auto& key = keys_[i];
         if (lookup_.contains(key))
         {
-            throw DuplicateIndexException(key);
+            throw GelexException(std::format("duplicate index: {}", key));
         }
         lookup_[key] = i;
     }
@@ -104,7 +104,7 @@ auto Index<Key>::push_back(K&& key) -> void
 {
     if (lookup_.contains(key))
     {
-        throw DuplicateIndexException(key);
+        throw GelexException(std::format("duplicate index: {}", key));
     }
     keys_.push_back(std::forward<K>(key));
     lookup_[keys_.back()] = keys_.size() - 1;
@@ -116,7 +116,7 @@ auto Index<Key>::at(const Key& key) const -> std::size_t
     auto it = lookup_.find(key);
     if (it == lookup_.end())
     {
-        throw InvalidInputException(std::format("index not found: {}", key));
+        throw GelexException(std::format("index not found: {}", key));
     }
     return it->second;
 }

@@ -47,8 +47,7 @@ struct IndexIntersector
             auto [_, inserted] = key_set.insert(key);
             if (!inserted)
             {
-                throw InvalidOperationException(
-                    "duplicate key in intersect input");
+                throw GelexException("duplicate key in intersect input");
             }
         }
 

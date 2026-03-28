@@ -46,7 +46,7 @@ struct ValueParser
             return value;
         }
 
-        throw NumberParseException(
+        throw GelexException(
             std::format("failed to parse '{}' as number", token));
     }
 };

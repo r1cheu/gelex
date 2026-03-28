@@ -24,8 +24,7 @@
 #include "gelex/data/dataframe/index.h"
 #include "gelex/exception.h"
 
-using gelex::DuplicateIndexException;
-using gelex::InvalidInputException;
+using gelex::GelexException;
 using gelex::df::Index;
 using gelex::df::intersect;
 
@@ -87,14 +86,14 @@ TEST_CASE(
 
 TEST_CASE("Index<string> construction with duplicate key throws", "[dataframe]")
 {
-    REQUIRE_THROWS_AS(make_str_index({"a", "b", "a"}), DuplicateIndexException);
+    REQUIRE_THROWS_AS(make_str_index({"a", "b", "a"}), GelexException);
 }
 
 TEST_CASE(
     "Index<int32_t> construction with duplicate key throws",
     "[dataframe]")
 {
-    REQUIRE_THROWS_AS(make_int_index({10, 20, 10}), DuplicateIndexException);
+    REQUIRE_THROWS_AS(make_int_index({10, 20, 10}), GelexException);
 }
 
 // ================================================================
@@ -142,13 +141,13 @@ TEST_CASE(
 TEST_CASE("Index<string> push_back of existing key throws", "[dataframe]")
 {
     auto idx = make_str_index({"a", "b"});
-    REQUIRE_THROWS_AS(idx.push_back("a"), DuplicateIndexException);
+    REQUIRE_THROWS_AS(idx.push_back("a"), GelexException);
 }
 
 TEST_CASE("Index<int32_t> push_back of existing key throws", "[dataframe]")
 {
     auto idx = make_int_index({10, 20});
-    REQUIRE_THROWS_AS(idx.push_back(10), DuplicateIndexException);
+    REQUIRE_THROWS_AS(idx.push_back(10), GelexException);
 }
 
 // ================================================================
@@ -166,13 +165,13 @@ TEST_CASE("Index<string> operator[] returns correct position", "[dataframe]")
 TEST_CASE("Index<string> operator[] for missing key throws", "[dataframe]")
 {
     auto idx = make_str_index({"a", "b"});
-    REQUIRE_THROWS_AS(idx.at("missing"), InvalidInputException);
+    REQUIRE_THROWS_AS(idx.at("missing"), GelexException);
 }
 
 TEST_CASE("Index<int32_t> operator[] for missing key throws", "[dataframe]")
 {
     auto idx = make_int_index({1, 2, 3});
-    REQUIRE_THROWS_AS(idx.at(99), InvalidInputException);
+    REQUIRE_THROWS_AS(idx.at(99), GelexException);
 }
 
 TEST_CASE(

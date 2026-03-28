@@ -48,7 +48,7 @@ auto GrmIdWriter::write(std::span<const std::string> ids) -> void
 
     if (!file_.good())
     {
-        throw FileWriteException(
+        throw GelexException(
             std::format("{}: failed to write ID data", path_.string()));
     }
 }

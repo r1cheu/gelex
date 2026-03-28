@@ -72,7 +72,7 @@ TEST_CASE("format_bed_path", "[data][bed_path]")
         auto missing = files.get_test_dir() / "missing_prefix";
         REQUIRE_THROWS_MATCHES(
             gelex::format_bed_path(missing.string()),
-            gelex::FileNotFoundException,
+            gelex::GelexException,
             Catch::Matchers::MessageMatches(EndsWith("file not found")));
     }
 }

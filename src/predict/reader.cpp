@@ -151,7 +151,7 @@ auto read_covariates(
     {
         if (!dcovar_df)
         {
-            throw InvalidInputException(
+            throw GelexException(
                 std::format(
                     "discrete covariate file required for term '{}'",
                     col_name));
@@ -190,7 +190,7 @@ auto read_covariates(
         {
             if (!qcovar_df)
             {
-                throw InvalidInputException(
+                throw GelexException(
                     std::format(
                         "quantitative covariate file required for term '{}'",
                         term));

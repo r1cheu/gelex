@@ -68,14 +68,13 @@ std::string parse_id(std::string_view line, char delimiter)
 
     if (it == end)
     {
-        throw FileFormatException("failed to parse FID (empty line)");
+        throw GelexException("failed to parse FID (empty line)");
     }
     std::string_view fid(*it);
 
     if (++it == end)
     {
-        throw FileFormatException(
-            "failed to parse FID and IID (missing delimiter)");
+        throw GelexException("failed to parse FID and IID (missing delimiter)");
     }
     std::string_view iid(*it);
     return make_sample_id(fid, iid);
@@ -96,7 +95,7 @@ void parse_string(
     {
         if (rng.empty())
         {
-            throw DataParseException("empty value encountered");
+            throw GelexException("empty value encountered");
         }
         out.emplace_back(rng);
     }

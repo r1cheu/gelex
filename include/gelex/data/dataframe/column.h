@@ -95,7 +95,7 @@ class Column
         auto* vec = std::get_if<std::vector<T>>(&storage);
         if (!vec)
         {
-            throw InvalidInputException(
+            throw GelexException(
                 std::format("column '{}': type mismatch", col_name));
         }
         return *vec;
@@ -119,7 +119,7 @@ auto Column::push_back(T&& value) -> void
     auto* vec = std::get_if<std::vector<Raw>>(&storage_);
     if (!vec)
     {
-        throw InvalidInputException(
+        throw GelexException(
             std::format("column '{}': push_back type mismatch", name_));
     }
     vec->push_back(std::forward<T>(value));

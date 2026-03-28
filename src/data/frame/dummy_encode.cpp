@@ -116,7 +116,7 @@ class DummyEncoder
             return;
         }
 
-        throw InvalidOperationException(
+        throw GelexException(
             std::format("column '{}' size mismatch", column_name));
     }
 

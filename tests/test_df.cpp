@@ -29,7 +29,7 @@
 #include "gelex/data/dataframe/dataframe_reader.h"
 #include "gelex/exception.h"
 
-using gelex::InvalidInputException;
+using gelex::GelexException;
 using gelex::df::ColumnType;
 using gelex::df::DataFrame;
 using gelex::df::intersect;
@@ -264,7 +264,7 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "read_dataframe with NaAction::Throw raises InvalidInputException on NA",
+    "read_dataframe with NaAction::Throw raises GelexException on NA",
     "[dataframe]")
 {
     FileFixture files;
@@ -280,8 +280,7 @@ TEST_CASE(
     opts.na_action = NaAction::Throw;
 
     REQUIRE_THROWS_AS(
-        read_dataframe<std::string>(path.string(), opts),
-        InvalidInputException);
+        read_dataframe<std::string>(path.string(), opts), GelexException);
 }
 
 // ================================================================
@@ -303,8 +302,7 @@ TEST_CASE(
     opts.schema = ColumnType::Double;
 
     REQUIRE_THROWS_AS(
-        read_dataframe<std::string>(path.string(), opts),
-        InvalidInputException);
+        read_dataframe<std::string>(path.string(), opts), GelexException);
 }
 
 // ================================================================
@@ -338,23 +336,23 @@ TEST_CASE(
 // ================================================================
 
 TEST_CASE(
-    "DataFrame col by non-existent name throws InvalidInputException",
+    "DataFrame col by non-existent name throws GelexException",
     "[dataframe]")
 {
     FileFixture files;
     auto df = make_basic_df(files);
 
-    REQUIRE_THROWS_AS(df["missing"], InvalidInputException);
+    REQUIRE_THROWS_AS(df["missing"], GelexException);
 }
 
 TEST_CASE(
-    "DataFrame col by out-of-range index throws InvalidInputException",
+    "DataFrame col by out-of-range index throws GelexException",
     "[dataframe]")
 {
     FileFixture files;
     auto df = make_basic_df(files);
 
-    REQUIRE_THROWS_AS(df.col(99), InvalidInputException);
+    REQUIRE_THROWS_AS(df.col(99), GelexException);
 }
 
 // ================================================================
@@ -562,8 +560,7 @@ TEST_CASE("DataFrame to_mat with invalid col_name throws", "[dataframe]")
 
     std::vector<std::string_view> names = {"nonexistent"};
     REQUIRE_THROWS_AS(
-        df.to_mat(std::span<const std::string_view>{names}),
-        InvalidInputException);
+        df.to_mat(std::span<const std::string_view>{names}), GelexException);
 }
 
 TEST_CASE(
@@ -585,18 +582,18 @@ TEST_CASE(
     REQUIRE_FALSE(df.contains("y"));
     REQUIRE(df["u"].name() == "u");
     REQUIRE(df["v"].name() == "v");
-    REQUIRE_THROWS_AS(df["x"], InvalidInputException);
+    REQUIRE_THROWS_AS(df["x"], GelexException);
 }
 
 TEST_CASE(
-    "DataFrame rename with duplicate names throws InvalidInputException",
+    "DataFrame rename with duplicate names throws GelexException",
     "[dataframe]")
 {
     FileFixture files;
     auto df = make_basic_df(files);
 
     std::vector<std::string> names = {"a", "a"};
-    REQUIRE_THROWS_AS(df.rename(names), InvalidInputException);
+    REQUIRE_THROWS_AS(df.rename(names), GelexException);
 }
 
 TEST_CASE(
@@ -625,5 +622,5 @@ TEST_CASE(
     REQUIRE_FALSE(df.contains("y"));
     REQUIRE(df["u"].name() == "u");
     REQUIRE(df["v"].name() == "v");
-    REQUIRE_THROWS_AS(df["x"], InvalidInputException);
+    REQUIRE_THROWS_AS(df["x"], GelexException);
 }

@@ -151,8 +151,7 @@ TEST_CASE(
                gelex::make_sample_id("FAM2", "IND2")};
         grm_files.create_id_only(ids);
 
-        REQUIRE_THROWS_AS(
-            GrmReader(grm_files.prefix()), gelex::FileOpenException);
+        REQUIRE_THROWS_AS(GrmReader(grm_files.prefix()), gelex::GelexException);
     }
 
     SECTION("Exception - missing .grm.id file")
@@ -162,8 +161,7 @@ TEST_CASE(
 
         grm_files.create_bin_only(matrix);
 
-        REQUIRE_THROWS_AS(
-            GrmReader(grm_files.prefix()), gelex::FileNotFoundException);
+        REQUIRE_THROWS_AS(GrmReader(grm_files.prefix()), gelex::GelexException);
     }
 }
 
@@ -186,8 +184,7 @@ TEST_CASE(
 
         grm_files.create(matrix, ids);
 
-        REQUIRE_THROWS_AS(
-            GrmReader(grm_files.prefix()), gelex::FileFormatException);
+        REQUIRE_THROWS_AS(GrmReader(grm_files.prefix()), gelex::GelexException);
     }
 
     SECTION("Exception - error message contains expected and actual size")
@@ -203,7 +200,7 @@ TEST_CASE(
 
         REQUIRE_THROWS_MATCHES(
             GrmReader(grm_files.prefix()),
-            gelex::FileFormatException,
+            gelex::GelexException,
             MessageMatches(ContainsSubstring("size mismatch")));
     }
 }
@@ -565,7 +562,7 @@ TEST_CASE(
             = {{gelex::make_sample_id("FAM0", "IND0"), 0},
                {gelex::make_sample_id("NONEXISTENT", "ID"), 1}};
 
-        REQUIRE_THROWS_AS(reader.load(id_map), gelex::InvalidInputException);
+        REQUIRE_THROWS_AS(reader.load(id_map), gelex::GelexException);
     }
 
     SECTION("Exception - error message contains the invalid ID")
@@ -583,7 +580,7 @@ TEST_CASE(
 
         REQUIRE_THROWS_MATCHES(
             reader.load(id_map),
-            gelex::InvalidInputException,
+            gelex::GelexException,
             MessageMatches(ContainsSubstring("MISSING")));
     }
 }

@@ -30,7 +30,7 @@ PredictWriter::PredictWriter(const std::filesystem::path& output_path)
 {
     if (output_path.empty())
     {
-        throw InvalidInputException("Output path must be provided");
+        throw GelexException("Output path must be provided");
     }
     writer_ = std::make_unique<detail::TextWriter>(output_path);
 }
@@ -90,7 +90,7 @@ auto PredictWriter::write(const PredictResult& result) -> void
     const auto n_samples = static_cast<Eigen::Index>(result.sample_ids.size());
     if (n_samples != result.predictions.size())
     {
-        throw InvalidInputException(
+        throw GelexException(
             std::format(
                 "Dimension mismatch: {} sample IDs but {} predictions",
                 result.sample_ids.size(),

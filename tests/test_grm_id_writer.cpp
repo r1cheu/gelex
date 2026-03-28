@@ -198,7 +198,7 @@ TEST_CASE("GrmIdWriter - Reject non-canonical IDs", "[grm_id_writer][error]")
         GrmIdWriter writer(file_path);
         REQUIRE_THROWS_MATCHES(
             writer.write(ids),
-            gelex::ArgumentValidationException,
+            gelex::GelexException,
             MessageMatches(ContainsSubstring("canonical FID<US>IID format")));
     }
 
@@ -210,7 +210,7 @@ TEST_CASE("GrmIdWriter - Reject non-canonical IDs", "[grm_id_writer][error]")
         GrmIdWriter writer(file_path);
         REQUIRE_THROWS_MATCHES(
             writer.write(ids),
-            gelex::ArgumentValidationException,
+            gelex::GelexException,
             MessageMatches(ContainsSubstring("canonical FID<US>IID format")));
     }
 
@@ -222,7 +222,7 @@ TEST_CASE("GrmIdWriter - Reject non-canonical IDs", "[grm_id_writer][error]")
         GrmIdWriter writer(file_path);
         REQUIRE_THROWS_MATCHES(
             writer.write(ids),
-            gelex::ArgumentValidationException,
+            gelex::GelexException,
             MessageMatches(ContainsSubstring("cannot be empty")));
     }
 
@@ -235,7 +235,7 @@ TEST_CASE("GrmIdWriter - Reject non-canonical IDs", "[grm_id_writer][error]")
         GrmIdWriter writer(file_path);
         REQUIRE_THROWS_MATCHES(
             writer.write(ids),
-            gelex::ArgumentValidationException,
+            gelex::GelexException,
             MessageMatches(ContainsSubstring("non-empty FID and IID")));
     }
 
@@ -248,7 +248,7 @@ TEST_CASE("GrmIdWriter - Reject non-canonical IDs", "[grm_id_writer][error]")
         GrmIdWriter writer(file_path);
         REQUIRE_THROWS_MATCHES(
             writer.write(ids),
-            gelex::ArgumentValidationException,
+            gelex::GelexException,
             MessageMatches(ContainsSubstring("non-empty FID and IID")));
     }
 }

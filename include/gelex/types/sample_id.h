@@ -34,11 +34,11 @@ inline auto make_sample_id(std::string_view fid, std::string_view iid)
 {
     if (fid.empty())
     {
-        throw ArgumentValidationException("FID cannot be empty");
+        throw GelexException("FID cannot be empty");
     }
     if (iid.empty())
     {
-        throw ArgumentValidationException("IID cannot be empty");
+        throw GelexException("IID cannot be empty");
     }
 
     return std::format("{}{}{}", fid, kSampleIdSeparator, iid);
@@ -49,13 +49,13 @@ inline auto split_sample_id(std::string_view sample_id)
 {
     if (sample_id.empty())
     {
-        throw ArgumentValidationException("sample ID cannot be empty");
+        throw GelexException("sample ID cannot be empty");
     }
 
     auto separator_pos = sample_id.find(kSampleIdSeparator);
     if (separator_pos == std::string_view::npos)
     {
-        throw ArgumentValidationException(
+        throw GelexException(
             "sample ID is not in the canonical FID<US>IID format");
     }
 
@@ -63,8 +63,7 @@ inline auto split_sample_id(std::string_view sample_id)
     auto iid = sample_id.substr(separator_pos + 1);
     if (fid.empty() || iid.empty())
     {
-        throw ArgumentValidationException(
-            "sample ID must contain non-empty FID and IID");
+        throw GelexException("sample ID must contain non-empty FID and IID");
     }
 
     return {fid, iid};

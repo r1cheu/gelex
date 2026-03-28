@@ -59,7 +59,7 @@ auto AssocLocoEngine::run(
 
     if (model.genetic().size() != grm_paths.size())
     {
-        throw InvalidInputException(
+        throw GelexException(
             "Number of genetic components in model does not match number "
             "of GRMs provided.");
     }

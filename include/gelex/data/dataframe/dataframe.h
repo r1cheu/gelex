@@ -55,8 +55,7 @@ class DataFrame
         auto it = self.col_lookup_.find(name);
         if (it == self.col_lookup_.end())
         {
-            throw InvalidInputException(
-                std::format("column not found: '{}'", name));
+            throw GelexException(std::format("column not found: '{}'", name));
         }
         return std::forward<Self>(self).col(it->second);
     }
@@ -65,7 +64,7 @@ class DataFrame
     {
         if (index >= self.columns_.size())
         {
-            throw InvalidInputException(
+            throw GelexException(
                 std::format("column index out of range: {}", index));
         }
         return std::forward<Self>(self).columns_[index];
@@ -147,7 +146,7 @@ auto DataFrame<Key>::set_name(std::size_t index, std::string_view new_name)
     auto [it, inserted] = col_lookup_.emplace(name, index);
     if (!inserted)
     {
-        throw InvalidInputException(
+        throw GelexException(
             std::format("duplicate column name: '{}'", new_name));
     }
     names_[index] = it->first;
@@ -159,7 +158,7 @@ auto DataFrame<Key>::rename(std::span<const std::string> new_names) -> void
 {
     if (new_names.size() != columns_.size())
     {
-        throw InvalidInputException(
+        throw GelexException(
             std::format(
                 "rename: {} names given but DataFrame has {} columns",
                 new_names.size(),
@@ -240,8 +239,7 @@ auto DataFrame<Key>::to_mat(std::span<const std::string_view> col_names) const
         auto it = col_lookup_.find(name);
         if (it == col_lookup_.end())
         {
-            throw InvalidInputException(
-                std::format("column not found: '{}'", name));
+            throw GelexException(std::format("column not found: '{}'", name));
         }
         indices.push_back(it->second);
     }

@@ -117,14 +117,14 @@ template <typename Scalar = double>
 {
     if (levels.empty())
     {
-        throw InvalidInputException(
+        throw GelexException(
             std::format(
                 "encode: levels must not be empty for column '{}'",
                 col.name()));
     }
     if (detail::has_duplicates(levels))
     {
-        throw InvalidInputException(
+        throw GelexException(
             std::format(
                 "encode: levels contain duplicates for column '{}'",
                 col.name()));
@@ -144,7 +144,7 @@ template <typename Scalar = double>
     auto levels = collect_levels(col);
     if (levels.size() < 2)
     {
-        throw InvalidInputException(
+        throw GelexException(
             std::format(
                 "encoding requires at least 2 levels, column '{}' has {}",
                 col.name(),
@@ -160,7 +160,7 @@ template <typename Scalar = double>
     auto levels = collect_levels(col);
     if (levels.size() < 2)
     {
-        throw InvalidInputException(
+        throw GelexException(
             std::format(
                 "encoding requires at least 2 levels, column '{}' has {}",
                 col.name(),

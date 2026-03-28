@@ -319,7 +319,7 @@ TEST_CASE(
 {
     FileFixture files;
 
-    SECTION("Exception - non-square matrix (3x5) throws InvalidInputException")
+    SECTION("Exception - non-square matrix (3x5) throws GelexException")
     {
         auto file_path = files.generate_random_file_path(".grm.bin");
 
@@ -327,10 +327,10 @@ TEST_CASE(
         matrix.setOnes();
 
         GrmBinWriter writer(file_path);
-        REQUIRE_THROWS_AS(writer.write(matrix), gelex::InvalidInputException);
+        REQUIRE_THROWS_AS(writer.write(matrix), gelex::GelexException);
     }
 
-    SECTION("Exception - non-square matrix (5x3) throws InvalidInputException")
+    SECTION("Exception - non-square matrix (5x3) throws GelexException")
     {
         auto file_path = files.generate_random_file_path(".grm.bin");
 
@@ -338,7 +338,7 @@ TEST_CASE(
         matrix.setOnes();
 
         GrmBinWriter writer(file_path);
-        REQUIRE_THROWS_AS(writer.write(matrix), gelex::InvalidInputException);
+        REQUIRE_THROWS_AS(writer.write(matrix), gelex::GelexException);
     }
 
     SECTION("Exception - error message contains dimensions")
@@ -351,7 +351,7 @@ TEST_CASE(
         GrmBinWriter writer(file_path);
         REQUIRE_THROWS_MATCHES(
             writer.write(matrix),
-            gelex::InvalidInputException,
+            gelex::GelexException,
             MessageMatches(ContainsSubstring("3x7")));
     }
 }

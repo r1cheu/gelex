@@ -27,14 +27,13 @@ TextWriter::TextWriter(const std::filesystem::path& path) : path_(path)
 {
     if (std::filesystem::is_directory(path_))
     {
-        throw FileOpenException(
-            std::format("{}: is a directory", path_.string()));
+        throw GelexException(std::format("{}: is a directory", path_.string()));
     }
     ofs_.rdbuf()->pubsetbuf(buf_.data(), kBufSize);
     ofs_.open(path_, std::ios::out);
     if (!ofs_.is_open())
     {
-        throw FileOpenException(
+        throw GelexException(
             std::format("{}: failed to open file", path_.string()));
     }
 }

@@ -142,7 +142,7 @@ void FileFixture::write_to_file(
     std::ofstream file(filepath);
     if (!file)
     {
-        throw FileWriteException(
+        throw GelexException(
             std::format("{}:Failed to create file", filepath.string()));
     }
     file << content;
@@ -160,7 +160,7 @@ void FileFixture::write_to_file(
     std::ofstream file(filepath, std::ios::binary);
     if (!file)
     {
-        throw FileWriteException(
+        throw GelexException(
             std::format("{}:Failed to create binary file", filepath.string()));
     }
     file.write(

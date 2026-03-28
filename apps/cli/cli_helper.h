@@ -71,7 +71,7 @@ inline auto parse_genotype_process_method(std::string_view value)
     auto it = kMethodMap.find(lower);
     if (it == kMethodMap.end())
     {
-        throw gelex::InvalidInputException(
+        throw gelex::GelexException(
             "Invalid genotype process method: \"" + std::string(value)
             + "\". Valid: StandardizeHWE(SH), CenterHWE(CH),"
               " OrthStandardizeHWE(OSH), OrthCenterHWE(OCH),"

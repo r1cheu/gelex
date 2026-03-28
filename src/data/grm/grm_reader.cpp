@@ -71,7 +71,7 @@ auto GrmReader::load_sample_ids() -> void
         auto tab_pos = line.find('\t');
         if (tab_pos == std::string::npos)
         {
-            throw FileFormatException(
+            throw GelexException(
                 std::format(
                     "{}: invalid ID line '{}' (expected FID and IID)",
                     id_path_.string(),
@@ -87,7 +87,7 @@ auto GrmReader::load_sample_ids() -> void
 
     if (sample_ids_.empty())
     {
-        throw FileFormatException(
+        throw GelexException(
             std::format("{}: no sample IDs found", id_path_.string()));
     }
 
@@ -100,7 +100,7 @@ auto GrmReader::init_mmap() -> void
     mmap_.map(bin_path_.string(), ec);
     if (ec)
     {
-        throw FileOpenException(
+        throw GelexException(
             std::format("{}: failed to mmap file", bin_path_.string()));
     }
 
@@ -112,7 +112,7 @@ auto GrmReader::init_mmap() -> void
 
     if (mmap_.size() != expected_size)
     {
-        throw FileFormatException(
+        throw GelexException(
             std::format(
                 "{}: file size mismatch. Expected {} bytes ({} samples), got "
                 "{} bytes",
@@ -194,7 +194,7 @@ auto GrmReader::load_unnormalized(
         auto it = file_id_to_idx.find(id);
         if (it == file_id_to_idx.end())
         {
-            throw InvalidInputException(
+            throw GelexException(
                 std::format(
                     "{}: sample ID '{}' not found in GRM file",
                     bin_path_.string(),
