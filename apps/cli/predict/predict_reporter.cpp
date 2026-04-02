@@ -1,6 +1,6 @@
 #include "predict_reporter.h"
 
-#include <format>
+#include <fmt/format.h>
 
 #include <fmt/base.h>
 
@@ -37,7 +37,7 @@ auto PredictReporter::on_event(const PredictSnpSelectionEvent& event) const
 
     if (event.num_mismatched > 0)
     {
-        std::string plink_hint = std::format(
+        std::string plink_hint = fmt::format(
             "plink2 --bfile {} --alt1-allele {} 4 1 1 --make-bed --out "
             "<output>",
             event.bfile_path,

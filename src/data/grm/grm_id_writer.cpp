@@ -16,7 +16,7 @@
 
 #include "gelex/data/grm/grm_id_writer.h"
 
-#include <format>
+#include <fmt/format.h>
 
 #include "gelex/exception.h"
 #include "gelex/io/parser.h"
@@ -49,7 +49,7 @@ auto GrmIdWriter::write(std::span<const std::string> ids) -> void
     if (!file_.good())
     {
         throw GelexException(
-            std::format("{}: failed to write ID data", path_.string()));
+            fmt::format("{}: failed to write ID data", path_.string()));
     }
 }
 

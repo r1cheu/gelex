@@ -17,7 +17,7 @@
 #include "bed_fixture.h"
 
 #include <cstdint>
-#include <format>
+#include <fmt/format.h>
 #include <limits>
 #include <random>
 #include <string>
@@ -89,7 +89,7 @@ uint8_t genotype_to_code(double value)
     }
 
     throw GelexException(
-        std::format(
+        fmt::format(
             "Invalid genotype value: {}, must be 0.0, 1.0, 2.0, or NaN",
             value));
 }
@@ -199,7 +199,7 @@ BedFixture::create_deterministic_bed_files(
         && static_cast<Eigen::Index>(sample_ids.size()) != num_samples)
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "Sample ID count {} does not match genotype rows {}",
                 sample_ids.size(),
                 num_samples));
@@ -208,7 +208,7 @@ BedFixture::create_deterministic_bed_files(
         && static_cast<Eigen::Index>(snp_ids.size()) != num_snps)
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "SNP ID count {} does not match genotype columns {}",
                 snp_ids.size(),
                 num_snps));
@@ -217,7 +217,7 @@ BedFixture::create_deterministic_bed_files(
         && static_cast<Eigen::Index>(chromosomes.size()) != num_snps)
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "Chromosome count {} does not match genotype columns {}",
                 chromosomes.size(),
                 num_snps));
@@ -226,7 +226,7 @@ BedFixture::create_deterministic_bed_files(
         && static_cast<Eigen::Index>(alleles.size()) != num_snps)
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "Allele pair count {} does not match genotype columns {}",
                 alleles.size(),
                 num_snps));
@@ -320,7 +320,7 @@ void BedFixture::write_bim_file(
         std::string chrom
             = chromosomes.empty() ? "1" : std::string(chromosomes[i]);
         std::string snp_id
-            = snp_ids.empty() ? std::format("rs{}", i + 1) : snp_ids[i];
+            = snp_ids.empty() ? fmt::format("rs{}", i + 1) : snp_ids[i];
 
         std::pair<char, char> allele_pair;
         if (alleles.empty())
@@ -332,7 +332,7 @@ void BedFixture::write_bim_file(
             allele_pair = alleles[i];
         }
 
-        bim_content += std::format(
+        bim_content += fmt::format(
             "{}\t{}\t{}\t{}\t{}\t{}\n",
             chrom,
             snp_id,
@@ -357,13 +357,13 @@ void BedFixture::write_fam_file(
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
         std::string sample_id = sample_ids.empty()
-                                    ? std::format("sample{}", i + 1)
+                                    ? fmt::format("sample{}", i + 1)
                                     : sample_ids[i];
 
-        std::string fid = std::format("fam{}", (i % 5) + 1);
+        std::string fid = fmt::format("fam{}", (i % 5) + 1);
 
         fam_content
-            += std::format("{} {} 0 0 {} -9\n", fid, sample_id, (i % 2) + 1);
+            += fmt::format("{} {} 0 0 {} -9\n", fid, sample_id, (i % 2) + 1);
     }
 
     [[maybe_unused]] auto fam_file_path = file_fixture_.create_named_text_file(
@@ -394,7 +394,7 @@ std::vector<std::string> BedFixture::generate_random_sample_ids(
 
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
-        ids.push_back(std::format("sample{}", i + 1));
+        ids.push_back(fmt::format("sample{}", i + 1));
     }
 
     return ids;
@@ -409,7 +409,7 @@ std::vector<std::string> BedFixture::generate_random_snp_ids(
 
     for (Eigen::Index i = 0; i < num_snps; ++i)
     {
-        ids.push_back(std::format("rs{}", i + 1));
+        ids.push_back(fmt::format("rs{}", i + 1));
     }
 
     return ids;

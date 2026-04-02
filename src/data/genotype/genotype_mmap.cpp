@@ -16,10 +16,10 @@
 
 #include "gelex/data/genotype/genotype_mmap.h"
 
+#include <fmt/format.h>
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>
-#include <format>
 
 #include "gelex/io/binary_reader.h"
 
@@ -34,17 +34,17 @@ GenotypeMap::GenotypeMap(
     const auto effect = EffectType::from_genetic(effect_type);
     reader_ = std::make_unique<detail::BinaryReader>(bin_file.string());
 
-    auto geno_map = reader_->to_map<double>(std::format("{}/genotype", effect));
+    auto geno_map = reader_->to_map<double>(fmt::format("{}/genotype", effect));
     rows_ = geno_map.rows();
     cols_ = geno_map.cols();
     new (&mat_) MapType(geno_map.data(), rows_, cols_);
 
     auto stats_mat
-        = reader_->to_mat<double>(std::format("{}/loci_stats", effect));
+        = reader_->to_mat<double>(fmt::format("{}/loci_stats", effect));
     mean_ = stats_mat.col(0);
     stddev_ = stats_mat.col(1);
 
-    if (const auto path = std::format("{}/mono_indices", effect);
+    if (const auto path = fmt::format("{}/mono_indices", effect);
         reader_->contains(path))
     {
         auto mono_mat = reader_->to_mat<int64_t>(path);

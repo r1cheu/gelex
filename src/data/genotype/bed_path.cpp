@@ -16,7 +16,7 @@
 
 #include "gelex/data/genotype/bed_path.h"
 
-#include <format>
+#include <fmt/format.h>
 
 #include "gelex/exception.h"
 
@@ -33,7 +33,7 @@ auto format_bed_path(std::string_view bed_path) -> std::filesystem::path
 
     if (!std::filesystem::exists(bed))
     {
-        throw GelexException(std::format("{}: file not found", bed.string()));
+        throw GelexException(fmt::format("{}: file not found", bed.string()));
     }
     return bed;
 }

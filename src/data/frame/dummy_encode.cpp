@@ -16,7 +16,7 @@
 
 #include "gelex/data/frame/dummy_encode.h"
 
-#include <format>
+#include <fmt/format.h>
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -94,7 +94,7 @@ class DummyEncoder
 
     static auto warn_monomorphic_column(std::string_view column_name) -> void
     {
-        const auto message = std::format(
+        const auto message = fmt::format(
             "column '{}' is monomorphic and will be skipped in dummy encoding",
             column_name);
 
@@ -117,7 +117,7 @@ class DummyEncoder
         }
 
         throw GelexException(
-            std::format("column '{}' size mismatch", column_name));
+            fmt::format("column '{}' size mismatch", column_name));
     }
 
     static auto register_level(ColumnMeta& meta, const std::string& value)

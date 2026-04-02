@@ -16,8 +16,8 @@
 
 #include "gelex/io/simulation_writer.h"
 
+#include <fmt/format.h>
 #include <algorithm>
-#include <format>
 #include <span>
 #include <string>
 #include <string_view>
@@ -64,7 +64,7 @@ void SimulationWriter::write_phenotypes(
     {
         const std::string_view full_id(sample_ids[i]);
         auto [fid, iid] = split_sample_id(full_id);
-        writer.write(std::format("{}\t{}\t{}", fid, iid, phenotypes[i]));
+        writer.write(fmt::format("{}\t{}\t{}", fid, iid, phenotypes[i]));
     }
 }
 
@@ -90,7 +90,7 @@ void SimulationWriter::write_causal_effects(
     for (Eigen::Index i = 0; i < row_count; ++i)
     {
         writer.write(
-            std::format(
+            fmt::format(
                 "{}\t{}\t{}\t{}\t{}",
                 snp_ids[i],
                 effects.additive(i),

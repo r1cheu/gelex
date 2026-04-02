@@ -16,7 +16,6 @@
 
 #include <nanobench.h>
 
-#include <format>
 #include <fstream>
 
 #include <fmt/compile.h>
@@ -33,7 +32,7 @@ int main()
             "StdFormatStream",
             [&]()
             {
-                ofs << std::format(
+                ofs << fmt::format(
                     "{}\t{}\t{:.6f}\t{:.6f}\t{:.6e}\n",
                     "rs1234567",
                     1,

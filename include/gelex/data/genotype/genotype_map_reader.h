@@ -17,10 +17,10 @@
 #ifndef GELEX_DATA_GENOTYPE_MAP_READER_H_
 #define GELEX_DATA_GENOTYPE_MAP_READER_H_
 
+#include <fmt/format.h>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <format>
 #include <memory>
 #include <vector>
 
@@ -52,7 +52,7 @@ class GenotypeMapReader
         -> GenotypeMap
     {
         constexpr auto effect = EffectType::from_genetic(GT);
-        const auto geno_path = std::format("{}/genotype", effect);
+        const auto geno_path = fmt::format("{}/genotype", effect);
         genotype_handle_
             = writer_->reserve<double>(geno_path, sample_size_, num_variants_);
 
@@ -114,14 +114,14 @@ class GenotypeMapReader
         constexpr auto effect = EffectType::from_genetic(GT);
 
         auto stats_handle = writer_->reserve<double>(
-            std::format("{}/loci_stats", effect), num_variants_, 2);
+            fmt::format("{}/loci_stats", effect), num_variants_, 2);
         writer_->write(stats_handle, means_);
         writer_->write(stats_handle, variances_);
 
         if (!monomorphic_indices_.empty())
         {
             auto mono_handle = writer_->reserve<int64_t>(
-                std::format("{}/mono_indices", effect),
+                fmt::format("{}/mono_indices", effect),
                 monomorphic_indices_.size(),
                 1);
             writer_->write(mono_handle, monomorphic_indices_);

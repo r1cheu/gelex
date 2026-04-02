@@ -16,7 +16,7 @@
 
 #include "gelex/data/genotype/bed_pipe.h"
 
-#include <format>
+#include <fmt/format.h>
 #include <limits>
 #include <memory>
 #include <span>
@@ -45,7 +45,7 @@ auto validate_chunk_range(
     if (start_col < 0 || end_col > max_cols || start_col >= end_col)
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "invalid chunk range: [{}, {}). Total SNPs: {}",
                 start_col,
                 end_col,

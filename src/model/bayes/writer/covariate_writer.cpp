@@ -16,7 +16,7 @@
 
 #include "gelex/model/bayes/writer/covariate_writer.h"
 
-#include <format>
+#include <fmt/format.h>
 #include <memory>
 
 #include "gelex/io/text_writer.h"
@@ -51,7 +51,7 @@ auto CovariateWriter::write_fixed_effects() -> void
         [&](const std::string& term, Eigen::Index i)
         {
             writer_->write(
-                std::format(
+                fmt::format(
                     "{}\t{}\t{}",
                     term,
                     fixed_->coeffs.mean(i),
@@ -67,7 +67,7 @@ auto CovariateWriter::write_random_effects() -> void
             [&](const std::string& term, Eigen::Index i)
             {
                 writer_->write(
-                    std::format(
+                    fmt::format(
                         "{}\t{}\t{}",
                         term,
                         rand.coeffs.mean(i),

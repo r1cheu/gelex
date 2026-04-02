@@ -17,7 +17,7 @@
 #include "file_fixture.h"
 
 #include <atomic>
-#include <format>
+#include <fmt/format.h>
 #include <fstream>
 #include <ios>
 #include <utility>
@@ -35,7 +35,7 @@ FileFixture::FileFixture()
 {
     static std::atomic<int> counter{0};
     auto dir_name
-        = std::format("gelex_test_{}_{}", ::getpid(), counter.fetch_add(1));
+        = fmt::format("gelex_test_{}_{}", ::getpid(), counter.fetch_add(1));
     test_dir_ = fs::temp_directory_path() / dir_name;
 
     fs::create_directories(test_dir_);
@@ -127,7 +127,7 @@ const fs::path& FileFixture::get_test_dir() const noexcept
 
 fs::path FileFixture::next_path(std::string_view suffix)
 {
-    return test_dir_ / std::format("test_{}{}", file_counter_++, suffix);
+    return test_dir_ / fmt::format("test_{}{}", file_counter_++, suffix);
 }
 
 void FileFixture::write_to_file(
@@ -143,7 +143,7 @@ void FileFixture::write_to_file(
     if (!file)
     {
         throw GelexException(
-            std::format("{}:Failed to create file", filepath.string()));
+            fmt::format("{}:Failed to create file", filepath.string()));
     }
     file << content;
 }
@@ -161,7 +161,7 @@ void FileFixture::write_to_file(
     if (!file)
     {
         throw GelexException(
-            std::format("{}:Failed to create binary file", filepath.string()));
+            fmt::format("{}:Failed to create binary file", filepath.string()));
     }
     file.write(
         reinterpret_cast<const char*>(content.data()),  // NOLINT

@@ -16,8 +16,8 @@
 
 #include "predict/predict_writer.h"
 
+#include <fmt/format.h>
 #include <cstddef>
-#include <format>
 
 #include "gelex/exception.h"
 #include "gelex/io/text_writer.h"
@@ -68,18 +68,18 @@ auto PredictWriter::write_row(
 {
     row_buf_.clear();
     auto [fid, iid] = split_sample_id(sample_id);
-    row_buf_ += std::format("{}\t{}", fid, iid);
-    row_buf_ += std::format("\t{:.6f}", total_prediction);
+    row_buf_ += fmt::format("{}\t{}", fid, iid);
+    row_buf_ += fmt::format("\t{:.6f}", total_prediction);
 
     for (Eigen::Index j = 0; j < covar_pred.cols(); ++j)
     {
-        row_buf_ += std::format("\t{:.6f}", covar_pred(j));
+        row_buf_ += fmt::format("\t{:.6f}", covar_pred(j));
     }
 
-    row_buf_ += std::format("\t{:.6f}", add_pred);
+    row_buf_ += fmt::format("\t{:.6f}", add_pred);
     if (has_dom)
     {
-        row_buf_ += std::format("\t{:.6f}", dom_pred);
+        row_buf_ += fmt::format("\t{:.6f}", dom_pred);
     }
 
     writer_->write(row_buf_);
@@ -91,7 +91,7 @@ auto PredictWriter::write(const PredictResult& result) -> void
     if (n_samples != result.predictions.size())
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "Dimension mismatch: {} sample IDs but {} predictions",
                 result.sample_ids.size(),
                 result.predictions.size()));

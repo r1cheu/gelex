@@ -89,7 +89,7 @@ std::string format_eta(double seconds)
     int h = total_seconds / 3600;
     int m = total_seconds / 60;
     int s = total_seconds % 60;
-    return std::format("{:02d}:{:02d}:{:02d}", h, m, s);
+    return fmt::format("{:02d}:{:02d}:{:02d}", h, m, s);
 }
 
 std::string done_message(double elapsed_seconds)

@@ -17,8 +17,8 @@
 #ifndef GELEX_DATA_DATAFRAME_DATAFRAME_H
 #define GELEX_DATA_DATAFRAME_DATAFRAME_H
 
+#include <fmt/format.h>
 #include <cstddef>
-#include <format>
 #include <initializer_list>
 #include <ranges>
 #include <span>
@@ -55,7 +55,7 @@ class DataFrame
         auto it = self.col_lookup_.find(name);
         if (it == self.col_lookup_.end())
         {
-            throw GelexException(std::format("column not found: '{}'", name));
+            throw GelexException(fmt::format("column not found: '{}'", name));
         }
         return std::forward<Self>(self).col(it->second);
     }
@@ -65,7 +65,7 @@ class DataFrame
         if (index >= self.columns_.size())
         {
             throw GelexException(
-                std::format("column index out of range: {}", index));
+                fmt::format("column index out of range: {}", index));
         }
         return std::forward<Self>(self).columns_[index];
     }
@@ -147,7 +147,7 @@ auto DataFrame<Key>::set_name(std::size_t index, std::string_view new_name)
     if (!inserted)
     {
         throw GelexException(
-            std::format("duplicate column name: '{}'", new_name));
+            fmt::format("duplicate column name: '{}'", new_name));
     }
     names_[index] = it->first;
     columns_[index].rename(it->first);
@@ -159,7 +159,7 @@ auto DataFrame<Key>::rename(std::span<const std::string> new_names) -> void
     if (new_names.size() != columns_.size())
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "rename: {} names given but DataFrame has {} columns",
                 new_names.size(),
                 columns_.size()));
@@ -239,7 +239,7 @@ auto DataFrame<Key>::to_mat(std::span<const std::string_view> col_names) const
         auto it = col_lookup_.find(name);
         if (it == col_lookup_.end())
         {
-            throw GelexException(std::format("column not found: '{}'", name));
+            throw GelexException(fmt::format("column not found: '{}'", name));
         }
         indices.push_back(it->second);
     }

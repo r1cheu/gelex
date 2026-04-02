@@ -17,9 +17,9 @@
 #ifndef GELEX_DATA_DATAFRAME_COLUMN_H
 #define GELEX_DATA_DATAFRAME_COLUMN_H
 
+#include <fmt/format.h>
 #include <cstddef>
 #include <cstdint>
-#include <format>
 #include <span>
 #include <string>
 #include <string_view>
@@ -96,7 +96,7 @@ class Column
         if (!vec)
         {
             throw GelexException(
-                std::format("column '{}': type mismatch", col_name));
+                fmt::format("column '{}': type mismatch", col_name));
         }
         return *vec;
     }
@@ -120,7 +120,7 @@ auto Column::push_back(T&& value) -> void
     if (!vec)
     {
         throw GelexException(
-            std::format("column '{}': push_back type mismatch", name_));
+            fmt::format("column '{}': push_back type mismatch", name_));
     }
     vec->push_back(std::forward<T>(value));
 }

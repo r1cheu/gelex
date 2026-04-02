@@ -16,11 +16,11 @@
 
 #include "gelex/io/binary_writer.h"
 
+#include <fmt/format.h>
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <format>
 #include <fstream>
 #include <string>
 #include <string_view>
@@ -48,7 +48,7 @@ auto BinaryWriter::check_duplicate_path(std::string_view path) const -> void
         if (binary_format::path_as_view(rs.entry.path) == path)
         {
             throw GelexException(
-                std::format(
+                fmt::format(
                     "{}: duplicate section path \"{}\"",
                     output_path_.string(),
                     path));
@@ -65,7 +65,7 @@ auto BinaryWriter::reserve(
     if (path.size() > binary_format::kMaxPathLength)
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "{}: path too long ({} > {}): \"{}\"",
                 output_path_.string(),
                 path.size(),
@@ -104,7 +104,7 @@ auto BinaryWriter::write_raw(
     if (handle >= reserved_.size())
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "{}: invalid section handle {}",
                 output_path_.string(),
                 handle));
@@ -115,7 +115,7 @@ auto BinaryWriter::write_raw(
     if (rs.cursor + static_cast<uint64_t>(bytes) > end_bound)
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "{}: write overflow: cursor={}, bytes={}, limit={}",
                 output_path_.string(),
                 rs.cursor,
@@ -162,7 +162,7 @@ auto BinaryWriter::finalize() -> void
         if (rs.cursor != expected)
         {
             throw GelexException(
-                std::format(
+                fmt::format(
                     "{}: section not fully written: cursor={}, "
                     "expected={}",
                     output_path_.string(),
@@ -188,7 +188,7 @@ auto BinaryWriter::finalize() -> void
     if (!file_.good())
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "{}: failed to write binary file", output_path_.string()));
     }
 }

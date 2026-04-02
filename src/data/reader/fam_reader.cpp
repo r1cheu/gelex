@@ -39,7 +39,7 @@ FamReader::FamReader(const std::filesystem::path& path)
     }
     catch (const GelexException& e)
     {
-        throw GelexException(std::format("{}:{}", path.string(), e.what()));
+        throw GelexException(fmt::format("{}:{}", path.string(), e.what()));
     }
 }
 
@@ -66,7 +66,7 @@ void FamReader::set_ids(const std::filesystem::path& path)
         }
         catch (const GelexException& e)
         {
-            throw GelexException(std::format("{}: {}", n_line, e.what()));
+            throw GelexException(fmt::format("{}: {}", n_line, e.what()));
         }
     }
 }

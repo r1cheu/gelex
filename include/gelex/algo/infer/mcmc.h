@@ -126,7 +126,7 @@ void MCMC<TraitSampler>::validate_checkpoint(
         if (actual != expected)
         {
             throw GelexException(
-                std::format(
+                fmt::format(
                     "checkpoint dimension mismatch for {}: expected {}, got {}",
                     label,
                     expected,
@@ -139,7 +139,7 @@ void MCMC<TraitSampler>::validate_checkpoint(
     if (state.random().size() != model.random().size())
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "checkpoint random effect count mismatch: expected {}, got {}",
                 model.random().size(),
                 state.random().size()));
@@ -149,7 +149,7 @@ void MCMC<TraitSampler>::validate_checkpoint(
         check(
             state.random()[i].coeffs.size(),
             model.random()[i].X.cols(),
-            std::format("random[{}].coeffs", i));
+            fmt::format("random[{}].coeffs", i));
     }
 
     for (const auto& gs : state.genetics())
@@ -158,11 +158,11 @@ void MCMC<TraitSampler>::validate_checkpoint(
         if (effect == nullptr)
         {
             throw GelexException(
-                std::format(
+                fmt::format(
                     "checkpoint has genetic type {} not in model",
                     EffectType::from_genetic(gs.type)));
         }
-        const auto label = std::format("{}", EffectType::from_genetic(gs.type));
+        const auto label = fmt::format("{}", EffectType::from_genetic(gs.type));
         check(gs.coeffs.size(), bayes::get_cols(effect->X), label + ".coeffs");
         check(gs.u.size(), bayes::get_rows(effect->X), label + ".u");
     }

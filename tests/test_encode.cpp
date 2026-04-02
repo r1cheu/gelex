@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <format>
+#include <fmt/format.h>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -69,9 +69,9 @@ TEST_CASE("one_hot_encode levels are sorted", "[encode][dataframe]")
     auto col = make_col("g", {"B", "A", "B", "C"});
     auto result = one_hot_encode(col);
 
-    REQUIRE(result.level_names[0] == std::format("g{}A", kSeparator));
-    REQUIRE(result.level_names[1] == std::format("g{}B", kSeparator));
-    REQUIRE(result.level_names[2] == std::format("g{}C", kSeparator));
+    REQUIRE(result.level_names[0] == fmt::format("g{}A", kSeparator));
+    REQUIRE(result.level_names[1] == fmt::format("g{}B", kSeparator));
+    REQUIRE(result.level_names[2] == fmt::format("g{}C", kSeparator));
 }
 
 TEST_CASE("one_hot_encode matrix has correct values", "[encode][dataframe]")
@@ -139,8 +139,8 @@ TEST_CASE(
     auto col = make_col("g", {"C", "B", "A"});
     auto result = dummy_encode(col);
 
-    REQUIRE(result.level_names[0] == std::format("g{}B", kSeparator));
-    REQUIRE(result.level_names[1] == std::format("g{}C", kSeparator));
+    REQUIRE(result.level_names[0] == fmt::format("g{}B", kSeparator));
+    REQUIRE(result.level_names[1] == fmt::format("g{}C", kSeparator));
 }
 
 TEST_CASE("dummy_encode matrix has correct values", "[encode][dataframe]")
@@ -168,7 +168,7 @@ TEST_CASE(
 
     REQUIRE(result.data.rows() == 3);
     REQUIRE(result.data.cols() == 1);
-    REQUIRE(result.level_names[0] == std::format("sex{}M", kSeparator));
+    REQUIRE(result.level_names[0] == fmt::format("sex{}M", kSeparator));
 }
 
 TEST_CASE("dummy_encode single level throws", "[encode][dataframe]")
@@ -211,9 +211,9 @@ TEST_CASE(
     auto result = encode(col, levels);
 
     // C=col0, A=col1, B=col2
-    REQUIRE(result.level_names[0] == std::format("g{}C", kSeparator));
-    REQUIRE(result.level_names[1] == std::format("g{}A", kSeparator));
-    REQUIRE(result.level_names[2] == std::format("g{}B", kSeparator));
+    REQUIRE(result.level_names[0] == fmt::format("g{}C", kSeparator));
+    REQUIRE(result.level_names[1] == fmt::format("g{}A", kSeparator));
+    REQUIRE(result.level_names[2] == fmt::format("g{}B", kSeparator));
 
     Eigen::MatrixXd expected(3, 3);
     // clang-format off

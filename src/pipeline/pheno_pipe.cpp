@@ -16,8 +16,8 @@
 
 #include "gelex/pipeline/pheno_pipe.h"
 
+#include <fmt/format.h>
 #include <algorithm>
-#include <format>
 #include <optional>
 #include <span>
 #include <string>
@@ -74,7 +74,7 @@ auto PhenoPipe::load_phenotypes() -> void
     if (column_index < 0)
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "Phenotype column {} is out of range, expected >= 2",
                 config_.phenotype_column));
     }

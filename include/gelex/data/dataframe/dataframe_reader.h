@@ -23,7 +23,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <format>
 #include <fstream>
 #include <numeric>
 #include <optional>
@@ -253,7 +252,7 @@ auto DataFrameReader<Key>::parse_arithmetic(std::string_view token) -> T
     if (ec != std::errc{} || ptr != end)
     {
         throw GelexException(
-            std::format("failed to parse '{}' as numeric", token));
+            fmt::format("failed to parse '{}' as numeric", token));
     }
     return val;
 }
@@ -300,8 +299,9 @@ auto DataFrameReader<Key>::check_col_range(std::size_t idx) -> void
     if (idx >= n_cols_)
     {
         throw GelexException(
-            std::format(
-                "column index {} out of range (file has {} columns)",
+            fmt::format(
+                "{} column index {} out of range (file has {} columns)",
+                path_.string(),
                 idx,
                 n_cols_));
     }
@@ -376,7 +376,7 @@ auto DataFrameReader<Key>::filter_row() -> bool
                 if (options_->na_action == NaAction::Throw)
                 {
                     throw GelexException(
-                        std::format("NA value found in column {}", pos));
+                        fmt::format("NA value found in column {}", pos));
                 }
                 return false;
             }

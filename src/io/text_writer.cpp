@@ -16,7 +16,7 @@
 
 #include "gelex/io/text_writer.h"
 
-#include <format>
+#include <fmt/format.h>
 
 #include "gelex/exception.h"
 
@@ -27,14 +27,14 @@ TextWriter::TextWriter(const std::filesystem::path& path) : path_(path)
 {
     if (std::filesystem::is_directory(path_))
     {
-        throw GelexException(std::format("{}: is a directory", path_.string()));
+        throw GelexException(fmt::format("{}: is a directory", path_.string()));
     }
     ofs_.rdbuf()->pubsetbuf(buf_.data(), kBufSize);
     ofs_.open(path_, std::ios::out);
     if (!ofs_.is_open())
     {
         throw GelexException(
-            std::format("{}: failed to open file", path_.string()));
+            fmt::format("{}: failed to open file", path_.string()));
     }
 }
 

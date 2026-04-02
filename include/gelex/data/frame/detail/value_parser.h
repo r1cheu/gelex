@@ -17,9 +17,9 @@
 #ifndef GELEX_DATA_FRAME_DETAIL_VALUE_PARSER_H_
 #define GELEX_DATA_FRAME_DETAIL_VALUE_PARSER_H_
 
+#include <fmt/format.h>
 #include <charconv>
 #include <concepts>
-#include <format>
 #include <string>
 #include <string_view>
 
@@ -47,7 +47,7 @@ struct ValueParser
         }
 
         throw GelexException(
-            std::format("failed to parse '{}' as number", token));
+            fmt::format("failed to parse '{}' as number", token));
     }
 };
 

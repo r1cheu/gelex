@@ -16,7 +16,7 @@
 
 #include "gelex/data/genotype/genotype_mat_reader.h"
 
-#include <format>
+#include <fmt/format.h>
 #include <new>  // for std::bad_alloc
 #include "Eigen/Core"
 
@@ -42,7 +42,7 @@ GenotypeMatReader::GenotypeMatReader(
     catch (const std::bad_alloc&)
     {
         throw std::runtime_error(
-            std::format(
+            fmt::format(
                 "Memory allocation failed for Genotype Matrix ({} x {}). "
                 "Requires approx {:.2f} GB RAM.",
                 sample_size_,

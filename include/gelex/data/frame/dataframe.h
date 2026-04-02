@@ -17,11 +17,11 @@
 #ifndef GELEX_DATA_DATAFRAME_H_
 #define GELEX_DATA_DATAFRAME_H_
 
+#include <fmt/format.h>
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <filesystem>
-#include <format>
 #include <span>
 #include <string>
 #include <type_traits>
@@ -116,7 +116,7 @@ auto compute_common_index_keys(std::span<const DataFrame<T>* const> frames)
         const DataFrame<T>* frame = frames[i];
         if (frame == nullptr)
         {
-            throw GelexException(std::format("frames[{}] cannot be null", i));
+            throw GelexException(fmt::format("frames[{}] cannot be null", i));
         }
 
         std::unordered_set<std::string> next_keys;
@@ -189,7 +189,7 @@ auto DataFrame<T>::column(size_t i) const -> const Column<T>&
 {
     if (i >= columns_.size())
     {
-        throw GelexException(std::format("column {} is out of range", i));
+        throw GelexException(fmt::format("column {} is out of range", i));
     }
 
     return columns_[i];
@@ -228,7 +228,7 @@ auto DataFrame<T>::eigen() const
         if (values.size() != static_cast<size_t>(rows))
         {
             throw GelexException(
-                std::format(
+                fmt::format(
                     "column '{}' size mismatch",
                     columns_[static_cast<size_t>(col)].name()));
         }

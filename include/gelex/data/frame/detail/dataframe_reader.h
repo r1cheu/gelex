@@ -17,9 +17,9 @@
 #ifndef GELEX_DATA_FRAME_DETAIL_DATAFRAME_READER_H_
 #define GELEX_DATA_FRAME_DETAIL_DATAFRAME_READER_H_
 
+#include <fmt/format.h>
 #include <cstddef>
 #include <filesystem>
-#include <format>
 #include <fstream>
 #include <optional>
 #include <span>
@@ -70,13 +70,13 @@ class DataFrameReader
         if (!file.is_open())
         {
             throw GelexException(
-                std::format("{}: failed to open file", path.string()));
+                fmt::format("{}: failed to open file", path.string()));
         }
 
         std::string line;
         if (!std::getline(file, line))
         {
-            throw GelexException(std::format("{}: is empty", path.string()));
+            throw GelexException(fmt::format("{}: is empty", path.string()));
         }
         if (!line.empty() && line.back() == '\r')
         {
@@ -104,7 +104,7 @@ class DataFrameReader
                 if (col >= num_data_columns)
                 {
                     throw GelexException(
-                        std::format(
+                        fmt::format(
                             "select_columns index {} is out of range [0, {})",
                             col,
                             num_data_columns));
@@ -163,7 +163,7 @@ class DataFrameReader
         if (frame.index_map_.contains(index_key))
         {
             throw GelexException(
-                std::format("line {} has duplicated index key", line_number));
+                fmt::format("line {} has duplicated index key", line_number));
         }
 
         for (size_t i = 0; i < frame.columns_.size(); ++i)
@@ -196,7 +196,7 @@ class DataFrameReader
             || header_tokens[kIidColumnIndex] != "IID")
         {
             throw GelexException(
-                std::format(
+                fmt::format(
                     "line {} header must start with FID and IID", line_number));
         }
     }
@@ -240,7 +240,7 @@ class DataFrameReader
             {
                 case MissingValueAction::Throw:
                     throw GelexException(
-                        std::format(
+                        fmt::format(
                             "line {} column {} has missing value",
                             line_number,
                             column_index));
@@ -258,7 +258,7 @@ class DataFrameReader
         catch (const GelexException& ex)
         {
             throw GelexException(
-                std::format(
+                fmt::format(
                     "line {} column {} parse failed: {}",
                     line_number,
                     column_index,

@@ -16,7 +16,7 @@
 
 #include "gelex/model/bayes/writer/parameter_writer.h"
 
-#include <format>
+#include <fmt/format.h>
 #include <memory>
 #include <string>
 
@@ -61,7 +61,7 @@ auto ParameterWriter::write_fixed_effects() -> void
         [&](const std::string& term, Eigen::Index i)
         {
             writer_->write(
-                std::format(
+                fmt::format(
                     "{}\t{}\t{}",
                     term,
                     fixed.coeffs.mean(i),
@@ -77,7 +77,7 @@ auto ParameterWriter::write_random_effects() -> void
             [&](const std::string& term, Eigen::Index i)
             {
                 writer_->write(
-                    std::format(
+                    fmt::format(
                         "{}\t{}\t{}",
                         term,
                         rand.coeffs.mean(i),
@@ -85,7 +85,7 @@ auto ParameterWriter::write_random_effects() -> void
             });
 
         writer_->write(
-            std::format(
+            fmt::format(
                 "σ²_{}\t{}\t{}",
                 rand.name,
                 rand.variance.mean(0),
@@ -122,7 +122,7 @@ auto ParameterWriter::write_genetic_effect(
         proportion_terms.reserve(base.mixture_proportion.size());
         for (Index i = 0; i < base.mixture_proportion.size(); ++i)
         {
-            proportion_terms.emplace_back(std::format("π[{}]", i));
+            proportion_terms.emplace_back(fmt::format("π[{}]", i));
         }
 
         write_summary_statistics(proportion_terms, base.mixture_proportion);
@@ -136,7 +136,7 @@ auto ParameterWriter::write_summary_statistics(
     for (Index i = 0; i < stats.size(); ++i)
     {
         writer_->write(
-            std::format(
+            fmt::format(
                 "{}\t{}\t{}", terms[i], stats.mean(i), stats.stddev(i)));
     }
 }

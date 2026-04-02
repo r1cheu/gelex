@@ -16,9 +16,9 @@
 
 #include "gelex/algo/sim/genetic_value_calculator.h"
 
+#include <fmt/format.h>
 #include <algorithm>
 #include <cstddef>
-#include <format>
 #include <utility>
 
 #include <Eigen/Core>
@@ -70,7 +70,7 @@ auto GeneticValueCalculator::calculate(
     if (effects.size() != n_snps)
     {
         throw gelex::GelexException(
-            std::format(
+            fmt::format(
                 "Number of effects should match the number of SNPs, but got {} "
                 "effects for {} SNPs",
                 effects.size(),

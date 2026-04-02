@@ -16,8 +16,8 @@
 
 #include "gelex/io/locistats_writer.h"
 
+#include <fmt/format.h>
 #include <cstdint>
-#include <format>
 #include <span>
 #include <string>
 #include <string_view>
@@ -43,7 +43,7 @@ auto LociStatsWriter::write(
     if (stddev != nullptr && mean.size() != stddev->size())
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "LociStatsWriter: mean size ({}) != stddev size ({})",
                 mean.size(),
                 stddev->size()));
@@ -53,11 +53,11 @@ auto LociStatsWriter::write(
     const Eigen::Index n_cols = (stddev != nullptr) ? 2 : 1;
 
     auto handle
-        = writer_.reserve<uint8_t>(std::format("{}/geno_method", effect), 1, 1);
+        = writer_.reserve<uint8_t>(fmt::format("{}/geno_method", effect), 1, 1);
     writer_.write(handle, method);
 
     auto stats_handle = writer_.reserve<double>(
-        std::format("{}/loci_stats", effect), n_snps, n_cols);
+        fmt::format("{}/loci_stats", effect), n_snps, n_cols);
 
     writer_.write(stats_handle, mean);
 
@@ -69,7 +69,7 @@ auto LociStatsWriter::write(
     if (!mono_indices.empty())
     {
         auto mono_handle = writer_.reserve<int64_t>(
-            std::format("{}/mono_indices", effect), mono_indices.size(), 1);
+            fmt::format("{}/mono_indices", effect), mono_indices.size(), 1);
         writer_.write(mono_handle, mono_indices);
     }
 }

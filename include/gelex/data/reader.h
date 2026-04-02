@@ -26,7 +26,7 @@ inline auto read_fam(const std::filesystem::path& path)
     -> df::DataFrame<std::string>
 {
     df::ReadOptions options;
-    options.delimiter = ' ';
+    options.delimiter = '\t';
     options.header = false;
     options.index_cols = {0, 1};
     return df::read_dataframe<std::string>(path, options);

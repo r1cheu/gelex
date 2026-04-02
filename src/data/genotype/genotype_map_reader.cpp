@@ -70,7 +70,7 @@ GenotypeMapReader::GenotypeMapReader(
     {
         logger->error("Output file already exists: [{}]", gbin_path.string());
         throw GelexException(
-            std::format("{}: existing file", gbin_path.string()));
+            fmt::format("{}: existing file", gbin_path.string()));
     }
 
     num_variants_ = bed_pipe_.num_snps();

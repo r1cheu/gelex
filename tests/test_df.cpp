@@ -15,7 +15,7 @@
  */
 
 #include <cstdint>
-#include <format>
+#include <fmt/format.h>
 #include <span>
 #include <string>
 #include <string_view>
@@ -227,9 +227,9 @@ TEST_CASE(
 
     REQUIRE(df.rows() == 3);
 
-    auto key0 = std::format("{}{}{}", "F1", kSeparator, "I1");
-    auto key1 = std::format("{}{}{}", "F1", kSeparator, "I2");
-    auto key2 = std::format("{}{}{}", "F2", kSeparator, "I1");
+    auto key0 = fmt::format("{}{}{}", "F1", kSeparator, "I1");
+    auto key1 = fmt::format("{}{}{}", "F1", kSeparator, "I2");
+    auto key2 = fmt::format("{}{}{}", "F2", kSeparator, "I1");
 
     REQUIRE(df.index().at(key0) == 0);
     REQUIRE(df.index().at(key1) == 1);

@@ -17,7 +17,7 @@
 #ifndef GELEX_DATA_DATAFRAME_ENCODE_H_
 #define GELEX_DATA_DATAFRAME_ENCODE_H_
 
-#include <format>
+#include <fmt/format.h>
 #include <span>
 #include <string>
 #include <string_view>
@@ -118,14 +118,14 @@ template <typename Scalar = double>
     if (levels.empty())
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "encode: levels must not be empty for column '{}'",
                 col.name()));
     }
     if (detail::has_duplicates(levels))
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "encode: levels contain duplicates for column '{}'",
                 col.name()));
     }
@@ -145,7 +145,7 @@ template <typename Scalar = double>
     if (levels.size() < 2)
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "encoding requires at least 2 levels, column '{}' has {}",
                 col.name(),
                 levels.size()));
@@ -161,7 +161,7 @@ template <typename Scalar = double>
     if (levels.size() < 2)
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "encoding requires at least 2 levels, column '{}' has {}",
                 col.name(),
                 levels.size()));

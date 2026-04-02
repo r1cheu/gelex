@@ -16,9 +16,9 @@
 
 #include "gelex/model/bayes/writer/checkpoint_writer.h"
 
+#include <fmt/format.h>
 #include <cstdint>
 #include <filesystem>
-#include <format>
 #include <span>
 #include <sstream>
 #include <variant>
@@ -55,7 +55,7 @@ auto write_uint8(
 auto write_fixed(detail::BinaryWriter& writer, const bayes::FixedState& fs)
     -> void
 {
-    writer.write(std::format("{}/coeff", EffectType::fixed()), fs.coeffs);
+    writer.write(fmt::format("{}/coeff", EffectType::fixed()), fs.coeffs);
 }
 
 auto write_random(
@@ -66,10 +66,10 @@ auto write_random(
     {
         const auto& rs = random_states[i];
         writer.write(
-            std::format("{}/coeff/{}", EffectType::random(), i), rs.coeffs);
+            fmt::format("{}/coeff/{}", EffectType::random(), i), rs.coeffs);
         write_scalar(
             writer,
-            std::format("{}/variance/{}", EffectType::random(), i),
+            fmt::format("{}/variance/{}", EffectType::random(), i),
             rs.variance);
     }
 }
@@ -79,8 +79,9 @@ auto write_assignment(
     const EffectType& effect,
     const bayes::Assignment& a) -> void
 {
-    writer.write(std::format("{}/group/assignment", effect), a.tracker);
-    writer.write(std::format("{}/group/proportion", effect), a.proportion);
+    writer.write(fmt::format("{}/group/assignment", effect), a.tracker);
+    writer.write(fmt::format("{}/group/proportion", effect), a.proportion);
+    writer.write(fmt::format("{}/group/stick_probs", effect), a.stick_probs);
 }
 
 auto write_component_allocation(
@@ -93,13 +94,13 @@ auto write_component_allocation(
     for (uint8_t ci = 0; ci < static_cast<uint8_t>(ca.component_u.size()); ++ci)
     {
         writer.write(
-            std::format("{}/component_u/{}", effect, ci), ca.component_u[ci]);
+            fmt::format("{}/component_u/{}", effect, ci), ca.component_u[ci]);
     }
 
     if (ca.component_variance.size() > 0)
     {
         writer.write(
-            std::format("{}/component_variance", effect),
+            fmt::format("{}/component_variance", effect),
             ca.component_variance);
     }
 }
@@ -130,8 +131,9 @@ auto write_genetic_sign(
     const EffectType& effect,
     const bayes::Assignment& sign) -> void
 {
-    writer.write(std::format("{}/sign/assignment", effect), sign.tracker);
-    writer.write(std::format("{}/sign/proportion", effect), sign.proportion);
+    writer.write(fmt::format("{}/sign/assignment", effect), sign.tracker);
+    writer.write(fmt::format("{}/sign/proportion", effect), sign.proportion);
+    writer.write(fmt::format("{}/sign/stick_probs", effect), sign.stick_probs);
 }
 
 auto write_genetics(
@@ -141,11 +143,11 @@ auto write_genetics(
     for (const auto& gs : genetic_states)
     {
         const auto effect = EffectType::from_genetic(gs.type);
-        writer.write(std::format("{}/coeff", effect), gs.coeffs);
-        write_scalar(writer, std::format("{}/variance", effect), gs.variance);
-        writer.write(std::format("{}/gebv", effect), gs.u);
+        writer.write(fmt::format("{}/coeff", effect), gs.coeffs);
+        write_scalar(writer, fmt::format("{}/variance", effect), gs.variance);
+        writer.write(fmt::format("{}/gebv", effect), gs.u);
         writer.write(
-            std::format("{}/marker_variance", effect), gs.marker_variance);
+            fmt::format("{}/marker_variance", effect), gs.marker_variance);
 
         if (gs.group)
         {
@@ -162,10 +164,10 @@ auto write_residual(
     detail::BinaryWriter& writer,
     const bayes::ResidualState& rs) -> void
 {
-    writer.write(std::format("{}/adj_pheno", EffectType::residual()), rs.y_adj);
+    writer.write(fmt::format("{}/adj_pheno", EffectType::residual()), rs.y_adj);
     write_scalar(
         writer,
-        std::format("{}/variance", EffectType::residual()),
+        fmt::format("{}/variance", EffectType::residual()),
         rs.variance);
 }
 
@@ -187,11 +189,11 @@ auto write_variance_prior(
     std::string_view prefix,
     const bayes::VariancePrior& vp) -> void
 {
-    write_scalar(writer, std::format("{}/nu", prefix), vp.param.nu);
-    write_scalar(writer, std::format("{}/s2", prefix), vp.param.s2);
-    write_scalar(writer, std::format("{}/init", prefix), vp.init);
+    write_scalar(writer, fmt::format("{}/nu", prefix), vp.param.nu);
+    write_scalar(writer, fmt::format("{}/s2", prefix), vp.param.s2);
+    write_scalar(writer, fmt::format("{}/init", prefix), vp.init);
     write_scalar(
-        writer, std::format("{}/size", prefix), static_cast<double>(vp.size));
+        writer, fmt::format("{}/size", prefix), static_cast<double>(vp.size));
 }
 
 auto write_genetic_prior(
@@ -199,33 +201,33 @@ auto write_genetic_prior(
     const bayes::GeneticPrior& gp) -> void
 {
     const auto effect = EffectType::from_genetic(gp.type);
-    const auto prefix = std::format("prior/{}", effect);
+    const auto prefix = fmt::format("prior/{}", effect);
 
     const auto type_index = static_cast<uint8_t>(gp.marker.index());
-    write_uint8(writer, std::format("{}/type", prefix), type_index);
+    write_uint8(writer, fmt::format("{}/type", prefix), type_index);
 
     std::visit(
         [&](const auto& mp)
         {
             write_variance_prior(
-                writer, std::format("{}/variance", prefix), mp.variance);
+                writer, fmt::format("{}/variance", prefix), mp.variance);
             using T = std::decay_t<decltype(mp)>;
             if constexpr (
                 std::is_same_v<T, bayes::SpikePrior>
                 || std::is_same_v<T, bayes::MixturePrior>)
             {
                 writer.write(
-                    std::format("{}/proportion/init", prefix),
+                    fmt::format("{}/proportion/init", prefix),
                     mp.proportion.init);
                 write_uint8(
                     writer,
-                    std::format("{}/proportion/estimate", prefix),
+                    fmt::format("{}/proportion/estimate", prefix),
                     static_cast<uint8_t>(mp.proportion.estimate));
             }
             if constexpr (std::is_same_v<T, bayes::MixturePrior>)
             {
                 writer.write(
-                    std::format("{}/multiplier", prefix), mp.multiplier);
+                    fmt::format("{}/multiplier", prefix), mp.multiplier);
             }
         },
         gp.marker);
@@ -233,7 +235,7 @@ auto write_genetic_prior(
     if (gp.sign)
     {
         write_scalar(
-            writer, std::format("{}/sign", prefix), gp.sign->init_value);
+            writer, fmt::format("{}/sign", prefix), gp.sign->init_value);
     }
 }
 
@@ -242,14 +244,14 @@ auto write_priors(detail::BinaryWriter& writer, const bayes::Priors& priors)
 {
     write_variance_prior(
         writer,
-        std::format("prior/{}", EffectType::residual()),
+        fmt::format("prior/{}", EffectType::residual()),
         priors.residual());
 
     for (size_t i = 0; i < priors.random().size(); ++i)
     {
         write_variance_prior(
             writer,
-            std::format("prior/{}/{}", EffectType::random(), i),
+            fmt::format("prior/{}/{}", EffectType::random(), i),
             priors.random()[i]);
     }
 
@@ -267,8 +269,8 @@ auto write_checkpoint(
     const bayes::Priors& priors,
     std::string_view prefix) -> void
 {
-    auto path = std::format("{}.ckpt", prefix);
-    auto tmp_path = std::format("{}.ckpt.tmp", prefix);
+    auto path = fmt::format("{}.ckpt", prefix);
+    auto tmp_path = fmt::format("{}.ckpt.tmp", prefix);
 
     detail::BinaryWriter writer(tmp_path);
 

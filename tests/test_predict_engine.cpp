@@ -16,7 +16,7 @@
 
 #include <cstdint>
 #include <filesystem>
-#include <format>
+#include <fmt/format.h>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -212,7 +212,7 @@ auto create_qcovar_file(
         for (const auto& [_, vals] : covars)
         {
             content += '\t';
-            content += std::format("{}", vals[i]);
+            content += fmt::format("{}", vals[i]);
         }
         content += '\n';
     }

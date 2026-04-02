@@ -18,7 +18,7 @@
 #define TESTS_TEST_INIT_H_
 
 #include <filesystem>
-#include <format>
+#include <fmt/format.h>
 #include "gelex/infra/logger.h"
 
 #include <unistd.h>
@@ -38,7 +38,7 @@ struct TestInitializer
 
     static auto log_prefix() -> std::string
     {
-        return std::format("test_output_{}", ::getpid());
+        return fmt::format("test_output_{}", ::getpid());
     }
 
     static void clean_test_files()

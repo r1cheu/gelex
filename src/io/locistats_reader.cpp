@@ -16,8 +16,8 @@
 
 #include "gelex/io/locistats_reader.h"
 
+#include <fmt/format.h>
 #include <cstdint>
-#include <format>
 #include <string>
 #include <string_view>
 
@@ -33,18 +33,18 @@ LociStatsReader::LociStatsReader(std::string_view file_path)
 
 auto LociStatsReader::has(EffectType effect) const -> bool
 {
-    return reader_.contains(std::format("{}/loci_stats", effect));
+    return reader_.contains(fmt::format("{}/loci_stats", effect));
 }
 
 auto LociStatsReader::read(EffectType effect) const -> LociStats
 {
     auto stats_map
-        = reader_.to_map<double>(std::format("{}/loci_stats", effect));
+        = reader_.to_map<double>(fmt::format("{}/loci_stats", effect));
 
     LociStats data;
     data.mean = stats_map.col(0);
 
-    if (const auto path = std::format("{}/geno_method", effect);
+    if (const auto path = fmt::format("{}/geno_method", effect);
         reader_.contains(path))
     {
         auto method_map = reader_.to_map<uint8_t>(path);
@@ -56,7 +56,7 @@ auto LociStatsReader::read(EffectType effect) const -> LociStats
         data.stddev = Eigen::VectorXd(stats_map.col(1));
     }
 
-    if (const auto path = std::format("{}/mono_indices", effect);
+    if (const auto path = fmt::format("{}/mono_indices", effect);
         reader_.contains(path))
     {
         auto mono_mat = reader_.to_map<int64_t>(path);

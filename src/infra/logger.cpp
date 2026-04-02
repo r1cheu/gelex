@@ -140,7 +140,7 @@ void initialize(std::string_view output_prefix)
             console_sink->set_formatter(std::make_unique<LevelFormatter>());
 
             const std::string log_filename
-                = std::format("{}.log", output_prefix);
+                = fmt::format("{}.log", output_prefix);
             auto file_sink
                 = std::make_shared<spdlog::sinks::basic_file_sink_st>(
                     log_filename, true);

@@ -17,10 +17,10 @@
 #ifndef GELEX_DATA_DATAFRAME_INDEX_H
 #define GELEX_DATA_DATAFRAME_INDEX_H
 
+#include <fmt/format.h>
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
-#include <format>
 #include <initializer_list>
 #include <span>
 #include <unordered_map>
@@ -91,7 +91,7 @@ Index<Key>::Index(std::vector<Key> keys) : keys_(std::move(keys))
         const auto& key = keys_[i];
         if (lookup_.contains(key))
         {
-            throw GelexException(std::format("duplicate index: {}", key));
+            throw GelexException(fmt::format("duplicate index: {}", key));
         }
         lookup_[key] = i;
     }
@@ -104,7 +104,7 @@ auto Index<Key>::push_back(K&& key) -> void
 {
     if (lookup_.contains(key))
     {
-        throw GelexException(std::format("duplicate index: {}", key));
+        throw GelexException(fmt::format("duplicate index: {}", key));
     }
     keys_.push_back(std::forward<K>(key));
     lookup_[keys_.back()] = keys_.size() - 1;
@@ -116,7 +116,7 @@ auto Index<Key>::at(const Key& key) const -> std::size_t
     auto it = lookup_.find(key);
     if (it == lookup_.end())
     {
-        throw GelexException(std::format("index not found: {}", key));
+        throw GelexException(fmt::format("index not found: {}", key));
     }
     return it->second;
 }

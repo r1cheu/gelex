@@ -17,7 +17,7 @@
 #ifndef GELEX_TYPES_SAMPLE_ID_H_
 #define GELEX_TYPES_SAMPLE_ID_H_
 
-#include <format>
+#include <fmt/format.h>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -41,7 +41,7 @@ inline auto make_sample_id(std::string_view fid, std::string_view iid)
         throw GelexException("IID cannot be empty");
     }
 
-    return std::format("{}{}{}", fid, kSampleIdSeparator, iid);
+    return fmt::format("{}{}{}", fid, kSampleIdSeparator, iid);
 }
 
 inline auto split_sample_id(std::string_view sample_id)

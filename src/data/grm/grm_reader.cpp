@@ -16,8 +16,8 @@
 
 #include "gelex/data/grm/grm_reader.h"
 
+#include <fmt/format.h>
 #include <algorithm>
-#include <format>
 #include <fstream>
 #include <string>
 #include <system_error>
@@ -72,7 +72,7 @@ auto GrmReader::load_sample_ids() -> void
         if (tab_pos == std::string::npos)
         {
             throw GelexException(
-                std::format(
+                fmt::format(
                     "{}: invalid ID line '{}' (expected FID and IID)",
                     id_path_.string(),
                     line));
@@ -88,7 +88,7 @@ auto GrmReader::load_sample_ids() -> void
     if (sample_ids_.empty())
     {
         throw GelexException(
-            std::format("{}: no sample IDs found", id_path_.string()));
+            fmt::format("{}: no sample IDs found", id_path_.string()));
     }
 
     num_samples_ = static_cast<Eigen::Index>(sample_ids_.size());
@@ -101,7 +101,7 @@ auto GrmReader::init_mmap() -> void
     if (ec)
     {
         throw GelexException(
-            std::format("{}: failed to mmap file", bin_path_.string()));
+            fmt::format("{}: failed to mmap file", bin_path_.string()));
     }
 
     // GRM binary format: [float32 lower triangle]
@@ -113,7 +113,7 @@ auto GrmReader::init_mmap() -> void
     if (mmap_.size() != expected_size)
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "{}: file size mismatch. Expected {} bytes ({} samples), got "
                 "{} bytes",
                 bin_path_.string(),
@@ -195,7 +195,7 @@ auto GrmReader::load_unnormalized(
         if (it == file_id_to_idx.end())
         {
             throw GelexException(
-                std::format(
+                fmt::format(
                     "{}: sample ID '{}' not found in GRM file",
                     bin_path_.string(),
                     id));

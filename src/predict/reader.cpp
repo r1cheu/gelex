@@ -16,9 +16,9 @@
 
 #include "gelex/predict/reader.h"
 
+#include <fmt/format.h>
 #include <algorithm>
 #include <cstddef>
-#include <format>
 #include <fstream>
 #include <map>
 #include <sstream>
@@ -152,7 +152,7 @@ auto read_covariates(
         if (!dcovar_df)
         {
             throw GelexException(
-                std::format(
+                fmt::format(
                     "discrete covariate file required for term '{}'",
                     col_name));
         }
@@ -191,7 +191,7 @@ auto read_covariates(
             if (!qcovar_df)
             {
                 throw GelexException(
-                    std::format(
+                    fmt::format(
                         "quantitative covariate file required for term '{}'",
                         term));
             }

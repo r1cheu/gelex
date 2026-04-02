@@ -16,7 +16,7 @@
 
 #include "gelex/model/bayes/writer/snp_effects_writer.h"
 
-#include <format>
+#include <fmt/format.h>
 #include <memory>
 
 #include "gelex/io/text_writer.h"
@@ -78,7 +78,7 @@ auto SnpEffectsWriter::write_header() -> void
     {
         for (Index comp = 0; comp < n_add_components; ++comp)
         {
-            h += std::format("\tpi_{}", comp);
+            h += fmt::format("\tpi_{}", comp);
         }
     }
     h += "\tPIP";
@@ -90,10 +90,10 @@ auto SnpEffectsWriter::write_header() -> void
         {
             for (Index comp = 0; comp < n_dom_components; ++comp)
             {
-                h += std::format("\tpi_{}", comp);
+                h += fmt::format("\tdpi_{}", comp);
             }
         }
-        h += "\tPIP";
+        h += "\tdPIP";
     }
 
     writer_->write(h);
@@ -101,7 +101,7 @@ auto SnpEffectsWriter::write_header() -> void
 
 auto SnpEffectsWriter::write_snp_row(Index snp_index) -> void
 {
-    row_buf_ += std::format("{}\t", snp_index + 1);
+    row_buf_ += fmt::format("{}\t", snp_index + 1);
 
     write_snp_basic_info(snp_index);
     write_effects(additive_, snp_index);
@@ -117,7 +117,7 @@ auto SnpEffectsWriter::write_snp_basic_info(Index snp_index) -> void
     if (snp_index < static_cast<Index>(bim_reader_.size()))
     {
         const auto& snp_info = bim_reader_.info()[snp_index];
-        row_buf_ += std::format(
+        row_buf_ += fmt::format(
             "{}\t{}\t{}\t{}\t{}",
             snp_info.id,
             snp_info.chrom,
@@ -128,7 +128,7 @@ auto SnpEffectsWriter::write_snp_basic_info(Index snp_index) -> void
         if (result_->allele_freq().size() > snp_index)
         {
             row_buf_
-                += std::format("\t{:.6f}", result_->allele_freq()(snp_index));
+                += fmt::format("\t{:.6f}", result_->allele_freq()(snp_index));
         }
         else
         {
@@ -150,14 +150,14 @@ auto SnpEffectsWriter::write_effects(
         return;
     }
 
-    row_buf_ += std::format(
+    row_buf_ += fmt::format(
         "\t{:.6f}\t{:.6f}",
         effect->coeffs.mean(snp_index),
         effect->coeffs.stddev(snp_index));
 
     if (effect->pve.size() > snp_index)
     {
-        row_buf_ += std::format("\t{:.6e}", effect->pve.mean(snp_index));
+        row_buf_ += fmt::format("\t{:.6e}", effect->pve.mean(snp_index));
     }
     else
     {
@@ -181,7 +181,7 @@ auto SnpEffectsWriter::write_component_probs(
 
     for (Index comp = 0; comp < base.comp_probs.cols(); ++comp)
     {
-        row_buf_ += std::format("\t{:.6f}", base.comp_probs(snp_index, comp));
+        row_buf_ += fmt::format("\t{:.6f}", base.comp_probs(snp_index, comp));
     }
 }
 
@@ -195,7 +195,7 @@ auto SnpEffectsWriter::write_pip(const GeneticSummary* effect, Index snp_index)
 
     if (effect->group && assignment(*effect->group).pip.size() > snp_index)
     {
-        row_buf_ += std::format(
+        row_buf_ += fmt::format(
             "\t{:.6f}", assignment(*effect->group).pip(snp_index));
     }
     else

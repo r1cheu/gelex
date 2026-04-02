@@ -15,7 +15,7 @@
  */
 
 #include <filesystem>
-#include <format>
+#include <fmt/format.h>
 #include <string>
 #include <vector>
 
@@ -101,7 +101,7 @@ auto make_sample_ids(Eigen::Index n, const std::string& prefix = "fam")
     for (Eigen::Index i = 0; i < n; ++i)
     {
         ids.push_back(
-            sid(std::format("{}{}", prefix, i + 1), std::to_string(i + 1)));
+            sid(fmt::format("{}{}", prefix, i + 1), std::to_string(i + 1)));
     }
     return ids;
 }
@@ -115,7 +115,7 @@ auto make_phenotype_content(
     for (size_t i = 0; i < ids.size(); ++i)
     {
         auto [fid, iid] = gelex::split_sample_id(ids[i]);
-        content += std::format("{}\t{}\t{}\n", fid, iid, values(i));
+        content += fmt::format("{}\t{}\t{}\n", fid, iid, values(i));
     }
     return content;
 }
@@ -136,10 +136,10 @@ auto make_qcovar_content(
     for (size_t i = 0; i < ids.size(); ++i)
     {
         auto [fid, iid] = gelex::split_sample_id(ids[i]);
-        content += std::format("{}\t{}", fid, iid);
+        content += fmt::format("{}\t{}", fid, iid);
         for (Eigen::Index j = 0; j < values.cols(); ++j)
         {
-            content += std::format("\t{}", values(i, j));
+            content += fmt::format("\t{}", values(i, j));
         }
         content += "\n";
     }
@@ -162,7 +162,7 @@ auto make_dcovar_content(
     for (size_t i = 0; i < ids.size(); ++i)
     {
         auto [fid, iid] = gelex::split_sample_id(ids[i]);
-        content += std::format("{}\t{}", fid, iid);
+        content += fmt::format("{}\t{}", fid, iid);
         for (size_t j = 0; j < values[i].size(); ++j)
         {
             content += "\t" + values[i][j];
@@ -215,7 +215,7 @@ TEST_CASE(
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
         bed_sample_ids.push_back(sid(
-            std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
+            fmt::format("fam{}", (i % 5) + 1), fmt::format("sample{}", i + 1)));
     }
 
     Eigen::VectorXd pheno_values
@@ -276,7 +276,7 @@ TEST_CASE(
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
         sample_ids.push_back(sid(
-            std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
+            fmt::format("fam{}", (i % 5) + 1), fmt::format("sample{}", i + 1)));
     }
 
     // create phenotype file
@@ -342,7 +342,7 @@ TEST_CASE(
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
         sample_ids.push_back(sid(
-            std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
+            fmt::format("fam{}", (i % 5) + 1), fmt::format("sample{}", i + 1)));
     }
 
     Eigen::VectorXd pheno_values = Eigen::VectorXd::Random(num_samples);
@@ -394,7 +394,7 @@ TEST_CASE(
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
         sample_ids.push_back(sid(
-            std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
+            fmt::format("fam{}", (i % 5) + 1), fmt::format("sample{}", i + 1)));
     }
 
     Eigen::VectorXd pheno_values = Eigen::VectorXd::Random(num_samples);
@@ -459,7 +459,7 @@ TEST_CASE(
     for (Eigen::Index i = 0; i < bed_samples; ++i)
     {
         bed_sample_ids.push_back(sid(
-            std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
+            fmt::format("fam{}", (i % 5) + 1), fmt::format("sample{}", i + 1)));
     }
 
     // GRM has only first 8 samples (subset)
@@ -524,7 +524,7 @@ TEST_CASE(
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
         sample_ids.push_back(sid(
-            std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
+            fmt::format("fam{}", (i % 5) + 1), fmt::format("sample{}", i + 1)));
     }
 
     // create phenotype
@@ -588,7 +588,7 @@ TEST_CASE(
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
         sample_ids.push_back(sid(
-            std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
+            fmt::format("fam{}", (i % 5) + 1), fmt::format("sample{}", i + 1)));
     }
 
     // create phenotype
@@ -641,7 +641,7 @@ TEST_CASE(
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
         sample_ids.push_back(sid(
-            std::format("fam{}", (i % 5) + 1), std::format("sample{}", i + 1)));
+            fmt::format("fam{}", (i % 5) + 1), fmt::format("sample{}", i + 1)));
     }
 
     Eigen::VectorXd pheno_values = Eigen::VectorXd::Random(num_samples);

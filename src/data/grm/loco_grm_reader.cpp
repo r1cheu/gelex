@@ -16,7 +16,7 @@
 
 #include "gelex/data/grm/loco_grm_reader.h"
 
-#include <format>
+#include <fmt/format.h>
 
 #include "gelex/data/grm/grm_reader.h"
 #include "gelex/exception.h"
@@ -46,7 +46,7 @@ auto LocoGRMReader::load_loco_grm(
     if (!std::filesystem::exists(bin_path))
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "LOCO error: GRM file not found: {}", bin_path.string()));
     }
 
@@ -63,7 +63,7 @@ auto LocoGRMReader::load_loco_grm(
     if (k_loco <= 0)
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "LOCO error: Chromosome GRM denominator ({}) is greater than "
                 "or equal to Whole GRM denominator ({})",
                 k_i,

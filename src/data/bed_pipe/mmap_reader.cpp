@@ -16,7 +16,7 @@
 
 #include "mmap_reader.h"
 
-#include <format>
+#include <fmt/format.h>
 #include <system_error>
 
 #include "gelex/exception.h"
@@ -49,7 +49,7 @@ BedMmapReader::BedMmapReader(
     if (bytes_per_variant_ <= 0)
     {
         throw GelexException(
-            std::format("{}: invalid bytes per variant", bed_path.string()));
+            fmt::format("{}: invalid bytes per variant", bed_path.string()));
     }
 
     std::error_code ec;
@@ -57,19 +57,19 @@ BedMmapReader::BedMmapReader(
     if (ec)
     {
         throw GelexException(
-            std::format("{}: failed to mmap bed file", bed_path.string()));
+            fmt::format("{}: failed to mmap bed file", bed_path.string()));
     }
 
     if (mmap_.size() <= kBedHeaderSize)
     {
         throw GelexException(
-            std::format("{}: bed file too short", bed_path.string()));
+            fmt::format("{}: bed file too short", bed_path.string()));
     }
 
     if (!has_valid_bed_magic(mmap_))
     {
         throw GelexException(
-            std::format("{}: invalid BED magic number", bed_path.string()));
+            fmt::format("{}: invalid BED magic number", bed_path.string()));
     }
 
     const size_t expected_size = kBedHeaderSize
@@ -78,7 +78,7 @@ BedMmapReader::BedMmapReader(
     if (mmap_.size() < expected_size)
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "{}: bed file truncated. Expected {} bytes, got {}",
                 bed_path.string(),
                 expected_size,

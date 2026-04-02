@@ -16,7 +16,7 @@
 
 #include "gelex/data/grm/grm_bin_writer.h"
 
-#include <format>
+#include <fmt/format.h>
 
 #include "gelex/exception.h"
 #include "gelex/io/parser.h"
@@ -42,7 +42,7 @@ auto GrmBinWriter::write(const Eigen::Ref<const Eigen::MatrixXd>& grm) -> void
     if (grm.rows() != grm.cols())
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "{}: GRM must be square, got {}x{}",
                 path_.string(),
                 n,
@@ -63,7 +63,7 @@ auto GrmBinWriter::write(const Eigen::Ref<const Eigen::MatrixXd>& grm) -> void
     if (!file_.good())
     {
         throw GelexException(
-            std::format(
+            fmt::format(
                 "{}: failed to write GRM data to binary file", path_.string()));
     }
 }

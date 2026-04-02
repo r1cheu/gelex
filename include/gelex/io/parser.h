@@ -17,13 +17,13 @@
 #ifndef GELEX_IO_PARSER_H_
 #define GELEX_IO_PARSER_H_
 
+#include <fmt/format.h>
 #include <cerrno>
 #include <charconv>
 #include <concepts>
 #include <cstddef>
 #include <cstdlib>
 #include <filesystem>
-#include <format>
 #include <fstream>
 #include <span>
 #include <string>
@@ -53,7 +53,7 @@ template <FileStream StreamType>
     if (std::filesystem::is_directory(path))
     {
         throw gelex::GelexException(
-            std::format(
+            fmt::format(
                 "{}: is a directory, not a regular file", path.string()));
     }
 
@@ -71,10 +71,10 @@ template <FileStream StreamType>
     {
         if ((mode & std::ios::in) && !std::filesystem::exists(path))
         {
-            throw GelexException(std::format("{}: not found", path.string()));
+            throw GelexException(fmt::format("{}: not found", path.string()));
         }
         throw GelexException(
-            std::format("{}: failed to open file", path.string()));
+            fmt::format("{}: failed to open file", path.string()));
     }
 
     if ((mode & std::ios::in) && std::filesystem::is_regular_file(path))
@@ -82,7 +82,7 @@ template <FileStream StreamType>
         std::error_code ec;
         if (std::filesystem::file_size(path, ec) == 0 && !ec)
         {
-            throw GelexException(std::format("{}: is empty", path.string()));
+            throw GelexException(fmt::format("{}: is empty", path.string()));
         }
     }
 
@@ -97,7 +97,7 @@ T parse_number(std::string_view sv)
     if (sv.empty())
     {
         throw GelexException(
-            std::format("empty string cannot be parsed as number"));
+            fmt::format("empty string cannot be parsed as number"));
     }
 
     if constexpr (std::is_integral_v<T>)
@@ -130,7 +130,7 @@ T parse_number(std::string_view sv)
             std::is_arithmetic_v<T>, "parse_number requires arithmetic type");
     }
 
-    throw GelexException(std::format("failed to parse '{}' as number", sv));
+    throw GelexException(fmt::format("failed to parse '{}' as number", sv));
 }
 
 std::string parse_id(std::string_view line, char delimiter = '\t');

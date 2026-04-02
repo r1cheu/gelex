@@ -16,8 +16,8 @@
 
 #include "gelex/data/dataframe/encode.h"
 
+#include <fmt/format.h>
 #include <algorithm>
-#include <format>
 #include <span>
 #include <string>
 #include <string_view>
@@ -50,7 +50,7 @@ auto make_level_names(
     names.reserve(levels.size());
     for (const auto& level : levels)
     {
-        names.push_back(std::format("{}{}{}", col_name, kSeparator, level));
+        names.push_back(fmt::format("{}{}{}", col_name, kSeparator, level));
     }
     return names;
 }

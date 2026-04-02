@@ -16,6 +16,8 @@
 
 #include "gelex/data/genotype/genotype_matrix.h"
 
+#include <fmt/format.h>
+
 namespace gelex
 {
 
@@ -38,7 +40,7 @@ void GenotypeMatrix::validate_dimensions() const
     if (data_.cols() != mean_.size())
     {
         throw std::invalid_argument(
-            std::format(
+            fmt::format(
                 "Dimension mismatch: Matrix cols ({}) != Mean size ({})",
                 data_.cols(),
                 mean_.size()));
@@ -47,7 +49,7 @@ void GenotypeMatrix::validate_dimensions() const
     if (data_.cols() != stddev_.size())
     {
         throw std::invalid_argument(
-            std::format(
+            fmt::format(
                 "Dimension mismatch: Matrix cols ({}) != Stddev size ({})",
                 data_.cols(),
                 stddev_.size()));

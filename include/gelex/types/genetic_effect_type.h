@@ -1,8 +1,9 @@
 #ifndef GELEX_TYPES_GENETIC_EFFECT_TYPE_H_
 #define GELEX_TYPES_GENETIC_EFFECT_TYPE_H_
 #include <cstdint>
-#include <format>
 #include <string_view>
+
+#include <fmt/format.h>
 
 #include "gelex/exception.h"
 
@@ -140,7 +141,7 @@ inline auto to_heritability_label(GeneticKind type) -> std::string_view
 }  // namespace gelex
 
 template <>
-struct std::formatter<gelex::EffectType> : std::formatter<std::string_view>
+struct fmt::formatter<gelex::EffectType> : fmt::formatter<std::string_view>
 {
     auto format(const gelex::EffectType& et, auto& ctx) const
     {
@@ -163,7 +164,7 @@ struct std::formatter<gelex::EffectType> : std::formatter<std::string_view>
                 name = "Residual";
                 break;
         }
-        return std::formatter<std::string_view>::format(name, ctx);
+        return fmt::formatter<std::string_view>::format(name, ctx);
     }
 };
 

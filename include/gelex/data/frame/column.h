@@ -17,8 +17,8 @@
 #ifndef GELEX_DATA_COLUMN_H_
 #define GELEX_DATA_COLUMN_H_
 
+#include <fmt/format.h>
 #include <cstddef>
-#include <format>
 #include <span>
 #include <string>
 #include <utility>
@@ -47,7 +47,7 @@ class Column
             if (row >= data_.size())
             {
                 throw GelexException(
-                    std::format("row {} is out of range", row));
+                    fmt::format("row {} is out of range", row));
             }
             filtered.emplace_back(std::move(data_[row]));
         }
