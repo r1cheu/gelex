@@ -1,5 +1,6 @@
 #ifndef GELEX_TYPES_GENETIC_EFFECT_TYPE_H_
 #define GELEX_TYPES_GENETIC_EFFECT_TYPE_H_
+#include <array>
 #include <cstdint>
 #include <string_view>
 
@@ -81,21 +82,12 @@ struct EffectType
     }
 };
 
+inline constexpr std::array kAllGeneticKinds{
+    GeneticKind::Add,
+    GeneticKind::Dom};
+
 namespace genetic_kind
 {
-
-inline auto to_string(GeneticKind type) -> std::string_view
-{
-    switch (type)
-    {
-        case GeneticKind::Add:
-            return "Additive";
-        case GeneticKind::Dom:
-            return "Dominance";
-        default:
-            return "Unknown";
-    }
-}
 
 inline auto to_file_suffix(GeneticKind type) -> std::string_view
 {
@@ -141,6 +133,28 @@ inline auto to_heritability_label(GeneticKind type) -> std::string_view
 }  // namespace gelex
 
 template <>
+struct fmt::formatter<gelex::GeneticKind> : fmt::formatter<std::string_view>
+{
+    auto format(gelex::GeneticKind gk, auto& ctx) const
+    {
+        std::string_view name;
+        switch (gk)
+        {
+            case gelex::GeneticKind::Add:
+                name = "Additive";
+                break;
+            case gelex::GeneticKind::Dom:
+                name = "Dominance";
+                break;
+            default:
+                name = "Unknown";
+                break;
+        }
+        return fmt::formatter<std::string_view>::format(name, ctx);
+    }
+};
+
+template <>
 struct fmt::formatter<gelex::EffectType> : fmt::formatter<std::string_view>
 {
     auto format(const gelex::EffectType& et, auto& ctx) const
@@ -150,10 +164,7 @@ struct fmt::formatter<gelex::EffectType> : fmt::formatter<std::string_view>
         switch (et.category)
         {
             case Cat::Genetic:
-                name = (et.genetic_kind == gelex::GeneticKind::Add)
-                           ? "Additive"
-                           : "Dominance";
-                break;
+                return fmt::format_to(ctx.out(), "{}", et.genetic_kind);
             case Cat::Fixed:
                 name = "Fixed";
                 break;

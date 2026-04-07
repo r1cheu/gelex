@@ -14,30 +14,32 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_POST_CONFIG_H_
-#define GELEX_CLI_POST_CONFIG_H_
+#ifndef GELEX_POST_FIXED_POSTERIOR_PROCESSOR_H_
+#define GELEX_POST_FIXED_POSTERIOR_PROCESSOR_H_
 
-#include <optional>
-#include <string>
+#include <span>
 #include <vector>
 
-namespace argparse
-{
-class ArgumentParser;
-}
+#include "gelex/infra/logging/post_event.h"
+#include "gelex/io/binary_reader.h"
 
-namespace gelex::cli
+namespace gelex
 {
 
-struct PostConfig
+class FixedPosteriorProcessor
 {
-    std::vector<std::string> in_prefixes;
-    std::optional<std::string> gfile;
-    double hdpi_width;
+   public:
+    FixedPosteriorProcessor(
+        std::span<const detail::BinaryReader> readers,
+        double hdpi_threshold);
+
+    [[nodiscard]] auto process() -> std::vector<ParameterDiag>;
+
+   private:
+    std::span<const detail::BinaryReader> readers_;
+    double hdpi_threshold_;
 };
 
-auto make_post_config(argparse::ArgumentParser& cmd) -> PostConfig;
+}  // namespace gelex
 
-}  // namespace gelex::cli
-
-#endif  // GELEX_CLI_POST_CONFIG_H_
+#endif  // GELEX_POST_FIXED_POSTERIOR_PROCESSOR_H_

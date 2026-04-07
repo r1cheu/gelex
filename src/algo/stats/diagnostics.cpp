@@ -44,7 +44,7 @@ std::pair<VectorXd, VectorXd> compute_chain_variance_stats(const Chains& x)
     for (Index c = 0; c < n_chains; ++c)
     {
         chain_means.col(c) = x[c].rowwise().mean();
-        chain_vars.col(c) = detail::var(x[c], 1, 1);
+        chain_vars.col(c) = detail::var<1>(x[c]);
     }
 
     VectorXd var_within = chain_vars.rowwise().mean();
@@ -52,7 +52,7 @@ std::pair<VectorXd, VectorXd> compute_chain_variance_stats(const Chains& x)
 
     if (n_chains > 1)
     {
-        MatrixXd var_between = detail::var(chain_means, 1, 1);
+        MatrixXd var_between = detail::var<1>(chain_means);
         var_estimator += var_between;
     }
     else
@@ -180,7 +180,7 @@ Chains autocovariance(const Chains& x, bool bias)
 
     for (Index i = 0; i < n_chains; i++)
     {
-        x_var.col(i) = detail::var(x[i], 0, 1);
+        x_var.col(i) = detail::var<1>(x[i], 0);
     }
 
     for (Index i = 0; i < n_chains; ++i)
@@ -285,6 +285,37 @@ std::pair<double, double> hpdi(Ref<VectorXd> samples, double prob)
     Index index_end = index_start + index_length;
 
     return {samples(index_start), samples(index_end)};
+}
+
+auto hpdi(const Chains& chains, double prob) -> std::pair<MatrixXd, VectorXd>
+{
+    const auto n_chains = static_cast<Index>(chains.size());
+    const Index n_params = chains[0].rows();
+    const Index n_draws = chains[0].cols();
+    const Index total = n_chains * n_draws;
+
+    MatrixXd intervals(n_params, 2);
+    VectorXd medians(n_params);
+
+    for (Index p = 0; p < n_params; ++p)
+    {
+        VectorXd all_draws(total);
+        for (Index c = 0; c < n_chains; ++c)
+        {
+            all_draws.segment(c * n_draws, n_draws) = chains[c].row(p);
+        }
+        auto [lo, hi] = hpdi(all_draws, prob);
+        intervals(p, 0) = lo;
+        intervals(p, 1) = hi;
+
+        // all_draws is sorted after hpdi call
+        Index mid = total / 2;
+        medians(p) = (total % 2 == 0)
+                         ? (all_draws(mid - 1) + all_draws(mid)) / 2.0
+                         : all_draws(mid);
+    }
+
+    return {std::move(intervals), std::move(medians)};
 }
 
 }  // namespace gelex

@@ -97,6 +97,9 @@ Eigen::VectorXd effect_sample_size(const Chains& x, bool bias = true);
 std::pair<double, double> hpdi(
     Eigen::Ref<Eigen::VectorXd> samples,
     double prob);
+
+auto hpdi(const Chains& chains, double prob)
+    -> std::pair<Eigen::MatrixXd, Eigen::VectorXd>;
 }  // namespace gelex
 
 #endif  // GELEX_ESTIMATOR_BAYES_DIAGNOSTICS_H_

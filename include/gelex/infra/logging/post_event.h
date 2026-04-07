@@ -17,19 +17,22 @@
 #ifndef GELEX_INFRA_LOGGING_POST_EVENT_H_
 #define GELEX_INFRA_LOGGING_POST_EVENT_H_
 
-#include <Eigen/Core>
 #include <functional>
 #include <string>
 #include <variant>
 #include <vector>
 
+#include <Eigen/Core>
+
 namespace gelex
 {
 
-struct ParamDiag
+struct ParameterDiag
 {
+    std::string section;
     std::string name;
     double mean{};
+    double median{};
     double sd{};
     double hpdi_lo{};
     double hpdi_hi{};
@@ -44,9 +47,10 @@ struct PostStartEvent
 
 struct DiagnosticsReadyEvent
 {
-    std::vector<ParamDiag> diags;
+    std::vector<ParameterDiag> diags;
     Eigen::Index n_chains{};
     Eigen::Index n_records{};
+    double hdpi_prob{};
 };
 
 using PostEvent = std::variant<PostStartEvent, DiagnosticsReadyEvent>;

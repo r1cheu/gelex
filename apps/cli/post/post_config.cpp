@@ -23,9 +23,17 @@ namespace gelex::cli
 
 auto make_post_config(argparse::ArgumentParser& cmd) -> PostConfig
 {
-    return PostConfig{
+    auto config = PostConfig{
         .in_prefixes = cmd.get<std::vector<std::string>>("--in"),
-        .out_prefix = cmd.get("--out")};
+        .hdpi_width = cmd.get<double>("--hdpi"),
+    };
+
+    if (cmd.is_used("--gfile"))
+    {
+        config.gfile = cmd.get<std::string>("--gfile");
+    }
+
+    return config;
 }
 
 }  // namespace gelex::cli

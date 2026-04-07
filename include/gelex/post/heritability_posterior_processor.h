@@ -14,40 +14,40 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_PIPELINE_POST_POSTERIOR_ANALYSIS_ENGINE_H_
-#define GELEX_PIPELINE_POST_POSTERIOR_ANALYSIS_ENGINE_H_
+#ifndef GELEX_POST_HERITABILITY_POSTERIOR_PROCESSOR_H_
+#define GELEX_POST_HERITABILITY_POSTERIOR_PROCESSOR_H_
 
-#include <optional>
 #include <span>
-#include <string>
-#include <string_view>
 #include <vector>
 
+#include "gelex/algo/stats/diagnostics.h"
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/io/binary_reader.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
 
-class PosteriorAnalysisEngine
+class HeritabilityPosteriorProcessor
 {
    public:
-    explicit PosteriorAnalysisEngine(
-        std::span<const std::string_view> samples_prefix,
-        double hdpi_threshold = 0.94,
-        std::optional<std::string> gfile = std::nullopt);
+    explicit HeritabilityPosteriorProcessor(
+        std::span<const detail::BinaryReader> readers,
+        double hdpi_threshold,
+        const Chains& genetic_variances,
+        std::span<const GeneticKind> kinds);
 
-    auto run(const PostObserver& observer = {}) -> void;
+    [[nodiscard]] auto process() -> std::vector<ParameterDiag>;
 
    private:
-    double hdpi_threshold_;
-    std::vector<detail::BinaryReader> readers_;
-    std::optional<std::string> gfile_;
+    auto assemble_phenotypic_variance() const -> Chains;
 
-    auto check_consistency() const -> bool;
-    auto process_gebv_variance() -> std::vector<ParameterDiag>;
+    std::span<const detail::BinaryReader> readers_;
+    double hdpi_threshold_;
+    const Chains& genetic_variances_;
+    std::span<const GeneticKind> kinds_;
 };
 
 }  // namespace gelex
 
-#endif  // GELEX_PIPELINE_POST_POSTERIOR_ANALYSIS_ENGINE_H_
+#endif  // GELEX_POST_HERITABILITY_POSTERIOR_PROCESSOR_H_

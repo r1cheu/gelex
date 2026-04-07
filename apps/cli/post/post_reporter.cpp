@@ -16,6 +16,9 @@
 
 #include "post_reporter.h"
 
+#include <algorithm>
+#include <string>
+
 #include <fmt/format.h>
 
 #include "config.h"
@@ -46,31 +49,81 @@ auto PostReporter::on_event(const PostStartEvent& event) const -> void
 
 auto PostReporter::on_event(const DiagnosticsReadyEvent& event) const -> void
 {
+    auto section_order = [](const std::string& section) -> int
+    {
+        if (section == "Parameter")
+        {
+            return 0;
+        }
+        if (section == "Additive")
+        {
+            return 1;
+        }
+        if (section == "Dominance")
+        {
+            return 2;
+        }
+        if (section == "Genetic")
+        {
+            return 3;
+        }
+        if (section == "Residual")
+        {
+            return 4;
+        }
+        return 5;
+    };
+
+    auto sorted_diags = event.diags;
+    std::ranges::stable_sort(
+        sorted_diags,
+        [&](const auto& lhs, const auto& rhs)
+        { return section_order(lhs.section) < section_order(rhs.section); });
+
+    constexpr int kTableWidth = 92;
+
+    double lo_pct = (1.0 - event.hdpi_prob) / 2.0 * 100.0;
+    double hi_pct = (1.0 + event.hdpi_prob) / 2.0 * 100.0;
+    auto hpdi_label = fmt::format("[{:g}%, {:g}%]", lo_pct, hi_pct);
+
     logger_->info(gelex::section("[MCMC Summary]"));
     logger_->info("");
 
     logger_->info(
-        "   {:<8}  {:>8}  {:>8}  {:>21}  {:>8}  {:>8}",
+        "   {:<12}  {:>8}  {:>8}  {:>8}  {:>21}  {:>8}  {:>8}",
         "Parameter",
         "Mean",
+        "Median",
         "SD",
-        "90% HPDI",
+        hpdi_label,
         "ESS",
         "R-hat");
-    logger_->info(gelex::table_separator(78));
+    logger_->info(gelex::table_separator(kTableWidth));
 
-    for (const auto& d : event.diags)
+    std::string current_section;
+    for (const auto& d : sorted_diags)
     {
+        if (d.section != current_section)
+        {
+            current_section = d.section;
+            if (!d.section.empty() && d.section != "Parameter")
+            {
+                logger_->info(
+                    gelex::named_section(current_section, kTableWidth, 3));
+            }
+        }
         logger_->info(
-            "   {:<8}  {:>8.4f}  {:>8.4f}  {:>21}  {:>8.1f}  "
+            "   {:<12}  {:>8.4f}  {:>8.4f}  {:>8.4f}  {:>21}  {:>8.1f}  "
             "{:>8.3f}",
             d.name,
             d.mean,
+            d.median,
             d.sd,
             fmt::format("[{:8.4f}, {:8.4f}]", d.hpdi_lo, d.hpdi_hi),
             d.ess,
             d.rhat);
     }
+    logger_->info(gelex::table_separator(kTableWidth));
 }
 
 }  // namespace gelex::cli

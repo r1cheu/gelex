@@ -16,6 +16,9 @@
 
 #include "post_command.h"
 
+#include <string_view>
+#include <vector>
+
 #include <argparse.h>
 
 #include "gelex/infra/logger.h"
@@ -32,9 +35,10 @@ auto post_execute(argparse::ArgumentParser& post) -> int
     gelex::cli::PostReporter reporter;
     reporter.on_event(gelex::PostStartEvent{.in_prefixes = config.in_prefixes});
 
+    std::vector<std::string_view> prefixes(
+        config.in_prefixes.begin(), config.in_prefixes.end());
     gelex::PosteriorAnalysisEngine engine(
-        gelex::PosteriorAnalysisEngine::Config{
-            .in_prefixes = config.in_prefixes});
+        prefixes, config.hdpi_width, config.gfile);
 
     engine.run(reporter.as_observer());
     return 0;

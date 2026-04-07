@@ -35,10 +35,20 @@ auto setup_post_args(argparse::ArgumentParser& cmd) -> void
         .nargs(argparse::nargs_pattern::at_least_one)
         .required();
 
+    cmd.add_argument("-g", "--gfile")
+        .help("Gelex binary genotype file prefix")
+        .metavar("<GFILE>");
+
     cmd.add_argument("-o", "--out")
-        .help("Output file prefix")
-        .metavar("<OUT>")
-        .default_value("gelex");
+        .help("Output prefix (default: gelex_post)")
+        .metavar("<PREFIX>")
+        .default_value(std::string("gelex_post"));
+
+    cmd.add_argument("--hdpi")
+        .help("Credible interval width for HPDI (default: 0.94)")
+        .metavar("<WIDTH>")
+        .default_value(0.94)
+        .scan<'f', double>();
 
     cmd.add_epilog(
         gelex::cli::format_epilog(

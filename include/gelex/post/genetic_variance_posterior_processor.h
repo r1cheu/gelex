@@ -14,40 +14,42 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_PIPELINE_POST_POSTERIOR_ANALYSIS_ENGINE_H_
-#define GELEX_PIPELINE_POST_POSTERIOR_ANALYSIS_ENGINE_H_
+#ifndef GELEX_POST_GENETIC_VARIANCE_POSTERIOR_PROCESSOR_H_
+#define GELEX_POST_GENETIC_VARIANCE_POSTERIOR_PROCESSOR_H_
 
-#include <optional>
 #include <span>
-#include <string>
-#include <string_view>
 #include <vector>
 
+#include "gelex/algo/stats/diagnostics.h"
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/io/binary_reader.h"
+#include "gelex/post/genetic_variance_processor.h"
 
 namespace gelex
 {
 
-class PosteriorAnalysisEngine
+struct GebvVarianceResult
+{
+    std::vector<ParameterDiag> diags;
+    Chains genetic_variances;
+};
+
+class GeneticVariancePosteriorProcessor
 {
    public:
-    explicit PosteriorAnalysisEngine(
-        std::span<const std::string_view> samples_prefix,
-        double hdpi_threshold = 0.94,
-        std::optional<std::string> gfile = std::nullopt);
+    GeneticVariancePosteriorProcessor(
+        std::span<const detail::BinaryReader> readers,
+        std::span<const GeneticInput> genetics,
+        double hdpi_threshold);
 
-    auto run(const PostObserver& observer = {}) -> void;
+    [[nodiscard]] auto process() -> GebvVarianceResult;
 
    private:
+    std::span<const detail::BinaryReader> readers_;
+    std::span<const GeneticInput> genetics_;
     double hdpi_threshold_;
-    std::vector<detail::BinaryReader> readers_;
-    std::optional<std::string> gfile_;
-
-    auto check_consistency() const -> bool;
-    auto process_gebv_variance() -> std::vector<ParameterDiag>;
 };
 
 }  // namespace gelex
 
-#endif  // GELEX_PIPELINE_POST_POSTERIOR_ANALYSIS_ENGINE_H_
+#endif  // GELEX_POST_GENETIC_VARIANCE_POSTERIOR_PROCESSOR_H_
