@@ -20,16 +20,12 @@
 #include <type_traits>
 #include <variant>
 
-#include <Eigen/Core>
-
 #include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/samplers/detail/stick_breaking.h"
 #include "gelex/model/bayes/states.h"
 
 namespace gelex::detail
 {
-using Eigen::VectorXd;
-using Eigen::VectorXi;
 
 namespace
 {
@@ -42,8 +38,8 @@ auto sample_pi(bayes::GeneticState& state, std::mt19937_64& rng) -> void
     }
     auto update_pi = [&](bayes::Assignment& asgn)
     {
-        VectorXi dirichlet_counts(asgn.count.array() + 1);
-        asgn.proportion = detail::dirichlet(dirichlet_counts, rng);
+        asgn.stick_probs = sample_stick_posteriors(asgn.count, rng);
+        asgn.proportion = bayes::Assignment::stick_to_pi(asgn.stick_probs);
     };
     std::visit(
         [&](auto& alloc)

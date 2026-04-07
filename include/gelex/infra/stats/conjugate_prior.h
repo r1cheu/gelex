@@ -26,20 +26,6 @@ namespace gelex
 namespace detail
 {
 
-inline Eigen::VectorXd dirichlet(
-    const Eigen::Ref<Eigen::VectorXi>& alphas,
-    std::mt19937_64& rng)
-{
-    Eigen::VectorXd pi = Eigen::VectorXd::Zero(alphas.size());
-    for (int i = 0; i < alphas.size(); ++i)
-    {
-        std::gamma_distribution<double> gamma_dist(
-            alphas(i) <= 0 ? 1 : alphas(i), 1.0);
-        pi(i) = gamma_dist(rng);
-    }
-    return pi / (pi).sum();
-}
-
 struct ScaledInvChiSqParams
 {
     double nu{};
