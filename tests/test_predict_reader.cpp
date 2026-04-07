@@ -63,9 +63,9 @@ TEST_CASE(
 
     // FAM file (space-delimited, no header): FID IID Father Mother Sex Pheno
     auto fam_path = files.create_text_file(
-        "F1 I1 0 0 1 -9\n"
-        "F1 I2 0 0 2 -9\n"
-        "F2 I1 0 0 1 -9\n",
+        "F1\tI1\t0\t0\t1\t-9\n"
+        "F1\tI2\t0\t0\t2\t-9\n"
+        "F2\tI1\t0\t0\t1\t-9\n",
         ".fam");
 
     // qcovar file (tab-delimited, header)

@@ -22,7 +22,6 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "file_fixture.h"
-#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/data/reader/fam_reader.h"
 #include "gelex/exception.h"
 #include "gelex/types/sample_id.h"

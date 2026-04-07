@@ -22,7 +22,6 @@
 #include <string>
 #include <system_error>
 
-#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/exception.h"
 #include "gelex/io/parser.h"
 #include "gelex/types/freq_effect.h"

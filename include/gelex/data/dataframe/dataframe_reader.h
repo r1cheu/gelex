@@ -85,8 +85,12 @@ class DataFrameReader
 
     template <typename T>
     static auto parse_arithmetic(std::string_view token) -> T;
-    auto parse_value(std::string_view token, ColumnType type, Column& col)
-        -> void;
+    auto parse_value(
+        std::string_view token,
+        ColumnType type,
+        Column& col,
+        std::size_t line,
+        std::size_t col_idx) -> void;
     auto parse_key(std::string_view token) -> Key;
     auto is_na(std::string_view token) -> bool;
     auto tokenize(std::string_view line) -> void;
@@ -111,7 +115,7 @@ auto read_dataframe(
 template <KeyType Key>
 auto DataFrameReader<Key>::read() -> DataFrame<Key>
 {
-    auto file = detail::open_file<std::ifstream>(path_, std::ios::in);
+    auto file = ::gelex::detail::open_file<std::ifstream>(path_, std::ios::in);
     prepare_header(file);
     parse_header();
 
@@ -128,9 +132,11 @@ auto DataFrameReader<Key>::read() -> DataFrame<Key>
         df.rename(options_->names);
     }
 
+    std::size_t line_number = options_->header ? 1 : 0;
     std::string line;
     while (std::getline(file, line))
     {
+        ++line_number;
         tokenize(line);
         if (!filter_row())
         {
@@ -166,7 +172,11 @@ auto DataFrameReader<Key>::read() -> DataFrame<Key>
         for (std::size_t i = 0; i < select_pos_.size(); ++i)
         {
             parse_value(
-                tokens_[select_pos_[i]], resolved_schema_[i], df.columns_[i]);
+                tokens_[select_pos_[i]],
+                resolved_schema_[i],
+                df.columns_[i],
+                line_number,
+                select_pos_[i] + 1);
         }
     }
 
@@ -261,22 +271,33 @@ template <KeyType Key>
 auto DataFrameReader<Key>::parse_value(
     std::string_view token,
     ColumnType type,
-    Column& col) -> void
+    Column& col,
+    std::size_t line,
+    std::size_t col_idx) -> void
 {
-    switch (type)
+    try
     {
-        case ColumnType::Int:
-            col.push_back(parse_arithmetic<std::int32_t>(token));
-            break;
-        case ColumnType::Float:
-            col.push_back(parse_arithmetic<float>(token));
-            break;
-        case ColumnType::Double:
-            col.push_back(parse_arithmetic<double>(token));
-            break;
-        case ColumnType::String:
-            col.push_back(std::string(token));
-            break;
+        switch (type)
+        {
+            case ColumnType::Int:
+                col.push_back(parse_arithmetic<std::int32_t>(token));
+                break;
+            case ColumnType::Float:
+                col.push_back(parse_arithmetic<float>(token));
+                break;
+            case ColumnType::Double:
+                col.push_back(parse_arithmetic<double>(token));
+                break;
+            case ColumnType::String:
+                col.push_back(std::string(token));
+                break;
+        }
+    }
+    catch (const GelexException& e)
+    {
+        throw GelexException(
+            fmt::format(
+                "{}:{}:{}: {}", path_.string(), line, col_idx, e.what()));
     }
 }
 

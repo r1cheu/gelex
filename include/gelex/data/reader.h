@@ -51,6 +51,7 @@ inline auto read_pheno(
     df::ReadOptions options;
     options.schema = df::ColumnType::Double;
     options.index_cols = {0, 1};
+    options.na_action = df::NaAction::Exclude;
     if (pheno_col != nullptr)
     {
         options.select_cols = {*pheno_col + 2};

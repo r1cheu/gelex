@@ -26,6 +26,7 @@ namespace gelex::df
 inline constexpr char kSeparator = '\x1F';
 
 inline constexpr std::array kDefaultNaRep = {
+    std::string_view{""},
     std::string_view{"NA"},
     std::string_view{"NaN"},
     std::string_view{"nan"},

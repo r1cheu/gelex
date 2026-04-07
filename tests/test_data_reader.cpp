@@ -31,9 +31,9 @@ TEST_CASE(
 {
     FileFixture files;
     constexpr std::string_view kContent
-        = "FAM1 IID1 0 0 1 -9\n"
-          "FAM1 IID2 0 0 2 -9\n"
-          "FAM2 IID3 0 0 1 -9\n";
+        = "FAM1\tIID1\t0\t0\t1\t-9\n"
+          "FAM1\tIID2\t0\t0\t2\t-9\n"
+          "FAM2\tIID3\t0\t0\t1\t-9\n";
 
     auto path = files.create_text_file(kContent, ".fam");
     auto df = gelex::read_fam(path);

@@ -27,7 +27,7 @@
 
 #include <Eigen/Dense>
 
-#include "gelex/data/frame/dataframe.h"
+#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/genotype/sample_manager.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/types/fixed_effects.h"
@@ -102,12 +102,18 @@ class PhenoPipe
     auto apply_phenotype_transform(detail::TransformType type, double offset)
         -> void;
 
+    static auto gather_by_ids(
+        df::DataFrame<std::string>& frame,
+        std::span<const std::string> ids) -> void;
+    static auto build_discrete_covariate(
+        const df::DataFrame<std::string>& frame) -> DiscreteCovariate;
+
     Config config_;
     size_t num_genotype_samples_{};
 
-    DataFrame<double> phenotype_frame_;
-    std::optional<DataFrame<double>> qcovar_frame_;
-    std::optional<DataFrame<std::string>> dcovar_frame_;
+    std::optional<df::DataFrame<std::string>> phenotype_frame_;
+    std::optional<df::DataFrame<std::string>> qcovar_frame_;
+    std::optional<df::DataFrame<std::string>> dcovar_frame_;
     std::string phenotype_name_;
 
     Eigen::VectorXd phenotype_;

@@ -16,8 +16,8 @@
 
 #include "bed_fixture.h"
 
-#include <cstdint>
 #include <fmt/format.h>
+#include <cstdint>
 #include <limits>
 #include <random>
 #include <string>
@@ -362,8 +362,8 @@ void BedFixture::write_fam_file(
 
         std::string fid = fmt::format("fam{}", (i % 5) + 1);
 
-        fam_content
-            += fmt::format("{} {} 0 0 {} -9\n", fid, sample_id, (i % 2) + 1);
+        fam_content += fmt::format(
+            "{}\t{}\t0\t0\t{}\t-9\n", fid, sample_id, (i % 2) + 1);
     }
 
     [[maybe_unused]] auto fam_file_path = file_fixture_.create_named_text_file(

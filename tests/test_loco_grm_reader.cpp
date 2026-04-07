@@ -21,7 +21,6 @@
 #include <string_view>
 
 #include "file_fixture.h"
-#include "gelex/data/frame/dataframe_policy.h"
 #include "gelex/data/grm/grm_bin_writer.h"
 #include "gelex/data/grm/grm_id_writer.h"
 #include "gelex/data/grm/loco_grm_reader.h"

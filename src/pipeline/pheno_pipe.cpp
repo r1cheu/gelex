@@ -25,9 +25,9 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/frame/dataframe_policy.h"
-#include "gelex/data/frame/dummy_encode.h"
+#include "gelex/data/dataframe/encode.h"
 #include "gelex/data/genotype/sample_manager.h"
+#include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/data_pipe_event.h"
@@ -37,6 +37,62 @@
 
 namespace gelex
 {
+
+auto PhenoPipe::gather_by_ids(
+    df::DataFrame<std::string>& frame,
+    std::span<const std::string> ids) -> void
+{
+    std::vector<std::size_t> pos;
+    pos.reserve(ids.size());
+    for (const auto& id : ids)
+    {
+        pos.push_back(frame.index().at(id));
+    }
+    frame.gather(pos);
+}
+
+auto PhenoPipe::build_discrete_covariate(
+    const df::DataFrame<std::string>& frame) -> DiscreteCovariate
+{
+    std::vector<std::string> names;
+    std::vector<std::vector<std::string>> levels;
+    std::vector<std::string> reference_levels;
+    std::vector<df::EncodedResult<>> encoded_results;
+
+    for (std::size_t i = 0; i < frame.cols(); ++i)
+    {
+        const auto& col = frame.col(i);
+        auto all_levels = df::collect_levels(col);
+        if (all_levels.size() < 2)
+        {
+            continue;
+        }
+        names.emplace_back(col.name());
+        reference_levels.push_back(all_levels.front());
+        levels.push_back(all_levels);
+        encoded_results.push_back(df::dummy_encode(col));
+    }
+
+    Eigen::Index total_cols = 0;
+    for (const auto& r : encoded_results)
+    {
+        total_cols += r.data.cols();
+    }
+
+    Eigen::MatrixXd X(static_cast<Eigen::Index>(frame.rows()), total_cols);
+    Eigen::Index col_offset = 0;
+    for (const auto& r : encoded_results)
+    {
+        X.middleCols(col_offset, r.data.cols()) = r.data;
+        col_offset += r.data.cols();
+    }
+
+    return DiscreteCovariate{
+        .names = std::move(names),
+        .levels = std::move(levels),
+        .reference_levels = std::move(reference_levels),
+        .X = std::move(X)};
+}
 
 PhenoPipe::PhenoPipe(const Config& config, DataPipeObserver observer)
     : config_(config), observer_(std::move(observer))
@@ -68,10 +124,7 @@ auto PhenoPipe::load_phenotypes() -> void
     PhenotypeLoadedEvent event;
     event.geno_samples = num_genotype_samples_;
 
-    int column_index
-        = config_.phenotype_column - 2;  // zero-based index for data frame
-
-    if (column_index < 0)
+    if (config_.phenotype_column < 2)
     {
         throw GelexException(
             fmt::format(
@@ -79,15 +132,13 @@ auto PhenoPipe::load_phenotypes() -> void
                 config_.phenotype_column));
     }
 
-    DataFrameLoadPolicy policy;
-    policy.select_columns
-        = std::vector<size_t>{static_cast<size_t>(column_index)};
-    auto frame = DataFrame<double>::read(config_.phenotype_path, policy);
+    auto pheno_col = static_cast<std::size_t>(config_.phenotype_column - 2);
+    auto frame = read_pheno(config_.phenotype_path, &pheno_col);
 
-    phenotype_name_ = frame.column(0).name();
+    phenotype_name_ = std::string(frame.col(0).name());
 
     phenotype_frame_ = std::move(frame);
-    event.pheno_samples = phenotype_frame_.nrows();
+    event.pheno_samples = phenotype_frame_->rows();
     event.trait_name = phenotype_name_;
 
     notify(observer_, event);
@@ -99,18 +150,18 @@ auto PhenoPipe::load_covariates() -> void
 
     if (config_.quantitative_covariates_path)
     {
-        qcovar_frame_
-            = DataFrame<double>::read(*config_.quantitative_covariates_path);
-        event.num_quantitative_covariates = qcovar_frame_->ncols();
-        event.quantitative_names = qcovar_frame_->columns();
+        qcovar_frame_ = read_qcovar(*config_.quantitative_covariates_path);
+        event.num_quantitative_covariates = qcovar_frame_->cols();
+        event.quantitative_names = std::vector<std::string>(
+            qcovar_frame_->names().begin(), qcovar_frame_->names().end());
     }
 
     if (config_.discrete_covariates_path)
     {
-        dcovar_frame_
-            = DataFrame<std::string>::read(*config_.discrete_covariates_path);
-        event.num_discrete_covariates = dcovar_frame_->ncols();
-        event.discrete_names = dcovar_frame_->columns();
+        dcovar_frame_ = read_dcovar(*config_.discrete_covariates_path);
+        event.num_discrete_covariates = dcovar_frame_->cols();
+        event.discrete_names = std::vector<std::string>(
+            dcovar_frame_->names().begin(), dcovar_frame_->names().end());
     }
 
     if (event.num_quantitative_covariates || event.num_discrete_covariates)
@@ -124,26 +175,26 @@ auto PhenoPipe::intersect_samples(
 {
     size_t total_before = sample_manager_->num_common_samples();
 
-    if (phenotype_frame_.nrows() == 0)
+    if (!phenotype_frame_ || phenotype_frame_->rows() == 0)
     {
         throw GelexException(
             "Phenotype frame cannot be empty."
             " Load a non-empty phenotype file first.");
     }
 
-    total_before = std::max(total_before, phenotype_frame_.nrows());
-    sample_manager_->intersect(phenotype_frame_.index_column().data());
+    total_before = std::max(total_before, phenotype_frame_->rows());
+    sample_manager_->intersect(phenotype_frame_->index().keys());
 
     if (qcovar_frame_)
     {
-        total_before = std::max(total_before, qcovar_frame_->nrows());
-        sample_manager_->intersect(qcovar_frame_->index_column().data());
+        total_before = std::max(total_before, qcovar_frame_->rows());
+        sample_manager_->intersect(qcovar_frame_->index().keys());
     }
 
     if (dcovar_frame_)
     {
-        total_before = std::max(total_before, dcovar_frame_->nrows());
-        sample_manager_->intersect(dcovar_frame_->index_column().data());
+        total_before = std::max(total_before, dcovar_frame_->rows());
+        sample_manager_->intersect(dcovar_frame_->index().keys());
     }
 
     for (const auto& ids : extra_ids)
@@ -174,17 +225,17 @@ auto PhenoPipe::finalize() -> void
 {
     const auto& common_ids = sample_manager_->common_ids();
 
-    if (phenotype_frame_.nrows() == 0)
+    if (!phenotype_frame_ || phenotype_frame_->rows() == 0)
     {
         throw GelexException(
             "Phenotype frame cannot be empty."
             " Load a non-empty phenotype file first.");
     }
 
-    auto aligned = phenotype_frame_;
-    aligned.intersect_index_inplace(common_ids);
+    auto aligned = phenotype_frame_->clone();
+    gather_by_ids(aligned, common_ids);
 
-    const auto& values = aligned.column(0).data();
+    auto values = aligned.col(0).template as<double>();
     phenotype_ = Eigen::Map<const Eigen::VectorXd>(
         values.data(), static_cast<Eigen::Index>(values.size()));
 
@@ -193,22 +244,20 @@ auto PhenoPipe::finalize() -> void
 
     if (qcovar_frame_)
     {
-        auto qcovar_aligned = *qcovar_frame_;
-        qcovar_aligned.intersect_index_inplace(common_ids);
+        auto qcovar_aligned = qcovar_frame_->clone();
+        gather_by_ids(qcovar_aligned, common_ids);
 
-        auto qcov_matrix = qcovar_aligned.eigen();
-        auto names = qcovar_aligned.columns();
-
+        auto names = std::vector<std::string>(
+            qcovar_aligned.names().begin(), qcovar_aligned.names().end());
         qcov = QuantitativeCovariate{
-            .names = std::move(names), .X = std::move(qcov_matrix)};
+            .names = std::move(names), .X = qcovar_aligned.to_mat<double>()};
     }
 
     if (dcovar_frame_)
     {
-        auto dcovar_aligned = *dcovar_frame_;
-        dcovar_aligned.intersect_index_inplace(common_ids);
-
-        dcov = DummyEncode(dcovar_aligned);
+        auto dcovar_aligned = dcovar_frame_->clone();
+        gather_by_ids(dcovar_aligned, common_ids);
+        dcov = build_discrete_covariate(dcovar_aligned);
     }
     if (!dcov && !qcov)
     {
