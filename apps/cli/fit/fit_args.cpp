@@ -30,10 +30,13 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         .help("Phenotype file (TSV format: FID, IID, trait1, ...)")
         .metavar("<PHENOTYPE>")
         .required();
-    cmd.add_argument("-b", "--bfile")
+    auto& geno_group = cmd.add_mutually_exclusive_group(true);
+    geno_group.add_argument("-b", "--bfile")
         .help("PLINK binary file prefix (.bed/.bim/.fam)")
-        .metavar("<BFILE>")
-        .required();
+        .metavar("<BFILE>");
+    geno_group.add_argument("-g", "--gfile")
+        .help("Gelex binary genotype file prefix")
+        .metavar("<GFILE>");
     cmd.add_argument("--qcovar")
         .help("Quantitative covariates (TSV: FID, IID, covar1, ...)");
     cmd.add_argument("--dcovar")

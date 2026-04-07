@@ -18,7 +18,7 @@
 
 #include <Eigen/Core>
 
-#include "assoc_detail.h"
+#include "detail/assoc_detail.h"
 #include "gelex/algo/infer/estimator.h"
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/grm/loco_grm_reader.h"

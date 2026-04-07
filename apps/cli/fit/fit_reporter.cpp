@@ -192,7 +192,7 @@ auto FitReporter::print_random_prior(const bayes::VariancePrior& prior) const
 auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) const
     -> void
 {
-    logger_->info("   {} effect:", genetic_kind::to_string(prior.type));
+    logger_->info("   {} effect:", prior.type);
 
     auto format_vec = [](const auto& p)
     {
@@ -260,10 +260,10 @@ auto FitReporter::print_genetic_summary(
         return;
     }
 
-    std::string label{genetic_kind::to_string(type)};
     std::string h_name{genetic_kind::to_heritability_label(type)};
 
-    logger_->info(gelex::named_section(label, kTableWidth, 2));
+    logger_->info(
+        gelex::named_section(fmt::format("{}", type), kTableWidth, 2));
     print_summary_row("σ²", summary->variance);
     print_summary_row(h_name, summary->heritability);
 
