@@ -16,8 +16,8 @@
 
 #include "gelex/model/bayes/writer/mcmc_writer.h"
 
+#include <fmt/format.h>
 #include <cstdint>
-#include <format>
 #include <ranges>
 #include <string_view>
 #include <variant>
@@ -65,27 +65,49 @@ MCMCWriter::MCMCWriter(
     const bayes::Priors& priors,
     std::string_view prefix,
     Eigen::Index n_records)
-    : writer_(std::format("{}.samples", prefix))
+    : writer_(fmt::format("{}.samples", prefix))
 {
     const auto cols = n_records;
 
     // Fixed
     fixed_coeffs_ = writer_.reserve<double>(
-        std::format("{}/coeff", EffectType::fixed()),
+        fmt::format("{}/coeff", EffectType::fixed()),
         model.fixed().X.cols(),
         cols);
+    writer_.write_strings(
+        fmt::format("{}/names", EffectType::fixed()), model.fixed().names);
+
+    for (const auto& [name, levels] :
+         std::views::zip(model.fixed().names, model.fixed().levels))
+    {
+        if (!levels)
+        {
+            writer_.write_strings(
+                fmt::format("{}/levels/{}", EffectType::fixed(), name),
+                std::views::single(std::string_view{name}));
+        }
+        else
+        {
+            writer_.write_strings(
+                fmt::format("{}/levels/{}", EffectType::fixed(), name),
+                *levels);
+        }
+    }
 
     // Random
-    for (uint8_t i = 0; i < static_cast<uint8_t>(model.random().size()); ++i)
+    for (const auto& random : model.random())
     {
-        const auto n_coeffs = model.random()[i].X.cols();
-        auto coeffs_h = writer_.reserve<double>(
-            std::format("{}/coeff/{}", EffectType::random(), i),
-            n_coeffs,
+        std::string_view name = random.name;
+        writer_.write_strings(
+            fmt::format("{}/levels/{}", EffectType::random(), name),
+            random.levels);
+        auto coeffs = writer_.reserve<double>(
+            fmt::format("{}/coeff/{}", EffectType::random(), name),
+            random.X.cols(),
             cols);
-        auto variance_h = writer_.reserve<double>(
-            std::format("{}/variance/{}", EffectType::random(), i), 1, cols);
-        random_.push_back({.coeffs = coeffs_h, .variance = variance_h});
+        auto variance = writer_.reserve<double>(
+            fmt::format("{}/variance/{}", EffectType::random(), name), 1, cols);
+        random_.push_back({.coeffs = coeffs, .variance = variance});
     }
 
     // Genetic
@@ -98,27 +120,27 @@ MCMCWriter::MCMCWriter(
         GeneticHandles gh;
         gh.section_effect = sect;
         gh.coeffs = writer_.reserve<double>(
-            std::format("{}/coeff", sect), n_snps, cols);
+            fmt::format("{}/coeff", sect), n_snps, cols);
         gh.variance = writer_.reserve<double>(
-            std::format("{}/variance", sect), 1, cols);
+            fmt::format("{}/variance", sect), 1, cols);
 
         if ((prior != nullptr) && has_group_prior(prior->marker))
         {
             gh.mixture_tracker = writer_.reserve<int8_t>(
-                std::format("{}/group/assignment", sect), n_snps, cols);
+                fmt::format("{}/group/assignment", sect), n_snps, cols);
             if (group_prior_estimate_pi(prior->marker))
             {
                 const auto n_pi = group_prior_n_proportions(prior->marker);
                 gh.pi = writer_.reserve<double>(
-                    std::format("{}/group/proportion", sect), n_pi, cols);
+                    fmt::format("{}/group/proportion", sect), n_pi, cols);
             }
         }
         if ((prior != nullptr) && prior->sign)
         {
             gh.sign_tracker = writer_.reserve<int8_t>(
-                std::format("{}/sign/assignment", sect), n_snps, cols);
+                fmt::format("{}/sign/assignment", sect), n_snps, cols);
             gh.positive_prob = writer_.reserve<double>(
-                std::format("{}/sign/proportion", sect), 1, cols);
+                fmt::format("{}/sign/proportion", sect), 1, cols);
         }
 
         genetic_.push_back(gh);
@@ -126,7 +148,7 @@ MCMCWriter::MCMCWriter(
 
     // Residual
     residual_variance_ = writer_.reserve<double>(
-        std::format("{}/variance", EffectType::residual()), 1, cols);
+        fmt::format("{}/variance", EffectType::residual()), 1, cols);
 }
 
 void MCMCWriter::write(const BayesState& state)

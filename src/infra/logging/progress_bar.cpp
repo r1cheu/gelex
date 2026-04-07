@@ -18,6 +18,7 @@
 
 #include <unistd.h>
 #include <cstdio>
+#include <cstdlib>
 #include <vector>
 
 #include <barkeep.h>
@@ -31,6 +32,10 @@ namespace
 
 auto should_use_no_tty() -> bool
 {
+    if (std::getenv("GELEX_NO_TTY") != nullptr)
+    {
+        return true;
+    }
     return isatty(fileno(stdout)) == 0;
 }
 
@@ -43,12 +48,15 @@ auto create_progress_bar(size_t& counter, size_t total, std::string_view format)
 
     std::vector<std::shared_ptr<bk::BaseDisplay>> elements;
 
-    elements.push_back((bk::Animation(
-        {.message = " ",
-         .style = gelex::GREEN_SPINNER,
-         .interval = 0.08,
-         .no_tty = no_tty,
-         .show = false})));
+    if (!no_tty)
+    {
+        elements.push_back((bk::Animation(
+            {.message = " ",
+             .style = gelex::GREEN_SPINNER,
+             .interval = 0.08,
+             .no_tty = false,
+             .show = false})));
+    }
     auto before = bk::Status(
         {.style = bk::Strings{" "}, .no_tty = no_tty, .show = false});
     elements.push_back(before);
@@ -77,13 +85,16 @@ auto create_progress_info() -> ProgressInfo
 
     std::vector<std::shared_ptr<barkeep::BaseDisplay>> elements;
 
-    elements.push_back(
-        barkeep::Animation(
-            {.message = " ",
-             .style = GREEN_SPINNER,
-             .interval = 0.08,
-             .no_tty = no_tty,
-             .show = false}));
+    if (!no_tty)
+    {
+        elements.push_back(
+            barkeep::Animation(
+                {.message = " ",
+                 .style = GREEN_SPINNER,
+                 .interval = 0.08,
+                 .no_tty = false,
+                 .show = false}));
+    }
     auto status = barkeep::Status(
         {.message = " ",
          .style = barkeep::Strings{" "},

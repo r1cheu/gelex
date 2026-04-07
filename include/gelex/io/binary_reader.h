@@ -17,16 +17,18 @@
 #ifndef GELEX_IO_BINARY_READER_H_
 #define GELEX_IO_BINARY_READER_H_
 
+#include <fmt/format.h>
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
-#include <format>
 #include <string>
 #include <string_view>
 #include <system_error>
 #include <type_traits>
 #include <unordered_map>
+#include <vector>
 
 #include <mio.h>
 
@@ -63,9 +65,30 @@ class BinaryReader
     [[nodiscard]] auto to_mat(std::string_view path) const
         -> Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>;
 
+    template <typename eT>
+        requires std::is_arithmetic_v<eT>
+    [[nodiscard]] auto is_type(std::string_view path) const -> bool
+    {
+        return find_entry(path).dtype == binary_format::kTypeByte<eT>;
+    }
+
+    [[nodiscard]] auto to_strings(std::string_view path) const
+        -> std::vector<std::string_view>;
+
     [[nodiscard]] auto n_sections() const -> uint64_t
     {
         return static_cast<uint64_t>(toc_.size());
+    }
+
+    [[nodiscard]] auto section_paths() const -> std::vector<std::string_view>
+    {
+        std::vector<std::string_view> paths;
+        paths.reserve(toc_.size());
+        for (const auto& [key, _] : toc_)
+        {
+            paths.emplace_back(key);
+        }
+        return paths;
     }
 
    private:
@@ -95,18 +118,17 @@ inline BinaryReader::BinaryReader(std::string_view file_path)
     {
         if (!std::filesystem::exists(path_))
         {
-            throw FileNotFoundException(
-                std::format("{}: not found", path_.string()));
+            throw GelexException(fmt::format("{}: not found", path_.string()));
         }
-        throw FileOpenException(
-            std::format(
+        throw GelexException(
+            fmt::format(
                 "{}: failed to mmap: {}", path_.string(), ec.message()));
     }
 
     if (mmap_.size() < binary_format::kFooterSize)
     {
-        throw FileFormatException(
-            std::format(
+        throw GelexException(
+            fmt::format(
                 "{}: file too small for container footer", path_.string()));
     }
 
@@ -126,8 +148,8 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
             binary_format::kBinaryFormatMagic.end(),
             footer))
     {
-        throw FileFormatException(
-            std::format("{}: invalid container magic", path_str));
+        throw GelexException(
+            fmt::format("{}: invalid container magic", path_str));
     }
 
     const auto toc_offset = binary_format::decode<uint64_t>(footer + 8);
@@ -137,8 +159,8 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
         = static_cast<uint64_t>(n_entries) * binary_format::kTocEntrySize;
     if (toc_offset + toc_region_size + binary_format::kFooterSize != file_size)
     {
-        throw FileFormatException(
-            std::format("{}: TOC region does not match file size", path_str));
+        throw GelexException(
+            fmt::format("{}: TOC region does not match file size", path_str));
     }
 
     const auto* toc_data = data + toc_offset;
@@ -151,8 +173,8 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
 
         if (entry.offset + entry.size > toc_offset)
         {
-            throw FileFormatException(
-                std::format(
+            throw GelexException(
+                fmt::format(
                     "{}: section {} data exceeds TOC boundary", path_str, i));
         }
 
@@ -172,10 +194,64 @@ inline auto BinaryReader::find_entry(std::string_view path) const
     auto it = toc_.find(path);
     if (it == toc_.end())
     {
-        throw FileFormatException(
-            std::format("{}: section not found: \"{}\"", path_.string(), path));
+        throw GelexException(
+            fmt::format("{}: section not found: \"{}\"", path_.string(), path));
     }
     return it->second;
+}
+
+inline auto BinaryReader::to_strings(std::string_view path) const
+    -> std::vector<std::string_view>
+{
+    const auto& entry = find_entry(path);
+
+    if (entry.dtype != binary_format::kTypeString)
+    {
+        throw GelexException(
+            fmt::format(
+                "{}: section \"{}\" is not a string section (dtype={})",
+                path_.string(),
+                path,
+                entry.dtype));
+    }
+
+    const auto* base
+        = reinterpret_cast<const char*>(mmap_.data()) + entry.offset;
+    const auto* end = base + entry.size;
+
+    std::vector<std::string_view> result;
+    result.reserve(entry.rows);
+
+    const auto* cursor = base;
+    while (cursor < end)
+    {
+        const auto* null_pos = reinterpret_cast<const char*>(
+            std::memchr(cursor, '\0', static_cast<size_t>(end - cursor)));
+        if (null_pos == nullptr)
+        {
+            throw GelexException(
+                fmt::format(
+                    "{}: string section \"{}\" missing null terminator",
+                    path_.string(),
+                    path));
+        }
+        result.emplace_back(cursor, static_cast<size_t>(null_pos - cursor));
+        cursor = null_pos + 1;
+    }
+
+    if (result.size() != entry.rows)
+    {
+        throw GelexException(
+            fmt::format(
+                "{}: string section \"{}\" count mismatch: expected {}, "
+                "got {}",
+                path_.string(),
+                path,
+                entry.rows,
+                result.size()));
+    }
+
+    return result;
 }
 
 template <typename eT>
@@ -189,8 +265,8 @@ auto BinaryReader::to_map(std::string_view path) const -> Eigen::Map<
 
     if (entry.dtype != binary_format::kTypeByte<eT>)
     {
-        throw ArgumentValidationException(
-            std::format(
+        throw GelexException(
+            fmt::format(
                 "{}: dtype mismatch, section={}, requested={}",
                 path_str,
                 entry.dtype,
@@ -203,8 +279,8 @@ auto BinaryReader::to_map(std::string_view path) const -> Eigen::Map<
 
     if (expected_bytes != entry.size)
     {
-        throw FileFormatException(
-            std::format(
+        throw GelexException(
+            fmt::format(
                 "{}: section payload size mismatch, expected {} bytes, "
                 "got {}",
                 path_str,
@@ -228,7 +304,35 @@ template <typename eT>
 auto BinaryReader::to_mat(std::string_view path) const
     -> Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>
 {
-    return Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>(to_map<eT>(path));
+    const auto& entry = find_entry(path);
+    if (entry.dtype == binary_format::kTypeByte<eT>)
+    {
+        return Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>(
+            to_map<eT>(path));
+    }
+
+    auto cast_from = [&]<typename StoredT>()
+        -> Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>
+    { return to_map<StoredT>(path).template cast<eT>(); };
+
+    switch (entry.dtype)
+    {
+        case binary_format::kTypeByte<double>:
+            return cast_from.template operator()<double>();
+        case binary_format::kTypeByte<int8_t>:
+            return cast_from.template operator()<int8_t>();
+        case binary_format::kTypeByte<uint8_t>:
+            return cast_from.template operator()<uint8_t>();
+        case binary_format::kTypeByte<int64_t>:
+            return cast_from.template operator()<int64_t>();
+        default:
+            throw GelexException(
+                fmt::format(
+                    "{}: unsupported dtype cast, section={}, dtype={}",
+                    path_.string(),
+                    path,
+                    entry.dtype));
+    }
 }
 
 }  // namespace gelex::detail

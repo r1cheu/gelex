@@ -41,6 +41,10 @@ inline constexpr size_t kTocEntrySize = 104;
 inline constexpr size_t kPageAlignment = 4096;
 inline constexpr size_t kMaxPathLength = 63;
 
+// String dtype: value 0x01 cannot conflict with arithmetic types since
+// the smallest arithmetic dtype encodes as (sizeof(T) << 2) >= 4.
+inline constexpr uint8_t kTypeString = 0x01;
+
 template <typename eT>
     requires std::is_arithmetic_v<eT>
 inline constexpr uint8_t kTypeByte = static_cast<uint8_t>(

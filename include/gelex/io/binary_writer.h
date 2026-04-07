@@ -17,14 +17,17 @@
 #ifndef GELEX_IO_BINARY_WRITER_H_
 #define GELEX_IO_BINARY_WRITER_H_
 
+#include <fmt/format.h>
 #include <concepts>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <ranges>
 #include <string_view>
 #include <type_traits>
 #include <vector>
 
+#include "gelex/exception.h"
 #include "gelex/io/binary_format.h"
 
 namespace gelex::detail
@@ -94,6 +97,53 @@ class BinaryWriter
         using T = element_t<Matrix>;
         auto h = reserve<T>(path, data.rows(), data.cols());
         write(h, data);
+    }
+
+    template <std::ranges::input_range R>
+        requires std::
+            convertible_to<std::ranges::range_value_t<R>, std::string_view>
+        auto write_strings(std::string_view path, const R& names) -> void
+    {
+        if (path.size() > binary_format::kMaxPathLength)
+        {
+            throw GelexException(
+                fmt::format(
+                    "{}: path too long ({} > {}): \"{}\"",
+                    output_path_.string(),
+                    path.size(),
+                    binary_format::kMaxPathLength,
+                    path));
+        }
+
+        check_duplicate_path(path);
+
+        uint64_t total_bytes = 0;
+        for (const std::string_view s : names)
+        {
+            total_bytes += s.size() + 1;
+        }
+
+        TocEntry entry;
+        std::copy(path.begin(), path.end(), entry.path.begin());
+        entry.dtype = binary_format::kTypeString;
+        entry.rows = static_cast<uint64_t>(std::ranges::distance(names));
+        entry.cols = 0;
+        entry.size = total_bytes;
+
+        const auto aligned_offset
+            = align_up(next_offset_, binary_format::kPageAlignment);
+        entry.offset = aligned_offset;
+        next_offset_ = aligned_offset + total_bytes;
+
+        const auto handle = reserved_.size();
+        reserved_.push_back(
+            ReservedSection{.entry = entry, .cursor = aligned_offset});
+
+        for (const std::string_view s : names)
+        {
+            write_raw(handle, s.data(), static_cast<std::streamsize>(s.size()));
+            write_raw(handle, "\0", 1);
+        }
     }
 
     auto finalize() -> void;

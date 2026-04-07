@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <string>
+#include <string_view>
+#include <vector>
 
 #include <Eigen/Core>
 
@@ -26,7 +30,6 @@
 #include "gelex/data/genotype/genotype_map_reader.h"
 #include "gelex/data/genotype/genotype_mat_reader.h"
 #include "gelex/exception.h"
-#include "gelex/io/binary_format.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/io/binary_writer.h"
 
@@ -116,6 +119,36 @@ TEST_CASE("Container contains", "[binary_container]")
     REQUIRE_FALSE(reader.contains("Dominance/coeff"));
 }
 
+TEST_CASE("Container section_paths", "[binary_container]")
+{
+    test::FileFixture fixture;
+    const auto& dir = fixture.get_test_dir();
+
+    Eigen::MatrixXd data(2, 2);
+    data << 1.0, 2.0, 3.0, 4.0;
+
+    auto container_path = dir / "test.samples";
+    {
+        BinaryWriter writer(container_path.string());
+        writer.write("Additive/coeff", data);
+        writer.write("Additive/variance", data);
+        writer.write("Residual/variance", data);
+        writer.finalize();
+    }
+
+    BinaryReader reader(container_path.string());
+    auto paths = reader.section_paths();
+
+    REQUIRE(paths.size() == 3);
+
+    std::vector<std::string> sorted(paths.begin(), paths.end());
+    std::sort(sorted.begin(), sorted.end());
+
+    REQUIRE(sorted[0] == "Additive/coeff");
+    REQUIRE(sorted[1] == "Additive/variance");
+    REQUIRE(sorted[2] == "Residual/variance");
+}
+
 TEST_CASE("Container section not found throws", "[binary_container]")
 {
     test::FileFixture fixture;
@@ -132,8 +165,7 @@ TEST_CASE("Container section not found throws", "[binary_container]")
     }
 
     BinaryReader reader(container_path.string());
-    REQUIRE_THROWS_AS(
-        reader.to_map<double>("Dominance/coeff"), FileFormatException);
+    REQUIRE_THROWS_AS(reader.to_map<double>("Dominance/coeff"), GelexException);
 }
 
 TEST_CASE("Container dtype mismatch throws", "[binary_container]")
@@ -152,8 +184,7 @@ TEST_CASE("Container dtype mismatch throws", "[binary_container]")
     }
 
     BinaryReader reader(container_path.string());
-    REQUIRE_THROWS_AS(
-        reader.to_map<int8_t>("Additive/coeff"), ArgumentValidationException);
+    REQUIRE_THROWS_AS(reader.to_map<int8_t>("Additive/coeff"), GelexException);
 }
 
 TEST_CASE("Container invalid magic throws", "[binary_container]")
@@ -167,7 +198,7 @@ TEST_CASE("Container invalid magic throws", "[binary_container]")
     out.write(garbage.data(), static_cast<std::streamsize>(garbage.size()));
     out.close();
 
-    REQUIRE_THROWS_AS(BinaryReader(bad_path.string()), FileFormatException);
+    REQUIRE_THROWS_AS(BinaryReader(bad_path.string()), GelexException);
 }
 
 TEST_CASE("Container file too small throws", "[binary_container]")
@@ -181,7 +212,7 @@ TEST_CASE("Container file too small throws", "[binary_container]")
     out.write(data.data(), static_cast<std::streamsize>(data.size()));
     out.close();
 
-    REQUIRE_THROWS_AS(BinaryReader(tiny_path.string()), FileFormatException);
+    REQUIRE_THROWS_AS(BinaryReader(tiny_path.string()), GelexException);
 }
 
 TEST_CASE("Container duplicate section path throws", "[binary_container]")
@@ -192,8 +223,7 @@ TEST_CASE("Container duplicate section path throws", "[binary_container]")
     BinaryWriter writer((dir / "test.samples").string());
     writer.reserve<double>("Additive/coeff", 2, 2);
     REQUIRE_THROWS_AS(
-        (writer.reserve<double>("Additive/coeff", 2, 2)),
-        ArgumentValidationException);
+        (writer.reserve<double>("Additive/coeff", 2, 2)), GelexException);
 }
 
 TEST_CASE("Container sections with different indices", "[binary_container]")
@@ -330,8 +360,7 @@ TEST_CASE("Reserve write overflow throws", "[binary_container]")
 
     Eigen::Vector3d too_large;
     too_large << 1.0, 2.0, 3.0;
-    REQUIRE_THROWS_AS(
-        (writer.write(h, too_large)), ArgumentValidationException);
+    REQUIRE_THROWS_AS((writer.write(h, too_large)), GelexException);
 }
 
 TEST_CASE(
@@ -497,4 +526,66 @@ TEST_CASE(
     {
         REQUIRE(stats_mat.col(1).isApprox(variances));
     }
+}
+
+TEST_CASE("Container string section round-trip", "[binary_container]")
+{
+    test::FileFixture fixture;
+    const auto& dir = fixture.get_test_dir();
+
+    const std::vector<std::string_view> names
+        = {"intercept", "sex", "age_group", "pop_stratum"};
+
+    Eigen::MatrixXd coeff(2, 3);
+    coeff << 1.0, 2.0, 3.0, 4.0, 5.0, 6.0;
+
+    auto container_path = dir / "string_test.samples";
+    {
+        BinaryWriter writer(container_path.string());
+        writer.write_strings("Fixed/names", names);
+        writer.write("Fixed/coeff", coeff);
+        writer.finalize();
+    }
+
+    BinaryReader reader(container_path.string());
+    REQUIRE(reader.n_sections() == 2);
+
+    SECTION("string section round-trips correctly")
+    {
+        auto result = reader.to_strings("Fixed/names");
+        REQUIRE(result.size() == names.size());
+        for (size_t i = 0; i < names.size(); ++i)
+        {
+            REQUIRE(result[i] == names[i]);
+        }
+    }
+
+    SECTION("numeric section still intact")
+    {
+        auto mat = reader.to_map<double>("Fixed/coeff");
+        REQUIRE(mat.rows() == 2);
+        REQUIRE(mat.cols() == 3);
+        REQUIRE(mat.isApprox(coeff));
+    }
+}
+
+TEST_CASE(
+    "Container to_strings on non-string section throws",
+    "[binary_container]")
+{
+    test::FileFixture fixture;
+    const auto& dir = fixture.get_test_dir();
+
+    Eigen::MatrixXd data(2, 2);
+    data << 1.0, 2.0, 3.0, 4.0;
+
+    auto container_path = dir / "wrong_dtype.samples";
+    {
+        BinaryWriter writer(container_path.string());
+        writer.write("Additive/coeff", data);
+        writer.finalize();
+    }
+
+    BinaryReader reader(container_path.string());
+    REQUIRE_THROWS_AS(reader.to_strings("Additive/coeff"), GelexException);
 }
