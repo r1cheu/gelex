@@ -42,6 +42,7 @@ class SimulationEngine
 
         std::optional<double> dom_heritability;
         std::vector<EffectSizeClass> dom_effect_classes;
+        std::optional<double> dom_positive_prob;
 
         int seed;
     };

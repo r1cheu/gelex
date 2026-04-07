@@ -17,15 +17,23 @@
 #ifndef GELEX_ALGO_SIM_PHENOTYPE_GENERATOR_H_
 #define GELEX_ALGO_SIM_PHENOTYPE_GENERATOR_H_
 
+#include <optional>
 #include <random>
 
 #include <Eigen/Core>
 
 #include "gelex/algo/sim/genetic_value_calculator.h"
-#include "gelex/infra/logging/simulate_event.h"
 
 namespace gelex
 {
+
+struct PhenotypeResult
+{
+    Eigen::VectorXd phenotypes;
+    double true_h2{};
+    std::optional<double> true_d2;
+    double dom_scale{1.0};
+};
 
 class PhenotypeGenerator
 {
@@ -36,10 +44,8 @@ class PhenotypeGenerator
         double intercept,
         std::mt19937_64& rng);
 
-    auto generate(
-        GeneticValues& genetic_values,
-        const SimulateObserver& observer = {}) -> Eigen::VectorXd;
-    auto dom_scale() const -> double { return dom_scale_; }
+    [[nodiscard]] auto generate(GeneticValues& genetic_values)
+        -> PhenotypeResult;
 
    private:
     auto scale_dominance_if_needed(

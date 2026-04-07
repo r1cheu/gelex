@@ -24,7 +24,8 @@ When the discussion reaches consensus (user confirms direction with "开始", "�
    - What changes, in what order
    - Which files are affected
    - Key design decisions made during discussion
-2. Suggest: **"用 `/dev-assist` 开始实现？"**
-3. Do NOT start implementing yourself — wait for the user to invoke `/dev-assist`.
+2. create Tasks list by logic units.
+3. Suggest: **"用 `/dev-assist` 开始实现？"**
+4. Do NOT start implementing yourself — wait for the user to invoke `/dev-assist`.
 
 Topic: $ARGUMENTS

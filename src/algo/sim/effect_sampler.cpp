@@ -16,9 +16,10 @@
 
 #include "gelex/algo/sim/effect_sampler.h"
 
+#include <fmt/format.h>
 #include <algorithm>
 #include <cmath>
-#include <format>
+#include <optional>
 #include <random>
 #include <span>
 #include <vector>
@@ -26,6 +27,7 @@
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
+#include "gelex/infra/stats/truncated_normal.h"
 
 namespace gelex
 {
@@ -33,10 +35,12 @@ namespace gelex
 EffectSampler::EffectSampler(
     std::vector<EffectSizeClass> add_classes,
     std::vector<EffectSizeClass> dom_classes,
-    std::mt19937_64& rng)
+    std::mt19937_64& rng,
+    std::optional<double> dom_positive_prob)
     : add_classes_(std::move(add_classes)),
       dom_classes_(std::move(dom_classes)),
-      rng_(rng)
+      rng_(rng),
+      dom_positive_prob_(dom_positive_prob)
 {
     validate_effect_classes(add_classes_, "Additive");
     if (!dom_classes_.empty())
@@ -93,7 +97,9 @@ auto EffectSampler::sample(Eigen::Index n_snps) -> CausalEffects
         {
             const int dom_class = dom_class_assignments[i];
             causal_effects.dominance(i)
-                = sample_effect_value(dom_classes_, dom_class);
+                = dom_positive_prob_.has_value()
+                      ? sample_truncated_effect_value(dom_classes_, dom_class)
+                      : sample_effect_value(dom_classes_, dom_class);
             causal_effects.dom_class(i) = dom_class;
         }
     }
@@ -115,14 +121,35 @@ auto EffectSampler::sample_effect_value(
     return distribution(rng_);
 }
 
+auto EffectSampler::sample_truncated_effect_value(
+    std::span<const EffectSizeClass> classes,
+    int cls) -> double
+{
+    const double variance = classes[cls].variance;
+    if (variance == 0.0)
+    {
+        return 0.0;
+    }
+
+    const double sigma = std::sqrt(variance);
+    const double p = *dom_positive_prob_;
+    std::bernoulli_distribution coin(p);
+
+    if (coin(rng_))
+    {
+        return detail::sample_left_truncated_normal(0.0, sigma, 0.0, rng_);
+    }
+    return detail::sample_right_truncated_normal(0.0, sigma, 0.0, rng_);
+}
+
 void EffectSampler::validate_effect_classes(
     std::span<const EffectSizeClass> classes,
     std::string_view label)
 {
     if (classes.empty())
     {
-        throw ArgumentValidationException(
-            std::format("{} effect classes must not be empty", label));
+        throw GelexException(
+            fmt::format("{} effect classes must not be empty", label));
     }
 
     double total_proportion = 0.0;
@@ -130,21 +157,21 @@ void EffectSampler::validate_effect_classes(
     {
         if (cls.proportion <= 0.0)
         {
-            throw ArgumentValidationException(
-                std::format("{} effect class proportion must be > 0", label));
+            throw GelexException(
+                fmt::format("{} effect class proportion must be > 0", label));
         }
         if (cls.variance < 0.0)
         {
-            throw ArgumentValidationException(
-                std::format("{} effect class variance must be >= 0", label));
+            throw GelexException(
+                fmt::format("{} effect class variance must be >= 0", label));
         }
         total_proportion += cls.proportion;
     }
 
     if (std::abs(total_proportion - 1.0) > 1e-6)
     {
-        throw ArgumentValidationException(
-            std::format(
+        throw GelexException(
+            fmt::format(
                 "{} effect class proportions must sum to 1.0 (got {})",
                 label,
                 total_proportion));

@@ -82,6 +82,11 @@ auto SimulatorReporter::on_event(const HeritabilityGeneratedEvent& event) const
     {
         logger_->info("   δ²                : {:.4f}", *event.dominance);
     }
+    if (event.dom_positive_prob)
+    {
+        logger_->info(
+            "   dom positive      : {:.4f}", *event.dom_positive_prob);
+    }
     logger_->info("");
 }
 

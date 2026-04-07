@@ -78,6 +78,12 @@ auto setup_simulate_args(argparse::ArgumentParser& cmd) -> void
         .nargs(argparse::nargs_pattern::at_least_one)
         .default_value(std::vector<double>{1.0})
         .scan<'g', double>();
+    cmd.add_argument("--dom-pos-prob")
+        .help(
+            "Probability of positive dominance effects "
+            "(enables truncated-normal sampling, range: 0-1)")
+        .metavar("<PROB>")
+        .scan<'g', double>();
 
     cmd.add_argument("--seed")
         .help("Random seed for reproducibility")

@@ -17,6 +17,7 @@
 #ifndef GELEX_ALGO_SIM_EFFECT_SAMPLER_H_
 #define GELEX_ALGO_SIM_EFFECT_SAMPLER_H_
 
+#include <optional>
 #include <random>
 #include <span>
 #include <string_view>
@@ -35,7 +36,8 @@ class EffectSampler
     EffectSampler(
         std::vector<EffectSizeClass> add_classes,
         std::vector<EffectSizeClass> dom_classes,
-        std::mt19937_64& rng);
+        std::mt19937_64& rng,
+        std::optional<double> dom_positive_prob = std::nullopt);
 
     auto sample(Eigen::Index n_snps) -> CausalEffects;
 
@@ -47,6 +49,10 @@ class EffectSampler
     auto sample_effect_value(std::span<const EffectSizeClass> classes, int cls)
         -> double;
 
+    auto sample_truncated_effect_value(
+        std::span<const EffectSizeClass> classes,
+        int cls) -> double;
+
     static void validate_effect_classes(
         std::span<const EffectSizeClass> classes,
         std::string_view label);
@@ -54,6 +60,7 @@ class EffectSampler
     std::vector<EffectSizeClass> add_classes_;
     std::vector<EffectSizeClass> dom_classes_;
     std::mt19937_64& rng_;
+    std::optional<double> dom_positive_prob_;
 };
 
 }  // namespace gelex

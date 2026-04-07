@@ -28,6 +28,7 @@ struct HeritabilityGeneratedEvent
 {
     double additive{};
     std::optional<double> dominance;
+    std::optional<double> dom_positive_prob;
 };
 
 struct SimulateProgressEvent

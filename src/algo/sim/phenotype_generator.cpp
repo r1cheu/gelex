@@ -21,7 +21,6 @@
 
 #include <Eigen/Core>
 
-#include "gelex/infra/logging/notify.h"
 #include "gelex/infra/stats/descriptive.h"
 
 namespace gelex
@@ -36,9 +35,8 @@ PhenotypeGenerator::PhenotypeGenerator(
 {
 }
 
-auto PhenotypeGenerator::generate(
-    GeneticValues& genetic_values,
-    const SimulateObserver& observer) -> Eigen::VectorXd
+auto PhenotypeGenerator::generate(GeneticValues& genetic_values)
+    -> PhenotypeResult
 {
     const double additive_variance = detail::var(genetic_values.additive)(0);
     scale_dominance_if_needed(genetic_values, additive_variance, d2_);
@@ -65,9 +63,12 @@ auto PhenotypeGenerator::generate(
                             detail::var(genetic_values.dominance)(0) / var_phen)
                       : std::nullopt;
 
-    notify(observer, HeritabilityGeneratedEvent{true_h2, true_d2});
-
-    return phenotypes;
+    return PhenotypeResult{
+        .phenotypes = std::move(phenotypes),
+        .true_h2 = true_h2,
+        .true_d2 = true_d2,
+        .dom_scale = dom_scale_,
+    };
 }
 
 auto PhenotypeGenerator::scale_dominance_if_needed(

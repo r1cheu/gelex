@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <cmath>
 #include <random>
 
 #include <Eigen/Core>
@@ -53,34 +52,21 @@ TEST_CASE("PhenotypeGenerator - additive only", "[phenotype_generator]")
 
     std::mt19937_64 rng(123);
     PhenotypeGenerator generator(H2, 0.0, 0.0, rng);
-    std::optional<double> observed_h2;
-    std::optional<double> observed_d2;
-    auto phenotypes = generator.generate(
-        gv,
-        [&](const SimulateEvent& event)
-        {
-            if (const auto* h2_event
-                = std::get_if<HeritabilityGeneratedEvent>(&event))
-            {
-                observed_h2 = h2_event->additive;
-                observed_d2 = h2_event->dominance;
-            }
-        });
+    auto result = generator.generate(gv);
 
     SECTION("Output size matches input")
     {
-        REQUIRE(phenotypes.size() == N_SAMPLES);
+        REQUIRE(result.phenotypes.size() == N_SAMPLES);
     }
 
     SECTION("True h2 is close to target")
     {
-        REQUIRE(observed_h2.has_value());
-        REQUIRE_THAT(*observed_h2, WithinAbs(H2, VARIANCE_TOLERANCE));
+        REQUIRE_THAT(result.true_h2, WithinAbs(H2, VARIANCE_TOLERANCE));
     }
 
     SECTION("True d2 is zero when d2 config is zero")
     {
-        REQUIRE(observed_d2 == std::nullopt);
+        REQUIRE(result.true_d2 == std::nullopt);
     }
 
     SECTION("Dominance unchanged when no dominance")
@@ -113,31 +99,17 @@ TEST_CASE("PhenotypeGenerator - with dominance", "[phenotype_generator]")
 
     std::mt19937_64 rng(123);
     PhenotypeGenerator generator(H2, D2, 0.0, rng);
-    std::optional<double> observed_h2;
-    std::optional<double> observed_d2;
-    auto phenotypes = generator.generate(
-        gv,
-        [&](const SimulateEvent& event)
-        {
-            if (const auto* h2_event
-                = std::get_if<HeritabilityGeneratedEvent>(&event))
-            {
-                observed_h2 = h2_event->additive;
-                observed_d2 = h2_event->dominance;
-            }
-        });
+    auto result = generator.generate(gv);
 
     SECTION("True h2 is close to target")
     {
-        (void)phenotypes;
-        REQUIRE(observed_h2.has_value());
-        REQUIRE_THAT(*observed_h2, WithinAbs(H2, VARIANCE_TOLERANCE));
+        REQUIRE_THAT(result.true_h2, WithinAbs(H2, VARIANCE_TOLERANCE));
     }
 
     SECTION("True d2 is close to target")
     {
-        REQUIRE(observed_d2.has_value());
-        REQUIRE_THAT(*observed_d2, WithinAbs(D2, VARIANCE_TOLERANCE));
+        REQUIRE(result.true_d2.has_value());
+        REQUIRE_THAT(*result.true_d2, WithinAbs(D2, VARIANCE_TOLERANCE));
     }
 
     SECTION("Dominance values are scaled in place")
@@ -166,9 +138,9 @@ TEST_CASE("PhenotypeGenerator - intercept", "[phenotype_generator]")
     std::mt19937_64 rng(123);
     PhenotypeGenerator generator(0.5, 0.0, INTERCEPT, rng);
 
-    auto phenotypes = generator.generate(gv);
+    auto result = generator.generate(gv);
 
-    double mean_phenotype = phenotypes.mean();
+    double mean_phenotype = result.phenotypes.mean();
     REQUIRE_THAT(mean_phenotype, WithinAbs(INTERCEPT, 1.0));
 }
 
@@ -199,6 +171,6 @@ TEST_CASE("PhenotypeGenerator - reproducibility", "[phenotype_generator]")
 
     for (Eigen::Index i = 0; i < N_SAMPLES; ++i)
     {
-        REQUIRE(result1(i) == result2(i));
+        REQUIRE(result1.phenotypes(i) == result2.phenotypes(i));
     }
 }

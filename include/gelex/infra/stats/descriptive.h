@@ -17,6 +17,8 @@
 #ifndef GELEX_INFRA_STATS_DESCRIPTIVE_H_
 #define GELEX_INFRA_STATS_DESCRIPTIVE_H_
 
+#include <type_traits>
+
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
@@ -30,19 +32,17 @@ std::pair<Eigen::RowVectorXd, Eigen::RowVectorXd> standardize(
 Eigen::VectorXd sum_square(const Eigen::Ref<const Eigen::MatrixXd>& mat);
 Eigen::VectorXd sum_square(const Eigen::Ref<Eigen::SparseMatrix<double>>& mat);
 
-template <typename Derived>
-Eigen::VectorXd var(
-    const Eigen::DenseBase<Derived>& a,
-    Eigen::Index norm_type = 1,
-    Eigen::Index axis = 0)
+template <Eigen::Index Axis = 0, typename Derived>
+auto var(const Eigen::DenseBase<Derived>& a, Eigen::Index norm_type = 1)
+    -> std::conditional_t<Axis == 0, Eigen::RowVectorXd, Eigen::VectorXd>
 {
-    const Eigen::Index n = (axis == 0) ? a.cols() : a.rows();
+    static_assert(Axis == 0 || Axis == 1);
     const Eigen::Index ddof = (norm_type == 0) ? 0 : 1;
 
-    Eigen::VectorXd result(n);
-
-    if (axis == 0)
+    if constexpr (Axis == 0)
     {
+        const Eigen::Index n = a.cols();
+        Eigen::RowVectorXd result(n);
 #pragma omp parallel for default(none) shared(n, a, result, ddof)
         for (Eigen::Index i = 0; i < n; ++i)
         {
@@ -51,9 +51,12 @@ Eigen::VectorXd var(
             double sum_sq = (col.array() - mean_val).square().sum();
             result(i) = sum_sq / static_cast<double>(col.size() - ddof);
         }
+        return result;
     }
     else
     {
+        const Eigen::Index n = a.rows();
+        Eigen::VectorXd result(n);
 #pragma omp parallel for default(none) shared(n, a, result, ddof)
         for (Eigen::Index i = 0; i < n; ++i)
         {
@@ -62,9 +65,8 @@ Eigen::VectorXd var(
             double sum_sq = (row.array() - mean_val).square().sum();
             result(i) = sum_sq / static_cast<double>(row.size() - ddof);
         }
+        return result;
     }
-
-    return result;
 }
 
 }  // namespace detail

@@ -18,7 +18,7 @@
 
 #include <argparse.h>
 
-#include <format>
+#include <fmt/format.h>
 #include <span>
 #include <string_view>
 #include <vector>
@@ -37,8 +37,8 @@ auto validate_effect_classes(
 {
     if (variances.size() != proportions.size())
     {
-        throw gelex::ArgumentValidationException(
-            std::format(
+        throw gelex::GelexException(
+            fmt::format(
                 "{} variances and proportions must have the same number of "
                 "values",
                 label));
@@ -68,6 +68,10 @@ auto make_simulate_config(argparse::ArgumentParser& cmd)
     auto dom_heritability = cmd.is_used("--d2")
                                 ? std::make_optional(cmd.get<double>("--d2"))
                                 : std::nullopt;
+    auto dom_positive_prob
+        = cmd.is_used("--dom-pos-prob")
+              ? std::make_optional(cmd.get<double>("--dom-pos-prob"))
+              : std::nullopt;
 
     auto add_variances = cmd.get<std::vector<double>>("--add-var");
     auto add_proportions = cmd.get<std::vector<double>>("--add-prop");
@@ -78,18 +82,28 @@ auto make_simulate_config(argparse::ArgumentParser& cmd)
 
     if (add_heritability <= 0.0 || add_heritability >= 1.0)
     {
-        throw gelex::ArgumentValidationException(
-            "Heritability must be in (0, 1)");
+        throw gelex::GelexException("Heritability must be in (0, 1)");
     }
     if (dom_heritability
         && (*dom_heritability < 0.0 || *dom_heritability >= 1.0))
     {
-        throw gelex::ArgumentValidationException(
+        throw gelex::GelexException(
             "Dominance variance (d2) must be in [0, 1)");
     }
     if (dom_heritability && add_heritability + *dom_heritability >= 1.0)
     {
-        throw gelex::ArgumentValidationException("h2 + d2 must be less than 1");
+        throw gelex::GelexException("h2 + d2 must be less than 1");
+    }
+    if (dom_positive_prob
+        && (*dom_positive_prob <= 0.0 || *dom_positive_prob >= 1.0))
+    {
+        throw gelex::GelexException(
+            "Dominance positive probability must be in (0, 1)");
+    }
+    if (dom_positive_prob && !dom_heritability)
+    {
+        throw gelex::GelexException(
+            "--dom-pos-prob requires --d2 to be specified");
     }
 
     validate_effect_classes(
@@ -115,6 +129,7 @@ auto make_simulate_config(argparse::ArgumentParser& cmd)
         = dom_heritability
               ? create_effectsize_vec(dom_variances, dom_proportions)
               : std::vector<gelex::EffectSizeClass>{},
+        .dom_positive_prob = dom_positive_prob,
 
         .seed = cmd.get<int>("--seed"),
     };
