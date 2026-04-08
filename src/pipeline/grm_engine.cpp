@@ -17,8 +17,8 @@
 #include "gelex/pipeline/grm_engine.h"
 
 #include <filesystem>
+#include <span>
 #include <string>
-#include <vector>
 
 #include <fmt/format.h>
 
@@ -38,7 +38,7 @@ namespace
 
 auto write_grm_files(
     const GrmResult& result,
-    const std::vector<std::string>& sample_ids,
+    std::span<const std::string> sample_ids,
     const std::string& out_prefix) -> void
 {
     GrmBinWriter(out_prefix + ".bin").write(result.grm);

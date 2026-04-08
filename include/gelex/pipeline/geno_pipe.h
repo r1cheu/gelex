@@ -18,10 +18,10 @@
 #define GELEX_PIPELINE_GENO_PIPE_H_
 
 #include <filesystem>
-#include <memory>
 #include <string>
 #include <variant>
 
+#include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/genotype_map_reader.h"
 #include "gelex/data/genotype/genotype_mat_reader.h"
 #include "gelex/data/genotype/genotype_matrix.h"
@@ -33,8 +33,6 @@
 
 namespace gelex
 {
-
-class SampleManager;
 
 class GenoPipe
 {
@@ -58,7 +56,7 @@ class GenoPipe
     GenoPipe& operator=(GenoPipe&&) noexcept = default;
     ~GenoPipe() = default;
 
-    auto load(std::shared_ptr<SampleManager> sample_manager) -> void;
+    auto load(const df::Index<std::string>& sample_index) -> void;
 
     auto take_additive_matrix() && -> std::variant<GenotypeMap, GenotypeMatrix>
     {
@@ -81,6 +79,7 @@ class GenoPipe
 
     template <GeneticKind GT>
     auto load_genotype_impl(
+        const df::Index<std::string>& sample_index,
         const std::string& suffix,
         GenotypeProcessMethod method,
         GenotypeMatrixPtr& target) -> void
@@ -89,7 +88,7 @@ class GenoPipe
         {
             std::string file_path = config_.output_prefix + suffix;
             auto pipe = gelex::GenotypeMapReader(
-                config_.bed_path, sample_manager_, file_path, observer_);
+                config_.bed_path, sample_index, file_path, observer_);
             target
                 = std::make_unique<std::variant<GenotypeMap, GenotypeMatrix>>(
                     pipe.process<GT>(method, config_.chunk_size));
@@ -97,19 +96,20 @@ class GenoPipe
         else
         {
             auto reader = gelex::GenotypeMatReader(
-                config_.bed_path, sample_manager_, observer_);
+                config_.bed_path, sample_index, observer_);
             target
                 = std::make_unique<std::variant<GenotypeMap, GenotypeMatrix>>(
                     reader.process<GT>(method, config_.chunk_size));
         }
     }
 
-    auto load_additive_matrix() -> void;
-    auto load_dominance_matrix() -> void;
+    auto load_additive_matrix(const df::Index<std::string>& sample_index)
+        -> void;
+    auto load_dominance_matrix(const df::Index<std::string>& sample_index)
+        -> void;
     auto write_sbin() -> void;
 
     Config config_;
-    std::shared_ptr<SampleManager> sample_manager_;
     GenotypeMatrixPtr additive_matrix_;
     GenotypeMatrixPtr dominance_matrix_;
     DataPipeObserver observer_;

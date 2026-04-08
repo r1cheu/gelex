@@ -18,14 +18,13 @@
 #define GELEX_ALGO_SIM_GENETIC_VALUE_CALCULATOR_H_
 
 #include <filesystem>
-#include <memory>
 #include <span>
 #include <string>
 
 #include <Eigen/Core>
 
+#include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/bed_pipe.h"
-#include "gelex/data/genotype/sample_manager.h"
 #include "gelex/infra/logging/simulate_event.h"
 #include "gelex/types/sim_types.h"
 
@@ -56,7 +55,7 @@ class GeneticValueCalculator
         -> std::pair<Eigen::MatrixXd, Eigen::MatrixXd>;
 
     bool has_dominance_;
-    std::shared_ptr<SampleManager> sample_manager_;
+    df::Index<std::string> sample_index_;
     BedPipe bed_pipe_;
 
     static constexpr Eigen::Index SNP_CHUNK_SIZE = 10000;

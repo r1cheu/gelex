@@ -18,7 +18,6 @@
 #define GELEX_PIPELINE_PHENO_PIPE_H_
 
 #include <filesystem>
-#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -28,7 +27,7 @@
 #include <Eigen/Dense>
 
 #include "gelex/data/dataframe/dataframe.h"
-#include "gelex/data/genotype/sample_manager.h"
+#include "gelex/data/dataframe/index.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/types/fixed_effects.h"
 
@@ -71,9 +70,9 @@ class PhenoPipe
     auto load(const std::vector<std::span<const std::string>>& extra_ids = {})
         -> void;
 
-    auto sample_manager() -> std::shared_ptr<SampleManager>
+    auto sample_index() const -> const df::Index<std::string>&
     {
-        return sample_manager_;
+        return sample_index_;
     }
 
     auto num_genotype_samples() const -> size_t
@@ -119,7 +118,7 @@ class PhenoPipe
     Eigen::VectorXd phenotype_;
     FixedEffect fixed_effects_;
 
-    std::shared_ptr<SampleManager> sample_manager_;
+    df::Index<std::string> sample_index_;
     DataPipeObserver observer_;
 };
 

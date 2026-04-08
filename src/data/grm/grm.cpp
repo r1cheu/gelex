@@ -16,8 +16,6 @@
 
 #include "gelex/data/grm/grm.h"
 
-#include <memory>
-
 #include <Eigen/Core>
 #ifdef USE_MKL
 #include <mkl.h>
@@ -27,15 +25,17 @@
 #endif
 
 #include "gelex/data/genotype/bed_pipe.h"
-#include "gelex/data/genotype/sample_manager.h"
+#include "gelex/data/reader.h"
 
 namespace gelex
 {
 using Eigen::Index;
 
 GRM::GRM(const std::filesystem::path& bed_path)
-    : sample_manager_(SampleManager::create_finalized(bed_path)),
-      bed_(bed_path, sample_manager_)
+    : sample_index_(
+          read_fam(std::filesystem::path(bed_path).replace_extension(".fam"))
+              .index()),
+      bed_(bed_path, sample_index_)
 {
 }
 

@@ -26,12 +26,13 @@ namespace gelex
 
 LocoGRMReader::LocoGRMReader(
     const std::filesystem::path& whole_grm_prefix,
-    const std::unordered_map<std::string, Eigen::Index>& id_map)
+    const df::Index<std::string>& sample_index)
 {
     detail::GrmReader whole_reader(whole_grm_prefix);
     // Load and filter the whole GRM once during construction.
-    // load_unnormalized(id_map) returns (X_w * X_w') filtered and reordered.
-    g_whole_ = whole_reader.load_unnormalized(id_map);
+    // load_unnormalized(sample_index) returns (X_w * X_w') filtered and
+    // reordered.
+    g_whole_ = whole_reader.load_unnormalized(sample_index);
     // Compute trace after loading and save for LOCO calculation
     trace_whole_ = g_whole_.trace();
     k_whole_ = trace_whole_ / static_cast<double>(g_whole_.rows());
@@ -39,7 +40,7 @@ LocoGRMReader::LocoGRMReader(
 
 auto LocoGRMReader::load_loco_grm(
     const std::filesystem::path& chr_grm_prefix,
-    const std::unordered_map<std::string, Eigen::Index>& id_map,
+    const df::Index<std::string>& sample_index,
     Eigen::MatrixXd& target) const -> void
 {
     std::filesystem::path bin_path = chr_grm_prefix.string() + ".bin";
@@ -52,9 +53,9 @@ auto LocoGRMReader::load_loco_grm(
 
     detail::GrmReader chr_reader(chr_grm_prefix);
 
-    // Load chromosome GRM filtered by the SAME id_map to ensure alignment.
-    // Use the mutable buffer to avoid reallocations.
-    chr_reader.load_unnormalized(id_map, g_chr_buffer_);
+    // Load chromosome GRM filtered by the SAME sample_index to ensure
+    // alignment. Use the mutable buffer to avoid reallocations.
+    chr_reader.load_unnormalized(sample_index, g_chr_buffer_);
 
     // Compute k_i from the loaded chromosome GRM trace
     double trace_i = g_chr_buffer_.trace();
@@ -76,11 +77,10 @@ auto LocoGRMReader::load_loco_grm(
 
 auto LocoGRMReader::load_loco_grm(
     const std::filesystem::path& chr_grm_prefix,
-    const std::unordered_map<std::string, Eigen::Index>& id_map) const
-    -> Eigen::MatrixXd
+    const df::Index<std::string>& sample_index) const -> Eigen::MatrixXd
 {
     Eigen::MatrixXd target;
-    load_loco_grm(chr_grm_prefix, id_map, target);
+    load_loco_grm(chr_grm_prefix, sample_index, target);
     return target;
 }
 

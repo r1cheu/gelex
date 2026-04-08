@@ -42,14 +42,14 @@ auto AssocLocoEngine::run(
     const AssocObserver& observer,
     const RemlObserver& /*reml_observer*/) -> void
 {
-    BedPipe bed_pipe(config_.bed_path, pheno.sample_manager());
+    BedPipe bed_pipe(config_.bed_path, pheno.sample_index());
     auto bim_path = config_.bed_path;
     auto snp_index
         = std::move(detail::BimReader(bim_path.replace_extension(".bim")))
               .take_info();
 
     const auto grm_paths = grm.grm_paths();
-    const auto id_map = pheno.sample_manager()->common_id_map();
+    const auto& sample_index = pheno.sample_index();
 
     FreqModel model(
         std::move(pheno).take_phenotype(),
@@ -67,7 +67,7 @@ auto AssocLocoEngine::run(
     loco_readers.reserve(grm_paths.size());
     for (const auto& path : grm_paths)
     {
-        loco_readers.emplace_back(path, id_map);
+        loco_readers.emplace_back(path, sample_index);
     }
 
     auto chr_groups = build_chr_groups(true, snp_index);
@@ -110,7 +110,7 @@ auto AssocLocoEngine::run(
             const auto chr_grm_prefix
                 = grm_paths[i].string() + ".chr" + group.name;
             loco_readers[i].load_loco_grm(
-                chr_grm_prefix, id_map, model.genetic()[i].K);
+                chr_grm_prefix, sample_index, model.genetic()[i].K);
         }
 
         notify(

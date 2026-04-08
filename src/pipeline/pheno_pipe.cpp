@@ -26,7 +26,6 @@
 #include <Eigen/Core>
 
 #include "gelex/data/dataframe/encode.h"
-#include "gelex/data/genotype/sample_manager.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logger.h"
@@ -98,9 +97,9 @@ PhenoPipe::PhenoPipe(const Config& config, DataPipeObserver observer)
     : config_(config), observer_(std::move(observer))
 {
     auto fam_path = config.bed_path;
-    sample_manager_
-        = std::make_shared<SampleManager>(fam_path.replace_extension(".fam"));
-    num_genotype_samples_ = sample_manager_->num_common_samples();
+    auto fam = read_fam(fam_path.replace_extension(".fam"));
+    sample_index_ = std::move(fam).index();
+    num_genotype_samples_ = sample_index_.size();
 
     notify(observer_, DataPipeSectionEvent{});
 }
@@ -173,8 +172,6 @@ auto PhenoPipe::load_covariates() -> void
 auto PhenoPipe::intersect_samples(
     const std::vector<std::span<const std::string>>& extra_ids) -> void
 {
-    size_t total_before = sample_manager_->num_common_samples();
-
     if (!phenotype_frame_ || phenotype_frame_->rows() == 0)
     {
         throw GelexException(
@@ -182,30 +179,40 @@ auto PhenoPipe::intersect_samples(
             " Load a non-empty phenotype file first.");
     }
 
-    total_before = std::max(total_before, phenotype_frame_->rows());
-    sample_manager_->intersect(phenotype_frame_->index().keys());
-
-    if (qcovar_frame_)
-    {
-        total_before = std::max(total_before, qcovar_frame_->rows());
-        sample_manager_->intersect(qcovar_frame_->index().keys());
-    }
-
-    if (dcovar_frame_)
-    {
-        total_before = std::max(total_before, dcovar_frame_->rows());
-        sample_manager_->intersect(dcovar_frame_->index().keys());
-    }
-
+    std::vector<df::Index<std::string>> extra_indices;
+    extra_indices.reserve(extra_ids.size());
     for (const auto& ids : extra_ids)
     {
-        total_before = std::max(total_before, ids.size());
-        sample_manager_->intersect(ids);
+        extra_indices.emplace_back(
+            std::vector<std::string>(ids.begin(), ids.end()));
     }
 
-    sample_manager_->finalize();
+    std::vector<const df::Index<std::string>*> all_indices;
+    all_indices.push_back(&sample_index_);
+    all_indices.push_back(&phenotype_frame_->index());
+    if (qcovar_frame_)
+    {
+        all_indices.push_back(&qcovar_frame_->index());
+    }
+    if (dcovar_frame_)
+    {
+        all_indices.push_back(&dcovar_frame_->index());
+    }
+    for (const auto& idx : extra_indices)
+    {
+        all_indices.push_back(&idx);
+    }
 
-    size_t common = sample_manager_->num_common_samples();
+    size_t total_before = 0;
+    for (const auto* idx : all_indices)
+    {
+        total_before = std::max(total_before, idx->size());
+    }
+
+    auto positions = df::intersect<std::string>(all_indices);
+    sample_index_.gather(positions[0]);
+
+    size_t common = sample_index_.size();
 
     if (common == 0)
     {
@@ -223,7 +230,7 @@ auto PhenoPipe::intersect_samples(
 
 auto PhenoPipe::finalize() -> void
 {
-    const auto& common_ids = sample_manager_->common_ids();
+    const auto common_ids = sample_index_.keys();
 
     if (!phenotype_frame_ || phenotype_frame_->rows() == 0)
     {

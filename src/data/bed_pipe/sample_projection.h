@@ -17,14 +17,12 @@
 #ifndef GELEX_DATA_BED_PIPE_SAMPLE_PROJECTION_H_
 #define GELEX_DATA_BED_PIPE_SAMPLE_PROJECTION_H_
 
-#include <memory>
 #include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/genotype/sample_manager.h"
 
 namespace gelex::detail
 {
@@ -32,10 +30,6 @@ namespace gelex::detail
 class SampleProjection
 {
    public:
-    SampleProjection(
-        const std::vector<std::string>& raw_ids,
-        const std::shared_ptr<SampleManager>& sample_manager);
-
     SampleProjection(
         const std::vector<std::string>& raw_ids,
         const df::Index<std::string>& target_index);

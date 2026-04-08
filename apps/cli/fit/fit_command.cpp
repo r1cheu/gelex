@@ -58,7 +58,7 @@ auto fit_execute(argparse::ArgumentParser& fit) -> int
     pheno.load();
 
     gelex::GenoPipe geno(geno_config, data_reporter.as_observer());
-    geno.load(pheno.sample_manager());
+    geno.load(pheno.sample_index());
 
     gelex::FitEngine engine(std::move(fit_config));
 

@@ -19,6 +19,7 @@
 #include <fmt/format.h>
 #include <algorithm>
 #include <fstream>
+#include <ranges>
 #include <string>
 #include <system_error>
 
@@ -76,12 +77,10 @@ auto GrmReader::load_sample_ids() -> void
                     id_path_.string(),
                     line));
         }
-        else
-        {
-            auto fid = line.substr(0, tab_pos);
-            auto iid = line.substr(tab_pos + 1);
-            sample_ids_.push_back(make_sample_id(fid, iid));
-        }
+
+        auto fid = line.substr(0, tab_pos);
+        auto iid = line.substr(tab_pos + 1);
+        sample_ids_.push_back(make_sample_id(fid, iid));
     }
 
     if (sample_ids_.empty())
@@ -151,11 +150,10 @@ auto GrmReader::load_unnormalized() const -> Eigen::MatrixXd
     return grm;
 }
 
-auto GrmReader::load(
-    const std::unordered_map<std::string, Eigen::Index>& id_map) const
+auto GrmReader::load(const df::Index<std::string>& sample_index) const
     -> Eigen::MatrixXd
 {
-    Eigen::MatrixXd grm = load_unnormalized(id_map);
+    Eigen::MatrixXd grm = load_unnormalized(sample_index);
     if (grm.size() > 0)
     {
         double denominator = grm.trace() / static_cast<double>(grm.rows());
@@ -165,10 +163,10 @@ auto GrmReader::load(
 }
 
 auto GrmReader::load_unnormalized(
-    const std::unordered_map<std::string, Eigen::Index>& id_map,
+    const df::Index<std::string>& sample_index,
     Eigen::MatrixXd& target) const -> void
 {
-    if (id_map.empty())
+    if (sample_index.size() == 0)
     {
         target.resize(0, 0);
         return;
@@ -183,12 +181,10 @@ auto GrmReader::load_unnormalized(
     }
 
     // Build source_idx -> target_idx mapping
-    // and find max target index to determine output matrix size
-    Eigen::Index max_target_idx = 0;
     std::vector<std::pair<Eigen::Index, Eigen::Index>> idx_mapping;
-    idx_mapping.reserve(id_map.size());
+    idx_mapping.reserve(sample_index.size());
 
-    for (const auto& [id, target_idx] : id_map)
+    for (auto&& [tgt_idx, id] : std::views::enumerate(sample_index.keys()))
     {
         auto it = file_id_to_idx.find(id);
         if (it == file_id_to_idx.end())
@@ -200,12 +196,12 @@ auto GrmReader::load_unnormalized(
                     id));
         }
 
-        idx_mapping.emplace_back(it->second, target_idx);
-        max_target_idx = std::max(max_target_idx, target_idx);
+        idx_mapping.emplace_back(
+            it->second, static_cast<Eigen::Index>(tgt_idx));
     }
 
     // Allocate output matrix
-    Eigen::Index out_size = max_target_idx + 1;
+    auto out_size = static_cast<Eigen::Index>(sample_index.size());
     target.setZero(out_size, out_size);
 
     const auto* data = reinterpret_cast<const float*>(mmap_.data());
@@ -234,11 +230,10 @@ auto GrmReader::load_unnormalized(
 }
 
 auto GrmReader::load_unnormalized(
-    const std::unordered_map<std::string, Eigen::Index>& id_map) const
-    -> Eigen::MatrixXd
+    const df::Index<std::string>& sample_index) const -> Eigen::MatrixXd
 {
     Eigen::MatrixXd grm;
-    load_unnormalized(id_map, grm);
+    load_unnormalized(sample_index, grm);
     return grm;
 }
 

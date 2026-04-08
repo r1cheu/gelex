@@ -16,7 +16,6 @@
 
 #include "gelex/pipeline/geno_pipe.h"
 
-#include <memory>
 #include <utility>
 
 #include "gelex/infra/logging/data_pipe_event.h"
@@ -32,31 +31,30 @@ GenoPipe::GenoPipe(const Config& config, DataPipeObserver observer)
 {
 }
 
-auto GenoPipe::load(std::shared_ptr<SampleManager> sample_manager) -> void
+auto GenoPipe::load(const df::Index<std::string>& sample_index) -> void
 {
-    sample_manager_ = std::move(sample_manager);
-
     if (config_.model_type == ModelType::A)
     {
-        load_additive_matrix();
+        load_additive_matrix(sample_index);
     }
     else if (config_.model_type == ModelType::D)
     {
-        load_dominance_matrix();
+        load_dominance_matrix(sample_index);
     }
     else
     {
-        load_additive_matrix();
-        load_dominance_matrix();
+        load_additive_matrix(sample_index);
+        load_dominance_matrix(sample_index);
     }
 
     write_sbin();
 }
 
-auto GenoPipe::load_additive_matrix() -> void
+auto GenoPipe::load_additive_matrix(const df::Index<std::string>& sample_index)
+    -> void
 {
     load_genotype_impl<GeneticKind::Add>(
-        ".add", config_.genotype_method, additive_matrix_);
+        sample_index, ".add", config_.genotype_method, additive_matrix_);
     int64_t mono = 0;
     int64_t total = 0;
     std::visit(
@@ -74,10 +72,11 @@ auto GenoPipe::load_additive_matrix() -> void
             .monomorphic_snps = mono});
 }
 
-auto GenoPipe::load_dominance_matrix() -> void
+auto GenoPipe::load_dominance_matrix(const df::Index<std::string>& sample_index)
+    -> void
 {
     load_genotype_impl<GeneticKind::Dom>(
-        ".dom", config_.genotype_method, dominance_matrix_);
+        sample_index, ".dom", config_.genotype_method, dominance_matrix_);
     int64_t mono = 0;
     int64_t total = 0;
     std::visit(

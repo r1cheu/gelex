@@ -42,7 +42,7 @@ auto AssocNormalEngine::run(
     const AssocObserver& observer,
     const RemlObserver& reml_observer) -> void
 {
-    BedPipe bed_pipe(config_.bed_path, pheno.sample_manager());
+    BedPipe bed_pipe(config_.bed_path, pheno.sample_index());
     auto bim_path = config_.bed_path;
     auto snp_index
         = std::move(detail::BimReader(bim_path.replace_extension(".bim")))

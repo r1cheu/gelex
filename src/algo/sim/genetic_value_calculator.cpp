@@ -24,6 +24,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/simulate_event.h"
 
@@ -55,8 +56,10 @@ GeneticValueCalculator::GeneticValueCalculator(
     const std::filesystem::path& bed_path,
     bool has_dominance)
     : has_dominance_(has_dominance),
-      sample_manager_(SampleManager::create_finalized(bed_path)),
-      bed_pipe_(bed_path, sample_manager_)
+      sample_index_(
+          read_fam(std::filesystem::path(bed_path).replace_extension(".fam"))
+              .index()),
+      bed_pipe_(bed_path, sample_index_)
 {
 }
 
@@ -113,7 +116,7 @@ auto GeneticValueCalculator::calculate(
 
 auto GeneticValueCalculator::sample_ids() const -> std::span<const std::string>
 {
-    return sample_manager_->common_ids();
+    return sample_index_.keys();
 }
 
 auto GeneticValueCalculator::encode_chunk(

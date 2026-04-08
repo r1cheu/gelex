@@ -16,7 +16,7 @@
 
 #include "metadata.h"
 
-#include "gelex/data/reader/fam_reader.h"
+#include "gelex/data/reader.h"
 #include "gelex/io/parser.h"
 
 namespace gelex::detail
@@ -36,8 +36,7 @@ auto load_bed_metadata(const std::filesystem::path& bed_prefix) -> BedMetadata
     metadata.num_raw_snps
         = static_cast<Eigen::Index>(count_total_lines(bim_path));
 
-    FamReader fam_reader(fam_path);
-    metadata.raw_ids = fam_reader.ids();
+    metadata.raw_ids = read_fam(fam_path).index().take_keys();
     metadata.num_raw_samples
         = static_cast<Eigen::Index>(metadata.raw_ids.size());
     metadata.bytes_per_variant = (metadata.num_raw_samples + 3) / 4;

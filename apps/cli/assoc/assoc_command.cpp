@@ -68,7 +68,7 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     gelex::PhenoPipe pheno(pheno_config, data_reporter.as_observer());
     gelex::GrmPipe grm(grm_paths, data_reporter.as_observer());
     pheno.load(grm.sample_id_sets());
-    grm.load(pheno.sample_manager());
+    grm.load(pheno.sample_index());
 
     auto config = gelex::cli::make_assoc_config(cmd);
 

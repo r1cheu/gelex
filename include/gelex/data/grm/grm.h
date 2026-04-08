@@ -18,15 +18,15 @@
 #define GELEX_DATA_GRM_H_
 
 #include <filesystem>
-#include <memory>
+#include <span>
 #include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
+#include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/genotype/genotype_processor.h"
-#include "gelex/data/genotype/sample_manager.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/logging/notify.h"
 
@@ -63,9 +63,9 @@ class GRM
         Eigen::Index chunk_size,
         const GrmObserver& observer = {}) -> GrmResult;
 
-    [[nodiscard]] auto sample_ids() const -> const std::vector<std::string>&
+    [[nodiscard]] auto sample_ids() const -> std::span<const std::string>
     {
-        return sample_manager_->common_ids();
+        return sample_index_.keys();
     }
 
     [[nodiscard]] auto num_snps() const -> Eigen::Index
@@ -74,7 +74,7 @@ class GRM
     }
 
    private:
-    std::shared_ptr<SampleManager> sample_manager_;
+    df::Index<std::string> sample_index_;
     BedPipe bed_;
 
     static auto update_grm(

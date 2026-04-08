@@ -21,7 +21,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <memory>
 #include <vector>
 
 #include <Eigen/Core>
@@ -29,7 +28,6 @@
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/genotype/genotype_mmap.h"
 #include "gelex/data/genotype/genotype_processor.h"
-#include "gelex/data/genotype/sample_manager.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/binary_writer.h"
@@ -43,7 +41,7 @@ class GenotypeMapReader
    public:
     GenotypeMapReader(
         const std::filesystem::path& bed_path,
-        std::shared_ptr<SampleManager> sample_manager,
+        const df::Index<std::string>& sample_index,
         const std::filesystem::path& output_prefix,
         DataPipeObserver observer = {});
 

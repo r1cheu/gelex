@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <filesystem>
-#include <memory>
 #include <vector>
 
 #include <Eigen/Core>
@@ -27,7 +26,6 @@
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/genotype/genotype_matrix.h"
 #include "gelex/data/genotype/genotype_processor.h"
-#include "gelex/data/genotype/sample_manager.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/types/genotype_process_method.h"
@@ -40,7 +38,7 @@ class GenotypeMatReader
    public:
     explicit GenotypeMatReader(
         const std::filesystem::path& bed_path,
-        std::shared_ptr<SampleManager> sample_manager,
+        const df::Index<std::string>& sample_index,
         DataPipeObserver observer = {});
 
     GenotypeMatReader(const GenotypeMatReader&) = delete;

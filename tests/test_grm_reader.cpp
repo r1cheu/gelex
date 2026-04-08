@@ -18,7 +18,6 @@
 #include <cstddef>
 #include <filesystem>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include <Eigen/Core>
@@ -27,6 +26,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "file_fixture.h"
+#include "gelex/data/dataframe/index.h"
 #include "gelex/data/grm/grm_bin_writer.h"
 #include "gelex/data/grm/grm_id_writer.h"
 #include "gelex/data/grm/grm_reader.h"
@@ -34,6 +34,7 @@
 #include "gelex/types/sample_id.h"
 
 namespace fs = std::filesystem;
+namespace df = gelex::df;
 
 using namespace gelex::detail;  // NOLINT
 using Catch::Matchers::ContainsSubstring;
@@ -444,11 +445,12 @@ TEST_CASE("GrmReader - Load with subset of IDs", "[grm_reader][load_filtered]")
         GrmReader reader(grm_files.prefix());
 
         // Load only samples 1 and 3, mapping to indices 0 and 1
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{gelex::make_sample_id("FAM1", "IND1"), 0},
-               {gelex::make_sample_id("FAM3", "IND3"), 1}};
+        df::Index<std::string> sample_index(
+            std::vector<std::string>{
+                gelex::make_sample_id("FAM1", "IND1"),
+                gelex::make_sample_id("FAM3", "IND3")});
 
-        auto loaded = reader.load_unnormalized(id_map);
+        auto loaded = reader.load_unnormalized(sample_index);
 
         REQUIRE(loaded.rows() == 2);
         REQUIRE(loaded.cols() == 2);
@@ -493,12 +495,13 @@ TEST_CASE("GrmReader - Load with reordered IDs", "[grm_reader][load_filtered]")
         GrmReader reader(grm_files.prefix());
 
         // Reverse the order: original[2]->0, original[1]->1, original[0]->2
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{gelex::make_sample_id("FAM2", "IND2"), 0},
-               {gelex::make_sample_id("FAM1", "IND1"), 1},
-               {gelex::make_sample_id("FAM0", "IND0"), 2}};
+        df::Index<std::string> sample_index(
+            std::vector<std::string>{
+                gelex::make_sample_id("FAM2", "IND2"),
+                gelex::make_sample_id("FAM1", "IND1"),
+                gelex::make_sample_id("FAM0", "IND0")});
 
-        auto loaded = reader.load_unnormalized(id_map);
+        auto loaded = reader.load_unnormalized(sample_index);
 
         REQUIRE(loaded.rows() == 3);
         REQUIRE(loaded.cols() == 3);
@@ -532,8 +535,8 @@ TEST_CASE("GrmReader - Load with empty id_map", "[grm_reader][load_filtered]")
 
         GrmReader reader(grm_files.prefix());
 
-        std::unordered_map<std::string, Eigen::Index> empty_map;
-        auto loaded = reader.load(empty_map);
+        df::Index<std::string> empty_index;
+        auto loaded = reader.load(empty_index);
 
         REQUIRE(loaded.rows() == 0);
         REQUIRE(loaded.cols() == 0);
@@ -557,11 +560,12 @@ TEST_CASE(
 
         GrmReader reader(grm_files.prefix());
 
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{gelex::make_sample_id("FAM0", "IND0"), 0},
-               {gelex::make_sample_id("NONEXISTENT", "ID"), 1}};
+        df::Index<std::string> sample_index(
+            std::vector<std::string>{
+                gelex::make_sample_id("FAM0", "IND0"),
+                gelex::make_sample_id("NONEXISTENT", "ID")});
 
-        REQUIRE_THROWS_AS(reader.load(id_map), gelex::GelexException);
+        REQUIRE_THROWS_AS(reader.load(sample_index), gelex::GelexException);
     }
 
     SECTION("Exception - error message contains the invalid ID")
@@ -574,66 +578,14 @@ TEST_CASE(
 
         GrmReader reader(grm_files.prefix());
 
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{gelex::make_sample_id("MISSING", "SAMPLE"), 0}};
+        df::Index<std::string> sample_index(
+            std::vector<std::string>{
+                gelex::make_sample_id("MISSING", "SAMPLE")});
 
         REQUIRE_THROWS_MATCHES(
-            reader.load(id_map),
+            reader.load(sample_index),
             gelex::GelexException,
             MessageMatches(ContainsSubstring("MISSING")));
-    }
-}
-
-TEST_CASE(
-    "GrmReader - Load with non-contiguous target indices",
-    "[grm_reader][load_filtered]")
-{
-    FileFixture files;
-    GrmFileFixture grm_files(files);
-
-    SECTION("Happy path - sparse target indices creates larger matrix")
-    {
-        Eigen::MatrixXd original(3, 3);
-        // clang-format off
-        original << 1.0, 0.1, 0.2,
-                    0.1, 2.0, 0.3,
-                    0.2, 0.3, 3.0;
-        // clang-format on
-
-        std::vector<std::string> ids
-            = {gelex::make_sample_id("FAM0", "IND0"),
-               gelex::make_sample_id("FAM1", "IND1"),
-               gelex::make_sample_id("FAM2", "IND2")};
-
-        grm_files.create(original, ids);
-
-        GrmReader reader(grm_files.prefix());
-
-        // Map to non-contiguous indices: 0 -> 0, 2 -> 5
-        // Output matrix size should be max_idx + 1 = 6
-        std::unordered_map<std::string, Eigen::Index> id_map
-            = {{gelex::make_sample_id("FAM0", "IND0"), 0},
-               {gelex::make_sample_id("FAM2", "IND2"), 5}};
-
-        auto loaded = reader.load_unnormalized(id_map);
-
-        REQUIRE(loaded.rows() == 6);
-        REQUIRE(loaded.cols() == 6);
-
-        auto to_float = [](double v)
-        { return static_cast<double>(static_cast<float>(v)); };
-
-        // Check mapped values
-        REQUIRE(loaded(0, 0) == to_float(1.0));  // original(0,0)
-        REQUIRE(loaded(5, 5) == to_float(3.0));  // original(2,2)
-        REQUIRE(loaded(0, 5) == to_float(0.2));  // original(0,2)
-        REQUIRE(loaded(5, 0) == to_float(0.2));  // original(2,0)
-
-        // Unmapped indices should be zero
-        REQUIRE(loaded(1, 1) == 0.0);
-        REQUIRE(loaded(2, 2) == 0.0);
-        REQUIRE(loaded(3, 3) == 0.0);
-        REQUIRE(loaded(4, 4) == 0.0);
     }
 }
 

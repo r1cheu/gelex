@@ -70,34 +70,6 @@ auto validate_target_buffer_shape(
 
 BedPipe::BedPipe(
     const std::filesystem::path& bed_prefix,
-    std::shared_ptr<SampleManager> sample_manager)
-    : sample_manager_(std::move(sample_manager))
-{
-    if (!sample_manager_)
-    {
-        throw GelexException("SampleManager cannot be null");
-    }
-
-    auto metadata = detail::load_bed_metadata(bed_prefix);
-
-    projection_ = std::make_unique<detail::SampleProjection>(
-        metadata.raw_ids, sample_manager_);
-
-    bed_reader_ = std::make_unique<detail::BedMmapReader>(
-        metadata.bed_path, metadata.num_raw_snps, metadata.bytes_per_variant);
-
-    decoder_ = std::make_unique<detail::BedVariantDecoder>(
-        metadata.num_raw_samples,
-        metadata.bytes_per_variant,
-        projection_->mapping(),
-        projection_->is_dense());
-
-    num_raw_snps_ = metadata.num_raw_snps;
-    num_output_samples_ = projection_->num_output_samples();
-}
-
-BedPipe::BedPipe(
-    const std::filesystem::path& bed_prefix,
     const df::Index<std::string>& sample_index)
 {
     auto metadata = detail::load_bed_metadata(bed_prefix);

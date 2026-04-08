@@ -15,12 +15,9 @@
  */
 
 #include <Eigen/Core>
-#include <cmath>
 #include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <memory>
-#include <sstream>
+#include <ranges>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -34,7 +31,7 @@
 #include "bed_fixture.h"
 #include "file_fixture.h"
 #include "gelex/data/genotype/bed_pipe.h"
-#include "gelex/data/genotype/sample_manager.h"
+#include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/types/sample_id.h"
 
@@ -50,28 +47,20 @@ using gelex::test::FileFixture;
 namespace
 {
 
-auto read_fam_ids(const std::filesystem::path& fam_path)
-    -> std::vector<std::string>
+auto build_id_map(const df::Index<std::string>& index)
+    -> std::unordered_map<std::string, Eigen::Index>
 {
-    std::ifstream fam_file(fam_path);
-    std::vector<std::string> raw_ids;
-    std::string line;
-
-    while (std::getline(fam_file, line))
+    std::unordered_map<std::string, Eigen::Index> id_map;
+    for (auto&& [i, key] : std::views::enumerate(index.keys()))
     {
-        std::istringstream iss(line);
-        std::string fid;
-        std::string iid;
-        iss >> fid >> iid;
-        raw_ids.push_back(make_sample_id(fid, iid));
+        id_map[std::string(key)] = static_cast<Eigen::Index>(i);
     }
-
-    return raw_ids;
+    return id_map;
 }
 
 auto align_rows_to_id_map(
     const Eigen::MatrixXd& raw_matrix,
-    const std::vector<std::string>& raw_ids,
+    std::span<const std::string> raw_ids,
     const std::unordered_map<std::string, Eigen::Index>& id_map)
     -> Eigen::MatrixXd
 {
@@ -102,13 +91,12 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
-        sample_manager->finalize();
+        auto sample_index = read_fam(fam_path).index();
 
         REQUIRE_NOTHROW(
             [&]()
             {
-                BedPipe pipe(bed_prefix, sample_manager);
+                BedPipe pipe(bed_prefix, sample_index);
                 REQUIRE(pipe.num_samples() == 10);
                 REQUIRE(pipe.num_snps() == 20);
             }());
@@ -120,33 +108,20 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
-
-        std::ifstream fam_file(fam_path);
-        std::vector<std::string> raw_ids;
-        std::string line;
-        while (std::getline(fam_file, line))
-        {
-            std::istringstream iss(line);
-            std::string fid;
-            std::string iid;
-            iss >> fid >> iid;
-            raw_ids.push_back(make_sample_id(fid, iid));
-        }
+        auto sample_index = read_fam(fam_path).index();
 
         // 只保留前 5 个样本
-        std::vector<std::string> intersect_ids;
-        for (size_t i = 0; i < 5; ++i)
-        {
-            intersect_ids.push_back(raw_ids[i]);
-        }
-        sample_manager->intersect(intersect_ids);
-        sample_manager->finalize();
+        auto all_keys = sample_index.keys();
+        auto extra_index = df::Index<std::string>(
+            std::vector<std::string>(all_keys.begin(), all_keys.begin() + 5));
+        auto positions
+            = df::intersect<std::string>({&sample_index, &extra_index});
+        sample_index.gather(positions[0]);
 
         REQUIRE_NOTHROW(
             [&]()
             {
-                BedPipe pipe(bed_prefix, sample_manager);
+                BedPipe pipe(bed_prefix, sample_index);
                 REQUIRE(pipe.num_samples() == 5);
                 REQUIRE(pipe.num_snps() == 20);
             }());
@@ -163,11 +138,10 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
-        sample_manager->finalize();
+        auto sample_index = read_fam(fam_path).index();
 
         REQUIRE_THROWS_MATCHES(
-            BedPipe(bed_prefix, sample_manager),
+            BedPipe(bed_prefix, sample_index),
             GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("failed to mmap bed file")));
@@ -191,11 +165,10 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
-        sample_manager->finalize();
+        auto sample_index = read_fam(fam_path).index();
 
         REQUIRE_THROWS_MATCHES(
-            BedPipe(bed_prefix, sample_manager),
+            BedPipe(bed_prefix, sample_index),
             GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("invalid BED magic number")));
@@ -218,22 +191,9 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
-        sample_manager->finalize();
+        auto sample_index = read_fam(fam_path).index();
 
-        REQUIRE_THROWS_AS(BedPipe(bed_prefix, sample_manager), GelexException);
-    }
-
-    SECTION("Exception - sample manager is nullptr")
-    {
-        BedFixture fixture;
-        auto bed_prefix = fixture.create_bed_files(5, 10, 0.0).first;
-
-        REQUIRE_THROWS_MATCHES(
-            BedPipe(bed_prefix, nullptr),
-            GelexException,
-            Catch::Matchers::MessageMatches(
-                EndsWith("SampleManager cannot be null")));
+        REQUIRE_THROWS_AS(BedPipe(bed_prefix, sample_index), GelexException);
     }
 
     SECTION("Exception - BIM file missing")
@@ -247,11 +207,10 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
-        sample_manager->finalize();
+        auto sample_index = read_fam(fam_path).index();
 
         REQUIRE_THROWS_MATCHES(
-            BedPipe(bed_prefix, sample_manager),
+            BedPipe(bed_prefix, sample_index),
             GelexException,
             Catch::Matchers::MessageMatches(EndsWith("not found")));
     }
@@ -270,14 +229,12 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
-        sample_manager->finalize();
+        auto sample_index = read_fam(fam_path).index();
 
-        auto raw_ids = read_fam_ids(fam_path);
         auto expected = align_rows_to_id_map(
-            genotypes, raw_ids, sample_manager->common_id_map());
+            genotypes, sample_index.keys(), build_id_map(sample_index));
 
-        BedPipe pipe(bed_prefix, sample_manager);
+        BedPipe pipe(bed_prefix, sample_index);
 
         Eigen::MatrixXd loaded = pipe.load();
 
@@ -295,10 +252,9 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
-        sample_manager->finalize();
+        auto sample_index = read_fam(fam_path).index();
 
-        BedPipe pipe(bed_prefix, sample_manager);
+        BedPipe pipe(bed_prefix, sample_index);
 
         Eigen::MatrixXd loaded = pipe.load();
         REQUIRE(loaded.rows() == num_samples);
@@ -315,10 +271,9 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
-        sample_manager->finalize();
+        auto sample_index = read_fam(fam_path).index();
 
-        BedPipe pipe(bed_prefix, sample_manager);
+        BedPipe pipe(bed_prefix, sample_index);
 
         Eigen::MatrixXd loaded = pipe.load();
         REQUIRE(loaded.rows() == num_samples);
@@ -335,24 +290,28 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
-
-        auto raw_ids = read_fam_ids(fam_path);
+        auto sample_index = read_fam(fam_path).index();
+        auto raw_keys = sample_index.keys();
 
         std::vector<std::string> intersect_ids;
         intersect_ids.reserve(5);
-        std::array<Eigen::Index, 5> indices = {0, 2, 4, 6, 8};
-        for (auto index : indices)
+        std::array<size_t, 5> pick = {0, 2, 4, 6, 8};
+        for (auto idx : pick)
         {
-            intersect_ids.push_back(raw_ids[index]);
+            intersect_ids.emplace_back(raw_keys[idx]);
         }
-        sample_manager->intersect(intersect_ids);
-        sample_manager->finalize();
+        // raw_keys invalidated after gather — save to vector first
+        std::vector<std::string> raw_ids(raw_keys.begin(), raw_keys.end());
 
-        BedPipe pipe(bed_prefix, sample_manager);
+        auto extra_index = df::Index<std::string>(std::move(intersect_ids));
+        auto positions
+            = df::intersect<std::string>({&sample_index, &extra_index});
+        sample_index.gather(positions[0]);
+
+        BedPipe pipe(bed_prefix, sample_index);
 
         auto expected = align_rows_to_id_map(
-            genotypes, raw_ids, sample_manager->common_id_map());
+            genotypes, raw_ids, build_id_map(sample_index));
 
         Eigen::MatrixXd loaded = pipe.load();
         REQUIRE(loaded.rows() == 5);
@@ -374,14 +333,12 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
-        sample_manager->finalize();
+        auto sample_index = read_fam(fam_path).index();
 
-        auto raw_ids = read_fam_ids(fam_path);
         auto expected = align_rows_to_id_map(
-            genotypes, raw_ids, sample_manager->common_id_map());
+            genotypes, sample_index.keys(), build_id_map(sample_index));
 
-        BedPipe pipe(bed_prefix, sample_manager);
+        BedPipe pipe(bed_prefix, sample_index);
 
         Eigen::MatrixXd full_chunk = pipe.load_chunk(0, num_snps);
         Eigen::MatrixXd full_load = pipe.load();
@@ -403,14 +360,12 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
-        sample_manager->finalize();
+        auto sample_index = read_fam(fam_path).index();
 
-        auto raw_ids = read_fam_ids(fam_path);
         auto expected = align_rows_to_id_map(
-            genotypes, raw_ids, sample_manager->common_id_map());
+            genotypes, sample_index.keys(), build_id_map(sample_index));
 
-        BedPipe pipe(bed_prefix, sample_manager);
+        BedPipe pipe(bed_prefix, sample_index);
 
         Eigen::Index col_idx = 3;
         Eigen::MatrixXd chunk = pipe.load_chunk(col_idx, col_idx + 1);
@@ -429,14 +384,12 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
-        sample_manager->finalize();
+        auto sample_index = read_fam(fam_path).index();
 
-        auto raw_ids = read_fam_ids(fam_path);
         auto expected = align_rows_to_id_map(
-            genotypes, raw_ids, sample_manager->common_id_map());
+            genotypes, sample_index.keys(), build_id_map(sample_index));
 
-        BedPipe pipe(bed_prefix, sample_manager);
+        BedPipe pipe(bed_prefix, sample_index);
 
         Eigen::Index start = 5;
         Eigen::Index end = 10;
@@ -458,10 +411,9 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
-        sample_manager->finalize();
+        auto sample_index = read_fam(fam_path).index();
 
-        BedPipe pipe(bed_prefix, sample_manager);
+        BedPipe pipe(bed_prefix, sample_index);
 
         REQUIRE_THROWS_AS(pipe.load_chunk(-1, 3), GelexException);
         REQUIRE_THROWS_AS(pipe.load_chunk(0, num_snps + 1), GelexException);
@@ -482,10 +434,9 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
-        sample_manager->finalize();
+        auto sample_index = read_fam(fam_path).index();
 
-        BedPipe pipe(bed_prefix, sample_manager);
+        BedPipe pipe(bed_prefix, sample_index);
 
         Eigen::MatrixXd chunk = pipe.load_chunk(0, 3);
         REQUIRE(chunk.rows() == num_samples);
@@ -502,10 +453,9 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
-        sample_manager->finalize();
+        auto sample_index = read_fam(fam_path).index();
 
-        BedPipe pipe(bed_prefix, sample_manager);
+        BedPipe pipe(bed_prefix, sample_index);
 
         Eigen::MatrixXd chunk = pipe.load_chunk(num_snps - 2, num_snps);
         REQUIRE(chunk.rows() == num_samples);
@@ -527,16 +477,19 @@ TEST_CASE("BedPipe - sample mapping tests", "[data][bed_pipe]")
 
         auto fam_path = bed_prefix;
         fam_path.replace_extension(".fam");
-        auto sample_manager = std::make_shared<SampleManager>(fam_path);
+        auto sample_index = read_fam(fam_path).index();
 
         std::vector<std::string> intersect_ids
             = {make_sample_id("nonexistent", "1"),
                make_sample_id("nonexistent", "2"),
                make_sample_id("nonexistent", "3")};
-        sample_manager->intersect(intersect_ids);
-        sample_manager->finalize();
+        auto extra_index = df::Index<std::string>(std::vector<std::string>(
+            intersect_ids.begin(), intersect_ids.end()));
+        auto positions
+            = df::intersect<std::string>({&sample_index, &extra_index});
+        sample_index.gather(positions[0]);
 
-        BedPipe pipe(bed_prefix, sample_manager);
+        BedPipe pipe(bed_prefix, sample_index);
 
         REQUIRE(pipe.num_samples() == 0);
 

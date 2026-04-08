@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include <filesystem>
 #include <fmt/format.h>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -182,7 +182,7 @@ auto make_freq_model(
     PhenoPipe pheno(pheno_config);
     pheno.load(grm.sample_id_sets());
 
-    grm.load(pheno.sample_manager());
+    grm.load(pheno.sample_index());
 
     return FreqModel(
         std::move(pheno).take_phenotype(),

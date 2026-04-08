@@ -21,6 +21,7 @@
 #include <string_view>
 
 #include "file_fixture.h"
+#include "gelex/data/dataframe/index.h"
 #include "gelex/data/grm/grm_bin_writer.h"
 #include "gelex/data/grm/grm_id_writer.h"
 #include "gelex/data/grm/loco_grm_reader.h"
@@ -30,6 +31,7 @@ namespace fs = std::filesystem;
 using gelex::GrmBinWriter;
 using gelex::GrmIdWriter;
 using gelex::test::FileFixture;
+namespace df = gelex::df;
 
 namespace
 {
@@ -85,15 +87,11 @@ TEST_CASE("LocoGRMReader - Basic Calculation", "[data][grm][loco]")
     GrmFiles chr_files{tmp_dir / "chr1"};
     chr_files.create(raw_g_i, ids);
 
-    std::unordered_map<std::string, Eigen::Index> id_map;
-    for (Eigen::Index i = 0; i < n; ++i)
-    {
-        id_map[ids[i]] = i;
-    }
+    df::Index<std::string> sample_index(ids);
 
-    gelex::LocoGRMReader loco_reader(whole_files.prefix, id_map);
+    gelex::LocoGRMReader loco_reader(whole_files.prefix, sample_index);
     Eigen::MatrixXd loco_grm
-        = loco_reader.load_loco_grm(chr_files.prefix, id_map);
+        = loco_reader.load_loco_grm(chr_files.prefix, sample_index);
 
     Eigen::MatrixXd expected = (raw_g_w - raw_g_i) / (k_w - k_i);
 
@@ -131,13 +129,13 @@ TEST_CASE("LocoGRMReader - Filtered Loading", "[data][grm][loco]")
     chr_files.create(raw_g_i, ids);
 
     // Test with subset of IDs and reordering
-    std::unordered_map<std::string, Eigen::Index> id_map
-        = {{sid("F1", "I3"), 0}, {sid("F1", "I1"), 1}};
+    df::Index<std::string> sample_index(
+        std::vector<std::string>{sid("F1", "I3"), sid("F1", "I1")});
 
-    gelex::LocoGRMReader loco_reader(whole_files.prefix, id_map);
+    gelex::LocoGRMReader loco_reader(whole_files.prefix, sample_index);
 
     Eigen::MatrixXd loco_grm
-        = loco_reader.load_loco_grm(chr_files.prefix, id_map);
+        = loco_reader.load_loco_grm(chr_files.prefix, sample_index);
 
     REQUIRE(loco_grm.rows() == 2);
     REQUIRE(loco_grm.cols() == 2);

@@ -21,46 +21,6 @@ namespace gelex::detail
 
 SampleProjection::SampleProjection(
     const std::vector<std::string>& raw_ids,
-    const std::shared_ptr<SampleManager>& sample_manager)
-{
-    const auto num_raw_samples = static_cast<Eigen::Index>(raw_ids.size());
-
-    raw_to_target_sample_idx_.assign(num_raw_samples, -1);
-
-    const auto& target_map = sample_manager->common_id_map();
-
-    Eigen::Index mapped_count = 0;
-    bool sequential = true;
-    for (Eigen::Index i = 0; i < num_raw_samples; ++i)
-    {
-        if (auto it = target_map.find(raw_ids[static_cast<size_t>(i)]);
-            it != target_map.end())
-        {
-            raw_to_target_sample_idx_[i] = it->second;
-            ++mapped_count;
-
-            if (it->second != i)
-            {
-                sequential = false;
-            }
-        }
-        else
-        {
-            sequential = false;
-        }
-    }
-
-    num_output_samples_
-        = static_cast<Eigen::Index>(sample_manager->num_common_samples());
-    detect_dense_mapping(
-        mapped_count,
-        sequential
-            && (static_cast<size_t>(num_raw_samples)
-                == sample_manager->num_common_samples()));
-}
-
-SampleProjection::SampleProjection(
-    const std::vector<std::string>& raw_ids,
     const df::Index<std::string>& target_index)
 {
     const auto num_raw_samples = static_cast<Eigen::Index>(raw_ids.size());

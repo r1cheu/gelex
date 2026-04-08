@@ -20,12 +20,12 @@
 #include <cstddef>
 #include <filesystem>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include <mio.h>
 #include <Eigen/Core>
 
+#include "gelex/data/dataframe/index.h"
 #include "gelex/types/freq_effect.h"
 
 namespace gelex::detail
@@ -45,16 +45,14 @@ class GrmReader
     [[nodiscard]] auto load() const -> Eigen::MatrixXd;
     [[nodiscard]] auto load_unnormalized() const -> Eigen::MatrixXd;
 
-    [[nodiscard]] auto load(
-        const std::unordered_map<std::string, Eigen::Index>& id_map) const
+    [[nodiscard]] auto load(const df::Index<std::string>& sample_index) const
         -> Eigen::MatrixXd;
 
     [[nodiscard]] auto load_unnormalized(
-        const std::unordered_map<std::string, Eigen::Index>& id_map) const
-        -> Eigen::MatrixXd;
+        const df::Index<std::string>& sample_index) const -> Eigen::MatrixXd;
 
     auto load_unnormalized(
-        const std::unordered_map<std::string, Eigen::Index>& id_map,
+        const df::Index<std::string>& sample_index,
         Eigen::MatrixXd& target) const -> void;
 
     [[nodiscard]] auto sample_ids() const noexcept

@@ -17,7 +17,6 @@
 #include "gelex/pipeline/grm_pipe.h"
 
 #include <filesystem>
-#include <memory>
 #include <span>
 #include <string>
 #include <utility>
@@ -63,13 +62,12 @@ auto GrmPipe::sample_id_sets() const
     return result;
 }
 
-auto GrmPipe::load(const std::shared_ptr<SampleManager>& sample_manager) -> void
+auto GrmPipe::load(const df::Index<std::string>& sample_index) -> void
 {
-    const auto& id_map = sample_manager->common_id_map();
     grms_.reserve(grm_readers_.size());
     for (auto& reader : grm_readers_)
     {
-        grms_.emplace_back(reader.type(), reader.load(id_map));
+        grms_.emplace_back(reader.type(), reader.load(sample_index));
     }
 }
 

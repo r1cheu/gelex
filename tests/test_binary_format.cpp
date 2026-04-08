@@ -29,6 +29,7 @@
 
 #include "gelex/data/genotype/genotype_map_reader.h"
 #include "gelex/data/genotype/genotype_mat_reader.h"
+#include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/io/binary_writer.h"
@@ -377,17 +378,19 @@ TEST_CASE(
     auto [prefix, raw_genotypes] = bed_fixture.create_bed_files(
         kNumSamples, kNumSnps, kMissingRate, 0.05, 0.5, kSeed);
 
-    auto sample_mgr = SampleManager::create_finalized(prefix);
+    auto sample_index
+        = read_fam(std::filesystem::path(prefix).replace_extension(".fam"))
+              .index();
 
     // Load via GenotypeMatReader (in-memory)
-    GenotypeMatReader mat_reader(prefix, sample_mgr);
+    GenotypeMatReader mat_reader(prefix, sample_index);
     auto mat_result = mat_reader.process<GeneticKind::Add>(
         GenotypeProcessMethod::StandardizeHWE);
 
     // Load via GenotypeMapReader (mmap)
     auto output_prefix
         = bed_fixture.get_file_fixture().get_test_dir() / "mmap_out";
-    GenotypeMapReader map_reader(prefix, sample_mgr, output_prefix);
+    GenotypeMapReader map_reader(prefix, sample_index, output_prefix);
     auto map_result = map_reader.process<GeneticKind::Add>(
         GenotypeProcessMethod::StandardizeHWE);
 

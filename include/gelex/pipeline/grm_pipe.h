@@ -18,12 +18,11 @@
 #define GELEX_PIPELINE_GRM_PIPE_H_
 
 #include <filesystem>
-#include <memory>
 #include <span>
 #include <string>
 #include <vector>
 
-#include "gelex/data/genotype/sample_manager.h"
+#include "gelex/data/dataframe/index.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/types/freq_effect.h"
 
@@ -49,7 +48,7 @@ class GrmPipe
 
     auto sample_id_sets() const -> std::vector<std::span<const std::string>>;
 
-    auto load(const std::shared_ptr<SampleManager>& sample_manager) -> void;
+    auto load(const df::Index<std::string>& sample_index) -> void;
 
     auto take_grms() && -> std::vector<freq::GeneticEffect>
     {

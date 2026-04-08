@@ -19,9 +19,10 @@
 
 #include <filesystem>
 #include <string>
-#include <unordered_map>
 
 #include <Eigen/Core>
+
+#include "gelex/data/dataframe/index.h"
 
 namespace gelex
 {
@@ -31,7 +32,7 @@ class LocoGRMReader
    public:
     LocoGRMReader(
         const std::filesystem::path& whole_grm_prefix,
-        const std::unordered_map<std::string, Eigen::Index>& id_map);
+        const df::Index<std::string>& sample_index);
 
     ~LocoGRMReader() = default;
     LocoGRMReader(const LocoGRMReader&) = delete;
@@ -50,13 +51,12 @@ class LocoGRMReader
      */
     auto load_loco_grm(
         const std::filesystem::path& chr_grm_prefix,
-        const std::unordered_map<std::string, Eigen::Index>& id_map,
+        const df::Index<std::string>& sample_index,
         Eigen::MatrixXd& target) const -> void;
 
     [[nodiscard]] auto load_loco_grm(
         const std::filesystem::path& chr_grm_prefix,
-        const std::unordered_map<std::string, Eigen::Index>& id_map) const
-        -> Eigen::MatrixXd;
+        const df::Index<std::string>& sample_index) const -> Eigen::MatrixXd;
 
     [[nodiscard]] auto num_samples() const noexcept -> Eigen::Index;
 

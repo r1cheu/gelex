@@ -54,10 +54,10 @@ void GenotypeMapReader::process_chunk(
 
 GenotypeMapReader::GenotypeMapReader(
     const std::filesystem::path& bed_path,
-    std::shared_ptr<SampleManager> sample_manager,
+    const df::Index<std::string>& sample_index,
     const std::filesystem::path& output_prefix,
     DataPipeObserver observer)
-    : bed_pipe_(bed_path, std::move(sample_manager)),
+    : bed_pipe_(bed_path, sample_index),
       observer_(std::move(observer)),
       output_prefix_(output_prefix)
 {

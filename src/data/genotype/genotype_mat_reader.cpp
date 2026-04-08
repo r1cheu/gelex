@@ -27,10 +27,9 @@ namespace gelex
 
 GenotypeMatReader::GenotypeMatReader(
     const std::filesystem::path& bed_path,
-    std::shared_ptr<SampleManager> sample_manager,
+    const df::Index<std::string>& sample_index,
     DataPipeObserver observer)
-    : bed_pipe_(bed_path, std::move(sample_manager)),
-      observer_(std::move(observer))
+    : bed_pipe_(bed_path, sample_index), observer_(std::move(observer))
 {
     num_variants_ = bed_pipe_.num_snps();    // NOLINT
     sample_size_ = bed_pipe_.num_samples();  // NOLINT
