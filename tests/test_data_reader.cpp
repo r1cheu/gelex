@@ -39,7 +39,7 @@ TEST_CASE(
     auto df = gelex::read_fam(path);
 
     REQUIRE(df.rows() == 3);
-    REQUIRE(df.cols() == 0);
+    REQUIRE(df.cols() == 4);
 
     auto key0 = std::string("FAM1") + kSeparator + "IID1";
     auto key1 = std::string("FAM1") + kSeparator + "IID2";
