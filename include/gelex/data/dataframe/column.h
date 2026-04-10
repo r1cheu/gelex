@@ -59,36 +59,33 @@ class Column
         : name_(name), storage_(std::move(data))
     {
     }
-
     template <ValueType T>
     auto push_back(T&& value) -> void;
 
     auto name() const -> std::string_view { return name_; }
     auto rename(std::string_view new_name) -> void { name_ = new_name; }
-
     auto size() const -> std::size_t;
-
-    // reorders rows to match the given index order; indices may be in any order
-    auto gather(std::span<const std::size_t> indices) -> void;
 
     template <ValueType T>
     auto as() -> std::span<T>;
-
     template <ValueType T>
     auto as() const -> std::span<const T>;
-
-    template <ValueType T>
-    auto take() && -> std::vector<T>;
-
     template <ValueType T>
         requires std::is_arithmetic_v<T>
     auto to_map() const -> Eigen::Map<const Eigen::Vector<T, Eigen::Dynamic>>;
-
     template <ValueType T>
         requires std::is_arithmetic_v<T>
     auto to_mat() const -> Eigen::Vector<T, Eigen::Dynamic>;
 
+    template <ValueType T>
+    auto take() && -> std::vector<T>;
+
    private:
+    template <KeyType>
+    friend class DataFrame;
+
+    // reorders rows to match the given index order; indices may be in any order
+    auto gather(std::span<const std::size_t> indices) -> void;
     template <ValueType T, typename Storage>
     static auto checked(Storage& storage, std::string_view col_name) -> auto&
     {
@@ -138,12 +135,6 @@ auto Column::as() const -> std::span<const T>
 }
 
 template <ValueType T>
-auto Column::take() && -> std::vector<T>
-{
-    return std::move(checked<T>(storage_, name_));
-}
-
-template <ValueType T>
     requires std::is_arithmetic_v<T>
 auto Column::to_map() const
     -> Eigen::Map<const Eigen::Vector<T, Eigen::Dynamic>>
@@ -157,6 +148,12 @@ template <ValueType T>
 auto Column::to_mat() const -> Eigen::Vector<T, Eigen::Dynamic>
 {
     return to_map<T>();
+}
+
+template <ValueType T>
+auto Column::take() && -> std::vector<T>
+{
+    return std::move(checked<T>(storage_, name_));
 }
 
 }  // namespace gelex::df

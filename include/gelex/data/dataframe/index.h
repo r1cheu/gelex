@@ -22,6 +22,7 @@
 #include <concepts>
 #include <cstddef>
 #include <initializer_list>
+#include <ranges>
 #include <span>
 #include <unordered_map>
 #include <vector>
@@ -43,23 +44,25 @@ class Index
     template <typename K>
         requires std::convertible_to<K, Key>
     auto push_back(K&& key) -> void;
+
     auto at(const Key& key) const -> std::size_t;
     auto contains(const Key& key) const -> bool
     {
         return lookup_.contains(key);
     }
     auto size() const -> std::size_t { return keys_.size(); }
+
     auto keys() const -> std::span<const Key> { return keys_; }
     auto take_keys() && -> std::vector<Key> { return std::move(keys_); }
 
-    auto gather(std::span<const std::size_t> indices) -> void;
+    auto gather(const Index<Key>& target) -> void;
 
    private:
+    auto gather(std::span<const std::size_t> indices) -> void;
     auto rebuild_lookup() -> void;
 
     template <KeyType K>
-    friend auto intersect(std::span<const Index<K>* const> indices)
-        -> std::vector<std::vector<std::size_t>>;
+    friend auto intersect(std::span<const Index<K>* const> indices) -> Index<K>;
 
     std::vector<Key> keys_;
     std::unordered_map<
@@ -71,12 +74,11 @@ class Index
 };
 
 template <KeyType Key>
-auto intersect(std::span<const Index<Key>* const> indices)
-    -> std::vector<std::vector<std::size_t>>;
+auto intersect(std::span<const Index<Key>* const> indices) -> Index<Key>;
 
 template <KeyType Key>
 auto intersect(std::initializer_list<const Index<Key>* const> indices)
-    -> std::vector<std::vector<std::size_t>>
+    -> Index<Key>
 {
     return intersect(std::span{indices.begin(), indices.size()});
 }
@@ -122,6 +124,15 @@ auto Index<Key>::at(const Key& key) const -> std::size_t
 }
 
 template <KeyType Key>
+auto Index<Key>::gather(const Index<Key>& target) -> void
+{
+    auto pos = target.keys()
+               | std::views::transform([this](const auto& k) { return at(k); })
+               | std::ranges::to<std::vector>();
+    gather(pos);
+}
+
+template <KeyType Key>
 auto Index<Key>::gather(std::span<const std::size_t> indices) -> void
 {
     std::vector<Key> buf;
@@ -146,12 +157,11 @@ auto Index<Key>::rebuild_lookup() -> void
 }
 
 template <KeyType Key>
-auto intersect(std::span<const Index<Key>* const> indices)
-    -> std::vector<std::vector<std::size_t>>
+auto intersect(std::span<const Index<Key>* const> indices) -> Index<Key>
 {
     if (indices.empty())
     {
-        return {};
+        return Index<Key>{};
     }
 
     const auto* smallest = *std::ranges::min_element(
@@ -172,20 +182,7 @@ auto intersect(std::span<const Index<Key>* const> indices)
         }
     }
     std::ranges::sort(common);
-
-    std::vector<std::vector<std::size_t>> positions(indices.size());
-    for (auto& pos : positions)
-    {
-        pos.reserve(common.size());
-    }
-    for (const auto& key : common)
-    {
-        for (std::size_t si = 0; si < indices.size(); ++si)
-        {
-            positions[si].push_back(indices[si]->lookup_.at(key));
-        }
-    }
-    return positions;
+    return Index<Key>(std::move(common));
 }
 
 }  // namespace gelex::df

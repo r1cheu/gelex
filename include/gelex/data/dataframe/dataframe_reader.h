@@ -18,23 +18,19 @@
 #define GELEX_DATA_DATAFRAME_DATAFRAME_READER_H
 
 #include <algorithm>
-#include <cassert>
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
-#include <numeric>
-#include <optional>
 #include <ranges>
+#include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <type_traits>
-#include <variant>
-#include <vector>
 
 #include "gelex/data/dataframe/column.h"
 #include "gelex/data/dataframe/constants.h"
@@ -51,11 +47,8 @@ enum class NaAction : std::uint8_t
     Exclude
 };
 
-using Schema = std::variant<ColumnType, std::vector<ColumnType>>;
-
 struct ReadOptions
 {
-    std::optional<Schema> schema;
     char delimiter = '\t';
     bool header = true;
     std::vector<std::size_t> index_cols;
@@ -64,6 +57,9 @@ struct ReadOptions
     StringSet na_rep = {kDefaultNaRep.begin(), kDefaultNaRep.end()};
     NaAction na_action = NaAction::Throw;
 };
+
+namespace detail
+{
 
 template <KeyType Key>
 class DataFrameReader
@@ -75,25 +71,29 @@ class DataFrameReader
         : path_(path), options_(&options)
     {
     }
+
+    template <ValueType Val>
     auto read() -> DataFrame<Key>;
+    auto read(std::span<const ColumnType> schema) -> DataFrame<Key>;
+    auto read_index() -> Index<Key>;
 
    private:
-    auto parse_header() -> void;
+    auto prepare(bool index_only = false) -> std::ifstream;
+
+    template <typename ParseFn>
+    auto scan_lines(std::ifstream& file, const ParseFn& parse)
+        -> std::vector<Key>;
+
+    auto build_index(std::vector<Key> keys, std::size_t n_rows) -> Index<Key>;
+    auto build_header(std::ifstream& file) -> void;
     auto check_col_range(std::size_t idx) -> void;
-    auto filter_row() -> bool;
-    auto prepare_header(std::ifstream& file) -> void;
+    auto tokenize(std::string_view line) -> void;
+    auto is_na(std::string_view token) -> bool;
+    auto check_row() -> bool;
+    auto append_key(std::vector<Key>& keys) -> void;
 
     template <typename T>
     static auto parse_arithmetic(std::string_view token) -> T;
-    auto parse_value(
-        std::string_view token,
-        ColumnType type,
-        Column& col,
-        std::size_t line,
-        std::size_t col_idx) -> void;
-    auto parse_key(std::string_view token) -> Key;
-    auto is_na(std::string_view token) -> bool;
-    auto tokenize(std::string_view line) -> void;
 
     std::filesystem::path path_;
     const ReadOptions* options_;
@@ -102,105 +102,32 @@ class DataFrameReader
     std::vector<std::string> header_;
     std::vector<std::size_t> select_pos_;
     std::vector<std::size_t> index_pos_;
-    std::vector<ColumnType> resolved_schema_;
 };
 
-template <KeyType Key>
+}  // namespace detail
+
+// compile-time typed: all selected columns share the same Val type
+template <KeyType Key, ValueType Val>
 auto read_dataframe(
     const std::filesystem::path& path,
     const ReadOptions& options) -> DataFrame<Key>;
 
+// per-column schema: runtime dispatch per column
+template <KeyType Key>
+auto read_dataframe(
+    const std::filesystem::path& path,
+    const ReadOptions& options,
+    std::span<const ColumnType> schema) -> DataFrame<Key>;
+
+// index-only: returns Index directly
+template <KeyType Key>
+auto read_index(const std::filesystem::path& path, const ReadOptions& options)
+    -> Index<Key>;
+
 // --- Implementation ---
 
 template <KeyType Key>
-auto DataFrameReader<Key>::read() -> DataFrame<Key>
-{
-    auto file = ::gelex::detail::open_file<std::ifstream>(path_, std::ios::in);
-    prepare_header(file);
-    parse_header();
-
-    DataFrame<Key> df;
-    for (std::size_t i = 0; i < select_pos_.size(); ++i)
-    {
-        df.names_.emplace_back();
-        df.columns_.emplace_back(header_[select_pos_[i]]);
-        df.set_name(i, header_[select_pos_[i]]);
-    }
-
-    if (!options_->names.empty())
-    {
-        df.rename(options_->names);
-    }
-
-    std::size_t line_number = options_->header ? 1 : 0;
-    std::string line;
-    while (std::getline(file, line))
-    {
-        ++line_number;
-        tokenize(line);
-        if (!filter_row())
-        {
-            continue;
-        }
-
-        if (!options_->index_cols.empty())
-        {
-            if (index_pos_.size() == 1)
-            {
-                df.index_.push_back(parse_key(tokens_[index_pos_[0]]));
-            }
-            else
-            {
-                if constexpr (!std::is_same_v<Key, std::string>)
-                {
-                    throw GelexException("composite index requires string Key");
-                }
-                else
-                {
-                    df.index_.push_back(
-                        fmt::format(
-                            "{}",
-                            fmt::join(
-                                index_pos_
-                                    | std::views::transform(
-                                        [&](auto i) { return tokens_[i]; }),
-                                std::string_view(&kSeparator, 1))));
-                }
-            }
-        }
-
-        for (std::size_t i = 0; i < select_pos_.size(); ++i)
-        {
-            parse_value(
-                tokens_[select_pos_[i]],
-                resolved_schema_[i],
-                df.columns_[i],
-                line_number,
-                select_pos_[i] + 1);
-        }
-    }
-
-    if (options_->index_cols.empty())
-    {
-        if constexpr (std::is_same_v<Key, std::string>)
-        {
-            throw GelexException(
-                "auto-generated index requires arithmetic Key");
-        }
-        else
-        {
-            auto n = df.columns_.empty() ? 0 : df.columns_[0].size();
-            std::vector<Key> keys(n);
-            std::iota(keys.begin(), keys.end(), Key{0});
-            df.index_ = Index<Key>(std::move(keys));
-        }
-    }
-
-    return df;
-}
-
-template <KeyType Key>
-auto DataFrameReader<Key>::prepare_header(std::ifstream& file) -> void
+auto detail::DataFrameReader<Key>::build_header(std::ifstream& file) -> void
 {
     std::string line;
     std::getline(file, line);
@@ -209,6 +136,7 @@ auto DataFrameReader<Key>::prepare_header(std::ifstream& file) -> void
     if (!options_->header)
     {
         file.seekg(0);
+        header_.reserve(n_cols_);
         for (std::size_t i = 0; i < n_cols_; ++i)
         {
             header_.push_back(std::to_string(i));
@@ -216,16 +144,26 @@ auto DataFrameReader<Key>::prepare_header(std::ifstream& file) -> void
     }
     else
     {
-        header_.reserve(tokens_.size());
-        for (const auto& token : tokens_)
-        {
-            header_.emplace_back(token);
-        }
+        header_.assign(tokens_.begin(), tokens_.end());
     }
 }
 
 template <KeyType Key>
-auto DataFrameReader<Key>::tokenize(std::string_view line) -> void
+auto detail::DataFrameReader<Key>::check_col_range(std::size_t idx) -> void
+{
+    if (idx >= n_cols_)
+    {
+        throw GelexException(
+            fmt::format(
+                "{} column index {} out of range (file has {} columns)",
+                path_.string(),
+                idx,
+                n_cols_));
+    }
+}
+
+template <KeyType Key>
+auto detail::DataFrameReader<Key>::tokenize(std::string_view line) -> void
 {
     tokens_.clear();
     if (!line.empty() && line.back() == '\r')
@@ -247,146 +185,13 @@ auto DataFrameReader<Key>::tokenize(std::string_view line) -> void
 }
 
 template <KeyType Key>
-auto DataFrameReader<Key>::is_na(std::string_view token) -> bool
+auto detail::DataFrameReader<Key>::is_na(std::string_view token) -> bool
 {
     return options_->na_rep.contains(token);
 }
 
 template <KeyType Key>
-template <typename T>
-auto DataFrameReader<Key>::parse_arithmetic(std::string_view token) -> T
-{
-    T val{};
-    const auto* end = token.data() + token.size();
-    auto [ptr, ec] = std::from_chars(token.data(), end, val);
-    if (ec != std::errc{} || ptr != end)
-    {
-        throw GelexException(
-            fmt::format("failed to parse '{}' as numeric", token));
-    }
-    return val;
-}
-
-template <KeyType Key>
-auto DataFrameReader<Key>::parse_value(
-    std::string_view token,
-    ColumnType type,
-    Column& col,
-    std::size_t line,
-    std::size_t col_idx) -> void
-{
-    try
-    {
-        switch (type)
-        {
-            case ColumnType::Int:
-                col.push_back(parse_arithmetic<std::int32_t>(token));
-                break;
-            case ColumnType::Float:
-                col.push_back(parse_arithmetic<float>(token));
-                break;
-            case ColumnType::Double:
-                col.push_back(parse_arithmetic<double>(token));
-                break;
-            case ColumnType::String:
-                col.push_back(std::string(token));
-                break;
-        }
-    }
-    catch (const GelexException& e)
-    {
-        throw GelexException(
-            fmt::format(
-                "{}:{}:{}: {}", path_.string(), line, col_idx, e.what()));
-    }
-}
-
-template <KeyType Key>
-auto DataFrameReader<Key>::parse_key(std::string_view token) -> Key
-{
-    if constexpr (std::is_same_v<Key, std::string>)
-    {
-        return std::string(token);
-    }
-    else
-    {
-        return parse_arithmetic<Key>(token);
-    }
-}
-
-template <KeyType Key>
-auto DataFrameReader<Key>::check_col_range(std::size_t idx) -> void
-{
-    if (idx >= n_cols_)
-    {
-        throw GelexException(
-            fmt::format(
-                "{} column index {} out of range (file has {} columns)",
-                path_.string(),
-                idx,
-                n_cols_));
-    }
-}
-
-template <KeyType Key>
-auto DataFrameReader<Key>::parse_header() -> void
-{
-    for (auto idx : options_->index_cols)
-    {
-        check_col_range(idx);
-        index_pos_.push_back(idx);
-    }
-
-    if (!options_->schema && options_->select_cols.empty())
-    {
-        return;
-    }
-
-    if (options_->select_cols.empty())
-    {
-        for (std::size_t i = 0; i < n_cols_; ++i)
-        {
-            if (std::ranges::find(index_pos_, i) == index_pos_.end())
-            {
-                select_pos_.push_back(i);
-            }
-        }
-    }
-    else
-    {
-        for (auto idx : options_->select_cols)
-        {
-            check_col_range(idx);
-            select_pos_.push_back(idx);
-        }
-    }
-
-    if (options_->schema)
-    {
-        std::visit(
-            [this](const auto& s)
-            {
-                if constexpr (std::is_same_v<
-                                  std::remove_cvref_t<decltype(s)>,
-                                  ColumnType>)
-                {
-                    resolved_schema_.assign(select_pos_.size(), s);
-                }
-                else
-                {
-                    assert(
-                        s.size() == select_pos_.size()
-                        && "schema size must match selected columns");
-                    resolved_schema_ = s;
-                }
-            },
-            *options_->schema);
-    }
-}
-
-// filter row based on NA values in index and selected columns
-template <KeyType Key>
-auto DataFrameReader<Key>::filter_row() -> bool
+auto detail::DataFrameReader<Key>::check_row() -> bool
 {
     auto check = [this](const auto& positions) -> bool
     {
@@ -408,11 +213,288 @@ auto DataFrameReader<Key>::filter_row() -> bool
 }
 
 template <KeyType Key>
+auto detail::DataFrameReader<Key>::append_key(std::vector<Key>& keys) -> void
+{
+    if (index_pos_.size() == 1)
+    {
+        auto token = tokens_[index_pos_[0]];
+        if constexpr (std::is_same_v<Key, std::string>)
+        {
+            keys.push_back(std::string(token));
+        }
+        else
+        {
+            keys.push_back(parse_arithmetic<Key>(token));
+        }
+    }
+    else
+    {
+        if constexpr (!std::is_same_v<Key, std::string>)
+        {
+            throw GelexException("composite index requires string Key");
+        }
+        else
+        {
+            keys.push_back(
+                fmt::format(
+                    "{}",
+                    fmt::join(
+                        index_pos_
+                            | std::views::transform([&](auto i)
+                                                    { return tokens_[i]; }),
+                        std::string_view(&kSeparator, 1))));
+        }
+    }
+}
+
+template <KeyType Key>
+template <typename T>
+auto detail::DataFrameReader<Key>::parse_arithmetic(std::string_view token) -> T
+{
+    T val{};
+    const auto* end = token.data() + token.size();
+    auto [ptr, ec] = std::from_chars(token.data(), end, val);
+    if (ec != std::errc{} || ptr != end)
+    {
+        throw GelexException(
+            fmt::format("failed to parse '{}' as numeric", token));
+    }
+    return val;
+}
+
+template <KeyType Key>
+auto detail::DataFrameReader<Key>::prepare(bool index_only) -> std::ifstream
+{
+    auto file = ::gelex::detail::open_file<std::ifstream>(path_, std::ios::in);
+    build_header(file);
+    // resolve index
+    for (auto idx : options_->index_cols)
+    {
+        check_col_range(idx);
+        index_pos_.push_back(idx);
+    }
+
+    // resolve columns
+    if (!index_only)
+    {
+        if (options_->select_cols.empty())
+        {
+            for (std::size_t i = 0; i < n_cols_; ++i)
+            {
+                if (std::ranges::find(index_pos_, i) == index_pos_.end())
+                {
+                    select_pos_.push_back(i);
+                }
+            }
+        }
+        else
+        {
+            for (auto idx : options_->select_cols)
+            {
+                check_col_range(idx);
+                select_pos_.push_back(idx);
+            }
+        }
+    }
+    return file;
+}
+
+template <KeyType Key>
+template <typename ParseFn>
+auto detail::DataFrameReader<Key>::scan_lines(
+    std::ifstream& file,
+    const ParseFn& parse) -> std::vector<Key>
+{
+    std::vector<Key> keys;
+    std::size_t line_number = options_->header ? 1 : 0;
+    std::string line;
+    while (std::getline(file, line))
+    {
+        ++line_number;
+        tokenize(line);
+        if (!check_row())
+        {
+            continue;
+        }
+        if (!index_pos_.empty())
+        {
+            append_key(keys);
+        }
+        for (std::size_t i = 0; i < select_pos_.size(); ++i)
+        {
+            try
+            {
+                parse(i);
+            }
+            catch (const GelexException& e)
+            {
+                throw GelexException(
+                    fmt::format(
+                        "{}:{}:{}: {}",
+                        path_.string(),
+                        line_number,
+                        select_pos_[i] + 1,
+                        e.what()));
+            }
+        }
+    }
+    return keys;
+}
+
+template <KeyType Key>
+auto detail::DataFrameReader<Key>::build_index(
+    std::vector<Key> keys,
+    std::size_t n_rows) -> Index<Key>
+{
+    if (!options_->index_cols.empty())
+    {
+        return Index<Key>(std::move(keys));
+    }
+    if constexpr (std::is_same_v<Key, std::string>)
+    {
+        throw GelexException("auto-generated index requires arithmetic Key");
+    }
+    else
+    {
+        return Index<Key>(
+            std::views::iota(Key{0}, static_cast<Key>(n_rows))
+            | std::ranges::to<std::vector>());
+    }
+}
+
+template <KeyType Key>
+template <ValueType Val>
+auto detail::DataFrameReader<Key>::read() -> DataFrame<Key>
+{
+    auto file = prepare();
+    std::vector<std::vector<Val>> col_data(select_pos_.size());
+
+    auto keys = scan_lines(
+        file,
+        [&](std::size_t i)
+        {
+            if constexpr (std::is_same_v<Val, std::string>)
+            {
+                col_data[i].push_back(std::string(tokens_[select_pos_[i]]));
+            }
+            else
+            {
+                col_data[i].push_back(
+                    parse_arithmetic<Val>(tokens_[select_pos_[i]]));
+            }
+        });
+
+    DataFrame<Key> df;
+    df.index_ = build_index(
+        std::move(keys), col_data.empty() ? 0 : col_data[0].size());
+
+    for (std::size_t i = 0; i < select_pos_.size(); ++i)
+    {
+        df.push_back(Column(header_[select_pos_[i]], std::move(col_data[i])));
+    }
+    if (!options_->names.empty())
+    {
+        df.rename(options_->names);
+    }
+    return df;
+}
+
+template <KeyType Key>
+auto detail::DataFrameReader<Key>::read(std::span<const ColumnType> schema)
+    -> DataFrame<Key>
+{
+    auto file = prepare();
+    if (schema.size() != select_pos_.size())
+    {
+        throw GelexException(
+            fmt::format(
+                "schema size {} does not match selected columns {}",
+                schema.size(),
+                select_pos_.size()));
+    }
+
+    std::vector<Column> columns;
+    columns.reserve(select_pos_.size());
+    for (auto pos : select_pos_)
+    {
+        columns.emplace_back(header_[pos]);
+    }
+
+    auto keys = scan_lines(
+        file,
+        [&](std::size_t i)
+        {
+            auto token = tokens_[select_pos_[i]];
+            auto& col = columns[i];
+            switch (schema[i])
+            {
+                case ColumnType::Int:
+                    col.push_back(parse_arithmetic<std::int32_t>(token));
+                    break;
+                case ColumnType::Float:
+                    col.push_back(parse_arithmetic<float>(token));
+                    break;
+                case ColumnType::Double:
+                    col.push_back(parse_arithmetic<double>(token));
+                    break;
+                case ColumnType::String:
+                    col.push_back(std::string(token));
+                    break;
+            }
+        });
+
+    DataFrame<Key> df;
+    df.index_
+        = build_index(std::move(keys), columns.empty() ? 0 : columns[0].size());
+    for (auto& col : columns)
+    {
+        df.push_back(std::move(col));
+    }
+    if (!options_->names.empty())
+    {
+        df.rename(options_->names);
+    }
+    return df;
+}
+
+template <KeyType Key>
+auto detail::DataFrameReader<Key>::read_index() -> Index<Key>
+{
+    if (options_->index_cols.empty())
+    {
+        throw GelexException("read_index requires at least one index_col");
+    }
+    auto file = prepare(/*index_only=*/true);
+    auto keys = scan_lines(file, [](std::size_t) {});
+    return Index<Key>(std::move(keys));
+}
+
+// ================================================================
+// read_dataframe / read_index entry points
+// ================================================================
+
+template <KeyType Key, ValueType Val>
 auto read_dataframe(
     const std::filesystem::path& path,
     const ReadOptions& options) -> DataFrame<Key>
 {
-    return DataFrameReader<Key>(path, options).read();
+    return detail::DataFrameReader<Key>(path, options).template read<Val>();
+}
+
+template <KeyType Key>
+auto read_dataframe(
+    const std::filesystem::path& path,
+    const ReadOptions& options,
+    std::span<const ColumnType> schema) -> DataFrame<Key>
+{
+    return detail::DataFrameReader<Key>(path, options).read(schema);
+}
+
+template <KeyType Key>
+auto read_index(const std::filesystem::path& path, const ReadOptions& options)
+    -> Index<Key>
+{
+    return detail::DataFrameReader<Key>(path, options).read_index();
 }
 
 }  // namespace gelex::df
