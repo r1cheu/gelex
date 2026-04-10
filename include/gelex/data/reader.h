@@ -18,8 +18,10 @@
 #define GELEX_DATA_READER_H_
 
 #include <array>
+#include <fstream>
 
 #include "gelex/data/dataframe/dataframe_reader.h"
+#include "gelex/io/parser.h"
 
 namespace gelex
 {
@@ -39,12 +41,15 @@ inline auto read_fam(const std::filesystem::path& path)
 inline auto read_bim(const std::filesystem::path& path)
     -> df::DataFrame<std::string>
 {
+    using enum df::ColumnType;
+    constexpr std::array kSchema = {String, Int, String, String};
+    auto file = detail::open_file<std::ifstream>(path, std::ios::in);
     df::ReadOptions options;
     options.header = false;
     options.index_cols = {1};
-    options.select_cols = {4, 5};
-    options.names = {"A1", "A2"};
-    return df::read_dataframe<std::string, std::string>(path, options);
+    options.select_cols = {0, 3, 4, 5};
+    options.names = {"chrom", "pos", "A1", "A2"};
+    return df::read_dataframe<std::string>(path, options, kSchema);
 }
 
 inline auto read_pheno(

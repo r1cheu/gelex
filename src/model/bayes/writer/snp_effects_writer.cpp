@@ -16,9 +16,13 @@
 
 #include "gelex/model/bayes/writer/snp_effects_writer.h"
 
-#include <fmt/format.h>
+#include <cstdint>
 #include <memory>
+#include <string>
 
+#include <fmt/format.h>
+
+#include "gelex/data/reader.h"
 #include "gelex/io/text_writer.h"
 
 namespace gelex
@@ -31,9 +35,14 @@ SnpEffectsWriter::SnpEffectsWriter(
     const std::filesystem::path& bim_file_path,
     const std::filesystem::path& output_path)
     : result_(&result),
-      bim_reader_(bim_file_path),
+      bim_(read_bim(bim_file_path)),
       writer_(std::make_unique<detail::TextWriter>(output_path))
 {
+    bim_keys_ = bim_.index().keys();
+    bim_chrom_ = bim_["chrom"].as<std::string>();
+    bim_pos_ = bim_["pos"].as<std::int32_t>();
+    bim_a1_ = bim_["A1"].as<std::string>();
+    bim_a2_ = bim_["A2"].as<std::string>();
 }
 
 SnpEffectsWriter::~SnpEffectsWriter() = default;
@@ -47,6 +56,7 @@ auto SnpEffectsWriter::write() -> void
         return;
     }
 
+    cache_bim_spans();
     write_header();
 
     for (Index i = 0; i < additive_->coeffs.size(); ++i)
@@ -114,16 +124,16 @@ auto SnpEffectsWriter::write_snp_row(Index snp_index) -> void
 
 auto SnpEffectsWriter::write_snp_basic_info(Index snp_index) -> void
 {
-    if (snp_index < static_cast<Index>(bim_reader_.size()))
+    auto row = static_cast<std::size_t>(snp_index);
+    if (snp_index < static_cast<Index>(bim_.rows()))
     {
-        const auto& snp_info = bim_reader_.info()[snp_index];
         row_buf_ += fmt::format(
             "{}\t{}\t{}\t{}\t{}",
-            snp_info.id,
-            snp_info.chrom,
-            snp_info.pos,
-            snp_info.A1,
-            snp_info.A2);
+            bim_keys_[row],
+            bim_chrom_[row],
+            bim_pos_[row],
+            bim_a1_[row],
+            bim_a2_[row]);
 
         if (result_->allele_freq().size() > snp_index)
         {

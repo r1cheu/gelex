@@ -21,7 +21,7 @@
 
 #include <fmt/format.h>
 
-#include "gelex/data/reader/bim_reader.h"
+#include "gelex/data/reader.h"
 
 namespace gelex
 {
@@ -51,24 +51,25 @@ auto build_tasks(freq::GrmType mode) -> std::vector<GrmTask>
 
 }  // namespace
 
-auto GrmLocoPlan::build_loco_ranges(const SnpIndex& snp_index)
+auto GrmLocoPlan::build_loco_ranges(const df::DataFrame<std::string>& bim)
     -> std::vector<ChrRange>
 {
     std::vector<ChrRange> groups;
-    auto num_snps = static_cast<Eigen::Index>(snp_index.size());
+    auto num_snps = static_cast<Eigen::Index>(bim.rows());
+    auto chrom = bim["chrom"].as<std::string>();
     std::string current_chr;
     Eigen::Index range_start = 0;
 
     for (Eigen::Index i = 0; i < num_snps; ++i)
     {
-        if (snp_index[i].chrom != current_chr)
+        if (chrom[static_cast<std::size_t>(i)] != current_chr)
         {
             if (!current_chr.empty())
             {
                 groups.push_back(
                     {current_chr, {{range_start, i}}, i - range_start});
             }
-            current_chr = snp_index[i].chrom;
+            current_chr = chrom[static_cast<std::size_t>(i)];
             range_start = i;
         }
     }
@@ -84,8 +85,8 @@ GrmNormalPlan::GrmNormalPlan(
     const std::filesystem::path& bim_path,
     freq::GrmType mode)
 {
-    detail::BimReader bim_reader(bim_path);
-    auto num_snps = static_cast<Eigen::Index>(bim_reader.info().size());
+    auto bim = read_bim(bim_path);
+    auto num_snps = static_cast<Eigen::Index>(bim.rows());
     auto tasks = build_tasks(mode);
 
     task_pattern_
@@ -123,8 +124,8 @@ GrmLocoPlan::GrmLocoPlan(
     const std::filesystem::path& bim_path,
     freq::GrmType mode)
 {
-    detail::BimReader bim_reader(bim_path);
-    auto groups = build_loco_ranges(bim_reader.info());
+    auto bim = read_bim(bim_path);
+    auto groups = build_loco_ranges(bim);
     auto tasks = build_tasks(mode);
 
     num_groups_ = groups.size();

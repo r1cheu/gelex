@@ -22,7 +22,7 @@
 #include "gelex/algo/infer/estimator.h"
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/grm/loco_grm_reader.h"
-#include "gelex/data/reader/bim_reader.h"
+#include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/gwas_writer.h"
@@ -45,9 +45,7 @@ auto AssocLocoEngine::run(
 {
     BedPipe bed_pipe(config_.bed_path, sample_index);
     auto bim_path = config_.bed_path;
-    auto snp_index
-        = std::move(detail::BimReader(bim_path.replace_extension(".bim")))
-              .take_info();
+    auto bim = read_bim(bim_path.replace_extension(".bim"));
 
     const auto grm_paths = grm.grm_paths();
 
@@ -70,20 +68,19 @@ auto AssocLocoEngine::run(
         loco_readers.emplace_back(path, sample_index);
     }
 
-    auto chr_groups = build_chr_groups(true, snp_index);
+    auto chr_groups = build_chr_groups(true, bim);
 
     notify(
         observer,
         AssocScanSummaryEvent{
-            .total_snps = snp_index.size(),
+            .total_snps = bim.rows(),
             .chunk_size = config_.chunk_size,
             .loco = true});
 
-    gwas::GwasWriter writer(config_.out_prefix);
-    writer.write_header();
+    gwas::GwasWriter writer(config_.out_prefix, bim);
 
     detail::ChrScanner scanner(
-        {config_.chunk_size, snp_index.size()}, bed_pipe, observer);
+        {config_.chunk_size, bim.rows()}, bed_pipe, observer);
 
     auto processor = [&](Eigen::Ref<Eigen::MatrixXd> geno, Eigen::VectorXd* f)
     {
@@ -92,8 +89,8 @@ auto AssocLocoEngine::run(
     };
     auto result_writer = [&](size_t idx, const detail::ChrScanner::SnpResult& r)
     {
-        writer.write_result(
-            snp_index[idx],
+        writer.write(
+            idx,
             {.freq = r.freq,
              .beta = r.beta,
              .se = r.se,
@@ -142,8 +139,6 @@ auto AssocLocoEngine::run(
 
         scanner.scan(group, processor, result_writer);
     }
-
-    writer.finalize();
 
     notify(observer, AssocLocoRemlSummaryEvent{.results = loco_results});
 

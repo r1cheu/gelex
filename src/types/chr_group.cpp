@@ -16,32 +16,31 @@
 
 #include "gelex/types/chr_group.h"
 
-#include "gelex/types/snp_index.h"
-
 namespace gelex
 {
 
-auto build_chr_groups(bool do_loco, const SnpIndex& snp_index)
+auto build_chr_groups(bool do_loco, const df::DataFrame<std::string>& bim)
     -> std::vector<ChrGroup>
 {
     std::vector<ChrGroup> groups;
-    auto num_snps = static_cast<Eigen::Index>(snp_index.size());
+    auto num_snps = static_cast<Eigen::Index>(bim.rows());
 
     if (do_loco)
     {
+        auto chrom = bim["chrom"].as<std::string>();
         std::string current_chr;
         Eigen::Index range_start = 0;
 
         for (Eigen::Index i = 0; i < num_snps; ++i)
         {
-            if (snp_index[i].chrom != current_chr)
+            if (chrom[static_cast<std::size_t>(i)] != current_chr)
             {
                 if (!current_chr.empty())
                 {
                     groups.push_back(
                         {current_chr, {{range_start, i}}, i - range_start});
                 }
-                current_chr = snp_index[i].chrom;
+                current_chr = chrom[static_cast<std::size_t>(i)];
                 range_start = i;
             }
         }

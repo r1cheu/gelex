@@ -33,7 +33,6 @@
 #include "gelex/exception.h"
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/types/chr_group.h"
-#include "gelex/types/snp_index.h"
 
 namespace gelex::cli
 {

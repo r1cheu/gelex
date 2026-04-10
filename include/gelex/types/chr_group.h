@@ -23,10 +23,10 @@
 
 #include <Eigen/Core>
 
+#include "gelex/data/dataframe/dataframe.h"
+
 namespace gelex
 {
-
-class SnpIndex;
 
 struct ChrGroup
 {
@@ -35,7 +35,7 @@ struct ChrGroup
     Eigen::Index total_snps;
 };
 
-auto build_chr_groups(bool do_loco, const SnpIndex& snp_index)
+auto build_chr_groups(bool do_loco, const df::DataFrame<std::string>& bim)
     -> std::vector<ChrGroup>;
 
 }  // namespace gelex

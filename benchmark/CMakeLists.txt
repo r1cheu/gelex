@@ -15,8 +15,11 @@ target_link_libraries(bench_zvz PRIVATE gelex::core nanobench)
 add_executable(bench_gwas ./benchmark_gwas_writer.cpp)
 target_link_libraries(bench_gwas PRIVATE gelex::core nanobench)
 
+add_executable(bench_bim_access ./benchmark_bim_access.cpp)
+target_link_libraries(bench_bim_access PRIVATE gelex::core nanobench)
+
 if(GELEX_NATIVE_OPTIMIZATION)
-  foreach(target bench_sample bench_tsv bench_zvz bench_gwas)
+  foreach(target bench_sample bench_tsv bench_zvz bench_gwas bench_bim_access)
     target_compile_options(${target} PRIVATE -march=native -O3)
   endforeach()
 endif()

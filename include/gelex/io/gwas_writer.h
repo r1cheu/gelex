@@ -17,11 +17,16 @@
 #ifndef GELEX_IO_GWAS_WRITER_H_
 #define GELEX_IO_GWAS_WRITER_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <fstream>
+#include <span>
+#include <string>
 #include <string_view>
-#include "gelex/types/snp_index.h"
 
 #include <fmt/format.h>
+
+#include "gelex/data/dataframe/dataframe.h"
 
 namespace gelex::gwas
 {
@@ -37,7 +42,9 @@ class GwasWriter
         double p_value;
         double pve;
     };
-    explicit GwasWriter(std::string_view out_prefix);
+    GwasWriter(
+        std::string_view out_prefix,
+        const df::DataFrame<std::string>& bim);
     GwasWriter(const GwasWriter&) = delete;
     GwasWriter(GwasWriter&&) = delete;
     GwasWriter& operator=(const GwasWriter&) = delete;
@@ -45,14 +52,17 @@ class GwasWriter
 
     ~GwasWriter();
 
-    auto write_header() -> void;
-    auto write_result(const SnpMeta& snp_meta, AssocResult result) -> void;
-    auto finalize() -> void;
+    auto write(std::size_t row, AssocResult result) -> void;
 
    private:
     std::ofstream ofs_;
-
     fmt::memory_buffer line_buffer_;
+
+    std::span<const std::string> keys_;
+    std::span<const std::string> chrom_;
+    std::span<const std::int32_t> pos_;
+    std::span<const std::string> a1_;
+    std::span<const std::string> a2_;
 };
 
 }  // namespace gelex::gwas

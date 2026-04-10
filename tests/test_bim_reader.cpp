@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
+#include <cstdint>
+#include <string>
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "file_fixture.h"
+#include "gelex/data/reader.h"
 #include "gelex/exception.h"
 
-#include "gelex/data/reader/bim_reader.h"
-
-using namespace gelex::detail;  // NOLINT
-using Catch::Matchers::EndsWith;
 using gelex::test::FileFixture;
 
-TEST_CASE("BimReader - Valid file parsing", "[reader][bim]")
+TEST_CASE("read_bim - Valid file parsing", "[reader][bim]")
 {
     FileFixture files;
 
@@ -41,91 +41,35 @@ TEST_CASE("BimReader - Valid file parsing", "[reader][bim]")
             "1\trs11223\t0.004\t5000\tA\tT",
             ".bim");
 
-        REQUIRE_NOTHROW(
-            [&]()
-            {
-                BimReader bim_reader(file_path);
+        auto df = gelex::read_bim(file_path);
 
-                const auto snp_ids = bim_reader.get_ids();
-                REQUIRE(bim_reader.size() == 5);
-                REQUIRE(snp_ids.size() == 5);
-                REQUIRE(snp_ids[0] == "rs12345");
-                REQUIRE(snp_ids[1] == "rs67890");
-                REQUIRE(snp_ids[2] == "rs24680");
-                REQUIRE(snp_ids[3] == "rs13579");
-                REQUIRE(snp_ids[4] == "rs11223");
+        REQUIRE(df.rows() == 5);
 
-                const auto& snp1 = bim_reader.info()[0];
-                REQUIRE(snp1.chrom == "1");
-                REQUIRE(snp1.id == "rs12345");
-                REQUIRE(snp1.pos == 1000);
-                REQUIRE(snp1.A1 == 'A');
-                REQUIRE(snp1.A2 == 'G');
+        auto keys = df.index().keys();
+        REQUIRE(keys[0] == "rs12345");
+        REQUIRE(keys[1] == "rs67890");
+        REQUIRE(keys[2] == "rs24680");
+        REQUIRE(keys[3] == "rs13579");
+        REQUIRE(keys[4] == "rs11223");
 
-                const auto& snp3 = bim_reader.info()[3];
-                REQUIRE(snp3.chrom == "X");
-                REQUIRE(snp3.id == "rs13579");
-                REQUIRE(snp3.pos == 4000);
-                REQUIRE(snp3.A1 == 'T');
-                REQUIRE(snp3.A2 == 'C');
-            }());
-    }
+        auto chrom = df["chrom"].as<std::string>();
+        auto pos = df["pos"].as<std::int32_t>();
+        auto a1 = df["A1"].as<std::string>();
+        auto a2 = df["A2"].as<std::string>();
 
-    SECTION("Happy path - space-delimited file")
-    {
-        auto file_path = files.create_text_file(
-            "1 rs12345 0 1000 A G\n"
-            "1 rs67890 0.001 2000 C T\n"
-            "2 rs24680 0.002 3000 G A",
-            ".bim");
+        REQUIRE(chrom[0] == "1");
+        REQUIRE(pos[0] == 1000);
+        REQUIRE(a1[0] == "A");
+        REQUIRE(a2[0] == "G");
 
-        REQUIRE_NOTHROW(
-            [&]()
-            {
-                BimReader bim_reader(file_path);
-
-                const auto& snp_ids = bim_reader.get_ids();
-                REQUIRE(snp_ids.size() == 3);
-                REQUIRE(snp_ids[0] == "rs12345");
-                REQUIRE(snp_ids[1] == "rs67890");
-                REQUIRE(snp_ids[2] == "rs24680");
-
-                const auto& snp1 = bim_reader.info()[0];
-                REQUIRE(snp1.chrom == "1");
-                REQUIRE(snp1.id == "rs12345");
-                REQUIRE(snp1.pos == 1000);
-                REQUIRE(snp1.A1 == 'A');
-                REQUIRE(snp1.A2 == 'G');
-
-                const auto& snp3 = bim_reader.info()[2];
-                REQUIRE(snp3.chrom == "2");
-                REQUIRE(snp3.id == "rs24680");
-                REQUIRE(snp3.pos == 3000);
-                REQUIRE(snp3.A1 == 'G');
-                REQUIRE(snp3.A2 == 'A');
-            }());
+        REQUIRE(chrom[3] == "X");
+        REQUIRE(pos[3] == 4000);
+        REQUIRE(a1[3] == "T");
+        REQUIRE(a2[3] == "C");
     }
 }
 
-TEST_CASE("BimReader - Malformed column count", "[reader][bim]")
-{
-    FileFixture files;
-
-    SECTION("Exception - inconsistent columns")
-    {
-        auto file_path = files.create_text_file(
-            "1\trs12345\t0\t1000\tA\tG\n"
-            "1\trs67890\t0.001\t2000\tC",  // Missing last column
-            ".bim");
-        REQUIRE_THROWS_MATCHES(
-            BimReader(file_path),
-            gelex::GelexException,
-            Catch::Matchers::MessageMatches(
-                EndsWith("has 5 columns, expected 6")));
-    }
-}
-
-TEST_CASE("BimReader - Invalid position data", "[reader][bim]")
+TEST_CASE("read_bim - Invalid position data", "[reader][bim]")
 {
     FileFixture files;
 
@@ -133,58 +77,38 @@ TEST_CASE("BimReader - Invalid position data", "[reader][bim]")
     {
         auto file_path
             = files.create_text_file("1\trs12345\t0\tinvalid\tA\tG", ".bim");
-        REQUIRE_THROWS_MATCHES(
-            BimReader(file_path),
-            gelex::GelexException,
-            Catch::Matchers::MessageMatches(
-                EndsWith("failed to parse 'invalid' as number")));
-    }
-
-    SECTION("Exception - empty position field")
-    {
-        auto file_path
-            = files.create_text_file("1\trs12345\t0\t\tA\tG", ".bim");
-        REQUIRE_THROWS_MATCHES(
-            BimReader(file_path),
-            gelex::GelexException,
-            Catch::Matchers::MessageMatches(
-                EndsWith("has 5 columns, expected 6")));
+        REQUIRE_THROWS_AS(gelex::read_bim(file_path), gelex::GelexException);
     }
 }
 
-TEST_CASE("BimReader - Comprehensive happy path tests", "[reader][bim]")
+TEST_CASE("read_bim - Index lookup", "[reader][bim]")
 {
     FileFixture files;
 
-    SECTION("Test all public methods")
-    {
-        auto file_path = files.create_text_file(
-            "1\trs12345\t0\t1000\tA\tG\n"
-            "2\trs67890\t0.001\t2000\tC\tT",
-            ".bim");
+    auto file_path = files.create_text_file(
+        "1\trs12345\t0\t1000\tA\tG\n"
+        "2\trs67890\t0.001\t2000\tC\tT",
+        ".bim");
 
-        BimReader bim_reader(file_path);
+    auto df = gelex::read_bim(file_path);
 
-        // Test meta() method
-        const auto& meta = bim_reader.info();
-        REQUIRE(meta.size() == 2);
-        REQUIRE(meta[0].id == "rs12345");
-        REQUIRE(meta[1].id == "rs67890");
+    REQUIRE(df.index().at("rs12345") == 0);
+    REQUIRE(df.index().at("rs67890") == 1);
+    REQUIRE(df.index().contains("rs12345"));
+    REQUIRE_FALSE(df.index().contains("rs99999"));
+}
 
-        // Test get_ids() method
-        const auto ids = bim_reader.get_ids();
-        REQUIRE(ids.size() == 2);
-        REQUIRE(ids[0] == "rs12345");
-        REQUIRE(ids[1] == "rs67890");
+TEST_CASE("read_bim - take_keys from rvalue", "[reader][bim]")
+{
+    FileFixture files;
 
-        // Test operator[]
-        REQUIRE_NOTHROW(bim_reader.info()[0]);
-        REQUIRE(bim_reader.info()[0].id == "rs12345");
+    auto file_path = files.create_text_file(
+        "1\trs12345\t0\t1000\tA\tG\n"
+        "2\trs67890\t0.001\t2000\tC\tT",
+        ".bim");
 
-        // Test take_meta() method
-        auto moved_meta = std::move(bim_reader).take_info();
-        REQUIRE(moved_meta.size() == 2);
-        REQUIRE(moved_meta[0].id == "rs12345");
-        REQUIRE(moved_meta[1].id == "rs67890");
-    }
+    auto ids = gelex::read_bim(file_path).index().take_keys();
+    REQUIRE(ids.size() == 2);
+    REQUIRE(ids[0] == "rs12345");
+    REQUIRE(ids[1] == "rs67890");
 }

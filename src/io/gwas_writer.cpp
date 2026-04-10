@@ -15,10 +15,12 @@
  */
 
 #include "gelex/io/gwas_writer.h"
+
 #include <cstddef>
+#include <cstdint>
 #include <ios>
 #include <stdexcept>
-#include "gelex/types/snp_index.h"
+#include <string>
 
 #include <fmt/compile.h>
 
@@ -27,7 +29,14 @@ namespace gelex::gwas
 
 constexpr size_t BUFFER_FLUSH_THRESHOLD = static_cast<size_t>(64 * 1024);
 
-GwasWriter::GwasWriter(std::string_view out_prefix)
+GwasWriter::GwasWriter(
+    std::string_view out_prefix,
+    const df::DataFrame<std::string>& bim)
+    : keys_(bim.index().keys()),
+      chrom_(bim["chrom"].as<std::string>()),
+      pos_(bim["pos"].as<std::int32_t>()),
+      a1_(bim["A1"].as<std::string>()),
+      a2_(bim["A2"].as<std::string>())
 {
     std::string filepath = std::string(out_prefix) + ".gwas.tsv";
     ofs_.open(filepath, std::ios::out | std::ios::binary);
@@ -38,16 +47,6 @@ GwasWriter::GwasWriter(std::string_view out_prefix)
     }
 
     line_buffer_.reserve(BUFFER_FLUSH_THRESHOLD);
-}
-
-GwasWriter::~GwasWriter()
-{
-    finalize();
-}
-
-auto GwasWriter::write_header() -> void
-{
-    line_buffer_.clear();
 
     fmt::format_to(
         std::back_inserter(line_buffer_),
@@ -57,17 +56,26 @@ auto GwasWriter::write_header() -> void
     line_buffer_.clear();
 }
 
-auto GwasWriter::write_result(const SnpMeta& snp_meta, AssocResult result)
-    -> void
+GwasWriter::~GwasWriter()
+{
+    if (line_buffer_.size() == 0U)
+    {
+        return;
+    }
+    ofs_.write(
+        line_buffer_.data(), static_cast<std::streamsize>(line_buffer_.size()));
+}
+
+auto GwasWriter::write(std::size_t row, AssocResult result) -> void
 {
     fmt::format_to(
         std::back_inserter(line_buffer_),
         FMT_COMPILE("{}\t{}\t{}\t{}\t{}\t{:.6g}\t"),
-        snp_meta.chrom,
-        snp_meta.id,
-        snp_meta.pos,
-        snp_meta.A1,
-        snp_meta.A2,
+        chrom_[row],
+        keys_[row],
+        pos_[row],
+        a1_[row],
+        a2_[row],
         result.freq);
 
     fmt::format_to(
@@ -84,22 +92,6 @@ auto GwasWriter::write_result(const SnpMeta& snp_meta, AssocResult result)
             line_buffer_.data(),
             static_cast<std::streamsize>(line_buffer_.size()));
         line_buffer_.clear();
-    }
-}
-
-auto GwasWriter::finalize() -> void
-{
-    if (ofs_.is_open())
-    {
-        if (line_buffer_.size() > 0)
-        {
-            ofs_.write(
-                line_buffer_.data(),
-                static_cast<std::streamsize>(line_buffer_.size()));
-            line_buffer_.clear();
-        }
-        ofs_.flush();
-        ofs_.close();
     }
 }
 

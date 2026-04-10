@@ -21,7 +21,7 @@
 #include "detail/assoc_detail.h"
 #include "gelex/algo/infer/estimator.h"
 #include "gelex/data/genotype/bed_pipe.h"
-#include "gelex/data/reader/bim_reader.h"
+#include "gelex/data/reader.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/gwas_writer.h"
 #include "gelex/model/freq/model.h"
@@ -45,9 +45,7 @@ auto AssocNormalEngine::run(
 {
     BedPipe bed_pipe(config_.bed_path, sample_index);
     auto bim_path = config_.bed_path;
-    auto snp_index
-        = std::move(detail::BimReader(bim_path.replace_extension(".bim")))
-              .take_info();
+    auto bim = read_bim(bim_path.replace_extension(".bim"));
 
     FreqModel model(
         std::move(pheno).take_phenotype(),
@@ -59,20 +57,19 @@ auto AssocNormalEngine::run(
     notify(observer, AssocRemlStartedEvent{.chr_name = ""});
 
     auto v_inv = estimator.fit(model, state);
-    auto chr_groups = build_chr_groups(false, snp_index);
+    auto chr_groups = build_chr_groups(false, bim);
 
     notify(
         observer,
         AssocScanSummaryEvent{
-            .total_snps = snp_index.size(),
+            .total_snps = bim.rows(),
             .chunk_size = config_.chunk_size,
             .loco = false});
 
-    gwas::GwasWriter writer(config_.out_prefix);
-    writer.write_header();
+    gwas::GwasWriter writer(config_.out_prefix, bim);
 
     detail::ChrScanner scanner(
-        {config_.chunk_size, snp_index.size()}, bed_pipe, observer);
+        {config_.chunk_size, bim.rows()}, bed_pipe, observer);
     detail::update_assoc_input(
         scanner.assoc_input(), model, state, std::move(v_inv));
 
@@ -83,8 +80,8 @@ auto AssocNormalEngine::run(
     };
     auto result_writer = [&](size_t idx, const detail::ChrScanner::SnpResult& r)
     {
-        writer.write_result(
-            snp_index[idx],
+        writer.write(
+            idx,
             {.freq = r.freq,
              .beta = r.beta,
              .se = r.se,
@@ -95,8 +92,6 @@ auto AssocNormalEngine::run(
     {
         scanner.scan(group, processor, result_writer);
     }
-
-    writer.finalize();
 
     notify(observer, AssocCompleteEvent{.out_prefix = config_.out_prefix});
 }

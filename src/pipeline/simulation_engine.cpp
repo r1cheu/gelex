@@ -25,7 +25,7 @@
 #include "gelex/algo/sim/effect_sampler.h"
 #include "gelex/algo/sim/genetic_value_calculator.h"
 #include "gelex/algo/sim/phenotype_generator.h"
-#include "gelex/data/reader/bim_reader.h"
+#include "gelex/data/reader.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/simulation_writer.h"
 
@@ -77,8 +77,7 @@ auto SimulationEngine::run(const SimulateObserver& observer) -> void
 
     auto bim_path = config_.bed_path;
     bim_path.replace_extension(".bim");
-    detail::BimReader bim_reader(bim_path);
-    auto snp_ids = bim_reader.get_ids();
+    auto snp_ids = read_bim(bim_path).index().take_keys();
 
     const auto dominance = make_dominance_spec(config_);
 

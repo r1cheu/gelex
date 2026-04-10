@@ -25,8 +25,8 @@
 
 #include <Eigen/Core>
 
+#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/types/freq_effect.h"
-#include "gelex/types/snp_index.h"
 
 namespace gelex
 {
@@ -70,7 +70,7 @@ class GrmLocoPlan
         Eigen::Index total_snps;
     };
 
-    static auto build_loco_ranges(const SnpIndex& snp_index)
+    static auto build_loco_ranges(const df::DataFrame<std::string>& bim)
         -> std::vector<ChrRange>;
 
     std::vector<GrmWorkItem> items_;

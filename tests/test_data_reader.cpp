@@ -15,6 +15,7 @@
  */
 
 #include <cstddef>
+#include <cstdint>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -78,6 +79,15 @@ TEST_CASE(
     REQUIRE(a2[0] == "G");
     REQUIRE(a2[1] == "T");
     REQUIRE(a2[2] == "T");
+
+    auto chrom = df["chrom"].as<std::string>();
+    REQUIRE(chrom[0] == "1");
+    REQUIRE(chrom[2] == "2");
+
+    auto pos = df["pos"].as<std::int32_t>();
+    REQUIRE(pos[0] == 1000);
+    REQUIRE(pos[1] == 2000);
+    REQUIRE(pos[2] == 500);
 }
 
 TEST_CASE(

@@ -17,13 +17,15 @@
 #ifndef GELEX_MODEL_BAYES_WRITER_SNP_EFFECTS_WRITER_H_
 #define GELEX_MODEL_BAYES_WRITER_SNP_EFFECTS_WRITER_H_
 
+#include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <span>
 #include <string>
 
 #include <Eigen/Core>
 
-#include "gelex/data/reader/bim_reader.h"
+#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/types/mcmc_results.h"
 
 namespace gelex::detail
@@ -53,7 +55,7 @@ class SnpEffectsWriter
     const MCMCResult* result_;
     const GeneticSummary* additive_{};
     const GeneticSummary* dominant_{};
-    detail::BimReader bim_reader_;
+    df::DataFrame<std::string> bim_;
     std::unique_ptr<detail::TextWriter> writer_;
     std::string row_buf_;
 
@@ -67,6 +69,12 @@ class SnpEffectsWriter
         Eigen::Index snp_index) -> void;
     auto write_pip(const GeneticSummary* effect, Eigen::Index snp_index)
         -> void;
+
+    std::span<const std::string> bim_keys_;
+    std::span<const std::string> bim_chrom_;
+    std::span<const std::int32_t> bim_pos_;
+    std::span<const std::string> bim_a1_;
+    std::span<const std::string> bim_a2_;
 };
 
 }  // namespace gelex
