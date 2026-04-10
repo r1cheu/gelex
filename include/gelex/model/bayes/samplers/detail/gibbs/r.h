@@ -130,7 +130,7 @@ auto R(
             cumsum += probs_buf[k];
             if (u_val < cumsum)
             {
-                dist_index = k;
+                dist_index = static_cast<int8_t>(k);
                 break;
             }
         }

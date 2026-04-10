@@ -192,7 +192,9 @@ inline void update_component_u(
 inline void compute_component_variances(
     bayes::ComponentAllocation& marker_assignment)
 {
-    for (size_t k = 0; k < marker_assignment.component_u.size(); ++k)
+    for (Eigen::Index k = 0;
+         k < static_cast<Eigen::Index>(marker_assignment.component_u.size());
+         ++k)
     {
         marker_assignment.component_variance(k)
             = detail::var(marker_assignment.component_u[k])(0);

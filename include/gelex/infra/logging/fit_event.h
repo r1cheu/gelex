@@ -40,10 +40,10 @@ class Priors;
 struct FitConfigLoadedEvent
 {
     gelex::BayesMethodConfig method;
-    ModelType model_type;
-    int n_iters;
-    int n_burn_in;
-    int seed;
+    ModelType model_type{};
+    int n_iters{};
+    int n_burn_in{};
+    int seed{};
 };
 
 struct FitPriorSetEvent

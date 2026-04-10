@@ -28,7 +28,7 @@ struct EffectType
         Residual = 4
     };
 
-    Category category;
+    Category category{};
     GeneticKind genetic_kind{GeneticKind::NotGenetic};
 
     auto operator==(const EffectType&) const -> bool = default;

@@ -33,7 +33,7 @@ namespace gelex
 
 struct LociStats
 {
-    GenotypeProcessMethod method;
+    GenotypeProcessMethod method{};
     Eigen::VectorXd mean;
     std::optional<Eigen::VectorXd> stddev;
     std::vector<int64_t> mono_indices;

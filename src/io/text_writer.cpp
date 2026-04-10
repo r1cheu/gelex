@@ -23,7 +23,7 @@
 namespace gelex::detail
 {
 
-TextWriter::TextWriter(const std::filesystem::path& path) : path_(path)
+TextWriter::TextWriter(const std::filesystem::path& path) : path_(path), buf_{}
 {
     if (std::filesystem::is_directory(path_))
     {

@@ -83,7 +83,7 @@ auto RankInverseNormTransform::compute_ranks(
             ++j;
         }
 
-        double avg_rank = (i + 1 + j) / 2.0;
+        double avg_rank = static_cast<double>(i + 1 + j) / 2.0;
         for (Eigen::Index k = i; k < j; ++k)
         {
             ranks[indices[k]] = avg_rank;

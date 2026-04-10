@@ -46,8 +46,9 @@ GenotypeMatReader::GenotypeMatReader(
                 "Requires approx {:.2f} GB RAM.",
                 sample_size_,
                 num_variants_,
-                (double)sample_size_ * num_variants_ * sizeof(double) / 1024.0
-                    / 1024.0 / 1024.0));
+                static_cast<double>(sample_size_)
+                    * static_cast<double>(num_variants_) * sizeof(double)
+                    / 1024.0 / 1024.0 / 1024.0));
     }
 }
 
