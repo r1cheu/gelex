@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-#include "gelex/data/grm/grm_bin_writer.h"
+#include "gelex/data/grm/grm_writer.h"
 
 #include <fmt/format.h>
 
 #include "gelex/exception.h"
 #include "gelex/io/parser.h"
+#include "gelex/io/text_writer.h"
+#include "gelex/types/sample_id.h"
 
 namespace gelex
 {
@@ -65,6 +67,18 @@ auto GrmBinWriter::write(const Eigen::Ref<const Eigen::MatrixXd>& grm) -> void
         throw GelexException(
             fmt::format(
                 "{}: failed to write GRM data to binary file", path_.string()));
+    }
+}
+
+auto write_grm_ids(
+    const std::filesystem::path& file_path,
+    std::span<const std::string> ids) -> void
+{
+    detail::TextWriter writer(file_path);
+    for (const auto& id : ids)
+    {
+        auto [fid, iid] = split_sample_id(id);
+        writer.write(fmt::format("{}\t{}", fid, iid));
     }
 }
 

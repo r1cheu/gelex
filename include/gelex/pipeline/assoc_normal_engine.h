@@ -20,6 +20,7 @@
 #include <filesystem>
 #include <string>
 
+#include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/infra/logging/assoc_event.h"
 #include "gelex/infra/logging/reml_event.h"
@@ -54,6 +55,7 @@ class AssocNormalEngine
     auto run(
         PhenoPipe& pheno,
         GrmPipe& grm,
+        const df::Index<std::string>& sample_index,
         const AssocObserver& observer = {},
         const RemlObserver& reml_observer = {}) -> void;
 

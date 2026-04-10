@@ -23,8 +23,7 @@
 #include <fmt/format.h>
 
 #include "gelex/data/grm/grm.h"
-#include "gelex/data/grm/grm_bin_writer.h"
-#include "gelex/data/grm/grm_id_writer.h"
+#include "gelex/data/grm/grm_writer.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/timer.h"
@@ -42,7 +41,7 @@ auto write_grm_files(
     const std::string& out_prefix) -> void
 {
     GrmBinWriter(out_prefix + ".bin").write(result.grm);
-    GrmIdWriter(out_prefix + ".id").write(sample_ids);
+    write_grm_ids(out_prefix + ".id", sample_ids);
 }
 
 }  // namespace

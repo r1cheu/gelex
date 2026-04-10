@@ -31,7 +31,6 @@ auto make_pheno_config(argparse::ArgumentParser& cmd) -> PhenoPipe::Config
     return {
         .phenotype_path = cmd.get("--pheno"),
         .phenotype_column = cmd.get<int>("--pheno-col"),
-        .bed_path = format_bed_path(cmd.get<std::string>("--bfile")),
         .quantitative_covariates_path
         = cmd.is_used("--qcovar")
               ? std::make_optional(std::filesystem::path(cmd.get("--qcovar")))
@@ -51,7 +50,6 @@ auto make_fit_data_configs(argparse::ArgumentParser& cmd, bool use_mmap)
     PhenoPipe::Config pheno_config{
         .phenotype_path = cmd.get("--pheno"),
         .phenotype_column = cmd.get<int>("--pheno-col"),
-        .bed_path = bed_path,
         .quantitative_covariates_path
         = cmd.is_used("--qcovar")
               ? std::make_optional(std::filesystem::path(cmd.get("--qcovar")))

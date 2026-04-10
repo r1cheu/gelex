@@ -22,14 +22,12 @@
 
 #include "file_fixture.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/grm/grm_bin_writer.h"
-#include "gelex/data/grm/grm_id_writer.h"
+#include "gelex/data/grm/grm_writer.h"
 #include "gelex/data/grm/loco_grm_reader.h"
 #include "gelex/types/sample_id.h"
 
 namespace fs = std::filesystem;
 using gelex::GrmBinWriter;
-using gelex::GrmIdWriter;
 using gelex::test::FileFixture;
 namespace df = gelex::df;
 
@@ -50,10 +48,7 @@ struct GrmFiles
             GrmBinWriter writer(prefix.string() + ".bin");
             writer.write(m);
         }
-        {
-            GrmIdWriter writer(prefix.string() + ".id");
-            writer.write(ids);
-        }
+        gelex::write_grm_ids(prefix.string() + ".id", ids);
     }
 };
 }  // namespace

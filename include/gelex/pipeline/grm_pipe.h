@@ -18,8 +18,6 @@
 #define GELEX_PIPELINE_GRM_PIPE_H_
 
 #include <filesystem>
-#include <span>
-#include <string>
 #include <vector>
 
 #include "gelex/data/dataframe/index.h"
@@ -46,7 +44,7 @@ class GrmPipe
     GrmPipe& operator=(GrmPipe&&) noexcept;
     ~GrmPipe();
 
-    auto sample_id_sets() const -> std::vector<std::span<const std::string>>;
+    auto sample_indices() const -> std::vector<const df::Index<std::string>*>;
 
     auto load(const df::Index<std::string>& sample_index) -> void;
 

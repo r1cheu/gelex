@@ -35,7 +35,6 @@ struct PhenotypeLoadedEvent
 {
     size_t pheno_samples;
     std::string trait_name;
-    size_t geno_samples;
 };
 
 struct CovariatesLoadedEvent
@@ -49,7 +48,6 @@ struct CovariatesLoadedEvent
 struct IntersectionEvent
 {
     size_t common_samples;
-    size_t excluded_samples;
 };
 
 struct GenotypeLoadedEvent

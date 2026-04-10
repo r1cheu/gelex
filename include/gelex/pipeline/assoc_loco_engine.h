@@ -17,6 +17,7 @@
 #ifndef GELEX_PIPELINE_ASSOC_LOCO_ENGINE_H_
 #define GELEX_PIPELINE_ASSOC_LOCO_ENGINE_H_
 
+#include "gelex/data/dataframe/index.h"
 #include "gelex/infra/logging/assoc_event.h"
 #include "gelex/infra/logging/reml_event.h"
 #include "gelex/pipeline/assoc_normal_engine.h"
@@ -37,6 +38,7 @@ class AssocLocoEngine
     auto run(
         PhenoPipe& pheno,
         GrmPipe& grm,
+        const df::Index<std::string>& sample_index,
         const AssocObserver& observer = {},
         const RemlObserver& reml_observer = {}) -> void;
 

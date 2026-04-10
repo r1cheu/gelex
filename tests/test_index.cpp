@@ -275,11 +275,10 @@ TEST_CASE(
 {
     auto idx = make_str_index({"a", "b", "c", "d"});
 
-    std::vector<std::size_t> indices = {2, 0, 3};
-    idx.gather(indices);
+    // target: [c, a, d]
+    idx.gather(make_str_index({"c", "a", "d"}));
 
     REQUIRE(idx.size() == 3);
-    // After gather: [c, a, d]
     REQUIRE(idx.at("c") == 0);
     REQUIRE(idx.at("a") == 1);
     REQUIRE(idx.at("d") == 2);
@@ -292,8 +291,8 @@ TEST_CASE(
 {
     auto idx = make_int_index({10, 20, 30, 40});
 
-    std::vector<std::size_t> indices = {3, 1};
-    idx.gather(indices);
+    // target: [40, 20]
+    idx.gather(make_int_index({40, 20}));
 
     REQUIRE(idx.size() == 2);
     REQUIRE(idx.at(40) == 0);
@@ -303,12 +302,11 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "Index<string> gather with empty indices yields size zero",
+    "Index<string> gather with empty index yields size zero",
     "[dataframe]")
 {
     auto idx = make_str_index({"a", "b", "c"});
-    std::vector<std::size_t> empty_indices;
-    idx.gather(empty_indices);
+    idx.gather(Index<std::string>{});
     REQUIRE(idx.size() == 0);
 }
 
@@ -317,76 +315,64 @@ TEST_CASE(
 // ================================================================
 
 TEST_CASE(
-    "Index<string> intersect of two overlapping sets yields correct positions",
+    "Index<string> intersect of two overlapping sets returns common keys",
     "[dataframe]")
 {
     auto idx0 = make_str_index({"a", "b", "c"});
     auto idx1 = make_str_index({"b", "c", "d"});
 
-    // common keys sorted: {b, c}
-    auto positions = intersect({&idx0, &idx1});
+    auto common = intersect({&idx0, &idx1});
 
-    REQUIRE(positions.size() == 2);
-    // positions[0]: b→1, c→2 in idx0
-    REQUIRE(positions[0] == std::vector<std::size_t>{1, 2});
-    // positions[1]: b→0, c→1 in idx1
-    REQUIRE(positions[1] == std::vector<std::size_t>{0, 1});
+    REQUIRE(common.size() == 2);
+    REQUIRE(common.keys()[0] == "b");
+    REQUIRE(common.keys()[1] == "c");
 }
 
 TEST_CASE(
-    "Index<string> intersect of three overlapping sets yields correct "
-    "positions",
+    "Index<string> intersect of three overlapping sets returns common keys",
     "[dataframe]")
 {
     auto idx0 = make_str_index({"a", "b", "c"});
     auto idx1 = make_str_index({"b", "c", "d"});
     auto idx2 = make_str_index({"c", "d", "e"});
 
-    // common key: {c} only
-    auto positions = intersect({&idx0, &idx1, &idx2});
+    auto common = intersect({&idx0, &idx1, &idx2});
 
-    REQUIRE(positions.size() == 3);
-    REQUIRE(positions[0] == std::vector<std::size_t>{2});  // c→2 in idx0
-    REQUIRE(positions[1] == std::vector<std::size_t>{1});  // c→1 in idx1
-    REQUIRE(positions[2] == std::vector<std::size_t>{0});  // c→0 in idx2
+    REQUIRE(common.size() == 1);
+    REQUIRE(common.keys()[0] == "c");
 }
 
 TEST_CASE(
-    "Index<string> intersect of disjoint sets returns empty position vectors",
+    "Index<string> intersect of disjoint sets returns empty Index",
     "[dataframe]")
 {
     auto idx0 = make_str_index({"a", "b"});
     auto idx1 = make_str_index({"c", "d"});
 
-    auto positions = intersect({&idx0, &idx1});
+    auto common = intersect({&idx0, &idx1});
 
-    REQUIRE(positions.size() == 2);
-    REQUIRE(positions[0].empty());
-    REQUIRE(positions[1].empty());
+    REQUIRE(common.size() == 0);
 }
 
 TEST_CASE(
-    "Index<string> intersect with empty span returns empty result",
+    "Index<string> intersect with empty span returns empty Index",
     "[dataframe]")
 {
     std::span<const Index<std::string>* const> empty_span;
-    auto positions = intersect(empty_span);
-    REQUIRE(positions.empty());
+    auto common = intersect(empty_span);
+    REQUIRE(common.size() == 0);
 }
 
 TEST_CASE(
-    "Index<int32_t> intersect of two overlapping sets yields correct positions",
+    "Index<int32_t> intersect of two overlapping sets returns common keys",
     "[dataframe]")
 {
     auto idx0 = make_int_index({10, 20, 30});
     auto idx1 = make_int_index({20, 30, 40});
 
-    // common keys sorted numerically: {20, 30}
-    auto positions = intersect({&idx0, &idx1});
+    auto common = intersect({&idx0, &idx1});
 
-    REQUIRE(positions.size() == 2);
-    // positions[0]: 20→1, 30→2 in idx0
-    REQUIRE(positions[0] == std::vector<std::size_t>{1, 2});
-    // positions[1]: 20→0, 30→1 in idx1
-    REQUIRE(positions[1] == std::vector<std::size_t>{0, 1});
+    REQUIRE(common.size() == 2);
+    REQUIRE(common.keys()[0] == 20);
+    REQUIRE(common.keys()[1] == 30);
 }

@@ -80,11 +80,10 @@ auto snp_effects_schema(const std::filesystem::path& path)
 auto read_coefficients(const std::filesystem::path& path) -> Coefficients
 {
     df::ReadOptions options;
-    options.schema = df::ColumnType::Double;
     options.index_cols = {0};
     options.select_cols = {1};
 
-    auto df = df::read_dataframe<std::string>(path, options);
+    auto df = df::read_dataframe<std::string, double>(path, options);
     return Coefficients{
         .names = std::move(df).index().take_keys(),
         .values = df["mean"].to_map<double>(),
@@ -95,9 +94,9 @@ auto read_snp_effects(const std::filesystem::path& path)
     -> df::DataFrame<std::string>
 {
     df::ReadOptions options;
-    options.schema = detail::snp_effects_schema(path);
     options.index_cols = {1};
-    return df::read_dataframe<std::string>(path, options);
+    return df::read_dataframe<std::string>(
+        path, options, detail::snp_effects_schema(path));
 }
 
 auto read_covariates(
@@ -131,7 +130,7 @@ auto read_covariates(
     {
         dfs.push_back(&*dcovar_df);
     }
-    df::intersect(std::span<df::DataFrame<std::string>* const>{dfs});
+    df::intersect_inplace(std::span<df::DataFrame<std::string>* const>{dfs});
 
     // 3. group dcovar terms by column name
     //    "Sex\x1FM" → col="Sex", level="M"

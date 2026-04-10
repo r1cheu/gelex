@@ -19,7 +19,6 @@
 
 #include <filesystem>
 #include <optional>
-#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -52,7 +51,6 @@ class PhenoPipe
         std::filesystem::path phenotype_path;
         int phenotype_column = 3;
 
-        std::filesystem::path bed_path;
         std::optional<std::filesystem::path> quantitative_covariates_path;
         std::optional<std::filesystem::path> discrete_covariates_path;
 
@@ -67,18 +65,15 @@ class PhenoPipe
     PhenoPipe& operator=(PhenoPipe&&) noexcept = default;
     ~PhenoPipe() = default;
 
-    auto load(const std::vector<std::span<const std::string>>& extra_ids = {})
-        -> void;
+    auto load() -> void;
+    auto gather(const df::Index<std::string>& common_index) -> void;
 
-    auto sample_index() const -> const df::Index<std::string>&
+    auto pheno_index() const -> const df::Index<std::string>&
     {
-        return sample_index_;
+        return phenotype_frame_->index();
     }
 
-    auto num_genotype_samples() const -> size_t
-    {
-        return num_genotype_samples_;
-    }
+    auto covar_indices() const -> std::vector<const df::Index<std::string>*>;
 
     auto take_phenotype() && -> Eigen::VectorXd
     {
@@ -95,30 +90,18 @@ class PhenoPipe
    private:
     auto load_phenotypes() -> void;
     auto load_covariates() -> void;
-    auto intersect_samples(
-        const std::vector<std::span<const std::string>>& extra_ids) -> void;
-    auto finalize() -> void;
     auto apply_phenotype_transform(detail::TransformType type, double offset)
         -> void;
 
-    static auto gather_by_ids(
-        df::DataFrame<std::string>& frame,
-        std::span<const std::string> ids) -> void;
-    static auto build_discrete_covariate(
-        const df::DataFrame<std::string>& frame) -> DiscreteCovariate;
-
     Config config_;
-    size_t num_genotype_samples_{};
 
     std::optional<df::DataFrame<std::string>> phenotype_frame_;
     std::optional<df::DataFrame<std::string>> qcovar_frame_;
     std::optional<df::DataFrame<std::string>> dcovar_frame_;
-    std::string phenotype_name_;
 
     Eigen::VectorXd phenotype_;
     FixedEffect fixed_effects_;
 
-    df::Index<std::string> sample_index_;
     DataPipeObserver observer_;
 };
 

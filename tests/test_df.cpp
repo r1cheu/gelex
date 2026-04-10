@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include <cstdint>
 #include <fmt/format.h>
+#include <cstdint>
 #include <span>
 #include <string>
 #include <string_view>
@@ -32,7 +32,8 @@
 using gelex::GelexException;
 using gelex::df::ColumnType;
 using gelex::df::DataFrame;
-using gelex::df::intersect;
+using gelex::df::Index;
+using gelex::df::intersect_inplace;
 using gelex::df::kSeparator;
 using gelex::df::NaAction;
 using gelex::df::read_dataframe;
@@ -53,8 +54,7 @@ auto make_basic_df(FileFixture& files) -> DataFrame<std::string>
     auto path = files.create_text_file(kContent, ".tsv");
     ReadOptions opts;
     opts.index_cols = {0};
-    opts.schema = ColumnType::Double;
-    return read_dataframe<std::string>(path.string(), opts);
+    return read_dataframe<std::string, double>(path.string(), opts);
 }
 
 }  // namespace
@@ -133,8 +133,7 @@ TEST_CASE(
     ReadOptions opts;
     opts.index_cols = {0};
     opts.select_cols = {2, 4};
-    opts.schema = ColumnType::Int;
-    auto df = read_dataframe<std::string>(path.string(), opts);
+    auto df = read_dataframe<std::string, std::int32_t>(path.string(), opts);
 
     REQUIRE(df.cols() == 2);
     auto names = df.names();
@@ -167,8 +166,8 @@ TEST_CASE(
     auto path = files.create_text_file(kContent, ".tsv");
     ReadOptions opts;
     opts.header = false;
-    opts.schema = std::vector{ColumnType::Int, ColumnType::Double};
-    auto df = read_dataframe<std::int32_t>(path.string(), opts);
+    std::vector schema{ColumnType::Int, ColumnType::Double};
+    auto df = read_dataframe<std::int32_t>(path.string(), opts, schema);
 
     REQUIRE(df.rows() == 3);
     REQUIRE(df.cols() == 2);
@@ -195,8 +194,7 @@ TEST_CASE(
 
     auto path = files.create_text_file(kContent, ".tsv");
     ReadOptions opts;
-    opts.schema = ColumnType::Double;
-    auto df = read_dataframe<std::int32_t>(path.string(), opts);
+    auto df = read_dataframe<std::int32_t, double>(path.string(), opts);
 
     REQUIRE(df.rows() == 3);
     REQUIRE(df.index().at(0) == 0);
@@ -222,8 +220,7 @@ TEST_CASE(
     auto path = files.create_text_file(kContent, ".tsv");
     ReadOptions opts;
     opts.index_cols = {0, 1};
-    opts.schema = ColumnType::Double;
-    auto df = read_dataframe<std::string>(path.string(), opts);
+    auto df = read_dataframe<std::string, double>(path.string(), opts);
 
     REQUIRE(df.rows() == 3);
 
@@ -254,9 +251,8 @@ TEST_CASE(
     auto path = files.create_text_file(kContent, ".tsv");
     ReadOptions opts;
     opts.index_cols = {0};
-    opts.schema = ColumnType::Double;
     opts.na_action = NaAction::Exclude;
-    auto df = read_dataframe<std::string>(path.string(), opts);
+    auto df = read_dataframe<std::string, double>(path.string(), opts);
 
     REQUIRE(df.rows() == 2);
     REQUIRE(df.index().at("s1") == 0);
@@ -276,11 +272,11 @@ TEST_CASE(
     auto path = files.create_text_file(kContent, ".tsv");
     ReadOptions opts;
     opts.index_cols = {0};
-    opts.schema = ColumnType::Double;
     opts.na_action = NaAction::Throw;
 
     REQUIRE_THROWS_AS(
-        read_dataframe<std::string>(path.string(), opts), GelexException);
+        (read_dataframe<std::string, double>(path.string(), opts)),
+        GelexException);
 }
 
 // ================================================================
@@ -299,10 +295,10 @@ TEST_CASE(
     auto path = files.create_text_file(kContent, ".tsv");
     ReadOptions opts;
     opts.index_cols = {0};
-    opts.schema = ColumnType::Double;
 
     REQUIRE_THROWS_AS(
-        read_dataframe<std::string>(path.string(), opts), GelexException);
+        (read_dataframe<std::string, double>(path.string(), opts)),
+        GelexException);
 }
 
 // ================================================================
@@ -323,8 +319,7 @@ TEST_CASE(
     ReadOptions opts;
     opts.delimiter = ',';
     opts.index_cols = {0};
-    opts.schema = ColumnType::Double;
-    auto df = read_dataframe<std::string>(path.string(), opts);
+    auto df = read_dataframe<std::string, double>(path.string(), opts);
 
     REQUIRE(df.rows() == 2);
     REQUIRE(df["x"].as<double>()[0] == 1.5);
@@ -398,8 +393,8 @@ TEST_CASE(
     auto df = make_basic_df(files);
 
     // Reorder to {s2, s1}
-    std::vector<std::size_t> indices = {1, 0};
-    df.gather(indices);
+    auto target = Index<std::string>(std::vector<std::string>{"s2", "s1"});
+    df.gather(target);
 
     REQUIRE(df.rows() == 2);
     REQUIRE(df.index().at("s2") == 0);
@@ -413,8 +408,8 @@ TEST_CASE(
     FileFixture files;
     auto df = make_basic_df(files);
 
-    std::vector<std::size_t> indices = {1, 0};
-    df.gather(indices);
+    auto target = Index<std::string>(std::vector<std::string>{"s2", "s1"});
+    df.gather(target);
 
     auto x = df["x"].as<double>();
     // s2.x==3.0 now at row 0; s1.x==1.5 at row 1
@@ -446,14 +441,13 @@ TEST_CASE(
 
     ReadOptions opts;
     opts.index_cols = {0};
-    opts.schema = ColumnType::Double;
 
     auto path1 = files.create_text_file(kContent1, ".tsv");
     auto path2 = files.create_text_file(kContent2, ".tsv");
-    auto df1 = read_dataframe<std::string>(path1.string(), opts);
-    auto df2 = read_dataframe<std::string>(path2.string(), opts);
+    auto df1 = read_dataframe<std::string, double>(path1.string(), opts);
+    auto df2 = read_dataframe<std::string, double>(path2.string(), opts);
 
-    intersect({&df1, &df2});
+    intersect_inplace({&df1, &df2});
 
     REQUIRE(df1.rows() == 2);
     REQUIRE(df2.rows() == 2);
@@ -479,14 +473,13 @@ TEST_CASE(
 
     ReadOptions opts;
     opts.index_cols = {0};
-    opts.schema = ColumnType::Double;
 
     auto path1 = files.create_text_file(kContent1, ".tsv");
     auto path2 = files.create_text_file(kContent2, ".tsv");
-    auto df1 = read_dataframe<std::string>(path1.string(), opts);
-    auto df2 = read_dataframe<std::string>(path2.string(), opts);
+    auto df1 = read_dataframe<std::string, double>(path1.string(), opts);
+    auto df2 = read_dataframe<std::string, double>(path2.string(), opts);
 
-    intersect({&df1, &df2});
+    intersect_inplace({&df1, &df2});
 
     // common keys sorted: {s2, s3}
     REQUIRE(df1.index().at("s2") == 0);
@@ -609,9 +602,8 @@ TEST_CASE(
     auto path = files.create_text_file(kContent, ".tsv");
     ReadOptions opts{};
     opts.index_cols = {0};
-    opts.schema = ColumnType::Double;
     opts.names = {"u", "v"};
-    auto df = read_dataframe<std::string>(path.string(), opts);
+    auto df = read_dataframe<std::string, double>(path.string(), opts);
 
     auto names = df.names();
     REQUIRE(names[0] == "u");

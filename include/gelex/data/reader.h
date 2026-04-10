@@ -29,19 +29,19 @@ inline auto read_fam(const std::filesystem::path& path)
     options.delimiter = '\t';
     options.header = false;
     options.index_cols = {0, 1};
-    return df::read_dataframe<std::string>(path, options);
+    return df::read_dataframe<std::string>(
+        path, options, std::span<const df::ColumnType>{});
 }
 
 inline auto read_bim(const std::filesystem::path& path)
     -> df::DataFrame<std::string>
 {
     df::ReadOptions options;
-    options.schema = df::ColumnType::String;
     options.header = false;
     options.index_cols = {1};
     options.select_cols = {4, 5};
     options.names = {"A1", "A2"};
-    return df::read_dataframe<std::string>(path, options);
+    return df::read_dataframe<std::string, std::string>(path, options);
 }
 
 inline auto read_pheno(
@@ -49,32 +49,29 @@ inline auto read_pheno(
     const std::size_t* pheno_col = nullptr) -> df::DataFrame<std::string>
 {
     df::ReadOptions options;
-    options.schema = df::ColumnType::Double;
     options.index_cols = {0, 1};
     options.na_action = df::NaAction::Exclude;
     if (pheno_col != nullptr)
     {
         options.select_cols = {*pheno_col + 2};
     }
-    return df::read_dataframe<std::string>(path, options);
+    return df::read_dataframe<std::string, double>(path, options);
 }
 
 inline auto read_qcovar(const std::filesystem::path& path)
     -> df::DataFrame<std::string>
 {
     df::ReadOptions options;
-    options.schema = df::ColumnType::Double;
     options.index_cols = {0, 1};
-    return df::read_dataframe<std::string>(path, options);
+    return df::read_dataframe<std::string, double>(path, options);
 }
 
 inline auto read_dcovar(const std::filesystem::path& path)
     -> df::DataFrame<std::string>
 {
     df::ReadOptions options;
-    options.schema = df::ColumnType::String;
     options.index_cols = {0, 1};
-    return df::read_dataframe<std::string>(path, options);
+    return df::read_dataframe<std::string, std::string>(path, options);
 }
 
 };  // namespace gelex

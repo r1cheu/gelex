@@ -17,16 +17,13 @@
 #include "gelex/data/grm/grm_reader.h"
 
 #include <fmt/format.h>
-#include <algorithm>
-#include <fstream>
 #include <ranges>
 #include <string>
 #include <system_error>
 
+#include "gelex/data/dataframe/dataframe_reader.h"
 #include "gelex/exception.h"
-#include "gelex/io/parser.h"
 #include "gelex/types/freq_effect.h"
-#include "gelex/types/sample_id.h"
 
 namespace
 {
@@ -46,50 +43,31 @@ auto get_type(std::string_view grm_path_stem) -> gelex::freq::GrmType
 namespace gelex::detail
 {
 
-GrmReader::GrmReader(const std::filesystem::path& prefix)
-    : bin_path_(prefix.string() + ".bin"),
-      id_path_(prefix.string() + ".id"),
-      type_(get_type(prefix.string()))
+namespace
 {
-    load_sample_ids();
-    init_mmap();
-}
-
-auto GrmReader::load_sample_ids() -> void
+auto read_grm_index(const std::filesystem::path& id_path)
+    -> gelex::df::Index<std::string>
 {
-    auto file = open_file<std::ifstream>(id_path_, std::ios::in);
-
-    std::string line;
-    while (std::getline(file, line))
-    {
-        if (line.empty())
-        {
-            continue;
-        }
-
-        // Format: FID\tIID -> convert to canonical sample ID
-        auto tab_pos = line.find('\t');
-        if (tab_pos == std::string::npos)
-        {
-            throw GelexException(
-                fmt::format(
-                    "{}: invalid ID line '{}' (expected FID and IID)",
-                    id_path_.string(),
-                    line));
-        }
-
-        auto fid = line.substr(0, tab_pos);
-        auto iid = line.substr(tab_pos + 1);
-        sample_ids_.push_back(make_sample_id(fid, iid));
-    }
-
-    if (sample_ids_.empty())
+    df::ReadOptions options;
+    options.delimiter = '\t';
+    options.header = false;
+    options.index_cols = {0, 1};
+    auto index = df::read_index<std::string>(id_path, options);
+    if (index.size() == 0)
     {
         throw GelexException(
-            fmt::format("{}: no sample IDs found", id_path_.string()));
+            fmt::format("{}: no sample IDs found", id_path.string()));
     }
+    return index;
+}
+}  // namespace
 
-    num_samples_ = static_cast<Eigen::Index>(sample_ids_.size());
+GrmReader::GrmReader(const std::filesystem::path& prefix)
+    : bin_path_(prefix.string() + ".bin"),
+      sample_index_(read_grm_index(prefix.string() + ".id")),
+      type_(get_type(prefix.string()))
+{
+    init_mmap();
 }
 
 auto GrmReader::init_mmap() -> void
@@ -104,8 +82,8 @@ auto GrmReader::init_mmap() -> void
 
     // GRM binary format: [float32 lower triangle]
     // Expected size = n * (n + 1) / 2 * sizeof(float)
-    size_t expected_elements = static_cast<size_t>(num_samples_)
-                               * (static_cast<size_t>(num_samples_) + 1) / 2;
+    auto n = static_cast<size_t>(num_samples());
+    size_t expected_elements = n * (n + 1) / 2;
     size_t expected_size = expected_elements * sizeof(float);
 
     if (mmap_.size() != expected_size)
@@ -116,7 +94,7 @@ auto GrmReader::init_mmap() -> void
                 "{} bytes",
                 bin_path_.string(),
                 expected_size,
-                num_samples_,
+                num_samples(),
                 mmap_.size()));
     }
 }
@@ -124,19 +102,20 @@ auto GrmReader::init_mmap() -> void
 auto GrmReader::load() const -> Eigen::MatrixXd
 {
     Eigen::MatrixXd grm = load_unnormalized();
-    double denominator = grm.trace() / static_cast<double>(num_samples_);
+    double denominator = grm.trace() / static_cast<double>(num_samples());
     grm /= denominator;
     return grm;
 }
 
 auto GrmReader::load_unnormalized() const -> Eigen::MatrixXd
 {
-    Eigen::MatrixXd grm(num_samples_, num_samples_);
+    auto n = num_samples();
+    Eigen::MatrixXd grm(n, n);
 
     const auto* data = reinterpret_cast<const float*>(mmap_.data());
 
     // Fill lower triangle and mirror to upper triangle
-    for (Eigen::Index i = 0; i < num_samples_; ++i)
+    for (Eigen::Index i = 0; i < n; ++i)
     {
         for (Eigen::Index j = 0; j <= i; ++j)
         {
@@ -172,22 +151,12 @@ auto GrmReader::load_unnormalized(
         return;
     }
 
-    // Build file_id -> file_index mapping
-    std::unordered_map<std::string, Eigen::Index> file_id_to_idx;
-    file_id_to_idx.reserve(sample_ids_.size());
-    for (Eigen::Index i = 0; i < num_samples_; ++i)
-    {
-        file_id_to_idx[sample_ids_[i]] = i;
-    }
-
-    // Build source_idx -> target_idx mapping
     std::vector<std::pair<Eigen::Index, Eigen::Index>> idx_mapping;
     idx_mapping.reserve(sample_index.size());
 
     for (auto&& [tgt_idx, id] : std::views::enumerate(sample_index.keys()))
     {
-        auto it = file_id_to_idx.find(id);
-        if (it == file_id_to_idx.end())
+        if (!sample_index_.contains(id))
         {
             throw GelexException(
                 fmt::format(
@@ -197,7 +166,8 @@ auto GrmReader::load_unnormalized(
         }
 
         idx_mapping.emplace_back(
-            it->second, static_cast<Eigen::Index>(tgt_idx));
+            static_cast<Eigen::Index>(sample_index_.at(id)),
+            static_cast<Eigen::Index>(tgt_idx));
     }
 
     // Allocate output matrix

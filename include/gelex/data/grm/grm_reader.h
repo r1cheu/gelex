@@ -20,7 +20,6 @@
 #include <cstddef>
 #include <filesystem>
 #include <string>
-#include <vector>
 
 #include <mio.h>
 #include <Eigen/Core>
@@ -55,28 +54,25 @@ class GrmReader
         const df::Index<std::string>& sample_index,
         Eigen::MatrixXd& target) const -> void;
 
-    [[nodiscard]] auto sample_ids() const noexcept
-        -> const std::vector<std::string>&
+    [[nodiscard]] auto sample_index() const noexcept
+        -> const df::Index<std::string>&
     {
-        return sample_ids_;
+        return sample_index_;
     }
 
     [[nodiscard]] auto num_samples() const noexcept -> Eigen::Index
     {
-        return num_samples_;
+        return static_cast<Eigen::Index>(sample_index_.size());
     }
 
     [[nodiscard]] auto type() const noexcept -> freq::GrmType { return type_; }
 
    private:
     std::filesystem::path bin_path_;
-    std::filesystem::path id_path_;
     mio::mmap_source mmap_;
-    std::vector<std::string> sample_ids_;
-    Eigen::Index num_samples_{};
+    df::Index<std::string> sample_index_;
     freq::GrmType type_;
 
-    auto load_sample_ids() -> void;
     auto init_mmap() -> void;
 
     [[nodiscard]] static auto lower_triangle_index(

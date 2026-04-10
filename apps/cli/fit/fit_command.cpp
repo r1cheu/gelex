@@ -17,13 +17,21 @@
 #include "fit_command.h"
 
 #include <argparse.h>
+#include <filesystem>
+#include <string>
+#include <vector>
 
 #include "cli/cli_helper.h"
 #include "cli/data_pipe_config.h"
 #include "cli/data_pipe_reporter.h"
 #include "fit_config.h"
 #include "fit_reporter.h"
+#include "gelex/data/dataframe/index.h"
+#include "gelex/data/genotype/bed_path.h"
+#include "gelex/data/reader.h"
+#include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/fit_event.h"
+#include "gelex/infra/logging/notify.h"
 #include "gelex/pipeline/fit_engine.h"
 #include "gelex/pipeline/geno_pipe.h"
 #include "gelex/pipeline/pheno_pipe.h"
@@ -54,14 +62,30 @@ auto fit_execute(argparse::ArgumentParser& fit) -> int
             .seed = fit_config.seed,
         });
 
+    auto bed_path = gelex::format_bed_path(fit.get<std::string>("--bfile"));
+    auto fam_index
+        = gelex::read_fam(
+              std::filesystem::path(bed_path).replace_extension(".fam"))
+              .index();
+
     gelex::PhenoPipe pheno(pheno_config, data_reporter.as_observer());
     pheno.load();
 
+    std::vector<const gelex::df::Index<std::string>*> all_indices{
+        &fam_index, &pheno.pheno_index()};
+    all_indices.append_range(pheno.covar_indices());
+    auto common = gelex::df::intersect<std::string>(all_indices);
+
+    gelex::notify(
+        data_reporter.as_observer(),
+        gelex::IntersectionEvent{.common_samples = common.size()});
+
+    pheno.gather(common);
+
     gelex::GenoPipe geno(geno_config, data_reporter.as_observer());
-    geno.load(pheno.sample_index());
+    geno.load(common);
 
     gelex::FitEngine engine(std::move(fit_config));
-
     engine.run(std::move(pheno), std::move(geno), reporter.as_observer());
 
     return 0;

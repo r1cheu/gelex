@@ -27,7 +27,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "file_fixture.h"
-#include "gelex/data/grm/grm_bin_writer.h"
+#include "gelex/data/grm/grm_writer.h"
 #include "gelex/exception.h"
 
 namespace fs = std::filesystem;

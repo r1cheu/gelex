@@ -17,8 +17,7 @@
 #include "gelex/pipeline/grm_pipe.h"
 
 #include <filesystem>
-#include <span>
-#include <string>
+#include <ranges>
 #include <utility>
 #include <vector>
 
@@ -50,25 +49,22 @@ GrmPipe::~GrmPipe() = default;
 GrmPipe::GrmPipe(GrmPipe&&) noexcept = default;
 GrmPipe& GrmPipe::operator=(GrmPipe&&) noexcept = default;
 
-auto GrmPipe::sample_id_sets() const
-    -> std::vector<std::span<const std::string>>
+auto GrmPipe::sample_indices() const
+    -> std::vector<const df::Index<std::string>*>
 {
-    std::vector<std::span<const std::string>> result;
-    result.reserve(grm_readers_.size());
-    for (const auto& reader : grm_readers_)
-    {
-        result.emplace_back(reader.sample_ids());
-    }
-    return result;
+    return grm_readers_
+           | std::views::transform([](const auto& r)
+                                   { return &r.sample_index(); })
+           | std::ranges::to<std::vector>();
 }
 
 auto GrmPipe::load(const df::Index<std::string>& sample_index) -> void
 {
-    grms_.reserve(grm_readers_.size());
-    for (auto& reader : grm_readers_)
-    {
-        grms_.emplace_back(reader.type(), reader.load(sample_index));
-    }
+    grms_ = grm_readers_
+            | std::views::transform(
+                [&](auto& r)
+                { return freq::GeneticEffect(r.type(), r.load(sample_index)); })
+            | std::ranges::to<std::vector>();
 }
 
 }  // namespace gelex

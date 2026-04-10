@@ -17,6 +17,10 @@
 #include "assoc_command.h"
 
 #include <argparse.h>
+#include <filesystem>
+#include <ranges>
+#include <string>
+#include <vector>
 
 #include "assoc_config.h"
 #include "assoc_reporter.h"
@@ -24,12 +28,16 @@
 #include "cli/data_pipe_config.h"
 #include "cli/data_pipe_reporter.h"
 #include "cli/reml_reporter.h"
+#include "gelex/data/dataframe/index.h"
+#include "gelex/data/genotype/bed_path.h"
+#include "gelex/data/reader.h"
 #include "gelex/infra/logging/assoc_event.h"
+#include "gelex/infra/logging/data_pipe_event.h"
+#include "gelex/infra/logging/notify.h"
 #include "gelex/pipeline/assoc_loco_engine.h"
 #include "gelex/pipeline/assoc_normal_engine.h"
 #include "gelex/pipeline/grm_pipe.h"
 #include "gelex/pipeline/pheno_pipe.h"
-#include "gelex/types/genetic_effect_type.h"
 #include "gelex/types/genotype_process_method.h"
 
 auto assoc_execute(argparse::ArgumentParser& cmd) -> int
@@ -59,30 +67,50 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
             .tol = cmd.get<double>("--tol"),
         });
 
-    std::vector<std::filesystem::path> grm_paths;
-    for (const auto& p : cmd.get<std::vector<std::string>>("--grm"))
-    {
-        grm_paths.emplace_back(p);
-    }
+    auto bed_path = gelex::format_bed_path(cmd.get<std::string>("--bfile"));
+    auto fam_index
+        = gelex::read_fam(
+              std::filesystem::path(bed_path).replace_extension(".fam"))
+              .index();
 
     gelex::PhenoPipe pheno(pheno_config, data_reporter.as_observer());
+    pheno.load();
+
+    auto grm_paths = std::ranges::to<std::vector<std::filesystem::path>>(
+        cmd.get<std::vector<std::string>>("--grm"));
+
     gelex::GrmPipe grm(grm_paths, data_reporter.as_observer());
-    pheno.load(grm.sample_id_sets());
-    grm.load(pheno.sample_index());
+
+    std::vector<const gelex::df::Index<std::string>*> all_indices{
+        &fam_index, &pheno.pheno_index()};
+    all_indices.append_range(pheno.covar_indices());
+    all_indices.append_range(grm.sample_indices());
+    auto common = gelex::df::intersect<std::string>(all_indices);
+
+    gelex::notify(
+        data_reporter.as_observer(),
+        gelex::IntersectionEvent{.common_samples = common.size()});
+
+    pheno.gather(common);
+    grm.load(common);
 
     auto config = gelex::cli::make_assoc_config(cmd);
 
     if (loco)
     {
         gelex::AssocLocoEngine engine(std::move(config));
-        engine.run(pheno, grm, reporter.as_observer());
+        engine.run(pheno, grm, common, reporter.as_observer());
     }
     else
     {
         gelex::cli::RemlReporter reml_reporter;
         gelex::AssocNormalEngine engine(std::move(config));
         engine.run(
-            pheno, grm, reporter.as_observer(), reml_reporter.as_observer());
+            pheno,
+            grm,
+            common,
+            reporter.as_observer(),
+            reml_reporter.as_observer());
     }
 
     return 0;

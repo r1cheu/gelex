@@ -114,14 +114,12 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
         auto all_keys = sample_index.keys();
         auto extra_index = df::Index<std::string>(
             std::vector<std::string>(all_keys.begin(), all_keys.begin() + 5));
-        auto positions
-            = df::intersect<std::string>({&sample_index, &extra_index});
-        sample_index.gather(positions[0]);
+        auto common = df::intersect<std::string>({&sample_index, &extra_index});
 
         REQUIRE_NOTHROW(
             [&]()
             {
-                BedPipe pipe(bed_prefix, sample_index);
+                BedPipe pipe(bed_prefix, common);
                 REQUIRE(pipe.num_samples() == 5);
                 REQUIRE(pipe.num_snps() == 20);
             }());
@@ -304,14 +302,12 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
         std::vector<std::string> raw_ids(raw_keys.begin(), raw_keys.end());
 
         auto extra_index = df::Index<std::string>(std::move(intersect_ids));
-        auto positions
-            = df::intersect<std::string>({&sample_index, &extra_index});
-        sample_index.gather(positions[0]);
+        auto common = df::intersect<std::string>({&sample_index, &extra_index});
 
-        BedPipe pipe(bed_prefix, sample_index);
+        BedPipe pipe(bed_prefix, common);
 
-        auto expected = align_rows_to_id_map(
-            genotypes, raw_ids, build_id_map(sample_index));
+        auto expected
+            = align_rows_to_id_map(genotypes, raw_ids, build_id_map(common));
 
         Eigen::MatrixXd loaded = pipe.load();
         REQUIRE(loaded.rows() == 5);
@@ -485,11 +481,9 @@ TEST_CASE("BedPipe - sample mapping tests", "[data][bed_pipe]")
                make_sample_id("nonexistent", "3")};
         auto extra_index = df::Index<std::string>(std::vector<std::string>(
             intersect_ids.begin(), intersect_ids.end()));
-        auto positions
-            = df::intersect<std::string>({&sample_index, &extra_index});
-        sample_index.gather(positions[0]);
+        auto common = df::intersect<std::string>({&sample_index, &extra_index});
 
-        BedPipe pipe(bed_prefix, sample_index);
+        BedPipe pipe(bed_prefix, common);
 
         REQUIRE(pipe.num_samples() == 0);
 

@@ -39,17 +39,17 @@ AssocLocoEngine::AssocLocoEngine(Config config) : config_(std::move(config)) {}
 auto AssocLocoEngine::run(
     PhenoPipe& pheno,
     GrmPipe& grm,
+    const df::Index<std::string>& sample_index,
     const AssocObserver& observer,
     const RemlObserver& /*reml_observer*/) -> void
 {
-    BedPipe bed_pipe(config_.bed_path, pheno.sample_index());
+    BedPipe bed_pipe(config_.bed_path, sample_index);
     auto bim_path = config_.bed_path;
     auto snp_index
         = std::move(detail::BimReader(bim_path.replace_extension(".bim")))
               .take_info();
 
     const auto grm_paths = grm.grm_paths();
-    const auto& sample_index = pheno.sample_index();
 
     FreqModel model(
         std::move(pheno).take_phenotype(),

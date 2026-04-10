@@ -144,7 +144,7 @@ TEST_CASE(
     REQUIRE(freq[1] == 0.4);
     REQUIRE(freq[2] == 0.1);
 
-    REQUIRE(std::ranges::find(df.names(), "Dom") != df.names().end());
+    REQUIRE(df.contains("Dom"));
     auto dom = df["Dom"].as<double>();
     REQUIRE(dom[0] == 0.1);
     REQUIRE(dom[1] == 0.0);

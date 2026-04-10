@@ -27,9 +27,8 @@
 
 #include "file_fixture.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/grm/grm_bin_writer.h"
-#include "gelex/data/grm/grm_id_writer.h"
 #include "gelex/data/grm/grm_reader.h"
+#include "gelex/data/grm/grm_writer.h"
 #include "gelex/exception.h"
 #include "gelex/types/sample_id.h"
 
@@ -62,20 +61,13 @@ class GrmFileFixture
             writer.write(matrix);
         }
 
-        // Write ID file
-        auto id_path = fs::path(prefix_.string() + ".id");
-        {
-            gelex::GrmIdWriter writer(id_path);
-            writer.write(ids);
-        }
+        gelex::write_grm_ids(prefix_.string() + ".id", ids);
     }
 
     // Create only ID file (for testing missing bin file)
     auto create_id_only(const std::vector<std::string>& ids) -> void
     {
-        auto id_path = fs::path(prefix_.string() + ".id");
-        gelex::GrmIdWriter writer(id_path);
-        writer.write(ids);
+        gelex::write_grm_ids(prefix_.string() + ".id", ids);
     }
 
     // Create only bin file (for testing missing id file)
@@ -226,11 +218,11 @@ TEST_CASE("GrmReader - sample_ids accessor", "[grm_reader][accessor]")
         grm_files.create(matrix, ids);
         GrmReader reader(grm_files.prefix());
 
-        auto loaded_ids = reader.sample_ids();
-        REQUIRE(loaded_ids.size() == 3);
-        REQUIRE(loaded_ids[0] == gelex::make_sample_id("FAM1", "IND1"));
-        REQUIRE(loaded_ids[1] == gelex::make_sample_id("FAM2", "IND2"));
-        REQUIRE(loaded_ids[2] == gelex::make_sample_id("FAM3", "IND3"));
+        const auto& idx = reader.sample_index();
+        REQUIRE(idx.size() == 3);
+        REQUIRE(idx.keys()[0] == gelex::make_sample_id("FAM1", "IND1"));
+        REQUIRE(idx.keys()[1] == gelex::make_sample_id("FAM2", "IND2"));
+        REQUIRE(idx.keys()[2] == gelex::make_sample_id("FAM3", "IND3"));
     }
 
     SECTION("Happy path - IDs with underscores in FID and IID are preserved")
@@ -244,10 +236,10 @@ TEST_CASE("GrmReader - sample_ids accessor", "[grm_reader][accessor]")
         grm_files.create(matrix, ids);
         GrmReader reader(grm_files.prefix());
 
-        auto loaded_ids = reader.sample_ids();
-        REQUIRE(loaded_ids.size() == 2);
-        REQUIRE(loaded_ids[0] == gelex::make_sample_id("FAM_1", "IND_1"));
-        REQUIRE(loaded_ids[1] == gelex::make_sample_id("FAM_2", "IND_2"));
+        const auto& idx = reader.sample_index();
+        REQUIRE(idx.size() == 2);
+        REQUIRE(idx.keys()[0] == gelex::make_sample_id("FAM_1", "IND_1"));
+        REQUIRE(idx.keys()[1] == gelex::make_sample_id("FAM_2", "IND_2"));
     }
 }
 
@@ -609,9 +601,9 @@ TEST_CASE("GrmReader - ID parsing from file", "[grm_reader][id_parsing]")
         grm_files.create(matrix, ids);
         GrmReader reader(grm_files.prefix());
 
-        auto loaded_ids = reader.sample_ids();
-        REQUIRE(loaded_ids[0] == gelex::make_sample_id("SAMPLE", "1"));
-        REQUIRE(loaded_ids[1] == gelex::make_sample_id("SAMPLE", "2"));
+        const auto& idx = reader.sample_index();
+        REQUIRE(idx.keys()[0] == gelex::make_sample_id("SAMPLE", "1"));
+        REQUIRE(idx.keys()[1] == gelex::make_sample_id("SAMPLE", "2"));
     }
 }
 

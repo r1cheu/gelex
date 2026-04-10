@@ -260,55 +260,6 @@ TEST_CASE("take on empty monostate column throws GelexException", "[dataframe]")
 }
 
 // ================================================================
-// gather
-// ================================================================
-
-TEST_CASE(
-    "gather on string column reorders rows to given indices",
-    "[dataframe]")
-{
-    Column col("tag", std::vector<std::string>{"a", "b", "c", "d"});
-
-    std::vector<std::size_t> indices = {2, 0, 3};
-    col.gather(indices);
-
-    REQUIRE(col.size() == 3);
-
-    auto span = col.as<std::string>();
-    REQUIRE(span[0] == "c");
-    REQUIRE(span[1] == "a");
-    REQUIRE(span[2] == "d");
-}
-
-TEST_CASE(
-    "gather with empty indices reduces column to size zero",
-    "[dataframe]")
-{
-    Column col("tag", std::vector<std::string>{"a", "b", "c"});
-
-    std::vector<std::size_t> empty;
-    col.gather(empty);
-
-    REQUIRE(col.size() == 0);
-}
-
-TEST_CASE(
-    "gather on int32_t column reorders rows to given indices",
-    "[dataframe]")
-{
-    Column col("num", std::vector<std::int32_t>{10, 20, 30, 40});
-
-    std::vector<std::size_t> indices = {3, 1};
-    col.gather(indices);
-
-    REQUIRE(col.size() == 2);
-
-    auto span = col.as<std::int32_t>();
-    REQUIRE(span[0] == 40);
-    REQUIRE(span[1] == 20);
-}
-
-// ================================================================
 // to_map
 // ================================================================
 

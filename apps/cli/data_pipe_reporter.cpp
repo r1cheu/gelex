@@ -45,7 +45,6 @@ auto DataPipeReporter::on_event(const PhenotypeLoadedEvent& event) const -> void
         "   Phenotypes : {} samples ('{}')",
         event.pheno_samples,
         event.trait_name);
-    logger_->info("   Genotypes  : {} samples", event.geno_samples);
 }
 
 auto DataPipeReporter::on_event(const CovariatesLoadedEvent& event) const
@@ -75,10 +74,7 @@ auto DataPipeReporter::on_event(const CovariatesLoadedEvent& event) const
 
 auto DataPipeReporter::on_event(const IntersectionEvent& event) const -> void
 {
-    logger_->info(
-        "   Intersection : {} common, {} excluded",
-        event.common_samples,
-        event.excluded_samples);
+    logger_->info("   Intersection : {} common samples", event.common_samples);
 }
 
 auto DataPipeReporter::on_event(const GenotypeLoadedEvent& event) const -> void
