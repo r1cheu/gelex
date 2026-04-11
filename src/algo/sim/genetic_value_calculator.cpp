@@ -124,15 +124,15 @@ auto GeneticValueCalculator::encode_chunk(
     -> std::pair<Eigen::MatrixXd, Eigen::MatrixXd>
 {
     Eigen::MatrixXd add_chunk = chunk;
-    process_matrix<GeneticKind::Add>(
-        GenotypeProcessMethod::OrthStandardize, add_chunk);
+    process_matrix<GeneticMode::A>(
+        GenotypeProcessMethod::OrthStandardize(), add_chunk);
 
     Eigen::MatrixXd dom_chunk;
     if (has_dominance_)
     {
         dom_chunk = chunk;
-        process_matrix<GeneticKind::Dom>(
-            GenotypeProcessMethod::OrthStandardize, dom_chunk);
+        process_matrix<GeneticMode::D>(
+            GenotypeProcessMethod::OrthStandardize(), dom_chunk);
     }
 
     return {add_chunk, dom_chunk};

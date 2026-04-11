@@ -81,7 +81,7 @@ using MarkerPrior = std::variant<ContinuousPrior, SpikePrior, MixturePrior>;
 
 struct GeneticPrior
 {
-    GeneticKind type;
+    GeneticMode type;
     MarkerPrior marker;
     std::optional<SignPrior> sign;
 };
@@ -102,7 +102,7 @@ class Priors
         std::vector<RandomPrior> random,
         ResidualPrior residual);
 
-    [[nodiscard]] auto genetic(GeneticKind type) const -> const GeneticPrior*
+    [[nodiscard]] auto genetic(GeneticMode type) const -> const GeneticPrior*
     {
         auto it = std::ranges::find(genetics_, type, &GeneticPrior::type);
         return it != genetics_.end() ? &*it : nullptr;

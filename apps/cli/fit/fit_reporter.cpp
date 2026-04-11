@@ -109,7 +109,7 @@ auto FitReporter::on_event(const FitMcmcProgressEvent& event) -> void
             std::back_inserter(stats_),
             "{}{}:{:.3f}",
             stats_.empty() ? "" : " | ",
-            genetic_kind::to_heritability_label(gen.type),
+            genetic_mode::to_heritability_label(gen.type),
             gen.heritability);
     }
     fmt::format_to(
@@ -118,7 +118,7 @@ auto FitReporter::on_event(const FitMcmcProgressEvent& event) -> void
         stats_.empty() ? "" : " | ",
         state->residual().variance);
 
-    const auto* dom = state->genetic(GeneticKind::Dom);
+    const auto* dom = state->genetic(GeneticMode::D);
     if (dom != nullptr && dom->sign)
     {
         fmt::format_to(
@@ -253,14 +253,14 @@ auto FitReporter::print_fixed_summary(
 auto FitReporter::print_genetic_summary(
     const GeneticSummary* summary,
     const bayes::GeneticEffect* effect,
-    GeneticKind type) const -> void
+    GeneticMode type) const -> void
 {
     if (summary == nullptr)
     {
         return;
     }
 
-    std::string h_name{genetic_kind::to_heritability_label(type)};
+    std::string h_name{genetic_mode::to_heritability_label(type)};
 
     logger_->info(
         gelex::named_section(fmt::format("{}", type), kTableWidth, 2));

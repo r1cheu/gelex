@@ -49,14 +49,13 @@ SnpEffectsWriter::~SnpEffectsWriter() = default;
 
 auto SnpEffectsWriter::write() -> void
 {
-    additive_ = result_->genetic(GeneticKind::Add);
-    dominant_ = result_->genetic(GeneticKind::Dom);
+    additive_ = result_->genetic(GeneticMode::A);
+    dominant_ = result_->genetic(GeneticMode::D);
     if (additive_ == nullptr)
     {
         return;
     }
 
-    cache_bim_spans();
     write_header();
 
     for (Index i = 0; i < additive_->coeffs.size(); ++i)

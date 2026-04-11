@@ -62,7 +62,7 @@ auto make_bayes_a_model(Eigen::Index n_samples, Eigen::Index n_snps)
 
     std::vector<bayes::GeneticEffect> genetics;
     genetics.emplace_back(
-        GeneticKind::Add, bayes::GenotypeStorage{std::move(geno)});
+        GeneticMode::A, bayes::GenotypeStorage{std::move(geno)});
 
     double pheno_var
         = phenotype.array().square().mean() - std::pow(phenotype.mean(), 2.0);
@@ -233,7 +233,7 @@ TEST_CASE("checkpoint prior round-trip preserves all fields", "[checkpoint]")
 
     std::vector<bayes::GeneticPrior> genetics;
     genetics.push_back(
-        {.type = GeneticKind::Add,
+        {.type = GeneticMode::A,
          .marker = bayes::
              MixturePrior{.variance = {.param = {.nu = 4.0, .s2 = 0.3}, .init = 0, .size = kNSnps}, .proportion = {.init = pi_init, .estimate = true}, .multiplier = multiplier},
          .sign = bayes::SignPrior{.init_value = 0.6}});
@@ -270,7 +270,7 @@ TEST_CASE("checkpoint prior round-trip preserves all fields", "[checkpoint]")
 
     // Genetic: MixturePrior
     REQUIRE(rp.genetics().size() == 1);
-    CHECK(rp.genetics()[0].type == GeneticKind::Add);
+    CHECK(rp.genetics()[0].type == GeneticMode::A);
     const auto* mp = std::get_if<bayes::MixturePrior>(&rp.genetics()[0].marker);
     REQUIRE(mp != nullptr);
     CHECK(mp->variance.param.nu == 4.0);

@@ -29,23 +29,23 @@ namespace gelex::detail
 
 auto dispatch_assoc_chunk_by_method(
     GenotypeProcessMethod method,
-    ModelType model_type,
+    GeneticMode model_type,
     Eigen::Ref<Eigen::MatrixXd> genotype,
     Eigen::VectorXd* freqs) -> void
 {
-    if (!is_center_family_method(method))
+    if (!method.is_center())
     {
         throw GelexException(
             "assoc --geno-method supports only center-family methods: "
             "2 (center-hwe), 4 (orth-center-hwe), 6 (center), 8 (orth-center)");
     }
-    if (model_type == ModelType::A)
+    if (model_type == GeneticMode::A)
     {
-        process_matrix<GeneticKind::Add>(method, genotype, freqs);
+        process_matrix<GeneticMode::A>(method, genotype, freqs);
     }
     else
     {
-        process_matrix<GeneticKind::Dom>(method, genotype, freqs);
+        process_matrix<GeneticMode::D>(method, genotype, freqs);
     }
 }
 

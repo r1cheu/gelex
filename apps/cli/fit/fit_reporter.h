@@ -46,7 +46,7 @@ struct GeneticPrior;
 struct VariancePrior;
 }  // namespace bayes
 
-enum class GeneticKind : uint8_t;
+enum class GeneticMode : uint8_t;
 }  // namespace gelex
 
 namespace spdlog
@@ -86,7 +86,7 @@ class FitReporter
     auto print_genetic_summary(
         const GeneticSummary* summary,
         const bayes::GeneticEffect* effect,
-        GeneticKind type) const -> void;
+        GeneticMode type) const -> void;
     auto print_residual_summary(const MCMCResult& result) const -> void;
 
     auto print_variance_prior(

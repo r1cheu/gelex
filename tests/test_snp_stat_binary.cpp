@@ -41,17 +41,12 @@ TEST_CASE("sbin round-trip additive only", "[sbin][snpstats]")
     Eigen::VectorXd stddev = Eigen::VectorXd::LinSpaced(kNumSnps, 0.01, 0.50);
     std::vector<int64_t> mono = {3, 42, 101};
 
-    constexpr auto kMethod = gelex::GenotypeProcessMethod::StandardizeHWE;
+    const auto kMethod = gelex::GenotypeProcessMethod::StandardizeHWE();
 
     auto sbin_path = dir / "test.sbin";
     {
         LociStatsWriter writer(sbin_path.string());
-        writer.write(
-            EffectType::add(),
-            static_cast<uint8_t>(kMethod),
-            mean,
-            &stddev,
-            mono);
+        writer.write(EffectType::add(), kMethod.to_byte(), mean, &stddev, mono);
         writer.finalize();
     }
 
@@ -85,24 +80,20 @@ TEST_CASE("sbin round-trip additive and dominance", "[sbin][snpstats]")
     Eigen::VectorXd dom_stddev
         = Eigen::VectorXd::LinSpaced(kNumSnps, 0.05, 0.25);
 
-    constexpr auto kAddMethod = gelex::GenotypeProcessMethod::StandardizeHWE;
-    constexpr auto kDomMethod
-        = gelex::GenotypeProcessMethod::OrthStandardizeHWE;
+    const auto kAddMethod = gelex::GenotypeProcessMethod::StandardizeHWE();
+    const auto kDomMethod = gelex::GenotypeProcessMethod::OrthStandardizeHWE();
 
     auto sbin_path = dir / "test_ad.sbin";
     {
         LociStatsWriter writer(sbin_path.string());
         writer.write(
             EffectType::add(),
-            static_cast<uint8_t>(kAddMethod),
+            kAddMethod.to_byte(),
             add_mean,
             &add_stddev,
             add_mono);
         writer.write(
-            EffectType::dom(),
-            static_cast<uint8_t>(kDomMethod),
-            dom_mean,
-            &dom_stddev);
+            EffectType::dom(), kDomMethod.to_byte(), dom_mean, &dom_stddev);
         writer.finalize();
     }
 

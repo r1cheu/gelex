@@ -42,7 +42,7 @@ auto GeneticPosteriorProcessor::process() -> std::vector<ParameterDiag>
 
     std::vector<ParameterDiag> diags;
 
-    for (auto kind : kAllGeneticKinds)
+    for (auto kind : kAllGeneticModes)
     {
         auto sect = EffectType::from_genetic(kind);
         if (!ref.contains(fmt::format("{}/coeff", sect)))

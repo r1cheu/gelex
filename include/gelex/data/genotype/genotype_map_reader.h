@@ -45,7 +45,7 @@ class GenotypeMapReader
         const std::filesystem::path& output_prefix,
         DataPipeObserver observer = {});
 
-    template <GeneticKind GT>
+    template <GeneticMode GT>
     auto process(GenotypeProcessMethod method, size_t chunk_size = 10000)
         -> GenotypeMap
     {
@@ -106,7 +106,7 @@ class GenotypeMapReader
         size_t global_start,
         LocusStatistic (*fn)(Eigen::Ref<Eigen::VectorXd>));
 
-    template <GeneticKind GT>
+    template <GeneticMode GT>
     auto finalize() -> GenotypeMap
     {
         constexpr auto effect = EffectType::from_genetic(GT);

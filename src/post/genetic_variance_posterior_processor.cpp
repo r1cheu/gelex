@@ -98,7 +98,7 @@ auto GeneticVariancePosteriorProcessor::process() -> GebvVarianceResult
     {
         auto& diag = total_diags[static_cast<size_t>(kind_idx)];
         diag.section = "Genetic";
-        diag.name = genetic_kind::to_variance_label(input.kind);
+        diag.name = genetic_mode::to_variance_label(input.kind);
     }
     total_diags.back().section = "Genetic";
     total_diags.back().name = "σ²_total";

@@ -30,14 +30,14 @@ auto make_grm_config(argparse::ArgumentParser& cmd) -> gelex::GrmEngine::Config
 {
     bool add = cmd.get<bool>("--add");
     bool dom = cmd.get<bool>("--dom");
-    auto mode = gelex::freq::GrmType::A;
+    auto mode = gelex::GeneticMode::A;
     if (add && dom)
     {
-        mode = gelex::freq::GrmType::AD;
+        mode = gelex::GeneticMode::AD;
     }
     else if (dom)
     {
-        mode = gelex::freq::GrmType::D;
+        mode = gelex::GeneticMode::D;
     }
     auto chunk_size = cmd.get<int>("--chunk-size");
     if (chunk_size <= 0)

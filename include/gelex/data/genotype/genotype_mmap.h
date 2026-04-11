@@ -38,7 +38,7 @@ class GenotypeMap
 
     explicit GenotypeMap(
         const std::filesystem::path& bin_file,
-        GeneticKind effect_type = GeneticKind::Add);
+        GeneticMode effect_type = GeneticMode::A);
 
     [[nodiscard]] const MapType& matrix() const noexcept { return mat_; }
 

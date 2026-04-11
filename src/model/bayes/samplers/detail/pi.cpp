@@ -67,7 +67,7 @@ auto Pi::operator()(
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
-    if (auto* state = states.genetic(GeneticKind::Add); state != nullptr)
+    if (auto* state = states.genetic(GeneticMode::A); state != nullptr)
     {
         sample_pi(*state, rng);
     }
@@ -81,7 +81,7 @@ auto DominantSampler::Pi::operator()(
     BayesState& states,
     std::mt19937_64& rng) const -> void
 {
-    if (auto* state = states.genetic(GeneticKind::Dom); state != nullptr)
+    if (auto* state = states.genetic(GeneticMode::D); state != nullptr)
     {
         sample_pi(*state, rng);
     }

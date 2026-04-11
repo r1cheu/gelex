@@ -41,7 +41,7 @@ class GenoPipe
     {
         std::filesystem::path bed_path;
 
-        ModelType model_type;
+        GeneticMode model_type;
         GenotypeProcessMethod genotype_method;
         bool use_mmap = false;
         int chunk_size = 10000;
@@ -77,7 +77,7 @@ class GenoPipe
     using GenotypeMatrixPtr
         = std::unique_ptr<std::variant<GenotypeMap, GenotypeMatrix>>;
 
-    template <GeneticKind GT>
+    template <GeneticMode GT>
     auto load_genotype_impl(
         const df::Index<std::string>& sample_index,
         const std::string& suffix,

@@ -35,7 +35,7 @@ class HeritabilityPosteriorProcessor
         std::span<const detail::BinaryReader> readers,
         double hdpi_threshold,
         const Chains& genetic_variances,
-        std::span<const GeneticKind> kinds);
+        std::span<const GeneticMode> kinds);
 
     [[nodiscard]] auto process() -> std::vector<ParameterDiag>;
 
@@ -45,7 +45,7 @@ class HeritabilityPosteriorProcessor
     std::span<const detail::BinaryReader> readers_;
     double hdpi_threshold_;
     const Chains& genetic_variances_;
-    std::span<const GeneticKind> kinds_;
+    std::span<const GeneticMode> kinds_;
 };
 
 }  // namespace gelex

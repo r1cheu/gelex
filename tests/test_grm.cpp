@@ -87,8 +87,8 @@ TEST_CASE("GRM - compute() additive GRM", "[grm][compute]")
             = fixture.create_bed_files(num_samples, num_snps, 0.0);
 
         GRM grm(bed_prefix);
-        GrmResult result = grm.compute<GeneticKind::Add>(
-            GenotypeProcessMethod::OrthStandardize, 10);
+        GrmResult result = grm.compute<GeneticMode::A>(
+            GenotypeProcessMethod::OrthStandardize(), 10);
 
         // verify dimensions
         REQUIRE(result.grm.rows() == num_samples);
@@ -142,8 +142,8 @@ TEST_CASE("GRM - compute() dominance GRM", "[grm][compute]")
             = fixture.create_bed_files(num_samples, num_snps, 0.0);
 
         GRM grm(bed_prefix);
-        GrmResult result = grm.compute<GeneticKind::Dom>(
-            GenotypeProcessMethod::OrthStandardize, 10);
+        GrmResult result = grm.compute<GeneticMode::D>(
+            GenotypeProcessMethod::OrthStandardize(), 10);
 
         // verify dimensions
         REQUIRE(result.grm.rows() == num_samples);
@@ -197,20 +197,20 @@ TEST_CASE("GRM - compute() chunk size consistency", "[grm][compute][chunk]")
 
         // compute with different chunk sizes using same data
         GRM grm1(bed_prefix);
-        GrmResult result1 = grm1.compute<GeneticKind::Add>(
-            GenotypeProcessMethod::OrthStandardize, 1);
+        GrmResult result1 = grm1.compute<GeneticMode::A>(
+            GenotypeProcessMethod::OrthStandardize(), 1);
 
         GRM grm2(bed_prefix);
-        GrmResult result2 = grm2.compute<GeneticKind::Add>(
-            GenotypeProcessMethod::OrthStandardize, 7);
+        GrmResult result2 = grm2.compute<GeneticMode::A>(
+            GenotypeProcessMethod::OrthStandardize(), 7);
 
         GRM grm3(bed_prefix);
-        GrmResult result3 = grm3.compute<GeneticKind::Add>(
-            GenotypeProcessMethod::OrthStandardize, num_snps);
+        GrmResult result3 = grm3.compute<GeneticMode::A>(
+            GenotypeProcessMethod::OrthStandardize(), num_snps);
 
         GRM grm4(bed_prefix);
-        GrmResult result4 = grm4.compute<GeneticKind::Add>(
-            GenotypeProcessMethod::OrthStandardize, num_snps + 100);
+        GrmResult result4 = grm4.compute<GeneticMode::A>(
+            GenotypeProcessMethod::OrthStandardize(), num_snps + 100);
 
         // all should be equal
         REQUIRE(are_matrices_equal(result1.grm, result2.grm, 1e-10));
@@ -288,8 +288,8 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
             = fixture.create_deterministic_bed_files(genotypes);
 
         GRM grm(bed_prefix);
-        GrmResult result = grm.compute<GeneticKind::Add>(
-            GenotypeProcessMethod::OrthStandardize, 10);
+        GrmResult result = grm.compute<GeneticMode::A>(
+            GenotypeProcessMethod::OrthStandardize(), 10);
 
         // manually compute expected GRM using OrthStandardize additive method
         // OrthStandardizeMethod = CenterMethod + divide by sample stddev
@@ -356,8 +356,8 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
             = fixture.create_deterministic_bed_files(genotypes);
 
         GRM grm(bed_prefix);
-        GrmResult result = grm.compute<GeneticKind::Add>(
-            GenotypeProcessMethod::Center, 10);
+        GrmResult result
+            = grm.compute<GeneticMode::A>(GenotypeProcessMethod::Center(), 10);
 
         // Center additive: mean centering
         Eigen::MatrixXd Z = genotypes;

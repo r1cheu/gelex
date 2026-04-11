@@ -64,10 +64,10 @@ auto GrmEngine::compute(const GrmObserver& observer) -> void
     {
         if (is_additive)
         {
-            return grm.compute<GeneticKind::Add>(
+            return grm.compute<GeneticMode::A>(
                 config_.method, ranges, config_.chunk_size, observer);
         }
-        return grm.compute<GeneticKind::Dom>(
+        return grm.compute<GeneticMode::D>(
             config_.method, ranges, config_.chunk_size, observer);
     };
 

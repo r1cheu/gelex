@@ -41,7 +41,7 @@ concept StatisticPolicy
 
 constexpr double MONOMORPHIC_TOL = 1e-10;
 
-template <GeneticKind GT>
+template <GeneticMode GT>
 struct SamplePolicy
 {
     static auto process(LocusContext& context, LocusStatistic& statistic)
@@ -54,7 +54,7 @@ struct SamplePolicy
    private:
     static auto center(LocusContext& context, LocusStatistic& statistic) -> void
     {
-        if constexpr (GT == GeneticKind::Add)
+        if constexpr (GT == GeneticMode::A)
         {
             statistic.mean = statistic.maf * 2.0;
         }
@@ -79,7 +79,7 @@ struct SamplePolicy
     }
 };
 
-template <GeneticKind g_type>
+template <GeneticMode g_type>
 struct HWEPolicy
 {
     static auto process(LocusContext& context, LocusStatistic& statistic)
@@ -92,7 +92,7 @@ struct HWEPolicy
    private:
     static auto center(LocusContext& context, LocusStatistic& statistic) -> void
     {
-        if constexpr (g_type == GeneticKind::Add)
+        if constexpr (g_type == GeneticMode::A)
         {
             statistic.mean = statistic.maf * 2.0;
         }
@@ -108,7 +108,7 @@ struct HWEPolicy
     static auto stddev(LocusContext& /*context*/, LocusStatistic& statistic)
         -> void
     {
-        if constexpr (g_type == GeneticKind::Add)
+        if constexpr (g_type == GeneticMode::A)
         {
             statistic.stddev
                 = std::sqrt(2.0 * statistic.maf * (1.0 - statistic.maf));
@@ -128,7 +128,7 @@ struct HWEPolicy
     }
 };
 
-template <GeneticKind g_type>
+template <GeneticMode g_type>
 struct OrthHWEPolicy
 {
     static auto process(LocusContext& context, LocusStatistic& statistic)
@@ -141,7 +141,7 @@ struct OrthHWEPolicy
    private:
     static auto center(LocusContext& context, LocusStatistic& statistic) -> void
     {
-        if constexpr (g_type == GeneticKind::Add)
+        if constexpr (g_type == GeneticMode::A)
         {
             statistic.mean = statistic.maf * 2.0;
         }
@@ -159,7 +159,7 @@ struct OrthHWEPolicy
     {
         double dominance_stddev = 2.0 * statistic.maf * (1.0 - statistic.maf);
 
-        if constexpr (g_type == GeneticKind::Add)
+        if constexpr (g_type == GeneticMode::A)
         {
             statistic.stddev = std::sqrt(dominance_stddev);
         }

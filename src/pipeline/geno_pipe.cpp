@@ -33,11 +33,11 @@ GenoPipe::GenoPipe(const Config& config, DataPipeObserver observer)
 
 auto GenoPipe::load(const df::Index<std::string>& sample_index) -> void
 {
-    if (config_.model_type == ModelType::A)
+    if (config_.model_type == GeneticMode::A)
     {
         load_additive_matrix(sample_index);
     }
-    else if (config_.model_type == ModelType::D)
+    else if (config_.model_type == GeneticMode::D)
     {
         load_dominance_matrix(sample_index);
     }
@@ -53,7 +53,7 @@ auto GenoPipe::load(const df::Index<std::string>& sample_index) -> void
 auto GenoPipe::load_additive_matrix(const df::Index<std::string>& sample_index)
     -> void
 {
-    load_genotype_impl<GeneticKind::Add>(
+    load_genotype_impl<GeneticMode::A>(
         sample_index, ".add", config_.genotype_method, additive_matrix_);
     int64_t mono = 0;
     int64_t total = 0;
@@ -75,7 +75,7 @@ auto GenoPipe::load_additive_matrix(const df::Index<std::string>& sample_index)
 auto GenoPipe::load_dominance_matrix(const df::Index<std::string>& sample_index)
     -> void
 {
-    load_genotype_impl<GeneticKind::Dom>(
+    load_genotype_impl<GeneticMode::D>(
         sample_index, ".dom", config_.genotype_method, dominance_matrix_);
     int64_t mono = 0;
     int64_t total = 0;
@@ -95,8 +95,8 @@ auto GenoPipe::load_dominance_matrix(const df::Index<std::string>& sample_index)
 auto GenoPipe::write_sbin() -> void
 {
     LociStatsWriter writer(config_.output_prefix + ".sbin");
-    auto method_code = static_cast<uint8_t>(config_.genotype_method);
-    const bool is_center = is_center_family_method(config_.genotype_method);
+    auto method_code = config_.genotype_method.to_byte();
+    const bool is_center = config_.genotype_method.is_center();
 
     if (additive_matrix_)
     {

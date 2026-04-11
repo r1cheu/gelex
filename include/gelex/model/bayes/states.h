@@ -163,7 +163,7 @@ struct RandomState
 struct GeneticState
 {
     GeneticState(
-        GeneticKind type,
+        GeneticMode type,
         Eigen::VectorXd coeffs,
         Eigen::VectorXd u,
         double variance,
@@ -215,7 +215,7 @@ struct GeneticState
         }
     }
 
-    GeneticKind type;
+    GeneticMode type;
     Eigen::VectorXd coeffs;
     Eigen::VectorXd u;
 

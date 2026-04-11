@@ -54,19 +54,20 @@ auto make_loci_stats(
 // standardize_genotypes tests
 // ---------------------------------------------------------------------------
 
-TEST_CASE("standardize_genotypes: additive StandardizeHWE", "[predict][standardize]")
+TEST_CASE(
+    "standardize_genotypes: additive StandardizeHWE",
+    "[predict][standardize]")
 {
     // 2x2 matrix: rows=samples, cols=SNPs
     // mean = [0.5, 1.5], stddev = [0.5, 0.5]
     // expected = (X - mean) / stddev
     GenotypeData geno;
     geno.add.resize(2, 2);
-    geno.add << 0.0, 2.0,
-                1.0, 1.0;
+    geno.add << 0.0, 2.0, 1.0, 1.0;
 
     SbinData sbin;
     sbin.add = make_loci_stats(
-        gelex::GenotypeProcessMethod::StandardizeHWE,
+        gelex::GenotypeProcessMethod::StandardizeHWE(),
         Eigen::VectorXd{{0.5, 1.5}},
         Eigen::VectorXd{{0.5, 0.5}});
     sbin.has_dom = false;
@@ -74,30 +75,28 @@ TEST_CASE("standardize_genotypes: additive StandardizeHWE", "[predict][standardi
     standardize_genotypes(geno, sbin);
 
     Eigen::MatrixXd expected(2, 2);
-    expected << -1.0, 1.0,
-                 1.0, -1.0;
+    expected << -1.0, 1.0, 1.0, -1.0;
     REQUIRE(geno.add.isApprox(expected));
 }
 
-TEST_CASE("standardize_genotypes: additive CenterHWE (no stddev)", "[predict][standardize]")
+TEST_CASE(
+    "standardize_genotypes: additive CenterHWE (no stddev)",
+    "[predict][standardize]")
 {
     // mean-center only, no stddev division
     GenotypeData geno;
     geno.add.resize(2, 2);
-    geno.add << 0.0, 2.0,
-                1.0, 1.0;
+    geno.add << 0.0, 2.0, 1.0, 1.0;
 
     SbinData sbin;
     sbin.add = make_loci_stats(
-        gelex::GenotypeProcessMethod::CenterHWE,
-        Eigen::VectorXd{{0.5, 1.5}});
+        gelex::GenotypeProcessMethod::CenterHWE(), Eigen::VectorXd{{0.5, 1.5}});
     sbin.has_dom = false;
 
     standardize_genotypes(geno, sbin);
 
     Eigen::MatrixXd expected(2, 2);
-    expected << -0.5, 0.5,
-                 0.5, -0.5;
+    expected << -0.5, 0.5, 0.5, -0.5;
     REQUIRE(geno.add.isApprox(expected));
 }
 
@@ -117,21 +116,17 @@ TEST_CASE(
 
     GenotypeData geno;
     geno.add.resize(3, 2);
-    geno.add << 0.0, 2.0,
-                1.0, 1.0,
-                nan, 0.0;
+    geno.add << 0.0, 2.0, 1.0, 1.0, nan, 0.0;
     geno.dom = Eigen::MatrixXd(3, 2);
-    (*geno.dom) << 0.0, 2.0,
-                   1.0, 1.0,
-                   nan, 0.0;
+    (*geno.dom) << 0.0, 2.0, 1.0, 1.0, nan, 0.0;
 
     SbinData sbin;
     sbin.add = make_loci_stats(
-        gelex::GenotypeProcessMethod::StandardizeHWE,
+        gelex::GenotypeProcessMethod::StandardizeHWE(),
         Eigen::VectorXd{{0.5, 1.0}},
         Eigen::VectorXd{{0.5, 1.0}});
     sbin.dom = make_loci_stats(
-        gelex::GenotypeProcessMethod::StandardizeHWE,
+        gelex::GenotypeProcessMethod::StandardizeHWE(),
         Eigen::VectorXd{{0.5, 0.5}},
         Eigen::VectorXd{{0.5, 0.5}});
     sbin.has_dom = true;
@@ -139,20 +134,17 @@ TEST_CASE(
     standardize_genotypes(geno, sbin);
 
     Eigen::MatrixXd expected_add(3, 2);
-    expected_add << -1.0, 1.0,
-                     1.0, 0.0,
-                     0.0, -1.0;
+    expected_add << -1.0, 1.0, 1.0, 0.0, 0.0, -1.0;
     REQUIRE(geno.add.isApprox(expected_add));
 
     Eigen::MatrixXd expected_dom(3, 2);
-    expected_dom << -1.0, -1.0,
-                     1.0,  1.0,
-                     0.0, -1.0;
+    expected_dom << -1.0, -1.0, 1.0, 1.0, 0.0, -1.0;
     REQUIRE(geno.dom->isApprox(expected_dom));
 }
 
 TEST_CASE(
-    "standardize_genotypes: additive + dominance OrthStandardizeHWE (OrthogonalPolicy)",
+    "standardize_genotypes: additive + dominance OrthStandardizeHWE "
+    "(OrthogonalPolicy)",
     "[predict][standardize]")
 {
     // OrthogonalPolicy for Dom:
@@ -175,19 +167,17 @@ TEST_CASE(
     // dom expected: [[1,-1],[-1,1]]
     GenotypeData geno;
     geno.add.resize(2, 2);
-    geno.add << 0.0, 2.0,
-                1.0, 1.0;
+    geno.add << 0.0, 2.0, 1.0, 1.0;
     geno.dom = Eigen::MatrixXd(2, 2);
-    (*geno.dom) << 1.0, 0.0,
-                   0.0, 1.0;
+    (*geno.dom) << 1.0, 0.0, 0.0, 1.0;
 
     SbinData sbin;
     sbin.add = make_loci_stats(
-        gelex::GenotypeProcessMethod::OrthStandardizeHWE,
+        gelex::GenotypeProcessMethod::OrthStandardizeHWE(),
         Eigen::VectorXd{{0.5, 1.5}},
         Eigen::VectorXd{{0.5, 0.5}});
     sbin.dom = make_loci_stats(
-        gelex::GenotypeProcessMethod::OrthStandardizeHWE,
+        gelex::GenotypeProcessMethod::OrthStandardizeHWE(),
         Eigen::VectorXd{{0.25, 0.75}},
         Eigen::VectorXd{{0.25, 0.75}});
     sbin.has_dom = true;
@@ -195,13 +185,11 @@ TEST_CASE(
     standardize_genotypes(geno, sbin);
 
     Eigen::MatrixXd expected_add(2, 2);
-    expected_add << -1.0,  1.0,
-                     1.0, -1.0;
+    expected_add << -1.0, 1.0, 1.0, -1.0;
     REQUIRE(geno.add.isApprox(expected_add));
 
     Eigen::MatrixXd expected_dom(2, 2);
-    expected_dom <<  1.0, -1.0,
-                    -1.0,  1.0;
+    expected_dom << 1.0, -1.0, -1.0, 1.0;
     REQUIRE(geno.dom->isApprox(expected_dom));
 }
 
@@ -215,8 +203,7 @@ TEST_CASE("compute_gebv: additive only", "[predict][compute]")
     // add_predictions = [1*0.5 + 2*(-0.5), 3*0.5 + 4*(-0.5)] = [-0.5, -0.5]
     GenotypeData geno;
     geno.add.resize(2, 2);
-    geno.add << 1.0, 2.0,
-                3.0, 4.0;
+    geno.add << 1.0, 2.0, 3.0, 4.0;
 
     SnpEffects effects;
     effects.add = Eigen::VectorXd{{0.5, -0.5}};
@@ -238,11 +225,9 @@ TEST_CASE("compute_gebv: additive + dominance", "[predict][compute]")
     // total = [1.15, 2.15]
     GenotypeData geno;
     geno.add.resize(2, 2);
-    geno.add << 1.0, 0.0,
-                0.0, 1.0;
+    geno.add << 1.0, 0.0, 0.0, 1.0;
     geno.dom = Eigen::MatrixXd(2, 2);
-    (*geno.dom) << 0.5, 0.5,
-                   0.5, 0.5;
+    (*geno.dom) << 0.5, 0.5, 0.5, 0.5;
 
     SnpEffects effects;
     effects.add = Eigen::VectorXd{{1.0, 2.0}};
@@ -273,7 +258,8 @@ TEST_CASE("compute_covariate_effects: intercept only", "[predict][compute]")
     coefficients.names = {"Intercept"};
     coefficients.values = Eigen::VectorXd{{2.5}};
 
-    const auto result = gelex::compute_covariate_effects(covariates, coefficients);
+    const auto result
+        = gelex::compute_covariate_effects(covariates, coefficients);
 
     Eigen::VectorXd expected_total{{2.5, 2.5, 2.5}};
     REQUIRE(result.total.isApprox(expected_total));
@@ -281,21 +267,23 @@ TEST_CASE("compute_covariate_effects: intercept only", "[predict][compute]")
     REQUIRE(result.covar_names.empty());
 }
 
-TEST_CASE("compute_covariate_effects: intercept + covariates", "[predict][compute]")
+TEST_CASE(
+    "compute_covariate_effects: intercept + covariates",
+    "[predict][compute]")
 {
     // covariates = [[1, 25, 1], [1, 30, 0]]
     // coefficients = {["Intercept","Age","Sex_M"], [1.0, 0.2, -0.3]}
     // total = [1+5+(-0.3), 1+6+0] = [5.7, 7.0]
     // per_covariate: Age=[5.0, 6.0], Sex_M=[-0.3, 0.0]
     Eigen::MatrixXd covariates(2, 3);
-    covariates << 1.0, 25.0,  1.0,
-                  1.0, 30.0,  0.0;
+    covariates << 1.0, 25.0, 1.0, 1.0, 30.0, 0.0;
 
     Coefficients coefficients;
     coefficients.names = {"Intercept", "Age", "Sex_M"};
     coefficients.values = Eigen::VectorXd{{1.0, 0.2, -0.3}};
 
-    const auto result = gelex::compute_covariate_effects(covariates, coefficients);
+    const auto result
+        = gelex::compute_covariate_effects(covariates, coefficients);
 
     Eigen::VectorXd expected_total{{5.7, 7.0}};
     REQUIRE(result.total.isApprox(expected_total));

@@ -165,7 +165,7 @@ struct GeneticSummary
 
     void compute(const GeneticSamples& sample, double phenotype_var);
 
-    GeneticKind type;
+    GeneticMode type;
     PosteriorSummary coeffs;
     PosteriorSummary variance;
     PosteriorSummary heritability;
@@ -186,7 +186,7 @@ class MCMCResult
     const std::vector<RandomSummary>& random() const { return random_; }
 
     const std::vector<GeneticSummary>& genetics() const { return genetics_; }
-    const GeneticSummary* genetic(GeneticKind type) const
+    const GeneticSummary* genetic(GeneticMode type) const
     {
         auto it = std::ranges::find(genetics_, type, &GeneticSummary::type);
         return it != genetics_.end() ? &*it : nullptr;

@@ -34,7 +34,7 @@ namespace gelex
 struct GeneticInput
 {
     const bayes::GenotypeStorage* genotype;
-    GeneticKind kind;
+    GeneticMode kind;
 };
 
 class GeneticVarianceProcessor
@@ -65,7 +65,7 @@ class GeneticVarianceProcessor
 
    private:
     Eigen::Ref<const Eigen::MatrixXd> matrix_;
-    GeneticKind kind_;
+    GeneticMode kind_;
     Eigen::Index n_components_;
     std::vector<Eigen::Map<const Eigen::MatrixXd>> coeff_maps_;
     std::vector<Eigen::Map<const Eigen::MatrixX<int8_t>>> tracker_maps_;

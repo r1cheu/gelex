@@ -311,7 +311,7 @@ TEST_CASE(
 
     SECTION("Verify genetic effect name is 'Additive'")
     {
-        REQUIRE(model.genetic()[0].type == gelex::freq::GrmType::A);
+        REQUIRE(model.genetic()[0].type == gelex::GeneticMode::A);
     }
 
     SECTION("Verify GRM matrix dimensions")
@@ -375,7 +375,7 @@ TEST_CASE(
 
     SECTION("Verify genetic effect name is 'Dominance'")
     {
-        REQUIRE(model.genetic()[0].type == gelex::freq::GrmType::D);
+        REQUIRE(model.genetic()[0].type == gelex::GeneticMode::D);
     }
 
     SECTION("Verify GRM matrix dimensions")
@@ -435,8 +435,8 @@ TEST_CASE(
 
     SECTION("Verify genetic effect names")
     {
-        REQUIRE(model.genetic()[0].type == gelex::freq::GrmType::A);
-        REQUIRE(model.genetic()[1].type == gelex::freq::GrmType::D);
+        REQUIRE(model.genetic()[0].type == gelex::GeneticMode::A);
+        REQUIRE(model.genetic()[1].type == gelex::GeneticMode::D);
     }
 
     SECTION("Verify both GRM matrices have correct dimensions")

@@ -49,22 +49,22 @@ inline auto parse_genotype_process_method(std::string_view value)
 
     static const std::unordered_map<std::string, GenotypeProcessMethod>
         kMethodMap = {
-            {"standardizehwe", GenotypeProcessMethod::StandardizeHWE},
-            {"sh", GenotypeProcessMethod::StandardizeHWE},
-            {"centerhwe", GenotypeProcessMethod::CenterHWE},
-            {"ch", GenotypeProcessMethod::CenterHWE},
-            {"orthstandardizehwe", GenotypeProcessMethod::OrthStandardizeHWE},
-            {"osh", GenotypeProcessMethod::OrthStandardizeHWE},
-            {"orthcenterhwe", GenotypeProcessMethod::OrthCenterHWE},
-            {"och", GenotypeProcessMethod::OrthCenterHWE},
-            {"standardize", GenotypeProcessMethod::Standardize},
-            {"s", GenotypeProcessMethod::Standardize},
-            {"center", GenotypeProcessMethod::Center},
-            {"c", GenotypeProcessMethod::Center},
-            {"orthstandardize", GenotypeProcessMethod::OrthStandardize},
-            {"os", GenotypeProcessMethod::OrthStandardize},
-            {"orthcenter", GenotypeProcessMethod::OrthCenter},
-            {"oc", GenotypeProcessMethod::OrthCenter},
+            {"standardizehwe", GenotypeProcessMethod::StandardizeHWE()},
+            {"sh", GenotypeProcessMethod::StandardizeHWE()},
+            {"centerhwe", GenotypeProcessMethod::CenterHWE()},
+            {"ch", GenotypeProcessMethod::CenterHWE()},
+            {"orthstandardizehwe", GenotypeProcessMethod::OrthStandardizeHWE()},
+            {"osh", GenotypeProcessMethod::OrthStandardizeHWE()},
+            {"orthcenterhwe", GenotypeProcessMethod::OrthCenterHWE()},
+            {"och", GenotypeProcessMethod::OrthCenterHWE()},
+            {"standardize", GenotypeProcessMethod::Standardize()},
+            {"s", GenotypeProcessMethod::Standardize()},
+            {"center", GenotypeProcessMethod::Center()},
+            {"c", GenotypeProcessMethod::Center()},
+            {"orthstandardize", GenotypeProcessMethod::OrthStandardize()},
+            {"os", GenotypeProcessMethod::OrthStandardize()},
+            {"orthcenter", GenotypeProcessMethod::OrthCenter()},
+            {"oc", GenotypeProcessMethod::OrthCenter()},
         };
 
     auto it = kMethodMap.find(lower);

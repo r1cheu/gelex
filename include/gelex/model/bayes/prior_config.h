@@ -30,7 +30,7 @@ namespace gelex
 
 struct GeneticPriorConfig
 {
-    GeneticKind type;
+    GeneticMode type;
     double heritability;
     Eigen::VectorXd proportion;
     Eigen::VectorXd multiplier;
@@ -46,17 +46,17 @@ class PriorSetConfig
    public:
     PriorSetConfig(BayesMethodConfig method, double phenotype_variance);
 
-    auto override_proportion(GeneticKind type, std::span<const double> values)
+    auto override_proportion(GeneticMode type, std::span<const double> values)
         -> PriorSetConfig&;
-    auto override_multiplier(GeneticKind type, std::span<const double> values)
+    auto override_multiplier(GeneticMode type, std::span<const double> values)
         -> PriorSetConfig&;
     auto override_positive_prob(double value) -> PriorSetConfig&;
 
    private:
     friend class bayes::Priors;
 
-    [[nodiscard]] auto find_genetic(GeneticKind type) -> GeneticPriorConfig*;
-    [[nodiscard]] auto find_genetic(GeneticKind type) const
+    [[nodiscard]] auto find_genetic(GeneticMode type) -> GeneticPriorConfig*;
+    [[nodiscard]] auto find_genetic(GeneticMode type) const
         -> const GeneticPriorConfig*;
 
     BayesMethodConfig method_;

@@ -38,7 +38,7 @@ class AssocNormalEngine
    public:
     struct Config
     {
-        ModelType model_type;
+        GeneticMode model_type;
 
         GenotypeProcessMethod method;
         int chunk_size;

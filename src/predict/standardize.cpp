@@ -42,7 +42,7 @@ auto standardize_genotypes(GenotypeData& geno, const SbinData& sbin) -> void
 
     if (geno.dom.has_value())
     {
-        const bool use_orthogonal = is_orthogonal_method(sbin.add.method);
+        const bool use_orthogonal = sbin.add.method.is_orthogonal();
         const bool dom_has_stddev = sbin.dom.stddev.has_value();
 
         for (Eigen::Index j = 0; j < n_snps; ++j)
@@ -52,11 +52,11 @@ auto standardize_genotypes(GenotypeData& geno, const SbinData& sbin) -> void
 
             if (use_orthogonal)
             {
-                detail::OrthogonalPolicy<GeneticKind::Dom>::encode(col, maf);
+                detail::OrthogonalPolicy<GeneticMode::D>::encode(col, maf);
             }
             else
             {
-                detail::RawPolicy<GeneticKind::Dom>::encode(col, maf);
+                detail::RawPolicy<GeneticMode::D>::encode(col, maf);
             }
 
             col.array() -= sbin.dom.mean(j);

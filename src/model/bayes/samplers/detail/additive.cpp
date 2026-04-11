@@ -36,9 +36,9 @@ auto A::operator()(
     std::mt19937_64& rng) const -> void
 {
     Gibbs::A(
-        *model.genetic(GeneticKind::Add),
-        *priors.genetic(GeneticKind::Add),
-        *states.genetic(GeneticKind::Add),
+        *model.genetic(GeneticMode::A),
+        *priors.genetic(GeneticMode::A),
+        *states.genetic(GeneticMode::A),
         states.residual(),
         rng);
 }
@@ -50,9 +50,9 @@ auto B::operator()(
     std::mt19937_64& rng) const -> void
 {
     Gibbs::B(
-        *model.genetic(GeneticKind::Add),
-        *priors.genetic(GeneticKind::Add),
-        *states.genetic(GeneticKind::Add),
+        *model.genetic(GeneticMode::A),
+        *priors.genetic(GeneticMode::A),
+        *states.genetic(GeneticMode::A),
         states.residual(),
         rng);
 }
@@ -64,9 +64,9 @@ auto C::operator()(
     std::mt19937_64& rng) const -> void
 {
     Gibbs::C(
-        *model.genetic(GeneticKind::Add),
-        *priors.genetic(GeneticKind::Add),
-        *states.genetic(GeneticKind::Add),
+        *model.genetic(GeneticMode::A),
+        *priors.genetic(GeneticMode::A),
+        *states.genetic(GeneticMode::A),
         states.residual(),
         rng);
 }
@@ -78,9 +78,9 @@ auto R::operator()(
     std::mt19937_64& rng) const -> void
 {
     Gibbs::R(
-        *model.genetic(GeneticKind::Add),
-        *priors.genetic(GeneticKind::Add),
-        *states.genetic(GeneticKind::Add),
+        *model.genetic(GeneticMode::A),
+        *priors.genetic(GeneticMode::A),
+        *states.genetic(GeneticMode::A),
         states.residual(),
         rng);
 }
@@ -92,9 +92,9 @@ auto RR::operator()(
     std::mt19937_64& rng) const -> void
 {
     Gibbs::RR(
-        *model.genetic(GeneticKind::Add),
-        *priors.genetic(GeneticKind::Add),
-        *states.genetic(GeneticKind::Add),
+        *model.genetic(GeneticMode::A),
+        *priors.genetic(GeneticMode::A),
+        *states.genetic(GeneticMode::A),
         states.residual(),
         rng);
 }

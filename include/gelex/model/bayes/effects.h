@@ -48,13 +48,13 @@ struct RandomEffect
 
 struct GeneticEffect
 {
-    GeneticEffect(GeneticKind type, GenotypeStorage&& X)
+    GeneticEffect(GeneticMode type, GenotypeStorage&& X)
         : type(type), X(std::move(X))
     {
         cols_squared_norm = get_matrix_ref(this->X).colwise().squaredNorm();
     }
 
-    GeneticKind type;
+    GeneticMode type;
     GenotypeStorage X;
     Eigen::VectorXd cols_squared_norm;
 

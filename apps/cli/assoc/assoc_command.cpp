@@ -56,8 +56,8 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 
     reporter.on_event(
         gelex::AssocConfigLoadedEvent{
-            .model_type = cmd.get("--model") == "a" ? gelex::ModelType::A
-                                                    : gelex::ModelType::D,
+            .model_type = cmd.get("--model") == "a" ? gelex::GeneticMode::A
+                                                    : gelex::GeneticMode::D,
             .loco = loco,
 
             .geno_method = gelex::cli::parse_genotype_process_method(

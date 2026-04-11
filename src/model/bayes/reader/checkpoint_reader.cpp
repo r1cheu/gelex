@@ -290,7 +290,9 @@ auto read_genetic_prior(
     }
 
     return {
-        .type = effect.genetic_kind, .marker = std::move(marker), .sign = sign};
+        .type = *effect.genetic_mode,
+        .marker = std::move(marker),
+        .sign = sign};
 }
 
 auto read_priors(const detail::BinaryReader& reader) -> bayes::Priors
@@ -310,7 +312,7 @@ auto read_priors(const detail::BinaryReader& reader) -> bayes::Priors
     }
 
     std::vector<bayes::GeneticPrior> genetics;
-    for (auto kind : {GeneticKind::Add, GeneticKind::Dom})
+    for (auto kind : {GeneticMode::A, GeneticMode::D})
     {
         const auto effect = EffectType::from_genetic(kind);
         const auto path = fmt::format("prior/{}/type", effect);

@@ -43,8 +43,8 @@ auto fit_execute(argparse::ArgumentParser& fit) -> int
     auto [pheno_config, geno_config]
         = gelex::cli::make_fit_data_configs(fit, fit.get<bool>("--mmap"));
 
-    auto model_type = fit_config.method.dominance ? gelex::ModelType::AD
-                                                  : gelex::ModelType::A;
+    auto model_type = fit_config.method.dominance ? gelex::GeneticMode::AD
+                                                  : gelex::GeneticMode::A;
 
     geno_config.model_type = model_type;
 

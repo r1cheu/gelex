@@ -48,7 +48,7 @@ auto LociStatsReader::read(EffectType effect) const -> LociStats
         reader_.contains(path))
     {
         auto method_map = reader_.to_map<uint8_t>(path);
-        data.method = static_cast<GenotypeProcessMethod>(method_map(0, 0));
+        data.method = GenotypeProcessMethod::from_byte(method_map(0, 0));
     }
 
     if (stats_map.cols() == 2)

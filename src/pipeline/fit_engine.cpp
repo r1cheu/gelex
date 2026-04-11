@@ -47,11 +47,11 @@ auto FitEngine::build_model(PhenoPipe&& pheno, GenoPipe&& geno) -> BayesModel
 
     std::vector<bayes::GeneticEffect> genetics;
     genetics.emplace_back(
-        GeneticKind::Add, std::move(geno).take_additive_matrix());
+        GeneticMode::A, std::move(geno).take_additive_matrix());
     if (geno.has_dominance_matrix())
     {
         genetics.emplace_back(
-            GeneticKind::Dom, std::move(geno).take_dominance_matrix());
+            GeneticMode::D, std::move(geno).take_dominance_matrix());
     }
 
     return BayesModel(
@@ -64,19 +64,19 @@ auto FitEngine::build_priors(const Config& config, const BayesModel& model)
     PriorSetConfig pc(config.method, model.phenotype_variance());
     if (config.pi)
     {
-        pc.override_proportion(GeneticKind::Add, *config.pi);
+        pc.override_proportion(GeneticMode::A, *config.pi);
     }
     if (config.dpi)
     {
-        pc.override_proportion(GeneticKind::Dom, *config.dpi);
+        pc.override_proportion(GeneticMode::D, *config.dpi);
     }
     if (config.multiplier)
     {
-        pc.override_multiplier(GeneticKind::Add, *config.multiplier);
+        pc.override_multiplier(GeneticMode::A, *config.multiplier);
     }
     if (config.dmultiplier)
     {
-        pc.override_multiplier(GeneticKind::Dom, *config.dmultiplier);
+        pc.override_multiplier(GeneticMode::D, *config.dmultiplier);
     }
     pc.override_positive_prob(config.positive_prob);
     return bayes::Priors(pc, model.genetics(), 0);

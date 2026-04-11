@@ -115,9 +115,9 @@ auto PosteriorAnalysisEngine::process_gebv_variance()
 
     std::vector<bayes::GenotypeStorage> genotype_storages;
     std::vector<GeneticInput> genetic_inputs;
-    genotype_storages.reserve(kAllGeneticKinds.size());
+    genotype_storages.reserve(kAllGeneticModes.size());
 
-    for (auto kind : kAllGeneticKinds)
+    for (auto kind : kAllGeneticModes)
     {
         auto coeff_path
             = fmt::format("{}/coeff", EffectType::from_genetic(kind));
@@ -126,7 +126,7 @@ auto PosteriorAnalysisEngine::process_gebv_variance()
             continue;
         }
         auto gbin_path = fmt::format(
-            "{}.{}.gbin", *gfile_, genetic_kind::to_file_suffix(kind));
+            "{}.{}.gbin", *gfile_, genetic_mode::to_file_suffix(kind));
 
         genotype_storages.emplace_back(GenotypeMap(gbin_path, kind));
         genetic_inputs.push_back({&genotype_storages.back(), kind});
@@ -139,7 +139,7 @@ auto PosteriorAnalysisEngine::process_gebv_variance()
                   .process();
         diags.append_range(std::move(gebv_diags));
 
-        std::vector<GeneticKind> active_kinds;
+        std::vector<GeneticMode> active_kinds;
         active_kinds.reserve(genetic_inputs.size());
         for (const auto& input : genetic_inputs)
         {

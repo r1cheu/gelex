@@ -23,7 +23,7 @@
 #include <variant>
 
 #include "gelex/types/bayes_method.h"
-#include "gelex/types/genotype_process_method.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -40,7 +40,7 @@ class Priors;
 struct FitConfigLoadedEvent
 {
     gelex::BayesMethodConfig method;
-    ModelType model_type{};
+    GeneticMode model_type{};
     int n_iters{};
     int n_burn_in{};
     int seed{};

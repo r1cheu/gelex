@@ -33,7 +33,7 @@ HeritabilityPosteriorProcessor::HeritabilityPosteriorProcessor(
     std::span<const detail::BinaryReader> readers,
     double hdpi_threshold,
     const Chains& genetic_variances,
-    std::span<const GeneticKind> kinds)
+    std::span<const GeneticMode> kinds)
     : readers_{readers},
       hdpi_threshold_{hdpi_threshold},
       genetic_variances_{genetic_variances},
@@ -71,7 +71,7 @@ auto HeritabilityPosteriorProcessor::process() -> std::vector<ParameterDiag>
         auto& diag = diags[static_cast<size_t>(ki)];
         diag.section = "Genetic";
         diag.name = std::string(
-            genetic_kind::to_heritability_label(
+            genetic_mode::to_heritability_label(
                 kinds_[static_cast<size_t>(ki)]));
     }
     diags.back().section = "Genetic";

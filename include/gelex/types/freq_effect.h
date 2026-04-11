@@ -26,19 +26,10 @@
 #include <fmt/base.h>
 
 #include "gelex/types/fixed_effects.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::freq
 {
-
-enum class GrmType : uint8_t
-{
-    A,
-    D,
-    AD,
-    AA,
-    DD,
-    Unknown
-};
 
 struct RandomEffect
 {
@@ -49,7 +40,7 @@ struct RandomEffect
 
 struct GeneticEffect
 {
-    GrmType type;
+    GeneticMode type;
     Eigen::MatrixXd K;
 };
 
@@ -72,7 +63,7 @@ struct RandomState
 struct GeneticState
 {
     explicit GeneticState(const GeneticEffect& effect);
-    GrmType type;
+    GeneticMode type;
     Eigen::VectorXd ebv;
     double variance{};
     double variance_se{};
@@ -87,41 +78,5 @@ struct ResidualState
 };
 
 }  // namespace gelex::freq
-
-namespace fmt
-{
-template <>
-struct formatter<gelex::freq::GrmType> : formatter<string_view>
-{
-    auto format(gelex::freq::GrmType t, format_context& ctx) const
-        -> format_context::iterator
-    {
-        string_view name = "unknown";
-        switch (t)
-        {
-            case (gelex::freq::GrmType::A):
-                name = "A";
-                break;
-            case (gelex::freq::GrmType::D):
-                name = "D";
-                break;
-            case (gelex::freq::GrmType::AA):
-                name = "AA";
-                break;
-            case (gelex::freq::GrmType::AD):
-                name = "AD";
-                break;
-            case (gelex::freq::GrmType::DD):
-                name = "DD";
-                break;
-            case (gelex::freq::GrmType::Unknown):
-            default:
-                break;
-        }
-
-        return formatter<string_view>::format(name, ctx);
-    }
-};
-}  // namespace fmt
 
 #endif  // GELEX_TYPES_FREQ_EFFECT_H_

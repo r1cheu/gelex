@@ -28,7 +28,7 @@ namespace gelex
 
 GenotypeMap::GenotypeMap(
     const std::filesystem::path& bin_file,
-    GeneticKind effect_type)
+    GeneticMode effect_type)
     : mat_(nullptr, 0, 0)
 {
     const auto effect = EffectType::from_genetic(effect_type);

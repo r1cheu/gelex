@@ -26,6 +26,7 @@
 #include "gelex/infra/logging/assoc_event.h"
 #include "gelex/types/assoc_input.h"
 #include "gelex/types/chr_group.h"
+#include "gelex/types/genetic_effect_type.h"
 #include "gelex/types/genotype_process_method.h"
 
 namespace gelex
@@ -38,7 +39,7 @@ namespace detail
 
 auto dispatch_assoc_chunk_by_method(
     GenotypeProcessMethod method,
-    ModelType model_type,
+    GeneticMode model_type,
     Eigen::Ref<Eigen::MatrixXd> genotype,
     Eigen::VectorXd* freqs) -> void;
 

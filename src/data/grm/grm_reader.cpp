@@ -27,17 +27,17 @@
 
 namespace
 {
-auto get_type(std::string_view grm_path_stem) -> gelex::freq::GrmType
+auto get_type(std::string_view grm_path_stem) -> gelex::GeneticMode
 {
     if (grm_path_stem.contains("add"))
     {
-        return gelex::freq::GrmType::A;
+        return gelex::GeneticMode::A;
     }
     if (grm_path_stem.contains("dom"))
     {
-        return gelex::freq::GrmType::D;
+        return gelex::GeneticMode::D;
     }
-    return gelex::freq::GrmType::Unknown;
+    return gelex::GeneticMode::A;
 }
 }  // namespace
 namespace gelex::detail

@@ -20,7 +20,7 @@
 #include <functional>
 #include <string>
 #include <variant>
-#include "gelex/types/freq_effect.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -28,7 +28,7 @@ namespace gelex
 struct GrmConfigLoadedEvent
 {
     std::string method;
-    gelex::freq::GrmType mode;
+    GeneticMode mode;
     bool do_loco;
 };
 

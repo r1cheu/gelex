@@ -35,14 +35,14 @@ struct GrmTask
     bool is_additive;
 };
 
-auto build_tasks(freq::GrmType mode) -> std::vector<GrmTask>
+auto build_tasks(GeneticMode mode) -> std::vector<GrmTask>
 {
     std::vector<GrmTask> tasks;
-    if (mode != freq::GrmType::D)
+    if (mode != GeneticMode::D)
     {
         tasks.push_back({"add", true});
     }
-    if (mode != freq::GrmType::A)
+    if (mode != GeneticMode::A)
     {
         tasks.push_back({"dom", false});
     }
@@ -83,7 +83,7 @@ auto GrmLocoPlan::build_loco_ranges(const df::DataFrame<std::string>& bim)
 
 GrmNormalPlan::GrmNormalPlan(
     const std::filesystem::path& bim_path,
-    freq::GrmType mode)
+    GeneticMode mode)
 {
     auto bim = read_bim(bim_path);
     auto num_snps = static_cast<Eigen::Index>(bim.rows());
@@ -122,7 +122,7 @@ auto GrmNormalPlan::output_pattern(std::string_view out_prefix) const
 
 GrmLocoPlan::GrmLocoPlan(
     const std::filesystem::path& bim_path,
-    freq::GrmType mode)
+    GeneticMode mode)
 {
     auto bim = read_bim(bim_path);
     auto groups = build_loco_ranges(bim);

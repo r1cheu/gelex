@@ -22,7 +22,7 @@
 
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/infra/logging/grm_event.h"
-#include "gelex/types/freq_effect.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -34,7 +34,7 @@ class GrmEngine
     {
         std::filesystem::path bed_path;
 
-        gelex::freq::GrmType mode;
+        GeneticMode mode;
         GenotypeProcessMethod method;
         bool do_loco;
 

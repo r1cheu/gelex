@@ -177,7 +177,7 @@ struct GeneticSamples
         return heritability_stats_.result();
     }
 
-    GeneticKind type;
+    GeneticMode type;
     std::optional<MixtureSamples> group;
     std::optional<AssignmentSamples> sign;
 
@@ -227,7 +227,7 @@ class MCMCSamples
     const std::vector<RandomSamples>& random() const { return random_; }
 
     const std::vector<GeneticSamples>& genetics() const { return genetics_; }
-    const GeneticSamples* genetic(GeneticKind type) const
+    const GeneticSamples* genetic(GeneticMode type) const
     {
         auto it = std::ranges::find(genetics_, type, &GeneticSamples::type);
         return it != genetics_.end() ? &*it : nullptr;

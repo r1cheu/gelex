@@ -32,7 +32,7 @@ namespace gelex
 
 struct AssocConfigLoadedEvent
 {
-    ModelType model_type;
+    GeneticMode model_type;
     bool loco;
 
     GenotypeProcessMethod geno_method;

@@ -22,7 +22,7 @@
 #include <variant>
 #include <vector>
 
-#include "gelex/types/freq_effect.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -60,7 +60,7 @@ struct GenotypeLoadedEvent
 struct GrmLoadedEvent
 {
     size_t num_samples;
-    freq::GrmType type;
+    GeneticMode type;
 };
 
 struct GenotypeProgressEvent

@@ -23,7 +23,7 @@
 #include <variant>
 #include <vector>
 
-#include "gelex/types/freq_effect.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -33,7 +33,7 @@ class FreqState;
 
 struct VarianceComponent
 {
-    freq::GrmType type{freq::GrmType::Unknown};
+    GeneticMode type{GeneticMode::A};
     double variance{};
     double heritability{};
 };

@@ -61,7 +61,7 @@ PriorSetConfig::PriorSetConfig(
     : method_(method), phenotype_variance_(phenotype_variance)
 {
     genetics_.push_back(
-        {GeneticKind::Add,
+        {GeneticMode::A,
          0.5,
          default_proportion(method.base),
          default_multiplier(method.base)});
@@ -69,7 +69,7 @@ PriorSetConfig::PriorSetConfig(
     if (method.dominance)
     {
         genetics_.push_back(
-            {GeneticKind::Dom,
+            {GeneticMode::D,
              0.2,
              default_proportion(method.base),
              default_multiplier(method.base)});
@@ -77,7 +77,7 @@ PriorSetConfig::PriorSetConfig(
 }
 
 auto PriorSetConfig::override_proportion(
-    GeneticKind type,
+    GeneticMode type,
     std::span<const double> values) -> PriorSetConfig&
 {
     if (auto* g = find_genetic(type))
@@ -89,7 +89,7 @@ auto PriorSetConfig::override_proportion(
 }
 
 auto PriorSetConfig::override_multiplier(
-    GeneticKind type,
+    GeneticMode type,
     std::span<const double> values) -> PriorSetConfig&
 {
     if (auto* g = find_genetic(type))
@@ -106,13 +106,13 @@ auto PriorSetConfig::override_positive_prob(double value) -> PriorSetConfig&
     return *this;
 }
 
-auto PriorSetConfig::find_genetic(GeneticKind type) -> GeneticPriorConfig*
+auto PriorSetConfig::find_genetic(GeneticMode type) -> GeneticPriorConfig*
 {
     auto it = std::ranges::find(genetics_, type, &GeneticPriorConfig::type);
     return it != genetics_.end() ? &*it : nullptr;
 }
 
-auto PriorSetConfig::find_genetic(GeneticKind type) const
+auto PriorSetConfig::find_genetic(GeneticMode type) const
     -> const GeneticPriorConfig*
 {
     auto it = std::ranges::find(genetics_, type, &GeneticPriorConfig::type);

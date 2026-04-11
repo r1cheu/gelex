@@ -37,9 +37,9 @@ auto A::operator()(
     std::mt19937_64& rng) const -> void
 {
     Gibbs::A(
-        *model.genetic(GeneticKind::Dom),
-        *priors.genetic(GeneticKind::Dom),
-        *states.genetic(GeneticKind::Dom),
+        *model.genetic(GeneticMode::D),
+        *priors.genetic(GeneticMode::D),
+        *states.genetic(GeneticMode::D),
         states.residual(),
         rng);
 }
@@ -51,9 +51,9 @@ auto B::operator()(
     std::mt19937_64& rng) const -> void
 {
     Gibbs::B(
-        *model.genetic(GeneticKind::Dom),
-        *priors.genetic(GeneticKind::Dom),
-        *states.genetic(GeneticKind::Dom),
+        *model.genetic(GeneticMode::D),
+        *priors.genetic(GeneticMode::D),
+        *states.genetic(GeneticMode::D),
         states.residual(),
         rng);
 }
@@ -65,9 +65,9 @@ auto C::operator()(
     std::mt19937_64& rng) const -> void
 {
     Gibbs::C(
-        *model.genetic(GeneticKind::Dom),
-        *priors.genetic(GeneticKind::Dom),
-        *states.genetic(GeneticKind::Dom),
+        *model.genetic(GeneticMode::D),
+        *priors.genetic(GeneticMode::D),
+        *states.genetic(GeneticMode::D),
         states.residual(),
         rng);
 }
@@ -79,9 +79,9 @@ auto R::operator()(
     std::mt19937_64& rng) const -> void
 {
     Gibbs::R(
-        *model.genetic(GeneticKind::Dom),
-        *priors.genetic(GeneticKind::Dom),
-        *states.genetic(GeneticKind::Dom),
+        *model.genetic(GeneticMode::D),
+        *priors.genetic(GeneticMode::D),
+        *states.genetic(GeneticMode::D),
         states.residual(),
         rng);
 }
@@ -93,9 +93,9 @@ auto RR::operator()(
     std::mt19937_64& rng) const -> void
 {
     Gibbs::RR(
-        *model.genetic(GeneticKind::Dom),
-        *priors.genetic(GeneticKind::Dom),
-        *states.genetic(GeneticKind::Dom),
+        *model.genetic(GeneticMode::D),
+        *priors.genetic(GeneticMode::D),
+        *states.genetic(GeneticMode::D),
         states.residual(),
         rng);
 }
@@ -107,9 +107,9 @@ auto AT::operator()(
     std::mt19937_64& rng) const -> void
 {
     Gibbs::R<Gibbs::policy::AT>(
-        *model.genetic(GeneticKind::Dom),
-        *priors.genetic(GeneticKind::Dom),
-        *states.genetic(GeneticKind::Dom),
+        *model.genetic(GeneticMode::D),
+        *priors.genetic(GeneticMode::D),
+        *states.genetic(GeneticMode::D),
         states.residual(),
         rng);
 }

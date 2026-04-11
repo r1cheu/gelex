@@ -25,13 +25,13 @@
 namespace gelex::cli
 {
 
-auto parse_model_type(std::string_view model) -> ModelType
+auto parse_model_type(std::string_view model) -> GeneticMode
 {
     if (model == "a")
     {
-        return ModelType::A;
+        return GeneticMode::A;
     }
-    return ModelType::D;
+    return GeneticMode::D;
 }
 
 auto parse_transform_type(std::string_view transform) -> detail::TransformType

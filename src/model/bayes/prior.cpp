@@ -120,7 +120,7 @@ auto Priors::build_genetic_prior(
     }();
 
     std::optional<SignPrior> sign;
-    if (config.method_.asymmetric && effect.type == GeneticKind::Dom)
+    if (config.method_.asymmetric && effect.type == GeneticMode::D)
     {
         sign = SignPrior{config.positive_prob_};
     }

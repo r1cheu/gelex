@@ -39,7 +39,7 @@ auto AssocReporter::on_event(const AssocConfigLoadedEvent& event) const -> void
     logger_->info(
         "  {:<12}: {}",
         "Model",
-        event.model_type == gelex::ModelType::A ? "Additive" : "Dominance");
+        event.model_type == gelex::GeneticMode::A ? "Additive" : "Dominance");
     logger_->info("  {:<12}: {}", "LOCO", event.loco ? "Yes" : "No");
 
     logger_->info("  {:<12}: {}", "Geno Method", event.geno_method);

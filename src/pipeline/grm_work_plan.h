@@ -26,7 +26,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/dataframe/dataframe.h"
-#include "gelex/types/freq_effect.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -41,7 +41,7 @@ struct GrmWorkItem
 class GrmNormalPlan
 {
    public:
-    GrmNormalPlan(const std::filesystem::path& bim_path, freq::GrmType mode);
+    GrmNormalPlan(const std::filesystem::path& bim_path, GeneticMode mode);
 
     auto items() const -> const std::vector<GrmWorkItem>&;
     auto total_work() const -> Eigen::Index;
@@ -56,7 +56,7 @@ class GrmNormalPlan
 class GrmLocoPlan
 {
    public:
-    GrmLocoPlan(const std::filesystem::path& bim_path, freq::GrmType mode);
+    GrmLocoPlan(const std::filesystem::path& bim_path, GeneticMode mode);
 
     auto items() const -> const std::vector<GrmWorkItem>&;
     auto total_work() const -> Eigen::Index;

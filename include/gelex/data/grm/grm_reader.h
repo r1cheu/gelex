@@ -25,7 +25,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/dataframe/index.h"
-#include "gelex/types/freq_effect.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::detail
 {
@@ -65,13 +65,13 @@ class GrmReader
         return static_cast<Eigen::Index>(sample_index_.size());
     }
 
-    [[nodiscard]] auto type() const noexcept -> freq::GrmType { return type_; }
+    [[nodiscard]] auto type() const noexcept -> GeneticMode { return type_; }
 
    private:
     std::filesystem::path bin_path_;
     mio::mmap_source mmap_;
     df::Index<std::string> sample_index_;
-    freq::GrmType type_;
+    GeneticMode type_;
 
     auto init_mmap() -> void;
 

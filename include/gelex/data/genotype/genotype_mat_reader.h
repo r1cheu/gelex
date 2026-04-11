@@ -47,7 +47,7 @@ class GenotypeMatReader
     GenotypeMatReader& operator=(GenotypeMatReader&&) noexcept = default;
     ~GenotypeMatReader() = default;
 
-    template <GeneticKind GT>
+    template <GeneticMode GT>
     auto process(GenotypeProcessMethod method, size_t chunk_size = 10000)
         -> GenotypeMatrix
     {

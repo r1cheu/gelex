@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
+#include <fmt/format.h>
 #include <cstdint>
 #include <filesystem>
-#include <fmt/format.h>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -93,7 +93,7 @@ auto create_sbin(
     const Eigen::MatrixXd& genotypes) -> void
 {
     using gelex::EffectType;
-    using gelex::GeneticKind;
+    using gelex::GeneticMode;
     using gelex::GenotypeProcessMethod;
     using gelex::LociStatsWriter;
     using gelex::StandardizeHWE;
@@ -106,7 +106,7 @@ auto create_sbin(
     for (Eigen::Index j = 0; j < n_snps; ++j)
     {
         auto col = add_geno.col(j);
-        auto stats = StandardizeHWE<GeneticKind::Add>::process(col);
+        auto stats = StandardizeHWE<GeneticMode::A>::process(col);
         add_mean(j) = stats.mean;
         add_stddev(j) = stats.stddev;
     }
@@ -117,7 +117,7 @@ auto create_sbin(
     for (Eigen::Index j = 0; j < n_snps; ++j)
     {
         auto col = dom_geno.col(j);
-        auto stats = StandardizeHWE<GeneticKind::Dom>::process(col);
+        auto stats = StandardizeHWE<GeneticMode::D>::process(col);
         dom_mean(j) = stats.mean;
         dom_stddev(j) = stats.stddev;
     }
@@ -125,12 +125,12 @@ auto create_sbin(
     LociStatsWriter writer(sbin_path.string());
     writer.write(
         EffectType::add(),
-        static_cast<uint8_t>(GenotypeProcessMethod::StandardizeHWE),
+        GenotypeProcessMethod::StandardizeHWE().to_byte(),
         add_mean,
         &add_stddev);
     writer.write(
         EffectType::dom(),
-        static_cast<uint8_t>(GenotypeProcessMethod::StandardizeHWE),
+        GenotypeProcessMethod::StandardizeHWE().to_byte(),
         dom_mean,
         &dom_stddev);
     writer.finalize();

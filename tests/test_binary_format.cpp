@@ -384,15 +384,15 @@ TEST_CASE(
 
     // Load via GenotypeMatReader (in-memory)
     GenotypeMatReader mat_reader(prefix, sample_index);
-    auto mat_result = mat_reader.process<GeneticKind::Add>(
-        GenotypeProcessMethod::StandardizeHWE);
+    auto mat_result = mat_reader.process<GeneticMode::A>(
+        GenotypeProcessMethod::StandardizeHWE());
 
     // Load via GenotypeMapReader (mmap)
     auto output_prefix
         = bed_fixture.get_file_fixture().get_test_dir() / "mmap_out";
     GenotypeMapReader map_reader(prefix, sample_index, output_prefix);
-    auto map_result = map_reader.process<GeneticKind::Add>(
-        GenotypeProcessMethod::StandardizeHWE);
+    auto map_result = map_reader.process<GeneticMode::A>(
+        GenotypeProcessMethod::StandardizeHWE());
 
     SECTION("matrix dimensions match")
     {

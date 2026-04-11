@@ -2,20 +2,20 @@
 #define GELEX_TYPES_GENETIC_EFFECT_TYPE_H_
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <string_view>
+#include <utility>
 
 #include <fmt/format.h>
-
-#include "gelex/exception.h"
 
 namespace gelex
 {
 
-enum class GeneticKind : uint8_t
+enum class GeneticMode : uint8_t
 {
-    NotGenetic = 255,
-    Add = 0,
-    Dom = 1
+    A = 0,
+    D = 1,
+    AD = 2
 };
 
 struct EffectType
@@ -29,125 +29,103 @@ struct EffectType
     };
 
     Category category{};
-    GeneticKind genetic_kind{GeneticKind::NotGenetic};
+    std::optional<GeneticMode> genetic_mode;
 
     auto operator==(const EffectType&) const -> bool = default;
 
     static constexpr auto add() -> EffectType
     {
-        return {Category::Genetic, GeneticKind::Add};
+        return {Category::Genetic, GeneticMode::A};
     }
     static constexpr auto dom() -> EffectType
     {
-        return {Category::Genetic, GeneticKind::Dom};
+        return {Category::Genetic, GeneticMode::D};
     }
-    static constexpr auto fixed() -> EffectType { return {Category::Fixed}; }
-    static constexpr auto random() -> EffectType { return {Category::Random}; }
+    static constexpr auto fixed() -> EffectType
+    {
+        return {Category::Fixed, {}};
+    }
+    static constexpr auto random() -> EffectType
+    {
+        return {Category::Random, {}};
+    }
     static constexpr auto residual() -> EffectType
     {
-        return {Category::Residual};
+        return {Category::Residual, {}};
     }
-    static constexpr auto from_genetic(GeneticKind gk) -> EffectType
+    static constexpr auto from_genetic(GeneticMode gm) -> EffectType
     {
-        return {Category::Genetic, gk};
-    }
-
-    constexpr auto to_byte() const -> uint8_t
-    {
-        if (category == Category::Genetic)
-        {
-            return static_cast<uint8_t>(genetic_kind);
-        }
-        return static_cast<uint8_t>(category);
-    }
-
-    static constexpr auto from_byte(uint8_t wire) -> EffectType
-    {
-        switch (wire)
-        {
-            case 0:
-                return add();
-            case 1:
-                return dom();
-            case 2:
-                return fixed();
-            case 3:
-                return random();
-            case 4:
-                return residual();
-            default:
-                throw GelexException(
-                    "EffectType::from_byte: unknown wire value");
-        }
+        return {Category::Genetic, gm};
     }
 };
 
-inline constexpr std::array kAllGeneticKinds{
-    GeneticKind::Add,
-    GeneticKind::Dom};
+inline constexpr std::array kAllGeneticModes{GeneticMode::A, GeneticMode::D};
 
-namespace genetic_kind
+namespace genetic_mode
 {
 
-inline auto to_file_suffix(GeneticKind type) -> std::string_view
+inline auto to_file_suffix(GeneticMode type) -> std::string_view
 {
     switch (type)
     {
-        case GeneticKind::Add:
+        case GeneticMode::A:
             return "add";
-        case GeneticKind::Dom:
+        case GeneticMode::D:
             return "dom";
-        default:
-            return "unk";
+        case GeneticMode::AD:
+            return "ad";
     }
+    std::unreachable();
 }
 
-inline auto to_variance_label(GeneticKind type) -> std::string_view
+inline auto to_variance_label(GeneticMode type) -> std::string_view
 {
     switch (type)
     {
-        case GeneticKind::Add:
+        case GeneticMode::A:
             return "σ²_add";
-        case GeneticKind::Dom:
+        case GeneticMode::D:
             return "σ²_dom";
-        default:
-            return "σ²_unk";
+        case GeneticMode::AD:
+            return "σ²_g";
     }
+    std::unreachable();
 }
 
-inline auto to_heritability_label(GeneticKind type) -> std::string_view
+inline auto to_heritability_label(GeneticMode type) -> std::string_view
 {
     switch (type)
     {
-        case GeneticKind::Add:
+        case GeneticMode::A:
             return "h²";
-        case GeneticKind::Dom:
+        case GeneticMode::D:
             return "δ²";
-        default:
-            return "?²";
+        case GeneticMode::AD:
+            return "H²";
     }
+    std::unreachable();
 }
 
-}  // namespace genetic_kind
+}  // namespace genetic_mode
 
 }  // namespace gelex
 
 template <>
-struct fmt::formatter<gelex::GeneticKind> : fmt::formatter<std::string_view>
+struct fmt::formatter<gelex::GeneticMode> : fmt::formatter<std::string_view>
 {
-    auto format(gelex::GeneticKind gk, auto& ctx) const
+    auto format(gelex::GeneticMode mode, auto& ctx) const
     {
         std::string_view name;
-        switch (gk)
+        switch (mode)
         {
-            case gelex::GeneticKind::Add:
+            case gelex::GeneticMode::A:
                 name = "Additive";
                 break;
-            case gelex::GeneticKind::Dom:
+            case gelex::GeneticMode::D:
                 name = "Dominance";
                 break;
-            default:
-                name = "Unknown";
+            case gelex::GeneticMode::AD:
+                name = "Additive Dominance";
                 break;
         }
         return fmt::formatter<std::string_view>::format(name, ctx);
@@ -164,7 +142,7 @@ struct fmt::formatter<gelex::EffectType> : fmt::formatter<std::string_view>
         switch (et.category)
         {
             case Cat::Genetic:
-                return fmt::format_to(ctx.out(), "{}", et.genetic_kind);
+                return fmt::format_to(ctx.out(), "{}", *et.genetic_mode);
             case Cat::Fixed:
                 name = "Fixed";
                 break;

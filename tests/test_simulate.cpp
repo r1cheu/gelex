@@ -350,8 +350,8 @@ TEST_CASE("SimulationEngine - additive variance", "[simulate]")
     auto [causal_geno, add_betas, _]
         = extract_causal_columns(stored_geno, effects, snp_to_col);
 
-    process_matrix<GeneticKind::Add>(
-        GenotypeProcessMethod::OrthStandardize, causal_geno);
+    process_matrix<GeneticMode::A>(
+        GenotypeProcessMethod::OrthStandardize(), causal_geno);
     Eigen::VectorXd g_a = causal_geno * add_betas;
 
     auto phenotypes = parse_phenotypes(
@@ -384,14 +384,14 @@ TEST_CASE("SimulationEngine - additive and dominance variance", "[simulate]")
 
     // Additive genetic values
     Eigen::MatrixXd x_add = causal_geno;
-    process_matrix<GeneticKind::Add>(
-        GenotypeProcessMethod::OrthStandardize, x_add);
+    process_matrix<GeneticMode::A>(
+        GenotypeProcessMethod::OrthStandardize(), x_add);
     Eigen::VectorXd g_a = x_add * add_betas;
 
     // Dominance genetic values
     Eigen::MatrixXd x_dom = causal_geno;
-    process_matrix<GeneticKind::Dom>(
-        GenotypeProcessMethod::OrthStandardize, x_dom);
+    process_matrix<GeneticMode::D>(
+        GenotypeProcessMethod::OrthStandardize(), x_dom);
     Eigen::VectorXd g_d = x_dom * dom_betas;
 
     // Scale dominance: scaled_d = d * sqrt(target / raw), target = Va * d2 / h2

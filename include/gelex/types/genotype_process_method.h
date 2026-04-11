@@ -20,65 +20,101 @@
 #include <cstdint>
 
 #include <fmt/base.h>
-
-#include "gelex/exception.h"
+#include <fmt/format.h>
 
 namespace gelex
 {
 
-enum class GenotypeProcessMethod : uint8_t
+enum class ScaleMethod : uint8_t
 {
-    StandardizeHWE = 1,
-    CenterHWE,
-    OrthStandardizeHWE,
-    OrthCenterHWE,
     Standardize,
-    Center,
-    OrthStandardize,
-    OrthCenter
+    Center
 };
 
-inline auto is_center_family_method(GenotypeProcessMethod method) -> bool
+enum class FreqSource : uint8_t
 {
-    switch (method)
-    {
-        case GenotypeProcessMethod::CenterHWE:
-        case GenotypeProcessMethod::OrthCenterHWE:
-        case GenotypeProcessMethod::Center:
-        case GenotypeProcessMethod::OrthCenter:
-            return true;
-        case GenotypeProcessMethod::StandardizeHWE:
-        case GenotypeProcessMethod::OrthStandardizeHWE:
-        case GenotypeProcessMethod::Standardize:
-        case GenotypeProcessMethod::OrthStandardize:
-            return false;
-    }
-    throw GelexException("Invalid genotype process method.");
-}
+    HWE,
+    Sample
+};
 
-inline auto is_orthogonal_method(GenotypeProcessMethod method) -> bool
+enum class Projection : uint8_t
 {
-    switch (method)
-    {
-        case GenotypeProcessMethod::OrthStandardizeHWE:
-        case GenotypeProcessMethod::OrthCenterHWE:
-        case GenotypeProcessMethod::OrthStandardize:
-        case GenotypeProcessMethod::OrthCenter:
-            return true;
-        case GenotypeProcessMethod::StandardizeHWE:
-        case GenotypeProcessMethod::CenterHWE:
-        case GenotypeProcessMethod::Standardize:
-        case GenotypeProcessMethod::Center:
-            return false;
-    }
-    throw GelexException("Invalid genotype process method.");
-}
+    Direct,
+    Orthogonal
+};
 
-enum class ModelType : uint8_t
+struct GenotypeProcessMethod
 {
-    A,
-    D,
-    AD
+    ScaleMethod scale;
+    FreqSource freq;
+    Projection proj;
+
+    auto operator==(const GenotypeProcessMethod&) const -> bool = default;
+
+    constexpr auto is_center() const -> bool
+    {
+        return scale == ScaleMethod::Center;
+    }
+    constexpr auto is_orthogonal() const -> bool
+    {
+        return proj == Projection::Orthogonal;
+    }
+    constexpr auto is_hwe() const -> bool { return freq == FreqSource::HWE; }
+
+    constexpr auto to_byte() const -> uint8_t
+    {
+        return static_cast<uint8_t>(
+            static_cast<unsigned>(scale) | (static_cast<unsigned>(freq) << 1U)
+            | (static_cast<unsigned>(proj) << 2U));
+    }
+
+    static constexpr auto from_byte(uint8_t b) -> GenotypeProcessMethod
+    {
+        auto u = static_cast<unsigned>(b);
+        return {
+            .scale = static_cast<ScaleMethod>(u & 1U),
+            .freq = static_cast<FreqSource>((u >> 1U) & 1U),
+            .proj = static_cast<Projection>((u >> 2U) & 1U)};
+    }
+
+    static constexpr auto StandardizeHWE() -> GenotypeProcessMethod
+    {
+        return {ScaleMethod::Standardize, FreqSource::HWE, Projection::Direct};
+    }
+    static constexpr auto CenterHWE() -> GenotypeProcessMethod
+    {
+        return {ScaleMethod::Center, FreqSource::HWE, Projection::Direct};
+    }
+    static constexpr auto OrthStandardizeHWE() -> GenotypeProcessMethod
+    {
+        return {
+            ScaleMethod::Standardize, FreqSource::HWE, Projection::Orthogonal};
+    }
+    static constexpr auto OrthCenterHWE() -> GenotypeProcessMethod
+    {
+        return {ScaleMethod::Center, FreqSource::HWE, Projection::Orthogonal};
+    }
+    static constexpr auto Standardize() -> GenotypeProcessMethod
+    {
+        return {
+            ScaleMethod::Standardize, FreqSource::Sample, Projection::Direct};
+    }
+    static constexpr auto Center() -> GenotypeProcessMethod
+    {
+        return {ScaleMethod::Center, FreqSource::Sample, Projection::Direct};
+    }
+    static constexpr auto OrthStandardize() -> GenotypeProcessMethod
+    {
+        return {
+            ScaleMethod::Standardize,
+            FreqSource::Sample,
+            Projection::Orthogonal};
+    }
+    static constexpr auto OrthCenter() -> GenotypeProcessMethod
+    {
+        return {
+            ScaleMethod::Center, FreqSource::Sample, Projection::Orthogonal};
+    }
 };
 
 struct LocusStatistic
@@ -96,43 +132,13 @@ namespace fmt
 template <>
 struct formatter<gelex::GenotypeProcessMethod> : formatter<string_view>
 {
-    auto format(gelex::GenotypeProcessMethod t, format_context& ctx) const
+    static auto format(gelex::GenotypeProcessMethod t, format_context& ctx)
         -> format_context::iterator
     {
-        string_view name = "unknown";
-        using gelex::GenotypeProcessMethod;
-        switch (t)
-        {
-            case GenotypeProcessMethod::StandardizeHWE:
-                name = "StandardizeHWE";
-                break;
-            case GenotypeProcessMethod::CenterHWE:
-                name = "CenterHWE";
-                break;
-            case GenotypeProcessMethod::OrthStandardizeHWE:
-                name = "OrthStandardizeHWE";
-                break;
-            case GenotypeProcessMethod::OrthCenterHWE:
-                name = "OrthCenterHWE";
-                break;
-            case GenotypeProcessMethod::Standardize:
-                name = "Standardize";
-                break;
-            case GenotypeProcessMethod::Center:
-                name = "Center";
-                break;
-            case GenotypeProcessMethod::OrthStandardize:
-                name = "OrthStandardize";
-                break;
-            case GenotypeProcessMethod::OrthCenter:
-                name = "OrthCenter";
-                break;
-            default:
-                name = "Unknown Genotype Process Method";
-                break;
-        }
-
-        return formatter<string_view>::format(name, ctx);
+        string_view orth = t.is_orthogonal() ? "Orth" : "";
+        string_view scale = t.is_center() ? "Center" : "Standardize";
+        string_view hwe = t.is_hwe() ? "HWE" : "";
+        return fmt::format_to(ctx.out(), "{}{}{}", orth, scale, hwe);
     }
 };
 }  // namespace fmt
