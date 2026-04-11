@@ -19,10 +19,8 @@
 #include <algorithm>
 #include <cstddef>
 #include <filesystem>
-#include <ranges>
+#include <fstream>
 #include <vector>
-
-#include "gelex/types/sample_id.h"
 
 namespace gelex::detail
 {
@@ -58,60 +56,6 @@ size_t count_total_lines(const std::filesystem::path& path)
     }
 
     return line_count;
-}
-
-std::string parse_id(std::string_view line, char delimiter)
-{
-    auto parts = line | std::views::split(delimiter) | std::views::take(2);
-    auto it = parts.begin();
-    auto end = parts.end();
-
-    if (it == end)
-    {
-        throw GelexException("failed to parse FID (empty line)");
-    }
-    std::string_view fid(*it);
-
-    if (++it == end)
-    {
-        throw GelexException("failed to parse FID and IID (missing delimiter)");
-    }
-    std::string_view iid(*it);
-    return make_sample_id(fid, iid);
-}
-
-void parse_string(
-    std::string_view line,
-    std::vector<std::string_view>& out,
-    size_t column_offset,
-    char delimiter)
-{
-    out.clear();
-
-    auto tokens
-        = line | std::views::split(delimiter) | std::views::drop(column_offset);
-
-    for (auto&& rng : tokens)
-    {
-        if (rng.empty())
-        {
-            throw GelexException("empty value encountered");
-        }
-        out.emplace_back(rng);
-    }
-}
-
-char detect_file_delimiter(std::ifstream& file)
-{
-    std::string probe_line;
-
-    std::getline(file, probe_line);
-    bool is_tab = !probe_line.empty() && probe_line.contains('\t');
-
-    file.clear();
-    file.seekg(0);
-
-    return is_tab ? '\t' : ' ';
 }
 
 }  // namespace gelex::detail

@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-#include <cmath>
 #include <filesystem>
 #include <fstream>
-#include <string_view>
+#include <string>
 #include <vector>
 
 #include <catch2/catch_test_macros.hpp>
@@ -27,7 +26,6 @@
 #include "file_fixture.h"
 #include "gelex/exception.h"
 #include "gelex/io/parser.h"
-#include "gelex/types/sample_id.h"
 
 namespace fs = std::filesystem;
 
@@ -199,120 +197,5 @@ TEST_CASE("Parser Line Counting Tests", "[parser]")
     {
         auto file_path = files.create_text_file("line1\nline2\nline3");
         REQUIRE(count_total_lines(file_path) == 3);
-    }
-}
-
-TEST_CASE("Parser Double Parsing Tests", "[parser]")
-{
-    SECTION("Happy path - valid numbers")
-    {
-        REQUIRE(parse_number("42") == 42.0);
-        REQUIRE(parse_number("3.14") == 3.14);
-        REQUIRE(parse_number("-1.5") == -1.5);
-        REQUIRE(parse_number("1.23e-4") == 1.23e-4);
-        REQUIRE(std::isnan(parse_number("nan")));
-    }
-
-    SECTION("Exception - invalid numbers")
-    {
-        REQUIRE_THROWS_MATCHES(
-            parse_number("abc"),
-            gelex::GelexException,
-            Catch::Matchers::MessageMatches(
-                EndsWith("failed to parse 'abc' as number")));
-
-        REQUIRE_THROWS_MATCHES(
-            parse_number("1.2.3"),
-            gelex::GelexException,
-            Catch::Matchers::MessageMatches(
-                EndsWith("failed to parse '1.2.3' as number")));
-
-        REQUIRE_THROWS_MATCHES(
-            parse_number(""),
-            gelex::GelexException,
-            Catch::Matchers::MessageMatches(
-                EndsWith("empty string cannot be parsed as number")));
-
-        REQUIRE_THROWS_MATCHES(
-            parse_number(" "),
-            gelex::GelexException,
-            Catch::Matchers::MessageMatches(
-                EndsWith("failed to parse ' ' as number")));
-    }
-}
-
-TEST_CASE("Parser ID Parsing Tests", "[parser]")
-{
-    SECTION("Happy path - full ID with tab delimiter")
-    {
-        std::string_view line = "1\t2\t2.5\t1.0";
-
-        REQUIRE(parse_id(line, '\t') == gelex::make_sample_id("1", "2"));
-    }
-
-    SECTION("Happy path - custom delimiter")
-    {
-        std::string_view line = "1,2,2.5,1.0";
-
-        REQUIRE(parse_id(line, ',') == gelex::make_sample_id("1", "2"));
-    }
-
-    SECTION("Exception - insufficient columns")
-    {
-        std::string_view line = "1";
-
-        REQUIRE_THROWS_MATCHES(
-            parse_id(line, '\t'),
-            gelex::GelexException,
-            Catch::Matchers::MessageMatches(
-                EndsWith("failed to parse FID and IID (missing delimiter)")));
-    }
-}
-
-TEST_CASE("Parser String Parsing Tests", "[parser]")
-{
-    SECTION("Happy path - parse all columns")
-    {
-        std::string_view line = "FID\tIID\tPhenotype\tCovariate";
-        std::vector<std::string_view> strings;
-        parse_string(line, strings, 0, '\t');
-
-        REQUIRE(strings.size() == 4);
-        REQUIRE(strings[0] == "FID");
-        REQUIRE(strings[1] == "IID");
-        REQUIRE(strings[2] == "Phenotype");
-        REQUIRE(strings[3] == "Covariate");
-    }
-
-    SECTION("Happy path - parse with column offset")
-    {
-        std::string_view line = "FID\tIID\tPhenotype\tCovariate";
-        std::vector<std::string_view> strings;
-        parse_string(line, strings, 2, '\t');
-
-        REQUIRE(strings.size() == 2);
-        REQUIRE(strings[0] == "Phenotype");
-        REQUIRE(strings[1] == "Covariate");
-    }
-
-    SECTION("Edge case - offset beyond available columns")
-    {
-        std::string_view line = "FID\tIID\tPhenotype";
-        std::vector<std::string_view> strings;
-        parse_string(line, strings, 5, '\t');
-
-        REQUIRE(strings.empty());
-    }
-
-    SECTION("Edge case - empty columns")
-    {
-        std::string_view line = "FID\t\tPhenotype\t";
-        std::vector<std::string_view> strings;
-
-        REQUIRE_THROWS_MATCHES(
-            parse_string(line, strings, 0, '\t'),
-            gelex::GelexException,
-            Catch::Matchers::MessageMatches(
-                EndsWith("empty value encountered")));
     }
 }

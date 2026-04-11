@@ -18,19 +18,12 @@
 #define GELEX_IO_PARSER_H_
 
 #include <fmt/format.h>
-#include <cerrno>
-#include <charconv>
 #include <concepts>
 #include <cstddef>
-#include <cstdlib>
 #include <filesystem>
-#include <fstream>
+#include <ios>
 #include <span>
-#include <string>
-#include <string_view>
 #include <system_error>
-#include <type_traits>
-#include <vector>
 
 #include "gelex/exception.h"
 
@@ -90,58 +83,6 @@ template <FileStream StreamType>
 }
 
 size_t count_total_lines(const std::filesystem::path& path);
-
-template <typename T = double>
-T parse_number(std::string_view sv)
-{
-    if (sv.empty())
-    {
-        throw GelexException(
-            fmt::format("empty string cannot be parsed as number"));
-    }
-
-    if constexpr (std::is_integral_v<T>)
-    {
-        T value{};
-        const char* first = sv.data();
-        const char* last = sv.data() + sv.size();
-        auto [ptr, ec] = std::from_chars(first, last, value);
-
-        if (ec == std::errc() && ptr == last)
-        {
-            return value;
-        }
-    }
-    else if constexpr (std::is_floating_point_v<T>)
-    {
-        std::string token(sv);
-        char* end = nullptr;
-        errno = 0;
-        const long double value = std::strtold(token.c_str(), &end);
-
-        if (end == token.c_str() + token.size() && errno != ERANGE)
-        {
-            return static_cast<T>(value);
-        }
-    }
-    else
-    {
-        static_assert(
-            std::is_arithmetic_v<T>, "parse_number requires arithmetic type");
-    }
-
-    throw GelexException(fmt::format("failed to parse '{}' as number", sv));
-}
-
-std::string parse_id(std::string_view line, char delimiter = '\t');
-
-char detect_file_delimiter(std::ifstream& file);
-
-void parse_string(
-    std::string_view line,
-    std::vector<std::string_view>& out,
-    size_t column_offset = 0,
-    char delimiter = '\t');
 
 }  // namespace gelex::detail
 
