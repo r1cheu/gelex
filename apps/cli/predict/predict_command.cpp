@@ -26,6 +26,7 @@ auto predict_execute(argparse::ArgumentParser& predict) -> int
 {
     auto config = gelex::cli::make_predict_config(predict);
     gelex::cli::PredictReporter reporter;
+    reporter.on_event(gelex::PredictBannerEvent{});
     gelex::PredictEngine engine(std::move(config));
     engine.run(reporter.as_observer());
     return 0;

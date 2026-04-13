@@ -54,6 +54,7 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     gelex::cli::AssocReporter reporter;
     gelex::cli::DataPipeReporter data_reporter;
 
+    reporter.on_event(gelex::AssocBannerEvent{});
     reporter.on_event(
         gelex::AssocConfigLoadedEvent{
             .model_type = cmd.get("--model") == "a" ? gelex::GeneticMode::A

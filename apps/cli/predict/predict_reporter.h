@@ -18,6 +18,7 @@ class PredictReporter
    public:
     PredictReporter();
 
+    auto on_event(const PredictBannerEvent& event) const -> void;
     auto on_event(const PredictParamsLoadedEvent& event) const -> void;
     auto on_event(const PredictSnpSelectionEvent& event) const -> void;
     auto on_event(const PredictDataLoadedEvent& event) const -> void;

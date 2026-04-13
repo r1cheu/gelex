@@ -20,7 +20,7 @@
 #include <memory>
 
 #include "gelex/io/text_writer.h"
-#include "gelex/types/mcmc_results.h"
+#include "gelex/types/mcmc_result.h"
 
 namespace gelex
 {

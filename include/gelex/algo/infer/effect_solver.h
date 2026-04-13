@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ESTIMATOR_FREQ_EFFECT_SOLVER_H_
-#define GELEX_ESTIMATOR_FREQ_EFFECT_SOLVER_H_
+#ifndef GELEX_ALGO_INFER_EFFECT_SOLVER_H_
+#define GELEX_ALGO_INFER_EFFECT_SOLVER_H_
 
 namespace gelex
 {
@@ -45,4 +45,4 @@ auto compute_random_effects(
 }  // namespace effect_solver
 }  // namespace gelex
 
-#endif  // GELEX_ESTIMATOR_FREQ_EFFECT_SOLVER_H_
+#endif  // GELEX_ALGO_INFER_EFFECT_SOLVER_H_

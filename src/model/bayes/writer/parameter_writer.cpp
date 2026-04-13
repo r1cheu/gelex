@@ -29,7 +29,7 @@ namespace gelex
 using Eigen::Index;
 
 ParameterWriter::ParameterWriter(
-    const MCMCResult& result,
+    const mcmc::Result& result,
     const std::filesystem::path& output_path)
     : result_(&result),
       writer_(std::make_unique<detail::TextWriter>(output_path))

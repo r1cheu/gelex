@@ -37,6 +37,7 @@ class GrmReporter
    public:
     GrmReporter();
 
+    auto on_event(const GrmBannerEvent& event) const -> void;
     auto on_event(const GrmConfigLoadedEvent& event) const -> void;
     auto on_event(const GrmDataLoadedEvent& event) const -> void;
     auto on_event(const GrmComputeStartedEvent& event) -> void;

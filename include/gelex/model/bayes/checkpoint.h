@@ -27,7 +27,7 @@ namespace gelex
 
 struct Checkpoint
 {
-    BayesState state;
+    mcmc::State state;
     std::mt19937_64 rng;
     bayes::Priors priors;
 };

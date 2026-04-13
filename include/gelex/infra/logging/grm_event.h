@@ -25,6 +25,10 @@
 namespace gelex
 {
 
+struct GrmBannerEvent
+{
+};
+
 struct GrmConfigLoadedEvent
 {
     std::string method;
@@ -58,6 +62,7 @@ struct GrmFilesWrittenEvent
 };
 
 using GrmEvent = std::variant<
+    GrmBannerEvent,
     GrmConfigLoadedEvent,
     GrmDataLoadedEvent,
     GrmComputeStartedEvent,

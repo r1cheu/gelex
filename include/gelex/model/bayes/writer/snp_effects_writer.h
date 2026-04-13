@@ -26,7 +26,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/dataframe/dataframe.h"
-#include "gelex/types/mcmc_results.h"
+#include "gelex/types/mcmc_result.h"
 
 namespace gelex::detail
 {
@@ -40,7 +40,7 @@ class SnpEffectsWriter
 {
    public:
     SnpEffectsWriter(
-        const MCMCResult& result,
+        const mcmc::Result& result,
         const std::filesystem::path& bim_file_path,
         const std::filesystem::path& output_path);
     ~SnpEffectsWriter();
@@ -52,7 +52,7 @@ class SnpEffectsWriter
     auto write() -> void;
 
    private:
-    const MCMCResult* result_;
+    const mcmc::Result* result_;
     const GeneticSummary* additive_{};
     const GeneticSummary* dominant_{};
     df::DataFrame<std::string> bim_;

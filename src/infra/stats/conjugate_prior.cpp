@@ -64,5 +64,24 @@ double ScaledInvChiSq::operator()(std::mt19937_64& rng) const
     return (posterior_.nu * posterior_.s2) / chisq(rng);
 }
 
+auto ScaledInvChiSq::expected_value() const -> double
+{
+    // E[σ²] = ν·s² / (ν − 2) for Scaled-Inv-χ²(ν, s²)
+    return (posterior_.nu * posterior_.s2) / (posterior_.nu - 2.0);
+}
+
+auto ScaledInvChiSq::posterior_stddev() const -> double
+{
+    // Var[σ²] = 2·ν²·s⁴ / ((ν−2)²·(ν−4)) for ν > 4
+    const double nu = posterior_.nu;
+    const double s2 = posterior_.s2;
+    if (nu <= 4.0)
+    {
+        return std::numeric_limits<double>::infinity();
+    }
+    return std::sqrt(
+        2.0 * nu * nu * s2 * s2 / ((nu - 2.0) * (nu - 2.0) * (nu - 4.0)));
+}
+
 }  // namespace detail
 }  // namespace gelex

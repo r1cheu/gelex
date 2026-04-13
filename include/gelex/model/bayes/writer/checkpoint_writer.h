@@ -20,10 +20,10 @@
 #include <random>
 #include <string_view>
 
+#include "gelex/model/bayes/model.h"
+
 namespace gelex
 {
-
-class BayesState;
 
 namespace bayes
 {
@@ -31,7 +31,7 @@ class Priors;
 }
 
 auto write_checkpoint(
-    const BayesState& state,
+    const mcmc::State& state,
     const std::mt19937_64& rng,
     const bayes::Priors& priors,
     std::string_view prefix) -> void;

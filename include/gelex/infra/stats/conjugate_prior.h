@@ -49,6 +49,8 @@ class ScaledInvChiSq
     void compute(double single_observation_squared_error);
 
     double operator()(std::mt19937_64& rng) const;
+    auto expected_value() const -> double;
+    auto posterior_stddev() const -> double;
     const ScaledInvChiSqParams& prior() { return prior_; }
     const ScaledInvChiSqParams& posterior() { return posterior_; }
 

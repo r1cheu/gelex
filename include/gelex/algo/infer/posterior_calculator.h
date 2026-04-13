@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ESTIMATOR_BAYES_POSTERIOR_CALCULATOR_H_
-#define GELEX_ESTIMATOR_BAYES_POSTERIOR_CALCULATOR_H_
+#ifndef GELEX_ALGO_INFER_POSTERIOR_CALCULATOR_H_
+#define GELEX_ALGO_INFER_POSTERIOR_CALCULATOR_H_
 
 #include <Eigen/Core>
 
-#include "gelex/types/mcmc_results.h"
+#include "gelex/types/posterior_summary.h"
 
 namespace gelex::detail
 {
@@ -55,4 +55,4 @@ void compute_pve(
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_ESTIMATOR_BAYES_POSTERIOR_CALCULATOR_H_
+#endif  // GELEX_ALGO_INFER_POSTERIOR_CALCULATOR_H_

@@ -40,6 +40,10 @@ struct ParameterDiag
     double rhat{};
 };
 
+struct PostBannerEvent
+{
+};
+
 struct PostStartEvent
 {
     std::vector<std::string> in_prefixes;
@@ -53,7 +57,8 @@ struct DiagnosticsReadyEvent
     double hdpi_prob{};
 };
 
-using PostEvent = std::variant<PostStartEvent, DiagnosticsReadyEvent>;
+using PostEvent
+    = std::variant<PostBannerEvent, PostStartEvent, DiagnosticsReadyEvent>;
 using PostObserver = std::function<void(const PostEvent&)>;
 
 }  // namespace gelex

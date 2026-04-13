@@ -31,7 +31,7 @@ namespace gelex
 using Eigen::Index;
 
 SnpEffectsWriter::SnpEffectsWriter(
-    const MCMCResult& result,
+    const mcmc::Result& result,
     const std::filesystem::path& bim_file_path,
     const std::filesystem::path& output_path)
     : result_(&result),

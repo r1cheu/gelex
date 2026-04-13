@@ -21,25 +21,22 @@
 #include <cstddef>
 #include <memory>
 #include <optional>
-#include <string>
 #include <variant>
 #include <vector>
 
 #include <Eigen/Core>
 
-#include "gelex/infra/stats/running_stats.h"
+#include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/states.h"
+#include "gelex/types/fixed_samples.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
 {
 
-struct RandomEffect;
 struct GeneticEffect;
 struct GeneticPrior;
 class Priors;
-struct FixedState;
-struct RandomState;
 struct GeneticState;
 struct ResidualState;
 struct Assignment;
@@ -50,47 +47,12 @@ struct ComponentAllocation;
 namespace gelex
 {
 
-struct FixedEffect;
-class BayesState;
 class BayesModel;
-class MCMCWriter;
 
-struct FixedSamples
+namespace mcmc
 {
-    explicit FixedSamples(const FixedEffect& effect);
-    void store(const bayes::FixedState& state);
 
-    auto n_coeffs() const -> Eigen::Index { return n_coeffs_; }
-    auto coeffs() const -> RunningStatsResult { return coeffs_stats_.result(); }
-
-    std::vector<std::string> names;
-    std::vector<std::optional<std::vector<std::string>>> levels;
-
-   private:
-    Eigen::Index n_coeffs_;
-    RunningStats coeffs_stats_;
-};
-
-struct RandomSamples
-{
-    explicit RandomSamples(const bayes::RandomEffect& effect);
-    void store(const bayes::RandomState& state);
-
-    auto n_coeffs() const -> Eigen::Index { return n_coeffs_; }
-    auto coeffs() const -> RunningStatsResult { return coeffs_stats_.result(); }
-    auto variance() const -> RunningStatsResult
-    {
-        return variance_stats_.result();
-    }
-
-    std::string name;
-    std::optional<std::vector<std::string>> levels;
-
-   private:
-    Eigen::Index n_coeffs_;
-    RunningStats coeffs_stats_;
-    RunningStats variance_stats_;
-};
+class Writer;
 
 struct AssignmentSamples
 {
@@ -206,21 +168,21 @@ struct ResidualSamples
     RunningStats variance_stats_;
 };
 
-class MCMCSamples
+class Samples
 {
    public:
-    MCMCSamples(const MCMCSamples&) = delete;
-    auto operator=(const MCMCSamples&) -> MCMCSamples& = delete;
-    MCMCSamples(MCMCSamples&&) noexcept;
-    auto operator=(MCMCSamples&&) noexcept -> MCMCSamples&;
-    ~MCMCSamples();
+    Samples(const Samples&) = delete;
+    auto operator=(const Samples&) -> Samples& = delete;
+    Samples(Samples&&) noexcept;
+    auto operator=(Samples&&) noexcept -> Samples&;
+    ~Samples();
 
-    MCMCSamples(
+    Samples(
         const BayesModel& model,
         const bayes::Priors& priors,
         std::string_view sample_prefix,
         Eigen::Index n_records);
-    void store(const BayesState& states);
+    void store(const mcmc::State& states);
     void finalize();
 
     const FixedSamples& fixed() const { return fixed_; }
@@ -240,8 +202,11 @@ class MCMCSamples
     std::vector<RandomSamples> random_;
     std::vector<GeneticSamples> genetics_;
     ResidualSamples residual_;
-    std::unique_ptr<MCMCWriter> writer_;
+    std::unique_ptr<mcmc::Writer> writer_;
 };
+
+}  // namespace mcmc
+
 }  // namespace gelex
 
 #endif  // GELEX_TYPES_MCMC_SAMPLES_H_

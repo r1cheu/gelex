@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ESTIMATOR_FREQ_ESTIMATOR_H_
-#define GELEX_ESTIMATOR_FREQ_ESTIMATOR_H_
+#ifndef GELEX_ALGO_INFER_ESTIMATOR_H_
+#define GELEX_ALGO_INFER_ESTIMATOR_H_
 
 #include <cstddef>
 
@@ -61,4 +61,4 @@ class Estimator
 
 }  // namespace gelex
 
-#endif  // GELEX_ESTIMATOR_FREQ_ESTIMATOR_H_
+#endif  // GELEX_ALGO_INFER_ESTIMATOR_H_

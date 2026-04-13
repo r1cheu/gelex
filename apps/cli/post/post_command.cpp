@@ -33,6 +33,7 @@ auto post_execute(argparse::ArgumentParser& post) -> int
     auto logger = gelex::logging::get();
 
     gelex::cli::PostReporter reporter;
+    reporter.on_event(gelex::PostBannerEvent{});
     reporter.on_event(gelex::PostStartEvent{.in_prefixes = config.in_prefixes});
 
     std::vector<std::string_view> prefixes(

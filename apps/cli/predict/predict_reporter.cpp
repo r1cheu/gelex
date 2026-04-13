@@ -13,11 +13,16 @@ namespace gelex::cli
 
 PredictReporter::PredictReporter() : logger_(gelex::logging::get()) {}
 
-auto PredictReporter::on_event(const PredictParamsLoadedEvent& event) const
+auto PredictReporter::on_event(const PredictBannerEvent& /*event*/) const
     -> void
 {
     logger_->info(gelex::command_banner(PROJECT_VERSION, "Genomic Prediction"));
     logger_->info("");
+}
+
+auto PredictReporter::on_event(const PredictParamsLoadedEvent& event) const
+    -> void
+{
     logger_->info(gelex::section("[Config]"));
     logger_->info("  {:<12}: {}", "bfile", event.bfile_prefix);
     logger_->info("  {:<12}: {}", "gfile", event.gfile_prefix);

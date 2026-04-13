@@ -35,6 +35,7 @@ auto grm_execute(argparse::ArgumentParser& cmd) -> int
     auto threads = cmd.get<int>("--threads");
     gelex::cli::setup_parallelization(threads);
 
+    reporter.on_event(gelex::GrmBannerEvent{});
     reporter.on_event(
         gelex::GrmConfigLoadedEvent{
             .method = std::string(method_name),

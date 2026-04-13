@@ -28,36 +28,14 @@
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
 #include "gelex/model/bayes/writer/mcmc_writer.h"
-#include "gelex/types/fixed_effects.h"
 
-namespace gelex
+namespace gelex::mcmc
 {
 using Eigen::Index;
 
-MCMCSamples::~MCMCSamples() = default;
-MCMCSamples::MCMCSamples(MCMCSamples&&) noexcept = default;
-auto MCMCSamples::operator=(MCMCSamples&&) noexcept -> MCMCSamples& = default;
-
-FixedSamples::FixedSamples(const FixedEffect& effect)
-    : names(effect.names), levels(effect.levels), n_coeffs_(effect.X.cols())
-{
-}
-
-RandomSamples::RandomSamples(const bayes::RandomEffect& effect)
-    : levels(effect.levels), n_coeffs_(effect.X.cols())
-{
-}
-
-void FixedSamples::store(const bayes::FixedState& state)
-{
-    coeffs_stats_.update(state.coeffs);
-}
-
-void RandomSamples::store(const bayes::RandomState& state)
-{
-    coeffs_stats_.update(state.coeffs);
-    variance_stats_.update(state.variance);
-}
+Samples::~Samples() = default;
+Samples::Samples(Samples&&) noexcept = default;
+auto Samples::operator=(Samples&&) noexcept -> Samples& = default;
 
 void ResidualSamples::store(const bayes::ResidualState& state)
 {
@@ -163,7 +141,7 @@ void GeneticSamples::store(const bayes::GeneticState& state)
     }
 }
 
-MCMCSamples::MCMCSamples(
+Samples::Samples(
     const BayesModel& model,
     const bayes::Priors& priors,
     std::string_view sample_prefix,
@@ -187,12 +165,12 @@ MCMCSamples::MCMCSamples(
 
     if (!sample_prefix.empty())
     {
-        writer_ = std::make_unique<MCMCWriter>(
+        writer_ = std::make_unique<mcmc::Writer>(
             model, priors, sample_prefix, n_records);
     }
 }
 
-void MCMCSamples::store(const BayesState& states)
+void Samples::store(const mcmc::State& states)
 {
     fixed_.store(states.fixed());
 
@@ -214,7 +192,7 @@ void MCMCSamples::store(const BayesState& states)
     }
 }
 
-void MCMCSamples::finalize()
+void Samples::finalize()
 {
     if (writer_)
     {
@@ -222,4 +200,4 @@ void MCMCSamples::finalize()
     }
 }
 
-}  // namespace gelex
+}  // namespace gelex::mcmc

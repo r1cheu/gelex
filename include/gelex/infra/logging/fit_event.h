@@ -22,6 +22,7 @@
 #include <string>
 #include <variant>
 
+#include "gelex/model/bayes/model.h"
 #include "gelex/types/bayes_method.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -29,15 +30,31 @@ namespace gelex
 {
 
 class BayesModel;
-class BayesState;
-class MCMCResult;
+
+namespace mcmc
+{
+class Result;
+}
+
+namespace vi
+{
+class Result;
+}
 
 namespace bayes
 {
 class Priors;
 }
 
-struct FitConfigLoadedEvent
+struct FitMCMCBannerEvent
+{
+};
+
+struct FitVIBannerEvent
+{
+};
+
+struct FitMCMCConfigEvent
 {
     gelex::BayesMethodConfig method;
     GeneticMode model_type{};
@@ -46,24 +63,46 @@ struct FitConfigLoadedEvent
     int seed{};
 };
 
+struct FitVIConfigEvent
+{
+    gelex::BayesMethodConfig method;
+    GeneticMode model_type{};
+    int max_iters{};
+    double tol{};
+};
+
 struct FitPriorSetEvent
 {
     const bayes::Priors* priors{};
 };
 
-struct FitMcmcProgressEvent
+struct FitMCMCProgressEvent
 {
     size_t current{};
     size_t total{};
     bool done{};
-    const BayesState* state{};
+    const mcmc::State* state{};
 };
 
-struct FitMcmcCompleteEvent
+struct FitMCMCCompleteEvent
 {
-    const MCMCResult* result;
+    const mcmc::Result* result;
     const BayesModel* model;
     std::ptrdiff_t samples_collected;
+};
+
+struct FitVIProgressEvent
+{
+    size_t current{};
+    double elbo{};
+    double delta{};
+    bool done{};
+};
+
+struct FitVICompleteEvent
+{
+    const vi::Result* result{};
+    const BayesModel* model{};
 };
 
 struct FitResultsSavedEvent
@@ -76,10 +115,15 @@ struct FitCheckpointSavedEvent
 };
 
 using FitEvent = std::variant<
-    FitConfigLoadedEvent,
+    FitMCMCBannerEvent,
+    FitVIBannerEvent,
+    FitMCMCConfigEvent,
+    FitVIConfigEvent,
     FitPriorSetEvent,
-    FitMcmcProgressEvent,
-    FitMcmcCompleteEvent,
+    FitMCMCProgressEvent,
+    FitMCMCCompleteEvent,
+    FitVIProgressEvent,
+    FitVICompleteEvent,
     FitResultsSavedEvent,
     FitCheckpointSavedEvent>;
 

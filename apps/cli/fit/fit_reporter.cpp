@@ -30,7 +30,8 @@
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "gelex/types/mcmc_results.h"
+#include "gelex/types/mcmc_result.h"
+#include "gelex/types/vi_result.h"
 
 namespace gelex::cli
 {
@@ -42,11 +43,22 @@ const int kTableWidth = 40;
 
 FitReporter::FitReporter() : logger_(gelex::logging::get()) {}
 
-auto FitReporter::on_event(const FitConfigLoadedEvent& event) const -> void
+auto FitReporter::on_event(const FitMCMCBannerEvent& /*event*/) const -> void
 {
     logger_->info(
         gelex::command_banner(PROJECT_VERSION, "Model Fitting (MCMC)"));
     logger_->info("");
+}
+
+auto FitReporter::on_event(const FitVIBannerEvent& /*event*/) const -> void
+{
+    logger_->info(
+        gelex::command_banner(PROJECT_VERSION, "Model Fitting (CAVI)"));
+    logger_->info("");
+}
+
+auto FitReporter::on_event(const FitMCMCConfigEvent& event) const -> void
+{
     logger_->info(gelex::section("[Config]"));
     logger_->info("  {:<12}: {}", "Method", fmt::format("{}", event.method));
     logger_->info(
@@ -56,6 +68,15 @@ auto FitReporter::on_event(const FitConfigLoadedEvent& event) const -> void
         event.n_burn_in,
         event.n_iters - event.n_burn_in);
     logger_->info("  {:<12}: {}", "Seed", event.seed);
+    logger_->info("");
+}
+
+auto FitReporter::on_event(const FitVIConfigEvent& event) const -> void
+{
+    logger_->info(gelex::section("[Config]"));
+    logger_->info("  {:<12}: {}", "Method", fmt::format("{}", event.method));
+    logger_->info("  {:<12}: {}", "Max iters", event.max_iters);
+    logger_->info("  {:<12}: {:.1e}", "Tolerance", event.tol);
     logger_->info("");
 }
 
@@ -79,7 +100,7 @@ auto FitReporter::on_event(const FitPriorSetEvent& event) const -> void
     print_residual_prior(priors.residual());
 }
 
-auto FitReporter::on_event(const FitMcmcProgressEvent& event) -> void
+auto FitReporter::on_event(const FitMCMCProgressEvent& event) -> void
 {
     if (!init_progress_)
     {
@@ -133,7 +154,7 @@ auto FitReporter::on_event(const FitMcmcProgressEvent& event) -> void
     }
 }
 
-auto FitReporter::on_event(const FitMcmcCompleteEvent& event) const -> void
+auto FitReporter::on_event(const FitMCMCCompleteEvent& event) const -> void
 {
     print_fixed_summary(*event.result, event.samples_collected);
     for (const auto& summary : event.result->genetics())
@@ -155,6 +176,53 @@ auto FitReporter::on_event(const FitResultsSavedEvent& event) const -> void
 auto FitReporter::on_event(const FitCheckpointSavedEvent& event) -> void
 {
     bar_.before_bar->message(fmt::format(" ckpt saved"));
+}
+
+auto FitReporter::on_event(const FitVIProgressEvent& event) -> void
+{
+    if (!init_progress_)
+    {
+        init_progress_ = true;
+        logger_->info("");
+        logger_->info(gelex::section("[CAVI Optimization]"));
+        cavi_info_ = create_progress_info();
+        cavi_info_.display->show();
+    }
+
+    if (event.done)
+    {
+        cavi_info_.display->done();
+        logger_->info("");
+        return;
+    }
+
+    cavi_info_.progress_info->message(
+        fmt::format(
+            "iter {:>4} | ELBO: {:.2f} | Δ: {:.2e}",
+            event.current,
+            event.elbo,
+            event.delta));
+}
+
+auto FitReporter::on_event(const FitVICompleteEvent& event) const -> void
+{
+    if (event.result == nullptr)
+    {
+        return;
+    }
+
+    const auto& result = *event.result;
+    logger_->info(gelex::section("[Variational Posterior Summary]"));
+    logger_->info("");
+    logger_->info("  {:<8} {:>8} {:>8}", "Parameter", "Mean", "SD");
+    logger_->info(gelex::table_separator(kTableWidth));
+
+    const auto& fixed = result.fixed();
+    fixed.for_each_term([&](const std::string& term, Eigen::Index i)
+                        { print_summary_row(term, fixed.coeffs, i); });
+
+    logger_->info(gelex::table_separator(kTableWidth));
+    logger_->info("");
 }
 
 // --- Private helpers ---
@@ -233,7 +301,7 @@ auto FitReporter::print_residual_prior(const bayes::VariancePrior& prior) const
 }
 
 auto FitReporter::print_fixed_summary(
-    const MCMCResult& result,
+    const mcmc::Result& result,
     std::ptrdiff_t samples_collected) const -> void
 {
     const auto& fixed = result.fixed();
@@ -291,7 +359,8 @@ auto FitReporter::print_genetic_summary(
     }
 }
 
-auto FitReporter::print_residual_summary(const MCMCResult& result) const -> void
+auto FitReporter::print_residual_summary(const mcmc::Result& result) const
+    -> void
 {
     logger_->info(gelex::named_section("Residual", kTableWidth, 2));
     print_summary_row("σ²", result.residual());

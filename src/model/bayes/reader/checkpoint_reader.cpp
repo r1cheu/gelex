@@ -339,7 +339,7 @@ auto read_checkpoint(const std::filesystem::path& path) -> Checkpoint
     auto residual = read_residual(reader);
     auto rng = read_rng(reader);
 
-    BayesState state(
+    mcmc::State state(
         std::move(fixed),
         std::move(random),
         std::move(genetics),

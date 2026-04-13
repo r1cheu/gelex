@@ -34,6 +34,7 @@ class PostReporter
    public:
     PostReporter();
 
+    auto on_event(const PostBannerEvent& event) const -> void;
     auto on_event(const PostStartEvent& event) const -> void;
     auto on_event(const DiagnosticsReadyEvent& event) const -> void;
 

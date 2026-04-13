@@ -30,14 +30,19 @@ SimulatorReporter::SimulatorReporter()
 {
 }
 
+auto SimulatorReporter::on_event(const SimulateBannerEvent& /*event*/) const
+    -> void
+{
+    logger_->info(
+        gelex::command_banner(PROJECT_VERSION, "Phenotype Simulation"));
+    logger_->info("");
+}
+
 auto SimulatorReporter::on_event(const SimulateConfigLoadedEvent& event) const
     -> void
 {
     std::string mode_str = event.dom_heritability ? "AD" : "A";
 
-    logger_->info(
-        gelex::command_banner(PROJECT_VERSION, "Phenotype Simulation"));
-    logger_->info("");
     logger_->info(gelex::section("[Config]"));
     logger_->info("  {:<12}: {}", "Mode", mode_str);
     logger_->info("  {:<12}: {:.4f}", "h\u00b2", event.add_heritability);

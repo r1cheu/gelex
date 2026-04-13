@@ -27,10 +27,14 @@ namespace gelex::cli
 
 GrmReporter::GrmReporter() : logger_(gelex::logging::get()), eta_(1) {}
 
-auto GrmReporter::on_event(const GrmConfigLoadedEvent& event) const -> void
+auto GrmReporter::on_event(const GrmBannerEvent& /*event*/) const -> void
 {
     logger_->info(gelex::command_banner(PROJECT_VERSION, "GRM Computation"));
     logger_->info("");
+}
+
+auto GrmReporter::on_event(const GrmConfigLoadedEvent& event) const -> void
+{
     logger_->info(gelex::section("[Config]"));
     logger_->info("  {:<12}: {}", "Method", event.method);
     logger_->info("  {:<12}: {}", "Mode", fmt::format("{}", event.mode));

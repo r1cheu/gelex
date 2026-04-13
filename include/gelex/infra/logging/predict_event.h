@@ -27,6 +27,10 @@
 namespace gelex
 {
 
+struct PredictBannerEvent
+{
+};
+
 struct PredictParamsLoadedEvent
 {
     std::string_view bfile_prefix;
@@ -58,6 +62,7 @@ struct PredictResultsWrittenEvent
 };
 
 using PredictEvent = std::variant<
+    PredictBannerEvent,
     PredictParamsLoadedEvent,
     PredictSnpSelectionEvent,
     PredictDataLoadedEvent,

@@ -60,7 +60,7 @@ auto group_prior_n_proportions(const bayes::MarkerPrior& marker) -> Eigen::Index
 
 }  // namespace
 
-MCMCWriter::MCMCWriter(
+mcmc::Writer::Writer(
     const BayesModel& model,
     const bayes::Priors& priors,
     std::string_view prefix,
@@ -151,7 +151,7 @@ MCMCWriter::MCMCWriter(
         fmt::format("{}/variance", EffectType::residual()), 1, cols);
 }
 
-void MCMCWriter::write(const BayesState& state)
+void mcmc::Writer::write(const mcmc::State& state)
 {
     // Fixed
     writer_.write(fixed_coeffs_, state.fixed().coeffs);
@@ -206,7 +206,7 @@ void MCMCWriter::write(const BayesState& state)
     writer_.write(residual_variance_, state.residual().variance);
 }
 
-void MCMCWriter::finalize()
+void mcmc::Writer::finalize()
 {
     writer_.finalize();
 }

@@ -26,6 +26,7 @@
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
+#include "gelex/model/bayes/vi/states.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -77,14 +78,15 @@ class BayesModel
     std::vector<bayes::GeneticEffect> genetics_;
 };
 
-class BayesState
+template <typename GeneticStateT>
+class InferenceState
 {
    public:
-    explicit BayesState(const BayesModel& model, const bayes::Priors& priors);
-    BayesState(
+    InferenceState(const BayesModel& model, const bayes::Priors& priors);
+    InferenceState(
         bayes::FixedState fixed,
         std::vector<bayes::RandomState> random,
-        std::vector<bayes::GeneticState> genetics,
+        std::vector<GeneticStateT> genetics,
         bayes::ResidualState residual);
 
     bayes::FixedState& fixed() { return fixed_; }
@@ -92,22 +94,17 @@ class BayesState
     std::vector<bayes::RandomState>& random() { return random_; }
     const std::vector<bayes::RandomState>& random() const { return random_; }
 
-    const std::vector<bayes::GeneticState>& genetics() const
-    {
-        return genetics_;
-    }
-    std::vector<bayes::GeneticState>& genetics() { return genetics_; }
+    const std::vector<GeneticStateT>& genetics() const { return genetics_; }
+    std::vector<GeneticStateT>& genetics() { return genetics_; }
 
-    const bayes::GeneticState* genetic(GeneticMode type) const
+    const GeneticStateT* genetic(GeneticMode type) const
     {
-        auto it
-            = std::ranges::find(genetics_, type, &bayes::GeneticState::type);
+        auto it = std::ranges::find(genetics_, type, &GeneticStateT::type);
         return it != genetics_.end() ? &*it : nullptr;
     }
-    bayes::GeneticState* genetic(GeneticMode type)
+    GeneticStateT* genetic(GeneticMode type)
     {
-        auto it
-            = std::ranges::find(genetics_, type, &bayes::GeneticState::type);
+        auto it = std::ranges::find(genetics_, type, &GeneticStateT::type);
         return it != genetics_.end() ? &*it : nullptr;
     }
 
@@ -119,9 +116,79 @@ class BayesState
    private:
     bayes::FixedState fixed_;
     std::vector<bayes::RandomState> random_;
-    std::vector<bayes::GeneticState> genetics_;
+    std::vector<GeneticStateT> genetics_;
     bayes::ResidualState residual_;
 };
+
+template <typename GeneticStateT>
+InferenceState<GeneticStateT>::InferenceState(
+    const BayesModel& model,
+    const bayes::Priors& priors)
+    : fixed_(model.fixed())
+{
+    for (const auto& effect : model.genetics())
+    {
+        const auto* prior = priors.genetic(effect.type);
+        genetics_.emplace_back(effect, *prior);
+    }
+
+    const auto& random_effects = model.random();
+    const auto& random_priors = priors.random();
+    random_.reserve(random_effects.size());
+    for (std::size_t i = 0; i < random_effects.size(); ++i)
+    {
+        random_.emplace_back(random_effects[i], random_priors[i]);
+    }
+
+    residual_.y_adj = model.phenotype().array();
+    residual_.variance = priors.residual().init;
+}
+
+template <typename GeneticStateT>
+InferenceState<GeneticStateT>::InferenceState(
+    bayes::FixedState fixed,
+    std::vector<bayes::RandomState> random,
+    std::vector<GeneticStateT> genetics,
+    bayes::ResidualState residual)
+    : fixed_(std::move(fixed)),
+      random_(std::move(random)),
+      genetics_(std::move(genetics)),
+      residual_(std::move(residual))
+{
+}
+
+template <typename GeneticStateT>
+void InferenceState<GeneticStateT>::compute_heritability()
+{
+    double sum_var = 0;
+
+    for (const auto& rand : random_)
+    {
+        sum_var += rand.variance;
+    }
+
+    for (const auto& gen : genetics_)
+    {
+        sum_var += gen.variance;
+    }
+
+    sum_var += residual_.variance;
+
+    for (auto& gen : genetics_)
+    {
+        gen.heritability = gen.variance / sum_var;
+    }
+}
+
+namespace mcmc
+{
+using State = InferenceState<bayes::GeneticState>;
+}  // namespace mcmc
+
+namespace vi
+{
+using State = InferenceState<bayes::vi::GeneticState>;
+}  // namespace vi
 
 }  // namespace gelex
 

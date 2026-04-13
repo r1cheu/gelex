@@ -264,7 +264,7 @@ auto write_priors(detail::BinaryWriter& writer, const bayes::Priors& priors)
 }  // namespace
 
 auto write_checkpoint(
-    const BayesState& state,
+    const mcmc::State& state,
     const std::mt19937_64& rng,
     const bayes::Priors& priors,
     std::string_view prefix) -> void

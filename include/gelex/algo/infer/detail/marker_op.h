@@ -1,0 +1,151 @@
+/*
+ * Copyright 2026 RuLei Chen
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef GELEX_ALGO_INFER_DETAIL_MARKER_OP_H_
+#define GELEX_ALGO_INFER_DETAIL_MARKER_OP_H_
+
+#include <cassert>
+#include <cmath>
+
+#ifdef USE_MKL
+#include <mkl.h>
+#else
+#include <cblas.h>
+#endif
+
+#include <Eigen/Core>
+
+namespace gelex::detail
+{
+
+struct LikelihoodParams
+{
+    double log_likelihood{0.0};
+    double precision_kernel{0.0};
+    double residual_over_marker_variance{0.0};
+};
+
+struct PosteriorParams
+{
+    double mean{0.0};
+    double stddev{0.0};
+    double log_likelihood_kernel{0.0};
+};
+
+template <typename DerivedX, typename DerivedY>
+inline double blas_ddot(
+    const Eigen::DenseBase<DerivedX>& x,
+    const Eigen::DenseBase<DerivedY>& y)
+{
+    EIGEN_STATIC_ASSERT_VECTOR_ONLY(DerivedX);
+    EIGEN_STATIC_ASSERT_VECTOR_ONLY(DerivedY);
+    assert(x.size() == y.size() && "blas_ddot: vector sizes do not match.");
+
+    const int n = static_cast<int>(x.size());
+    const int incx = 1;
+    const int incy = 1;
+
+    return cblas_ddot(n, x.derived().data(), incx, y.derived().data(), incy);
+}
+
+template <typename DerivedX, typename DerivedY>
+inline void blas_daxpy(
+    double alpha,
+    const Eigen::DenseBase<DerivedX>& x,
+    Eigen::DenseBase<DerivedY>& y)
+{
+    EIGEN_STATIC_ASSERT_VECTOR_ONLY(DerivedX);
+    EIGEN_STATIC_ASSERT_VECTOR_ONLY(DerivedY);
+    assert(x.size() == y.size() && "blas_daxpy: vector sizes do not match.");
+
+    const int n = static_cast<int>(x.size());
+    const double a = alpha;
+    const int incx = 1;
+    const int incy = 1;
+
+    cblas_daxpy(n, a, x.derived().data(), incx, y.derived().data(), incy);
+}
+
+inline auto update_residual_and_gebv(
+    Eigen::Ref<Eigen::VectorXd> y_adj,
+    Eigen::Ref<Eigen::VectorXd> gebv,
+    const Eigen::Ref<const Eigen::VectorXd>& col,
+    double old_value,
+    double new_value = 0.0) -> void
+{
+    const double diff = old_value - new_value;
+    if (fabs(diff) > std::numeric_limits<double>::epsilon())
+    {
+        blas_daxpy(diff, col, y_adj);
+        blas_daxpy(-diff, col, gebv);
+    }
+}
+
+inline auto compute_likelihood_params(
+    double rhs,
+    double marker_variance,
+    double col_squared_norm,
+    double residual_variance,
+    double logpi) -> LikelihoodParams
+{
+    const double res_over_marker_var = residual_variance / marker_variance;
+    const double precision_k = 1.0 / (col_squared_norm + res_over_marker_var);
+
+    const double logdetV
+        = std::log((col_squared_norm / res_over_marker_var) + 1.0);
+
+    const double log_like
+        = (-0.5 * (logdetV - rhs * rhs * precision_k / residual_variance))
+          + logpi;
+
+    return {log_like, precision_k, res_over_marker_var};
+}
+
+inline auto compute_posterior_params_core(
+    double rhs,
+    double col_squared_norm,
+    double residual_variance,
+    double res_over_marker_var) -> PosteriorParams
+{
+    const double precision_kernel
+        = 1.0 / (col_squared_norm + res_over_marker_var);
+
+    const double post_mean = rhs * precision_kernel;
+    const double post_stddev = std::sqrt(residual_variance * precision_kernel);
+
+    const double logdetV
+        = std::log(col_squared_norm / res_over_marker_var + 1.0);
+
+    const double log_like_kernel
+        = -0.5 * (logdetV - post_mean * rhs / residual_variance);
+
+    return {post_mean, post_stddev, log_like_kernel};
+}
+
+inline auto compute_posterior_params(
+    double rhs,
+    double marker_variance_i,
+    double col_squared_norm,
+    double residual_variance) -> PosteriorParams
+{
+    const double res_over_marker_var = residual_variance / marker_variance_i;
+    return compute_posterior_params_core(
+        rhs, col_squared_norm, residual_variance, res_over_marker_var);
+}
+
+}  // namespace gelex::detail
+
+#endif  // GELEX_ALGO_INFER_DETAIL_MARKER_OP_H_

@@ -27,6 +27,7 @@ auto simulate_execute(argparse::ArgumentParser& sim) -> int
     auto config = gelex::cli::make_simulate_config(sim);
     gelex::cli::SimulatorReporter reporter;
 
+    reporter.on_event(gelex::SimulateBannerEvent{});
     reporter.on_event(
         gelex::SimulateConfigLoadedEvent{
             .intercept = config.intercept,

@@ -23,7 +23,8 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/algo/infer/mcmc.h"
+#include "gelex/algo/infer/mcmc/solver.h"
+#include "gelex/algo/infer/mcmc/trait_model.h"
 #include "gelex/algo/infer/params.h"
 #include "gelex/data/genotype/genotype_matrix.h"
 #include "gelex/model/bayes/checkpoint.h"
@@ -31,7 +32,6 @@
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_config.h"
 #include "gelex/model/bayes/reader/checkpoint_reader.h"
-#include "gelex/model/bayes/trait_model.h"
 #include "gelex/model/bayes/writer/checkpoint_writer.h"
 #include "gelex/types/bayes_method.h"
 #include "gelex/types/fixed_effects.h"
@@ -80,8 +80,8 @@ auto run_bayes_a(
     std::string_view prefix,
     Eigen::Index seed) -> std::string
 {
-    MCMCParams params(n_iters, 0, 1, n_iters);
-    MCMC mcmc(params, BayesA{}, std::string(prefix));
+    mcmc::Params params(n_iters, 0, 1, n_iters);
+    mcmc::Solver mcmc(params, mcmc::A{}, std::string(prefix));
     mcmc.run(model, priors, seed, "");
     return std::string(prefix) + ".ckpt";
 }
@@ -93,13 +93,13 @@ auto resume_bayes_a(
     const std::string& ckpt_path) -> std::string
 {
     auto ckpt = read_checkpoint(ckpt_path);
-    MCMCParams params(n_iters, 0, 1, n_iters);
-    MCMC mcmc(params, BayesA{}, std::string(prefix));
+    mcmc::Params params(n_iters, 0, 1, n_iters);
+    mcmc::Solver mcmc(params, mcmc::A{}, std::string(prefix));
     mcmc.resume(model, std::move(ckpt), "");
     return std::string(prefix) + ".ckpt";
 }
 
-auto fill_state(BayesState& state) -> void
+auto fill_state(mcmc::State& state) -> void
 {
     state.fixed().coeffs
         = Eigen::VectorXd::LinSpaced(state.fixed().coeffs.size(), 1.0, 2.0);
@@ -165,7 +165,7 @@ TEST_CASE("checkpoint round-trip preserves all fields", "[checkpoint]")
     const std::string ckpt_path = prefix + ".ckpt";
 
     auto [model, priors] = make_bayes_a_model(kNSamples, kNSnps);
-    BayesState state(model, priors);
+    mcmc::State state(model, priors);
     fill_state(state);
 
     std::mt19937_64 rng(12345);
@@ -206,7 +206,7 @@ TEST_CASE("checkpoint atomic write leaves no tmp file", "[checkpoint]")
     const std::string tmp_path = prefix + ".ckpt.tmp";
 
     auto [model, priors] = make_bayes_a_model(kNSamples, kNSnps);
-    BayesState state(model, priors);
+    mcmc::State state(model, priors);
     fill_state(state);
     std::mt19937_64 rng(99);
 
@@ -249,7 +249,7 @@ TEST_CASE("checkpoint prior round-trip preserves all fields", "[checkpoint]")
         std::move(random_priors),
         {.param = {.nu = 4.0, .s2 = 0.5}, .init = 0, .size = 0});
 
-    BayesState state(model, priors);
+    mcmc::State state(model, priors);
     fill_state(state);
 
     write_checkpoint(state, rng, priors, prefix);
@@ -292,7 +292,7 @@ TEST_CASE("MCMC resume throws on checkpoint dimension mismatch", "[checkpoint]")
     const std::string ckpt_path = prefix + ".ckpt";
 
     auto [model_write, priors_write] = make_bayes_a_model(kNSamples, kNSnps);
-    BayesState state(model_write, priors_write);
+    mcmc::State state(model_write, priors_write);
     fill_state(state);
     std::mt19937_64 rng(42);
 
@@ -304,8 +304,8 @@ TEST_CASE("MCMC resume throws on checkpoint dimension mismatch", "[checkpoint]")
         = make_bayes_a_model(kNSamples, kNSnps + 3);
     (void)priors_mismatch;
 
-    MCMCParams params(1, 0, 1, 1);
-    MCMC mcmc(params, BayesA{});
+    mcmc::Params params(1, 0, 1, 1);
+    mcmc::Solver mcmc(params, mcmc::A{});
     REQUIRE_THROWS(mcmc.resume(model_mismatch, std::move(ckpt)));
 
     std::filesystem::remove(ckpt_path);

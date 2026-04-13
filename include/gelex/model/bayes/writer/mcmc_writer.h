@@ -24,34 +24,37 @@
 #include <Eigen/Core>
 
 #include "gelex/io/binary_writer.h"
+#include "gelex/model/bayes/model.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
 
 class BayesModel;
-class BayesState;
 
 namespace bayes
 {
 class Priors;
 }
 
-class MCMCWriter
+namespace mcmc
+{
+
+class Writer
 {
    public:
-    MCMCWriter(
+    Writer(
         const BayesModel& model,
         const bayes::Priors& priors,
         std::string_view prefix,
         Eigen::Index n_records);
-    MCMCWriter(const MCMCWriter&) = delete;
-    MCMCWriter(MCMCWriter&&) noexcept = default;
-    auto operator=(const MCMCWriter&) -> MCMCWriter& = delete;
-    auto operator=(MCMCWriter&&) noexcept -> MCMCWriter& = default;
-    ~MCMCWriter() = default;
+    Writer(const Writer&) = delete;
+    Writer(Writer&&) noexcept = default;
+    auto operator=(const Writer&) -> Writer& = delete;
+    auto operator=(Writer&&) noexcept -> Writer& = default;
+    ~Writer() = default;
 
-    void write(const BayesState& state);
+    void write(const mcmc::State& state);
     void finalize();
 
    private:
@@ -78,6 +81,8 @@ class MCMCWriter
     std::vector<GeneticHandles> genetic_;
     detail::SectionHandle<double> residual_variance_{};
 };
+
+}  // namespace mcmc
 
 }  // namespace gelex
 

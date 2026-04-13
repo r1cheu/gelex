@@ -24,7 +24,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/types/mcmc_results.h"
+#include "gelex/types/mcmc_result.h"
 
 namespace gelex::detail
 {
@@ -38,7 +38,7 @@ class ParameterWriter
 {
    public:
     ParameterWriter(
-        const MCMCResult& result,
+        const mcmc::Result& result,
         const std::filesystem::path& output_path);
     ~ParameterWriter();
     ParameterWriter(const ParameterWriter&) = delete;
@@ -49,7 +49,7 @@ class ParameterWriter
     auto write() -> void;
 
    private:
-    const MCMCResult* result_;
+    const mcmc::Result* result_;
     std::unique_ptr<detail::TextWriter> writer_;
 
     auto write_fixed_effects() -> void;

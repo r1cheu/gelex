@@ -98,7 +98,14 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
 
-    cmd.add_group("MCMC Configuration");
+    cmd.add_group("Inference Method");
+    cmd.add_argument("--infer-method", "--im")
+        .help("Inference method: mcmc (Gibbs sampling) or cavi (variational)")
+        .default_value(std::string("mcmc"))
+        .metavar("<METHOD>")
+        .choices("mcmc", "cavi");
+
+    cmd.add_group("MCMC Configuration (--im mcmc)");
     cmd.add_argument("--iters")
         .help("Total MCMC iterations")
         .default_value(5000)
@@ -121,6 +128,16 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
     cmd.add_argument("--resume")
         .help("Resume from checkpoint file")
         .metavar("<CKPT>");
+
+    cmd.add_group("CAVI Configuration (--im cavi)");
+    cmd.add_argument("--max-iters")
+        .help("Maximum CAVI iterations")
+        .default_value(1000)
+        .scan<'i', int>();
+    cmd.add_argument("--tol")
+        .help("Convergence tolerance (relative RSS change)")
+        .default_value(1e-6)
+        .scan<'g', double>();
 
     cmd.add_group("Performance");
     cmd.add_argument("-t", "--threads")

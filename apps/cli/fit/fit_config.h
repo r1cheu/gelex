@@ -17,7 +17,10 @@
 #ifndef GELEX_CLI_FIT_CONFIG_H_
 #define GELEX_CLI_FIT_CONFIG_H_
 
-#include "gelex/pipeline/fit_engine.h"
+#include <variant>
+
+#include "gelex/pipeline/mcmc_engine.h"
+#include "gelex/pipeline/vi_engine.h"
 
 namespace argparse
 {
@@ -26,7 +29,10 @@ class ArgumentParser;
 
 namespace gelex::cli
 {
-auto make_fit_config(argparse::ArgumentParser& cmd) -> FitEngine::Config;
+
+using FitConfig = std::variant<mcmc::FitEngine::Config, vi::FitEngine::Config>;
+
+auto make_fit_config(argparse::ArgumentParser& cmd) -> FitConfig;
 
 }  // namespace gelex::cli
 

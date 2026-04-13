@@ -24,6 +24,10 @@
 namespace gelex
 {
 
+struct SimulateBannerEvent
+{
+};
+
 struct HeritabilityGeneratedEvent
 {
     double additive{};
@@ -53,6 +57,7 @@ struct OutputsWrittenEvent
 };
 
 using SimulateEvent = std::variant<
+    SimulateBannerEvent,
     SimulateConfigLoadedEvent,
     SimulateProgressEvent,
     HeritabilityGeneratedEvent,

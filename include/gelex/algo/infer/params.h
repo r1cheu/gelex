@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ESTIMATOR_BAYES_PARAMS_H_
-#define GELEX_ESTIMATOR_BAYES_PARAMS_H_
+#ifndef GELEX_ALGO_INFER_PARAMS_H_
+#define GELEX_ALGO_INFER_PARAMS_H_
 
 #include <stdexcept>
 
@@ -23,9 +23,13 @@
 
 namespace gelex
 {
-struct MCMCParams
+
+namespace mcmc
 {
-    MCMCParams(
+
+struct Params
+{
+    Params(
         Eigen::Index n_iters,
         Eigen::Index n_burn_in,
         Eigen::Index n_thin,
@@ -48,6 +52,20 @@ struct MCMCParams
     Eigen::Index n_records;
     Eigen::Index checkpoint_step;
 };
+
+}  // namespace mcmc
+
+namespace vi
+{
+
+struct Params
+{
+    Eigen::Index max_iters{1000};
+    double tol{1e-6};
+};
+
+}  // namespace vi
+
 }  // namespace gelex
 
-#endif  // GELEX_ESTIMATOR_BAYES_PARAMS_H_
+#endif  // GELEX_ALGO_INFER_PARAMS_H_

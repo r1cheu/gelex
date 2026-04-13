@@ -30,6 +30,10 @@
 namespace gelex
 {
 
+struct AssocBannerEvent
+{
+};
+
 struct AssocConfigLoadedEvent
 {
     GeneticMode model_type;
@@ -76,6 +80,7 @@ struct AssocCompleteEvent
 };
 
 using AssocEvent = std::variant<
+    AssocBannerEvent,
     AssocConfigLoadedEvent,
     AssocRemlStartedEvent,
     AssocScanSummaryEvent,

@@ -37,6 +37,7 @@ class AssocReporter
    public:
     AssocReporter();
 
+    auto on_event(const AssocBannerEvent& event) const -> void;
     auto on_event(const AssocConfigLoadedEvent& event) const -> void;
     auto on_event(const AssocRemlStartedEvent& event) const -> void;
     auto on_event(const AssocScanSummaryEvent& event) -> void;

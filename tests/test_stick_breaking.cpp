@@ -19,7 +19,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/model/bayes/samplers/detail/stick_breaking.h"
+#include "gelex/algo/infer/mcmc/samplers/stick_breaking.h"
 #include "gelex/model/bayes/states.h"
 
 using Catch::Matchers::WithinAbs;

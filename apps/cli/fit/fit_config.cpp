@@ -16,15 +16,21 @@
 
 #include "fit_config.h"
 
+#include <initializer_list>
+#include <string>
+#include <string_view>
+
 #include <argparse.h>
 
 #include "gelex/exception.h"
-#include "gelex/pipeline/fit_engine.h"
 
 namespace gelex::cli
 {
 
-auto make_fit_config(argparse::ArgumentParser& cmd) -> FitEngine::Config
+namespace
+{
+
+auto parse_method(argparse::ArgumentParser& cmd) -> BayesMethodConfig
 {
     auto base
         = gelex::get_bayes_base(cmd.get("-m")).value_or(gelex::BayesBase::RR);
@@ -41,19 +47,41 @@ auto make_fit_config(argparse::ArgumentParser& cmd) -> FitEngine::Config
         throw gelex::GelexException(
             fmt::format("invalid method combination: {}", method));
     }
+    return method;
+}
 
-    FitEngine::Config config{
+auto reject_if_used(
+    argparse::ArgumentParser& cmd,
+    std::initializer_list<std::string_view> flags,
+    std::string_view context) -> void
+{
+    for (auto flag : flags)
+    {
+        if (cmd.is_used(flag))
+        {
+            throw gelex::GelexException(
+                fmt::format("{} is not valid with {}", flag, context));
+        }
+    }
+}
+
+auto make_mcmc_config(argparse::ArgumentParser& cmd, BayesMethodConfig method)
+    -> mcmc::FitEngine::Config
+{
+    reject_if_used(cmd, {"--max-iters", "--tol"}, "--im mcmc");
+
+    mcmc::FitEngine::Config config{
         .bfile_prefix = cmd.get("--bfile"),
         .method = method,
-
         .seed = cmd.get<int>("--seed"),
-        .mcmc_params = gelex::MCMCParams(
+        .mcmc_params = gelex::mcmc::Params(
             cmd.get<int>("--iters"),
             cmd.get<int>("--burn-in"),
             cmd.get<int>("--thin"),
             cmd.is_used("--checkpoint-step") ? cmd.get<int>("--checkpoint-step")
                                              : 0),
-        .out_prefix = cmd.get("--out")};
+        .out_prefix = cmd.get("--out"),
+    };
 
     auto extract_opt_vec
         = [&](std::string_view arg) -> std::optional<std::vector<double>>
@@ -81,6 +109,57 @@ auto make_fit_config(argparse::ArgumentParser& cmd) -> FitEngine::Config
     }
 
     return config;
+}
+
+auto make_cavi_config(argparse::ArgumentParser& cmd, BayesMethodConfig method)
+    -> vi::FitEngine::Config
+{
+    if (method.base != BayesBase::RR)
+    {
+        throw gelex::GelexException(
+            fmt::format("CAVI only supports BayesRR, got: {}", method));
+    }
+
+    reject_if_used(
+        cmd,
+        {"--iters",
+         "--burn-in",
+         "--thin",
+         "--seed",
+         "--checkpoint-step",
+         "--resume",
+         "--pi",
+         "--dpi",
+         "--mult",
+         "--dmult",
+         "--estimate-pi",
+         "--asym",
+         "--positive-prob"},
+        "--im cavi");
+
+    return vi::FitEngine::Config{
+        .bfile_prefix = cmd.get("--bfile"),
+        .method = method,
+        .params = vi::Params{
+            .max_iters = cmd.get<int>("--max-iters"),
+            .tol = cmd.get<double>("--tol"),
+        },
+        .out_prefix = cmd.get("--out"),
+    };
+}
+
+}  // namespace
+
+auto make_fit_config(argparse::ArgumentParser& cmd) -> FitConfig
+{
+    auto method = parse_method(cmd);
+    auto infer = cmd.get("--infer-method");
+
+    if (infer == "cavi")
+    {
+        return make_cavi_config(cmd, method);
+    }
+    return make_mcmc_config(cmd, method);
 }
 
 }  // namespace gelex::cli

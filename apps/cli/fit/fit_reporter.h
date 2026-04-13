@@ -30,7 +30,12 @@
 namespace gelex
 {
 class BayesModel;
-class MCMCResult;
+
+namespace mcmc
+{
+class Result;
+}
+
 struct GeneticSummary;
 struct PosteriorSummary;
 
@@ -62,10 +67,15 @@ class FitReporter
    public:
     FitReporter();
 
-    auto on_event(const FitConfigLoadedEvent& event) const -> void;
+    auto on_event(const FitMCMCBannerEvent& event) const -> void;
+    auto on_event(const FitVIBannerEvent& event) const -> void;
+    auto on_event(const FitMCMCConfigEvent& event) const -> void;
+    auto on_event(const FitVIConfigEvent& event) const -> void;
     auto on_event(const FitPriorSetEvent& event) const -> void;
-    auto on_event(const FitMcmcProgressEvent& event) -> void;
-    auto on_event(const FitMcmcCompleteEvent& event) const -> void;
+    auto on_event(const FitMCMCProgressEvent& event) -> void;
+    auto on_event(const FitMCMCCompleteEvent& event) const -> void;
+    auto on_event(const FitVIProgressEvent& event) -> void;
+    auto on_event(const FitVICompleteEvent& event) const -> void;
     auto on_event(const FitResultsSavedEvent& event) const -> void;
     auto on_event(const FitCheckpointSavedEvent& event) -> void;
 
@@ -81,13 +91,13 @@ class FitReporter
     auto print_residual_prior(const bayes::VariancePrior& prior) const -> void;
 
     auto print_fixed_summary(
-        const MCMCResult& result,
+        const mcmc::Result& result,
         std::ptrdiff_t samples_collected) const -> void;
     auto print_genetic_summary(
         const GeneticSummary* summary,
         const bayes::GeneticEffect* effect,
         GeneticMode type) const -> void;
-    auto print_residual_summary(const MCMCResult& result) const -> void;
+    auto print_residual_summary(const mcmc::Result& result) const -> void;
 
     auto print_variance_prior(
         const detail::ScaledInvChiSqParams& prior,
@@ -100,6 +110,7 @@ class FitReporter
     std::shared_ptr<spdlog::logger> logger_;
     size_t iter_{0};
     ProgressBar bar_;
+    ProgressInfo cavi_info_;
     bool init_progress_ = false;
     std::string stats_;
 };

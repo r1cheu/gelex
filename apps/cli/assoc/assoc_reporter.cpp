@@ -31,10 +31,14 @@ namespace gelex::cli
 
 AssocReporter::AssocReporter() : logger_(gelex::logging::get()), eta_(1) {}
 
-auto AssocReporter::on_event(const AssocConfigLoadedEvent& event) const -> void
+auto AssocReporter::on_event(const AssocBannerEvent& /*event*/) const -> void
 {
     logger_->info(gelex::command_banner(PROJECT_VERSION, "GWAS Analysis"));
     logger_->info("");
+}
+
+auto AssocReporter::on_event(const AssocConfigLoadedEvent& event) const -> void
+{
     logger_->info(gelex::section("[Config]"));
     logger_->info(
         "  {:<12}: {}",
