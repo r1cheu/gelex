@@ -27,6 +27,12 @@
 #include <fmt/format.h>
 
 #include "gelex/data/dataframe/dataframe.h"
+#include "gelex/types/assoc_test_type.h"
+
+namespace gelex
+{
+struct TestResults;
+}
 
 namespace gelex::gwas
 {
@@ -34,17 +40,10 @@ namespace gelex::gwas
 class GwasWriter
 {
    public:
-    struct AssocResult
-    {
-        double freq;
-        double beta;
-        double se;
-        double p_value;
-        double pve;
-    };
     GwasWriter(
         std::string_view out_prefix,
-        const df::DataFrame<std::string>& bim);
+        const df::DataFrame<std::string>& bim,
+        AssocTestType test_type = AssocTestType::Single);
     GwasWriter(const GwasWriter&) = delete;
     GwasWriter(GwasWriter&&) = delete;
     GwasWriter& operator=(const GwasWriter&) = delete;
@@ -52,9 +51,10 @@ class GwasWriter
 
     ~GwasWriter();
 
-    auto write(std::size_t row, AssocResult result) -> void;
+    auto write(std::size_t start, const TestResults& results) -> void;
 
    private:
+    AssocTestType test_type_;
     std::ofstream ofs_;
     fmt::memory_buffer line_buffer_;
 

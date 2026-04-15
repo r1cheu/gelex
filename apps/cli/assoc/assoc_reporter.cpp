@@ -40,10 +40,11 @@ auto AssocReporter::on_event(const AssocBannerEvent& /*event*/) const -> void
 auto AssocReporter::on_event(const AssocConfigLoadedEvent& event) const -> void
 {
     logger_->info(gelex::section("[Config]"));
+    logger_->info("  {:<12}: {}", "Model", event.model_type);
     logger_->info(
         "  {:<12}: {}",
-        "Model",
-        event.model_type == gelex::GeneticMode::A ? "Additive" : "Dominance");
+        "Test",
+        event.test_type == gelex::AssocTestType::Single ? "Single" : "Joint");
     logger_->info("  {:<12}: {}", "LOCO", event.loco ? "Yes" : "No");
 
     logger_->info("  {:<12}: {}", "Geno Method", event.geno_method);

@@ -82,10 +82,12 @@ class FreqState
     freq::ResidualState& residual() { return residual_; }
     const freq::ResidualState& residual() const { return residual_; }
 
+    auto Vp() const -> double { return Vp_; }
+
     void compute_heritability();
 
    private:
-    double phenotype_variance_;
+    double Vp_;  // variance of adjusted phenotype
     freq::FixedState fixed_;
     std::vector<freq::RandomState> random_;
     std::vector<freq::GeneticState> genetic_;

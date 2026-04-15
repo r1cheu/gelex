@@ -26,7 +26,7 @@ auto setup_post_args(argparse::ArgumentParser& cmd) -> void
         "MCMC posterior analysis: diagnostics (ESS, R-hat, HPDI) from fit "
         "output");
 
-    cmd.add_group("Input");
+    cmd.add_group("I/O");
     cmd.add_argument("--in")
         .help(
             "Fit output prefix(es), one per chain (reads "
@@ -40,12 +40,13 @@ auto setup_post_args(argparse::ArgumentParser& cmd) -> void
         .metavar("<GFILE>");
 
     cmd.add_argument("-o", "--out")
-        .help("Output prefix (default: gelex_post)")
+        .help("Output prefix")
         .metavar("<PREFIX>")
         .default_value(std::string("gelex_post"));
 
+    cmd.add_group("Analysis");
     cmd.add_argument("--hdpi")
-        .help("Credible interval width for HPDI (default: 0.94)")
+        .help("HPDI credible interval width")
         .metavar("<WIDTH>")
         .default_value(0.94)
         .scan<'f', double>();

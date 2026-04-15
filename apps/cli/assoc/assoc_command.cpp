@@ -34,15 +34,12 @@
 #include "gelex/infra/logging/assoc_event.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
-#include "gelex/pipeline/assoc_loco_engine.h"
-#include "gelex/pipeline/assoc_normal_engine.h"
+#include "gelex/pipeline/assoc_engine.h"
 #include "gelex/pipeline/grm_pipe.h"
 #include "gelex/pipeline/pheno_pipe.h"
-#include "gelex/types/genotype_process_method.h"
 
 auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 {
-    bool loco = cmd.get<bool>("--loco");
     int threads = cmd.get<int>("--threads");
     gelex::cli::setup_parallelization(threads);
 
@@ -54,18 +51,17 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     gelex::cli::AssocReporter reporter;
     gelex::cli::DataPipeReporter data_reporter;
 
+    auto config = gelex::cli::make_assoc_config(cmd);
+
     reporter.on_event(gelex::AssocBannerEvent{});
     reporter.on_event(
         gelex::AssocConfigLoadedEvent{
-            .model_type = cmd.get("--model") == "a" ? gelex::GeneticMode::A
-                                                    : gelex::GeneticMode::D,
-            .loco = loco,
-
-            .geno_method = gelex::cli::parse_genotype_process_method(
-                cmd.get<std::string>("--geno-method")),
-
-            .max_iter = cmd.get<int>("--max-iter"),
-            .tol = cmd.get<double>("--tol"),
+            .model_type = config.model_type,
+            .test_type = config.test_type,
+            .loco = config.loco,
+            .geno_method = config.method,
+            .max_iter = config.max_iter,
+            .tol = config.tol,
         });
 
     auto bed_path = gelex::format_bed_path(cmd.get<std::string>("--bfile"));
@@ -95,24 +91,14 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     pheno.gather(common);
     grm.load(common);
 
-    auto config = gelex::cli::make_assoc_config(cmd);
-
-    if (loco)
-    {
-        gelex::AssocLocoEngine engine(std::move(config));
-        engine.run(pheno, grm, common, reporter.as_observer());
-    }
-    else
-    {
-        gelex::cli::RemlReporter reml_reporter;
-        gelex::AssocNormalEngine engine(std::move(config));
-        engine.run(
-            pheno,
-            grm,
-            common,
-            reporter.as_observer(),
-            reml_reporter.as_observer());
-    }
+    gelex::cli::RemlReporter reml_reporter;
+    gelex::AssocEngine engine(std::move(config));
+    engine.run(
+        pheno,
+        grm,
+        common,
+        reporter.as_observer(),
+        reml_reporter.as_observer());
 
     return 0;
 }

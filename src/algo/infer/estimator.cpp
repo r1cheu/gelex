@@ -35,7 +35,7 @@ Estimator::Estimator(size_t max_iter, double tol, RemlObserver observer)
 }
 
 auto Estimator::fit(const FreqModel& model, FreqState& state, bool em_init)
-    -> Eigen::MatrixXd
+    -> RemlResult
 {
     OptimizerState opt_state(model);
 
@@ -104,7 +104,10 @@ auto Estimator::fit(const FreqModel& model, FreqState& state, bool em_init)
             .max_iter = max_iter_,
             .loglike = loglike_});
 
-    return std::move(opt_state.v);
+    return RemlResult{
+        .P = std::move(opt_state.proj),
+        .Py = std::move(opt_state.proj_y),
+        .Vp = state.Vp()};
 }
 
 auto Estimator::em_step(

@@ -14,42 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_TYPES_ASSOC_INPUT_H_
-#define GELEX_TYPES_ASSOC_INPUT_H_
+#ifndef GELEX_TYPES_ASSOC_OUTPUT_H_
+#define GELEX_TYPES_ASSOC_OUTPUT_H_
 
 #include <Eigen/Core>
 
 namespace gelex
 {
-
-struct AssocInput
-{
-    AssocInput() = default;
-
-    AssocInput(
-        Eigen::Index n_samples,
-        Eigen::Index chunk_size,
-        double total_var)
-        : phenotype_var(total_var)
-    {
-        resize(n_samples, chunk_size);
-    }
-
-    auto resize(Eigen::Index n_samples, Eigen::Index chunk_size) -> void
-    {
-        Z.resize(n_samples, chunk_size);
-        W.resize(n_samples, chunk_size);
-        V_inv.resize(n_samples, n_samples);
-        V_inv_y.resize(n_samples);
-    }
-
-    Eigen::MatrixXd Z;      // SNP matrix
-    Eigen::MatrixXd V_inv;  // Inverse of covariance matrix
-    Eigen::VectorXd V_inv_y;
-    Eigen::MatrixXd W;       // Intermediate buffer for V^{-1} Z
-    double phenotype_var{};  // Total variance of the phenotype (for PVE
-                             // calculation)
-};
 
 struct AssocOutput
 {
@@ -64,8 +35,8 @@ struct AssocOutput
         stats.resize(chunk_size);
         p_value.resize(chunk_size);
         pve.resize(chunk_size);
-        zt_v_inv_r.resize(chunk_size);
-        zt_v_inv_z.resize(chunk_size);
+        zt_Pr.resize(chunk_size);
+        zt_Pz.resize(chunk_size);
     }
 
     Eigen::VectorXd beta;
@@ -74,10 +45,10 @@ struct AssocOutput
     Eigen::VectorXd p_value;
     Eigen::VectorXd pve;
 
-    Eigen::VectorXd zt_v_inv_r;  // Z^t V^{-1} residual
-    Eigen::VectorXd zt_v_inv_z;  // Z^t V^{-1} Z
+    Eigen::VectorXd zt_Pr;
+    Eigen::VectorXd zt_Pz;
 };
 
 }  // namespace gelex
 
-#endif  // GELEX_TYPES_ASSOC_INPUT_H_
+#endif  // GELEX_TYPES_ASSOC_OUTPUT_H_

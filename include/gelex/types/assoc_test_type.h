@@ -14,24 +14,20 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_ASSOC_CONFIG_H_
-#define GELEX_CLI_ASSOC_CONFIG_H_
+#ifndef GELEX_TYPES_ASSOC_TEST_TYPE_H_
+#define GELEX_TYPES_ASSOC_TEST_TYPE_H_
 
-#include "gelex/pipeline/assoc_engine.h"
-#include "gelex/pipeline/pheno_pipe.h"
+#include <cstdint>
 
-namespace argparse
-{
-class ArgumentParser;
-}
-
-namespace gelex::cli
+namespace gelex
 {
 
-auto make_assoc_config(argparse::ArgumentParser& cmd) -> AssocEngine::Config;
+enum class AssocTestType : uint8_t
+{
+    Single = 0,
+    Joint = 1
+};
 
-auto parse_transform_type(std::string_view transform) -> detail::TransformType;
+}  // namespace gelex
 
-}  // namespace gelex::cli
-
-#endif  // GELEX_CLI_ASSOC_CONFIG_H_
+#endif  // GELEX_TYPES_ASSOC_TEST_TYPE_H_

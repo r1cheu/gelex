@@ -28,7 +28,7 @@ auto setup_grm_args(argparse::ArgumentParser& cmd) -> void
         "Compute genomic relationship matrix (GRM) from PLINK "
         "binary files and output in GCTA format");
 
-    cmd.add_group("Data Files");
+    cmd.add_group("I/O");
     cmd.add_argument("-b", "--bfile")
         .help("PLINK binary file prefix (.bed/.bim/.fam)")
         .metavar("<BFILE>")
@@ -38,28 +38,30 @@ auto setup_grm_args(argparse::ArgumentParser& cmd) -> void
         .metavar("<OUT>")
         .default_value(std::string("grm"));
 
-    cmd.add_group("GRM Options");
+    cmd.add_group("Model");
     cmd.add_argument("--geno-method", "--gm")
         .help(
-            "Genotype method: StandardizeHWE(SH), CenterHWE(CH),"
+            "Genotype coding: StandardizeHWE(SH), CenterHWE(CH),"
             " OrthStandardizeHWE(OSH), OrthCenterHWE(OCH),"
             " Standardize(S), Center(C), OrthStandardize(OS), OrthCenter(OC)")
         .metavar("<STR>")
         .default_value(std::string("OSH"));
+    cmd.add_argument("--add").help("Additive GRM").flag();
+    cmd.add_argument("--dom").help("Dominance GRM").flag();
+    cmd.add_argument("--loco").help("GRM per chromosome").flag();
+
+    cmd.add_group("Performance");
     cmd.add_argument("-c", "--chunk-size")
-        .help("Chunk size for memory-efficient computation")
+        .help("SNPs per chunk for memory-efficient computation")
         .metavar("<SIZE>")
         .default_value(10000)
         .scan<'i', int>();
     cmd.add_argument("-t", "--threads")
-        .help("Number of threads (-1 for all cores)")
+        .help("Threads (-1 for all cores)")
         .metavar("<N>")
         .default_value(
             static_cast<int>(std::thread::hardware_concurrency() / 2))
         .scan<'i', int>();
-    cmd.add_argument("--add").help("Compute additive GRM").flag();
-    cmd.add_argument("--dom").help("Compute dominance GRM").flag();
-    cmd.add_argument("--loco").help("Compute GRM for each chromosome").flag();
 
     cmd.add_epilog(
         gelex::cli::format_epilog(

@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "gelex/infra/logging/reml_event.h"
+#include "gelex/types/assoc_test_type.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "gelex/types/genotype_process_method.h"
 
@@ -37,6 +38,7 @@ struct AssocBannerEvent
 struct AssocConfigLoadedEvent
 {
     GeneticMode model_type;
+    AssocTestType test_type;
     bool loco;
 
     GenotypeProcessMethod geno_method;

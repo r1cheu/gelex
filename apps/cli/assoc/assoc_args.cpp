@@ -26,18 +26,11 @@ auto setup_assoc_args(argparse::ArgumentParser& cmd) -> void
     cmd.add_description(
         "Perform genome-wide association study using mixed linear model");
 
-    // ================================================================
-    // IO
-    // ================================================================
-    cmd.add_group("Data Files");
+    cmd.add_group("I/O");
     cmd.add_argument("-p", "--pheno")
         .help("Phenotype file (TSV format: FID, IID, trait1, ...)")
         .metavar("<PHENOTYPE>")
         .required();
-    cmd.add_argument("--pheno-col")
-        .help("Phenotype column index (0-based)")
-        .default_value(2)
-        .scan<'i', int>();
     cmd.add_argument("-b", "--bfile")
         .help("PLINK binary file prefix (.bed/.bim/.fam)")
         .metavar("<BFILE>")
@@ -55,66 +48,63 @@ auto setup_assoc_args(argparse::ArgumentParser& cmd) -> void
         .help("Output file prefix")
         .metavar("<OUT>")
         .default_value("gelex");
-    // ================================================================
-    // REML Configuration
-    // ================================================================
-    cmd.add_group("REML Options");
-    cmd.add_argument("--max-iter")
-        .help("Max iteration in REML process")
-        .default_value(100)
-        .scan<'i', int>();
-    cmd.add_argument("--tol")
-        .help("tolerance for convergence in REML process")
-        .default_value(1e-6)
-        .scan<'g', double>();
 
-    // ================================================================
-    // Data Processing
-    // ================================================================
-    cmd.add_group("Processing Options");
-    cmd.add_argument("-c", "--chunk-size")
-        .help("SNPs per chunk for association testing")
-        .default_value(10000)
+    cmd.add_group("Phenotype");
+    cmd.add_argument("--pheno-col")
+        .help("Phenotype column index (0-based)")
+        .default_value(2)
         .scan<'i', int>();
-    cmd.add_argument("--loco")
-        .help("Enable Leave-One-Chromosome-Out (LOCO) mode")
-        .flag();
-
-    // ================================================================
-    // Model Configuration
-    // ================================================================
-    cmd.add_group("Model Configuration");
-    cmd.add_argument("--model")
-        .help(
-            "Association model: a for additive association test, d for "
-            "dominance association test")
-        .default_value("a")
-        .metavar("<MODEL>")
-        .choices("a", "d");
-    cmd.add_argument("--geno-method", "--gm")
-        .help(
-            "Genotype method: StandardizeHWE(SH), CenterHWE(CH),"
-            " OrthStandardizeHWE(OSH), OrthCenterHWE(OCH),"
-            " Standardize(S), Center(C), OrthStandardize(OS), OrthCenter(OC)")
-        .default_value(std::string("OCH"))
-        .metavar("<STR>");
     cmd.add_argument("--transform")
         .help(
-            "Phenotype transformation: none (default), dint (Direct INT), "
-            "iint (Indirect INT)")
+            "Phenotype transformation: none, dint (Direct INT), iint (Indirect "
+            "INT)")
         .default_value("none")
         .metavar("<TRANSFORM>")
         .choices("none", "dint", "iint");
     cmd.add_argument("--int-offset")
-        .help("INT offset parameter k (default: 3/8 Blom offset)")
+        .help("INT offset parameter k (Blom offset)")
         .default_value(3.0 / 8.0)
         .scan<'g', double>();
-    // ================================================================
-    // Performance
-    // ================================================================
+
+    cmd.add_group("Model");
+    cmd.add_argument("--test")
+        .help(
+            "Wald test mode: single (one-effect, df=1), joint (add+dom, df=2)")
+        .default_value("single")
+        .metavar("<TEST>")
+        .choices("single", "joint");
+    cmd.add_argument("--model")
+        .help(
+            "Association model: a (additive), d (dominance). "
+            "Ignored when --test=joint (always AD)")
+        .default_value("a")
+        .metavar("<MODEL>")
+        .choices("a", "d");
+    cmd.add_argument("--loco").help("Leave-One-Chromosome-Out analysis").flag();
+    cmd.add_argument("--geno-method", "--gm")
+        .help(
+            "Genotype processing: SH, CH, OSH, OCH, S, C, OS, OC "
+            "(prefix: O=orth, suffix: H=HWE-based)")
+        .default_value(std::string("OCH"))
+        .metavar("<STR>");
+
+    cmd.add_group("REML");
+    cmd.add_argument("--max-iter")
+        .help("Max iterations")
+        .default_value(100)
+        .scan<'i', int>();
+    cmd.add_argument("--tol")
+        .help("Convergence tolerance")
+        .default_value(1e-6)
+        .scan<'g', double>();
+
     cmd.add_group("Performance");
+    cmd.add_argument("-c", "--chunk-size")
+        .help("SNPs per chunk")
+        .default_value(10000)
+        .scan<'i', int>();
     cmd.add_argument("-t", "--threads")
-        .help("Number of CPU threads to use")
+        .help("CPU threads")
         .default_value(
             std::max(
                 1, static_cast<int>(std::thread::hardware_concurrency() / 2)))

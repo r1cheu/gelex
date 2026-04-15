@@ -16,10 +16,12 @@
 
 #include <nanobench.h>
 
+#include <array>
 #include <cstdio>
 #include <fstream>
 #include <string>
 
+#include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/data/reader.h"
 #include "gelex/io/gwas_writer.h"
 
@@ -27,7 +29,6 @@ using namespace gelex::gwas;
 
 int main()
 {
-    // 写往 /tmp 避免磁盘 I/O 波动影响格式化性能测试
     std::string temp_filename = "/tmp/bench_test_ignore";
     std::string bim_file = "/tmp/bench_test_ignore.bim";
     {
@@ -36,15 +37,20 @@ int main()
     }
     auto bim = gelex::read_bim(bim_file);
 
-    GwasWriter::AssocResult result;
-    result.beta = 0.0123;
-    result.se = 0.0045;
-    result.p_value = 1.23e-8;
+    std::array freq{0.25};
+    std::array beta{0.0123};
+    std::array se{0.0045};
+    std::array p{1.23e-8};
+    std::array pve{0.01};
+    gelex::TestResults results{
+        .freq = freq,
+        .additive = {.beta = beta, .se = se, .p = p, .pve = pve},
+    };
 
     GwasWriter writer(temp_filename, bim);
 
     ankerl::nanobench::Bench().run(
-        "GwasWriter WriteResult", [&]() { writer.write(0, result); });
+        "GwasWriter WriteResult", [&]() { writer.write(0, results); });
 
     std::remove((temp_filename + ".gwas.tsv").c_str());
     std::remove(bim_file.c_str());

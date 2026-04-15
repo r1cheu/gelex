@@ -24,6 +24,8 @@
 
 #include <fmt/compile.h>
 
+#include "gelex/algo/gwas/assoc_tester.h"
+
 namespace gelex::gwas
 {
 
@@ -31,8 +33,10 @@ constexpr size_t BUFFER_FLUSH_THRESHOLD = static_cast<size_t>(64 * 1024);
 
 GwasWriter::GwasWriter(
     std::string_view out_prefix,
-    const df::DataFrame<std::string>& bim)
-    : keys_(bim.index().keys()),
+    const df::DataFrame<std::string>& bim,
+    AssocTestType test_type)
+    : test_type_(test_type),
+      keys_(bim.index().keys()),
       chrom_(bim["chrom"].as<std::string>()),
       pos_(bim["pos"].as<std::int32_t>()),
       a1_(bim["A1"].as<std::string>()),
@@ -48,9 +52,24 @@ GwasWriter::GwasWriter(
 
     line_buffer_.reserve(BUFFER_FLUSH_THRESHOLD);
 
-    fmt::format_to(
-        std::back_inserter(line_buffer_),
-        FMT_COMPILE("CHR\tSNP\tBP\tA1\tA2\tA1FREQ\tBETA\tSE\tP\tPVE\n"));
+    switch (test_type_)
+    {
+        case AssocTestType::Single:
+            fmt::format_to(
+                std::back_inserter(line_buffer_),
+                FMT_COMPILE(
+                    "CHR\tSNP\tBP\tA1\tA2\tA1FREQ\tBETA\tSE\tP\tPVE\n"));
+            break;
+        case AssocTestType::Joint:
+            fmt::format_to(
+                std::back_inserter(line_buffer_),
+                FMT_COMPILE(
+                    "CHR\tSNP\tBP\tA1\tA2\tA1FREQ\t"
+                    "BETA_A\tSE_A\tP_A\tPVE_A\t"
+                    "BETA_D\tSE_D\tP_D\tPVE_D\tPVE\n"));
+            break;
+    }
+
     ofs_.write(
         line_buffer_.data(), static_cast<std::streamsize>(line_buffer_.size()));
     line_buffer_.clear();
@@ -66,25 +85,48 @@ GwasWriter::~GwasWriter()
         line_buffer_.data(), static_cast<std::streamsize>(line_buffer_.size()));
 }
 
-auto GwasWriter::write(std::size_t row, AssocResult result) -> void
+auto GwasWriter::write(std::size_t start, const TestResults& results) -> void
 {
-    fmt::format_to(
-        std::back_inserter(line_buffer_),
-        FMT_COMPILE("{}\t{}\t{}\t{}\t{}\t{:.6g}\t"),
-        chrom_[row],
-        keys_[row],
-        pos_[row],
-        a1_[row],
-        a2_[row],
-        result.freq);
+    const auto& add = results.additive;
+    const bool is_joint = test_type_ == AssocTestType::Joint;
 
-    fmt::format_to(
-        std::back_inserter(line_buffer_),
-        FMT_COMPILE("{:.6g}\t{:.6g}\t{:.6e}\t{:.6e}\n"),
-        result.beta,
-        result.se,
-        result.p_value,
-        result.pve);
+    for (size_t i = 0; i < results.freq.size(); ++i)
+    {
+        const auto row = start + i;
+        fmt::format_to(
+            std::back_inserter(line_buffer_),
+            FMT_COMPILE("{}\t{}\t{}\t{}\t{}\t{:.6g}\t"),
+            chrom_[row],
+            keys_[row],
+            pos_[row],
+            a1_[row],
+            a2_[row],
+            results.freq[i]);
+
+        fmt::format_to(
+            std::back_inserter(line_buffer_),
+            FMT_COMPILE("{:.6g}\t{:.6g}\t{:.6e}\t{:.6e}"),
+            add.beta[i],
+            add.se[i],
+            add.p[i],
+            add.pve[i]);
+
+        if (is_joint)
+        {
+            const auto& dom = *results.dominance;
+            const auto& total_pve = *results.total_pve;
+            fmt::format_to(
+                std::back_inserter(line_buffer_),
+                FMT_COMPILE("\t{:.6g}\t{:.6g}\t{:.6e}\t{:.6e}\t{:.6e}"),
+                dom.beta[i],
+                dom.se[i],
+                dom.p[i],
+                dom.pve[i],
+                total_pve[i]);
+        }
+
+        line_buffer_.push_back('\n');
+    }
 
     if (line_buffer_.size() >= BUFFER_FLUSH_THRESHOLD)
     {

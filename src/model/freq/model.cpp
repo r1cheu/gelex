@@ -28,14 +28,14 @@ FreqModel::FreqModel(
     std::vector<freq::GeneticEffect> genetics)
     : phenotype_(std::move(phenotype)),
       phenotype_variance_(detail::var(phenotype_)[0]),
-      fixed_(std::move(fixed_effects))
+      fixed_(std::move(fixed_effects)),
+      genetic_(std::move(genetics))
 {
     num_individuals_ = phenotype_.size();
-    genetic_ = std::move(genetics);
 }
 
 FreqState::FreqState(const FreqModel& model)
-    : phenotype_variance_(model.phenotype_variance()), fixed_(model.fixed())
+    : Vp_(model.phenotype_variance()), fixed_(model.fixed())
 {
     for (const auto& r : model.random())
     {
@@ -62,14 +62,13 @@ auto FreqState::compute_heritability() -> void
         total_random_variance += r.variance;
     }
 
-    phenotype_variance_
-        = total_genetic_variance + total_random_variance + residual_.variance;
+    Vp_ = total_genetic_variance + total_random_variance + residual_.variance;
 
-    if (phenotype_variance_ > 0.0)
+    if (Vp_ > 0.0)
     {
         for (auto& g : genetic_)
         {
-            g.heritability = g.variance / phenotype_variance_;
+            g.heritability = g.variance / Vp_;
         }
     }
 }
@@ -78,11 +77,10 @@ auto FreqState::init_variance_components(const FreqModel& model) -> void
 {
     const double heritability = 0.5;
     const double random_proportion = 0.2;  // exclude genetic random effects
-    const double init_residual_variance
-        = phenotype_variance_ * (1.0 - heritability);
+    const double init_residual_variance = Vp_ * (1.0 - heritability);
 
-    double init_genetic_variance = phenotype_variance_ * heritability;
-    double init_random_variance = phenotype_variance_ * random_proportion;
+    double init_genetic_variance = Vp_ * heritability;
+    double init_random_variance = Vp_ * random_proportion;
 
     const auto num_genetic = static_cast<double>(model.genetic().size());
     const auto num_random = static_cast<double>(model.random().size());

@@ -19,12 +19,32 @@
 
 #include <array>
 #include <fstream>
+#include <string>
 
 #include "gelex/data/dataframe/dataframe_reader.h"
 #include "gelex/io/parser.h"
 
 namespace gelex
 {
+inline auto detect_delimiter(const std::filesystem::path& path) -> char
+{
+    auto file = detail::open_file<std::ifstream>(path, std::ios::in);
+    std::string line;
+    std::getline(file, line);
+    if (line.contains('\t'))
+    {
+        return '\t';
+    }
+    if (line.contains(','))
+    {
+        return ',';
+    }
+    if (line.contains(' '))
+    {
+        return ' ';
+    }
+    return '\t';
+}
 
 inline auto read_fam(const std::filesystem::path& path)
     -> df::DataFrame<std::string>
@@ -33,6 +53,7 @@ inline auto read_fam(const std::filesystem::path& path)
     constexpr std::array kSchema = {String, String, Int, String};
     df::ReadOptions options;
     options.header = false;
+    options.delimiter = detect_delimiter(path);
     options.index_cols = {0, 1};
     options.names = {"father", "mother", "sex", "phenotype"};
     return df::read_dataframe<std::string>(path, options, kSchema);
@@ -46,6 +67,7 @@ inline auto read_bim(const std::filesystem::path& path)
     auto file = detail::open_file<std::ifstream>(path, std::ios::in);
     df::ReadOptions options;
     options.header = false;
+    options.delimiter = detect_delimiter(path);
     options.index_cols = {1};
     options.select_cols = {0, 3, 4, 5};
     options.names = {"chrom", "pos", "A1", "A2"};

@@ -25,29 +25,29 @@ auto setup_predict_args(argparse::ArgumentParser& cmd) -> void
     cmd.add_description(
         "Generate genomic predictions using fitted SNP effects");
 
-    cmd.add_group("Data Files");
+    cmd.add_group("I/O");
     cmd.add_argument("-b", "--bfile")
-        .help("PLINK binary file prefix for prediction data (.bed/.bim/.fam)")
+        .help("PLINK binary prefix (.bed/.bim/.fam)")
         .metavar("<BFILE>")
         .required();
     cmd.add_argument("-g", "--gfile")
-        .help("Fitted model file prefix (.snp.eff, .sbin, .param)")
+        .help("Fitted model prefix (.snp.eff, .sbin, .param)")
         .metavar("<GFILE>")
         .required();
     cmd.add_argument("--qcovar")
-        .help("Quantitative covariates file (TSV: FID, IID, covar1, ...)")
+        .help("Quantitative covariates (TSV: FID, IID, covar1, ...)")
         .metavar("<QCOVAR>");
     cmd.add_argument("--dcovar")
-        .help("Discrete covariates file (TSV: FID, IID, factor1, ...)")
+        .help("Discrete covariates (TSV: FID, IID, factor1, ...)")
         .metavar("<DCOVAR>");
     cmd.add_argument("-o", "--out")
-        .help("Output file path for predictions")
+        .help("Output file prefix")
         .metavar("<OUT>")
         .required();
 
-    cmd.add_group("Processing Options");
+    cmd.add_group("Performance");
     cmd.add_argument("-c", "--chunk-size")
-        .help("SNPs per chunk (controls memory usage)")
+        .help("SNPs per chunk")
         .default_value(10000)
         .scan<'i', int>();
 

@@ -19,6 +19,7 @@
 #include <argparse.h>
 
 #include "cli/cli_helper.h"
+#include "gelex/types/assoc_test_type.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "gelex/types/genotype_process_method.h"
 
@@ -34,6 +35,15 @@ auto parse_model_type(std::string_view model) -> GeneticMode
     return GeneticMode::D;
 }
 
+auto parse_test_type(std::string_view test) -> AssocTestType
+{
+    if (test == "joint")
+    {
+        return AssocTestType::Joint;
+    }
+    return AssocTestType::Single;
+}
+
 auto parse_transform_type(std::string_view transform) -> detail::TransformType
 {
     if (transform == "dint")
@@ -47,18 +57,24 @@ auto parse_transform_type(std::string_view transform) -> detail::TransformType
     return detail::TransformType::None;
 }
 
-auto make_assoc_config(argparse::ArgumentParser& cmd)
-    -> AssocNormalEngine::Config
+auto make_assoc_config(argparse::ArgumentParser& cmd) -> AssocEngine::Config
 {
-    return AssocNormalEngine::Config{
-        .model_type = parse_model_type(cmd.get("--model")),
+    auto test_type = parse_test_type(cmd.get("--test"));
+    auto model_type = test_type == AssocTestType::Joint
+                          ? GeneticMode::AD
+                          : parse_model_type(cmd.get("--model"));
+
+    return AssocEngine::Config{
+        .model_type = model_type,
         .method
         = parse_genotype_process_method(cmd.get<std::string>("--geno-method")),
         .chunk_size = cmd.get<int>("--chunk-size"),
         .max_iter = cmd.get<int>("--max-iter"),
         .tol = cmd.get<double>("--tol"),
         .bed_path = cmd.get("--bfile"),
-        .out_prefix = cmd.get("--out")};
+        .out_prefix = cmd.get("--out"),
+        .loco = cmd.get<bool>("--loco"),
+        .test_type = test_type};
 }
 
 }  // namespace gelex::cli

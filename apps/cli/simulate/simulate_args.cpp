@@ -25,68 +25,69 @@ auto setup_simulate_args(argparse::ArgumentParser& cmd) -> void
     cmd.add_description(
         "Simulate phenotypes based on genetic data and specified parameters");
 
-    cmd.add_group("Data Files");
+    cmd.add_group("I/O");
     cmd.add_argument("-b", "--bfile")
         .help("PLINK binary file prefix (.bed/.bim/.fam)")
         .metavar("<BFILE>")
         .required();
     cmd.add_argument("-o", "--out")
-        .help("Output file prefix for simulated phenotypes")
+        .help("Output file prefix")
         .metavar("<OUT>")
         .default_value("sim.phen");
 
-    cmd.add_group("Simulation Parameters");
-    cmd.add_argument("--intercept")
-        .help("Intercept (mean) term added to phenotypes")
-        .default_value(0.0)
-        .scan<'g', double>();
-
+    cmd.add_group("Additive");
     cmd.add_argument("--h2")
-        .help("Narrow-sense heritability (range: 0-1)")
+        .help("Narrow-sense heritability [0, 1]")
         .default_value(0.5)
         .scan<'g', double>();
     cmd.add_argument("--add-var")
-        .help("Variances for additive effect classes (default: 0.01)")
+        .help("Variances for additive effect classes")
         .metavar("<VARIANCES>")
         .nargs(argparse::nargs_pattern::at_least_one)
         .default_value(std::vector<double>{0.01})
         .scan<'g', double>();
     cmd.add_argument("--add-prop")
         .help(
-            "Proportions for additive effect classes "
-            "(must match --add-var length, sum to 1, default: 1.0)")
+            "Proportions for additive effect classes (must match --add-var "
+            "length, sum to 1)")
         .metavar("<PROPORTIONS>")
         .nargs(argparse::nargs_pattern::at_least_one)
         .default_value(std::vector<double>{1.0})
         .scan<'g', double>();
 
+    cmd.add_group("Dominance");
     cmd.add_argument("--d2")
-        .help("Dominance variance proportion (range: 0-1, h2+d2<1)")
+        .help("Dominance variance proportion [0, 1], h2+d2<1")
         .default_value(0.0)
         .scan<'g', double>();
     cmd.add_argument("--dom-var")
-        .help("Variances for dominance effect classes (default: 0.01)")
+        .help("Variances for dominance effect classes")
         .metavar("<VARIANCES>")
         .nargs(argparse::nargs_pattern::at_least_one)
         .default_value(std::vector<double>{0.01})
         .scan<'g', double>();
     cmd.add_argument("--dom-prop")
         .help(
-            "Proportions for dominance effect classes "
-            "(must match --dom-var length, sum to 1, default: 1.0)")
+            "Proportions for dominance effect classes (must match --dom-var "
+            "length, sum to 1)")
         .metavar("<PROPORTIONS>")
         .nargs(argparse::nargs_pattern::at_least_one)
         .default_value(std::vector<double>{1.0})
         .scan<'g', double>();
     cmd.add_argument("--dom-pos-prob")
         .help(
-            "Probability of positive dominance effects "
-            "(enables truncated-normal sampling, range: 0-1)")
+            "Probability of positive dominance effects; enables "
+            "truncated-normal sampling [0, 1]")
         .metavar("<PROB>")
         .scan<'g', double>();
 
+    cmd.add_group("Model");
+    cmd.add_argument("--intercept")
+        .help("Intercept (mean) added to phenotypes")
+        .default_value(0.0)
+        .scan<'g', double>();
     cmd.add_argument("--seed")
-        .help("Random seed for reproducibility")
+        .help("Random seed")
         .default_value(42)
         .scan<'i', int>();
 

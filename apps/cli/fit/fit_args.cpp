@@ -25,7 +25,7 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
 {
     cmd.add_description("Fit genomic prediction models using Bayesian methods");
 
-    cmd.add_group("Data Files");
+    cmd.add_group("I/O");
     cmd.add_argument("-p", "--pheno")
         .help("Phenotype file (TSV format: FID, IID, trait1, ...)")
         .metavar("<PHENOTYPE>")
@@ -46,7 +46,7 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         .metavar("<OUT>")
         .default_value("gelex");
 
-    cmd.add_group("Processing Options");
+    cmd.add_group("Processing");
     cmd.add_argument("--pheno-col")
         .help("Phenotype column index (0-based)")
         .default_value(2)
@@ -63,16 +63,16 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         .default_value(std::string("OSH"))
         .metavar("<STR>");
 
-    cmd.add_group("Model Configuration");
+    cmd.add_group("Model");
     cmd.add_argument("-m", "--method")
         .help("Bayesian method: A, B, C, R, RR")
         .default_value("RR")
         .metavar("<METHOD>")
         .choices("A", "B", "C", "R", "RR")
         .required();
-    cmd.add_argument("--dom").help("Enable dominance effect").flag();
+    cmd.add_argument("--dom").help("Dominance effect").flag();
     cmd.add_argument("--asym")
-        .help("Use asymmetric truncation for dominance effect")
+        .help("Asymmetric truncation for dominance")
         .flag();
     cmd.add_argument("--positive-prob")
         .help("Positive prob prior for dominance effect")
@@ -98,14 +98,14 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
 
-    cmd.add_group("Inference Method");
+    cmd.add_group("Inference");
     cmd.add_argument("--infer-method", "--im")
         .help("Inference method: mcmc (Gibbs sampling) or cavi (variational)")
         .default_value(std::string("mcmc"))
         .metavar("<METHOD>")
         .choices("mcmc", "cavi");
 
-    cmd.add_group("MCMC Configuration (--im mcmc)");
+    cmd.add_group("MCMC");
     cmd.add_argument("--iters")
         .help("Total MCMC iterations")
         .default_value(5000)
@@ -123,13 +123,13 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         .default_value(42)
         .scan<'i', int>();
     cmd.add_argument("--checkpoint-step")
-        .help("Save checkpoint every N iterations (default: only at end)")
+        .help("Save checkpoint every N iterations (omit to save only at end)")
         .scan<'i', int>();
     cmd.add_argument("--resume")
-        .help("Resume from checkpoint file")
+        .help("Resume from checkpoint")
         .metavar("<CKPT>");
 
-    cmd.add_group("CAVI Configuration (--im cavi)");
+    cmd.add_group("CAVI");
     cmd.add_argument("--max-iters")
         .help("Maximum CAVI iterations")
         .default_value(1000)
@@ -141,15 +141,13 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
 
     cmd.add_group("Performance");
     cmd.add_argument("-t", "--threads")
-        .help("Number of CPU threads to use")
+        .help("CPU threads")
         .default_value(
             std::max(
                 1, static_cast<int>(std::thread::hardware_concurrency() / 2)))
         .scan<'i', int>();
     cmd.add_argument("--mmap")
-        .help(
-            "Use memory-mapped I/O for genotype matrix(much lower RAM, may be "
-            "slower)")
+        .help("Memory-mapped genotype I/O (lower RAM, may be slower)")
         .flag();
 
     cmd.add_epilog(

@@ -22,6 +22,7 @@
 #include "gelex/algo/numerics/optimizer.h"
 #include "gelex/algo/numerics/optimizer_state.h"
 #include "gelex/infra/logging/reml_event.h"
+#include "gelex/types/reml_result.h"
 
 namespace gelex
 {
@@ -38,7 +39,7 @@ class Estimator
         RemlObserver observer = {});
 
     auto fit(const FreqModel& model, FreqState& state, bool em_init = true)
-        -> Eigen::MatrixXd;
+        -> RemlResult;
 
     auto is_converged() const -> bool { return converged_; }
     auto iter_count() const -> size_t { return iter_count_; }

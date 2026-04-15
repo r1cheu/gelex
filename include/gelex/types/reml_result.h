@@ -14,20 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_GWAS_ASSOCIATION_TEST_H
-#define GELEX_GWAS_ASSOCIATION_TEST_H
+#ifndef GELEX_TYPES_REML_RESULT_H_
+#define GELEX_TYPES_REML_RESULT_H_
 
 #include <Eigen/Core>
 
-#include "gelex/types/assoc_input.h"
-
-namespace gelex::gwas
+namespace gelex
 {
 
-// Perform Wald test for a single SNP
-// residual: y - Xβ̂ (phenotype minus fixed effects)
-// v_inv: pre-computed V⁻¹ from null model
-void wald_test(AssocInput& input, AssocOutput& output);
-}  // namespace gelex::gwas
+struct RemlResult
+{
+    Eigen::MatrixXd P;
+    Eigen::VectorXd Py;
+    double Vp{};
+};
 
-#endif  // GELEX_GWAS_ASSOCIATION_TEST_H
+}  // namespace gelex
+
+#endif  // GELEX_TYPES_REML_RESULT_H_

@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_PIPELINE_ASSOC_LOCO_ENGINE_H_
-#define GELEX_PIPELINE_ASSOC_LOCO_ENGINE_H_
+#ifndef GELEX_PIPELINE_ASSOC_ENGINE_H_
+#define GELEX_PIPELINE_ASSOC_ENGINE_H_
+
+#include <filesystem>
+#include <string>
 
 #include "gelex/data/dataframe/index.h"
 #include "gelex/infra/logging/assoc_event.h"
 #include "gelex/infra/logging/reml_event.h"
-#include "gelex/pipeline/assoc_normal_engine.h"
+#include "gelex/types/assoc_test_type.h"
+#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genotype_process_method.h"
 
 namespace gelex
 {
@@ -28,12 +33,27 @@ namespace gelex
 class PhenoPipe;
 class GrmPipe;
 
-class AssocLocoEngine
+class AssocEngine
 {
    public:
-    using Config = AssocNormalEngine::Config;
+    struct Config
+    {
+        GeneticMode model_type;
 
-    explicit AssocLocoEngine(Config config);
+        GenotypeProcessMethod method;
+        int chunk_size;
+
+        int max_iter;
+        double tol;
+
+        std::filesystem::path bed_path;
+        std::string out_prefix;
+
+        bool loco = false;
+        AssocTestType test_type = AssocTestType::Single;
+    };
+
+    explicit AssocEngine(Config config);
 
     auto run(
         PhenoPipe& pheno,
@@ -48,4 +68,4 @@ class AssocLocoEngine
 
 }  // namespace gelex
 
-#endif  // GELEX_PIPELINE_ASSOC_LOCO_ENGINE_H_
+#endif  // GELEX_PIPELINE_ASSOC_ENGINE_H_
