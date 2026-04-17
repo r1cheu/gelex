@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_SIM_GENETIC_VALUE_CALCULATOR_H_
-#define GELEX_ALGO_SIM_GENETIC_VALUE_CALCULATOR_H_
+#ifndef GELEX_SIMULATE_GENETIC_VALUE_CALCULATOR_H_
+#define GELEX_SIMULATE_GENETIC_VALUE_CALCULATOR_H_
 
 #include <filesystem>
 #include <span>
@@ -63,4 +63,4 @@ class GeneticValueCalculator
 
 }  // namespace gelex
 
-#endif  // GELEX_ALGO_SIM_GENETIC_VALUE_CALCULATOR_H_
+#endif  // GELEX_SIMULATE_GENETIC_VALUE_CALCULATOR_H_

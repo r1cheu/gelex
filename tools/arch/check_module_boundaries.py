@@ -76,7 +76,6 @@ def check_boundaries(root: Path) -> list[Violation]:
         "gelex/optim/",
         "gelex/gwas/",
         "gelex/predict/",
-        "gelex/sim/",
         "gelex/logger/",
         "gelex/utils/",
         "gelex/detail/",
@@ -212,7 +211,7 @@ def check_boundaries(root: Path) -> list[Violation]:
                         include=include_target,
                         message=(
                             "legacy public include prefix is forbidden; use module "
-                            "layout under `gelex/{infra,types,io,data,model,algo,pipeline}/**`"
+                            "layout under `gelex/{infra,types,io,data,model,algo,pipeline,simulate}/**`"
                         ),
                     )
                 )

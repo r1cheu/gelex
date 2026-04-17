@@ -22,12 +22,12 @@
 
 #include <Eigen/Core>
 
-#include "gelex/algo/sim/effect_sampler.h"
-#include "gelex/algo/sim/genetic_value_calculator.h"
-#include "gelex/algo/sim/phenotype_generator.h"
 #include "gelex/data/reader.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/simulation_writer.h"
+#include "gelex/simulate/effect_sampler.h"
+#include "gelex/simulate/genetic_value_calculator.h"
+#include "gelex/simulate/phenotype_generator.h"
 
 namespace gelex
 {

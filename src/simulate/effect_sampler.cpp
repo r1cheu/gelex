@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/sim/effect_sampler.h"
+#include "gelex/simulate/effect_sampler.h"
 
 #include <fmt/format.h>
 #include <algorithm>

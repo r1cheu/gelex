@@ -20,9 +20,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/algo/sim/genetic_value_calculator.h"
-#include "gelex/algo/sim/phenotype_generator.h"
 #include "gelex/infra/stats/descriptive.h"
+#include "gelex/simulate/genetic_value_calculator.h"
+#include "gelex/simulate/phenotype_generator.h"
 
 using namespace gelex;  // NOLINT
 using Catch::Matchers::WithinAbs;

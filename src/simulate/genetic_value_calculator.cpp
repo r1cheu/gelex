@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/sim/genetic_value_calculator.h"
+#include "gelex/simulate/genetic_value_calculator.h"
 
 #include <fmt/format.h>
 #include <algorithm>

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_SIM_EFFECT_SAMPLER_H_
-#define GELEX_ALGO_SIM_EFFECT_SAMPLER_H_
+#ifndef GELEX_SIMULATE_EFFECT_SAMPLER_H_
+#define GELEX_SIMULATE_EFFECT_SAMPLER_H_
 
 #include <optional>
 #include <random>
@@ -65,4 +65,4 @@ class EffectSampler
 
 }  // namespace gelex
 
-#endif  // GELEX_ALGO_SIM_EFFECT_SAMPLER_H_
+#endif  // GELEX_SIMULATE_EFFECT_SAMPLER_H_

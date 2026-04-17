@@ -20,8 +20,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "bed_fixture.h"
-#include "gelex/algo/sim/effect_sampler.h"
-#include "gelex/algo/sim/genetic_value_calculator.h"
+#include "gelex/simulate/effect_sampler.h"
+#include "gelex/simulate/genetic_value_calculator.h"
 
 using namespace gelex;  // NOLINT
 

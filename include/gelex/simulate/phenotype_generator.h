@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_SIM_PHENOTYPE_GENERATOR_H_
-#define GELEX_ALGO_SIM_PHENOTYPE_GENERATOR_H_
+#ifndef GELEX_SIMULATE_PHENOTYPE_GENERATOR_H_
+#define GELEX_SIMULATE_PHENOTYPE_GENERATOR_H_
 
 #include <optional>
 #include <random>
 
 #include <Eigen/Core>
 
-#include "gelex/algo/sim/genetic_value_calculator.h"
+#include "gelex/simulate/genetic_value_calculator.h"
 
 namespace gelex
 {
@@ -69,4 +69,4 @@ class PhenotypeGenerator
 
 }  // namespace gelex
 
-#endif  // GELEX_ALGO_SIM_PHENOTYPE_GENERATOR_H_
+#endif  // GELEX_SIMULATE_PHENOTYPE_GENERATOR_H_
