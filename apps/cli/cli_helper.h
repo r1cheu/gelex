@@ -65,6 +65,10 @@ inline auto parse_genotype_process_method(std::string_view value)
             {"os", GenotypeProcessMethod::OrthStandardize()},
             {"orthcenter", GenotypeProcessMethod::OrthCenter()},
             {"oc", GenotypeProcessMethod::OrthCenter()},
+            {"noiastandardize", GenotypeProcessMethod::NOIAStandardize()},
+            {"ns", GenotypeProcessMethod::NOIAStandardize()},
+            {"noiacenter", GenotypeProcessMethod::NOIACenter()},
+            {"nc", GenotypeProcessMethod::NOIACenter()},
         };
 
     auto it = kMethodMap.find(lower);
@@ -75,7 +79,7 @@ inline auto parse_genotype_process_method(std::string_view value)
             + "\". Valid: StandardizeHWE(SH), CenterHWE(CH),"
               " OrthStandardizeHWE(OSH), OrthCenterHWE(OCH),"
               " Standardize(S), Center(C), OrthStandardize(OS),"
-              " OrthCenter(OC)");
+              " OrthCenter(OC), NOIAStandardize(NS), NOIACenter(NC)");
     }
     return it->second;
 }

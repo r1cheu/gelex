@@ -15,7 +15,6 @@
  */
 
 #include <cmath>
-#include <initializer_list>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -28,51 +27,14 @@ using Catch::Matchers::WithinRel;
 
 namespace
 {
-
 constexpr double k_tolerance = 1e-10;
-
-auto make_vector(std::initializer_list<double> values) -> Eigen::VectorXd
-{
-    Eigen::VectorXd vector(static_cast<Eigen::Index>(values.size()));
-    Eigen::Index index = 0;
-    for (double value : values)
-    {
-        vector(index) = value;
-        ++index;
-    }
-    return vector;
-}
-
-auto require_vector_within_rel(
-    Eigen::Ref<const Eigen::VectorXd> actual,
-    Eigen::Ref<const Eigen::VectorXd> expected,
-    double tolerance = k_tolerance) -> void
-{
-    REQUIRE(actual.size() == expected.size());
-    for (Eigen::Index i = 0; i < actual.size(); ++i)
-    {
-        REQUIRE_THAT(actual(i), WithinRel(expected(i), tolerance));
-    }
-}
-
-auto require_vector_within_abs(
-    Eigen::Ref<const Eigen::VectorXd> actual,
-    double expected,
-    double tolerance = k_tolerance) -> void
-{
-    for (Eigen::Index i = 0; i < actual.size(); ++i)
-    {
-        REQUIRE_THAT(actual(i), WithinAbs(expected, tolerance));
-    }
-}
-
 }  // namespace
 
 TEST_CASE("Standardize<Add> - Basic functionality", "[data]")
 {
     SECTION("Happy path - polymorphic variant")
     {
-        Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
+        Eigen::VectorXd variant{{0.0, 1.0, 2.0, 1.0, 0.0}};
 
         auto stats = Standardize<GeneticMode::A>::process(variant);
 
@@ -80,25 +42,25 @@ TEST_CASE("Standardize<Add> - Basic functionality", "[data]")
         REQUIRE_THAT(stats.stddev, WithinRel(0.8366600265340756, k_tolerance));
         REQUIRE_FALSE(stats.is_monomorphic);
 
-        Eigen::VectorXd expected = make_vector(
+        Eigen::VectorXd expected{
             {-0.9561828874675147,
              0.23904572186687866,
              1.434274331201319,
              0.23904572186687866,
-             -0.9561828874675147});
-        require_vector_within_rel(variant, expected);
+             -0.9561828874675147}};
+        REQUIRE(variant.isApprox(expected, k_tolerance));
     }
 
     SECTION("Happy path - monomorphic variant")
     {
-        Eigen::VectorXd variant = make_vector({2.0, 2.0, 2.0, 2.0, 2.0});
+        Eigen::VectorXd variant{{2.0, 2.0, 2.0, 2.0, 2.0}};
 
         auto stats = Standardize<GeneticMode::A>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(2.0, k_tolerance));
         REQUIRE_THAT(stats.stddev, WithinAbs(0.0, k_tolerance));
         REQUIRE(stats.is_monomorphic);
-        require_vector_within_abs(variant, 0.0);
+        REQUIRE(variant.isZero(k_tolerance));
     }
 }
 
@@ -106,7 +68,7 @@ TEST_CASE("OrthStandardize<Add> - Basic functionality", "[data]")
 {
     SECTION("Happy path - polymorphic variant")
     {
-        Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
+        Eigen::VectorXd variant{{0.0, 1.0, 2.0, 1.0, 0.0}};
 
         auto stats = OrthStandardize<GeneticMode::A>::process(variant);
 
@@ -115,25 +77,25 @@ TEST_CASE("OrthStandardize<Add> - Basic functionality", "[data]")
         REQUIRE_THAT(stats.stddev, WithinRel(expected_stddev, k_tolerance));
         REQUIRE_FALSE(stats.is_monomorphic);
 
-        Eigen::VectorXd expected = make_vector(
+        Eigen::VectorXd expected{
             {-0.9561828874675147,
              0.23904572186687866,
              1.434274331201319,
              0.23904572186687866,
-             -0.9561828874675147});
-        require_vector_within_rel(variant, expected);
+             -0.9561828874675147}};
+        REQUIRE(variant.isApprox(expected, k_tolerance));
     }
 
     SECTION("Happy path - monomorphic variant")
     {
-        Eigen::VectorXd variant = make_vector({2.0, 2.0, 2.0, 2.0, 2.0});
+        Eigen::VectorXd variant{{2.0, 2.0, 2.0, 2.0, 2.0}};
 
         auto stats = OrthStandardize<GeneticMode::A>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(2.0, k_tolerance));
         REQUIRE_THAT(stats.stddev, WithinAbs(0.0, k_tolerance));
         REQUIRE(stats.is_monomorphic);
-        require_vector_within_abs(variant, 0.0);
+        REQUIRE(variant.isZero(k_tolerance));
     }
 }
 
@@ -141,7 +103,7 @@ TEST_CASE("Standardize<Dom> - Basic functionality", "[data]")
 {
     SECTION("Happy path - polymorphic variant with heterozygotes")
     {
-        Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0, 2.0});
+        Eigen::VectorXd variant{{0.0, 1.0, 2.0, 1.0, 0.0, 2.0}};
 
         auto stats = Standardize<GeneticMode::D>::process(variant);
 
@@ -155,7 +117,7 @@ TEST_CASE("Standardize<Dom> - Basic functionality", "[data]")
 
     SECTION("Happy path - variant with no heterozygotes")
     {
-        Eigen::VectorXd variant = make_vector({0.0, 2.0, 0.0, 2.0});
+        Eigen::VectorXd variant{{0.0, 2.0, 0.0, 2.0}};
 
         auto stats = Standardize<GeneticMode::D>::process(variant);
 
@@ -169,7 +131,7 @@ TEST_CASE("OrthStandardize<Dom> - Basic functionality", "[data]")
 {
     SECTION("Happy path - polymorphic variant")
     {
-        Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
+        Eigen::VectorXd variant{{0.0, 1.0, 2.0, 1.0, 0.0}};
 
         auto stats = OrthStandardize<GeneticMode::D>::process(variant);
 
@@ -180,31 +142,31 @@ TEST_CASE("OrthStandardize<Dom> - Basic functionality", "[data]")
         REQUIRE_THAT(stats.stddev, WithinRel(expected_stddev, k_tolerance));
         REQUIRE_FALSE(stats.is_monomorphic);
 
-        Eigen::VectorXd expected = make_vector(
+        Eigen::VectorXd expected{
             {-0.24 / expected_stddev,
              0.56 / expected_stddev,
              -0.64 / expected_stddev,
              0.56 / expected_stddev,
-             -0.24 / expected_stddev});
-        require_vector_within_rel(variant, expected);
+             -0.24 / expected_stddev}};
+        REQUIRE(variant.isApprox(expected, k_tolerance));
     }
 
     SECTION("Happy path - monomorphic variant")
     {
-        Eigen::VectorXd variant = make_vector({2.0, 2.0, 2.0, 2.0, 2.0});
+        Eigen::VectorXd variant{{2.0, 2.0, 2.0, 2.0, 2.0}};
 
         auto stats = OrthStandardize<GeneticMode::D>::process(variant);
 
         REQUIRE_THAT(stats.mean, WithinRel(2.0, k_tolerance));
         REQUIRE_THAT(stats.stddev, WithinAbs(0.0, k_tolerance));
         REQUIRE(stats.is_monomorphic);
-        require_vector_within_abs(variant, 0.0);
+        REQUIRE(variant.isZero(k_tolerance));
     }
 }
 
 TEST_CASE("StandardizeHWE<Add> uses HWE moments", "[data]")
 {
-    Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
+    Eigen::VectorXd variant{{0.0, 1.0, 2.0, 1.0, 0.0}};
 
     auto stats = StandardizeHWE<GeneticMode::A>::process(variant);
 
@@ -215,18 +177,18 @@ TEST_CASE("StandardizeHWE<Add> uses HWE moments", "[data]")
     REQUIRE_THAT(stats.stddev, WithinRel(expected_stddev, k_tolerance));
     REQUIRE_FALSE(stats.is_monomorphic);
 
-    Eigen::VectorXd expected = make_vector(
+    Eigen::VectorXd expected{
         {-0.8 / expected_stddev,
          0.2 / expected_stddev,
          1.2 / expected_stddev,
          0.2 / expected_stddev,
-         -0.8 / expected_stddev});
-    require_vector_within_rel(variant, expected);
+         -0.8 / expected_stddev}};
+    REQUIRE(variant.isApprox(expected, k_tolerance));
 }
 
 TEST_CASE("StandardizeHWE<Dom> uses [0,1,0] HWE moments", "[data]")
 {
-    Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
+    Eigen::VectorXd variant{{0.0, 1.0, 2.0, 1.0, 0.0}};
 
     auto stats = StandardizeHWE<GeneticMode::D>::process(variant);
 
@@ -238,18 +200,18 @@ TEST_CASE("StandardizeHWE<Dom> uses [0,1,0] HWE moments", "[data]")
     REQUIRE_THAT(stats.stddev, WithinRel(expected_stddev, k_tolerance));
     REQUIRE_FALSE(stats.is_monomorphic);
 
-    Eigen::VectorXd expected = make_vector(
+    Eigen::VectorXd expected{
         {-0.48 / expected_stddev,
          0.52 / expected_stddev,
          -0.48 / expected_stddev,
          0.52 / expected_stddev,
-         -0.48 / expected_stddev});
-    require_vector_within_rel(variant, expected);
+         -0.48 / expected_stddev}};
+    REQUIRE(variant.isApprox(expected, k_tolerance));
 }
 
 TEST_CASE("OrthStandardizeHWE<Dom> uses [0,2p,4p-2] HWE moments", "[data]")
 {
-    Eigen::VectorXd variant = make_vector({0.0, 1.0, 2.0, 1.0, 0.0});
+    Eigen::VectorXd variant{{0.0, 1.0, 2.0, 1.0, 0.0}};
 
     auto stats = OrthStandardizeHWE<GeneticMode::D>::process(variant);
 
@@ -260,11 +222,140 @@ TEST_CASE("OrthStandardizeHWE<Dom> uses [0,2p,4p-2] HWE moments", "[data]")
     REQUIRE_THAT(stats.stddev, WithinRel(expected_stddev, k_tolerance));
     REQUIRE_FALSE(stats.is_monomorphic);
 
-    Eigen::VectorXd expected = make_vector(
+    Eigen::VectorXd expected{
         {-0.32 / expected_stddev,
          0.48 / expected_stddev,
          -0.72 / expected_stddev,
          0.48 / expected_stddev,
-         -0.32 / expected_stddev});
-    require_vector_within_rel(variant, expected);
+         -0.32 / expected_stddev}};
+    REQUIRE(variant.isApprox(expected, k_tolerance));
+}
+
+TEST_CASE("NOIAStandardize<Add> centers with observed mean", "[data]")
+{
+    Eigen::VectorXd variant{{0.0, 1.0, 2.0, 1.0, 0.0}};
+
+    auto stats = NOIAStandardize<GeneticMode::A>::process(variant);
+
+    REQUIRE_THAT(stats.mean, WithinRel(0.8, k_tolerance));
+    double expected_stddev = std::sqrt(0.7);
+    REQUIRE_THAT(stats.stddev, WithinRel(expected_stddev, k_tolerance));
+    REQUIRE_FALSE(stats.is_monomorphic);
+
+    Eigen::VectorXd expected{
+        {-0.8 / expected_stddev,
+         0.2 / expected_stddev,
+         1.2 / expected_stddev,
+         0.2 / expected_stddev,
+         -0.8 / expected_stddev}};
+    REQUIRE(variant.isApprox(expected, k_tolerance));
+}
+
+TEST_CASE("NOIACenter<Add> centers without scaling", "[data]")
+{
+    Eigen::VectorXd variant{{0.0, 1.0, 2.0, 1.0, 0.0}};
+
+    auto stats = NOIACenter<GeneticMode::A>::process(variant);
+
+    REQUIRE_THAT(stats.mean, WithinRel(0.8, k_tolerance));
+    REQUIRE_FALSE(stats.is_monomorphic);
+
+    Eigen::VectorXd expected{{-0.8, 0.2, 1.2, 0.2, -0.8}};
+    REQUIRE(variant.isApprox(expected, k_tolerance));
+}
+
+TEST_CASE("NOIACenter<Dom> uses F=4 closed-form with observed freqs", "[data]")
+{
+    // p_AA=0.2, p_Aa=0.4, p_aa=0.4, D = 0.6 - 0.04 = 0.56
+    // dose=2 -> -2*p_aa*p_Aa/D = -0.32/0.56
+    // dose=1 ->  4*p_AA*p_aa/D =  0.32/0.56
+    // dose=0 -> -2*p_AA*p_Aa/D = -0.16/0.56
+    Eigen::VectorXd variant{{0.0, 1.0, 2.0, 1.0, 0.0}};
+
+    auto stats = NOIACenter<GeneticMode::D>::process(variant);
+
+    double c_AA = -0.32 / 0.56;
+    double c_Aa = 0.32 / 0.56;
+    double c_aa = -0.16 / 0.56;
+
+    REQUIRE_THAT(stats.mean, WithinAbs(0.0, k_tolerance));
+    REQUIRE_FALSE(stats.is_monomorphic);
+
+    Eigen::VectorXd expected{{c_aa, c_Aa, c_AA, c_Aa, c_aa}};
+    REQUIRE(variant.isApprox(expected, k_tolerance));
+}
+
+TEST_CASE("NOIAStandardize<Dom> scales to unit variance", "[data]")
+{
+    Eigen::VectorXd variant{{0.0, 1.0, 2.0, 1.0, 0.0}};
+
+    auto stats = NOIAStandardize<GeneticMode::D>::process(variant);
+
+    double c_AA = -0.32 / 0.56;
+    double c_Aa = 0.32 / 0.56;
+    double c_aa = -0.16 / 0.56;
+    double sum_sq = (2.0 * c_aa * c_aa) + (2.0 * c_Aa * c_Aa) + (c_AA * c_AA);
+    double expected_stddev = std::sqrt(sum_sq / 4.0);
+
+    REQUIRE_THAT(stats.stddev, WithinRel(expected_stddev, k_tolerance));
+    REQUIRE_FALSE(stats.is_monomorphic);
+
+    Eigen::VectorXd expected{
+        {c_aa / expected_stddev,
+         c_Aa / expected_stddev,
+         c_AA / expected_stddev,
+         c_Aa / expected_stddev,
+         c_aa / expected_stddev}};
+    REQUIRE(variant.isApprox(expected, k_tolerance));
+}
+
+TEST_CASE("NOIA additive and dominance columns are sample-orthogonal", "[data]")
+{
+    // Sample deviating from HWE: p_AA=0.3, p_Aa=0.1, p_aa=0.6 (MAF=0.35)
+    Eigen::VectorXd add_variant{
+        {2.0, 2.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
+    Eigen::VectorXd dom_variant = add_variant;
+
+    NOIACenter<GeneticMode::A>::process(add_variant);
+    NOIACenter<GeneticMode::D>::process(dom_variant);
+
+    double inner = add_variant.dot(dom_variant);
+    REQUIRE_THAT(inner, WithinAbs(0.0, k_tolerance));
+}
+
+TEST_CASE("NOIA flags monomorphic samples", "[data]")
+{
+    SECTION("All homozygous-alt")
+    {
+        Eigen::VectorXd variant{{2.0, 2.0, 2.0, 2.0, 2.0}};
+        auto stats = NOIAStandardize<GeneticMode::D>::process(variant);
+        REQUIRE(stats.is_monomorphic);
+    }
+
+    SECTION("No heterozygotes, both homozygous classes present")
+    {
+        Eigen::VectorXd variant{{0.0, 2.0, 0.0, 2.0}};
+        auto stats = NOIAStandardize<GeneticMode::D>::process(variant);
+        // p_Aa=0 makes every NOIA dominance coefficient zero.
+        REQUIRE(stats.is_monomorphic);
+    }
+
+    SECTION("Missing AA class")
+    {
+        Eigen::VectorXd variant{{0.0, 1.0, 0.0, 1.0, 0.0}};
+        auto stats = NOIAStandardize<GeneticMode::D>::process(variant);
+        REQUIRE(stats.is_monomorphic);
+    }
+}
+
+TEST_CASE("NOIA handles NaN by imputing to analytic mean", "[data]")
+{
+    double nan_v = std::nan("");
+    Eigen::VectorXd variant{{0.0, 1.0, nan_v, 2.0, 1.0}};
+
+    auto stats = NOIAStandardize<GeneticMode::A>::process(variant);
+
+    REQUIRE_FALSE(stats.is_monomorphic);
+    // NaN was imputed to mean, then centered -> 0.
+    REQUIRE_THAT(variant(2), WithinAbs(0.0, k_tolerance));
 }

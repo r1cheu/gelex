@@ -39,8 +39,9 @@ enum class FreqSource : uint8_t
 
 enum class Projection : uint8_t
 {
-    Direct,
-    Orthogonal
+    Direct = 0,
+    Orthogonal = 1,
+    NOIA = 2
 };
 
 struct GenotypeProcessMethod
@@ -59,6 +60,7 @@ struct GenotypeProcessMethod
     {
         return proj == Projection::Orthogonal;
     }
+    constexpr auto is_noia() const -> bool { return proj == Projection::NOIA; }
     constexpr auto is_hwe() const -> bool { return freq == FreqSource::HWE; }
 
     constexpr auto to_byte() const -> uint8_t
@@ -74,7 +76,7 @@ struct GenotypeProcessMethod
         return {
             .scale = static_cast<ScaleMethod>(u & 1U),
             .freq = static_cast<FreqSource>((u >> 1U) & 1U),
-            .proj = static_cast<Projection>((u >> 2U) & 1U)};
+            .proj = static_cast<Projection>((u >> 2U) & 3U)};
     }
 
     static constexpr auto StandardizeHWE() -> GenotypeProcessMethod
@@ -115,6 +117,14 @@ struct GenotypeProcessMethod
         return {
             ScaleMethod::Center, FreqSource::Sample, Projection::Orthogonal};
     }
+    static constexpr auto NOIAStandardize() -> GenotypeProcessMethod
+    {
+        return {ScaleMethod::Standardize, FreqSource::Sample, Projection::NOIA};
+    }
+    static constexpr auto NOIACenter() -> GenotypeProcessMethod
+    {
+        return {ScaleMethod::Center, FreqSource::Sample, Projection::NOIA};
+    }
 };
 
 struct LocusStatistic
@@ -135,10 +145,18 @@ struct formatter<gelex::GenotypeProcessMethod> : formatter<string_view>
     static auto format(gelex::GenotypeProcessMethod t, format_context& ctx)
         -> format_context::iterator
     {
-        string_view orth = t.is_orthogonal() ? "Orth" : "";
+        string_view prefix;
+        if (t.is_noia())
+        {
+            prefix = "NOIA";
+        }
+        else if (t.is_orthogonal())
+        {
+            prefix = "Orth";
+        }
         string_view scale = t.is_center() ? "Center" : "Standardize";
-        string_view hwe = t.is_hwe() ? "HWE" : "";
-        return fmt::format_to(ctx.out(), "{}{}{}", orth, scale, hwe);
+        string_view hwe = t.is_hwe() && !t.is_noia() ? "HWE" : "";
+        return fmt::format_to(ctx.out(), "{}{}{}", prefix, scale, hwe);
     }
 };
 }  // namespace fmt

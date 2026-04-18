@@ -43,7 +43,8 @@ auto setup_grm_args(argparse::ArgumentParser& cmd) -> void
         .help(
             "Genotype coding: StandardizeHWE(SH), CenterHWE(CH),"
             " OrthStandardizeHWE(OSH), OrthCenterHWE(OCH),"
-            " Standardize(S), Center(C), OrthStandardize(OS), OrthCenter(OC)")
+            " Standardize(S), Center(C), OrthStandardize(OS), OrthCenter(OC),"
+            " NOIAStandardize(NS), NOIACenter(NC)")
         .metavar("<STR>")
         .default_value(std::string("OSH"));
     cmd.add_argument("--add").help("Additive GRM").flag();

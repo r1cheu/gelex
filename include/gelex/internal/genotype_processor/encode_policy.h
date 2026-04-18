@@ -79,5 +79,14 @@ struct OrthogonalPolicy
         }
     };
 };
+
+template <gelex::GeneticMode>
+struct IdentityPolicy
+{
+    static auto encode(Eigen::Ref<Eigen::VectorXd> /*locus*/, double /*maf*/)
+        -> void
+    {
+    }
+};
 }  // namespace gelex::detail
 #endif  // GELEX_INTERNAL_GENOTYPE_PROCESSOR_ENCODE_POLICY_H_

@@ -79,7 +79,7 @@ struct SamplePolicy
     }
 };
 
-template <GeneticMode g_type>
+template <GeneticMode GT>
 struct HWEPolicy
 {
     static auto process(LocusContext& context, LocusStatistic& statistic)
@@ -92,7 +92,7 @@ struct HWEPolicy
    private:
     static auto center(LocusContext& context, LocusStatistic& statistic) -> void
     {
-        if constexpr (g_type == GeneticMode::A)
+        if constexpr (GT == GeneticMode::A)
         {
             statistic.mean = statistic.maf * 2.0;
         }
@@ -108,7 +108,7 @@ struct HWEPolicy
     static auto stddev(LocusContext& /*context*/, LocusStatistic& statistic)
         -> void
     {
-        if constexpr (g_type == GeneticMode::A)
+        if constexpr (GT == GeneticMode::A)
         {
             statistic.stddev
                 = std::sqrt(2.0 * statistic.maf * (1.0 - statistic.maf));
@@ -128,7 +128,7 @@ struct HWEPolicy
     }
 };
 
-template <GeneticMode g_type>
+template <GeneticMode GT>
 struct OrthHWEPolicy
 {
     static auto process(LocusContext& context, LocusStatistic& statistic)
@@ -141,7 +141,7 @@ struct OrthHWEPolicy
    private:
     static auto center(LocusContext& context, LocusStatistic& statistic) -> void
     {
-        if constexpr (g_type == GeneticMode::A)
+        if constexpr (GT == GeneticMode::A)
         {
             statistic.mean = statistic.maf * 2.0;
         }
@@ -159,7 +159,7 @@ struct OrthHWEPolicy
     {
         double dominance_stddev = 2.0 * statistic.maf * (1.0 - statistic.maf);
 
-        if constexpr (g_type == GeneticMode::A)
+        if constexpr (GT == GeneticMode::A)
         {
             statistic.stddev = std::sqrt(dominance_stddev);
         }
@@ -168,6 +168,112 @@ struct OrthHWEPolicy
             statistic.stddev = dominance_stddev;
         }
 
+        if (statistic.stddev < MONOMORPHIC_TOL)
+        {
+            statistic.is_monomorphic = true;
+        }
+    }
+};
+
+template <GeneticMode GT>
+struct NOIAPolicy
+{
+    static auto process(LocusContext& context, LocusStatistic& statistic)
+        -> void
+    {
+        auto freqs = compute_freqs(context);
+        if constexpr (GT == GeneticMode::A)
+        {
+            center_additive(context, freqs, statistic);
+        }
+        else
+        {
+            center_and_orthogonalize_dominance(context, freqs, statistic);
+        }
+        stddev(context, statistic);
+    }
+
+   private:
+    struct GenotypeFreqs
+    {
+        double p_AA;
+        double p_Aa;
+        double p_aa;
+    };
+
+    static auto compute_freqs(const LocusContext& context) -> GenotypeFreqs
+    {
+        double n_AA
+            = context.nan_mask
+                  .select(0.0, (context.locus.array() == 2.0).cast<double>())
+                  .sum();
+        double n_Aa
+            = context.nan_mask
+                  .select(0.0, (context.locus.array() == 1.0).cast<double>())
+                  .sum();
+        double n_aa
+            = context.nan_mask
+                  .select(0.0, (context.locus.array() == 0.0).cast<double>())
+                  .sum();
+        return {
+            n_AA / context.valid_count,
+            n_Aa / context.valid_count,
+            n_aa / context.valid_count};
+    }
+
+    static auto center_additive(
+        LocusContext& context,
+        const GenotypeFreqs& freqs,
+        LocusStatistic& statistic) -> void
+    {
+        statistic.mean = (2.0 * freqs.p_AA) + freqs.p_Aa;
+        context.locus
+            = context.nan_mask.select(statistic.mean, context.locus).array()
+              - statistic.mean;
+    }
+
+    static auto center_and_orthogonalize_dominance(
+        LocusContext& context,
+        const GenotypeFreqs& freqs,
+        LocusStatistic& statistic) -> void
+    {
+        statistic.mean = 0.0;
+
+        double diff = freqs.p_AA - freqs.p_aa;
+        double denom = freqs.p_AA + freqs.p_aa - (diff * diff);
+        if (denom < MONOMORPHIC_TOL)
+        {
+            context.locus.setZero();
+            return;
+        }
+
+        double c_AA = -2.0 * freqs.p_aa * freqs.p_Aa / denom;
+        double c_Aa = 4.0 * freqs.p_AA * freqs.p_aa / denom;
+        double c_aa = -2.0 * freqs.p_AA * freqs.p_Aa / denom;
+
+        context.locus = context.locus.unaryExpr(
+            [c_AA, c_Aa, c_aa](double element) -> double
+            {
+                if (element == 2.0)
+                {
+                    return c_AA;
+                }
+                if (element == 1.0)
+                {
+                    return c_Aa;
+                }
+                if (element == 0.0)
+                {
+                    return c_aa;
+                }
+                return 0.0;
+            });
+    }
+
+    static auto stddev(LocusContext& context, LocusStatistic& statistic) -> void
+    {
+        statistic.stddev = std::sqrt(
+            context.locus.array().square().sum() / (context.valid_count - 1.0));
         if (statistic.stddev < MONOMORPHIC_TOL)
         {
             statistic.is_monomorphic = true;

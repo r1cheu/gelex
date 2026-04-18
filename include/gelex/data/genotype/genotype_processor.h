@@ -64,27 +64,48 @@ using OrthStandardizeHWE = OrthProcessor<GT, detail::OrthHWEPolicy<GT>, true>;
 template <GeneticMode GT>
 using OrthCenterHWE = OrthProcessor<GT, detail::OrthHWEPolicy<GT>, false>;
 
+template <GeneticMode GT, bool Scale>
+using NOIAProcessor = detail::GenotypeProcessorStrategy<
+    detail::IdentityPolicy<GT>,
+    detail::NOIAPolicy<GT>,
+    Scale>;
+
+template <GeneticMode GT>
+using NOIAStandardize = NOIAProcessor<GT, true>;
+template <GeneticMode GT>
+using NOIACenter = NOIAProcessor<GT, false>;
+
 template <typename T, GeneticMode GT>
 constexpr bool is_center_method_v
     = std::is_same_v<T, Center<GT>> || std::is_same_v<T, CenterHWE<GT>>
       || std::is_same_v<T, OrthCenter<GT>>
-      || std::is_same_v<T, OrthCenterHWE<GT>>;
+      || std::is_same_v<T, OrthCenterHWE<GT>>
+      || std::is_same_v<T, NOIACenter<GT>>;
 
 template <GeneticMode GT>
 auto get_genotype_process_method(GenotypeProcessMethod method)
     -> LocusStatistic (*)(Eigen::Ref<Eigen::VectorXd>)
 {
+    if (method.is_noia())
+    {
+        return method.is_center() ? &NOIACenter<GT>::process
+                                  : &NOIAStandardize<GT>::process;
+    }
     if (method.is_orthogonal())
     {
         if (method.is_hwe())
+        {
             return method.is_center() ? &OrthCenterHWE<GT>::process
                                       : &OrthStandardizeHWE<GT>::process;
+        }
         return method.is_center() ? &OrthCenter<GT>::process
                                   : &OrthStandardize<GT>::process;
     }
     if (method.is_hwe())
+    {
         return method.is_center() ? &CenterHWE<GT>::process
                                   : &StandardizeHWE<GT>::process;
+    }
     return method.is_center() ? &Center<GT>::process
                               : &Standardize<GT>::process;
 }
@@ -97,7 +118,8 @@ auto get_center_genotype_method(GenotypeProcessMethod method)
     {
         throw GelexException(
             "assoc --geno-method supports only center-family methods: "
-            "2 (center-hwe), 4 (orth-center-hwe), 6 (center), 8 (orth-center)");
+            "CenterHWE(CH), OrthCenterHWE(OCH), Center(C), OrthCenter(OC), "
+            "NOIACenter(NC)");
     }
     return get_genotype_process_method<GT>(method);
 }

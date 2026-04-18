@@ -59,7 +59,8 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         .help(
             "Genotype method: StandardizeHWE(SH), CenterHWE(CH),"
             " OrthStandardizeHWE(OSH), OrthCenterHWE(OCH),"
-            " Standardize(S), Center(C), OrthStandardize(OS), OrthCenter(OC)")
+            " Standardize(S), Center(C), OrthStandardize(OS), OrthCenter(OC),"
+            " NOIAStandardize(NS), NOIACenter(NC)")
         .default_value(std::string("OSH"))
         .metavar("<STR>");
 

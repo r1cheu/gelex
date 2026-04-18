@@ -83,8 +83,8 @@ auto setup_assoc_args(argparse::ArgumentParser& cmd) -> void
     cmd.add_argument("--loco").help("Leave-One-Chromosome-Out analysis").flag();
     cmd.add_argument("--geno-method", "--gm")
         .help(
-            "Genotype processing: SH, CH, OSH, OCH, S, C, OS, OC "
-            "(prefix: O=orth, suffix: H=HWE-based)")
+            "Genotype processing: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC "
+            "(prefix: O=orth, N=NOIA; suffix: H=HWE-based)")
         .default_value(std::string("OCH"))
         .metavar("<STR>");
 
