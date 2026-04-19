@@ -16,37 +16,12 @@
 
 #include "gelex/io/text_writer.h"
 
-#include <fmt/format.h>
-
-#include "gelex/exception.h"
-
 namespace gelex::detail
 {
 
-TextWriter::TextWriter(const std::filesystem::path& path) : path_(path), buf_{}
+TextWriter::TextWriter(const std::filesystem::path& path)
+    : buf_{}, ofs_(path, std::ios::out, buf_)
 {
-    if (std::filesystem::is_directory(path_))
-    {
-        throw GelexException(fmt::format("{}: is a directory", path_.string()));
-    }
-    ofs_.rdbuf()->pubsetbuf(buf_.data(), kBufSize);
-    ofs_.open(path_, std::ios::out);
-    if (!ofs_.is_open())
-    {
-        throw GelexException(
-            fmt::format("{}: failed to open file", path_.string()));
-    }
-}
-
-TextWriter::~TextWriter() noexcept
-{
-    try
-    {
-        ofs_.close();
-    }
-    catch (...)
-    {
-    }
 }
 
 auto TextWriter::write_header(std::initializer_list<std::string_view> columns)
@@ -73,7 +48,7 @@ auto TextWriter::write(std::string_view line) -> void
 
 auto TextWriter::path() const noexcept -> const std::filesystem::path&
 {
-    return path_;
+    return ofs_.final_path();
 }
 
 }  // namespace gelex::detail

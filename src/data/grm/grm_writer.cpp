@@ -19,7 +19,6 @@
 #include <fmt/format.h>
 
 #include "gelex/exception.h"
-#include "gelex/io/parser.h"
 #include "gelex/io/text_writer.h"
 #include "gelex/types/sample_id.h"
 
@@ -27,10 +26,9 @@ namespace gelex
 {
 
 GrmBinWriter::GrmBinWriter(const std::filesystem::path& file_path)
-    : path_(file_path), io_buffer_(kDefaultBufferSize)
+    : io_buffer_(kDefaultBufferSize),
+      file_(file_path, std::ios::binary | std::ios::trunc, io_buffer_)
 {
-    file_ = detail::open_file<std::ofstream>(
-        path_, std::ios::binary | std::ios::trunc, io_buffer_);
 }
 
 auto GrmBinWriter::write(const Eigen::Ref<const Eigen::MatrixXd>& grm) -> void
@@ -46,7 +44,7 @@ auto GrmBinWriter::write(const Eigen::Ref<const Eigen::MatrixXd>& grm) -> void
         throw GelexException(
             fmt::format(
                 "{}: GRM must be square, got {}x{}",
-                path_.string(),
+                file_.final_path().string(),
                 n,
                 grm.cols()));
     }
@@ -66,7 +64,8 @@ auto GrmBinWriter::write(const Eigen::Ref<const Eigen::MatrixXd>& grm) -> void
     {
         throw GelexException(
             fmt::format(
-                "{}: failed to write GRM data to binary file", path_.string()));
+                "{}: failed to write GRM data to binary file",
+                file_.final_path().string()));
     }
 }
 

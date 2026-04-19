@@ -19,7 +19,6 @@
 #include <fmt/format.h>
 #include <cstdint>
 #include <span>
-#include <string>
 #include <string_view>
 
 #include "gelex/exception.h"
@@ -72,11 +71,6 @@ auto LociStatsWriter::write(
             fmt::format("{}/mono_indices", effect), mono_indices.size(), 1);
         writer_.write(mono_handle, mono_indices);
     }
-}
-
-auto LociStatsWriter::finalize() -> void
-{
-    writer_.finalize();
 }
 
 }  // namespace gelex

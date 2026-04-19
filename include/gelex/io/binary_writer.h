@@ -21,13 +21,13 @@
 #include <concepts>
 #include <cstdint>
 #include <filesystem>
-#include <fstream>
 #include <ranges>
 #include <string_view>
 #include <type_traits>
 #include <vector>
 
 #include "gelex/exception.h"
+#include "gelex/io/atomic_ofstream.h"
 #include "gelex/io/binary_format.h"
 
 namespace gelex::detail
@@ -58,6 +58,12 @@ class BinaryWriter
 {
    public:
     explicit BinaryWriter(std::string_view output_path);
+
+    BinaryWriter(const BinaryWriter&) = delete;
+    BinaryWriter(BinaryWriter&&) = delete;
+    auto operator=(const BinaryWriter&) -> BinaryWriter& = delete;
+    auto operator=(BinaryWriter&&) -> BinaryWriter& = delete;
+    ~BinaryWriter() noexcept;
 
     template <typename T, std::integral Rows, std::integral Cols>
         requires std::is_arithmetic_v<T>
@@ -109,7 +115,7 @@ class BinaryWriter
             throw GelexException(
                 fmt::format(
                     "{}: path too long ({} > {}): \"{}\"",
-                    output_path_.string(),
+                    file_.final_path().string(),
                     path.size(),
                     binary_format::kMaxPathLength,
                     path));
@@ -146,8 +152,6 @@ class BinaryWriter
         }
     }
 
-    auto finalize() -> void;
-
    private:
     struct ReservedSection
     {
@@ -155,6 +159,7 @@ class BinaryWriter
         uint64_t cursor{0};
     };
 
+    auto finalize() -> void;
     auto
     reserve(std::string_view path, uint8_t dtype, uint64_t rows, uint64_t cols)
         -> size_t;
@@ -165,10 +170,9 @@ class BinaryWriter
         -> uint64_t;
     auto write_footer(uint64_t toc_offset, uint64_t n_sections) -> void;
 
-    std::filesystem::path output_path_;
     std::vector<ReservedSection> reserved_;
 
-    std::ofstream file_;
+    AtomicOfstream file_;
     uint64_t next_offset_{0};
     uint64_t file_cursor_{0};
 };

@@ -129,8 +129,6 @@ auto GenoPipe::write_sbin() -> void
             },
             *dominance_matrix_);
     }
-
-    writer.finalize();
 }
 
 }  // namespace gelex

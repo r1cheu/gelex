@@ -194,10 +194,7 @@ void Samples::store(const mcmc::State& states)
 
 void Samples::finalize()
 {
-    if (writer_)
-    {
-        writer_->finalize();
-    }
+    writer_.reset();
 }
 
 }  // namespace gelex::mcmc

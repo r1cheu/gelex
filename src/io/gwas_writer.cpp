@@ -19,7 +19,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <ios>
-#include <stdexcept>
 #include <string>
 
 #include <fmt/compile.h>
@@ -40,16 +39,11 @@ GwasWriter::GwasWriter(
       chrom_(bim["chrom"].as<std::string>()),
       pos_(bim["pos"].as<std::int32_t>()),
       a1_(bim["A1"].as<std::string>()),
-      a2_(bim["A2"].as<std::string>())
+      a2_(bim["A2"].as<std::string>()),
+      ofs_(
+          std::string(out_prefix) + ".gwas.tsv",
+          std::ios::out | std::ios::binary)
 {
-    std::string filepath = std::string(out_prefix) + ".gwas.tsv";
-    ofs_.open(filepath, std::ios::out | std::ios::binary);
-
-    if (!ofs_.is_open())
-    {
-        throw std::runtime_error("Failed to open output file: " + filepath);
-    }
-
     line_buffer_.reserve(BUFFER_FLUSH_THRESHOLD);
 
     switch (test_type_)
@@ -75,14 +69,22 @@ GwasWriter::GwasWriter(
     line_buffer_.clear();
 }
 
-GwasWriter::~GwasWriter()
+GwasWriter::~GwasWriter() noexcept
 {
     if (line_buffer_.size() == 0U)
     {
         return;
     }
-    ofs_.write(
-        line_buffer_.data(), static_cast<std::streamsize>(line_buffer_.size()));
+    try
+    {
+        ofs_.write(
+            line_buffer_.data(),
+            static_cast<std::streamsize>(line_buffer_.size()));
+    }
+    catch (...)  // NOLINT(bugprone-empty-catch): dtor must be noexcept
+    {
+        ofs_.setstate(std::ios::failbit);
+    }
 }
 
 auto GwasWriter::write(std::size_t start, const TestResults& results) -> void

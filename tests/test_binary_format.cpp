@@ -68,7 +68,6 @@ TEST_CASE("Container round-trip with mixed dtypes", "[binary_container]")
         writer.write("Additive/coeff", coeffs);
         writer.write("Additive/group/assignment", tracker);
         writer.write("Residual/variance", scalars);
-        writer.finalize();
     }
 
     // Read back
@@ -112,7 +111,6 @@ TEST_CASE("Container contains", "[binary_container]")
     {
         BinaryWriter writer(container_path.string());
         writer.write("Additive/coeff", data);
-        writer.finalize();
     }
 
     BinaryReader reader(container_path.string());
@@ -134,7 +132,6 @@ TEST_CASE("Container section_paths", "[binary_container]")
         writer.write("Additive/coeff", data);
         writer.write("Additive/variance", data);
         writer.write("Residual/variance", data);
-        writer.finalize();
     }
 
     BinaryReader reader(container_path.string());
@@ -162,7 +159,6 @@ TEST_CASE("Container section not found throws", "[binary_container]")
     {
         BinaryWriter writer(container_path.string());
         writer.write("Additive/coeff", data);
-        writer.finalize();
     }
 
     BinaryReader reader(container_path.string());
@@ -181,7 +177,6 @@ TEST_CASE("Container dtype mismatch throws", "[binary_container]")
     {
         BinaryWriter writer(container_path.string());
         writer.write("Additive/coeff", data);
-        writer.finalize();
     }
 
     BinaryReader reader(container_path.string());
@@ -251,7 +246,6 @@ TEST_CASE("Container sections with different indices", "[binary_container]")
         writer.write("Random/coeff/1", random1);
         writer.write("Random/variance/0", var0);
         writer.write("Random/variance/1", var1);
-        writer.finalize();
     }
 
     BinaryReader reader(container_path.string());
@@ -333,7 +327,6 @@ TEST_CASE("Reserve round-trip with column-wise writes", "[binary_container]")
             writer.write(h_double, expected_double.col(c));
             writer.write(h_int8, expected_int8.col(c));
         }
-        writer.finalize();
     }
 
     BinaryReader reader(container_path.string());
@@ -511,7 +504,6 @@ TEST_CASE(
             = writer.reserve<double>("Additive/loci_stats", kNumVariants, 2);
         writer.write(stats_handle, means);
         writer.write(stats_handle, variances);
-        writer.finalize();
     }
 
     BinaryReader reader(container_path.string());
@@ -547,7 +539,6 @@ TEST_CASE("Container string section round-trip", "[binary_container]")
         BinaryWriter writer(container_path.string());
         writer.write_strings("Fixed/names", names);
         writer.write("Fixed/coeff", coeff);
-        writer.finalize();
     }
 
     BinaryReader reader(container_path.string());
@@ -586,7 +577,6 @@ TEST_CASE(
     {
         BinaryWriter writer(container_path.string());
         writer.write("Additive/coeff", data);
-        writer.finalize();
     }
 
     BinaryReader reader(container_path.string());

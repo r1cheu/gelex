@@ -19,7 +19,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <fstream>
 #include <span>
 #include <string>
 #include <string_view>
@@ -27,6 +26,7 @@
 #include <fmt/format.h>
 
 #include "gelex/data/dataframe/dataframe.h"
+#include "gelex/io/atomic_ofstream.h"
 #include "gelex/types/assoc_test_type.h"
 
 namespace gelex
@@ -49,13 +49,12 @@ class GwasWriter
     GwasWriter& operator=(const GwasWriter&) = delete;
     GwasWriter& operator=(GwasWriter&&) = delete;
 
-    ~GwasWriter();
+    ~GwasWriter() noexcept;
 
     auto write(std::size_t start, const TestResults& results) -> void;
 
    private:
     AssocTestType test_type_;
-    std::ofstream ofs_;
     fmt::memory_buffer line_buffer_;
 
     std::span<const std::string> keys_;
@@ -63,6 +62,8 @@ class GwasWriter
     std::span<const std::int32_t> pos_;
     std::span<const std::string> a1_;
     std::span<const std::string> a2_;
+
+    detail::AtomicOfstream ofs_;
 };
 
 }  // namespace gelex::gwas

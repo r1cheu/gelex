@@ -18,6 +18,7 @@
 #define GELEX_DATA_GENOTYPE_MAP_READER_H_
 
 #include <fmt/format.h>
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -50,45 +51,66 @@ class GenotypeMapReader
         -> GenotypeMap
     {
         constexpr auto effect = EffectType::from_genetic(GT);
-        const auto geno_path = fmt::format("{}/genotype", effect);
-        genotype_handle_
-            = writer_->reserve<double>(geno_path, sample_size_, num_variants_);
+        auto gbin_path = output_prefix_;
+        gbin_path += ".gbin";
 
-        int64_t current_processed_snps = 0;
-        auto fn = get_genotype_process_method<GT>(method);
-        means_.resize(num_variants_);
-        variances_.resize(num_variants_);
-        monomorphic_indices_.clear();
-        monomorphic_indices_.reserve(num_variants_ / 100);
-
-        for (int64_t start_variant = 0; start_variant < num_variants_;)
         {
-            int64_t end_variant = std::min(
-                static_cast<int64_t>(start_variant + chunk_size),
+            detail::BinaryWriter writer(gbin_path.string());
+            auto genotype_handle = writer.reserve<double>(
+                fmt::format("{}/genotype", effect),
+                sample_size_,
                 num_variants_);
 
-            auto chunk = bed_pipe_.load_chunk(start_variant, end_variant);
-            process_chunk(chunk, start_variant, fn);
-            writer_->write(genotype_handle_, chunk);
-            current_processed_snps += (end_variant - start_variant);
+            int64_t current_processed_snps = 0;
+            auto fn = get_genotype_process_method<GT>(method);
+            means_.resize(num_variants_);
+            variances_.resize(num_variants_);
+            monomorphic_indices_.clear();
+            monomorphic_indices_.reserve(num_variants_ / 100);
 
+            for (int64_t start_variant = 0; start_variant < num_variants_;)
+            {
+                int64_t end_variant = std::min(
+                    static_cast<int64_t>(start_variant + chunk_size),
+                    num_variants_);
+
+                auto chunk = bed_pipe_.load_chunk(start_variant, end_variant);
+                process_chunk(chunk, start_variant, fn);
+                writer.write(genotype_handle, chunk);
+                current_processed_snps += (end_variant - start_variant);
+
+                notify(
+                    observer_,
+                    GenotypeProgressEvent{
+                        static_cast<size_t>(current_processed_snps),
+                        static_cast<size_t>(num_variants_),
+                        false});
+
+                start_variant = end_variant;
+            }
             notify(
                 observer_,
                 GenotypeProgressEvent{
-                    static_cast<size_t>(current_processed_snps),
                     static_cast<size_t>(num_variants_),
-                    false});
+                    static_cast<size_t>(num_variants_),
+                    true});
 
-            start_variant = end_variant;
+            auto stats_handle = writer.reserve<double>(
+                fmt::format("{}/loci_stats", effect), num_variants_, 2);
+            writer.write(stats_handle, means_);
+            writer.write(stats_handle, variances_);
+
+            if (!monomorphic_indices_.empty())
+            {
+                auto mono_handle = writer.reserve<int64_t>(
+                    fmt::format("{}/mono_indices", effect),
+                    monomorphic_indices_.size(),
+                    1);
+                writer.write(mono_handle, monomorphic_indices_);
+            }
         }
-        notify(
-            observer_,
-            GenotypeProgressEvent{
-                static_cast<size_t>(num_variants_),
-                static_cast<size_t>(num_variants_),
-                true});
 
-        return finalize<GT>();
+        return GenotypeMap(gbin_path, GT);
     }
 
     [[nodiscard]] Eigen::Index num_samples() const noexcept
@@ -106,32 +128,6 @@ class GenotypeMapReader
         size_t global_start,
         LocusStatistic (*fn)(Eigen::Ref<Eigen::VectorXd>));
 
-    template <GeneticMode GT>
-    auto finalize() -> GenotypeMap
-    {
-        constexpr auto effect = EffectType::from_genetic(GT);
-
-        auto stats_handle = writer_->reserve<double>(
-            fmt::format("{}/loci_stats", effect), num_variants_, 2);
-        writer_->write(stats_handle, means_);
-        writer_->write(stats_handle, variances_);
-
-        if (!monomorphic_indices_.empty())
-        {
-            auto mono_handle = writer_->reserve<int64_t>(
-                fmt::format("{}/mono_indices", effect),
-                monomorphic_indices_.size(),
-                1);
-            writer_->write(mono_handle, monomorphic_indices_);
-        }
-
-        writer_->finalize();
-
-        auto gbin_path = output_prefix_;
-        gbin_path += ".gbin";
-        return GenotypeMap(gbin_path, GT);
-    }
-
     BedPipe bed_pipe_;
     DataPipeObserver observer_;
     int64_t sample_size_{};
@@ -141,8 +137,6 @@ class GenotypeMapReader
     std::vector<double> variances_;
     std::vector<int64_t> monomorphic_indices_;
 
-    std::unique_ptr<detail::BinaryWriter> writer_;
-    detail::SectionHandle<double> genotype_handle_{};
     std::filesystem::path output_prefix_;
 };
 

@@ -133,7 +133,6 @@ auto create_sbin(
         GenotypeProcessMethod::StandardizeHWE().to_byte(),
         dom_mean,
         &dom_stddev);
-    writer.finalize();
 }
 
 auto create_snp_effects_file(

@@ -49,13 +49,12 @@ class Writer
         std::string_view prefix,
         Eigen::Index n_records);
     Writer(const Writer&) = delete;
-    Writer(Writer&&) noexcept = default;
+    Writer(Writer&&) = delete;
     auto operator=(const Writer&) -> Writer& = delete;
-    auto operator=(Writer&&) noexcept -> Writer& = default;
+    auto operator=(Writer&&) -> Writer& = delete;
     ~Writer() = default;
 
     void write(const mcmc::State& state);
-    void finalize();
 
    private:
     struct RandomHandles

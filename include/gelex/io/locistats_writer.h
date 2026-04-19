@@ -41,8 +41,6 @@ class LociStatsWriter
         const Eigen::VectorXd* stddev = nullptr,
         std::span<const int64_t> mono_indices = {}) -> void;
 
-    auto finalize() -> void;
-
    private:
     detail::BinaryWriter writer_;
 };

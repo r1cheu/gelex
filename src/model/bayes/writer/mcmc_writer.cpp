@@ -206,9 +206,4 @@ void mcmc::Writer::write(const mcmc::State& state)
     writer_.write(residual_variance_, state.residual().variance);
 }
 
-void mcmc::Writer::finalize()
-{
-    writer_.finalize();
-}
-
 }  // namespace gelex

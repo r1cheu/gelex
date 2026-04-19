@@ -47,7 +47,6 @@ TEST_CASE("sbin round-trip additive only", "[sbin][snpstats]")
     {
         LociStatsWriter writer(sbin_path.string());
         writer.write(EffectType::add(), kMethod.to_byte(), mean, &stddev, mono);
-        writer.finalize();
     }
 
     LociStatsReader reader(sbin_path.string());
@@ -94,7 +93,6 @@ TEST_CASE("sbin round-trip additive and dominance", "[sbin][snpstats]")
             add_mono);
         writer.write(
             EffectType::dom(), kDomMethod.to_byte(), dom_mean, &dom_stddev);
-        writer.finalize();
     }
 
     LociStatsReader reader(sbin_path.string());
@@ -130,7 +128,6 @@ TEST_CASE("sbin round-trip center only (no stddev)", "[sbin][snpstats]")
     {
         LociStatsWriter writer(sbin_path.string());
         writer.write(EffectType::add(), 0, mean, nullptr, mono);
-        writer.finalize();
     }
 
     LociStatsReader reader(sbin_path.string());

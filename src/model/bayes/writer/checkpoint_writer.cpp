@@ -18,7 +18,6 @@
 
 #include <fmt/format.h>
 #include <cstdint>
-#include <filesystem>
 #include <span>
 #include <sstream>
 #include <variant>
@@ -269,10 +268,7 @@ auto write_checkpoint(
     const bayes::Priors& priors,
     std::string_view prefix) -> void
 {
-    auto path = fmt::format("{}.ckpt", prefix);
-    auto tmp_path = fmt::format("{}.ckpt.tmp", prefix);
-
-    detail::BinaryWriter writer(tmp_path);
+    detail::BinaryWriter writer(fmt::format("{}.ckpt", prefix));
 
     write_priors(writer, priors);
     write_fixed(writer, state.fixed());
@@ -280,9 +276,6 @@ auto write_checkpoint(
     write_genetics(writer, state.genetics());
     write_residual(writer, state.residual());
     write_rng(writer, rng);
-
-    writer.finalize();
-    std::filesystem::rename(tmp_path, path);
 }
 
 }  // namespace gelex

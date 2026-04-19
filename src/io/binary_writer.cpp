@@ -21,24 +21,45 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <fstream>
+#include <exception>
+#include <ios>
 #include <string>
 #include <string_view>
 
 #include "gelex/exception.h"
+#include "gelex/infra/logger.h"
 #include "gelex/io/binary_format.h"
-#include "gelex/io/parser.h"
 
 namespace gelex::detail
 {
 
 BinaryWriter::BinaryWriter(std::string_view output_path)
-    : output_path_(std::string(output_path)),
-      file_(
-          open_file<std::ofstream>(
-              output_path_,
-              std::ios::binary | std::ios::trunc))
+    : file_(std::string(output_path), std::ios::binary | std::ios::trunc)
 {
+}
+
+BinaryWriter::~BinaryWriter() noexcept
+{
+    if (std::uncaught_exceptions() > 0)
+    {
+        return;
+    }
+
+    try
+    {
+        finalize();
+    }
+    catch (const std::exception& e)
+    {
+        if (auto logger = gelex::logging::get())
+        {
+            logger->error(
+                "{}: failed to finalize, discarding output: {}",
+                file_.final_path().string(),
+                e.what());
+        }
+        file_.setstate(std::ios::failbit);
+    }
 }
 
 auto BinaryWriter::check_duplicate_path(std::string_view path) const -> void
@@ -50,7 +71,7 @@ auto BinaryWriter::check_duplicate_path(std::string_view path) const -> void
             throw GelexException(
                 fmt::format(
                     "{}: duplicate section path \"{}\"",
-                    output_path_.string(),
+                    file_.final_path().string(),
                     path));
         }
     }
@@ -67,7 +88,7 @@ auto BinaryWriter::reserve(
         throw GelexException(
             fmt::format(
                 "{}: path too long ({} > {}): \"{}\"",
-                output_path_.string(),
+                file_.final_path().string(),
                 path.size(),
                 binary_format::kMaxPathLength,
                 path));
@@ -106,7 +127,7 @@ auto BinaryWriter::write_raw(
         throw GelexException(
             fmt::format(
                 "{}: invalid section handle {}",
-                output_path_.string(),
+                file_.final_path().string(),
                 handle));
     }
 
@@ -117,7 +138,7 @@ auto BinaryWriter::write_raw(
         throw GelexException(
             fmt::format(
                 "{}: write overflow: cursor={}, bytes={}, limit={}",
-                output_path_.string(),
+                file_.final_path().string(),
                 rs.cursor,
                 bytes,
                 end_bound));
@@ -165,7 +186,7 @@ auto BinaryWriter::finalize() -> void
                 fmt::format(
                     "{}: section not fully written: cursor={}, "
                     "expected={}",
-                    output_path_.string(),
+                    file_.final_path().string(),
                     rs.cursor,
                     expected));
         }
@@ -189,7 +210,8 @@ auto BinaryWriter::finalize() -> void
     {
         throw GelexException(
             fmt::format(
-                "{}: failed to write binary file", output_path_.string()));
+                "{}: failed to write binary file",
+                file_.final_path().string()));
     }
 }
 

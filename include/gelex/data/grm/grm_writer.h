@@ -19,12 +19,13 @@
 
 #include <cstddef>
 #include <filesystem>
-#include <fstream>
 #include <span>
 #include <string>
 #include <vector>
 
 #include <Eigen/Core>
+
+#include "gelex/io/atomic_ofstream.h"
 
 namespace gelex
 {
@@ -37,22 +38,21 @@ class GrmBinWriter
     explicit GrmBinWriter(const std::filesystem::path& file_path);
 
     GrmBinWriter(const GrmBinWriter&) = delete;
-    GrmBinWriter(GrmBinWriter&&) noexcept = default;
+    GrmBinWriter(GrmBinWriter&&) = delete;
     auto operator=(const GrmBinWriter&) -> GrmBinWriter& = delete;
-    auto operator=(GrmBinWriter&&) noexcept -> GrmBinWriter& = default;
+    auto operator=(GrmBinWriter&&) -> GrmBinWriter& = delete;
     ~GrmBinWriter() = default;
 
     auto write(const Eigen::Ref<const Eigen::MatrixXd>& grm) -> void;
 
     [[nodiscard]] auto path() const noexcept -> const std::filesystem::path&
     {
-        return path_;
+        return file_.final_path();
     }
 
    private:
-    std::filesystem::path path_;
     std::vector<char> io_buffer_;
-    std::ofstream file_;
+    detail::AtomicOfstream file_;
 };
 
 auto write_grm_ids(

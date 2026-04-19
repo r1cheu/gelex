@@ -61,13 +61,12 @@ GenotypeMapReader::GenotypeMapReader(
       observer_(std::move(observer)),
       output_prefix_(output_prefix)
 {
-    auto logger = logging::get();
-
     auto gbin_path = output_prefix;
     gbin_path += ".gbin";
 
     if (std::filesystem::exists(gbin_path))
     {
+        auto logger = logging::get();
         logger->error("Output file already exists: [{}]", gbin_path.string());
         throw GelexException(
             fmt::format("{}: existing file", gbin_path.string()));
@@ -75,8 +74,6 @@ GenotypeMapReader::GenotypeMapReader(
 
     num_variants_ = bed_pipe_.num_snps();
     sample_size_ = bed_pipe_.num_samples();
-
-    writer_ = std::make_unique<detail::BinaryWriter>(gbin_path.string());
 }
 
 }  // namespace gelex
