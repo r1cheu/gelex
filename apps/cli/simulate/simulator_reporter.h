@@ -37,8 +37,6 @@ class SimulatorReporter
     auto on_event(const SimulateBannerEvent& event) const -> void;
     auto on_event(const SimulateConfigLoadedEvent& event) const -> void;
     auto on_event(const SimulateProgressEvent& event) -> void;
-    auto on_event(const HeritabilityGeneratedEvent& event) const -> void;
-    auto on_event(const OutputsWrittenEvent& event) const -> void;
 
     auto as_observer() -> SimulateObserver
     {

@@ -16,9 +16,9 @@
 #ifndef GELEX_INFRA_LOGGING_SIMULATE_EVENT_H_
 #define GELEX_INFRA_LOGGING_SIMULATE_EVENT_H_
 
+#include <cstddef>
 #include <functional>
 #include <optional>
-#include <string>
 #include <variant>
 
 namespace gelex
@@ -28,40 +28,24 @@ struct SimulateBannerEvent
 {
 };
 
-struct HeritabilityGeneratedEvent
-{
-    double additive{};
-    std::optional<double> dominance;
-    std::optional<double> dom_positive_prob;
-};
-
 struct SimulateProgressEvent
 {
-    size_t total;
-    size_t current;
+    std::size_t total;
+    std::size_t current;
     bool done;
 };
 
 struct SimulateConfigLoadedEvent
 {
-    double intercept{};
     double add_heritability{};
     std::optional<double> dom_heritability;
     int seed{};
 };
 
-struct OutputsWrittenEvent
-{
-    std::string phenotype_path;
-    std::string snp_effect_path;
-};
-
 using SimulateEvent = std::variant<
     SimulateBannerEvent,
     SimulateConfigLoadedEvent,
-    SimulateProgressEvent,
-    HeritabilityGeneratedEvent,
-    OutputsWrittenEvent>;
+    SimulateProgressEvent>;
 
 using SimulateObserver = std::function<void(const SimulateEvent& event)>;
 

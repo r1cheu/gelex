@@ -56,9 +56,9 @@ class Index
     auto take_keys() && -> std::vector<Key> { return std::move(keys_); }
 
     auto gather(const Index<Key>& target) -> void;
+    auto gather(std::span<const std::size_t> indices) -> void;
 
    private:
-    auto gather(std::span<const std::size_t> indices) -> void;
     auto rebuild_lookup() -> void;
 
     template <KeyType K>

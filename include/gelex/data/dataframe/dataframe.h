@@ -86,8 +86,8 @@ class DataFrame
 
     auto clone() const -> DataFrame;
 
-    // gather rows by gelex::df::Index
     auto gather(const Index<Key>& target) -> void;
+    auto gather(std::span<const std::size_t> indices) -> void;
 
     template <ValueType T = double>
         requires std::is_arithmetic_v<T>
@@ -106,9 +106,6 @@ class DataFrame
    private:
     DataFrame() = default;
     friend detail::DataFrameReader<Key>;
-
-    // internal gather directly by index
-    auto gather(std::span<const std::size_t> indices) -> void;
 
     auto push_back(Column col) -> void;
     auto update_lookup(std::size_t index, std::string_view new_name) -> void;

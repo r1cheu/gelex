@@ -16,132 +16,112 @@
 
 #include "gelex/pipeline/simulation_engine.h"
 
+#include <algorithm>
+#include <cstddef>
 #include <optional>
 #include <random>
+#include <string_view>
+#include <utility>
 #include <vector>
 
+#include <fmt/format.h>
 #include <Eigen/Core>
 
 #include "gelex/data/reader.h"
-#include "gelex/infra/logging/notify.h"
-#include "gelex/io/simulation_writer.h"
+#include "gelex/io/text_writer.h"
 #include "gelex/simulate/effect_sampler.h"
 #include "gelex/simulate/genetic_value_calculator.h"
-#include "gelex/simulate/phenotype_generator.h"
+#include "gelex/simulate/genetic_value_scaler.h"
+#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/sample_id.h"
+#include "gelex/types/sim_types.h"
 
 namespace gelex
 {
-namespace
-{
-
-struct DominanceSpec
-{
-    double d2;
-    bool has_dominance;
-    std::vector<EffectSizeClass> effect_classes;
-    std::optional<double> positive_prob;
-};
-
-auto make_dominance_spec(const SimulationEngine::Config& config)
-    -> DominanceSpec
-{
-    const double d2 = config.dom_heritability.value_or(0.0);
-    const bool has_dominance = d2 > 0.0;
-
-    return {
-        .d2 = d2,
-        .has_dominance = has_dominance,
-        .effect_classes = has_dominance ? config.dom_effect_classes
-                                        : std::vector<EffectSizeClass>{},
-        .positive_prob
-        = has_dominance ? config.dom_positive_prob : std::nullopt,
-    };
-}
-
-}  // namespace
 
 SimulationEngine::SimulationEngine(Config config) : config_(std::move(config))
 {
-}
-
-auto SimulationEngine::resolve_output_path(
-    const std::filesystem::path& output_path,
-    const std::filesystem::path& bed_path) -> std::filesystem::path
-{
-    return output_path.empty() ? std::filesystem::path(bed_path) : output_path;
 }
 
 auto SimulationEngine::run(const SimulateObserver& observer) -> void
 {
     std::mt19937_64 rng(config_.seed);
 
-    auto bim_path = config_.bed_path;
-    bim_path.replace_extension(".bim");
-    auto snp_ids = read_bim(bim_path).index().take_keys();
+    auto bim = read_bim(config_.bfile_prefix + ".bim");
+    auto fam = read_fam(config_.bfile_prefix + ".fam");
 
-    const auto dominance = make_dominance_spec(config_);
+    GeneticValueCalculator calculator(config_.bfile_prefix, bim, fam);
 
-    EffectSampler effect_sampler(
-        config_.add_effect_classes,
-        dominance.effect_classes,
-        rng,
-        dominance.positive_prob);
+    auto all_ids = bim.index().keys();
+    std::vector<std::string_view> shuffled_ids(all_ids.begin(), all_ids.end());
+    std::ranges::shuffle(shuffled_ids, rng);
 
-    auto causal_effects
-        = effect_sampler.sample(static_cast<Eigen::Index>(snp_ids.size()));
+    GeneticValues additive;
+    additive.causal_snps
+        = NormalSampler(shuffled_ids, config_.additive.effect_sizes)(rng);
+    additive.gebv = calculator.calculate<GeneticMode::A>(
+        additive, config_.geno_method, observer);
 
-    GeneticValueCalculator calculator(
-        config_.bed_path, dominance.has_dominance);
-    auto genetic_values = calculator.calculate(causal_effects, observer);
-
-    // Generate phenotypes
-    PhenotypeGenerator phenotype_generator(
-        config_.add_heritability, dominance.d2, config_.intercept, rng);
-
-    auto result = phenotype_generator.generate(genetic_values);
-
-    std::optional<double> actual_dom_positive_prob;
-    if (dominance.has_dominance && dominance.positive_prob)
+    std::optional<GeneticValues> dominance;
+    if (config_.dominance)
     {
-        const auto& dom = causal_effects.dominance;
-        Eigen::Index n_positive
-            = (dom.array() > 0.0).cast<Eigen::Index>().sum();
-        Eigen::Index n_nonzero
-            = (dom.array() != 0.0).cast<Eigen::Index>().sum();
-        if (n_nonzero > 0)
+        dominance.emplace();
+        dominance->causal_snps
+            = NormalSampler(shuffled_ids, config_.dominance->effect_sizes)(rng);
+        dominance->gebv = calculator.calculate<GeneticMode::D>(
+            *dominance, config_.geno_method, observer);
+    }
+
+    const Eigen::Index n_samples = additive.gebv.size();
+    std::normal_distribution<double> normal01(0.0, 1.0);
+    Eigen::VectorXd residual = Eigen::VectorXd::NullaryExpr(
+        n_samples, [&] { return normal01(rng); });
+
+    GeneticValueScaler scaler(
+        config_.additive.heritability,
+        config_.dominance
+            ? std::optional<double>(config_.dominance->heritability)
+            : std::nullopt);
+    scaler.scale(additive, dominance ? &*dominance : nullptr, residual);
+
+    Eigen::VectorXd phenotypes = additive.gebv + residual;
+    if (dominance)
+    {
+        phenotypes += dominance->gebv;
+    }
+
+    detail::TextWriter writer(config_.output_prefix + ".phen");
+    writer.write_header({"FID", "IID", "Phenotype"});
+    for (Eigen::Index i = 0; i < n_samples; ++i)
+    {
+        auto [fid, iid] = split_sample_id(fam.index().keys()[i]);
+        writer.write(fmt::format("{}\t{}\t{}", fid, iid, phenotypes(i)));
+    }
+
+    detail::TextWriter effect_writer(config_.output_prefix + ".causal");
+    const auto& add_snps = additive.causal_snps;
+    if (dominance)
+    {
+        effect_writer.write_header({"id", "additive", "dominance"});
+        const auto& dom_snps = dominance->causal_snps;
+        for (std::size_t i = 0; i < add_snps.size(); ++i)
         {
-            actual_dom_positive_prob = static_cast<double>(n_positive)
-                                       / static_cast<double>(n_nonzero);
+            effect_writer.write(
+                fmt::format(
+                    "{}\t{}\t{}",
+                    add_snps[i].id,
+                    add_snps[i].effect,
+                    dom_snps[i].effect));
         }
     }
-
-    notify(
-        observer,
-        HeritabilityGeneratedEvent{
-            .additive = result.true_h2,
-            .dominance = result.true_d2,
-            .dom_positive_prob = actual_dom_positive_prob,
-        });
-
-    // Update causal effects with the dominance scaling factor
-    auto dom_scale = result.dom_scale;
-    if (dom_scale != 1.0)
+    else
     {
-        causal_effects.dominance *= dom_scale;
+        effect_writer.write_header({"id", "additive"});
+        for (const auto& snp : add_snps)
+        {
+            effect_writer.write(fmt::format("{}\t{}", snp.id, snp.effect));
+        }
     }
-
-    auto output_prefix
-        = resolve_output_path(config_.output_path, config_.bed_path);
-    SimulationWriter writer(output_prefix);
-
-    writer.write_phenotypes(result.phenotypes, calculator.sample_ids());
-    writer.write_causal_effects(snp_ids, causal_effects);
-
-    notify(
-        observer,
-        OutputsWrittenEvent{
-            .phenotype_path = writer.phenotype_path().string(),
-            .snp_effect_path = writer.causal_path().string(),
-        });
 }
+
 }  // namespace gelex

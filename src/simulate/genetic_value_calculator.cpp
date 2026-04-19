@@ -16,126 +16,100 @@
 
 #include "gelex/simulate/genetic_value_calculator.h"
 
-#include <fmt/format.h>
-#include <algorithm>
 #include <cstddef>
-#include <utility>
+#include <ranges>
+#include <vector>
 
 #include <Eigen/Core>
 
+#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/genotype/genotype_processor.h"
-#include "gelex/data/reader.h"
-#include "gelex/exception.h"
+#include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/simulate_event.h"
+#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genotype_process_method.h"
+#include "gelex/types/sim_types.h"
 
 namespace gelex
 {
 
-namespace
-{
-
-auto notify_progress(
-    const SimulateObserver& observer,
-    size_t total,
-    size_t current,
-    bool finished = false) -> void
-{
-    if (!observer)
-    {
-        return;
-    }
-
-    SimulateEvent event;
-    event.emplace<SimulateProgressEvent>(total, current, finished);
-    observer(event);
-}
-
-}  // namespace
-
 GeneticValueCalculator::GeneticValueCalculator(
     const std::filesystem::path& bed_path,
-    bool has_dominance)
-    : has_dominance_(has_dominance),
-      sample_index_(
-          read_fam(std::filesystem::path(bed_path).replace_extension(".fam"))
-              .index()),
-      bed_pipe_(bed_path, sample_index_)
+    const df::DataFrame<std::string>& bim,
+    const df::DataFrame<std::string>& fam)
+    : sample_index_(&fam.index()),
+      snp_index_(&bim.index()),
+      bed_pipe_(bed_path, *sample_index_)
 {
 }
 
+template <GeneticMode Mode>
 auto GeneticValueCalculator::calculate(
-    const CausalEffects& effects,
-    const SimulateObserver& observer) const -> GeneticValues
+    GeneticValues& genetic_values,
+    GenotypeProcessMethod geno_method,
+    const SimulateObserver& observer) const -> Eigen::VectorXd
 {
-    const Eigen::Index n_snps = bed_pipe_.num_snps();
+    const auto& causal_snps = genetic_values.causal_snps;
     const Eigen::Index n_individuals = bed_pipe_.num_samples();
+    const auto n_causal = static_cast<Eigen::Index>(causal_snps.size());
 
-    if (effects.size() != n_snps)
+    if (n_causal == 0)
     {
-        throw gelex::GelexException(
-            fmt::format(
-                "Number of effects should match the number of SNPs, but got {} "
-                "effects for {} SNPs",
-                effects.size(),
-                n_snps));
+        genetic_values.coeff.resize(0);
+        return Eigen::VectorXd::Zero(n_individuals);
     }
 
-    Eigen::VectorXd additive_values = Eigen::VectorXd::Zero(n_individuals);
-    Eigen::VectorXd dominance_values;
-    if (has_dominance_)
-    {
-        dominance_values = Eigen::VectorXd::Zero(n_individuals);
-    }
-    notify_progress(observer, static_cast<size_t>(n_snps), 0);
+    auto col_indices
+        = causal_snps
+          | std::views::transform(
+              [this](const auto& snp)
+              { return static_cast<Eigen::Index>(snp_index_->at(snp.id)); })
+          | std::ranges::to<std::vector>();
 
-    for (Eigen::Index start = 0; start < n_snps; start += SNP_CHUNK_SIZE)
-    {
-        const Eigen::Index end = std::min(start + SNP_CHUNK_SIZE, n_snps);
-        auto [add_chunk, dom_chunk]
-            = encode_chunk(bed_pipe_.load_chunk(start, end));
-        additive_values
-            += add_chunk * effects.additive.segment(start, end - start);
-        if (has_dominance_)
-        {
-            dominance_values
-                += dom_chunk * effects.dominance.segment(start, end - start);
-        }
-        notify_progress(
-            observer, static_cast<size_t>(n_snps), static_cast<size_t>(end));
-    }
-    notify_progress(
+    notify(
         observer,
-        static_cast<size_t>(n_snps),
-        static_cast<size_t>(n_snps),
-        true);
+        SimulateProgressEvent{
+            .total = static_cast<std::size_t>(n_causal),
+            .current = 0,
+            .done = false,
+        });
 
-    return {
-        .additive = std::move(additive_values),
-        .dominance = std::move(dominance_values)};
+    Eigen::MatrixXd genotype = bed_pipe_.select(col_indices);
+    process_matrix<Mode>(geno_method, genotype);
+
+    genetic_values.coeff.resize(n_causal);
+    for (Eigen::Index i = 0; i < n_causal; ++i)
+    {
+        genetic_values.coeff(i)
+            = causal_snps[static_cast<std::size_t>(i)].effect;
+    }
+
+    Eigen::VectorXd values = genotype * genetic_values.coeff;
+
+    notify(
+        observer,
+        SimulateProgressEvent{
+            .total = static_cast<std::size_t>(n_causal),
+            .current = static_cast<std::size_t>(n_causal),
+            .done = true,
+        });
+
+    return values;
 }
+
+template auto GeneticValueCalculator::calculate<GeneticMode::A>(
+    GeneticValues&,
+    GenotypeProcessMethod,
+    const SimulateObserver&) const -> Eigen::VectorXd;
+
+template auto GeneticValueCalculator::calculate<GeneticMode::D>(
+    GeneticValues&,
+    GenotypeProcessMethod,
+    const SimulateObserver&) const -> Eigen::VectorXd;
 
 auto GeneticValueCalculator::sample_ids() const -> std::span<const std::string>
 {
-    return sample_index_.keys();
-}
-
-auto GeneticValueCalculator::encode_chunk(
-    const Eigen::Ref<const Eigen::MatrixXd>& chunk) const
-    -> std::pair<Eigen::MatrixXd, Eigen::MatrixXd>
-{
-    Eigen::MatrixXd add_chunk = chunk;
-    process_matrix<GeneticMode::A>(
-        GenotypeProcessMethod::OrthStandardize(), add_chunk);
-
-    Eigen::MatrixXd dom_chunk;
-    if (has_dominance_)
-    {
-        dom_chunk = chunk;
-        process_matrix<GeneticMode::D>(
-            GenotypeProcessMethod::OrthStandardize(), dom_chunk);
-    }
-
-    return {add_chunk, dom_chunk};
+    return sample_index_->keys();
 }
 
 }  // namespace gelex

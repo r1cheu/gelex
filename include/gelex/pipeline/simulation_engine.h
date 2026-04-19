@@ -17,11 +17,12 @@
 #ifndef GELEX_PIPELINE_SIMULATION_ENGINE_H_
 #define GELEX_PIPELINE_SIMULATION_ENGINE_H_
 
-#include <filesystem>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "gelex/infra/logging/simulate_event.h"
+#include "gelex/types/genotype_process_method.h"
 #include "gelex/types/sim_types.h"
 
 namespace gelex
@@ -30,21 +31,23 @@ namespace gelex
 class SimulationEngine
 {
    public:
+    struct SimulateScheme
+    {
+        double heritability;
+        std::vector<EffectSize> effect_sizes;
+    };
+
     struct Config
     {
-        std::filesystem::path bed_path;
-        std::filesystem::path output_path;
-
-        double intercept;
-
-        double add_heritability;
-        std::vector<EffectSizeClass> add_effect_classes;
-
-        std::optional<double> dom_heritability;
-        std::vector<EffectSizeClass> dom_effect_classes;
-        std::optional<double> dom_positive_prob;
-
         int seed;
+        std::string bfile_prefix;
+        std::string output_prefix;
+
+        GenotypeProcessMethod geno_method;
+
+        SimulateScheme additive;
+        std::optional<SimulateScheme> dominance;
+        std::optional<double> dom_positive_prob;
     };
 
     explicit SimulationEngine(Config config);
@@ -52,10 +55,6 @@ class SimulationEngine
     auto run(const SimulateObserver& observer = {}) -> void;
 
    private:
-    static auto resolve_output_path(
-        const std::filesystem::path& output_path,
-        const std::filesystem::path& bed_path) -> std::filesystem::path;
-
     Config config_;
 };
 

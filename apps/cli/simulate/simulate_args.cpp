@@ -46,14 +46,13 @@ auto setup_simulate_args(argparse::ArgumentParser& cmd) -> void
         .nargs(argparse::nargs_pattern::at_least_one)
         .default_value(std::vector<double>{0.01})
         .scan<'g', double>();
-    cmd.add_argument("--add-prop")
+    cmd.add_argument("--add-n")
         .help(
-            "Proportions for additive effect classes (must match --add-var "
-            "length, sum to 1)")
-        .metavar("<PROPORTIONS>")
+            "SNP counts for additive effect classes (must match --add-var "
+            "length)")
+        .metavar("<COUNTS>")
         .nargs(argparse::nargs_pattern::at_least_one)
-        .default_value(std::vector<double>{1.0})
-        .scan<'g', double>();
+        .scan<'i', int>();
 
     cmd.add_group("Dominance");
     cmd.add_argument("--d2")
@@ -66,14 +65,13 @@ auto setup_simulate_args(argparse::ArgumentParser& cmd) -> void
         .nargs(argparse::nargs_pattern::at_least_one)
         .default_value(std::vector<double>{0.01})
         .scan<'g', double>();
-    cmd.add_argument("--dom-prop")
+    cmd.add_argument("--dom-n")
         .help(
-            "Proportions for dominance effect classes (must match --dom-var "
-            "length, sum to 1)")
-        .metavar("<PROPORTIONS>")
+            "SNP counts for dominance effect classes (must match --dom-var "
+            "length)")
+        .metavar("<COUNTS>")
         .nargs(argparse::nargs_pattern::at_least_one)
-        .default_value(std::vector<double>{1.0})
-        .scan<'g', double>();
+        .scan<'i', int>();
     cmd.add_argument("--dom-pos-prob")
         .help(
             "Probability of positive dominance effects; enables "
@@ -82,10 +80,12 @@ auto setup_simulate_args(argparse::ArgumentParser& cmd) -> void
         .scan<'g', double>();
 
     cmd.add_group("Model");
-    cmd.add_argument("--intercept")
-        .help("Intercept (mean) added to phenotypes")
-        .default_value(0.0)
-        .scan<'g', double>();
+    cmd.add_argument("--geno-method", "--gm")
+        .help(
+            "Genotype processing: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC "
+            "(prefix: O=orth, N=NOIA; suffix: H=HWE-based)")
+        .default_value(std::string("OS"))
+        .metavar("<STR>");
     cmd.add_argument("--seed")
         .help("Random seed")
         .default_value(42)

@@ -17,33 +17,31 @@
 #ifndef GELEX_TYPES_SIM_TYPES_H_
 #define GELEX_TYPES_SIM_TYPES_H_
 
+#include <string>
+#include <vector>
+
 #include <Eigen/Core>
 
 namespace gelex
 {
 
-struct EffectSizeClass
+struct EffectSize
 {
-    double proportion;
+    Eigen::Index count;
     double variance;
 };
 
-struct CausalEffects
+struct CausalSnp
 {
-    Eigen::VectorXd additive;
-    Eigen::VectorXd dominance;
-    Eigen::VectorXi add_class;
-    Eigen::VectorXi dom_class;
+    std::string id;
+    double effect;
+};
 
-    auto resize(Eigen::Index n_snps) -> void
-    {
-        additive.resize(n_snps);
-        dominance.resize(n_snps);
-        add_class.resize(n_snps);
-        dom_class.resize(n_snps);
-    }
-
-    [[nodiscard]] auto size() const -> Eigen::Index { return additive.size(); }
+struct GeneticValues
+{
+    std::vector<CausalSnp> causal_snps;
+    Eigen::VectorXd coeff;
+    Eigen::VectorXd gebv;
 };
 
 }  // namespace gelex

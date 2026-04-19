@@ -18,11 +18,14 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <optional>
 #include <random>
 #include <sstream>
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
@@ -32,6 +35,7 @@
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/infra/stats/descriptive.h"
 #include "gelex/pipeline/simulation_engine.h"
+#include "gelex/types/genotype_process_method.h"
 
 namespace fs = std::filesystem;
 
@@ -44,12 +48,10 @@ namespace
 
 constexpr double VARIANCE_TOLERANCE = 0.1;
 
-struct CausalEffect
+struct CausalRow
 {
     double additive = 0.0;
     double dominance = 0.0;
-    int add_class = 0;
-    int dom_class = 0;
 };
 
 auto count_lines(const fs::path& path) -> int
@@ -79,40 +81,62 @@ auto read_file_content(const fs::path& path) -> std::string
 
 auto make_config(
     const fs::path& bed_path,
+    Eigen::Index n_snps,
     double h2 = 0.5,
     double d2 = 0.0,
     int seed = 42,
-    std::vector<gelex::EffectSizeClass> add_classes = {{1.0, 1.0}},
-    std::vector<gelex::EffectSizeClass> dom_classes = {{1.0, 1.0}})
-    -> SimulationEngine::Config
+    std::vector<EffectSize> add_classes = {},
+    std::vector<EffectSize> dom_classes = {}) -> SimulationEngine::Config
 {
+    if (add_classes.empty())
+    {
+        add_classes = {{n_snps, 1.0}};
+    }
+    if (dom_classes.empty())
+    {
+        dom_classes = {{n_snps, 1.0}};
+    }
+
+    std::optional<SimulationEngine::SimulateScheme> dominance;
+    if (d2 > 0.0)
+    {
+        dominance = SimulationEngine::SimulateScheme{
+            .heritability = d2,
+            .effect_sizes = std::move(dom_classes),
+        };
+    }
     return {
-        .bed_path = bed_path,
-        .output_path = {},
-        .intercept = 0.0,
-        .add_heritability = h2,
-        .add_effect_classes = std::move(add_classes),
-        .dom_heritability = d2,
-        .dom_effect_classes = std::move(dom_classes),
         .seed = seed,
+        .bfile_prefix = bed_path,
+        .output_prefix = bed_path,
+        .geno_method = GenotypeProcessMethod::OrthStandardize(),
+        .additive
+        = SimulationEngine::SimulateScheme{
+            .heritability = h2,
+            .effect_sizes = std::move(add_classes),
+        },
+        .dominance = std::move(dominance),
     };
 }
 
-auto parse_causal_effects(const fs::path& causal_path)
-    -> std::unordered_map<std::string, CausalEffect>
+auto parse_causal_effects(const fs::path& causal_path, bool has_dominance)
+    -> std::unordered_map<std::string, CausalRow>
 {
     std::ifstream file(causal_path);
     std::string line;
-    std::getline(file, line);  // skip header
+    std::getline(file, line);
 
-    std::unordered_map<std::string, CausalEffect> effects;
+    std::unordered_map<std::string, CausalRow> effects;
     while (std::getline(file, line))
     {
         std::istringstream iss(line);
         std::string snp;
-        CausalEffect effect;
-        iss >> snp >> effect.additive >> effect.dominance >> effect.add_class
-            >> effect.dom_class;
+        CausalRow effect;
+        iss >> snp >> effect.additive;
+        if (has_dominance)
+        {
+            iss >> effect.dominance;
+        }
         effects[snp] = effect;
     }
     return effects;
@@ -142,7 +166,7 @@ auto parse_phenotypes(const fs::path& phen_path, Eigen::Index n_samples)
 {
     std::ifstream file(phen_path);
     std::string line;
-    std::getline(file, line);  // skip header
+    std::getline(file, line);
 
     Eigen::VectorXd phenotypes(n_samples);
     Eigen::Index idx = 0;
@@ -182,7 +206,7 @@ auto generate_random_genotypes(
 
 auto extract_causal_columns(
     const Eigen::MatrixXd& genotypes,
-    const std::unordered_map<std::string, CausalEffect>& effects,
+    const std::unordered_map<std::string, CausalRow>& effects,
     const std::unordered_map<std::string, Eigen::Index>& snp_to_col)
     -> std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Eigen::VectorXd>
 {
@@ -206,37 +230,7 @@ auto extract_causal_columns(
 
 }  // namespace
 
-TEST_CASE("SimulationEngine - parameter validation", "[simulate]")
-{
-    BedFixture fixture;
-    auto [bed_path, _] = fixture.create_bed_files(10, 20, 0.0, 0.05, 0.5, 42);
-
-    SECTION("Valid config does not throw")
-    {
-        REQUIRE_NOTHROW(SimulationEngine(make_config(bed_path)));
-    }
-
-    SECTION("Engine construction does not perform CLI-level validation")
-    {
-        REQUIRE_NOTHROW(SimulationEngine(make_config(bed_path, 0.0)));
-        REQUIRE_NOTHROW(SimulationEngine(make_config(bed_path, -0.1)));
-        REQUIRE_NOTHROW(SimulationEngine(make_config(bed_path, 1.0)));
-        REQUIRE_NOTHROW(SimulationEngine(make_config(bed_path, 1.5)));
-    }
-
-    SECTION("Engine construction accepts unvalidated d2 values")
-    {
-        REQUIRE_NOTHROW(SimulationEngine(make_config(bed_path, 0.5, -0.1)));
-        REQUIRE_NOTHROW(SimulationEngine(make_config(bed_path, 0.5, 1.0)));
-    }
-
-    SECTION("Engine construction accepts unvalidated h2 and d2 combinations")
-    {
-        REQUIRE_NOTHROW(SimulationEngine(make_config(bed_path, 0.6, 0.5)));
-    }
-}
-
-TEST_CASE("SimulationEngine - basic simulation", "[simulate]")
+TEST_CASE("SimulationEngine - basic output files", "[simulate]")
 {
     BedFixture fixture;
     constexpr Eigen::Index N_SAMPLES = 50;
@@ -244,84 +238,75 @@ TEST_CASE("SimulationEngine - basic simulation", "[simulate]")
     auto [bed_path, _]
         = fixture.create_bed_files(N_SAMPLES, N_SNPS, 0.0, 0.05, 0.5, 42);
 
-    SECTION("Default output generates .phen and .causal files")
+    SECTION("Generates .phen and .causal files")
     {
-        SimulationEngine(make_config(bed_path)).run();
+        SimulationEngine(make_config(bed_path, N_SNPS)).run();
 
         REQUIRE(fs::exists(fs::path(bed_path).replace_extension(".phen")));
         REQUIRE(fs::exists(fs::path(bed_path).replace_extension(".causal")));
     }
 
-    SECTION("Custom output path")
-    {
-        auto output_path
-            = fixture.get_file_fixture().get_test_dir() / "custom_output.phen";
-        auto config = make_config(bed_path);
-        config.output_path = output_path;
-
-        SimulationEngine(config).run();
-
-        REQUIRE(fs::exists(output_path));
-        REQUIRE(fs::exists(fs::path(output_path).replace_extension(".causal")));
-    }
-
     SECTION("Phenotype file format")
     {
-        SimulationEngine(make_config(bed_path)).run();
+        SimulationEngine(make_config(bed_path, N_SNPS)).run();
 
         auto phen_path = fs::path(bed_path).replace_extension(".phen");
-        REQUIRE(read_first_line(phen_path) == "FID\tIID\tphenotype");
-        REQUIRE(count_lines(phen_path) == N_SAMPLES + 1);  // header + samples
+        REQUIRE(read_first_line(phen_path) == "FID\tIID\tPhenotype");
+        REQUIRE(count_lines(phen_path) == N_SAMPLES + 1);
     }
 
-    SECTION("Causal file format")
+    SECTION("Causal file format (additive only)")
     {
-        SimulationEngine(make_config(bed_path)).run();
+        SimulationEngine(make_config(bed_path, N_SNPS)).run();
 
         auto causal_path = fs::path(bed_path).replace_extension(".causal");
-        REQUIRE(
-            read_first_line(causal_path)
-            == "SNP\tadditive_effect\tdominance_effect\t"
-               "add_class\tdom_class");
+        REQUIRE(read_first_line(causal_path) == "id\tadditive");
+        REQUIRE(count_lines(causal_path) == N_SNPS + 1);
+    }
 
+    SECTION("Causal file format (additive + dominance)")
+    {
+        SimulationEngine(make_config(bed_path, N_SNPS, 0.4, 0.2)).run();
+
+        auto causal_path = fs::path(bed_path).replace_extension(".causal");
+        REQUIRE(read_first_line(causal_path) == "id\tadditive\tdominance");
         REQUIRE(count_lines(causal_path) == N_SNPS + 1);
     }
 }
 
 TEST_CASE("SimulationEngine - reproducibility", "[simulate]")
 {
-    BedFixture fixture;
-    auto [bed_path, _] = fixture.create_bed_files(50, 100, 0.0, 0.05, 0.5, 42);
+    BedFixture fixture1;
+    BedFixture fixture2;
+    constexpr Eigen::Index N_SNPS = 100;
+    auto [bed_path1, _1]
+        = fixture1.create_bed_files(50, N_SNPS, 0.0, 0.05, 0.5, 42);
+    auto [bed_path2, _2]
+        = fixture2.create_bed_files(50, N_SNPS, 0.0, 0.05, 0.5, 42);
 
-    auto output1
-        = fixture.get_file_fixture().get_test_dir() / "repro_run1.phen";
-    auto output2
-        = fixture.get_file_fixture().get_test_dir() / "repro_run2.phen";
+    SimulationEngine(make_config(bed_path1, N_SNPS, 0.5, 0.0, 123)).run();
+    SimulationEngine(make_config(bed_path2, N_SNPS, 0.5, 0.0, 123)).run();
 
-    auto config = make_config(bed_path, 0.5, 0.0, 123);
-    config.output_path = output1;
-    SimulationEngine(config).run();
+    auto phen1 = fs::path(bed_path1).replace_extension(".phen");
+    auto phen2 = fs::path(bed_path2).replace_extension(".phen");
+    REQUIRE(read_file_content(phen1) == read_file_content(phen2));
 
-    config.output_path = output2;
-    SimulationEngine(config).run();
-
-    REQUIRE(read_file_content(output1) == read_file_content(output2));
-    REQUIRE(
-        read_file_content(fs::path(output1).replace_extension(".causal"))
-        == read_file_content(fs::path(output2).replace_extension(".causal")));
+    auto causal1 = fs::path(bed_path1).replace_extension(".causal");
+    auto causal2 = fs::path(bed_path2).replace_extension(".causal");
+    REQUIRE(read_file_content(causal1) == read_file_content(causal2));
 }
 
-TEST_CASE("SimulationEngine - dominance effects", "[simulate]")
+TEST_CASE("SimulationEngine - dominance effects emitted", "[simulate]")
 {
     BedFixture fixture;
-    auto [bed_path, _] = fixture.create_bed_files(50, 100, 0.0, 0.05, 0.5, 42);
+    constexpr Eigen::Index N_SNPS = 100;
+    auto [bed_path, _]
+        = fixture.create_bed_files(50, N_SNPS, 0.0, 0.05, 0.5, 42);
 
-    SimulationEngine(make_config(bed_path, 0.5, 0.2)).run();
+    SimulationEngine(make_config(bed_path, N_SNPS, 0.5, 0.2)).run();
 
     auto causal_path = fs::path(bed_path).replace_extension(".causal");
-    REQUIRE(fs::exists(causal_path));
-
-    auto effects = parse_causal_effects(causal_path);
+    auto effects = parse_causal_effects(causal_path, /*has_dominance=*/true);
     bool has_nonzero_dominance = std::any_of(
         effects.begin(),
         effects.end(),
@@ -341,10 +326,11 @@ TEST_CASE("SimulationEngine - additive variance", "[simulate]")
     auto [bed_path, stored_geno]
         = fixture.create_deterministic_bed_files(genotypes);
 
-    SimulationEngine(make_config(bed_path, H2)).run();
+    SimulationEngine(make_config(bed_path, N_SNPS, H2)).run();
 
-    auto effects
-        = parse_causal_effects(fs::path(bed_path).replace_extension(".causal"));
+    auto effects = parse_causal_effects(
+        fs::path(bed_path).replace_extension(".causal"),
+        /*has_dominance=*/false);
     auto snp_to_col
         = parse_snp_indices(fs::path(bed_path).replace_extension(".bim"));
     auto [causal_geno, add_betas, _]
@@ -373,35 +359,33 @@ TEST_CASE("SimulationEngine - additive and dominance variance", "[simulate]")
     auto [bed_path, stored_geno]
         = fixture.create_deterministic_bed_files(genotypes);
 
-    SimulationEngine(make_config(bed_path, H2, D2)).run();
+    SimulationEngine(make_config(bed_path, N_SNPS, H2, D2)).run();
 
-    auto effects
-        = parse_causal_effects(fs::path(bed_path).replace_extension(".causal"));
+    auto effects = parse_causal_effects(
+        fs::path(bed_path).replace_extension(".causal"),
+        /*has_dominance=*/true);
     auto snp_to_col
         = parse_snp_indices(fs::path(bed_path).replace_extension(".bim"));
     auto [causal_geno, add_betas, dom_betas]
         = extract_causal_columns(stored_geno, effects, snp_to_col);
 
-    // Additive genetic values
     Eigen::MatrixXd x_add = causal_geno;
     process_matrix<GeneticMode::A>(
         GenotypeProcessMethod::OrthStandardize(), x_add);
     Eigen::VectorXd g_a = x_add * add_betas;
 
-    // Dominance genetic values
     Eigen::MatrixXd x_dom = causal_geno;
     process_matrix<GeneticMode::D>(
         GenotypeProcessMethod::OrthStandardize(), x_dom);
     Eigen::VectorXd g_d = x_dom * dom_betas;
 
-    // Scale dominance: scaled_d = d * sqrt(target / raw), target = Va * d2 / h2
+    auto phenotypes = parse_phenotypes(
+        fs::path(bed_path).replace_extension(".phen"), N_SAMPLES);
+
     double var_ga = detail::var(g_a)(0);
     double var_gd_raw = detail::var(g_d)(0);
     double scale = std::sqrt(var_ga * D2 / H2 / var_gd_raw);
     Eigen::VectorXd g_d_scaled = g_d * scale;
-
-    auto phenotypes = parse_phenotypes(
-        fs::path(bed_path).replace_extension(".phen"), N_SAMPLES);
 
     double var_phen = detail::var(phenotypes)(0);
     REQUIRE_THAT(var_ga / var_phen, WithinAbs(H2, VARIANCE_TOLERANCE));
@@ -409,46 +393,3 @@ TEST_CASE("SimulationEngine - additive and dominance variance", "[simulate]")
         detail::var(g_d_scaled)(0) / var_phen,
         WithinAbs(D2, VARIANCE_TOLERANCE));
 }
-
-TEST_CASE("SimulationEngine - mixture normal effect classes", "[simulate]")
-{
-    BedFixture fixture;
-    constexpr Eigen::Index N_SAMPLES = 200;
-    constexpr Eigen::Index N_SNPS = 200;
-
-    auto [bed_path, _]
-        = fixture.create_bed_files(N_SAMPLES, N_SNPS, 0.0, 0.05, 0.5, 42);
-
-    // 3-class mixture: small/medium/large effect sizes
-    std::vector<gelex::EffectSizeClass> add_classes
-        = {{0.5, 0.0001}, {0.3, 0.01}, {0.2, 1.0}};
-
-    auto config = make_config(bed_path, 0.5, 0.0, 42, add_classes);
-    SimulationEngine(config).run();
-
-    auto causal_path = fs::path(bed_path).replace_extension(".causal");
-    auto effects = parse_causal_effects(causal_path);
-
-    REQUIRE(static_cast<int>(effects.size()) == N_SNPS);
-
-    // Count SNPs per class
-    std::array<int, 3> class_counts = {0, 0, 0};
-    for (const auto& [snp, effect] : effects)
-    {
-        REQUIRE(effect.add_class >= 0);
-        REQUIRE(effect.add_class < 3);
-        class_counts[effect.add_class]++;
-    }
-
-    // Each class should have at least one SNP
-    for (int cls = 0; cls < 3; ++cls)
-    {
-        REQUIRE(class_counts[cls] > 0);
-    }
-
-    // Class 0 (50%) should have more SNPs than class 2 (20%)
-    REQUIRE(class_counts[0] > class_counts[2]);
-}
-
-// Effect class validation is now handled by EffectSampler (see
-// test_effect_sampler.cpp)

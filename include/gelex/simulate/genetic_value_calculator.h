@@ -23,42 +23,37 @@
 
 #include <Eigen/Core>
 
+#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/infra/logging/simulate_event.h"
+#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genotype_process_method.h"
 #include "gelex/types/sim_types.h"
 
 namespace gelex
 {
-
-struct GeneticValues
-{
-    Eigen::VectorXd additive;
-    Eigen::VectorXd dominance;
-};
 
 class GeneticValueCalculator
 {
    public:
     GeneticValueCalculator(
         const std::filesystem::path& bed_path,
-        bool has_dominance);
+        const df::DataFrame<std::string>& bim,
+        const df::DataFrame<std::string>& fam);
 
+    template <GeneticMode Mode>
     auto calculate(
-        const CausalEffects& effects,
-        const SimulateObserver& observer = {}) const -> GeneticValues;
+        GeneticValues& genetic_values,
+        GenotypeProcessMethod geno_method,
+        const SimulateObserver& observer = {}) const -> Eigen::VectorXd;
 
     [[nodiscard]] auto sample_ids() const -> std::span<const std::string>;
 
    private:
-    auto encode_chunk(const Eigen::Ref<const Eigen::MatrixXd>& chunk) const
-        -> std::pair<Eigen::MatrixXd, Eigen::MatrixXd>;
-
-    bool has_dominance_;
-    df::Index<std::string> sample_index_;
+    const df::Index<std::string>* sample_index_;
+    const df::Index<std::string>* snp_index_;
     BedPipe bed_pipe_;
-
-    static constexpr Eigen::Index SNP_CHUNK_SIZE = 10000;
 };
 
 }  // namespace gelex

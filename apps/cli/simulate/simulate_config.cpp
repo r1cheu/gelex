@@ -19,11 +19,13 @@
 #include <argparse.h>
 
 #include <fmt/format.h>
+#include <optional>
 #include <span>
 #include <string_view>
+#include <utility>
 #include <vector>
 
-#include "gelex/data/genotype/bed_path.h"
+#include "cli/cli_helper.h"
 #include "gelex/exception.h"
 #include "gelex/types/sim_types.h"
 
@@ -32,27 +34,26 @@ namespace
 
 auto validate_effect_classes(
     std::span<const double> variances,
-    std::span<const double> proportions,
+    std::span<const int> counts,
     std::string_view label) -> void
 {
-    if (variances.size() != proportions.size())
+    if (variances.size() != counts.size())
     {
         throw gelex::GelexException(
             fmt::format(
-                "{} variances and proportions must have the same number of "
-                "values",
+                "{} variances and counts must have the same number of values",
                 label));
     }
 }
 
 auto create_effectsize_vec(
     std::span<const double> variances,
-    std::span<const double> proportions) -> std::vector<gelex::EffectSizeClass>
+    std::span<const int> counts) -> std::vector<gelex::EffectSize>
 {
-    std::vector<gelex::EffectSizeClass> classes(variances.size());
+    std::vector<gelex::EffectSize> classes(variances.size());
     for (size_t i = 0; i < variances.size(); ++i)
     {
-        classes[i] = {proportions[i], variances[i]};
+        classes[i] = {static_cast<Eigen::Index>(counts[i]), variances[i]};
     }
     return classes;
 }
@@ -74,9 +75,11 @@ auto make_simulate_config(argparse::ArgumentParser& cmd)
               : std::nullopt;
 
     auto add_variances = cmd.get<std::vector<double>>("--add-var");
-    auto add_proportions = cmd.get<std::vector<double>>("--add-prop");
+    auto add_counts = cmd.get<std::vector<int>>("--add-n");
     auto dom_variances = cmd.get<std::vector<double>>("--dom-var");
-    auto dom_proportions = cmd.get<std::vector<double>>("--dom-prop");
+    auto dom_counts = cmd.is_used("--dom-n")
+                          ? cmd.get<std::vector<int>>("--dom-n")
+                          : std::vector<int>{};
 
     auto add_heritability = cmd.get<double>("--h2");
 
@@ -106,32 +109,35 @@ auto make_simulate_config(argparse::ArgumentParser& cmd)
             "--dom-pos-prob requires --d2 to be specified");
     }
 
-    validate_effect_classes(
-        add_variances, add_proportions, "Additive effect class");
+    validate_effect_classes(add_variances, add_counts, "Additive effect class");
     if (dom_heritability)
     {
         validate_effect_classes(
-            dom_variances, dom_proportions, "Dominance effect class");
+            dom_variances, dom_counts, "Dominance effect class");
+    }
+
+    std::optional<SimulationEngine::SimulateScheme> dominance;
+    if (dom_heritability)
+    {
+        dominance = SimulationEngine::SimulateScheme{
+            .heritability = *dom_heritability,
+            .effect_sizes = create_effectsize_vec(dom_variances, dom_counts),
+        };
     }
 
     return SimulationEngine::Config{
-        .bed_path = gelex::format_bed_path(cmd.get("--bfile")),
-        .output_path = cmd.get("--out"),
-
-        .intercept = cmd.get<double>("--intercept"),
-
-        .add_heritability = add_heritability,
-        .add_effect_classes
-        = create_effectsize_vec(add_variances, add_proportions),
-
-        .dom_heritability = dom_heritability,
-        .dom_effect_classes
-        = dom_heritability
-              ? create_effectsize_vec(dom_variances, dom_proportions)
-              : std::vector<gelex::EffectSizeClass>{},
-        .dom_positive_prob = dom_positive_prob,
-
         .seed = cmd.get<int>("--seed"),
+        .bfile_prefix = cmd.get("--bfile"),
+        .output_prefix = cmd.get("--out"),
+        .geno_method
+        = parse_genotype_process_method(cmd.get<std::string>("--geno-method")),
+        .additive
+        = SimulationEngine::SimulateScheme{
+            .heritability = add_heritability,
+            .effect_sizes = create_effectsize_vec(add_variances, add_counts),
+        },
+        .dominance = std::move(dominance),
+        .dom_positive_prob = dom_positive_prob,
     };
 }
 

@@ -17,50 +17,31 @@
 #ifndef GELEX_SIMULATE_EFFECT_SAMPLER_H_
 #define GELEX_SIMULATE_EFFECT_SAMPLER_H_
 
-#include <optional>
 #include <random>
 #include <span>
 #include <string_view>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/types/sim_types.h"
 
 namespace gelex
 {
 
-class EffectSampler
+class NormalSampler
 {
    public:
-    EffectSampler(
-        std::vector<EffectSizeClass> add_classes,
-        std::vector<EffectSizeClass> dom_classes,
-        std::mt19937_64& rng,
-        std::optional<double> dom_positive_prob = std::nullopt);
+    NormalSampler(
+        std::span<const std::string_view> ids,
+        std::span<const EffectSize> effect_sizes)
+        : ids_(ids), effect_sizes_(effect_sizes)
+    {
+    }
 
-    auto sample(Eigen::Index n_snps) -> CausalEffects;
+    auto operator()(std::mt19937_64& rng) const -> std::vector<CausalSnp>;
 
    private:
-    auto assign_effect_classes(
-        std::span<const EffectSizeClass> classes,
-        Eigen::Index n_snps) -> std::vector<int>;
-
-    auto sample_effect_value(std::span<const EffectSizeClass> classes, int cls)
-        -> double;
-
-    auto sample_truncated_effect_value(
-        std::span<const EffectSizeClass> classes,
-        int cls) -> double;
-
-    static void validate_effect_classes(
-        std::span<const EffectSizeClass> classes,
-        std::string_view label);
-
-    std::vector<EffectSizeClass> add_classes_;
-    std::vector<EffectSizeClass> dom_classes_;
-    std::mt19937_64& rng_;
-    std::optional<double> dom_positive_prob_;
+    std::span<const std::string_view> ids_;
+    std::span<const EffectSize> effect_sizes_;
 };
 
 }  // namespace gelex

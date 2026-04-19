@@ -50,10 +50,6 @@ auto SimulatorReporter::on_event(const SimulateConfigLoadedEvent& event) const
     {
         logger_->info("  {:<12}: {:.4f}", "d\u00b2", *event.dom_heritability);
     }
-    if (event.intercept != 0.0)
-    {
-        logger_->info("  {:<12}: {:.4f}", "Intercept", event.intercept);
-    }
     logger_->info("  {:<12}: {}", "Seed", event.seed);
     logger_->info("");
 }
@@ -76,30 +72,6 @@ auto SimulatorReporter::on_event(const SimulateProgressEvent& event) -> void
         info_.display->done();
         logger_->info("");
     }
-}
-
-auto SimulatorReporter::on_event(const HeritabilityGeneratedEvent& event) const
-    -> void
-{
-    logger_->info(gelex::section("[True Heritability]"));
-    logger_->info("   h²                : {:.4f}", event.additive);
-    if (event.dominance)
-    {
-        logger_->info("   δ²                : {:.4f}", *event.dominance);
-    }
-    if (event.dom_positive_prob)
-    {
-        logger_->info(
-            "   dom positive      : {:.4f}", *event.dom_positive_prob);
-    }
-    logger_->info("");
-}
-
-auto SimulatorReporter::on_event(const OutputsWrittenEvent& event) const -> void
-{
-    logger_->info(gelex::section("[File Summary]"));
-    logger_->info("   {:<24}: {}", "Phenotype file", event.phenotype_path);
-    logger_->info("   {:<24}: {}", "Snp effects file", event.snp_effect_path);
 }
 
 }  // namespace gelex::cli

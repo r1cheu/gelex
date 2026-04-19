@@ -18,6 +18,9 @@
 
 #include <argparse.h>
 
+#include <optional>
+#include <utility>
+
 #include "gelex/pipeline/simulation_engine.h"
 #include "simulate_config.h"
 #include "simulator_reporter.h"
@@ -30,9 +33,11 @@ auto simulate_execute(argparse::ArgumentParser& sim) -> int
     reporter.on_event(gelex::SimulateBannerEvent{});
     reporter.on_event(
         gelex::SimulateConfigLoadedEvent{
-            .intercept = config.intercept,
-            .add_heritability = config.add_heritability,
-            .dom_heritability = config.dom_heritability,
+            .add_heritability = config.additive.heritability,
+            .dom_heritability
+            = config.dominance
+                  ? std::make_optional(config.dominance->heritability)
+                  : std::nullopt,
             .seed = config.seed,
         });
 

@@ -44,17 +44,26 @@ Options
 ``--add-var`` ``0.01``
    Additive effect-class variances (one or more values).
 
-``--add-prop`` ``1.0``
-   Additive effect-class proportions; must match ``--add-var`` length and sum to 1.
+``--add-n``
+   SNP counts for additive effect classes; must match ``--add-var`` length.
 
 ``--dom-var`` ``0.01``
    Dominance effect-class variances.
 
-``--dom-prop`` ``1.0``
-   Dominance effect-class proportions; must match ``--dom-var`` length and sum to 1.
+``--dom-n``
+   SNP counts for dominance effect classes; must match ``--dom-var`` length.
 
-``--intercept`` ``0.0``
-   Mean term added to simulated phenotypes.
+.. rubric:: Model
+
+``--geno-method`` ``OrthStandardize``
+   Genotype processing method. Available methods:
+   ``StandardizeHWE`` (``SH``), ``CenterHWE`` (``CH``),
+   ``OrthStandardizeHWE`` (``OSH``), ``OrthCenterHWE`` (``OCH``),
+   ``Standardize`` (``S``), ``Center`` (``C``),
+   ``OrthStandardize`` (``OS``), ``OrthCenter`` (``OC``),
+   ``NOIAStandardize`` (``NS``), ``NOIACenter`` (``NC``).
+   Abbreviations accepted.
+   See :ref:`genotype-processor-methods`.
 
 .. rubric:: Randomness
 
@@ -77,7 +86,7 @@ Simulation writes phenotype and causal-effect outputs using the ``--out`` root.
      - Simulated phenotype table (FID, IID, phenotype)
      - Main output for downstream ``fit`` or ``assoc``
    * - ``<out>.causal``
-     - Causal SNP effects and class assignments
+     - Causal SNP effects (id, additive[, dominance])
      - Ground truth for benchmarking
 
 Warnings and Notes
@@ -89,12 +98,11 @@ Warnings and Notes
 
 .. warning::
 
-   ``--add-var`` and ``--add-prop`` must have the same number of entries, and
-   additive proportions must sum to 1.
+   ``--add-var`` and ``--add-n`` must have the same number of entries.
 
 .. note::
 
-   Dominance classes (``--dom-var`` and ``--dom-prop``) are only used when
+   Dominance classes (``--dom-var`` and ``--dom-n``) are only used when
    ``--d2`` is greater than 0.
 
 Examples
@@ -125,23 +133,22 @@ Expected outputs: ``sim_basic.phen``, ``sim_basic.causal``.
    gelex simulate \
       -b genotypes \
       --add-var 0 0.0001 0.001 0.01 \
-      --add-prop 0.90 0.05 0.03 0.02 \
+      --add-n 900 50 30 20 \
       --h2 0.5 \
       --seed 42 \
       -o sim_mix
 
 .. code-block:: bash
-   :caption: Additive + Dominance Mixture with Intercept
+   :caption: Additive + Dominance Mixture
 
    gelex simulate \
       -b genotypes \
       --h2 0.4 \
       --d2 0.2 \
       --add-var 0 0.001 0.01 \
-      --add-prop 0.85 0.10 0.05 \
+      --add-n 850 100 50 \
       --dom-var 0 0.001 \
-      --dom-prop 0.95 0.05 \
-      --intercept 1.5 \
+      --dom-n 950 50 \
       --seed 42 \
       -o sim_arch
 

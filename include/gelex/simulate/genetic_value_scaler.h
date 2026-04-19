@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_SIMULATION_WRITER_H_
-#define GELEX_IO_SIMULATION_WRITER_H_
+#ifndef GELEX_SIMULATE_GENETIC_VALUE_SCALER_H_
+#define GELEX_SIMULATE_GENETIC_VALUE_SCALER_H_
 
-#include <filesystem>
-#include <span>
-#include <string>
+#include <optional>
 
 #include <Eigen/Core>
 
@@ -28,26 +26,23 @@
 namespace gelex
 {
 
-class SimulationWriter
+class GeneticValueScaler
 {
    public:
-    explicit SimulationWriter(std::filesystem::path output_prefix);
+    GeneticValueScaler(double h2, std::optional<double> d2) : h2_(h2), d2_(d2)
+    {
+    }
 
-    void write_phenotypes(
-        const Eigen::Ref<const Eigen::VectorXd>& phenotypes,
-        std::span<const std::string> sample_ids) const;
-
-    void write_causal_effects(
-        std::span<const std::string> snp_ids,
-        const CausalEffects& effects) const;
-
-    [[nodiscard]] auto phenotype_path() const -> std::filesystem::path;
-    [[nodiscard]] auto causal_path() const -> std::filesystem::path;
+    auto scale(
+        const GeneticValues& additive_values,
+        GeneticValues* dominance_values,
+        Eigen::Ref<Eigen::VectorXd> residual) const -> void;
 
    private:
-    std::filesystem::path output_prefix_;
+    double h2_;
+    std::optional<double> d2_;
 };
 
 }  // namespace gelex
 
-#endif  // GELEX_IO_SIMULATION_WRITER_H_
+#endif  // GELEX_SIMULATE_GENETIC_VALUE_SCALER_H_
