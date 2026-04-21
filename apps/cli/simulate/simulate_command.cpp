@@ -33,7 +33,10 @@ auto simulate_execute(argparse::ArgumentParser& sim) -> int
     reporter.on_event(gelex::SimulateBannerEvent{});
     reporter.on_event(
         gelex::SimulateConfigLoadedEvent{
-            .add_heritability = config.additive.heritability,
+            .add_heritability
+            = config.additive
+                  ? std::make_optional(config.additive->heritability)
+                  : std::nullopt,
             .dom_heritability
             = config.dominance
                   ? std::make_optional(config.dominance->heritability)

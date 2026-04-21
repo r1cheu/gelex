@@ -41,16 +41,46 @@ auto SimulatorReporter::on_event(const SimulateBannerEvent& /*event*/) const
 auto SimulatorReporter::on_event(const SimulateConfigLoadedEvent& event) const
     -> void
 {
-    std::string mode_str = event.dom_heritability ? "AD" : "A";
+    std::string mode_str;
+    if (event.add_heritability && event.dom_heritability)
+    {
+        mode_str = "AD";
+    }
+    else if (event.add_heritability)
+    {
+        mode_str = "A";
+    }
+    else
+    {
+        mode_str = "D";
+    }
 
     logger_->info(gelex::section("[Config]"));
     logger_->info("  {:<12}: {}", "Mode", mode_str);
-    logger_->info("  {:<12}: {:.4f}", "h\u00b2", event.add_heritability);
+    if (event.add_heritability)
+    {
+        logger_->info("  {:<12}: {:.4f}", "h\u00b2", *event.add_heritability);
+    }
     if (event.dom_heritability)
     {
         logger_->info("  {:<12}: {:.4f}", "d\u00b2", *event.dom_heritability);
     }
     logger_->info("  {:<12}: {}", "Seed", event.seed);
+    logger_->info("");
+}
+
+auto SimulatorReporter::on_event(
+    const SimulateVarianceSummaryEvent& event) const -> void
+{
+    logger_->info(gelex::section("[Realized]"));
+    if (event.realized_h2)
+    {
+        logger_->info("  {:<12}: {:.4f}", "h\u00b2", *event.realized_h2);
+    }
+    if (event.realized_d2)
+    {
+        logger_->info("  {:<12}: {:.4f}", "d\u00b2", *event.realized_d2);
+    }
     logger_->info("");
 }
 

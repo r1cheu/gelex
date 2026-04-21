@@ -28,6 +28,8 @@
 #include <Eigen/Core>
 
 #include "gelex/data/reader.h"
+#include "gelex/infra/logging/notify.h"
+#include "gelex/infra/stats/descriptive.h"
 #include "gelex/io/text_writer.h"
 #include "gelex/simulate/effect_sampler.h"
 #include "gelex/simulate/genetic_value_calculator.h"
@@ -56,11 +58,15 @@ auto SimulationEngine::run(const SimulateObserver& observer) -> void
     std::vector<std::string_view> shuffled_ids(all_ids.begin(), all_ids.end());
     std::ranges::shuffle(shuffled_ids, rng);
 
-    GeneticValues additive;
-    additive.causal_snps
-        = NormalSampler(shuffled_ids, config_.additive.effect_sizes)(rng);
-    additive.gebv = calculator.calculate<GeneticMode::A>(
-        additive, config_.geno_method, observer);
+    std::optional<GeneticValues> additive;
+    if (config_.additive)
+    {
+        additive.emplace();
+        additive->causal_snps
+            = NormalSampler(shuffled_ids, config_.additive->effect_sizes)(rng);
+        additive->gebv = calculator.calculate<GeneticMode::A>(
+            *additive, config_.geno_method, observer);
+    }
 
     std::optional<GeneticValues> dominance;
     if (config_.dominance)
@@ -72,23 +78,42 @@ auto SimulationEngine::run(const SimulateObserver& observer) -> void
             *dominance, config_.geno_method, observer);
     }
 
-    const Eigen::Index n_samples = additive.gebv.size();
+    const Eigen::Index n_samples
+        = additive ? additive->gebv.size() : dominance->gebv.size();
     std::normal_distribution<double> normal01(0.0, 1.0);
     Eigen::VectorXd residual = Eigen::VectorXd::NullaryExpr(
         n_samples, [&] { return normal01(rng); });
 
+    auto h2_of = [](const auto& scheme) -> std::optional<double>
+    {
+        return scheme ? std::optional<double>(scheme->heritability)
+                      : std::nullopt;
+    };
     GeneticValueScaler scaler(
-        config_.additive.heritability,
-        config_.dominance
-            ? std::optional<double>(config_.dominance->heritability)
-            : std::nullopt);
-    scaler.scale(additive, dominance ? &*dominance : nullptr, residual);
+        h2_of(config_.additive), h2_of(config_.dominance));
+    scaler.scale(
+        additive ? &*additive : nullptr,
+        dominance ? &*dominance : nullptr,
+        residual);
 
-    Eigen::VectorXd phenotypes = additive.gebv + residual;
-    if (dominance)
+    Eigen::VectorXd phenotypes = additive ? additive->gebv : dominance->gebv;
+    if (additive && dominance)
     {
         phenotypes += dominance->gebv;
     }
+    phenotypes += residual;
+
+    const double var_phen = detail::var(phenotypes)(0);
+    SimulateVarianceSummaryEvent summary;
+    if (additive && var_phen > 0.0)
+    {
+        summary.realized_h2 = detail::var(additive->gebv)(0) / var_phen;
+    }
+    if (dominance && var_phen > 0.0)
+    {
+        summary.realized_d2 = detail::var(dominance->gebv)(0) / var_phen;
+    }
+    notify(observer, summary);
 
     detail::TextWriter writer(config_.output_prefix + ".phen");
     writer.write_header({"FID", "IID", "Phenotype"});
@@ -99,10 +124,19 @@ auto SimulationEngine::run(const SimulateObserver& observer) -> void
     }
 
     detail::TextWriter effect_writer(config_.output_prefix + ".causal");
-    const auto& add_snps = additive.causal_snps;
-    if (dominance)
+    auto write_single
+        = [&](std::string_view column, const std::vector<CausalSnp>& snps)
+    {
+        effect_writer.write_header({"id", std::string(column)});
+        for (const auto& snp : snps)
+        {
+            effect_writer.write(fmt::format("{}\t{}", snp.id, snp.effect));
+        }
+    };
+    if (additive && dominance)
     {
         effect_writer.write_header({"id", "additive", "dominance"});
+        const auto& add_snps = additive->causal_snps;
         const auto& dom_snps = dominance->causal_snps;
         for (std::size_t i = 0; i < add_snps.size(); ++i)
         {
@@ -114,13 +148,13 @@ auto SimulationEngine::run(const SimulateObserver& observer) -> void
                     dom_snps[i].effect));
         }
     }
+    else if (additive)
+    {
+        write_single("additive", additive->causal_snps);
+    }
     else
     {
-        effect_writer.write_header({"id", "additive"});
-        for (const auto& snp : add_snps)
-        {
-            effect_writer.write(fmt::format("{}\t{}", snp.id, snp.effect));
-        }
+        write_single("dominance", dominance->causal_snps);
     }
 }
 

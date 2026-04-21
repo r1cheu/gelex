@@ -37,15 +37,22 @@ struct SimulateProgressEvent
 
 struct SimulateConfigLoadedEvent
 {
-    double add_heritability{};
+    std::optional<double> add_heritability;
     std::optional<double> dom_heritability;
     int seed{};
+};
+
+struct SimulateVarianceSummaryEvent
+{
+    std::optional<double> realized_h2;
+    std::optional<double> realized_d2;
 };
 
 using SimulateEvent = std::variant<
     SimulateBannerEvent,
     SimulateConfigLoadedEvent,
-    SimulateProgressEvent>;
+    SimulateProgressEvent,
+    SimulateVarianceSummaryEvent>;
 
 using SimulateObserver = std::function<void(const SimulateEvent& event)>;
 

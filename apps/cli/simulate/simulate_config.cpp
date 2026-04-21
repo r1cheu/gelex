@@ -58,6 +58,64 @@ auto create_effectsize_vec(
     return classes;
 }
 
+auto validate_fraction_open(std::optional<double> value, std::string_view label)
+    -> void
+{
+    if (value && (*value <= 0.0 || *value >= 1.0))
+    {
+        throw gelex::GelexException(fmt::format("{} must be in (0, 1)", label));
+    }
+}
+
+auto validate_heritabilities(
+    std::optional<double> add_h2,
+    std::optional<double> dom_h2,
+    std::optional<double> dom_pos_prob) -> void
+{
+    if (!add_h2 && !dom_h2)
+    {
+        throw gelex::GelexException(
+            "Must specify at least one of --h2 or --d2");
+    }
+    validate_fraction_open(add_h2, "Heritability (h2)");
+    validate_fraction_open(dom_h2, "Dominance variance (d2)");
+    if (add_h2 && dom_h2 && *add_h2 + *dom_h2 >= 1.0)
+    {
+        throw gelex::GelexException("h2 + d2 must be less than 1");
+    }
+    validate_fraction_open(dom_pos_prob, "Dominance positive probability");
+    if (dom_pos_prob && !dom_h2)
+    {
+        throw gelex::GelexException(
+            "--dom-pos-prob requires --d2 to be specified");
+    }
+}
+
+struct SchemeFlags
+{
+    std::string var_flag;
+    std::string n_flag;
+    std::string label;
+};
+
+auto build_scheme(
+    argparse::ArgumentParser& cmd,
+    const SchemeFlags& flags,
+    double heritability) -> gelex::SimulationEngine::SimulateScheme
+{
+    auto variances = cmd.is_used(flags.var_flag)
+                         ? cmd.get<std::vector<double>>(flags.var_flag)
+                         : std::vector<double>{};
+    auto counts = cmd.is_used(flags.n_flag)
+                      ? cmd.get<std::vector<int>>(flags.n_flag)
+                      : std::vector<int>{};
+    validate_effect_classes(variances, counts, flags.label);
+    return {
+        .heritability = heritability,
+        .effect_sizes = create_effectsize_vec(variances, counts),
+    };
+}
+
 }  // namespace
 
 namespace gelex::cli
@@ -66,6 +124,9 @@ namespace gelex::cli
 auto make_simulate_config(argparse::ArgumentParser& cmd)
     -> SimulationEngine::Config
 {
+    auto add_heritability = cmd.is_used("--h2")
+                                ? std::make_optional(cmd.get<double>("--h2"))
+                                : std::nullopt;
     auto dom_heritability = cmd.is_used("--d2")
                                 ? std::make_optional(cmd.get<double>("--d2"))
                                 : std::nullopt;
@@ -74,55 +135,25 @@ auto make_simulate_config(argparse::ArgumentParser& cmd)
               ? std::make_optional(cmd.get<double>("--dom-pos-prob"))
               : std::nullopt;
 
-    auto add_variances = cmd.get<std::vector<double>>("--add-var");
-    auto add_counts = cmd.get<std::vector<int>>("--add-n");
-    auto dom_variances = cmd.get<std::vector<double>>("--dom-var");
-    auto dom_counts = cmd.is_used("--dom-n")
-                          ? cmd.get<std::vector<int>>("--dom-n")
-                          : std::vector<int>{};
+    validate_heritabilities(
+        add_heritability, dom_heritability, dom_positive_prob);
 
-    auto add_heritability = cmd.get<double>("--h2");
-
-    if (add_heritability <= 0.0 || add_heritability >= 1.0)
+    std::optional<SimulationEngine::SimulateScheme> additive;
+    if (add_heritability)
     {
-        throw gelex::GelexException("Heritability must be in (0, 1)");
-    }
-    if (dom_heritability
-        && (*dom_heritability < 0.0 || *dom_heritability >= 1.0))
-    {
-        throw gelex::GelexException(
-            "Dominance variance (d2) must be in [0, 1)");
-    }
-    if (dom_heritability && add_heritability + *dom_heritability >= 1.0)
-    {
-        throw gelex::GelexException("h2 + d2 must be less than 1");
-    }
-    if (dom_positive_prob
-        && (*dom_positive_prob <= 0.0 || *dom_positive_prob >= 1.0))
-    {
-        throw gelex::GelexException(
-            "Dominance positive probability must be in (0, 1)");
-    }
-    if (dom_positive_prob && !dom_heritability)
-    {
-        throw gelex::GelexException(
-            "--dom-pos-prob requires --d2 to be specified");
-    }
-
-    validate_effect_classes(add_variances, add_counts, "Additive effect class");
-    if (dom_heritability)
-    {
-        validate_effect_classes(
-            dom_variances, dom_counts, "Dominance effect class");
+        additive = build_scheme(
+            cmd,
+            {"--add-var", "--add-n", "Additive effect class"},
+            *add_heritability);
     }
 
     std::optional<SimulationEngine::SimulateScheme> dominance;
     if (dom_heritability)
     {
-        dominance = SimulationEngine::SimulateScheme{
-            .heritability = *dom_heritability,
-            .effect_sizes = create_effectsize_vec(dom_variances, dom_counts),
-        };
+        dominance = build_scheme(
+            cmd,
+            {"--dom-var", "--dom-n", "Dominance effect class"},
+            *dom_heritability);
     }
 
     return SimulationEngine::Config{
@@ -131,11 +162,7 @@ auto make_simulate_config(argparse::ArgumentParser& cmd)
         .output_prefix = cmd.get("--out"),
         .geno_method
         = parse_genotype_process_method(cmd.get<std::string>("--geno-method")),
-        .additive
-        = SimulationEngine::SimulateScheme{
-            .heritability = add_heritability,
-            .effect_sizes = create_effectsize_vec(add_variances, add_counts),
-        },
+        .additive = std::move(additive),
         .dominance = std::move(dominance),
         .dom_positive_prob = dom_positive_prob,
     };

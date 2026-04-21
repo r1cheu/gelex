@@ -27,24 +27,43 @@ namespace gelex
 {
 
 auto GeneticValueScaler::scale(
-    const GeneticValues& additive_values,
+    GeneticValues* additive_values,
     GeneticValues* dominance_values,
     Eigen::Ref<Eigen::VectorXd> residual) const -> void
 {
-    const double additive_variance = detail::var(additive_values.gebv)(0);
-    if (additive_variance <= 0.0 || h2_ <= 0.0)
+    const bool has_add = additive_values != nullptr && h2_ && *h2_ > 0.0;
+    const bool has_dom = dominance_values != nullptr && d2_ && *d2_ > 0.0;
+
+    double ref_var = 0.0;
+    double trait_frac = 0.0;
+    if (has_add)
+    {
+        ref_var = detail::var(additive_values->gebv)(0);
+        trait_frac = *h2_;
+    }
+    else if (has_dom)
+    {
+        ref_var = detail::var(dominance_values->gebv)(0);
+        trait_frac = *d2_;
+    }
+    else
     {
         return;
     }
 
-    const double d2 = d2_.value_or(0.0);
+    if (ref_var <= 0.0)
+    {
+        return;
+    }
 
-    if (dominance_values != nullptr && d2 > 0.0)
+    const double total_var = ref_var / trait_frac;
+
+    if (has_add && has_dom)
     {
         const double dominance_raw_var = detail::var(dominance_values->gebv)(0);
         if (dominance_raw_var > 0.0)
         {
-            const double target_dom_var = additive_variance * d2 / h2_;
+            const double target_dom_var = total_var * *d2_;
             const double dom_scale
                 = std::sqrt(target_dom_var / dominance_raw_var);
             dominance_values->gebv *= dom_scale;
@@ -52,7 +71,9 @@ auto GeneticValueScaler::scale(
         }
     }
 
-    const double residual_variance = additive_variance * (1.0 - h2_ - d2) / h2_;
+    const double h2 = has_add ? *h2_ : 0.0;
+    const double d2 = has_dom ? *d2_ : 0.0;
+    const double residual_variance = total_var * (1.0 - h2 - d2);
     if (residual_variance > 0.0)
     {
         residual *= std::sqrt(residual_variance);

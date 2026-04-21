@@ -45,7 +45,7 @@ class SimulationEngine
 
         GenotypeProcessMethod geno_method;
 
-        SimulateScheme additive;
+        std::optional<SimulateScheme> additive;
         std::optional<SimulateScheme> dominance;
         std::optional<double> dom_positive_prob;
     };

@@ -29,17 +29,18 @@ namespace gelex
 class GeneticValueScaler
 {
    public:
-    GeneticValueScaler(double h2, std::optional<double> d2) : h2_(h2), d2_(d2)
+    GeneticValueScaler(std::optional<double> h2, std::optional<double> d2)
+        : h2_(h2), d2_(d2)
     {
     }
 
     auto scale(
-        const GeneticValues& additive_values,
+        GeneticValues* additive_values,
         GeneticValues* dominance_values,
         Eigen::Ref<Eigen::VectorXd> residual) const -> void;
 
    private:
-    double h2_;
+    std::optional<double> h2_;
     std::optional<double> d2_;
 };
 

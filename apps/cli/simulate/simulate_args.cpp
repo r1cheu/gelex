@@ -37,14 +37,12 @@ auto setup_simulate_args(argparse::ArgumentParser& cmd) -> void
 
     cmd.add_group("Additive");
     cmd.add_argument("--h2")
-        .help("Narrow-sense heritability [0, 1]")
-        .default_value(0.5)
+        .help("Narrow-sense heritability (0, 1); omit to disable additive")
         .scan<'g', double>();
     cmd.add_argument("--add-var")
         .help("Variances for additive effect classes")
         .metavar("<VARIANCES>")
         .nargs(argparse::nargs_pattern::at_least_one)
-        .default_value(std::vector<double>{0.01})
         .scan<'g', double>();
     cmd.add_argument("--add-n")
         .help(
@@ -56,14 +54,12 @@ auto setup_simulate_args(argparse::ArgumentParser& cmd) -> void
 
     cmd.add_group("Dominance");
     cmd.add_argument("--d2")
-        .help("Dominance variance proportion [0, 1], h2+d2<1")
-        .default_value(0.0)
+        .help("Dominance variance proportion (0, 1); h2+d2<1 in AD mode")
         .scan<'g', double>();
     cmd.add_argument("--dom-var")
         .help("Variances for dominance effect classes")
         .metavar("<VARIANCES>")
         .nargs(argparse::nargs_pattern::at_least_one)
-        .default_value(std::vector<double>{0.01})
         .scan<'g', double>();
     cmd.add_argument("--dom-n")
         .help(
