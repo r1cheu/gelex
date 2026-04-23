@@ -22,11 +22,16 @@
 namespace gelex
 {
 
+// REML result used by downstream GWAS. P is materialized (n x n) by reusing
+// the V^{-1} buffer at the end of Estimator::fit, so per-chunk scans reduce
+// to a single dense GEMM.
 struct RemlResult
 {
     Eigen::MatrixXd P;
     Eigen::VectorXd Py;
     double Vp{};
+
+    [[nodiscard]] auto n_samples() const -> Eigen::Index { return P.rows(); }
 };
 
 }  // namespace gelex

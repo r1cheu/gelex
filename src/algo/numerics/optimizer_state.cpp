@@ -25,10 +25,11 @@ OptimizerState::OptimizerState(const FreqModel& model)
     : num_individuals_(model.num_individuals()),
       phenotype_variance_(model.phenotype_variance())
 {
-    v.resize(num_individuals_, num_individuals_);
-    proj.resize(num_individuals_, num_individuals_);
-    proj_y.resize(num_individuals_);
-    tx_vinv_x.resize(model.fixed().X.cols(), model.fixed().X.cols());
+    const auto n_fixed = model.fixed().X.cols();
+    V.resize(num_individuals_, num_individuals_);
+    Py.resize(num_individuals_);
+    ViX.resize(num_individuals_, n_fixed);
+    XtViX_inv.resize(n_fixed, n_fixed);
 
     // preallocate for AI policy
     // n_comp = 1 (residual) + n_random + n_genetic
@@ -36,6 +37,18 @@ OptimizerState::OptimizerState(const FreqModel& model)
         1 + model.random().size() + model.genetic().size());
     dvpy.resize(num_individuals_, n_comp);
     first_grad.resize(n_comp);
+}
+
+auto OptimizerState::trace_proj() const -> double
+{
+    return V.trace() - XtViX_inv.cwiseProduct(ViX.transpose() * ViX).sum();
+}
+
+auto OptimizerState::trace_proj_k(
+    const Eigen::Ref<const Eigen::MatrixXd>& K) const -> double
+{
+    return V.cwiseProduct(K).sum()
+           - XtViX_inv.cwiseProduct(ViX.transpose() * K * ViX).sum();
 }
 
 }  // namespace gelex

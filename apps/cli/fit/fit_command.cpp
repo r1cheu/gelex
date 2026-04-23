@@ -30,6 +30,7 @@
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/bed_path.h"
 #include "gelex/data/reader.h"
+#include "gelex/exception.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/notify.h"
@@ -132,6 +133,13 @@ auto fit_execute(argparse::ArgumentParser& fit) -> int
     gelex::notify(
         data_reporter.as_observer(),
         gelex::IntersectionEvent{.common_samples = common.size()});
+
+    if (common.size() == 0)
+    {
+        throw gelex::GelexException(
+            "No common samples across phenotype, genotype (.fam), and "
+            "covariates. Check that sample IDs match across input files.");
+    }
 
     pheno.gather(common);
 

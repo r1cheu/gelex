@@ -71,10 +71,10 @@ auto Optimizer::step(
     OptimizerState& opt_state) -> bool
 {
     // 1. compute V matrix from current variance components
-    variance_calculator::compute_v(model, state, opt_state.v);
+    variance_calculator::compute_v(model, state, opt_state.V);
 
     // 2. compute V^{-1} and log|V|
-    opt_state.logdet_v = variance_calculator::v_inv_logdet(opt_state.v);
+    opt_state.logdet_v = variance_calculator::v_inv_logdet(opt_state.V);
 
     // 3. compute projection matrix P and Py
     variance_calculator::compute_proj(model, opt_state);

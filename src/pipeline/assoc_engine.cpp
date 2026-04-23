@@ -68,7 +68,7 @@ auto AssocEngine::run(
     const auto scan_groups
         = [&](const std::vector<ChrGroup>& groups, const RemlResult& reml)
     {
-        const auto n_samples = reml.P.rows();
+        const auto n_samples = reml.n_samples();
         const auto eigen_chunk = static_cast<Eigen::Index>(config_.chunk_size);
 
         for (const auto& group : groups)

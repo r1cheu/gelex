@@ -31,8 +31,7 @@ GeneticVarianceProcessor::GeneticVarianceProcessor(
     std::span<const detail::BinaryReader> readers)
     : matrix_{bayes::get_matrix_ref(*input.genotype)},
       kind_{input.kind},
-      n_components_{0},
-      gebv_chunk_{}
+      n_components_{0}
 {
     const auto& ref = readers.front();
     auto coeff_path = fmt::format("{}/coeff", kind_);
@@ -68,7 +67,7 @@ auto GeneticVarianceProcessor::process(
 
     if (n_components_ == 0)
     {
-        gebv_chunk_ = matrix_ * beta_block;
+        gebv_chunk_.noalias() = matrix_ * beta_block;
         last_variances_ = detail::var(gebv_chunk_);
         return gebv_chunk_;
     }

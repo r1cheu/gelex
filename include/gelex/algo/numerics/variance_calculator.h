@@ -40,9 +40,10 @@ auto compute_v(
 // Input v is overwritten with V^{-1}
 auto v_inv_logdet(Eigen::Ref<Eigen::MatrixXd> v) -> double;
 
-// Compute projection matrix P = V^{-1} - V^{-1}*X*(X'*V^{-1}*X)^{-1}*X'*V^{-1}
-// and Py = P * y
-// Requires v to already contain V^{-1}
+// Compute the projection in factored form and Py = P*y.
+// Fills ViX = V^{-1}*X, inv_XtViX = (X'*V^{-1}*X)^{-1}, logdet_xvx.
+// P is represented lazily as V^{-1} - ViX*inv_XtViX*ViX' and never
+// materialized. Requires v to already contain V^{-1}.
 auto compute_proj(const FreqModel& model, OptimizerState& state) -> void;
 
 // Compute REML log-likelihood:

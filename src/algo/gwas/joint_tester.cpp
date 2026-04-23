@@ -59,13 +59,13 @@ auto JointTester::run(const RemlResult& reml) -> TestResults
 
     // W = P * Z_a  →  cross-products involving Z_a
     W_.noalias() = reml.P * Z_a_;
-    add_.zt_Pr = Z_a_.transpose() * reml.Py;
+    add_.zt_Pr.noalias() = Z_a_.transpose() * reml.Py;
     add_.zt_Pz = (Z_a_.transpose() * W_).diagonal();
     zt_a_Pzd_ = (Z_d_.transpose() * W_).diagonal();
 
     // W = P * Z_d  →  cross-products involving Z_d
     W_.noalias() = reml.P * Z_d_;
-    dom_.zt_Pr = Z_d_.transpose() * reml.Py;
+    dom_.zt_Pr.noalias() = Z_d_.transpose() * reml.Py;
     dom_.zt_Pz = (Z_d_.transpose() * W_).diagonal();
 
     // per-SNP 2×2 solve and Wald tests

@@ -77,7 +77,7 @@ auto SingleTester::wald_test(
     const RemlResult& reml,
     AssocOutput& output) -> void
 {
-    output.zt_Pr = (Z.transpose() * reml.Py);
+    output.zt_Pr.noalias() = Z.transpose() * reml.Py;
     W.noalias() = reml.P * Z;
     output.zt_Pz = (Z.transpose() * W).diagonal();
 

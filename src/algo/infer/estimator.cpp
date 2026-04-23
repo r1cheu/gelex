@@ -37,12 +37,18 @@ Estimator::Estimator(size_t max_iter, double tol, RemlObserver observer)
 auto Estimator::fit(const FreqModel& model, FreqState& state, bool em_init)
     -> RemlResult
 {
+    optimizer_.reset();
+    iter_count_ = 0;
+    loglike_ = 0.0;
+    converged_ = false;
+
     OptimizerState opt_state(model);
 
     // EM initialization
     if (em_init)
     {
         em_step(model, state, opt_state);
+        optimizer_.reset();
     }
 
     // AI iterations
@@ -104,9 +110,14 @@ auto Estimator::fit(const FreqModel& model, FreqState& state, bool em_init)
             .max_iter = max_iter_,
             .loglike = loglike_});
 
+    // Materialize P = V^{-1} - ViX * XtViX_inv * ViX' in opt_state.V's memory
+    // so downstream GWAS can use a single dense GEMM per SNP chunk.
+    opt_state.V.noalias()
+        -= opt_state.ViX * opt_state.XtViX_inv * opt_state.ViX.transpose();
+
     return RemlResult{
-        .P = std::move(opt_state.proj),
-        .Py = std::move(opt_state.proj_y),
+        .P = std::move(opt_state.V),
+        .Py = std::move(opt_state.Py),
         .Vp = state.Vp()};
 }
 

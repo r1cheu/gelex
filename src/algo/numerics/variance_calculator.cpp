@@ -85,47 +85,43 @@ auto v_inv_logdet(Eigen::Ref<Eigen::MatrixXd> v) -> double
 auto compute_proj(const FreqModel& model, OptimizerState& state) -> void
 {
     const auto& x = model.fixed().X;
+    const auto& y = model.phenotype();
 
-    // v now contains V^{-1}
-    // vinv_x = V^{-1} * X
-    Eigen::MatrixXd vinv_x = state.v * x;
+    // ViX = V^{-1} X  (v holds V^{-1} after v_inv_logdet)
+    state.ViX.noalias() = state.V * x;
 
-    // tx_vinv_x = X' * V^{-1} * X
-    state.tx_vinv_x.noalias() = x.transpose() * vinv_x;
+    // XtViX = X' V^{-1} X = X' ViX  (local only; stored form is its inverse)
+    Eigen::MatrixXd XtViX = x.transpose() * state.ViX;
 
-    // solve (X'V^{-1}X)^{-1} * (V^{-1}X)'
-    Eigen::LLT<Eigen::MatrixXd> llt_xvx(state.tx_vinv_x);
-    if (llt_xvx.info() != Eigen::Success)
+    Eigen::LLT<Eigen::MatrixXd> llt(XtViX);
+    if (llt.info() != Eigen::Success)
     {
         throw std::runtime_error("X'V^{-1}X is not positive definite");
     }
 
-    // P = V^{-1} - V^{-1}*X * (X'V^{-1}X)^{-1} * X'*V^{-1}
-    // P = V^{-1} - vinv_x * (tx_vinv_x)^{-1} * vinv_x'
-    Eigen::MatrixXd xvx_inv_xv = llt_xvx.solve(vinv_x.transpose());
-    state.proj.noalias() = state.v - vinv_x * xvx_inv_xv;
+    // log|X'V^{-1}X| = 2 * sum(log(diag(L)))
+    Eigen::MatrixXd L = llt.matrixL();
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+    state.logdet_xvx = 2.0 * L.diagonal().array().log().sum();
+#pragma GCC diagnostic pop
 
-    // Py = P * y
-    state.proj_y.noalias() = state.proj * model.phenotype();
+    // inv_XtViX = (X' V^{-1} X)^{-1}
+    state.XtViX_inv
+        = llt.solve(Eigen::MatrixXd::Identity(XtViX.rows(), XtViX.cols()));
+
+    // Py = V^{-1} y - ViX inv_XtViX (ViX' y)
+    state.Py.noalias() = state.V * y;
+    state.Py.noalias()
+        -= state.ViX * (state.XtViX_inv * (state.ViX.transpose() * y));
 }
 
 auto compute_loglike(const FreqModel& model, const OptimizerState& state)
     -> double
 {
     // logL = -0.5 * (log|V| + log|X'V^{-1}X| + y'Py)
-
-    // log|X'V^{-1}X|
-    Eigen::LLT<Eigen::MatrixXd> llt_xvx(state.tx_vinv_x);
-    Eigen::MatrixXd L_xvx = llt_xvx.matrixL();
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-    double logdet_xvx = 2.0 * L_xvx.diagonal().array().log().sum();
-#pragma GCC diagnostic pop
-
-    // y'Py
-    double ypy = model.phenotype().dot(state.proj_y);
-
-    return -0.5 * (state.logdet_v + logdet_xvx + ypy);
+    double ypy = model.phenotype().dot(state.Py);
+    return -0.5 * (state.logdet_v + state.logdet_xvx + ypy);
 }
 
 }  // namespace gelex::variance_calculator

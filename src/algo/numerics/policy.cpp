@@ -36,8 +36,8 @@ auto EMPolicy::apply(
 
     // residual: K = I
     // sigma_new = (sigma^2 * Py'Py - sigma^2 * tr(P) + sigma * n) / n
-    double py_py = opt_state.proj_y.squaredNorm();
-    double tr_p = opt_state.proj.trace();
+    double py_py = opt_state.Py.squaredNorm();
+    double tr_p = opt_state.trace_proj();
     sigma(0) = (sigma_sq(0) * py_py - sigma_sq(0) * tr_p + sigma(0) * n) / n;
 
     Eigen::Index idx = 1;
@@ -46,8 +46,8 @@ auto EMPolicy::apply(
     {
         for (const auto& effect : effects)
         {
-            double py_k_py = opt_state.proj_y.dot(effect.K * opt_state.proj_y);
-            double tr_pk = (opt_state.proj * effect.K).trace();
+            double py_k_py = opt_state.Py.dot(effect.K * opt_state.Py);
+            double tr_pk = opt_state.trace_proj_k(effect.K);
             sigma(idx) = (sigma_sq(idx) * py_k_py - sigma_sq(idx) * tr_pk
                           + sigma(idx) * n)
                          / n;
@@ -70,7 +70,7 @@ auto AIPolicy::apply(
 
     // 1. Compute dvpy: dV/dsigma_i * P * y for each component
     // residual: dV/dsigma_0 = I, so dvpy(:,0) = Py
-    opt_state.dvpy.col(0) = opt_state.proj_y;
+    opt_state.dvpy.col(0) = opt_state.Py;
 
     Eigen::Index idx = 1;
 
@@ -78,7 +78,7 @@ auto AIPolicy::apply(
     {
         for (const auto& effect : effects)
         {
-            opt_state.dvpy.col(idx++).noalias() = effect.K * opt_state.proj_y;
+            opt_state.dvpy.col(idx++).noalias() = effect.K * opt_state.Py;
         }
     };
     compute_dvpy(model.random());
@@ -88,17 +88,17 @@ auto AIPolicy::apply(
     // grad(i) = -0.5 * (tr(P * dV/dsigma_i) - Py' * dV/dsigma_i * Py)
     //         = -0.5 * (tr(P * K_i) - Py' * K_i * Py)
     // residual: K_0 = I
-    opt_state.first_grad(0) = -0.5
-                              * (opt_state.proj.trace()
-                                 - opt_state.proj_y.dot(opt_state.dvpy.col(0)));
+    opt_state.first_grad(0)
+        = -0.5
+          * (opt_state.trace_proj() - opt_state.Py.dot(opt_state.dvpy.col(0)));
 
     idx = 1;
     auto compute_first_grad = [&](const auto& effects)
     {
         for (const auto& effect : effects)
         {
-            double tr_pk = (opt_state.proj * effect.K).trace();
-            double py_k_py = opt_state.proj_y.dot(opt_state.dvpy.col(idx));
+            double tr_pk = opt_state.trace_proj_k(effect.K);
+            double py_k_py = opt_state.Py.dot(opt_state.dvpy.col(idx));
             opt_state.first_grad(idx) = -0.5 * (tr_pk - py_k_py);
             ++idx;
         }
@@ -107,8 +107,10 @@ auto AIPolicy::apply(
     compute_first_grad(model.genetic());
 
     // 3. Compute AI Hessian: H(i,j) = -0.5 * dvpy(:,i)' * P * dvpy(:,j)
-    // Precompute P * dvpy to avoid redundant matrix-vector products
-    Eigen::MatrixXd p_dvpy = opt_state.proj * opt_state.dvpy;
+    // P * dvpy = V^{-1} * dvpy - ViX * inv_XtViX * (ViX' * dvpy)
+    Eigen::MatrixXd p_dvpy = opt_state.V * opt_state.dvpy;
+    Eigen::MatrixXd vix_dvpy = opt_state.ViX.transpose() * opt_state.dvpy;
+    p_dvpy.noalias() -= opt_state.ViX * (opt_state.XtViX_inv * vix_dvpy);
 
     // Only compute upper triangle since Hessian is symmetric
     Eigen::MatrixXd hess(n_comp, n_comp);

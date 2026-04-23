@@ -32,12 +32,21 @@ class OptimizerState
     auto phenotype_variance() const -> double { return phenotype_variance_; }
     auto num_individuals() const -> Eigen::Index { return num_individuals_; }
 
+    // tr(P) = tr(V^{-1}) - tr(XtViX_inv * ViX' * ViX)
+    [[nodiscard]] auto trace_proj() const -> double;
+
+    // tr(P * K) = tr(V^{-1} * K) - tr(XtViX_inv * ViX' * K * ViX)
+    [[nodiscard]] auto trace_proj_k(
+        const Eigen::Ref<const Eigen::MatrixXd>& K) const -> double;
+
     // computed matrices, public for Policy access
-    Eigen::MatrixXd v;
-    Eigen::MatrixXd proj;
-    Eigen::VectorXd proj_y;
-    Eigen::MatrixXd tx_vinv_x;
+    // Projection is represented lazily: P = V^{-1} - ViX * XtViX_inv * ViX'
+    Eigen::MatrixXd V;
+    Eigen::VectorXd Py;
+    Eigen::MatrixXd ViX;
+    Eigen::MatrixXd XtViX_inv;
     double logdet_v{};
+    double logdet_xvx{};
 
     // for AI policy
     Eigen::MatrixXd hess_inv;
