@@ -18,7 +18,9 @@
 
 #include <string>
 
-int main()
+#include <catch2/catch_test_macros.hpp>
+
+TEST_CASE("String microbenchmarks", "[!benchmark][micro][string]")
 {
     ankerl::nanobench::Bench b;
 

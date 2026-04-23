@@ -19,10 +19,13 @@
 // Reports both FLOP-dominated timing and matrix memory footprint.
 
 #include <cstdio>
+#include <string>
+#include <vector>
 
 #include <nanobench.h>
 
 #include <Eigen/Dense>
+#include <catch2/catch_test_macros.hpp>
 
 namespace
 {
@@ -68,7 +71,7 @@ void report_memory()
 
 }  // namespace
 
-auto main() -> int
+TEST_CASE("REML projection strategies", "[!benchmark][math][reml]")
 {
     // Build representative state.
     Eigen::MatrixXd X = Eigen::MatrixXd::Random(N, P);
@@ -175,6 +178,4 @@ auto main() -> int
             W.noalias() -= ViX * (C_inv * (ViX.transpose() * Z));
             ankerl::nanobench::doNotOptimizeAway(W);
         });
-
-    return 0;
 }

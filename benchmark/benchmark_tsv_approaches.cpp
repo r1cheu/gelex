@@ -21,7 +21,9 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-int main()
+#include <catch2/catch_test_macros.hpp>
+
+TEST_CASE("TSV formatting approaches", "[!benchmark][io][tsv]")
 {
     ankerl::nanobench::Bench b;
 

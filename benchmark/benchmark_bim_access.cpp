@@ -28,6 +28,8 @@
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/reader.h"
 
+#include <catch2/catch_test_macros.hpp>
+
 struct BimStruct
 {
     std::vector<std::string> chrom;
@@ -74,7 +76,7 @@ auto to_struct(const gelex::df::DataFrame<std::string>& df) -> BimStruct
     return s;
 }
 
-int main()
+TEST_CASE("BIM access patterns", "[!benchmark][data][bim]")
 {
     constexpr std::size_t kNumSnps = 500'000;
 
@@ -141,6 +143,4 @@ int main()
             }
             ankerl::nanobench::doNotOptimizeAway(sink);
         });
-
-    return 0;
 }

@@ -25,9 +25,11 @@
 #include "gelex/data/reader.h"
 #include "gelex/io/gwas_writer.h"
 
+#include <catch2/catch_test_macros.hpp>
+
 using namespace gelex::gwas;
 
-int main()
+TEST_CASE("GWAS writer output", "[!benchmark][io][gwas]")
 {
     std::string temp_filename = "/tmp/bench_test_ignore";
     std::string bim_file = "/tmp/bench_test_ignore.bim";

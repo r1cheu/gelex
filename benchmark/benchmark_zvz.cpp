@@ -18,7 +18,9 @@
 
 #include <Eigen/Dense>
 
-int main()
+#include <catch2/catch_test_macros.hpp>
+
+TEST_CASE("Z transpose V inverse Z approaches", "[!benchmark][math][zvz]")
 {
     const Eigen::Index M = 2000;
     const Eigen::Index N = 10000;
