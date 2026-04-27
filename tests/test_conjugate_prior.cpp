@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <cmath>
 #include <cstdint>
 #include <random>
 
@@ -32,6 +33,102 @@ namespace
 
 constexpr std::uint64_t kSeed = 0xC0FFEE1234ULL;
 constexpr int kDrawCount = 20000;
+
+TEMPLATE_TEST_CASE(
+    "NormalSampler computes posterior parameters",
+    "[conjugate][normal]",
+    float,
+    double)
+{
+    using T = TestType;
+    NormalSampler<T> sampler{T{4}};
+
+    const auto posterior = sampler.posterior(
+        typename NormalSampler<T>::Params{.mean = T{3}, .var = T{2}});
+
+    const Eigen::Vector<T, 2> actual{
+        posterior.mean,
+        posterior.var,
+    };
+    const Eigen::Vector<T, 2> expected{
+        T{2},
+        T{4} / T{3},
+    };
+    REQUIRE(actual.isApprox(expected));
+}
+
+TEMPLATE_TEST_CASE(
+    "NormalSampler computes kernel posterior with logL",
+    "[conjugate][normal]",
+    float,
+    double)
+{
+    using T = TestType;
+    NormalSampler<T> sampler{T{4}};
+    const typename NormalSampler<T>::Kernel kernel{
+        .quadratic = T{5},
+        .linear = T{-3},
+        .scale = T{2},
+    };
+
+    const auto posterior = sampler.posterior_with_logL(kernel);
+
+    const T expected_mean = T{-6} / T{11};
+    const T expected_var = T{4} / T{11};
+    const T expected_logL
+        = -T{0.5}
+          * (std::log(T{11})
+             - ((expected_mean * kernel.linear) / kernel.scale));
+
+    const Eigen::Vector<T, 3> actual{
+        posterior.params.mean,
+        posterior.params.var,
+        posterior.log_likelihood_kernel,
+    };
+
+    const Eigen::Vector<T, 3> expected{
+        expected_mean,
+        expected_var,
+        expected_logL,
+    };
+
+    REQUIRE(actual.isApprox(expected));
+}
+
+TEST_CASE("NormalSampler updates prior variance", "[conjugate][normal]")
+{
+    NormalSampler<double> sampler{1.0};
+    auto& self = sampler.set_prior_var(9.0);
+
+    REQUIRE(&self == &sampler);
+    REQUIRE(sampler.prior_var() == 9.0);
+
+    const auto posterior = sampler.posterior({.mean = 2.0, .var = 3.0});
+    const Eigen::Vector2d actual{posterior.mean, posterior.var};
+    const Eigen::Vector2d expected{1.5, 2.25};
+    REQUIRE(actual.isApprox(expected));
+}
+
+TEST_CASE(
+    "NormalSampler is reproducible under fixed seed",
+    "[conjugate][normal]")
+{
+    constexpr int kIters = 100;
+    NormalSampler<double> s1{2.0};
+    NormalSampler<double> s2{2.0};
+    const NormalSampler<double>::Params posterior{.mean = 1.5, .var = 0.25};
+
+    std::mt19937_64 r1{kSeed};
+    std::mt19937_64 r2{kSeed};
+    Eigen::VectorXd a(kIters);
+    Eigen::VectorXd b(kIters);
+    for (int i = 0; i < kIters; ++i)
+    {
+        a(i) = s1.draw(posterior, r1);
+        b(i) = s2.draw(posterior, r2);
+    }
+    REQUIRE(a.isApprox(b));
+}
 
 TEST_CASE("BetaSampler validates input", "[conjugate][beta]")
 {

@@ -17,6 +17,7 @@
 #ifndef GELEX_INFRA_STATS_CONJUGATE_PRIOR_H_
 #define GELEX_INFRA_STATS_CONJUGATE_PRIOR_H_
 
+#include <cmath>
 #include <concepts>
 #include <random>
 #include <utility>
@@ -66,13 +67,100 @@ class ScaledInvChiSq
 }  // namespace detail
 
 // ---------------------------------------------------------------------------
-// Stateless conjugate posterior samplers.
+// Conjugate posterior samplers.
 // Templated on floating-point scalar T (float, double, long double).
-// Each sampler stores prior hyperparameters; operator() takes sufficient
-// statistics + RNG and returns one draw from the posterior. Samplers are
-// thread-safe (const) — share one instance across threads, give each thread
-// its own RNG.
+// Each sampler stores prior hyper-parameters; operator() takes sufficient
+// statistics + RNG and returns one draw from the posterior.
 // ---------------------------------------------------------------------------
+
+template <std::floating_point T>
+class NormalSampler
+{
+   public:
+    using Scalar = T;
+
+    struct Params
+    {
+        T mean{};
+        T var{};
+    };
+
+    struct Kernel
+    {
+        T quadratic{};
+        T linear{};
+        T scale{};
+
+        static auto from_params(const Params& params) -> Kernel
+        {
+            return {T{1}, params.mean, params.var};
+        }
+    };
+
+    struct Posterior
+    {
+        Params params{};
+        T log_likelihood_kernel{};
+    };
+
+    explicit NormalSampler(T prior_var) : prior_var_(prior_var) {}
+
+    auto set_prior_var(T value) -> NormalSampler&
+    {
+        prior_var_ = value;
+        return *this;
+    }
+
+    auto posterior(const Params& likelihood) const -> Params
+    {
+        return posterior(Kernel::from_params(likelihood));
+    }
+
+    auto posterior(const Kernel& likelihood) const -> Params
+    {
+        const T denominator
+            = likelihood.scale + (likelihood.quadratic * prior_var_);
+        const T posterior_factor = prior_var_ / denominator;
+        return {
+            likelihood.linear * posterior_factor,
+            likelihood.scale * posterior_factor,
+        };
+    }
+
+    auto posterior_with_logL(const Kernel& likelihood) const -> Posterior
+    {
+        const auto posterior_params = posterior(likelihood);
+        const T log_likelihood_kernel
+            = -T{0.5}
+              * (std::log(
+                     ((likelihood.quadratic * prior_var_) / likelihood.scale)
+                     + T{1})
+                 - ((posterior_params.mean * likelihood.linear)
+                    / likelihood.scale));
+        return {posterior_params, log_likelihood_kernel};
+    }
+
+    auto draw(const Params& posterior, std::mt19937_64& rng) -> T
+    {
+        return (normal_(rng) * std::sqrt(posterior.var)) + posterior.mean;
+    }
+
+    auto operator()(const Params& likelihood, std::mt19937_64& rng) -> T
+    {
+        return draw(posterior(likelihood), rng);
+    }
+
+    auto operator()(const Kernel& likelihood, std::mt19937_64& rng) -> T
+    {
+        return draw(posterior(likelihood), rng);
+    }
+
+    auto prior_var() const -> T { return prior_var_; }
+
+   private:
+    T prior_var_;
+    std::normal_distribution<T> normal_{T{0}, T{1}};
+};
 
 template <std::floating_point T>
 class BetaSampler
