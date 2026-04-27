@@ -184,7 +184,7 @@ class BetaSampler
         }
     }
 
-    auto operator()(const Likelihood& lik, std::mt19937_64& rng) const -> T
+    auto operator()(const Likelihood& lik, std::mt19937_64& rng) -> T
     {
         if (lik.n_success < 0 || lik.n_fail < 0)
         {
@@ -192,10 +192,9 @@ class BetaSampler
         }
         const T a = alpha_ + static_cast<T>(lik.n_success);
         const T b = beta_ + static_cast<T>(lik.n_fail);
-        std::gamma_distribution<T> ga{a, T{1}};
-        std::gamma_distribution<T> gb{b, T{1}};
-        const T x = ga(rng);
-        const T y = gb(rng);
+        using ParamT = typename std::gamma_distribution<T>::param_type;
+        const T x = gamma_(rng, ParamT{a, T{1}});
+        const T y = gamma_(rng, ParamT{b, T{1}});
         return x / (x + y);
     }
 
@@ -205,6 +204,7 @@ class BetaSampler
    private:
     T alpha_;
     T beta_;
+    std::gamma_distribution<T> gamma_{T{1}, T{1}};
 };
 
 template <std::floating_point T>
@@ -228,7 +228,7 @@ class DirichletSampler
         }
     }
 
-    auto operator()(const Likelihood& counts, std::mt19937_64& rng) const
+    auto operator()(const Likelihood& counts, std::mt19937_64& rng)
         -> Eigen::VectorX<T>
     {
         if (counts.size() != alpha_.size())
@@ -242,13 +242,13 @@ class DirichletSampler
                 "DirichletSampler: counts must be non-negative");
         }
 
+        using ParamT = typename std::gamma_distribution<T>::param_type;
         Eigen::VectorX<T> out(alpha_.size());
         T sum = T{0};
         for (Eigen::Index i = 0; i < alpha_.size(); ++i)
         {
             const T a = alpha_(i) + static_cast<T>(counts(i));
-            std::gamma_distribution<T> g{a, T{1}};
-            const T x = g(rng);
+            const T x = gamma_(rng, ParamT{a, T{1}});
             out(i) = x;
             sum += x;
         }
@@ -261,6 +261,7 @@ class DirichletSampler
 
    private:
     Eigen::VectorX<T> alpha_;
+    std::gamma_distribution<T> gamma_{T{1}, T{1}};
 };
 
 template <std::floating_point T>
@@ -287,7 +288,7 @@ class ScaledInvChi2Sampler
         }
     }
 
-    auto operator()(const Likelihood& lik, std::mt19937_64& rng) const -> T
+    auto operator()(const Likelihood& lik, std::mt19937_64& rng) -> T
     {
         if (lik.n < 0)
         {
@@ -312,8 +313,8 @@ class ScaledInvChi2Sampler
             throw GelexException(
                 "ScaledInvChi2Sampler: posterior s2 must be positive");
         }
-        std::chi_squared_distribution<T> chisq{nu1};
-        return (nu1 * s2_1) / chisq(rng);
+        using ParamT = typename std::chi_squared_distribution<T>::param_type;
+        return (nu1 * s2_1) / chisq_(rng, ParamT{nu1});
     }
 
     auto nu0() const -> T { return nu0_; }
@@ -322,6 +323,7 @@ class ScaledInvChi2Sampler
    private:
     T nu0_;
     T s2_0_;
+    std::chi_squared_distribution<T> chisq_{T{1}};
 };
 
 }  // namespace gelex

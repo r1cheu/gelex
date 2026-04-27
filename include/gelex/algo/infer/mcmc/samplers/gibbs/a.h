@@ -19,9 +19,11 @@
 
 #include <random>
 
-#include "gelex/algo/infer/mcmc/samplers/common_op.h"
+#include "gelex/algo/infer/detail/marker_op.h"
 #include "gelex/algo/infer/mcmc/samplers/gibbs/gibbs_concept.h"
-#include "gelex/model/bayes/effects.h"
+#include "gelex/infra/stats/conjugate_prior.h"
+#include "gelex/infra/stats/descriptive.h"
+#include "gelex/model/bayes/genotype_storage.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
 
@@ -47,8 +49,9 @@ auto A(
     const auto& cols_squared_norm = effect.cols_squared_norm;
 
     const auto& cp = std::get<bayes::ContinuousPrior>(prior.marker);
-    detail::ScaledInvChiSq chi_squared{cp.variance.param};
-    std::normal_distribution<double> normal{0, 1};
+    NormalSampler<double> normal_sampler(0.0);
+    ScaledInvChi2Sampler<double> sigma_sampler(
+        cp.variance.param.nu, cp.variance.param.s2);
 
     for (Eigen::Index i = 0; i < coeffs.size(); ++i)
     {
@@ -59,21 +62,15 @@ auto A(
         const double old_i = coeffs(i);
         const auto& col = X.col(i);
 
-        const double precision_kernel
-            = 1 / (cols_squared_norm(i) + residual_variance / sigma(i));
-
-        // calculate the posterior mean and standard deviation
         const double rhs
             = blas_ddot(col, y_adj) + (cols_squared_norm(i) * old_i);
-        const double post_mean = rhs * precision_kernel;
-        const double post_stddev = sqrt(residual_variance * precision_kernel);
 
-        // sample a new coefficient
-        const double new_i = (normal(rng) * post_stddev) + post_mean;
+        normal_sampler.set_prior_var(sigma(i));
+        const double new_i = normal_sampler(
+            {cols_squared_norm(i), rhs, residual_variance}, rng);
         coeffs(i) = new_i;
 
-        chi_squared.compute(new_i * new_i);
-        sigma(i) = chi_squared(rng);
+        sigma(i) = sigma_sampler({1, new_i * new_i}, rng);
         update_residual_and_gebv(y_adj, u, col, old_i, new_i);
     }
     state.variance = detail::var(state.u)(0);

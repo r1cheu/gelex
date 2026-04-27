@@ -19,8 +19,11 @@
 
 #include <random>
 
-#include "gelex/algo/infer/mcmc/samplers/common_op.h"
+#include "gelex/algo/infer/detail/marker_op.h"
 #include "gelex/algo/infer/mcmc/samplers/gibbs/gibbs_concept.h"
+#include "gelex/infra/stats/conjugate_prior.h"
+#include "gelex/infra/stats/descriptive.h"
+#include "gelex/model/bayes/genotype_storage.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
 
@@ -51,10 +54,11 @@ auto B(
     const auto& X = bayes::get_matrix_ref(effect.X);
     const auto& cols_squared_norm = effect.cols_squared_norm;
 
-    std::normal_distribution<double> normal{0, 1};
     std::uniform_real_distribution<double> uniform{0, 1};
     const auto& marker_prior = std::get<bayes::SpikePrior>(prior.marker);
-    detail::ScaledInvChiSq chi_squared{marker_prior.variance.param};
+    NormalSampler<double> normal_sampler(0.0);
+    ScaledInvChi2Sampler<double> variance_sampler(
+        marker_prior.variance.param.nu, marker_prior.variance.param.s2);
 
     int count_1 = 0;
     for (Eigen::Index i = 0; i < coeffs.size(); ++i)
@@ -67,7 +71,6 @@ auto B(
 
         const double old_i = coeffs(i);
         const auto& col = X.col(i);
-        const double variance_i = marker_variance(i);
 
         double rhs = blas_ddot(col, y_adj);
         if (old_i != 0.0)
@@ -75,12 +78,13 @@ auto B(
             rhs += cols_squared_norm(i) * old_i;
         }
 
-        auto [post_mean, post_stddev, log_like_kernel]
-            = compute_posterior_params(
-                rhs, variance_i, cols_squared_norm(i), residual_variance);
+        const auto post
+            = normal_sampler.set_prior_var(marker_variance(i))
+                  .posterior_with_logL(
+                      {cols_squared_norm(i), rhs, residual_variance});
 
-        const double log_like_1_minus_0 = log_like_kernel + logpi_1 - logpi_0;
-
+        const double log_like_1_minus_0
+            = post.log_likelihood_kernel + logpi_1 - logpi_0;
         const double prob_component_0
             = 1.0 / (1.0 + std::exp(log_like_1_minus_0));
 
@@ -91,11 +95,9 @@ auto B(
         double new_i = 0.0;
         if (dist_index == 1)
         {
-            new_i = (normal(rng) * post_stddev) + post_mean;
+            new_i = normal_sampler.draw(post.params, rng);
             update_residual_and_gebv(y_adj, u, col, old_i, new_i);
-
-            chi_squared.compute(new_i * new_i);
-            marker_variance(i) = chi_squared(rng);
+            marker_variance(i) = variance_sampler({1, new_i * new_i}, rng);
         }
         else if (old_i != 0.0)
         {

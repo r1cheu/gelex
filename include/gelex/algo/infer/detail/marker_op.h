@@ -31,13 +31,6 @@
 namespace gelex::detail
 {
 
-struct LikelihoodParams
-{
-    double log_likelihood{0.0};
-    double precision_kernel{0.0};
-    double residual_over_marker_variance{0.0};
-};
-
 struct PosteriorParams
 {
     double mean{0.0};
@@ -92,26 +85,6 @@ inline auto update_residual_and_gebv(
         blas_daxpy(diff, col, y_adj);
         blas_daxpy(-diff, col, gebv);
     }
-}
-
-inline auto compute_likelihood_params(
-    double rhs,
-    double marker_variance,
-    double col_squared_norm,
-    double residual_variance,
-    double logpi) -> LikelihoodParams
-{
-    const double res_over_marker_var = residual_variance / marker_variance;
-    const double precision_k = 1.0 / (col_squared_norm + res_over_marker_var);
-
-    const double logdetV
-        = std::log((col_squared_norm / res_over_marker_var) + 1.0);
-
-    const double log_like
-        = (-0.5 * (logdetV - rhs * rhs * precision_k / residual_variance))
-          + logpi;
-
-    return {log_like, precision_k, res_over_marker_var};
 }
 
 inline auto compute_posterior_params_core(

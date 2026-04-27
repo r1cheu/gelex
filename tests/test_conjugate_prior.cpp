@@ -176,7 +176,8 @@ TEMPLATE_TEST_CASE(
 
 TEST_CASE("BetaSampler is reproducible under fixed seed", "[conjugate][beta]")
 {
-    BetaSampler<double> s{2.0, 3.0};
+    BetaSampler<double> s1{2.0, 3.0};
+    BetaSampler<double> s2{2.0, 3.0};
     BetaSampler<double>::Likelihood lik{10, 5};
     std::mt19937_64 r1{kSeed};
     std::mt19937_64 r2{kSeed};
@@ -185,8 +186,8 @@ TEST_CASE("BetaSampler is reproducible under fixed seed", "[conjugate][beta]")
     Eigen::VectorXd b(100);
     for (int i = 0; i < 100; ++i)
     {
-        a(i) = s(lik, r1);
-        b(i) = s(lik, r2);
+        a(i) = s1(lik, r1);
+        b(i) = s2(lik, r2);
     }
     REQUIRE(a.isApprox(b));
 }
@@ -244,7 +245,8 @@ TEST_CASE(
     "[conjugate][dirichlet]")
 {
     constexpr int kIters = 50;
-    DirichletSampler<double> s{Eigen::VectorXd{{1.5, 2.0, 0.5}}};
+    DirichletSampler<double> s1{Eigen::VectorXd{{1.5, 2.0, 0.5}}};
+    DirichletSampler<double> s2{Eigen::VectorXd{{1.5, 2.0, 0.5}}};
     const Eigen::VectorXi counts{{4, 7, 2}};
 
     std::mt19937_64 r1{kSeed};
@@ -253,8 +255,8 @@ TEST_CASE(
     Eigen::MatrixXd b(3, kIters);
     for (int i = 0; i < kIters; ++i)
     {
-        a.col(i) = s(counts, r1);
-        b.col(i) = s(counts, r2);
+        a.col(i) = s1(counts, r1);
+        b.col(i) = s2(counts, r2);
     }
     REQUIRE(a.isApprox(b));
 }
@@ -315,7 +317,8 @@ TEST_CASE(
     "[conjugate][invchi2]")
 {
     constexpr int kIters = 100;
-    ScaledInvChi2Sampler<double> s{3.0, 0.5};
+    ScaledInvChi2Sampler<double> s1{3.0, 0.5};
+    ScaledInvChi2Sampler<double> s2{3.0, 0.5};
     ScaledInvChi2Sampler<double>::Likelihood lik{20, 12.5};
 
     std::mt19937_64 r1{kSeed};
@@ -324,8 +327,8 @@ TEST_CASE(
     Eigen::VectorXd b(kIters);
     for (int i = 0; i < kIters; ++i)
     {
-        a(i) = s(lik, r1);
-        b(i) = s(lik, r2);
+        a(i) = s1(lik, r1);
+        b(i) = s2(lik, r2);
     }
     REQUIRE(a.isApprox(b));
 }

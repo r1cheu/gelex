@@ -19,9 +19,11 @@
 
 #include <random>
 
-#include "gelex/algo/infer/mcmc/samplers/common_op.h"
+#include "gelex/algo/infer/detail/marker_op.h"
 #include "gelex/algo/infer/mcmc/samplers/gibbs/gibbs_concept.h"
-#include "gelex/model/bayes/effects.h"
+#include "gelex/infra/stats/conjugate_prior.h"
+#include "gelex/infra/stats/descriptive.h"
+#include "gelex/model/bayes/genotype_storage.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
 
@@ -46,17 +48,14 @@ auto C(
 
     Eigen::VectorXd& coeffs = state.coeffs;
     auto& u = state.u;
-    const double marker_variance = state.marker_variance(0);
     auto& tracker = marker_assignment.tracker;
 
     const auto& X = bayes::get_matrix_ref(effect.X);
     const auto& cols_squared_norm = effect.cols_squared_norm;
 
-    std::normal_distribution<double> normal{0, 1};
     std::uniform_real_distribution<double> uniform{0, 1};
 
-    const double residual_over_marker_variance
-        = residual_variance / marker_variance;
+    NormalSampler<double> normal_sampler(state.marker_variance(0));
 
     double sum_square_coeffs{};
     int count_1 = 0;
@@ -78,15 +77,11 @@ auto C(
             rhs += cols_squared_norm(i) * old_i;
         }
 
-        auto [post_mean, post_stddev, log_like_kernel]
-            = compute_posterior_params_core(
-                rhs,
-                cols_squared_norm(i),
-                residual_variance,
-                residual_over_marker_variance);
+        const auto post = normal_sampler.posterior_with_logL(
+            {cols_squared_norm(i), rhs, residual_variance});
 
-        const double log_like_1_minus_0 = log_like_kernel + logpi_1 - logpi_0;
-
+        const double log_like_1_minus_0
+            = post.log_likelihood_kernel + logpi_1 - logpi_0;
         const double prob_component_0
             = 1.0 / (1.0 + std::exp(log_like_1_minus_0));
 
@@ -97,7 +92,7 @@ auto C(
         double new_i = 0.0;
         if (dist_index == 1)
         {
-            new_i = (normal(rng) * post_stddev) + post_mean;
+            new_i = normal_sampler.draw(post.params, rng);
             update_residual_and_gebv(y_adj, u, col, old_i, new_i);
             sum_square_coeffs += new_i * new_i;
         }
@@ -112,9 +107,10 @@ auto C(
     marker_assignment.count(0) = static_cast<int>(coeffs.size()) - count_1;
 
     const auto& marker_prior = std::get<bayes::SpikePrior>(prior.marker);
-    detail::ScaledInvChiSq chi_squared{marker_prior.variance.param};
-    chi_squared.compute(sum_square_coeffs, count_1);
-    state.marker_variance(0) = chi_squared(rng);
+    ScaledInvChi2Sampler<double> variance_sampler(
+        marker_prior.variance.param.nu, marker_prior.variance.param.s2);
+    state.marker_variance(0)
+        = variance_sampler({count_1, sum_square_coeffs}, rng);
 
     state.variance = detail::var(state.u)(0);
 }

@@ -22,9 +22,6 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <Eigen/Core>
-
-#include "gelex/algo/infer/detail/marker_op.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 
 namespace
@@ -62,105 +59,21 @@ auto make_inputs() -> Inputs
     return inputs;
 }
 
-void require_equivalent_outputs(const Inputs& inputs)
-{
-    Sampler fixed_sampler{inputs.fixed_prior_var};
-    Sampler varying_sampler{inputs.prior_var[0]};
-    const double fixed_residual_over_prior_var
-        = inputs.residual_var / inputs.fixed_prior_var;
-    bool outputs_equivalent = true;
-
-    for (std::size_t i = 0; i < 1024; ++i)
-    {
-        const Sampler::Kernel kernel{
-            .quadratic = inputs.predictor_sum_squares[i],
-            .linear = inputs.rhs[i],
-            .scale = inputs.residual_var,
-        };
-
-        const auto old_fixed = gelex::detail::compute_posterior_params_core(
-            inputs.rhs[i],
-            inputs.predictor_sum_squares[i],
-            inputs.residual_var,
-            fixed_residual_over_prior_var);
-        const auto new_fixed = fixed_sampler.posterior_with_logL(kernel);
-        Eigen::Vector3d old_fixed_values{
-            old_fixed.mean,
-            old_fixed.stddev,
-            old_fixed.log_likelihood_kernel,
-        };
-        Eigen::Vector3d new_fixed_values{
-            new_fixed.params.mean,
-            std::sqrt(new_fixed.params.var),
-            new_fixed.log_likelihood_kernel,
-        };
-        outputs_equivalent
-            = outputs_equivalent
-              && new_fixed_values.isApprox(old_fixed_values, 1e-13);
-
-        varying_sampler.set_prior_var(inputs.prior_var[i]);
-        const auto old_with_log = gelex::detail::compute_posterior_params(
-            inputs.rhs[i],
-            inputs.prior_var[i],
-            inputs.predictor_sum_squares[i],
-            inputs.residual_var);
-        const auto new_with_log = varying_sampler.posterior_with_logL(kernel);
-        Eigen::Vector3d old_with_log_values{
-            old_with_log.mean,
-            old_with_log.stddev,
-            old_with_log.log_likelihood_kernel,
-        };
-        Eigen::Vector3d new_with_log_values{
-            new_with_log.params.mean,
-            std::sqrt(new_with_log.params.var),
-            new_with_log.log_likelihood_kernel,
-        };
-        outputs_equivalent
-            = outputs_equivalent
-              && new_with_log_values.isApprox(old_with_log_values, 1e-13);
-    }
-    REQUIRE(outputs_equivalent);
-}
-
 }  // namespace
 
-TEST_CASE(
-    "Normal posterior computation old versus NormalSampler",
-    "[!benchmark][stats][normal]")
+TEST_CASE("NormalSampler posterior throughput", "[!benchmark][stats][normal]")
 {
     const auto inputs = make_inputs();
-    require_equivalent_outputs(inputs);
 
     ankerl::nanobench::Bench b;
-    b.title("Normal posterior computation")
+    b.title("NormalSampler posterior")
         .unit("marker")
         .batch(kCount)
         .warmup(5)
         .minEpochIterations(20);
 
     b.run(
-        "old_fixed_prior_core",
-        [&]()
-        {
-            double sink = 0.0;
-            const double residual_over_prior_var
-                = inputs.residual_var / inputs.fixed_prior_var;
-            for (std::size_t i = 0; i < kCount; ++i)
-            {
-                const auto params
-                    = gelex::detail::compute_posterior_params_core(
-                        inputs.rhs[i],
-                        inputs.predictor_sum_squares[i],
-                        inputs.residual_var,
-                        residual_over_prior_var);
-                sink += params.mean + params.stddev
-                        + params.log_likelihood_kernel;
-            }
-            ankerl::nanobench::doNotOptimizeAway(sink);
-        });
-
-    b.run(
-        "new_fixed_prior_sampler",
+        "fixed_prior_var",
         [&]()
         {
             double sink = 0.0;
@@ -179,25 +92,7 @@ TEST_CASE(
         });
 
     b.run(
-        "old_varying_prior",
-        [&]()
-        {
-            double sink = 0.0;
-            for (std::size_t i = 0; i < kCount; ++i)
-            {
-                const auto params = gelex::detail::compute_posterior_params(
-                    inputs.rhs[i],
-                    inputs.prior_var[i],
-                    inputs.predictor_sum_squares[i],
-                    inputs.residual_var);
-                sink += params.mean + params.stddev
-                        + params.log_likelihood_kernel;
-            }
-            ankerl::nanobench::doNotOptimizeAway(sink);
-        });
-
-    b.run(
-        "new_varying_prior_sampler",
+        "varying_prior_var",
         [&]()
         {
             double sink = 0.0;
