@@ -15,6 +15,9 @@
  */
 
 #include "gelex/infra/stats/conjugate_prior.h"
+
+#include <cmath>
+#include <limits>
 #include <random>
 
 #include <Eigen/Core>
@@ -23,9 +26,6 @@ namespace gelex
 {
 namespace detail
 {
-using Eigen::Ref;
-using Eigen::VectorXd;
-using Eigen::VectorXi;
 
 ScaledInvChiSq::ScaledInvChiSq(const ScaledInvChiSqParams& prior_params)
     : prior_(prior_params)
