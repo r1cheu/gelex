@@ -17,14 +17,13 @@
 #ifndef GELEX_INFRA_STATS_CONJUGATE_PRIOR_H_
 #define GELEX_INFRA_STATS_CONJUGATE_PRIOR_H_
 
+#include <cassert>
 #include <cmath>
 #include <concepts>
 #include <random>
 #include <utility>
 
 #include <Eigen/Core>
-
-#include "gelex/exception.h"
 
 namespace gelex
 {
@@ -103,10 +102,18 @@ class NormalSampler
         T log_likelihood_kernel{};
     };
 
-    explicit NormalSampler(T prior_var) : prior_var_(prior_var) {}
+    explicit NormalSampler(T prior_var) : prior_var_(prior_var)
+    {
+        assert(
+            (prior_var_ >= T{0})
+            && "NormalSampler: prior variance must be non-negative");
+    }
 
     auto set_prior_var(T value) -> NormalSampler&
     {
+        assert(
+            (value >= T{0})
+            && "NormalSampler: prior variance must be non-negative");
         prior_var_ = value;
         return *this;
     }
@@ -118,8 +125,23 @@ class NormalSampler
 
     auto posterior(const Kernel& likelihood) const -> Params
     {
+        assert(
+            (prior_var_ >= T{0})
+            && "NormalSampler: prior variance must be non-negative");
+        assert(
+            (likelihood.quadratic >= T{0})
+            && "NormalSampler: likelihood quadratic term must be "
+               "non-negative");
+        assert(
+            (likelihood.scale > T{0})
+            && "NormalSampler: likelihood scale must be positive");
+
         const T denominator
             = likelihood.scale + (likelihood.quadratic * prior_var_);
+        assert(
+            (denominator > T{0})
+            && "NormalSampler: posterior denominator must be positive");
+
         const T posterior_factor = prior_var_ / denominator;
         return {
             likelihood.linear * posterior_factor,
@@ -142,6 +164,9 @@ class NormalSampler
 
     auto draw(const Params& posterior, std::mt19937_64& rng) -> T
     {
+        assert(
+            (posterior.var >= T{0})
+            && "NormalSampler: posterior variance must be non-negative");
         return (normal_(rng) * std::sqrt(posterior.var)) + posterior.mean;
     }
 
@@ -179,21 +204,21 @@ class BetaSampler
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     BetaSampler(T alpha, T beta) : alpha_(alpha), beta_(beta)
     {
-        if (!(alpha_ > T{0}) || !(beta_ > T{0}))
-        {
-            throw GelexException(
-                "BetaSampler: alpha and beta must be positive");
-        }
+        assert((alpha_ > T{0}) && "BetaSampler: alpha must be positive");
+        assert((beta_ > T{0}) && "BetaSampler: beta must be positive");
     }
 
-    auto operator()(const Likelihood& lik, std::mt19937_64& rng) -> T
+    auto operator()(const Likelihood& likelihood, std::mt19937_64& rng) -> T
     {
-        if (lik.n_success < 0 || lik.n_fail < 0)
-        {
-            throw GelexException("BetaSampler: counts must be non-negative");
-        }
-        const T a = alpha_ + static_cast<T>(lik.n_success);
-        const T b = beta_ + static_cast<T>(lik.n_fail);
+        assert(
+            (likelihood.n_success >= 0)
+            && "BetaSampler: success count must be non-negative");
+        assert(
+            (likelihood.n_fail >= 0)
+            && "BetaSampler: failure count must be non-negative");
+
+        const T a = alpha_ + static_cast<T>(likelihood.n_success);
+        const T b = beta_ + static_cast<T>(likelihood.n_fail);
         using ParamT = typename std::gamma_distribution<T>::param_type;
         const T x = gamma_(rng, ParamT{a, T{1}});
         const T y = gamma_(rng, ParamT{b, T{1}});
@@ -220,30 +245,23 @@ class DirichletSampler
     explicit DirichletSampler(Eigen::VectorX<T> alpha)
         : alpha_(std::move(alpha))
     {
-        if (alpha_.size() < 2)
-        {
-            throw GelexException("DirichletSampler: alpha must have size >= 2");
-        }
-        if ((alpha_.array() <= T{0}).any())
-        {
-            throw GelexException(
-                "DirichletSampler: all alpha components must be positive");
-        }
+        assert(
+            (alpha_.size() >= 2)
+            && "DirichletSampler: alpha must have at least two components");
+        assert(
+            ((alpha_.array() > T{0}).all())
+            && "DirichletSampler: alpha components must be positive");
     }
 
     auto operator()(const Likelihood& counts, std::mt19937_64& rng)
         -> Eigen::VectorX<T>
     {
-        if (counts.size() != alpha_.size())
-        {
-            throw GelexException(
-                "DirichletSampler: counts size must match alpha size");
-        }
-        if ((counts.array() < 0).any())
-        {
-            throw GelexException(
-                "DirichletSampler: counts must be non-negative");
-        }
+        assert(
+            (counts.size() == alpha_.size())
+            && "DirichletSampler: counts size must match alpha size");
+        assert(
+            ((counts.array() >= 0).all())
+            && "DirichletSampler: counts must be non-negative");
 
         using ParamT = typename std::gamma_distribution<T>::param_type;
         Eigen::VectorX<T> out(alpha_.size());
@@ -285,38 +303,30 @@ class ScaledInvChi2Sampler
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     ScaledInvChi2Sampler(T nu0, T s2_0) : nu0_(nu0), s2_0_(s2_0)
     {
-        if (s2_0_ < T{0})
-        {
-            throw GelexException(
-                "ScaledInvChi2Sampler: s2_0 must be non-negative");
-        }
+        assert(
+            (s2_0_ >= T{0})
+            && "ScaledInvChi2Sampler: prior scale must be non-negative");
     }
 
-    auto operator()(const Likelihood& lik, std::mt19937_64& rng) -> T
+    auto operator()(const Likelihood& likelihood, std::mt19937_64& rng) -> T
     {
-        if (lik.n < 0)
-        {
-            throw GelexException(
-                "ScaledInvChi2Sampler: n must be non-negative");
-        }
-        if (lik.sum_squares < T{0})
-        {
-            throw GelexException(
-                "ScaledInvChi2Sampler: sum_squares must be non-negative");
-        }
-        const T nu1 = nu0_ + static_cast<T>(lik.n);
-        if (!(nu1 > T{0}))
-        {
-            throw GelexException(
-                "ScaledInvChi2Sampler: posterior nu must be positive (improper "
-                "prior with n == 0)");
-        }
-        const T s2_1 = ((nu0_ * s2_0_) + lik.sum_squares) / nu1;
-        if (!(s2_1 > T{0}))
-        {
-            throw GelexException(
-                "ScaledInvChi2Sampler: posterior s2 must be positive");
-        }
+        assert(
+            (likelihood.n >= 0)
+            && "ScaledInvChi2Sampler: observation count must be non-negative");
+        assert(
+            (likelihood.sum_squares >= T{0})
+            && "ScaledInvChi2Sampler: sum of squares must be non-negative");
+
+        const T nu1 = nu0_ + static_cast<T>(likelihood.n);
+        assert(
+            (nu1 > T{0})
+            && "ScaledInvChi2Sampler: posterior nu must be positive");
+
+        const T s2_1 = ((nu0_ * s2_0_) + likelihood.sum_squares) / nu1;
+        assert(
+            (s2_1 > T{0})
+            && "ScaledInvChi2Sampler: posterior scale must be positive");
+
         using ParamT = typename std::chi_squared_distribution<T>::param_type;
         return (nu1 * s2_1) / chisq_(rng, ParamT{nu1});
     }

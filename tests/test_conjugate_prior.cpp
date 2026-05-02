@@ -23,7 +23,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/exception.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 
 namespace gelex
@@ -130,18 +129,6 @@ TEST_CASE(
     REQUIRE(a.isApprox(b));
 }
 
-TEST_CASE("BetaSampler validates input", "[conjugate][beta]")
-{
-    REQUIRE_THROWS_AS(BetaSampler<double>(0.0, 1.0), GelexException);
-    REQUIRE_THROWS_AS(BetaSampler<double>(1.0, 0.0), GelexException);
-    REQUIRE_THROWS_AS(BetaSampler<double>(-1.0, 1.0), GelexException);
-
-    BetaSampler<double> s{1.0, 1.0};
-    std::mt19937_64 rng{kSeed};
-    REQUIRE_THROWS_AS(s({-1, 0}, rng), GelexException);
-    REQUIRE_THROWS_AS(s({0, -1}, rng), GelexException);
-}
-
 TEMPLATE_TEST_CASE(
     "BetaSampler posterior mean concentrates near MLE for large samples",
     "[conjugate][beta]",
@@ -150,13 +137,13 @@ TEMPLATE_TEST_CASE(
 {
     using T = TestType;
     BetaSampler<T> s{T{1}, T{1}};
-    typename BetaSampler<T>::Likelihood lik{800, 200};
+    typename BetaSampler<T>::Likelihood likelihood{800, 200};
     std::mt19937_64 rng{kSeed};
 
     Eigen::VectorX<T> draws(kDrawCount);
     for (int i = 0; i < kDrawCount; ++i)
     {
-        draws(i) = s(lik, rng);
+        draws(i) = s(likelihood, rng);
     }
 
     REQUIRE((draws.array() > T{0}).all());
@@ -178,7 +165,7 @@ TEST_CASE("BetaSampler is reproducible under fixed seed", "[conjugate][beta]")
 {
     BetaSampler<double> s1{2.0, 3.0};
     BetaSampler<double> s2{2.0, 3.0};
-    BetaSampler<double>::Likelihood lik{10, 5};
+    BetaSampler<double>::Likelihood likelihood{10, 5};
     std::mt19937_64 r1{kSeed};
     std::mt19937_64 r2{kSeed};
 
@@ -186,25 +173,10 @@ TEST_CASE("BetaSampler is reproducible under fixed seed", "[conjugate][beta]")
     Eigen::VectorXd b(100);
     for (int i = 0; i < 100; ++i)
     {
-        a(i) = s1(lik, r1);
-        b(i) = s2(lik, r2);
+        a(i) = s1(likelihood, r1);
+        b(i) = s2(likelihood, r2);
     }
     REQUIRE(a.isApprox(b));
-}
-
-TEST_CASE("DirichletSampler validates input", "[conjugate][dirichlet]")
-{
-    REQUIRE_THROWS_AS(
-        DirichletSampler<double>(Eigen::VectorXd{{1.0}}), GelexException);
-    REQUIRE_THROWS_AS(
-        DirichletSampler<double>(Eigen::VectorXd{{1.0, 0.0, 1.0}}),
-        GelexException);
-
-    DirichletSampler<double> s{Eigen::VectorXd{{1.0, 1.0, 1.0}}};
-
-    std::mt19937_64 rng{kSeed};
-    REQUIRE_THROWS_AS(s(Eigen::VectorXi{{1, 2}}, rng), GelexException);
-    REQUIRE_THROWS_AS(s(Eigen::VectorXi{{-1, 2, 3}}, rng), GelexException);
 }
 
 TEMPLATE_TEST_CASE(
@@ -261,26 +233,6 @@ TEST_CASE(
     REQUIRE(a.isApprox(b));
 }
 
-TEST_CASE("ScaledInvChi2Sampler validates input", "[conjugate][invchi2]")
-{
-    REQUIRE_THROWS_AS(ScaledInvChi2Sampler<double>(1.0, -1.0), GelexException);
-
-    ScaledInvChi2Sampler<double> s{2.0, 1.0};
-    std::mt19937_64 rng{kSeed};
-    REQUIRE_THROWS_AS(s({-1, 0.0}, rng), GelexException);
-    REQUIRE_THROWS_AS(s({1, -1.0}, rng), GelexException);
-
-    // Reference improper prior (nu0=-2, s2_0=0): posterior nu1 = n - 2 must
-    // be > 0, so n <= 2 is rejected.
-    ScaledInvChi2Sampler<double> ref{-2.0, 0.0};
-    REQUIRE_THROWS_AS(ref({2, 5.0}, rng), GelexException);
-
-    // Negative posterior s2: nu0=-1, s2_0=10 → nu0*s2_0 = -10, with
-    // sum_squares=0 the posterior s2 is negative.
-    ScaledInvChi2Sampler<double> neg{-1.0, 10.0};
-    REQUIRE_THROWS_AS(neg({2, 0.0}, rng), GelexException);
-}
-
 TEMPLATE_TEST_CASE(
     "ScaledInvChi2Sampler posterior mean approaches σ²_true with much data",
     "[conjugate][invchi2]",
@@ -291,14 +243,14 @@ TEMPLATE_TEST_CASE(
     ScaledInvChi2Sampler<T> s{T{4}, T{1}};
     constexpr Eigen::Index kN = 5000;
     constexpr T kTrueVar = T{4};
-    typename ScaledInvChi2Sampler<T>::Likelihood lik{
+    typename ScaledInvChi2Sampler<T>::Likelihood likelihood{
         kN, kTrueVar * static_cast<T>(kN)};
     std::mt19937_64 rng{kSeed};
 
     Eigen::VectorX<T> draws(kDrawCount);
     for (int i = 0; i < kDrawCount; ++i)
     {
-        draws(i) = s(lik, rng);
+        draws(i) = s(likelihood, rng);
     }
 
     REQUIRE((draws.array() > T{0}).all());
@@ -319,7 +271,7 @@ TEST_CASE(
     constexpr int kIters = 100;
     ScaledInvChi2Sampler<double> s1{3.0, 0.5};
     ScaledInvChi2Sampler<double> s2{3.0, 0.5};
-    ScaledInvChi2Sampler<double>::Likelihood lik{20, 12.5};
+    ScaledInvChi2Sampler<double>::Likelihood likelihood{20, 12.5};
 
     std::mt19937_64 r1{kSeed};
     std::mt19937_64 r2{kSeed};
@@ -327,8 +279,8 @@ TEST_CASE(
     Eigen::VectorXd b(kIters);
     for (int i = 0; i < kIters; ++i)
     {
-        a(i) = s1(lik, r1);
-        b(i) = s2(lik, r2);
+        a(i) = s1(likelihood, r1);
+        b(i) = s2(likelihood, r2);
     }
     REQUIRE(a.isApprox(b));
 }
