@@ -33,9 +33,9 @@
 #include "gelex/types/sample_id.h"
 
 namespace fs = std::filesystem;
-namespace df = gelex::df;
+namespace df = gelex::dataframe;
 
-using namespace gelex::detail;  // NOLINT
+using namespace gelex::grm::detail;  // NOLINT
 using Catch::Matchers::ContainsSubstring;
 using Catch::Matchers::MessageMatches;
 using gelex::test::FileFixture;

@@ -29,6 +29,8 @@
 namespace gelex
 {
 
+using stats::RunningStatsResult;
+
 struct PosteriorSummary
 {
     explicit PosteriorSummary(Eigen::Index n_params)

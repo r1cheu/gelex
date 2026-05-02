@@ -25,7 +25,7 @@
 
 #include "gelex/exception.h"
 
-namespace gelex
+namespace gelex::stats
 {
 
 struct RunningStatsResult
@@ -125,6 +125,6 @@ class RunningStats
     Eigen::VectorXd delta2_buffer_;
 };
 
-}  // namespace gelex
+}  // namespace gelex::stats
 
 #endif  // GELEX_INFRA_STATS_RUNNING_STATS_H_

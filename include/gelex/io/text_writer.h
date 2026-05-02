@@ -25,7 +25,7 @@
 
 #include "gelex/io/atomic_ofstream.h"
 
-namespace gelex::detail
+namespace gelex::io::detail
 {
 
 class TextWriter
@@ -51,6 +51,6 @@ class TextWriter
     AtomicOfstream ofs_;
 };
 
-}  // namespace gelex::detail
+}  // namespace gelex::io::detail
 
 #endif  // GELEX_IO_TEXT_WRITER_H_

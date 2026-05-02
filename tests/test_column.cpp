@@ -26,7 +26,7 @@
 #include "gelex/exception.h"
 
 using gelex::GelexException;
-using gelex::df::Column;
+using gelex::dataframe::Column;
 
 // ================================================================
 // Construction

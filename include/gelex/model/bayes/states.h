@@ -27,6 +27,7 @@
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/types/fixed_effects.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
 {
@@ -189,5 +190,23 @@ struct ResidualState
 };
 
 }  // namespace gelex::bayes
+
+namespace gelex::bayes::vi
+{
+
+struct GeneticState
+{
+    GeneticState(const bayes::GeneticEffect& effect, const GeneticPrior& prior);
+
+    GeneticMode type;
+    Eigen::VectorXd coeffs;
+    Eigen::VectorXd sigma2;
+    Eigen::VectorXd u;
+    double variance{};
+    double heritability{};
+    Eigen::VectorXd marker_variance;
+};
+
+}  // namespace gelex::bayes::vi
 
 #endif  // GELEX_MODEL_BAYES_STATES_H_

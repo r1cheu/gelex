@@ -32,7 +32,7 @@ constexpr size_t BUFFER_FLUSH_THRESHOLD = static_cast<size_t>(64 * 1024);
 
 GwasWriter::GwasWriter(
     std::string_view out_prefix,
-    const df::DataFrame<std::string>& bim,
+    const dataframe::DataFrame<std::string>& bim,
     AssocTestType test_type)
     : test_type_(test_type),
       keys_(bim.index().keys()),

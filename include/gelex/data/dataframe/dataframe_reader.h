@@ -36,10 +36,10 @@
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/key_type.h"
-#include "gelex/data/dataframe/string_hash.h"
+#include "gelex/infra/string_hash.h"
 #include "gelex/io/parser.h"
 
-namespace gelex::df
+namespace gelex::dataframe
 {
 enum class NaAction : std::uint8_t
 {
@@ -54,7 +54,7 @@ struct ReadOptions
     std::vector<std::size_t> index_cols;
     std::vector<std::size_t> select_cols;
     std::vector<std::string> names;
-    StringSet na_rep = {kDefaultNaRep.begin(), kDefaultNaRep.end()};
+    infra::StringSet na_rep = {kDefaultNaRep.begin(), kDefaultNaRep.end()};
     NaAction na_action = NaAction::Throw;
 };
 
@@ -265,7 +265,8 @@ auto detail::DataFrameReader<Key>::parse_arithmetic(std::string_view token) -> T
 template <KeyType Key>
 auto detail::DataFrameReader<Key>::prepare(bool index_only) -> std::ifstream
 {
-    auto file = ::gelex::detail::open_file<std::ifstream>(path_, std::ios::in);
+    auto file
+        = ::gelex::io::detail::open_file<std::ifstream>(path_, std::ios::in);
     build_header(file);
     // resolve index
     for (auto idx : options_->index_cols)
@@ -497,6 +498,6 @@ auto read_index(const std::filesystem::path& path, const ReadOptions& options)
     return detail::DataFrameReader<Key>(path, options).read_index();
 }
 
-}  // namespace gelex::df
+}  // namespace gelex::dataframe
 
 #endif  // GELEX_DATA_DATAFRAME_DATAFRAME_READER_H

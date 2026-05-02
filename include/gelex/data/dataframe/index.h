@@ -31,7 +31,7 @@
 #include "gelex/exception.h"
 #include "gelex/infra/string_hash.h"
 
-namespace gelex::df
+namespace gelex::dataframe
 {
 
 template <KeyType Key>
@@ -185,6 +185,6 @@ auto intersect(std::span<const Index<Key>* const> indices) -> Index<Key>
     return Index<Key>(std::move(common));
 }
 
-}  // namespace gelex::df
+}  // namespace gelex::dataframe
 
 #endif  // GELEX_DATA_DATAFRAME_INDEX_H

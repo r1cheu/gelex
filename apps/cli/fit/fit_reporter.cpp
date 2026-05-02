@@ -228,7 +228,7 @@ auto FitReporter::on_event(const FitVICompleteEvent& event) const -> void
 // --- Private helpers ---
 
 auto FitReporter::print_variance_prior(
-    const detail::ScaledInvChiSqParams& prior,
+    const stats::detail::ScaledInvChiSqParams& prior,
     double init_variance) const -> void
 {
     logger_->info(

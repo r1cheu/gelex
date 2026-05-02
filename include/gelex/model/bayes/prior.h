@@ -40,7 +40,7 @@ struct GeneticEffect;
 
 struct VariancePrior
 {
-    detail::ScaledInvChiSqParams param;
+    stats::detail::ScaledInvChiSqParams param;
     double init{};
     Eigen::Index size{};
 };

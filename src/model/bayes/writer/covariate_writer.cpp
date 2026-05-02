@@ -31,7 +31,7 @@ CovariateWriter::CovariateWriter(
     const std::filesystem::path& output_path)
     : fixed_(&fixed),
       random_(random),
-      writer_(std::make_unique<detail::TextWriter>(output_path))
+      writer_(std::make_unique<io::detail::TextWriter>(output_path))
 {
 }
 

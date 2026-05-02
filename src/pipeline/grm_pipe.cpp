@@ -50,7 +50,7 @@ GrmPipe::GrmPipe(GrmPipe&&) noexcept = default;
 GrmPipe& GrmPipe::operator=(GrmPipe&&) noexcept = default;
 
 auto GrmPipe::sample_indices() const
-    -> std::vector<const df::Index<std::string>*>
+    -> std::vector<const dataframe::Index<std::string>*>
 {
     return grm_readers_
            | std::views::transform([](const auto& r)
@@ -58,7 +58,7 @@ auto GrmPipe::sample_indices() const
            | std::ranges::to<std::vector>();
 }
 
-auto GrmPipe::load(const df::Index<std::string>& sample_index) -> void
+auto GrmPipe::load(const dataframe::Index<std::string>& sample_index) -> void
 {
     grms_ = grm_readers_
             | std::views::transform(

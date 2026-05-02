@@ -22,7 +22,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex::detail
+namespace gelex::genotype::detail
 {
 
 class BedVariantDecoder
@@ -49,6 +49,6 @@ class BedVariantDecoder
     bool is_dense_mapping_ = false;
 };
 
-}  // namespace gelex::detail
+}  // namespace gelex::genotype::detail
 
 #endif  // GELEX_DATA_BED_PIPE_VARIANT_DECODER_H_

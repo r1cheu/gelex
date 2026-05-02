@@ -23,7 +23,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex::detail
+namespace gelex::infer::detail
 {
 
 // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
@@ -120,4 +120,4 @@ apply_marker_update_impl(
 }
 // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
-}  // namespace gelex::detail
+}  // namespace gelex::infer::detail

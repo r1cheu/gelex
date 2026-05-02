@@ -20,7 +20,7 @@
 
 #include "gelex/exception.h"
 
-namespace gelex
+namespace gelex::genotype
 {
 
 auto format_bed_path(std::string_view bed_path) -> std::filesystem::path
@@ -33,9 +33,10 @@ auto format_bed_path(std::string_view bed_path) -> std::filesystem::path
 
     if (!std::filesystem::exists(bed))
     {
-        throw GelexException(fmt::format("{}: file not found", bed.string()));
+        throw gelex::GelexException(
+            fmt::format("{}: file not found", bed.string()));
     }
     return bed;
 }
 
-}  // namespace gelex
+}  // namespace gelex::genotype

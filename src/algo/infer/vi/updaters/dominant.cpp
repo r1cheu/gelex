@@ -20,10 +20,10 @@
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 
-namespace gelex::detail::DominantUpdater
+namespace gelex::vi::detail
 {
 
-auto RR::operator()(
+auto DominantRR::operator()(
     const BayesModel& model,
     const bayes::Priors& priors,
     vi::State& states) const -> void
@@ -35,4 +35,4 @@ auto RR::operator()(
         states.residual());
 }
 
-}  // namespace gelex::detail::DominantUpdater
+}  // namespace gelex::vi::detail

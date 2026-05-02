@@ -35,8 +35,8 @@ namespace gelex
 
 GeneticValueCalculator::GeneticValueCalculator(
     const std::filesystem::path& bed_path,
-    const df::DataFrame<std::string>& bim,
-    const df::DataFrame<std::string>& fam)
+    const dataframe::DataFrame<std::string>& bim,
+    const dataframe::DataFrame<std::string>& fam)
     : sample_index_(&fam.index()),
       snp_index_(&bim.index()),
       bed_pipe_(bed_path, *sample_index_)
@@ -75,7 +75,7 @@ auto GeneticValueCalculator::calculate(
         });
 
     Eigen::MatrixXd genotype = bed_pipe_.select(col_indices);
-    process_matrix<Mode>(geno_method, genotype);
+    genotype::process_matrix<Mode>(geno_method, genotype);
 
     genetic_values.coeff.resize(n_causal);
     for (Eigen::Index i = 0; i < n_causal; ++i)

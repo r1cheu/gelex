@@ -64,7 +64,7 @@ class PiSampler
 
    private:
     Deps deps_;
-    DirichletSampler<double> dirichlet_;
+    stats::DirichletSampler<double> dirichlet_;
 };
 
 }  // namespace gelex::mcmc

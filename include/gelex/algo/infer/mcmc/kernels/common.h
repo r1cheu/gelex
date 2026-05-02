@@ -73,11 +73,11 @@ auto unpack_marker_allocation(
 template <typename MarkerPrior>
 auto make_variance_sampler(
     const bayes::GeneticPrior& prior,
-    std::string_view kernel_name) -> ScaledInvChi2Sampler<double>
+    std::string_view kernel_name) -> stats::ScaledInvChi2Sampler<double>
 {
     const auto& p
         = unpack_marker_prior<MarkerPrior>(prior, kernel_name).variance.param;
-    return ScaledInvChi2Sampler<double>{p.nu, p.s2};
+    return stats::ScaledInvChi2Sampler<double>{p.nu, p.s2};
 }
 
 }  // namespace gelex::mcmc

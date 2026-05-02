@@ -51,8 +51,8 @@ auto build_tasks(GeneticMode mode) -> std::vector<GrmTask>
 
 }  // namespace
 
-auto GrmLocoPlan::build_loco_ranges(const df::DataFrame<std::string>& bim)
-    -> std::vector<ChrRange>
+auto GrmLocoPlan::build_loco_ranges(
+    const dataframe::DataFrame<std::string>& bim) -> std::vector<ChrRange>
 {
     std::vector<ChrRange> groups;
     auto num_snps = static_cast<Eigen::Index>(bim.rows());

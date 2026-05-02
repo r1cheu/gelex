@@ -24,9 +24,9 @@
 
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/infra/logging/predict_event.h"
-#include "gelex/predict/predict_types.h"
-#include "gelex/predict/reader.h"
+#include "gelex/predict/input_reader.h"
 #include "gelex/predict/snp_alignment.h"
+#include "gelex/predict/types.h"
 
 namespace gelex
 {
@@ -47,7 +47,7 @@ class PredictEngine
 
     struct PredictParams
     {
-        df::DataFrame<std::string> snp_effects;
+        dataframe::DataFrame<std::string> snp_effects;
         Eigen::VectorXd add_effects;
         std::optional<Eigen::VectorXd> dom_effects;
         Coefficients coefficients;
@@ -56,8 +56,8 @@ class PredictEngine
 
     struct PredictData
     {
-        df::DataFrame<std::string> fam_df;
-        df::DataFrame<std::string> bim_df;
+        dataframe::DataFrame<std::string> fam_df;
+        dataframe::DataFrame<std::string> bim_df;
         Eigen::MatrixXd covariates;
     };
 

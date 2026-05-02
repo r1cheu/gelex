@@ -22,6 +22,7 @@
 #include "gelex/data/genotype/genotype_processor.h"
 
 using namespace gelex;
+using namespace gelex::genotype;
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 

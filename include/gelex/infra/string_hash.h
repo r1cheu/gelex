@@ -21,6 +21,7 @@
 #include <functional>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 
 namespace gelex::infra
 {
@@ -61,6 +62,11 @@ struct TransparentEqual<std::string>
         return a == b;
     }
 };
+
+using StringSet = std::unordered_set<
+    std::string,
+    TransparentHash<std::string>,
+    TransparentEqual<std::string>>;
 
 }  // namespace gelex::infra
 

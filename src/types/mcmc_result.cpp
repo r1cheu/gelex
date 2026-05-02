@@ -143,7 +143,7 @@ void GeneticSummary::compute(
         sign->compute(*sample.sign);
     }
 
-    detail::PosteriorCalculator::compute_pve(pve, coeffs.mean, phenotype_var);
+    posterior::detail::compute_pve(pve, coeffs.mean, phenotype_var);
 }
 
 void mcmc::Result::compute()

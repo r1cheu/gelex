@@ -45,7 +45,8 @@ auto make_pheno_config(argparse::ArgumentParser& cmd) -> PhenoPipe::Config
 auto make_fit_data_configs(argparse::ArgumentParser& cmd, bool use_mmap)
     -> std::pair<PhenoPipe::Config, GenoPipe::Config>
 {
-    auto bed_path = format_bed_path(cmd.get<std::string>("--bfile"));
+    auto bed_path
+        = gelex::genotype::format_bed_path(cmd.get<std::string>("--bfile"));
 
     PhenoPipe::Config pheno_config{
         .phenotype_path = cmd.get("--pheno"),

@@ -73,7 +73,7 @@ auto write_grm_ids(
     const std::filesystem::path& file_path,
     std::span<const std::string> ids) -> void
 {
-    detail::TextWriter writer(file_path);
+    io::detail::TextWriter writer(file_path);
     for (const auto& id : ids)
     {
         auto [fid, iid] = split_sample_id(id);

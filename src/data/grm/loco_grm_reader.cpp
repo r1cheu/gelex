@@ -26,9 +26,9 @@ namespace gelex
 
 LocoGRMReader::LocoGRMReader(
     const std::filesystem::path& whole_grm_prefix,
-    const df::Index<std::string>& sample_index)
+    const dataframe::Index<std::string>& sample_index)
 {
-    detail::GrmReader whole_reader(whole_grm_prefix);
+    grm::detail::GrmReader whole_reader(whole_grm_prefix);
     // Load and filter the whole GRM once during construction.
     // load_unnormalized(sample_index) returns (X_w * X_w') filtered and
     // reordered.
@@ -40,7 +40,7 @@ LocoGRMReader::LocoGRMReader(
 
 auto LocoGRMReader::load_loco_grm(
     const std::filesystem::path& chr_grm_prefix,
-    const df::Index<std::string>& sample_index,
+    const dataframe::Index<std::string>& sample_index,
     Eigen::MatrixXd& target) const -> void
 {
     std::filesystem::path bin_path = chr_grm_prefix.string() + ".bin";
@@ -51,7 +51,7 @@ auto LocoGRMReader::load_loco_grm(
                 "LOCO error: GRM file not found: {}", bin_path.string()));
     }
 
-    detail::GrmReader chr_reader(chr_grm_prefix);
+    grm::detail::GrmReader chr_reader(chr_grm_prefix);
 
     // Load chromosome GRM filtered by the SAME sample_index to ensure
     // alignment. Use the mutable buffer to avoid reallocations.
@@ -77,7 +77,7 @@ auto LocoGRMReader::load_loco_grm(
 
 auto LocoGRMReader::load_loco_grm(
     const std::filesystem::path& chr_grm_prefix,
-    const df::Index<std::string>& sample_index) const -> Eigen::MatrixXd
+    const dataframe::Index<std::string>& sample_index) const -> Eigen::MatrixXd
 {
     Eigen::MatrixXd target;
     load_loco_grm(chr_grm_prefix, sample_index, target);

@@ -23,9 +23,7 @@
 
 #include "gelex/exception.h"
 
-namespace gelex
-{
-namespace detail
+namespace gelex::stats::detail
 {
 inline auto norm_cdf(double x) -> double
 {
@@ -106,7 +104,6 @@ inline auto norm_ppf(double p) -> double
     return x;
 }
 
-}  // namespace detail
-}  // namespace gelex
+}  // namespace gelex::stats::detail
 
 #endif  // GELEX_INFRA_STATS_NORMAL_H_

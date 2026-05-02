@@ -21,14 +21,14 @@
 #include <Eigen/Core>
 
 #include "gelex/algo/gwas/assoc_tester.h"
-#include "gelex/algo/infer/estimator.h"
+#include "gelex/algo/reml/estimator.h"
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/grm/loco_grm_reader.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/gwas_writer.h"
-#include "gelex/model/freq/model.h"
+#include "gelex/model/freq_model.h"
 #include "gelex/pipeline/grm_pipe.h"
 #include "gelex/pipeline/pheno_pipe.h"
 #include "gelex/types/chr_group.h"
@@ -41,11 +41,11 @@ AssocEngine::AssocEngine(Config config) : config_(std::move(config)) {}
 auto AssocEngine::run(
     PhenoPipe& pheno,
     GrmPipe& grm,
-    const df::Index<std::string>& sample_index,
+    const dataframe::Index<std::string>& sample_index,
     const AssocObserver& observer,
     const RemlObserver& reml_observer) -> void
 {
-    BedPipe bed_pipe(config_.bed_path, sample_index);
+    genotype::BedPipe bed_pipe(config_.bed_path, sample_index);
     auto bim_path = config_.bed_path;
     auto bim = read_bim(bim_path.replace_extension(".bim"));
 
@@ -99,7 +99,7 @@ auto AssocEngine::run(
 
     if (!config_.loco)
     {
-        Estimator estimator(config_.max_iter, config_.tol, reml_observer);
+        reml::Estimator estimator(config_.max_iter, config_.tol, reml_observer);
 
         notify(observer, AssocRemlStartedEvent{.chr_name = ""});
 
@@ -157,7 +157,7 @@ auto AssocEngine::run(
                 observer,
                 AssocLocoPhaseEvent{.chr_name = group.name, .phase = "REML"});
 
-            Estimator estimator(config_.max_iter, config_.tol);
+            reml::Estimator estimator(config_.max_iter, config_.tol);
             auto reml = estimator.fit(model, state);
 
             {

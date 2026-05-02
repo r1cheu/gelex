@@ -22,9 +22,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex
-{
-namespace detail
+namespace gelex::stats::detail
 {
 
 ScaledInvChiSq::ScaledInvChiSq(const ScaledInvChiSqParams& prior_params)
@@ -83,5 +81,4 @@ auto ScaledInvChiSq::posterior_stddev() const -> double
         2.0 * nu * nu * s2 * s2 / ((nu - 2.0) * (nu - 2.0) * (nu - 4.0)));
 }
 
-}  // namespace detail
-}  // namespace gelex
+}  // namespace gelex::stats::detail

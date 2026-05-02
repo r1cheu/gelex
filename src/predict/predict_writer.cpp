@@ -32,7 +32,7 @@ PredictWriter::PredictWriter(const std::filesystem::path& output_path)
     {
         throw GelexException("Output path must be provided");
     }
-    writer_ = std::make_unique<detail::TextWriter>(output_path);
+    writer_ = std::make_unique<io::detail::TextWriter>(output_path);
 }
 
 PredictWriter::~PredictWriter() = default;

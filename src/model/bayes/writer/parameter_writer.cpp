@@ -32,7 +32,7 @@ ParameterWriter::ParameterWriter(
     const mcmc::Result& result,
     const std::filesystem::path& output_path)
     : result_(&result),
-      writer_(std::make_unique<detail::TextWriter>(output_path))
+      writer_(std::make_unique<io::detail::TextWriter>(output_path))
 {
 }
 

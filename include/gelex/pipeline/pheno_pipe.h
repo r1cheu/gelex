@@ -66,14 +66,15 @@ class PhenoPipe
     ~PhenoPipe() = default;
 
     auto load() -> void;
-    auto gather(const df::Index<std::string>& common_index) -> void;
+    auto gather(const dataframe::Index<std::string>& common_index) -> void;
 
-    auto pheno_index() const -> const df::Index<std::string>&
+    auto pheno_index() const -> const dataframe::Index<std::string>&
     {
         return phenotype_frame_->index();
     }
 
-    auto covar_indices() const -> std::vector<const df::Index<std::string>*>;
+    auto covar_indices() const
+        -> std::vector<const dataframe::Index<std::string>*>;
 
     auto take_phenotype() && -> Eigen::VectorXd
     {
@@ -95,9 +96,9 @@ class PhenoPipe
 
     Config config_;
 
-    std::optional<df::DataFrame<std::string>> phenotype_frame_;
-    std::optional<df::DataFrame<std::string>> qcovar_frame_;
-    std::optional<df::DataFrame<std::string>> dcovar_frame_;
+    std::optional<dataframe::DataFrame<std::string>> phenotype_frame_;
+    std::optional<dataframe::DataFrame<std::string>> qcovar_frame_;
+    std::optional<dataframe::DataFrame<std::string>> dcovar_frame_;
 
     Eigen::VectorXd phenotype_;
     FixedEffect fixed_effects_;

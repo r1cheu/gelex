@@ -26,7 +26,6 @@
 #include "gelex/data/genotype/genotype_mat_reader.h"
 #include "gelex/data/genotype/genotype_matrix.h"
 #include "gelex/data/genotype/genotype_mmap.h"
-#include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "gelex/types/genotype_process_method.h"
@@ -56,14 +55,16 @@ class GenoPipe
     GenoPipe& operator=(GenoPipe&&) noexcept = default;
     ~GenoPipe() = default;
 
-    auto load(const df::Index<std::string>& sample_index) -> void;
+    auto load(const dataframe::Index<std::string>& sample_index) -> void;
 
-    auto take_additive_matrix() && -> std::variant<GenotypeMap, GenotypeMatrix>
+    auto take_additive_matrix() && -> std::
+        variant<genotype::GenotypeMap, genotype::GenotypeMatrix>
     {
         return std::move(*additive_matrix_);
     }
 
-    auto take_dominance_matrix() && -> std::variant<GenotypeMap, GenotypeMatrix>
+    auto take_dominance_matrix() && -> std::
+        variant<genotype::GenotypeMap, genotype::GenotypeMatrix>
     {
         return std::move(*dominance_matrix_);
     }
@@ -74,12 +75,12 @@ class GenoPipe
     }
 
    private:
-    using GenotypeMatrixPtr
-        = std::unique_ptr<std::variant<GenotypeMap, GenotypeMatrix>>;
+    using GenotypeMatrixPtr = std::unique_ptr<
+        std::variant<genotype::GenotypeMap, genotype::GenotypeMatrix>>;
 
     template <GeneticMode GT>
     auto load_genotype_impl(
-        const df::Index<std::string>& sample_index,
+        const dataframe::Index<std::string>& sample_index,
         const std::string& suffix,
         GenotypeProcessMethod method,
         GenotypeMatrixPtr& target) -> void
@@ -87,26 +88,26 @@ class GenoPipe
         if (config_.use_mmap)
         {
             std::string file_path = config_.output_prefix + suffix;
-            auto pipe = gelex::GenotypeMapReader(
+            auto pipe = genotype::GenotypeMapReader(
                 config_.bed_path, sample_index, file_path, observer_);
-            target
-                = std::make_unique<std::variant<GenotypeMap, GenotypeMatrix>>(
-                    pipe.process<GT>(method, config_.chunk_size));
+            target = std::make_unique<
+                std::variant<genotype::GenotypeMap, genotype::GenotypeMatrix>>(
+                pipe.process<GT>(method, config_.chunk_size));
         }
         else
         {
-            auto reader = gelex::GenotypeMatReader(
+            auto reader = genotype::GenotypeMatReader(
                 config_.bed_path, sample_index, observer_);
-            target
-                = std::make_unique<std::variant<GenotypeMap, GenotypeMatrix>>(
-                    reader.process<GT>(method, config_.chunk_size));
+            target = std::make_unique<
+                std::variant<genotype::GenotypeMap, genotype::GenotypeMatrix>>(
+                reader.process<GT>(method, config_.chunk_size));
         }
     }
 
-    auto load_additive_matrix(const df::Index<std::string>& sample_index)
+    auto load_additive_matrix(const dataframe::Index<std::string>& sample_index)
         -> void;
-    auto load_dominance_matrix(const df::Index<std::string>& sample_index)
-        -> void;
+    auto load_dominance_matrix(
+        const dataframe::Index<std::string>& sample_index) -> void;
     auto write_sbin() -> void;
 
     Config config_;

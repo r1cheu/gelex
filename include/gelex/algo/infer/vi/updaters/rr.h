@@ -23,7 +23,6 @@
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
-#include "gelex/model/bayes/vi/states.h"
 
 namespace gelex::vi::detail
 {
@@ -58,20 +57,21 @@ inline auto RR(
         const double v = XtX_diag(i) + residual_over_var;
         const double inv_v = 1.0 / v;
 
-        const double rhs
-            = gelex::detail::blas_ddot(col, y_adj) + (XtX_diag(i) * old_i);
+        const double rhs = gelex::infer::detail::blas_ddot(col, y_adj)
+                           + (XtX_diag(i) * old_i);
         const double post_mean = rhs * inv_v;
         const double post_var = residual_variance * inv_v;
 
         coeffs(i) = post_mean;
         sigma2(i) = post_var;
-        gelex::detail::apply_marker_update(
+        gelex::infer::detail::apply_marker_update(
             y_adj, u, {}, col, {.old_value = old_i, .new_value = post_mean});
     }
-    state.variance = gelex::detail::var(state.u)(0);
+    state.variance = gelex::stats::detail::var(state.u)(0);
 
     const auto& marker_prior = std::get<bayes::ContinuousPrior>(prior.marker);
-    gelex::detail::ScaledInvChiSq chi_squared{marker_prior.variance.param};
+    gelex::stats::detail::ScaledInvChiSq chi_squared{
+        marker_prior.variance.param};
     // E[beta^2] = mu^2 + sigma2, unlike MCMC which uses sampled beta^2
     const double sum_sq = (coeffs.array().square() + sigma2.array()).sum();
     chi_squared.compute(sum_sq, coeffs.size() - effect.num_mono());

@@ -22,7 +22,7 @@
 #include <ios>
 #include <span>
 
-namespace gelex::detail
+namespace gelex::io::detail
 {
 
 // Writes to "<final_path>.tmp" and atomically renames to final_path on success.
@@ -59,6 +59,6 @@ class AtomicOfstream : public std::ofstream
     std::filesystem::path tmp_path_;
 };
 
-}  // namespace gelex::detail
+}  // namespace gelex::io::detail
 
 #endif  // GELEX_IO_ATOMIC_OFSTREAM_H_

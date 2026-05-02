@@ -66,8 +66,8 @@ class RandomSampler
 
    private:
     Deps deps_;
-    NormalSampler<double> normal_{0.0};
-    ScaledInvChi2Sampler<double> variance_sampler_;
+    stats::NormalSampler<double> normal_{0.0};
+    stats::ScaledInvChi2Sampler<double> variance_sampler_;
 };
 
 }  // namespace gelex::mcmc

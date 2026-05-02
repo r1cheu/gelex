@@ -122,9 +122,9 @@ class BayesRKernel
     Eigen::VectorXi pi_count_;
     double sum_square_coeffs_{0.0};
 
-    ScaledInvChi2Sampler<double> variance_sampler_;
+    stats::ScaledInvChi2Sampler<double> variance_sampler_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
-    NormalSampler<double> normal_;
+    stats::NormalSampler<double> normal_;
     detail::MixtureNormalPosteriors scale_pp_;
 
     auto compute_scale_posteriors(

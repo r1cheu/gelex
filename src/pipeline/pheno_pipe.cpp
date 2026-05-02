@@ -38,18 +38,18 @@ namespace gelex
 namespace
 {
 
-auto build_discrete_covariate(const df::DataFrame<std::string>& frame)
+auto build_discrete_covariate(const dataframe::DataFrame<std::string>& frame)
     -> DiscreteCovariate
 {
     std::vector<std::string> names;
     std::vector<std::vector<std::string>> levels;
     std::vector<std::string> reference_levels;
-    std::vector<df::EncodedResult<>> encoded_results;
+    std::vector<dataframe::EncodedResult<>> encoded_results;
 
     for (std::size_t i = 0; i < frame.cols(); ++i)
     {
         const auto& col = frame.col(i);
-        auto all_levels = df::collect_levels(col);
+        auto all_levels = dataframe::collect_levels(col);
         if (all_levels.size() < 2)
         {
             continue;
@@ -57,7 +57,7 @@ auto build_discrete_covariate(const df::DataFrame<std::string>& frame)
         names.emplace_back(col.name());
         reference_levels.push_back(all_levels.front());
         levels.push_back(all_levels);
-        encoded_results.push_back(df::dummy_encode(col));
+        encoded_results.push_back(dataframe::dummy_encode(col));
     }
 
     Eigen::Index total_cols = 0;
@@ -96,9 +96,9 @@ auto PhenoPipe::load() -> void
 }
 
 auto PhenoPipe::covar_indices() const
-    -> std::vector<const df::Index<std::string>*>
+    -> std::vector<const dataframe::Index<std::string>*>
 {
-    std::vector<const df::Index<std::string>*> result;
+    std::vector<const dataframe::Index<std::string>*> result;
     if (qcovar_frame_)
     {
         result.push_back(&qcovar_frame_->index());
@@ -165,7 +165,8 @@ auto PhenoPipe::load_covariates() -> void
     }
 }
 
-auto PhenoPipe::gather(const df::Index<std::string>& common_index) -> void
+auto PhenoPipe::gather(const dataframe::Index<std::string>& common_index)
+    -> void
 {
     phenotype_frame_->gather(common_index);
     phenotype_ = phenotype_frame_->col(0).to_map<double>();
@@ -209,7 +210,7 @@ auto PhenoPipe::apply_phenotype_transform(
         return;
     }
 
-    RankInverseNormTransform transformer(offset);
+    stats::RankInverseNormTransform transformer(offset);
     auto logger = gelex::logging::get();
 
     if (type == detail::TransformType::DINT)

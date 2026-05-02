@@ -37,7 +37,7 @@ TEST_CASE("format_bed_path", "[data][bed_path]")
     SECTION("returns existing .bed path")
     {
         auto bed_path = files.create_named_binary_file("cohort.bed", {});
-        auto formatted = gelex::format_bed_path(bed_path.string());
+        auto formatted = gelex::genotype::format_bed_path(bed_path.string());
 
         REQUIRE(formatted == bed_path);
     }
@@ -48,7 +48,7 @@ TEST_CASE("format_bed_path", "[data][bed_path]")
         auto prefix = bed_path;
         prefix.replace_extension();
 
-        auto formatted = gelex::format_bed_path(prefix.string());
+        auto formatted = gelex::genotype::format_bed_path(prefix.string());
         REQUIRE(formatted == bed_path);
     }
 
@@ -63,7 +63,7 @@ TEST_CASE("format_bed_path", "[data][bed_path]")
         std::ofstream out(bed_path, std::ios::binary | std::ios::trunc);
         out.close();
 
-        auto formatted = gelex::format_bed_path(prefix.string());
+        auto formatted = gelex::genotype::format_bed_path(prefix.string());
         REQUIRE(formatted == bed_path);
     }
 
@@ -71,7 +71,7 @@ TEST_CASE("format_bed_path", "[data][bed_path]")
     {
         auto missing = files.get_test_dir() / "missing_prefix";
         REQUIRE_THROWS_MATCHES(
-            gelex::format_bed_path(missing.string()),
+            gelex::genotype::format_bed_path(missing.string()),
             gelex::GelexException,
             Catch::Matchers::MessageMatches(EndsWith("file not found")));
     }

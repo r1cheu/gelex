@@ -24,10 +24,10 @@ namespace gelex::bayes
 class Priors;
 }
 
-namespace gelex::detail::AdditiveUpdater
+namespace gelex::vi::detail
 {
 
-struct RR
+struct AdditiveRR
 {
     auto operator()(
         const BayesModel& model,
@@ -35,6 +35,6 @@ struct RR
         vi::State& states) const -> void;
 };
 
-}  // namespace gelex::detail::AdditiveUpdater
+}  // namespace gelex::vi::detail
 
 #endif  // GELEX_ALGO_INFER_VI_UPDATERS_ADDITIVE_H_

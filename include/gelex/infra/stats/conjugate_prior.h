@@ -25,9 +25,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex
-{
-namespace detail
+namespace gelex::stats::detail
 {
 
 struct ScaledInvChiSqParams
@@ -63,7 +61,7 @@ class ScaledInvChiSq
     ScaledInvChiSqParams posterior_;
 };
 
-}  // namespace detail
+}  // namespace gelex::stats::detail
 
 // ---------------------------------------------------------------------------
 // Conjugate posterior samplers.
@@ -71,6 +69,9 @@ class ScaledInvChiSq
 // Each sampler stores prior hyper-parameters; operator() takes sufficient
 // statistics + RNG and returns one draw from the posterior.
 // ---------------------------------------------------------------------------
+
+namespace gelex::stats
+{
 
 template <std::floating_point T>
 class NormalSampler
@@ -341,6 +342,6 @@ class ScaledInvChi2Sampler
     std::chi_squared_distribution<T> chisq_{T{1}};
 };
 
-}  // namespace gelex
+}  // namespace gelex::stats
 
 #endif  // GELEX_INFRA_STATS_CONJUGATE_PRIOR_H_

@@ -43,7 +43,7 @@ auto compute_init_marker_variance(
         throw GelexException("Non-zero marker proportion must be positive");
     }
 
-    double total_genetic_variance = detail::var(X).sum();
+    double total_genetic_variance = stats::detail::var(X).sum();
     auto num_non_zero_snps = total_genetic_variance * non_zero_proportion;
 
     if (num_non_zero_snps <= 0.0)
@@ -54,7 +54,7 @@ auto compute_init_marker_variance(
     return target_variance / num_non_zero_snps;
 }
 
-auto make_variance_prior(double init) -> detail::ScaledInvChiSqParams
+auto make_variance_prior(double init) -> stats::detail::ScaledInvChiSqParams
 {
     return {
         prior_constants::MARKER_VARIANCE_SHAPE,

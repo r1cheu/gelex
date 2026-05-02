@@ -19,7 +19,7 @@
 #include "gelex/data/reader.h"
 #include "gelex/io/parser.h"
 
-namespace gelex::detail
+namespace gelex::genotype::detail
 {
 
 auto load_bed_metadata(const std::filesystem::path& bed_prefix) -> BedMetadata
@@ -34,7 +34,7 @@ auto load_bed_metadata(const std::filesystem::path& bed_prefix) -> BedMetadata
     BedMetadata metadata;
     metadata.bed_path = bed_path;
     metadata.num_raw_snps
-        = static_cast<Eigen::Index>(count_total_lines(bim_path));
+        = static_cast<Eigen::Index>(io::detail::count_total_lines(bim_path));
 
     metadata.raw_ids = read_fam(fam_path).index().take_keys();
     metadata.num_raw_samples
@@ -44,4 +44,4 @@ auto load_bed_metadata(const std::filesystem::path& bed_prefix) -> BedMetadata
     return metadata;
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex::genotype::detail

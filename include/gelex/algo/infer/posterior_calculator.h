@@ -19,31 +19,10 @@
 
 #include <Eigen/Core>
 
+#include "gelex/infra/eigen_thread_guard.h"
 #include "gelex/types/posterior_summary.h"
 
-namespace gelex::detail
-{
-
-class EigenThreadGuard
-{
-   public:
-    EigenThreadGuard() : old_thread_count_(Eigen::nbThreads())
-    {
-        Eigen::setNbThreads(1);
-    }
-
-    ~EigenThreadGuard() { Eigen::setNbThreads(old_thread_count_); }
-
-    EigenThreadGuard(const EigenThreadGuard&) = delete;
-    EigenThreadGuard& operator=(const EigenThreadGuard&) = delete;
-    EigenThreadGuard(EigenThreadGuard&&) = delete;
-    EigenThreadGuard& operator=(EigenThreadGuard&&) = delete;
-
-   private:
-    int old_thread_count_;
-};
-
-namespace PosteriorCalculator
+namespace gelex::posterior::detail
 {
 
 void compute_pve(
@@ -51,8 +30,6 @@ void compute_pve(
     const Eigen::Ref<const Eigen::VectorXd>& mean_coeffs,
     double phenotype_var);
 
-}  // namespace PosteriorCalculator
-
-}  // namespace gelex::detail
+}  // namespace gelex::posterior::detail
 
 #endif  // GELEX_ALGO_INFER_POSTERIOR_CALCULATOR_H_

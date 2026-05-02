@@ -39,8 +39,8 @@ class GeneticValueCalculator
    public:
     GeneticValueCalculator(
         const std::filesystem::path& bed_path,
-        const df::DataFrame<std::string>& bim,
-        const df::DataFrame<std::string>& fam);
+        const dataframe::DataFrame<std::string>& bim,
+        const dataframe::DataFrame<std::string>& fam);
 
     template <GeneticMode Mode>
     auto calculate(
@@ -51,9 +51,9 @@ class GeneticValueCalculator
     [[nodiscard]] auto sample_ids() const -> std::span<const std::string>;
 
    private:
-    const df::Index<std::string>* sample_index_;
-    const df::Index<std::string>* snp_index_;
-    BedPipe bed_pipe_;
+    const dataframe::Index<std::string>* sample_index_;
+    const dataframe::Index<std::string>* snp_index_;
+    genotype::BedPipe bed_pipe_;
 };
 
 }  // namespace gelex

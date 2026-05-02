@@ -58,7 +58,7 @@ class BayesAKernel
     {
         normal_.set_prior_var(state_.marker_variance(marker_index));
         const double new_i = normal_(
-            NormalSampler<double>::Kernel{
+            stats::NormalSampler<double>::Kernel{
                 .quadratic = xtx_diag,
                 .linear = rhs,
                 .scale = residual_variance,
@@ -72,8 +72,8 @@ class BayesAKernel
 
    private:
     bayes::GeneticState& state_;
-    NormalSampler<double> normal_;
-    ScaledInvChi2Sampler<double> sigma_;
+    stats::NormalSampler<double> normal_;
+    stats::ScaledInvChi2Sampler<double> sigma_;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 

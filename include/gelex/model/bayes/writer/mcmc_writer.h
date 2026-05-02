@@ -59,26 +59,26 @@ class Writer
    private:
     struct RandomHandles
     {
-        detail::SectionHandle<double> coeffs;
-        detail::SectionHandle<double> variance;
+        io::detail::SectionHandle<double> coeffs;
+        io::detail::SectionHandle<double> variance;
     };
 
     struct GeneticHandles
     {
         EffectType section_effect{};
-        detail::SectionHandle<double> coeffs{};
-        detail::SectionHandle<double> variance{};
-        std::optional<detail::SectionHandle<int8_t>> mixture_tracker;
-        std::optional<detail::SectionHandle<double>> pi;
-        std::optional<detail::SectionHandle<int8_t>> sign_tracker;
-        std::optional<detail::SectionHandle<double>> positive_prob;
+        io::detail::SectionHandle<double> coeffs{};
+        io::detail::SectionHandle<double> variance{};
+        std::optional<io::detail::SectionHandle<int8_t>> mixture_tracker;
+        std::optional<io::detail::SectionHandle<double>> pi;
+        std::optional<io::detail::SectionHandle<int8_t>> sign_tracker;
+        std::optional<io::detail::SectionHandle<double>> positive_prob;
     };
 
-    detail::BinaryWriter writer_;
-    detail::SectionHandle<double> fixed_coeffs_{};
+    io::detail::BinaryWriter writer_;
+    io::detail::SectionHandle<double> fixed_coeffs_{};
     std::vector<RandomHandles> random_;
     std::vector<GeneticHandles> genetic_;
-    detail::SectionHandle<double> residual_variance_{};
+    io::detail::SectionHandle<double> residual_variance_{};
 };
 
 }  // namespace mcmc

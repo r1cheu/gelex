@@ -59,7 +59,7 @@ class BayesRRKernel
         std::mt19937_64& rng) -> double
     {
         const double new_i = normal_(
-            NormalSampler<double>::Kernel{
+            stats::NormalSampler<double>::Kernel{
                 .quadratic = xtx_diag,
                 .linear = rhs,
                 .scale = residual_variance,
@@ -77,8 +77,8 @@ class BayesRRKernel
 
    private:
     bayes::GeneticState& state_;
-    NormalSampler<double> normal_;
-    ScaledInvChi2Sampler<double> variance_sampler_;
+    stats::NormalSampler<double> normal_;
+    stats::ScaledInvChi2Sampler<double> variance_sampler_;
     Eigen::Index n_used_{0};
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)

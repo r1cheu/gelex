@@ -208,7 +208,7 @@ auto make_genetic_effect(Eigen::MatrixXd&& X) -> bayes::GeneticEffect
             (X.col(j).array() - mean(j)).square().sum()
             / static_cast<double>(X.rows()));
     }
-    GenotypeMatrix gm{
+    gelex::genotype::GenotypeMatrix gm{
         std::move(X),
         std::vector<int64_t>{},
         std::move(mean),

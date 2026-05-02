@@ -96,7 +96,7 @@ auto create_sbin(
     using gelex::GeneticMode;
     using gelex::GenotypeProcessMethod;
     using gelex::LociStatsWriter;
-    using gelex::StandardizeHWE;
+    using gelex::genotype::StandardizeHWE;
 
     const auto n_snps = genotypes.cols();
 

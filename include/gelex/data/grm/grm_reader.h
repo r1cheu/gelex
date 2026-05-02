@@ -27,7 +27,7 @@
 #include "gelex/data/dataframe/index.h"
 #include "gelex/types/genetic_effect_type.h"
 
-namespace gelex::detail
+namespace gelex::grm::detail
 {
 
 class GrmReader
@@ -44,18 +44,19 @@ class GrmReader
     [[nodiscard]] auto load() const -> Eigen::MatrixXd;
     [[nodiscard]] auto load_unnormalized() const -> Eigen::MatrixXd;
 
-    [[nodiscard]] auto load(const df::Index<std::string>& sample_index) const
-        -> Eigen::MatrixXd;
+    [[nodiscard]] auto load(const dataframe::Index<std::string>& sample_index)
+        const -> Eigen::MatrixXd;
 
     [[nodiscard]] auto load_unnormalized(
-        const df::Index<std::string>& sample_index) const -> Eigen::MatrixXd;
+        const dataframe::Index<std::string>& sample_index) const
+        -> Eigen::MatrixXd;
 
     auto load_unnormalized(
-        const df::Index<std::string>& sample_index,
+        const dataframe::Index<std::string>& sample_index,
         Eigen::MatrixXd& target) const -> void;
 
     [[nodiscard]] auto sample_index() const noexcept
-        -> const df::Index<std::string>&
+        -> const dataframe::Index<std::string>&
     {
         return sample_index_;
     }
@@ -70,7 +71,7 @@ class GrmReader
    private:
     std::filesystem::path bin_path_;
     mio::mmap_source mmap_;
-    df::Index<std::string> sample_index_;
+    dataframe::Index<std::string> sample_index_;
     GeneticMode type_;
 
     auto init_mmap() -> void;
@@ -83,6 +84,6 @@ class GrmReader
     }
 };
 
-}  // namespace gelex::detail
+}  // namespace gelex::grm::detail
 
 #endif  // GELEX_DATA_GRM_GRM_READER_H_

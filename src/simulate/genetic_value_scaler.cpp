@@ -38,12 +38,12 @@ auto GeneticValueScaler::scale(
     double trait_frac = 0.0;
     if (has_add)
     {
-        ref_var = detail::var(additive_values->gebv)(0);
+        ref_var = stats::detail::var(additive_values->gebv)(0);
         trait_frac = *h2_;
     }
     else if (has_dom)
     {
-        ref_var = detail::var(dominance_values->gebv)(0);
+        ref_var = stats::detail::var(dominance_values->gebv)(0);
         trait_frac = *d2_;
     }
     else
@@ -60,7 +60,8 @@ auto GeneticValueScaler::scale(
 
     if (has_add && has_dom)
     {
-        const double dominance_raw_var = detail::var(dominance_values->gebv)(0);
+        const double dominance_raw_var
+            = stats::detail::var(dominance_values->gebv)(0);
         if (dominance_raw_var > 0.0)
         {
             const double target_dom_var = total_var * *d2_;

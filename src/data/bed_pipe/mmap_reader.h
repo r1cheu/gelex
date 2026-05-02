@@ -24,7 +24,7 @@
 
 #include "mio.h"
 
-namespace gelex::detail
+namespace gelex::genotype::detail
 {
 
 class BedMmapReader
@@ -50,6 +50,6 @@ class BedMmapReader
     Eigen::Index bytes_per_variant_ = 0;
 };
 
-}  // namespace gelex::detail
+}  // namespace gelex::genotype::detail
 
 #endif  // GELEX_DATA_BED_PIPE_MMAP_READER_H_

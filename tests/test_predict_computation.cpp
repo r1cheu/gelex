@@ -23,8 +23,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/io/locistats_reader.h"
-#include "gelex/predict/predict_types.h"
-#include "gelex/predict/reader.h"
+#include "gelex/predict/types.h"
+#include "gelex/predict/input_reader.h"
 #include "gelex/types/genotype_process_method.h"
 #include "predict/compute.h"
 #include "predict/standardize.h"

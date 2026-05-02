@@ -27,7 +27,8 @@
 namespace gelex::bayes
 {
 
-using GenotypeStorage = std::variant<GenotypeMap, GenotypeMatrix>;
+using GenotypeStorage
+    = std::variant<genotype::GenotypeMap, genotype::GenotypeMatrix>;
 
 inline auto get_matrix_ref(const GenotypeStorage& storage)
     -> Eigen::Ref<const Eigen::MatrixXd>

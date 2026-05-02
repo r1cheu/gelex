@@ -22,15 +22,19 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-namespace gelex
+namespace gelex::stats
 {
+
+[[nodiscard]] Eigen::RowVectorXd centralize(Eigen::Ref<Eigen::MatrixXd> x);
+[[nodiscard]] std::pair<Eigen::RowVectorXd, Eigen::RowVectorXd> standardize(
+    Eigen::Ref<Eigen::MatrixXd> x);
+[[nodiscard]] Eigen::VectorXd sum_square(
+    const Eigen::Ref<const Eigen::MatrixXd>& mat);
+[[nodiscard]] Eigen::VectorXd sum_square(
+    const Eigen::Ref<Eigen::SparseMatrix<double>>& mat);
+
 namespace detail
 {
-Eigen::RowVectorXd centralize(Eigen::Ref<Eigen::MatrixXd> x);
-std::pair<Eigen::RowVectorXd, Eigen::RowVectorXd> standardize(
-    Eigen::Ref<Eigen::MatrixXd> x);
-Eigen::VectorXd sum_square(const Eigen::Ref<const Eigen::MatrixXd>& mat);
-Eigen::VectorXd sum_square(const Eigen::Ref<Eigen::SparseMatrix<double>>& mat);
 
 template <Eigen::Index Axis = 0, typename Derived>
 auto var(const Eigen::DenseBase<Derived>& a, Eigen::Index norm_type = 1)
@@ -70,6 +74,6 @@ auto var(const Eigen::DenseBase<Derived>& a, Eigen::Index norm_type = 1)
 }
 
 }  // namespace detail
-}  // namespace gelex
+}  // namespace gelex::stats
 
 #endif  // GELEX_INFRA_STATS_DESCRIPTIVE_H_

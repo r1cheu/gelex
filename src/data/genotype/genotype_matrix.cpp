@@ -18,7 +18,7 @@
 
 #include <fmt/format.h>
 
-namespace gelex
+namespace gelex::genotype
 {
 
 GenotypeMatrix::GenotypeMatrix(
@@ -56,4 +56,4 @@ void GenotypeMatrix::validate_dimensions() const
     }
 }
 
-}  // namespace gelex
+}  // namespace gelex::genotype

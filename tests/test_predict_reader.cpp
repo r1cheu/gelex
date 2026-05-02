@@ -23,10 +23,10 @@
 #include "file_fixture.h"
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/reader.h"
-#include "gelex/predict/reader.h"
+#include "gelex/predict/input_reader.h"
 #include "gelex/predict/snp_alignment.h"
 
-using gelex::df::kSeparator;
+using gelex::dataframe::kSeparator;
 using gelex::test::FileFixture;
 
 TEST_CASE(

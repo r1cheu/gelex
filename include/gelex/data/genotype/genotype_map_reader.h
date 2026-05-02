@@ -34,7 +34,7 @@
 #include "gelex/io/binary_writer.h"
 #include "gelex/types/genotype_process_method.h"
 
-namespace gelex
+namespace gelex::genotype
 {
 
 class GenotypeMapReader
@@ -42,20 +42,20 @@ class GenotypeMapReader
    public:
     GenotypeMapReader(
         const std::filesystem::path& bed_path,
-        const df::Index<std::string>& sample_index,
+        const dataframe::Index<std::string>& sample_index,
         const std::filesystem::path& output_prefix,
-        DataPipeObserver observer = {});
+        gelex::DataPipeObserver observer = {});
 
-    template <GeneticMode GT>
-    auto process(GenotypeProcessMethod method, size_t chunk_size = 10000)
+    template <gelex::GeneticMode GT>
+    auto process(gelex::GenotypeProcessMethod method, size_t chunk_size = 10000)
         -> GenotypeMap
     {
-        constexpr auto effect = EffectType::from_genetic(GT);
+        constexpr auto effect = gelex::EffectType::from_genetic(GT);
         auto gbin_path = output_prefix_;
         gbin_path += ".gbin";
 
         {
-            detail::BinaryWriter writer(gbin_path.string());
+            gelex::io::detail::BinaryWriter writer(gbin_path.string());
             auto genotype_handle = writer.reserve<double>(
                 fmt::format("{}/genotype", effect),
                 sample_size_,
@@ -79,18 +79,18 @@ class GenotypeMapReader
                 writer.write(genotype_handle, chunk);
                 current_processed_snps += (end_variant - start_variant);
 
-                notify(
+                gelex::notify(
                     observer_,
-                    GenotypeProgressEvent{
+                    gelex::GenotypeProgressEvent{
                         static_cast<size_t>(current_processed_snps),
                         static_cast<size_t>(num_variants_),
                         false});
 
                 start_variant = end_variant;
             }
-            notify(
+            gelex::notify(
                 observer_,
-                GenotypeProgressEvent{
+                gelex::GenotypeProgressEvent{
                     static_cast<size_t>(num_variants_),
                     static_cast<size_t>(num_variants_),
                     true});
@@ -126,10 +126,10 @@ class GenotypeMapReader
     void process_chunk(
         Eigen::MatrixXd& chunk,
         size_t global_start,
-        LocusStatistic (*fn)(Eigen::Ref<Eigen::VectorXd>));
+        gelex::LocusStatistic (*fn)(Eigen::Ref<Eigen::VectorXd>));
 
     BedPipe bed_pipe_;
-    DataPipeObserver observer_;
+    gelex::DataPipeObserver observer_;
     int64_t sample_size_{};
     int64_t num_variants_{};
 
@@ -140,6 +140,6 @@ class GenotypeMapReader
     std::filesystem::path output_prefix_;
 };
 
-}  // namespace gelex
+}  // namespace gelex::genotype
 
 #endif  // GELEX_DATA_GENOTYPE_MAP_READER_H_

@@ -76,7 +76,7 @@ auto RandomSampler::sample() -> void
             const double rhs = col.dot(y_adj) + (norm * old_i);
 
             const double new_i = normal_(
-                NormalSampler<double>::Kernel{
+                stats::NormalSampler<double>::Kernel{
                     .quadratic = norm,
                     .linear = rhs,
                     .scale = residual_variance,

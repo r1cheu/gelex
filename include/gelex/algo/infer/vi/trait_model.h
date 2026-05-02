@@ -56,15 +56,15 @@ class TraitModel
 
 template <Updater... Updaters>
 using TraitBasicDefault = TraitModel<
-    detail::CommonUpdater::Fixed,
-    detail::CommonUpdater::Random,
+    ::gelex::vi::detail::Fixed,
+    ::gelex::vi::detail::Random,
     Updaters...,
-    detail::CommonUpdater::Residual>;
+    ::gelex::vi::detail::Residual>;
 
-using RR = TraitBasicDefault<detail::AdditiveUpdater::RR>;
+using RR = TraitBasicDefault<::gelex::vi::detail::AdditiveRR>;
 using RRd = TraitBasicDefault<
-    detail::AdditiveUpdater::RR,
-    detail::DominantUpdater::RR>;
+    ::gelex::vi::detail::AdditiveRR,
+    ::gelex::vi::detail::DominantRR>;
 
 }  // namespace gelex::vi
 

@@ -29,6 +29,7 @@
 #include "gelex/algo/infer/params.h"
 #include "gelex/algo/infer/posterior_calculator.h"
 #include "gelex/exception.h"
+#include "gelex/infra/eigen_thread_guard.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/model/bayes/checkpoint.h"
@@ -117,7 +118,7 @@ auto Solver<ChainFactory>::run(
     mcmc::State state{model, priors};
     std::mt19937_64 rng(seed);
 
-    const ::gelex::detail::EigenThreadGuard guard;
+    const ::gelex::infra::detail::EigenThreadGuard guard;
     omp_set_num_threads(1);
 
     mcmc::Context ctx{
@@ -196,7 +197,7 @@ auto Solver<ChainFactory>::resume(
         model, checkpoint.priors, sample_prefix_, params_.n_records);
     notify(observer, FitPriorSetEvent{.priors = &checkpoint.priors});
 
-    const ::gelex::detail::EigenThreadGuard guard;
+    const ::gelex::infra::detail::EigenThreadGuard guard;
     omp_set_num_threads(1);
 
     mcmc::Context ctx{

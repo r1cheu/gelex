@@ -20,11 +20,11 @@
 #include <filesystem>
 #include <string_view>
 
-namespace gelex
+namespace gelex::genotype
 {
 
 auto format_bed_path(std::string_view bed_path) -> std::filesystem::path;
 
-}  // namespace gelex
+}  // namespace gelex::genotype
 
 #endif  // GELEX_DATA_BED_PATH_H

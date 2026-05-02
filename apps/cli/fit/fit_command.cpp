@@ -116,7 +116,8 @@ auto fit_execute(argparse::ArgumentParser& fit) -> int
         },
         fit_config);
 
-    auto bed_path = gelex::format_bed_path(fit.get<std::string>("--bfile"));
+    auto bed_path
+        = gelex::genotype::format_bed_path(fit.get<std::string>("--bfile"));
     auto fam_index
         = gelex::read_fam(
               std::filesystem::path(bed_path).replace_extension(".fam"))
@@ -125,10 +126,10 @@ auto fit_execute(argparse::ArgumentParser& fit) -> int
     gelex::PhenoPipe pheno(pheno_config, data_reporter.as_observer());
     pheno.load();
 
-    std::vector<const gelex::df::Index<std::string>*> all_indices{
+    std::vector<const gelex::dataframe::Index<std::string>*> all_indices{
         &fam_index, &pheno.pheno_index()};
     all_indices.append_range(pheno.covar_indices());
-    auto common = gelex::df::intersect<std::string>(all_indices);
+    auto common = gelex::dataframe::intersect<std::string>(all_indices);
 
     gelex::notify(
         data_reporter.as_observer(),

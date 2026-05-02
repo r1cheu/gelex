@@ -24,7 +24,7 @@
 #include "gelex/infra/stats/descriptive.h"
 #include "gelex/model/bayes/states.h"
 
-namespace gelex::detail
+namespace gelex::mcmc::detail
 {
 
 constexpr int kMaxMixtureComponents = 5;
@@ -54,10 +54,10 @@ inline void compute_component_variances(
          ++k)
     {
         marker_assignment.component_variance(k)
-            = detail::var(marker_assignment.component_u[k])(0);
+            = gelex::stats::detail::var(marker_assignment.component_u[k])(0);
     }
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex::mcmc::detail
 
 #endif  // GELEX_ALGO_INFER_MCMC_KERNELS_MIXTURE_OP_H_

@@ -24,24 +24,24 @@
 
 #include "gelex/data/dataframe/index.h"
 
-namespace gelex
-{
-
-namespace detail
+namespace gelex::genotype::detail
 {
 
 class SampleProjection;
 class BedMmapReader;
 class BedVariantDecoder;
 
-}  // namespace detail
+}  // namespace gelex::genotype::detail
+
+namespace gelex::genotype
+{
 
 class BedPipe
 {
    public:
     BedPipe(
         const std::filesystem::path& bed_prefix,
-        const df::Index<std::string>& sample_index);
+        const dataframe::Index<std::string>& sample_index);
 
     BedPipe(const BedPipe&) = delete;
     BedPipe& operator=(const BedPipe&) = delete;
@@ -67,12 +67,12 @@ class BedPipe
     [[nodiscard]] Eigen::Index num_snps() const;
 
    private:
-    std::unique_ptr<detail::SampleProjection> projection_;
-    std::unique_ptr<detail::BedMmapReader> bed_reader_;
-    std::unique_ptr<detail::BedVariantDecoder> decoder_;
+    std::unique_ptr<gelex::genotype::detail::SampleProjection> projection_;
+    std::unique_ptr<gelex::genotype::detail::BedMmapReader> bed_reader_;
+    std::unique_ptr<gelex::genotype::detail::BedVariantDecoder> decoder_;
     Eigen::Index num_raw_snps_ = 0;
     Eigen::Index num_output_samples_ = 0;
 };
 
-}  // namespace gelex
+}  // namespace gelex::genotype
 #endif  // GELEX_DATA_BED_PIPE_H

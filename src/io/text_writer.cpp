@@ -16,7 +16,7 @@
 
 #include "gelex/io/text_writer.h"
 
-namespace gelex::detail
+namespace gelex::io::detail
 {
 
 TextWriter::TextWriter(const std::filesystem::path& path)
@@ -51,4 +51,4 @@ auto TextWriter::path() const noexcept -> const std::filesystem::path&
     return ofs_.final_path();
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex::io::detail

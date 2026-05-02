@@ -73,7 +73,7 @@ class ResidualSampler
 
    private:
     Deps deps_;
-    ScaledInvChi2Sampler<double> variance_sampler_;
+    stats::ScaledInvChi2Sampler<double> variance_sampler_;
 };
 
 }  // namespace gelex::mcmc

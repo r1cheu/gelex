@@ -27,12 +27,12 @@
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/model/bayes/genotype_storage.h"
-#include "gelex/post/fixed_posterior_processor.h"
-#include "gelex/post/genetic_posterior_processor.h"
-#include "gelex/post/genetic_variance_posterior_processor.h"
-#include "gelex/post/heritability_posterior_processor.h"
-#include "gelex/post/random_posterior_processor.h"
-#include "gelex/post/residual_posterior_processor.h"
+#include "gelex/post/fixed.h"
+#include "gelex/post/genetic.h"
+#include "gelex/post/genetic_variance.h"
+#include "gelex/post/heritability.h"
+#include "gelex/post/random.h"
+#include "gelex/post/residual.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -57,7 +57,7 @@ auto PosteriorAnalysisEngine::run(const PostObserver& observer) -> void
         throw GelexException("Inconsistent section paths across sample files");
     }
 
-    std::span<const detail::BinaryReader> readers{readers_};
+    std::span<const io::detail::BinaryReader> readers{readers_};
 
     auto fixed_diags
         = FixedPosteriorProcessor{readers, hdpi_threshold_}.process();
@@ -99,7 +99,7 @@ auto PosteriorAnalysisEngine::check_consistency() const -> bool
     const auto reference = readers_.front().section_paths();
     return std::ranges::all_of(
         readers_ | std::views::drop(1),
-        [&](const detail::BinaryReader& reader)
+        [&](const io::detail::BinaryReader& reader)
         { return reader.section_paths() == reference; });
 }
 
@@ -128,7 +128,7 @@ auto PosteriorAnalysisEngine::process_gebv_variance()
         auto gbin_path = fmt::format(
             "{}.{}.gbin", *gfile_, genetic_mode::to_file_suffix(kind));
 
-        genotype_storages.emplace_back(GenotypeMap(gbin_path, kind));
+        genotype_storages.emplace_back(genotype::GenotypeMap(gbin_path, kind));
         genetic_inputs.push_back({&genotype_storages.back(), kind});
     }
 

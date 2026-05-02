@@ -21,7 +21,7 @@
 
 #include "gelex/exception.h"
 
-namespace gelex::detail
+namespace gelex::genotype::detail
 {
 
 namespace
@@ -118,4 +118,4 @@ auto BedMmapReader::chunk_ptr(Eigen::Index start_snp, Eigen::Index num_snps)
     return payload_ptr_ + offset;
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex::genotype::detail

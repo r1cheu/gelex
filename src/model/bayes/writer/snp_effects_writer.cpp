@@ -36,7 +36,7 @@ SnpEffectsWriter::SnpEffectsWriter(
     const std::filesystem::path& output_path)
     : result_(&result),
       bim_(read_bim(bim_file_path)),
-      writer_(std::make_unique<detail::TextWriter>(output_path))
+      writer_(std::make_unique<io::detail::TextWriter>(output_path))
 {
     bim_keys_ = bim_.index().keys();
     bim_chrom_ = bim_["chrom"].as<std::string>();

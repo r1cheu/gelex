@@ -24,7 +24,7 @@
 
 #include "gelex/data/dataframe/index.h"
 
-namespace gelex::detail
+namespace gelex::genotype::detail
 {
 
 class SampleProjection
@@ -32,7 +32,7 @@ class SampleProjection
    public:
     SampleProjection(
         const std::vector<std::string>& raw_ids,
-        const df::Index<std::string>& target_index);
+        const dataframe::Index<std::string>& target_index);
 
     [[nodiscard]] auto mapping() const -> const std::vector<Eigen::Index>&;
 
@@ -49,6 +49,6 @@ class SampleProjection
     Eigen::Index num_output_samples_ = 0;
 };
 
-}  // namespace gelex::detail
+}  // namespace gelex::genotype::detail
 
 #endif  // GELEX_DATA_BED_PIPE_SAMPLE_PROJECTION_H_

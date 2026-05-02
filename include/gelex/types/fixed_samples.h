@@ -40,6 +40,9 @@ struct RandomState;
 namespace gelex
 {
 
+using stats::RunningStats;
+using stats::RunningStatsResult;
+
 struct FixedSamples
 {
     explicit FixedSamples(const FixedEffect& effect);

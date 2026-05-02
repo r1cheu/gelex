@@ -25,8 +25,8 @@
 #include "gelex/exception.h"
 
 using gelex::GelexException;
-using gelex::df::Index;
-using gelex::df::intersect;
+using gelex::dataframe::Index;
+using gelex::dataframe::intersect;
 
 // ----------------------------------------------------------------
 // Helper: build an Index<string> from a brace-list

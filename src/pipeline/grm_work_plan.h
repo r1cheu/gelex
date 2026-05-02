@@ -70,7 +70,7 @@ class GrmLocoPlan
         Eigen::Index total_snps;
     };
 
-    static auto build_loco_ranges(const df::DataFrame<std::string>& bim)
+    static auto build_loco_ranges(const dataframe::DataFrame<std::string>& bim)
         -> std::vector<ChrRange>;
 
     std::vector<GrmWorkItem> items_;

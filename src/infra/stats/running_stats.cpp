@@ -18,7 +18,7 @@
 
 #include <cmath>
 
-namespace gelex
+namespace gelex::stats
 {
 
 auto RunningStats::result() const -> RunningStatsResult
@@ -44,4 +44,4 @@ auto RunningStats::result() const -> RunningStatsResult
     return output;
 }
 
-}  // namespace gelex
+}  // namespace gelex::stats

@@ -42,7 +42,8 @@ namespace
 
 namespace fs = std::filesystem;
 using namespace gelex;
-using namespace gelex::detail;
+using namespace gelex::io::detail;
+using namespace gelex::genotype;
 
 }  // namespace
 

@@ -48,11 +48,11 @@ auto SingleTester::run(const RemlResult& reml) -> TestResults
 {
     if (mode_ == GeneticMode::A)
     {
-        process_matrix<GeneticMode::A>(method_, Z_, &freqs_);
+        gelex::genotype::process_matrix<GeneticMode::A>(method_, Z_, &freqs_);
     }
     else
     {
-        process_matrix<GeneticMode::D>(method_, Z_, &freqs_);
+        gelex::genotype::process_matrix<GeneticMode::D>(method_, Z_, &freqs_);
     }
 
     wald_test(Z_, W_, reml, output_);
@@ -82,7 +82,8 @@ auto SingleTester::wald_test(
     output.zt_Pz = (Z.transpose() * W).diagonal();
 
     output.beta = (output.zt_Pr.array() / output.zt_Pz.array());
-    output.pve = detail::var(Z * output.beta.asDiagonal()).array() / reml.Vp;
+    output.pve
+        = stats::detail::var(Z * output.beta.asDiagonal()).array() / reml.Vp;
     output.se = (1.0 / output.zt_Pz.array()).sqrt();
     output.stats = (output.beta.array() / output.se.array()).square();
     output.p_value = (output.stats.array() * 0.5).sqrt().erfc();

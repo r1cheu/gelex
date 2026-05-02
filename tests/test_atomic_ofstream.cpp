@@ -30,7 +30,7 @@
 namespace fs = std::filesystem;
 
 using gelex::GelexException;
-using gelex::detail::AtomicOfstream;
+using gelex::io::detail::AtomicOfstream;
 using gelex::test::FileFixture;
 
 namespace

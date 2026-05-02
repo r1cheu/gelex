@@ -39,10 +39,10 @@ class Result;
 struct GeneticSummary;
 struct PosteriorSummary;
 
-namespace detail
+namespace stats::detail
 {
 struct ScaledInvChiSqParams;
-}  // namespace detail
+}  // namespace stats::detail
 
 namespace bayes
 {
@@ -100,7 +100,7 @@ class FitReporter
     auto print_residual_summary(const mcmc::Result& result) const -> void;
 
     auto print_variance_prior(
-        const detail::ScaledInvChiSqParams& prior,
+        const stats::detail::ScaledInvChiSqParams& prior,
         double init_variance) const -> void;
     auto print_summary_row(
         std::string_view name,

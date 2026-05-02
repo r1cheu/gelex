@@ -36,7 +36,7 @@ auto make_predict_config(argparse::ArgumentParser& cmd) -> PredictEngine::Config
     auto gfile = cmd.get<std::string>("--gfile");
     auto bfile = cmd.get<std::string>("--bfile");
 
-    config.bed_path = gelex::format_bed_path(bfile);
+    config.bed_path = gelex::genotype::format_bed_path(bfile);
     config.bfile_prefix = bfile;
     config.gfile_prefix = gfile;
 

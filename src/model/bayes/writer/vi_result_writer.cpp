@@ -44,7 +44,7 @@ namespace
 auto write_summary(const vi::Result& result, const std::filesystem::path& path)
     -> void
 {
-    auto writer = std::make_unique<detail::TextWriter>(path);
+    auto writer = std::make_unique<io::detail::TextWriter>(path);
     writer->write_header({"term", "mean", "stddev"});
 
     const auto& fixed = result.fixed();
@@ -93,7 +93,7 @@ auto write_snp_effects(
     auto bim_a1 = bim["A1"].as<std::string>();
     auto bim_a2 = bim["A2"].as<std::string>();
 
-    auto writer = std::make_unique<detail::TextWriter>(path);
+    auto writer = std::make_unique<io::detail::TextWriter>(path);
 
     std::string header = "Index\tID\tChrom\tPosition\tA1\tA2\tA1Freq\tAdd";
     if (dominant != nullptr)

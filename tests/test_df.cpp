@@ -30,14 +30,14 @@
 #include "gelex/exception.h"
 
 using gelex::GelexException;
-using gelex::df::ColumnType;
-using gelex::df::DataFrame;
-using gelex::df::Index;
-using gelex::df::intersect_inplace;
-using gelex::df::kSeparator;
-using gelex::df::NaAction;
-using gelex::df::read_dataframe;
-using gelex::df::ReadOptions;
+using gelex::dataframe::ColumnType;
+using gelex::dataframe::DataFrame;
+using gelex::dataframe::Index;
+using gelex::dataframe::intersect_inplace;
+using gelex::dataframe::kSeparator;
+using gelex::dataframe::NaAction;
+using gelex::dataframe::read_dataframe;
+using gelex::dataframe::ReadOptions;
 using gelex::test::FileFixture;
 
 namespace

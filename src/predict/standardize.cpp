@@ -18,7 +18,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/internal/genotype_processor/encode_policy.h"
+#include "gelex/data/genotype/detail/encode_policy.h"
 #include "gelex/types/genotype_process_method.h"
 
 namespace gelex
@@ -52,11 +52,13 @@ auto standardize_genotypes(GenotypeData& geno, const SbinData& sbin) -> void
 
             if (use_orthogonal)
             {
-                detail::OrthogonalPolicy<GeneticMode::D>::encode(col, maf);
+                gelex::genotype::detail::OrthogonalPolicy<
+                    GeneticMode::D>::encode(col, maf);
             }
             else
             {
-                detail::RawPolicy<GeneticMode::D>::encode(col, maf);
+                gelex::genotype::detail::RawPolicy<GeneticMode::D>::encode(
+                    col, maf);
             }
 
             col.array() -= sbin.dom.mean(j);

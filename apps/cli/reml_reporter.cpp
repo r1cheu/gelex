@@ -19,10 +19,10 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
-#include "gelex/algo/stats/statistics.h"
+#include "gelex/algo/reml/statistics.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/formatter.h"
-#include "gelex/model/freq/model.h"
+#include "gelex/model/freq_model.h"
 
 namespace gelex::cli
 {
@@ -90,10 +90,8 @@ auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
 
     // model fit
     logger_->info("  Model Fit:");
-    logger_->info(
-        "  - AIC : {:.2f}", statistics::compute_aic(model, e.loglike));
-    logger_->info(
-        "  - BIC : {:.2f}", statistics::compute_bic(model, e.loglike));
+    logger_->info("  - AIC : {:.2f}", reml::compute_aic(model, e.loglike));
+    logger_->info("  - BIC : {:.2f}", reml::compute_bic(model, e.loglike));
     logger_->info("");
 
     // fixed effects

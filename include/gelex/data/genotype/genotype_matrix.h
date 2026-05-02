@@ -22,7 +22,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex
+namespace gelex::genotype
 {
 
 class GenotypeMatrix
@@ -76,6 +76,6 @@ class GenotypeMatrix
     void validate_dimensions() const;
 };
 
-}  // namespace gelex
+}  // namespace gelex::genotype
 
 #endif  // GELEX_DATA_GENOTYPE_MATRIX_H_

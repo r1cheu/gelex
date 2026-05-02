@@ -103,19 +103,19 @@ auto SimulationEngine::run(const SimulateObserver& observer) -> void
     }
     phenotypes += residual;
 
-    const double var_phen = detail::var(phenotypes)(0);
+    const double var_phen = stats::detail::var(phenotypes)(0);
     SimulateVarianceSummaryEvent summary;
     if (additive && var_phen > 0.0)
     {
-        summary.realized_h2 = detail::var(additive->gebv)(0) / var_phen;
+        summary.realized_h2 = stats::detail::var(additive->gebv)(0) / var_phen;
     }
     if (dominance && var_phen > 0.0)
     {
-        summary.realized_d2 = detail::var(dominance->gebv)(0) / var_phen;
+        summary.realized_d2 = stats::detail::var(dominance->gebv)(0) / var_phen;
     }
     notify(observer, summary);
 
-    detail::TextWriter writer(config_.output_prefix + ".phen");
+    io::detail::TextWriter writer(config_.output_prefix + ".phen");
     writer.write_header({"FID", "IID", "Phenotype"});
     for (Eigen::Index i = 0; i < n_samples; ++i)
     {
@@ -123,7 +123,7 @@ auto SimulationEngine::run(const SimulateObserver& observer) -> void
         writer.write(fmt::format("{}\t{}\t{}", fid, iid, phenotypes(i)));
     }
 
-    detail::TextWriter effect_writer(config_.output_prefix + ".causal");
+    io::detail::TextWriter effect_writer(config_.output_prefix + ".causal");
     auto write_single
         = [&](std::string_view column, const std::vector<CausalSnp>& snps)
     {

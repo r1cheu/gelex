@@ -35,7 +35,8 @@
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/vi_result.h"
 
-using namespace gelex;  // NOLINT
+using namespace gelex;            // NOLINT
+using namespace gelex::genotype;  // NOLINT
 
 namespace
 {

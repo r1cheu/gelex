@@ -20,7 +20,7 @@
 
 #include "data/decode_lut.h"
 
-namespace gelex::detail
+namespace gelex::genotype::detail
 {
 
 BedVariantDecoder::BedVariantDecoder(
@@ -125,4 +125,4 @@ void BedVariantDecoder::decode_sparse(
     }
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex::genotype::detail

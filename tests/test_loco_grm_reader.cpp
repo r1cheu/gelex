@@ -29,7 +29,7 @@
 namespace fs = std::filesystem;
 using gelex::GrmBinWriter;
 using gelex::test::FileFixture;
-namespace df = gelex::df;
+namespace df = gelex::dataframe;
 
 namespace
 {

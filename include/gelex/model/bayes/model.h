@@ -26,7 +26,6 @@
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
-#include "gelex/model/bayes/vi/states.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex

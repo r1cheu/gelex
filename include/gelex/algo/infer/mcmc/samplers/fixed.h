@@ -67,7 +67,7 @@ class FixedSampler
 
    private:
     Deps deps_;
-    NormalSampler<double> normal_{0.0};
+    stats::NormalSampler<double> normal_{0.0};
 };
 
 }  // namespace gelex::mcmc

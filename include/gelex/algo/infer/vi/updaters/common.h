@@ -21,7 +21,7 @@
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 
-namespace gelex::detail::CommonUpdater
+namespace gelex::vi::detail
 {
 
 struct Fixed
@@ -55,6 +55,6 @@ struct Residual
         vi::State& states) const -> void;
 };
 
-}  // namespace gelex::detail::CommonUpdater
+}  // namespace gelex::vi::detail
 
 #endif  // GELEX_ALGO_INFER_VI_UPDATERS_COMMON_H_

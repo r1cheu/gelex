@@ -28,7 +28,7 @@
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/grm/grm_writer.h"
 #include "gelex/data/reader.h"
-#include "gelex/model/freq/model.h"
+#include "gelex/model/freq_model.h"
 #include "gelex/pipeline/grm_pipe.h"
 #include "gelex/pipeline/pheno_pipe.h"
 #include "gelex/types/sample_id.h"
@@ -183,11 +183,11 @@ auto make_freq_model(
 
     GrmPipe grm(grm_paths);
 
-    std::vector<const df::Index<std::string>*> all_indices{
+    std::vector<const dataframe::Index<std::string>*> all_indices{
         &fam_index, &pheno.pheno_index()};
     all_indices.append_range(pheno.covar_indices());
     all_indices.append_range(grm.sample_indices());
-    auto common = df::intersect<std::string>(all_indices);
+    auto common = dataframe::intersect<std::string>(all_indices);
 
     pheno.gather(common);
     grm.load(common);

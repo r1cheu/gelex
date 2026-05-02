@@ -80,10 +80,10 @@ class GeneticJointSweep
             const double first_xtx = first_.effect.XtX_diag(i);
             const double second_xtx = second_.effect.XtX_diag(i);
             const double first_rhs
-                = ::gelex::detail::blas_ddot(first_col, y_adj)
+                = ::gelex::infer::detail::blas_ddot(first_col, y_adj)
                   + (first_xtx * first_old);
             const double second_rhs
-                = ::gelex::detail::blas_ddot(second_col, y_adj)
+                = ::gelex::infer::detail::blas_ddot(second_col, y_adj)
                   + (second_xtx * second_old);
 
             const auto [first_new, second_new] = kernel.sample(
@@ -98,13 +98,13 @@ class GeneticJointSweep
             first_coeffs(i) = first_new;
             second_coeffs(i) = second_new;
 
-            ::gelex::detail::apply_marker_update(
+            ::gelex::infer::detail::apply_marker_update(
                 y_adj,
                 first_u,
                 {},
                 first_col,
                 {.old_value = first_old, .new_value = first_new});
-            ::gelex::detail::apply_marker_update(
+            ::gelex::infer::detail::apply_marker_update(
                 y_adj,
                 second_u,
                 {},
@@ -114,8 +114,8 @@ class GeneticJointSweep
 
         kernel.commit(rng_);
 
-        first_.state.variance = gelex::detail::var(first_u)(0);
-        second_.state.variance = gelex::detail::var(second_u)(0);
+        first_.state.variance = gelex::stats::detail::var(first_u)(0);
+        second_.state.variance = gelex::stats::detail::var(second_u)(0);
     }
 
    private:

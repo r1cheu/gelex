@@ -19,14 +19,11 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-namespace gelex
+namespace gelex::stats
 {
-namespace detail
-{
-using Eigen::Ref;
-
 using Eigen::Index;
 using Eigen::MatrixXd;
+using Eigen::Ref;
 using Eigen::RowVectorXd;
 using Eigen::VectorXd;
 
@@ -90,5 +87,4 @@ VectorXd sum_square(const Ref<Eigen::SparseMatrix<double>>& mat)
     return result;
 }
 
-}  // namespace detail
-}  // namespace gelex
+}  // namespace gelex::stats

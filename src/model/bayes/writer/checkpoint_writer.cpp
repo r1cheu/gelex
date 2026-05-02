@@ -34,7 +34,7 @@ namespace
 {
 
 auto write_scalar(
-    detail::BinaryWriter& writer,
+    io::detail::BinaryWriter& writer,
     std::string_view path,
     double value) -> void
 {
@@ -43,7 +43,7 @@ auto write_scalar(
 }
 
 auto write_uint8(
-    detail::BinaryWriter& writer,
+    io::detail::BinaryWriter& writer,
     std::string_view path,
     uint8_t value) -> void
 {
@@ -51,14 +51,14 @@ auto write_uint8(
     writer.write(handle, value);
 }
 
-auto write_fixed(detail::BinaryWriter& writer, const bayes::FixedState& fs)
+auto write_fixed(io::detail::BinaryWriter& writer, const bayes::FixedState& fs)
     -> void
 {
     writer.write(fmt::format("{}/coeff", EffectType::fixed()), fs.coeffs);
 }
 
 auto write_random(
-    detail::BinaryWriter& writer,
+    io::detail::BinaryWriter& writer,
     const std::vector<bayes::RandomState>& random_states) -> void
 {
     for (uint8_t i = 0; i < static_cast<uint8_t>(random_states.size()); ++i)
@@ -74,7 +74,7 @@ auto write_random(
 }
 
 auto write_assignment(
-    detail::BinaryWriter& writer,
+    io::detail::BinaryWriter& writer,
     const EffectType& effect,
     const bayes::Assignment& a) -> void
 {
@@ -83,7 +83,7 @@ auto write_assignment(
 }
 
 auto write_component_allocation(
-    detail::BinaryWriter& writer,
+    io::detail::BinaryWriter& writer,
     const EffectType& effect,
     const bayes::ComponentAllocation& ca) -> void
 {
@@ -104,7 +104,7 @@ auto write_component_allocation(
 }
 
 auto write_marker_group(
-    detail::BinaryWriter& writer,
+    io::detail::BinaryWriter& writer,
     const EffectType& effect,
     const bayes::MarkerAllocation& group) -> void
 {
@@ -125,7 +125,7 @@ auto write_marker_group(
 }
 
 auto write_genetic_sign(
-    detail::BinaryWriter& writer,
+    io::detail::BinaryWriter& writer,
     const EffectType& effect,
     const bayes::Assignment& sign) -> void
 {
@@ -134,7 +134,7 @@ auto write_genetic_sign(
 }
 
 auto write_genetics(
-    detail::BinaryWriter& writer,
+    io::detail::BinaryWriter& writer,
     const std::vector<bayes::GeneticState>& genetic_states) -> void
 {
     for (const auto& gs : genetic_states)
@@ -158,7 +158,7 @@ auto write_genetics(
 }
 
 auto write_residual(
-    detail::BinaryWriter& writer,
+    io::detail::BinaryWriter& writer,
     const bayes::ResidualState& rs) -> void
 {
     writer.write(fmt::format("{}/adj_pheno", EffectType::residual()), rs.y_adj);
@@ -168,7 +168,8 @@ auto write_residual(
         rs.variance);
 }
 
-auto write_rng(detail::BinaryWriter& writer, const std::mt19937_64& rng) -> void
+auto write_rng(io::detail::BinaryWriter& writer, const std::mt19937_64& rng)
+    -> void
 {
     std::ostringstream oss;
     oss << rng;
@@ -182,7 +183,7 @@ auto write_rng(detail::BinaryWriter& writer, const std::mt19937_64& rng) -> void
 }
 
 auto write_variance_prior(
-    detail::BinaryWriter& writer,
+    io::detail::BinaryWriter& writer,
     std::string_view prefix,
     const bayes::VariancePrior& vp) -> void
 {
@@ -194,7 +195,7 @@ auto write_variance_prior(
 }
 
 auto write_genetic_prior(
-    detail::BinaryWriter& writer,
+    io::detail::BinaryWriter& writer,
     const bayes::GeneticPrior& gp) -> void
 {
     const auto effect = EffectType::from_genetic(gp.type);
@@ -236,7 +237,7 @@ auto write_genetic_prior(
     }
 }
 
-auto write_priors(detail::BinaryWriter& writer, const bayes::Priors& priors)
+auto write_priors(io::detail::BinaryWriter& writer, const bayes::Priors& priors)
     -> void
 {
     write_variance_prior(
@@ -266,7 +267,7 @@ auto write_checkpoint(
     const bayes::Priors& priors,
     std::string_view prefix) -> void
 {
-    detail::BinaryWriter writer(fmt::format("{}.ckpt", prefix));
+    io::detail::BinaryWriter writer(fmt::format("{}.ckpt", prefix));
 
     write_priors(writer, priors);
     write_fixed(writer, state.fixed());

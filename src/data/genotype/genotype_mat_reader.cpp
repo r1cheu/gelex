@@ -22,13 +22,13 @@
 
 #include "gelex/types/genotype_process_method.h"
 
-namespace gelex
+namespace gelex::genotype
 {
 
 GenotypeMatReader::GenotypeMatReader(
     const std::filesystem::path& bed_path,
-    const df::Index<std::string>& sample_index,
-    DataPipeObserver observer)
+    const dataframe::Index<std::string>& sample_index,
+    gelex::DataPipeObserver observer)
     : bed_pipe_(bed_path, sample_index), observer_(std::move(observer))
 {
     num_variants_ = bed_pipe_.num_snps();    // NOLINT
@@ -55,7 +55,7 @@ GenotypeMatReader::GenotypeMatReader(
 void GenotypeMatReader::process_chunk(
     Eigen::MatrixXd& chunk,
     Eigen::Index global_start,
-    LocusStatistic (*fn)(Eigen::Ref<Eigen::VectorXd>))
+    gelex::LocusStatistic (*fn)(Eigen::Ref<Eigen::VectorXd>))
 {
     const Eigen::Index num_variants_in_chunk = chunk.cols();
 
@@ -63,7 +63,7 @@ void GenotypeMatReader::process_chunk(
     for (Eigen::Index i = 0; i < num_variants_in_chunk; ++i)
     {
         auto variant = chunk.col(i);
-        LocusStatistic stats = fn(variant);
+        gelex::LocusStatistic stats = fn(variant);
 
         Eigen::Index global_idx = global_start + i;
         means_[global_idx] = stats.mean;
@@ -96,4 +96,4 @@ GenotypeMatrix GenotypeMatReader::finalize()
         std::move(stddev_vec));
 }
 
-}  // namespace gelex
+}  // namespace gelex::genotype

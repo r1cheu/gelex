@@ -48,7 +48,7 @@ class LociStatsReader
     [[nodiscard]] auto has(EffectType effect) const -> bool;
 
    private:
-    detail::BinaryReader reader_;
+    io::detail::BinaryReader reader_;
 };
 
 }  // namespace gelex

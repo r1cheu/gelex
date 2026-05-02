@@ -41,7 +41,7 @@ class PosteriorAnalysisEngine
 
    private:
     double hdpi_threshold_;
-    std::vector<detail::BinaryReader> readers_;
+    std::vector<io::detail::BinaryReader> readers_;
     std::optional<std::string> gfile_;
 
     auto check_consistency() const -> bool;

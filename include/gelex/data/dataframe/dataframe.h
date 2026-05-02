@@ -34,7 +34,7 @@
 #include "gelex/exception.h"
 #include "gelex/infra/string_hash.h"
 
-namespace gelex::df
+namespace gelex::dataframe
 {
 
 namespace detail
@@ -316,6 +316,6 @@ auto intersect_inplace(std::span<DataFrame<Key>* const> dfs) -> void
     }
 }
 
-}  // namespace gelex::df
+}  // namespace gelex::dataframe
 
 #endif  // GELEX_DATA_DATAFRAME_DATAFRAME_H

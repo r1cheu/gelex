@@ -21,7 +21,7 @@
 #include <memory>
 #include <span>
 
-namespace gelex::detail
+namespace gelex::io::detail
 {
 class TextWriter;
 }
@@ -53,7 +53,7 @@ class CovariateWriter
 
     const FixedSummary* fixed_;
     std::span<const RandomSummary> random_;
-    std::unique_ptr<detail::TextWriter> writer_;
+    std::unique_ptr<io::detail::TextWriter> writer_;
 };
 
 }  // namespace gelex

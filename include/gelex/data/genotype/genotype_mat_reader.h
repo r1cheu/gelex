@@ -30,7 +30,7 @@
 #include "gelex/infra/logging/notify.h"
 #include "gelex/types/genotype_process_method.h"
 
-namespace gelex
+namespace gelex::genotype
 {
 
 class GenotypeMatReader
@@ -38,8 +38,8 @@ class GenotypeMatReader
    public:
     explicit GenotypeMatReader(
         const std::filesystem::path& bed_path,
-        const df::Index<std::string>& sample_index,
-        DataPipeObserver observer = {});
+        const dataframe::Index<std::string>& sample_index,
+        gelex::DataPipeObserver observer = {});
 
     GenotypeMatReader(const GenotypeMatReader&) = delete;
     GenotypeMatReader& operator=(const GenotypeMatReader&) = delete;
@@ -47,8 +47,8 @@ class GenotypeMatReader
     GenotypeMatReader& operator=(GenotypeMatReader&&) noexcept = default;
     ~GenotypeMatReader() = default;
 
-    template <GeneticMode GT>
-    auto process(GenotypeProcessMethod method, size_t chunk_size = 10000)
+    template <gelex::GeneticMode GT>
+    auto process(gelex::GenotypeProcessMethod method, size_t chunk_size = 10000)
         -> GenotypeMatrix
     {
         global_snp_idx_ = 0;
@@ -65,17 +65,17 @@ class GenotypeMatReader
             auto chunk = bed_pipe_.load_chunk(start_variant, end_variant);
             process_chunk(chunk, start_variant, fn);
             global_snp_idx_ += chunk.cols();
-            notify(
+            gelex::notify(
                 observer_,
-                GenotypeProgressEvent{
+                gelex::GenotypeProgressEvent{
                     static_cast<size_t>(global_snp_idx_),
                     static_cast<size_t>(num_variants_),
                     false});
             start_variant = end_variant;
         }
-        notify(
+        gelex::notify(
             observer_,
-            GenotypeProgressEvent{
+            gelex::GenotypeProgressEvent{
                 static_cast<size_t>(num_variants_),
                 static_cast<size_t>(num_variants_),
                 true});
@@ -95,12 +95,12 @@ class GenotypeMatReader
     void process_chunk(
         Eigen::MatrixXd& chunk,
         Eigen::Index global_start,
-        LocusStatistic (*fn)(Eigen::Ref<Eigen::VectorXd>));
+        gelex::LocusStatistic (*fn)(Eigen::Ref<Eigen::VectorXd>));
 
     GenotypeMatrix finalize();
 
     BedPipe bed_pipe_;
-    DataPipeObserver observer_;
+    gelex::DataPipeObserver observer_;
 
     int64_t sample_size_{};
     int64_t num_variants_{};
@@ -114,6 +114,6 @@ class GenotypeMatReader
     Eigen::MatrixXd data_matrix_;
 };
 
-}  // namespace gelex
+}  // namespace gelex::genotype
 
 #endif  // GELEX_DATA_GENOTYPE_MAT_READER_H_

@@ -27,8 +27,8 @@
 #include "gelex/algo/infer/mcmc/solver.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
+#include "gelex/model/bayes/checkpoint_reader.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/reader/checkpoint_reader.h"
 #include "gelex/model/bayes/writer/mcmc_result_writer.h"
 #include "gelex/pipeline/model_builder.h"
 

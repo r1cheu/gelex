@@ -18,7 +18,12 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/algo/numerics/constrain.h"
+#include "gelex/algo/reml/constrain.h"
+
+namespace gelex
+{
+using reml::constrain;
+}
 
 namespace gelex
 {

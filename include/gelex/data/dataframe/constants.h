@@ -20,7 +20,7 @@
 #include <array>
 #include <string_view>
 
-namespace gelex::df
+namespace gelex::dataframe
 {
 
 inline constexpr char kSeparator = '\x1F';
@@ -35,6 +35,6 @@ inline constexpr std::array kDefaultNaRep = {
     std::string_view{"."},
 };
 
-}  // namespace gelex::df
+}  // namespace gelex::dataframe
 
 #endif  // GELEX_DATA_DATAFRAME_CONSTANTS_H

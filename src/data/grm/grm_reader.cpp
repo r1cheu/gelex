@@ -40,19 +40,19 @@ auto get_type(std::string_view grm_path_stem) -> gelex::GeneticMode
     return gelex::GeneticMode::A;
 }
 }  // namespace
-namespace gelex::detail
+namespace gelex::grm::detail
 {
 
 namespace
 {
 auto read_grm_index(const std::filesystem::path& id_path)
-    -> gelex::df::Index<std::string>
+    -> gelex::dataframe::Index<std::string>
 {
-    df::ReadOptions options;
+    dataframe::ReadOptions options;
     options.delimiter = '\t';
     options.header = false;
     options.index_cols = {0, 1};
-    auto index = df::read_index<std::string>(id_path, options);
+    auto index = dataframe::read_index<std::string>(id_path, options);
     if (index.size() == 0)
     {
         throw GelexException(
@@ -129,7 +129,7 @@ auto GrmReader::load_unnormalized() const -> Eigen::MatrixXd
     return grm;
 }
 
-auto GrmReader::load(const df::Index<std::string>& sample_index) const
+auto GrmReader::load(const dataframe::Index<std::string>& sample_index) const
     -> Eigen::MatrixXd
 {
     Eigen::MatrixXd grm = load_unnormalized(sample_index);
@@ -142,7 +142,7 @@ auto GrmReader::load(const df::Index<std::string>& sample_index) const
 }
 
 auto GrmReader::load_unnormalized(
-    const df::Index<std::string>& sample_index,
+    const dataframe::Index<std::string>& sample_index,
     Eigen::MatrixXd& target) const -> void
 {
     if (sample_index.size() == 0)
@@ -200,11 +200,11 @@ auto GrmReader::load_unnormalized(
 }
 
 auto GrmReader::load_unnormalized(
-    const df::Index<std::string>& sample_index) const -> Eigen::MatrixXd
+    const dataframe::Index<std::string>& sample_index) const -> Eigen::MatrixXd
 {
     Eigen::MatrixXd grm;
     load_unnormalized(sample_index, grm);
     return grm;
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex::grm::detail

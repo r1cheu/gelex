@@ -23,7 +23,7 @@
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/states.h"
 
-namespace gelex::detail::CommonUpdater
+namespace gelex::vi::detail
 {
 
 using Eigen::Index;
@@ -111,7 +111,7 @@ auto Random::update_impl(
         y_adj.array() += col.array() * diff;
     }
 
-    detail::ScaledInvChiSq chi_squared{prior.param};
+    gelex::stats::detail::ScaledInvChiSq chi_squared{prior.param};
     chi_squared.compute(coeffs.squaredNorm(), coeffs.size());
     state.variance = chi_squared.expected_value();
 }
@@ -131,9 +131,9 @@ auto Residual::operator()(
         expected_rss += (effect->XtX_diag.array() * gs.sigma2.array()).sum();
     }
 
-    detail::ScaledInvChiSq chi_squared{priors.residual().param};
+    gelex::stats::detail::ScaledInvChiSq chi_squared{priors.residual().param};
     chi_squared.compute(expected_rss, model.num_individuals());
     residual.variance = chi_squared.expected_value();
 }
 
-}  // namespace gelex::detail::CommonUpdater
+}  // namespace gelex::vi::detail

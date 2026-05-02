@@ -25,8 +25,9 @@
 #include <string_view>
 #include <type_traits>
 
-namespace gelex::detail::binary_format
+namespace gelex::io::detail
 {
+
 inline constexpr std::array<std::byte, 8> kBinaryFormatMagic
     = {std::byte{'G'},
        std::byte{'E'},
@@ -74,11 +75,6 @@ inline auto path_as_view(const std::array<char, 64>& p) -> std::string_view
     return {p.data(), static_cast<size_t>(len)};
 }
 
-}  // namespace gelex::detail::binary_format
-
-namespace gelex::detail
-{
-
 struct TocEntry
 {
     std::array<char, 64> path{};
@@ -88,16 +84,16 @@ struct TocEntry
     uint64_t rows{};
     uint64_t cols{};
 
-    auto to_bytes() const -> std::array<std::byte, binary_format::kTocEntrySize>
+    auto to_bytes() const -> std::array<std::byte, kTocEntrySize>
     {
-        std::array<std::byte, binary_format::kTocEntrySize> buf{};
+        std::array<std::byte, kTocEntrySize> buf{};
         std::memcpy(buf.data(), path.data(), 64);
         buf[64] = static_cast<std::byte>(dtype);
         // buf[65..71] padding — already zero from aggregate init
-        binary_format::encode(offset, &buf[72]);
-        binary_format::encode(size, &buf[80]);
-        binary_format::encode(rows, &buf[88]);
-        binary_format::encode(cols, &buf[96]);
+        encode(offset, &buf[72]);
+        encode(size, &buf[80]);
+        encode(rows, &buf[88]);
+        encode(cols, &buf[96]);
         return buf;
     }
 
@@ -106,14 +102,14 @@ struct TocEntry
         TocEntry e;
         std::memcpy(e.path.data(), buf, 64);
         e.dtype = static_cast<uint8_t>(buf[64]);
-        e.offset = binary_format::decode<uint64_t>(buf + 72);
-        e.size = binary_format::decode<uint64_t>(buf + 80);
-        e.rows = binary_format::decode<uint64_t>(buf + 88);
-        e.cols = binary_format::decode<uint64_t>(buf + 96);
+        e.offset = decode<uint64_t>(buf + 72);
+        e.size = decode<uint64_t>(buf + 80);
+        e.rows = decode<uint64_t>(buf + 88);
+        e.cols = decode<uint64_t>(buf + 96);
         return e;
     }
 };
 
-}  // namespace gelex::detail
+}  // namespace gelex::io::detail
 
 #endif  // GELEX_IO_BINARY_FORMAT_H_

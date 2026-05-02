@@ -27,15 +27,15 @@
 #include "gelex/data/dataframe/encode.h"
 #include "gelex/exception.h"
 
-using gelex::df::check_levels;
-using gelex::df::collect_levels;
-using gelex::df::Column;
-using gelex::df::dummy_encode;
-using gelex::df::encode;
-using gelex::df::EncodedResult;
-using gelex::df::kSeparator;
-using gelex::df::LevelMismatch;
-using gelex::df::one_hot_encode;
+using gelex::dataframe::check_levels;
+using gelex::dataframe::collect_levels;
+using gelex::dataframe::Column;
+using gelex::dataframe::dummy_encode;
+using gelex::dataframe::encode;
+using gelex::dataframe::EncodedResult;
+using gelex::dataframe::kSeparator;
+using gelex::dataframe::LevelMismatch;
+using gelex::dataframe::one_hot_encode;
 
 namespace
 {

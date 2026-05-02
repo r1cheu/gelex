@@ -28,7 +28,7 @@ namespace gelex
 {
 inline auto detect_delimiter(const std::filesystem::path& path) -> char
 {
-    auto file = detail::open_file<std::ifstream>(path, std::ios::in);
+    auto file = io::detail::open_file<std::ifstream>(path, std::ios::in);
     std::string line;
     std::getline(file, line);
     if (line.contains('\t'))
@@ -47,61 +47,61 @@ inline auto detect_delimiter(const std::filesystem::path& path) -> char
 }
 
 inline auto read_fam(const std::filesystem::path& path)
-    -> df::DataFrame<std::string>
+    -> dataframe::DataFrame<std::string>
 {
-    using enum df::ColumnType;
+    using enum dataframe::ColumnType;
     constexpr std::array kSchema = {String, String, Int, String};
-    df::ReadOptions options;
+    dataframe::ReadOptions options;
     options.header = false;
     options.delimiter = detect_delimiter(path);
     options.index_cols = {0, 1};
     options.names = {"father", "mother", "sex", "phenotype"};
-    return df::read_dataframe<std::string>(path, options, kSchema);
+    return dataframe::read_dataframe<std::string>(path, options, kSchema);
 }
 
 inline auto read_bim(const std::filesystem::path& path)
-    -> df::DataFrame<std::string>
+    -> dataframe::DataFrame<std::string>
 {
-    using enum df::ColumnType;
+    using enum dataframe::ColumnType;
     constexpr std::array kSchema = {String, Int, String, String};
-    auto file = detail::open_file<std::ifstream>(path, std::ios::in);
-    df::ReadOptions options;
+    auto file = io::detail::open_file<std::ifstream>(path, std::ios::in);
+    dataframe::ReadOptions options;
     options.header = false;
     options.delimiter = detect_delimiter(path);
     options.index_cols = {1};
     options.select_cols = {0, 3, 4, 5};
     options.names = {"chrom", "pos", "A1", "A2"};
-    return df::read_dataframe<std::string>(path, options, kSchema);
+    return dataframe::read_dataframe<std::string>(path, options, kSchema);
 }
 
 inline auto read_pheno(
     const std::filesystem::path& path,
-    const std::size_t* pheno_col = nullptr) -> df::DataFrame<std::string>
+    const std::size_t* pheno_col = nullptr) -> dataframe::DataFrame<std::string>
 {
-    df::ReadOptions options;
+    dataframe::ReadOptions options;
     options.index_cols = {0, 1};
-    options.na_action = df::NaAction::Exclude;
+    options.na_action = dataframe::NaAction::Exclude;
     if (pheno_col != nullptr)
     {
         options.select_cols = {*pheno_col + 2};
     }
-    return df::read_dataframe<std::string, double>(path, options);
+    return dataframe::read_dataframe<std::string, double>(path, options);
 }
 
 inline auto read_qcovar(const std::filesystem::path& path)
-    -> df::DataFrame<std::string>
+    -> dataframe::DataFrame<std::string>
 {
-    df::ReadOptions options;
+    dataframe::ReadOptions options;
     options.index_cols = {0, 1};
-    return df::read_dataframe<std::string, double>(path, options);
+    return dataframe::read_dataframe<std::string, double>(path, options);
 }
 
 inline auto read_dcovar(const std::filesystem::path& path)
-    -> df::DataFrame<std::string>
+    -> dataframe::DataFrame<std::string>
 {
-    df::ReadOptions options;
+    dataframe::ReadOptions options;
     options.index_cols = {0, 1};
-    return df::read_dataframe<std::string, std::string>(path, options);
+    return dataframe::read_dataframe<std::string, std::string>(path, options);
 }
 
 };  // namespace gelex

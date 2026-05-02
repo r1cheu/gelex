@@ -84,7 +84,7 @@ TEST_CASE("marker_op apply_marker_update", "[!benchmark][mcmc][marker_op]")
         {
             for (std::size_t marker = 0; marker < kMarkers; ++marker)
             {
-                gelex::detail::apply_marker_update(
+                gelex::infer::detail::apply_marker_update(
                     inputs.y_adj,
                     inputs.gebv,
                     {},
@@ -102,7 +102,7 @@ TEST_CASE("marker_op apply_marker_update", "[!benchmark][mcmc][marker_op]")
         {
             for (std::size_t marker = 0; marker < kMarkers; ++marker)
             {
-                gelex::detail::apply_marker_update(
+                gelex::infer::detail::apply_marker_update(
                     inputs.y_adj,
                     inputs.gebv,
                     {},

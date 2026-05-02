@@ -18,7 +18,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex::detail::PosteriorCalculator
+namespace gelex::posterior::detail
 {
 
 void compute_pve(
@@ -35,4 +35,4 @@ void compute_pve(
     summary.mean = mean_coeffs.array().square() / phenotype_var;
 }
 
-}  // namespace gelex::detail::PosteriorCalculator
+}  // namespace gelex::posterior::detail

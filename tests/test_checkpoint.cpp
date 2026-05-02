@@ -31,12 +31,13 @@
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_config.h"
-#include "gelex/model/bayes/reader/checkpoint_reader.h"
+#include "gelex/model/bayes/checkpoint_reader.h"
 #include "gelex/model/bayes/writer/checkpoint_writer.h"
 #include "gelex/types/bayes_method.h"
 #include "gelex/types/fixed_effects.h"
 
-using namespace gelex;  // NOLINT
+using namespace gelex;            // NOLINT
+using namespace gelex::genotype;  // NOLINT
 
 namespace
 {

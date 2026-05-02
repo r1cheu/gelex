@@ -29,7 +29,7 @@
 
 namespace fs = std::filesystem;
 
-using namespace gelex::detail;  // NOLINT
+using namespace gelex::io::detail;  // NOLINT
 using Catch::Matchers::EndsWith;
 using gelex::test::FileFixture;
 

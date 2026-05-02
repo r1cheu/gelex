@@ -31,7 +31,7 @@
 #include "gelex/data/dataframe/key_type.h"
 #include "gelex/exception.h"
 
-namespace gelex::df
+namespace gelex::dataframe
 {
 
 enum class ColumnType : std::uint8_t
@@ -156,6 +156,6 @@ auto Column::take() && -> std::vector<T>
     return std::move(checked<T>(storage_, name_));
 }
 
-}  // namespace gelex::df
+}  // namespace gelex::dataframe
 
 #endif  // GELEX_DATA_DATAFRAME_COLUMN_H

@@ -26,20 +26,20 @@
 #include "gelex/infra/logger.h"
 #include "gelex/types/genotype_process_method.h"
 
-namespace gelex
+namespace gelex::genotype
 {
 
 void GenotypeMapReader::process_chunk(
     Eigen::MatrixXd& chunk,
     size_t global_start,
-    LocusStatistic (*fn)(Eigen::Ref<Eigen::VectorXd>))
+    gelex::LocusStatistic (*fn)(Eigen::Ref<Eigen::VectorXd>))
 {
     const int64_t num_variants_in_chunk = chunk.cols();
 
     for (int64_t i = 0; i < num_variants_in_chunk; ++i)
     {
         auto variant = chunk.col(i);
-        LocusStatistic stats = fn(variant);
+        gelex::LocusStatistic stats = fn(variant);
 
         size_t global_idx = global_start + i;
         means_[global_idx] = stats.mean;
@@ -54,9 +54,9 @@ void GenotypeMapReader::process_chunk(
 
 GenotypeMapReader::GenotypeMapReader(
     const std::filesystem::path& bed_path,
-    const df::Index<std::string>& sample_index,
+    const dataframe::Index<std::string>& sample_index,
     const std::filesystem::path& output_prefix,
-    DataPipeObserver observer)
+    gelex::DataPipeObserver observer)
     : bed_pipe_(bed_path, sample_index),
       observer_(std::move(observer)),
       output_prefix_(output_prefix)
@@ -66,9 +66,9 @@ GenotypeMapReader::GenotypeMapReader(
 
     if (std::filesystem::exists(gbin_path))
     {
-        auto logger = logging::get();
+        auto logger = gelex::logging::get();
         logger->error("Output file already exists: [{}]", gbin_path.string());
-        throw GelexException(
+        throw gelex::GelexException(
             fmt::format("{}: existing file", gbin_path.string()));
     }
 
@@ -76,4 +76,4 @@ GenotypeMapReader::GenotypeMapReader(
     sample_size_ = bed_pipe_.num_samples();
 }
 
-}  // namespace gelex
+}  // namespace gelex::genotype

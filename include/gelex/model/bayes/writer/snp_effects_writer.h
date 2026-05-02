@@ -28,7 +28,7 @@
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/types/mcmc_result.h"
 
-namespace gelex::detail
+namespace gelex::io::detail
 {
 class TextWriter;
 }
@@ -55,8 +55,8 @@ class SnpEffectsWriter
     const mcmc::Result* result_;
     const GeneticSummary* additive_{};
     const GeneticSummary* dominant_{};
-    df::DataFrame<std::string> bim_;
-    std::unique_ptr<detail::TextWriter> writer_;
+    dataframe::DataFrame<std::string> bim_;
+    std::unique_ptr<io::detail::TextWriter> writer_;
     std::string row_buf_;
 
     auto write_header() -> void;

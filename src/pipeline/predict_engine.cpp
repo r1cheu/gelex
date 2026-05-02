@@ -27,7 +27,7 @@
 #include "gelex/data/reader.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/locistats_reader.h"
-#include "gelex/predict/reader.h"
+#include "gelex/predict/input_reader.h"
 #include "gelex/predict/snp_alignment.h"
 #include "predict/compute.h"
 #include "predict/predict_writer.h"
@@ -130,7 +130,7 @@ auto PredictEngine::select(
     const SnpAlignment& alignment,
     bool has_dom) const -> GenotypeData
 {
-    BedPipe bed_pipe(config_.bed_path, data.fam_df.index());
+    genotype::BedPipe bed_pipe(config_.bed_path, data.fam_df.index());
     auto genotype = bed_pipe.select(alignment.column_map);
 
     GenotypeData geno;

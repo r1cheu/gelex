@@ -30,7 +30,7 @@
 #include "gelex/io/atomic_ofstream.h"
 #include "gelex/io/binary_format.h"
 
-namespace gelex::detail
+namespace gelex::io::detail
 {
 
 template <typename C>
@@ -72,7 +72,7 @@ class BinaryWriter
     {
         return {reserve(
             path,
-            binary_format::kTypeByte<T>,
+            kTypeByte<T>,
             static_cast<uint64_t>(rows),
             static_cast<uint64_t>(cols))};
     }
@@ -110,14 +110,14 @@ class BinaryWriter
             convertible_to<std::ranges::range_value_t<R>, std::string_view>
         auto write_strings(std::string_view path, const R& names) -> void
     {
-        if (path.size() > binary_format::kMaxPathLength)
+        if (path.size() > kMaxPathLength)
         {
             throw GelexException(
                 fmt::format(
                     "{}: path too long ({} > {}): \"{}\"",
                     file_.final_path().string(),
                     path.size(),
-                    binary_format::kMaxPathLength,
+                    kMaxPathLength,
                     path));
         }
 
@@ -131,13 +131,12 @@ class BinaryWriter
 
         TocEntry entry;
         std::copy(path.begin(), path.end(), entry.path.begin());
-        entry.dtype = binary_format::kTypeString;
+        entry.dtype = kTypeString;
         entry.rows = static_cast<uint64_t>(std::ranges::distance(names));
         entry.cols = 0;
         entry.size = total_bytes;
 
-        const auto aligned_offset
-            = align_up(next_offset_, binary_format::kPageAlignment);
+        const auto aligned_offset = align_up(next_offset_, kPageAlignment);
         entry.offset = aligned_offset;
         next_offset_ = aligned_offset + total_bytes;
 
@@ -177,6 +176,6 @@ class BinaryWriter
     uint64_t file_cursor_{0};
 };
 
-}  // namespace gelex::detail
+}  // namespace gelex::io::detail
 
 #endif  // GELEX_IO_BINARY_WRITER_H_

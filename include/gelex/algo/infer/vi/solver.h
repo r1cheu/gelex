@@ -28,6 +28,7 @@
 
 #include "gelex/algo/infer/params.h"
 #include "gelex/algo/infer/posterior_calculator.h"
+#include "gelex/infra/eigen_thread_guard.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/model/bayes/model.h"
@@ -134,7 +135,7 @@ auto Solver<TraitUpdater>::run(
 
     vi::State state{model, priors};
 
-    const detail::EigenThreadGuard guard;
+    const ::gelex::infra::detail::EigenThreadGuard guard;
     omp_set_num_threads(1);
 
     double prev_elbo = -std::numeric_limits<double>::max();

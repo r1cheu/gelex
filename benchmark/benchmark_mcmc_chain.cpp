@@ -43,11 +43,11 @@ using gelex::BayesMethodConfig;
 using gelex::BayesModel;
 using gelex::FixedEffect;
 using gelex::GeneticMode;
-using gelex::GenotypeMatrix;
 using gelex::PriorSetConfig;
 using gelex::bayes::GeneticEffect;
 using gelex::bayes::GenotypeStorage;
 using gelex::bayes::Priors;
+using gelex::genotype::GenotypeMatrix;
 
 constexpr Eigen::Index kIndividuals = 100;
 constexpr Eigen::Index kMarkers = 200;
@@ -69,7 +69,7 @@ auto make_genotype(uint64_t seed) -> GenotypeMatrix
     Eigen::VectorXd mean(kMarkers);
     Eigen::VectorXd stddev(kMarkers);
     std::vector<int64_t> mono;
-    auto process = gelex::Standardize<GeneticMode::A>::process;
+    auto process = gelex::genotype::Standardize<GeneticMode::A>::process;
     for (Eigen::Index j = 0; j < kMarkers; ++j)
     {
         auto col = X.col(j);

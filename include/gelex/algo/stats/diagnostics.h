@@ -20,13 +20,13 @@
  * https://github.com/pyro-ppl/numpyro/blob/master/numpyro/diagnostics.py
  */
 
-#ifndef GELEX_ESTIMATOR_BAYES_DIAGNOSTICS_H_
-#define GELEX_ESTIMATOR_BAYES_DIAGNOSTICS_H_
+#ifndef GELEX_ALGO_STATS_DIAGNOSTICS_H_
+#define GELEX_ALGO_STATS_DIAGNOSTICS_H_
 #include <vector>
 
 #include <Eigen/Core>
 
-namespace gelex
+namespace gelex::stats
 {
 
 // Each MatrixXd in Chains has shape (n_params, n_draws); vector length =
@@ -100,6 +100,6 @@ std::pair<double, double> hpdi(
 
 auto hpdi(const Chains& chains, double prob)
     -> std::pair<Eigen::MatrixXd, Eigen::VectorXd>;
-}  // namespace gelex
+}  // namespace gelex::stats
 
-#endif  // GELEX_ESTIMATOR_BAYES_DIAGNOSTICS_H_
+#endif  // GELEX_ALGO_STATS_DIAGNOSTICS_H_

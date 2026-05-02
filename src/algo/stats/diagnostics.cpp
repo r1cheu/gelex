@@ -23,7 +23,7 @@
 
 #include "gelex/infra/stats/descriptive.h"
 
-namespace gelex
+namespace gelex::stats
 {
 
 using Eigen::Index;
@@ -44,7 +44,7 @@ std::pair<VectorXd, VectorXd> compute_chain_variance_stats(const Chains& x)
     for (Index c = 0; c < n_chains; ++c)
     {
         chain_means.col(c) = x[c].rowwise().mean();
-        chain_vars.col(c) = detail::var<1>(x[c]);
+        chain_vars.col(c) = stats::detail::var<1>(x[c]);
     }
 
     VectorXd var_within = chain_vars.rowwise().mean();
@@ -52,7 +52,7 @@ std::pair<VectorXd, VectorXd> compute_chain_variance_stats(const Chains& x)
 
     if (n_chains > 1)
     {
-        MatrixXd var_between = detail::var<1>(chain_means);
+        MatrixXd var_between = stats::detail::var<1>(chain_means);
         var_estimator += var_between;
     }
     else
@@ -180,7 +180,7 @@ Chains autocovariance(const Chains& x, bool bias)
 
     for (Index i = 0; i < n_chains; i++)
     {
-        x_var.col(i) = detail::var<1>(x[i], 0);
+        x_var.col(i) = stats::detail::var<1>(x[i], 0);
     }
 
     for (Index i = 0; i < n_chains; ++i)
@@ -318,4 +318,4 @@ auto hpdi(const Chains& chains, double prob) -> std::pair<MatrixXd, VectorXd>
     return {std::move(intervals), std::move(medians)};
 }
 
-}  // namespace gelex
+}  // namespace gelex::stats

@@ -46,7 +46,7 @@ auto make_grm_config(argparse::ArgumentParser& cmd) -> gelex::GrmEngine::Config
     }
 
     return gelex::GrmEngine::Config{
-        .bed_path = gelex::format_bed_path(cmd.get("--bfile")),
+        .bed_path = gelex::genotype::format_bed_path(cmd.get("--bfile")),
         .mode = mode,
         .method = gelex::cli::parse_genotype_process_method(
             cmd.get<std::string>("--geno-method")),

@@ -25,6 +25,10 @@
 
 namespace gelex
 {
+
+using gelex::stats::RunningStats;
+using gelex::stats::RunningStatsResult;
+
 namespace
 {
 

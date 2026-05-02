@@ -52,6 +52,9 @@ class BayesModel;
 namespace mcmc
 {
 
+using stats::RunningStats;
+using stats::RunningStatsResult;
+
 class Writer;
 
 struct AssignmentSamples

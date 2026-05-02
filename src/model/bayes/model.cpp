@@ -39,7 +39,7 @@ BayesModel::BayesModel(
     : phenotype_(std::move(phenotype)), genetics_(std::move(genetics))
 {
     num_individuals_ = phenotype_.rows();
-    phenotype_var_ = detail::var(phenotype_)(0);
+    phenotype_var_ = stats::detail::var(phenotype_)(0);
     add_fixed_effect(std::move(fixed_effects));
 }
 

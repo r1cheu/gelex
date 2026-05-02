@@ -31,7 +31,7 @@ GenoPipe::GenoPipe(const Config& config, DataPipeObserver observer)
 {
 }
 
-auto GenoPipe::load(const df::Index<std::string>& sample_index) -> void
+auto GenoPipe::load(const dataframe::Index<std::string>& sample_index) -> void
 {
     if (config_.model_type == GeneticMode::A)
     {
@@ -50,8 +50,8 @@ auto GenoPipe::load(const df::Index<std::string>& sample_index) -> void
     write_sbin();
 }
 
-auto GenoPipe::load_additive_matrix(const df::Index<std::string>& sample_index)
-    -> void
+auto GenoPipe::load_additive_matrix(
+    const dataframe::Index<std::string>& sample_index) -> void
 {
     load_genotype_impl<GeneticMode::A>(
         sample_index, ".add", config_.genotype_method, additive_matrix_);
@@ -72,8 +72,8 @@ auto GenoPipe::load_additive_matrix(const df::Index<std::string>& sample_index)
             .monomorphic_snps = mono});
 }
 
-auto GenoPipe::load_dominance_matrix(const df::Index<std::string>& sample_index)
-    -> void
+auto GenoPipe::load_dominance_matrix(
+    const dataframe::Index<std::string>& sample_index) -> void
 {
     load_genotype_impl<GeneticMode::D>(
         sample_index, ".dom", config_.genotype_method, dominance_matrix_);

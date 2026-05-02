@@ -21,9 +21,9 @@
 #include <memory>
 #include <string>
 
-#include "gelex/predict/predict_types.h"
+#include "gelex/predict/types.h"
 
-namespace gelex::detail
+namespace gelex::io::detail
 {
 class TextWriter;
 }
@@ -55,7 +55,7 @@ class PredictWriter
         bool has_dom,
         double dom_pred) -> void;
 
-    std::unique_ptr<detail::TextWriter> writer_;
+    std::unique_ptr<io::detail::TextWriter> writer_;
     std::string row_buf_;
 };
 

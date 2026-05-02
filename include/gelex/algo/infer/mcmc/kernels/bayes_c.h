@@ -69,7 +69,7 @@ class BayesCKernel
         const std::int8_t old_component = assignment_.tracker(marker_index);
 
         const auto post = normal_.posterior_with_logL(
-            NormalSampler<double>::Kernel{
+            stats::NormalSampler<double>::Kernel{
                 .quadratic = xtx_diag,
                 .linear = rhs,
                 .scale = residual_variance,
@@ -107,8 +107,8 @@ class BayesCKernel
    private:
     bayes::GeneticState& state_;
     bayes::Assignment& assignment_;
-    NormalSampler<double> normal_;
-    ScaledInvChi2Sampler<double> variance_sampler_;
+    stats::NormalSampler<double> normal_;
+    stats::ScaledInvChi2Sampler<double> variance_sampler_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
 
     int count_1_{0};

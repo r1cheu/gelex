@@ -28,7 +28,7 @@
 #include "gelex/exception.h"
 #include "gelex/infra/logger.h"
 
-namespace gelex::detail
+namespace gelex::io::detail
 {
 
 namespace
@@ -105,4 +105,4 @@ AtomicOfstream::~AtomicOfstream() noexcept
     std::filesystem::remove(tmp_path_, ec);
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex::io::detail

@@ -17,7 +17,7 @@
 #ifndef GELEX_PREDICT_STANDARDIZE_H_
 #define GELEX_PREDICT_STANDARDIZE_H_
 
-#include "gelex/predict/predict_types.h"
+#include "gelex/predict/types.h"
 
 namespace gelex
 {

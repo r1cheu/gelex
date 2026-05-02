@@ -27,7 +27,7 @@
 #include "gelex/io/binary_reader.h"
 #include "gelex/types/genetic_effect_type.h"
 
-namespace gelex
+namespace gelex::genotype
 {
 
 class GenotypeMap
@@ -38,7 +38,7 @@ class GenotypeMap
 
     explicit GenotypeMap(
         const std::filesystem::path& bin_file,
-        GeneticMode effect_type = GeneticMode::A);
+        gelex::GeneticMode effect_type = gelex::GeneticMode::A);
 
     [[nodiscard]] const MapType& matrix() const noexcept { return mat_; }
 
@@ -62,7 +62,7 @@ class GenotypeMap
     [[nodiscard]] int64_t cols() const noexcept { return cols_; }
 
    private:
-    std::unique_ptr<detail::BinaryReader> reader_;
+    std::unique_ptr<gelex::io::detail::BinaryReader> reader_;
     MapType mat_;
 
     std::vector<int64_t> mono_indices_;
@@ -73,6 +73,6 @@ class GenotypeMap
     int64_t cols_{0};
 };
 
-}  // namespace gelex
+}  // namespace gelex::genotype
 
 #endif  // GELEX_DATA_GENOTYPE_MMAP_H_

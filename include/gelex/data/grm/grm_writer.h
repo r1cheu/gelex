@@ -52,7 +52,7 @@ class GrmBinWriter
 
    private:
     std::vector<char> io_buffer_;
-    detail::AtomicOfstream file_;
+    io::detail::AtomicOfstream file_;
 };
 
 auto write_grm_ids(

@@ -23,16 +23,17 @@
 
 #include "gelex/io/binary_reader.h"
 
-namespace gelex
+namespace gelex::genotype
 {
 
 GenotypeMap::GenotypeMap(
     const std::filesystem::path& bin_file,
-    GeneticMode effect_type)
+    gelex::GeneticMode effect_type)
     : mat_(nullptr, 0, 0)
 {
-    const auto effect = EffectType::from_genetic(effect_type);
-    reader_ = std::make_unique<detail::BinaryReader>(bin_file.string());
+    const auto effect = gelex::EffectType::from_genetic(effect_type);
+    reader_
+        = std::make_unique<gelex::io::detail::BinaryReader>(bin_file.string());
 
     auto geno_map = reader_->to_map<double>(fmt::format("{}/genotype", effect));
     rows_ = geno_map.rows();
@@ -54,9 +55,9 @@ GenotypeMap::GenotypeMap(
     }
 }
 
-bool GenotypeMap::is_monomorphic(Eigen::Index snp_index) const noexcept
+auto GenotypeMap::is_monomorphic(Eigen::Index snp_index) const noexcept -> bool
 {
     return std::ranges::binary_search(mono_indices_, snp_index);
 }
 
-}  // namespace gelex
+}  // namespace gelex::genotype

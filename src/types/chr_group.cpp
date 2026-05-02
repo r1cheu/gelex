@@ -19,8 +19,9 @@
 namespace gelex
 {
 
-auto build_chr_groups(bool do_loco, const df::DataFrame<std::string>& bim)
-    -> std::vector<ChrGroup>
+auto build_chr_groups(
+    bool do_loco,
+    const dataframe::DataFrame<std::string>& bim) -> std::vector<ChrGroup>
 {
     std::vector<ChrGroup> groups;
     auto num_snps = static_cast<Eigen::Index>(bim.rows());

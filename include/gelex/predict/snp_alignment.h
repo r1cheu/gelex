@@ -36,8 +36,8 @@ struct SnpAlignment
 };
 
 [[nodiscard]] auto build_snp_alignment(
-    const df::DataFrame<std::string>& snp_effects,
-    const df::DataFrame<std::string>& bim_df) -> SnpAlignment;
+    const dataframe::DataFrame<std::string>& snp_effects,
+    const dataframe::DataFrame<std::string>& bim_df) -> SnpAlignment;
 
 }  // namespace gelex
 

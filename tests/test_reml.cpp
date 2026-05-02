@@ -22,10 +22,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/algo/infer/estimator.h"
-#include "gelex/algo/numerics/optimizer_state.h"
-#include "gelex/algo/numerics/variance_calculator.h"
-#include "gelex/model/freq/model.h"
+#include "gelex/algo/reml/estimator.h"
+#include "gelex/algo/reml/optimizer_state.h"
+#include "gelex/algo/reml/variance_calculator.h"  // IWYU pragma: keep
+#include "gelex/model/freq_model.h"
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/freq_effect.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -101,10 +101,10 @@ TEST_CASE(
                                         * problem.X.transpose() * Vinv_ref;
     const Eigen::VectorXd Py_ref = P_ref * problem.y;
 
-    OptimizerState opt(model);
-    variance_calculator::compute_v(model, state, opt.V);
-    opt.logdet_v = variance_calculator::v_inv_logdet(opt.V);
-    variance_calculator::compute_proj(model, opt);
+    reml::OptimizerState opt(model);
+    reml::compute_v(model, state, opt.V);
+    opt.logdet_v = reml::v_inv_logdet(opt.V);
+    reml::compute_proj(model, opt);
 
     SECTION("in-place materialized P matches closed form")
     {
@@ -121,9 +121,7 @@ TEST_CASE(
               * (std::log(V_ref.determinant())
                  + std::log(XtVinvX_ref.determinant()) + problem.y.dot(Py_ref));
         REQUIRE(
-            std::abs(
-                variance_calculator::compute_loglike(model, opt) - expected)
-            <= 1e-10);
+            std::abs(reml::compute_loglike(model, opt) - expected) <= 1e-10);
     }
 }
 
@@ -141,7 +139,7 @@ TEST_CASE(
     const auto problem = make_closed_form_problem();
     auto [model, state] = build_model(problem);
 
-    Estimator estimator(/*max_iter=*/500, /*tol=*/1e-12);
+    reml::Estimator estimator(/*max_iter=*/500, /*tol=*/1e-12);
     estimator.fit(model, state);
 
     REQUIRE(estimator.is_converged());
@@ -156,7 +154,7 @@ TEST_CASE(
 TEST_CASE("Estimator::fit resets convergence state between runs", "[reml]")
 {
     const auto problem = make_closed_form_problem();
-    Estimator estimator(/*max_iter=*/500, /*tol=*/1e-12);
+    reml::Estimator estimator(/*max_iter=*/500, /*tol=*/1e-12);
 
     auto [first_model, first_state] = build_model(problem);
     estimator.fit(first_model, first_state);

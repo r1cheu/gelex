@@ -74,8 +74,8 @@ class GRM
     }
 
    private:
-    df::Index<std::string> sample_index_;
-    BedPipe bed_;
+    dataframe::Index<std::string> sample_index_;
+    genotype::BedPipe bed_;
 
     static auto update_grm(
         Eigen::Ref<Eigen::MatrixXd> grm,
@@ -118,7 +118,7 @@ auto GRM::compute(
             Eigen::MatrixXd genotype_chunk
                 = bed_.load_chunk(start_col, end_col);
 
-            process_matrix<GT>(method, genotype_chunk);
+            genotype::process_matrix<GT>(method, genotype_chunk);
             update_grm(grm, genotype_chunk);
 
             processed_snps += (end_col - start_col);

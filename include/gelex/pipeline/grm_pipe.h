@@ -27,7 +27,7 @@
 namespace gelex
 {
 
-namespace detail
+namespace grm::detail
 {
 class GrmReader;
 }
@@ -44,9 +44,10 @@ class GrmPipe
     GrmPipe& operator=(GrmPipe&&) noexcept;
     ~GrmPipe();
 
-    auto sample_indices() const -> std::vector<const df::Index<std::string>*>;
+    auto sample_indices() const
+        -> std::vector<const dataframe::Index<std::string>*>;
 
-    auto load(const df::Index<std::string>& sample_index) -> void;
+    auto load(const dataframe::Index<std::string>& sample_index) -> void;
 
     auto take_grms() && -> std::vector<freq::GeneticEffect>
     {
@@ -60,7 +61,7 @@ class GrmPipe
 
    private:
     std::vector<std::filesystem::path> grm_paths_;
-    std::vector<detail::GrmReader> grm_readers_;
+    std::vector<grm::detail::GrmReader> grm_readers_;
     std::vector<freq::GeneticEffect> grms_;
     DataPipeObserver observer_;
 };

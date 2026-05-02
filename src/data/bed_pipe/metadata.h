@@ -23,7 +23,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex::detail
+namespace gelex::genotype::detail
 {
 
 struct BedMetadata
@@ -37,6 +37,6 @@ struct BedMetadata
 
 auto load_bed_metadata(const std::filesystem::path& bed_prefix) -> BedMetadata;
 
-}  // namespace gelex::detail
+}  // namespace gelex::genotype::detail
 
 #endif  // GELEX_DATA_BED_PIPE_METADATA_H_

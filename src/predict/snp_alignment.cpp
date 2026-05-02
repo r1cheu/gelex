@@ -27,8 +27,8 @@ namespace gelex
 {
 
 auto build_snp_alignment(
-    const df::DataFrame<std::string>& snp_effects,
-    const df::DataFrame<std::string>& bim_df) -> SnpAlignment
+    const dataframe::DataFrame<std::string>& snp_effects,
+    const dataframe::DataFrame<std::string>& bim_df) -> SnpAlignment
 {
     const auto& eff_index = snp_effects.index();
     const auto& bim_index = bim_df.index();

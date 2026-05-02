@@ -29,7 +29,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex::detail
+namespace gelex::infer::detail
 {
 
 template <typename DerivedX, typename DerivedY>
@@ -113,6 +113,6 @@ inline auto apply_marker_update(
         tx);
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex::infer::detail
 
 #endif  // GELEX_ALGO_INFER_DETAIL_MARKER_OP_H_

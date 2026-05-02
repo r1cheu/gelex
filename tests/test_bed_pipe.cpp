@@ -37,7 +37,8 @@
 
 namespace fs = std::filesystem;
 
-using namespace gelex;  // NOLINT
+using namespace gelex;            // NOLINT
+using namespace gelex::genotype;  // NOLINT
 using Catch::Matchers::EndsWith;
 using Catch::Matchers::WithinAbs;
 using gelex::test::are_matrices_equal;
@@ -47,7 +48,7 @@ using gelex::test::FileFixture;
 namespace
 {
 
-auto build_id_map(const df::Index<std::string>& index)
+auto build_id_map(const dataframe::Index<std::string>& index)
     -> std::unordered_map<std::string, Eigen::Index>
 {
     std::unordered_map<std::string, Eigen::Index> id_map;
@@ -112,9 +113,9 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
 
         // 只保留前 5 个样本
         auto all_keys = sample_index.keys();
-        auto extra_index = df::Index<std::string>(
+        auto extra_index = dataframe::Index<std::string>(
             std::vector<std::string>(all_keys.begin(), all_keys.begin() + 5));
-        auto common = df::intersect<std::string>({&sample_index, &extra_index});
+        auto common = dataframe::intersect<std::string>({&sample_index, &extra_index});
 
         REQUIRE_NOTHROW(
             [&]()
@@ -301,8 +302,8 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
         // raw_keys invalidated after gather — save to vector first
         std::vector<std::string> raw_ids(raw_keys.begin(), raw_keys.end());
 
-        auto extra_index = df::Index<std::string>(std::move(intersect_ids));
-        auto common = df::intersect<std::string>({&sample_index, &extra_index});
+        auto extra_index = dataframe::Index<std::string>(std::move(intersect_ids));
+        auto common = dataframe::intersect<std::string>({&sample_index, &extra_index});
 
         BedPipe pipe(bed_prefix, common);
 
@@ -479,9 +480,9 @@ TEST_CASE("BedPipe - sample mapping tests", "[data][bed_pipe]")
             = {make_sample_id("nonexistent", "1"),
                make_sample_id("nonexistent", "2"),
                make_sample_id("nonexistent", "3")};
-        auto extra_index = df::Index<std::string>(std::vector<std::string>(
+        auto extra_index = dataframe::Index<std::string>(std::vector<std::string>(
             intersect_ids.begin(), intersect_ids.end()));
-        auto common = df::intersect<std::string>({&sample_index, &extra_index});
+        auto common = dataframe::intersect<std::string>({&sample_index, &extra_index});
 
         BedPipe pipe(bed_prefix, common);
 

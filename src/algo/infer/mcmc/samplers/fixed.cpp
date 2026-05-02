@@ -42,7 +42,7 @@ auto FixedSampler::sample() -> void
         const double norm = XtX_diag(i);
 
         const double rhs = col.dot(y_adj) + (norm * old_i);
-        const NormalSampler<double>::Params posterior{
+        const stats::NormalSampler<double>::Params posterior{
             .mean = rhs / norm,
             .var = residual_variance / norm,
         };

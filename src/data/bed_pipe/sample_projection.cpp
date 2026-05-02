@@ -16,12 +16,12 @@
 
 #include "sample_projection.h"
 
-namespace gelex::detail
+namespace gelex::genotype::detail
 {
 
 SampleProjection::SampleProjection(
     const std::vector<std::string>& raw_ids,
-    const df::Index<std::string>& target_index)
+    const dataframe::Index<std::string>& target_index)
 {
     const auto num_raw_samples = static_cast<Eigen::Index>(raw_ids.size());
 
@@ -80,4 +80,4 @@ auto SampleProjection::num_output_samples() const -> Eigen::Index
     return num_output_samples_;
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex::genotype::detail

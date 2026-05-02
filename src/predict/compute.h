@@ -19,8 +19,8 @@
 
 #include <Eigen/Core>
 
-#include "gelex/predict/predict_types.h"
-#include "gelex/predict/reader.h"
+#include "gelex/predict/input_reader.h"
+#include "gelex/predict/types.h"
 
 namespace gelex
 {

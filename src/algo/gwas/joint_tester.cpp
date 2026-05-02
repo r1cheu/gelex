@@ -54,8 +54,8 @@ auto JointTester::run(const RemlResult& reml) -> TestResults
 {
     Z_a_ = raw_;
     Z_d_ = raw_;
-    process_matrix<GeneticMode::A>(method_, Z_a_, &freqs_);
-    process_matrix<GeneticMode::D>(method_, Z_d_);
+    gelex::genotype::process_matrix<GeneticMode::A>(method_, Z_a_, &freqs_);
+    gelex::genotype::process_matrix<GeneticMode::D>(method_, Z_d_);
 
     // W = P * Z_a  →  cross-products involving Z_a
     W_.noalias() = reml.P * Z_a_;
@@ -102,15 +102,17 @@ auto JointTester::run(const RemlResult& reml) -> TestResults
     }
 
     // per-effect PVE
-    add_.pve = detail::var(Z_a_ * add_.beta.asDiagonal()).transpose().array()
-               / reml.Vp;
-    dom_.pve = detail::var(Z_d_ * dom_.beta.asDiagonal()).transpose().array()
-               / reml.Vp;
+    add_.pve
+        = stats::detail::var(Z_a_ * add_.beta.asDiagonal()).transpose().array()
+          / reml.Vp;
+    dom_.pve
+        = stats::detail::var(Z_d_ * dom_.beta.asDiagonal()).transpose().array()
+          / reml.Vp;
 
     // total PVE: var(Z_a * beta_a + Z_d * beta_d) / Vp
     Eigen::MatrixXd pred
         = Z_a_ * add_.beta.asDiagonal() + Z_d_ * dom_.beta.asDiagonal();
-    total_pve_ = detail::var(pred).transpose().array() / reml.Vp;
+    total_pve_ = stats::detail::var(pred).transpose().array() / reml.Vp;
 
     const auto n_snps = static_cast<size_t>(n);
     return {

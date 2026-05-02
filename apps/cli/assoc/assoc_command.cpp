@@ -65,7 +65,8 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
             .tol = config.tol,
         });
 
-    auto bed_path = gelex::format_bed_path(cmd.get<std::string>("--bfile"));
+    auto bed_path
+        = gelex::genotype::format_bed_path(cmd.get<std::string>("--bfile"));
     auto fam_index
         = gelex::read_fam(
               std::filesystem::path(bed_path).replace_extension(".fam"))
@@ -79,11 +80,11 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 
     gelex::GrmPipe grm(grm_paths, data_reporter.as_observer());
 
-    std::vector<const gelex::df::Index<std::string>*> all_indices{
+    std::vector<const gelex::dataframe::Index<std::string>*> all_indices{
         &fam_index, &pheno.pheno_index()};
     all_indices.append_range(pheno.covar_indices());
     all_indices.append_range(grm.sample_indices());
-    auto common = gelex::df::intersect<std::string>(all_indices);
+    auto common = gelex::dataframe::intersect<std::string>(all_indices);
 
     gelex::notify(
         data_reporter.as_observer(),

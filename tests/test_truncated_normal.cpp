@@ -73,9 +73,9 @@ auto draw_samples(const TruncConfig& cfg, std::mt19937_64& rng)
     for (int i = 0; i < kNumSamples; ++i)
     {
         double val = cfg.left_truncated
-                         ? detail::sample_left_truncated_normal(
+                         ? stats::detail::sample_left_truncated_normal(
                                cfg.mu, cfg.sigma, cfg.bound, rng)
-                         : detail::sample_right_truncated_normal(
+                         : stats::detail::sample_right_truncated_normal(
                                cfg.mu, cfg.sigma, cfg.bound, rng);
         sum += val;
         sum_sq += val * val;
@@ -122,7 +122,7 @@ TEST_CASE(
         {
             if (cfg.left_truncated)
             {
-                double val = detail::sample_left_truncated_normal(
+                double val = stats::detail::sample_left_truncated_normal(
                     cfg.mu, cfg.sigma, cfg.bound, rng);
                 if (val < cfg.bound)
                 {
@@ -131,7 +131,7 @@ TEST_CASE(
             }
             else
             {
-                double val = detail::sample_right_truncated_normal(
+                double val = stats::detail::sample_right_truncated_normal(
                     cfg.mu, cfg.sigma, cfg.bound, rng);
                 if (val > cfg.bound)
                 {
@@ -173,8 +173,8 @@ TEST_CASE(
         for (int i = 0; i < kNumSamples; ++i)
         {
             sum_left
-                += detail::sample_left_truncated_normal(mu, sigma, a, rng_left);
-            sum_right += detail::sample_right_truncated_normal(
+                += stats::detail::sample_left_truncated_normal(mu, sigma, a, rng_left);
+            sum_right += stats::detail::sample_right_truncated_normal(
                 -mu, sigma, -a, rng_right);
         }
 
@@ -258,7 +258,7 @@ TEST_CASE("Extreme tails: mu=-30 left-truncated at 0", "[truncated_normal]")
 
     for (int i = 0; i < kNumSamples; ++i)
     {
-        double val = detail::sample_left_truncated_normal(-30.0, 1.0, 0.0, rng);
+        double val = stats::detail::sample_left_truncated_normal(-30.0, 1.0, 0.0, rng);
         if (val < 0.0 || !std::isfinite(val))
         {
             all_valid = false;
@@ -284,7 +284,7 @@ TEST_CASE("Extreme tails: mu=30 right-truncated at 0", "[truncated_normal]")
 
     for (int i = 0; i < kNumSamples; ++i)
     {
-        double val = detail::sample_right_truncated_normal(30.0, 1.0, 0.0, rng);
+        double val = stats::detail::sample_right_truncated_normal(30.0, 1.0, 0.0, rng);
         if (val > 0.0 || !std::isfinite(val))
         {
             all_valid = false;

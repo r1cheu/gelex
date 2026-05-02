@@ -31,7 +31,7 @@
 #include "data/bed_pipe/variant_decoder.h"
 #include "gelex/exception.h"
 
-namespace gelex
+namespace gelex::genotype
 {
 
 namespace
@@ -44,7 +44,7 @@ auto validate_chunk_range(
 {
     if (start_col < 0 || end_col > max_cols || start_col >= end_col)
     {
-        throw GelexException(
+        throw gelex::GelexException(
             fmt::format(
                 "invalid chunk range: [{}, {}). Total SNPs: {}",
                 start_col,
@@ -70,17 +70,17 @@ auto validate_target_buffer_shape(
 
 BedPipe::BedPipe(
     const std::filesystem::path& bed_prefix,
-    const df::Index<std::string>& sample_index)
+    const dataframe::Index<std::string>& sample_index)
 {
-    auto metadata = detail::load_bed_metadata(bed_prefix);
+    auto metadata = gelex::genotype::detail::load_bed_metadata(bed_prefix);
 
-    projection_ = std::make_unique<detail::SampleProjection>(
+    projection_ = std::make_unique<gelex::genotype::detail::SampleProjection>(
         metadata.raw_ids, sample_index);
 
-    bed_reader_ = std::make_unique<detail::BedMmapReader>(
+    bed_reader_ = std::make_unique<gelex::genotype::detail::BedMmapReader>(
         metadata.bed_path, metadata.num_raw_snps, metadata.bytes_per_variant);
 
-    decoder_ = std::make_unique<detail::BedVariantDecoder>(
+    decoder_ = std::make_unique<gelex::genotype::detail::BedVariantDecoder>(
         metadata.num_raw_samples,
         metadata.bytes_per_variant,
         projection_->mapping(),
@@ -136,7 +136,7 @@ void BedPipe::load_chunk(
         = bed_reader_->chunk_ptr(start_col, num_output_cols);
     if (chunk_ptr == nullptr)
     {
-        throw GelexException(
+        throw gelex::GelexException(
             "BedPipe::load_chunk: mapped BED payload is truncated");
     }
 
@@ -196,4 +196,4 @@ auto BedPipe::select(std::span<const Eigen::Index> col_indices) const
     return result;
 }
 
-}  // namespace gelex
+}  // namespace gelex::genotype

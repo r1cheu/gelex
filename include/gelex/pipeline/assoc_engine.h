@@ -58,7 +58,7 @@ class AssocEngine
     auto run(
         PhenoPipe& pheno,
         GrmPipe& grm,
-        const df::Index<std::string>& sample_index,
+        const dataframe::Index<std::string>& sample_index,
         const AssocObserver& observer = {},
         const RemlObserver& reml_observer = {}) -> void;
 

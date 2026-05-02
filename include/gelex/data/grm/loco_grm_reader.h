@@ -32,7 +32,7 @@ class LocoGRMReader
    public:
     LocoGRMReader(
         const std::filesystem::path& whole_grm_prefix,
-        const df::Index<std::string>& sample_index);
+        const dataframe::Index<std::string>& sample_index);
 
     ~LocoGRMReader() = default;
     LocoGRMReader(const LocoGRMReader&) = delete;
@@ -51,12 +51,13 @@ class LocoGRMReader
      */
     auto load_loco_grm(
         const std::filesystem::path& chr_grm_prefix,
-        const df::Index<std::string>& sample_index,
+        const dataframe::Index<std::string>& sample_index,
         Eigen::MatrixXd& target) const -> void;
 
     [[nodiscard]] auto load_loco_grm(
         const std::filesystem::path& chr_grm_prefix,
-        const df::Index<std::string>& sample_index) const -> Eigen::MatrixXd;
+        const dataframe::Index<std::string>& sample_index) const
+        -> Eigen::MatrixXd;
 
     [[nodiscard]] auto num_samples() const noexcept -> Eigen::Index;
 

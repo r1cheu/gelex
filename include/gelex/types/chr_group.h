@@ -35,8 +35,9 @@ struct ChrGroup
     Eigen::Index total_snps;
 };
 
-auto build_chr_groups(bool do_loco, const df::DataFrame<std::string>& bim)
-    -> std::vector<ChrGroup>;
+auto build_chr_groups(
+    bool do_loco,
+    const dataframe::DataFrame<std::string>& bim) -> std::vector<ChrGroup>;
 
 }  // namespace gelex
 

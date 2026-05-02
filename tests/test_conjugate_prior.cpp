@@ -27,6 +27,12 @@
 
 namespace gelex
 {
+
+using stats::BetaSampler;
+using stats::DirichletSampler;
+using stats::NormalSampler;
+using stats::ScaledInvChi2Sampler;
+
 namespace
 {
 

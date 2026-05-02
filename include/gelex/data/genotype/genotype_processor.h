@@ -23,68 +23,68 @@
 #include <omp.h>
 #include <Eigen/Dense>
 
+#include "gelex/data/genotype/detail/genotype_processor_strategy.h"
 #include "gelex/exception.h"
-#include "gelex/internal/genotype_processor/genotype_processor.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "gelex/types/genotype_process_method.h"
 
-namespace gelex
+namespace gelex::genotype
 {
 template <typename T>
 concept GenotypeProcessor
     = requires(T processor, Eigen::Ref<Eigen::VectorXd> variant) {
-          { T::process(variant) } -> std::same_as<LocusStatistic>;
+          { T::process(variant) } -> std::same_as<gelex::LocusStatistic>;
       };
 
-template <GeneticMode GT, detail::StatisticPolicy Stats, bool Scale>
+template <gelex::GeneticMode GT, detail::StatisticPolicy Stats, bool Scale>
 using RawProcessor
     = detail::GenotypeProcessorStrategy<detail::RawPolicy<GT>, Stats, Scale>;
 
-template <GeneticMode GT>
+template <gelex::GeneticMode GT>
 using Standardize = RawProcessor<GT, detail::SamplePolicy<GT>, true>;
-template <GeneticMode GT>
+template <gelex::GeneticMode GT>
 using Center = RawProcessor<GT, detail::SamplePolicy<GT>, false>;
 
-template <GeneticMode GT>
+template <gelex::GeneticMode GT>
 using StandardizeHWE = RawProcessor<GT, detail::HWEPolicy<GT>, true>;
-template <GeneticMode GT>
+template <gelex::GeneticMode GT>
 using CenterHWE = RawProcessor<GT, detail::HWEPolicy<GT>, false>;
 
-template <GeneticMode GT, detail::StatisticPolicy Stats, bool Scale>
+template <gelex::GeneticMode GT, detail::StatisticPolicy Stats, bool Scale>
 using OrthProcessor = detail::
     GenotypeProcessorStrategy<detail::OrthogonalPolicy<GT>, Stats, Scale>;
 
-template <GeneticMode GT>
+template <gelex::GeneticMode GT>
 using OrthStandardize = OrthProcessor<GT, detail::SamplePolicy<GT>, true>;
-template <GeneticMode GT>
+template <gelex::GeneticMode GT>
 using OrthCenter = OrthProcessor<GT, detail::SamplePolicy<GT>, false>;
 
-template <GeneticMode GT>
+template <gelex::GeneticMode GT>
 using OrthStandardizeHWE = OrthProcessor<GT, detail::OrthHWEPolicy<GT>, true>;
-template <GeneticMode GT>
+template <gelex::GeneticMode GT>
 using OrthCenterHWE = OrthProcessor<GT, detail::OrthHWEPolicy<GT>, false>;
 
-template <GeneticMode GT, bool Scale>
+template <gelex::GeneticMode GT, bool Scale>
 using NOIAProcessor = detail::GenotypeProcessorStrategy<
     detail::IdentityPolicy<GT>,
     detail::NOIAPolicy<GT>,
     Scale>;
 
-template <GeneticMode GT>
+template <gelex::GeneticMode GT>
 using NOIAStandardize = NOIAProcessor<GT, true>;
-template <GeneticMode GT>
+template <gelex::GeneticMode GT>
 using NOIACenter = NOIAProcessor<GT, false>;
 
-template <typename T, GeneticMode GT>
+template <typename T, gelex::GeneticMode GT>
 constexpr bool is_center_method_v
     = std::is_same_v<T, Center<GT>> || std::is_same_v<T, CenterHWE<GT>>
       || std::is_same_v<T, OrthCenter<GT>>
       || std::is_same_v<T, OrthCenterHWE<GT>>
       || std::is_same_v<T, NOIACenter<GT>>;
 
-template <GeneticMode GT>
-auto get_genotype_process_method(GenotypeProcessMethod method)
-    -> LocusStatistic (*)(Eigen::Ref<Eigen::VectorXd>)
+template <gelex::GeneticMode GT>
+auto get_genotype_process_method(gelex::GenotypeProcessMethod method)
+    -> gelex::LocusStatistic (*)(Eigen::Ref<Eigen::VectorXd>)
 {
     if (method.is_noia())
     {
@@ -110,13 +110,13 @@ auto get_genotype_process_method(GenotypeProcessMethod method)
                               : &Standardize<GT>::process;
 }
 
-template <GeneticMode GT>
-auto get_center_genotype_method(GenotypeProcessMethod method)
-    -> LocusStatistic (*)(Eigen::Ref<Eigen::VectorXd>)
+template <gelex::GeneticMode GT>
+auto get_center_genotype_method(gelex::GenotypeProcessMethod method)
+    -> gelex::LocusStatistic (*)(Eigen::Ref<Eigen::VectorXd>)
 {
     if (!method.is_center())
     {
-        throw GelexException(
+        throw gelex::GelexException(
             "assoc --geno-method supports only center-family methods: "
             "CenterHWE(CH), OrthCenterHWE(OCH), Center(C), OrthCenter(OC), "
             "NOIACenter(NC)");
@@ -124,9 +124,9 @@ auto get_center_genotype_method(GenotypeProcessMethod method)
     return get_genotype_process_method<GT>(method);
 }
 
-template <GeneticMode GT>
+template <gelex::GeneticMode GT>
 auto process_matrix(
-    GenotypeProcessMethod method,
+    gelex::GenotypeProcessMethod method,
     Eigen::Ref<Eigen::MatrixXd> genotype,
     Eigen::VectorXd* freqs = nullptr) -> void
 {
@@ -142,6 +142,6 @@ auto process_matrix(
         }
     }
 }
-}  // namespace gelex
+}  // namespace gelex::genotype
 
 #endif  // GELEX_DATA_GENOTYPE_PROCESSOR_H_

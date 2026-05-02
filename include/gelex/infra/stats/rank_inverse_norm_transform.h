@@ -18,7 +18,7 @@
 
 #include <Eigen/Dense>
 
-namespace gelex
+namespace gelex::stats
 {
 
 class RankInverseNormTransform
@@ -42,6 +42,6 @@ class RankInverseNormTransform
         const Eigen::Ref<const Eigen::MatrixXd>& X) -> Eigen::VectorXd;
 };
 
-}  // namespace gelex
+}  // namespace gelex::stats
 
 #endif  // GELEX_INFRA_STATS_RANK_INVERSE_NORM_TRANSFORM_H_

@@ -42,7 +42,7 @@ class GwasWriter
    public:
     GwasWriter(
         std::string_view out_prefix,
-        const df::DataFrame<std::string>& bim,
+        const dataframe::DataFrame<std::string>& bim,
         AssocTestType test_type = AssocTestType::Single);
     GwasWriter(const GwasWriter&) = delete;
     GwasWriter(GwasWriter&&) = delete;
@@ -63,7 +63,7 @@ class GwasWriter
     std::span<const std::string> a1_;
     std::span<const std::string> a2_;
 
-    detail::AtomicOfstream ofs_;
+    io::detail::AtomicOfstream ofs_;
 };
 
 }  // namespace gelex::gwas

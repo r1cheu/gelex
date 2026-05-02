@@ -23,9 +23,7 @@
 
 #include "gelex/infra/stats/normal.h"
 
-namespace gelex
-{
-namespace detail
+namespace gelex::stats::detail
 {
 
 // Robert (1995) accept-reject for TN(0,1,[alpha,+inf)) when alpha >= 3.5
@@ -90,7 +88,6 @@ inline auto sample_right_truncated_normal(
     return -sample_left_truncated_normal(-mu, sigma, -b, rng);
 }
 
-}  // namespace detail
-}  // namespace gelex
+}  // namespace gelex::stats::detail
 
 #endif  // GELEX_INFRA_STATS_TRUNCATED_NORMAL_H_
