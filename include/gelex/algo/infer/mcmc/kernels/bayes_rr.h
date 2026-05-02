@@ -41,14 +41,9 @@ class BayesRRKernel
         : state_(state),
           normal_(state.marker_variance(0)),
           variance_sampler_(
-              unpack_marker_prior<bayes::ContinuousPrior>(
+              make_variance_sampler<bayes::ContinuousPrior>(
                   prior,
-                  "BayesRRKernel")
-                  .variance.param.nu,
-              unpack_marker_prior<bayes::ContinuousPrior>(
-                  prior,
-                  "BayesRRKernel")
-                  .variance.param.s2)
+                  "BayesRRKernel"))
     {
     }
 

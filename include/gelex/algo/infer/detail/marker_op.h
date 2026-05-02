@@ -18,7 +18,8 @@
 #define GELEX_ALGO_INFER_DETAIL_MARKER_OP_H_
 
 #include <cassert>
-#include <cmath>
+#include <cstdint>
+#include <span>
 
 #ifdef USE_MKL
 #include <mkl.h>
@@ -30,13 +31,6 @@
 
 namespace gelex::detail
 {
-
-struct PosteriorParams
-{
-    double mean{0.0};
-    double stddev{0.0};
-    double log_likelihood_kernel{0.0};
-};
 
 template <typename DerivedX, typename DerivedY>
 inline double blas_ddot(
@@ -72,51 +66,51 @@ inline void blas_daxpy(
     cblas_daxpy(n, a, x.derived().data(), incx, y.derived().data(), incy);
 }
 
-inline auto update_residual_and_gebv(
+// Describes a single marker's coefficient transition.
+// old_class / new_class default to -1 (no mixture context); component classes
+// are 1-based indices into component_u (class 0 is the spike at zero).
+struct MarkerTransition
+{
+    double old_value{0.0};
+    double new_value{0.0};
+    int8_t old_class{-1};
+    int8_t new_class{-1};
+};
+
+// Multi-version dispatched (default / AVX2 / AVX-512F) inner kernel for the
+// fused marker update; defined in marker_op.cpp.
+auto apply_marker_update_impl(
+    double* y_adj,
+    double* u,
+    std::span<Eigen::VectorXd> component_u,
+    const double* col,
+    Eigen::Index n,
+    const MarkerTransition& tx) -> void;
+
+// Fused single-pass marker update:
+//   y_adj += diff * col
+//   u     -= diff * col           (diff = old_value - new_value)
+//   component_u[old_class-1] -= old_value * col   (if old_class > 0)
+//   component_u[new_class-1] += new_value * col   (if new_class > 0)
+// Pass an empty span when no mixture tracking is needed.
+template <typename DerivedCol>
+inline auto apply_marker_update(
     Eigen::Ref<Eigen::VectorXd> y_adj,
-    Eigen::Ref<Eigen::VectorXd> gebv,
-    const Eigen::Ref<const Eigen::VectorXd>& col,
-    double old_value,
-    double new_value = 0.0) -> void
+    Eigen::Ref<Eigen::VectorXd> u,
+    std::span<Eigen::VectorXd> component_u,
+    const Eigen::DenseBase<DerivedCol>& col,
+    const MarkerTransition& tx) -> void
 {
-    const double diff = old_value - new_value;
-    if (fabs(diff) > std::numeric_limits<double>::epsilon())
-    {
-        blas_daxpy(diff, col, y_adj);
-        blas_daxpy(-diff, col, gebv);
-    }
-}
-
-inline auto compute_posterior_params_core(
-    double rhs,
-    double col_squared_norm,
-    double residual_variance,
-    double res_over_marker_var) -> PosteriorParams
-{
-    const double precision_kernel
-        = 1.0 / (col_squared_norm + res_over_marker_var);
-
-    const double post_mean = rhs * precision_kernel;
-    const double post_stddev = std::sqrt(residual_variance * precision_kernel);
-
-    const double logdetV
-        = std::log(col_squared_norm / res_over_marker_var + 1.0);
-
-    const double log_like_kernel
-        = -0.5 * (logdetV - post_mean * rhs / residual_variance);
-
-    return {post_mean, post_stddev, log_like_kernel};
-}
-
-inline auto compute_posterior_params(
-    double rhs,
-    double marker_variance_i,
-    double col_squared_norm,
-    double residual_variance) -> PosteriorParams
-{
-    const double res_over_marker_var = residual_variance / marker_variance_i;
-    return compute_posterior_params_core(
-        rhs, col_squared_norm, residual_variance, res_over_marker_var);
+    EIGEN_STATIC_ASSERT_VECTOR_ONLY(DerivedCol);
+    assert(col.size() == y_adj.size());
+    assert(col.size() == u.size());
+    apply_marker_update_impl(
+        y_adj.data(),
+        u.data(),
+        component_u,
+        col.derived().data(),
+        col.size(),
+        tx);
 }
 
 }  // namespace gelex::detail

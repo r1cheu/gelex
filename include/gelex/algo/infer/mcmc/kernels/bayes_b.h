@@ -48,10 +48,7 @@ class BayesBKernel
                   "BayesBKernel")),
           normal_(0.0),
           variance_sampler_(
-              unpack_marker_prior<bayes::SpikePrior>(prior, "BayesBKernel")
-                  .variance.param.nu,
-              unpack_marker_prior<bayes::SpikePrior>(prior, "BayesBKernel")
-                  .variance.param.s2)
+              make_variance_sampler<bayes::SpikePrior>(prior, "BayesBKernel"))
     {
     }
 

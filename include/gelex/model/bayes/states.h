@@ -40,6 +40,7 @@ struct Assignment
           proportion(init_proportion),
           count(Eigen::VectorXi::Zero(init_proportion.size()))
     {
+        count(0) = static_cast<int>(num_markers);
     }
 
     Assignment(

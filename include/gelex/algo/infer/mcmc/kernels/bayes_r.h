@@ -17,19 +17,15 @@
 #ifndef GELEX_ALGO_INFER_MCMC_KERNELS_BAYES_R_H_
 #define GELEX_ALGO_INFER_MCMC_KERNELS_BAYES_R_H_
 
-#include <array>
 #include <cstdint>
 #include <random>
-#include <vector>
 
 #include <Eigen/Core>
 
-#include "gelex/algo/infer/detail/marker_op.h"
 #include "gelex/algo/infer/mcmc/kernels/common.h"
 #include "gelex/algo/infer/mcmc/kernels/mixture_op.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/genotype_storage.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
 
@@ -50,25 +46,23 @@ class BayesRKernel
     BayesRKernel(
         const bayes::GeneticPrior& prior,
         bayes::GeneticState& state,
-        const bayes::GeneticEffect& effect)
+        const bayes::GeneticEffect& /*effect*/)
         : state_(state),
           assignment_(
               unpack_marker_allocation<bayes::ComponentAllocation>(
                   state,
                   "BayesRKernel")),
-          X_(bayes::get_matrix_ref(effect.X)),
           multiplier_(
               unpack_marker_prior<bayes::MixturePrior>(prior, "BayesRKernel")
                   .multiplier),
           marker_variances_(multiplier_.size()),
           logpi_(multiplier_.size()),
-          pi_count_(Eigen::VectorXi::Zero(multiplier_.size())),
+          pi_count_(assignment_.assignment.count),
           variance_sampler_(
-              unpack_marker_prior<bayes::MixturePrior>(prior, "BayesRKernel")
-                  .variance.param.nu,
-              unpack_marker_prior<bayes::MixturePrior>(prior, "BayesRKernel")
-                  .variance.param.s2),
-          monomorphic_indices_(collect_monomorphic_indices(effect))
+              make_variance_sampler<bayes::MixturePrior>(
+                  prior,
+                  "BayesRKernel")),
+          normal_(0.0)
     {
     }
 
@@ -80,12 +74,6 @@ class BayesRKernel
 
         logpi_ = assignment_.assignment.proportion.array().log();
         marker_variances_ = state_.marker_variance(0) * multiplier_.array();
-
-        pi_count_.setZero();
-        for (Eigen::Index i : monomorphic_indices_)
-        {
-            pi_count_(assignment_.assignment.tracker(i))++;
-        }
         sum_square_coeffs_ = 0.0;
     }
 
@@ -98,30 +86,24 @@ class BayesRKernel
     {
         const Eigen::Index num_scale_classes = multiplier_.size();
         const int8_t old_index = assignment_.assignment.tracker(marker_index);
-        const double old_i = state_.coeffs(marker_index);
 
-        const auto scale_pp
-            = compute_scale_posteriors(rhs, xtx_diag, residual_variance);
-        const int8_t dist_index
-            = draw_component(scale_pp, num_scale_classes, rng);
+        compute_scale_posteriors(rhs, xtx_diag, residual_variance);
+        const int8_t dist_index = draw_component(num_scale_classes, rng);
 
-        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
         const double new_i = (dist_index > 0)
-                                 ? sample_slab_effect(scale_pp[dist_index], rng)
+                                 ? normal_.draw(
+                                       {.mean = scale_pp_.means(dist_index),
+                                        .var = scale_pp_.vars(dist_index)},
+                                       rng)
                                  : 0.0;
-        // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
-        update_accumulator(dist_index, new_i, marker_index);
-
-        // NOLINTNEXTLINE(readability-suspicious-call-argument)
-        detail::update_component_u(
-            assignment_.component_u,
-            old_index,
-            old_i,
-            dist_index,
-            new_i,
-            X_.col(marker_index));
-
+        assignment_.assignment.tracker(marker_index) = dist_index;
+        pi_count_(old_index)--;
+        pi_count_(dist_index)++;
+        if (dist_index > 0)
+        {
+            sum_square_coeffs_ += (new_i * new_i) / multiplier_(dist_index);
+        }
         return new_i;
     }
 
@@ -133,14 +115,11 @@ class BayesRKernel
 
         state_.marker_variance(0)
             = variance_sampler_({num_nonzero, sum_square_coeffs_}, rng);
-
-        detail::compute_component_variances(assignment_);
     }
 
    private:
     bayes::GeneticState& state_;
     bayes::ComponentAllocation& assignment_;
-    Eigen::Ref<const Eigen::MatrixXd> X_;
     Eigen::VectorXd multiplier_;
     Eigen::VectorXd marker_variances_;
     Eigen::VectorXd logpi_;
@@ -149,103 +128,56 @@ class BayesRKernel
 
     ScaledInvChi2Sampler<double> variance_sampler_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
-    std::normal_distribution<double> normal_{0.0, 1.0};
-
-    std::vector<Eigen::Index> monomorphic_indices_;
-
-    static auto collect_monomorphic_indices(const bayes::GeneticEffect& effect)
-        -> std::vector<Eigen::Index>
-    {
-        const Eigen::Index p = bayes::get_cols(effect.X);
-        std::vector<Eigen::Index> indices;
-        for (Eigen::Index i = 0; i < p; ++i)
-        {
-            if (effect.is_monomorphic(i))
-            {
-                indices.push_back(i);
-            }
-        }
-        return indices;
-    }
+    NormalSampler<double> normal_;
+    detail::MixtureNormalPosteriors scale_pp_;
 
     auto compute_scale_posteriors(
         double rhs,
         double xtx_diag,
-        double residual_variance) const
-        -> std::array<detail::PosteriorParams, detail::kMaxMixtureComponents>
+        double residual_variance) -> void
     {
-        std::array<detail::PosteriorParams, detail::kMaxMixtureComponents>
-            scale_pp{};
         const Eigen::Index num_scale_classes = multiplier_.size();
-        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index,readability-identifier-length)
-        for (Eigen::Index c = 1; c < num_scale_classes; ++c)
+        scale_pp_.log_likelihoods(0) = 0.0;
+        for (Eigen::Index cls = 1; cls < num_scale_classes; ++cls)
         {
-            scale_pp[c] = detail::compute_posterior_params(
-                rhs, marker_variances_(c), xtx_diag, residual_variance);
+            const auto post = normal_.set_prior_var(marker_variances_(cls))
+                                  .posterior_with_logL(
+                                      {.quadratic = xtx_diag,
+                                       .linear = rhs,
+                                       .scale = residual_variance});
+            scale_pp_.means(cls) = post.params.mean;
+            scale_pp_.vars(cls) = post.params.var;
+            scale_pp_.log_likelihoods(cls) = post.log_likelihood_kernel;
         }
-        // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index,readability-identifier-length)
-        return scale_pp;
     }
 
-    auto draw_component(
-        const std::array<
-            detail::PosteriorParams,
-            detail::kMaxMixtureComponents>& scale_pp,
-        Eigen::Index num_scale_classes,
-        std::mt19937_64& rng) -> int8_t
+    auto draw_component(Eigen::Index num_scale_classes, std::mt19937_64& rng)
+        -> int8_t
     {
-        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index,readability-identifier-length)
-        std::array<double, detail::kMaxMixtureComponents> ll{};
-        ll[0] = logpi_(0);
-        double max_ll = ll[0];
-        for (Eigen::Index c = 1; c < num_scale_classes; ++c)
-        {
-            ll[c] = scale_pp[c].log_likelihood_kernel + logpi_(c);
-            max_ll = std::max(ll[c], max_ll);
-        }
+        Eigen::Array<double, detail::kMaxMixtureComponents, 1> ll;
+        Eigen::Array<double, detail::kMaxMixtureComponents, 1> probs;
 
-        std::array<double, detail::kMaxMixtureComponents> probs{};
-        double total = 0.0;
-        for (Eigen::Index k = 0; k < num_scale_classes; ++k)
-        {
-            probs[k] = std::exp(ll[k] - max_ll);
-            total += probs[k];
-        }
+        ll.head(num_scale_classes)
+            = scale_pp_.log_likelihoods.head(num_scale_classes)
+              + logpi_.head(num_scale_classes).array();
+        const double max_ll = ll.head(num_scale_classes).maxCoeff();
+        probs.head(num_scale_classes)
+            = (ll.head(num_scale_classes) - max_ll).exp();
+        const double total = probs.head(num_scale_classes).sum();
 
-        const double u_val = uniform_(rng) * total;
+        const double threshold = uniform_(rng) * total;
         auto dist_index = static_cast<int8_t>(num_scale_classes - 1);
         double cumsum = 0.0;
         for (Eigen::Index k = 0; k < num_scale_classes; ++k)
         {
-            cumsum += probs[k];
-            if (u_val < cumsum)
+            cumsum += probs(k);
+            if (threshold < cumsum)
             {
                 dist_index = static_cast<int8_t>(k);
                 break;
             }
         }
-        // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index,readability-identifier-length)
         return dist_index;
-    }
-
-    auto sample_slab_effect(
-        const detail::PosteriorParams& pp,
-        std::mt19937_64& rng) -> double
-    {
-        return (normal_(rng) * pp.stddev) + pp.mean;
-    }
-
-    auto update_accumulator(
-        int8_t dist_index,
-        double new_i,
-        Eigen::Index marker_index) -> void
-    {
-        assignment_.assignment.tracker(marker_index) = dist_index;
-        pi_count_(dist_index)++;
-        if (dist_index > 0)
-        {
-            sum_square_coeffs_ += (new_i * new_i) / multiplier_(dist_index);
-        }
     }
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)

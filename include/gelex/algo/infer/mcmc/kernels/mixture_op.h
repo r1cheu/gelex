@@ -17,61 +17,35 @@
 #ifndef GELEX_ALGO_INFER_MCMC_KERNELS_MIXTURE_OP_H_
 #define GELEX_ALGO_INFER_MCMC_KERNELS_MIXTURE_OP_H_
 
-#include <cmath>
-#include <vector>
+#include <variant>
 
 #include <Eigen/Core>
 
-#include "gelex/algo/infer/detail/marker_op.h"
 #include "gelex/infra/stats/descriptive.h"
 #include "gelex/model/bayes/states.h"
 
 namespace gelex::detail
 {
 
-// 混合模型最大分量数（含 spike 分量 0）
-constexpr int kMaxMixtureComponents = 10;
+constexpr int kMaxMixtureComponents = 5;
 
-// 更新每个非零分量的累积 GEBV 向量
-template <typename DerivedCol>
-inline void update_component_u(
-    std::vector<Eigen::VectorXd>& component_u,
-    int old_index,
-    double old_val,
-    int new_index,
-    double new_val,
-    const Eigen::DenseBase<DerivedCol>& col)
+struct MixtureNormalPosteriors
 {
-    if (component_u.empty())
-    {
-        return;
-    }
+    Eigen::Array<double, kMaxMixtureComponents, 1> means;
+    Eigen::Array<double, kMaxMixtureComponents, 1> vars;
+    Eigen::Array<double, kMaxMixtureComponents, 1> log_likelihoods;
+};
 
-    if (old_index == new_index)
+template <typename StateT>
+inline auto get_mixture(StateT& state) -> bayes::ComponentAllocation*
+{
+    if (!state.group)
     {
-        if (old_index > 0)
-        {
-            const double diff = new_val - old_val;
-            if (std::abs(diff) > std::numeric_limits<double>::epsilon())
-            {
-                blas_daxpy(diff, col, component_u[old_index - 1]);
-            }
-        }
+        return nullptr;
     }
-    else
-    {
-        if (old_index > 0)
-        {
-            blas_daxpy(-old_val, col, component_u[old_index - 1]);
-        }
-        if (new_index > 0)
-        {
-            blas_daxpy(new_val, col, component_u[new_index - 1]);
-        }
-    }
+    return std::get_if<bayes::ComponentAllocation>(&*state.group);
 }
 
-// 按分量 GEBV 向量计算各分量的遗传方差
 inline void compute_component_variances(
     bayes::ComponentAllocation& marker_assignment)
 {
@@ -81,20 +55,6 @@ inline void compute_component_variances(
     {
         marker_assignment.component_variance(k)
             = detail::var(marker_assignment.component_u[k])(0);
-    }
-}
-
-template <typename StateT>
-inline void compute_component_variances(StateT& state)
-{
-    if (!state.group)
-    {
-        return;
-    }
-    auto* ma = std::get_if<bayes::ComponentAllocation>(&*state.group);
-    if (ma && !ma->component_u.empty())
-    {
-        compute_component_variances(*ma);
     }
 }
 

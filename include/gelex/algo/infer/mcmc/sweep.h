@@ -17,12 +17,15 @@
 #ifndef GELEX_ALGO_INFER_MCMC_SWEEP_H_
 #define GELEX_ALGO_INFER_MCMC_SWEEP_H_
 
+#include <cstdint>
 #include <random>
+#include <span>
 
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/detail/marker_op.h"
 #include "gelex/algo/infer/mcmc/kernels/concept.h"
+#include "gelex/algo/infer/mcmc/kernels/mixture_op.h"
 #include "gelex/infra/stats/descriptive.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/genotype_storage.h"
@@ -62,6 +65,12 @@ class GeneticSweep
 
         kernel.prepare();
 
+        auto* mix = ::gelex::detail::get_mixture(state_);
+        const bool track_components = mix && !mix->component_u.empty();
+        const auto component_u_span
+            = track_components ? std::span<Eigen::VectorXd>(mix->component_u)
+                               : std::span<Eigen::VectorXd>{};
+
         for (Eigen::Index i = 0; i < coeffs.size(); ++i)
         {
             const double xtx_diag_i = XtX_diag(i);
@@ -75,20 +84,32 @@ class GeneticSweep
             const double rhs
                 = ::gelex::detail::blas_ddot(col, y_adj) + (xtx_diag_i * old_i);
 
+            const int8_t old_class = mix ? mix->assignment.tracker(i) : -1;
+
             const double new_i
                 = kernel.sample(i, xtx_diag_i, rhs, residual_variance, rng_);
 
             coeffs(i) = new_i;
-            if (old_i != new_i)
-            {
-                ::gelex::detail::update_residual_and_gebv(
-                    y_adj, u, col, old_i, new_i);
-            }
+            const int8_t new_class = mix ? mix->assignment.tracker(i) : -1;
+
+            ::gelex::detail::apply_marker_update(
+                y_adj,
+                u,
+                component_u_span,
+                col,
+                {.old_value = old_i,
+                 .new_value = new_i,
+                 .old_class = old_class,
+                 .new_class = new_class});
         }
 
         kernel.commit(rng_);
 
         state_.variance = gelex::detail::var(state_.u)(0);
+        if (track_components)
+        {
+            ::gelex::detail::compute_component_variances(*mix);
+        }
     }
 
    private:

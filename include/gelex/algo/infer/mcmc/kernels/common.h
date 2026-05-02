@@ -23,6 +23,7 @@
 #include <fmt/format.h>
 
 #include "gelex/exception.h"
+#include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
 
@@ -67,6 +68,16 @@ auto unpack_marker_allocation(
             "{}: marker allocation variant mismatch (actual_index={})",
             kernel_name,
             state.group->index()));
+}
+
+template <typename MarkerPrior>
+auto make_variance_sampler(
+    const bayes::GeneticPrior& prior,
+    std::string_view kernel_name) -> ScaledInvChi2Sampler<double>
+{
+    const auto& p
+        = unpack_marker_prior<MarkerPrior>(prior, kernel_name).variance.param;
+    return ScaledInvChi2Sampler<double>{p.nu, p.s2};
 }
 
 }  // namespace gelex::mcmc

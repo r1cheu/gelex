@@ -41,10 +41,9 @@ class BayesAKernel
         : state_(state),
           normal_(0.0),
           sigma_(
-              unpack_marker_prior<bayes::ContinuousPrior>(prior, "BayesAKernel")
-                  .variance.param.nu,
-              unpack_marker_prior<bayes::ContinuousPrior>(prior, "BayesAKernel")
-                  .variance.param.s2)
+              make_variance_sampler<bayes::ContinuousPrior>(
+                  prior,
+                  "BayesAKernel"))
     {
     }
 

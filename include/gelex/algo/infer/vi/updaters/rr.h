@@ -65,8 +65,8 @@ inline auto RR(
 
         coeffs(i) = post_mean;
         sigma2(i) = post_var;
-        gelex::detail::update_residual_and_gebv(
-            y_adj, u, col, old_i, post_mean);
+        gelex::detail::apply_marker_update(
+            y_adj, u, {}, col, {.old_value = old_i, .new_value = post_mean});
     }
     state.variance = gelex::detail::var(state.u)(0);
 

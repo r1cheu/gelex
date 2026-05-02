@@ -98,16 +98,18 @@ class GeneticJointSweep
             first_coeffs(i) = first_new;
             second_coeffs(i) = second_new;
 
-            if (first_old != first_new)
-            {
-                ::gelex::detail::update_residual_and_gebv(
-                    y_adj, first_u, first_col, first_old, first_new);
-            }
-            if (second_old != second_new)
-            {
-                ::gelex::detail::update_residual_and_gebv(
-                    y_adj, second_u, second_col, second_old, second_new);
-            }
+            ::gelex::detail::apply_marker_update(
+                y_adj,
+                first_u,
+                {},
+                first_col,
+                {.old_value = first_old, .new_value = first_new});
+            ::gelex::detail::apply_marker_update(
+                y_adj,
+                second_u,
+                {},
+                second_col,
+                {.old_value = second_old, .new_value = second_new});
         }
 
         kernel.commit(rng_);
