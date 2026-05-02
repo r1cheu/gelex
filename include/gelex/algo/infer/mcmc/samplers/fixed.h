@@ -14,59 +14,62 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_MCMC_SAMPLERS_PI_H_
-#define GELEX_ALGO_INFER_MCMC_SAMPLERS_PI_H_
+#ifndef GELEX_ALGO_INFER_MCMC_SAMPLERS_FIXED_H_
+#define GELEX_ALGO_INFER_MCMC_SAMPLERS_FIXED_H_
 
 #include <random>
 #include <type_traits>
-#include <utility>
-
-#include <Eigen/Core>
 
 #include "gelex/algo/infer/mcmc/context.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/states.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/fixed_effects.h"
 
 namespace gelex::mcmc
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-struct PiSamplerDeps
+struct FixedSamplerDeps
 {
-    bayes::MarkerAllocation& group;
-    Eigen::VectorXd alpha;
+    const FixedEffect& effect;
+    bayes::FixedState& state;
+    bayes::ResidualState& residual;
     std::mt19937_64& rng;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-static_assert(std::is_aggregate_v<PiSamplerDeps>);
+static_assert(std::is_aggregate_v<FixedSamplerDeps>);
 
-class PiSampler
+class FixedSampler
 {
    public:
-    using Deps = PiSamplerDeps;
+    using Deps = FixedSamplerDeps;
 
-    explicit PiSampler(Deps deps)
-        : deps_(std::move(deps)), dirichlet_(deps_.alpha)
+    explicit FixedSampler(Deps deps) : deps_(deps) {}
+
+    FixedSampler(const FixedSampler&) = delete;
+    auto operator=(const FixedSampler&) -> FixedSampler& = delete;
+    FixedSampler(FixedSampler&&) noexcept = default;
+    auto operator=(FixedSampler&&) -> FixedSampler& = delete;
+    ~FixedSampler() = default;
+
+    static auto make(const Context& ctx) -> FixedSampler
     {
+        return FixedSampler{Deps{
+            .effect = ctx.model.fixed(),
+            .state = ctx.state.fixed(),
+            .residual = ctx.state.residual(),
+            .rng = ctx.rng,
+        }};
     }
-
-    PiSampler(const PiSampler&) = delete;
-    auto operator=(const PiSampler&) -> PiSampler& = delete;
-    PiSampler(PiSampler&&) noexcept = default;
-    auto operator=(PiSampler&&) -> PiSampler& = delete;
-    ~PiSampler() = default;
-
-    static auto make(const Context& ctx, GeneticMode mode) -> PiSampler;
 
     auto sample() -> void;
 
    private:
     Deps deps_;
-    DirichletSampler<double> dirichlet_;
+    NormalSampler<double> normal_{0.0};
 };
 
 }  // namespace gelex::mcmc
 
-#endif  // GELEX_ALGO_INFER_MCMC_SAMPLERS_PI_H_
+#endif  // GELEX_ALGO_INFER_MCMC_SAMPLERS_FIXED_H_

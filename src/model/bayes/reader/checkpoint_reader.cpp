@@ -103,14 +103,7 @@ auto read_assignment(
     auto proportion = read_vec<double>(
         reader, fmt::format("{}/{}/proportion", effect, group_key));
     auto count = rebuild_pi_count(tracker, proportion.size());
-
-    auto stick_probs = read_vec<double>(
-        reader, fmt::format("{}/{}/stick_probs", effect, group_key));
-    return {
-        std::move(tracker),
-        std::move(proportion),
-        std::move(count),
-        std::move(stick_probs)};
+    return {std::move(tracker), std::move(proportion), std::move(count)};
 }
 
 auto read_component_allocation(

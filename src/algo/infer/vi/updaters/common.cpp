@@ -40,14 +40,14 @@ auto Fixed::operator()(
 
     auto& y_adj = residual.y_adj;
     auto& coeffs = state.coeffs;
-    const auto& cols_squared_norm = effect.cols_squared_norm;
+    const auto& XtX_diag = effect.XtX_diag;
     const auto& X = effect.X;
 
     for (Index i = 0; i < coeffs.size(); ++i)
     {
         const double old_i = coeffs(i);
         const auto& col = X.col(i);
-        const double norm = cols_squared_norm(i);
+        const double norm = XtX_diag(i);
 
         const double rhs = col.dot(y_adj) + (norm * old_i);
         const double post_mean = rhs / norm;
@@ -86,7 +86,7 @@ auto Random::update_impl(
     bayes::ResidualState& residual) -> void
 {
     VectorXd& coeffs = state.coeffs;
-    const VectorXd& cols_squared_norm = effect.cols_squared_norm;
+    const VectorXd& XtX_diag = effect.XtX_diag;
     const auto& X = effect.X;
 
     auto& y_adj = residual.y_adj;
@@ -94,13 +94,13 @@ auto Random::update_impl(
     const double sigma = state.variance;
 
     const VectorXd inv_scaler
-        = 1.0 / (cols_squared_norm.array() + residual_variance / sigma);
+        = 1.0 / (XtX_diag.array() + residual_variance / sigma);
 
     for (Index i = 0; i < coeffs.size(); ++i)
     {
         const double old_i = coeffs(i);
         const auto& col = X.col(i);
-        const double norm = cols_squared_norm(i);
+        const double norm = XtX_diag(i);
 
         const double rhs = col.dot(y_adj) + (norm * old_i);
         const double post_mean = rhs * inv_scaler(i);
@@ -128,8 +128,7 @@ auto Residual::operator()(
     for (const auto& gs : states.genetics())
     {
         const auto* effect = model.genetic(gs.type);
-        expected_rss
-            += (effect->cols_squared_norm.array() * gs.sigma2.array()).sum();
+        expected_rss += (effect->XtX_diag.array() * gs.sigma2.array()).sum();
     }
 
     detail::ScaledInvChiSq chi_squared{priors.residual().param};

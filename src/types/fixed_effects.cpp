@@ -111,7 +111,7 @@ auto FixedEffect::build(
     {
         fe.X.middleCols(col_offset, dcov_cols) = dcovariate->X;
     }
-    fe.cols_squared_norm = fe.X.colwise().squaredNorm();
+    fe.XtX_diag = fe.X.colwise().squaredNorm();
 
     return fe;
 }
@@ -133,7 +133,7 @@ auto FixedEffect::build(Eigen::Index n_samples) -> FixedEffect
 
     fe.X = Eigen::MatrixXd::Zero(n_samples, n_cols);
     fe.X.col(0).setOnes();
-    fe.cols_squared_norm = fe.X.colwise().squaredNorm();
+    fe.XtX_diag = fe.X.colwise().squaredNorm();
     return fe;
 }
 

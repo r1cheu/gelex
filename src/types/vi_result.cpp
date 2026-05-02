@@ -29,7 +29,7 @@ vi::Result::Result(vi::State&& state, const BayesModel& model)
 
     auto& fc = fixed_.coeffs;
     fc.mean = std::move(state.fixed().coeffs);
-    fc.stddev = (res_var / model.fixed().cols_squared_norm.array()).sqrt();
+    fc.stddev = (res_var / model.fixed().XtX_diag.array()).sqrt();
 
     const auto& random_effects = model.random();
     for (std::size_t i = 0; i < random_effects.size(); ++i)
@@ -39,7 +39,7 @@ vi::Result::Result(vi::State&& state, const BayesModel& model)
 
         rs.coeffs.mean = std::move(rs_state.coeffs);
         const auto inv_scaler = 1.0
-                                / (random_effects[i].cols_squared_norm.array()
+                                / (random_effects[i].XtX_diag.array()
                                    + res_var / rs_state.variance);
         rs.coeffs.stddev = (res_var * inv_scaler).sqrt();
 

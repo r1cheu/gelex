@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_MCMC_SAMPLERS_COMMON_OP_H_
-#define GELEX_ALGO_INFER_MCMC_SAMPLERS_COMMON_OP_H_
+#ifndef GELEX_ALGO_INFER_MCMC_KERNELS_MIXTURE_OP_H_
+#define GELEX_ALGO_INFER_MCMC_KERNELS_MIXTURE_OP_H_
 
 #include <cmath>
 #include <vector>
@@ -29,8 +29,10 @@
 namespace gelex::detail
 {
 
+// 混合模型最大分量数（含 spike 分量 0）
 constexpr int kMaxMixtureComponents = 10;
 
+// 更新每个非零分量的累积 GEBV 向量
 template <typename DerivedCol>
 inline void update_component_u(
     std::vector<Eigen::VectorXd>& component_u,
@@ -69,6 +71,7 @@ inline void update_component_u(
     }
 }
 
+// 按分量 GEBV 向量计算各分量的遗传方差
 inline void compute_component_variances(
     bayes::ComponentAllocation& marker_assignment)
 {
@@ -97,4 +100,4 @@ inline void compute_component_variances(StateT& state)
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_ALGO_INFER_MCMC_SAMPLERS_COMMON_OP_H_
+#endif  // GELEX_ALGO_INFER_MCMC_KERNELS_MIXTURE_OP_H_

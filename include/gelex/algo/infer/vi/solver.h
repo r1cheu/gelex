@@ -59,8 +59,7 @@ inline auto compute_elbo(
     for (const auto& gs : state.genetics())
     {
         const auto* effect = model.genetic(gs.type);
-        expected_rss
-            += (effect->cols_squared_norm.array() * gs.sigma2.array()).sum();
+        expected_rss += (effect->XtX_diag.array() * gs.sigma2.array()).sum();
     }
     double elbo = -0.5 * N * std::log(2.0 * std::numbers::pi * sigma2_e)
                   - 0.5 / sigma2_e * expected_rss;

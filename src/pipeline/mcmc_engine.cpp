@@ -23,8 +23,8 @@
 
 #include <fmt/format.h>
 
+#include "gelex/algo/infer/mcmc/recipes.h"
 #include "gelex/algo/infer/mcmc/solver.h"
-#include "gelex/algo/infer/mcmc/trait_model.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/model/bayes/model.h"
@@ -44,41 +44,43 @@ using TraitRunner = mcmc::Result (*)(
     const mcmc::FitEngine::Config&,
     const FitObserver&);
 
-template <typename TM>
-auto run_trait_model(
+template <auto MakeChain>
+auto run_recipe(
     BayesModel& model,
     const bayes::Priors& priors,
     const mcmc::FitEngine::Config& config,
     const FitObserver& observer) -> mcmc::Result
 {
-    mcmc::Solver mcmc(config.mcmc_params, TM{}, std::string(config.out_prefix));
+    mcmc::Solver mcmc(
+        config.mcmc_params,
+        MakeChain,
+        std::string(config.out_prefix),
+        std::string(config.out_prefix));
     if (config.resume_path)
     {
         auto checkpoint = read_checkpoint(*config.resume_path);
-        return mcmc.resume(
-            model, std::move(checkpoint), config.out_prefix, observer);
+        return mcmc.resume(model, std::move(checkpoint), observer);
     }
-    return mcmc.run(model, priors, config.seed, config.out_prefix, observer);
+    return mcmc.run(model, priors, config.seed, observer);
 }
 
 // clang-format off
 constexpr auto kTraitRunners = std::array<
-    std::pair<BayesMethodConfig, TraitRunner>, 15>{{
-    {{BayesBase::A,  false, false, false}, &run_trait_model<mcmc::A>},
-    {{BayesBase::A,  true,  false, false}, &run_trait_model<mcmc::Ad>},
-    {{BayesBase::B,  false, false, false}, &run_trait_model<mcmc::B>},
-    {{BayesBase::B,  false, false, true},  &run_trait_model<mcmc::Bpi>},
-    {{BayesBase::B,  true,  false, false}, &run_trait_model<mcmc::Bd>},
-    {{BayesBase::B,  true,  false, true},  &run_trait_model<mcmc::Bdpi>},
-    {{BayesBase::C,  false, false, false}, &run_trait_model<mcmc::C>},
-    {{BayesBase::C,  false, false, true},  &run_trait_model<mcmc::Cpi>},
-    {{BayesBase::C,  true,  false, false}, &run_trait_model<mcmc::Cd>},
-    {{BayesBase::C,  true,  false, true},  &run_trait_model<mcmc::Cdpi>},
-    {{BayesBase::R,  false, false, false}, &run_trait_model<mcmc::R>},
-    {{BayesBase::R,  true,  false, false}, &run_trait_model<mcmc::Rd>},
-    {{BayesBase::R,  true,  true,  false}, &run_trait_model<mcmc::RdAt>},
-    {{BayesBase::RR, false, false, false}, &run_trait_model<mcmc::RR>},
-    {{BayesBase::RR, true,  false, false}, &run_trait_model<mcmc::RRd>},
+    std::pair<BayesMethodConfig, TraitRunner>, 14>{{
+    {{BayesBase::A,  false, false, false}, &run_recipe<mcmc::make_bayes_a_chain>},
+    {{BayesBase::A,  true,  false, false}, &run_recipe<mcmc::make_bayes_ad_chain>},
+    {{BayesBase::B,  false, false, false}, &run_recipe<mcmc::make_bayes_b_chain>},
+    {{BayesBase::B,  false, false, true},  &run_recipe<mcmc::make_bayes_bpi_chain>},
+    {{BayesBase::B,  true,  false, false}, &run_recipe<mcmc::make_bayes_bd_chain>},
+    {{BayesBase::B,  true,  false, true},  &run_recipe<mcmc::make_bayes_bdpi_chain>},
+    {{BayesBase::C,  false, false, false}, &run_recipe<mcmc::make_bayes_c_chain>},
+    {{BayesBase::C,  false, false, true},  &run_recipe<mcmc::make_bayes_cpi_chain>},
+    {{BayesBase::C,  true,  false, false}, &run_recipe<mcmc::make_bayes_cd_chain>},
+    {{BayesBase::C,  true,  false, true},  &run_recipe<mcmc::make_bayes_cdpi_chain>},
+    {{BayesBase::R,  false, false, false}, &run_recipe<mcmc::make_bayes_r_chain>},
+    {{BayesBase::R,  true,  false, false}, &run_recipe<mcmc::make_bayes_rd_chain>},
+    {{BayesBase::RR, false, false, false}, &run_recipe<mcmc::make_bayes_rr_chain>},
+    {{BayesBase::RR, true,  false, false}, &run_recipe<mcmc::make_bayes_rrd_chain>},
 }};
 // clang-format on
 

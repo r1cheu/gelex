@@ -131,7 +131,7 @@ TEST_CASE("CAVI RR single iteration produces correct posteriors", "[cavi]")
     const auto* prior = priors.genetic(GeneticMode::A);
     REQUIRE(prior != nullptr);
 
-    const auto& csn = effect.cols_squared_norm;
+    const auto& csn = effect.XtX_diag;
     const double res_var = state.residual().variance;
     const double marker_var = state.genetics()[0].marker_variance(0);
 

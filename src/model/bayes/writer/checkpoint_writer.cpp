@@ -80,7 +80,6 @@ auto write_assignment(
 {
     writer.write(fmt::format("{}/group/assignment", effect), a.tracker);
     writer.write(fmt::format("{}/group/proportion", effect), a.proportion);
-    writer.write(fmt::format("{}/group/stick_probs", effect), a.stick_probs);
 }
 
 auto write_component_allocation(
@@ -132,7 +131,6 @@ auto write_genetic_sign(
 {
     writer.write(fmt::format("{}/sign/assignment", effect), sign.tracker);
     writer.write(fmt::format("{}/sign/proportion", effect), sign.proportion);
-    writer.write(fmt::format("{}/sign/stick_probs", effect), sign.stick_probs);
 }
 
 auto write_genetics(

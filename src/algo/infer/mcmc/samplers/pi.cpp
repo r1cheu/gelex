@@ -16,75 +16,101 @@
 
 #include "gelex/algo/infer/mcmc/samplers/pi.h"
 
-#include <random>
 #include <type_traits>
+#include <utility>
 #include <variant>
 
-#include "gelex/algo/infer/mcmc/samplers/stick_breaking.h"
+#include <fmt/format.h>
+#include <Eigen/Core>
+
+#include "gelex/exception.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
 
-namespace gelex::detail
+namespace gelex::mcmc
 {
 
-namespace
+auto PiSampler::make(const Context& ctx, GeneticMode mode) -> PiSampler
 {
-
-auto sample_pi(bayes::GeneticState& state, std::mt19937_64& rng) -> void
-{
-    if (!state.group)
+    auto* genetic_state = ctx.state.genetic(mode);
+    if (genetic_state == nullptr)
     {
-        return;
+        throw GelexException(
+            fmt::format(
+                "state has no genetic block for mode {}",
+                EffectType::from_genetic(mode)));
     }
-    auto update_pi = [&](bayes::Assignment& asgn)
+    if (!genetic_state->group.has_value())
     {
-        asgn.stick_probs = sample_stick_posteriors(asgn.count, rng);
-        asgn.proportion = bayes::Assignment::stick_to_pi(asgn.stick_probs);
-    };
+        throw GelexException(
+            fmt::format(
+                "PiSampler requires marker allocation for genetic block {}",
+                EffectType::from_genetic(mode)));
+    }
+    const auto* prior = ctx.priors.genetic(mode);
+    if (prior == nullptr)
+    {
+        throw GelexException(
+            fmt::format(
+                "priors has no genetic block for mode {}",
+                EffectType::from_genetic(mode)));
+    }
+    auto alpha = std::visit(
+        [&](const auto& marker_prior) -> Eigen::VectorXd
+        {
+            using T = std::decay_t<decltype(marker_prior)>;
+            if constexpr (
+                std::is_same_v<T, bayes::SpikePrior>
+                || std::is_same_v<T, bayes::MixturePrior>)
+            {
+                if (!marker_prior.proportion.estimate)
+                {
+                    throw GelexException(
+                        fmt::format(
+                            "PiSampler: genetic block {} — "
+                            "PiSampler requires proportion.estimate = true",
+                            EffectType::from_genetic(mode)));
+                }
+                return Eigen::VectorXd::Ones(
+                    marker_prior.proportion.init.size());
+            }
+            else
+            {
+                throw GelexException(
+                    fmt::format(
+                        "PiSampler: genetic block {} has no proportion prior",
+                        EffectType::from_genetic(mode)));
+            }
+        },
+        prior->marker);
+    return PiSampler{Deps{
+        .group = *genetic_state->group,
+        .alpha = std::move(alpha),
+        .rng = ctx.rng,
+    }};
+}
+
+auto PiSampler::sample() -> void
+{
+    dirichlet_.reset();
+
+    auto update = [&](bayes::Assignment& asgn)
+    { asgn.proportion = dirichlet_(asgn.count, deps_.rng); };
     std::visit(
         [&](auto& alloc)
         {
             using T = std::decay_t<decltype(alloc)>;
             if constexpr (std::is_same_v<T, bayes::Assignment>)
             {
-                update_pi(alloc);
+                update(alloc);
             }
             else
             {
-                update_pi(alloc.assignment);
+                update(alloc.assignment);
             }
         },
-        *state.group);
+        deps_.group);
 }
 
-}  // namespace
-
-namespace AdditiveSampler
-{
-auto Pi::operator()(
-    const BayesModel& /*model*/,
-    const bayes::Priors& /*priors*/,
-    mcmc::State& states,
-    std::mt19937_64& rng) const -> void
-{
-    if (auto* state = states.genetic(GeneticMode::A); state != nullptr)
-    {
-        sample_pi(*state, rng);
-    }
-}
-
-}  // namespace AdditiveSampler
-
-auto DominantSampler::Pi::operator()(
-    const BayesModel& /*model*/,
-    const bayes::Priors& /*priors*/,
-    mcmc::State& states,
-    std::mt19937_64& rng) const -> void
-{
-    if (auto* state = states.genetic(GeneticMode::D); state != nullptr)
-    {
-        sample_pi(*state, rng);
-    }
-}
-
-}  // namespace gelex::detail
+}  // namespace gelex::mcmc

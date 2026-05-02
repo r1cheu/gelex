@@ -14,25 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_MCMC_SAMPLERS_GIBBS_GIBBS_CONCEPT_H_
-#define GELEX_ALGO_INFER_MCMC_SAMPLERS_GIBBS_GIBBS_CONCEPT_H_
+#include "gelex/algo/infer/mcmc/samplers/residual.h"
 
-#include <concepts>
-
-namespace gelex::bayes
-{
-struct GeneticEffect;
-struct GeneticState;
-}  // namespace gelex::bayes
-
-namespace gelex::detail::Gibbs
+namespace gelex::mcmc
 {
 
-template <typename E, typename S>
-concept IsValidEffectStatePair
-    = std::same_as<std::remove_cvref_t<E>, bayes::GeneticEffect>
-      && std::same_as<std::remove_cvref_t<S>, bayes::GeneticState>;
+auto ResidualSampler::sample() -> void
+{
+    variance_sampler_.reset();
+    deps_.state.variance = variance_sampler_(
+        {.n = deps_.num_individuals,
+         .sum_squares = deps_.state.y_adj.squaredNorm()},
+        deps_.rng);
+}
 
-}  // namespace gelex::detail::Gibbs
-
-#endif  // GELEX_ALGO_INFER_MCMC_SAMPLERS_GIBBS_GIBBS_CONCEPT_H_
+}  // namespace gelex::mcmc

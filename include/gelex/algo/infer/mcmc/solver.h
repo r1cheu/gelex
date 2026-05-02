@@ -20,10 +20,12 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include <omp.h>
 #include <Eigen/Core>
 
+#include "gelex/algo/infer/mcmc/context.h"
 #include "gelex/algo/infer/params.h"
 #include "gelex/algo/infer/posterior_calculator.h"
 #include "gelex/exception.h"
@@ -43,26 +45,25 @@ namespace gelex
 namespace mcmc
 {
 
-template <typename TraitSampler>
+template <typename ChainFactory>
 class Solver
 {
    public:
     explicit Solver(
         mcmc::Params params,
-        TraitSampler trait_sampler,
+        ChainFactory make_chain,
+        std::string sample_prefix = {},
         std::optional<std::string> checkpoint_prefix = std::nullopt);
 
     auto run(
         const BayesModel& model,
         const bayes::Priors& priors,
         Eigen::Index seed = 42,
-        std::string_view sample_prefix = "",
         const FitObserver& observer = {}) -> mcmc::Result;
 
     auto resume(
         const BayesModel& model,
         Checkpoint checkpoint,
-        std::string_view sample_prefix = "",
         const FitObserver& observer = {}) -> mcmc::Result;
 
    private:
@@ -70,57 +71,64 @@ class Solver
         const mcmc::State& state,
         const BayesModel& model);
 
-    void run_impl(
-        const BayesModel& model,
+    template <typename Chain>
+    auto run_impl(
+        Chain& chain,
         const bayes::Priors& priors,
         mcmc::Samples& samples,
-        mcmc::State& status,
+        mcmc::State& state,
         std::mt19937_64& rng,
-        const FitObserver& observer);
+        const FitObserver& observer) -> void;
 
     auto finalize(
         mcmc::Samples samples,
         const BayesModel& model,
         const FitObserver& observer) -> mcmc::Result;
 
+    [[no_unique_address]] ChainFactory make_chain_;
     mcmc::Params params_;
-    TraitSampler trait_sampler_;
+    std::string sample_prefix_;
     std::optional<std::string> checkpoint_prefix_;
 };
 
-template <typename TraitSampler>
-Solver<TraitSampler>::Solver(
+template <typename ChainFactory>
+Solver<ChainFactory>::Solver(
     mcmc::Params params,
-    TraitSampler trait_sampler,
+    ChainFactory make_chain,
+    std::string sample_prefix,
     std::optional<std::string> checkpoint_prefix)
-    : params_(params),
-      trait_sampler_(std::move(trait_sampler)),
+    : make_chain_(std::move(make_chain)),
+      params_(params),
+      sample_prefix_(std::move(sample_prefix)),
       checkpoint_prefix_(std::move(checkpoint_prefix))
 {
 }
 
-template <typename TraitSampler>
-auto Solver<TraitSampler>::run(
+template <typename ChainFactory>
+auto Solver<ChainFactory>::run(
     const BayesModel& model,
     const bayes::Priors& priors,
     Eigen::Index seed,
-    std::string_view sample_prefix,
     const FitObserver& observer) -> mcmc::Result
 {
-    mcmc::Samples samples(model, priors, sample_prefix, params_.n_records);
+    mcmc::Samples samples(model, priors, sample_prefix_, params_.n_records);
     notify(observer, FitPriorSetEvent{.priors = &priors});
 
     mcmc::State state{model, priors};
     std::mt19937_64 rng(seed);
 
-    const detail::EigenThreadGuard guard;
+    const ::gelex::detail::EigenThreadGuard guard;
     omp_set_num_threads(1);
-    run_impl(model, priors, samples, state, rng, observer);
+
+    mcmc::Context ctx{
+        .model = model, .priors = priors, .state = state, .rng = rng};
+    auto chain = make_chain_(ctx);
+    run_impl(chain, priors, samples, state, rng, observer);
     return finalize(std::move(samples), model, observer);
 }
 
-template <typename TraitSampler>
-void Solver<TraitSampler>::validate_checkpoint(
+template <typename ChainFactory>
+void Solver<ChainFactory>::validate_checkpoint(
     const mcmc::State& state,
     const BayesModel& model)
 {
@@ -177,22 +185,28 @@ void Solver<TraitSampler>::validate_checkpoint(
         "residual.y_adj");
 }
 
-template <typename TraitSampler>
-auto Solver<TraitSampler>::resume(
+template <typename ChainFactory>
+auto Solver<ChainFactory>::resume(
     const BayesModel& model,
     Checkpoint checkpoint,
-    std::string_view sample_prefix,
     const FitObserver& observer) -> mcmc::Result
 {
     validate_checkpoint(checkpoint.state, model);
     mcmc::Samples samples(
-        model, checkpoint.priors, sample_prefix, params_.n_records);
+        model, checkpoint.priors, sample_prefix_, params_.n_records);
     notify(observer, FitPriorSetEvent{.priors = &checkpoint.priors});
 
-    const detail::EigenThreadGuard guard;
+    const ::gelex::detail::EigenThreadGuard guard;
     omp_set_num_threads(1);
+
+    mcmc::Context ctx{
+        .model = model,
+        .priors = checkpoint.priors,
+        .state = checkpoint.state,
+        .rng = checkpoint.rng};
+    auto chain = make_chain_(ctx);
     run_impl(
-        model,
+        chain,
         checkpoint.priors,
         samples,
         checkpoint.state,
@@ -201,8 +215,8 @@ auto Solver<TraitSampler>::resume(
     return finalize(std::move(samples), model, observer);
 }
 
-template <typename TraitSampler>
-auto Solver<TraitSampler>::finalize(
+template <typename ChainFactory>
+auto Solver<ChainFactory>::finalize(
     mcmc::Samples samples,
     const BayesModel& model,
     const FitObserver& observer) -> mcmc::Result
@@ -223,40 +237,40 @@ auto Solver<TraitSampler>::finalize(
     return result;
 }
 
-template <typename TraitSampler>
-void Solver<TraitSampler>::run_impl(
-    const BayesModel& model,
+template <typename ChainFactory>
+template <typename Chain>
+auto Solver<ChainFactory>::run_impl(
+    Chain& chain,
     const bayes::Priors& priors,
     mcmc::Samples& samples,
-    mcmc::State& status,
+    mcmc::State& state,
     std::mt19937_64& rng,
-    const FitObserver& observer)
+    const FitObserver& observer) -> void
 {
     for (Eigen::Index iter = 0; iter < params_.n_iters; ++iter)
     {
-        trait_sampler_(model, priors, status, rng);
-
-        status.compute_heritability();
+        chain.step();
+        state.compute_heritability();
 
         notify(
             observer,
             FitMCMCProgressEvent{
                 .current = static_cast<size_t>(iter + 1),
                 .total = static_cast<size_t>(params_.n_iters),
-                .state = &status,
+                .state = &state,
             });
 
         if (iter >= params_.n_burn_in
             && (iter + 1 - params_.n_burn_in) % params_.n_thin == 0)
         {
-            samples.store(status);
+            samples.store(state);
         }
 
         if (checkpoint_prefix_
             && ((iter + 1) % params_.checkpoint_step == 0
                 || iter == params_.n_iters - 1))
         {
-            write_checkpoint(status, rng, priors, *checkpoint_prefix_);
+            write_checkpoint(state, rng, priors, *checkpoint_prefix_);
             notify(observer, FitCheckpointSavedEvent{});
         }
     }

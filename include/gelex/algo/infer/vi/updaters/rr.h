@@ -42,7 +42,7 @@ inline auto RR(
     const double old_marker_variance = state.marker_variance(0);
     Eigen::VectorXd& u = state.u;
     const auto& X = bayes::get_matrix_ref(effect.X);
-    const auto& cols_squared_norm = effect.cols_squared_norm;
+    const auto& XtX_diag = effect.XtX_diag;
 
     const double residual_over_var = residual_variance / old_marker_variance;
 
@@ -55,11 +55,11 @@ inline auto RR(
 
         const double old_i = coeffs(i);
         const auto col = X.col(i);
-        const double v = cols_squared_norm(i) + residual_over_var;
+        const double v = XtX_diag(i) + residual_over_var;
         const double inv_v = 1.0 / v;
 
-        const double rhs = gelex::detail::blas_ddot(col, y_adj)
-                           + (cols_squared_norm(i) * old_i);
+        const double rhs
+            = gelex::detail::blas_ddot(col, y_adj) + (XtX_diag(i) * old_i);
         const double post_mean = rhs * inv_v;
         const double post_var = residual_variance * inv_v;
 

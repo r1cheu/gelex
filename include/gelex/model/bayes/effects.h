@@ -36,14 +36,14 @@ struct RandomEffect
         Eigen::MatrixXd&& X)
         : name(std::move(name)), levels(std::move(levels)), X(std::move(X))
     {
-        cols_squared_norm = this->X.colwise().squaredNorm();
+        XtX_diag = this->X.colwise().squaredNorm();
     }
 
     std::string name;
     std::vector<std::string> levels;
 
     Eigen::MatrixXd X;
-    Eigen::VectorXd cols_squared_norm;
+    Eigen::VectorXd XtX_diag;
 };
 
 struct GeneticEffect
@@ -51,12 +51,12 @@ struct GeneticEffect
     GeneticEffect(GeneticMode type, GenotypeStorage&& X)
         : type(type), X(std::move(X))
     {
-        cols_squared_norm = get_matrix_ref(this->X).colwise().squaredNorm();
+        XtX_diag = get_matrix_ref(this->X).colwise().squaredNorm();
     }
 
     GeneticMode type;
     GenotypeStorage X;
-    Eigen::VectorXd cols_squared_norm;
+    Eigen::VectorXd XtX_diag;
 
     auto is_monomorphic(Eigen::Index snp_index) const -> bool
     {

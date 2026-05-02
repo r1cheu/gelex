@@ -14,10 +14,29 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_MCMC_SAMPLERS_GIBBS_AT_H_
-#define GELEX_ALGO_INFER_MCMC_SAMPLERS_GIBBS_AT_H_
+#ifndef GELEX_ALGO_INFER_MCMC_CONTEXT_H_
+#define GELEX_ALGO_INFER_MCMC_CONTEXT_H_
 
-// AT is now implemented as R<policy::AT>; see r.h and r_policy.h
-#include "gelex/algo/infer/mcmc/samplers/gibbs/r.h"
+#include <random>
 
-#endif  // GELEX_ALGO_INFER_MCMC_SAMPLERS_GIBBS_AT_H_
+#include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/states.h"
+
+namespace gelex
+{
+namespace mcmc
+{
+
+struct Context
+{
+    const BayesModel& model;
+    const bayes::Priors& priors;
+    State& state;
+    std::mt19937_64& rng;
+};
+
+}  // namespace mcmc
+}  // namespace gelex
+
+#endif  // GELEX_ALGO_INFER_MCMC_CONTEXT_H_

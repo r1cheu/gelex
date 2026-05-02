@@ -157,6 +157,8 @@ class NormalSampler
 
     auto prior_var() const -> T { return prior_var_; }
 
+    auto reset() -> void { normal_.reset(); }
+
    private:
     T prior_var_;
     std::normal_distribution<T> normal_{T{0}, T{1}};
@@ -200,6 +202,7 @@ class BetaSampler
 
     auto alpha() const -> T { return alpha_; }
     auto beta() const -> T { return beta_; }
+    auto reset() -> void { gamma_.reset(); }
 
    private:
     T alpha_;
@@ -258,6 +261,7 @@ class DirichletSampler
 
     auto k() const -> Eigen::Index { return alpha_.size(); }
     auto alpha() const -> const Eigen::VectorX<T>& { return alpha_; }
+    auto reset() -> void { gamma_.reset(); }
 
    private:
     Eigen::VectorX<T> alpha_;
@@ -319,6 +323,7 @@ class ScaledInvChi2Sampler
 
     auto nu0() const -> T { return nu0_; }
     auto s2_0() const -> T { return s2_0_; }
+    auto reset() -> void { chisq_.reset(); }
 
    private:
     T nu0_;

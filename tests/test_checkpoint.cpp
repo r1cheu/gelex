@@ -23,8 +23,8 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
+#include "gelex/algo/infer/mcmc/recipes.h"
 #include "gelex/algo/infer/mcmc/solver.h"
-#include "gelex/algo/infer/mcmc/trait_model.h"
 #include "gelex/algo/infer/params.h"
 #include "gelex/data/genotype/genotype_matrix.h"
 #include "gelex/model/bayes/checkpoint.h"
@@ -81,8 +81,12 @@ auto run_bayes_a(
     Eigen::Index seed) -> std::string
 {
     mcmc::Params params(n_iters, 0, 1, n_iters);
-    mcmc::Solver mcmc(params, mcmc::A{}, std::string(prefix));
-    mcmc.run(model, priors, seed, "");
+    mcmc::Solver mcmc(
+        params,
+        mcmc::make_bayes_a_chain,
+        std::string(prefix),
+        std::string(prefix));
+    mcmc.run(model, priors, seed);
     return std::string(prefix) + ".ckpt";
 }
 
@@ -94,8 +98,12 @@ auto resume_bayes_a(
 {
     auto ckpt = read_checkpoint(ckpt_path);
     mcmc::Params params(n_iters, 0, 1, n_iters);
-    mcmc::Solver mcmc(params, mcmc::A{}, std::string(prefix));
-    mcmc.resume(model, std::move(ckpt), "");
+    mcmc::Solver mcmc(
+        params,
+        mcmc::make_bayes_a_chain,
+        std::string(prefix),
+        std::string(prefix));
+    mcmc.resume(model, std::move(ckpt));
     return std::string(prefix) + ".ckpt";
 }
 
@@ -305,7 +313,7 @@ TEST_CASE("MCMC resume throws on checkpoint dimension mismatch", "[checkpoint]")
     (void)priors_mismatch;
 
     mcmc::Params params(1, 0, 1, 1);
-    mcmc::Solver mcmc(params, mcmc::A{});
+    mcmc::Solver mcmc(params, mcmc::make_bayes_a_chain);
     REQUIRE_THROWS(mcmc.resume(model_mismatch, std::move(ckpt)));
 
     std::filesystem::remove(ckpt_path);

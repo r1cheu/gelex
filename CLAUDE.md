@@ -37,3 +37,4 @@ pre-commit run clang-format --files <changed_files>  # format
 - Reusable test fixtures in `tests/*_fixture.{h,cpp}`
 - When designing the API, adhere to STL conventions.
 - Use Eigen::isApprox for testing instead of element-wise comparisons.
+- Prefer Eigen init-list construction (`Eigen::MatrixXd{{1,2},{3,4}}`, `Eigen::VectorXd{{1,2,3}}`) over `<<` streaming or per-cell assignment.

@@ -38,8 +38,7 @@ struct Assignment
     Assignment(Eigen::Index num_markers, const Eigen::VectorXd& init_proportion)
         : tracker(TrackerVector::Zero(num_markers)),
           proportion(init_proportion),
-          count(Eigen::VectorXi::Zero(init_proportion.size())),
-          stick_probs(pi_to_stick(init_proportion))
+          count(Eigen::VectorXi::Zero(init_proportion.size()))
     {
     }
 
@@ -49,58 +48,13 @@ struct Assignment
         Eigen::VectorXi count)
         : tracker(std::move(tracker)),
           proportion(std::move(proportion)),
-          count(std::move(count)),
-          stick_probs(pi_to_stick(this->proportion))
+          count(std::move(count))
     {
-    }
-
-    Assignment(
-        TrackerVector tracker,
-        Eigen::VectorXd proportion,
-        Eigen::VectorXi count,
-        Eigen::VectorXd stick_probs)
-        : tracker(std::move(tracker)),
-          proportion(std::move(proportion)),
-          count(std::move(count)),
-          stick_probs(std::move(stick_probs))
-    {
-    }
-
-    // q (K) -> pi (K+1)
-    static auto stick_to_pi(const Eigen::Ref<const Eigen::VectorXd>& q)
-        -> Eigen::VectorXd
-    {
-        const Eigen::Index K = q.size();
-        Eigen::VectorXd pi(K + 1);
-        double cum_prod = 1.0;
-        for (Eigen::Index k = 0; k < K; ++k)
-        {
-            pi(k) = cum_prod * (1.0 - q(k));
-            cum_prod *= q(k);
-        }
-        pi(K) = cum_prod;
-        return pi;
-    }
-
-    // pi (K+1) -> q (K)
-    static auto pi_to_stick(const Eigen::Ref<const Eigen::VectorXd>& pi)
-        -> Eigen::VectorXd
-    {
-        const Eigen::Index K = pi.size() - 1;
-        Eigen::VectorXd q(K);
-        double remaining = pi.sum();
-        for (Eigen::Index k = 0; k < K; ++k)
-        {
-            remaining -= pi(k);
-            q(k) = remaining / std::max(remaining + pi(k), 1e-300);
-        }
-        return q;
     }
 
     TrackerVector tracker;
     Eigen::VectorXd proportion;
     Eigen::VectorXi count;
-    Eigen::VectorXd stick_probs;
 };
 
 struct ComponentAllocation

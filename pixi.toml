@@ -130,13 +130,13 @@ depends-on = ["build-doc"]
 
 [feature.docs.tasks.watch-doc]
 cmd = [
-  "sphinx-autobuild",
-  "-b",
-  "html",
-  "docs/source",
-  "docs/build/html",
-  "--host",
-  "0.0.0.0",
-  "--port",
-  "3030",
+    "sphinx-autobuild",
+    "-b",
+    "html",
+    "docs/source",
+    "docs/build/html",
+    "--host",
+    "0.0.0.0",
+    "--port",
+    "3030",
 ]
