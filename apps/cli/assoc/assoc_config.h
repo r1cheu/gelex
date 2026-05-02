@@ -17,8 +17,8 @@
 #ifndef GELEX_CLI_ASSOC_CONFIG_H_
 #define GELEX_CLI_ASSOC_CONFIG_H_
 
-#include "gelex/pipeline/assoc_engine.h"
-#include "gelex/pipeline/pheno_pipe.h"
+#include "gelex/data/pipe/pheno.h"
+#include "gelex/engine/assoc.h"
 
 namespace argparse
 {

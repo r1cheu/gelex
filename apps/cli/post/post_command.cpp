@@ -21,9 +21,9 @@
 
 #include <argparse.h>
 
+#include "gelex/engine/posterior_analysis.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/post_event.h"
-#include "gelex/pipeline/posterior_analysis_engine.h"
 #include "post_config.h"
 #include "post_reporter.h"
 

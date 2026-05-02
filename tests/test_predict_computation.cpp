@@ -22,10 +22,10 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/io/locistats_reader.h"
-#include "gelex/predict/input_reader.h"
+#include "gelex/data/genotype/process_method.h"
+#include "gelex/io/locistats/reader.h"
+#include "gelex/io/predict/input_reader.h"
 #include "gelex/predict/types.h"
-#include "gelex/types/genotype_process_method.h"
 #include "predict/compute.h"
 #include "predict/standardize.h"
 

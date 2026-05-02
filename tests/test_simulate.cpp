@@ -26,8 +26,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "bed_fixture.h"
-#include "gelex/pipeline/simulation_engine.h"
-#include "gelex/types/genotype_process_method.h"
+#include "gelex/engine/simulation.h"
+#include "gelex/data/genotype/process_method.h"
 
 namespace fs = std::filesystem;
 

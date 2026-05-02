@@ -17,7 +17,7 @@
 #include "gelex/algo/reml/effect_solver.h"
 
 #include "gelex/algo/reml/optimizer_state.h"
-#include "gelex/model/freq_model.h"
+#include "gelex/model/freq/model.h"
 
 namespace gelex::reml
 {

@@ -26,12 +26,13 @@
 #include "bed_fixture.h"
 #include "file_fixture.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/grm/grm_writer.h"
 #include "gelex/data/reader.h"
-#include "gelex/model/freq_model.h"
-#include "gelex/pipeline/grm_pipe.h"
-#include "gelex/pipeline/pheno_pipe.h"
-#include "gelex/types/sample_id.h"
+#include "gelex/data/sample_id.h"
+#include "gelex/io/grm/writer.h"
+#include "gelex/model/freq/model.h"
+#include "gelex/data/pipe/grm.h"
+#include "gelex/data/pipe/pheno.h"
+#include "sample_id_fixture.h"
 
 namespace fs = std::filesystem;
 

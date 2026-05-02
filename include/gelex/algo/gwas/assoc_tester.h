@@ -23,10 +23,10 @@
 
 #include <Eigen/Core>
 
-#include "gelex/types/assoc_test_type.h"
+#include "gelex/algo/gwas/assoc_type.h"
+#include "gelex/algo/reml/result.h"
+#include "gelex/data/genotype/process_method.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "gelex/types/genotype_process_method.h"
-#include "gelex/types/reml_result.h"
 
 namespace gelex
 {
@@ -66,7 +66,7 @@ class AssocTester
     [[nodiscard]] virtual auto run(const RemlResult& reml) -> TestResults = 0;
 
     [[nodiscard]] static auto make(
-        AssocTestType type,
+        AssocType type,
         GeneticMode mode,
         GenotypeProcessMethod geno_method) -> std::unique_ptr<AssocTester>;
 

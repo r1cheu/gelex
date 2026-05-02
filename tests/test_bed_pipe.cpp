@@ -33,7 +33,7 @@
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
-#include "gelex/types/sample_id.h"
+#include "sample_id_fixture.h"
 
 namespace fs = std::filesystem;
 
@@ -115,7 +115,8 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
         auto all_keys = sample_index.keys();
         auto extra_index = dataframe::Index<std::string>(
             std::vector<std::string>(all_keys.begin(), all_keys.begin() + 5));
-        auto common = dataframe::intersect<std::string>({&sample_index, &extra_index});
+        auto common
+            = dataframe::intersect<std::string>({&sample_index, &extra_index});
 
         REQUIRE_NOTHROW(
             [&]()
@@ -302,8 +303,10 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
         // raw_keys invalidated after gather — save to vector first
         std::vector<std::string> raw_ids(raw_keys.begin(), raw_keys.end());
 
-        auto extra_index = dataframe::Index<std::string>(std::move(intersect_ids));
-        auto common = dataframe::intersect<std::string>({&sample_index, &extra_index});
+        auto extra_index
+            = dataframe::Index<std::string>(std::move(intersect_ids));
+        auto common
+            = dataframe::intersect<std::string>({&sample_index, &extra_index});
 
         BedPipe pipe(bed_prefix, common);
 
@@ -480,9 +483,11 @@ TEST_CASE("BedPipe - sample mapping tests", "[data][bed_pipe]")
             = {make_sample_id("nonexistent", "1"),
                make_sample_id("nonexistent", "2"),
                make_sample_id("nonexistent", "3")};
-        auto extra_index = dataframe::Index<std::string>(std::vector<std::string>(
-            intersect_ids.begin(), intersect_ids.end()));
-        auto common = dataframe::intersect<std::string>({&sample_index, &extra_index});
+        auto extra_index
+            = dataframe::Index<std::string>(std::vector<std::string>(
+                intersect_ids.begin(), intersect_ids.end()));
+        auto common
+            = dataframe::intersect<std::string>({&sample_index, &extra_index});
 
         BedPipe pipe(bed_prefix, common);
 

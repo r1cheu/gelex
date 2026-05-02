@@ -17,7 +17,7 @@
 #ifndef GELEX_CLI_GRM_CONFIG_H_
 #define GELEX_CLI_GRM_CONFIG_H_
 
-#include "gelex/pipeline/grm_engine.h"
+#include "gelex/engine/grm.h"
 
 namespace argparse
 {

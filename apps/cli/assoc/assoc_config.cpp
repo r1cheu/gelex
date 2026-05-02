@@ -19,9 +19,9 @@
 #include <argparse.h>
 
 #include "cli/cli_helper.h"
-#include "gelex/types/assoc_test_type.h"
+#include "gelex/algo/gwas/assoc_type.h"
+#include "gelex/data/genotype/process_method.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "gelex/types/genotype_process_method.h"
 
 namespace gelex::cli
 {
@@ -35,13 +35,13 @@ auto parse_model_type(std::string_view model) -> GeneticMode
     return GeneticMode::D;
 }
 
-auto parse_test_type(std::string_view test) -> AssocTestType
+auto parse_test_type(std::string_view test) -> AssocType
 {
     if (test == "joint")
     {
-        return AssocTestType::Joint;
+        return AssocType::Joint;
     }
-    return AssocTestType::Single;
+    return AssocType::Single;
 }
 
 auto parse_transform_type(std::string_view transform) -> detail::TransformType
@@ -60,7 +60,7 @@ auto parse_transform_type(std::string_view transform) -> detail::TransformType
 auto make_assoc_config(argparse::ArgumentParser& cmd) -> AssocEngine::Config
 {
     auto test_type = parse_test_type(cmd.get("--test"));
-    auto model_type = test_type == AssocTestType::Joint
+    auto model_type = test_type == AssocType::Joint
                           ? GeneticMode::AD
                           : parse_model_type(cmd.get("--model"));
 

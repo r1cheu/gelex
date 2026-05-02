@@ -17,7 +17,7 @@
 #ifndef GELEX_CLI_SIMULATE_CONFIG_H_
 #define GELEX_CLI_SIMULATE_CONFIG_H_
 
-#include "gelex/pipeline/simulation_engine.h"
+#include "gelex/engine/simulation.h"
 
 namespace argparse
 {

@@ -22,10 +22,10 @@
 
 #include <Eigen/Core>
 
+#include "gelex/data/genotype/storage.h"
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/infra/stats/diagnostics.h"
 #include "gelex/io/detail/binary_reader.h"
-#include "gelex/model/bayes/genotype_storage.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex

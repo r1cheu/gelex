@@ -21,9 +21,9 @@
 
 #include "gelex/algo/reml/optimizer.h"
 #include "gelex/algo/reml/optimizer_state.h"
+#include "gelex/algo/reml/result.h"
 #include "gelex/infra/logging/reml_event.h"
-#include "gelex/model/freq_model.h"
-#include "gelex/types/reml_result.h"
+#include "gelex/model/freq/model.h"
 
 namespace gelex::reml
 {

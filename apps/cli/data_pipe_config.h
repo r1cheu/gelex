@@ -19,8 +19,8 @@
 
 #include <utility>
 
-#include "gelex/pipeline/geno_pipe.h"
-#include "gelex/pipeline/pheno_pipe.h"
+#include "gelex/data/pipe/geno.h"
+#include "gelex/data/pipe/pheno.h"
 
 namespace argparse
 {

@@ -23,10 +23,10 @@
 #include <variant>
 #include <vector>
 
+#include "gelex/algo/gwas/assoc_type.h"
+#include "gelex/data/genotype/process_method.h"
 #include "gelex/infra/logging/reml_event.h"
-#include "gelex/types/assoc_test_type.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "gelex/types/genotype_process_method.h"
 
 namespace gelex
 {
@@ -38,7 +38,7 @@ struct AssocBannerEvent
 struct AssocConfigLoadedEvent
 {
     GeneticMode model_type;
-    AssocTestType test_type;
+    AssocType test_type;
     bool loco;
 
     GenotypeProcessMethod geno_method;

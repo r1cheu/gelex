@@ -23,15 +23,15 @@
 #include <fmt/format.h>
 
 #include "config.h"
+#include "gelex/algo/infer/mcmc/result.h"
+#include "gelex/algo/infer/mcmc/state.h"
+#include "gelex/algo/infer/vi/result.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/states.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "gelex/types/mcmc_result.h"
-#include "gelex/types/vi_result.h"
 
 namespace gelex::cli
 {

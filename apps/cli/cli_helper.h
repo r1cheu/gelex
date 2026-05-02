@@ -29,10 +29,10 @@
 #include <barkeep.h>
 #include <Eigen/Core>
 
-#include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/data/chr_group.h"
+#include "gelex/data/genotype/processor.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/progress_bar.h"
-#include "gelex/types/chr_group.h"
 
 namespace gelex::cli
 {

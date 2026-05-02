@@ -21,7 +21,7 @@
 #include <fstream>
 #include <string>
 
-#include "gelex/data/dataframe/dataframe_reader.h"
+#include "gelex/data/dataframe/reader.h"
 #include "gelex/io/detail/parser.h"
 
 namespace gelex

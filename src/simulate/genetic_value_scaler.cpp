@@ -21,7 +21,7 @@
 #include <Eigen/Core>
 
 #include "gelex/infra/stats/descriptive.h"
-#include "gelex/types/sim_types.h"
+#include "gelex/simulate/sim_types.h"
 
 namespace gelex
 {

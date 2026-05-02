@@ -23,12 +23,12 @@
 #include <Eigen/Core>
 
 #include "gelex/data/dataframe/dataframe.h"
-#include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/processor.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/simulate_event.h"
+#include "gelex/simulate/sim_types.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "gelex/types/genotype_process_method.h"
-#include "gelex/types/sim_types.h"
 
 namespace gelex
 {

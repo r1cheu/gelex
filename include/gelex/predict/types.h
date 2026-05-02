@@ -23,7 +23,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/io/locistats_reader.h"
+#include "gelex/io/locistats/reader.h"
 
 namespace gelex::predict
 {

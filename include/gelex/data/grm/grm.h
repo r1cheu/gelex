@@ -26,7 +26,7 @@
 
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/bed_pipe.h"
-#include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/data/genotype/processor.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/logging/notify.h"
 

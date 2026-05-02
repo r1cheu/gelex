@@ -1,0 +1,145 @@
+/*
+ * Copyright 2026 RuLei Chen
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef GELEX_DATA_GENOTYPE_MAP_READER_H_
+#define GELEX_DATA_GENOTYPE_MAP_READER_H_
+
+#include <fmt/format.h>
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <filesystem>
+#include <vector>
+
+#include <Eigen/Core>
+
+#include "gelex/data/genotype/bed_pipe.h"
+#include "gelex/data/genotype/mmap.h"
+#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/processor.h"
+#include "gelex/infra/logging/data_pipe_event.h"
+#include "gelex/infra/logging/notify.h"
+#include "gelex/io/detail/binary_writer.h"
+
+namespace gelex::genotype
+{
+
+class GenotypeMapReader
+{
+   public:
+    GenotypeMapReader(
+        const std::filesystem::path& bed_path,
+        const dataframe::Index<std::string>& sample_index,
+        const std::filesystem::path& output_prefix,
+        gelex::DataPipeObserver observer = {});
+
+    template <gelex::GeneticMode GT>
+    auto process(gelex::GenotypeProcessMethod method, size_t chunk_size = 10000)
+        -> GenotypeMap
+    {
+        constexpr auto effect = gelex::EffectType::from_genetic(GT);
+        auto gbin_path = output_prefix_;
+        gbin_path += ".gbin";
+
+        {
+            gelex::io::detail::BinaryWriter writer(gbin_path.string());
+            auto genotype_handle = writer.reserve<double>(
+                fmt::format("{}/genotype", effect),
+                sample_size_,
+                num_variants_);
+
+            int64_t current_processed_snps = 0;
+            auto fn = get_genotype_process_method<GT>(method);
+            means_.resize(num_variants_);
+            variances_.resize(num_variants_);
+            monomorphic_indices_.clear();
+            monomorphic_indices_.reserve(num_variants_ / 100);
+
+            for (int64_t start_variant = 0; start_variant < num_variants_;)
+            {
+                int64_t end_variant = std::min(
+                    static_cast<int64_t>(start_variant + chunk_size),
+                    num_variants_);
+
+                auto chunk = bed_pipe_.load_chunk(start_variant, end_variant);
+                process_chunk(chunk, start_variant, fn);
+                writer.write(genotype_handle, chunk);
+                current_processed_snps += (end_variant - start_variant);
+
+                gelex::notify(
+                    observer_,
+                    gelex::GenotypeProgressEvent{
+                        static_cast<size_t>(current_processed_snps),
+                        static_cast<size_t>(num_variants_),
+                        false});
+
+                start_variant = end_variant;
+            }
+            gelex::notify(
+                observer_,
+                gelex::GenotypeProgressEvent{
+                    static_cast<size_t>(num_variants_),
+                    static_cast<size_t>(num_variants_),
+                    true});
+
+            auto stats_handle = writer.reserve<double>(
+                fmt::format("{}/loci_stats", effect), num_variants_, 2);
+            writer.write(stats_handle, means_);
+            writer.write(stats_handle, variances_);
+
+            if (!monomorphic_indices_.empty())
+            {
+                auto mono_handle = writer.reserve<int64_t>(
+                    fmt::format("{}/mono_indices", effect),
+                    monomorphic_indices_.size(),
+                    1);
+                writer.write(mono_handle, monomorphic_indices_);
+            }
+        }
+
+        return GenotypeMap(gbin_path, GT);
+    }
+
+    [[nodiscard]] Eigen::Index num_samples() const noexcept
+    {
+        return sample_size_;
+    }
+    [[nodiscard]] Eigen::Index num_variants() const noexcept
+    {
+        return num_variants_;
+    }
+
+   private:
+    void process_chunk(
+        Eigen::MatrixXd& chunk,
+        size_t global_start,
+        gelex::LocusStatistic (*fn)(Eigen::Ref<Eigen::VectorXd>));
+
+    BedPipe bed_pipe_;
+    gelex::DataPipeObserver observer_;
+    int64_t sample_size_{};
+    int64_t num_variants_{};
+
+    std::vector<double> means_;
+    std::vector<double> variances_;
+    std::vector<int64_t> monomorphic_indices_;
+
+    std::filesystem::path output_prefix_;
+};
+
+}  // namespace gelex::genotype
+
+#endif  // GELEX_DATA_GENOTYPE_MAP_READER_H_

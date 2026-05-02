@@ -19,8 +19,8 @@
 
 #include <Eigen/Core>
 
+#include "gelex/data/genotype/process_method.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "gelex/types/genotype_process_method.h"
 
 namespace gelex::genotype::detail
 {

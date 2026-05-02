@@ -22,9 +22,9 @@
 
 #include "file_fixture.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/grm/grm_writer.h"
-#include "gelex/data/grm/loco_grm_reader.h"
-#include "gelex/types/sample_id.h"
+#include "gelex/io/grm/loco_reader.h"
+#include "gelex/io/grm/writer.h"
+#include "sample_id_fixture.h"
 
 namespace fs = std::filesystem;
 using gelex::GrmBinWriter;
@@ -53,7 +53,7 @@ struct GrmFiles
 };
 }  // namespace
 
-TEST_CASE("LocoGRMReader - Basic Calculation", "[data][grm][loco]")
+TEST_CASE("LocoReader - Basic Calculation", "[data][grm][loco]")
 {
     FileFixture fixture;
     auto tmp_dir = fixture.generate_random_file_path("loco_test");
@@ -84,7 +84,7 @@ TEST_CASE("LocoGRMReader - Basic Calculation", "[data][grm][loco]")
 
     df::Index<std::string> sample_index(ids);
 
-    gelex::LocoGRMReader loco_reader(whole_files.prefix, sample_index);
+    gelex::LocoReader loco_reader(whole_files.prefix, sample_index);
     Eigen::MatrixXd loco_grm
         = loco_reader.load_loco_grm(chr_files.prefix, sample_index);
 
@@ -101,7 +101,7 @@ TEST_CASE("LocoGRMReader - Basic Calculation", "[data][grm][loco]")
     }
 }
 
-TEST_CASE("LocoGRMReader - Filtered Loading", "[data][grm][loco]")
+TEST_CASE("LocoReader - Filtered Loading", "[data][grm][loco]")
 {
     FileFixture fixture;
     auto tmp_dir = fixture.generate_random_file_path("loco_test_filtered");
@@ -127,7 +127,7 @@ TEST_CASE("LocoGRMReader - Filtered Loading", "[data][grm][loco]")
     df::Index<std::string> sample_index(
         std::vector<std::string>{sid("F1", "I3"), sid("F1", "I1")});
 
-    gelex::LocoGRMReader loco_reader(whole_files.prefix, sample_index);
+    gelex::LocoReader loco_reader(whole_files.prefix, sample_index);
 
     Eigen::MatrixXd loco_grm
         = loco_reader.load_loco_grm(chr_files.prefix, sample_index);

@@ -18,7 +18,7 @@
 
 #include <argparse.h>
 
-#include "gelex/pipeline/predict_engine.h"
+#include "gelex/engine/predict.h"
 #include "predict_config.h"
 #include "predict_reporter.h"
 

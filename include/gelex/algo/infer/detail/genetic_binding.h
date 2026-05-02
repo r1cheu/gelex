@@ -22,9 +22,9 @@
 
 #include <fmt/format.h>
 
+#include "gelex/data/genotype/storage.h"
 #include "gelex/exception.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/genotype_storage.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/types/genetic_effect_type.h"
 

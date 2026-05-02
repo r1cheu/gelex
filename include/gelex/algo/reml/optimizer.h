@@ -24,7 +24,7 @@
 #include "gelex/algo/reml/optimizer_state.h"
 #include "gelex/algo/reml/variance_calculator.h"
 #include "gelex/infra/logger.h"
-#include "gelex/model/freq_model.h"
+#include "gelex/model/freq/model.h"
 
 namespace gelex::reml
 {

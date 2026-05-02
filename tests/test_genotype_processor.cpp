@@ -19,7 +19,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/data/genotype/processor.h"
 
 using namespace gelex;
 using namespace gelex::genotype;

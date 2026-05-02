@@ -24,7 +24,7 @@ namespace gelex
 {
 
 auto AssocTester::make(
-    AssocTestType type,
+    AssocType type,
     GeneticMode mode,
     GenotypeProcessMethod geno_method) -> std::unique_ptr<AssocTester>
 {
@@ -38,12 +38,12 @@ auto AssocTester::make(
 
     switch (type)
     {
-        case AssocTestType::Single:
+        case AssocType::Single:
             return std::make_unique<SingleTester>(mode, geno_method);
-        case AssocTestType::Joint:
+        case AssocType::Joint:
             return std::make_unique<JointTester>(geno_method);
     }
-    throw GelexException("Unknown AssocTestType");
+    throw GelexException("Unknown AssocType");
 }
 
 }  // namespace gelex

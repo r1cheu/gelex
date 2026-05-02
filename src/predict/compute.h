@@ -19,7 +19,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/predict/input_reader.h"
+#include "gelex/io/predict/input_reader.h"
 #include "gelex/predict/types.h"
 
 namespace gelex::predict::detail

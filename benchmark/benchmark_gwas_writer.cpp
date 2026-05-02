@@ -23,7 +23,7 @@
 
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/data/reader.h"
-#include "gelex/io/gwas_writer.h"
+#include "gelex/io/gwas/writer.h"
 
 #include <catch2/catch_test_macros.hpp>
 

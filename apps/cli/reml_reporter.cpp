@@ -22,7 +22,7 @@
 #include "gelex/algo/reml/statistics.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/formatter.h"
-#include "gelex/model/freq_model.h"
+#include "gelex/model/freq/model.h"
 
 namespace gelex::cli
 {

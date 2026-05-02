@@ -21,8 +21,8 @@
 #include <type_traits>
 
 #include "gelex/algo/infer/mcmc/context.h"
+#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/states.h"
 #include "gelex/types/fixed_effects.h"
 
 namespace gelex::mcmc

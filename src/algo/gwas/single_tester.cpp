@@ -19,7 +19,7 @@
 #include <Eigen/Dense>
 #include <unsupported/Eigen/SpecialFunctions>
 
-#include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/data/genotype/processor.h"
 #include "gelex/infra/stats/descriptive.h"
 
 namespace gelex

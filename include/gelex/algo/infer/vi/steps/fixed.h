@@ -19,8 +19,8 @@
 
 #include <type_traits>
 
+#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/algo/infer/vi/context.h"
-#include "gelex/model/bayes/states.h"
 #include "gelex/types/fixed_effects.h"
 
 namespace gelex::vi

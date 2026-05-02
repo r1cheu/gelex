@@ -26,7 +26,7 @@
 
 #include "file_fixture.h"
 #include "gelex/data/dataframe/dataframe.h"
-#include "gelex/data/dataframe/dataframe_reader.h"
+#include "gelex/data/dataframe/reader.h"
 #include "gelex/exception.h"
 
 using gelex::GelexException;

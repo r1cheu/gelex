@@ -25,11 +25,11 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/data/genotype/genotype_processor.h"
-#include "gelex/io/locistats_writer.h"
-#include "gelex/pipeline/predict_engine.h"
+#include "gelex/data/genotype/processor.h"
+#include "gelex/io/locistats/writer.h"
+#include "gelex/engine/predict.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "gelex/types/genotype_process_method.h"
+#include "gelex/data/genotype/process_method.h"
 
 #include "bed_fixture.h"
 

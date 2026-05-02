@@ -22,10 +22,10 @@
 
 #include <fmt/format.h>
 
+#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/exception.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/states.h"
 
 namespace gelex::mcmc
 {

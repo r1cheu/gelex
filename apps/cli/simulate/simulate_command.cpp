@@ -21,7 +21,7 @@
 #include <optional>
 #include <utility>
 
-#include "gelex/pipeline/simulation_engine.h"
+#include "gelex/engine/simulation.h"
 #include "simulate_config.h"
 #include "simulator_reporter.h"
 

@@ -27,8 +27,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/data/genotype/genotype_map_reader.h"
-#include "gelex/data/genotype/genotype_mat_reader.h"
+#include "gelex/data/genotype/map_reader.h"
+#include "gelex/data/genotype/mat_reader.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/io/detail/binary_reader.h"

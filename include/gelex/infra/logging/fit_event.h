@@ -22,8 +22,8 @@
 #include <string>
 #include <variant>
 
+#include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/types/bayes_method.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex

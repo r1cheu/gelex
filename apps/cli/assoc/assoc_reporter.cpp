@@ -20,11 +20,11 @@
 
 #include "cli/reml_reporter.h"
 #include "config.h"
+#include "gelex/data/genotype/process_method.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/assoc_event.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "gelex/types/genotype_process_method.h"
 
 namespace gelex::cli
 {
@@ -44,7 +44,7 @@ auto AssocReporter::on_event(const AssocConfigLoadedEvent& event) const -> void
     logger_->info(
         "  {:<12}: {}",
         "Test",
-        event.test_type == gelex::AssocTestType::Single ? "Single" : "Joint");
+        event.test_type == gelex::AssocType::Single ? "Single" : "Joint");
     logger_->info("  {:<12}: {}", "LOCO", event.loco ? "Yes" : "No");
 
     logger_->info("  {:<12}: {}", "Geno Method", event.geno_method);

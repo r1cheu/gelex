@@ -27,10 +27,10 @@
 
 #include "file_fixture.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/grm/detail/grm_reader.h"
-#include "gelex/data/grm/grm_writer.h"
 #include "gelex/exception.h"
-#include "gelex/types/sample_id.h"
+#include "gelex/io/grm/detail/reader.h"
+#include "gelex/io/grm/writer.h"
+#include "sample_id_fixture.h"
 
 namespace fs = std::filesystem;
 namespace df = gelex::dataframe;

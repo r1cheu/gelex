@@ -21,7 +21,7 @@
 #include "cli/cli_helper.h"
 #include "gelex/data/genotype/bed_path.h"
 #include "gelex/exception.h"
-#include "gelex/types/freq_effect.h"
+#include "gelex/model/freq/effect.h"
 
 namespace gelex::cli
 {

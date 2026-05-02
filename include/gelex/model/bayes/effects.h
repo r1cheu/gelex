@@ -22,7 +22,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/genotype_storage.h"
+#include "gelex/data/genotype/storage.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes

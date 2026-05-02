@@ -19,8 +19,8 @@
 
 #include <variant>
 
-#include "gelex/pipeline/mcmc_engine.h"
-#include "gelex/pipeline/vi_engine.h"
+#include "gelex/engine/mcmc.h"
+#include "gelex/engine/vi.h"
 
 namespace argparse
 {

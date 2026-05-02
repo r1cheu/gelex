@@ -25,7 +25,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "bed_fixture.h"
-#include "gelex/data/genotype/genotype_processor.h"
+#include "gelex/data/genotype/processor.h"
 #include "gelex/data/grm/grm.h"
 
 namespace fs = std::filesystem;

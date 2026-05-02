@@ -30,14 +30,14 @@
 #include "cli/reml_reporter.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/bed_path.h"
+#include "gelex/data/pipe/grm.h"
+#include "gelex/data/pipe/pheno.h"
 #include "gelex/data/reader.h"
+#include "gelex/engine/assoc.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/assoc_event.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
-#include "gelex/pipeline/assoc_engine.h"
-#include "gelex/pipeline/grm_pipe.h"
-#include "gelex/pipeline/pheno_pipe.h"
 
 auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 {

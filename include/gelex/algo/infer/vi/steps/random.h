@@ -20,10 +20,10 @@
 #include <span>
 #include <type_traits>
 
+#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/algo/infer/vi/context.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/states.h"
 
 namespace gelex::vi
 {

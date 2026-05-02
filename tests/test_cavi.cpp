@@ -26,14 +26,14 @@
 #include "gelex/algo/infer/params.h"
 #include "gelex/algo/infer/vi/recipes.h"
 #include "gelex/algo/infer/vi/solver.h"
-#include "gelex/data/genotype/genotype_matrix.h"
-#include "gelex/model/bayes/genotype_storage.h"
+#include "gelex/data/genotype/matrix.h"
+#include "gelex/data/genotype/storage.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_config.h"
-#include "gelex/types/bayes_method.h"
+#include "gelex/model/bayes/method.h"
 #include "gelex/types/fixed_effects.h"
-#include "gelex/types/vi_result.h"
+#include "gelex/algo/infer/vi/result.h"
 
 using namespace gelex;            // NOLINT
 using namespace gelex::genotype;  // NOLINT

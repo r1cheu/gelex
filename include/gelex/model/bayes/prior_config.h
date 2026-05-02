@@ -22,7 +22,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/types/bayes_method.h"
+#include "gelex/model/bayes/method.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex

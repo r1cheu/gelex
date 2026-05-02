@@ -19,10 +19,10 @@
 
 #include <Eigen/Core>
 
+#include "gelex/algo/gwas/assoc_output.h"
 #include "gelex/algo/gwas/assoc_tester.h"
-#include "gelex/types/assoc_output.h"
-#include "gelex/types/genotype_process_method.h"
-#include "gelex/types/reml_result.h"
+#include "gelex/algo/reml/result.h"
+#include "gelex/data/genotype/process_method.h"
 
 namespace gelex
 {

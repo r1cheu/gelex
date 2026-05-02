@@ -19,7 +19,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/genotype/detail/encode_policy.h"
-#include "gelex/types/genotype_process_method.h"
+#include "gelex/data/genotype/process_method.h"
 
 namespace gelex::predict::detail
 {

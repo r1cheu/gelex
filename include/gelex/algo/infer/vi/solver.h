@@ -28,12 +28,12 @@
 
 #include "gelex/algo/infer/params.h"
 #include "gelex/algo/infer/vi/context.h"
+#include "gelex/algo/infer/vi/result.h"
 #include "gelex/infra/detail/eigen_thread_guard.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/types/vi_result.h"
 
 namespace gelex
 {

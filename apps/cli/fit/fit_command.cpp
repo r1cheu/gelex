@@ -29,15 +29,15 @@
 #include "fit_reporter.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/bed_path.h"
+#include "gelex/data/pipe/geno.h"
+#include "gelex/data/pipe/pheno.h"
 #include "gelex/data/reader.h"
+#include "gelex/engine/mcmc.h"
+#include "gelex/engine/vi.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/notify.h"
-#include "gelex/pipeline/geno_pipe.h"
-#include "gelex/pipeline/mcmc_engine.h"
-#include "gelex/pipeline/pheno_pipe.h"
-#include "gelex/pipeline/vi_engine.h"
 
 namespace
 {

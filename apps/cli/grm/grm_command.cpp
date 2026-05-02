@@ -20,8 +20,8 @@
 #include <fmt/format.h>
 
 #include "cli/cli_helper.h"
+#include "gelex/engine/grm.h"
 #include "gelex/infra/logging/grm_event.h"
-#include "gelex/pipeline/grm_engine.h"
 #include "grm_config.h"
 #include "grm_reporter.h"
 

@@ -19,8 +19,8 @@
 
 #include <Eigen/Core>
 
+#include "gelex/algo/infer/posterior_summary.h"
 #include "gelex/infra/detail/eigen_thread_guard.h"
-#include "gelex/types/posterior_summary.h"
 
 namespace gelex::posterior::detail
 {

@@ -26,19 +26,19 @@
 #include <Eigen/Core>
 
 #include "gelex/algo/detail/posterior_calculator.h"
+#include "gelex/algo/infer/mcmc/checkpoint.h"
 #include "gelex/algo/infer/mcmc/context.h"
+#include "gelex/algo/infer/mcmc/result.h"
+#include "gelex/algo/infer/mcmc/samples.h"
 #include "gelex/algo/infer/params.h"
+#include "gelex/data/genotype/storage.h"
 #include "gelex/exception.h"
 #include "gelex/infra/detail/eigen_thread_guard.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/notify.h"
-#include "gelex/model/bayes/checkpoint.h"
-#include "gelex/model/bayes/genotype_storage.h"
+#include "gelex/io/mcmc/checkpoint_writer.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/writer/checkpoint_writer.h"
-#include "gelex/types/mcmc_result.h"
-#include "gelex/types/mcmc_samples.h"
 
 namespace gelex
 {

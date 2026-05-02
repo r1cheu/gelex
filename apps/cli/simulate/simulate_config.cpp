@@ -27,7 +27,7 @@
 
 #include "cli/cli_helper.h"
 #include "gelex/exception.h"
-#include "gelex/types/sim_types.h"
+#include "gelex/simulate/sim_types.h"
 
 namespace
 {
