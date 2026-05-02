@@ -21,13 +21,13 @@
 #include <cstddef>
 #include <limits>
 #include <numbers>
-#include <variant>
+#include <utility>
 
 #include <omp.h>
 #include <Eigen/Core>
 
-#include "gelex/algo/detail/posterior_calculator.h"
 #include "gelex/algo/infer/params.h"
+#include "gelex/algo/infer/vi/context.h"
 #include "gelex/infra/detail/eigen_thread_guard.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/notify.h"
@@ -103,11 +103,11 @@ inline auto compute_elbo(
 namespace vi
 {
 
-template <typename TraitUpdater>
+template <typename ChainFactory>
 class Solver
 {
    public:
-    explicit Solver(vi::Params params, TraitUpdater updater);
+    explicit Solver(vi::Params params, ChainFactory make_chain);
 
     auto run(
         const BayesModel& model,
@@ -115,18 +115,18 @@ class Solver
         const FitObserver& observer = {}) -> vi::Result;
 
    private:
+    [[no_unique_address]] ChainFactory make_chain_;
     vi::Params params_;
-    TraitUpdater updater_;
 };
 
-template <typename TraitUpdater>
-Solver<TraitUpdater>::Solver(vi::Params params, TraitUpdater updater)
-    : params_(params), updater_(std::move(updater))
+template <typename ChainFactory>
+Solver<ChainFactory>::Solver(vi::Params params, ChainFactory make_chain)
+    : make_chain_(std::move(make_chain)), params_(params)
 {
 }
 
-template <typename TraitUpdater>
-auto Solver<TraitUpdater>::run(
+template <typename ChainFactory>
+auto Solver<ChainFactory>::run(
     const BayesModel& model,
     const bayes::Priors& priors,
     const FitObserver& observer) -> vi::Result
@@ -138,14 +138,17 @@ auto Solver<TraitUpdater>::run(
     const ::gelex::infra::detail::EigenThreadGuard guard;
     omp_set_num_threads(1);
 
+    vi::Context ctx{.model = model, .priors = priors, .state = state};
+    auto chain = make_chain_(ctx);
+
     double prev_elbo = -std::numeric_limits<double>::max();
 
     for (Eigen::Index iter = 0; iter < params_.max_iters; ++iter)
     {
-        updater_(model, priors, state);
+        chain.step();
         state.compute_heritability();
 
-        const double elbo = detail::compute_elbo(model, priors, state);
+        const double elbo = ::gelex::detail::compute_elbo(model, priors, state);
         const double delta
             = std::abs(elbo - prev_elbo) / (std::abs(prev_elbo) + 1e-300);
         const bool converged = iter > 0 && delta < params_.tol;

@@ -24,8 +24,8 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "gelex/algo/infer/params.h"
+#include "gelex/algo/infer/vi/recipes.h"
 #include "gelex/algo/infer/vi/solver.h"
-#include "gelex/algo/infer/vi/trait_model.h"
 #include "gelex/data/genotype/genotype_matrix.h"
 #include "gelex/model/bayes/genotype_storage.h"
 #include "gelex/model/bayes/model.h"
@@ -136,9 +136,10 @@ TEST_CASE("CAVI RR single iteration produces correct posteriors", "[cavi]")
     const double res_var = state.residual().variance;
     const double marker_var = state.genetics()[0].marker_variance(0);
 
-    // Run one iteration of the RR updater
-    vi::RR trait_model{};
-    trait_model(model, priors, state);
+    // Run one iteration of the RR chain
+    vi::Context ctx{.model = model, .priors = priors, .state = state};
+    auto chain = vi::make_bayes_rr_chain(ctx);
+    chain.step();
 
     const auto& gs = state.genetics()[0];
 
@@ -212,7 +213,7 @@ TEST_CASE("CAVI RR converges on synthetic data", "[cavi]")
     params.max_iters = 200;
     params.tol = 1e-8;
 
-    vi::Solver cavi(params, vi::RR{});
+    vi::Solver cavi(params, vi::make_bayes_rr_chain);
     auto result = cavi.run(model, priors, observer);
 
     // Should have converged before max_iters

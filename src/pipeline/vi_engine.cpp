@@ -20,8 +20,8 @@
 
 #include <fmt/format.h>
 
+#include "gelex/algo/infer/vi/recipes.h"
 #include "gelex/algo/infer/vi/solver.h"
-#include "gelex/algo/infer/vi/trait_model.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/model/bayes/model.h"
@@ -61,10 +61,10 @@ auto vi::FitEngine::run(
     {
         if (config_.method.dominance)
         {
-            vi::Solver engine(config_.params, vi::RRd{});
+            vi::Solver engine(config_.params, vi::make_bayes_rrd_chain);
             return engine.run(model, priors, observer);
         }
-        vi::Solver engine(config_.params, vi::RR{});
+        vi::Solver engine(config_.params, vi::make_bayes_rr_chain);
         return engine.run(model, priors, observer);
     }();
 

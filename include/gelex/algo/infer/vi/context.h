@@ -14,27 +14,26 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_VI_UPDATERS_ADDITIVE_H_
-#define GELEX_ALGO_INFER_VI_UPDATERS_ADDITIVE_H_
+#ifndef GELEX_ALGO_INFER_VI_CONTEXT_H_
+#define GELEX_ALGO_INFER_VI_CONTEXT_H_
 
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/states.h"
 
-namespace gelex::bayes
+namespace gelex
 {
-class Priors;
-}
-
-namespace gelex::vi::detail
+namespace vi
 {
 
-struct AdditiveRR
+struct Context
 {
-    auto operator()(
-        const BayesModel& model,
-        const bayes::Priors& priors,
-        vi::State& states) const -> void;
+    const BayesModel& model;
+    const bayes::Priors& priors;
+    State& state;
 };
 
-}  // namespace gelex::vi::detail
+}  // namespace vi
+}  // namespace gelex
 
-#endif  // GELEX_ALGO_INFER_VI_UPDATERS_ADDITIVE_H_
+#endif  // GELEX_ALGO_INFER_VI_CONTEXT_H_
