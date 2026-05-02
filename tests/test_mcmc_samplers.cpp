@@ -286,7 +286,7 @@ TEST_CASE(
     {
         const auto prior = KernelTraits<BayesAKernel>::make_prior();
         bayes::GeneticState state{effect, prior};
-        REQUIRE_THROWS_AS(BayesBKernel(prior, state, effect), GelexException);
+        REQUIRE_THROWS_AS(BayesBKernel(prior, state), GelexException);
     }
 
     SECTION("BayesC rejects empty state.group")
@@ -300,7 +300,7 @@ TEST_CASE(
             Eigen::VectorXd::Constant(1, 0.1),
             std::nullopt,
             std::nullopt};
-        REQUIRE_THROWS_AS(BayesCKernel(prior, state, effect), GelexException);
+        REQUIRE_THROWS_AS(BayesCKernel(prior, state), GelexException);
     }
 }
 
@@ -348,7 +348,7 @@ TEST_CASE(
     std::mt19937_64 rng{kSeed};
 
     GeneticSweep sweep{effect, state, residual, rng};
-    BayesRKernel kernel{prior, state, effect};
+    BayesRKernel kernel{prior, state};
     sweep.run(kernel);
 
     auto& alloc = std::get<bayes::ComponentAllocation>(*state.group);
@@ -379,7 +379,7 @@ TEST_CASE("BayesRKernel rejects non-MixturePrior", "[mcmc][bayes-r]")
     auto effect = make_genetic_effect(Eigen::MatrixXd{X});
     const auto prior = KernelTraits<BayesAKernel>::make_prior();
     bayes::GeneticState state{effect, prior};
-    REQUIRE_THROWS_AS(BayesRKernel(prior, state, effect), GelexException);
+    REQUIRE_THROWS_AS(BayesRKernel(prior, state), GelexException);
 }
 
 // ──────────────────────────────────────────────────────────────────────────

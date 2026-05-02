@@ -48,7 +48,7 @@ class GeneticSampler
     using Deps = GeneticSamplerDeps;
 
     explicit GeneticSampler(Deps deps)
-        : kernel_(deps.block.prior, deps.block.state, deps.block.effect),
+        : kernel_(deps.block.prior, deps.block.state),
           sweep_(deps.block.effect, deps.block.state, deps.residual, deps.rng)
     {
     }

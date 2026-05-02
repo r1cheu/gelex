@@ -25,7 +25,6 @@
 #include "gelex/algo/infer/mcmc/kernels/common.h"
 #include "gelex/algo/infer/mcmc/kernels/mixture_op.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
 
@@ -43,10 +42,7 @@ namespace gelex::mcmc
 class BayesRKernel
 {
    public:
-    BayesRKernel(
-        const bayes::GeneticPrior& prior,
-        bayes::GeneticState& state,
-        const bayes::GeneticEffect& /*effect*/)
+    BayesRKernel(const bayes::GeneticPrior& prior, bayes::GeneticState& state)
         : state_(state),
           assignment_(
               unpack_marker_allocation<bayes::ComponentAllocation>(

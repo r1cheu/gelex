@@ -21,7 +21,6 @@
 
 #include "gelex/algo/infer/mcmc/kernels/common.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
 
@@ -34,10 +33,7 @@ namespace gelex::mcmc
 class BayesAKernel
 {
    public:
-    BayesAKernel(
-        const bayes::GeneticPrior& prior,
-        bayes::GeneticState& state,
-        const bayes::GeneticEffect& /*effect*/)
+    BayesAKernel(const bayes::GeneticPrior& prior, bayes::GeneticState& state)
         : state_(state),
           normal_(0.0),
           sigma_(
