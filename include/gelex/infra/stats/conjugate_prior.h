@@ -20,6 +20,8 @@
 #include <cassert>
 #include <cmath>
 #include <concepts>
+#include <cstdint>
+#include <numbers>
 #include <random>
 #include <utility>
 
@@ -340,6 +342,149 @@ class ScaledInvChi2Sampler
     T nu0_;
     T s2_0_;
     std::chi_squared_distribution<T> chisq_{T{1}};
+};
+
+template <std::floating_point T>
+class HalfNormalSampler
+{
+   public:
+    using Kernel = typename NormalSampler<T>::Kernel;
+    using Params = typename NormalSampler<T>::Params;
+
+    static_assert(std::is_same_v<Params, typename NormalSampler<T>::Params>);
+
+    struct Posterior
+    {
+        Params params;
+        T log_marginal_kernel;
+        T log_tail_pos;
+        T log_tail_neg;
+    };
+
+    explicit HalfNormalSampler(T prior_var) : normal_(prior_var) {}
+
+    auto set_prior_var(T value) -> HalfNormalSampler&
+    {
+        normal_.set_prior_var(value);
+        return *this;
+    }
+
+    auto posterior(const Kernel& likelihood) const -> Params
+    {
+        return normal_.posterior(likelihood);
+    }
+
+    auto posterior_with_logL(const Kernel& likelihood) const -> Posterior
+    {
+        const auto [params, log_kernel]
+            = normal_.posterior_with_logL(likelihood);
+        const T z = params.mean / std::sqrt(params.var);
+        return {
+            params,
+            log_kernel + std::log(T{2}),
+            log_phi(z),
+            log_phi(-z),
+        };
+    }
+
+    auto draw(const Params& post, std::int8_t sign, std::mt19937_64& rng) -> T
+    {
+        assert(
+            (sign == 1 || sign == -1)
+            && "HalfNormalSampler: sign must be +1 or -1");
+
+        const T mu = post.mean;
+        const T sigma = std::sqrt(post.var);
+        const T alpha = (sign == 1) ? (-mu / sigma) : (mu / sigma);
+
+        if (alpha <= T{0})
+        {
+            return draw_rejection(post, sign, rng);
+        }
+        return draw_devroye(post, alpha, sign, rng);
+    }
+
+    auto reset() -> void { normal_.reset(); }
+
+   private:
+    NormalSampler<T> normal_;
+    std::normal_distribution<T> normal_dist_{T{0}, T{1}};
+    std::uniform_real_distribution<T> uniform_{T{0}, T{1}};
+
+    static auto log_phi(T z) -> T
+    {
+        constexpr T kSqrt2 = std::numbers::sqrt2_v<T>;
+        const T erfc_val = std::erfc(-z / kSqrt2);
+        if (erfc_val > T{0})
+        {
+            return std::log(T{0.5}) + std::log(erfc_val);
+        }
+        return log_phi_asymptotic(z);
+    }
+
+    // Mills-ratio expansion to O(1/z^8) for numerical stability when erfc
+    // underflows
+    static auto log_phi_asymptotic(T z) -> T
+    {
+        constexpr T kLog2Pi = std::log(T{2} * std::numbers::pi_v<T>);
+        const T z2 = z * z;
+        const T z4 = z2 * z2;
+        const T z6 = z4 * z2;
+        const T correction
+            = std::log1p((-T{1} / z2) + (T{3} / z4) - (T{15} / z6));
+        return (-T{0.5} * z2) - (T{0.5} * kLog2Pi) - std::log(-z) + correction;
+    }
+
+    auto draw_rejection(
+        const Params& post,
+        std::int8_t sign,
+        std::mt19937_64& rng) -> T
+    {
+        const T mu = post.mean;
+        const T sigma = std::sqrt(post.var);
+        while (true)
+        {
+            const T z = normal_dist_(rng);
+            const T x = mu + (sigma * z);
+            if (sign == 1 && x > T{0})
+            {
+                return x;
+            }
+            if (sign == -1 && x < T{0})
+            {
+                return x;
+            }
+        }
+    }
+
+    // Robert (1995) exponential-proposal rejection sampler for truncated N(0,1)
+    // on (alpha, inf)
+    auto draw_devroye(
+        const Params& post,
+        T alpha,
+        std::int8_t sign,
+        std::mt19937_64& rng) -> T
+    {
+        const T mu = post.mean;
+        const T sigma = std::sqrt(post.var);
+        // optimal rate: alpha_star = (alpha + sqrt(alpha^2 + 4)) / 2
+        const T alpha_star = (alpha + std::sqrt((alpha * alpha) + T{4})) / T{2};
+        std::exponential_distribution<T> exp_dist{alpha_star};
+
+        while (true)
+        {
+            const T e = exp_dist(rng);
+            const T z_cand = alpha + e;
+            const T diff = z_cand - alpha_star;
+            const T log_accept = -T{0.5} * (diff * diff);
+            const T log_u = std::log(uniform_(rng));
+            if (log_u <= log_accept)
+            {
+                const T z_std = (sign == 1) ? z_cand : -z_cand;
+                return mu + (sigma * z_std);
+            }
+        }
+    }
 };
 
 }  // namespace gelex::stats
