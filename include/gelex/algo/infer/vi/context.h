@@ -19,21 +19,19 @@
 
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/states.h"
 
-namespace gelex
-{
-namespace vi
+namespace gelex::vi
 {
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
 struct Context
 {
     const BayesModel& model;
     const bayes::Priors& priors;
     State& state;
 };
+// NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-}  // namespace vi
-}  // namespace gelex
+}  // namespace gelex::vi
 
 #endif  // GELEX_ALGO_INFER_VI_CONTEXT_H_

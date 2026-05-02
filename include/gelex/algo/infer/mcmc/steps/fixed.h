@@ -14,62 +14,62 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_MCMC_SAMPLERS_RANDOM_H_
-#define GELEX_ALGO_INFER_MCMC_SAMPLERS_RANDOM_H_
+#ifndef GELEX_ALGO_INFER_MCMC_STEPS_FIXED_H_
+#define GELEX_ALGO_INFER_MCMC_STEPS_FIXED_H_
 
 #include <random>
-#include <span>
 #include <type_traits>
 
 #include "gelex/algo/infer/mcmc/context.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
+#include "gelex/types/fixed_effects.h"
 
 namespace gelex::mcmc
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-struct RandomSamplerDeps
+struct FixedStepDeps
 {
-    std::span<const bayes::RandomEffect> effects;
-    const bayes::RandomPrior& prior;
-    std::span<bayes::RandomState> states;
+    const FixedEffect& effect;
+    bayes::FixedState& state;
     bayes::ResidualState& residual;
     std::mt19937_64& rng;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-static_assert(std::is_aggregate_v<RandomSamplerDeps>);
+static_assert(std::is_aggregate_v<FixedStepDeps>);
 
-class RandomSampler
+class FixedStep
 {
    public:
-    using Deps = RandomSamplerDeps;
+    using Deps = FixedStepDeps;
 
-    explicit RandomSampler(Deps deps)
-        : deps_(deps),
-          variance_sampler_(deps_.prior.param.nu, deps_.prior.param.s2)
+    explicit FixedStep(Deps deps) : deps_(deps) {}
+
+    FixedStep(const FixedStep&) = delete;
+    auto operator=(const FixedStep&) -> FixedStep& = delete;
+    FixedStep(FixedStep&&) noexcept = default;
+    auto operator=(FixedStep&&) -> FixedStep& = delete;
+    ~FixedStep() = default;
+
+    static auto make(const Context& ctx) -> FixedStep
     {
+        return FixedStep{Deps{
+            .effect = ctx.model.fixed(),
+            .state = ctx.state.fixed(),
+            .residual = ctx.state.residual(),
+            .rng = ctx.rng,
+        }};
     }
 
-    RandomSampler(const RandomSampler&) = delete;
-    auto operator=(const RandomSampler&) -> RandomSampler& = delete;
-    RandomSampler(RandomSampler&&) noexcept = default;
-    auto operator=(RandomSampler&&) -> RandomSampler& = delete;
-    ~RandomSampler() = default;
-
-    static auto make(const Context& ctx) -> RandomSampler;
-
-    auto sample() -> void;
+    auto step() -> void;
 
    private:
     Deps deps_;
     stats::NormalSampler<double> normal_{0.0};
-    stats::ScaledInvChi2Sampler<double> variance_sampler_;
 };
 
 }  // namespace gelex::mcmc
 
-#endif  // GELEX_ALGO_INFER_MCMC_SAMPLERS_RANDOM_H_
+#endif  // GELEX_ALGO_INFER_MCMC_STEPS_FIXED_H_

@@ -135,7 +135,7 @@ auto Solver<ChainFactory>::run(
 
     vi::State state{model, priors};
 
-    const ::gelex::infra::detail::EigenThreadGuard guard;
+    const infra::detail::EigenThreadGuard guard;
     omp_set_num_threads(1);
 
     vi::Context ctx{.model = model, .priors = priors, .state = state};
@@ -148,7 +148,7 @@ auto Solver<ChainFactory>::run(
         chain.step();
         state.compute_heritability();
 
-        const double elbo = ::gelex::detail::compute_elbo(model, priors, state);
+        const double elbo = detail::compute_elbo(model, priors, state);
         const double delta
             = std::abs(elbo - prev_elbo) / (std::abs(prev_elbo) + 1e-300);
         const bool converged = iter > 0 && delta < params_.tol;

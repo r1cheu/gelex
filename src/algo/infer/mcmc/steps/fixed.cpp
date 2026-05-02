@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/infer/mcmc/samplers/fixed.h"
+#include "gelex/algo/infer/mcmc/steps/fixed.h"
 
 #include <Eigen/Core>
 
@@ -23,7 +23,7 @@
 namespace gelex::mcmc
 {
 
-auto FixedSampler::sample() -> void
+auto FixedStep::step() -> void
 {
     normal_.reset();
 

@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_VI_SAMPLERS_GENETIC_H_
-#define GELEX_ALGO_INFER_VI_SAMPLERS_GENETIC_H_
+#ifndef GELEX_ALGO_INFER_VI_STEPS_GENETIC_H_
+#define GELEX_ALGO_INFER_VI_STEPS_GENETIC_H_
 
 #include <type_traits>
 
+#include "gelex/algo/infer/detail/genetic_binding.h"
 #include "gelex/algo/infer/vi/context.h"
 #include "gelex/algo/infer/vi/kernels/concept.h"
-#include "gelex/algo/infer/vi/samplers/detail/genetic_binding.h"
 #include "gelex/algo/infer/vi/sweep.h"
 #include "gelex/model/bayes/states.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -30,42 +30,42 @@ namespace gelex::vi
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-struct GeneticSamplerDeps
+struct GeneticStepDeps
 {
-    detail::GeneticBlockDeps block;
+    infer::detail::GeneticBlockDeps<bayes::vi::GeneticState> block;
     bayes::ResidualState& residual;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-static_assert(std::is_aggregate_v<GeneticSamplerDeps>);
+static_assert(std::is_aggregate_v<GeneticStepDeps>);
 
 template <GeneticKernel Kernel>
-class GeneticSampler
+class GeneticStep
 {
    public:
-    using Deps = GeneticSamplerDeps;
+    using Deps = GeneticStepDeps;
 
-    explicit GeneticSampler(Deps deps)
+    explicit GeneticStep(Deps deps)
         : kernel_(deps.block.prior, deps.block.state),
           sweep_(deps.block.effect, deps.block.state, deps.residual)
     {
     }
 
-    GeneticSampler(const GeneticSampler&) = delete;
-    auto operator=(const GeneticSampler&) -> GeneticSampler& = delete;
-    GeneticSampler(GeneticSampler&&) noexcept = default;
-    auto operator=(GeneticSampler&&) -> GeneticSampler& = delete;
-    ~GeneticSampler() = default;
+    GeneticStep(const GeneticStep&) = delete;
+    auto operator=(const GeneticStep&) -> GeneticStep& = delete;
+    GeneticStep(GeneticStep&&) noexcept = default;
+    auto operator=(GeneticStep&&) -> GeneticStep& = delete;
+    ~GeneticStep() = default;
 
-    static auto make(const Context& ctx, GeneticMode mode) -> GeneticSampler
+    static auto make(const Context& ctx, GeneticMode mode) -> GeneticStep
     {
-        return GeneticSampler{Deps{
-            .block = detail::bind_genetic_block(ctx, mode),
+        return GeneticStep{Deps{
+            .block = infer::detail::bind_genetic_block(ctx, mode),
             .residual = ctx.state.residual(),
         }};
     }
 
-    auto sample() -> void { sweep_.run(kernel_); }
+    auto step() -> void { sweep_.run(kernel_); }
 
    private:
     Kernel kernel_;
@@ -74,4 +74,4 @@ class GeneticSampler
 
 }  // namespace gelex::vi
 
-#endif  // GELEX_ALGO_INFER_VI_SAMPLERS_GENETIC_H_
+#endif  // GELEX_ALGO_INFER_VI_STEPS_GENETIC_H_

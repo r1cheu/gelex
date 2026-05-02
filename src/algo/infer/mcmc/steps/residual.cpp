@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/infer/mcmc/samplers/residual.h"
+#include "gelex/algo/infer/mcmc/steps/residual.h"
 
 namespace gelex::mcmc
 {
 
-auto ResidualSampler::sample() -> void
+auto ResidualStep::step() -> void
 {
     variance_sampler_.reset();
     deps_.state.variance = variance_sampler_(

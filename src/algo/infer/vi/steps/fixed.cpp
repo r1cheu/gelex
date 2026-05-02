@@ -14,25 +14,32 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/infer/vi/samplers/residual.h"
+#include "gelex/algo/infer/vi/steps/fixed.h"
+
+#include <Eigen/Core>
 
 namespace gelex::vi
 {
 
-auto ResidualSampler::sample() -> void
+auto FixedStep::step() -> void
 {
-    auto& residual = deps_.state.residual();
+    const auto& X = deps_.effect.X;
+    const auto& XtX_diag = deps_.effect.XtX_diag;
+    auto& coeffs = deps_.state.coeffs;
+    auto& y_adj = deps_.residual.y_adj;
 
-    // E_q[||y - Xβ||²] = ||y_adj||² + tr(X'X · diag(σ²_q))
-    double expected_rss = residual.y_adj.squaredNorm();
-    for (const auto& gs : deps_.state.genetics())
+    for (Eigen::Index i = 0; i < coeffs.size(); ++i)
     {
-        const auto* effect = deps_.model.genetic(gs.type);
-        expected_rss += (effect->XtX_diag.array() * gs.sigma2.array()).sum();
-    }
+        const double old_i = coeffs(i);
+        const auto col = X.col(i);
+        const double norm = XtX_diag(i);
 
-    chi_squared_.compute(expected_rss, deps_.model.num_individuals());
-    residual.variance = chi_squared_.expected_value();
+        const double rhs = col.dot(y_adj) + (norm * old_i);
+        const double post_mean = rhs / norm;
+
+        coeffs(i) = post_mean;
+        y_adj.array() += (old_i - post_mean) * col.array();
+    }
 }
 
 }  // namespace gelex::vi

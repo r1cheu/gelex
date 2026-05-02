@@ -65,7 +65,7 @@ class GeneticSweep
 
         kernel.prepare();
 
-        auto* mix = ::gelex::mcmc::detail::get_mixture(state_);
+        auto* mix = detail::get_mixture(state_);
         const bool track_components = mix && !mix->component_u.empty();
         const auto component_u_span
             = track_components ? std::span<Eigen::VectorXd>(mix->component_u)
@@ -81,8 +81,8 @@ class GeneticSweep
 
             const double old_i = coeffs(i);
             const auto col = X.col(i);
-            const double rhs = ::gelex::infer::detail::blas_ddot(col, y_adj)
-                               + (xtx_diag_i * old_i);
+            const double rhs
+                = infer::detail::blas_ddot(col, y_adj) + (xtx_diag_i * old_i);
 
             const int8_t old_class = mix ? mix->assignment.tracker(i) : -1;
 
@@ -92,7 +92,7 @@ class GeneticSweep
             coeffs(i) = new_i;
             const int8_t new_class = mix ? mix->assignment.tracker(i) : -1;
 
-            ::gelex::infer::detail::apply_marker_update(
+            infer::detail::apply_marker_update(
                 y_adj,
                 u,
                 component_u_span,
@@ -108,7 +108,7 @@ class GeneticSweep
         state_.variance = gelex::stats::detail::var(state_.u)(0);
         if (track_components)
         {
-            ::gelex::mcmc::detail::compute_component_variances(*mix);
+            detail::compute_component_variances(*mix);
         }
     }
 

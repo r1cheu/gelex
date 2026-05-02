@@ -21,13 +21,11 @@
 
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/states.h"
 
-namespace gelex
-{
-namespace mcmc
+namespace gelex::mcmc
 {
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
 struct Context
 {
     const BayesModel& model;
@@ -35,8 +33,8 @@ struct Context
     State& state;
     std::mt19937_64& rng;
 };
+// NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-}  // namespace mcmc
-}  // namespace gelex
+}  // namespace gelex::mcmc
 
 #endif  // GELEX_ALGO_INFER_MCMC_CONTEXT_H_

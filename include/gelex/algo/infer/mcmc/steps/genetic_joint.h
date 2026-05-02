@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_MCMC_SAMPLERS_GENETIC_JOINT_H_
-#define GELEX_ALGO_INFER_MCMC_SAMPLERS_GENETIC_JOINT_H_
+#ifndef GELEX_ALGO_INFER_MCMC_STEPS_GENETIC_JOINT_H_
+#define GELEX_ALGO_INFER_MCMC_STEPS_GENETIC_JOINT_H_
 
 #include <random>
 #include <type_traits>
 
+#include "gelex/algo/infer/detail/genetic_binding.h"
 #include "gelex/algo/infer/mcmc/context.h"
 #include "gelex/algo/infer/mcmc/joint_sweep.h"
 #include "gelex/algo/infer/mcmc/kernels/concept.h"
-#include "gelex/algo/infer/mcmc/samplers/detail/genetic_binding.h"
 #include "gelex/model/bayes/states.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -31,43 +31,43 @@ namespace gelex::mcmc
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-struct GeneticJointSamplerDeps
+struct GeneticJointStepDeps
 {
-    detail::GeneticBlockDeps first;
-    detail::GeneticBlockDeps second;
+    infer::detail::GeneticBlockDeps<bayes::GeneticState> first;
+    infer::detail::GeneticBlockDeps<bayes::GeneticState> second;
     bayes::ResidualState& residual;
     std::mt19937_64& rng;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-static_assert(std::is_aggregate_v<GeneticJointSamplerDeps>);
+static_assert(std::is_aggregate_v<GeneticJointStepDeps>);
 
 template <GeneticJointKernel Kernel>
-class GeneticJointSampler
+class GeneticJointStep
 {
    public:
-    using Deps = GeneticJointSamplerDeps;
+    using Deps = GeneticJointStepDeps;
 
-    explicit GeneticJointSampler(Deps deps)
+    explicit GeneticJointStep(Deps deps)
         : kernel_(deps.first, deps.second),
           sweep_(deps.first, deps.second, deps.residual, deps.rng)
     {
     }
 
-    GeneticJointSampler(const GeneticJointSampler&) = delete;
-    auto operator=(const GeneticJointSampler&) -> GeneticJointSampler& = delete;
-    GeneticJointSampler(GeneticJointSampler&&) noexcept = default;
-    auto operator=(GeneticJointSampler&&) -> GeneticJointSampler& = delete;
-    ~GeneticJointSampler() = default;
+    GeneticJointStep(const GeneticJointStep&) = delete;
+    auto operator=(const GeneticJointStep&) -> GeneticJointStep& = delete;
+    GeneticJointStep(GeneticJointStep&&) noexcept = default;
+    auto operator=(GeneticJointStep&&) -> GeneticJointStep& = delete;
+    ~GeneticJointStep() = default;
 
     static auto make(
         const Context& ctx,
         GeneticMode first_mode,
-        GeneticMode second_mode) -> GeneticJointSampler
+        GeneticMode second_mode) -> GeneticJointStep
     {
-        auto [first, second]
-            = detail::bind_genetic_block_pair(ctx, first_mode, second_mode);
-        return GeneticJointSampler{Deps{
+        auto [first, second] = infer::detail::bind_genetic_block_pair(
+            ctx, first_mode, second_mode);
+        return GeneticJointStep{Deps{
             .first = first,
             .second = second,
             .residual = ctx.state.residual(),
@@ -75,7 +75,7 @@ class GeneticJointSampler
         }};
     }
 
-    auto sample() -> void { sweep_.run(kernel_); }
+    auto step() -> void { sweep_.run(kernel_); }
 
    private:
     Kernel kernel_;
@@ -84,4 +84,4 @@ class GeneticJointSampler
 
 }  // namespace gelex::mcmc
 
-#endif  // GELEX_ALGO_INFER_MCMC_SAMPLERS_GENETIC_JOINT_H_
+#endif  // GELEX_ALGO_INFER_MCMC_STEPS_GENETIC_JOINT_H_

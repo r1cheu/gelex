@@ -70,8 +70,8 @@ class GeneticSweep
             const double old_i = coeffs(i);
             const auto col = X.col(i);
             const double xtx_diag_i = XtX_diag(i);
-            const double rhs = ::gelex::infer::detail::blas_ddot(col, y_adj)
-                               + (xtx_diag_i * old_i);
+            const double rhs
+                = infer::detail::blas_ddot(col, y_adj) + (xtx_diag_i * old_i);
 
             const auto post
                 = kernel.update(i, xtx_diag_i, rhs, residual_variance);
@@ -79,7 +79,7 @@ class GeneticSweep
             coeffs(i) = post.mean;
             sigma2(i) = post.sigma2;
 
-            ::gelex::infer::detail::apply_marker_update(
+            infer::detail::apply_marker_update(
                 y_adj,
                 u,
                 {},

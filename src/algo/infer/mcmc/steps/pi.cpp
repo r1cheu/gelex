@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/infer/mcmc/samplers/pi.h"
+#include "gelex/algo/infer/mcmc/steps/pi.h"
 
 #include <type_traits>
 #include <utility>
@@ -31,7 +31,7 @@
 namespace gelex::mcmc
 {
 
-auto PiSampler::make(const Context& ctx, GeneticMode mode) -> PiSampler
+auto PiStep::make(const Context& ctx, GeneticMode mode) -> PiStep
 {
     auto* genetic_state = ctx.state.genetic(mode);
     if (genetic_state == nullptr)
@@ -45,7 +45,7 @@ auto PiSampler::make(const Context& ctx, GeneticMode mode) -> PiSampler
     {
         throw GelexException(
             fmt::format(
-                "PiSampler requires marker allocation for genetic block {}",
+                "PiStep requires marker allocation for genetic block {}",
                 EffectType::from_genetic(mode)));
     }
     const auto* prior = ctx.priors.genetic(mode);
@@ -68,8 +68,8 @@ auto PiSampler::make(const Context& ctx, GeneticMode mode) -> PiSampler
                 {
                     throw GelexException(
                         fmt::format(
-                            "PiSampler: genetic block {} — "
-                            "PiSampler requires proportion.estimate = true",
+                            "PiStep: genetic block {} — "
+                            "PiStep requires proportion.estimate = true",
                             EffectType::from_genetic(mode)));
                 }
                 return Eigen::VectorXd::Ones(
@@ -79,19 +79,19 @@ auto PiSampler::make(const Context& ctx, GeneticMode mode) -> PiSampler
             {
                 throw GelexException(
                     fmt::format(
-                        "PiSampler: genetic block {} has no proportion prior",
+                        "PiStep: genetic block {} has no proportion prior",
                         EffectType::from_genetic(mode)));
             }
         },
         prior->marker);
-    return PiSampler{Deps{
+    return PiStep{Deps{
         .group = *genetic_state->group,
         .alpha = std::move(alpha),
         .rng = ctx.rng,
     }};
 }
 
-auto PiSampler::sample() -> void
+auto PiStep::step() -> void
 {
     dirichlet_.reset();
 

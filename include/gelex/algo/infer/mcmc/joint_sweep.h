@@ -21,9 +21,9 @@
 
 #include <Eigen/Core>
 
+#include "gelex/algo/infer/detail/genetic_binding.h"
 #include "gelex/algo/infer/detail/marker_op.h"
 #include "gelex/algo/infer/mcmc/kernels/concept.h"
-#include "gelex/algo/infer/mcmc/samplers/detail/genetic_binding.h"
 #include "gelex/infra/stats/descriptive.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/genotype_storage.h"
@@ -37,8 +37,8 @@ class GeneticJointSweep
 {
    public:
     GeneticJointSweep(
-        detail::GeneticBlockDeps first,
-        detail::GeneticBlockDeps second,
+        infer::detail::GeneticBlockDeps<bayes::GeneticState> first,
+        infer::detail::GeneticBlockDeps<bayes::GeneticState> second,
         bayes::ResidualState& residual,
         std::mt19937_64& rng)
         : first_(first), second_(second), residual_(residual), rng_(rng)
@@ -79,11 +79,10 @@ class GeneticJointSweep
             const auto second_col = second_x.col(i);
             const double first_xtx = first_.effect.XtX_diag(i);
             const double second_xtx = second_.effect.XtX_diag(i);
-            const double first_rhs
-                = ::gelex::infer::detail::blas_ddot(first_col, y_adj)
-                  + (first_xtx * first_old);
+            const double first_rhs = infer::detail::blas_ddot(first_col, y_adj)
+                                     + (first_xtx * first_old);
             const double second_rhs
-                = ::gelex::infer::detail::blas_ddot(second_col, y_adj)
+                = infer::detail::blas_ddot(second_col, y_adj)
                   + (second_xtx * second_old);
 
             const auto [first_new, second_new] = kernel.sample(
@@ -98,13 +97,13 @@ class GeneticJointSweep
             first_coeffs(i) = first_new;
             second_coeffs(i) = second_new;
 
-            ::gelex::infer::detail::apply_marker_update(
+            infer::detail::apply_marker_update(
                 y_adj,
                 first_u,
                 {},
                 first_col,
                 {.old_value = first_old, .new_value = first_new});
-            ::gelex::infer::detail::apply_marker_update(
+            infer::detail::apply_marker_update(
                 y_adj,
                 second_u,
                 {},
@@ -119,8 +118,8 @@ class GeneticJointSweep
     }
 
    private:
-    detail::GeneticBlockDeps first_;
-    detail::GeneticBlockDeps second_;
+    infer::detail::GeneticBlockDeps<bayes::GeneticState> first_;
+    infer::detail::GeneticBlockDeps<bayes::GeneticState> second_;
     bayes::ResidualState& residual_;
     std::mt19937_64& rng_;
 };

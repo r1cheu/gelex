@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_VI_SAMPLERS_RESIDUAL_H_
-#define GELEX_ALGO_INFER_VI_SAMPLERS_RESIDUAL_H_
+#ifndef GELEX_ALGO_INFER_VI_STEPS_RESIDUAL_H_
+#define GELEX_ALGO_INFER_VI_STEPS_RESIDUAL_H_
 
 #include <type_traits>
 
@@ -28,7 +28,7 @@ namespace gelex::vi
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-struct ResidualSamplerDeps
+struct ResidualStepDeps
 {
     const BayesModel& model;
     const bayes::ResidualPrior& prior;
@@ -36,34 +36,34 @@ struct ResidualSamplerDeps
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-static_assert(std::is_aggregate_v<ResidualSamplerDeps>);
+static_assert(std::is_aggregate_v<ResidualStepDeps>);
 
-class ResidualSampler
+class ResidualStep
 {
    public:
-    using Deps = ResidualSamplerDeps;
+    using Deps = ResidualStepDeps;
 
-    explicit ResidualSampler(Deps deps)
+    explicit ResidualStep(Deps deps)
         : deps_(deps), chi_squared_(deps_.prior.param)
     {
     }
 
-    ResidualSampler(const ResidualSampler&) = delete;
-    auto operator=(const ResidualSampler&) -> ResidualSampler& = delete;
-    ResidualSampler(ResidualSampler&&) noexcept = default;
-    auto operator=(ResidualSampler&&) -> ResidualSampler& = delete;
-    ~ResidualSampler() = default;
+    ResidualStep(const ResidualStep&) = delete;
+    auto operator=(const ResidualStep&) -> ResidualStep& = delete;
+    ResidualStep(ResidualStep&&) noexcept = default;
+    auto operator=(ResidualStep&&) -> ResidualStep& = delete;
+    ~ResidualStep() = default;
 
-    static auto make(const Context& ctx) -> ResidualSampler
+    static auto make(const Context& ctx) -> ResidualStep
     {
-        return ResidualSampler{Deps{
+        return ResidualStep{Deps{
             .model = ctx.model,
             .prior = ctx.priors.residual(),
             .state = ctx.state,
         }};
     }
 
-    auto sample() -> void;
+    auto step() -> void;
 
    private:
     Deps deps_;
@@ -72,4 +72,4 @@ class ResidualSampler
 
 }  // namespace gelex::vi
 
-#endif  // GELEX_ALGO_INFER_VI_SAMPLERS_RESIDUAL_H_
+#endif  // GELEX_ALGO_INFER_VI_STEPS_RESIDUAL_H_

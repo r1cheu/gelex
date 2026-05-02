@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_MCMC_SAMPLERS_GENETIC_H_
-#define GELEX_ALGO_INFER_MCMC_SAMPLERS_GENETIC_H_
+#ifndef GELEX_ALGO_INFER_MCMC_STEPS_GENETIC_H_
+#define GELEX_ALGO_INFER_MCMC_STEPS_GENETIC_H_
 
 #include <random>
 #include <type_traits>
 
+#include "gelex/algo/infer/detail/genetic_binding.h"
 #include "gelex/algo/infer/mcmc/context.h"
 #include "gelex/algo/infer/mcmc/kernels/concept.h"
-#include "gelex/algo/infer/mcmc/samplers/detail/genetic_binding.h"
 #include "gelex/algo/infer/mcmc/sweep.h"
 #include "gelex/model/bayes/states.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -31,44 +31,44 @@ namespace gelex::mcmc
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-struct GeneticSamplerDeps
+struct GeneticStepDeps
 {
-    detail::GeneticBlockDeps block;
+    infer::detail::GeneticBlockDeps<bayes::GeneticState> block;
     bayes::ResidualState& residual;
     std::mt19937_64& rng;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-static_assert(std::is_aggregate_v<GeneticSamplerDeps>);
+static_assert(std::is_aggregate_v<GeneticStepDeps>);
 
 template <GeneticKernel Kernel>
-class GeneticSampler
+class GeneticStep
 {
    public:
-    using Deps = GeneticSamplerDeps;
+    using Deps = GeneticStepDeps;
 
-    explicit GeneticSampler(Deps deps)
+    explicit GeneticStep(Deps deps)
         : kernel_(deps.block.prior, deps.block.state),
           sweep_(deps.block.effect, deps.block.state, deps.residual, deps.rng)
     {
     }
 
-    GeneticSampler(const GeneticSampler&) = delete;
-    auto operator=(const GeneticSampler&) -> GeneticSampler& = delete;
-    GeneticSampler(GeneticSampler&&) noexcept = default;
-    auto operator=(GeneticSampler&&) -> GeneticSampler& = delete;
-    ~GeneticSampler() = default;
+    GeneticStep(const GeneticStep&) = delete;
+    auto operator=(const GeneticStep&) -> GeneticStep& = delete;
+    GeneticStep(GeneticStep&&) noexcept = default;
+    auto operator=(GeneticStep&&) -> GeneticStep& = delete;
+    ~GeneticStep() = default;
 
-    static auto make(const Context& ctx, GeneticMode mode) -> GeneticSampler
+    static auto make(const Context& ctx, GeneticMode mode) -> GeneticStep
     {
-        return GeneticSampler{Deps{
-            .block = detail::bind_genetic_block(ctx, mode),
+        return GeneticStep{Deps{
+            .block = infer::detail::bind_genetic_block(ctx, mode),
             .residual = ctx.state.residual(),
             .rng = ctx.rng,
         }};
     }
 
-    auto sample() -> void { sweep_.run(kernel_); }
+    auto step() -> void { sweep_.run(kernel_); }
 
    private:
     Kernel kernel_;
@@ -77,4 +77,4 @@ class GeneticSampler
 
 }  // namespace gelex::mcmc
 
-#endif  // GELEX_ALGO_INFER_MCMC_SAMPLERS_GENETIC_H_
+#endif  // GELEX_ALGO_INFER_MCMC_STEPS_GENETIC_H_

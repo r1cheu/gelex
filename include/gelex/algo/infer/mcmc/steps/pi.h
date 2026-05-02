@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_MCMC_SAMPLERS_PI_H_
-#define GELEX_ALGO_INFER_MCMC_SAMPLERS_PI_H_
+#ifndef GELEX_ALGO_INFER_MCMC_STEPS_PI_H_
+#define GELEX_ALGO_INFER_MCMC_STEPS_PI_H_
 
 #include <random>
 #include <type_traits>
@@ -32,7 +32,7 @@ namespace gelex::mcmc
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-struct PiSamplerDeps
+struct PiStepDeps
 {
     bayes::MarkerAllocation& group;
     Eigen::VectorXd alpha;
@@ -40,27 +40,26 @@ struct PiSamplerDeps
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-static_assert(std::is_aggregate_v<PiSamplerDeps>);
+static_assert(std::is_aggregate_v<PiStepDeps>);
 
-class PiSampler
+class PiStep
 {
    public:
-    using Deps = PiSamplerDeps;
+    using Deps = PiStepDeps;
 
-    explicit PiSampler(Deps deps)
-        : deps_(std::move(deps)), dirichlet_(deps_.alpha)
+    explicit PiStep(Deps deps) : deps_(std::move(deps)), dirichlet_(deps_.alpha)
     {
     }
 
-    PiSampler(const PiSampler&) = delete;
-    auto operator=(const PiSampler&) -> PiSampler& = delete;
-    PiSampler(PiSampler&&) noexcept = default;
-    auto operator=(PiSampler&&) -> PiSampler& = delete;
-    ~PiSampler() = default;
+    PiStep(const PiStep&) = delete;
+    auto operator=(const PiStep&) -> PiStep& = delete;
+    PiStep(PiStep&&) noexcept = default;
+    auto operator=(PiStep&&) -> PiStep& = delete;
+    ~PiStep() = default;
 
-    static auto make(const Context& ctx, GeneticMode mode) -> PiSampler;
+    static auto make(const Context& ctx, GeneticMode mode) -> PiStep;
 
-    auto sample() -> void;
+    auto step() -> void;
 
    private:
     Deps deps_;
@@ -69,4 +68,4 @@ class PiSampler
 
 }  // namespace gelex::mcmc
 
-#endif  // GELEX_ALGO_INFER_MCMC_SAMPLERS_PI_H_
+#endif  // GELEX_ALGO_INFER_MCMC_STEPS_PI_H_

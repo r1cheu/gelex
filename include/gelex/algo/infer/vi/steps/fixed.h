@@ -14,48 +14,52 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_VI_SAMPLERS_RANDOM_H_
-#define GELEX_ALGO_INFER_VI_SAMPLERS_RANDOM_H_
+#ifndef GELEX_ALGO_INFER_VI_STEPS_FIXED_H_
+#define GELEX_ALGO_INFER_VI_STEPS_FIXED_H_
 
-#include <span>
 #include <type_traits>
 
 #include "gelex/algo/infer/vi/context.h"
-#include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"
+#include "gelex/types/fixed_effects.h"
 
 namespace gelex::vi
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-struct RandomSamplerDeps
+struct FixedStepDeps
 {
-    std::span<const bayes::RandomEffect> effects;
-    std::span<const bayes::RandomPrior> priors;
-    std::span<bayes::RandomState> states;
+    const FixedEffect& effect;
+    bayes::FixedState& state;
     bayes::ResidualState& residual;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-static_assert(std::is_aggregate_v<RandomSamplerDeps>);
+static_assert(std::is_aggregate_v<FixedStepDeps>);
 
-class RandomSampler
+class FixedStep
 {
    public:
-    using Deps = RandomSamplerDeps;
+    using Deps = FixedStepDeps;
 
-    explicit RandomSampler(Deps deps) : deps_(deps) {}
+    explicit FixedStep(Deps deps) : deps_(deps) {}
 
-    RandomSampler(const RandomSampler&) = delete;
-    auto operator=(const RandomSampler&) -> RandomSampler& = delete;
-    RandomSampler(RandomSampler&&) noexcept = default;
-    auto operator=(RandomSampler&&) -> RandomSampler& = delete;
-    ~RandomSampler() = default;
+    FixedStep(const FixedStep&) = delete;
+    auto operator=(const FixedStep&) -> FixedStep& = delete;
+    FixedStep(FixedStep&&) noexcept = default;
+    auto operator=(FixedStep&&) -> FixedStep& = delete;
+    ~FixedStep() = default;
 
-    static auto make(const Context& ctx) -> RandomSampler;
+    static auto make(const Context& ctx) -> FixedStep
+    {
+        return FixedStep{Deps{
+            .effect = ctx.model.fixed(),
+            .state = ctx.state.fixed(),
+            .residual = ctx.state.residual(),
+        }};
+    }
 
-    auto sample() -> void;
+    auto step() -> void;
 
    private:
     Deps deps_;
@@ -63,4 +67,4 @@ class RandomSampler
 
 }  // namespace gelex::vi
 
-#endif  // GELEX_ALGO_INFER_VI_SAMPLERS_RANDOM_H_
+#endif  // GELEX_ALGO_INFER_VI_STEPS_FIXED_H_

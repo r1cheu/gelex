@@ -34,10 +34,10 @@
 #include "gelex/algo/infer/mcmc/kernels/bayes_r.h"
 #include "gelex/algo/infer/mcmc/kernels/bayes_rr.h"
 #include "gelex/algo/infer/mcmc/recipes.h"
-#include "gelex/algo/infer/mcmc/samplers/fixed.h"
-#include "gelex/algo/infer/mcmc/samplers/genetic.h"
-#include "gelex/algo/infer/mcmc/samplers/pi.h"
-#include "gelex/algo/infer/mcmc/samplers/random.h"
+#include "gelex/algo/infer/mcmc/steps/fixed.h"
+#include "gelex/algo/infer/mcmc/steps/genetic.h"
+#include "gelex/algo/infer/mcmc/steps/pi.h"
+#include "gelex/algo/infer/mcmc/steps/random.h"
 #include "gelex/algo/infer/mcmc/sweep.h"
 #include "gelex/data/genotype/genotype_matrix.h"
 #include "gelex/exception.h"
@@ -57,7 +57,7 @@ namespace
 constexpr std::uint64_t kSeed = 0xC0FFEE5678ULL;
 
 TEST_CASE(
-    "FixedSampler keeps residual identity and recovers OLS",
+    "FixedStep keeps residual identity and recovers OLS",
     "[mcmc][fixed]")
 {
     const Eigen::MatrixXd X{
@@ -80,7 +80,7 @@ TEST_CASE(
     bayes::FixedState state{Eigen::VectorXd::Zero(X.cols())};
     bayes::ResidualState residual{.y_adj = y, .variance = 1e-6};
     std::mt19937_64 rng{kSeed};
-    FixedSampler sampler{FixedSampler::Deps{
+    FixedStep sampler{FixedStep::Deps{
         .effect = effect,
         .state = state,
         .residual = residual,
@@ -89,7 +89,7 @@ TEST_CASE(
 
     for (int iter = 0; iter < 200; ++iter)
     {
-        sampler.sample();
+        sampler.step();
     }
 
     REQUIRE((residual.y_adj + (X * state.coeffs)).isApprox(y));
@@ -97,7 +97,7 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "RandomSampler keeps residual identity and updates variance",
+    "RandomStep keeps residual identity and updates variance",
     "[mcmc][random]")
 {
     const Eigen::MatrixXd X{
@@ -122,14 +122,14 @@ TEST_CASE(
     bayes::ResidualState residual{.y_adj = y, .variance = 0.25};
     std::mt19937_64 rng{kSeed};
 
-    RandomSampler sampler{RandomSampler::Deps{
+    RandomStep sampler{RandomStep::Deps{
         .effects = std::span<const bayes::RandomEffect>{effects_arr},
         .prior = prior,
         .states = std::span<bayes::RandomState>{states_arr},
         .residual = residual,
         .rng = rng,
     }};
-    sampler.sample();
+    sampler.step();
 
     const auto& state = states_arr[0];
     REQUIRE(state.variance > 0.0);
@@ -247,7 +247,7 @@ TEMPLATE_TEST_CASE(
     bayes::ResidualState residual{.y_adj = y, .variance = 1e-3};
     std::mt19937_64 rng{kSeed};
 
-    GeneticSampler<TestType> sampler{typename GeneticSampler<TestType>::Deps{
+    GeneticStep<TestType> sampler{typename GeneticStep<TestType>::Deps{
         .block = {.effect = effect, .prior = prior, .state = state},
         .residual = residual,
         .rng = rng,
@@ -255,7 +255,7 @@ TEMPLATE_TEST_CASE(
 
     for (int iter = 0; iter < 200; ++iter)
     {
-        sampler.sample();
+        sampler.step();
     }
 
     REQUIRE((residual.y_adj + (X * state.coeffs)).isApprox(y));
@@ -383,7 +383,7 @@ TEST_CASE("BayesRKernel rejects non-MixturePrior", "[mcmc][bayes-r]")
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// PiSampler tests
+// PiStep tests
 // ──────────────────────────────────────────────────────────────────────────
 
 namespace
@@ -415,7 +415,7 @@ auto make_context_for_pi(
 }  // namespace
 
 TEST_CASE(
-    "PiSampler updates proportion via Dirichlet posterior",
+    "PiStep updates proportion via Dirichlet posterior",
     "[mcmc][pi-sampler]")
 {
     constexpr Eigen::Index kN = 10;
@@ -454,16 +454,15 @@ TEST_CASE(
         bayes::ResidualState{.y_adj = y, .variance = 0.5}};
 
     std::mt19937_64 rng{kSeed};
-    Context ctx{
-        .model = model, .priors = priors, .state = inference_state, .rng = rng};
+    Context ctx{.model = model, .priors = priors, .state = inference_state, .rng = rng};
 
-    auto sampler = PiSampler::make(ctx, GeneticMode::A);
+    auto sampler = PiStep::make(ctx, GeneticMode::A);
 
     auto* gstate_ptr = inference_state.genetic(GeneticMode::A);
     auto& alloc = std::get<bayes::ComponentAllocation>(*gstate_ptr->group);
     alloc.assignment.count = Eigen::VectorXi{{6, 1, 1, 0}};
 
-    sampler.sample();
+    sampler.step();
 
     const auto& prop = alloc.assignment.proportion;
     REQUIRE(prop.size() == kK);
@@ -477,7 +476,7 @@ TEST_CASE(
     REQUIRE(prop(0) > prop(2));
 }
 
-TEST_CASE("PiSampler rejects estimate=false prior", "[mcmc][pi-sampler]")
+TEST_CASE("PiStep rejects estimate=false prior", "[mcmc][pi-sampler]")
 {
     constexpr Eigen::Index kN = 4;
     constexpr Eigen::Index kP = 3;
@@ -519,10 +518,9 @@ TEST_CASE("PiSampler rejects estimate=false prior", "[mcmc][pi-sampler]")
         bayes::ResidualState{.y_adj = y, .variance = 0.5}};
 
     std::mt19937_64 rng{kSeed};
-    Context ctx{
-        .model = model, .priors = priors, .state = inference_state, .rng = rng};
+    Context ctx{.model = model, .priors = priors, .state = inference_state, .rng = rng};
 
-    REQUIRE_THROWS_AS(PiSampler::make(ctx, GeneticMode::A), GelexException);
+    REQUIRE_THROWS_AS(PiStep::make(ctx, GeneticMode::A), GelexException);
     (void)kP;
 }
 
@@ -602,8 +600,7 @@ TEST_CASE("make_bayes_cpi_chain runs one step", "[mcmc][bayes-cpi]")
     auto [model, priors]
         = make_chain_context(X, y, genetic_prior, inference_state, rng);
 
-    Context ctx{
-        .model = model, .priors = priors, .state = inference_state, .rng = rng};
+    Context ctx{.model = model, .priors = priors, .state = inference_state, .rng = rng};
     auto chain = make_bayes_cpi_chain(ctx);
     chain.step();
 
@@ -638,8 +635,7 @@ TEST_CASE("make_bayes_bpi_chain runs one step", "[mcmc][bayes-bpi]")
     auto [model, priors]
         = make_chain_context(X, y, genetic_prior, inference_state, rng);
 
-    Context ctx{
-        .model = model, .priors = priors, .state = inference_state, .rng = rng};
+    Context ctx{.model = model, .priors = priors, .state = inference_state, .rng = rng};
     auto chain = make_bayes_bpi_chain(ctx);
     chain.step();
 

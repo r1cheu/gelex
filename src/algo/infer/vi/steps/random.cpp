@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/infer/mcmc/samplers/random.h"
+#include "gelex/algo/infer/vi/steps/random.h"
 
 #include <cstddef>
 
@@ -22,11 +22,12 @@
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
+#include "gelex/infra/stats/conjugate_prior.h"
 
-namespace gelex::mcmc
+namespace gelex::vi
 {
 
-auto RandomSampler::make(const Context& ctx) -> RandomSampler
+auto RandomStep::make(const Context& ctx) -> RandomStep
 {
     const auto& effects = ctx.model.random();
     const auto& priors = ctx.priors.random();
@@ -40,57 +41,50 @@ auto RandomSampler::make(const Context& ctx) -> RandomSampler
                 priors.size(),
                 states.size()));
     }
-    static const bayes::RandomPrior kEmptyPrior{};
-    return RandomSampler{Deps{
+    return RandomStep{Deps{
         .effects = std::span{effects},
-        .prior = priors.empty() ? kEmptyPrior : priors.front(),
+        .priors = std::span{priors},
         .states = std::span{states},
         .residual = ctx.state.residual(),
-        .rng = ctx.rng,
     }};
 }
 
-auto RandomSampler::sample() -> void
+auto RandomStep::step() -> void
 {
     auto& y_adj = deps_.residual.y_adj;
     const double residual_variance = deps_.residual.variance;
 
     for (std::size_t block = 0; block < deps_.effects.size(); ++block)
     {
-        normal_.reset();
-        variance_sampler_.reset();
-
         const auto& effect = deps_.effects[block];
+        const auto& prior = deps_.priors[block];
         auto& state = deps_.states[block];
 
         auto& coeffs = state.coeffs;
         const auto& X = effect.X;
         const auto& XtX_diag = effect.XtX_diag;
+        const double sigma = state.variance;
 
-        normal_.set_prior_var(state.variance);
+        const Eigen::VectorXd inv_scaler
+            = 1.0 / (XtX_diag.array() + residual_variance / sigma);
+
         for (Eigen::Index i = 0; i < coeffs.size(); ++i)
         {
             const double old_i = coeffs(i);
             const auto col = X.col(i);
             const double norm = XtX_diag(i);
+
             const double rhs = col.dot(y_adj) + (norm * old_i);
+            const double post_mean = rhs * inv_scaler(i);
 
-            const double new_i = normal_(
-                stats::NormalSampler<double>::Kernel{
-                    .quadratic = norm,
-                    .linear = rhs,
-                    .scale = residual_variance,
-                },
-                deps_.rng);
-            coeffs(i) = new_i;
-
-            y_adj.array() += (old_i - new_i) * col.array();
+            coeffs(i) = post_mean;
+            y_adj.array() += (old_i - post_mean) * col.array();
         }
 
-        state.variance = variance_sampler_(
-            {.n = coeffs.size(), .sum_squares = coeffs.squaredNorm()},
-            deps_.rng);
+        gelex::stats::detail::ScaledInvChiSq chi_squared{prior.param};
+        chi_squared.compute(coeffs.squaredNorm(), coeffs.size());
+        state.variance = chi_squared.expected_value();
     }
 }
 
-}  // namespace gelex::mcmc
+}  // namespace gelex::vi

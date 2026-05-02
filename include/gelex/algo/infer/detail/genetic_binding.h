@@ -14,20 +14,37 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/infer/mcmc/samplers/detail/genetic_binding.h"
+#ifndef GELEX_ALGO_INFER_DETAIL_GENETIC_BINDING_H_
+#define GELEX_ALGO_INFER_DETAIL_GENETIC_BINDING_H_
+
+#include <type_traits>
+#include <utility>
 
 #include <fmt/format.h>
 
 #include "gelex/exception.h"
+#include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/genotype_storage.h"
+#include "gelex/model/bayes/prior.h"
+#include "gelex/types/genetic_effect_type.h"
 
-namespace gelex::mcmc::detail
+namespace gelex::infer::detail
 {
 
-auto validate_genetic_block_shape(
+// NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+template <typename GeneticStateT>
+struct GeneticBlockDeps
+{
+    const bayes::GeneticEffect& effect;
+    const bayes::GeneticPrior& prior;
+    GeneticStateT& state;
+};
+// NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+
+template <typename GeneticStateT>
+inline auto validate_genetic_block_shape(
     const bayes::GeneticEffect& effect,
-    const bayes::GeneticPrior& /*prior*/,
-    const bayes::GeneticState& state) -> void
+    const GeneticStateT& state) -> void
 {
     const auto rows = bayes::get_rows(effect.X);
     const auto cols = bayes::get_cols(effect.X);
@@ -51,9 +68,15 @@ auto validate_genetic_block_shape(
     }
 }
 
-auto bind_genetic_block(const Context& ctx, GeneticMode mode)
-    -> GeneticBlockDeps
+// Binds the (effect, prior, state) trio for `mode`, validating dimensions.
+// `Ctx` must expose `model`, `priors`, and `state` with `genetic(mode)`
+// accessors returning compatible pointers.
+template <typename Ctx>
+inline auto bind_genetic_block(const Ctx& ctx, GeneticMode mode)
 {
+    using GeneticStateT
+        = std::remove_pointer_t<decltype(ctx.state.genetic(mode))>;
+
     const auto* effect = ctx.model.genetic(mode);
     if (effect == nullptr)
     {
@@ -78,18 +101,21 @@ auto bind_genetic_block(const Context& ctx, GeneticMode mode)
                 "state has no genetic block for mode {}",
                 EffectType::from_genetic(mode)));
     }
-    validate_genetic_block_shape(*effect, *prior, *genetic_state);
-    return {
+    validate_genetic_block_shape(*effect, *genetic_state);
+    return GeneticBlockDeps<GeneticStateT>{
         .effect = *effect,
         .prior = *prior,
         .state = *genetic_state,
     };
 }
 
-auto bind_genetic_block_pair(
-    const Context& ctx,
+// Binds two genetic blocks for joint updates; requires distinct state objects
+// and matching X shapes.
+template <typename Ctx>
+inline auto bind_genetic_block_pair(
+    const Ctx& ctx,
     GeneticMode first_mode,
-    GeneticMode second_mode) -> std::pair<GeneticBlockDeps, GeneticBlockDeps>
+    GeneticMode second_mode)
 {
     auto first = bind_genetic_block(ctx, first_mode);
     auto second = bind_genetic_block(ctx, second_mode);
@@ -113,7 +139,9 @@ auto bind_genetic_block_pair(
                 bayes::get_rows(second.effect.X),
                 bayes::get_cols(second.effect.X)));
     }
-    return {first, second};
+    return std::pair{first, second};
 }
 
-}  // namespace gelex::mcmc::detail
+}  // namespace gelex::infer::detail
+
+#endif  // GELEX_ALGO_INFER_DETAIL_GENETIC_BINDING_H_

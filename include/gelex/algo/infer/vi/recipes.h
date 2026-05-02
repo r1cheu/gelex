@@ -17,13 +17,13 @@
 #ifndef GELEX_ALGO_INFER_VI_RECIPES_H_
 #define GELEX_ALGO_INFER_VI_RECIPES_H_
 
-#include "gelex/algo/infer/vi/chain.h"
+#include "gelex/algo/infer/chain.h"
 #include "gelex/algo/infer/vi/context.h"
 #include "gelex/algo/infer/vi/kernels/rr.h"
-#include "gelex/algo/infer/vi/samplers/fixed.h"
-#include "gelex/algo/infer/vi/samplers/genetic.h"
-#include "gelex/algo/infer/vi/samplers/random.h"
-#include "gelex/algo/infer/vi/samplers/residual.h"
+#include "gelex/algo/infer/vi/steps/fixed.h"
+#include "gelex/algo/infer/vi/steps/genetic.h"
+#include "gelex/algo/infer/vi/steps/random.h"
+#include "gelex/algo/infer/vi/steps/residual.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::vi
@@ -31,22 +31,22 @@ namespace gelex::vi
 
 inline auto make_bayes_rr_chain(const Context& ctx)
 {
-    return CaviChain{
-        FixedSampler::make(ctx),
-        RandomSampler::make(ctx),
-        GeneticSampler<RRKernel>::make(ctx, GeneticMode::A),
-        ResidualSampler::make(ctx),
+    return infer::Chain{
+        FixedStep::make(ctx),
+        RandomStep::make(ctx),
+        GeneticStep<RRKernel>::make(ctx, GeneticMode::A),
+        ResidualStep::make(ctx),
     };
 }
 
 inline auto make_bayes_rrd_chain(const Context& ctx)
 {
-    return CaviChain{
-        FixedSampler::make(ctx),
-        RandomSampler::make(ctx),
-        GeneticSampler<RRKernel>::make(ctx, GeneticMode::A),
-        GeneticSampler<RRKernel>::make(ctx, GeneticMode::D),
-        ResidualSampler::make(ctx),
+    return infer::Chain{
+        FixedStep::make(ctx),
+        RandomStep::make(ctx),
+        GeneticStep<RRKernel>::make(ctx, GeneticMode::A),
+        GeneticStep<RRKernel>::make(ctx, GeneticMode::D),
+        ResidualStep::make(ctx),
     };
 }
 
