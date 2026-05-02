@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "predict/predict_writer.h"
+#include "predict/writer.h"
 
 #include <fmt/format.h>
 #include <cstddef>
@@ -23,7 +23,7 @@
 #include "gelex/io/text_writer.h"
 #include "gelex/types/sample_id.h"
 
-namespace gelex
+namespace gelex::predict::detail
 {
 
 PredictWriter::PredictWriter(const std::filesystem::path& output_path)
@@ -113,4 +113,4 @@ auto PredictWriter::write(const PredictResult& result) -> void
     }
 }
 
-}  // namespace gelex
+}  // namespace gelex::predict::detail

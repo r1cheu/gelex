@@ -19,11 +19,11 @@
 
 #include "gelex/predict/types.h"
 
-namespace gelex
+namespace gelex::predict::detail
 {
 
 auto standardize_genotypes(GenotypeData& geno, const SbinData& sbin) -> void;
 
-}  // namespace gelex
+}  // namespace gelex::predict::detail
 
 #endif  // GELEX_PREDICT_STANDARDIZE_H_

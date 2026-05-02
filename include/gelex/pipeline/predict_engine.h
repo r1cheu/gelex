@@ -50,8 +50,8 @@ class PredictEngine
         dataframe::DataFrame<std::string> snp_effects;
         Eigen::VectorXd add_effects;
         std::optional<Eigen::VectorXd> dom_effects;
-        Coefficients coefficients;
-        SbinData sbin;
+        predict::Coefficients coefficients;
+        predict::SbinData sbin;
     };
 
     struct PredictData
@@ -65,18 +65,19 @@ class PredictEngine
     auto run(const PredictObserver& observer = {}) -> void;
 
    private:
-    static auto load_sbin(const std::filesystem::path& path) -> SbinData;
+    static auto load_sbin(const std::filesystem::path& path)
+        -> predict::SbinData;
 
     auto load_params() const -> PredictParams;
     auto load_data(const PredictParams& params) const -> PredictData;
     auto align(
         const PredictParams& params,
         const PredictData& data,
-        const PredictObserver& observer) const -> SnpAlignment;
+        const PredictObserver& observer) const -> predict::SnpAlignment;
     auto select(
         const PredictData& data,
-        const SnpAlignment& alignment,
-        bool has_dom) const -> GenotypeData;
+        const predict::SnpAlignment& alignment,
+        bool has_dom) const -> predict::GenotypeData;
     Config config_;
 };
 

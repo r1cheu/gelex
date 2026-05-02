@@ -23,7 +23,7 @@
 
 #include "gelex/data/dataframe/dataframe.h"
 
-namespace gelex
+namespace gelex::predict
 {
 
 auto build_snp_alignment(
@@ -63,4 +63,4 @@ auto build_snp_alignment(
     return result;
 }
 
-}  // namespace gelex
+}  // namespace gelex::predict

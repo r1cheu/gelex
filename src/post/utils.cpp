@@ -18,8 +18,8 @@
 
 #include <Eigen/Core>
 
-#include "gelex/algo/stats/diagnostics.h"
 #include "gelex/infra/logging/post_event.h"
+#include "gelex/infra/stats/diagnostics.h"
 
 namespace gelex::post::detail
 {

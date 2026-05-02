@@ -21,7 +21,7 @@
 #include "gelex/data/genotype/detail/encode_policy.h"
 #include "gelex/types/genotype_process_method.h"
 
-namespace gelex
+namespace gelex::predict::detail
 {
 
 auto standardize_genotypes(GenotypeData& geno, const SbinData& sbin) -> void
@@ -71,4 +71,4 @@ auto standardize_genotypes(GenotypeData& geno, const SbinData& sbin) -> void
     }
 }
 
-}  // namespace gelex
+}  // namespace gelex::predict::detail

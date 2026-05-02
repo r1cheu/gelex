@@ -23,7 +23,7 @@
 
 #include "gelex/data/dataframe/dataframe.h"
 
-namespace gelex
+namespace gelex::predict
 {
 
 inline constexpr double kMaxSnpMissingRatio = 0.2;
@@ -39,6 +39,6 @@ struct SnpAlignment
     const dataframe::DataFrame<std::string>& snp_effects,
     const dataframe::DataFrame<std::string>& bim_df) -> SnpAlignment;
 
-}  // namespace gelex
+}  // namespace gelex::predict
 
 #endif  // GELEX_PREDICT_SNP_ALIGNMENT_H_

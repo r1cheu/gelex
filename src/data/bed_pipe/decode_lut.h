@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_DECODE_LUT_H
-#define GELEX_DATA_DECODE_LUT_H
+#ifndef GELEX_DATA_BED_PIPE_DECODE_LUT_H
+#define GELEX_DATA_BED_PIPE_DECODE_LUT_H
 
 #include <array>
 #include <cstdint>
@@ -74,4 +74,4 @@ inline const std::array<LutEntry, kLutSize> kDecodeLut
 
 }  // namespace gelex
 
-#endif  // GELEX_DATA_DECODE_LUT_H
+#endif  // GELEX_DATA_BED_PIPE_DECODE_LUT_H

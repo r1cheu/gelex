@@ -18,7 +18,7 @@
 
 #include <cstring>
 
-#include "data/decode_lut.h"
+#include "decode_lut.h"
 
 namespace gelex::genotype::detail
 {

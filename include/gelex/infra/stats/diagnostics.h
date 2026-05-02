@@ -20,8 +20,8 @@
  * https://github.com/pyro-ppl/numpyro/blob/master/numpyro/diagnostics.py
  */
 
-#ifndef GELEX_ALGO_STATS_DIAGNOSTICS_H_
-#define GELEX_ALGO_STATS_DIAGNOSTICS_H_
+#ifndef GELEX_INFRA_STATS_DIAGNOSTICS_H_
+#define GELEX_INFRA_STATS_DIAGNOSTICS_H_
 #include <vector>
 
 #include <Eigen/Core>
@@ -102,4 +102,4 @@ auto hpdi(const Chains& chains, double prob)
     -> std::pair<Eigen::MatrixXd, Eigen::VectorXd>;
 }  // namespace gelex::stats
 
-#endif  // GELEX_ALGO_STATS_DIAGNOSTICS_H_
+#endif  // GELEX_INFRA_STATS_DIAGNOSTICS_H_

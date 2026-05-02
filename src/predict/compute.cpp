@@ -22,7 +22,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex
+namespace gelex::predict::detail
 {
 
 auto compute_gebv(const GenotypeData& geno, const SnpEffects& effects)
@@ -75,4 +75,4 @@ auto compute_covariate_effects(
         .covar_names = std::move(covar_names)};
 }
 
-}  // namespace gelex
+}  // namespace gelex::predict::detail

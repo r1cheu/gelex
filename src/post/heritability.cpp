@@ -21,7 +21,7 @@
 #include <fmt/format.h>
 #include <Eigen/Core>
 
-#include "gelex/algo/stats/diagnostics.h"
+#include "gelex/infra/stats/diagnostics.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/post/utils.h"
 #include "gelex/types/genetic_effect_type.h"

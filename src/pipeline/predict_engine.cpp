@@ -30,18 +30,19 @@
 #include "gelex/predict/input_reader.h"
 #include "gelex/predict/snp_alignment.h"
 #include "predict/compute.h"
-#include "predict/predict_writer.h"
 #include "predict/standardize.h"
+#include "predict/writer.h"
 
 namespace gelex
 {
 
 PredictEngine::PredictEngine(Config config) : config_(std::move(config)) {}
 
-auto PredictEngine::load_sbin(const std::filesystem::path& path) -> SbinData
+auto PredictEngine::load_sbin(const std::filesystem::path& path)
+    -> predict::SbinData
 {
     LociStatsReader reader(path.string());
-    SbinData data;
+    predict::SbinData data;
     data.add = reader.read(EffectType::add());
     if (reader.has(EffectType::dom()))
     {
@@ -53,7 +54,8 @@ auto PredictEngine::load_sbin(const std::filesystem::path& path) -> SbinData
 
 auto PredictEngine::load_params() const -> PredictParams
 {
-    auto snp_effects = read_snp_effects(config_.gfile_prefix + ".snp.eff");
+    auto snp_effects
+        = predict::read_snp_effects(config_.gfile_prefix + ".snp.eff");
     auto sbin = load_sbin(config_.gfile_prefix + ".sbin");
 
     bool enable_dom{};
@@ -77,7 +79,8 @@ auto PredictEngine::load_params() const -> PredictParams
         .snp_effects = std::move(snp_effects),
         .add_effects = std::move(add_effects),
         .dom_effects = std::move(dom_effects),
-        .coefficients = read_coefficients(config_.gfile_prefix + ".param"),
+        .coefficients
+        = predict::read_coefficients(config_.gfile_prefix + ".param"),
         .sbin = std::move(sbin)};
 }
 
@@ -90,7 +93,7 @@ auto PredictEngine::load_data(const PredictParams& params) const -> PredictData
 
     auto fam_df = read_fam(fam_path);
     auto bim_df = read_bim(bim_path);
-    auto covariates = read_covariates(
+    auto covariates = predict::read_covariates(
         config_.qcovar_path, config_.dcovar_path, params.coefficients, fam_df);
 
     return PredictData{
@@ -102,9 +105,10 @@ auto PredictEngine::load_data(const PredictParams& params) const -> PredictData
 auto PredictEngine::align(
     const PredictParams& params,
     const PredictData& data,
-    const PredictObserver& observer) const -> SnpAlignment
+    const PredictObserver& observer) const -> predict::SnpAlignment
 {
-    auto alignment = build_snp_alignment(params.snp_effects, data.bim_df);
+    auto alignment
+        = predict::build_snp_alignment(params.snp_effects, data.bim_df);
     const auto n_snps = static_cast<size_t>(params.snp_effects.rows());
 
     if (alignment.num_missing > 0 || alignment.num_mismatched > 0)
@@ -127,13 +131,13 @@ auto PredictEngine::align(
 
 auto PredictEngine::select(
     const PredictData& data,
-    const SnpAlignment& alignment,
-    bool has_dom) const -> GenotypeData
+    const predict::SnpAlignment& alignment,
+    bool has_dom) const -> predict::GenotypeData
 {
     genotype::BedPipe bed_pipe(config_.bed_path, data.fam_df.index());
     auto genotype = bed_pipe.select(alignment.column_map);
 
-    GenotypeData geno;
+    predict::GenotypeData geno;
     if (has_dom)
     {
         geno.dom = genotype;
@@ -164,17 +168,18 @@ auto PredictEngine::run(const PredictObserver& observer) -> void
             .num_snps = static_cast<size_t>(params.snp_effects.rows()),
             .num_covar_terms = params.coefficients.names.size()});
 
-    standardize_genotypes(geno, params.sbin);
+    predict::detail::standardize_genotypes(geno, params.sbin);
 
-    SnpEffects effects{.add = params.add_effects, .dom = params.dom_effects};
-    auto gebv = compute_gebv(geno, effects);
-    auto covar
-        = compute_covariate_effects(data.covariates, params.coefficients);
+    predict::SnpEffects effects{
+        .add = params.add_effects, .dom = params.dom_effects};
+    auto gebv = predict::detail::compute_gebv(geno, effects);
+    auto covar = predict::detail::compute_covariate_effects(
+        data.covariates, params.coefficients);
 
     auto sample_keys = data.fam_df.index().keys();
     std::vector<std::string> sample_ids(sample_keys.begin(), sample_keys.end());
 
-    PredictResult result{
+    predict::PredictResult result{
         .sample_ids = std::move(sample_ids),
         .predictions = gebv.total + covar.total,
         .snp_predictions = std::move(gebv.total),
@@ -183,7 +188,7 @@ auto PredictEngine::run(const PredictObserver& observer) -> void
         .covar_predictions = std::move(covar.per_covariate),
         .covar_names = std::move(covar.covar_names)};
 
-    PredictWriter writer(config_.output_path);
+    predict::detail::PredictWriter writer(config_.output_path);
     writer.write(result);
 
     notify(

@@ -34,7 +34,7 @@
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 
-namespace gelex
+namespace gelex::predict
 {
 
 namespace detail
@@ -202,4 +202,4 @@ auto read_covariates(
     return X;
 }
 
-}  // namespace gelex
+}  // namespace gelex::predict

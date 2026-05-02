@@ -26,7 +26,7 @@
 
 #include "gelex/data/dataframe/dataframe.h"
 
-namespace gelex
+namespace gelex::predict
 {
 
 struct Coefficients
@@ -47,6 +47,6 @@ struct Coefficients
     const Coefficients& coefficients,
     dataframe::DataFrame<std::string>& sample_df) -> Eigen::MatrixXd;
 
-}  // namespace gelex
+}  // namespace gelex::predict
 
 #endif  // GELEX_PREDICT_INPUT_READER_H_

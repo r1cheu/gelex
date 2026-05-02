@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/stats/diagnostics.h"
+#include "gelex/infra/stats/diagnostics.h"
 
 #include <cstddef>
 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_POSTERIOR_CALCULATOR_H_
-#define GELEX_ALGO_INFER_POSTERIOR_CALCULATOR_H_
+#ifndef GELEX_ALGO_POSTERIOR_CALCULATOR_H_
+#define GELEX_ALGO_POSTERIOR_CALCULATOR_H_
 
 #include <Eigen/Core>
 
@@ -32,4 +32,4 @@ void compute_pve(
 
 }  // namespace gelex::posterior::detail
 
-#endif  // GELEX_ALGO_INFER_POSTERIOR_CALCULATOR_H_
+#endif  // GELEX_ALGO_POSTERIOR_CALCULATOR_H_

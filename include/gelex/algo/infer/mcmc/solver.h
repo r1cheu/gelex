@@ -27,7 +27,7 @@
 
 #include "gelex/algo/infer/mcmc/context.h"
 #include "gelex/algo/infer/params.h"
-#include "gelex/algo/infer/posterior_calculator.h"
+#include "gelex/algo/posterior_calculator.h"
 #include "gelex/exception.h"
 #include "gelex/infra/eigen_thread_guard.h"
 #include "gelex/infra/logging/fit_event.h"

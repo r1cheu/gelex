@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_PREDICT_PREDICT_WRITER_H
-#define GELEX_PREDICT_PREDICT_WRITER_H
+#ifndef GELEX_PREDICT_WRITER_H_
+#define GELEX_PREDICT_WRITER_H_
 
 #include <filesystem>
 #include <memory>
@@ -28,7 +28,7 @@ namespace gelex::io::detail
 class TextWriter;
 }
 
-namespace gelex
+namespace gelex::predict::detail
 {
 
 class PredictWriter
@@ -59,6 +59,6 @@ class PredictWriter
     std::string row_buf_;
 };
 
-}  // namespace gelex
+}  // namespace gelex::predict::detail
 
-#endif  // GELEX_PREDICT_PREDICT_WRITER_H
+#endif  // GELEX_PREDICT_WRITER_H_

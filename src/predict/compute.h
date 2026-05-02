@@ -22,7 +22,7 @@
 #include "gelex/predict/input_reader.h"
 #include "gelex/predict/types.h"
 
-namespace gelex
+namespace gelex::predict::detail
 {
 
 [[nodiscard]] auto compute_gebv(
@@ -33,6 +33,6 @@ namespace gelex
     const Eigen::MatrixXd& covariates,
     const Coefficients& coefficients) -> CovariateResult;
 
-}  // namespace gelex
+}  // namespace gelex::predict::detail
 
 #endif  // GELEX_PREDICT_COMPUTE_H_
