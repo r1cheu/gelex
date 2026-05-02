@@ -29,25 +29,28 @@
 namespace gelex::vi
 {
 
+template <GeneticMode Mode = GeneticMode::A>
 inline auto make_bayes_rr_chain(const Context& ctx)
 {
-    return infer::Chain{
-        FixedStep::make(ctx),
-        RandomStep::make(ctx),
-        GeneticStep<RRKernel>::make(ctx, GeneticMode::A),
-        ResidualStep::make(ctx),
-    };
-}
-
-inline auto make_bayes_rrd_chain(const Context& ctx)
-{
-    return infer::Chain{
-        FixedStep::make(ctx),
-        RandomStep::make(ctx),
-        GeneticStep<RRKernel>::make(ctx, GeneticMode::A),
-        GeneticStep<RRKernel>::make(ctx, GeneticMode::D),
-        ResidualStep::make(ctx),
-    };
+    if constexpr (Mode == GeneticMode::AD)
+    {
+        return infer::Chain{
+            FixedStep::make(ctx),
+            RandomStep::make(ctx),
+            GeneticStep<RRKernel>::make(ctx, GeneticMode::A),
+            GeneticStep<RRKernel>::make(ctx, GeneticMode::D),
+            ResidualStep::make(ctx),
+        };
+    }
+    else
+    {
+        return infer::Chain{
+            FixedStep::make(ctx),
+            RandomStep::make(ctx),
+            GeneticStep<RRKernel>::make(ctx, Mode),
+            ResidualStep::make(ctx),
+        };
+    }
 }
 
 }  // namespace gelex::vi

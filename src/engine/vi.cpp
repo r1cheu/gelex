@@ -27,6 +27,7 @@
 #include "gelex/io/vi/result_writer.h"
 #include "gelex/model/bayes/builder.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -59,13 +60,27 @@ auto vi::FitEngine::run(
 
     vi::Result result = [&]
     {
-        if (config_.method.dominance)
+        switch (config_.method.mode)
         {
-            vi::Solver engine(config_.params, vi::make_bayes_rrd_chain);
-            return engine.run(model, priors, observer);
+            case GeneticMode::A:
+            {
+                vi::Solver engine(
+                    config_.params, vi::make_bayes_rr_chain<GeneticMode::A>);
+                return engine.run(model, priors, observer);
+            }
+            case GeneticMode::D:
+            {
+                vi::Solver engine(
+                    config_.params, vi::make_bayes_rr_chain<GeneticMode::D>);
+                return engine.run(model, priors, observer);
+            }
+            case GeneticMode::AD:
+            {
+                vi::Solver engine(
+                    config_.params, vi::make_bayes_rr_chain<GeneticMode::AD>);
+                return engine.run(model, priors, observer);
+            }
         }
-        vi::Solver engine(config_.params, vi::make_bayes_rr_chain);
-        return engine.run(model, priors, observer);
     }();
 
     vi::ResultWriter writer(result, config_.bfile_prefix + ".bim");

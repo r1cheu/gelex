@@ -23,17 +23,17 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
+#include "gelex/algo/infer/mcmc/checkpoint.h"
 #include "gelex/algo/infer/mcmc/recipes.h"
 #include "gelex/algo/infer/mcmc/solver.h"
 #include "gelex/algo/infer/params.h"
 #include "gelex/data/genotype/matrix.h"
-#include "gelex/algo/infer/mcmc/checkpoint.h"
-#include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_config.h"
 #include "gelex/io/mcmc/checkpoint_reader.h"
 #include "gelex/io/mcmc/checkpoint_writer.h"
 #include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/prior_config.h"
 #include "gelex/types/fixed_effects.h"
 
 using namespace gelex;            // NOLINT
@@ -84,7 +84,7 @@ auto run_bayes_a(
     mcmc::Params params(n_iters, 0, 1, n_iters);
     mcmc::Solver mcmc(
         params,
-        mcmc::make_bayes_a_chain,
+        mcmc::make_bayes_a_chain<GeneticMode::A>,
         std::string(prefix),
         std::string(prefix));
     mcmc.run(model, priors, seed);
@@ -101,7 +101,7 @@ auto resume_bayes_a(
     mcmc::Params params(n_iters, 0, 1, n_iters);
     mcmc::Solver mcmc(
         params,
-        mcmc::make_bayes_a_chain,
+        mcmc::make_bayes_a_chain<GeneticMode::A>,
         std::string(prefix),
         std::string(prefix));
     mcmc.resume(model, std::move(ckpt));
@@ -314,7 +314,7 @@ TEST_CASE("MCMC resume throws on checkpoint dimension mismatch", "[checkpoint]")
     (void)priors_mismatch;
 
     mcmc::Params params(1, 0, 1, 1);
-    mcmc::Solver mcmc(params, mcmc::make_bayes_a_chain);
+    mcmc::Solver mcmc(params, mcmc::make_bayes_a_chain<GeneticMode::A>);
     REQUIRE_THROWS(mcmc.resume(model_mismatch, std::move(ckpt)));
 
     std::filesystem::remove(ckpt_path);

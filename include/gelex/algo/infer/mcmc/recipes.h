@@ -34,160 +34,97 @@
 namespace gelex::mcmc
 {
 
+template <typename Kernel, GeneticMode Mode = GeneticMode::A>
+inline auto make_simple_chain(const Context& ctx)
+{
+    if constexpr (Mode == GeneticMode::AD)
+    {
+        return infer::Chain{
+            FixedStep::make(ctx),
+            RandomStep::make(ctx),
+            GeneticStep<Kernel>::make(ctx, GeneticMode::A),
+            GeneticStep<Kernel>::make(ctx, GeneticMode::D),
+            ResidualStep::make(ctx),
+        };
+    }
+    else
+    {
+        return infer::Chain{
+            FixedStep::make(ctx),
+            RandomStep::make(ctx),
+            GeneticStep<Kernel>::make(ctx, Mode),
+            ResidualStep::make(ctx),
+        };
+    }
+}
+
+template <typename Kernel, GeneticMode Mode = GeneticMode::A>
+inline auto make_pi_chain(const Context& ctx)
+{
+    if constexpr (Mode == GeneticMode::AD)
+    {
+        return infer::Chain{
+            FixedStep::make(ctx),
+            RandomStep::make(ctx),
+            GeneticStep<Kernel>::make(ctx, GeneticMode::A),
+            PiStep::make(ctx, GeneticMode::A),
+            GeneticStep<Kernel>::make(ctx, GeneticMode::D),
+            PiStep::make(ctx, GeneticMode::D),
+            ResidualStep::make(ctx),
+        };
+    }
+    else
+    {
+        return infer::Chain{
+            FixedStep::make(ctx),
+            RandomStep::make(ctx),
+            GeneticStep<Kernel>::make(ctx, Mode),
+            PiStep::make(ctx, Mode),
+            ResidualStep::make(ctx),
+        };
+    }
+}
+
+template <GeneticMode Mode = GeneticMode::A>
 inline auto make_bayes_a_chain(const Context& ctx)
 {
-    return infer::Chain{
-        FixedStep::make(ctx),
-        RandomStep::make(ctx),
-        GeneticStep<BayesAKernel>::make(ctx, GeneticMode::A),
-        ResidualStep::make(ctx),
-    };
+    return make_simple_chain<BayesAKernel, Mode>(ctx);
 }
 
-inline auto make_bayes_ad_chain(const Context& ctx)
-{
-    return infer::Chain{
-        FixedStep::make(ctx),
-        RandomStep::make(ctx),
-        GeneticStep<BayesAKernel>::make(ctx, GeneticMode::A),
-        GeneticStep<BayesAKernel>::make(ctx, GeneticMode::D),
-        ResidualStep::make(ctx),
-    };
-}
-
+template <GeneticMode Mode = GeneticMode::A>
 inline auto make_bayes_b_chain(const Context& ctx)
 {
-    return infer::Chain{
-        FixedStep::make(ctx),
-        RandomStep::make(ctx),
-        GeneticStep<BayesBKernel>::make(ctx, GeneticMode::A),
-        ResidualStep::make(ctx),
-    };
+    return make_simple_chain<BayesBKernel, Mode>(ctx);
 }
 
+template <GeneticMode Mode = GeneticMode::A>
 inline auto make_bayes_bpi_chain(const Context& ctx)
 {
-    return infer::Chain{
-        FixedStep::make(ctx),
-        RandomStep::make(ctx),
-        GeneticStep<BayesBKernel>::make(ctx, GeneticMode::A),
-        PiStep::make(ctx, GeneticMode::A),
-        ResidualStep::make(ctx),
-    };
+    return make_pi_chain<BayesBKernel, Mode>(ctx);
 }
 
-inline auto make_bayes_bd_chain(const Context& ctx)
-{
-    return infer::Chain{
-        FixedStep::make(ctx),
-        RandomStep::make(ctx),
-        GeneticStep<BayesBKernel>::make(ctx, GeneticMode::A),
-        GeneticStep<BayesBKernel>::make(ctx, GeneticMode::D),
-        ResidualStep::make(ctx),
-    };
-}
-
-inline auto make_bayes_bdpi_chain(const Context& ctx)
-{
-    return infer::Chain{
-        FixedStep::make(ctx),
-        RandomStep::make(ctx),
-        GeneticStep<BayesBKernel>::make(ctx, GeneticMode::A),
-        PiStep::make(ctx, GeneticMode::A),
-        GeneticStep<BayesBKernel>::make(ctx, GeneticMode::D),
-        PiStep::make(ctx, GeneticMode::D),
-        ResidualStep::make(ctx),
-    };
-}
-
+template <GeneticMode Mode = GeneticMode::A>
 inline auto make_bayes_c_chain(const Context& ctx)
 {
-    return infer::Chain{
-        FixedStep::make(ctx),
-        RandomStep::make(ctx),
-        GeneticStep<BayesCKernel>::make(ctx, GeneticMode::A),
-        ResidualStep::make(ctx),
-    };
+    return make_simple_chain<BayesCKernel, Mode>(ctx);
 }
 
+template <GeneticMode Mode = GeneticMode::A>
 inline auto make_bayes_cpi_chain(const Context& ctx)
 {
-    return infer::Chain{
-        FixedStep::make(ctx),
-        RandomStep::make(ctx),
-        GeneticStep<BayesCKernel>::make(ctx, GeneticMode::A),
-        PiStep::make(ctx, GeneticMode::A),
-        ResidualStep::make(ctx),
-    };
+    return make_pi_chain<BayesCKernel, Mode>(ctx);
 }
 
-inline auto make_bayes_cd_chain(const Context& ctx)
-{
-    return infer::Chain{
-        FixedStep::make(ctx),
-        RandomStep::make(ctx),
-        GeneticStep<BayesCKernel>::make(ctx, GeneticMode::A),
-        GeneticStep<BayesCKernel>::make(ctx, GeneticMode::D),
-        ResidualStep::make(ctx),
-    };
-}
-
-inline auto make_bayes_cdpi_chain(const Context& ctx)
-{
-    return infer::Chain{
-        FixedStep::make(ctx),
-        RandomStep::make(ctx),
-        GeneticStep<BayesCKernel>::make(ctx, GeneticMode::A),
-        PiStep::make(ctx, GeneticMode::A),
-        GeneticStep<BayesCKernel>::make(ctx, GeneticMode::D),
-        PiStep::make(ctx, GeneticMode::D),
-        ResidualStep::make(ctx),
-    };
-}
-
-inline auto make_bayes_rr_chain(const Context& ctx)
-{
-    return infer::Chain{
-        FixedStep::make(ctx),
-        RandomStep::make(ctx),
-        GeneticStep<BayesRRKernel>::make(ctx, GeneticMode::A),
-        ResidualStep::make(ctx),
-    };
-}
-
-inline auto make_bayes_rrd_chain(const Context& ctx)
-{
-    return infer::Chain{
-        FixedStep::make(ctx),
-        RandomStep::make(ctx),
-        GeneticStep<BayesRRKernel>::make(ctx, GeneticMode::A),
-        GeneticStep<BayesRRKernel>::make(ctx, GeneticMode::D),
-        ResidualStep::make(ctx),
-    };
-}
-
+template <GeneticMode Mode = GeneticMode::A>
 inline auto make_bayes_r_chain(const Context& ctx)
 {
-    return infer::Chain{
-        FixedStep::make(ctx),
-        RandomStep::make(ctx),
-        GeneticStep<BayesRKernel>::make(ctx, GeneticMode::A),
-        PiStep::make(ctx, GeneticMode::A),
-        ResidualStep::make(ctx),
-    };
+    return make_pi_chain<BayesRKernel, Mode>(ctx);
 }
 
-inline auto make_bayes_rd_chain(const Context& ctx)
+template <GeneticMode Mode = GeneticMode::A>
+inline auto make_bayes_rr_chain(const Context& ctx)
 {
-    return infer::Chain{
-        FixedStep::make(ctx),
-        RandomStep::make(ctx),
-        GeneticStep<BayesRKernel>::make(ctx, GeneticMode::A),
-        PiStep::make(ctx, GeneticMode::A),
-        GeneticStep<BayesRKernel>::make(ctx, GeneticMode::D),
-        PiStep::make(ctx, GeneticMode::D),
-        ResidualStep::make(ctx),
-    };
+    return make_simple_chain<BayesRRKernel, Mode>(ctx);
 }
 
 }  // namespace gelex::mcmc

@@ -35,8 +35,11 @@ auto build_bayes_model(PhenoPipe&& pheno, GenoPipe&& geno) -> BayesModel
     auto fixed_effects = std::move(pheno).take_fixed_effects();
 
     std::vector<bayes::GeneticEffect> genetics;
-    genetics.emplace_back(
-        GeneticMode::A, std::move(geno).take_additive_matrix());
+    if (geno.has_additive_matrix())
+    {
+        genetics.emplace_back(
+            GeneticMode::A, std::move(geno).take_additive_matrix());
+    }
     if (geno.has_dominance_matrix())
     {
         genetics.emplace_back(

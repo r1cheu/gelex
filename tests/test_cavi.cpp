@@ -25,15 +25,15 @@
 
 #include "gelex/algo/infer/params.h"
 #include "gelex/algo/infer/vi/recipes.h"
+#include "gelex/algo/infer/vi/result.h"
 #include "gelex/algo/infer/vi/solver.h"
 #include "gelex/data/genotype/matrix.h"
 #include "gelex/data/genotype/storage.h"
+#include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_config.h"
-#include "gelex/model/bayes/method.h"
 #include "gelex/types/fixed_effects.h"
-#include "gelex/algo/infer/vi/result.h"
 
 using namespace gelex;            // NOLINT
 using namespace gelex::genotype;  // NOLINT
@@ -138,7 +138,7 @@ TEST_CASE("CAVI RR single iteration produces correct posteriors", "[cavi]")
 
     // Run one iteration of the RR chain
     vi::Context ctx{.model = model, .priors = priors, .state = state};
-    auto chain = vi::make_bayes_rr_chain(ctx);
+    auto chain = vi::make_bayes_rr_chain<GeneticMode::A>(ctx);
     chain.step();
 
     const auto& gs = state.genetics()[0];
@@ -213,7 +213,7 @@ TEST_CASE("CAVI RR converges on synthetic data", "[cavi]")
     params.max_iters = 200;
     params.tol = 1e-8;
 
-    vi::Solver cavi(params, vi::make_bayes_rr_chain);
+    vi::Solver cavi(params, vi::make_bayes_rr_chain<GeneticMode::A>);
     auto result = cavi.run(model, priors, observer);
 
     // Should have converged before max_iters

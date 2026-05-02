@@ -27,6 +27,8 @@
 #include <fmt/base.h>
 #include <fmt/format.h>
 
+#include "gelex/types/genetic_effect_type.h"
+
 namespace gelex
 {
 enum class BayesBase : uint8_t
@@ -41,30 +43,37 @@ enum class BayesBase : uint8_t
 struct BayesMethodConfig
 {
     BayesBase base{};
-    bool dominance = false;
+    GeneticMode mode = GeneticMode::A;
     bool asymmetric = false;
     bool estimate_pi = false;
 
     constexpr auto operator==(const BayesMethodConfig&) const -> bool = default;
 };
 
-// {base, dominance, asymmetric, estimate_pi}
-inline constexpr auto kValidMethods = std::array<BayesMethodConfig, 15>{{
-    {BayesBase::A, false, false, false},
-    {BayesBase::A, true, false, false},
-    {BayesBase::B, false, false, false},
-    {BayesBase::B, false, false, true},
-    {BayesBase::B, true, false, false},
-    {BayesBase::B, true, false, true},
-    {BayesBase::C, false, false, false},
-    {BayesBase::C, false, false, true},
-    {BayesBase::C, true, false, false},
-    {BayesBase::C, true, false, true},
-    {BayesBase::R, false, false, false},
-    {BayesBase::R, true, false, false},
-    {BayesBase::R, true, true, false},
-    {BayesBase::RR, false, false, false},
-    {BayesBase::RR, true, false, false},
+// {base, mode, asymmetric, estimate_pi}
+inline constexpr auto kValidMethods = std::array<BayesMethodConfig, 22>{{
+    {BayesBase::A, GeneticMode::A, false, false},
+    {BayesBase::A, GeneticMode::D, false, false},
+    {BayesBase::A, GeneticMode::AD, false, false},
+    {BayesBase::B, GeneticMode::A, false, false},
+    {BayesBase::B, GeneticMode::D, false, false},
+    {BayesBase::B, GeneticMode::AD, false, false},
+    {BayesBase::B, GeneticMode::A, false, true},
+    {BayesBase::B, GeneticMode::D, false, true},
+    {BayesBase::B, GeneticMode::AD, false, true},
+    {BayesBase::C, GeneticMode::A, false, false},
+    {BayesBase::C, GeneticMode::D, false, false},
+    {BayesBase::C, GeneticMode::AD, false, false},
+    {BayesBase::C, GeneticMode::A, false, true},
+    {BayesBase::C, GeneticMode::D, false, true},
+    {BayesBase::C, GeneticMode::AD, false, true},
+    {BayesBase::R, GeneticMode::A, false, false},
+    {BayesBase::R, GeneticMode::D, false, false},
+    {BayesBase::R, GeneticMode::AD, false, false},
+    {BayesBase::R, GeneticMode::AD, true, false},
+    {BayesBase::RR, GeneticMode::A, false, false},
+    {BayesBase::RR, GeneticMode::D, false, false},
+    {BayesBase::RR, GeneticMode::AD, false, false},
 }};
 
 constexpr auto is_valid_method(const BayesMethodConfig& m) -> bool
@@ -139,7 +148,11 @@ struct formatter<gelex::BayesMethodConfig> : formatter<string_view>
         {
             name += " + asymmetric dominance";
         }
-        else if (c.dominance)
+        else if (c.mode == gelex::GeneticMode::D)
+        {
+            name += " (dominance only)";
+        }
+        else if (c.mode == gelex::GeneticMode::AD)
         {
             name += " + dominance";
         }

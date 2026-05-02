@@ -60,19 +60,26 @@ PriorSetConfig::PriorSetConfig(
     double phenotype_variance)
     : method_(method), phenotype_variance_(phenotype_variance)
 {
-    genetics_.push_back(
-        {GeneticMode::A,
-         0.5,
-         default_proportion(method.base),
-         default_multiplier(method.base)});
+    constexpr double h2 = 0.5;
+    constexpr double d2 = 0.2;
+    const auto proportion = default_proportion(method.base);
+    const auto multiplier = default_multiplier(method.base);
 
-    if (method.dominance)
+    auto add_effect = [&](GeneticMode mode, double init_var_ratio)
+    { genetics_.push_back({mode, init_var_ratio, proportion, multiplier}); };
+
+    switch (method.mode)
     {
-        genetics_.push_back(
-            {GeneticMode::D,
-             0.2,
-             default_proportion(method.base),
-             default_multiplier(method.base)});
+        case GeneticMode::A:
+            add_effect(GeneticMode::A, h2);
+            break;
+        case GeneticMode::D:
+            add_effect(GeneticMode::D, d2);
+            break;
+        case GeneticMode::AD:
+            add_effect(GeneticMode::A, h2);
+            add_effect(GeneticMode::D, d2);
+            break;
     }
 }
 

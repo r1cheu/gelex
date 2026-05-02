@@ -34,18 +34,18 @@
 #include "gelex/algo/infer/mcmc/kernels/bayes_r.h"
 #include "gelex/algo/infer/mcmc/kernels/bayes_rr.h"
 #include "gelex/algo/infer/mcmc/recipes.h"
+#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/algo/infer/mcmc/steps/fixed.h"
 #include "gelex/algo/infer/mcmc/steps/genetic.h"
 #include "gelex/algo/infer/mcmc/steps/pi.h"
 #include "gelex/algo/infer/mcmc/steps/random.h"
 #include "gelex/algo/infer/mcmc/sweep.h"
 #include "gelex/data/genotype/matrix.h"
+#include "gelex/data/genotype/storage.h"
 #include "gelex/exception.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/data/genotype/storage.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -56,9 +56,7 @@ namespace
 
 constexpr std::uint64_t kSeed = 0xC0FFEE5678ULL;
 
-TEST_CASE(
-    "FixedStep keeps residual identity and recovers OLS",
-    "[mcmc][fixed]")
+TEST_CASE("FixedStep keeps residual identity and recovers OLS", "[mcmc][fixed]")
 {
     const Eigen::MatrixXd X{
         {1, 0.5},
@@ -454,7 +452,8 @@ TEST_CASE(
         bayes::ResidualState{.y_adj = y, .variance = 0.5}};
 
     std::mt19937_64 rng{kSeed};
-    Context ctx{.model = model, .priors = priors, .state = inference_state, .rng = rng};
+    Context ctx{
+        .model = model, .priors = priors, .state = inference_state, .rng = rng};
 
     auto sampler = PiStep::make(ctx, GeneticMode::A);
 
@@ -518,7 +517,8 @@ TEST_CASE("PiStep rejects estimate=false prior", "[mcmc][pi-sampler]")
         bayes::ResidualState{.y_adj = y, .variance = 0.5}};
 
     std::mt19937_64 rng{kSeed};
-    Context ctx{.model = model, .priors = priors, .state = inference_state, .rng = rng};
+    Context ctx{
+        .model = model, .priors = priors, .state = inference_state, .rng = rng};
 
     REQUIRE_THROWS_AS(PiStep::make(ctx, GeneticMode::A), GelexException);
     (void)kP;
@@ -600,8 +600,9 @@ TEST_CASE("make_bayes_cpi_chain runs one step", "[mcmc][bayes-cpi]")
     auto [model, priors]
         = make_chain_context(X, y, genetic_prior, inference_state, rng);
 
-    Context ctx{.model = model, .priors = priors, .state = inference_state, .rng = rng};
-    auto chain = make_bayes_cpi_chain(ctx);
+    Context ctx{
+        .model = model, .priors = priors, .state = inference_state, .rng = rng};
+    auto chain = make_bayes_cpi_chain<GeneticMode::A>(ctx);
     chain.step();
 
     const auto* gstate = inference_state.genetic(GeneticMode::A);
@@ -635,8 +636,9 @@ TEST_CASE("make_bayes_bpi_chain runs one step", "[mcmc][bayes-bpi]")
     auto [model, priors]
         = make_chain_context(X, y, genetic_prior, inference_state, rng);
 
-    Context ctx{.model = model, .priors = priors, .state = inference_state, .rng = rng};
-    auto chain = make_bayes_bpi_chain(ctx);
+    Context ctx{
+        .model = model, .priors = priors, .state = inference_state, .rng = rng};
+    auto chain = make_bayes_bpi_chain<GeneticMode::A>(ctx);
     chain.step();
 
     const auto* gstate = inference_state.genetic(GeneticMode::A);

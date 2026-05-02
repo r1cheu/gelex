@@ -71,7 +71,13 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         .metavar("<METHOD>")
         .choices("A", "B", "C", "R", "RR")
         .required();
-    cmd.add_argument("--dom").help("Dominance effect").flag();
+    cmd.add_argument("--mode")
+        .help(
+            "Genetic effect mode: A (additive only), D (dominance only), "
+            "AD (additive + dominance)")
+        .default_value(std::string("A"))
+        .choices("A", "D", "AD")
+        .metavar("<MODE>");
     cmd.add_argument("--asym")
         .help("Asymmetric truncation for dominance")
         .flag();
@@ -155,7 +161,7 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         gelex::cli::format_epilog(
             "{bg}Example:{rs}\n"
             "  {bc}gelex fit{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
-            "{cy}-m{rs} R {cy}--dom --asym{rs}\n\n"
+            "{cy}-m{rs} R {cy}--mode AD --asym{rs}\n\n"
             "{bg}Docs:{rs}\n"
             "  https://gelex.readthedocs.io/en/latest/cli/fit.html"));
 }

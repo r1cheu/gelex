@@ -30,6 +30,23 @@ namespace gelex::cli
 namespace
 {
 
+auto parse_mode(std::string_view sv) -> gelex::GeneticMode
+{
+    if (sv == "A")
+    {
+        return gelex::GeneticMode::A;
+    }
+    if (sv == "D")
+    {
+        return gelex::GeneticMode::D;
+    }
+    if (sv == "AD")
+    {
+        return gelex::GeneticMode::AD;
+    }
+    throw gelex::GelexException(fmt::format("invalid --mode: {}", sv));
+}
+
 auto parse_method(argparse::ArgumentParser& cmd) -> BayesMethodConfig
 {
     auto base
@@ -37,7 +54,7 @@ auto parse_method(argparse::ArgumentParser& cmd) -> BayesMethodConfig
 
     auto method = gelex::BayesMethodConfig{
         .base = base,
-        .dominance = cmd.get<bool>("--dom"),
+        .mode = parse_mode(cmd.get("--mode")),
         .asymmetric = cmd.get<bool>("--asym"),
         .estimate_pi = cmd.get<bool>("--estimate-pi"),
     };

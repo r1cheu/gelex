@@ -42,12 +42,6 @@
 namespace
 {
 
-auto get_model_type(const gelex::BayesMethodConfig& method)
-    -> gelex::GeneticMode
-{
-    return method.dominance ? gelex::GeneticMode::AD : gelex::GeneticMode::A;
-}
-
 auto run_mcmc(
     gelex::mcmc::FitEngine::Config config,
     gelex::PhenoPipe&& pheno,
@@ -76,9 +70,8 @@ auto fit_execute(argparse::ArgumentParser& fit) -> int
     auto [pheno_config, geno_config]
         = gelex::cli::make_fit_data_configs(fit, fit.get<bool>("--mmap"));
 
-    auto model_type = std::visit(
-        [](const auto& c) { return get_model_type(c.method); }, fit_config);
-    geno_config.model_type = model_type;
+    geno_config.model_type
+        = std::visit([](const auto& c) { return c.method.mode; }, fit_config);
 
     int threads = fit.get<int>("--threads");
     gelex::cli::FitReporter reporter;
@@ -95,7 +88,7 @@ auto fit_execute(argparse::ArgumentParser& fit) -> int
                 reporter.on_event(
                     gelex::FitMCMCConfigEvent{
                         .method = config.method,
-                        .model_type = get_model_type(config.method),
+                        .model_type = config.method.mode,
                         .n_iters = static_cast<int>(config.mcmc_params.n_iters),
                         .n_burn_in
                         = static_cast<int>(config.mcmc_params.n_burn_in),
@@ -108,7 +101,7 @@ auto fit_execute(argparse::ArgumentParser& fit) -> int
                 reporter.on_event(
                     gelex::FitVIConfigEvent{
                         .method = config.method,
-                        .model_type = get_model_type(config.method),
+                        .model_type = config.method.mode,
                         .max_iters = static_cast<int>(config.params.max_iters),
                         .tol = config.params.tol,
                     });

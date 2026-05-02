@@ -69,6 +69,11 @@ class GenoPipe
         return std::move(*dominance_matrix_);
     }
 
+    auto has_additive_matrix() const -> bool
+    {
+        return additive_matrix_ != nullptr;
+    }
+
     auto has_dominance_matrix() const -> bool
     {
         return dominance_matrix_ != nullptr;
