@@ -20,7 +20,7 @@
 #include <ranges>
 #include <vector>
 
-#include "gelex/infra/stats/normal.h"
+#include "gelex/infra/stats/detail/normal.h"
 
 namespace gelex::stats
 {

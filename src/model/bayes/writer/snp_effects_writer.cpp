@@ -23,7 +23,7 @@
 #include <fmt/format.h>
 
 #include "gelex/data/reader.h"
-#include "gelex/io/text_writer.h"
+#include "gelex/io/detail/text_writer.h"
 
 namespace gelex
 {

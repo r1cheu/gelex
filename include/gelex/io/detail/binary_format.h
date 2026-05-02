@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_BINARY_FORMAT_H_
-#define GELEX_IO_BINARY_FORMAT_H_
+#ifndef GELEX_IO_DETAIL_BINARY_FORMAT_H_
+#define GELEX_IO_DETAIL_BINARY_FORMAT_H_
 
 #include <algorithm>
 #include <array>
@@ -112,4 +112,4 @@ struct TocEntry
 
 }  // namespace gelex::io::detail
 
-#endif  // GELEX_IO_BINARY_FORMAT_H_
+#endif  // GELEX_IO_DETAIL_BINARY_FORMAT_H_

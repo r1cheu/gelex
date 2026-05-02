@@ -22,7 +22,7 @@
 
 #include "gelex/algo/infer/mcmc/context.h"
 #include "gelex/algo/infer/mcmc/kernels/concept.h"
-#include "gelex/algo/infer/mcmc/samplers/genetic_binding.h"
+#include "gelex/algo/infer/mcmc/samplers/detail/genetic_binding.h"
 #include "gelex/algo/infer/mcmc/sweep.h"
 #include "gelex/model/bayes/states.h"
 #include "gelex/types/genetic_effect_type.h"

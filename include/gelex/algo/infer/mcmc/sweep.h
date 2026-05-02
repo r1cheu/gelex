@@ -25,7 +25,7 @@
 
 #include "gelex/algo/infer/detail/marker_op.h"
 #include "gelex/algo/infer/mcmc/kernels/concept.h"
-#include "gelex/algo/infer/mcmc/kernels/mixture_op.h"
+#include "gelex/algo/infer/mcmc/kernels/detail/mixture_op.h"
 #include "gelex/infra/stats/descriptive.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/genotype_storage.h"

@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_INFRA_STATS_TRUNCATED_NORMAL_H_
-#define GELEX_INFRA_STATS_TRUNCATED_NORMAL_H_
+#ifndef GELEX_INFRA_STATS_DETAIL_TRUNCATED_NORMAL_H_
+#define GELEX_INFRA_STATS_DETAIL_TRUNCATED_NORMAL_H_
 
 #include <algorithm>
 #include <cmath>
 #include <random>
 
-#include "gelex/infra/stats/normal.h"
+#include "gelex/infra/stats/detail/normal.h"
 
 namespace gelex::stats::detail
 {
@@ -90,4 +90,4 @@ inline auto sample_right_truncated_normal(
 
 }  // namespace gelex::stats::detail
 
-#endif  // GELEX_INFRA_STATS_TRUNCATED_NORMAL_H_
+#endif  // GELEX_INFRA_STATS_DETAIL_TRUNCATED_NORMAL_H_

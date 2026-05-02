@@ -25,7 +25,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/io/atomic_ofstream.h"
+#include "gelex/io/detail/atomic_ofstream.h"
 
 namespace gelex
 {

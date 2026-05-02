@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/posterior_calculator.h"
+#include "gelex/algo/detail/posterior_calculator.h"
 
 #include <Eigen/Core>
 

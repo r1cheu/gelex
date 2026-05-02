@@ -20,7 +20,7 @@
 #include <cstddef>
 
 #include "gelex/exception.h"
-#include "gelex/io/text_writer.h"
+#include "gelex/io/detail/text_writer.h"
 #include "gelex/types/sample_id.h"
 
 namespace gelex::predict::detail

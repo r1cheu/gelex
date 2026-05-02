@@ -37,7 +37,7 @@
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/key_type.h"
 #include "gelex/infra/string_hash.h"
-#include "gelex/io/parser.h"
+#include "gelex/io/detail/parser.h"
 
 namespace gelex::dataframe
 {

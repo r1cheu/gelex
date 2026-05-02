@@ -26,9 +26,9 @@
 #include <omp.h>
 #include <Eigen/Core>
 
+#include "gelex/algo/detail/posterior_calculator.h"
 #include "gelex/algo/infer/params.h"
-#include "gelex/algo/posterior_calculator.h"
-#include "gelex/infra/eigen_thread_guard.h"
+#include "gelex/infra/detail/eigen_thread_guard.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/model/bayes/model.h"

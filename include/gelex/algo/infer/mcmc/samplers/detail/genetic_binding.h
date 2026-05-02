@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_MCMC_SAMPLERS_GENETIC_BINDING_H_
-#define GELEX_ALGO_INFER_MCMC_SAMPLERS_GENETIC_BINDING_H_
+#ifndef GELEX_ALGO_INFER_MCMC_SAMPLERS_DETAIL_GENETIC_BINDING_H_
+#define GELEX_ALGO_INFER_MCMC_SAMPLERS_DETAIL_GENETIC_BINDING_H_
 
 #include <type_traits>
 #include <utility>
@@ -55,4 +55,4 @@ auto bind_genetic_block_pair(
 
 }  // namespace gelex::mcmc::detail
 
-#endif  // GELEX_ALGO_INFER_MCMC_SAMPLERS_GENETIC_BINDING_H_
+#endif  // GELEX_ALGO_INFER_MCMC_SAMPLERS_DETAIL_GENETIC_BINDING_H_

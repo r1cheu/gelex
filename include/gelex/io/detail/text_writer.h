@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_TEXT_WRITER_H_
-#define GELEX_IO_TEXT_WRITER_H_
+#ifndef GELEX_IO_DETAIL_TEXT_WRITER_H_
+#define GELEX_IO_DETAIL_TEXT_WRITER_H_
 
 #include <array>
 #include <filesystem>
@@ -23,7 +23,7 @@
 #include <ios>
 #include <string_view>
 
-#include "gelex/io/atomic_ofstream.h"
+#include "gelex/io/detail/atomic_ofstream.h"
 
 namespace gelex::io::detail
 {
@@ -53,4 +53,4 @@ class TextWriter
 
 }  // namespace gelex::io::detail
 
-#endif  // GELEX_IO_TEXT_WRITER_H_
+#endif  // GELEX_IO_DETAIL_TEXT_WRITER_H_

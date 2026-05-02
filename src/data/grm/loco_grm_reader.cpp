@@ -18,7 +18,7 @@
 
 #include <fmt/format.h>
 
-#include "gelex/data/grm/grm_reader.h"
+#include "gelex/data/grm/detail/grm_reader.h"
 #include "gelex/exception.h"
 
 namespace gelex

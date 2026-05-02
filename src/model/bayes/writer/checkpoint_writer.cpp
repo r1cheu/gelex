@@ -22,7 +22,7 @@
 #include <sstream>
 #include <variant>
 
-#include "gelex/io/binary_writer.h"
+#include "gelex/io/detail/binary_writer.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"

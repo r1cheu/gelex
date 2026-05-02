@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_INFRA_EIGEN_THREAD_GUARD_H_
-#define GELEX_INFRA_EIGEN_THREAD_GUARD_H_
+#ifndef GELEX_INFRA_DETAIL_EIGEN_THREAD_GUARD_H_
+#define GELEX_INFRA_DETAIL_EIGEN_THREAD_GUARD_H_
 
 #include <Eigen/Core>
 
@@ -43,4 +43,4 @@ class EigenThreadGuard
 
 }  // namespace gelex::infra::detail
 
-#endif  // GELEX_INFRA_EIGEN_THREAD_GUARD_H_
+#endif  // GELEX_INFRA_DETAIL_EIGEN_THREAD_GUARD_H_

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/io/atomic_ofstream.h"
+#include "gelex/io/detail/atomic_ofstream.h"
 
 #include <exception>
 #include <filesystem>

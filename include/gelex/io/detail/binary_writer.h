@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_BINARY_WRITER_H_
-#define GELEX_IO_BINARY_WRITER_H_
+#ifndef GELEX_IO_DETAIL_BINARY_WRITER_H_
+#define GELEX_IO_DETAIL_BINARY_WRITER_H_
 
 #include <fmt/format.h>
 #include <concepts>
@@ -27,8 +27,8 @@
 #include <vector>
 
 #include "gelex/exception.h"
-#include "gelex/io/atomic_ofstream.h"
-#include "gelex/io/binary_format.h"
+#include "gelex/io/detail/atomic_ofstream.h"
+#include "gelex/io/detail/binary_format.h"
 
 namespace gelex::io::detail
 {
@@ -178,4 +178,4 @@ class BinaryWriter
 
 }  // namespace gelex::io::detail
 
-#endif  // GELEX_IO_BINARY_WRITER_H_
+#endif  // GELEX_IO_DETAIL_BINARY_WRITER_H_

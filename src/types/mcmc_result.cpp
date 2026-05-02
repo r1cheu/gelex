@@ -20,7 +20,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/algo/posterior_calculator.h"
+#include "gelex/algo/detail/posterior_calculator.h"
 #include "gelex/model/bayes/model.h"
 
 namespace gelex

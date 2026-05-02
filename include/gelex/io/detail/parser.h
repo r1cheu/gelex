@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_PARSER_H_
-#define GELEX_IO_PARSER_H_
+#ifndef GELEX_IO_DETAIL_PARSER_H_
+#define GELEX_IO_DETAIL_PARSER_H_
 
 #include <fmt/format.h>
 #include <concepts>
@@ -86,4 +86,4 @@ size_t count_total_lines(const std::filesystem::path& path);
 
 }  // namespace gelex::io::detail
 
-#endif  // GELEX_IO_PARSER_H_
+#endif  // GELEX_IO_DETAIL_PARSER_H_

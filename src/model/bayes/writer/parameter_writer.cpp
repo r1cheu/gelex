@@ -20,7 +20,7 @@
 #include <memory>
 #include <string>
 
-#include "gelex/io/text_writer.h"
+#include "gelex/io/detail/text_writer.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex

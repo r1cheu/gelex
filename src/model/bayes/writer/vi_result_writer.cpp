@@ -24,7 +24,7 @@
 #include <fmt/format.h>
 
 #include "gelex/data/reader.h"
-#include "gelex/io/text_writer.h"
+#include "gelex/io/detail/text_writer.h"
 #include "gelex/model/bayes/writer/covariate_writer.h"
 #include "gelex/types/vi_result.h"
 

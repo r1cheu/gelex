@@ -22,7 +22,7 @@
 #include <Eigen/Core>
 
 #include "gelex/infra/stats/descriptive.h"
-#include "gelex/post/utils.h"
+#include "gelex/post/detail/utils.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex

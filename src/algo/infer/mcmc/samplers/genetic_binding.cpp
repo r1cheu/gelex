@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/infer/mcmc/samplers/genetic_binding.h"
+#include "gelex/algo/infer/mcmc/samplers/detail/genetic_binding.h"
 
 #include <fmt/format.h>
 

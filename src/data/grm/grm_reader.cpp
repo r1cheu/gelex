@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/grm/grm_reader.h"
+#include "gelex/data/grm/detail/grm_reader.h"
 
 #include <fmt/format.h>
 #include <ranges>

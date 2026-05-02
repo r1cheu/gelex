@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_GRM_GRM_READER_H_
-#define GELEX_DATA_GRM_GRM_READER_H_
+#ifndef GELEX_DATA_GRM_DETAIL_GRM_READER_H_
+#define GELEX_DATA_GRM_DETAIL_GRM_READER_H_
 
 #include <cstddef>
 #include <filesystem>
@@ -86,4 +86,4 @@ class GrmReader
 
 }  // namespace gelex::grm::detail
 
-#endif  // GELEX_DATA_GRM_GRM_READER_H_
+#endif  // GELEX_DATA_GRM_DETAIL_GRM_READER_H_

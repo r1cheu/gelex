@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/io/binary_writer.h"
+#include "gelex/io/detail/binary_writer.h"
 
 #include <fmt/format.h>
 #include <algorithm>
@@ -28,7 +28,7 @@
 
 #include "gelex/exception.h"
 #include "gelex/infra/logger.h"
-#include "gelex/io/binary_format.h"
+#include "gelex/io/detail/binary_format.h"
 
 namespace gelex::io::detail
 {

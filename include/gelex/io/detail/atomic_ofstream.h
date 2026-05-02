@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_ATOMIC_OFSTREAM_H_
-#define GELEX_IO_ATOMIC_OFSTREAM_H_
+#ifndef GELEX_IO_DETAIL_ATOMIC_OFSTREAM_H_
+#define GELEX_IO_DETAIL_ATOMIC_OFSTREAM_H_
 
 #include <filesystem>
 #include <fstream>
@@ -61,4 +61,4 @@ class AtomicOfstream : public std::ofstream
 
 }  // namespace gelex::io::detail
 
-#endif  // GELEX_IO_ATOMIC_OFSTREAM_H_
+#endif  // GELEX_IO_DETAIL_ATOMIC_OFSTREAM_H_

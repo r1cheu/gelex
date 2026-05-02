@@ -19,7 +19,7 @@
 #include <fmt/format.h>
 #include <memory>
 
-#include "gelex/io/text_writer.h"
+#include "gelex/io/detail/text_writer.h"
 #include "gelex/types/mcmc_result.h"
 
 namespace gelex

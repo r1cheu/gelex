@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_POST_UTILS_H_
-#define GELEX_POST_UTILS_H_
+#ifndef GELEX_POST_DETAIL_UTILS_H_
+#define GELEX_POST_DETAIL_UTILS_H_
 
 #include <span>
 #include <string>
@@ -24,7 +24,7 @@
 
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/infra/stats/diagnostics.h"
-#include "gelex/io/binary_reader.h"
+#include "gelex/io/detail/binary_reader.h"
 
 namespace gelex::post::detail
 {
@@ -53,4 +53,4 @@ namespace gelex::post::detail
 
 }  // namespace gelex::post::detail
 
-#endif  // GELEX_POST_UTILS_H_
+#endif  // GELEX_POST_DETAIL_UTILS_H_

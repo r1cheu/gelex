@@ -24,7 +24,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/io/binary_reader.h"
+#include "gelex/io/detail/binary_reader.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "gelex/types/genotype_process_method.h"
 

@@ -18,7 +18,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "gelex/exception.h"
-#include "gelex/infra/stats/normal.h"
+#include "gelex/infra/stats/detail/normal.h"
 
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;

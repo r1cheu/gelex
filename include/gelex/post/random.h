@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "gelex/infra/logging/post_event.h"
-#include "gelex/io/binary_reader.h"
+#include "gelex/io/detail/binary_reader.h"
 
 namespace gelex
 {

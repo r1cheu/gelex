@@ -31,8 +31,8 @@
 #include "gelex/data/genotype/genotype_mat_reader.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
-#include "gelex/io/binary_reader.h"
-#include "gelex/io/binary_writer.h"
+#include "gelex/io/detail/binary_reader.h"
+#include "gelex/io/detail/binary_writer.h"
 
 #include "bed_fixture.h"
 #include "file_fixture.h"

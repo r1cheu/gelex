@@ -17,7 +17,7 @@
 #include "metadata.h"
 
 #include "gelex/data/reader.h"
-#include "gelex/io/parser.h"
+#include "gelex/io/detail/parser.h"
 
 namespace gelex::genotype::detail
 {

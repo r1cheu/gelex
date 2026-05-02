@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/io/parser.h"
+#include "gelex/io/detail/parser.h"
 
 #include <algorithm>
 #include <cstddef>

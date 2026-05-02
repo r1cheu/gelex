@@ -26,7 +26,7 @@
 #include <fmt/format.h>
 
 #include "gelex/data/dataframe/dataframe.h"
-#include "gelex/io/atomic_ofstream.h"
+#include "gelex/io/detail/atomic_ofstream.h"
 #include "gelex/types/assoc_test_type.h"
 
 namespace gelex

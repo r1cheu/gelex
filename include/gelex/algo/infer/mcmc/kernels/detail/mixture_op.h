@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_MCMC_KERNELS_MIXTURE_OP_H_
-#define GELEX_ALGO_INFER_MCMC_KERNELS_MIXTURE_OP_H_
+#ifndef GELEX_ALGO_INFER_MCMC_KERNELS_DETAIL_MIXTURE_OP_H_
+#define GELEX_ALGO_INFER_MCMC_KERNELS_DETAIL_MIXTURE_OP_H_
 
 #include <variant>
 
@@ -60,4 +60,4 @@ inline void compute_component_variances(
 
 }  // namespace gelex::mcmc::detail
 
-#endif  // GELEX_ALGO_INFER_MCMC_KERNELS_MIXTURE_OP_H_
+#endif  // GELEX_ALGO_INFER_MCMC_KERNELS_DETAIL_MIXTURE_OP_H_

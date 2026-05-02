@@ -25,7 +25,7 @@
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/post_event.h"
-#include "gelex/io/binary_reader.h"
+#include "gelex/io/detail/binary_reader.h"
 #include "gelex/model/bayes/genotype_storage.h"
 #include "gelex/post/fixed.h"
 #include "gelex/post/genetic.h"

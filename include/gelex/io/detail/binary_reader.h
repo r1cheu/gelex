@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_BINARY_READER_H_
-#define GELEX_IO_BINARY_READER_H_
+#ifndef GELEX_IO_DETAIL_BINARY_READER_H_
+#define GELEX_IO_DETAIL_BINARY_READER_H_
 
 #include <fmt/format.h>
 #include <algorithm>
@@ -36,7 +36,7 @@
 
 #include "gelex/exception.h"
 #include "gelex/infra/string_hash.h"
-#include "gelex/io/binary_format.h"
+#include "gelex/io/detail/binary_format.h"
 
 namespace gelex::io::detail
 {
@@ -335,4 +335,4 @@ auto BinaryReader::to_mat(std::string_view path) const
 
 }  // namespace gelex::io::detail
 
-#endif  // GELEX_IO_BINARY_READER_H_
+#endif  // GELEX_IO_DETAIL_BINARY_READER_H_

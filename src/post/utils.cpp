@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/post/utils.h"
+#include "gelex/post/detail/utils.h"
 
 #include <Eigen/Core>
 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_INFRA_STATS_NORMAL_H_
-#define GELEX_INFRA_STATS_NORMAL_H_
+#ifndef GELEX_INFRA_STATS_DETAIL_NORMAL_H_
+#define GELEX_INFRA_STATS_DETAIL_NORMAL_H_
 
 #include <array>
 #include <cmath>
@@ -106,4 +106,4 @@ inline auto norm_ppf(double p) -> double
 
 }  // namespace gelex::stats::detail
 
-#endif  // GELEX_INFRA_STATS_NORMAL_H_
+#endif  // GELEX_INFRA_STATS_DETAIL_NORMAL_H_

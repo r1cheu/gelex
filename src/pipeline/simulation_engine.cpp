@@ -30,7 +30,7 @@
 #include "gelex/data/reader.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/stats/descriptive.h"
-#include "gelex/io/text_writer.h"
+#include "gelex/io/detail/text_writer.h"
 #include "gelex/simulate/effect_sampler.h"
 #include "gelex/simulate/genetic_value_calculator.h"
 #include "gelex/simulate/genetic_value_scaler.h"

@@ -23,7 +23,7 @@
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/mcmc/kernels/common.h"
-#include "gelex/algo/infer/mcmc/kernels/mixture_op.h"
+#include "gelex/algo/infer/mcmc/kernels/detail/mixture_op.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/states.h"

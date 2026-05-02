@@ -31,7 +31,7 @@
 #include "gelex/data/genotype/genotype_processor.h"
 #include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
-#include "gelex/io/binary_writer.h"
+#include "gelex/io/detail/binary_writer.h"
 #include "gelex/types/genotype_process_method.h"
 
 namespace gelex::genotype

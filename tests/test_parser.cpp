@@ -25,7 +25,7 @@
 
 #include "file_fixture.h"
 #include "gelex/exception.h"
-#include "gelex/io/parser.h"
+#include "gelex/io/detail/parser.h"
 
 namespace fs = std::filesystem;
 

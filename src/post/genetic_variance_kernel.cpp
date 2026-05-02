@@ -21,7 +21,7 @@
 #include <fmt/format.h>
 
 #include "gelex/infra/stats/descriptive.h"
-#include "gelex/post/utils.h"
+#include "gelex/post/detail/utils.h"
 
 namespace gelex
 {

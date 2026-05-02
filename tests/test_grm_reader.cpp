@@ -27,7 +27,7 @@
 
 #include "file_fixture.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/grm/grm_reader.h"
+#include "gelex/data/grm/detail/grm_reader.h"
 #include "gelex/data/grm/grm_writer.h"
 #include "gelex/exception.h"
 #include "gelex/types/sample_id.h"

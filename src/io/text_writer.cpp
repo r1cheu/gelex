@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/io/text_writer.h"
+#include "gelex/io/detail/text_writer.h"
 
 namespace gelex::io::detail
 {
