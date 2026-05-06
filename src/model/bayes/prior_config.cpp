@@ -38,6 +38,8 @@ auto default_proportion(BayesBase base) -> Eigen::VectorXd
         case BayesBase::A:
         case BayesBase::RR:
             return Eigen::VectorXd{{0.0, 1.0}};
+        case BayesBase::kCount:
+            break;
     }
     return Eigen::VectorXd{};
 }

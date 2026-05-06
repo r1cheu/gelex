@@ -15,7 +15,6 @@
  */
 
 #include <fmt/format.h>
-#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -25,11 +24,11 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/data/genotype/processor.h"
-#include "gelex/io/locistats/writer.h"
-#include "gelex/engine/predict.h"
-#include "gelex/types/genetic_effect_type.h"
 #include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/processor.h"
+#include "gelex/engine/predict.h"
+#include "gelex/io/locistats/writer.h"
+#include "gelex/types/genetic_effect_type.h"
 
 #include "bed_fixture.h"
 

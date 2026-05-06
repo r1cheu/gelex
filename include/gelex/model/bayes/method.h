@@ -38,6 +38,7 @@ enum class BayesBase : uint8_t
     C,
     R,
     RR,
+    kCount,
 };
 
 struct BayesMethodConfig
@@ -127,6 +128,8 @@ struct formatter<gelex::BayesBase> : formatter<string_view>
                 break;
             case gelex::BayesBase::RR:
                 name = "RR";
+                break;
+            case gelex::BayesBase::kCount:
                 break;
         }
         return formatter<string_view>::format(name, ctx);

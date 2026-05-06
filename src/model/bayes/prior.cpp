@@ -115,6 +115,8 @@ auto Priors::build_genetic_prior(
                     {prior.proportion, true},
                     prior.multiplier};
             }
+            case BayesBase::kCount:
+                break;
         }
         std::unreachable();
     }();
