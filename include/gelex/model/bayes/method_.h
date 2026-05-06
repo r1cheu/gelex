@@ -22,6 +22,10 @@
 #include <variant>
 #include <vector>
 
+#include <fmt/base.h>
+#include <fmt/format.h>
+
+#include "gelex/model/bayes/bayes_policy.h"
 #include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/prior_.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -60,6 +64,8 @@ struct BayesConfig
     GeneticMode mode = GeneticMode::A;
     DominancePolicy dominance = DominancePolicy::symmetric;
     bool estimate_pi = false;
+
+    constexpr auto operator==(const BayesConfig&) const -> bool = default;
 };
 
 struct BayesMethod
@@ -68,6 +74,56 @@ struct BayesMethod
     std::vector<GeneticTerm> genetic_terms;
 };
 
+inline auto is_valid_method(const BayesConfig& m) -> bool
+{
+    if (m.base == BayesBase::kCount)
+    {
+        return false;
+    }
+    const auto& policy = policy_for(m.base);
+    if (m.estimate_pi && !policy.supports_estimate_pi)
+    {
+        return false;
+    }
+    if (m.dominance == DominancePolicy::asymmetric
+        && (!policy.supports_asymmetric_dominance || m.mode != GeneticMode::AD))
+    {
+        return false;
+    }
+    return true;
+}
+
 }  // namespace gelex::bayes
+
+namespace fmt
+{
+template <>
+struct formatter<gelex::bayes::BayesConfig> : formatter<string_view>
+{
+    static auto format(const gelex::bayes::BayesConfig& c, format_context& ctx)
+        -> format_context::iterator
+    {
+        auto name = fmt::format("Bayes{}", c.base);
+        if (c.estimate_pi)
+        {
+            name += "pi";
+        }
+        if (c.dominance == gelex::bayes::DominancePolicy::asymmetric)
+        {
+            name += " + asymmetric dominance";
+        }
+        else if (c.mode == gelex::GeneticMode::D)
+        {
+            name += " (dominance only)";
+        }
+        else if (c.mode == gelex::GeneticMode::AD)
+        {
+            name += " + dominance";
+        }
+        return fmt::format_to(ctx.out(), "{}", name);
+    }
+};
+
+}  // namespace fmt
 
 #endif  // GELEX_MODEL_BAYES_METHOD_NEW_H_

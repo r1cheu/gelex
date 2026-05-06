@@ -58,7 +58,7 @@ auto default_multiplier(BayesBase base) -> Eigen::VectorXd
 }  // namespace
 
 PriorSetConfig::PriorSetConfig(
-    BayesMethodConfig method,
+    bayes::BayesConfig method,
     double phenotype_variance)
     : method_(method), phenotype_variance_(phenotype_variance)
 {

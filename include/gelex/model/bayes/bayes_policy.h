@@ -37,6 +37,8 @@ struct BayesPolicy
 {
     VarianceScope variance_scope{};
     std::optional<MixtureShape> mixture;
+    bool supports_estimate_pi = false;
+    bool supports_asymmetric_dominance = false;
 };
 
 auto policy_for(BayesBase) -> const BayesPolicy&;

@@ -47,19 +47,21 @@ auto parse_mode(std::string_view sv) -> gelex::GeneticMode
     throw gelex::GelexException(fmt::format("invalid --mode: {}", sv));
 }
 
-auto parse_method(argparse::ArgumentParser& cmd) -> BayesMethodConfig
+auto parse_method(argparse::ArgumentParser& cmd) -> bayes::BayesConfig
 {
     auto base
         = gelex::get_bayes_base(cmd.get("-m")).value_or(gelex::BayesBase::RR);
 
-    auto method = gelex::BayesMethodConfig{
+    auto method = bayes::BayesConfig{
         .base = base,
         .mode = parse_mode(cmd.get("--mode")),
-        .asymmetric = cmd.get<bool>("--asym"),
+        .dominance = cmd.get<bool>("--asym")
+                         ? bayes::DominancePolicy::asymmetric
+                         : bayes::DominancePolicy::symmetric,
         .estimate_pi = cmd.get<bool>("--estimate-pi"),
     };
 
-    if (!gelex::is_valid_method(method))
+    if (!bayes::is_valid_method(method))
     {
         throw gelex::GelexException(
             fmt::format("invalid method combination: {}", method));
@@ -82,7 +84,7 @@ auto reject_if_used(
     }
 }
 
-auto make_mcmc_config(argparse::ArgumentParser& cmd, BayesMethodConfig method)
+auto make_mcmc_config(argparse::ArgumentParser& cmd, bayes::BayesConfig method)
     -> mcmc::FitEngine::Config
 {
     reject_if_used(cmd, {"--max-iters", "--tol"}, "--im mcmc");
@@ -128,7 +130,7 @@ auto make_mcmc_config(argparse::ArgumentParser& cmd, BayesMethodConfig method)
     return config;
 }
 
-auto make_cavi_config(argparse::ArgumentParser& cmd, BayesMethodConfig method)
+auto make_cavi_config(argparse::ArgumentParser& cmd, bayes::BayesConfig method)
     -> vi::FitEngine::Config
 {
     if (method.base != BayesBase::RR)

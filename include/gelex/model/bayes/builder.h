@@ -20,7 +20,7 @@
 #include <optional>
 #include <vector>
 
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/method_.h"
 #include "gelex/model/bayes/prior.h"
 
 namespace gelex
@@ -34,7 +34,7 @@ auto build_bayes_model(PhenoPipe&& pheno, GenoPipe&& geno) -> BayesModel;
 
 struct PriorOverrides
 {
-    BayesMethodConfig method;
+    bayes::BayesConfig method;
     double phenotype_variance{};
     std::optional<std::vector<double>> pi;
     std::optional<std::vector<double>> dpi;

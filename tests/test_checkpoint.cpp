@@ -67,7 +67,7 @@ auto make_bayes_a_model(Eigen::Index n_samples, Eigen::Index n_snps)
 
     double pheno_var
         = phenotype.array().square().mean() - std::pow(phenotype.mean(), 2.0);
-    PriorSetConfig pc(BayesMethodConfig{BayesBase::A}, pheno_var);
+    PriorSetConfig pc(bayes::BayesConfig{BayesBase::A}, pheno_var);
     bayes::Priors priors(pc, genetics, 0);
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));

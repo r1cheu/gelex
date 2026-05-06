@@ -64,7 +64,7 @@ auto make_bayes_rr_model(Eigen::Index n_samples, Eigen::Index n_snps)
 
     double pheno_var
         = phenotype.array().square().mean() - std::pow(phenotype.mean(), 2.0);
-    PriorSetConfig pc(BayesMethodConfig{BayesBase::RR}, pheno_var);
+    PriorSetConfig pc(bayes::BayesConfig{BayesBase::RR}, pheno_var);
     bayes::Priors priors(pc, genetics, 0);
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
@@ -122,7 +122,7 @@ TEST_CASE("CAVI RR single iteration produces correct posteriors", "[cavi]")
 
     double pheno_var
         = phenotype.array().square().mean() - std::pow(phenotype.mean(), 2.0);
-    PriorSetConfig pc(BayesMethodConfig{BayesBase::RR}, pheno_var);
+    PriorSetConfig pc(bayes::BayesConfig{BayesBase::RR}, pheno_var);
     bayes::Priors priors(pc, genetics, 0);
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
@@ -190,7 +190,7 @@ TEST_CASE("CAVI RR converges on synthetic data", "[cavi]")
 
     double pheno_var
         = phenotype.array().square().mean() - std::pow(phenotype.mean(), 2.0);
-    PriorSetConfig pc(BayesMethodConfig{BayesBase::RR}, pheno_var);
+    PriorSetConfig pc(bayes::BayesConfig{BayesBase::RR}, pheno_var);
     bayes::Priors priors(pc, genetics, 0);
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));

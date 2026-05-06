@@ -35,6 +35,8 @@ const std::array<BayesPolicy, std::to_underlying(BayesBase::kCount)> kPolicies{{
     {
         .variance_scope = VarianceScope::per_marker,
         .mixture = std::nullopt,
+        .supports_estimate_pi = false,
+        .supports_asymmetric_dominance = false,
     },
     // B
     {
@@ -43,6 +45,8 @@ const std::array<BayesPolicy, std::to_underlying(BayesBase::kCount)> kPolicies{{
             Eigen::VectorXd{{0.99, 0.01}},
             SpikeSlab{},
         },
+        .supports_estimate_pi = true,
+        .supports_asymmetric_dominance = false,
     },
     // C
     {
@@ -51,6 +55,8 @@ const std::array<BayesPolicy, std::to_underlying(BayesBase::kCount)> kPolicies{{
             Eigen::VectorXd{{0.99, 0.01}},
             SpikeSlab{},
         },
+        .supports_estimate_pi = true,
+        .supports_asymmetric_dominance = false,
     },
     // R
     {
@@ -59,11 +65,15 @@ const std::array<BayesPolicy, std::to_underlying(BayesBase::kCount)> kPolicies{{
             Eigen::VectorXd{{0.99, 0.005, 0.001, 0.001, 0.001}},
             ScaledMixture{Eigen::VectorXd{{0.0, 0.001, 0.01, 0.1, 1.0}}},
         },
+        .supports_estimate_pi = false,
+        .supports_asymmetric_dominance = true,
     },
     // RR
     {
         .variance_scope = VarianceScope::per_marker,
         .mixture = std::nullopt,
+        .supports_estimate_pi = false,
+        .supports_asymmetric_dominance = false,
     },
 }};
 

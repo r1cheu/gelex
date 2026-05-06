@@ -21,7 +21,7 @@
 
 #include "gelex/algo/infer/params.h"
 #include "gelex/infra/logging/fit_event.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/method_.h"
 
 namespace gelex
 {
@@ -38,7 +38,7 @@ class FitEngine
     struct Config
     {
         std::string bfile_prefix;
-        BayesMethodConfig method;
+        bayes::BayesConfig method;
         vi::Params params;
         std::string out_prefix;
     };

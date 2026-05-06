@@ -16,18 +16,14 @@
 
 #ifndef GELEX_MODEL_BAYES_METHOD_H_
 #define GELEX_MODEL_BAYES_METHOD_H_
-#include <algorithm>
-#include <array>
+
 #include <cstdint>
 #include <optional>
-#include <string>
 #include <string_view>
 #include <unordered_map>
 
 #include <fmt/base.h>
 #include <fmt/format.h>
-
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -40,47 +36,6 @@ enum class BayesBase : uint8_t
     RR,
     kCount,
 };
-
-struct BayesMethodConfig
-{
-    BayesBase base{};
-    GeneticMode mode = GeneticMode::A;
-    bool asymmetric = false;
-    bool estimate_pi = false;
-
-    constexpr auto operator==(const BayesMethodConfig&) const -> bool = default;
-};
-
-// {base, mode, asymmetric, estimate_pi}
-inline constexpr auto kValidMethods = std::array<BayesMethodConfig, 22>{{
-    {BayesBase::A, GeneticMode::A, false, false},
-    {BayesBase::A, GeneticMode::D, false, false},
-    {BayesBase::A, GeneticMode::AD, false, false},
-    {BayesBase::B, GeneticMode::A, false, false},
-    {BayesBase::B, GeneticMode::D, false, false},
-    {BayesBase::B, GeneticMode::AD, false, false},
-    {BayesBase::B, GeneticMode::A, false, true},
-    {BayesBase::B, GeneticMode::D, false, true},
-    {BayesBase::B, GeneticMode::AD, false, true},
-    {BayesBase::C, GeneticMode::A, false, false},
-    {BayesBase::C, GeneticMode::D, false, false},
-    {BayesBase::C, GeneticMode::AD, false, false},
-    {BayesBase::C, GeneticMode::A, false, true},
-    {BayesBase::C, GeneticMode::D, false, true},
-    {BayesBase::C, GeneticMode::AD, false, true},
-    {BayesBase::R, GeneticMode::A, false, false},
-    {BayesBase::R, GeneticMode::D, false, false},
-    {BayesBase::R, GeneticMode::AD, false, false},
-    {BayesBase::R, GeneticMode::AD, true, false},
-    {BayesBase::RR, GeneticMode::A, false, false},
-    {BayesBase::RR, GeneticMode::D, false, false},
-    {BayesBase::RR, GeneticMode::AD, false, false},
-}};
-
-constexpr auto is_valid_method(const BayesMethodConfig& m) -> bool
-{
-    return std::ranges::find(kValidMethods, m) != kValidMethods.end();
-}
 
 inline auto get_bayes_base(std::string_view sv) -> std::optional<BayesBase>
 {
@@ -133,33 +88,6 @@ struct formatter<gelex::BayesBase> : formatter<string_view>
                 break;
         }
         return formatter<string_view>::format(name, ctx);
-    }
-};
-
-template <>
-struct formatter<gelex::BayesMethodConfig> : formatter<string_view>
-{
-    static auto format(const gelex::BayesMethodConfig& c, format_context& ctx)
-        -> format_context::iterator
-    {
-        auto name = fmt::format("Bayes{}", c.base);
-        if (c.estimate_pi)
-        {
-            name += "pi";
-        }
-        if (c.asymmetric)
-        {
-            name += " + asymmetric dominance";
-        }
-        else if (c.mode == gelex::GeneticMode::D)
-        {
-            name += " (dominance only)";
-        }
-        else if (c.mode == gelex::GeneticMode::AD)
-        {
-            name += " + dominance";
-        }
-        return fmt::format_to(ctx.out(), "{}", name);
     }
 };
 

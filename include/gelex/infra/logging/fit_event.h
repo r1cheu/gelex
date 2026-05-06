@@ -22,7 +22,7 @@
 #include <string>
 #include <variant>
 
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/method_.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -56,7 +56,7 @@ struct FitVIBannerEvent
 
 struct FitMCMCConfigEvent
 {
-    gelex::BayesMethodConfig method;
+    gelex::bayes::BayesConfig method;
     GeneticMode model_type{};
     int n_iters{};
     int n_burn_in{};
@@ -65,7 +65,7 @@ struct FitMCMCConfigEvent
 
 struct FitVIConfigEvent
 {
-    gelex::BayesMethodConfig method;
+    gelex::bayes::BayesConfig method;
     GeneticMode model_type{};
     int max_iters{};
     double tol{};

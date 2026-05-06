@@ -66,38 +66,40 @@ auto run_recipe(
 }
 
 // clang-format off
+constexpr auto kSym = bayes::DominancePolicy::symmetric;
+
 constexpr auto kTraitRunners = std::array<
-    std::pair<BayesMethodConfig, TraitRunner>, 21>{{
-    {{BayesBase::A,  GeneticMode::A,  false, false}, &run_recipe<mcmc::make_bayes_a_chain<GeneticMode::A>>},
-    {{BayesBase::A,  GeneticMode::D,  false, false}, &run_recipe<mcmc::make_bayes_a_chain<GeneticMode::D>>},
-    {{BayesBase::A,  GeneticMode::AD, false, false}, &run_recipe<mcmc::make_bayes_a_chain<GeneticMode::AD>>},
-    {{BayesBase::B,  GeneticMode::A,  false, false}, &run_recipe<mcmc::make_bayes_b_chain<GeneticMode::A>>},
-    {{BayesBase::B,  GeneticMode::D,  false, false}, &run_recipe<mcmc::make_bayes_b_chain<GeneticMode::D>>},
-    {{BayesBase::B,  GeneticMode::AD, false, false}, &run_recipe<mcmc::make_bayes_b_chain<GeneticMode::AD>>},
-    {{BayesBase::B,  GeneticMode::A,  false, true},  &run_recipe<mcmc::make_bayes_bpi_chain<GeneticMode::A>>},
-    {{BayesBase::B,  GeneticMode::D,  false, true},  &run_recipe<mcmc::make_bayes_bpi_chain<GeneticMode::D>>},
-    {{BayesBase::B,  GeneticMode::AD, false, true},  &run_recipe<mcmc::make_bayes_bpi_chain<GeneticMode::AD>>},
-    {{BayesBase::C,  GeneticMode::A,  false, false}, &run_recipe<mcmc::make_bayes_c_chain<GeneticMode::A>>},
-    {{BayesBase::C,  GeneticMode::D,  false, false}, &run_recipe<mcmc::make_bayes_c_chain<GeneticMode::D>>},
-    {{BayesBase::C,  GeneticMode::AD, false, false}, &run_recipe<mcmc::make_bayes_c_chain<GeneticMode::AD>>},
-    {{BayesBase::C,  GeneticMode::A,  false, true},  &run_recipe<mcmc::make_bayes_cpi_chain<GeneticMode::A>>},
-    {{BayesBase::C,  GeneticMode::D,  false, true},  &run_recipe<mcmc::make_bayes_cpi_chain<GeneticMode::D>>},
-    {{BayesBase::C,  GeneticMode::AD, false, true},  &run_recipe<mcmc::make_bayes_cpi_chain<GeneticMode::AD>>},
-    {{BayesBase::R,  GeneticMode::A,  false, false}, &run_recipe<mcmc::make_bayes_r_chain<GeneticMode::A>>},
-    {{BayesBase::R,  GeneticMode::D,  false, false}, &run_recipe<mcmc::make_bayes_r_chain<GeneticMode::D>>},
-    {{BayesBase::R,  GeneticMode::AD, false, false}, &run_recipe<mcmc::make_bayes_r_chain<GeneticMode::AD>>},
-    {{BayesBase::RR, GeneticMode::A,  false, false}, &run_recipe<mcmc::make_bayes_rr_chain<GeneticMode::A>>},
-    {{BayesBase::RR, GeneticMode::D,  false, false}, &run_recipe<mcmc::make_bayes_rr_chain<GeneticMode::D>>},
-    {{BayesBase::RR, GeneticMode::AD, false, false}, &run_recipe<mcmc::make_bayes_rr_chain<GeneticMode::AD>>},
+    std::pair<bayes::BayesConfig, TraitRunner>, 21>{{
+    {{BayesBase::A,  GeneticMode::A,  kSym, false}, &run_recipe<mcmc::make_bayes_a_chain<GeneticMode::A>>},
+    {{BayesBase::A,  GeneticMode::D,  kSym, false}, &run_recipe<mcmc::make_bayes_a_chain<GeneticMode::D>>},
+    {{BayesBase::A,  GeneticMode::AD, kSym, false}, &run_recipe<mcmc::make_bayes_a_chain<GeneticMode::AD>>},
+    {{BayesBase::B,  GeneticMode::A,  kSym, false}, &run_recipe<mcmc::make_bayes_b_chain<GeneticMode::A>>},
+    {{BayesBase::B,  GeneticMode::D,  kSym, false}, &run_recipe<mcmc::make_bayes_b_chain<GeneticMode::D>>},
+    {{BayesBase::B,  GeneticMode::AD, kSym, false}, &run_recipe<mcmc::make_bayes_b_chain<GeneticMode::AD>>},
+    {{BayesBase::B,  GeneticMode::A,  kSym, true},  &run_recipe<mcmc::make_bayes_bpi_chain<GeneticMode::A>>},
+    {{BayesBase::B,  GeneticMode::D,  kSym, true},  &run_recipe<mcmc::make_bayes_bpi_chain<GeneticMode::D>>},
+    {{BayesBase::B,  GeneticMode::AD, kSym, true},  &run_recipe<mcmc::make_bayes_bpi_chain<GeneticMode::AD>>},
+    {{BayesBase::C,  GeneticMode::A,  kSym, false}, &run_recipe<mcmc::make_bayes_c_chain<GeneticMode::A>>},
+    {{BayesBase::C,  GeneticMode::D,  kSym, false}, &run_recipe<mcmc::make_bayes_c_chain<GeneticMode::D>>},
+    {{BayesBase::C,  GeneticMode::AD, kSym, false}, &run_recipe<mcmc::make_bayes_c_chain<GeneticMode::AD>>},
+    {{BayesBase::C,  GeneticMode::A,  kSym, true},  &run_recipe<mcmc::make_bayes_cpi_chain<GeneticMode::A>>},
+    {{BayesBase::C,  GeneticMode::D,  kSym, true},  &run_recipe<mcmc::make_bayes_cpi_chain<GeneticMode::D>>},
+    {{BayesBase::C,  GeneticMode::AD, kSym, true},  &run_recipe<mcmc::make_bayes_cpi_chain<GeneticMode::AD>>},
+    {{BayesBase::R,  GeneticMode::A,  kSym, false}, &run_recipe<mcmc::make_bayes_r_chain<GeneticMode::A>>},
+    {{BayesBase::R,  GeneticMode::D,  kSym, false}, &run_recipe<mcmc::make_bayes_r_chain<GeneticMode::D>>},
+    {{BayesBase::R,  GeneticMode::AD, kSym, false}, &run_recipe<mcmc::make_bayes_r_chain<GeneticMode::AD>>},
+    {{BayesBase::RR, GeneticMode::A,  kSym, false}, &run_recipe<mcmc::make_bayes_rr_chain<GeneticMode::A>>},
+    {{BayesBase::RR, GeneticMode::D,  kSym, false}, &run_recipe<mcmc::make_bayes_rr_chain<GeneticMode::D>>},
+    {{BayesBase::RR, GeneticMode::AD, kSym, false}, &run_recipe<mcmc::make_bayes_rr_chain<GeneticMode::AD>>},
 }};
 // clang-format on
 
-auto find_runner(BayesMethodConfig method) -> TraitRunner
+auto find_runner(bayes::BayesConfig method) -> TraitRunner
 {
     const auto* it = std::ranges::find(
         kTraitRunners,
         method,
-        &std::pair<BayesMethodConfig, TraitRunner>::first);
+        &std::pair<bayes::BayesConfig, TraitRunner>::first);
     if (it == kTraitRunners.end())
     {
         throw GelexException(

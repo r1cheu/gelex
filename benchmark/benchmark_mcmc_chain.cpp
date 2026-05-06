@@ -39,11 +39,12 @@ namespace
 {
 
 using gelex::BayesBase;
-using gelex::BayesMethodConfig;
 using gelex::BayesModel;
 using gelex::FixedEffect;
 using gelex::GeneticMode;
 using gelex::PriorSetConfig;
+using gelex::bayes::BayesConfig;
+using gelex::bayes::DominancePolicy;
 using gelex::bayes::GeneticEffect;
 using gelex::bayes::GenotypeStorage;
 using gelex::bayes::Priors;
@@ -109,7 +110,7 @@ auto make_model() -> BayesModel
     return BayesModel(std::move(y), std::move(fixed), std::move(genetics));
 }
 
-auto make_priors(const BayesModel& model, BayesMethodConfig method) -> Priors
+auto make_priors(const BayesModel& model, BayesConfig method) -> Priors
 {
     PriorSetConfig pc(method, model.phenotype_variance());
     return Priors(pc, model.genetics(), 0);
@@ -120,7 +121,7 @@ void bench_chain(
     ankerl::nanobench::Bench& b,
     const BayesModel& model,
     const char* name,
-    BayesMethodConfig cfg,
+    BayesConfig cfg,
     Factory factory,
     Eigen::Index n_iters)
 {
@@ -158,12 +159,13 @@ TEST_CASE("MCMC trait chain per-iteration", "[!benchmark][mcmc][chain]")
         .minEpochIterations(20);
 
     using gelex::GeneticMode;
-    const BayesMethodConfig cfg_a{BayesBase::A, GeneticMode::A, false, false};
-    const BayesMethodConfig cfg_b{BayesBase::B, GeneticMode::A, false, false};
-    const BayesMethodConfig cfg_c{BayesBase::C, GeneticMode::A, false, false};
-    const BayesMethodConfig cfg_rr{BayesBase::RR, GeneticMode::A, false, false};
-    const BayesMethodConfig cfg_bpi{BayesBase::B, GeneticMode::A, false, true};
-    const BayesMethodConfig cfg_cpi{BayesBase::C, GeneticMode::A, false, true};
+    constexpr auto kSym = DominancePolicy::symmetric;
+    const BayesConfig cfg_a{BayesBase::A, GeneticMode::A, kSym, false};
+    const BayesConfig cfg_b{BayesBase::B, GeneticMode::A, kSym, false};
+    const BayesConfig cfg_c{BayesBase::C, GeneticMode::A, kSym, false};
+    const BayesConfig cfg_rr{BayesBase::RR, GeneticMode::A, kSym, false};
+    const BayesConfig cfg_bpi{BayesBase::B, GeneticMode::A, kSym, true};
+    const BayesConfig cfg_cpi{BayesBase::C, GeneticMode::A, kSym, true};
 
     bench_chain(
         b,

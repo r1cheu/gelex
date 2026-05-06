@@ -22,7 +22,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/method_.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -44,7 +44,7 @@ class Priors;
 class PriorSetConfig
 {
    public:
-    PriorSetConfig(BayesMethodConfig method, double phenotype_variance);
+    PriorSetConfig(bayes::BayesConfig method, double phenotype_variance);
 
     auto override_proportion(GeneticMode type, std::span<const double> values)
         -> PriorSetConfig&;
@@ -59,7 +59,7 @@ class PriorSetConfig
     [[nodiscard]] auto find_genetic(GeneticMode type) const
         -> const GeneticPriorConfig*;
 
-    BayesMethodConfig method_;
+    bayes::BayesConfig method_;
     double phenotype_variance_;
     std::vector<GeneticPriorConfig> genetics_;
     double random_variance_proportion_{0.1};
