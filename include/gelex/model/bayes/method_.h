@@ -72,6 +72,8 @@ struct BayesMethod
 {
     BayesConfig config;
     std::vector<GeneticTerm> genetic_terms;
+    std::vector<VarianceSpec> random;
+    VarianceSpec residual;
 };
 
 inline auto is_valid_method(const BayesConfig& m) -> bool

@@ -28,7 +28,7 @@ namespace gelex::bayes
 struct ScaledInvChiSqPrior
 {
     double nu{};
-    double scale{};
+    double s2{};
 };
 
 struct DirichletPrior
