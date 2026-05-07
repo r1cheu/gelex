@@ -79,6 +79,11 @@ class GenoPipe
         return dominance_matrix_ != nullptr;
     }
 
+    auto sample_index() const -> const dataframe::Index<std::string>&
+    {
+        return fam_index_;
+    }
+
    private:
     using GenotypeMatrixPtr = std::unique_ptr<
         std::variant<genotype::GenotypeMap, genotype::GenotypeMatrix>>;
@@ -116,6 +121,7 @@ class GenoPipe
     auto write_sbin() -> void;
 
     Config config_;
+    dataframe::Index<std::string> fam_index_;
     GenotypeMatrixPtr additive_matrix_;
     GenotypeMatrixPtr dominance_matrix_;
     GenoObserver observer_;

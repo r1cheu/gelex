@@ -16,7 +16,6 @@
 
 #include "mcmc_command.h"
 
-#include <filesystem>
 #include <string>
 #include <utility>
 #include <vector>
@@ -30,10 +29,8 @@
 #include "cli/geno_reporter.h"
 #include "cli/pheno_reporter.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/genotype/bed_path.h"
 #include "gelex/data/pipe/geno.h"
 #include "gelex/data/pipe/pheno.h"
-#include "gelex/data/reader.h"
 #include "gelex/engine/mcmc.h"
 #include "gelex/infra/logging/dataset_event.h"
 #include "gelex/infra/logging/notify.h"
@@ -73,18 +70,13 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
 
     gelex::notify(dataset_reporter.as_observer(), gelex::DatasetSectionEvent{});
 
-    auto bed_path
-        = gelex::genotype::format_bed_path(cmd.get<std::string>("--bfile"));
-    auto fam_index
-        = gelex::read_fam(
-              std::filesystem::path(bed_path).replace_extension(".fam"))
-              .index();
-
     gelex::PhenoPipe pheno(pheno_config, pheno_reporter.as_observer());
     pheno.load();
 
+    gelex::GenoPipe geno(geno_config, geno_reporter.as_observer());
+
     std::vector<const gelex::dataframe::Index<std::string>*> all_indices{
-        &fam_index, &pheno.pheno_index()};
+        &geno.sample_index(), &pheno.pheno_index()};
     all_indices.append_range(pheno.covar_indices());
     auto common = gelex::cli::intersect_or_throw(
         std::move(all_indices),
@@ -92,8 +84,6 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
         "phenotype, genotype (.fam), and covariates");
 
     pheno.gather(common);
-
-    gelex::GenoPipe geno(geno_config, geno_reporter.as_observer());
     geno.load(common);
 
     auto model = gelex::build_bayes_model(std::move(pheno), std::move(geno));
