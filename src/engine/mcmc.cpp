@@ -18,8 +18,11 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
+#include <numeric>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -110,13 +113,122 @@ auto find_runner(bayes::BayesConfig method) -> TraitRunner
 
 }  // namespace
 
-mcmc::FitEngine::FitEngine(Config config) : config_(std::move(config)) {}
+namespace mcmc
+{
 
-auto mcmc::FitEngine::run(
+FitEngine::FitEngine(Config config) : config_(std::move(config)) {}
+
+auto ConfigValidator::validate() const -> void
+{
+    check_method();
+    check_mcmc_params();
+    check_mixture_priors();
+    check_positive_prob();
+}
+
+auto ConfigValidator::check_method() const -> void
+{
+    if (!bayes::is_valid_method(config_.method))
+    {
+        throw GelexException(
+            fmt::format("invalid method combination: {}", config_.method));
+    }
+}
+
+auto ConfigValidator::check_mcmc_params() const -> void
+{
+    const auto& p = config_.mcmc_params;
+    if (p.n_iters <= 0)
+    {
+        throw GelexException(
+            fmt::format("n_iters must be positive, got {}", p.n_iters));
+    }
+    if (p.n_burn_in < 0 || p.n_burn_in >= p.n_iters)
+    {
+        throw GelexException(
+            fmt::format(
+                "n_burn_in must satisfy 0 <= n_burn_in < n_iters, got {} "
+                "(n_iters={})",
+                p.n_burn_in,
+                p.n_iters));
+    }
+    if (p.n_thin <= 0)
+    {
+        throw GelexException(
+            fmt::format("n_thin must be positive, got {}", p.n_thin));
+    }
+    if ((p.n_iters - p.n_burn_in) % p.n_thin != 0)
+    {
+        throw GelexException(
+            fmt::format(
+                "n_thin ({}) must divide n_iters - n_burn_in ({})",
+                p.n_thin,
+                p.n_iters - p.n_burn_in));
+    }
+    if (p.checkpoint_step < 0)
+    {
+        throw GelexException(
+            fmt::format(
+                "checkpoint_step must be non-negative, got {}",
+                p.checkpoint_step));
+    }
+}
+
+auto ConfigValidator::check_mixture_priors() const -> void
+{
+    auto check_pair = [](const std::optional<std::vector<double>>& probs,
+                         const std::optional<std::vector<double>>& multipliers,
+                         std::string_view probs_name,
+                         std::string_view mult_name) -> void
+    {
+        if (probs)
+        {
+            if (std::ranges::any_of(*probs, [](double v) { return v < 0.0; }))
+            {
+                throw GelexException(
+                    fmt::format("{} contains negative entries", probs_name));
+            }
+            const auto sum = std::accumulate(probs->begin(), probs->end(), 0.0);
+            if (std::abs(sum - 1.0) > 1e-9)
+            {
+                throw GelexException(
+                    fmt::format("{} must sum to 1, got {}", probs_name, sum));
+            }
+        }
+        if (probs && multipliers && probs->size() != multipliers->size())
+        {
+            throw GelexException(
+                fmt::format(
+                    "{} size ({}) must match {} size ({})",
+                    probs_name,
+                    probs->size(),
+                    mult_name,
+                    multipliers->size()));
+        }
+    };
+
+    check_pair(config_.pi, config_.multiplier, "pi", "multiplier");
+    check_pair(config_.dpi, config_.dmultiplier, "dpi", "dmultiplier");
+}
+
+auto ConfigValidator::check_positive_prob() const -> void
+{
+    if (config_.positive_prob < 0.0 || config_.positive_prob > 1.0)
+    {
+        throw GelexException(
+            fmt::format(
+                "positive_prob must be in [0, 1], got {}",
+                config_.positive_prob));
+    }
+}
+
+auto FitEngine::run(
     PhenoPipe&& pheno,
     GenoPipe&& geno,
     const FitObserver& observer) -> void
 {
+    ConfigValidator{config_}.validate();
+
     auto model = build_bayes_model(std::move(pheno), std::move(geno));
     auto method = build_bayes_method(
         PriorOverrides{
@@ -132,10 +244,12 @@ auto mcmc::FitEngine::run(
     auto runner = find_runner(config_.method);
     auto result = runner(model, std::move(method), config_, observer);
 
-    mcmc::ResultWriter writer(result, config_.bfile_prefix + ".bim");
+    ResultWriter writer(result, config_.bfile_prefix + ".bim");
     writer.save(config_.out_prefix);
 
     notify(observer, FitResultsSavedEvent{.out_prefix = config_.out_prefix});
 }
+
+}  // namespace mcmc
 
 }  // namespace gelex

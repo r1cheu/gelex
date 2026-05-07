@@ -113,7 +113,7 @@ auto Solver<ChainFactory>::run(
     Eigen::Index seed,
     const FitObserver& observer) -> mcmc::Result
 {
-    mcmc::Samples samples(model, method, sample_prefix_, params_.n_records);
+    mcmc::Samples samples(model, method, sample_prefix_, params_.n_records());
     notify(observer, FitMethodSetEvent{.method = &method});
 
     mcmc::State state{model, method};
@@ -196,7 +196,7 @@ auto Solver<ChainFactory>::resume(
     validate_checkpoint(checkpoint.state, model);
 
     mcmc::Samples samples(
-        model, checkpoint.method, sample_prefix_, params_.n_records);
+        model, checkpoint.method, sample_prefix_, params_.n_records());
     notify(observer, FitMethodSetEvent{.method = &checkpoint.method});
 
     const infra::detail::EigenThreadGuard guard;
@@ -236,7 +236,8 @@ auto Solver<ChainFactory>::finalize(
 
     mcmc::Result result(std::move(samples), model);
     result.compute();
-    notify(observer, FitMCMCCompleteEvent{&result, &model, params_.n_records});
+    notify(
+        observer, FitMCMCCompleteEvent{&result, &model, params_.n_records()});
     return result;
 }
 
@@ -269,9 +270,11 @@ auto Solver<ChainFactory>::run_impl(
             samples.store(state);
         }
 
+        const auto step = params_.checkpoint_step == 0
+                              ? params_.n_iters
+                              : params_.checkpoint_step;
         if (checkpoint_prefix_
-            && ((iter + 1) % params_.checkpoint_step == 0
-                || iter == params_.n_iters - 1))
+            && ((iter + 1) % step == 0 || iter == params_.n_iters - 1))
         {
             write_checkpoint(state, rng, method, *checkpoint_prefix_);
             notify(observer, FitCheckpointSavedEvent{});

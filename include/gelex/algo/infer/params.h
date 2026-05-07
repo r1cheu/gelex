@@ -17,8 +17,6 @@
 #ifndef GELEX_ALGO_INFER_PARAMS_H_
 #define GELEX_ALGO_INFER_PARAMS_H_
 
-#include <stdexcept>
-
 #include <Eigen/Core>
 
 namespace gelex
@@ -29,28 +27,15 @@ namespace mcmc
 
 struct Params
 {
-    Params(
-        Eigen::Index n_iters,
-        Eigen::Index n_burn_in,
-        Eigen::Index n_thin,
-        Eigen::Index checkpoint_step = 0)
-        : n_iters{n_iters},
-          n_burn_in{n_burn_in},
-          n_thin{n_thin},
-          n_records{(n_iters - n_burn_in) / n_thin},
-          checkpoint_step{checkpoint_step == 0 ? n_iters : checkpoint_step}
+    Eigen::Index n_iters{};
+    Eigen::Index n_burn_in{};
+    Eigen::Index n_thin{};
+    Eigen::Index checkpoint_step{};
+
+    auto n_records() const -> Eigen::Index
     {
-        if (n_burn_in >= n_iters)
-        {
-            throw std::invalid_argument(
-                "n_burn_in must be smaller than n_iters");
-        }
+        return (n_iters - n_burn_in) / n_thin;
     }
-    Eigen::Index n_iters;
-    Eigen::Index n_burn_in;
-    Eigen::Index n_thin;
-    Eigen::Index n_records;
-    Eigen::Index checkpoint_step;
 };
 
 }  // namespace mcmc

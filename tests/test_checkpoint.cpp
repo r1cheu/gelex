@@ -82,7 +82,7 @@ auto run_bayes_a(
     std::string_view prefix,
     Eigen::Index seed) -> std::string
 {
-    mcmc::Params params(n_iters, 0, 1, n_iters);
+    mcmc::Params params{n_iters, 0, 1, n_iters};
     mcmc::Solver mcmc(
         params,
         mcmc::make_bayes_a_chain<GeneticMode::A>,
@@ -99,7 +99,7 @@ auto resume_bayes_a(
     const std::string& ckpt_path) -> std::string
 {
     auto ckpt = read_checkpoint(ckpt_path);
-    mcmc::Params params(n_iters, 0, 1, n_iters);
+    mcmc::Params params{n_iters, 0, 1, n_iters};
     mcmc::Solver mcmc(
         params,
         mcmc::make_bayes_a_chain<GeneticMode::A>,
@@ -290,8 +290,7 @@ TEST_CASE("checkpoint method round-trip preserves all fields", "[checkpoint]")
 
     // Genetic prior
     REQUIRE(rm.genetics.size() == 1);
-    const auto* gs
-        = std::get_if<bayes::GeneticSpec>(&rm.genetics[0].spec);
+    const auto* gs = std::get_if<bayes::GeneticSpec>(&rm.genetics[0].spec);
     REQUIRE(gs != nullptr);
     CHECK(gs->mode == GeneticMode::A);
     CHECK(gs->variance.prior.nu == 4.0);
@@ -301,8 +300,8 @@ TEST_CASE("checkpoint method round-trip preserves all fields", "[checkpoint]")
     REQUIRE(rm.genetics[0].mixture.has_value());
     CHECK(rm.genetics[0].mixture->proportions.init.isApprox(pi_init));
     CHECK(rm.genetics[0].mixture->proportions.estimate == true);
-    const auto* sm = std::get_if<bayes::ScaledMixture>(
-        &rm.genetics[0].mixture->strategy);
+    const auto* sm
+        = std::get_if<bayes::ScaledMixture>(&rm.genetics[0].mixture->strategy);
     REQUIRE(sm != nullptr);
     CHECK(sm->multiplier.isApprox(multiplier));
 
@@ -330,7 +329,7 @@ TEST_CASE("MCMC resume throws on checkpoint dimension mismatch", "[checkpoint]")
         = make_bayes_a_model(kNSamples, kNSnps + 3);
     (void)method_mismatch;
 
-    mcmc::Params params(1, 0, 1, 1);
+    mcmc::Params params{1, 0, 1, 1};
     mcmc::Solver mcmc(params, mcmc::make_bayes_a_chain<GeneticMode::A>);
     REQUIRE_THROWS(mcmc.resume(model_mismatch, std::move(ckpt)));
 

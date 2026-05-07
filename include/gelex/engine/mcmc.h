@@ -67,6 +67,26 @@ class FitEngine
     Config config_;
 };
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+class ConfigValidator
+{
+   public:
+    explicit ConfigValidator(const FitEngine::Config& config) : config_{config}
+    {
+    }
+
+    auto validate() const -> void;
+
+   private:
+    auto check_method() const -> void;
+    auto check_mcmc_params() const -> void;
+    auto check_mixture_priors() const -> void;
+    auto check_positive_prob() const -> void;
+
+    const FitEngine::Config& config_;
+};
+// NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+
 }  // namespace mcmc
 
 }  // namespace gelex

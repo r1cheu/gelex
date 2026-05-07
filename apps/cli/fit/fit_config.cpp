@@ -82,12 +82,15 @@ auto make_mcmc_config(argparse::ArgumentParser& cmd, bayes::BayesConfig method)
         .bfile_prefix = cmd.get("--bfile"),
         .method = method,
         .seed = cmd.get<int>("--seed"),
-        .mcmc_params = gelex::mcmc::Params(
-            cmd.get<int>("--iters"),
-            cmd.get<int>("--burn-in"),
-            cmd.get<int>("--thin"),
-            cmd.is_used("--checkpoint-step") ? cmd.get<int>("--checkpoint-step")
-                                             : 0),
+        .mcmc_params = gelex::mcmc::Params{
+            .n_iters = cmd.get<int>("--iters"),
+            .n_burn_in = cmd.get<int>("--burn-in"),
+            .n_thin = cmd.get<int>("--thin"),
+            .checkpoint_step
+            = cmd.is_used("--checkpoint-step")
+                  ? cmd.get<int>("--checkpoint-step")
+                  : 0,
+        },
         .out_prefix = cmd.get("--out"),
     };
 
@@ -106,10 +109,6 @@ auto make_mcmc_config(argparse::ArgumentParser& cmd, bayes::BayesConfig method)
     config.multiplier = extract_opt_vec("--mult");
     config.dmultiplier = extract_opt_vec("--dmult");
     config.positive_prob = cmd.get<double>("--positive-prob");
-    if (config.mcmc_params.n_burn_in >= config.mcmc_params.n_iters)
-    {
-        throw gelex::GelexException("n_burn_in must be less than n_iters");
-    }
 
     if (cmd.is_used("--resume"))
     {
