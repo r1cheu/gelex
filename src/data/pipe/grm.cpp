@@ -21,7 +21,7 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/infra/logging/data_pipe_event.h"
+#include "gelex/infra/logging/grm_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/grm/detail/reader.h"
 
@@ -30,7 +30,7 @@ namespace gelex
 
 GrmPipe::GrmPipe(
     std::vector<std::filesystem::path> grm_paths,
-    DataPipeObserver observer)
+    GrmPipeObserver observer)
     : grm_paths_(std::move(grm_paths)), observer_(std::move(observer))
 {
     for (const auto& grm_path : grm_paths_)

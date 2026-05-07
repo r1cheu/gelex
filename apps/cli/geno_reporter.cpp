@@ -14,73 +14,30 @@
  * limitations under the License.
  */
 
-#include "data_pipe_reporter.h"
+#include "geno_reporter.h"
 
 #include <unistd.h>
 
 #include <fmt/format.h>
+#include <string>
 
 #include "gelex/infra/logger.h"
-#include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/progress_bar.h"
 
 namespace gelex::cli
 {
 
-DataPipeReporter::DataPipeReporter()
+GenoReporter::GenoReporter()
     : logger_(gelex::logging::get()), progress_info_(create_progress_info())
 {
 }
 
-auto DataPipeReporter::on_event(const DataPipeSectionEvent& /*event*/) const
-    -> void
-{
-    logger_->info(gelex::section("[Dataset Summary]"));
-}
-
-auto DataPipeReporter::on_event(const PhenotypeLoadedEvent& event) const -> void
-{
-    logger_->info(
-        "   Phenotypes : {} samples ('{}')",
-        event.pheno_samples,
-        event.trait_name);
-}
-
-auto DataPipeReporter::on_event(const CovariatesLoadedEvent& event) const
-    -> void
-{
-    std::string parts;
-    if (event.num_quantitative_covariates)
-    {
-        parts += fmt::format(
-            "{} quantitative ({})",
-            *event.num_quantitative_covariates,
-            gelex::format_names(event.quantitative_names));
-    }
-    if (event.num_quantitative_covariates && event.num_discrete_covariates)
-    {
-        parts += ", ";
-    }
-    if (event.num_discrete_covariates)
-    {
-        parts += fmt::format(
-            "{} discrete ({})",
-            *event.num_discrete_covariates,
-            gelex::format_names(event.discrete_names));
-    }
-    logger_->info("   Covariates : {}", parts);
-}
-
-auto DataPipeReporter::on_event(const IntersectionEvent& event) const -> void
-{
-    logger_->info("   Intersection : {} common samples", event.common_samples);
-}
-
-auto DataPipeReporter::on_event(const GenotypeLoadedEvent& event) const -> void
+auto GenoReporter::on_event(const GenotypeLoadedEvent& event) const -> void
 {
     const auto effective_snps = event.num_snps - event.monomorphic_snps;
-    const std::string label = event.is_dominance ? "Dominance" : "Additive";
+    const std::string label
+        = (event.mode == GeneticMode::D) ? "Dominance" : "Additive";
     const std::string msg = fmt::format(
         "   {:<13}: {} SNPs ({} monomorphic excluded)",
         label,
@@ -97,13 +54,7 @@ auto DataPipeReporter::on_event(const GenotypeLoadedEvent& event) const -> void
     }
 }
 
-auto DataPipeReporter::on_event(const GrmLoadedEvent& event) const -> void
-{
-    logger_->info(
-        "   GRM        : {} samples ({})", event.num_samples, event.type);
-}
-
-auto DataPipeReporter::on_event(const GenotypeProgressEvent& event) -> void
+auto GenoReporter::on_event(const GenotypeProgressEvent& event) -> void
 {
     if (!init_progress_)
     {

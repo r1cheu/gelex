@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "gelex/data/dataframe/index.h"
-#include "gelex/infra/logging/data_pipe_event.h"
+#include "gelex/infra/logging/grm_pipe_event.h"
 #include "gelex/model/freq/effect.h"
 
 namespace gelex
@@ -37,7 +37,7 @@ class GrmPipe
    public:
     explicit GrmPipe(
         std::vector<std::filesystem::path> grm_paths,
-        DataPipeObserver observer = {});
+        GrmPipeObserver observer = {});
     GrmPipe(const GrmPipe&) = delete;
     GrmPipe(GrmPipe&&) noexcept;
     GrmPipe& operator=(const GrmPipe&) = delete;
@@ -63,7 +63,7 @@ class GrmPipe
     std::vector<std::filesystem::path> grm_paths_;
     std::vector<grm::detail::GrmReader> grm_readers_;
     std::vector<freq::GeneticEffect> grms_;
-    DataPipeObserver observer_;
+    GrmPipeObserver observer_;
 };
 
 }  // namespace gelex

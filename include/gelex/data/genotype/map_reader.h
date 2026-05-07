@@ -30,7 +30,7 @@
 #include "gelex/data/genotype/mmap.h"
 #include "gelex/data/genotype/process_method.h"
 #include "gelex/data/genotype/processor.h"
-#include "gelex/infra/logging/data_pipe_event.h"
+#include "gelex/infra/logging/geno_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/detail/binary_writer.h"
 
@@ -44,7 +44,7 @@ class GenotypeMapReader
         const std::filesystem::path& bed_path,
         const dataframe::Index<std::string>& sample_index,
         const std::filesystem::path& output_prefix,
-        gelex::DataPipeObserver observer = {});
+        gelex::GenoObserver observer = {});
 
     template <gelex::GeneticMode GT>
     auto process(gelex::GenotypeProcessMethod method, size_t chunk_size = 10000)
@@ -129,7 +129,7 @@ class GenotypeMapReader
         gelex::LocusStatistic (*fn)(Eigen::Ref<Eigen::VectorXd>));
 
     BedPipe bed_pipe_;
-    gelex::DataPipeObserver observer_;
+    gelex::GenoObserver observer_;
     int64_t sample_size_{};
     int64_t num_variants_{};
 

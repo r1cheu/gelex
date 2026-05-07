@@ -25,15 +25,17 @@
 
 #include "cli/cli_helper.h"
 #include "cli/data_pipe_config.h"
-#include "cli/data_pipe_reporter.h"
+#include "cli/dataset_loader.h"
+#include "cli/dataset_reporter.h"
+#include "cli/geno_reporter.h"
+#include "cli/pheno_reporter.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/bed_path.h"
 #include "gelex/data/pipe/geno.h"
 #include "gelex/data/pipe/pheno.h"
 #include "gelex/data/reader.h"
 #include "gelex/engine/mcmc.h"
-#include "gelex/exception.h"
-#include "gelex/infra/logging/data_pipe_event.h"
+#include "gelex/infra/logging/dataset_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/model/bayes/builder.h"
 #include "gelex/model/bayes/method.h"
@@ -53,7 +55,9 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
 
     int threads = cmd.get<int>("--threads");
     gelex::cli::McmcReporter reporter;
-    gelex::cli::DataPipeReporter data_reporter;
+    gelex::cli::DatasetReporter dataset_reporter;
+    gelex::cli::PhenoReporter pheno_reporter;
+    gelex::cli::GenoReporter geno_reporter;
     gelex::cli::setup_parallelization(threads);
 
     reporter.on_event(gelex::MCMCBannerEvent{});
@@ -67,6 +71,8 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
             .seed = mcmc_config.engine.seed,
         });
 
+    gelex::notify(dataset_reporter.as_observer(), gelex::DatasetSectionEvent{});
+
     auto bed_path
         = gelex::genotype::format_bed_path(cmd.get<std::string>("--bfile"));
     auto fam_index
@@ -74,28 +80,20 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
               std::filesystem::path(bed_path).replace_extension(".fam"))
               .index();
 
-    gelex::PhenoPipe pheno(pheno_config, data_reporter.as_observer());
+    gelex::PhenoPipe pheno(pheno_config, pheno_reporter.as_observer());
     pheno.load();
 
     std::vector<const gelex::dataframe::Index<std::string>*> all_indices{
         &fam_index, &pheno.pheno_index()};
     all_indices.append_range(pheno.covar_indices());
-    auto common = gelex::dataframe::intersect<std::string>(all_indices);
-
-    gelex::notify(
-        data_reporter.as_observer(),
-        gelex::IntersectionEvent{.common_samples = common.size()});
-
-    if (common.size() == 0)
-    {
-        throw gelex::GelexException(
-            "No common samples across phenotype, genotype (.fam), and "
-            "covariates. Check that sample IDs match across input files.");
-    }
+    auto common = gelex::cli::intersect_or_throw(
+        std::move(all_indices),
+        dataset_reporter.as_observer(),
+        "phenotype, genotype (.fam), and covariates");
 
     pheno.gather(common);
 
-    gelex::GenoPipe geno(geno_config, data_reporter.as_observer());
+    gelex::GenoPipe geno(geno_config, geno_reporter.as_observer());
     geno.load(common);
 
     auto model = gelex::build_bayes_model(std::move(pheno), std::move(geno));

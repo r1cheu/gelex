@@ -26,7 +26,10 @@
 #include "assoc_reporter.h"
 #include "cli/cli_helper.h"
 #include "cli/data_pipe_config.h"
-#include "cli/data_pipe_reporter.h"
+#include "cli/dataset_loader.h"
+#include "cli/dataset_reporter.h"
+#include "cli/grm_pipe_reporter.h"
+#include "cli/pheno_reporter.h"
 #include "cli/reml_reporter.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/bed_path.h"
@@ -34,9 +37,8 @@
 #include "gelex/data/pipe/pheno.h"
 #include "gelex/data/reader.h"
 #include "gelex/engine/assoc.h"
-#include "gelex/exception.h"
 #include "gelex/infra/logging/assoc_event.h"
-#include "gelex/infra/logging/data_pipe_event.h"
+#include "gelex/infra/logging/dataset_event.h"
 #include "gelex/infra/logging/notify.h"
 
 auto assoc_execute(argparse::ArgumentParser& cmd) -> int
@@ -50,7 +52,9 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     pheno_config.int_offset = cmd.get<double>("--int-offset");
 
     gelex::cli::AssocReporter reporter;
-    gelex::cli::DataPipeReporter data_reporter;
+    gelex::cli::DatasetReporter dataset_reporter;
+    gelex::cli::PhenoReporter pheno_reporter;
+    gelex::cli::GrmPipeReporter grm_reporter;
 
     auto config = gelex::cli::make_assoc_config(cmd);
 
@@ -65,6 +69,8 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
             .tol = config.tol,
         });
 
+    gelex::notify(dataset_reporter.as_observer(), gelex::DatasetSectionEvent{});
+
     auto bed_path
         = gelex::genotype::format_bed_path(cmd.get<std::string>("--bfile"));
     auto fam_index
@@ -72,30 +78,22 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
               std::filesystem::path(bed_path).replace_extension(".fam"))
               .index();
 
-    gelex::PhenoPipe pheno(pheno_config, data_reporter.as_observer());
+    gelex::PhenoPipe pheno(pheno_config, pheno_reporter.as_observer());
     pheno.load();
 
     auto grm_paths = std::ranges::to<std::vector<std::filesystem::path>>(
         cmd.get<std::vector<std::string>>("--grm"));
 
-    gelex::GrmPipe grm(grm_paths, data_reporter.as_observer());
+    gelex::GrmPipe grm(grm_paths, grm_reporter.as_observer());
 
     std::vector<const gelex::dataframe::Index<std::string>*> all_indices{
         &fam_index, &pheno.pheno_index()};
     all_indices.append_range(pheno.covar_indices());
     all_indices.append_range(grm.sample_indices());
-    auto common = gelex::dataframe::intersect<std::string>(all_indices);
-
-    gelex::notify(
-        data_reporter.as_observer(),
-        gelex::IntersectionEvent{.common_samples = common.size()});
-
-    if (common.size() == 0)
-    {
-        throw gelex::GelexException(
-            "No common samples across phenotype, genotype (.fam), GRM, and "
-            "covariates. Check that sample IDs match across input files.");
-    }
+    auto common = gelex::cli::intersect_or_throw(
+        std::move(all_indices),
+        dataset_reporter.as_observer(),
+        "phenotype, genotype (.fam), GRM, and covariates");
 
     pheno.gather(common);
     grm.load(common);

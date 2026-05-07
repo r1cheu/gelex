@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_DATA_PIPE_REPORTER_H_
-#define GELEX_CLI_DATA_PIPE_REPORTER_H_
+#ifndef GELEX_CLI_DATASET_REPORTER_H_
+#define GELEX_CLI_DATASET_REPORTER_H_
 
 #include <memory>
+#include <variant>
 
-#include "gelex/infra/logging/data_pipe_event.h"
-#include "gelex/infra/logging/progress_bar.h"
+#include "gelex/infra/logging/dataset_event.h"
 
 namespace spdlog
 {
@@ -30,31 +30,24 @@ class logger;
 namespace gelex::cli
 {
 
-class DataPipeReporter
+class DatasetReporter
 {
    public:
-    DataPipeReporter();
+    DatasetReporter();
 
-    auto on_event(const DataPipeSectionEvent& event) const -> void;
-    auto on_event(const PhenotypeLoadedEvent& event) const -> void;
-    auto on_event(const CovariatesLoadedEvent& event) const -> void;
+    auto on_event(const DatasetSectionEvent& event) const -> void;
     auto on_event(const IntersectionEvent& event) const -> void;
-    auto on_event(const GenotypeLoadedEvent& event) const -> void;
-    auto on_event(const GrmLoadedEvent& event) const -> void;
-    auto on_event(const GenotypeProgressEvent& event) -> void;
 
-    auto as_observer() -> DataPipeObserver
+    auto as_observer() -> DatasetObserver
     {
-        return [this](const DataPipeEvent& e)
+        return [this](const DatasetEvent& e)
         { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
     }
 
    private:
     std::shared_ptr<spdlog::logger> logger_;
-    ProgressInfo progress_info_;
-    bool init_progress_ = false;
 };
 
 }  // namespace gelex::cli
 
-#endif  // GELEX_CLI_DATA_PIPE_REPORTER_H_
+#endif  // GELEX_CLI_DATASET_REPORTER_H_

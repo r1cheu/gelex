@@ -27,7 +27,7 @@
 #include "gelex/data/genotype/matrix.h"
 #include "gelex/data/genotype/mmap.h"
 #include "gelex/data/genotype/process_method.h"
-#include "gelex/infra/logging/data_pipe_event.h"
+#include "gelex/infra/logging/geno_event.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -48,7 +48,7 @@ class GenoPipe
         std::string output_prefix;
     };
 
-    explicit GenoPipe(const Config& config, DataPipeObserver observer = {});
+    explicit GenoPipe(const Config& config, GenoObserver observer = {});
     GenoPipe(const GenoPipe&) = delete;
     GenoPipe(GenoPipe&&) noexcept = default;
     GenoPipe& operator=(const GenoPipe&) = delete;
@@ -118,7 +118,7 @@ class GenoPipe
     Config config_;
     GenotypeMatrixPtr additive_matrix_;
     GenotypeMatrixPtr dominance_matrix_;
-    DataPipeObserver observer_;
+    GenoObserver observer_;
 };
 
 }  // namespace gelex

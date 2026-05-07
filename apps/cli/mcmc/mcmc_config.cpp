@@ -42,7 +42,7 @@ auto parse_method(argparse::ArgumentParser& cmd) -> bayes::BayesConfig
             fmt::format("invalid --mode: {}", cmd.get("--mode")));
     }
 
-    auto method = bayes::BayesConfig{
+    return bayes::BayesConfig{
         .base = base,
         .mode = *mode,
         .dominance = cmd.get<bool>("--asym")
@@ -50,13 +50,6 @@ auto parse_method(argparse::ArgumentParser& cmd) -> bayes::BayesConfig
                          : bayes::DominancePolicy::symmetric,
         .estimate_pi = cmd.get<bool>("--estimate-pi"),
     };
-
-    if (!bayes::is_valid_method(method))
-    {
-        throw gelex::GelexException(
-            fmt::format("invalid method combination: {}", method));
-    }
-    return method;
 }
 
 auto extract_eigen(argparse::ArgumentParser& cmd, std::string_view arg)

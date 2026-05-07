@@ -14,22 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_INFRA_LOGGING_DATA_PIPE_EVENT_H_
-#define GELEX_INFRA_LOGGING_DATA_PIPE_EVENT_H_
+#ifndef GELEX_INFRA_LOGGING_PHENO_EVENT_H_
+#define GELEX_INFRA_LOGGING_PHENO_EVENT_H_
 
+#include <cstddef>
 #include <functional>
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
 
-#include "gelex/types/genetic_effect_type.h"
-
 namespace gelex
 {
-
-struct DataPipeSectionEvent
-{
-};
 
 struct PhenotypeLoadedEvent
 {
@@ -45,42 +41,9 @@ struct CovariatesLoadedEvent
     std::vector<std::string> discrete_names;
 };
 
-struct IntersectionEvent
-{
-    size_t common_samples;
-};
-
-struct GenotypeLoadedEvent
-{
-    bool is_dominance;  // false = Additive, true = Dominance
-    int64_t num_snps;
-    int64_t monomorphic_snps;
-};
-
-struct GrmLoadedEvent
-{
-    size_t num_samples;
-    GeneticMode type;
-};
-
-struct GenotypeProgressEvent
-{
-    size_t current;
-    size_t total;
-    bool done;
-};
-
-using DataPipeEvent = std::variant<
-    DataPipeSectionEvent,
-    PhenotypeLoadedEvent,
-    CovariatesLoadedEvent,
-    IntersectionEvent,
-    GenotypeLoadedEvent,
-    GrmLoadedEvent,
-    GenotypeProgressEvent>;
-
-using DataPipeObserver = std::function<void(const DataPipeEvent&)>;
+using PhenoEvent = std::variant<PhenotypeLoadedEvent, CovariatesLoadedEvent>;
+using PhenoObserver = std::function<void(const PhenoEvent&)>;
 
 }  // namespace gelex
 
-#endif  // GELEX_INFRA_LOGGING_DATA_PIPE_EVENT_H_
+#endif  // GELEX_INFRA_LOGGING_PHENO_EVENT_H_

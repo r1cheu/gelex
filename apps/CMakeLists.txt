@@ -31,7 +31,11 @@ set(CLI_SOURCES
     cli/post/post_reporter.cpp
     cli/fit_reporter.cpp
     cli/reml_reporter.cpp
-    cli/data_pipe_reporter.cpp
+    cli/dataset_reporter.cpp
+    cli/dataset_loader.cpp
+    cli/pheno_reporter.cpp
+    cli/geno_reporter.cpp
+    cli/grm_pipe_reporter.cpp
     cli/data_pipe_config.cpp
     cli/cli_helper.cpp)
 

@@ -27,8 +27,8 @@
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logger.h"
-#include "gelex/infra/logging/data_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
+#include "gelex/infra/logging/pheno_event.h"
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
 #include "gelex/types/fixed_effects.h"
 
@@ -83,10 +83,9 @@ auto build_discrete_covariate(const dataframe::DataFrame<std::string>& frame)
 
 }  // namespace
 
-PhenoPipe::PhenoPipe(const Config& config, DataPipeObserver observer)
+PhenoPipe::PhenoPipe(const Config& config, PhenoObserver observer)
     : config_(config), observer_(std::move(observer))
 {
-    notify(observer_, DataPipeSectionEvent{});
 }
 
 auto PhenoPipe::load() -> void

@@ -27,7 +27,7 @@
 
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/infra/logging/data_pipe_event.h"
+#include "gelex/infra/logging/pheno_event.h"
 #include "gelex/types/fixed_effects.h"
 
 namespace gelex
@@ -58,7 +58,7 @@ class PhenoPipe
         double int_offset = 3.0 / 8.0;
     };
 
-    explicit PhenoPipe(const Config& config, DataPipeObserver observer = {});
+    explicit PhenoPipe(const Config& config, PhenoObserver observer = {});
     PhenoPipe(const PhenoPipe&) = delete;
     PhenoPipe(PhenoPipe&&) noexcept = default;
     PhenoPipe& operator=(const PhenoPipe&) = delete;
@@ -103,7 +103,7 @@ class PhenoPipe
     Eigen::VectorXd phenotype_;
     FixedEffect fixed_effects_;
 
-    DataPipeObserver observer_;
+    PhenoObserver observer_;
 };
 
 }  // namespace gelex

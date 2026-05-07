@@ -19,14 +19,14 @@
 #include <utility>
 
 #include "gelex/data/genotype/process_method.h"
-#include "gelex/infra/logging/data_pipe_event.h"
+#include "gelex/infra/logging/geno_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/locistats/writer.h"
 
 namespace gelex
 {
 
-GenoPipe::GenoPipe(const Config& config, DataPipeObserver observer)
+GenoPipe::GenoPipe(const Config& config, GenoObserver observer)
     : config_(config), observer_(std::move(observer))
 {
 }
@@ -67,7 +67,7 @@ auto GenoPipe::load_additive_matrix(
     notify(
         observer_,
         GenotypeLoadedEvent{
-            .is_dominance = false,
+            .mode = GeneticMode::A,
             .num_snps = total,
             .monomorphic_snps = mono});
 }
@@ -89,7 +89,9 @@ auto GenoPipe::load_dominance_matrix(
     notify(
         observer_,
         GenotypeLoadedEvent{
-            .is_dominance = true, .num_snps = total, .monomorphic_snps = mono});
+            .mode = GeneticMode::D,
+            .num_snps = total,
+            .monomorphic_snps = mono});
 }
 
 auto GenoPipe::write_sbin() -> void

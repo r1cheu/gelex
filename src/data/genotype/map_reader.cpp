@@ -56,7 +56,7 @@ GenotypeMapReader::GenotypeMapReader(
     const std::filesystem::path& bed_path,
     const dataframe::Index<std::string>& sample_index,
     const std::filesystem::path& output_prefix,
-    gelex::DataPipeObserver observer)
+    gelex::GenoObserver observer)
     : bed_pipe_(bed_path, sample_index),
       observer_(std::move(observer)),
       output_prefix_(output_prefix)

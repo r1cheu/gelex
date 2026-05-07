@@ -27,7 +27,7 @@
 #include "gelex/data/genotype/matrix.h"
 #include "gelex/data/genotype/process_method.h"
 #include "gelex/data/genotype/processor.h"
-#include "gelex/infra/logging/data_pipe_event.h"
+#include "gelex/infra/logging/geno_event.h"
 #include "gelex/infra/logging/notify.h"
 
 namespace gelex::genotype
@@ -39,7 +39,7 @@ class GenotypeMatReader
     explicit GenotypeMatReader(
         const std::filesystem::path& bed_path,
         const dataframe::Index<std::string>& sample_index,
-        gelex::DataPipeObserver observer = {});
+        gelex::GenoObserver observer = {});
 
     GenotypeMatReader(const GenotypeMatReader&) = delete;
     GenotypeMatReader& operator=(const GenotypeMatReader&) = delete;
@@ -100,7 +100,7 @@ class GenotypeMatReader
     GenotypeMatrix finalize();
 
     BedPipe bed_pipe_;
-    gelex::DataPipeObserver observer_;
+    gelex::GenoObserver observer_;
 
     int64_t sample_size_{};
     int64_t num_variants_{};
