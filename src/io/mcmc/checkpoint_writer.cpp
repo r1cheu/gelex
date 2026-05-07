@@ -24,6 +24,7 @@
 
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/io/detail/binary_writer.h"
+#include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 
@@ -182,81 +183,121 @@ auto write_rng(io::detail::BinaryWriter& writer, const std::mt19937_64& rng)
             reinterpret_cast<const uint8_t*>(str.data()), str.size()));
 }
 
-auto write_variance_prior(
+auto write_variance_spec(
     io::detail::BinaryWriter& writer,
     std::string_view prefix,
-    const bayes::VariancePrior& vp) -> void
+    const bayes::VarianceSpec& spec) -> void
 {
-    write_scalar(writer, fmt::format("{}/nu", prefix), vp.param.nu);
-    write_scalar(writer, fmt::format("{}/s2", prefix), vp.param.s2);
-    write_scalar(writer, fmt::format("{}/init", prefix), vp.init);
-    write_scalar(
-        writer, fmt::format("{}/size", prefix), static_cast<double>(vp.size));
+    write_scalar(writer, fmt::format("{}/nu", prefix), spec.prior.nu);
+    write_scalar(writer, fmt::format("{}/s2", prefix), spec.prior.s2);
+    write_scalar(writer, fmt::format("{}/init", prefix), spec.init);
+    write_uint8(
+        writer,
+        fmt::format("{}/scope", prefix),
+        static_cast<uint8_t>(spec.scope));
+}
+
+auto write_categorical_spec(
+    io::detail::BinaryWriter& writer,
+    std::string_view prefix,
+    const bayes::CategoricalSpec& spec) -> void
+{
+    writer.write(fmt::format("{}/init", prefix), spec.init);
+    write_uint8(
+        writer,
+        fmt::format("{}/estimate", prefix),
+        static_cast<uint8_t>(spec.estimate));
+}
+
+auto write_genetic_spec(
+    io::detail::BinaryWriter& writer,
+    std::string_view prefix,
+    const bayes::GeneticSpec& spec) -> void
+{
+    write_uint8(
+        writer,
+        fmt::format("{}/mode", prefix),
+        static_cast<uint8_t>(spec.mode));
+    write_variance_spec(
+        writer, fmt::format("{}/variance", prefix), spec.variance);
+    if (spec.sign)
+    {
+        write_categorical_spec(
+            writer, fmt::format("{}/sign", prefix), *spec.sign);
+    }
 }
 
 auto write_genetic_prior(
     io::detail::BinaryWriter& writer,
-    const bayes::GeneticPrior& gp) -> void
+    std::string_view prefix,
+    const bayes::GeneticPrior& prior) -> void
 {
-    const auto effect = EffectType::from_genetic(gp.type);
-    const auto prefix = fmt::format("prior/{}", effect);
-
-    const auto type_index = static_cast<uint8_t>(gp.marker.index());
-    write_uint8(writer, fmt::format("{}/type", prefix), type_index);
-
     std::visit(
-        [&](const auto& mp)
+        [&](const auto& spec)
         {
-            write_variance_prior(
-                writer, fmt::format("{}/variance", prefix), mp.variance);
-            using T = std::decay_t<decltype(mp)>;
-            if constexpr (
-                std::is_same_v<T, bayes::SpikePrior>
-                || std::is_same_v<T, bayes::MixturePrior>)
+            using T = std::decay_t<decltype(spec)>;
+            if constexpr (std::is_same_v<T, bayes::GeneticSpec>)
             {
-                writer.write(
-                    fmt::format("{}/proportion/init", prefix),
-                    mp.proportion.init);
-                write_uint8(
-                    writer,
-                    fmt::format("{}/proportion/estimate", prefix),
-                    static_cast<uint8_t>(mp.proportion.estimate));
+                write_uint8(writer, fmt::format("{}/kind", prefix), 0);
+                write_genetic_spec(
+                    writer, fmt::format("{}/spec", prefix), spec);
             }
-            if constexpr (std::is_same_v<T, bayes::MixturePrior>)
+            else
             {
-                writer.write(
-                    fmt::format("{}/multiplier", prefix), mp.multiplier);
+                write_uint8(writer, fmt::format("{}/kind", prefix), 1);
+                write_genetic_spec(
+                    writer,
+                    fmt::format("{}/spec/additive", prefix),
+                    spec.additive);
+                write_genetic_spec(
+                    writer,
+                    fmt::format("{}/spec/dominance", prefix),
+                    spec.dominance);
             }
         },
-        gp.marker);
+        prior.spec);
 
-    if (gp.sign)
+    if (prior.mixture)
     {
-        write_scalar(
-            writer, fmt::format("{}/sign", prefix), gp.sign->init_value);
+        write_uint8(writer, fmt::format("{}/mixture/present", prefix), 1);
+        write_uint8(
+            writer,
+            fmt::format("{}/mixture/strategy", prefix),
+            static_cast<uint8_t>(prior.mixture->strategy.index()));
+        if (const auto* sm
+            = std::get_if<bayes::ScaledMixture>(&prior.mixture->strategy))
+        {
+            writer.write(
+                fmt::format("{}/mixture/multiplier", prefix), sm->multiplier);
+        }
+        write_categorical_spec(
+            writer,
+            fmt::format("{}/mixture/proportions", prefix),
+            prior.mixture->proportions);
+    }
+    else
+    {
+        write_uint8(writer, fmt::format("{}/mixture/present", prefix), 0);
     }
 }
 
-auto write_priors(io::detail::BinaryWriter& writer, const bayes::Priors& priors)
-    -> void
+auto write_method(
+    io::detail::BinaryWriter& writer,
+    const bayes::BayesMethod& method) -> void
 {
-    write_variance_prior(
-        writer,
-        fmt::format("prior/{}", EffectType::residual()),
-        priors.residual());
-
-    for (size_t i = 0; i < priors.random().size(); ++i)
+    for (uint8_t i = 0; i < static_cast<uint8_t>(method.genetics.size()); ++i)
     {
-        write_variance_prior(
-            writer,
-            fmt::format("prior/{}/{}", EffectType::random(), i),
-            priors.random()[i]);
+        write_genetic_prior(
+            writer, fmt::format("method/genetic/{}", i), method.genetics[i]);
     }
 
-    for (const auto& gp : priors.genetics())
+    for (uint8_t i = 0; i < static_cast<uint8_t>(method.randoms.size()); ++i)
     {
-        write_genetic_prior(writer, gp);
+        write_variance_spec(
+            writer, fmt::format("method/random/{}", i), method.randoms[i]);
     }
+
+    write_variance_spec(writer, "method/residual", method.residual);
 }
 
 }  // namespace
@@ -264,12 +305,12 @@ auto write_priors(io::detail::BinaryWriter& writer, const bayes::Priors& priors)
 auto write_checkpoint(
     const mcmc::State& state,
     const std::mt19937_64& rng,
-    const bayes::Priors& priors,
+    const bayes::BayesMethod& method,
     std::string_view prefix) -> void
 {
     io::detail::BinaryWriter writer(fmt::format("{}.ckpt", prefix));
 
-    write_priors(writer, priors);
+    write_method(writer, method);
     write_fixed(writer, state.fixed());
     write_random(writer, state.random());
     write_genetics(writer, state.genetics());

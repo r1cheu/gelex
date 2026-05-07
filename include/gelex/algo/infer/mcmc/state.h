@@ -25,6 +25,7 @@
 #include <Eigen/Core>
 
 #include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -102,8 +103,8 @@ struct FixedState
 
 struct RandomState
 {
-    RandomState(const RandomEffect& effect, const RandomPrior& prior)
-        : coeffs(Eigen::VectorXd::Zero(effect.X.cols())), variance{prior.init}
+    RandomState(const RandomEffect& effect, const VarianceSpec& spec)
+        : coeffs(Eigen::VectorXd::Zero(effect.X.cols())), variance{spec.init}
     {
     }
 
@@ -136,40 +137,10 @@ struct GeneticState
     {
     }
 
-    GeneticState(const GeneticEffect& effect, const GeneticPrior& prior)
-        : type(effect.type),
-          coeffs(Eigen::VectorXd::Zero(bayes::get_cols(effect.X))),
-          u(Eigen::VectorXd::Zero(bayes::get_rows(effect.X)))
-    {
-        auto num_markers = bayes::get_cols(effect.X);
-        auto num_samples = bayes::get_rows(effect.X);
-
-        std::visit(
-            [&](const auto& p)
-            {
-                using T = std::decay_t<decltype(p)>;
-                marker_variance = Eigen::VectorXd::Constant(
-                    p.variance.size, p.variance.init);
-
-                if constexpr (std::is_same_v<T, SpikePrior>)
-                {
-                    group.emplace(Assignment(num_markers, p.proportion.init));
-                }
-                else if constexpr (std::is_same_v<T, MixturePrior>)
-                {
-                    group.emplace(ComponentAllocation(
-                        num_markers, num_samples, p.proportion.init));
-                }
-            },
-            prior.marker);
-
-        if (prior.sign)
-        {
-            Eigen::Vector3d sign_proportion{
-                {0.0, prior.sign->init_value, 1.0 - prior.sign->init_value}};
-            sign.emplace(num_markers, sign_proportion);
-        }
-    }
+    GeneticState(
+        const GeneticEffect& effect,
+        const GeneticPrior& prior,
+        GeneticMode mode);
 
     GeneticMode type;
     Eigen::VectorXd coeffs;
@@ -196,7 +167,10 @@ namespace gelex::bayes::vi
 
 struct GeneticState
 {
-    GeneticState(const bayes::GeneticEffect& effect, const GeneticPrior& prior);
+    GeneticState(
+        const bayes::GeneticEffect& effect,
+        const bayes::GeneticPrior& prior,
+        GeneticMode mode);
 
     GeneticMode type;
     Eigen::VectorXd coeffs;

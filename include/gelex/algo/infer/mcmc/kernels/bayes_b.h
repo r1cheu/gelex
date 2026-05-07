@@ -20,11 +20,11 @@
 #include <cmath>
 #include <cstdint>
 #include <random>
+#include <variant>
 
 #include "gelex/algo/infer/mcmc/kernels/common.h"
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/prior.h"
 
 namespace gelex::mcmc
 {
@@ -43,8 +43,8 @@ class BayesBKernel
                   state,
                   "BayesBKernel")),
           normal_(0.0),
-          variance_sampler_(
-              make_variance_sampler<bayes::SpikePrior>(prior, "BayesBKernel"))
+          variance_sampler_(make_variance_sampler(
+              std::get<bayes::GeneticSpec>(prior.spec).variance))
     {
     }
 

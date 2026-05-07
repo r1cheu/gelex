@@ -32,8 +32,8 @@
 #include "gelex/infra/detail/eigen_thread_guard.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/notify.h"
+#include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior.h"
 
 namespace gelex
 {
@@ -47,9 +47,38 @@ inline auto log_scaled_inv_chi_sq(double x, double nu, double s2) -> double
     return -(nu / 2.0 + 1.0) * std::log(x) - (nu * s2) / (2.0 * x);
 }
 
+inline auto resolve_genetic_spec(
+    const bayes::BayesMethod& method,
+    GeneticMode mode) -> const bayes::GeneticSpec*
+{
+    for (const auto& prior : method.genetics)
+    {
+        if (const auto* gs = std::get_if<bayes::GeneticSpec>(&prior.spec))
+        {
+            if (gs->mode == mode)
+            {
+                return gs;
+            }
+        }
+        else
+        {
+            const auto& js = std::get<bayes::JointSpec>(prior.spec);
+            if (js.additive.mode == mode)
+            {
+                return &js.additive;
+            }
+            if (js.dominance.mode == mode)
+            {
+                return &js.dominance;
+            }
+        }
+    }
+    return nullptr;
+}
+
 inline auto compute_elbo(
     const BayesModel& model,
-    const bayes::Priors& priors,
+    const bayes::BayesMethod& method,
     const vi::State& state) -> double
 {
     const double sigma2_e = state.residual().variance;
@@ -68,9 +97,11 @@ inline auto compute_elbo(
     // --- Genetic prior + entropy per genetic effect ---
     for (const auto& gs : state.genetics())
     {
-        const auto* prior = priors.genetic(gs.type);
-        const auto& marker_prior
-            = std::get<bayes::ContinuousPrior>(prior->marker);
+        const auto* spec = resolve_genetic_spec(method, gs.type);
+        if (spec == nullptr)
+        {
+            continue;
+        }
         const double sigma2_beta = gs.marker_variance(0);
         const auto p = static_cast<double>(gs.coeffs.size());
 
@@ -86,14 +117,12 @@ inline auto compute_elbo(
 
         // log p(σ²_β | ν, s²) — variance prior density
         elbo += log_scaled_inv_chi_sq(
-            sigma2_beta,
-            marker_prior.variance.param.nu,
-            marker_prior.variance.param.s2);
+            sigma2_beta, spec->variance.prior.nu, spec->variance.prior.s2);
     }
 
     // --- Residual variance prior ---
     elbo += log_scaled_inv_chi_sq(
-        sigma2_e, priors.residual().param.nu, priors.residual().param.s2);
+        sigma2_e, method.residual.prior.nu, method.residual.prior.s2);
 
     return elbo;
 }
@@ -111,7 +140,7 @@ class Solver
 
     auto run(
         const BayesModel& model,
-        const bayes::Priors& priors,
+        bayes::BayesMethod method,
         const FitObserver& observer = {}) -> vi::Result;
 
    private:
@@ -128,17 +157,17 @@ Solver<ChainFactory>::Solver(vi::Params params, ChainFactory make_chain)
 template <typename ChainFactory>
 auto Solver<ChainFactory>::run(
     const BayesModel& model,
-    const bayes::Priors& priors,
+    bayes::BayesMethod method,
     const FitObserver& observer) -> vi::Result
 {
-    notify(observer, FitPriorSetEvent{.priors = &priors});
+    notify(observer, FitMethodSetEvent{.method = &method});
 
-    vi::State state{model, priors};
+    vi::State state{model, method};
 
     const infra::detail::EigenThreadGuard guard;
     omp_set_num_threads(1);
 
-    vi::Context ctx{.model = model, .priors = priors, .state = state};
+    vi::Context ctx{.model = model, .method = method, .state = state};
     auto chain = make_chain_(ctx);
 
     double prev_elbo = -std::numeric_limits<double>::max();
@@ -148,7 +177,7 @@ auto Solver<ChainFactory>::run(
         chain.step();
         state.compute_heritability();
 
-        const double elbo = detail::compute_elbo(model, priors, state);
+        const double elbo = detail::compute_elbo(model, method, state);
         const double delta
             = std::abs(elbo - prev_elbo) / (std::abs(prev_elbo) + 1e-300);
         const bool converged = iter > 0 && delta < params_.tol;

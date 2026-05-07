@@ -41,14 +41,14 @@ namespace
 
 using TraitRunner = mcmc::Result (*)(
     BayesModel&,
-    const bayes::Priors&,
+    bayes::BayesMethod,
     const mcmc::FitEngine::Config&,
     const FitObserver&);
 
 template <auto MakeChain>
 auto run_recipe(
     BayesModel& model,
-    const bayes::Priors& priors,
+    bayes::BayesMethod method,
     const mcmc::FitEngine::Config& config,
     const FitObserver& observer) -> mcmc::Result
 {
@@ -62,7 +62,7 @@ auto run_recipe(
         auto checkpoint = read_checkpoint(*config.resume_path);
         return mcmc.resume(model, std::move(checkpoint), observer);
     }
-    return mcmc.run(model, priors, config.seed, observer);
+    return mcmc.run(model, std::move(method), config.seed, observer);
 }
 
 // clang-format off
@@ -118,7 +118,7 @@ auto mcmc::FitEngine::run(
     const FitObserver& observer) -> void
 {
     auto model = build_bayes_model(std::move(pheno), std::move(geno));
-    auto priors = build_bayes_priors(
+    auto method = build_bayes_method(
         PriorOverrides{
             .method = config_.method,
             .phenotype_variance = model.phenotype_variance(),
@@ -130,7 +130,7 @@ auto mcmc::FitEngine::run(
         },
         model);
     auto runner = find_runner(config_.method);
-    auto result = runner(model, priors, config_, observer);
+    auto result = runner(model, std::move(method), config_, observer);
 
     mcmc::ResultWriter writer(result, config_.bfile_prefix + ".bim");
     writer.save(config_.out_prefix);

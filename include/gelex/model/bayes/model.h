@@ -24,8 +24,9 @@
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/mcmc/state.h"
+#include "gelex/exception.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/method.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -81,7 +82,7 @@ template <typename GeneticStateT>
 class InferenceState
 {
    public:
-    InferenceState(const BayesModel& model, const bayes::Priors& priors);
+    InferenceState(const BayesModel& model, const bayes::BayesMethod& method);
     InferenceState(
         bayes::FixedState fixed,
         std::vector<bayes::RandomState> random,
@@ -122,25 +123,52 @@ class InferenceState
 template <typename GeneticStateT>
 InferenceState<GeneticStateT>::InferenceState(
     const BayesModel& model,
-    const bayes::Priors& priors)
+    const bayes::BayesMethod& method)
     : fixed_(model.fixed())
 {
-    for (const auto& effect : model.genetics())
+    for (const auto& prior : method.genetics)
     {
-        const auto* prior = priors.genetic(effect.type);
-        genetics_.emplace_back(effect, *prior);
+        std::visit(
+            [&](const auto& spec)
+            {
+                using T = std::decay_t<decltype(spec)>;
+                if constexpr (std::is_same_v<T, bayes::GeneticSpec>)
+                {
+                    const auto* eff = model.genetic(spec.mode);
+                    if (eff == nullptr)
+                    {
+                        throw GelexException(
+                            "BayesMethod ctor: missing genetic effect");
+                    }
+                    genetics_.emplace_back(*eff, prior, spec.mode);
+                }
+                else
+                {
+                    for (auto mode : {GeneticMode::A, GeneticMode::D})
+                    {
+                        const auto* eff = model.genetic(mode);
+                        if (eff == nullptr)
+                        {
+                            throw GelexException(
+                                "BayesMethod ctor: missing genetic effect for "
+                                "JointSpec");
+                        }
+                        genetics_.emplace_back(*eff, prior, mode);
+                    }
+                }
+            },
+            prior.spec);
     }
 
     const auto& random_effects = model.random();
-    const auto& random_priors = priors.random();
     random_.reserve(random_effects.size());
     for (std::size_t i = 0; i < random_effects.size(); ++i)
     {
-        random_.emplace_back(random_effects[i], random_priors[i]);
+        random_.emplace_back(random_effects[i], method.randoms[i]);
     }
 
     residual_.y_adj = model.phenotype().array();
-    residual_.variance = priors.residual().init;
+    residual_.variance = method.residual.init;
 }
 
 template <typename GeneticStateT>

@@ -46,7 +46,7 @@ auto vi::FitEngine::run(
     }
 
     auto model = build_bayes_model(std::move(pheno), std::move(geno));
-    auto priors = build_bayes_priors(
+    auto method = build_bayes_method(
         PriorOverrides{
             .method = config_.method,
             .phenotype_variance = model.phenotype_variance(),
@@ -57,7 +57,6 @@ auto vi::FitEngine::run(
             .positive_prob = 0.5,
         },
         model);
-
     vi::Result result = [&]
     {
         switch (config_.method.mode)
@@ -66,21 +65,22 @@ auto vi::FitEngine::run(
             {
                 vi::Solver engine(
                     config_.params, vi::make_bayes_rr_chain<GeneticMode::A>);
-                return engine.run(model, priors, observer);
+                return engine.run(model, method, observer);
             }
             case GeneticMode::D:
             {
                 vi::Solver engine(
                     config_.params, vi::make_bayes_rr_chain<GeneticMode::D>);
-                return engine.run(model, priors, observer);
+                return engine.run(model, method, observer);
             }
             case GeneticMode::AD:
             {
                 vi::Solver engine(
                     config_.params, vi::make_bayes_rr_chain<GeneticMode::AD>);
-                return engine.run(model, priors, observer);
+                return engine.run(model, method, observer);
             }
         }
+        std::unreachable();
     }();
 
     vi::ResultWriter writer(result, config_.bfile_prefix + ".bim");

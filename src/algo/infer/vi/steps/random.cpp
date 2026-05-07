@@ -30,20 +30,21 @@ namespace gelex::vi
 auto RandomStep::make(const Context& ctx) -> RandomStep
 {
     const auto& effects = ctx.model.random();
-    const auto& priors = ctx.priors.random();
+    const auto& specs = ctx.method.randoms;
     auto& states = ctx.state.random();
-    if (effects.size() != priors.size() || effects.size() != states.size())
+    if (effects.size() != specs.size() || effects.size() != states.size())
     {
         throw GelexException(
             fmt::format(
-                "random block size mismatch: model={}, priors={}, state={}",
+                "random block size mismatch: model={}, method.random={}, "
+                "state={}",
                 effects.size(),
-                priors.size(),
+                specs.size(),
                 states.size()));
     }
     return RandomStep{Deps{
         .effects = std::span{effects},
-        .priors = std::span{priors},
+        .specs = std::span{specs},
         .states = std::span{states},
         .residual = ctx.state.residual(),
     }};
@@ -57,7 +58,7 @@ auto RandomStep::step() -> void
     for (std::size_t block = 0; block < deps_.effects.size(); ++block)
     {
         const auto& effect = deps_.effects[block];
-        const auto& prior = deps_.priors[block];
+        const auto& spec = deps_.specs[block];
         auto& state = deps_.states[block];
 
         auto& coeffs = state.coeffs;
@@ -81,7 +82,8 @@ auto RandomStep::step() -> void
             y_adj.array() += (old_i - post_mean) * col.array();
         }
 
-        gelex::stats::detail::ScaledInvChiSq chi_squared{prior.param};
+        gelex::stats::detail::ScaledInvChiSq chi_squared{
+            {.nu = spec.prior.nu, .s2 = spec.prior.s2}};
         chi_squared.compute(coeffs.squaredNorm(), coeffs.size());
         state.variance = chi_squared.expected_value();
     }

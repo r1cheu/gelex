@@ -30,10 +30,10 @@
 #include "gelex/data/genotype/matrix.h"
 #include "gelex/io/mcmc/checkpoint_reader.h"
 #include "gelex/io/mcmc/checkpoint_writer.h"
+#include "gelex/model/bayes/builder.h"
 #include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_config.h"
 #include "gelex/types/fixed_effects.h"
 
 using namespace gelex;            // NOLINT
@@ -55,7 +55,7 @@ auto make_geno_matrix(Eigen::Index n_samples, Eigen::Index n_snps)
 }
 
 auto make_bayes_a_model(Eigen::Index n_samples, Eigen::Index n_snps)
-    -> std::pair<BayesModel, bayes::Priors>
+    -> std::pair<BayesModel, bayes::BayesMethod>
 {
     auto phenotype = Eigen::VectorXd::Random(n_samples);
     auto fixed = FixedEffect::build(n_samples);
@@ -65,18 +65,19 @@ auto make_bayes_a_model(Eigen::Index n_samples, Eigen::Index n_snps)
     genetics.emplace_back(
         GeneticMode::A, bayes::GenotypeStorage{std::move(geno)});
 
-    double pheno_var
-        = phenotype.array().square().mean() - std::pow(phenotype.mean(), 2.0);
-    PriorSetConfig pc(bayes::BayesConfig{BayesBase::A}, pheno_var);
-    bayes::Priors priors(pc, genetics, 0);
-
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
-    return {std::move(model), std::move(priors)};
+    auto method = build_bayes_method(
+        PriorOverrides{
+            .method = bayes::BayesConfig{BayesBase::A},
+            .phenotype_variance = model.phenotype_variance(),
+        },
+        model);
+    return {std::move(model), std::move(method)};
 }
 
 auto run_bayes_a(
     BayesModel& model,
-    const bayes::Priors& priors,
+    bayes::BayesMethod method,
     Eigen::Index n_iters,
     std::string_view prefix,
     Eigen::Index seed) -> std::string
@@ -87,7 +88,7 @@ auto run_bayes_a(
         mcmc::make_bayes_a_chain<GeneticMode::A>,
         std::string(prefix),
         std::string(prefix));
-    mcmc.run(model, priors, seed);
+    mcmc.run(model, std::move(method), seed);
     return std::string(prefix) + ".ckpt";
 }
 
@@ -134,11 +135,11 @@ TEST_CASE("checkpoint resume produces bit-exact final state", "[checkpoint]")
 
     Eigen::Index n_samples = 30;
     Eigen::Index n_snps = 8;
-    auto [model, priors] = make_bayes_a_model(n_samples, n_snps);
+    auto [model, method] = make_bayes_a_model(n_samples, n_snps);
 
-    auto ckpt_cont = run_bayes_a(model, priors, 20, prefix_cont, 42);
+    auto ckpt_cont = run_bayes_a(model, method, 20, prefix_cont, 42);
 
-    auto ckpt_first = run_bayes_a(model, priors, 10, prefix_first, 42);
+    auto ckpt_first = run_bayes_a(model, method, 10, prefix_first, 42);
     auto ckpt_resume = resume_bayes_a(model, 10, prefix_resume, ckpt_first);
 
     auto state_cont = read_checkpoint(ckpt_cont);
@@ -173,8 +174,8 @@ TEST_CASE("checkpoint round-trip preserves all fields", "[checkpoint]")
     const std::string prefix = "/tmp/gelex_test_ckpt_roundtrip";
     const std::string ckpt_path = prefix + ".ckpt";
 
-    auto [model, priors] = make_bayes_a_model(kNSamples, kNSnps);
-    mcmc::State state(model, priors);
+    auto [model, method] = make_bayes_a_model(kNSamples, kNSnps);
+    mcmc::State state(model, method);
     fill_state(state);
 
     std::mt19937_64 rng(12345);
@@ -182,7 +183,7 @@ TEST_CASE("checkpoint round-trip preserves all fields", "[checkpoint]")
     rng();
     rng();
 
-    write_checkpoint(state, rng, priors, prefix);
+    write_checkpoint(state, rng, method, prefix);
 
     auto ckpt = read_checkpoint(ckpt_path);
 
@@ -214,12 +215,12 @@ TEST_CASE("checkpoint atomic write leaves no tmp file", "[checkpoint]")
     const std::string ckpt_path = prefix + ".ckpt";
     const std::string tmp_path = prefix + ".ckpt.tmp";
 
-    auto [model, priors] = make_bayes_a_model(kNSamples, kNSnps);
-    mcmc::State state(model, priors);
+    auto [model, method] = make_bayes_a_model(kNSamples, kNSnps);
+    mcmc::State state(model, method);
     fill_state(state);
     std::mt19937_64 rng(99);
 
-    write_checkpoint(state, rng, priors, prefix);
+    write_checkpoint(state, rng, method, prefix);
 
     REQUIRE(std::filesystem::exists(ckpt_path));
     REQUIRE_FALSE(std::filesystem::exists(tmp_path));
@@ -227,70 +228,86 @@ TEST_CASE("checkpoint atomic write leaves no tmp file", "[checkpoint]")
     std::filesystem::remove(ckpt_path);
 }
 
-TEST_CASE("checkpoint prior round-trip preserves all fields", "[checkpoint]")
+TEST_CASE("checkpoint method round-trip preserves all fields", "[checkpoint]")
 {
-    const std::string prefix = "/tmp/gelex_test_ckpt_prior";
+    const std::string prefix = "/tmp/gelex_test_ckpt_method";
     const std::string ckpt_path = prefix + ".ckpt";
 
-    auto [model, model_priors] = make_bayes_a_model(kNSamples, kNSnps);
+    Eigen::VectorXd pi_init{{0.9, 0.05, 0.05}};
+    Eigen::VectorXd multiplier{{0.0, 0.01, 0.1}};
+
+    bayes::GeneticSpec spec{
+        .mode = GeneticMode::A,
+        .variance = {bayes::VarianceScope::per_marker, 0.0, {4.0, 0.3}},
+        .sign = bayes::CategoricalSpec{
+            Eigen::VectorXd{{0.6, 0.4}},
+            bayes::DirichletPrior{Eigen::VectorXi{{1, 1}}},
+            false,
+        },
+    };
+
+    bayes::GeneticPrior prior{
+        spec,
+        bayes::Mixture{
+            bayes::ScaledMixture{multiplier},
+            bayes::CategoricalSpec{
+                pi_init,
+                bayes::DirichletPrior{Eigen::VectorXi{{1, 1, 1}}},
+                true,
+            },
+        },
+    };
+
+    bayes::BayesMethod method;
+    method.genetics.push_back(prior);
+    method.randoms.push_back(
+        {bayes::VarianceScope::per_block, 0.0, {3.0, 0.1}});
+    method.randoms.push_back(
+        {bayes::VarianceScope::per_block, 0.0, {5.0, 0.2}});
+    method.residual = {bayes::VarianceScope::per_block, 0.0, {4.0, 0.5}};
+
+    auto [model, model_method] = make_bayes_a_model(kNSamples, kNSnps);
+    (void)model_method;
+    mcmc::State state(model, method);
+    fill_state(state);
     std::mt19937_64 rng(77);
 
-    Eigen::VectorXd pi_init(3);
-    pi_init << 0.9, 0.05, 0.05;
-    Eigen::VectorXd multiplier(3);
-    multiplier << 0.0, 0.01, 0.1;
-
-    std::vector<bayes::GeneticPrior> genetics;
-    genetics.push_back(
-        {.type = GeneticMode::A,
-         .marker = bayes::
-             MixturePrior{.variance = {.param = {.nu = 4.0, .s2 = 0.3}, .init = 0, .size = kNSnps}, .proportion = {.init = pi_init, .estimate = true}, .multiplier = multiplier},
-         .sign = bayes::SignPrior{.init_value = 0.6}});
-
-    std::vector<bayes::RandomPrior> random_priors;
-    random_priors.push_back(
-        {.param = {.nu = 3.0, .s2 = 0.1}, .init = 0, .size = 0});
-    random_priors.push_back(
-        {.param = {.nu = 5.0, .s2 = 0.2}, .init = 0, .size = 0});
-
-    bayes::Priors priors(
-        std::move(genetics),
-        std::move(random_priors),
-        {.param = {.nu = 4.0, .s2 = 0.5}, .init = 0, .size = 0});
-
-    mcmc::State state(model, priors);
-    fill_state(state);
-
-    write_checkpoint(state, rng, priors, prefix);
+    write_checkpoint(state, rng, method, prefix);
 
     auto ckpt = read_checkpoint(ckpt_path);
-    const auto& rp = ckpt.priors;
+    const auto& rm = ckpt.method;
 
     // Residual
-    CHECK(rp.residual().param.nu == 4.0);
-    CHECK(rp.residual().param.s2 == 0.5);
+    CHECK(rm.residual.prior.nu == 4.0);
+    CHECK(rm.residual.prior.s2 == 0.5);
 
     // Random
-    REQUIRE(rp.random().size() == 2);
-    CHECK(rp.random()[0].param.nu == 3.0);
-    CHECK(rp.random()[0].param.s2 == 0.1);
-    CHECK(rp.random()[1].param.nu == 5.0);
-    CHECK(rp.random()[1].param.s2 == 0.2);
+    REQUIRE(rm.randoms.size() == 2);
+    CHECK(rm.randoms[0].prior.nu == 3.0);
+    CHECK(rm.randoms[0].prior.s2 == 0.1);
+    CHECK(rm.randoms[1].prior.nu == 5.0);
+    CHECK(rm.randoms[1].prior.s2 == 0.2);
 
-    // Genetic: MixturePrior
-    REQUIRE(rp.genetics().size() == 1);
-    CHECK(rp.genetics()[0].type == GeneticMode::A);
-    const auto* mp = std::get_if<bayes::MixturePrior>(&rp.genetics()[0].marker);
-    REQUIRE(mp != nullptr);
-    CHECK(mp->variance.param.nu == 4.0);
-    CHECK(mp->variance.param.s2 == 0.3);
-    CHECK(mp->proportion.init.isApprox(pi_init));
-    CHECK(mp->proportion.estimate == true);
-    CHECK(mp->multiplier.isApprox(multiplier));
+    // Genetic prior
+    REQUIRE(rm.genetics.size() == 1);
+    const auto* gs
+        = std::get_if<bayes::GeneticSpec>(&rm.genetics[0].spec);
+    REQUIRE(gs != nullptr);
+    CHECK(gs->mode == GeneticMode::A);
+    CHECK(gs->variance.prior.nu == 4.0);
+    CHECK(gs->variance.prior.s2 == 0.3);
+
+    // Mixture
+    REQUIRE(rm.genetics[0].mixture.has_value());
+    CHECK(rm.genetics[0].mixture->proportions.init.isApprox(pi_init));
+    CHECK(rm.genetics[0].mixture->proportions.estimate == true);
+    const auto* sm = std::get_if<bayes::ScaledMixture>(
+        &rm.genetics[0].mixture->strategy);
+    REQUIRE(sm != nullptr);
+    CHECK(sm->multiplier.isApprox(multiplier));
 
     // Sign
-    REQUIRE(rp.genetics()[0].sign.has_value());
-    CHECK(rp.genetics()[0].sign->init_value == 0.6);
+    REQUIRE(gs->sign.has_value());
 
     std::filesystem::remove(ckpt_path);
 }
@@ -300,18 +317,18 @@ TEST_CASE("MCMC resume throws on checkpoint dimension mismatch", "[checkpoint]")
     const std::string prefix = "/tmp/gelex_test_ckpt_dimcheck";
     const std::string ckpt_path = prefix + ".ckpt";
 
-    auto [model_write, priors_write] = make_bayes_a_model(kNSamples, kNSnps);
-    mcmc::State state(model_write, priors_write);
+    auto [model_write, method_write] = make_bayes_a_model(kNSamples, kNSnps);
+    mcmc::State state(model_write, method_write);
     fill_state(state);
     std::mt19937_64 rng(42);
 
-    write_checkpoint(state, rng, priors_write, prefix);
+    write_checkpoint(state, rng, method_write, prefix);
 
     auto ckpt = read_checkpoint(ckpt_path);
 
-    auto [model_mismatch, priors_mismatch]
+    auto [model_mismatch, method_mismatch]
         = make_bayes_a_model(kNSamples, kNSnps + 3);
-    (void)priors_mismatch;
+    (void)method_mismatch;
 
     mcmc::Params params(1, 0, 1, 1);
     mcmc::Solver mcmc(params, mcmc::make_bayes_a_chain<GeneticMode::A>);

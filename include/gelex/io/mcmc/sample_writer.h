@@ -24,6 +24,7 @@
 #include <Eigen/Core>
 
 #include "gelex/io/detail/binary_writer.h"
+#include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -31,11 +32,6 @@ namespace gelex
 {
 
 class BayesModel;
-
-namespace bayes
-{
-class Priors;
-}
 
 namespace mcmc
 {
@@ -45,7 +41,7 @@ class Writer
    public:
     Writer(
         const BayesModel& model,
-        const bayes::Priors& priors,
+        const bayes::BayesMethod& method,
         std::string_view prefix,
         Eigen::Index n_records);
     Writer(const Writer&) = delete;

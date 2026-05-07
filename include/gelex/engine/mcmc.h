@@ -24,7 +24,7 @@
 
 #include "gelex/algo/infer/params.h"
 #include "gelex/infra/logging/fit_event.h"
-#include "gelex/model/bayes/method_.h"
+#include "gelex/model/bayes/method.h"
 
 namespace gelex
 {

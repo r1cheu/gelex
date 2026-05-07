@@ -46,7 +46,7 @@ class GeneticStep
     using Deps = GeneticStepDeps;
 
     explicit GeneticStep(Deps deps)
-        : kernel_(deps.block.prior, deps.block.state),
+        : kernel_(deps.block.prior, deps.block.effect, deps.block.state),
           sweep_(deps.block.effect, deps.block.state, deps.residual)
     {
     }

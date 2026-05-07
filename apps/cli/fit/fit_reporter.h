@@ -48,7 +48,8 @@ namespace bayes
 {
 struct GeneticEffect;
 struct GeneticPrior;
-struct VariancePrior;
+struct VarianceSpec;
+struct BayesMethod;
 }  // namespace bayes
 
 enum class GeneticMode : uint8_t;
@@ -71,7 +72,7 @@ class FitReporter
     auto on_event(const FitVIBannerEvent& event) const -> void;
     auto on_event(const FitMCMCConfigEvent& event) const -> void;
     auto on_event(const FitVIConfigEvent& event) const -> void;
-    auto on_event(const FitPriorSetEvent& event) const -> void;
+    auto on_event(const FitMethodSetEvent& event) const -> void;
     auto on_event(const FitMCMCProgressEvent& event) -> void;
     auto on_event(const FitMCMCCompleteEvent& event) const -> void;
     auto on_event(const FitVIProgressEvent& event) -> void;
@@ -86,9 +87,10 @@ class FitReporter
     }
 
    private:
-    auto print_random_prior(const bayes::VariancePrior& prior) const -> void;
-    auto print_genetic_prior(const bayes::GeneticPrior& prior) const -> void;
-    auto print_residual_prior(const bayes::VariancePrior& prior) const -> void;
+    auto print_random_prior(const bayes::VarianceSpec& spec) const -> void;
+    auto print_genetic_prior(const bayes::GeneticPrior& prior, GeneticMode mode)
+        const -> void;
+    auto print_residual_prior(const bayes::VarianceSpec& spec) const -> void;
 
     auto print_fixed_summary(
         const mcmc::Result& result,

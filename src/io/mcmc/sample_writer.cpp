@@ -24,8 +24,10 @@
 
 #include <Eigen/Core>
 
+#include "gelex/algo/infer/detail/genetic_binding.h"
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 
@@ -35,34 +37,41 @@ namespace gelex
 namespace
 {
 
-auto has_group_prior(const bayes::MarkerPrior& marker) -> bool
+auto has_group_prior(const bayes::GeneticPrior& prior) -> bool
 {
-    return !std::holds_alternative<bayes::ContinuousPrior>(marker);
+    return prior.mixture.has_value();
 }
 
-auto group_prior_estimate_pi(const bayes::MarkerPrior& marker) -> bool
+auto group_prior_estimate_pi(const bayes::GeneticPrior& prior) -> bool
 {
-    if (const auto* sp = std::get_if<bayes::SpikePrior>(&marker))
-    {
-        return sp->proportion.estimate;
-    }
-    return std::get<bayes::MixturePrior>(marker).proportion.estimate;
+    return prior.mixture->proportions.estimate;
 }
 
-auto group_prior_n_proportions(const bayes::MarkerPrior& marker) -> Eigen::Index
+auto group_prior_n_proportions(const bayes::GeneticPrior& prior) -> Eigen::Index
 {
-    if (const auto* sp = std::get_if<bayes::SpikePrior>(&marker))
+    return prior.mixture->proportions.init.size();
+}
+
+auto find_sign_for_mode(const bayes::GeneticPrior& prior, GeneticMode mode)
+    -> bool
+{
+    if (const auto* gs = std::get_if<bayes::GeneticSpec>(&prior.spec))
     {
-        return sp->proportion.init.size();
+        return gs->mode == mode && gs->sign.has_value();
     }
-    return std::get<bayes::MixturePrior>(marker).proportion.init.size();
+    const auto& js = std::get<bayes::JointSpec>(prior.spec);
+    if (js.additive.mode == mode)
+    {
+        return js.additive.sign.has_value();
+    }
+    return js.dominance.mode == mode && js.dominance.sign.has_value();
 }
 
 }  // namespace
 
 mcmc::Writer::Writer(
     const BayesModel& model,
-    const bayes::Priors& priors,
+    const bayes::BayesMethod& method,
     std::string_view prefix,
     Eigen::Index n_records)
     : writer_(fmt::format("{}.samples", prefix))
@@ -113,9 +122,10 @@ mcmc::Writer::Writer(
     // Genetic
     for (const auto& effect : model.genetics())
     {
-        auto sect = EffectType::from_genetic(effect.type);
+        const auto sect = EffectType::from_genetic(effect.type);
         const auto n_snps = bayes::get_cols(effect.X);
-        const auto* prior = priors.genetic(effect.type);
+        const auto* prior
+            = infer::detail::find_prior_for_mode(method, effect.type);
 
         GeneticHandles gh;
         gh.section_effect = sect;
@@ -124,18 +134,18 @@ mcmc::Writer::Writer(
         gh.variance = writer_.reserve<double>(
             fmt::format("{}/variance", sect), 1, cols);
 
-        if ((prior != nullptr) && has_group_prior(prior->marker))
+        if ((prior != nullptr) && has_group_prior(*prior))
         {
             gh.mixture_tracker = writer_.reserve<int8_t>(
                 fmt::format("{}/group/assignment", sect), n_snps, cols);
-            if (group_prior_estimate_pi(prior->marker))
+            if (group_prior_estimate_pi(*prior))
             {
-                const auto n_pi = group_prior_n_proportions(prior->marker);
+                const auto n_pi = group_prior_n_proportions(*prior);
                 gh.pi = writer_.reserve<double>(
                     fmt::format("{}/group/proportion", sect), n_pi, cols);
             }
         }
-        if ((prior != nullptr) && prior->sign)
+        if ((prior != nullptr) && find_sign_for_mode(*prior, effect.type))
         {
             gh.sign_tracker = writer_.reserve<int8_t>(
                 fmt::format("{}/sign/assignment", sect), n_snps, cols);

@@ -27,11 +27,10 @@
 #include "gelex/data/genotype/matrix.h"
 #include "gelex/data/genotype/processor.h"
 #include "gelex/data/genotype/storage.h"
+#include "gelex/model/bayes/builder.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_config.h"
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -42,12 +41,11 @@ using gelex::BayesBase;
 using gelex::BayesModel;
 using gelex::FixedEffect;
 using gelex::GeneticMode;
-using gelex::PriorSetConfig;
+using gelex::PriorOverrides;
 using gelex::bayes::BayesConfig;
 using gelex::bayes::DominancePolicy;
 using gelex::bayes::GeneticEffect;
 using gelex::bayes::GenotypeStorage;
-using gelex::bayes::Priors;
 using gelex::genotype::GenotypeMatrix;
 
 constexpr Eigen::Index kIndividuals = 100;
@@ -110,12 +108,6 @@ auto make_model() -> BayesModel
     return BayesModel(std::move(y), std::move(fixed), std::move(genetics));
 }
 
-auto make_priors(const BayesModel& model, BayesConfig method) -> Priors
-{
-    PriorSetConfig pc(method, model.phenotype_variance());
-    return Priors(pc, model.genetics(), 0);
-}
-
 template <typename Factory>
 void bench_chain(
     ankerl::nanobench::Bench& b,
@@ -125,10 +117,15 @@ void bench_chain(
     Factory factory,
     Eigen::Index n_iters)
 {
-    const auto priors = make_priors(model, cfg);
-    gelex::mcmc::State state{model, priors};
+    auto method = gelex::build_bayes_method(
+        PriorOverrides{
+            .method = cfg,
+            .phenotype_variance = model.phenotype_variance(),
+        },
+        model);
+    gelex::mcmc::State state{model, method};
     std::mt19937_64 rng(42);
-    gelex::mcmc::Context ctx{model, priors, state, rng};
+    gelex::mcmc::Context ctx{model, method, state, rng};
     auto chain = factory(ctx);
     b.run(
         name,

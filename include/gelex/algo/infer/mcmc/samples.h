@@ -36,11 +36,11 @@ namespace gelex::bayes
 
 struct GeneticEffect;
 struct GeneticPrior;
-class Priors;
 struct GeneticState;
 struct ResidualState;
 struct Assignment;
 struct ComponentAllocation;
+struct BayesMethod;
 
 };  // namespace gelex::bayes
 
@@ -128,7 +128,8 @@ struct GeneticSamples
 {
     GeneticSamples(
         const bayes::GeneticEffect& effect,
-        const bayes::GeneticPrior& prior);
+        const bayes::GeneticPrior& prior,
+        GeneticMode mode);
     void store(const bayes::GeneticState& state);
 
     auto n_coeffs() const -> Eigen::Index { return n_coeffs_; }
@@ -182,7 +183,7 @@ class Samples
 
     Samples(
         const BayesModel& model,
-        const bayes::Priors& priors,
+        const bayes::BayesMethod& method,
         std::string_view sample_prefix,
         Eigen::Index n_records);
     void store(const mcmc::State& states);

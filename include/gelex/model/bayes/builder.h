@@ -18,10 +18,24 @@
 #define GELEX_MODEL_BAYES_BUILDER_H_
 
 #include <optional>
+#include <span>
 #include <vector>
 
-#include "gelex/model/bayes/method_.h"
-#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/method.h"
+
+namespace gelex::bayes
+{
+
+struct GeneticStats
+{
+    double marker_variance_sum{};
+    double heritability_init{};
+};
+
+auto build_bayes_method(const BayesConfig&, std::span<const GeneticStats>)
+    -> BayesMethod;
+
+}  // namespace gelex::bayes
 
 namespace gelex
 {
@@ -43,9 +57,9 @@ struct PriorOverrides
     double positive_prob{0.5};
 };
 
-auto build_bayes_priors(
+auto build_bayes_method(
     const PriorOverrides& overrides,
-    const BayesModel& model) -> bayes::Priors;
+    const BayesModel& model) -> bayes::BayesMethod;
 
 }  // namespace gelex
 

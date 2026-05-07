@@ -27,6 +27,7 @@
 
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/io/detail/binary_reader.h"
+#include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/prior.h"
 
 namespace gelex
@@ -47,6 +48,13 @@ auto read_scalar(const io::detail::BinaryReader& reader, std::string_view path)
     -> double
 {
     auto map = reader.to_map<double>(path);
+    return map(0, 0);
+}
+
+auto read_uint8(const io::detail::BinaryReader& reader, std::string_view path)
+    -> uint8_t
+{
+    auto map = reader.to_map<uint8_t>(path);
     return map(0, 0);
 }
 
@@ -136,18 +144,6 @@ auto read_component_allocation(
         std::move(component_variance)};
 }
 
-auto read_marker_group(
-    const io::detail::BinaryReader& reader,
-    const EffectType& effect,
-    const bayes::MarkerPrior& marker_prior) -> bayes::MarkerAllocation
-{
-    if (std::holds_alternative<bayes::SpikePrior>(marker_prior))
-    {
-        return read_assignment(reader, effect, "group");
-    }
-    return read_component_allocation(reader, effect);
-}
-
 auto read_sign(const io::detail::BinaryReader& reader, const EffectType& effect)
     -> bayes::Assignment
 {
@@ -156,9 +152,11 @@ auto read_sign(const io::detail::BinaryReader& reader, const EffectType& effect)
 
 auto read_one_genetic(
     const io::detail::BinaryReader& reader,
-    const bayes::GeneticPrior& prior) -> bayes::GeneticState
+    GeneticMode mode,
+    bool has_mixture,
+    bool has_sign) -> bayes::GeneticState
 {
-    const auto effect = EffectType::from_genetic(prior.type);
+    const auto effect = EffectType::from_genetic(mode);
 
     auto coeffs = read_vec<double>(reader, fmt::format("{}/coeff", effect));
     auto variance = read_scalar(reader, fmt::format("{}/variance", effect));
@@ -167,37 +165,32 @@ auto read_one_genetic(
         = read_vec<double>(reader, fmt::format("{}/marker_variance", effect));
 
     std::optional<bayes::MarkerAllocation> group;
-    if (!std::holds_alternative<bayes::ContinuousPrior>(prior.marker))
+    if (has_mixture)
     {
-        group = read_marker_group(reader, effect, prior.marker);
+        if (reader.contains(fmt::format("{}/component_u/0", effect)))
+        {
+            group = read_component_allocation(reader, effect);
+        }
+        else
+        {
+            group = read_assignment(reader, effect, "group");
+        }
     }
 
     std::optional<bayes::Assignment> sign;
-    if (prior.sign)
+    if (has_sign)
     {
         sign = read_sign(reader, effect);
     }
 
     return bayes::GeneticState(
-        prior.type,
+        mode,
         std::move(coeffs),
         std::move(u),
         variance,
         std::move(marker_variance),
         std::move(group),
         std::move(sign));
-}
-
-auto read_genetics(
-    const io::detail::BinaryReader& reader,
-    const bayes::Priors& priors) -> std::vector<bayes::GeneticState>
-{
-    std::vector<bayes::GeneticState> result;
-    for (const auto& gp : priors.genetics())
-    {
-        result.push_back(read_one_genetic(reader, gp));
-    }
-    return result;
 }
 
 auto read_residual(const io::detail::BinaryReader& reader)
@@ -222,102 +215,186 @@ auto read_rng(const io::detail::BinaryReader& reader) -> std::mt19937_64
     return rng;
 }
 
-auto read_variance_prior(
+auto read_variance_spec(
     const io::detail::BinaryReader& reader,
-    std::string_view prefix) -> bayes::VariancePrior
+    std::string_view prefix) -> bayes::VarianceSpec
 {
-    auto nu_map = reader.to_map<double>(fmt::format("{}/nu", prefix));
-    auto s2_map = reader.to_map<double>(fmt::format("{}/s2", prefix));
-    auto init_map = reader.to_map<double>(fmt::format("{}/init", prefix));
-    auto size_map = reader.to_map<double>(fmt::format("{}/size", prefix));
+    const auto nu = read_scalar(reader, fmt::format("{}/nu", prefix));
+    const auto s2 = read_scalar(reader, fmt::format("{}/s2", prefix));
+    const auto init = read_scalar(reader, fmt::format("{}/init", prefix));
+    const auto scope_raw = read_uint8(reader, fmt::format("{}/scope", prefix));
     return {
-        .param = {.nu = nu_map(0, 0), .s2 = s2_map(0, 0)},
-        .init = init_map(0, 0),
-        .size = static_cast<Eigen::Index>(size_map(0, 0))};
+        .scope = static_cast<bayes::VarianceScope>(scope_raw),
+        .init = init,
+        .prior = {nu, s2},
+    };
+}
+
+auto read_categorical_spec(
+    const io::detail::BinaryReader& reader,
+    std::string_view prefix) -> bayes::CategoricalSpec
+{
+    auto init = read_vec<double>(reader, fmt::format("{}/init", prefix));
+    const auto estimate
+        = read_uint8(reader, fmt::format("{}/estimate", prefix));
+    const Eigen::Index n = init.size();
+    return {
+        .init = std::move(init),
+        .prior = {Eigen::VectorXi::Ones(n)},
+        .estimate = estimate != 0,
+    };
+}
+
+auto read_genetic_spec(
+    const io::detail::BinaryReader& reader,
+    std::string_view prefix) -> bayes::GeneticSpec
+{
+    const auto mode_raw = read_uint8(reader, fmt::format("{}/mode", prefix));
+    auto variance
+        = read_variance_spec(reader, fmt::format("{}/variance", prefix));
+
+    std::optional<bayes::CategoricalSpec> sign;
+    if (reader.contains(fmt::format("{}/sign/init", prefix)))
+    {
+        sign = read_categorical_spec(reader, fmt::format("{}/sign", prefix));
+    }
+
+    return {
+        .mode = static_cast<GeneticMode>(mode_raw),
+        .variance = std::move(variance),
+        .sign = std::move(sign),
+    };
 }
 
 auto read_genetic_prior(
     const io::detail::BinaryReader& reader,
-    const EffectType& effect) -> bayes::GeneticPrior
+    std::string_view prefix) -> bayes::GeneticPrior
 {
-    const auto prefix = fmt::format("prior/{}", effect);
-    auto type_map = reader.to_map<uint8_t>(fmt::format("{}/type", prefix));
-    const auto type_index = type_map(0, 0);
+    const auto kind = read_uint8(reader, fmt::format("{}/kind", prefix));
 
-    auto vp = read_variance_prior(reader, fmt::format("{}/variance", prefix));
-
-    bayes::MarkerPrior marker;
-    if (type_index == 0)
+    std::variant<bayes::GeneticSpec, bayes::JointSpec> spec;
+    if (kind == 0)
     {
-        marker = bayes::ContinuousPrior{.variance = vp};
-    }
-    else if (type_index == 1)
-    {
-        auto pi_init
-            = reader.to_mat<double>(fmt::format("{}/proportion/init", prefix));
-        auto est_map = reader.to_map<uint8_t>(
-            fmt::format("{}/proportion/estimate", prefix));
-        marker = bayes::SpikePrior{
-            .variance = vp,
-            .proportion
-            = {.init = pi_init.col(0), .estimate = est_map(0, 0) != 0}};
+        spec = read_genetic_spec(reader, fmt::format("{}/spec", prefix));
     }
     else
     {
-        auto pi_init
-            = reader.to_mat<double>(fmt::format("{}/proportion/init", prefix));
-        auto est_map = reader.to_map<uint8_t>(
-            fmt::format("{}/proportion/estimate", prefix));
-        auto mult = reader.to_mat<double>(fmt::format("{}/multiplier", prefix));
-        marker = bayes::MixturePrior{
-            .variance = vp,
-            .proportion
-            = {.init = pi_init.col(0), .estimate = est_map(0, 0) != 0},
-            .multiplier = mult.col(0)};
+        spec = bayes::JointSpec{
+            read_genetic_spec(reader, fmt::format("{}/spec/additive", prefix)),
+            read_genetic_spec(reader, fmt::format("{}/spec/dominance", prefix)),
+        };
     }
 
-    std::optional<bayes::SignPrior> sign;
-    if (const auto path = fmt::format("{}/sign", prefix); reader.contains(path))
+    std::optional<bayes::Mixture> mixture;
+    if (read_uint8(reader, fmt::format("{}/mixture/present", prefix)) != 0)
     {
-        auto sign_map = reader.to_map<double>(path);
-        sign = bayes::SignPrior{.init_value = sign_map(0, 0)};
+        const auto strategy_idx
+            = read_uint8(reader, fmt::format("{}/mixture/strategy", prefix));
+        auto proportions = read_categorical_spec(
+            reader, fmt::format("{}/mixture/proportions", prefix));
+
+        bayes::VarianceStrategy strategy;
+        if (strategy_idx == 0)
+        {
+            strategy = bayes::SpikeSlab{};
+        }
+        else if (strategy_idx == 1)
+        {
+            auto multiplier = read_vec<double>(
+                reader, fmt::format("{}/mixture/multiplier", prefix));
+            strategy = bayes::ScaledMixture{std::move(multiplier)};
+        }
+        else
+        {
+            strategy = bayes::JointMixture{};
+        }
+
+        mixture = bayes::Mixture{std::move(strategy), std::move(proportions)};
     }
 
-    return {
-        .type = *effect.genetic_mode,
-        .marker = std::move(marker),
-        .sign = sign};
+    return {std::move(spec), std::move(mixture)};
 }
 
-auto read_priors(const io::detail::BinaryReader& reader) -> bayes::Priors
+auto read_method(const io::detail::BinaryReader& reader) -> bayes::BayesMethod
 {
-    auto residual = read_variance_prior(
-        reader, fmt::format("prior/{}", EffectType::residual()));
+    bayes::BayesMethod method;
 
-    std::vector<bayes::RandomPrior> random;
     for (uint8_t i = 0;; ++i)
     {
-        const auto path = fmt::format("prior/{}/{}", EffectType::random(), i);
-        if (!reader.contains(fmt::format("{}/nu", path)))
+        const auto prefix = fmt::format("method/genetic/{}", i);
+        if (!reader.contains(fmt::format("{}/kind", prefix)))
         {
             break;
         }
-        random.push_back(read_variance_prior(reader, path));
+        method.genetics.push_back(read_genetic_prior(reader, prefix));
     }
 
-    std::vector<bayes::GeneticPrior> genetics;
-    for (auto kind : {GeneticMode::A, GeneticMode::D})
+    for (uint8_t i = 0;; ++i)
     {
-        const auto effect = EffectType::from_genetic(kind);
-        const auto path = fmt::format("prior/{}/type", effect);
-        if (!reader.contains(path))
+        const auto prefix = fmt::format("method/random/{}", i);
+        if (!reader.contains(fmt::format("{}/nu", prefix)))
         {
-            continue;
+            break;
         }
-        genetics.push_back(read_genetic_prior(reader, effect));
+        method.randoms.push_back(read_variance_spec(reader, prefix));
     }
 
-    return {std::move(genetics), std::move(random), residual};
+    method.residual = read_variance_spec(reader, "method/residual");
+    return method;
+}
+
+struct GeneticModeInfo
+{
+    GeneticMode mode;
+    bool has_mixture;
+    bool has_sign;
+};
+
+auto collect_genetic_modes(const bayes::BayesMethod& method)
+    -> std::vector<GeneticModeInfo>
+{
+    std::vector<GeneticModeInfo> result;
+    for (const auto& prior : method.genetics)
+    {
+        const bool has_mixture = prior.mixture.has_value();
+        std::visit(
+            [&](const auto& spec)
+            {
+                using T = std::decay_t<decltype(spec)>;
+                if constexpr (std::is_same_v<T, bayes::GeneticSpec>)
+                {
+                    result.push_back(
+                        {spec.mode, has_mixture, spec.sign.has_value()});
+                }
+                else
+                {
+                    result.push_back(
+                        {spec.additive.mode,
+                         has_mixture,
+                         spec.additive.sign.has_value()});
+                    result.push_back(
+                        {spec.dominance.mode,
+                         has_mixture,
+                         spec.dominance.sign.has_value()});
+                }
+            },
+            prior.spec);
+    }
+    return result;
+}
+
+auto read_genetics(
+    const io::detail::BinaryReader& reader,
+    const bayes::BayesMethod& method) -> std::vector<bayes::GeneticState>
+{
+    const auto modes = collect_genetic_modes(method);
+    std::vector<bayes::GeneticState> result;
+    result.reserve(modes.size());
+    for (const auto& [mode, has_mixture, has_sign] : modes)  // NOLINT
+    {
+        result.push_back(read_one_genetic(reader, mode, has_mixture, has_sign));
+    }
+    return result;
 }
 
 }  // namespace
@@ -325,11 +402,12 @@ auto read_priors(const io::detail::BinaryReader& reader) -> bayes::Priors
 auto read_checkpoint(const std::filesystem::path& path) -> Checkpoint
 {
     io::detail::BinaryReader reader(path.string());
-    auto priors = read_priors(reader);
+
+    auto method = read_method(reader);
 
     auto fixed = read_fixed(reader);
     auto random = read_random(reader);
-    auto genetics = read_genetics(reader, priors);
+    auto genetics = read_genetics(reader, method);
     auto residual = read_residual(reader);
     auto rng = read_rng(reader);
 
@@ -339,7 +417,7 @@ auto read_checkpoint(const std::filesystem::path& path) -> Checkpoint
         std::move(genetics),
         std::move(residual));
 
-    return Checkpoint{std::move(state), rng, std::move(priors)};
+    return Checkpoint{std::move(state), rng, std::move(method)};
 }
 
 }  // namespace gelex

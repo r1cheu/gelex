@@ -23,10 +23,10 @@
 #include <fmt/format.h>
 #include <Eigen/Core>
 
+#include "gelex/algo/infer/detail/genetic_binding.h"
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/exception.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior.h"
 
 namespace gelex::mcmc
 {
@@ -48,42 +48,30 @@ auto PiStep::make(const Context& ctx, GeneticMode mode) -> PiStep
                 "PiStep requires marker allocation for genetic block {}",
                 EffectType::from_genetic(mode)));
     }
-    const auto* prior = ctx.priors.genetic(mode);
+    const auto* prior = infer::detail::find_prior_for_mode(ctx.method, mode);
     if (prior == nullptr)
     {
         throw GelexException(
             fmt::format(
-                "priors has no genetic block for mode {}",
+                "method has no genetic prior for mode {}",
                 EffectType::from_genetic(mode)));
     }
-    auto alpha = std::visit(
-        [&](const auto& marker_prior) -> Eigen::VectorXd
-        {
-            using T = std::decay_t<decltype(marker_prior)>;
-            if constexpr (
-                std::is_same_v<T, bayes::SpikePrior>
-                || std::is_same_v<T, bayes::MixturePrior>)
-            {
-                if (!marker_prior.proportion.estimate)
-                {
-                    throw GelexException(
-                        fmt::format(
-                            "PiStep: genetic block {} — "
-                            "PiStep requires proportion.estimate = true",
-                            EffectType::from_genetic(mode)));
-                }
-                return Eigen::VectorXd::Ones(
-                    marker_prior.proportion.init.size());
-            }
-            else
-            {
-                throw GelexException(
-                    fmt::format(
-                        "PiStep: genetic block {} has no proportion prior",
-                        EffectType::from_genetic(mode)));
-            }
-        },
-        prior->marker);
+    if (!prior->mixture.has_value())
+    {
+        throw GelexException(
+            fmt::format(
+                "PiStep: genetic block {} has no proportion prior",
+                EffectType::from_genetic(mode)));
+    }
+    if (!prior->mixture->proportions.estimate)
+    {
+        throw GelexException(
+            fmt::format(
+                "PiStep: genetic block {} — "
+                "PiStep requires proportion.estimate = true",
+                EffectType::from_genetic(mode)));
+    }
+    auto alpha = Eigen::VectorXd::Ones(prior->mixture->proportions.init.size());
     return PiStep{Deps{
         .group = *genetic_state->group,
         .alpha = std::move(alpha),

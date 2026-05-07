@@ -17,12 +17,15 @@
 #ifndef GELEX_ALGO_INFER_VI_KERNELS_RR_H_
 #define GELEX_ALGO_INFER_VI_KERNELS_RR_H_
 
+#include <variant>
+
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/algo/infer/vi/kernels/concept.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/method.h"
 
 namespace gelex::vi
 {
@@ -33,10 +36,13 @@ namespace gelex::vi
 class RRKernel
 {
    public:
-    RRKernel(const bayes::GeneticPrior& prior, bayes::vi::GeneticState& state)
+    RRKernel(
+        const bayes::GeneticPrior& prior,
+        const bayes::GeneticEffect& /*effect*/,
+        bayes::vi::GeneticState& state)
         : state_(state),
           chi_squared_(
-              std::get<bayes::ContinuousPrior>(prior.marker).variance.param)
+              make_chi_squared_params(std::get<bayes::GeneticSpec>(prior.spec)))
     {
     }
 
@@ -66,6 +72,12 @@ class RRKernel
     }
 
    private:
+    static auto make_chi_squared_params(const bayes::GeneticSpec& spec)
+        -> stats::detail::ScaledInvChiSqParams
+    {
+        return {.nu = spec.variance.prior.nu, .s2 = spec.variance.prior.s2};
+    }
+
     bayes::vi::GeneticState& state_;
     stats::detail::ScaledInvChiSq chi_squared_;
     double inv_marker_variance_{};

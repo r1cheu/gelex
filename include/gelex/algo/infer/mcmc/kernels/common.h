@@ -30,21 +30,10 @@
 namespace gelex::mcmc
 {
 
-template <typename MarkerPrior>
-auto unpack_marker_prior(
-    const bayes::GeneticPrior& prior,
-    std::string_view kernel_name) -> const MarkerPrior&
+inline auto make_variance_sampler(const bayes::VarianceSpec& spec)
+    -> stats::ScaledInvChi2Sampler<double>
 {
-    if (const auto* p = std::get_if<MarkerPrior>(&prior.marker); p != nullptr)
-    {
-        return *p;
-    }
-    throw GelexException(
-        fmt::format(
-            "{}: marker prior variant mismatch (mode={}, actual_index={})",
-            kernel_name,
-            static_cast<int>(prior.type),
-            prior.marker.index()));
+    return stats::ScaledInvChi2Sampler<double>{spec.prior.nu, spec.prior.s2};
 }
 
 template <typename Allocation>
@@ -68,16 +57,6 @@ auto unpack_marker_allocation(
             "{}: marker allocation variant mismatch (actual_index={})",
             kernel_name,
             state.group->index()));
-}
-
-template <typename MarkerPrior>
-auto make_variance_sampler(
-    const bayes::GeneticPrior& prior,
-    std::string_view kernel_name) -> stats::ScaledInvChi2Sampler<double>
-{
-    const auto& p
-        = unpack_marker_prior<MarkerPrior>(prior, kernel_name).variance.param;
-    return stats::ScaledInvChi2Sampler<double>{p.nu, p.s2};
 }
 
 }  // namespace gelex::mcmc

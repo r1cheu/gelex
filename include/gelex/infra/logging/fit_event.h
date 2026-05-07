@@ -22,7 +22,7 @@
 #include <string>
 #include <variant>
 
-#include "gelex/model/bayes/method_.h"
+#include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -39,11 +39,6 @@ class Result;
 namespace vi
 {
 class Result;
-}
-
-namespace bayes
-{
-class Priors;
 }
 
 struct FitMCMCBannerEvent
@@ -71,9 +66,9 @@ struct FitVIConfigEvent
     double tol{};
 };
 
-struct FitPriorSetEvent
+struct FitMethodSetEvent
 {
-    const bayes::Priors* priors{};
+    const bayes::BayesMethod* method{};
 };
 
 struct FitMCMCProgressEvent
@@ -119,7 +114,7 @@ using FitEvent = std::variant<
     FitVIBannerEvent,
     FitMCMCConfigEvent,
     FitVIConfigEvent,
-    FitPriorSetEvent,
+    FitMethodSetEvent,
     FitMCMCProgressEvent,
     FitMCMCCompleteEvent,
     FitVIProgressEvent,

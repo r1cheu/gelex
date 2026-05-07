@@ -18,11 +18,11 @@
 #define GELEX_ALGO_INFER_MCMC_KERNELS_BAYES_A_H_
 
 #include <random>
+#include <variant>
 
 #include "gelex/algo/infer/mcmc/kernels/common.h"
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/prior.h"
 
 namespace gelex::mcmc
 {
@@ -36,10 +36,8 @@ class BayesAKernel
     BayesAKernel(const bayes::GeneticPrior& prior, bayes::GeneticState& state)
         : state_(state),
           normal_(0.0),
-          sigma_(
-              make_variance_sampler<bayes::ContinuousPrior>(
-                  prior,
-                  "BayesAKernel"))
+          sigma_(make_variance_sampler(
+              std::get<bayes::GeneticSpec>(prior.spec).variance))
     {
     }
 

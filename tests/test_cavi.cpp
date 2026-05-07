@@ -29,10 +29,10 @@
 #include "gelex/algo/infer/vi/solver.h"
 #include "gelex/data/genotype/matrix.h"
 #include "gelex/data/genotype/storage.h"
+#include "gelex/model/bayes/builder.h"
+#include "gelex/model/bayes/builder.h"
 #include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_config.h"
 #include "gelex/types/fixed_effects.h"
 
 using namespace gelex;            // NOLINT
@@ -52,7 +52,7 @@ auto make_geno_matrix(Eigen::Index n_samples, Eigen::Index n_snps)
 }
 
 auto make_bayes_rr_model(Eigen::Index n_samples, Eigen::Index n_snps)
-    -> std::pair<BayesModel, bayes::Priors>
+    -> std::pair<BayesModel, bayes::BayesMethod>
 {
     auto phenotype = Eigen::VectorXd::Random(n_samples);
     auto fixed = FixedEffect::build(n_samples);
@@ -62,13 +62,14 @@ auto make_bayes_rr_model(Eigen::Index n_samples, Eigen::Index n_snps)
     genetics.emplace_back(
         GeneticMode::A, bayes::GenotypeStorage{std::move(geno)});
 
-    double pheno_var
-        = phenotype.array().square().mean() - std::pow(phenotype.mean(), 2.0);
-    PriorSetConfig pc(bayes::BayesConfig{BayesBase::RR}, pheno_var);
-    bayes::Priors priors(pc, genetics, 0);
-
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
-    return {std::move(model), std::move(priors)};
+    auto method = build_bayes_method(
+        PriorOverrides{
+            .method = bayes::BayesConfig{BayesBase::RR},
+            .phenotype_variance = model.phenotype_variance(),
+        },
+        model);
+    return {std::move(model), std::move(method)};
 }
 
 }  // namespace
@@ -77,9 +78,9 @@ TEST_CASE("VIState construction from BayesRR model", "[cavi]")
 {
     constexpr Eigen::Index kN = 20;
     constexpr Eigen::Index kP = 5;
-    auto [model, priors] = make_bayes_rr_model(kN, kP);
+    auto [model, method] = make_bayes_rr_model(kN, kP);
 
-    vi::State state(model, priors);
+    vi::State state(model, method);
 
     // Fixed: intercept only
     CHECK(state.fixed().coeffs.size() == 1);
@@ -120,24 +121,23 @@ TEST_CASE("CAVI RR single iteration produces correct posteriors", "[cavi]")
     genetics.emplace_back(
         GeneticMode::A, bayes::GenotypeStorage{std::move(geno)});
 
-    double pheno_var
-        = phenotype.array().square().mean() - std::pow(phenotype.mean(), 2.0);
-    PriorSetConfig pc(bayes::BayesConfig{BayesBase::RR}, pheno_var);
-    bayes::Priors priors(pc, genetics, 0);
-
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
-    vi::State state(model, priors);
+    auto method = build_bayes_method(
+        PriorOverrides{
+            .method = bayes::BayesConfig{BayesBase::RR},
+            .phenotype_variance = model.phenotype_variance(),
+        },
+        model);
+    vi::State state(model, method);
 
     const auto& effect = model.genetics()[0];
-    const auto* prior = priors.genetic(GeneticMode::A);
-    REQUIRE(prior != nullptr);
 
     const auto& csn = effect.XtX_diag;
     const double res_var = state.residual().variance;
     const double marker_var = state.genetics()[0].marker_variance(0);
 
     // Run one iteration of the RR chain
-    vi::Context ctx{.model = model, .priors = priors, .state = state};
+    vi::Context ctx{.model = model, .method = method, .state = state};
     auto chain = vi::make_bayes_rr_chain<GeneticMode::A>(ctx);
     chain.step();
 
@@ -188,13 +188,13 @@ TEST_CASE("CAVI RR converges on synthetic data", "[cavi]")
     genetics.emplace_back(
         GeneticMode::A, bayes::GenotypeStorage{std::move(geno)});
 
-    double pheno_var
-        = phenotype.array().square().mean() - std::pow(phenotype.mean(), 2.0);
-    PriorSetConfig pc(bayes::BayesConfig{BayesBase::RR}, pheno_var);
-    bayes::Priors priors(pc, genetics, 0);
-
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
-
+    auto method = build_bayes_method(
+        PriorOverrides{
+            .method = bayes::BayesConfig{BayesBase::RR},
+            .phenotype_variance = model.phenotype_variance(),
+        },
+        model);
     // Collect progress events
     std::vector<double> deltas;
     auto observer = FitObserver(
@@ -214,7 +214,7 @@ TEST_CASE("CAVI RR converges on synthetic data", "[cavi]")
     params.tol = 1e-8;
 
     vi::Solver cavi(params, vi::make_bayes_rr_chain<GeneticMode::A>);
-    auto result = cavi.run(model, priors, observer);
+    auto result = cavi.run(model, method, observer);
 
     // Should have converged before max_iters
     CHECK(deltas.size() < 200);

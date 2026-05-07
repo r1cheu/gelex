@@ -16,24 +16,120 @@
 
 #include "gelex/algo/infer/mcmc/state.h"
 
+#include <variant>
+
+#include "gelex/exception.h"
+#include "gelex/model/bayes/method.h"
+
+namespace gelex::bayes
+{
+
+namespace
+{
+
+// 从 GeneticSpec 中提取匹配 mode 的 GeneticSpec（JointSpec 按 mode 分支）
+auto resolve_spec(const GeneticPrior& prior, GeneticMode mode)
+    -> const GeneticSpec&
+{
+    if (const auto* gs = std::get_if<GeneticSpec>(&prior.spec))
+    {
+        return *gs;
+    }
+    const auto& js = std::get<JointSpec>(prior.spec);
+    return (mode == GeneticMode::A) ? js.additive : js.dominance;
+}
+
+auto make_marker_variance(const GeneticSpec& spec, Eigen::Index num_markers)
+    -> Eigen::VectorXd
+{
+    const Eigen::Index size
+        = (spec.variance.scope == VarianceScope::per_marker) ? num_markers : 1;
+    return Eigen::VectorXd::Constant(size, spec.variance.init);
+}
+
+auto make_group(
+    const std::optional<Mixture>& mixture,
+    Eigen::Index num_markers,
+    Eigen::Index num_samples) -> std::optional<MarkerAllocation>
+{
+    if (!mixture)
+    {
+        return std::nullopt;
+    }
+    if (std::holds_alternative<SpikeSlab>(mixture->strategy))
+    {
+        return Assignment(num_markers, mixture->proportions.init);
+    }
+    if (std::holds_alternative<ScaledMixture>(mixture->strategy))
+    {
+        return ComponentAllocation(
+            num_markers, num_samples, mixture->proportions.init);
+    }
+    throw GelexException("JointMixture unsupported in Step E");
+}
+
+auto make_sign(
+    const std::optional<CategoricalSpec>& sign_spec,
+    Eigen::Index num_markers) -> std::optional<Assignment>
+{
+    if (!sign_spec)
+    {
+        return std::nullopt;
+    }
+    // 内部保留 3-bin 表示：{0.0, positive_prob, negative_prob}
+    Eigen::Vector3d sign_3bin{{0.0, sign_spec->init[0], sign_spec->init[1]}};
+    return Assignment(num_markers, sign_3bin);
+}
+
+}  // namespace
+
+GeneticState::GeneticState(
+    const GeneticEffect& effect,
+    const GeneticPrior& prior,
+    GeneticMode mode)
+    : type(mode),
+      coeffs(Eigen::VectorXd::Zero(bayes::get_cols(effect.X))),
+      u(Eigen::VectorXd::Zero(bayes::get_rows(effect.X)))
+{
+    const auto num_markers = bayes::get_cols(effect.X);
+    const auto num_samples = bayes::get_rows(effect.X);
+    const auto& spec = resolve_spec(prior, mode);
+
+    marker_variance = make_marker_variance(spec, num_markers);
+    group = make_group(prior.mixture, num_markers, num_samples);
+    sign = make_sign(spec.sign, num_markers);
+}
+
+}  // namespace gelex::bayes
+
 namespace gelex::bayes::vi
 {
 
 GeneticState::GeneticState(
     const bayes::GeneticEffect& effect,
-    const GeneticPrior& prior)
-    : type(effect.type),
+    const bayes::GeneticPrior& prior,
+    GeneticMode mode)
+    : type(mode),
       coeffs(Eigen::VectorXd::Zero(bayes::get_cols(effect.X))),
       sigma2(Eigen::VectorXd::Ones(bayes::get_cols(effect.X))),
       u(Eigen::VectorXd::Zero(bayes::get_rows(effect.X)))
 {
-    std::visit(
-        [&](const auto& p)
+    const auto num_markers = bayes::get_cols(effect.X);
+    const auto& spec = [&]() -> const bayes::GeneticSpec&
+    {
+        if (const auto* gs = std::get_if<bayes::GeneticSpec>(&prior.spec))
         {
-            marker_variance
-                = Eigen::VectorXd::Constant(p.variance.size, p.variance.init);
-        },
-        prior.marker);
+            return *gs;
+        }
+        const auto& js = std::get<bayes::JointSpec>(prior.spec);
+        return (mode == GeneticMode::A) ? js.additive : js.dominance;
+    }();
+
+    const Eigen::Index size
+        = (spec.variance.scope == bayes::VarianceScope::per_marker)
+              ? num_markers
+              : 1;
+    marker_variance = Eigen::VectorXd::Constant(size, spec.variance.init);
 }
 
 }  // namespace gelex::bayes::vi

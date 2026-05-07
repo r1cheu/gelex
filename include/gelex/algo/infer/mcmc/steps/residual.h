@@ -34,7 +34,7 @@ namespace gelex::mcmc
 struct ResidualStepDeps
 {
     Eigen::Index num_individuals;
-    const bayes::ResidualPrior& prior;
+    const bayes::VarianceSpec& variance;
     bayes::ResidualState& state;
     std::mt19937_64& rng;
 };
@@ -49,7 +49,7 @@ class ResidualStep
 
     explicit ResidualStep(Deps deps)
         : deps_(deps),
-          variance_sampler_(deps_.prior.param.nu, deps_.prior.param.s2)
+          variance_sampler_(deps_.variance.prior.nu, deps_.variance.prior.s2)
     {
     }
 
@@ -63,7 +63,7 @@ class ResidualStep
     {
         return ResidualStep{Deps{
             .num_individuals = ctx.model.num_individuals(),
-            .prior = ctx.priors.residual(),
+            .variance = ctx.method.residual,
             .state = ctx.state.residual(),
             .rng = ctx.rng,
         }};

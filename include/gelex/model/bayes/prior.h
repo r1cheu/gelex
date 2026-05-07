@@ -17,124 +17,66 @@
 #ifndef GELEX_MODEL_BAYES_PRIOR_H_
 #define GELEX_MODEL_BAYES_PRIOR_H_
 
-#include <algorithm>
-#include <optional>
+#include <cstdint>
 #include <variant>
-#include <vector>
 
 #include <Eigen/Core>
 
-#include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/types/genetic_effect_type.h"
-
-namespace gelex
+namespace gelex::bayes
 {
 
-class PriorSetConfig;
-struct GeneticPriorConfig;
-
-namespace bayes
+struct ScaledInvChiSqPrior
 {
-
-struct GeneticEffect;
-
-struct VariancePrior
-{
-    stats::detail::ScaledInvChiSqParams param;
-    double init{};
-    Eigen::Index size{};
+    double nu{};
+    double s2{};
 };
 
-struct ProportionPrior
+struct DirichletPrior
+{
+    Eigen::VectorXi alpha;
+};
+
+enum class VarianceScope : std::uint8_t
+{
+    per_marker,
+    per_block,
+};
+
+struct VarianceSpec
+{
+    VarianceScope scope{};
+    double init{};
+    ScaledInvChiSqPrior prior;
+};
+
+struct CategoricalSpec
 {
     Eigen::VectorXd init;
-    bool estimate;
+    DirichletPrior prior;
+    bool estimate = false;
 };
 
-struct SignPrior
+struct SpikeSlab
 {
-    double init_value;
 };
 
-// BayesA / BayesRR: all markers have non-zero effects
-struct ContinuousPrior
+struct ScaledMixture
 {
-    VariancePrior variance;
-};
-
-// BayesB / BayesC / BayesCpi: spike-and-slab (point mass at zero + slab)
-struct SpikePrior
-{
-    VariancePrior variance;
-    ProportionPrior proportion;
-};
-
-// BayesR: finite mixture of scaled normals
-struct MixturePrior
-{
-    VariancePrior variance;
-    ProportionPrior proportion;
     Eigen::VectorXd multiplier;
 };
 
-using MarkerPrior = std::variant<ContinuousPrior, SpikePrior, MixturePrior>;
-
-struct GeneticPrior
+struct JointMixture
 {
-    GeneticMode type;
-    MarkerPrior marker;
-    std::optional<SignPrior> sign;
 };
 
-using RandomPrior = VariancePrior;
-using ResidualPrior = VariancePrior;
+using VarianceStrategy = std::variant<SpikeSlab, ScaledMixture, JointMixture>;
 
-class Priors
+struct Mixture
 {
-   public:
-    Priors(
-        const PriorSetConfig& config,
-        const std::vector<GeneticEffect>& genetics,
-        std::size_t num_random_effects);
-
-    Priors(
-        std::vector<GeneticPrior> genetics,
-        std::vector<RandomPrior> random,
-        ResidualPrior residual);
-
-    [[nodiscard]] auto genetic(GeneticMode type) const -> const GeneticPrior*
-    {
-        auto it = std::ranges::find(genetics_, type, &GeneticPrior::type);
-        return it != genetics_.end() ? &*it : nullptr;
-    }
-
-    [[nodiscard]] auto genetics() const -> const std::vector<GeneticPrior>&
-    {
-        return genetics_;
-    }
-
-    [[nodiscard]] auto random() const -> const std::vector<RandomPrior>&
-    {
-        return random_;
-    }
-
-    [[nodiscard]] auto residual() const -> const ResidualPrior&
-    {
-        return residual_;
-    }
-
-   private:
-    std::vector<GeneticPrior> genetics_;
-    std::vector<RandomPrior> random_;
-    ResidualPrior residual_;
-
-    static auto build_genetic_prior(
-        const GeneticEffect& effect,
-        const GeneticPriorConfig& prior,
-        const PriorSetConfig& config) -> GeneticPrior;
+    VarianceStrategy strategy;
+    CategoricalSpec proportions;
 };
 
-}  // namespace bayes
-}  // namespace gelex
+}  // namespace gelex::bayes
 
 #endif  // GELEX_MODEL_BAYES_PRIOR_H_

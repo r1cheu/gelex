@@ -17,8 +17,10 @@
 #ifndef GELEX_ALGO_INFER_MCMC_KERNELS_BAYES_R_H_
 #define GELEX_ALGO_INFER_MCMC_KERNELS_BAYES_R_H_
 
+#include <cassert>
 #include <cstdint>
 #include <random>
+#include <variant>
 
 #include <Eigen/Core>
 
@@ -26,7 +28,6 @@
 #include "gelex/algo/infer/mcmc/kernels/detail/mixture_op.h"
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/prior.h"
 
 namespace gelex::mcmc
 {
@@ -48,16 +49,12 @@ class BayesRKernel
               unpack_marker_allocation<bayes::ComponentAllocation>(
                   state,
                   "BayesRKernel")),
-          multiplier_(
-              unpack_marker_prior<bayes::MixturePrior>(prior, "BayesRKernel")
-                  .multiplier),
+          multiplier_(scaled_mixture(prior).multiplier),
           marker_variances_(multiplier_.size()),
           logpi_(multiplier_.size()),
           pi_count_(assignment_.assignment.count),
-          variance_sampler_(
-              make_variance_sampler<bayes::MixturePrior>(
-                  prior,
-                  "BayesRKernel")),
+          variance_sampler_(make_variance_sampler(
+              std::get<bayes::GeneticSpec>(prior.spec).variance)),
           normal_(0.0)
     {
     }
@@ -114,6 +111,17 @@ class BayesRKernel
     }
 
    private:
+    static auto scaled_mixture(const bayes::GeneticPrior& prior)
+        -> const bayes::ScaledMixture&
+    {
+        assert(prior.mixture.has_value() && "BayesRKernel requires mixture");
+        assert(
+            std::holds_alternative<bayes::ScaledMixture>(
+                prior.mixture->strategy)
+            && "BayesRKernel requires scaled mixture");
+        return std::get<bayes::ScaledMixture>(prior.mixture->strategy);
+    }
+
     bayes::GeneticState& state_;
     bayes::ComponentAllocation& assignment_;
     Eigen::VectorXd multiplier_;

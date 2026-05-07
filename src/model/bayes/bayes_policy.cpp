@@ -22,7 +22,7 @@
 #include <Eigen/Core>
 
 #include "gelex/model/bayes/method.h"
-#include "gelex/model/bayes/prior_.h"
+#include "gelex/model/bayes/prior.h"
 
 namespace gelex::bayes
 {

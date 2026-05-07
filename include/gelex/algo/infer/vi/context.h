@@ -17,8 +17,8 @@
 #ifndef GELEX_ALGO_INFER_VI_CONTEXT_H_
 #define GELEX_ALGO_INFER_VI_CONTEXT_H_
 
+#include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior.h"
 
 namespace gelex::vi
 {
@@ -27,7 +27,7 @@ namespace gelex::vi
 struct Context
 {
     const BayesModel& model;
-    const bayes::Priors& priors;
+    bayes::BayesMethod& method;
     State& state;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)

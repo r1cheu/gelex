@@ -29,6 +29,8 @@
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
+#include "gelex/infra/stats/conjugate_prior.h"
+#include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -80,24 +82,38 @@ auto FitReporter::on_event(const FitVIConfigEvent& event) const -> void
     logger_->info("");
 }
 
-auto FitReporter::on_event(const FitPriorSetEvent& event) const -> void
+auto FitReporter::on_event(const FitMethodSetEvent& event) const -> void
 {
     logger_->info(gelex::section("[Prior Configuration]"));
 
-    if (event.priors == nullptr)
+    if (event.method == nullptr)
     {
         return;
     }
-    const auto& priors = *event.priors;
-    for (const auto& rp : priors.random())
+    const auto& method = *event.method;
+    for (const auto& spec : method.randoms)
     {
-        print_random_prior(rp);
+        print_random_prior(spec);
     }
-    for (const auto& gp : priors.genetics())
+    for (const auto& prior : method.genetics)
     {
-        print_genetic_prior(gp);
+        std::visit(
+            [&](const auto& spec)
+            {
+                using T = std::decay_t<decltype(spec)>;
+                if constexpr (std::is_same_v<T, bayes::GeneticSpec>)
+                {
+                    print_genetic_prior(prior, spec.mode);
+                }
+                else
+                {
+                    print_genetic_prior(prior, spec.additive.mode);
+                    print_genetic_prior(prior, spec.dominance.mode);
+                }
+            },
+            prior.spec);
     }
-    print_residual_prior(priors.residual());
+    print_residual_prior(method.residual);
 }
 
 auto FitReporter::on_event(const FitMCMCProgressEvent& event) -> void
@@ -250,17 +266,20 @@ auto FitReporter::print_summary_row(
         summary.stddev(index));
 }
 
-auto FitReporter::print_random_prior(const bayes::VariancePrior& prior) const
+auto FitReporter::print_random_prior(const bayes::VarianceSpec& spec) const
     -> void
 {
     logger_->info("   Random effect:");
-    print_variance_prior(prior.param, prior.init);
+    print_variance_prior(
+        stats::detail::ScaledInvChiSqParams{spec.prior.nu, spec.prior.s2},
+        spec.init);
 }
 
-auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) const
-    -> void
+auto FitReporter::print_genetic_prior(
+    const bayes::GeneticPrior& prior,
+    GeneticMode mode) const -> void
 {
-    logger_->info("   {} effect:", prior.type);
+    logger_->info("   {} effect:", mode);
 
     auto format_vec = [](const auto& p)
     {
@@ -270,34 +289,46 @@ auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) const
         return fmt::join(formatted, ", ");
     };
 
-    std::visit(
-        [&](const auto& mp)
+    const auto& spec = std::visit(
+        [&](const auto& s) -> const bayes::GeneticSpec&
         {
-            print_variance_prior(mp.variance.param, mp.variance.init);
-
-            if constexpr (!std::is_same_v<
-                              std::decay_t<decltype(mp)>,
-                              bayes::ContinuousPrior>)
+            using T = std::decay_t<decltype(s)>;
+            if constexpr (std::is_same_v<T, bayes::GeneticSpec>)
             {
-                logger_->info(
-                    "    Proportion: [{}]", format_vec(mp.proportion.init));
+                return s;
             }
-            if constexpr (std::is_same_v<
-                              std::decay_t<decltype(mp)>,
-                              bayes::MixturePrior>)
+            else
             {
-                logger_->info(
-                    "    Multiplier: [{}]", format_vec(mp.multiplier));
+                return (s.additive.mode == mode) ? s.additive : s.dominance;
             }
         },
-        prior.marker);
+        prior.spec);
+
+    print_variance_prior(
+        stats::detail::ScaledInvChiSqParams{
+            spec.variance.prior.nu, spec.variance.prior.s2},
+        spec.variance.init);
+
+    if (prior.mixture)
+    {
+        logger_->info(
+            "    Proportion: [{}]",
+            format_vec(prior.mixture->proportions.init));
+        if (const auto* sm
+            = std::get_if<bayes::ScaledMixture>(&prior.mixture->strategy))
+        {
+            logger_->info("    Multiplier: [{}]", format_vec(sm->multiplier));
+        }
+    }
 }
 
-auto FitReporter::print_residual_prior(const bayes::VariancePrior& prior) const
+auto FitReporter::print_residual_prior(const bayes::VarianceSpec& spec) const
     -> void
 {
     logger_->info("   Residual:");
-    print_variance_prior(prior.param, prior.init);
+    print_variance_prior(
+        stats::detail::ScaledInvChiSqParams{spec.prior.nu, spec.prior.s2},
+        spec.init);
 }
 
 auto FitReporter::print_fixed_summary(

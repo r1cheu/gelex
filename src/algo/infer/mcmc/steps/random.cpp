@@ -29,21 +29,22 @@ namespace gelex::mcmc
 auto RandomStep::make(const Context& ctx) -> RandomStep
 {
     const auto& effects = ctx.model.random();
-    const auto& priors = ctx.priors.random();
+    const auto& specs = ctx.method.randoms;
     auto& states = ctx.state.random();
-    if (effects.size() != priors.size() || effects.size() != states.size())
+    if (effects.size() != specs.size() || effects.size() != states.size())
     {
         throw GelexException(
             fmt::format(
-                "random block size mismatch: model={}, priors={}, state={}",
+                "random block size mismatch: model={}, method.random={}, "
+                "state={}",
                 effects.size(),
-                priors.size(),
+                specs.size(),
                 states.size()));
     }
-    static const bayes::RandomPrior kEmptyPrior{};
+    static const bayes::VarianceSpec kEmptySpec{};
     return RandomStep{Deps{
         .effects = std::span{effects},
-        .prior = priors.empty() ? kEmptyPrior : priors.front(),
+        .variance = specs.empty() ? kEmptySpec : specs.front(),
         .states = std::span{states},
         .residual = ctx.state.residual(),
         .rng = ctx.rng,

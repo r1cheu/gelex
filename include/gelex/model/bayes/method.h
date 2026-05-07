@@ -19,75 +19,110 @@
 
 #include <cstdint>
 #include <optional>
-#include <string_view>
-#include <unordered_map>
+#include <variant>
+#include <vector>
 
 #include <fmt/base.h>
 #include <fmt/format.h>
 
-namespace gelex
+#include "gelex/model/bayes/bayes_base.h"
+#include "gelex/model/bayes/bayes_policy.h"
+#include "gelex/model/bayes/prior.h"
+#include "gelex/types/genetic_effect_type.h"
+
+namespace gelex::bayes
 {
-enum class BayesBase : uint8_t
+
+enum class DominancePolicy : std::uint8_t
 {
-    A,
-    B,
-    C,
-    R,
-    RR,
-    kCount,
+    symmetric,
+    asymmetric,
 };
 
-inline auto get_bayes_base(std::string_view sv) -> std::optional<BayesBase>
+struct GeneticSpec
 {
-    static const std::unordered_map<std::string_view, BayesBase> string_to_base
-        = {
-            {"A", BayesBase::A},
-            {"B", BayesBase::B},
-            {"C", BayesBase::C},
-            {"R", BayesBase::R},
-            {"RR", BayesBase::RR},
-        };
+    GeneticMode mode{};
+    VarianceSpec variance;
+    std::optional<CategoricalSpec> sign;
+};
 
-    auto it = string_to_base.find(sv);
-    if (it != string_to_base.end())
+struct JointSpec
+{
+    GeneticSpec additive;
+    GeneticSpec dominance;
+};
+
+struct GeneticPrior
+{
+    std::variant<GeneticSpec, JointSpec> spec;
+    std::optional<Mixture> mixture;
+};
+
+struct BayesConfig
+{
+    BayesBase base{};
+    GeneticMode mode = GeneticMode::A;
+    DominancePolicy dominance = DominancePolicy::symmetric;
+    bool estimate_pi = false;
+
+    constexpr auto operator==(const BayesConfig&) const -> bool = default;
+};
+
+struct BayesMethod
+{
+    BayesConfig config;
+    std::vector<GeneticPrior> genetics;
+    std::vector<VarianceSpec> randoms;
+    VarianceSpec residual;
+};
+
+inline auto is_valid_method(const BayesConfig& m) -> bool
+{
+    if (m.base == BayesBase::kCount)
     {
-        return it->second;
+        return false;
     }
-    return std::nullopt;
+    const auto& policy = policy_for(m.base);
+    if (m.estimate_pi && !policy.supports_estimate_pi)
+    {
+        return false;
+    }
+    if (m.dominance == DominancePolicy::asymmetric
+        && (!policy.supports_asymmetric_dominance || m.mode != GeneticMode::AD))
+    {
+        return false;
+    }
+    return true;
 }
 
-}  // namespace gelex
+}  // namespace gelex::bayes
 
 namespace fmt
 {
 template <>
-struct formatter<gelex::BayesBase> : formatter<string_view>
+struct formatter<gelex::bayes::BayesConfig> : formatter<string_view>
 {
-    auto format(gelex::BayesBase b, format_context& ctx) const
+    static auto format(const gelex::bayes::BayesConfig& c, format_context& ctx)
         -> format_context::iterator
     {
-        string_view name = "unknown";
-        switch (b)
+        auto name = fmt::format("Bayes{}", c.base);
+        if (c.estimate_pi)
         {
-            case gelex::BayesBase::A:
-                name = "A";
-                break;
-            case gelex::BayesBase::B:
-                name = "B";
-                break;
-            case gelex::BayesBase::C:
-                name = "C";
-                break;
-            case gelex::BayesBase::R:
-                name = "R";
-                break;
-            case gelex::BayesBase::RR:
-                name = "RR";
-                break;
-            case gelex::BayesBase::kCount:
-                break;
+            name += "pi";
         }
-        return formatter<string_view>::format(name, ctx);
+        if (c.dominance == gelex::bayes::DominancePolicy::asymmetric)
+        {
+            name += " + asymmetric dominance";
+        }
+        else if (c.mode == gelex::GeneticMode::D)
+        {
+            name += " (dominance only)";
+        }
+        else if (c.mode == gelex::GeneticMode::AD)
+        {
+            name += " + dominance";
+        }
+        return fmt::format_to(ctx.out(), "{}", name);
     }
 };
 

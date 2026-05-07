@@ -23,9 +23,11 @@
 
 #include <Eigen/Core>
 
+#include "gelex/algo/infer/detail/genetic_binding.h"
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/io/mcmc/sample_writer.h"
 #include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 
@@ -82,28 +84,41 @@ auto GeneticSamples::make_group_samples(
     const bayes::GeneticEffect& effect,
     const bayes::GeneticPrior& prior) -> std::optional<MixtureSamples>
 {
+    if (!prior.mixture)
+    {
+        return std::nullopt;
+    }
     const auto n_snps = bayes::get_cols(effect.X);
-    if (const auto* sp = std::get_if<bayes::SpikePrior>(&prior.marker))
+    const auto n_pi = prior.mixture->proportions.init.size();
+    const auto estimate_pi = prior.mixture->proportions.estimate;
+    if (std::holds_alternative<bayes::SpikeSlab>(prior.mixture->strategy))
     {
-        return AssignmentSamples{
-            n_snps, sp->proportion.init.size(), sp->proportion.estimate};
+        return AssignmentSamples{n_snps, n_pi, estimate_pi};
     }
-    if (const auto* mp = std::get_if<bayes::MixturePrior>(&prior.marker))
-    {
-        return ComponentSamples{
-            n_snps, mp->proportion.init.size(), mp->proportion.estimate};
-    }
-    return std::nullopt;
+    return ComponentSamples{n_snps, n_pi, estimate_pi};
 }
 
 GeneticSamples::GeneticSamples(
     const bayes::GeneticEffect& effect,
-    const bayes::GeneticPrior& prior)
-    : type(effect.type),
+    const bayes::GeneticPrior& prior,
+    GeneticMode mode)
+    : type(mode),
       group(make_group_samples(effect, prior)),
       n_coeffs_(bayes::get_cols(effect.X))
 {
-    if (prior.sign)
+    const auto* spec = std::get_if<bayes::GeneticSpec>(&prior.spec);
+    const bool has_sign = (spec != nullptr && spec->sign.has_value()) || [&]
+    {
+        if (const auto* js = std::get_if<bayes::JointSpec>(&prior.spec))
+        {
+            return (js->additive.mode == mode && js->additive.sign.has_value())
+                   || (js->dominance.mode == mode
+                       && js->dominance.sign.has_value());
+        }
+        return false;
+    }();
+
+    if (has_sign)
     {
         const auto n_snps = bayes::get_cols(effect.X);
         sign.emplace(n_snps, 3, true);
@@ -143,7 +158,7 @@ void GeneticSamples::store(const bayes::GeneticState& state)
 
 Samples::Samples(
     const BayesModel& model,
-    const bayes::Priors& priors,
+    const bayes::BayesMethod& method,
     std::string_view sample_prefix,
     Eigen::Index n_records)
     : fixed_(model.fixed())
@@ -159,14 +174,15 @@ Samples::Samples(
 
     for (const auto& effect : model.genetics())
     {
-        const auto* prior = priors.genetic(effect.type);
-        genetics_.emplace_back(effect, *prior);
+        const auto* prior
+            = infer::detail::find_prior_for_mode(method, effect.type);
+        genetics_.emplace_back(effect, *prior, effect.type);
     }
 
     if (!sample_prefix.empty())
     {
         writer_ = std::make_unique<mcmc::Writer>(
-            model, priors, sample_prefix, n_records);
+            model, method, sample_prefix, n_records);
     }
 }
 
