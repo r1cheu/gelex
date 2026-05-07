@@ -39,9 +39,9 @@ namespace
 
 using gelex::BayesBase;
 using gelex::BayesModel;
+using gelex::compute_genetic_stats;
 using gelex::FixedEffect;
 using gelex::GeneticMode;
-using gelex::PriorOverrides;
 using gelex::bayes::BayesConfig;
 using gelex::bayes::DominancePolicy;
 using gelex::bayes::GeneticEffect;
@@ -117,12 +117,9 @@ void bench_chain(
     Factory factory,
     Eigen::Index n_iters)
 {
-    auto method = gelex::build_bayes_method(
-        PriorOverrides{
-            .method = cfg,
-            .phenotype_variance = model.phenotype_variance(),
-        },
-        model);
+    const auto stats = compute_genetic_stats(model, cfg);
+    auto method = gelex::bayes::build_bayes_method(
+        cfg, stats, model.phenotype_variance());
     gelex::mcmc::State state{model, method};
     std::mt19937_64 rng(42);
     gelex::mcmc::Context ctx{model, method, state, rng};

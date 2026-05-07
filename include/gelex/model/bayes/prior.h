@@ -18,6 +18,7 @@
 #define GELEX_MODEL_BAYES_PRIOR_H_
 
 #include <cstdint>
+#include <optional>
 #include <variant>
 
 #include <Eigen/Core>
@@ -47,6 +48,9 @@ struct VarianceSpec
     VarianceScope scope{};
     double init{};
     ScaledInvChiSqPrior prior;
+
+    static auto make(double phenotype_variance) -> VarianceSpec;
+    static auto make(double init, VarianceScope scope) -> VarianceSpec;
 };
 
 struct CategoricalSpec
@@ -71,10 +75,15 @@ struct JointMixture
 
 using VarianceStrategy = std::variant<SpikeSlab, ScaledMixture, JointMixture>;
 
+struct BayesPolicy;
+
 struct Mixture
 {
     VarianceStrategy strategy;
     CategoricalSpec proportions;
+
+    static auto make(const BayesPolicy&, bool estimate_pi)
+        -> std::optional<Mixture>;
 };
 
 }  // namespace gelex::bayes

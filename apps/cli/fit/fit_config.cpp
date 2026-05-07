@@ -115,6 +115,7 @@ auto make_mcmc_config(argparse::ArgumentParser& cmd, bayes::BayesConfig method)
         config.resume_path = cmd.get("--resume");
     }
 
+    mcmc::ConfigValidator{config}.validate();
     return config;
 }
 

@@ -26,6 +26,8 @@
 
 #include <fmt/format.h>
 
+#include <Eigen/Core>
+
 #include "gelex/algo/infer/mcmc/recipes.h"
 #include "gelex/algo/infer/mcmc/solver.h"
 #include "gelex/exception.h"
@@ -34,6 +36,7 @@
 #include "gelex/io/mcmc/result_writer.h"
 #include "gelex/model/bayes/builder.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -109,6 +112,103 @@ auto find_runner(bayes::BayesConfig method) -> TraitRunner
             fmt::format("Unsupported Bayes method: {}", method));
     }
     return it->second;
+}
+
+auto find_spec(bayes::GeneticPrior& prior, GeneticMode mode)
+    -> bayes::GeneticSpec*
+{
+    if (auto* s = std::get_if<bayes::GeneticSpec>(&prior.spec);
+        s != nullptr && s->mode == mode)
+    {
+        return s;
+    }
+    if (auto* j = std::get_if<bayes::JointSpec>(&prior.spec); j != nullptr)
+    {
+        if (mode == GeneticMode::A)
+        {
+            return &j->additive;
+        }
+        if (mode == GeneticMode::D)
+        {
+            return &j->dominance;
+        }
+    }
+    return nullptr;
+}
+
+auto as_eigen(const std::vector<double>& v) -> Eigen::VectorXd
+{
+    return Eigen::Map<const Eigen::VectorXd>(
+        v.data(), static_cast<Eigen::Index>(v.size()));
+}
+
+auto apply_proportions(
+    bayes::BayesMethod& method,
+    GeneticMode mode,
+    const std::optional<std::vector<double>>& v) -> void
+{
+    if (!v)
+    {
+        return;
+    }
+    for (auto& prior : method.genetics)
+    {
+        if (find_spec(prior, mode) != nullptr && prior.mixture)
+        {
+            prior.mixture->proportions.init = as_eigen(*v);
+        }
+    }
+}
+
+auto apply_multipliers(
+    bayes::BayesMethod& method,
+    GeneticMode mode,
+    const std::optional<std::vector<double>>& v) -> void
+{
+    if (!v)
+    {
+        return;
+    }
+    for (auto& prior : method.genetics)
+    {
+        if (find_spec(prior, mode) == nullptr || !prior.mixture)
+        {
+            continue;
+        }
+        if (auto* sm
+            = std::get_if<bayes::ScaledMixture>(&prior.mixture->strategy))
+        {
+            sm->multiplier = as_eigen(*v);
+        }
+    }
+}
+
+auto apply_dominance_sign(bayes::BayesMethod& method, double positive_prob)
+    -> void
+{
+    for (auto& prior : method.genetics)
+    {
+        if (auto* spec = find_spec(prior, GeneticMode::D);
+            spec != nullptr && spec->sign)
+        {
+            spec->sign->init
+                = Eigen::VectorXd{{positive_prob, 1.0 - positive_prob}};
+        }
+    }
+}
+
+auto apply_prior_overrides(
+    bayes::BayesMethod& method,
+    const mcmc::FitEngine::Config& config) -> void
+{
+    apply_proportions(method, GeneticMode::A, config.pi);
+    apply_proportions(method, GeneticMode::D, config.dpi);
+    apply_multipliers(method, GeneticMode::A, config.multiplier);
+    apply_multipliers(method, GeneticMode::D, config.dmultiplier);
+    if (config.method.dominance == bayes::DominancePolicy::asymmetric)
+    {
+        apply_dominance_sign(method, config.positive_prob);
+    }
 }
 
 }  // namespace
@@ -227,20 +327,11 @@ auto FitEngine::run(
     GenoPipe&& geno,
     const FitObserver& observer) -> void
 {
-    ConfigValidator{config_}.validate();
-
     auto model = build_bayes_model(std::move(pheno), std::move(geno));
-    auto method = build_bayes_method(
-        PriorOverrides{
-            .method = config_.method,
-            .phenotype_variance = model.phenotype_variance(),
-            .pi = config_.pi,
-            .dpi = config_.dpi,
-            .multiplier = config_.multiplier,
-            .dmultiplier = config_.dmultiplier,
-            .positive_prob = config_.positive_prob,
-        },
-        model);
+    const auto stats = compute_genetic_stats(model, config_.method);
+    auto method = bayes::build_bayes_method(
+        config_.method, stats, model.phenotype_variance());
+    apply_prior_overrides(method, config_);
     auto runner = find_runner(config_.method);
     auto result = runner(model, std::move(method), config_, observer);
 

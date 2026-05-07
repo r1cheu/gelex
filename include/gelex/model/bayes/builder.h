@@ -17,7 +17,6 @@
 #ifndef GELEX_MODEL_BAYES_BUILDER_H_
 #define GELEX_MODEL_BAYES_BUILDER_H_
 
-#include <optional>
 #include <span>
 #include <vector>
 
@@ -32,8 +31,10 @@ struct GeneticStats
     double heritability_init{};
 };
 
-auto build_bayes_method(const BayesConfig&, std::span<const GeneticStats>)
-    -> BayesMethod;
+auto build_bayes_method(
+    const BayesConfig&,
+    std::span<const GeneticStats>,
+    double phenotype_variance) -> BayesMethod;
 
 }  // namespace gelex::bayes
 
@@ -46,20 +47,9 @@ class BayesModel;
 
 auto build_bayes_model(PhenoPipe&& pheno, GenoPipe&& geno) -> BayesModel;
 
-struct PriorOverrides
-{
-    bayes::BayesConfig method;
-    double phenotype_variance{};
-    std::optional<std::vector<double>> pi;
-    std::optional<std::vector<double>> dpi;
-    std::optional<std::vector<double>> multiplier;
-    std::optional<std::vector<double>> dmultiplier;
-    double positive_prob{0.5};
-};
-
-auto build_bayes_method(
-    const PriorOverrides& overrides,
-    const BayesModel& model) -> bayes::BayesMethod;
+auto compute_genetic_stats(
+    const BayesModel& model,
+    const bayes::BayesConfig& config) -> std::vector<bayes::GeneticStats>;
 
 }  // namespace gelex
 

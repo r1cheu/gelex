@@ -66,12 +66,10 @@ auto make_bayes_a_model(Eigen::Index n_samples, Eigen::Index n_snps)
         GeneticMode::A, bayes::GenotypeStorage{std::move(geno)});
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
-    auto method = build_bayes_method(
-        PriorOverrides{
-            .method = bayes::BayesConfig{BayesBase::A},
-            .phenotype_variance = model.phenotype_variance(),
-        },
-        model);
+    const auto config = bayes::BayesConfig{BayesBase::A};
+    const auto stats = compute_genetic_stats(model, config);
+    auto method
+        = bayes::build_bayes_method(config, stats, model.phenotype_variance());
     return {std::move(model), std::move(method)};
 }
 

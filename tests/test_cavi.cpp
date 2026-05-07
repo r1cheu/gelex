@@ -30,7 +30,6 @@
 #include "gelex/data/genotype/matrix.h"
 #include "gelex/data/genotype/storage.h"
 #include "gelex/model/bayes/builder.h"
-#include "gelex/model/bayes/builder.h"
 #include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/fixed_effects.h"
@@ -63,12 +62,10 @@ auto make_bayes_rr_model(Eigen::Index n_samples, Eigen::Index n_snps)
         GeneticMode::A, bayes::GenotypeStorage{std::move(geno)});
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
-    auto method = build_bayes_method(
-        PriorOverrides{
-            .method = bayes::BayesConfig{BayesBase::RR},
-            .phenotype_variance = model.phenotype_variance(),
-        },
-        model);
+    const auto config = bayes::BayesConfig{BayesBase::RR};
+    const auto stats = compute_genetic_stats(model, config);
+    auto method
+        = bayes::build_bayes_method(config, stats, model.phenotype_variance());
     return {std::move(model), std::move(method)};
 }
 
@@ -122,12 +119,10 @@ TEST_CASE("CAVI RR single iteration produces correct posteriors", "[cavi]")
         GeneticMode::A, bayes::GenotypeStorage{std::move(geno)});
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
-    auto method = build_bayes_method(
-        PriorOverrides{
-            .method = bayes::BayesConfig{BayesBase::RR},
-            .phenotype_variance = model.phenotype_variance(),
-        },
-        model);
+    const auto config = bayes::BayesConfig{BayesBase::RR};
+    const auto stats = compute_genetic_stats(model, config);
+    auto method
+        = bayes::build_bayes_method(config, stats, model.phenotype_variance());
     vi::State state(model, method);
 
     const auto& effect = model.genetics()[0];
@@ -189,12 +184,10 @@ TEST_CASE("CAVI RR converges on synthetic data", "[cavi]")
         GeneticMode::A, bayes::GenotypeStorage{std::move(geno)});
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
-    auto method = build_bayes_method(
-        PriorOverrides{
-            .method = bayes::BayesConfig{BayesBase::RR},
-            .phenotype_variance = model.phenotype_variance(),
-        },
-        model);
+    const auto config = bayes::BayesConfig{BayesBase::RR};
+    const auto stats = compute_genetic_stats(model, config);
+    auto method
+        = bayes::build_bayes_method(config, stats, model.phenotype_variance());
     // Collect progress events
     std::vector<double> deltas;
     auto observer = FitObserver(

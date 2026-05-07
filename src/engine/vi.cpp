@@ -46,17 +46,9 @@ auto vi::FitEngine::run(
     }
 
     auto model = build_bayes_model(std::move(pheno), std::move(geno));
-    auto method = build_bayes_method(
-        PriorOverrides{
-            .method = config_.method,
-            .phenotype_variance = model.phenotype_variance(),
-            .pi = std::nullopt,
-            .dpi = std::nullopt,
-            .multiplier = std::nullopt,
-            .dmultiplier = std::nullopt,
-            .positive_prob = 0.5,
-        },
-        model);
+    const auto stats = compute_genetic_stats(model, config_.method);
+    auto method = bayes::build_bayes_method(
+        config_.method, stats, model.phenotype_variance());
     vi::Result result = [&]
     {
         switch (config_.method.mode)

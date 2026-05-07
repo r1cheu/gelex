@@ -39,11 +39,17 @@ enum class DominancePolicy : std::uint8_t
     asymmetric,
 };
 
+struct GeneticStats;
+
 struct GeneticSpec
 {
     GeneticMode mode{};
     VarianceSpec variance;
     std::optional<CategoricalSpec> sign;
+
+    static auto make(const GeneticStats&, const BayesPolicy&) -> GeneticSpec;
+    static auto make(const GeneticStats&, const BayesPolicy&, DominancePolicy)
+        -> GeneticSpec;
 };
 
 struct JointSpec
