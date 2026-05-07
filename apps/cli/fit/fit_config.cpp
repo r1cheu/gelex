@@ -29,31 +29,21 @@ namespace gelex::cli
 namespace
 {
 
-auto parse_mode(std::string_view sv) -> gelex::GeneticMode
-{
-    if (sv == "A")
-    {
-        return gelex::GeneticMode::A;
-    }
-    if (sv == "D")
-    {
-        return gelex::GeneticMode::D;
-    }
-    if (sv == "AD")
-    {
-        return gelex::GeneticMode::AD;
-    }
-    throw gelex::GelexException(fmt::format("invalid --mode: {}", sv));
-}
-
 auto parse_method(argparse::ArgumentParser& cmd) -> bayes::BayesConfig
 {
     auto base
         = gelex::get_bayes_base(cmd.get("-m")).value_or(gelex::BayesBase::RR);
 
+    auto mode = gelex::get_genetic_mode(cmd.get("--mode"));
+    if (!mode)
+    {
+        throw gelex::GelexException(
+            fmt::format("invalid --mode: {}", cmd.get("--mode")));
+    }
+
     auto method = bayes::BayesConfig{
         .base = base,
-        .mode = parse_mode(cmd.get("--mode")),
+        .mode = *mode,
         .dominance = cmd.get<bool>("--asym")
                          ? bayes::DominancePolicy::asymmetric
                          : bayes::DominancePolicy::symmetric,

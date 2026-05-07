@@ -57,7 +57,7 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     reporter.on_event(gelex::AssocBannerEvent{});
     reporter.on_event(
         gelex::AssocConfigLoadedEvent{
-            .model_type = config.model_type,
+            .mode = config.mode,
             .test_type = config.test_type,
             .loco = config.loco,
             .geno_method = config.method,

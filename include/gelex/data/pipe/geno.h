@@ -40,7 +40,7 @@ class GenoPipe
     {
         std::filesystem::path bed_path;
 
-        GeneticMode model_type;
+        GeneticMode mode;
         GenotypeProcessMethod genotype_method;
         bool use_mmap = false;
         int chunk_size = 10000;

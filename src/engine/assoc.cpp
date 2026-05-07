@@ -58,8 +58,8 @@ auto AssocEngine::run(
         std::move(phenotype), std::move(fixed_effects), std::move(grms));
     FreqState state(model);
 
-    auto tester = AssocTester::make(
-        config_.test_type, config_.model_type, config_.method);
+    auto tester
+        = AssocTester::make(config_.test_type, config_.mode, config_.method);
     gwas::GwasWriter writer(config_.out_prefix, bim, config_.test_type);
 
     const auto total_snps = static_cast<size_t>(bim.rows());

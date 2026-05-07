@@ -70,7 +70,7 @@ auto fit_execute(argparse::ArgumentParser& fit) -> int
     auto [pheno_config, geno_config]
         = gelex::cli::make_fit_data_configs(fit, fit.get<bool>("--mmap"));
 
-    geno_config.model_type
+    geno_config.mode
         = std::visit([](const auto& c) { return c.method.mode; }, fit_config);
 
     int threads = fit.get<int>("--threads");
@@ -88,7 +88,7 @@ auto fit_execute(argparse::ArgumentParser& fit) -> int
                 reporter.on_event(
                     gelex::FitMCMCConfigEvent{
                         .method = config.method,
-                        .model_type = config.method.mode,
+                        .mode = config.method.mode,
                         .n_iters = static_cast<int>(config.mcmc_params.n_iters),
                         .n_burn_in
                         = static_cast<int>(config.mcmc_params.n_burn_in),
@@ -101,7 +101,7 @@ auto fit_execute(argparse::ArgumentParser& fit) -> int
                 reporter.on_event(
                     gelex::FitVIConfigEvent{
                         .method = config.method,
-                        .model_type = config.method.mode,
+                        .mode = config.method.mode,
                         .max_iters = static_cast<int>(config.params.max_iters),
                         .tol = config.params.tol,
                     });

@@ -40,7 +40,7 @@ auto AssocReporter::on_event(const AssocBannerEvent& /*event*/) const -> void
 auto AssocReporter::on_event(const AssocConfigLoadedEvent& event) const -> void
 {
     logger_->info(gelex::section("[Config]"));
-    logger_->info("  {:<12}: {}", "Model", event.model_type);
+    logger_->info("  {:<12}: {}", "Mode", event.mode);
     logger_->info(
         "  {:<12}: {}",
         "Test",

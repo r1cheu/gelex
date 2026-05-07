@@ -1,5 +1,6 @@
 #ifndef GELEX_TYPES_GENETIC_EFFECT_TYPE_H_
 #define GELEX_TYPES_GENETIC_EFFECT_TYPE_H_
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -13,10 +14,31 @@ namespace gelex
 
 enum class GeneticMode : uint8_t
 {
-    A = 0,
-    D = 1,
-    AD = 2
+    A,
+    D,
+    AD,
+    kCount,
 };
+
+inline constexpr std::array<
+    std::pair<GeneticMode, std::string_view>,
+    std::to_underlying(GeneticMode::kCount)>
+    kGeneticModeNames = {{
+        {GeneticMode::A, "A"},
+        {GeneticMode::D, "D"},
+        {GeneticMode::AD, "AD"},
+    }};
+
+inline auto get_genetic_mode(std::string_view sv) -> std::optional<GeneticMode>
+{
+    const auto* it = std::ranges::find_if(
+        kGeneticModeNames, [sv](const auto& p) { return p.second == sv; });
+    if (it != kGeneticModeNames.end())
+    {
+        return it->first;
+    }
+    return std::nullopt;
+}
 
 struct EffectType
 {
@@ -74,8 +96,10 @@ inline auto to_file_suffix(GeneticMode type) -> std::string_view
             return "dom";
         case GeneticMode::AD:
             return "ad";
+        case GeneticMode::kCount:
+            break;
     }
-    std::unreachable();
+    return "unknown";
 }
 
 inline auto to_variance_label(GeneticMode type) -> std::string_view
@@ -88,8 +112,10 @@ inline auto to_variance_label(GeneticMode type) -> std::string_view
             return "σ²_dom";
         case GeneticMode::AD:
             return "σ²_g";
+        case GeneticMode::kCount:
+            break;
     }
-    std::unreachable();
+    return "unknown";
 }
 
 inline auto to_heritability_label(GeneticMode type) -> std::string_view
@@ -102,8 +128,10 @@ inline auto to_heritability_label(GeneticMode type) -> std::string_view
             return "δ²";
         case GeneticMode::AD:
             return "H²";
+        case GeneticMode::kCount:
+            break;
     }
-    std::unreachable();
+    return "unknown";
 }
 
 }  // namespace genetic_mode
@@ -115,20 +143,22 @@ struct fmt::formatter<gelex::GeneticMode> : fmt::formatter<std::string_view>
 {
     auto format(gelex::GeneticMode mode, auto& ctx) const
     {
-        std::string_view name;
-        switch (mode)
+        return fmt::formatter<std::string_view>::format(
+            to_string_view(mode), ctx);
+    }
+
+   private:
+    static constexpr auto to_string_view(gelex::GeneticMode mode)
+        -> std::string_view
+    {
+        for (const auto& [value, name] : gelex::kGeneticModeNames)
         {
-            case gelex::GeneticMode::A:
-                name = "Additive";
-                break;
-            case gelex::GeneticMode::D:
-                name = "Dominance";
-                break;
-            case gelex::GeneticMode::AD:
-                name = "Additive Dominance";
-                break;
+            if (value == mode)
+            {
+                return name;
+            }
         }
-        return fmt::formatter<std::string_view>::format(name, ctx);
+        return "unknown";
     }
 };
 
@@ -138,22 +168,31 @@ struct fmt::formatter<gelex::EffectType> : fmt::formatter<std::string_view>
     auto format(const gelex::EffectType& et, auto& ctx) const
     {
         using Cat = gelex::EffectType::Category;
-        std::string_view name;
-        switch (et.category)
+        if (et.category == Cat::Genetic)
+        {
+            return fmt::format_to(ctx.out(), "{}", *et.genetic_mode);
+        }
+        return fmt::formatter<std::string_view>::format(
+            to_string_view(et.category), ctx);
+    }
+
+   private:
+    static constexpr auto to_string_view(gelex::EffectType::Category cat)
+        -> std::string_view
+    {
+        using Cat = gelex::EffectType::Category;
+        switch (cat)
         {
             case Cat::Genetic:
-                return fmt::format_to(ctx.out(), "{}", *et.genetic_mode);
+                return "Genetic";
             case Cat::Fixed:
-                name = "Fixed";
-                break;
+                return "Fixed";
             case Cat::Random:
-                name = "Random";
-                break;
+                return "Random";
             case Cat::Residual:
-                name = "Residual";
-                break;
+                return "Residual";
         }
-        return fmt::formatter<std::string_view>::format(name, ctx);
+        return "unknown";
     }
 };
 

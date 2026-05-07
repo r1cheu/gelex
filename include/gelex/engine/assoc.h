@@ -38,7 +38,7 @@ class AssocEngine
    public:
     struct Config
     {
-        GeneticMode model_type;
+        GeneticMode mode;
 
         GenotypeProcessMethod method;
         int chunk_size;

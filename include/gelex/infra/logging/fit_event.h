@@ -52,7 +52,7 @@ struct FitVIBannerEvent
 struct FitMCMCConfigEvent
 {
     gelex::bayes::BayesConfig method;
-    GeneticMode model_type{};
+    GeneticMode mode{};
     int n_iters{};
     int n_burn_in{};
     int seed{};
@@ -61,7 +61,7 @@ struct FitMCMCConfigEvent
 struct FitVIConfigEvent
 {
     gelex::bayes::BayesConfig method;
-    GeneticMode model_type{};
+    GeneticMode mode{};
     int max_iters{};
     double tol{};
 };

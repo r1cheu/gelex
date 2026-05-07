@@ -33,11 +33,11 @@ GenoPipe::GenoPipe(const Config& config, DataPipeObserver observer)
 
 auto GenoPipe::load(const dataframe::Index<std::string>& sample_index) -> void
 {
-    if (config_.model_type == GeneticMode::A)
+    if (config_.mode == GeneticMode::A)
     {
         load_additive_matrix(sample_index);
     }
-    else if (config_.model_type == GeneticMode::D)
+    else if (config_.mode == GeneticMode::D)
     {
         load_dominance_matrix(sample_index);
     }

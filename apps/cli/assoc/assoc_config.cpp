@@ -26,15 +26,6 @@
 namespace gelex::cli
 {
 
-auto parse_model_type(std::string_view model) -> GeneticMode
-{
-    if (model == "a")
-    {
-        return GeneticMode::A;
-    }
-    return GeneticMode::D;
-}
-
 auto parse_test_type(std::string_view test) -> AssocType
 {
     if (test == "joint")
@@ -60,12 +51,13 @@ auto parse_transform_type(std::string_view transform) -> detail::TransformType
 auto make_assoc_config(argparse::ArgumentParser& cmd) -> AssocEngine::Config
 {
     auto test_type = parse_test_type(cmd.get("--test"));
-    auto model_type = test_type == AssocType::Joint
-                          ? GeneticMode::AD
-                          : parse_model_type(cmd.get("--model"));
+    auto mode
+        = test_type == AssocType::Joint
+              ? GeneticMode::AD
+              : get_genetic_mode(cmd.get("--mode")).value_or(GeneticMode::A);
 
     return AssocEngine::Config{
-        .model_type = model_type,
+        .mode = mode,
         .method
         = parse_genotype_process_method(cmd.get<std::string>("--geno-method")),
         .chunk_size = cmd.get<int>("--chunk-size"),

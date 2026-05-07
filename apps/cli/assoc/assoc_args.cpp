@@ -73,13 +73,13 @@ auto setup_assoc_args(argparse::ArgumentParser& cmd) -> void
         .default_value("single")
         .metavar("<TEST>")
         .choices("single", "joint");
-    cmd.add_argument("--model")
+    cmd.add_argument("--mode")
         .help(
-            "Association model: a (additive), d (dominance). "
+            "Association mode: A (additive), D (dominance). "
             "Ignored when --test=joint (always AD)")
-        .default_value("a")
-        .metavar("<MODEL>")
-        .choices("a", "d");
+        .default_value("A")
+        .metavar("<MODE>")
+        .choices("A", "D");
     cmd.add_argument("--loco").help("Leave-One-Chromosome-Out analysis").flag();
     cmd.add_argument("--geno-method", "--gm")
         .help(

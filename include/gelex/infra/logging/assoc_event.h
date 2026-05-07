@@ -37,7 +37,7 @@ struct AssocBannerEvent
 
 struct AssocConfigLoadedEvent
 {
-    GeneticMode model_type;
+    GeneticMode mode;
     AssocType test_type;
     bool loco;
 
