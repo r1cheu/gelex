@@ -87,9 +87,9 @@ auto make_overrides(argparse::ArgumentParser& cmd) -> MethodOverrides
 
 auto make_engine_config(
     argparse::ArgumentParser& cmd,
-    bayes::BayesConfig method) -> mcmc::FitEngine::Config
+    bayes::BayesConfig method) -> mcmc::Engine::Config
 {
-    mcmc::FitEngine::Config config{
+    mcmc::Engine::Config config{
         .bfile_prefix = cmd.get("--bfile"),
         .method = method,
         .seed = cmd.get<int>("--seed"),
@@ -116,12 +116,12 @@ auto make_engine_config(
 
 }  // namespace
 
-auto make_mcmc_fit_config(argparse::ArgumentParser& cmd) -> McmcFitConfig
+auto make_mcmc_config(argparse::ArgumentParser& cmd) -> McmcConfig
 {
     auto method = parse_method(cmd);
     auto overrides = make_overrides(cmd);
     validate_overrides(method, overrides);
-    return McmcFitConfig{
+    return McmcConfig{
         .engine = make_engine_config(cmd, method),
         .overrides = std::move(overrides),
     };

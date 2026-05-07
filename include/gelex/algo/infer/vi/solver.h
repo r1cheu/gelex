@@ -141,7 +141,7 @@ class Solver
     auto run(
         const BayesModel& model,
         bayes::BayesMethod method,
-        const FitObserver& observer = {}) -> vi::Result;
+        const VIObserver& observer = {}) -> vi::Result;
 
    private:
     [[no_unique_address]] ChainFactory make_chain_;
@@ -158,7 +158,7 @@ template <typename ChainFactory>
 auto Solver<ChainFactory>::run(
     const BayesModel& model,
     bayes::BayesMethod method,
-    const FitObserver& observer) -> vi::Result
+    const VIObserver& observer) -> vi::Result
 {
     notify(observer, FitMethodSetEvent{.method = &method});
 
@@ -184,7 +184,7 @@ auto Solver<ChainFactory>::run(
 
         notify(
             observer,
-            FitVIProgressEvent{
+            VIProgressEvent{
                 .current = static_cast<size_t>(iter + 1),
                 .elbo = elbo,
                 .delta = delta,
@@ -199,12 +199,12 @@ auto Solver<ChainFactory>::run(
 
     notify(
         observer,
-        FitVIProgressEvent{
+        VIProgressEvent{
             .done = true,
         });
 
     vi::Result result(std::move(state), model);
-    notify(observer, FitVICompleteEvent{&result, &model});
+    notify(observer, VICompleteEvent{&result, &model});
     return result;
 }
 

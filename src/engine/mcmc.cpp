@@ -41,15 +41,15 @@ namespace
 using TraitRunner = mcmc::Result (*)(
     const BayesModel&,
     bayes::BayesMethod,
-    const mcmc::FitEngine::Config&,
-    const FitObserver&);
+    const mcmc::Engine::Config&,
+    const MCMCObserver&);
 
 template <auto MakeChain>
 auto run_recipe(
     const BayesModel& model,
     bayes::BayesMethod method,
-    const mcmc::FitEngine::Config& config,
-    const FitObserver& observer) -> mcmc::Result
+    const mcmc::Engine::Config& config,
+    const MCMCObserver& observer) -> mcmc::Result
 {
     mcmc::Solver mcmc(
         config.mcmc_params,
@@ -112,7 +112,7 @@ auto find_runner(bayes::BayesConfig method) -> TraitRunner
 namespace mcmc
 {
 
-FitEngine::FitEngine(Config config) : config_(std::move(config)) {}
+Engine::Engine(Config config) : config_(std::move(config)) {}
 
 auto ConfigValidator::validate() const -> void
 {
@@ -168,10 +168,10 @@ auto ConfigValidator::check_mcmc_params() const -> void
     }
 }
 
-auto FitEngine::run(
+auto Engine::run(
     const BayesModel& model,
     bayes::BayesMethod method,
-    const FitObserver& observer) -> void
+    const MCMCObserver& observer) -> void
 {
     auto runner = find_runner(config_.method);
     auto result = runner(model, std::move(method), config_, observer);

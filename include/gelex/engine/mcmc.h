@@ -33,7 +33,7 @@ class BayesModel;
 namespace mcmc
 {
 
-class FitEngine
+class Engine
 {
    public:
     struct Config
@@ -48,11 +48,11 @@ class FitEngine
         std::optional<std::filesystem::path> resume_path;
     };
 
-    explicit FitEngine(Config config);
+    explicit Engine(Config config);
     auto run(
         const BayesModel& model,
         bayes::BayesMethod method,
-        const FitObserver& observer = {}) -> void;
+        const MCMCObserver& observer = {}) -> void;
 
    private:
     Config config_;
@@ -62,9 +62,7 @@ class FitEngine
 class ConfigValidator
 {
    public:
-    explicit ConfigValidator(const FitEngine::Config& config) : config_{config}
-    {
-    }
+    explicit ConfigValidator(const Engine::Config& config) : config_{config} {}
 
     auto validate() const -> void;
 
@@ -72,7 +70,7 @@ class ConfigValidator
     auto check_method() const -> void;
     auto check_mcmc_params() const -> void;
 
-    const FitEngine::Config& config_;
+    const Engine::Config& config_;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 

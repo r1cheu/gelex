@@ -28,13 +28,13 @@ class ArgumentParser;
 namespace gelex::cli
 {
 
-struct McmcFitConfig
+struct McmcConfig
 {
-    mcmc::FitEngine::Config engine;
+    mcmc::Engine::Config engine;
     MethodOverrides overrides;
 };
 
-auto make_mcmc_fit_config(argparse::ArgumentParser& cmd) -> McmcFitConfig;
+auto make_mcmc_config(argparse::ArgumentParser& cmd) -> McmcConfig;
 
 }  // namespace gelex::cli
 

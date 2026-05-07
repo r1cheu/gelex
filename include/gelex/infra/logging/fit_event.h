@@ -29,27 +29,23 @@
 namespace gelex
 {
 
-class BayesModel;
-
 namespace mcmc
 {
 class Result;
-}
+}  // namespace mcmc
 
 namespace vi
 {
 class Result;
-}
+}  // namespace vi
 
-struct FitMCMCBannerEvent
+// --- MCMC-specific events ---
+
+struct MCMCBannerEvent
 {
 };
 
-struct FitVIBannerEvent
-{
-};
-
-struct FitMCMCConfigEvent
+struct MCMCConfigEvent
 {
     gelex::bayes::BayesConfig method;
     GeneticMode mode{};
@@ -58,20 +54,7 @@ struct FitMCMCConfigEvent
     int seed{};
 };
 
-struct FitVIConfigEvent
-{
-    gelex::bayes::BayesConfig method;
-    GeneticMode mode{};
-    int max_iters{};
-    double tol{};
-};
-
-struct FitMethodSetEvent
-{
-    const bayes::BayesMethod* method{};
-};
-
-struct FitMCMCProgressEvent
+struct MCMCProgressEvent
 {
     size_t current{};
     size_t total{};
@@ -79,14 +62,28 @@ struct FitMCMCProgressEvent
     const mcmc::State* state{};
 };
 
-struct FitMCMCCompleteEvent
+struct MCMCCompleteEvent
 {
     const mcmc::Result* result;
     const BayesModel* model;
     std::ptrdiff_t samples_collected;
 };
 
-struct FitVIProgressEvent
+// --- VI-specific events ---
+
+struct VIBannerEvent
+{
+};
+
+struct VIConfigEvent
+{
+    gelex::bayes::BayesConfig method;
+    GeneticMode mode{};
+    int max_iters{};
+    double tol{};
+};
+
+struct VIProgressEvent
 {
     size_t current{};
     double elbo{};
@@ -94,10 +91,17 @@ struct FitVIProgressEvent
     bool done{};
 };
 
-struct FitVICompleteEvent
+struct VICompleteEvent
 {
     const vi::Result* result{};
     const BayesModel* model{};
+};
+
+// --- Shared fit protocol events ---
+
+struct FitMethodSetEvent
+{
+    const bayes::BayesMethod* method{};
 };
 
 struct FitResultsSavedEvent
@@ -109,20 +113,25 @@ struct FitCheckpointSavedEvent
 {
 };
 
-using FitEvent = std::variant<
-    FitMCMCBannerEvent,
-    FitVIBannerEvent,
-    FitMCMCConfigEvent,
-    FitVIConfigEvent,
+using MCMCEvent = std::variant<
+    MCMCBannerEvent,
+    MCMCConfigEvent,
     FitMethodSetEvent,
-    FitMCMCProgressEvent,
-    FitMCMCCompleteEvent,
-    FitVIProgressEvent,
-    FitVICompleteEvent,
+    MCMCProgressEvent,
+    MCMCCompleteEvent,
     FitResultsSavedEvent,
     FitCheckpointSavedEvent>;
 
-using FitObserver = std::function<void(const FitEvent&)>;
+using VIEvent = std::variant<
+    VIBannerEvent,
+    VIConfigEvent,
+    FitMethodSetEvent,
+    VIProgressEvent,
+    VICompleteEvent,
+    FitResultsSavedEvent>;
+
+using MCMCObserver = std::function<void(const MCMCEvent&)>;
+using VIObserver = std::function<void(const VIEvent&)>;
 
 }  // namespace gelex
 

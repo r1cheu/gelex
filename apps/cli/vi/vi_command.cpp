@@ -26,7 +26,6 @@
 #include "cli/cli_helper.h"
 #include "cli/data_pipe_config.h"
 #include "cli/data_pipe_reporter.h"
-#include "cli/fit_reporter.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/bed_path.h"
 #include "gelex/data/pipe/geno.h"
@@ -40,10 +39,11 @@
 #include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
 #include "vi_config.h"
+#include "vi_reporter.h"
 
 auto vi_execute(argparse::ArgumentParser& cmd) -> int
 {
-    auto engine_config = gelex::cli::make_vi_fit_config(cmd);
+    auto engine_config = gelex::cli::make_vi_config(cmd);
     auto [pheno_config, geno_config]
         = gelex::cli::make_fit_data_configs(cmd, cmd.get<bool>("--mmap"));
 
@@ -51,13 +51,13 @@ auto vi_execute(argparse::ArgumentParser& cmd) -> int
     geno_config.mode = method_config.mode;
 
     int threads = cmd.get<int>("--threads");
-    gelex::cli::FitReporter reporter;
+    gelex::cli::ViReporter reporter;
     gelex::cli::DataPipeReporter data_reporter;
     gelex::cli::setup_parallelization(threads);
 
-    reporter.on_event(gelex::FitVIBannerEvent{});
+    reporter.on_event(gelex::VIBannerEvent{});
     reporter.on_event(
-        gelex::FitVIConfigEvent{
+        gelex::VIConfigEvent{
             .method = method_config,
             .mode = method_config.mode,
             .max_iters = static_cast<int>(engine_config.params.max_iters),
@@ -100,7 +100,7 @@ auto vi_execute(argparse::ArgumentParser& cmd) -> int
     auto method = gelex::bayes::build_bayes_method(
         method_config, stats, model.phenotype_variance());
 
-    gelex::vi::FitEngine engine(std::move(engine_config));
+    gelex::vi::Engine engine(std::move(engine_config));
     engine.run(model, std::move(method), reporter.as_observer());
 
     return 0;

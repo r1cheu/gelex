@@ -31,12 +31,12 @@
 namespace gelex
 {
 
-vi::FitEngine::FitEngine(Config config) : config_(std::move(config)) {}
+vi::Engine::Engine(Config config) : config_(std::move(config)) {}
 
-auto vi::FitEngine::run(
+auto vi::Engine::run(
     const BayesModel& model,
     bayes::BayesMethod method,
-    const FitObserver& observer) -> void
+    const VIObserver& observer) -> void
 {
     if (config_.method.base != BayesBase::RR)
     {

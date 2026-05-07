@@ -60,10 +60,10 @@ auto parse_method(argparse::ArgumentParser& cmd) -> bayes::BayesConfig
 
 }  // namespace
 
-auto make_vi_fit_config(argparse::ArgumentParser& cmd) -> vi::FitEngine::Config
+auto make_vi_config(argparse::ArgumentParser& cmd) -> vi::Engine::Config
 {
     auto method = parse_method(cmd);
-    return vi::FitEngine::Config{
+    return vi::Engine::Config{
         .bfile_prefix = cmd.get("--bfile"),
         .method = method,
         .params = vi::Params{

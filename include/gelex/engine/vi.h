@@ -31,7 +31,7 @@ class BayesModel;
 namespace vi
 {
 
-class FitEngine
+class Engine
 {
    public:
     struct Config
@@ -42,11 +42,11 @@ class FitEngine
         std::string out_prefix;
     };
 
-    explicit FitEngine(Config config);
+    explicit Engine(Config config);
     auto run(
         const BayesModel& model,
         bayes::BayesMethod method,
-        const FitObserver& observer = {}) -> void;
+        const VIObserver& observer = {}) -> void;
 
    private:
     Config config_;

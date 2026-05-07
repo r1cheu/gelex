@@ -27,7 +27,7 @@ class ArgumentParser;
 namespace gelex::cli
 {
 
-auto make_vi_fit_config(argparse::ArgumentParser& cmd) -> vi::FitEngine::Config;
+auto make_vi_config(argparse::ArgumentParser& cmd) -> vi::Engine::Config;
 
 }  // namespace gelex::cli
 

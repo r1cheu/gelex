@@ -26,7 +26,6 @@
 #include "cli/cli_helper.h"
 #include "cli/data_pipe_config.h"
 #include "cli/data_pipe_reporter.h"
-#include "cli/fit_reporter.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/bed_path.h"
 #include "gelex/data/pipe/geno.h"
@@ -41,30 +40,31 @@
 #include "gelex/model/bayes/model.h"
 #include "mcmc_config.h"
 #include "mcmc_overrides.h"
+#include "mcmc_reporter.h"
 
 auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
 {
-    auto fit_config = gelex::cli::make_mcmc_fit_config(cmd);
+    auto mcmc_config = gelex::cli::make_mcmc_config(cmd);
     auto [pheno_config, geno_config]
         = gelex::cli::make_fit_data_configs(cmd, cmd.get<bool>("--mmap"));
 
-    const auto& method_config = fit_config.engine.method;
+    const auto& method_config = mcmc_config.engine.method;
     geno_config.mode = method_config.mode;
 
     int threads = cmd.get<int>("--threads");
-    gelex::cli::FitReporter reporter;
+    gelex::cli::McmcReporter reporter;
     gelex::cli::DataPipeReporter data_reporter;
     gelex::cli::setup_parallelization(threads);
 
-    reporter.on_event(gelex::FitMCMCBannerEvent{});
+    reporter.on_event(gelex::MCMCBannerEvent{});
     reporter.on_event(
-        gelex::FitMCMCConfigEvent{
+        gelex::MCMCConfigEvent{
             .method = method_config,
             .mode = method_config.mode,
-            .n_iters = static_cast<int>(fit_config.engine.mcmc_params.n_iters),
+            .n_iters = static_cast<int>(mcmc_config.engine.mcmc_params.n_iters),
             .n_burn_in
-            = static_cast<int>(fit_config.engine.mcmc_params.n_burn_in),
-            .seed = fit_config.engine.seed,
+            = static_cast<int>(mcmc_config.engine.mcmc_params.n_burn_in),
+            .seed = mcmc_config.engine.seed,
         });
 
     auto bed_path
@@ -102,9 +102,9 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
     auto stats = gelex::compute_genetic_stats(model, method_config);
     auto method = gelex::bayes::build_bayes_method(
         method_config, stats, model.phenotype_variance());
-    gelex::cli::apply_overrides(method, fit_config.overrides);
+    gelex::cli::apply_overrides(method, mcmc_config.overrides);
 
-    gelex::mcmc::FitEngine engine(std::move(fit_config.engine));
+    gelex::mcmc::Engine engine(std::move(mcmc_config.engine));
     engine.run(model, std::move(method), reporter.as_observer());
 
     return 0;

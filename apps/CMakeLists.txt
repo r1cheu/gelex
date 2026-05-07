@@ -4,14 +4,15 @@ set(CLI_SOURCES
     cli/assoc/assoc_config.cpp
     cli/assoc/assoc_command.cpp
     cli/assoc/assoc_reporter.cpp
-    cli/fit_reporter.cpp
     cli/mcmc/mcmc_args.cpp
     cli/mcmc/mcmc_config.cpp
     cli/mcmc/mcmc_command.cpp
     cli/mcmc/mcmc_overrides.cpp
+    cli/mcmc/mcmc_reporter.cpp
     cli/vi/vi_args.cpp
     cli/vi/vi_config.cpp
     cli/vi/vi_command.cpp
+    cli/vi/vi_reporter.cpp
     cli/grm/grm_args.cpp
     cli/grm/grm_config.cpp
     cli/grm/grm_command.cpp
@@ -28,6 +29,7 @@ set(CLI_SOURCES
     cli/post/post_config.cpp
     cli/post/post_command.cpp
     cli/post/post_reporter.cpp
+    cli/fit_reporter.cpp
     cli/reml_reporter.cpp
     cli/data_pipe_reporter.cpp
     cli/data_pipe_config.cpp

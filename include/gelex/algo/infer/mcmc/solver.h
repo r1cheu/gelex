@@ -61,12 +61,12 @@ class Solver
         const BayesModel& model,
         bayes::BayesMethod method,
         Eigen::Index seed = 42,
-        const FitObserver& observer = {}) -> mcmc::Result;
+        const MCMCObserver& observer = {}) -> mcmc::Result;
 
     auto resume(
         const BayesModel& model,
         Checkpoint checkpoint,
-        const FitObserver& observer = {}) -> mcmc::Result;
+        const MCMCObserver& observer = {}) -> mcmc::Result;
 
    private:
     static void validate_checkpoint(
@@ -80,12 +80,12 @@ class Solver
         mcmc::Samples& samples,
         mcmc::State& state,
         std::mt19937_64& rng,
-        const FitObserver& observer) -> void;
+        const MCMCObserver& observer) -> void;
 
     auto finalize(
         mcmc::Samples samples,
         const BayesModel& model,
-        const FitObserver& observer) -> mcmc::Result;
+        const MCMCObserver& observer) -> mcmc::Result;
 
     [[no_unique_address]] ChainFactory make_chain_;
     mcmc::Params params_;
@@ -111,7 +111,7 @@ auto Solver<ChainFactory>::run(
     const BayesModel& model,
     bayes::BayesMethod method,
     Eigen::Index seed,
-    const FitObserver& observer) -> mcmc::Result
+    const MCMCObserver& observer) -> mcmc::Result
 {
     mcmc::Samples samples(model, method, sample_prefix_, params_.n_records());
     notify(observer, FitMethodSetEvent{.method = &method});
@@ -191,7 +191,7 @@ template <typename ChainFactory>
 auto Solver<ChainFactory>::resume(
     const BayesModel& model,
     Checkpoint checkpoint,
-    const FitObserver& observer) -> mcmc::Result
+    const MCMCObserver& observer) -> mcmc::Result
 {
     validate_checkpoint(checkpoint.state, model);
 
@@ -222,13 +222,13 @@ template <typename ChainFactory>
 auto Solver<ChainFactory>::finalize(
     mcmc::Samples samples,
     const BayesModel& model,
-    const FitObserver& observer) -> mcmc::Result
+    const MCMCObserver& observer) -> mcmc::Result
 {
     samples.finalize();
 
     notify(
         observer,
-        FitMCMCProgressEvent{
+        MCMCProgressEvent{
             .current = static_cast<size_t>(params_.n_iters),
             .total = static_cast<size_t>(params_.n_iters),
             .done = true,
@@ -236,8 +236,7 @@ auto Solver<ChainFactory>::finalize(
 
     mcmc::Result result(std::move(samples), model);
     result.compute();
-    notify(
-        observer, FitMCMCCompleteEvent{&result, &model, params_.n_records()});
+    notify(observer, MCMCCompleteEvent{&result, &model, params_.n_records()});
     return result;
 }
 
@@ -249,7 +248,7 @@ auto Solver<ChainFactory>::run_impl(
     mcmc::Samples& samples,
     mcmc::State& state,
     std::mt19937_64& rng,
-    const FitObserver& observer) -> void
+    const MCMCObserver& observer) -> void
 {
     for (Eigen::Index iter = 0; iter < params_.n_iters; ++iter)
     {
@@ -258,7 +257,7 @@ auto Solver<ChainFactory>::run_impl(
 
         notify(
             observer,
-            FitMCMCProgressEvent{
+            MCMCProgressEvent{
                 .current = static_cast<size_t>(iter + 1),
                 .total = static_cast<size_t>(params_.n_iters),
                 .state = &state,

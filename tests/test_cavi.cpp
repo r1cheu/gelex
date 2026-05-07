@@ -29,6 +29,7 @@
 #include "gelex/algo/infer/vi/solver.h"
 #include "gelex/data/genotype/matrix.h"
 #include "gelex/data/genotype/storage.h"
+#include "gelex/infra/logging/fit_event.h"
 #include "gelex/model/bayes/builder.h"
 #include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
@@ -190,10 +191,10 @@ TEST_CASE("CAVI RR converges on synthetic data", "[cavi]")
         = bayes::build_bayes_method(config, stats, model.phenotype_variance());
     // Collect progress events
     std::vector<double> deltas;
-    auto observer = FitObserver(
-        [&](const FitEvent& event)
+    auto observer = VIObserver(
+        [&](const VIEvent& event)
         {
-            if (const auto* p = std::get_if<FitVIProgressEvent>(&event))
+            if (const auto* p = std::get_if<VIProgressEvent>(&event))
             {
                 if (!p->done)
                 {
