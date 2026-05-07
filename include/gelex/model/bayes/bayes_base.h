@@ -17,10 +17,12 @@
 #ifndef GELEX_MODEL_BAYES_BAYES_BASE_H_
 #define GELEX_MODEL_BAYES_BAYES_BASE_H_
 
+#include <algorithm>
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include <unordered_map>
+#include <utility>
 
 #include <fmt/base.h>
 #include <fmt/format.h>
@@ -38,21 +40,24 @@ enum class BayesBase : uint8_t
     kCount,
 };
 
+inline constexpr std::array<
+    std::pair<BayesBase, std::string_view>,
+    std::to_underlying(BayesBase::kCount)>
+    kBayesBaseNames = {{
+        {BayesBase::A, "A"},
+        {BayesBase::B, "B"},
+        {BayesBase::C, "C"},
+        {BayesBase::R, "R"},
+        {BayesBase::RR, "RR"},
+    }};
+
 inline auto get_bayes_base(std::string_view sv) -> std::optional<BayesBase>
 {
-    static const std::unordered_map<std::string_view, BayesBase> string_to_base
-        = {
-            {"A", BayesBase::A},
-            {"B", BayesBase::B},
-            {"C", BayesBase::C},
-            {"R", BayesBase::R},
-            {"RR", BayesBase::RR},
-        };
-
-    auto it = string_to_base.find(sv);
-    if (it != string_to_base.end())
+    const auto* it = std::ranges::find_if(
+        kBayesBaseNames, [sv](const auto& p) { return p.second == sv; });
+    if (it != kBayesBaseNames.end())
     {
-        return it->second;
+        return it->first;
     }
     return std::nullopt;
 }
@@ -67,28 +72,20 @@ struct formatter<gelex::BayesBase> : formatter<string_view>
     auto format(gelex::BayesBase b, format_context& ctx) const
         -> format_context::iterator
     {
-        string_view name = "unknown";
-        switch (b)
+        return formatter<string_view>::format(to_string_view(b), ctx);
+    }
+
+   private:
+    static constexpr auto to_string_view(gelex::BayesBase b) -> string_view
+    {
+        for (const auto& [value, name] : gelex::kBayesBaseNames)
         {
-            case gelex::BayesBase::A:
-                name = "A";
-                break;
-            case gelex::BayesBase::B:
-                name = "B";
-                break;
-            case gelex::BayesBase::C:
-                name = "C";
-                break;
-            case gelex::BayesBase::R:
-                name = "R";
-                break;
-            case gelex::BayesBase::RR:
-                name = "RR";
-                break;
-            case gelex::BayesBase::kCount:
-                break;
+            if (value == b)
+            {
+                return name;
+            }
         }
-        return formatter<string_view>::format(name, ctx);
+        return "unknown";
     }
 };
 
