@@ -19,6 +19,7 @@
 #include <argparse.h>
 #include <filesystem>
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -26,6 +27,7 @@
 #include "cli/data_pipe_config.h"
 #include "cli/data_pipe_reporter.h"
 #include "fit_config.h"
+#include "fit_overrides.h"
 #include "fit_reporter.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/bed_path.h"
@@ -36,48 +38,20 @@
 #include "gelex/engine/vi.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/data_pipe_event.h"
-#include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/notify.h"
+#include "gelex/model/bayes/builder.h"
+#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/model.h"
 
 namespace
 {
 
-auto run_mcmc(
-    gelex::mcmc::FitEngine::Config config,
-    gelex::PhenoPipe&& pheno,
-    gelex::GenoPipe&& geno,
-    gelex::cli::FitReporter& reporter) -> void
+auto report_banner(
+    gelex::cli::FitReporter& reporter,
+    const std::variant<
+        gelex::mcmc::FitEngine::Config,
+        gelex::vi::FitEngine::Config>& engine) -> void
 {
-    gelex::mcmc::FitEngine engine(std::move(config));
-    engine.run(std::move(pheno), std::move(geno), reporter.as_observer());
-}
-
-auto run_cavi(
-    gelex::vi::FitEngine::Config config,
-    gelex::PhenoPipe&& pheno,
-    gelex::GenoPipe&& geno,
-    gelex::cli::FitReporter& reporter) -> void
-{
-    gelex::vi::FitEngine engine(std::move(config));
-    engine.run(std::move(pheno), std::move(geno), reporter.as_observer());
-}
-
-}  // namespace
-
-auto fit_execute(argparse::ArgumentParser& fit) -> int
-{
-    auto fit_config = gelex::cli::make_fit_config(fit);
-    auto [pheno_config, geno_config]
-        = gelex::cli::make_fit_data_configs(fit, fit.get<bool>("--mmap"));
-
-    geno_config.mode
-        = std::visit([](const auto& c) { return c.method.mode; }, fit_config);
-
-    int threads = fit.get<int>("--threads");
-    gelex::cli::FitReporter reporter;
-    gelex::cli::DataPipeReporter data_reporter;
-    gelex::cli::setup_parallelization(threads);
-
     std::visit(
         [&](const auto& config)
         {
@@ -107,7 +81,27 @@ auto fit_execute(argparse::ArgumentParser& fit) -> int
                     });
             }
         },
-        fit_config);
+        engine);
+}
+
+}  // namespace
+
+auto fit_execute(argparse::ArgumentParser& fit) -> int
+{
+    auto fit_config = gelex::cli::make_fit_config(fit);
+    auto [pheno_config, geno_config]
+        = gelex::cli::make_fit_data_configs(fit, fit.get<bool>("--mmap"));
+
+    auto method_config
+        = std::visit([](const auto& c) { return c.method; }, fit_config.engine);
+    geno_config.mode = method_config.mode;
+
+    int threads = fit.get<int>("--threads");
+    gelex::cli::FitReporter reporter;
+    gelex::cli::DataPipeReporter data_reporter;
+    gelex::cli::setup_parallelization(threads);
+
+    report_banner(reporter, fit_config.engine);
 
     auto bed_path
         = gelex::genotype::format_bed_path(fit.get<std::string>("--bfile"));
@@ -140,28 +134,30 @@ auto fit_execute(argparse::ArgumentParser& fit) -> int
     gelex::GenoPipe geno(geno_config, data_reporter.as_observer());
     geno.load(common);
 
+    auto model = gelex::build_bayes_model(std::move(pheno), std::move(geno));
+    auto stats = gelex::compute_genetic_stats(model, method_config);
+    auto method = gelex::bayes::build_bayes_method(
+        method_config, stats, model.phenotype_variance());
+    gelex::cli::apply_overrides(method, fit_config.overrides);
+
     std::visit(
-        [&](auto&& config)
+        [&](auto&& engine_config)
         {
-            using T = std::decay_t<decltype(config)>;
+            using T = std::decay_t<decltype(engine_config)>;
             if constexpr (std::is_same_v<T, gelex::mcmc::FitEngine::Config>)
             {
-                run_mcmc(
-                    std::forward<decltype(config)>(config),
-                    std::move(pheno),
-                    std::move(geno),
-                    reporter);
+                gelex::mcmc::FitEngine engine(
+                    std::forward<decltype(engine_config)>(engine_config));
+                engine.run(model, std::move(method), reporter.as_observer());
             }
             else
             {
-                run_cavi(
-                    std::forward<decltype(config)>(config),
-                    std::move(pheno),
-                    std::move(geno),
-                    reporter);
+                gelex::vi::FitEngine engine(
+                    std::forward<decltype(engine_config)>(engine_config));
+                engine.run(model, std::move(method), reporter.as_observer());
             }
         },
-        std::move(fit_config));
+        std::move(fit_config.engine));
 
     return 0;
 }

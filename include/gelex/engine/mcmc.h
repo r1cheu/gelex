@@ -20,7 +20,6 @@
 #include <filesystem>
 #include <optional>
 #include <string>
-#include <vector>
 
 #include "gelex/algo/infer/params.h"
 #include "gelex/infra/logging/fit_event.h"
@@ -29,8 +28,6 @@
 namespace gelex
 {
 
-class PhenoPipe;
-class GenoPipe;
 class BayesModel;
 
 namespace mcmc
@@ -47,20 +44,14 @@ class FitEngine
         int seed;
         mcmc::Params mcmc_params;
 
-        std::optional<std::vector<double>> pi;
-        std::optional<std::vector<double>> dpi;
-        std::optional<std::vector<double>> multiplier;
-        std::optional<std::vector<double>> dmultiplier;
-
-        double positive_prob{0.5};
         std::string out_prefix;
         std::optional<std::filesystem::path> resume_path;
     };
 
     explicit FitEngine(Config config);
     auto run(
-        PhenoPipe&& pheno,
-        GenoPipe&& geno,
+        const BayesModel& model,
+        bayes::BayesMethod method,
         const FitObserver& observer = {}) -> void;
 
    private:
@@ -80,8 +71,6 @@ class ConfigValidator
    private:
     auto check_method() const -> void;
     auto check_mcmc_params() const -> void;
-    auto check_mixture_priors() const -> void;
-    auto check_positive_prob() const -> void;
 
     const FitEngine::Config& config_;
 };

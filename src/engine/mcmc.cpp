@@ -18,15 +18,10 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
-#include <numeric>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include <fmt/format.h>
-
-#include <Eigen/Core>
 
 #include "gelex/algo/infer/mcmc/recipes.h"
 #include "gelex/algo/infer/mcmc/solver.h"
@@ -34,9 +29,7 @@
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/mcmc/checkpoint_reader.h"
 #include "gelex/io/mcmc/result_writer.h"
-#include "gelex/model/bayes/builder.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -46,14 +39,14 @@ namespace
 {
 
 using TraitRunner = mcmc::Result (*)(
-    BayesModel&,
+    const BayesModel&,
     bayes::BayesMethod,
     const mcmc::FitEngine::Config&,
     const FitObserver&);
 
 template <auto MakeChain>
 auto run_recipe(
-    BayesModel& model,
+    const BayesModel& model,
     bayes::BayesMethod method,
     const mcmc::FitEngine::Config& config,
     const FitObserver& observer) -> mcmc::Result
@@ -114,103 +107,6 @@ auto find_runner(bayes::BayesConfig method) -> TraitRunner
     return it->second;
 }
 
-auto find_spec(bayes::GeneticPrior& prior, GeneticMode mode)
-    -> bayes::GeneticSpec*
-{
-    if (auto* s = std::get_if<bayes::GeneticSpec>(&prior.spec);
-        s != nullptr && s->mode == mode)
-    {
-        return s;
-    }
-    if (auto* j = std::get_if<bayes::JointSpec>(&prior.spec); j != nullptr)
-    {
-        if (mode == GeneticMode::A)
-        {
-            return &j->additive;
-        }
-        if (mode == GeneticMode::D)
-        {
-            return &j->dominance;
-        }
-    }
-    return nullptr;
-}
-
-auto as_eigen(const std::vector<double>& v) -> Eigen::VectorXd
-{
-    return Eigen::Map<const Eigen::VectorXd>(
-        v.data(), static_cast<Eigen::Index>(v.size()));
-}
-
-auto apply_proportions(
-    bayes::BayesMethod& method,
-    GeneticMode mode,
-    const std::optional<std::vector<double>>& v) -> void
-{
-    if (!v)
-    {
-        return;
-    }
-    for (auto& prior : method.genetics)
-    {
-        if (find_spec(prior, mode) != nullptr && prior.mixture)
-        {
-            prior.mixture->proportions.init = as_eigen(*v);
-        }
-    }
-}
-
-auto apply_multipliers(
-    bayes::BayesMethod& method,
-    GeneticMode mode,
-    const std::optional<std::vector<double>>& v) -> void
-{
-    if (!v)
-    {
-        return;
-    }
-    for (auto& prior : method.genetics)
-    {
-        if (find_spec(prior, mode) == nullptr || !prior.mixture)
-        {
-            continue;
-        }
-        if (auto* sm
-            = std::get_if<bayes::ScaledMixture>(&prior.mixture->strategy))
-        {
-            sm->multiplier = as_eigen(*v);
-        }
-    }
-}
-
-auto apply_dominance_sign(bayes::BayesMethod& method, double positive_prob)
-    -> void
-{
-    for (auto& prior : method.genetics)
-    {
-        if (auto* spec = find_spec(prior, GeneticMode::D);
-            spec != nullptr && spec->sign)
-        {
-            spec->sign->init
-                = Eigen::VectorXd{{positive_prob, 1.0 - positive_prob}};
-        }
-    }
-}
-
-auto apply_prior_overrides(
-    bayes::BayesMethod& method,
-    const mcmc::FitEngine::Config& config) -> void
-{
-    apply_proportions(method, GeneticMode::A, config.pi);
-    apply_proportions(method, GeneticMode::D, config.dpi);
-    apply_multipliers(method, GeneticMode::A, config.multiplier);
-    apply_multipliers(method, GeneticMode::D, config.dmultiplier);
-    if (config.method.dominance == bayes::DominancePolicy::asymmetric)
-    {
-        apply_dominance_sign(method, config.positive_prob);
-    }
-}
-
 }  // namespace
 
 namespace mcmc
@@ -222,8 +118,6 @@ auto ConfigValidator::validate() const -> void
 {
     check_method();
     check_mcmc_params();
-    check_mixture_priors();
-    check_positive_prob();
 }
 
 auto ConfigValidator::check_method() const -> void
@@ -274,64 +168,11 @@ auto ConfigValidator::check_mcmc_params() const -> void
     }
 }
 
-auto ConfigValidator::check_mixture_priors() const -> void
-{
-    auto check_pair = [](const std::optional<std::vector<double>>& probs,
-                         const std::optional<std::vector<double>>& multipliers,
-                         std::string_view probs_name,
-                         std::string_view mult_name) -> void
-    {
-        if (probs)
-        {
-            if (std::ranges::any_of(*probs, [](double v) { return v < 0.0; }))
-            {
-                throw GelexException(
-                    fmt::format("{} contains negative entries", probs_name));
-            }
-            const auto sum = std::accumulate(probs->begin(), probs->end(), 0.0);
-            if (std::abs(sum - 1.0) > 1e-9)
-            {
-                throw GelexException(
-                    fmt::format("{} must sum to 1, got {}", probs_name, sum));
-            }
-        }
-        if (probs && multipliers && probs->size() != multipliers->size())
-        {
-            throw GelexException(
-                fmt::format(
-                    "{} size ({}) must match {} size ({})",
-                    probs_name,
-                    probs->size(),
-                    mult_name,
-                    multipliers->size()));
-        }
-    };
-
-    check_pair(config_.pi, config_.multiplier, "pi", "multiplier");
-    check_pair(config_.dpi, config_.dmultiplier, "dpi", "dmultiplier");
-}
-
-auto ConfigValidator::check_positive_prob() const -> void
-{
-    if (config_.positive_prob < 0.0 || config_.positive_prob > 1.0)
-    {
-        throw GelexException(
-            fmt::format(
-                "positive_prob must be in [0, 1], got {}",
-                config_.positive_prob));
-    }
-}
-
 auto FitEngine::run(
-    PhenoPipe&& pheno,
-    GenoPipe&& geno,
+    const BayesModel& model,
+    bayes::BayesMethod method,
     const FitObserver& observer) -> void
 {
-    auto model = build_bayes_model(std::move(pheno), std::move(geno));
-    const auto stats = compute_genetic_stats(model, config_.method);
-    auto method = bayes::build_bayes_method(
-        config_.method, stats, model.phenotype_variance());
-    apply_prior_overrides(method, config_);
     auto runner = find_runner(config_.method);
     auto result = runner(model, std::move(method), config_, observer);
 

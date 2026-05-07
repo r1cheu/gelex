@@ -26,8 +26,7 @@
 namespace gelex
 {
 
-class PhenoPipe;
-class GenoPipe;
+class BayesModel;
 
 namespace vi
 {
@@ -45,8 +44,8 @@ class FitEngine
 
     explicit FitEngine(Config config);
     auto run(
-        PhenoPipe&& pheno,
-        GenoPipe&& geno,
+        const BayesModel& model,
+        bayes::BayesMethod method,
         const FitObserver& observer = {}) -> void;
 
    private:

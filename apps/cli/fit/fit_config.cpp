@@ -17,9 +17,12 @@
 #include "fit_config.h"
 
 #include <initializer_list>
+#include <optional>
 #include <string_view>
+#include <vector>
 
 #include <argparse.h>
+#include <Eigen/Core>
 
 #include "gelex/exception.h"
 
@@ -73,6 +76,32 @@ auto reject_if_used(
     }
 }
 
+auto extract_eigen(argparse::ArgumentParser& cmd, std::string_view arg)
+    -> std::optional<Eigen::VectorXd>
+{
+    if (!cmd.is_used(arg))
+    {
+        return std::nullopt;
+    }
+    auto v = cmd.get<std::vector<double>>(arg);
+    return Eigen::Map<const Eigen::VectorXd>(
+        v.data(), static_cast<Eigen::Index>(v.size()));
+}
+
+auto make_overrides(argparse::ArgumentParser& cmd) -> MethodOverrides
+{
+    MethodOverrides o;
+    o.additive.proportions = extract_eigen(cmd, "--pi");
+    o.additive.multiplier = extract_eigen(cmd, "--mult");
+    o.dominance.proportions = extract_eigen(cmd, "--dpi");
+    o.dominance.multiplier = extract_eigen(cmd, "--dmult");
+    if (cmd.is_used("--positive-prob"))
+    {
+        o.dominance.positive_prob = cmd.get<double>("--positive-prob");
+    }
+    return o;
+}
+
 auto make_mcmc_config(argparse::ArgumentParser& cmd, bayes::BayesConfig method)
     -> mcmc::FitEngine::Config
 {
@@ -93,22 +122,6 @@ auto make_mcmc_config(argparse::ArgumentParser& cmd, bayes::BayesConfig method)
         },
         .out_prefix = cmd.get("--out"),
     };
-
-    auto extract_opt_vec
-        = [&](std::string_view arg) -> std::optional<std::vector<double>>
-    {
-        if (cmd.is_used(arg))
-        {
-            return cmd.get<std::vector<double>>(arg);
-        }
-        return std::nullopt;
-    };
-
-    config.pi = extract_opt_vec("--pi");
-    config.dpi = extract_opt_vec("--dpi");
-    config.multiplier = extract_opt_vec("--mult");
-    config.dmultiplier = extract_opt_vec("--dmult");
-    config.positive_prob = cmd.get<double>("--positive-prob");
 
     if (cmd.is_used("--resume"))
     {
@@ -165,9 +178,15 @@ auto make_fit_config(argparse::ArgumentParser& cmd) -> FitConfig
 
     if (infer == "cavi")
     {
-        return make_cavi_config(cmd, method);
+        return FitConfig{.engine = make_cavi_config(cmd, method)};
     }
-    return make_mcmc_config(cmd, method);
+
+    auto overrides = make_overrides(cmd);
+    validate_overrides(method, overrides);
+    return FitConfig{
+        .engine = make_mcmc_config(cmd, method),
+        .overrides = std::move(overrides),
+    };
 }
 
 }  // namespace gelex::cli

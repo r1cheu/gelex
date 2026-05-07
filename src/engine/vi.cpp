@@ -25,7 +25,6 @@
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/vi/result_writer.h"
-#include "gelex/model/bayes/builder.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -35,8 +34,8 @@ namespace gelex
 vi::FitEngine::FitEngine(Config config) : config_(std::move(config)) {}
 
 auto vi::FitEngine::run(
-    PhenoPipe&& pheno,
-    GenoPipe&& geno,
+    const BayesModel& model,
+    bayes::BayesMethod method,
     const FitObserver& observer) -> void
 {
     if (config_.method.base != BayesBase::RR)
@@ -45,10 +44,6 @@ auto vi::FitEngine::run(
             fmt::format("CAVI only supports BayesRR, got: {}", config_.method));
     }
 
-    auto model = build_bayes_model(std::move(pheno), std::move(geno));
-    const auto stats = compute_genetic_stats(model, config_.method);
-    auto method = bayes::build_bayes_method(
-        config_.method, stats, model.phenotype_variance());
     vi::Result result = [&]
     {
         switch (config_.method.mode)

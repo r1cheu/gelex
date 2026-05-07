@@ -14,31 +14,39 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_FIT_CONFIG_H_
-#define GELEX_CLI_FIT_CONFIG_H_
+#ifndef GELEX_CLI_FIT_OVERRIDES_H_
+#define GELEX_CLI_FIT_OVERRIDES_H_
 
-#include <variant>
+#include <optional>
 
-#include "fit_overrides.h"
-#include "gelex/engine/mcmc.h"
-#include "gelex/engine/vi.h"
+#include <Eigen/Core>
 
-namespace argparse
-{
-class ArgumentParser;
-}
+#include "gelex/model/bayes/method.h"
 
 namespace gelex::cli
 {
 
-struct FitConfig
+struct GeneticOverride
 {
-    std::variant<mcmc::FitEngine::Config, vi::FitEngine::Config> engine;
-    MethodOverrides overrides;
+    std::optional<Eigen::VectorXd> proportions;
+    std::optional<Eigen::VectorXd> multiplier;
+    std::optional<double> positive_prob;
 };
 
-auto make_fit_config(argparse::ArgumentParser& cmd) -> FitConfig;
+struct MethodOverrides
+{
+    GeneticOverride additive;
+    GeneticOverride dominance;
+};
+
+auto validate_overrides(
+    const bayes::BayesConfig& method,
+    const MethodOverrides& overrides) -> void;
+
+auto apply_overrides(
+    bayes::BayesMethod& method,
+    const MethodOverrides& overrides) -> void;
 
 }  // namespace gelex::cli
 
-#endif  // GELEX_CLI_FIT_CONFIG_H_
+#endif  // GELEX_CLI_FIT_OVERRIDES_H_
