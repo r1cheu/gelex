@@ -25,16 +25,18 @@
 #include "cli/assoc/assoc_args.h"
 #include "cli/assoc/assoc_command.h"
 #include "cli/cli_helper.h"
-#include "cli/fit/fit_args.h"
-#include "cli/fit/fit_command.h"
 #include "cli/grm/grm_args.h"
 #include "cli/grm/grm_command.h"
+#include "cli/mcmc/mcmc_args.h"
+#include "cli/mcmc/mcmc_command.h"
 #include "cli/post/post_args.h"
 #include "cli/post/post_command.h"
 #include "cli/predict/predict_args.h"
 #include "cli/predict/predict_command.h"
 #include "cli/simulate/simulate_args.h"
 #include "cli/simulate/simulate_command.h"
+#include "cli/vi/vi_args.h"
+#include "cli/vi/vi_command.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/formatter.h"
 
@@ -101,7 +103,8 @@ auto execute_command(
 auto main(int argc, char* argv[]) -> int
 {
     argparse::ArgumentParser program(PROJECT_NAME, PROJECT_VERSION);
-    argparse::ArgumentParser fit("fit");
+    argparse::ArgumentParser mcmc("mcmc");
+    argparse::ArgumentParser vi("vi");
     argparse::ArgumentParser simulate("simulate");
     argparse::ArgumentParser predict("predict");
     argparse::ArgumentParser grm("grm");
@@ -109,7 +112,8 @@ auto main(int argc, char* argv[]) -> int
     argparse::ArgumentParser post("post");
 
     const std::array commands
-        = {CommandDescriptor{"fit", &fit, setup_fit_args, fit_execute},
+        = {CommandDescriptor{"mcmc", &mcmc, setup_mcmc_args, mcmc_execute},
+           CommandDescriptor{"vi", &vi, setup_vi_args, vi_execute},
            CommandDescriptor{
                "simulate", &simulate, setup_simulate_args, simulate_execute},
            CommandDescriptor{

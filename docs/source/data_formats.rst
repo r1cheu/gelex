@@ -97,7 +97,7 @@ Example:
    ``--bfile mydata`` loads ``mydata.bed``, ``mydata.bim``, and
    ``mydata.fam``.
 
-Related command docs: :ref:`fit-command`, :ref:`assoc-command`,
+Related command docs: :ref:`mcmc-command`, :ref:`assoc-command`,
 :ref:`predict-command`.
 
 .. _phenotype-format:
@@ -135,7 +135,7 @@ Example:
    1002   1002   168.0     -9
    1003   1003   NA        65.5
 
-Related command docs: :ref:`fit-command`, :ref:`assoc-command`.
+Related command docs: :ref:`mcmc-command`, :ref:`assoc-command`.
 
 .. _covariate-format:
 
@@ -183,7 +183,7 @@ variables (one-hot encoding).
    1002   1002   2      B
    1003   1003   1      B
 
-Related command docs: :ref:`fit-command`, :ref:`predict-command`.
+Related command docs: :ref:`mcmc-command`, :ref:`predict-command`.
 
 .. _grm-format:
 
@@ -232,7 +232,7 @@ Command-to-Output Mapping
      - ``<out>.pred.tsv``
      - Individual-level predicted values and components.
 
-See :ref:`fit-command`, :ref:`assoc-command`, and :ref:`predict-command`
+See :ref:`mcmc-command`, :ref:`assoc-command`, and :ref:`predict-command`
 for command options.
 
 .. _snp-eff-format:

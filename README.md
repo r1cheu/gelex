@@ -51,7 +51,7 @@ For detailed installation instructions, please visit the [Installation Guide](ht
 ### 1. Fit a Bayesian Model (BayesR)
 
 ```bash
-gelex fit \
+gelex mcmc \
   --bfile data/genotypes \
   --pheno data/phenotypes.tsv \
   --method R \

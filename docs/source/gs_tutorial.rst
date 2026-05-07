@@ -9,7 +9,7 @@ Genomic Selection Tutorial
    .. code-block:: bash
       :caption: Model Fitting (Train)
 
-      gelex fit \
+      gelex mcmc \
         --bfile train_data \
         --pheno train_pheno.tsv \
         --method R \
@@ -45,7 +45,7 @@ Step 1: Model Fitting
 The first step is to fit a model to your training data. This estimates the effect size of each SNP and any fixed covariates.
 
 .. seealso::
-   See :ref:`fit-command` for a full list of options.
+   See :ref:`mcmc-command` for a full list of options.
 
 Choose a Method
 ~~~~~~~~~~~~~~~
@@ -63,7 +63,7 @@ To fit a **BayesR** model:
 .. code-block:: bash
    :caption: Fit BayesR Model
 
-   gelex fit \
+   gelex mcmc \
      --bfile train_genotypes \
      --pheno phenotypes.tsv \
      --method R \
@@ -78,7 +78,7 @@ You can include fixed effects such as sex (discrete) or age (quantitative):
 .. code-block:: bash
    :caption: Fit Model with Covariates
 
-   gelex fit \
+   gelex mcmc \
      --bfile train_genotypes \
      --pheno phenotypes.tsv \
      --dcovar sex.tsv \

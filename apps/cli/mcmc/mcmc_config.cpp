@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-#include "fit_config.h"
+#include "mcmc_config.h"
 
-#include <initializer_list>
 #include <optional>
-#include <string_view>
 #include <vector>
 
 #include <argparse.h>
@@ -61,21 +59,6 @@ auto parse_method(argparse::ArgumentParser& cmd) -> bayes::BayesConfig
     return method;
 }
 
-auto reject_if_used(
-    argparse::ArgumentParser& cmd,
-    std::initializer_list<std::string_view> flags,
-    std::string_view context) -> void
-{
-    for (auto flag : flags)
-    {
-        if (cmd.is_used(flag))
-        {
-            throw gelex::GelexException(
-                fmt::format("{} is not valid with {}", flag, context));
-        }
-    }
-}
-
 auto extract_eigen(argparse::ArgumentParser& cmd, std::string_view arg)
     -> std::optional<Eigen::VectorXd>
 {
@@ -102,11 +85,10 @@ auto make_overrides(argparse::ArgumentParser& cmd) -> MethodOverrides
     return o;
 }
 
-auto make_mcmc_config(argparse::ArgumentParser& cmd, bayes::BayesConfig method)
-    -> mcmc::FitEngine::Config
+auto make_engine_config(
+    argparse::ArgumentParser& cmd,
+    bayes::BayesConfig method) -> mcmc::FitEngine::Config
 {
-    reject_if_used(cmd, {"--max-iters", "--tol"}, "--im mcmc");
-
     mcmc::FitEngine::Config config{
         .bfile_prefix = cmd.get("--bfile"),
         .method = method,
@@ -132,59 +114,15 @@ auto make_mcmc_config(argparse::ArgumentParser& cmd, bayes::BayesConfig method)
     return config;
 }
 
-auto make_cavi_config(argparse::ArgumentParser& cmd, bayes::BayesConfig method)
-    -> vi::FitEngine::Config
-{
-    if (method.base != BayesBase::RR)
-    {
-        throw gelex::GelexException(
-            fmt::format("CAVI only supports BayesRR, got: {}", method));
-    }
-
-    reject_if_used(
-        cmd,
-        {"--iters",
-         "--burn-in",
-         "--thin",
-         "--seed",
-         "--checkpoint-step",
-         "--resume",
-         "--pi",
-         "--dpi",
-         "--mult",
-         "--dmult",
-         "--estimate-pi",
-         "--asym",
-         "--positive-prob"},
-        "--im cavi");
-
-    return vi::FitEngine::Config{
-        .bfile_prefix = cmd.get("--bfile"),
-        .method = method,
-        .params = vi::Params{
-            .max_iters = cmd.get<int>("--max-iters"),
-            .tol = cmd.get<double>("--tol"),
-        },
-        .out_prefix = cmd.get("--out"),
-    };
-}
-
 }  // namespace
 
-auto make_fit_config(argparse::ArgumentParser& cmd) -> FitConfig
+auto make_mcmc_fit_config(argparse::ArgumentParser& cmd) -> McmcFitConfig
 {
     auto method = parse_method(cmd);
-    auto infer = cmd.get("--infer-method");
-
-    if (infer == "cavi")
-    {
-        return FitConfig{.engine = make_cavi_config(cmd, method)};
-    }
-
     auto overrides = make_overrides(cmd);
     validate_overrides(method, overrides);
-    return FitConfig{
-        .engine = make_mcmc_config(cmd, method),
+    return McmcFitConfig{
+        .engine = make_engine_config(cmd, method),
         .overrides = std::move(overrides),
     };
 }

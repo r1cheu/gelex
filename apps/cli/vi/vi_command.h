@@ -14,31 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_FIT_CONFIG_H_
-#define GELEX_CLI_FIT_CONFIG_H_
-
-#include <variant>
-
-#include "fit_overrides.h"
-#include "gelex/engine/mcmc.h"
-#include "gelex/engine/vi.h"
+#ifndef GELEX_CLI_VI_COMMAND_H_
+#define GELEX_CLI_VI_COMMAND_H_
 
 namespace argparse
 {
 class ArgumentParser;
 }
 
-namespace gelex::cli
-{
+auto vi_execute(argparse::ArgumentParser& cmd) -> int;
 
-struct FitConfig
-{
-    std::variant<mcmc::FitEngine::Config, vi::FitEngine::Config> engine;
-    MethodOverrides overrides;
-};
-
-auto make_fit_config(argparse::ArgumentParser& cmd) -> FitConfig;
-
-}  // namespace gelex::cli
-
-#endif  // GELEX_CLI_FIT_CONFIG_H_
+#endif  // GELEX_CLI_VI_COMMAND_H_

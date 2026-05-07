@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_FIT_OVERRIDES_H_
-#define GELEX_CLI_FIT_OVERRIDES_H_
+#ifndef GELEX_CLI_MCMC_OVERRIDES_H_
+#define GELEX_CLI_MCMC_OVERRIDES_H_
 
 #include <optional>
 
@@ -49,4 +49,4 @@ auto apply_overrides(
 
 }  // namespace gelex::cli
 
-#endif  // GELEX_CLI_FIT_OVERRIDES_H_
+#endif  // GELEX_CLI_MCMC_OVERRIDES_H_

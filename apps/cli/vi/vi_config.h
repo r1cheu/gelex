@@ -14,14 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_FIT_COMMAND_H_
-#define GELEX_CLI_FIT_COMMAND_H_
+#ifndef GELEX_CLI_VI_CONFIG_H_
+#define GELEX_CLI_VI_CONFIG_H_
+
+#include "gelex/engine/vi.h"
 
 namespace argparse
 {
 class ArgumentParser;
 }
 
-auto fit_execute(argparse::ArgumentParser& fit) -> int;
+namespace gelex::cli
+{
 
-#endif  // GELEX_CLI_FIT_COMMAND_H_
+auto make_vi_fit_config(argparse::ArgumentParser& cmd) -> vi::FitEngine::Config;
+
+}  // namespace gelex::cli
+
+#endif  // GELEX_CLI_VI_CONFIG_H_

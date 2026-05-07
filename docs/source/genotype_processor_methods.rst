@@ -27,7 +27,7 @@ HWE vs Sample: Practical Difference
 - **Sample methods** use moments estimated from your data, so standardized
   variants are better aligned with sample-level properties (mean close to 0,
   standard deviation close to 1).
-- In iterative model fitting (for example, ``gelex fit``), ``*-sample``
+- In iterative model fitting (for example, ``gelex mcmc``), ``*-sample``
   methods can sometimes improve numerical precision and speed up convergence.
 - Use one family consistently within the same analysis workflow to avoid
   method-induced scale differences.

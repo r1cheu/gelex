@@ -14,8 +14,10 @@ The following subcommands cover the complete genomic analysis workflow:
 
    * - Subcommand
      - Description
-   * - :doc:`fit`
-     - Fit Bayesian models (BayesAlphabet) and estimate marker effects.
+   * - :doc:`mcmc`
+     - Fit Bayesian models (BayesAlphabet) via MCMC and estimate marker effects.
+   * - :doc:`vi`
+     - Fit BayesRR via CAVI (variational inference) for fast point estimates.
    * - :doc:`assoc`
      - Perform GWAS using mixed linear models (GBLUP) with LOCO.
    * - :doc:`grm`
@@ -28,7 +30,8 @@ The following subcommands cover the complete genomic analysis workflow:
 .. toctree::
    :hidden:
 
-   fit
+   mcmc
+   vi
    assoc
    grm
    predict

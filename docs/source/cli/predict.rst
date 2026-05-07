@@ -5,7 +5,7 @@ predict
 
 Generate genomic predictions from fitted SNP effects.
 
-Use this command after :ref:`fit-command` to score target samples.
+Use this command after :ref:`mcmc-command` to score target samples.
 
 Basic Syntax
 ------------
@@ -32,7 +32,7 @@ Options
    PLINK binary prefix (``.bed/.bim/.fam``) for target samples.
 
 ``-e, --snp-eff`` ``required``
-   SNP effects file from ``gelex fit`` (usually ``<out>.snp.eff``).
+   SNP effects file from ``gelex mcmc`` or ``gelex vi`` (usually ``<out>.snp.eff``).
 
 ``-o, --out`` ``required``
    Output file path for prediction results.
@@ -128,5 +128,5 @@ Examples
 See Also
 --------
 
-- :ref:`fit-command` for training SNP and covariate effects.
+- :ref:`mcmc-command` for training SNP and covariate effects.
 - :ref:`predict-output-format` for prediction output columns.

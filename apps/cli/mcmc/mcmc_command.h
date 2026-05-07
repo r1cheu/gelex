@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_FIT_ARGS_H_
-#define GELEX_CLI_FIT_ARGS_H_
+#ifndef GELEX_CLI_MCMC_COMMAND_H_
+#define GELEX_CLI_MCMC_COMMAND_H_
 
 namespace argparse
 {
 class ArgumentParser;
 }
 
-auto setup_fit_args(argparse::ArgumentParser& cmd) -> void;
+auto mcmc_execute(argparse::ArgumentParser& cmd) -> int;
 
-#endif  // GELEX_CLI_FIT_ARGS_H_
+#endif  // GELEX_CLI_MCMC_COMMAND_H_

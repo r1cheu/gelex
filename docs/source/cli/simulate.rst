@@ -155,5 +155,5 @@ Expected outputs: ``sim_basic.phen``, ``sim_basic.causal``.
 See Also
 --------
 
-- :ref:`fit-command` for training models on simulated phenotypes.
+- :ref:`mcmc-command` for training models on simulated phenotypes.
 - :ref:`assoc-command` for GWAS benchmarking with known causal effects.

@@ -14,16 +14,20 @@
  * limitations under the License.
  */
 
-#include "fit_args.h"
+#include "mcmc_args.h"
+
+#include <algorithm>
+#include <string>
+#include <thread>
 
 #include <argparse.h>
-#include <thread>
 
 #include "cli/cli_helper.h"
 
-auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
+auto setup_mcmc_args(argparse::ArgumentParser& cmd) -> void
 {
-    cmd.add_description("Fit genomic prediction models using Bayesian methods");
+    cmd.add_description(
+        "Fit genomic prediction models using MCMC (Gibbs sampling)");
 
     cmd.add_group("I/O");
     cmd.add_argument("-p", "--pheno")
@@ -105,13 +109,6 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
 
-    cmd.add_group("Inference");
-    cmd.add_argument("--infer-method", "--im")
-        .help("Inference method: mcmc (Gibbs sampling) or cavi (variational)")
-        .default_value(std::string("mcmc"))
-        .metavar("<METHOD>")
-        .choices("mcmc", "cavi");
-
     cmd.add_group("MCMC");
     cmd.add_argument("--iters")
         .help("Total MCMC iterations")
@@ -136,16 +133,6 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
         .help("Resume from checkpoint")
         .metavar("<CKPT>");
 
-    cmd.add_group("CAVI");
-    cmd.add_argument("--max-iters")
-        .help("Maximum CAVI iterations")
-        .default_value(1000)
-        .scan<'i', int>();
-    cmd.add_argument("--tol")
-        .help("Convergence tolerance (relative RSS change)")
-        .default_value(1e-6)
-        .scan<'g', double>();
-
     cmd.add_group("Performance");
     cmd.add_argument("-t", "--threads")
         .help("CPU threads")
@@ -160,8 +147,8 @@ auto setup_fit_args(argparse::ArgumentParser& cmd) -> void
     cmd.add_epilog(
         gelex::cli::format_epilog(
             "{bg}Example:{rs}\n"
-            "  {bc}gelex fit{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
+            "  {bc}gelex mcmc{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
             "{cy}-m{rs} R {cy}--mode AD --asym{rs}\n\n"
             "{bg}Docs:{rs}\n"
-            "  https://gelex.readthedocs.io/en/latest/cli/fit.html"));
+            "  https://gelex.readthedocs.io/en/latest/cli/mcmc.html"));
 }

@@ -44,7 +44,7 @@ Here is how to fit a Bayesian model (BayesR) in one command:
 
 .. code-block:: bash
 
-   gelex fit \
+   gelex mcmc \
      --bfile data/genotypes \
      --pheno data/phenotypes.tsv \
      --method R \

@@ -4,11 +4,14 @@ set(CLI_SOURCES
     cli/assoc/assoc_config.cpp
     cli/assoc/assoc_command.cpp
     cli/assoc/assoc_reporter.cpp
-    cli/fit/fit_args.cpp
-    cli/fit/fit_config.cpp
-    cli/fit/fit_command.cpp
-    cli/fit/fit_overrides.cpp
-    cli/fit/fit_reporter.cpp
+    cli/fit_reporter.cpp
+    cli/mcmc/mcmc_args.cpp
+    cli/mcmc/mcmc_config.cpp
+    cli/mcmc/mcmc_command.cpp
+    cli/mcmc/mcmc_overrides.cpp
+    cli/vi/vi_args.cpp
+    cli/vi/vi_config.cpp
+    cli/vi/vi_command.cpp
     cli/grm/grm_args.cpp
     cli/grm/grm_config.cpp
     cli/grm/grm_command.cpp

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "fit_overrides.h"
+#include "mcmc_overrides.h"
 
 #include <cmath>
 #include <string_view>

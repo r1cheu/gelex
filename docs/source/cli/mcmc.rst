@@ -1,9 +1,10 @@
-.. _fit-command:
+.. _mcmc-command:
 
-fit
-===
+mcmc
+====
 
-Train SNP effect models for genomic prediction using BayesAlphabet methods.
+Train SNP effect models for genomic prediction using BayesAlphabet methods
+with MCMC (Gibbs sampling).
 
 Use this command when you want to learn marker effects from training data,
 then reuse those effects in :ref:`predict-command`.
@@ -14,12 +15,12 @@ Basic Syntax
 .. code-block:: bash
    :caption: Minimum Working Command
 
-   gelex fit -b train_data -p phenotypes.tsv -m RR -o model_rr
+   gelex mcmc -b train_data -p phenotypes.tsv -m RR -o model_rr
 
 .. code-block:: bash
    :caption: Full Syntax Template
 
-   gelex fit --pheno <pheno_file> --bfile <genotype_prefix> --method <method> [OPTIONS]
+   gelex mcmc --pheno <pheno_file> --bfile <genotype_prefix> --method <method> [OPTIONS]
 
 Required inputs are phenotype file (``--pheno``), genotype prefix (``--bfile``),
 and model method (``--method``).
@@ -193,7 +194,7 @@ Examples
 .. code-block:: bash
    :caption: Quick Start Baseline (RR)
 
-   gelex fit \
+   gelex mcmc \
       -b train_data \
       -p phenotypes.tsv \
       -m RR \
@@ -204,7 +205,7 @@ Expected outputs: ``model_rr.snp.eff``, ``model_rr.param``.
 .. code-block:: bash
    :caption: Accuracy-Oriented Training (R)
 
-   gelex fit \
+   gelex mcmc \
       -b train_data \
       -p phenotypes.tsv \
       -m R \
@@ -215,7 +216,7 @@ Expected outputs: ``model_bayesr.snp.eff``, ``model_bayesr.param``.
 .. code-block:: bash
    :caption: Sparse Effects with Variable Selection (B)
 
-   gelex fit \
+   gelex mcmc \
       -b train_data \
       -p phenotypes.tsv \
       -m B \
@@ -225,7 +226,7 @@ Expected outputs: ``model_bayesr.snp.eff``, ``model_bayesr.param``.
 .. code-block:: bash
    :caption: Add Fixed Effects (qcovar + dcovar)
 
-   gelex fit \
+   gelex mcmc \
       -b train_data \
       -p phenotypes.tsv \
       -m R \
@@ -236,7 +237,7 @@ Expected outputs: ``model_bayesr.snp.eff``, ``model_bayesr.param``.
 .. code-block:: bash
    :caption: Longer MCMC for Stable Posterior Estimates
 
-   gelex fit \
+   gelex mcmc \
       -b train_data \
       -p phenotypes.tsv \
       -m R \
@@ -248,7 +249,7 @@ Expected outputs: ``model_bayesr.snp.eff``, ``model_bayesr.param``.
 .. code-block:: bash
    :caption: Additive + Dominance Model (Rd)
 
-   gelex fit \
+   gelex mcmc \
       -b train_data \
       -p phenotypes.tsv \
       -m Rd \
@@ -259,7 +260,7 @@ Expected outputs: ``model_bayesr.snp.eff``, ``model_bayesr.param``.
 .. code-block:: bash
    :caption: Estimate Mixture Proportions (Cpi)
 
-   gelex fit \
+   gelex mcmc \
       -b train_data \
       -p phenotypes.tsv \
       -m Cpi \
