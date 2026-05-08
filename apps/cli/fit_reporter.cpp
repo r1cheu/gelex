@@ -21,8 +21,8 @@
 
 #include <fmt/format.h>
 
+#include "cli/report_printer.h"
 #include "gelex/algo/infer/posterior_summary.h"
-#include "gelex/infra/logger.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/stats/conjugate_prior.h"
@@ -33,11 +33,9 @@
 namespace gelex::cli
 {
 
-FitReporter::FitReporter() : logger_(gelex::logging::get()) {}
-
 auto FitReporter::on_event(const FitMethodSetEvent& event) const -> void
 {
-    logger_->info(gelex::section("[Prior Configuration]"));
+    cli::printer().block(gelex::section("[Prior Configuration]"));
 
     if (event.method == nullptr)
     {
@@ -71,7 +69,7 @@ auto FitReporter::on_event(const FitMethodSetEvent& event) const -> void
 
 auto FitReporter::on_event(const FitResultsSavedEvent& event) const -> void
 {
-    logger_->info(
+    cli::printer().block(
         gelex::success(
             "Results saved to '{}' (.param, .summary, .snp.eff, .log)",
             event.out_prefix));
@@ -79,9 +77,9 @@ auto FitReporter::on_event(const FitResultsSavedEvent& event) const -> void
 
 auto FitReporter::print_variance_prior(
     const stats::detail::ScaledInvChiSqParams& prior,
-    double init_variance) const -> void
+    double init_variance) -> void
 {
-    logger_->info(
+    cli::printer().line(
         "    Variance: Scaled Inv-χ²(ν={:.4f}, S²={:.4f}), init: {:.4f}",
         prior.nu,
         prior.s2,
@@ -91,19 +89,18 @@ auto FitReporter::print_variance_prior(
 auto FitReporter::print_summary_row(
     std::string_view name,
     const PosteriorSummary& summary,
-    Eigen::Index index) const -> void
+    Eigen::Index index) -> void
 {
-    logger_->info(
+    cli::printer().line(
         "  {:<8} {:>10.6f} {:>10.6f}",
         name,
         summary.mean(index),
         summary.stddev(index));
 }
 
-auto FitReporter::print_random_prior(const bayes::VarianceSpec& spec) const
-    -> void
+auto FitReporter::print_random_prior(const bayes::VarianceSpec& spec) -> void
 {
-    logger_->info("   Random effect:");
+    cli::printer().line("   Random effect:");
     print_variance_prior(
         stats::detail::ScaledInvChiSqParams{spec.prior.nu, spec.prior.s2},
         spec.init);
@@ -111,9 +108,9 @@ auto FitReporter::print_random_prior(const bayes::VarianceSpec& spec) const
 
 auto FitReporter::print_genetic_prior(
     const bayes::GeneticPrior& prior,
-    GeneticMode mode) const -> void
+    GeneticMode mode) -> void
 {
-    logger_->info("   {} effect:", mode);
+    cli::printer().line("   {} effect:", mode);
 
     auto format_vec = [](const auto& p)
     {
@@ -145,21 +142,21 @@ auto FitReporter::print_genetic_prior(
 
     if (prior.mixture)
     {
-        logger_->info(
+        cli::printer().line(
             "    Proportion: [{}]",
             format_vec(prior.mixture->proportions.init));
         if (const auto* sm
             = std::get_if<bayes::ScaledMixture>(&prior.mixture->strategy))
         {
-            logger_->info("    Multiplier: [{}]", format_vec(sm->multiplier));
+            cli::printer().line(
+                "    Multiplier: [{}]", format_vec(sm->multiplier));
         }
     }
 }
 
-auto FitReporter::print_residual_prior(const bayes::VarianceSpec& spec) const
-    -> void
+auto FitReporter::print_residual_prior(const bayes::VarianceSpec& spec) -> void
 {
-    logger_->info("   Residual:");
+    cli::printer().line("   Residual:");
     print_variance_prior(
         stats::detail::ScaledInvChiSqParams{spec.prior.nu, spec.prior.s2},
         spec.init);

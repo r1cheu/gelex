@@ -17,15 +17,9 @@
 #ifndef GELEX_CLI_DATASET_REPORTER_H_
 #define GELEX_CLI_DATASET_REPORTER_H_
 
-#include <memory>
 #include <variant>
 
 #include "gelex/infra/logging/dataset_event.h"
-
-namespace spdlog
-{
-class logger;
-}
 
 namespace gelex::cli
 {
@@ -33,8 +27,6 @@ namespace gelex::cli
 class DatasetReporter
 {
    public:
-    DatasetReporter();
-
     auto on_event(const DatasetSectionEvent& event) const -> void;
     auto on_event(const IntersectionEvent& event) const -> void;
 
@@ -43,9 +35,6 @@ class DatasetReporter
         return [this](const DatasetEvent& e)
         { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
     }
-
-   private:
-    std::shared_ptr<spdlog::logger> logger_;
 };
 
 }  // namespace gelex::cli

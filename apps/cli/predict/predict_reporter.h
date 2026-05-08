@@ -1,14 +1,23 @@
+/*
+ * Copyright 2026 RuLei Chen
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #ifndef GELEX_CLI_PREDICT_REPORTER_H_
 #define GELEX_CLI_PREDICT_REPORTER_H_
 
-#include <memory>
-
 #include "gelex/infra/logging/predict_event.h"
-
-namespace spdlog
-{
-class logger;
-}
 
 namespace gelex::cli
 {
@@ -16,8 +25,6 @@ namespace gelex::cli
 class PredictReporter
 {
    public:
-    PredictReporter();
-
     auto on_event(const PredictBannerEvent& event) const -> void;
     auto on_event(const PredictParamsLoadedEvent& event) const -> void;
     auto on_event(const PredictSnpSelectionEvent& event) const -> void;
@@ -29,9 +36,6 @@ class PredictReporter
         return [this](const PredictEvent& e)
         { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
     }
-
-   private:
-    std::shared_ptr<spdlog::logger> logger_;
 };
 
 }  // namespace gelex::cli

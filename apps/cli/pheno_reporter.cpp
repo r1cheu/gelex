@@ -19,17 +19,15 @@
 #include <fmt/format.h>
 #include <string>
 
-#include "gelex/infra/logger.h"
+#include "cli/report_printer.h"
 #include "gelex/infra/logging/formatter.h"
 
 namespace gelex::cli
 {
 
-PhenoReporter::PhenoReporter() : logger_(gelex::logging::get()) {}
-
 auto PhenoReporter::on_event(const PhenotypeLoadedEvent& event) const -> void
 {
-    logger_->info(
+    cli::printer().line(
         "   Phenotypes : {} samples ('{}')",
         event.pheno_samples,
         event.trait_name);
@@ -56,7 +54,7 @@ auto PhenoReporter::on_event(const CovariatesLoadedEvent& event) const -> void
             *event.num_discrete_covariates,
             gelex::format_names(event.discrete_names));
     }
-    logger_->info("   Covariates : {}", parts);
+    cli::printer().line("   Covariates : {}", parts);
 }
 
 }  // namespace gelex::cli

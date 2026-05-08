@@ -16,8 +16,8 @@
 
 #include "simulator_reporter.h"
 
+#include "cli/report_printer.h"
 #include "config.h"
-#include "gelex/infra/logger.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/infra/logging/simulate_event.h"
@@ -25,17 +25,13 @@
 namespace gelex::cli
 {
 
-SimulatorReporter::SimulatorReporter()
-    : logger_(gelex::logging::get()), info_(create_progress_info())
-{
-}
+SimulatorReporter::SimulatorReporter() : info_(create_progress_info()) {}
 
 auto SimulatorReporter::on_event(const SimulateBannerEvent& /*event*/) const
     -> void
 {
-    logger_->info(
+    cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "Phenotype Simulation"));
-    logger_->info("");
 }
 
 auto SimulatorReporter::on_event(const SimulateConfigLoadedEvent& event) const
@@ -55,33 +51,31 @@ auto SimulatorReporter::on_event(const SimulateConfigLoadedEvent& event) const
         mode_str = "D";
     }
 
-    logger_->info(gelex::section("[Config]"));
-    logger_->info("  {:<12}: {}", "Mode", mode_str);
+    cli::printer().block(gelex::section("[Config]"));
+    cli::printer().line("  {:<12}: {}", "Mode", mode_str);
     if (event.add_heritability)
     {
-        logger_->info("  {:<12}: {:.4f}", "h\u00b2", *event.add_heritability);
+        cli::printer().line("  {:<12}: {:.4f}", "h²", *event.add_heritability);
     }
     if (event.dom_heritability)
     {
-        logger_->info("  {:<12}: {:.4f}", "d\u00b2", *event.dom_heritability);
+        cli::printer().line("  {:<12}: {:.4f}", "d²", *event.dom_heritability);
     }
-    logger_->info("  {:<12}: {}", "Seed", event.seed);
-    logger_->info("");
+    cli::printer().line("  {:<12}: {}", "Seed", event.seed);
 }
 
 auto SimulatorReporter::on_event(
     const SimulateVarianceSummaryEvent& event) const -> void
 {
-    logger_->info(gelex::section("[Realized]"));
+    cli::printer().block(gelex::section("[Realized]"));
     if (event.realized_h2)
     {
-        logger_->info("  {:<12}: {:.4f}", "h\u00b2", *event.realized_h2);
+        cli::printer().line("  {:<12}: {:.4f}", "h²", *event.realized_h2);
     }
     if (event.realized_d2)
     {
-        logger_->info("  {:<12}: {:.4f}", "d\u00b2", *event.realized_d2);
+        cli::printer().line("  {:<12}: {:.4f}", "d²", *event.realized_d2);
     }
-    logger_->info("");
 }
 
 auto SimulatorReporter::on_event(const SimulateProgressEvent& event) -> void
@@ -100,7 +94,7 @@ auto SimulatorReporter::on_event(const SimulateProgressEvent& event) -> void
     if (event.done)
     {
         info_.display->done();
-        logger_->info("");
+        cli::printer().on_progress_finished();
     }
 }
 

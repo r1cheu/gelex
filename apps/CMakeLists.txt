@@ -29,6 +29,7 @@ set(CLI_SOURCES
     cli/post/post_config.cpp
     cli/post/post_command.cpp
     cli/post/post_reporter.cpp
+    cli/report_printer.cpp
     cli/fit_reporter.cpp
     cli/reml_reporter.cpp
     cli/dataset_reporter.cpp

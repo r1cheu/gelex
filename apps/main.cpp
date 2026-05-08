@@ -33,6 +33,7 @@
 #include "cli/post/post_command.h"
 #include "cli/predict/predict_args.h"
 #include "cli/predict/predict_command.h"
+#include "cli/report_printer.h"
 #include "cli/simulate/simulate_args.h"
 #include "cli/simulate/simulate_command.h"
 #include "cli/vi/vi_args.h"
@@ -65,10 +66,9 @@ auto execute_command(
         auto elapsed = std::chrono::duration<double>(
                            std::chrono::steady_clock::now() - start)
                            .count();
-        if (auto logger = gelex::logging::get())
+        if (gelex::logging::get())
         {
-            logger->info("");
-            logger->info("{}", gelex::done_message(elapsed));
+            gelex::cli::printer().block(gelex::done_message(elapsed));
         }
         return result;
     }

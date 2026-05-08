@@ -1,44 +1,55 @@
+/*
+ * Copyright 2026 RuLei Chen
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "predict_reporter.h"
 
 #include <fmt/format.h>
 
-#include <fmt/base.h>
-
+#include "cli/report_printer.h"
 #include "config.h"
-#include "gelex/infra/logger.h"
 #include "gelex/infra/logging/formatter.h"
 
 namespace gelex::cli
 {
 
-PredictReporter::PredictReporter() : logger_(gelex::logging::get()) {}
-
 auto PredictReporter::on_event(const PredictBannerEvent& /*event*/) const
     -> void
 {
-    logger_->info(gelex::command_banner(PROJECT_VERSION, "Genomic Prediction"));
-    logger_->info("");
+    cli::printer().block(
+        gelex::command_banner(PROJECT_VERSION, "Genomic Prediction"));
 }
 
 auto PredictReporter::on_event(const PredictParamsLoadedEvent& event) const
     -> void
 {
-    logger_->info(gelex::section("[Config]"));
-    logger_->info("  {:<12}: {}", "bfile", event.bfile_prefix);
-    logger_->info("  {:<12}: {}", "gfile", event.gfile_prefix);
-    logger_->info(
+    cli::printer().block(gelex::section("[Config]"));
+    cli::printer().line("  {:<12}: {}", "bfile", event.bfile_prefix);
+    cli::printer().line("  {:<12}: {}", "gfile", event.gfile_prefix);
+    cli::printer().line(
         "  {:<12}: {}", "Geno method", fmt::format("{}", event.geno_method));
-    logger_->info("");
 }
 
 auto PredictReporter::on_event(const PredictSnpSelectionEvent& event) const
     -> void
 {
-    logger_->info(gelex::section("[SNP Alignment]"));
-    logger_->info(
+    cli::printer().block(gelex::section("[SNP Alignment]"));
+    cli::printer().line(
         "   {:<13}: {}/{}", "Matched", event.num_matched, event.num_total);
-    logger_->info("   {:<13}: {}", "Missing", event.num_missing);
-    logger_->info("   {:<13}: {}", "Mismatched", event.num_mismatched);
+    cli::printer().line("   {:<13}: {}", "Missing", event.num_missing);
+    cli::printer().line("   {:<13}: {}", "Mismatched", event.num_mismatched);
 
     if (event.num_mismatched > 0)
     {
@@ -47,29 +58,27 @@ auto PredictReporter::on_event(const PredictSnpSelectionEvent& event) const
             "<output>",
             event.bfile_path,
             event.snp_effect_path);
-        logger_->warn(
+        cli::printer().warn(
             "Allele mismatch detected for {} SNPs. "
             "To fix, run:\n  {}",
             event.num_mismatched,
             plink_hint);
     }
-    logger_->info("");
 }
 
 auto PredictReporter::on_event(const PredictDataLoadedEvent& event) const
     -> void
 {
-    logger_->info(gelex::section("[Dataset Summary]"));
-    logger_->info("   {:<13}: {} samples", "Samples", event.num_samples);
-    logger_->info("   {:<13}: {} markers", "SNPs", event.num_snps);
-    logger_->info("   {:<13}: {}", "Covariates", event.num_covar_terms);
-    logger_->info("");
+    cli::printer().block(gelex::section("[Dataset Summary]"));
+    cli::printer().line("   {:<13}: {} samples", "Samples", event.num_samples);
+    cli::printer().line("   {:<13}: {} markers", "SNPs", event.num_snps);
+    cli::printer().line("   {:<13}: {}", "Covariates", event.num_covar_terms);
 }
 
 auto PredictReporter::on_event(const PredictResultsWrittenEvent& event) const
     -> void
 {
-    logger_->info(
+    cli::printer().block(
         gelex::success(
             "Results saved to '{}' ({} samples)",
             event.output_path,

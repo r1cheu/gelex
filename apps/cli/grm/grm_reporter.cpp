@@ -16,8 +16,8 @@
 
 #include "grm_reporter.h"
 
+#include "cli/report_printer.h"
 #include "config.h"
-#include "gelex/infra/logger.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/logging/progress_bar.h"
@@ -25,29 +25,27 @@
 namespace gelex::cli
 {
 
-GrmReporter::GrmReporter() : logger_(gelex::logging::get()), eta_(1) {}
+GrmReporter::GrmReporter() : eta_(1) {}
 
 auto GrmReporter::on_event(const GrmBannerEvent& /*event*/) const -> void
 {
-    logger_->info(gelex::command_banner(PROJECT_VERSION, "GRM Computation"));
-    logger_->info("");
+    cli::printer().block(
+        gelex::command_banner(PROJECT_VERSION, "GRM Computation"));
 }
 
 auto GrmReporter::on_event(const GrmConfigLoadedEvent& event) const -> void
 {
-    logger_->info(gelex::section("[Config]"));
-    logger_->info("  {:<12}: {}", "Method", event.method);
-    logger_->info("  {:<12}: {}", "Mode", fmt::format("{}", event.mode));
-    logger_->info("  {:<12}: {}", "LOCO", event.do_loco ? "yes" : "no");
-    logger_->info("");
+    cli::printer().block(gelex::section("[Config]"));
+    cli::printer().line("  {:<12}: {}", "Method", event.method);
+    cli::printer().line("  {:<12}: {}", "Mode", fmt::format("{}", event.mode));
+    cli::printer().line("  {:<12}: {}", "LOCO", event.do_loco ? "yes" : "no");
 }
 
 auto GrmReporter::on_event(const GrmDataLoadedEvent& event) const -> void
 {
-    logger_->info(gelex::section("[Dataset Summary]"));
-    logger_->info("   Samples    : {} samples", event.num_samples);
-    logger_->info("   SNPs       : {} markers", event.num_snps);
-    logger_->info("");
+    cli::printer().block(gelex::section("[Dataset Summary]"));
+    cli::printer().line("   Samples    : {} samples", event.num_samples);
+    cli::printer().line("   SNPs       : {} markers", event.num_snps);
 }
 
 auto GrmReporter::on_event(const GrmComputeStartedEvent& event) -> void
@@ -68,7 +66,7 @@ auto GrmReporter::on_event(const GrmProgressEvent& event) -> void
     {
         bar_.display->done();
         bar_active_ = false;
-        logger_->info("");
+        cli::printer().on_progress_finished();
         return;
     }
     progress_ = accumulated_base_ + event.current;
@@ -91,10 +89,10 @@ auto GrmReporter::on_event(const GrmProgressEvent& event) -> void
 
 auto GrmReporter::on_event(const GrmFilesWrittenEvent& event) const -> void
 {
-    logger_->info(gelex::section("[File Summary]"));
-    logger_->info("  Num Files : {}", event.num_files);
-    logger_->info("  Output Dir  : {}", event.output_dir);
-    logger_->info("  Pattern     : {}", event.file_pattern);
+    cli::printer().block(gelex::section("[File Summary]"));
+    cli::printer().line("  Num Files : {}", event.num_files);
+    cli::printer().line("  Output Dir  : {}", event.output_dir);
+    cli::printer().line("  Pattern     : {}", event.file_pattern);
 }
 
 }  // namespace gelex::cli

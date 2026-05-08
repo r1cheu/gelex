@@ -49,7 +49,7 @@ namespace gelex::cli
 class McmcReporter : public FitReporter
 {
    public:
-    McmcReporter();
+    McmcReporter() = default;
 
     using FitReporter::on_event;
 

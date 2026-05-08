@@ -17,7 +17,6 @@
 #ifndef GELEX_CLI_FIT_REPORTER_H_
 #define GELEX_CLI_FIT_REPORTER_H_
 
-#include <memory>
 #include <string_view>
 
 #include <Eigen/Core>
@@ -42,11 +41,6 @@ struct VarianceSpec;
 enum class GeneticMode : uint8_t;
 }  // namespace gelex
 
-namespace spdlog
-{
-class logger;
-}
-
 namespace gelex::cli
 {
 
@@ -57,21 +51,20 @@ class FitReporter
     auto on_event(const FitResultsSavedEvent& event) const -> void;
 
    protected:
-    explicit FitReporter();
+    FitReporter() = default;
 
-    auto print_random_prior(const bayes::VarianceSpec& spec) const -> void;
-    auto print_genetic_prior(const bayes::GeneticPrior& prior, GeneticMode mode)
-        const -> void;
-    auto print_residual_prior(const bayes::VarianceSpec& spec) const -> void;
-    auto print_variance_prior(
+    static auto print_random_prior(const bayes::VarianceSpec& spec) -> void;
+    static auto print_genetic_prior(
+        const bayes::GeneticPrior& prior,
+        GeneticMode mode) -> void;
+    static auto print_residual_prior(const bayes::VarianceSpec& spec) -> void;
+    static auto print_variance_prior(
         const stats::detail::ScaledInvChiSqParams& prior,
-        double init_variance) const -> void;
-    auto print_summary_row(
+        double init_variance) -> void;
+    static auto print_summary_row(
         std::string_view name,
         const PosteriorSummary& summary,
-        Eigen::Index index = 0) const -> void;
-
-    std::shared_ptr<spdlog::logger> logger_;
+        Eigen::Index index = 0) -> void;
 };
 
 }  // namespace gelex::cli

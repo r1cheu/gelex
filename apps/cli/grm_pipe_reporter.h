@@ -17,15 +17,9 @@
 #ifndef GELEX_CLI_GRM_PIPE_REPORTER_H_
 #define GELEX_CLI_GRM_PIPE_REPORTER_H_
 
-#include <memory>
 #include <variant>
 
 #include "gelex/infra/logging/grm_pipe_event.h"
-
-namespace spdlog
-{
-class logger;
-}
 
 namespace gelex::cli
 {
@@ -33,8 +27,6 @@ namespace gelex::cli
 class GrmPipeReporter
 {
    public:
-    GrmPipeReporter();
-
     auto on_event(const GrmLoadedEvent& event) const -> void;
 
     auto as_observer() -> GrmPipeObserver
@@ -42,9 +34,6 @@ class GrmPipeReporter
         return [this](const GrmPipeEvent& e)
         { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
     }
-
-   private:
-    std::shared_ptr<spdlog::logger> logger_;
 };
 
 }  // namespace gelex::cli

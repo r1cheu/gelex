@@ -22,10 +22,10 @@
 
 #include <fmt/format.h>
 
+#include "cli/report_printer.h"
 #include "config.h"
 #include "gelex/algo/infer/mcmc/result.h"
 #include "gelex/algo/infer/mcmc/state.h"
-#include "gelex/infra/logger.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/stats/conjugate_prior.h"
@@ -42,27 +42,24 @@ namespace
 const int kTableWidth = 40;
 }  // namespace
 
-McmcReporter::McmcReporter() : FitReporter() {}
-
 auto McmcReporter::on_event(const MCMCBannerEvent& /*event*/) const -> void
 {
-    logger_->info(
+    cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "Model Fitting (MCMC)"));
-    logger_->info("");
 }
 
 auto McmcReporter::on_event(const MCMCConfigEvent& event) const -> void
 {
-    logger_->info(gelex::section("[Config]"));
-    logger_->info("  {:<12}: {}", "Method", fmt::format("{}", event.method));
-    logger_->info(
+    cli::printer().block(gelex::section("[Config]"));
+    cli::printer().line(
+        "  {:<12}: {}", "Method", fmt::format("{}", event.method));
+    cli::printer().line(
         "  {:<12}: {} iters ({} burn-in, {} sampling)",
         "Chain",
         event.n_iters,
         event.n_burn_in,
         event.n_iters - event.n_burn_in);
-    logger_->info("  {:<12}: {}", "Seed", event.seed);
-    logger_->info("");
+    cli::printer().line("  {:<12}: {}", "Seed", event.seed);
 }
 
 auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
@@ -70,8 +67,7 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
     if (!init_progress_)
     {
         init_progress_ = true;
-        logger_->info("");
-        logger_->info(gelex::section("[MCMC Sampling]"));
+        cli::printer().block(gelex::section("[MCMC Sampling]"));
         bar_ = create_progress_bar(
             iter_, event.total, "{bar} {value}/{total} [{speed:.1f}/s]");
         bar_.display->show();
@@ -80,7 +76,7 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
     if (event.done)
     {
         bar_.display->done();
-        logger_->info("");
+        cli::printer().on_progress_finished();
         return;
     }
 
@@ -140,14 +136,12 @@ auto McmcReporter::print_fixed_summary(
     std::ptrdiff_t samples_collected) const -> void
 {
     const auto& fixed = result.fixed();
+    auto& p = cli::printer();
 
-    logger_->info("");
-    logger_->info(gelex::section("[Posterior Summary]"));
-    logger_->info("  Samples collected per parameter: {}", samples_collected);
-    logger_->info("");
-
-    logger_->info("  {:<8} {:>8} {:>8}", "Parameter", "Mean", "SD");
-    logger_->info(gelex::table_separator(kTableWidth));
+    p.block(gelex::section("[Posterior Summary]"));
+    p.line("  Samples collected per parameter: {}", samples_collected);
+    p.line("  {:<8} {:>8} {:>8}", "Parameter", "Mean", "SD");
+    p.line(gelex::table_separator(kTableWidth));
 
     fixed.for_each_term([&](const std::string& term, Eigen::Index i)
                         { print_summary_row(term, fixed.coeffs, i); });
@@ -164,9 +158,9 @@ auto McmcReporter::print_genetic_summary(
     }
 
     std::string h_name{genetic_mode::to_heritability_label(type)};
+    auto& p = cli::printer();
 
-    logger_->info(
-        gelex::named_section(fmt::format("{}", type), kTableWidth, 2));
+    p.line(gelex::named_section(fmt::format("{}", type), kTableWidth, 2));
     print_summary_row("σ²", summary->variance);
     print_summary_row(h_name, summary->heritability);
 
@@ -197,10 +191,10 @@ auto McmcReporter::print_genetic_summary(
 auto McmcReporter::print_residual_summary(const mcmc::Result& result) const
     -> void
 {
-    logger_->info(gelex::named_section("Residual", kTableWidth, 2));
+    auto& p = cli::printer();
+    p.line(gelex::named_section("Residual", kTableWidth, 2));
     print_summary_row("σ²", result.residual());
-    logger_->info(gelex::table_separator(kTableWidth));
-    logger_->info("");
+    p.line(gelex::table_separator(kTableWidth));
 }
 
 }  // namespace gelex::cli

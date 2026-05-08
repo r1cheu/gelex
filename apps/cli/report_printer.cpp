@@ -14,17 +14,42 @@
  * limitations under the License.
  */
 
-#include "grm_pipe_reporter.h"
+#include "report_printer.h"
 
-#include "cli/report_printer.h"
+#include <utility>
+
+#include <spdlog/logger.h>
+
+#include "gelex/infra/logger.h"
 
 namespace gelex::cli
 {
 
-auto GrmPipeReporter::on_event(const GrmLoadedEvent& event) const -> void
+auto ReportPrinter::ensure_blank() -> void
 {
-    cli::printer().line(
-        "   GRM        : {} samples ({})", event.num_samples, event.type);
+    if (!has_blank_)
+    {
+        gelex::logging::get()->info("");
+        has_blank_ = true;
+    }
+}
+
+auto ReportPrinter::emit_info(std::string msg) -> void
+{
+    gelex::logging::get()->info("{}", std::move(msg));
+    has_blank_ = false;
+}
+
+auto ReportPrinter::emit_warn(std::string msg) -> void
+{
+    gelex::logging::get()->warn("{}", std::move(msg));
+    has_blank_ = false;
+}
+
+auto printer() -> ReportPrinter&
+{
+    static ReportPrinter instance;
+    return instance;
 }
 
 }  // namespace gelex::cli

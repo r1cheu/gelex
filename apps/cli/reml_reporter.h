@@ -17,15 +17,9 @@
 #ifndef GELEX_CLI_REML_REPORTER_H_
 #define GELEX_CLI_REML_REPORTER_H_
 
-#include <memory>
 #include <vector>
 
 #include "gelex/infra/logging/reml_event.h"
-
-namespace spdlog
-{
-class logger;
-}
 
 namespace gelex::cli
 {
@@ -33,8 +27,6 @@ namespace gelex::cli
 class RemlReporter
 {
    public:
-    RemlReporter();
-
     auto on_event(const RemlEmInitEvent& e) -> void;
     auto on_event(const RemlIterationEvent& e) -> void;
     auto on_event(const RemlCompleteEvent& e) const -> void;
@@ -46,7 +38,6 @@ class RemlReporter
     }
 
    private:
-    std::shared_ptr<spdlog::logger> logger_;
     bool header_printed_ = false;
 };
 

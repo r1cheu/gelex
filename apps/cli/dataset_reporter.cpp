@@ -16,23 +16,22 @@
 
 #include "dataset_reporter.h"
 
-#include "gelex/infra/logger.h"
+#include "cli/report_printer.h"
 #include "gelex/infra/logging/formatter.h"
 
 namespace gelex::cli
 {
 
-DatasetReporter::DatasetReporter() : logger_(gelex::logging::get()) {}
-
 auto DatasetReporter::on_event(const DatasetSectionEvent& /*event*/) const
     -> void
 {
-    logger_->info(gelex::section("[Dataset Summary]"));
+    cli::printer().block(gelex::section("[Dataset Summary]"));
 }
 
 auto DatasetReporter::on_event(const IntersectionEvent& event) const -> void
 {
-    logger_->info("   Intersection : {} common samples", event.common_samples);
+    cli::printer().line(
+        "   Intersection : {} common samples", event.common_samples);
 }
 
 }  // namespace gelex::cli

@@ -19,22 +19,19 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
+#include "cli/report_printer.h"
 #include "gelex/algo/reml/statistics.h"
-#include "gelex/infra/logger.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/model/freq/model.h"
 
 namespace gelex::cli
 {
 
-RemlReporter::RemlReporter() : logger_(gelex::logging::get()) {}
-
 auto RemlReporter::on_event(const RemlEmInitEvent& e) -> void
 {
     header_printed_ = false;
-    logger_->info("   Initializing (EM)...");
-
-    logger_->info(
+    cli::printer().line("   Initializing (EM)...");
+    cli::printer().line(
         "    LogL: {:.2f} | Init Vg: [{}]",
         e.loglike,
         rebecca_purple(
@@ -45,15 +42,13 @@ auto RemlReporter::on_event(const RemlIterationEvent& e) -> void
 {
     if (!header_printed_)
     {
-        logger_->info("");
         std::string var_header;
         for (const auto& label : e.labels)
         {
             var_header += fmt::format("{:>12}", label);
         }
-
-        logger_->info("  {:<4} {:>12} {}", "Iter", "LogL", var_header);
-        logger_->info(gelex::table_separator(55));
+        cli::printer().block("  {:<4} {:>12} {}", "Iter", "LogL", var_header);
+        cli::printer().line(gelex::table_separator(55));
         header_printed_ = true;
     }
 
@@ -62,42 +57,39 @@ auto RemlReporter::on_event(const RemlIterationEvent& e) -> void
     {
         var_str += fmt::format("{:>12.2f}", v);
     }
-    logger_->info("  {:<4} {:>12.2f}{}", e.iter, e.loglike, var_str);
+    cli::printer().line("  {:<4} {:>12.2f}{}", e.iter, e.loglike, var_str);
 }
 
 auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
 {
     const auto& model = *e.model;
     const auto& state = *e.state;
+    auto& p = cli::printer();
 
-    // convergence
-    logger_->info(gelex::table_separator(55));
-    logger_->info("");
-    logger_->info(named_section("REML Results", 70));
+    p.line(gelex::table_separator(55));
+    p.block(named_section("REML Results", 70));
 
     if (e.converged)
     {
-        logger_->info(
+        p.line(
             success("Converged successfully in {} iterations", e.iter_count));
     }
     else
     {
-        logger_->warn("  ! REML did not converge ({} iterations)", e.max_iter);
-        logger_->warn(
+        p.warn("  ! REML did not converge ({} iterations)", e.max_iter);
+        p.warn(
             "    Try to increase max_iter or check the model specification.");
     }
-    logger_->info("");
 
     // model fit
-    logger_->info("  Model Fit:");
-    logger_->info("  - AIC : {:.2f}", reml::compute_aic(model, e.loglike));
-    logger_->info("  - BIC : {:.2f}", reml::compute_bic(model, e.loglike));
-    logger_->info("");
+    p.block("  Model Fit:");
+    p.line("  - AIC : {:.2f}", reml::compute_aic(model, e.loglike));
+    p.line("  - BIC : {:.2f}", reml::compute_bic(model, e.loglike));
 
     // fixed effects
-    logger_->info("  Fixed Effects:");
-    logger_->info("  {:12} {:>12} {:>12}", "Effect", "Estimate", "SE");
-    logger_->info(table_separator(40));
+    p.block("  Fixed Effects:");
+    p.line("  {:12} {:>12} {:>12}", "Effect", "Estimate", "SE");
+    p.line(table_separator(40));
     for (Eigen::Index i = 0; i < state.fixed().coeff.size(); ++i)
     {
         std::string name = fmt::format("X{}", i);
@@ -105,29 +97,28 @@ auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
         {
             name = model.fixed().names[i];
         }
-        logger_->info(
+        p.line(
             "  {:12} {:>12.3f} {:>12.3f}",
             name,
             state.fixed().coeff(i),
             state.fixed().se(i));
     }
-    logger_->info("");
 
     // variance components
-    logger_->info("  Variance Components & Heritability:");
-    logger_->info(
+    p.block("  Variance Components & Heritability:");
+    p.line(
         "  {:12} {:>12} {:>12} {:>15} {:>12}",
         "Component",
         "Estimate",
         "SE",
         "Ratio (h²)",
         "SE");
-    logger_->info(table_separator(69));
+    p.line(table_separator(69));
 
     double total_h2 = 0.0;
     for (const auto& g : state.genetic())
     {
-        logger_->info(
+        p.line(
             "  {:12} {:>12.3f} {:>12.3f} {:>15.3f} {:>12.3f}",
             g.type,
             g.variance,
@@ -139,7 +130,7 @@ auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
 
     for (const auto& r : state.random())
     {
-        logger_->info(
+        p.line(
             "  {:12} {:>12.3f} {:>12.3f} {:>15} {:>12}",
             r.name,
             r.variance,
@@ -148,7 +139,7 @@ auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
             "-");
     }
 
-    logger_->info(
+    p.line(
         "  {:12} {:>12.3f} {:>12.3f} {:>15} {:>12}",
         "Residual",
         state.residual().variance,
@@ -163,8 +154,8 @@ auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
         {
             total_vg += g.variance;
         }
-        logger_->info(table_separator(69));
-        logger_->info(
+        p.line(table_separator(69));
+        p.line(
             "  {:12} {:>12.3f} {:>12} {:>15.3f} {:>12}",
             "Total Vg",
             total_vg,
@@ -173,7 +164,7 @@ auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
             "-");
     }
 
-    logger_->info(separator(70));
+    p.line(separator(70));
 }
 
 void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
@@ -183,8 +174,7 @@ void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
         return;
     }
 
-    auto logger = gelex::logging::get();
-    logger->info("");
+    auto& p = cli::printer();
 
     size_t num_grm = results[0].genetic.size();
     auto format_variances = [](const auto& values) -> std::string
@@ -204,9 +194,9 @@ void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
     }
     header += fmt::format("  {:>10}  {:>4}", "V(e)", "Conv");
 
-    logger->info(named_section("LOCO REML Summary", 70));
-    logger->info("{}", header);
-    logger->info("{}", table_separator());
+    p.block(named_section("LOCO REML Summary", 70));
+    p.line("{}", header);
+    p.line("{}", table_separator());
 
     std::vector<double> sum_vg(num_grm, 0.0);
     std::vector<double> sum_h2(num_grm, 0.0);
@@ -227,7 +217,7 @@ void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
                 += (i < r.genetic.size()) ? r.genetic[i].heritability : 0.0;
         }
 
-        logger->info(
+        p.line(
             "  {:>5}  {:>10.2f}{}  {:>10.4f}    {}",
             r.chr_name,
             r.loglike,
@@ -238,7 +228,7 @@ void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
         sum_ve += r.residual_variance;
     }
 
-    logger->info("{}", table_separator());
+    p.line("{}", table_separator());
 
     auto n = static_cast<double>(results.size());
     std::vector<double> mean_vg(num_grm);
@@ -249,15 +239,14 @@ void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
         mean_h2[i] = sum_h2[i] / n;
     }
 
-    logger->info(
+    p.line(
         "  {:>5}  {:>10}{}  {:>10.4f}",
         "Mean",
         "",
         format_variances(mean_vg),
         sum_ve / n);
-    logger->info("  {:>5}  {:>10}{}", "h²", "", format_variances(mean_h2));
-
-    logger->info(separator());
+    p.line("  {:>5}  {:>10}{}", "h²", "", format_variances(mean_h2));
+    p.line(separator());
 }
 
 }  // namespace gelex::cli

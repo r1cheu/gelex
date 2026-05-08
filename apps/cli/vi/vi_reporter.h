@@ -27,7 +27,7 @@ namespace gelex::cli
 class ViReporter : public FitReporter
 {
    public:
-    ViReporter();
+    ViReporter() = default;
 
     using FitReporter::on_event;
 

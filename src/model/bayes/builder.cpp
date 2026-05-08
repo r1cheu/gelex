@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include <fmt/format.h>
@@ -122,7 +123,18 @@ auto build_bayes_method(
 {
     const auto& policy = policy_for(config.base);
 
-    GeneticPrior prior;
+    auto make_prior = [&](std::variant<GeneticSpec, JointSpec> spec)
+    {
+        GeneticPrior prior;
+        prior.spec = std::move(spec);
+        prior.mixture = Mixture::make(policy, config.estimate_pi);
+        return prior;
+    };
+
+    BayesMethod method;
+    method.config = config;
+    method.residual = VarianceSpec::make(phenotype_variance);
+
     switch (config.mode)
     {
         case GeneticMode::A:
@@ -131,7 +143,8 @@ auto build_bayes_method(
                 throw GelexException(
                     "Single-effect mode requires one GeneticStats entry");
             }
-            prior.spec = GeneticSpec::make(stats[0], policy);
+            method.genetics.push_back(
+                make_prior(GeneticSpec::make(stats[0], policy)));
             break;
         case GeneticMode::D:
             if (stats.size() != 1)
@@ -139,7 +152,8 @@ auto build_bayes_method(
                 throw GelexException(
                     "Single-effect mode requires one GeneticStats entry");
             }
-            prior.spec = GeneticSpec::make(stats[0], policy, config.dominance);
+            method.genetics.push_back(make_prior(
+                GeneticSpec::make(stats[0], policy, config.dominance)));
             break;
         case GeneticMode::AD:
             if (stats.size() != 2)
@@ -147,20 +161,28 @@ auto build_bayes_method(
                 throw GelexException(
                     "A+D mode requires two GeneticStats entries");
             }
-            prior.spec = JointSpec{
-                GeneticSpec::make(stats[0], policy),
-                GeneticSpec::make(stats[1], policy, config.dominance),
-            };
+            if (policy.mixture
+                && std::holds_alternative<JointMixture>(
+                    policy.mixture->strategy))
+            {
+                method.genetics.push_back(make_prior(
+                    JointSpec{
+                        GeneticSpec::make(stats[0], policy),
+                        GeneticSpec::make(stats[1], policy, config.dominance),
+                    }));
+            }
+            else
+            {
+                method.genetics.push_back(
+                    make_prior(GeneticSpec::make(stats[0], policy)));
+                method.genetics.push_back(make_prior(
+                    GeneticSpec::make(stats[1], policy, config.dominance)));
+            }
             break;
         case GeneticMode::kCount:
             throw GelexException("Invalid GeneticMode: kCount");
     }
-    prior.mixture = Mixture::make(policy, config.estimate_pi);
 
-    BayesMethod method;
-    method.config = config;
-    method.genetics.push_back(std::move(prior));
-    method.residual = VarianceSpec::make(phenotype_variance);
     return method;
 }
 

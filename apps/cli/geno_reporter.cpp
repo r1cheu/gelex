@@ -21,17 +21,14 @@
 #include <fmt/format.h>
 #include <string>
 
-#include "gelex/infra/logger.h"
+#include "cli/report_printer.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/progress_bar.h"
 
 namespace gelex::cli
 {
 
-GenoReporter::GenoReporter()
-    : logger_(gelex::logging::get()), progress_info_(create_progress_info())
-{
-}
+GenoReporter::GenoReporter() : progress_info_(create_progress_info()) {}
 
 auto GenoReporter::on_event(const GenotypeLoadedEvent& event) const -> void
 {
@@ -46,11 +43,11 @@ auto GenoReporter::on_event(const GenotypeLoadedEvent& event) const -> void
 
     if (isatty(fileno(stdout)) != 0)
     {
-        logger_->info("{}", "\033[A\r" + msg + "\033[K");
+        cli::printer().line("{}", "\033[A\r" + msg + "\033[K");
     }
     else
     {
-        logger_->info("{}", msg);
+        cli::printer().line("{}", msg);
     }
 }
 
@@ -72,6 +69,7 @@ auto GenoReporter::on_event(const GenotypeProgressEvent& event) -> void
     if (event.done)
     {
         progress_info_.display->done();
+        cli::printer().on_progress_finished();
         init_progress_ = false;
     }
 }

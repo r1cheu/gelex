@@ -18,16 +18,10 @@
 #define GELEX_CLI_GRM_REPORTER_H_
 
 #include <cstddef>
-#include <memory>
 
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/infra/logging/timer.h"
-
-namespace spdlog
-{
-class logger;
-}
 
 namespace gelex::cli
 {
@@ -51,7 +45,6 @@ class GrmReporter
     }
 
    private:
-    std::shared_ptr<spdlog::logger> logger_;
     size_t progress_{0};
     ProgressBar bar_;
     bool bar_active_ = false;

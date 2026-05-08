@@ -17,16 +17,10 @@
 #ifndef GELEX_CLI_GENO_REPORTER_H_
 #define GELEX_CLI_GENO_REPORTER_H_
 
-#include <memory>
 #include <variant>
 
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/infra/logging/progress_bar.h"
-
-namespace spdlog
-{
-class logger;
-}
 
 namespace gelex::cli
 {
@@ -46,7 +40,6 @@ class GenoReporter
     }
 
    private:
-    std::shared_ptr<spdlog::logger> logger_;
     ProgressInfo progress_info_;
     bool init_progress_ = false;
 };

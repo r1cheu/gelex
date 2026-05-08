@@ -17,14 +17,7 @@
 #ifndef GELEX_CLI_POST_REPORTER_H_
 #define GELEX_CLI_POST_REPORTER_H_
 
-#include <memory>
-
 #include "gelex/infra/logging/post_event.h"
-
-namespace spdlog
-{
-class logger;
-}
 
 namespace gelex::cli
 {
@@ -32,8 +25,6 @@ namespace gelex::cli
 class PostReporter
 {
    public:
-    PostReporter();
-
     auto on_event(const PostBannerEvent& event) const -> void;
     auto on_event(const PostStartEvent& event) const -> void;
     auto on_event(const DiagnosticsReadyEvent& event) const -> void;
@@ -43,9 +34,6 @@ class PostReporter
         return [this](const PostEvent& e)
         { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
     }
-
-   private:
-    std::shared_ptr<spdlog::logger> logger_;
 };
 
 }  // namespace gelex::cli

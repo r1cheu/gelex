@@ -21,21 +21,18 @@
 
 #include <fmt/format.h>
 
+#include "cli/report_printer.h"
 #include "config.h"
-#include "gelex/infra/logger.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/post_event.h"
 
 namespace gelex::cli
 {
 
-PostReporter::PostReporter() : logger_(gelex::logging::get()) {}
-
 auto PostReporter::on_event(const PostBannerEvent& /*event*/) const -> void
 {
-    logger_->info(
+    cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "MCMC Posterior Analysis"));
-    logger_->info("");
 }
 
 auto PostReporter::on_event(const PostStartEvent& event) const -> void
@@ -45,10 +42,9 @@ auto PostReporter::on_event(const PostStartEvent& event) const -> void
         = event.in_prefixes[0]
           + (n_chains > 1 ? fmt::format(" (+{} more)", n_chains - 1) : "");
 
-    logger_->info(gelex::section("[Config]"));
-    logger_->info("  {:<12}: {}", "Chains", n_chains);
-    logger_->info("  {:<12}: {}", "Input", input_str);
-    logger_->info("");
+    cli::printer().block(gelex::section("[Config]"));
+    cli::printer().line("  {:<12}: {}", "Chains", n_chains);
+    cli::printer().line("  {:<12}: {}", "Input", input_str);
 }
 
 auto PostReporter::on_event(const DiagnosticsReadyEvent& event) const -> void
@@ -90,10 +86,10 @@ auto PostReporter::on_event(const DiagnosticsReadyEvent& event) const -> void
     double hi_pct = (1.0 + event.hdpi_prob) / 2.0 * 100.0;
     auto hpdi_label = fmt::format("[{:g}%, {:g}%]", lo_pct, hi_pct);
 
-    logger_->info(gelex::section("[MCMC Summary]"));
-    logger_->info("");
+    auto& p = cli::printer();
 
-    logger_->info(
+    p.block(gelex::section("[MCMC Summary]"));
+    p.line(
         "   {:<12}  {:>8}  {:>8}  {:>8}  {:>21}  {:>8}  {:>8}",
         "Parameter",
         "Mean",
@@ -102,7 +98,7 @@ auto PostReporter::on_event(const DiagnosticsReadyEvent& event) const -> void
         hpdi_label,
         "ESS",
         "R-hat");
-    logger_->info(gelex::table_separator(kTableWidth));
+    p.line(gelex::table_separator(kTableWidth));
 
     std::string current_section;
     for (const auto& d : sorted_diags)
@@ -112,11 +108,10 @@ auto PostReporter::on_event(const DiagnosticsReadyEvent& event) const -> void
             current_section = d.section;
             if (!d.section.empty() && d.section != "Parameter")
             {
-                logger_->info(
-                    gelex::named_section(current_section, kTableWidth, 3));
+                p.line(gelex::named_section(current_section, kTableWidth, 3));
             }
         }
-        logger_->info(
+        p.line(
             "   {:<12}  {:>8.4f}  {:>8.4f}  {:>8.4f}  {:>21}  {:>8.1f}  "
             "{:>8.3f}",
             d.name,
@@ -127,7 +122,7 @@ auto PostReporter::on_event(const DiagnosticsReadyEvent& event) const -> void
             d.ess,
             d.rhat);
     }
-    logger_->info(gelex::table_separator(kTableWidth));
+    p.line(gelex::table_separator(kTableWidth));
 }
 
 }  // namespace gelex::cli

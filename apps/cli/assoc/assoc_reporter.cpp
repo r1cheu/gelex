@@ -19,9 +19,9 @@
 #include <fmt/format.h>
 
 #include "cli/reml_reporter.h"
+#include "cli/report_printer.h"
 #include "config.h"
 #include "gelex/data/genotype/process_method.h"
-#include "gelex/infra/logger.h"
 #include "gelex/infra/logging/assoc_event.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -29,41 +29,37 @@
 namespace gelex::cli
 {
 
-AssocReporter::AssocReporter() : logger_(gelex::logging::get()), eta_(1) {}
+AssocReporter::AssocReporter() : eta_(1) {}
 
 auto AssocReporter::on_event(const AssocBannerEvent& /*event*/) const -> void
 {
-    logger_->info(gelex::command_banner(PROJECT_VERSION, "GWAS Analysis"));
-    logger_->info("");
+    cli::printer().block(
+        gelex::command_banner(PROJECT_VERSION, "GWAS Analysis"));
 }
 
 auto AssocReporter::on_event(const AssocConfigLoadedEvent& event) const -> void
 {
-    logger_->info(gelex::section("[Config]"));
-    logger_->info("  {:<12}: {}", "Mode", event.mode);
-    logger_->info(
+    cli::printer().block(gelex::section("[Config]"));
+    cli::printer().line("  {:<12}: {}", "Mode", event.mode);
+    cli::printer().line(
         "  {:<12}: {}",
         "Test",
         event.test_type == gelex::AssocType::Single ? "Single" : "Joint");
-    logger_->info("  {:<12}: {}", "LOCO", event.loco ? "Yes" : "No");
-
-    logger_->info("  {:<12}: {}", "Geno Method", event.geno_method);
-
-    logger_->info("  {:<12}: {}", "Max Iter", event.max_iter);
-    logger_->info("  {:<12}: {}", "Tolerance", event.tol);
-    logger_->info("");
+    cli::printer().line("  {:<12}: {}", "LOCO", event.loco ? "Yes" : "No");
+    cli::printer().line("  {:<12}: {}", "Geno Method", event.geno_method);
+    cli::printer().line("  {:<12}: {}", "Max Iter", event.max_iter);
+    cli::printer().line("  {:<12}: {}", "Tolerance", event.tol);
 }
 
 auto AssocReporter::on_event(const AssocRemlStartedEvent& event) const -> void
 {
-    logger_->info(gelex::section(""));
     if (event.chr_name.empty())
     {
-        logger_->info(gelex::section("[Variance Component Estimation]"));
+        cli::printer().block(gelex::section("[Variance Component Estimation]"));
     }
     else
     {
-        logger_->info(
+        cli::printer().block(
             gelex::section(
                 "[Variance Component Estimation — Chr {}]", event.chr_name));
     }
@@ -73,15 +69,13 @@ auto AssocReporter::on_event(const AssocScanSummaryEvent& event) -> void
 {
     eta_.reset(event.total_snps);
 
-    logger_->info("");
-    logger_->info(gelex::section("[Association Scan]"));
-    logger_->info("   SNPs to test : {}", event.total_snps);
-    logger_->info("   Chunk size   : {}", event.chunk_size);
+    cli::printer().block(gelex::section("[Association Scan]"));
+    cli::printer().line("   SNPs to test : {}", event.total_snps);
+    cli::printer().line("   Chunk size   : {}", event.chunk_size);
     if (event.loco)
     {
-        logger_->info("   Mode         : LOCO");
+        cli::printer().line("   Mode         : LOCO");
     }
-    logger_->info("");
 
     bar_ = create_progress_bar(progress_, event.total_snps);
     bar_.display->show();
@@ -124,6 +118,7 @@ auto AssocReporter::on_event(const AssocLocoRemlSummaryEvent& event) -> void
     {
         bar_.display->done();
         bar_active_ = false;
+        cli::printer().on_progress_finished();
     }
     cli::print_loco_reml_summary(event.results);
 }
@@ -134,10 +129,9 @@ auto AssocReporter::on_event(const AssocCompleteEvent& event) -> void
     {
         bar_.display->done();
         bar_active_ = false;
+        cli::printer().on_progress_finished();
     }
-
-    logger_->info("");
-    logger_->info(
+    cli::printer().block(
         gelex::success("Results saved to : {}.gwas.tsv", event.out_prefix));
 }
 

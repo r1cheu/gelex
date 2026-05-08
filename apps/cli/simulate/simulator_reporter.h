@@ -17,15 +17,9 @@
 #ifndef GELEX_CLI_SIMULATOR_REPORTER_H_
 #define GELEX_CLI_SIMULATOR_REPORTER_H_
 
-#include <memory>
-
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/infra/logging/simulate_event.h"
 
-namespace spdlog
-{
-class logger;
-}
 namespace gelex::cli
 {
 
@@ -46,7 +40,6 @@ class SimulatorReporter
     }
 
    private:
-    std::shared_ptr<spdlog::logger> logger_;
     ProgressInfo info_;
     bool init_progress_ = false;
 };

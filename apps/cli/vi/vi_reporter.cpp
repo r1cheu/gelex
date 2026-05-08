@@ -20,9 +20,9 @@
 
 #include <fmt/format.h>
 
+#include "cli/report_printer.h"
 #include "config.h"
 #include "gelex/algo/infer/vi/result.h"
-#include "gelex/infra/logger.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/model/bayes/method.h"
@@ -35,22 +35,19 @@ namespace
 const int kTableWidth = 40;
 }  // namespace
 
-ViReporter::ViReporter() : FitReporter() {}
-
 auto ViReporter::on_event(const VIBannerEvent& /*event*/) const -> void
 {
-    logger_->info(
+    cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "Model Fitting (CAVI)"));
-    logger_->info("");
 }
 
 auto ViReporter::on_event(const VIConfigEvent& event) const -> void
 {
-    logger_->info(gelex::section("[Config]"));
-    logger_->info("  {:<12}: {}", "Method", fmt::format("{}", event.method));
-    logger_->info("  {:<12}: {}", "Max iters", event.max_iters);
-    logger_->info("  {:<12}: {:.1e}", "Tolerance", event.tol);
-    logger_->info("");
+    cli::printer().block(gelex::section("[Config]"));
+    cli::printer().line(
+        "  {:<12}: {}", "Method", fmt::format("{}", event.method));
+    cli::printer().line("  {:<12}: {}", "Max iters", event.max_iters);
+    cli::printer().line("  {:<12}: {:.1e}", "Tolerance", event.tol);
 }
 
 auto ViReporter::on_event(const VIProgressEvent& event) -> void
@@ -58,8 +55,7 @@ auto ViReporter::on_event(const VIProgressEvent& event) -> void
     if (!init_progress_)
     {
         init_progress_ = true;
-        logger_->info("");
-        logger_->info(gelex::section("[CAVI Optimization]"));
+        cli::printer().block(gelex::section("[CAVI Optimization]"));
         cavi_info_ = create_progress_info();
         cavi_info_.display->show();
     }
@@ -67,7 +63,7 @@ auto ViReporter::on_event(const VIProgressEvent& event) -> void
     if (event.done)
     {
         cavi_info_.display->done();
-        logger_->info("");
+        cli::printer().on_progress_finished();
         return;
     }
 
@@ -87,17 +83,17 @@ auto ViReporter::on_event(const VICompleteEvent& event) const -> void
     }
 
     const auto& result = *event.result;
-    logger_->info(gelex::section("[Variational Posterior Summary]"));
-    logger_->info("");
-    logger_->info("  {:<8} {:>8} {:>8}", "Parameter", "Mean", "SD");
-    logger_->info(gelex::table_separator(kTableWidth));
+    auto& p = cli::printer();
+
+    p.block(gelex::section("[Variational Posterior Summary]"));
+    p.line("  {:<8} {:>8} {:>8}", "Parameter", "Mean", "SD");
+    p.line(gelex::table_separator(kTableWidth));
 
     const auto& fixed = result.fixed();
     fixed.for_each_term([&](const std::string& term, Eigen::Index i)
                         { print_summary_row(term, fixed.coeffs, i); });
 
-    logger_->info(gelex::table_separator(kTableWidth));
-    logger_->info("");
+    p.line(gelex::table_separator(kTableWidth));
 }
 
 }  // namespace gelex::cli
