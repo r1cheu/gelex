@@ -71,19 +71,17 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
     gelex::notify(dataset_reporter.as_observer(), gelex::DatasetSectionEvent{});
 
     gelex::PhenoPipe pheno(pheno_config, pheno_reporter.as_observer());
-    pheno.load();
-
     gelex::GenoPipe geno(geno_config, geno_reporter.as_observer());
 
-    std::vector<const gelex::dataframe::Index<std::string>*> all_indices{
-        &geno.sample_index(), &pheno.pheno_index()};
-    all_indices.append_range(pheno.covar_indices());
+    std::vector<const gelex::dataframe::Index<std::string>*> all_indices;
+    all_indices.append_range(geno.sample_indices());
+    all_indices.append_range(pheno.sample_indices());
     auto common = gelex::cli::intersect_or_throw(
         std::move(all_indices),
         dataset_reporter.as_observer(),
         "phenotype, genotype (.fam), and covariates");
 
-    pheno.gather(common);
+    pheno.load(common);
     geno.load(common);
 
     auto model = gelex::build_bayes_model(std::move(pheno), std::move(geno));

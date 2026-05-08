@@ -65,16 +65,10 @@ class PhenoPipe
     PhenoPipe& operator=(PhenoPipe&&) noexcept = default;
     ~PhenoPipe() = default;
 
-    auto load() -> void;
-    auto gather(const dataframe::Index<std::string>& common_index) -> void;
-
-    auto pheno_index() const -> const dataframe::Index<std::string>&
-    {
-        return phenotype_frame_->index();
-    }
-
-    auto covar_indices() const
+    auto sample_indices() const
         -> std::vector<const dataframe::Index<std::string>*>;
+
+    auto load(const dataframe::Index<std::string>& common) -> void;
 
     auto take_phenotype() && -> Eigen::VectorXd
     {

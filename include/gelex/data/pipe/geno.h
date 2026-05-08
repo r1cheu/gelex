@@ -20,6 +20,7 @@
 #include <filesystem>
 #include <string>
 #include <variant>
+#include <vector>
 
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/map_reader.h"
@@ -79,9 +80,10 @@ class GenoPipe
         return dominance_matrix_ != nullptr;
     }
 
-    auto sample_index() const -> const dataframe::Index<std::string>&
+    auto sample_indices() const
+        -> std::vector<const dataframe::Index<std::string>*>
     {
-        return fam_index_;
+        return {&fam_index_};
     }
 
    private:

@@ -86,18 +86,15 @@ auto build_discrete_covariate(const dataframe::DataFrame<std::string>& frame)
 PhenoPipe::PhenoPipe(const Config& config, PhenoObserver observer)
     : config_(config), observer_(std::move(observer))
 {
-}
-
-auto PhenoPipe::load() -> void
-{
     load_phenotypes();
     load_covariates();
 }
 
-auto PhenoPipe::covar_indices() const
+auto PhenoPipe::sample_indices() const
     -> std::vector<const dataframe::Index<std::string>*>
 {
     std::vector<const dataframe::Index<std::string>*> result;
+    result.push_back(&phenotype_frame_->index());
     if (qcovar_frame_)
     {
         result.push_back(&qcovar_frame_->index());
@@ -164,8 +161,7 @@ auto PhenoPipe::load_covariates() -> void
     }
 }
 
-auto PhenoPipe::gather(const dataframe::Index<std::string>& common_index)
-    -> void
+auto PhenoPipe::load(const dataframe::Index<std::string>& common_index) -> void
 {
     phenotype_frame_->gather(common_index);
     phenotype_ = phenotype_frame_->col(0).to_map<double>();

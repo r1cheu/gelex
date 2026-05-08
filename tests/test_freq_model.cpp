@@ -26,12 +26,12 @@
 #include "bed_fixture.h"
 #include "file_fixture.h"
 #include "gelex/data/dataframe/index.h"
+#include "gelex/data/pipe/grm.h"
+#include "gelex/data/pipe/pheno.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/sample_id.h"
 #include "gelex/io/grm/writer.h"
 #include "gelex/model/freq/model.h"
-#include "gelex/data/pipe/grm.h"
-#include "gelex/data/pipe/pheno.h"
 #include "sample_id_fixture.h"
 
 namespace fs = std::filesystem;
@@ -180,17 +180,15 @@ auto make_freq_model(
         = read_fam(fs::path(bed_prefix).replace_extension(".fam")).index();
 
     PhenoPipe pheno(pheno_config);
-    pheno.load();
 
     GrmPipe grm(grm_paths);
 
-    std::vector<const dataframe::Index<std::string>*> all_indices{
-        &fam_index, &pheno.pheno_index()};
-    all_indices.append_range(pheno.covar_indices());
+    std::vector<const dataframe::Index<std::string>*> all_indices{&fam_index};
+    all_indices.append_range(pheno.sample_indices());
     all_indices.append_range(grm.sample_indices());
     auto common = dataframe::intersect<std::string>(all_indices);
 
-    pheno.gather(common);
+    pheno.load(common);
     grm.load(common);
 
     return FreqModel(

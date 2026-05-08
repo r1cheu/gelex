@@ -79,7 +79,6 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
               .index();
 
     gelex::PhenoPipe pheno(pheno_config, pheno_reporter.as_observer());
-    pheno.load();
 
     auto grm_paths = std::ranges::to<std::vector<std::filesystem::path>>(
         cmd.get<std::vector<std::string>>("--grm"));
@@ -87,15 +86,15 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     gelex::GrmPipe grm(grm_paths, grm_reporter.as_observer());
 
     std::vector<const gelex::dataframe::Index<std::string>*> all_indices{
-        &fam_index, &pheno.pheno_index()};
-    all_indices.append_range(pheno.covar_indices());
+        &fam_index};
+    all_indices.append_range(pheno.sample_indices());
     all_indices.append_range(grm.sample_indices());
     auto common = gelex::cli::intersect_or_throw(
         std::move(all_indices),
         dataset_reporter.as_observer(),
         "phenotype, genotype (.fam), GRM, and covariates");
 
-    pheno.gather(common);
+    pheno.load(common);
     grm.load(common);
 
     gelex::cli::RemlReporter reml_reporter;
