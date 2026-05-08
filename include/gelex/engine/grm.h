@@ -17,7 +17,6 @@
 #ifndef GELEX_ENGINE_GRM_H_
 #define GELEX_ENGINE_GRM_H_
 
-#include <filesystem>
 #include <string>
 
 #include "gelex/data/genotype/processor.h"
@@ -32,7 +31,7 @@ class GrmEngine
    public:
     struct Config
     {
-        std::filesystem::path bed_path;
+        std::string bfile_prefix;
 
         GeneticMode mode;
         GenotypeProcessMethod method;

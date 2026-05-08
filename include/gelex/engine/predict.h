@@ -38,7 +38,6 @@ class PredictEngine
     {
         std::string bfile_prefix;
         std::string gfile_prefix;
-        std::filesystem::path bed_path;
 
         std::optional<std::filesystem::path> qcovar_path;
         std::optional<std::filesystem::path> dcovar_path;

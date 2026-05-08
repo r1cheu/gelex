@@ -63,7 +63,7 @@ auto make_assoc_config(argparse::ArgumentParser& cmd) -> AssocEngine::Config
         .chunk_size = cmd.get<int>("--chunk-size"),
         .max_iter = cmd.get<int>("--max-iter"),
         .tol = cmd.get<double>("--tol"),
-        .bed_path = cmd.get("--bfile"),
+        .bfile_prefix = cmd.get("--bfile"),
         .out_prefix = cmd.get("--out"),
         .loco = cmd.get<bool>("--loco"),
         .test_type = test_type};

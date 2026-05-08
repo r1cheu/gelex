@@ -17,7 +17,6 @@
 #ifndef GELEX_DATA_BED_PIPE_METADATA_H_
 #define GELEX_DATA_BED_PIPE_METADATA_H_
 
-#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -28,14 +27,14 @@ namespace gelex::genotype::detail
 
 struct BedMetadata
 {
-    std::filesystem::path bed_path;
+    std::string bfile_prefix;
     Eigen::Index num_raw_samples = 0;
     Eigen::Index num_raw_snps = 0;
     Eigen::Index bytes_per_variant = 0;
     std::vector<std::string> raw_ids;
 };
 
-auto load_bed_metadata(const std::filesystem::path& bed_prefix) -> BedMetadata;
+auto load_bed_metadata(const std::string& bfile_prefix) -> BedMetadata;
 
 }  // namespace gelex::genotype::detail
 

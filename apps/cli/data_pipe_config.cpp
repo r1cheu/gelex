@@ -21,7 +21,6 @@
 #include <utility>
 
 #include "cli/cli_helper.h"
-#include "gelex/data/genotype/bed_path.h"
 
 namespace gelex::cli
 {
@@ -45,9 +44,6 @@ auto make_pheno_config(argparse::ArgumentParser& cmd) -> PhenoPipe::Config
 auto make_fit_data_configs(argparse::ArgumentParser& cmd, bool use_mmap)
     -> std::pair<PhenoPipe::Config, GenoPipe::Config>
 {
-    auto bed_path
-        = gelex::genotype::format_bed_path(cmd.get<std::string>("--bfile"));
-
     PhenoPipe::Config pheno_config{
         .phenotype_path = cmd.get("--pheno"),
         .phenotype_column = cmd.get<int>("--pheno-col"),
@@ -62,7 +58,7 @@ auto make_fit_data_configs(argparse::ArgumentParser& cmd, bool use_mmap)
     };
 
     GenoPipe::Config geno_config{
-        .bed_path = bed_path,
+        .bfile_prefix = cmd.get<std::string>("--bfile"),
         .genotype_method
         = parse_genotype_process_method(cmd.get<std::string>("--geno-method")),
         .use_mmap = use_mmap,

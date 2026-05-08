@@ -17,7 +17,6 @@
 #ifndef GELEX_DATA_GRM_H_
 #define GELEX_DATA_GRM_H_
 
-#include <filesystem>
 #include <span>
 #include <string>
 #include <vector>
@@ -42,7 +41,7 @@ struct GrmResult
 class GRM
 {
    public:
-    explicit GRM(const std::filesystem::path& bed_path);
+    explicit GRM(const std::string& bfile_prefix);
     GRM(const GRM&) = delete;
     GRM(GRM&&) noexcept = default;
     GRM& operator=(const GRM&) = delete;

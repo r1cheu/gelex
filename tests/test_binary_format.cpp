@@ -372,19 +372,17 @@ TEST_CASE(
     auto [prefix, raw_genotypes] = bed_fixture.create_bed_files(
         kNumSamples, kNumSnps, kMissingRate, 0.05, 0.5, kSeed);
 
-    auto sample_index
-        = read_fam(std::filesystem::path(prefix).replace_extension(".fam"))
-              .index();
+    auto sample_index = read_fam(prefix.string() + ".fam").index();
 
     // Load via GenotypeMatReader (in-memory)
-    GenotypeMatReader mat_reader(prefix, sample_index);
+    GenotypeMatReader mat_reader(prefix.string(), sample_index);
     auto mat_result = mat_reader.process<GeneticMode::A>(
         GenotypeProcessMethod::StandardizeHWE());
 
     // Load via GenotypeMapReader (mmap)
     auto output_prefix
         = bed_fixture.get_file_fixture().get_test_dir() / "mmap_out";
-    GenotypeMapReader map_reader(prefix, sample_index, output_prefix);
+    GenotypeMapReader map_reader(prefix.string(), sample_index, output_prefix);
     auto map_result = map_reader.process<GeneticMode::A>(
         GenotypeProcessMethod::StandardizeHWE());
 

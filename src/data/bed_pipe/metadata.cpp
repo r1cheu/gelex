@@ -22,21 +22,14 @@
 namespace gelex::genotype::detail
 {
 
-auto load_bed_metadata(const std::filesystem::path& bed_prefix) -> BedMetadata
+auto load_bed_metadata(const std::string& bfile_prefix) -> BedMetadata
 {
-    auto bed_path = bed_prefix;
-    bed_path.replace_extension(".bed");
-    auto bim_path = bed_prefix;
-    bim_path.replace_extension(".bim");
-    auto fam_path = bed_prefix;
-    fam_path.replace_extension(".fam");
-
     BedMetadata metadata;
-    metadata.bed_path = bed_path;
-    metadata.num_raw_snps
-        = static_cast<Eigen::Index>(io::detail::count_total_lines(bim_path));
+    metadata.bfile_prefix = bfile_prefix;
+    metadata.num_raw_snps = static_cast<Eigen::Index>(
+        io::detail::count_total_lines(bfile_prefix + ".bim"));
 
-    metadata.raw_ids = read_fam(fam_path).index().take_keys();
+    metadata.raw_ids = read_fam(bfile_prefix + ".fam").index().take_keys();
     metadata.num_raw_samples
         = static_cast<Eigen::Index>(metadata.raw_ids.size());
     metadata.bytes_per_variant = (metadata.num_raw_samples + 3) / 4;

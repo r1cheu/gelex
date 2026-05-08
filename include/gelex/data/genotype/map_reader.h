@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <string>
 #include <vector>
 
 #include <Eigen/Core>
@@ -41,7 +42,7 @@ class GenotypeMapReader
 {
    public:
     GenotypeMapReader(
-        const std::filesystem::path& bed_path,
+        const std::string& bfile_prefix,
         const dataframe::Index<std::string>& sample_index,
         const std::filesystem::path& output_prefix,
         gelex::GenoObserver observer = {});

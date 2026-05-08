@@ -16,7 +16,6 @@
 
 #include "gelex/data/pipe/geno.h"
 
-#include <filesystem>
 #include <utility>
 
 #include "gelex/data/genotype/process_method.h"
@@ -30,7 +29,7 @@ namespace gelex
 
 GenoPipe::GenoPipe(const Config& config, GenoObserver observer)
     : config_(config),
-      fam_index_(read_fam(config_.bed_path.string() + ".fam").index()),
+      fam_index_(read_fam(config_.bfile_prefix + ".fam").index()),
       observer_(std::move(observer))
 {
 }

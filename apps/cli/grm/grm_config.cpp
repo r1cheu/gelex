@@ -19,7 +19,6 @@
 #include <argparse.h>
 
 #include "cli/cli_helper.h"
-#include "gelex/data/genotype/bed_path.h"
 #include "gelex/exception.h"
 #include "gelex/model/freq/effect.h"
 
@@ -46,7 +45,7 @@ auto make_grm_config(argparse::ArgumentParser& cmd) -> gelex::GrmEngine::Config
     }
 
     return gelex::GrmEngine::Config{
-        .bed_path = gelex::genotype::format_bed_path(cmd.get("--bfile")),
+        .bfile_prefix = cmd.get("--bfile"),
         .mode = mode,
         .method = gelex::cli::parse_genotype_process_method(
             cmd.get<std::string>("--geno-method")),

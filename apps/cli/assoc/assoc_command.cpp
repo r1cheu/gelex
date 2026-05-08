@@ -32,7 +32,6 @@
 #include "cli/pheno_reporter.h"
 #include "cli/reml_reporter.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/genotype/bed_path.h"
 #include "gelex/data/pipe/grm.h"
 #include "gelex/data/pipe/pheno.h"
 #include "gelex/data/reader.h"
@@ -71,12 +70,7 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 
     gelex::notify(dataset_reporter.as_observer(), gelex::DatasetSectionEvent{});
 
-    auto bed_path
-        = gelex::genotype::format_bed_path(cmd.get<std::string>("--bfile"));
-    auto fam_index
-        = gelex::read_fam(
-              std::filesystem::path(bed_path).replace_extension(".fam"))
-              .index();
+    auto fam_index = gelex::read_fam(config.bfile_prefix + ".fam").index();
 
     gelex::PhenoPipe pheno(pheno_config, pheno_reporter.as_observer());
 

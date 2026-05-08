@@ -50,7 +50,7 @@ GrmEngine::GrmEngine(Config config) : config_(std::move(config)) {}
 
 auto GrmEngine::compute(const GrmObserver& observer) -> void
 {
-    GRM grm(config_.bed_path);
+    GRM grm(config_.bfile_prefix);
     const auto& sample_ids = grm.sample_ids();
 
     notify(
@@ -70,9 +70,6 @@ auto GrmEngine::compute(const GrmObserver& observer) -> void
         return grm.compute<GeneticMode::D>(
             config_.method, ranges, config_.chunk_size, observer);
     };
-
-    auto bim_path = config_.bed_path;
-    bim_path.replace_extension(".bim");
 
     auto run_plan = [&](auto& plan)
     {
@@ -112,12 +109,12 @@ auto GrmEngine::compute(const GrmObserver& observer) -> void
 
     if (config_.do_loco)
     {
-        GrmLocoPlan plan(bim_path, config_.mode);
+        GrmLocoPlan plan(config_.bfile_prefix + ".bim", config_.mode);
         run_plan(plan);
     }
     else
     {
-        GrmNormalPlan plan(bim_path, config_.mode);
+        GrmNormalPlan plan(config_.bfile_prefix + ".bim", config_.mode);
         run_plan(plan);
     }
 }

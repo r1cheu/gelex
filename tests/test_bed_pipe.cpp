@@ -90,14 +90,12 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
     {
         auto [bed_prefix, genotypes] = fixture.create_bed_files(10, 20);
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
 
         REQUIRE_NOTHROW(
             [&]()
             {
-                BedPipe pipe(bed_prefix, sample_index);
+                BedPipe pipe(bed_prefix.string(), sample_index);
                 REQUIRE(pipe.num_samples() == 10);
                 REQUIRE(pipe.num_snps() == 20);
             }());
@@ -107,9 +105,7 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
     {
         auto [bed_prefix, genotypes] = fixture.create_bed_files(10, 20, 0.1);
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
 
         // 只保留前 5 个样本
         auto all_keys = sample_index.keys();
@@ -121,7 +117,7 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
         REQUIRE_NOTHROW(
             [&]()
             {
-                BedPipe pipe(bed_prefix, common);
+                BedPipe pipe(bed_prefix.string(), common);
                 REQUIRE(pipe.num_samples() == 5);
                 REQUIRE(pipe.num_snps() == 20);
             }());
@@ -132,16 +128,12 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
         BedFixture fixture;
         auto bed_prefix = fixture.create_bed_files(5, 10, 0.0).first;
 
-        auto bed_path = bed_prefix;
-        bed_path.replace_extension(".bed");
-        fs::remove(bed_path);
+        fs::remove(bed_prefix.string() + ".bed");
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
 
         REQUIRE_THROWS_MATCHES(
-            BedPipe(bed_prefix, sample_index),
+            BedPipe(bed_prefix.string(), sample_index),
             GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("failed to mmap bed file")));
@@ -152,23 +144,20 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
         BedFixture fixture;
         auto bed_prefix = fixture.create_bed_files(5, 10, 0.0).first;
 
-        auto bed_path = bed_prefix;
-        bed_path.replace_extension(".bed");
         {
             std::fstream bed_file(
-                bed_path, std::ios::in | std::ios::out | std::ios::binary);
+                bed_prefix.string() + ".bed",
+                std::ios::in | std::ios::out | std::ios::binary);
             bed_file.seekp(0);
             bed_file.put(0x00);
             bed_file.put(0x00);
             bed_file.put(0x00);
         }
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
 
         REQUIRE_THROWS_MATCHES(
-            BedPipe(bed_prefix, sample_index),
+            BedPipe(bed_prefix.string(), sample_index),
             GelexException,
             Catch::Matchers::MessageMatches(
                 EndsWith("invalid BED magic number")));
@@ -179,21 +168,19 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
         BedFixture fixture;
         auto bed_prefix = fixture.create_bed_files(5, 10, 0.0).first;
 
-        auto bed_path = bed_prefix;
-        bed_path.replace_extension(".bed");
         {
             std::ofstream bed_file(
-                bed_path, std::ios::binary | std::ios::trunc);
+                bed_prefix.string() + ".bed",
+                std::ios::binary | std::ios::trunc);
             bed_file.put(0x6C);
             bed_file.put(0x1B);
             bed_file.put(0x01);
         }
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
 
-        REQUIRE_THROWS_AS(BedPipe(bed_prefix, sample_index), GelexException);
+        REQUIRE_THROWS_AS(
+            BedPipe(bed_prefix.string(), sample_index), GelexException);
     }
 
     SECTION("Exception - BIM file missing")
@@ -201,16 +188,12 @@ TEST_CASE("BedPipe - Construction with valid BED files", "[data][bed_pipe]")
         BedFixture fixture;
         auto bed_prefix = fixture.create_bed_files(5, 10, 0.0).first;
 
-        auto bim_path = bed_prefix;
-        bim_path.replace_extension(".bim");
-        fs::remove(bim_path);
+        fs::remove(bed_prefix.string() + ".bim");
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
 
         REQUIRE_THROWS_MATCHES(
-            BedPipe(bed_prefix, sample_index),
+            BedPipe(bed_prefix.string(), sample_index),
             GelexException,
             Catch::Matchers::MessageMatches(EndsWith("not found")));
     }
@@ -227,14 +210,12 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
         auto [bed_prefix, genotypes]
             = fixture.create_bed_files(num_samples, num_snps, 0.1);
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
 
         auto expected = align_rows_to_id_map(
             genotypes, sample_index.keys(), build_id_map(sample_index));
 
-        BedPipe pipe(bed_prefix, sample_index);
+        BedPipe pipe(bed_prefix.string(), sample_index);
 
         Eigen::MatrixXd loaded = pipe.load();
 
@@ -250,11 +231,9 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
         auto [bed_prefix, genotypes]
             = fixture.create_bed_files(num_samples, num_snps, 0.0);
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
 
-        BedPipe pipe(bed_prefix, sample_index);
+        BedPipe pipe(bed_prefix.string(), sample_index);
 
         Eigen::MatrixXd loaded = pipe.load();
         REQUIRE(loaded.rows() == num_samples);
@@ -269,11 +248,9 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
         auto [bed_prefix, genotypes]
             = fixture.create_bed_files(num_samples, num_snps, 0.0);
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
 
-        BedPipe pipe(bed_prefix, sample_index);
+        BedPipe pipe(bed_prefix.string(), sample_index);
 
         Eigen::MatrixXd loaded = pipe.load();
         REQUIRE(loaded.rows() == num_samples);
@@ -288,9 +265,7 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
         auto [bed_prefix, genotypes]
             = fixture.create_bed_files(num_raw_samples, num_snps, 0.1);
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
         auto raw_keys = sample_index.keys();
 
         std::vector<std::string> intersect_ids;
@@ -308,7 +283,7 @@ TEST_CASE("BedPipe - load() method", "[data][bed_pipe]")
         auto common
             = dataframe::intersect<std::string>({&sample_index, &extra_index});
 
-        BedPipe pipe(bed_prefix, common);
+        BedPipe pipe(bed_prefix.string(), common);
 
         auto expected
             = align_rows_to_id_map(genotypes, raw_ids, build_id_map(common));
@@ -331,14 +306,12 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
         auto [bed_prefix, genotypes]
             = fixture.create_bed_files(num_samples, num_snps, 0.1);
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
 
         auto expected = align_rows_to_id_map(
             genotypes, sample_index.keys(), build_id_map(sample_index));
 
-        BedPipe pipe(bed_prefix, sample_index);
+        BedPipe pipe(bed_prefix.string(), sample_index);
 
         Eigen::MatrixXd full_chunk = pipe.load_chunk(0, num_snps);
         Eigen::MatrixXd full_load = pipe.load();
@@ -358,14 +331,12 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
         auto [bed_prefix, genotypes]
             = fixture.create_bed_files(num_samples, num_snps, 0.1);
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
 
         auto expected = align_rows_to_id_map(
             genotypes, sample_index.keys(), build_id_map(sample_index));
 
-        BedPipe pipe(bed_prefix, sample_index);
+        BedPipe pipe(bed_prefix.string(), sample_index);
 
         Eigen::Index col_idx = 3;
         Eigen::MatrixXd chunk = pipe.load_chunk(col_idx, col_idx + 1);
@@ -382,14 +353,12 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
         auto [bed_prefix, genotypes]
             = fixture.create_bed_files(num_samples, num_snps, 0.1);
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
 
         auto expected = align_rows_to_id_map(
             genotypes, sample_index.keys(), build_id_map(sample_index));
 
-        BedPipe pipe(bed_prefix, sample_index);
+        BedPipe pipe(bed_prefix.string(), sample_index);
 
         Eigen::Index start = 5;
         Eigen::Index end = 10;
@@ -409,11 +378,9 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
         auto bed_prefix
             = fixture.create_bed_files(num_samples, num_snps, 0.0).first;
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
 
-        BedPipe pipe(bed_prefix, sample_index);
+        BedPipe pipe(bed_prefix.string(), sample_index);
 
         REQUIRE_THROWS_AS(pipe.load_chunk(-1, 3), GelexException);
         REQUIRE_THROWS_AS(pipe.load_chunk(0, num_snps + 1), GelexException);
@@ -432,11 +399,9 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
         auto [bed_prefix, genotypes]
             = fixture.create_bed_files(num_samples, num_snps, 0.1);
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
 
-        BedPipe pipe(bed_prefix, sample_index);
+        BedPipe pipe(bed_prefix.string(), sample_index);
 
         Eigen::MatrixXd chunk = pipe.load_chunk(0, 3);
         REQUIRE(chunk.rows() == num_samples);
@@ -451,11 +416,9 @@ TEST_CASE("BedPipe - load_chunk() method", "[data][bed_pipe]")
         auto [bed_prefix, genotypes]
             = fixture.create_bed_files(num_samples, num_snps, 0.1);
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
 
-        BedPipe pipe(bed_prefix, sample_index);
+        BedPipe pipe(bed_prefix.string(), sample_index);
 
         Eigen::MatrixXd chunk = pipe.load_chunk(num_snps - 2, num_snps);
         REQUIRE(chunk.rows() == num_samples);
@@ -475,9 +438,7 @@ TEST_CASE("BedPipe - sample mapping tests", "[data][bed_pipe]")
         auto bed_prefix
             = fixture.create_bed_files(num_raw_samples, num_snps, 0.0).first;
 
-        auto fam_path = bed_prefix;
-        fam_path.replace_extension(".fam");
-        auto sample_index = read_fam(fam_path).index();
+        auto sample_index = read_fam(bed_prefix.string() + ".fam").index();
 
         std::vector<std::string> intersect_ids
             = {make_sample_id("nonexistent", "1"),
@@ -489,7 +450,7 @@ TEST_CASE("BedPipe - sample mapping tests", "[data][bed_pipe]")
         auto common
             = dataframe::intersect<std::string>({&sample_index, &extra_index});
 
-        BedPipe pipe(bed_prefix, common);
+        BedPipe pipe(bed_prefix.string(), common);
 
         REQUIRE(pipe.num_samples() == 0);
 

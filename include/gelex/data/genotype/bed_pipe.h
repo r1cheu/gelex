@@ -17,8 +17,8 @@
 #ifndef GELEX_DATA_BED_PIPE_H
 #define GELEX_DATA_BED_PIPE_H
 
-#include <filesystem>
 #include <memory>
+#include <string>
 
 #include <Eigen/Core>
 
@@ -40,7 +40,7 @@ class BedPipe
 {
    public:
     BedPipe(
-        const std::filesystem::path& bed_prefix,
+        const std::string& bfile_prefix,
         const dataframe::Index<std::string>& sample_index);
 
     BedPipe(const BedPipe&) = delete;

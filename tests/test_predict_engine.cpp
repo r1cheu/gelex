@@ -301,9 +301,7 @@ TEST_CASE(
         std::vector<std::string>(snp_ids.size(), "1"),
         alleles);
 
-    auto fam_path = bed_prefix;
-    fam_path.replace_extension(".fam");
-    auto [fids, loaded_iids] = read_fam(fam_path);
+    auto [fids, loaded_iids] = read_fam(bed_prefix.string() + ".fam");
 
     auto& ff = bed.get_file_fixture();
 
@@ -327,7 +325,6 @@ TEST_CASE(
     PredictEngine::Config config{
         .bfile_prefix = bed_prefix.string(),
         .gfile_prefix = gfile_prefix,
-        .bed_path = bed_prefix,
         .qcovar_path = qcovar_path,
         .dcovar_path = dcovar_path,
         .output_path = output_path};

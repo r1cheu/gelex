@@ -69,16 +69,18 @@ auto validate_target_buffer_shape(
 }  // namespace
 
 BedPipe::BedPipe(
-    const std::filesystem::path& bed_prefix,
+    const std::string& bfile_prefix,
     const dataframe::Index<std::string>& sample_index)
 {
-    auto metadata = gelex::genotype::detail::load_bed_metadata(bed_prefix);
+    auto metadata = gelex::genotype::detail::load_bed_metadata(bfile_prefix);
 
     projection_ = std::make_unique<gelex::genotype::detail::SampleProjection>(
         metadata.raw_ids, sample_index);
 
     bed_reader_ = std::make_unique<gelex::genotype::detail::BedMmapReader>(
-        metadata.bed_path, metadata.num_raw_snps, metadata.bytes_per_variant);
+        metadata.bfile_prefix + ".bed",
+        metadata.num_raw_snps,
+        metadata.bytes_per_variant);
 
     decoder_ = std::make_unique<gelex::genotype::detail::BedVariantDecoder>(
         metadata.num_raw_samples,

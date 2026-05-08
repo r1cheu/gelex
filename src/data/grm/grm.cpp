@@ -31,11 +31,9 @@ namespace gelex
 {
 using Eigen::Index;
 
-GRM::GRM(const std::filesystem::path& bed_path)
-    : sample_index_(
-          read_fam(std::filesystem::path(bed_path).replace_extension(".fam"))
-              .index()),
-      bed_(bed_path, sample_index_)
+GRM::GRM(const std::string& bfile_prefix)
+    : sample_index_(read_fam(bfile_prefix + ".fam").index()),
+      bed_(bfile_prefix, sample_index_)
 {
 }
 

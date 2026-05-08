@@ -53,11 +53,11 @@ void GenotypeMapReader::process_chunk(
 }
 
 GenotypeMapReader::GenotypeMapReader(
-    const std::filesystem::path& bed_path,
+    const std::string& bfile_prefix,
     const dataframe::Index<std::string>& sample_index,
     const std::filesystem::path& output_prefix,
     gelex::GenoObserver observer)
-    : bed_pipe_(bed_path, sample_index),
+    : bed_pipe_(bfile_prefix, sample_index),
       observer_(std::move(observer)),
       output_prefix_(output_prefix)
 {

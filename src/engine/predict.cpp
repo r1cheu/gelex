@@ -86,13 +86,8 @@ auto PredictEngine::load_params() const -> PredictParams
 
 auto PredictEngine::load_data(const PredictParams& params) const -> PredictData
 {
-    auto fam_path = config_.bed_path;
-    fam_path.replace_extension(".fam");
-    auto bim_path = config_.bed_path;
-    bim_path.replace_extension(".bim");
-
-    auto fam_df = read_fam(fam_path);
-    auto bim_df = read_bim(bim_path);
+    auto fam_df = read_fam(config_.bfile_prefix + ".fam");
+    auto bim_df = read_bim(config_.bfile_prefix + ".bim");
     auto covariates = predict::read_covariates(
         config_.qcovar_path, config_.dcovar_path, params.coefficients, fam_df);
 
@@ -134,7 +129,7 @@ auto PredictEngine::select(
     const predict::SnpAlignment& alignment,
     bool has_dom) const -> predict::GenotypeData
 {
-    genotype::BedPipe bed_pipe(config_.bed_path, data.fam_df.index());
+    genotype::BedPipe bed_pipe(config_.bfile_prefix, data.fam_df.index());
     auto genotype = bed_pipe.select(alignment.column_map);
 
     predict::GenotypeData geno;

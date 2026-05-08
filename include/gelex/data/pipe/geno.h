@@ -39,7 +39,7 @@ class GenoPipe
    public:
     struct Config
     {
-        std::filesystem::path bed_path;
+        std::string bfile_prefix;
 
         GeneticMode mode;
         GenotypeProcessMethod genotype_method;
@@ -101,7 +101,7 @@ class GenoPipe
         {
             std::string file_path = config_.output_prefix + suffix;
             auto pipe = genotype::GenotypeMapReader(
-                config_.bed_path, sample_index, file_path, observer_);
+                config_.bfile_prefix, sample_index, file_path, observer_);
             target = std::make_unique<
                 std::variant<genotype::GenotypeMap, genotype::GenotypeMatrix>>(
                 pipe.process<GT>(method, config_.chunk_size));
@@ -109,7 +109,7 @@ class GenoPipe
         else
         {
             auto reader = genotype::GenotypeMatReader(
-                config_.bed_path, sample_index, observer_);
+                config_.bfile_prefix, sample_index, observer_);
             target = std::make_unique<
                 std::variant<genotype::GenotypeMap, genotype::GenotypeMatrix>>(
                 reader.process<GT>(method, config_.chunk_size));

@@ -18,7 +18,7 @@
 #define GELEX_DATA_GENOTYPE_MAT_READER_H_
 
 #include <algorithm>
-#include <filesystem>
+#include <string>
 #include <vector>
 
 #include <Eigen/Core>
@@ -37,7 +37,7 @@ class GenotypeMatReader
 {
    public:
     explicit GenotypeMatReader(
-        const std::filesystem::path& bed_path,
+        const std::string& bfile_prefix,
         const dataframe::Index<std::string>& sample_index,
         gelex::GenoObserver observer = {});
 

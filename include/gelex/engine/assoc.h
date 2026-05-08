@@ -17,7 +17,6 @@
 #ifndef GELEX_ENGINE_ASSOC_H_
 #define GELEX_ENGINE_ASSOC_H_
 
-#include <filesystem>
 #include <string>
 
 #include "gelex/algo/gwas/assoc_type.h"
@@ -46,7 +45,7 @@ class AssocEngine
         int max_iter;
         double tol;
 
-        std::filesystem::path bed_path;
+        std::string bfile_prefix;
         std::string out_prefix;
 
         bool loco = false;

@@ -26,10 +26,10 @@ namespace gelex::genotype
 {
 
 GenotypeMatReader::GenotypeMatReader(
-    const std::filesystem::path& bed_path,
+    const std::string& bfile_prefix,
     const dataframe::Index<std::string>& sample_index,
     gelex::GenoObserver observer)
-    : bed_pipe_(bed_path, sample_index), observer_(std::move(observer))
+    : bed_pipe_(bfile_prefix, sample_index), observer_(std::move(observer))
 {
     num_variants_ = bed_pipe_.num_snps();    // NOLINT
     sample_size_ = bed_pipe_.num_samples();  // NOLINT

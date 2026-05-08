@@ -176,8 +176,7 @@ auto make_freq_model(
     const fs::path& bed_prefix,
     const std::vector<std::filesystem::path>& grm_paths = {}) -> FreqModel
 {
-    auto fam_index
-        = read_fam(fs::path(bed_prefix).replace_extension(".fam")).index();
+    auto fam_index = read_fam(bed_prefix.string() + ".fam").index();
 
     PhenoPipe pheno(pheno_config);
 

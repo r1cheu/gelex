@@ -45,9 +45,8 @@ auto AssocEngine::run(
     const AssocObserver& observer,
     const RemlObserver& reml_observer) -> void
 {
-    genotype::BedPipe bed_pipe(config_.bed_path, sample_index);
-    auto bim_path = config_.bed_path;
-    auto bim = read_bim(bim_path.replace_extension(".bim"));
+    genotype::BedPipe bed_pipe(config_.bfile_prefix, sample_index);
+    auto bim = read_bim(config_.bfile_prefix + ".bim");
 
     auto phenotype = std::move(pheno).take_phenotype();
     auto fixed_effects = std::move(pheno).take_fixed_effects();

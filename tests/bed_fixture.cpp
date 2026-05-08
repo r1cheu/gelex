@@ -283,9 +283,6 @@ void BedFixture::write_bed_file(const Eigen::MatrixXd& genotypes)
     const Eigen::Index num_snps = genotypes.cols();
     const Eigen::Index bytes_per_var = (num_samples + 3) / 4;
 
-    auto bed_path = current_prefix_;
-    bed_path.replace_extension(".bed");
-
     std::vector<std::byte> bed_content;
     bed_content.reserve(3 + (num_snps * bytes_per_var));
 
@@ -301,7 +298,7 @@ void BedFixture::write_bed_file(const Eigen::MatrixXd& genotypes)
 
     [[maybe_unused]] auto bed_file_path
         = file_fixture_.create_named_binary_file(
-            bed_path.filename().string(),
+            current_prefix_.filename().string() + ".bed",
             std::span<const std::byte>(bed_content.data(), bed_content.size()));
 }
 
@@ -311,9 +308,6 @@ void BedFixture::write_bim_file(
     std::span<const std::string> chromosomes,
     std::span<const std::pair<char, char>> alleles)
 {
-    auto bim_path = current_prefix_;
-    bim_path.replace_extension(".bim");
-
     std::string bim_content;
     for (Eigen::Index i = 0; i < num_snps; ++i)
     {
@@ -343,16 +337,13 @@ void BedFixture::write_bim_file(
     }
 
     [[maybe_unused]] auto bim_file_path = file_fixture_.create_named_text_file(
-        bim_path.filename().string(), bim_content);
+        current_prefix_.filename().string() + ".bim", bim_content);
 }
 
 void BedFixture::write_fam_file(
     Eigen::Index num_samples,
     std::span<const std::string> sample_ids)
 {
-    auto fam_path = current_prefix_;
-    fam_path.replace_extension(".fam");
-
     std::string fam_content;
     for (Eigen::Index i = 0; i < num_samples; ++i)
     {
@@ -367,7 +358,7 @@ void BedFixture::write_fam_file(
     }
 
     [[maybe_unused]] auto fam_file_path = file_fixture_.create_named_text_file(
-        fam_path.filename().string(), fam_content);
+        current_prefix_.filename().string() + ".fam", fam_content);
 }
 
 std::pair<char, char> BedFixture::generate_random_alleles(std::mt19937_64& rng)
