@@ -18,9 +18,11 @@
 #define GELEX_MODEL_BAYES_BAYES_POLICY_H_
 
 #include <optional>
+#include <span>
 
 #include <Eigen/Core>
 
+#include "gelex/model/bayes/algorithm_shape.h"
 #include "gelex/model/bayes/bayes_base.h"
 #include "gelex/model/bayes/prior.h"
 
@@ -39,6 +41,7 @@ struct BayesPolicy
     std::optional<MixtureShape> mixture;
     bool supports_estimate_pi = false;
     bool supports_asymmetric_dominance = false;
+    std::span<const AlgorithmShape> shapes;
 };
 
 auto policy_for(BayesBase) -> const BayesPolicy&;

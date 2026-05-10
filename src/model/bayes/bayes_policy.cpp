@@ -21,7 +21,6 @@
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/prior.h"
 
 namespace gelex::bayes
@@ -30,6 +29,12 @@ namespace gelex::bayes
 namespace
 {
 
+inline constexpr std::array kIndepShapes{
+    AlgorithmShape::a_only,
+    AlgorithmShape::d_only,
+    AlgorithmShape::ad_independent,
+};
+
 const std::array<BayesPolicy, std::to_underlying(BayesBase::kCount)> kPolicies{{
     // A
     {
@@ -37,6 +42,7 @@ const std::array<BayesPolicy, std::to_underlying(BayesBase::kCount)> kPolicies{{
         .mixture = std::nullopt,
         .supports_estimate_pi = false,
         .supports_asymmetric_dominance = false,
+        .shapes = kIndepShapes,
     },
     // B
     {
@@ -47,6 +53,7 @@ const std::array<BayesPolicy, std::to_underlying(BayesBase::kCount)> kPolicies{{
         },
         .supports_estimate_pi = true,
         .supports_asymmetric_dominance = false,
+        .shapes = kIndepShapes,
     },
     // C
     {
@@ -57,6 +64,7 @@ const std::array<BayesPolicy, std::to_underlying(BayesBase::kCount)> kPolicies{{
         },
         .supports_estimate_pi = true,
         .supports_asymmetric_dominance = false,
+        .shapes = kIndepShapes,
     },
     // R
     {
@@ -67,6 +75,7 @@ const std::array<BayesPolicy, std::to_underlying(BayesBase::kCount)> kPolicies{{
         },
         .supports_estimate_pi = false,
         .supports_asymmetric_dominance = true,
+        .shapes = kIndepShapes,
     },
     // RR
     {
@@ -74,6 +83,7 @@ const std::array<BayesPolicy, std::to_underlying(BayesBase::kCount)> kPolicies{{
         .mixture = std::nullopt,
         .supports_estimate_pi = false,
         .supports_asymmetric_dominance = false,
+        .shapes = kIndepShapes,
     },
 }};
 
@@ -81,7 +91,7 @@ const std::array<BayesPolicy, std::to_underlying(BayesBase::kCount)> kPolicies{{
 
 auto policy_for(BayesBase base) -> const BayesPolicy&
 {
-    return kPolicies[std::to_underlying(base)];
+    return kPolicies.at(std::to_underlying(base));
 }
 
 }  // namespace gelex::bayes
