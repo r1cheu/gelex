@@ -41,7 +41,7 @@ auto RandomStep::make(const Context& ctx) -> RandomStep
                 specs.size(),
                 states.size()));
     }
-    static const bayes::VarianceSpec kEmptySpec{};
+    static const bayes::OldVarianceSpec kEmptySpec{};
     return RandomStep{Deps{
         .effects = std::span{effects},
         .variance = specs.empty() ? kEmptySpec : specs.front(),

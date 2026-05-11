@@ -31,7 +31,7 @@ namespace gelex::vi
 struct ResidualStepDeps
 {
     const BayesModel& model;
-    const bayes::VarianceSpec& variance;
+    const bayes::OldVarianceSpec& variance;
     State& state;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -47,8 +47,8 @@ class ResidualStep
         : deps_(deps),
           chi_squared_(
               stats::detail::ScaledInvChiSqParams{
-                  .nu = deps_.variance.prior.nu,
-                  .s2 = deps_.variance.prior.s2})
+                  .nu = deps_.variance.prior.degrees_of_freedom,
+                  .s2 = deps_.variance.prior.scale})
     {
     }
 

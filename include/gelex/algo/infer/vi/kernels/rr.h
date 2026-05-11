@@ -75,7 +75,9 @@ class RRKernel
     static auto make_chi_squared_params(const bayes::GeneticSpec& spec)
         -> stats::detail::ScaledInvChiSqParams
     {
-        return {.nu = spec.variance.prior.nu, .s2 = spec.variance.prior.s2};
+        return {
+            .nu = spec.variance.prior.degrees_of_freedom,
+            .s2 = spec.variance.prior.scale};
     }
 
     bayes::vi::GeneticState& state_;

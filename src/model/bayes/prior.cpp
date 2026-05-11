@@ -19,18 +19,44 @@
 #include <optional>
 
 #include <Eigen/Core>
+#include <utility>
 
+#include "gelex/exception.h"
 #include "gelex/model/bayes/bayes_policy.h"
+#include "gelex/model/bayes/constrain_vector.h"
 #include "gelex/model/bayes/prior_constants.h"
 
 namespace gelex::bayes
 {
 
-auto VarianceSpec::make(double phenotype_variance) -> VarianceSpec
+MarkerVarianceSpec::MarkerVarianceSpec(
+    MarkerVarianceScope scope,
+    VarianceSpec variance)
+    : scope_(scope), variance_(variance)
+{
+}
+
+ProportionSpec::ProportionSpec(
+    Simplex<double> initial_value,
+    DirichletPrior prior,
+    ProportionUpdate update)
+    : initial_value_(std::move(initial_value)),
+      prior_(std::move(prior)),
+      update_(update)
+{
+    if (initial_value_.size() != prior_.concentration.size())
+    {
+        throw GelexException(
+            "ProportionSpec: initial value and prior concentration must have "
+            "the same size");
+    }
+}
+
+auto OldVarianceSpec::make(double phenotype_variance) -> OldVarianceSpec
 {
     constexpr double kResidualVarianceProportion = 0.3;
-    return VarianceSpec{
-        .scope = VarianceScope::per_block,
+    return OldVarianceSpec{
+        .scope = MarkerVarianceScope::per_effect,
         .init = kResidualVarianceProportion * phenotype_variance,
         .prior = ScaledInvChiSqPrior{
             prior_constants::RESIDUAL_VARIANCE_SHAPE,
@@ -39,9 +65,10 @@ auto VarianceSpec::make(double phenotype_variance) -> VarianceSpec
     };
 }
 
-auto VarianceSpec::make(double init, VarianceScope scope) -> VarianceSpec
+auto OldVarianceSpec::make(double init, MarkerVarianceScope scope)
+    -> OldVarianceSpec
 {
-    return VarianceSpec{
+    return OldVarianceSpec{
         .scope = scope,
         .init = init,
         .prior = ScaledInvChiSqPrior{
@@ -63,7 +90,8 @@ auto Mixture::make(const BayesPolicy& policy, bool estimate_pi)
         m.strategy,
         CategoricalSpec{
             m.default_proportion,
-            DirichletPrior{Eigen::VectorXi::Ones(m.default_proportion.size())},
+            OldDirichletPrior{
+                Eigen::VectorXi::Ones(m.default_proportion.size())},
             estimate_pi,
         },
     };

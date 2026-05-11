@@ -116,7 +116,7 @@ auto build_bayes_method(
 
     BayesMethod method;
     method.config = config;
-    method.residual = VarianceSpec::make(phenotype_variance);
+    method.residual = OldVarianceSpec::make(phenotype_variance);
 
     if (shape == AlgorithmShape::ad_joint)
     {

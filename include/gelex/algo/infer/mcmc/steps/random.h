@@ -34,7 +34,7 @@ namespace gelex::mcmc
 struct RandomStepDeps
 {
     std::span<const bayes::RandomEffect> effects;
-    bayes::VarianceSpec variance;
+    bayes::OldVarianceSpec variance;
     std::span<bayes::RandomState> states;
     bayes::ResidualState& residual;
     std::mt19937_64& rng;
@@ -50,7 +50,9 @@ class RandomStep
 
     explicit RandomStep(Deps deps)
         : deps_(deps),
-          variance_sampler_(deps_.variance.prior.nu, deps_.variance.prior.s2)
+          variance_sampler_(
+              deps_.variance.prior.degrees_of_freedom,
+              deps_.variance.prior.scale)
     {
     }
 

@@ -186,10 +186,11 @@ auto write_rng(io::detail::BinaryWriter& writer, const std::mt19937_64& rng)
 auto write_variance_spec(
     io::detail::BinaryWriter& writer,
     std::string_view prefix,
-    const bayes::VarianceSpec& spec) -> void
+    const bayes::OldVarianceSpec& spec) -> void
 {
-    write_scalar(writer, fmt::format("{}/nu", prefix), spec.prior.nu);
-    write_scalar(writer, fmt::format("{}/s2", prefix), spec.prior.s2);
+    write_scalar(
+        writer, fmt::format("{}/nu", prefix), spec.prior.degrees_of_freedom);
+    write_scalar(writer, fmt::format("{}/s2", prefix), spec.prior.scale);
     write_scalar(writer, fmt::format("{}/init", prefix), spec.init);
     write_uint8(
         writer,

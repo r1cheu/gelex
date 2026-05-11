@@ -236,10 +236,10 @@ TEST_CASE("checkpoint method round-trip preserves all fields", "[checkpoint]")
 
     bayes::GeneticSpec spec{
         .mode = GeneticMode::A,
-        .variance = {bayes::VarianceScope::per_marker, 0.0, {4.0, 0.3}},
+        .variance = {bayes::MarkerVarianceScope::per_marker, 0.0, {4.0, 0.3}},
         .sign = bayes::CategoricalSpec{
             Eigen::VectorXd{{0.6, 0.4}},
-            bayes::DirichletPrior{Eigen::VectorXi{{1, 1}}},
+            bayes::OldDirichletPrior{Eigen::VectorXi{{1, 1}}},
             false,
         },
     };
@@ -250,7 +250,7 @@ TEST_CASE("checkpoint method round-trip preserves all fields", "[checkpoint]")
             bayes::ScaledMixture{multiplier},
             bayes::CategoricalSpec{
                 pi_init,
-                bayes::DirichletPrior{Eigen::VectorXi{{1, 1, 1}}},
+                bayes::OldDirichletPrior{Eigen::VectorXi{{1, 1, 1}}},
                 true,
             },
         },
@@ -259,10 +259,10 @@ TEST_CASE("checkpoint method round-trip preserves all fields", "[checkpoint]")
     bayes::BayesMethod method;
     method.genetics.push_back(prior);
     method.randoms.push_back(
-        {bayes::VarianceScope::per_block, 0.0, {3.0, 0.1}});
+        {bayes::MarkerVarianceScope::per_effect, 0.0, {3.0, 0.1}});
     method.randoms.push_back(
-        {bayes::VarianceScope::per_block, 0.0, {5.0, 0.2}});
-    method.residual = {bayes::VarianceScope::per_block, 0.0, {4.0, 0.5}};
+        {bayes::MarkerVarianceScope::per_effect, 0.0, {5.0, 0.2}});
+    method.residual = {bayes::MarkerVarianceScope::per_effect, 0.0, {4.0, 0.5}};
 
     auto [model, model_method] = make_bayes_a_model(kNSamples, kNSnps);
     (void)model_method;
@@ -276,23 +276,23 @@ TEST_CASE("checkpoint method round-trip preserves all fields", "[checkpoint]")
     const auto& rm = ckpt.method;
 
     // Residual
-    CHECK(rm.residual.prior.nu == 4.0);
-    CHECK(rm.residual.prior.s2 == 0.5);
+    CHECK(rm.residual.prior.degrees_of_freedom == 4.0);
+    CHECK(rm.residual.prior.scale == 0.5);
 
     // Random
     REQUIRE(rm.randoms.size() == 2);
-    CHECK(rm.randoms[0].prior.nu == 3.0);
-    CHECK(rm.randoms[0].prior.s2 == 0.1);
-    CHECK(rm.randoms[1].prior.nu == 5.0);
-    CHECK(rm.randoms[1].prior.s2 == 0.2);
+    CHECK(rm.randoms[0].prior.degrees_of_freedom == 3.0);
+    CHECK(rm.randoms[0].prior.scale == 0.1);
+    CHECK(rm.randoms[1].prior.degrees_of_freedom == 5.0);
+    CHECK(rm.randoms[1].prior.scale == 0.2);
 
     // Genetic prior
     REQUIRE(rm.genetics.size() == 1);
     const auto* gs = std::get_if<bayes::GeneticSpec>(&rm.genetics[0].spec);
     REQUIRE(gs != nullptr);
     CHECK(gs->mode == GeneticMode::A);
-    CHECK(gs->variance.prior.nu == 4.0);
-    CHECK(gs->variance.prior.s2 == 0.3);
+    CHECK(gs->variance.prior.degrees_of_freedom == 4.0);
+    CHECK(gs->variance.prior.scale == 0.3);
 
     // Mixture
     REQUIRE(rm.genetics[0].mixture.has_value());

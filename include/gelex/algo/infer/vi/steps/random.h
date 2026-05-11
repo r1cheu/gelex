@@ -32,7 +32,7 @@ namespace gelex::vi
 struct RandomStepDeps
 {
     std::span<const bayes::RandomEffect> effects;
-    std::span<const bayes::VarianceSpec> specs;
+    std::span<const bayes::OldVarianceSpec> specs;
     std::span<bayes::RandomState> states;
     bayes::ResidualState& residual;
 };

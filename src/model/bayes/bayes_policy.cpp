@@ -38,7 +38,7 @@ inline constexpr std::array kIndepShapes{
 const std::array<BayesPolicy, std::to_underlying(BayesBase::kCount)> kPolicies{{
     // A
     {
-        .variance_scope = VarianceScope::per_marker,
+        .variance_scope = MarkerVarianceScope::per_marker,
         .mixture = std::nullopt,
         .supports_estimate_pi = false,
         .supports_asymmetric_dominance = false,
@@ -46,7 +46,7 @@ const std::array<BayesPolicy, std::to_underlying(BayesBase::kCount)> kPolicies{{
     },
     // B
     {
-        .variance_scope = VarianceScope::per_marker,
+        .variance_scope = MarkerVarianceScope::per_marker,
         .mixture = MixtureShape{
             Eigen::VectorXd{{0.99, 0.01}},
             SpikeSlab{},
@@ -57,7 +57,7 @@ const std::array<BayesPolicy, std::to_underlying(BayesBase::kCount)> kPolicies{{
     },
     // C
     {
-        .variance_scope = VarianceScope::per_block,
+        .variance_scope = MarkerVarianceScope::per_effect,
         .mixture = MixtureShape{
             Eigen::VectorXd{{0.99, 0.01}},
             SpikeSlab{},
@@ -68,7 +68,7 @@ const std::array<BayesPolicy, std::to_underlying(BayesBase::kCount)> kPolicies{{
     },
     // R
     {
-        .variance_scope = VarianceScope::per_block,
+        .variance_scope = MarkerVarianceScope::per_effect,
         .mixture = MixtureShape{
             Eigen::VectorXd{{0.99, 0.005, 0.001, 0.001, 0.001}},
             ScaledMixture{Eigen::VectorXd{{0.0, 0.001, 0.01, 0.1, 1.0}}},
@@ -79,7 +79,7 @@ const std::array<BayesPolicy, std::to_underlying(BayesBase::kCount)> kPolicies{{
     },
     // RR
     {
-        .variance_scope = VarianceScope::per_marker,
+        .variance_scope = MarkerVarianceScope::per_marker,
         .mixture = std::nullopt,
         .supports_estimate_pi = false,
         .supports_asymmetric_dominance = false,

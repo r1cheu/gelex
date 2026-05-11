@@ -110,10 +110,10 @@ TEST_CASE(
     const Eigen::Index p = X.cols();
 
     const Eigen::VectorXd y = Eigen::VectorXd::LinSpaced(n, -1.0, 1.0);
-    const bayes::VarianceSpec variance_spec{
-        .scope = bayes::VarianceScope::per_block,
+    const bayes::OldVarianceSpec variance_spec{
+        .scope = bayes::MarkerVarianceScope::per_effect,
         .init = 0.5,
-        .prior = {.nu = 4.0, .s2 = 0.5}};
+        .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}};
 
     std::array<bayes::RandomEffect, 1> effects_arr{
         bayes::RandomEffect{"b", {"a", "b", "c"}, Eigen::MatrixXd{X}}};
@@ -149,7 +149,7 @@ struct KernelTraits<BayesAKernel>
     {
         return bayes::GeneticPrior{
             .spec = bayes::
-                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::VarianceScope::per_marker, .init = 0.1, .prior = {.nu = 4.0, .s2 = 0.5}}},
+                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_marker, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
             .mixture = std::nullopt};
     }
 };
@@ -161,7 +161,7 @@ struct KernelTraits<BayesRRKernel>
     {
         return bayes::GeneticPrior{
             .spec = bayes::
-                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::VarianceScope::per_block, .init = 0.1, .prior = {.nu = 4.0, .s2 = 0.5}}},
+                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
             .mixture = std::nullopt};
     }
 };
@@ -173,12 +173,12 @@ struct KernelTraits<BayesBKernel>
     {
         return bayes::GeneticPrior{
             .spec = bayes::
-                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::VarianceScope::per_marker, .init = 0.1, .prior = {.nu = 4.0, .s2 = 0.5}}},
+                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_marker, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
             .mixture = bayes::Mixture{
                 .strategy = bayes::SpikeSlab{},
                 .proportions
                 = {.init = Eigen::VectorXd{{0.9, 0.1}},
-                   .prior = bayes::DirichletPrior{Eigen::VectorXi::Ones(2)},
+                   .prior = bayes::OldDirichletPrior{Eigen::VectorXi::Ones(2)},
                    .estimate = false}}};
     }
 };
@@ -190,12 +190,12 @@ struct KernelTraits<BayesCKernel>
     {
         return bayes::GeneticPrior{
             .spec = bayes::
-                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::VarianceScope::per_block, .init = 0.1, .prior = {.nu = 4.0, .s2 = 0.5}}},
+                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
             .mixture = bayes::Mixture{
                 .strategy = bayes::SpikeSlab{},
                 .proportions
                 = {.init = Eigen::VectorXd{{0.9, 0.1}},
-                   .prior = bayes::DirichletPrior{Eigen::VectorXi::Ones(2)},
+                   .prior = bayes::OldDirichletPrior{Eigen::VectorXi::Ones(2)},
                    .estimate = false}}};
     }
 };
@@ -317,13 +317,13 @@ auto make_mixture_prior() -> bayes::GeneticPrior
 {
     return bayes::GeneticPrior{
         .spec = bayes::
-            GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::VarianceScope::per_block, .init = 0.05, .prior = {.nu = 4.0, .s2 = 0.1}}},
+            GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.05, .prior = {.degrees_of_freedom = 4.0, .scale = 0.1}}},
         .mixture = bayes::Mixture{
             .strategy = bayes::
                 ScaledMixture{.multiplier = Eigen::VectorXd{{0.0, 0.001, 0.01, 0.1}}},
             .proportions
             = {.init = Eigen::VectorXd{{0.7, 0.2, 0.08, 0.02}},
-               .prior = bayes::DirichletPrior{Eigen::VectorXi::Ones(4)},
+               .prior = bayes::OldDirichletPrior{Eigen::VectorXi::Ones(4)},
                .estimate = true}}};
 }
 
@@ -413,10 +413,10 @@ TEST_CASE(
         .config = bayes::BayesConfig{},
         .genetics = {make_mixture_prior()},
         .randoms = {},
-        .residual = bayes::VarianceSpec{
-            .scope = bayes::VarianceScope::per_block,
+        .residual = bayes::OldVarianceSpec{
+            .scope = bayes::MarkerVarianceScope::per_effect,
             .init = 0.5,
-            .prior = {.nu = 4.0, .s2 = 0.5}}};
+            .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}};
 
     mcmc::State inference_state{
         bayes::FixedState{Eigen::VectorXd::Zero(1)},
@@ -463,12 +463,12 @@ TEST_CASE("PiStep rejects estimate=false prior", "[mcmc][pi-sampler]")
 
     const bayes::GeneticPrior spike_term{
         .spec = bayes::
-            GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::VarianceScope::per_block, .init = 0.1, .prior = {.nu = 4.0, .s2 = 0.5}}},
+            GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
         .mixture = bayes::Mixture{
             .strategy = bayes::SpikeSlab{},
             .proportions
             = {.init = Eigen::VectorXd{{0.9, 0.1}},
-               .prior = bayes::DirichletPrior{Eigen::VectorXi::Ones(2)},
+               .prior = bayes::OldDirichletPrior{Eigen::VectorXi::Ones(2)},
                .estimate = false}}};
 
     auto effect = make_genetic_effect(Eigen::MatrixXd{X});
@@ -483,14 +483,14 @@ TEST_CASE("PiStep rejects estimate=false prior", "[mcmc][pi-sampler]")
         .config = bayes::BayesConfig{},
         .genetics = {bayes::GeneticPrior{
             .spec = bayes::
-                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::VarianceScope::per_block, .init = 0.1, .prior = {.nu = 4.0, .s2 = 0.5}}},
+                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
             .mixture = bayes::
-                Mixture{.strategy = bayes::SpikeSlab{}, .proportions = {.init = Eigen::VectorXd{{0.9, 0.1}}, .prior = bayes::DirichletPrior{Eigen::VectorXi::Ones(2)}, .estimate = false}}}},
+                Mixture{.strategy = bayes::SpikeSlab{}, .proportions = {.init = Eigen::VectorXd{{0.9, 0.1}}, .prior = bayes::OldDirichletPrior{Eigen::VectorXi::Ones(2)}, .estimate = false}}}},
         .randoms = {},
-        .residual = bayes::VarianceSpec{
-            .scope = bayes::VarianceScope::per_block,
+        .residual = bayes::OldVarianceSpec{
+            .scope = bayes::MarkerVarianceScope::per_effect,
             .init = 0.5,
-            .prior = {.nu = 4.0, .s2 = 0.5}}};
+            .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}};
 
     mcmc::State inference_state{
         bayes::FixedState{Eigen::VectorXd::Zero(1)},
@@ -517,12 +517,12 @@ auto make_spike_prior_estimate(Eigen::Index size) -> bayes::GeneticPrior
 {
     return bayes::GeneticPrior{
         .spec = bayes::
-            GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = size == 1 ? bayes::VarianceScope::per_block : bayes::VarianceScope::per_marker, .init = 0.1, .prior = {.nu = 4.0, .s2 = 0.5}}},
+            GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = size == 1 ? bayes::MarkerVarianceScope::per_effect : bayes::MarkerVarianceScope::per_marker, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
         .mixture = bayes::Mixture{
             .strategy = bayes::SpikeSlab{},
             .proportions
             = {.init = Eigen::VectorXd{{0.9, 0.1}},
-               .prior = bayes::DirichletPrior{Eigen::VectorXi::Ones(2)},
+               .prior = bayes::OldDirichletPrior{Eigen::VectorXi::Ones(2)},
                .estimate = true}}};
 }
 
@@ -541,10 +541,10 @@ auto make_chain_context(
         .config = bayes::BayesConfig{},
         .genetics = {make_spike_prior_estimate(spike_size)},
         .randoms = {},
-        .residual = bayes::VarianceSpec{
-            .scope = bayes::VarianceScope::per_block,
+        .residual = bayes::OldVarianceSpec{
+            .scope = bayes::MarkerVarianceScope::per_effect,
             .init = 0.3,
-            .prior = {.nu = 4.0, .s2 = 0.5}}};
+            .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}};
 
     return {std::move(model), std::move(method)};
 }

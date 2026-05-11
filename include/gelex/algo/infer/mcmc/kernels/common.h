@@ -30,10 +30,11 @@
 namespace gelex::mcmc
 {
 
-inline auto make_variance_sampler(const bayes::VarianceSpec& spec)
+inline auto make_variance_sampler(const bayes::OldVarianceSpec& spec)
     -> stats::ScaledInvChi2Sampler<double>
 {
-    return stats::ScaledInvChi2Sampler<double>{spec.prior.nu, spec.prior.s2};
+    return stats::ScaledInvChi2Sampler<double>{
+        spec.prior.degrees_of_freedom, spec.prior.scale};
 }
 
 template <typename Allocation>

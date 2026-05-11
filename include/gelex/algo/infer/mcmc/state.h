@@ -103,7 +103,7 @@ struct FixedState
 
 struct RandomState
 {
-    RandomState(const RandomEffect& effect, const VarianceSpec& spec)
+    RandomState(const RandomEffect& effect, const OldVarianceSpec& spec)
         : coeffs(Eigen::VectorXd::Zero(effect.X.cols())), variance{spec.init}
     {
     }

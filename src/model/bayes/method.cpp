@@ -48,7 +48,7 @@ auto GeneticSpec::make(const GeneticStats& stats, const BayesPolicy& policy)
 
     return GeneticSpec{
         .mode = GeneticMode::A,
-        .variance = VarianceSpec::make(init, policy.variance_scope),
+        .variance = OldVarianceSpec::make(init, policy.variance_scope),
         .sign = std::nullopt,
     };
 }
@@ -64,7 +64,7 @@ auto GeneticSpec::make(
     {
         spec.sign = CategoricalSpec{
             Eigen::VectorXd{{0.5, 0.5}},
-            DirichletPrior{Eigen::VectorXi{{1, 1}}},
+            OldDirichletPrior{Eigen::VectorXi{{1, 1}}},
             false,
         };
     }

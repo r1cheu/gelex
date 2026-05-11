@@ -35,7 +35,7 @@ struct ScaledInvChiSqParams;
 namespace bayes
 {
 struct GeneticPrior;
-struct VarianceSpec;
+struct OldVarianceSpec;
 }  // namespace bayes
 
 enum class GeneticMode : uint8_t;
@@ -53,11 +53,12 @@ class FitReporter
    protected:
     FitReporter() = default;
 
-    static auto print_random_prior(const bayes::VarianceSpec& spec) -> void;
+    static auto print_random_prior(const bayes::OldVarianceSpec& spec) -> void;
     static auto print_genetic_prior(
         const bayes::GeneticPrior& prior,
         GeneticMode mode) -> void;
-    static auto print_residual_prior(const bayes::VarianceSpec& spec) -> void;
+    static auto print_residual_prior(const bayes::OldVarianceSpec& spec)
+        -> void;
     static auto print_variance_prior(
         const stats::detail::ScaledInvChiSqParams& prior,
         double init_variance) -> void;

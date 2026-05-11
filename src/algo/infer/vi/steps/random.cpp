@@ -83,7 +83,7 @@ auto RandomStep::step() -> void
         }
 
         gelex::stats::detail::ScaledInvChiSq chi_squared{
-            {.nu = spec.prior.nu, .s2 = spec.prior.s2}};
+            {.nu = spec.prior.degrees_of_freedom, .s2 = spec.prior.scale}};
         chi_squared.compute(coeffs.squaredNorm(), coeffs.size());
         state.variance = chi_squared.expected_value();
     }

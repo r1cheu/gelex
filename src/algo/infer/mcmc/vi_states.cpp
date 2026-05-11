@@ -43,7 +43,8 @@ auto make_marker_variance(const GeneticSpec& spec, Eigen::Index num_markers)
     -> Eigen::VectorXd
 {
     const Eigen::Index size
-        = (spec.variance.scope == VarianceScope::per_marker) ? num_markers : 1;
+        = (spec.variance.scope == MarkerVarianceScope::per_marker) ? num_markers
+                                                                   : 1;
     return Eigen::VectorXd::Constant(size, spec.variance.init);
 }
 
@@ -126,7 +127,7 @@ GeneticState::GeneticState(
     }();
 
     const Eigen::Index size
-        = (spec.variance.scope == bayes::VarianceScope::per_marker)
+        = (spec.variance.scope == bayes::MarkerVarianceScope::per_marker)
               ? num_markers
               : 1;
     marker_variance = Eigen::VectorXd::Constant(size, spec.variance.init);

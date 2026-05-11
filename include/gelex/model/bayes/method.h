@@ -46,7 +46,7 @@ struct GeneticStats;
 struct GeneticSpec
 {
     GeneticMode mode{};
-    VarianceSpec variance;
+    OldVarianceSpec variance;
     std::optional<CategoricalSpec> sign;
 
     static auto make(const GeneticStats&, const BayesPolicy&) -> GeneticSpec;
@@ -79,8 +79,8 @@ struct BayesMethod
 {
     BayesConfig config;
     std::vector<GeneticPrior> genetics;
-    std::vector<VarianceSpec> randoms;
-    VarianceSpec residual;
+    std::vector<OldVarianceSpec> randoms;
+    OldVarianceSpec residual;
 };
 
 inline auto is_valid_method(

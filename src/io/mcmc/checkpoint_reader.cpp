@@ -217,14 +217,14 @@ auto read_rng(const io::detail::BinaryReader& reader) -> std::mt19937_64
 
 auto read_variance_spec(
     const io::detail::BinaryReader& reader,
-    std::string_view prefix) -> bayes::VarianceSpec
+    std::string_view prefix) -> bayes::OldVarianceSpec
 {
     const auto nu = read_scalar(reader, fmt::format("{}/nu", prefix));
     const auto s2 = read_scalar(reader, fmt::format("{}/s2", prefix));
     const auto init = read_scalar(reader, fmt::format("{}/init", prefix));
     const auto scope_raw = read_uint8(reader, fmt::format("{}/scope", prefix));
     return {
-        .scope = static_cast<bayes::VarianceScope>(scope_raw),
+        .scope = static_cast<bayes::MarkerVarianceScope>(scope_raw),
         .init = init,
         .prior = {nu, s2},
     };
