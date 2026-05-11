@@ -18,6 +18,7 @@
 #define GELEX_MODEL_BAYES_ALGORITHM_SHAPE_H_
 
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string_view>
 
@@ -36,6 +37,10 @@ enum class AlgorithmShape : std::uint8_t
     ad_joint,
 };
 
+[[nodiscard]] auto try_resolve_shape(
+    const BayesPolicy& policy,
+    std::span<const GeneticMode> requested) -> std::optional<AlgorithmShape>;
+
 [[nodiscard]] auto resolve_shape(
     const BayesPolicy& policy,
     std::span<const GeneticMode> requested) -> AlgorithmShape;
@@ -44,6 +49,10 @@ enum class AlgorithmShape : std::uint8_t
 [[nodiscard]] auto to_heritability_label(AlgorithmShape shape)
     -> std::string_view;
 [[nodiscard]] auto to_file_suffix(AlgorithmShape shape) -> std::string_view;
+
+[[nodiscard]] auto to_variance_label(GeneticMode mode) -> std::string_view;
+[[nodiscard]] auto to_heritability_label(GeneticMode mode) -> std::string_view;
+[[nodiscard]] auto to_file_suffix(GeneticMode mode) -> std::string_view;
 
 }  // namespace gelex::bayes
 

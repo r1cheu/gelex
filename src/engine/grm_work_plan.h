@@ -18,6 +18,7 @@
 #define GELEX_PIPELINE_GRM_WORK_PLAN_H_
 
 #include <filesystem>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -41,7 +42,9 @@ struct GrmWorkItem
 class GrmNormalPlan
 {
    public:
-    GrmNormalPlan(const std::filesystem::path& bim_path, GeneticMode mode);
+    GrmNormalPlan(
+        const std::filesystem::path& bim_path,
+        std::span<const GeneticMode> requested);
 
     auto items() const -> const std::vector<GrmWorkItem>&;
     auto total_work() const -> Eigen::Index;
@@ -56,7 +59,9 @@ class GrmNormalPlan
 class GrmLocoPlan
 {
    public:
-    GrmLocoPlan(const std::filesystem::path& bim_path, GeneticMode mode);
+    GrmLocoPlan(
+        const std::filesystem::path& bim_path,
+        std::span<const GeneticMode> requested);
 
     auto items() const -> const std::vector<GrmWorkItem>&;
     auto total_work() const -> Eigen::Index;

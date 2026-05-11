@@ -25,8 +25,9 @@
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/vi/result_writer.h"
+#include "gelex/model/bayes/algorithm_shape.h"
+#include "gelex/model/bayes/bayes_policy.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -44,28 +45,37 @@ auto vi::Engine::run(
             fmt::format("CAVI only supports BayesRR, got: {}", config_.method));
     }
 
+    const auto shape = bayes::resolve_shape(
+        bayes::policy_for(config_.method.base), config_.requested_effects);
+
     vi::Result result = [&]
     {
-        switch (config_.method.mode)
+        switch (shape)
         {
-            case GeneticMode::A:
+            case bayes::AlgorithmShape::a_only:
             {
                 vi::Solver engine(
-                    config_.params, vi::make_bayes_rr_chain<GeneticMode::A>);
+                    config_.params,
+                    vi::make_bayes_rr_chain<bayes::AlgorithmShape::a_only>);
                 return engine.run(model, method, observer);
             }
-            case GeneticMode::D:
+            case bayes::AlgorithmShape::d_only:
             {
                 vi::Solver engine(
-                    config_.params, vi::make_bayes_rr_chain<GeneticMode::D>);
+                    config_.params,
+                    vi::make_bayes_rr_chain<bayes::AlgorithmShape::d_only>);
                 return engine.run(model, method, observer);
             }
-            case GeneticMode::AD:
+            case bayes::AlgorithmShape::ad_independent:
             {
                 vi::Solver engine(
-                    config_.params, vi::make_bayes_rr_chain<GeneticMode::AD>);
+                    config_.params,
+                    vi::make_bayes_rr_chain<
+                        bayes::AlgorithmShape::ad_independent>);
                 return engine.run(model, method, observer);
             }
+            case bayes::AlgorithmShape::ad_joint:
+                throw GelexException("BayesRR does not support ad_joint shape");
         }
         std::unreachable();
     }();

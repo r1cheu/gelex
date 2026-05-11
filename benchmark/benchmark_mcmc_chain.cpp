@@ -152,55 +152,54 @@ TEST_CASE("MCMC trait chain per-iteration", "[!benchmark][mcmc][chain]")
         .warmup(1)
         .minEpochIterations(20);
 
-    using gelex::GeneticMode;
     constexpr auto kSym = DominancePolicy::symmetric;
-    const BayesConfig cfg_a{BayesBase::A, GeneticMode::A, kSym, false};
-    const BayesConfig cfg_b{BayesBase::B, GeneticMode::A, kSym, false};
-    const BayesConfig cfg_c{BayesBase::C, GeneticMode::A, kSym, false};
-    const BayesConfig cfg_rr{BayesBase::RR, GeneticMode::A, kSym, false};
-    const BayesConfig cfg_bpi{BayesBase::B, GeneticMode::A, kSym, true};
-    const BayesConfig cfg_cpi{BayesBase::C, GeneticMode::A, kSym, true};
+    const BayesConfig cfg_a{BayesBase::A, kSym, false};
+    const BayesConfig cfg_b{BayesBase::B, kSym, false};
+    const BayesConfig cfg_c{BayesBase::C, kSym, false};
+    const BayesConfig cfg_rr{BayesBase::RR, kSym, false};
+    const BayesConfig cfg_bpi{BayesBase::B, kSym, true};
+    const BayesConfig cfg_cpi{BayesBase::C, kSym, true};
 
     bench_chain(
         b,
         model,
         "A (chain)",
         cfg_a,
-        gelex::mcmc::make_bayes_a_chain<GeneticMode::A>,
+        gelex::mcmc::make_bayes_a_chain<gelex::bayes::AlgorithmShape::a_only>,
         kIters);
     bench_chain(
         b,
         model,
         "B (chain)",
         cfg_b,
-        gelex::mcmc::make_bayes_b_chain<GeneticMode::A>,
+        gelex::mcmc::make_bayes_b_chain<gelex::bayes::AlgorithmShape::a_only>,
         kIters);
     bench_chain(
         b,
         model,
         "C (chain)",
         cfg_c,
-        gelex::mcmc::make_bayes_c_chain<GeneticMode::A>,
+        gelex::mcmc::make_bayes_c_chain<gelex::bayes::AlgorithmShape::a_only>,
         kIters);
     bench_chain(
         b,
         model,
         "RR (chain)",
         cfg_rr,
-        gelex::mcmc::make_bayes_rr_chain<GeneticMode::A>,
+        gelex::mcmc::make_bayes_rr_chain<gelex::bayes::AlgorithmShape::a_only>,
         kIters);
     bench_chain(
         b,
         model,
         "Bpi (chain)",
         cfg_bpi,
-        gelex::mcmc::make_bayes_bpi_chain<GeneticMode::A>,
+        gelex::mcmc::make_bayes_bpi_chain<gelex::bayes::AlgorithmShape::a_only>,
         kIters);
     bench_chain(
         b,
         model,
         "Cpi (chain)",
         cfg_cpi,
-        gelex::mcmc::make_bayes_cpi_chain<GeneticMode::A>,
+        gelex::mcmc::make_bayes_cpi_chain<gelex::bayes::AlgorithmShape::a_only>,
         kIters);
 }

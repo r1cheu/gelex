@@ -21,6 +21,7 @@
 #include <functional>
 #include <string>
 #include <variant>
+#include <vector>
 
 #include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
@@ -48,7 +49,7 @@ struct MCMCBannerEvent
 struct MCMCConfigEvent
 {
     gelex::bayes::BayesConfig method;
-    GeneticMode mode{};
+    std::vector<GeneticMode> requested_effects;
     int n_iters{};
     int n_burn_in{};
     int seed{};
@@ -78,7 +79,7 @@ struct VIBannerEvent
 struct VIConfigEvent
 {
     gelex::bayes::BayesConfig method;
-    GeneticMode mode{};
+    std::vector<GeneticMode> requested_effects;
     int max_iters{};
     double tol{};
 };

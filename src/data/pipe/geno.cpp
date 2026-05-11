@@ -16,6 +16,7 @@
 
 #include "gelex/data/pipe/geno.h"
 
+#include <algorithm>
 #include <utility>
 
 #include "gelex/data/genotype/process_method.h"
@@ -36,20 +37,14 @@ GenoPipe::GenoPipe(const Config& config, GenoObserver observer)
 
 auto GenoPipe::load(const dataframe::Index<std::string>& sample_index) -> void
 {
-    if (config_.mode == GeneticMode::A)
+    if (std::ranges::contains(config_.requested_effects, GeneticMode::A))
     {
         load_additive_matrix(sample_index);
     }
-    else if (config_.mode == GeneticMode::D)
+    if (std::ranges::contains(config_.requested_effects, GeneticMode::D))
     {
         load_dominance_matrix(sample_index);
     }
-    else
-    {
-        load_additive_matrix(sample_index);
-        load_dominance_matrix(sample_index);
-    }
-
     write_sbin();
 }
 

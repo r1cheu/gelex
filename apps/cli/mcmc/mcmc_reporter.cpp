@@ -17,8 +17,6 @@
 #include "mcmc_reporter.h"
 
 #include <iterator>
-#include <ranges>
-#include <span>
 
 #include <fmt/format.h>
 
@@ -28,10 +26,8 @@
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
-#include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/algorithm_shape.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::cli
@@ -42,13 +38,13 @@ namespace
 const int kTableWidth = 40;
 }  // namespace
 
-auto McmcReporter::on_event(const MCMCBannerEvent& /*event*/) const -> void
+auto McmcReporter::on_event(const MCMCBannerEvent& /*event*/) -> void
 {
     cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "Model Fitting (MCMC)"));
 }
 
-auto McmcReporter::on_event(const MCMCConfigEvent& event) const -> void
+auto McmcReporter::on_event(const MCMCConfigEvent& event) -> void
 {
     cli::printer().block(gelex::section("[Config]"));
     cli::printer().line(
@@ -91,7 +87,7 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
             std::back_inserter(stats_),
             "{}{}:{:.3f}",
             stats_.empty() ? "" : " | ",
-            genetic_mode::to_heritability_label(gen.type),
+            bayes::to_heritability_label(gen.type),
             gen.heritability);
     }
     fmt::format_to(
@@ -115,7 +111,7 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
     }
 }
 
-auto McmcReporter::on_event(const MCMCCompleteEvent& event) const -> void
+auto McmcReporter::on_event(const MCMCCompleteEvent& event) -> void
 {
     print_fixed_summary(*event.result, event.samples_collected);
     for (const auto& summary : event.result->genetics())
@@ -133,7 +129,7 @@ auto McmcReporter::on_event(const FitCheckpointSavedEvent& /*event*/) -> void
 
 auto McmcReporter::print_fixed_summary(
     const mcmc::Result& result,
-    std::ptrdiff_t samples_collected) const -> void
+    std::ptrdiff_t samples_collected) -> void
 {
     const auto& fixed = result.fixed();
     auto& p = cli::printer();
@@ -150,14 +146,14 @@ auto McmcReporter::print_fixed_summary(
 auto McmcReporter::print_genetic_summary(
     const GeneticSummary* summary,
     const bayes::GeneticEffect* /*effect*/,
-    GeneticMode type) const -> void
+    GeneticMode type) -> void
 {
     if (summary == nullptr)
     {
         return;
     }
 
-    std::string h_name{genetic_mode::to_heritability_label(type)};
+    std::string h_name{bayes::to_heritability_label(type)};
     auto& p = cli::printer();
 
     p.line(gelex::named_section(fmt::format("{}", type), kTableWidth, 2));
@@ -188,8 +184,7 @@ auto McmcReporter::print_genetic_summary(
     }
 }
 
-auto McmcReporter::print_residual_summary(const mcmc::Result& result) const
-    -> void
+auto McmcReporter::print_residual_summary(const mcmc::Result& result) -> void
 {
     auto& p = cli::printer();
     p.line(gelex::named_section("Residual", kTableWidth, 2));

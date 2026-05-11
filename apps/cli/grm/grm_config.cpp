@@ -16,11 +16,12 @@
 
 #include "grm_config.h"
 
+#include <vector>
+
 #include <argparse.h>
 
 #include "cli/cli_helper.h"
 #include "gelex/exception.h"
-#include "gelex/model/freq/effect.h"
 
 namespace gelex::cli
 {
@@ -29,15 +30,21 @@ auto make_grm_config(argparse::ArgumentParser& cmd) -> gelex::GrmEngine::Config
 {
     bool add = cmd.get<bool>("--add");
     bool dom = cmd.get<bool>("--dom");
-    auto mode = gelex::GeneticMode::A;
-    if (add && dom)
+
+    std::vector<GeneticMode> requested;
+    if (add)
     {
-        mode = gelex::GeneticMode::AD;
+        requested.push_back(GeneticMode::A);
     }
-    else if (dom)
+    if (dom)
     {
-        mode = gelex::GeneticMode::D;
+        requested.push_back(GeneticMode::D);
     }
+    if (requested.empty())
+    {
+        requested.push_back(GeneticMode::A);
+    }
+
     auto chunk_size = cmd.get<int>("--chunk-size");
     if (chunk_size <= 0)
     {
@@ -46,7 +53,7 @@ auto make_grm_config(argparse::ArgumentParser& cmd) -> gelex::GrmEngine::Config
 
     return gelex::GrmEngine::Config{
         .bfile_prefix = cmd.get("--bfile"),
-        .mode = mode,
+        .requested_effects = std::move(requested),
         .method = gelex::cli::parse_genotype_process_method(
             cmd.get<std::string>("--geno-method")),
         .do_loco = cmd.get<bool>("--loco"),

@@ -16,6 +16,8 @@
 
 #include "engine/grm_work_plan.h"
 
+#include <algorithm>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -35,14 +37,14 @@ struct GrmTask
     bool is_additive;
 };
 
-auto build_tasks(GeneticMode mode) -> std::vector<GrmTask>
+auto build_tasks(std::span<const GeneticMode> requested) -> std::vector<GrmTask>
 {
     std::vector<GrmTask> tasks;
-    if (mode != GeneticMode::D)
+    if (std::ranges::contains(requested, GeneticMode::A))
     {
         tasks.push_back({"add", true});
     }
-    if (mode != GeneticMode::A)
+    if (std::ranges::contains(requested, GeneticMode::D))
     {
         tasks.push_back({"dom", false});
     }
@@ -83,11 +85,11 @@ auto GrmLocoPlan::build_loco_ranges(
 
 GrmNormalPlan::GrmNormalPlan(
     const std::filesystem::path& bim_path,
-    GeneticMode mode)
+    std::span<const GeneticMode> requested)
 {
     auto bim = read_bim(bim_path);
     auto num_snps = static_cast<Eigen::Index>(bim.rows());
-    auto tasks = build_tasks(mode);
+    auto tasks = build_tasks(requested);
 
     task_pattern_
         = tasks.size() == 1 ? tasks[0].name : std::string("{add|dom}");
@@ -122,11 +124,11 @@ auto GrmNormalPlan::output_pattern(std::string_view out_prefix) const
 
 GrmLocoPlan::GrmLocoPlan(
     const std::filesystem::path& bim_path,
-    GeneticMode mode)
+    std::span<const GeneticMode> requested)
 {
     auto bim = read_bim(bim_path);
     auto groups = build_loco_ranges(bim);
-    auto tasks = build_tasks(mode);
+    auto tasks = build_tasks(requested);
 
     num_groups_ = groups.size();
     task_pattern_

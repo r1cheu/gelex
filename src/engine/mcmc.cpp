@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <array>
+#include <span>
 #include <string>
 #include <utility>
 
@@ -29,6 +30,8 @@
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/mcmc/checkpoint_reader.h"
 #include "gelex/io/mcmc/result_writer.h"
+#include "gelex/model/bayes/algorithm_shape.h"
+#include "gelex/model/bayes/bayes_policy.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -64,41 +67,57 @@ auto run_recipe(
     return mcmc.run(model, std::move(method), config.seed, observer);
 }
 
+struct DispatchKey
+{
+    BayesBase base{};
+    bayes::AlgorithmShape shape{};
+    bayes::DominancePolicy dominance{};
+    bool estimate_pi{};
+
+    constexpr auto operator==(const DispatchKey&) const -> bool = default;
+};
+
 // clang-format off
 constexpr auto kSym = bayes::DominancePolicy::symmetric;
+using Shape = bayes::AlgorithmShape;
 
 constexpr auto kTraitRunners = std::array<
-    std::pair<bayes::BayesConfig, TraitRunner>, 21>{{
-    {{BayesBase::A,  GeneticMode::A,  kSym, false}, &run_recipe<mcmc::make_bayes_a_chain<GeneticMode::A>>},
-    {{BayesBase::A,  GeneticMode::D,  kSym, false}, &run_recipe<mcmc::make_bayes_a_chain<GeneticMode::D>>},
-    {{BayesBase::A,  GeneticMode::AD, kSym, false}, &run_recipe<mcmc::make_bayes_a_chain<GeneticMode::AD>>},
-    {{BayesBase::B,  GeneticMode::A,  kSym, false}, &run_recipe<mcmc::make_bayes_b_chain<GeneticMode::A>>},
-    {{BayesBase::B,  GeneticMode::D,  kSym, false}, &run_recipe<mcmc::make_bayes_b_chain<GeneticMode::D>>},
-    {{BayesBase::B,  GeneticMode::AD, kSym, false}, &run_recipe<mcmc::make_bayes_b_chain<GeneticMode::AD>>},
-    {{BayesBase::B,  GeneticMode::A,  kSym, true},  &run_recipe<mcmc::make_bayes_bpi_chain<GeneticMode::A>>},
-    {{BayesBase::B,  GeneticMode::D,  kSym, true},  &run_recipe<mcmc::make_bayes_bpi_chain<GeneticMode::D>>},
-    {{BayesBase::B,  GeneticMode::AD, kSym, true},  &run_recipe<mcmc::make_bayes_bpi_chain<GeneticMode::AD>>},
-    {{BayesBase::C,  GeneticMode::A,  kSym, false}, &run_recipe<mcmc::make_bayes_c_chain<GeneticMode::A>>},
-    {{BayesBase::C,  GeneticMode::D,  kSym, false}, &run_recipe<mcmc::make_bayes_c_chain<GeneticMode::D>>},
-    {{BayesBase::C,  GeneticMode::AD, kSym, false}, &run_recipe<mcmc::make_bayes_c_chain<GeneticMode::AD>>},
-    {{BayesBase::C,  GeneticMode::A,  kSym, true},  &run_recipe<mcmc::make_bayes_cpi_chain<GeneticMode::A>>},
-    {{BayesBase::C,  GeneticMode::D,  kSym, true},  &run_recipe<mcmc::make_bayes_cpi_chain<GeneticMode::D>>},
-    {{BayesBase::C,  GeneticMode::AD, kSym, true},  &run_recipe<mcmc::make_bayes_cpi_chain<GeneticMode::AD>>},
-    {{BayesBase::R,  GeneticMode::A,  kSym, false}, &run_recipe<mcmc::make_bayes_r_chain<GeneticMode::A>>},
-    {{BayesBase::R,  GeneticMode::D,  kSym, false}, &run_recipe<mcmc::make_bayes_r_chain<GeneticMode::D>>},
-    {{BayesBase::R,  GeneticMode::AD, kSym, false}, &run_recipe<mcmc::make_bayes_r_chain<GeneticMode::AD>>},
-    {{BayesBase::RR, GeneticMode::A,  kSym, false}, &run_recipe<mcmc::make_bayes_rr_chain<GeneticMode::A>>},
-    {{BayesBase::RR, GeneticMode::D,  kSym, false}, &run_recipe<mcmc::make_bayes_rr_chain<GeneticMode::D>>},
-    {{BayesBase::RR, GeneticMode::AD, kSym, false}, &run_recipe<mcmc::make_bayes_rr_chain<GeneticMode::AD>>},
+    std::pair<DispatchKey, TraitRunner>, 21>{{
+    {{BayesBase::A,  Shape::a_only,         kSym, false}, &run_recipe<mcmc::make_bayes_a_chain<Shape::a_only>>},
+    {{BayesBase::A,  Shape::d_only,         kSym, false}, &run_recipe<mcmc::make_bayes_a_chain<Shape::d_only>>},
+    {{BayesBase::A,  Shape::ad_independent, kSym, false}, &run_recipe<mcmc::make_bayes_a_chain<Shape::ad_independent>>},
+    {{BayesBase::B,  Shape::a_only,         kSym, false}, &run_recipe<mcmc::make_bayes_b_chain<Shape::a_only>>},
+    {{BayesBase::B,  Shape::d_only,         kSym, false}, &run_recipe<mcmc::make_bayes_b_chain<Shape::d_only>>},
+    {{BayesBase::B,  Shape::ad_independent, kSym, false}, &run_recipe<mcmc::make_bayes_b_chain<Shape::ad_independent>>},
+    {{BayesBase::B,  Shape::a_only,         kSym, true},  &run_recipe<mcmc::make_bayes_bpi_chain<Shape::a_only>>},
+    {{BayesBase::B,  Shape::d_only,         kSym, true},  &run_recipe<mcmc::make_bayes_bpi_chain<Shape::d_only>>},
+    {{BayesBase::B,  Shape::ad_independent, kSym, true},  &run_recipe<mcmc::make_bayes_bpi_chain<Shape::ad_independent>>},
+    {{BayesBase::C,  Shape::a_only,         kSym, false}, &run_recipe<mcmc::make_bayes_c_chain<Shape::a_only>>},
+    {{BayesBase::C,  Shape::d_only,         kSym, false}, &run_recipe<mcmc::make_bayes_c_chain<Shape::d_only>>},
+    {{BayesBase::C,  Shape::ad_independent, kSym, false}, &run_recipe<mcmc::make_bayes_c_chain<Shape::ad_independent>>},
+    {{BayesBase::C,  Shape::a_only,         kSym, true},  &run_recipe<mcmc::make_bayes_cpi_chain<Shape::a_only>>},
+    {{BayesBase::C,  Shape::d_only,         kSym, true},  &run_recipe<mcmc::make_bayes_cpi_chain<Shape::d_only>>},
+    {{BayesBase::C,  Shape::ad_independent, kSym, true},  &run_recipe<mcmc::make_bayes_cpi_chain<Shape::ad_independent>>},
+    {{BayesBase::R,  Shape::a_only,         kSym, false}, &run_recipe<mcmc::make_bayes_r_chain<Shape::a_only>>},
+    {{BayesBase::R,  Shape::d_only,         kSym, false}, &run_recipe<mcmc::make_bayes_r_chain<Shape::d_only>>},
+    {{BayesBase::R,  Shape::ad_independent, kSym, false}, &run_recipe<mcmc::make_bayes_r_chain<Shape::ad_independent>>},
+    {{BayesBase::RR, Shape::a_only,         kSym, false}, &run_recipe<mcmc::make_bayes_rr_chain<Shape::a_only>>},
+    {{BayesBase::RR, Shape::d_only,         kSym, false}, &run_recipe<mcmc::make_bayes_rr_chain<Shape::d_only>>},
+    {{BayesBase::RR, Shape::ad_independent, kSym, false}, &run_recipe<mcmc::make_bayes_rr_chain<Shape::ad_independent>>},
 }};
 // clang-format on
 
-auto find_runner(bayes::BayesConfig method) -> TraitRunner
+auto find_runner(
+    const bayes::BayesConfig& method,
+    std::span<const GeneticMode> requested) -> TraitRunner
 {
+    const auto shape
+        = bayes::resolve_shape(bayes::policy_for(method.base), requested);
+    const DispatchKey key{
+        method.base, shape, method.dominance, method.estimate_pi};
+
     const auto* it = std::ranges::find(
-        kTraitRunners,
-        method,
-        &std::pair<bayes::BayesConfig, TraitRunner>::first);
+        kTraitRunners, key, &std::pair<DispatchKey, TraitRunner>::first);
     if (it == kTraitRunners.end())
     {
         throw GelexException(
@@ -122,7 +141,7 @@ auto ConfigValidator::validate() const -> void
 
 auto ConfigValidator::check_method() const -> void
 {
-    if (!bayes::is_valid_method(config_.method))
+    if (!bayes::is_valid_method(config_.method, config_.requested_effects))
     {
         throw GelexException(
             fmt::format("invalid method combination: {}", config_.method));
@@ -173,7 +192,7 @@ auto Engine::run(
     bayes::BayesMethod method,
     const MCMCObserver& observer) -> void
 {
-    auto runner = find_runner(config_.method);
+    auto runner = find_runner(config_.method, config_.requested_effects);
     auto result = runner(model, std::move(method), config_, observer);
 
     ResultWriter writer(result, config_.bfile_prefix + ".bim");

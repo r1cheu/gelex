@@ -23,6 +23,7 @@
 
 #include "gelex/infra/stats/diagnostics.h"
 #include "gelex/io/detail/binary_reader.h"
+#include "gelex/model/bayes/algorithm_shape.h"
 #include "gelex/post/detail/utils.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -71,8 +72,7 @@ auto HeritabilityPosteriorProcessor::process() -> std::vector<ParameterDiag>
         auto& diag = diags[static_cast<size_t>(ki)];
         diag.section = "Genetic";
         diag.name = std::string(
-            genetic_mode::to_heritability_label(
-                kinds_[static_cast<size_t>(ki)]));
+            bayes::to_heritability_label(kinds_[static_cast<size_t>(ki)]));
     }
     diags.back().section = "Genetic";
     diags.back().name = "H²";

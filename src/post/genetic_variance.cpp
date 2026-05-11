@@ -22,8 +22,8 @@
 #include <Eigen/Core>
 
 #include "gelex/infra/stats/descriptive.h"
+#include "gelex/model/bayes/algorithm_shape.h"
 #include "gelex/post/detail/utils.h"
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -99,7 +99,7 @@ auto GeneticVariancePosteriorProcessor::process() -> GebvVarianceResult
     {
         auto& diag = total_diags[static_cast<size_t>(kind_idx)];
         diag.section = "Genetic";
-        diag.name = genetic_mode::to_variance_label(input.kind);
+        diag.name = bayes::to_variance_label(input.kind);
     }
     total_diags.back().section = "Genetic";
     total_diags.back().name = "σ²_total";

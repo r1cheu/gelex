@@ -32,7 +32,7 @@ namespace gelex::cli
 
 auto make_pheno_config(argparse::ArgumentParser& cmd) -> PhenoPipe::Config;
 
-auto make_fit_data_configs(argparse::ArgumentParser& cmd, bool use_mmap)
+auto make_dataset_configs(argparse::ArgumentParser& cmd, bool use_mmap)
     -> std::pair<PhenoPipe::Config, GenoPipe::Config>;
 
 }  // namespace gelex::cli

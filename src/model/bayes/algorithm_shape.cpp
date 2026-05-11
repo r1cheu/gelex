@@ -17,6 +17,7 @@
 #include "gelex/model/bayes/algorithm_shape.h"
 
 #include <algorithm>
+#include <optional>
 #include <span>
 #include <string_view>
 
@@ -26,9 +27,9 @@
 namespace gelex::bayes
 {
 
-auto resolve_shape(
+auto try_resolve_shape(
     const BayesPolicy& policy,
-    std::span<const GeneticMode> requested) -> AlgorithmShape
+    std::span<const GeneticMode> requested) -> std::optional<AlgorithmShape>
 {
     const bool has_a = std::ranges::contains(requested, GeneticMode::A);
     const bool has_d = std::ranges::contains(requested, GeneticMode::D);
@@ -46,10 +47,21 @@ auto resolve_shape(
     const auto it = std::ranges::find_if(policy.shapes, matches_request);
     if (it == policy.shapes.end())
     {
-        throw GelexException{
-            "resolve_shape: policy does not support the requested effect set"};
+        return std::nullopt;
     }
     return *it;
+}
+
+auto resolve_shape(
+    const BayesPolicy& policy,
+    std::span<const GeneticMode> requested) -> AlgorithmShape
+{
+    if (auto shape = try_resolve_shape(policy, requested))
+    {
+        return *shape;
+    }
+    throw GelexException{
+        "resolve_shape: policy does not support the requested effect set"};
 }
 
 auto to_variance_label(AlgorithmShape shape) -> std::string_view
@@ -93,6 +105,42 @@ auto to_file_suffix(AlgorithmShape shape) -> std::string_view
         case AlgorithmShape::ad_independent:
         case AlgorithmShape::ad_joint:
             return "ad";
+    }
+    return "unknown";
+}
+
+auto to_variance_label(GeneticMode mode) -> std::string_view
+{
+    switch (mode)
+    {
+        case GeneticMode::A:
+            return "σ²_add";
+        case GeneticMode::D:
+            return "σ²_dom";
+    }
+    return "unknown";
+}
+
+auto to_heritability_label(GeneticMode mode) -> std::string_view
+{
+    switch (mode)
+    {
+        case GeneticMode::A:
+            return "h²";
+        case GeneticMode::D:
+            return "δ²";
+    }
+    return "unknown";
+}
+
+auto to_file_suffix(GeneticMode mode) -> std::string_view
+{
+    switch (mode)
+    {
+        case GeneticMode::A:
+            return "add";
+        case GeneticMode::D:
+            return "dom";
     }
     return "unknown";
 }

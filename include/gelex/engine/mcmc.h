@@ -20,10 +20,12 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "gelex/algo/infer/params.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/model/bayes/method.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -40,6 +42,7 @@ class Engine
     {
         std::string bfile_prefix;
         bayes::BayesConfig method;
+        std::vector<GeneticMode> requested_effects;
 
         int seed;
         mcmc::Params mcmc_params;

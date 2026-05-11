@@ -19,12 +19,14 @@
 
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <variant>
 #include <vector>
 
 #include <fmt/base.h>
 #include <fmt/format.h>
 
+#include "gelex/model/bayes/algorithm_shape.h"
 #include "gelex/model/bayes/bayes_base.h"
 #include "gelex/model/bayes/bayes_policy.h"
 #include "gelex/model/bayes/prior.h"
@@ -67,7 +69,6 @@ struct GeneticPrior
 struct BayesConfig
 {
     BayesBase base{};
-    GeneticMode mode = GeneticMode::A;
     DominancePolicy dominance = DominancePolicy::symmetric;
     bool estimate_pi = false;
 
@@ -82,7 +83,9 @@ struct BayesMethod
     VarianceSpec residual;
 };
 
-inline auto is_valid_method(const BayesConfig& m) -> bool
+inline auto is_valid_method(
+    const BayesConfig& m,
+    std::span<const GeneticMode> requested) -> bool
 {
     if (m.base == BayesBase::kCount)
     {
@@ -94,11 +97,11 @@ inline auto is_valid_method(const BayesConfig& m) -> bool
         return false;
     }
     if (m.dominance == DominancePolicy::asymmetric
-        && (!policy.supports_asymmetric_dominance || m.mode != GeneticMode::AD))
+        && !policy.supports_asymmetric_dominance)
     {
         return false;
     }
-    return true;
+    return try_resolve_shape(policy, requested).has_value();
 }
 
 }  // namespace gelex::bayes
@@ -119,14 +122,6 @@ struct formatter<gelex::bayes::BayesConfig> : formatter<string_view>
         if (c.dominance == gelex::bayes::DominancePolicy::asymmetric)
         {
             name += " + asymmetric dominance";
-        }
-        else if (c.mode == gelex::GeneticMode::D)
-        {
-            name += " (dominance only)";
-        }
-        else if (c.mode == gelex::GeneticMode::AD)
-        {
-            name += " + dominance";
         }
         return fmt::format_to(ctx.out(), "{}", name);
     }

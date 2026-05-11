@@ -24,15 +24,20 @@
 #include "gelex/algo/infer/vi/steps/genetic.h"
 #include "gelex/algo/infer/vi/steps/random.h"
 #include "gelex/algo/infer/vi/steps/residual.h"
+#include "gelex/model/bayes/algorithm_shape.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::vi
 {
 
-template <GeneticMode Mode = GeneticMode::A>
+template <bayes::AlgorithmShape Shape = bayes::AlgorithmShape::a_only>
 inline auto make_bayes_rr_chain(const Context& ctx)
 {
-    if constexpr (Mode == GeneticMode::AD)
+    static_assert(
+        Shape != bayes::AlgorithmShape::ad_joint,
+        "vi::make_bayes_rr_chain does not support ad_joint shape");
+
+    if constexpr (Shape == bayes::AlgorithmShape::ad_independent)
     {
         return infer::Chain{
             FixedStep::make(ctx),
@@ -44,10 +49,13 @@ inline auto make_bayes_rr_chain(const Context& ctx)
     }
     else
     {
+        constexpr auto kMode = (Shape == bayes::AlgorithmShape::d_only)
+                                   ? GeneticMode::D
+                                   : GeneticMode::A;
         return infer::Chain{
             FixedStep::make(ctx),
             RandomStep::make(ctx),
-            GeneticStep<RRKernel>::make(ctx, Mode),
+            GeneticStep<RRKernel>::make(ctx, kMode),
             ResidualStep::make(ctx),
         };
     }

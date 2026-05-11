@@ -53,10 +53,10 @@ class McmcReporter : public FitReporter
 
     using FitReporter::on_event;
 
-    auto on_event(const MCMCBannerEvent& event) const -> void;
-    auto on_event(const MCMCConfigEvent& event) const -> void;
+    static auto on_event(const MCMCBannerEvent& event) -> void;
+    static auto on_event(const MCMCConfigEvent& event) -> void;
     auto on_event(const MCMCProgressEvent& event) -> void;
-    auto on_event(const MCMCCompleteEvent& event) const -> void;
+    static auto on_event(const MCMCCompleteEvent& event) -> void;
     auto on_event(const FitCheckpointSavedEvent& event) -> void;
 
     auto as_observer() -> MCMCObserver
@@ -66,14 +66,14 @@ class McmcReporter : public FitReporter
     }
 
    private:
-    auto print_fixed_summary(
+    static auto print_fixed_summary(
         const mcmc::Result& result,
-        std::ptrdiff_t samples_collected) const -> void;
-    auto print_genetic_summary(
+        std::ptrdiff_t samples_collected) -> void;
+    static auto print_genetic_summary(
         const GeneticSummary* summary,
         const bayes::GeneticEffect* effect,
-        GeneticMode type) const -> void;
-    auto print_residual_summary(const mcmc::Result& result) const -> void;
+        GeneticMode type) -> void;
+    static auto print_residual_summary(const mcmc::Result& result) -> void;
 
     size_t iter_{0};
     ProgressBar bar_;

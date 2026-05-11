@@ -43,6 +43,7 @@
 #include "gelex/data/genotype/matrix.h"
 #include "gelex/data/genotype/storage.h"
 #include "gelex/exception.h"
+#include "gelex/model/bayes/algorithm_shape.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/fixed_effects.h"
@@ -590,7 +591,7 @@ TEST_CASE("make_bayes_cpi_chain runs one step", "[mcmc][bayes-cpi]")
 
     Context ctx{
         .model = model, .method = method, .state = inference_state, .rng = rng};
-    auto chain = make_bayes_cpi_chain<GeneticMode::A>(ctx);
+    auto chain = make_bayes_cpi_chain<bayes::AlgorithmShape::a_only>(ctx);
     chain.step();
 
     const auto* gstate = inference_state.genetic(GeneticMode::A);
@@ -624,7 +625,7 @@ TEST_CASE("make_bayes_bpi_chain runs one step", "[mcmc][bayes-bpi]")
 
     Context ctx{
         .model = model, .method = method, .state = inference_state, .rng = rng};
-    auto chain = make_bayes_bpi_chain<GeneticMode::A>(ctx);
+    auto chain = make_bayes_bpi_chain<bayes::AlgorithmShape::a_only>(ctx);
     chain.step();
 
     const auto* gstate = inference_state.genetic(GeneticMode::A);

@@ -109,12 +109,14 @@ auto GrmEngine::compute(const GrmObserver& observer) -> void
 
     if (config_.do_loco)
     {
-        GrmLocoPlan plan(config_.bfile_prefix + ".bim", config_.mode);
+        GrmLocoPlan plan(
+            config_.bfile_prefix + ".bim", config_.requested_effects);
         run_plan(plan);
     }
     else
     {
-        GrmNormalPlan plan(config_.bfile_prefix + ".bim", config_.mode);
+        GrmNormalPlan plan(
+            config_.bfile_prefix + ".bim", config_.requested_effects);
         run_plan(plan);
     }
 }

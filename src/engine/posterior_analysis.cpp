@@ -27,6 +27,7 @@
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/io/detail/binary_reader.h"
+#include "gelex/model/bayes/algorithm_shape.h"
 #include "gelex/post/fixed.h"
 #include "gelex/post/genetic.h"
 #include "gelex/post/genetic_variance.h"
@@ -125,8 +126,8 @@ auto PosteriorAnalysisEngine::process_gebv_variance()
         {
             continue;
         }
-        auto gbin_path = fmt::format(
-            "{}.{}.gbin", *gfile_, genetic_mode::to_file_suffix(kind));
+        auto gbin_path
+            = fmt::format("{}.{}.gbin", *gfile_, bayes::to_file_suffix(kind));
 
         genotype_storages.emplace_back(genotype::GenotypeMap(gbin_path, kind));
         genetic_inputs.push_back({&genotype_storages.back(), kind});

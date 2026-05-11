@@ -23,6 +23,7 @@
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::cli
 {
@@ -30,26 +31,38 @@ namespace gelex::cli
 namespace
 {
 
-auto parse_method(argparse::ArgumentParser& cmd) -> bayes::BayesConfig
+auto parse_mode_flag(std::string_view sv) -> std::vector<GeneticMode>
+{
+    if (sv == "A")
+    {
+        return {GeneticMode::A};
+    }
+    if (sv == "D")
+    {
+        return {GeneticMode::D};
+    }
+    if (sv == "AD")
+    {
+        return {GeneticMode::A, GeneticMode::D};
+    }
+    throw GelexException(fmt::format("invalid --mode: {}", sv));
+}
+
+auto parse_method(argparse::ArgumentParser& cmd)
+    -> std::pair<bayes::BayesConfig, std::vector<GeneticMode>>
 {
     auto base
         = gelex::get_bayes_base(cmd.get("-m")).value_or(gelex::BayesBase::RR);
+    auto requested = parse_mode_flag(cmd.get("--mode"));
 
-    auto mode = gelex::get_genetic_mode(cmd.get("--mode"));
-    if (!mode)
-    {
-        throw gelex::GelexException(
-            fmt::format("invalid --mode: {}", cmd.get("--mode")));
-    }
-
-    return bayes::BayesConfig{
+    bayes::BayesConfig cfg{
         .base = base,
-        .mode = *mode,
         .dominance = cmd.get<bool>("--asym")
                          ? bayes::DominancePolicy::asymmetric
                          : bayes::DominancePolicy::symmetric,
         .estimate_pi = cmd.get<bool>("--estimate-pi"),
     };
+    return {cfg, std::move(requested)};
 }
 
 auto extract_eigen(argparse::ArgumentParser& cmd, std::string_view arg)
@@ -80,11 +93,13 @@ auto make_overrides(argparse::ArgumentParser& cmd) -> MethodOverrides
 
 auto make_engine_config(
     argparse::ArgumentParser& cmd,
-    bayes::BayesConfig method) -> mcmc::Engine::Config
+    bayes::BayesConfig method,
+    std::vector<GeneticMode> requested) -> mcmc::Engine::Config
 {
     mcmc::Engine::Config config{
         .bfile_prefix = cmd.get("--bfile"),
         .method = method,
+        .requested_effects = std::move(requested),
         .seed = cmd.get<int>("--seed"),
         .mcmc_params = gelex::mcmc::Params{
             .n_iters = cmd.get<int>("--iters"),
@@ -111,11 +126,11 @@ auto make_engine_config(
 
 auto make_mcmc_config(argparse::ArgumentParser& cmd) -> McmcConfig
 {
-    auto method = parse_method(cmd);
+    auto [method, requested] = parse_method(cmd);
     auto overrides = make_overrides(cmd);
     validate_overrides(method, overrides);
     return McmcConfig{
-        .engine = make_engine_config(cmd, method),
+        .engine = make_engine_config(cmd, method, std::move(requested)),
         .overrides = std::move(overrides),
     };
 }

@@ -20,6 +20,8 @@
 #include <functional>
 #include <string>
 #include <variant>
+#include <vector>
+
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -32,7 +34,7 @@ struct GrmBannerEvent
 struct GrmConfigLoadedEvent
 {
     std::string method;
-    GeneticMode mode;
+    std::vector<GeneticMode> requested_effects;
     bool do_loco;
 };
 

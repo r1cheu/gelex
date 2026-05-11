@@ -31,12 +31,12 @@ class GrmReporter
    public:
     GrmReporter();
 
-    auto on_event(const GrmBannerEvent& event) const -> void;
-    auto on_event(const GrmConfigLoadedEvent& event) const -> void;
-    auto on_event(const GrmDataLoadedEvent& event) const -> void;
+    static auto on_event(const GrmBannerEvent& event) -> void;
+    static auto on_event(const GrmConfigLoadedEvent& event) -> void;
+    static auto on_event(const GrmDataLoadedEvent& event) -> void;
     auto on_event(const GrmComputeStartedEvent& event) -> void;
     auto on_event(const GrmProgressEvent& event) -> void;
-    auto on_event(const GrmFilesWrittenEvent& event) const -> void;
+    static auto on_event(const GrmFilesWrittenEvent& event) -> void;
 
     auto as_observer() -> GrmObserver
     {

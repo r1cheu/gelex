@@ -41,7 +41,7 @@ class GenoPipe
     {
         std::string bfile_prefix;
 
-        GeneticMode mode;
+        std::vector<GeneticMode> requested_effects;
         GenotypeProcessMethod genotype_method;
         bool use_mmap = false;
         int chunk_size = 10000;

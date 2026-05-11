@@ -45,10 +45,9 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
 {
     auto mcmc_config = gelex::cli::make_mcmc_config(cmd);
     auto [pheno_config, geno_config]
-        = gelex::cli::make_fit_data_configs(cmd, cmd.get<bool>("--mmap"));
+        = gelex::cli::make_dataset_configs(cmd, cmd.get<bool>("--mmap"));
 
-    const auto& method_config = mcmc_config.engine.method;
-    geno_config.mode = method_config.mode;
+    geno_config.requested_effects = mcmc_config.engine.requested_effects;
 
     int threads = cmd.get<int>("--threads");
     gelex::cli::McmcReporter reporter;
@@ -57,11 +56,11 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
     gelex::cli::GenoReporter geno_reporter;
     gelex::cli::setup_parallelization(threads);
 
-    reporter.on_event(gelex::MCMCBannerEvent{});
-    reporter.on_event(
+    gelex::cli::McmcReporter::on_event(gelex::MCMCBannerEvent{});
+    gelex::cli::McmcReporter::on_event(
         gelex::MCMCConfigEvent{
-            .method = method_config,
-            .mode = method_config.mode,
+            .method = mcmc_config.engine.method,
+            .requested_effects = mcmc_config.engine.requested_effects,
             .n_iters = static_cast<int>(mcmc_config.engine.mcmc_params.n_iters),
             .n_burn_in
             = static_cast<int>(mcmc_config.engine.mcmc_params.n_burn_in),
@@ -85,9 +84,9 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
     geno.load(common);
 
     auto model = gelex::build_bayes_model(std::move(pheno), std::move(geno));
-    auto stats = gelex::compute_genetic_stats(model, method_config);
+    auto stats = gelex::compute_genetic_stats(model, mcmc_config.engine.method);
     auto method = gelex::bayes::build_bayes_method(
-        method_config, stats, model.phenotype_variance());
+        mcmc_config.engine.method, stats, model.phenotype_variance());
     gelex::cli::apply_overrides(method, mcmc_config.overrides);
 
     gelex::mcmc::Engine engine(std::move(mcmc_config.engine));

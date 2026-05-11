@@ -56,10 +56,7 @@ class ParameterWriter
     auto write_random_effects() -> void;
     auto write_residual_variance() -> void;
 
-    auto write_genetic_effect(
-        const std::string& variance_label,
-        const std::string& heritability_label,
-        const GeneticSummary* effect) -> void;
+    auto write_genetic_effect(const GeneticSummary& effect) -> void;
 
     auto write_summary_statistics(
         std::span<const std::string> terms,

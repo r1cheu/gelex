@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <cmath>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -30,6 +29,7 @@
 #include "gelex/data/genotype/matrix.h"
 #include "gelex/data/genotype/storage.h"
 #include "gelex/infra/logging/fit_event.h"
+#include "gelex/model/bayes/algorithm_shape.h"
 #include "gelex/model/bayes/builder.h"
 #include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
@@ -45,8 +45,8 @@ auto make_geno_matrix(Eigen::Index n_samples, Eigen::Index n_snps)
     -> GenotypeMatrix
 {
     Eigen::MatrixXd data = Eigen::MatrixXd::Random(n_samples, n_snps);
-    auto mean = data.colwise().mean().transpose().eval();
-    auto stddev = Eigen::VectorXd::Ones(n_snps);
+    Eigen::VectorXd mean = data.colwise().mean().transpose();
+    Eigen::VectorXd stddev = Eigen::VectorXd::Ones(n_snps);
     return GenotypeMatrix(
         std::move(data), {}, std::move(mean), std::move(stddev));
 }
@@ -108,7 +108,7 @@ TEST_CASE("CAVI RR single iteration produces correct posteriors", "[cavi]")
         1, 1, 0, 2, 0, 2;
 
     Eigen::VectorXd mean = X.colwise().mean().transpose();
-    auto stddev = Eigen::VectorXd::Ones(kP);
+    Eigen::VectorXd stddev = Eigen::VectorXd::Ones(kP);
     GenotypeMatrix geno(
         Eigen::MatrixXd(X), {}, std::move(mean), std::move(stddev));
 
@@ -134,7 +134,7 @@ TEST_CASE("CAVI RR single iteration produces correct posteriors", "[cavi]")
 
     // Run one iteration of the RR chain
     vi::Context ctx{.model = model, .method = method, .state = state};
-    auto chain = vi::make_bayes_rr_chain<GeneticMode::A>(ctx);
+    auto chain = vi::make_bayes_rr_chain<bayes::AlgorithmShape::a_only>(ctx);
     chain.step();
 
     const auto& gs = state.genetics()[0];
@@ -146,7 +146,7 @@ TEST_CASE("CAVI RR single iteration produces correct posteriors", "[cavi]")
     // that post_var = sigma2 for each marker
     for (Eigen::Index j = 0; j < kP; ++j)
     {
-        const double v = csn(j) + res_var / marker_var;
+        const double v = csn(j) + (res_var / marker_var);
         const double expected_var = res_var / v;
         CHECK(gs.sigma2(j) > 0.0);
         CHECK_THAT(
@@ -170,7 +170,7 @@ TEST_CASE("CAVI RR converges on synthetic data", "[cavi]")
     geno_data.col(2) = Eigen::VectorXd::LinSpaced(kN, -0.3, 0.3);
 
     Eigen::VectorXd mean = geno_data.colwise().mean().transpose();
-    auto stddev = Eigen::VectorXd::Ones(kP);
+    Eigen::VectorXd stddev = Eigen::VectorXd::Ones(kP);
     GenotypeMatrix geno(
         Eigen::MatrixXd(geno_data), {}, std::move(mean), std::move(stddev));
 
@@ -207,7 +207,8 @@ TEST_CASE("CAVI RR converges on synthetic data", "[cavi]")
     params.max_iters = 200;
     params.tol = 1e-8;
 
-    vi::Solver cavi(params, vi::make_bayes_rr_chain<GeneticMode::A>);
+    vi::Solver cavi(
+        params, vi::make_bayes_rr_chain<bayes::AlgorithmShape::a_only>);
     auto result = cavi.run(model, method, observer);
 
     // Should have converged before max_iters

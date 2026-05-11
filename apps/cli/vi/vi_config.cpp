@@ -16,9 +16,12 @@
 
 #include "vi_config.h"
 
+#include <vector>
+
 #include <argparse.h>
 
 #include "gelex/exception.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::cli
 {
@@ -26,21 +29,32 @@ namespace gelex::cli
 namespace
 {
 
-auto parse_method(argparse::ArgumentParser& cmd) -> bayes::BayesConfig
+auto parse_mode_flag(std::string_view sv) -> std::vector<GeneticMode>
+{
+    if (sv == "A")
+    {
+        return {GeneticMode::A};
+    }
+    if (sv == "D")
+    {
+        return {GeneticMode::D};
+    }
+    if (sv == "AD")
+    {
+        return {GeneticMode::A, GeneticMode::D};
+    }
+    throw GelexException(fmt::format("invalid --mode: {}", sv));
+}
+
+auto parse_method(argparse::ArgumentParser& cmd)
+    -> std::pair<bayes::BayesConfig, std::vector<GeneticMode>>
 {
     auto base
         = gelex::get_bayes_base(cmd.get("-m")).value_or(gelex::BayesBase::RR);
+    auto requested = parse_mode_flag(cmd.get("--mode"));
 
-    auto mode = gelex::get_genetic_mode(cmd.get("--mode"));
-    if (!mode)
-    {
-        throw gelex::GelexException(
-            fmt::format("invalid --mode: {}", cmd.get("--mode")));
-    }
-
-    auto method = bayes::BayesConfig{
+    bayes::BayesConfig cfg{
         .base = base,
-        .mode = *mode,
         .dominance = bayes::DominancePolicy::symmetric,
         .estimate_pi = false,
     };
@@ -48,24 +62,25 @@ auto parse_method(argparse::ArgumentParser& cmd) -> bayes::BayesConfig
     if (base != BayesBase::RR)
     {
         throw gelex::GelexException(
-            fmt::format("CAVI only supports BayesRR, got: {}", method));
+            fmt::format("CAVI only supports BayesRR, got: {}", cfg));
     }
-    if (!bayes::is_valid_method(method))
+    if (!bayes::is_valid_method(cfg, requested))
     {
         throw gelex::GelexException(
-            fmt::format("invalid method combination: {}", method));
+            fmt::format("invalid method combination: {}", cfg));
     }
-    return method;
+    return {cfg, std::move(requested)};
 }
 
 }  // namespace
 
 auto make_vi_config(argparse::ArgumentParser& cmd) -> vi::Engine::Config
 {
-    auto method = parse_method(cmd);
+    auto [method, requested] = parse_method(cmd);
     return vi::Engine::Config{
         .bfile_prefix = cmd.get("--bfile"),
         .method = method,
+        .requested_effects = std::move(requested),
         .params = vi::Params{
             .max_iters = cmd.get<int>("--max-iters"),
             .tol = cmd.get<double>("--tol"),

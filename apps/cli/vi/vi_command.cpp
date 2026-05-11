@@ -44,10 +44,9 @@ auto vi_execute(argparse::ArgumentParser& cmd) -> int
 {
     auto engine_config = gelex::cli::make_vi_config(cmd);
     auto [pheno_config, geno_config]
-        = gelex::cli::make_fit_data_configs(cmd, cmd.get<bool>("--mmap"));
+        = gelex::cli::make_dataset_configs(cmd, cmd.get<bool>("--mmap"));
 
-    const auto& method_config = engine_config.method;
-    geno_config.mode = method_config.mode;
+    geno_config.requested_effects = engine_config.requested_effects;
 
     int threads = cmd.get<int>("--threads");
     gelex::cli::ViReporter reporter;
@@ -59,8 +58,8 @@ auto vi_execute(argparse::ArgumentParser& cmd) -> int
     reporter.on_event(gelex::VIBannerEvent{});
     reporter.on_event(
         gelex::VIConfigEvent{
-            .method = method_config,
-            .mode = method_config.mode,
+            .method = engine_config.method,
+            .requested_effects = engine_config.requested_effects,
             .max_iters = static_cast<int>(engine_config.params.max_iters),
             .tol = engine_config.params.tol,
         });
@@ -82,9 +81,9 @@ auto vi_execute(argparse::ArgumentParser& cmd) -> int
     geno.load(common);
 
     auto model = gelex::build_bayes_model(std::move(pheno), std::move(geno));
-    auto stats = gelex::compute_genetic_stats(model, method_config);
+    auto stats = gelex::compute_genetic_stats(model, engine_config.method);
     auto method = gelex::bayes::build_bayes_method(
-        method_config, stats, model.phenotype_variance());
+        engine_config.method, stats, model.phenotype_variance());
 
     gelex::vi::Engine engine(std::move(engine_config));
     engine.run(model, std::move(method), reporter.as_observer());

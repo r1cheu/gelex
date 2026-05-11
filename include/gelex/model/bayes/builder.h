@@ -21,12 +21,14 @@
 #include <vector>
 
 #include "gelex/model/bayes/method.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
 {
 
 struct GeneticStats
 {
+    GeneticMode mode{};
     double marker_variance_sum{};
     double heritability_init{};
 };

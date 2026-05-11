@@ -16,18 +16,15 @@
 
 #include "gelex/model/bayes/builder.h"
 
-#include <algorithm>
 #include <utility>
 #include <variant>
 #include <vector>
 
-#include <fmt/format.h>
-
 #include "gelex/data/genotype/storage.h"
 #include "gelex/data/pipe/geno.h"
 #include "gelex/data/pipe/pheno.h"
-#include "gelex/exception.h"
 #include "gelex/infra/stats/descriptive.h"
+#include "gelex/model/bayes/algorithm_shape.h"
 #include "gelex/model/bayes/bayes_policy.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/method.h"
@@ -61,51 +58,23 @@ auto build_bayes_model(PhenoPipe&& pheno, GenoPipe&& geno) -> BayesModel
 
 auto compute_genetic_stats(
     const BayesModel& model,
-    const bayes::BayesConfig& config) -> std::vector<bayes::GeneticStats>
+    const bayes::BayesConfig& /*config*/) -> std::vector<bayes::GeneticStats>
 {
     constexpr double kAdditiveHeritability = 0.5;
     constexpr double kDominanceHeritability = 0.2;
-    auto heritability_for = [](GeneticMode m)
-    {
-        return m == GeneticMode::D ? kDominanceHeritability
-                                   : kAdditiveHeritability;
-    };
 
-    std::vector<GeneticMode> modes;
-    switch (config.mode)
-    {
-        case GeneticMode::A:
-            modes = {GeneticMode::A};
-            break;
-        case GeneticMode::D:
-            modes = {GeneticMode::D};
-            break;
-        case GeneticMode::AD:
-            modes = {GeneticMode::A, GeneticMode::D};
-            break;
-        case GeneticMode::kCount:
-            throw GelexException("Invalid GeneticMode: kCount");
-    }
-
-    const auto& genetics = model.genetics();
     std::vector<bayes::GeneticStats> stats;
-    stats.reserve(modes.size());
-    for (auto mode : modes)
+    stats.reserve(model.genetics().size());
+    for (const auto& effect : model.genetics())
     {
-        auto it
-            = std::ranges::find(genetics, mode, &bayes::GeneticEffect::type);
-        if (it == genetics.end())
-        {
-            throw GelexException(
-                fmt::format(
-                    "BayesModel missing genetic effect for mode {}",
-                    static_cast<int>(mode)));
-        }
-        const auto& X = bayes::get_matrix_ref(it->X);
+        const double h2 = (effect.type == GeneticMode::D)
+                              ? kDominanceHeritability
+                              : kAdditiveHeritability;
+        const auto& X = bayes::get_matrix_ref(effect.X);
         stats.push_back({
+            .mode = effect.type,
             .marker_variance_sum = stats::detail::var(X).sum(),
-            .heritability_init
-            = heritability_for(mode) * model.phenotype_variance(),
+            .heritability_init = h2 * model.phenotype_variance(),
         });
     }
     return stats;
@@ -123,6 +92,14 @@ auto build_bayes_method(
 {
     const auto& policy = policy_for(config.base);
 
+    std::vector<GeneticMode> requested;
+    requested.reserve(stats.size());
+    for (const auto& s : stats)
+    {
+        requested.push_back(s.mode);
+    }
+    const auto shape = resolve_shape(policy, requested);
+
     auto make_prior = [&](std::variant<GeneticSpec, JointSpec> spec)
     {
         GeneticPrior prior;
@@ -131,58 +108,29 @@ auto build_bayes_method(
         return prior;
     };
 
+    auto make_spec = [&](const GeneticStats& s) -> GeneticSpec
+    {
+        return s.mode == GeneticMode::D
+                   ? GeneticSpec::make(s, policy, config.dominance)
+                   : GeneticSpec::make(s, policy);
+    };
+
     BayesMethod method;
     method.config = config;
     method.residual = VarianceSpec::make(phenotype_variance);
 
-    switch (config.mode)
+    if (shape == AlgorithmShape::ad_joint)
     {
-        case GeneticMode::A:
-            if (stats.size() != 1)
-            {
-                throw GelexException(
-                    "Single-effect mode requires one GeneticStats entry");
-            }
-            method.genetics.push_back(
-                make_prior(GeneticSpec::make(stats[0], policy)));
-            break;
-        case GeneticMode::D:
-            if (stats.size() != 1)
-            {
-                throw GelexException(
-                    "Single-effect mode requires one GeneticStats entry");
-            }
-            method.genetics.push_back(make_prior(
-                GeneticSpec::make(stats[0], policy, config.dominance)));
-            break;
-        case GeneticMode::AD:
-            if (stats.size() != 2)
-            {
-                throw GelexException(
-                    "A+D mode requires two GeneticStats entries");
-            }
-            if (policy.mixture
-                && std::holds_alternative<JointMixture>(
-                    policy.mixture->strategy))
-            {
-                method.genetics.push_back(make_prior(
-                    JointSpec{
-                        GeneticSpec::make(stats[0], policy),
-                        GeneticSpec::make(stats[1], policy, config.dominance),
-                    }));
-            }
-            else
-            {
-                method.genetics.push_back(
-                    make_prior(GeneticSpec::make(stats[0], policy)));
-                method.genetics.push_back(make_prior(
-                    GeneticSpec::make(stats[1], policy, config.dominance)));
-            }
-            break;
-        case GeneticMode::kCount:
-            throw GelexException("Invalid GeneticMode: kCount");
+        method.genetics.push_back(
+            make_prior(JointSpec{make_spec(stats[0]), make_spec(stats[1])}));
     }
-
+    else
+    {
+        for (const auto& s : stats)
+        {
+            method.genetics.push_back(make_prior(make_spec(s)));
+        }
+    }
     return method;
 }
 

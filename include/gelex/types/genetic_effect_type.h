@@ -1,11 +1,9 @@
 #ifndef GELEX_TYPES_GENETIC_EFFECT_TYPE_H_
 #define GELEX_TYPES_GENETIC_EFFECT_TYPE_H_
-#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include <utility>
 
 #include <fmt/format.h>
 
@@ -16,29 +14,12 @@ enum class GeneticMode : uint8_t
 {
     A,
     D,
-    AD,
-    kCount,
 };
 
-inline constexpr std::array<
-    std::pair<GeneticMode, std::string_view>,
-    std::to_underlying(GeneticMode::kCount)>
-    kGeneticModeNames = {{
-        {GeneticMode::A, "A"},
-        {GeneticMode::D, "D"},
-        {GeneticMode::AD, "AD"},
-    }};
-
-inline auto get_genetic_mode(std::string_view sv) -> std::optional<GeneticMode>
-{
-    const auto* it = std::ranges::find_if(
-        kGeneticModeNames, [sv](const auto& p) { return p.second == sv; });
-    if (it != kGeneticModeNames.end())
-    {
-        return it->first;
-    }
-    return std::nullopt;
-}
+inline constexpr std::array kGeneticModeNames{
+    std::pair{GeneticMode::A, std::string_view{"A"}},
+    std::pair{GeneticMode::D, std::string_view{"D"}},
+};
 
 struct EffectType
 {
@@ -82,59 +63,6 @@ struct EffectType
 };
 
 inline constexpr std::array kAllGeneticModes{GeneticMode::A, GeneticMode::D};
-
-namespace genetic_mode
-{
-
-inline auto to_file_suffix(GeneticMode type) -> std::string_view
-{
-    switch (type)
-    {
-        case GeneticMode::A:
-            return "add";
-        case GeneticMode::D:
-            return "dom";
-        case GeneticMode::AD:
-            return "ad";
-        case GeneticMode::kCount:
-            break;
-    }
-    return "unknown";
-}
-
-inline auto to_variance_label(GeneticMode type) -> std::string_view
-{
-    switch (type)
-    {
-        case GeneticMode::A:
-            return "σ²_add";
-        case GeneticMode::D:
-            return "σ²_dom";
-        case GeneticMode::AD:
-            return "σ²_g";
-        case GeneticMode::kCount:
-            break;
-    }
-    return "unknown";
-}
-
-inline auto to_heritability_label(GeneticMode type) -> std::string_view
-{
-    switch (type)
-    {
-        case GeneticMode::A:
-            return "h²";
-        case GeneticMode::D:
-            return "δ²";
-        case GeneticMode::AD:
-            return "H²";
-        case GeneticMode::kCount:
-            break;
-    }
-    return "unknown";
-}
-
-}  // namespace genetic_mode
 
 }  // namespace gelex
 

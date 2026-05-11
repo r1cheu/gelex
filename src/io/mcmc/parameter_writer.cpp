@@ -21,7 +21,7 @@
 #include <string>
 
 #include "gelex/io/detail/text_writer.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/model/bayes/algorithm_shape.h"
 
 namespace gelex
 {
@@ -46,10 +46,7 @@ auto ParameterWriter::write() -> void
     write_random_effects();
     for (const auto& summary : result_->genetics())
     {
-        write_genetic_effect(
-            std::string{genetic_mode::to_variance_label(summary.type)},
-            std::string{genetic_mode::to_heritability_label(summary.type)},
-            &summary);
+        write_genetic_effect(summary);
     }
     write_residual_variance();
 }
@@ -99,25 +96,21 @@ auto ParameterWriter::write_residual_variance() -> void
         std::vector<std::string>{"σ²_e"}, result_->residual());
 }
 
-auto ParameterWriter::write_genetic_effect(
-    const std::string& variance_label,
-    const std::string& heritability_label,
-    const GeneticSummary* effect) -> void
+auto ParameterWriter::write_genetic_effect(const GeneticSummary& effect) -> void
 {
-    if (effect == nullptr)
-    {
-        return;
-    }
+    write_summary_statistics(
+        std::vector<std::string>{
+            std::string{bayes::to_variance_label(effect.type)}},
+        effect.variance);
 
     write_summary_statistics(
-        std::vector<std::string>{variance_label}, effect->variance);
+        std::vector<std::string>{
+            std::string{bayes::to_heritability_label(effect.type)}},
+        effect.heritability);
 
-    write_summary_statistics(
-        std::vector<std::string>{heritability_label}, effect->heritability);
-
-    if (effect->group)
+    if (effect.group)
     {
-        const auto& base = assignment(*effect->group);
+        const auto& base = assignment(*effect.group);
         std::vector<std::string> proportion_terms;
         proportion_terms.reserve(base.mixture_proportion.size());
         for (Index i = 0; i < base.mixture_proportion.size(); ++i)

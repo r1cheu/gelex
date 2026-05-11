@@ -16,6 +16,9 @@
 
 #include "grm_reporter.h"
 
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+
 #include "cli/report_printer.h"
 #include "config.h"
 #include "gelex/infra/logging/formatter.h"
@@ -27,21 +30,24 @@ namespace gelex::cli
 
 GrmReporter::GrmReporter() : eta_(1) {}
 
-auto GrmReporter::on_event(const GrmBannerEvent& /*event*/) const -> void
+auto GrmReporter::on_event(const GrmBannerEvent& /*event*/) -> void
 {
     cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "GRM Computation"));
 }
 
-auto GrmReporter::on_event(const GrmConfigLoadedEvent& event) const -> void
+auto GrmReporter::on_event(const GrmConfigLoadedEvent& event) -> void
 {
     cli::printer().block(gelex::section("[Config]"));
     cli::printer().line("  {:<12}: {}", "Method", event.method);
-    cli::printer().line("  {:<12}: {}", "Mode", fmt::format("{}", event.mode));
+    cli::printer().line(
+        "  {:<12}: {}",
+        "Mode",
+        fmt::format("{}", fmt::join(event.requested_effects, "+")));
     cli::printer().line("  {:<12}: {}", "LOCO", event.do_loco ? "yes" : "no");
 }
 
-auto GrmReporter::on_event(const GrmDataLoadedEvent& event) const -> void
+auto GrmReporter::on_event(const GrmDataLoadedEvent& event) -> void
 {
     cli::printer().block(gelex::section("[Dataset Summary]"));
     cli::printer().line("   Samples    : {} samples", event.num_samples);
@@ -87,7 +93,7 @@ auto GrmReporter::on_event(const GrmProgressEvent& event) -> void
     }
 }
 
-auto GrmReporter::on_event(const GrmFilesWrittenEvent& event) const -> void
+auto GrmReporter::on_event(const GrmFilesWrittenEvent& event) -> void
 {
     cli::printer().block(gelex::section("[File Summary]"));
     cli::printer().line("  Num Files : {}", event.num_files);

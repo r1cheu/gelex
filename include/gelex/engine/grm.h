@@ -18,6 +18,7 @@
 #define GELEX_ENGINE_GRM_H_
 
 #include <string>
+#include <vector>
 
 #include "gelex/data/genotype/processor.h"
 #include "gelex/infra/logging/grm_event.h"
@@ -33,7 +34,7 @@ class GrmEngine
     {
         std::string bfile_prefix;
 
-        GeneticMode mode;
+        std::vector<GeneticMode> requested_effects;
         GenotypeProcessMethod method;
         bool do_loco;
 

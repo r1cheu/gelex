@@ -20,7 +20,6 @@
 
 #include "cli/cli_helper.h"
 #include "gelex/algo/gwas/assoc_type.h"
-#include "gelex/data/genotype/process_method.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::cli
@@ -51,10 +50,16 @@ auto parse_transform_type(std::string_view transform) -> detail::TransformType
 auto make_assoc_config(argparse::ArgumentParser& cmd) -> AssocEngine::Config
 {
     auto test_type = parse_test_type(cmd.get("--test"));
-    auto mode
-        = test_type == AssocType::Joint
-              ? GeneticMode::AD
-              : get_genetic_mode(cmd.get("--mode")).value_or(GeneticMode::A);
+    // Joint tester ignores mode; default to A for single when not specified
+    GeneticMode mode = GeneticMode::A;
+    if (test_type == AssocType::Single)
+    {
+        auto sv = cmd.get("--mode");
+        if (sv == "D")
+        {
+            mode = GeneticMode::D;
+        }
+    }
 
     return AssocEngine::Config{
         .mode = mode,
