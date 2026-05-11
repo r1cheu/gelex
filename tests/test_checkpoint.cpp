@@ -67,7 +67,7 @@ auto make_bayes_a_model(Eigen::Index n_samples, Eigen::Index n_snps)
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
     const auto config = bayes::BayesConfig{BayesBase::A};
-    const auto stats = compute_genetic_stats(model, config);
+    const auto stats = compute_genetic_stats(model);
     auto method
         = bayes::build_bayes_method(config, stats, model.phenotype_variance());
     return {std::move(model), std::move(method)};

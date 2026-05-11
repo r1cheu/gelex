@@ -16,19 +16,15 @@
 
 #include "mcmc_command.h"
 
-#include <string>
 #include <utility>
-#include <vector>
 
 #include <argparse.h>
 
 #include "cli/cli_helper.h"
 #include "cli/data_pipe_config.h"
-#include "cli/dataset_loader.h"
 #include "cli/dataset_reporter.h"
 #include "cli/geno_reporter.h"
 #include "cli/pheno_reporter.h"
-#include "gelex/data/dataframe/index.h"
 #include "gelex/data/pipe/geno.h"
 #include "gelex/data/pipe/pheno.h"
 #include "gelex/engine/mcmc.h"
@@ -47,8 +43,6 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
     auto [pheno_config, geno_config]
         = gelex::cli::make_dataset_configs(cmd, cmd.get<bool>("--mmap"));
 
-    geno_config.requested_effects = mcmc_config.engine.requested_effects;
-
     int threads = cmd.get<int>("--threads");
     gelex::cli::McmcReporter reporter;
     gelex::cli::DatasetReporter dataset_reporter;
@@ -56,14 +50,14 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
     gelex::cli::GenoReporter geno_reporter;
     gelex::cli::setup_parallelization(threads);
 
-    gelex::cli::McmcReporter::on_event(gelex::MCMCBannerEvent{});
-    gelex::cli::McmcReporter::on_event(
+    gelex::notify(reporter.as_observer(), gelex::MCMCBannerEvent{});
+    gelex::notify(
+        reporter.as_observer(),
         gelex::MCMCConfigEvent{
             .method = mcmc_config.engine.method,
             .requested_effects = mcmc_config.engine.requested_effects,
-            .n_iters = static_cast<int>(mcmc_config.engine.mcmc_params.n_iters),
-            .n_burn_in
-            = static_cast<int>(mcmc_config.engine.mcmc_params.n_burn_in),
+            .n_iters = mcmc_config.engine.mcmc_params.n_iters,
+            .n_burn_in = mcmc_config.engine.mcmc_params.n_burn_in,
             .seed = mcmc_config.engine.seed,
         });
 
@@ -72,19 +66,17 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
     gelex::PhenoPipe pheno(pheno_config, pheno_reporter.as_observer());
     gelex::GenoPipe geno(geno_config, geno_reporter.as_observer());
 
-    std::vector<const gelex::dataframe::Index<std::string>*> all_indices;
-    all_indices.append_range(geno.sample_indices());
-    all_indices.append_range(pheno.sample_indices());
     auto common = gelex::cli::intersect_or_throw(
-        std::move(all_indices),
         dataset_reporter.as_observer(),
-        "phenotype, genotype (.fam), and covariates");
+        "phenotype, genotype (.fam), and covariates",
+        geno.sample_indices(),
+        pheno.sample_indices());
 
     pheno.load(common);
     geno.load(common);
 
     auto model = gelex::build_bayes_model(std::move(pheno), std::move(geno));
-    auto stats = gelex::compute_genetic_stats(model, mcmc_config.engine.method);
+    auto stats = gelex::compute_genetic_stats(model);
     auto method = gelex::bayes::build_bayes_method(
         mcmc_config.engine.method, stats, model.phenotype_variance());
     gelex::cli::apply_overrides(method, mcmc_config.overrides);

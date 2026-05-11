@@ -16,19 +16,15 @@
 
 #include "vi_command.h"
 
-#include <string>
 #include <utility>
-#include <vector>
 
 #include <argparse.h>
 
 #include "cli/cli_helper.h"
 #include "cli/data_pipe_config.h"
-#include "cli/dataset_loader.h"
 #include "cli/dataset_reporter.h"
 #include "cli/geno_reporter.h"
 #include "cli/pheno_reporter.h"
-#include "gelex/data/dataframe/index.h"
 #include "gelex/data/pipe/geno.h"
 #include "gelex/data/pipe/pheno.h"
 #include "gelex/engine/vi.h"
@@ -45,8 +41,6 @@ auto vi_execute(argparse::ArgumentParser& cmd) -> int
     auto engine_config = gelex::cli::make_vi_config(cmd);
     auto [pheno_config, geno_config]
         = gelex::cli::make_dataset_configs(cmd, cmd.get<bool>("--mmap"));
-
-    geno_config.requested_effects = engine_config.requested_effects;
 
     int threads = cmd.get<int>("--threads");
     gelex::cli::ViReporter reporter;
@@ -69,19 +63,17 @@ auto vi_execute(argparse::ArgumentParser& cmd) -> int
     gelex::PhenoPipe pheno(pheno_config, pheno_reporter.as_observer());
     gelex::GenoPipe geno(geno_config, geno_reporter.as_observer());
 
-    std::vector<const gelex::dataframe::Index<std::string>*> all_indices;
-    all_indices.append_range(geno.sample_indices());
-    all_indices.append_range(pheno.sample_indices());
     auto common = gelex::cli::intersect_or_throw(
-        std::move(all_indices),
         dataset_reporter.as_observer(),
-        "phenotype, genotype (.fam), and covariates");
+        "phenotype, genotype (.fam), and covariates",
+        geno.sample_indices(),
+        pheno.sample_indices());
 
     pheno.load(common);
     geno.load(common);
 
     auto model = gelex::build_bayes_model(std::move(pheno), std::move(geno));
-    auto stats = gelex::compute_genetic_stats(model, engine_config.method);
+    auto stats = gelex::compute_genetic_stats(model);
     auto method = gelex::bayes::build_bayes_method(
         engine_config.method, stats, model.phenotype_variance());
 

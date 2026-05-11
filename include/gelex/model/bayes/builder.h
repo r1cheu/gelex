@@ -49,9 +49,8 @@ class BayesModel;
 
 auto build_bayes_model(PhenoPipe&& pheno, GenoPipe&& geno) -> BayesModel;
 
-auto compute_genetic_stats(
-    const BayesModel& model,
-    const bayes::BayesConfig& config) -> std::vector<bayes::GeneticStats>;
+auto compute_genetic_stats(const BayesModel& model)
+    -> std::vector<bayes::GeneticStats>;
 
 }  // namespace gelex
 

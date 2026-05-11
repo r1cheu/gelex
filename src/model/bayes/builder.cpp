@@ -56,9 +56,8 @@ auto build_bayes_model(PhenoPipe&& pheno, GenoPipe&& geno) -> BayesModel
         std::move(phenotype), std::move(fixed_effects), std::move(genetics));
 }
 
-auto compute_genetic_stats(
-    const BayesModel& model,
-    const bayes::BayesConfig& /*config*/) -> std::vector<bayes::GeneticStats>
+auto compute_genetic_stats(const BayesModel& model)
+    -> std::vector<bayes::GeneticStats>
 {
     constexpr double kAdditiveHeritability = 0.5;
     constexpr double kDominanceHeritability = 0.2;

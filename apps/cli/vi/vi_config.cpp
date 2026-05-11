@@ -20,6 +20,7 @@
 
 #include <argparse.h>
 
+#include "cli/cli_helper.h"
 #include "gelex/exception.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -29,29 +30,12 @@ namespace gelex::cli
 namespace
 {
 
-auto parse_mode_flag(std::string_view sv) -> std::vector<GeneticMode>
-{
-    if (sv == "A")
-    {
-        return {GeneticMode::A};
-    }
-    if (sv == "D")
-    {
-        return {GeneticMode::D};
-    }
-    if (sv == "AD")
-    {
-        return {GeneticMode::A, GeneticMode::D};
-    }
-    throw GelexException(fmt::format("invalid --mode: {}", sv));
-}
-
 auto parse_method(argparse::ArgumentParser& cmd)
     -> std::pair<bayes::BayesConfig, std::vector<GeneticMode>>
 {
     auto base
         = gelex::get_bayes_base(cmd.get("-m")).value_or(gelex::BayesBase::RR);
-    auto requested = parse_mode_flag(cmd.get("--mode"));
+    auto requested = parse_genetic_modes(cmd.get("--mode"));
 
     bayes::BayesConfig cfg{
         .base = base,

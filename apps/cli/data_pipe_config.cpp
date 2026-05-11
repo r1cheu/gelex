@@ -17,10 +17,13 @@
 #include "data_pipe_config.h"
 
 #include <argparse.h>
+#include <fmt/format.h>
 #include <optional>
 #include <utility>
 
 #include "cli/cli_helper.h"
+#include "gelex/exception.h"
+#include "gelex/infra/logging/notify.h"
 
 namespace gelex::cli
 {
@@ -59,6 +62,7 @@ auto make_dataset_configs(argparse::ArgumentParser& cmd, bool use_mmap)
 
     GenoPipe::Config geno_config{
         .bfile_prefix = cmd.get<std::string>("--bfile"),
+        .requested_effects = parse_genetic_modes(cmd.get("--mode")),
         .genotype_method
         = parse_genotype_process_method(cmd.get<std::string>("--geno-method")),
         .use_mmap = use_mmap,
@@ -67,6 +71,25 @@ auto make_dataset_configs(argparse::ArgumentParser& cmd, bool use_mmap)
     };
 
     return {std::move(pheno_config), std::move(geno_config)};
+}
+
+auto detail::intersect_or_throw_impl(
+    std::vector<const dataframe::Index<std::string>*> indices,
+    const DatasetObserver& observer,
+    std::string_view what) -> dataframe::Index<std::string>
+{
+    auto common = dataframe::intersect<std::string>(indices);
+    notify(observer, IntersectionEvent{.common_samples = common.size()});
+
+    if (common.size() == 0)
+    {
+        throw GelexException(
+            fmt::format(
+                "No common samples across {}. Check that sample IDs match "
+                "across input files.",
+                what));
+    }
+    return common;
 }
 
 }  // namespace gelex::cli

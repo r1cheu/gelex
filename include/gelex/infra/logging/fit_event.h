@@ -23,6 +23,8 @@
 #include <variant>
 #include <vector>
 
+#include <Eigen/Core>
+
 #include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -50,8 +52,8 @@ struct MCMCConfigEvent
 {
     gelex::bayes::BayesConfig method;
     std::vector<GeneticMode> requested_effects;
-    int n_iters{};
-    int n_burn_in{};
+    Eigen::Index n_iters{};
+    Eigen::Index n_burn_in{};
     int seed{};
 };
 

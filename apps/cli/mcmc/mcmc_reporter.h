@@ -53,10 +53,7 @@ class McmcReporter : public FitReporter
 
     using FitReporter::on_event;
 
-    static auto on_event(const MCMCBannerEvent& event) -> void;
-    static auto on_event(const MCMCConfigEvent& event) -> void;
     auto on_event(const MCMCProgressEvent& event) -> void;
-    static auto on_event(const MCMCCompleteEvent& event) -> void;
     auto on_event(const FitCheckpointSavedEvent& event) -> void;
 
     auto as_observer() -> MCMCObserver
@@ -66,6 +63,10 @@ class McmcReporter : public FitReporter
     }
 
    private:
+    auto on_event(const MCMCBannerEvent& event) -> void;
+    auto on_event(const MCMCConfigEvent& event) -> void;
+    auto on_event(const MCMCCompleteEvent& event) -> void;
+
     static auto print_fixed_summary(
         const mcmc::Result& result,
         std::ptrdiff_t samples_collected) -> void;

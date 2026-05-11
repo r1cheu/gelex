@@ -62,7 +62,7 @@ auto make_bayes_rr_model(Eigen::Index n_samples, Eigen::Index n_snps)
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
     const auto config = bayes::BayesConfig{BayesBase::RR};
-    const auto stats = compute_genetic_stats(model, config);
+    const auto stats = compute_genetic_stats(model);
     auto method
         = bayes::build_bayes_method(config, stats, model.phenotype_variance());
     return {std::move(model), std::move(method)};
@@ -118,7 +118,7 @@ TEST_CASE("CAVI RR single iteration produces correct posteriors", "[cavi]")
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
     const auto config = bayes::BayesConfig{BayesBase::RR};
-    const auto stats = compute_genetic_stats(model, config);
+    const auto stats = compute_genetic_stats(model);
     auto method
         = bayes::build_bayes_method(config, stats, model.phenotype_variance());
     vi::State state(model, method);
@@ -182,7 +182,7 @@ TEST_CASE("CAVI RR converges on synthetic data", "[cavi]")
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
     const auto config = bayes::BayesConfig{BayesBase::RR};
-    const auto stats = compute_genetic_stats(model, config);
+    const auto stats = compute_genetic_stats(model);
     auto method
         = bayes::build_bayes_method(config, stats, model.phenotype_variance());
     // Collect progress events

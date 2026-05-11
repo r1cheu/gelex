@@ -23,10 +23,6 @@
 #include <omp.h>
 #include <Eigen/Core>
 
-#include "config.h"
-#include "gelex/infra/logger.h"
-#include "gelex/infra/logging/formatter.h"
-
 namespace gelex::cli
 {
 auto is_tty() -> bool

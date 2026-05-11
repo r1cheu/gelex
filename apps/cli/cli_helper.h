@@ -19,7 +19,6 @@
 
 #include <argparse.h>
 #include <algorithm>
-#include <atomic>
 #include <cctype>
 #include <string>
 #include <string_view>
@@ -29,10 +28,10 @@
 #include <barkeep.h>
 #include <Eigen/Core>
 
-#include "gelex/data/chr_group.h"
 #include "gelex/data/genotype/processor.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/progress_bar.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::cli
 {
@@ -82,6 +81,24 @@ inline auto parse_genotype_process_method(std::string_view value)
               " OrthCenter(OC), NOIAStandardize(NS), NOIACenter(NC)");
     }
     return it->second;
+}
+
+inline auto parse_genetic_modes(std::string_view sv) -> std::vector<GeneticMode>
+{
+    if (sv == "A")
+    {
+        return {GeneticMode::A};
+    }
+    if (sv == "D")
+    {
+        return {GeneticMode::D};
+    }
+    if (sv == "AD")
+    {
+        return {GeneticMode::A, GeneticMode::D};
+    }
+    throw gelex::GelexException(
+        "invalid --mode: \"" + std::string(sv) + "\". Valid: A, D, AD");
 }
 
 auto is_tty() -> bool;

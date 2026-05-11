@@ -17,6 +17,7 @@
 #include "assoc_command.h"
 
 #include <argparse.h>
+#include <array>
 #include <filesystem>
 #include <ranges>
 #include <string>
@@ -26,7 +27,6 @@
 #include "assoc_reporter.h"
 #include "cli/cli_helper.h"
 #include "cli/data_pipe_config.h"
-#include "cli/dataset_loader.h"
 #include "cli/dataset_reporter.h"
 #include "cli/grm_pipe_reporter.h"
 #include "cli/pheno_reporter.h"
@@ -79,14 +79,12 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 
     gelex::GrmPipe grm(grm_paths, grm_reporter.as_observer());
 
-    std::vector<const gelex::dataframe::Index<std::string>*> all_indices{
-        &fam_index};
-    all_indices.append_range(pheno.sample_indices());
-    all_indices.append_range(grm.sample_indices());
     auto common = gelex::cli::intersect_or_throw(
-        std::move(all_indices),
         dataset_reporter.as_observer(),
-        "phenotype, genotype (.fam), GRM, and covariates");
+        "phenotype, genotype (.fam), GRM, and covariates",
+        std::array{&fam_index},
+        pheno.sample_indices(),
+        grm.sample_indices());
 
     pheno.load(common);
     grm.load(common);

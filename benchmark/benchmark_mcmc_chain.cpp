@@ -117,7 +117,7 @@ void bench_chain(
     Factory factory,
     Eigen::Index n_iters)
 {
-    const auto stats = compute_genetic_stats(model, cfg);
+    const auto stats = compute_genetic_stats(model);
     auto method = gelex::bayes::build_bayes_method(
         cfg, stats, model.phenotype_variance());
     gelex::mcmc::State state{model, method};
