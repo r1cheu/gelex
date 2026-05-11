@@ -10,6 +10,7 @@ file(GLOB BENCHMARK_SOURCES CONFIGURE_DEPENDS "benchmark_*.cpp")
 add_executable(gelex_benchmarks ${BENCHMARK_SOURCES})
 target_link_libraries(gelex_benchmarks PRIVATE gelex::core nanobench
                                                Catch2::Catch2WithMain)
+target_include_directories(gelex_benchmarks PRIVATE ${PROJECT_SOURCE_DIR})
 
 if(GELEX_NATIVE_OPTIMIZATION)
   target_compile_options(gelex_benchmarks PRIVATE -march=native -O3)

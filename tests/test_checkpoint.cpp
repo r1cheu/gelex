@@ -27,7 +27,7 @@
 #include "gelex/algo/infer/mcmc/recipes.h"
 #include "gelex/algo/infer/mcmc/solver.h"
 #include "gelex/algo/infer/params.h"
-#include "gelex/data/genotype/matrix.h"
+#include "gelex/data/genotype/genotype.h"
 #include "gelex/io/mcmc/checkpoint_reader.h"
 #include "gelex/io/mcmc/checkpoint_writer.h"
 #include "gelex/model/bayes/algorithm_shape.h"
@@ -36,6 +36,7 @@
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/types/fixed_effects.h"
+#include "genotype_fixture.h"
 
 using namespace gelex;            // NOLINT
 using namespace gelex::genotype;  // NOLINT
@@ -46,13 +47,12 @@ namespace
 constexpr Eigen::Index kNSamples = 10;
 constexpr Eigen::Index kNSnps = 5;
 
-auto make_geno_matrix(Eigen::Index n_samples, Eigen::Index n_snps)
-    -> GenotypeMatrix
+auto make_geno_matrix(Eigen::Index n_samples, Eigen::Index n_snps) -> Genotype
 {
     auto data = Eigen::MatrixXd::Random(n_samples, n_snps);
     auto mean = data.colwise().mean().transpose().eval();
     auto stddev = Eigen::VectorXd::Ones(n_snps);
-    return GenotypeMatrix(data, {}, std::move(mean), stddev);
+    return test::GenotypeBuilder::build(data, std::move(mean), stddev);
 }
 
 auto make_bayes_a_model(Eigen::Index n_samples, Eigen::Index n_snps)
@@ -63,8 +63,7 @@ auto make_bayes_a_model(Eigen::Index n_samples, Eigen::Index n_snps)
     auto geno = make_geno_matrix(n_samples, n_snps);
 
     std::vector<bayes::GeneticEffect> genetics;
-    genetics.emplace_back(
-        GeneticMode::A, bayes::GenotypeStorage{std::move(geno)});
+    genetics.emplace_back(GeneticMode::A, std::move(geno));
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
     const auto config = bayes::BayesConfig{BayesBase::A};

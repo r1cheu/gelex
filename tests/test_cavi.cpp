@@ -26,14 +26,14 @@
 #include "gelex/algo/infer/vi/recipes.h"
 #include "gelex/algo/infer/vi/result.h"
 #include "gelex/algo/infer/vi/solver.h"
-#include "gelex/data/genotype/matrix.h"
-#include "gelex/data/genotype/storage.h"
+#include "gelex/data/genotype/genotype.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/model/bayes/algorithm_shape.h"
 #include "gelex/model/bayes/builder.h"
 #include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/fixed_effects.h"
+#include "genotype_fixture.h"
 
 using namespace gelex;            // NOLINT
 using namespace gelex::genotype;  // NOLINT
@@ -41,14 +41,13 @@ using namespace gelex::genotype;  // NOLINT
 namespace
 {
 
-auto make_geno_matrix(Eigen::Index n_samples, Eigen::Index n_snps)
-    -> GenotypeMatrix
+auto make_geno_matrix(Eigen::Index n_samples, Eigen::Index n_snps) -> Genotype
 {
     Eigen::MatrixXd data = Eigen::MatrixXd::Random(n_samples, n_snps);
     Eigen::VectorXd mean = data.colwise().mean().transpose();
     Eigen::VectorXd stddev = Eigen::VectorXd::Ones(n_snps);
-    return GenotypeMatrix(
-        std::move(data), {}, std::move(mean), std::move(stddev));
+    return test::GenotypeBuilder::build(
+        std::move(data), std::move(mean), std::move(stddev));
 }
 
 auto make_bayes_rr_model(Eigen::Index n_samples, Eigen::Index n_snps)
@@ -59,8 +58,7 @@ auto make_bayes_rr_model(Eigen::Index n_samples, Eigen::Index n_snps)
     auto geno = make_geno_matrix(n_samples, n_snps);
 
     std::vector<bayes::GeneticEffect> genetics;
-    genetics.emplace_back(
-        GeneticMode::A, bayes::GenotypeStorage{std::move(geno)});
+    genetics.emplace_back(GeneticMode::A, std::move(geno));
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
     const auto config = bayes::BayesConfig{BayesBase::RR};
@@ -109,15 +107,14 @@ TEST_CASE("CAVI RR single iteration produces correct posteriors", "[cavi]")
 
     Eigen::VectorXd mean = X.colwise().mean().transpose();
     Eigen::VectorXd stddev = Eigen::VectorXd::Ones(kP);
-    GenotypeMatrix geno(
-        Eigen::MatrixXd(X), {}, std::move(mean), std::move(stddev));
+    auto geno = test::GenotypeBuilder::build(
+        Eigen::MatrixXd(X), std::move(mean), std::move(stddev));
 
     Eigen::VectorXd phenotype = Eigen::VectorXd::LinSpaced(kN, -1.0, 1.0);
 
     auto fixed = FixedEffect::build(kN);
     std::vector<bayes::GeneticEffect> genetics;
-    genetics.emplace_back(
-        GeneticMode::A, bayes::GenotypeStorage{std::move(geno)});
+    genetics.emplace_back(GeneticMode::A, std::move(geno));
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
     const auto config = bayes::BayesConfig{BayesBase::RR};
@@ -154,7 +151,7 @@ TEST_CASE("CAVI RR single iteration produces correct posteriors", "[cavi]")
     }
 
     // Breeding values should be updated
-    Eigen::VectorXd expected_u = bayes::get_matrix_ref(effect.X) * gs.coeffs;
+    Eigen::VectorXd expected_u = effect.X.matrix() * gs.coeffs;
     CHECK(gs.u.isApprox(expected_u, 1e-10));
 }
 
@@ -171,8 +168,8 @@ TEST_CASE("CAVI RR converges on synthetic data", "[cavi]")
 
     Eigen::VectorXd mean = geno_data.colwise().mean().transpose();
     Eigen::VectorXd stddev = Eigen::VectorXd::Ones(kP);
-    GenotypeMatrix geno(
-        Eigen::MatrixXd(geno_data), {}, std::move(mean), std::move(stddev));
+    auto geno = test::GenotypeBuilder::build(
+        Eigen::MatrixXd(geno_data), std::move(mean), std::move(stddev));
 
     Eigen::VectorXd beta_true(kP);
     beta_true << 1.0, -0.5, 0.3;
@@ -181,8 +178,7 @@ TEST_CASE("CAVI RR converges on synthetic data", "[cavi]")
 
     auto fixed = FixedEffect::build(kN);
     std::vector<bayes::GeneticEffect> genetics;
-    genetics.emplace_back(
-        GeneticMode::A, bayes::GenotypeStorage{std::move(geno)});
+    genetics.emplace_back(GeneticMode::A, std::move(geno));
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
     const auto config = bayes::BayesConfig{BayesBase::RR};

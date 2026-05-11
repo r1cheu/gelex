@@ -45,7 +45,7 @@ auto GeneticVariancePosteriorProcessor::process() -> GebvVarianceResult
         processors.emplace_back(input, readers_);
     }
 
-    const auto n_individuals = bayes::get_rows(*genetics_.front().genotype);
+    const auto n_individuals = genetics_.front().genotype->rows();
     const auto n_chains = readers_.size();
     const auto& ref = readers_.front();
     const auto n_records

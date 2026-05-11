@@ -22,7 +22,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/genotype/storage.h"
+#include "gelex/data/genotype/genotype.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
@@ -48,22 +48,22 @@ struct RandomEffect
 
 struct GeneticEffect
 {
-    GeneticEffect(GeneticMode type, GenotypeStorage&& X)
+    GeneticEffect(GeneticMode type, gelex::genotype::Genotype&& X)
         : type(type), X(std::move(X))
     {
-        XtX_diag = get_matrix_ref(this->X).colwise().squaredNorm();
+        XtX_diag = this->X.matrix().colwise().squaredNorm();
     }
 
     GeneticMode type;
-    GenotypeStorage X;
+    gelex::genotype::Genotype X;
     Eigen::VectorXd XtX_diag;
 
     auto is_monomorphic(Eigen::Index snp_index) const -> bool
     {
-        return is_monomorphic_variant(X, snp_index);
+        return X.is_monomorphic(snp_index);
     }
 
-    auto num_mono() const -> Eigen::Index { return num_mono_variant(X); }
+    auto num_mono() const -> Eigen::Index { return X.num_mono(); }
 };
 
 }  // namespace gelex::bayes

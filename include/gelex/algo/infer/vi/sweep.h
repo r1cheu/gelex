@@ -22,7 +22,7 @@
 #include "gelex/algo/infer/detail/marker_op.h"
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/algo/infer/vi/kernels/concept.h"
-#include "gelex/data/genotype/storage.h"
+#include "gelex/data/genotype/genotype.h"
 #include "gelex/infra/stats/descriptive.h"
 #include "gelex/model/bayes/effects.h"
 
@@ -50,7 +50,7 @@ class GeneticSweep
     template <GeneticKernel Kernel>
     auto run(Kernel& kernel) -> void
     {
-        const auto& X = bayes::get_matrix_ref(effect_.X);
+        const auto X = effect_.X.matrix();
         const auto& XtX_diag = effect_.XtX_diag;
         Eigen::VectorXd& coeffs = state_.coeffs;
         Eigen::VectorXd& sigma2 = state_.sigma2;

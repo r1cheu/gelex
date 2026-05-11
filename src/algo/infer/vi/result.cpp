@@ -16,7 +16,7 @@
 
 #include "gelex/algo/infer/vi/result.h"
 
-#include "gelex/data/genotype/storage.h"
+#include "gelex/data/genotype/genotype.h"
 #include "gelex/model/bayes/model.h"
 
 namespace gelex
@@ -60,7 +60,7 @@ vi::Result::Result(vi::State&& state, const BayesModel& model)
 
     if (const auto* effect = model.genetic(GeneticMode::A); effect)
     {
-        p_freq_ = bayes::get_means(effect->X).array() / 2;
+        p_freq_ = effect->X.mean().array() / 2;
     }
 }
 

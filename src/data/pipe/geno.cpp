@@ -17,8 +17,10 @@
 #include "gelex/data/pipe/geno.h"
 
 #include <algorithm>
+#include <filesystem>
 #include <utility>
 
+#include "gelex/data/genotype/genotype_reader.h"
 #include "gelex/data/genotype/process_method.h"
 #include "gelex/data/reader.h"
 #include "gelex/infra/logging/geno_event.h"
@@ -48,26 +50,43 @@ auto GenoPipe::load(const dataframe::Index<std::string>& sample_index) -> void
     write_sbin();
 }
 
+template <GeneticMode GT>
+auto GenoPipe::load_genotype_impl(
+    const dataframe::Index<std::string>& sample_index,
+    const std::string& suffix,
+    GenotypeProcessMethod method,
+    std::optional<genotype::Genotype>& target) -> void
+{
+    genotype::GenotypeReader reader(
+        config_.bfile_prefix, sample_index, observer_);
+    if (config_.use_mmap)
+    {
+        std::filesystem::path prefix = config_.output_prefix + suffix;
+        target.emplace(reader.template read<GT>(
+            method,
+            genotype::GenotypeReader::Sink::Mmap{std::move(prefix)},
+            config_.chunk_size));
+    }
+    else
+    {
+        target.emplace(reader.template read<GT>(
+            method,
+            genotype::GenotypeReader::Sink::InMemory{},
+            config_.chunk_size));
+    }
+}
+
 auto GenoPipe::load_additive_matrix(
     const dataframe::Index<std::string>& sample_index) -> void
 {
     load_genotype_impl<GeneticMode::A>(
         sample_index, ".add", config_.genotype_method, additive_matrix_);
-    int64_t mono = 0;
-    int64_t total = 0;
-    std::visit(
-        [&](auto&& m)
-        {
-            mono = m.num_mono();
-            total = m.cols();
-        },
-        *additive_matrix_);
     notify(
         observer_,
         GenotypeLoadedEvent{
             .mode = GeneticMode::A,
-            .num_snps = total,
-            .monomorphic_snps = mono});
+            .num_snps = additive_matrix_->cols(),
+            .monomorphic_snps = additive_matrix_->num_mono()});
 }
 
 auto GenoPipe::load_dominance_matrix(
@@ -75,21 +94,12 @@ auto GenoPipe::load_dominance_matrix(
 {
     load_genotype_impl<GeneticMode::D>(
         sample_index, ".dom", config_.genotype_method, dominance_matrix_);
-    int64_t mono = 0;
-    int64_t total = 0;
-    std::visit(
-        [&](auto&& m)
-        {
-            mono = m.num_mono();
-            total = m.cols();
-        },
-        *dominance_matrix_);
     notify(
         observer_,
         GenotypeLoadedEvent{
             .mode = GeneticMode::D,
-            .num_snps = total,
-            .monomorphic_snps = mono});
+            .num_snps = dominance_matrix_->cols(),
+            .monomorphic_snps = dominance_matrix_->num_mono()});
 }
 
 auto GenoPipe::write_sbin() -> void
@@ -100,34 +110,24 @@ auto GenoPipe::write_sbin() -> void
 
     if (additive_matrix_)
     {
-        std::visit(
-            [&](const auto& m)
-            {
-                writer.write(
-                    EffectType::add(),
-                    method_code,
-                    m.mean(),
-                    is_center ? static_cast<const Eigen::VectorXd*>(nullptr)
-                              : &m.stddev(),
-                    m.mono_indices());
-            },
-            *additive_matrix_);
+        writer.write(
+            EffectType::add(),
+            method_code,
+            additive_matrix_->mean(),
+            is_center ? static_cast<const Eigen::VectorXd*>(nullptr)
+                      : &additive_matrix_->stddev(),
+            additive_matrix_->mono_indices());
     }
 
     if (dominance_matrix_)
     {
-        std::visit(
-            [&](const auto& m)
-            {
-                writer.write(
-                    EffectType::dom(),
-                    method_code,
-                    m.mean(),
-                    is_center ? static_cast<const Eigen::VectorXd*>(nullptr)
-                              : &m.stddev(),
-                    m.mono_indices());
-            },
-            *dominance_matrix_);
+        writer.write(
+            EffectType::dom(),
+            method_code,
+            dominance_matrix_->mean(),
+            is_center ? static_cast<const Eigen::VectorXd*>(nullptr)
+                      : &dominance_matrix_->stddev(),
+            dominance_matrix_->mono_indices());
     }
 }
 

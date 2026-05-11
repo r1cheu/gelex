@@ -29,9 +29,7 @@ namespace gelex
 GeneticVarianceProcessor::GeneticVarianceProcessor(
     const GeneticInput& input,
     std::span<const io::detail::BinaryReader> readers)
-    : matrix_{bayes::get_matrix_ref(*input.genotype)},
-      kind_{input.kind},
-      n_components_{0}
+    : matrix_{input.genotype->matrix()}, kind_{input.kind}, n_components_{0}
 {
     const auto& ref = readers.front();
     auto coeff_path = fmt::format("{}/coeff", kind_);

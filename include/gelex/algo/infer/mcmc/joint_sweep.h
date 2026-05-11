@@ -25,7 +25,7 @@
 #include "gelex/algo/infer/detail/marker_op.h"
 #include "gelex/algo/infer/mcmc/kernels/concept.h"
 #include "gelex/algo/infer/mcmc/state.h"
-#include "gelex/data/genotype/storage.h"
+#include "gelex/data/genotype/genotype.h"
 #include "gelex/infra/stats/descriptive.h"
 #include "gelex/model/bayes/effects.h"
 
@@ -54,8 +54,8 @@ class GeneticJointSweep
     template <GeneticJointKernel Kernel>
     auto run(Kernel& kernel) -> void
     {
-        const auto& first_x = bayes::get_matrix_ref(first_.effect.X);
-        const auto& second_x = bayes::get_matrix_ref(second_.effect.X);
+        const auto first_x = first_.effect.X.matrix();
+        const auto second_x = second_.effect.X.matrix();
         Eigen::VectorXd& first_coeffs = first_.state.coeffs;
         Eigen::VectorXd& second_coeffs = second_.state.coeffs;
         Eigen::VectorXd& first_u = first_.state.u;

@@ -23,7 +23,7 @@
 
 #include <fmt/format.h>
 
-#include "gelex/data/genotype/storage.h"
+#include "gelex/data/genotype/genotype.h"
 #include "gelex/exception.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/method.h"
@@ -47,8 +47,8 @@ inline auto validate_genetic_block_shape(
     const bayes::GeneticEffect& effect,
     const GeneticStateT& state) -> void
 {
-    const auto rows = bayes::get_rows(effect.X);
-    const auto cols = bayes::get_cols(effect.X);
+    const auto rows = effect.X.rows();
+    const auto cols = effect.X.cols();
     if (state.coeffs.size() != cols)
     {
         throw GelexException(
@@ -157,19 +157,19 @@ inline auto bind_genetic_block_pair(
         throw GelexException(
             "joint genetic sampler requires two distinct genetic blocks");
     }
-    if (bayes::get_rows(first.effect.X) != bayes::get_rows(second.effect.X)
-        || bayes::get_cols(first.effect.X) != bayes::get_cols(second.effect.X))
+    if (first.effect.X.rows() != second.effect.X.rows()
+        || first.effect.X.cols() != second.effect.X.cols())
     {
         throw GelexException(
             fmt::format(
                 "joint genetic blocks must have the same shape: "
                 "{} is {}x{}, {} is {}x{}",
                 EffectType::from_genetic(first_mode),
-                bayes::get_rows(first.effect.X),
-                bayes::get_cols(first.effect.X),
+                first.effect.X.rows(),
+                first.effect.X.cols(),
                 EffectType::from_genetic(second_mode),
-                bayes::get_rows(second.effect.X),
-                bayes::get_cols(second.effect.X)));
+                second.effect.X.rows(),
+                second.effect.X.cols()));
     }
     return std::pair{first, second};
 }

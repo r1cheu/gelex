@@ -20,7 +20,7 @@
 #include <variant>
 #include <vector>
 
-#include "gelex/data/genotype/storage.h"
+#include "gelex/data/genotype/genotype.h"
 #include "gelex/data/pipe/geno.h"
 #include "gelex/data/pipe/pheno.h"
 #include "gelex/infra/stats/descriptive.h"
@@ -70,7 +70,7 @@ auto compute_genetic_stats(
         const double h2 = (effect.type == GeneticMode::D)
                               ? kDominanceHeritability
                               : kAdditiveHeritability;
-        const auto& X = bayes::get_matrix_ref(effect.X);
+        const auto X = effect.X.matrix();
         stats.push_back({
             .mode = effect.type,
             .marker_variance_sum = stats::detail::var(X).sum(),

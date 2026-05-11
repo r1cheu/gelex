@@ -24,15 +24,15 @@
 
 #include "gelex/algo/infer/mcmc/context.h"
 #include "gelex/algo/infer/mcmc/recipes.h"
-#include "gelex/data/genotype/matrix.h"
+#include "gelex/data/genotype/genotype.h"
 #include "gelex/data/genotype/processor.h"
-#include "gelex/data/genotype/storage.h"
 #include "gelex/model/bayes/builder.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/genetic_effect_type.h"
+#include "tests/genotype_fixture.h"
 
 namespace
 {
@@ -45,13 +45,13 @@ using gelex::GeneticMode;
 using gelex::bayes::BayesConfig;
 using gelex::bayes::DominancePolicy;
 using gelex::bayes::GeneticEffect;
-using gelex::bayes::GenotypeStorage;
-using gelex::genotype::GenotypeMatrix;
+using gelex::genotype::Genotype;
+using gelex::test::GenotypeBuilder;
 
 constexpr Eigen::Index kIndividuals = 100;
 constexpr Eigen::Index kMarkers = 200;
 
-auto make_genotype(uint64_t seed) -> GenotypeMatrix
+auto make_genotype(uint64_t seed) -> Genotype
 {
     std::mt19937_64 rng(seed);
     std::uniform_real_distribution<double> uniform(0.05, 0.5);
@@ -81,8 +81,8 @@ auto make_genotype(uint64_t seed) -> GenotypeMatrix
         }
     }
 
-    return GenotypeMatrix(
-        std::move(X), std::move(mono), std::move(mean), std::move(stddev));
+    return GenotypeBuilder::build(
+        std::move(X), std::move(mean), std::move(stddev), std::move(mono));
 }
 
 auto make_phenotype(const Eigen::MatrixXd& X, uint64_t seed) -> Eigen::VectorXd
@@ -104,7 +104,7 @@ auto make_model() -> BayesModel
     auto y = make_phenotype(geno.matrix(), 0xCAFE5678ULL);
     auto fixed = FixedEffect::build(kIndividuals);
     std::vector<GeneticEffect> genetics;
-    genetics.emplace_back(GeneticMode::A, GenotypeStorage{std::move(geno)});
+    genetics.emplace_back(GeneticMode::A, std::move(geno));
     return BayesModel(std::move(y), std::move(fixed), std::move(genetics));
 }
 

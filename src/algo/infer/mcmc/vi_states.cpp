@@ -88,11 +88,11 @@ GeneticState::GeneticState(
     const GeneticPrior& prior,
     GeneticMode mode)
     : type(mode),
-      coeffs(Eigen::VectorXd::Zero(bayes::get_cols(effect.X))),
-      u(Eigen::VectorXd::Zero(bayes::get_rows(effect.X)))
+      coeffs(Eigen::VectorXd::Zero(effect.X.cols())),
+      u(Eigen::VectorXd::Zero(effect.X.rows()))
 {
-    const auto num_markers = bayes::get_cols(effect.X);
-    const auto num_samples = bayes::get_rows(effect.X);
+    const auto num_markers = effect.X.cols();
+    const auto num_samples = effect.X.rows();
     const auto& spec = resolve_spec(prior, mode);
 
     marker_variance = make_marker_variance(spec, num_markers);
@@ -110,11 +110,11 @@ GeneticState::GeneticState(
     const bayes::GeneticPrior& prior,
     GeneticMode mode)
     : type(mode),
-      coeffs(Eigen::VectorXd::Zero(bayes::get_cols(effect.X))),
-      sigma2(Eigen::VectorXd::Ones(bayes::get_cols(effect.X))),
-      u(Eigen::VectorXd::Zero(bayes::get_rows(effect.X)))
+      coeffs(Eigen::VectorXd::Zero(effect.X.cols())),
+      sigma2(Eigen::VectorXd::Ones(effect.X.cols())),
+      u(Eigen::VectorXd::Zero(effect.X.rows()))
 {
-    const auto num_markers = bayes::get_cols(effect.X);
+    const auto num_markers = effect.X.cols();
     const auto& spec = [&]() -> const bayes::GeneticSpec&
     {
         if (const auto* gs = std::get_if<bayes::GeneticSpec>(&prior.spec))

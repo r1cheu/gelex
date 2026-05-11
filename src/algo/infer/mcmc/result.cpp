@@ -34,7 +34,7 @@ mcmc::Result::Result(mcmc::Samples&& samples, const BayesModel& model)
 {
     if (const auto* effect = model.genetic(GeneticMode::A); effect)
     {
-        p_freq_ = bayes::get_means(effect->X).array() / 2;
+        p_freq_ = effect->X.mean().array() / 2;
     }
 
     for (const auto& sample : samples_.random())

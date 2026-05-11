@@ -123,7 +123,7 @@ mcmc::Writer::Writer(
     for (const auto& effect : model.genetics())
     {
         const auto sect = EffectType::from_genetic(effect.type);
-        const auto n_snps = bayes::get_cols(effect.X);
+        const auto n_snps = effect.X.cols();
         const auto* prior
             = infer::detail::find_prior_for_mode(method, effect.type);
 

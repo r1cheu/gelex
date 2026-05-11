@@ -21,8 +21,8 @@
 #include <fmt/format.h>
 #include <Eigen/Core>
 
-#include "gelex/data/genotype/mmap.h"
-#include "gelex/data/genotype/storage.h"
+#include "gelex/data/genotype/genotype.h"
+#include "gelex/data/genotype/genotype_reader.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/post_event.h"
@@ -114,7 +114,7 @@ auto PosteriorAnalysisEngine::process_gebv_variance()
 
     std::vector<ParameterDiag> diags;
 
-    std::vector<bayes::GenotypeStorage> genotype_storages;
+    std::vector<gelex::genotype::Genotype> genotype_storages;
     std::vector<GeneticInput> genetic_inputs;
     genotype_storages.reserve(kAllGeneticModes.size());
 
@@ -129,7 +129,8 @@ auto PosteriorAnalysisEngine::process_gebv_variance()
         auto gbin_path
             = fmt::format("{}.{}.gbin", *gfile_, bayes::to_file_suffix(kind));
 
-        genotype_storages.emplace_back(genotype::GenotypeMap(gbin_path, kind));
+        genotype_storages.emplace_back(
+            genotype::GenotypeReader::read(gbin_path, kind));
         genetic_inputs.push_back({&genotype_storages.back(), kind});
     }
 

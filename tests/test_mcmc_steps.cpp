@@ -40,14 +40,14 @@
 #include "gelex/algo/infer/mcmc/steps/pi.h"
 #include "gelex/algo/infer/mcmc/steps/random.h"
 #include "gelex/algo/infer/mcmc/sweep.h"
-#include "gelex/data/genotype/matrix.h"
-#include "gelex/data/genotype/storage.h"
+#include "gelex/data/genotype/genotype.h"
 #include "gelex/exception.h"
 #include "gelex/model/bayes/algorithm_shape.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/genetic_effect_type.h"
+#include "genotype_fixture.h"
 
 namespace gelex::mcmc
 {
@@ -214,13 +214,9 @@ auto make_genetic_effect(Eigen::MatrixXd&& X) -> bayes::GeneticEffect
             (X.col(j).array() - mean(j)).square().sum()
             / static_cast<double>(X.rows()));
     }
-    gelex::genotype::GenotypeMatrix gm{
-        std::move(X),
-        std::vector<int64_t>{},
-        std::move(mean),
-        std::move(stddev)};
-    return bayes::GeneticEffect{
-        GeneticMode::A, bayes::GenotypeStorage{std::move(gm)}};
+    auto gm = gelex::test::GenotypeBuilder::build(
+        std::move(X), std::move(mean), std::move(stddev));
+    return bayes::GeneticEffect{GeneticMode::A, std::move(gm)};
 }
 
 }  // namespace

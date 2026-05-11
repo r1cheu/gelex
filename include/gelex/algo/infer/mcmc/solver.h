@@ -32,7 +32,7 @@
 #include "gelex/algo/infer/mcmc/result.h"
 #include "gelex/algo/infer/mcmc/samples.h"
 #include "gelex/algo/infer/params.h"
-#include "gelex/data/genotype/storage.h"
+#include "gelex/data/genotype/genotype.h"
 #include "gelex/exception.h"
 #include "gelex/infra/detail/eigen_thread_guard.h"
 #include "gelex/infra/logging/fit_event.h"
@@ -177,8 +177,8 @@ void Solver<ChainFactory>::validate_checkpoint(
                     EffectType::from_genetic(gs.type)));
         }
         const auto label = fmt::format("{}", EffectType::from_genetic(gs.type));
-        check(gs.coeffs.size(), bayes::get_cols(effect->X), label + ".coeffs");
-        check(gs.u.size(), bayes::get_rows(effect->X), label + ".u");
+        check(gs.coeffs.size(), effect->X.cols(), label + ".coeffs");
+        check(gs.u.size(), effect->X.rows(), label + ".u");
     }
 
     check(

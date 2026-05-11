@@ -88,7 +88,7 @@ auto GeneticSamples::make_group_samples(
     {
         return std::nullopt;
     }
-    const auto n_snps = bayes::get_cols(effect.X);
+    const auto n_snps = effect.X.cols();
     const auto n_pi = prior.mixture->proportions.init.size();
     const auto estimate_pi = prior.mixture->proportions.estimate;
     if (std::holds_alternative<bayes::SpikeSlab>(prior.mixture->strategy))
@@ -104,7 +104,7 @@ GeneticSamples::GeneticSamples(
     GeneticMode mode)
     : type(mode),
       group(make_group_samples(effect, prior)),
-      n_coeffs_(bayes::get_cols(effect.X))
+      n_coeffs_(effect.X.cols())
 {
     const auto* spec = std::get_if<bayes::GeneticSpec>(&prior.spec);
     const bool has_sign = (spec != nullptr && spec->sign.has_value()) || [&]
@@ -120,7 +120,7 @@ GeneticSamples::GeneticSamples(
 
     if (has_sign)
     {
-        const auto n_snps = bayes::get_cols(effect.X);
+        const auto n_snps = effect.X.cols();
         sign.emplace(n_snps, 3, true);
     }
 }
