@@ -145,9 +145,9 @@ struct KernelTraits;
 template <>
 struct KernelTraits<BayesAKernel>
 {
-    static auto make_prior() -> bayes::GeneticPrior
+    static auto make_prior() -> bayes::OldGeneticPrior
     {
-        return bayes::GeneticPrior{
+        return bayes::OldGeneticPrior{
             .spec = bayes::
                 GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_marker, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
             .mixture = std::nullopt};
@@ -157,9 +157,9 @@ struct KernelTraits<BayesAKernel>
 template <>
 struct KernelTraits<BayesRRKernel>
 {
-    static auto make_prior() -> bayes::GeneticPrior
+    static auto make_prior() -> bayes::OldGeneticPrior
     {
-        return bayes::GeneticPrior{
+        return bayes::OldGeneticPrior{
             .spec = bayes::
                 GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
             .mixture = std::nullopt};
@@ -169,9 +169,9 @@ struct KernelTraits<BayesRRKernel>
 template <>
 struct KernelTraits<BayesBKernel>
 {
-    static auto make_prior() -> bayes::GeneticPrior
+    static auto make_prior() -> bayes::OldGeneticPrior
     {
-        return bayes::GeneticPrior{
+        return bayes::OldGeneticPrior{
             .spec = bayes::
                 GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_marker, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
             .mixture = bayes::Mixture{
@@ -186,9 +186,9 @@ struct KernelTraits<BayesBKernel>
 template <>
 struct KernelTraits<BayesCKernel>
 {
-    static auto make_prior() -> bayes::GeneticPrior
+    static auto make_prior() -> bayes::OldGeneticPrior
     {
-        return bayes::GeneticPrior{
+        return bayes::OldGeneticPrior{
             .spec = bayes::
                 GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
             .mixture = bayes::Mixture{
@@ -313,9 +313,9 @@ TEST_CASE(
 namespace
 {
 
-auto make_mixture_prior() -> bayes::GeneticPrior
+auto make_mixture_prior() -> bayes::OldGeneticPrior
 {
-    return bayes::GeneticPrior{
+    return bayes::OldGeneticPrior{
         .spec = bayes::
             GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.05, .prior = {.degrees_of_freedom = 4.0, .scale = 0.1}}},
         .mixture = bayes::Mixture{
@@ -461,7 +461,7 @@ TEST_CASE("PiStep rejects estimate=false prior", "[mcmc][pi-sampler]")
     };
     const Eigen::VectorXd y = Eigen::VectorXd::Zero(kN);
 
-    const bayes::GeneticPrior spike_term{
+    const bayes::OldGeneticPrior spike_term{
         .spec = bayes::
             GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
         .mixture = bayes::Mixture{
@@ -481,7 +481,7 @@ TEST_CASE("PiStep rejects estimate=false prior", "[mcmc][pi-sampler]")
 
     bayes::BayesMethod method{
         .config = bayes::BayesConfig{},
-        .genetics = {bayes::GeneticPrior{
+        .genetics = {bayes::OldGeneticPrior{
             .spec = bayes::
                 GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
             .mixture = bayes::
@@ -513,9 +513,9 @@ TEST_CASE("PiStep rejects estimate=false prior", "[mcmc][pi-sampler]")
 namespace
 {
 
-auto make_spike_prior_estimate(Eigen::Index size) -> bayes::GeneticPrior
+auto make_spike_prior_estimate(Eigen::Index size) -> bayes::OldGeneticPrior
 {
-    return bayes::GeneticPrior{
+    return bayes::OldGeneticPrior{
         .spec = bayes::
             GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = size == 1 ? bayes::MarkerVarianceScope::per_effect : bayes::MarkerVarianceScope::per_marker, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
         .mixture = bayes::Mixture{
@@ -550,7 +550,7 @@ auto make_chain_context(
 }
 
 auto build_inference_state(
-    const bayes::GeneticPrior& prior,
+    const bayes::OldGeneticPrior& prior,
     const Eigen::MatrixXd& X,
     const Eigen::VectorXd& y) -> mcmc::State
 {

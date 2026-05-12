@@ -244,7 +244,7 @@ TEST_CASE("checkpoint method round-trip preserves all fields", "[checkpoint]")
         },
     };
 
-    bayes::GeneticPrior prior{
+    bayes::OldGeneticPrior prior{
         spec,
         bayes::Mixture{
             bayes::ScaledMixture{multiplier},

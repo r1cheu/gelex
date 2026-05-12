@@ -37,7 +37,7 @@ class RRKernel
 {
    public:
     RRKernel(
-        const bayes::GeneticPrior& prior,
+        const bayes::OldGeneticPrior& prior,
         const bayes::GeneticEffect& /*effect*/,
         bayes::vi::GeneticState& state)
         : state_(state),

@@ -33,7 +33,9 @@ namespace gelex::mcmc
 class BayesAKernel
 {
    public:
-    BayesAKernel(const bayes::GeneticPrior& prior, bayes::GeneticState& state)
+    BayesAKernel(
+        const bayes::OldGeneticPrior& prior,
+        bayes::GeneticState& state)
         : state_(state),
           normal_(0.0),
           sigma_(make_variance_sampler(

@@ -35,7 +35,7 @@ namespace gelex::bayes
 {
 
 struct GeneticEffect;
-struct GeneticPrior;
+struct OldGeneticPrior;
 struct GeneticState;
 struct ResidualState;
 struct Assignment;
@@ -128,7 +128,7 @@ struct GeneticSamples
 {
     GeneticSamples(
         const bayes::GeneticEffect& effect,
-        const bayes::GeneticPrior& prior,
+        const bayes::OldGeneticPrior& prior,
         GeneticMode mode);
     void store(const bayes::GeneticState& state);
 
@@ -150,7 +150,7 @@ struct GeneticSamples
    private:
     static auto make_group_samples(
         const bayes::GeneticEffect& effect,
-        const bayes::GeneticPrior& prior) -> std::optional<MixtureSamples>;
+        const bayes::OldGeneticPrior& prior) -> std::optional<MixtureSamples>;
 
     Eigen::Index n_coeffs_;
     RunningStats coeffs_stats_;

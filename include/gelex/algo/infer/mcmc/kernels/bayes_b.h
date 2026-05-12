@@ -36,7 +36,9 @@ namespace gelex::mcmc
 class BayesBKernel
 {
    public:
-    BayesBKernel(const bayes::GeneticPrior& prior, bayes::GeneticState& state)
+    BayesBKernel(
+        const bayes::OldGeneticPrior& prior,
+        bayes::GeneticState& state)
         : state_(state),
           assignment_(
               unpack_marker_allocation<bayes::Assignment>(

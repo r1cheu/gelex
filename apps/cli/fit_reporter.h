@@ -34,7 +34,7 @@ struct ScaledInvChiSqParams;
 
 namespace bayes
 {
-struct GeneticPrior;
+struct OldGeneticPrior;
 struct OldVarianceSpec;
 }  // namespace bayes
 
@@ -55,7 +55,7 @@ class FitReporter
 
     static auto print_random_prior(const bayes::OldVarianceSpec& spec) -> void;
     static auto print_genetic_prior(
-        const bayes::GeneticPrior& prior,
+        const bayes::OldGeneticPrior& prior,
         GeneticMode mode) -> void;
     static auto print_residual_prior(const bayes::OldVarianceSpec& spec)
         -> void;

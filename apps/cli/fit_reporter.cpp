@@ -108,7 +108,7 @@ auto FitReporter::print_random_prior(const bayes::OldVarianceSpec& spec) -> void
 }
 
 auto FitReporter::print_genetic_prior(
-    const bayes::GeneticPrior& prior,
+    const bayes::OldGeneticPrior& prior,
     GeneticMode mode) -> void
 {
     cli::printer().line("   {} effect:", mode);

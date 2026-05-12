@@ -37,22 +37,23 @@ namespace gelex
 namespace
 {
 
-auto has_group_prior(const bayes::GeneticPrior& prior) -> bool
+auto has_group_prior(const bayes::OldGeneticPrior& prior) -> bool
 {
     return prior.mixture.has_value();
 }
 
-auto group_prior_estimate_pi(const bayes::GeneticPrior& prior) -> bool
+auto group_prior_estimate_pi(const bayes::OldGeneticPrior& prior) -> bool
 {
     return prior.mixture->proportions.estimate;
 }
 
-auto group_prior_n_proportions(const bayes::GeneticPrior& prior) -> Eigen::Index
+auto group_prior_n_proportions(const bayes::OldGeneticPrior& prior)
+    -> Eigen::Index
 {
     return prior.mixture->proportions.init.size();
 }
 
-auto find_sign_for_mode(const bayes::GeneticPrior& prior, GeneticMode mode)
+auto find_sign_for_mode(const bayes::OldGeneticPrior& prior, GeneticMode mode)
     -> bool
 {
     if (const auto* gs = std::get_if<bayes::GeneticSpec>(&prior.spec))

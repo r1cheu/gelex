@@ -43,7 +43,9 @@ namespace gelex::mcmc
 class BayesRKernel
 {
    public:
-    BayesRKernel(const bayes::GeneticPrior& prior, bayes::GeneticState& state)
+    BayesRKernel(
+        const bayes::OldGeneticPrior& prior,
+        bayes::GeneticState& state)
         : state_(state),
           assignment_(
               unpack_marker_allocation<bayes::ComponentAllocation>(
@@ -111,7 +113,7 @@ class BayesRKernel
     }
 
    private:
-    static auto scaled_mixture(const bayes::GeneticPrior& prior)
+    static auto scaled_mixture(const bayes::OldGeneticPrior& prior)
         -> const bayes::ScaledMixture&
     {
         assert(prior.mixture.has_value() && "BayesRKernel requires mixture");

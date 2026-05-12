@@ -139,7 +139,7 @@ struct GeneticState
 
     GeneticState(
         const GeneticEffect& effect,
-        const GeneticPrior& prior,
+        const OldGeneticPrior& prior,
         GeneticMode mode);
 
     GeneticMode type;
@@ -169,7 +169,7 @@ struct GeneticState
 {
     GeneticState(
         const bayes::GeneticEffect& effect,
-        const bayes::GeneticPrior& prior,
+        const bayes::OldGeneticPrior& prior,
         GeneticMode mode);
 
     GeneticMode type;

@@ -231,7 +231,7 @@ auto write_genetic_spec(
 auto write_genetic_prior(
     io::detail::BinaryWriter& writer,
     std::string_view prefix,
-    const bayes::GeneticPrior& prior) -> void
+    const bayes::OldGeneticPrior& prior) -> void
 {
     std::visit(
         [&](const auto& spec)

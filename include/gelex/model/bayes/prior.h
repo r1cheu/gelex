@@ -17,101 +17,26 @@
 #ifndef GELEX_MODEL_BAYES_PRIOR_H_
 #define GELEX_MODEL_BAYES_PRIOR_H_
 
-#include <cstddef>
-#include <cstdint>
+#include <memory>
 #include <optional>
+#include <ranges>
+#include <span>
+#include <string>
+#include <string_view>
 #include <variant>
+#include <vector>
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/constrain_vector.h"
+#include "gelex/model/bayes/genetic_prior.h"
+#include "gelex/model/bayes/prior_specs.h"
 
 namespace gelex::bayes
 {
 
-struct ScaledInvChiSqPrior
-{
-    double degrees_of_freedom{};
-    double scale{};
-};
-
 struct OldDirichletPrior
 {
     Eigen::VectorXi concentration;
-};
-
-struct DirichletPrior
-{
-    PositiveVector<double> concentration;
-};
-
-enum class MarkerVarianceScope : std::uint8_t
-{
-    per_marker,
-    per_effect,
-};
-
-struct VarianceSpec
-{
-    double initial_value{};
-    ScaledInvChiSqPrior prior;
-};
-
-class MarkerVarianceSpec
-{
-   public:
-    MarkerVarianceSpec(MarkerVarianceScope scope, VarianceSpec variance);
-
-    auto scope() const -> MarkerVarianceScope { return scope_; };
-    auto variance() const -> const VarianceSpec& { return variance_; };
-    auto marker_variance_size(Eigen::Index num_markers) const -> Eigen::Index
-    {
-        switch (scope_)
-        {
-            case MarkerVarianceScope::per_marker:
-                return num_markers;
-            case MarkerVarianceScope::per_effect:
-                return 1;
-        }
-    }
-
-   private:
-    MarkerVarianceScope scope_{};
-    VarianceSpec variance_;
-};
-
-enum class ProportionUpdate : std::uint8_t
-{
-    fixed,
-    sampled,
-};
-
-class ProportionSpec
-{
-   public:
-    ProportionSpec(
-        Simplex<double> initial_value,
-        DirichletPrior prior,
-        ProportionUpdate update);
-
-    auto initial_value() const -> const Simplex<double>&
-    {
-        return initial_value_;
-    };
-
-    auto prior() const -> const DirichletPrior& { return prior_; };
-    auto update() const -> ProportionUpdate { return update_; };
-
-    auto size() const -> std::size_t { return initial_value_.size(); };
-    auto sampled() const -> bool
-    {
-        return update_ == ProportionUpdate::sampled;
-    };
-
-   private:
-    Simplex<double> initial_value_;
-    DirichletPrior prior_;
-    ProportionUpdate update_{ProportionUpdate::fixed};
 };
 
 struct OldVarianceSpec
@@ -155,6 +80,50 @@ struct Mixture
 
     static auto make(const BayesPolicy&, bool estimate_pi)
         -> std::optional<Mixture>;
+};
+
+struct RandomEffectPrior
+{
+    std::string name;
+    VarianceSpec variance;
+};
+
+class BayesPrior
+{
+   public:
+    BayesPrior(
+        std::vector<RandomEffectPrior> randoms,
+        std::vector<std::unique_ptr<GeneticPrior>> genetics,
+        VarianceSpec residual);
+
+    BayesPrior(const BayesPrior&) = delete;
+    BayesPrior(BayesPrior&&) noexcept = default;
+
+    auto operator=(const BayesPrior&) -> BayesPrior& = delete;
+    auto operator=(BayesPrior&&) noexcept -> BayesPrior& = default;
+
+    ~BayesPrior() = default;
+
+    auto randoms() const -> std::span<const RandomEffectPrior>
+    {
+        return randoms_;
+    }
+    auto residual() const -> const VarianceSpec& { return residual_; }
+
+    auto genetics() const -> decltype(auto)
+    {
+        return genetics_
+               | std::views::transform(
+                   [](const auto& prior) -> const GeneticPrior&
+                   { return *prior; });
+    }
+
+    auto random(std::string_view name) const -> const RandomEffectPrior*;
+
+   private:
+    std::vector<RandomEffectPrior> randoms_;
+    std::vector<std::unique_ptr<GeneticPrior>> genetics_;
+    VarianceSpec residual_;
 };
 
 }  // namespace gelex::bayes

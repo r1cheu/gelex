@@ -60,7 +60,7 @@ struct JointSpec
     GeneticSpec dominance;
 };
 
-struct GeneticPrior
+struct OldGeneticPrior
 {
     std::variant<GeneticSpec, JointSpec> spec;
     std::optional<Mixture> mixture;
@@ -78,7 +78,7 @@ struct BayesConfig
 struct BayesMethod
 {
     BayesConfig config;
-    std::vector<GeneticPrior> genetics;
+    std::vector<OldGeneticPrior> genetics;
     std::vector<OldVarianceSpec> randoms;
     OldVarianceSpec residual;
 };

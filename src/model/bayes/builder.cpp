@@ -101,7 +101,7 @@ auto build_bayes_method(
 
     auto make_prior = [&](std::variant<GeneticSpec, JointSpec> spec)
     {
-        GeneticPrior prior;
+        OldGeneticPrior prior;
         prior.spec = std::move(spec);
         prior.mixture = Mixture::make(policy, config.estimate_pi);
         return prior;

@@ -37,7 +37,7 @@ template <typename GeneticStateT>
 struct GeneticBlockDeps
 {
     const bayes::GeneticEffect& effect;
-    const bayes::GeneticPrior& prior;
+    const bayes::OldGeneticPrior& prior;
     GeneticStateT& state;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -71,7 +71,7 @@ inline auto validate_genetic_block_shape(
 
 inline auto find_prior_for_mode(
     const bayes::BayesMethod& method,
-    GeneticMode mode) -> const bayes::GeneticPrior*
+    GeneticMode mode) -> const bayes::OldGeneticPrior*
 {
     for (const auto& prior : method.genetics)
     {
@@ -95,10 +95,10 @@ inline auto find_prior_for_mode(
 }
 
 inline auto find_prior_for_mode(bayes::BayesMethod& method, GeneticMode mode)
-    -> bayes::GeneticPrior*
+    -> bayes::OldGeneticPrior*
 {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-    return const_cast<bayes::GeneticPrior*>(
+    return const_cast<bayes::OldGeneticPrior*>(
         find_prior_for_mode(std::as_const(method), mode));
 }
 

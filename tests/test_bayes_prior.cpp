@@ -1,0 +1,239 @@
+/*
+ * Copyright 2026 RuLei Chen
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <array>
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include <Eigen/Core>
+#include <catch2/catch_test_macros.hpp>
+
+#include "gelex/exception.h"
+#include "gelex/model/bayes/constrain_vector.h"
+#include "gelex/model/bayes/genetic_prior.h"
+#include "gelex/model/bayes/genetic_priors/gaussian.h"
+#include "gelex/model/bayes/genetic_priors/joint_mixture_gaussian.h"
+#include "gelex/model/bayes/genetic_priors/mixture_gaussian.h"
+#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/types/genetic_effect_type.h"
+
+using gelex::GelexException;
+using gelex::GeneticMode;
+using gelex::bayes::BayesPrior;
+using gelex::bayes::DirichletPrior;
+using gelex::bayes::GaussianPrior;
+using gelex::bayes::GeneticPrior;
+using gelex::bayes::JointMixtureGaussianPrior;
+using gelex::bayes::MarkerVarianceScope;
+using gelex::bayes::MarkerVarianceSpec;
+using gelex::bayes::PositiveVector;
+using gelex::bayes::ProportionSpec;
+using gelex::bayes::ProportionUpdate;
+using gelex::bayes::RandomEffectPrior;
+using gelex::bayes::ScaledInvChiSqPrior;
+using gelex::bayes::Simplex;
+using gelex::bayes::SpikeSlabGaussianPrior;
+using gelex::bayes::VarianceSpec;
+
+namespace
+{
+
+auto make_variance(double init = 1.0) -> VarianceSpec
+{
+    return VarianceSpec{
+        .initial_value = init,
+        .prior = ScaledInvChiSqPrior{.degrees_of_freedom = 4.0, .scale = 1.0},
+    };
+}
+
+auto make_marker_variance() -> MarkerVarianceSpec
+{
+    return MarkerVarianceSpec{
+        MarkerVarianceScope::per_marker,
+        make_variance(),
+    };
+}
+
+auto make_proportion_2() -> ProportionSpec
+{
+    return ProportionSpec{
+        Simplex<double>{{0.9, 0.1}},
+        DirichletPrior{PositiveVector<double>{{1.0, 1.0}}},
+        ProportionUpdate::fixed,
+    };
+}
+
+auto make_gaussian(GeneticMode mode = GeneticMode::A)
+    -> std::unique_ptr<GeneticPrior>
+{
+    return std::make_unique<GaussianPrior>(mode, make_marker_variance());
+}
+
+auto make_spike_slab(GeneticMode mode = GeneticMode::A)
+    -> std::unique_ptr<GeneticPrior>
+{
+    return std::make_unique<SpikeSlabGaussianPrior>(
+        mode, make_marker_variance(), make_proportion_2());
+}
+
+auto make_joint() -> std::unique_ptr<GeneticPrior>
+{
+    return std::make_unique<JointMixtureGaussianPrior>(
+        std::array<GeneticMode, 2>{GeneticMode::A, GeneticMode::D},
+        std::array<MarkerVarianceSpec, 2>{
+            make_marker_variance(), make_marker_variance()},
+        make_proportion_2());
+}
+
+}  // namespace
+
+TEST_CASE("BayesPrior accessors expose construction arguments", "[bayes_prior]")
+{
+    std::vector<RandomEffectPrior> randoms;
+    randoms.push_back({"litter", make_variance(2.0)});
+    randoms.push_back({"pen", make_variance(3.0)});
+
+    std::vector<std::unique_ptr<GeneticPrior>> genetics;
+    genetics.push_back(make_gaussian(GeneticMode::A));
+    genetics.push_back(make_spike_slab(GeneticMode::D));
+
+    BayesPrior prior(
+        std::move(randoms), std::move(genetics), make_variance(5.0));
+
+    REQUIRE(prior.randoms().size() == 2);
+    REQUIRE(prior.randoms()[0].name == "litter");
+    REQUIRE(prior.randoms()[1].name == "pen");
+    REQUIRE(prior.residual().initial_value == 5.0);
+
+    const auto range = prior.genetics();
+    REQUIRE(range.size() == 2);
+    REQUIRE_FALSE(range.empty());
+
+    auto it = range.begin();
+    REQUIRE((*it).contains(GeneticMode::A));
+    ++it;
+    REQUIRE((*it).contains(GeneticMode::D));
+    ++it;
+    REQUIRE(it == range.end());
+}
+
+TEST_CASE("BayesPrior::genetics range supports for-each", "[bayes_prior]")
+{
+    std::vector<std::unique_ptr<GeneticPrior>> genetics;
+    genetics.push_back(make_gaussian(GeneticMode::A));
+    genetics.push_back(make_spike_slab(GeneticMode::D));
+
+    BayesPrior prior({}, std::move(genetics), make_variance());
+
+    std::vector<GeneticMode> visited;
+    for (const auto& block : prior.genetics())
+    {
+        for (const auto m : block.modes())
+        {
+            visited.push_back(m);
+        }
+    }
+    REQUIRE(
+        visited == std::vector<GeneticMode>{GeneticMode::A, GeneticMode::D});
+}
+
+TEST_CASE(
+    "BayesPrior::genetics empty for prior with no blocks",
+    "[bayes_prior]")
+{
+    BayesPrior prior({}, {}, make_variance());
+
+    const auto range = prior.genetics();
+    REQUIRE(range.empty());
+    REQUIRE(range.size() == 0);
+    REQUIRE(range.begin() == range.end());
+}
+
+TEST_CASE("BayesPrior::random looks up by name", "[bayes_prior]")
+{
+    std::vector<RandomEffectPrior> randoms;
+    randoms.push_back({"litter", make_variance()});
+
+    BayesPrior prior(std::move(randoms), {}, make_variance());
+
+    const auto* found = prior.random("litter");
+    REQUIRE(found != nullptr);
+    REQUIRE(found->name == "litter");
+    REQUIRE(prior.random("missing") == nullptr);
+}
+
+TEST_CASE("BayesPrior rejects duplicate random names", "[bayes_prior]")
+{
+    std::vector<RandomEffectPrior> randoms;
+    randoms.push_back({"litter", make_variance()});
+    randoms.push_back({"litter", make_variance()});
+
+    REQUIRE_THROWS_AS(
+        BayesPrior(std::move(randoms), {}, make_variance()), GelexException);
+}
+
+TEST_CASE("BayesPrior rejects null genetic block", "[bayes_prior]")
+{
+    std::vector<std::unique_ptr<GeneticPrior>> genetics;
+    genetics.push_back(nullptr);
+
+    REQUIRE_THROWS_AS(
+        BayesPrior({}, std::move(genetics), make_variance()), GelexException);
+}
+
+TEST_CASE("BayesPrior rejects duplicate mode across blocks", "[bayes_prior]")
+{
+    std::vector<std::unique_ptr<GeneticPrior>> genetics;
+    genetics.push_back(make_gaussian(GeneticMode::A));
+    genetics.push_back(make_gaussian(GeneticMode::A));
+
+    REQUIRE_THROWS_AS(
+        BayesPrior({}, std::move(genetics), make_variance()), GelexException);
+}
+
+TEST_CASE("BayesPrior rejects invalid variance spec", "[bayes_prior]")
+{
+    SECTION("residual initial_value <= 0")
+    {
+        auto bad = make_variance();
+        bad.initial_value = 0.0;
+        REQUIRE_THROWS_AS(BayesPrior({}, {}, bad), GelexException);
+    }
+    SECTION("residual degrees_of_freedom <= 0")
+    {
+        auto bad = make_variance();
+        bad.prior.degrees_of_freedom = 0.0;
+        REQUIRE_THROWS_AS(BayesPrior({}, {}, bad), GelexException);
+    }
+    SECTION("residual scale <= 0")
+    {
+        auto bad = make_variance();
+        bad.prior.scale = 0.0;
+        REQUIRE_THROWS_AS(BayesPrior({}, {}, bad), GelexException);
+    }
+    SECTION("random variance invalid")
+    {
+        std::vector<RandomEffectPrior> randoms;
+        auto bad = make_variance();
+        bad.initial_value = -1.0;
+        randoms.push_back({"litter", bad});
+        REQUIRE_THROWS_AS(
+            BayesPrior(std::move(randoms), {}, make_variance()),
+            GelexException);
+    }
+}

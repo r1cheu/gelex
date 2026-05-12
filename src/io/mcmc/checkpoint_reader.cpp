@@ -268,7 +268,7 @@ auto read_genetic_spec(
 
 auto read_genetic_prior(
     const io::detail::BinaryReader& reader,
-    std::string_view prefix) -> bayes::GeneticPrior
+    std::string_view prefix) -> bayes::OldGeneticPrior
 {
     const auto kind = read_uint8(reader, fmt::format("{}/kind", prefix));
 

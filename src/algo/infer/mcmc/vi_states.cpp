@@ -28,7 +28,7 @@ namespace
 {
 
 // 从 GeneticSpec 中提取匹配 mode 的 GeneticSpec（JointSpec 按 mode 分支）
-auto resolve_spec(const GeneticPrior& prior, GeneticMode mode)
+auto resolve_spec(const OldGeneticPrior& prior, GeneticMode mode)
     -> const GeneticSpec&
 {
     if (const auto* gs = std::get_if<GeneticSpec>(&prior.spec))
@@ -86,7 +86,7 @@ auto make_sign(
 
 GeneticState::GeneticState(
     const GeneticEffect& effect,
-    const GeneticPrior& prior,
+    const OldGeneticPrior& prior,
     GeneticMode mode)
     : type(mode),
       coeffs(Eigen::VectorXd::Zero(effect.X.cols())),
@@ -108,7 +108,7 @@ namespace gelex::bayes::vi
 
 GeneticState::GeneticState(
     const bayes::GeneticEffect& effect,
-    const bayes::GeneticPrior& prior,
+    const bayes::OldGeneticPrior& prior,
     GeneticMode mode)
     : type(mode),
       coeffs(Eigen::VectorXd::Zero(effect.X.cols())),
