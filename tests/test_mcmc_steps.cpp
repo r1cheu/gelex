@@ -409,8 +409,8 @@ TEST_CASE(
 
     BayesModel model{y, FixedEffect::build(kN), std::move(genetics_vec)};
 
-    bayes::BayesMethod method{
-        .config = bayes::BayesConfig{},
+    bayes::LegacyBayesMethod method{
+        .config = bayes::LegacyBayesConfig{},
         .genetics = {make_mixture_prior()},
         .randoms = {},
         .residual = bayes::OldVarianceSpec{
@@ -479,8 +479,8 @@ TEST_CASE("PiStep rejects estimate=false prior", "[mcmc][pi-sampler]")
 
     BayesModel model{y, FixedEffect::build(kN), std::move(genetics_vec)};
 
-    bayes::BayesMethod method{
-        .config = bayes::BayesConfig{},
+    bayes::LegacyBayesMethod method{
+        .config = bayes::LegacyBayesConfig{},
         .genetics = {bayes::OldGeneticPrior{
             .spec = bayes::
                 GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
@@ -529,7 +529,7 @@ auto make_spike_prior_estimate(Eigen::Index size) -> bayes::OldGeneticPrior
 auto make_chain_context(
     const Eigen::MatrixXd& X,
     const Eigen::VectorXd& y,
-    Eigen::Index spike_size) -> std::pair<BayesModel, bayes::BayesMethod>
+    Eigen::Index spike_size) -> std::pair<BayesModel, bayes::LegacyBayesMethod>
 {
     std::vector<bayes::GeneticEffect> genetics_vec;
     genetics_vec.emplace_back(
@@ -537,8 +537,8 @@ auto make_chain_context(
 
     BayesModel model{y, FixedEffect::build(y.size()), std::move(genetics_vec)};
 
-    bayes::BayesMethod method{
-        .config = bayes::BayesConfig{},
+    bayes::LegacyBayesMethod method{
+        .config = bayes::LegacyBayesConfig{},
         .genetics = {make_spike_prior_estimate(spike_size)},
         .randoms = {},
         .residual = bayes::OldVarianceSpec{

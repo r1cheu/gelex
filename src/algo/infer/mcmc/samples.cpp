@@ -27,7 +27,7 @@
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/io/mcmc/sample_writer.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 
@@ -158,7 +158,7 @@ void GeneticSamples::store(const bayes::GeneticState& state)
 
 Samples::Samples(
     const BayesModel& model,
-    const bayes::BayesMethod& method,
+    const bayes::LegacyBayesMethod& method,
     std::string_view sample_prefix,
     Eigen::Index n_records)
     : fixed_(model.fixed())

@@ -38,7 +38,7 @@
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/mcmc/checkpoint_writer.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 
 namespace gelex
@@ -59,7 +59,7 @@ class Solver
 
     auto run(
         const BayesModel& model,
-        bayes::BayesMethod method,
+        bayes::LegacyBayesMethod method,
         Eigen::Index seed = 42,
         const MCMCObserver& observer = {}) -> mcmc::Result;
 
@@ -76,7 +76,7 @@ class Solver
     template <typename Chain>
     auto run_impl(
         Chain& chain,
-        const bayes::BayesMethod& method,
+        const bayes::LegacyBayesMethod& method,
         mcmc::Samples& samples,
         mcmc::State& state,
         std::mt19937_64& rng,
@@ -109,7 +109,7 @@ Solver<ChainFactory>::Solver(
 template <typename ChainFactory>
 auto Solver<ChainFactory>::run(
     const BayesModel& model,
-    bayes::BayesMethod method,
+    bayes::LegacyBayesMethod method,
     Eigen::Index seed,
     const MCMCObserver& observer) -> mcmc::Result
 {
@@ -244,7 +244,7 @@ template <typename ChainFactory>
 template <typename Chain>
 auto Solver<ChainFactory>::run_impl(
     Chain& chain,
-    const bayes::BayesMethod& method,
+    const bayes::LegacyBayesMethod& method,
     mcmc::Samples& samples,
     mcmc::State& state,
     std::mt19937_64& rng,

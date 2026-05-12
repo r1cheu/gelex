@@ -25,7 +25,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -50,7 +50,7 @@ struct MCMCBannerEvent
 
 struct MCMCConfigEvent
 {
-    gelex::bayes::BayesConfig method;
+    gelex::bayes::LegacyBayesConfig method;
     std::vector<GeneticMode> requested_effects;
     Eigen::Index n_iters{};
     Eigen::Index n_burn_in{};
@@ -80,7 +80,7 @@ struct VIBannerEvent
 
 struct VIConfigEvent
 {
-    gelex::bayes::BayesConfig method;
+    gelex::bayes::LegacyBayesConfig method;
     std::vector<GeneticMode> requested_effects;
     int max_iters{};
     double tol{};
@@ -104,7 +104,7 @@ struct VICompleteEvent
 
 struct FitMethodSetEvent
 {
-    const bayes::BayesMethod* method{};
+    const bayes::LegacyBayesMethod* method{};
 };
 
 struct FitResultsSavedEvent

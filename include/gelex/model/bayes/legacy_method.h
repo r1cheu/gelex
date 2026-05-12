@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_METHOD_H_
-#define GELEX_MODEL_BAYES_METHOD_H_
+#ifndef GELEX_MODEL_BAYES_LEGACY_METHOD_H_
+#define GELEX_MODEL_BAYES_LEGACY_METHOD_H_
 
 #include <cstdint>
 #include <optional>
@@ -66,25 +66,25 @@ struct OldGeneticPrior
     std::optional<Mixture> mixture;
 };
 
-struct BayesConfig
+struct LegacyBayesConfig
 {
     BayesBase base{};
     DominancePolicy dominance = DominancePolicy::symmetric;
     bool estimate_pi = false;
 
-    constexpr auto operator==(const BayesConfig&) const -> bool = default;
+    constexpr auto operator==(const LegacyBayesConfig&) const -> bool = default;
 };
 
-struct BayesMethod
+struct LegacyBayesMethod
 {
-    BayesConfig config;
+    LegacyBayesConfig config;
     std::vector<OldGeneticPrior> genetics;
     std::vector<OldVarianceSpec> randoms;
     OldVarianceSpec residual;
 };
 
 inline auto is_valid_method(
-    const BayesConfig& m,
+    const LegacyBayesConfig& m,
     std::span<const GeneticMode> requested) -> bool
 {
     if (m.base == BayesBase::kCount)
@@ -109,10 +109,11 @@ inline auto is_valid_method(
 namespace fmt
 {
 template <>
-struct formatter<gelex::bayes::BayesConfig> : formatter<string_view>
+struct formatter<gelex::bayes::LegacyBayesConfig> : formatter<string_view>
 {
-    static auto format(const gelex::bayes::BayesConfig& c, format_context& ctx)
-        -> format_context::iterator
+    static auto format(
+        const gelex::bayes::LegacyBayesConfig& c,
+        format_context& ctx) -> format_context::iterator
     {
         auto name = fmt::format("Bayes{}", c.base);
         if (c.estimate_pi)
@@ -129,4 +130,4 @@ struct formatter<gelex::bayes::BayesConfig> : formatter<string_view>
 
 }  // namespace fmt
 
-#endif  // GELEX_MODEL_BAYES_METHOD_H_
+#endif  // GELEX_MODEL_BAYES_LEGACY_METHOD_H_

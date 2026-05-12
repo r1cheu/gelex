@@ -28,7 +28,7 @@
 #include "gelex/data/genotype/processor.h"
 #include "gelex/model/bayes/builder.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -42,9 +42,9 @@ using gelex::BayesModel;
 using gelex::compute_genetic_stats;
 using gelex::FixedEffect;
 using gelex::GeneticMode;
-using gelex::bayes::BayesConfig;
 using gelex::bayes::DominancePolicy;
 using gelex::bayes::GeneticEffect;
+using gelex::bayes::LegacyBayesConfig;
 using gelex::genotype::Genotype;
 using gelex::test::GenotypeBuilder;
 
@@ -113,7 +113,7 @@ void bench_chain(
     ankerl::nanobench::Bench& b,
     const BayesModel& model,
     const char* name,
-    BayesConfig cfg,
+    LegacyBayesConfig cfg,
     Factory factory,
     Eigen::Index n_iters)
 {
@@ -153,12 +153,12 @@ TEST_CASE("MCMC trait chain per-iteration", "[!benchmark][mcmc][chain]")
         .minEpochIterations(20);
 
     constexpr auto kSym = DominancePolicy::symmetric;
-    const BayesConfig cfg_a{BayesBase::A, kSym, false};
-    const BayesConfig cfg_b{BayesBase::B, kSym, false};
-    const BayesConfig cfg_c{BayesBase::C, kSym, false};
-    const BayesConfig cfg_rr{BayesBase::RR, kSym, false};
-    const BayesConfig cfg_bpi{BayesBase::B, kSym, true};
-    const BayesConfig cfg_cpi{BayesBase::C, kSym, true};
+    const LegacyBayesConfig cfg_a{BayesBase::A, kSym, false};
+    const LegacyBayesConfig cfg_b{BayesBase::B, kSym, false};
+    const LegacyBayesConfig cfg_c{BayesBase::C, kSym, false};
+    const LegacyBayesConfig cfg_rr{BayesBase::RR, kSym, false};
+    const LegacyBayesConfig cfg_bpi{BayesBase::B, kSym, true};
+    const LegacyBayesConfig cfg_cpi{BayesBase::C, kSym, true};
 
     bench_chain(
         b,

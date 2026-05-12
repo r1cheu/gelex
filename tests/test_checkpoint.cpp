@@ -32,7 +32,7 @@
 #include "gelex/io/mcmc/checkpoint_writer.h"
 #include "gelex/model/bayes/algorithm_shape.h"
 #include "gelex/model/bayes/builder.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/types/fixed_effects.h"
@@ -56,7 +56,7 @@ auto make_geno_matrix(Eigen::Index n_samples, Eigen::Index n_snps) -> Genotype
 }
 
 auto make_bayes_a_model(Eigen::Index n_samples, Eigen::Index n_snps)
-    -> std::pair<BayesModel, bayes::BayesMethod>
+    -> std::pair<BayesModel, bayes::LegacyBayesMethod>
 {
     auto phenotype = Eigen::VectorXd::Random(n_samples);
     auto fixed = FixedEffect::build(n_samples);
@@ -66,7 +66,7 @@ auto make_bayes_a_model(Eigen::Index n_samples, Eigen::Index n_snps)
     genetics.emplace_back(GeneticMode::A, std::move(geno));
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
-    const auto config = bayes::BayesConfig{BayesBase::A};
+    const auto config = bayes::LegacyBayesConfig{BayesBase::A};
     const auto stats = compute_genetic_stats(model);
     auto method
         = bayes::build_bayes_method(config, stats, model.phenotype_variance());
@@ -75,7 +75,7 @@ auto make_bayes_a_model(Eigen::Index n_samples, Eigen::Index n_snps)
 
 auto run_bayes_a(
     BayesModel& model,
-    bayes::BayesMethod method,
+    bayes::LegacyBayesMethod method,
     Eigen::Index n_iters,
     std::string_view prefix,
     Eigen::Index seed) -> std::string
@@ -256,7 +256,7 @@ TEST_CASE("checkpoint method round-trip preserves all fields", "[checkpoint]")
         },
     };
 
-    bayes::BayesMethod method;
+    bayes::LegacyBayesMethod method;
     method.genetics.push_back(prior);
     method.randoms.push_back(
         {bayes::MarkerVarianceScope::per_effect, 0.0, {3.0, 0.1}});

@@ -27,7 +27,7 @@
 #include "gelex/model/bayes/algorithm_shape.h"
 #include "gelex/model/bayes/bayes_policy.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -85,9 +85,9 @@ namespace gelex::bayes
 {
 
 auto build_bayes_method(
-    const BayesConfig& config,
+    const LegacyBayesConfig& config,
     std::span<const GeneticStats> stats,
-    double phenotype_variance) -> BayesMethod
+    double phenotype_variance) -> LegacyBayesMethod
 {
     const auto& policy = policy_for(config.base);
 
@@ -114,7 +114,7 @@ auto build_bayes_method(
                    : GeneticSpec::make(s, policy);
     };
 
-    BayesMethod method;
+    LegacyBayesMethod method;
     method.config = config;
     method.residual = OldVarianceSpec::make(phenotype_variance);
 

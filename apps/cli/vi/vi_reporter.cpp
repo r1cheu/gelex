@@ -25,7 +25,7 @@
 #include "gelex/algo/infer/vi/result.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 
 namespace gelex::cli
 {

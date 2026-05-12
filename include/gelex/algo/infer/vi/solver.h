@@ -32,7 +32,7 @@
 #include "gelex/infra/detail/eigen_thread_guard.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/notify.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 
 namespace gelex
@@ -48,7 +48,7 @@ inline auto log_scaled_inv_chi_sq(double x, double nu, double s2) -> double
 }
 
 inline auto resolve_genetic_spec(
-    const bayes::BayesMethod& method,
+    const bayes::LegacyBayesMethod& method,
     GeneticMode mode) -> const bayes::GeneticSpec*
 {
     for (const auto& prior : method.genetics)
@@ -78,7 +78,7 @@ inline auto resolve_genetic_spec(
 
 inline auto compute_elbo(
     const BayesModel& model,
-    const bayes::BayesMethod& method,
+    const bayes::LegacyBayesMethod& method,
     const vi::State& state) -> double
 {
     const double sigma2_e = state.residual().variance;
@@ -144,7 +144,7 @@ class Solver
 
     auto run(
         const BayesModel& model,
-        bayes::BayesMethod method,
+        bayes::LegacyBayesMethod method,
         const VIObserver& observer = {}) -> vi::Result;
 
    private:
@@ -161,7 +161,7 @@ Solver<ChainFactory>::Solver(vi::Params params, ChainFactory make_chain)
 template <typename ChainFactory>
 auto Solver<ChainFactory>::run(
     const BayesModel& model,
-    bayes::BayesMethod method,
+    bayes::LegacyBayesMethod method,
     const VIObserver& observer) -> vi::Result
 {
     notify(observer, FitMethodSetEvent{.method = &method});

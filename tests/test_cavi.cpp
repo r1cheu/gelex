@@ -30,7 +30,7 @@
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/model/bayes/algorithm_shape.h"
 #include "gelex/model/bayes/builder.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/fixed_effects.h"
 #include "genotype_fixture.h"
@@ -51,7 +51,7 @@ auto make_geno_matrix(Eigen::Index n_samples, Eigen::Index n_snps) -> Genotype
 }
 
 auto make_bayes_rr_model(Eigen::Index n_samples, Eigen::Index n_snps)
-    -> std::pair<BayesModel, bayes::BayesMethod>
+    -> std::pair<BayesModel, bayes::LegacyBayesMethod>
 {
     auto phenotype = Eigen::VectorXd::Random(n_samples);
     auto fixed = FixedEffect::build(n_samples);
@@ -61,7 +61,7 @@ auto make_bayes_rr_model(Eigen::Index n_samples, Eigen::Index n_snps)
     genetics.emplace_back(GeneticMode::A, std::move(geno));
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
-    const auto config = bayes::BayesConfig{BayesBase::RR};
+    const auto config = bayes::LegacyBayesConfig{BayesBase::RR};
     const auto stats = compute_genetic_stats(model);
     auto method
         = bayes::build_bayes_method(config, stats, model.phenotype_variance());
@@ -117,7 +117,7 @@ TEST_CASE("CAVI RR single iteration produces correct posteriors", "[cavi]")
     genetics.emplace_back(GeneticMode::A, std::move(geno));
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
-    const auto config = bayes::BayesConfig{BayesBase::RR};
+    const auto config = bayes::LegacyBayesConfig{BayesBase::RR};
     const auto stats = compute_genetic_stats(model);
     auto method
         = bayes::build_bayes_method(config, stats, model.phenotype_variance());
@@ -181,7 +181,7 @@ TEST_CASE("CAVI RR converges on synthetic data", "[cavi]")
     genetics.emplace_back(GeneticMode::A, std::move(geno));
 
     BayesModel model(phenotype, std::move(fixed), std::move(genetics));
-    const auto config = bayes::BayesConfig{BayesBase::RR};
+    const auto config = bayes::LegacyBayesConfig{BayesBase::RR};
     const auto stats = compute_genetic_stats(model);
     auto method
         = bayes::build_bayes_method(config, stats, model.phenotype_variance());

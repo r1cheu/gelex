@@ -40,7 +40,7 @@ struct GeneticState;
 struct ResidualState;
 struct Assignment;
 struct ComponentAllocation;
-struct BayesMethod;
+struct LegacyBayesMethod;
 
 };  // namespace gelex::bayes
 
@@ -183,7 +183,7 @@ class Samples
 
     Samples(
         const BayesModel& model,
-        const bayes::BayesMethod& method,
+        const bayes::LegacyBayesMethod& method,
         std::string_view sample_prefix,
         Eigen::Index n_records);
     void store(const mcmc::State& states);

@@ -20,7 +20,7 @@
 #include <span>
 #include <vector>
 
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
@@ -34,9 +34,9 @@ struct GeneticStats
 };
 
 auto build_bayes_method(
-    const BayesConfig&,
+    const LegacyBayesConfig&,
     std::span<const GeneticStats>,
-    double phenotype_variance) -> BayesMethod;
+    double phenotype_variance) -> LegacyBayesMethod;
 
 }  // namespace gelex::bayes
 

@@ -36,7 +36,7 @@ vi::Engine::Engine(Config config) : config_(std::move(config)) {}
 
 auto vi::Engine::run(
     const BayesModel& model,
-    bayes::BayesMethod method,
+    bayes::LegacyBayesMethod method,
     const VIObserver& observer) -> void
 {
     if (config_.method.base != BayesBase::RR)

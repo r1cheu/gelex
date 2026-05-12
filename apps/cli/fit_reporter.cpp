@@ -26,7 +26,7 @@
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/types/genetic_effect_type.h"
 

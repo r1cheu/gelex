@@ -26,7 +26,7 @@
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/exception.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -82,7 +82,9 @@ template <typename GeneticStateT>
 class InferenceState
 {
    public:
-    InferenceState(const BayesModel& model, const bayes::BayesMethod& method);
+    InferenceState(
+        const BayesModel& model,
+        const bayes::LegacyBayesMethod& method);
     InferenceState(
         bayes::FixedState fixed,
         std::vector<bayes::RandomState> random,
@@ -123,7 +125,7 @@ class InferenceState
 template <typename GeneticStateT>
 InferenceState<GeneticStateT>::InferenceState(
     const BayesModel& model,
-    const bayes::BayesMethod& method)
+    const bayes::LegacyBayesMethod& method)
     : fixed_(model.fixed())
 {
     for (const auto& prior : method.genetics)

@@ -24,7 +24,7 @@
 #include <Eigen/Core>
 
 #include "gelex/io/detail/binary_writer.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -41,7 +41,7 @@ class Writer
    public:
     Writer(
         const BayesModel& model,
-        const bayes::BayesMethod& method,
+        const bayes::LegacyBayesMethod& method,
         std::string_view prefix,
         Eigen::Index n_records);
     Writer(const Writer&) = delete;

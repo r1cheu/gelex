@@ -27,7 +27,7 @@
 
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/io/detail/binary_reader.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/prior.h"
 
 namespace gelex
@@ -315,9 +315,10 @@ auto read_genetic_prior(
     return {std::move(spec), std::move(mixture)};
 }
 
-auto read_method(const io::detail::BinaryReader& reader) -> bayes::BayesMethod
+auto read_method(const io::detail::BinaryReader& reader)
+    -> bayes::LegacyBayesMethod
 {
-    bayes::BayesMethod method;
+    bayes::LegacyBayesMethod method;
 
     for (uint8_t i = 0;; ++i)
     {
@@ -350,7 +351,7 @@ struct GeneticModeInfo
     bool has_sign;
 };
 
-auto collect_genetic_modes(const bayes::BayesMethod& method)
+auto collect_genetic_modes(const bayes::LegacyBayesMethod& method)
     -> std::vector<GeneticModeInfo>
 {
     std::vector<GeneticModeInfo> result;
@@ -385,7 +386,7 @@ auto collect_genetic_modes(const bayes::BayesMethod& method)
 
 auto read_genetics(
     const io::detail::BinaryReader& reader,
-    const bayes::BayesMethod& method) -> std::vector<bayes::GeneticState>
+    const bayes::LegacyBayesMethod& method) -> std::vector<bayes::GeneticState>
 {
     const auto modes = collect_genetic_modes(method);
     std::vector<bayes::GeneticState> result;

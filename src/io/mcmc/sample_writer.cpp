@@ -27,7 +27,7 @@
 #include "gelex/algo/infer/detail/genetic_binding.h"
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 
@@ -72,7 +72,7 @@ auto find_sign_for_mode(const bayes::OldGeneticPrior& prior, GeneticMode mode)
 
 mcmc::Writer::Writer(
     const BayesModel& model,
-    const bayes::BayesMethod& method,
+    const bayes::LegacyBayesMethod& method,
     std::string_view prefix,
     Eigen::Index n_records)
     : writer_(fmt::format("{}.samples", prefix))

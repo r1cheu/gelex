@@ -43,14 +43,14 @@ namespace
 
 using TraitRunner = mcmc::Result (*)(
     const BayesModel&,
-    bayes::BayesMethod,
+    bayes::LegacyBayesMethod,
     const mcmc::Engine::Config&,
     const MCMCObserver&);
 
 template <auto MakeChain>
 auto run_recipe(
     const BayesModel& model,
-    bayes::BayesMethod method,
+    bayes::LegacyBayesMethod method,
     const mcmc::Engine::Config& config,
     const MCMCObserver& observer) -> mcmc::Result
 {
@@ -108,7 +108,7 @@ constexpr auto kTraitRunners = std::array<
 // clang-format on
 
 auto find_runner(
-    const bayes::BayesConfig& method,
+    const bayes::LegacyBayesConfig& method,
     std::span<const GeneticMode> requested) -> TraitRunner
 {
     const auto shape
@@ -189,7 +189,7 @@ auto ConfigValidator::check_mcmc_params() const -> void
 
 auto Engine::run(
     const BayesModel& model,
-    bayes::BayesMethod method,
+    bayes::LegacyBayesMethod method,
     const MCMCObserver& observer) -> void
 {
     auto runner = find_runner(config_.method, config_.requested_effects);

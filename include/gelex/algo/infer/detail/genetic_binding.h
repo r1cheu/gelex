@@ -26,7 +26,7 @@
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/exception.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::infer::detail
@@ -70,7 +70,7 @@ inline auto validate_genetic_block_shape(
 }
 
 inline auto find_prior_for_mode(
-    const bayes::BayesMethod& method,
+    const bayes::LegacyBayesMethod& method,
     GeneticMode mode) -> const bayes::OldGeneticPrior*
 {
     for (const auto& prior : method.genetics)
@@ -94,8 +94,9 @@ inline auto find_prior_for_mode(
     return nullptr;
 }
 
-inline auto find_prior_for_mode(bayes::BayesMethod& method, GeneticMode mode)
-    -> bayes::OldGeneticPrior*
+inline auto find_prior_for_mode(
+    bayes::LegacyBayesMethod& method,
+    GeneticMode mode) -> bayes::OldGeneticPrior*
 {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     return const_cast<bayes::OldGeneticPrior*>(

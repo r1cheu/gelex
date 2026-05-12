@@ -24,7 +24,7 @@
 
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/io/detail/binary_writer.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 
@@ -284,7 +284,7 @@ auto write_genetic_prior(
 
 auto write_method(
     io::detail::BinaryWriter& writer,
-    const bayes::BayesMethod& method) -> void
+    const bayes::LegacyBayesMethod& method) -> void
 {
     for (uint8_t i = 0; i < static_cast<uint8_t>(method.genetics.size()); ++i)
     {
@@ -306,7 +306,7 @@ auto write_method(
 auto write_checkpoint(
     const mcmc::State& state,
     const std::mt19937_64& rng,
-    const bayes::BayesMethod& method,
+    const bayes::LegacyBayesMethod& method,
     std::string_view prefix) -> void
 {
     io::detail::BinaryWriter writer(fmt::format("{}.ckpt", prefix));

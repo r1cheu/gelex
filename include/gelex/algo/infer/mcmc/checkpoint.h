@@ -19,7 +19,7 @@
 
 #include <random>
 
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 
 namespace gelex
@@ -29,7 +29,7 @@ struct Checkpoint
 {
     mcmc::State state;
     std::mt19937_64 rng;
-    bayes::BayesMethod method;
+    bayes::LegacyBayesMethod method;
 };
 
 }  // namespace gelex

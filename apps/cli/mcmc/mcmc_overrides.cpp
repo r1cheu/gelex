@@ -91,7 +91,7 @@ auto apply_side(
 }  // namespace
 
 auto validate_overrides(
-    const bayes::BayesConfig& method,
+    const bayes::LegacyBayesConfig& method,
     const MethodOverrides& overrides) -> void
 {
     if (overrides.additive.positive_prob)
@@ -118,7 +118,7 @@ auto validate_overrides(
 }
 
 auto apply_overrides(
-    bayes::BayesMethod& method,
+    bayes::LegacyBayesMethod& method,
     const MethodOverrides& overrides) -> void
 {
     for (auto& prior : method.genetics)

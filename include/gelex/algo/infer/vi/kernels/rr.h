@@ -25,7 +25,7 @@
 #include "gelex/algo/infer/vi/kernels/concept.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 
 namespace gelex::vi
 {

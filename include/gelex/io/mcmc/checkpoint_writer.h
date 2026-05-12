@@ -20,7 +20,7 @@
 #include <random>
 #include <string_view>
 
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 
 namespace gelex
@@ -29,7 +29,7 @@ namespace gelex
 auto write_checkpoint(
     const mcmc::State& state,
     const std::mt19937_64& rng,
-    const bayes::BayesMethod& method,
+    const bayes::LegacyBayesMethod& method,
     std::string_view prefix) -> void;
 
 }  // namespace gelex

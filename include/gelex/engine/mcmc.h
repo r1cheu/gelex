@@ -24,7 +24,7 @@
 
 #include "gelex/algo/infer/params.h"
 #include "gelex/infra/logging/fit_event.h"
-#include "gelex/model/bayes/method.h"
+#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -41,7 +41,7 @@ class Engine
     struct Config
     {
         std::string bfile_prefix;
-        bayes::BayesConfig method;
+        bayes::LegacyBayesConfig method;
         std::vector<GeneticMode> requested_effects;
 
         int seed;
@@ -54,7 +54,7 @@ class Engine
     explicit Engine(Config config);
     auto run(
         const BayesModel& model,
-        bayes::BayesMethod method,
+        bayes::LegacyBayesMethod method,
         const MCMCObserver& observer = {}) -> void;
 
    private:

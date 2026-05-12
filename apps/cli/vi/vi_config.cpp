@@ -31,13 +31,13 @@ namespace
 {
 
 auto parse_method(argparse::ArgumentParser& cmd)
-    -> std::pair<bayes::BayesConfig, std::vector<GeneticMode>>
+    -> std::pair<bayes::LegacyBayesConfig, std::vector<GeneticMode>>
 {
     auto base
         = gelex::get_bayes_base(cmd.get("-m")).value_or(gelex::BayesBase::RR);
     auto requested = parse_genetic_modes(cmd.get("--mode"));
 
-    bayes::BayesConfig cfg{
+    bayes::LegacyBayesConfig cfg{
         .base = base,
         .dominance = bayes::DominancePolicy::symmetric,
         .estimate_pi = false,
