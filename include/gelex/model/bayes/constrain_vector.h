@@ -23,10 +23,10 @@
 #include <initializer_list>
 #include <limits>
 #include <span>
-#include <string>
 #include <string_view>
 #include <vector>
 
+#include <fmt/format.h>
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
@@ -55,8 +55,8 @@ struct Positive
             if (!(v > T{0}))
             {
                 throw GelexException(
-                    std::string{name}
-                    + ": all entries must be strictly positive");
+                    fmt::format(
+                        "{}: all entries must be strictly positive", name));
             }
         }
     }
@@ -75,8 +75,8 @@ struct Simplex
             if (!(v > T{0}))
             {
                 throw GelexException(
-                    std::string{name}
-                    + ": all entries must be strictly positive");
+                    fmt::format(
+                        "{}: all entries must be strictly positive", name));
             }
             sum += v;
         }
@@ -84,7 +84,41 @@ struct Simplex
                       * static_cast<T>(values.size()) * T{64};
         if (std::abs(sum - T{1}) > tol)
         {
-            throw GelexException(std::string{name} + ": entries must sum to 1");
+            throw GelexException(
+                fmt::format("{}: entries must sum to 1", name));
+        }
+    }
+};
+
+struct ScaleMultiplier
+{
+    static constexpr std::string_view name = "ScaleMultiplier";
+
+    template <std::floating_point T>
+    static void check(std::span<const T> values)
+    {
+        if (values.size() < 2)
+        {
+            throw GelexException(
+                fmt::format("{}: must have at least 2 elements", name));
+        }
+        if (values[0] != T{0})
+        {
+            throw GelexException(
+                fmt::format("{}: first element must be 0", name));
+        }
+        for (std::size_t i = 1; i < values.size(); ++i)
+        {
+            if (!std::isfinite(values[i]))
+            {
+                throw GelexException(
+                    fmt::format("{}: element {} must be finite", name, i));
+            }
+            if (!(values[i] > T{0}))
+            {
+                throw GelexException(
+                    fmt::format("{}: element {} must be positive", name, i));
+            }
         }
     }
 };
@@ -107,8 +141,8 @@ class ConstrainVector
         if (values_.empty())
         {
             throw GelexException(
-                std::string{Constraint::name}
-                + ": must contain at least one element");
+                fmt::format(
+                    "{}: must contain at least one element", Constraint::name));
         }
         Constraint::template check<T>(values_);
     }
@@ -151,6 +185,9 @@ using Simplex = ConstrainVector<T, detail::Simplex>;
 
 template <std::floating_point T>
 using PositiveVector = ConstrainVector<T, detail::Positive>;
+
+template <std::floating_point T>
+using ScaleMultiplier = ConstrainVector<T, detail::ScaleMultiplier>;
 
 }  // namespace gelex::bayes
 

@@ -103,12 +103,10 @@ auto Mixture::make(const BayesPolicy& policy, bool estimate_pi)
 }
 
 BayesPrior::BayesPrior(
-    std::vector<RandomEffectPrior> randoms,
+    VarianceSpec random,
     std::vector<std::unique_ptr<GeneticPrior>> genetics,
     VarianceSpec residual)
-    : randoms_(std::move(randoms)),
-      genetics_(std::move(genetics)),
-      residual_(residual)
+    : random_(random), genetics_(std::move(genetics)), residual_(residual)
 {
     const auto check_variance
         = [](const VarianceSpec& spec, std::string_view context)
@@ -137,25 +135,8 @@ BayesPrior::BayesPrior(
         }
     };
 
-    for (const auto& r : randoms_)
-    {
-        check_variance(r.variance, fmt::format("random '{}'", r.name));
-    }
+    check_variance(random_, "random");
     check_variance(residual_, "residual");
-
-    for (std::size_t i = 0; i < randoms_.size(); ++i)
-    {
-        for (std::size_t j = i + 1; j < randoms_.size(); ++j)
-        {
-            if (randoms_[i].name == randoms_[j].name)
-            {
-                throw GelexException(
-                    fmt::format(
-                        "BayesPrior: duplicate random effect name '{}'",
-                        randoms_[i].name));
-            }
-        }
-    }
 
     std::vector<GeneticMode> seen_modes;
     for (const auto& block : genetics_)
@@ -181,14 +162,6 @@ BayesPrior::BayesPrior(
             seen_modes.push_back(mode);
         }
     }
-}
-
-auto BayesPrior::random(std::string_view name) const -> const RandomEffectPrior*
-{
-    const auto it = std::ranges::find_if(
-        randoms_,
-        [name](const RandomEffectPrior& r) { return r.name == name; });
-    return it == randoms_.end() ? nullptr : &*it;
 }
 
 }  // namespace gelex::bayes

@@ -20,9 +20,6 @@
 #include <memory>
 #include <optional>
 #include <ranges>
-#include <span>
-#include <string>
-#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -82,17 +79,11 @@ struct Mixture
         -> std::optional<Mixture>;
 };
 
-struct RandomEffectPrior
-{
-    std::string name;
-    VarianceSpec variance;
-};
-
 class BayesPrior
 {
    public:
     BayesPrior(
-        std::vector<RandomEffectPrior> randoms,
+        VarianceSpec random,
         std::vector<std::unique_ptr<GeneticPrior>> genetics,
         VarianceSpec residual);
 
@@ -104,10 +95,7 @@ class BayesPrior
 
     ~BayesPrior() = default;
 
-    auto randoms() const -> std::span<const RandomEffectPrior>
-    {
-        return randoms_;
-    }
+    auto random() const -> const VarianceSpec& { return random_; }
     auto residual() const -> const VarianceSpec& { return residual_; }
 
     auto genetics() const -> decltype(auto)
@@ -118,10 +106,8 @@ class BayesPrior
                    { return *prior; });
     }
 
-    auto random(std::string_view name) const -> const RandomEffectPrior*;
-
    private:
-    std::vector<RandomEffectPrior> randoms_;
+    VarianceSpec random_;
     std::vector<std::unique_ptr<GeneticPrior>> genetics_;
     VarianceSpec residual_;
 };

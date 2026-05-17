@@ -17,7 +17,6 @@
 #include <array>
 #include <memory>
 #include <utility>
-#include <vector>
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
@@ -44,7 +43,6 @@ using gelex::bayes::MarkerVarianceSpec;
 using gelex::bayes::PositiveVector;
 using gelex::bayes::ProportionSpec;
 using gelex::bayes::ProportionUpdate;
-using gelex::bayes::RandomEffectPrior;
 using gelex::bayes::ScaledInvChiSqPrior;
 using gelex::bayes::Simplex;
 using gelex::bayes::SpikeSlabGaussianPrior;
@@ -104,20 +102,14 @@ auto make_joint() -> std::unique_ptr<GeneticPrior>
 
 TEST_CASE("BayesPrior accessors expose construction arguments", "[bayes_prior]")
 {
-    std::vector<RandomEffectPrior> randoms;
-    randoms.push_back({"litter", make_variance(2.0)});
-    randoms.push_back({"pen", make_variance(3.0)});
-
     std::vector<std::unique_ptr<GeneticPrior>> genetics;
     genetics.push_back(make_gaussian(GeneticMode::A));
     genetics.push_back(make_spike_slab(GeneticMode::D));
 
     BayesPrior prior(
-        std::move(randoms), std::move(genetics), make_variance(5.0));
+        make_variance(2.0), std::move(genetics), make_variance(5.0));
 
-    REQUIRE(prior.randoms().size() == 2);
-    REQUIRE(prior.randoms()[0].name == "litter");
-    REQUIRE(prior.randoms()[1].name == "pen");
+    REQUIRE(prior.random().initial_value == 2.0);
     REQUIRE(prior.residual().initial_value == 5.0);
 
     const auto range = prior.genetics();
@@ -138,7 +130,7 @@ TEST_CASE("BayesPrior::genetics range supports for-each", "[bayes_prior]")
     genetics.push_back(make_gaussian(GeneticMode::A));
     genetics.push_back(make_spike_slab(GeneticMode::D));
 
-    BayesPrior prior({}, std::move(genetics), make_variance());
+    BayesPrior prior(make_variance(), std::move(genetics), make_variance());
 
     std::vector<GeneticMode> visited;
     for (const auto& block : prior.genetics())
@@ -156,7 +148,7 @@ TEST_CASE(
     "BayesPrior::genetics empty for prior with no blocks",
     "[bayes_prior]")
 {
-    BayesPrior prior({}, {}, make_variance());
+    BayesPrior prior(make_variance(), {}, make_variance());
 
     const auto range = prior.genetics();
     REQUIRE(range.empty());
@@ -164,28 +156,7 @@ TEST_CASE(
     REQUIRE(range.begin() == range.end());
 }
 
-TEST_CASE("BayesPrior::random looks up by name", "[bayes_prior]")
-{
-    std::vector<RandomEffectPrior> randoms;
-    randoms.push_back({"litter", make_variance()});
 
-    BayesPrior prior(std::move(randoms), {}, make_variance());
-
-    const auto* found = prior.random("litter");
-    REQUIRE(found != nullptr);
-    REQUIRE(found->name == "litter");
-    REQUIRE(prior.random("missing") == nullptr);
-}
-
-TEST_CASE("BayesPrior rejects duplicate random names", "[bayes_prior]")
-{
-    std::vector<RandomEffectPrior> randoms;
-    randoms.push_back({"litter", make_variance()});
-    randoms.push_back({"litter", make_variance()});
-
-    REQUIRE_THROWS_AS(
-        BayesPrior(std::move(randoms), {}, make_variance()), GelexException);
-}
 
 TEST_CASE("BayesPrior rejects null genetic block", "[bayes_prior]")
 {
@@ -193,7 +164,8 @@ TEST_CASE("BayesPrior rejects null genetic block", "[bayes_prior]")
     genetics.push_back(nullptr);
 
     REQUIRE_THROWS_AS(
-        BayesPrior({}, std::move(genetics), make_variance()), GelexException);
+        BayesPrior(make_variance(), std::move(genetics), make_variance()),
+        GelexException);
 }
 
 TEST_CASE("BayesPrior rejects duplicate mode across blocks", "[bayes_prior]")
@@ -203,7 +175,8 @@ TEST_CASE("BayesPrior rejects duplicate mode across blocks", "[bayes_prior]")
     genetics.push_back(make_gaussian(GeneticMode::A));
 
     REQUIRE_THROWS_AS(
-        BayesPrior({}, std::move(genetics), make_variance()), GelexException);
+        BayesPrior(make_variance(), std::move(genetics), make_variance()),
+        GelexException);
 }
 
 TEST_CASE("BayesPrior rejects invalid variance spec", "[bayes_prior]")
@@ -212,28 +185,28 @@ TEST_CASE("BayesPrior rejects invalid variance spec", "[bayes_prior]")
     {
         auto bad = make_variance();
         bad.initial_value = 0.0;
-        REQUIRE_THROWS_AS(BayesPrior({}, {}, bad), GelexException);
+        REQUIRE_THROWS_AS(
+            BayesPrior(make_variance(), {}, bad), GelexException);
     }
     SECTION("residual degrees_of_freedom <= 0")
     {
         auto bad = make_variance();
         bad.prior.degrees_of_freedom = 0.0;
-        REQUIRE_THROWS_AS(BayesPrior({}, {}, bad), GelexException);
+        REQUIRE_THROWS_AS(
+            BayesPrior(make_variance(), {}, bad), GelexException);
     }
     SECTION("residual scale <= 0")
     {
         auto bad = make_variance();
         bad.prior.scale = 0.0;
-        REQUIRE_THROWS_AS(BayesPrior({}, {}, bad), GelexException);
+        REQUIRE_THROWS_AS(
+            BayesPrior(make_variance(), {}, bad), GelexException);
     }
     SECTION("random variance invalid")
     {
-        std::vector<RandomEffectPrior> randoms;
         auto bad = make_variance();
         bad.initial_value = -1.0;
-        randoms.push_back({"litter", bad});
         REQUIRE_THROWS_AS(
-            BayesPrior(std::move(randoms), {}, make_variance()),
-            GelexException);
+            BayesPrior(bad, {}, make_variance()), GelexException);
     }
 }
