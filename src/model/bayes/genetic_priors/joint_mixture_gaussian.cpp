@@ -80,7 +80,7 @@ auto JointMixtureGaussianPrior::make_state(const GeneticPriorRuntimeInit& init)
         variances.emplace_back(
             Eigen::VectorXd::Constant(
                 spec.marker_variance_size(num_markers),
-                spec.variance().initial_value));
+                spec.variance().initial_value()));
     }
     return std::make_unique<MixtureGaussianRuntimeState>(
         MarkerVarianceRuntimeState(std::move(variances)),

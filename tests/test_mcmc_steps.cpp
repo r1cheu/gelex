@@ -113,7 +113,7 @@ TEST_CASE(
     const bayes::OldVarianceSpec variance_spec{
         .scope = bayes::MarkerVarianceScope::per_effect,
         .init = 0.5,
-        .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}};
+        .prior = {4.0, 0.5}};
 
     std::array<bayes::RandomEffect, 1> effects_arr{
         bayes::RandomEffect{"b", {"a", "b", "c"}, Eigen::MatrixXd{X}}};
@@ -149,7 +149,7 @@ struct KernelTraits<BayesAKernel>
     {
         return bayes::OldGeneticPrior{
             .spec = bayes::
-                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_marker, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
+                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_marker, .init = 0.1, .prior = {4.0, 0.5}}},
             .mixture = std::nullopt};
     }
 };
@@ -161,7 +161,7 @@ struct KernelTraits<BayesRRKernel>
     {
         return bayes::OldGeneticPrior{
             .spec = bayes::
-                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
+                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {4.0, 0.5}}},
             .mixture = std::nullopt};
     }
 };
@@ -173,7 +173,7 @@ struct KernelTraits<BayesBKernel>
     {
         return bayes::OldGeneticPrior{
             .spec = bayes::
-                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_marker, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
+                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_marker, .init = 0.1, .prior = {4.0, 0.5}}},
             .mixture = bayes::Mixture{
                 .strategy = bayes::SpikeSlab{},
                 .proportions
@@ -190,7 +190,7 @@ struct KernelTraits<BayesCKernel>
     {
         return bayes::OldGeneticPrior{
             .spec = bayes::
-                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
+                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {4.0, 0.5}}},
             .mixture = bayes::Mixture{
                 .strategy = bayes::SpikeSlab{},
                 .proportions
@@ -317,7 +317,7 @@ auto make_mixture_prior() -> bayes::OldGeneticPrior
 {
     return bayes::OldGeneticPrior{
         .spec = bayes::
-            GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.05, .prior = {.degrees_of_freedom = 4.0, .scale = 0.1}}},
+            GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.05, .prior = {4.0, 0.1}}},
         .mixture = bayes::Mixture{
             .strategy = bayes::
                 ScaledMixture{.multiplier = Eigen::VectorXd{{0.0, 0.001, 0.01, 0.1}}},
@@ -416,7 +416,7 @@ TEST_CASE(
         .residual = bayes::OldVarianceSpec{
             .scope = bayes::MarkerVarianceScope::per_effect,
             .init = 0.5,
-            .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}};
+            .prior = {4.0, 0.5}}};
 
     mcmc::State inference_state{
         bayes::FixedState{Eigen::VectorXd::Zero(1)},
@@ -463,7 +463,7 @@ TEST_CASE("PiStep rejects estimate=false prior", "[mcmc][pi-sampler]")
 
     const bayes::OldGeneticPrior spike_term{
         .spec = bayes::
-            GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
+            GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {4.0, 0.5}}},
         .mixture = bayes::Mixture{
             .strategy = bayes::SpikeSlab{},
             .proportions
@@ -483,14 +483,14 @@ TEST_CASE("PiStep rejects estimate=false prior", "[mcmc][pi-sampler]")
         .config = bayes::LegacyBayesConfig{},
         .genetics = {bayes::OldGeneticPrior{
             .spec = bayes::
-                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
+                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {4.0, 0.5}}},
             .mixture = bayes::
                 Mixture{.strategy = bayes::SpikeSlab{}, .proportions = {.init = Eigen::VectorXd{{0.9, 0.1}}, .prior = bayes::OldDirichletPrior{Eigen::VectorXi::Ones(2)}, .estimate = false}}}},
         .randoms = {},
         .residual = bayes::OldVarianceSpec{
             .scope = bayes::MarkerVarianceScope::per_effect,
             .init = 0.5,
-            .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}};
+            .prior = {4.0, 0.5}}};
 
     mcmc::State inference_state{
         bayes::FixedState{Eigen::VectorXd::Zero(1)},
@@ -517,7 +517,7 @@ auto make_spike_prior_estimate(Eigen::Index size) -> bayes::OldGeneticPrior
 {
     return bayes::OldGeneticPrior{
         .spec = bayes::
-            GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = size == 1 ? bayes::MarkerVarianceScope::per_effect : bayes::MarkerVarianceScope::per_marker, .init = 0.1, .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}},
+            GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = size == 1 ? bayes::MarkerVarianceScope::per_effect : bayes::MarkerVarianceScope::per_marker, .init = 0.1, .prior = {4.0, 0.5}}},
         .mixture = bayes::Mixture{
             .strategy = bayes::SpikeSlab{},
             .proportions
@@ -544,7 +544,7 @@ auto make_chain_context(
         .residual = bayes::OldVarianceSpec{
             .scope = bayes::MarkerVarianceScope::per_effect,
             .init = 0.3,
-            .prior = {.degrees_of_freedom = 4.0, .scale = 0.5}}};
+            .prior = {4.0, 0.5}}};
 
     return {std::move(model), std::move(method)};
 }

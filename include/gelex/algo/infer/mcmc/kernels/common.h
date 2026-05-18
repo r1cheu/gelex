@@ -34,7 +34,7 @@ inline auto make_variance_sampler(const bayes::OldVarianceSpec& spec)
     -> stats::ScaledInvChi2Sampler<double>
 {
     return stats::ScaledInvChi2Sampler<double>{
-        spec.prior.degrees_of_freedom, spec.prior.scale};
+        spec.prior.degrees_of_freedom(), spec.prior.scale()};
 }
 
 template <typename Allocation>

@@ -47,8 +47,8 @@ class ResidualStep
         : deps_(deps),
           chi_squared_(
               stats::detail::ScaledInvChiSqParams{
-                  .nu = deps_.variance.prior.degrees_of_freedom,
-                  .s2 = deps_.variance.prior.scale})
+                  .nu = deps_.variance.prior.degrees_of_freedom(),
+                  .s2 = deps_.variance.prior.scale()})
     {
     }
 

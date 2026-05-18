@@ -69,6 +69,14 @@ struct Simplex
     template <std::floating_point T>
     static void check(std::span<const T> values)
     {
+        if (values.size() < 2)
+        {
+            throw GelexException(
+                fmt::format(
+                    "{}: must have at least 2 components but got {}",
+                    name,
+                    values.size()));
+        }
         T sum{0};
         for (T v : values)
         {

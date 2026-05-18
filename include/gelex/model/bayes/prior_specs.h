@@ -28,10 +28,18 @@
 namespace gelex::bayes
 {
 
-struct ScaledInvChiSqPrior
+class ScaledInvChiSqPrior
 {
-    double degrees_of_freedom{};
-    double scale{};
+   public:
+    ScaledInvChiSqPrior() = default;
+    ScaledInvChiSqPrior(double degrees_of_freedom, double scale);
+
+    auto degrees_of_freedom() const -> double { return degrees_of_freedom_; }
+    auto scale() const -> double { return scale_; }
+
+   private:
+    double degrees_of_freedom_{-2};
+    double scale_{0};
 };
 
 struct DirichletPrior
@@ -39,10 +47,17 @@ struct DirichletPrior
     PositiveVector<double> concentration;
 };
 
-struct VarianceSpec
+class VarianceSpec
 {
-    double initial_value{};
-    ScaledInvChiSqPrior prior;
+   public:
+    VarianceSpec(double initial_value, ScaledInvChiSqPrior prior);
+
+    auto initial_value() const -> double { return initial_value_; }
+    auto prior() const -> const ScaledInvChiSqPrior& { return prior_; }
+
+   private:
+    double initial_value_{};
+    ScaledInvChiSqPrior prior_;
 };
 
 enum class MarkerVarianceScope : std::uint8_t
@@ -67,7 +82,6 @@ class MarkerVarianceSpec
             case MarkerVarianceScope::per_effect:
                 return 1;
         }
-        std::unreachable();
     }
 
    private:

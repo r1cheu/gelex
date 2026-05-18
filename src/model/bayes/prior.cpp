@@ -17,7 +17,7 @@
 #include "gelex/model/bayes/prior.h"
 
 #include <algorithm>
-#include <cstddef>
+#include <cmath>
 #include <optional>
 #include <span>
 #include <string_view>
@@ -108,36 +108,6 @@ BayesPrior::BayesPrior(
     VarianceSpec residual)
     : random_(random), genetics_(std::move(genetics)), residual_(residual)
 {
-    const auto check_variance
-        = [](const VarianceSpec& spec, std::string_view context)
-    {
-        if (spec.initial_value <= 0.0)
-        {
-            throw GelexException(
-                fmt::format(
-                    "BayesPrior: {} variance initial_value must be > 0",
-                    context));
-        }
-        if (spec.prior.degrees_of_freedom <= 0.0)
-        {
-            throw GelexException(
-                fmt::format(
-                    "BayesPrior: {} variance prior degrees_of_freedom must be "
-                    "> 0",
-                    context));
-        }
-        if (spec.prior.scale <= 0.0)
-        {
-            throw GelexException(
-                fmt::format(
-                    "BayesPrior: {} variance prior scale must be > 0",
-                    context));
-        }
-    };
-
-    check_variance(random_, "random");
-    check_variance(residual_, "residual");
-
     std::vector<GeneticMode> seen_modes;
     for (const auto& block : genetics_)
     {

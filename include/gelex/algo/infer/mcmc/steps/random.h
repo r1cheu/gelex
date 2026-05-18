@@ -51,8 +51,8 @@ class RandomStep
     explicit RandomStep(Deps deps)
         : deps_(deps),
           variance_sampler_(
-              deps_.variance.prior.degrees_of_freedom,
-              deps_.variance.prior.scale)
+              deps_.variance.prior.degrees_of_freedom(),
+              deps_.variance.prior.scale())
     {
     }
 

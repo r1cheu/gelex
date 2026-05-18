@@ -76,8 +76,8 @@ class RRKernel
         -> stats::detail::ScaledInvChiSqParams
     {
         return {
-            .nu = spec.variance.prior.degrees_of_freedom,
-            .s2 = spec.variance.prior.scale};
+            .nu = spec.variance.prior.degrees_of_freedom(),
+            .s2 = spec.variance.prior.scale()};
     }
 
     bayes::vi::GeneticState& state_;

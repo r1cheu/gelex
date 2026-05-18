@@ -103,7 +103,7 @@ auto FitReporter::print_random_prior(const bayes::OldVarianceSpec& spec) -> void
     cli::printer().line("   Random effect:");
     print_variance_prior(
         stats::detail::ScaledInvChiSqParams{
-            spec.prior.degrees_of_freedom, spec.prior.scale},
+            spec.prior.degrees_of_freedom(), spec.prior.scale()},
         spec.init);
 }
 
@@ -138,7 +138,8 @@ auto FitReporter::print_genetic_prior(
 
     print_variance_prior(
         stats::detail::ScaledInvChiSqParams{
-            spec.variance.prior.degrees_of_freedom, spec.variance.prior.scale},
+            spec.variance.prior.degrees_of_freedom(),
+            spec.variance.prior.scale()},
         spec.variance.init);
 
     if (prior.mixture)
@@ -161,7 +162,7 @@ auto FitReporter::print_residual_prior(const bayes::OldVarianceSpec& spec)
     cli::printer().line("   Residual:");
     print_variance_prior(
         stats::detail::ScaledInvChiSqParams{
-            spec.prior.degrees_of_freedom, spec.prior.scale},
+            spec.prior.degrees_of_freedom(), spec.prior.scale()},
         spec.init);
 }
 

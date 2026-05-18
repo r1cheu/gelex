@@ -53,10 +53,7 @@ namespace
 
 auto make_variance(double init = 1.0) -> VarianceSpec
 {
-    return VarianceSpec{
-        .initial_value = init,
-        .prior = ScaledInvChiSqPrior{.degrees_of_freedom = 4.0, .scale = 1.0},
-    };
+    return VarianceSpec(init, ScaledInvChiSqPrior{4.0, 1.0});
 }
 
 auto make_marker_variance() -> MarkerVarianceSpec
@@ -109,8 +106,8 @@ TEST_CASE("BayesPrior accessors expose construction arguments", "[bayes_prior]")
     BayesPrior prior(
         make_variance(2.0), std::move(genetics), make_variance(5.0));
 
-    REQUIRE(prior.random().initial_value == 2.0);
-    REQUIRE(prior.residual().initial_value == 5.0);
+    REQUIRE(prior.random().initial_value() == 2.0);
+    REQUIRE(prior.residual().initial_value() == 5.0);
 
     const auto range = prior.genetics();
     REQUIRE(range.size() == 2);
@@ -156,8 +153,6 @@ TEST_CASE(
     REQUIRE(range.begin() == range.end());
 }
 
-
-
 TEST_CASE("BayesPrior rejects null genetic block", "[bayes_prior]")
 {
     std::vector<std::unique_ptr<GeneticPrior>> genetics;
@@ -179,34 +174,53 @@ TEST_CASE("BayesPrior rejects duplicate mode across blocks", "[bayes_prior]")
         GelexException);
 }
 
-TEST_CASE("BayesPrior rejects invalid variance spec", "[bayes_prior]")
+TEST_CASE("VarianceSpec rejects invalid initial_value", "[variance_spec]")
 {
-    SECTION("residual initial_value <= 0")
+    SECTION("initial_value <= 0")
     {
-        auto bad = make_variance();
-        bad.initial_value = 0.0;
         REQUIRE_THROWS_AS(
-            BayesPrior(make_variance(), {}, bad), GelexException);
+            VarianceSpec(0.0, ScaledInvChiSqPrior{4.0, 1.0}), GelexException);
+        REQUIRE_THROWS_AS(
+            VarianceSpec(-1.0, ScaledInvChiSqPrior{4.0, 1.0}), GelexException);
     }
-    SECTION("residual degrees_of_freedom <= 0")
+}
+
+TEST_CASE("ScaledInvChiSqPrior rejects invalid inputs", "[chisq_prior]")
+{
+    SECTION("degrees_of_freedom <= 0")
     {
-        auto bad = make_variance();
-        bad.prior.degrees_of_freedom = 0.0;
-        REQUIRE_THROWS_AS(
-            BayesPrior(make_variance(), {}, bad), GelexException);
+        REQUIRE_THROWS_AS(ScaledInvChiSqPrior(0.0, 1.0), GelexException);
     }
-    SECTION("residual scale <= 0")
+    SECTION("scale <= 0 for proper prior")
     {
-        auto bad = make_variance();
-        bad.prior.scale = 0.0;
-        REQUIRE_THROWS_AS(
-            BayesPrior(make_variance(), {}, bad), GelexException);
+        REQUIRE_THROWS_AS(ScaledInvChiSqPrior(4.0, 0.0), GelexException);
     }
-    SECTION("random variance invalid")
+}
+
+TEST_CASE(
+    "ScaledInvChiSqPrior accepts flat prior sentinel {-2, 0}",
+    "[chisq_prior]")
+{
+    SECTION("flat sentinel is accepted")
     {
-        auto bad = make_variance();
-        bad.initial_value = -1.0;
-        REQUIRE_THROWS_AS(
-            BayesPrior(bad, {}, make_variance()), GelexException);
+        REQUIRE_NOTHROW(ScaledInvChiSqPrior(-2.0, 0.0));
+    }
+}
+
+TEST_CASE(
+    "ScaledInvChiSqPrior rejects near-flat but invalid prior combos",
+    "[chisq_prior]")
+{
+    SECTION("{-2, 1}: df matches sentinel but scale != 0")
+    {
+        REQUIRE_THROWS_AS(ScaledInvChiSqPrior(-2.0, 1.0), GelexException);
+    }
+    SECTION("{4, 0}: scale matches sentinel but df != -2")
+    {
+        REQUIRE_THROWS_AS(ScaledInvChiSqPrior(4.0, 0.0), GelexException);
+    }
+    SECTION("{-1, 0}: negative df but not sentinel, scale == 0")
+    {
+        REQUIRE_THROWS_AS(ScaledInvChiSqPrior(-1.0, 0.0), GelexException);
     }
 }

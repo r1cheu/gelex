@@ -118,15 +118,15 @@ inline auto compute_elbo(
         // log p(σ²_β | ν, s²) — variance prior density
         elbo += log_scaled_inv_chi_sq(
             sigma2_beta,
-            spec->variance.prior.degrees_of_freedom,
-            spec->variance.prior.scale);
+            spec->variance.prior.degrees_of_freedom(),
+            spec->variance.prior.scale());
     }
 
     // --- Residual variance prior ---
     elbo += log_scaled_inv_chi_sq(
         sigma2_e,
-        method.residual.prior.degrees_of_freedom,
-        method.residual.prior.scale);
+        method.residual.prior.degrees_of_freedom(),
+        method.residual.prior.scale());
 
     return elbo;
 }

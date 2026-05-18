@@ -189,8 +189,8 @@ auto write_variance_spec(
     const bayes::OldVarianceSpec& spec) -> void
 {
     write_scalar(
-        writer, fmt::format("{}/nu", prefix), spec.prior.degrees_of_freedom);
-    write_scalar(writer, fmt::format("{}/s2", prefix), spec.prior.scale);
+        writer, fmt::format("{}/nu", prefix), spec.prior.degrees_of_freedom());
+    write_scalar(writer, fmt::format("{}/s2", prefix), spec.prior.scale());
     write_scalar(writer, fmt::format("{}/init", prefix), spec.init);
     write_uint8(
         writer,

@@ -77,7 +77,7 @@ auto SpikeSlabGaussianPrior::make_state(const GeneticPriorRuntimeInit& init)
     variances.emplace_back(
         Eigen::VectorXd::Constant(
             var_spec.marker_variance_size(num_markers),
-            var_spec.variance().initial_value));
+            var_spec.variance().initial_value()));
     return std::make_unique<MixtureGaussianRuntimeState>(
         MarkerVarianceRuntimeState(std::move(variances)),
         MixtureRuntimeState(
@@ -145,7 +145,7 @@ auto ScaledMixtureGaussianPrior::make_state(const GeneticPriorRuntimeInit& init)
     variances.emplace_back(
         Eigen::VectorXd::Constant(
             var_spec.marker_variance_size(num_markers),
-            var_spec.variance().initial_value));
+            var_spec.variance().initial_value()));
     return std::make_unique<MixtureGaussianRuntimeState>(
         MarkerVarianceRuntimeState(std::move(variances)),
         MixtureRuntimeState(
