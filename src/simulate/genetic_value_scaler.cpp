@@ -20,7 +20,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/infra/stats/descriptive.h"
+#include "gelex/infra/stats/detail/var.h"
 #include "gelex/simulate/sim_types.h"
 
 namespace gelex

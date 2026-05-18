@@ -14,26 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_INFRA_STATS_DESCRIPTIVE_H_
-#define GELEX_INFRA_STATS_DESCRIPTIVE_H_
-
-#include <type_traits>
+#ifndef GELEX_INFRA_STATS_DETAIL_VAR_H_
+#define GELEX_INFRA_STATS_DETAIL_VAR_H_
 
 #include <Eigen/Core>
-#include <Eigen/Sparse>
 
-namespace gelex::stats
-{
-
-[[nodiscard]] Eigen::RowVectorXd centralize(Eigen::Ref<Eigen::MatrixXd> x);
-[[nodiscard]] std::pair<Eigen::RowVectorXd, Eigen::RowVectorXd> standardize(
-    Eigen::Ref<Eigen::MatrixXd> x);
-[[nodiscard]] Eigen::VectorXd sum_square(
-    const Eigen::Ref<const Eigen::MatrixXd>& mat);
-[[nodiscard]] Eigen::VectorXd sum_square(
-    const Eigen::Ref<Eigen::SparseMatrix<double>>& mat);
-
-namespace detail
+namespace gelex::stats::detail
 {
 
 template <Eigen::Index Axis = 0, typename Derived>
@@ -73,7 +59,6 @@ auto var(const Eigen::DenseBase<Derived>& a, Eigen::Index norm_type = 1)
     }
 }
 
-}  // namespace detail
-}  // namespace gelex::stats
+}  // namespace gelex::stats::detail
 
-#endif  // GELEX_INFRA_STATS_DESCRIPTIVE_H_
+#endif  // GELEX_INFRA_STATS_DETAIL_VAR_H_

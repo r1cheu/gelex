@@ -20,7 +20,7 @@
 
 #include <fmt/format.h>
 
-#include "gelex/infra/stats/descriptive.h"
+#include "gelex/infra/stats/detail/var.h"
 #include "gelex/post/detail/utils.h"
 
 namespace gelex

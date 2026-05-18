@@ -22,7 +22,7 @@
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/mcmc/state.h"
-#include "gelex/infra/stats/descriptive.h"
+#include "gelex/infra/stats/detail/var.h"
 
 namespace gelex::mcmc::detail
 {

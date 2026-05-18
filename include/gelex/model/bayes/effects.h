@@ -23,6 +23,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/genotype/genotype.h"
+#include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
@@ -52,11 +53,13 @@ struct GeneticEffect
         : type(type), X(std::move(X))
     {
         XtX_diag = this->X.matrix().colwise().squaredNorm();
+        variance = gelex::stats::detail::var<0>(X.matrix()).sum();
     }
 
     GeneticMode type;
     gelex::genotype::Genotype X;
     Eigen::VectorXd XtX_diag;
+    double variance{};
 
     auto is_monomorphic(Eigen::Index snp_index) const -> bool
     {

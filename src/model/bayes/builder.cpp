@@ -23,7 +23,7 @@
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/data/pipe/geno.h"
 #include "gelex/data/pipe/pheno.h"
-#include "gelex/infra/stats/descriptive.h"
+#include "gelex/infra/stats/detail/var.h"
 #include "gelex/model/bayes/algorithm_shape.h"
 #include "gelex/model/bayes/bayes_policy.h"
 #include "gelex/model/bayes/effects.h"

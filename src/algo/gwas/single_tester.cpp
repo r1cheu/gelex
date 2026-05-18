@@ -20,7 +20,7 @@
 #include <unsupported/Eigen/SpecialFunctions>
 
 #include "gelex/data/genotype/processor.h"
-#include "gelex/infra/stats/descriptive.h"
+#include "gelex/infra/stats/detail/var.h"
 
 namespace gelex
 {

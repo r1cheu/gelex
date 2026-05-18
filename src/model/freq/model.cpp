@@ -16,7 +16,7 @@
 
 #include <Eigen/SVD>
 
-#include "gelex/infra/stats/descriptive.h"
+#include "gelex/infra/stats/detail/var.h"
 #include "gelex/model/freq/model.h"
 
 namespace gelex

@@ -22,7 +22,7 @@
 #include <fmt/ranges.h>
 #include <Eigen/Core>
 
-#include "gelex/infra/stats/descriptive.h"
+#include "gelex/infra/stats/detail/var.h"
 #include "gelex/model/bayes/effects.h"
 
 namespace gelex

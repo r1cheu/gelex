@@ -23,7 +23,7 @@
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/algo/infer/vi/kernels/concept.h"
 #include "gelex/data/genotype/genotype.h"
-#include "gelex/infra/stats/descriptive.h"
+#include "gelex/infra/stats/detail/var.h"
 #include "gelex/model/bayes/effects.h"
 
 namespace gelex::vi
