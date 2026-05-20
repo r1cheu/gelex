@@ -28,8 +28,8 @@
 
 #include "gelex/exception.h"
 #include "gelex/model/bayes/bayes_policy.h"
-#include "gelex/model/bayes/constrain_vector.h"
 #include "gelex/model/bayes/prior_constants.h"
+#include "gelex/types/constrained_vector.h"
 
 namespace gelex::bayes
 {

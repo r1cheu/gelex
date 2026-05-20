@@ -22,7 +22,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/exception.h"
-#include "gelex/model/bayes/constrain_vector.h"
+#include "gelex/types/constrained_vector.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/genetic_priors/gaussian.h"
 #include "gelex/model/bayes/genetic_priors/joint_mixture_gaussian.h"
@@ -40,11 +40,11 @@ using gelex::bayes::GeneticPrior;
 using gelex::bayes::JointMixtureGaussianPrior;
 using gelex::bayes::MarkerVarianceScope;
 using gelex::bayes::MarkerVarianceSpec;
-using gelex::bayes::PositiveVector;
+using gelex::PositiveVector;
 using gelex::bayes::ProportionSpec;
 using gelex::bayes::ProportionUpdate;
 using gelex::bayes::ScaledInvChiSqPrior;
-using gelex::bayes::Simplex;
+using gelex::Simplex;
 using gelex::bayes::SpikeSlabGaussianPrior;
 using gelex::bayes::VarianceSpec;
 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_CONSTRAIN_VECTOR_H_
-#define GELEX_MODEL_BAYES_CONSTRAIN_VECTOR_H_
+#ifndef GELEX_TYPES_CONSTRAINED_VECTOR_H_
+#define GELEX_TYPES_CONSTRAINED_VECTOR_H_
 
 #include <cmath>
 #include <concepts>
@@ -31,7 +31,7 @@
 
 #include "gelex/exception.h"
 
-namespace gelex::bayes
+namespace gelex
 {
 
 template <typename C, typename T>
@@ -135,15 +135,15 @@ struct ScaleMultiplier
 
 template <std::floating_point T, typename Constraint>
     requires VectorConstraint<Constraint, T>
-class ConstrainVector
+class ConstrainedVector
 {
    public:
-    ConstrainVector(std::initializer_list<T> values)
-        : ConstrainVector(std::span<const T>{values.begin(), values.size()})
+    ConstrainedVector(std::initializer_list<T> values)
+        : ConstrainedVector(std::span<const T>{values.begin(), values.size()})
     {
     }
 
-    explicit ConstrainVector(std::span<const T> values)
+    explicit ConstrainedVector(std::span<const T> values)
         : values_(values.begin(), values.end())
     {
         if (values_.empty())
@@ -189,14 +189,14 @@ class ConstrainVector
 };
 
 template <std::floating_point T>
-using Simplex = ConstrainVector<T, detail::Simplex>;
+using Simplex = ConstrainedVector<T, detail::Simplex>;
 
 template <std::floating_point T>
-using PositiveVector = ConstrainVector<T, detail::Positive>;
+using PositiveVector = ConstrainedVector<T, detail::Positive>;
 
 template <std::floating_point T>
-using ScaleMultiplier = ConstrainVector<T, detail::ScaleMultiplier>;
+using ScaleMultiplier = ConstrainedVector<T, detail::ScaleMultiplier>;
 
-}  // namespace gelex::bayes
+}  // namespace gelex
 
-#endif  // GELEX_MODEL_BAYES_CONSTRAIN_VECTOR_H_
+#endif  // GELEX_TYPES_CONSTRAINED_VECTOR_H_
