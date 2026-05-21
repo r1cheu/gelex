@@ -26,76 +26,59 @@
 namespace gelex::bayes
 {
 
-class MarkerVarianceCapability
+class VarianceCapability
 {
    public:
-    auto operator=(const MarkerVarianceCapability&)
-        -> MarkerVarianceCapability& = delete;
-    auto operator=(MarkerVarianceCapability&&) noexcept
-        -> MarkerVarianceCapability& = delete;
+    auto operator=(const VarianceCapability&) -> VarianceCapability& = delete;
+    auto operator=(VarianceCapability&&) noexcept
+        -> VarianceCapability& = delete;
 
-    virtual ~MarkerVarianceCapability() = default;
+    virtual ~VarianceCapability() = default;
 
     virtual auto variance_specs() const -> std::span<const MarkerVarianceSpec>
         = 0;
 
    protected:
-    MarkerVarianceCapability() = default;
-    MarkerVarianceCapability(const MarkerVarianceCapability&) = default;
-    MarkerVarianceCapability(MarkerVarianceCapability&&) noexcept = default;
+    VarianceCapability() = default;
+    VarianceCapability(const VarianceCapability&) = default;
+    VarianceCapability(VarianceCapability&&) noexcept = default;
 };
 
-class MixtureCapability
+class ProportionCapability
 {
    public:
-    auto operator=(const MixtureCapability&) -> MixtureCapability& = delete;
-    auto operator=(MixtureCapability&&) noexcept -> MixtureCapability& = delete;
+    auto operator=(const ProportionCapability&)
+        -> ProportionCapability& = delete;
+    auto operator=(ProportionCapability&&) noexcept
+        -> ProportionCapability& = delete;
 
-    virtual ~MixtureCapability() = default;
+    virtual ~ProportionCapability() = default;
 
     virtual auto proportion_specs() const -> std::span<const ProportionSpec>
         = 0;
 
    protected:
-    MixtureCapability() = default;
-    MixtureCapability(const MixtureCapability&) = default;
-    MixtureCapability(MixtureCapability&&) noexcept = default;
+    ProportionCapability() = default;
+    ProportionCapability(const ProportionCapability&) = default;
+    ProportionCapability(ProportionCapability&&) noexcept = default;
 };
 
-class ScaledMixtureCapability
+class MultiplierCapability
 {
    public:
-    auto operator=(const ScaledMixtureCapability&)
-        -> ScaledMixtureCapability& = delete;
-    auto operator=(ScaledMixtureCapability&&) noexcept
-        -> ScaledMixtureCapability& = delete;
+    auto operator=(const MultiplierCapability&)
+        -> MultiplierCapability& = delete;
+    auto operator=(MultiplierCapability&&) noexcept
+        -> MultiplierCapability& = delete;
 
-    virtual ~ScaledMixtureCapability() = default;
+    virtual ~MultiplierCapability() = default;
 
     virtual auto multipliers() const -> std::span<const Eigen::VectorXd> = 0;
 
    protected:
-    ScaledMixtureCapability() = default;
-    ScaledMixtureCapability(const ScaledMixtureCapability&) = default;
-    ScaledMixtureCapability(ScaledMixtureCapability&&) noexcept = default;
-};
-
-class JointMixtureCapability
-{
-   public:
-    auto operator=(const JointMixtureCapability&)
-        -> JointMixtureCapability& = delete;
-    auto operator=(JointMixtureCapability&&) noexcept
-        -> JointMixtureCapability& = delete;
-
-    virtual ~JointMixtureCapability() = default;
-
-    virtual auto proportion_spec() const -> const ProportionSpec& = 0;
-
-   protected:
-    JointMixtureCapability() = default;
-    JointMixtureCapability(const JointMixtureCapability&) = default;
-    JointMixtureCapability(JointMixtureCapability&&) noexcept = default;
+    MultiplierCapability() = default;
+    MultiplierCapability(const MultiplierCapability&) = default;
+    MultiplierCapability(MultiplierCapability&&) noexcept = default;
 };
 
 }  // namespace gelex::bayes

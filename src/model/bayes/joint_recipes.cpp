@@ -20,7 +20,7 @@
 #include <memory>
 
 #include "gelex/exception.h"
-#include "gelex/model/bayes/genetic_priors/joint_mixture_gaussian.h"
+#include "gelex/model/bayes/gaussian_prior.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/constrained_vector.h"
 

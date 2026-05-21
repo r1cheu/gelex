@@ -19,8 +19,7 @@
 #include <cstddef>
 #include <memory>
 
-#include "gelex/model/bayes/genetic_priors/gaussian.h"
-#include "gelex/model/bayes/genetic_priors/mixture_gaussian.h"
+#include "gelex/model/bayes/gaussian_prior.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/constrained_vector.h"
 

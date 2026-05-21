@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_GENETIC_PRIORS_MIXTURE_GAUSSIAN_H_
-#define GELEX_MODEL_BAYES_GENETIC_PRIORS_MIXTURE_GAUSSIAN_H_
+#ifndef GELEX_MODEL_BAYES_GAUSSIAN_PRIOR_H_
+#define GELEX_MODEL_BAYES_GAUSSIAN_PRIOR_H_
 
 #include <array>
 #include <memory>
@@ -32,10 +32,27 @@
 namespace gelex::bayes
 {
 
+class GaussianPrior final
+    : public GeneticPrior
+    , public VarianceCapability
+{
+   public:
+    GaussianPrior(GeneticMode mode, MarkerVarianceSpec variance);
+
+    auto modes() const -> std::span<const GeneticMode> override;
+    auto variance_specs() const -> std::span<const MarkerVarianceSpec> override;
+    auto make_state(const GeneticPriorRuntimeInit& init) const
+        -> std::unique_ptr<GeneticPriorRuntimeState> override;
+
+   private:
+    std::array<GeneticMode, 1> modes_;
+    std::array<MarkerVarianceSpec, 1> variance_specs_;
+};
+
 class SpikeSlabGaussianPrior final
     : public GeneticPrior
-    , public MarkerVarianceCapability
-    , public MixtureCapability
+    , public VarianceCapability
+    , public ProportionCapability
 {
    public:
     SpikeSlabGaussianPrior(
@@ -57,9 +74,9 @@ class SpikeSlabGaussianPrior final
 
 class ScaledMixtureGaussianPrior final
     : public GeneticPrior
-    , public MarkerVarianceCapability
-    , public MixtureCapability
-    , public ScaledMixtureCapability
+    , public VarianceCapability
+    , public ProportionCapability
+    , public MultiplierCapability
 {
    public:
     ScaledMixtureGaussianPrior(
@@ -82,6 +99,29 @@ class ScaledMixtureGaussianPrior final
     std::array<ProportionSpec, 1> proportion_specs_;
 };
 
+class JointMixtureGaussianPrior final
+    : public GeneticPrior
+    , public VarianceCapability
+    , public ProportionCapability
+{
+   public:
+    JointMixtureGaussianPrior(
+        std::array<GeneticMode, 2> modes,
+        std::array<MarkerVarianceSpec, 2> variances,
+        ProportionSpec proportion);
+
+    auto modes() const -> std::span<const GeneticMode> override;
+    auto variance_specs() const -> std::span<const MarkerVarianceSpec> override;
+    auto proportion_specs() const -> std::span<const ProportionSpec> override;
+    auto make_state(const GeneticPriorRuntimeInit& init) const
+        -> std::unique_ptr<GeneticPriorRuntimeState> override;
+
+   private:
+    std::array<GeneticMode, 2> modes_;
+    std::array<MarkerVarianceSpec, 2> variance_specs_;
+    std::array<ProportionSpec, 1> proportion_specs_;
+};
+
 }  // namespace gelex::bayes
 
-#endif  // GELEX_MODEL_BAYES_GENETIC_PRIORS_MIXTURE_GAUSSIAN_H_
+#endif  // GELEX_MODEL_BAYES_GAUSSIAN_PRIOR_H_

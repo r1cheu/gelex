@@ -23,11 +23,10 @@
 
 #include "gelex/exception.h"
 #include "gelex/model/bayes/genetic_prior.h"
-#include "gelex/model/bayes/genetic_priors/gaussian.h"
-#include "gelex/model/bayes/genetic_priors/joint_mixture_gaussian.h"
-#include "gelex/model/bayes/genetic_priors/mixture_gaussian.h"
+#include "gelex/model/bayes/gaussian_prior.h"
 #include "gelex/model/bayes/legacy_prior.h"
 #include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/prior_capabilities.h"
 #include "gelex/model/bayes/prior_specs.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -39,10 +38,14 @@ using gelex::bayes::GeneticPrior;
 using gelex::bayes::JointMixtureGaussianPrior;
 using gelex::bayes::MarkerVarianceScope;
 using gelex::bayes::MarkerVarianceSpec;
+using gelex::bayes::MultiplierCapability;
 using gelex::bayes::ProportionSpec;
+using gelex::bayes::ProportionCapability;
 using gelex::bayes::ProportionUpdate;
+using gelex::bayes::ScaledMixtureGaussianPrior;
 using gelex::bayes::ScaledInvChiSqPrior;
 using gelex::bayes::SpikeSlabGaussianPrior;
+using gelex::bayes::VarianceCapability;
 using gelex::bayes::VarianceSpec;
 
 namespace
@@ -68,6 +71,11 @@ auto make_proportion_2() -> ProportionSpec
         Eigen::VectorXd{{1.0, 1.0}},
         ProportionUpdate::fixed,
     };
+}
+
+auto make_multiplier_2() -> Eigen::VectorXd
+{
+    return Eigen::VectorXd{{0.0, 1.0}};
 }
 
 auto make_gaussian(GeneticMode mode = GeneticMode::A)
@@ -116,6 +124,48 @@ TEST_CASE("BayesPrior accessors expose construction arguments", "[bayes_prior]")
     REQUIRE((*it).contains(GeneticMode::D));
     ++it;
     REQUIRE(it == range.end());
+}
+
+TEST_CASE("GeneticPrior capabilities compose prior data axes", "[bayes_prior]")
+{
+    GaussianPrior gaussian(GeneticMode::A, make_marker_variance());
+    REQUIRE(gaussian.query<VarianceCapability>() != nullptr);
+    REQUIRE(gaussian.query<ProportionCapability>() == nullptr);
+    REQUIRE(gaussian.query<MultiplierCapability>() == nullptr);
+
+    SpikeSlabGaussianPrior spike_slab(
+        GeneticMode::A, make_marker_variance(), make_proportion_2());
+    const auto* spike_slab_proportion =
+        spike_slab.query<ProportionCapability>();
+    REQUIRE(spike_slab.query<VarianceCapability>() != nullptr);
+    REQUIRE(spike_slab_proportion != nullptr);
+    REQUIRE(spike_slab_proportion->proportion_specs().size() == 1);
+    REQUIRE(spike_slab.query<MultiplierCapability>() == nullptr);
+
+    ScaledMixtureGaussianPrior scaled_mixture(
+        GeneticMode::A,
+        make_marker_variance(),
+        make_multiplier_2(),
+        make_proportion_2());
+    const auto* scaled_mixture_multiplier =
+        scaled_mixture.query<MultiplierCapability>();
+    REQUIRE(scaled_mixture.query<VarianceCapability>() != nullptr);
+    REQUIRE(scaled_mixture.query<ProportionCapability>() != nullptr);
+    REQUIRE(scaled_mixture_multiplier != nullptr);
+    REQUIRE(scaled_mixture_multiplier->multipliers().size() == 1);
+
+    JointMixtureGaussianPrior joint(
+        std::array<GeneticMode, 2>{GeneticMode::A, GeneticMode::D},
+        std::array<MarkerVarianceSpec, 2>{
+            make_marker_variance(), make_marker_variance()},
+        make_proportion_2());
+    const auto* joint_variance = joint.query<VarianceCapability>();
+    const auto* joint_proportion = joint.query<ProportionCapability>();
+    REQUIRE(joint_variance != nullptr);
+    REQUIRE(joint_variance->variance_specs().size() == 2);
+    REQUIRE(joint_proportion != nullptr);
+    REQUIRE(joint_proportion->proportion_specs().size() == 1);
+    REQUIRE(joint.query<MultiplierCapability>() == nullptr);
 }
 
 TEST_CASE("BayesPrior::genetics range supports for-each", "[bayes_prior]")
