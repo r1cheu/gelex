@@ -16,13 +16,18 @@
 
 #include "mcmc_config.h"
 
+#include <array>
 #include <optional>
+#include <string_view>
 #include <vector>
 
 #include <argparse.h>
 #include <Eigen/Core>
 
+#include <fmt/format.h>
+
 #include "cli/cli_helper.h"
+#include "gelex/exception.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::cli
@@ -30,6 +35,37 @@ namespace gelex::cli
 
 namespace
 {
+
+auto reject_canonical_bayes_recipe_flags(const argparse::ArgumentParser& cmd)
+    -> void
+{
+    constexpr std::array kFlags = {
+        std::string_view{"--additive-h2"},
+        std::string_view{"--dominance-h2"},
+        std::string_view{"--additive-pi"},
+        std::string_view{"--dominance-pi"},
+        std::string_view{"--additive-multiplier"},
+        std::string_view{"--dominance-multiplier"},
+        std::string_view{"--joint-pi"},
+        std::string_view{"--estimate-additive-pi"},
+        std::string_view{"--estimate-dominance-pi"},
+        std::string_view{"--estimate-joint-pi"},
+        std::string_view{"--dominance-positive-prob"},
+        std::string_view{"--random-variance-proportion"},
+    };
+    for (const auto flag : kFlags)
+    {
+        if (cmd.is_used(flag))
+        {
+            throw GelexException(
+                fmt::format(
+                    "BayesRecipe flag {} is not supported by the current "
+                    "MCMC engine; remove it or use a legacy equivalent where "
+                    "available",
+                    flag));
+        }
+    }
+}
 
 auto parse_method(argparse::ArgumentParser& cmd)
     -> std::pair<bayes::LegacyBayesConfig, std::vector<GeneticMode>>
@@ -109,6 +145,7 @@ auto make_engine_config(
 
 auto make_mcmc_config(argparse::ArgumentParser& cmd) -> McmcConfig
 {
+    reject_canonical_bayes_recipe_flags(cmd);
     auto [method, requested] = parse_method(cmd);
     auto overrides = make_overrides(cmd);
     validate_overrides(method, overrides);

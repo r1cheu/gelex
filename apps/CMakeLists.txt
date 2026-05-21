@@ -37,7 +37,8 @@ set(CLI_SOURCES
     cli/geno_reporter.cpp
     cli/grm_pipe_reporter.cpp
     cli/data_pipe_config.cpp
-    cli/cli_helper.cpp)
+    cli/cli_helper.cpp
+    cli/bayes_recipe_config.cpp)
 
 add_executable(gelex_cli ${CLI_SOURCES})
 set_target_properties(gelex_cli PROPERTIES OUTPUT_NAME "gelex")

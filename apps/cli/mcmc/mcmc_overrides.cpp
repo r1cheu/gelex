@@ -102,10 +102,10 @@ auto validate_overrides(
     if (overrides.dominance.positive_prob)
     {
         const double p = *overrides.dominance.positive_prob;
-        if (p < 0.0 || p > 1.0)
+        if (p <= 0.0 || p >= 1.0)
         {
             throw GelexException(
-                fmt::format("positive_prob must be in [0, 1], got {}", p));
+                fmt::format("positive_prob must be in (0, 1), got {}", p));
         }
         if (method.dominance != bayes::DominancePolicy::asymmetric)
         {

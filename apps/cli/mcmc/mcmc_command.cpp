@@ -16,10 +16,12 @@
 
 #include "mcmc_command.h"
 
+#include <string>
 #include <utility>
 
 #include <argparse.h>
 
+#include "cli/bayes_recipe_config.h"
 #include "cli/cli_helper.h"
 #include "cli/data_pipe_config.h"
 #include "cli/dataset_reporter.h"
@@ -33,6 +35,7 @@
 #include "gelex/model/bayes/builder.h"
 #include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/recipe.h"
 #include "mcmc_config.h"
 #include "mcmc_overrides.h"
 #include "mcmc_reporter.h"
@@ -75,8 +78,15 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
     pheno.load(common);
     geno.load(common);
 
+    auto bayes_config = gelex::cli::make_bayes_recipe_config(cmd);
+    auto preset = gelex::bayes::to_bayes_recipe_preset(
+        cmd.get<std::string>("--method"));
+    auto bayes_recipe = gelex::bayes::BayesRecipe(preset, bayes_config);
+
     auto model = gelex::build_bayes_model(std::move(pheno), std::move(geno));
     auto stats = gelex::compute_genetic_stats(model);
+    auto prior = bayes_recipe.make_prior(model);
+
     auto method = gelex::bayes::build_bayes_method(
         mcmc_config.engine.method, stats, model.phenotype_variance());
     gelex::cli::apply_overrides(method, mcmc_config.overrides);

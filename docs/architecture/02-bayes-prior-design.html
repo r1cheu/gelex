@@ -853,8 +853,11 @@ tr:hover td { background: rgba(212,165,116,0.02); }
   <h4>公共接口</h4>
 
   <div class="tree">
+<span class="dir">include/gelex/types/</span>
+<span class="ind">├─</span> <span class="file">constrained_value.h</span>                    <span class="note">// ValueConstraint, OpenUnitInterval</span>
+<span class="ind">└─</span> <span class="file">constrained_vector.h</span>                   <span class="note">// VectorConstraint, Simplex, PositiveVector</span>
+
 <span class="dir">include/gelex/model/bayes/</span>
-<span class="ind">├─</span> <span class="file">constrain_vector.h</span>                    <span class="note">// VectorConstraint, Simplex, PositiveVector</span>
 <span class="ind">├─</span> <span class="file">prior_specs.h</span>                         <span class="note">// 所有 prior 值类型</span>
 <span class="ind">├─</span> <span class="file">genetic_prior.h</span>                       <span class="note">// GeneticPrior 稳定接口</span>
 <span class="ind">├─</span> <span class="file">genetic_prior_runtime_state.h</span>         <span class="note">// runtime state base + marker variance</span>
@@ -884,7 +887,7 @@ tr:hover td { background: rgba(212,165,116,0.02); }
   <div class="callout note">
     <div class="label">归属原则</div>
     <ul>
-      <li><code>prior_specs.h</code> include <code>constrain_vector.h</code>，被 capability 头与 concrete prior 共享，不依赖 <code>BayesPrior</code>——避免反向拖入。</li>
+      <li><code>prior_specs.h</code> include <code>gelex/types/constrained_vector.h</code>，被 capability 头与 concrete prior 共享，不依赖 <code>BayesPrior</code>——避免反向拖入。</li>
       <li><code>prior_capabilities.h</code> 集中所有 capability。pure-virtual 接口无独立编译开销，新增 capability 在此追加，不为每个 capability 单独建文件。</li>
       <li><code>genetic_prior.cpp</code> 不存在——<code>GeneticPrior::contains()</code> 内联于头文件。</li>
       <li>MCMC/VI 的 kernel registry &amp; factory 属于 <code>algo</code> 层，与本模块解耦。</li>
@@ -897,10 +900,10 @@ tr:hover td { background: rgba(212,165,116,0.02); }
   <h2><span class="sectnum">§ 03</span>基础值类型</h2>
   <p class="dek">从受约束向量到 prior spec——所有 invariant 在构造时建立。</p>
 
-  <h3><span class="num">3.1</span>constrain_vector.h</h3>
-  <p>通用 constrained vector 基础设施。<code>ConstrainVector</code> 由 <code>VectorConstraint</code> concept 约束，提供 <em>Simplex</em> 与 <em>PositiveVector</em> 两个语义别名。</p>
+  <h3><span class="num">3.1</span>constrained_value.h / constrained_vector.h</h3>
+  <p>通用 constrained value / vector 基础设施。<code>ConstrainedVector</code> 由 <code>VectorConstraint</code> concept 约束，提供 <em>Simplex</em> 与 <em>PositiveVector</em> 两个语义别名。</p>
 
-<pre data-lang="C++"><code><span class="k">namespace</span> gelex::bayes
+<pre data-lang="C++"><code><span class="k">namespace</span> gelex
 {
 
 <span class="k">template</span> &lt;<span class="k">typename</span> <span class="t">C</span>, <span class="k">typename</span> <span class="t">T</span>&gt;
@@ -912,11 +915,11 @@ tr:hover td { background: rgba(212,165,116,0.02); }
 
 <span class="k">template</span> &lt;std::<span class="t">floating_point</span> <span class="t">T</span>, <span class="k">typename</span> <span class="t">Constraint</span>&gt;
     <span class="k">requires</span> <span class="t">VectorConstraint</span>&lt;<span class="t">Constraint</span>, <span class="t">T</span>&gt;
-<span class="k">class</span> <span class="t">ConstrainVector</span>
-{
-   <span class="k">public</span>:
-    <span class="fn">ConstrainVector</span>(std::<span class="t">initializer_list</span>&lt;<span class="t">T</span>&gt; values);
-    <span class="k">explicit</span> <span class="fn">ConstrainVector</span>(std::<span class="t">span</span>&lt;<span class="k">const</span> <span class="t">T</span>&gt; values);
+	<span class="k">class</span> <span class="t">ConstrainedVector</span>
+	{
+	   <span class="k">public</span>:
+	    <span class="fn">ConstrainedVector</span>(std::<span class="t">initializer_list</span>&lt;<span class="t">T</span>&gt; values);
+	    <span class="k">explicit</span> <span class="fn">ConstrainedVector</span>(std::<span class="t">span</span>&lt;<span class="k">const</span> <span class="t">T</span>&gt; values);
 
     <span class="k">auto</span> <span class="fn">size</span>() <span class="k">const noexcept</span> -&gt; std::<span class="t">size_t</span>;
     <span class="k">auto</span> <span class="fn">data</span>() <span class="k">const noexcept</span> -&gt; <span class="k">const</span> <span class="t">T</span>*;
@@ -930,15 +933,15 @@ tr:hover td { background: rgba(212,165,116,0.02); }
 };
 
 <span class="k">template</span> &lt;std::<span class="t">floating_point</span> <span class="t">T</span>&gt;
-<span class="k">using</span> <span class="t">Simplex</span>        = <span class="t">ConstrainVector</span>&lt;<span class="t">T</span>, detail::<span class="t">Simplex</span>&gt;;
+	<span class="k">using</span> <span class="t">Simplex</span>        = <span class="t">ConstrainedVector</span>&lt;<span class="t">T</span>, detail::<span class="t">Simplex</span>&gt;;
 
-<span class="k">template</span> &lt;std::<span class="t">floating_point</span> <span class="t">T</span>&gt;
-<span class="k">using</span> <span class="t">PositiveVector</span> = <span class="t">ConstrainVector</span>&lt;<span class="t">T</span>, detail::<span class="t">Positive</span>&gt;;
+	<span class="k">template</span> &lt;std::<span class="t">floating_point</span> <span class="t">T</span>&gt;
+	<span class="k">using</span> <span class="t">PositiveVector</span> = <span class="t">ConstrainedVector</span>&lt;<span class="t">T</span>, detail::<span class="t">Positive</span>&gt;;
 
 }</code></pre>
 
   <h3><span class="num">3.2</span>prior_specs.h</h3>
-  <p>Prior 值类型的集合。它 include <code>constrain_vector.h</code>，被 capability 头与 concrete prior 共享。</p>
+  <p>Prior 值类型的集合。它 include <code>gelex/types/constrained_vector.h</code>，被 capability 头与 concrete prior 共享。</p>
 
 <pre data-lang="C++"><code><span class="k">namespace</span> gelex::bayes
 {

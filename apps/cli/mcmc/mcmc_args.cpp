@@ -70,10 +70,10 @@ auto setup_mcmc_args(argparse::ArgumentParser& cmd) -> void
 
     cmd.add_group("Model");
     cmd.add_argument("-m", "--method")
-        .help("Bayesian method: A, B, C, R, RR")
+        .help("Bayesian method: A, B, C, R, RR, CD")
         .default_value("RR")
         .metavar("<METHOD>")
-        .choices("A", "B", "C", "R", "RR")
+        .choices("A", "B", "C", "R", "RR", "CD")
         .required();
     cmd.add_argument("--mode")
         .help(
@@ -82,13 +82,9 @@ auto setup_mcmc_args(argparse::ArgumentParser& cmd) -> void
         .default_value(std::string("A"))
         .choices("A", "D", "AD")
         .metavar("<MODE>");
-    cmd.add_argument("--asym")
-        .help("Asymmetric truncation for dominance")
-        .flag();
     cmd.add_argument("--positive-prob")
         .help("Positive prob prior for dominance effect")
-        .scan<'g', double>()
-        .default_value(0.5);
+        .scan<'g', double>();
     cmd.add_argument("--estimate-pi")
         .help("Estimate mixture proportions (BayesB/C only)")
         .flag();
@@ -107,6 +103,57 @@ auto setup_mcmc_args(argparse::ArgumentParser& cmd) -> void
     cmd.add_argument("--dpi")
         .help("Dominance mixture proportions for BayesB/C/R")
         .nargs(argparse::nargs_pattern::at_least_one)
+        .scan<'g', double>();
+    cmd.add_argument("--h2")
+        .help("Additive heritability (0, 1)")
+        .scan<'g', double>();
+    cmd.add_argument("--d2")
+        .help("Dominance heritability (0, 1)")
+        .scan<'g', double>();
+    cmd.add_argument("--random-variance-proportion")
+        .help("Variance fraction for non-SNP random effects (0, 1)")
+        .scan<'g', double>();
+
+    // Canonical BayesRecipe flags (consumed by make_bayes_recipe_config).
+    // Coexist with the legacy flags above (consumed by LegacyBayesConfig path)
+    // during migration.
+    cmd.add_argument("--additive-h2")
+        .help("Additive heritability (0, 1)")
+        .scan<'g', double>();
+    cmd.add_argument("--dominance-h2")
+        .help("Dominance heritability (0, 1)")
+        .scan<'g', double>();
+    cmd.add_argument("--additive-pi")
+        .help("Additive mixture proportions (BayesB/C/R)")
+        .nargs(argparse::nargs_pattern::at_least_one)
+        .scan<'g', double>();
+    cmd.add_argument("--dominance-pi")
+        .help("Dominance mixture proportions (BayesB/C/R)")
+        .nargs(argparse::nargs_pattern::at_least_one)
+        .scan<'g', double>();
+    cmd.add_argument("--additive-multiplier")
+        .help("Additive variance multipliers (BayesR)")
+        .nargs(argparse::nargs_pattern::at_least_one)
+        .scan<'g', double>();
+    cmd.add_argument("--dominance-multiplier")
+        .help("Dominance variance multipliers (BayesR)")
+        .nargs(argparse::nargs_pattern::at_least_one)
+        .scan<'g', double>();
+    cmd.add_argument("--joint-pi")
+        .help("Joint allocation proportions (BayesCD)")
+        .nargs(argparse::nargs_pattern::at_least_one)
+        .scan<'g', double>();
+    cmd.add_argument("--estimate-additive-pi")
+        .help("Sample additive mixture proportions")
+        .flag();
+    cmd.add_argument("--estimate-dominance-pi")
+        .help("Sample dominance mixture proportions")
+        .flag();
+    cmd.add_argument("--estimate-joint-pi")
+        .help("Sample joint allocation proportions (BayesCD)")
+        .flag();
+    cmd.add_argument("--dominance-positive-prob")
+        .help("Prior probability of positive dominance sign (asymmetric)")
         .scan<'g', double>();
 
     cmd.add_group("MCMC");

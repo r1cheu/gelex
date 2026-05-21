@@ -23,7 +23,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/constrain_vector.h"
+#include "gelex/types/constrained_vector.h"
 
 namespace gelex::bayes
 {
@@ -82,6 +82,7 @@ class MarkerVarianceSpec
             case MarkerVarianceScope::per_effect:
                 return 1;
         }
+        std::unreachable();
     }
 
    private:
