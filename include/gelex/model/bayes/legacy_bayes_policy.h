@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_BAYES_POLICY_H_
-#define GELEX_MODEL_BAYES_BAYES_POLICY_H_
+#ifndef GELEX_MODEL_BAYES_LEGACY_BAYES_POLICY_H_
+#define GELEX_MODEL_BAYES_LEGACY_BAYES_POLICY_H_
 
 #include <optional>
 #include <span>
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/algorithm_shape.h"
-#include "gelex/model/bayes/bayes_base.h"
-#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/legacy_algorithm_shape.h"
+#include "gelex/model/bayes/legacy_bayes_base.h"
+#include "gelex/model/bayes/legacy_prior.h"
+#include "gelex/model/bayes/prior_specs.h"
 
 namespace gelex::bayes
 {
@@ -48,4 +49,4 @@ auto policy_for(BayesBase) -> const BayesPolicy&;
 
 }  // namespace gelex::bayes
 
-#endif  // GELEX_MODEL_BAYES_BAYES_POLICY_H_
+#endif  // GELEX_MODEL_BAYES_LEGACY_BAYES_POLICY_H_

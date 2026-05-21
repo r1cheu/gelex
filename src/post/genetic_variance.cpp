@@ -22,7 +22,7 @@
 #include <Eigen/Core>
 
 #include "gelex/infra/stats/detail/var.h"
-#include "gelex/model/bayes/algorithm_shape.h"
+#include "gelex/model/bayes/legacy_algorithm_shape.h"
 #include "gelex/post/detail/utils.h"
 
 namespace gelex

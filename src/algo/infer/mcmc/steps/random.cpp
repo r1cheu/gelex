@@ -22,6 +22,7 @@
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
+#include "gelex/model/bayes/legacy_prior.h"
 
 namespace gelex::mcmc
 {

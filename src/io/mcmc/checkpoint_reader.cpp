@@ -28,6 +28,7 @@
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/io/detail/binary_reader.h"
 #include "gelex/model/bayes/legacy_method.h"
+#include "gelex/model/bayes/legacy_prior.h"
 #include "gelex/model/bayes/prior.h"
 
 namespace gelex

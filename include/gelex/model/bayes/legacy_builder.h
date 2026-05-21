@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_BUILDER_H_
-#define GELEX_MODEL_BAYES_BUILDER_H_
+#ifndef GELEX_MODEL_BAYES_LEGACY_BUILDER_H_
+#define GELEX_MODEL_BAYES_LEGACY_BUILDER_H_
 
 #include <span>
 #include <vector>
@@ -54,4 +54,4 @@ auto compute_genetic_stats(const BayesModel& model)
 
 }  // namespace gelex
 
-#endif  // GELEX_MODEL_BAYES_BUILDER_H_
+#endif  // GELEX_MODEL_BAYES_LEGACY_BUILDER_H_

@@ -25,6 +25,7 @@
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/io/detail/binary_writer.h"
 #include "gelex/model/bayes/legacy_method.h"
+#include "gelex/model/bayes/legacy_prior.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 

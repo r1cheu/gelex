@@ -26,10 +26,10 @@
 #include <fmt/base.h>
 #include <fmt/format.h>
 
-#include "gelex/model/bayes/algorithm_shape.h"
-#include "gelex/model/bayes/bayes_base.h"
-#include "gelex/model/bayes/bayes_policy.h"
-#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/legacy_algorithm_shape.h"
+#include "gelex/model/bayes/legacy_bayes_base.h"
+#include "gelex/model/bayes/legacy_bayes_policy.h"
+#include "gelex/model/bayes/legacy_prior.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes

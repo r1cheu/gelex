@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/model/bayes/builder.h"
+#include "gelex/model/bayes/legacy_builder.h"
 
 #include <utility>
 #include <variant>
@@ -24,9 +24,9 @@
 #include "gelex/data/pipe/geno.h"
 #include "gelex/data/pipe/pheno.h"
 #include "gelex/infra/stats/detail/var.h"
-#include "gelex/model/bayes/algorithm_shape.h"
-#include "gelex/model/bayes/bayes_policy.h"
 #include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/legacy_algorithm_shape.h"
+#include "gelex/model/bayes/legacy_bayes_policy.h"
 #include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"

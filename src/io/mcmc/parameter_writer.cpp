@@ -21,7 +21,7 @@
 #include <string>
 
 #include "gelex/io/detail/text_writer.h"
-#include "gelex/model/bayes/algorithm_shape.h"
+#include "gelex/model/bayes/legacy_algorithm_shape.h"
 
 namespace gelex
 {

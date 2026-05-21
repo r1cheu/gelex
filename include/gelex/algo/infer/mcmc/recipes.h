@@ -30,7 +30,7 @@
 #include "gelex/algo/infer/mcmc/steps/pi.h"
 #include "gelex/algo/infer/mcmc/steps/random.h"
 #include "gelex/algo/infer/mcmc/steps/residual.h"
-#include "gelex/model/bayes/algorithm_shape.h"
+#include "gelex/model/bayes/legacy_algorithm_shape.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::mcmc

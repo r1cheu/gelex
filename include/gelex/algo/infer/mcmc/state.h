@@ -26,6 +26,7 @@
 
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/legacy_method.h"
+#include "gelex/model/bayes/legacy_prior.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/genetic_effect_type.h"

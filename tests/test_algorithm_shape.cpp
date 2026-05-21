@@ -22,8 +22,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/exception.h"
-#include "gelex/model/bayes/algorithm_shape.h"
-#include "gelex/model/bayes/bayes_policy.h"
+#include "gelex/model/bayes/legacy_algorithm_shape.h"
+#include "gelex/model/bayes/legacy_bayes_policy.h"
 #include "gelex/types/genetic_effect_type.h"
 
 using gelex::GelexException;

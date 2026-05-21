@@ -21,6 +21,7 @@
 
 #include "gelex/algo/infer/vi/context.h"
 #include "gelex/infra/stats/conjugate_prior.h"
+#include "gelex/model/bayes/legacy_prior.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 

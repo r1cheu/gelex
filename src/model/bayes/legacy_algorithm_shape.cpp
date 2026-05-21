@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/model/bayes/algorithm_shape.h"
+#include "gelex/model/bayes/legacy_algorithm_shape.h"
 
 #include <algorithm>
 #include <optional>
@@ -22,7 +22,7 @@
 #include <string_view>
 
 #include "gelex/exception.h"
-#include "gelex/model/bayes/bayes_policy.h"
+#include "gelex/model/bayes/legacy_bayes_policy.h"
 
 namespace gelex::bayes
 {

@@ -18,66 +18,14 @@
 #define GELEX_MODEL_BAYES_PRIOR_H_
 
 #include <memory>
-#include <optional>
 #include <ranges>
-#include <variant>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/prior_specs.h"
 
 namespace gelex::bayes
 {
-
-struct OldDirichletPrior
-{
-    Eigen::VectorXi concentration;
-};
-
-struct OldVarianceSpec
-{
-    MarkerVarianceScope scope{};
-    double init{};
-    ScaledInvChiSqPrior prior;
-
-    static auto make(double phenotype_variance) -> OldVarianceSpec;
-    static auto make(double init, MarkerVarianceScope scope) -> OldVarianceSpec;
-};
-
-struct CategoricalSpec
-{
-    Eigen::VectorXd init;
-    OldDirichletPrior prior;
-    bool estimate = false;
-};
-
-struct SpikeSlab
-{
-};
-
-struct ScaledMixture
-{
-    Eigen::VectorXd multiplier;
-};
-
-struct JointMixture
-{
-};
-
-using VarianceStrategy = std::variant<SpikeSlab, ScaledMixture, JointMixture>;
-
-struct BayesPolicy;
-
-struct Mixture
-{
-    VarianceStrategy strategy;
-    CategoricalSpec proportions;
-
-    static auto make(const BayesPolicy&, bool estimate_pi)
-        -> std::optional<Mixture>;
-};
 
 class BayesPrior
 {

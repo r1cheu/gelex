@@ -17,18 +17,12 @@
 #include "gelex/model/bayes/prior.h"
 
 #include <algorithm>
-#include <cmath>
-#include <optional>
-#include <span>
-#include <string_view>
 #include <utility>
 
 #include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/exception.h"
-#include "gelex/model/bayes/bayes_policy.h"
-#include "gelex/model/bayes/prior_constants.h"
+#include "gelex/model/bayes/prior_specs.h"
 #include "gelex/types/constrained_vector.h"
 
 namespace gelex::bayes
@@ -55,51 +49,6 @@ ProportionSpec::ProportionSpec(
             "ProportionSpec: initial value and prior concentration must have "
             "the same size");
     }
-}
-
-auto OldVarianceSpec::make(double phenotype_variance) -> OldVarianceSpec
-{
-    constexpr double kResidualVarianceProportion = 0.3;
-    return OldVarianceSpec{
-        .scope = MarkerVarianceScope::per_effect,
-        .init = kResidualVarianceProportion * phenotype_variance,
-        .prior = ScaledInvChiSqPrior{
-            prior_constants::RESIDUAL_VARIANCE_SHAPE,
-            prior_constants::RESIDUAL_VARIANCE_SCALE,
-        },
-    };
-}
-
-auto OldVarianceSpec::make(double init, MarkerVarianceScope scope)
-    -> OldVarianceSpec
-{
-    return OldVarianceSpec{
-        .scope = scope,
-        .init = init,
-        .prior = ScaledInvChiSqPrior{
-            prior_constants::MARKER_VARIANCE_SHAPE,
-            prior_constants::MARKER_VARIANCE_SCALE_MULTIPLIER * init,
-        },
-    };
-}
-
-auto Mixture::make(const BayesPolicy& policy, bool estimate_pi)
-    -> std::optional<Mixture>
-{
-    if (!policy.mixture)
-    {
-        return std::nullopt;
-    }
-    const auto& m = *policy.mixture;
-    return Mixture{
-        m.strategy,
-        CategoricalSpec{
-            m.default_proportion,
-            OldDirichletPrior{
-                Eigen::VectorXi::Ones(m.default_proportion.size())},
-            estimate_pi,
-        },
-    };
 }
 
 BayesPrior::BayesPrior(

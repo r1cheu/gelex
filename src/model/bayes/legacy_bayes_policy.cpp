@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/model/bayes/bayes_policy.h"
+#include "gelex/model/bayes/legacy_bayes_policy.h"
 
 #include <array>
 #include <utility>

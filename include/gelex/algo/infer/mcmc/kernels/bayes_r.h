@@ -28,6 +28,7 @@
 #include "gelex/algo/infer/mcmc/kernels/detail/mixture_op.h"
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
+#include "gelex/model/bayes/legacy_prior.h"
 
 namespace gelex::mcmc
 {

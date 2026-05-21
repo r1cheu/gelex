@@ -23,7 +23,7 @@
 
 #include "gelex/infra/stats/diagnostics.h"
 #include "gelex/io/detail/binary_reader.h"
-#include "gelex/model/bayes/algorithm_shape.h"
+#include "gelex/model/bayes/legacy_algorithm_shape.h"
 #include "gelex/post/detail/utils.h"
 #include "gelex/types/genetic_effect_type.h"
 

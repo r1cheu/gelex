@@ -28,6 +28,7 @@
 #include "gelex/io/mcmc/sample_writer.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/legacy_method.h"
+#include "gelex/model/bayes/legacy_prior.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 

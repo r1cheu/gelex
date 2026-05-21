@@ -27,7 +27,7 @@
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/io/detail/binary_reader.h"
-#include "gelex/model/bayes/algorithm_shape.h"
+#include "gelex/model/bayes/legacy_algorithm_shape.h"
 #include "gelex/post/fixed.h"
 #include "gelex/post/genetic.h"
 #include "gelex/post/genetic_variance.h"

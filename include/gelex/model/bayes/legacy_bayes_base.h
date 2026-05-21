@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_BAYES_BASE_H_
-#define GELEX_MODEL_BAYES_BAYES_BASE_H_
+#ifndef GELEX_MODEL_BAYES_LEGACY_BAYES_BASE_H_
+#define GELEX_MODEL_BAYES_LEGACY_BAYES_BASE_H_
 
 #include <algorithm>
 #include <array>
@@ -91,4 +91,4 @@ struct formatter<gelex::BayesBase> : formatter<string_view>
 
 }  // namespace fmt
 
-#endif  // GELEX_MODEL_BAYES_BAYES_BASE_H_
+#endif  // GELEX_MODEL_BAYES_LEGACY_BAYES_BASE_H_

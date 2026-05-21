@@ -30,8 +30,8 @@
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/mcmc/checkpoint_reader.h"
 #include "gelex/io/mcmc/result_writer.h"
-#include "gelex/model/bayes/algorithm_shape.h"
-#include "gelex/model/bayes/bayes_policy.h"
+#include "gelex/model/bayes/legacy_algorithm_shape.h"
+#include "gelex/model/bayes/legacy_bayes_policy.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/genetic_effect_type.h"
 

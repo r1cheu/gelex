@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_ALGORITHM_SHAPE_H_
-#define GELEX_MODEL_BAYES_ALGORITHM_SHAPE_H_
+#ifndef GELEX_MODEL_BAYES_LEGACY_ALGORITHM_SHAPE_H_
+#define GELEX_MODEL_BAYES_LEGACY_ALGORITHM_SHAPE_H_
 
 #include <cstdint>
 #include <optional>
@@ -56,4 +56,4 @@ enum class AlgorithmShape : std::uint8_t
 
 }  // namespace gelex::bayes
 
-#endif  // GELEX_MODEL_BAYES_ALGORITHM_SHAPE_H_
+#endif  // GELEX_MODEL_BAYES_LEGACY_ALGORITHM_SHAPE_H_

@@ -20,6 +20,7 @@
 
 #include "gelex/exception.h"
 #include "gelex/model/bayes/legacy_method.h"
+#include "gelex/model/bayes/legacy_prior.h"
 
 namespace gelex::bayes
 {

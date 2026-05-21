@@ -21,10 +21,10 @@
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
-#include "gelex/model/bayes/bayes_policy.h"
-#include "gelex/model/bayes/builder.h"
+#include "gelex/model/bayes/legacy_bayes_policy.h"
+#include "gelex/model/bayes/legacy_builder.h"
+#include "gelex/model/bayes/legacy_prior_constants.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_constants.h"
 
 namespace gelex::bayes
 {

@@ -27,6 +27,7 @@
 #include "gelex/model/bayes/genetic_priors/gaussian.h"
 #include "gelex/model/bayes/genetic_priors/joint_mixture_gaussian.h"
 #include "gelex/model/bayes/genetic_priors/mixture_gaussian.h"
+#include "gelex/model/bayes/legacy_prior.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_specs.h"
 #include "gelex/types/genetic_effect_type.h"

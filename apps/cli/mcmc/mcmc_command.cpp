@@ -32,7 +32,7 @@
 #include "gelex/engine/mcmc.h"
 #include "gelex/infra/logging/dataset_event.h"
 #include "gelex/infra/logging/notify.h"
-#include "gelex/model/bayes/builder.h"
+#include "gelex/model/bayes/legacy_builder.h"
 #include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/recipe.h"

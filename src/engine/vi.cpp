@@ -25,8 +25,8 @@
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/vi/result_writer.h"
-#include "gelex/model/bayes/algorithm_shape.h"
-#include "gelex/model/bayes/bayes_policy.h"
+#include "gelex/model/bayes/legacy_algorithm_shape.h"
+#include "gelex/model/bayes/legacy_bayes_policy.h"
 #include "gelex/model/bayes/model.h"
 
 namespace gelex
