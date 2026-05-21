@@ -22,6 +22,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/exception.h"
+#include "gelex/types/constrained_value.h"
 #include "gelex/types/constrained_vector.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/genetic_priors/gaussian.h"
@@ -35,12 +36,12 @@
 using gelex::GelexException;
 using gelex::GeneticMode;
 using gelex::bayes::BayesPrior;
-using gelex::bayes::DirichletPrior;
 using gelex::bayes::GaussianPrior;
 using gelex::bayes::GeneticPrior;
 using gelex::bayes::JointMixtureGaussianPrior;
 using gelex::bayes::MarkerVarianceScope;
 using gelex::bayes::MarkerVarianceSpec;
+using gelex::PositiveScalar;
 using gelex::PositiveVector;
 using gelex::bayes::ProportionSpec;
 using gelex::bayes::ProportionUpdate;
@@ -69,7 +70,7 @@ auto make_proportion_2() -> ProportionSpec
 {
     return ProportionSpec{
         Simplex<double>{{0.9, 0.1}},
-        DirichletPrior{PositiveVector<double>{{1.0, 1.0}}},
+        PositiveVector<double>{{1.0, 1.0}},
         ProportionUpdate::fixed,
     };
 }
@@ -184,6 +185,14 @@ TEST_CASE("VarianceSpec rejects invalid initial_value", "[variance_spec]")
         REQUIRE_THROWS_AS(
             VarianceSpec(-1.0, ScaledInvChiSqPrior{4.0, 1.0}), GelexException);
     }
+}
+
+TEST_CASE("VarianceSpec accepts constrained initial_value", "[variance_spec]")
+{
+    const VarianceSpec spec{
+        PositiveScalar<double>{2.0}, ScaledInvChiSqPrior{4.0, 1.0}};
+
+    REQUIRE(spec.initial_value() == 2.0);
 }
 
 TEST_CASE("ScaledInvChiSqPrior rejects invalid inputs", "[chisq_prior]")

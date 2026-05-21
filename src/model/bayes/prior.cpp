@@ -37,16 +37,16 @@ MarkerVarianceSpec::MarkerVarianceSpec(
 
 ProportionSpec::ProportionSpec(
     Simplex<double> initial_value,
-    DirichletPrior prior,
+    PositiveVector<double> concentration,
     ProportionUpdate update)
     : initial_value_(std::move(initial_value)),
-      prior_(std::move(prior)),
+      concentration_(std::move(concentration)),
       update_(update)
 {
-    if (initial_value_.size() != prior_.concentration.size())
+    if (initial_value_.size() != concentration_.size())
     {
         throw GelexException(
-            "ProportionSpec: initial value and prior concentration must have "
+            "ProportionSpec: initial value and concentration must have "
             "the same size");
     }
 }

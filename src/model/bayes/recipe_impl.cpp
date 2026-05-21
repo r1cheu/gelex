@@ -104,10 +104,9 @@ auto BayesRecipeImpl::make_proportion_spec(
     const Simplex<double>& proportion,
     ProportionUpdate update) -> ProportionSpec
 {
-    DirichletPrior prior{
-        .concentration
-        = PositiveVector<double>(std::vector<double>(proportion.size(), 1.0))};
-    return ProportionSpec(proportion, prior, update);
+    PositiveVector<double> concentration{
+        std::vector<double>(proportion.size(), 1.0)};
+    return ProportionSpec(proportion, concentration, update);
 }
 
 auto BayesRecipeImpl::reject_dominance_positive_probability_override() const

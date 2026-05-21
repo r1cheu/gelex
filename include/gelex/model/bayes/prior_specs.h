@@ -23,6 +23,7 @@
 
 #include <Eigen/Core>
 
+#include "gelex/types/constrained_value.h"
 #include "gelex/types/constrained_vector.h"
 
 namespace gelex::bayes
@@ -42,21 +43,19 @@ class ScaledInvChiSqPrior
     double scale_{0};
 };
 
-struct DirichletPrior
-{
-    PositiveVector<double> concentration;
-};
-
 class VarianceSpec
 {
    public:
+    VarianceSpec(
+        PositiveScalar<double> initial_value,
+        ScaledInvChiSqPrior prior);
     VarianceSpec(double initial_value, ScaledInvChiSqPrior prior);
 
-    auto initial_value() const -> double { return initial_value_; }
+    auto initial_value() const -> double { return initial_value_.value(); }
     auto prior() const -> const ScaledInvChiSqPrior& { return prior_; }
 
    private:
-    double initial_value_{};
+    PositiveScalar<double> initial_value_;
     ScaledInvChiSqPrior prior_;
 };
 
@@ -101,14 +100,17 @@ class ProportionSpec
    public:
     ProportionSpec(
         Simplex<double> initial_value,
-        DirichletPrior prior,
+        PositiveVector<double> concentration,
         ProportionUpdate update);
 
     auto initial_value() const -> const Simplex<double>&
     {
         return initial_value_;
     }
-    auto prior() const -> const DirichletPrior& { return prior_; }
+    auto concentration() const -> const PositiveVector<double>&
+    {
+        return concentration_;
+    }
     auto update() const -> ProportionUpdate { return update_; }
 
     auto size() const -> std::size_t { return initial_value_.size(); }
@@ -119,7 +121,7 @@ class ProportionSpec
 
    private:
     Simplex<double> initial_value_;
-    DirichletPrior prior_;
+    PositiveVector<double> concentration_;
     ProportionUpdate update_{ProportionUpdate::fixed};
 };
 
