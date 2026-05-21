@@ -23,7 +23,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/genetic_prior_runtime_state.h"
+#include "gelex/model/bayes/runtime_state.h"
 
 namespace gelex::bayes
 {

@@ -20,12 +20,11 @@
 #include <array>
 #include <memory>
 #include <span>
-#include <utility>
 
 #include "gelex/model/bayes/genetic_prior.h"
-#include "gelex/model/bayes/genetic_prior_runtime_state.h"
 #include "gelex/model/bayes/prior_capabilities.h"
 #include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/runtime_state.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
@@ -46,27 +45,6 @@ class GaussianPrior final
    private:
     std::array<GeneticMode, 1> modes_;
     std::array<MarkerVarianceSpec, 1> variance_specs_;
-};
-
-class GaussianRuntimeState final : public GeneticPriorRuntimeState
-{
-   public:
-    explicit GaussianRuntimeState(MarkerVarianceRuntimeState marker_variance)
-        : marker_variance_(std::move(marker_variance))
-    {
-    }
-
-    auto marker_variance() -> MarkerVarianceRuntimeState&
-    {
-        return marker_variance_;
-    }
-    auto marker_variance() const -> const MarkerVarianceRuntimeState&
-    {
-        return marker_variance_;
-    }
-
-   private:
-    MarkerVarianceRuntimeState marker_variance_;
 };
 
 }  // namespace gelex::bayes

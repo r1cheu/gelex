@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_GENETIC_PRIOR_RUNTIME_STATE_H_
-#define GELEX_MODEL_BAYES_GENETIC_PRIOR_RUNTIME_STATE_H_
+#ifndef GELEX_MODEL_BAYES_RUNTIME_STATE_H_
+#define GELEX_MODEL_BAYES_RUNTIME_STATE_H_
 
 #include <cstddef>
 #include <span>
@@ -72,14 +72,80 @@ class MarkerVarianceRuntimeState
     std::vector<Eigen::VectorXd> variances_;
 };
 
+class MixtureRuntimeState
+{
+   public:
+    MixtureRuntimeState(Eigen::VectorXi assignment, Eigen::VectorXd proportion)
+        : assignment_(std::move(assignment)), proportion_(std::move(proportion))
+    {
+    }
+
+    auto assignment() -> Eigen::VectorXi& { return assignment_; }
+    auto assignment() const -> const Eigen::VectorXi& { return assignment_; }
+
+    auto proportion() -> Eigen::VectorXd& { return proportion_; }
+    auto proportion() const -> const Eigen::VectorXd& { return proportion_; }
+
+   private:
+    Eigen::VectorXi assignment_;
+    Eigen::VectorXd proportion_;
+};
+
+class GaussianRuntimeState final : public GeneticPriorRuntimeState
+{
+   public:
+    explicit GaussianRuntimeState(MarkerVarianceRuntimeState marker_variance)
+        : marker_variance_(std::move(marker_variance))
+    {
+    }
+
+    auto marker_variance() -> MarkerVarianceRuntimeState&
+    {
+        return marker_variance_;
+    }
+    auto marker_variance() const -> const MarkerVarianceRuntimeState&
+    {
+        return marker_variance_;
+    }
+
+   private:
+    MarkerVarianceRuntimeState marker_variance_;
+};
+
+class MixtureGaussianRuntimeState final : public GeneticPriorRuntimeState
+{
+   public:
+    MixtureGaussianRuntimeState(
+        MarkerVarianceRuntimeState marker_variance,
+        MixtureRuntimeState mixture)
+        : marker_variance_(std::move(marker_variance)),
+          mixture_(std::move(mixture))
+    {
+    }
+
+    auto marker_variance() -> MarkerVarianceRuntimeState&
+    {
+        return marker_variance_;
+    }
+    auto marker_variance() const -> const MarkerVarianceRuntimeState&
+    {
+        return marker_variance_;
+    }
+
+    auto mixture() -> MixtureRuntimeState& { return mixture_; }
+    auto mixture() const -> const MixtureRuntimeState& { return mixture_; }
+
+   private:
+    MarkerVarianceRuntimeState marker_variance_;
+    MixtureRuntimeState mixture_;
+};
+
 struct GeneticEffectRuntimeInit
 {
     GeneticMode mode{};
     Eigen::Index num_markers{};
 };
 
-// effects[i].mode == prior.modes()[i]; built by BayesState::init() after
-// validate_prior_for_model() — concrete priors index, not search.
 struct GeneticPriorRuntimeInit
 {
     std::span<const GeneticEffectRuntimeInit> effects;
@@ -87,4 +153,4 @@ struct GeneticPriorRuntimeInit
 
 }  // namespace gelex::bayes
 
-#endif  // GELEX_MODEL_BAYES_GENETIC_PRIOR_RUNTIME_STATE_H_
+#endif  // GELEX_MODEL_BAYES_RUNTIME_STATE_H_

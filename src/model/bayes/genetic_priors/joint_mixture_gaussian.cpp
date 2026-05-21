@@ -25,8 +25,7 @@
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
-#include "gelex/model/bayes/genetic_prior_runtime_state.h"
-#include "gelex/model/bayes/genetic_priors/mixture_gaussian.h"
+#include "gelex/model/bayes/runtime_state.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
