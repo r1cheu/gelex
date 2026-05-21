@@ -59,7 +59,7 @@ flowchart TD
     subgraph Public["include/gelex/model/bayes/"]
         P1[prior_specs.h]
         P2[genetic_prior.h]
-        P3[genetic_prior_runtime_state.h]
+        P3[runtime_state.h]
         P4[prior_capabilities.h]
         P5[prior.h]
         P6[state.h]
@@ -81,7 +81,6 @@ flowchart TD
         end
     end
 
-    T2 --> P1
     P1 --> P4
     P1 --> G1
     P1 --> G2
@@ -98,7 +97,8 @@ flowchart TD
 
 **归属原则：**
 
-- `prior_specs.h` include `gelex/types/constrained_vector.h`，被 capability 头与 concrete prior 共享，不依赖 `BayesPrior`。
+- `prior_specs.h` 使用 `Eigen::VectorXd`（通过 `Eigen/Core`），被 capability 头与 concrete prior 共享，不依赖 `BayesPrior`。
+- Config/Recipe 层（`recipe_options.h`、`recipe_impl.h`）包含 `constrained_value.h` / `constrained_vector.h`，在 Spec 边界展开 constrained 类型。
 - `prior_capabilities.h` 集中所有 capability。pure-virtual 接口无独立编译开销；新增 capability 在此追加。
 - `genetic_prior.cpp` 不存在——`GeneticPrior::contains()` 内联于头文件。
 - MCMC/VI 的 kernel registry & factory 属于 `algo` 层，与本模块解耦。
@@ -135,14 +135,27 @@ using PositiveVector = ConstrainedVector<T, detail::Positive>;
 
 ### prior_specs.h
 
-Prior 值类型集合，被 capability 头与 concrete prior 共享。
+Prior 值类型集合。**边界规则：** Config/Recipe 层使用 `Simplex<double>` 等 constrained 语义类型进行声明；
+Spec 层在构造时将 constrained 值展开为 `Eigen::VectorXd` 等下游可消费的数值类型。
 
 ```cpp
 namespace gelex::bayes
 {
-struct ScaledInvChiSqPrior { double degrees_of_freedom{}; double scale{}; };
-struct DirichletPrior      { PositiveVector<double> concentration; };
-struct VarianceSpec        { double initial_value{}; ScaledInvChiSqPrior prior; };
+class ScaledInvChiSqPrior
+{
+   public:
+    ScaledInvChiSqPrior(double degrees_of_freedom, double scale);
+    auto degrees_of_freedom() const -> double;
+    auto scale() const -> double;
+};
+
+class VarianceSpec
+{
+   public:
+    VarianceSpec(double initial_value, ScaledInvChiSqPrior prior);
+    auto initial_value() const -> double;
+    auto prior() const -> const ScaledInvChiSqPrior&;
+};
 
 enum class MarkerVarianceScope : std::uint8_t { per_marker, per_effect };
 
@@ -160,13 +173,13 @@ enum class ProportionUpdate : std::uint8_t { fixed, sampled };
 class ProportionSpec
 {
    public:
-    ProportionSpec(Simplex<double> initial_value,
-                   DirichletPrior prior,
+    ProportionSpec(Eigen::VectorXd initial_value,
+                   Eigen::VectorXd concentration,
                    ProportionUpdate update);
-    auto initial_value() const -> const Simplex<double>&;
-    auto prior() const -> const DirichletPrior&;
+    auto initial_value() const -> const Eigen::VectorXd&;
+    auto concentration() const -> const Eigen::VectorXd&;
     auto update() const -> ProportionUpdate;
-    auto size() const -> std::size_t;
+    auto size() const -> Eigen::Index;
     auto sampled() const -> bool;
 };
 }
@@ -174,12 +187,11 @@ class ProportionSpec
 
 **局部 invariant**
 
-1. `ScaledInvChiSqPrior::degrees_of_freedom > 0`
-2. `ScaledInvChiSqPrior::scale > 0`
-3. `DirichletPrior::concentration` 是 `PositiveVector<double>`
-4. `ProportionSpec::initial_value` 是 `Simplex<double>`
-5. `concentration.size() == initial_value.size()`
-6. `marker_variance_size(N)` 对 `per_marker` 返回 `N`，对 `per_effect` 返回 `1`
+1. `ScaledInvChiSqPrior` 必须是 proper prior（df > 0, scale > 0, finite）或 flat sentinel（df = -2, scale = 0）
+2. `VarianceSpec::initial_value()` finite and > 0
+3. `ProportionSpec::initial_value()` 至少 2 个 entry，finite > 0，和为 1
+4. `ProportionSpec::concentration()` finite > 0，size 匹配 `initial_value()`
+5. `marker_variance_size(N)` 对 `per_marker` 返回 `N`，对 `per_effect` 返回 `1`
 
 ---
 
@@ -304,9 +316,10 @@ classDiagram
     JointMixtureCapability <|-- JointMixtureGaussianPrior
 ```
 
-### genetic_prior_runtime_state.h
+### runtime_state.h
 
-Runtime state base 与跨 family 复用的 `MarkerVarianceRuntimeState`。
+运行期可变状态形状。`genetic_priors/*.h` 只定义 immutable prior contract；
+prior-specific mutable state 不分散在 concrete prior header 中。
 
 ```cpp
 namespace gelex::bayes
@@ -337,6 +350,44 @@ class MarkerVarianceRuntimeState
     std::vector<Eigen::VectorXd> variances_;
 };
 
+class MixtureRuntimeState
+{
+   public:
+    MixtureRuntimeState(Eigen::VectorXi assignment,
+                        Eigen::VectorXd proportion);
+    auto assignment()       -> Eigen::VectorXi&;
+    auto assignment() const -> const Eigen::VectorXi&;
+    auto proportion()       -> Eigen::VectorXd&;
+    auto proportion() const -> const Eigen::VectorXd&;
+   private:
+    Eigen::VectorXi assignment_;
+    Eigen::VectorXd proportion_;
+};
+
+class GaussianRuntimeState final : public GeneticPriorRuntimeState
+{
+   public:
+    explicit GaussianRuntimeState(MarkerVarianceRuntimeState marker_variance);
+    auto marker_variance()       -> MarkerVarianceRuntimeState&;
+    auto marker_variance() const -> const MarkerVarianceRuntimeState&;
+   private:
+    MarkerVarianceRuntimeState marker_variance_;
+};
+
+class MixtureGaussianRuntimeState final : public GeneticPriorRuntimeState
+{
+   public:
+    MixtureGaussianRuntimeState(MarkerVarianceRuntimeState marker_variance,
+                                MixtureRuntimeState mixture);
+    auto marker_variance()       -> MarkerVarianceRuntimeState&;
+    auto marker_variance() const -> const MarkerVarianceRuntimeState&;
+    auto mixture()       -> MixtureRuntimeState&;
+    auto mixture() const -> const MixtureRuntimeState&;
+   private:
+    MarkerVarianceRuntimeState marker_variance_;
+    MixtureRuntimeState        mixture_;
+};
+
 struct GeneticEffectRuntimeInit
 {
     GeneticMode mode{};
@@ -354,7 +405,7 @@ struct GeneticPriorRuntimeInit
 
 1. `effects` 是当前 `GeneticPrior` block 的初始化视图，不是全模型 genetic effect 列表。
 2. `effects.size() == prior.modes().size()`。
-3. `effects[i].mode == prior.modes()[i]`，顺序由 `BayesState::init()` 建立。
+3. `effects[i].mode == prior.modes()[i]`，顺序由 state 初始化入口建立。
 4. `effects[i].num_markers` 来自对应 `BayesModel::genetic(mode)`，且必须 > 0。
 5. `init` 只在 `make_state()` 调用期有效；concrete prior 不保存 span / pointer / reference。
 6. `make_state()` 按 index 消费 `init.effects`；不在 concrete prior 内重做全模型 lookup。
@@ -439,8 +490,8 @@ marker-level update loop。
 **放置规则**
 
 1. concrete prior 不进入 `genetic_prior.h`。
-2. concrete runtime state 不进入 `genetic_prior_runtime_state.h`。
-3. concrete runtime state 若只服务一个 family，与该 family 放同一 header。
+2. concrete runtime state 统一进入 `runtime_state.h`。
+3. concrete prior header 不承载 mutable runtime state shape。
 4. method preset 只负责把 BayesA/B/C/R 映射到 concrete prior。
 5. 暂不支持的 family 不提前写入 model 层接口。
 6. 类型名省略 `Genetic` 前缀——文件路径与继承关系已提供 context。
@@ -489,16 +540,6 @@ class GaussianPrior final
     auto make_state(const GeneticPriorRuntimeInit& init) const
         -> std::unique_ptr<GeneticPriorRuntimeState> override;
 };
-
-class GaussianRuntimeState final : public GeneticPriorRuntimeState
-{
-   public:
-    explicit GaussianRuntimeState(MarkerVarianceRuntimeState marker_variance);
-    auto marker_variance()       -> MarkerVarianceRuntimeState&;
-    auto marker_variance() const -> const MarkerVarianceRuntimeState&;
-   private:
-    MarkerVarianceRuntimeState marker_variance_;
-};
 }
 ```
 
@@ -507,34 +548,6 @@ class GaussianRuntimeState final : public GeneticPriorRuntimeState
 ```cpp
 namespace gelex::bayes
 {
-class MixtureRuntimeState
-{
-   public:
-    MixtureRuntimeState(Eigen::VectorXi assignment,
-                        Eigen::VectorXd proportion);
-    auto assignment()       -> Eigen::VectorXi&;
-    auto assignment() const -> const Eigen::VectorXi&;
-    auto proportion()       -> Eigen::VectorXd&;
-    auto proportion() const -> const Eigen::VectorXd&;
-   private:
-    Eigen::VectorXi assignment_;
-    Eigen::VectorXd proportion_;
-};
-
-class MixtureGaussianRuntimeState final : public GeneticPriorRuntimeState
-{
-   public:
-    MixtureGaussianRuntimeState(MarkerVarianceRuntimeState marker_variance,
-                                MixtureRuntimeState mixture);
-    auto marker_variance()       -> MarkerVarianceRuntimeState&;
-    auto marker_variance() const -> const MarkerVarianceRuntimeState&;
-    auto mixture()       -> MixtureRuntimeState&;
-    auto mixture() const -> const MixtureRuntimeState&;
-   private:
-    MarkerVarianceRuntimeState marker_variance_;
-    MixtureRuntimeState        mixture_;
-};
-
 class SpikeSlabGaussianPrior final
     : public GeneticPrior,
       public MarkerVarianceCapability,
@@ -552,7 +565,7 @@ class ScaledMixtureGaussianPrior final
 
 `joint_mixture_gaussian.h` **不** include `mixture_gaussian.h`。其 public
 interface 只暴露 base `GeneticPriorRuntimeState`；具体 `make_state()` 实现在
-`.cpp` 中 include `mixture_gaussian.h` 并构造 `MixtureGaussianRuntimeState`。
+`.cpp` 中通过 `runtime_state.h` 构造 `MixtureGaussianRuntimeState`。
 
 ```cpp
 namespace gelex::bayes

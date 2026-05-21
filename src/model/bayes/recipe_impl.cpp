@@ -22,6 +22,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <Eigen/Core>
 
 #include "gelex/exception.h"
 #include "gelex/model/bayes/model.h"
@@ -104,9 +105,9 @@ auto BayesRecipeImpl::make_proportion_spec(
     const Simplex<double>& proportion,
     ProportionUpdate update) -> ProportionSpec
 {
-    PositiveVector<double> concentration{
-        std::vector<double>(proportion.size(), 1.0)};
-    return ProportionSpec(proportion, concentration, update);
+    const auto n = static_cast<Eigen::Index>(proportion.size());
+    return ProportionSpec(
+        proportion.to_mat(), Eigen::VectorXd::Ones(n), update);
 }
 
 auto BayesRecipeImpl::reject_dominance_positive_probability_override() const

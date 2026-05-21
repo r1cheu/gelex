@@ -17,14 +17,10 @@
 #ifndef GELEX_MODEL_BAYES_PRIOR_SPECS_H_
 #define GELEX_MODEL_BAYES_PRIOR_SPECS_H_
 
-#include <cstddef>
 #include <cstdint>
 #include <utility>
 
 #include <Eigen/Core>
-
-#include "gelex/types/constrained_value.h"
-#include "gelex/types/constrained_vector.h"
 
 namespace gelex::bayes
 {
@@ -46,16 +42,13 @@ class ScaledInvChiSqPrior
 class VarianceSpec
 {
    public:
-    VarianceSpec(
-        PositiveScalar<double> initial_value,
-        ScaledInvChiSqPrior prior);
     VarianceSpec(double initial_value, ScaledInvChiSqPrior prior);
 
-    auto initial_value() const -> double { return initial_value_.value(); }
+    auto initial_value() const -> double { return initial_value_; }
     auto prior() const -> const ScaledInvChiSqPrior& { return prior_; }
 
    private:
-    PositiveScalar<double> initial_value_;
+    double initial_value_;
     ScaledInvChiSqPrior prior_;
 };
 
@@ -99,29 +92,29 @@ class ProportionSpec
 {
    public:
     ProportionSpec(
-        Simplex<double> initial_value,
-        PositiveVector<double> concentration,
+        Eigen::VectorXd initial_value,
+        Eigen::VectorXd concentration,
         ProportionUpdate update);
 
-    auto initial_value() const -> const Simplex<double>&
+    auto initial_value() const -> const Eigen::VectorXd&
     {
         return initial_value_;
     }
-    auto concentration() const -> const PositiveVector<double>&
+    auto concentration() const -> const Eigen::VectorXd&
     {
         return concentration_;
     }
     auto update() const -> ProportionUpdate { return update_; }
 
-    auto size() const -> std::size_t { return initial_value_.size(); }
+    auto size() const -> Eigen::Index { return initial_value_.size(); }
     auto sampled() const -> bool
     {
         return update_ == ProportionUpdate::sampled;
     }
 
    private:
-    Simplex<double> initial_value_;
-    PositiveVector<double> concentration_;
+    Eigen::VectorXd initial_value_;
+    Eigen::VectorXd concentration_;
     ProportionUpdate update_{ProportionUpdate::fixed};
 };
 

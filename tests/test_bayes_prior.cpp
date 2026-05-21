@@ -22,8 +22,6 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/exception.h"
-#include "gelex/types/constrained_value.h"
-#include "gelex/types/constrained_vector.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/genetic_priors/gaussian.h"
 #include "gelex/model/bayes/genetic_priors/joint_mixture_gaussian.h"
@@ -41,12 +39,9 @@ using gelex::bayes::GeneticPrior;
 using gelex::bayes::JointMixtureGaussianPrior;
 using gelex::bayes::MarkerVarianceScope;
 using gelex::bayes::MarkerVarianceSpec;
-using gelex::PositiveScalar;
-using gelex::PositiveVector;
 using gelex::bayes::ProportionSpec;
 using gelex::bayes::ProportionUpdate;
 using gelex::bayes::ScaledInvChiSqPrior;
-using gelex::Simplex;
 using gelex::bayes::SpikeSlabGaussianPrior;
 using gelex::bayes::VarianceSpec;
 
@@ -69,8 +64,8 @@ auto make_marker_variance() -> MarkerVarianceSpec
 auto make_proportion_2() -> ProportionSpec
 {
     return ProportionSpec{
-        Simplex<double>{{0.9, 0.1}},
-        PositiveVector<double>{{1.0, 1.0}},
+        Eigen::VectorXd{{0.9, 0.1}},
+        Eigen::VectorXd{{1.0, 1.0}},
         ProportionUpdate::fixed,
     };
 }
@@ -187,12 +182,64 @@ TEST_CASE("VarianceSpec rejects invalid initial_value", "[variance_spec]")
     }
 }
 
-TEST_CASE("VarianceSpec accepts constrained initial_value", "[variance_spec]")
+TEST_CASE("VarianceSpec accepts positive initial_value", "[variance_spec]")
 {
-    const VarianceSpec spec{
-        PositiveScalar<double>{2.0}, ScaledInvChiSqPrior{4.0, 1.0}};
+    const VarianceSpec spec{2.0, ScaledInvChiSqPrior{4.0, 1.0}};
 
     REQUIRE(spec.initial_value() == 2.0);
+}
+
+TEST_CASE("ProportionSpec rejects invalid vectors", "[proportion_spec]")
+{
+    SECTION("initial_value size < 2")
+    {
+        REQUIRE_THROWS_AS(
+            ProportionSpec(
+                Eigen::VectorXd{{1.0}},
+                Eigen::VectorXd{{1.0}},
+                ProportionUpdate::fixed),
+            GelexException);
+    }
+
+    SECTION("initial_value entries must be positive")
+    {
+        REQUIRE_THROWS_AS(
+            ProportionSpec(
+                Eigen::VectorXd{{1.0, 0.0}},
+                Eigen::VectorXd{{1.0, 1.0}},
+                ProportionUpdate::fixed),
+            GelexException);
+    }
+
+    SECTION("initial_value entries must sum to one")
+    {
+        REQUIRE_THROWS_AS(
+            ProportionSpec(
+                Eigen::VectorXd{{0.7, 0.2}},
+                Eigen::VectorXd{{1.0, 1.0}},
+                ProportionUpdate::fixed),
+            GelexException);
+    }
+
+    SECTION("concentration size must match initial_value")
+    {
+        REQUIRE_THROWS_AS(
+            ProportionSpec(
+                Eigen::VectorXd{{0.5, 0.5}},
+                Eigen::VectorXd{{1.0}},
+                ProportionUpdate::fixed),
+            GelexException);
+    }
+
+    SECTION("concentration entries must be positive")
+    {
+        REQUIRE_THROWS_AS(
+            ProportionSpec(
+                Eigen::VectorXd{{0.5, 0.5}},
+                Eigen::VectorXd{{1.0, 0.0}},
+                ProportionUpdate::fixed),
+            GelexException);
+    }
 }
 
 TEST_CASE("ScaledInvChiSqPrior rejects invalid inputs", "[chisq_prior]")

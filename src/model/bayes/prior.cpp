@@ -23,7 +23,6 @@
 
 #include "gelex/exception.h"
 #include "gelex/model/bayes/prior_specs.h"
-#include "gelex/types/constrained_vector.h"
 
 namespace gelex::bayes
 {
@@ -33,22 +32,6 @@ MarkerVarianceSpec::MarkerVarianceSpec(
     VarianceSpec variance)
     : scope_(scope), variance_(variance)
 {
-}
-
-ProportionSpec::ProportionSpec(
-    Simplex<double> initial_value,
-    PositiveVector<double> concentration,
-    ProportionUpdate update)
-    : initial_value_(std::move(initial_value)),
-      concentration_(std::move(concentration)),
-      update_(update)
-{
-    if (initial_value_.size() != concentration_.size())
-    {
-        throw GelexException(
-            "ProportionSpec: initial value and concentration must have "
-            "the same size");
-    }
 }
 
 BayesPrior::BayesPrior(

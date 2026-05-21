@@ -82,7 +82,7 @@ auto SpikeSlabGaussianPrior::make_state(const GeneticPriorRuntimeInit& init)
         MarkerVarianceRuntimeState(std::move(variances)),
         MixtureRuntimeState(
             Eigen::VectorXi::Zero(num_markers),
-            proportion_specs_[0].initial_value().to_mat()));
+            proportion_specs_[0].initial_value()));
 }
 
 ScaledMixtureGaussianPrior::ScaledMixtureGaussianPrior(
@@ -150,7 +150,7 @@ auto ScaledMixtureGaussianPrior::make_state(const GeneticPriorRuntimeInit& init)
         MarkerVarianceRuntimeState(std::move(variances)),
         MixtureRuntimeState(
             Eigen::VectorXi::Zero(num_markers),
-            proportion_specs_[0].initial_value().to_mat()));
+            proportion_specs_[0].initial_value()));
 }
 
 }  // namespace gelex::bayes
