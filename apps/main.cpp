@@ -36,8 +36,6 @@
 #include "cli/report_printer.h"
 #include "cli/simulate/simulate_args.h"
 #include "cli/simulate/simulate_command.h"
-#include "cli/vi/vi_args.h"
-#include "cli/vi/vi_command.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/formatter.h"
 
@@ -104,7 +102,6 @@ auto main(int argc, char* argv[]) -> int
 {
     argparse::ArgumentParser program(PROJECT_NAME, PROJECT_VERSION);
     argparse::ArgumentParser mcmc("mcmc");
-    argparse::ArgumentParser vi("vi");
     argparse::ArgumentParser simulate("simulate");
     argparse::ArgumentParser predict("predict");
     argparse::ArgumentParser grm("grm");
@@ -113,7 +110,6 @@ auto main(int argc, char* argv[]) -> int
 
     const std::array commands
         = {CommandDescriptor{"mcmc", &mcmc, setup_mcmc_args, mcmc_execute},
-           CommandDescriptor{"vi", &vi, setup_vi_args, vi_execute},
            CommandDescriptor{
                "simulate", &simulate, setup_simulate_args, simulate_execute},
            CommandDescriptor{

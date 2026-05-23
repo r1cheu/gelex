@@ -103,35 +103,3 @@ LegacyGeneticState::LegacyGeneticState(
 }
 
 }  // namespace gelex::bayes
-
-namespace gelex::bayes::vi
-{
-
-GeneticState::GeneticState(
-    const bayes::GeneticEffect& effect,
-    const bayes::OldGeneticPrior& prior,
-    GeneticMode mode)
-    : type(mode),
-      coeffs(Eigen::VectorXd::Zero(effect.X.cols())),
-      sigma2(Eigen::VectorXd::Ones(effect.X.cols())),
-      u(Eigen::VectorXd::Zero(effect.X.rows()))
-{
-    const auto num_markers = effect.X.cols();
-    const auto& spec = [&]() -> const bayes::GeneticSpec&
-    {
-        if (const auto* gs = std::get_if<bayes::GeneticSpec>(&prior.spec))
-        {
-            return *gs;
-        }
-        const auto& js = std::get<bayes::JointSpec>(prior.spec);
-        return (mode == GeneticMode::A) ? js.additive : js.dominance;
-    }();
-
-    const Eigen::Index size
-        = (spec.variance.scope == bayes::MarkerVarianceScope::per_marker)
-              ? num_markers
-              : 1;
-    marker_variance = Eigen::VectorXd::Constant(size, spec.variance.init);
-}
-
-}  // namespace gelex::bayes::vi

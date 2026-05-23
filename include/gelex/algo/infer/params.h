@@ -40,17 +40,6 @@ struct Params
 
 }  // namespace mcmc
 
-namespace vi
-{
-
-struct Params
-{
-    Eigen::Index max_iters{1000};
-    double tol{1e-6};
-};
-
-}  // namespace vi
-
 }  // namespace gelex
 
 #endif  // GELEX_ALGO_INFER_PARAMS_H_

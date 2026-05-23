@@ -38,11 +38,6 @@ namespace mcmc
 class Result;
 }  // namespace mcmc
 
-namespace vi
-{
-class Result;
-}  // namespace vi
-
 // --- MCMC-specific events ---
 
 struct MCMCBannerEvent
@@ -73,34 +68,6 @@ struct MCMCCompleteEvent
     std::ptrdiff_t samples_collected;
 };
 
-// --- VI-specific events ---
-
-struct VIBannerEvent
-{
-};
-
-struct VIConfigEvent
-{
-    gelex::bayes::LegacyBayesConfig method;
-    std::vector<GeneticMode> requested_effects;
-    int max_iters{};
-    double tol{};
-};
-
-struct VIProgressEvent
-{
-    size_t current{};
-    double elbo{};
-    double delta{};
-    bool done{};
-};
-
-struct VICompleteEvent
-{
-    const vi::Result* result{};
-    const BayesModel* model{};
-};
-
 // --- Shared fit protocol events ---
 
 struct FitMethodSetEvent
@@ -126,16 +93,7 @@ using MCMCEvent = std::variant<
     FitResultsSavedEvent,
     FitCheckpointSavedEvent>;
 
-using VIEvent = std::variant<
-    VIBannerEvent,
-    VIConfigEvent,
-    FitMethodSetEvent,
-    VIProgressEvent,
-    VICompleteEvent,
-    FitResultsSavedEvent>;
-
 using MCMCObserver = std::function<void(const MCMCEvent&)>;
-using VIObserver = std::function<void(const VIEvent&)>;
 
 }  // namespace gelex
 

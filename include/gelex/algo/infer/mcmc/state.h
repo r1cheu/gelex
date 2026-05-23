@@ -138,27 +138,6 @@ struct LegacyGeneticState
 
 }  // namespace gelex::bayes
 
-namespace gelex::bayes::vi
-{
-
-struct GeneticState
-{
-    GeneticState(
-        const bayes::GeneticEffect& effect,
-        const bayes::OldGeneticPrior& prior,
-        GeneticMode mode);
-
-    GeneticMode type;
-    Eigen::VectorXd coeffs;
-    Eigen::VectorXd sigma2;
-    Eigen::VectorXd u;
-    double variance{};
-    double heritability{};
-    Eigen::VectorXd marker_variance;
-};
-
-}  // namespace gelex::bayes::vi
-
 namespace gelex
 {
 
@@ -303,11 +282,6 @@ namespace mcmc
 {
 using State = LegacyInferenceState<bayes::LegacyGeneticState>;
 }  // namespace mcmc
-
-namespace vi
-{
-using State = LegacyInferenceState<bayes::vi::GeneticState>;
-}  // namespace vi
 
 }  // namespace gelex
 
