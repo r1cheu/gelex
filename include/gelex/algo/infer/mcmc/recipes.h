@@ -30,27 +30,22 @@
 #include "gelex/algo/infer/mcmc/steps/pi.h"
 #include "gelex/algo/infer/mcmc/steps/random.h"
 #include "gelex/algo/infer/mcmc/steps/residual.h"
-#include "gelex/model/bayes/legacy_algorithm_shape.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::mcmc
 {
 
-template <
-    typename Kernel,
-    bayes::AlgorithmShape Shape = bayes::AlgorithmShape::a_only>
+enum class GeneticShape
+{
+    a_only,
+    d_only,
+    ad_independent,
+};
+
+template <typename Kernel, GeneticShape Shape = GeneticShape::a_only>
 inline auto make_simple_chain(const Context& ctx)
 {
-    if constexpr (Shape == bayes::AlgorithmShape::ad_joint)
-    {
-        return infer::Chain{
-            FixedStep::make(ctx),
-            RandomStep::make(ctx),
-            GeneticJointStep<Kernel>::make(ctx, GeneticMode::A, GeneticMode::D),
-            ResidualStep::make(ctx),
-        };
-    }
-    else if constexpr (Shape == bayes::AlgorithmShape::ad_independent)
+    if constexpr (Shape == GeneticShape::ad_independent)
     {
         return infer::Chain{
             FixedStep::make(ctx),
@@ -62,9 +57,8 @@ inline auto make_simple_chain(const Context& ctx)
     }
     else
     {
-        constexpr auto kMode = (Shape == bayes::AlgorithmShape::d_only)
-                                   ? GeneticMode::D
-                                   : GeneticMode::A;
+        constexpr auto kMode
+            = (Shape == GeneticShape::d_only) ? GeneticMode::D : GeneticMode::A;
         return infer::Chain{
             FixedStep::make(ctx),
             RandomStep::make(ctx),
@@ -74,16 +68,10 @@ inline auto make_simple_chain(const Context& ctx)
     }
 }
 
-template <
-    typename Kernel,
-    bayes::AlgorithmShape Shape = bayes::AlgorithmShape::a_only>
+template <typename Kernel, GeneticShape Shape = GeneticShape::a_only>
 inline auto make_pi_chain(const Context& ctx)
 {
-    static_assert(
-        Shape != bayes::AlgorithmShape::ad_joint,
-        "make_pi_chain does not support ad_joint shape");
-
-    if constexpr (Shape == bayes::AlgorithmShape::ad_independent)
+    if constexpr (Shape == GeneticShape::ad_independent)
     {
         return infer::Chain{
             FixedStep::make(ctx),
@@ -97,9 +85,8 @@ inline auto make_pi_chain(const Context& ctx)
     }
     else
     {
-        constexpr auto kMode = (Shape == bayes::AlgorithmShape::d_only)
-                                   ? GeneticMode::D
-                                   : GeneticMode::A;
+        constexpr auto kMode
+            = (Shape == GeneticShape::d_only) ? GeneticMode::D : GeneticMode::A;
         return infer::Chain{
             FixedStep::make(ctx),
             RandomStep::make(ctx),
@@ -110,43 +97,43 @@ inline auto make_pi_chain(const Context& ctx)
     }
 }
 
-template <bayes::AlgorithmShape Shape = bayes::AlgorithmShape::a_only>
+template <GeneticShape Shape = GeneticShape::a_only>
 inline auto make_bayes_a_chain(const Context& ctx)
 {
     return make_simple_chain<BayesAKernel, Shape>(ctx);
 }
 
-template <bayes::AlgorithmShape Shape = bayes::AlgorithmShape::a_only>
+template <GeneticShape Shape = GeneticShape::a_only>
 inline auto make_bayes_b_chain(const Context& ctx)
 {
     return make_simple_chain<BayesBKernel, Shape>(ctx);
 }
 
-template <bayes::AlgorithmShape Shape = bayes::AlgorithmShape::a_only>
+template <GeneticShape Shape = GeneticShape::a_only>
 inline auto make_bayes_bpi_chain(const Context& ctx)
 {
     return make_pi_chain<BayesBKernel, Shape>(ctx);
 }
 
-template <bayes::AlgorithmShape Shape = bayes::AlgorithmShape::a_only>
+template <GeneticShape Shape = GeneticShape::a_only>
 inline auto make_bayes_c_chain(const Context& ctx)
 {
     return make_simple_chain<BayesCKernel, Shape>(ctx);
 }
 
-template <bayes::AlgorithmShape Shape = bayes::AlgorithmShape::a_only>
+template <GeneticShape Shape = GeneticShape::a_only>
 inline auto make_bayes_cpi_chain(const Context& ctx)
 {
     return make_pi_chain<BayesCKernel, Shape>(ctx);
 }
 
-template <bayes::AlgorithmShape Shape = bayes::AlgorithmShape::a_only>
+template <GeneticShape Shape = GeneticShape::a_only>
 inline auto make_bayes_r_chain(const Context& ctx)
 {
     return make_pi_chain<BayesRKernel, Shape>(ctx);
 }
 
-template <bayes::AlgorithmShape Shape = bayes::AlgorithmShape::a_only>
+template <GeneticShape Shape = GeneticShape::a_only>
 inline auto make_bayes_rr_chain(const Context& ctx)
 {
     return make_simple_chain<BayesRRKernel, Shape>(ctx);

@@ -107,9 +107,9 @@ auto BayesRecipe::make_residual_prior(const BayesModel& model) -> VarianceSpec
 
 auto to_bayes_recipe_preset(std::string_view preset) -> BayesRecipePreset
 {
-    for (const auto& [value, canonical] : kBayesRecipePresetNames)
+    for (const auto& [value, name] : kBayesRecipePresetNames)
     {
-        if (preset == canonical)
+        if (preset == name)
         {
             return value;
         }

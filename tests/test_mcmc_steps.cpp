@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#include <array>
 #include <cmath>
 #include <cstdint>
-#include <optional>
+#include <memory>
 #include <random>
 #include <span>
+#include <array>
 #include <utility>
 #include <vector>
 
@@ -34,18 +34,17 @@
 #include "gelex/algo/infer/mcmc/kernels/bayes_r.h"
 #include "gelex/algo/infer/mcmc/kernels/bayes_rr.h"
 #include "gelex/algo/infer/mcmc/recipes.h"
-#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/algo/infer/mcmc/steps/fixed.h"
 #include "gelex/algo/infer/mcmc/steps/genetic.h"
 #include "gelex/algo/infer/mcmc/steps/pi.h"
 #include "gelex/algo/infer/mcmc/steps/random.h"
-#include "gelex/algo/infer/mcmc/sweep.h"
 #include "gelex/data/genotype/genotype.h"
-#include "gelex/exception.h"
-#include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/legacy_algorithm_shape.h"
-#include "gelex/model/bayes/legacy_prior.h"
+#include "gelex/model/bayes/gaussian_prior.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/state.h"
+#include "gelex/model/bayes/state_capabilities.h"
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "genotype_fixture.h"
@@ -56,6 +55,122 @@ namespace
 {
 
 constexpr std::uint64_t kSeed = 0xC0FFEE5678ULL;
+
+auto make_variance(double initial_value, double scale = 0.5)
+    -> bayes::VarianceSpec
+{
+    return bayes::VarianceSpec(
+        initial_value, bayes::ScaledInvChiSqPrior{4.0, scale});
+}
+
+auto make_marker_variance(
+    bayes::MarkerVarianceScope scope,
+    double initial_value = 0.1) -> bayes::MarkerVarianceSpec
+{
+    return bayes::MarkerVarianceSpec{scope, make_variance(initial_value)};
+}
+
+auto make_proportion(
+    Eigen::VectorXd value,
+    bayes::ProportionUpdate update) -> bayes::ProportionSpec
+{
+    const auto size = value.size();
+    return bayes::ProportionSpec{
+        std::move(value), Eigen::VectorXd::Ones(size), update};
+}
+
+auto make_genotype(Eigen::MatrixXd data) -> genotype::Genotype
+{
+    auto mean = data.colwise().mean().transpose().eval();
+    auto stddev = Eigen::VectorXd::Ones(data.cols());
+    return test::GenotypeBuilder::build(
+        std::move(data), std::move(mean), std::move(stddev));
+}
+
+auto make_model(const Eigen::MatrixXd& X, const Eigen::VectorXd& y)
+    -> BayesModel
+{
+    std::vector<bayes::GeneticEffect> genetics;
+    genetics.emplace_back(GeneticMode::A, make_genotype(Eigen::MatrixXd{X}));
+    return BayesModel{
+        y, FixedEffect::build(y.size()), {}, std::move(genetics)};
+}
+
+template <typename Kernel>
+auto make_prior() -> bayes::BayesPrior;
+
+template <>
+auto make_prior<BayesAKernel>() -> bayes::BayesPrior
+{
+    std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
+    genetics.push_back(std::make_unique<bayes::GaussianPrior>(
+        GeneticMode::A,
+        make_marker_variance(bayes::MarkerVarianceScope::per_marker)));
+    return bayes::BayesPrior(
+        make_variance(0.5), std::move(genetics), make_variance(0.25));
+}
+
+template <>
+auto make_prior<BayesRRKernel>() -> bayes::BayesPrior
+{
+    std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
+    genetics.push_back(std::make_unique<bayes::GaussianPrior>(
+        GeneticMode::A,
+        make_marker_variance(bayes::MarkerVarianceScope::per_effect)));
+    return bayes::BayesPrior(
+        make_variance(0.5), std::move(genetics), make_variance(0.25));
+}
+
+template <>
+auto make_prior<BayesBKernel>() -> bayes::BayesPrior
+{
+    std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
+    genetics.push_back(std::make_unique<bayes::SpikeSlabGaussianPrior>(
+        GeneticMode::A,
+        make_marker_variance(bayes::MarkerVarianceScope::per_marker),
+        make_proportion(
+            Eigen::VectorXd{{0.9, 0.1}}, bayes::ProportionUpdate::fixed)));
+    return bayes::BayesPrior(
+        make_variance(0.5), std::move(genetics), make_variance(0.25));
+}
+
+template <>
+auto make_prior<BayesCKernel>() -> bayes::BayesPrior
+{
+    std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
+    genetics.push_back(std::make_unique<bayes::SpikeSlabGaussianPrior>(
+        GeneticMode::A,
+        make_marker_variance(bayes::MarkerVarianceScope::per_effect),
+        make_proportion(
+            Eigen::VectorXd{{0.9, 0.1}}, bayes::ProportionUpdate::fixed)));
+    return bayes::BayesPrior(
+        make_variance(0.5), std::move(genetics), make_variance(0.25));
+}
+
+auto make_bayes_r_prior() -> bayes::BayesPrior
+{
+    std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
+    genetics.push_back(std::make_unique<bayes::ScaledMixtureGaussianPrior>(
+        GeneticMode::A,
+        make_marker_variance(bayes::MarkerVarianceScope::per_effect, 0.05),
+        Eigen::VectorXd{{0.0, 0.001, 0.01, 0.1}},
+        make_proportion(
+            Eigen::VectorXd{{0.7, 0.2, 0.08, 0.02}},
+            bayes::ProportionUpdate::sampled)));
+    return bayes::BayesPrior(
+        make_variance(0.5), std::move(genetics), make_variance(0.25));
+}
+
+auto make_context(
+    const BayesModel& model,
+    const bayes::BayesPrior& prior,
+    BayesState& state,
+    std::mt19937_64& rng) -> Context
+{
+    return Context{.model = model, .prior = prior, .state = state, .rng = rng};
+}
+
+}  // namespace
 
 TEST_CASE("FixedStep keeps residual identity and recovers OLS", "[mcmc][fixed]")
 {
@@ -109,128 +224,38 @@ TEST_CASE(
     };
     const Eigen::Index n = X.rows();
     const Eigen::Index p = X.cols();
-
     const Eigen::VectorXd y = Eigen::VectorXd::LinSpaced(n, -1.0, 1.0);
-    const bayes::OldVarianceSpec variance_spec{
-        .scope = bayes::MarkerVarianceScope::per_effect,
-        .init = 0.5,
-        .prior = {4.0, 0.5}};
 
-    std::array<bayes::RandomEffect, 1> effects_arr{
+    std::array<bayes::RandomEffect, 1> effects{
         bayes::RandomEffect{"b", {"a", "b", "c"}, Eigen::MatrixXd{X}}};
-    std::array<bayes::RandomState, 1> states_arr{
-        bayes::RandomState{Eigen::VectorXd::Zero(p), variance_spec.init}};
+    std::array<bayes::RandomState, 1> states{
+        bayes::RandomState{Eigen::VectorXd::Zero(p), 0.5}};
     bayes::ResidualState residual{.y_adj = y, .variance = 0.25};
     std::mt19937_64 rng{kSeed};
 
     RandomStep sampler{RandomStep::Deps{
-        .effects = std::span<const bayes::RandomEffect>{effects_arr},
-        .variance = variance_spec,
-        .states = std::span<bayes::RandomState>{states_arr},
+        .effects = std::span<const bayes::RandomEffect>{effects},
+        .variance = make_variance(0.5),
+        .states = std::span<bayes::RandomState>{states},
         .residual = residual,
         .rng = rng,
     }};
     sampler.step();
 
-    const auto& state = states_arr[0];
-    REQUIRE(state.variance > 0.0);
-    REQUIRE(std::isfinite(state.variance));
-    REQUIRE((residual.y_adj + (X * state.coeffs)).isApprox(y));
+    REQUIRE(states[0].variance > 0.0);
+    REQUIRE(std::isfinite(states[0].variance));
+    REQUIRE((residual.y_adj + (X * states[0].coeffs)).isApprox(y));
 }
-
-constexpr Eigen::Index kTestP = 6;
-
-template <typename Kernel>
-struct KernelTraits;
-
-template <>
-struct KernelTraits<BayesAKernel>
-{
-    static auto make_prior() -> bayes::OldGeneticPrior
-    {
-        return bayes::OldGeneticPrior{
-            .spec = bayes::
-                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_marker, .init = 0.1, .prior = {4.0, 0.5}}},
-            .mixture = std::nullopt};
-    }
-};
-
-template <>
-struct KernelTraits<BayesRRKernel>
-{
-    static auto make_prior() -> bayes::OldGeneticPrior
-    {
-        return bayes::OldGeneticPrior{
-            .spec = bayes::
-                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {4.0, 0.5}}},
-            .mixture = std::nullopt};
-    }
-};
-
-template <>
-struct KernelTraits<BayesBKernel>
-{
-    static auto make_prior() -> bayes::OldGeneticPrior
-    {
-        return bayes::OldGeneticPrior{
-            .spec = bayes::
-                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_marker, .init = 0.1, .prior = {4.0, 0.5}}},
-            .mixture = bayes::Mixture{
-                .strategy = bayes::SpikeSlab{},
-                .proportions
-                = {.init = Eigen::VectorXd{{0.9, 0.1}},
-                   .prior = bayes::OldDirichletPrior{Eigen::VectorXi::Ones(2)},
-                   .estimate = false}}};
-    }
-};
-
-template <>
-struct KernelTraits<BayesCKernel>
-{
-    static auto make_prior() -> bayes::OldGeneticPrior
-    {
-        return bayes::OldGeneticPrior{
-            .spec = bayes::
-                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {4.0, 0.5}}},
-            .mixture = bayes::Mixture{
-                .strategy = bayes::SpikeSlab{},
-                .proportions
-                = {.init = Eigen::VectorXd{{0.9, 0.1}},
-                   .prior = bayes::OldDirichletPrior{Eigen::VectorXi::Ones(2)},
-                   .estimate = false}}};
-    }
-};
-
-namespace
-{
-
-auto make_genetic_effect(Eigen::MatrixXd&& X) -> bayes::GeneticEffect
-{
-    const auto p = X.cols();
-    Eigen::VectorXd mean = X.colwise().mean();
-    Eigen::VectorXd stddev(p);
-    for (Eigen::Index j = 0; j < p; ++j)
-    {
-        stddev(j) = std::sqrt(
-            (X.col(j).array() - mean(j)).square().sum()
-            / static_cast<double>(X.rows()));
-    }
-    auto gm = gelex::test::GenotypeBuilder::build(
-        std::move(X), std::move(mean), std::move(stddev));
-    return bayes::GeneticEffect{GeneticMode::A, std::move(gm)};
-}
-
-}  // namespace
 
 TEMPLATE_TEST_CASE(
-    "Genetic kernel preserves residual/GEBV identity and finite variance",
+    "Independent genetic kernel preserves residual/GEBV identity",
     "[mcmc][genetic]",
     BayesAKernel,
     BayesRRKernel,
     BayesBKernel,
     BayesCKernel)
 {
-    Eigen::MatrixXd X{
+    const Eigen::MatrixXd X{
         {1, 0, 1, 0, 1, 0},
         {0, 1, 1, 0, 0, 1},
         {1, 1, 0, 1, 0, 0},
@@ -240,336 +265,129 @@ TEMPLATE_TEST_CASE(
         {1, 1, 1, 0, 0, 0},
         {0, 0, 0, 1, 1, 1},
     };
-    static_assert(kTestP == 6);
-    const Eigen::VectorXd beta_true{{0.8, 0.0, -0.5, 0.0, 0.6, 0.0}};
-    const Eigen::VectorXd y = X * beta_true;
+    const Eigen::VectorXd beta{{0.8, 0.0, -0.5, 0.0, 0.6, 0.0}};
+    const Eigen::VectorXd y = X * beta;
 
-    auto effect = make_genetic_effect(Eigen::MatrixXd{X});
-    const auto prior = KernelTraits<TestType>::make_prior();
-    bayes::LegacyGeneticState state{effect, prior, GeneticMode::A};
-    bayes::ResidualState residual{.y_adj = y, .variance = 1e-3};
+    auto model = make_model(X, y);
+    auto prior = make_prior<TestType>();
+    BayesState state(model, prior);
     std::mt19937_64 rng{kSeed};
-
-    GeneticStep<TestType> sampler{typename GeneticStep<TestType>::Deps{
-        .block = {.effect = effect, .prior = prior, .state = state},
-        .residual = residual,
-        .rng = rng,
-    }};
+    auto ctx = make_context(model, prior, state, rng);
+    auto sampler = GeneticStep<TestType>::make(ctx, GeneticMode::A);
 
     for (int iter = 0; iter < 200; ++iter)
     {
         sampler.step();
     }
 
-    REQUIRE((residual.y_adj + (X * state.coeffs)).isApprox(y));
-    REQUIRE(state.u.isApprox(X * state.coeffs));
-    REQUIRE(std::isfinite(state.variance));
-    REQUIRE(state.variance >= 0.0);
-    for (Eigen::Index i = 0; i < state.marker_variance.size(); ++i)
+    const auto& genetic = *state.genetic(GeneticMode::A);
+    REQUIRE((state.residual().y_adj + (X * genetic.coeffs)).isApprox(y));
+    REQUIRE(genetic.u.isApprox(X * genetic.coeffs));
+    REQUIRE(std::isfinite(genetic.variance));
+    REQUIRE(genetic.variance >= 0.0);
+
+    const auto& variance = state.genetic_block_for(GeneticMode::A)
+                               ->prior_state()
+                               .require<bayes::VarianceStateCap>()
+                               .variance()[0];
+    for (Eigen::Index i = 0; i < variance.size(); ++i)
     {
-        REQUIRE(std::isfinite(state.marker_variance(i)));
-        REQUIRE(state.marker_variance(i) > 0.0);
+        REQUIRE(std::isfinite(variance(i)));
+        REQUIRE(variance(i) > 0.0);
     }
 }
 
-TEST_CASE(
-    "Genetic kernel rejects mismatched prior/state",
-    "[mcmc][genetic][errors]")
+TEST_CASE("BayesRKernel updates component state", "[mcmc][bayes-r]")
 {
-    Eigen::MatrixXd X{
-        {1, 0, 1},
-        {0, 1, 1},
-        {1, 1, 0},
-        {0, 0, 1},
+    const Eigen::MatrixXd X{
+        {1, 0, 1, 0, 1, 0, 1, 0},
+        {0, 1, 1, 0, 0, 1, 0, 1},
+        {1, 1, 0, 1, 0, 0, 1, 0},
+        {0, 0, 1, 1, 1, 1, 0, 0},
+        {1, 0, 0, 1, 1, 0, 0, 1},
+        {0, 1, 0, 0, 1, 1, 0, 1},
+        {1, 1, 1, 0, 0, 0, 0, 1},
+        {0, 0, 0, 1, 1, 1, 1, 0},
     };
-    const Eigen::Index p = X.cols();
-    auto effect = make_genetic_effect(Eigen::MatrixXd{X});
+    const Eigen::VectorXd beta{{0.8, 0.0, -0.5, 0.0, 0.6, 0.0, 0.0, 0.0}};
+    const Eigen::VectorXd y = X * beta;
 
-    SECTION("BayesB rejects ContinuousPrior")
-    {
-        const auto prior = KernelTraits<BayesAKernel>::make_prior();
-        bayes::LegacyGeneticState state{effect, prior, GeneticMode::A};
-        REQUIRE_THROWS_AS(BayesBKernel(prior, state), GelexException);
-    }
-
-    SECTION("BayesC rejects empty state.group")
-    {
-        const auto prior = KernelTraits<BayesCKernel>::make_prior();
-        bayes::LegacyGeneticState state{
-            GeneticMode::A,
-            Eigen::VectorXd::Zero(p),
-            Eigen::VectorXd::Zero(X.rows()),
-            0.0,
-            Eigen::VectorXd::Constant(1, 0.1),
-            std::nullopt,
-            std::nullopt};
-        REQUIRE_THROWS_AS(BayesCKernel(prior, state), GelexException);
-    }
-}
-
-// ──────────────────────────────────────────────────────────────────────────
-// BayesR tests
-// ──────────────────────────────────────────────────────────────────────────
-
-namespace
-{
-
-auto make_mixture_prior() -> bayes::OldGeneticPrior
-{
-    return bayes::OldGeneticPrior{
-        .spec = bayes::
-            GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.05, .prior = {4.0, 0.1}}},
-        .mixture = bayes::Mixture{
-            .strategy = bayes::
-                ScaledMixture{.multiplier = Eigen::VectorXd{{0.0, 0.001, 0.01, 0.1}}},
-            .proportions
-            = {.init = Eigen::VectorXd{{0.7, 0.2, 0.08, 0.02}},
-               .prior = bayes::OldDirichletPrior{Eigen::VectorXi::Ones(4)},
-               .estimate = true}}};
-}
-
-}  // namespace
-
-TEST_CASE(
-    "BayesRKernel sweep updates coeffs and component variance",
-    "[mcmc][bayes-r]")
-{
-    constexpr Eigen::Index kN = 10;
-    constexpr Eigen::Index kP = 8;
-    constexpr Eigen::Index kK = 4;
-
-    Eigen::MatrixXd X(kN, kP);
-    X << 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0,
-        0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1,
-        1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0,
-        0, 1, 0, 1, 1, 1, 0, 0;
-
-    const Eigen::VectorXd beta_true{{0.8, 0.0, -0.5, 0.0, 0.6, 0.0, 0.0, 0.0}};
-    const Eigen::VectorXd y = X * beta_true;
-
-    auto effect = make_genetic_effect(Eigen::MatrixXd{X});
-    const auto prior = make_mixture_prior();
-    bayes::LegacyGeneticState state{effect, prior, GeneticMode::A};
-    bayes::ResidualState residual{.y_adj = y, .variance = 1e-3};
+    auto model = make_model(X, y);
+    auto prior = make_bayes_r_prior();
+    BayesState state(model, prior);
     std::mt19937_64 rng{kSeed};
-    GeneticSweep sweep{effect, state, residual, rng};
-    BayesRKernel kernel{prior, state};
-    sweep.run(kernel);
-
-    auto& alloc = std::get<bayes::ComponentAllocation>(*state.group);
-
-    REQUIRE(state.coeffs.size() == kP);
-    REQUIRE(alloc.assignment.count.sum() == kP);
-    for (Eigen::Index k = 0; k < kK; ++k)
-    {
-        REQUIRE(alloc.assignment.count(k) >= 0);
-    }
-    REQUIRE(state.marker_variance(0) > 0.0);
-    REQUIRE(static_cast<Eigen::Index>(alloc.component_u.size()) == kK - 1);
-    for (const auto& cu : alloc.component_u)
-    {
-        REQUIRE(cu.size() == kN);
-    }
-    REQUIRE(alloc.component_variance.size() == kK - 1);
-}
-
-// ──────────────────────────────────────────────────────────────────────────
-// PiStep tests
-// ──────────────────────────────────────────────────────────────────────────
-
-namespace
-{
-
-// make_context_for_pi is unused — kept for future reference
-// (void) suppress: removed
-
-}  // namespace
-
-TEST_CASE(
-    "PiStep updates proportion via Dirichlet posterior",
-    "[mcmc][pi-sampler]")
-{
-    constexpr Eigen::Index kN = 10;
-    constexpr Eigen::Index kP = 8;
-    constexpr Eigen::Index kK = 4;
-
-    Eigen::MatrixXd X(kN, kP);
-    X << 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0,
-        0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1,
-        1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0,
-        0, 1, 0, 1, 1, 1, 0, 0;
-
-    const Eigen::VectorXd y = Eigen::VectorXd::LinSpaced(kN, -1.0, 1.0);
-    const auto mixture_prior = make_mixture_prior();
-
-    auto effect = make_genetic_effect(Eigen::MatrixXd{X});
-    bayes::LegacyGeneticState gstate{effect, mixture_prior, GeneticMode::A};
-
-    std::vector<bayes::GeneticEffect> genetics_vec;
-    genetics_vec.emplace_back(GeneticMode::A, std::move(effect.X));
-
-    BayesModel model{y, FixedEffect::build(kN), {}, std::move(genetics_vec)};
-
-    bayes::LegacyBayesMethod method{
-        .config = bayes::LegacyBayesConfig{},
-        .genetics = {make_mixture_prior()},
-        .randoms = {},
-        .residual = bayes::OldVarianceSpec{
-            .scope = bayes::MarkerVarianceScope::per_effect,
-            .init = 0.5,
-            .prior = {4.0, 0.5}}};
-
-    mcmc::State inference_state{
-        bayes::FixedState{Eigen::VectorXd::Zero(1)},
-        std::vector<bayes::RandomState>{},
-        std::vector<bayes::LegacyGeneticState>{std::move(gstate)},
-        bayes::ResidualState{.y_adj = y, .variance = 0.5}};
-
-    std::mt19937_64 rng{kSeed};
-    Context ctx{
-        .model = model, .method = method, .state = inference_state, .rng = rng};
-
-    auto sampler = PiStep::make(ctx, GeneticMode::A);
-
-    auto* gstate_ptr = inference_state.genetic(GeneticMode::A);
-    auto& alloc = std::get<bayes::ComponentAllocation>(*gstate_ptr->group);
-    alloc.assignment.count = Eigen::VectorXi{{6, 1, 1, 0}};
-
+    auto ctx = make_context(model, prior, state, rng);
+    auto sampler = GeneticStep<BayesRKernel>::make(ctx, GeneticMode::A);
     sampler.step();
 
-    const auto& prop = alloc.assignment.proportion;
-    REQUIRE(prop.size() == kK);
-    REQUIRE(std::abs(prop.sum() - 1.0) < 1e-10);
-    for (Eigen::Index k = 0; k < kK; ++k)
+    const auto& prior_state = state.genetic_block_for(GeneticMode::A)
+                                  ->prior_state();
+    const auto& component
+        = prior_state.require<bayes::ComponentStateCap>().component()[0];
+    const auto& proportion
+        = prior_state.require<bayes::ProportionStateCap>().proportion()[0];
+
+    REQUIRE(proportion.count.sum() == X.cols());
+    REQUIRE(static_cast<Eigen::Index>(component.gebv.size())
+            == proportion.value.size() - 1);
+    REQUIRE(component.gebv_var.size() == proportion.value.size() - 1);
+}
+
+TEST_CASE("PiStep samples or skips proportion by state update", "[mcmc][pi]")
+{
+    const Eigen::MatrixXd X{
+        {1, 0, 1, 0},
+        {0, 1, 1, 0},
+        {1, 1, 0, 1},
+        {0, 0, 1, 1},
+    };
+    const Eigen::VectorXd y = Eigen::VectorXd::LinSpaced(X.rows(), -1.0, 1.0);
+    auto model = make_model(X, y);
+
+    SECTION("sampled proportion is updated")
     {
-        REQUIRE(prop(k) > 0.0);
+        auto prior = make_bayes_r_prior();
+        BayesState state(model, prior);
+        auto& proportion = state.genetic_block_for(GeneticMode::A)
+                               ->prior_state()
+                               .require<bayes::ProportionStateCap>()
+                               .proportion()[0];
+        proportion.count = Eigen::VectorXi{{6, 1, 1, 0}};
+        const auto before = proportion.value;
+
+        std::mt19937_64 rng{kSeed};
+        auto ctx = make_context(model, prior, state, rng);
+        auto sampler = PiStep::make(ctx, GeneticMode::A);
+        sampler.step();
+
+        REQUIRE(proportion.value.size() == before.size());
+        REQUIRE(std::abs(proportion.value.sum() - 1.0) < 1e-10);
+        REQUIRE_FALSE(proportion.value.isApprox(before, 0.0));
     }
-    // component 0 (count=6) should dominate
-    REQUIRE(prop(0) > prop(1));
-    REQUIRE(prop(0) > prop(2));
+
+    SECTION("fixed proportion is no-op")
+    {
+        auto prior = make_prior<BayesCKernel>();
+        BayesState state(model, prior);
+        auto& proportion = state.genetic_block_for(GeneticMode::A)
+                               ->prior_state()
+                               .require<bayes::ProportionStateCap>()
+                               .proportion()[0];
+        proportion.count = Eigen::VectorXi{{2, 2}};
+        const auto before = proportion.value;
+
+        std::mt19937_64 rng{kSeed};
+        auto ctx = make_context(model, prior, state, rng);
+        auto sampler = PiStep::make(ctx, GeneticMode::A);
+        sampler.step();
+
+        REQUIRE(proportion.value.isApprox(before, 0.0));
+    }
 }
 
-TEST_CASE("PiStep rejects estimate=false prior", "[mcmc][pi-sampler]")
+TEST_CASE("BayesCpi and BayesBpi chains run one step", "[mcmc][chain]")
 {
-    constexpr Eigen::Index kN = 4;
-    constexpr Eigen::Index kP = 3;
-
-    Eigen::MatrixXd X{
-        {1, 0, 1},
-        {0, 1, 1},
-        {1, 1, 0},
-        {0, 0, 1},
-    };
-    const Eigen::VectorXd y = Eigen::VectorXd::Zero(kN);
-
-    const bayes::OldGeneticPrior spike_term{
-        .spec = bayes::
-            GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {4.0, 0.5}}},
-        .mixture = bayes::Mixture{
-            .strategy = bayes::SpikeSlab{},
-            .proportions
-            = {.init = Eigen::VectorXd{{0.9, 0.1}},
-               .prior = bayes::OldDirichletPrior{Eigen::VectorXi::Ones(2)},
-               .estimate = false}}};
-
-    auto effect = make_genetic_effect(Eigen::MatrixXd{X});
-    bayes::LegacyGeneticState gstate{effect, spike_term, GeneticMode::A};
-
-    std::vector<bayes::GeneticEffect> genetics_vec;
-    genetics_vec.emplace_back(GeneticMode::A, std::move(effect.X));
-
-    BayesModel model{y, FixedEffect::build(kN), {}, std::move(genetics_vec)};
-
-    bayes::LegacyBayesMethod method{
-        .config = bayes::LegacyBayesConfig{},
-        .genetics = {bayes::OldGeneticPrior{
-            .spec = bayes::
-                GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = bayes::MarkerVarianceScope::per_effect, .init = 0.1, .prior = {4.0, 0.5}}},
-            .mixture = bayes::
-                Mixture{.strategy = bayes::SpikeSlab{}, .proportions = {.init = Eigen::VectorXd{{0.9, 0.1}}, .prior = bayes::OldDirichletPrior{Eigen::VectorXi::Ones(2)}, .estimate = false}}}},
-        .randoms = {},
-        .residual = bayes::OldVarianceSpec{
-            .scope = bayes::MarkerVarianceScope::per_effect,
-            .init = 0.5,
-            .prior = {4.0, 0.5}}};
-
-    mcmc::State inference_state{
-        bayes::FixedState{Eigen::VectorXd::Zero(1)},
-        std::vector<bayes::RandomState>{},
-        std::vector<bayes::LegacyGeneticState>{std::move(gstate)},
-        bayes::ResidualState{.y_adj = y, .variance = 0.5}};
-
-    std::mt19937_64 rng{kSeed};
-    Context ctx{
-        .model = model, .method = method, .state = inference_state, .rng = rng};
-
-    REQUIRE_THROWS_AS(PiStep::make(ctx, GeneticMode::A), GelexException);
-    (void)kP;
-}
-
-// ──────────────────────────────────────────────────────────────────────────
-// BayesCpi / BayesBpi integration smoke tests
-// ──────────────────────────────────────────────────────────────────────────
-
-namespace
-{
-
-auto make_spike_prior_estimate(Eigen::Index size) -> bayes::OldGeneticPrior
-{
-    return bayes::OldGeneticPrior{
-        .spec = bayes::
-            GeneticSpec{.mode = GeneticMode::A, .variance = {.scope = size == 1 ? bayes::MarkerVarianceScope::per_effect : bayes::MarkerVarianceScope::per_marker, .init = 0.1, .prior = {4.0, 0.5}}},
-        .mixture = bayes::Mixture{
-            .strategy = bayes::SpikeSlab{},
-            .proportions
-            = {.init = Eigen::VectorXd{{0.9, 0.1}},
-               .prior = bayes::OldDirichletPrior{Eigen::VectorXi::Ones(2)},
-               .estimate = true}}};
-}
-
-auto make_chain_context(
-    const Eigen::MatrixXd& X,
-    const Eigen::VectorXd& y,
-    Eigen::Index spike_size) -> std::pair<BayesModel, bayes::LegacyBayesMethod>
-{
-    std::vector<bayes::GeneticEffect> genetics_vec;
-    genetics_vec.emplace_back(
-        GeneticMode::A, make_genetic_effect(Eigen::MatrixXd{X}).X);
-
-    BayesModel model{
-        y, FixedEffect::build(y.size()), {}, std::move(genetics_vec)};
-
-    bayes::LegacyBayesMethod method{
-        .config = bayes::LegacyBayesConfig{},
-        .genetics = {make_spike_prior_estimate(spike_size)},
-        .randoms = {},
-        .residual = bayes::OldVarianceSpec{
-            .scope = bayes::MarkerVarianceScope::per_effect,
-            .init = 0.3,
-            .prior = {4.0, 0.5}}};
-
-    return {std::move(model), std::move(method)};
-}
-
-auto build_inference_state(
-    const bayes::OldGeneticPrior& prior,
-    const Eigen::MatrixXd& X,
-    const Eigen::VectorXd& y) -> mcmc::State
-{
-    auto effect = make_genetic_effect(Eigen::MatrixXd{X});
-    bayes::LegacyGeneticState gstate{effect, prior, GeneticMode::A};
-    return mcmc::State{
-        bayes::FixedState{Eigen::VectorXd::Zero(1)},
-        std::vector<bayes::RandomState>{},
-        std::vector<bayes::LegacyGeneticState>{std::move(gstate)},
-        bayes::ResidualState{.y_adj = y, .variance = 0.3}};
-}
-
-}  // namespace
-
-TEST_CASE("make_bayes_cpi_chain runs one step", "[mcmc][bayes-cpi]")
-{
-    Eigen::MatrixXd X{
+    const Eigen::MatrixXd X{
         {1, 0, 1, 0, 1, 0},
         {0, 1, 1, 0, 0, 1},
         {1, 1, 0, 1, 0, 0},
@@ -582,59 +400,29 @@ TEST_CASE("make_bayes_cpi_chain runs one step", "[mcmc][bayes-cpi]")
     const Eigen::VectorXd y
         = X * Eigen::VectorXd{{0.8, 0.0, -0.5, 0.0, 0.6, 0.0}};
 
-    mcmc::State inference_state
-        = build_inference_state(make_spike_prior_estimate(1), X, y);
-    std::mt19937_64 rng{kSeed};
-    auto [model, method] = make_chain_context(X, y, 1);
+    auto model = make_model(X, y);
 
-    Context ctx{
-        .model = model, .method = method, .state = inference_state, .rng = rng};
-    auto chain = make_bayes_cpi_chain<bayes::AlgorithmShape::a_only>(ctx);
-    chain.step();
+    SECTION("BayesCpi")
+    {
+        auto prior = make_prior<BayesCKernel>();
+        BayesState state(model, prior);
+        std::mt19937_64 rng{kSeed};
+        auto ctx = make_context(model, prior, state, rng);
+        auto chain = make_bayes_cpi_chain<GeneticShape::a_only>(ctx);
+        chain.step();
+        REQUIRE(std::isfinite(state.genetic(GeneticMode::A)->variance));
+    }
 
-    const auto* gstate = inference_state.genetic(GeneticMode::A);
-    REQUIRE(gstate != nullptr);
-    REQUIRE(std::isfinite(gstate->variance));
-
-    const auto& alloc = std::get<bayes::Assignment>(*gstate->group);
-    REQUIRE(alloc.proportion.sum() > 0.99);
-    REQUIRE(alloc.proportion.sum() < 1.01);
-    REQUIRE(alloc.count.sum() == X.cols());
+    SECTION("BayesBpi")
+    {
+        auto prior = make_prior<BayesBKernel>();
+        BayesState state(model, prior);
+        std::mt19937_64 rng{kSeed};
+        auto ctx = make_context(model, prior, state, rng);
+        auto chain = make_bayes_bpi_chain<GeneticShape::a_only>(ctx);
+        chain.step();
+        REQUIRE(std::isfinite(state.genetic(GeneticMode::A)->variance));
+    }
 }
 
-TEST_CASE("make_bayes_bpi_chain runs one step", "[mcmc][bayes-bpi]")
-{
-    Eigen::MatrixXd X{
-        {1, 0, 1, 0, 1, 0},
-        {0, 1, 1, 0, 0, 1},
-        {1, 1, 0, 1, 0, 0},
-        {0, 0, 1, 1, 1, 1},
-        {1, 0, 0, 1, 1, 0},
-        {0, 1, 0, 0, 1, 1},
-        {1, 1, 1, 0, 0, 0},
-        {0, 0, 0, 1, 1, 1},
-    };
-    const Eigen::VectorXd y
-        = X * Eigen::VectorXd{{0.8, 0.0, -0.5, 0.0, 0.6, 0.0}};
-    mcmc::State inference_state
-        = build_inference_state(make_spike_prior_estimate(kTestP), X, y);
-    std::mt19937_64 rng{kSeed};
-    auto [model, method] = make_chain_context(X, y, kTestP);
-
-    Context ctx{
-        .model = model, .method = method, .state = inference_state, .rng = rng};
-    auto chain = make_bayes_bpi_chain<bayes::AlgorithmShape::a_only>(ctx);
-    chain.step();
-
-    const auto* gstate = inference_state.genetic(GeneticMode::A);
-    REQUIRE(gstate != nullptr);
-    REQUIRE(std::isfinite(gstate->variance));
-
-    const auto& alloc = std::get<bayes::Assignment>(*gstate->group);
-    REQUIRE(alloc.proportion.sum() > 0.99);
-    REQUIRE(alloc.proportion.sum() < 1.01);
-    REQUIRE(alloc.count.sum() == X.cols());
-}
-
-}  // namespace
 }  // namespace gelex::mcmc

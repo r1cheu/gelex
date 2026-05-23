@@ -17,10 +17,8 @@
 #ifndef GELEX_ALGO_INFER_MCMC_KERNELS_BAYES_R_H_
 #define GELEX_ALGO_INFER_MCMC_KERNELS_BAYES_R_H_
 
-#include <cassert>
 #include <cstdint>
 #include <random>
-#include <variant>
 
 #include <Eigen/Core>
 
@@ -28,7 +26,6 @@
 #include "gelex/algo/infer/mcmc/kernels/detail/mixture_op.h"
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/legacy_prior.h"
 
 namespace gelex::mcmc
 {
@@ -44,20 +41,24 @@ namespace gelex::mcmc
 class BayesRKernel
 {
    public:
-    BayesRKernel(
-        const bayes::OldGeneticPrior& prior,
-        bayes::LegacyGeneticState& state)
-        : state_(state),
-          assignment_(
-              unpack_marker_allocation<bayes::ComponentAllocation>(
-                  state,
-                  "BayesRKernel")),
-          multiplier_(scaled_mixture(prior).multiplier),
+    template <typename BlockDeps>
+    explicit BayesRKernel(const BlockDeps& block)
+        : state_(block.state),
+          marker_variance_(require_variance_state(
+              block.prior_state,
+              "BayesRKernel")[block.slot]),
+          proportion_(
+              block.prior_state.template require<bayes::ProportionStateCap>()
+                  .proportion()[block.slot]),
+          multiplier_(require_multiplier_specs(
+              block.prior,
+              "BayesRKernel")[block.slot]),
           marker_variances_(multiplier_.size()),
           logpi_(multiplier_.size()),
-          pi_count_(assignment_.assignment.count),
+          pi_count_(proportion_.count),
           variance_sampler_(make_variance_sampler(
-              std::get<bayes::GeneticSpec>(prior.spec).variance)),
+              require_variance_specs(block.prior, "BayesRKernel")[block.slot]
+                  .variance())),
           normal_(0.0)
     {
     }
@@ -68,8 +69,8 @@ class BayesRKernel
         uniform_.reset();
         normal_.reset();
 
-        logpi_ = assignment_.assignment.proportion.array().log();
-        marker_variances_ = state_.marker_variance(0) * multiplier_.array();
+        logpi_ = proportion_.value.array().log();
+        marker_variances_ = marker_variance_(0) * multiplier_.array();
         sum_square_coeffs_ = 0.0;
     }
 
@@ -81,7 +82,8 @@ class BayesRKernel
         std::mt19937_64& rng) -> double
     {
         const Eigen::Index num_scale_classes = multiplier_.size();
-        const int8_t old_index = assignment_.assignment.tracker(marker_index);
+        const int8_t old_index
+            = static_cast<int8_t>(proportion_.assignment(marker_index));
 
         compute_scale_posteriors(rhs, xtx_diag, residual_variance);
         const int8_t dist_index = draw_component(num_scale_classes, rng);
@@ -93,7 +95,7 @@ class BayesRKernel
                                        rng)
                                  : 0.0;
 
-        assignment_.assignment.tracker(marker_index) = dist_index;
+        proportion_.assignment(marker_index) = dist_index;
         pi_count_(old_index)--;
         pi_count_(dist_index)++;
         if (dist_index > 0)
@@ -106,27 +108,17 @@ class BayesRKernel
     auto commit(std::mt19937_64& rng) -> void
     {
         const Eigen::Index p = state_.coeffs.size();
-        assignment_.assignment.count = pi_count_;
-        const Eigen::Index num_nonzero = p - assignment_.assignment.count(0);
+        proportion_.count = pi_count_;
+        const Eigen::Index num_nonzero = p - proportion_.count(0);
 
-        state_.marker_variance(0)
+        marker_variance_(0)
             = variance_sampler_({num_nonzero, sum_square_coeffs_}, rng);
     }
 
    private:
-    static auto scaled_mixture(const bayes::OldGeneticPrior& prior)
-        -> const bayes::ScaledMixture&
-    {
-        assert(prior.mixture.has_value() && "BayesRKernel requires mixture");
-        assert(
-            std::holds_alternative<bayes::ScaledMixture>(
-                prior.mixture->strategy)
-            && "BayesRKernel requires scaled mixture");
-        return std::get<bayes::ScaledMixture>(prior.mixture->strategy);
-    }
-
-    bayes::LegacyGeneticState& state_;
-    bayes::ComponentAllocation& assignment_;
+    bayes::GeneticState& state_;
+    Eigen::VectorXd& marker_variance_;
+    bayes::ProportionState& proportion_;
     Eigen::VectorXd multiplier_;
     Eigen::VectorXd marker_variances_;
     Eigen::VectorXd logpi_;

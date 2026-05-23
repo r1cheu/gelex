@@ -18,30 +18,28 @@
 #include <memory>
 #include <random>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/algo/infer/mcmc/checkpoint.h"
 #include "gelex/algo/infer/mcmc/recipes.h"
 #include "gelex/algo/infer/mcmc/solver.h"
 #include "gelex/algo/infer/params.h"
 #include "gelex/data/genotype/genotype.h"
+#include "gelex/io/detail/binary_writer.h"
 #include "gelex/io/mcmc/checkpoint_reader.h"
 #include "gelex/io/mcmc/checkpoint_writer.h"
 #include "gelex/model/bayes/gaussian_prior.h"
-#include "gelex/model/bayes/legacy_algorithm_shape.h"
-#include "gelex/model/bayes/legacy_builder.h"
-#include "gelex/model/bayes/legacy_method.h"
-#include "gelex/model/bayes/legacy_prior.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_specs.h"
 #include "gelex/model/bayes/state.h"
 #include "gelex/model/bayes/state_capabilities.h"
 #include "gelex/types/fixed_effects.h"
+#include "gelex/types/genetic_effect_type.h"
 #include "genotype_fixture.h"
 
 using namespace gelex;            // NOLINT
@@ -50,230 +48,184 @@ using namespace gelex::genotype;  // NOLINT
 namespace
 {
 
-constexpr Eigen::Index kNSamples = 10;
-constexpr Eigen::Index kNSnps = 5;
+constexpr Eigen::Index kNumIndividuals = 10;
+constexpr Eigen::Index kNumMarkers = 5;
 
-auto make_geno_matrix(Eigen::Index n_samples, Eigen::Index n_snps) -> Genotype
+auto make_genotype(Eigen::Index n_samples, Eigen::Index n_snps) -> Genotype
 {
-    auto data = Eigen::MatrixXd::Random(n_samples, n_snps);
+    Eigen::MatrixXd data = Eigen::MatrixXd::Random(n_samples, n_snps);
     auto mean = data.colwise().mean().transpose().eval();
     auto stddev = Eigen::VectorXd::Ones(n_snps);
-    return test::GenotypeBuilder::build(data, std::move(mean), stddev);
+    return test::GenotypeBuilder::build(
+        std::move(data), std::move(mean), std::move(stddev));
 }
 
-auto make_bayes_a_model(Eigen::Index n_samples, Eigen::Index n_snps)
-    -> std::pair<BayesModel, bayes::LegacyBayesMethod>
+auto make_model(Eigen::Index n_samples, Eigen::Index n_snps) -> BayesModel
 {
     auto phenotype = Eigen::VectorXd::Random(n_samples);
     auto fixed = FixedEffect::build(n_samples);
-    auto geno = make_geno_matrix(n_samples, n_snps);
 
     std::vector<bayes::GeneticEffect> genetics;
-    genetics.emplace_back(GeneticMode::A, std::move(geno));
+    genetics.emplace_back(GeneticMode::A, make_genotype(n_samples, n_snps));
 
-    BayesModel model(phenotype, std::move(fixed), {}, std::move(genetics));
-    const auto config = bayes::LegacyBayesConfig{BayesBase::A};
-    const auto stats = compute_genetic_stats(model);
-    auto method
-        = bayes::build_bayes_method(config, stats, model.phenotype_variance());
-    return {std::move(model), std::move(method)};
+    return BayesModel{phenotype, std::move(fixed), {}, std::move(genetics)};
 }
 
-auto run_bayes_a(
-    BayesModel& model,
-    bayes::LegacyBayesMethod method,
-    Eigen::Index n_iters,
-    std::string_view prefix,
-    Eigen::Index seed) -> std::string
-{
-    mcmc::Params params{n_iters, 0, 1, n_iters};
-    mcmc::Solver mcmc(
-        params,
-        mcmc::make_bayes_a_chain<bayes::AlgorithmShape::a_only>,
-        std::string(prefix),
-        std::string(prefix));
-    mcmc.run(model, std::move(method), seed);
-    return std::string(prefix) + ".ckpt";
-}
-
-auto resume_bayes_a(
-    BayesModel& model,
-    Eigen::Index n_iters,
-    std::string_view prefix,
-    const std::string& ckpt_path) -> std::string
-{
-    auto ckpt = read_checkpoint(ckpt_path);
-    mcmc::Params params{n_iters, 0, 1, n_iters};
-    mcmc::Solver mcmc(
-        params,
-        mcmc::make_bayes_a_chain<bayes::AlgorithmShape::a_only>,
-        std::string(prefix),
-        std::string(prefix));
-    mcmc.resume(model, std::move(ckpt));
-    return std::string(prefix) + ".ckpt";
-}
-
-auto fill_state(mcmc::State& state) -> void
-{
-    state.fixed().coeffs
-        = Eigen::VectorXd::LinSpaced(state.fixed().coeffs.size(), 1.0, 2.0);
-
-    auto& gs = state.genetics()[0];
-    gs.coeffs = Eigen::VectorXd::LinSpaced(gs.coeffs.size(), 0.1, 1.0);
-    gs.u = Eigen::VectorXd::LinSpaced(gs.u.size(), -0.5, 0.5);
-    gs.variance = 0.3;
-    gs.heritability = 0.4;
-
-    state.residual().variance = 0.7;
-    state.residual().y_adj
-        = Eigen::VectorXd::Constant(state.residual().y_adj.size(), 1.5);
-}
-
-auto make_variance_spec(double initial_value) -> bayes::VarianceSpec
+auto make_variance(double initial_value) -> bayes::VarianceSpec
 {
     return bayes::VarianceSpec(
         initial_value, bayes::ScaledInvChiSqPrior{4.0, 1.0});
 }
 
-auto make_bayes_state_prior() -> bayes::BayesPrior
+auto make_bayes_a_prior(Eigen::Index /*n_snps*/ = kNumMarkers)
+    -> bayes::BayesPrior
+{
+    std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
+    genetics.push_back(std::make_unique<bayes::GaussianPrior>(
+        GeneticMode::A,
+        bayes::MarkerVarianceSpec{
+            bayes::MarkerVarianceScope::per_marker,
+            make_variance(0.2)}));
+    return bayes::BayesPrior(
+        make_variance(0.5), std::move(genetics), make_variance(1.0));
+}
+
+auto make_spike_slab_prior() -> bayes::BayesPrior
 {
     std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
     genetics.push_back(std::make_unique<bayes::SpikeSlabGaussianPrior>(
         GeneticMode::A,
         bayes::MarkerVarianceSpec{
             bayes::MarkerVarianceScope::per_marker,
-            make_variance_spec(0.2)},
+            make_variance(0.2)},
         bayes::ProportionSpec{
             Eigen::VectorXd{{0.8, 0.2}},
             Eigen::VectorXd{{1.0, 1.0}},
             bayes::ProportionUpdate::sampled}));
-
     return bayes::BayesPrior(
-        make_variance_spec(0.5),
-        std::move(genetics),
-        make_variance_spec(1.0));
+        make_variance(0.5), std::move(genetics), make_variance(1.0));
+}
+
+auto run_bayes_a(
+    const BayesModel& model,
+    Eigen::Index n_iters,
+    std::string_view prefix,
+    Eigen::Index seed) -> std::string
+{
+    mcmc::Params params{n_iters, 0, 1, n_iters};
+    mcmc::Solver solver(
+        params,
+        mcmc::make_bayes_a_chain<mcmc::GeneticShape::a_only>,
+        std::string(prefix),
+        std::string(prefix));
+    solver.run(model, make_bayes_a_prior(), seed);
+    return std::string(prefix) + ".ckpt";
+}
+
+auto resume_bayes_a(
+    const BayesModel& model,
+    Eigen::Index n_iters,
+    std::string_view prefix,
+    const std::string& checkpoint_path) -> std::string
+{
+    mcmc::Params params{n_iters, 0, 1, n_iters};
+    mcmc::Solver solver(
+        params,
+        mcmc::make_bayes_a_chain<mcmc::GeneticShape::a_only>,
+        std::string(prefix),
+        std::string(prefix));
+    solver.resume(model, make_bayes_a_prior(), checkpoint_path);
+    return std::string(prefix) + ".ckpt";
+}
+
+auto read_bayes_state_checkpoint(
+    const BayesModel& model,
+    const std::string& path) -> BayesState
+{
+    auto prior = make_bayes_a_prior();
+    BayesState state(model, prior);
+    static_cast<void>(read_checkpoint(path, state));
+    return state;
+}
+
+auto fill_state(BayesState& state) -> void
+{
+    state.fixed().coeffs
+        = Eigen::VectorXd::LinSpaced(state.fixed().coeffs.size(), 1.0, 2.0);
+
+    auto& genetic = *state.genetic(GeneticMode::A);
+    genetic.coeffs
+        = Eigen::VectorXd::LinSpaced(genetic.coeffs.size(), 0.1, 1.0);
+    genetic.u = Eigen::VectorXd::LinSpaced(genetic.u.size(), -0.5, 0.5);
+    genetic.variance = 0.3;
+    genetic.heritability = 0.4;
+
+    state.residual().variance = 0.7;
+    state.residual().y_adj
+        = Eigen::VectorXd::Constant(state.residual().y_adj.size(), 1.5);
 }
 
 }  // namespace
 
-TEST_CASE("checkpoint resume produces bit-exact final state", "[checkpoint]")
+TEST_CASE("BayesState checkpoint resume matches continuous run", "[checkpoint]")
 {
     const std::string prefix_cont = "/tmp/gelex_test_ckpt_cont";
     const std::string prefix_first = "/tmp/gelex_test_ckpt_first";
     const std::string prefix_resume = "/tmp/gelex_test_ckpt_resume";
 
-    Eigen::Index n_samples = 30;
-    Eigen::Index n_snps = 8;
-    auto [model, method] = make_bayes_a_model(n_samples, n_snps);
+    auto model = make_model(30, 8);
 
-    auto ckpt_cont = run_bayes_a(model, method, 20, prefix_cont, 42);
-
-    auto ckpt_first = run_bayes_a(model, method, 10, prefix_first, 42);
+    auto ckpt_cont = run_bayes_a(model, 20, prefix_cont, 42);
+    auto ckpt_first = run_bayes_a(model, 10, prefix_first, 42);
     auto ckpt_resume = resume_bayes_a(model, 10, prefix_resume, ckpt_first);
 
-    auto state_cont = read_checkpoint(ckpt_cont);
-    auto state_resume = read_checkpoint(ckpt_resume);
+    auto state_cont = read_bayes_state_checkpoint(model, ckpt_cont);
+    auto state_resume = read_bayes_state_checkpoint(model, ckpt_resume);
 
-    CHECK(state_cont.state.fixed().coeffs.isApprox(
-        state_resume.state.fixed().coeffs, 0.0));
-
-    const auto& gs_cont = state_cont.state.genetics()[0];
-    const auto& gs_resume = state_resume.state.genetics()[0];
-    CHECK(gs_cont.coeffs.isApprox(gs_resume.coeffs, 0.0));
-    CHECK(gs_cont.u.isApprox(gs_resume.u, 0.0));
-    CHECK(gs_cont.variance == gs_resume.variance);
-    CHECK(gs_cont.marker_variance.isApprox(gs_resume.marker_variance, 0.0));
-
-    // residual state
-    CHECK(
-        state_cont.state.residual().variance
-        == state_resume.state.residual().variance);
-    CHECK(state_cont.state.residual().y_adj.isApprox(
-        state_resume.state.residual().y_adj, 0.0));
-
-    CHECK(state_cont.rng() == state_resume.rng());
+    CHECK(state_cont.fixed().coeffs.isApprox(
+        state_resume.fixed().coeffs, 0.0));
+    const auto& genetic_cont = *state_cont.genetic(GeneticMode::A);
+    const auto& genetic_resume = *state_resume.genetic(GeneticMode::A);
+    CHECK(genetic_cont.coeffs.isApprox(genetic_resume.coeffs, 0.0));
+    CHECK(genetic_cont.u.isApprox(genetic_resume.u, 0.0));
+    CHECK(genetic_cont.variance == genetic_resume.variance);
+    CHECK(state_cont.residual().variance == state_resume.residual().variance);
+    CHECK(state_cont.residual().y_adj.isApprox(
+        state_resume.residual().y_adj, 0.0));
 
     std::filesystem::remove(ckpt_cont);
     std::filesystem::remove(ckpt_first);
     std::filesystem::remove(ckpt_resume);
 }
 
-TEST_CASE("checkpoint round-trip preserves all fields", "[checkpoint]")
-{
-    const std::string prefix = "/tmp/gelex_test_ckpt_roundtrip";
-    const std::string ckpt_path = prefix + ".ckpt";
-
-    auto [model, method] = make_bayes_a_model(kNSamples, kNSnps);
-    mcmc::State state(model, method);
-    fill_state(state);
-
-    std::mt19937_64 rng(12345);
-    rng();
-    rng();
-    rng();
-
-    write_checkpoint(state, rng, method, prefix);
-
-    auto ckpt = read_checkpoint(ckpt_path);
-
-    // fixed coeffs
-    CHECK(ckpt.state.fixed().coeffs.isApprox(state.fixed().coeffs));
-
-    // genetic state
-    const auto& gs_orig = state.genetics()[0];
-    const auto& gs_read = ckpt.state.genetics()[0];
-    CHECK(gs_read.coeffs.isApprox(gs_orig.coeffs));
-    CHECK(gs_read.u.isApprox(gs_orig.u));
-    CHECK(gs_read.variance == gs_orig.variance);
-
-    // residual state
-    CHECK(ckpt.state.residual().variance == state.residual().variance);
-    CHECK(ckpt.state.residual().y_adj.isApprox(state.residual().y_adj));
-
-    // rng state: both rngs should produce the same next value
-    const auto val_orig = rng();
-    const auto val_read = ckpt.rng();
-    CHECK(val_orig == val_read);
-
-    std::filesystem::remove(ckpt_path);
-}
-
-TEST_CASE("BayesState checkpoint round-trip preserves state records", "[checkpoint]")
+TEST_CASE("BayesState checkpoint round-trip preserves records", "[checkpoint]")
 {
     const std::string prefix = "/tmp/gelex_test_bayes_state_ckpt_roundtrip";
     const std::string ckpt_path = prefix + ".ckpt";
 
-    auto [model, method] = make_bayes_a_model(kNSamples, kNSnps);
-    (void)method;
-    auto prior = make_bayes_state_prior();
+    auto model = make_model(kNumIndividuals, kNumMarkers);
+    auto prior = make_spike_slab_prior();
     BayesState state(model, prior);
+    fill_state(state);
 
-    state.fixed().coeffs
-        = Eigen::VectorXd::LinSpaced(state.fixed().coeffs.size(), 1.0, 2.0);
-    auto& genetic = *state.genetic(GeneticMode::A);
-    genetic.coeffs = Eigen::VectorXd::LinSpaced(genetic.coeffs.size(), 0.1, 0.5);
-    genetic.u = Eigen::VectorXd::LinSpaced(genetic.u.size(), -0.2, 0.2);
-    genetic.variance = 0.75;
-    genetic.heritability = 0.25;
     auto& proportion = state.genetic_block_for(GeneticMode::A)
                            ->prior_state()
                            .require<bayes::ProportionStateCap>()
                            .proportion()[0];
-    proportion.assignment = Eigen::VectorXi::Ones(kNSnps);
-    proportion.count = Eigen::VectorXi{{0, static_cast<int>(kNSnps)}};
+    proportion.assignment = Eigen::VectorXi::Ones(kNumMarkers);
+    proportion.count = Eigen::VectorXi{{0, static_cast<int>(kNumMarkers)}};
     proportion.value = Eigen::VectorXd{{0.1, 0.9}};
-    state.residual().y_adj = Eigen::VectorXd::Constant(kNSamples, 1.25);
-    state.residual().variance = 1.5;
 
     std::mt19937_64 rng(123);
     rng();
     write_checkpoint(state, rng, prefix);
 
-    auto restored_prior = make_bayes_state_prior();
+    auto restored_prior = make_spike_slab_prior();
     BayesState restored(model, restored_prior);
     auto restored_rng = read_checkpoint(ckpt_path, restored);
 
     CHECK(restored.fixed().coeffs.isApprox(state.fixed().coeffs));
+    const auto& genetic = *state.genetic(GeneticMode::A);
     const auto& restored_genetic = *restored.genetic(GeneticMode::A);
     CHECK(restored_genetic.coeffs.isApprox(genetic.coeffs));
     CHECK(restored_genetic.u.isApprox(genetic.u));
@@ -293,18 +245,19 @@ TEST_CASE("BayesState checkpoint round-trip preserves state records", "[checkpoi
     std::filesystem::remove(ckpt_path);
 }
 
-TEST_CASE("checkpoint atomic write leaves no tmp file", "[checkpoint]")
+TEST_CASE("BayesState checkpoint atomic write leaves no tmp file", "[checkpoint]")
 {
     const std::string prefix = "/tmp/gelex_test_ckpt_atomic";
     const std::string ckpt_path = prefix + ".ckpt";
     const std::string tmp_path = prefix + ".ckpt.tmp";
 
-    auto [model, method] = make_bayes_a_model(kNSamples, kNSnps);
-    mcmc::State state(model, method);
+    auto model = make_model(kNumIndividuals, kNumMarkers);
+    auto prior = make_bayes_a_prior();
+    BayesState state(model, prior);
     fill_state(state);
     std::mt19937_64 rng(99);
 
-    write_checkpoint(state, rng, method, prefix);
+    write_checkpoint(state, rng, prefix);
 
     REQUIRE(std::filesystem::exists(ckpt_path));
     REQUIRE_FALSE(std::filesystem::exists(tmp_path));
@@ -312,111 +265,42 @@ TEST_CASE("checkpoint atomic write leaves no tmp file", "[checkpoint]")
     std::filesystem::remove(ckpt_path);
 }
 
-TEST_CASE("checkpoint method round-trip preserves all fields", "[checkpoint]")
+TEST_CASE("legacy checkpoint is rejected by BayesState resume", "[checkpoint]")
 {
-    const std::string prefix = "/tmp/gelex_test_ckpt_method";
+    const std::string prefix = "/tmp/gelex_test_legacy_ckpt_reject";
     const std::string ckpt_path = prefix + ".ckpt";
 
-    Eigen::VectorXd pi_init{{0.9, 0.05, 0.05}};
-    Eigen::VectorXd multiplier{{0.0, 0.01, 0.1}};
+    auto model = make_model(kNumIndividuals, kNumMarkers);
+    {
+        io::detail::BinaryWriter writer(ckpt_path);
+        const auto handle = writer.reserve<double>("legacy_marker", 1, 1);
+        writer.write(handle, 1.0);
+    }
 
-    bayes::GeneticSpec spec{
-        .mode = GeneticMode::A,
-        .variance = {bayes::MarkerVarianceScope::per_marker, 0.0, {4.0, 0.3}},
-        .sign = bayes::CategoricalSpec{
-            Eigen::VectorXd{{0.6, 0.4}},
-            bayes::OldDirichletPrior{Eigen::VectorXi{{1, 1}}},
-            false,
-        },
-    };
-
-    bayes::OldGeneticPrior prior{
-        spec,
-        bayes::Mixture{
-            bayes::ScaledMixture{multiplier},
-            bayes::CategoricalSpec{
-                pi_init,
-                bayes::OldDirichletPrior{Eigen::VectorXi{{1, 1, 1}}},
-                true,
-            },
-        },
-    };
-
-    bayes::LegacyBayesMethod method;
-    method.genetics.push_back(prior);
-    method.randoms.push_back(
-        {bayes::MarkerVarianceScope::per_effect, 0.0, {3.0, 0.1}});
-    method.randoms.push_back(
-        {bayes::MarkerVarianceScope::per_effect, 0.0, {5.0, 0.2}});
-    method.residual = {bayes::MarkerVarianceScope::per_effect, 0.0, {4.0, 0.5}};
-
-    auto [model, model_method] = make_bayes_a_model(kNSamples, kNSnps);
-    (void)model_method;
-    mcmc::State state(model, method);
-    fill_state(state);
-    std::mt19937_64 rng(77);
-
-    write_checkpoint(state, rng, method, prefix);
-
-    auto ckpt = read_checkpoint(ckpt_path);
-    const auto& rm = ckpt.method;
-
-    // Residual
-    CHECK(rm.residual.prior.degrees_of_freedom() == 4.0);
-    CHECK(rm.residual.prior.scale() == 0.5);
-
-    // Random
-    REQUIRE(rm.randoms.size() == 2);
-    CHECK(rm.randoms[0].prior.degrees_of_freedom() == 3.0);
-    CHECK(rm.randoms[0].prior.scale() == 0.1);
-    CHECK(rm.randoms[1].prior.degrees_of_freedom() == 5.0);
-    CHECK(rm.randoms[1].prior.scale() == 0.2);
-
-    // Genetic prior
-    REQUIRE(rm.genetics.size() == 1);
-    const auto* gs = std::get_if<bayes::GeneticSpec>(&rm.genetics[0].spec);
-    REQUIRE(gs != nullptr);
-    CHECK(gs->mode == GeneticMode::A);
-    CHECK(gs->variance.prior.degrees_of_freedom() == 4.0);
-    CHECK(gs->variance.prior.scale() == 0.3);
-
-    // Mixture
-    REQUIRE(rm.genetics[0].mixture.has_value());
-    CHECK(rm.genetics[0].mixture->proportions.init.isApprox(pi_init));
-    CHECK(rm.genetics[0].mixture->proportions.estimate == true);
-    const auto* sm
-        = std::get_if<bayes::ScaledMixture>(&rm.genetics[0].mixture->strategy);
-    REQUIRE(sm != nullptr);
-    CHECK(sm->multiplier.isApprox(multiplier));
-
-    // Sign
-    REQUIRE(gs->sign.has_value());
+    auto prior = make_bayes_a_prior();
+    BayesState state(model, prior);
+    REQUIRE_THROWS_AS(read_checkpoint(ckpt_path, state), GelexException);
 
     std::filesystem::remove(ckpt_path);
 }
 
-TEST_CASE("MCMC resume throws on checkpoint dimension mismatch", "[checkpoint]")
+TEST_CASE("BayesState resume throws on checkpoint dimension mismatch", "[checkpoint]")
 {
     const std::string prefix = "/tmp/gelex_test_ckpt_dimcheck";
     const std::string ckpt_path = prefix + ".ckpt";
 
-    auto [model_write, method_write] = make_bayes_a_model(kNSamples, kNSnps);
-    mcmc::State state(model_write, method_write);
+    auto model_write = make_model(kNumIndividuals, kNumMarkers);
+    auto prior_write = make_bayes_a_prior();
+    BayesState state(model_write, prior_write);
     fill_state(state);
     std::mt19937_64 rng(42);
 
-    write_checkpoint(state, rng, method_write, prefix);
+    write_checkpoint(state, rng, prefix);
 
-    auto ckpt = read_checkpoint(ckpt_path);
-
-    auto [model_mismatch, method_mismatch]
-        = make_bayes_a_model(kNSamples, kNSnps + 3);
-    (void)method_mismatch;
-
-    mcmc::Params params{1, 0, 1, 1};
-    mcmc::Solver mcmc(
-        params, mcmc::make_bayes_a_chain<bayes::AlgorithmShape::a_only>);
-    REQUIRE_THROWS(mcmc.resume(model_mismatch, std::move(ckpt)));
+    auto model_mismatch = make_model(kNumIndividuals, kNumMarkers + 3);
+    auto prior_read = make_bayes_a_prior();
+    BayesState mismatch_state(model_mismatch, prior_read);
+    REQUIRE_THROWS_AS(read_checkpoint(ckpt_path, mismatch_state), GelexException);
 
     std::filesystem::remove(ckpt_path);
 }

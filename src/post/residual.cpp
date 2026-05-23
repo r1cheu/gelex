@@ -16,11 +16,10 @@
 
 #include "gelex/post/residual.h"
 
-#include <fmt/format.h>
+#include <string_view>
 
 #include "gelex/io/detail/binary_reader.h"
 #include "gelex/post/detail/utils.h"
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -34,7 +33,7 @@ ResidualPosteriorProcessor::ResidualPosteriorProcessor(
 
 auto ResidualPosteriorProcessor::process() -> std::vector<ParameterDiag>
 {
-    auto resid_path = fmt::format("{}/variance", EffectType::residual());
+    constexpr std::string_view resid_path = "residual/0/variance";
     return {post::detail::summarize_section(
         readers_, resid_path, hdpi_threshold_, "Residual", "σ²_e")};
 }

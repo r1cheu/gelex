@@ -25,7 +25,6 @@
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/legacy_prior.h"
 #include "gelex/model/bayes/prior.h"
 
 namespace gelex::mcmc
@@ -35,7 +34,7 @@ namespace gelex::mcmc
 struct RandomStepDeps
 {
     std::span<const bayes::RandomEffect> effects;
-    bayes::OldVarianceSpec variance;
+    bayes::VarianceSpec variance;
     std::span<bayes::RandomState> states;
     bayes::ResidualState& residual;
     std::mt19937_64& rng;
@@ -52,8 +51,8 @@ class RandomStep
     explicit RandomStep(Deps deps)
         : deps_(deps),
           variance_sampler_(
-              deps_.variance.prior.degrees_of_freedom(),
-              deps_.variance.prior.scale())
+              deps_.variance.prior().degrees_of_freedom(),
+              deps_.variance.prior().scale())
     {
     }
 

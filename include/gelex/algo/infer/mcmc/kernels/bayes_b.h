@@ -20,7 +20,6 @@
 #include <cmath>
 #include <cstdint>
 #include <random>
-#include <variant>
 
 #include "gelex/algo/infer/mcmc/kernels/common.h"
 #include "gelex/algo/infer/mcmc/state.h"
@@ -36,17 +35,19 @@ namespace gelex::mcmc
 class BayesBKernel
 {
    public:
-    BayesBKernel(
-        const bayes::OldGeneticPrior& prior,
-        bayes::LegacyGeneticState& state)
-        : state_(state),
-          assignment_(
-              unpack_marker_allocation<bayes::Assignment>(
-                  state,
-                  "BayesBKernel")),
+    template <typename BlockDeps>
+    explicit BayesBKernel(const BlockDeps& block)
+        : state_(block.state),
+          marker_variance_(require_variance_state(
+              block.prior_state,
+              "BayesBKernel")[block.slot]),
+          proportion_(
+              block.prior_state.template require<bayes::ProportionStateCap>()
+                  .proportion()[block.slot]),
           normal_(0.0),
           variance_sampler_(make_variance_sampler(
-              std::get<bayes::GeneticSpec>(prior.spec).variance))
+              require_variance_specs(block.prior, "BayesBKernel")[block.slot]
+                  .variance()))
     {
     }
 
@@ -55,8 +56,8 @@ class BayesBKernel
         normal_.reset();
         variance_sampler_.reset();
         uniform_.reset();
-        count_1_ = assignment_.count(1);
-        logpi_ = assignment_.proportion.array().log();
+        count_1_ = proportion_.count(1);
+        logpi_ = proportion_.value.array().log();
     }
 
     auto sample(
@@ -66,16 +67,16 @@ class BayesBKernel
         double residual_variance,
         std::mt19937_64& rng) -> double
     {
-        const std::int8_t old_component = assignment_.tracker(marker_index);
+        const std::int8_t old_component
+            = static_cast<std::int8_t>(proportion_.assignment(marker_index));
 
-        const auto post
-            = normal_.set_prior_var(state_.marker_variance(marker_index))
-                  .posterior_with_logL(
-                      stats::NormalSampler<double>::Kernel{
-                          .quadratic = xtx_diag,
-                          .linear = rhs,
-                          .scale = residual_variance,
-                      });
+        const auto post = normal_.set_prior_var(marker_variance_(marker_index))
+                              .posterior_with_logL(
+                                  stats::NormalSampler<double>::Kernel{
+                                      .quadratic = xtx_diag,
+                                      .linear = rhs,
+                                      .scale = residual_variance,
+                                  });
 
         const double log_like_1_minus_0
             = post.log_likelihood_kernel + logpi_(1) - logpi_(0);
@@ -84,7 +85,7 @@ class BayesBKernel
 
         const std::int8_t dist_index
             = (uniform_(rng) < prob_component_0) ? 0 : 1;
-        assignment_.tracker(marker_index) = dist_index;
+        proportion_.assignment(marker_index) = dist_index;
         count_1_
             += static_cast<int>(dist_index) - static_cast<int>(old_component);
 
@@ -92,7 +93,7 @@ class BayesBKernel
         if (dist_index == 1)
         {
             new_i = normal_.draw(post.params, rng);
-            state_.marker_variance(marker_index)
+            marker_variance_(marker_index)
                 = variance_sampler_({1, new_i * new_i}, rng);
         }
         return new_i;
@@ -101,13 +102,14 @@ class BayesBKernel
     auto commit(std::mt19937_64& /*rng*/) -> void
     {
         const auto p = static_cast<int>(state_.coeffs.size());
-        assignment_.count(1) = count_1_;
-        assignment_.count(0) = p - count_1_;
+        proportion_.count(1) = count_1_;
+        proportion_.count(0) = p - count_1_;
     }
 
    private:
-    bayes::LegacyGeneticState& state_;
-    bayes::Assignment& assignment_;
+    bayes::GeneticState& state_;
+    Eigen::VectorXd& marker_variance_;
+    bayes::ProportionState& proportion_;
     stats::NormalSampler<double> normal_;
     stats::ScaledInvChi2Sampler<double> variance_sampler_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};

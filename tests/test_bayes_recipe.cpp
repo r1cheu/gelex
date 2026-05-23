@@ -33,6 +33,21 @@ using gelex::bayes::BayesRecipe;
 using gelex::bayes::BayesRecipeConfig;
 using gelex::bayes::BayesRecipePreset;
 using gelex::bayes::EffectConfig;
+using gelex::bayes::to_bayes_recipe_preset;
+
+TEST_CASE("BayesRecipe preset parser accepts short names", "[bayes_recipe]")
+{
+    REQUIRE(to_bayes_recipe_preset("RR") == BayesRecipePreset::RR);
+    REQUIRE(to_bayes_recipe_preset("A") == BayesRecipePreset::A);
+    REQUIRE(to_bayes_recipe_preset("B") == BayesRecipePreset::B);
+    REQUIRE(to_bayes_recipe_preset("C") == BayesRecipePreset::C);
+    REQUIRE(to_bayes_recipe_preset("R") == BayesRecipePreset::R);
+    REQUIRE(to_bayes_recipe_preset("CD") == BayesRecipePreset::CD);
+
+    REQUIRE_THROWS_AS(to_bayes_recipe_preset("BayesRR"), GelexException);
+    REQUIRE_THROWS_AS(to_bayes_recipe_preset("BayesA"), GelexException);
+    REQUIRE_THROWS_AS(to_bayes_recipe_preset("BayesCD"), GelexException);
+}
 
 TEST_CASE("BayesR construction succeeds with defaults", "[bayes_recipe]")
 {

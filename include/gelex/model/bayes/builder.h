@@ -14,31 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_LEGACY_BUILDER_H_
-#define GELEX_MODEL_BAYES_LEGACY_BUILDER_H_
-
-#include <span>
-#include <vector>
-
-#include "gelex/model/bayes/legacy_method.h"
-#include "gelex/types/genetic_effect_type.h"
-
-namespace gelex::bayes
-{
-
-struct GeneticStats
-{
-    GeneticMode mode{};
-    double marker_variance_sum{};
-    double heritability_init{};
-};
-
-auto build_bayes_method(
-    const LegacyBayesConfig&,
-    std::span<const GeneticStats>,
-    double phenotype_variance) -> LegacyBayesMethod;
-
-}  // namespace gelex::bayes
+#ifndef GELEX_MODEL_BAYES_BUILDER_H_
+#define GELEX_MODEL_BAYES_BUILDER_H_
 
 namespace gelex
 {
@@ -49,9 +26,6 @@ class BayesModel;
 
 auto build_bayes_model(PhenoPipe&& pheno, GenoPipe&& geno) -> BayesModel;
 
-auto compute_genetic_stats(const BayesModel& model)
-    -> std::vector<bayes::GeneticStats>;
-
 }  // namespace gelex
 
-#endif  // GELEX_MODEL_BAYES_LEGACY_BUILDER_H_
+#endif  // GELEX_MODEL_BAYES_BUILDER_H_

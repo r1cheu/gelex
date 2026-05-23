@@ -18,7 +18,6 @@
 #define GELEX_CLI_MCMC_CONFIG_H_
 
 #include "gelex/engine/mcmc.h"
-#include "mcmc_overrides.h"
 
 namespace argparse
 {
@@ -28,13 +27,8 @@ class ArgumentParser;
 namespace gelex::cli
 {
 
-struct McmcConfig
-{
-    mcmc::Engine::Config engine;
-    MethodOverrides overrides;
-};
-
-auto make_mcmc_config(argparse::ArgumentParser& cmd) -> McmcConfig;
+auto make_mcmc_engine_config(argparse::ArgumentParser& cmd)
+    -> mcmc::Engine::Config;
 
 }  // namespace gelex::cli
 

@@ -16,19 +16,13 @@
 
 #include "mcmc_config.h"
 
-#include <array>
-#include <optional>
-#include <string_view>
-#include <vector>
+#include <string>
+#include <utility>
 
 #include <argparse.h>
-#include <Eigen/Core>
 
-#include <fmt/format.h>
-
-#include "cli/cli_helper.h"
-#include "gelex/exception.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "cli/bayes_recipe_config.h"
+#include "gelex/model/bayes/recipe.h"
 
 namespace gelex::cli
 {
@@ -36,89 +30,15 @@ namespace gelex::cli
 namespace
 {
 
-auto reject_canonical_bayes_recipe_flags(const argparse::ArgumentParser& cmd)
-    -> void
-{
-    constexpr std::array kFlags = {
-        std::string_view{"--additive-h2"},
-        std::string_view{"--dominance-h2"},
-        std::string_view{"--additive-pi"},
-        std::string_view{"--dominance-pi"},
-        std::string_view{"--additive-multiplier"},
-        std::string_view{"--dominance-multiplier"},
-        std::string_view{"--joint-pi"},
-        std::string_view{"--estimate-additive-pi"},
-        std::string_view{"--estimate-dominance-pi"},
-        std::string_view{"--estimate-joint-pi"},
-        std::string_view{"--dominance-positive-prob"},
-        std::string_view{"--random-variance-proportion"},
-    };
-    for (const auto flag : kFlags)
-    {
-        if (cmd.is_used(flag))
-        {
-            throw GelexException(
-                fmt::format(
-                    "BayesRecipe flag {} is not supported by the current "
-                    "MCMC engine; remove it or use a legacy equivalent where "
-                    "available",
-                    flag));
-        }
-    }
-}
-
-auto parse_method(argparse::ArgumentParser& cmd)
-    -> std::pair<bayes::LegacyBayesConfig, std::vector<GeneticMode>>
-{
-    auto base
-        = gelex::get_bayes_base(cmd.get("-m")).value_or(gelex::BayesBase::RR);
-    auto requested = parse_genetic_modes(cmd.get("--mode"));
-
-    bayes::LegacyBayesConfig cfg{
-        .base = base,
-        .dominance = cmd.get<bool>("--asym")
-                         ? bayes::DominancePolicy::asymmetric
-                         : bayes::DominancePolicy::symmetric,
-        .estimate_pi = cmd.get<bool>("--estimate-pi"),
-    };
-    return {cfg, std::move(requested)};
-}
-
-auto extract_eigen(argparse::ArgumentParser& cmd, std::string_view arg)
-    -> std::optional<Eigen::VectorXd>
-{
-    if (!cmd.is_used(arg))
-    {
-        return std::nullopt;
-    }
-    auto v = cmd.get<std::vector<double>>(arg);
-    return Eigen::Map<const Eigen::VectorXd>(
-        v.data(), static_cast<Eigen::Index>(v.size()));
-}
-
-auto make_overrides(argparse::ArgumentParser& cmd) -> MethodOverrides
-{
-    MethodOverrides o;
-    o.additive.proportions = extract_eigen(cmd, "--pi");
-    o.additive.multiplier = extract_eigen(cmd, "--mult");
-    o.dominance.proportions = extract_eigen(cmd, "--dpi");
-    o.dominance.multiplier = extract_eigen(cmd, "--dmult");
-    if (cmd.is_used("--positive-prob"))
-    {
-        o.dominance.positive_prob = cmd.get<double>("--positive-prob");
-    }
-    return o;
-}
-
 auto make_engine_config(
     argparse::ArgumentParser& cmd,
-    bayes::LegacyBayesConfig method,
-    std::vector<GeneticMode> requested) -> mcmc::Engine::Config
+    bayes::BayesRecipePreset preset,
+    bayes::BayesRecipeConfig recipe_config) -> mcmc::Engine::Config
 {
     mcmc::Engine::Config config{
         .bfile_prefix = cmd.get("--bfile"),
-        .method = method,
-        .requested_effects = std::move(requested),
+        .preset = preset,
+        .recipe_config = std::move(recipe_config),
         .seed = cmd.get<int>("--seed"),
         .mcmc_params = gelex::mcmc::Params{
             .n_iters = cmd.get<int>("--iters"),
@@ -143,16 +63,13 @@ auto make_engine_config(
 
 }  // namespace
 
-auto make_mcmc_config(argparse::ArgumentParser& cmd) -> McmcConfig
+auto make_mcmc_engine_config(argparse::ArgumentParser& cmd)
+    -> mcmc::Engine::Config
 {
-    reject_canonical_bayes_recipe_flags(cmd);
-    auto [method, requested] = parse_method(cmd);
-    auto overrides = make_overrides(cmd);
-    validate_overrides(method, overrides);
-    return McmcConfig{
-        .engine = make_engine_config(cmd, method, std::move(requested)),
-        .overrides = std::move(overrides),
-    };
+    auto preset = gelex::bayes::to_bayes_recipe_preset(
+        cmd.get<std::string>("--method"));
+    auto recipe_config = make_bayes_recipe_config(cmd);
+    return make_engine_config(cmd, preset, std::move(recipe_config));
 }
 
 }  // namespace gelex::cli

@@ -17,6 +17,7 @@
 #ifndef GELEX_ALGO_INFER_MCMC_SOLVER_H_
 #define GELEX_ALGO_INFER_MCMC_SOLVER_H_
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -27,7 +28,6 @@
 #include <Eigen/Core>
 
 #include "gelex/algo/detail/posterior_calculator.h"
-#include "gelex/algo/infer/mcmc/checkpoint.h"
 #include "gelex/algo/infer/mcmc/context.h"
 #include "gelex/algo/infer/mcmc/result.h"
 #include "gelex/algo/infer/mcmc/samples.h"
@@ -37,9 +37,10 @@
 #include "gelex/infra/detail/eigen_thread_guard.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/notify.h"
+#include "gelex/io/mcmc/checkpoint_reader.h"
 #include "gelex/io/mcmc/checkpoint_writer.h"
-#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
 
 namespace gelex
 {
@@ -59,13 +60,14 @@ class Solver
 
     auto run(
         const BayesModel& model,
-        bayes::LegacyBayesMethod method,
+        bayes::BayesPrior prior,
         Eigen::Index seed = 42,
         const MCMCObserver& observer = {}) -> mcmc::Result;
 
     auto resume(
         const BayesModel& model,
-        Checkpoint checkpoint,
+        bayes::BayesPrior prior,
+        const std::filesystem::path& checkpoint_path,
         const MCMCObserver& observer = {}) -> mcmc::Result;
 
    private:
@@ -76,7 +78,6 @@ class Solver
     template <typename Chain>
     auto run_impl(
         Chain& chain,
-        const bayes::LegacyBayesMethod& method,
         mcmc::Samples& samples,
         mcmc::State& state,
         std::mt19937_64& rng,
@@ -109,23 +110,23 @@ Solver<ChainFactory>::Solver(
 template <typename ChainFactory>
 auto Solver<ChainFactory>::run(
     const BayesModel& model,
-    bayes::LegacyBayesMethod method,
+    bayes::BayesPrior prior,
     Eigen::Index seed,
     const MCMCObserver& observer) -> mcmc::Result
 {
-    mcmc::Samples samples(model, method, sample_prefix_, params_.n_records());
-    notify(observer, FitMethodSetEvent{.method = &method});
-
-    mcmc::State state{model, method};
+    mcmc::State state{model, prior};
+    mcmc::Samples samples(
+        model, prior, state, sample_prefix_, params_.n_records());
+    notify(observer, FitPriorSetEvent{.prior = &prior});
     std::mt19937_64 rng(seed);
 
     const infra::detail::EigenThreadGuard guard;
     omp_set_num_threads(1);
 
     mcmc::Context ctx{
-        .model = model, .method = method, .state = state, .rng = rng};
+        .model = model, .prior = prior, .state = state, .rng = rng};
     auto chain = make_chain_(ctx);
-    run_impl(chain, method, samples, state, rng, observer);
+    run_impl(chain, samples, state, rng, observer);
     return finalize(std::move(samples), model, observer);
 }
 
@@ -190,31 +191,25 @@ void Solver<ChainFactory>::validate_checkpoint(
 template <typename ChainFactory>
 auto Solver<ChainFactory>::resume(
     const BayesModel& model,
-    Checkpoint checkpoint,
+    bayes::BayesPrior prior,
+    const std::filesystem::path& checkpoint_path,
     const MCMCObserver& observer) -> mcmc::Result
 {
-    validate_checkpoint(checkpoint.state, model);
+    mcmc::State state{model, prior};
+    auto rng = read_checkpoint(checkpoint_path, state);
+    validate_checkpoint(state, model);
 
     mcmc::Samples samples(
-        model, checkpoint.method, sample_prefix_, params_.n_records());
-    notify(observer, FitMethodSetEvent{.method = &checkpoint.method});
+        model, prior, state, sample_prefix_, params_.n_records());
+    notify(observer, FitPriorSetEvent{.prior = &prior});
 
     const infra::detail::EigenThreadGuard guard;
     omp_set_num_threads(1);
 
     mcmc::Context ctx{
-        .model = model,
-        .method = checkpoint.method,
-        .state = checkpoint.state,
-        .rng = checkpoint.rng};
+        .model = model, .prior = prior, .state = state, .rng = rng};
     auto chain = make_chain_(ctx);
-    run_impl(
-        chain,
-        checkpoint.method,
-        samples,
-        checkpoint.state,
-        checkpoint.rng,
-        observer);
+    run_impl(chain, samples, state, rng, observer);
     return finalize(std::move(samples), model, observer);
 }
 
@@ -244,7 +239,6 @@ template <typename ChainFactory>
 template <typename Chain>
 auto Solver<ChainFactory>::run_impl(
     Chain& chain,
-    const bayes::LegacyBayesMethod& method,
     mcmc::Samples& samples,
     mcmc::State& state,
     std::mt19937_64& rng,
@@ -275,7 +269,7 @@ auto Solver<ChainFactory>::run_impl(
         if (checkpoint_prefix_
             && ((iter + 1) % step == 0 || iter == params_.n_iters - 1))
         {
-            write_checkpoint(state, rng, method, *checkpoint_prefix_);
+            write_checkpoint(state, rng, *checkpoint_prefix_);
             notify(observer, FitCheckpointSavedEvent{});
         }
     }

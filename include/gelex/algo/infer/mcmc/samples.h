@@ -29,18 +29,15 @@
 #include "gelex/algo/infer/fixed_samples.h"
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/prior_state.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
 {
 
 struct GeneticEffect;
-struct OldGeneticPrior;
-struct LegacyGeneticState;
 struct ResidualState;
-struct Assignment;
-struct ComponentAllocation;
-struct LegacyBayesMethod;
 
 };  // namespace gelex::bayes
 
@@ -64,7 +61,7 @@ struct AssignmentSamples
         Eigen::Index n_proportions,
         bool estimate_pi);
 
-    void store(const bayes::Assignment& alloc);
+    void store(const bayes::ProportionState& state);
 
     auto n_snps() const -> Eigen::Index { return comp_counts_.rows(); }
     auto n_proportions() const -> Eigen::Index { return comp_counts_.cols(); }
@@ -92,7 +89,9 @@ struct ComponentSamples
         Eigen::Index n_proportions,
         bool estimate_pi);
 
-    void store(const bayes::ComponentAllocation& alloc);
+    void store(
+        const bayes::ComponentState& component,
+        const bayes::ProportionState& proportion);
 
     auto comp_var() const -> RunningStatsResult
     {
@@ -128,9 +127,11 @@ struct GeneticSamples
 {
     GeneticSamples(
         const bayes::GeneticEffect& effect,
-        const bayes::OldGeneticPrior& prior,
+        const bayes::GeneticPrior& prior,
+        const bayes::GeneticBlockState& block,
+        std::size_t block_index,
         GeneticMode mode);
-    void store(const bayes::LegacyGeneticState& state);
+    void store(const BayesState& state);
 
     auto n_coeffs() const -> Eigen::Index { return n_coeffs_; }
     auto coeffs() const -> RunningStatsResult { return coeffs_stats_.result(); }
@@ -150,8 +151,12 @@ struct GeneticSamples
    private:
     static auto make_group_samples(
         const bayes::GeneticEffect& effect,
-        const bayes::OldGeneticPrior& prior) -> std::optional<MixtureSamples>;
+        const bayes::GeneticPrior& prior,
+        const bayes::GeneticBlockState& block,
+        std::size_t slot) -> std::optional<MixtureSamples>;
 
+    std::size_t block_index_;
+    std::size_t slot_;
     Eigen::Index n_coeffs_;
     RunningStats coeffs_stats_;
     RunningStats variance_stats_;
@@ -183,7 +188,8 @@ class Samples
 
     Samples(
         const BayesModel& model,
-        const bayes::LegacyBayesMethod& method,
+        const bayes::BayesPrior& prior,
+        const BayesState& state,
         std::string_view sample_prefix,
         Eigen::Index n_records);
     void store(const mcmc::State& states);

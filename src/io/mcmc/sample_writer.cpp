@@ -17,8 +17,8 @@
 #include "gelex/io/mcmc/sample_writer.h"
 
 #include <fmt/format.h>
-#include <cstdint>
 #include <ranges>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -26,14 +26,10 @@
 
 #include <Eigen/Core>
 
-#include "gelex/algo/infer/detail/genetic_binding.h"
-#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/legacy_method.h"
-#include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/state.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -42,6 +38,52 @@ namespace
 {
 
 using RecordHandle = mcmc::Writer::RecordHandle;
+
+auto mode_name(GeneticMode mode) -> std::string_view
+{
+    for (const auto& [value, name] : kGeneticModeNames)
+    {
+        if (value == mode)
+        {
+            return name;
+        }
+    }
+    return "unknown";
+}
+
+auto collect_mode_names(std::span<const GeneticMode> modes)
+    -> std::vector<std::string_view>
+{
+    std::vector<std::string_view> names;
+    names.reserve(modes.size());
+    for (const auto mode : modes)
+    {
+        names.push_back(mode_name(mode));
+    }
+    return names;
+}
+
+auto write_sample_metadata(
+    io::detail::BinaryWriter& writer,
+    const BayesState& state) -> void
+{
+    std::vector<std::string_view> genetic_modes;
+    genetic_modes.reserve(state.genetics().size());
+    for (const auto& genetic : state.genetics())
+    {
+        genetic_modes.push_back(mode_name(genetic.type));
+    }
+    if (!genetic_modes.empty())
+    {
+        writer.write_strings("genetic/modes", genetic_modes);
+    }
+
+    for (const auto& [i, block] : std::views::enumerate(state.genetic_blocks()))
+    {
+        auto modes = collect_mode_names(block.modes());
+        writer.write_strings(fmt::format("genetic_block/{}/modes", i), modes);
+    }
+}
 
 class ReserveRecordSink final : public infra::RecordSink
 {
@@ -163,37 +205,6 @@ class WriteRecordSink final : public infra::RecordSink
     const std::unordered_map<std::string, RecordHandle>& handles_;
 };
 
-auto has_group_prior(const bayes::OldGeneticPrior& prior) -> bool
-{
-    return prior.mixture.has_value();
-}
-
-auto group_prior_estimate_pi(const bayes::OldGeneticPrior& prior) -> bool
-{
-    return prior.mixture->proportions.estimate;
-}
-
-auto group_prior_n_proportions(const bayes::OldGeneticPrior& prior)
-    -> Eigen::Index
-{
-    return prior.mixture->proportions.init.size();
-}
-
-auto find_sign_for_mode(const bayes::OldGeneticPrior& prior, GeneticMode mode)
-    -> bool
-{
-    if (const auto* gs = std::get_if<bayes::GeneticSpec>(&prior.spec))
-    {
-        return gs->mode == mode && gs->sign.has_value();
-    }
-    const auto& js = std::get<bayes::JointSpec>(prior.spec);
-    if (js.additive.mode == mode)
-    {
-        return js.additive.sign.has_value();
-    }
-    return js.dominance.mode == mode && js.dominance.sign.has_value();
-}
-
 }  // namespace
 
 mcmc::Writer::Writer(
@@ -202,155 +213,9 @@ mcmc::Writer::Writer(
     Eigen::Index n_records)
     : writer_(fmt::format("{}.samples", prefix))
 {
+    write_sample_metadata(writer_, state);
     ReserveRecordSink sink(writer_, record_handles_, n_records);
     state.visit_records(bayes::StateRecordSet::sample, sink);
-}
-
-mcmc::Writer::Writer(
-    const BayesModel& model,
-    const bayes::LegacyBayesMethod& method,
-    std::string_view prefix,
-    Eigen::Index n_records)
-    : writer_(fmt::format("{}.samples", prefix))
-{
-    const auto cols = n_records;
-
-    // Fixed
-    fixed_coeffs_ = writer_.reserve<double>(
-        fmt::format("{}/coeff", EffectType::fixed()),
-        model.fixed().X.cols(),
-        cols);
-    writer_.write_strings(
-        fmt::format("{}/names", EffectType::fixed()), model.fixed().names);
-
-    for (const auto& [name, levels] :
-         std::views::zip(model.fixed().names, model.fixed().levels))
-    {
-        if (!levels)
-        {
-            writer_.write_strings(
-                fmt::format("{}/levels/{}", EffectType::fixed(), name),
-                std::views::single(std::string_view{name}));
-        }
-        else
-        {
-            writer_.write_strings(
-                fmt::format("{}/levels/{}", EffectType::fixed(), name),
-                *levels);
-        }
-    }
-
-    // Random
-    for (const auto& random : model.random())
-    {
-        std::string_view name = random.name;
-        writer_.write_strings(
-            fmt::format("{}/levels/{}", EffectType::random(), name),
-            random.levels);
-        auto coeffs = writer_.reserve<double>(
-            fmt::format("{}/coeff/{}", EffectType::random(), name),
-            random.X.cols(),
-            cols);
-        auto variance = writer_.reserve<double>(
-            fmt::format("{}/variance/{}", EffectType::random(), name), 1, cols);
-        random_.push_back({.coeffs = coeffs, .variance = variance});
-    }
-
-    // Genetic
-    for (const auto& effect : model.genetics())
-    {
-        const auto sect = EffectType::from_genetic(effect.type);
-        const auto n_snps = effect.X.cols();
-        const auto* prior
-            = infer::detail::find_prior_for_mode(method, effect.type);
-
-        GeneticHandles gh;
-        gh.section_effect = sect;
-        gh.coeffs = writer_.reserve<double>(
-            fmt::format("{}/coeff", sect), n_snps, cols);
-        gh.variance = writer_.reserve<double>(
-            fmt::format("{}/variance", sect), 1, cols);
-
-        if ((prior != nullptr) && has_group_prior(*prior))
-        {
-            gh.mixture_tracker = writer_.reserve<int8_t>(
-                fmt::format("{}/group/assignment", sect), n_snps, cols);
-            if (group_prior_estimate_pi(*prior))
-            {
-                const auto n_pi = group_prior_n_proportions(*prior);
-                gh.pi = writer_.reserve<double>(
-                    fmt::format("{}/group/proportion", sect), n_pi, cols);
-            }
-        }
-        if ((prior != nullptr) && find_sign_for_mode(*prior, effect.type))
-        {
-            gh.sign_tracker = writer_.reserve<int8_t>(
-                fmt::format("{}/sign/assignment", sect), n_snps, cols);
-            gh.positive_prob = writer_.reserve<double>(
-                fmt::format("{}/sign/proportion", sect), 1, cols);
-        }
-
-        genetic_.push_back(gh);
-    }
-
-    // Residual
-    residual_variance_ = writer_.reserve<double>(
-        fmt::format("{}/variance", EffectType::residual()), 1, cols);
-}
-
-void mcmc::Writer::write(const mcmc::State& state)
-{
-    // Fixed
-    writer_.write(fixed_coeffs_, state.fixed().coeffs);
-
-    // Random
-    for (auto&& [handles, rs] : std::views::zip(random_, state.random()))
-    {
-        writer_.write(handles.coeffs, rs.coeffs);
-        writer_.write(handles.variance, rs.variance);
-    }
-
-    // Genetic
-    for (auto&& [gh, gs] : std::views::zip(genetic_, state.genetics()))
-    {
-        writer_.write(gh.coeffs, gs.coeffs);
-        writer_.write(gh.variance, gs.variance);
-
-        if (gh.mixture_tracker && gs.group)
-        {
-            std::visit(
-                [&](const auto& alloc)
-                {
-                    using T = std::decay_t<decltype(alloc)>;
-                    const auto& assignment = [&]() -> const bayes::Assignment&
-                    {
-                        if constexpr (std::is_same_v<T, bayes::Assignment>)
-                        {
-                            return alloc;
-                        }
-                        else
-                        {
-                            return alloc.assignment;
-                        }
-                    }();
-                    writer_.write(*gh.mixture_tracker, assignment.tracker);
-                    if (gh.pi)
-                    {
-                        writer_.write(*gh.pi, assignment.proportion);
-                    }
-                },
-                *gs.group);
-        }
-        if (gh.sign_tracker && gs.sign)
-        {
-            writer_.write(*gh.sign_tracker, gs.sign->tracker);
-            const double pos_prob = gs.sign->proportion(1);
-            writer_.write(*gh.positive_prob, pos_prob);
-        }
-    }
-
-    // Residual
-    writer_.write(residual_variance_, state.residual().variance);
 }
 
 void mcmc::Writer::write(const BayesState& state)

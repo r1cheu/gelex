@@ -38,7 +38,7 @@ auto proportion_update_from(const EffectConfig& effect) -> ProportionUpdate
 }  // namespace
 
 BayesRRMethod::BayesRRMethod(const BayesRecipeConfig& options)
-    : IndependentMethod{"BayesRR", options}
+    : IndependentMethod{"RR", options}
 {
     reject_joint_overrides();
     reject_per_effect_proportion();
@@ -60,7 +60,7 @@ auto BayesRRMethod::make_genetic_prior(
 }
 
 BayesAMethod::BayesAMethod(const BayesRecipeConfig& options)
-    : IndependentMethod{"BayesA", options}
+    : IndependentMethod{"A", options}
 {
     reject_joint_overrides();
     reject_per_effect_proportion();
@@ -82,7 +82,7 @@ auto BayesAMethod::make_genetic_prior(
 }
 
 BayesBMethod::BayesBMethod(const BayesRecipeConfig& options)
-    : IndependentMethod{"BayesB", options}
+    : IndependentMethod{"B", options}
 {
     reject_joint_overrides();
     reject_per_effect_multiplier();
@@ -107,7 +107,7 @@ auto BayesBMethod::make_genetic_prior(
 }
 
 BayesCMethod::BayesCMethod(const BayesRecipeConfig& options)
-    : IndependentMethod{"BayesC", options}
+    : IndependentMethod{"C", options}
 {
     reject_joint_overrides();
     reject_per_effect_multiplier();
@@ -132,7 +132,7 @@ auto BayesCMethod::make_genetic_prior(
 }
 
 BayesRMethod::BayesRMethod(const BayesRecipeConfig& options)
-    : IndependentMethod{"BayesR", options}
+    : IndependentMethod{"R", options}
 {
     reject_joint_overrides();
     require_paired_proportion_and_multiplier();

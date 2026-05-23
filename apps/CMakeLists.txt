@@ -7,7 +7,6 @@ set(CLI_SOURCES
     cli/mcmc/mcmc_args.cpp
     cli/mcmc/mcmc_config.cpp
     cli/mcmc/mcmc_command.cpp
-    cli/mcmc/mcmc_overrides.cpp
     cli/mcmc/mcmc_reporter.cpp
     cli/grm/grm_args.cpp
     cli/grm/grm_config.cpp

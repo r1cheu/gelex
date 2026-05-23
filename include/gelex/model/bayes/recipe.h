@@ -50,12 +50,12 @@ enum class BayesRecipePreset : std::uint8_t
 };
 
 inline constexpr std::array kBayesRecipePresetNames{
-    std::pair{BayesRecipePreset::RR, std::string_view{"BayesRR"}},
-    std::pair{BayesRecipePreset::A, std::string_view{"BayesA"}},
-    std::pair{BayesRecipePreset::B, std::string_view{"BayesB"}},
-    std::pair{BayesRecipePreset::C, std::string_view{"BayesC"}},
-    std::pair{BayesRecipePreset::R, std::string_view{"BayesR"}},
-    std::pair{BayesRecipePreset::CD, std::string_view{"BayesCD"}},
+    std::pair{BayesRecipePreset::RR, std::string_view{"RR"}},
+    std::pair{BayesRecipePreset::A, std::string_view{"A"}},
+    std::pair{BayesRecipePreset::B, std::string_view{"B"}},
+    std::pair{BayesRecipePreset::C, std::string_view{"C"}},
+    std::pair{BayesRecipePreset::R, std::string_view{"R"}},
+    std::pair{BayesRecipePreset::CD, std::string_view{"CD"}},
 };
 
 class BayesRecipe

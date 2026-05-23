@@ -26,6 +26,7 @@
 #include "gelex/algo/infer/mcmc/context.h"
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
+#include "gelex/model/bayes/prior_state.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::mcmc
@@ -34,7 +35,7 @@ namespace gelex::mcmc
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
 struct PiStepDeps
 {
-    bayes::MarkerAllocation& group;
+    bayes::ProportionState& proportion;
     Eigen::VectorXd alpha;
     std::mt19937_64& rng;
 };

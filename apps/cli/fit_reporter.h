@@ -34,8 +34,9 @@ struct ScaledInvChiSqParams;
 
 namespace bayes
 {
-struct OldGeneticPrior;
-struct OldVarianceSpec;
+class GeneticPrior;
+class BayesPrior;
+class VarianceSpec;
 }  // namespace bayes
 
 enum class GeneticMode : uint8_t;
@@ -47,18 +48,15 @@ namespace gelex::cli
 class FitReporter
 {
    public:
-    auto on_event(const FitMethodSetEvent& event) const -> void;
+    auto on_event(const FitPriorSetEvent& event) const -> void;
     auto on_event(const FitResultsSavedEvent& event) const -> void;
 
    protected:
     FitReporter() = default;
 
-    static auto print_random_prior(const bayes::OldVarianceSpec& spec) -> void;
-    static auto print_genetic_prior(
-        const bayes::OldGeneticPrior& prior,
-        GeneticMode mode) -> void;
-    static auto print_residual_prior(const bayes::OldVarianceSpec& spec)
-        -> void;
+    static auto print_random_prior(const bayes::VarianceSpec& spec) -> void;
+    static auto print_genetic_prior(const bayes::GeneticPrior& prior) -> void;
+    static auto print_residual_prior(const bayes::VarianceSpec& spec) -> void;
     static auto print_variance_prior(
         const stats::detail::ScaledInvChiSqParams& prior,
         double init_variance) -> void;

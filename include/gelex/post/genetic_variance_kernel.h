@@ -59,6 +59,10 @@ class GeneticVarianceProcessor
     {
         return n_components_ > 0;
     }
+    [[nodiscard]] auto n_records() const -> Eigen::Index
+    {
+        return coeff_maps_.front().cols();
+    }
 
     [[nodiscard]] auto build_diagnostics(double hdpi_threshold) const
         -> std::vector<ParameterDiag>;
@@ -68,7 +72,7 @@ class GeneticVarianceProcessor
     GeneticMode kind_;
     Eigen::Index n_components_;
     std::vector<Eigen::Map<const Eigen::MatrixXd>> coeff_maps_;
-    std::vector<Eigen::Map<const Eigen::MatrixX<int8_t>>> tracker_maps_;
+    std::vector<Eigen::Map<const Eigen::MatrixXi>> tracker_maps_;
     stats::Chains component_variance_chains_;
     Eigen::MatrixXd gebv_chunk_;
     Eigen::MatrixXd component_gebv_chunk_;

@@ -17,48 +17,70 @@
 #ifndef GELEX_ALGO_INFER_MCMC_KERNELS_COMMON_H_
 #define GELEX_ALGO_INFER_MCMC_KERNELS_COMMON_H_
 
+#include <span>
 #include <string_view>
-#include <variant>
 
 #include <fmt/format.h>
+#include <Eigen/Core>
 
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/exception.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/legacy_prior.h"
+#include "gelex/model/bayes/capabilities.h"
+#include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_state.h"
+#include "gelex/model/bayes/state_capabilities.h"
 
 namespace gelex::mcmc
 {
 
-inline auto make_variance_sampler(const bayes::OldVarianceSpec& spec)
+inline auto make_variance_sampler(const bayes::VarianceSpec& spec)
     -> stats::ScaledInvChi2Sampler<double>
 {
     return stats::ScaledInvChi2Sampler<double>{
-        spec.prior.degrees_of_freedom(), spec.prior.scale()};
+        spec.prior().degrees_of_freedom(), spec.prior().scale()};
 }
 
-template <typename Allocation>
-auto unpack_marker_allocation(
-    bayes::LegacyGeneticState& state,
-    std::string_view kernel_name) -> Allocation&
+inline auto require_variance_specs(
+    const bayes::GeneticPrior& prior,
+    std::string_view kernel_name) -> std::span<const bayes::MarkerVarianceSpec>
 {
-    if (!state.group.has_value())
+    const auto* cap = prior.query<bayes::VarianceSpecCap>();
+    if (cap == nullptr)
+    {
+        throw GelexException(
+            fmt::format("{}: prior lacks variance capability", kernel_name));
+    }
+    return cap->variance();
+}
+
+inline auto require_variance_state(
+    bayes::GeneticPriorState& state,
+    std::string_view kernel_name) -> std::span<Eigen::VectorXd>
+{
+    auto* cap = state.query<bayes::VarianceStateCap>();
+    if (cap == nullptr)
     {
         throw GelexException(
             fmt::format(
-                "{}: state.group is empty (expected MarkerAllocation)",
-                kernel_name));
+                "{}: prior state lacks variance capability", kernel_name));
     }
-    if (auto* p = std::get_if<Allocation>(&*state.group); p != nullptr)
+    return cap->variance();
+}
+
+inline auto require_multiplier_specs(
+    const bayes::GeneticPrior& prior,
+    std::string_view kernel_name) -> std::span<const Eigen::VectorXd>
+{
+    const auto* cap = prior.query<bayes::MultiplierSpecCap>();
+    if (cap == nullptr)
     {
-        return *p;
+        throw GelexException(
+            fmt::format("{}: prior lacks multiplier capability", kernel_name));
     }
-    throw GelexException(
-        fmt::format(
-            "{}: marker allocation variant mismatch (actual_index={})",
-            kernel_name,
-            state.group->index()));
+    return cap->multiplier();
 }
 
 }  // namespace gelex::mcmc

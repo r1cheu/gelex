@@ -20,7 +20,6 @@
 #include <cmath>
 #include <cstdint>
 #include <random>
-#include <variant>
 
 #include "gelex/algo/infer/mcmc/kernels/common.h"
 #include "gelex/algo/infer/mcmc/state.h"
@@ -36,17 +35,19 @@ namespace gelex::mcmc
 class BayesCKernel
 {
    public:
-    BayesCKernel(
-        const bayes::OldGeneticPrior& prior,
-        bayes::LegacyGeneticState& state)
-        : state_(state),
-          assignment_(
-              unpack_marker_allocation<bayes::Assignment>(
-                  state,
-                  "BayesCKernel")),
-          normal_(state.marker_variance(0)),
+    template <typename BlockDeps>
+    explicit BayesCKernel(const BlockDeps& block)
+        : state_(block.state),
+          marker_variance_(require_variance_state(
+              block.prior_state,
+              "BayesCKernel")[block.slot]),
+          proportion_(
+              block.prior_state.template require<bayes::ProportionStateCap>()
+                  .proportion()[block.slot]),
+          normal_(marker_variance_(0)),
           variance_sampler_(make_variance_sampler(
-              std::get<bayes::GeneticSpec>(prior.spec).variance))
+              require_variance_specs(block.prior, "BayesCKernel")[block.slot]
+                  .variance()))
     {
     }
 
@@ -55,10 +56,10 @@ class BayesCKernel
         normal_.reset();
         variance_sampler_.reset();
         uniform_.reset();
-        count_1_ = assignment_.count(1);
+        count_1_ = proportion_.count(1);
         sum_square_coeffs_ = 0.0;
-        logpi_ = assignment_.proportion.array().log();
-        normal_.set_prior_var(state_.marker_variance(0));
+        logpi_ = proportion_.value.array().log();
+        normal_.set_prior_var(marker_variance_(0));
     }
 
     auto sample(
@@ -68,7 +69,8 @@ class BayesCKernel
         double residual_variance,
         std::mt19937_64& rng) -> double
     {
-        const std::int8_t old_component = assignment_.tracker(marker_index);
+        const std::int8_t old_component
+            = static_cast<std::int8_t>(proportion_.assignment(marker_index));
 
         const auto post = normal_.posterior_with_logL(
             stats::NormalSampler<double>::Kernel{
@@ -84,7 +86,7 @@ class BayesCKernel
 
         const std::int8_t dist_index
             = (uniform_(rng) < prob_component_0) ? 0 : 1;
-        assignment_.tracker(marker_index) = dist_index;
+        proportion_.assignment(marker_index) = dist_index;
         count_1_
             += static_cast<int>(dist_index) - static_cast<int>(old_component);
 
@@ -100,15 +102,16 @@ class BayesCKernel
     auto commit(std::mt19937_64& rng) -> void
     {
         const auto p = static_cast<int>(state_.coeffs.size());
-        assignment_.count(1) = count_1_;
-        assignment_.count(0) = p - count_1_;
-        state_.marker_variance(0)
+        proportion_.count(1) = count_1_;
+        proportion_.count(0) = p - count_1_;
+        marker_variance_(0)
             = variance_sampler_({count_1_, sum_square_coeffs_}, rng);
     }
 
    private:
-    bayes::LegacyGeneticState& state_;
-    bayes::Assignment& assignment_;
+    bayes::GeneticState& state_;
+    Eigen::VectorXd& marker_variance_;
+    bayes::ProportionState& proportion_;
     stats::NormalSampler<double> normal_;
     stats::ScaledInvChi2Sampler<double> variance_sampler_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};

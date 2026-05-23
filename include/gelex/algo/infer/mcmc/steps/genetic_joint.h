@@ -33,8 +33,8 @@ namespace gelex::mcmc
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
 struct GeneticJointStepDeps
 {
-    infer::detail::GeneticBlockDeps<bayes::LegacyGeneticState> first;
-    infer::detail::GeneticBlockDeps<bayes::LegacyGeneticState> second;
+    infer::detail::GeneticBlockDeps first;
+    infer::detail::GeneticBlockDeps second;
     bayes::ResidualState& residual;
     std::mt19937_64& rng;
 };

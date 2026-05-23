@@ -17,35 +17,38 @@
 #ifndef GELEX_ALGO_INFER_DETAIL_GENETIC_BINDING_H_
 #define GELEX_ALGO_INFER_DETAIL_GENETIC_BINDING_H_
 
-#include <type_traits>
+#include <cstddef>
+#include <optional>
 #include <utility>
-#include <variant>
 
 #include <fmt/format.h>
 
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/exception.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/legacy_method.h"
+#include "gelex/model/bayes/genetic_prior.h"
+#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/prior_state.h"
+#include "gelex/model/bayes/state.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::infer::detail
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-template <typename GeneticStateT>
 struct GeneticBlockDeps
 {
     const bayes::GeneticEffect& effect;
-    const bayes::OldGeneticPrior& prior;
-    GeneticStateT& state;
+    const bayes::GeneticPrior& prior;
+    bayes::GeneticState& state;
+    bayes::GeneticPriorState& prior_state;
+    std::size_t slot;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-template <typename GeneticStateT>
 inline auto validate_genetic_block_shape(
     const bayes::GeneticEffect& effect,
-    const GeneticStateT& state) -> void
+    const bayes::GeneticState& state) -> void
 {
     const auto rows = effect.X.rows();
     const auto cols = effect.X.cols();
@@ -69,48 +72,33 @@ inline auto validate_genetic_block_shape(
     }
 }
 
-inline auto find_prior_for_mode(
-    const bayes::LegacyBayesMethod& method,
-    GeneticMode mode) -> const bayes::OldGeneticPrior*
+struct GeneticPriorMatch
 {
-    for (const auto& prior : method.genetics)
-    {
-        if (const auto* gs = std::get_if<bayes::GeneticSpec>(&prior.spec))
-        {
-            if (gs->mode == mode)
-            {
-                return &prior;
-            }
-        }
-        else
-        {
-            const auto& js = std::get<bayes::JointSpec>(prior.spec);
-            if (js.additive.mode == mode || js.dominance.mode == mode)
-            {
-                return &prior;
-            }
-        }
-    }
-    return nullptr;
-}
+    const bayes::GeneticPrior* prior{};
+    std::size_t block_index{};
+};
 
 inline auto find_prior_for_mode(
-    bayes::LegacyBayesMethod& method,
-    GeneticMode mode) -> bayes::OldGeneticPrior*
+    const bayes::BayesPrior& prior,
+    GeneticMode mode) -> std::optional<GeneticPriorMatch>
 {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-    return const_cast<bayes::OldGeneticPrior*>(
-        find_prior_for_mode(std::as_const(method), mode));
+    std::size_t index = 0;
+    for (const auto& block : prior.genetics())
+    {
+        if (block.contains(mode))
+        {
+            return GeneticPriorMatch{.prior = &block, .block_index = index};
+        }
+        ++index;
+    }
+    return std::nullopt;
 }
 
 // Binds the (effect, prior, state) trio for `mode`.
-// `Ctx` must expose `model`, `method`, and `state`.
+// `Ctx` must expose `model`, `prior`, and `state`.
 template <typename Ctx>
 inline auto bind_genetic_block(const Ctx& ctx, GeneticMode mode)
 {
-    using GeneticStateT
-        = std::remove_pointer_t<decltype(ctx.state.genetic(mode))>;
-
     const auto* effect = ctx.model.genetic(mode);
     if (effect == nullptr)
     {
@@ -119,12 +107,12 @@ inline auto bind_genetic_block(const Ctx& ctx, GeneticMode mode)
                 "model has no genetic block for mode {}",
                 EffectType::from_genetic(mode)));
     }
-    const auto* prior = find_prior_for_mode(ctx.method, mode);
-    if (prior == nullptr)
+    const auto prior_match = find_prior_for_mode(ctx.prior, mode);
+    if (!prior_match)
     {
         throw GelexException(
             fmt::format(
-                "method has no genetic prior for mode {}",
+                "prior has no genetic block for mode {}",
                 EffectType::from_genetic(mode)));
     }
     auto* genetic_state = ctx.state.genetic(mode);
@@ -135,11 +123,21 @@ inline auto bind_genetic_block(const Ctx& ctx, GeneticMode mode)
                 "state has no genetic block for mode {}",
                 EffectType::from_genetic(mode)));
     }
+    auto& block_state = ctx.state.genetic_block(prior_match->block_index);
+    if (!block_state.contains(mode))
+    {
+        throw GelexException(
+            fmt::format(
+                "state has no genetic prior block for mode {}",
+                EffectType::from_genetic(mode)));
+    }
     validate_genetic_block_shape(*effect, *genetic_state);
-    return GeneticBlockDeps<GeneticStateT>{
+    return GeneticBlockDeps{
         .effect = *effect,
-        .prior = *prior,
+        .prior = *prior_match->prior,
         .state = *genetic_state,
+        .prior_state = block_state.prior_state(),
+        .slot = block_state.slot(mode),
     };
 }
 

@@ -16,14 +16,16 @@
 
 #include "gelex/post/random.h"
 
+#include <string>
 #include <string_view>
+#include <vector>
 
 #include <fmt/format.h>
+#include <Eigen/Core>
 
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/io/detail/binary_reader.h"
 #include "gelex/post/detail/utils.h"
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -38,34 +40,24 @@ RandomPosteriorProcessor::RandomPosteriorProcessor(
 auto RandomPosteriorProcessor::process() -> std::vector<ParameterDiag>
 {
     const auto& ref = readers_.front();
-    auto paths = ref.section_paths();
-    auto random_prefix = fmt::format("{}/coeff/", EffectType::random());
-
-    std::vector<std::string_view> effect_names;
-    for (auto path : paths)
-    {
-        if (path.starts_with(random_prefix))
-        {
-            effect_names.push_back(path.substr(random_prefix.size()));
-        }
-    }
 
     std::vector<ParameterDiag> diags;
-    for (auto name : effect_names)
+    for (size_t index = 0;; ++index)
     {
-        auto levels_path
-            = fmt::format("{}/levels/{}", EffectType::random(), name);
-        auto levels = ref.to_strings(levels_path);
-
-        std::vector<std::string> coeff_names;
-        coeff_names.reserve(levels.size());
-        for (auto level : levels)
+        const auto coeff_path = fmt::format("random/{}/coeffs", index);
+        if (!ref.contains(coeff_path))
         {
-            coeff_names.emplace_back(fmt::format("{}_{}", name, level));
+            break;
         }
 
-        auto coeff_path
-            = fmt::format("{}/coeff/{}", EffectType::random(), name);
+        std::vector<std::string> coeff_names;
+        const auto n_params = ref.to_map<double>(coeff_path).rows();
+        coeff_names.reserve(static_cast<size_t>(n_params));
+        for (Eigen::Index i = 0; i < n_params; ++i)
+        {
+            coeff_names.push_back(fmt::format("random[{}][{}]", index, i));
+        }
+
         diags.append_range(
             post::detail::summarize_section(
                 readers_,
@@ -74,15 +66,14 @@ auto RandomPosteriorProcessor::process() -> std::vector<ParameterDiag>
                 "Parameter",
                 coeff_names));
 
-        auto var_path
-            = fmt::format("{}/variance/{}", EffectType::random(), name);
+        const auto var_path = fmt::format("random/{}/variance", index);
         diags.push_back(
             post::detail::summarize_section(
                 readers_,
                 var_path,
                 hdpi_threshold_,
                 "Parameter",
-                fmt::format("σ²_{}", name)));
+                fmt::format("σ²_random[{}]", index)));
     }
     return diags;
 }

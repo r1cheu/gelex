@@ -16,15 +16,96 @@
 
 #include "gelex/post/genetic_variance_kernel.h"
 
+#include <cstddef>
+#include <ranges>
 #include <string>
+#include <string_view>
 
 #include <fmt/format.h>
 
+#include "gelex/exception.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/post/detail/utils.h"
 
 namespace gelex
 {
+
+namespace
+{
+
+struct GeneticBlockSlot
+{
+    std::size_t block_index;
+    std::size_t slot;
+};
+
+auto mode_name(GeneticMode mode) -> std::string_view
+{
+    for (const auto& [value, name] : kGeneticModeNames)
+    {
+        if (value == mode)
+        {
+            return name;
+        }
+    }
+    return "unknown";
+}
+
+auto find_genetic_index(
+    const io::detail::BinaryReader& reader,
+    GeneticMode kind) -> std::size_t
+{
+    constexpr std::string_view modes_path = "genetic/modes";
+    if (!reader.contains(modes_path))
+    {
+        throw GelexException("samples do not contain genetic/modes");
+    }
+
+    const auto target = mode_name(kind);
+    const auto modes = reader.to_strings(modes_path);
+    for (const auto [index, mode] : std::views::enumerate(modes))
+    {
+        if (mode == target)
+        {
+            return static_cast<std::size_t>(index);
+        }
+    }
+
+    throw GelexException(
+        fmt::format("samples do not contain genetic mode {}", kind));
+}
+
+auto find_genetic_block_slot(
+    const io::detail::BinaryReader& reader,
+    GeneticMode kind) -> GeneticBlockSlot
+{
+    const auto target = mode_name(kind);
+    for (std::size_t block_index = 0;; ++block_index)
+    {
+        const auto modes_path
+            = fmt::format("genetic_block/{}/modes", block_index);
+        if (!reader.contains(modes_path))
+        {
+            break;
+        }
+
+        const auto modes = reader.to_strings(modes_path);
+        for (const auto [slot, mode] : std::views::enumerate(modes))
+        {
+            if (mode == target)
+            {
+                return {
+                    .block_index = block_index,
+                    .slot = static_cast<std::size_t>(slot)};
+            }
+        }
+    }
+
+    throw GelexException(
+        fmt::format("samples do not contain genetic block for {}", kind));
+}
+
+}  // namespace
 
 GeneticVarianceProcessor::GeneticVarianceProcessor(
     const GeneticInput& input,
@@ -32,13 +113,18 @@ GeneticVarianceProcessor::GeneticVarianceProcessor(
     : matrix_{input.genotype->matrix()}, kind_{input.kind}, n_components_{0}
 {
     const auto& ref = readers.front();
-    auto coeff_path = fmt::format("{}/coeff", kind_);
-    auto tracker_path = fmt::format("{}/group/assignment", kind_);
+    const auto genetic_index = find_genetic_index(ref, kind_);
+    const auto block_slot = find_genetic_block_slot(ref, kind_);
+    const auto coeff_path = fmt::format("genetic/{}/coeffs", genetic_index);
+    const auto tracker_path = fmt::format(
+        "genetic_block/{}/prior_state/proportion/{}/assignment",
+        block_slot.block_index,
+        block_slot.slot);
 
     if (ref.contains(tracker_path))
     {
         n_components_ = static_cast<Eigen::Index>(
-            static_cast<uint8_t>(ref.to_map<int8_t>(tracker_path).maxCoeff()));
+            ref.to_map<int>(tracker_path).maxCoeff());
     }
 
     auto n_records = ref.to_map<double>(coeff_path).cols();
@@ -48,7 +134,7 @@ GeneticVarianceProcessor::GeneticVarianceProcessor(
         coeff_maps_.push_back(reader.to_map<double>(coeff_path));
         if (n_components_ > 0)
         {
-            tracker_maps_.push_back(reader.to_map<int8_t>(tracker_path));
+            tracker_maps_.push_back(reader.to_map<int>(tracker_path));
             component_variance_chains_.emplace_back(n_components_, n_records);
         }
     }
@@ -78,7 +164,7 @@ auto GeneticVarianceProcessor::process(
     for (Eigen::Index k = 1; k <= n_components_; ++k)
     {
         // select beta where tracker == k, else 0
-        masked_beta_chunk_ = (tracker_block.array() == static_cast<int8_t>(k))
+        masked_beta_chunk_ = (tracker_block.array() == k)
                                  .cast<double>()
                                  .cwiseProduct(beta_block.array())
                                  .matrix();

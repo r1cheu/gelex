@@ -20,15 +20,10 @@
 #include <filesystem>
 #include <random>
 
-#include "gelex/algo/infer/mcmc/checkpoint.h"
-
 namespace gelex
 {
 
 class BayesState;
-
-[[nodiscard]] auto read_checkpoint(const std::filesystem::path& path)
-    -> Checkpoint;
 
 [[nodiscard]] auto read_checkpoint(
     const std::filesystem::path& path,

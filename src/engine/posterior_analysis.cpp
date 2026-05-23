@@ -16,7 +16,9 @@
 
 #include "gelex/engine/posterior_analysis.h"
 
+#include <cstddef>
 #include <ranges>
+#include <string_view>
 
 #include <fmt/format.h>
 #include <Eigen/Core>
@@ -27,7 +29,7 @@
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/io/detail/binary_reader.h"
-#include "gelex/model/bayes/legacy_algorithm_shape.h"
+#include "gelex/model/bayes/labels.h"
 #include "gelex/post/fixed.h"
 #include "gelex/post/genetic.h"
 #include "gelex/post/genetic_variance.h"
@@ -38,6 +40,24 @@
 
 namespace gelex
 {
+
+namespace
+{
+
+auto parse_genetic_mode(std::string_view value) -> GeneticMode
+{
+    for (const auto& [mode, name] : kGeneticModeNames)
+    {
+        if (value == name)
+        {
+            return mode;
+        }
+    }
+    throw GelexException(
+        fmt::format("unknown genetic mode in samples: {}", value));
+}
+
+}  // namespace
 
 PosteriorAnalysisEngine::PosteriorAnalysisEngine(
     std::span<const std::string_view> samples_prefix,
@@ -83,10 +103,8 @@ auto PosteriorAnalysisEngine::run(const PostObserver& observer) -> void
         DiagnosticsReadyEvent{
             .diags = std::move(diags),
             .n_chains = static_cast<Eigen::Index>(readers_.size()),
-            .n_records = readers_.front()
-                             .to_map<double>(fmt::format(
-                                 "{}/variance", EffectType::residual()))
-                             .cols(),
+            .n_records
+            = readers_.front().to_map<double>("residual/0/variance").cols(),
             .hdpi_prob = hdpi_threshold_});
 }
 
@@ -116,12 +134,18 @@ auto PosteriorAnalysisEngine::process_gebv_variance()
 
     std::vector<gelex::genotype::Genotype> genotype_storages;
     std::vector<GeneticInput> genetic_inputs;
-    genotype_storages.reserve(kAllGeneticModes.size());
-
-    for (auto kind : kAllGeneticModes)
+    const auto& ref = readers_.front();
+    if (!ref.contains("genetic/modes"))
     {
-        auto coeff_path
-            = fmt::format("{}/coeff", EffectType::from_genetic(kind));
+        return {};
+    }
+
+    const auto sample_modes = ref.to_strings("genetic/modes");
+    genotype_storages.reserve(sample_modes.size());
+    for (const auto [index, mode_name] : std::views::enumerate(sample_modes))
+    {
+        const auto kind = parse_genetic_mode(mode_name);
+        auto coeff_path = fmt::format("genetic/{}/coeffs", index);
         if (!readers_.front().contains(coeff_path))
         {
             continue;

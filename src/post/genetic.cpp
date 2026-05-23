@@ -16,7 +16,10 @@
 
 #include "gelex/post/genetic.h"
 
+#include <cstddef>
 #include <string>
+#include <string_view>
+#include <vector>
 
 #include <fmt/format.h>
 #include <Eigen/Core>
@@ -24,10 +27,41 @@
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/io/detail/binary_reader.h"
 #include "gelex/post/detail/utils.h"
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
+
+namespace
+{
+
+auto block_section_name(
+    const io::detail::BinaryReader& reader,
+    std::size_t block_index) -> std::string
+{
+    const auto modes_path = fmt::format("genetic_block/{}/modes", block_index);
+    const auto modes = reader.to_strings(modes_path);
+    if (modes.empty())
+    {
+        return fmt::format("genetic_block[{}]", block_index);
+    }
+    if (modes.size() == 1)
+    {
+        return std::string(modes[0]);
+    }
+
+    std::string name;
+    for (std::size_t i = 0; i < modes.size(); ++i)
+    {
+        if (i > 0)
+        {
+            name += ",";
+        }
+        name += modes[i];
+    }
+    return name;
+}
+
+}  // namespace
 
 GeneticPosteriorProcessor::GeneticPosteriorProcessor(
     std::span<const io::detail::BinaryReader> readers,
@@ -41,40 +75,47 @@ auto GeneticPosteriorProcessor::process() -> std::vector<ParameterDiag>
     const auto& ref = readers_.front();
 
     std::vector<ParameterDiag> diags;
-
-    for (auto kind : kAllGeneticModes)
+    for (std::size_t block_index = 0;; ++block_index)
     {
-        auto sect = EffectType::from_genetic(kind);
-        if (!ref.contains(fmt::format("{}/coeff", sect)))
+        const auto modes_path
+            = fmt::format("genetic_block/{}/modes", block_index);
+        if (!ref.contains(modes_path))
         {
-            continue;
+            break;
         }
 
-        auto section = fmt::format("{}", kind);
-
-        // group/proportion
-        auto prop_path = fmt::format("{}/group/proportion", sect);
-        if (ref.contains(prop_path))
+        const auto section = block_section_name(ref, block_index);
+        for (std::size_t slot = 0;; ++slot)
         {
-            auto n_pi = ref.to_mat<double>(prop_path).rows();
-            std::vector<std::string> pi_names;
-            pi_names.reserve(static_cast<size_t>(n_pi));
-            for (Eigen::Index i{0}; i < n_pi; ++i)
+            const auto assignment_path = fmt::format(
+                "genetic_block/{}/prior_state/proportion/{}/assignment",
+                block_index,
+                slot);
+            const auto prop_path = fmt::format(
+                "genetic_block/{}/prior_state/proportion/{}/value",
+                block_index,
+                slot);
+            if (!ref.contains(assignment_path) && !ref.contains(prop_path))
             {
-                pi_names.emplace_back(fmt::format("π[{}]", i));
+                break;
             }
-            diags.append_range(
-                post::detail::summarize_section(
-                    readers_, prop_path, hdpi_threshold_, section, pi_names));
-        }
-
-        // sign/proportion
-        auto sign_path = fmt::format("{}/sign/proportion", sect);
-        if (ref.contains(sign_path))
-        {
-            diags.push_back(
-                post::detail::summarize_section(
-                    readers_, sign_path, hdpi_threshold_, section, "p(+)"));
+            if (ref.contains(prop_path))
+            {
+                const auto n_pi = ref.to_mat<double>(prop_path).rows();
+                std::vector<std::string> pi_names;
+                pi_names.reserve(static_cast<size_t>(n_pi));
+                for (Eigen::Index i{0}; i < n_pi; ++i)
+                {
+                    pi_names.push_back(fmt::format("π[{}]", i));
+                }
+                diags.append_range(
+                    post::detail::summarize_section(
+                        readers_,
+                        prop_path,
+                        hdpi_threshold_,
+                        section,
+                        pi_names));
+            }
         }
     }
 

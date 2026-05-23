@@ -17,12 +17,10 @@
 #ifndef GELEX_ALGO_INFER_MCMC_KERNELS_DETAIL_MIXTURE_OP_H_
 #define GELEX_ALGO_INFER_MCMC_KERNELS_DETAIL_MIXTURE_OP_H_
 
-#include <variant>
-
 #include <Eigen/Core>
 
-#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/stats/detail/var.h"
+#include "gelex/model/bayes/prior_state.h"
 
 namespace gelex::mcmc::detail
 {
@@ -36,25 +34,13 @@ struct MixtureNormalPosteriors
     Eigen::Array<double, kMaxMixtureComponents, 1> log_likelihoods;
 };
 
-template <typename StateT>
-inline auto get_mixture(StateT& state) -> bayes::ComponentAllocation*
-{
-    if (!state.group)
-    {
-        return nullptr;
-    }
-    return std::get_if<bayes::ComponentAllocation>(&*state.group);
-}
-
-inline void compute_component_variances(
-    bayes::ComponentAllocation& marker_assignment)
+inline void compute_component_variances(bayes::ComponentState& component)
 {
     for (Eigen::Index k = 0;
-         k < static_cast<Eigen::Index>(marker_assignment.component_u.size());
+         k < static_cast<Eigen::Index>(component.gebv.size());
          ++k)
     {
-        marker_assignment.component_variance(k)
-            = gelex::stats::detail::var(marker_assignment.component_u[k])(0);
+        component.gebv_var(k) = gelex::stats::detail::var(component.gebv[k])(0);
     }
 }
 

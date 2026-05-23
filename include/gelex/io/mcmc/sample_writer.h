@@ -17,20 +17,14 @@
 #ifndef GELEX_IO_MCMC_SAMPLE_WRITER_H_
 #define GELEX_IO_MCMC_SAMPLE_WRITER_H_
 
-#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <variant>
-#include <vector>
 
 #include <Eigen/Core>
 
-#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/io/detail/binary_writer.h"
-#include "gelex/model/bayes/legacy_method.h"
-#include "gelex/model/bayes/model.h"
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -50,11 +44,6 @@ class Writer
         io::detail::SectionHandle<int>>;
 
     Writer(
-        const BayesModel& model,
-        const bayes::LegacyBayesMethod& method,
-        std::string_view prefix,
-        Eigen::Index n_records);
-    Writer(
         const BayesState& state,
         std::string_view prefix,
         Eigen::Index n_records);
@@ -64,33 +53,11 @@ class Writer
     auto operator=(Writer&&) -> Writer& = delete;
     ~Writer() = default;
 
-    void write(const mcmc::State& state);
     void write(const BayesState& state);
 
    private:
-    struct RandomHandles
-    {
-        io::detail::SectionHandle<double> coeffs;
-        io::detail::SectionHandle<double> variance;
-    };
-
-    struct GeneticHandles
-    {
-        EffectType section_effect{};
-        io::detail::SectionHandle<double> coeffs{};
-        io::detail::SectionHandle<double> variance{};
-        std::optional<io::detail::SectionHandle<int8_t>> mixture_tracker;
-        std::optional<io::detail::SectionHandle<double>> pi;
-        std::optional<io::detail::SectionHandle<int8_t>> sign_tracker;
-        std::optional<io::detail::SectionHandle<double>> positive_prob;
-    };
-
     io::detail::BinaryWriter writer_;
     std::unordered_map<std::string, RecordHandle> record_handles_;
-    io::detail::SectionHandle<double> fixed_coeffs_{};
-    std::vector<RandomHandles> random_;
-    std::vector<GeneticHandles> genetic_;
-    io::detail::SectionHandle<double> residual_variance_{};
 };
 
 }  // namespace mcmc

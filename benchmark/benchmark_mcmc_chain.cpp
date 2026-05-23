@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
+#include <optional>
 #include <random>
+#include <utility>
 #include <vector>
 
 #include <nanobench.h>
@@ -27,9 +29,10 @@
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/data/genotype/processor.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/legacy_builder.h"
-#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/recipe.h"
+#include "gelex/model/bayes/recipe_options.h"
+#include "gelex/model/bayes/state.h"
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "tests/genotype_fixture.h"
@@ -37,14 +40,15 @@
 namespace
 {
 
-using gelex::BayesBase;
 using gelex::BayesModel;
-using gelex::compute_genetic_stats;
+using gelex::BayesState;
 using gelex::FixedEffect;
 using gelex::GeneticMode;
-using gelex::bayes::DominancePolicy;
+using gelex::bayes::BayesRecipe;
+using gelex::bayes::BayesRecipeConfig;
+using gelex::bayes::BayesRecipePreset;
+using gelex::bayes::EffectConfig;
 using gelex::bayes::GeneticEffect;
-using gelex::bayes::LegacyBayesConfig;
 using gelex::genotype::Genotype;
 using gelex::test::GenotypeBuilder;
 
@@ -108,21 +112,41 @@ auto make_model() -> BayesModel
     return BayesModel(std::move(y), std::move(fixed), {}, std::move(genetics));
 }
 
+auto make_prior(
+    const BayesModel& model,
+    BayesRecipePreset preset,
+    std::optional<bool> proportion_update = std::nullopt)
+    -> gelex::bayes::BayesPrior
+{
+    BayesRecipeConfig config;
+    config.modes = {GeneticMode::A};
+    if (proportion_update)
+    {
+        config.additive = EffectConfig(
+            std::nullopt,
+            std::nullopt,
+            std::nullopt,
+            std::optional<bool>{*proportion_update});
+    }
+
+    BayesRecipe recipe{preset, std::move(config)};
+    return recipe.make_prior(model);
+}
+
 template <typename Factory>
 void bench_chain(
     ankerl::nanobench::Bench& b,
     const BayesModel& model,
     const char* name,
-    LegacyBayesConfig cfg,
+    BayesRecipePreset preset,
+    std::optional<bool> proportion_update,
     Factory factory,
     Eigen::Index n_iters)
 {
-    const auto stats = compute_genetic_stats(model);
-    auto method = gelex::bayes::build_bayes_method(
-        cfg, stats, model.phenotype_variance());
-    gelex::mcmc::State state{model, method};
+    auto prior = make_prior(model, preset, proportion_update);
+    BayesState state{model, prior};
     std::mt19937_64 rng(42);
-    gelex::mcmc::Context ctx{model, method, state, rng};
+    gelex::mcmc::Context ctx{model, prior, state, rng};
     auto chain = factory(ctx);
     b.run(
         name,
@@ -152,54 +176,76 @@ TEST_CASE("MCMC trait chain per-iteration", "[!benchmark][mcmc][chain]")
         .warmup(1)
         .minEpochIterations(20);
 
-    constexpr auto kSym = DominancePolicy::symmetric;
-    const LegacyBayesConfig cfg_a{BayesBase::A, kSym, false};
-    const LegacyBayesConfig cfg_b{BayesBase::B, kSym, false};
-    const LegacyBayesConfig cfg_c{BayesBase::C, kSym, false};
-    const LegacyBayesConfig cfg_rr{BayesBase::RR, kSym, false};
-    const LegacyBayesConfig cfg_bpi{BayesBase::B, kSym, true};
-    const LegacyBayesConfig cfg_cpi{BayesBase::C, kSym, true};
-
     bench_chain(
         b,
         model,
         "A (chain)",
-        cfg_a,
-        gelex::mcmc::make_bayes_a_chain<gelex::bayes::AlgorithmShape::a_only>,
+        BayesRecipePreset::A,
+        std::nullopt,
+        [](const gelex::mcmc::Context& ctx)
+        {
+            return gelex::mcmc::make_bayes_a_chain<
+                gelex::mcmc::GeneticShape::a_only>(ctx);
+        },
         kIters);
     bench_chain(
         b,
         model,
         "B (chain)",
-        cfg_b,
-        gelex::mcmc::make_bayes_b_chain<gelex::bayes::AlgorithmShape::a_only>,
+        BayesRecipePreset::B,
+        false,
+        [](const gelex::mcmc::Context& ctx)
+        {
+            return gelex::mcmc::make_bayes_b_chain<
+                gelex::mcmc::GeneticShape::a_only>(ctx);
+        },
         kIters);
     bench_chain(
         b,
         model,
         "C (chain)",
-        cfg_c,
-        gelex::mcmc::make_bayes_c_chain<gelex::bayes::AlgorithmShape::a_only>,
+        BayesRecipePreset::C,
+        false,
+        [](const gelex::mcmc::Context& ctx)
+        {
+            return gelex::mcmc::make_bayes_c_chain<
+                gelex::mcmc::GeneticShape::a_only>(ctx);
+        },
         kIters);
     bench_chain(
         b,
         model,
         "RR (chain)",
-        cfg_rr,
-        gelex::mcmc::make_bayes_rr_chain<gelex::bayes::AlgorithmShape::a_only>,
+        BayesRecipePreset::RR,
+        std::nullopt,
+        [](const gelex::mcmc::Context& ctx)
+        {
+            return gelex::mcmc::make_bayes_rr_chain<
+                gelex::mcmc::GeneticShape::a_only>(ctx);
+        },
         kIters);
     bench_chain(
         b,
         model,
         "Bpi (chain)",
-        cfg_bpi,
-        gelex::mcmc::make_bayes_bpi_chain<gelex::bayes::AlgorithmShape::a_only>,
+        BayesRecipePreset::B,
+        true,
+        [](const gelex::mcmc::Context& ctx)
+        {
+            return gelex::mcmc::make_bayes_bpi_chain<
+                gelex::mcmc::GeneticShape::a_only>(ctx);
+        },
         kIters);
     bench_chain(
         b,
         model,
         "Cpi (chain)",
-        cfg_cpi,
-        gelex::mcmc::make_bayes_cpi_chain<gelex::bayes::AlgorithmShape::a_only>,
+        BayesRecipePreset::C,
+        true,
+        [](const gelex::mcmc::Context& ctx)
+        {
+            return gelex::mcmc::make_bayes_cpi_chain<
+                gelex::mcmc::GeneticShape::a_only>(ctx);
+        },
         kIters);
 }

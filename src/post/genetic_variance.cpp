@@ -22,7 +22,7 @@
 #include <Eigen/Core>
 
 #include "gelex/infra/stats/detail/var.h"
-#include "gelex/model/bayes/legacy_algorithm_shape.h"
+#include "gelex/model/bayes/labels.h"
 #include "gelex/post/detail/utils.h"
 
 namespace gelex
@@ -47,10 +47,7 @@ auto GeneticVariancePosteriorProcessor::process() -> GebvVarianceResult
 
     const auto n_individuals = genetics_.front().genotype->rows();
     const auto n_chains = readers_.size();
-    const auto& ref = readers_.front();
-    const auto n_records
-        = ref.to_map<double>(fmt::format("{}/coeff", genetics_.front().kind))
-              .cols();
+    const auto n_records = processors.front().n_records();
 
     constexpr Eigen::Index kChunkSize = 64;
 

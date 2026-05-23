@@ -17,7 +17,6 @@
 #include "gelex/engine/mcmc.h"
 
 #include <algorithm>
-#include <array>
 #include <span>
 #include <string>
 #include <utility>
@@ -28,11 +27,10 @@
 #include "gelex/algo/infer/mcmc/solver.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
-#include "gelex/io/mcmc/checkpoint_reader.h"
 #include "gelex/io/mcmc/result_writer.h"
-#include "gelex/model/bayes/legacy_algorithm_shape.h"
-#include "gelex/model/bayes/legacy_bayes_policy.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/recipe.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -43,14 +41,14 @@ namespace
 
 using TraitRunner = mcmc::Result (*)(
     const BayesModel&,
-    bayes::LegacyBayesMethod,
+    bayes::BayesPrior,
     const mcmc::Engine::Config&,
     const MCMCObserver&);
 
 template <auto MakeChain>
 auto run_recipe(
     const BayesModel& model,
-    bayes::LegacyBayesMethod method,
+    bayes::BayesPrior prior,
     const mcmc::Engine::Config& config,
     const MCMCObserver& observer) -> mcmc::Result
 {
@@ -61,69 +59,97 @@ auto run_recipe(
         std::string(config.out_prefix));
     if (config.resume_path)
     {
-        auto checkpoint = read_checkpoint(*config.resume_path);
-        return mcmc.resume(model, std::move(checkpoint), observer);
+        return mcmc.resume(
+            model, std::move(prior), *config.resume_path, observer);
     }
-    return mcmc.run(model, std::move(method), config.seed, observer);
+    return mcmc.run(model, std::move(prior), config.seed, observer);
 }
 
-struct DispatchKey
+auto resolve_shape(std::span<const GeneticMode> modes) -> mcmc::GeneticShape
 {
-    BayesBase base{};
-    bayes::AlgorithmShape shape{};
-    bayes::DominancePolicy dominance{};
-    bool estimate_pi{};
+    if (modes.size() == 1 && modes[0] == GeneticMode::A)
+    {
+        return mcmc::GeneticShape::a_only;
+    }
+    if (modes.size() == 1 && modes[0] == GeneticMode::D)
+    {
+        return mcmc::GeneticShape::d_only;
+    }
+    if (modes.size() == 2 && modes[0] == GeneticMode::A
+        && modes[1] == GeneticMode::D)
+    {
+        return mcmc::GeneticShape::ad_independent;
+    }
+    throw GelexException("MCMC engine supports modes {A}, {D}, or {A, D}");
+}
 
-    constexpr auto operator==(const DispatchKey&) const -> bool = default;
-};
+template <bayes::BayesRecipePreset Preset, mcmc::GeneticShape Shape>
+consteval auto runner_for() -> TraitRunner
+{
+    if constexpr (Preset == bayes::BayesRecipePreset::RR)
+    {
+        return &run_recipe<mcmc::make_bayes_rr_chain<Shape>>;
+    }
+    else if constexpr (Preset == bayes::BayesRecipePreset::A)
+    {
+        return &run_recipe<mcmc::make_bayes_a_chain<Shape>>;
+    }
+    else if constexpr (Preset == bayes::BayesRecipePreset::B)
+    {
+        return &run_recipe<mcmc::make_bayes_bpi_chain<Shape>>;
+    }
+    else if constexpr (Preset == bayes::BayesRecipePreset::C)
+    {
+        return &run_recipe<mcmc::make_bayes_cpi_chain<Shape>>;
+    }
+    else if constexpr (Preset == bayes::BayesRecipePreset::R)
+    {
+        return &run_recipe<mcmc::make_bayes_r_chain<Shape>>;
+    }
+}
 
-// clang-format off
-constexpr auto kSym = bayes::DominancePolicy::symmetric;
-using Shape = bayes::AlgorithmShape;
-
-constexpr auto kTraitRunners = std::array<
-    std::pair<DispatchKey, TraitRunner>, 21>{{
-    {{BayesBase::A,  Shape::a_only,         kSym, false}, &run_recipe<mcmc::make_bayes_a_chain<Shape::a_only>>},
-    {{BayesBase::A,  Shape::d_only,         kSym, false}, &run_recipe<mcmc::make_bayes_a_chain<Shape::d_only>>},
-    {{BayesBase::A,  Shape::ad_independent, kSym, false}, &run_recipe<mcmc::make_bayes_a_chain<Shape::ad_independent>>},
-    {{BayesBase::B,  Shape::a_only,         kSym, false}, &run_recipe<mcmc::make_bayes_b_chain<Shape::a_only>>},
-    {{BayesBase::B,  Shape::d_only,         kSym, false}, &run_recipe<mcmc::make_bayes_b_chain<Shape::d_only>>},
-    {{BayesBase::B,  Shape::ad_independent, kSym, false}, &run_recipe<mcmc::make_bayes_b_chain<Shape::ad_independent>>},
-    {{BayesBase::B,  Shape::a_only,         kSym, true},  &run_recipe<mcmc::make_bayes_bpi_chain<Shape::a_only>>},
-    {{BayesBase::B,  Shape::d_only,         kSym, true},  &run_recipe<mcmc::make_bayes_bpi_chain<Shape::d_only>>},
-    {{BayesBase::B,  Shape::ad_independent, kSym, true},  &run_recipe<mcmc::make_bayes_bpi_chain<Shape::ad_independent>>},
-    {{BayesBase::C,  Shape::a_only,         kSym, false}, &run_recipe<mcmc::make_bayes_c_chain<Shape::a_only>>},
-    {{BayesBase::C,  Shape::d_only,         kSym, false}, &run_recipe<mcmc::make_bayes_c_chain<Shape::d_only>>},
-    {{BayesBase::C,  Shape::ad_independent, kSym, false}, &run_recipe<mcmc::make_bayes_c_chain<Shape::ad_independent>>},
-    {{BayesBase::C,  Shape::a_only,         kSym, true},  &run_recipe<mcmc::make_bayes_cpi_chain<Shape::a_only>>},
-    {{BayesBase::C,  Shape::d_only,         kSym, true},  &run_recipe<mcmc::make_bayes_cpi_chain<Shape::d_only>>},
-    {{BayesBase::C,  Shape::ad_independent, kSym, true},  &run_recipe<mcmc::make_bayes_cpi_chain<Shape::ad_independent>>},
-    {{BayesBase::R,  Shape::a_only,         kSym, false}, &run_recipe<mcmc::make_bayes_r_chain<Shape::a_only>>},
-    {{BayesBase::R,  Shape::d_only,         kSym, false}, &run_recipe<mcmc::make_bayes_r_chain<Shape::d_only>>},
-    {{BayesBase::R,  Shape::ad_independent, kSym, false}, &run_recipe<mcmc::make_bayes_r_chain<Shape::ad_independent>>},
-    {{BayesBase::RR, Shape::a_only,         kSym, false}, &run_recipe<mcmc::make_bayes_rr_chain<Shape::a_only>>},
-    {{BayesBase::RR, Shape::d_only,         kSym, false}, &run_recipe<mcmc::make_bayes_rr_chain<Shape::d_only>>},
-    {{BayesBase::RR, Shape::ad_independent, kSym, false}, &run_recipe<mcmc::make_bayes_rr_chain<Shape::ad_independent>>},
-}};
-// clang-format on
+template <bayes::BayesRecipePreset Preset>
+auto runner_for_shape(mcmc::GeneticShape shape) -> TraitRunner
+{
+    switch (shape)
+    {
+        case mcmc::GeneticShape::a_only:
+            return runner_for<Preset, mcmc::GeneticShape::a_only>();
+        case mcmc::GeneticShape::d_only:
+            return runner_for<Preset, mcmc::GeneticShape::d_only>();
+        case mcmc::GeneticShape::ad_independent:
+            return runner_for<Preset, mcmc::GeneticShape::ad_independent>();
+    }
+    std::unreachable();
+}
 
 auto find_runner(
-    const bayes::LegacyBayesConfig& method,
-    std::span<const GeneticMode> requested) -> TraitRunner
+    bayes::BayesRecipePreset preset,
+    std::span<const GeneticMode> modes) -> TraitRunner
 {
-    const auto shape
-        = bayes::resolve_shape(bayes::policy_for(method.base), requested);
-    const DispatchKey key{
-        method.base, shape, method.dominance, method.estimate_pi};
-
-    const auto* it = std::ranges::find(
-        kTraitRunners, key, &std::pair<DispatchKey, TraitRunner>::first);
-    if (it == kTraitRunners.end())
+    if (preset == bayes::BayesRecipePreset::CD)
     {
         throw GelexException(
-            fmt::format("Unsupported Bayes method: {}", method));
+            "CD MCMC runtime is not implemented for BayesPrior yet");
     }
-    return it->second;
+
+    const auto shape = resolve_shape(modes);
+    switch (preset)
+    {
+        case bayes::BayesRecipePreset::RR:
+            return runner_for_shape<bayes::BayesRecipePreset::RR>(shape);
+        case bayes::BayesRecipePreset::A:
+            return runner_for_shape<bayes::BayesRecipePreset::A>(shape);
+        case bayes::BayesRecipePreset::B:
+            return runner_for_shape<bayes::BayesRecipePreset::B>(shape);
+        case bayes::BayesRecipePreset::C:
+            return runner_for_shape<bayes::BayesRecipePreset::C>(shape);
+        case bayes::BayesRecipePreset::R:
+            return runner_for_shape<bayes::BayesRecipePreset::R>(shape);
+        case bayes::BayesRecipePreset::CD:
+            break;
+    }
+    std::unreachable();
 }
 
 }  // namespace
@@ -141,11 +167,12 @@ auto ConfigValidator::validate() const -> void
 
 auto ConfigValidator::check_method() const -> void
 {
-    if (!bayes::is_valid_method(config_.method, config_.requested_effects))
+    if (config_.preset == bayes::BayesRecipePreset::CD)
     {
         throw GelexException(
-            fmt::format("invalid method combination: {}", config_.method));
+            "CD MCMC runtime is not implemented for BayesPrior yet");
     }
+    static_cast<void>(resolve_shape(config_.recipe_config.modes));
 }
 
 auto ConfigValidator::check_mcmc_params() const -> void
@@ -189,11 +216,11 @@ auto ConfigValidator::check_mcmc_params() const -> void
 
 auto Engine::run(
     const BayesModel& model,
-    bayes::LegacyBayesMethod method,
+    bayes::BayesPrior prior,
     const MCMCObserver& observer) -> void
 {
-    auto runner = find_runner(config_.method, config_.requested_effects);
-    auto result = runner(model, std::move(method), config_, observer);
+    auto runner = find_runner(config_.preset, config_.recipe_config.modes);
+    auto result = runner(model, std::move(prior), config_, observer);
 
     ResultWriter writer(result, config_.bfile_prefix + ".bim");
     writer.save(config_.out_prefix);

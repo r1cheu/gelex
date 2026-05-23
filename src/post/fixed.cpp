@@ -17,13 +17,14 @@
 #include "gelex/post/fixed.h"
 
 #include <string>
+#include <vector>
 
 #include <fmt/format.h>
+#include <Eigen/Core>
 
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/io/detail/binary_reader.h"
 #include "gelex/post/detail/utils.h"
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -38,34 +39,20 @@ FixedPosteriorProcessor::FixedPosteriorProcessor(
 auto FixedPosteriorProcessor::process() -> std::vector<ParameterDiag>
 {
     const auto& ref = readers_.front();
-    auto names_path = fmt::format("{}/names", EffectType::fixed());
-    if (!ref.contains(names_path))
+    constexpr std::string_view coeff_path = "fixed/0/coeffs";
+    if (!ref.contains(coeff_path))
     {
         return {};
     }
 
-    auto names = ref.to_strings(names_path);
-
     std::vector<std::string> row_names;
-    for (auto name : names)
+    const auto n_params = ref.to_map<double>(coeff_path).rows();
+    row_names.reserve(static_cast<size_t>(n_params));
+    for (Eigen::Index i = 0; i < n_params; ++i)
     {
-        auto levels_path
-            = fmt::format("{}/levels/{}", EffectType::fixed(), name);
-        auto levels = ref.to_strings(levels_path);
-        if (levels.size() == 1 && levels[0] == name)
-        {
-            row_names.emplace_back(name);
-        }
-        else
-        {
-            for (auto level : levels)
-            {
-                row_names.emplace_back(fmt::format("{}_{}", name, level));
-            }
-        }
+        row_names.push_back(fmt::format("fixed[{}]", i));
     }
 
-    auto coeff_path = fmt::format("{}/coeff", EffectType::fixed());
     return post::detail::summarize_section(
         readers_, coeff_path, hdpi_threshold_, "Parameter", row_names);
 }

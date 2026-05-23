@@ -25,7 +25,6 @@
 #include "gelex/algo/infer/mcmc/context.h"
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/legacy_prior.h"
 #include "gelex/model/bayes/prior.h"
 
 namespace gelex::mcmc
@@ -35,7 +34,7 @@ namespace gelex::mcmc
 struct ResidualStepDeps
 {
     Eigen::Index num_individuals;
-    const bayes::OldVarianceSpec& variance;
+    const bayes::VarianceSpec& variance;
     bayes::ResidualState& state;
     std::mt19937_64& rng;
 };
@@ -51,8 +50,8 @@ class ResidualStep
     explicit ResidualStep(Deps deps)
         : deps_(deps),
           variance_sampler_(
-              deps_.variance.prior.degrees_of_freedom(),
-              deps_.variance.prior.scale())
+              deps_.variance.prior().degrees_of_freedom(),
+              deps_.variance.prior().scale())
     {
     }
 
@@ -66,7 +65,7 @@ class ResidualStep
     {
         return ResidualStep{Deps{
             .num_individuals = ctx.model.num_individuals(),
-            .variance = ctx.method.residual,
+            .variance = ctx.prior.residual(),
             .state = ctx.state.residual(),
             .rng = ctx.rng,
         }};

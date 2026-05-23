@@ -16,9 +16,7 @@
 
 #include "gelex/algo/infer/mcmc/steps/pi.h"
 
-#include <type_traits>
 #include <utility>
-#include <variant>
 
 #include <fmt/format.h>
 #include <Eigen/Core>
@@ -27,53 +25,34 @@
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/exception.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/state_capabilities.h"
 
 namespace gelex::mcmc
 {
 
 auto PiStep::make(const Context& ctx, GeneticMode mode) -> PiStep
 {
-    auto* genetic_state = ctx.state.genetic(mode);
-    if (genetic_state == nullptr)
+    auto block = infer::detail::bind_genetic_block(ctx, mode);
+    auto* cap = block.prior_state.query<bayes::ProportionStateCap>();
+    if (cap == nullptr)
     {
         throw GelexException(
             fmt::format(
-                "state has no genetic block for mode {}",
+                "PiStep: genetic block {} has no proportion state",
                 EffectType::from_genetic(mode)));
     }
-    if (!genetic_state->group.has_value())
+    auto proportions = cap->proportion();
+    if (block.slot >= proportions.size())
     {
         throw GelexException(
             fmt::format(
-                "PiStep requires marker allocation for genetic block {}",
+                "PiStep: proportion slot missing for genetic block {}",
                 EffectType::from_genetic(mode)));
     }
-    const auto* prior = infer::detail::find_prior_for_mode(ctx.method, mode);
-    if (prior == nullptr)
-    {
-        throw GelexException(
-            fmt::format(
-                "method has no genetic prior for mode {}",
-                EffectType::from_genetic(mode)));
-    }
-    if (!prior->mixture.has_value())
-    {
-        throw GelexException(
-            fmt::format(
-                "PiStep: genetic block {} has no proportion prior",
-                EffectType::from_genetic(mode)));
-    }
-    if (!prior->mixture->proportions.estimate)
-    {
-        throw GelexException(
-            fmt::format(
-                "PiStep: genetic block {} — "
-                "PiStep requires proportion.estimate = true",
-                EffectType::from_genetic(mode)));
-    }
-    auto alpha = Eigen::VectorXd::Ones(prior->mixture->proportions.init.size());
+    auto& proportion = proportions[block.slot];
+    auto alpha = Eigen::VectorXd::Ones(proportion.value.size());
     return PiStep{Deps{
-        .group = *genetic_state->group,
+        .proportion = proportion,
         .alpha = std::move(alpha),
         .rng = ctx.rng,
     }};
@@ -82,23 +61,10 @@ auto PiStep::make(const Context& ctx, GeneticMode mode) -> PiStep
 auto PiStep::step() -> void
 {
     dirichlet_.reset();
-
-    auto update = [&](bayes::Assignment& asgn)
-    { asgn.proportion = dirichlet_(asgn.count, deps_.rng); };
-    std::visit(
-        [&](auto& alloc)
-        {
-            using T = std::decay_t<decltype(alloc)>;
-            if constexpr (std::is_same_v<T, bayes::Assignment>)
-            {
-                update(alloc);
-            }
-            else
-            {
-                update(alloc.assignment);
-            }
-        },
-        deps_.group);
+    if (deps_.proportion.update == bayes::ProportionUpdate::sampled)
+    {
+        deps_.proportion.value = dirichlet_(deps_.proportion.count, deps_.rng);
+    }
 }
 
 }  // namespace gelex::mcmc

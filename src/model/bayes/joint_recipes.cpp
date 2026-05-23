@@ -28,7 +28,7 @@ namespace gelex::bayes
 {
 
 BayesCDMethod::BayesCDMethod(const BayesRecipeConfig& options)
-    : JointMethod{"BayesCD", options}
+    : JointMethod{"CD", options}
 {
     require_both_modes();
     reject_per_effect_proportion();
@@ -36,7 +36,7 @@ BayesCDMethod::BayesCDMethod(const BayesRecipeConfig& options)
     if (options.joint_proportion && options.joint_proportion->size() != 4)
     {
         throw GelexException(
-            "BayesCD requires joint_proportion to have exactly 4 components: "
+            "CD requires joint_proportion to have exactly 4 components: "
             "both-off, A-only, D-only, both-on");
     }
 }

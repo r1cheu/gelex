@@ -26,7 +26,6 @@
 #include "gelex/model/bayes/capabilities.h"
 #include "gelex/model/bayes/gaussian_prior.h"
 #include "gelex/model/bayes/genetic_prior.h"
-#include "gelex/model/bayes/legacy_prior.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_specs.h"
 #include "gelex/model/bayes/prior_state.h"

@@ -17,13 +17,14 @@
 #include "gelex/post/heritability.h"
 
 #include <string>
+#include <string_view>
 
 #include <fmt/format.h>
 #include <Eigen/Core>
 
 #include "gelex/infra/stats/diagnostics.h"
 #include "gelex/io/detail/binary_reader.h"
-#include "gelex/model/bayes/legacy_algorithm_shape.h"
+#include "gelex/model/bayes/labels.h"
 #include "gelex/post/detail/utils.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -93,17 +94,17 @@ auto HeritabilityPosteriorProcessor::assemble_phenotypic_variance() const
         pheno_var.emplace_back(genetic_variances_[ci].row(total_row));
     }
 
-    auto resid_path = fmt::format("{}/variance", EffectType::residual());
+    constexpr std::string_view resid_path = "residual/0/variance";
     for (size_t ci = 0; ci < n_chains; ++ci)
     {
         pheno_var[ci] += readers_[ci].to_map<double>(resid_path);
     }
 
     auto paths = readers_.front().section_paths();
-    auto random_var_prefix = fmt::format("{}/variance/", EffectType::random());
+    constexpr std::string_view random_prefix = "random/";
     for (auto path : paths)
     {
-        if (!path.starts_with(random_var_prefix))
+        if (!path.starts_with(random_prefix) || !path.ends_with("/variance"))
         {
             continue;
         }

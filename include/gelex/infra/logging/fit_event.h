@@ -26,8 +26,9 @@
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/mcmc/state.h"
-#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/recipe.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -46,7 +47,7 @@ struct MCMCBannerEvent
 
 struct MCMCConfigEvent
 {
-    gelex::bayes::LegacyBayesConfig method;
+    gelex::bayes::BayesRecipePreset preset;
     std::vector<GeneticMode> requested_effects;
     Eigen::Index n_iters{};
     Eigen::Index n_burn_in{};
@@ -70,9 +71,9 @@ struct MCMCCompleteEvent
 
 // --- Shared fit protocol events ---
 
-struct FitMethodSetEvent
+struct FitPriorSetEvent
 {
-    const bayes::LegacyBayesMethod* method{};
+    const bayes::BayesPrior* prior{};
 };
 
 struct FitResultsSavedEvent
@@ -87,7 +88,7 @@ struct FitCheckpointSavedEvent
 using MCMCEvent = std::variant<
     MCMCBannerEvent,
     MCMCConfigEvent,
-    FitMethodSetEvent,
+    FitPriorSetEvent,
     MCMCProgressEvent,
     MCMCCompleteEvent,
     FitResultsSavedEvent,

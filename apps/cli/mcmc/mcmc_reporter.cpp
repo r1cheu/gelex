@@ -26,7 +26,7 @@
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
-#include "gelex/model/bayes/legacy_algorithm_shape.h"
+#include "gelex/model/bayes/labels.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -48,7 +48,7 @@ auto McmcReporter::on_event(const MCMCConfigEvent& event) -> void
 {
     cli::printer().block(gelex::section("[Config]"));
     cli::printer().line(
-        "  {:<12}: {}", "Method", fmt::format("{}", event.method));
+        "  {:<12}: {}", "Method", fmt::format("{}", event.preset));
     cli::printer().line(
         "  {:<12}: {} iters ({} burn-in, {} sampling)",
         "Chain",
@@ -95,15 +95,6 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
         "{}σ²_e: {:.3f}",
         stats_.empty() ? "" : " | ",
         state->residual().variance);
-
-    const auto* dom = state->genetic(GeneticMode::D);
-    if (dom != nullptr && dom->sign)
-    {
-        fmt::format_to(
-            std::back_inserter(stats_),
-            " | p: {:.3f}",
-            dom->sign->proportion(1));
-    }
 
     if (bar_.after_bar)
     {

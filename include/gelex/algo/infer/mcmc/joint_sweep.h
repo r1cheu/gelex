@@ -37,8 +37,8 @@ class GeneticJointSweep
 {
    public:
     GeneticJointSweep(
-        infer::detail::GeneticBlockDeps<bayes::LegacyGeneticState> first,
-        infer::detail::GeneticBlockDeps<bayes::LegacyGeneticState> second,
+        infer::detail::GeneticBlockDeps first,
+        infer::detail::GeneticBlockDeps second,
         bayes::ResidualState& residual,
         std::mt19937_64& rng)
         : first_(first), second_(second), residual_(residual), rng_(rng)
@@ -118,8 +118,8 @@ class GeneticJointSweep
     }
 
    private:
-    infer::detail::GeneticBlockDeps<bayes::LegacyGeneticState> first_;
-    infer::detail::GeneticBlockDeps<bayes::LegacyGeneticState> second_;
+    infer::detail::GeneticBlockDeps first_;
+    infer::detail::GeneticBlockDeps second_;
     bayes::ResidualState& residual_;
     std::mt19937_64& rng_;
 };

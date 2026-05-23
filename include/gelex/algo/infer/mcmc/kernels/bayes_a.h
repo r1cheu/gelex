@@ -18,8 +18,6 @@
 #define GELEX_ALGO_INFER_MCMC_KERNELS_BAYES_A_H_
 
 #include <random>
-#include <variant>
-
 #include "gelex/algo/infer/mcmc/kernels/common.h"
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
@@ -33,13 +31,16 @@ namespace gelex::mcmc
 class BayesAKernel
 {
    public:
-    BayesAKernel(
-        const bayes::OldGeneticPrior& prior,
-        bayes::LegacyGeneticState& state)
-        : state_(state),
+    template <typename BlockDeps>
+    explicit BayesAKernel(const BlockDeps& block)
+        : state_(block.state),
+          marker_variance_(require_variance_state(
+              block.prior_state,
+              "BayesAKernel")[block.slot]),
           normal_(0.0),
           sigma_(make_variance_sampler(
-              std::get<bayes::GeneticSpec>(prior.spec).variance))
+              require_variance_specs(block.prior, "BayesAKernel")[block.slot]
+                  .variance()))
     {
     }
 
@@ -56,7 +57,7 @@ class BayesAKernel
         double residual_variance,
         std::mt19937_64& rng) -> double
     {
-        normal_.set_prior_var(state_.marker_variance(marker_index));
+        normal_.set_prior_var(marker_variance_(marker_index));
         const double new_i = normal_(
             stats::NormalSampler<double>::Kernel{
                 .quadratic = xtx_diag,
@@ -64,14 +65,15 @@ class BayesAKernel
                 .scale = residual_variance,
             },
             rng);
-        state_.marker_variance(marker_index) = sigma_({1, new_i * new_i}, rng);
+        marker_variance_(marker_index) = sigma_({1, new_i * new_i}, rng);
         return new_i;
     }
 
     auto commit(std::mt19937_64& /*rng*/) -> void {}
 
    private:
-    bayes::LegacyGeneticState& state_;
+    bayes::GeneticState& state_;
+    Eigen::VectorXd& marker_variance_;
     stats::NormalSampler<double> normal_;
     stats::ScaledInvChi2Sampler<double> sigma_;
 };

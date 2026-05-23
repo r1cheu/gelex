@@ -20,20 +20,10 @@
 #include <random>
 #include <string_view>
 
-#include "gelex/algo/infer/mcmc/state.h"
-#include "gelex/model/bayes/legacy_method.h"
-#include "gelex/model/bayes/model.h"
-
 namespace gelex
 {
 
 class BayesState;
-
-auto write_checkpoint(
-    const mcmc::State& state,
-    const std::mt19937_64& rng,
-    const bayes::LegacyBayesMethod& method,
-    std::string_view prefix) -> void;
 
 auto write_checkpoint(
     const BayesState& state,

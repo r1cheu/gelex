@@ -22,7 +22,6 @@
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
-#include "gelex/model/bayes/legacy_prior.h"
 
 namespace gelex::mcmc
 {
@@ -30,22 +29,18 @@ namespace gelex::mcmc
 auto RandomStep::make(const Context& ctx) -> RandomStep
 {
     const auto& effects = ctx.model.random();
-    const auto& specs = ctx.method.randoms;
     auto& states = ctx.state.random();
-    if (effects.size() != specs.size() || effects.size() != states.size())
+    if (effects.size() != states.size())
     {
         throw GelexException(
             fmt::format(
-                "random block size mismatch: model={}, method.random={}, "
-                "state={}",
+                "random block size mismatch: model={}, state={}",
                 effects.size(),
-                specs.size(),
                 states.size()));
     }
-    static const bayes::OldVarianceSpec kEmptySpec{};
     return RandomStep{Deps{
         .effects = std::span{effects},
-        .variance = specs.empty() ? kEmptySpec : specs.front(),
+        .variance = ctx.prior.random(),
         .states = std::span{states},
         .residual = ctx.state.residual(),
         .rng = ctx.rng,

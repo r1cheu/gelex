@@ -20,8 +20,8 @@
 #include <random>
 
 #include "gelex/algo/infer/mcmc/state.h"
-#include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
 
 namespace gelex::mcmc
 {
@@ -30,7 +30,7 @@ namespace gelex::mcmc
 struct Context
 {
     const BayesModel& model;
-    bayes::LegacyBayesMethod& method;
+    const bayes::BayesPrior& prior;
     State& state;
     std::mt19937_64& rng;
 };

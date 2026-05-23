@@ -18,7 +18,6 @@
 #define GELEX_ALGO_INFER_MCMC_KERNELS_BAYES_RR_H_
 
 #include <random>
-#include <variant>
 
 #include "gelex/algo/infer/mcmc/kernels/common.h"
 #include "gelex/algo/infer/mcmc/state.h"
@@ -33,13 +32,16 @@ namespace gelex::mcmc
 class BayesRRKernel
 {
    public:
-    BayesRRKernel(
-        const bayes::OldGeneticPrior& prior,
-        bayes::LegacyGeneticState& state)
-        : state_(state),
-          normal_(state.marker_variance(0)),
+    template <typename BlockDeps>
+    explicit BayesRRKernel(const BlockDeps& block)
+        : state_(block.state),
+          marker_variance_(require_variance_state(
+              block.prior_state,
+              "BayesRRKernel")[block.slot]),
+          normal_(marker_variance_(0)),
           variance_sampler_(make_variance_sampler(
-              std::get<bayes::GeneticSpec>(prior.spec).variance))
+              require_variance_specs(block.prior, "BayesRRKernel")[block.slot]
+                  .variance()))
     {
     }
 
@@ -48,7 +50,7 @@ class BayesRRKernel
         normal_.reset();
         variance_sampler_.reset();
         n_used_ = 0;
-        normal_.set_prior_var(state_.marker_variance(0));
+        normal_.set_prior_var(marker_variance_(0));
     }
 
     auto sample(
@@ -71,12 +73,13 @@ class BayesRRKernel
 
     auto commit(std::mt19937_64& rng) -> void
     {
-        state_.marker_variance(0)
+        marker_variance_(0)
             = variance_sampler_({n_used_, state_.coeffs.squaredNorm()}, rng);
     }
 
    private:
-    bayes::LegacyGeneticState& state_;
+    bayes::GeneticState& state_;
+    Eigen::VectorXd& marker_variance_;
     stats::NormalSampler<double> normal_;
     stats::ScaledInvChi2Sampler<double> variance_sampler_;
     Eigen::Index n_used_{0};
