@@ -17,17 +17,20 @@
 #include <array>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/exception.h"
-#include "gelex/model/bayes/genetic_prior.h"
+#include "gelex/model/bayes/capabilities.h"
 #include "gelex/model/bayes/gaussian_prior.h"
+#include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/legacy_prior.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_capabilities.h"
 #include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_state.h"
+#include "gelex/model/bayes/state_capabilities.h"
 #include "gelex/types/genetic_effect_type.h"
 
 using gelex::GelexException;
@@ -38,15 +41,18 @@ using gelex::bayes::GeneticPrior;
 using gelex::bayes::JointMixtureGaussianPrior;
 using gelex::bayes::MarkerVarianceScope;
 using gelex::bayes::MarkerVarianceSpec;
-using gelex::bayes::MultiplierCapability;
+using gelex::bayes::MultiplierSpecCap;
+using gelex::bayes::ComponentStateCap;
 using gelex::bayes::ProportionSpec;
-using gelex::bayes::ProportionCapability;
+using gelex::bayes::ProportionSpecCap;
+using gelex::bayes::ProportionStateCap;
 using gelex::bayes::ProportionUpdate;
-using gelex::bayes::ScaledMixtureGaussianPrior;
 using gelex::bayes::ScaledInvChiSqPrior;
+using gelex::bayes::ScaledMixtureGaussianPrior;
 using gelex::bayes::SpikeSlabGaussianPrior;
-using gelex::bayes::VarianceCapability;
 using gelex::bayes::VarianceSpec;
+using gelex::bayes::VarianceSpecCap;
+using gelex::bayes::VarianceStateCap;
 
 namespace
 {
@@ -129,43 +135,120 @@ TEST_CASE("BayesPrior accessors expose construction arguments", "[bayes_prior]")
 TEST_CASE("GeneticPrior capabilities compose prior data axes", "[bayes_prior]")
 {
     GaussianPrior gaussian(GeneticMode::A, make_marker_variance());
-    REQUIRE(gaussian.query<VarianceCapability>() != nullptr);
-    REQUIRE(gaussian.query<ProportionCapability>() == nullptr);
-    REQUIRE(gaussian.query<MultiplierCapability>() == nullptr);
+    REQUIRE(gaussian.query<VarianceSpecCap>() != nullptr);
+    REQUIRE(gaussian.query<ProportionSpecCap>() == nullptr);
+    REQUIRE(gaussian.query<MultiplierSpecCap>() == nullptr);
 
     SpikeSlabGaussianPrior spike_slab(
         GeneticMode::A, make_marker_variance(), make_proportion_2());
-    const auto* spike_slab_proportion =
-        spike_slab.query<ProportionCapability>();
-    REQUIRE(spike_slab.query<VarianceCapability>() != nullptr);
+    const auto* spike_slab_proportion = spike_slab.query<ProportionSpecCap>();
+    REQUIRE(spike_slab.query<VarianceSpecCap>() != nullptr);
     REQUIRE(spike_slab_proportion != nullptr);
-    REQUIRE(spike_slab_proportion->proportion_specs().size() == 1);
-    REQUIRE(spike_slab.query<MultiplierCapability>() == nullptr);
+    REQUIRE(spike_slab_proportion->proportion().size() == 1);
+    REQUIRE(spike_slab.query<MultiplierSpecCap>() == nullptr);
 
     ScaledMixtureGaussianPrior scaled_mixture(
         GeneticMode::A,
         make_marker_variance(),
         make_multiplier_2(),
         make_proportion_2());
-    const auto* scaled_mixture_multiplier =
-        scaled_mixture.query<MultiplierCapability>();
-    REQUIRE(scaled_mixture.query<VarianceCapability>() != nullptr);
-    REQUIRE(scaled_mixture.query<ProportionCapability>() != nullptr);
+    const auto* scaled_mixture_multiplier
+        = scaled_mixture.query<MultiplierSpecCap>();
+    REQUIRE(scaled_mixture.query<VarianceSpecCap>() != nullptr);
+    REQUIRE(scaled_mixture.query<ProportionSpecCap>() != nullptr);
     REQUIRE(scaled_mixture_multiplier != nullptr);
-    REQUIRE(scaled_mixture_multiplier->multipliers().size() == 1);
+    REQUIRE(scaled_mixture_multiplier->multiplier().size() == 1);
 
     JointMixtureGaussianPrior joint(
         std::array<GeneticMode, 2>{GeneticMode::A, GeneticMode::D},
         std::array<MarkerVarianceSpec, 2>{
             make_marker_variance(), make_marker_variance()},
         make_proportion_2());
-    const auto* joint_variance = joint.query<VarianceCapability>();
-    const auto* joint_proportion = joint.query<ProportionCapability>();
+    const auto* joint_variance = joint.query<VarianceSpecCap>();
+    const auto* joint_proportion = joint.query<ProportionSpecCap>();
     REQUIRE(joint_variance != nullptr);
-    REQUIRE(joint_variance->variance_specs().size() == 2);
+    REQUIRE(joint_variance->variance().size() == 2);
     REQUIRE(joint_proportion != nullptr);
-    REQUIRE(joint_proportion->proportion_specs().size() == 1);
-    REQUIRE(joint.query<MultiplierCapability>() == nullptr);
+    REQUIRE(joint_proportion->proportion().size() == 1);
+    REQUIRE(joint.query<MultiplierSpecCap>() == nullptr);
+}
+
+TEST_CASE(
+    "GeneticPrior::make_state builds capability-composed state",
+    "[bayes_prior]")
+{
+    GaussianPrior gaussian(GeneticMode::A, make_marker_variance());
+    constexpr Eigen::Index kSingleNumMarkers = 3;
+    constexpr Eigen::Index kNumIndividuals = 5;
+
+    auto gaussian_state
+        = gaussian.make_state(kSingleNumMarkers, kNumIndividuals);
+    auto& gaussian_variance = gaussian_state->require<VarianceStateCap>();
+    REQUIRE(gaussian_variance.variance().size() == 1);
+    REQUIRE(gaussian_variance.variance()[0].size() == 3);
+    REQUIRE(gaussian_variance.variance()[0].isApprox(
+        Eigen::VectorXd::Constant(3, 1.0)));
+    REQUIRE(gaussian_state->query<ProportionStateCap>() == nullptr);
+
+    SpikeSlabGaussianPrior spike_slab(
+        GeneticMode::A, make_marker_variance(), make_proportion_2());
+    auto spike_slab_state
+        = spike_slab.make_state(kSingleNumMarkers, kNumIndividuals);
+    auto& spike_slab_variance = spike_slab_state->require<VarianceStateCap>();
+    auto& spike_slab_proportion
+        = spike_slab_state->require<ProportionStateCap>();
+    REQUIRE(spike_slab_variance.variance().size() == 1);
+    REQUIRE(spike_slab_proportion.proportion().size() == 1);
+    REQUIRE(spike_slab_proportion.proportion()[0].assignment.size() == 3);
+    REQUIRE(spike_slab_proportion.proportion()[0].assignment.isZero());
+    REQUIRE(spike_slab_proportion.proportion()[0].count.isApprox(
+        Eigen::VectorXi{{3, 0}}));
+    REQUIRE(spike_slab_proportion.proportion()[0].value.isApprox(
+        Eigen::VectorXd{{0.9, 0.1}}));
+
+    ScaledMixtureGaussianPrior scaled_mixture(
+        GeneticMode::A,
+        make_marker_variance(),
+        make_multiplier_2(),
+        make_proportion_2());
+    auto scaled_mixture_state
+        = scaled_mixture.make_state(kSingleNumMarkers, kNumIndividuals);
+    auto& scaled_mixture_component
+        = scaled_mixture_state->require<ComponentStateCap>();
+    auto& scaled_mixture_proportion
+        = scaled_mixture_state->require<ProportionStateCap>();
+    REQUIRE(scaled_mixture_component.component().size() == 1);
+    REQUIRE(scaled_mixture_component.component()[0].gebv.size() == 1);
+    REQUIRE(
+        scaled_mixture_component.component()[0].gebv[0].size()
+        == kNumIndividuals);
+    REQUIRE(scaled_mixture_component.component()[0].gebv_var.size() == 1);
+    REQUIRE(scaled_mixture_proportion.proportion().size() == 1);
+    REQUIRE(scaled_mixture_proportion.proportion()[0].assignment.size() == 3);
+    auto& scaled_mixture_variance
+        = scaled_mixture_state->require<VarianceStateCap>();
+    REQUIRE(scaled_mixture_variance.variance().size() == 1);
+    REQUIRE(scaled_mixture_variance.variance()[0].size() == kSingleNumMarkers);
+
+    JointMixtureGaussianPrior joint(
+        std::array<GeneticMode, 2>{GeneticMode::A, GeneticMode::D},
+        std::array<MarkerVarianceSpec, 2>{
+            make_marker_variance(), make_marker_variance()},
+        make_proportion_2());
+
+    auto joint_state = joint.make_state(4, kNumIndividuals);
+    auto& joint_variance = joint_state->require<VarianceStateCap>();
+    auto& joint_component = joint_state->require<ComponentStateCap>();
+    auto& joint_proportion = joint_state->require<ProportionStateCap>();
+    REQUIRE(joint_variance.variance().size() == 2);
+    REQUIRE(joint_variance.variance()[0].size() == 4);
+    REQUIRE(joint_variance.variance()[1].size() == 4);
+    REQUIRE(joint_component.component().size() == 1);
+    REQUIRE(joint_component.component()[0].gebv.size() == 1);
+    REQUIRE(joint_component.component()[0].gebv[0].size() == kNumIndividuals);
+    REQUIRE(joint_component.component()[0].gebv_var.size() == 1);
+    REQUIRE(joint_proportion.proportion().size() == 1);
+    REQUIRE(joint_proportion.proportion()[0].assignment.size() == 4);
 }
 
 TEST_CASE("BayesPrior::genetics range supports for-each", "[bayes_prior]")

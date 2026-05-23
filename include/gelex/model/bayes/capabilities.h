@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_PRIOR_CAPABILITIES_H_
-#define GELEX_MODEL_BAYES_PRIOR_CAPABILITIES_H_
+#ifndef GELEX_MODEL_BAYES_CAPABILITIES_H_
+#define GELEX_MODEL_BAYES_CAPABILITIES_H_
 
 #include <span>
 
@@ -26,17 +26,20 @@
 namespace gelex::bayes
 {
 
+template <typename T>
 class VarianceCapability
 {
    public:
+    using element_type = T;
+
     auto operator=(const VarianceCapability&) -> VarianceCapability& = delete;
     auto operator=(VarianceCapability&&) noexcept
         -> VarianceCapability& = delete;
 
     virtual ~VarianceCapability() = default;
 
-    virtual auto variance_specs() const -> std::span<const MarkerVarianceSpec>
-        = 0;
+    virtual auto variance() -> std::span<T> = 0;
+    virtual auto variance() const -> std::span<const T> = 0;
 
    protected:
     VarianceCapability() = default;
@@ -44,9 +47,12 @@ class VarianceCapability
     VarianceCapability(VarianceCapability&&) noexcept = default;
 };
 
+template <typename T>
 class ProportionCapability
 {
    public:
+    using element_type = T;
+
     auto operator=(const ProportionCapability&)
         -> ProportionCapability& = delete;
     auto operator=(ProportionCapability&&) noexcept
@@ -54,8 +60,8 @@ class ProportionCapability
 
     virtual ~ProportionCapability() = default;
 
-    virtual auto proportion_specs() const -> std::span<const ProportionSpec>
-        = 0;
+    virtual auto proportion() -> std::span<T> = 0;
+    virtual auto proportion() const -> std::span<const T> = 0;
 
    protected:
     ProportionCapability() = default;
@@ -63,9 +69,12 @@ class ProportionCapability
     ProportionCapability(ProportionCapability&&) noexcept = default;
 };
 
+template <typename T>
 class MultiplierCapability
 {
    public:
+    using element_type = T;
+
     auto operator=(const MultiplierCapability&)
         -> MultiplierCapability& = delete;
     auto operator=(MultiplierCapability&&) noexcept
@@ -73,7 +82,8 @@ class MultiplierCapability
 
     virtual ~MultiplierCapability() = default;
 
-    virtual auto multipliers() const -> std::span<const Eigen::VectorXd> = 0;
+    virtual auto multiplier() -> std::span<T> = 0;
+    virtual auto multiplier() const -> std::span<const T> = 0;
 
    protected:
     MultiplierCapability() = default;
@@ -81,6 +91,10 @@ class MultiplierCapability
     MultiplierCapability(MultiplierCapability&&) noexcept = default;
 };
 
+using VarianceSpecCap = VarianceCapability<MarkerVarianceSpec>;
+using ProportionSpecCap = ProportionCapability<ProportionSpec>;
+using MultiplierSpecCap = MultiplierCapability<Eigen::VectorXd>;
+
 }  // namespace gelex::bayes
 
-#endif  // GELEX_MODEL_BAYES_PRIOR_CAPABILITIES_H_
+#endif  // GELEX_MODEL_BAYES_CAPABILITIES_H_

@@ -17,16 +17,13 @@
 #include "gelex/model/bayes/gaussian_prior.h"
 
 #include <array>
-#include <cassert>
 #include <memory>
-#include <span>
 #include <utility>
-#include <vector>
 
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
-#include "gelex/model/bayes/runtime_state.h"
+#include "gelex/model/bayes/gaussian_prior_state.h"
 
 namespace gelex::bayes
 {
@@ -36,33 +33,13 @@ GaussianPrior::GaussianPrior(GeneticMode mode, MarkerVarianceSpec variance)
 {
 }
 
-auto GaussianPrior::modes() const -> std::span<const GeneticMode>
+auto GaussianPrior::make_state(
+    Eigen::Index num_markers,
+    Eigen::Index /*num_individuals*/) const
+    -> std::unique_ptr<GeneticPriorState>
 {
-    return modes_;
-}
-
-auto GaussianPrior::variance_specs() const
-    -> std::span<const MarkerVarianceSpec>
-{
-    return variance_specs_;
-}
-
-auto GaussianPrior::make_state(const GeneticPriorRuntimeInit& init) const
-    -> std::unique_ptr<GeneticPriorRuntimeState>
-{
-    assert(init.effects.size() == modes_.size());
-    assert(init.effects[0].mode == modes_[0]);
-    const auto num_markers = init.effects[0].num_markers;
-    assert(num_markers > 0);
-
-    const auto& spec = variance_specs_[0];
-    std::vector<Eigen::VectorXd> variances;
-    variances.emplace_back(
-        Eigen::VectorXd::Constant(
-            spec.marker_variance_size(num_markers),
-            spec.variance().initial_value()));
-    return std::make_unique<GaussianRuntimeState>(
-        MarkerVarianceRuntimeState(std::move(variances)));
+    return std::make_unique<GaussianState>(
+        make_variance_values(variance_specs_, num_markers));
 }
 
 SpikeSlabGaussianPrior::SpikeSlabGaussianPrior(
@@ -80,42 +57,15 @@ SpikeSlabGaussianPrior::SpikeSlabGaussianPrior(
     }
 }
 
-auto SpikeSlabGaussianPrior::modes() const -> std::span<const GeneticMode>
+auto SpikeSlabGaussianPrior::make_state(
+    Eigen::Index num_markers,
+    Eigen::Index /*num_individuals*/) const
+    -> std::unique_ptr<GeneticPriorState>
 {
-    return modes_;
-}
-
-auto SpikeSlabGaussianPrior::variance_specs() const
-    -> std::span<const MarkerVarianceSpec>
-{
-    return variance_specs_;
-}
-
-auto SpikeSlabGaussianPrior::proportion_specs() const
-    -> std::span<const ProportionSpec>
-{
-    return proportion_specs_;
-}
-
-auto SpikeSlabGaussianPrior::make_state(const GeneticPriorRuntimeInit& init)
-    const -> std::unique_ptr<GeneticPriorRuntimeState>
-{
-    assert(init.effects.size() == modes_.size());
-    assert(init.effects[0].mode == modes_[0]);
-    const auto num_markers = init.effects[0].num_markers;
-    assert(num_markers > 0);
-
-    const auto& var_spec = variance_specs_[0];
-    std::vector<Eigen::VectorXd> variances;
-    variances.emplace_back(
-        Eigen::VectorXd::Constant(
-            var_spec.marker_variance_size(num_markers),
-            var_spec.variance().initial_value()));
-    return std::make_unique<MixtureGaussianRuntimeState>(
-        MarkerVarianceRuntimeState(std::move(variances)),
-        MixtureRuntimeState(
-            Eigen::VectorXi::Zero(num_markers),
-            proportion_specs_[0].initial_value()));
+    return std::make_unique<SpikeSlabGaussianState>(
+        make_variance_values(variance_specs_, num_markers),
+        proportion_specs_,
+        num_markers);
 }
 
 ScaledMixtureGaussianPrior::ScaledMixtureGaussianPrior(
@@ -128,8 +78,7 @@ ScaledMixtureGaussianPrior::ScaledMixtureGaussianPrior(
       multipliers_{std::move(multiplier)},
       proportion_specs_{std::move(proportion)}
 {
-    if (multipliers_[0].size()
-        != static_cast<Eigen::Index>(proportion_specs_[0].size()))
+    if (multipliers_[0].size() != proportion_specs_[0].size())
     {
         throw GelexException(
             "ScaledMixtureGaussianPrior: multiplier and proportion sizes "
@@ -142,48 +91,16 @@ ScaledMixtureGaussianPrior::ScaledMixtureGaussianPrior(
     }
 }
 
-auto ScaledMixtureGaussianPrior::modes() const -> std::span<const GeneticMode>
+auto ScaledMixtureGaussianPrior::make_state(
+    Eigen::Index num_markers,
+    Eigen::Index num_individuals) const -> std::unique_ptr<GeneticPriorState>
 {
-    return modes_;
-}
-
-auto ScaledMixtureGaussianPrior::variance_specs() const
-    -> std::span<const MarkerVarianceSpec>
-{
-    return variance_specs_;
-}
-
-auto ScaledMixtureGaussianPrior::proportion_specs() const
-    -> std::span<const ProportionSpec>
-{
-    return proportion_specs_;
-}
-
-auto ScaledMixtureGaussianPrior::multipliers() const
-    -> std::span<const Eigen::VectorXd>
-{
-    return multipliers_;
-}
-
-auto ScaledMixtureGaussianPrior::make_state(const GeneticPriorRuntimeInit& init)
-    const -> std::unique_ptr<GeneticPriorRuntimeState>
-{
-    assert(init.effects.size() == modes_.size());
-    assert(init.effects[0].mode == modes_[0]);
-    const auto num_markers = init.effects[0].num_markers;
-    assert(num_markers > 0);
-
-    const auto& var_spec = variance_specs_[0];
-    std::vector<Eigen::VectorXd> variances;
-    variances.emplace_back(
-        Eigen::VectorXd::Constant(
-            var_spec.marker_variance_size(num_markers),
-            var_spec.variance().initial_value()));
-    return std::make_unique<MixtureGaussianRuntimeState>(
-        MarkerVarianceRuntimeState(std::move(variances)),
-        MixtureRuntimeState(
-            Eigen::VectorXi::Zero(num_markers),
-            proportion_specs_[0].initial_value()));
+    return std::make_unique<ScaledMixtureGaussianState>(
+        make_variance_values(variance_specs_, num_markers),
+        multipliers_,
+        proportion_specs_,
+        num_markers,
+        num_individuals);
 }
 
 JointMixtureGaussianPrior::JointMixtureGaussianPrior(
@@ -201,47 +118,17 @@ JointMixtureGaussianPrior::JointMixtureGaussianPrior(
     }
 }
 
-auto JointMixtureGaussianPrior::modes() const -> std::span<const GeneticMode>
+auto JointMixtureGaussianPrior::make_state(
+    Eigen::Index num_markers,
+    Eigen::Index num_individuals) const -> std::unique_ptr<GeneticPriorState>
 {
-    return modes_;
-}
-
-auto JointMixtureGaussianPrior::variance_specs() const
-    -> std::span<const MarkerVarianceSpec>
-{
-    return variance_specs_;
-}
-
-auto JointMixtureGaussianPrior::proportion_specs() const
-    -> std::span<const ProportionSpec>
-{
-    return proportion_specs_;
-}
-
-auto JointMixtureGaussianPrior::make_state(const GeneticPriorRuntimeInit& init)
-    const -> std::unique_ptr<GeneticPriorRuntimeState>
-{
-    assert(init.effects.size() == modes_.size());
-    assert(init.effects[0].mode == modes_[0]);
-    assert(init.effects[1].mode == modes_[1]);
-    const auto num_markers = init.effects[0].num_markers;
-    assert(num_markers > 0);
-    assert(init.effects[1].num_markers == num_markers);
-
-    std::vector<Eigen::VectorXd> variances;
-    variances.reserve(variance_specs_.size());
-    for (const auto& spec : variance_specs_)
-    {
-        variances.emplace_back(
-            Eigen::VectorXd::Constant(
-                spec.marker_variance_size(num_markers),
-                spec.variance().initial_value()));
-    }
-    return std::make_unique<MixtureGaussianRuntimeState>(
-        MarkerVarianceRuntimeState(std::move(variances)),
-        MixtureRuntimeState(
-            Eigen::VectorXi::Zero(num_markers),
-            proportion_specs_[0].initial_value()));
+    auto values = make_variance_values(variance_specs_, num_markers);
+    return std::make_unique<JointMixtureGaussianState>(
+        std::array<Eigen::VectorXd, 2>{
+            std::move(values[0]), std::move(values[1])},
+        proportion_specs_[0],
+        num_markers,
+        num_individuals);
 }
 
 }  // namespace gelex::bayes

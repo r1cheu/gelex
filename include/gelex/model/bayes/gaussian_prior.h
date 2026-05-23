@@ -23,10 +23,10 @@
 
 #include <Eigen/Core>
 
+#include "gelex/model/bayes/capabilities.h"
 #include "gelex/model/bayes/genetic_prior.h"
-#include "gelex/model/bayes/prior_capabilities.h"
 #include "gelex/model/bayes/prior_specs.h"
-#include "gelex/model/bayes/runtime_state.h"
+#include "gelex/model/bayes/prior_state.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
@@ -34,15 +34,26 @@ namespace gelex::bayes
 
 class GaussianPrior final
     : public GeneticPrior
-    , public VarianceCapability
+    , public VarianceSpecCap
 {
    public:
     GaussianPrior(GeneticMode mode, MarkerVarianceSpec variance);
 
-    auto modes() const -> std::span<const GeneticMode> override;
-    auto variance_specs() const -> std::span<const MarkerVarianceSpec> override;
-    auto make_state(const GeneticPriorRuntimeInit& init) const
-        -> std::unique_ptr<GeneticPriorRuntimeState> override;
+    auto modes() const -> std::span<const GeneticMode> override
+    {
+        return modes_;
+    }
+    auto variance() -> std::span<MarkerVarianceSpec> override
+    {
+        return variance_specs_;
+    }
+    auto variance() const -> std::span<const MarkerVarianceSpec> override
+    {
+        return variance_specs_;
+    }
+
+    auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
+        const -> std::unique_ptr<GeneticPriorState> override;
 
    private:
     std::array<GeneticMode, 1> modes_;
@@ -51,8 +62,8 @@ class GaussianPrior final
 
 class SpikeSlabGaussianPrior final
     : public GeneticPrior
-    , public VarianceCapability
-    , public ProportionCapability
+    , public VarianceSpecCap
+    , public ProportionSpecCap
 {
    public:
     SpikeSlabGaussianPrior(
@@ -60,11 +71,29 @@ class SpikeSlabGaussianPrior final
         MarkerVarianceSpec variance,
         ProportionSpec proportion);
 
-    auto modes() const -> std::span<const GeneticMode> override;
-    auto variance_specs() const -> std::span<const MarkerVarianceSpec> override;
-    auto proportion_specs() const -> std::span<const ProportionSpec> override;
-    auto make_state(const GeneticPriorRuntimeInit& init) const
-        -> std::unique_ptr<GeneticPriorRuntimeState> override;
+    auto modes() const -> std::span<const GeneticMode> override
+    {
+        return modes_;
+    }
+    auto variance() -> std::span<MarkerVarianceSpec> override
+    {
+        return variance_specs_;
+    }
+    auto variance() const -> std::span<const MarkerVarianceSpec> override
+    {
+        return variance_specs_;
+    }
+    auto proportion() -> std::span<ProportionSpec> override
+    {
+        return proportion_specs_;
+    }
+    auto proportion() const -> std::span<const ProportionSpec> override
+    {
+        return proportion_specs_;
+    }
+
+    auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
+        const -> std::unique_ptr<GeneticPriorState> override;
 
    private:
     std::array<GeneticMode, 1> modes_;
@@ -74,9 +103,9 @@ class SpikeSlabGaussianPrior final
 
 class ScaledMixtureGaussianPrior final
     : public GeneticPrior
-    , public VarianceCapability
-    , public ProportionCapability
-    , public MultiplierCapability
+    , public VarianceSpecCap
+    , public ProportionSpecCap
+    , public MultiplierSpecCap
 {
    public:
     ScaledMixtureGaussianPrior(
@@ -85,12 +114,37 @@ class ScaledMixtureGaussianPrior final
         Eigen::VectorXd multiplier,
         ProportionSpec proportion);
 
-    auto modes() const -> std::span<const GeneticMode> override;
-    auto variance_specs() const -> std::span<const MarkerVarianceSpec> override;
-    auto proportion_specs() const -> std::span<const ProportionSpec> override;
-    auto multipliers() const -> std::span<const Eigen::VectorXd> override;
-    auto make_state(const GeneticPriorRuntimeInit& init) const
-        -> std::unique_ptr<GeneticPriorRuntimeState> override;
+    auto modes() const -> std::span<const GeneticMode> override
+    {
+        return modes_;
+    }
+    auto variance() -> std::span<MarkerVarianceSpec> override
+    {
+        return variance_specs_;
+    }
+    auto variance() const -> std::span<const MarkerVarianceSpec> override
+    {
+        return variance_specs_;
+    }
+    auto proportion() -> std::span<ProportionSpec> override
+    {
+        return proportion_specs_;
+    }
+    auto proportion() const -> std::span<const ProportionSpec> override
+    {
+        return proportion_specs_;
+    }
+    auto multiplier() -> std::span<Eigen::VectorXd> override
+    {
+        return multipliers_;
+    }
+    auto multiplier() const -> std::span<const Eigen::VectorXd> override
+    {
+        return multipliers_;
+    }
+
+    auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
+        const -> std::unique_ptr<GeneticPriorState> override;
 
    private:
     std::array<GeneticMode, 1> modes_;
@@ -101,8 +155,8 @@ class ScaledMixtureGaussianPrior final
 
 class JointMixtureGaussianPrior final
     : public GeneticPrior
-    , public VarianceCapability
-    , public ProportionCapability
+    , public VarianceSpecCap
+    , public ProportionSpecCap
 {
    public:
     JointMixtureGaussianPrior(
@@ -110,11 +164,29 @@ class JointMixtureGaussianPrior final
         std::array<MarkerVarianceSpec, 2> variances,
         ProportionSpec proportion);
 
-    auto modes() const -> std::span<const GeneticMode> override;
-    auto variance_specs() const -> std::span<const MarkerVarianceSpec> override;
-    auto proportion_specs() const -> std::span<const ProportionSpec> override;
-    auto make_state(const GeneticPriorRuntimeInit& init) const
-        -> std::unique_ptr<GeneticPriorRuntimeState> override;
+    auto modes() const -> std::span<const GeneticMode> override
+    {
+        return modes_;
+    }
+    auto variance() -> std::span<MarkerVarianceSpec> override
+    {
+        return variance_specs_;
+    }
+    auto variance() const -> std::span<const MarkerVarianceSpec> override
+    {
+        return variance_specs_;
+    }
+    auto proportion() -> std::span<ProportionSpec> override
+    {
+        return proportion_specs_;
+    }
+    auto proportion() const -> std::span<const ProportionSpec> override
+    {
+        return proportion_specs_;
+    }
+
+    auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
+        const -> std::unique_ptr<GeneticPriorState> override;
 
    private:
     std::array<GeneticMode, 2> modes_;

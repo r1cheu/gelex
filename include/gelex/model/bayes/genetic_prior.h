@@ -20,8 +20,12 @@
 #include <algorithm>
 #include <memory>
 #include <span>
+#include <vector>
 
-#include "gelex/model/bayes/runtime_state.h"
+#include <Eigen/Core>
+
+#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_state.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
@@ -36,8 +40,11 @@ class GeneticPrior
     virtual ~GeneticPrior() = default;
 
     virtual auto modes() const -> std::span<const GeneticMode> = 0;
-    virtual auto make_state(const GeneticPriorRuntimeInit& init) const
-        -> std::unique_ptr<GeneticPriorRuntimeState>
+
+    virtual auto make_state(
+        Eigen::Index num_markers,
+        Eigen::Index num_individuals) const
+        -> std::unique_ptr<GeneticPriorState>
         = 0;
 
     auto contains(GeneticMode mode) const -> bool
@@ -55,6 +62,10 @@ class GeneticPrior
     GeneticPrior() = default;
     GeneticPrior(const GeneticPrior&) = default;
     GeneticPrior(GeneticPrior&&) noexcept = default;
+
+    static auto make_variance_values(
+        std::span<const MarkerVarianceSpec> variance_specs,
+        Eigen::Index num_markers) -> std::vector<Eigen::VectorXd>;
 };
 
 }  // namespace gelex::bayes
