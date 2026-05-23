@@ -126,7 +126,7 @@ GeneticSamples::GeneticSamples(
     }
 }
 
-void GeneticSamples::store(const bayes::GeneticState& state)
+void GeneticSamples::store(const bayes::LegacyGeneticState& state)
 {
     coeffs_stats_.update(state.coeffs);
     variance_stats_.update(state.variance);

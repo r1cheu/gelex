@@ -62,10 +62,11 @@ auto BayesRecipeImpl::marker_variance_from_heritability(
         throw GelexException(
             fmt::format("genetic effect not found for mode {}", mode));
     }
-    if (genetic->variance <= 0)
+    if (genetic->design_variance <= 0)
     {
         throw GelexException(
-            fmt::format("genetic variance must be positive for mode {}", mode));
+            fmt::format(
+                "genetic design_variance must be positive for mode {}", mode));
     }
     if (active_marker_weight <= 0)
     {
@@ -76,7 +77,7 @@ auto BayesRecipeImpl::marker_variance_from_heritability(
     }
 
     const double target = model.phenotype_variance() * heritability
-                          / (active_marker_weight * genetic->variance);
+                          / (active_marker_weight * genetic->design_variance);
 
     if (!std::isfinite(target) || target <= 0)
     {

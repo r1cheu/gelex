@@ -20,6 +20,7 @@
 #include <random>
 #include <string_view>
 
+#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 

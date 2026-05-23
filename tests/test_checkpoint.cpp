@@ -66,7 +66,7 @@ auto make_bayes_a_model(Eigen::Index n_samples, Eigen::Index n_snps)
     std::vector<bayes::GeneticEffect> genetics;
     genetics.emplace_back(GeneticMode::A, std::move(geno));
 
-    BayesModel model(phenotype, std::move(fixed), std::move(genetics));
+    BayesModel model(phenotype, std::move(fixed), {}, std::move(genetics));
     const auto config = bayes::LegacyBayesConfig{BayesBase::A};
     const auto stats = compute_genetic_stats(model);
     auto method

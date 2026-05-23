@@ -137,7 +137,7 @@ auto write_genetic_sign(
 
 auto write_genetics(
     io::detail::BinaryWriter& writer,
-    const std::vector<bayes::GeneticState>& genetic_states) -> void
+    const std::vector<bayes::LegacyGeneticState>& genetic_states) -> void
 {
     for (const auto& gs : genetic_states)
     {

@@ -22,6 +22,7 @@
 
 #include <Eigen/Core>
 
+#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/algo/infer/posterior_summary.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/genetic_effect_type.h"

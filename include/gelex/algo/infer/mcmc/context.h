@@ -19,6 +19,7 @@
 
 #include <random>
 
+#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 

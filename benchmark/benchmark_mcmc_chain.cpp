@@ -105,7 +105,7 @@ auto make_model() -> BayesModel
     auto fixed = FixedEffect::build(kIndividuals);
     std::vector<GeneticEffect> genetics;
     genetics.emplace_back(GeneticMode::A, std::move(geno));
-    return BayesModel(std::move(y), std::move(fixed), std::move(genetics));
+    return BayesModel(std::move(y), std::move(fixed), {}, std::move(genetics));
 }
 
 template <typename Factory>

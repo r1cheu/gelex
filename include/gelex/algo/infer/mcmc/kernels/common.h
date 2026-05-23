@@ -40,7 +40,7 @@ inline auto make_variance_sampler(const bayes::OldVarianceSpec& spec)
 
 template <typename Allocation>
 auto unpack_marker_allocation(
-    bayes::GeneticState& state,
+    bayes::LegacyGeneticState& state,
     std::string_view kernel_name) -> Allocation&
 {
     if (!state.group.has_value())

@@ -36,7 +36,7 @@ namespace gelex::bayes
 
 struct GeneticEffect;
 struct OldGeneticPrior;
-struct GeneticState;
+struct LegacyGeneticState;
 struct ResidualState;
 struct Assignment;
 struct ComponentAllocation;
@@ -130,7 +130,7 @@ struct GeneticSamples
         const bayes::GeneticEffect& effect,
         const bayes::OldGeneticPrior& prior,
         GeneticMode mode);
-    void store(const bayes::GeneticState& state);
+    void store(const bayes::LegacyGeneticState& state);
 
     auto n_coeffs() const -> Eigen::Index { return n_coeffs_; }
     auto coeffs() const -> RunningStatsResult { return coeffs_stats_.result(); }

@@ -23,7 +23,6 @@
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/data/pipe/geno.h"
 #include "gelex/data/pipe/pheno.h"
-#include "gelex/infra/stats/detail/var.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/legacy_algorithm_shape.h"
 #include "gelex/model/bayes/legacy_bayes_policy.h"
@@ -53,7 +52,10 @@ auto build_bayes_model(PhenoPipe&& pheno, GenoPipe&& geno) -> BayesModel
     }
 
     return BayesModel(
-        std::move(phenotype), std::move(fixed_effects), std::move(genetics));
+        std::move(phenotype),
+        std::move(fixed_effects),
+        {},
+        std::move(genetics));
 }
 
 auto compute_genetic_stats(const BayesModel& model)
@@ -69,10 +71,9 @@ auto compute_genetic_stats(const BayesModel& model)
         const double h2 = (effect.type == GeneticMode::D)
                               ? kDominanceHeritability
                               : kAdditiveHeritability;
-        const auto X = effect.X.matrix();
         stats.push_back({
             .mode = effect.type,
-            .marker_variance_sum = stats::detail::var(X).sum(),
+            .marker_variance_sum = effect.design_variance,
             .heritability_init = h2 * model.phenotype_variance(),
         });
     }

@@ -85,7 +85,7 @@ auto make_sign(
 
 }  // namespace
 
-GeneticState::GeneticState(
+LegacyGeneticState::LegacyGeneticState(
     const GeneticEffect& effect,
     const OldGeneticPrior& prior,
     GeneticMode mode)

@@ -155,7 +155,7 @@ auto read_one_genetic(
     const io::detail::BinaryReader& reader,
     GeneticMode mode,
     bool has_mixture,
-    bool has_sign) -> bayes::GeneticState
+    bool has_sign) -> bayes::LegacyGeneticState
 {
     const auto effect = EffectType::from_genetic(mode);
 
@@ -184,7 +184,7 @@ auto read_one_genetic(
         sign = read_sign(reader, effect);
     }
 
-    return bayes::GeneticState(
+    return bayes::LegacyGeneticState(
         mode,
         std::move(coeffs),
         std::move(u),
@@ -387,10 +387,11 @@ auto collect_genetic_modes(const bayes::LegacyBayesMethod& method)
 
 auto read_genetics(
     const io::detail::BinaryReader& reader,
-    const bayes::LegacyBayesMethod& method) -> std::vector<bayes::GeneticState>
+    const bayes::LegacyBayesMethod& method)
+    -> std::vector<bayes::LegacyGeneticState>
 {
     const auto modes = collect_genetic_modes(method);
-    std::vector<bayes::GeneticState> result;
+    std::vector<bayes::LegacyGeneticState> result;
     result.reserve(modes.size());
     for (const auto& [mode, has_mixture, has_sign] : modes)  // NOLINT
     {

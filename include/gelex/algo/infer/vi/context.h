@@ -17,6 +17,7 @@
 #ifndef GELEX_ALGO_INFER_VI_CONTEXT_H_
 #define GELEX_ALGO_INFER_VI_CONTEXT_H_
 
+#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 

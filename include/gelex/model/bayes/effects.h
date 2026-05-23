@@ -53,13 +53,13 @@ struct GeneticEffect
         : type(type), X(std::move(X))
     {
         XtX_diag = this->X.matrix().colwise().squaredNorm();
-        variance = gelex::stats::detail::var<0>(X.matrix()).sum();
+        design_variance = gelex::stats::detail::var<0>(this->X.matrix()).sum();
     }
 
     GeneticMode type;
     gelex::genotype::Genotype X;
     Eigen::VectorXd XtX_diag;
-    double variance{};
+    double design_variance{};
 
     auto is_monomorphic(Eigen::Index snp_index) const -> bool
     {

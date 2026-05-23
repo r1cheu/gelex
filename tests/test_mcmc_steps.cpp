@@ -246,7 +246,7 @@ TEMPLATE_TEST_CASE(
 
     auto effect = make_genetic_effect(Eigen::MatrixXd{X});
     const auto prior = KernelTraits<TestType>::make_prior();
-    bayes::GeneticState state{effect, prior, GeneticMode::A};
+    bayes::LegacyGeneticState state{effect, prior, GeneticMode::A};
     bayes::ResidualState residual{.y_adj = y, .variance = 1e-3};
     std::mt19937_64 rng{kSeed};
 
@@ -288,14 +288,14 @@ TEST_CASE(
     SECTION("BayesB rejects ContinuousPrior")
     {
         const auto prior = KernelTraits<BayesAKernel>::make_prior();
-        bayes::GeneticState state{effect, prior, GeneticMode::A};
+        bayes::LegacyGeneticState state{effect, prior, GeneticMode::A};
         REQUIRE_THROWS_AS(BayesBKernel(prior, state), GelexException);
     }
 
     SECTION("BayesC rejects empty state.group")
     {
         const auto prior = KernelTraits<BayesCKernel>::make_prior();
-        bayes::GeneticState state{
+        bayes::LegacyGeneticState state{
             GeneticMode::A,
             Eigen::VectorXd::Zero(p),
             Eigen::VectorXd::Zero(X.rows()),
@@ -349,7 +349,7 @@ TEST_CASE(
 
     auto effect = make_genetic_effect(Eigen::MatrixXd{X});
     const auto prior = make_mixture_prior();
-    bayes::GeneticState state{effect, prior, GeneticMode::A};
+    bayes::LegacyGeneticState state{effect, prior, GeneticMode::A};
     bayes::ResidualState residual{.y_adj = y, .variance = 1e-3};
     std::mt19937_64 rng{kSeed};
     GeneticSweep sweep{effect, state, residual, rng};
@@ -403,12 +403,12 @@ TEST_CASE(
     const auto mixture_prior = make_mixture_prior();
 
     auto effect = make_genetic_effect(Eigen::MatrixXd{X});
-    bayes::GeneticState gstate{effect, mixture_prior, GeneticMode::A};
+    bayes::LegacyGeneticState gstate{effect, mixture_prior, GeneticMode::A};
 
     std::vector<bayes::GeneticEffect> genetics_vec;
     genetics_vec.emplace_back(GeneticMode::A, std::move(effect.X));
 
-    BayesModel model{y, FixedEffect::build(kN), std::move(genetics_vec)};
+    BayesModel model{y, FixedEffect::build(kN), {}, std::move(genetics_vec)};
 
     bayes::LegacyBayesMethod method{
         .config = bayes::LegacyBayesConfig{},
@@ -422,7 +422,7 @@ TEST_CASE(
     mcmc::State inference_state{
         bayes::FixedState{Eigen::VectorXd::Zero(1)},
         std::vector<bayes::RandomState>{},
-        std::vector<bayes::GeneticState>{std::move(gstate)},
+        std::vector<bayes::LegacyGeneticState>{std::move(gstate)},
         bayes::ResidualState{.y_adj = y, .variance = 0.5}};
 
     std::mt19937_64 rng{kSeed};
@@ -473,12 +473,12 @@ TEST_CASE("PiStep rejects estimate=false prior", "[mcmc][pi-sampler]")
                .estimate = false}}};
 
     auto effect = make_genetic_effect(Eigen::MatrixXd{X});
-    bayes::GeneticState gstate{effect, spike_term, GeneticMode::A};
+    bayes::LegacyGeneticState gstate{effect, spike_term, GeneticMode::A};
 
     std::vector<bayes::GeneticEffect> genetics_vec;
     genetics_vec.emplace_back(GeneticMode::A, std::move(effect.X));
 
-    BayesModel model{y, FixedEffect::build(kN), std::move(genetics_vec)};
+    BayesModel model{y, FixedEffect::build(kN), {}, std::move(genetics_vec)};
 
     bayes::LegacyBayesMethod method{
         .config = bayes::LegacyBayesConfig{},
@@ -496,7 +496,7 @@ TEST_CASE("PiStep rejects estimate=false prior", "[mcmc][pi-sampler]")
     mcmc::State inference_state{
         bayes::FixedState{Eigen::VectorXd::Zero(1)},
         std::vector<bayes::RandomState>{},
-        std::vector<bayes::GeneticState>{std::move(gstate)},
+        std::vector<bayes::LegacyGeneticState>{std::move(gstate)},
         bayes::ResidualState{.y_adj = y, .variance = 0.5}};
 
     std::mt19937_64 rng{kSeed};
@@ -536,7 +536,8 @@ auto make_chain_context(
     genetics_vec.emplace_back(
         GeneticMode::A, make_genetic_effect(Eigen::MatrixXd{X}).X);
 
-    BayesModel model{y, FixedEffect::build(y.size()), std::move(genetics_vec)};
+    BayesModel model{
+        y, FixedEffect::build(y.size()), {}, std::move(genetics_vec)};
 
     bayes::LegacyBayesMethod method{
         .config = bayes::LegacyBayesConfig{},
@@ -556,11 +557,11 @@ auto build_inference_state(
     const Eigen::VectorXd& y) -> mcmc::State
 {
     auto effect = make_genetic_effect(Eigen::MatrixXd{X});
-    bayes::GeneticState gstate{effect, prior, GeneticMode::A};
+    bayes::LegacyGeneticState gstate{effect, prior, GeneticMode::A};
     return mcmc::State{
         bayes::FixedState{Eigen::VectorXd::Zero(1)},
         std::vector<bayes::RandomState>{},
-        std::vector<bayes::GeneticState>{std::move(gstate)},
+        std::vector<bayes::LegacyGeneticState>{std::move(gstate)},
         bayes::ResidualState{.y_adj = y, .variance = 0.3}};
 }
 

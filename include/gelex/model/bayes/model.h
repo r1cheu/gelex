@@ -18,15 +18,12 @@
 #define GELEX_MODEL_BAYES_MODEL_H_
 
 #include <algorithm>
-#include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
-#include "gelex/algo/infer/mcmc/state.h"
-#include "gelex/exception.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/legacy_method.h"
+#include "gelex/types/fixed_effects.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -38,6 +35,7 @@ class BayesModel
     BayesModel(
         Eigen::VectorXd phenotype,
         FixedEffect fixed_effects,
+        std::vector<bayes::RandomEffect> random,
         std::vector<bayes::GeneticEffect> genetics);
 
     const FixedEffect& fixed() const { return fixed_; }
@@ -62,12 +60,6 @@ class BayesModel
     Eigen::Index num_individuals() const { return num_individuals_; }
 
    private:
-    void add_fixed_effect(FixedEffect&& effect);
-    void add_random_effect(
-        std::string name,
-        std::vector<std::string>&& levels,
-        Eigen::MatrixXd&& X);
-
     Eigen::Index num_individuals_{};
     double phenotype_var_{};
 
@@ -77,147 +69,6 @@ class BayesModel
     std::vector<bayes::RandomEffect> random_;
     std::vector<bayes::GeneticEffect> genetics_;
 };
-
-template <typename GeneticStateT>
-class InferenceState
-{
-   public:
-    InferenceState(
-        const BayesModel& model,
-        const bayes::LegacyBayesMethod& method);
-    InferenceState(
-        bayes::FixedState fixed,
-        std::vector<bayes::RandomState> random,
-        std::vector<GeneticStateT> genetics,
-        bayes::ResidualState residual);
-
-    bayes::FixedState& fixed() { return fixed_; }
-    const bayes::FixedState& fixed() const { return fixed_; }
-    std::vector<bayes::RandomState>& random() { return random_; }
-    const std::vector<bayes::RandomState>& random() const { return random_; }
-
-    const std::vector<GeneticStateT>& genetics() const { return genetics_; }
-    std::vector<GeneticStateT>& genetics() { return genetics_; }
-
-    const GeneticStateT* genetic(GeneticMode type) const
-    {
-        auto it = std::ranges::find(genetics_, type, &GeneticStateT::type);
-        return it != genetics_.end() ? &*it : nullptr;
-    }
-    GeneticStateT* genetic(GeneticMode type)
-    {
-        auto it = std::ranges::find(genetics_, type, &GeneticStateT::type);
-        return it != genetics_.end() ? &*it : nullptr;
-    }
-
-    bayes::ResidualState& residual() { return residual_; }
-    const bayes::ResidualState& residual() const { return residual_; }
-
-    void compute_heritability();
-
-   private:
-    bayes::FixedState fixed_;
-    std::vector<bayes::RandomState> random_;
-    std::vector<GeneticStateT> genetics_;
-    bayes::ResidualState residual_;
-};
-
-template <typename GeneticStateT>
-InferenceState<GeneticStateT>::InferenceState(
-    const BayesModel& model,
-    const bayes::LegacyBayesMethod& method)
-    : fixed_(model.fixed())
-{
-    for (const auto& prior : method.genetics)
-    {
-        std::visit(
-            [&](const auto& spec)
-            {
-                using T = std::decay_t<decltype(spec)>;
-                if constexpr (std::is_same_v<T, bayes::GeneticSpec>)
-                {
-                    const auto* eff = model.genetic(spec.mode);
-                    if (eff == nullptr)
-                    {
-                        throw GelexException(
-                            "BayesMethod ctor: missing genetic effect");
-                    }
-                    genetics_.emplace_back(*eff, prior, spec.mode);
-                }
-                else
-                {
-                    for (auto mode : {GeneticMode::A, GeneticMode::D})
-                    {
-                        const auto* eff = model.genetic(mode);
-                        if (eff == nullptr)
-                        {
-                            throw GelexException(
-                                "BayesMethod ctor: missing genetic effect for "
-                                "JointSpec");
-                        }
-                        genetics_.emplace_back(*eff, prior, mode);
-                    }
-                }
-            },
-            prior.spec);
-    }
-
-    const auto& random_effects = model.random();
-    random_.reserve(random_effects.size());
-    for (std::size_t i = 0; i < random_effects.size(); ++i)
-    {
-        random_.emplace_back(random_effects[i], method.randoms[i]);
-    }
-
-    residual_.y_adj = model.phenotype().array();
-    residual_.variance = method.residual.init;
-}
-
-template <typename GeneticStateT>
-InferenceState<GeneticStateT>::InferenceState(
-    bayes::FixedState fixed,
-    std::vector<bayes::RandomState> random,
-    std::vector<GeneticStateT> genetics,
-    bayes::ResidualState residual)
-    : fixed_(std::move(fixed)),
-      random_(std::move(random)),
-      genetics_(std::move(genetics)),
-      residual_(std::move(residual))
-{
-}
-
-template <typename GeneticStateT>
-void InferenceState<GeneticStateT>::compute_heritability()
-{
-    double sum_var = 0;
-
-    for (const auto& rand : random_)
-    {
-        sum_var += rand.variance;
-    }
-
-    for (const auto& gen : genetics_)
-    {
-        sum_var += gen.variance;
-    }
-
-    sum_var += residual_.variance;
-
-    for (auto& gen : genetics_)
-    {
-        gen.heritability = gen.variance / sum_var;
-    }
-}
-
-namespace mcmc
-{
-using State = InferenceState<bayes::GeneticState>;
-}  // namespace mcmc
-
-namespace vi
-{
-using State = InferenceState<bayes::vi::GeneticState>;
-}  // namespace vi
 
 }  // namespace gelex
 

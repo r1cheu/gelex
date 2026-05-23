@@ -38,7 +38,7 @@ class BayesCKernel
    public:
     BayesCKernel(
         const bayes::OldGeneticPrior& prior,
-        bayes::GeneticState& state)
+        bayes::LegacyGeneticState& state)
         : state_(state),
           assignment_(
               unpack_marker_allocation<bayes::Assignment>(
@@ -107,7 +107,7 @@ class BayesCKernel
     }
 
    private:
-    bayes::GeneticState& state_;
+    bayes::LegacyGeneticState& state_;
     bayes::Assignment& assignment_;
     stats::NormalSampler<double> normal_;
     stats::ScaledInvChi2Sampler<double> variance_sampler_;

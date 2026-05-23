@@ -35,7 +35,7 @@ class BayesRRKernel
    public:
     BayesRRKernel(
         const bayes::OldGeneticPrior& prior,
-        bayes::GeneticState& state)
+        bayes::LegacyGeneticState& state)
         : state_(state),
           normal_(state.marker_variance(0)),
           variance_sampler_(make_variance_sampler(
@@ -76,7 +76,7 @@ class BayesRRKernel
     }
 
    private:
-    bayes::GeneticState& state_;
+    bayes::LegacyGeneticState& state_;
     stats::NormalSampler<double> normal_;
     stats::ScaledInvChi2Sampler<double> variance_sampler_;
     Eigen::Index n_used_{0};

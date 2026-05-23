@@ -16,44 +16,77 @@
 
 #include "gelex/model/bayes/model.h"
 
-#include <string>
+#include <algorithm>
+#include <utility>
+#include <vector>
 
 #include <fmt/format.h>
-#include <fmt/ranges.h>
 #include <Eigen/Core>
 
+#include "gelex/exception.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/model/bayes/effects.h"
 
 namespace gelex
 {
-using Eigen::Index;
-
-using Eigen::MatrixXd;
-using Eigen::VectorXd;
-
 BayesModel::BayesModel(
     Eigen::VectorXd phenotype,
     FixedEffect fixed_effects,
+    std::vector<bayes::RandomEffect> random,
     std::vector<bayes::GeneticEffect> genetics)
-    : phenotype_(std::move(phenotype)), genetics_(std::move(genetics))
+    : phenotype_(std::move(phenotype)),
+      fixed_(std::move(fixed_effects)),
+      random_(std::move(random)),
+      genetics_(std::move(genetics))
 {
     num_individuals_ = phenotype_.rows();
     phenotype_var_ = stats::detail::var(phenotype_)(0);
-    add_fixed_effect(std::move(fixed_effects));
-}
 
-void BayesModel::add_fixed_effect(FixedEffect&& effect)
-{
-    fixed_ = std::move(effect);
-}
+    if (fixed_.X.rows() != num_individuals_)
+    {
+        throw GelexException(
+            fmt::format(
+                "BayesModel: fixed effect rows {} != phenotype rows {}",
+                fixed_.X.rows(),
+                num_individuals_));
+    }
 
-void BayesModel::add_random_effect(
-    std::string name,
-    std::vector<std::string>&& levels,
-    MatrixXd&& X)
-{
-    random_.emplace_back(std::move(name), std::move(levels), std::move(X));
+    for (const auto& random : random_)
+    {
+        if (random.X.rows() != num_individuals_)
+        {
+            throw GelexException(
+                fmt::format(
+                    "BayesModel: random effect '{}' rows {} != phenotype rows "
+                    "{}",
+                    random.name,
+                    random.X.rows(),
+                    num_individuals_));
+        }
+    }
+
+    std::vector<GeneticMode> seen_modes;
+    seen_modes.reserve(genetics_.size());
+    for (const auto& genetic : genetics_)
+    {
+        if (genetic.X.rows() != num_individuals_)
+        {
+            throw GelexException(
+                fmt::format(
+                    "BayesModel: genetic effect {} rows {} != phenotype rows "
+                    "{}",
+                    genetic.type,
+                    genetic.X.rows(),
+                    num_individuals_));
+        }
+        if (std::ranges::contains(seen_modes, genetic.type))
+        {
+            throw GelexException(
+                fmt::format(
+                    "BayesModel: duplicate genetic mode {}", genetic.type));
+        }
+        seen_modes.push_back(genetic.type);
+    }
 }
 
 }  // namespace gelex

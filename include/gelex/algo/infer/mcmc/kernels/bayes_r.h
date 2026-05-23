@@ -46,7 +46,7 @@ class BayesRKernel
    public:
     BayesRKernel(
         const bayes::OldGeneticPrior& prior,
-        bayes::GeneticState& state)
+        bayes::LegacyGeneticState& state)
         : state_(state),
           assignment_(
               unpack_marker_allocation<bayes::ComponentAllocation>(
@@ -125,7 +125,7 @@ class BayesRKernel
         return std::get<bayes::ScaledMixture>(prior.mixture->strategy);
     }
 
-    bayes::GeneticState& state_;
+    bayes::LegacyGeneticState& state_;
     bayes::ComponentAllocation& assignment_;
     Eigen::VectorXd multiplier_;
     Eigen::VectorXd marker_variances_;

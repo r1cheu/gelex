@@ -23,6 +23,7 @@
 
 #include <Eigen/Core>
 
+#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/io/detail/binary_writer.h"
 #include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"

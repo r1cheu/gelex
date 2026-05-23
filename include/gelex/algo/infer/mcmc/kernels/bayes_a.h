@@ -35,7 +35,7 @@ class BayesAKernel
    public:
     BayesAKernel(
         const bayes::OldGeneticPrior& prior,
-        bayes::GeneticState& state)
+        bayes::LegacyGeneticState& state)
         : state_(state),
           normal_(0.0),
           sigma_(make_variance_sampler(
@@ -71,7 +71,7 @@ class BayesAKernel
     auto commit(std::mt19937_64& /*rng*/) -> void {}
 
    private:
-    bayes::GeneticState& state_;
+    bayes::LegacyGeneticState& state_;
     stats::NormalSampler<double> normal_;
     stats::ScaledInvChi2Sampler<double> sigma_;
 };

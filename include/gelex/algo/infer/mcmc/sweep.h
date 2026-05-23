@@ -40,7 +40,7 @@ class GeneticSweep
    public:
     GeneticSweep(
         const bayes::GeneticEffect& effect,
-        bayes::GeneticState& state,
+        bayes::LegacyGeneticState& state,
         bayes::ResidualState& residual,
         std::mt19937_64& rng)
         : effect_(effect), state_(state), residual_(residual), rng_(rng)
@@ -114,7 +114,7 @@ class GeneticSweep
 
    private:
     const bayes::GeneticEffect& effect_;
-    bayes::GeneticState& state_;
+    bayes::LegacyGeneticState& state_;
     bayes::ResidualState& residual_;
     std::mt19937_64& rng_;
 };
