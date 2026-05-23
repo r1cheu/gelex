@@ -14,26 +14,20 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_MCMC_CHECKPOINT_READER_H_
-#define GELEX_IO_MCMC_CHECKPOINT_READER_H_
+#ifndef GELEX_MODEL_BAYES_STATE_RECORD_SET_H_
+#define GELEX_MODEL_BAYES_STATE_RECORD_SET_H_
 
-#include <filesystem>
-#include <random>
+#include <cstdint>
 
-#include "gelex/algo/infer/mcmc/checkpoint.h"
-
-namespace gelex
+namespace gelex::bayes
 {
 
-class BayesState;
+enum class StateRecordSet : std::uint8_t
+{
+    sample,
+    checkpoint,
+};
 
-[[nodiscard]] auto read_checkpoint(const std::filesystem::path& path)
-    -> Checkpoint;
+}  // namespace gelex::bayes
 
-[[nodiscard]] auto read_checkpoint(
-    const std::filesystem::path& path,
-    BayesState& state) -> std::mt19937_64;
-
-}  // namespace gelex
-
-#endif  // GELEX_IO_MCMC_CHECKPOINT_READER_H_
+#endif  // GELEX_MODEL_BAYES_STATE_RECORD_SET_H_

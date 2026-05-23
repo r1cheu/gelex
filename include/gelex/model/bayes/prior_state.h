@@ -25,6 +25,7 @@
 #include "gelex/exception.h"
 #include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/state_record_set.h"
 
 namespace gelex::bayes
 {
@@ -93,14 +94,12 @@ class GeneticPriorState
         return *capability;
     }
 
-    virtual auto visit_sample_records(infra::RecordVisitor& visitor) const
-        -> void
+    virtual auto visit_records(StateRecordSet set, infra::RecordSink& sink)
+        const -> void
         = 0;
-    virtual auto visit_checkpoint_records(infra::RecordVisitor& visitor) const
-        -> void
-        = 0;
-    virtual auto visit_checkpoint_records(infra::MutableRecordVisitor& visitor)
-        -> void
+    virtual auto visit_records(
+        StateRecordSet set,
+        infra::MutableRecordSink& sink) -> void
         = 0;
 
    protected:

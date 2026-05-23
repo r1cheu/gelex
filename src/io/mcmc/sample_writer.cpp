@@ -19,23 +19,149 @@
 #include <fmt/format.h>
 #include <cstdint>
 #include <ranges>
+#include <string>
 #include <string_view>
+#include <unordered_map>
 #include <variant>
 
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/detail/genetic_binding.h"
 #include "gelex/algo/infer/mcmc/state.h"
+#include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/state.h"
 
 namespace gelex
 {
 
 namespace
 {
+
+using RecordHandle = mcmc::Writer::RecordHandle;
+
+class ReserveRecordSink final : public infra::RecordSink
+{
+   public:
+    ReserveRecordSink(
+        io::detail::BinaryWriter& writer,
+        std::unordered_map<std::string, RecordHandle>& handles,
+        Eigen::Index n_records)
+        : writer_(writer), handles_(handles), n_records_(n_records)
+    {
+    }
+
+    auto visit(
+        std::string_view path,
+        const Eigen::Ref<const Eigen::VectorXf>& value) -> void override
+    {
+        reserve<float>(path, value.size());
+    }
+
+    auto visit(
+        std::string_view path,
+        const Eigen::Ref<const Eigen::VectorXd>& value) -> void override
+    {
+        reserve<double>(path, value.size());
+    }
+
+    auto visit(
+        std::string_view path,
+        const Eigen::Ref<const Eigen::VectorXi>& value) -> void override
+    {
+        reserve<int>(path, value.size());
+    }
+
+    auto visit(std::string_view path, const double&) -> void override
+    {
+        reserve<double>(path, 1);
+    }
+
+   private:
+    template <typename T>
+    auto reserve(std::string_view path, Eigen::Index rows) -> void
+    {
+        handles_.emplace(
+            std::string(path), writer_.reserve<T>(path, rows, n_records_));
+    }
+
+    io::detail::BinaryWriter& writer_;
+    std::unordered_map<std::string, RecordHandle>& handles_;
+    Eigen::Index n_records_;
+};
+
+class WriteRecordSink final : public infra::RecordSink
+{
+   public:
+    WriteRecordSink(
+        io::detail::BinaryWriter& writer,
+        const std::unordered_map<std::string, RecordHandle>& handles)
+        : writer_(writer), handles_(handles)
+    {
+    }
+
+    auto visit(
+        std::string_view path,
+        const Eigen::Ref<const Eigen::VectorXf>& value) -> void override
+    {
+        write(path, value);
+    }
+
+    auto visit(
+        std::string_view path,
+        const Eigen::Ref<const Eigen::VectorXd>& value) -> void override
+    {
+        write(path, value);
+    }
+
+    auto visit(
+        std::string_view path,
+        const Eigen::Ref<const Eigen::VectorXi>& value) -> void override
+    {
+        write(path, value);
+    }
+
+    auto visit(std::string_view path, const double& value) -> void override
+    {
+        const auto& handle = require_handle<double>(path);
+        writer_.write(handle, value);
+    }
+
+   private:
+    template <typename Vector>
+    auto write(std::string_view path, const Vector& value) -> void
+    {
+        using T = std::decay_t<decltype(value(0))>;
+        const auto& handle = require_handle<T>(path);
+        writer_.write(handle, value);
+    }
+
+    template <typename T>
+    auto require_handle(std::string_view path) const
+        -> const io::detail::SectionHandle<T>&
+    {
+        const auto it = handles_.find(std::string(path));
+        if (it == handles_.end())
+        {
+            throw GelexException(
+                fmt::format("sample record handle missing: {}", path));
+        }
+        const auto* handle
+            = std::get_if<io::detail::SectionHandle<T>>(&it->second);
+        if (handle == nullptr)
+        {
+            throw GelexException(
+                fmt::format("sample record handle type mismatch: {}", path));
+        }
+        return *handle;
+    }
+
+    io::detail::BinaryWriter& writer_;
+    const std::unordered_map<std::string, RecordHandle>& handles_;
+};
 
 auto has_group_prior(const bayes::OldGeneticPrior& prior) -> bool
 {
@@ -69,6 +195,16 @@ auto find_sign_for_mode(const bayes::OldGeneticPrior& prior, GeneticMode mode)
 }
 
 }  // namespace
+
+mcmc::Writer::Writer(
+    const BayesState& state,
+    std::string_view prefix,
+    Eigen::Index n_records)
+    : writer_(fmt::format("{}.samples", prefix))
+{
+    ReserveRecordSink sink(writer_, record_handles_, n_records);
+    state.visit_records(bayes::StateRecordSet::sample, sink);
+}
 
 mcmc::Writer::Writer(
     const BayesModel& model,
@@ -215,6 +351,12 @@ void mcmc::Writer::write(const mcmc::State& state)
 
     // Residual
     writer_.write(residual_variance_, state.residual().variance);
+}
+
+void mcmc::Writer::write(const BayesState& state)
+{
+    WriteRecordSink sink(writer_, record_handles_);
+    state.visit_records(bayes::StateRecordSet::sample, sink);
 }
 
 }  // namespace gelex

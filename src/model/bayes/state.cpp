@@ -18,6 +18,8 @@
 
 #include <cstddef>
 #include <memory>
+#include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -25,6 +27,7 @@
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
+#include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
@@ -33,12 +36,91 @@
 namespace gelex::bayes
 {
 
+namespace
+{
+
+template <bool Mutable>
+class PrefixedRecordSink final : public infra::BasicRecordSink<Mutable>
+{
+   public:
+    using Base = infra::BasicRecordSink<Mutable>;
+    using VectorXfRecord = typename Base::template RecordType<Eigen::VectorXf>;
+    using VectorXdRecord = typename Base::template RecordType<Eigen::VectorXd>;
+    using VectorXiRecord = typename Base::template RecordType<Eigen::VectorXi>;
+    using DoubleRecord = std::conditional_t<Mutable, double&, const double&>;
+
+    PrefixedRecordSink(std::string prefix, Base& inner)
+        : prefix_(std::move(prefix)), inner_(inner)
+    {
+    }
+
+    auto visit(std::string_view path, VectorXfRecord value) -> void override
+    {
+        inner_.visit(make_path(path), value);
+    }
+    auto visit(std::string_view path, VectorXdRecord value) -> void override
+    {
+        inner_.visit(make_path(path), value);
+    }
+    auto visit(std::string_view path, VectorXiRecord value) -> void override
+    {
+        inner_.visit(make_path(path), value);
+    }
+    auto visit(std::string_view path, DoubleRecord value) -> void override
+    {
+        inner_.visit(make_path(path), value);
+    }
+
+   private:
+    auto make_path(std::string_view path) const -> std::string
+    {
+        if (path.empty())
+        {
+            return prefix_;
+        }
+        return fmt::format("{}/{}", prefix_, path);
+    }
+
+    std::string prefix_;
+    Base& inner_;
+};
+
+template <bool Mutable, typename Fn>
+auto visit_with_prefix(
+    infra::BasicRecordSink<Mutable>& sink,
+    std::string prefix,
+    Fn&& fn) -> void
+{
+    PrefixedRecordSink<Mutable> prefixed(std::move(prefix), sink);
+    std::forward<Fn>(fn)(prefixed);
+}
+
+}  // namespace
+
 FixedState::FixedState(const FixedEffect& effect)
     : coeffs(Eigen::VectorXd::Zero(effect.X.cols()))
 {
 }
 
 FixedState::FixedState(Eigen::VectorXd coeffs) : coeffs(std::move(coeffs)) {}
+
+auto FixedState::visit_records(StateRecordSet, infra::RecordSink& sink) const
+    -> void
+{
+    sink.visit("coeffs", coeffs);
+}
+
+auto FixedState::visit_records(
+    StateRecordSet set,
+    infra::MutableRecordSink& sink) -> void
+{
+    if (set != StateRecordSet::checkpoint)
+    {
+        throw GelexException(
+            "FixedState: mutable visit_records requires checkpoint set");
+    }
+    sink.visit("coeffs", coeffs);
+}
 
 RandomState::RandomState(const RandomEffect& effect, double variance)
     : coeffs(Eigen::VectorXd::Zero(effect.X.cols())), variance{variance}
@@ -55,6 +137,26 @@ RandomState::RandomState(Eigen::VectorXd coeffs, double variance)
 {
 }
 
+auto RandomState::visit_records(StateRecordSet, infra::RecordSink& sink) const
+    -> void
+{
+    sink.visit("coeffs", coeffs);
+    sink.visit("variance", variance);
+}
+
+auto RandomState::visit_records(
+    StateRecordSet set,
+    infra::MutableRecordSink& sink) -> void
+{
+    if (set != StateRecordSet::checkpoint)
+    {
+        throw GelexException(
+            "RandomState: mutable visit_records requires checkpoint set");
+    }
+    sink.visit("coeffs", coeffs);
+    sink.visit("variance", variance);
+}
+
 GeneticState::GeneticState(
     GeneticMode type,
     Eigen::Index num_markers,
@@ -63,6 +165,40 @@ GeneticState::GeneticState(
       coeffs(Eigen::VectorXd::Zero(num_markers)),
       u(Eigen::VectorXd::Zero(num_individuals))
 {
+}
+
+auto GeneticState::visit_records(StateRecordSet set, infra::RecordSink& sink)
+    const -> void
+{
+    switch (set)
+    {
+        case StateRecordSet::sample:
+            sink.visit("coeffs", coeffs);
+            sink.visit("variance", variance);
+            sink.visit("heritability", heritability);
+            break;
+        case StateRecordSet::checkpoint:
+            sink.visit("coeffs", coeffs);
+            sink.visit("u", u);
+            sink.visit("variance", variance);
+            sink.visit("heritability", heritability);
+            break;
+    }
+}
+
+auto GeneticState::visit_records(
+    StateRecordSet set,
+    infra::MutableRecordSink& sink) -> void
+{
+    if (set != StateRecordSet::checkpoint)
+    {
+        throw GelexException(
+            "GeneticState: mutable visit_records requires checkpoint set");
+    }
+    sink.visit("coeffs", coeffs);
+    sink.visit("u", u);
+    sink.visit("variance", variance);
+    sink.visit("heritability", heritability);
 }
 
 GeneticBlockState::GeneticBlockState(
@@ -95,6 +231,53 @@ auto GeneticBlockState::slot(GeneticMode mode) const -> std::size_t
     }
     throw GelexException(
         fmt::format("GeneticBlockState: missing genetic mode {}", mode));
+}
+
+auto GeneticBlockState::visit_records(
+    StateRecordSet set,
+    infra::RecordSink& sink) const -> void
+{
+    prior_state_->visit_records(set, sink);
+}
+
+auto GeneticBlockState::visit_records(
+    StateRecordSet set,
+    infra::MutableRecordSink& sink) -> void
+{
+    if (set != StateRecordSet::checkpoint)
+    {
+        throw GelexException(
+            "GeneticBlockState: mutable visit_records requires checkpoint set");
+    }
+    prior_state_->visit_records(set, sink);
+}
+
+auto ResidualState::visit_records(StateRecordSet set, infra::RecordSink& sink)
+    const -> void
+{
+    switch (set)
+    {
+        case StateRecordSet::sample:
+            sink.visit("variance", variance);
+            break;
+        case StateRecordSet::checkpoint:
+            sink.visit("y_adj", y_adj);
+            sink.visit("variance", variance);
+            break;
+    }
+}
+
+auto ResidualState::visit_records(
+    StateRecordSet set,
+    infra::MutableRecordSink& sink) -> void
+{
+    if (set != StateRecordSet::checkpoint)
+    {
+        throw GelexException(
+            "ResidualState: mutable visit_records requires checkpoint set");
+    }
+    sink.visit("y_adj", y_adj);
+    sink.visit("variance", variance);
 }
 
 }  // namespace gelex::bayes
@@ -197,6 +380,112 @@ auto BayesState::compute_heritability() -> void
     {
         state.heritability = state.variance / total_variance;
     }
+}
+
+auto BayesState::visit_records(
+    bayes::StateRecordSet set,
+    infra::RecordSink& sink) const -> void
+{
+    bayes::visit_with_prefix<false>(
+        sink,
+        "fixed/0",
+        [set, this](infra::RecordSink& prefixed)
+        { fixed_.visit_records(set, prefixed); });
+
+    for (std::size_t i = 0; i < random_.size(); ++i)
+    {
+        bayes::visit_with_prefix<false>(
+            sink,
+            fmt::format("random/{}", i),
+            [set, this, i](infra::RecordSink& prefixed)
+            { random_[i].visit_records(set, prefixed); });
+    }
+
+    for (std::size_t i = 0; i < genetics_.size(); ++i)
+    {
+        bayes::visit_with_prefix<false>(
+            sink,
+            fmt::format("genetic/{}", i),
+            [set, this, i](infra::RecordSink& prefixed)
+            { genetics_[i].visit_records(set, prefixed); });
+    }
+
+    for (std::size_t i = 0; i < genetic_blocks_.size(); ++i)
+    {
+        bayes::visit_with_prefix<false>(
+            sink,
+            fmt::format("genetic_block/{}/prior_state", i),
+            [set, this, i](infra::RecordSink& prefixed)
+            { genetic_blocks_[i].visit_records(set, prefixed); });
+    }
+
+    bayes::visit_with_prefix<false>(
+        sink,
+        "residual/0",
+        [set, this](infra::RecordSink& prefixed)
+        { residual_.visit_records(set, prefixed); });
+}
+
+auto BayesState::visit_records(
+    bayes::StateRecordSet set,
+    infra::MutableRecordSink& sink) -> void
+{
+    if (set != bayes::StateRecordSet::checkpoint)
+    {
+        throw GelexException(
+            "BayesState: mutable visit_records requires checkpoint set");
+    }
+
+    bayes::visit_with_prefix<true>(
+        sink,
+        "fixed/0",
+        [this](infra::MutableRecordSink& prefixed)
+        { fixed_.visit_records(bayes::StateRecordSet::checkpoint, prefixed); });
+
+    for (std::size_t i = 0; i < random_.size(); ++i)
+    {
+        bayes::visit_with_prefix<true>(
+            sink,
+            fmt::format("random/{}", i),
+            [this, i](infra::MutableRecordSink& prefixed)
+            {
+                random_[i].visit_records(
+                    bayes::StateRecordSet::checkpoint, prefixed);
+            });
+    }
+
+    for (std::size_t i = 0; i < genetics_.size(); ++i)
+    {
+        bayes::visit_with_prefix<true>(
+            sink,
+            fmt::format("genetic/{}", i),
+            [this, i](infra::MutableRecordSink& prefixed)
+            {
+                genetics_[i].visit_records(
+                    bayes::StateRecordSet::checkpoint, prefixed);
+            });
+    }
+
+    for (std::size_t i = 0; i < genetic_blocks_.size(); ++i)
+    {
+        bayes::visit_with_prefix<true>(
+            sink,
+            fmt::format("genetic_block/{}/prior_state", i),
+            [this, i](infra::MutableRecordSink& prefixed)
+            {
+                genetic_blocks_[i].visit_records(
+                    bayes::StateRecordSet::checkpoint, prefixed);
+            });
+    }
+
+    bayes::visit_with_prefix<true>(
+        sink,
+        "residual/0",
+        [this](infra::MutableRecordSink& prefixed)
+        {
+            residual_.visit_records(
+                bayes::StateRecordSet::checkpoint, prefixed);
+        });
 }
 
 }  // namespace gelex

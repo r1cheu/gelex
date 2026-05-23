@@ -18,7 +18,10 @@
 #define GELEX_IO_MCMC_SAMPLE_WRITER_H_
 
 #include <optional>
+#include <string>
 #include <string_view>
+#include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include <Eigen/Core>
@@ -33,6 +36,7 @@ namespace gelex
 {
 
 class BayesModel;
+class BayesState;
 
 namespace mcmc
 {
@@ -40,9 +44,18 @@ namespace mcmc
 class Writer
 {
    public:
+    using RecordHandle = std::variant<
+        io::detail::SectionHandle<float>,
+        io::detail::SectionHandle<double>,
+        io::detail::SectionHandle<int>>;
+
     Writer(
         const BayesModel& model,
         const bayes::LegacyBayesMethod& method,
+        std::string_view prefix,
+        Eigen::Index n_records);
+    Writer(
+        const BayesState& state,
         std::string_view prefix,
         Eigen::Index n_records);
     Writer(const Writer&) = delete;
@@ -52,6 +65,7 @@ class Writer
     ~Writer() = default;
 
     void write(const mcmc::State& state);
+    void write(const BayesState& state);
 
    private:
     struct RandomHandles
@@ -72,6 +86,7 @@ class Writer
     };
 
     io::detail::BinaryWriter writer_;
+    std::unordered_map<std::string, RecordHandle> record_handles_;
     io::detail::SectionHandle<double> fixed_coeffs_{};
     std::vector<RandomHandles> random_;
     std::vector<GeneticHandles> genetic_;

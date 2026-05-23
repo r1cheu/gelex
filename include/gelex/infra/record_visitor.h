@@ -30,7 +30,7 @@ namespace gelex::infra
 {
 
 template <bool Mutable>
-class BasicRecordVisitor
+class BasicRecordSink
 {
    public:
     template <typename Value>
@@ -39,7 +39,7 @@ class BasicRecordVisitor
         Eigen::Ref<Value>,
         const Eigen::Ref<const Value>&>;
 
-    virtual ~BasicRecordVisitor() = default;
+    virtual ~BasicRecordSink() = default;
 
     virtual auto visit(std::string_view path, RecordType<Eigen::VectorXf> value)
         -> void
@@ -49,6 +49,10 @@ class BasicRecordVisitor
         = 0;
     virtual auto visit(std::string_view path, RecordType<Eigen::VectorXi> value)
         -> void
+        = 0;
+    virtual auto visit(
+        std::string_view path,
+        std::conditional_t<Mutable, double&, const double&> value) -> void
         = 0;
 
     template <typename Value>
@@ -62,12 +66,11 @@ class BasicRecordVisitor
     }
 
    protected:
-    BasicRecordVisitor() = default;
-    BasicRecordVisitor(const BasicRecordVisitor&) = default;
-    auto operator=(const BasicRecordVisitor&) -> BasicRecordVisitor& = default;
-    BasicRecordVisitor(BasicRecordVisitor&&) noexcept = default;
-    auto operator=(BasicRecordVisitor&&) noexcept
-        -> BasicRecordVisitor& = default;
+    BasicRecordSink() = default;
+    BasicRecordSink(const BasicRecordSink&) = default;
+    auto operator=(const BasicRecordSink&) -> BasicRecordSink& = default;
+    BasicRecordSink(BasicRecordSink&&) noexcept = default;
+    auto operator=(BasicRecordSink&&) noexcept -> BasicRecordSink& = default;
 
    private:
     static auto make_path(
@@ -79,8 +82,8 @@ class BasicRecordVisitor
     }
 };
 
-using RecordVisitor = BasicRecordVisitor<false>;
-using MutableRecordVisitor = BasicRecordVisitor<true>;
+using RecordSink = BasicRecordSink<false>;
+using MutableRecordSink = BasicRecordSink<true>;
 
 }  // namespace gelex::infra
 

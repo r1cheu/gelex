@@ -22,6 +22,7 @@
 #include <fmt/format.h>
 #include <Eigen/Core>
 
+#include "gelex/exception.h"
 #include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/prior_specs.h"
 #include "gelex/model/bayes/state_capabilities.h"
@@ -50,108 +51,115 @@ ComponentState::ComponentState(
     gebv_var = Eigen::VectorXd::Zero(num_components);
 }
 
-auto VarianceStateCap::visit_sample_records(infra::RecordVisitor& visitor) const
-    -> void
+auto VarianceStateCap::visit_records(StateRecordSet, infra::RecordSink& sink)
+    const -> void
 {
     for (auto [i, value] : std::views::enumerate(variance()))
     {
-        visitor.emit("variance", static_cast<std::size_t>(i), "value", value);
+        sink.emit("variance", static_cast<std::size_t>(i), "value", value);
     }
 }
 
-auto VarianceStateCap::visit_checkpoint_records(
-    infra::RecordVisitor& visitor) const -> void
+auto VarianceStateCap::visit_records(
+    StateRecordSet set,
+    infra::MutableRecordSink& sink) -> void
 {
+    if (set != StateRecordSet::checkpoint)
+    {
+        throw GelexException(
+            "VarianceStateCap: mutable visit_records requires checkpoint set");
+    }
     for (auto [i, value] : std::views::enumerate(variance()))
     {
-        visitor.emit("variance", static_cast<std::size_t>(i), "value", value);
+        sink.emit("variance", static_cast<std::size_t>(i), "value", value);
     }
 }
 
-auto VarianceStateCap::visit_checkpoint_records(
-    infra::MutableRecordVisitor& visitor) -> void
-{
-    for (auto [i, value] : std::views::enumerate(variance()))
-    {
-        visitor.emit("variance", static_cast<std::size_t>(i), "value", value);
-    }
-}
-
-auto ProportionStateCap::visit_sample_records(
-    infra::RecordVisitor& visitor) const -> void
+auto ProportionStateCap::visit_records(
+    StateRecordSet set,
+    infra::RecordSink& sink) const -> void
 {
     for (auto [i, state] : std::views::enumerate(proportion()))
     {
         const auto slot = static_cast<std::size_t>(i);
-        visitor.emit("proportion", slot, "assignment", state.assignment);
-        if (state.update == ProportionUpdate::sampled)
+        switch (set)
         {
-            visitor.emit("proportion", slot, "value", state.value);
+            case StateRecordSet::sample:
+                sink.emit("proportion", slot, "assignment", state.assignment);
+                if (state.update == ProportionUpdate::sampled)
+                {
+                    sink.emit("proportion", slot, "value", state.value);
+                }
+                break;
+            case StateRecordSet::checkpoint:
+                sink.emit("proportion", slot, "assignment", state.assignment);
+                sink.emit("proportion", slot, "count", state.count);
+                sink.emit("proportion", slot, "value", state.value);
+                break;
         }
     }
 }
 
-auto ProportionStateCap::visit_checkpoint_records(
-    infra::RecordVisitor& visitor) const -> void
+auto ProportionStateCap::visit_records(
+    StateRecordSet set,
+    infra::MutableRecordSink& sink) -> void
 {
+    if (set != StateRecordSet::checkpoint)
+    {
+        throw GelexException(
+            "ProportionStateCap: mutable visit_records requires "
+            "checkpoint set");
+    }
     for (auto [i, state] : std::views::enumerate(proportion()))
     {
         const auto slot = static_cast<std::size_t>(i);
-        visitor.emit("proportion", slot, "assignment", state.assignment);
-        visitor.emit("proportion", slot, "count", state.count);
-        visitor.emit("proportion", slot, "value", state.value);
+        sink.emit("proportion", slot, "assignment", state.assignment);
+        sink.emit("proportion", slot, "count", state.count);
+        sink.emit("proportion", slot, "value", state.value);
     }
 }
 
-auto ProportionStateCap::visit_checkpoint_records(
-    infra::MutableRecordVisitor& visitor) -> void
-{
-    for (auto [i, state] : std::views::enumerate(proportion()))
-    {
-        const auto slot = static_cast<std::size_t>(i);
-        visitor.emit("proportion", slot, "assignment", state.assignment);
-        visitor.emit("proportion", slot, "count", state.count);
-        visitor.emit("proportion", slot, "value", state.value);
-    }
-}
-
-auto ComponentStateCap::visit_sample_records(
-    infra::RecordVisitor& visitor) const -> void
-{
-    for (auto [i, state] : std::views::enumerate(component()))
-    {
-        visitor.emit(
-            "component",
-            static_cast<std::size_t>(i),
-            "gebv_var",
-            state.gebv_var);
-    }
-}
-
-auto ComponentStateCap::visit_checkpoint_records(
-    infra::RecordVisitor& visitor) const -> void
+auto ComponentStateCap::visit_records(
+    StateRecordSet set,
+    infra::RecordSink& sink) const -> void
 {
     for (auto [i, state] : std::views::enumerate(component()))
     {
         const auto slot = static_cast<std::size_t>(i);
-        visitor.emit("component", slot, "gebv_var", state.gebv_var);
-        for (auto [k, value] : std::views::enumerate(state.gebv))
+        switch (set)
         {
-            visitor.emit("component", slot, fmt::format("gebv_{}", k), value);
+            case StateRecordSet::sample:
+                sink.emit("component", slot, "gebv_var", state.gebv_var);
+                break;
+            case StateRecordSet::checkpoint:
+                sink.emit("component", slot, "gebv_var", state.gebv_var);
+                for (auto [k, value] : std::views::enumerate(state.gebv))
+                {
+                    sink.emit(
+                        "component", slot, fmt::format("gebv_{}", k), value);
+                }
+                break;
         }
     }
 }
 
-auto ComponentStateCap::visit_checkpoint_records(
-    infra::MutableRecordVisitor& visitor) -> void
+auto ComponentStateCap::visit_records(
+    StateRecordSet set,
+    infra::MutableRecordSink& sink) -> void
 {
+    if (set != StateRecordSet::checkpoint)
+    {
+        throw GelexException(
+            "ComponentStateCap: mutable visit_records requires "
+            "checkpoint set");
+    }
     for (auto [i, state] : std::views::enumerate(component()))
     {
         const auto slot = static_cast<std::size_t>(i);
-        visitor.emit("component", slot, "gebv_var", state.gebv_var);
+        sink.emit("component", slot, "gebv_var", state.gebv_var);
         for (auto [k, value] : std::views::enumerate(state.gebv))
         {
-            visitor.emit("component", slot, fmt::format("gebv_{}", k), value);
+            sink.emit("component", slot, fmt::format("gebv_{}", k), value);
         }
     }
 }

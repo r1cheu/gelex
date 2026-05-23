@@ -27,10 +27,17 @@
 namespace gelex
 {
 
+class BayesState;
+
 auto write_checkpoint(
     const mcmc::State& state,
     const std::mt19937_64& rng,
     const bayes::LegacyBayesMethod& method,
+    std::string_view prefix) -> void;
+
+auto write_checkpoint(
+    const BayesState& state,
+    const std::mt19937_64& rng,
     std::string_view prefix) -> void;
 
 }  // namespace gelex

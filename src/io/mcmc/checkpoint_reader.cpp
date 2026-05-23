@@ -26,16 +26,20 @@
 #include <vector>
 
 #include "gelex/algo/infer/mcmc/state.h"
+#include "gelex/infra/record_visitor.h"
 #include "gelex/io/detail/binary_reader.h"
 #include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/legacy_prior.h"
 #include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/state.h"
 
 namespace gelex
 {
 
 namespace
 {
+
+constexpr uint8_t kStateOnlyCheckpointVersion = 2;
 
 template <typename eT>
 auto read_vec(const io::detail::BinaryReader& reader, std::string_view path)
@@ -58,6 +62,59 @@ auto read_uint8(const io::detail::BinaryReader& reader, std::string_view path)
     auto map = reader.to_map<uint8_t>(path);
     return map(0, 0);
 }
+
+class CheckpointRecordReader final : public infra::MutableRecordSink
+{
+   public:
+    explicit CheckpointRecordReader(const io::detail::BinaryReader& reader)
+        : reader_(reader)
+    {
+    }
+
+    auto visit(std::string_view path, Eigen::Ref<Eigen::VectorXf> value)
+        -> void override
+    {
+        read_vector<float>(path, value);
+    }
+
+    auto visit(std::string_view path, Eigen::Ref<Eigen::VectorXd> value)
+        -> void override
+    {
+        read_vector<double>(path, value);
+    }
+
+    auto visit(std::string_view path, Eigen::Ref<Eigen::VectorXi> value)
+        -> void override
+    {
+        read_vector<int>(path, value);
+    }
+
+    auto visit(std::string_view path, double& value) -> void override
+    {
+        value = read_scalar(reader_, path);
+    }
+
+   private:
+    template <typename T, typename Value>
+    auto read_vector(std::string_view path, Eigen::Ref<Value> value) -> void
+    {
+        const auto stored = reader_.to_mat<T>(path);
+        if (stored.cols() != 1 || stored.rows() != value.size())
+        {
+            throw GelexException(
+                fmt::format(
+                    "checkpoint record shape mismatch for {}: got {}x{}, "
+                    "expected {}x1",
+                    path,
+                    stored.rows(),
+                    stored.cols(),
+                    value.size()));
+        }
+        value = stored.col(0);
+    }
+
+    const io::detail::BinaryReader& reader_;
+};
 
 auto rebuild_pi_count(
     const bayes::TrackerVector& tracker,
@@ -421,6 +478,34 @@ auto read_checkpoint(const std::filesystem::path& path) -> Checkpoint
         std::move(residual));
 
     return Checkpoint{std::move(state), rng, std::move(method)};
+}
+
+auto read_checkpoint(const std::filesystem::path& path, BayesState& state)
+    -> std::mt19937_64
+{
+    io::detail::BinaryReader reader(path.string());
+    if (!reader.contains("format_version"))
+    {
+        throw GelexException(
+            fmt::format(
+                "{}: legacy checkpoint format is no longer supported for "
+                "BayesState resume",
+                path.string()));
+    }
+
+    const auto format_version = read_uint8(reader, "format_version");
+    if (format_version != kStateOnlyCheckpointVersion)
+    {
+        throw GelexException(
+            fmt::format(
+                "{}: unsupported checkpoint format version {}",
+                path.string(),
+                format_version));
+    }
+
+    CheckpointRecordReader sink(reader);
+    state.visit_records(bayes::StateRecordSet::checkpoint, sink);
+    return read_rng(reader);
 }
 
 }  // namespace gelex

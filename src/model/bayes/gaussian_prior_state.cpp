@@ -33,22 +33,17 @@ GaussianState::GaussianState(std::vector<Eigen::VectorXd> variances)
 {
 }
 
-auto GaussianState::visit_sample_records(infra::RecordVisitor& visitor) const
-    -> void
+auto GaussianState::visit_records(StateRecordSet set, infra::RecordSink& sink)
+    const -> void
 {
-    VarianceStateCap::visit_sample_records(visitor);
+    VarianceStateCap::visit_records(set, sink);
 }
 
-auto GaussianState::visit_checkpoint_records(
-    infra::RecordVisitor& visitor) const -> void
+auto GaussianState::visit_records(
+    StateRecordSet set,
+    infra::MutableRecordSink& sink) -> void
 {
-    VarianceStateCap::visit_checkpoint_records(visitor);
-}
-
-auto GaussianState::visit_checkpoint_records(
-    infra::MutableRecordVisitor& visitor) -> void
-{
-    VarianceStateCap::visit_checkpoint_records(visitor);
+    VarianceStateCap::visit_records(set, sink);
 }
 
 SpikeSlabGaussianState::SpikeSlabGaussianState(
@@ -64,25 +59,20 @@ SpikeSlabGaussianState::SpikeSlabGaussianState(
     }
 }
 
-auto SpikeSlabGaussianState::visit_sample_records(
-    infra::RecordVisitor& visitor) const -> void
+auto SpikeSlabGaussianState::visit_records(
+    StateRecordSet set,
+    infra::RecordSink& sink) const -> void
 {
-    VarianceStateCap::visit_sample_records(visitor);
-    ProportionStateCap::visit_sample_records(visitor);
+    VarianceStateCap::visit_records(set, sink);
+    ProportionStateCap::visit_records(set, sink);
 }
 
-auto SpikeSlabGaussianState::visit_checkpoint_records(
-    infra::RecordVisitor& visitor) const -> void
+auto SpikeSlabGaussianState::visit_records(
+    StateRecordSet set,
+    infra::MutableRecordSink& sink) -> void
 {
-    VarianceStateCap::visit_checkpoint_records(visitor);
-    ProportionStateCap::visit_checkpoint_records(visitor);
-}
-
-auto SpikeSlabGaussianState::visit_checkpoint_records(
-    infra::MutableRecordVisitor& visitor) -> void
-{
-    VarianceStateCap::visit_checkpoint_records(visitor);
-    ProportionStateCap::visit_checkpoint_records(visitor);
+    VarianceStateCap::visit_records(set, sink);
+    ProportionStateCap::visit_records(set, sink);
 }
 
 ScaledMixtureGaussianState::ScaledMixtureGaussianState(
@@ -105,28 +95,22 @@ ScaledMixtureGaussianState::ScaledMixtureGaussianState(
     }
 }
 
-auto ScaledMixtureGaussianState::visit_sample_records(
-    infra::RecordVisitor& visitor) const -> void
+auto ScaledMixtureGaussianState::visit_records(
+    StateRecordSet set,
+    infra::RecordSink& sink) const -> void
 {
-    VarianceStateCap::visit_sample_records(visitor);
-    ComponentStateCap::visit_sample_records(visitor);
-    ProportionStateCap::visit_sample_records(visitor);
+    VarianceStateCap::visit_records(set, sink);
+    ComponentStateCap::visit_records(set, sink);
+    ProportionStateCap::visit_records(set, sink);
 }
 
-auto ScaledMixtureGaussianState::visit_checkpoint_records(
-    infra::RecordVisitor& visitor) const -> void
+auto ScaledMixtureGaussianState::visit_records(
+    StateRecordSet set,
+    infra::MutableRecordSink& sink) -> void
 {
-    VarianceStateCap::visit_checkpoint_records(visitor);
-    ComponentStateCap::visit_checkpoint_records(visitor);
-    ProportionStateCap::visit_checkpoint_records(visitor);
-}
-
-auto ScaledMixtureGaussianState::visit_checkpoint_records(
-    infra::MutableRecordVisitor& visitor) -> void
-{
-    VarianceStateCap::visit_checkpoint_records(visitor);
-    ComponentStateCap::visit_checkpoint_records(visitor);
-    ProportionStateCap::visit_checkpoint_records(visitor);
+    VarianceStateCap::visit_records(set, sink);
+    ComponentStateCap::visit_records(set, sink);
+    ProportionStateCap::visit_records(set, sink);
 }
 
 JointMixtureGaussianState::JointMixtureGaussianState(
@@ -140,28 +124,22 @@ JointMixtureGaussianState::JointMixtureGaussianState(
 {
 }
 
-auto JointMixtureGaussianState::visit_sample_records(
-    infra::RecordVisitor& visitor) const -> void
+auto JointMixtureGaussianState::visit_records(
+    StateRecordSet set,
+    infra::RecordSink& sink) const -> void
 {
-    VarianceStateCap::visit_sample_records(visitor);
-    ComponentStateCap::visit_sample_records(visitor);
-    ProportionStateCap::visit_sample_records(visitor);
+    VarianceStateCap::visit_records(set, sink);
+    ComponentStateCap::visit_records(set, sink);
+    ProportionStateCap::visit_records(set, sink);
 }
 
-auto JointMixtureGaussianState::visit_checkpoint_records(
-    infra::RecordVisitor& visitor) const -> void
+auto JointMixtureGaussianState::visit_records(
+    StateRecordSet set,
+    infra::MutableRecordSink& sink) -> void
 {
-    VarianceStateCap::visit_checkpoint_records(visitor);
-    ComponentStateCap::visit_checkpoint_records(visitor);
-    ProportionStateCap::visit_checkpoint_records(visitor);
-}
-
-auto JointMixtureGaussianState::visit_checkpoint_records(
-    infra::MutableRecordVisitor& visitor) -> void
-{
-    VarianceStateCap::visit_checkpoint_records(visitor);
-    ComponentStateCap::visit_checkpoint_records(visitor);
-    ProportionStateCap::visit_checkpoint_records(visitor);
+    VarianceStateCap::visit_records(set, sink);
+    ComponentStateCap::visit_records(set, sink);
+    ProportionStateCap::visit_records(set, sink);
 }
 
 }  // namespace gelex::bayes

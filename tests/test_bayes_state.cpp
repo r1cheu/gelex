@@ -19,6 +19,7 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -27,6 +28,7 @@
 
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/exception.h"
+#include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/gaussian_prior.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/model.h"
@@ -158,6 +160,41 @@ auto make_prior(
 {
     return BayesPrior(make_variance(0.25), std::move(genetics), make_variance(1.5));
 }
+
+class PathCollector final : public gelex::infra::RecordSink
+{
+   public:
+    auto visit(std::string_view path, const Eigen::Ref<const Eigen::VectorXf>&)
+        -> void override
+    {
+        paths.emplace_back(path);
+    }
+
+    auto visit(std::string_view path, const Eigen::Ref<const Eigen::VectorXd>&)
+        -> void override
+    {
+        paths.emplace_back(path);
+    }
+
+    auto visit(std::string_view path, const Eigen::Ref<const Eigen::VectorXi>&)
+        -> void override
+    {
+        paths.emplace_back(path);
+    }
+
+    auto visit(std::string_view path, const double&) -> void override
+    {
+        paths.emplace_back(path);
+    }
+
+    auto count(std::string_view path) const -> std::size_t
+    {
+        return static_cast<std::size_t>(
+            std::ranges::count(paths, std::string{path}));
+    }
+
+    std::vector<std::string> paths;
+};
 
 }  // namespace
 
@@ -352,4 +389,62 @@ TEST_CASE("BayesState computes heritability from runtime variance", "[bayes_stat
 
     REQUIRE(std::abs(state.genetic(GeneticMode::A)->heritability - 0.15) < 1e-12);
     REQUIRE(std::abs(state.genetic(GeneticMode::D)->heritability - 0.25) < 1e-12);
+}
+
+TEST_CASE("BayesState visits sample records through state schema", "[bayes_state]")
+{
+    constexpr std::array modes{GeneticMode::A};
+    auto model = make_model(modes, true);
+
+    std::vector<std::unique_ptr<GeneticPrior>> genetics;
+    genetics.push_back(std::make_unique<SpikeSlabGaussianPrior>(
+        GeneticMode::A, make_marker_variance(), make_proportion_2()));
+    auto prior = make_prior(std::move(genetics));
+
+    BayesState state(model, prior);
+    state.genetic(GeneticMode::A)->variance = 2.0;
+    state.compute_heritability();
+
+    PathCollector sink;
+    state.visit_records(gelex::bayes::StateRecordSet::sample, sink);
+
+    REQUIRE(sink.count("fixed/0/coeffs") == 1);
+    REQUIRE(sink.count("random/0/coeffs") == 1);
+    REQUIRE(sink.count("random/0/variance") == 1);
+    REQUIRE(sink.count("genetic/0/coeffs") == 1);
+    REQUIRE(sink.count("genetic/0/variance") == 1);
+    REQUIRE(sink.count("genetic/0/heritability") == 1);
+    REQUIRE(sink.count("genetic_block/0/prior_state/variance/0/value") == 1);
+    REQUIRE(sink.count("genetic_block/0/prior_state/proportion/0/assignment") == 1);
+    REQUIRE(sink.count("residual/0/variance") == 1);
+}
+
+TEST_CASE("BayesState visits joint prior state once for checkpoint", "[bayes_state]")
+{
+    constexpr std::array modes{GeneticMode::A, GeneticMode::D};
+    auto model = make_model(modes);
+
+    std::vector<std::unique_ptr<GeneticPrior>> genetics;
+    genetics.push_back(std::make_unique<JointMixtureGaussianPrior>(
+        std::array{GeneticMode::A, GeneticMode::D},
+        std::array{
+            make_marker_variance(MarkerVarianceScope::per_effect),
+            make_marker_variance(MarkerVarianceScope::per_effect)},
+        make_proportion_4()));
+    auto prior = make_prior(std::move(genetics));
+
+    BayesState state(model, prior);
+    PathCollector sink;
+    state.visit_records(gelex::bayes::StateRecordSet::checkpoint, sink);
+
+    REQUIRE(sink.count("genetic/0/coeffs") == 1);
+    REQUIRE(sink.count("genetic/1/coeffs") == 1);
+    REQUIRE(sink.count("genetic/0/u") == 1);
+    REQUIRE(sink.count("genetic/1/u") == 1);
+    REQUIRE(sink.count("genetic_block/0/prior_state/variance/0/value") == 1);
+    REQUIRE(sink.count("genetic_block/0/prior_state/variance/1/value") == 1);
+    REQUIRE(sink.count("genetic_block/0/prior_state/proportion/0/assignment") == 1);
+    REQUIRE(sink.count("genetic_block/0/prior_state/proportion/0/count") == 1);
+    REQUIRE(sink.count("genetic_block/0/prior_state/proportion/0/value") == 1);
+    REQUIRE(sink.count("genetic_block/1/prior_state/proportion/0/value") == 0);
 }

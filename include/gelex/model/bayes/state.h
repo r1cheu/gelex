@@ -25,9 +25,11 @@
 
 #include <Eigen/Core>
 
+#include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/effects.h"
 #include "gelex/model/bayes/prior_specs.h"
 #include "gelex/model/bayes/prior_state.h"
+#include "gelex/model/bayes/state_record_set.h"
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -46,6 +48,11 @@ struct FixedState
     explicit FixedState(const FixedEffect& effect);
     explicit FixedState(Eigen::VectorXd coeffs);
 
+    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
+        -> void;
+    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
+        -> void;
+
     Eigen::VectorXd coeffs;
 };
 
@@ -54,6 +61,11 @@ struct RandomState
     RandomState(const RandomEffect& effect, double variance);
     RandomState(const RandomEffect& effect, const VarianceSpec& spec);
     RandomState(Eigen::VectorXd coeffs, double variance);
+
+    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
+        -> void;
+    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
+        -> void;
 
     Eigen::VectorXd coeffs;
     double variance{0.0};
@@ -65,6 +77,11 @@ struct GeneticState
         GeneticMode type,
         Eigen::Index num_markers,
         Eigen::Index num_individuals);
+
+    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
+        -> void;
+    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
+        -> void;
 
     GeneticMode type;
     Eigen::VectorXd coeffs;
@@ -99,6 +116,11 @@ class GeneticBlockState
     }
     auto slot(GeneticMode mode) const -> std::size_t;
 
+    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
+        -> void;
+    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
+        -> void;
+
    private:
     std::vector<GeneticMode> modes_;
     std::vector<std::size_t> genetic_indices_;
@@ -107,6 +129,11 @@ class GeneticBlockState
 
 struct ResidualState
 {
+    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
+        -> void;
+    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
+        -> void;
+
     Eigen::VectorXd y_adj;
     double variance{0.0};
 };
@@ -187,6 +214,11 @@ class BayesState
     auto residual() const -> const bayes::ResidualState& { return residual_; }
 
     auto compute_heritability() -> void;
+    auto visit_records(bayes::StateRecordSet set, infra::RecordSink& sink) const
+        -> void;
+    auto visit_records(
+        bayes::StateRecordSet set,
+        infra::MutableRecordSink& sink) -> void;
 
    private:
     bayes::FixedState fixed_;

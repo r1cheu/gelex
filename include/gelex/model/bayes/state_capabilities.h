@@ -24,6 +24,7 @@
 #include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/capabilities.h"
 #include "gelex/model/bayes/prior_state.h"
+#include "gelex/model/bayes/state_record_set.h"
 
 namespace gelex::bayes
 {
@@ -31,17 +32,19 @@ namespace gelex::bayes
 class VarianceStateCap : public VarianceCapability<Eigen::VectorXd>
 {
    protected:
-    auto visit_sample_records(infra::RecordVisitor& visitor) const -> void;
-    auto visit_checkpoint_records(infra::RecordVisitor& visitor) const -> void;
-    auto visit_checkpoint_records(infra::MutableRecordVisitor& visitor) -> void;
+    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
+        -> void;
+    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
+        -> void;
 };
 
 class ProportionStateCap : public ProportionCapability<ProportionState>
 {
    protected:
-    auto visit_sample_records(infra::RecordVisitor& visitor) const -> void;
-    auto visit_checkpoint_records(infra::RecordVisitor& visitor) const -> void;
-    auto visit_checkpoint_records(infra::MutableRecordVisitor& visitor) -> void;
+    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
+        -> void;
+    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
+        -> void;
 };
 
 class ComponentStateCap
@@ -60,9 +63,10 @@ class ComponentStateCap
     ComponentStateCap(const ComponentStateCap&) = default;
     ComponentStateCap(ComponentStateCap&&) noexcept = default;
 
-    auto visit_sample_records(infra::RecordVisitor& visitor) const -> void;
-    auto visit_checkpoint_records(infra::RecordVisitor& visitor) const -> void;
-    auto visit_checkpoint_records(infra::MutableRecordVisitor& visitor) -> void;
+    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
+        -> void;
+    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
+        -> void;
 };
 
 }  // namespace gelex::bayes

@@ -15,6 +15,7 @@
  */
 
 #include <filesystem>
+#include <memory>
 #include <random>
 #include <string>
 #include <utility>
@@ -30,12 +31,16 @@
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/io/mcmc/checkpoint_reader.h"
 #include "gelex/io/mcmc/checkpoint_writer.h"
+#include "gelex/model/bayes/gaussian_prior.h"
 #include "gelex/model/bayes/legacy_algorithm_shape.h"
 #include "gelex/model/bayes/legacy_builder.h"
 #include "gelex/model/bayes/legacy_method.h"
 #include "gelex/model/bayes/legacy_prior.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/state.h"
+#include "gelex/model/bayes/state_capabilities.h"
 #include "gelex/types/fixed_effects.h"
 #include "genotype_fixture.h"
 
@@ -124,6 +129,31 @@ auto fill_state(mcmc::State& state) -> void
         = Eigen::VectorXd::Constant(state.residual().y_adj.size(), 1.5);
 }
 
+auto make_variance_spec(double initial_value) -> bayes::VarianceSpec
+{
+    return bayes::VarianceSpec(
+        initial_value, bayes::ScaledInvChiSqPrior{4.0, 1.0});
+}
+
+auto make_bayes_state_prior() -> bayes::BayesPrior
+{
+    std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
+    genetics.push_back(std::make_unique<bayes::SpikeSlabGaussianPrior>(
+        GeneticMode::A,
+        bayes::MarkerVarianceSpec{
+            bayes::MarkerVarianceScope::per_marker,
+            make_variance_spec(0.2)},
+        bayes::ProportionSpec{
+            Eigen::VectorXd{{0.8, 0.2}},
+            Eigen::VectorXd{{1.0, 1.0}},
+            bayes::ProportionUpdate::sampled}));
+
+    return bayes::BayesPrior(
+        make_variance_spec(0.5),
+        std::move(genetics),
+        make_variance_spec(1.0));
+}
+
 }  // namespace
 
 TEST_CASE("checkpoint resume produces bit-exact final state", "[checkpoint]")
@@ -204,6 +234,61 @@ TEST_CASE("checkpoint round-trip preserves all fields", "[checkpoint]")
     const auto val_orig = rng();
     const auto val_read = ckpt.rng();
     CHECK(val_orig == val_read);
+
+    std::filesystem::remove(ckpt_path);
+}
+
+TEST_CASE("BayesState checkpoint round-trip preserves state records", "[checkpoint]")
+{
+    const std::string prefix = "/tmp/gelex_test_bayes_state_ckpt_roundtrip";
+    const std::string ckpt_path = prefix + ".ckpt";
+
+    auto [model, method] = make_bayes_a_model(kNSamples, kNSnps);
+    (void)method;
+    auto prior = make_bayes_state_prior();
+    BayesState state(model, prior);
+
+    state.fixed().coeffs
+        = Eigen::VectorXd::LinSpaced(state.fixed().coeffs.size(), 1.0, 2.0);
+    auto& genetic = *state.genetic(GeneticMode::A);
+    genetic.coeffs = Eigen::VectorXd::LinSpaced(genetic.coeffs.size(), 0.1, 0.5);
+    genetic.u = Eigen::VectorXd::LinSpaced(genetic.u.size(), -0.2, 0.2);
+    genetic.variance = 0.75;
+    genetic.heritability = 0.25;
+    auto& proportion = state.genetic_block_for(GeneticMode::A)
+                           ->prior_state()
+                           .require<bayes::ProportionStateCap>()
+                           .proportion()[0];
+    proportion.assignment = Eigen::VectorXi::Ones(kNSnps);
+    proportion.count = Eigen::VectorXi{{0, static_cast<int>(kNSnps)}};
+    proportion.value = Eigen::VectorXd{{0.1, 0.9}};
+    state.residual().y_adj = Eigen::VectorXd::Constant(kNSamples, 1.25);
+    state.residual().variance = 1.5;
+
+    std::mt19937_64 rng(123);
+    rng();
+    write_checkpoint(state, rng, prefix);
+
+    auto restored_prior = make_bayes_state_prior();
+    BayesState restored(model, restored_prior);
+    auto restored_rng = read_checkpoint(ckpt_path, restored);
+
+    CHECK(restored.fixed().coeffs.isApprox(state.fixed().coeffs));
+    const auto& restored_genetic = *restored.genetic(GeneticMode::A);
+    CHECK(restored_genetic.coeffs.isApprox(genetic.coeffs));
+    CHECK(restored_genetic.u.isApprox(genetic.u));
+    CHECK(restored_genetic.variance == genetic.variance);
+    CHECK(restored_genetic.heritability == genetic.heritability);
+    const auto& restored_proportion = restored.genetic_block_for(GeneticMode::A)
+                                          ->prior_state()
+                                          .require<bayes::ProportionStateCap>()
+                                          .proportion()[0];
+    CHECK(restored_proportion.assignment.isApprox(proportion.assignment));
+    CHECK(restored_proportion.count.isApprox(proportion.count));
+    CHECK(restored_proportion.value.isApprox(proportion.value));
+    CHECK(restored.residual().y_adj.isApprox(state.residual().y_adj));
+    CHECK(restored.residual().variance == state.residual().variance);
+    CHECK(restored_rng() == rng());
 
     std::filesystem::remove(ckpt_path);
 }

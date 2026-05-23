@@ -46,11 +46,9 @@ class GaussianState final
         return variances_;
     }
 
-    auto visit_sample_records(infra::RecordVisitor& visitor) const
+    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
         -> void override;
-    auto visit_checkpoint_records(infra::RecordVisitor& visitor) const
-        -> void override;
-    auto visit_checkpoint_records(infra::MutableRecordVisitor& visitor)
+    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
         -> void override;
 
    private:
@@ -86,11 +84,9 @@ class SpikeSlabGaussianState final
         return proportions_;
     }
 
-    auto visit_sample_records(infra::RecordVisitor& visitor) const
+    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
         -> void override;
-    auto visit_checkpoint_records(infra::RecordVisitor& visitor) const
-        -> void override;
-    auto visit_checkpoint_records(infra::MutableRecordVisitor& visitor)
+    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
         -> void override;
 
    private:
@@ -139,11 +135,9 @@ class ScaledMixtureGaussianState final
         return proportions_;
     }
 
-    auto visit_sample_records(infra::RecordVisitor& visitor) const
+    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
         -> void override;
-    auto visit_checkpoint_records(infra::RecordVisitor& visitor) const
-        -> void override;
-    auto visit_checkpoint_records(infra::MutableRecordVisitor& visitor)
+    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
         -> void override;
 
    private:
@@ -192,11 +186,9 @@ class JointMixtureGaussianState final
         return proportions_;
     }
 
-    auto visit_sample_records(infra::RecordVisitor& visitor) const
+    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
         -> void override;
-    auto visit_checkpoint_records(infra::RecordVisitor& visitor) const
-        -> void override;
-    auto visit_checkpoint_records(infra::MutableRecordVisitor& visitor)
+    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
         -> void override;
 
    private:
