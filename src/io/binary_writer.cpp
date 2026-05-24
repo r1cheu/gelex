@@ -83,6 +83,26 @@ auto BinaryWriter::reserve(
     uint64_t rows,
     uint64_t cols) -> size_t
 {
+    const auto element_size
+        = static_cast<uint64_t>(static_cast<unsigned>(dtype) >> 2U);
+    return reserve_section(path, dtype, rows, cols, rows * cols * element_size);
+}
+
+auto BinaryWriter::reserve_strings(
+    std::string_view path,
+    uint64_t rows,
+    uint64_t bytes) -> size_t
+{
+    return reserve_section(path, detail::kTypeString, rows, 0, bytes);
+}
+
+auto BinaryWriter::reserve_section(
+    std::string_view path,
+    uint8_t dtype,
+    uint64_t rows,
+    uint64_t cols,
+    uint64_t bytes) -> size_t
+{
     if (path.size() > detail::kMaxPathLength)
     {
         throw GelexException(
@@ -99,17 +119,14 @@ auto BinaryWriter::reserve(
     detail::TocEntry entry;
     std::copy(path.begin(), path.end(), entry.path.begin());
     entry.dtype = dtype;
-
-    const auto element_size
-        = static_cast<uint64_t>(static_cast<unsigned>(dtype) >> 2U);
-    const auto total_bytes = rows * cols * element_size;
-    const auto aligned_offset = align_up(next_offset_, detail::kPageAlignment);
-    entry.offset = aligned_offset;
-    entry.size = total_bytes;
     entry.rows = rows;
     entry.cols = cols;
+    entry.size = bytes;
 
-    next_offset_ = aligned_offset + total_bytes;
+    const auto aligned_offset = align_up(next_offset_, detail::kPageAlignment);
+    entry.offset = aligned_offset;
+    next_offset_ = aligned_offset + bytes;
+
     reserved_.push_back(
         ReservedSection{.entry = entry, .cursor = aligned_offset});
 

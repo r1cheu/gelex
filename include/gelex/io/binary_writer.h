@@ -17,16 +17,16 @@
 #ifndef GELEX_IO_BINARY_WRITER_H_
 #define GELEX_IO_BINARY_WRITER_H_
 
-#include <fmt/format.h>
 #include <concepts>
+#include <cstddef>
 #include <cstdint>
-#include <filesystem>
+#include <ios>
 #include <ranges>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
-#include "gelex/exception.h"
 #include "gelex/io/detail/atomic_ofstream.h"
 #include "gelex/io/detail/binary_format.h"
 
@@ -97,6 +97,14 @@ class BinaryWriter
             static_cast<std::streamsize>(sizeof(T)));
     }
 
+    template <typename T>
+        requires std::is_arithmetic_v<T>
+    auto write(std::string_view path, T value) -> void
+    {
+        auto h = reserve<T>(path, 1, 1);
+        write(h, value);
+    }
+
     template <MatrixBuffer Matrix>
     auto write(std::string_view path, const Matrix& data) -> void
     {
@@ -105,45 +113,21 @@ class BinaryWriter
         write(h, data);
     }
 
-    template <std::ranges::input_range R>
+    template <std::ranges::forward_range R>
         requires std::
             convertible_to<std::ranges::range_value_t<R>, std::string_view>
         auto write_strings(std::string_view path, const R& names) -> void
     {
-        if (path.size() > detail::kMaxPathLength)
-        {
-            throw GelexException(
-                fmt::format(
-                    "{}: path too long ({} > {}): \"{}\"",
-                    file_.final_path().string(),
-                    path.size(),
-                    detail::kMaxPathLength,
-                    path));
-        }
-
-        check_duplicate_path(path);
-
         uint64_t total_bytes = 0;
         for (const std::string_view s : names)
         {
             total_bytes += s.size() + 1;
         }
 
-        detail::TocEntry entry;
-        std::copy(path.begin(), path.end(), entry.path.begin());
-        entry.dtype = detail::kTypeString;
-        entry.rows = static_cast<uint64_t>(std::ranges::distance(names));
-        entry.cols = 0;
-        entry.size = total_bytes;
-
-        const auto aligned_offset
-            = align_up(next_offset_, detail::kPageAlignment);
-        entry.offset = aligned_offset;
-        next_offset_ = aligned_offset + total_bytes;
-
-        const auto handle = reserved_.size();
-        reserved_.push_back(
-            ReservedSection{.entry = entry, .cursor = aligned_offset});
+        const auto handle = reserve_strings(
+            path,
+            static_cast<uint64_t>(std::ranges::distance(names)),
+            total_bytes);
 
         for (const std::string_view s : names)
         {
@@ -163,6 +147,14 @@ class BinaryWriter
     auto
     reserve(std::string_view path, uint8_t dtype, uint64_t rows, uint64_t cols)
         -> size_t;
+    auto reserve_strings(std::string_view path, uint64_t rows, uint64_t bytes)
+        -> size_t;
+    auto reserve_section(
+        std::string_view path,
+        uint8_t dtype,
+        uint64_t rows,
+        uint64_t cols,
+        uint64_t bytes) -> size_t;
     auto write_raw(size_t handle, const char* data, std::streamsize bytes)
         -> void;
     auto check_duplicate_path(std::string_view path) const -> void;

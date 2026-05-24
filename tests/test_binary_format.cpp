@@ -118,6 +118,32 @@ TEST_CASE("Container contains", "[binary_container]")
     REQUIRE_FALSE(reader.contains("Dominance/coeff"));
 }
 
+TEST_CASE("Container scalar round-trip", "[binary_container]")
+{
+    test::FileFixture fixture;
+    const auto& dir = fixture.get_test_dir();
+
+    auto container_path = dir / "scalar.samples";
+    {
+        BinaryWriter writer(container_path.string());
+        writer.write("Residual/variance", 0.75);
+        writer.write("Format/version", uint32_t{3});
+    }
+
+    BinaryReader reader(container_path.string());
+    REQUIRE(reader.n_sections() == 2);
+
+    const auto variance = reader.to_mat<double>("Residual/variance");
+    REQUIRE(variance.rows() == 1);
+    REQUIRE(variance.cols() == 1);
+    REQUIRE_THAT(variance(0, 0), Catch::Matchers::WithinRel(0.75));
+
+    const auto version = reader.to_mat<uint32_t>("Format/version");
+    REQUIRE(version.rows() == 1);
+    REQUIRE(version.cols() == 1);
+    REQUIRE(version(0, 0) == 3);
+}
+
 TEST_CASE("Container section_paths", "[binary_container]")
 {
     test::FileFixture fixture;
