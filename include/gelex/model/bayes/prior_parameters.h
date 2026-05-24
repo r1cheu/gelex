@@ -18,9 +18,12 @@
 #define GELEX_MODEL_BAYES_PRIOR_PARAMETERS_H_
 
 #include <cstdint>
+#include <string_view>
 #include <utility>
 
 #include <Eigen/Core>
+
+#include "gelex/infra/field_visitor.h"
 
 namespace gelex::bayes
 {
@@ -28,11 +31,19 @@ namespace gelex::bayes
 class ScaledInvChiSqPrior
 {
    public:
+    static constexpr std::string_view name = "scaled_inv_chi2";
     ScaledInvChiSqPrior() = default;
     ScaledInvChiSqPrior(double degrees_of_freedom, double scale);
 
     auto degrees_of_freedom() const -> double { return degrees_of_freedom_; }
     auto scale() const -> double { return scale_; }
+    auto visit(infra::FieldVisitor& visitor) const -> void
+    {
+        auto scope = visitor.scope(name);
+        visitor.on(
+            "degrees_of_freedom", degrees_of_freedom_, FieldFlag::source);
+        visitor.on("scale", scale_, FieldFlag::source);
+    }
 
    private:
     double degrees_of_freedom_{-2};
@@ -42,6 +53,7 @@ class ScaledInvChiSqPrior
 class DirichletPrior
 {
    public:
+    static constexpr std::string_view name = "dirichlet";
     explicit DirichletPrior(Eigen::VectorXd concentration);
 
     auto concentration() const -> const Eigen::VectorXd&
@@ -49,6 +61,11 @@ class DirichletPrior
         return concentration_;
     }
     auto size() const -> Eigen::Index { return concentration_.size(); }
+    auto visit(infra::FieldVisitor& visitor) const -> void
+    {
+        auto scope = visitor.scope(name);
+        visitor.on("concentration", concentration_, FieldFlag::source);
+    }
 
    private:
     Eigen::VectorXd concentration_;
@@ -57,10 +74,17 @@ class DirichletPrior
 class VarianceParameter
 {
    public:
+    static constexpr std::string_view name = "variance";
     VarianceParameter(double initial_value, ScaledInvChiSqPrior prior);
 
     auto initial_value() const -> double { return initial_value_; }
     auto prior() const -> const ScaledInvChiSqPrior& { return prior_; }
+    auto visit(infra::FieldVisitor& visitor) const -> void
+    {
+        auto scope = visitor.scope(name);
+        visitor.on("initial_value", initial_value_, FieldFlag::source);
+        prior_.visit(visitor);
+    }
 
    private:
     double initial_value_;
@@ -70,6 +94,7 @@ class VarianceParameter
 class SimplexParameter
 {
    public:
+    static constexpr std::string_view name = "simplex";
     SimplexParameter(Eigen::VectorXd initial_value, DirichletPrior prior);
 
     auto initial_value() const -> const Eigen::VectorXd&
@@ -78,6 +103,12 @@ class SimplexParameter
     }
     auto prior() const -> const DirichletPrior& { return prior_; }
     auto size() const -> Eigen::Index { return initial_value_.size(); }
+    auto visit(infra::FieldVisitor& visitor) const -> void
+    {
+        auto scope = visitor.scope(name);
+        visitor.on("initial_value", initial_value_, FieldFlag::source);
+        prior_.visit(visitor);
+    }
 
    private:
     Eigen::VectorXd initial_value_;
@@ -93,6 +124,7 @@ enum class MarkerVarianceLayout : std::uint8_t
 class MarkerVariance
 {
    public:
+    static constexpr std::string_view name = "marker_variance";
     MarkerVariance(MarkerVarianceLayout layout, VarianceParameter parameter);
 
     auto layout() const -> MarkerVarianceLayout { return layout_; }
@@ -107,6 +139,12 @@ class MarkerVariance
                 return num_markers;
         }
         std::unreachable();
+    }
+    auto visit(infra::FieldVisitor& visitor) const -> void
+    {
+        auto scope = visitor.scope(name);
+        visitor.on("layout", layout_, FieldFlag::source | FieldFlag::metadata);
+        parameter_.visit(visitor);
     }
 
    private:
@@ -123,6 +161,7 @@ enum class UpdatePolicy : std::uint8_t
 class MixtureProportion
 {
    public:
+    static constexpr std::string_view name = "mixture_proportion";
     MixtureProportion(SimplexParameter parameter, UpdatePolicy update);
 
     auto parameter() const -> const SimplexParameter& { return parameter_; }
@@ -130,6 +169,12 @@ class MixtureProportion
 
     auto size() const -> Eigen::Index { return parameter_.size(); }
     auto sampled() const -> bool { return update_ == UpdatePolicy::sampled; }
+    auto visit(infra::FieldVisitor& visitor) const -> void
+    {
+        auto scope = visitor.scope(name);
+        parameter_.visit(visitor);
+        visitor.on("update", update_, FieldFlag::source | FieldFlag::metadata);
+    }
 
    private:
     SimplexParameter parameter_;

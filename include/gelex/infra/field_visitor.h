@@ -18,6 +18,7 @@
 #define GELEX_INFRA_FIELD_VISITOR_H_
 
 #include <string_view>
+#include <type_traits>
 #include <utility>
 
 #include <Eigen/Core>
@@ -95,6 +96,13 @@ class FieldVisitor
     virtual auto on(std::string_view name, const int& value, FieldFlag flags)
         -> void
         = 0;
+
+    template <typename Enum>
+        requires std::is_enum_v<Enum>
+    auto on(std::string_view name, Enum value, FieldFlag flags) -> void
+    {
+        on(name, static_cast<int>(value), flags);
+    }
 
    protected:
     FieldVisitor() = default;
