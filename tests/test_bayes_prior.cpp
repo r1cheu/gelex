@@ -27,7 +27,7 @@
 #include "gelex/model/bayes/gaussian_prior.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/prior_state.h"
 #include "gelex/model/bayes/state_capabilities.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -35,46 +35,49 @@
 using gelex::GelexException;
 using gelex::GeneticMode;
 using gelex::bayes::BayesPrior;
+using gelex::bayes::DirichletPrior;
 using gelex::bayes::GaussianPrior;
 using gelex::bayes::GeneticPrior;
 using gelex::bayes::JointMixtureGaussianPrior;
-using gelex::bayes::MarkerVarianceScope;
-using gelex::bayes::MarkerVarianceSpec;
-using gelex::bayes::MultiplierSpecCap;
+using gelex::bayes::MarkerVariance;
+using gelex::bayes::MarkerVarianceLayout;
+using gelex::bayes::MultiplierCap;
 using gelex::bayes::ComponentStateCap;
-using gelex::bayes::ProportionSpec;
-using gelex::bayes::ProportionSpecCap;
+using gelex::bayes::MixtureProportion;
+using gelex::bayes::MixtureProportionCap;
 using gelex::bayes::ProportionStateCap;
-using gelex::bayes::ProportionUpdate;
+using gelex::bayes::UpdatePolicy;
 using gelex::bayes::ScaledInvChiSqPrior;
 using gelex::bayes::ScaledMixtureGaussianPrior;
+using gelex::bayes::SimplexParameter;
 using gelex::bayes::SpikeSlabGaussianPrior;
-using gelex::bayes::VarianceSpec;
-using gelex::bayes::VarianceSpecCap;
+using gelex::bayes::VarianceParameter;
+using gelex::bayes::MarkerVarianceCap;
 using gelex::bayes::VarianceStateCap;
 
 namespace
 {
 
-auto make_variance(double init = 1.0) -> VarianceSpec
+auto make_variance(double init = 1.0) -> VarianceParameter
 {
-    return VarianceSpec(init, ScaledInvChiSqPrior{4.0, 1.0});
+    return VarianceParameter(init, ScaledInvChiSqPrior{4.0, 1.0});
 }
 
-auto make_marker_variance() -> MarkerVarianceSpec
+auto make_marker_variance() -> MarkerVariance
 {
-    return MarkerVarianceSpec{
-        MarkerVarianceScope::per_marker,
+    return MarkerVariance{
+        MarkerVarianceLayout::per_marker,
         make_variance(),
     };
 }
 
-auto make_proportion_2() -> ProportionSpec
+auto make_proportion_2() -> MixtureProportion
 {
-    return ProportionSpec{
-        Eigen::VectorXd{{0.9, 0.1}},
-        Eigen::VectorXd{{1.0, 1.0}},
-        ProportionUpdate::fixed,
+    return MixtureProportion{
+        SimplexParameter{
+            Eigen::VectorXd{{0.9, 0.1}},
+            DirichletPrior{Eigen::VectorXd{{1.0, 1.0}}}},
+        UpdatePolicy::fixed,
     };
 }
 
@@ -100,7 +103,7 @@ auto make_joint() -> std::unique_ptr<GeneticPrior>
 {
     return std::make_unique<JointMixtureGaussianPrior>(
         std::array<GeneticMode, 2>{GeneticMode::A, GeneticMode::D},
-        std::array<MarkerVarianceSpec, 2>{
+        std::array<MarkerVariance, 2>{
             make_marker_variance(), make_marker_variance()},
         make_proportion_2());
 }
@@ -134,17 +137,17 @@ TEST_CASE("BayesPrior accessors expose construction arguments", "[bayes_prior]")
 TEST_CASE("GeneticPrior capabilities compose prior data axes", "[bayes_prior]")
 {
     GaussianPrior gaussian(GeneticMode::A, make_marker_variance());
-    REQUIRE(gaussian.query<VarianceSpecCap>() != nullptr);
-    REQUIRE(gaussian.query<ProportionSpecCap>() == nullptr);
-    REQUIRE(gaussian.query<MultiplierSpecCap>() == nullptr);
+    REQUIRE(gaussian.query<MarkerVarianceCap>() != nullptr);
+    REQUIRE(gaussian.query<MixtureProportionCap>() == nullptr);
+    REQUIRE(gaussian.query<MultiplierCap>() == nullptr);
 
     SpikeSlabGaussianPrior spike_slab(
         GeneticMode::A, make_marker_variance(), make_proportion_2());
-    const auto* spike_slab_proportion = spike_slab.query<ProportionSpecCap>();
-    REQUIRE(spike_slab.query<VarianceSpecCap>() != nullptr);
+    const auto* spike_slab_proportion = spike_slab.query<MixtureProportionCap>();
+    REQUIRE(spike_slab.query<MarkerVarianceCap>() != nullptr);
     REQUIRE(spike_slab_proportion != nullptr);
     REQUIRE(spike_slab_proportion->proportion().size() == 1);
-    REQUIRE(spike_slab.query<MultiplierSpecCap>() == nullptr);
+    REQUIRE(spike_slab.query<MultiplierCap>() == nullptr);
 
     ScaledMixtureGaussianPrior scaled_mixture(
         GeneticMode::A,
@@ -152,24 +155,24 @@ TEST_CASE("GeneticPrior capabilities compose prior data axes", "[bayes_prior]")
         make_multiplier_2(),
         make_proportion_2());
     const auto* scaled_mixture_multiplier
-        = scaled_mixture.query<MultiplierSpecCap>();
-    REQUIRE(scaled_mixture.query<VarianceSpecCap>() != nullptr);
-    REQUIRE(scaled_mixture.query<ProportionSpecCap>() != nullptr);
+        = scaled_mixture.query<MultiplierCap>();
+    REQUIRE(scaled_mixture.query<MarkerVarianceCap>() != nullptr);
+    REQUIRE(scaled_mixture.query<MixtureProportionCap>() != nullptr);
     REQUIRE(scaled_mixture_multiplier != nullptr);
     REQUIRE(scaled_mixture_multiplier->multiplier().size() == 1);
 
     JointMixtureGaussianPrior joint(
         std::array<GeneticMode, 2>{GeneticMode::A, GeneticMode::D},
-        std::array<MarkerVarianceSpec, 2>{
+        std::array<MarkerVariance, 2>{
             make_marker_variance(), make_marker_variance()},
         make_proportion_2());
-    const auto* joint_variance = joint.query<VarianceSpecCap>();
-    const auto* joint_proportion = joint.query<ProportionSpecCap>();
+    const auto* joint_variance = joint.query<MarkerVarianceCap>();
+    const auto* joint_proportion = joint.query<MixtureProportionCap>();
     REQUIRE(joint_variance != nullptr);
     REQUIRE(joint_variance->variance().size() == 2);
     REQUIRE(joint_proportion != nullptr);
     REQUIRE(joint_proportion->proportion().size() == 1);
-    REQUIRE(joint.query<MultiplierSpecCap>() == nullptr);
+    REQUIRE(joint.query<MultiplierCap>() == nullptr);
 }
 
 TEST_CASE(
@@ -231,7 +234,7 @@ TEST_CASE(
 
     JointMixtureGaussianPrior joint(
         std::array<GeneticMode, 2>{GeneticMode::A, GeneticMode::D},
-        std::array<MarkerVarianceSpec, 2>{
+        std::array<MarkerVariance, 2>{
             make_marker_variance(), make_marker_variance()},
         make_proportion_2());
 
@@ -303,73 +306,82 @@ TEST_CASE("BayesPrior rejects duplicate mode across blocks", "[bayes_prior]")
         GelexException);
 }
 
-TEST_CASE("VarianceSpec rejects invalid initial_value", "[variance_spec]")
+TEST_CASE(
+    "VarianceParameter rejects invalid initial_value",
+    "[variance_parameter]")
 {
     SECTION("initial_value <= 0")
     {
         REQUIRE_THROWS_AS(
-            VarianceSpec(0.0, ScaledInvChiSqPrior{4.0, 1.0}), GelexException);
+            VarianceParameter(0.0, ScaledInvChiSqPrior{4.0, 1.0}),
+            GelexException);
         REQUIRE_THROWS_AS(
-            VarianceSpec(-1.0, ScaledInvChiSqPrior{4.0, 1.0}), GelexException);
+            VarianceParameter(-1.0, ScaledInvChiSqPrior{4.0, 1.0}),
+            GelexException);
     }
 }
 
-TEST_CASE("VarianceSpec accepts positive initial_value", "[variance_spec]")
+TEST_CASE(
+    "VarianceParameter accepts positive initial_value",
+    "[variance_parameter]")
 {
-    const VarianceSpec spec{2.0, ScaledInvChiSqPrior{4.0, 1.0}};
+    const VarianceParameter parameter{2.0, ScaledInvChiSqPrior{4.0, 1.0}};
 
-    REQUIRE(spec.initial_value() == 2.0);
+    REQUIRE(parameter.initial_value() == 2.0);
 }
 
-TEST_CASE("ProportionSpec rejects invalid vectors", "[proportion_spec]")
+TEST_CASE("SimplexParameter rejects invalid initial_value", "[simplex_parameter]")
 {
     SECTION("initial_value size < 2")
     {
         REQUIRE_THROWS_AS(
-            ProportionSpec(
+            SimplexParameter(
                 Eigen::VectorXd{{1.0}},
-                Eigen::VectorXd{{1.0}},
-                ProportionUpdate::fixed),
+                DirichletPrior{Eigen::VectorXd{{1.0, 1.0}}}),
             GelexException);
     }
 
     SECTION("initial_value entries must be positive")
     {
         REQUIRE_THROWS_AS(
-            ProportionSpec(
+            SimplexParameter(
                 Eigen::VectorXd{{1.0, 0.0}},
-                Eigen::VectorXd{{1.0, 1.0}},
-                ProportionUpdate::fixed),
+                DirichletPrior{Eigen::VectorXd{{1.0, 1.0}}}),
             GelexException);
     }
 
     SECTION("initial_value entries must sum to one")
     {
         REQUIRE_THROWS_AS(
-            ProportionSpec(
+            SimplexParameter(
                 Eigen::VectorXd{{0.7, 0.2}},
-                Eigen::VectorXd{{1.0, 1.0}},
-                ProportionUpdate::fixed),
+                DirichletPrior{Eigen::VectorXd{{1.0, 1.0}}}),
             GelexException);
     }
 
-    SECTION("concentration size must match initial_value")
+    SECTION("prior size must match initial_value")
     {
         REQUIRE_THROWS_AS(
-            ProportionSpec(
+            SimplexParameter(
                 Eigen::VectorXd{{0.5, 0.5}},
-                Eigen::VectorXd{{1.0}},
-                ProportionUpdate::fixed),
+                DirichletPrior{Eigen::VectorXd{{1.0, 1.0, 1.0}}}),
             GelexException);
     }
+}
 
+TEST_CASE("DirichletPrior rejects invalid concentration", "[dirichlet_prior]")
+{
     SECTION("concentration entries must be positive")
     {
         REQUIRE_THROWS_AS(
-            ProportionSpec(
-                Eigen::VectorXd{{0.5, 0.5}},
-                Eigen::VectorXd{{1.0, 0.0}},
-                ProportionUpdate::fixed),
+            DirichletPrior(Eigen::VectorXd{{1.0, 0.0}}),
+            GelexException);
+    }
+
+    SECTION("concentration size < 2")
+    {
+        REQUIRE_THROWS_AS(
+            DirichletPrior(Eigen::VectorXd{{1.0}}),
             GelexException);
     }
 }

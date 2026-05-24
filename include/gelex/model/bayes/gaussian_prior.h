@@ -25,7 +25,7 @@
 
 #include "gelex/model/bayes/capabilities.h"
 #include "gelex/model/bayes/genetic_prior.h"
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/prior_state.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -34,22 +34,22 @@ namespace gelex::bayes
 
 class GaussianPrior final
     : public GeneticPrior
-    , public VarianceSpecCap
+    , public MarkerVarianceCap
 {
    public:
-    GaussianPrior(GeneticMode mode, MarkerVarianceSpec variance);
+    GaussianPrior(GeneticMode mode, MarkerVariance variance);
 
     auto modes() const -> std::span<const GeneticMode> override
     {
         return modes_;
     }
-    auto variance() -> std::span<MarkerVarianceSpec> override
+    auto variance() -> std::span<MarkerVariance> override
     {
-        return variance_specs_;
+        return marker_variances_;
     }
-    auto variance() const -> std::span<const MarkerVarianceSpec> override
+    auto variance() const -> std::span<const MarkerVariance> override
     {
-        return variance_specs_;
+        return marker_variances_;
     }
 
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
@@ -57,39 +57,39 @@ class GaussianPrior final
 
    private:
     std::array<GeneticMode, 1> modes_;
-    std::array<MarkerVarianceSpec, 1> variance_specs_;
+    std::array<MarkerVariance, 1> marker_variances_;
 };
 
 class SpikeSlabGaussianPrior final
     : public GeneticPrior
-    , public VarianceSpecCap
-    , public ProportionSpecCap
+    , public MarkerVarianceCap
+    , public MixtureProportionCap
 {
    public:
     SpikeSlabGaussianPrior(
         GeneticMode mode,
-        MarkerVarianceSpec variance,
-        ProportionSpec proportion);
+        MarkerVariance variance,
+        MixtureProportion proportion);
 
     auto modes() const -> std::span<const GeneticMode> override
     {
         return modes_;
     }
-    auto variance() -> std::span<MarkerVarianceSpec> override
+    auto variance() -> std::span<MarkerVariance> override
     {
-        return variance_specs_;
+        return marker_variances_;
     }
-    auto variance() const -> std::span<const MarkerVarianceSpec> override
+    auto variance() const -> std::span<const MarkerVariance> override
     {
-        return variance_specs_;
+        return marker_variances_;
     }
-    auto proportion() -> std::span<ProportionSpec> override
+    auto proportion() -> std::span<MixtureProportion> override
     {
-        return proportion_specs_;
+        return mixture_proportions_;
     }
-    auto proportion() const -> std::span<const ProportionSpec> override
+    auto proportion() const -> std::span<const MixtureProportion> override
     {
-        return proportion_specs_;
+        return mixture_proportions_;
     }
 
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
@@ -97,42 +97,42 @@ class SpikeSlabGaussianPrior final
 
    private:
     std::array<GeneticMode, 1> modes_;
-    std::array<MarkerVarianceSpec, 1> variance_specs_;
-    std::array<ProportionSpec, 1> proportion_specs_;
+    std::array<MarkerVariance, 1> marker_variances_;
+    std::array<MixtureProportion, 1> mixture_proportions_;
 };
 
 class ScaledMixtureGaussianPrior final
     : public GeneticPrior
-    , public VarianceSpecCap
-    , public ProportionSpecCap
-    , public MultiplierSpecCap
+    , public MarkerVarianceCap
+    , public MixtureProportionCap
+    , public MultiplierCap
 {
    public:
     ScaledMixtureGaussianPrior(
         GeneticMode mode,
-        MarkerVarianceSpec variance,
+        MarkerVariance variance,
         Eigen::VectorXd multiplier,
-        ProportionSpec proportion);
+        MixtureProportion proportion);
 
     auto modes() const -> std::span<const GeneticMode> override
     {
         return modes_;
     }
-    auto variance() -> std::span<MarkerVarianceSpec> override
+    auto variance() -> std::span<MarkerVariance> override
     {
-        return variance_specs_;
+        return marker_variances_;
     }
-    auto variance() const -> std::span<const MarkerVarianceSpec> override
+    auto variance() const -> std::span<const MarkerVariance> override
     {
-        return variance_specs_;
+        return marker_variances_;
     }
-    auto proportion() -> std::span<ProportionSpec> override
+    auto proportion() -> std::span<MixtureProportion> override
     {
-        return proportion_specs_;
+        return mixture_proportions_;
     }
-    auto proportion() const -> std::span<const ProportionSpec> override
+    auto proportion() const -> std::span<const MixtureProportion> override
     {
-        return proportion_specs_;
+        return mixture_proportions_;
     }
     auto multiplier() -> std::span<Eigen::VectorXd> override
     {
@@ -148,41 +148,41 @@ class ScaledMixtureGaussianPrior final
 
    private:
     std::array<GeneticMode, 1> modes_;
-    std::array<MarkerVarianceSpec, 1> variance_specs_;
+    std::array<MarkerVariance, 1> marker_variances_;
     std::array<Eigen::VectorXd, 1> multipliers_;
-    std::array<ProportionSpec, 1> proportion_specs_;
+    std::array<MixtureProportion, 1> mixture_proportions_;
 };
 
 class JointMixtureGaussianPrior final
     : public GeneticPrior
-    , public VarianceSpecCap
-    , public ProportionSpecCap
+    , public MarkerVarianceCap
+    , public MixtureProportionCap
 {
    public:
     JointMixtureGaussianPrior(
         std::array<GeneticMode, 2> modes,
-        std::array<MarkerVarianceSpec, 2> variances,
-        ProportionSpec proportion);
+        std::array<MarkerVariance, 2> variances,
+        MixtureProportion proportion);
 
     auto modes() const -> std::span<const GeneticMode> override
     {
         return modes_;
     }
-    auto variance() -> std::span<MarkerVarianceSpec> override
+    auto variance() -> std::span<MarkerVariance> override
     {
-        return variance_specs_;
+        return marker_variances_;
     }
-    auto variance() const -> std::span<const MarkerVarianceSpec> override
+    auto variance() const -> std::span<const MarkerVariance> override
     {
-        return variance_specs_;
+        return marker_variances_;
     }
-    auto proportion() -> std::span<ProportionSpec> override
+    auto proportion() -> std::span<MixtureProportion> override
     {
-        return proportion_specs_;
+        return mixture_proportions_;
     }
-    auto proportion() const -> std::span<const ProportionSpec> override
+    auto proportion() const -> std::span<const MixtureProportion> override
     {
-        return proportion_specs_;
+        return mixture_proportions_;
     }
 
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
@@ -190,8 +190,8 @@ class JointMixtureGaussianPrior final
 
    private:
     std::array<GeneticMode, 2> modes_;
-    std::array<MarkerVarianceSpec, 2> variance_specs_;
-    std::array<ProportionSpec, 1> proportion_specs_;
+    std::array<MarkerVariance, 2> marker_variances_;
+    std::array<MixtureProportion, 1> mixture_proportions_;
 };
 
 }  // namespace gelex::bayes

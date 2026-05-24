@@ -46,8 +46,8 @@ class BayesCKernel
                   .proportion()[block.slot]),
           normal_(marker_variance_(0)),
           variance_sampler_(make_variance_sampler(
-              require_variance_specs(block.prior, "BayesCKernel")[block.slot]
-                  .variance()))
+              require_marker_variances(block.prior, "BayesCKernel")[block.slot]
+                  .parameter()))
     {
     }
 

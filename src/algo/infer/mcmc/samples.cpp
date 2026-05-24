@@ -88,15 +88,15 @@ auto GeneticSamples::make_group_samples(
     const bayes::GeneticBlockState& block,
     std::size_t slot) -> std::optional<MixtureSamples>
 {
-    const auto* proportion_cap = prior.query<bayes::ProportionSpecCap>();
+    const auto* proportion_cap = prior.query<bayes::MixtureProportionCap>();
     if (proportion_cap == nullptr)
     {
         return std::nullopt;
     }
     const auto n_snps = effect.X.cols();
-    const auto specs = proportion_cap->proportion();
-    const auto n_pi = specs[slot].size();
-    const auto estimate_pi = specs[slot].sampled();
+    const auto proportions = proportion_cap->proportion();
+    const auto n_pi = proportions[slot].size();
+    const auto estimate_pi = proportions[slot].sampled();
     const bool has_components
         = block.prior_state().query<bayes::ComponentStateCap>() != nullptr;
     if (has_components)

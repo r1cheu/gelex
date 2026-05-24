@@ -40,8 +40,8 @@ class BayesRRKernel
               "BayesRRKernel")[block.slot]),
           normal_(marker_variance_(0)),
           variance_sampler_(make_variance_sampler(
-              require_variance_specs(block.prior, "BayesRRKernel")[block.slot]
-                  .variance()))
+              require_marker_variances(block.prior, "BayesRRKernel")[block.slot]
+                  .parameter()))
     {
     }
 

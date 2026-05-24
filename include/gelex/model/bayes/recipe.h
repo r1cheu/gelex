@@ -77,8 +77,9 @@ class BayesRecipe
         BayesRecipePreset preset,
         const BayesRecipeConfig& options) -> std::unique_ptr<BayesRecipeImpl>;
     static auto validate_modes(std::span<const GeneticMode> modes) -> void;
-    auto make_random_prior(const BayesModel& model) const -> VarianceSpec;
-    static auto make_residual_prior(const BayesModel& model) -> VarianceSpec;
+    auto make_random_prior(const BayesModel& model) const -> VarianceParameter;
+    static auto make_residual_prior(const BayesModel& model)
+        -> VarianceParameter;
 
     BayesRecipePreset preset_;
     BayesRecipeConfig options_;

@@ -23,7 +23,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/prior_state.h"
 #include "gelex/model/bayes/state_capabilities.h"
 
@@ -63,7 +63,7 @@ class SpikeSlabGaussianState final
    public:
     SpikeSlabGaussianState(
         std::vector<Eigen::VectorXd> variances,
-        std::span<const ProportionSpec> proportion_specs,
+        std::span<const MixtureProportion> mixture_proportions,
         Eigen::Index num_markers);
 
     auto variance() -> std::span<Eigen::VectorXd> override
@@ -104,7 +104,7 @@ class ScaledMixtureGaussianState final
     ScaledMixtureGaussianState(
         std::vector<Eigen::VectorXd> base_variances,
         std::span<const Eigen::VectorXd> multipliers,
-        std::span<const ProportionSpec> proportion_specs,
+        std::span<const MixtureProportion> mixture_proportions,
         Eigen::Index num_markers,
         Eigen::Index num_individuals);
 
@@ -155,7 +155,7 @@ class JointMixtureGaussianState final
    public:
     JointMixtureGaussianState(
         std::array<Eigen::VectorXd, 2> variances,
-        const ProportionSpec& proportion_spec,
+        const MixtureProportion& proportion,
         Eigen::Index num_markers,
         Eigen::Index num_individuals);
 

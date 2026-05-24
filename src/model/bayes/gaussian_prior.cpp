@@ -28,8 +28,8 @@
 namespace gelex::bayes
 {
 
-GaussianPrior::GaussianPrior(GeneticMode mode, MarkerVarianceSpec variance)
-    : modes_{mode}, variance_specs_{variance}
+GaussianPrior::GaussianPrior(GeneticMode mode, MarkerVariance variance)
+    : modes_{mode}, marker_variances_{variance}
 {
 }
 
@@ -39,18 +39,18 @@ auto GaussianPrior::make_state(
     -> std::unique_ptr<GeneticPriorState>
 {
     return std::make_unique<GaussianState>(
-        make_variance_values(variance_specs_, num_markers));
+        make_variance_values(marker_variances_, num_markers));
 }
 
 SpikeSlabGaussianPrior::SpikeSlabGaussianPrior(
     GeneticMode mode,
-    MarkerVarianceSpec variance,
-    ProportionSpec proportion)
+    MarkerVariance variance,
+    MixtureProportion proportion)
     : modes_{mode},
-      variance_specs_{variance},
-      proportion_specs_{std::move(proportion)}
+      marker_variances_{variance},
+      mixture_proportions_{std::move(proportion)}
 {
-    if (proportion_specs_[0].size() != 2)
+    if (mixture_proportions_[0].size() != 2)
     {
         throw GelexException(
             "SpikeSlabGaussianPrior: proportion must have size 2");
@@ -63,22 +63,22 @@ auto SpikeSlabGaussianPrior::make_state(
     -> std::unique_ptr<GeneticPriorState>
 {
     return std::make_unique<SpikeSlabGaussianState>(
-        make_variance_values(variance_specs_, num_markers),
-        proportion_specs_,
+        make_variance_values(marker_variances_, num_markers),
+        mixture_proportions_,
         num_markers);
 }
 
 ScaledMixtureGaussianPrior::ScaledMixtureGaussianPrior(
     GeneticMode mode,
-    MarkerVarianceSpec variance,
+    MarkerVariance variance,
     Eigen::VectorXd multiplier,
-    ProportionSpec proportion)
+    MixtureProportion proportion)
     : modes_{mode},
-      variance_specs_{variance},
+      marker_variances_{variance},
       multipliers_{std::move(multiplier)},
-      proportion_specs_{std::move(proportion)}
+      mixture_proportions_{std::move(proportion)}
 {
-    if (multipliers_[0].size() != proportion_specs_[0].size())
+    if (multipliers_[0].size() != mixture_proportions_[0].size())
     {
         throw GelexException(
             "ScaledMixtureGaussianPrior: multiplier and proportion sizes "
@@ -96,20 +96,20 @@ auto ScaledMixtureGaussianPrior::make_state(
     Eigen::Index num_individuals) const -> std::unique_ptr<GeneticPriorState>
 {
     return std::make_unique<ScaledMixtureGaussianState>(
-        make_variance_values(variance_specs_, num_markers),
+        make_variance_values(marker_variances_, num_markers),
         multipliers_,
-        proportion_specs_,
+        mixture_proportions_,
         num_markers,
         num_individuals);
 }
 
 JointMixtureGaussianPrior::JointMixtureGaussianPrior(
     std::array<GeneticMode, 2> modes,
-    std::array<MarkerVarianceSpec, 2> variances,
-    ProportionSpec proportion)
+    std::array<MarkerVariance, 2> variances,
+    MixtureProportion proportion)
     : modes_(modes),
-      variance_specs_(variances),
-      proportion_specs_{std::move(proportion)}
+      marker_variances_(variances),
+      mixture_proportions_{std::move(proportion)}
 {
     if (modes_[0] == modes_[1])
     {
@@ -122,11 +122,11 @@ auto JointMixtureGaussianPrior::make_state(
     Eigen::Index num_markers,
     Eigen::Index num_individuals) const -> std::unique_ptr<GeneticPriorState>
 {
-    auto values = make_variance_values(variance_specs_, num_markers);
+    auto values = make_variance_values(marker_variances_, num_markers);
     return std::make_unique<JointMixtureGaussianState>(
         std::array<Eigen::VectorXd, 2>{
             std::move(values[0]), std::move(values[1])},
-        proportion_specs_[0],
+        mixture_proportions_[0],
         num_markers,
         num_individuals);
 }

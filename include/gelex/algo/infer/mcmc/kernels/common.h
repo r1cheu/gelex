@@ -29,25 +29,25 @@
 #include "gelex/model/bayes/capabilities.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/prior_state.h"
 #include "gelex/model/bayes/state_capabilities.h"
 
 namespace gelex::mcmc
 {
 
-inline auto make_variance_sampler(const bayes::VarianceSpec& spec)
+inline auto make_variance_sampler(const bayes::VarianceParameter& parameter)
     -> stats::ScaledInvChi2Sampler<double>
 {
     return stats::ScaledInvChi2Sampler<double>{
-        spec.prior().degrees_of_freedom(), spec.prior().scale()};
+        parameter.prior().degrees_of_freedom(), parameter.prior().scale()};
 }
 
-inline auto require_variance_specs(
+inline auto require_marker_variances(
     const bayes::GeneticPrior& prior,
-    std::string_view kernel_name) -> std::span<const bayes::MarkerVarianceSpec>
+    std::string_view kernel_name) -> std::span<const bayes::MarkerVariance>
 {
-    const auto* cap = prior.query<bayes::VarianceSpecCap>();
+    const auto* cap = prior.query<bayes::MarkerVarianceCap>();
     if (cap == nullptr)
     {
         throw GelexException(
@@ -70,11 +70,11 @@ inline auto require_variance_state(
     return cap->variance();
 }
 
-inline auto require_multiplier_specs(
+inline auto require_multipliers(
     const bayes::GeneticPrior& prior,
     std::string_view kernel_name) -> std::span<const Eigen::VectorXd>
 {
-    const auto* cap = prior.query<bayes::MultiplierSpecCap>();
+    const auto* cap = prior.query<bayes::MultiplierCap>();
     if (cap == nullptr)
     {
         throw GelexException(

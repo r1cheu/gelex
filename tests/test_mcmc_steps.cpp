@@ -42,7 +42,7 @@
 #include "gelex/model/bayes/gaussian_prior.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state.h"
 #include "gelex/model/bayes/state_capabilities.h"
 #include "gelex/types/fixed_effects.h"
@@ -57,26 +57,29 @@ namespace
 constexpr std::uint64_t kSeed = 0xC0FFEE5678ULL;
 
 auto make_variance(double initial_value, double scale = 0.5)
-    -> bayes::VarianceSpec
+    -> bayes::VarianceParameter
 {
-    return bayes::VarianceSpec(
+    return bayes::VarianceParameter(
         initial_value, bayes::ScaledInvChiSqPrior{4.0, scale});
 }
 
 auto make_marker_variance(
-    bayes::MarkerVarianceScope scope,
-    double initial_value = 0.1) -> bayes::MarkerVarianceSpec
+    bayes::MarkerVarianceLayout scope,
+    double initial_value = 0.1) -> bayes::MarkerVariance
 {
-    return bayes::MarkerVarianceSpec{scope, make_variance(initial_value)};
+    return bayes::MarkerVariance{scope, make_variance(initial_value)};
 }
 
 auto make_proportion(
     Eigen::VectorXd value,
-    bayes::ProportionUpdate update) -> bayes::ProportionSpec
+    bayes::UpdatePolicy update) -> bayes::MixtureProportion
 {
     const auto size = value.size();
-    return bayes::ProportionSpec{
-        std::move(value), Eigen::VectorXd::Ones(size), update};
+    return bayes::MixtureProportion{
+        bayes::SimplexParameter{
+            std::move(value),
+            bayes::DirichletPrior{Eigen::VectorXd::Ones(size)}},
+        update};
 }
 
 auto make_genotype(Eigen::MatrixXd data) -> genotype::Genotype
@@ -105,7 +108,7 @@ auto make_prior<BayesAKernel>() -> bayes::BayesPrior
     std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
     genetics.push_back(std::make_unique<bayes::GaussianPrior>(
         GeneticMode::A,
-        make_marker_variance(bayes::MarkerVarianceScope::per_marker)));
+        make_marker_variance(bayes::MarkerVarianceLayout::per_marker)));
     return bayes::BayesPrior(
         make_variance(0.5), std::move(genetics), make_variance(0.25));
 }
@@ -116,7 +119,7 @@ auto make_prior<BayesRRKernel>() -> bayes::BayesPrior
     std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
     genetics.push_back(std::make_unique<bayes::GaussianPrior>(
         GeneticMode::A,
-        make_marker_variance(bayes::MarkerVarianceScope::per_effect)));
+        make_marker_variance(bayes::MarkerVarianceLayout::shared)));
     return bayes::BayesPrior(
         make_variance(0.5), std::move(genetics), make_variance(0.25));
 }
@@ -127,9 +130,9 @@ auto make_prior<BayesBKernel>() -> bayes::BayesPrior
     std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
     genetics.push_back(std::make_unique<bayes::SpikeSlabGaussianPrior>(
         GeneticMode::A,
-        make_marker_variance(bayes::MarkerVarianceScope::per_marker),
+        make_marker_variance(bayes::MarkerVarianceLayout::per_marker),
         make_proportion(
-            Eigen::VectorXd{{0.9, 0.1}}, bayes::ProportionUpdate::fixed)));
+            Eigen::VectorXd{{0.9, 0.1}}, bayes::UpdatePolicy::fixed)));
     return bayes::BayesPrior(
         make_variance(0.5), std::move(genetics), make_variance(0.25));
 }
@@ -140,9 +143,9 @@ auto make_prior<BayesCKernel>() -> bayes::BayesPrior
     std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
     genetics.push_back(std::make_unique<bayes::SpikeSlabGaussianPrior>(
         GeneticMode::A,
-        make_marker_variance(bayes::MarkerVarianceScope::per_effect),
+        make_marker_variance(bayes::MarkerVarianceLayout::shared),
         make_proportion(
-            Eigen::VectorXd{{0.9, 0.1}}, bayes::ProportionUpdate::fixed)));
+            Eigen::VectorXd{{0.9, 0.1}}, bayes::UpdatePolicy::fixed)));
     return bayes::BayesPrior(
         make_variance(0.5), std::move(genetics), make_variance(0.25));
 }
@@ -152,11 +155,11 @@ auto make_bayes_r_prior() -> bayes::BayesPrior
     std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
     genetics.push_back(std::make_unique<bayes::ScaledMixtureGaussianPrior>(
         GeneticMode::A,
-        make_marker_variance(bayes::MarkerVarianceScope::per_effect, 0.05),
+        make_marker_variance(bayes::MarkerVarianceLayout::shared, 0.05),
         Eigen::VectorXd{{0.0, 0.001, 0.01, 0.1}},
         make_proportion(
             Eigen::VectorXd{{0.7, 0.2, 0.08, 0.02}},
-            bayes::ProportionUpdate::sampled)));
+            bayes::UpdatePolicy::sampled)));
     return bayes::BayesPrior(
         make_variance(0.5), std::move(genetics), make_variance(0.25));
 }

@@ -24,7 +24,7 @@
 
 #include "gelex/exception.h"
 #include "gelex/infra/record_visitor.h"
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state_record_set.h"
 
 namespace gelex::bayes
@@ -33,12 +33,14 @@ namespace gelex::bayes
 struct ProportionState
 {
     ProportionState() = default;
-    ProportionState(const ProportionSpec& spec, Eigen::Index num_markers);
+    ProportionState(
+        const MixtureProportion& proportion,
+        Eigen::Index num_markers);
 
     Eigen::VectorXi assignment;
     Eigen::VectorXi count;
     Eigen::VectorXd value;
-    ProportionUpdate update{ProportionUpdate::fixed};
+    UpdatePolicy update{UpdatePolicy::fixed};
 };
 
 struct ComponentState

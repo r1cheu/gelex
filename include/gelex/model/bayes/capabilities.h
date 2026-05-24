@@ -21,7 +21,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 
 namespace gelex::bayes
 {
@@ -91,9 +91,9 @@ class MultiplierCapability
     MultiplierCapability(MultiplierCapability&&) noexcept = default;
 };
 
-using VarianceSpecCap = VarianceCapability<MarkerVarianceSpec>;
-using ProportionSpecCap = ProportionCapability<ProportionSpec>;
-using MultiplierSpecCap = MultiplierCapability<Eigen::VectorXd>;
+using MarkerVarianceCap = VarianceCapability<MarkerVariance>;
+using MixtureProportionCap = ProportionCapability<MixtureProportion>;
+using MultiplierCap = MultiplierCapability<Eigen::VectorXd>;
 
 }  // namespace gelex::bayes
 

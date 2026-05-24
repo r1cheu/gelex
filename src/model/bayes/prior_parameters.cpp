@@ -1,4 +1,4 @@
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 
 #include <cmath>
 #include <limits>
@@ -31,35 +31,53 @@ ScaledInvChiSqPrior::ScaledInvChiSqPrior(
     }
 }
 
-VarianceSpec::VarianceSpec(double initial_value, ScaledInvChiSqPrior prior)
+DirichletPrior::DirichletPrior(Eigen::VectorXd concentration)
+    : concentration_(std::move(concentration))
+{
+    if (concentration_.size() < 2)
+    {
+        throw GelexException(
+            "DirichletPrior: concentration must have at least 2 entries");
+    }
+    for (Eigen::Index i = 0; i < concentration_.size(); ++i)
+    {
+        if (!std::isfinite(concentration_(i)) || !(concentration_(i) > 0))
+        {
+            throw GelexException(
+                "DirichletPrior: concentration entries must be finite and "
+                "> 0");
+        }
+    }
+}
+
+VarianceParameter::VarianceParameter(
+    double initial_value,
+    ScaledInvChiSqPrior prior)
     : initial_value_(initial_value), prior_(prior)
 {
     if (!std::isfinite(initial_value_) || !(initial_value_ > 0))
     {
         throw GelexException(
-            "VarianceSpec: initial_value must be finite and positive");
+            "VarianceParameter: initial_value must be finite and positive");
     }
 }
 
-ProportionSpec::ProportionSpec(
+SimplexParameter::SimplexParameter(
     Eigen::VectorXd initial_value,
-    Eigen::VectorXd concentration,
-    ProportionUpdate update)
-    : initial_value_(std::move(initial_value)),
-      concentration_(std::move(concentration)),
-      update_(update)
+    DirichletPrior prior)
+    : initial_value_(std::move(initial_value)), prior_(std::move(prior))
 {
     if (initial_value_.size() < 2)
     {
         throw GelexException(
-            "ProportionSpec: initial_value must have at least 2 entries");
+            "SimplexParameter: initial_value must have at least 2 entries");
     }
     for (Eigen::Index i = 0; i < initial_value_.size(); ++i)
     {
         if (!std::isfinite(initial_value_(i)) || !(initial_value_(i) > 0))
         {
             throw GelexException(
-                "ProportionSpec: initial_value entries must be finite and "
+                "SimplexParameter: initial_value entries must be finite and "
                 "> 0");
         }
     }
@@ -69,23 +87,28 @@ ProportionSpec::ProportionSpec(
     if (std::abs(sum - 1.0) > tol)
     {
         throw GelexException(
-            "ProportionSpec: initial_value entries must sum to 1");
+            "SimplexParameter: initial_value entries must sum to 1");
     }
-    if (concentration_.size() != initial_value_.size())
+    if (prior_.size() != initial_value_.size())
     {
         throw GelexException(
-            "ProportionSpec: initial_value and concentration must have "
+            "SimplexParameter: initial_value and prior must have "
             "the same size");
     }
-    for (Eigen::Index i = 0; i < concentration_.size(); ++i)
-    {
-        if (!std::isfinite(concentration_(i)) || !(concentration_(i) > 0))
-        {
-            throw GelexException(
-                "ProportionSpec: concentration entries must be finite and "
-                "> 0");
-        }
-    }
+}
+
+MarkerVariance::MarkerVariance(
+    MarkerVarianceLayout layout,
+    VarianceParameter parameter)
+    : layout_(layout), parameter_(parameter)
+{
+}
+
+MixtureProportion::MixtureProportion(
+    SimplexParameter parameter,
+    UpdatePolicy update)
+    : parameter_(std::move(parameter)), update_(update)
+{
 }
 
 }  // namespace gelex::bayes

@@ -27,7 +27,7 @@
 
 #include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/prior_state.h"
 #include "gelex/model/bayes/state_record_set.h"
 #include "gelex/types/fixed_effects.h"
@@ -59,7 +59,7 @@ struct FixedState
 struct RandomState
 {
     RandomState(const RandomEffect& effect, double variance);
-    RandomState(const RandomEffect& effect, const VarianceSpec& spec);
+    RandomState(const RandomEffect& effect, const VarianceParameter& parameter);
     RandomState(Eigen::VectorXd coeffs, double variance);
 
     auto visit_records(StateRecordSet set, infra::RecordSink& sink) const

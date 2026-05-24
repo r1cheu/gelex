@@ -21,23 +21,23 @@
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 
 namespace gelex::bayes
 {
 
 auto GeneticPrior::make_variance_values(
-    std::span<const MarkerVarianceSpec> variance_specs,
+    std::span<const MarkerVariance> marker_variances,
     Eigen::Index num_markers) -> std::vector<Eigen::VectorXd>
 {
     std::vector<Eigen::VectorXd> values;
-    values.reserve(variance_specs.size());
-    for (const auto& spec : variance_specs)
+    values.reserve(marker_variances.size());
+    for (const auto& marker_variance : marker_variances)
     {
         values.emplace_back(
             Eigen::VectorXd::Constant(
-                spec.marker_variance_size(num_markers),
-                spec.variance().initial_value()));
+                marker_variance.marker_variance_size(num_markers),
+                marker_variance.parameter().initial_value()));
     }
     return values;
 }

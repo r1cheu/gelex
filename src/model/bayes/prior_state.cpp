@@ -24,21 +24,21 @@
 
 #include "gelex/exception.h"
 #include "gelex/infra/record_visitor.h"
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state_capabilities.h"
 
 namespace gelex::bayes
 {
 
 ProportionState::ProportionState(
-    const ProportionSpec& spec,
+    const MixtureProportion& proportion,
     Eigen::Index num_markers)
 {
-    count = Eigen::VectorXi::Zero(spec.size());
+    count = Eigen::VectorXi::Zero(proportion.size());
     count(0) = static_cast<int>(num_markers);
     assignment = Eigen::VectorXi::Zero(num_markers);
-    value = spec.initial_value();
-    update = spec.update();
+    value = proportion.parameter().initial_value();
+    update = proportion.update();
 }
 
 ComponentState::ComponentState(
@@ -86,7 +86,7 @@ auto ProportionStateCap::visit_records(
         {
             case StateRecordSet::sample:
                 sink.emit("proportion", slot, "assignment", state.assignment);
-                if (state.update == ProportionUpdate::sampled)
+                if (state.update == UpdatePolicy::sampled)
                 {
                     sink.emit("proportion", slot, "value", state.value);
                 }

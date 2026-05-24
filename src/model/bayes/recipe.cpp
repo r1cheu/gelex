@@ -24,7 +24,7 @@
 
 #include "gelex/exception.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "independent_recipes.h"
 #include "joint_recipes.h"
 #include "recipe_impl.h"
@@ -88,19 +88,20 @@ auto BayesRecipe::validate_modes(std::span<const GeneticMode> modes) -> void
 }
 
 auto BayesRecipe::make_random_prior(const BayesModel& model) const
-    -> VarianceSpec
+    -> VarianceParameter
 {
     const double proportion = options_.random_variance_proportion
                                   ? options_.random_variance_proportion->value()
                                   : 0.05;
-    return VarianceSpec(
+    return VarianceParameter(
         model.phenotype_variance() * proportion, ScaledInvChiSqPrior{-2, 0});
 }
 
-auto BayesRecipe::make_residual_prior(const BayesModel& model) -> VarianceSpec
+auto BayesRecipe::make_residual_prior(const BayesModel& model)
+    -> VarianceParameter
 {
     const double default_residual_proportion = 0.5;
-    return VarianceSpec(
+    return VarianceParameter(
         model.phenotype_variance() * default_residual_proportion,
         ScaledInvChiSqPrior{-2, 0});
 }

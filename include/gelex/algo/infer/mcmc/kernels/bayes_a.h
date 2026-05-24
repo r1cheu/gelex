@@ -39,8 +39,8 @@ class BayesAKernel
               "BayesAKernel")[block.slot]),
           normal_(0.0),
           sigma_(make_variance_sampler(
-              require_variance_specs(block.prior, "BayesAKernel")[block.slot]
-                  .variance()))
+              require_marker_variances(block.prior, "BayesAKernel")[block.slot]
+                  .parameter()))
     {
     }
 

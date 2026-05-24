@@ -47,10 +47,9 @@ auto BayesCDMethod::make_joint_prior(
 {
     const Simplex<double> proportion = config.joint_proportion.value_or(
         Simplex<double>{{0.991, 0.003, 0.003, 0.003}});
-    const ProportionUpdate update
-        = config.joint_proportion_update.value_or(true)
-              ? ProportionUpdate::sampled
-              : ProportionUpdate::fixed;
+    const UpdatePolicy update = config.joint_proportion_update.value_or(true)
+                                    ? UpdatePolicy::sampled
+                                    : UpdatePolicy::fixed;
 
     // proportion layout: [both-off, A-only, D-only, both-on]
     const double active_a = proportion[1] + proportion[3];
@@ -71,11 +70,9 @@ auto BayesCDMethod::make_joint_prior(
     return std::make_unique<JointMixtureGaussianPrior>(
         std::array{GeneticMode::A, GeneticMode::D},
         std::array{
-            make_marker_variance_spec(
-                MarkerVarianceScope::per_effect, target_a),
-            make_marker_variance_spec(
-                MarkerVarianceScope::per_effect, target_d)},
-        make_proportion_spec(proportion, update));
+            make_marker_variance(MarkerVarianceLayout::shared, target_a),
+            make_marker_variance(MarkerVarianceLayout::shared, target_d)},
+        make_mixture_proportion(proportion, update));
 }
 
 }  // namespace gelex::bayes

@@ -22,7 +22,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/prior_state.h"
 
 namespace gelex::bayes
@@ -48,14 +48,14 @@ auto GaussianState::visit_records(
 
 SpikeSlabGaussianState::SpikeSlabGaussianState(
     std::vector<Eigen::VectorXd> variances,
-    std::span<const ProportionSpec> proportion_specs,
+    std::span<const MixtureProportion> mixture_proportions,
     Eigen::Index num_markers)
     : variances_(std::move(variances))
 {
-    proportions_.reserve(proportion_specs.size());
-    for (const auto& spec : proportion_specs)
+    proportions_.reserve(mixture_proportions.size());
+    for (const auto& proportion : mixture_proportions)
     {
-        proportions_.emplace_back(spec, num_markers);
+        proportions_.emplace_back(proportion, num_markers);
     }
 }
 
@@ -78,7 +78,7 @@ auto SpikeSlabGaussianState::visit_records(
 ScaledMixtureGaussianState::ScaledMixtureGaussianState(
     std::vector<Eigen::VectorXd> base_variances,
     std::span<const Eigen::VectorXd> multipliers,
-    std::span<const ProportionSpec> proportion_specs,
+    std::span<const MixtureProportion> mixture_proportions,
     Eigen::Index num_markers,
     Eigen::Index num_individuals)
     : variances_(std::move(base_variances))
@@ -88,10 +88,10 @@ ScaledMixtureGaussianState::ScaledMixtureGaussianState(
     {
         components_.emplace_back(mult.size() - 1, num_individuals);
     }
-    proportions_.reserve(proportion_specs.size());
-    for (const auto& spec : proportion_specs)
+    proportions_.reserve(mixture_proportions.size());
+    for (const auto& proportion : mixture_proportions)
     {
-        proportions_.emplace_back(spec, num_markers);
+        proportions_.emplace_back(proportion, num_markers);
     }
 }
 
@@ -115,12 +115,12 @@ auto ScaledMixtureGaussianState::visit_records(
 
 JointMixtureGaussianState::JointMixtureGaussianState(
     std::array<Eigen::VectorXd, 2> variances,
-    const ProportionSpec& proportion_spec,
+    const MixtureProportion& proportion,
     Eigen::Index num_markers,
     Eigen::Index num_individuals)
     : variances_(std::move(variances)),
       components_{ComponentState{1, num_individuals}},
-      proportions_{ProportionState{proportion_spec, num_markers}}
+      proportions_{ProportionState{proportion, num_markers}}
 {
 }
 

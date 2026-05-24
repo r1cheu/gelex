@@ -29,10 +29,10 @@ namespace gelex::bayes
 namespace
 {
 
-auto proportion_update_from(const EffectConfig& effect) -> ProportionUpdate
+auto proportion_update_from(const EffectConfig& effect) -> UpdatePolicy
 {
-    return effect.proportion_update().value_or(true) ? ProportionUpdate::sampled
-                                                     : ProportionUpdate::fixed;
+    return effect.proportion_update().value_or(true) ? UpdatePolicy::sampled
+                                                     : UpdatePolicy::fixed;
 }
 
 }  // namespace
@@ -55,8 +55,7 @@ auto BayesRRMethod::make_genetic_prior(
     const double target
         = marker_variance_from_heritability(model, mode, h2, 1.0);
     return std::make_unique<GaussianPrior>(
-        mode,
-        make_marker_variance_spec(MarkerVarianceScope::per_effect, target));
+        mode, make_marker_variance(MarkerVarianceLayout::shared, target));
 }
 
 BayesAMethod::BayesAMethod(const BayesRecipeConfig& options)
@@ -77,8 +76,7 @@ auto BayesAMethod::make_genetic_prior(
     const double target
         = marker_variance_from_heritability(model, mode, h2, 1.0);
     return std::make_unique<GaussianPrior>(
-        mode,
-        make_marker_variance_spec(MarkerVarianceScope::per_marker, target));
+        mode, make_marker_variance(MarkerVarianceLayout::per_marker, target));
 }
 
 BayesBMethod::BayesBMethod(const BayesRecipeConfig& options)
@@ -102,8 +100,8 @@ auto BayesBMethod::make_genetic_prior(
         = marker_variance_from_heritability(model, mode, h2, active_weight);
     return std::make_unique<SpikeSlabGaussianPrior>(
         mode,
-        make_marker_variance_spec(MarkerVarianceScope::per_marker, target),
-        make_proportion_spec(proportion, proportion_update_from(effect)));
+        make_marker_variance(MarkerVarianceLayout::per_marker, target),
+        make_mixture_proportion(proportion, proportion_update_from(effect)));
 }
 
 BayesCMethod::BayesCMethod(const BayesRecipeConfig& options)
@@ -127,8 +125,8 @@ auto BayesCMethod::make_genetic_prior(
         = marker_variance_from_heritability(model, mode, h2, active_weight);
     return std::make_unique<SpikeSlabGaussianPrior>(
         mode,
-        make_marker_variance_spec(MarkerVarianceScope::per_effect, target),
-        make_proportion_spec(proportion, proportion_update_from(effect)));
+        make_marker_variance(MarkerVarianceLayout::shared, target),
+        make_mixture_proportion(proportion, proportion_update_from(effect)));
 }
 
 BayesRMethod::BayesRMethod(const BayesRecipeConfig& options)
@@ -158,9 +156,9 @@ auto BayesRMethod::make_genetic_prior(
         = marker_variance_from_heritability(model, mode, h2, active_weight);
     return std::make_unique<ScaledMixtureGaussianPrior>(
         mode,
-        make_marker_variance_spec(MarkerVarianceScope::per_effect, target),
+        make_marker_variance(MarkerVarianceLayout::shared, target),
         multiplier.to_mat(),
-        make_proportion_spec(proportion, proportion_update_from(effect)));
+        make_mixture_proportion(proportion, proportion_update_from(effect)));
 }
 
 }  // namespace gelex::bayes

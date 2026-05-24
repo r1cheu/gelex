@@ -90,25 +90,27 @@ auto BayesRecipeImpl::marker_variance_from_heritability(
     return target;
 }
 
-auto BayesRecipeImpl::make_marker_variance_spec(
-    MarkerVarianceScope scope,
-    double target_marker_variance) -> MarkerVarianceSpec
+auto BayesRecipeImpl::make_marker_variance(
+    MarkerVarianceLayout layout,
+    double target_marker_variance) -> MarkerVariance
 {
     constexpr double df = 4.0;
-    return MarkerVarianceSpec{
-        scope,
-        VarianceSpec(
+    return MarkerVariance{
+        layout,
+        VarianceParameter(
             target_marker_variance,
             ScaledInvChiSqPrior{df, (df - 2.0) / df * target_marker_variance})};
 }
 
-auto BayesRecipeImpl::make_proportion_spec(
+auto BayesRecipeImpl::make_mixture_proportion(
     const Simplex<double>& proportion,
-    ProportionUpdate update) -> ProportionSpec
+    UpdatePolicy update) -> MixtureProportion
 {
     const auto n = static_cast<Eigen::Index>(proportion.size());
-    return ProportionSpec(
-        proportion.to_mat(), Eigen::VectorXd::Ones(n), update);
+    return MixtureProportion{
+        SimplexParameter{
+            proportion.to_mat(), DirichletPrior{Eigen::VectorXd::Ones(n)}},
+        update};
 }
 
 auto BayesRecipeImpl::reject_dominance_positive_probability_override() const

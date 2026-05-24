@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "gelex/model/bayes/genetic_prior.h"
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 
 namespace gelex::bayes
 {
@@ -31,9 +31,9 @@ class BayesPrior
 {
    public:
     BayesPrior(
-        VarianceSpec random,
+        VarianceParameter random,
         std::vector<std::unique_ptr<GeneticPrior>> genetics,
-        VarianceSpec residual);
+        VarianceParameter residual);
 
     BayesPrior(const BayesPrior&) = delete;
     BayesPrior(BayesPrior&&) noexcept = default;
@@ -43,8 +43,8 @@ class BayesPrior
 
     ~BayesPrior() = default;
 
-    auto random() const -> const VarianceSpec& { return random_; }
-    auto residual() const -> const VarianceSpec& { return residual_; }
+    auto random() const -> const VarianceParameter& { return random_; }
+    auto residual() const -> const VarianceParameter& { return residual_; }
 
     auto genetics() const -> decltype(auto)
     {
@@ -55,9 +55,9 @@ class BayesPrior
     }
 
    private:
-    VarianceSpec random_;
+    VarianceParameter random_;
     std::vector<std::unique_ptr<GeneticPrior>> genetics_;
-    VarianceSpec residual_;
+    VarianceParameter residual_;
 };
 
 }  // namespace gelex::bayes

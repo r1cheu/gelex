@@ -36,7 +36,7 @@ namespace bayes
 {
 class GeneticPrior;
 class BayesPrior;
-class VarianceSpec;
+class VarianceParameter;
 }  // namespace bayes
 
 enum class GeneticMode : uint8_t;
@@ -54,9 +54,11 @@ class FitReporter
    protected:
     FitReporter() = default;
 
-    static auto print_random_prior(const bayes::VarianceSpec& spec) -> void;
+    static auto print_random_prior(const bayes::VarianceParameter& parameter)
+        -> void;
     static auto print_genetic_prior(const bayes::GeneticPrior& prior) -> void;
-    static auto print_residual_prior(const bayes::VarianceSpec& spec) -> void;
+    static auto print_residual_prior(const bayes::VarianceParameter& parameter)
+        -> void;
     static auto print_variance_prior(
         const stats::detail::ScaledInvChiSqParams& prior,
         double init_variance) -> void;

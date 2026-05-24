@@ -24,7 +24,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/prior_state.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -64,7 +64,7 @@ class GeneticPrior
     GeneticPrior(GeneticPrior&&) noexcept = default;
 
     static auto make_variance_values(
-        std::span<const MarkerVarianceSpec> variance_specs,
+        std::span<const MarkerVariance> marker_variances,
         Eigen::Index num_markers) -> std::vector<Eigen::VectorXd>;
 };
 

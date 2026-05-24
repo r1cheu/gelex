@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "gelex/model/bayes/genetic_prior.h"
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/recipe_options.h"
 
 namespace gelex
@@ -59,12 +59,12 @@ class BayesRecipeImpl
         GeneticMode mode,
         double heritability,
         double active_marker_weight) -> double;
-    static auto make_marker_variance_spec(
-        MarkerVarianceScope scope,
-        double target_marker_variance) -> MarkerVarianceSpec;
-    static auto make_proportion_spec(
+    static auto make_marker_variance(
+        MarkerVarianceLayout layout,
+        double target_marker_variance) -> MarkerVariance;
+    static auto make_mixture_proportion(
         const Simplex<double>& proportion,
-        ProportionUpdate update) -> ProportionSpec;
+        UpdatePolicy update) -> MixtureProportion;
 
     auto reject_dominance_positive_probability_override() const -> void;
 

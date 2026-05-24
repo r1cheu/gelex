@@ -22,22 +22,15 @@
 #include <fmt/format.h>
 
 #include "gelex/exception.h"
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 
 namespace gelex::bayes
 {
 
-MarkerVarianceSpec::MarkerVarianceSpec(
-    MarkerVarianceScope scope,
-    VarianceSpec variance)
-    : scope_(scope), variance_(variance)
-{
-}
-
 BayesPrior::BayesPrior(
-    VarianceSpec random,
+    VarianceParameter random,
     std::vector<std::unique_ptr<GeneticPrior>> genetics,
-    VarianceSpec residual)
+    VarianceParameter residual)
     : random_(random), genetics_(std::move(genetics)), residual_(residual)
 {
     std::vector<GeneticMode> seen_modes;

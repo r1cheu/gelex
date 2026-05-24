@@ -50,15 +50,14 @@ class BayesRKernel
           proportion_(
               block.prior_state.template require<bayes::ProportionStateCap>()
                   .proportion()[block.slot]),
-          multiplier_(require_multiplier_specs(
-              block.prior,
-              "BayesRKernel")[block.slot]),
+          multiplier_(
+              require_multipliers(block.prior, "BayesRKernel")[block.slot]),
           marker_variances_(multiplier_.size()),
           logpi_(multiplier_.size()),
           pi_count_(proportion_.count),
           variance_sampler_(make_variance_sampler(
-              require_variance_specs(block.prior, "BayesRKernel")[block.slot]
-                  .variance())),
+              require_marker_variances(block.prior, "BayesRKernel")[block.slot]
+                  .parameter())),
           normal_(0.0)
     {
     }

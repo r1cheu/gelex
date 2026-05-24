@@ -29,7 +29,7 @@
 #include "gelex/model/bayes/capabilities.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::cli
@@ -83,13 +83,14 @@ auto FitReporter::print_summary_row(
         summary.stddev(index));
 }
 
-auto FitReporter::print_random_prior(const bayes::VarianceSpec& spec) -> void
+auto FitReporter::print_random_prior(const bayes::VarianceParameter& parameter)
+    -> void
 {
     cli::printer().line("   Random effect:");
     print_variance_prior(
         stats::detail::ScaledInvChiSqParams{
-            spec.prior().degrees_of_freedom(), spec.prior().scale()},
-        spec.initial_value());
+            parameter.prior().degrees_of_freedom(), parameter.prior().scale()},
+        parameter.initial_value());
 }
 
 auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) -> void
@@ -104,41 +105,44 @@ auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) -> void
         return fmt::join(formatted, ", ");
     };
 
-    if (const auto* variance = prior.query<bayes::VarianceSpecCap>())
+    if (const auto* variance = prior.query<bayes::MarkerVarianceCap>())
     {
-        for (const auto& spec : variance->variance())
+        for (const auto& marker_variance : variance->variance())
         {
+            const auto& parameter = marker_variance.parameter();
             print_variance_prior(
                 stats::detail::ScaledInvChiSqParams{
-                    spec.variance().prior().degrees_of_freedom(),
-                    spec.variance().prior().scale()},
-                spec.variance().initial_value());
+                    parameter.prior().degrees_of_freedom(),
+                    parameter.prior().scale()},
+                parameter.initial_value());
         }
     }
-    if (const auto* proportion = prior.query<bayes::ProportionSpecCap>())
+    if (const auto* proportion = prior.query<bayes::MixtureProportionCap>())
     {
-        for (const auto& spec : proportion->proportion())
+        for (const auto& mixture_proportion : proportion->proportion())
         {
             cli::printer().line(
-                "    Proportion: [{}]", format_vec(spec.initial_value()));
+                "    Proportion: [{}]",
+                format_vec(mixture_proportion.parameter().initial_value()));
         }
     }
-    if (const auto* multiplier = prior.query<bayes::MultiplierSpecCap>())
+    if (const auto* multiplier = prior.query<bayes::MultiplierCap>())
     {
-        for (const auto& spec : multiplier->multiplier())
+        for (const auto& value : multiplier->multiplier())
         {
-            cli::printer().line("    Multiplier: [{}]", format_vec(spec));
+            cli::printer().line("    Multiplier: [{}]", format_vec(value));
         }
     }
 }
 
-auto FitReporter::print_residual_prior(const bayes::VarianceSpec& spec) -> void
+auto FitReporter::print_residual_prior(
+    const bayes::VarianceParameter& parameter) -> void
 {
     cli::printer().line("   Residual:");
     print_variance_prior(
         stats::detail::ScaledInvChiSqParams{
-            spec.prior().degrees_of_freedom(), spec.prior().scale()},
-        spec.initial_value());
+            parameter.prior().degrees_of_freedom(), parameter.prior().scale()},
+        parameter.initial_value());
 }
 
 }  // namespace gelex::cli

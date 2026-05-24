@@ -35,7 +35,7 @@
 #include "gelex/model/bayes/gaussian_prior.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state.h"
 #include "gelex/model/bayes/state_capabilities.h"
 #include "gelex/types/fixed_effects.h"
@@ -71,9 +71,9 @@ auto make_model(Eigen::Index n_samples, Eigen::Index n_snps) -> BayesModel
     return BayesModel{phenotype, std::move(fixed), {}, std::move(genetics)};
 }
 
-auto make_variance(double initial_value) -> bayes::VarianceSpec
+auto make_variance(double initial_value) -> bayes::VarianceParameter
 {
-    return bayes::VarianceSpec(
+    return bayes::VarianceParameter(
         initial_value, bayes::ScaledInvChiSqPrior{4.0, 1.0});
 }
 
@@ -83,8 +83,8 @@ auto make_bayes_a_prior(Eigen::Index /*n_snps*/ = kNumMarkers)
     std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
     genetics.push_back(std::make_unique<bayes::GaussianPrior>(
         GeneticMode::A,
-        bayes::MarkerVarianceSpec{
-            bayes::MarkerVarianceScope::per_marker,
+        bayes::MarkerVariance{
+            bayes::MarkerVarianceLayout::per_marker,
             make_variance(0.2)}));
     return bayes::BayesPrior(
         make_variance(0.5), std::move(genetics), make_variance(1.0));
@@ -95,13 +95,14 @@ auto make_spike_slab_prior() -> bayes::BayesPrior
     std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
     genetics.push_back(std::make_unique<bayes::SpikeSlabGaussianPrior>(
         GeneticMode::A,
-        bayes::MarkerVarianceSpec{
-            bayes::MarkerVarianceScope::per_marker,
+        bayes::MarkerVariance{
+            bayes::MarkerVarianceLayout::per_marker,
             make_variance(0.2)},
-        bayes::ProportionSpec{
-            Eigen::VectorXd{{0.8, 0.2}},
-            Eigen::VectorXd{{1.0, 1.0}},
-            bayes::ProportionUpdate::sampled}));
+        bayes::MixtureProportion{
+            bayes::SimplexParameter{
+                Eigen::VectorXd{{0.8, 0.2}},
+                bayes::DirichletPrior{Eigen::VectorXd{{1.0, 1.0}}}},
+            bayes::UpdatePolicy::sampled}));
     return bayes::BayesPrior(
         make_variance(0.5), std::move(genetics), make_variance(1.0));
 }

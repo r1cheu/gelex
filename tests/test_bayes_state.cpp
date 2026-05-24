@@ -33,7 +33,7 @@
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_specs.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state.h"
 #include "gelex/model/bayes/state_capabilities.h"
 #include "gelex/model/bayes/recipe.h"
@@ -52,18 +52,20 @@ using gelex::bayes::BayesRecipe;
 using gelex::bayes::BayesRecipeConfig;
 using gelex::bayes::BayesRecipePreset;
 using gelex::bayes::ComponentStateCap;
+using gelex::bayes::DirichletPrior;
 using gelex::bayes::GaussianPrior;
 using gelex::bayes::GeneticPrior;
 using gelex::bayes::JointMixtureGaussianPrior;
-using gelex::bayes::MarkerVarianceScope;
-using gelex::bayes::MarkerVarianceSpec;
-using gelex::bayes::ProportionSpec;
+using gelex::bayes::MarkerVariance;
+using gelex::bayes::MarkerVarianceLayout;
+using gelex::bayes::MixtureProportion;
 using gelex::bayes::ProportionStateCap;
-using gelex::bayes::ProportionUpdate;
+using gelex::bayes::UpdatePolicy;
 using gelex::bayes::ScaledInvChiSqPrior;
 using gelex::bayes::ScaledMixtureGaussianPrior;
+using gelex::bayes::SimplexParameter;
 using gelex::bayes::SpikeSlabGaussianPrior;
-using gelex::bayes::VarianceSpec;
+using gelex::bayes::VarianceParameter;
 using gelex::bayes::VarianceStateCap;
 
 namespace
@@ -125,33 +127,35 @@ auto make_model(
         std::move(genetics));
 }
 
-auto make_variance(double initial_value = 1.0) -> VarianceSpec
+auto make_variance(double initial_value = 1.0) -> VarianceParameter
 {
-    return VarianceSpec(initial_value, ScaledInvChiSqPrior{4.0, 1.0});
+    return VarianceParameter(initial_value, ScaledInvChiSqPrior{4.0, 1.0});
 }
 
 auto make_marker_variance(
-    MarkerVarianceScope scope = MarkerVarianceScope::per_marker,
-    double initial_value = 1.0) -> MarkerVarianceSpec
+    MarkerVarianceLayout scope = MarkerVarianceLayout::per_marker,
+    double initial_value = 1.0) -> MarkerVariance
 {
-    return MarkerVarianceSpec{scope, make_variance(initial_value)};
+    return MarkerVariance{scope, make_variance(initial_value)};
 }
 
-auto make_proportion_2() -> ProportionSpec
+auto make_proportion_2() -> MixtureProportion
 {
-    return ProportionSpec{
-        Eigen::VectorXd{{0.9, 0.1}},
-        Eigen::VectorXd{{1.0, 1.0}},
-        ProportionUpdate::fixed,
+    return MixtureProportion{
+        SimplexParameter{
+            Eigen::VectorXd{{0.9, 0.1}},
+            DirichletPrior{Eigen::VectorXd{{1.0, 1.0}}}},
+        UpdatePolicy::fixed,
     };
 }
 
-auto make_proportion_4() -> ProportionSpec
+auto make_proportion_4() -> MixtureProportion
 {
-    return ProportionSpec{
-        Eigen::VectorXd{{0.91, 0.03, 0.03, 0.03}},
-        Eigen::VectorXd{{1.0, 1.0, 1.0, 1.0}},
-        ProportionUpdate::sampled,
+    return MixtureProportion{
+        SimplexParameter{
+            Eigen::VectorXd{{0.91, 0.03, 0.03, 0.03}},
+            DirichletPrior{Eigen::VectorXd{{1.0, 1.0, 1.0, 1.0}}}},
+        UpdatePolicy::sampled,
     };
 }
 
@@ -291,12 +295,13 @@ TEST_CASE("BayesState creates genetic prior states by capability", "[bayes_state
         std::vector<std::unique_ptr<GeneticPrior>> genetics;
         genetics.push_back(std::make_unique<ScaledMixtureGaussianPrior>(
             GeneticMode::D,
-            make_marker_variance(MarkerVarianceScope::per_effect),
+            make_marker_variance(MarkerVarianceLayout::shared),
             Eigen::VectorXd{{0.0, 0.1, 1.0}},
-            ProportionSpec{
-                Eigen::VectorXd{{0.8, 0.1, 0.1}},
-                Eigen::VectorXd{{1.0, 1.0, 1.0}},
-                ProportionUpdate::fixed}));
+            MixtureProportion{
+                SimplexParameter{
+                    Eigen::VectorXd{{0.8, 0.1, 0.1}},
+                    DirichletPrior{Eigen::VectorXd{{1.0, 1.0, 1.0}}}},
+                UpdatePolicy::fixed}));
         auto prior = make_prior(std::move(genetics));
 
         BayesState state(model, prior);
@@ -320,8 +325,8 @@ TEST_CASE("BayesState shares joint prior state across modes", "[bayes_state]")
     genetics.push_back(std::make_unique<JointMixtureGaussianPrior>(
         std::array{GeneticMode::A, GeneticMode::D},
         std::array{
-            make_marker_variance(MarkerVarianceScope::per_effect),
-            make_marker_variance(MarkerVarianceScope::per_effect)},
+            make_marker_variance(MarkerVarianceLayout::shared),
+            make_marker_variance(MarkerVarianceLayout::shared)},
         make_proportion_4()));
     auto prior = make_prior(std::move(genetics));
 
@@ -428,8 +433,8 @@ TEST_CASE("BayesState visits joint prior state once for checkpoint", "[bayes_sta
     genetics.push_back(std::make_unique<JointMixtureGaussianPrior>(
         std::array{GeneticMode::A, GeneticMode::D},
         std::array{
-            make_marker_variance(MarkerVarianceScope::per_effect),
-            make_marker_variance(MarkerVarianceScope::per_effect)},
+            make_marker_variance(MarkerVarianceLayout::shared),
+            make_marker_variance(MarkerVarianceLayout::shared)},
         make_proportion_4()));
     auto prior = make_prior(std::move(genetics));
 
