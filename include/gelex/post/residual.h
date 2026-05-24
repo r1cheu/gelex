@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "gelex/infra/logging/post_event.h"
-#include "gelex/io/detail/binary_reader.h"
+#include "gelex/io/binary_reader.h"
 
 namespace gelex
 {
@@ -30,13 +30,13 @@ class ResidualPosteriorProcessor
 {
    public:
     explicit ResidualPosteriorProcessor(
-        std::span<const io::detail::BinaryReader> readers,
+        std::span<const io::BinaryReader> readers,
         double hdpi_threshold);
 
     [[nodiscard]] auto process() -> std::vector<ParameterDiag>;
 
    private:
-    std::span<const io::detail::BinaryReader> readers_;
+    std::span<const io::BinaryReader> readers_;
     double hdpi_threshold_;
 };
 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_DETAIL_BINARY_READER_H_
-#define GELEX_IO_DETAIL_BINARY_READER_H_
+#ifndef GELEX_IO_BINARY_READER_H_
+#define GELEX_IO_BINARY_READER_H_
 
 #include <fmt/format.h>
 #include <algorithm>
@@ -38,7 +38,7 @@
 #include "gelex/infra/string_hash.h"
 #include "gelex/io/detail/binary_format.h"
 
-namespace gelex::io::detail
+namespace gelex::io
 {
 
 class BinaryReader
@@ -69,7 +69,7 @@ class BinaryReader
         requires std::is_arithmetic_v<eT>
     [[nodiscard]] auto is_type(std::string_view path) const -> bool
     {
-        return find_entry(path).dtype == kTypeByte<eT>;
+        return find_entry(path).dtype == detail::kTypeByte<eT>;
     }
 
     [[nodiscard]] auto to_strings(std::string_view path) const
@@ -95,13 +95,13 @@ class BinaryReader
     auto parse_footer_and_toc() -> void;
 
     [[nodiscard]] auto find_entry(std::string_view path) const
-        -> const TocEntry&;
+        -> const detail::TocEntry&;
 
     std::filesystem::path path_;
     mio::mmap_source mmap_;
     std::unordered_map<
         std::string,
-        TocEntry,
+        detail::TocEntry,
         infra::TransparentHash<std::string>,
         infra::TransparentEqual<std::string>>
         toc_;
@@ -125,7 +125,7 @@ inline BinaryReader::BinaryReader(std::string_view file_path)
                 "{}: failed to mmap: {}", path_.string(), ec.message()));
     }
 
-    if (mmap_.size() < kFooterSize)
+    if (mmap_.size() < detail::kFooterSize)
     {
         throw GelexException(
             fmt::format(
@@ -141,21 +141,23 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
     const auto* data = reinterpret_cast<const std::byte*>(mmap_.data());
     const auto path_str = path_.string();
 
-    const auto* footer = data + file_size - kFooterSize;
+    const auto* footer = data + file_size - detail::kFooterSize;
 
     if (!std::equal(
-            kBinaryFormatMagic.begin(), kBinaryFormatMagic.end(), footer))
+            detail::kBinaryFormatMagic.begin(),
+            detail::kBinaryFormatMagic.end(),
+            footer))
     {
         throw GelexException(
             fmt::format("{}: invalid container magic", path_str));
     }
 
-    const auto toc_offset = decode<uint64_t>(footer + 8);
-    const auto n_entries = decode<uint64_t>(footer + 16);
+    const auto toc_offset = detail::decode<uint64_t>(footer + 8);
+    const auto n_entries = detail::decode<uint64_t>(footer + 16);
 
     const auto toc_region_size
-        = static_cast<uint64_t>(n_entries) * kTocEntrySize;
-    if (toc_offset + toc_region_size + kFooterSize != file_size)
+        = static_cast<uint64_t>(n_entries) * detail::kTocEntrySize;
+    if (toc_offset + toc_region_size + detail::kFooterSize != file_size)
     {
         throw GelexException(
             fmt::format("{}: TOC region does not match file size", path_str));
@@ -166,8 +168,8 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
     for (uint64_t i = 0; i < n_entries; ++i)
     {
         const auto* entry_buf
-            = toc_data + static_cast<size_t>(i) * kTocEntrySize;
-        auto entry = TocEntry::from_bytes(entry_buf);
+            = toc_data + static_cast<size_t>(i) * detail::kTocEntrySize;
+        auto entry = detail::TocEntry::from_bytes(entry_buf);
 
         if (entry.offset + entry.size > toc_offset)
         {
@@ -176,7 +178,7 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
                     "{}: section {} data exceeds TOC boundary", path_str, i));
         }
 
-        auto key = std::string(path_as_view(entry.path));
+        auto key = std::string(detail::path_as_view(entry.path));
         toc_.emplace(std::move(key), entry);
     }
 }
@@ -187,7 +189,7 @@ inline auto BinaryReader::contains(std::string_view path) const -> bool
 }
 
 inline auto BinaryReader::find_entry(std::string_view path) const
-    -> const TocEntry&
+    -> const detail::TocEntry&
 {
     auto it = toc_.find(path);
     if (it == toc_.end())
@@ -203,7 +205,7 @@ inline auto BinaryReader::to_strings(std::string_view path) const
 {
     const auto& entry = find_entry(path);
 
-    if (entry.dtype != kTypeString)
+    if (entry.dtype != detail::kTypeString)
     {
         throw GelexException(
             fmt::format(
@@ -261,14 +263,14 @@ auto BinaryReader::to_map(std::string_view path) const -> Eigen::Map<
     const auto& entry = find_entry(path);
     const auto path_str = path_.string();
 
-    if (entry.dtype != kTypeByte<eT>)
+    if (entry.dtype != detail::kTypeByte<eT>)
     {
         throw GelexException(
             fmt::format(
                 "{}: dtype mismatch, section={}, requested={}",
                 path_str,
                 entry.dtype,
-                kTypeByte<eT>));
+                detail::kTypeByte<eT>));
     }
 
     const auto n_elements
@@ -303,7 +305,7 @@ auto BinaryReader::to_mat(std::string_view path) const
     -> Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>
 {
     const auto& entry = find_entry(path);
-    if (entry.dtype == kTypeByte<eT>)
+    if (entry.dtype == detail::kTypeByte<eT>)
     {
         return Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>(
             to_map<eT>(path));
@@ -315,13 +317,13 @@ auto BinaryReader::to_mat(std::string_view path) const
 
     switch (entry.dtype)
     {
-        case kTypeByte<double>:
+        case detail::kTypeByte<double>:
             return cast_from.template operator()<double>();
-        case kTypeByte<int8_t>:
+        case detail::kTypeByte<int8_t>:
             return cast_from.template operator()<int8_t>();
-        case kTypeByte<uint8_t>:
+        case detail::kTypeByte<uint8_t>:
             return cast_from.template operator()<uint8_t>();
-        case kTypeByte<int64_t>:
+        case detail::kTypeByte<int64_t>:
             return cast_from.template operator()<int64_t>();
         default:
             throw GelexException(
@@ -333,6 +335,6 @@ auto BinaryReader::to_mat(std::string_view path) const
     }
 }
 
-}  // namespace gelex::io::detail
+}  // namespace gelex::io
 
-#endif  // GELEX_IO_DETAIL_BINARY_READER_H_
+#endif  // GELEX_IO_BINARY_READER_H_

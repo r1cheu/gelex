@@ -25,7 +25,7 @@
 #include <Eigen/Core>
 
 #include "gelex/infra/logging/post_event.h"
-#include "gelex/io/detail/binary_reader.h"
+#include "gelex/io/binary_reader.h"
 #include "gelex/post/detail/utils.h"
 
 namespace gelex
@@ -34,9 +34,8 @@ namespace gelex
 namespace
 {
 
-auto block_section_name(
-    const io::detail::BinaryReader& reader,
-    std::size_t block_index) -> std::string
+auto block_section_name(const io::BinaryReader& reader, std::size_t block_index)
+    -> std::string
 {
     const auto modes_path = fmt::format("genetic_block/{}/modes", block_index);
     const auto modes = reader.to_strings(modes_path);
@@ -64,7 +63,7 @@ auto block_section_name(
 }  // namespace
 
 GeneticPosteriorProcessor::GeneticPosteriorProcessor(
-    std::span<const io::detail::BinaryReader> readers,
+    std::span<const io::BinaryReader> readers,
     double hdpi_threshold)
     : readers_{readers}, hdpi_threshold_{hdpi_threshold}
 {

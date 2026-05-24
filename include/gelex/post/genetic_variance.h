@@ -22,7 +22,7 @@
 
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/infra/stats/diagnostics.h"
-#include "gelex/io/detail/binary_reader.h"
+#include "gelex/io/binary_reader.h"
 #include "gelex/post/genetic_variance_kernel.h"
 
 namespace gelex
@@ -38,14 +38,14 @@ class GeneticVariancePosteriorProcessor
 {
    public:
     GeneticVariancePosteriorProcessor(
-        std::span<const io::detail::BinaryReader> readers,
+        std::span<const io::BinaryReader> readers,
         std::span<const GeneticInput> genetics,
         double hdpi_threshold);
 
     [[nodiscard]] auto process() -> GebvVarianceResult;
 
    private:
-    std::span<const io::detail::BinaryReader> readers_;
+    std::span<const io::BinaryReader> readers_;
     std::span<const GeneticInput> genetics_;
     double hdpi_threshold_;
 };

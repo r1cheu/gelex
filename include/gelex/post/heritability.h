@@ -22,7 +22,7 @@
 
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/infra/stats/diagnostics.h"
-#include "gelex/io/detail/binary_reader.h"
+#include "gelex/io/binary_reader.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -32,7 +32,7 @@ class HeritabilityPosteriorProcessor
 {
    public:
     explicit HeritabilityPosteriorProcessor(
-        std::span<const io::detail::BinaryReader> readers,
+        std::span<const io::BinaryReader> readers,
         double hdpi_threshold,
         const stats::Chains& genetic_variances,
         std::span<const GeneticMode> kinds);
@@ -42,7 +42,7 @@ class HeritabilityPosteriorProcessor
    private:
     auto assemble_phenotypic_variance() const -> stats::Chains;
 
-    std::span<const io::detail::BinaryReader> readers_;
+    std::span<const io::BinaryReader> readers_;
     double hdpi_threshold_;
     const stats::Chains& genetic_variances_;
     std::span<const GeneticMode> kinds_;

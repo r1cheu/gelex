@@ -24,14 +24,14 @@
 #include <Eigen/Core>
 
 #include "gelex/infra/logging/post_event.h"
-#include "gelex/io/detail/binary_reader.h"
+#include "gelex/io/binary_reader.h"
 #include "gelex/post/detail/utils.h"
 
 namespace gelex
 {
 
 RandomPosteriorProcessor::RandomPosteriorProcessor(
-    std::span<const io::detail::BinaryReader> readers,
+    std::span<const io::BinaryReader> readers,
     double hdpi_threshold)
     : readers_{readers}, hdpi_threshold_{hdpi_threshold}
 {

@@ -25,7 +25,7 @@ namespace gelex::post::detail
 {
 
 auto assemble_chains(
-    std::span<const ::gelex::io::detail::BinaryReader> readers,
+    std::span<const ::gelex::io::BinaryReader> readers,
     std::string_view section_path) -> stats::Chains
 {
     stats::Chains chains;
@@ -77,7 +77,7 @@ auto compute_posterior_summaries(
 }
 
 auto summarize_section(
-    std::span<const ::gelex::io::detail::BinaryReader> readers,
+    std::span<const ::gelex::io::BinaryReader> readers,
     std::string_view section_path,
     double hdpi_threshold,
     std::string_view section,
@@ -91,7 +91,7 @@ auto summarize_section(
 }
 
 auto summarize_section(
-    std::span<const ::gelex::io::detail::BinaryReader> readers,
+    std::span<const ::gelex::io::BinaryReader> readers,
     std::string_view section_path,
     double hdpi_threshold,
     std::string_view section,

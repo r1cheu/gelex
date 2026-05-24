@@ -24,13 +24,13 @@
 
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/infra/stats/diagnostics.h"
-#include "gelex/io/detail/binary_reader.h"
+#include "gelex/io/binary_reader.h"
 
 namespace gelex::post::detail
 {
 
 [[nodiscard]] auto assemble_chains(
-    std::span<const ::gelex::io::detail::BinaryReader> readers,
+    std::span<const ::gelex::io::BinaryReader> readers,
     std::string_view section_path) -> stats::Chains;
 
 [[nodiscard]] auto compute_posterior_summaries(
@@ -38,14 +38,14 @@ namespace gelex::post::detail
     double hdpi_threshold) -> std::vector<ParameterDiag>;
 
 [[nodiscard]] auto summarize_section(
-    std::span<const ::gelex::io::detail::BinaryReader> readers,
+    std::span<const ::gelex::io::BinaryReader> readers,
     std::string_view section_path,
     double hdpi_threshold,
     std::string_view section,
     std::string_view name) -> ParameterDiag;
 
 [[nodiscard]] auto summarize_section(
-    std::span<const ::gelex::io::detail::BinaryReader> readers,
+    std::span<const ::gelex::io::BinaryReader> readers,
     std::string_view section_path,
     double hdpi_threshold,
     std::string_view section,

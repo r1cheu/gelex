@@ -28,7 +28,7 @@
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/post_event.h"
-#include "gelex/io/detail/binary_reader.h"
+#include "gelex/io/binary_reader.h"
 #include "gelex/model/bayes/labels.h"
 #include "gelex/post/fixed.h"
 #include "gelex/post/genetic.h"
@@ -78,7 +78,7 @@ auto PosteriorAnalysisEngine::run(const PostObserver& observer) -> void
         throw GelexException("Inconsistent section paths across sample files");
     }
 
-    std::span<const io::detail::BinaryReader> readers{readers_};
+    std::span<const io::BinaryReader> readers{readers_};
 
     auto fixed_diags
         = FixedPosteriorProcessor{readers, hdpi_threshold_}.process();
@@ -118,7 +118,7 @@ auto PosteriorAnalysisEngine::check_consistency() const -> bool
     const auto reference = readers_.front().section_paths();
     return std::ranges::all_of(
         readers_ | std::views::drop(1),
-        [&](const io::detail::BinaryReader& reader)
+        [&](const io::BinaryReader& reader)
         { return reader.section_paths() == reference; });
 }
 

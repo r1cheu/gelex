@@ -51,9 +51,8 @@ auto mode_name(GeneticMode mode) -> std::string_view
     return "unknown";
 }
 
-auto find_genetic_index(
-    const io::detail::BinaryReader& reader,
-    GeneticMode kind) -> std::size_t
+auto find_genetic_index(const io::BinaryReader& reader, GeneticMode kind)
+    -> std::size_t
 {
     constexpr std::string_view modes_path = "genetic/modes";
     if (!reader.contains(modes_path))
@@ -75,9 +74,8 @@ auto find_genetic_index(
         fmt::format("samples do not contain genetic mode {}", kind));
 }
 
-auto find_genetic_block_slot(
-    const io::detail::BinaryReader& reader,
-    GeneticMode kind) -> GeneticBlockSlot
+auto find_genetic_block_slot(const io::BinaryReader& reader, GeneticMode kind)
+    -> GeneticBlockSlot
 {
     const auto target = mode_name(kind);
     for (std::size_t block_index = 0;; ++block_index)
@@ -109,7 +107,7 @@ auto find_genetic_block_slot(
 
 GeneticVarianceProcessor::GeneticVarianceProcessor(
     const GeneticInput& input,
-    std::span<const io::detail::BinaryReader> readers)
+    std::span<const io::BinaryReader> readers)
     : matrix_{input.genotype->matrix()}, kind_{input.kind}, n_components_{0}
 {
     const auto& ref = readers.front();

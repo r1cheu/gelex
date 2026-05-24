@@ -25,7 +25,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/io/detail/binary_reader.h"
+#include "gelex/io/binary_reader.h"
 
 namespace gelex::test
 {
@@ -56,7 +56,7 @@ struct MmappedStorage
 {
     using MapType = Eigen::Map<const Eigen::MatrixXd, Eigen::Unaligned>;
 
-    std::unique_ptr<gelex::io::detail::BinaryReader> reader;
+    std::unique_ptr<gelex::io::BinaryReader> reader;
     MapType view{nullptr, 0, 0};
     Eigen::VectorXd mean;
     Eigen::VectorXd stddev;

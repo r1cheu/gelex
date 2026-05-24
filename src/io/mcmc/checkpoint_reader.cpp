@@ -23,7 +23,7 @@
 #include <string>
 
 #include "gelex/infra/record_visitor.h"
-#include "gelex/io/detail/binary_reader.h"
+#include "gelex/io/binary_reader.h"
 #include "gelex/model/bayes/state.h"
 
 namespace gelex
@@ -34,14 +34,14 @@ namespace
 
 constexpr uint8_t kStateOnlyCheckpointVersion = 2;
 
-auto read_scalar(const io::detail::BinaryReader& reader, std::string_view path)
+auto read_scalar(const io::BinaryReader& reader, std::string_view path)
     -> double
 {
     auto map = reader.to_map<double>(path);
     return map(0, 0);
 }
 
-auto read_uint8(const io::detail::BinaryReader& reader, std::string_view path)
+auto read_uint8(const io::BinaryReader& reader, std::string_view path)
     -> uint8_t
 {
     auto map = reader.to_map<uint8_t>(path);
@@ -51,7 +51,7 @@ auto read_uint8(const io::detail::BinaryReader& reader, std::string_view path)
 class CheckpointRecordReader final : public infra::MutableRecordSink
 {
    public:
-    explicit CheckpointRecordReader(const io::detail::BinaryReader& reader)
+    explicit CheckpointRecordReader(const io::BinaryReader& reader)
         : reader_(reader)
     {
     }
@@ -98,10 +98,10 @@ class CheckpointRecordReader final : public infra::MutableRecordSink
         value = stored.col(0);
     }
 
-    const io::detail::BinaryReader& reader_;
+    const io::BinaryReader& reader_;
 };
 
-auto read_rng(const io::detail::BinaryReader& reader) -> std::mt19937_64
+auto read_rng(const io::BinaryReader& reader) -> std::mt19937_64
 {
     auto rng_map = reader.to_map<uint8_t>("rng_state");
     std::string str(
@@ -118,7 +118,7 @@ auto read_rng(const io::detail::BinaryReader& reader) -> std::mt19937_64
 auto read_checkpoint(const std::filesystem::path& path, BayesState& state)
     -> std::mt19937_64
 {
-    io::detail::BinaryReader reader(path.string());
+    io::BinaryReader reader(path.string());
     if (!reader.contains("format_version"))
     {
         throw GelexException(

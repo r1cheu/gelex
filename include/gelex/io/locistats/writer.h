@@ -23,7 +23,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/io/detail/binary_writer.h"
+#include "gelex/io/binary_writer.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -42,7 +42,7 @@ class LociStatsWriter
         std::span<const int64_t> mono_indices = {}) -> void;
 
    private:
-    io::detail::BinaryWriter writer_;
+    io::BinaryWriter writer_;
 };
 
 }  // namespace gelex

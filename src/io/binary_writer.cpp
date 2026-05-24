@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/io/detail/binary_writer.h"
+#include "gelex/io/binary_writer.h"
 
 #include <fmt/format.h>
 #include <algorithm>
@@ -30,7 +30,7 @@
 #include "gelex/infra/logger.h"
 #include "gelex/io/detail/binary_format.h"
 
-namespace gelex::io::detail
+namespace gelex::io
 {
 
 BinaryWriter::BinaryWriter(std::string_view output_path)
@@ -66,7 +66,7 @@ auto BinaryWriter::check_duplicate_path(std::string_view path) const -> void
 {
     for (const auto& rs : reserved_)
     {
-        if (path_as_view(rs.entry.path) == path)
+        if (detail::path_as_view(rs.entry.path) == path)
         {
             throw GelexException(
                 fmt::format(
@@ -83,27 +83,27 @@ auto BinaryWriter::reserve(
     uint64_t rows,
     uint64_t cols) -> size_t
 {
-    if (path.size() > kMaxPathLength)
+    if (path.size() > detail::kMaxPathLength)
     {
         throw GelexException(
             fmt::format(
                 "{}: path too long ({} > {}): \"{}\"",
                 file_.final_path().string(),
                 path.size(),
-                kMaxPathLength,
+                detail::kMaxPathLength,
                 path));
     }
 
     check_duplicate_path(path);
 
-    TocEntry entry;
+    detail::TocEntry entry;
     std::copy(path.begin(), path.end(), entry.path.begin());
     entry.dtype = dtype;
 
     const auto element_size
         = static_cast<uint64_t>(static_cast<unsigned>(dtype) >> 2U);
     const auto total_bytes = rows * cols * element_size;
-    const auto aligned_offset = align_up(next_offset_, kPageAlignment);
+    const auto aligned_offset = align_up(next_offset_, detail::kPageAlignment);
     entry.offset = aligned_offset;
     entry.size = total_bytes;
     entry.rows = rows;
@@ -161,11 +161,13 @@ auto BinaryWriter::align_up(uint64_t value, uint64_t alignment) noexcept
 auto BinaryWriter::write_footer(uint64_t toc_offset, uint64_t n_sections)
     -> void
 {
-    std::array<std::byte, kFooterSize> buf{};
+    std::array<std::byte, detail::kFooterSize> buf{};
     std::copy(
-        kBinaryFormatMagic.begin(), kBinaryFormatMagic.end(), buf.begin());
-    encode(toc_offset, &buf[8]);
-    encode(n_sections, &buf[16]);
+        detail::kBinaryFormatMagic.begin(),
+        detail::kBinaryFormatMagic.end(),
+        buf.begin());
+    detail::encode(toc_offset, &buf[8]);
+    detail::encode(n_sections, &buf[16]);
 
     file_.write(
         reinterpret_cast<const char*>(buf.data()),
@@ -189,7 +191,7 @@ auto BinaryWriter::finalize() -> void
         }
     }
 
-    const auto toc_offset = align_up(next_offset_, kPageAlignment);
+    const auto toc_offset = align_up(next_offset_, detail::kPageAlignment);
     file_.seekp(static_cast<std::streamoff>(toc_offset));
     for (const auto& rs : reserved_)
     {
@@ -211,4 +213,4 @@ auto BinaryWriter::finalize() -> void
     }
 }
 
-}  // namespace gelex::io::detail
+}  // namespace gelex::io

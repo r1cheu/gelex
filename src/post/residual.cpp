@@ -18,14 +18,14 @@
 
 #include <string_view>
 
-#include "gelex/io/detail/binary_reader.h"
+#include "gelex/io/binary_reader.h"
 #include "gelex/post/detail/utils.h"
 
 namespace gelex
 {
 
 ResidualPosteriorProcessor::ResidualPosteriorProcessor(
-    std::span<const io::detail::BinaryReader> readers,
+    std::span<const io::BinaryReader> readers,
     double hdpi_threshold)
     : readers_{readers}, hdpi_threshold_{hdpi_threshold}
 {

@@ -25,7 +25,7 @@
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/infra/stats/diagnostics.h"
-#include "gelex/io/detail/binary_reader.h"
+#include "gelex/io/binary_reader.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -42,7 +42,7 @@ class GeneticVarianceProcessor
    public:
     GeneticVarianceProcessor(
         const GeneticInput& input,
-        std::span<const io::detail::BinaryReader> readers);
+        std::span<const io::BinaryReader> readers);
 
     auto process(
         std::size_t chain_idx,

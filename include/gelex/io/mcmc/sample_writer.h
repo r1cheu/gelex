@@ -24,7 +24,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/io/detail/binary_writer.h"
+#include "gelex/io/binary_writer.h"
 
 namespace gelex
 {
@@ -39,9 +39,9 @@ class Writer
 {
    public:
     using RecordHandle = std::variant<
-        io::detail::SectionHandle<float>,
-        io::detail::SectionHandle<double>,
-        io::detail::SectionHandle<int>>;
+        io::SectionHandle<float>,
+        io::SectionHandle<double>,
+        io::SectionHandle<int>>;
 
     Writer(
         const BayesState& state,
@@ -56,7 +56,7 @@ class Writer
     void write(const BayesState& state);
 
    private:
-    io::detail::BinaryWriter writer_;
+    io::BinaryWriter writer_;
     std::unordered_map<std::string, RecordHandle> record_handles_;
 };
 

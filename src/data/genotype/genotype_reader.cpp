@@ -34,8 +34,8 @@
 #include "gelex/exception.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/notify.h"
-#include "gelex/io/detail/binary_reader.h"
-#include "gelex/io/detail/binary_writer.h"
+#include "gelex/io/binary_reader.h"
+#include "gelex/io/binary_writer.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::genotype
@@ -89,7 +89,7 @@ auto load_mmapped(
 {
     MmappedStorage mapped;
     mapped.reader
-        = std::make_unique<gelex::io::detail::BinaryReader>(gbin_path.string());
+        = std::make_unique<gelex::io::BinaryReader>(gbin_path.string());
 
     auto geno_map
         = mapped.reader->to_map<double>(fmt::format("{}/genotype", effect));
@@ -238,7 +238,7 @@ auto GenotypeReader::read_mmap(
 
     auto fn = get_genotype_process_method<GT>(method);
     {
-        gelex::io::detail::BinaryWriter writer(gbin_path.string());
+        gelex::io::BinaryWriter writer(gbin_path.string());
         auto genotype_handle = writer.reserve<double>(
             fmt::format("{}/genotype", effect), sample_size_, num_variants_);
 

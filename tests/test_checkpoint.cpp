@@ -29,7 +29,7 @@
 #include "gelex/algo/infer/mcmc/solver.h"
 #include "gelex/algo/infer/params.h"
 #include "gelex/data/genotype/genotype.h"
-#include "gelex/io/detail/binary_writer.h"
+#include "gelex/io/binary_writer.h"
 #include "gelex/io/mcmc/checkpoint_reader.h"
 #include "gelex/io/mcmc/checkpoint_writer.h"
 #include "gelex/model/bayes/gaussian_prior.h"
@@ -272,7 +272,7 @@ TEST_CASE("legacy checkpoint is rejected by BayesState resume", "[checkpoint]")
 
     auto model = make_model(kNumIndividuals, kNumMarkers);
     {
-        io::detail::BinaryWriter writer(ckpt_path);
+        io::BinaryWriter writer(ckpt_path);
         const auto handle = writer.reserve<double>("legacy_marker", 1, 1);
         writer.write(handle, 1.0);
     }

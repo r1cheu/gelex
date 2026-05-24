@@ -22,7 +22,7 @@
 #include <sstream>
 
 #include "gelex/infra/record_visitor.h"
-#include "gelex/io/detail/binary_writer.h"
+#include "gelex/io/binary_writer.h"
 #include "gelex/model/bayes/state.h"
 
 namespace gelex
@@ -33,10 +33,8 @@ namespace
 
 constexpr uint8_t kStateOnlyCheckpointVersion = 2;
 
-auto write_scalar(
-    io::detail::BinaryWriter& writer,
-    std::string_view path,
-    double value) -> void
+auto write_scalar(io::BinaryWriter& writer, std::string_view path, double value)
+    -> void
 {
     auto handle = writer.reserve<double>(path, 1, 1);
     writer.write(handle, value);
@@ -45,10 +43,7 @@ auto write_scalar(
 class CheckpointRecordSink final : public infra::RecordSink
 {
    public:
-    explicit CheckpointRecordSink(io::detail::BinaryWriter& writer)
-        : writer_(writer)
-    {
-    }
+    explicit CheckpointRecordSink(io::BinaryWriter& writer) : writer_(writer) {}
 
     auto visit(
         std::string_view path,
@@ -77,20 +72,17 @@ class CheckpointRecordSink final : public infra::RecordSink
     }
 
    private:
-    io::detail::BinaryWriter& writer_;
+    io::BinaryWriter& writer_;
 };
 
-auto write_uint8(
-    io::detail::BinaryWriter& writer,
-    std::string_view path,
-    uint8_t value) -> void
+auto write_uint8(io::BinaryWriter& writer, std::string_view path, uint8_t value)
+    -> void
 {
     auto handle = writer.reserve<uint8_t>(path, 1, 1);
     writer.write(handle, value);
 }
 
-auto write_rng(io::detail::BinaryWriter& writer, const std::mt19937_64& rng)
-    -> void
+auto write_rng(io::BinaryWriter& writer, const std::mt19937_64& rng) -> void
 {
     std::ostringstream oss;
     oss << rng;
@@ -110,7 +102,7 @@ auto write_checkpoint(
     const std::mt19937_64& rng,
     std::string_view prefix) -> void
 {
-    io::detail::BinaryWriter writer(fmt::format("{}.ckpt", prefix));
+    io::BinaryWriter writer(fmt::format("{}.ckpt", prefix));
 
     write_uint8(writer, "format_version", kStateOnlyCheckpointVersion);
     CheckpointRecordSink sink(writer);

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_DETAIL_BINARY_WRITER_H_
-#define GELEX_IO_DETAIL_BINARY_WRITER_H_
+#ifndef GELEX_IO_BINARY_WRITER_H_
+#define GELEX_IO_BINARY_WRITER_H_
 
 #include <fmt/format.h>
 #include <concepts>
@@ -30,7 +30,7 @@
 #include "gelex/io/detail/atomic_ofstream.h"
 #include "gelex/io/detail/binary_format.h"
 
-namespace gelex::io::detail
+namespace gelex::io
 {
 
 template <typename C>
@@ -72,7 +72,7 @@ class BinaryWriter
     {
         return {reserve(
             path,
-            kTypeByte<T>,
+            detail::kTypeByte<T>,
             static_cast<uint64_t>(rows),
             static_cast<uint64_t>(cols))};
     }
@@ -110,14 +110,14 @@ class BinaryWriter
             convertible_to<std::ranges::range_value_t<R>, std::string_view>
         auto write_strings(std::string_view path, const R& names) -> void
     {
-        if (path.size() > kMaxPathLength)
+        if (path.size() > detail::kMaxPathLength)
         {
             throw GelexException(
                 fmt::format(
                     "{}: path too long ({} > {}): \"{}\"",
                     file_.final_path().string(),
                     path.size(),
-                    kMaxPathLength,
+                    detail::kMaxPathLength,
                     path));
         }
 
@@ -129,14 +129,15 @@ class BinaryWriter
             total_bytes += s.size() + 1;
         }
 
-        TocEntry entry;
+        detail::TocEntry entry;
         std::copy(path.begin(), path.end(), entry.path.begin());
-        entry.dtype = kTypeString;
+        entry.dtype = detail::kTypeString;
         entry.rows = static_cast<uint64_t>(std::ranges::distance(names));
         entry.cols = 0;
         entry.size = total_bytes;
 
-        const auto aligned_offset = align_up(next_offset_, kPageAlignment);
+        const auto aligned_offset
+            = align_up(next_offset_, detail::kPageAlignment);
         entry.offset = aligned_offset;
         next_offset_ = aligned_offset + total_bytes;
 
@@ -154,7 +155,7 @@ class BinaryWriter
    private:
     struct ReservedSection
     {
-        TocEntry entry;
+        detail::TocEntry entry;
         uint64_t cursor{0};
     };
 
@@ -171,11 +172,11 @@ class BinaryWriter
 
     std::vector<ReservedSection> reserved_;
 
-    AtomicOfstream file_;
+    detail::AtomicOfstream file_;
     uint64_t next_offset_{0};
     uint64_t file_cursor_{0};
 };
 
-}  // namespace gelex::io::detail
+}  // namespace gelex::io
 
-#endif  // GELEX_IO_DETAIL_BINARY_WRITER_H_
+#endif  // GELEX_IO_BINARY_WRITER_H_

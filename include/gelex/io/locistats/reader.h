@@ -25,7 +25,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/genotype/process_method.h"
-#include "gelex/io/detail/binary_reader.h"
+#include "gelex/io/binary_reader.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -48,7 +48,7 @@ class LociStatsReader
     [[nodiscard]] auto has(EffectType effect) const -> bool;
 
    private:
-    io::detail::BinaryReader reader_;
+    io::BinaryReader reader_;
 };
 
 }  // namespace gelex

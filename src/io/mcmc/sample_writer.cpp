@@ -63,9 +63,8 @@ auto collect_mode_names(std::span<const GeneticMode> modes)
     return names;
 }
 
-auto write_sample_metadata(
-    io::detail::BinaryWriter& writer,
-    const BayesState& state) -> void
+auto write_sample_metadata(io::BinaryWriter& writer, const BayesState& state)
+    -> void
 {
     std::vector<std::string_view> genetic_modes;
     genetic_modes.reserve(state.genetics().size());
@@ -89,7 +88,7 @@ class ReserveRecordSink final : public infra::RecordSink
 {
    public:
     ReserveRecordSink(
-        io::detail::BinaryWriter& writer,
+        io::BinaryWriter& writer,
         std::unordered_map<std::string, RecordHandle>& handles,
         Eigen::Index n_records)
         : writer_(writer), handles_(handles), n_records_(n_records)
@@ -130,7 +129,7 @@ class ReserveRecordSink final : public infra::RecordSink
             std::string(path), writer_.reserve<T>(path, rows, n_records_));
     }
 
-    io::detail::BinaryWriter& writer_;
+    io::BinaryWriter& writer_;
     std::unordered_map<std::string, RecordHandle>& handles_;
     Eigen::Index n_records_;
 };
@@ -139,7 +138,7 @@ class WriteRecordSink final : public infra::RecordSink
 {
    public:
     WriteRecordSink(
-        io::detail::BinaryWriter& writer,
+        io::BinaryWriter& writer,
         const std::unordered_map<std::string, RecordHandle>& handles)
         : writer_(writer), handles_(handles)
     {
@@ -183,7 +182,7 @@ class WriteRecordSink final : public infra::RecordSink
 
     template <typename T>
     auto require_handle(std::string_view path) const
-        -> const io::detail::SectionHandle<T>&
+        -> const io::SectionHandle<T>&
     {
         const auto it = handles_.find(std::string(path));
         if (it == handles_.end())
@@ -191,8 +190,7 @@ class WriteRecordSink final : public infra::RecordSink
             throw GelexException(
                 fmt::format("sample record handle missing: {}", path));
         }
-        const auto* handle
-            = std::get_if<io::detail::SectionHandle<T>>(&it->second);
+        const auto* handle = std::get_if<io::SectionHandle<T>>(&it->second);
         if (handle == nullptr)
         {
             throw GelexException(
@@ -201,7 +199,7 @@ class WriteRecordSink final : public infra::RecordSink
         return *handle;
     }
 
-    io::detail::BinaryWriter& writer_;
+    io::BinaryWriter& writer_;
     const std::unordered_map<std::string, RecordHandle>& handles_;
 };
 

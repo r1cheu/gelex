@@ -29,7 +29,7 @@ namespace gelex
 {
 
 GeneticVariancePosteriorProcessor::GeneticVariancePosteriorProcessor(
-    std::span<const io::detail::BinaryReader> readers,
+    std::span<const io::BinaryReader> readers,
     std::span<const GeneticInput> genetics,
     double hdpi_threshold)
     : readers_{readers}, genetics_{genetics}, hdpi_threshold_{hdpi_threshold}
