@@ -63,6 +63,16 @@ auto make_variance(double initial_value, double scale = 0.5)
         initial_value, bayes::ScaledInvChiSqPrior{4.0, scale});
 }
 
+auto make_random_prior(double initial_value) -> bayes::RandomPrior
+{
+    return bayes::RandomPrior{make_variance(initial_value)};
+}
+
+auto make_residual_prior(double initial_value) -> bayes::ResidualPrior
+{
+    return bayes::ResidualPrior{make_variance(initial_value)};
+}
+
 auto make_marker_variance(
     bayes::MarkerVarianceLayout scope,
     double initial_value = 0.1) -> bayes::MarkerVariance
@@ -110,7 +120,9 @@ auto make_prior<BayesAKernel>() -> bayes::BayesPrior
         GeneticMode::A,
         make_marker_variance(bayes::MarkerVarianceLayout::per_marker)));
     return bayes::BayesPrior(
-        make_variance(0.5), std::move(genetics), make_variance(0.25));
+        make_random_prior(0.5),
+        std::move(genetics),
+        make_residual_prior(0.25));
 }
 
 template <>
@@ -121,7 +133,9 @@ auto make_prior<BayesRRKernel>() -> bayes::BayesPrior
         GeneticMode::A,
         make_marker_variance(bayes::MarkerVarianceLayout::shared)));
     return bayes::BayesPrior(
-        make_variance(0.5), std::move(genetics), make_variance(0.25));
+        make_random_prior(0.5),
+        std::move(genetics),
+        make_residual_prior(0.25));
 }
 
 template <>
@@ -134,7 +148,9 @@ auto make_prior<BayesBKernel>() -> bayes::BayesPrior
         make_proportion(
             Eigen::VectorXd{{0.9, 0.1}}, bayes::UpdatePolicy::fixed)));
     return bayes::BayesPrior(
-        make_variance(0.5), std::move(genetics), make_variance(0.25));
+        make_random_prior(0.5),
+        std::move(genetics),
+        make_residual_prior(0.25));
 }
 
 template <>
@@ -147,7 +163,9 @@ auto make_prior<BayesCKernel>() -> bayes::BayesPrior
         make_proportion(
             Eigen::VectorXd{{0.9, 0.1}}, bayes::UpdatePolicy::fixed)));
     return bayes::BayesPrior(
-        make_variance(0.5), std::move(genetics), make_variance(0.25));
+        make_random_prior(0.5),
+        std::move(genetics),
+        make_residual_prior(0.25));
 }
 
 auto make_bayes_r_prior() -> bayes::BayesPrior
@@ -161,7 +179,9 @@ auto make_bayes_r_prior() -> bayes::BayesPrior
             Eigen::VectorXd{{0.7, 0.2, 0.08, 0.02}},
             bayes::UpdatePolicy::sampled)));
     return bayes::BayesPrior(
-        make_variance(0.5), std::move(genetics), make_variance(0.25));
+        make_random_prior(0.5),
+        std::move(genetics),
+        make_residual_prior(0.25));
 }
 
 auto make_context(
@@ -238,7 +258,7 @@ TEST_CASE(
 
     RandomStep sampler{RandomStep::Deps{
         .effects = std::span<const bayes::RandomEffect>{effects},
-        .variance = make_variance(0.5),
+        .variance = make_random_prior(0.5),
         .states = std::span<bayes::RandomState>{states},
         .residual = residual,
         .rng = rng,

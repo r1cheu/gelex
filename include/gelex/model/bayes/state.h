@@ -42,6 +42,7 @@ namespace bayes
 {
 
 class BayesPrior;
+class RandomPrior;
 
 struct FixedState
 {
@@ -59,7 +60,7 @@ struct FixedState
 struct RandomState
 {
     RandomState(const RandomEffect& effect, double variance);
-    RandomState(const RandomEffect& effect, const VarianceParameter& parameter);
+    RandomState(const RandomEffect& effect, const RandomPrior& prior);
     RandomState(Eigen::VectorXd coeffs, double variance);
 
     auto visit_records(StateRecordSet set, infra::RecordSink& sink) const

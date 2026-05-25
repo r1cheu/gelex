@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <ranges>
+#include <string_view>
 #include <vector>
 
 #include "gelex/model/bayes/genetic_prior.h"
@@ -27,13 +28,68 @@
 namespace gelex::bayes
 {
 
+class RandomPrior
+{
+   public:
+    static constexpr std::string_view name = "random";
+    RandomPrior(double initial_value, ScaledInvChiSqPrior prior)
+        : parameter_(initial_value, prior)
+    {
+    }
+
+    explicit RandomPrior(VarianceParameter parameter) : parameter_(parameter) {}
+
+    auto initial_value() const -> double { return parameter_.initial_value(); }
+    auto prior() const -> const ScaledInvChiSqPrior&
+    {
+        return parameter_.prior();
+    }
+    auto visit(infra::FieldVisitor& visitor) -> void
+    {
+        auto scope = visitor.scope(name);
+        parameter_.visit(visitor);
+    }
+
+   private:
+    VarianceParameter parameter_;
+};
+
+class ResidualPrior
+{
+   public:
+    static constexpr std::string_view name = "residual";
+    ResidualPrior(double initial_value, ScaledInvChiSqPrior prior)
+        : parameter_(initial_value, prior)
+    {
+    }
+
+    explicit ResidualPrior(VarianceParameter parameter) : parameter_(parameter)
+    {
+    }
+
+    auto initial_value() const -> double { return parameter_.initial_value(); }
+    auto prior() const -> const ScaledInvChiSqPrior&
+    {
+        return parameter_.prior();
+    }
+    auto visit(infra::FieldVisitor& visitor) -> void
+    {
+        auto scope = visitor.scope(name);
+        parameter_.visit(visitor);
+    }
+
+   private:
+    VarianceParameter parameter_;
+};
+
 class BayesPrior
 {
    public:
+    static constexpr std::string_view name = "prior";
     BayesPrior(
-        VarianceParameter random,
+        RandomPrior random,
         std::vector<std::unique_ptr<GeneticPrior>> genetics,
-        VarianceParameter residual);
+        ResidualPrior residual);
 
     BayesPrior(const BayesPrior&) = delete;
     BayesPrior(BayesPrior&&) noexcept = default;
@@ -43,8 +99,15 @@ class BayesPrior
 
     ~BayesPrior() = default;
 
-    auto random() const -> const VarianceParameter& { return random_; }
-    auto residual() const -> const VarianceParameter& { return residual_; }
+    auto random() const -> const RandomPrior& { return random_; }
+    auto residual() const -> const ResidualPrior& { return residual_; }
+
+    auto visit(infra::FieldVisitor& visitor) -> void
+    {
+        auto scope = visitor.scope(name);
+        random_.visit(visitor);
+        residual_.visit(visitor);
+    }
 
     auto genetics() const -> decltype(auto)
     {
@@ -55,9 +118,9 @@ class BayesPrior
     }
 
    private:
-    VarianceParameter random_;
+    RandomPrior random_;
     std::vector<std::unique_ptr<GeneticPrior>> genetics_;
-    VarianceParameter residual_;
+    ResidualPrior residual_;
 };
 
 }  // namespace gelex::bayes

@@ -83,14 +83,13 @@ auto FitReporter::print_summary_row(
         summary.stddev(index));
 }
 
-auto FitReporter::print_random_prior(const bayes::VarianceParameter& parameter)
-    -> void
+auto FitReporter::print_random_prior(const bayes::RandomPrior& prior) -> void
 {
     cli::printer().line("   Random effect:");
     print_variance_prior(
         stats::detail::ScaledInvChiSqParams{
-            parameter.prior().degrees_of_freedom(), parameter.prior().scale()},
-        parameter.initial_value());
+            prior.prior().degrees_of_freedom(), prior.prior().scale()},
+        prior.initial_value());
 }
 
 auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) -> void
@@ -135,14 +134,14 @@ auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) -> void
     }
 }
 
-auto FitReporter::print_residual_prior(
-    const bayes::VarianceParameter& parameter) -> void
+auto FitReporter::print_residual_prior(const bayes::ResidualPrior& prior)
+    -> void
 {
     cli::printer().line("   Residual:");
     print_variance_prior(
         stats::detail::ScaledInvChiSqParams{
-            parameter.prior().degrees_of_freedom(), parameter.prior().scale()},
-        parameter.initial_value());
+            prior.prior().degrees_of_freedom(), prior.prior().scale()},
+        prior.initial_value());
 }
 
 }  // namespace gelex::cli

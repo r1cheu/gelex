@@ -88,20 +88,19 @@ auto BayesRecipe::validate_modes(std::span<const GeneticMode> modes) -> void
 }
 
 auto BayesRecipe::make_random_prior(const BayesModel& model) const
-    -> VarianceParameter
+    -> RandomPrior
 {
     const double proportion = options_.random_variance_proportion
                                   ? options_.random_variance_proportion->value()
                                   : 0.05;
-    return VarianceParameter(
+    return RandomPrior(
         model.phenotype_variance() * proportion, ScaledInvChiSqPrior{-2, 0});
 }
 
-auto BayesRecipe::make_residual_prior(const BayesModel& model)
-    -> VarianceParameter
+auto BayesRecipe::make_residual_prior(const BayesModel& model) -> ResidualPrior
 {
     const double default_residual_proportion = 0.5;
-    return VarianceParameter(
+    return ResidualPrior(
         model.phenotype_variance() * default_residual_proportion,
         ScaledInvChiSqPrior{-2, 0});
 }

@@ -73,35 +73,36 @@ class FieldVisitor
 
     virtual auto on(
         std::string_view name,
-        const Eigen::Ref<const Eigen::VectorXf>& value,
+        Eigen::Ref<Eigen::VectorXf> value,
         FieldFlag flags) -> void
         = 0;
 
     virtual auto on(
         std::string_view name,
-        const Eigen::Ref<const Eigen::VectorXd>& value,
+        Eigen::Ref<Eigen::VectorXd> value,
         FieldFlag flags) -> void
         = 0;
 
     virtual auto on(
         std::string_view name,
-        const Eigen::Ref<const Eigen::VectorXi>& value,
+        Eigen::Ref<Eigen::VectorXi> value,
         FieldFlag flags) -> void
         = 0;
 
-    virtual auto on(std::string_view name, const double& value, FieldFlag flags)
+    virtual auto on(std::string_view name, double& value, FieldFlag flags)
         -> void
         = 0;
 
-    virtual auto on(std::string_view name, const int& value, FieldFlag flags)
-        -> void
+    virtual auto on(std::string_view name, int& value, FieldFlag flags) -> void
         = 0;
 
     template <typename Enum>
         requires std::is_enum_v<Enum>
-    auto on(std::string_view name, Enum value, FieldFlag flags) -> void
+    auto on(std::string_view name, Enum& value, FieldFlag flags) -> void
     {
-        on(name, static_cast<int>(value), flags);
+        auto encoded_value = static_cast<int>(value);
+        on(name, encoded_value, flags);
+        value = static_cast<Enum>(encoded_value);
     }
 
    protected:

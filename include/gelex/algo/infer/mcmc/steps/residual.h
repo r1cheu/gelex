@@ -34,7 +34,7 @@ namespace gelex::mcmc
 struct ResidualStepDeps
 {
     Eigen::Index num_individuals;
-    const bayes::VarianceParameter& variance;
+    const bayes::ResidualPrior& variance;
     bayes::ResidualState& state;
     std::mt19937_64& rng;
 };

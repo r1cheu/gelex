@@ -27,6 +27,7 @@ pre-commit run clang-format --files <changed_files>  # format
 - Non-owning inputs: `std::span`, `std::string_view`
 - Eigen views: `Eigen::Ref<T>` / `const Eigen::Ref<const T>&`; index with `Eigen::Index`
 - Explicit `#include` only — no transitive includes
+- Prefer forward declarations when sufficient, but don't over-engineer (e.g. no Pimpl just to forward-declare)
 - Include guards (not `#pragma once`), uppercase path-derived names
 - Public API in `include/gelex/`; avoid exposing internals
 - Exceptions from `include/gelex/exception.h`

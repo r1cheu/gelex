@@ -60,6 +60,8 @@ using gelex::bayes::MarkerVariance;
 using gelex::bayes::MarkerVarianceLayout;
 using gelex::bayes::MixtureProportion;
 using gelex::bayes::ProportionStateCap;
+using gelex::bayes::RandomPrior;
+using gelex::bayes::ResidualPrior;
 using gelex::bayes::UpdatePolicy;
 using gelex::bayes::ScaledInvChiSqPrior;
 using gelex::bayes::ScaledMixtureGaussianPrior;
@@ -132,6 +134,16 @@ auto make_variance(double initial_value = 1.0) -> VarianceParameter
     return VarianceParameter(initial_value, ScaledInvChiSqPrior{4.0, 1.0});
 }
 
+auto make_random_prior(double initial_value = 1.0) -> RandomPrior
+{
+    return RandomPrior{make_variance(initial_value)};
+}
+
+auto make_residual_prior(double initial_value = 1.0) -> ResidualPrior
+{
+    return ResidualPrior{make_variance(initial_value)};
+}
+
 auto make_marker_variance(
     MarkerVarianceLayout scope = MarkerVarianceLayout::per_marker,
     double initial_value = 1.0) -> MarkerVariance
@@ -162,7 +174,10 @@ auto make_proportion_4() -> MixtureProportion
 auto make_prior(
     std::vector<std::unique_ptr<GeneticPrior>> genetics) -> BayesPrior
 {
-    return BayesPrior(make_variance(0.25), std::move(genetics), make_variance(1.5));
+    return BayesPrior(
+        make_random_prior(0.25),
+        std::move(genetics),
+        make_residual_prior(1.5));
 }
 
 class PathCollector final : public gelex::infra::RecordSink

@@ -28,9 +28,9 @@ namespace gelex::bayes
 {
 
 BayesPrior::BayesPrior(
-    VarianceParameter random,
+    RandomPrior random,
     std::vector<std::unique_ptr<GeneticPrior>> genetics,
-    VarianceParameter residual)
+    ResidualPrior residual)
     : random_(random), genetics_(std::move(genetics)), residual_(residual)
 {
     std::vector<GeneticMode> seen_modes;

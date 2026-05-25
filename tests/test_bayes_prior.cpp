@@ -46,6 +46,8 @@ using gelex::bayes::ComponentStateCap;
 using gelex::bayes::MixtureProportion;
 using gelex::bayes::MixtureProportionCap;
 using gelex::bayes::ProportionStateCap;
+using gelex::bayes::RandomPrior;
+using gelex::bayes::ResidualPrior;
 using gelex::bayes::UpdatePolicy;
 using gelex::bayes::ScaledInvChiSqPrior;
 using gelex::bayes::ScaledMixtureGaussianPrior;
@@ -61,6 +63,16 @@ namespace
 auto make_variance(double init = 1.0) -> VarianceParameter
 {
     return VarianceParameter(init, ScaledInvChiSqPrior{4.0, 1.0});
+}
+
+auto make_random_prior(double init = 1.0) -> RandomPrior
+{
+    return RandomPrior{make_variance(init)};
+}
+
+auto make_residual_prior(double init = 1.0) -> ResidualPrior
+{
+    return ResidualPrior{make_variance(init)};
 }
 
 auto make_marker_variance() -> MarkerVariance
@@ -117,7 +129,9 @@ TEST_CASE("BayesPrior accessors expose construction arguments", "[bayes_prior]")
     genetics.push_back(make_spike_slab(GeneticMode::D));
 
     BayesPrior prior(
-        make_variance(2.0), std::move(genetics), make_variance(5.0));
+        make_random_prior(2.0),
+        std::move(genetics),
+        make_residual_prior(5.0));
 
     REQUIRE(prior.random().initial_value() == 2.0);
     REQUIRE(prior.residual().initial_value() == 5.0);
@@ -259,7 +273,8 @@ TEST_CASE("BayesPrior::genetics range supports for-each", "[bayes_prior]")
     genetics.push_back(make_gaussian(GeneticMode::A));
     genetics.push_back(make_spike_slab(GeneticMode::D));
 
-    BayesPrior prior(make_variance(), std::move(genetics), make_variance());
+    BayesPrior prior(
+        make_random_prior(), std::move(genetics), make_residual_prior());
 
     std::vector<GeneticMode> visited;
     for (const auto& block : prior.genetics())
@@ -277,7 +292,7 @@ TEST_CASE(
     "BayesPrior::genetics empty for prior with no blocks",
     "[bayes_prior]")
 {
-    BayesPrior prior(make_variance(), {}, make_variance());
+    BayesPrior prior(make_random_prior(), {}, make_residual_prior());
 
     const auto range = prior.genetics();
     REQUIRE(range.empty());
@@ -291,7 +306,8 @@ TEST_CASE("BayesPrior rejects null genetic block", "[bayes_prior]")
     genetics.push_back(nullptr);
 
     REQUIRE_THROWS_AS(
-        BayesPrior(make_variance(), std::move(genetics), make_variance()),
+        BayesPrior(
+            make_random_prior(), std::move(genetics), make_residual_prior()),
         GelexException);
 }
 
@@ -302,7 +318,8 @@ TEST_CASE("BayesPrior rejects duplicate mode across blocks", "[bayes_prior]")
     genetics.push_back(make_gaussian(GeneticMode::A));
 
     REQUIRE_THROWS_AS(
-        BayesPrior(make_variance(), std::move(genetics), make_variance()),
+        BayesPrior(
+            make_random_prior(), std::move(genetics), make_residual_prior()),
         GelexException);
 }
 

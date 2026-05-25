@@ -77,6 +77,16 @@ auto make_variance(double initial_value) -> bayes::VarianceParameter
         initial_value, bayes::ScaledInvChiSqPrior{4.0, 1.0});
 }
 
+auto make_random_prior(double initial_value) -> bayes::RandomPrior
+{
+    return bayes::RandomPrior{make_variance(initial_value)};
+}
+
+auto make_residual_prior(double initial_value) -> bayes::ResidualPrior
+{
+    return bayes::ResidualPrior{make_variance(initial_value)};
+}
+
 auto make_bayes_a_prior(Eigen::Index /*n_snps*/ = kNumMarkers)
     -> bayes::BayesPrior
 {
@@ -87,7 +97,9 @@ auto make_bayes_a_prior(Eigen::Index /*n_snps*/ = kNumMarkers)
             bayes::MarkerVarianceLayout::per_marker,
             make_variance(0.2)}));
     return bayes::BayesPrior(
-        make_variance(0.5), std::move(genetics), make_variance(1.0));
+        make_random_prior(0.5),
+        std::move(genetics),
+        make_residual_prior(1.0));
 }
 
 auto make_spike_slab_prior() -> bayes::BayesPrior
@@ -104,7 +116,9 @@ auto make_spike_slab_prior() -> bayes::BayesPrior
                 bayes::DirichletPrior{Eigen::VectorXd{{1.0, 1.0}}}},
             bayes::UpdatePolicy::sampled}));
     return bayes::BayesPrior(
-        make_variance(0.5), std::move(genetics), make_variance(1.0));
+        make_random_prior(0.5),
+        std::move(genetics),
+        make_residual_prior(1.0));
 }
 
 auto run_bayes_a(

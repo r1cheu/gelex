@@ -127,10 +127,8 @@ RandomState::RandomState(const RandomEffect& effect, double variance)
 {
 }
 
-RandomState::RandomState(
-    const RandomEffect& effect,
-    const VarianceParameter& parameter)
-    : RandomState(effect, parameter.initial_value())
+RandomState::RandomState(const RandomEffect& effect, const RandomPrior& prior)
+    : RandomState(effect, prior.initial_value())
 {
 }
 

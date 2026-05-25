@@ -37,7 +37,7 @@ class ScaledInvChiSqPrior
 
     auto degrees_of_freedom() const -> double { return degrees_of_freedom_; }
     auto scale() const -> double { return scale_; }
-    auto visit(infra::FieldVisitor& visitor) const -> void
+    auto visit(infra::FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         visitor.on(
@@ -61,7 +61,7 @@ class DirichletPrior
         return concentration_;
     }
     auto size() const -> Eigen::Index { return concentration_.size(); }
-    auto visit(infra::FieldVisitor& visitor) const -> void
+    auto visit(infra::FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         visitor.on("concentration", concentration_, FieldFlag::source);
@@ -79,7 +79,7 @@ class VarianceParameter
 
     auto initial_value() const -> double { return initial_value_; }
     auto prior() const -> const ScaledInvChiSqPrior& { return prior_; }
-    auto visit(infra::FieldVisitor& visitor) const -> void
+    auto visit(infra::FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         visitor.on("initial_value", initial_value_, FieldFlag::source);
@@ -103,7 +103,7 @@ class SimplexParameter
     }
     auto prior() const -> const DirichletPrior& { return prior_; }
     auto size() const -> Eigen::Index { return initial_value_.size(); }
-    auto visit(infra::FieldVisitor& visitor) const -> void
+    auto visit(infra::FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         visitor.on("initial_value", initial_value_, FieldFlag::source);
@@ -140,7 +140,7 @@ class MarkerVariance
         }
         std::unreachable();
     }
-    auto visit(infra::FieldVisitor& visitor) const -> void
+    auto visit(infra::FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         visitor.on("layout", layout_, FieldFlag::source | FieldFlag::metadata);
@@ -169,7 +169,7 @@ class MixtureProportion
 
     auto size() const -> Eigen::Index { return parameter_.size(); }
     auto sampled() const -> bool { return update_ == UpdatePolicy::sampled; }
-    auto visit(infra::FieldVisitor& visitor) const -> void
+    auto visit(infra::FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         parameter_.visit(visitor);
