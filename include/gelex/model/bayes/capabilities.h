@@ -22,6 +22,7 @@
 #include <Eigen/Core>
 
 #include "gelex/model/bayes/prior_parameters.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
 {
@@ -94,6 +95,123 @@ class MultiplierCapability
 using MarkerVarianceCap = VarianceCapability<MarkerVariance>;
 using MixtureProportionCap = ProportionCapability<MixtureProportion>;
 using MultiplierCap = MultiplierCapability<Eigen::VectorXd>;
+
+template <typename T>
+class SingleVarianceCapability
+{
+   public:
+    using element_type = T;
+
+    auto operator=(const SingleVarianceCapability&)
+        -> SingleVarianceCapability& = delete;
+    auto operator=(SingleVarianceCapability&&) noexcept
+        -> SingleVarianceCapability& = delete;
+
+    virtual ~SingleVarianceCapability() = default;
+
+    virtual auto variance() -> T& = 0;
+    virtual auto variance() const -> const T& = 0;
+
+   protected:
+    SingleVarianceCapability() = default;
+    SingleVarianceCapability(const SingleVarianceCapability&) = default;
+    SingleVarianceCapability(SingleVarianceCapability&&) noexcept = default;
+};
+
+template <typename T>
+class SingleProportionCapability
+{
+   public:
+    using element_type = T;
+
+    auto operator=(const SingleProportionCapability&)
+        -> SingleProportionCapability& = delete;
+    auto operator=(SingleProportionCapability&&) noexcept
+        -> SingleProportionCapability& = delete;
+
+    virtual ~SingleProportionCapability() = default;
+
+    virtual auto proportion() -> T& = 0;
+    virtual auto proportion() const -> const T& = 0;
+
+   protected:
+    SingleProportionCapability() = default;
+    SingleProportionCapability(const SingleProportionCapability&) = default;
+    SingleProportionCapability(SingleProportionCapability&&) noexcept = default;
+};
+
+template <typename T>
+class SingleMultiplierCapability
+{
+   public:
+    using element_type = T;
+
+    auto operator=(const SingleMultiplierCapability&)
+        -> SingleMultiplierCapability& = delete;
+    auto operator=(SingleMultiplierCapability&&) noexcept
+        -> SingleMultiplierCapability& = delete;
+
+    virtual ~SingleMultiplierCapability() = default;
+
+    virtual auto multiplier() -> T& = 0;
+    virtual auto multiplier() const -> const T& = 0;
+
+   protected:
+    SingleMultiplierCapability() = default;
+    SingleMultiplierCapability(const SingleMultiplierCapability&) = default;
+    SingleMultiplierCapability(SingleMultiplierCapability&&) noexcept = default;
+};
+
+template <typename T>
+class JointVarianceCapability
+{
+   public:
+    using element_type = T;
+
+    auto operator=(const JointVarianceCapability&)
+        -> JointVarianceCapability& = delete;
+    auto operator=(JointVarianceCapability&&) noexcept
+        -> JointVarianceCapability& = delete;
+
+    virtual ~JointVarianceCapability() = default;
+
+    virtual auto variance(GeneticMode mode) -> T& = 0;
+    virtual auto variance(GeneticMode mode) const -> const T& = 0;
+
+   protected:
+    JointVarianceCapability() = default;
+    JointVarianceCapability(const JointVarianceCapability&) = default;
+    JointVarianceCapability(JointVarianceCapability&&) noexcept = default;
+};
+
+template <typename T>
+class JointProportionCapability
+{
+   public:
+    using element_type = T;
+
+    auto operator=(const JointProportionCapability&)
+        -> JointProportionCapability& = delete;
+    auto operator=(JointProportionCapability&&) noexcept
+        -> JointProportionCapability& = delete;
+
+    virtual ~JointProportionCapability() = default;
+
+    virtual auto proportion() -> T& = 0;
+    virtual auto proportion() const -> const T& = 0;
+
+   protected:
+    JointProportionCapability() = default;
+    JointProportionCapability(const JointProportionCapability&) = default;
+    JointProportionCapability(JointProportionCapability&&) noexcept = default;
+};
+
+using SingleMarkerVarianceCap = SingleVarianceCapability<MarkerVariance>;
+using SingleMixtureProportionCap
+    = SingleProportionCapability<MixtureProportion>;
+using SingleMultiplierCap = SingleMultiplierCapability<Eigen::VectorXd>;
+using JointMarkerVarianceCap = JointVarianceCapability<MarkerVariance>;
+using JointMixtureProportionCap = JointProportionCapability<MixtureProportion>;
 
 }  // namespace gelex::bayes
 
