@@ -18,6 +18,7 @@
 #define GELEX_MODEL_BAYES_GENETIC_PRIOR_H_
 
 #include <algorithm>
+#include <array>
 #include <memory>
 #include <span>
 #include <string_view>
@@ -32,6 +33,71 @@
 
 namespace gelex::bayes
 {
+
+class SingleGeneticPrior
+{
+   public:
+    static constexpr std::string_view name = "single";
+
+    auto operator=(const SingleGeneticPrior&) -> SingleGeneticPrior& = delete;
+    auto operator=(SingleGeneticPrior&&) noexcept
+        -> SingleGeneticPrior& = delete;
+
+    virtual ~SingleGeneticPrior() = default;
+
+    virtual auto mode() const -> GeneticMode = 0;
+    virtual auto visit(infra::FieldVisitor& visitor) -> void = 0;
+
+    virtual auto make_state(
+        Eigen::Index num_markers,
+        Eigen::Index num_individuals) const
+        -> std::unique_ptr<GeneticPriorState>
+        = 0;
+
+    template <typename Capability>
+    auto query() const -> const Capability*
+    {
+        return dynamic_cast<const Capability*>(this);
+    }
+
+   protected:
+    SingleGeneticPrior() = default;
+    SingleGeneticPrior(const SingleGeneticPrior&) = default;
+    SingleGeneticPrior(SingleGeneticPrior&&) noexcept = default;
+};
+
+class JointGeneticPrior
+{
+   public:
+    static constexpr std::string_view name = "joint";
+    static constexpr std::array<GeneticMode, 2> modes{
+        GeneticMode::A,
+        GeneticMode::D};
+
+    auto operator=(const JointGeneticPrior&) -> JointGeneticPrior& = delete;
+    auto operator=(JointGeneticPrior&&) noexcept -> JointGeneticPrior& = delete;
+
+    virtual ~JointGeneticPrior() = default;
+
+    virtual auto visit(infra::FieldVisitor& visitor) -> void = 0;
+
+    virtual auto make_state(
+        Eigen::Index num_markers,
+        Eigen::Index num_individuals) const
+        -> std::unique_ptr<GeneticPriorState>
+        = 0;
+
+    template <typename Capability>
+    auto query() const -> const Capability*
+    {
+        return dynamic_cast<const Capability*>(this);
+    }
+
+   protected:
+    JointGeneticPrior() = default;
+    JointGeneticPrior(const JointGeneticPrior&) = default;
+    JointGeneticPrior(JointGeneticPrior&&) noexcept = default;
+};
 
 class GeneticPrior
 {
