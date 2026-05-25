@@ -87,8 +87,7 @@ TEST_CASE("BayesCD rejects joint_proportion of wrong size", "[bayes_recipe]")
     {
         BayesRecipeConfig config;
         config.modes = {GeneticMode::A, GeneticMode::D};
-        config.joint_proportion
-            = Simplex<double>{{0.9, 0.04, 0.03, 0.03}};
+        config.joint_proportion = Simplex<double>{{0.9, 0.04, 0.03, 0.03}};
         REQUIRE_NOTHROW(BayesRecipe(BayesRecipePreset::CD, config));
     }
 }

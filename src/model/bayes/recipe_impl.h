@@ -43,8 +43,7 @@ class BayesRecipeImpl
     virtual ~BayesRecipeImpl() = default;
 
     virtual auto make_genetic_priors(const BayesModel& model) const
-        -> std::vector<std::unique_ptr<GeneticPrior>>
-        = 0;
+        -> std::vector<std::unique_ptr<GeneticPrior>> = 0;
 
    protected:
     BayesRecipeImpl(std::string_view name, const BayesRecipeConfig& options);
@@ -107,8 +106,7 @@ class IndependentMethod : public BayesRecipeImpl
     virtual auto make_genetic_prior(
         GeneticMode mode,
         const EffectConfig& effect,
-        const BayesModel& model) const -> std::unique_ptr<GeneticPrior>
-        = 0;
+        const BayesModel& model) const -> std::unique_ptr<GeneticPrior> = 0;
 };
 
 class JointMethod : public BayesRecipeImpl
@@ -126,8 +124,7 @@ class JointMethod : public BayesRecipeImpl
 
     virtual auto make_joint_prior(
         const BayesRecipeConfig& config,
-        const BayesModel& model) const -> std::unique_ptr<GeneticPrior>
-        = 0;
+        const BayesModel& model) const -> std::unique_ptr<GeneticPrior> = 0;
 };
 
 }  // namespace gelex::bayes

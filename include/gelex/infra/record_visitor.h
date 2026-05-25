@@ -42,18 +42,14 @@ class BasicRecordSink
     virtual ~BasicRecordSink() = default;
 
     virtual auto visit(std::string_view path, RecordType<Eigen::VectorXf> value)
-        -> void
-        = 0;
+        -> void = 0;
     virtual auto visit(std::string_view path, RecordType<Eigen::VectorXd> value)
-        -> void
-        = 0;
+        -> void = 0;
     virtual auto visit(std::string_view path, RecordType<Eigen::VectorXi> value)
-        -> void
-        = 0;
+        -> void = 0;
     virtual auto visit(
         std::string_view path,
-        std::conditional_t<Mutable, double&, const double&> value) -> void
-        = 0;
+        std::conditional_t<Mutable, double&, const double&> value) -> void = 0;
 
     template <typename Value>
     auto emit(

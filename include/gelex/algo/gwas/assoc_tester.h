@@ -60,8 +60,8 @@ class AssocTester
     virtual auto resize(Eigen::Index n_samples, Eigen::Index chunk_size) -> void
         = 0;
 
-    [[nodiscard]] virtual auto genotype_buffer() -> Eigen::Ref<Eigen::MatrixXd>
-        = 0;
+    [[nodiscard]] virtual auto genotype_buffer()
+        -> Eigen::Ref<Eigen::MatrixXd> = 0;
 
     [[nodiscard]] virtual auto run(const RemlResult& reml) -> TestResults = 0;
 

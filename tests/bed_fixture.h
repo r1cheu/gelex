@@ -55,7 +55,8 @@ class BedFixture
         double maf_max = 0.5,
         uint64_t seed = std::random_device{}());
 
-    std::pair<std::filesystem::path, Eigen::MatrixXd> create_deterministic_bed_files(
+    std::pair<std::filesystem::path, Eigen::MatrixXd>
+    create_deterministic_bed_files(
         const Eigen::MatrixXd& genotypes,
         const std::vector<std::string>& sample_ids = {},
         const std::vector<std::string>& snp_ids = {},

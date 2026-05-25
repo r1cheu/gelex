@@ -35,26 +35,26 @@
 using gelex::GelexException;
 using gelex::GeneticMode;
 using gelex::bayes::BayesPrior;
+using gelex::bayes::ComponentStateCap;
 using gelex::bayes::DirichletPrior;
 using gelex::bayes::GaussianPrior;
 using gelex::bayes::GeneticPrior;
 using gelex::bayes::JointMixtureGaussianPrior;
 using gelex::bayes::MarkerVariance;
+using gelex::bayes::MarkerVarianceCap;
 using gelex::bayes::MarkerVarianceLayout;
-using gelex::bayes::MultiplierCap;
-using gelex::bayes::ComponentStateCap;
 using gelex::bayes::MixtureProportion;
 using gelex::bayes::MixtureProportionCap;
+using gelex::bayes::MultiplierCap;
 using gelex::bayes::ProportionStateCap;
 using gelex::bayes::RandomPrior;
 using gelex::bayes::ResidualPrior;
-using gelex::bayes::UpdatePolicy;
 using gelex::bayes::ScaledInvChiSqPrior;
 using gelex::bayes::ScaledMixtureGaussianPrior;
 using gelex::bayes::SimplexParameter;
 using gelex::bayes::SpikeSlabGaussianPrior;
+using gelex::bayes::UpdatePolicy;
 using gelex::bayes::VarianceParameter;
-using gelex::bayes::MarkerVarianceCap;
 using gelex::bayes::VarianceStateCap;
 
 namespace
@@ -129,9 +129,7 @@ TEST_CASE("BayesPrior accessors expose construction arguments", "[bayes_prior]")
     genetics.push_back(make_spike_slab(GeneticMode::D));
 
     BayesPrior prior(
-        make_random_prior(2.0),
-        std::move(genetics),
-        make_residual_prior(5.0));
+        make_random_prior(2.0), std::move(genetics), make_residual_prior(5.0));
 
     REQUIRE(prior.random().initial_value() == 2.0);
     REQUIRE(prior.residual().initial_value() == 5.0);
@@ -157,7 +155,8 @@ TEST_CASE("GeneticPrior capabilities compose prior data axes", "[bayes_prior]")
 
     SpikeSlabGaussianPrior spike_slab(
         GeneticMode::A, make_marker_variance(), make_proportion_2());
-    const auto* spike_slab_proportion = spike_slab.query<MixtureProportionCap>();
+    const auto* spike_slab_proportion
+        = spike_slab.query<MixtureProportionCap>();
     REQUIRE(spike_slab.query<MarkerVarianceCap>() != nullptr);
     REQUIRE(spike_slab_proportion != nullptr);
     REQUIRE(spike_slab_proportion->proportion().size() == 1);
@@ -347,7 +346,9 @@ TEST_CASE(
     REQUIRE(parameter.initial_value() == 2.0);
 }
 
-TEST_CASE("SimplexParameter rejects invalid initial_value", "[simplex_parameter]")
+TEST_CASE(
+    "SimplexParameter rejects invalid initial_value",
+    "[simplex_parameter]")
 {
     SECTION("initial_value size < 2")
     {
@@ -391,15 +392,13 @@ TEST_CASE("DirichletPrior rejects invalid concentration", "[dirichlet_prior]")
     SECTION("concentration entries must be positive")
     {
         REQUIRE_THROWS_AS(
-            DirichletPrior(Eigen::VectorXd{{1.0, 0.0}}),
-            GelexException);
+            DirichletPrior(Eigen::VectorXd{{1.0, 0.0}}), GelexException);
     }
 
     SECTION("concentration size < 2")
     {
         REQUIRE_THROWS_AS(
-            DirichletPrior(Eigen::VectorXd{{1.0}}),
-            GelexException);
+            DirichletPrior(Eigen::VectorXd{{1.0}}), GelexException);
     }
 }
 

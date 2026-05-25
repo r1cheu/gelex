@@ -16,8 +16,8 @@
 
 #include "file_fixture.h"
 
-#include <atomic>
 #include <fmt/format.h>
+#include <atomic>
 #include <fstream>
 #include <ios>
 #include <utility>

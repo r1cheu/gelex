@@ -172,8 +172,8 @@ TEST_CASE(
 
         for (int i = 0; i < kNumSamples; ++i)
         {
-            sum_left
-                += stats::detail::sample_left_truncated_normal(mu, sigma, a, rng_left);
+            sum_left += stats::detail::sample_left_truncated_normal(
+                mu, sigma, a, rng_left);
             sum_right += stats::detail::sample_right_truncated_normal(
                 -mu, sigma, -a, rng_right);
         }
@@ -258,7 +258,8 @@ TEST_CASE("Extreme tails: mu=-30 left-truncated at 0", "[truncated_normal]")
 
     for (int i = 0; i < kNumSamples; ++i)
     {
-        double val = stats::detail::sample_left_truncated_normal(-30.0, 1.0, 0.0, rng);
+        double val
+            = stats::detail::sample_left_truncated_normal(-30.0, 1.0, 0.0, rng);
         if (val < 0.0 || !std::isfinite(val))
         {
             all_valid = false;
@@ -284,7 +285,8 @@ TEST_CASE("Extreme tails: mu=30 right-truncated at 0", "[truncated_normal]")
 
     for (int i = 0; i < kNumSamples; ++i)
     {
-        double val = stats::detail::sample_right_truncated_normal(30.0, 1.0, 0.0, rng);
+        double val
+            = stats::detail::sample_right_truncated_normal(30.0, 1.0, 0.0, rng);
         if (val > 0.0 || !std::isfinite(val))
         {
             all_valid = false;

@@ -74,24 +74,20 @@ class FieldVisitor
     virtual auto on(
         std::string_view name,
         Eigen::Ref<Eigen::VectorXf> value,
-        FieldFlag flags) -> void
-        = 0;
+        FieldFlag flags) -> void = 0;
 
     virtual auto on(
         std::string_view name,
         Eigen::Ref<Eigen::VectorXd> value,
-        FieldFlag flags) -> void
-        = 0;
+        FieldFlag flags) -> void = 0;
 
     virtual auto on(
         std::string_view name,
         Eigen::Ref<Eigen::VectorXi> value,
-        FieldFlag flags) -> void
-        = 0;
+        FieldFlag flags) -> void = 0;
 
     virtual auto on(std::string_view name, double& value, FieldFlag flags)
-        -> void
-        = 0;
+        -> void = 0;
 
     virtual auto on(std::string_view name, int& value, FieldFlag flags) -> void
         = 0;

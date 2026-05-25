@@ -17,8 +17,8 @@
 #ifndef TESTS_TEST_INIT_H_
 #define TESTS_TEST_INIT_H_
 
-#include <filesystem>
 #include <fmt/format.h>
+#include <filesystem>
 #include "gelex/infra/logger.h"
 
 #include <unistd.h>

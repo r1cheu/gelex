@@ -34,10 +34,10 @@
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_parameters.h"
-#include "gelex/model/bayes/state.h"
-#include "gelex/model/bayes/state_capabilities.h"
 #include "gelex/model/bayes/recipe.h"
 #include "gelex/model/bayes/recipe_options.h"
+#include "gelex/model/bayes/state.h"
+#include "gelex/model/bayes/state_capabilities.h"
 #include "gelex/types/fixed_effects.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "genotype_fixture.h"
@@ -45,8 +45,8 @@
 using gelex::BayesModel;
 using gelex::BayesState;
 using gelex::FixedEffect;
-using gelex::GeneticMode;
 using gelex::GelexException;
+using gelex::GeneticMode;
 using gelex::bayes::BayesPrior;
 using gelex::bayes::BayesRecipe;
 using gelex::bayes::BayesRecipeConfig;
@@ -62,11 +62,11 @@ using gelex::bayes::MixtureProportion;
 using gelex::bayes::ProportionStateCap;
 using gelex::bayes::RandomPrior;
 using gelex::bayes::ResidualPrior;
-using gelex::bayes::UpdatePolicy;
 using gelex::bayes::ScaledInvChiSqPrior;
 using gelex::bayes::ScaledMixtureGaussianPrior;
 using gelex::bayes::SimplexParameter;
 using gelex::bayes::SpikeSlabGaussianPrior;
+using gelex::bayes::UpdatePolicy;
 using gelex::bayes::VarianceParameter;
 using gelex::bayes::VarianceStateCap;
 
@@ -100,9 +100,8 @@ auto make_genetic_data(GeneticMode mode) -> Eigen::MatrixXd
     return data;
 }
 
-auto make_model(
-    std::span<const GeneticMode> modes,
-    bool include_random = false) -> BayesModel
+auto make_model(std::span<const GeneticMode> modes, bool include_random = false)
+    -> BayesModel
 {
     Eigen::VectorXd phenotype{{1.0, 2.0, 4.0, 8.0}};
     auto fixed = FixedEffect::build(kNumIndividuals);
@@ -171,13 +170,11 @@ auto make_proportion_4() -> MixtureProportion
     };
 }
 
-auto make_prior(
-    std::vector<std::unique_ptr<GeneticPrior>> genetics) -> BayesPrior
+auto make_prior(std::vector<std::unique_ptr<GeneticPrior>> genetics)
+    -> BayesPrior
 {
     return BayesPrior(
-        make_random_prior(0.25),
-        std::move(genetics),
-        make_residual_prior(1.5));
+        make_random_prior(0.25), std::move(genetics), make_residual_prior(1.5));
 }
 
 class PathCollector final : public gelex::infra::RecordSink
@@ -239,14 +236,17 @@ TEST_CASE("BayesRecipe prior constructs BayesState", "[bayes_state]")
     REQUIRE(state.residual().variance > 0.0);
 }
 
-TEST_CASE("BayesState initializes fixed random and residual state", "[bayes_state]")
+TEST_CASE(
+    "BayesState initializes fixed random and residual state",
+    "[bayes_state]")
 {
     constexpr std::array modes{GeneticMode::A};
     auto model = make_model(modes, true);
 
     std::vector<std::unique_ptr<GeneticPrior>> genetics;
-    genetics.push_back(std::make_unique<GaussianPrior>(
-        GeneticMode::A, make_marker_variance()));
+    genetics.push_back(
+        std::make_unique<GaussianPrior>(
+            GeneticMode::A, make_marker_variance()));
     auto prior = make_prior(std::move(genetics));
 
     BayesState state(model, prior);
@@ -259,7 +259,9 @@ TEST_CASE("BayesState initializes fixed random and residual state", "[bayes_stat
     REQUIRE(state.residual().variance == 1.5);
 }
 
-TEST_CASE("BayesState creates genetic prior states by capability", "[bayes_state]")
+TEST_CASE(
+    "BayesState creates genetic prior states by capability",
+    "[bayes_state]")
 {
     constexpr std::array modes{GeneticMode::A, GeneticMode::D};
     auto model = make_model(modes);
@@ -267,8 +269,9 @@ TEST_CASE("BayesState creates genetic prior states by capability", "[bayes_state
     SECTION("Gaussian")
     {
         std::vector<std::unique_ptr<GeneticPrior>> genetics;
-        genetics.push_back(std::make_unique<GaussianPrior>(
-            GeneticMode::A, make_marker_variance()));
+        genetics.push_back(
+            std::make_unique<GaussianPrior>(
+                GeneticMode::A, make_marker_variance()));
         auto prior = make_prior(std::move(genetics));
 
         BayesState state(model, prior);
@@ -288,8 +291,9 @@ TEST_CASE("BayesState creates genetic prior states by capability", "[bayes_state
     SECTION("SpikeSlab")
     {
         std::vector<std::unique_ptr<GeneticPrior>> genetics;
-        genetics.push_back(std::make_unique<SpikeSlabGaussianPrior>(
-            GeneticMode::A, make_marker_variance(), make_proportion_2()));
+        genetics.push_back(
+            std::make_unique<SpikeSlabGaussianPrior>(
+                GeneticMode::A, make_marker_variance(), make_proportion_2()));
         auto prior = make_prior(std::move(genetics));
 
         BayesState state(model, prior);
@@ -302,21 +306,23 @@ TEST_CASE("BayesState creates genetic prior states by capability", "[bayes_state
 
         REQUIRE(proportion.proportion().size() == 1);
         REQUIRE(proportion.proportion()[0].assignment.size() == kNumMarkers);
-        REQUIRE(proportion.proportion()[0].count.isApprox(Eigen::VectorXi{{3, 0}}));
+        REQUIRE(
+            proportion.proportion()[0].count.isApprox(Eigen::VectorXi{{3, 0}}));
     }
 
     SECTION("ScaledMixture")
     {
         std::vector<std::unique_ptr<GeneticPrior>> genetics;
-        genetics.push_back(std::make_unique<ScaledMixtureGaussianPrior>(
-            GeneticMode::D,
-            make_marker_variance(MarkerVarianceLayout::shared),
-            Eigen::VectorXd{{0.0, 0.1, 1.0}},
-            MixtureProportion{
-                SimplexParameter{
-                    Eigen::VectorXd{{0.8, 0.1, 0.1}},
-                    DirichletPrior{Eigen::VectorXd{{1.0, 1.0, 1.0}}}},
-                UpdatePolicy::fixed}));
+        genetics.push_back(
+            std::make_unique<ScaledMixtureGaussianPrior>(
+                GeneticMode::D,
+                make_marker_variance(MarkerVarianceLayout::shared),
+                Eigen::VectorXd{{0.0, 0.1, 1.0}},
+                MixtureProportion{
+                    SimplexParameter{
+                        Eigen::VectorXd{{0.8, 0.1, 0.1}},
+                        DirichletPrior{Eigen::VectorXd{{1.0, 1.0, 1.0}}}},
+                    UpdatePolicy::fixed}));
         auto prior = make_prior(std::move(genetics));
 
         BayesState state(model, prior);
@@ -337,12 +343,13 @@ TEST_CASE("BayesState shares joint prior state across modes", "[bayes_state]")
     auto model = make_model(modes);
 
     std::vector<std::unique_ptr<GeneticPrior>> genetics;
-    genetics.push_back(std::make_unique<JointMixtureGaussianPrior>(
-        std::array{GeneticMode::A, GeneticMode::D},
-        std::array{
-            make_marker_variance(MarkerVarianceLayout::shared),
-            make_marker_variance(MarkerVarianceLayout::shared)},
-        make_proportion_4()));
+    genetics.push_back(
+        std::make_unique<JointMixtureGaussianPrior>(
+            std::array{GeneticMode::A, GeneticMode::D},
+            std::array{
+                make_marker_variance(MarkerVarianceLayout::shared),
+                make_marker_variance(MarkerVarianceLayout::shared)},
+            make_proportion_4()));
     auto prior = make_prior(std::move(genetics));
 
     BayesState state(model, prior);
@@ -361,8 +368,10 @@ TEST_CASE("BayesState shares joint prior state across modes", "[bayes_state]")
     REQUIRE(additive_block->genetic_indices().size() == 2);
     REQUIRE(additive_block->slot(GeneticMode::A) == 0);
     REQUIRE(additive_block->slot(GeneticMode::D) == 1);
-    REQUIRE(&state.genetics()[additive_block->genetic_indices()[0]] == additive);
-    REQUIRE(&state.genetics()[additive_block->genetic_indices()[1]] == dominance);
+    REQUIRE(
+        &state.genetics()[additive_block->genetic_indices()[0]] == additive);
+    REQUIRE(
+        &state.genetics()[additive_block->genetic_indices()[1]] == dominance);
     REQUIRE(additive->coeffs.data() != dominance->coeffs.data());
     REQUIRE(additive->u.data() != dominance->u.data());
 
@@ -380,23 +389,28 @@ TEST_CASE("BayesState rejects prior mode missing from model", "[bayes_state]")
     auto model = make_model(modes);
 
     std::vector<std::unique_ptr<GeneticPrior>> genetics;
-    genetics.push_back(std::make_unique<GaussianPrior>(
-        GeneticMode::D, make_marker_variance()));
+    genetics.push_back(
+        std::make_unique<GaussianPrior>(
+            GeneticMode::D, make_marker_variance()));
     auto prior = make_prior(std::move(genetics));
 
     REQUIRE_THROWS_AS(BayesState(model, prior), GelexException);
 }
 
-TEST_CASE("BayesState computes heritability from runtime variance", "[bayes_state]")
+TEST_CASE(
+    "BayesState computes heritability from runtime variance",
+    "[bayes_state]")
 {
     constexpr std::array modes{GeneticMode::A, GeneticMode::D};
     auto model = make_model(modes, true);
 
     std::vector<std::unique_ptr<GeneticPrior>> genetics;
-    genetics.push_back(std::make_unique<GaussianPrior>(
-        GeneticMode::A, make_marker_variance()));
-    genetics.push_back(std::make_unique<GaussianPrior>(
-        GeneticMode::D, make_marker_variance()));
+    genetics.push_back(
+        std::make_unique<GaussianPrior>(
+            GeneticMode::A, make_marker_variance()));
+    genetics.push_back(
+        std::make_unique<GaussianPrior>(
+            GeneticMode::D, make_marker_variance()));
     auto prior = make_prior(std::move(genetics));
 
     BayesState state(model, prior);
@@ -407,18 +421,23 @@ TEST_CASE("BayesState computes heritability from runtime variance", "[bayes_stat
 
     state.compute_heritability();
 
-    REQUIRE(std::abs(state.genetic(GeneticMode::A)->heritability - 0.15) < 1e-12);
-    REQUIRE(std::abs(state.genetic(GeneticMode::D)->heritability - 0.25) < 1e-12);
+    REQUIRE(
+        std::abs(state.genetic(GeneticMode::A)->heritability - 0.15) < 1e-12);
+    REQUIRE(
+        std::abs(state.genetic(GeneticMode::D)->heritability - 0.25) < 1e-12);
 }
 
-TEST_CASE("BayesState visits sample records through state schema", "[bayes_state]")
+TEST_CASE(
+    "BayesState visits sample records through state schema",
+    "[bayes_state]")
 {
     constexpr std::array modes{GeneticMode::A};
     auto model = make_model(modes, true);
 
     std::vector<std::unique_ptr<GeneticPrior>> genetics;
-    genetics.push_back(std::make_unique<SpikeSlabGaussianPrior>(
-        GeneticMode::A, make_marker_variance(), make_proportion_2()));
+    genetics.push_back(
+        std::make_unique<SpikeSlabGaussianPrior>(
+            GeneticMode::A, make_marker_variance(), make_proportion_2()));
     auto prior = make_prior(std::move(genetics));
 
     BayesState state(model, prior);
@@ -435,22 +454,26 @@ TEST_CASE("BayesState visits sample records through state schema", "[bayes_state
     REQUIRE(sink.count("genetic/0/variance") == 1);
     REQUIRE(sink.count("genetic/0/heritability") == 1);
     REQUIRE(sink.count("genetic_block/0/prior_state/variance/0/value") == 1);
-    REQUIRE(sink.count("genetic_block/0/prior_state/proportion/0/assignment") == 1);
+    REQUIRE(
+        sink.count("genetic_block/0/prior_state/proportion/0/assignment") == 1);
     REQUIRE(sink.count("residual/0/variance") == 1);
 }
 
-TEST_CASE("BayesState visits joint prior state once for checkpoint", "[bayes_state]")
+TEST_CASE(
+    "BayesState visits joint prior state once for checkpoint",
+    "[bayes_state]")
 {
     constexpr std::array modes{GeneticMode::A, GeneticMode::D};
     auto model = make_model(modes);
 
     std::vector<std::unique_ptr<GeneticPrior>> genetics;
-    genetics.push_back(std::make_unique<JointMixtureGaussianPrior>(
-        std::array{GeneticMode::A, GeneticMode::D},
-        std::array{
-            make_marker_variance(MarkerVarianceLayout::shared),
-            make_marker_variance(MarkerVarianceLayout::shared)},
-        make_proportion_4()));
+    genetics.push_back(
+        std::make_unique<JointMixtureGaussianPrior>(
+            std::array{GeneticMode::A, GeneticMode::D},
+            std::array{
+                make_marker_variance(MarkerVarianceLayout::shared),
+                make_marker_variance(MarkerVarianceLayout::shared)},
+            make_proportion_4()));
     auto prior = make_prior(std::move(genetics));
 
     BayesState state(model, prior);
@@ -463,7 +486,8 @@ TEST_CASE("BayesState visits joint prior state once for checkpoint", "[bayes_sta
     REQUIRE(sink.count("genetic/1/u") == 1);
     REQUIRE(sink.count("genetic_block/0/prior_state/variance/0/value") == 1);
     REQUIRE(sink.count("genetic_block/0/prior_state/variance/1/value") == 1);
-    REQUIRE(sink.count("genetic_block/0/prior_state/proportion/0/assignment") == 1);
+    REQUIRE(
+        sink.count("genetic_block/0/prior_state/proportion/0/assignment") == 1);
     REQUIRE(sink.count("genetic_block/0/prior_state/proportion/0/count") == 1);
     REQUIRE(sink.count("genetic_block/0/prior_state/proportion/0/value") == 1);
     REQUIRE(sink.count("genetic_block/1/prior_state/proportion/0/value") == 0);

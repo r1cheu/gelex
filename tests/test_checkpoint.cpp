@@ -91,34 +91,30 @@ auto make_bayes_a_prior(Eigen::Index /*n_snps*/ = kNumMarkers)
     -> bayes::BayesPrior
 {
     std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
-    genetics.push_back(std::make_unique<bayes::GaussianPrior>(
-        GeneticMode::A,
-        bayes::MarkerVariance{
-            bayes::MarkerVarianceLayout::per_marker,
-            make_variance(0.2)}));
+    genetics.push_back(
+        std::make_unique<bayes::GaussianPrior>(
+            GeneticMode::A,
+            bayes::MarkerVariance{
+                bayes::MarkerVarianceLayout::per_marker, make_variance(0.2)}));
     return bayes::BayesPrior(
-        make_random_prior(0.5),
-        std::move(genetics),
-        make_residual_prior(1.0));
+        make_random_prior(0.5), std::move(genetics), make_residual_prior(1.0));
 }
 
 auto make_spike_slab_prior() -> bayes::BayesPrior
 {
     std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
-    genetics.push_back(std::make_unique<bayes::SpikeSlabGaussianPrior>(
-        GeneticMode::A,
-        bayes::MarkerVariance{
-            bayes::MarkerVarianceLayout::per_marker,
-            make_variance(0.2)},
-        bayes::MixtureProportion{
-            bayes::SimplexParameter{
-                Eigen::VectorXd{{0.8, 0.2}},
-                bayes::DirichletPrior{Eigen::VectorXd{{1.0, 1.0}}}},
-            bayes::UpdatePolicy::sampled}));
+    genetics.push_back(
+        std::make_unique<bayes::SpikeSlabGaussianPrior>(
+            GeneticMode::A,
+            bayes::MarkerVariance{
+                bayes::MarkerVarianceLayout::per_marker, make_variance(0.2)},
+            bayes::MixtureProportion{
+                bayes::SimplexParameter{
+                    Eigen::VectorXd{{0.8, 0.2}},
+                    bayes::DirichletPrior{Eigen::VectorXd{{1.0, 1.0}}}},
+                bayes::UpdatePolicy::sampled}));
     return bayes::BayesPrior(
-        make_random_prior(0.5),
-        std::move(genetics),
-        make_residual_prior(1.0));
+        make_random_prior(0.5), std::move(genetics), make_residual_prior(1.0));
 }
 
 auto run_bayes_a(
@@ -197,8 +193,7 @@ TEST_CASE("BayesState checkpoint resume matches continuous run", "[checkpoint]")
     auto state_cont = read_bayes_state_checkpoint(model, ckpt_cont);
     auto state_resume = read_bayes_state_checkpoint(model, ckpt_resume);
 
-    CHECK(state_cont.fixed().coeffs.isApprox(
-        state_resume.fixed().coeffs, 0.0));
+    CHECK(state_cont.fixed().coeffs.isApprox(state_resume.fixed().coeffs, 0.0));
     const auto& genetic_cont = *state_cont.genetic(GeneticMode::A);
     const auto& genetic_resume = *state_resume.genetic(GeneticMode::A);
     CHECK(genetic_cont.coeffs.isApprox(genetic_resume.coeffs, 0.0));
@@ -246,10 +241,11 @@ TEST_CASE("BayesState checkpoint round-trip preserves records", "[checkpoint]")
     CHECK(restored_genetic.u.isApprox(genetic.u));
     CHECK(restored_genetic.variance == genetic.variance);
     CHECK(restored_genetic.heritability == genetic.heritability);
-    const auto& restored_proportion = restored.genetic_block_for(GeneticMode::A)
-                                          ->prior_state()
-                                          .require<bayes::ProportionStateCap>()
-                                          .proportion()[0];
+    const auto& restored_proportion
+        = restored.genetic_block_for(GeneticMode::A)
+              ->prior_state()
+              .require<bayes::ProportionStateCap>()
+              .proportion()[0];
     CHECK(restored_proportion.assignment.isApprox(proportion.assignment));
     CHECK(restored_proportion.count.isApprox(proportion.count));
     CHECK(restored_proportion.value.isApprox(proportion.value));
@@ -260,7 +256,9 @@ TEST_CASE("BayesState checkpoint round-trip preserves records", "[checkpoint]")
     std::filesystem::remove(ckpt_path);
 }
 
-TEST_CASE("BayesState checkpoint atomic write leaves no tmp file", "[checkpoint]")
+TEST_CASE(
+    "BayesState checkpoint atomic write leaves no tmp file",
+    "[checkpoint]")
 {
     const std::string prefix = "/tmp/gelex_test_ckpt_atomic";
     const std::string ckpt_path = prefix + ".ckpt";
@@ -299,7 +297,9 @@ TEST_CASE("legacy checkpoint is rejected by BayesState resume", "[checkpoint]")
     std::filesystem::remove(ckpt_path);
 }
 
-TEST_CASE("BayesState resume throws on checkpoint dimension mismatch", "[checkpoint]")
+TEST_CASE(
+    "BayesState resume throws on checkpoint dimension mismatch",
+    "[checkpoint]")
 {
     const std::string prefix = "/tmp/gelex_test_ckpt_dimcheck";
     const std::string ckpt_path = prefix + ".ckpt";
@@ -315,7 +315,8 @@ TEST_CASE("BayesState resume throws on checkpoint dimension mismatch", "[checkpo
     auto model_mismatch = make_model(kNumIndividuals, kNumMarkers + 3);
     auto prior_read = make_bayes_a_prior();
     BayesState mismatch_state(model_mismatch, prior_read);
-    REQUIRE_THROWS_AS(read_checkpoint(ckpt_path, mismatch_state), GelexException);
+    REQUIRE_THROWS_AS(
+        read_checkpoint(ckpt_path, mismatch_state), GelexException);
 
     std::filesystem::remove(ckpt_path);
 }

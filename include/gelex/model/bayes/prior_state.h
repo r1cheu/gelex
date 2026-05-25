@@ -97,12 +97,10 @@ class GeneticPriorState
     }
 
     virtual auto visit_records(StateRecordSet set, infra::RecordSink& sink)
-        const -> void
-        = 0;
+        const -> void = 0;
     virtual auto visit_records(
         StateRecordSet set,
-        infra::MutableRecordSink& sink) -> void
-        = 0;
+        infra::MutableRecordSink& sink) -> void = 0;
 
    protected:
     GeneticPriorState() = default;

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <memory>
 #include <random>
 #include <span>
-#include <array>
 #include <utility>
 #include <vector>
 
@@ -80,9 +80,8 @@ auto make_marker_variance(
     return bayes::MarkerVariance{scope, make_variance(initial_value)};
 }
 
-auto make_proportion(
-    Eigen::VectorXd value,
-    bayes::UpdatePolicy update) -> bayes::MixtureProportion
+auto make_proportion(Eigen::VectorXd value, bayes::UpdatePolicy update)
+    -> bayes::MixtureProportion
 {
     const auto size = value.size();
     return bayes::MixtureProportion{
@@ -105,8 +104,7 @@ auto make_model(const Eigen::MatrixXd& X, const Eigen::VectorXd& y)
 {
     std::vector<bayes::GeneticEffect> genetics;
     genetics.emplace_back(GeneticMode::A, make_genotype(Eigen::MatrixXd{X}));
-    return BayesModel{
-        y, FixedEffect::build(y.size()), {}, std::move(genetics)};
+    return BayesModel{y, FixedEffect::build(y.size()), {}, std::move(genetics)};
 }
 
 template <typename Kernel>
@@ -116,72 +114,67 @@ template <>
 auto make_prior<BayesAKernel>() -> bayes::BayesPrior
 {
     std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
-    genetics.push_back(std::make_unique<bayes::GaussianPrior>(
-        GeneticMode::A,
-        make_marker_variance(bayes::MarkerVarianceLayout::per_marker)));
+    genetics.push_back(
+        std::make_unique<bayes::GaussianPrior>(
+            GeneticMode::A,
+            make_marker_variance(bayes::MarkerVarianceLayout::per_marker)));
     return bayes::BayesPrior(
-        make_random_prior(0.5),
-        std::move(genetics),
-        make_residual_prior(0.25));
+        make_random_prior(0.5), std::move(genetics), make_residual_prior(0.25));
 }
 
 template <>
 auto make_prior<BayesRRKernel>() -> bayes::BayesPrior
 {
     std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
-    genetics.push_back(std::make_unique<bayes::GaussianPrior>(
-        GeneticMode::A,
-        make_marker_variance(bayes::MarkerVarianceLayout::shared)));
+    genetics.push_back(
+        std::make_unique<bayes::GaussianPrior>(
+            GeneticMode::A,
+            make_marker_variance(bayes::MarkerVarianceLayout::shared)));
     return bayes::BayesPrior(
-        make_random_prior(0.5),
-        std::move(genetics),
-        make_residual_prior(0.25));
+        make_random_prior(0.5), std::move(genetics), make_residual_prior(0.25));
 }
 
 template <>
 auto make_prior<BayesBKernel>() -> bayes::BayesPrior
 {
     std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
-    genetics.push_back(std::make_unique<bayes::SpikeSlabGaussianPrior>(
-        GeneticMode::A,
-        make_marker_variance(bayes::MarkerVarianceLayout::per_marker),
-        make_proportion(
-            Eigen::VectorXd{{0.9, 0.1}}, bayes::UpdatePolicy::fixed)));
+    genetics.push_back(
+        std::make_unique<bayes::SpikeSlabGaussianPrior>(
+            GeneticMode::A,
+            make_marker_variance(bayes::MarkerVarianceLayout::per_marker),
+            make_proportion(
+                Eigen::VectorXd{{0.9, 0.1}}, bayes::UpdatePolicy::fixed)));
     return bayes::BayesPrior(
-        make_random_prior(0.5),
-        std::move(genetics),
-        make_residual_prior(0.25));
+        make_random_prior(0.5), std::move(genetics), make_residual_prior(0.25));
 }
 
 template <>
 auto make_prior<BayesCKernel>() -> bayes::BayesPrior
 {
     std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
-    genetics.push_back(std::make_unique<bayes::SpikeSlabGaussianPrior>(
-        GeneticMode::A,
-        make_marker_variance(bayes::MarkerVarianceLayout::shared),
-        make_proportion(
-            Eigen::VectorXd{{0.9, 0.1}}, bayes::UpdatePolicy::fixed)));
+    genetics.push_back(
+        std::make_unique<bayes::SpikeSlabGaussianPrior>(
+            GeneticMode::A,
+            make_marker_variance(bayes::MarkerVarianceLayout::shared),
+            make_proportion(
+                Eigen::VectorXd{{0.9, 0.1}}, bayes::UpdatePolicy::fixed)));
     return bayes::BayesPrior(
-        make_random_prior(0.5),
-        std::move(genetics),
-        make_residual_prior(0.25));
+        make_random_prior(0.5), std::move(genetics), make_residual_prior(0.25));
 }
 
 auto make_bayes_r_prior() -> bayes::BayesPrior
 {
     std::vector<std::unique_ptr<bayes::GeneticPrior>> genetics;
-    genetics.push_back(std::make_unique<bayes::ScaledMixtureGaussianPrior>(
-        GeneticMode::A,
-        make_marker_variance(bayes::MarkerVarianceLayout::shared, 0.05),
-        Eigen::VectorXd{{0.0, 0.001, 0.01, 0.1}},
-        make_proportion(
-            Eigen::VectorXd{{0.7, 0.2, 0.08, 0.02}},
-            bayes::UpdatePolicy::sampled)));
+    genetics.push_back(
+        std::make_unique<bayes::ScaledMixtureGaussianPrior>(
+            GeneticMode::A,
+            make_marker_variance(bayes::MarkerVarianceLayout::shared, 0.05),
+            Eigen::VectorXd{{0.0, 0.001, 0.01, 0.1}},
+            make_proportion(
+                Eigen::VectorXd{{0.7, 0.2, 0.08, 0.02}},
+                bayes::UpdatePolicy::sampled)));
     return bayes::BayesPrior(
-        make_random_prior(0.5),
-        std::move(genetics),
-        make_residual_prior(0.25));
+        make_random_prior(0.5), std::move(genetics), make_residual_prior(0.25));
 }
 
 auto make_context(
@@ -343,16 +336,17 @@ TEST_CASE("BayesRKernel updates component state", "[mcmc][bayes-r]")
     auto sampler = GeneticStep<BayesRKernel>::make(ctx, GeneticMode::A);
     sampler.step();
 
-    const auto& prior_state = state.genetic_block_for(GeneticMode::A)
-                                  ->prior_state();
+    const auto& prior_state
+        = state.genetic_block_for(GeneticMode::A)->prior_state();
     const auto& component
         = prior_state.require<bayes::ComponentStateCap>().component()[0];
     const auto& proportion
         = prior_state.require<bayes::ProportionStateCap>().proportion()[0];
 
     REQUIRE(proportion.count.sum() == X.cols());
-    REQUIRE(static_cast<Eigen::Index>(component.gebv.size())
-            == proportion.value.size() - 1);
+    REQUIRE(
+        static_cast<Eigen::Index>(component.gebv.size())
+        == proportion.value.size() - 1);
     REQUIRE(component.gebv_var.size() == proportion.value.size() - 1);
 }
 

@@ -30,9 +30,8 @@ auto Column::size() const -> std::size_t
     return std::visit(
         [](const auto& v) -> std::size_t
         {
-            if constexpr (std::is_same_v<
-                              std::decay_t<decltype(v)>,
-                              std::monostate>)
+            if constexpr (
+                std::is_same_v<std::decay_t<decltype(v)>, std::monostate>)
             {
                 return 0;
             }

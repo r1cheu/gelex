@@ -33,8 +33,8 @@
 
 using gelex::BayesModel;
 using gelex::FixedEffect;
-using gelex::GeneticMode;
 using gelex::GelexException;
+using gelex::GeneticMode;
 
 namespace
 {
@@ -48,9 +48,8 @@ auto make_genotype(Eigen::MatrixXd data) -> gelex::genotype::Genotype
         std::move(data), std::move(mean), std::move(stddev));
 }
 
-auto make_genetic_effect(
-    GeneticMode mode,
-    Eigen::MatrixXd data) -> gelex::bayes::GeneticEffect
+auto make_genetic_effect(GeneticMode mode, Eigen::MatrixXd data)
+    -> gelex::bayes::GeneticEffect
 {
     return gelex::bayes::GeneticEffect{mode, make_genotype(std::move(data))};
 }
@@ -130,8 +129,10 @@ TEST_CASE("BayesModel rejects effect row mismatches", "[bayes_model]")
 TEST_CASE("BayesModel rejects duplicate genetic modes", "[bayes_model]")
 {
     std::vector<gelex::bayes::GeneticEffect> genetics;
-    genetics.push_back(make_genetic_effect(GeneticMode::A, make_genetic_data()));
-    genetics.push_back(make_genetic_effect(GeneticMode::A, make_genetic_data()));
+    genetics.push_back(
+        make_genetic_effect(GeneticMode::A, make_genetic_data()));
+    genetics.push_back(
+        make_genetic_effect(GeneticMode::A, make_genetic_data()));
 
     REQUIRE_THROWS_AS(
         BayesModel(

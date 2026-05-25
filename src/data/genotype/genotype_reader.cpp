@@ -109,8 +109,7 @@ auto load_mmapped(
         mapped.mono_indices.resize(static_cast<size_t>(mono_col.size()));
         Eigen::Map<Eigen::Matrix<int64_t, Eigen::Dynamic, 1>>(
             mapped.mono_indices.data(),
-            static_cast<Eigen::Index>(mapped.mono_indices.size()))
-            = mono_col;
+            static_cast<Eigen::Index>(mapped.mono_indices.size())) = mono_col;
     }
     return mapped;
 }

@@ -25,9 +25,9 @@
 #include "gelex/algo/reml/estimator.h"
 #include "gelex/algo/reml/optimizer_state.h"
 #include "gelex/algo/reml/variance_calculator.h"  // IWYU pragma: keep
+#include "gelex/model/freq/effect.h"
 #include "gelex/model/freq/model.h"
 #include "gelex/types/fixed_effects.h"
-#include "gelex/model/freq/effect.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex

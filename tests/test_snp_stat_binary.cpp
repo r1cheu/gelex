@@ -21,9 +21,9 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include "gelex/data/genotype/process_method.h"
 #include "gelex/io/locistats/reader.h"
 #include "gelex/io/locistats/writer.h"
-#include "gelex/data/genotype/process_method.h"
 
 #include "file_fixture.h"
 
