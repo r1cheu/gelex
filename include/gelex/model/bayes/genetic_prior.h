@@ -20,10 +20,12 @@
 #include <algorithm>
 #include <memory>
 #include <span>
+#include <string_view>
 #include <vector>
 
 #include <Eigen/Core>
 
+#include "gelex/infra/field_visitor.h"
 #include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/prior_state.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -34,12 +36,15 @@ namespace gelex::bayes
 class GeneticPrior
 {
    public:
+    static constexpr std::string_view name = "genetic";
+
     auto operator=(const GeneticPrior&) -> GeneticPrior& = delete;
     auto operator=(GeneticPrior&&) noexcept -> GeneticPrior& = delete;
 
     virtual ~GeneticPrior() = default;
 
     virtual auto modes() const -> std::span<const GeneticMode> = 0;
+    virtual auto visit(infra::FieldVisitor& visitor) -> void = 0;
 
     virtual auto make_state(
         Eigen::Index num_markers,

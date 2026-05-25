@@ -9,7 +9,6 @@ pixi r build-debug          # debug build
 pixi r build-release         # release build
 pixi r test                  # all tests (via ctest)
 pixi r test-catch "[tag]"    # tests by Catch2 tag
-pre-commit run clang-format --files <changed_files>  # format
 ```
 
 **Never** use `ctest` directly — always `pixi r test` or `pixi r test-catch`.
@@ -34,6 +33,7 @@ pre-commit run clang-format --files <changed_files>  # format
 - Simple getters/setters stay in headers
 - Class-private static methods over anonymous-namespace free functions
 - `switch`/`if` on enums for type dispatch
+- Prefer `std::views::enumerate` over manual index loops when both index and value are needed
 - Preserve existing license headers
 - Reusable test fixtures in `tests/*_fixture.{h,cpp}`
 - When designing the API, adhere to STL conventions.

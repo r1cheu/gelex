@@ -18,11 +18,15 @@
 
 #include <array>
 #include <memory>
+#include <ranges>
+#include <string>
 #include <utility>
 
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
+#include "gelex/infra/field_flag.h"
+#include "gelex/infra/field_visitor.h"
 #include "gelex/model/bayes/gaussian_prior_state.h"
 
 namespace gelex::bayes
@@ -31,6 +35,13 @@ namespace gelex::bayes
 GaussianPrior::GaussianPrior(GeneticMode mode, MarkerVariance variance)
     : modes_{mode}, marker_variances_{variance}
 {
+}
+
+auto GaussianPrior::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on("mode", modes_[0], FieldFlag::source | FieldFlag::metadata);
+    marker_variances_[0].visit(visitor);
 }
 
 auto GaussianPrior::make_state(
@@ -55,6 +66,14 @@ SpikeSlabGaussianPrior::SpikeSlabGaussianPrior(
         throw GelexException(
             "SpikeSlabGaussianPrior: proportion must have size 2");
     }
+}
+
+auto SpikeSlabGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on("mode", modes_[0], FieldFlag::source | FieldFlag::metadata);
+    marker_variances_[0].visit(visitor);
+    mixture_proportions_[0].visit(visitor);
 }
 
 auto SpikeSlabGaussianPrior::make_state(
@@ -91,6 +110,15 @@ ScaledMixtureGaussianPrior::ScaledMixtureGaussianPrior(
     }
 }
 
+auto ScaledMixtureGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on("mode", modes_[0], FieldFlag::source | FieldFlag::metadata);
+    marker_variances_[0].visit(visitor);
+    visitor.on("multiplier", multipliers_[0], FieldFlag::source);
+    mixture_proportions_[0].visit(visitor);
+}
+
 auto ScaledMixtureGaussianPrior::make_state(
     Eigen::Index num_markers,
     Eigen::Index num_individuals) const -> std::unique_ptr<GeneticPriorState>
@@ -116,6 +144,18 @@ JointMixtureGaussianPrior::JointMixtureGaussianPrior(
         throw GelexException(
             "JointMixtureGaussianPrior: modes must be distinct");
     }
+}
+
+auto JointMixtureGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    for (auto [i, mode] : std::views::enumerate(modes_))
+    {
+        auto slot_scope = visitor.scope(std::to_string(i));
+        visitor.on("mode", mode, FieldFlag::source | FieldFlag::metadata);
+        marker_variances_[i].visit(visitor);
+    }
+    mixture_proportions_[0].visit(visitor);
 }
 
 auto JointMixtureGaussianPrior::make_state(

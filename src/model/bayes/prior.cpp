@@ -17,11 +17,14 @@
 #include "gelex/model/bayes/prior.h"
 
 #include <algorithm>
+#include <ranges>
+#include <string>
 #include <utility>
 
 #include <fmt/format.h>
 
 #include "gelex/exception.h"
+#include "gelex/infra/field_visitor.h"
 #include "gelex/model/bayes/prior_parameters.h"
 
 namespace gelex::bayes
@@ -33,8 +36,30 @@ BayesPrior::BayesPrior(
     ResidualPrior residual)
     : random_(random), genetics_(std::move(genetics)), residual_(residual)
 {
+    validate_genetics(genetics_);
+}
+
+auto BayesPrior::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    random_.visit(visitor);
+    {
+        auto genetic_scope = visitor.scope(GeneticPrior::name);
+        for (auto [i, block] : std::views::enumerate(genetics_))
+        {
+            auto block_scope = visitor.scope(std::to_string(i));
+            block->visit(visitor);
+        }
+    }
+    residual_.visit(visitor);
+    validate_genetics(genetics_);
+}
+
+auto BayesPrior::validate_genetics(
+    const std::vector<std::unique_ptr<GeneticPrior>>& genetics) -> void
+{
     std::vector<GeneticMode> seen_modes;
-    for (const auto& block : genetics_)
+    for (const auto& block : genetics)
     {
         if (block == nullptr)
         {

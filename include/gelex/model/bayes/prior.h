@@ -102,12 +102,7 @@ class BayesPrior
     auto random() const -> const RandomPrior& { return random_; }
     auto residual() const -> const ResidualPrior& { return residual_; }
 
-    auto visit(infra::FieldVisitor& visitor) -> void
-    {
-        auto scope = visitor.scope(name);
-        random_.visit(visitor);
-        residual_.visit(visitor);
-    }
+    auto visit(infra::FieldVisitor& visitor) -> void;
 
     auto genetics() const -> decltype(auto)
     {
@@ -118,6 +113,9 @@ class BayesPrior
     }
 
    private:
+    static auto validate_genetics(
+        const std::vector<std::unique_ptr<GeneticPrior>>& genetics) -> void;
+
     RandomPrior random_;
     std::vector<std::unique_ptr<GeneticPrior>> genetics_;
     ResidualPrior residual_;

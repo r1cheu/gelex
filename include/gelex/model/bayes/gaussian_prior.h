@@ -20,6 +20,7 @@
 #include <array>
 #include <memory>
 #include <span>
+#include <string_view>
 
 #include <Eigen/Core>
 
@@ -37,6 +38,8 @@ class GaussianPrior final
     , public MarkerVarianceCap
 {
    public:
+    static constexpr std::string_view name = "gaussian";
+
     GaussianPrior(GeneticMode mode, MarkerVariance variance);
 
     auto modes() const -> std::span<const GeneticMode> override
@@ -52,6 +55,7 @@ class GaussianPrior final
         return marker_variances_;
     }
 
+    auto visit(infra::FieldVisitor& visitor) -> void override;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> std::unique_ptr<GeneticPriorState> override;
 
@@ -66,6 +70,8 @@ class SpikeSlabGaussianPrior final
     , public MixtureProportionCap
 {
    public:
+    static constexpr std::string_view name = "spike_slab_gaussian";
+
     SpikeSlabGaussianPrior(
         GeneticMode mode,
         MarkerVariance variance,
@@ -92,6 +98,7 @@ class SpikeSlabGaussianPrior final
         return mixture_proportions_;
     }
 
+    auto visit(infra::FieldVisitor& visitor) -> void override;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> std::unique_ptr<GeneticPriorState> override;
 
@@ -108,6 +115,8 @@ class ScaledMixtureGaussianPrior final
     , public MultiplierCap
 {
    public:
+    static constexpr std::string_view name = "scaled_mixture_gaussian";
+
     ScaledMixtureGaussianPrior(
         GeneticMode mode,
         MarkerVariance variance,
@@ -143,6 +152,7 @@ class ScaledMixtureGaussianPrior final
         return multipliers_;
     }
 
+    auto visit(infra::FieldVisitor& visitor) -> void override;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> std::unique_ptr<GeneticPriorState> override;
 
@@ -159,6 +169,8 @@ class JointMixtureGaussianPrior final
     , public MixtureProportionCap
 {
    public:
+    static constexpr std::string_view name = "joint_mixture_gaussian";
+
     JointMixtureGaussianPrior(
         std::array<GeneticMode, 2> modes,
         std::array<MarkerVariance, 2> variances,
@@ -185,6 +197,7 @@ class JointMixtureGaussianPrior final
         return mixture_proportions_;
     }
 
+    auto visit(infra::FieldVisitor& visitor) -> void override;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> std::unique_ptr<GeneticPriorState> override;
 
