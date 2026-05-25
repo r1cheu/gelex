@@ -18,11 +18,9 @@
 #define GELEX_MODEL_BAYES_GENETIC_PRIOR_H_
 
 #include <algorithm>
-#include <array>
 #include <memory>
 #include <span>
 #include <string_view>
-#include <vector>
 
 #include <Eigen/Core>
 
@@ -69,9 +67,6 @@ class JointGeneticPrior
 {
    public:
     static constexpr std::string_view name = "joint";
-    static constexpr std::array<GeneticMode, 2> modes{
-        GeneticMode::A,
-        GeneticMode::D};
 
     auto operator=(const JointGeneticPrior&) -> JointGeneticPrior& = delete;
     auto operator=(JointGeneticPrior&&) noexcept -> JointGeneticPrior& = delete;
@@ -130,10 +125,6 @@ class GeneticPrior
     GeneticPrior() = default;
     GeneticPrior(const GeneticPrior&) = default;
     GeneticPrior(GeneticPrior&&) noexcept = default;
-
-    static auto make_variance_values(
-        std::span<const MarkerVariance> marker_variances,
-        Eigen::Index num_markers) -> std::vector<Eigen::VectorXd>;
 };
 
 }  // namespace gelex::bayes

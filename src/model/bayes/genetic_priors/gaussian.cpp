@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/model/bayes/gaussian_prior.h"
+#include "gelex/model/bayes/genetic_priors/gaussian.h"
 
 #include <array>
 #include <memory>
@@ -30,6 +30,7 @@
 #include "gelex/infra/field_flag.h"
 #include "gelex/infra/field_visitor.h"
 #include "gelex/model/bayes/gaussian_prior_state.h"
+#include "gelex/model/bayes/prior_parameters.h"
 
 namespace gelex::bayes
 {
@@ -55,19 +56,21 @@ auto make_variance_values(
 
 }  // namespace
 
-GaussianPrior::GaussianPrior(GeneticMode mode, MarkerVariance variance)
-    : modes_{mode}, marker_variances_{variance}
+SingleGaussianPrior::SingleGaussianPrior(
+    GeneticMode mode,
+    MarkerVariance variance)
+    : mode_(mode), marker_variances_{variance}
 {
 }
 
-auto GaussianPrior::visit(infra::FieldVisitor& visitor) -> void
+auto SingleGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
-    visitor.on("mode", modes_[0], FieldFlag::source | FieldFlag::metadata);
+    visitor.on("mode", mode_, FieldFlag::source | FieldFlag::metadata);
     marker_variances_[0].visit(visitor);
 }
 
-auto GaussianPrior::make_state(
+auto SingleGaussianPrior::make_state(
     Eigen::Index num_markers,
     Eigen::Index /*num_individuals*/) const
     -> std::unique_ptr<GeneticPriorState>
@@ -76,30 +79,30 @@ auto GaussianPrior::make_state(
         make_variance_values(marker_variances_, num_markers));
 }
 
-SpikeSlabGaussianPrior::SpikeSlabGaussianPrior(
+SingleSpikeSlabGaussianPrior::SingleSpikeSlabGaussianPrior(
     GeneticMode mode,
     MarkerVariance variance,
     MixtureProportion proportion)
-    : modes_{mode},
+    : mode_(mode),
       marker_variances_{variance},
       mixture_proportions_{std::move(proportion)}
 {
     if (mixture_proportions_[0].size() != 2)
     {
         throw GelexException(
-            "SpikeSlabGaussianPrior: proportion must have size 2");
+            "SingleSpikeSlabGaussianPrior: proportion must have size 2");
     }
 }
 
-auto SpikeSlabGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
+auto SingleSpikeSlabGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
-    visitor.on("mode", modes_[0], FieldFlag::source | FieldFlag::metadata);
+    visitor.on("mode", mode_, FieldFlag::source | FieldFlag::metadata);
     marker_variances_[0].visit(visitor);
     mixture_proportions_[0].visit(visitor);
 }
 
-auto SpikeSlabGaussianPrior::make_state(
+auto SingleSpikeSlabGaussianPrior::make_state(
     Eigen::Index num_markers,
     Eigen::Index /*num_individuals*/) const
     -> std::unique_ptr<GeneticPriorState>
@@ -110,12 +113,12 @@ auto SpikeSlabGaussianPrior::make_state(
         num_markers);
 }
 
-ScaledMixtureGaussianPrior::ScaledMixtureGaussianPrior(
+SingleScaledMixtureGaussianPrior::SingleScaledMixtureGaussianPrior(
     GeneticMode mode,
     MarkerVariance variance,
     Eigen::VectorXd multiplier,
     MixtureProportion proportion)
-    : modes_{mode},
+    : mode_(mode),
       marker_variances_{variance},
       multipliers_{std::move(multiplier)},
       mixture_proportions_{std::move(proportion)}
@@ -123,26 +126,27 @@ ScaledMixtureGaussianPrior::ScaledMixtureGaussianPrior(
     if (multipliers_[0].size() != mixture_proportions_[0].size())
     {
         throw GelexException(
-            "ScaledMixtureGaussianPrior: multiplier and proportion sizes "
+            "SingleScaledMixtureGaussianPrior: multiplier and proportion sizes "
             "differ");
     }
     if (multipliers_[0](0) != 0.0)
     {
         throw GelexException(
-            "ScaledMixtureGaussianPrior: multiplier(0) must equal 0");
+            "SingleScaledMixtureGaussianPrior: multiplier(0) must equal 0");
     }
 }
 
-auto ScaledMixtureGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
+auto SingleScaledMixtureGaussianPrior::visit(infra::FieldVisitor& visitor)
+    -> void
 {
     auto scope = visitor.scope(name);
-    visitor.on("mode", modes_[0], FieldFlag::source | FieldFlag::metadata);
+    visitor.on("mode", mode_, FieldFlag::source | FieldFlag::metadata);
     marker_variances_[0].visit(visitor);
     visitor.on("multiplier", multipliers_[0], FieldFlag::source);
     mixture_proportions_[0].visit(visitor);
 }
 
-auto ScaledMixtureGaussianPrior::make_state(
+auto SingleScaledMixtureGaussianPrior::make_state(
     Eigen::Index num_markers,
     Eigen::Index num_individuals) const -> std::unique_ptr<GeneticPriorState>
 {
@@ -154,25 +158,18 @@ auto ScaledMixtureGaussianPrior::make_state(
         num_individuals);
 }
 
-JointMixtureGaussianPrior::JointMixtureGaussianPrior(
-    std::array<GeneticMode, 2> modes,
+JointGaussianMixturePrior::JointGaussianMixturePrior(
     std::array<MarkerVariance, 2> variances,
     MixtureProportion proportion)
-    : modes_(modes),
-      marker_variances_(variances),
-      mixture_proportions_{std::move(proportion)}
+    : marker_variances_(variances), mixture_proportions_{std::move(proportion)}
 {
-    if (modes_[0] == modes_[1])
-    {
-        throw GelexException(
-            "JointMixtureGaussianPrior: modes must be distinct");
-    }
 }
 
-auto JointMixtureGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
+auto JointGaussianMixturePrior::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
-    for (auto [i, mode] : std::views::enumerate(modes_))
+    auto modes = std::array{GeneticMode::A, GeneticMode::D};
+    for (auto [i, mode] : std::views::enumerate(modes))
     {
         auto slot_scope = visitor.scope(std::to_string(i));
         visitor.on("mode", mode, FieldFlag::source | FieldFlag::metadata);
@@ -181,7 +178,7 @@ auto JointMixtureGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
     mixture_proportions_[0].visit(visitor);
 }
 
-auto JointMixtureGaussianPrior::make_state(
+auto JointGaussianMixturePrior::make_state(
     Eigen::Index num_markers,
     Eigen::Index num_individuals) const -> std::unique_ptr<GeneticPriorState>
 {

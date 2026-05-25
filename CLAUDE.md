@@ -28,6 +28,7 @@ pixi r test-catch "[tag]"    # tests by Catch2 tag
 - Explicit `#include` only — no transitive includes
 - Prefer forward declarations when sufficient, but don't over-engineer (e.g. no Pimpl just to forward-declare)
 - Include guards (not `#pragma once`), uppercase path-derived names
+- Do not introduce extra namespaces without a clear architectural need
 - Public API in `include/gelex/`; avoid exposing internals
 - Exceptions from `include/gelex/exception.h`
 - Simple getters/setters stay in headers
