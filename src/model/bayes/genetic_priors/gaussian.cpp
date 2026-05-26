@@ -19,17 +19,15 @@
 #include <array>
 #include <memory>
 #include <ranges>
-#include <span>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
 #include "gelex/infra/field_flag.h"
 #include "gelex/infra/field_visitor.h"
-#include "gelex/model/bayes/gaussian_prior_state.h"
+#include "gelex/model/bayes/genetic_prior_states/gaussian.h"
 #include "gelex/model/bayes/prior_parameters.h"
 
 namespace gelex::bayes
@@ -59,17 +57,17 @@ SingleGaussianPrior::SingleGaussianPrior(
 auto SingleGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
-    visitor.on("mode", mode_, FieldFlag::source | FieldFlag::metadata);
+    visitor.on("mode", mode_, FieldFlag::checkpoint | FieldFlag::report);
     marker_variance_.visit(visitor);
 }
 
 auto SingleGaussianPrior::make_state(
     Eigen::Index num_markers,
     Eigen::Index /*num_individuals*/) const
-    -> std::unique_ptr<GeneticPriorState>
+    -> std::unique_ptr<SingleGeneticPriorState>
 {
-    return std::make_unique<GaussianState>(std::vector<Eigen::VectorXd>{
-        make_variance_value(marker_variance_, num_markers)});
+    return std::make_unique<SingleGaussianState>(
+        make_variance_value(marker_variance_, num_markers));
 }
 
 SingleSpikeSlabGaussianPrior::SingleSpikeSlabGaussianPrior(
@@ -90,7 +88,7 @@ SingleSpikeSlabGaussianPrior::SingleSpikeSlabGaussianPrior(
 auto SingleSpikeSlabGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
-    visitor.on("mode", mode_, FieldFlag::source | FieldFlag::metadata);
+    visitor.on("mode", mode_, FieldFlag::checkpoint | FieldFlag::report);
     marker_variance_.visit(visitor);
     mixture_proportion_.visit(visitor);
 }
@@ -98,12 +96,11 @@ auto SingleSpikeSlabGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
 auto SingleSpikeSlabGaussianPrior::make_state(
     Eigen::Index num_markers,
     Eigen::Index /*num_individuals*/) const
-    -> std::unique_ptr<GeneticPriorState>
+    -> std::unique_ptr<SingleGeneticPriorState>
 {
-    return std::make_unique<SpikeSlabGaussianState>(
-        std::vector<Eigen::VectorXd>{
-            make_variance_value(marker_variance_, num_markers)},
-        std::span<const MixtureProportion>{&mixture_proportion_, 1},
+    return std::make_unique<SingleSpikeSlabGaussianState>(
+        make_variance_value(marker_variance_, num_markers),
+        mixture_proportion_,
         num_markers);
 }
 
@@ -134,21 +131,22 @@ auto SingleScaledMixtureGaussianPrior::visit(infra::FieldVisitor& visitor)
     -> void
 {
     auto scope = visitor.scope(name);
-    visitor.on("mode", mode_, FieldFlag::source | FieldFlag::metadata);
+    visitor.on("mode", mode_, FieldFlag::checkpoint | FieldFlag::report);
     marker_variance_.visit(visitor);
-    visitor.on("multiplier", multiplier_, FieldFlag::source);
+    visitor.on(
+        "multiplier", multiplier_, FieldFlag::checkpoint | FieldFlag::report);
     mixture_proportion_.visit(visitor);
 }
 
 auto SingleScaledMixtureGaussianPrior::make_state(
     Eigen::Index num_markers,
-    Eigen::Index num_individuals) const -> std::unique_ptr<GeneticPriorState>
+    Eigen::Index num_individuals) const
+    -> std::unique_ptr<SingleGeneticPriorState>
 {
-    return std::make_unique<ScaledMixtureGaussianState>(
-        std::vector<Eigen::VectorXd>{
-            make_variance_value(marker_variance_, num_markers)},
-        std::span<const Eigen::VectorXd>{&multiplier_, 1},
-        std::span<const MixtureProportion>{&mixture_proportion_, 1},
+    return std::make_unique<SingleScaledMixtureGaussianState>(
+        make_variance_value(marker_variance_, num_markers),
+        multiplier_,
+        mixture_proportion_,
         num_markers,
         num_individuals);
 }
@@ -178,7 +176,7 @@ auto JointGaussianMixturePrior::visit(infra::FieldVisitor& visitor) -> void
     for (auto [i, mode] : std::views::enumerate(modes))
     {
         auto slot_scope = visitor.scope(std::to_string(i));
-        visitor.on("mode", mode, FieldFlag::source | FieldFlag::metadata);
+        visitor.on("mode", mode, FieldFlag::checkpoint | FieldFlag::report);
         marker_variances_[i].visit(visitor);
     }
     mixture_proportion_.visit(visitor);
@@ -186,9 +184,10 @@ auto JointGaussianMixturePrior::visit(infra::FieldVisitor& visitor) -> void
 
 auto JointGaussianMixturePrior::make_state(
     Eigen::Index num_markers,
-    Eigen::Index num_individuals) const -> std::unique_ptr<GeneticPriorState>
+    Eigen::Index num_individuals) const
+    -> std::unique_ptr<JointGeneticPriorState>
 {
-    return std::make_unique<JointMixtureGaussianState>(
+    return std::make_unique<JointGaussianMixtureState>(
         std::array<Eigen::VectorXd, 2>{
             make_variance_value(marker_variances_[0], num_markers),
             make_variance_value(marker_variances_[1], num_markers)},

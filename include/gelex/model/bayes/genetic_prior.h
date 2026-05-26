@@ -49,7 +49,7 @@ class SingleGeneticPrior
     virtual auto make_state(
         Eigen::Index num_markers,
         Eigen::Index num_individuals) const
-        -> std::unique_ptr<GeneticPriorState> = 0;
+        -> std::unique_ptr<SingleGeneticPriorState> = 0;
 
     template <typename Capability>
     auto query() const -> const Capability*
@@ -78,7 +78,7 @@ class JointGeneticPrior
     virtual auto make_state(
         Eigen::Index num_markers,
         Eigen::Index num_individuals) const
-        -> std::unique_ptr<GeneticPriorState> = 0;
+        -> std::unique_ptr<JointGeneticPriorState> = 0;
 
     template <typename Capability>
     auto query() const -> const Capability*

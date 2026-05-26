@@ -25,10 +25,9 @@ namespace gelex
 enum class FieldFlag : std::uint8_t
 {
     none = 0,
-    source = 1U << 0U,
-    derived = 1U << 1U,
-    cache = 1U << 2U,
-    metadata = 1U << 3U,
+    checkpoint = 1U << 0U,
+    trace = 1U << 1U,
+    report = 1U << 2U,
 };
 
 constexpr auto operator|(FieldFlag lhs, FieldFlag rhs) -> FieldFlag

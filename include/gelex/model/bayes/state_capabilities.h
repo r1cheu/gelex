@@ -69,6 +69,49 @@ class ComponentStateCap
         -> void;
 };
 
+class SingleComponentStateCap
+{
+   public:
+    auto operator=(const SingleComponentStateCap&)
+        -> SingleComponentStateCap& = delete;
+    auto operator=(SingleComponentStateCap&&) noexcept
+        -> SingleComponentStateCap& = delete;
+
+    virtual ~SingleComponentStateCap() = default;
+
+    virtual auto component() -> ComponentState& = 0;
+    virtual auto component() const -> const ComponentState& = 0;
+
+   protected:
+    SingleComponentStateCap() = default;
+    SingleComponentStateCap(const SingleComponentStateCap&) = default;
+    SingleComponentStateCap(SingleComponentStateCap&&) noexcept = default;
+};
+
+class JointComponentStateCap
+{
+   public:
+    auto operator=(const JointComponentStateCap&)
+        -> JointComponentStateCap& = delete;
+    auto operator=(JointComponentStateCap&&) noexcept
+        -> JointComponentStateCap& = delete;
+
+    virtual ~JointComponentStateCap() = default;
+
+    virtual auto component() -> ComponentState& = 0;
+    virtual auto component() const -> const ComponentState& = 0;
+
+   protected:
+    JointComponentStateCap() = default;
+    JointComponentStateCap(const JointComponentStateCap&) = default;
+    JointComponentStateCap(JointComponentStateCap&&) noexcept = default;
+};
+
+using SingleVarianceStateCap = SingleVarianceCapability<Eigen::VectorXd>;
+using SingleProportionStateCap = SingleProportionCapability<ProportionState>;
+using JointVarianceStateCap = JointVarianceCapability<Eigen::VectorXd>;
+using JointProportionStateCap = JointProportionCapability<ProportionState>;
+
 }  // namespace gelex::bayes
 
 #endif  // GELEX_MODEL_BAYES_STATE_CAPABILITIES_H_

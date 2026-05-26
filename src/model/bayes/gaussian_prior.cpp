@@ -63,7 +63,7 @@ GaussianPrior::GaussianPrior(GeneticMode mode, MarkerVariance variance)
 auto GaussianPrior::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
-    visitor.on("mode", modes_[0], FieldFlag::source | FieldFlag::metadata);
+    visitor.on("mode", modes_[0], FieldFlag::checkpoint | FieldFlag::report);
     marker_variances_[0].visit(visitor);
 }
 
@@ -94,7 +94,7 @@ SpikeSlabGaussianPrior::SpikeSlabGaussianPrior(
 auto SpikeSlabGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
-    visitor.on("mode", modes_[0], FieldFlag::source | FieldFlag::metadata);
+    visitor.on("mode", modes_[0], FieldFlag::checkpoint | FieldFlag::report);
     marker_variances_[0].visit(visitor);
     mixture_proportions_[0].visit(visitor);
 }
@@ -136,9 +136,12 @@ ScaledMixtureGaussianPrior::ScaledMixtureGaussianPrior(
 auto ScaledMixtureGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
-    visitor.on("mode", modes_[0], FieldFlag::source | FieldFlag::metadata);
+    visitor.on("mode", modes_[0], FieldFlag::checkpoint | FieldFlag::report);
     marker_variances_[0].visit(visitor);
-    visitor.on("multiplier", multipliers_[0], FieldFlag::source);
+    visitor.on(
+        "multiplier",
+        multipliers_[0],
+        FieldFlag::checkpoint | FieldFlag::report);
     mixture_proportions_[0].visit(visitor);
 }
 
@@ -175,7 +178,7 @@ auto JointMixtureGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
     for (auto [i, mode] : std::views::enumerate(modes_))
     {
         auto slot_scope = visitor.scope(std::to_string(i));
-        visitor.on("mode", mode, FieldFlag::source | FieldFlag::metadata);
+        visitor.on("mode", mode, FieldFlag::checkpoint | FieldFlag::report);
         marker_variances_[i].visit(visitor);
     }
     mixture_proportions_[0].visit(visitor);

@@ -18,11 +18,14 @@
 
 #include <cstddef>
 #include <ranges>
+#include <string>
 
 #include <fmt/format.h>
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
+#include "gelex/infra/field_flag.h"
+#include "gelex/infra/field_visitor.h"
 #include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state_capabilities.h"
@@ -33,12 +36,21 @@ namespace gelex::bayes
 ProportionState::ProportionState(
     const MixtureProportion& proportion,
     Eigen::Index num_markers)
+    : value(proportion.parameter().initial_value()), update(proportion.update())
 {
     count = Eigen::VectorXi::Zero(proportion.size());
     count(0) = static_cast<int>(num_markers);
     assignment = Eigen::VectorXi::Zero(num_markers);
-    value = proportion.parameter().initial_value();
-    update = proportion.update();
+}
+
+auto ProportionState::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on(
+        "assignment", assignment, FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on("count", count, FieldFlag::checkpoint);
+    visitor.on("value", value, FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on("update", update, FieldFlag::report);
 }
 
 ComponentState::ComponentState(
@@ -49,6 +61,16 @@ ComponentState::ComponentState(
         static_cast<std::size_t>(num_components),
         Eigen::VectorXd::Zero(num_individuals));
     gebv_var = Eigen::VectorXd::Zero(num_components);
+}
+
+auto ComponentState::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on("gebv_var", gebv_var, FieldFlag::checkpoint | FieldFlag::trace);
+    for (auto [i, value] : std::views::enumerate(gebv))
+    {
+        visitor.on(fmt::format("gebv_{}", i), value, FieldFlag::checkpoint);
+    }
 }
 
 auto VarianceStateCap::visit_records(StateRecordSet, infra::RecordSink& sink)

@@ -50,7 +50,7 @@ class SingleGaussianPrior final
 
     auto visit(infra::FieldVisitor& visitor) -> void override;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
-        const -> std::unique_ptr<GeneticPriorState> override;
+        const -> std::unique_ptr<SingleGeneticPriorState> override;
 
    private:
     GeneticMode mode_;
@@ -87,7 +87,7 @@ class SingleSpikeSlabGaussianPrior final
 
     auto visit(infra::FieldVisitor& visitor) -> void override;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
-        const -> std::unique_ptr<GeneticPriorState> override;
+        const -> std::unique_ptr<SingleGeneticPriorState> override;
 
    private:
     GeneticMode mode_;
@@ -132,7 +132,7 @@ class SingleScaledMixtureGaussianPrior final
 
     auto visit(infra::FieldVisitor& visitor) -> void override;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
-        const -> std::unique_ptr<GeneticPriorState> override;
+        const -> std::unique_ptr<SingleGeneticPriorState> override;
 
    private:
     GeneticMode mode_;
@@ -166,7 +166,7 @@ class JointGaussianMixturePrior final
 
     auto visit(infra::FieldVisitor& visitor) -> void override;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
-        const -> std::unique_ptr<GeneticPriorState> override;
+        const -> std::unique_ptr<JointGeneticPriorState> override;
 
    private:
     std::array<MarkerVariance, 2> marker_variances_;

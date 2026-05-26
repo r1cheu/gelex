@@ -32,6 +32,7 @@ pixi r test-catch "[tag]"    # tests by Catch2 tag
 - Public API in `include/gelex/`; avoid exposing internals
 - Exceptions from `include/gelex/exception.h`
 - Simple getters/setters stay in headers
+- Prefer constructor member initializer lists.
 - Class-private static methods over anonymous-namespace free functions
 - `switch`/`if` on enums for type dispatch
 - Prefer `std::views::enumerate` over manual index loops when both index and value are needed

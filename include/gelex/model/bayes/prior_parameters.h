@@ -41,8 +41,10 @@ class ScaledInvChiSqPrior
     {
         auto scope = visitor.scope(name);
         visitor.on(
-            "degrees_of_freedom", degrees_of_freedom_, FieldFlag::source);
-        visitor.on("scale", scale_, FieldFlag::source);
+            "degrees_of_freedom",
+            degrees_of_freedom_,
+            FieldFlag::checkpoint | FieldFlag::report);
+        visitor.on("scale", scale_, FieldFlag::checkpoint | FieldFlag::report);
     }
 
    private:
@@ -64,7 +66,10 @@ class DirichletPrior
     auto visit(infra::FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
-        visitor.on("concentration", concentration_, FieldFlag::source);
+        visitor.on(
+            "concentration",
+            concentration_,
+            FieldFlag::checkpoint | FieldFlag::report);
     }
 
    private:
@@ -82,7 +87,10 @@ class VarianceParameter
     auto visit(infra::FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
-        visitor.on("initial_value", initial_value_, FieldFlag::source);
+        visitor.on(
+            "initial_value",
+            initial_value_,
+            FieldFlag::checkpoint | FieldFlag::report);
         prior_.visit(visitor);
     }
 
@@ -106,7 +114,10 @@ class SimplexParameter
     auto visit(infra::FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
-        visitor.on("initial_value", initial_value_, FieldFlag::source);
+        visitor.on(
+            "initial_value",
+            initial_value_,
+            FieldFlag::checkpoint | FieldFlag::report);
         prior_.visit(visitor);
     }
 
@@ -143,7 +154,8 @@ class MarkerVariance
     auto visit(infra::FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
-        visitor.on("layout", layout_, FieldFlag::source | FieldFlag::metadata);
+        visitor.on(
+            "layout", layout_, FieldFlag::checkpoint | FieldFlag::report);
         parameter_.visit(visitor);
     }
 
@@ -173,7 +185,8 @@ class MixtureProportion
     {
         auto scope = visitor.scope(name);
         parameter_.visit(visitor);
-        visitor.on("update", update_, FieldFlag::source | FieldFlag::metadata);
+        visitor.on(
+            "update", update_, FieldFlag::checkpoint | FieldFlag::report);
     }
 
    private:

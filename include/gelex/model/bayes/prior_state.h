@@ -18,6 +18,7 @@
 #define GELEX_MODEL_BAYES_PRIOR_STATE_H_
 
 #include <cstddef>
+#include <string_view>
 
 #include <Eigen/Core>
 #include <vector>
@@ -27,15 +28,24 @@
 #include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state_record_set.h"
 
+namespace gelex::infra
+{
+class FieldVisitor;
+}
+
 namespace gelex::bayes
 {
 
 struct ProportionState
 {
+    static constexpr std::string_view name = "proportion";
+
     ProportionState() = default;
     ProportionState(
         const MixtureProportion& proportion,
         Eigen::Index num_markers);
+
+    auto visit(infra::FieldVisitor& visitor) -> void;
 
     Eigen::VectorXi assignment;
     Eigen::VectorXi count;
@@ -45,8 +55,12 @@ struct ProportionState
 
 struct ComponentState
 {
+    static constexpr std::string_view name = "component";
+
     ComponentState() = default;
     ComponentState(Eigen::Index num_components, Eigen::Index num_individuals);
+
+    auto visit(infra::FieldVisitor& visitor) -> void;
 
     std::vector<Eigen::VectorXd> gebv;
     Eigen::VectorXd gebv_var;
@@ -106,6 +120,118 @@ class GeneticPriorState
     GeneticPriorState() = default;
     GeneticPriorState(const GeneticPriorState&) = default;
     GeneticPriorState(GeneticPriorState&&) noexcept = default;
+};
+
+class SingleGeneticPriorState
+{
+   public:
+    static constexpr std::string_view name = "single";
+
+    auto operator=(const SingleGeneticPriorState&)
+        -> SingleGeneticPriorState& = delete;
+    auto operator=(SingleGeneticPriorState&&) noexcept
+        -> SingleGeneticPriorState& = delete;
+
+    virtual ~SingleGeneticPriorState() = default;
+
+    template <typename Capability>
+    auto query() -> Capability*
+    {
+        return dynamic_cast<Capability*>(this);
+    }
+
+    template <typename Capability>
+    auto query() const -> const Capability*
+    {
+        return dynamic_cast<const Capability*>(this);
+    }
+
+    template <typename Capability>
+    auto require() -> Capability&
+    {
+        auto* capability = query<Capability>();
+        if (capability == nullptr)
+        {
+            throw GelexException(
+                "single genetic prior state lacks required capability");
+        }
+        return *capability;
+    }
+
+    template <typename Capability>
+    auto require() const -> const Capability&
+    {
+        const auto* capability = query<Capability>();
+        if (capability == nullptr)
+        {
+            throw GelexException(
+                "single genetic prior state lacks required capability");
+        }
+        return *capability;
+    }
+
+    virtual auto visit(infra::FieldVisitor& visitor) -> void = 0;
+
+   protected:
+    SingleGeneticPriorState() = default;
+    SingleGeneticPriorState(const SingleGeneticPriorState&) = default;
+    SingleGeneticPriorState(SingleGeneticPriorState&&) noexcept = default;
+};
+
+class JointGeneticPriorState
+{
+   public:
+    static constexpr std::string_view name = "joint";
+
+    auto operator=(const JointGeneticPriorState&)
+        -> JointGeneticPriorState& = delete;
+    auto operator=(JointGeneticPriorState&&) noexcept
+        -> JointGeneticPriorState& = delete;
+
+    virtual ~JointGeneticPriorState() = default;
+
+    template <typename Capability>
+    auto query() -> Capability*
+    {
+        return dynamic_cast<Capability*>(this);
+    }
+
+    template <typename Capability>
+    auto query() const -> const Capability*
+    {
+        return dynamic_cast<const Capability*>(this);
+    }
+
+    template <typename Capability>
+    auto require() -> Capability&
+    {
+        auto* capability = query<Capability>();
+        if (capability == nullptr)
+        {
+            throw GelexException(
+                "joint genetic prior state lacks required capability");
+        }
+        return *capability;
+    }
+
+    template <typename Capability>
+    auto require() const -> const Capability&
+    {
+        const auto* capability = query<Capability>();
+        if (capability == nullptr)
+        {
+            throw GelexException(
+                "joint genetic prior state lacks required capability");
+        }
+        return *capability;
+    }
+
+    virtual auto visit(infra::FieldVisitor& visitor) -> void = 0;
+
+   protected:
+    JointGeneticPriorState() = default;
+    JointGeneticPriorState(const JointGeneticPriorState&) = default;
+    JointGeneticPriorState(JointGeneticPriorState&&) noexcept = default;
 };
 
 }  // namespace gelex::bayes
