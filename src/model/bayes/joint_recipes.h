@@ -39,6 +39,10 @@ class BayesCDMethod final : public JointMethod
     auto make_joint_prior(
         const BayesRecipeConfig& config,
         const BayesModel& model) const -> std::unique_ptr<GeneticPrior> final;
+    auto make_joint_prior_v2(
+        const BayesRecipeConfig& config,
+        const BayesModel& model) const
+        -> std::unique_ptr<JointGeneticPrior> final;
 };
 
 }  // namespace gelex::bayes

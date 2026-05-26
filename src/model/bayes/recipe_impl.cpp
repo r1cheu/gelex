@@ -141,6 +141,18 @@ auto IndependentMethod::make_genetic_priors(const BayesModel& model) const
     return priors;
 }
 
+auto IndependentMethod::make_genetic_prior_blocks(const BayesModel& model) const
+    -> std::vector<GeneticPriorBlockV2>
+{
+    std::vector<GeneticPriorBlockV2> priors;
+    for_each_effect(
+        [&](GeneticMode mode, const EffectConfig& effect)
+        {
+            priors.emplace_back(make_single_genetic_prior(mode, effect, model));
+        });
+    return priors;
+}
+
 auto IndependentMethod::reject_joint_overrides() const -> void
 {
     if (options().joint_proportion)
@@ -216,6 +228,14 @@ auto JointMethod::make_genetic_priors(const BayesModel& model) const
 {
     std::vector<std::unique_ptr<GeneticPrior>> priors;
     priors.push_back(make_joint_prior(options(), model));
+    return priors;
+}
+
+auto JointMethod::make_genetic_prior_blocks(const BayesModel& model) const
+    -> std::vector<GeneticPriorBlockV2>
+{
+    std::vector<GeneticPriorBlockV2> priors;
+    priors.emplace_back(make_joint_prior_v2(options(), model));
     return priors;
 }
 

@@ -49,6 +49,14 @@ auto BayesRecipe::make_prior(const BayesModel& model) const -> BayesPrior
         make_residual_prior(model)};
 }
 
+auto BayesRecipe::make_prior_v2(const BayesModel& model) const -> BayesPriorV2
+{
+    return BayesPriorV2{
+        make_random_prior(model),
+        impl_->make_genetic_prior_blocks(model),
+        make_residual_prior(model)};
+}
+
 auto BayesRecipe::make_impl(
     BayesRecipePreset preset,
     const BayesRecipeConfig& options) -> std::unique_ptr<BayesRecipeImpl>

@@ -338,6 +338,77 @@ TEST_CASE("BayesRecipe prior constructs BayesState", "[bayes_state]")
     REQUIRE(state.residual().variance > 0.0);
 }
 
+TEST_CASE("BayesRecipe prior v2 constructs BayesStateV2", "[bayes_state]")
+{
+    constexpr std::array modes{GeneticMode::A};
+    auto model = make_model(modes, true);
+
+    BayesRecipeConfig config;
+    config.modes = {GeneticMode::A};
+    BayesRecipe recipe(BayesRecipePreset::RR, config);
+    auto prior = recipe.make_prior_v2(model);
+
+    BayesStateV2 state(model, prior);
+
+    REQUIRE(state.fixed().coeffs.isApprox(Eigen::VectorXd::Zero(1)));
+    REQUIRE(state.random().size() == 1);
+    REQUIRE(state.random()[0].coeffs.size() == 2);
+    REQUIRE(state.genetics().size() == 1);
+    REQUIRE(state.genetic(GeneticMode::A) != nullptr);
+    REQUIRE(state.genetic(GeneticMode::D) == nullptr);
+    REQUIRE(state.residual().y_adj.isApprox(model.phenotype()));
+    REQUIRE(state.residual().variance > 0.0);
+}
+
+TEST_CASE("BayesRecipe prior v2 constructs independent genetic blocks", "[bayes_state]")
+{
+    constexpr std::array modes{GeneticMode::A, GeneticMode::D};
+    auto model = make_model(modes);
+
+    BayesRecipeConfig config;
+    config.modes = {GeneticMode::A, GeneticMode::D};
+    BayesRecipe recipe(BayesRecipePreset::RR, config);
+    auto prior = recipe.make_prior_v2(model);
+
+    BayesStateV2 state(model, prior);
+
+    REQUIRE(state.genetics().size() == 2);
+    REQUIRE(state.genetic(GeneticMode::A) != nullptr);
+    REQUIRE(state.genetic(GeneticMode::D) != nullptr);
+    REQUIRE(
+        state.genetic_block_for(GeneticMode::A)
+        != state.genetic_block_for(GeneticMode::D));
+    REQUIRE(
+        std::holds_alternative<SingleGeneticBlockState>(
+            *state.genetic_block_for(GeneticMode::A)));
+    REQUIRE(
+        std::holds_alternative<SingleGeneticBlockState>(
+            *state.genetic_block_for(GeneticMode::D)));
+}
+
+TEST_CASE("BayesRecipe prior v2 constructs joint genetic blocks", "[bayes_state]")
+{
+    constexpr std::array modes{GeneticMode::A, GeneticMode::D};
+    auto model = make_model(modes);
+
+    BayesRecipeConfig config;
+    config.modes = {GeneticMode::A, GeneticMode::D};
+    BayesRecipe recipe(BayesRecipePreset::CD, config);
+    auto prior = recipe.make_prior_v2(model);
+
+    BayesStateV2 state(model, prior);
+
+    REQUIRE(state.genetics().size() == 1);
+    REQUIRE(state.genetic(GeneticMode::A) != nullptr);
+    REQUIRE(state.genetic(GeneticMode::D) != nullptr);
+    REQUIRE(
+        state.genetic_block_for(GeneticMode::A)
+        == state.genetic_block_for(GeneticMode::D));
+    REQUIRE(
+        std::holds_alternative<JointGeneticBlockState>(
+            *state.genetic_block_for(GeneticMode::A)));
+}
+
 TEST_CASE(
     "BayesState initializes fixed random and residual state",
     "[bayes_state]")

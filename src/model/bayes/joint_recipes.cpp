@@ -21,6 +21,7 @@
 
 #include "gelex/exception.h"
 #include "gelex/model/bayes/gaussian_prior.h"
+#include "gelex/model/bayes/genetic_priors/gaussian.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/constrained_vector.h"
 
@@ -69,6 +70,39 @@ auto BayesCDMethod::make_joint_prior(
 
     return std::make_unique<JointMixtureGaussianPrior>(
         std::array{GeneticMode::A, GeneticMode::D},
+        std::array{
+            make_marker_variance(MarkerVarianceLayout::shared, target_a),
+            make_marker_variance(MarkerVarianceLayout::shared, target_d)},
+        make_mixture_proportion(proportion, update));
+}
+
+auto BayesCDMethod::make_joint_prior_v2(
+    const BayesRecipeConfig& config,
+    const BayesModel& model) const -> std::unique_ptr<JointGeneticPrior>
+{
+    const Simplex<double> proportion = config.joint_proportion.value_or(
+        Simplex<double>{{0.991, 0.003, 0.003, 0.003}});
+    const UpdatePolicy update = config.joint_proportion_update.value_or(true)
+                                    ? UpdatePolicy::sampled
+                                    : UpdatePolicy::fixed;
+
+    // proportion layout: [both-off, A-only, D-only, both-on]
+    const double active_a = proportion[1] + proportion[3];
+    const double active_d = proportion[2] + proportion[3];
+
+    const double h2_a = config.additive.heritability()
+                            .value_or(default_heritability(GeneticMode::A))
+                            .value();
+    const double h2_d = config.dominance.heritability()
+                            .value_or(default_heritability(GeneticMode::D))
+                            .value();
+
+    const double target_a = marker_variance_from_heritability(
+        model, GeneticMode::A, h2_a, active_a);
+    const double target_d = marker_variance_from_heritability(
+        model, GeneticMode::D, h2_d, active_d);
+
+    return std::make_unique<JointGaussianMixturePrior>(
         std::array{
             make_marker_variance(MarkerVarianceLayout::shared, target_a),
             make_marker_variance(MarkerVarianceLayout::shared, target_d)},

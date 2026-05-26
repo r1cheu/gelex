@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "gelex/model/bayes/genetic_prior.h"
+#include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/recipe_options.h"
 
@@ -44,6 +45,8 @@ class BayesRecipeImpl
 
     virtual auto make_genetic_priors(const BayesModel& model) const
         -> std::vector<std::unique_ptr<GeneticPrior>> = 0;
+    virtual auto make_genetic_prior_blocks(const BayesModel& model) const
+        -> std::vector<GeneticPriorBlockV2> = 0;
 
    protected:
     BayesRecipeImpl(std::string_view name, const BayesRecipeConfig& options);
@@ -102,11 +105,18 @@ class IndependentMethod : public BayesRecipeImpl
    private:
     auto make_genetic_priors(const BayesModel& model) const
         -> std::vector<std::unique_ptr<GeneticPrior>> final;
+    auto make_genetic_prior_blocks(const BayesModel& model) const
+        -> std::vector<GeneticPriorBlockV2> final;
 
     virtual auto make_genetic_prior(
         GeneticMode mode,
         const EffectConfig& effect,
         const BayesModel& model) const -> std::unique_ptr<GeneticPrior> = 0;
+    virtual auto make_single_genetic_prior(
+        GeneticMode mode,
+        const EffectConfig& effect,
+        const BayesModel& model) const
+        -> std::unique_ptr<SingleGeneticPrior> = 0;
 };
 
 class JointMethod : public BayesRecipeImpl
@@ -121,10 +131,16 @@ class JointMethod : public BayesRecipeImpl
    private:
     auto make_genetic_priors(const BayesModel& model) const
         -> std::vector<std::unique_ptr<GeneticPrior>> final;
+    auto make_genetic_prior_blocks(const BayesModel& model) const
+        -> std::vector<GeneticPriorBlockV2> final;
 
     virtual auto make_joint_prior(
         const BayesRecipeConfig& config,
         const BayesModel& model) const -> std::unique_ptr<GeneticPrior> = 0;
+    virtual auto make_joint_prior_v2(
+        const BayesRecipeConfig& config,
+        const BayesModel& model) const
+        -> std::unique_ptr<JointGeneticPrior> = 0;
 };
 
 }  // namespace gelex::bayes
