@@ -48,6 +48,7 @@ namespace bayes
 {
 
 class BayesPrior;
+class BayesPriorV2;
 class JointGeneticPrior;
 class RandomPrior;
 class SingleGeneticPrior;
@@ -319,6 +320,51 @@ class BayesState
     std::vector<bayes::RandomState> random_;
     std::vector<bayes::GeneticState> genetics_;
     std::vector<bayes::GeneticBlockState> genetic_blocks_;
+    bayes::ResidualState residual_;
+};
+
+class BayesStateV2
+{
+   public:
+    static constexpr std::string_view name = "state";
+
+    BayesStateV2(const BayesModel& model, const bayes::BayesPriorV2& prior);
+
+    auto fixed() -> bayes::FixedState& { return fixed_; }
+    auto fixed() const -> const bayes::FixedState& { return fixed_; }
+
+    auto random() -> std::vector<bayes::RandomState>& { return random_; }
+    auto random() const -> const std::vector<bayes::RandomState>&
+    {
+        return random_;
+    }
+
+    auto genetics() -> std::vector<bayes::GeneticPriorBlockState>&
+    {
+        return genetics_;
+    }
+    auto genetics() const -> const std::vector<bayes::GeneticPriorBlockState>&
+    {
+        return genetics_;
+    }
+
+    auto genetic(GeneticMode type) -> bayes::GeneticState*;
+    auto genetic(GeneticMode type) const -> const bayes::GeneticState*;
+
+    auto genetic_block_for(GeneticMode type) -> bayes::GeneticPriorBlockState*;
+    auto genetic_block_for(GeneticMode type) const
+        -> const bayes::GeneticPriorBlockState*;
+
+    auto residual() -> bayes::ResidualState& { return residual_; }
+    auto residual() const -> const bayes::ResidualState& { return residual_; }
+
+    auto compute_heritability() -> void;
+    auto visit(infra::FieldVisitor& visitor) -> void;
+
+   private:
+    bayes::FixedState fixed_;
+    std::vector<bayes::RandomState> random_;
+    std::vector<bayes::GeneticPriorBlockState> genetics_;
     bayes::ResidualState residual_;
 };
 

@@ -18,9 +18,12 @@
 
 #include <cstddef>
 #include <memory>
+#include <ranges>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include <fmt/format.h>
@@ -666,6 +669,201 @@ auto BayesState::visit_records(
             residual_.visit_records(
                 bayes::StateRecordSet::checkpoint, prefixed);
         });
+}
+
+BayesStateV2::BayesStateV2(
+    const BayesModel& model,
+    const bayes::BayesPriorV2& prior)
+    : fixed_(model.fixed()),
+      residual_{
+          .y_adj = model.phenotype(),
+          .variance = prior.residual().initial_value()}
+{
+    const auto& random_effects = model.random();
+    random_.reserve(random_effects.size());
+    for (const auto& effect : random_effects)
+    {
+        random_.emplace_back(effect, prior.random());
+    }
+
+    genetics_.reserve(prior.genetics().size());
+    for (const auto& block : prior.genetics())
+    {
+        std::visit(
+            [this, &model](const auto& genetic_prior)
+            {
+                if constexpr (
+                    std::is_same_v<
+                        std::decay_t<decltype(genetic_prior)>,
+                        std::unique_ptr<bayes::SingleGeneticPrior>>)
+                {
+                    const auto mode = genetic_prior->mode();
+                    const auto* effect = model.genetic(mode);
+                    if (effect == nullptr)
+                    {
+                        throw GelexException(
+                            fmt::format(
+                                "BayesStateV2: missing genetic effect for "
+                                "mode {}",
+                                mode));
+                    }
+                    genetics_.emplace_back(
+                        bayes::SingleGeneticBlockState{
+                            *effect, *genetic_prior});
+                }
+                else
+                {
+                    const auto* additive = model.genetic(GeneticMode::A);
+                    if (additive == nullptr)
+                    {
+                        throw GelexException(
+                            "BayesStateV2: missing genetic effect for mode A");
+                    }
+
+                    const auto* dominance = model.genetic(GeneticMode::D);
+                    if (dominance == nullptr)
+                    {
+                        throw GelexException(
+                            "BayesStateV2: missing genetic effect for mode D");
+                    }
+
+                    genetics_.emplace_back(
+                        bayes::JointGeneticBlockState{
+                            *additive, *dominance, *genetic_prior});
+                }
+            },
+            block);
+    }
+}
+
+auto BayesStateV2::genetic(GeneticMode type) -> bayes::GeneticState*
+{
+    for (auto& block : genetics_)
+    {
+        auto* state = std::visit(
+            [type](auto& value) -> bayes::GeneticState*
+            {
+                if constexpr (
+                    std::is_same_v<
+                        std::decay_t<decltype(value)>,
+                        bayes::SingleGeneticBlockState>)
+                {
+                    return value.contains(type) ? &value.state() : nullptr;
+                }
+                else
+                {
+                    return value.contains(type) ? &value.state(type) : nullptr;
+                }
+            },
+            block);
+        if (state != nullptr)
+        {
+            return state;
+        }
+    }
+    return nullptr;
+}
+
+auto BayesStateV2::genetic(GeneticMode type) const -> const bayes::GeneticState*
+{
+    return const_cast<BayesStateV2*>(this)->genetic(type);
+}
+
+auto BayesStateV2::genetic_block_for(GeneticMode type)
+    -> bayes::GeneticPriorBlockState*
+{
+    for (auto& block : genetics_)
+    {
+        if (std::visit(
+                [type](const auto& value) { return value.contains(type); },
+                block))
+        {
+            return &block;
+        }
+    }
+    return nullptr;
+}
+
+auto BayesStateV2::genetic_block_for(GeneticMode type) const
+    -> const bayes::GeneticPriorBlockState*
+{
+    return const_cast<BayesStateV2*>(this)->genetic_block_for(type);
+}
+
+auto BayesStateV2::compute_heritability() -> void
+{
+    double total_variance = residual_.variance;
+    for (const auto& state : random_)
+    {
+        total_variance += state.variance;
+    }
+
+    for (const auto& block : genetics_)
+    {
+        std::visit(
+            [&total_variance](const auto& value)
+            {
+                if constexpr (
+                    std::is_same_v<
+                        std::decay_t<decltype(value)>,
+                        bayes::SingleGeneticBlockState>)
+                {
+                    total_variance += value.state().variance;
+                }
+                else
+                {
+                    total_variance += value.state(GeneticMode::A).variance;
+                    total_variance += value.state(GeneticMode::D).variance;
+                }
+            },
+            block);
+    }
+
+    for (auto& block : genetics_)
+    {
+        std::visit(
+            [total_variance](auto& value)
+            {
+                if constexpr (
+                    std::is_same_v<
+                        std::decay_t<decltype(value)>,
+                        bayes::SingleGeneticBlockState>)
+                {
+                    value.state().heritability
+                        = value.state().variance / total_variance;
+                }
+                else
+                {
+                    value.state(GeneticMode::A).heritability
+                        = value.state(GeneticMode::A).variance / total_variance;
+                    value.state(GeneticMode::D).heritability
+                        = value.state(GeneticMode::D).variance / total_variance;
+                }
+            },
+            block);
+    }
+}
+
+auto BayesStateV2::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    fixed_.visit(visitor);
+    for (auto [i, state] : std::views::enumerate(random_))
+    {
+        auto state_scope = visitor.scope(fmt::format("random_{}", i));
+        visitor.on(
+            "coeffs", state.coeffs, FieldFlag::checkpoint | FieldFlag::trace);
+        visitor.on(
+            "variance",
+            state.variance,
+            FieldFlag::checkpoint | FieldFlag::trace);
+    }
+    for (auto [i, block] : std::views::enumerate(genetics_))
+    {
+        auto block_scope = visitor.scope(fmt::format("genetic_{}", i));
+        std::visit([&visitor](auto& value) { value.visit(visitor); }, block);
+    }
+    residual_.visit(visitor);
 }
 
 }  // namespace gelex

@@ -48,16 +48,19 @@
 
 using gelex::BayesModel;
 using gelex::BayesState;
+using gelex::BayesStateV2;
 using gelex::FixedEffect;
 using gelex::GelexException;
 using gelex::GeneticMode;
 using gelex::bayes::BayesPrior;
+using gelex::bayes::BayesPriorV2;
 using gelex::bayes::BayesRecipe;
 using gelex::bayes::BayesRecipeConfig;
 using gelex::bayes::BayesRecipePreset;
 using gelex::bayes::ComponentStateCap;
 using gelex::bayes::DirichletPrior;
 using gelex::bayes::GaussianPrior;
+using gelex::bayes::GeneticPriorBlockV2;
 using gelex::bayes::GeneticPriorBlockState;
 using gelex::bayes::GeneticPrior;
 using gelex::bayes::JointGaussianMixturePrior;
@@ -604,6 +607,150 @@ TEST_CASE("BayesState rejects prior mode missing from model", "[bayes_state]")
     auto prior = make_prior(std::move(genetics));
 
     REQUIRE_THROWS_AS(BayesState(model, prior), GelexException);
+}
+
+TEST_CASE("BayesStateV2 creates single genetic blocks", "[bayes_state]")
+{
+    constexpr std::array modes{GeneticMode::A};
+    auto model = make_model(modes, true);
+
+    std::vector<GeneticPriorBlockV2> genetics;
+    genetics.emplace_back(
+        std::make_unique<SingleGaussianPrior>(
+            GeneticMode::A, make_marker_variance()));
+    BayesPriorV2 prior(
+        make_random_prior(0.25), std::move(genetics), make_residual_prior(1.5));
+
+    BayesStateV2 state(model, prior);
+
+    REQUIRE(state.fixed().coeffs.isApprox(Eigen::VectorXd::Zero(1)));
+    REQUIRE(state.random().size() == 1);
+    REQUIRE(state.random()[0].variance == 0.25);
+    REQUIRE(state.residual().variance == 1.5);
+    REQUIRE(state.genetics().size() == 1);
+    REQUIRE(state.genetic(GeneticMode::A) != nullptr);
+    REQUIRE(state.genetic(GeneticMode::D) == nullptr);
+
+    auto* block = state.genetic_block_for(GeneticMode::A);
+    REQUIRE(block != nullptr);
+    auto* single = std::get_if<SingleGeneticBlockState>(block);
+    REQUIRE(single != nullptr);
+    REQUIRE(single->state().coeffs.size() == kNumMarkers);
+    REQUIRE(single->state().u.size() == kNumIndividuals);
+    REQUIRE(single->prior_state().query<SingleVarianceStateCap>() != nullptr);
+
+    state.genetic(GeneticMode::A)->variance = 3.0;
+    state.residual().variance = 7.0;
+    state.compute_heritability();
+
+    REQUIRE(
+        std::abs(
+            state.genetic(GeneticMode::A)->heritability - 3.0 / 10.25)
+        < 1e-12);
+}
+
+TEST_CASE("BayesStateV2 creates joint genetic blocks", "[bayes_state]")
+{
+    constexpr std::array modes{GeneticMode::A, GeneticMode::D};
+    auto model = make_model(modes, true);
+
+    std::vector<GeneticPriorBlockV2> genetics;
+    genetics.emplace_back(
+        std::make_unique<JointGaussianMixturePrior>(
+            std::array{
+                make_marker_variance(MarkerVarianceLayout::shared),
+                make_marker_variance(MarkerVarianceLayout::shared)},
+            make_proportion_4()));
+    BayesPriorV2 prior(
+        make_random_prior(2.0), std::move(genetics), make_residual_prior(10.0));
+
+    BayesStateV2 state(model, prior);
+
+    REQUIRE(state.genetics().size() == 1);
+    REQUIRE(state.genetic(GeneticMode::A) != nullptr);
+    REQUIRE(state.genetic(GeneticMode::D) != nullptr);
+    REQUIRE(
+        state.genetic_block_for(GeneticMode::A)
+        == state.genetic_block_for(GeneticMode::D));
+
+    auto* block = state.genetic_block_for(GeneticMode::A);
+    REQUIRE(block != nullptr);
+    auto* joint = std::get_if<JointGeneticBlockState>(block);
+    REQUIRE(joint != nullptr);
+    REQUIRE(joint->state(GeneticMode::A).coeffs.size() == kNumMarkers);
+    REQUIRE(joint->state(GeneticMode::D).u.size() == kNumIndividuals);
+    REQUIRE(joint->prior_state().query<JointVarianceStateCap>() != nullptr);
+
+    state.genetic(GeneticMode::A)->variance = 3.0;
+    state.genetic(GeneticMode::D)->variance = 5.0;
+    state.compute_heritability();
+
+    REQUIRE(
+        std::abs(state.genetic(GeneticMode::A)->heritability - 0.15) < 1e-12);
+    REQUIRE(
+        std::abs(state.genetic(GeneticMode::D)->heritability - 0.25) < 1e-12);
+}
+
+TEST_CASE("BayesStateV2 visits fields", "[bayes_state]")
+{
+    constexpr std::array modes{GeneticMode::A};
+    auto model = make_model(modes, true);
+
+    std::vector<GeneticPriorBlockV2> genetics;
+    genetics.emplace_back(
+        std::make_unique<SingleGaussianPrior>(
+            GeneticMode::A, make_marker_variance()));
+    BayesPriorV2 prior(
+        make_random_prior(0.25), std::move(genetics), make_residual_prior(1.5));
+
+    BayesStateV2 state(model, prior);
+    FieldPathCollector visitor;
+    visitor.mutate_path = "state/random_0/variance";
+
+    state.visit(visitor);
+
+    REQUIRE(visitor.count("state/fixed/coeffs") == 1);
+    REQUIRE(visitor.count("state/random_0/coeffs") == 1);
+    REQUIRE(visitor.count("state/random_0/variance") == 1);
+    REQUIRE(
+        visitor.count("state/genetic_0/single/genetic/coeffs") == 1);
+    REQUIRE(
+        visitor.count(
+            "state/genetic_0/single/prior_state/gaussian/variance")
+        == 1);
+    REQUIRE(visitor.count("state/residual/variance") == 1);
+    REQUIRE(state.random()[0].variance == visitor.mutated_value);
+}
+
+TEST_CASE("BayesStateV2 rejects prior mode missing from model", "[bayes_state]")
+{
+    constexpr std::array modes{GeneticMode::A};
+    auto model = make_model(modes);
+
+    {
+        std::vector<GeneticPriorBlockV2> genetics;
+        genetics.emplace_back(
+            std::make_unique<SingleGaussianPrior>(
+                GeneticMode::D, make_marker_variance()));
+        BayesPriorV2 prior(
+            make_random_prior(), std::move(genetics), make_residual_prior());
+
+        REQUIRE_THROWS_AS(BayesStateV2(model, prior), GelexException);
+    }
+
+    {
+        std::vector<GeneticPriorBlockV2> genetics;
+        genetics.emplace_back(
+            std::make_unique<JointGaussianMixturePrior>(
+                std::array{
+                    make_marker_variance(MarkerVarianceLayout::shared),
+                    make_marker_variance(MarkerVarianceLayout::shared)},
+                make_proportion_4()));
+        BayesPriorV2 prior(
+            make_random_prior(), std::move(genetics), make_residual_prior());
+
+        REQUIRE_THROWS_AS(BayesStateV2(model, prior), GelexException);
+    }
 }
 
 TEST_CASE(
