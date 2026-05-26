@@ -22,6 +22,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include <Eigen/Core>
@@ -33,6 +34,7 @@
 #include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/gaussian_prior.h"
 #include "gelex/model/bayes/genetic_prior.h"
+#include "gelex/model/bayes/genetic_priors/gaussian.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_parameters.h"
@@ -56,8 +58,12 @@ using gelex::bayes::BayesRecipePreset;
 using gelex::bayes::ComponentStateCap;
 using gelex::bayes::DirichletPrior;
 using gelex::bayes::GaussianPrior;
+using gelex::bayes::GeneticPriorBlockState;
 using gelex::bayes::GeneticPrior;
+using gelex::bayes::JointGaussianMixturePrior;
+using gelex::bayes::JointGeneticBlockState;
 using gelex::bayes::JointMixtureGaussianPrior;
+using gelex::bayes::JointVarianceStateCap;
 using gelex::bayes::MarkerVariance;
 using gelex::bayes::MarkerVarianceLayout;
 using gelex::bayes::MixtureProportion;
@@ -67,6 +73,9 @@ using gelex::bayes::ResidualPrior;
 using gelex::bayes::ScaledInvChiSqPrior;
 using gelex::bayes::ScaledMixtureGaussianPrior;
 using gelex::bayes::SimplexParameter;
+using gelex::bayes::SingleGaussianPrior;
+using gelex::bayes::SingleGeneticBlockState;
+using gelex::bayes::SingleVarianceStateCap;
 using gelex::bayes::SpikeSlabGaussianPrior;
 using gelex::bayes::UpdatePolicy;
 using gelex::bayes::VarianceParameter;
@@ -395,6 +404,68 @@ TEST_CASE(
     REQUIRE(genetic_visitor.count("genetic/variance") == 1);
     REQUIRE(genetic_visitor.count("genetic/heritability") == 1);
     REQUIRE(genetic.coeffs(0) == genetic_visitor.mutated_value);
+}
+
+TEST_CASE(
+    "SingleGeneticBlockState and JointGeneticBlockState own genetic states",
+    "[bayes_state]")
+{
+    STATIC_REQUIRE(std::variant_size_v<GeneticPriorBlockState> == 2);
+
+    constexpr std::array modes{GeneticMode::A, GeneticMode::D};
+    auto model = make_model(modes);
+
+    SingleGaussianPrior single_prior{
+        GeneticMode::A, make_marker_variance()};
+    SingleGeneticBlockState single{
+        *model.genetic(GeneticMode::A), single_prior};
+
+    REQUIRE(single.mode() == GeneticMode::A);
+    REQUIRE(single.contains(GeneticMode::A));
+    REQUIRE(!single.contains(GeneticMode::D));
+    REQUIRE(single.state().type == GeneticMode::A);
+    REQUIRE(single.state().coeffs.size() == kNumMarkers);
+    REQUIRE(single.state().u.size() == kNumIndividuals);
+    REQUIRE(single.prior_state().query<SingleVarianceStateCap>() != nullptr);
+
+    FieldPathCollector single_visitor;
+    single_visitor.mutate_path = "single/genetic/coeffs";
+    single.visit(single_visitor);
+
+    REQUIRE(single_visitor.count("single/genetic/coeffs") == 1);
+    REQUIRE(single_visitor.count("single/genetic/u") == 1);
+    REQUIRE(single_visitor.count("single/prior_state/gaussian/variance") == 1);
+    REQUIRE(single.state().coeffs(0) == single_visitor.mutated_value);
+
+    JointGaussianMixturePrior joint_prior{
+        std::array{
+            make_marker_variance(MarkerVarianceLayout::per_marker, 0.5),
+            make_marker_variance(MarkerVarianceLayout::shared, 0.75)},
+        make_proportion_4()};
+    JointGeneticBlockState joint{
+        *model.genetic(GeneticMode::A),
+        *model.genetic(GeneticMode::D),
+        joint_prior};
+
+    REQUIRE(joint.contains(GeneticMode::A));
+    REQUIRE(joint.contains(GeneticMode::D));
+    REQUIRE(joint.state(GeneticMode::A).type == GeneticMode::A);
+    REQUIRE(joint.state(GeneticMode::D).type == GeneticMode::D);
+    REQUIRE(joint.state(GeneticMode::A).coeffs.size() == kNumMarkers);
+    REQUIRE(joint.state(GeneticMode::D).u.size() == kNumIndividuals);
+    REQUIRE(joint.prior_state().query<JointVarianceStateCap>() != nullptr);
+
+    FieldPathCollector joint_visitor;
+    joint_visitor.mutate_path = "joint/D/genetic/variance";
+    joint.visit(joint_visitor);
+
+    REQUIRE(joint_visitor.count("joint/A/genetic/coeffs") == 1);
+    REQUIRE(joint_visitor.count("joint/D/genetic/u") == 1);
+    REQUIRE(
+        joint_visitor.count(
+            "joint/prior_state/joint_mixture_gaussian/A/variance")
+        == 1);
+    REQUIRE(joint.state(GeneticMode::D).variance == joint_visitor.mutated_value);
 }
 
 TEST_CASE(

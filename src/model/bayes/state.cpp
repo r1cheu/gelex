@@ -277,6 +277,154 @@ auto GeneticBlockState::visit_records(
     prior_state_->visit_records(set, sink);
 }
 
+SingleGeneticBlockState::SingleGeneticBlockState(
+    const GeneticEffect& effect,
+    const SingleGeneticPrior& prior)
+    : SingleGeneticBlockState(
+          GeneticState{effect.type, effect.X.cols(), effect.X.rows()},
+          prior.make_state(effect.X.cols(), effect.X.rows()))
+{
+    if (effect.type != prior.mode())
+    {
+        throw GelexException(
+            fmt::format(
+                "SingleGeneticBlockState: effect mode {} != prior mode {}",
+                effect.type,
+                prior.mode()));
+    }
+}
+
+SingleGeneticBlockState::SingleGeneticBlockState(
+    GeneticState genetic,
+    std::unique_ptr<SingleGeneticPriorState> prior_state)
+    : state_(std::move(genetic)), prior_state_(std::move(prior_state))
+{
+    if (prior_state_ == nullptr)
+    {
+        throw GelexException("SingleGeneticBlockState: null prior state");
+    }
+}
+
+auto SingleGeneticBlockState::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    state_.visit(visitor);
+    auto prior_scope = visitor.scope("prior_state");
+    prior_state_->visit(visitor);
+}
+
+JointGeneticBlockState::JointGeneticBlockState(
+    const GeneticEffect& additive,
+    const GeneticEffect& dominance,
+    const JointGeneticPrior& prior)
+    : JointGeneticBlockState(
+          GeneticState{GeneticMode::A, additive.X.cols(), additive.X.rows()},
+          GeneticState{GeneticMode::D, dominance.X.cols(), dominance.X.rows()},
+          prior.make_state(additive.X.cols(), additive.X.rows()))
+{
+    if (additive.type != GeneticMode::A)
+    {
+        throw GelexException(
+            fmt::format(
+                "JointGeneticBlockState: additive effect has mode {}",
+                additive.type));
+    }
+    if (dominance.type != GeneticMode::D)
+    {
+        throw GelexException(
+            fmt::format(
+                "JointGeneticBlockState: dominance effect has mode {}",
+                dominance.type));
+    }
+    if (additive.X.rows() != dominance.X.rows()
+        || additive.X.cols() != dominance.X.cols())
+    {
+        throw GelexException(
+            fmt::format(
+                "JointGeneticBlockState: genetic effects must share shape; "
+                "A is {}x{}, D is {}x{}",
+                additive.X.rows(),
+                additive.X.cols(),
+                dominance.X.rows(),
+                dominance.X.cols()));
+    }
+}
+
+JointGeneticBlockState::JointGeneticBlockState(
+    GeneticState additive,
+    GeneticState dominance,
+    std::unique_ptr<JointGeneticPriorState> prior_state)
+    : additive_(std::move(additive)),
+      dominance_(std::move(dominance)),
+      prior_state_(std::move(prior_state))
+{
+    if (additive_.type != GeneticMode::A)
+    {
+        throw GelexException(
+            fmt::format(
+                "JointGeneticBlockState: additive state has mode {}",
+                additive_.type));
+    }
+    if (dominance_.type != GeneticMode::D)
+    {
+        throw GelexException(
+            fmt::format(
+                "JointGeneticBlockState: dominance state has mode {}",
+                dominance_.type));
+    }
+    if (prior_state_ == nullptr)
+    {
+        throw GelexException("JointGeneticBlockState: null prior state");
+    }
+}
+
+auto JointGeneticBlockState::contains(GeneticMode mode) const -> bool
+{
+    return mode == GeneticMode::A || mode == GeneticMode::D;
+}
+
+auto JointGeneticBlockState::state(GeneticMode mode) -> GeneticState&
+{
+    switch (mode)
+    {
+        case GeneticMode::A:
+            return additive_;
+        case GeneticMode::D:
+            return dominance_;
+    }
+    throw GelexException(
+        fmt::format("JointGeneticBlockState: missing genetic mode {}", mode));
+}
+
+auto JointGeneticBlockState::state(GeneticMode mode) const
+    -> const GeneticState&
+{
+    switch (mode)
+    {
+        case GeneticMode::A:
+            return additive_;
+        case GeneticMode::D:
+            return dominance_;
+    }
+    throw GelexException(
+        fmt::format("JointGeneticBlockState: missing genetic mode {}", mode));
+}
+
+auto JointGeneticBlockState::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    {
+        auto additive_scope = visitor.scope("A");
+        additive_.visit(visitor);
+    }
+    {
+        auto dominance_scope = visitor.scope("D");
+        dominance_.visit(visitor);
+    }
+    auto prior_scope = visitor.scope("prior_state");
+    prior_state_->visit(visitor);
+}
+
 auto ResidualState::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
