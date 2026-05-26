@@ -17,6 +17,7 @@
 #include <array>
 #include <cmath>
 #include <memory>
+#include <ranges>
 #include <span>
 #include <string>
 #include <string_view>
@@ -28,6 +29,7 @@
 
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/exception.h"
+#include "gelex/infra/field_visitor.h"
 #include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/gaussian_prior.h"
 #include "gelex/model/bayes/genetic_prior.h"
@@ -212,6 +214,94 @@ class PathCollector final : public gelex::infra::RecordSink
     std::vector<std::string> paths;
 };
 
+class FieldPathCollector final : public gelex::infra::FieldVisitor
+{
+   public:
+    auto on(
+        std::string_view name,
+        Eigen::Ref<Eigen::VectorXf>,
+        gelex::FieldFlag) -> void override
+    {
+        paths.push_back(make_path(name));
+    }
+
+    auto on(
+        std::string_view name,
+        Eigen::Ref<Eigen::VectorXd> value,
+        gelex::FieldFlag) -> void override
+    {
+        const auto path = make_path(name);
+        paths.push_back(path);
+        if (path == mutate_path && value.size() > 0)
+        {
+            value(0) = mutated_value;
+        }
+    }
+
+    auto on(
+        std::string_view name,
+        Eigen::Ref<Eigen::VectorXi>,
+        gelex::FieldFlag) -> void override
+    {
+        paths.push_back(make_path(name));
+    }
+
+    auto on(std::string_view name, double& value, gelex::FieldFlag)
+        -> void override
+    {
+        const auto path = make_path(name);
+        paths.push_back(path);
+        if (path == mutate_path)
+        {
+            value = mutated_value;
+        }
+    }
+
+    auto on(std::string_view name, int&, gelex::FieldFlag) -> void override
+    {
+        paths.push_back(make_path(name));
+    }
+
+    auto count(std::string_view path) const -> std::size_t
+    {
+        return static_cast<std::size_t>(
+            std::ranges::count(paths, std::string{path}));
+    }
+
+    std::vector<std::string> paths;
+    std::string mutate_path;
+    double mutated_value{9.0};
+
+   private:
+    auto enter(std::string_view name) -> void override
+    {
+        scopes_.emplace_back(name);
+    }
+
+    auto leave() -> void override { scopes_.pop_back(); }
+
+    auto make_path(std::string_view name) const -> std::string
+    {
+        std::string path;
+        for (const auto& scope : scopes_)
+        {
+            if (!path.empty())
+            {
+                path += '/';
+            }
+            path += scope;
+        }
+        if (!path.empty())
+        {
+            path += '/';
+        }
+        path += name;
+        return path;
+    }
+
+    std::vector<std::string> scopes_;
+};
+
 }  // namespace
 
 TEST_CASE("BayesRecipe prior constructs BayesState", "[bayes_state]")
@@ -257,6 +347,54 @@ TEST_CASE(
     REQUIRE(state.random()[0].variance == 0.25);
     REQUIRE(state.residual().y_adj.isApprox(model.phenotype()));
     REQUIRE(state.residual().variance == 1.5);
+}
+
+TEST_CASE(
+    "FixedState RandomState ResidualState and GeneticState visit fields",
+    "[bayes_state]")
+{
+    gelex::bayes::FixedState fixed{Eigen::VectorXd{{1.0, 2.0}}};
+    FieldPathCollector fixed_visitor;
+    fixed_visitor.mutate_path = "fixed/coeffs";
+
+    fixed.visit(fixed_visitor);
+
+    REQUIRE(fixed_visitor.count("fixed/coeffs") == 1);
+    REQUIRE(fixed.coeffs(0) == fixed_visitor.mutated_value);
+
+    gelex::bayes::RandomState random{Eigen::VectorXd{{3.0, 4.0}}, 0.5};
+    FieldPathCollector random_visitor;
+    random_visitor.mutate_path = "random/variance";
+
+    random.visit(random_visitor);
+
+    REQUIRE(random_visitor.count("random/coeffs") == 1);
+    REQUIRE(random_visitor.count("random/variance") == 1);
+    REQUIRE(random.variance == random_visitor.mutated_value);
+
+    gelex::bayes::ResidualState residual{
+        .y_adj = Eigen::VectorXd{{5.0, 6.0}},
+        .variance = 0.75};
+    FieldPathCollector residual_visitor;
+    residual_visitor.mutate_path = "residual/y_adj";
+
+    residual.visit(residual_visitor);
+
+    REQUIRE(residual_visitor.count("residual/y_adj") == 1);
+    REQUIRE(residual_visitor.count("residual/variance") == 1);
+    REQUIRE(residual.y_adj(0) == residual_visitor.mutated_value);
+
+    gelex::bayes::GeneticState genetic{GeneticMode::A, 2, 3};
+    FieldPathCollector genetic_visitor;
+    genetic_visitor.mutate_path = "genetic/coeffs";
+
+    genetic.visit(genetic_visitor);
+
+    REQUIRE(genetic_visitor.count("genetic/coeffs") == 1);
+    REQUIRE(genetic_visitor.count("genetic/u") == 1);
+    REQUIRE(genetic_visitor.count("genetic/variance") == 1);
+    REQUIRE(genetic_visitor.count("genetic/heritability") == 1);
+    REQUIRE(genetic.coeffs(0) == genetic_visitor.mutated_value);
 }
 
 TEST_CASE(

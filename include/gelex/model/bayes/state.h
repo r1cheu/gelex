@@ -21,13 +21,13 @@
 #include <cstddef>
 #include <memory>
 #include <span>
+#include <string_view>
 #include <vector>
 
 #include <Eigen/Core>
 
 #include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/effects.h"
-#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/prior_state.h"
 #include "gelex/model/bayes/state_record_set.h"
 #include "gelex/types/fixed_effects.h"
@@ -38,6 +38,11 @@ namespace gelex
 
 class BayesModel;
 
+namespace infra
+{
+class FieldVisitor;
+}
+
 namespace bayes
 {
 
@@ -46,8 +51,12 @@ class RandomPrior;
 
 struct FixedState
 {
+    static constexpr std::string_view name = "fixed";
+
     explicit FixedState(const FixedEffect& effect);
     explicit FixedState(Eigen::VectorXd coeffs);
+
+    auto visit(infra::FieldVisitor& visitor) -> void;
 
     auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
         -> void;
@@ -59,9 +68,13 @@ struct FixedState
 
 struct RandomState
 {
+    static constexpr std::string_view name = "random";
+
     RandomState(const RandomEffect& effect, double variance);
     RandomState(const RandomEffect& effect, const RandomPrior& prior);
     RandomState(Eigen::VectorXd coeffs, double variance);
+
+    auto visit(infra::FieldVisitor& visitor) -> void;
 
     auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
         -> void;
@@ -72,12 +85,31 @@ struct RandomState
     double variance{0.0};
 };
 
+struct ResidualState
+{
+    static constexpr std::string_view name = "residual";
+
+    auto visit(infra::FieldVisitor& visitor) -> void;
+
+    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
+        -> void;
+    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
+        -> void;
+
+    Eigen::VectorXd y_adj;
+    double variance{0.0};
+};
+
 struct GeneticState
 {
+    static constexpr std::string_view name = "genetic";
+
     GeneticState(
         GeneticMode type,
         Eigen::Index num_markers,
         Eigen::Index num_individuals);
+
+    auto visit(infra::FieldVisitor& visitor) -> void;
 
     auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
         -> void;
@@ -126,17 +158,6 @@ class GeneticBlockState
     std::vector<GeneticMode> modes_;
     std::vector<std::size_t> genetic_indices_;
     std::unique_ptr<GeneticPriorState> prior_state_;
-};
-
-struct ResidualState
-{
-    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
-        -> void;
-    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
-        -> void;
-
-    Eigen::VectorXd y_adj;
-    double variance{0.0};
 };
 
 }  // namespace bayes

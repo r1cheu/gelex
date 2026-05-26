@@ -27,6 +27,8 @@
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
+#include "gelex/infra/field_flag.h"
+#include "gelex/infra/field_visitor.h"
 #include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/model.h"
@@ -104,6 +106,12 @@ FixedState::FixedState(const FixedEffect& effect)
 
 FixedState::FixedState(Eigen::VectorXd coeffs) : coeffs(std::move(coeffs)) {}
 
+auto FixedState::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on("coeffs", coeffs, FieldFlag::checkpoint | FieldFlag::trace);
+}
+
 auto FixedState::visit_records(StateRecordSet, infra::RecordSink& sink) const
     -> void
 {
@@ -137,6 +145,13 @@ RandomState::RandomState(Eigen::VectorXd coeffs, double variance)
 {
 }
 
+auto RandomState::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on("coeffs", coeffs, FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on("variance", variance, FieldFlag::checkpoint | FieldFlag::trace);
+}
+
 auto RandomState::visit_records(StateRecordSet, infra::RecordSink& sink) const
     -> void
 {
@@ -165,6 +180,16 @@ GeneticState::GeneticState(
       coeffs(Eigen::VectorXd::Zero(num_markers)),
       u(Eigen::VectorXd::Zero(num_individuals))
 {
+}
+
+auto GeneticState::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on("coeffs", coeffs, FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on("u", u, FieldFlag::checkpoint);
+    visitor.on("variance", variance, FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on(
+        "heritability", heritability, FieldFlag::checkpoint | FieldFlag::trace);
 }
 
 auto GeneticState::visit_records(StateRecordSet set, infra::RecordSink& sink)
@@ -250,6 +275,13 @@ auto GeneticBlockState::visit_records(
             "GeneticBlockState: mutable visit_records requires checkpoint set");
     }
     prior_state_->visit_records(set, sink);
+}
+
+auto ResidualState::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on("y_adj", y_adj, FieldFlag::checkpoint);
+    visitor.on("variance", variance, FieldFlag::checkpoint | FieldFlag::trace);
 }
 
 auto ResidualState::visit_records(StateRecordSet set, infra::RecordSink& sink)
