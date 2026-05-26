@@ -20,6 +20,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include <Eigen/Core>
@@ -41,10 +42,13 @@
 using gelex::GelexException;
 using gelex::GeneticMode;
 using gelex::bayes::BayesPrior;
+using gelex::bayes::BayesPriorV2;
 using gelex::bayes::ComponentStateCap;
 using gelex::bayes::DirichletPrior;
 using gelex::bayes::GaussianPrior;
 using gelex::bayes::GeneticPrior;
+using gelex::bayes::GeneticPriorBlockV2;
+using gelex::bayes::JointGeneticPrior;
 using gelex::bayes::JointComponentStateCap;
 using gelex::bayes::JointGaussianMixturePrior;
 using gelex::bayes::JointGeneticPriorState;
@@ -67,6 +71,7 @@ using gelex::bayes::ScaledMixtureGaussianPrior;
 using gelex::bayes::SimplexParameter;
 using gelex::bayes::SingleComponentStateCap;
 using gelex::bayes::SingleGaussianPrior;
+using gelex::bayes::SingleGeneticPrior;
 using gelex::bayes::SingleGeneticPriorState;
 using gelex::bayes::SingleMarkerVarianceCap;
 using gelex::bayes::SingleMixtureProportionCap;
@@ -253,6 +258,144 @@ TEST_CASE("BayesPrior accessors expose construction arguments", "[bayes_prior]")
     REQUIRE((*it).contains(GeneticMode::D));
     ++it;
     REQUIRE(it == range.end());
+}
+
+TEST_CASE("BayesPriorV2 accessors expose genetic blocks", "[bayes_prior]")
+{
+    std::vector<GeneticPriorBlockV2> genetics;
+    genetics.emplace_back(
+        std::make_unique<SingleGaussianPrior>(
+            GeneticMode::A, make_marker_variance()));
+    genetics.emplace_back(
+        std::make_unique<SingleSpikeSlabGaussianPrior>(
+            GeneticMode::D, make_marker_variance(), make_proportion_2()));
+
+    BayesPriorV2 prior(
+        make_random_prior(2.0), std::move(genetics), make_residual_prior(5.0));
+
+    REQUIRE(prior.random().initial_value() == 2.0);
+    REQUIRE(prior.residual().initial_value() == 5.0);
+
+    const auto blocks = prior.genetics();
+    REQUIRE(blocks.size() == 2);
+    const auto* additive
+        = std::get_if<std::unique_ptr<SingleGeneticPrior>>(&blocks[0]);
+    const auto* dominance
+        = std::get_if<std::unique_ptr<SingleGeneticPrior>>(&blocks[1]);
+    REQUIRE(additive != nullptr);
+    REQUIRE((*additive)->mode() == GeneticMode::A);
+    REQUIRE(dominance != nullptr);
+    REQUIRE((*dominance)->mode() == GeneticMode::D);
+}
+
+TEST_CASE("BayesPriorV2 accepts a joint genetic block", "[bayes_prior]")
+{
+    std::vector<GeneticPriorBlockV2> genetics;
+    genetics.emplace_back(
+        std::make_unique<JointGaussianMixturePrior>(
+            std::array<MarkerVariance, 2>{
+                make_marker_variance(), make_marker_variance()},
+            make_proportion_2()));
+
+    BayesPriorV2 prior(
+        make_random_prior(), std::move(genetics), make_residual_prior());
+
+    const auto blocks = prior.genetics();
+    REQUIRE(blocks.size() == 1);
+    REQUIRE(
+        std::holds_alternative<std::unique_ptr<JointGeneticPrior>>(blocks[0]));
+}
+
+TEST_CASE("BayesPriorV2 visits prior fields", "[bayes_prior]")
+{
+    std::vector<GeneticPriorBlockV2> genetics;
+    genetics.emplace_back(
+        std::make_unique<SingleGaussianPrior>(
+            GeneticMode::A, make_marker_variance()));
+    genetics.emplace_back(
+        std::make_unique<SingleSpikeSlabGaussianPrior>(
+            GeneticMode::D, make_marker_variance(), make_proportion_2()));
+    BayesPriorV2 prior(
+        make_random_prior(), std::move(genetics), make_residual_prior());
+    FieldPathCollector visitor;
+
+    prior.visit(visitor);
+
+    REQUIRE(visitor.count("prior/random/variance/initial_value") == 1);
+    REQUIRE(visitor.count("prior/genetic/0/gaussian/mode") == 1);
+    REQUIRE(
+        visitor.count("prior/genetic/0/gaussian/marker_variance/layout")
+        == 1);
+    REQUIRE(visitor.count("prior/genetic/1/spike_slab_gaussian/mode") == 1);
+    REQUIRE(visitor.count("prior/residual/variance/initial_value") == 1);
+}
+
+TEST_CASE("BayesPriorV2 rejects null genetic blocks", "[bayes_prior]")
+{
+    std::vector<GeneticPriorBlockV2> genetics;
+
+    SECTION("single")
+    {
+        genetics.emplace_back(std::unique_ptr<SingleGeneticPrior>{});
+        REQUIRE_THROWS_AS(
+            BayesPriorV2(
+                make_random_prior(),
+                std::move(genetics),
+                make_residual_prior()),
+            GelexException);
+    }
+
+    SECTION("joint")
+    {
+        genetics.emplace_back(std::unique_ptr<JointGeneticPrior>{});
+        REQUIRE_THROWS_AS(
+            BayesPriorV2(
+                make_random_prior(),
+                std::move(genetics),
+                make_residual_prior()),
+            GelexException);
+    }
+}
+
+TEST_CASE("BayesPriorV2 rejects duplicate genetic modes", "[bayes_prior]")
+{
+    SECTION("single single conflict")
+    {
+        std::vector<GeneticPriorBlockV2> genetics;
+        genetics.emplace_back(
+            std::make_unique<SingleGaussianPrior>(
+                GeneticMode::A, make_marker_variance()));
+        genetics.emplace_back(
+            std::make_unique<SingleSpikeSlabGaussianPrior>(
+                GeneticMode::A, make_marker_variance(), make_proportion_2()));
+
+        REQUIRE_THROWS_AS(
+            BayesPriorV2(
+                make_random_prior(),
+                std::move(genetics),
+                make_residual_prior()),
+            GelexException);
+    }
+
+    SECTION("single joint conflict")
+    {
+        std::vector<GeneticPriorBlockV2> genetics;
+        genetics.emplace_back(
+            std::make_unique<SingleGaussianPrior>(
+                GeneticMode::D, make_marker_variance()));
+        genetics.emplace_back(
+            std::make_unique<JointGaussianMixturePrior>(
+                std::array<MarkerVariance, 2>{
+                    make_marker_variance(), make_marker_variance()},
+                make_proportion_2()));
+
+        REQUIRE_THROWS_AS(
+            BayesPriorV2(
+                make_random_prior(),
+                std::move(genetics),
+                make_residual_prior()),
+            GelexException);
+    }
 }
 
 TEST_CASE("GeneticPrior capabilities compose prior data axes", "[bayes_prior]")

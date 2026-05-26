@@ -18,8 +18,11 @@
 
 #include <algorithm>
 #include <ranges>
+#include <set>
 #include <string>
+#include <type_traits>
 #include <utility>
+#include <variant>
 
 #include <fmt/format.h>
 
@@ -52,6 +55,7 @@ auto BayesPrior::visit(infra::FieldVisitor& visitor) -> void
         }
     }
     residual_.visit(visitor);
+    // FieldVisitor may mutate prior fields, so restore invariant checks here.
     validate_genetics(genetics_);
 }
 
@@ -81,6 +85,76 @@ auto BayesPrior::validate_genetics(
             }
             seen_modes.push_back(mode);
         }
+    }
+}
+
+BayesPriorV2::BayesPriorV2(
+    RandomPrior random,
+    std::vector<GeneticPriorBlockV2> genetics,
+    ResidualPrior residual)
+    : random_(random), genetics_(std::move(genetics)), residual_(residual)
+{
+    validate_genetics(genetics_);
+}
+
+auto BayesPriorV2::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    random_.visit(visitor);
+    {
+        auto genetic_scope = visitor.scope(GeneticPrior::name);
+        for (auto [i, block] : std::views::enumerate(genetics_))
+        {
+            auto block_scope = visitor.scope(std::to_string(i));
+            std::visit(
+                [&visitor](auto& prior) { prior->visit(visitor); }, block);
+        }
+    }
+    residual_.visit(visitor);
+    // FieldVisitor may mutate prior fields, so restore invariant checks here.
+    validate_genetics(genetics_);
+}
+
+auto BayesPriorV2::validate_genetics(
+    const std::vector<GeneticPriorBlockV2>& genetics) -> void
+{
+    std::set<GeneticMode> seen_modes;
+    auto add_mode = [&seen_modes](GeneticMode mode)
+    {
+        if (!seen_modes.insert(mode).second)
+        {
+            throw GelexException(
+                fmt::format(
+                    "BayesPriorV2: duplicate GeneticMode {} across blocks",
+                    mode));
+        }
+    };
+    for (const auto& block : genetics)
+    {
+        std::visit(
+            [&add_mode](const auto& prior)
+            {
+                using Prior = std::decay_t<decltype(prior)>;
+                if (prior == nullptr)
+                {
+                    throw GelexException("BayesPriorV2: null genetic block");
+                }
+
+                if constexpr (
+                    std::is_same_v<Prior, std::unique_ptr<SingleGeneticPrior>>)
+                {
+                    add_mode(prior->mode());
+                }
+                else if constexpr (
+                    std::is_same_v<Prior, std::unique_ptr<JointGeneticPrior>>)
+                {
+                    // A joint prior owns both genetic modes, so reserve both
+                    // slots for duplicate checks.
+                    add_mode(GeneticMode::A);
+                    add_mode(GeneticMode::D);
+                }
+            },
+            block);
     }
 }
 
