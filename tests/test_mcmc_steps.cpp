@@ -28,16 +28,23 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/algo/infer/mcmc/context.h"
+#include "gelex/algo/infer/mcmc/chain.h"
+#include "gelex/algo/infer/mcmc/invariant.h"
 #include "gelex/algo/infer/mcmc/kernels/bayes_a.h"
 #include "gelex/algo/infer/mcmc/kernels/bayes_b.h"
 #include "gelex/algo/infer/mcmc/kernels/bayes_c.h"
 #include "gelex/algo/infer/mcmc/kernels/bayes_r.h"
 #include "gelex/algo/infer/mcmc/kernels/bayes_rr.h"
 #include "gelex/algo/infer/mcmc/recipes.h"
+#include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/algo/infer/mcmc/steps/fixed.h"
+#include "gelex/algo/infer/mcmc/steps/fixed_coefficient.h"
 #include "gelex/algo/infer/mcmc/steps/genetic.h"
 #include "gelex/algo/infer/mcmc/steps/pi.h"
 #include "gelex/algo/infer/mcmc/steps/random.h"
+#include "gelex/algo/infer/mcmc/steps/random_coefficient.h"
+#include "gelex/algo/infer/mcmc/steps/random_variance.h"
+#include "gelex/algo/infer/mcmc/steps/residual_variance.h"
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/model/bayes/gaussian_prior.h"
 #include "gelex/model/bayes/model.h"
@@ -186,7 +193,203 @@ auto make_context(
     return Context{.model = model, .prior = prior, .state = state, .rng = rng};
 }
 
+class RecordingStep final : public Step
+{
+   public:
+    RecordingStep(std::vector<int>& calls, int value)
+        : calls_(calls), value_(value)
+    {
+    }
+
+    auto step() -> void override { calls_.push_back(value_); }
+
+   private:
+    std::vector<int>& calls_;
+    int value_{};
+};
+
 }  // namespace
+
+TEST_CASE("Runtime Chain runs heterogeneous steps in order", "[mcmc][chain]")
+{
+    std::vector<int> calls;
+    std::vector<std::unique_ptr<Step>> steps;
+    steps.push_back(std::make_unique<RecordingStep>(calls, 1));
+    steps.push_back(std::make_unique<RecordingStep>(calls, 2));
+    steps.push_back(std::make_unique<RecordingStep>(calls, 3));
+
+    Chain chain{std::move(steps)};
+    chain.step();
+
+    const std::vector<int> expected{1, 2, 3};
+    REQUIRE(calls == expected);
+}
+
+TEST_CASE(
+    "ResidualAdjustmentGuard is no-op when coefficient is unchanged",
+    "[mcmc][invariant]")
+{
+    const Eigen::VectorXd column{{1.0, 2.0, 3.0}};
+    double coeff = 0.0;
+    bayes::ResidualState residual{
+        .y_adj = Eigen::VectorXd{{0.5, -0.25, 1.0}},
+        .variance = 1.0};
+    const auto before = residual.y_adj;
+
+    {
+        ResidualAdjustmentGuard guard{column, coeff, residual};
+    }
+
+    REQUIRE(residual.y_adj.isApprox(before));
+}
+
+TEST_CASE(
+    "GeneticAdjustmentGuard updates residual and gebv in one transition",
+    "[mcmc][invariant]")
+{
+    const Eigen::VectorXd column{{1.0, 2.0, -1.0}};
+    double coeff = 0.5;
+    bayes::ResidualState residual{
+        .y_adj = Eigen::VectorXd{{1.0, 1.0, 1.0}},
+        .variance = 1.0};
+    bayes::GeneticState state{GeneticMode::A, 1, column.size()};
+
+    {
+        GeneticAdjustmentGuard guard{column, coeff, residual, state};
+        coeff = -0.25;
+    }
+
+    const Eigen::VectorXd delta = (0.5 - coeff) * column;
+    REQUIRE(residual.y_adj.isApprox(Eigen::VectorXd{{1.0, 1.0, 1.0}} + delta));
+    REQUIRE(state.u.isApprox(-delta));
+}
+
+TEST_CASE(
+    "GeneticMixtureAdjustmentGuard updates residual, gebv, and component gebv",
+    "[mcmc][invariant]")
+{
+    const Eigen::VectorXd column{{1.0, 2.0, -1.0}};
+    double coeff = 0.5;
+    bayes::ResidualState residual{
+        .y_adj = Eigen::VectorXd{{1.0, 1.0, 1.0}},
+        .variance = 1.0};
+    bayes::GeneticState state{GeneticMode::A, 1, column.size()};
+    bayes::ComponentState component{2, column.size()};
+    Eigen::VectorXi assignment{{1}};
+
+    {
+        GeneticMixtureAdjustmentGuard guard{
+            column, coeff, residual, state, component, assignment, 0};
+        coeff = -0.25;
+        assignment(0) = 2;
+    }
+
+    const Eigen::VectorXd delta = (0.5 - coeff) * column;
+    REQUIRE(residual.y_adj.isApprox(Eigen::VectorXd{{1.0, 1.0, 1.0}} + delta));
+    REQUIRE(state.u.isApprox(-delta));
+    REQUIRE(component.gebv[0].isApprox(-0.5 * column));
+    REQUIRE(component.gebv[1].isApprox(coeff * column));
+}
+
+TEST_CASE(
+    "FixedCoefficientStep keeps residual identity",
+    "[mcmc][fixed][v2]")
+{
+    const Eigen::MatrixXd X{
+        {1, 0.5},
+        {1, -0.3},
+        {1, 0.1},
+        {1, 0.7},
+        {1, -0.4},
+        {1, 0.2},
+        {1, 0.9},
+        {1, -0.6},
+    };
+    const Eigen::Vector2d beta{1.5, -2.0};
+    const Eigen::VectorXd y = X * beta;
+
+    FixedDesign design;
+    design.X = X;
+    design.XtX_diag = X.colwise().squaredNorm();
+
+    bayes::FixedState state{Eigen::VectorXd::Zero(X.cols())};
+    bayes::ResidualState residual{.y_adj = y, .variance = 1e-6};
+    std::mt19937_64 rng{kSeed};
+    FixedCoefficientStep sampler{design, state, residual, rng};
+
+    for (int iter = 0; iter < 200; ++iter)
+    {
+        sampler.step();
+    }
+
+    REQUIRE((residual.y_adj + (X * state.coeffs)).isApprox(y));
+    REQUIRE(state.coeffs.isApprox(beta, 1e-2));
+}
+
+TEST_CASE(
+    "Random coefficient and variance steps are independent",
+    "[mcmc][random][v2]")
+{
+    const Eigen::MatrixXd X{
+        {1, 0, 0},
+        {1, 0, 0},
+        {0, 1, 0},
+        {0, 1, 0},
+        {0, 0, 1},
+        {0, 0, 1},
+    };
+    const Eigen::Index n = X.rows();
+    const Eigen::Index p = X.cols();
+    const Eigen::VectorXd y = Eigen::VectorXd::LinSpaced(n, -1.0, 1.0);
+
+    std::array<bayes::RandomDesign, 1> designs{
+        bayes::RandomDesign{"b", {"a", "b", "c"}, Eigen::MatrixXd{X}}};
+    std::array<bayes::RandomState, 1> states{
+        bayes::RandomState{Eigen::VectorXd::Zero(p), 0.5}};
+    bayes::ResidualState residual{.y_adj = y, .variance = 0.25};
+    auto prior = make_random_prior(0.5);
+    std::mt19937_64 rng{kSeed};
+
+    RandomCoefficientStep coeff_step{
+        std::span<const bayes::RandomDesign>{designs},
+        std::span<bayes::RandomState>{states},
+        residual,
+        rng};
+    coeff_step.step();
+
+    const double variance_before = states[0].variance;
+    REQUIRE(states[0].coeffs.squaredNorm() > 0.0);
+    REQUIRE(variance_before == 0.5);
+    REQUIRE((residual.y_adj + (X * states[0].coeffs)).isApprox(y));
+
+    const auto coeffs_before = states[0].coeffs;
+    RandomVarianceStep variance_step{
+        prior, std::span<bayes::RandomState>{states}, rng};
+    variance_step.step();
+
+    REQUIRE(states[0].coeffs.isApprox(coeffs_before));
+    REQUIRE(states[0].variance > 0.0);
+    REQUIRE(std::isfinite(states[0].variance));
+}
+
+TEST_CASE(
+    "ResidualVarianceStep only updates residual variance",
+    "[mcmc][residual][v2]")
+{
+    bayes::ResidualState residual{
+        .y_adj = Eigen::VectorXd{{1.0, -0.5, 0.25, -0.75}},
+        .variance = 0.25};
+    const auto y_adj_before = residual.y_adj;
+    auto prior = make_residual_prior(0.25);
+    std::mt19937_64 rng{kSeed};
+
+    ResidualVarianceStep sampler{residual.y_adj.size(), prior, residual, rng};
+    sampler.step();
+
+    REQUIRE(residual.y_adj.isApprox(y_adj_before));
+    REQUIRE(residual.variance > 0.0);
+    REQUIRE(std::isfinite(residual.variance));
+}
 
 TEST_CASE("FixedStep keeps residual identity and recovers OLS", "[mcmc][fixed]")
 {
