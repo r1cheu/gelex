@@ -21,7 +21,7 @@
 
 #include "gelex/data/pipe/geno.h"
 #include "gelex/data/pipe/pheno.h"
-#include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/designs.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -31,9 +31,9 @@ namespace gelex
 auto build_bayes_model(PhenoPipe&& pheno, GenoPipe&& geno) -> BayesModel
 {
     auto phenotype = std::move(pheno).take_phenotype();
-    auto fixed_effects = std::move(pheno).take_fixed_effects();
+    auto fixed_design = std::move(pheno).take_fixed_design();
 
-    std::vector<bayes::GeneticEffect> genetics;
+    std::vector<bayes::GeneticDesign> genetics;
     if (geno.has_additive_matrix())
     {
         genetics.emplace_back(
@@ -46,10 +46,7 @@ auto build_bayes_model(PhenoPipe&& pheno, GenoPipe&& geno) -> BayesModel
     }
 
     return BayesModel(
-        std::move(phenotype),
-        std::move(fixed_effects),
-        {},
-        std::move(genetics));
+        std::move(phenotype), std::move(fixed_design), {}, std::move(genetics));
 }
 
 }  // namespace gelex

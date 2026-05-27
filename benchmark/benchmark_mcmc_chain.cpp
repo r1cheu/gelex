@@ -28,12 +28,12 @@
 #include "gelex/algo/infer/mcmc/recipes.h"
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/data/genotype/processor.h"
-#include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/designs.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/recipe.h"
 #include "gelex/model/bayes/recipe_options.h"
 #include "gelex/model/bayes/state.h"
-#include "gelex/types/fixed_effects.h"
+#include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "tests/genotype_fixture.h"
 
@@ -42,13 +42,13 @@ namespace
 
 using gelex::BayesModel;
 using gelex::BayesState;
-using gelex::FixedEffect;
+using gelex::FixedDesign;
 using gelex::GeneticMode;
 using gelex::bayes::BayesRecipe;
 using gelex::bayes::BayesRecipeConfig;
 using gelex::bayes::BayesRecipePreset;
 using gelex::bayes::EffectConfig;
-using gelex::bayes::GeneticEffect;
+using gelex::bayes::GeneticDesign;
 using gelex::genotype::Genotype;
 using gelex::test::GenotypeBuilder;
 
@@ -106,8 +106,8 @@ auto make_model() -> BayesModel
 {
     auto geno = make_genotype(0xBEEF1234ULL);
     auto y = make_phenotype(geno.matrix(), 0xCAFE5678ULL);
-    auto fixed = FixedEffect::build(kIndividuals);
-    std::vector<GeneticEffect> genetics;
+    auto fixed = FixedDesign::build(kIndividuals);
+    std::vector<GeneticDesign> genetics;
     genetics.emplace_back(GeneticMode::A, std::move(geno));
     return BayesModel(std::move(y), std::move(fixed), {}, std::move(genetics));
 }

@@ -155,7 +155,7 @@ void Solver<ChainFactory>::validate_checkpoint(
     {
         throw GelexException(
             fmt::format(
-                "checkpoint random effect count mismatch: expected {}, got {}",
+                "checkpoint random design count mismatch: expected {}, got {}",
                 model.random().size(),
                 state.random().size()));
     }
@@ -169,8 +169,8 @@ void Solver<ChainFactory>::validate_checkpoint(
 
     for (const auto& gs : state.genetics())
     {
-        const auto* effect = model.genetic(gs.type);
-        if (effect == nullptr)
+        const auto* design = model.genetic(gs.type);
+        if (design == nullptr)
         {
             throw GelexException(
                 fmt::format(
@@ -178,8 +178,8 @@ void Solver<ChainFactory>::validate_checkpoint(
                     EffectType::from_genetic(gs.type)));
         }
         const auto label = fmt::format("{}", EffectType::from_genetic(gs.type));
-        check(gs.coeffs.size(), effect->X.cols(), label + ".coeffs");
-        check(gs.u.size(), effect->X.rows(), label + ".u");
+        check(gs.coeffs.size(), design->X.cols(), label + ".coeffs");
+        check(gs.u.size(), design->X.rows(), label + ".u");
     }
 
     check(

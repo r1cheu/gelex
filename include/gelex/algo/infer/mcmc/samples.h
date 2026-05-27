@@ -36,7 +36,7 @@
 namespace gelex::bayes
 {
 
-struct GeneticEffect;
+struct GeneticDesign;
 struct ResidualState;
 
 };  // namespace gelex::bayes
@@ -126,7 +126,7 @@ inline auto assignment(const MixtureSamples& s) -> const AssignmentSamples&
 struct GeneticSamples
 {
     GeneticSamples(
-        const bayes::GeneticEffect& effect,
+        const bayes::GeneticDesign& design,
         const bayes::GeneticPrior& prior,
         const bayes::GeneticBlockState& block,
         std::size_t block_index,
@@ -150,7 +150,7 @@ struct GeneticSamples
 
    private:
     static auto make_group_samples(
-        const bayes::GeneticEffect& effect,
+        const bayes::GeneticDesign& design,
         const bayes::GeneticPrior& prior,
         const bayes::GeneticBlockState& block,
         std::size_t slot) -> std::optional<MixtureSamples>;

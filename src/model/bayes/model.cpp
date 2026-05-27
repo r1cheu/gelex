@@ -25,17 +25,17 @@
 
 #include "gelex/exception.h"
 #include "gelex/infra/stats/detail/var.h"
-#include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/designs.h"
 
 namespace gelex
 {
 BayesModel::BayesModel(
     Eigen::VectorXd phenotype,
-    FixedEffect fixed_effects,
-    std::vector<bayes::RandomEffect> random,
-    std::vector<bayes::GeneticEffect> genetics)
+    FixedDesign fixed_design,
+    std::vector<bayes::RandomDesign> random,
+    std::vector<bayes::GeneticDesign> genetics)
     : phenotype_(std::move(phenotype)),
-      fixed_(std::move(fixed_effects)),
+      fixed_(std::move(fixed_design)),
       random_(std::move(random)),
       genetics_(std::move(genetics))
 {
@@ -46,7 +46,7 @@ BayesModel::BayesModel(
     {
         throw GelexException(
             fmt::format(
-                "BayesModel: fixed effect rows {} != phenotype rows {}",
+                "BayesModel: fixed design rows {} != phenotype rows {}",
                 fixed_.X.rows(),
                 num_individuals_));
     }
@@ -57,7 +57,7 @@ BayesModel::BayesModel(
         {
             throw GelexException(
                 fmt::format(
-                    "BayesModel: random effect '{}' rows {} != phenotype rows "
+                    "BayesModel: random design '{}' rows {} != phenotype rows "
                     "{}",
                     random.name,
                     random.X.rows(),
@@ -73,7 +73,7 @@ BayesModel::BayesModel(
         {
             throw GelexException(
                 fmt::format(
-                    "BayesModel: genetic effect {} rows {} != phenotype rows "
+                    "BayesModel: genetic design {} rows {} != phenotype rows "
                     "{}",
                     genetic.type,
                     genetic.X.rows(),

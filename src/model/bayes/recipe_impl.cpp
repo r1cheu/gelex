@@ -60,7 +60,7 @@ auto BayesRecipeImpl::marker_variance_from_heritability(
     if (genetic == nullptr)
     {
         throw GelexException(
-            fmt::format("genetic effect not found for mode {}", mode));
+            fmt::format("genetic design not found for mode {}", mode));
     }
     if (genetic->design_variance <= 0)
     {

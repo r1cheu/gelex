@@ -23,7 +23,7 @@
 
 #include "gelex/data/dataframe/reader.h"
 #include "gelex/exception.h"
-#include "gelex/model/freq/effect.h"
+#include "gelex/model/freq/design.h"
 
 namespace
 {

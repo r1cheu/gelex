@@ -17,19 +17,19 @@
 #include "gelex/algo/infer/fixed_samples.h"
 
 #include "gelex/algo/infer/mcmc/state.h"
-#include "gelex/model/bayes/effects.h"
-#include "gelex/types/fixed_effects.h"
+#include "gelex/model/bayes/designs.h"
+#include "gelex/types/fixed_designs.h"
 
 namespace gelex
 {
 
-FixedSamples::FixedSamples(const FixedEffect& effect)
-    : names(effect.names), levels(effect.levels), n_coeffs_(effect.X.cols())
+FixedSamples::FixedSamples(const FixedDesign& design)
+    : names(design.names), levels(design.levels), n_coeffs_(design.X.cols())
 {
 }
 
-RandomSamples::RandomSamples(const bayes::RandomEffect& effect)
-    : levels(effect.levels), n_coeffs_(effect.X.cols())
+RandomSamples::RandomSamples(const bayes::RandomDesign& design)
+    : levels(design.levels), n_coeffs_(design.X.cols())
 {
 }
 

@@ -30,7 +30,7 @@
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/infra/stats/detail/var.h"
-#include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/designs.h"
 #include "gelex/model/bayes/prior_state.h"
 #include "gelex/model/bayes/state_capabilities.h"
 
@@ -42,13 +42,13 @@ class GeneticSweep
 {
    public:
     GeneticSweep(
-        const bayes::GeneticEffect& effect,
+        const bayes::GeneticDesign& design,
         bayes::GeneticState& state,
         bayes::GeneticPriorState& prior_state,
         std::size_t slot,
         bayes::ResidualState& residual,
         std::mt19937_64& rng)
-        : effect_(effect),
+        : design_(design),
           state_(state),
           component_(find_component(prior_state, slot)),
           proportion_(find_proportion(prior_state, slot)),
@@ -66,8 +66,8 @@ class GeneticSweep
     template <GeneticKernel Kernel>
     auto run(Kernel& kernel) -> void
     {
-        const auto X = effect_.X.matrix();
-        const auto& XtX_diag = effect_.XtX_diag;
+        const auto X = design_.X.matrix();
+        const auto& XtX_diag = design_.XtX_diag;
         Eigen::VectorXd& coeffs = state_.coeffs;
         Eigen::VectorXd& u = state_.u;
         Eigen::VectorXd& y_adj = residual_.y_adj;
@@ -84,7 +84,7 @@ class GeneticSweep
         for (Eigen::Index i = 0; i < coeffs.size(); ++i)
         {
             const double xtx_diag_i = XtX_diag(i);
-            if (effect_.is_monomorphic(i))
+            if (design_.is_monomorphic(i))
             {
                 continue;
             }
@@ -158,7 +158,7 @@ class GeneticSweep
         return &cap->proportion()[slot];
     }
 
-    const bayes::GeneticEffect& effect_;
+    const bayes::GeneticDesign& design_;
     bayes::GeneticState& state_;
     bayes::ComponentState* component_{};
     bayes::ProportionState* proportion_{};

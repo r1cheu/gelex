@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_TYPES_FIXED_EFFECTS_H_
-#define GELEX_TYPES_FIXED_EFFECTS_H_
+#ifndef GELEX_TYPES_FIXED_DESIGNS_H_
+#define GELEX_TYPES_FIXED_DESIGNS_H_
 
 #include <optional>
 #include <span>
@@ -41,7 +41,7 @@ struct DiscreteCovariate
     Eigen::MatrixXd X;
 };
 
-struct FixedEffect
+struct FixedDesign
 {
     std::vector<std::string> names;
     std::vector<std::optional<std::vector<std::string>>> levels;
@@ -69,11 +69,11 @@ struct FixedEffect
 
     static auto build(
         std::optional<QuantitativeCovariate> qcovariate,
-        std::optional<DiscreteCovariate> dcovariate) -> FixedEffect;
+        std::optional<DiscreteCovariate> dcovariate) -> FixedDesign;
 
-    static auto build(Eigen::Index n_samples) -> FixedEffect;
+    static auto build(Eigen::Index n_samples) -> FixedDesign;
 };
 
 }  // namespace gelex
 
-#endif  // GELEX_TYPES_FIXED_EFFECTS_H_
+#endif  // GELEX_TYPES_FIXED_DESIGNS_H_

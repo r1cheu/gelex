@@ -45,7 +45,7 @@
 #include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state.h"
 #include "gelex/model/bayes/state_capabilities.h"
-#include "gelex/types/fixed_effects.h"
+#include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "genotype_fixture.h"
 
@@ -102,9 +102,9 @@ auto make_genotype(Eigen::MatrixXd data) -> genotype::Genotype
 auto make_model(const Eigen::MatrixXd& X, const Eigen::VectorXd& y)
     -> BayesModel
 {
-    std::vector<bayes::GeneticEffect> genetics;
+    std::vector<bayes::GeneticDesign> genetics;
     genetics.emplace_back(GeneticMode::A, make_genotype(Eigen::MatrixXd{X}));
-    return BayesModel{y, FixedEffect::build(y.size()), {}, std::move(genetics)};
+    return BayesModel{y, FixedDesign::build(y.size()), {}, std::move(genetics)};
 }
 
 template <typename Kernel>
@@ -203,15 +203,15 @@ TEST_CASE("FixedStep keeps residual identity and recovers OLS", "[mcmc][fixed]")
     const Eigen::Vector2d beta{1.5, -2.0};
     const Eigen::VectorXd y = X * beta;
 
-    FixedEffect effect;
-    effect.X = X;
-    effect.XtX_diag = X.colwise().squaredNorm();
+    FixedDesign design;
+    design.X = X;
+    design.XtX_diag = X.colwise().squaredNorm();
 
     bayes::FixedState state{Eigen::VectorXd::Zero(X.cols())};
     bayes::ResidualState residual{.y_adj = y, .variance = 1e-6};
     std::mt19937_64 rng{kSeed};
     FixedStep sampler{FixedStep::Deps{
-        .effect = effect,
+        .design = design,
         .state = state,
         .residual = residual,
         .rng = rng,
@@ -242,15 +242,15 @@ TEST_CASE(
     const Eigen::Index p = X.cols();
     const Eigen::VectorXd y = Eigen::VectorXd::LinSpaced(n, -1.0, 1.0);
 
-    std::array<bayes::RandomEffect, 1> effects{
-        bayes::RandomEffect{"b", {"a", "b", "c"}, Eigen::MatrixXd{X}}};
+    std::array<bayes::RandomDesign, 1> designs{
+        bayes::RandomDesign{"b", {"a", "b", "c"}, Eigen::MatrixXd{X}}};
     std::array<bayes::RandomState, 1> states{
         bayes::RandomState{Eigen::VectorXd::Zero(p), 0.5}};
     bayes::ResidualState residual{.y_adj = y, .variance = 0.25};
     std::mt19937_64 rng{kSeed};
 
     RandomStep sampler{RandomStep::Deps{
-        .effects = std::span<const bayes::RandomEffect>{effects},
+        .designs = std::span<const bayes::RandomDesign>{designs},
         .variance = make_random_prior(0.5),
         .states = std::span<bayes::RandomState>{states},
         .residual = residual,

@@ -50,7 +50,7 @@ class GeneticStep
     explicit GeneticStep(Deps deps)
         : kernel_(deps.block),
           sweep_(
-              deps.block.effect,
+              deps.block.design,
               deps.block.state,
               deps.block.prior_state,
               deps.block.slot,

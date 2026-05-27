@@ -24,11 +24,11 @@ namespace gelex
 
 FreqModel::FreqModel(
     Eigen::VectorXd phenotype,
-    FixedEffect fixed_effects,
-    std::vector<freq::GeneticEffect> genetics)
+    FixedDesign fixed_design,
+    std::vector<freq::GeneticDesign> genetics)
     : phenotype_(std::move(phenotype)),
       phenotype_variance_(stats::detail::var(phenotype_)[0]),
-      fixed_(std::move(fixed_effects)),
+      fixed_(std::move(fixed_design)),
       genetic_(std::move(genetics))
 {
     num_individuals_ = phenotype_.size();

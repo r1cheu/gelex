@@ -23,7 +23,7 @@
 #include "gelex/algo/infer/mcmc/context.h"
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/types/fixed_effects.h"
+#include "gelex/types/fixed_designs.h"
 
 namespace gelex::mcmc
 {
@@ -31,7 +31,7 @@ namespace gelex::mcmc
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
 struct FixedStepDeps
 {
-    const FixedEffect& effect;
+    const FixedDesign& design;
     bayes::FixedState& state;
     bayes::ResidualState& residual;
     std::mt19937_64& rng;
@@ -56,7 +56,7 @@ class FixedStep
     static auto make(const Context& ctx) -> FixedStep
     {
         return FixedStep{Deps{
-            .effect = ctx.model.fixed(),
+            .design = ctx.model.fixed(),
             .state = ctx.state.fixed(),
             .residual = ctx.state.residual(),
             .rng = ctx.rng,

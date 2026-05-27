@@ -38,7 +38,7 @@
 #include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state.h"
 #include "gelex/model/bayes/state_capabilities.h"
-#include "gelex/types/fixed_effects.h"
+#include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "genotype_fixture.h"
 
@@ -63,9 +63,9 @@ auto make_genotype(Eigen::Index n_samples, Eigen::Index n_snps) -> Genotype
 auto make_model(Eigen::Index n_samples, Eigen::Index n_snps) -> BayesModel
 {
     auto phenotype = Eigen::VectorXd::Random(n_samples);
-    auto fixed = FixedEffect::build(n_samples);
+    auto fixed = FixedDesign::build(n_samples);
 
-    std::vector<bayes::GeneticEffect> genetics;
+    std::vector<bayes::GeneticDesign> genetics;
     genetics.emplace_back(GeneticMode::A, make_genotype(n_samples, n_snps));
 
     return BayesModel{phenotype, std::move(fixed), {}, std::move(genetics)};

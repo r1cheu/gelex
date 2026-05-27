@@ -42,14 +42,14 @@
 #include "gelex/model/bayes/recipe_options.h"
 #include "gelex/model/bayes/state.h"
 #include "gelex/model/bayes/state_capabilities.h"
-#include "gelex/types/fixed_effects.h"
+#include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "genotype_fixture.h"
 
 using gelex::BayesModel;
 using gelex::BayesState;
 using gelex::BayesStateV2;
-using gelex::FixedEffect;
+using gelex::FixedDesign;
 using gelex::GelexException;
 using gelex::GeneticMode;
 using gelex::bayes::BayesPrior;
@@ -118,9 +118,9 @@ auto make_model(std::span<const GeneticMode> modes, bool include_random = false)
     -> BayesModel
 {
     Eigen::VectorXd phenotype{{1.0, 2.0, 4.0, 8.0}};
-    auto fixed = FixedEffect::build(kNumIndividuals);
+    auto fixed = FixedDesign::build(kNumIndividuals);
 
-    std::vector<gelex::bayes::RandomEffect> random;
+    std::vector<gelex::bayes::RandomDesign> random;
     if (include_random)
     {
         random.emplace_back(
@@ -129,7 +129,7 @@ auto make_model(std::span<const GeneticMode> modes, bool include_random = false)
             Eigen::MatrixXd{{1.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}, {0.0, 1.0}});
     }
 
-    std::vector<gelex::bayes::GeneticEffect> genetics;
+    std::vector<gelex::bayes::GeneticDesign> genetics;
     for (const auto mode : modes)
     {
         genetics.emplace_back(mode, make_genotype(make_genetic_data(mode)));

@@ -136,7 +136,7 @@ auto McmcReporter::print_fixed_summary(
 
 auto McmcReporter::print_genetic_summary(
     const GeneticSummary* summary,
-    const bayes::GeneticEffect* /*effect*/,
+    const bayes::GeneticDesign* /*design*/,
     GeneticMode type) -> void
 {
     if (summary == nullptr)

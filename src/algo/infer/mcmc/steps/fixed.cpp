@@ -27,8 +27,8 @@ auto FixedStep::step() -> void
 {
     normal_.reset();
 
-    const auto& X = deps_.effect.X;
-    const auto& XtX_diag = deps_.effect.XtX_diag;
+    const auto& X = deps_.design.X;
+    const auto& XtX_diag = deps_.design.XtX_diag;
     auto& coeffs = deps_.state.coeffs;
     auto& y_adj = deps_.residual.y_adj;
     const double residual_variance = deps_.residual.variance;

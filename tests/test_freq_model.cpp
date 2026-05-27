@@ -192,7 +192,7 @@ auto make_freq_model(
 
     return FreqModel(
         std::move(pheno).take_phenotype(),
-        std::move(pheno).take_fixed_effects(),
+        std::move(pheno).take_fixed_design(),
         std::move(grm).take_grms());
 }
 

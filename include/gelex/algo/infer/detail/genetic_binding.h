@@ -25,7 +25,7 @@
 
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/exception.h"
-#include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/designs.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_state.h"
@@ -38,7 +38,7 @@ namespace gelex::infer::detail
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
 struct GeneticBlockDeps
 {
-    const bayes::GeneticEffect& effect;
+    const bayes::GeneticDesign& design;
     const bayes::GeneticPrior& prior;
     bayes::GeneticState& state;
     bayes::GeneticPriorState& prior_state;
@@ -47,17 +47,17 @@ struct GeneticBlockDeps
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
 inline auto validate_genetic_block_shape(
-    const bayes::GeneticEffect& effect,
+    const bayes::GeneticDesign& design,
     const bayes::GeneticState& state) -> void
 {
-    const auto rows = effect.X.rows();
-    const auto cols = effect.X.cols();
+    const auto rows = design.X.rows();
+    const auto cols = design.X.cols();
     if (state.coeffs.size() != cols)
     {
         throw GelexException(
             fmt::format(
                 "genetic block {} coeffs size {} != X cols {}",
-                EffectType::from_genetic(effect.type),
+                EffectType::from_genetic(design.type),
                 state.coeffs.size(),
                 cols));
     }
@@ -66,7 +66,7 @@ inline auto validate_genetic_block_shape(
         throw GelexException(
             fmt::format(
                 "genetic block {} u size {} != X rows {}",
-                EffectType::from_genetic(effect.type),
+                EffectType::from_genetic(design.type),
                 state.u.size(),
                 rows));
     }
@@ -94,13 +94,13 @@ inline auto find_prior_for_mode(
     return std::nullopt;
 }
 
-// Binds the (effect, prior, state) trio for `mode`.
+// Binds the (design, prior, state) trio for `mode`.
 // `Ctx` must expose `model`, `prior`, and `state`.
 template <typename Ctx>
 inline auto bind_genetic_block(const Ctx& ctx, GeneticMode mode)
 {
-    const auto* effect = ctx.model.genetic(mode);
-    if (effect == nullptr)
+    const auto* design = ctx.model.genetic(mode);
+    if (design == nullptr)
     {
         throw GelexException(
             fmt::format(
@@ -131,9 +131,9 @@ inline auto bind_genetic_block(const Ctx& ctx, GeneticMode mode)
                 "state has no genetic prior block for mode {}",
                 EffectType::from_genetic(mode)));
     }
-    validate_genetic_block_shape(*effect, *genetic_state);
+    validate_genetic_block_shape(*design, *genetic_state);
     return GeneticBlockDeps{
-        .effect = *effect,
+        .design = *design,
         .prior = *prior_match->prior,
         .state = *genetic_state,
         .prior_state = block_state.prior_state(),
@@ -156,19 +156,19 @@ inline auto bind_genetic_block_pair(
         throw GelexException(
             "joint genetic sampler requires two distinct genetic blocks");
     }
-    if (first.effect.X.rows() != second.effect.X.rows()
-        || first.effect.X.cols() != second.effect.X.cols())
+    if (first.design.X.rows() != second.design.X.rows()
+        || first.design.X.cols() != second.design.X.cols())
     {
         throw GelexException(
             fmt::format(
                 "joint genetic blocks must have the same shape: "
                 "{} is {}x{}, {} is {}x{}",
                 EffectType::from_genetic(first_mode),
-                first.effect.X.rows(),
-                first.effect.X.cols(),
+                first.design.X.rows(),
+                first.design.X.cols(),
                 EffectType::from_genetic(second_mode),
-                second.effect.X.rows(),
-                second.effect.X.cols()));
+                second.design.X.rows(),
+                second.design.X.cols()));
     }
     return std::pair{first, second};
 }

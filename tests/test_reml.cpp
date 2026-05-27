@@ -25,9 +25,9 @@
 #include "gelex/algo/reml/estimator.h"
 #include "gelex/algo/reml/optimizer_state.h"
 #include "gelex/algo/reml/variance_calculator.h"  // IWYU pragma: keep
-#include "gelex/model/freq/effect.h"
+#include "gelex/model/freq/design.h"
 #include "gelex/model/freq/model.h"
-#include "gelex/types/fixed_effects.h"
+#include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -58,7 +58,7 @@ auto make_closed_form_problem() -> RemlProblem
 
     return {
         .y = y,
-        .X = FixedEffect::build(y.size()).X,
+        .X = FixedDesign::build(y.size()).X,
         .K = K,
         .sigma_e = 5.0 / 6.0,
         .sigma_g = 11.0 / 6.0};
@@ -66,10 +66,10 @@ auto make_closed_form_problem() -> RemlProblem
 
 auto build_model(const RemlProblem& problem) -> std::pair<FreqModel, FreqState>
 {
-    auto fixed = FixedEffect::build(problem.y.size());
+    auto fixed = FixedDesign::build(problem.y.size());
     fixed.X = problem.X;
 
-    std::vector<freq::GeneticEffect> genetics;
+    std::vector<freq::GeneticDesign> genetics;
     genetics.push_back({.type = GeneticMode::A, .K = problem.K});
 
     FreqModel model(problem.y, std::move(fixed), std::move(genetics));

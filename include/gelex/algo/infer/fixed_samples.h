@@ -27,12 +27,12 @@
 
 namespace gelex
 {
-struct FixedEffect;
+struct FixedDesign;
 }
 
 namespace gelex::bayes
 {
-struct RandomEffect;
+struct RandomDesign;
 struct FixedState;
 struct RandomState;
 }  // namespace gelex::bayes
@@ -45,7 +45,7 @@ using stats::RunningStatsResult;
 
 struct FixedSamples
 {
-    explicit FixedSamples(const FixedEffect& effect);
+    explicit FixedSamples(const FixedDesign& design);
     void store(const bayes::FixedState& state);
 
     auto n_coeffs() const -> Eigen::Index { return n_coeffs_; }
@@ -61,7 +61,7 @@ struct FixedSamples
 
 struct RandomSamples
 {
-    explicit RandomSamples(const bayes::RandomEffect& effect);
+    explicit RandomSamples(const bayes::RandomDesign& design);
     void store(const bayes::RandomState& state);
 
     auto n_coeffs() const -> Eigen::Index { return n_coeffs_; }

@@ -32,9 +32,9 @@ mcmc::Result::Result(mcmc::Samples&& samples, const BayesModel& model)
       residual_(1),
       phenotype_var_(model.phenotype_variance())
 {
-    if (const auto* effect = model.genetic(GeneticMode::A); effect)
+    if (const auto* design = model.genetic(GeneticMode::A); design)
     {
-        p_freq_ = effect->X.mean().array() / 2;
+        p_freq_ = design->X.mean().array() / 2;
     }
 
     for (const auto& sample : samples_.random())

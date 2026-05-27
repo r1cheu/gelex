@@ -28,18 +28,18 @@ namespace gelex::mcmc
 
 auto RandomStep::make(const Context& ctx) -> RandomStep
 {
-    const auto& effects = ctx.model.random();
+    const auto& designs = ctx.model.random();
     auto& states = ctx.state.random();
-    if (effects.size() != states.size())
+    if (designs.size() != states.size())
     {
         throw GelexException(
             fmt::format(
                 "random block size mismatch: model={}, state={}",
-                effects.size(),
+                designs.size(),
                 states.size()));
     }
     return RandomStep{Deps{
-        .effects = std::span{effects},
+        .designs = std::span{designs},
         .variance = ctx.prior.random(),
         .states = std::span{states},
         .residual = ctx.state.residual(),
@@ -52,17 +52,17 @@ auto RandomStep::step() -> void
     auto& y_adj = deps_.residual.y_adj;
     const double residual_variance = deps_.residual.variance;
 
-    for (std::size_t block = 0; block < deps_.effects.size(); ++block)
+    for (std::size_t block = 0; block < deps_.designs.size(); ++block)
     {
         normal_.reset();
         variance_sampler_.reset();
 
-        const auto& effect = deps_.effects[block];
+        const auto& design = deps_.designs[block];
         auto& state = deps_.states[block];
 
         auto& coeffs = state.coeffs;
-        const auto& X = effect.X;
-        const auto& XtX_diag = effect.XtX_diag;
+        const auto& X = design.X;
+        const auto& XtX_diag = design.XtX_diag;
 
         normal_.set_prior_var(state.variance);
         for (Eigen::Index i = 0; i < coeffs.size(); ++i)

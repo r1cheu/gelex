@@ -14,29 +14,29 @@
  * limitations under the License.
  */
 
-#include "gelex/model/freq/effect.h"
+#include "gelex/model/freq/design.h"
 
 #include <Eigen/Core>
 
 namespace gelex::freq
 {
 
-FixedState::FixedState(const gelex::FixedEffect& effect)
-    : coeff(Eigen::VectorXd::Zero(effect.X.cols())),
-      se(Eigen::VectorXd::Zero(effect.X.cols()))
+FixedState::FixedState(const gelex::FixedDesign& design)
+    : coeff(Eigen::VectorXd::Zero(design.X.cols())),
+      se(Eigen::VectorXd::Zero(design.X.cols()))
 {
 }
 
-RandomState::RandomState(const RandomEffect& effect)
-    : name(effect.name),
+RandomState::RandomState(const RandomDesign& design)
+    : name(design.name),
       blup(
           Eigen::VectorXd::Zero(
-              static_cast<Eigen::Index>(effect.levels.size())))
+              static_cast<Eigen::Index>(design.levels.size())))
 {
 }
 
-GeneticState::GeneticState(const GeneticEffect& effect)
-    : type(effect.type), ebv(Eigen::VectorXd::Zero(effect.K.rows()))
+GeneticState::GeneticState(const GeneticDesign& design)
+    : type(design.type), ebv(Eigen::VectorXd::Zero(design.K.rows()))
 {
 }
 }  // namespace gelex::freq

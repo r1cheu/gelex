@@ -37,7 +37,7 @@ struct GeneticSummary;
 
 namespace bayes
 {
-struct GeneticEffect;
+struct GeneticDesign;
 }  // namespace bayes
 
 enum class GeneticMode : uint8_t;
@@ -72,7 +72,7 @@ class McmcReporter : public FitReporter
         std::ptrdiff_t samples_collected) -> void;
     static auto print_genetic_summary(
         const GeneticSummary* summary,
-        const bayes::GeneticEffect* effect,
+        const bayes::GeneticDesign* design,
         GeneticMode type) -> void;
     static auto print_residual_summary(const mcmc::Result& result) -> void;
 

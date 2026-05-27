@@ -22,8 +22,8 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
-#include "gelex/model/freq/effect.h"
-#include "gelex/types/fixed_effects.h"
+#include "gelex/model/freq/design.h"
+#include "gelex/types/fixed_designs.h"
 
 namespace gelex
 {
@@ -33,22 +33,22 @@ class FreqModel
    public:
     FreqModel(
         Eigen::VectorXd phenotype,
-        FixedEffect fixed_effects,
-        std::vector<freq::GeneticEffect> genetics);
-    auto fixed() const -> const FixedEffect& { return fixed_; }
-    auto fixed() -> FixedEffect& { return fixed_; }
+        FixedDesign fixed_design,
+        std::vector<freq::GeneticDesign> genetics);
+    auto fixed() const -> const FixedDesign& { return fixed_; }
+    auto fixed() -> FixedDesign& { return fixed_; }
 
-    auto random() const -> const std::vector<freq::RandomEffect>&
+    auto random() const -> const std::vector<freq::RandomDesign>&
     {
         return random_;
     }
-    auto random() -> std::vector<freq::RandomEffect>& { return random_; }
+    auto random() -> std::vector<freq::RandomDesign>& { return random_; }
 
-    auto genetic() const -> const std::vector<freq::GeneticEffect>&
+    auto genetic() const -> const std::vector<freq::GeneticDesign>&
     {
         return genetic_;
     }
-    auto genetic() -> std::vector<freq::GeneticEffect>& { return genetic_; }
+    auto genetic() -> std::vector<freq::GeneticDesign>& { return genetic_; }
 
     auto phenotype() const -> const Eigen::VectorXd& { return phenotype_; }
     auto phenotype_variance() const -> double { return phenotype_variance_; }
@@ -60,9 +60,9 @@ class FreqModel
     Eigen::VectorXd phenotype_;
     double phenotype_variance_;
 
-    FixedEffect fixed_;
-    std::vector<freq::RandomEffect> random_;
-    std::vector<freq::GeneticEffect> genetic_;
+    FixedDesign fixed_;
+    std::vector<freq::RandomDesign> random_;
+    std::vector<freq::GeneticDesign> genetic_;
 };
 
 class FreqState

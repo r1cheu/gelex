@@ -49,12 +49,12 @@ auto AssocEngine::run(
     auto bim = read_bim(config_.bfile_prefix + ".bim");
 
     auto phenotype = std::move(pheno).take_phenotype();
-    auto fixed_effects = std::move(pheno).take_fixed_effects();
+    auto fixed_design = std::move(pheno).take_fixed_design();
     auto grm_paths = grm.grm_paths();
     auto grms = std::move(grm).take_grms();
 
     FreqModel model(
-        std::move(phenotype), std::move(fixed_effects), std::move(grms));
+        std::move(phenotype), std::move(fixed_design), std::move(grms));
     FreqState state(model);
 
     auto tester

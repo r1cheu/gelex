@@ -25,14 +25,14 @@
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/exception.h"
 #include "gelex/infra/stats/detail/var.h"
-#include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/designs.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/types/fixed_effects.h"
+#include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "genotype_fixture.h"
 
 using gelex::BayesModel;
-using gelex::FixedEffect;
+using gelex::FixedDesign;
 using gelex::GelexException;
 using gelex::GeneticMode;
 
@@ -48,10 +48,10 @@ auto make_genotype(Eigen::MatrixXd data) -> gelex::genotype::Genotype
         std::move(data), std::move(mean), std::move(stddev));
 }
 
-auto make_genetic_effect(GeneticMode mode, Eigen::MatrixXd data)
-    -> gelex::bayes::GeneticEffect
+auto make_genetic_design(GeneticMode mode, Eigen::MatrixXd data)
+    -> gelex::bayes::GeneticDesign
 {
-    return gelex::bayes::GeneticEffect{mode, make_genotype(std::move(data))};
+    return gelex::bayes::GeneticDesign{mode, make_genotype(std::move(data))};
 }
 
 auto make_phenotype() -> Eigen::VectorXd
@@ -72,18 +72,18 @@ auto make_genetic_data(Eigen::Index rows = 3) -> Eigen::MatrixXd
 
 }  // namespace
 
-TEST_CASE("BayesModel rejects effect row mismatches", "[bayes_model]")
+TEST_CASE("BayesModel rejects design row mismatches", "[bayes_model]")
 {
     SECTION("fixed")
     {
-        std::vector<gelex::bayes::GeneticEffect> genetics;
+        std::vector<gelex::bayes::GeneticDesign> genetics;
         genetics.push_back(
-            make_genetic_effect(GeneticMode::A, make_genetic_data()));
+            make_genetic_design(GeneticMode::A, make_genetic_data()));
 
         REQUIRE_THROWS_AS(
             BayesModel(
                 make_phenotype(),
-                FixedEffect::build(2),
+                FixedDesign::build(2),
                 {},
                 std::move(genetics)),
             GelexException);
@@ -91,20 +91,20 @@ TEST_CASE("BayesModel rejects effect row mismatches", "[bayes_model]")
 
     SECTION("random")
     {
-        std::vector<gelex::bayes::RandomEffect> random;
+        std::vector<gelex::bayes::RandomDesign> random;
         random.emplace_back(
             "batch",
             std::vector<std::string>{"a", "b"},
             Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}});
 
-        std::vector<gelex::bayes::GeneticEffect> genetics;
+        std::vector<gelex::bayes::GeneticDesign> genetics;
         genetics.push_back(
-            make_genetic_effect(GeneticMode::A, make_genetic_data()));
+            make_genetic_design(GeneticMode::A, make_genetic_data()));
 
         REQUIRE_THROWS_AS(
             BayesModel(
                 make_phenotype(),
-                FixedEffect::build(3),
+                FixedDesign::build(3),
                 std::move(random),
                 std::move(genetics)),
             GelexException);
@@ -112,14 +112,14 @@ TEST_CASE("BayesModel rejects effect row mismatches", "[bayes_model]")
 
     SECTION("genetic")
     {
-        std::vector<gelex::bayes::GeneticEffect> genetics;
+        std::vector<gelex::bayes::GeneticDesign> genetics;
         genetics.push_back(
-            make_genetic_effect(GeneticMode::A, make_genetic_data(2)));
+            make_genetic_design(GeneticMode::A, make_genetic_data(2)));
 
         REQUIRE_THROWS_AS(
             BayesModel(
                 make_phenotype(),
-                FixedEffect::build(3),
+                FixedDesign::build(3),
                 {},
                 std::move(genetics)),
             GelexException);
@@ -128,26 +128,26 @@ TEST_CASE("BayesModel rejects effect row mismatches", "[bayes_model]")
 
 TEST_CASE("BayesModel rejects duplicate genetic modes", "[bayes_model]")
 {
-    std::vector<gelex::bayes::GeneticEffect> genetics;
+    std::vector<gelex::bayes::GeneticDesign> genetics;
     genetics.push_back(
-        make_genetic_effect(GeneticMode::A, make_genetic_data()));
+        make_genetic_design(GeneticMode::A, make_genetic_data()));
     genetics.push_back(
-        make_genetic_effect(GeneticMode::A, make_genetic_data()));
+        make_genetic_design(GeneticMode::A, make_genetic_data()));
 
     REQUIRE_THROWS_AS(
         BayesModel(
-            make_phenotype(), FixedEffect::build(3), {}, std::move(genetics)),
+            make_phenotype(), FixedDesign::build(3), {}, std::move(genetics)),
         GelexException);
 }
 
 TEST_CASE(
-    "GeneticEffect caches design_variance from design matrix",
+    "GeneticDesign caches design_variance from design matrix",
     "[bayes_model]")
 {
     const Eigen::MatrixXd data{{0.0, 1.0}, {1.0, 1.5}, {2.0, 3.0}};
     const double expected = gelex::stats::detail::var<0>(data).sum();
 
-    const auto effect = make_genetic_effect(GeneticMode::A, data);
+    const auto design = make_genetic_design(GeneticMode::A, data);
 
-    REQUIRE(std::abs(effect.design_variance - expected) < 1e-12);
+    REQUIRE(std::abs(design.design_variance - expected) < 1e-12);
 }

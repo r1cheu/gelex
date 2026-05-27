@@ -26,7 +26,7 @@
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/exception.h"
 #include "gelex/io/mcmc/sample_writer.h"
-#include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/designs.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/state_capabilities.h"
@@ -83,7 +83,7 @@ void ComponentSamples::store(
 }
 
 auto GeneticSamples::make_group_samples(
-    const bayes::GeneticEffect& effect,
+    const bayes::GeneticDesign& design,
     const bayes::GeneticPrior& prior,
     const bayes::GeneticBlockState& block,
     std::size_t slot) -> std::optional<MixtureSamples>
@@ -93,7 +93,7 @@ auto GeneticSamples::make_group_samples(
     {
         return std::nullopt;
     }
-    const auto n_snps = effect.X.cols();
+    const auto n_snps = design.X.cols();
     const auto proportions = proportion_cap->proportion();
     const auto n_pi = proportions[slot].size();
     const auto estimate_pi = proportions[slot].sampled();
@@ -107,16 +107,16 @@ auto GeneticSamples::make_group_samples(
 }
 
 GeneticSamples::GeneticSamples(
-    const bayes::GeneticEffect& effect,
+    const bayes::GeneticDesign& design,
     const bayes::GeneticPrior& prior,
     const bayes::GeneticBlockState& block,
     std::size_t block_index,
     GeneticMode mode)
     : type(mode),
-      group(make_group_samples(effect, prior, block, block.slot(mode))),
+      group(make_group_samples(design, prior, block, block.slot(mode))),
       block_index_(block_index),
       slot_(block.slot(mode)),
-      n_coeffs_(effect.X.cols())
+      n_coeffs_(design.X.cols())
 {
 }
 
@@ -164,12 +164,12 @@ Samples::Samples(
     Eigen::Index n_records)
     : fixed_(model.fixed())
 {
-    if (const auto& effects = model.random(); !effects.empty())
+    if (const auto& designs = model.random(); !designs.empty())
     {
-        random_.reserve(effects.size());
-        for (const auto& effect : effects)
+        random_.reserve(designs.size());
+        for (const auto& design : designs)
         {
-            random_.emplace_back(effect);
+            random_.emplace_back(design);
         }
     }
 
@@ -185,13 +185,13 @@ Samples::Samples(
         const auto idx = static_cast<std::size_t>(block_index);
         for (const auto mode : block.modes())
         {
-            const auto* effect = model.genetic(mode);
-            if (effect == nullptr)
+            const auto* design = model.genetic(mode);
+            if (design == nullptr)
             {
-                throw GelexException("Samples: missing genetic effect");
+                throw GelexException("Samples: missing genetic design");
             }
             genetics_.emplace_back(
-                *effect, *prior_blocks.at(idx), block, idx, mode);
+                *design, *prior_blocks.at(idx), block, idx, mode);
         }
     }
 

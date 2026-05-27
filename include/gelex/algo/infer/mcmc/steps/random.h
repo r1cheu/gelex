@@ -24,7 +24,7 @@
 #include "gelex/algo/infer/mcmc/context.h"
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/designs.h"
 #include "gelex/model/bayes/prior.h"
 
 namespace gelex::mcmc
@@ -33,7 +33,7 @@ namespace gelex::mcmc
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
 struct RandomStepDeps
 {
-    std::span<const bayes::RandomEffect> effects;
+    std::span<const bayes::RandomDesign> designs;
     bayes::RandomPrior variance;
     std::span<bayes::RandomState> states;
     bayes::ResidualState& residual;

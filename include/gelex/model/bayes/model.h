@@ -22,8 +22,8 @@
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/effects.h"
-#include "gelex/types/fixed_effects.h"
+#include "gelex/model/bayes/designs.h"
+#include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -34,23 +34,23 @@ class BayesModel
    public:
     BayesModel(
         Eigen::VectorXd phenotype,
-        FixedEffect fixed_effects,
-        std::vector<bayes::RandomEffect> random,
-        std::vector<bayes::GeneticEffect> genetics);
+        FixedDesign fixed_design,
+        std::vector<bayes::RandomDesign> random,
+        std::vector<bayes::GeneticDesign> genetics);
 
-    const FixedEffect& fixed() const { return fixed_; }
+    const FixedDesign& fixed() const { return fixed_; }
 
-    const std::vector<bayes::RandomEffect>& random() const { return random_; }
+    const std::vector<bayes::RandomDesign>& random() const { return random_; }
 
-    const std::vector<bayes::GeneticEffect>& genetics() const
+    const std::vector<bayes::GeneticDesign>& genetics() const
     {
         return genetics_;
     }
 
-    const bayes::GeneticEffect* genetic(GeneticMode type) const
+    const bayes::GeneticDesign* genetic(GeneticMode type) const
     {
         auto it
-            = std::ranges::find(genetics_, type, &bayes::GeneticEffect::type);
+            = std::ranges::find(genetics_, type, &bayes::GeneticDesign::type);
         return it != genetics_.end() ? &*it : nullptr;
     }
 
@@ -65,9 +65,9 @@ class BayesModel
 
     Eigen::VectorXd phenotype_;
 
-    FixedEffect fixed_;
-    std::vector<bayes::RandomEffect> random_;
-    std::vector<bayes::GeneticEffect> genetics_;
+    FixedDesign fixed_;
+    std::vector<bayes::RandomDesign> random_;
+    std::vector<bayes::GeneticDesign> genetics_;
 };
 
 }  // namespace gelex

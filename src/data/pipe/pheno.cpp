@@ -30,7 +30,7 @@
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/pheno_event.h"
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
-#include "gelex/types/fixed_effects.h"
+#include "gelex/types/fixed_designs.h"
 
 namespace gelex
 {
@@ -186,11 +186,11 @@ auto PhenoPipe::load(const dataframe::Index<std::string>& common_index) -> void
 
     if (!dcov && !qcov)
     {
-        fixed_effects_ = FixedEffect::build(phenotype_.size());
+        fixed_design_ = FixedDesign::build(phenotype_.size());
     }
     else
     {
-        fixed_effects_ = FixedEffect::build(std::move(qcov), std::move(dcov));
+        fixed_design_ = FixedDesign::build(std::move(qcov), std::move(dcov));
     }
 
     apply_phenotype_transform(config_.transform_type, config_.int_offset);
@@ -216,8 +216,8 @@ auto PhenoPipe::apply_phenotype_transform(
     else if (type == detail::TransformType::IINT)
     {
         logger->info("   Method: Indirect INT (IINT), offset (k): {}", offset);
-        transformer.apply_iint(phenotype_, fixed_effects_.X);
-        fixed_effects_ = FixedEffect::build(phenotype_.size());
+        transformer.apply_iint(phenotype_, fixed_design_.X);
+        fixed_design_ = FixedDesign::build(phenotype_.size());
     }
 }
 

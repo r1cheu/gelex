@@ -63,7 +63,7 @@ auto GrmPipe::load(const dataframe::Index<std::string>& sample_index) -> void
     grms_ = grm_readers_
             | std::views::transform(
                 [&](auto& r)
-                { return freq::GeneticEffect(r.type(), r.load(sample_index)); })
+                { return freq::GeneticDesign(r.type(), r.load(sample_index)); })
             | std::ranges::to<std::vector>();
 }
 

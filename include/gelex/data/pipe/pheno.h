@@ -28,7 +28,7 @@
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/infra/logging/pheno_event.h"
-#include "gelex/types/fixed_effects.h"
+#include "gelex/types/fixed_designs.h"
 
 namespace gelex
 {
@@ -75,12 +75,12 @@ class PhenoPipe
         return std::move(phenotype_);
     }
 
-    auto take_fixed_effects() && -> FixedEffect
+    auto take_fixed_design() && -> FixedDesign
     {
-        return std::move(fixed_effects_);
+        return std::move(fixed_design_);
     }
 
-    auto fixed_effects() const -> const FixedEffect& { return fixed_effects_; }
+    auto fixed_design() const -> const FixedDesign& { return fixed_design_; }
 
    private:
     auto load_phenotypes() -> void;
@@ -95,7 +95,7 @@ class PhenoPipe
     std::optional<dataframe::DataFrame<std::string>> dcovar_frame_;
 
     Eigen::VectorXd phenotype_;
-    FixedEffect fixed_effects_;
+    FixedDesign fixed_design_;
 
     PhenoObserver observer_;
 };

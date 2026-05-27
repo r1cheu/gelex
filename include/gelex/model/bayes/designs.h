@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_BAYES_EFFECTS_H_
-#define GELEX_MODEL_BAYES_EFFECTS_H_
+#ifndef GELEX_MODEL_BAYES_DESIGNS_H_
+#define GELEX_MODEL_BAYES_DESIGNS_H_
 
 #include <string>
 #include <vector>
@@ -29,9 +29,9 @@
 namespace gelex::bayes
 {
 
-struct RandomEffect
+struct RandomDesign
 {
-    RandomEffect(
+    RandomDesign(
         std::string name,
         std::vector<std::string> levels,
         Eigen::MatrixXd&& X)
@@ -47,9 +47,9 @@ struct RandomEffect
     Eigen::VectorXd XtX_diag;
 };
 
-struct GeneticEffect
+struct GeneticDesign
 {
-    GeneticEffect(GeneticMode type, gelex::genotype::Genotype&& X)
+    GeneticDesign(GeneticMode type, gelex::genotype::Genotype&& X)
         : type(type), X(std::move(X))
     {
         XtX_diag = this->X.matrix().colwise().squaredNorm();
@@ -71,4 +71,4 @@ struct GeneticEffect
 
 }  // namespace gelex::bayes
 
-#endif  // GELEX_MODEL_BAYES_EFFECTS_H_
+#endif  // GELEX_MODEL_BAYES_DESIGNS_H_

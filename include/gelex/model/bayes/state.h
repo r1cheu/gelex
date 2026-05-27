@@ -28,10 +28,10 @@
 #include <Eigen/Core>
 
 #include "gelex/infra/record_visitor.h"
-#include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/designs.h"
 #include "gelex/model/bayes/prior_state.h"
 #include "gelex/model/bayes/state_record_set.h"
-#include "gelex/types/fixed_effects.h"
+#include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -57,7 +57,7 @@ struct FixedState
 {
     static constexpr std::string_view name = "fixed";
 
-    explicit FixedState(const FixedEffect& effect);
+    explicit FixedState(const FixedDesign& design);
     explicit FixedState(Eigen::VectorXd coeffs);
 
     auto visit(infra::FieldVisitor& visitor) -> void;
@@ -74,8 +74,8 @@ struct RandomState
 {
     static constexpr std::string_view name = "random";
 
-    RandomState(const RandomEffect& effect, double variance);
-    RandomState(const RandomEffect& effect, const RandomPrior& prior);
+    RandomState(const RandomDesign& design, double variance);
+    RandomState(const RandomDesign& design, const RandomPrior& prior);
     RandomState(Eigen::VectorXd coeffs, double variance);
 
     auto visit(infra::FieldVisitor& visitor) -> void;
@@ -170,7 +170,7 @@ class SingleGeneticBlockState
     static constexpr std::string_view name = "single";
 
     SingleGeneticBlockState(
-        const GeneticEffect& effect,
+        const GeneticDesign& design,
         const SingleGeneticPrior& prior);
     SingleGeneticBlockState(
         GeneticState genetic,
@@ -204,8 +204,8 @@ class JointGeneticBlockState
     static constexpr std::string_view name = "joint";
 
     JointGeneticBlockState(
-        const GeneticEffect& additive,
-        const GeneticEffect& dominance,
+        const GeneticDesign& additive,
+        const GeneticDesign& dominance,
         const JointGeneticPrior& prior);
     JointGeneticBlockState(
         GeneticState additive,

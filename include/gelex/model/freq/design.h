@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_MODEL_FREQ_EFFECT_H_
-#define GELEX_MODEL_FREQ_EFFECT_H_
+#ifndef GELEX_MODEL_FREQ_DESIGN_H_
+#define GELEX_MODEL_FREQ_DESIGN_H_
 
 #include <cstdint>
 #include <string>
@@ -25,20 +25,20 @@
 
 #include <fmt/base.h>
 
-#include "gelex/types/fixed_effects.h"
+#include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::freq
 {
 
-struct RandomEffect
+struct RandomDesign
 {
     std::string name;
     std::vector<std::string> levels;
     Eigen::MatrixXd K;
 };
 
-struct GeneticEffect
+struct GeneticDesign
 {
     GeneticMode type;
     Eigen::MatrixXd K;
@@ -46,14 +46,14 @@ struct GeneticEffect
 
 struct FixedState
 {
-    explicit FixedState(const gelex::FixedEffect& effect);
+    explicit FixedState(const gelex::FixedDesign& design);
     Eigen::VectorXd coeff;
     Eigen::VectorXd se;
 };
 
 struct RandomState
 {
-    explicit RandomState(const RandomEffect& effect);
+    explicit RandomState(const RandomDesign& design);
     std::string name;
     Eigen::VectorXd blup;
     double variance{};
@@ -62,7 +62,7 @@ struct RandomState
 
 struct GeneticState
 {
-    explicit GeneticState(const GeneticEffect& effect);
+    explicit GeneticState(const GeneticDesign& design);
     GeneticMode type;
     Eigen::VectorXd ebv;
     double variance{};
@@ -79,4 +79,4 @@ struct ResidualState
 
 }  // namespace gelex::freq
 
-#endif  // GELEX_MODEL_FREQ_EFFECT_H_
+#endif  // GELEX_MODEL_FREQ_DESIGN_H_

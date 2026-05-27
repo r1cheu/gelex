@@ -102,8 +102,8 @@ auto visit_with_prefix(
 
 }  // namespace
 
-FixedState::FixedState(const FixedEffect& effect)
-    : coeffs(Eigen::VectorXd::Zero(effect.X.cols()))
+FixedState::FixedState(const FixedDesign& design)
+    : coeffs(Eigen::VectorXd::Zero(design.X.cols()))
 {
 }
 
@@ -133,13 +133,13 @@ auto FixedState::visit_records(
     sink.visit("coeffs", coeffs);
 }
 
-RandomState::RandomState(const RandomEffect& effect, double variance)
-    : coeffs(Eigen::VectorXd::Zero(effect.X.cols())), variance{variance}
+RandomState::RandomState(const RandomDesign& design, double variance)
+    : coeffs(Eigen::VectorXd::Zero(design.X.cols())), variance{variance}
 {
 }
 
-RandomState::RandomState(const RandomEffect& effect, const RandomPrior& prior)
-    : RandomState(effect, prior.initial_value())
+RandomState::RandomState(const RandomDesign& design, const RandomPrior& prior)
+    : RandomState(design, prior.initial_value())
 {
 }
 
@@ -281,18 +281,18 @@ auto GeneticBlockState::visit_records(
 }
 
 SingleGeneticBlockState::SingleGeneticBlockState(
-    const GeneticEffect& effect,
+    const GeneticDesign& design,
     const SingleGeneticPrior& prior)
     : SingleGeneticBlockState(
-          GeneticState{effect.type, effect.X.cols(), effect.X.rows()},
-          prior.make_state(effect.X.cols(), effect.X.rows()))
+          GeneticState{design.type, design.X.cols(), design.X.rows()},
+          prior.make_state(design.X.cols(), design.X.rows()))
 {
-    if (effect.type != prior.mode())
+    if (design.type != prior.mode())
     {
         throw GelexException(
             fmt::format(
-                "SingleGeneticBlockState: effect mode {} != prior mode {}",
-                effect.type,
+                "SingleGeneticBlockState: design mode {} != prior mode {}",
+                design.type,
                 prior.mode()));
     }
 }
@@ -317,8 +317,8 @@ auto SingleGeneticBlockState::visit(infra::FieldVisitor& visitor) -> void
 }
 
 JointGeneticBlockState::JointGeneticBlockState(
-    const GeneticEffect& additive,
-    const GeneticEffect& dominance,
+    const GeneticDesign& additive,
+    const GeneticDesign& dominance,
     const JointGeneticPrior& prior)
     : JointGeneticBlockState(
           GeneticState{GeneticMode::A, additive.X.cols(), additive.X.rows()},
@@ -329,14 +329,14 @@ JointGeneticBlockState::JointGeneticBlockState(
     {
         throw GelexException(
             fmt::format(
-                "JointGeneticBlockState: additive effect has mode {}",
+                "JointGeneticBlockState: additive design has mode {}",
                 additive.type));
     }
     if (dominance.type != GeneticMode::D)
     {
         throw GelexException(
             fmt::format(
-                "JointGeneticBlockState: dominance effect has mode {}",
+                "JointGeneticBlockState: dominance design has mode {}",
                 dominance.type));
     }
     if (additive.X.rows() != dominance.X.rows()
@@ -344,7 +344,7 @@ JointGeneticBlockState::JointGeneticBlockState(
     {
         throw GelexException(
             fmt::format(
-                "JointGeneticBlockState: genetic effects must share shape; "
+                "JointGeneticBlockState: genetic designs must share shape; "
                 "A is {}x{}, D is {}x{}",
                 additive.X.rows(),
                 additive.X.cols(),
@@ -471,22 +471,22 @@ namespace gelex
 namespace
 {
 
-auto require_model_effect(const BayesModel& model, GeneticMode mode)
-    -> const bayes::GeneticEffect&
+auto require_model_design(const BayesModel& model, GeneticMode mode)
+    -> const bayes::GeneticDesign&
 {
-    const auto* effect = model.genetic(mode);
-    if (effect == nullptr)
+    const auto* design = model.genetic(mode);
+    if (design == nullptr)
     {
         throw GelexException(
             fmt::format(
-                "BayesState: missing genetic effect for mode {}", mode));
+                "BayesState: missing genetic design for mode {}", mode));
     }
-    return *effect;
+    return *design;
 }
 
 auto require_shared_shape(
-    const bayes::GeneticEffect& first,
-    const bayes::GeneticEffect& current) -> void
+    const bayes::GeneticDesign& first,
+    const bayes::GeneticDesign& current) -> void
 {
     if (first.X.rows() != current.X.rows()
         || first.X.cols() != current.X.cols())
@@ -512,19 +512,19 @@ BayesState::BayesState(const BayesModel& model, const bayes::BayesPrior& prior)
           .y_adj = model.phenotype(),
           .variance = prior.residual().initial_value()}
 {
-    const auto& random_effects = model.random();
-    random_.reserve(random_effects.size());
-    for (const auto& effect : random_effects)
+    const auto& random_designs = model.random();
+    random_.reserve(random_designs.size());
+    for (const auto& design : random_designs)
     {
-        random_.emplace_back(effect, prior.random());
+        random_.emplace_back(design, prior.random());
     }
 
     for (const auto& block : prior.genetics())
     {
         const auto modes = block.modes();
-        const auto& first_effect = require_model_effect(model, modes.front());
+        const auto& first_design = require_model_design(model, modes.front());
         auto prior_state
-            = block.make_state(first_effect.X.cols(), model.num_individuals());
+            = block.make_state(first_design.X.cols(), model.num_individuals());
 
         std::vector<GeneticMode> block_modes;
         std::vector<std::size_t> genetic_indices;
@@ -533,11 +533,11 @@ BayesState::BayesState(const BayesModel& model, const bayes::BayesPrior& prior)
 
         for (const auto mode : modes)
         {
-            const auto& effect = require_model_effect(model, mode);
-            require_shared_shape(first_effect, effect);
+            const auto& design = require_model_design(model, mode);
+            require_shared_shape(first_design, design);
             block_modes.push_back(mode);
             genetic_indices.push_back(genetics_.size());
-            genetics_.emplace_back(mode, effect.X.cols(), effect.X.rows());
+            genetics_.emplace_back(mode, design.X.cols(), design.X.rows());
         }
 
         genetic_blocks_.emplace_back(
@@ -679,11 +679,11 @@ BayesStateV2::BayesStateV2(
           .y_adj = model.phenotype(),
           .variance = prior.residual().initial_value()}
 {
-    const auto& random_effects = model.random();
-    random_.reserve(random_effects.size());
-    for (const auto& effect : random_effects)
+    const auto& random_designs = model.random();
+    random_.reserve(random_designs.size());
+    for (const auto& design : random_designs)
     {
-        random_.emplace_back(effect, prior.random());
+        random_.emplace_back(design, prior.random());
     }
 
     genetics_.reserve(prior.genetics().size());
@@ -698,18 +698,18 @@ BayesStateV2::BayesStateV2(
                         std::unique_ptr<bayes::SingleGeneticPrior>>)
                 {
                     const auto mode = genetic_prior->mode();
-                    const auto* effect = model.genetic(mode);
-                    if (effect == nullptr)
+                    const auto* design = model.genetic(mode);
+                    if (design == nullptr)
                     {
                         throw GelexException(
                             fmt::format(
-                                "BayesStateV2: missing genetic effect for "
+                                "BayesStateV2: missing genetic design for "
                                 "mode {}",
                                 mode));
                     }
                     genetics_.emplace_back(
                         bayes::SingleGeneticBlockState{
-                            *effect, *genetic_prior});
+                            *design, *genetic_prior});
                 }
                 else
                 {
@@ -717,14 +717,14 @@ BayesStateV2::BayesStateV2(
                     if (additive == nullptr)
                     {
                         throw GelexException(
-                            "BayesStateV2: missing genetic effect for mode A");
+                            "BayesStateV2: missing genetic design for mode A");
                     }
 
                     const auto* dominance = model.genetic(GeneticMode::D);
                     if (dominance == nullptr)
                     {
                         throw GelexException(
-                            "BayesStateV2: missing genetic effect for mode D");
+                            "BayesStateV2: missing genetic design for mode D");
                     }
 
                     genetics_.emplace_back(

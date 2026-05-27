@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/types/fixed_effects.h"
+#include "gelex/types/fixed_designs.h"
 
 #include <iterator>
 #include <optional>
@@ -24,11 +24,11 @@
 namespace gelex
 {
 
-auto FixedEffect::build(
+auto FixedDesign::build(
     std::optional<QuantitativeCovariate> qcovariate,
-    std::optional<DiscreteCovariate> dcovariate) -> FixedEffect
+    std::optional<DiscreteCovariate> dcovariate) -> FixedDesign
 {
-    FixedEffect fe;
+    FixedDesign fe;
 
     Eigen::Index n_samples = 0;
     if (qcovariate)
@@ -116,9 +116,9 @@ auto FixedEffect::build(
     return fe;
 }
 
-auto FixedEffect::build(Eigen::Index n_samples) -> FixedEffect
+auto FixedDesign::build(Eigen::Index n_samples) -> FixedDesign
 {
-    FixedEffect fe;
+    FixedDesign fe;
 
     const Eigen::Index n_cols = 1;
 

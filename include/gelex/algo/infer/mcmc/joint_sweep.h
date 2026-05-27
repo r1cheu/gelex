@@ -27,7 +27,7 @@
 #include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/infra/stats/detail/var.h"
-#include "gelex/model/bayes/effects.h"
+#include "gelex/model/bayes/designs.h"
 
 namespace gelex::mcmc
 {
@@ -54,8 +54,8 @@ class GeneticJointSweep
     template <GeneticJointKernel Kernel>
     auto run(Kernel& kernel) -> void
     {
-        const auto first_x = first_.effect.X.matrix();
-        const auto second_x = second_.effect.X.matrix();
+        const auto first_x = first_.design.X.matrix();
+        const auto second_x = second_.design.X.matrix();
         Eigen::VectorXd& first_coeffs = first_.state.coeffs;
         Eigen::VectorXd& second_coeffs = second_.state.coeffs;
         Eigen::VectorXd& first_u = first_.state.u;
@@ -67,8 +67,8 @@ class GeneticJointSweep
 
         for (Eigen::Index i = 0; i < first_coeffs.size(); ++i)
         {
-            if (first_.effect.is_monomorphic(i)
-                || second_.effect.is_monomorphic(i))
+            if (first_.design.is_monomorphic(i)
+                || second_.design.is_monomorphic(i))
             {
                 continue;
             }
@@ -77,8 +77,8 @@ class GeneticJointSweep
             const double second_old = second_coeffs(i);
             const auto first_col = first_x.col(i);
             const auto second_col = second_x.col(i);
-            const double first_xtx = first_.effect.XtX_diag(i);
-            const double second_xtx = second_.effect.XtX_diag(i);
+            const double first_xtx = first_.design.XtX_diag(i);
+            const double second_xtx = second_.design.XtX_diag(i);
             const double first_rhs = infer::detail::blas_ddot(first_col, y_adj)
                                      + (first_xtx * first_old);
             const double second_rhs
