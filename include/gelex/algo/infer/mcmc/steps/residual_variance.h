@@ -21,8 +21,8 @@
 
 #include <Eigen/Core>
 
-#include "gelex/algo/infer/mcmc/kernels/residual_variance.h"
 #include "gelex/algo/infer/mcmc/step.h"
+#include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/state.h"
 
@@ -44,7 +44,7 @@ class ResidualVarianceStep final : public Step
     Eigen::Index num_individuals_{};
     bayes::ResidualState& state_;
     std::mt19937_64& rng_;
-    ResidualVarianceKernel kernel_;
+    stats::ScaledInvChi2Sampler<double> sampler_;
 };
 
 }  // namespace gelex::mcmc

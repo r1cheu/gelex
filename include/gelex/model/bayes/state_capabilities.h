@@ -19,27 +19,25 @@
 
 #include <Eigen/Core>
 #include <span>
+#include <string_view>
 
-#include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/capabilities.h"
 #include "gelex/model/bayes/prior_state.h"
-#include "gelex/model/bayes/state_record_set.h"
 
 namespace gelex::bayes
 {
 
 class ProportionStateCap : public ProportionCapability<ProportionState>
 {
-   protected:
-    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
-        -> void;
-    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
-        -> void;
+   public:
+    static constexpr std::string_view name = "proportion state";
 };
 
 class ComponentStateCap
 {
    public:
+    static constexpr std::string_view name = "component state";
+
     auto operator=(const ComponentStateCap&) -> ComponentStateCap& = delete;
     auto operator=(ComponentStateCap&&) noexcept -> ComponentStateCap& = delete;
 
@@ -52,16 +50,13 @@ class ComponentStateCap
     ComponentStateCap() = default;
     ComponentStateCap(const ComponentStateCap&) = default;
     ComponentStateCap(ComponentStateCap&&) noexcept = default;
-
-    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
-        -> void;
-    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
-        -> void;
 };
 
 class SingleComponentStateCap
 {
    public:
+    static constexpr std::string_view name = "single component state";
+
     auto operator=(const SingleComponentStateCap&)
         -> SingleComponentStateCap& = delete;
     auto operator=(SingleComponentStateCap&&) noexcept
@@ -81,6 +76,8 @@ class SingleComponentStateCap
 class JointComponentStateCap
 {
    public:
+    static constexpr std::string_view name = "joint component state";
+
     auto operator=(const JointComponentStateCap&)
         -> JointComponentStateCap& = delete;
     auto operator=(JointComponentStateCap&&) noexcept

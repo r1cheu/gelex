@@ -20,8 +20,8 @@
 #include <random>
 #include <span>
 
-#include "gelex/algo/infer/mcmc/kernels/random_variance.h"
 #include "gelex/algo/infer/mcmc/step.h"
+#include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/state.h"
 
@@ -41,7 +41,7 @@ class RandomVarianceStep final : public Step
    private:
     std::span<bayes::RandomState> states_;
     std::mt19937_64& rng_;
-    RandomVarianceKernel kernel_;
+    stats::ScaledInvChi2Sampler<double> sampler_;
 };
 
 }  // namespace gelex::mcmc

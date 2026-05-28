@@ -17,13 +17,14 @@
 #include "mcmc_reporter.h"
 
 #include <iterator>
+#include <type_traits>
+#include <variant>
 
 #include <fmt/format.h>
 
 #include "cli/report_printer.h"
 #include "config.h"
 #include "gelex/algo/infer/mcmc/result.h"
-#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/model/bayes/labels.h"
@@ -83,12 +84,36 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
     stats_.clear();
     for (const auto& gen : state->genetics())
     {
-        fmt::format_to(
-            std::back_inserter(stats_),
-            "{}{}:{:.3f}",
-            stats_.empty() ? "" : " | ",
-            bayes::to_heritability_label(gen.type),
-            gen.heritability);
+        std::visit(
+            [&](const auto& block)
+            {
+                using Block = std::decay_t<decltype(block)>;
+                if constexpr (
+                    std::is_same_v<Block, bayes::SingleGeneticBlockState>)
+                {
+                    const auto& genetic = block.state();
+                    fmt::format_to(
+                        std::back_inserter(stats_),
+                        "{}{}:{:.3f}",
+                        stats_.empty() ? "" : " | ",
+                        bayes::to_heritability_label(genetic.type),
+                        genetic.heritability);
+                }
+                else
+                {
+                    for (const auto mode : {GeneticMode::A, GeneticMode::D})
+                    {
+                        const auto& genetic = block.state(mode);
+                        fmt::format_to(
+                            std::back_inserter(stats_),
+                            "{}{}:{:.3f}",
+                            stats_.empty() ? "" : " | ",
+                            bayes::to_heritability_label(genetic.type),
+                            genetic.heritability);
+                    }
+                }
+            },
+            gen);
     }
     fmt::format_to(
         std::back_inserter(stats_),

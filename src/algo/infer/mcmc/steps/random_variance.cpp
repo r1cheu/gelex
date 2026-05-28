@@ -23,16 +23,21 @@ RandomVarianceStep::RandomVarianceStep(
     const bayes::RandomPrior& prior,
     std::span<bayes::RandomState> states,
     std::mt19937_64& rng)
-    : states_(states), rng_(rng), kernel_(prior)
+    : states_(states),
+      rng_(rng),
+      sampler_(prior.prior().degrees_of_freedom(), prior.prior().scale())
 {
 }
 
 auto RandomVarianceStep::step() -> void
 {
-    kernel_.prepare();
+    sampler_.reset();
     for (auto& state : states_)
     {
-        state.variance = kernel_.sample(state.coeffs, rng_);
+        state.variance = sampler_(
+            {.n = state.coeffs.size(),
+             .sum_squares = state.coeffs.squaredNorm()},
+            rng_);
     }
 }
 

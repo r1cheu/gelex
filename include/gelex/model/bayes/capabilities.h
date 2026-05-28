@@ -18,6 +18,7 @@
 #define GELEX_MODEL_BAYES_CAPABILITIES_H_
 
 #include <span>
+#include <string_view>
 
 #include <Eigen/Core>
 
@@ -31,6 +32,7 @@ template <typename T>
 class ProportionCapability
 {
    public:
+    static constexpr std::string_view name = "proportion";
     using element_type = T;
 
     auto operator=(const ProportionCapability&)
@@ -53,6 +55,7 @@ template <typename T>
 class MultiplierCapability
 {
    public:
+    static constexpr std::string_view name = "multiplier";
     using element_type = T;
 
     auto operator=(const MultiplierCapability&)
@@ -78,6 +81,7 @@ template <typename T>
 class SingleSharedVarianceCapability
 {
    public:
+    static constexpr std::string_view name = "single shared variance";
     using element_type = T;
 
     auto operator=(const SingleSharedVarianceCapability&)
@@ -102,6 +106,7 @@ template <typename T>
 class SinglePerMarkerVarianceCapability
 {
    public:
+    static constexpr std::string_view name = "single per-marker variance";
     using element_type = T;
 
     auto operator=(const SinglePerMarkerVarianceCapability&)
@@ -126,6 +131,7 @@ template <typename T>
 class SingleProportionCapability
 {
    public:
+    static constexpr std::string_view name = "single proportion";
     using element_type = T;
 
     auto operator=(const SingleProportionCapability&)
@@ -148,6 +154,7 @@ template <typename T>
 class SingleMultiplierCapability
 {
    public:
+    static constexpr std::string_view name = "single multiplier";
     using element_type = T;
 
     auto operator=(const SingleMultiplierCapability&)
@@ -170,6 +177,7 @@ template <typename T>
 class JointSharedVarianceCapability
 {
    public:
+    static constexpr std::string_view name = "joint shared variance";
     using element_type = T;
 
     auto operator=(const JointSharedVarianceCapability&)
@@ -194,6 +202,7 @@ template <typename T>
 class JointProportionCapability
 {
    public:
+    static constexpr std::string_view name = "joint proportion";
     using element_type = T;
 
     auto operator=(const JointProportionCapability&)

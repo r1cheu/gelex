@@ -16,8 +16,10 @@
 
 #include "fit_reporter.h"
 
+#include <memory>
 #include <ranges>
 #include <span>
+#include <type_traits>
 
 #include <fmt/format.h>
 
@@ -27,7 +29,6 @@
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/capabilities.h"
-#include "gelex/model/bayes/gaussian_prior.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_parameters.h"
@@ -93,10 +94,9 @@ auto FitReporter::print_random_prior(const bayes::RandomPrior& prior) -> void
         prior.initial_value());
 }
 
-auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) -> void
+auto FitReporter::print_genetic_prior(const bayes::GeneticPriorBlock& prior)
+    -> void
 {
-    cli::printer().line("   {} effect:", fmt::join(prior.modes(), ", "));
-
     auto format_vec = [](const auto& p)
     {
         auto formatted = std::span(p.data(), p.size())
@@ -105,75 +105,85 @@ auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) -> void
         return fmt::join(formatted, ", ");
     };
 
-    if (const auto* gaussian = prior.query<bayes::GaussianPrior>();
-        gaussian != nullptr)
-    {
-        for (const auto& marker_variance : gaussian->variance())
+    std::visit(
+        [&format_vec](const auto& genetic)
         {
-            const auto& parameter = marker_variance.parameter();
-            print_variance_prior(
-                stats::detail::ScaledInvChiSqParams{
-                    parameter.prior().degrees_of_freedom(),
-                    parameter.prior().scale()},
-                parameter.initial_value());
-        }
-    }
-    if (const auto* spike_slab = prior.query<bayes::SpikeSlabGaussianPrior>();
-        spike_slab != nullptr)
-    {
-        for (const auto& marker_variance : spike_slab->variance())
-        {
-            const auto& parameter = marker_variance.parameter();
-            print_variance_prior(
-                stats::detail::ScaledInvChiSqParams{
-                    parameter.prior().degrees_of_freedom(),
-                    parameter.prior().scale()},
-                parameter.initial_value());
-        }
-    }
-    if (const auto* scaled_mixture
-        = prior.query<bayes::ScaledMixtureGaussianPrior>();
-        scaled_mixture != nullptr)
-    {
-        for (const auto& marker_variance : scaled_mixture->variance())
-        {
-            const auto& parameter = marker_variance.parameter();
-            print_variance_prior(
-                stats::detail::ScaledInvChiSqParams{
-                    parameter.prior().degrees_of_freedom(),
-                    parameter.prior().scale()},
-                parameter.initial_value());
-        }
-    }
-    if (const auto* joint = prior.query<bayes::JointMixtureGaussianPrior>();
-        joint != nullptr)
-    {
-        for (const auto& marker_variance : joint->variance())
-        {
-            const auto& parameter = marker_variance.parameter();
-            print_variance_prior(
-                stats::detail::ScaledInvChiSqParams{
-                    parameter.prior().degrees_of_freedom(),
-                    parameter.prior().scale()},
-                parameter.initial_value());
-        }
-    }
-    if (const auto* proportion = prior.query<bayes::MixtureProportionCap>())
-    {
-        for (const auto& mixture_proportion : proportion->proportion())
-        {
-            cli::printer().line(
-                "    Proportion: [{}]",
-                format_vec(mixture_proportion.parameter().initial_value()));
-        }
-    }
-    if (const auto* multiplier = prior.query<bayes::MultiplierCap>())
-    {
-        for (const auto& value : multiplier->multiplier())
-        {
-            cli::printer().line("    Multiplier: [{}]", format_vec(value));
-        }
-    }
+            if constexpr (
+                std::is_same_v<
+                    std::decay_t<decltype(genetic)>,
+                    std::unique_ptr<bayes::SingleGeneticPrior>>)
+            {
+                cli::printer().line("   {} effect:", genetic->mode());
+                if (const auto* variance
+                    = genetic->template get_if<
+                        bayes::SingleSharedMarkerVarianceCap>())
+                {
+                    const auto& parameter = variance->variance().parameter();
+                    print_variance_prior(
+                        stats::detail::ScaledInvChiSqParams{
+                            parameter.prior().degrees_of_freedom(),
+                            parameter.prior().scale()},
+                        parameter.initial_value());
+                }
+                if (const auto* variance = genetic->template get_if<
+                                           bayes::SinglePerMarkerVarianceCap>())
+                {
+                    const auto& parameter = variance->variance().parameter();
+                    print_variance_prior(
+                        stats::detail::ScaledInvChiSqParams{
+                            parameter.prior().degrees_of_freedom(),
+                            parameter.prior().scale()},
+                        parameter.initial_value());
+                }
+                if (const auto* proportion
+                    = genetic->template get_if<
+                        bayes::SingleMixtureProportionCap>())
+                {
+                    cli::printer().line(
+                        "    Proportion: [{}]",
+                        format_vec(proportion->proportion()
+                                       .parameter()
+                                       .initial_value()));
+                }
+                if (const auto* multiplier
+                    = genetic->template get_if<bayes::SingleMultiplierCap>())
+                {
+                    cli::printer().line(
+                        "    Multiplier: [{}]",
+                        format_vec(multiplier->multiplier()));
+                }
+            }
+            else
+            {
+                cli::printer().line("   A, D effect:");
+                if (const auto* variance
+                    = genetic->template get_if<
+                        bayes::JointSharedMarkerVarianceCap>())
+                {
+                    for (const auto mode : {GeneticMode::A, GeneticMode::D})
+                    {
+                        const auto& parameter
+                            = variance->variance(mode).parameter();
+                        print_variance_prior(
+                            stats::detail::ScaledInvChiSqParams{
+                                parameter.prior().degrees_of_freedom(),
+                                parameter.prior().scale()},
+                            parameter.initial_value());
+                    }
+                }
+                if (const auto* proportion
+                    = genetic
+                          ->template get_if<bayes::JointMixtureProportionCap>())
+                {
+                    cli::printer().line(
+                        "    Proportion: [{}]",
+                        format_vec(proportion->proportion()
+                                       .parameter()
+                                       .initial_value()));
+                }
+            }
+        },
+        prior);
 }
 
 auto FitReporter::print_residual_prior(const bayes::ResidualPrior& prior)

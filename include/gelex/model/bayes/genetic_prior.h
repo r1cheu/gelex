@@ -17,15 +17,14 @@
 #ifndef GELEX_MODEL_BAYES_GENETIC_PRIOR_H_
 #define GELEX_MODEL_BAYES_GENETIC_PRIOR_H_
 
-#include <algorithm>
 #include <memory>
-#include <span>
 #include <string_view>
 
+#include <fmt/format.h>
 #include <Eigen/Core>
 
+#include "gelex/exception.h"
 #include "gelex/infra/field_visitor.h"
-#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/prior_state.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -52,9 +51,23 @@ class SingleGeneticPrior
         -> std::unique_ptr<SingleGeneticPriorState> = 0;
 
     template <typename Capability>
-    auto query() const -> const Capability*
+    auto get_if() const -> const Capability*
     {
         return dynamic_cast<const Capability*>(this);
+    }
+
+    template <typename Capability>
+    auto get() const -> const Capability&
+    {
+        const auto* capability = get_if<Capability>();
+        if (capability == nullptr)
+        {
+            throw GelexException(
+                fmt::format(
+                    "single genetic prior lacks required capability: {}",
+                    Capability::name));
+        }
+        return *capability;
     }
 
    protected:
@@ -81,50 +94,29 @@ class JointGeneticPrior
         -> std::unique_ptr<JointGeneticPriorState> = 0;
 
     template <typename Capability>
-    auto query() const -> const Capability*
+    auto get_if() const -> const Capability*
     {
         return dynamic_cast<const Capability*>(this);
+    }
+
+    template <typename Capability>
+    auto get() const -> const Capability&
+    {
+        const auto* capability = get_if<Capability>();
+        if (capability == nullptr)
+        {
+            throw GelexException(
+                fmt::format(
+                    "joint genetic prior lacks required capability: {}",
+                    Capability::name));
+        }
+        return *capability;
     }
 
    protected:
     JointGeneticPrior() = default;
     JointGeneticPrior(const JointGeneticPrior&) = default;
     JointGeneticPrior(JointGeneticPrior&&) noexcept = default;
-};
-
-class GeneticPrior
-{
-   public:
-    static constexpr std::string_view name = "genetic";
-
-    auto operator=(const GeneticPrior&) -> GeneticPrior& = delete;
-    auto operator=(GeneticPrior&&) noexcept -> GeneticPrior& = delete;
-
-    virtual ~GeneticPrior() = default;
-
-    virtual auto modes() const -> std::span<const GeneticMode> = 0;
-    virtual auto visit(infra::FieldVisitor& visitor) -> void = 0;
-
-    virtual auto make_state(
-        Eigen::Index num_markers,
-        Eigen::Index num_individuals) const
-        -> std::unique_ptr<GeneticPriorState> = 0;
-
-    auto contains(GeneticMode mode) const -> bool
-    {
-        return std::ranges::contains(modes(), mode);
-    }
-
-    template <typename Capability>
-    auto query() const -> const Capability*
-    {
-        return dynamic_cast<const Capability*>(this);
-    }
-
-   protected:
-    GeneticPrior() = default;
-    GeneticPrior(const GeneticPrior&) = default;
-    GeneticPrior(GeneticPrior&&) noexcept = default;
 };
 
 }  // namespace gelex::bayes

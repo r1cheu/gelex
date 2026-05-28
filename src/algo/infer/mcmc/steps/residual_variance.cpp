@@ -27,14 +27,16 @@ ResidualVarianceStep::ResidualVarianceStep(
     : num_individuals_(num_individuals),
       state_(state),
       rng_(rng),
-      kernel_(prior)
+      sampler_(prior.prior().degrees_of_freedom(), prior.prior().scale())
 {
 }
 
 auto ResidualVarianceStep::step() -> void
 {
-    kernel_.prepare();
-    state_.variance = kernel_.sample(num_individuals_, state_.y_adj, rng_);
+    sampler_.reset();
+    state_.variance = sampler_(
+        {.n = num_individuals_, .sum_squares = state_.y_adj.squaredNorm()},
+        rng_);
 }
 
 }  // namespace gelex::mcmc

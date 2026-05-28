@@ -131,20 +131,10 @@ IndependentMethod::IndependentMethod(
 {
 }
 
-auto IndependentMethod::make_genetic_priors(const BayesModel& model) const
-    -> std::vector<std::unique_ptr<GeneticPrior>>
-{
-    std::vector<std::unique_ptr<GeneticPrior>> priors;
-    for_each_effect(
-        [&](GeneticMode mode, const EffectConfig& effect)
-        { priors.push_back(make_genetic_prior(mode, effect, model)); });
-    return priors;
-}
-
 auto IndependentMethod::make_genetic_prior_blocks(const BayesModel& model) const
-    -> std::vector<GeneticPriorBlockV2>
+    -> std::vector<GeneticPriorBlock>
 {
-    std::vector<GeneticPriorBlockV2> priors;
+    std::vector<GeneticPriorBlock> priors;
     for_each_effect(
         [&](GeneticMode mode, const EffectConfig& effect)
         {
@@ -223,19 +213,11 @@ JointMethod::JointMethod(
 {
 }
 
-auto JointMethod::make_genetic_priors(const BayesModel& model) const
-    -> std::vector<std::unique_ptr<GeneticPrior>>
-{
-    std::vector<std::unique_ptr<GeneticPrior>> priors;
-    priors.push_back(make_joint_prior(options(), model));
-    return priors;
-}
-
 auto JointMethod::make_genetic_prior_blocks(const BayesModel& model) const
-    -> std::vector<GeneticPriorBlockV2>
+    -> std::vector<GeneticPriorBlock>
 {
-    std::vector<GeneticPriorBlockV2> priors;
-    priors.emplace_back(make_joint_prior_v2(options(), model));
+    std::vector<GeneticPriorBlock> priors;
+    priors.emplace_back(make_joint_prior(options(), model));
     return priors;
 }
 

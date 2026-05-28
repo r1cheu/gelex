@@ -35,7 +35,7 @@ namespace gelex::bayes
 
 BayesPrior::BayesPrior(
     RandomPrior random,
-    std::vector<std::unique_ptr<GeneticPrior>> genetics,
+    std::vector<GeneticPriorBlock> genetics,
     ResidualPrior residual)
     : random_(random), genetics_(std::move(genetics)), residual_(residual)
 {
@@ -47,62 +47,7 @@ auto BayesPrior::visit(infra::FieldVisitor& visitor) -> void
     auto scope = visitor.scope(name);
     random_.visit(visitor);
     {
-        auto genetic_scope = visitor.scope(GeneticPrior::name);
-        for (auto [i, block] : std::views::enumerate(genetics_))
-        {
-            auto block_scope = visitor.scope(std::to_string(i));
-            block->visit(visitor);
-        }
-    }
-    residual_.visit(visitor);
-    // FieldVisitor may mutate prior fields, so restore invariant checks here.
-    validate_genetics(genetics_);
-}
-
-auto BayesPrior::validate_genetics(
-    const std::vector<std::unique_ptr<GeneticPrior>>& genetics) -> void
-{
-    std::vector<GeneticMode> seen_modes;
-    for (const auto& block : genetics)
-    {
-        if (block == nullptr)
-        {
-            throw GelexException("BayesPrior: null GeneticPrior block");
-        }
-        const auto block_modes = block->modes();
-        if (block_modes.empty())
-        {
-            throw GelexException("BayesPrior: GeneticPrior block has no modes");
-        }
-        for (const auto mode : block_modes)
-        {
-            if (std::ranges::contains(seen_modes, mode))
-            {
-                throw GelexException(
-                    fmt::format(
-                        "BayesPrior: duplicate GeneticMode {} across blocks",
-                        mode));
-            }
-            seen_modes.push_back(mode);
-        }
-    }
-}
-
-BayesPriorV2::BayesPriorV2(
-    RandomPrior random,
-    std::vector<GeneticPriorBlockV2> genetics,
-    ResidualPrior residual)
-    : random_(random), genetics_(std::move(genetics)), residual_(residual)
-{
-    validate_genetics(genetics_);
-}
-
-auto BayesPriorV2::visit(infra::FieldVisitor& visitor) -> void
-{
-    auto scope = visitor.scope(name);
-    random_.visit(visitor);
-    {
-        auto genetic_scope = visitor.scope(GeneticPrior::name);
+        auto genetic_scope = visitor.scope("genetic");
         for (auto [i, block] : std::views::enumerate(genetics_))
         {
             auto block_scope = visitor.scope(std::to_string(i));
@@ -115,8 +60,8 @@ auto BayesPriorV2::visit(infra::FieldVisitor& visitor) -> void
     validate_genetics(genetics_);
 }
 
-auto BayesPriorV2::validate_genetics(
-    const std::vector<GeneticPriorBlockV2>& genetics) -> void
+auto BayesPrior::validate_genetics(
+    const std::vector<GeneticPriorBlock>& genetics) -> void
 {
     std::set<GeneticMode> seen_modes;
     auto add_mode = [&seen_modes](GeneticMode mode)
@@ -125,7 +70,7 @@ auto BayesPriorV2::validate_genetics(
         {
             throw GelexException(
                 fmt::format(
-                    "BayesPriorV2: duplicate GeneticMode {} across blocks",
+                    "BayesPrior: duplicate GeneticMode {} across blocks",
                     mode));
         }
     };
@@ -137,7 +82,7 @@ auto BayesPriorV2::validate_genetics(
                 using Prior = std::decay_t<decltype(prior)>;
                 if (prior == nullptr)
                 {
-                    throw GelexException("BayesPriorV2: null genetic block");
+                    throw GelexException("BayesPrior: null genetic block");
                 }
 
                 if constexpr (

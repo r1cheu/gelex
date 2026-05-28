@@ -24,7 +24,6 @@
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/mcmc/context.h"
-#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/prior_state.h"
 #include "gelex/types/genetic_effect_type.h"

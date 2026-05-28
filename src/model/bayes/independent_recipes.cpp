@@ -19,7 +19,6 @@
 #include <cstddef>
 #include <memory>
 
-#include "gelex/model/bayes/gaussian_prior.h"
 #include "gelex/model/bayes/genetic_priors/gaussian.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/types/constrained_vector.h"
@@ -46,19 +45,6 @@ BayesRRMethod::BayesRRMethod(const BayesRecipeConfig& options)
     reject_per_effect_multiplier();
 }
 
-auto BayesRRMethod::make_genetic_prior(
-    GeneticMode mode,
-    const EffectConfig& effect,
-    const BayesModel& model) const -> std::unique_ptr<GeneticPrior>
-{
-    const double h2
-        = effect.heritability().value_or(default_heritability(mode)).value();
-    const double target
-        = marker_variance_from_heritability(model, mode, h2, 1.0);
-    return std::make_unique<GaussianPrior>(
-        mode, make_marker_variance(MarkerVarianceLayout::shared, target));
-}
-
 auto BayesRRMethod::make_single_genetic_prior(
     GeneticMode mode,
     const EffectConfig& effect,
@@ -82,19 +68,6 @@ BayesAMethod::BayesAMethod(const BayesRecipeConfig& options)
     reject_per_effect_multiplier();
 }
 
-auto BayesAMethod::make_genetic_prior(
-    GeneticMode mode,
-    const EffectConfig& effect,
-    const BayesModel& model) const -> std::unique_ptr<GeneticPrior>
-{
-    const double h2
-        = effect.heritability().value_or(default_heritability(mode)).value();
-    const double target
-        = marker_variance_from_heritability(model, mode, h2, 1.0);
-    return std::make_unique<GaussianPrior>(
-        mode, make_marker_variance(MarkerVarianceLayout::per_marker, target));
-}
-
 auto BayesAMethod::make_single_genetic_prior(
     GeneticMode mode,
     const EffectConfig& effect,
@@ -115,24 +88,6 @@ BayesBMethod::BayesBMethod(const BayesRecipeConfig& options)
 {
     reject_joint_overrides();
     reject_per_effect_multiplier();
-}
-
-auto BayesBMethod::make_genetic_prior(
-    GeneticMode mode,
-    const EffectConfig& effect,
-    const BayesModel& model) const -> std::unique_ptr<GeneticPrior>
-{
-    const Simplex<double> proportion
-        = effect.proportion().value_or(Simplex<double>{{0.99, 0.01}});
-    const double active_weight = 1.0 - proportion[0];
-    const double h2
-        = effect.heritability().value_or(default_heritability(mode)).value();
-    const double target
-        = marker_variance_from_heritability(model, mode, h2, active_weight);
-    return std::make_unique<SpikeSlabGaussianPrior>(
-        mode,
-        make_marker_variance(MarkerVarianceLayout::per_marker, target),
-        make_mixture_proportion(proportion, proportion_update_from(effect)));
 }
 
 auto BayesBMethod::make_single_genetic_prior(
@@ -161,24 +116,6 @@ BayesCMethod::BayesCMethod(const BayesRecipeConfig& options)
     reject_per_effect_multiplier();
 }
 
-auto BayesCMethod::make_genetic_prior(
-    GeneticMode mode,
-    const EffectConfig& effect,
-    const BayesModel& model) const -> std::unique_ptr<GeneticPrior>
-{
-    const Simplex<double> proportion
-        = effect.proportion().value_or(Simplex<double>{{0.99, 0.01}});
-    const double active_weight = 1.0 - proportion[0];
-    const double h2
-        = effect.heritability().value_or(default_heritability(mode)).value();
-    const double target
-        = marker_variance_from_heritability(model, mode, h2, active_weight);
-    return std::make_unique<SpikeSlabGaussianPrior>(
-        mode,
-        make_marker_variance(MarkerVarianceLayout::shared, target),
-        make_mixture_proportion(proportion, proportion_update_from(effect)));
-}
-
 auto BayesCMethod::make_single_genetic_prior(
     GeneticMode mode,
     const EffectConfig& effect,
@@ -203,31 +140,6 @@ BayesRMethod::BayesRMethod(const BayesRecipeConfig& options)
 {
     reject_joint_overrides();
     require_paired_proportion_and_multiplier();
-}
-
-auto BayesRMethod::make_genetic_prior(
-    GeneticMode mode,
-    const EffectConfig& effect,
-    const BayesModel& model) const -> std::unique_ptr<GeneticPrior>
-{
-    const Simplex<double> proportion = effect.proportion().value_or(
-        Simplex<double>{{0.99, 0.005, 0.003, 0.001, 0.001}});
-    const ScaleMultiplier<double> multiplier = effect.multiplier().value_or(
-        ScaleMultiplier<double>{{0.0, 0.001, 0.01, 0.1, 1.0}});
-    double active_weight = 0.0;
-    for (std::size_t i = 0; i < proportion.size(); ++i)
-    {
-        active_weight += proportion[i] * multiplier[i];
-    }
-    const double h2
-        = effect.heritability().value_or(default_heritability(mode)).value();
-    const double target
-        = marker_variance_from_heritability(model, mode, h2, active_weight);
-    return std::make_unique<ScaledMixtureGaussianPrior>(
-        mode,
-        make_marker_variance(MarkerVarianceLayout::shared, target),
-        multiplier.to_mat(),
-        make_mixture_proportion(proportion, proportion_update_from(effect)));
 }
 
 auto BayesRMethod::make_single_genetic_prior(

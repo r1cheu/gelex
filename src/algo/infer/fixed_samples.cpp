@@ -16,8 +16,8 @@
 
 #include "gelex/algo/infer/fixed_samples.h"
 
-#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/model/bayes/designs.h"
+#include "gelex/model/bayes/state.h"
 #include "gelex/types/fixed_designs.h"
 
 namespace gelex

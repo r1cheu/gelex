@@ -25,10 +25,10 @@
 
 #include <Eigen/Core>
 
-#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/recipe.h"
+#include "gelex/model/bayes/state.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -59,7 +59,7 @@ struct MCMCProgressEvent
     size_t current{};
     size_t total{};
     bool done{};
-    const mcmc::State* state{};
+    const BayesState* state{};
 };
 
 struct MCMCCompleteEvent

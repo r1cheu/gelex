@@ -16,64 +16,15 @@
 
 #include "gelex/algo/infer/mcmc/steps/pi.h"
 
-#include <utility>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
-
-#include "gelex/algo/infer/detail/genetic_binding.h"
-#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/exception.h"
-#include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/state_capabilities.h"
 
 namespace gelex::mcmc
 {
 
-auto PiStep::make(const Context& ctx, GeneticMode mode) -> PiStep
+auto PiStep::make(const Context&, GeneticMode) -> PiStep
 {
-    auto block = infer::detail::bind_genetic_block(ctx, mode);
-    auto* cap = block.prior_state.query<bayes::ProportionStateCap>();
-    if (cap == nullptr)
-    {
-        throw GelexException(
-            fmt::format(
-                "PiStep: genetic block {} has no proportion state",
-                EffectType::from_genetic(mode)));
-    }
-    auto proportions = cap->proportion();
-    if (block.slot >= proportions.size())
-    {
-        throw GelexException(
-            fmt::format(
-                "PiStep: proportion slot missing for genetic block {}",
-                EffectType::from_genetic(mode)));
-    }
-    auto& proportion = proportions[block.slot];
-    const auto* prior_cap = block.prior.query<bayes::MixtureProportionCap>();
-    if (prior_cap == nullptr)
-    {
-        throw GelexException(
-            fmt::format(
-                "PiStep: genetic block {} has no mixture proportion prior",
-                EffectType::from_genetic(mode)));
-    }
-    const auto prior_proportions = prior_cap->proportion();
-    if (block.slot >= prior_proportions.size())
-    {
-        throw GelexException(
-            fmt::format(
-                "PiStep: mixture proportion prior slot missing for genetic "
-                "block {}",
-                EffectType::from_genetic(mode)));
-    }
-    auto alpha
-        = prior_proportions[block.slot].parameter().prior().concentration();
-    return PiStep{Deps{
-        .proportion = proportion,
-        .alpha = std::move(alpha),
-        .rng = ctx.rng,
-    }};
+    throw GelexException(
+        "PiStep is not implemented after Bayes prior/state cleanup");
 }
 
 auto PiStep::step() -> void

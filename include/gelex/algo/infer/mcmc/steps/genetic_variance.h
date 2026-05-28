@@ -19,10 +19,10 @@
 
 #include <array>
 #include <random>
+#include <utility>
 
-#include "gelex/algo/infer/mcmc/kernels/common.h"
 #include "gelex/algo/infer/mcmc/step.h"
-#include "gelex/exception.h"
+#include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/capabilities.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/prior_parameters.h"
@@ -33,6 +33,13 @@
 namespace gelex::mcmc
 {
 
+inline auto make_variance_sampler(const bayes::VarianceParameter& parameter)
+    -> stats::ScaledInvChi2Sampler<double>
+{
+    return stats::ScaledInvChi2Sampler<double>{
+        parameter.prior().degrees_of_freedom(), parameter.prior().scale()};
+}
+
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
 class SingleSharedGeneticVarianceStep final : public Step
 {
@@ -42,67 +49,136 @@ class SingleSharedGeneticVarianceStep final : public Step
         bayes::SingleGeneticBlockState& block,
         std::mt19937_64& rng)
         : block_(block),
-          variance_parameter_(
-              prior.query<bayes::SingleSharedMarkerVarianceCap>() != nullptr
-                  ? prior.query<bayes::SingleSharedMarkerVarianceCap>()
-                        ->variance()
-                        .parameter()
-                  : throw GelexException(
-                        "SingleSharedGeneticVarianceStep: prior lacks shared "
-                        "variance capability")),
+          sampler_(make_variance_sampler(
+              prior.get<bayes::SingleSharedMarkerVarianceCap>()
+                  .variance()
+                  .parameter())),
           variance_(block.prior_state()
-                        .require<bayes::SingleSharedVarianceStateCap>()
+                        .get<bayes::SingleSharedVarianceStateCap>()
                         .variance()),
-          proportion_cap_(
-              block.prior_state().query<bayes::SingleProportionStateCap>()),
-          multiplier_cap_(prior.query<bayes::SingleMultiplierCap>()),
           rng_(rng)
     {
     }
 
     auto step() -> void override
     {
-        auto sampler = make_variance_sampler(variance_parameter_);
+        sampler_.reset();
         const auto& coeffs = block_.state().coeffs;
-        auto* proportion = proportion_cap_ == nullptr
-                               ? nullptr
-                               : &proportion_cap_->proportion();
-        const auto* multiplier = multiplier_cap_ == nullptr
-                                     ? nullptr
-                                     : &multiplier_cap_->multiplier();
-        Eigen::Index n = 0;
+        variance_ = sampler_({coeffs.size(), coeffs.squaredNorm()}, rng_);
+    }
+
+   private:
+    bayes::SingleGeneticBlockState& block_;
+    stats::ScaledInvChi2Sampler<double> sampler_;
+    double& variance_;
+    std::mt19937_64& rng_;
+};
+
+class SingleSharedMixtureGeneticVarianceStep final : public Step
+{
+   public:
+    SingleSharedMixtureGeneticVarianceStep(
+        const bayes::SingleGeneticPrior& prior,
+        bayes::SingleGeneticBlockState& block,
+        std::mt19937_64& rng)
+        : block_(block),
+          sampler_(make_variance_sampler(
+              prior.get<bayes::SingleSharedMarkerVarianceCap>()
+                  .variance()
+                  .parameter())),
+          variance_(block.prior_state()
+                        .get<bayes::SingleSharedVarianceStateCap>()
+                        .variance()),
+          proportion_(block.prior_state()
+                          .get<bayes::SingleProportionStateCap>()
+                          .proportion()),
+          rng_(rng)
+    {
+    }
+
+    auto step() -> void override
+    {
+        sampler_.reset();
+        const auto& coeffs = block_.state().coeffs;
+        const Eigen::Index n
+            = proportion_.count.tail(proportion_.count.size() - 1).sum();
         double sum_squares = 0.0;
         for (Eigen::Index i = 0; i < coeffs.size(); ++i)
         {
-            const int component
-                = proportion == nullptr ? 1 : proportion->assignment(i);
+            const int component = proportion_.assignment(i);
             if (component == 0)
             {
                 continue;
             }
-            ++n;
-            if (multiplier == nullptr)
-            {
-                sum_squares += coeffs(i) * coeffs(i);
-            }
-            else
-            {
-                sum_squares
-                    += (coeffs(i) * coeffs(i)) / (*multiplier)(component);
-            }
+            const double coeff = coeffs(i);
+            sum_squares += coeff * coeff;
         }
         if (n > 0)
         {
-            variance_ = sampler({n, sum_squares}, rng_);
+            variance_ = sampler_({n, sum_squares}, rng_);
         }
     }
 
    private:
     bayes::SingleGeneticBlockState& block_;
-    const bayes::VarianceParameter& variance_parameter_;
+    stats::ScaledInvChi2Sampler<double> sampler_;
     double& variance_;
-    bayes::SingleProportionStateCap* proportion_cap_{};
-    const bayes::SingleMultiplierCap* multiplier_cap_{};
+    bayes::ProportionState& proportion_;
+    std::mt19937_64& rng_;
+};
+
+class SingleSharedScaledMixtureGeneticVarianceStep final : public Step
+{
+   public:
+    SingleSharedScaledMixtureGeneticVarianceStep(
+        const bayes::SingleGeneticPrior& prior,
+        bayes::SingleGeneticBlockState& block,
+        std::mt19937_64& rng)
+        : block_(block),
+          sampler_(make_variance_sampler(
+              prior.get<bayes::SingleSharedMarkerVarianceCap>()
+                  .variance()
+                  .parameter())),
+          variance_(block.prior_state()
+                        .get<bayes::SingleSharedVarianceStateCap>()
+                        .variance()),
+          proportion_(block.prior_state()
+                          .get<bayes::SingleProportionStateCap>()
+                          .proportion()),
+          multiplier_(prior.get<bayes::SingleMultiplierCap>().multiplier()),
+          rng_(rng)
+    {
+    }
+
+    auto step() -> void override
+    {
+        sampler_.reset();
+        const auto& coeffs = block_.state().coeffs;
+        const Eigen::Index n
+            = proportion_.count.tail(proportion_.count.size() - 1).sum();
+        double sum_squares = 0.0;
+        for (Eigen::Index i = 0; i < coeffs.size(); ++i)
+        {
+            const int component = proportion_.assignment(i);
+            if (component == 0)
+            {
+                continue;
+            }
+            const double coeff = coeffs(i);
+            sum_squares += (coeff * coeff) / multiplier_(component);
+        }
+        if (n > 0)
+        {
+            variance_ = sampler_({n, sum_squares}, rng_);
+        }
+    }
+
+   private:
+    bayes::SingleGeneticBlockState& block_;
+    stats::ScaledInvChi2Sampler<double> sampler_;
+    double& variance_;
+    bayes::ProportionState& proportion_;
+    const Eigen::VectorXd& multiplier_;
     std::mt19937_64& rng_;
 };
 
@@ -114,93 +190,126 @@ class SinglePerMarkerGeneticVarianceStep final : public Step
         bayes::SingleGeneticBlockState& block,
         std::mt19937_64& rng)
         : block_(block),
-          variance_parameter_(
-              prior.query<bayes::SinglePerMarkerVarianceCap>() != nullptr
-                  ? prior.query<bayes::SinglePerMarkerVarianceCap>()
-                        ->variance()
-                        .parameter()
-                  : throw GelexException(
-                        "SinglePerMarkerGeneticVarianceStep: prior lacks "
-                        "per-marker variance capability")),
+          sampler_(make_variance_sampler(
+              prior.get<bayes::SinglePerMarkerVarianceCap>()
+                  .variance()
+                  .parameter())),
           variance_(block.prior_state()
-                        .require<bayes::SinglePerMarkerVarianceStateCap>()
+                        .get<bayes::SinglePerMarkerVarianceStateCap>()
                         .variance()),
-          proportion_cap_(
-              block.prior_state().query<bayes::SingleProportionStateCap>()),
           rng_(rng)
     {
     }
 
     auto step() -> void override
     {
-        auto sampler = make_variance_sampler(variance_parameter_);
+        sampler_.reset();
         const auto& coeffs = block_.state().coeffs;
-        auto* proportion = proportion_cap_ == nullptr
-                               ? nullptr
-                               : &proportion_cap_->proportion();
         for (Eigen::Index i = 0; i < coeffs.size(); ++i)
         {
-            const int component
-                = proportion == nullptr ? 1 : proportion->assignment(i);
-            if (component == 0)
-            {
-                continue;
-            }
-            double sum_squares = coeffs(i) * coeffs(i);
-            variance_(i) = sampler({1, sum_squares}, rng_);
+            const double coeff = coeffs(i);
+            const double sum_squares = coeff * coeff;
+            variance_(i) = sampler_({1, sum_squares}, rng_);
         }
     }
 
    private:
     bayes::SingleGeneticBlockState& block_;
-    const bayes::VarianceParameter& variance_parameter_;
+    stats::ScaledInvChi2Sampler<double> sampler_;
     Eigen::VectorXd& variance_;
-    bayes::SingleProportionStateCap* proportion_cap_{};
     std::mt19937_64& rng_;
 };
 
-class JointGeneticVarianceStep final : public Step
+class SinglePerMarkerMixtureGeneticVarianceStep final : public Step
 {
    public:
-    JointGeneticVarianceStep(
+    SinglePerMarkerMixtureGeneticVarianceStep(
+        const bayes::SingleGeneticPrior& prior,
+        bayes::SingleGeneticBlockState& block,
+        std::mt19937_64& rng)
+        : block_(block),
+          sampler_(make_variance_sampler(
+              prior.get<bayes::SinglePerMarkerVarianceCap>()
+                  .variance()
+                  .parameter())),
+          variance_(block.prior_state()
+                        .get<bayes::SinglePerMarkerVarianceStateCap>()
+                        .variance()),
+          proportion_(block.prior_state()
+                          .get<bayes::SingleProportionStateCap>()
+                          .proportion()),
+          rng_(rng)
+    {
+    }
+
+    auto step() -> void override
+    {
+        sampler_.reset();
+        const auto& coeffs = block_.state().coeffs;
+        for (Eigen::Index i = 0; i < coeffs.size(); ++i)
+        {
+            if (proportion_.assignment(i) == 0)
+            {
+                continue;
+            }
+            const double coeff = coeffs(i);
+            const double sum_squares = coeff * coeff;
+            variance_(i) = sampler_({1, sum_squares}, rng_);
+        }
+    }
+
+   private:
+    bayes::SingleGeneticBlockState& block_;
+    stats::ScaledInvChi2Sampler<double> sampler_;
+    Eigen::VectorXd& variance_;
+    bayes::ProportionState& proportion_;
+    std::mt19937_64& rng_;
+};
+
+class JointSharedMixtureGeneticVarianceStep final : public Step
+{
+   public:
+    JointSharedMixtureGeneticVarianceStep(
         const bayes::JointGeneticPrior& prior,
         bayes::JointGeneticBlockState& block,
         std::mt19937_64& rng)
-        : prior_(prior), block_(block), rng_(rng)
+        : block_(block),
+          samplers_(
+              [&prior]
+              {
+                  const auto& variance
+                      = prior.get<bayes::JointSharedMarkerVarianceCap>();
+                  return std::array{
+                      make_variance_sampler(
+                          variance.variance(GeneticMode::A).parameter()),
+                      make_variance_sampler(
+                          variance.variance(GeneticMode::D).parameter())};
+              }()),
+          variance_(
+              block.prior_state().get<bayes::JointSharedVarianceStateCap>()),
+          proportion_(block.prior_state()
+                          .get<bayes::JointProportionStateCap>()
+                          .proportion()),
+          rng_(rng)
     {
-        if (prior_.query<bayes::JointSharedMarkerVarianceCap>() == nullptr)
-        {
-            throw GelexException(
-                "JointGeneticVarianceStep: prior lacks marker variance "
-                "capability");
-        }
-        block_.prior_state().require<bayes::JointSharedVarianceStateCap>();
     }
 
     auto step() -> void override
     {
         constexpr std::array modes{GeneticMode::A, GeneticMode::D};
-        auto& variance_cap = block_.prior_state()
-                                 .require<bayes::JointSharedVarianceStateCap>();
-        auto* proportion_cap
-            = block_.prior_state().query<bayes::JointProportionStateCap>();
-        auto* proportion = proportion_cap == nullptr
-                               ? nullptr
-                               : &proportion_cap->proportion();
         for (auto mode : modes)
         {
-            const auto& marker_variance
-                = prior_.query<bayes::JointSharedMarkerVarianceCap>()->variance(
-                    mode);
-            auto& variance = variance_cap.variance(mode);
+            auto& sampler = samplers_[std::to_underlying(mode)];
+            sampler.reset();
             const auto& coeffs = block_.state(mode).coeffs;
-            auto sampler = make_variance_sampler(marker_variance.parameter());
-            Eigen::Index n = 0;
+            const Eigen::Index n
+                = mode == GeneticMode::A
+                      ? proportion_.count(1) + proportion_.count(3)
+                      : proportion_.count(2) + proportion_.count(3);
             double sum_squares = 0.0;
             for (Eigen::Index i = 0; i < coeffs.size(); ++i)
             {
-                const int component
-                    = proportion == nullptr ? 3 : proportion->assignment(i);
+                const int component = proportion_.assignment(i);
                 const bool active = mode == GeneticMode::A
                                         ? (component == 1 || component == 3)
                                         : (component == 2 || component == 3);
@@ -208,19 +317,21 @@ class JointGeneticVarianceStep final : public Step
                 {
                     continue;
                 }
-                ++n;
-                sum_squares += coeffs(i) * coeffs(i);
+                const double coeff = coeffs(i);
+                sum_squares += coeff * coeff;
             }
             if (n > 0)
             {
-                variance = sampler({n, sum_squares}, rng_);
+                variance_.variance(mode) = sampler({n, sum_squares}, rng_);
             }
         }
     }
 
    private:
-    const bayes::JointGeneticPrior& prior_;
     bayes::JointGeneticBlockState& block_;
+    std::array<stats::ScaledInvChi2Sampler<double>, 2> samplers_;
+    bayes::JointSharedVarianceStateCap& variance_;
+    bayes::ProportionState& proportion_;
     std::mt19937_64& rng_;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)

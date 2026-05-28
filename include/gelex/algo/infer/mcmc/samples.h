@@ -27,10 +27,10 @@
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/fixed_samples.h"
-#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_state.h"
+#include "gelex/model/bayes/state.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
@@ -125,12 +125,7 @@ inline auto assignment(const MixtureSamples& s) -> const AssignmentSamples&
 
 struct GeneticSamples
 {
-    GeneticSamples(
-        const bayes::GeneticDesign& design,
-        const bayes::GeneticPrior& prior,
-        const bayes::GeneticBlockState& block,
-        std::size_t block_index,
-        GeneticMode mode);
+    GeneticSamples(const bayes::GeneticDesign& design, GeneticMode mode);
     void store(const BayesState& state);
 
     auto n_coeffs() const -> Eigen::Index { return n_coeffs_; }
@@ -149,14 +144,6 @@ struct GeneticSamples
     std::optional<AssignmentSamples> sign;
 
    private:
-    static auto make_group_samples(
-        const bayes::GeneticDesign& design,
-        const bayes::GeneticPrior& prior,
-        const bayes::GeneticBlockState& block,
-        std::size_t slot) -> std::optional<MixtureSamples>;
-
-    std::size_t block_index_;
-    std::size_t slot_;
     Eigen::Index n_coeffs_;
     RunningStats coeffs_stats_;
     RunningStats variance_stats_;
@@ -192,7 +179,7 @@ class Samples
         const BayesState& state,
         std::string_view sample_prefix,
         Eigen::Index n_records);
-    void store(const mcmc::State& states);
+    void store(const BayesState& states);
     void finalize();
 
     const FixedSamples& fixed() const { return fixed_; }

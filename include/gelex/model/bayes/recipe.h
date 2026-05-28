@@ -71,7 +71,6 @@ class BayesRecipe
     auto operator=(BayesRecipe&&) noexcept -> BayesRecipe& = delete;
 
     auto make_prior(const BayesModel& model) const -> BayesPrior;
-    auto make_prior_v2(const BayesModel& model) const -> BayesPriorV2;
 
    private:
     static auto make_impl(

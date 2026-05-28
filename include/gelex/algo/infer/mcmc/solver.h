@@ -20,25 +20,14 @@
 #include <filesystem>
 #include <optional>
 #include <string>
-#include <string_view>
 #include <utility>
 
-#include <fmt/format.h>
-#include <omp.h>
 #include <Eigen/Core>
 
-#include "gelex/algo/detail/posterior_calculator.h"
-#include "gelex/algo/infer/mcmc/context.h"
 #include "gelex/algo/infer/mcmc/result.h"
-#include "gelex/algo/infer/mcmc/samples.h"
 #include "gelex/algo/infer/params.h"
-#include "gelex/data/genotype/genotype.h"
 #include "gelex/exception.h"
-#include "gelex/infra/detail/eigen_thread_guard.h"
 #include "gelex/infra/logging/fit_event.h"
-#include "gelex/infra/logging/notify.h"
-#include "gelex/io/mcmc/checkpoint_reader.h"
-#include "gelex/io/mcmc/checkpoint_writer.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
 
@@ -71,23 +60,6 @@ class Solver
         const MCMCObserver& observer = {}) -> mcmc::Result;
 
    private:
-    static void validate_checkpoint(
-        const mcmc::State& state,
-        const BayesModel& model);
-
-    template <typename Chain>
-    auto run_impl(
-        Chain& chain,
-        mcmc::Samples& samples,
-        mcmc::State& state,
-        std::mt19937_64& rng,
-        const MCMCObserver& observer) -> void;
-
-    auto finalize(
-        mcmc::Samples samples,
-        const BayesModel& model,
-        const MCMCObserver& observer) -> mcmc::Result;
-
     [[no_unique_address]] ChainFactory make_chain_;
     mcmc::Params params_;
     std::string sample_prefix_;
@@ -114,78 +86,12 @@ auto Solver<ChainFactory>::run(
     Eigen::Index seed,
     const MCMCObserver& observer) -> mcmc::Result
 {
-    mcmc::State state{model, prior};
-    mcmc::Samples samples(
-        model, prior, state, sample_prefix_, params_.n_records());
-    notify(observer, FitPriorSetEvent{.prior = &prior});
-    std::mt19937_64 rng(seed);
-
-    const infra::detail::EigenThreadGuard guard;
-    omp_set_num_threads(1);
-
-    mcmc::Context ctx{
-        .model = model, .prior = prior, .state = state, .rng = rng};
-    auto chain = make_chain_(ctx);
-    run_impl(chain, samples, state, rng, observer);
-    return finalize(std::move(samples), model, observer);
-}
-
-template <typename ChainFactory>
-void Solver<ChainFactory>::validate_checkpoint(
-    const mcmc::State& state,
-    const BayesModel& model)
-{
-    auto check
-        = [](Eigen::Index actual, Eigen::Index expected, std::string_view label)
-    {
-        if (actual != expected)
-        {
-            throw GelexException(
-                fmt::format(
-                    "checkpoint dimension mismatch for {}: expected {}, got {}",
-                    label,
-                    expected,
-                    actual));
-        }
-    };
-
-    check(state.fixed().coeffs.size(), model.fixed().X.cols(), "fixed.coeffs");
-
-    if (state.random().size() != model.random().size())
-    {
-        throw GelexException(
-            fmt::format(
-                "checkpoint random design count mismatch: expected {}, got {}",
-                model.random().size(),
-                state.random().size()));
-    }
-    for (size_t i = 0; i < state.random().size(); ++i)
-    {
-        check(
-            state.random()[i].coeffs.size(),
-            model.random()[i].X.cols(),
-            fmt::format("random[{}].coeffs", i));
-    }
-
-    for (const auto& gs : state.genetics())
-    {
-        const auto* design = model.genetic(gs.type);
-        if (design == nullptr)
-        {
-            throw GelexException(
-                fmt::format(
-                    "checkpoint has genetic type {} not in model",
-                    EffectType::from_genetic(gs.type)));
-        }
-        const auto label = fmt::format("{}", EffectType::from_genetic(gs.type));
-        check(gs.coeffs.size(), design->X.cols(), label + ".coeffs");
-        check(gs.u.size(), design->X.rows(), label + ".u");
-    }
-
-    check(
-        state.residual().y_adj.size(),
-        model.num_individuals(),
-        "residual.y_adj");
+    static_cast<void>(model);
+    static_cast<void>(prior);
+    static_cast<void>(seed);
+    static_cast<void>(observer);
+    throw GelexException(
+        "MCMC solver is not implemented after Bayes prior/state cleanup");
 }
 
 template <typename ChainFactory>
@@ -195,84 +101,13 @@ auto Solver<ChainFactory>::resume(
     const std::filesystem::path& checkpoint_path,
     const MCMCObserver& observer) -> mcmc::Result
 {
-    mcmc::State state{model, prior};
-    auto rng = read_checkpoint(checkpoint_path, state);
-    validate_checkpoint(state, model);
-
-    mcmc::Samples samples(
-        model, prior, state, sample_prefix_, params_.n_records());
-    notify(observer, FitPriorSetEvent{.prior = &prior});
-
-    const infra::detail::EigenThreadGuard guard;
-    omp_set_num_threads(1);
-
-    mcmc::Context ctx{
-        .model = model, .prior = prior, .state = state, .rng = rng};
-    auto chain = make_chain_(ctx);
-    run_impl(chain, samples, state, rng, observer);
-    return finalize(std::move(samples), model, observer);
-}
-
-template <typename ChainFactory>
-auto Solver<ChainFactory>::finalize(
-    mcmc::Samples samples,
-    const BayesModel& model,
-    const MCMCObserver& observer) -> mcmc::Result
-{
-    samples.finalize();
-
-    notify(
-        observer,
-        MCMCProgressEvent{
-            .current = static_cast<size_t>(params_.n_iters),
-            .total = static_cast<size_t>(params_.n_iters),
-            .done = true,
-        });
-
-    mcmc::Result result(std::move(samples), model);
-    result.compute();
-    notify(observer, MCMCCompleteEvent{&result, &model, params_.n_records()});
-    return result;
-}
-
-template <typename ChainFactory>
-template <typename Chain>
-auto Solver<ChainFactory>::run_impl(
-    Chain& chain,
-    mcmc::Samples& samples,
-    mcmc::State& state,
-    std::mt19937_64& rng,
-    const MCMCObserver& observer) -> void
-{
-    for (Eigen::Index iter = 0; iter < params_.n_iters; ++iter)
-    {
-        chain.step();
-        state.compute_heritability();
-
-        notify(
-            observer,
-            MCMCProgressEvent{
-                .current = static_cast<size_t>(iter + 1),
-                .total = static_cast<size_t>(params_.n_iters),
-                .state = &state,
-            });
-
-        if (iter >= params_.n_burn_in
-            && (iter + 1 - params_.n_burn_in) % params_.n_thin == 0)
-        {
-            samples.store(state);
-        }
-
-        const auto step = params_.checkpoint_step == 0
-                              ? params_.n_iters
-                              : params_.checkpoint_step;
-        if (checkpoint_prefix_
-            && ((iter + 1) % step == 0 || iter == params_.n_iters - 1))
-        {
-            write_checkpoint(state, rng, *checkpoint_prefix_);
-            notify(observer, FitCheckpointSavedEvent{});
-        }
-    }
+    static_cast<void>(model);
+    static_cast<void>(prior);
+    static_cast<void>(checkpoint_path);
+    static_cast<void>(observer);
+    throw GelexException(
+        "MCMC solver resume is not implemented after Bayes prior/state "
+        "cleanup");
 }
 
 }  // namespace mcmc

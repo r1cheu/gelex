@@ -16,98 +16,22 @@
 
 #include "gelex/io/mcmc/checkpoint_writer.h"
 
-#include <fmt/format.h>
-#include <cstdint>
-#include <span>
-#include <sstream>
+#include <random>
+#include <string_view>
 
-#include "gelex/infra/record_visitor.h"
-#include "gelex/io/binary_writer.h"
-#include "gelex/model/bayes/state.h"
+#include "gelex/exception.h"
 
 namespace gelex
 {
 
-namespace
-{
-
-constexpr uint8_t kStateOnlyCheckpointVersion = 2;
-
-auto write_scalar(io::BinaryWriter& writer, std::string_view path, double value)
-    -> void
-{
-    auto handle = writer.reserve<double>(path, 1, 1);
-    writer.write(handle, value);
-}
-
-class CheckpointRecordSink final : public infra::RecordSink
-{
-   public:
-    explicit CheckpointRecordSink(io::BinaryWriter& writer) : writer_(writer) {}
-
-    auto visit(
-        std::string_view path,
-        const Eigen::Ref<const Eigen::VectorXf>& value) -> void override
-    {
-        writer_.write(path, value);
-    }
-
-    auto visit(
-        std::string_view path,
-        const Eigen::Ref<const Eigen::VectorXd>& value) -> void override
-    {
-        writer_.write(path, value);
-    }
-
-    auto visit(
-        std::string_view path,
-        const Eigen::Ref<const Eigen::VectorXi>& value) -> void override
-    {
-        writer_.write(path, value);
-    }
-
-    auto visit(std::string_view path, const double& value) -> void override
-    {
-        write_scalar(writer_, path, value);
-    }
-
-   private:
-    io::BinaryWriter& writer_;
-};
-
-auto write_uint8(io::BinaryWriter& writer, std::string_view path, uint8_t value)
-    -> void
-{
-    auto handle = writer.reserve<uint8_t>(path, 1, 1);
-    writer.write(handle, value);
-}
-
-auto write_rng(io::BinaryWriter& writer, const std::mt19937_64& rng) -> void
-{
-    std::ostringstream oss;
-    oss << rng;
-    const auto str = oss.str();
-    auto handle = writer.reserve<uint8_t>(
-        "rng_state", static_cast<Eigen::Index>(str.size()), 1);
-    writer.write(
-        handle,
-        std::span<const uint8_t>(
-            reinterpret_cast<const uint8_t*>(str.data()), str.size()));
-}
-
-}  // namespace
-
 auto write_checkpoint(
-    const BayesState& state,
-    const std::mt19937_64& rng,
-    std::string_view prefix) -> void
+    const BayesState&,
+    const std::mt19937_64&,
+    std::string_view) -> void
 {
-    io::BinaryWriter writer(fmt::format("{}.ckpt", prefix));
-
-    write_uint8(writer, "format_version", kStateOnlyCheckpointVersion);
-    CheckpointRecordSink sink(writer);
-    state.visit_records(bayes::StateRecordSet::checkpoint, sink);
-    write_rng(writer, rng);
+    throw GelexException(
+        "MCMC checkpoint writer is not implemented after Bayes prior/state "
+        "cleanup");
 }
 
 }  // namespace gelex

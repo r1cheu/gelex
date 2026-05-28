@@ -20,7 +20,6 @@
 #include <random>
 
 #include "gelex/algo/infer/mcmc/step.h"
-#include "gelex/exception.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/capabilities.h"
 #include "gelex/model/bayes/genetic_prior.h"
@@ -39,18 +38,13 @@ class SingleGeneticProportionStep final : public Step
         bayes::SingleGeneticBlockState& block,
         std::mt19937_64& rng)
         : proportion_(block.prior_state()
-                          .require<bayes::SingleProportionStateCap>()
+                          .get<bayes::SingleProportionStateCap>()
                           .proportion()),
-          dirichlet_(
-              prior.query<bayes::SingleMixtureProportionCap>() != nullptr
-                  ? prior.query<bayes::SingleMixtureProportionCap>()
-                        ->proportion()
-                        .parameter()
-                        .prior()
-                        .concentration()
-                  : throw GelexException(
-                        "SingleGeneticProportionStep: prior lacks mixture "
-                        "proportion capability")),
+          dirichlet_(prior.get<bayes::SingleMixtureProportionCap>()
+                         .proportion()
+                         .parameter()
+                         .prior()
+                         .concentration()),
           rng_(rng)
     {
     }
@@ -78,18 +72,13 @@ class JointGeneticProportionStep final : public Step
         bayes::JointGeneticBlockState& block,
         std::mt19937_64& rng)
         : proportion_(block.prior_state()
-                          .require<bayes::JointProportionStateCap>()
+                          .get<bayes::JointProportionStateCap>()
                           .proportion()),
-          dirichlet_(
-              prior.query<bayes::JointMixtureProportionCap>() != nullptr
-                  ? prior.query<bayes::JointMixtureProportionCap>()
-                        ->proportion()
-                        .parameter()
-                        .prior()
-                        .concentration()
-                  : throw GelexException(
-                        "JointGeneticProportionStep: prior lacks mixture "
-                        "proportion capability")),
+          dirichlet_(prior.get<bayes::JointMixtureProportionCap>()
+                         .proportion()
+                         .parameter()
+                         .prior()
+                         .concentration()),
           rng_(rng)
     {
     }

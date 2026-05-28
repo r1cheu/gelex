@@ -24,7 +24,6 @@
 
 #include "gelex/algo/infer/mcmc/invariant.h"
 #include "gelex/algo/infer/mcmc/kernels/detail/mixture_op.h"
-#include "gelex/exception.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/model/bayes/genetic_prior.h"
@@ -45,7 +44,7 @@ class SingleSharedGaussianCoefficientTransition
         : state_(block.state()),
           residual_(residual),
           variance_(block.prior_state()
-                        .require<bayes::SingleSharedVarianceStateCap>()
+                        .get<bayes::SingleSharedVarianceStateCap>()
                         .variance()),
           normal_(variance_)
     {
@@ -93,7 +92,7 @@ class SinglePerMarkerGaussianCoefficientTransition
         : state_(block.state()),
           residual_(residual),
           variance_(block.prior_state()
-                        .require<bayes::SinglePerMarkerVarianceStateCap>()
+                        .get<bayes::SinglePerMarkerVarianceStateCap>()
                         .variance()),
           normal_(0.0)
     {
@@ -141,10 +140,10 @@ class SingleSharedSpikeSlabCoefficientTransition
         : state_(block.state()),
           residual_(residual),
           variance_(block.prior_state()
-                        .require<bayes::SingleSharedVarianceStateCap>()
+                        .get<bayes::SingleSharedVarianceStateCap>()
                         .variance()),
           proportion_(block.prior_state()
-                          .require<bayes::SingleProportionStateCap>()
+                          .get<bayes::SingleProportionStateCap>()
                           .proportion()),
           normal_(variance_)
     {
@@ -208,10 +207,10 @@ class SinglePerMarkerSpikeSlabCoefficientTransition
         : state_(block.state()),
           residual_(residual),
           variance_(block.prior_state()
-                        .require<bayes::SinglePerMarkerVarianceStateCap>()
+                        .get<bayes::SinglePerMarkerVarianceStateCap>()
                         .variance()),
           proportion_(block.prior_state()
-                          .require<bayes::SingleProportionStateCap>()
+                          .get<bayes::SingleProportionStateCap>()
                           .proportion()),
           normal_(0.0)
     {
@@ -276,24 +275,17 @@ class SingleScaledMixtureCoefficientTransition
         : state_(block.state()),
           residual_(residual),
           variance_(block.prior_state()
-                        .require<bayes::SingleSharedVarianceStateCap>()
+                        .get<bayes::SingleSharedVarianceStateCap>()
                         .variance()),
           proportion_(block.prior_state()
-                          .require<bayes::SingleProportionStateCap>()
+                          .get<bayes::SingleProportionStateCap>()
                           .proportion()),
           component_(block.prior_state()
-                         .require<bayes::SingleComponentStateCap>()
+                         .get<bayes::SingleComponentStateCap>()
                          .component()),
           normal_(0.0)
     {
-        const auto* multiplier_cap = prior.query<bayes::SingleMultiplierCap>();
-        if (multiplier_cap == nullptr)
-        {
-            throw GelexException(
-                "SingleScaledMixtureCoefficientTransition: prior lacks "
-                "multiplier capability");
-        }
-        multiplier_ = multiplier_cap->multiplier();
+        multiplier_ = prior.get<bayes::SingleMultiplierCap>().multiplier();
         marker_variances_.resize(multiplier_.size());
         logpi_.resize(multiplier_.size());
     }
@@ -400,10 +392,10 @@ class JointGaussianMixtureCoefficientTransition
         : additive_(block.state(GeneticMode::A)),
           dominance_(block.state(GeneticMode::D)),
           residual_(residual),
-          variance_(block.prior_state()
-                        .require<bayes::JointSharedVarianceStateCap>()),
+          variance_(
+              block.prior_state().get<bayes::JointSharedVarianceStateCap>()),
           proportion_(block.prior_state()
-                          .require<bayes::JointProportionStateCap>()
+                          .get<bayes::JointProportionStateCap>()
                           .proportion()),
           normal_(0.0)
     {

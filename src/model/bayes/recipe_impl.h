@@ -43,10 +43,8 @@ class BayesRecipeImpl
     auto operator=(BayesRecipeImpl&&) noexcept -> BayesRecipeImpl& = delete;
     virtual ~BayesRecipeImpl() = default;
 
-    virtual auto make_genetic_priors(const BayesModel& model) const
-        -> std::vector<std::unique_ptr<GeneticPrior>> = 0;
     virtual auto make_genetic_prior_blocks(const BayesModel& model) const
-        -> std::vector<GeneticPriorBlockV2> = 0;
+        -> std::vector<GeneticPriorBlock> = 0;
 
    protected:
     BayesRecipeImpl(std::string_view name, const BayesRecipeConfig& options);
@@ -103,15 +101,9 @@ class IndependentMethod : public BayesRecipeImpl
     auto require_paired_proportion_and_multiplier() const -> void;
 
    private:
-    auto make_genetic_priors(const BayesModel& model) const
-        -> std::vector<std::unique_ptr<GeneticPrior>> final;
     auto make_genetic_prior_blocks(const BayesModel& model) const
-        -> std::vector<GeneticPriorBlockV2> final;
+        -> std::vector<GeneticPriorBlock> final;
 
-    virtual auto make_genetic_prior(
-        GeneticMode mode,
-        const EffectConfig& effect,
-        const BayesModel& model) const -> std::unique_ptr<GeneticPrior> = 0;
     virtual auto make_single_genetic_prior(
         GeneticMode mode,
         const EffectConfig& effect,
@@ -129,15 +121,10 @@ class JointMethod : public BayesRecipeImpl
     auto reject_per_effect_multiplier() const -> void;
 
    private:
-    auto make_genetic_priors(const BayesModel& model) const
-        -> std::vector<std::unique_ptr<GeneticPrior>> final;
     auto make_genetic_prior_blocks(const BayesModel& model) const
-        -> std::vector<GeneticPriorBlockV2> final;
+        -> std::vector<GeneticPriorBlock> final;
 
     virtual auto make_joint_prior(
-        const BayesRecipeConfig& config,
-        const BayesModel& model) const -> std::unique_ptr<GeneticPrior> = 0;
-    virtual auto make_joint_prior_v2(
         const BayesRecipeConfig& config,
         const BayesModel& model) const
         -> std::unique_ptr<JointGeneticPrior> = 0;

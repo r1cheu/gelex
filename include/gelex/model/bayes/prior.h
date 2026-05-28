@@ -18,7 +18,6 @@
 #define GELEX_MODEL_BAYES_PRIOR_H_
 
 #include <memory>
-#include <ranges>
 #include <span>
 #include <string_view>
 #include <variant>
@@ -84,13 +83,18 @@ class ResidualPrior
     VarianceParameter parameter_;
 };
 
+using GeneticPriorBlock = std::variant<
+    std::unique_ptr<SingleGeneticPrior>,
+    std::unique_ptr<JointGeneticPrior>>;
+
 class BayesPrior
 {
    public:
     static constexpr std::string_view name = "prior";
+
     BayesPrior(
         RandomPrior random,
-        std::vector<std::unique_ptr<GeneticPrior>> genetics,
+        std::vector<GeneticPriorBlock> genetics,
         ResidualPrior residual);
 
     BayesPrior(const BayesPrior&) = delete;
@@ -103,51 +107,7 @@ class BayesPrior
 
     auto random() const -> const RandomPrior& { return random_; }
     auto residual() const -> const ResidualPrior& { return residual_; }
-
-    auto visit(infra::FieldVisitor& visitor) -> void;
-
-    auto genetics() const -> decltype(auto)
-    {
-        return genetics_
-               | std::views::transform(
-                   [](const auto& prior) -> const GeneticPrior&
-                   { return *prior; });
-    }
-
-   private:
-    static auto validate_genetics(
-        const std::vector<std::unique_ptr<GeneticPrior>>& genetics) -> void;
-
-    RandomPrior random_;
-    std::vector<std::unique_ptr<GeneticPrior>> genetics_;
-    ResidualPrior residual_;
-};
-
-using GeneticPriorBlockV2 = std::variant<
-    std::unique_ptr<SingleGeneticPrior>,
-    std::unique_ptr<JointGeneticPrior>>;
-
-class BayesPriorV2
-{
-   public:
-    static constexpr std::string_view name = "prior";
-
-    BayesPriorV2(
-        RandomPrior random,
-        std::vector<GeneticPriorBlockV2> genetics,
-        ResidualPrior residual);
-
-    BayesPriorV2(const BayesPriorV2&) = delete;
-    BayesPriorV2(BayesPriorV2&&) noexcept = default;
-
-    auto operator=(const BayesPriorV2&) -> BayesPriorV2& = delete;
-    auto operator=(BayesPriorV2&&) noexcept -> BayesPriorV2& = default;
-
-    ~BayesPriorV2() = default;
-
-    auto random() const -> const RandomPrior& { return random_; }
-    auto residual() const -> const ResidualPrior& { return residual_; }
-    auto genetics() const -> std::span<const GeneticPriorBlockV2>
+    auto genetics() const -> std::span<const GeneticPriorBlock>
     {
         return genetics_;
     }
@@ -156,10 +116,10 @@ class BayesPriorV2
 
    private:
     static auto validate_genetics(
-        const std::vector<GeneticPriorBlockV2>& genetics) -> void;
+        const std::vector<GeneticPriorBlock>& genetics) -> void;
 
     RandomPrior random_;
-    std::vector<GeneticPriorBlockV2> genetics_;
+    std::vector<GeneticPriorBlock> genetics_;
     ResidualPrior residual_;
 };
 

@@ -26,7 +26,6 @@
 #include "gelex/exception.h"
 #include "gelex/infra/field_flag.h"
 #include "gelex/infra/field_visitor.h"
-#include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state_capabilities.h"
 
@@ -70,95 +69,6 @@ auto ComponentState::visit(infra::FieldVisitor& visitor) -> void
     for (auto [i, value] : std::views::enumerate(gebv))
     {
         visitor.on(fmt::format("gebv_{}", i), value, FieldFlag::checkpoint);
-    }
-}
-
-auto ProportionStateCap::visit_records(
-    StateRecordSet set,
-    infra::RecordSink& sink) const -> void
-{
-    for (auto [i, state] : std::views::enumerate(proportion()))
-    {
-        const auto slot = static_cast<std::size_t>(i);
-        switch (set)
-        {
-            case StateRecordSet::sample:
-                sink.emit("proportion", slot, "assignment", state.assignment);
-                if (state.update == UpdatePolicy::sampled)
-                {
-                    sink.emit("proportion", slot, "value", state.value);
-                }
-                break;
-            case StateRecordSet::checkpoint:
-                sink.emit("proportion", slot, "assignment", state.assignment);
-                sink.emit("proportion", slot, "count", state.count);
-                sink.emit("proportion", slot, "value", state.value);
-                break;
-        }
-    }
-}
-
-auto ProportionStateCap::visit_records(
-    StateRecordSet set,
-    infra::MutableRecordSink& sink) -> void
-{
-    if (set != StateRecordSet::checkpoint)
-    {
-        throw GelexException(
-            "ProportionStateCap: mutable visit_records requires "
-            "checkpoint set");
-    }
-    for (auto [i, state] : std::views::enumerate(proportion()))
-    {
-        const auto slot = static_cast<std::size_t>(i);
-        sink.emit("proportion", slot, "assignment", state.assignment);
-        sink.emit("proportion", slot, "count", state.count);
-        sink.emit("proportion", slot, "value", state.value);
-    }
-}
-
-auto ComponentStateCap::visit_records(
-    StateRecordSet set,
-    infra::RecordSink& sink) const -> void
-{
-    for (auto [i, state] : std::views::enumerate(component()))
-    {
-        const auto slot = static_cast<std::size_t>(i);
-        switch (set)
-        {
-            case StateRecordSet::sample:
-                sink.emit("component", slot, "gebv_var", state.gebv_var);
-                break;
-            case StateRecordSet::checkpoint:
-                sink.emit("component", slot, "gebv_var", state.gebv_var);
-                for (auto [k, value] : std::views::enumerate(state.gebv))
-                {
-                    sink.emit(
-                        "component", slot, fmt::format("gebv_{}", k), value);
-                }
-                break;
-        }
-    }
-}
-
-auto ComponentStateCap::visit_records(
-    StateRecordSet set,
-    infra::MutableRecordSink& sink) -> void
-{
-    if (set != StateRecordSet::checkpoint)
-    {
-        throw GelexException(
-            "ComponentStateCap: mutable visit_records requires "
-            "checkpoint set");
-    }
-    for (auto [i, state] : std::views::enumerate(component()))
-    {
-        const auto slot = static_cast<std::size_t>(i);
-        sink.emit("component", slot, "gebv_var", state.gebv_var);
-        for (auto [k, value] : std::views::enumerate(state.gebv))
-        {
-            sink.emit("component", slot, fmt::format("gebv_{}", k), value);
-        }
     }
 }
 

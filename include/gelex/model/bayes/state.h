@@ -27,10 +27,8 @@
 
 #include <Eigen/Core>
 
-#include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/designs.h"
 #include "gelex/model/bayes/prior_state.h"
-#include "gelex/model/bayes/state_record_set.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -48,7 +46,6 @@ namespace bayes
 {
 
 class BayesPrior;
-class BayesPriorV2;
 class JointGeneticPrior;
 class RandomPrior;
 class SingleGeneticPrior;
@@ -61,11 +58,6 @@ struct FixedState
     explicit FixedState(Eigen::VectorXd coeffs);
 
     auto visit(infra::FieldVisitor& visitor) -> void;
-
-    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
-        -> void;
-    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
-        -> void;
 
     Eigen::VectorXd coeffs;
 };
@@ -80,11 +72,6 @@ struct RandomState
 
     auto visit(infra::FieldVisitor& visitor) -> void;
 
-    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
-        -> void;
-    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
-        -> void;
-
     Eigen::VectorXd coeffs;
     double variance{0.0};
 };
@@ -94,11 +81,6 @@ struct ResidualState
     static constexpr std::string_view name = "residual";
 
     auto visit(infra::FieldVisitor& visitor) -> void;
-
-    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
-        -> void;
-    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
-        -> void;
 
     Eigen::VectorXd y_adj;
     double variance{0.0};
@@ -115,53 +97,11 @@ struct GeneticState
 
     auto visit(infra::FieldVisitor& visitor) -> void;
 
-    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
-        -> void;
-    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
-        -> void;
-
     GeneticMode type;
     Eigen::VectorXd coeffs;
     Eigen::VectorXd u;
     double variance{};
     double heritability{};
-};
-
-class GeneticBlockState
-{
-   public:
-    GeneticBlockState(
-        std::vector<GeneticMode> modes,
-        std::vector<std::size_t> genetic_indices,
-        std::unique_ptr<GeneticPriorState> prior_state);
-
-    auto modes() const -> std::span<const GeneticMode> { return modes_; }
-    auto genetic_indices() const -> std::span<const std::size_t>
-    {
-        return genetic_indices_;
-    }
-
-    auto prior_state() -> GeneticPriorState& { return *prior_state_; }
-    auto prior_state() const -> const GeneticPriorState&
-    {
-        return *prior_state_;
-    }
-
-    auto contains(GeneticMode mode) const -> bool
-    {
-        return std::ranges::contains(modes_, mode);
-    }
-    auto slot(GeneticMode mode) const -> std::size_t;
-
-    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
-        -> void;
-    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
-        -> void;
-
-   private:
-    std::vector<GeneticMode> modes_;
-    std::vector<std::size_t> genetic_indices_;
-    std::unique_ptr<GeneticPriorState> prior_state_;
 };
 
 class SingleGeneticBlockState
@@ -238,97 +178,9 @@ using GeneticPriorBlockState
 class BayesState
 {
    public:
-    BayesState(const BayesModel& model, const bayes::BayesPrior& prior);
-
-    auto fixed() -> bayes::FixedState& { return fixed_; }
-    auto fixed() const -> const bayes::FixedState& { return fixed_; }
-
-    auto random() -> std::vector<bayes::RandomState>& { return random_; }
-    auto random() const -> const std::vector<bayes::RandomState>&
-    {
-        return random_;
-    }
-
-    auto genetics() -> std::vector<bayes::GeneticState>& { return genetics_; }
-    auto genetics() const -> const std::vector<bayes::GeneticState>&
-    {
-        return genetics_;
-    }
-
-    auto genetic(GeneticMode type) -> bayes::GeneticState*
-    {
-        auto it
-            = std::ranges::find(genetics_, type, &bayes::GeneticState::type);
-        return it != genetics_.end() ? &*it : nullptr;
-    }
-    auto genetic(GeneticMode type) const -> const bayes::GeneticState*
-    {
-        auto it
-            = std::ranges::find(genetics_, type, &bayes::GeneticState::type);
-        return it != genetics_.end() ? &*it : nullptr;
-    }
-
-    auto genetic_blocks() -> std::vector<bayes::GeneticBlockState>&
-    {
-        return genetic_blocks_;
-    }
-    auto genetic_blocks() const -> const std::vector<bayes::GeneticBlockState>&
-    {
-        return genetic_blocks_;
-    }
-
-    auto genetic_block(std::size_t index) -> bayes::GeneticBlockState&
-    {
-        return genetic_blocks_.at(index);
-    }
-    auto genetic_block(std::size_t index) const
-        -> const bayes::GeneticBlockState&
-    {
-        return genetic_blocks_.at(index);
-    }
-
-    auto genetic_block_for(GeneticMode type) -> bayes::GeneticBlockState*
-    {
-        auto it = std::ranges::find_if(
-            genetic_blocks_,
-            [type](const bayes::GeneticBlockState& block)
-            { return block.contains(type); });
-        return it != genetic_blocks_.end() ? &*it : nullptr;
-    }
-    auto genetic_block_for(GeneticMode type) const
-        -> const bayes::GeneticBlockState*
-    {
-        auto it = std::ranges::find_if(
-            genetic_blocks_,
-            [type](const bayes::GeneticBlockState& block)
-            { return block.contains(type); });
-        return it != genetic_blocks_.end() ? &*it : nullptr;
-    }
-
-    auto residual() -> bayes::ResidualState& { return residual_; }
-    auto residual() const -> const bayes::ResidualState& { return residual_; }
-
-    auto compute_heritability() -> void;
-    auto visit_records(bayes::StateRecordSet set, infra::RecordSink& sink) const
-        -> void;
-    auto visit_records(
-        bayes::StateRecordSet set,
-        infra::MutableRecordSink& sink) -> void;
-
-   private:
-    bayes::FixedState fixed_;
-    std::vector<bayes::RandomState> random_;
-    std::vector<bayes::GeneticState> genetics_;
-    std::vector<bayes::GeneticBlockState> genetic_blocks_;
-    bayes::ResidualState residual_;
-};
-
-class BayesStateV2
-{
-   public:
     static constexpr std::string_view name = "state";
 
-    BayesStateV2(const BayesModel& model, const bayes::BayesPriorV2& prior);
+    BayesState(const BayesModel& model, const bayes::BayesPrior& prior);
 
     auto fixed() -> bayes::FixedState& { return fixed_; }
     auto fixed() const -> const bayes::FixedState& { return fixed_; }

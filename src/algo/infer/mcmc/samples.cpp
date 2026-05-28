@@ -16,14 +16,12 @@
 
 #include "gelex/algo/infer/mcmc/samples.h"
 
-#include <memory>
 #include <ranges>
 #include <string_view>
 #include <variant>
 
 #include <Eigen/Core>
 
-#include "gelex/algo/infer/mcmc/state.h"
 #include "gelex/exception.h"
 #include "gelex/io/mcmc/sample_writer.h"
 #include "gelex/model/bayes/designs.h"
@@ -82,41 +80,10 @@ void ComponentSamples::store(
     comp_var_stats_.update(component.gebv_var);
 }
 
-auto GeneticSamples::make_group_samples(
-    const bayes::GeneticDesign& design,
-    const bayes::GeneticPrior& prior,
-    const bayes::GeneticBlockState& block,
-    std::size_t slot) -> std::optional<MixtureSamples>
-{
-    const auto* proportion_cap = prior.query<bayes::MixtureProportionCap>();
-    if (proportion_cap == nullptr)
-    {
-        return std::nullopt;
-    }
-    const auto n_snps = design.X.cols();
-    const auto proportions = proportion_cap->proportion();
-    const auto n_pi = proportions[slot].size();
-    const auto estimate_pi = proportions[slot].sampled();
-    const bool has_components
-        = block.prior_state().query<bayes::ComponentStateCap>() != nullptr;
-    if (has_components)
-    {
-        return ComponentSamples{n_snps, n_pi, estimate_pi};
-    }
-    return AssignmentSamples{n_snps, n_pi, estimate_pi};
-}
-
 GeneticSamples::GeneticSamples(
     const bayes::GeneticDesign& design,
-    const bayes::GeneticPrior& prior,
-    const bayes::GeneticBlockState& block,
-    std::size_t block_index,
     GeneticMode mode)
-    : type(mode),
-      group(make_group_samples(design, prior, block, block.slot(mode))),
-      block_index_(block_index),
-      slot_(block.slot(mode)),
-      n_coeffs_(design.X.cols())
+    : type(mode), n_coeffs_(design.X.cols())
 {
 }
 
@@ -130,30 +97,6 @@ void GeneticSamples::store(const BayesState& state)
     coeffs_stats_.update(genetic->coeffs);
     variance_stats_.update(genetic->variance);
     heritability_stats_.update(genetic->heritability);
-
-    if (group)
-    {
-        auto& prior_state = state.genetic_block(block_index_).prior_state();
-        auto& proportion = prior_state.require<bayes::ProportionStateCap>()
-                               .proportion()[slot_];
-        std::visit(
-            [&](auto& g)
-            {
-                using G = std::decay_t<decltype(g)>;
-                if constexpr (std::is_same_v<G, AssignmentSamples>)
-                {
-                    g.store(proportion);
-                }
-                else
-                {
-                    const auto& component
-                        = prior_state.require<bayes::ComponentStateCap>()
-                              .component()[slot_];
-                    g.store(component, proportion);
-                }
-            },
-            *group);
-    }
 }
 
 Samples::Samples(
@@ -173,36 +116,18 @@ Samples::Samples(
         }
     }
 
-    std::vector<const bayes::GeneticPrior*> prior_blocks;
-    for (const auto& block : prior.genetics())
-    {
-        prior_blocks.push_back(&block);
-    }
-
-    for (auto&& [block_index, block] :
-         std::views::enumerate(state.genetic_blocks()))
-    {
-        const auto idx = static_cast<std::size_t>(block_index);
-        for (const auto mode : block.modes())
-        {
-            const auto* design = model.genetic(mode);
-            if (design == nullptr)
-            {
-                throw GelexException("Samples: missing genetic design");
-            }
-            genetics_.emplace_back(
-                *design, *prior_blocks.at(idx), block, idx, mode);
-        }
-    }
-
     if (!sample_prefix.empty())
     {
-        writer_
-            = std::make_unique<mcmc::Writer>(state, sample_prefix, n_records);
+        throw GelexException(
+            "MCMC sample writer is not implemented after Bayes prior/state "
+            "cleanup");
     }
+    static_cast<void>(prior);
+    static_cast<void>(state);
+    static_cast<void>(n_records);
 }
 
-void Samples::store(const mcmc::State& states)
+void Samples::store(const BayesState& states)
 {
     fixed_.store(states.fixed());
 

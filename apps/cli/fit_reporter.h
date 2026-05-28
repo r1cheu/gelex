@@ -34,7 +34,6 @@ struct ScaledInvChiSqParams;
 
 namespace bayes
 {
-class GeneticPrior;
 class BayesPrior;
 class RandomPrior;
 class ResidualPrior;
@@ -56,7 +55,8 @@ class FitReporter
     FitReporter() = default;
 
     static auto print_random_prior(const bayes::RandomPrior& prior) -> void;
-    static auto print_genetic_prior(const bayes::GeneticPrior& prior) -> void;
+    static auto print_genetic_prior(const bayes::GeneticPriorBlock& prior)
+        -> void;
     static auto print_residual_prior(const bayes::ResidualPrior& prior) -> void;
     static auto print_variance_prior(
         const stats::detail::ScaledInvChiSqParams& prior,

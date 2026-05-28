@@ -17,20 +17,8 @@
 #ifndef GELEX_ALGO_INFER_MCMC_RECIPES_H_
 #define GELEX_ALGO_INFER_MCMC_RECIPES_H_
 
-#include "gelex/algo/infer/chain.h"
 #include "gelex/algo/infer/mcmc/context.h"
-#include "gelex/algo/infer/mcmc/kernels/bayes_a.h"
-#include "gelex/algo/infer/mcmc/kernels/bayes_b.h"
-#include "gelex/algo/infer/mcmc/kernels/bayes_c.h"
-#include "gelex/algo/infer/mcmc/kernels/bayes_r.h"
-#include "gelex/algo/infer/mcmc/kernels/bayes_rr.h"
-#include "gelex/algo/infer/mcmc/steps/fixed.h"
-#include "gelex/algo/infer/mcmc/steps/genetic.h"
-#include "gelex/algo/infer/mcmc/steps/genetic_joint.h"
-#include "gelex/algo/infer/mcmc/steps/pi.h"
-#include "gelex/algo/infer/mcmc/steps/random.h"
-#include "gelex/algo/infer/mcmc/steps/residual.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/exception.h"
 
 namespace gelex::mcmc
 {
@@ -42,101 +30,71 @@ enum class GeneticShape
     ad_independent,
 };
 
-template <typename Kernel, GeneticShape Shape = GeneticShape::a_only>
-inline auto make_simple_chain(const Context& ctx)
+class UnsupportedChain
 {
-    if constexpr (Shape == GeneticShape::ad_independent)
+   public:
+    auto step() -> void
     {
-        return infer::Chain{
-            FixedStep::make(ctx),
-            RandomStep::make(ctx),
-            GeneticStep<Kernel>::make(ctx, GeneticMode::A),
-            GeneticStep<Kernel>::make(ctx, GeneticMode::D),
-            ResidualStep::make(ctx),
-        };
+        throw GelexException(
+            "MCMC recipe chain is not implemented after Bayes prior/state "
+            "cleanup");
     }
-    else
-    {
-        constexpr auto kMode
-            = (Shape == GeneticShape::d_only) ? GeneticMode::D : GeneticMode::A;
-        return infer::Chain{
-            FixedStep::make(ctx),
-            RandomStep::make(ctx),
-            GeneticStep<Kernel>::make(ctx, kMode),
-            ResidualStep::make(ctx),
-        };
-    }
-}
-
-template <typename Kernel, GeneticShape Shape = GeneticShape::a_only>
-inline auto make_pi_chain(const Context& ctx)
-{
-    if constexpr (Shape == GeneticShape::ad_independent)
-    {
-        return infer::Chain{
-            FixedStep::make(ctx),
-            RandomStep::make(ctx),
-            GeneticStep<Kernel>::make(ctx, GeneticMode::A),
-            PiStep::make(ctx, GeneticMode::A),
-            GeneticStep<Kernel>::make(ctx, GeneticMode::D),
-            PiStep::make(ctx, GeneticMode::D),
-            ResidualStep::make(ctx),
-        };
-    }
-    else
-    {
-        constexpr auto kMode
-            = (Shape == GeneticShape::d_only) ? GeneticMode::D : GeneticMode::A;
-        return infer::Chain{
-            FixedStep::make(ctx),
-            RandomStep::make(ctx),
-            GeneticStep<Kernel>::make(ctx, kMode),
-            PiStep::make(ctx, kMode),
-            ResidualStep::make(ctx),
-        };
-    }
-}
+};
 
 template <GeneticShape Shape = GeneticShape::a_only>
 inline auto make_bayes_a_chain(const Context& ctx)
 {
-    return make_simple_chain<BayesAKernel, Shape>(ctx);
+    static_cast<void>(ctx);
+    static_cast<void>(Shape);
+    return UnsupportedChain{};
 }
 
 template <GeneticShape Shape = GeneticShape::a_only>
 inline auto make_bayes_b_chain(const Context& ctx)
 {
-    return make_simple_chain<BayesBKernel, Shape>(ctx);
+    static_cast<void>(ctx);
+    static_cast<void>(Shape);
+    return UnsupportedChain{};
 }
 
 template <GeneticShape Shape = GeneticShape::a_only>
 inline auto make_bayes_bpi_chain(const Context& ctx)
 {
-    return make_pi_chain<BayesBKernel, Shape>(ctx);
+    static_cast<void>(ctx);
+    static_cast<void>(Shape);
+    return UnsupportedChain{};
 }
 
 template <GeneticShape Shape = GeneticShape::a_only>
 inline auto make_bayes_c_chain(const Context& ctx)
 {
-    return make_simple_chain<BayesCKernel, Shape>(ctx);
+    static_cast<void>(ctx);
+    static_cast<void>(Shape);
+    return UnsupportedChain{};
 }
 
 template <GeneticShape Shape = GeneticShape::a_only>
 inline auto make_bayes_cpi_chain(const Context& ctx)
 {
-    return make_pi_chain<BayesCKernel, Shape>(ctx);
+    static_cast<void>(ctx);
+    static_cast<void>(Shape);
+    return UnsupportedChain{};
 }
 
 template <GeneticShape Shape = GeneticShape::a_only>
 inline auto make_bayes_r_chain(const Context& ctx)
 {
-    return make_pi_chain<BayesRKernel, Shape>(ctx);
+    static_cast<void>(ctx);
+    static_cast<void>(Shape);
+    return UnsupportedChain{};
 }
 
 template <GeneticShape Shape = GeneticShape::a_only>
 inline auto make_bayes_rr_chain(const Context& ctx)
 {
-    return make_simple_chain<BayesRRKernel, Shape>(ctx);
+    static_cast<void>(ctx);
+    static_cast<void>(Shape);
+    return UnsupportedChain{};
 }
 
 }  // namespace gelex::mcmc

@@ -36,10 +36,6 @@ class BayesRRMethod final : public IndependentMethod
     explicit BayesRRMethod(const BayesRecipeConfig& options);
 
    private:
-    auto make_genetic_prior(
-        GeneticMode mode,
-        const EffectConfig& effect,
-        const BayesModel& model) const -> std::unique_ptr<GeneticPrior> final;
     auto make_single_genetic_prior(
         GeneticMode mode,
         const EffectConfig& effect,
@@ -53,10 +49,6 @@ class BayesAMethod final : public IndependentMethod
     explicit BayesAMethod(const BayesRecipeConfig& options);
 
    private:
-    auto make_genetic_prior(
-        GeneticMode mode,
-        const EffectConfig& effect,
-        const BayesModel& model) const -> std::unique_ptr<GeneticPrior> final;
     auto make_single_genetic_prior(
         GeneticMode mode,
         const EffectConfig& effect,
@@ -70,10 +62,6 @@ class BayesBMethod final : public IndependentMethod
     explicit BayesBMethod(const BayesRecipeConfig& options);
 
    private:
-    auto make_genetic_prior(
-        GeneticMode mode,
-        const EffectConfig& effect,
-        const BayesModel& model) const -> std::unique_ptr<GeneticPrior> final;
     auto make_single_genetic_prior(
         GeneticMode mode,
         const EffectConfig& effect,
@@ -87,10 +75,6 @@ class BayesCMethod final : public IndependentMethod
     explicit BayesCMethod(const BayesRecipeConfig& options);
 
    private:
-    auto make_genetic_prior(
-        GeneticMode mode,
-        const EffectConfig& effect,
-        const BayesModel& model) const -> std::unique_ptr<GeneticPrior> final;
     auto make_single_genetic_prior(
         GeneticMode mode,
         const EffectConfig& effect,
@@ -104,10 +88,6 @@ class BayesRMethod final : public IndependentMethod
     explicit BayesRMethod(const BayesRecipeConfig& options);
 
    private:
-    auto make_genetic_prior(
-        GeneticMode mode,
-        const EffectConfig& effect,
-        const BayesModel& model) const -> std::unique_ptr<GeneticPrior> final;
     auto make_single_genetic_prior(
         GeneticMode mode,
         const EffectConfig& effect,

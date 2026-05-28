@@ -20,13 +20,12 @@
 #include <cstddef>
 #include <string_view>
 
+#include <fmt/format.h>
 #include <Eigen/Core>
 #include <vector>
 
 #include "gelex/exception.h"
-#include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/prior_parameters.h"
-#include "gelex/model/bayes/state_record_set.h"
 
 namespace gelex::infra
 {
@@ -66,62 +65,6 @@ struct ComponentState
     Eigen::VectorXd gebv_var;
 };
 
-class GeneticPriorState
-{
-   public:
-    auto operator=(const GeneticPriorState&) -> GeneticPriorState& = delete;
-    auto operator=(GeneticPriorState&&) noexcept -> GeneticPriorState& = delete;
-
-    virtual ~GeneticPriorState() = default;
-
-    template <typename Capability>
-    auto query() -> Capability*
-    {
-        return dynamic_cast<Capability*>(this);
-    }
-
-    template <typename Capability>
-    auto query() const -> const Capability*
-    {
-        return dynamic_cast<const Capability*>(this);
-    }
-
-    template <typename Capability>
-    auto require() -> Capability&
-    {
-        auto* capability = query<Capability>();
-        if (capability == nullptr)
-        {
-            throw GelexException(
-                "genetic prior state lacks required capability");
-        }
-        return *capability;
-    }
-
-    template <typename Capability>
-    auto require() const -> const Capability&
-    {
-        const auto* capability = query<Capability>();
-        if (capability == nullptr)
-        {
-            throw GelexException(
-                "genetic prior state lacks required capability");
-        }
-        return *capability;
-    }
-
-    virtual auto visit_records(StateRecordSet set, infra::RecordSink& sink)
-        const -> void = 0;
-    virtual auto visit_records(
-        StateRecordSet set,
-        infra::MutableRecordSink& sink) -> void = 0;
-
-   protected:
-    GeneticPriorState() = default;
-    GeneticPriorState(const GeneticPriorState&) = default;
-    GeneticPriorState(GeneticPriorState&&) noexcept = default;
-};
-
 class SingleGeneticPriorState
 {
    public:
@@ -135,37 +78,41 @@ class SingleGeneticPriorState
     virtual ~SingleGeneticPriorState() = default;
 
     template <typename Capability>
-    auto query() -> Capability*
+    auto get_if() -> Capability*
     {
         return dynamic_cast<Capability*>(this);
     }
 
     template <typename Capability>
-    auto query() const -> const Capability*
+    auto get_if() const -> const Capability*
     {
         return dynamic_cast<const Capability*>(this);
     }
 
     template <typename Capability>
-    auto require() -> Capability&
+    auto get() -> Capability&
     {
-        auto* capability = query<Capability>();
+        auto* capability = get_if<Capability>();
         if (capability == nullptr)
         {
             throw GelexException(
-                "single genetic prior state lacks required capability");
+                fmt::format(
+                    "single genetic prior state lacks required capability: {}",
+                    Capability::name));
         }
         return *capability;
     }
 
     template <typename Capability>
-    auto require() const -> const Capability&
+    auto get() const -> const Capability&
     {
-        const auto* capability = query<Capability>();
+        const auto* capability = get_if<Capability>();
         if (capability == nullptr)
         {
             throw GelexException(
-                "single genetic prior state lacks required capability");
+                fmt::format(
+                    "single genetic prior state lacks required capability: {}",
+                    Capability::name));
         }
         return *capability;
     }
@@ -191,37 +138,41 @@ class JointGeneticPriorState
     virtual ~JointGeneticPriorState() = default;
 
     template <typename Capability>
-    auto query() -> Capability*
+    auto get_if() -> Capability*
     {
         return dynamic_cast<Capability*>(this);
     }
 
     template <typename Capability>
-    auto query() const -> const Capability*
+    auto get_if() const -> const Capability*
     {
         return dynamic_cast<const Capability*>(this);
     }
 
     template <typename Capability>
-    auto require() -> Capability&
+    auto get() -> Capability&
     {
-        auto* capability = query<Capability>();
+        auto* capability = get_if<Capability>();
         if (capability == nullptr)
         {
             throw GelexException(
-                "joint genetic prior state lacks required capability");
+                fmt::format(
+                    "joint genetic prior state lacks required capability: {}",
+                    Capability::name));
         }
         return *capability;
     }
 
     template <typename Capability>
-    auto require() const -> const Capability&
+    auto get() const -> const Capability&
     {
-        const auto* capability = query<Capability>();
+        const auto* capability = get_if<Capability>();
         if (capability == nullptr)
         {
             throw GelexException(
-                "joint genetic prior state lacks required capability");
+                fmt::format(
+                    "joint genetic prior state lacks required capability: {}",
+                    Capability::name));
         }
         return *capability;
     }
