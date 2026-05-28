@@ -389,6 +389,125 @@ class SingleScaledMixtureCoefficientTransition
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
     detail::MixtureNormalPosteriors scale_pp_;
 };
+
+class JointGaussianMixtureCoefficientTransition
+{
+   public:
+    JointGaussianMixtureCoefficientTransition(
+        const bayes::JointGeneticPrior& /*prior*/,
+        bayes::JointGeneticBlockState& block,
+        bayes::ResidualState& residual)
+        : additive_(block.state(GeneticMode::A)),
+          dominance_(block.state(GeneticMode::D)),
+          residual_(residual),
+          variance_(block.prior_state()
+                        .require<bayes::JointSharedVarianceStateCap>()),
+          proportion_(block.prior_state()
+                          .require<bayes::JointProportionStateCap>()
+                          .proportion()),
+          normal_(0.0)
+    {
+    }
+
+    auto prepare() -> void
+    {
+        normal_.reset();
+        uniform_.reset();
+        logpi_ = proportion_.value.array().log();
+    }
+
+    auto update(
+        Eigen::Index marker_index,
+        Eigen::Ref<const Eigen::VectorXd> additive_column,
+        double additive_xtx_diag_i,
+        Eigen::Ref<const Eigen::VectorXd> dominance_column,
+        double dominance_xtx_diag_i,
+        std::mt19937_64& rng) -> void
+    {
+        auto& additive_coeffs = additive_.coeffs;
+        auto& dominance_coeffs = dominance_.coeffs;
+        const double old_additive_i = additive_coeffs(marker_index);
+        const double old_dominance_i = dominance_coeffs(marker_index);
+        const double additive_rhs = additive_column.dot(residual_.y_adj)
+                                    + (additive_xtx_diag_i * old_additive_i);
+        const double dominance_rhs = dominance_column.dot(residual_.y_adj)
+                                     + (dominance_xtx_diag_i * old_dominance_i);
+        const auto additive_post
+            = normal_.set_prior_var(variance_.variance(GeneticMode::A))
+                  .posterior_with_logL(
+                      stats::NormalSampler<double>::Kernel{
+                          .quadratic = additive_xtx_diag_i,
+                          .linear = additive_rhs,
+                          .scale = residual_.variance,
+                      });
+        const auto dominance_post
+            = normal_.set_prior_var(variance_.variance(GeneticMode::D))
+                  .posterior_with_logL(
+                      stats::NormalSampler<double>::Kernel{
+                          .quadratic = dominance_xtx_diag_i,
+                          .linear = dominance_rhs,
+                          .scale = residual_.variance,
+                      });
+
+        Eigen::Array<double, 4, 1> log_likelihoods;
+        log_likelihoods(0) = logpi_(0);
+        log_likelihoods(1) = additive_post.log_likelihood_kernel + logpi_(1);
+        log_likelihoods(2) = dominance_post.log_likelihood_kernel + logpi_(2);
+        log_likelihoods(3) = additive_post.log_likelihood_kernel
+                             + dominance_post.log_likelihood_kernel + logpi_(3);
+        const double max_log_likelihood = log_likelihoods.maxCoeff();
+        const auto probabilities = (log_likelihoods - max_log_likelihood).exp();
+        const double total = probabilities.sum();
+        const double threshold = uniform_(rng) * total;
+
+        int component = 3;
+        double cumsum = 0.0;
+        for (Eigen::Index i = 0; i < probabilities.size(); ++i)
+        {
+            cumsum += probabilities(i);
+            if (threshold < cumsum)
+            {
+                component = static_cast<int>(i);
+                break;
+            }
+        }
+
+        ProportionAssignmentGuard assignment_guard{proportion_, marker_index};
+        JointGeneticAdjustmentGuard guard{
+            additive_column,
+            dominance_column,
+            additive_coeffs(marker_index),
+            dominance_coeffs(marker_index),
+            residual_,
+            additive_,
+            dominance_};
+        additive_coeffs(marker_index)
+            = (component == 1 || component == 3)
+                  ? normal_.draw(additive_post.params, rng)
+                  : 0.0;
+        dominance_coeffs(marker_index)
+            = (component == 2 || component == 3)
+                  ? normal_.draw(dominance_post.params, rng)
+                  : 0.0;
+        proportion_.assignment(marker_index) = component;
+    }
+
+    auto finish() -> void
+    {
+        additive_.variance = stats::detail::var(additive_.u)(0);
+        dominance_.variance = stats::detail::var(dominance_.u)(0);
+    }
+
+   private:
+    bayes::GeneticState& additive_;
+    bayes::GeneticState& dominance_;
+    bayes::ResidualState& residual_;
+    bayes::JointSharedVarianceStateCap& variance_;
+    bayes::ProportionState& proportion_;
+    stats::NormalSampler<double> normal_;
+    std::uniform_real_distribution<double> uniform_{0.0, 1.0};
+    Eigen::VectorXd logpi_;
+};
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
 }  // namespace gelex::mcmc

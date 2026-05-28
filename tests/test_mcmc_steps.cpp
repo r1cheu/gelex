@@ -742,6 +742,221 @@ TEST_CASE(
 }
 
 TEST_CASE(
+    "Concrete single genetic coefficient transitions keep state identities",
+    "[mcmc][genetic][v2]")
+{
+    const Eigen::MatrixXd X{
+        {1, 0, 1},
+        {0, 1, 1},
+        {1, 1, 0},
+        {0, 0, 1},
+    };
+    const Eigen::VectorXd y{{1.5, -0.25, 0.75, -1.0}};
+    bayes::GeneticDesign design{GeneticMode::A, make_genotype(X)};
+
+    SECTION("shared gaussian")
+    {
+        bayes::SingleSharedGaussianPrior prior{
+            GeneticMode::A,
+            bayes::SharedMarkerVariance{make_variance(0.25)}};
+        bayes::SingleGeneticBlockState block{design, prior};
+        bayes::ResidualState residual{.y_adj = y, .variance = 0.5};
+        std::mt19937_64 rng{kSeed};
+
+        SingleGeneticCoefficientStep<SingleSharedGaussianCoefficientTransition>
+            step{design, prior, block, residual, rng};
+        step.step();
+
+        REQUIRE(block.state().u.isApprox(X * block.state().coeffs));
+        REQUIRE((residual.y_adj + block.state().u).isApprox(y));
+        REQUIRE(std::isfinite(block.state().variance));
+    }
+
+    SECTION("per-marker gaussian")
+    {
+        bayes::SinglePerMarkerGaussianPrior prior{
+            GeneticMode::A,
+            bayes::PerMarkerVariance{make_variance(0.25)}};
+        bayes::SingleGeneticBlockState block{design, prior};
+        bayes::ResidualState residual{.y_adj = y, .variance = 0.5};
+        std::mt19937_64 rng{kSeed};
+
+        SingleGeneticCoefficientStep<
+            SinglePerMarkerGaussianCoefficientTransition>
+            step{design, prior, block, residual, rng};
+        step.step();
+
+        REQUIRE(block.state().u.isApprox(X * block.state().coeffs));
+        REQUIRE((residual.y_adj + block.state().u).isApprox(y));
+        REQUIRE(std::isfinite(block.state().variance));
+    }
+
+    SECTION("shared spike-slab")
+    {
+        bayes::SingleSharedSpikeSlabGaussianPrior prior{
+            GeneticMode::A,
+            bayes::SharedMarkerVariance{make_variance(0.25)},
+            make_proportion(
+                Eigen::VectorXd{{0.2, 0.8}}, bayes::UpdatePolicy::sampled)};
+        bayes::SingleGeneticBlockState block{design, prior};
+        bayes::ResidualState residual{.y_adj = y, .variance = 0.5};
+        std::mt19937_64 rng{kSeed};
+
+        SingleGeneticCoefficientStep<
+            SingleSharedSpikeSlabCoefficientTransition>
+            step{design, prior, block, residual, rng};
+        step.step();
+
+        auto& proportion
+            = block.prior_state().require<bayes::SingleProportionStateCap>()
+                  .proportion();
+        Eigen::VectorXi expected_count = Eigen::VectorXi::Zero(2);
+        for (Eigen::Index i = 0; i < proportion.assignment.size(); ++i)
+        {
+            ++expected_count(proportion.assignment(i));
+        }
+        REQUIRE(block.state().u.isApprox(X * block.state().coeffs));
+        REQUIRE((residual.y_adj + block.state().u).isApprox(y));
+        REQUIRE(proportion.count.isApprox(expected_count));
+    }
+
+    SECTION("per-marker spike-slab")
+    {
+        bayes::SinglePerMarkerSpikeSlabGaussianPrior prior{
+            GeneticMode::A,
+            bayes::PerMarkerVariance{make_variance(0.25)},
+            make_proportion(
+                Eigen::VectorXd{{0.2, 0.8}}, bayes::UpdatePolicy::sampled)};
+        bayes::SingleGeneticBlockState block{design, prior};
+        bayes::ResidualState residual{.y_adj = y, .variance = 0.5};
+        std::mt19937_64 rng{kSeed};
+
+        SingleGeneticCoefficientStep<
+            SinglePerMarkerSpikeSlabCoefficientTransition>
+            step{design, prior, block, residual, rng};
+        step.step();
+
+        auto& proportion
+            = block.prior_state().require<bayes::SingleProportionStateCap>()
+                  .proportion();
+        Eigen::VectorXi expected_count = Eigen::VectorXi::Zero(2);
+        for (Eigen::Index i = 0; i < proportion.assignment.size(); ++i)
+        {
+            ++expected_count(proportion.assignment(i));
+        }
+        REQUIRE(block.state().u.isApprox(X * block.state().coeffs));
+        REQUIRE((residual.y_adj + block.state().u).isApprox(y));
+        REQUIRE(proportion.count.isApprox(expected_count));
+    }
+
+    SECTION("scaled mixture")
+    {
+        bayes::SingleScaledMixtureGaussianPrior prior{
+            GeneticMode::A,
+            bayes::SharedMarkerVariance{make_variance(0.25)},
+            Eigen::VectorXd{{0.0, 0.5, 1.5}},
+            make_proportion(
+                Eigen::VectorXd{{0.2, 0.4, 0.4}},
+                bayes::UpdatePolicy::sampled)};
+        bayes::SingleGeneticBlockState block{design, prior};
+        bayes::ResidualState residual{.y_adj = y, .variance = 0.5};
+        std::mt19937_64 rng{kSeed};
+
+        SingleGeneticCoefficientStep<SingleScaledMixtureCoefficientTransition>
+            step{design, prior, block, residual, rng};
+        step.step();
+
+        auto& proportion
+            = block.prior_state().require<bayes::SingleProportionStateCap>()
+                  .proportion();
+        auto& component
+            = block.prior_state().require<bayes::SingleComponentStateCap>()
+                  .component();
+        Eigen::VectorXi expected_count = Eigen::VectorXi::Zero(3);
+        std::vector<Eigen::VectorXd> expected_gebv;
+        expected_gebv.assign(2, Eigen::VectorXd::Zero(y.size()));
+        for (Eigen::Index i = 0; i < proportion.assignment.size(); ++i)
+        {
+            const int component_index = proportion.assignment(i);
+            ++expected_count(component_index);
+            if (component_index > 0)
+            {
+                expected_gebv[component_index - 1]
+                    += block.state().coeffs(i) * X.col(i);
+            }
+        }
+        REQUIRE(block.state().u.isApprox(X * block.state().coeffs));
+        REQUIRE((residual.y_adj + block.state().u).isApprox(y));
+        REQUIRE(proportion.count.isApprox(expected_count));
+        REQUIRE(component.gebv[0].isApprox(expected_gebv[0]));
+        REQUIRE(component.gebv[1].isApprox(expected_gebv[1]));
+        REQUIRE(
+            component.gebv_var.isApprox(
+                Eigen::VectorXd{
+                    {gelex::stats::detail::var(component.gebv[0])(0),
+                     gelex::stats::detail::var(component.gebv[1])(0)}}));
+    }
+}
+
+TEST_CASE(
+    "Concrete joint genetic coefficient transition keeps state identities",
+    "[mcmc][genetic][v2]")
+{
+    const Eigen::MatrixXd additive_x{
+        {1, 0, 1},
+        {0, 1, 1},
+        {1, 1, 0},
+        {0, 0, 1},
+    };
+    const Eigen::MatrixXd dominance_x{
+        {0, 1, 0},
+        {1, 0, 1},
+        {0, 1, 1},
+        {1, 1, 0},
+    };
+    const Eigen::VectorXd y{{1.5, -0.25, 0.75, -1.0}};
+    bayes::GeneticDesign additive{GeneticMode::A, make_genotype(additive_x)};
+    bayes::GeneticDesign dominance{
+        GeneticMode::D, make_genotype(dominance_x)};
+    bayes::JointGaussianMixturePrior prior{
+        bayes::JointSharedMarkerVariance{std::array{
+            bayes::SharedMarkerVariance{make_variance(0.25)},
+            bayes::SharedMarkerVariance{make_variance(0.25)}}},
+        make_proportion(
+            Eigen::VectorXd{{0.1, 0.3, 0.3, 0.3}},
+            bayes::UpdatePolicy::sampled)};
+    bayes::JointGeneticBlockState block{additive, dominance, prior};
+    bayes::ResidualState residual{.y_adj = y, .variance = 0.5};
+    std::mt19937_64 rng{kSeed};
+
+    JointGeneticCoefficientStep<JointGaussianMixtureCoefficientTransition> step{
+        additive, dominance, prior, block, residual, rng};
+    step.step();
+
+    auto& proportion
+        = block.prior_state().require<bayes::JointProportionStateCap>()
+              .proportion();
+    Eigen::VectorXi expected_count = Eigen::VectorXi::Zero(4);
+    for (Eigen::Index i = 0; i < proportion.assignment.size(); ++i)
+    {
+        ++expected_count(proportion.assignment(i));
+    }
+    REQUIRE(
+        block.state(GeneticMode::A).u.isApprox(
+            additive_x * block.state(GeneticMode::A).coeffs));
+    REQUIRE(
+        block.state(GeneticMode::D).u.isApprox(
+            dominance_x * block.state(GeneticMode::D).coeffs));
+    REQUIRE(
+        (residual.y_adj + block.state(GeneticMode::A).u
+         + block.state(GeneticMode::D).u)
+            .isApprox(y));
+    REQUIRE(proportion.count.isApprox(expected_count));
+    REQUIRE(std::isfinite(block.state(GeneticMode::A).variance));
+    REQUIRE(std::isfinite(block.state(GeneticMode::D).variance));
+}
+
+TEST_CASE(
     "Genetic variance steps do not touch coefficient state",
     "[mcmc][genetic][v2]")
 {
