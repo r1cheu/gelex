@@ -75,48 +75,51 @@ using MixtureProportionCap = ProportionCapability<MixtureProportion>;
 using MultiplierCap = MultiplierCapability<Eigen::VectorXd>;
 
 template <typename T>
-class SharedVarianceCapability
+class SingleSharedVarianceCapability
 {
    public:
     using element_type = T;
 
-    auto operator=(const SharedVarianceCapability&)
-        -> SharedVarianceCapability& = delete;
-    auto operator=(SharedVarianceCapability&&) noexcept
-        -> SharedVarianceCapability& = delete;
+    auto operator=(const SingleSharedVarianceCapability&)
+        -> SingleSharedVarianceCapability& = delete;
+    auto operator=(SingleSharedVarianceCapability&&) noexcept
+        -> SingleSharedVarianceCapability& = delete;
 
-    virtual ~SharedVarianceCapability() = default;
+    virtual ~SingleSharedVarianceCapability() = default;
 
     virtual auto variance() -> T& = 0;
     virtual auto variance() const -> const T& = 0;
 
    protected:
-    SharedVarianceCapability() = default;
-    SharedVarianceCapability(const SharedVarianceCapability&) = default;
-    SharedVarianceCapability(SharedVarianceCapability&&) noexcept = default;
+    SingleSharedVarianceCapability() = default;
+    SingleSharedVarianceCapability(const SingleSharedVarianceCapability&)
+        = default;
+    SingleSharedVarianceCapability(SingleSharedVarianceCapability&&) noexcept
+        = default;
 };
 
 template <typename T>
-class PerMarkerVarianceCapability
+class SinglePerMarkerVarianceCapability
 {
    public:
     using element_type = T;
 
-    auto operator=(const PerMarkerVarianceCapability&)
-        -> PerMarkerVarianceCapability& = delete;
-    auto operator=(PerMarkerVarianceCapability&&) noexcept
-        -> PerMarkerVarianceCapability& = delete;
+    auto operator=(const SinglePerMarkerVarianceCapability&)
+        -> SinglePerMarkerVarianceCapability& = delete;
+    auto operator=(SinglePerMarkerVarianceCapability&&) noexcept
+        -> SinglePerMarkerVarianceCapability& = delete;
 
-    virtual ~PerMarkerVarianceCapability() = default;
+    virtual ~SinglePerMarkerVarianceCapability() = default;
 
     virtual auto variance() -> T& = 0;
     virtual auto variance() const -> const T& = 0;
 
    protected:
-    PerMarkerVarianceCapability() = default;
-    PerMarkerVarianceCapability(const PerMarkerVarianceCapability&) = default;
-    PerMarkerVarianceCapability(PerMarkerVarianceCapability&&) noexcept
+    SinglePerMarkerVarianceCapability() = default;
+    SinglePerMarkerVarianceCapability(const SinglePerMarkerVarianceCapability&)
         = default;
+    SinglePerMarkerVarianceCapability(
+        SinglePerMarkerVarianceCapability&&) noexcept = default;
 };
 
 template <typename T>
@@ -164,25 +167,27 @@ class SingleMultiplierCapability
 };
 
 template <typename T>
-class JointVarianceCapability
+class JointSharedVarianceCapability
 {
    public:
     using element_type = T;
 
-    auto operator=(const JointVarianceCapability&)
-        -> JointVarianceCapability& = delete;
-    auto operator=(JointVarianceCapability&&) noexcept
-        -> JointVarianceCapability& = delete;
+    auto operator=(const JointSharedVarianceCapability&)
+        -> JointSharedVarianceCapability& = delete;
+    auto operator=(JointSharedVarianceCapability&&) noexcept
+        -> JointSharedVarianceCapability& = delete;
 
-    virtual ~JointVarianceCapability() = default;
+    virtual ~JointSharedVarianceCapability() = default;
 
     virtual auto variance(GeneticMode mode) -> T& = 0;
     virtual auto variance(GeneticMode mode) const -> const T& = 0;
 
    protected:
-    JointVarianceCapability() = default;
-    JointVarianceCapability(const JointVarianceCapability&) = default;
-    JointVarianceCapability(JointVarianceCapability&&) noexcept = default;
+    JointSharedVarianceCapability() = default;
+    JointSharedVarianceCapability(const JointSharedVarianceCapability&)
+        = default;
+    JointSharedVarianceCapability(JointSharedVarianceCapability&&) noexcept
+        = default;
 };
 
 template <typename T>
@@ -208,13 +213,15 @@ class JointProportionCapability
 };
 
 using SingleSharedMarkerVarianceCap
-    = SharedVarianceCapability<SharedMarkerVariance>;
+    = SingleSharedVarianceCapability<SharedMarkerVariance>;
 using SinglePerMarkerVarianceCap
-    = PerMarkerVarianceCapability<PerMarkerVariance>;
+    = SinglePerMarkerVarianceCapability<PerMarkerVariance>;
 using SingleMixtureProportionCap
     = SingleProportionCapability<MixtureProportion>;
 using SingleMultiplierCap = SingleMultiplierCapability<Eigen::VectorXd>;
-using JointMarkerVarianceCap = JointVarianceCapability<JointMarkerVariance>;
+
+using JointSharedMarkerVarianceCap
+    = JointSharedVarianceCapability<SharedMarkerVariance>;
 using JointMixtureProportionCap = JointProportionCapability<MixtureProportion>;
 
 }  // namespace gelex::bayes

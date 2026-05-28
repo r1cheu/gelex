@@ -114,6 +114,12 @@ PerMarkerVariance::PerMarkerVariance(VarianceParameter parameter)
 {
 }
 
+JointSharedMarkerVariance::JointSharedMarkerVariance(
+    std::array<SharedMarkerVariance, 2> variances)
+    : variances_(std::move(variances))
+{
+}
+
 MixtureProportion::MixtureProportion(
     SimplexParameter parameter,
     UpdatePolicy update)

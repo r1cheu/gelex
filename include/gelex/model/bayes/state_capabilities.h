@@ -17,10 +17,8 @@
 #ifndef GELEX_MODEL_BAYES_STATE_CAPABILITIES_H_
 #define GELEX_MODEL_BAYES_STATE_CAPABILITIES_H_
 
-#include <span>
-#include <variant>
-
 #include <Eigen/Core>
+#include <span>
 
 #include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/capabilities.h"
@@ -99,12 +97,12 @@ class JointComponentStateCap
     JointComponentStateCap(JointComponentStateCap&&) noexcept = default;
 };
 
-using SingleSharedVarianceStateCap = SharedVarianceCapability<double>;
+using SingleSharedVarianceStateCap = SingleSharedVarianceCapability<double>;
 using SinglePerMarkerVarianceStateCap
-    = PerMarkerVarianceCapability<Eigen::VectorXd>;
+    = SinglePerMarkerVarianceCapability<Eigen::VectorXd>;
 using SingleProportionStateCap = SingleProportionCapability<ProportionState>;
-using JointMarkerVarianceState = std::variant<double, Eigen::VectorXd>;
-using JointVarianceStateCap = JointVarianceCapability<JointMarkerVarianceState>;
+
+using JointSharedVarianceStateCap = JointSharedVarianceCapability<double>;
 using JointProportionStateCap = JointProportionCapability<ProportionState>;
 
 }  // namespace gelex::bayes

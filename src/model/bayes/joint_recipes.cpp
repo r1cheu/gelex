@@ -103,11 +103,11 @@ auto BayesCDMethod::make_joint_prior_v2(
         model, GeneticMode::D, h2_d, active_d);
 
     return std::make_unique<JointGaussianMixturePrior>(
-        std::array{
-            JointMarkerVariance{SharedMarkerVariance{VarianceParameter{
+        JointSharedMarkerVariance{std::array{
+            SharedMarkerVariance{VarianceParameter{
                 target_a,
-                ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target_a}}}},
-            JointMarkerVariance{SharedMarkerVariance{VarianceParameter{
+                ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target_a}}},
+            SharedMarkerVariance{VarianceParameter{
                 target_d,
                 ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target_d}}}}},
         make_mixture_proportion(proportion, update));

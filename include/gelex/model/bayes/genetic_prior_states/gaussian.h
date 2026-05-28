@@ -171,7 +171,7 @@ class SingleScaledMixtureGaussianState final
 
 class JointGaussianMixtureState final
     : public JointGeneticPriorState
-    , public JointVarianceStateCap
+    , public JointSharedVarianceStateCap
     , public JointComponentStateCap
     , public JointProportionStateCap
 {
@@ -179,14 +179,13 @@ class JointGaussianMixtureState final
     static constexpr std::string_view name = "joint_mixture_gaussian";
 
     JointGaussianMixtureState(
-        std::array<JointMarkerVarianceState, 2> variances,
+        std::array<double, 2> variances,
         const MixtureProportion& proportion,
         Eigen::Index num_markers,
         Eigen::Index num_individuals);
 
-    auto variance(GeneticMode mode) -> JointMarkerVarianceState& override;
-    auto variance(GeneticMode mode) const
-        -> const JointMarkerVarianceState& override;
+    auto variance(GeneticMode mode) -> double& override;
+    auto variance(GeneticMode mode) const -> const double& override;
 
     auto component() -> ComponentState& override { return component_; }
     auto component() const -> const ComponentState& override
@@ -203,7 +202,7 @@ class JointGaussianMixtureState final
     auto visit(infra::FieldVisitor& visitor) -> void override;
 
    private:
-    std::array<JointMarkerVarianceState, 2> variances_;
+    std::array<double, 2> variances_;
     ComponentState component_;
     ProportionState proportion_;
 };

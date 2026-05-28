@@ -67,10 +67,10 @@ using gelex::bayes::GeneticPrior;
 using gelex::bayes::GaussianState;
 using gelex::bayes::JointGaussianMixturePrior;
 using gelex::bayes::JointGeneticBlockState;
-using gelex::bayes::JointMarkerVariance;
+using gelex::bayes::JointSharedMarkerVariance;
 using gelex::bayes::JointMixtureGaussianPrior;
 using gelex::bayes::JointMixtureGaussianState;
-using gelex::bayes::JointVarianceStateCap;
+using gelex::bayes::JointSharedVarianceStateCap;
 using gelex::bayes::MarkerVariance;
 using gelex::bayes::MarkerVarianceLayout;
 using gelex::bayes::MixtureProportion;
@@ -521,11 +521,9 @@ TEST_CASE(
     REQUIRE(single.state().coeffs(0) == single_visitor.mutated_value);
 
     JointGaussianMixturePrior joint_prior{
-        std::array{
-            JointMarkerVariance{
-                PerMarkerVariance{make_variance(0.5)}},
-            JointMarkerVariance{
-                SharedMarkerVariance{make_variance(0.75)}}},
+        JointSharedMarkerVariance{std::array{
+            SharedMarkerVariance{make_variance(0.5)},
+            SharedMarkerVariance{make_variance(0.75)}}},
         make_proportion_4()};
     JointGeneticBlockState joint{
         *model.genetic(GeneticMode::A),
@@ -539,14 +537,10 @@ TEST_CASE(
     REQUIRE(joint.state(GeneticMode::A).coeffs.size() == kNumMarkers);
     REQUIRE(joint.state(GeneticMode::D).u.size() == kNumIndividuals);
     auto* joint_variance_cap
-        = joint.prior_state().query<JointVarianceStateCap>();
+        = joint.prior_state().query<JointSharedVarianceStateCap>();
     REQUIRE(joint_variance_cap != nullptr);
-    REQUIRE(
-        std::get<Eigen::VectorXd>(
-            joint_variance_cap->variance(GeneticMode::A))
-            .isApprox(Eigen::VectorXd::Constant(kNumMarkers, 0.5)));
-    REQUIRE(std::get<double>(joint_variance_cap->variance(GeneticMode::D))
-            == 0.75);
+    REQUIRE(joint_variance_cap->variance(GeneticMode::A) == 0.5);
+    REQUIRE(joint_variance_cap->variance(GeneticMode::D) == 0.75);
 
     FieldPathCollector joint_visitor;
     joint_visitor.mutate_path = "joint/D/genetic/variance";
@@ -751,9 +745,9 @@ TEST_CASE("BayesStateV2 creates joint genetic blocks", "[bayes_state]")
     std::vector<GeneticPriorBlockV2> genetics;
     genetics.emplace_back(
         std::make_unique<JointGaussianMixturePrior>(
-            std::array{
-                JointMarkerVariance{SharedMarkerVariance{make_variance()}},
-                JointMarkerVariance{SharedMarkerVariance{make_variance()}}},
+            JointSharedMarkerVariance{std::array{
+                SharedMarkerVariance{make_variance()},
+                SharedMarkerVariance{make_variance()}}},
             make_proportion_4()));
     BayesPriorV2 prior(
         make_random_prior(2.0), std::move(genetics), make_residual_prior(10.0));
@@ -773,7 +767,7 @@ TEST_CASE("BayesStateV2 creates joint genetic blocks", "[bayes_state]")
     REQUIRE(joint != nullptr);
     REQUIRE(joint->state(GeneticMode::A).coeffs.size() == kNumMarkers);
     REQUIRE(joint->state(GeneticMode::D).u.size() == kNumIndividuals);
-    REQUIRE(joint->prior_state().query<JointVarianceStateCap>() != nullptr);
+    REQUIRE(joint->prior_state().query<JointSharedVarianceStateCap>() != nullptr);
 
     state.genetic(GeneticMode::A)->variance = 3.0;
     state.genetic(GeneticMode::D)->variance = 5.0;
@@ -836,9 +830,9 @@ TEST_CASE("BayesStateV2 rejects prior mode missing from model", "[bayes_state]")
         std::vector<GeneticPriorBlockV2> genetics;
         genetics.emplace_back(
             std::make_unique<JointGaussianMixturePrior>(
-                std::array{
-                    JointMarkerVariance{SharedMarkerVariance{make_variance()}},
-                    JointMarkerVariance{SharedMarkerVariance{make_variance()}}},
+                JointSharedMarkerVariance{std::array{
+                    SharedMarkerVariance{make_variance()},
+                    SharedMarkerVariance{make_variance()}}},
                 make_proportion_4()));
         BayesPriorV2 prior(
             make_random_prior(), std::move(genetics), make_residual_prior());

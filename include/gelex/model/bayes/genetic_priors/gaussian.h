@@ -17,7 +17,6 @@
 #ifndef GELEX_MODEL_BAYES_GENETIC_PRIORS_GAUSSIAN_H_
 #define GELEX_MODEL_BAYES_GENETIC_PRIORS_GAUSSIAN_H_
 
-#include <array>
 #include <memory>
 #include <string_view>
 
@@ -206,19 +205,19 @@ class SingleScaledMixtureGaussianPrior final
 
 class JointGaussianMixturePrior final
     : public JointGeneticPrior
-    , public JointMarkerVarianceCap
+    , public JointSharedMarkerVarianceCap
     , public JointMixtureProportionCap
 {
    public:
     static constexpr std::string_view name = "joint_mixture_gaussian";
 
     JointGaussianMixturePrior(
-        std::array<JointMarkerVariance, 2> variances,
+        JointSharedMarkerVariance variance,
         MixtureProportion proportion);
 
-    auto variance(GeneticMode mode) -> JointMarkerVariance& override;
+    auto variance(GeneticMode mode) -> SharedMarkerVariance& override;
     auto variance(GeneticMode mode) const
-        -> const JointMarkerVariance& override;
+        -> const SharedMarkerVariance& override;
     auto proportion() -> MixtureProportion& override
     {
         return mixture_proportion_;
@@ -233,7 +232,7 @@ class JointGaussianMixturePrior final
         const -> std::unique_ptr<JointGeneticPriorState> override;
 
    private:
-    std::array<JointMarkerVariance, 2> marker_variances_;
+    JointSharedMarkerVariance marker_variance_;
     MixtureProportion mixture_proportion_;
 };
 

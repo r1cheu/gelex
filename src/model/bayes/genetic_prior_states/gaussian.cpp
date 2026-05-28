@@ -19,7 +19,6 @@
 #include <array>
 #include <ranges>
 #include <utility>
-#include <variant>
 
 #include <fmt/format.h>
 #include <Eigen/Core>
@@ -110,7 +109,7 @@ auto SingleScaledMixtureGaussianState::visit(infra::FieldVisitor& visitor)
 }
 
 JointGaussianMixtureState::JointGaussianMixtureState(
-    std::array<JointMarkerVarianceState, 2> variances,
+    std::array<double, 2> variances,
     const MixtureProportion& proportion,
     Eigen::Index num_markers,
     Eigen::Index num_individuals)
@@ -127,28 +126,22 @@ auto JointGaussianMixtureState::visit(infra::FieldVisitor& visitor) -> void
     for (auto [i, mode] : std::views::enumerate(modes))
     {
         auto mode_scope = visitor.scope(fmt::format("{}", mode));
-        std::visit(
-            [&visitor](auto& variance)
-            {
-                visitor.on(
-                    "variance",
-                    variance,
-                    FieldFlag::checkpoint | FieldFlag::trace);
-            },
-            variances_[i]);
+        visitor.on(
+            "variance",
+            variances_[i],
+            FieldFlag::checkpoint | FieldFlag::trace);
     }
     component_.visit(visitor);
     proportion_.visit(visitor);
 }
 
-auto JointGaussianMixtureState::variance(GeneticMode mode)
-    -> JointMarkerVarianceState&
+auto JointGaussianMixtureState::variance(GeneticMode mode) -> double&
 {
     return variances_[std::to_underlying(mode)];
 }
 
-auto JointGaussianMixtureState::variance(GeneticMode mode) const
-    -> const JointMarkerVarianceState&
+auto JointGaussianMixtureState::variance(GeneticMode mode) const -> const
+    double&
 {
     return variances_[std::to_underlying(mode)];
 }

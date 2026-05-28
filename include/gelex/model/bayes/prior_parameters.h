@@ -17,14 +17,17 @@
 #ifndef GELEX_MODEL_BAYES_PRIOR_PARAMETERS_H_
 #define GELEX_MODEL_BAYES_PRIOR_PARAMETERS_H_
 
+#include <array>
 #include <cstdint>
+#include <ranges>
+#include <string>
 #include <string_view>
 #include <utility>
-#include <variant>
 
 #include <Eigen/Core>
 
 #include "gelex/infra/field_visitor.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
 {
@@ -173,11 +176,6 @@ class SharedMarkerVariance
 
     auto parameter() -> VarianceParameter& { return parameter_; }
     auto parameter() const -> const VarianceParameter& { return parameter_; }
-    auto marker_variance_size(Eigen::Index /*num_markers*/) const
-        -> Eigen::Index
-    {
-        return 1;
-    }
     auto visit(infra::FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
@@ -196,10 +194,6 @@ class PerMarkerVariance
 
     auto parameter() -> VarianceParameter& { return parameter_; }
     auto parameter() const -> const VarianceParameter& { return parameter_; }
-    auto marker_variance_size(Eigen::Index num_markers) const -> Eigen::Index
-    {
-        return num_markers;
-    }
     auto visit(infra::FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
@@ -210,8 +204,37 @@ class PerMarkerVariance
     VarianceParameter parameter_;
 };
 
-using JointMarkerVariance
-    = std::variant<SharedMarkerVariance, PerMarkerVariance>;
+class JointSharedMarkerVariance
+{
+   public:
+    static constexpr std::string_view name = "joint_shared_marker_variance";
+    explicit JointSharedMarkerVariance(
+        std::array<SharedMarkerVariance, 2> variances);
+
+    auto variance(GeneticMode mode) -> SharedMarkerVariance&
+    {
+        return variances_[std::to_underlying(mode)];
+    }
+    auto variance(GeneticMode mode) const -> const SharedMarkerVariance&
+    {
+        return variances_[std::to_underlying(mode)];
+    }
+    auto visit(infra::FieldVisitor& visitor) -> void
+    {
+        auto scope = visitor.scope(name);
+        constexpr std::array modes{GeneticMode::A, GeneticMode::D};
+        for (auto [i, mode_value] : std::views::enumerate(modes))
+        {
+            auto mode_scope = visitor.scope(std::to_string(i));
+            auto mode = mode_value;
+            visitor.on("mode", mode, FieldFlag::checkpoint | FieldFlag::report);
+            variances_[i].visit(visitor);
+        }
+    }
+
+   private:
+    std::array<SharedMarkerVariance, 2> variances_;
+};
 
 enum class UpdatePolicy : std::uint8_t
 {

@@ -715,11 +715,9 @@ TEST_CASE(
     bayes::GeneticDesign additive{GeneticMode::A, make_genotype(additive_x)};
     bayes::GeneticDesign dominance{GeneticMode::D, make_genotype(dominance_x)};
     bayes::JointGaussianMixturePrior prior{
-        std::array{
-            bayes::JointMarkerVariance{
-                bayes::SharedMarkerVariance{make_variance(0.1)}},
-            bayes::JointMarkerVariance{
-                bayes::PerMarkerVariance{make_variance(0.1)}}},
+        bayes::JointSharedMarkerVariance{std::array{
+            bayes::SharedMarkerVariance{make_variance(0.1)},
+            bayes::SharedMarkerVariance{make_variance(0.1)}}},
         make_proportion(
             Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}},
             bayes::UpdatePolicy::sampled)};
@@ -804,11 +802,9 @@ TEST_CASE(
     bayes::GeneticDesign additive{GeneticMode::A, make_genotype(additive_x)};
     bayes::GeneticDesign dominance{GeneticMode::D, make_genotype(dominance_x)};
     bayes::JointGaussianMixturePrior prior{
-        std::array{
-            bayes::JointMarkerVariance{
-                bayes::SharedMarkerVariance{make_variance(0.1)}},
-            bayes::JointMarkerVariance{
-                bayes::PerMarkerVariance{make_variance(0.1)}}},
+        bayes::JointSharedMarkerVariance{std::array{
+            bayes::SharedMarkerVariance{make_variance(0.1)},
+            bayes::SharedMarkerVariance{make_variance(0.1)}}},
         make_proportion(
             Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}},
             bayes::UpdatePolicy::sampled)};
@@ -821,11 +817,10 @@ TEST_CASE(
     proportion.assignment = Eigen::VectorXi{{1, 2, 3}};
     proportion.count = Eigen::VectorXi{{0, 1, 1, 1}};
     auto& variance_cap
-        = block.prior_state().require<bayes::JointVarianceStateCap>();
+        = block.prior_state().require<bayes::JointSharedVarianceStateCap>();
     const double additive_before
-        = std::get<double>(variance_cap.variance(GeneticMode::A));
-    const auto dominance_before
-        = std::get<Eigen::VectorXd>(variance_cap.variance(GeneticMode::D));
+        = variance_cap.variance(GeneticMode::A);
+    const double dominance_before = variance_cap.variance(GeneticMode::D);
     const auto additive_coeffs_before = block.state(GeneticMode::A).coeffs;
     const auto dominance_coeffs_before = block.state(GeneticMode::D).coeffs;
     std::mt19937_64 rng{kSeed};
@@ -835,17 +830,8 @@ TEST_CASE(
 
     REQUIRE(block.state(GeneticMode::A).coeffs.isApprox(additive_coeffs_before));
     REQUIRE(block.state(GeneticMode::D).coeffs.isApprox(dominance_coeffs_before));
-    REQUIRE(std::get<double>(variance_cap.variance(GeneticMode::A))
-            != additive_before);
-    REQUIRE(
-        std::get<Eigen::VectorXd>(variance_cap.variance(GeneticMode::D))(0)
-        == dominance_before(0));
-    REQUIRE(
-        std::get<Eigen::VectorXd>(variance_cap.variance(GeneticMode::D))(1)
-        != dominance_before(1));
-    REQUIRE(
-        std::get<Eigen::VectorXd>(variance_cap.variance(GeneticMode::D))(2)
-        != dominance_before(2));
+    REQUIRE(variance_cap.variance(GeneticMode::A) != additive_before);
+    REQUIRE(variance_cap.variance(GeneticMode::D) != dominance_before);
 }
 
 TEST_CASE(
@@ -907,11 +893,9 @@ TEST_CASE(
     {
         bayes::GeneticDesign dominance{GeneticMode::D, make_genotype(X)};
         bayes::JointGaussianMixturePrior prior{
-            std::array{
-                bayes::JointMarkerVariance{
-                    bayes::SharedMarkerVariance{make_variance(0.1)}},
-                bayes::JointMarkerVariance{
-                    bayes::SharedMarkerVariance{make_variance(0.1)}}},
+            bayes::JointSharedMarkerVariance{std::array{
+                bayes::SharedMarkerVariance{make_variance(0.1)},
+                bayes::SharedMarkerVariance{make_variance(0.1)}}},
             make_proportion(
                 Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}},
                 bayes::UpdatePolicy::sampled)};

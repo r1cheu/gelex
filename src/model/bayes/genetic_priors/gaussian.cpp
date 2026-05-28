@@ -18,11 +18,7 @@
 
 #include <array>
 #include <memory>
-#include <ranges>
-#include <string>
-#include <type_traits>
 #include <utility>
-#include <variant>
 
 #include <Eigen/Core>
 
@@ -202,38 +198,29 @@ auto SingleScaledMixtureGaussianPrior::make_state(
 }
 
 JointGaussianMixturePrior::JointGaussianMixturePrior(
-    std::array<JointMarkerVariance, 2> variances,
+    JointSharedMarkerVariance variance,
     MixtureProportion proportion)
-    : marker_variances_(std::move(variances)),
+    : marker_variance_(std::move(variance)),
       mixture_proportion_(std::move(proportion))
 {
 }
 
 auto JointGaussianMixturePrior::variance(GeneticMode mode)
-    -> JointMarkerVariance&
+    -> SharedMarkerVariance&
 {
-    return marker_variances_[std::to_underlying(mode)];
+    return marker_variance_.variance(mode);
 }
 
 auto JointGaussianMixturePrior::variance(GeneticMode mode) const
-    -> const JointMarkerVariance&
+    -> const SharedMarkerVariance&
 {
-    return marker_variances_[std::to_underlying(mode)];
+    return marker_variance_.variance(mode);
 }
 
 auto JointGaussianMixturePrior::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
-    auto modes = std::array{GeneticMode::A, GeneticMode::D};
-    for (auto [i, mode] : std::views::enumerate(modes))
-    {
-        auto slot_scope = visitor.scope(std::to_string(i));
-        visitor.on("mode", mode, FieldFlag::checkpoint | FieldFlag::report);
-        std::visit(
-            [&visitor](auto& marker_variance)
-            { marker_variance.visit(visitor); },
-            marker_variances_[i]);
-    }
+    marker_variance_.visit(visitor);
     mixture_proportion_.visit(visitor);
 }
 
@@ -243,47 +230,13 @@ auto JointGaussianMixturePrior::make_state(
     -> std::unique_ptr<JointGeneticPriorState>
 {
     return std::make_unique<JointGaussianMixtureState>(
-        std::array<JointMarkerVarianceState, 2>{
-            std::visit(
-                [num_markers](
-                    const auto& marker_variance) -> JointMarkerVarianceState
-                {
-                    using MarkerVarianceType
-                        = std::decay_t<decltype(marker_variance)>;
-                    if constexpr (
-                        std::
-                            is_same_v<MarkerVarianceType, SharedMarkerVariance>)
-                    {
-                        return marker_variance.parameter().initial_value();
-                    }
-                    else
-                    {
-                        return Eigen::VectorXd::Constant(
-                            marker_variance.marker_variance_size(num_markers),
-                            marker_variance.parameter().initial_value());
-                    }
-                },
-                marker_variances_[0]),
-            std::visit(
-                [num_markers](
-                    const auto& marker_variance) -> JointMarkerVarianceState
-                {
-                    using MarkerVarianceType
-                        = std::decay_t<decltype(marker_variance)>;
-                    if constexpr (
-                        std::
-                            is_same_v<MarkerVarianceType, SharedMarkerVariance>)
-                    {
-                        return marker_variance.parameter().initial_value();
-                    }
-                    else
-                    {
-                        return Eigen::VectorXd::Constant(
-                            marker_variance.marker_variance_size(num_markers),
-                            marker_variance.parameter().initial_value());
-                    }
-                },
-                marker_variances_[1])},
+        std::array{
+            marker_variance_.variance(GeneticMode::A)
+                .parameter()
+                .initial_value(),
+            marker_variance_.variance(GeneticMode::D)
+                .parameter()
+                .initial_value()},
         mixture_proportion_,
         num_markers,
         num_individuals);
