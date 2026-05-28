@@ -33,9 +33,7 @@
 namespace gelex::bayes
 {
 
-class GaussianPrior final
-    : public GeneticPrior
-    , public MarkerVarianceCap
+class GaussianPrior final : public GeneticPrior
 {
    public:
     static constexpr std::string_view name = "gaussian";
@@ -46,11 +44,8 @@ class GaussianPrior final
     {
         return modes_;
     }
-    auto variance() -> std::span<MarkerVariance> override
-    {
-        return marker_variances_;
-    }
-    auto variance() const -> std::span<const MarkerVariance> override
+    auto variance() -> std::span<MarkerVariance> { return marker_variances_; }
+    auto variance() const -> std::span<const MarkerVariance>
     {
         return marker_variances_;
     }
@@ -66,7 +61,6 @@ class GaussianPrior final
 
 class SpikeSlabGaussianPrior final
     : public GeneticPrior
-    , public MarkerVarianceCap
     , public MixtureProportionCap
 {
    public:
@@ -81,11 +75,8 @@ class SpikeSlabGaussianPrior final
     {
         return modes_;
     }
-    auto variance() -> std::span<MarkerVariance> override
-    {
-        return marker_variances_;
-    }
-    auto variance() const -> std::span<const MarkerVariance> override
+    auto variance() -> std::span<MarkerVariance> { return marker_variances_; }
+    auto variance() const -> std::span<const MarkerVariance>
     {
         return marker_variances_;
     }
@@ -110,7 +101,6 @@ class SpikeSlabGaussianPrior final
 
 class ScaledMixtureGaussianPrior final
     : public GeneticPrior
-    , public MarkerVarianceCap
     , public MixtureProportionCap
     , public MultiplierCap
 {
@@ -127,11 +117,8 @@ class ScaledMixtureGaussianPrior final
     {
         return modes_;
     }
-    auto variance() -> std::span<MarkerVariance> override
-    {
-        return marker_variances_;
-    }
-    auto variance() const -> std::span<const MarkerVariance> override
+    auto variance() -> std::span<MarkerVariance> { return marker_variances_; }
+    auto variance() const -> std::span<const MarkerVariance>
     {
         return marker_variances_;
     }
@@ -165,7 +152,6 @@ class ScaledMixtureGaussianPrior final
 
 class JointMixtureGaussianPrior final
     : public GeneticPrior
-    , public MarkerVarianceCap
     , public MixtureProportionCap
 {
    public:
@@ -180,11 +166,8 @@ class JointMixtureGaussianPrior final
     {
         return modes_;
     }
-    auto variance() -> std::span<MarkerVariance> override
-    {
-        return marker_variances_;
-    }
-    auto variance() const -> std::span<const MarkerVariance> override
+    auto variance() -> std::span<MarkerVariance> { return marker_variances_; }
+    auto variance() const -> std::span<const MarkerVariance>
     {
         return marker_variances_;
     }

@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <string_view>
 #include <utility>
+#include <variant>
 
 #include <Eigen/Core>
 
@@ -163,6 +164,54 @@ class MarkerVariance
     MarkerVarianceLayout layout_{MarkerVarianceLayout::shared};
     VarianceParameter parameter_;
 };
+
+class SharedMarkerVariance
+{
+   public:
+    static constexpr std::string_view name = "shared_marker_variance";
+    explicit SharedMarkerVariance(VarianceParameter parameter);
+
+    auto parameter() -> VarianceParameter& { return parameter_; }
+    auto parameter() const -> const VarianceParameter& { return parameter_; }
+    auto marker_variance_size(Eigen::Index /*num_markers*/) const
+        -> Eigen::Index
+    {
+        return 1;
+    }
+    auto visit(infra::FieldVisitor& visitor) -> void
+    {
+        auto scope = visitor.scope(name);
+        parameter_.visit(visitor);
+    }
+
+   private:
+    VarianceParameter parameter_;
+};
+
+class PerMarkerVariance
+{
+   public:
+    static constexpr std::string_view name = "per_marker_variance";
+    explicit PerMarkerVariance(VarianceParameter parameter);
+
+    auto parameter() -> VarianceParameter& { return parameter_; }
+    auto parameter() const -> const VarianceParameter& { return parameter_; }
+    auto marker_variance_size(Eigen::Index num_markers) const -> Eigen::Index
+    {
+        return num_markers;
+    }
+    auto visit(infra::FieldVisitor& visitor) -> void
+    {
+        auto scope = visitor.scope(name);
+        parameter_.visit(visitor);
+    }
+
+   private:
+    VarianceParameter parameter_;
+};
+
+using JointMarkerVariance
+    = std::variant<SharedMarkerVariance, PerMarkerVariance>;
 
 enum class UpdatePolicy : std::uint8_t
 {

@@ -27,6 +27,7 @@
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/capabilities.h"
+#include "gelex/model/bayes/gaussian_prior.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_parameters.h"
@@ -104,9 +105,50 @@ auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) -> void
         return fmt::join(formatted, ", ");
     };
 
-    if (const auto* variance = prior.query<bayes::MarkerVarianceCap>())
+    if (const auto* gaussian = prior.query<bayes::GaussianPrior>();
+        gaussian != nullptr)
     {
-        for (const auto& marker_variance : variance->variance())
+        for (const auto& marker_variance : gaussian->variance())
+        {
+            const auto& parameter = marker_variance.parameter();
+            print_variance_prior(
+                stats::detail::ScaledInvChiSqParams{
+                    parameter.prior().degrees_of_freedom(),
+                    parameter.prior().scale()},
+                parameter.initial_value());
+        }
+    }
+    if (const auto* spike_slab = prior.query<bayes::SpikeSlabGaussianPrior>();
+        spike_slab != nullptr)
+    {
+        for (const auto& marker_variance : spike_slab->variance())
+        {
+            const auto& parameter = marker_variance.parameter();
+            print_variance_prior(
+                stats::detail::ScaledInvChiSqParams{
+                    parameter.prior().degrees_of_freedom(),
+                    parameter.prior().scale()},
+                parameter.initial_value());
+        }
+    }
+    if (const auto* scaled_mixture
+        = prior.query<bayes::ScaledMixtureGaussianPrior>();
+        scaled_mixture != nullptr)
+    {
+        for (const auto& marker_variance : scaled_mixture->variance())
+        {
+            const auto& parameter = marker_variance.parameter();
+            print_variance_prior(
+                stats::detail::ScaledInvChiSqParams{
+                    parameter.prior().degrees_of_freedom(),
+                    parameter.prior().scale()},
+                parameter.initial_value());
+        }
+    }
+    if (const auto* joint = prior.query<bayes::JointMixtureGaussianPrior>();
+        joint != nullptr)
+    {
+        for (const auto& marker_variance : joint->variance())
         {
             const auto& parameter = marker_variance.parameter();
             print_variance_prior(

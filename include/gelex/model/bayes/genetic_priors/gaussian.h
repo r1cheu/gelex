@@ -32,20 +32,20 @@
 namespace gelex::bayes
 {
 
-class SingleGaussianPrior final
+class SingleSharedGaussianPrior final
     : public SingleGeneticPrior
-    , public SingleMarkerVarianceCap
+    , public SingleSharedMarkerVarianceCap
 {
    public:
-    static constexpr std::string_view name = "gaussian";
+    static constexpr std::string_view name = "shared_gaussian";
 
-    SingleGaussianPrior(GeneticMode mode, MarkerVariance variance);
+    SingleSharedGaussianPrior(GeneticMode mode, SharedMarkerVariance variance);
 
     auto mode() const -> GeneticMode override { return mode_; }
-    auto variance() -> MarkerVariance& override { return marker_variance_; }
-    auto variance() const -> const MarkerVariance& override
+    auto variance() -> SharedMarkerVariance& override { return variance_; }
+    auto variance() const -> const SharedMarkerVariance& override
     {
-        return marker_variance_;
+        return variance_;
     }
 
     auto visit(infra::FieldVisitor& visitor) -> void override;
@@ -54,27 +54,52 @@ class SingleGaussianPrior final
 
    private:
     GeneticMode mode_;
-    MarkerVariance marker_variance_;
+    SharedMarkerVariance variance_;
 };
 
-class SingleSpikeSlabGaussianPrior final
+class SinglePerMarkerGaussianPrior final
     : public SingleGeneticPrior
-    , public SingleMarkerVarianceCap
+    , public SinglePerMarkerVarianceCap
+{
+   public:
+    static constexpr std::string_view name = "per_marker_gaussian";
+
+    SinglePerMarkerGaussianPrior(GeneticMode mode, PerMarkerVariance variance);
+
+    auto mode() const -> GeneticMode override { return mode_; }
+    auto variance() -> PerMarkerVariance& override { return variance_; }
+    auto variance() const -> const PerMarkerVariance& override
+    {
+        return variance_;
+    }
+
+    auto visit(infra::FieldVisitor& visitor) -> void override;
+    auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
+        const -> std::unique_ptr<SingleGeneticPriorState> override;
+
+   private:
+    GeneticMode mode_;
+    PerMarkerVariance variance_;
+};
+
+class SingleSharedSpikeSlabGaussianPrior final
+    : public SingleGeneticPrior
+    , public SingleSharedMarkerVarianceCap
     , public SingleMixtureProportionCap
 {
    public:
-    static constexpr std::string_view name = "spike_slab_gaussian";
+    static constexpr std::string_view name = "shared_spike_slab_gaussian";
 
-    SingleSpikeSlabGaussianPrior(
+    SingleSharedSpikeSlabGaussianPrior(
         GeneticMode mode,
-        MarkerVariance variance,
+        SharedMarkerVariance variance,
         MixtureProportion proportion);
 
     auto mode() const -> GeneticMode override { return mode_; }
-    auto variance() -> MarkerVariance& override { return marker_variance_; }
-    auto variance() const -> const MarkerVariance& override
+    auto variance() -> SharedMarkerVariance& override { return variance_; }
+    auto variance() const -> const SharedMarkerVariance& override
     {
-        return marker_variance_;
+        return variance_;
     }
     auto proportion() -> MixtureProportion& override
     {
@@ -91,13 +116,51 @@ class SingleSpikeSlabGaussianPrior final
 
    private:
     GeneticMode mode_;
-    MarkerVariance marker_variance_;
+    SharedMarkerVariance variance_;
+    MixtureProportion mixture_proportion_;
+};
+
+class SinglePerMarkerSpikeSlabGaussianPrior final
+    : public SingleGeneticPrior
+    , public SinglePerMarkerVarianceCap
+    , public SingleMixtureProportionCap
+{
+   public:
+    static constexpr std::string_view name = "per_marker_spike_slab_gaussian";
+
+    SinglePerMarkerSpikeSlabGaussianPrior(
+        GeneticMode mode,
+        PerMarkerVariance variance,
+        MixtureProportion proportion);
+
+    auto mode() const -> GeneticMode override { return mode_; }
+    auto variance() -> PerMarkerVariance& override { return variance_; }
+    auto variance() const -> const PerMarkerVariance& override
+    {
+        return variance_;
+    }
+    auto proportion() -> MixtureProportion& override
+    {
+        return mixture_proportion_;
+    }
+    auto proportion() const -> const MixtureProportion& override
+    {
+        return mixture_proportion_;
+    }
+
+    auto visit(infra::FieldVisitor& visitor) -> void override;
+    auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
+        const -> std::unique_ptr<SingleGeneticPriorState> override;
+
+   private:
+    GeneticMode mode_;
+    PerMarkerVariance variance_;
     MixtureProportion mixture_proportion_;
 };
 
 class SingleScaledMixtureGaussianPrior final
     : public SingleGeneticPrior
-    , public SingleMarkerVarianceCap
+    , public SingleSharedMarkerVarianceCap
     , public SingleMixtureProportionCap
     , public SingleMultiplierCap
 {
@@ -106,15 +169,15 @@ class SingleScaledMixtureGaussianPrior final
 
     SingleScaledMixtureGaussianPrior(
         GeneticMode mode,
-        MarkerVariance variance,
+        SharedMarkerVariance variance,
         Eigen::VectorXd multiplier,
         MixtureProportion proportion);
 
     auto mode() const -> GeneticMode override { return mode_; }
-    auto variance() -> MarkerVariance& override { return marker_variance_; }
-    auto variance() const -> const MarkerVariance& override
+    auto variance() -> SharedMarkerVariance& override { return variance_; }
+    auto variance() const -> const SharedMarkerVariance& override
     {
-        return marker_variance_;
+        return variance_;
     }
     auto proportion() -> MixtureProportion& override
     {
@@ -136,7 +199,7 @@ class SingleScaledMixtureGaussianPrior final
 
    private:
     GeneticMode mode_;
-    MarkerVariance marker_variance_;
+    SharedMarkerVariance variance_;
     Eigen::VectorXd multiplier_;
     MixtureProportion mixture_proportion_;
 };
@@ -150,11 +213,12 @@ class JointGaussianMixturePrior final
     static constexpr std::string_view name = "joint_mixture_gaussian";
 
     JointGaussianMixturePrior(
-        std::array<MarkerVariance, 2> variances,
+        std::array<JointMarkerVariance, 2> variances,
         MixtureProportion proportion);
 
-    auto variance(GeneticMode mode) -> MarkerVariance& override;
-    auto variance(GeneticMode mode) const -> const MarkerVariance& override;
+    auto variance(GeneticMode mode) -> JointMarkerVariance& override;
+    auto variance(GeneticMode mode) const
+        -> const JointMarkerVariance& override;
     auto proportion() -> MixtureProportion& override
     {
         return mixture_proportion_;
@@ -169,7 +233,7 @@ class JointGaussianMixturePrior final
         const -> std::unique_ptr<JointGeneticPriorState> override;
 
    private:
-    std::array<MarkerVariance, 2> marker_variances_;
+    std::array<JointMarkerVariance, 2> marker_variances_;
     MixtureProportion mixture_proportion_;
 };
 

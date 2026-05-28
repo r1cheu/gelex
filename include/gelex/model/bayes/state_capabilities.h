@@ -18,6 +18,7 @@
 #define GELEX_MODEL_BAYES_STATE_CAPABILITIES_H_
 
 #include <span>
+#include <variant>
 
 #include <Eigen/Core>
 
@@ -28,15 +29,6 @@
 
 namespace gelex::bayes
 {
-
-class VarianceStateCap : public VarianceCapability<Eigen::VectorXd>
-{
-   protected:
-    auto visit_records(StateRecordSet set, infra::RecordSink& sink) const
-        -> void;
-    auto visit_records(StateRecordSet set, infra::MutableRecordSink& sink)
-        -> void;
-};
 
 class ProportionStateCap : public ProportionCapability<ProportionState>
 {
@@ -107,9 +99,12 @@ class JointComponentStateCap
     JointComponentStateCap(JointComponentStateCap&&) noexcept = default;
 };
 
-using SingleVarianceStateCap = SingleVarianceCapability<Eigen::VectorXd>;
+using SingleSharedVarianceStateCap = SharedVarianceCapability<double>;
+using SinglePerMarkerVarianceStateCap
+    = PerMarkerVarianceCapability<Eigen::VectorXd>;
 using SingleProportionStateCap = SingleProportionCapability<ProportionState>;
-using JointVarianceStateCap = JointVarianceCapability<Eigen::VectorXd>;
+using JointMarkerVarianceState = std::variant<double, Eigen::VectorXd>;
+using JointVarianceStateCap = JointVarianceCapability<JointMarkerVarianceState>;
 using JointProportionStateCap = JointProportionCapability<ProportionState>;
 
 }  // namespace gelex::bayes

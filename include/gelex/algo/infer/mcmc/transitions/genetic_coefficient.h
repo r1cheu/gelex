@@ -35,19 +35,19 @@ namespace gelex::mcmc
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-class SingleGaussianCoefficientTransition
+class SingleSharedGaussianCoefficientTransition
 {
    public:
-    SingleGaussianCoefficientTransition(
+    SingleSharedGaussianCoefficientTransition(
         const bayes::SingleGeneticPrior& /*prior*/,
         bayes::SingleGeneticBlockState& block,
         bayes::ResidualState& residual)
         : state_(block.state()),
           residual_(residual),
           variance_(block.prior_state()
-                        .require<bayes::SingleVarianceStateCap>()
+                        .require<bayes::SingleSharedVarianceStateCap>()
                         .variance()),
-          normal_(variance_(0))
+          normal_(variance_)
     {
     }
 
@@ -64,9 +64,55 @@ class SingleGaussianCoefficientTransition
         GeneticAdjustmentGuard guard{
             column, coeffs(marker_index), residual_, state_};
         const double rhs = column.dot(residual_.y_adj) + (xtx_diag_i * old_i);
-        const Eigen::Index variance_index
-            = variance_.size() == 1 ? Eigen::Index{0} : marker_index;
-        normal_.set_prior_var(variance_(variance_index));
+        normal_.set_prior_var(variance_);
+        coeffs(marker_index) = normal_(
+            stats::NormalSampler<double>::Kernel{
+                .quadratic = xtx_diag_i,
+                .linear = rhs,
+                .scale = residual_.variance,
+            },
+            rng);
+    }
+
+    auto finish() -> void { state_.variance = stats::detail::var(state_.u)(0); }
+
+   private:
+    bayes::GeneticState& state_;
+    bayes::ResidualState& residual_;
+    double& variance_;
+    stats::NormalSampler<double> normal_;
+};
+
+class SinglePerMarkerGaussianCoefficientTransition
+{
+   public:
+    SinglePerMarkerGaussianCoefficientTransition(
+        const bayes::SingleGeneticPrior& /*prior*/,
+        bayes::SingleGeneticBlockState& block,
+        bayes::ResidualState& residual)
+        : state_(block.state()),
+          residual_(residual),
+          variance_(block.prior_state()
+                        .require<bayes::SinglePerMarkerVarianceStateCap>()
+                        .variance()),
+          normal_(0.0)
+    {
+    }
+
+    auto prepare() -> void { normal_.reset(); }
+
+    auto update(
+        Eigen::Index marker_index,
+        Eigen::Ref<const Eigen::VectorXd> column,
+        double xtx_diag_i,
+        std::mt19937_64& rng) -> void
+    {
+        auto& coeffs = state_.coeffs;
+        const double old_i = coeffs(marker_index);
+        GeneticAdjustmentGuard guard{
+            column, coeffs(marker_index), residual_, state_};
+        const double rhs = column.dot(residual_.y_adj) + (xtx_diag_i * old_i);
+        normal_.set_prior_var(variance_(marker_index));
         coeffs(marker_index) = normal_(
             stats::NormalSampler<double>::Kernel{
                 .quadratic = xtx_diag_i,
@@ -85,22 +131,22 @@ class SingleGaussianCoefficientTransition
     stats::NormalSampler<double> normal_;
 };
 
-class SingleSpikeSlabCoefficientTransition
+class SingleSharedSpikeSlabCoefficientTransition
 {
    public:
-    SingleSpikeSlabCoefficientTransition(
+    SingleSharedSpikeSlabCoefficientTransition(
         const bayes::SingleGeneticPrior& /*prior*/,
         bayes::SingleGeneticBlockState& block,
         bayes::ResidualState& residual)
         : state_(block.state()),
           residual_(residual),
           variance_(block.prior_state()
-                        .require<bayes::SingleVarianceStateCap>()
+                        .require<bayes::SingleSharedVarianceStateCap>()
                         .variance()),
           proportion_(block.prior_state()
                           .require<bayes::SingleProportionStateCap>()
                           .proportion()),
-          normal_(variance_(0))
+          normal_(variance_)
     {
     }
 
@@ -120,9 +166,74 @@ class SingleSpikeSlabCoefficientTransition
         auto& coeffs = state_.coeffs;
         const double old_i = coeffs(marker_index);
         const double rhs = column.dot(residual_.y_adj) + (xtx_diag_i * old_i);
-        const Eigen::Index variance_index
-            = variance_.size() == 1 ? Eigen::Index{0} : marker_index;
-        const auto post = normal_.set_prior_var(variance_(variance_index))
+        const auto post = normal_.set_prior_var(variance_).posterior_with_logL(
+            stats::NormalSampler<double>::Kernel{
+                .quadratic = xtx_diag_i,
+                .linear = rhs,
+                .scale = residual_.variance,
+            });
+        const double log_like_1_minus_0
+            = post.log_likelihood_kernel + logpi_(1) - logpi_(0);
+        const double prob_component_0
+            = 1.0 / (1.0 + std::exp(log_like_1_minus_0));
+        const int component = uniform_(rng) < prob_component_0 ? 0 : 1;
+
+        ProportionAssignmentGuard assignment_guard{proportion_, marker_index};
+        GeneticAdjustmentGuard guard{
+            column, coeffs(marker_index), residual_, state_};
+        coeffs(marker_index)
+            = component == 0 ? 0.0 : normal_.draw(post.params, rng);
+        proportion_.assignment(marker_index) = component;
+    }
+
+    auto finish() -> void { state_.variance = stats::detail::var(state_.u)(0); }
+
+   private:
+    bayes::GeneticState& state_;
+    bayes::ResidualState& residual_;
+    double& variance_;
+    bayes::ProportionState& proportion_;
+    stats::NormalSampler<double> normal_;
+    std::uniform_real_distribution<double> uniform_{0.0, 1.0};
+    Eigen::VectorXd logpi_;
+};
+
+class SinglePerMarkerSpikeSlabCoefficientTransition
+{
+   public:
+    SinglePerMarkerSpikeSlabCoefficientTransition(
+        const bayes::SingleGeneticPrior& /*prior*/,
+        bayes::SingleGeneticBlockState& block,
+        bayes::ResidualState& residual)
+        : state_(block.state()),
+          residual_(residual),
+          variance_(block.prior_state()
+                        .require<bayes::SinglePerMarkerVarianceStateCap>()
+                        .variance()),
+          proportion_(block.prior_state()
+                          .require<bayes::SingleProportionStateCap>()
+                          .proportion()),
+          normal_(0.0)
+    {
+    }
+
+    auto prepare() -> void
+    {
+        normal_.reset();
+        uniform_.reset();
+        logpi_ = proportion_.value.array().log();
+    }
+
+    auto update(
+        Eigen::Index marker_index,
+        Eigen::Ref<const Eigen::VectorXd> column,
+        double xtx_diag_i,
+        std::mt19937_64& rng) -> void
+    {
+        auto& coeffs = state_.coeffs;
+        const double old_i = coeffs(marker_index);
+        const double rhs = column.dot(residual_.y_adj) + (xtx_diag_i * old_i);
+        const auto post = normal_.set_prior_var(variance_(marker_index))
                               .posterior_with_logL(
                                   stats::NormalSampler<double>::Kernel{
                                       .quadratic = xtx_diag_i,
@@ -165,7 +276,7 @@ class SingleScaledMixtureCoefficientTransition
         : state_(block.state()),
           residual_(residual),
           variance_(block.prior_state()
-                        .require<bayes::SingleVarianceStateCap>()
+                        .require<bayes::SingleSharedVarianceStateCap>()
                         .variance()),
           proportion_(block.prior_state()
                           .require<bayes::SingleProportionStateCap>()
@@ -192,7 +303,7 @@ class SingleScaledMixtureCoefficientTransition
         normal_.reset();
         uniform_.reset();
         logpi_ = proportion_.value.array().log();
-        marker_variances_ = variance_(0) * multiplier_.array();
+        marker_variances_ = variance_ * multiplier_.array();
     }
 
     auto update(
@@ -268,7 +379,7 @@ class SingleScaledMixtureCoefficientTransition
    private:
     bayes::GeneticState& state_;
     bayes::ResidualState& residual_;
-    Eigen::VectorXd& variance_;
+    double& variance_;
     bayes::ProportionState& proportion_;
     bayes::ComponentState& component_;
     Eigen::VectorXd multiplier_;

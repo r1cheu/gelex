@@ -16,12 +16,16 @@
 
 #include "gelex/model/bayes/gaussian_prior_state.h"
 
+#include <cstddef>
+#include <ranges>
 #include <span>
 #include <utility>
 #include <vector>
 
 #include <Eigen/Core>
 
+#include "gelex/exception.h"
+#include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/prior_state.h"
 
@@ -33,17 +37,28 @@ GaussianState::GaussianState(std::vector<Eigen::VectorXd> variances)
 {
 }
 
-auto GaussianState::visit_records(StateRecordSet set, infra::RecordSink& sink)
-    const -> void
+auto GaussianState::visit_records(StateRecordSet, infra::RecordSink& sink) const
+    -> void
 {
-    VarianceStateCap::visit_records(set, sink);
+    for (auto [i, value] : std::views::enumerate(variance()))
+    {
+        sink.emit("variance", static_cast<std::size_t>(i), "value", value);
+    }
 }
 
 auto GaussianState::visit_records(
     StateRecordSet set,
     infra::MutableRecordSink& sink) -> void
 {
-    VarianceStateCap::visit_records(set, sink);
+    if (set != StateRecordSet::checkpoint)
+    {
+        throw GelexException(
+            "GaussianState: mutable visit_records requires checkpoint set");
+    }
+    for (auto [i, value] : std::views::enumerate(variance()))
+    {
+        sink.emit("variance", static_cast<std::size_t>(i), "value", value);
+    }
 }
 
 SpikeSlabGaussianState::SpikeSlabGaussianState(
@@ -63,7 +78,10 @@ auto SpikeSlabGaussianState::visit_records(
     StateRecordSet set,
     infra::RecordSink& sink) const -> void
 {
-    VarianceStateCap::visit_records(set, sink);
+    for (auto [i, value] : std::views::enumerate(variance()))
+    {
+        sink.emit("variance", static_cast<std::size_t>(i), "value", value);
+    }
     ProportionStateCap::visit_records(set, sink);
 }
 
@@ -71,7 +89,16 @@ auto SpikeSlabGaussianState::visit_records(
     StateRecordSet set,
     infra::MutableRecordSink& sink) -> void
 {
-    VarianceStateCap::visit_records(set, sink);
+    if (set != StateRecordSet::checkpoint)
+    {
+        throw GelexException(
+            "SpikeSlabGaussianState: mutable visit_records requires "
+            "checkpoint set");
+    }
+    for (auto [i, value] : std::views::enumerate(variance()))
+    {
+        sink.emit("variance", static_cast<std::size_t>(i), "value", value);
+    }
     ProportionStateCap::visit_records(set, sink);
 }
 
@@ -99,7 +126,10 @@ auto ScaledMixtureGaussianState::visit_records(
     StateRecordSet set,
     infra::RecordSink& sink) const -> void
 {
-    VarianceStateCap::visit_records(set, sink);
+    for (auto [i, value] : std::views::enumerate(variance()))
+    {
+        sink.emit("variance", static_cast<std::size_t>(i), "value", value);
+    }
     ComponentStateCap::visit_records(set, sink);
     ProportionStateCap::visit_records(set, sink);
 }
@@ -108,7 +138,16 @@ auto ScaledMixtureGaussianState::visit_records(
     StateRecordSet set,
     infra::MutableRecordSink& sink) -> void
 {
-    VarianceStateCap::visit_records(set, sink);
+    if (set != StateRecordSet::checkpoint)
+    {
+        throw GelexException(
+            "ScaledMixtureGaussianState: mutable visit_records requires "
+            "checkpoint set");
+    }
+    for (auto [i, value] : std::views::enumerate(variance()))
+    {
+        sink.emit("variance", static_cast<std::size_t>(i), "value", value);
+    }
     ComponentStateCap::visit_records(set, sink);
     ProportionStateCap::visit_records(set, sink);
 }
@@ -128,7 +167,10 @@ auto JointMixtureGaussianState::visit_records(
     StateRecordSet set,
     infra::RecordSink& sink) const -> void
 {
-    VarianceStateCap::visit_records(set, sink);
+    for (auto [i, value] : std::views::enumerate(variance()))
+    {
+        sink.emit("variance", static_cast<std::size_t>(i), "value", value);
+    }
     ComponentStateCap::visit_records(set, sink);
     ProportionStateCap::visit_records(set, sink);
 }
@@ -137,7 +179,16 @@ auto JointMixtureGaussianState::visit_records(
     StateRecordSet set,
     infra::MutableRecordSink& sink) -> void
 {
-    VarianceStateCap::visit_records(set, sink);
+    if (set != StateRecordSet::checkpoint)
+    {
+        throw GelexException(
+            "JointMixtureGaussianState: mutable visit_records requires "
+            "checkpoint set");
+    }
+    for (auto [i, value] : std::views::enumerate(variance()))
+    {
+        sink.emit("variance", static_cast<std::size_t>(i), "value", value);
+    }
     ComponentStateCap::visit_records(set, sink);
     ProportionStateCap::visit_records(set, sink);
 }

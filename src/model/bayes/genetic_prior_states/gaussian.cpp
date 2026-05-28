@@ -19,6 +19,7 @@
 #include <array>
 #include <ranges>
 #include <utility>
+#include <variant>
 
 #include <fmt/format.h>
 #include <Eigen/Core>
@@ -32,18 +33,46 @@
 namespace gelex::bayes
 {
 
-SingleGaussianState::SingleGaussianState(Eigen::VectorXd variance)
-    : variance_(std::move(variance))
+SingleSharedGaussianState::SingleSharedGaussianState(double variance)
+    : variance_(variance)
 {
 }
 
-auto SingleGaussianState::visit(infra::FieldVisitor& visitor) -> void
+auto SingleSharedGaussianState::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on("variance", variance_, FieldFlag::checkpoint | FieldFlag::trace);
 }
 
-SingleSpikeSlabGaussianState::SingleSpikeSlabGaussianState(
+SinglePerMarkerGaussianState::SinglePerMarkerGaussianState(
+    Eigen::VectorXd variance)
+    : variance_(std::move(variance))
+{
+}
+
+auto SinglePerMarkerGaussianState::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on("variance", variance_, FieldFlag::checkpoint | FieldFlag::trace);
+}
+
+SingleSharedSpikeSlabGaussianState::SingleSharedSpikeSlabGaussianState(
+    double variance,
+    const MixtureProportion& proportion,
+    Eigen::Index num_markers)
+    : variance_(variance), proportion_(proportion, num_markers)
+{
+}
+
+auto SingleSharedSpikeSlabGaussianState::visit(infra::FieldVisitor& visitor)
+    -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on("variance", variance_, FieldFlag::checkpoint | FieldFlag::trace);
+    proportion_.visit(visitor);
+}
+
+SinglePerMarkerSpikeSlabGaussianState::SinglePerMarkerSpikeSlabGaussianState(
     Eigen::VectorXd variance,
     const MixtureProportion& proportion,
     Eigen::Index num_markers)
@@ -51,7 +80,8 @@ SingleSpikeSlabGaussianState::SingleSpikeSlabGaussianState(
 {
 }
 
-auto SingleSpikeSlabGaussianState::visit(infra::FieldVisitor& visitor) -> void
+auto SinglePerMarkerSpikeSlabGaussianState::visit(infra::FieldVisitor& visitor)
+    -> void
 {
     auto scope = visitor.scope(name);
     visitor.on("variance", variance_, FieldFlag::checkpoint | FieldFlag::trace);
@@ -59,12 +89,12 @@ auto SingleSpikeSlabGaussianState::visit(infra::FieldVisitor& visitor) -> void
 }
 
 SingleScaledMixtureGaussianState::SingleScaledMixtureGaussianState(
-    Eigen::VectorXd variance,
+    double variance,
     const Eigen::VectorXd& multiplier,
     const MixtureProportion& proportion,
     Eigen::Index num_markers,
     Eigen::Index num_individuals)
-    : variance_(std::move(variance)),
+    : variance_(variance),
       component_(multiplier.size() - 1, num_individuals),
       proportion_(proportion, num_markers)
 {
@@ -80,7 +110,7 @@ auto SingleScaledMixtureGaussianState::visit(infra::FieldVisitor& visitor)
 }
 
 JointGaussianMixtureState::JointGaussianMixtureState(
-    std::array<Eigen::VectorXd, 2> variances,
+    std::array<JointMarkerVarianceState, 2> variances,
     const MixtureProportion& proportion,
     Eigen::Index num_markers,
     Eigen::Index num_individuals)
@@ -97,22 +127,28 @@ auto JointGaussianMixtureState::visit(infra::FieldVisitor& visitor) -> void
     for (auto [i, mode] : std::views::enumerate(modes))
     {
         auto mode_scope = visitor.scope(fmt::format("{}", mode));
-        visitor.on(
-            "variance",
-            variances_[i],
-            FieldFlag::checkpoint | FieldFlag::trace);
+        std::visit(
+            [&visitor](auto& variance)
+            {
+                visitor.on(
+                    "variance",
+                    variance,
+                    FieldFlag::checkpoint | FieldFlag::trace);
+            },
+            variances_[i]);
     }
     component_.visit(visitor);
     proportion_.visit(visitor);
 }
 
-auto JointGaussianMixtureState::variance(GeneticMode mode) -> Eigen::VectorXd&
+auto JointGaussianMixtureState::variance(GeneticMode mode)
+    -> JointMarkerVarianceState&
 {
     return variances_[std::to_underlying(mode)];
 }
 
 auto JointGaussianMixtureState::variance(GeneticMode mode) const
-    -> const Eigen::VectorXd&
+    -> const JointMarkerVarianceState&
 {
     return variances_[std::to_underlying(mode)];
 }

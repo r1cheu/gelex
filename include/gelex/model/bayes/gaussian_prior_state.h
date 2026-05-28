@@ -30,18 +30,13 @@
 namespace gelex::bayes
 {
 
-class GaussianState final
-    : public GeneticPriorState
-    , public VarianceStateCap
+class GaussianState final : public GeneticPriorState
 {
    public:
     explicit GaussianState(std::vector<Eigen::VectorXd> variances);
 
-    auto variance() -> std::span<Eigen::VectorXd> override
-    {
-        return variances_;
-    }
-    auto variance() const -> std::span<const Eigen::VectorXd> override
+    auto variance() -> std::span<Eigen::VectorXd> { return variances_; }
+    auto variance() const -> std::span<const Eigen::VectorXd>
     {
         return variances_;
     }
@@ -57,7 +52,6 @@ class GaussianState final
 
 class SpikeSlabGaussianState final
     : public GeneticPriorState
-    , public VarianceStateCap
     , public ProportionStateCap
 {
    public:
@@ -66,11 +60,8 @@ class SpikeSlabGaussianState final
         std::span<const MixtureProportion> mixture_proportions,
         Eigen::Index num_markers);
 
-    auto variance() -> std::span<Eigen::VectorXd> override
-    {
-        return variances_;
-    }
-    auto variance() const -> std::span<const Eigen::VectorXd> override
+    auto variance() -> std::span<Eigen::VectorXd> { return variances_; }
+    auto variance() const -> std::span<const Eigen::VectorXd>
     {
         return variances_;
     }
@@ -96,7 +87,6 @@ class SpikeSlabGaussianState final
 
 class ScaledMixtureGaussianState final
     : public GeneticPriorState
-    , public VarianceStateCap
     , public ComponentStateCap
     , public ProportionStateCap
 {
@@ -108,11 +98,8 @@ class ScaledMixtureGaussianState final
         Eigen::Index num_markers,
         Eigen::Index num_individuals);
 
-    auto variance() -> std::span<Eigen::VectorXd> override
-    {
-        return variances_;
-    }
-    auto variance() const -> std::span<const Eigen::VectorXd> override
+    auto variance() -> std::span<Eigen::VectorXd> { return variances_; }
+    auto variance() const -> std::span<const Eigen::VectorXd>
     {
         return variances_;
     }
@@ -148,7 +135,6 @@ class ScaledMixtureGaussianState final
 
 class JointMixtureGaussianState final
     : public GeneticPriorState
-    , public VarianceStateCap
     , public ComponentStateCap
     , public ProportionStateCap
 {
@@ -159,11 +145,8 @@ class JointMixtureGaussianState final
         Eigen::Index num_markers,
         Eigen::Index num_individuals);
 
-    auto variance() -> std::span<Eigen::VectorXd> override
-    {
-        return variances_;
-    }
-    auto variance() const -> std::span<const Eigen::VectorXd> override
+    auto variance() -> std::span<Eigen::VectorXd> { return variances_; }
+    auto variance() const -> std::span<const Eigen::VectorXd>
     {
         return variances_;
     }

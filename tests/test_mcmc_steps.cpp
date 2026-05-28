@@ -21,6 +21,7 @@
 #include <random>
 #include <span>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include <Eigen/Core>
@@ -51,6 +52,7 @@
 #include "gelex/algo/infer/mcmc/transitions/genetic_coefficient.h"
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/model/bayes/gaussian_prior.h"
+#include "gelex/model/bayes/gaussian_prior_state.h"
 #include "gelex/model/bayes/genetic_priors/gaussian.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
@@ -594,9 +596,8 @@ TEST_CASE(
         GeneticMode::A,
         test::GenotypeBuilder::build(
             Eigen::MatrixXd{X}, std::move(mean), std::move(stddev), {1})};
-    bayes::SingleGaussianPrior prior{
-        GeneticMode::A,
-        make_marker_variance(bayes::MarkerVarianceLayout::shared)};
+    bayes::SingleSharedGaussianPrior prior{
+        GeneticMode::A, bayes::SharedMarkerVariance{make_variance(0.1)}};
     bayes::SingleGeneticBlockState block{design, prior};
     bayes::ResidualState residual{.y_adj = y, .variance = 0.25};
     std::mt19937_64 rng{kSeed};
@@ -627,7 +628,7 @@ TEST_CASE(
     bayes::GeneticDesign design{GeneticMode::A, make_genotype(X)};
     bayes::SingleScaledMixtureGaussianPrior prior{
         GeneticMode::A,
-        make_marker_variance(bayes::MarkerVarianceLayout::shared),
+        bayes::SharedMarkerVariance{make_variance(0.1)},
         Eigen::VectorXd{{0.0, 0.5}},
         make_proportion(
             Eigen::VectorXd{{0.5, 0.5}}, bayes::UpdatePolicy::sampled)};
@@ -668,9 +669,9 @@ TEST_CASE(
     };
     const Eigen::VectorXd y{{0.5, -0.25, 0.75, 1.0}};
     bayes::GeneticDesign design{GeneticMode::A, make_genotype(X)};
-    bayes::SingleSpikeSlabGaussianPrior prior{
+    bayes::SingleSharedSpikeSlabGaussianPrior prior{
         GeneticMode::A,
-        make_marker_variance(bayes::MarkerVarianceLayout::shared),
+        bayes::SharedMarkerVariance{make_variance(0.1)},
         make_proportion(
             Eigen::VectorXd{{0.5, 0.5}}, bayes::UpdatePolicy::sampled)};
     bayes::SingleGeneticBlockState block{design, prior};
@@ -715,8 +716,10 @@ TEST_CASE(
     bayes::GeneticDesign dominance{GeneticMode::D, make_genotype(dominance_x)};
     bayes::JointGaussianMixturePrior prior{
         std::array{
-            make_marker_variance(bayes::MarkerVarianceLayout::shared),
-            make_marker_variance(bayes::MarkerVarianceLayout::shared)},
+            bayes::JointMarkerVariance{
+                bayes::SharedMarkerVariance{make_variance(0.1)}},
+            bayes::JointMarkerVariance{
+                bayes::PerMarkerVariance{make_variance(0.1)}}},
         make_proportion(
             Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}},
             bayes::UpdatePolicy::sampled)};
@@ -751,9 +754,9 @@ TEST_CASE(
         {0, 0, 1},
     };
     bayes::GeneticDesign design{GeneticMode::A, make_genotype(X)};
-    bayes::SingleSpikeSlabGaussianPrior prior{
+    bayes::SinglePerMarkerSpikeSlabGaussianPrior prior{
         GeneticMode::A,
-        make_marker_variance(bayes::MarkerVarianceLayout::per_marker),
+        bayes::PerMarkerVariance{make_variance(0.1)},
         make_proportion(
             Eigen::VectorXd{{0.5, 0.5}}, bayes::UpdatePolicy::sampled)};
     bayes::SingleGeneticBlockState block{design, prior};
@@ -767,12 +770,12 @@ TEST_CASE(
     const auto coeffs_before = block.state().coeffs;
     const auto u_before = block.state().u;
     auto& variance
-        = block.prior_state().require<bayes::SingleVarianceStateCap>()
+        = block.prior_state().require<bayes::SinglePerMarkerVarianceStateCap>()
               .variance();
     const auto variance_before = variance;
     std::mt19937_64 rng{kSeed};
 
-    SingleGeneticVarianceStep step{prior, block, rng};
+    SinglePerMarkerGeneticVarianceStep step{prior, block, rng};
     step.step();
 
     REQUIRE(block.state().coeffs.isApprox(coeffs_before));
@@ -802,8 +805,10 @@ TEST_CASE(
     bayes::GeneticDesign dominance{GeneticMode::D, make_genotype(dominance_x)};
     bayes::JointGaussianMixturePrior prior{
         std::array{
-            make_marker_variance(bayes::MarkerVarianceLayout::shared),
-            make_marker_variance(bayes::MarkerVarianceLayout::shared)},
+            bayes::JointMarkerVariance{
+                bayes::SharedMarkerVariance{make_variance(0.1)}},
+            bayes::JointMarkerVariance{
+                bayes::PerMarkerVariance{make_variance(0.1)}}},
         make_proportion(
             Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}},
             bayes::UpdatePolicy::sampled)};
@@ -817,8 +822,10 @@ TEST_CASE(
     proportion.count = Eigen::VectorXi{{0, 1, 1, 1}};
     auto& variance_cap
         = block.prior_state().require<bayes::JointVarianceStateCap>();
-    const auto additive_before = variance_cap.variance(GeneticMode::A);
-    const auto dominance_before = variance_cap.variance(GeneticMode::D);
+    const double additive_before
+        = std::get<double>(variance_cap.variance(GeneticMode::A));
+    const auto dominance_before
+        = std::get<Eigen::VectorXd>(variance_cap.variance(GeneticMode::D));
     const auto additive_coeffs_before = block.state(GeneticMode::A).coeffs;
     const auto dominance_coeffs_before = block.state(GeneticMode::D).coeffs;
     std::mt19937_64 rng{kSeed};
@@ -828,8 +835,17 @@ TEST_CASE(
 
     REQUIRE(block.state(GeneticMode::A).coeffs.isApprox(additive_coeffs_before));
     REQUIRE(block.state(GeneticMode::D).coeffs.isApprox(dominance_coeffs_before));
-    REQUIRE(variance_cap.variance(GeneticMode::A)(0) != additive_before(0));
-    REQUIRE(variance_cap.variance(GeneticMode::D)(0) != dominance_before(0));
+    REQUIRE(std::get<double>(variance_cap.variance(GeneticMode::A))
+            != additive_before);
+    REQUIRE(
+        std::get<Eigen::VectorXd>(variance_cap.variance(GeneticMode::D))(0)
+        == dominance_before(0));
+    REQUIRE(
+        std::get<Eigen::VectorXd>(variance_cap.variance(GeneticMode::D))(1)
+        != dominance_before(1));
+    REQUIRE(
+        std::get<Eigen::VectorXd>(variance_cap.variance(GeneticMode::D))(2)
+        != dominance_before(2));
 }
 
 TEST_CASE(
@@ -846,9 +862,9 @@ TEST_CASE(
 
     SECTION("sampled single proportion updates simplex")
     {
-        bayes::SingleSpikeSlabGaussianPrior prior{
+        bayes::SingleSharedSpikeSlabGaussianPrior prior{
             GeneticMode::A,
-            make_marker_variance(bayes::MarkerVarianceLayout::shared),
+            bayes::SharedMarkerVariance{make_variance(0.1)},
             make_proportion(
                 Eigen::VectorXd{{0.5, 0.5}}, bayes::UpdatePolicy::sampled)};
         bayes::SingleGeneticBlockState block{design, prior};
@@ -868,9 +884,9 @@ TEST_CASE(
 
     SECTION("fixed single proportion is no-op")
     {
-        bayes::SingleSpikeSlabGaussianPrior prior{
+        bayes::SingleSharedSpikeSlabGaussianPrior prior{
             GeneticMode::A,
-            make_marker_variance(bayes::MarkerVarianceLayout::shared),
+            bayes::SharedMarkerVariance{make_variance(0.1)},
             make_proportion(
                 Eigen::VectorXd{{0.5, 0.5}}, bayes::UpdatePolicy::fixed)};
         bayes::SingleGeneticBlockState block{design, prior};
@@ -892,8 +908,10 @@ TEST_CASE(
         bayes::GeneticDesign dominance{GeneticMode::D, make_genotype(X)};
         bayes::JointGaussianMixturePrior prior{
             std::array{
-                make_marker_variance(bayes::MarkerVarianceLayout::shared),
-                make_marker_variance(bayes::MarkerVarianceLayout::shared)},
+                bayes::JointMarkerVariance{
+                    bayes::SharedMarkerVariance{make_variance(0.1)}},
+                bayes::JointMarkerVariance{
+                    bayes::SharedMarkerVariance{make_variance(0.1)}}},
             make_proportion(
                 Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}},
                 bayes::UpdatePolicy::sampled)};
@@ -1027,10 +1045,21 @@ TEMPLATE_TEST_CASE(
     REQUIRE(std::isfinite(genetic.variance));
     REQUIRE(genetic.variance >= 0.0);
 
-    const auto& variance = state.genetic_block_for(GeneticMode::A)
-                               ->prior_state()
-                               .require<bayes::VarianceStateCap>()
-                               .variance()[0];
+    std::span<const Eigen::VectorXd> variances;
+    auto& prior_state
+        = state.genetic_block_for(GeneticMode::A)->prior_state();
+    if (const auto* gaussian = prior_state.query<bayes::GaussianState>();
+        gaussian != nullptr)
+    {
+        variances = gaussian->variance();
+    }
+    if (const auto* spike_slab
+        = prior_state.query<bayes::SpikeSlabGaussianState>();
+        spike_slab != nullptr)
+    {
+        variances = spike_slab->variance();
+    }
+    const auto& variance = variances[0];
     for (Eigen::Index i = 0; i < variance.size(); ++i)
     {
         REQUIRE(std::isfinite(variance(i)));

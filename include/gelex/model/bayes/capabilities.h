@@ -28,27 +28,6 @@ namespace gelex::bayes
 {
 
 template <typename T>
-class VarianceCapability
-{
-   public:
-    using element_type = T;
-
-    auto operator=(const VarianceCapability&) -> VarianceCapability& = delete;
-    auto operator=(VarianceCapability&&) noexcept
-        -> VarianceCapability& = delete;
-
-    virtual ~VarianceCapability() = default;
-
-    virtual auto variance() -> std::span<T> = 0;
-    virtual auto variance() const -> std::span<const T> = 0;
-
-   protected:
-    VarianceCapability() = default;
-    VarianceCapability(const VarianceCapability&) = default;
-    VarianceCapability(VarianceCapability&&) noexcept = default;
-};
-
-template <typename T>
 class ProportionCapability
 {
    public:
@@ -92,30 +71,52 @@ class MultiplierCapability
     MultiplierCapability(MultiplierCapability&&) noexcept = default;
 };
 
-using MarkerVarianceCap = VarianceCapability<MarkerVariance>;
 using MixtureProportionCap = ProportionCapability<MixtureProportion>;
 using MultiplierCap = MultiplierCapability<Eigen::VectorXd>;
 
 template <typename T>
-class SingleVarianceCapability
+class SharedVarianceCapability
 {
    public:
     using element_type = T;
 
-    auto operator=(const SingleVarianceCapability&)
-        -> SingleVarianceCapability& = delete;
-    auto operator=(SingleVarianceCapability&&) noexcept
-        -> SingleVarianceCapability& = delete;
+    auto operator=(const SharedVarianceCapability&)
+        -> SharedVarianceCapability& = delete;
+    auto operator=(SharedVarianceCapability&&) noexcept
+        -> SharedVarianceCapability& = delete;
 
-    virtual ~SingleVarianceCapability() = default;
+    virtual ~SharedVarianceCapability() = default;
 
     virtual auto variance() -> T& = 0;
     virtual auto variance() const -> const T& = 0;
 
    protected:
-    SingleVarianceCapability() = default;
-    SingleVarianceCapability(const SingleVarianceCapability&) = default;
-    SingleVarianceCapability(SingleVarianceCapability&&) noexcept = default;
+    SharedVarianceCapability() = default;
+    SharedVarianceCapability(const SharedVarianceCapability&) = default;
+    SharedVarianceCapability(SharedVarianceCapability&&) noexcept = default;
+};
+
+template <typename T>
+class PerMarkerVarianceCapability
+{
+   public:
+    using element_type = T;
+
+    auto operator=(const PerMarkerVarianceCapability&)
+        -> PerMarkerVarianceCapability& = delete;
+    auto operator=(PerMarkerVarianceCapability&&) noexcept
+        -> PerMarkerVarianceCapability& = delete;
+
+    virtual ~PerMarkerVarianceCapability() = default;
+
+    virtual auto variance() -> T& = 0;
+    virtual auto variance() const -> const T& = 0;
+
+   protected:
+    PerMarkerVarianceCapability() = default;
+    PerMarkerVarianceCapability(const PerMarkerVarianceCapability&) = default;
+    PerMarkerVarianceCapability(PerMarkerVarianceCapability&&) noexcept
+        = default;
 };
 
 template <typename T>
@@ -206,11 +207,14 @@ class JointProportionCapability
     JointProportionCapability(JointProportionCapability&&) noexcept = default;
 };
 
-using SingleMarkerVarianceCap = SingleVarianceCapability<MarkerVariance>;
+using SingleSharedMarkerVarianceCap
+    = SharedVarianceCapability<SharedMarkerVariance>;
+using SinglePerMarkerVarianceCap
+    = PerMarkerVarianceCapability<PerMarkerVariance>;
 using SingleMixtureProportionCap
     = SingleProportionCapability<MixtureProportion>;
 using SingleMultiplierCap = SingleMultiplierCapability<Eigen::VectorXd>;
-using JointMarkerVarianceCap = JointVarianceCapability<MarkerVariance>;
+using JointMarkerVarianceCap = JointVarianceCapability<JointMarkerVariance>;
 using JointMixtureProportionCap = JointProportionCapability<MixtureProportion>;
 
 }  // namespace gelex::bayes

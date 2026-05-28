@@ -19,6 +19,8 @@
 
 #include <array>
 #include <random>
+#include <type_traits>
+#include <variant>
 
 #include "gelex/algo/infer/mcmc/kernels/common.h"
 #include "gelex/algo/infer/mcmc/step.h"
@@ -34,22 +36,24 @@ namespace gelex::mcmc
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-class SingleGeneticVarianceStep final : public Step
+class SingleSharedGeneticVarianceStep final : public Step
 {
    public:
-    SingleGeneticVarianceStep(
+    SingleSharedGeneticVarianceStep(
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
         std::mt19937_64& rng)
         : block_(block),
-          marker_variance_(
-              prior.query<bayes::SingleMarkerVarianceCap>() != nullptr
-                  ? prior.query<bayes::SingleMarkerVarianceCap>()->variance()
+          variance_parameter_(
+              prior.query<bayes::SingleSharedMarkerVarianceCap>() != nullptr
+                  ? prior.query<bayes::SingleSharedMarkerVarianceCap>()
+                        ->variance()
+                        .parameter()
                   : throw GelexException(
-                        "SingleGeneticVarianceStep: prior lacks marker "
+                        "SingleSharedGeneticVarianceStep: prior lacks shared "
                         "variance capability")),
           variance_(block.prior_state()
-                        .require<bayes::SingleVarianceStateCap>()
+                        .require<bayes::SingleSharedVarianceStateCap>()
                         .variance()),
           proportion_cap_(
               block.prior_state().query<bayes::SingleProportionStateCap>()),
@@ -60,7 +64,7 @@ class SingleGeneticVarianceStep final : public Step
 
     auto step() -> void override
     {
-        auto sampler = make_variance_sampler(marker_variance_.parameter());
+        auto sampler = make_variance_sampler(variance_parameter_);
         const auto& coeffs = block_.state().coeffs;
         auto* proportion = proportion_cap_ == nullptr
                                ? nullptr
@@ -68,36 +72,74 @@ class SingleGeneticVarianceStep final : public Step
         const auto* multiplier = multiplier_cap_ == nullptr
                                      ? nullptr
                                      : &multiplier_cap_->multiplier();
-        if (marker_variance_.layout() == bayes::MarkerVarianceLayout::shared)
+        Eigen::Index n = 0;
+        double sum_squares = 0.0;
+        for (Eigen::Index i = 0; i < coeffs.size(); ++i)
         {
-            Eigen::Index n = 0;
-            double sum_squares = 0.0;
-            for (Eigen::Index i = 0; i < coeffs.size(); ++i)
+            const int component
+                = proportion == nullptr ? 1 : proportion->assignment(i);
+            if (component == 0)
             {
-                const int component
-                    = proportion == nullptr ? 1 : proportion->assignment(i);
-                if (component == 0)
-                {
-                    continue;
-                }
-                ++n;
-                if (multiplier == nullptr)
-                {
-                    sum_squares += coeffs(i) * coeffs(i);
-                }
-                else
-                {
-                    sum_squares
-                        += (coeffs(i) * coeffs(i)) / (*multiplier)(component);
-                }
+                continue;
             }
-            if (n > 0)
+            ++n;
+            if (multiplier == nullptr)
             {
-                variance_(0) = sampler({n, sum_squares}, rng_);
+                sum_squares += coeffs(i) * coeffs(i);
             }
-            return;
+            else
+            {
+                sum_squares
+                    += (coeffs(i) * coeffs(i)) / (*multiplier)(component);
+            }
         }
+        if (n > 0)
+        {
+            variance_ = sampler({n, sum_squares}, rng_);
+        }
+    }
 
+   private:
+    bayes::SingleGeneticBlockState& block_;
+    const bayes::VarianceParameter& variance_parameter_;
+    double& variance_;
+    bayes::SingleProportionStateCap* proportion_cap_{};
+    const bayes::SingleMultiplierCap* multiplier_cap_{};
+    std::mt19937_64& rng_;
+};
+
+class SinglePerMarkerGeneticVarianceStep final : public Step
+{
+   public:
+    SinglePerMarkerGeneticVarianceStep(
+        const bayes::SingleGeneticPrior& prior,
+        bayes::SingleGeneticBlockState& block,
+        std::mt19937_64& rng)
+        : block_(block),
+          variance_parameter_(
+              prior.query<bayes::SinglePerMarkerVarianceCap>() != nullptr
+                  ? prior.query<bayes::SinglePerMarkerVarianceCap>()
+                        ->variance()
+                        .parameter()
+                  : throw GelexException(
+                        "SinglePerMarkerGeneticVarianceStep: prior lacks "
+                        "per-marker variance capability")),
+          variance_(block.prior_state()
+                        .require<bayes::SinglePerMarkerVarianceStateCap>()
+                        .variance()),
+          proportion_cap_(
+              block.prior_state().query<bayes::SingleProportionStateCap>()),
+          rng_(rng)
+    {
+    }
+
+    auto step() -> void override
+    {
+        auto sampler = make_variance_sampler(variance_parameter_);
+        const auto& coeffs = block_.state().coeffs;
+        auto* proportion = proportion_cap_ == nullptr
+                               ? nullptr
+                               : &proportion_cap_->proportion();
         for (Eigen::Index i = 0; i < coeffs.size(); ++i)
         {
             const int component
@@ -107,20 +149,15 @@ class SingleGeneticVarianceStep final : public Step
                 continue;
             }
             double sum_squares = coeffs(i) * coeffs(i);
-            if (multiplier != nullptr)
-            {
-                sum_squares /= (*multiplier)(component);
-            }
             variance_(i) = sampler({1, sum_squares}, rng_);
         }
     }
 
    private:
     bayes::SingleGeneticBlockState& block_;
-    const bayes::MarkerVariance& marker_variance_;
+    const bayes::VarianceParameter& variance_parameter_;
     Eigen::VectorXd& variance_;
     bayes::SingleProportionStateCap* proportion_cap_{};
-    const bayes::SingleMultiplierCap* multiplier_cap_{};
     std::mt19937_64& rng_;
 };
 
@@ -158,47 +195,66 @@ class JointGeneticVarianceStep final : public Step
                 = prior_.query<bayes::JointMarkerVarianceCap>()->variance(mode);
             auto& variance = variance_cap.variance(mode);
             const auto& coeffs = block_.state(mode).coeffs;
-            auto sampler = make_variance_sampler(marker_variance.parameter());
-            if (marker_variance.layout() == bayes::MarkerVarianceLayout::shared)
-            {
-                Eigen::Index n = 0;
-                double sum_squares = 0.0;
-                for (Eigen::Index i = 0; i < coeffs.size(); ++i)
+            std::visit(
+                [&](const auto& marker_variance_slot)
                 {
-                    const int component
-                        = proportion == nullptr ? 3 : proportion->assignment(i);
-                    const bool active
-                        = mode == GeneticMode::A
-                              ? (component == 1 || component == 3)
-                              : (component == 2 || component == 3);
-                    if (!active)
+                    auto sampler = make_variance_sampler(
+                        marker_variance_slot.parameter());
+                    using MarkerVarianceType
+                        = std::decay_t<decltype(marker_variance_slot)>;
+                    if constexpr (
+                        std::is_same_v<
+                            MarkerVarianceType,
+                            bayes::SharedMarkerVariance>)
                     {
-                        continue;
+                        auto& shared_variance = std::get<double>(variance);
+                        Eigen::Index n = 0;
+                        double sum_squares = 0.0;
+                        for (Eigen::Index i = 0; i < coeffs.size(); ++i)
+                        {
+                            const int component
+                                = proportion == nullptr
+                                      ? 3
+                                      : proportion->assignment(i);
+                            const bool active
+                                = mode == GeneticMode::A
+                                      ? (component == 1 || component == 3)
+                                      : (component == 2 || component == 3);
+                            if (!active)
+                            {
+                                continue;
+                            }
+                            ++n;
+                            sum_squares += coeffs(i) * coeffs(i);
+                        }
+                        if (n > 0)
+                        {
+                            shared_variance = sampler({n, sum_squares}, rng_);
+                        }
                     }
-                    ++n;
-                    sum_squares += coeffs(i) * coeffs(i);
-                }
-                if (n > 0)
-                {
-                    variance(0) = sampler({n, sum_squares}, rng_);
-                }
-            }
-            else
-            {
-                for (Eigen::Index i = 0; i < coeffs.size(); ++i)
-                {
-                    const int component
-                        = proportion == nullptr ? 3 : proportion->assignment(i);
-                    const bool active
-                        = mode == GeneticMode::A
-                              ? (component == 1 || component == 3)
-                              : (component == 2 || component == 3);
-                    if (active)
+                    else
                     {
-                        variance(i) = sampler({1, coeffs(i) * coeffs(i)}, rng_);
+                        auto& per_marker_variance
+                            = std::get<Eigen::VectorXd>(variance);
+                        for (Eigen::Index i = 0; i < coeffs.size(); ++i)
+                        {
+                            const int component
+                                = proportion == nullptr
+                                      ? 3
+                                      : proportion->assignment(i);
+                            const bool active
+                                = mode == GeneticMode::A
+                                      ? (component == 1 || component == 3)
+                                      : (component == 2 || component == 3);
+                            if (active)
+                            {
+                                per_marker_variance(i)
+                                    = sampler({1, coeffs(i) * coeffs(i)}, rng_);
+                            }
+                        }
                     }
-                }
-            }
+                },
+                marker_variance);
         }
     }
 

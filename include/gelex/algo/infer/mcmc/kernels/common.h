@@ -27,6 +27,8 @@
 #include "gelex/exception.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/capabilities.h"
+#include "gelex/model/bayes/gaussian_prior.h"
+#include "gelex/model/bayes/gaussian_prior_state.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_parameters.h"
@@ -47,27 +49,57 @@ inline auto require_marker_variances(
     const bayes::GeneticPrior& prior,
     std::string_view kernel_name) -> std::span<const bayes::MarkerVariance>
 {
-    const auto* cap = prior.query<bayes::MarkerVarianceCap>();
-    if (cap == nullptr)
+    if (const auto* gaussian = prior.query<bayes::GaussianPrior>();
+        gaussian != nullptr)
     {
-        throw GelexException(
-            fmt::format("{}: prior lacks variance capability", kernel_name));
+        return gaussian->variance();
     }
-    return cap->variance();
+    if (const auto* spike_slab = prior.query<bayes::SpikeSlabGaussianPrior>();
+        spike_slab != nullptr)
+    {
+        return spike_slab->variance();
+    }
+    if (const auto* scaled_mixture
+        = prior.query<bayes::ScaledMixtureGaussianPrior>();
+        scaled_mixture != nullptr)
+    {
+        return scaled_mixture->variance();
+    }
+    if (const auto* joint = prior.query<bayes::JointMixtureGaussianPrior>();
+        joint != nullptr)
+    {
+        return joint->variance();
+    }
+    throw GelexException(
+        fmt::format("{}: prior lacks marker variance", kernel_name));
 }
 
 inline auto require_variance_state(
     bayes::GeneticPriorState& state,
     std::string_view kernel_name) -> std::span<Eigen::VectorXd>
 {
-    auto* cap = state.query<bayes::VarianceStateCap>();
-    if (cap == nullptr)
+    if (auto* gaussian = state.query<bayes::GaussianState>();
+        gaussian != nullptr)
     {
-        throw GelexException(
-            fmt::format(
-                "{}: prior state lacks variance capability", kernel_name));
+        return gaussian->variance();
     }
-    return cap->variance();
+    if (auto* spike_slab = state.query<bayes::SpikeSlabGaussianState>();
+        spike_slab != nullptr)
+    {
+        return spike_slab->variance();
+    }
+    if (auto* scaled_mixture = state.query<bayes::ScaledMixtureGaussianState>();
+        scaled_mixture != nullptr)
+    {
+        return scaled_mixture->variance();
+    }
+    if (auto* joint = state.query<bayes::JointMixtureGaussianState>();
+        joint != nullptr)
+    {
+        return joint->variance();
+    }
+    throw GelexException(
+        fmt::format("{}: prior state lacks marker variance", kernel_name));
 }
 
 inline auto require_multipliers(

@@ -104,6 +104,16 @@ MarkerVariance::MarkerVariance(
 {
 }
 
+SharedMarkerVariance::SharedMarkerVariance(VarianceParameter parameter)
+    : parameter_(parameter)
+{
+}
+
+PerMarkerVariance::PerMarkerVariance(VarianceParameter parameter)
+    : parameter_(parameter)
+{
+}
+
 MixtureProportion::MixtureProportion(
     SimplexParameter parameter,
     UpdatePolicy update)

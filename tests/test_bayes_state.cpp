@@ -33,6 +33,7 @@
 #include "gelex/infra/field_visitor.h"
 #include "gelex/infra/record_visitor.h"
 #include "gelex/model/bayes/gaussian_prior.h"
+#include "gelex/model/bayes/gaussian_prior_state.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/genetic_priors/gaussian.h"
 #include "gelex/model/bayes/model.h"
@@ -63,9 +64,12 @@ using gelex::bayes::GaussianPrior;
 using gelex::bayes::GeneticPriorBlockV2;
 using gelex::bayes::GeneticPriorBlockState;
 using gelex::bayes::GeneticPrior;
+using gelex::bayes::GaussianState;
 using gelex::bayes::JointGaussianMixturePrior;
 using gelex::bayes::JointGeneticBlockState;
+using gelex::bayes::JointMarkerVariance;
 using gelex::bayes::JointMixtureGaussianPrior;
+using gelex::bayes::JointMixtureGaussianState;
 using gelex::bayes::JointVarianceStateCap;
 using gelex::bayes::MarkerVariance;
 using gelex::bayes::MarkerVarianceLayout;
@@ -75,14 +79,16 @@ using gelex::bayes::RandomPrior;
 using gelex::bayes::ResidualPrior;
 using gelex::bayes::ScaledInvChiSqPrior;
 using gelex::bayes::ScaledMixtureGaussianPrior;
+using gelex::bayes::ScaledMixtureGaussianState;
+using gelex::bayes::SharedMarkerVariance;
 using gelex::bayes::SimplexParameter;
-using gelex::bayes::SingleGaussianPrior;
 using gelex::bayes::SingleGeneticBlockState;
-using gelex::bayes::SingleVarianceStateCap;
+using gelex::bayes::SingleSharedGaussianPrior;
+using gelex::bayes::SingleSharedVarianceStateCap;
 using gelex::bayes::SpikeSlabGaussianPrior;
 using gelex::bayes::UpdatePolicy;
 using gelex::bayes::VarianceParameter;
-using gelex::bayes::VarianceStateCap;
+using gelex::bayes::PerMarkerVariance;
 
 namespace
 {
@@ -489,8 +495,8 @@ TEST_CASE(
     constexpr std::array modes{GeneticMode::A, GeneticMode::D};
     auto model = make_model(modes);
 
-    SingleGaussianPrior single_prior{
-        GeneticMode::A, make_marker_variance()};
+    SingleSharedGaussianPrior single_prior{
+        GeneticMode::A, SharedMarkerVariance{make_variance()}};
     SingleGeneticBlockState single{
         *model.genetic(GeneticMode::A), single_prior};
 
@@ -500,7 +506,8 @@ TEST_CASE(
     REQUIRE(single.state().type == GeneticMode::A);
     REQUIRE(single.state().coeffs.size() == kNumMarkers);
     REQUIRE(single.state().u.size() == kNumIndividuals);
-    REQUIRE(single.prior_state().query<SingleVarianceStateCap>() != nullptr);
+    REQUIRE(
+        single.prior_state().query<SingleSharedVarianceStateCap>() != nullptr);
 
     FieldPathCollector single_visitor;
     single_visitor.mutate_path = "single/genetic/coeffs";
@@ -508,13 +515,17 @@ TEST_CASE(
 
     REQUIRE(single_visitor.count("single/genetic/coeffs") == 1);
     REQUIRE(single_visitor.count("single/genetic/u") == 1);
-    REQUIRE(single_visitor.count("single/prior_state/gaussian/variance") == 1);
+    REQUIRE(
+        single_visitor.count("single/prior_state/shared_gaussian/variance")
+        == 1);
     REQUIRE(single.state().coeffs(0) == single_visitor.mutated_value);
 
     JointGaussianMixturePrior joint_prior{
         std::array{
-            make_marker_variance(MarkerVarianceLayout::per_marker, 0.5),
-            make_marker_variance(MarkerVarianceLayout::shared, 0.75)},
+            JointMarkerVariance{
+                PerMarkerVariance{make_variance(0.5)}},
+            JointMarkerVariance{
+                SharedMarkerVariance{make_variance(0.75)}}},
         make_proportion_4()};
     JointGeneticBlockState joint{
         *model.genetic(GeneticMode::A),
@@ -527,7 +538,15 @@ TEST_CASE(
     REQUIRE(joint.state(GeneticMode::D).type == GeneticMode::D);
     REQUIRE(joint.state(GeneticMode::A).coeffs.size() == kNumMarkers);
     REQUIRE(joint.state(GeneticMode::D).u.size() == kNumIndividuals);
-    REQUIRE(joint.prior_state().query<JointVarianceStateCap>() != nullptr);
+    auto* joint_variance_cap
+        = joint.prior_state().query<JointVarianceStateCap>();
+    REQUIRE(joint_variance_cap != nullptr);
+    REQUIRE(
+        std::get<Eigen::VectorXd>(
+            joint_variance_cap->variance(GeneticMode::A))
+            .isApprox(Eigen::VectorXd::Constant(kNumMarkers, 0.5)));
+    REQUIRE(std::get<double>(joint_variance_cap->variance(GeneticMode::D))
+            == 0.75);
 
     FieldPathCollector joint_visitor;
     joint_visitor.mutate_path = "joint/D/genetic/variance";
@@ -567,7 +586,7 @@ TEST_CASE(
         REQUIRE(genetic->u.size() == kNumIndividuals);
         REQUIRE(state.genetic_blocks().size() == 1);
         REQUIRE(block->slot(GeneticMode::A) == 0);
-        REQUIRE(block->prior_state().query<VarianceStateCap>() != nullptr);
+        REQUIRE(block->prior_state().query<GaussianState>() != nullptr);
         REQUIRE(block->prior_state().query<ProportionStateCap>() == nullptr);
     }
 
@@ -614,7 +633,9 @@ TEST_CASE(
 
         REQUIRE(genetic != nullptr);
         REQUIRE(block != nullptr);
-        REQUIRE(block->prior_state().query<VarianceStateCap>() != nullptr);
+        REQUIRE(
+            block->prior_state().query<ScaledMixtureGaussianState>()
+            != nullptr);
         REQUIRE(block->prior_state().query<ProportionStateCap>() != nullptr);
         REQUIRE(block->prior_state().query<ComponentStateCap>() != nullptr);
     }
@@ -658,7 +679,8 @@ TEST_CASE("BayesState shares joint prior state across modes", "[bayes_state]")
     REQUIRE(additive->coeffs.data() != dominance->coeffs.data());
     REQUIRE(additive->u.data() != dominance->u.data());
 
-    auto& variance = additive_block->prior_state().require<VarianceStateCap>();
+    auto& variance
+        = additive_block->prior_state().require<JointMixtureGaussianState>();
     auto& proportion
         = additive_block->prior_state().require<ProportionStateCap>();
     REQUIRE(variance.variance().size() == 2);
@@ -687,8 +709,8 @@ TEST_CASE("BayesStateV2 creates single genetic blocks", "[bayes_state]")
 
     std::vector<GeneticPriorBlockV2> genetics;
     genetics.emplace_back(
-        std::make_unique<SingleGaussianPrior>(
-            GeneticMode::A, make_marker_variance()));
+        std::make_unique<SingleSharedGaussianPrior>(
+            GeneticMode::A, SharedMarkerVariance{make_variance()}));
     BayesPriorV2 prior(
         make_random_prior(0.25), std::move(genetics), make_residual_prior(1.5));
 
@@ -708,7 +730,8 @@ TEST_CASE("BayesStateV2 creates single genetic blocks", "[bayes_state]")
     REQUIRE(single != nullptr);
     REQUIRE(single->state().coeffs.size() == kNumMarkers);
     REQUIRE(single->state().u.size() == kNumIndividuals);
-    REQUIRE(single->prior_state().query<SingleVarianceStateCap>() != nullptr);
+    REQUIRE(
+        single->prior_state().query<SingleSharedVarianceStateCap>() != nullptr);
 
     state.genetic(GeneticMode::A)->variance = 3.0;
     state.residual().variance = 7.0;
@@ -729,8 +752,8 @@ TEST_CASE("BayesStateV2 creates joint genetic blocks", "[bayes_state]")
     genetics.emplace_back(
         std::make_unique<JointGaussianMixturePrior>(
             std::array{
-                make_marker_variance(MarkerVarianceLayout::shared),
-                make_marker_variance(MarkerVarianceLayout::shared)},
+                JointMarkerVariance{SharedMarkerVariance{make_variance()}},
+                JointMarkerVariance{SharedMarkerVariance{make_variance()}}},
             make_proportion_4()));
     BayesPriorV2 prior(
         make_random_prior(2.0), std::move(genetics), make_residual_prior(10.0));
@@ -769,8 +792,8 @@ TEST_CASE("BayesStateV2 visits fields", "[bayes_state]")
 
     std::vector<GeneticPriorBlockV2> genetics;
     genetics.emplace_back(
-        std::make_unique<SingleGaussianPrior>(
-            GeneticMode::A, make_marker_variance()));
+        std::make_unique<SingleSharedGaussianPrior>(
+            GeneticMode::A, SharedMarkerVariance{make_variance()}));
     BayesPriorV2 prior(
         make_random_prior(0.25), std::move(genetics), make_residual_prior(1.5));
 
@@ -787,7 +810,7 @@ TEST_CASE("BayesStateV2 visits fields", "[bayes_state]")
         visitor.count("state/genetic_0/single/genetic/coeffs") == 1);
     REQUIRE(
         visitor.count(
-            "state/genetic_0/single/prior_state/gaussian/variance")
+            "state/genetic_0/single/prior_state/shared_gaussian/variance")
         == 1);
     REQUIRE(visitor.count("state/residual/variance") == 1);
     REQUIRE(state.random()[0].variance == visitor.mutated_value);
@@ -801,8 +824,8 @@ TEST_CASE("BayesStateV2 rejects prior mode missing from model", "[bayes_state]")
     {
         std::vector<GeneticPriorBlockV2> genetics;
         genetics.emplace_back(
-            std::make_unique<SingleGaussianPrior>(
-                GeneticMode::D, make_marker_variance()));
+            std::make_unique<SingleSharedGaussianPrior>(
+                GeneticMode::D, SharedMarkerVariance{make_variance()}));
         BayesPriorV2 prior(
             make_random_prior(), std::move(genetics), make_residual_prior());
 
@@ -814,8 +837,8 @@ TEST_CASE("BayesStateV2 rejects prior mode missing from model", "[bayes_state]")
         genetics.emplace_back(
             std::make_unique<JointGaussianMixturePrior>(
                 std::array{
-                    make_marker_variance(MarkerVarianceLayout::shared),
-                    make_marker_variance(MarkerVarianceLayout::shared)},
+                    JointMarkerVariance{SharedMarkerVariance{make_variance()}},
+                    JointMarkerVariance{SharedMarkerVariance{make_variance()}}},
                 make_proportion_4()));
         BayesPriorV2 prior(
             make_random_prior(), std::move(genetics), make_residual_prior());

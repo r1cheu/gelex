@@ -18,7 +18,7 @@ pixi r test-catch "[tag]"    # tests by Catch2 tag
 - Types (class/struct/enum): `PascalCase`
 - Functions/variables/files: `snake_case`
 - Private members: trailing underscore (`member_`)
-- Constants: `kPrefixName`
+- Constants: `PrefixName`
 
 ## Design
 
@@ -30,7 +30,7 @@ pixi r test-catch "[tag]"    # tests by Catch2 tag
 - Non-owning inputs: `std::span`, `std::string_view`
 - Eigen views: `Eigen::Ref<T>` / `const Eigen::Ref<const T>&`; index with `Eigen::Index`
 - Explicit `#include` only — no transitive includes
-- Prefer forward declarations when sufficient, but don't over-engineer (e.g. no Pimpl just to forward-declare)
+- Prefer forward declarations when sufficient, but don't over-engineer
 - Include guards (not `#pragma once`), uppercase path-derived names
 - Do not introduce extra namespaces without a clear architectural need
 - Public API in `include/gelex/`; avoid exposing internals
@@ -38,7 +38,6 @@ pixi r test-catch "[tag]"    # tests by Catch2 tag
 - Simple getters/setters stay in headers
 - Prefer constructor member initializer lists.
 - Class-private static methods over anonymous-namespace free functions
-- `switch`/`if` on enums for type dispatch
 - Prefer `std::views::enumerate` over manual index loops when both index and value are needed
 - Preserve existing license headers
 - Reusable test fixtures in `tests/*_fixture.{h,cpp}`

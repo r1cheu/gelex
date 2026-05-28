@@ -73,30 +73,6 @@ auto ComponentState::visit(infra::FieldVisitor& visitor) -> void
     }
 }
 
-auto VarianceStateCap::visit_records(StateRecordSet, infra::RecordSink& sink)
-    const -> void
-{
-    for (auto [i, value] : std::views::enumerate(variance()))
-    {
-        sink.emit("variance", static_cast<std::size_t>(i), "value", value);
-    }
-}
-
-auto VarianceStateCap::visit_records(
-    StateRecordSet set,
-    infra::MutableRecordSink& sink) -> void
-{
-    if (set != StateRecordSet::checkpoint)
-    {
-        throw GelexException(
-            "VarianceStateCap: mutable visit_records requires checkpoint set");
-    }
-    for (auto [i, value] : std::views::enumerate(variance()))
-    {
-        sink.emit("variance", static_cast<std::size_t>(i), "value", value);
-    }
-}
-
 auto ProportionStateCap::visit_records(
     StateRecordSet set,
     infra::RecordSink& sink) const -> void

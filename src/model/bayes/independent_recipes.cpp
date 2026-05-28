@@ -68,8 +68,10 @@ auto BayesRRMethod::make_single_genetic_prior(
         = effect.heritability().value_or(default_heritability(mode)).value();
     const double target
         = marker_variance_from_heritability(model, mode, h2, 1.0);
-    return std::make_unique<SingleGaussianPrior>(
-        mode, make_marker_variance(MarkerVarianceLayout::shared, target));
+    return std::make_unique<SingleSharedGaussianPrior>(
+        mode,
+        SharedMarkerVariance{VarianceParameter{
+            target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}});
 }
 
 BayesAMethod::BayesAMethod(const BayesRecipeConfig& options)
@@ -102,8 +104,10 @@ auto BayesAMethod::make_single_genetic_prior(
         = effect.heritability().value_or(default_heritability(mode)).value();
     const double target
         = marker_variance_from_heritability(model, mode, h2, 1.0);
-    return std::make_unique<SingleGaussianPrior>(
-        mode, make_marker_variance(MarkerVarianceLayout::per_marker, target));
+    return std::make_unique<SinglePerMarkerGaussianPrior>(
+        mode,
+        PerMarkerVariance{VarianceParameter{
+            target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}});
 }
 
 BayesBMethod::BayesBMethod(const BayesRecipeConfig& options)
@@ -143,9 +147,10 @@ auto BayesBMethod::make_single_genetic_prior(
         = effect.heritability().value_or(default_heritability(mode)).value();
     const double target
         = marker_variance_from_heritability(model, mode, h2, active_weight);
-    return std::make_unique<SingleSpikeSlabGaussianPrior>(
+    return std::make_unique<SinglePerMarkerSpikeSlabGaussianPrior>(
         mode,
-        make_marker_variance(MarkerVarianceLayout::per_marker, target),
+        PerMarkerVariance{VarianceParameter{
+            target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
         make_mixture_proportion(proportion, proportion_update_from(effect)));
 }
 
@@ -186,9 +191,10 @@ auto BayesCMethod::make_single_genetic_prior(
         = effect.heritability().value_or(default_heritability(mode)).value();
     const double target
         = marker_variance_from_heritability(model, mode, h2, active_weight);
-    return std::make_unique<SingleSpikeSlabGaussianPrior>(
+    return std::make_unique<SingleSharedSpikeSlabGaussianPrior>(
         mode,
-        make_marker_variance(MarkerVarianceLayout::shared, target),
+        SharedMarkerVariance{VarianceParameter{
+            target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
         make_mixture_proportion(proportion, proportion_update_from(effect)));
 }
 
@@ -244,7 +250,8 @@ auto BayesRMethod::make_single_genetic_prior(
         = marker_variance_from_heritability(model, mode, h2, active_weight);
     return std::make_unique<SingleScaledMixtureGaussianPrior>(
         mode,
-        make_marker_variance(MarkerVarianceLayout::shared, target),
+        SharedMarkerVariance{VarianceParameter{
+            target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
         multiplier.to_mat(),
         make_mixture_proportion(proportion, proportion_update_from(effect)));
 }
