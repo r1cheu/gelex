@@ -19,7 +19,6 @@
 
 #include <random>
 #include <type_traits>
-#include <utility>
 
 #include <Eigen/Core>
 
@@ -47,9 +46,7 @@ class PiStep
    public:
     using Deps = PiStepDeps;
 
-    explicit PiStep(Deps deps) : deps_(std::move(deps)), dirichlet_(deps_.alpha)
-    {
-    }
+    explicit PiStep(Deps deps);
 
     PiStep(const PiStep&) = delete;
     auto operator=(const PiStep&) -> PiStep& = delete;

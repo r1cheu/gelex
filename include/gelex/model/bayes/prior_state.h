@@ -17,7 +17,6 @@
 #ifndef GELEX_MODEL_BAYES_PRIOR_STATE_H_
 #define GELEX_MODEL_BAYES_PRIOR_STATE_H_
 
-#include <cstddef>
 #include <string_view>
 
 #include <fmt/format.h>

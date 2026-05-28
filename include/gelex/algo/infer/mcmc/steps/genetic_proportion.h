@@ -36,27 +36,9 @@ class SingleGeneticProportionStep final : public Step
     SingleGeneticProportionStep(
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
-        std::mt19937_64& rng)
-        : proportion_(block.prior_state()
-                          .get<bayes::SingleProportionStateCap>()
-                          .proportion()),
-          dirichlet_(prior.get<bayes::SingleMixtureProportionCap>()
-                         .proportion()
-                         .parameter()
-                         .prior()
-                         .concentration()),
-          rng_(rng)
-    {
-    }
+        std::mt19937_64& rng);
 
-    auto step() -> void override
-    {
-        dirichlet_.reset();
-        if (proportion_.update == bayes::UpdatePolicy::sampled)
-        {
-            proportion_.value = dirichlet_(proportion_.count, rng_);
-        }
-    }
+    auto step() -> void override;
 
    private:
     bayes::ProportionState& proportion_;
@@ -70,27 +52,9 @@ class JointGeneticProportionStep final : public Step
     JointGeneticProportionStep(
         const bayes::JointGeneticPrior& prior,
         bayes::JointGeneticBlockState& block,
-        std::mt19937_64& rng)
-        : proportion_(block.prior_state()
-                          .get<bayes::JointProportionStateCap>()
-                          .proportion()),
-          dirichlet_(prior.get<bayes::JointMixtureProportionCap>()
-                         .proportion()
-                         .parameter()
-                         .prior()
-                         .concentration()),
-          rng_(rng)
-    {
-    }
+        std::mt19937_64& rng);
 
-    auto step() -> void override
-    {
-        dirichlet_.reset();
-        if (proportion_.update == bayes::UpdatePolicy::sampled)
-        {
-            proportion_.value = dirichlet_(proportion_.count, rng_);
-        }
-    }
+    auto step() -> void override;
 
    private:
     bayes::ProportionState& proportion_;

@@ -16,10 +16,14 @@
 
 #include "gelex/algo/infer/mcmc/steps/pi.h"
 
+#include <utility>
+
 #include "gelex/exception.h"
 
 namespace gelex::mcmc
 {
+
+PiStep::PiStep(Deps deps) : deps_(std::move(deps)), dirichlet_(deps_.alpha) {}
 
 auto PiStep::make(const Context&, GeneticMode) -> PiStep
 {
