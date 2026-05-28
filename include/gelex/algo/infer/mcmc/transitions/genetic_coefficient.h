@@ -23,7 +23,6 @@
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/mcmc/invariant.h"
-#include "gelex/algo/infer/mcmc/kernels/detail/mixture_op.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/model/bayes/genetic_prior.h"
@@ -308,7 +307,7 @@ class SingleScaledMixtureCoefficientTransition
         const double old_i = coeffs(marker_index);
         const double rhs = column.dot(residual_.y_adj) + (xtx_diag_i * old_i);
         const Eigen::Index num_components = multiplier_.size();
-        scale_pp_.log_likelihoods(0) = 0.0;
+        scale_log_likelihoods_(0) = 0.0;
         for (Eigen::Index cls = 1; cls < num_components; ++cls)
         {
             const auto post = normal_.set_prior_var(marker_variances_(cls))
@@ -316,14 +315,14 @@ class SingleScaledMixtureCoefficientTransition
                                       {.quadratic = xtx_diag_i,
                                        .linear = rhs,
                                        .scale = residual_.variance});
-            scale_pp_.means(cls) = post.params.mean;
-            scale_pp_.vars(cls) = post.params.var;
-            scale_pp_.log_likelihoods(cls) = post.log_likelihood_kernel;
+            scale_means_(cls) = post.params.mean;
+            scale_vars_(cls) = post.params.var;
+            scale_log_likelihoods_(cls) = post.log_likelihood_kernel;
         }
 
-        Eigen::Array<double, detail::kMaxMixtureComponents, 1> ll;
-        Eigen::Array<double, detail::kMaxMixtureComponents, 1> probs;
-        ll.head(num_components) = scale_pp_.log_likelihoods.head(num_components)
+        Eigen::Array<double, kMaxMixtureComponents, 1> ll;
+        Eigen::Array<double, kMaxMixtureComponents, 1> probs;
+        ll.head(num_components) = scale_log_likelihoods_.head(num_components)
                                   + logpi_.head(num_components).array();
         const double max_ll = ll.head(num_components).maxCoeff();
         probs.head(num_components) = (ll.head(num_components) - max_ll).exp();
@@ -355,8 +354,8 @@ class SingleScaledMixtureCoefficientTransition
         if (component > 0)
         {
             coeffs(marker_index) = normal_.draw(
-                {.mean = scale_pp_.means(component),
-                 .var = scale_pp_.vars(component)},
+                {.mean = scale_means_(component),
+                 .var = scale_vars_(component)},
                 rng);
         }
         proportion_.assignment(marker_index) = component;
@@ -365,10 +364,17 @@ class SingleScaledMixtureCoefficientTransition
     auto finish() -> void
     {
         state_.variance = stats::detail::var(state_.u)(0);
-        detail::compute_component_variances(component_);
+        for (Eigen::Index k = 0;
+             k < static_cast<Eigen::Index>(component_.gebv.size());
+             ++k)
+        {
+            component_.gebv_var(k) = stats::detail::var(component_.gebv[k])(0);
+        }
     }
 
    private:
+    static constexpr int kMaxMixtureComponents = 5;
+
     bayes::GeneticState& state_;
     bayes::ResidualState& residual_;
     double& variance_;
@@ -379,7 +385,9 @@ class SingleScaledMixtureCoefficientTransition
     Eigen::VectorXd logpi_;
     stats::NormalSampler<double> normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
-    detail::MixtureNormalPosteriors scale_pp_;
+    Eigen::Array<double, kMaxMixtureComponents, 1> scale_means_;
+    Eigen::Array<double, kMaxMixtureComponents, 1> scale_vars_;
+    Eigen::Array<double, kMaxMixtureComponents, 1> scale_log_likelihoods_;
 };
 
 class JointGaussianMixtureCoefficientTransition

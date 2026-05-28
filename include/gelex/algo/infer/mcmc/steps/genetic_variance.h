@@ -113,10 +113,7 @@ class SingleSharedMixtureGeneticVarianceStep final : public Step
             const double coeff = coeffs(i);
             sum_squares += coeff * coeff;
         }
-        if (n > 0)
-        {
-            variance_ = sampler_({n, sum_squares}, rng_);
-        }
+        variance_ = sampler_({n, sum_squares}, rng_);
     }
 
    private:
@@ -167,10 +164,7 @@ class SingleSharedScaledMixtureGeneticVarianceStep final : public Step
             const double coeff = coeffs(i);
             sum_squares += (coeff * coeff) / multiplier_(component);
         }
-        if (n > 0)
-        {
-            variance_ = sampler_({n, sum_squares}, rng_);
-        }
+        variance_ = sampler_({n, sum_squares}, rng_);
     }
 
    private:
@@ -320,10 +314,7 @@ class JointSharedMixtureGeneticVarianceStep final : public Step
                 const double coeff = coeffs(i);
                 sum_squares += coeff * coeff;
             }
-            if (n > 0)
-            {
-                variance_.variance(mode) = sampler({n, sum_squares}, rng_);
-            }
+            variance_.variance(mode) = sampler({n, sum_squares}, rng_);
         }
     }
 
