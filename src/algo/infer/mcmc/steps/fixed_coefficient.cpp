@@ -16,12 +16,42 @@
 
 #include "gelex/algo/infer/mcmc/steps/fixed_coefficient.h"
 
+#include <Eigen/Core>
+
+#include "gelex/algo/infer/mcmc/invariant.h"
+#include "gelex/infra/stats/conjugate_prior.h"
+
 namespace gelex::mcmc
 {
 
+FixedCoefficientStep::FixedCoefficientStep(
+    const FixedDesign& design,
+    bayes::FixedState& state,
+    bayes::ResidualState& residual,
+    std::mt19937_64& rng)
+    : design_(design), state_(state), residual_(residual), rng_(rng)
+{
+}
+
 auto FixedCoefficientStep::step() -> void
 {
-    sweep_.run(kernel_, rng_);
+    const double residual_variance = residual_.variance;
+    auto& coeffs = state_.coeffs;
+
+    normal_.reset();
+    for (Eigen::Index i = 0; i < coeffs.size(); ++i)
+    {
+        const auto column = design_.X.col(i);
+        const double old_value = coeffs(i);
+        ResidualAdjustmentGuard guard{column, coeffs(i), residual_};
+        const double xtx_diag_i = design_.XtX_diag(i);
+        const double rhs
+            = column.dot(residual_.y_adj) + (xtx_diag_i * old_value);
+
+        coeffs(i) = normal_.draw(
+            {.mean = rhs / xtx_diag_i, .var = residual_variance / xtx_diag_i},
+            rng_);
+    }
 }
 
 }  // namespace gelex::mcmc

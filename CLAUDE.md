@@ -20,6 +20,10 @@ pixi r test-catch "[tag]"    # tests by Catch2 tag
 - Private members: trailing underscore (`member_`)
 - Constants: `kPrefixName`
 
+## Design
+
+- Each abstraction layer must encapsulate exactly one independent axis of change. If every implementation of a layer looks the same, collapse that layer; if one layer has to carry two axes of change, split it.
+
 ## Code Style
 
 - Trailing return types: `auto f() -> int`

@@ -19,9 +19,8 @@
 
 #include <random>
 
-#include "gelex/algo/infer/mcmc/kernels/fixed_coefficient.h"
 #include "gelex/algo/infer/mcmc/step.h"
-#include "gelex/algo/infer/mcmc/sweeps/fixed_coefficient.h"
+#include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/state.h"
 #include "gelex/types/fixed_designs.h"
 
@@ -35,17 +34,16 @@ class FixedCoefficientStep final : public Step
         const FixedDesign& design,
         bayes::FixedState& state,
         bayes::ResidualState& residual,
-        std::mt19937_64& rng)
-        : sweep_(design, state, residual), rng_(rng)
-    {
-    }
+        std::mt19937_64& rng);
 
     auto step() -> void override;
 
    private:
-    FixedCoefficientSweep sweep_;
-    FixedCoefficientKernel kernel_;
+    const FixedDesign& design_;
+    bayes::FixedState& state_;
+    bayes::ResidualState& residual_;
     std::mt19937_64& rng_;
+    stats::NormalSampler<double> normal_{0.0};
 };
 
 }  // namespace gelex::mcmc

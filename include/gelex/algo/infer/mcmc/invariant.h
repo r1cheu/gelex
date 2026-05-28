@@ -174,6 +174,102 @@ class GeneticMixtureAdjustmentGuard
     double old_value_{0.0};
     int old_class_{0};
 };
+
+class ProportionAssignmentGuard
+{
+   public:
+    ProportionAssignmentGuard(
+        bayes::ProportionState& proportion,
+        Eigen::Index marker_index)
+        : proportion_(proportion),
+          marker_index_(marker_index),
+          old_class_(proportion.assignment(marker_index))
+    {
+    }
+
+    ProportionAssignmentGuard(const ProportionAssignmentGuard&) = delete;
+    ProportionAssignmentGuard(ProportionAssignmentGuard&&) = delete;
+    auto operator=(const ProportionAssignmentGuard&)
+        -> ProportionAssignmentGuard& = delete;
+    auto operator=(ProportionAssignmentGuard&&)
+        -> ProportionAssignmentGuard& = delete;
+
+    ~ProportionAssignmentGuard()
+    {
+        const int new_class = proportion_.assignment(marker_index_);
+        if (old_class_ == new_class)
+        {
+            return;
+        }
+        --proportion_.count(old_class_);
+        ++proportion_.count(new_class);
+    }
+
+   private:
+    bayes::ProportionState& proportion_;
+    Eigen::Index marker_index_{};
+    int old_class_{0};
+};
+
+class JointGeneticAdjustmentGuard
+{
+   public:
+    JointGeneticAdjustmentGuard(
+        Eigen::Ref<const Eigen::VectorXd> first_column,
+        Eigen::Ref<const Eigen::VectorXd> second_column,
+        double& first_coeff,
+        double& second_coeff,
+        bayes::ResidualState& residual,
+        bayes::GeneticState& first_state,
+        bayes::GeneticState& second_state)
+        : first_column_(first_column),
+          second_column_(second_column),
+          first_coeff_(first_coeff),
+          second_coeff_(second_coeff),
+          residual_(residual),
+          first_state_(first_state),
+          second_state_(second_state),
+          old_first_(first_coeff),
+          old_second_(second_coeff)
+    {
+    }
+
+    JointGeneticAdjustmentGuard(const JointGeneticAdjustmentGuard&) = delete;
+    JointGeneticAdjustmentGuard(JointGeneticAdjustmentGuard&&) = delete;
+    auto operator=(const JointGeneticAdjustmentGuard&)
+        -> JointGeneticAdjustmentGuard& = delete;
+    auto operator=(JointGeneticAdjustmentGuard&&)
+        -> JointGeneticAdjustmentGuard& = delete;
+
+    ~JointGeneticAdjustmentGuard()
+    {
+        const double first_diff = old_first_ - first_coeff_;
+        const double second_diff = old_second_ - second_coeff_;
+        if (first_diff == 0.0 && second_diff == 0.0)
+        {
+            return;
+        }
+        for (Eigen::Index i = 0; i < first_column_.size(); ++i)
+        {
+            const double first_delta = first_diff * first_column_(i);
+            const double second_delta = second_diff * second_column_(i);
+            residual_.y_adj(i) += first_delta + second_delta;
+            first_state_.u(i) -= first_delta;
+            second_state_.u(i) -= second_delta;
+        }
+    }
+
+   private:
+    Eigen::Ref<const Eigen::VectorXd> first_column_;
+    Eigen::Ref<const Eigen::VectorXd> second_column_;
+    double& first_coeff_;
+    double& second_coeff_;
+    bayes::ResidualState& residual_;
+    bayes::GeneticState& first_state_;
+    bayes::GeneticState& second_state_;
+    double old_first_{0.0};
+    double old_second_{0.0};
+};
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
 }  // namespace gelex::mcmc

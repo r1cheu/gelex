@@ -17,7 +17,9 @@
 #include "gelex/algo/infer/mcmc/steps/random_coefficient.h"
 
 #include <fmt/format.h>
+#include <Eigen/Core>
 
+#include "gelex/algo/infer/mcmc/invariant.h"
 #include "gelex/exception.h"
 
 namespace gelex::mcmc
@@ -28,7 +30,7 @@ RandomCoefficientStep::RandomCoefficientStep(
     std::span<bayes::RandomState> states,
     bayes::ResidualState& residual,
     std::mt19937_64& rng)
-    : sweep_(designs, states, residual), rng_(rng)
+    : designs_(designs), states_(states), residual_(residual), rng_(rng)
 {
     if (designs.size() != states.size())
     {
@@ -42,7 +44,32 @@ RandomCoefficientStep::RandomCoefficientStep(
 
 auto RandomCoefficientStep::step() -> void
 {
-    sweep_.run(kernel_, rng_);
+    const double residual_variance = residual_.variance;
+    for (std::size_t block = 0; block < designs_.size(); ++block)
+    {
+        const auto& design = designs_[block];
+        auto& state = states_[block];
+        auto& coeffs = state.coeffs;
+        const auto& X = design.X;
+        const auto& XtX_diag = design.XtX_diag;
+
+        normal_.reset();
+        normal_.set_prior_var(state.variance);
+        for (Eigen::Index i = 0; i < coeffs.size(); ++i)
+        {
+            const auto col = X.col(i);
+            const double old_i = coeffs(i);
+            ResidualAdjustmentGuard guard{col, coeffs(i), residual_};
+            const double rhs = col.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
+            coeffs(i) = normal_(
+                stats::NormalSampler<double>::Kernel{
+                    .quadratic = XtX_diag(i),
+                    .linear = rhs,
+                    .scale = residual_variance,
+                },
+                rng_);
+        }
+    }
 }
 
 }  // namespace gelex::mcmc

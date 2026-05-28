@@ -20,9 +20,8 @@
 #include <random>
 #include <span>
 
-#include "gelex/algo/infer/mcmc/kernels/random_coefficient.h"
 #include "gelex/algo/infer/mcmc/step.h"
-#include "gelex/algo/infer/mcmc/sweeps/random_coefficient.h"
+#include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/designs.h"
 #include "gelex/model/bayes/state.h"
 
@@ -41,9 +40,11 @@ class RandomCoefficientStep final : public Step
     auto step() -> void override;
 
    private:
-    RandomCoefficientSweep sweep_;
-    RandomCoefficientKernel kernel_;
+    std::span<const bayes::RandomDesign> designs_;
+    std::span<bayes::RandomState> states_;
+    bayes::ResidualState& residual_;
     std::mt19937_64& rng_;
+    stats::NormalSampler<double> normal_{0.0};
 };
 
 }  // namespace gelex::mcmc
