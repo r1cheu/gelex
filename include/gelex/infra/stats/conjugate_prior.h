@@ -23,47 +23,10 @@
 #include <cstdint>
 #include <numbers>
 #include <random>
+#include <type_traits>
 #include <utility>
 
 #include <Eigen/Core>
-
-namespace gelex::stats::detail
-{
-
-struct ScaledInvChiSqParams
-{
-    double nu{};
-    double s2{};
-};
-
-struct NormalParams
-{
-    double mean{};
-    double var{};
-};
-
-class ScaledInvChiSq
-{
-   public:
-    explicit ScaledInvChiSq(const ScaledInvChiSqParams& prior_params);
-    ScaledInvChiSq(double initial_nu, double initial_s2);
-
-    void compute(double sum_of_squared_errors, Eigen::Index num_observations);
-
-    void compute(double single_observation_squared_error);
-
-    double operator()(std::mt19937_64& rng) const;
-    auto expected_value() const -> double;
-    auto posterior_stddev() const -> double;
-    const ScaledInvChiSqParams& prior() { return prior_; }
-    const ScaledInvChiSqParams& posterior() { return posterior_; }
-
-   private:
-    ScaledInvChiSqParams prior_;
-    ScaledInvChiSqParams posterior_;
-};
-
-}  // namespace gelex::stats::detail
 
 // ---------------------------------------------------------------------------
 // Conjugate posterior samplers.
@@ -309,6 +272,18 @@ class ScaledInvChi2Sampler
         assert(
             (s2_0_ >= T{0})
             && "ScaledInvChi2Sampler: prior scale must be non-negative");
+    }
+
+    template <typename Prior>
+        requires requires(const Prior& prior) {
+            { prior.degrees_of_freedom() } -> std::convertible_to<T>;
+            { prior.scale() } -> std::convertible_to<T>;
+        }
+    explicit ScaledInvChi2Sampler(const Prior& prior)
+        : ScaledInvChi2Sampler(
+              static_cast<T>(prior.degrees_of_freedom()),
+              static_cast<T>(prior.scale()))
+    {
     }
 
     auto operator()(const Likelihood& likelihood, std::mt19937_64& rng) -> T

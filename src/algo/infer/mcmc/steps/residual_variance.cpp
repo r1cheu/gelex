@@ -15,8 +15,11 @@
  */
 
 #include "gelex/algo/infer/mcmc/steps/residual_variance.h"
-#include <Eigen/Core>
+
 #include <random>
+
+#include <Eigen/Core>
+
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/state.h"
 
@@ -31,7 +34,7 @@ ResidualVarianceStep::ResidualVarianceStep(
     : num_individuals_(num_individuals),
       state_(state),
       rng_(rng),
-      sampler_(prior.prior().degrees_of_freedom(), prior.prior().scale())
+      sampler_(prior.prior())
 {
 }
 

@@ -82,7 +82,6 @@ depends-on = ["build-debug"]
 
 [tasks.test-catch]
 cmd = "./build/debug/tests/gelex_tests"
-depends-on = ["build-debug"]
 
 [tasks.build-coverage-bin]
 cmd = "cmake --build --preset coverage -j$(nproc)"

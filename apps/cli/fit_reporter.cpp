@@ -16,7 +16,6 @@
 
 #include "fit_reporter.h"
 
-#include <Eigen/Core>
 #include <memory>
 #include <ranges>
 #include <span>
@@ -25,12 +24,12 @@
 #include <variant>
 
 #include <fmt/format.h>
+#include <Eigen/Core>
 
 #include "cli/report_printer.h"
 #include "gelex/algo/infer/posterior_summary.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
-#include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/capabilities.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/prior.h"
@@ -66,13 +65,13 @@ auto FitReporter::on_event(const FitResultsSavedEvent& event) const -> void
 }
 
 auto FitReporter::print_variance_prior(
-    const stats::detail::ScaledInvChiSqParams& prior,
+    const bayes::ScaledInvChiSqPrior& prior,
     double init_variance) -> void
 {
     cli::printer().line(
         "    Variance: Scaled Inv-χ²(ν={:.4f}, S²={:.4f}), init: {:.4f}",
-        prior.nu,
-        prior.s2,
+        prior.degrees_of_freedom(),
+        prior.scale(),
         init_variance);
 }
 
@@ -91,10 +90,7 @@ auto FitReporter::print_summary_row(
 auto FitReporter::print_random_prior(const bayes::RandomPrior& prior) -> void
 {
     cli::printer().line("   Random effect:");
-    print_variance_prior(
-        stats::detail::ScaledInvChiSqParams{
-            prior.prior().degrees_of_freedom(), prior.prior().scale()},
-        prior.initial_value());
+    print_variance_prior(prior.prior(), prior.initial_value());
 }
 
 auto FitReporter::print_genetic_prior(const bayes::GeneticPriorBlock& prior)
@@ -123,20 +119,14 @@ auto FitReporter::print_genetic_prior(const bayes::GeneticPriorBlock& prior)
                 {
                     const auto& parameter = variance->variance().parameter();
                     print_variance_prior(
-                        stats::detail::ScaledInvChiSqParams{
-                            parameter.prior().degrees_of_freedom(),
-                            parameter.prior().scale()},
-                        parameter.initial_value());
+                        parameter.prior(), parameter.initial_value());
                 }
                 if (const auto* variance = genetic->template get_if<
                                            bayes::SinglePerMarkerVarianceCap>())
                 {
                     const auto& parameter = variance->variance().parameter();
                     print_variance_prior(
-                        stats::detail::ScaledInvChiSqParams{
-                            parameter.prior().degrees_of_freedom(),
-                            parameter.prior().scale()},
-                        parameter.initial_value());
+                        parameter.prior(), parameter.initial_value());
                 }
                 if (const auto* proportion
                     = genetic->template get_if<
@@ -176,10 +166,7 @@ auto FitReporter::print_genetic_prior(const bayes::GeneticPriorBlock& prior)
                         const auto& parameter
                             = variance->variance(mode).parameter();
                         print_variance_prior(
-                            stats::detail::ScaledInvChiSqParams{
-                                parameter.prior().degrees_of_freedom(),
-                                parameter.prior().scale()},
-                            parameter.initial_value());
+                            parameter.prior(), parameter.initial_value());
                     }
                 }
                 if (const auto* proportion
@@ -209,10 +196,7 @@ auto FitReporter::print_residual_prior(const bayes::ResidualPrior& prior)
     -> void
 {
     cli::printer().line("   Residual:");
-    print_variance_prior(
-        stats::detail::ScaledInvChiSqParams{
-            prior.prior().degrees_of_freedom(), prior.prior().scale()},
-        prior.initial_value());
+    print_variance_prior(prior.prior(), prior.initial_value());
 }
 
 }  // namespace gelex::cli

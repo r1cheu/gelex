@@ -38,17 +38,10 @@ SingleSharedVarStep::SingleSharedVarStep(
     bayes::SingleGeneticBlockState& block,
     std::mt19937_64& rng)
     : block_(block),
-      sampler_(
-          prior.get<bayes::SingleSharedMarkerVarianceCap>()
-              .variance()
-              .parameter()
-              .prior()
-              .degrees_of_freedom(),
-          prior.get<bayes::SingleSharedMarkerVarianceCap>()
-              .variance()
-              .parameter()
-              .prior()
-              .scale()),
+      sampler_(prior.get<bayes::SingleSharedMarkerVarianceCap>()
+                   .variance()
+                   .parameter()
+                   .prior()),
       variance_(block.prior_state()
                     .get<bayes::SingleSharedVarianceStateCap>()
                     .variance()),
@@ -68,17 +61,10 @@ SingleSharedMixtureVarStep::SingleSharedMixtureVarStep(
     bayes::SingleGeneticBlockState& block,
     std::mt19937_64& rng)
     : block_(block),
-      sampler_(
-          prior.get<bayes::SingleSharedMarkerVarianceCap>()
-              .variance()
-              .parameter()
-              .prior()
-              .degrees_of_freedom(),
-          prior.get<bayes::SingleSharedMarkerVarianceCap>()
-              .variance()
-              .parameter()
-              .prior()
-              .scale()),
+      sampler_(prior.get<bayes::SingleSharedMarkerVarianceCap>()
+                   .variance()
+                   .parameter()
+                   .prior()),
       variance_(block.prior_state()
                     .get<bayes::SingleSharedVarianceStateCap>()
                     .variance()),
@@ -114,17 +100,10 @@ SingleSharedScaledMixtureVarStep::SingleSharedScaledMixtureVarStep(
     bayes::SingleGeneticBlockState& block,
     std::mt19937_64& rng)
     : block_(block),
-      sampler_(
-          prior.get<bayes::SingleSharedMarkerVarianceCap>()
-              .variance()
-              .parameter()
-              .prior()
-              .degrees_of_freedom(),
-          prior.get<bayes::SingleSharedMarkerVarianceCap>()
-              .variance()
-              .parameter()
-              .prior()
-              .scale()),
+      sampler_(prior.get<bayes::SingleSharedMarkerVarianceCap>()
+                   .variance()
+                   .parameter()
+                   .prior()),
       variance_(block.prior_state()
                     .get<bayes::SingleSharedVarianceStateCap>()
                     .variance()),
@@ -161,17 +140,10 @@ SinglePerMarkerVarStep::SinglePerMarkerVarStep(
     bayes::SingleGeneticBlockState& block,
     std::mt19937_64& rng)
     : block_(block),
-      sampler_(
-          prior.get<bayes::SinglePerMarkerVarianceCap>()
-              .variance()
-              .parameter()
-              .prior()
-              .degrees_of_freedom(),
-          prior.get<bayes::SinglePerMarkerVarianceCap>()
-              .variance()
-              .parameter()
-              .prior()
-              .scale()),
+      sampler_(prior.get<bayes::SinglePerMarkerVarianceCap>()
+                   .variance()
+                   .parameter()
+                   .prior()),
       variance_(block.prior_state()
                     .get<bayes::SinglePerMarkerVarianceStateCap>()
                     .variance()),
@@ -196,17 +168,10 @@ SinglePerMarkerMixtureVarStep::SinglePerMarkerMixtureVarStep(
     bayes::SingleGeneticBlockState& block,
     std::mt19937_64& rng)
     : block_(block),
-      sampler_(
-          prior.get<bayes::SinglePerMarkerVarianceCap>()
-              .variance()
-              .parameter()
-              .prior()
-              .degrees_of_freedom(),
-          prior.get<bayes::SinglePerMarkerVarianceCap>()
-              .variance()
-              .parameter()
-              .prior()
-              .scale()),
+      sampler_(prior.get<bayes::SinglePerMarkerVarianceCap>()
+                   .variance()
+                   .parameter()
+                   .prior()),
       variance_(block.prior_state()
                     .get<bayes::SinglePerMarkerVarianceStateCap>()
                     .variance()),
@@ -248,10 +213,8 @@ JointSharedMixtureVarStep::JointSharedMixtureVarStep(
               const auto& dominance
                   = variance.variance(GeneticMode::D).parameter().prior();
               return std::array{
-                  stats::ScaledInvChi2Sampler<double>{
-                      additive.degrees_of_freedom(), additive.scale()},
-                  stats::ScaledInvChi2Sampler<double>{
-                      dominance.degrees_of_freedom(), dominance.scale()}};
+                  stats::ScaledInvChi2Sampler<double>{additive},
+                  stats::ScaledInvChi2Sampler<double>{dominance}};
           }()),
       variance_(block.prior_state().get<bayes::JointSharedVarianceStateCap>()),
       assignment_(block.prior_state()

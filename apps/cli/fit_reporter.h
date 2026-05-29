@@ -27,16 +27,12 @@ namespace gelex
 {
 struct PosteriorSummary;
 
-namespace stats::detail
-{
-struct ScaledInvChiSqParams;
-}  // namespace stats::detail
-
 namespace bayes
 {
 class BayesPrior;
 class RandomPrior;
 class ResidualPrior;
+class ScaledInvChiSqPrior;
 }  // namespace bayes
 
 enum class GeneticMode : uint8_t;
@@ -59,7 +55,7 @@ class FitReporter
         -> void;
     static auto print_residual_prior(const bayes::ResidualPrior& prior) -> void;
     static auto print_variance_prior(
-        const stats::detail::ScaledInvChiSqParams& prior,
+        const bayes::ScaledInvChiSqPrior& prior,
         double init_variance) -> void;
     static auto print_summary_row(
         std::string_view name,

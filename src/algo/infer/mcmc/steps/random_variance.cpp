@@ -15,8 +15,10 @@
  */
 
 #include "gelex/algo/infer/mcmc/steps/random_variance.h"
+
 #include <random>
 #include <span>
+
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/state.h"
 
@@ -27,9 +29,7 @@ RandomVarianceStep::RandomVarianceStep(
     const bayes::RandomPrior& prior,
     std::span<bayes::RandomState> states,
     std::mt19937_64& rng)
-    : states_(states),
-      rng_(rng),
-      sampler_(prior.prior().degrees_of_freedom(), prior.prior().scale())
+    : states_(states), rng_(rng), sampler_(prior.prior())
 {
 }
 
