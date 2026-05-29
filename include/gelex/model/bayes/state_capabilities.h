@@ -30,7 +30,7 @@ namespace gelex::bayes
 class SingleMixtureAssignmentStateCap
 {
    public:
-    static constexpr std::string_view name = "single mixture assignment state";
+    static constexpr std::string_view name = "single_mixture_assignment_state";
 
     auto operator=(const SingleMixtureAssignmentStateCap&)
         -> SingleMixtureAssignmentStateCap& = delete;
@@ -53,7 +53,7 @@ class SingleMixtureAssignmentStateCap
 class JointMixtureAssignmentStateCap
 {
    public:
-    static constexpr std::string_view name = "joint mixture assignment state";
+    static constexpr std::string_view name = "joint_mixture_assignment_state";
 
     auto operator=(const JointMixtureAssignmentStateCap&)
         -> JointMixtureAssignmentStateCap& = delete;
@@ -76,7 +76,7 @@ class JointMixtureAssignmentStateCap
 class SingleComponentStateCap
 {
    public:
-    static constexpr std::string_view name = "single component state";
+    static constexpr std::string_view name = "single_component_state";
 
     auto operator=(const SingleComponentStateCap&)
         -> SingleComponentStateCap& = delete;
@@ -97,7 +97,7 @@ class SingleComponentStateCap
 class JointComponentStateCap
 {
    public:
-    static constexpr std::string_view name = "joint component state";
+    static constexpr std::string_view name = "joint_component_state";
 
     auto operator=(const JointComponentStateCap&)
         -> JointComponentStateCap& = delete;
@@ -115,13 +115,13 @@ class JointComponentStateCap
     JointComponentStateCap(JointComponentStateCap&&) noexcept = default;
 };
 
-using SingleSharedVarianceStateCap = SingleSharedVarianceCapability<double>;
+using SingleSharedVarianceStateCap = SingleSharedVarCapability<double>;
 using SinglePerMarkerVarianceStateCap
-    = SinglePerMarkerVarianceCapability<Eigen::VectorXd>;
+    = SinglePerMarkerVarCapability<Eigen::VectorXd>;
 using SingleSampledMixtureProportionStateCap
     = SingleProportionCapability<SampledMixtureProportionState>;
 
-using JointSharedVarianceStateCap = JointSharedVarianceCapability<double>;
+using JointSharedVarianceStateCap = JointSharedVarCapability<double>;
 using JointSampledMixtureProportionStateCap
     = JointProportionCapability<SampledMixtureProportionState>;
 

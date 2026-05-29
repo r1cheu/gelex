@@ -114,15 +114,15 @@ auto FitReporter::print_genetic_prior(const bayes::GeneticPriorBlock& prior)
             {
                 cli::printer().line("   {} effect:", genetic->mode());
                 if (const auto* variance
-                    = genetic->template get_if<
-                        bayes::SingleSharedMarkerVarianceCap>())
+                    = genetic
+                          ->template get_if<bayes::SingleSharedMarkerVarCap>())
                 {
                     const auto& parameter = variance->variance().parameter();
                     print_variance_prior(
                         parameter.prior(), parameter.initial_value());
                 }
-                if (const auto* variance = genetic->template get_if<
-                                           bayes::SinglePerMarkerVarianceCap>())
+                if (const auto* variance
+                    = genetic->template get_if<bayes::SinglePerMarkerVarCap>())
                 {
                     const auto& parameter = variance->variance().parameter();
                     print_variance_prior(
@@ -158,8 +158,8 @@ auto FitReporter::print_genetic_prior(const bayes::GeneticPriorBlock& prior)
             {
                 cli::printer().line("   A, D effect:");
                 if (const auto* variance
-                    = genetic->template get_if<
-                        bayes::JointSharedMarkerVarianceCap>())
+                    = genetic
+                          ->template get_if<bayes::JointSharedMarkerVarCap>())
                 {
                     for (const auto mode : {GeneticMode::A, GeneticMode::D})
                     {

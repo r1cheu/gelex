@@ -80,60 +80,57 @@ using SampledMixtureProportionCap
 using MultiplierCap = MultiplierCapability<Eigen::VectorXd>;
 
 template <typename T>
-class SingleSharedVarianceCapability
+class SingleSharedVarCapability
 {
    public:
-    static constexpr std::string_view name = "single shared variance";
+    static constexpr std::string_view name = "single_shared_variance";
     using element_type = T;
 
-    auto operator=(const SingleSharedVarianceCapability&)
-        -> SingleSharedVarianceCapability& = delete;
-    auto operator=(SingleSharedVarianceCapability&&) noexcept
-        -> SingleSharedVarianceCapability& = delete;
+    auto operator=(const SingleSharedVarCapability&)
+        -> SingleSharedVarCapability& = delete;
+    auto operator=(SingleSharedVarCapability&&) noexcept
+        -> SingleSharedVarCapability& = delete;
 
-    virtual ~SingleSharedVarianceCapability() = default;
+    virtual ~SingleSharedVarCapability() = default;
 
     virtual auto variance() -> T& = 0;
     virtual auto variance() const -> const T& = 0;
 
    protected:
-    SingleSharedVarianceCapability() = default;
-    SingleSharedVarianceCapability(const SingleSharedVarianceCapability&)
-        = default;
-    SingleSharedVarianceCapability(SingleSharedVarianceCapability&&) noexcept
-        = default;
+    SingleSharedVarCapability() = default;
+    SingleSharedVarCapability(const SingleSharedVarCapability&) = default;
+    SingleSharedVarCapability(SingleSharedVarCapability&&) noexcept = default;
 };
 
 template <typename T>
-class SinglePerMarkerVarianceCapability
+class SinglePerMarkerVarCapability
 {
    public:
-    static constexpr std::string_view name = "single per-marker variance";
+    static constexpr std::string_view name = "single_per_marker_variance";
     using element_type = T;
 
-    auto operator=(const SinglePerMarkerVarianceCapability&)
-        -> SinglePerMarkerVarianceCapability& = delete;
-    auto operator=(SinglePerMarkerVarianceCapability&&) noexcept
-        -> SinglePerMarkerVarianceCapability& = delete;
+    auto operator=(const SinglePerMarkerVarCapability&)
+        -> SinglePerMarkerVarCapability& = delete;
+    auto operator=(SinglePerMarkerVarCapability&&) noexcept
+        -> SinglePerMarkerVarCapability& = delete;
 
-    virtual ~SinglePerMarkerVarianceCapability() = default;
+    virtual ~SinglePerMarkerVarCapability() = default;
 
     virtual auto variance() -> T& = 0;
     virtual auto variance() const -> const T& = 0;
 
    protected:
-    SinglePerMarkerVarianceCapability() = default;
-    SinglePerMarkerVarianceCapability(const SinglePerMarkerVarianceCapability&)
+    SinglePerMarkerVarCapability() = default;
+    SinglePerMarkerVarCapability(const SinglePerMarkerVarCapability&) = default;
+    SinglePerMarkerVarCapability(SinglePerMarkerVarCapability&&) noexcept
         = default;
-    SinglePerMarkerVarianceCapability(
-        SinglePerMarkerVarianceCapability&&) noexcept = default;
 };
 
 template <typename T>
 class SingleProportionCapability
 {
    public:
-    static constexpr std::string_view name = "single proportion";
+    static constexpr std::string_view name = "single_proportion";
     using element_type = T;
 
     auto operator=(const SingleProportionCapability&)
@@ -156,7 +153,7 @@ template <typename T>
 class SingleMultiplierCapability
 {
    public:
-    static constexpr std::string_view name = "single multiplier";
+    static constexpr std::string_view name = "single_multiplier";
     using element_type = T;
 
     auto operator=(const SingleMultiplierCapability&)
@@ -176,35 +173,33 @@ class SingleMultiplierCapability
 };
 
 template <typename T>
-class JointSharedVarianceCapability
+class JointSharedVarCapability
 {
    public:
-    static constexpr std::string_view name = "joint shared variance";
+    static constexpr std::string_view name = "joint_shared_variance";
     using element_type = T;
 
-    auto operator=(const JointSharedVarianceCapability&)
-        -> JointSharedVarianceCapability& = delete;
-    auto operator=(JointSharedVarianceCapability&&) noexcept
-        -> JointSharedVarianceCapability& = delete;
+    auto operator=(const JointSharedVarCapability&)
+        -> JointSharedVarCapability& = delete;
+    auto operator=(JointSharedVarCapability&&) noexcept
+        -> JointSharedVarCapability& = delete;
 
-    virtual ~JointSharedVarianceCapability() = default;
+    virtual ~JointSharedVarCapability() = default;
 
     virtual auto variance(GeneticMode mode) -> T& = 0;
     virtual auto variance(GeneticMode mode) const -> const T& = 0;
 
    protected:
-    JointSharedVarianceCapability() = default;
-    JointSharedVarianceCapability(const JointSharedVarianceCapability&)
-        = default;
-    JointSharedVarianceCapability(JointSharedVarianceCapability&&) noexcept
-        = default;
+    JointSharedVarCapability() = default;
+    JointSharedVarCapability(const JointSharedVarCapability&) = default;
+    JointSharedVarCapability(JointSharedVarCapability&&) noexcept = default;
 };
 
 template <typename T>
 class JointProportionCapability
 {
    public:
-    static constexpr std::string_view name = "joint proportion";
+    static constexpr std::string_view name = "joint_proportion";
     using element_type = T;
 
     auto operator=(const JointProportionCapability&)
@@ -223,18 +218,16 @@ class JointProportionCapability
     JointProportionCapability(JointProportionCapability&&) noexcept = default;
 };
 
-using SingleSharedMarkerVarianceCap
-    = SingleSharedVarianceCapability<SharedMarkerVariance>;
-using SinglePerMarkerVarianceCap
-    = SinglePerMarkerVarianceCapability<PerMarkerVariance>;
+using SingleSharedMarkerVarCap
+    = SingleSharedVarCapability<SharedMarkerVariance>;
+using SinglePerMarkerVarCap = SinglePerMarkerVarCapability<PerMarkerVariance>;
 using SingleFixedMixtureProportionCap
     = SingleProportionCapability<FixedMixtureProportion>;
 using SingleSampledMixtureProportionCap
     = SingleProportionCapability<SampledMixtureProportion>;
 using SingleMultiplierCap = SingleMultiplierCapability<Eigen::VectorXd>;
 
-using JointSharedMarkerVarianceCap
-    = JointSharedVarianceCapability<SharedMarkerVariance>;
+using JointSharedMarkerVarCap = JointSharedVarCapability<SharedMarkerVariance>;
 using JointFixedMixtureProportionCap
     = JointProportionCapability<FixedMixtureProportion>;
 using JointSampledMixtureProportionCap

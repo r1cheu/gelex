@@ -33,7 +33,7 @@ namespace gelex::bayes
 
 class SingleSharedGaussianPrior final
     : public SingleGeneticPrior
-    , public SingleSharedMarkerVarianceCap
+    , public SingleSharedMarkerVarCap
 {
    public:
     static constexpr std::string_view name = "shared_gaussian";
@@ -58,7 +58,7 @@ class SingleSharedGaussianPrior final
 
 class SinglePerMarkerGaussianPrior final
     : public SingleGeneticPrior
-    , public SinglePerMarkerVarianceCap
+    , public SinglePerMarkerVarCap
 {
    public:
     static constexpr std::string_view name = "per_marker_gaussian";
@@ -83,7 +83,7 @@ class SinglePerMarkerGaussianPrior final
 
 class SingleFixedSharedSpikeSlabGaussianPrior final
     : public SingleGeneticPrior
-    , public SingleSharedMarkerVarianceCap
+    , public SingleSharedMarkerVarCap
     , public SingleFixedMixtureProportionCap
 {
    public:
@@ -121,7 +121,7 @@ class SingleFixedSharedSpikeSlabGaussianPrior final
 
 class SingleSampledSharedSpikeSlabGaussianPrior final
     : public SingleGeneticPrior
-    , public SingleSharedMarkerVarianceCap
+    , public SingleSharedMarkerVarCap
     , public SingleSampledMixtureProportionCap
 {
    public:
@@ -160,7 +160,7 @@ class SingleSampledSharedSpikeSlabGaussianPrior final
 
 class SingleFixedPerMarkerSpikeSlabGaussianPrior final
     : public SingleGeneticPrior
-    , public SinglePerMarkerVarianceCap
+    , public SinglePerMarkerVarCap
     , public SingleFixedMixtureProportionCap
 {
    public:
@@ -199,7 +199,7 @@ class SingleFixedPerMarkerSpikeSlabGaussianPrior final
 
 class SingleSampledPerMarkerSpikeSlabGaussianPrior final
     : public SingleGeneticPrior
-    , public SinglePerMarkerVarianceCap
+    , public SinglePerMarkerVarCap
     , public SingleSampledMixtureProportionCap
 {
    public:
@@ -238,7 +238,7 @@ class SingleSampledPerMarkerSpikeSlabGaussianPrior final
 
 class SingleFixedScaledMixtureGaussianPrior final
     : public SingleGeneticPrior
-    , public SingleSharedMarkerVarianceCap
+    , public SingleSharedMarkerVarCap
     , public SingleFixedMixtureProportionCap
     , public SingleMultiplierCap
 {
@@ -284,7 +284,7 @@ class SingleFixedScaledMixtureGaussianPrior final
 
 class SingleSampledScaledMixtureGaussianPrior final
     : public SingleGeneticPrior
-    , public SingleSharedMarkerVarianceCap
+    , public SingleSharedMarkerVarCap
     , public SingleSampledMixtureProportionCap
     , public SingleMultiplierCap
 {
@@ -330,7 +330,7 @@ class SingleSampledScaledMixtureGaussianPrior final
 
 class JointFixedGaussianMixturePrior final
     : public JointGeneticPrior
-    , public JointSharedMarkerVarianceCap
+    , public JointSharedMarkerVarCap
     , public JointFixedMixtureProportionCap
 {
    public:
@@ -363,7 +363,7 @@ class JointFixedGaussianMixturePrior final
 
 class JointSampledGaussianMixturePrior final
     : public JointGeneticPrior
-    , public JointSharedMarkerVarianceCap
+    , public JointSharedMarkerVarCap
     , public JointSampledMixtureProportionCap
 {
    public:

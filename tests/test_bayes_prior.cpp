@@ -53,8 +53,7 @@ auto make_shared_prior(gelex::GeneticMode mode)
     -> std::unique_ptr<gelex::bayes::SingleGeneticPrior>
 {
     return std::make_unique<gelex::bayes::SingleSharedGaussianPrior>(
-        mode,
-        gelex::bayes::SharedMarkerVariance{make_variance(0.1)});
+        mode, gelex::bayes::SharedMarkerVariance{make_variance(0.1)});
 }
 
 }  // namespace
@@ -68,9 +67,9 @@ TEST_CASE("BayesPrior owns single and joint genetic blocks", "[bayes_prior]")
         make_random_prior(), std::move(genetics), make_residual_prior()};
 
     REQUIRE(prior.genetics().size() == 1);
-    const auto* single = std::get_if<
-        std::unique_ptr<gelex::bayes::SingleGeneticPrior>>(
-        &prior.genetics()[0]);
+    const auto* single
+        = std::get_if<std::unique_ptr<gelex::bayes::SingleGeneticPrior>>(
+            &prior.genetics()[0]);
     REQUIRE(single != nullptr);
     REQUIRE((*single)->mode() == gelex::GeneticMode::A);
 }
@@ -81,8 +80,7 @@ TEST_CASE("Genetic prior get and get_if expose capabilities", "[bayes_prior]")
         gelex::GeneticMode::A,
         gelex::bayes::SharedMarkerVariance{make_variance(0.1)}};
 
-    REQUIRE(
-        prior.get_if<gelex::bayes::SingleSharedMarkerVarianceCap>() != nullptr);
+    REQUIRE(prior.get_if<gelex::bayes::SingleSharedMarkerVarCap>() != nullptr);
     REQUIRE(
         prior.get_if<gelex::bayes::SingleFixedMixtureProportionCap>()
         == nullptr);

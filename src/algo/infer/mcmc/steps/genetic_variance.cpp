@@ -38,7 +38,7 @@ SingleSharedVarStep::SingleSharedVarStep(
     bayes::SingleGeneticBlockState& block,
     std::mt19937_64& rng)
     : block_(block),
-      sampler_(prior.get<bayes::SingleSharedMarkerVarianceCap>()
+      sampler_(prior.get<bayes::SingleSharedMarkerVarCap>()
                    .variance()
                    .parameter()
                    .prior()),
@@ -61,7 +61,7 @@ SingleSharedMixtureVarStep::SingleSharedMixtureVarStep(
     bayes::SingleGeneticBlockState& block,
     std::mt19937_64& rng)
     : block_(block),
-      sampler_(prior.get<bayes::SingleSharedMarkerVarianceCap>()
+      sampler_(prior.get<bayes::SingleSharedMarkerVarCap>()
                    .variance()
                    .parameter()
                    .prior()),
@@ -100,7 +100,7 @@ SingleSharedScaledMixtureVarStep::SingleSharedScaledMixtureVarStep(
     bayes::SingleGeneticBlockState& block,
     std::mt19937_64& rng)
     : block_(block),
-      sampler_(prior.get<bayes::SingleSharedMarkerVarianceCap>()
+      sampler_(prior.get<bayes::SingleSharedMarkerVarCap>()
                    .variance()
                    .parameter()
                    .prior()),
@@ -140,7 +140,7 @@ SinglePerMarkerVarStep::SinglePerMarkerVarStep(
     bayes::SingleGeneticBlockState& block,
     std::mt19937_64& rng)
     : block_(block),
-      sampler_(prior.get<bayes::SinglePerMarkerVarianceCap>()
+      sampler_(prior.get<bayes::SinglePerMarkerVarCap>()
                    .variance()
                    .parameter()
                    .prior()),
@@ -168,7 +168,7 @@ SinglePerMarkerMixtureVarStep::SinglePerMarkerMixtureVarStep(
     bayes::SingleGeneticBlockState& block,
     std::mt19937_64& rng)
     : block_(block),
-      sampler_(prior.get<bayes::SinglePerMarkerVarianceCap>()
+      sampler_(prior.get<bayes::SinglePerMarkerVarCap>()
                    .variance()
                    .parameter()
                    .prior()),
@@ -207,7 +207,7 @@ JointSharedMixtureVarStep::JointSharedMixtureVarStep(
           [&prior]
           {
               const auto& variance
-                  = prior.get<bayes::JointSharedMarkerVarianceCap>();
+                  = prior.get<bayes::JointSharedMarkerVarCap>();
               const auto& additive
                   = variance.variance(GeneticMode::A).parameter().prior();
               const auto& dominance
