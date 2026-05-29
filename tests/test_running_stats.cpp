@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
 #include <cmath>
 #include <limits>
 

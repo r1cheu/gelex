@@ -16,8 +16,18 @@
 
 #include "gelex/infra/logger.h"
 
+#include <cstddef>
 #include <memory>
+#include <mutex>
+#include <string>
+#include <string_view>
+#include <utility>
 
+#include <fmt/format.h>
+#include <spdlog/common.h>
+#include <spdlog/details/log_msg.h>
+#include <spdlog/formatter.h>
+#include <spdlog/logger.h>
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>

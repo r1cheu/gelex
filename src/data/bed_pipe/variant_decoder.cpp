@@ -16,7 +16,11 @@
 
 #include "variant_decoder.h"
 
+#include <Eigen/Core>
+#include <cstdint>
 #include <cstring>
+#include <span>
+#include <vector>
 
 #include "decode_lut.h"
 

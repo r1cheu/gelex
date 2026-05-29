@@ -15,12 +15,18 @@
  */
 
 #include <Eigen/Core>
+#include <array>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <cstddef>
 #include <filesystem>
+#include <fstream>
+#include <ios>
 #include <ranges>
 #include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <catch2/catch_test_macros.hpp>
@@ -30,6 +36,7 @@
 
 #include "bed_fixture.h"
 #include "file_fixture.h"
+#include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"

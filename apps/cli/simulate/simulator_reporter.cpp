@@ -15,6 +15,8 @@
  */
 
 #include "simulator_reporter.h"
+#include <fmt/format.h>
+#include <string>
 
 #include "cli/report_printer.h"
 #include "config.h"

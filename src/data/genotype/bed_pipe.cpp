@@ -17,13 +17,16 @@
 #include "gelex/data/genotype/bed_pipe.h"
 
 #include <fmt/format.h>
+#include <Eigen/Core>
+#include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <span>
+#include <stdexcept>
+#include <string>
 
 #include "gelex/data/dataframe/index.h"
-
-#include <omp.h>
 
 #include "data/bed_pipe/metadata.h"
 #include "data/bed_pipe/mmap_reader.h"

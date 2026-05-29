@@ -17,6 +17,7 @@
 #include "gelex/io/locistats/writer.h"
 
 #include <fmt/format.h>
+#include <Eigen/Core>
 #include <cstdint>
 #include <span>
 #include <string_view>

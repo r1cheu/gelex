@@ -17,9 +17,13 @@
 #include "assoc_config.h"
 
 #include <argparse.h>
+#include <string>
+#include <string_view>
 
 #include "cli/cli_helper.h"
 #include "gelex/algo/gwas/assoc_type.h"
+#include "gelex/data/pipe/pheno.h"
+#include "gelex/engine/assoc.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::cli

@@ -17,6 +17,10 @@
 #include "mmap_reader.h"
 
 #include <fmt/format.h>
+#include <Eigen/Core>
+#include <cstddef>
+#include <cstdint>
+#include <filesystem>
 #include <system_error>
 
 #include "gelex/exception.h"

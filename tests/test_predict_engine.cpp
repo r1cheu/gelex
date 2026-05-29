@@ -15,15 +15,19 @@
  */
 
 #include <fmt/format.h>
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
+#include "file_fixture.h"
 #include "gelex/data/genotype/process_method.h"
 #include "gelex/data/genotype/processor.h"
 #include "gelex/engine/predict.h"

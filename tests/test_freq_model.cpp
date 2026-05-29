@@ -15,8 +15,10 @@
  */
 
 #include <fmt/format.h>
+#include <cstddef>
 #include <filesystem>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
@@ -32,6 +34,7 @@
 #include "gelex/data/sample_id.h"
 #include "gelex/io/grm/writer.h"
 #include "gelex/model/freq/model.h"
+#include "gelex/types/genetic_effect_type.h"
 #include "sample_id_fixture.h"
 
 namespace fs = std::filesystem;

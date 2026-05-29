@@ -16,6 +16,8 @@
 
 #include <array>
 #include <chrono>
+#include <exception>
+#include <iostream>
 #include <string_view>
 
 #include <argparse.h>

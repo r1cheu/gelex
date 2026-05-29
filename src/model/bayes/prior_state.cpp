@@ -18,16 +18,13 @@
 
 #include <cstddef>
 #include <ranges>
-#include <string>
 
 #include <fmt/format.h>
 #include <Eigen/Core>
 
-#include "gelex/exception.h"
 #include "gelex/infra/field_flag.h"
 #include "gelex/infra/field_visitor.h"
 #include "gelex/model/bayes/prior_parameters.h"
-#include "gelex/model/bayes/state_capabilities.h"
 
 namespace gelex::bayes
 {

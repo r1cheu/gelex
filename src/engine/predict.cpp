@@ -17,6 +17,8 @@
 #include "gelex/engine/predict.h"
 
 #include <cstddef>
+#include <filesystem>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -25,10 +27,14 @@
 
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/reader.h"
+#include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
+#include "gelex/infra/logging/predict_event.h"
 #include "gelex/io/locistats/reader.h"
 #include "gelex/io/predict/input_reader.h"
 #include "gelex/predict/snp_alignment.h"
+#include "gelex/predict/types.h"
+#include "gelex/types/genetic_effect_type.h"
 #include "io/predict/writer.h"
 #include "predict/compute.h"
 #include "predict/standardize.h"

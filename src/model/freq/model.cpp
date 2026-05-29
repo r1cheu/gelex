@@ -14,10 +14,14 @@
  * limitations under the License.
  */
 
-#include <Eigen/SVD>
+#include <Eigen/Core>
+#include <utility>
+#include <vector>
 
 #include "gelex/infra/stats/detail/var.h"
+#include "gelex/model/freq/design.h"
 #include "gelex/model/freq/model.h"
+#include "gelex/types/fixed_designs.h"
 
 namespace gelex
 {

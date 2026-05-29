@@ -15,8 +15,9 @@
  */
 
 #include "gelex/algo/infer/posterior_summary.h"
+#include <utility>
 
-#include "gelex/infra/stats/running_stats.h"
+#include "gelex/algo/infer/fixed_samples.h"
 
 namespace gelex
 {

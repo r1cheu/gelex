@@ -26,6 +26,8 @@
 #include "gelex/exception.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/model/bayes/designs.h"
+#include "gelex/types/fixed_designs.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {

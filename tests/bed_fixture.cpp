@@ -17,11 +17,19 @@
 #include "bed_fixture.h"
 
 #include <fmt/format.h>
+#include <Eigen/Core>
+#include <array>
+#include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <limits>
 #include <random>
+#include <span>
 #include <string>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 #include "gelex/exception.h"
 

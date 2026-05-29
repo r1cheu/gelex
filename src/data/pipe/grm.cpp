@@ -16,14 +16,18 @@
 
 #include "gelex/data/pipe/grm.h"
 
+#include <cstddef>
 #include <filesystem>
 #include <ranges>
+#include <string>
 #include <utility>
 #include <vector>
 
+#include "gelex/data/dataframe/index.h"
 #include "gelex/infra/logging/grm_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/grm/detail/reader.h"
+#include "gelex/model/freq/design.h"
 
 namespace gelex
 {

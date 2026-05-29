@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
+#include <catch2/matchers/catch_matchers.hpp>
 #include <cmath>
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <ios>
 #include <limits>
 #include <vector>
 

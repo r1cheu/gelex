@@ -17,6 +17,7 @@
 #include "dataset_reporter.h"
 
 #include "cli/report_printer.h"
+#include "gelex/infra/logging/dataset_event.h"
 #include "gelex/infra/logging/formatter.h"
 
 namespace gelex::cli

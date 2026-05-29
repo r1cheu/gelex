@@ -17,9 +17,14 @@
 #include "gelex/io/mcmc/parameter_writer.h"
 
 #include <fmt/format.h>
+#include <Eigen/Core>
+#include <filesystem>
 #include <memory>
+#include <span>
 #include <string>
+#include <vector>
 
+#include "gelex/algo/infer/mcmc/result.h"
 #include "gelex/io/detail/text_writer.h"
 #include "gelex/model/bayes/labels.h"
 

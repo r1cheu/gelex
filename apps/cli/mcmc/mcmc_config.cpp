@@ -22,7 +22,10 @@
 #include <argparse.h>
 
 #include "cli/bayes_recipe_config.h"
+#include "gelex/algo/infer/params.h"
+#include "gelex/engine/mcmc.h"
 #include "gelex/model/bayes/recipe.h"
+#include "gelex/model/bayes/recipe_options.h"
 
 namespace gelex::cli
 {

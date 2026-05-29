@@ -16,12 +16,16 @@
 
 #include "grm_config.h"
 
+#include <string>
+#include <utility>
 #include <vector>
 
 #include <argparse.h>
 
 #include "cli/cli_helper.h"
+#include "gelex/engine/grm.h"
 #include "gelex/exception.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::cli
 {

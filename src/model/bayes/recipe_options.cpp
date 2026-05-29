@@ -22,6 +22,8 @@
 #include <fmt/format.h>
 
 #include "gelex/exception.h"
+#include "gelex/types/constrained_value.h"
+#include "gelex/types/constrained_vector.h"
 
 namespace gelex::bayes
 {

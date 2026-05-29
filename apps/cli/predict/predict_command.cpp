@@ -17,8 +17,10 @@
 #include "predict_command.h"
 
 #include <argparse.h>
+#include <utility>
 
 #include "gelex/engine/predict.h"
+#include "gelex/infra/logging/predict_event.h"
 #include "predict_config.h"
 #include "predict_reporter.h"
 

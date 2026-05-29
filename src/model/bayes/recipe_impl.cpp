@@ -17,7 +17,7 @@
 #include "recipe_impl.h"
 
 #include <cmath>
-#include <memory>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -26,6 +26,12 @@
 
 #include "gelex/exception.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/prior_parameters.h"
+#include "gelex/model/bayes/recipe_options.h"
+#include "gelex/types/constrained_value.h"
+#include "gelex/types/constrained_vector.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
 {

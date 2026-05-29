@@ -21,6 +21,7 @@
 #include <filesystem>
 #include <ranges>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "assoc_config.h"

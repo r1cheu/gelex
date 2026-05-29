@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#include <algorithm>
 #include <string>
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
+#include <string_view>
 
 #include "file_fixture.h"
 #include "gelex/data/dataframe/constants.h"

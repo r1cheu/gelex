@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/algo/reml/convergence_checker.h"

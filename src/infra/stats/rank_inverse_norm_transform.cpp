@@ -15,6 +15,7 @@
  */
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <numeric>
 #include <ranges>

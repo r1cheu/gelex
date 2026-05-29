@@ -17,9 +17,13 @@
 #include "gelex/io/infer/covariate_writer.h"
 
 #include <fmt/format.h>
+#include <Eigen/Core>
+#include <filesystem>
 #include <memory>
+#include <span>
+#include <string>
 
-#include "gelex/algo/infer/mcmc/result.h"
+#include "gelex/algo/infer/posterior_summary.h"
 #include "gelex/io/detail/text_writer.h"
 
 namespace gelex

@@ -24,15 +24,21 @@
 #include <memory>
 #include <new>
 #include <stdexcept>
+#include <string>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
 
 #include <Eigen/Core>
 
+#include "gelex/data/dataframe/index.h"
+#include "gelex/data/genotype/genotype.h"
+#include "gelex/data/genotype/process_method.h"
 #include "gelex/data/genotype/processor.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logger.h"
+#include "gelex/infra/logging/geno_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/io/binary_writer.h"

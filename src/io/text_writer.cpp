@@ -15,6 +15,10 @@
  */
 
 #include "gelex/io/detail/text_writer.h"
+#include <filesystem>
+#include <initializer_list>
+#include <ios>
+#include <string_view>
 
 namespace gelex::io::detail
 {

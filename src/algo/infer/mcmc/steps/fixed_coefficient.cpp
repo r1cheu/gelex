@@ -17,9 +17,12 @@
 #include "gelex/algo/infer/mcmc/steps/fixed_coefficient.h"
 
 #include <Eigen/Core>
+#include <random>
 
 #include "gelex/algo/infer/mcmc/invariant.h"
 #include "gelex/infra/stats/conjugate_prior.h"
+#include "gelex/model/bayes/state.h"
+#include "gelex/types/fixed_designs.h"
 
 namespace gelex::mcmc
 {

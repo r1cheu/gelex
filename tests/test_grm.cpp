@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
+#include <catch2/matchers/catch_matchers.hpp>
 #include <cmath>
+#include <cstddef>
 #include <filesystem>
 #include <string>
-#include <vector>
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "bed_fixture.h"
-#include "gelex/data/genotype/processor.h"
+#include "gelex/data/genotype/process_method.h"
 #include "gelex/data/grm/grm.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace fs = std::filesystem;
 

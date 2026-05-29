@@ -19,16 +19,23 @@
 #include <fmt/format.h>
 #include <algorithm>
 #include <cstddef>
+#include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <map>
+#include <optional>
+#include <span>
 #include <sstream>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
 
+#include "gelex/data/dataframe/column.h"
 #include "gelex/data/dataframe/constants.h"
+#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/encode.h"
 #include "gelex/data/dataframe/reader.h"
 #include "gelex/data/reader.h"

@@ -16,15 +16,16 @@
 
 #include "assoc_reporter.h"
 
+#include <fmt/color.h>
 #include <fmt/format.h>
 
 #include "cli/reml_reporter.h"
 #include "cli/report_printer.h"
 #include "config.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/infra/logging/assoc_event.h"
 #include "gelex/infra/logging/formatter.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/infra/logging/progress_bar.h"
 
 namespace gelex::cli
 {

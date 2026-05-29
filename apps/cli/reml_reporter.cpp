@@ -16,12 +16,18 @@
 
 #include "reml_reporter.h"
 
+#include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <Eigen/Core>
+#include <cstddef>
+#include <string>
+#include <vector>
 
 #include "cli/report_printer.h"
 #include "gelex/algo/reml/statistics.h"
 #include "gelex/infra/logging/formatter.h"
+#include "gelex/infra/logging/reml_event.h"
 #include "gelex/model/freq/model.h"
 
 namespace gelex::cli

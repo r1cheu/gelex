@@ -16,14 +16,22 @@
 
 #include "gelex/post/genetic_variance.h"
 
+#include <algorithm>
+#include <cstddef>
 #include <ranges>
 
-#include <fmt/format.h>
 #include <Eigen/Core>
+#include <span>
+#include <utility>
+#include <vector>
 
+#include "gelex/infra/logging/post_event.h"
 #include "gelex/infra/stats/detail/var.h"
+#include "gelex/infra/stats/diagnostics.h"
+#include "gelex/io/binary_reader.h"
 #include "gelex/model/bayes/labels.h"
 #include "gelex/post/detail/utils.h"
+#include "gelex/post/genetic_variance_kernel.h"
 
 namespace gelex
 {

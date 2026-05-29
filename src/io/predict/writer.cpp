@@ -17,11 +17,18 @@
 #include "io/predict/writer.h"
 
 #include <fmt/format.h>
+#include <Eigen/Core>
 #include <cstddef>
+#include <filesystem>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <vector>
 
 #include "gelex/data/sample_id.h"
 #include "gelex/exception.h"
 #include "gelex/io/detail/text_writer.h"
+#include "gelex/predict/types.h"
 
 namespace gelex::predict::detail
 {

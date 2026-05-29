@@ -17,6 +17,7 @@
 #include "gelex/data/grm/grm.h"
 
 #include <Eigen/Core>
+#include <string>
 #ifdef USE_MKL
 #include <mkl.h>
 #include <mkl_cblas.h>

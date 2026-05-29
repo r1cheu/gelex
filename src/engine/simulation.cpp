@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <optional>
 #include <random>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -30,6 +31,7 @@
 #include "gelex/data/reader.h"
 #include "gelex/data/sample_id.h"
 #include "gelex/infra/logging/notify.h"
+#include "gelex/infra/logging/simulate_event.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/io/detail/text_writer.h"
 #include "gelex/simulate/effect_sampler.h"

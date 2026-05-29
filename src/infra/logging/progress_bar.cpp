@@ -16,9 +16,13 @@
 
 #include "gelex/infra/logging/progress_bar.h"
 
+#include <stdio.h>
 #include <unistd.h>
 #include <cstdio>
 #include <cstdlib>
+#include <memory>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include <barkeep.h>

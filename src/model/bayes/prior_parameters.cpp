@@ -1,5 +1,6 @@
 #include "gelex/model/bayes/prior_parameters.h"
 
+#include <array>
 #include <cmath>
 #include <limits>
 #include <utility>

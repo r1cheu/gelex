@@ -18,6 +18,8 @@
 
 #include <argparse.h>
 #include <fmt/format.h>
+#include <string>
+#include <utility>
 
 #include "cli/cli_helper.h"
 #include "gelex/engine/grm.h"

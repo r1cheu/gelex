@@ -18,9 +18,15 @@
 
 #include <fmt/format.h>
 #include <Eigen/Core>
+#include <cstddef>
+#include <random>
+#include <span>
 
 #include "gelex/algo/infer/mcmc/invariant.h"
 #include "gelex/exception.h"
+#include "gelex/infra/stats/conjugate_prior.h"
+#include "gelex/model/bayes/designs.h"
+#include "gelex/model/bayes/state.h"
 
 namespace gelex::mcmc
 {

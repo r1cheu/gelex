@@ -19,13 +19,17 @@
 #include <argparse.h>
 
 #include <fmt/format.h>
+#include <Eigen/Core>
+#include <cstddef>
 #include <optional>
 #include <span>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
 #include "cli/cli_helper.h"
+#include "gelex/engine/simulation.h"
 #include "gelex/exception.h"
 #include "gelex/simulate/sim_types.h"
 

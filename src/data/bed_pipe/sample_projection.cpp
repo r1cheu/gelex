@@ -15,6 +15,11 @@
  */
 
 #include "sample_projection.h"
+#include <Eigen/Core>
+#include <cstddef>
+#include <string>
+#include <vector>
+#include "gelex/data/dataframe/index.h"
 
 namespace gelex::genotype::detail
 {

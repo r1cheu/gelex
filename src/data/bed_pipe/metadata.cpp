@@ -15,6 +15,8 @@
  */
 
 #include "metadata.h"
+#include <Eigen/Core>
+#include <string>
 
 #include "gelex/data/reader.h"
 #include "gelex/io/detail/parser.h"

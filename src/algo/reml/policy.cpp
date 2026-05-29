@@ -16,6 +16,7 @@
 
 #include "gelex/algo/reml/policy.h"
 
+#include <Eigen/Core>
 #include <Eigen/Dense>
 
 #include "gelex/algo/reml/optimizer.h"

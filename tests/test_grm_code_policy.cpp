@@ -19,7 +19,9 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
+#include "gelex/data/genotype/process_method.h"
 #include "gelex/data/genotype/processor.h"
+#include "gelex/types/genetic_effect_type.h"
 
 using namespace gelex;
 using namespace gelex::genotype;

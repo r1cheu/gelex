@@ -15,6 +15,7 @@
  */
 
 #include "gelex/algo/reml/effect_solver.h"
+#include <cstddef>
 
 #include "gelex/algo/reml/optimizer_state.h"
 #include "gelex/model/freq/model.h"

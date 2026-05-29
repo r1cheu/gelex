@@ -17,6 +17,7 @@
 #include "gelex/algo/detail/posterior_calculator.h"
 
 #include <Eigen/Core>
+#include "gelex/algo/infer/posterior_summary.h"
 
 namespace gelex::posterior::detail
 {

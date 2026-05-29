@@ -22,6 +22,7 @@
 #include <utility>
 
 #include "gelex/engine/simulation.h"
+#include "gelex/infra/logging/simulate_event.h"
 #include "simulate_config.h"
 #include "simulator_reporter.h"
 

@@ -15,6 +15,10 @@
  */
 
 #include "gelex/algo/infer/mcmc/steps/residual_variance.h"
+#include <Eigen/Core>
+#include <random>
+#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/state.h"
 
 namespace gelex::mcmc
 {

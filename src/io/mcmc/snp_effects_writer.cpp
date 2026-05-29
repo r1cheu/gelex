@@ -16,14 +16,19 @@
 
 #include "gelex/io/mcmc/snp_effects_writer.h"
 
+#include <Eigen/Core>
+#include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <string>
 
 #include <fmt/format.h>
 
+#include "gelex/algo/infer/mcmc/result.h"
 #include "gelex/data/reader.h"
 #include "gelex/io/detail/text_writer.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {

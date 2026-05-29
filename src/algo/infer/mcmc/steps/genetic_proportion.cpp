@@ -15,8 +15,12 @@
  */
 
 #include "gelex/algo/infer/mcmc/steps/genetic_proportion.h"
+#include <random>
 
 #include "gelex/model/bayes/capabilities.h"
+#include "gelex/model/bayes/genetic_prior.h"
+#include "gelex/model/bayes/prior_parameters.h"
+#include "gelex/model/bayes/state.h"
 #include "gelex/model/bayes/state_capabilities.h"
 
 namespace gelex::mcmc

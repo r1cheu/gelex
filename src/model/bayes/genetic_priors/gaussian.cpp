@@ -27,6 +27,8 @@
 #include "gelex/infra/field_visitor.h"
 #include "gelex/model/bayes/genetic_prior_states/gaussian.h"
 #include "gelex/model/bayes/prior_parameters.h"
+#include "gelex/model/bayes/prior_state.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
 {

@@ -17,9 +17,12 @@
 #include "gelex/data/genotype/genotype.h"
 
 #include <algorithm>
+#include <cstdint>
+#include <type_traits>
 #include <variant>
 
 #include <Eigen/Core>
+#include <vector>
 
 namespace gelex::genotype
 {

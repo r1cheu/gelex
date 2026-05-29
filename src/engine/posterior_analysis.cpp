@@ -16,12 +16,17 @@
 
 #include "gelex/engine/posterior_analysis.h"
 
-#include <cstddef>
+#include <algorithm>
+#include <optional>
 #include <ranges>
+#include <span>
+#include <string>
 #include <string_view>
 
 #include <fmt/format.h>
 #include <Eigen/Core>
+#include <utility>
+#include <vector>
 
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/data/genotype/genotype_reader.h"
@@ -33,6 +38,7 @@
 #include "gelex/post/fixed.h"
 #include "gelex/post/genetic.h"
 #include "gelex/post/genetic_variance.h"
+#include "gelex/post/genetic_variance_kernel.h"
 #include "gelex/post/heritability.h"
 #include "gelex/post/random.h"
 #include "gelex/post/residual.h"

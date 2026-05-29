@@ -16,12 +16,15 @@
 
 #include "gelex/post/heritability.h"
 
+#include <cstddef>
+#include <span>
 #include <string>
 #include <string_view>
 
-#include <fmt/format.h>
 #include <Eigen/Core>
+#include <vector>
 
+#include "gelex/infra/logging/post_event.h"
 #include "gelex/infra/stats/diagnostics.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/model/bayes/labels.h"

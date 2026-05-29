@@ -18,11 +18,18 @@
 
 #include <argparse.h>
 #include <fmt/format.h>
+#include <filesystem>
 #include <optional>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "cli/cli_helper.h"
+#include "gelex/data/dataframe/index.h"
+#include "gelex/data/pipe/geno.h"
+#include "gelex/data/pipe/pheno.h"
 #include "gelex/exception.h"
+#include "gelex/infra/logging/dataset_event.h"
 #include "gelex/infra/logging/notify.h"
 
 namespace gelex::cli

@@ -29,9 +29,12 @@
 #include "gelex/exception.h"
 #include "gelex/infra/field_flag.h"
 #include "gelex/infra/field_visitor.h"
+#include "gelex/model/bayes/designs.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/prior_state.h"
+#include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes

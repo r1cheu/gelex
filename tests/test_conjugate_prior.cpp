@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <catch2/matchers/catch_matchers.hpp>
 #include <cmath>
 #include <cstdint>
 #include <random>

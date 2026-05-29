@@ -21,6 +21,7 @@
 
 #include "cli/report_printer.h"
 #include "gelex/infra/logging/formatter.h"
+#include "gelex/infra/logging/pheno_event.h"
 
 namespace gelex::cli
 {

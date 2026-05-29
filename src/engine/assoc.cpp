@@ -16,19 +16,27 @@
 
 #include "gelex/engine/assoc.h"
 
+#include <algorithm>
 #include <cstddef>
 
 #include <Eigen/Core>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/reml/estimator.h"
+#include "gelex/algo/reml/result.h"
 #include "gelex/data/chr_group.h"
+#include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/pipe/grm.h"
 #include "gelex/data/pipe/pheno.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
+#include "gelex/infra/logging/assoc_event.h"
 #include "gelex/infra/logging/notify.h"
+#include "gelex/infra/logging/reml_event.h"
 #include "gelex/io/grm/loco_reader.h"
 #include "gelex/io/gwas/writer.h"
 #include "gelex/model/freq/model.h"

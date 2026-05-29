@@ -18,7 +18,6 @@
 
 #include <fmt/format.h>
 #include <cstdint>
-#include <string>
 #include <string_view>
 
 #include "gelex/types/genetic_effect_type.h"

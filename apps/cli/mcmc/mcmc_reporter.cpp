@@ -16,10 +16,13 @@
 
 #include "mcmc_reporter.h"
 
+#include <Eigen/Core>
+#include <cstddef>
 #include <iterator>
 #include <type_traits>
 #include <variant>
 
+#include <fmt/base.h>
 #include <fmt/format.h>
 
 #include "cli/report_printer.h"
@@ -27,8 +30,10 @@
 #include "gelex/algo/infer/mcmc/result.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
+#include "gelex/infra/logging/progress_bar.h"
 #include "gelex/model/bayes/labels.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/state.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::cli

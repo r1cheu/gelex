@@ -19,6 +19,7 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include "gelex/engine/predict.h"
 
 #include <argparse.h>
 

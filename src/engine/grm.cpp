@@ -16,9 +16,11 @@
 
 #include "gelex/engine/grm.h"
 
+#include <cstddef>
 #include <filesystem>
 #include <span>
 #include <string>
+#include <utility>
 
 #include <fmt/format.h>
 
@@ -28,6 +30,7 @@
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/timer.h"
 #include "gelex/io/grm/writer.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {

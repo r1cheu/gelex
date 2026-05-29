@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <cmath>
 #include <utility>
 #include <vector>

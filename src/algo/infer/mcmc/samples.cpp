@@ -18,7 +18,6 @@
 
 #include <ranges>
 #include <string_view>
-#include <variant>
 
 #include <Eigen/Core>
 
@@ -27,7 +26,8 @@
 #include "gelex/model/bayes/designs.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/state_capabilities.h"
+#include "gelex/model/bayes/prior_state.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::mcmc
 {

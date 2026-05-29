@@ -19,11 +19,16 @@
 #include <cstddef>
 #include <cstdint>
 #include <ios>
+#include <iterator>
 #include <string>
+#include <string_view>
 
+#include <fmt/base.h>
 #include <fmt/compile.h>
 
 #include "gelex/algo/gwas/assoc_tester.h"
+#include "gelex/algo/gwas/assoc_type.h"
+#include "gelex/data/dataframe/dataframe.h"
 
 namespace gelex::gwas
 {

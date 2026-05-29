@@ -17,9 +17,15 @@
 #include "gelex/post/detail/utils.h"
 
 #include <Eigen/Core>
+#include <cstddef>
+#include <span>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/infra/stats/diagnostics.h"
+#include "gelex/io/binary_reader.h"
 
 namespace gelex::post::detail
 {

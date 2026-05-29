@@ -19,9 +19,14 @@
 #include <cstddef>
 #include <memory>
 
+#include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/genetic_priors/gaussian.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior_parameters.h"
+#include "gelex/model/bayes/recipe_options.h"
 #include "gelex/types/constrained_vector.h"
+#include "gelex/types/genetic_effect_type.h"
+#include "model/bayes/recipe_impl.h"
 
 namespace gelex::bayes
 {

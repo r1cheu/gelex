@@ -16,10 +16,13 @@
 
 #include "fit_reporter.h"
 
+#include <Eigen/Core>
 #include <memory>
 #include <ranges>
 #include <span>
+#include <string_view>
 #include <type_traits>
+#include <variant>
 
 #include <fmt/format.h>
 

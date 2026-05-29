@@ -16,11 +16,18 @@
 
 #include "gelex/algo/gwas/single_tester.h"
 
+#include <Eigen/Core>
 #include <Eigen/Dense>
+#include <cstddef>
+#include <optional>
 #include <unsupported/Eigen/SpecialFunctions>
 
+#include "gelex/algo/gwas/assoc_tester.h"
+#include "gelex/algo/reml/result.h"
+#include "gelex/data/genotype/process_method.h"
 #include "gelex/data/genotype/processor.h"
 #include "gelex/infra/stats/detail/var.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {

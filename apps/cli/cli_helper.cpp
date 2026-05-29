@@ -16,12 +16,17 @@
 
 #include "cli_helper.h"
 
-#include <barkeep.h>
+#include <argparse.h>
+#include <fmt/base.h>
+#include <stdio.h>
 #include <unistd.h>
 
 #include <fmt/format.h>
 #include <omp.h>
 #include <Eigen/Core>
+#include <iostream>
+#include <string>
+#include <string_view>
 
 namespace gelex::cli
 {

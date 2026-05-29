@@ -16,6 +16,7 @@
 
 #include "gelex/algo/reml/convergence_checker.h"
 
+#include <Eigen/Core>
 #include <cmath>
 #include <limits>
 

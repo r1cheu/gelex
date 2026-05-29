@@ -16,9 +16,8 @@
 
 #include "report_printer.h"
 
+#include <string>
 #include <utility>
-
-#include <spdlog/logger.h>
 
 #include "gelex/infra/logger.h"
 

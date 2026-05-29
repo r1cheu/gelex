@@ -15,9 +15,14 @@
  */
 
 #include <algorithm>
+#include <array>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <ios>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -28,6 +33,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "gelex/data/genotype/genotype_reader.h"
+#include "gelex/data/genotype/process_method.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/io/binary_reader.h"
@@ -35,6 +41,7 @@
 
 #include "bed_fixture.h"
 #include "file_fixture.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace
 {

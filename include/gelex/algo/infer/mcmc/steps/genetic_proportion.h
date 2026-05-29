@@ -21,10 +21,8 @@
 
 #include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/capabilities.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/state.h"
-#include "gelex/model/bayes/state_capabilities.h"
 
 namespace gelex::mcmc
 {

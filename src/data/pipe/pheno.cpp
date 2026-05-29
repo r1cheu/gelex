@@ -17,13 +17,18 @@
 #include "gelex/data/pipe/pheno.h"
 
 #include <fmt/format.h>
+#include <cstddef>
 #include <optional>
+#include <ranges>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
 
+#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/encode.h"
+#include "gelex/data/dataframe/index.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logger.h"

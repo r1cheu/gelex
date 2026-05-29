@@ -16,9 +16,13 @@
 
 #include "gelex/infra/logging/formatter.h"
 
-#include <fmt/chrono.h>
+#include <fmt/base.h>
+#include <fmt/color.h>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
+#include <cmath>
 #include <cstddef>
+#include <cstdlib>
 #include <span>
 #include <string>
 #include <string_view>

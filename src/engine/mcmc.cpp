@@ -21,6 +21,7 @@
 #include <fmt/format.h>
 
 #include "gelex/exception.h"
+#include "gelex/infra/logging/fit_event.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/recipe.h"
 

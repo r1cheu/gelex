@@ -17,13 +17,20 @@
 #include "gelex/io/grm/detail/reader.h"
 
 #include <fmt/format.h>
+#include <Eigen/Core>
+#include <cstddef>
+#include <filesystem>
 #include <ranges>
 #include <string>
+#include <string_view>
 #include <system_error>
+#include <utility>
+#include <vector>
 
+#include "gelex/data/dataframe/index.h"
 #include "gelex/data/dataframe/reader.h"
 #include "gelex/exception.h"
-#include "gelex/model/freq/design.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace
 {

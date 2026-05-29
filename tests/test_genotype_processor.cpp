@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <cmath>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "gelex/data/genotype/processor.h"
+#include "gelex/types/genetic_effect_type.h"
 
 using namespace gelex;
 using namespace gelex::genotype;

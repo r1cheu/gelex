@@ -15,6 +15,11 @@
  */
 
 #include "gelex/data/chr_group.h"
+#include <Eigen/Core>
+#include <cstddef>
+#include <string>
+#include <vector>
+#include "gelex/data/dataframe/dataframe.h"
 
 namespace gelex
 {

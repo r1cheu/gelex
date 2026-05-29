@@ -16,11 +16,14 @@
 
 #include "compute.h"
 
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include <Eigen/Core>
+#include "gelex/io/predict/input_reader.h"
+#include "gelex/predict/types.h"
 
 namespace gelex::predict::detail
 {

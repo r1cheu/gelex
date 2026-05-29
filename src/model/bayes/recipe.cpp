@@ -17,14 +17,18 @@
 #include "gelex/model/bayes/recipe.h"
 
 #include <memory>
+#include <span>
 #include <string_view>
 
 #include <fmt/format.h>
-#include <Eigen/Core>
+#include <utility>
 
 #include "gelex/exception.h"
 #include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_parameters.h"
+#include "gelex/model/bayes/recipe_options.h"
+#include "gelex/types/genetic_effect_type.h"
 #include "independent_recipes.h"
 #include "joint_recipes.h"
 #include "recipe_impl.h"

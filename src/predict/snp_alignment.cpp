@@ -19,8 +19,6 @@
 #include <cstddef>
 #include <string>
 
-#include <Eigen/Core>
-
 #include "gelex/data/dataframe/dataframe.h"
 
 namespace gelex::predict

@@ -17,6 +17,11 @@
 #include "gelex/io/grm/writer.h"
 
 #include <fmt/format.h>
+#include <Eigen/Core>
+#include <filesystem>
+#include <ios>
+#include <span>
+#include <string>
 
 #include "gelex/data/sample_id.h"
 #include "gelex/exception.h"

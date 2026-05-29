@@ -26,6 +26,7 @@
 #include "gelex/io/locistats/writer.h"
 
 #include "file_fixture.h"
+#include "gelex/types/genetic_effect_type.h"
 
 using gelex::EffectType;
 using gelex::LociStatsReader;

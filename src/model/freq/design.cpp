@@ -17,6 +17,7 @@
 #include "gelex/model/freq/design.h"
 
 #include <Eigen/Core>
+#include "gelex/types/fixed_designs.h"
 
 namespace gelex::freq
 {

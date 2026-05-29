@@ -16,6 +16,7 @@
 
 #include "gelex/algo/reml/variance_calculator.h"
 
+#include <Eigen/Core>
 #include <ranges>
 #include <stdexcept>
 

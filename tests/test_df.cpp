@@ -15,6 +15,7 @@
  */
 
 #include <fmt/format.h>
+#include <cstddef>
 #include <cstdint>
 #include <span>
 #include <string>
@@ -25,7 +26,10 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "file_fixture.h"
+#include "gelex/data/dataframe/column.h"
+#include "gelex/data/dataframe/constants.h"
 #include "gelex/data/dataframe/dataframe.h"
+#include "gelex/data/dataframe/index.h"
 #include "gelex/data/dataframe/reader.h"
 #include "gelex/exception.h"
 

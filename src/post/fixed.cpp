@@ -16,7 +16,10 @@
 
 #include "gelex/post/fixed.h"
 
+#include <cstddef>
+#include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <fmt/format.h>

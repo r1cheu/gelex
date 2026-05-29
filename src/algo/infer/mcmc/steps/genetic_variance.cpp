@@ -17,13 +17,18 @@
 #include "gelex/algo/infer/mcmc/steps/genetic_variance.h"
 
 #include <array>
+#include <random>
 #include <utility>
 
 #include <Eigen/Core>
 
+#include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/capabilities.h"
+#include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/prior_parameters.h"
+#include "gelex/model/bayes/state.h"
 #include "gelex/model/bayes/state_capabilities.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::mcmc
 {

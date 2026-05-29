@@ -16,14 +16,19 @@
 
 #include "engine/grm_work_plan.h"
 
+#include <Eigen/Core>
 #include <algorithm>
+#include <cstddef>
+#include <filesystem>
 #include <span>
 #include <string>
 #include <vector>
 
 #include <fmt/format.h>
 
+#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/reader.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {

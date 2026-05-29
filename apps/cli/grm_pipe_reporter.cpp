@@ -17,6 +17,7 @@
 #include "grm_pipe_reporter.h"
 
 #include "cli/report_printer.h"
+#include "gelex/infra/logging/grm_pipe_event.h"
 
 namespace gelex::cli
 {

@@ -16,6 +16,7 @@
 
 #include "gelex/types/fixed_designs.h"
 
+#include <Eigen/Core>
 #include <iterator>
 #include <optional>
 

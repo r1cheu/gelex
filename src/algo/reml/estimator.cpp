@@ -18,12 +18,18 @@
 
 #include <fmt/format.h>
 #include <Eigen/Core>
+#include <cstddef>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "gelex/algo/reml/effect_solver.h"
 #include "gelex/algo/reml/policy.h"
+#include "gelex/algo/reml/result.h"
 #include "gelex/algo/reml/statistics.h"
 #include "gelex/algo/reml/variance_calculator.h"
 #include "gelex/infra/logging/notify.h"
+#include "gelex/infra/logging/reml_event.h"
 #include "gelex/model/freq/model.h"
 
 namespace gelex::reml

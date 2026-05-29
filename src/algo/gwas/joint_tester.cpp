@@ -16,14 +16,20 @@
 
 #include "gelex/algo/gwas/joint_tester.h"
 
+#include <Eigen/Core>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 
 #include <Eigen/Dense>
-#include <unsupported/Eigen/SpecialFunctions>
+#include <span>
 
+#include "gelex/algo/gwas/assoc_tester.h"
+#include "gelex/algo/reml/result.h"
+#include "gelex/data/genotype/process_method.h"
 #include "gelex/data/genotype/processor.h"
 #include "gelex/infra/stats/detail/var.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {

@@ -16,10 +16,13 @@
 
 #include "gelex/infra/stats/diagnostics.h"
 
+#include <algorithm>
 #include <cstddef>
 
 #include <Eigen/Core>
+#include <stdexcept>
 #include <unsupported/Eigen/FFT>
+#include <utility>
 
 #include "gelex/infra/stats/detail/var.h"
 

@@ -17,6 +17,7 @@
 #include <cmath>
 #include <memory>
 #include <random>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
@@ -25,10 +26,12 @@
 #include "gelex/algo/infer/mcmc/chain.h"
 #include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/algo/infer/mcmc/steps/genetic_variance.h"
+#include "gelex/model/bayes/designs.h"
 #include "gelex/model/bayes/genetic_priors/gaussian.h"
 #include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state.h"
 #include "gelex/model/bayes/state_capabilities.h"
+#include "gelex/types/genetic_effect_type.h"
 #include "genotype_fixture.h"
 
 namespace

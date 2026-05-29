@@ -16,6 +16,7 @@
 
 #include "geno_reporter.h"
 
+#include <stdio.h>
 #include <unistd.h>
 
 #include <fmt/format.h>
@@ -23,7 +24,9 @@
 
 #include "cli/report_printer.h"
 #include "gelex/infra/logging/formatter.h"
+#include "gelex/infra/logging/geno_event.h"
 #include "gelex/infra/logging/progress_bar.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::cli
 {

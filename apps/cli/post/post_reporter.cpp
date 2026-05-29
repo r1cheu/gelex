@@ -16,6 +16,7 @@
 
 #include "post_reporter.h"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <string>
 

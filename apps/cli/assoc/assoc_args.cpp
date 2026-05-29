@@ -17,6 +17,7 @@
 #include "assoc_args.h"
 
 #include <argparse.h>
+#include <algorithm>
 #include <thread>
 
 #include "cli/cli_helper.h"

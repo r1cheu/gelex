@@ -16,8 +16,6 @@
 
 #include "gelex/infra/stats/running_stats.h"
 
-#include <cmath>
-
 namespace gelex::stats
 {
 

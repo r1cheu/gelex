@@ -16,16 +16,22 @@
 
 #include "gelex/data/pipe/geno.h"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <filesystem>
+#include <optional>
+#include <string>
 #include <utility>
 
+#include "gelex/data/dataframe/index.h"
+#include "gelex/data/genotype/genotype.h"
 #include "gelex/data/genotype/genotype_reader.h"
 #include "gelex/data/genotype/process_method.h"
 #include "gelex/data/reader.h"
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/locistats/writer.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {

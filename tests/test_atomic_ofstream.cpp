@@ -16,10 +16,12 @@
 
 #include "gelex/io/detail/atomic_ofstream.h"
 
+#include <array>
 #include <filesystem>
 #include <fstream>
 #include <ios>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 #include <catch2/catch_test_macros.hpp>

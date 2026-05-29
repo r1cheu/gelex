@@ -19,6 +19,8 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
+#include <string>
 
 #include "gelex/infra/logging/formatter.h"
 

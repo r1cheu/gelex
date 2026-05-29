@@ -18,8 +18,13 @@
 
 #include <fmt/format.h>
 #include <atomic>
+#include <cstddef>
+#include <filesystem>
 #include <fstream>
 #include <ios>
+#include <span>
+#include <string_view>
+#include <system_error>
 #include <utility>
 
 #include <unistd.h>

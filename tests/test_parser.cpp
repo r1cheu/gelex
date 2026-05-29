@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
+#include <catch2/matchers/catch_matchers.hpp>
 #include <filesystem>
 #include <fstream>
+#include <ios>
+#include <iterator>
 #include <string>
 #include <vector>
 

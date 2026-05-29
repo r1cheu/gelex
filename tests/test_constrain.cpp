@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
 #include <cmath>
 
 #include <catch2/catch_test_macros.hpp>

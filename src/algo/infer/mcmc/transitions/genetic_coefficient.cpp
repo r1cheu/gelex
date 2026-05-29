@@ -16,10 +16,18 @@
 
 #include "gelex/algo/infer/mcmc/transitions/genetic_coefficient.h"
 
+#include <Eigen/Core>
 #include <cmath>
+#include <random>
 
 #include "gelex/algo/infer/mcmc/invariant.h"
+#include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/infra/stats/detail/var.h"
+#include "gelex/model/bayes/capabilities.h"
+#include "gelex/model/bayes/genetic_prior.h"
+#include "gelex/model/bayes/state.h"
+#include "gelex/model/bayes/state_capabilities.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::mcmc
 {

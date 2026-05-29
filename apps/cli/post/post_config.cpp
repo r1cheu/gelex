@@ -17,6 +17,8 @@
 #include "post_config.h"
 
 #include <argparse.h>
+#include <string>
+#include <vector>
 
 namespace gelex::cli
 {

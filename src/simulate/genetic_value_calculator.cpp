@@ -17,7 +17,10 @@
 #include "gelex/simulate/genetic_value_calculator.h"
 
 #include <cstddef>
+#include <filesystem>
 #include <ranges>
+#include <span>
+#include <string>
 #include <vector>
 
 #include <Eigen/Core>

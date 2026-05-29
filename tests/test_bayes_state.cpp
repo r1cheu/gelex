@@ -16,12 +16,15 @@
 
 #include <array>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
+#include "gelex/data/genotype/genotype.h"
 #include "gelex/exception.h"
+#include "gelex/model/bayes/designs.h"
 #include "gelex/model/bayes/genetic_priors/gaussian.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"

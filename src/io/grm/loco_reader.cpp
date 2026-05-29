@@ -17,7 +17,11 @@
 #include "gelex/io/grm/loco_reader.h"
 
 #include <fmt/format.h>
+#include <Eigen/Core>
+#include <filesystem>
+#include <string>
 
+#include "gelex/data/dataframe/index.h"
 #include "gelex/exception.h"
 #include "gelex/io/grm/detail/reader.h"
 

@@ -16,19 +16,21 @@
 
 #include "gelex/model/bayes/prior.h"
 
-#include <algorithm>
+#include <memory>
 #include <ranges>
 #include <set>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <variant>
+#include <vector>
 
 #include <fmt/format.h>
 
 #include "gelex/exception.h"
 #include "gelex/infra/field_visitor.h"
-#include "gelex/model/bayes/prior_parameters.h"
+#include "gelex/model/bayes/genetic_prior.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
 {
