@@ -30,6 +30,7 @@ pixi r test-catch "[tag]"    # tests by Catch2 tag
 - Non-owning inputs: `std::span`, `std::string_view`
 - Eigen views: `Eigen::Ref<T>` / `const Eigen::Ref<const T>&`; index with `Eigen::Index`
 - Explicit `#include` only — no transitive includes
+- Include order: STL, external libraries, then `gelex`; split groups with an empty line
 - Prefer forward declarations when sufficient, but don't over-engineer
 - Include guards (not `#pragma once`), uppercase path-derived names
 - Do not introduce extra namespaces without a clear architectural need

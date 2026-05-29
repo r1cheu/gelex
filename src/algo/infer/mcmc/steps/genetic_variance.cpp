@@ -82,9 +82,9 @@ SingleSharedMixtureVarStep::SingleSharedMixtureVarStep(
       variance_(block.prior_state()
                     .get<bayes::SingleSharedVarianceStateCap>()
                     .variance()),
-      proportion_(block.prior_state()
-                      .get<bayes::SingleProportionStateCap>()
-                      .proportion()),
+      assignment_(block.prior_state()
+                      .get<bayes::SingleMixtureAssignmentStateCap>()
+                      .assignment()),
       rng_(rng)
 {
 }
@@ -94,11 +94,11 @@ auto SingleSharedMixtureVarStep::step() -> void
     sampler_.reset();
     const auto& coeffs = block_.state().coeffs;
     const Eigen::Index n
-        = proportion_.count.tail(proportion_.count.size() - 1).sum();
+        = assignment_.count.tail(assignment_.count.size() - 1).sum();
     double sum_squares = 0.0;
     for (Eigen::Index i = 0; i < coeffs.size(); ++i)
     {
-        const int component = proportion_.assignment(i);
+        const int component = assignment_.assignment(i);
         if (component == 0)
         {
             continue;
@@ -128,9 +128,9 @@ SingleSharedScaledMixtureVarStep::SingleSharedScaledMixtureVarStep(
       variance_(block.prior_state()
                     .get<bayes::SingleSharedVarianceStateCap>()
                     .variance()),
-      proportion_(block.prior_state()
-                      .get<bayes::SingleProportionStateCap>()
-                      .proportion()),
+      assignment_(block.prior_state()
+                      .get<bayes::SingleMixtureAssignmentStateCap>()
+                      .assignment()),
       multiplier_(prior.get<bayes::SingleMultiplierCap>().multiplier()),
       rng_(rng)
 {
@@ -141,11 +141,11 @@ auto SingleSharedScaledMixtureVarStep::step() -> void
     sampler_.reset();
     const auto& coeffs = block_.state().coeffs;
     const Eigen::Index n
-        = proportion_.count.tail(proportion_.count.size() - 1).sum();
+        = assignment_.count.tail(assignment_.count.size() - 1).sum();
     double sum_squares = 0.0;
     for (Eigen::Index i = 0; i < coeffs.size(); ++i)
     {
-        const int component = proportion_.assignment(i);
+        const int component = assignment_.assignment(i);
         if (component == 0)
         {
             continue;
@@ -210,9 +210,9 @@ SinglePerMarkerMixtureVarStep::SinglePerMarkerMixtureVarStep(
       variance_(block.prior_state()
                     .get<bayes::SinglePerMarkerVarianceStateCap>()
                     .variance()),
-      proportion_(block.prior_state()
-                      .get<bayes::SingleProportionStateCap>()
-                      .proportion()),
+      assignment_(block.prior_state()
+                      .get<bayes::SingleMixtureAssignmentStateCap>()
+                      .assignment()),
       rng_(rng)
 {
 }
@@ -223,7 +223,7 @@ auto SinglePerMarkerMixtureVarStep::step() -> void
     const auto& coeffs = block_.state().coeffs;
     for (Eigen::Index i = 0; i < coeffs.size(); ++i)
     {
-        if (proportion_.assignment(i) == 0)
+        if (assignment_.assignment(i) == 0)
         {
             continue;
         }
@@ -254,9 +254,9 @@ JointSharedMixtureVarStep::JointSharedMixtureVarStep(
                       dominance.degrees_of_freedom(), dominance.scale()}};
           }()),
       variance_(block.prior_state().get<bayes::JointSharedVarianceStateCap>()),
-      proportion_(block.prior_state()
-                      .get<bayes::JointProportionStateCap>()
-                      .proportion()),
+      assignment_(block.prior_state()
+                      .get<bayes::JointMixtureAssignmentStateCap>()
+                      .assignment()),
       rng_(rng)
 {
 }
@@ -271,12 +271,12 @@ auto JointSharedMixtureVarStep::step() -> void
         const auto& coeffs = block_.state(mode).coeffs;
         const Eigen::Index n
             = mode == GeneticMode::A
-                  ? proportion_.count(1) + proportion_.count(3)
-                  : proportion_.count(2) + proportion_.count(3);
+                  ? assignment_.count(1) + assignment_.count(3)
+                  : assignment_.count(2) + assignment_.count(3);
         double sum_squares = 0.0;
         for (Eigen::Index i = 0; i < coeffs.size(); ++i)
         {
-            const int component = proportion_.assignment(i);
+            const int component = assignment_.assignment(i);
             const bool active = mode == GeneticMode::A
                                     ? (component == 1 || component == 3)
                                     : (component == 2 || component == 3);

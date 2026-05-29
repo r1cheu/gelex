@@ -84,9 +84,10 @@ TEST_CASE("Genetic prior get and get_if expose capabilities", "[bayes_prior]")
     REQUIRE(
         prior.get_if<gelex::bayes::SingleSharedMarkerVarianceCap>() != nullptr);
     REQUIRE(
-        prior.get_if<gelex::bayes::SingleMixtureProportionCap>() == nullptr);
+        prior.get_if<gelex::bayes::SingleFixedMixtureProportionCap>()
+        == nullptr);
     REQUIRE_THROWS_AS(
-        prior.get<gelex::bayes::SingleMixtureProportionCap>(),
+        prior.get<gelex::bayes::SingleFixedMixtureProportionCap>(),
         gelex::GelexException);
 }
 
@@ -101,7 +102,8 @@ TEST_CASE("Genetic prior states expose capabilities", "[bayes_prior]")
         = state->get<gelex::bayes::SingleSharedVarianceStateCap>().variance();
     REQUIRE(variance == 0.1);
     REQUIRE(
-        state->get_if<gelex::bayes::SingleProportionStateCap>() == nullptr);
+        state->get_if<gelex::bayes::SingleMixtureAssignmentStateCap>()
+        == nullptr);
 }
 
 TEST_CASE("BayesPrior rejects duplicate genetic modes", "[bayes_prior]")

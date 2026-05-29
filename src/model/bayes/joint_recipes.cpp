@@ -19,6 +19,8 @@
 #include <array>
 #include <memory>
 
+#include <Eigen/Core>
+
 #include "gelex/exception.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/genetic_priors/gaussian.h"
@@ -52,10 +54,6 @@ auto BayesCDMethod::make_joint_prior(
 {
     const Simplex<double> proportion = config.joint_proportion.value_or(
         Simplex<double>{{0.991, 0.003, 0.003, 0.003}});
-    const UpdatePolicy update = config.joint_proportion_update.value_or(true)
-                                    ? UpdatePolicy::sampled
-                                    : UpdatePolicy::fixed;
-
     // proportion layout: [both-off, A-only, D-only, both-on]
     const double active_a = proportion[1] + proportion[3];
     const double active_d = proportion[2] + proportion[3];
@@ -72,7 +70,22 @@ auto BayesCDMethod::make_joint_prior(
     const double target_d = marker_variance_from_heritability(
         model, GeneticMode::D, h2_d, active_d);
 
-    return std::make_unique<JointGaussianMixturePrior>(
+    if (config.joint_proportion_update.value_or(true))
+    {
+        const auto n = static_cast<Eigen::Index>(proportion.size());
+        return std::make_unique<JointSampledGaussianMixturePrior>(
+            JointSharedMarkerVariance{std::array{
+                SharedMarkerVariance{VarianceParameter{
+                    target_a,
+                    ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target_a}}},
+                SharedMarkerVariance{VarianceParameter{
+                    target_d,
+                    ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target_d}}}}},
+            SampledMixtureProportion{SimplexParameter{
+                proportion.to_mat(),
+                DirichletPrior{Eigen::VectorXd::Ones(n)}}});
+    }
+    return std::make_unique<JointFixedGaussianMixturePrior>(
         JointSharedMarkerVariance{std::array{
             SharedMarkerVariance{VarianceParameter{
                 target_a,
@@ -80,7 +93,7 @@ auto BayesCDMethod::make_joint_prior(
             SharedMarkerVariance{VarianceParameter{
                 target_d,
                 ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target_d}}}}},
-        make_mixture_proportion(proportion, update));
+        FixedMixtureProportion{proportion.to_mat()});
 }
 
 }  // namespace gelex::bayes

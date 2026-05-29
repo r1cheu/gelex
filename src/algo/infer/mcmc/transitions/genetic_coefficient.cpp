@@ -16,9 +16,10 @@
 
 #include "gelex/algo/infer/mcmc/transitions/genetic_coefficient.h"
 
-#include <Eigen/Core>
 #include <cmath>
 #include <random>
+
+#include <Eigen/Core>
 
 #include "gelex/algo/infer/mcmc/invariant.h"
 #include "gelex/infra/stats/conjugate_prior.h"
@@ -121,7 +122,7 @@ auto SinglePerMarkerGaussianTransition::finish() -> void
 }
 
 SingleSharedSpikeSlabTransition::SingleSharedSpikeSlabTransition(
-    const bayes::SingleGeneticPrior& /*prior*/,
+    const bayes::SingleGeneticPrior& prior,
     bayes::SingleGeneticBlockState& block,
     bayes::ResidualState& residual)
     : state_(block.state()),
@@ -129,9 +130,24 @@ SingleSharedSpikeSlabTransition::SingleSharedSpikeSlabTransition(
       variance_(block.prior_state()
                     .get<bayes::SingleSharedVarianceStateCap>()
                     .variance()),
-      proportion_(block.prior_state()
-                      .get<bayes::SingleProportionStateCap>()
-                      .proportion()),
+      assignment_(block.prior_state()
+                      .get<bayes::SingleMixtureAssignmentStateCap>()
+                      .assignment()),
+      proportion_(
+          [&prior, &block]() -> const Eigen::VectorXd&
+          {
+              if (prior.get_if<bayes::SingleSampledMixtureProportionCap>()
+                  != nullptr)
+              {
+                  return block.prior_state()
+                      .get<bayes::SingleSampledMixtureProportionStateCap>()
+                      .proportion()
+                      .value;
+              }
+              return prior.get<bayes::SingleFixedMixtureProportionCap>()
+                  .proportion()
+                  .value();
+          }()),
       normal_(variance_)
 {
 }
@@ -140,7 +156,7 @@ auto SingleSharedSpikeSlabTransition::prepare() -> void
 {
     normal_.reset();
     uniform_.reset();
-    logpi_ = proportion_.value.array().log();
+    logpi_ = proportion_.array().log();
 }
 
 auto SingleSharedSpikeSlabTransition::update(
@@ -163,12 +179,12 @@ auto SingleSharedSpikeSlabTransition::update(
     const double prob_component_0 = 1.0 / (1.0 + std::exp(log_like_1_minus_0));
     const int component = uniform_(rng) < prob_component_0 ? 0 : 1;
 
-    ProportionAssignmentGuard assignment_guard{proportion_, marker_index};
+    ProportionAssignmentGuard assignment_guard{assignment_, marker_index};
     GeneticAdjustmentGuard guard{
         column, coeffs(marker_index), residual_, state_};
     coeffs(marker_index)
         = component == 0 ? 0.0 : normal_.draw(post.params, rng);
-    proportion_.assignment(marker_index) = component;
+    assignment_.assignment(marker_index) = component;
 }
 
 auto SingleSharedSpikeSlabTransition::finish() -> void
@@ -177,7 +193,7 @@ auto SingleSharedSpikeSlabTransition::finish() -> void
 }
 
 SinglePerMarkerSpikeSlabTransition::SinglePerMarkerSpikeSlabTransition(
-    const bayes::SingleGeneticPrior& /*prior*/,
+    const bayes::SingleGeneticPrior& prior,
     bayes::SingleGeneticBlockState& block,
     bayes::ResidualState& residual)
     : state_(block.state()),
@@ -185,9 +201,24 @@ SinglePerMarkerSpikeSlabTransition::SinglePerMarkerSpikeSlabTransition(
       variance_(block.prior_state()
                     .get<bayes::SinglePerMarkerVarianceStateCap>()
                     .variance()),
-      proportion_(block.prior_state()
-                      .get<bayes::SingleProportionStateCap>()
-                      .proportion()),
+      assignment_(block.prior_state()
+                      .get<bayes::SingleMixtureAssignmentStateCap>()
+                      .assignment()),
+      proportion_(
+          [&prior, &block]() -> const Eigen::VectorXd&
+          {
+              if (prior.get_if<bayes::SingleSampledMixtureProportionCap>()
+                  != nullptr)
+              {
+                  return block.prior_state()
+                      .get<bayes::SingleSampledMixtureProportionStateCap>()
+                      .proportion()
+                      .value;
+              }
+              return prior.get<bayes::SingleFixedMixtureProportionCap>()
+                  .proportion()
+                  .value();
+          }()),
       normal_(0.0)
 {
 }
@@ -196,7 +227,7 @@ auto SinglePerMarkerSpikeSlabTransition::prepare() -> void
 {
     normal_.reset();
     uniform_.reset();
-    logpi_ = proportion_.value.array().log();
+    logpi_ = proportion_.array().log();
 }
 
 auto SinglePerMarkerSpikeSlabTransition::update(
@@ -220,12 +251,12 @@ auto SinglePerMarkerSpikeSlabTransition::update(
     const double prob_component_0 = 1.0 / (1.0 + std::exp(log_like_1_minus_0));
     const int component = uniform_(rng) < prob_component_0 ? 0 : 1;
 
-    ProportionAssignmentGuard assignment_guard{proportion_, marker_index};
+    ProportionAssignmentGuard assignment_guard{assignment_, marker_index};
     GeneticAdjustmentGuard guard{
         column, coeffs(marker_index), residual_, state_};
     coeffs(marker_index)
         = component == 0 ? 0.0 : normal_.draw(post.params, rng);
-    proportion_.assignment(marker_index) = component;
+    assignment_.assignment(marker_index) = component;
 }
 
 auto SinglePerMarkerSpikeSlabTransition::finish() -> void
@@ -242,9 +273,24 @@ SingleScaledMixtureTransition::SingleScaledMixtureTransition(
       variance_(block.prior_state()
                     .get<bayes::SingleSharedVarianceStateCap>()
                     .variance()),
-      proportion_(block.prior_state()
-                      .get<bayes::SingleProportionStateCap>()
-                      .proportion()),
+      assignment_(block.prior_state()
+                      .get<bayes::SingleMixtureAssignmentStateCap>()
+                      .assignment()),
+      proportion_(
+          [&prior, &block]() -> const Eigen::VectorXd&
+          {
+              if (prior.get_if<bayes::SingleSampledMixtureProportionCap>()
+                  != nullptr)
+              {
+                  return block.prior_state()
+                      .get<bayes::SingleSampledMixtureProportionStateCap>()
+                      .proportion()
+                      .value;
+              }
+              return prior.get<bayes::SingleFixedMixtureProportionCap>()
+                  .proportion()
+                  .value();
+          }()),
       component_(block.prior_state()
                      .get<bayes::SingleComponentStateCap>()
                      .component()),
@@ -259,7 +305,7 @@ auto SingleScaledMixtureTransition::prepare() -> void
 {
     normal_.reset();
     uniform_.reset();
-    logpi_ = proportion_.value.array().log();
+    logpi_ = proportion_.array().log();
     marker_variances_ = variance_ * multiplier_.array();
 }
 
@@ -307,14 +353,14 @@ auto SingleScaledMixtureTransition::update(
         }
     }
 
-    ProportionAssignmentGuard assignment_guard{proportion_, marker_index};
+    ProportionAssignmentGuard assignment_guard{assignment_, marker_index};
     GeneticMixtureAdjustmentGuard guard{
         column,
         coeffs(marker_index),
         residual_,
         state_,
         component_,
-        proportion_.assignment,
+        assignment_.assignment,
         marker_index};
     coeffs(marker_index) = 0.0;
     if (component > 0)
@@ -323,7 +369,7 @@ auto SingleScaledMixtureTransition::update(
             {.mean = scale_means_(component), .var = scale_vars_(component)},
             rng);
     }
-    proportion_.assignment(marker_index) = component;
+    assignment_.assignment(marker_index) = component;
 }
 
 auto SingleScaledMixtureTransition::finish() -> void
@@ -338,16 +384,31 @@ auto SingleScaledMixtureTransition::finish() -> void
 }
 
 JointGaussianMixtureTransition::JointGaussianMixtureTransition(
-    const bayes::JointGeneticPrior& /*prior*/,
+    const bayes::JointGeneticPrior& prior,
     bayes::JointGeneticBlockState& block,
     bayes::ResidualState& residual)
     : additive_(block.state(GeneticMode::A)),
       dominance_(block.state(GeneticMode::D)),
       residual_(residual),
       variance_(block.prior_state().get<bayes::JointSharedVarianceStateCap>()),
-      proportion_(block.prior_state()
-                      .get<bayes::JointProportionStateCap>()
-                      .proportion()),
+      assignment_(block.prior_state()
+                      .get<bayes::JointMixtureAssignmentStateCap>()
+                      .assignment()),
+      proportion_(
+          [&prior, &block]() -> const Eigen::VectorXd&
+          {
+              if (prior.get_if<bayes::JointSampledMixtureProportionCap>()
+                  != nullptr)
+              {
+                  return block.prior_state()
+                      .get<bayes::JointSampledMixtureProportionStateCap>()
+                      .proportion()
+                      .value;
+              }
+              return prior.get<bayes::JointFixedMixtureProportionCap>()
+                  .proportion()
+                  .value();
+          }()),
       normal_(0.0)
 {
 }
@@ -356,7 +417,7 @@ auto JointGaussianMixtureTransition::prepare() -> void
 {
     normal_.reset();
     uniform_.reset();
-    logpi_ = proportion_.value.array().log();
+    logpi_ = proportion_.array().log();
 }
 
 auto JointGaussianMixtureTransition::update(
@@ -415,7 +476,7 @@ auto JointGaussianMixtureTransition::update(
         }
     }
 
-    ProportionAssignmentGuard assignment_guard{proportion_, marker_index};
+    ProportionAssignmentGuard assignment_guard{assignment_, marker_index};
     JointGeneticAdjustmentGuard guard{
         additive_column,
         dominance_column,
@@ -432,7 +493,7 @@ auto JointGaussianMixtureTransition::update(
         = (component == 2 || component == 3)
               ? normal_.draw(dominance_post.params, rng)
               : 0.0;
-    proportion_.assignment(marker_index) = component;
+    assignment_.assignment(marker_index) = component;
 }
 
 auto JointGaussianMixtureTransition::finish() -> void

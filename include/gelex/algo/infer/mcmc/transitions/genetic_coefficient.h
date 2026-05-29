@@ -102,7 +102,8 @@ class SingleSharedSpikeSlabTransition
     bayes::GeneticState& state_;
     bayes::ResidualState& residual_;
     double& variance_;
-    bayes::ProportionState& proportion_;
+    bayes::MixtureAssignmentState& assignment_;
+    const Eigen::VectorXd& proportion_;
     stats::NormalSampler<double> normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
     Eigen::VectorXd logpi_;
@@ -130,7 +131,8 @@ class SinglePerMarkerSpikeSlabTransition
     bayes::GeneticState& state_;
     bayes::ResidualState& residual_;
     Eigen::VectorXd& variance_;
-    bayes::ProportionState& proportion_;
+    bayes::MixtureAssignmentState& assignment_;
+    const Eigen::VectorXd& proportion_;
     stats::NormalSampler<double> normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
     Eigen::VectorXd logpi_;
@@ -160,7 +162,8 @@ class SingleScaledMixtureTransition
     bayes::GeneticState& state_;
     bayes::ResidualState& residual_;
     double& variance_;
-    bayes::ProportionState& proportion_;
+    bayes::MixtureAssignmentState& assignment_;
+    const Eigen::VectorXd& proportion_;
     bayes::ComponentState& component_;
     Eigen::VectorXd multiplier_;
     Eigen::VectorXd marker_variances_;
@@ -197,7 +200,8 @@ class JointGaussianMixtureTransition
     bayes::GeneticState& dominance_;
     bayes::ResidualState& residual_;
     bayes::JointSharedVarianceStateCap& variance_;
-    bayes::ProportionState& proportion_;
+    bayes::MixtureAssignmentState& assignment_;
+    const Eigen::VectorXd& proportion_;
     stats::NormalSampler<double> normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
     Eigen::VectorXd logpi_;

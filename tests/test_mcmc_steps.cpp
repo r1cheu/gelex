@@ -54,13 +54,12 @@ auto make_design() -> gelex::bayes::GeneticDesign
             std::move(data), std::move(mean), std::move(stddev))};
 }
 
-auto make_proportion() -> gelex::bayes::MixtureProportion
+auto make_proportion() -> gelex::bayes::SampledMixtureProportion
 {
-    return gelex::bayes::MixtureProportion{
+    return gelex::bayes::SampledMixtureProportion{
         gelex::bayes::SimplexParameter{
             Eigen::VectorXd{{0.5, 0.5}},
-            gelex::bayes::DirichletPrior{Eigen::VectorXd::Ones(2)}},
-        gelex::bayes::UpdatePolicy::sampled};
+            gelex::bayes::DirichletPrior{Eigen::VectorXd::Ones(2)}}};
 }
 
 class CountingStep final : public gelex::mcmc::Step
@@ -115,7 +114,7 @@ TEST_CASE("Single shared variance step samples finite variance", "[mcmc]")
 TEST_CASE("Single scaled mixture variance step uses multiplier capability", "[mcmc]")
 {
     auto design = make_design();
-    gelex::bayes::SingleScaledMixtureGaussianPrior prior{
+    gelex::bayes::SingleSampledScaledMixtureGaussianPrior prior{
         gelex::GeneticMode::A,
         gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
         Eigen::VectorXd{{0.0, 2.0}},
@@ -124,10 +123,10 @@ TEST_CASE("Single scaled mixture variance step uses multiplier capability", "[mc
     block.state().coeffs = Eigen::VectorXd{{0.2, -0.3}};
     auto& proportion
         = block.prior_state()
-              .get<gelex::bayes::SingleProportionStateCap>()
+              .get<gelex::bayes::SingleSampledMixtureProportionStateCap>()
               .proportion();
-    proportion.assignment = Eigen::VectorXi{{1, 1}};
-    proportion.count = Eigen::VectorXi{{0, 2}};
+    proportion.assignment.assignment = Eigen::VectorXi{{1, 1}};
+    proportion.assignment.count = Eigen::VectorXi{{0, 2}};
 
     std::mt19937_64 rng{123};
     gelex::mcmc::SingleSharedScaledMixtureVarStep step{

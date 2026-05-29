@@ -31,9 +31,9 @@ SingleProportionStep::SingleProportionStep(
     bayes::SingleGeneticBlockState& block,
     std::mt19937_64& rng)
     : proportion_(block.prior_state()
-                      .get<bayes::SingleProportionStateCap>()
+                      .get<bayes::SingleSampledMixtureProportionStateCap>()
                       .proportion()),
-      dirichlet_(prior.get<bayes::SingleMixtureProportionCap>()
+      dirichlet_(prior.get<bayes::SingleSampledMixtureProportionCap>()
                      .proportion()
                      .parameter()
                      .prior()
@@ -45,10 +45,7 @@ SingleProportionStep::SingleProportionStep(
 auto SingleProportionStep::step() -> void
 {
     dirichlet_.reset();
-    if (proportion_.update == bayes::UpdatePolicy::sampled)
-    {
-        proportion_.value = dirichlet_(proportion_.count, rng_);
-    }
+    proportion_.value = dirichlet_(proportion_.assignment.count, rng_);
 }
 
 JointProportionStep::JointProportionStep(
@@ -56,9 +53,9 @@ JointProportionStep::JointProportionStep(
     bayes::JointGeneticBlockState& block,
     std::mt19937_64& rng)
     : proportion_(block.prior_state()
-                      .get<bayes::JointProportionStateCap>()
+                      .get<bayes::JointSampledMixtureProportionStateCap>()
                       .proportion()),
-      dirichlet_(prior.get<bayes::JointMixtureProportionCap>()
+      dirichlet_(prior.get<bayes::JointSampledMixtureProportionCap>()
                      .proportion()
                      .parameter()
                      .prior()
@@ -70,10 +67,7 @@ JointProportionStep::JointProportionStep(
 auto JointProportionStep::step() -> void
 {
     dirichlet_.reset();
-    if (proportion_.update == bayes::UpdatePolicy::sampled)
-    {
-        proportion_.value = dirichlet_(proportion_.count, rng_);
-    }
+    proportion_.value = dirichlet_(proportion_.assignment.count, rng_);
 }
 
 }  // namespace gelex::mcmc

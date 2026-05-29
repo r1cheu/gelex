@@ -74,7 +74,9 @@ class MultiplierCapability
     MultiplierCapability(MultiplierCapability&&) noexcept = default;
 };
 
-using MixtureProportionCap = ProportionCapability<MixtureProportion>;
+using FixedMixtureProportionCap = ProportionCapability<FixedMixtureProportion>;
+using SampledMixtureProportionCap
+    = ProportionCapability<SampledMixtureProportion>;
 using MultiplierCap = MultiplierCapability<Eigen::VectorXd>;
 
 template <typename T>
@@ -225,13 +227,18 @@ using SingleSharedMarkerVarianceCap
     = SingleSharedVarianceCapability<SharedMarkerVariance>;
 using SinglePerMarkerVarianceCap
     = SinglePerMarkerVarianceCapability<PerMarkerVariance>;
-using SingleMixtureProportionCap
-    = SingleProportionCapability<MixtureProportion>;
+using SingleFixedMixtureProportionCap
+    = SingleProportionCapability<FixedMixtureProportion>;
+using SingleSampledMixtureProportionCap
+    = SingleProportionCapability<SampledMixtureProportion>;
 using SingleMultiplierCap = SingleMultiplierCapability<Eigen::VectorXd>;
 
 using JointSharedMarkerVarianceCap
     = JointSharedVarianceCapability<SharedMarkerVariance>;
-using JointMixtureProportionCap = JointProportionCapability<MixtureProportion>;
+using JointFixedMixtureProportionCap
+    = JointProportionCapability<FixedMixtureProportion>;
+using JointSampledMixtureProportionCap
+    = JointProportionCapability<SampledMixtureProportion>;
 
 }  // namespace gelex::bayes
 

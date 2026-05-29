@@ -63,7 +63,7 @@ class SingleSharedMixtureVarStep final : public Step
     bayes::SingleGeneticBlockState& block_;
     stats::ScaledInvChi2Sampler<double> sampler_;
     double& variance_;
-    bayes::ProportionState& proportion_;
+    bayes::MixtureAssignmentState& assignment_;
     std::mt19937_64& rng_;
 };
 
@@ -81,7 +81,7 @@ class SingleSharedScaledMixtureVarStep final : public Step
     bayes::SingleGeneticBlockState& block_;
     stats::ScaledInvChi2Sampler<double> sampler_;
     double& variance_;
-    bayes::ProportionState& proportion_;
+    bayes::MixtureAssignmentState& assignment_;
     const Eigen::VectorXd& multiplier_;
     std::mt19937_64& rng_;
 };
@@ -117,7 +117,7 @@ class SinglePerMarkerMixtureVarStep final : public Step
     bayes::SingleGeneticBlockState& block_;
     stats::ScaledInvChi2Sampler<double> sampler_;
     Eigen::VectorXd& variance_;
-    bayes::ProportionState& proportion_;
+    bayes::MixtureAssignmentState& assignment_;
     std::mt19937_64& rng_;
 };
 
@@ -135,7 +135,7 @@ class JointSharedMixtureVarStep final : public Step
     bayes::JointGeneticBlockState& block_;
     std::array<stats::ScaledInvChi2Sampler<double>, 2> samplers_;
     bayes::JointSharedVarianceStateCap& variance_;
-    bayes::ProportionState& proportion_;
+    bayes::MixtureAssignmentState& assignment_;
     std::mt19937_64& rng_;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)

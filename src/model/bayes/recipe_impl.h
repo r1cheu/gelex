@@ -62,10 +62,6 @@ class BayesRecipeImpl
     static auto make_marker_variance(
         MarkerVarianceLayout layout,
         double target_marker_variance) -> MarkerVariance;
-    static auto make_mixture_proportion(
-        const Simplex<double>& proportion,
-        UpdatePolicy update) -> MixtureProportion;
-
     auto reject_dominance_positive_probability_override() const -> void;
 
    private:

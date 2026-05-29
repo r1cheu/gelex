@@ -18,10 +18,10 @@
 #define GELEX_MODEL_BAYES_PRIOR_STATE_H_
 
 #include <string_view>
+#include <vector>
 
 #include <fmt/format.h>
 #include <Eigen/Core>
-#include <vector>
 
 #include "gelex/exception.h"
 #include "gelex/model/bayes/prior_parameters.h"
@@ -34,21 +34,34 @@ class FieldVisitor;
 namespace gelex::bayes
 {
 
-struct ProportionState
+struct MixtureAssignmentState
 {
-    static constexpr std::string_view name = "proportion";
+    static constexpr std::string_view name = "mixture_assignment";
 
-    ProportionState() = default;
-    ProportionState(
-        const MixtureProportion& proportion,
+    MixtureAssignmentState() = default;
+    MixtureAssignmentState(
+        Eigen::Index num_components,
         Eigen::Index num_markers);
 
     auto visit(infra::FieldVisitor& visitor) -> void;
 
     Eigen::VectorXi assignment;
     Eigen::VectorXi count;
+};
+
+struct SampledMixtureProportionState
+{
+    static constexpr std::string_view name = "sampled_mixture_proportion";
+
+    SampledMixtureProportionState() = default;
+    SampledMixtureProportionState(
+        const SampledMixtureProportion& proportion,
+        Eigen::Index num_markers);
+
+    auto visit(infra::FieldVisitor& visitor) -> void;
+
+    MixtureAssignmentState assignment;
     Eigen::VectorXd value;
-    UpdatePolicy update{UpdatePolicy::fixed};
 };
 
 struct ComponentState

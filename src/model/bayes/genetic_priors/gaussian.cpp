@@ -80,10 +80,11 @@ auto SinglePerMarkerGaussianPrior::make_state(
             num_markers, variance_.parameter().initial_value()));
 }
 
-SingleSharedSpikeSlabGaussianPrior::SingleSharedSpikeSlabGaussianPrior(
-    GeneticMode mode,
-    SharedMarkerVariance variance,
-    MixtureProportion proportion)
+SingleFixedSharedSpikeSlabGaussianPrior::
+    SingleFixedSharedSpikeSlabGaussianPrior(
+        GeneticMode mode,
+        SharedMarkerVariance variance,
+        FixedMixtureProportion proportion)
     : mode_(mode),
       variance_(std::move(variance)),
       mixture_proportion_(std::move(proportion))
@@ -91,12 +92,13 @@ SingleSharedSpikeSlabGaussianPrior::SingleSharedSpikeSlabGaussianPrior(
     if (mixture_proportion_.size() != 2)
     {
         throw GelexException(
-            "SingleSharedSpikeSlabGaussianPrior: proportion must have size 2");
+            "SingleFixedSharedSpikeSlabGaussianPrior: proportion must have "
+            "size 2");
     }
 }
 
-auto SingleSharedSpikeSlabGaussianPrior::visit(infra::FieldVisitor& visitor)
-    -> void
+auto SingleFixedSharedSpikeSlabGaussianPrior::visit(
+    infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on("mode", mode_, FieldFlag::checkpoint | FieldFlag::report);
@@ -104,21 +106,59 @@ auto SingleSharedSpikeSlabGaussianPrior::visit(infra::FieldVisitor& visitor)
     mixture_proportion_.visit(visitor);
 }
 
-auto SingleSharedSpikeSlabGaussianPrior::make_state(
+auto SingleFixedSharedSpikeSlabGaussianPrior::make_state(
     Eigen::Index num_markers,
     Eigen::Index /*num_individuals*/) const
     -> std::unique_ptr<SingleGeneticPriorState>
 {
-    return std::make_unique<SingleSharedSpikeSlabGaussianState>(
+    return std::make_unique<SingleFixedSharedSpikeSlabGaussianState>(
+        variance_.parameter().initial_value(),
+        mixture_proportion_.size(),
+        num_markers);
+}
+
+SingleSampledSharedSpikeSlabGaussianPrior::
+    SingleSampledSharedSpikeSlabGaussianPrior(
+        GeneticMode mode,
+        SharedMarkerVariance variance,
+        SampledMixtureProportion proportion)
+    : mode_(mode),
+      variance_(std::move(variance)),
+      mixture_proportion_(std::move(proportion))
+{
+    if (mixture_proportion_.size() != 2)
+    {
+        throw GelexException(
+            "SingleSampledSharedSpikeSlabGaussianPrior: proportion must have "
+            "size 2");
+    }
+}
+
+auto SingleSampledSharedSpikeSlabGaussianPrior::visit(
+    infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on("mode", mode_, FieldFlag::checkpoint | FieldFlag::report);
+    variance_.visit(visitor);
+    mixture_proportion_.visit(visitor);
+}
+
+auto SingleSampledSharedSpikeSlabGaussianPrior::make_state(
+    Eigen::Index num_markers,
+    Eigen::Index /*num_individuals*/) const
+    -> std::unique_ptr<SingleGeneticPriorState>
+{
+    return std::make_unique<SingleSampledSharedSpikeSlabGaussianState>(
         variance_.parameter().initial_value(),
         mixture_proportion_,
         num_markers);
 }
 
-SinglePerMarkerSpikeSlabGaussianPrior::SinglePerMarkerSpikeSlabGaussianPrior(
-    GeneticMode mode,
-    PerMarkerVariance variance,
-    MixtureProportion proportion)
+SingleFixedPerMarkerSpikeSlabGaussianPrior::
+    SingleFixedPerMarkerSpikeSlabGaussianPrior(
+        GeneticMode mode,
+        PerMarkerVariance variance,
+        FixedMixtureProportion proportion)
     : mode_(mode),
       variance_(std::move(variance)),
       mixture_proportion_(std::move(proportion))
@@ -126,13 +166,13 @@ SinglePerMarkerSpikeSlabGaussianPrior::SinglePerMarkerSpikeSlabGaussianPrior(
     if (mixture_proportion_.size() != 2)
     {
         throw GelexException(
-            "SinglePerMarkerSpikeSlabGaussianPrior: proportion must have size "
-            "2");
+            "SingleFixedPerMarkerSpikeSlabGaussianPrior: proportion must have "
+            "size 2");
     }
 }
 
-auto SinglePerMarkerSpikeSlabGaussianPrior::visit(infra::FieldVisitor& visitor)
-    -> void
+auto SingleFixedPerMarkerSpikeSlabGaussianPrior::visit(
+    infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on("mode", mode_, FieldFlag::checkpoint | FieldFlag::report);
@@ -140,23 +180,61 @@ auto SinglePerMarkerSpikeSlabGaussianPrior::visit(infra::FieldVisitor& visitor)
     mixture_proportion_.visit(visitor);
 }
 
-auto SinglePerMarkerSpikeSlabGaussianPrior::make_state(
+auto SingleFixedPerMarkerSpikeSlabGaussianPrior::make_state(
     Eigen::Index num_markers,
     Eigen::Index /*num_individuals*/) const
     -> std::unique_ptr<SingleGeneticPriorState>
 {
-    return std::make_unique<SinglePerMarkerSpikeSlabGaussianState>(
+    return std::make_unique<SingleFixedPerMarkerSpikeSlabGaussianState>(
+        Eigen::VectorXd::Constant(
+            num_markers, variance_.parameter().initial_value()),
+        mixture_proportion_.size(),
+        num_markers);
+}
+
+SingleSampledPerMarkerSpikeSlabGaussianPrior::
+    SingleSampledPerMarkerSpikeSlabGaussianPrior(
+        GeneticMode mode,
+        PerMarkerVariance variance,
+        SampledMixtureProportion proportion)
+    : mode_(mode),
+      variance_(std::move(variance)),
+      mixture_proportion_(std::move(proportion))
+{
+    if (mixture_proportion_.size() != 2)
+    {
+        throw GelexException(
+            "SingleSampledPerMarkerSpikeSlabGaussianPrior: proportion must "
+            "have size 2");
+    }
+}
+
+auto SingleSampledPerMarkerSpikeSlabGaussianPrior::visit(
+    infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on("mode", mode_, FieldFlag::checkpoint | FieldFlag::report);
+    variance_.visit(visitor);
+    mixture_proportion_.visit(visitor);
+}
+
+auto SingleSampledPerMarkerSpikeSlabGaussianPrior::make_state(
+    Eigen::Index num_markers,
+    Eigen::Index /*num_individuals*/) const
+    -> std::unique_ptr<SingleGeneticPriorState>
+{
+    return std::make_unique<SingleSampledPerMarkerSpikeSlabGaussianState>(
         Eigen::VectorXd::Constant(
             num_markers, variance_.parameter().initial_value()),
         mixture_proportion_,
         num_markers);
 }
 
-SingleScaledMixtureGaussianPrior::SingleScaledMixtureGaussianPrior(
+SingleFixedScaledMixtureGaussianPrior::SingleFixedScaledMixtureGaussianPrior(
     GeneticMode mode,
     SharedMarkerVariance variance,
     Eigen::VectorXd multiplier,
-    MixtureProportion proportion)
+    FixedMixtureProportion proportion)
     : mode_(mode),
       variance_(std::move(variance)),
       multiplier_(std::move(multiplier)),
@@ -165,17 +243,18 @@ SingleScaledMixtureGaussianPrior::SingleScaledMixtureGaussianPrior(
     if (multiplier_.size() != mixture_proportion_.size())
     {
         throw GelexException(
-            "SingleScaledMixtureGaussianPrior: multiplier and proportion sizes "
-            "differ");
+            "SingleFixedScaledMixtureGaussianPrior: multiplier and proportion "
+            "sizes differ");
     }
     if (multiplier_(0) != 0.0)
     {
         throw GelexException(
-            "SingleScaledMixtureGaussianPrior: multiplier(0) must equal 0");
+            "SingleFixedScaledMixtureGaussianPrior: multiplier(0) must equal "
+            "0");
     }
 }
 
-auto SingleScaledMixtureGaussianPrior::visit(infra::FieldVisitor& visitor)
+auto SingleFixedScaledMixtureGaussianPrior::visit(infra::FieldVisitor& visitor)
     -> void
 {
     auto scope = visitor.scope(name);
@@ -186,12 +265,60 @@ auto SingleScaledMixtureGaussianPrior::visit(infra::FieldVisitor& visitor)
     mixture_proportion_.visit(visitor);
 }
 
-auto SingleScaledMixtureGaussianPrior::make_state(
+auto SingleFixedScaledMixtureGaussianPrior::make_state(
     Eigen::Index num_markers,
     Eigen::Index num_individuals) const
     -> std::unique_ptr<SingleGeneticPriorState>
 {
-    return std::make_unique<SingleScaledMixtureGaussianState>(
+    return std::make_unique<SingleFixedScaledMixtureGaussianState>(
+        variance_.parameter().initial_value(),
+        multiplier_,
+        num_markers,
+        num_individuals);
+}
+
+SingleSampledScaledMixtureGaussianPrior::
+    SingleSampledScaledMixtureGaussianPrior(
+        GeneticMode mode,
+        SharedMarkerVariance variance,
+        Eigen::VectorXd multiplier,
+        SampledMixtureProportion proportion)
+    : mode_(mode),
+      variance_(std::move(variance)),
+      multiplier_(std::move(multiplier)),
+      mixture_proportion_(std::move(proportion))
+{
+    if (multiplier_.size() != mixture_proportion_.size())
+    {
+        throw GelexException(
+            "SingleSampledScaledMixtureGaussianPrior: multiplier and "
+            "proportion sizes differ");
+    }
+    if (multiplier_(0) != 0.0)
+    {
+        throw GelexException(
+            "SingleSampledScaledMixtureGaussianPrior: multiplier(0) must "
+            "equal 0");
+    }
+}
+
+auto SingleSampledScaledMixtureGaussianPrior::visit(
+    infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on("mode", mode_, FieldFlag::checkpoint | FieldFlag::report);
+    variance_.visit(visitor);
+    visitor.on(
+        "multiplier", multiplier_, FieldFlag::checkpoint | FieldFlag::report);
+    mixture_proportion_.visit(visitor);
+}
+
+auto SingleSampledScaledMixtureGaussianPrior::make_state(
+    Eigen::Index num_markers,
+    Eigen::Index num_individuals) const
+    -> std::unique_ptr<SingleGeneticPriorState>
+{
+    return std::make_unique<SingleSampledScaledMixtureGaussianState>(
         variance_.parameter().initial_value(),
         multiplier_,
         mixture_proportion_,
@@ -199,39 +326,85 @@ auto SingleScaledMixtureGaussianPrior::make_state(
         num_individuals);
 }
 
-JointGaussianMixturePrior::JointGaussianMixturePrior(
+JointFixedGaussianMixturePrior::JointFixedGaussianMixturePrior(
     JointSharedMarkerVariance variance,
-    MixtureProportion proportion)
+    FixedMixtureProportion proportion)
     : marker_variance_(std::move(variance)),
       mixture_proportion_(std::move(proportion))
 {
 }
 
-auto JointGaussianMixturePrior::variance(GeneticMode mode)
+auto JointFixedGaussianMixturePrior::variance(GeneticMode mode)
     -> SharedMarkerVariance&
 {
     return marker_variance_.variance(mode);
 }
 
-auto JointGaussianMixturePrior::variance(GeneticMode mode) const
+auto JointFixedGaussianMixturePrior::variance(GeneticMode mode) const
     -> const SharedMarkerVariance&
 {
     return marker_variance_.variance(mode);
 }
 
-auto JointGaussianMixturePrior::visit(infra::FieldVisitor& visitor) -> void
+auto JointFixedGaussianMixturePrior::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     marker_variance_.visit(visitor);
     mixture_proportion_.visit(visitor);
 }
 
-auto JointGaussianMixturePrior::make_state(
+auto JointFixedGaussianMixturePrior::make_state(
     Eigen::Index num_markers,
     Eigen::Index num_individuals) const
     -> std::unique_ptr<JointGeneticPriorState>
 {
-    return std::make_unique<JointGaussianMixtureState>(
+    return std::make_unique<JointFixedGaussianMixtureState>(
+        std::array{
+            marker_variance_.variance(GeneticMode::A)
+                .parameter()
+                .initial_value(),
+            marker_variance_.variance(GeneticMode::D)
+                .parameter()
+                .initial_value()},
+        mixture_proportion_.size(),
+        num_markers,
+        num_individuals);
+}
+
+JointSampledGaussianMixturePrior::JointSampledGaussianMixturePrior(
+    JointSharedMarkerVariance variance,
+    SampledMixtureProportion proportion)
+    : marker_variance_(std::move(variance)),
+      mixture_proportion_(std::move(proportion))
+{
+}
+
+auto JointSampledGaussianMixturePrior::variance(GeneticMode mode)
+    -> SharedMarkerVariance&
+{
+    return marker_variance_.variance(mode);
+}
+
+auto JointSampledGaussianMixturePrior::variance(GeneticMode mode) const
+    -> const SharedMarkerVariance&
+{
+    return marker_variance_.variance(mode);
+}
+
+auto JointSampledGaussianMixturePrior::visit(infra::FieldVisitor& visitor)
+    -> void
+{
+    auto scope = visitor.scope(name);
+    marker_variance_.visit(visitor);
+    mixture_proportion_.visit(visitor);
+}
+
+auto JointSampledGaussianMixturePrior::make_state(
+    Eigen::Index num_markers,
+    Eigen::Index num_individuals) const
+    -> std::unique_ptr<JointGeneticPriorState>
+{
+    return std::make_unique<JointSampledGaussianMixtureState>(
         std::array{
             marker_variance_.variance(GeneticMode::A)
                 .parameter()

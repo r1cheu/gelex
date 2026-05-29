@@ -108,17 +108,6 @@ auto BayesRecipeImpl::make_marker_variance(
             ScaledInvChiSqPrior{df, (df - 2.0) / df * target_marker_variance})};
 }
 
-auto BayesRecipeImpl::make_mixture_proportion(
-    const Simplex<double>& proportion,
-    UpdatePolicy update) -> MixtureProportion
-{
-    const auto n = static_cast<Eigen::Index>(proportion.size());
-    return MixtureProportion{
-        SimplexParameter{
-            proportion.to_mat(), DirichletPrior{Eigen::VectorXd::Ones(n)}},
-        update};
-}
-
 auto BayesRecipeImpl::reject_dominance_positive_probability_override() const
     -> void
 {

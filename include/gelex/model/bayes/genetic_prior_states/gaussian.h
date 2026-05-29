@@ -69,24 +69,70 @@ class SinglePerMarkerGaussianState final
     Eigen::VectorXd variance_;
 };
 
-class SingleSharedSpikeSlabGaussianState final
+class SingleFixedSharedSpikeSlabGaussianState final
     : public SingleGeneticPriorState
     , public SingleSharedVarianceStateCap
-    , public SingleProportionStateCap
+    , public SingleMixtureAssignmentStateCap
 {
    public:
-    static constexpr std::string_view name = "shared_spike_slab_gaussian";
+    static constexpr std::string_view name = "fixed_shared_spike_slab_gaussian";
 
-    SingleSharedSpikeSlabGaussianState(
+    SingleFixedSharedSpikeSlabGaussianState(
         double variance,
-        const MixtureProportion& proportion,
+        Eigen::Index num_components,
         Eigen::Index num_markers);
 
     auto variance() -> double& override { return variance_; }
     auto variance() const -> const double& override { return variance_; }
 
-    auto proportion() -> ProportionState& override { return proportion_; }
-    auto proportion() const -> const ProportionState& override
+    auto assignment() -> MixtureAssignmentState& override
+    {
+        return assignment_;
+    }
+    auto assignment() const -> const MixtureAssignmentState& override
+    {
+        return assignment_;
+    }
+
+    auto visit(infra::FieldVisitor& visitor) -> void override;
+
+   private:
+    double variance_{0.0};
+    MixtureAssignmentState assignment_;
+};
+
+class SingleSampledSharedSpikeSlabGaussianState final
+    : public SingleGeneticPriorState
+    , public SingleSharedVarianceStateCap
+    , public SingleMixtureAssignmentStateCap
+    , public SingleSampledMixtureProportionStateCap
+{
+   public:
+    static constexpr std::string_view name
+        = "sampled_shared_spike_slab_gaussian";
+
+    SingleSampledSharedSpikeSlabGaussianState(
+        double variance,
+        const SampledMixtureProportion& proportion,
+        Eigen::Index num_markers);
+
+    auto variance() -> double& override { return variance_; }
+    auto variance() const -> const double& override { return variance_; }
+
+    auto assignment() -> MixtureAssignmentState& override
+    {
+        return proportion_.assignment;
+    }
+    auto assignment() const -> const MixtureAssignmentState& override
+    {
+        return proportion_.assignment;
+    }
+
+    auto proportion() -> SampledMixtureProportionState& override
+    {
+        return proportion_;
+    }
+    auto proportion() const -> const SampledMixtureProportionState& override
     {
         return proportion_;
     }
@@ -95,20 +141,21 @@ class SingleSharedSpikeSlabGaussianState final
 
    private:
     double variance_{0.0};
-    ProportionState proportion_;
+    SampledMixtureProportionState proportion_;
 };
 
-class SinglePerMarkerSpikeSlabGaussianState final
+class SingleFixedPerMarkerSpikeSlabGaussianState final
     : public SingleGeneticPriorState
     , public SinglePerMarkerVarianceStateCap
-    , public SingleProportionStateCap
+    , public SingleMixtureAssignmentStateCap
 {
    public:
-    static constexpr std::string_view name = "per_marker_spike_slab_gaussian";
+    static constexpr std::string_view name
+        = "fixed_per_marker_spike_slab_gaussian";
 
-    SinglePerMarkerSpikeSlabGaussianState(
+    SingleFixedPerMarkerSpikeSlabGaussianState(
         Eigen::VectorXd variance,
-        const MixtureProportion& proportion,
+        Eigen::Index num_components,
         Eigen::Index num_markers);
 
     auto variance() -> Eigen::VectorXd& override { return variance_; }
@@ -117,8 +164,57 @@ class SinglePerMarkerSpikeSlabGaussianState final
         return variance_;
     }
 
-    auto proportion() -> ProportionState& override { return proportion_; }
-    auto proportion() const -> const ProportionState& override
+    auto assignment() -> MixtureAssignmentState& override
+    {
+        return assignment_;
+    }
+    auto assignment() const -> const MixtureAssignmentState& override
+    {
+        return assignment_;
+    }
+
+    auto visit(infra::FieldVisitor& visitor) -> void override;
+
+   private:
+    Eigen::VectorXd variance_;
+    MixtureAssignmentState assignment_;
+};
+
+class SingleSampledPerMarkerSpikeSlabGaussianState final
+    : public SingleGeneticPriorState
+    , public SinglePerMarkerVarianceStateCap
+    , public SingleMixtureAssignmentStateCap
+    , public SingleSampledMixtureProportionStateCap
+{
+   public:
+    static constexpr std::string_view name
+        = "sampled_per_marker_spike_slab_gaussian";
+
+    SingleSampledPerMarkerSpikeSlabGaussianState(
+        Eigen::VectorXd variance,
+        const SampledMixtureProportion& proportion,
+        Eigen::Index num_markers);
+
+    auto variance() -> Eigen::VectorXd& override { return variance_; }
+    auto variance() const -> const Eigen::VectorXd& override
+    {
+        return variance_;
+    }
+
+    auto assignment() -> MixtureAssignmentState& override
+    {
+        return proportion_.assignment;
+    }
+    auto assignment() const -> const MixtureAssignmentState& override
+    {
+        return proportion_.assignment;
+    }
+
+    auto proportion() -> SampledMixtureProportionState& override
+    {
+        return proportion_;
+    }
+    auto proportion() const -> const SampledMixtureProportionState& override
     {
         return proportion_;
     }
@@ -127,22 +223,21 @@ class SinglePerMarkerSpikeSlabGaussianState final
 
    private:
     Eigen::VectorXd variance_;
-    ProportionState proportion_;
+    SampledMixtureProportionState proportion_;
 };
 
-class SingleScaledMixtureGaussianState final
+class SingleFixedScaledMixtureGaussianState final
     : public SingleGeneticPriorState
     , public SingleSharedVarianceStateCap
     , public SingleComponentStateCap
-    , public SingleProportionStateCap
+    , public SingleMixtureAssignmentStateCap
 {
    public:
-    static constexpr std::string_view name = "scaled_mixture_gaussian";
+    static constexpr std::string_view name = "fixed_scaled_mixture_gaussian";
 
-    SingleScaledMixtureGaussianState(
+    SingleFixedScaledMixtureGaussianState(
         double variance,
         const Eigen::VectorXd& multiplier,
-        const MixtureProportion& proportion,
         Eigen::Index num_markers,
         Eigen::Index num_individuals);
 
@@ -155,8 +250,63 @@ class SingleScaledMixtureGaussianState final
         return component_;
     }
 
-    auto proportion() -> ProportionState& override { return proportion_; }
-    auto proportion() const -> const ProportionState& override
+    auto assignment() -> MixtureAssignmentState& override
+    {
+        return assignment_;
+    }
+    auto assignment() const -> const MixtureAssignmentState& override
+    {
+        return assignment_;
+    }
+
+    auto visit(infra::FieldVisitor& visitor) -> void override;
+
+   private:
+    double variance_{0.0};
+    ComponentState component_;
+    MixtureAssignmentState assignment_;
+};
+
+class SingleSampledScaledMixtureGaussianState final
+    : public SingleGeneticPriorState
+    , public SingleSharedVarianceStateCap
+    , public SingleComponentStateCap
+    , public SingleMixtureAssignmentStateCap
+    , public SingleSampledMixtureProportionStateCap
+{
+   public:
+    static constexpr std::string_view name = "sampled_scaled_mixture_gaussian";
+
+    SingleSampledScaledMixtureGaussianState(
+        double variance,
+        const Eigen::VectorXd& multiplier,
+        const SampledMixtureProportion& proportion,
+        Eigen::Index num_markers,
+        Eigen::Index num_individuals);
+
+    auto variance() -> double& override { return variance_; }
+    auto variance() const -> const double& override { return variance_; }
+
+    auto component() -> ComponentState& override { return component_; }
+    auto component() const -> const ComponentState& override
+    {
+        return component_;
+    }
+
+    auto assignment() -> MixtureAssignmentState& override
+    {
+        return proportion_.assignment;
+    }
+    auto assignment() const -> const MixtureAssignmentState& override
+    {
+        return proportion_.assignment;
+    }
+
+    auto proportion() -> SampledMixtureProportionState& override
+    {
+        return proportion_;
+    }
+    auto proportion() const -> const SampledMixtureProportionState& override
     {
         return proportion_;
     }
@@ -166,21 +316,21 @@ class SingleScaledMixtureGaussianState final
    private:
     double variance_{0.0};
     ComponentState component_;
-    ProportionState proportion_;
+    SampledMixtureProportionState proportion_;
 };
 
-class JointGaussianMixtureState final
+class JointFixedGaussianMixtureState final
     : public JointGeneticPriorState
     , public JointSharedVarianceStateCap
     , public JointComponentStateCap
-    , public JointProportionStateCap
+    , public JointMixtureAssignmentStateCap
 {
    public:
-    static constexpr std::string_view name = "joint_mixture_gaussian";
+    static constexpr std::string_view name = "joint_fixed_mixture_gaussian";
 
-    JointGaussianMixtureState(
+    JointFixedGaussianMixtureState(
         std::array<double, 2> variances,
-        const MixtureProportion& proportion,
+        Eigen::Index num_components,
         Eigen::Index num_markers,
         Eigen::Index num_individuals);
 
@@ -193,8 +343,62 @@ class JointGaussianMixtureState final
         return component_;
     }
 
-    auto proportion() -> ProportionState& override { return proportion_; }
-    auto proportion() const -> const ProportionState& override
+    auto assignment() -> MixtureAssignmentState& override
+    {
+        return assignment_;
+    }
+    auto assignment() const -> const MixtureAssignmentState& override
+    {
+        return assignment_;
+    }
+
+    auto visit(infra::FieldVisitor& visitor) -> void override;
+
+   private:
+    std::array<double, 2> variances_;
+    ComponentState component_;
+    MixtureAssignmentState assignment_;
+};
+
+class JointSampledGaussianMixtureState final
+    : public JointGeneticPriorState
+    , public JointSharedVarianceStateCap
+    , public JointComponentStateCap
+    , public JointMixtureAssignmentStateCap
+    , public JointSampledMixtureProportionStateCap
+{
+   public:
+    static constexpr std::string_view name = "joint_sampled_mixture_gaussian";
+
+    JointSampledGaussianMixtureState(
+        std::array<double, 2> variances,
+        const SampledMixtureProportion& proportion,
+        Eigen::Index num_markers,
+        Eigen::Index num_individuals);
+
+    auto variance(GeneticMode mode) -> double& override;
+    auto variance(GeneticMode mode) const -> const double& override;
+
+    auto component() -> ComponentState& override { return component_; }
+    auto component() const -> const ComponentState& override
+    {
+        return component_;
+    }
+
+    auto assignment() -> MixtureAssignmentState& override
+    {
+        return proportion_.assignment;
+    }
+    auto assignment() const -> const MixtureAssignmentState& override
+    {
+        return proportion_.assignment;
+    }
+
+    auto proportion() -> SampledMixtureProportionState& override
+    {
+        return proportion_;
+    }
+    auto proportion() const -> const SampledMixtureProportionState& override
     {
         return proportion_;
     }
@@ -204,7 +408,7 @@ class JointGaussianMixtureState final
    private:
     std::array<double, 2> variances_;
     ComponentState component_;
-    ProportionState proportion_;
+    SampledMixtureProportionState proportion_;
 };
 
 }  // namespace gelex::bayes

@@ -236,34 +236,40 @@ class JointSharedMarkerVariance
     std::array<SharedMarkerVariance, 2> variances_;
 };
 
-enum class UpdatePolicy : std::uint8_t
-{
-    fixed,
-    sampled,
-};
-
-class MixtureProportion
+class FixedMixtureProportion
 {
    public:
-    static constexpr std::string_view name = "mixture_proportion";
-    MixtureProportion(SimplexParameter parameter, UpdatePolicy update);
+    static constexpr std::string_view name = "fixed_mixture_proportion";
+    explicit FixedMixtureProportion(Eigen::VectorXd value);
+
+    auto value() const -> const Eigen::VectorXd& { return value_; }
+    auto size() const -> Eigen::Index { return value_.size(); }
+    auto visit(infra::FieldVisitor& visitor) -> void
+    {
+        auto scope = visitor.scope(name);
+        visitor.on("value", value_, FieldFlag::checkpoint | FieldFlag::report);
+    }
+
+   private:
+    Eigen::VectorXd value_;
+};
+
+class SampledMixtureProportion
+{
+   public:
+    static constexpr std::string_view name = "sampled_mixture_proportion";
+    explicit SampledMixtureProportion(SimplexParameter parameter);
 
     auto parameter() const -> const SimplexParameter& { return parameter_; }
-    auto update() const -> UpdatePolicy { return update_; }
-
     auto size() const -> Eigen::Index { return parameter_.size(); }
-    auto sampled() const -> bool { return update_ == UpdatePolicy::sampled; }
     auto visit(infra::FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         parameter_.visit(visitor);
-        visitor.on(
-            "update", update_, FieldFlag::checkpoint | FieldFlag::report);
     }
 
    private:
     SimplexParameter parameter_;
-    UpdatePolicy update_{UpdatePolicy::fixed};
 };
 
 }  // namespace gelex::bayes

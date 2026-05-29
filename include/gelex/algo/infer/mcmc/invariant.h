@@ -179,11 +179,11 @@ class ProportionAssignmentGuard
 {
    public:
     ProportionAssignmentGuard(
-        bayes::ProportionState& proportion,
+        bayes::MixtureAssignmentState& assignment,
         Eigen::Index marker_index)
-        : proportion_(proportion),
+        : assignment_(assignment),
           marker_index_(marker_index),
-          old_class_(proportion.assignment(marker_index))
+          old_class_(assignment.assignment(marker_index))
     {
     }
 
@@ -196,17 +196,17 @@ class ProportionAssignmentGuard
 
     ~ProportionAssignmentGuard()
     {
-        const int new_class = proportion_.assignment(marker_index_);
+        const int new_class = assignment_.assignment(marker_index_);
         if (old_class_ == new_class)
         {
             return;
         }
-        --proportion_.count(old_class_);
-        ++proportion_.count(new_class);
+        --assignment_.count(old_class_);
+        ++assignment_.count(new_class);
     }
 
    private:
-    bayes::ProportionState& proportion_;
+    bayes::MixtureAssignmentState& assignment_;
     Eigen::Index marker_index_{};
     int old_class_{0};
 };

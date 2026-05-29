@@ -140,7 +140,15 @@ auto FitReporter::print_genetic_prior(const bayes::GeneticPriorBlock& prior)
                 }
                 if (const auto* proportion
                     = genetic->template get_if<
-                        bayes::SingleMixtureProportionCap>())
+                        bayes::SingleFixedMixtureProportionCap>())
+                {
+                    cli::printer().line(
+                        "    Proportion: [{}]",
+                        format_vec(proportion->proportion().value()));
+                }
+                if (const auto* proportion
+                    = genetic->template get_if<
+                        bayes::SingleSampledMixtureProportionCap>())
                 {
                     cli::printer().line(
                         "    Proportion: [{}]",
@@ -175,8 +183,16 @@ auto FitReporter::print_genetic_prior(const bayes::GeneticPriorBlock& prior)
                     }
                 }
                 if (const auto* proportion
-                    = genetic
-                          ->template get_if<bayes::JointMixtureProportionCap>())
+                    = genetic->template get_if<
+                        bayes::JointFixedMixtureProportionCap>())
+                {
+                    cli::printer().line(
+                        "    Proportion: [{}]",
+                        format_vec(proportion->proportion().value()));
+                }
+                if (const auto* proportion
+                    = genetic->template get_if<
+                        bayes::JointSampledMixtureProportionCap>())
                 {
                     cli::printer().line(
                         "    Proportion: [{}]",

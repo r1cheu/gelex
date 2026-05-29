@@ -17,9 +17,9 @@
 #ifndef GELEX_MODEL_BAYES_STATE_CAPABILITIES_H_
 #define GELEX_MODEL_BAYES_STATE_CAPABILITIES_H_
 
-#include <Eigen/Core>
-#include <span>
 #include <string_view>
+
+#include <Eigen/Core>
 
 #include "gelex/model/bayes/capabilities.h"
 #include "gelex/model/bayes/prior_state.h"
@@ -27,29 +27,50 @@
 namespace gelex::bayes
 {
 
-class ProportionStateCap : public ProportionCapability<ProportionState>
+class SingleMixtureAssignmentStateCap
 {
    public:
-    static constexpr std::string_view name = "proportion state";
-};
+    static constexpr std::string_view name = "single mixture assignment state";
 
-class ComponentStateCap
-{
-   public:
-    static constexpr std::string_view name = "component state";
+    auto operator=(const SingleMixtureAssignmentStateCap&)
+        -> SingleMixtureAssignmentStateCap& = delete;
+    auto operator=(SingleMixtureAssignmentStateCap&&) noexcept
+        -> SingleMixtureAssignmentStateCap& = delete;
 
-    auto operator=(const ComponentStateCap&) -> ComponentStateCap& = delete;
-    auto operator=(ComponentStateCap&&) noexcept -> ComponentStateCap& = delete;
+    virtual ~SingleMixtureAssignmentStateCap() = default;
 
-    virtual ~ComponentStateCap() = default;
-
-    virtual auto component() -> std::span<ComponentState> = 0;
-    virtual auto component() const -> std::span<const ComponentState> = 0;
+    virtual auto assignment() -> MixtureAssignmentState& = 0;
+    virtual auto assignment() const -> const MixtureAssignmentState& = 0;
 
    protected:
-    ComponentStateCap() = default;
-    ComponentStateCap(const ComponentStateCap&) = default;
-    ComponentStateCap(ComponentStateCap&&) noexcept = default;
+    SingleMixtureAssignmentStateCap() = default;
+    SingleMixtureAssignmentStateCap(const SingleMixtureAssignmentStateCap&)
+        = default;
+    SingleMixtureAssignmentStateCap(SingleMixtureAssignmentStateCap&&) noexcept
+        = default;
+};
+
+class JointMixtureAssignmentStateCap
+{
+   public:
+    static constexpr std::string_view name = "joint mixture assignment state";
+
+    auto operator=(const JointMixtureAssignmentStateCap&)
+        -> JointMixtureAssignmentStateCap& = delete;
+    auto operator=(JointMixtureAssignmentStateCap&&) noexcept
+        -> JointMixtureAssignmentStateCap& = delete;
+
+    virtual ~JointMixtureAssignmentStateCap() = default;
+
+    virtual auto assignment() -> MixtureAssignmentState& = 0;
+    virtual auto assignment() const -> const MixtureAssignmentState& = 0;
+
+   protected:
+    JointMixtureAssignmentStateCap() = default;
+    JointMixtureAssignmentStateCap(const JointMixtureAssignmentStateCap&)
+        = default;
+    JointMixtureAssignmentStateCap(JointMixtureAssignmentStateCap&&) noexcept
+        = default;
 };
 
 class SingleComponentStateCap
@@ -97,10 +118,12 @@ class JointComponentStateCap
 using SingleSharedVarianceStateCap = SingleSharedVarianceCapability<double>;
 using SinglePerMarkerVarianceStateCap
     = SinglePerMarkerVarianceCapability<Eigen::VectorXd>;
-using SingleProportionStateCap = SingleProportionCapability<ProportionState>;
+using SingleSampledMixtureProportionStateCap
+    = SingleProportionCapability<SampledMixtureProportionState>;
 
 using JointSharedVarianceStateCap = JointSharedVarianceCapability<double>;
-using JointProportionStateCap = JointProportionCapability<ProportionState>;
+using JointSampledMixtureProportionStateCap
+    = JointProportionCapability<SampledMixtureProportionState>;
 
 }  // namespace gelex::bayes
 
