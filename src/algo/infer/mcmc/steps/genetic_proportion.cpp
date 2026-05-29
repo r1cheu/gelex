@@ -22,7 +22,7 @@
 namespace gelex::mcmc
 {
 
-SingleGeneticProportionStep::SingleGeneticProportionStep(
+SingleProportionStep::SingleProportionStep(
     const bayes::SingleGeneticPrior& prior,
     bayes::SingleGeneticBlockState& block,
     std::mt19937_64& rng)
@@ -38,7 +38,7 @@ SingleGeneticProportionStep::SingleGeneticProportionStep(
 {
 }
 
-auto SingleGeneticProportionStep::step() -> void
+auto SingleProportionStep::step() -> void
 {
     dirichlet_.reset();
     if (proportion_.update == bayes::UpdatePolicy::sampled)
@@ -47,7 +47,7 @@ auto SingleGeneticProportionStep::step() -> void
     }
 }
 
-JointGeneticProportionStep::JointGeneticProportionStep(
+JointProportionStep::JointProportionStep(
     const bayes::JointGeneticPrior& prior,
     bayes::JointGeneticBlockState& block,
     std::mt19937_64& rng)
@@ -63,7 +63,7 @@ JointGeneticProportionStep::JointGeneticProportionStep(
 {
 }
 
-auto JointGeneticProportionStep::step() -> void
+auto JointProportionStep::step() -> void
 {
     dirichlet_.reset();
     if (proportion_.update == bayes::UpdatePolicy::sampled)

@@ -24,11 +24,10 @@
 namespace gelex::mcmc
 {
 
-SingleSharedGaussianCoefficientTransition::
-    SingleSharedGaussianCoefficientTransition(
-        const bayes::SingleGeneticPrior& /*prior*/,
-        bayes::SingleGeneticBlockState& block,
-        bayes::ResidualState& residual)
+SingleSharedGaussianTransition::SingleSharedGaussianTransition(
+    const bayes::SingleGeneticPrior& /*prior*/,
+    bayes::SingleGeneticBlockState& block,
+    bayes::ResidualState& residual)
     : state_(block.state()),
       residual_(residual),
       variance_(block.prior_state()
@@ -38,12 +37,12 @@ SingleSharedGaussianCoefficientTransition::
 {
 }
 
-auto SingleSharedGaussianCoefficientTransition::prepare() -> void
+auto SingleSharedGaussianTransition::prepare() -> void
 {
     normal_.reset();
 }
 
-auto SingleSharedGaussianCoefficientTransition::update(
+auto SingleSharedGaussianTransition::update(
     Eigen::Index marker_index,
     Eigen::Ref<const Eigen::VectorXd> column,
     double xtx_diag_i,
@@ -64,16 +63,15 @@ auto SingleSharedGaussianCoefficientTransition::update(
         rng);
 }
 
-auto SingleSharedGaussianCoefficientTransition::finish() -> void
+auto SingleSharedGaussianTransition::finish() -> void
 {
     state_.variance = stats::detail::var(state_.u)(0);
 }
 
-SinglePerMarkerGaussianCoefficientTransition::
-    SinglePerMarkerGaussianCoefficientTransition(
-        const bayes::SingleGeneticPrior& /*prior*/,
-        bayes::SingleGeneticBlockState& block,
-        bayes::ResidualState& residual)
+SinglePerMarkerGaussianTransition::SinglePerMarkerGaussianTransition(
+    const bayes::SingleGeneticPrior& /*prior*/,
+    bayes::SingleGeneticBlockState& block,
+    bayes::ResidualState& residual)
     : state_(block.state()),
       residual_(residual),
       variance_(block.prior_state()
@@ -83,12 +81,12 @@ SinglePerMarkerGaussianCoefficientTransition::
 {
 }
 
-auto SinglePerMarkerGaussianCoefficientTransition::prepare() -> void
+auto SinglePerMarkerGaussianTransition::prepare() -> void
 {
     normal_.reset();
 }
 
-auto SinglePerMarkerGaussianCoefficientTransition::update(
+auto SinglePerMarkerGaussianTransition::update(
     Eigen::Index marker_index,
     Eigen::Ref<const Eigen::VectorXd> column,
     double xtx_diag_i,
@@ -109,16 +107,15 @@ auto SinglePerMarkerGaussianCoefficientTransition::update(
         rng);
 }
 
-auto SinglePerMarkerGaussianCoefficientTransition::finish() -> void
+auto SinglePerMarkerGaussianTransition::finish() -> void
 {
     state_.variance = stats::detail::var(state_.u)(0);
 }
 
-SingleSharedSpikeSlabCoefficientTransition::
-    SingleSharedSpikeSlabCoefficientTransition(
-        const bayes::SingleGeneticPrior& /*prior*/,
-        bayes::SingleGeneticBlockState& block,
-        bayes::ResidualState& residual)
+SingleSharedSpikeSlabTransition::SingleSharedSpikeSlabTransition(
+    const bayes::SingleGeneticPrior& /*prior*/,
+    bayes::SingleGeneticBlockState& block,
+    bayes::ResidualState& residual)
     : state_(block.state()),
       residual_(residual),
       variance_(block.prior_state()
@@ -131,14 +128,14 @@ SingleSharedSpikeSlabCoefficientTransition::
 {
 }
 
-auto SingleSharedSpikeSlabCoefficientTransition::prepare() -> void
+auto SingleSharedSpikeSlabTransition::prepare() -> void
 {
     normal_.reset();
     uniform_.reset();
     logpi_ = proportion_.value.array().log();
 }
 
-auto SingleSharedSpikeSlabCoefficientTransition::update(
+auto SingleSharedSpikeSlabTransition::update(
     Eigen::Index marker_index,
     Eigen::Ref<const Eigen::VectorXd> column,
     double xtx_diag_i,
@@ -166,16 +163,15 @@ auto SingleSharedSpikeSlabCoefficientTransition::update(
     proportion_.assignment(marker_index) = component;
 }
 
-auto SingleSharedSpikeSlabCoefficientTransition::finish() -> void
+auto SingleSharedSpikeSlabTransition::finish() -> void
 {
     state_.variance = stats::detail::var(state_.u)(0);
 }
 
-SinglePerMarkerSpikeSlabCoefficientTransition::
-    SinglePerMarkerSpikeSlabCoefficientTransition(
-        const bayes::SingleGeneticPrior& /*prior*/,
-        bayes::SingleGeneticBlockState& block,
-        bayes::ResidualState& residual)
+SinglePerMarkerSpikeSlabTransition::SinglePerMarkerSpikeSlabTransition(
+    const bayes::SingleGeneticPrior& /*prior*/,
+    bayes::SingleGeneticBlockState& block,
+    bayes::ResidualState& residual)
     : state_(block.state()),
       residual_(residual),
       variance_(block.prior_state()
@@ -188,14 +184,14 @@ SinglePerMarkerSpikeSlabCoefficientTransition::
 {
 }
 
-auto SinglePerMarkerSpikeSlabCoefficientTransition::prepare() -> void
+auto SinglePerMarkerSpikeSlabTransition::prepare() -> void
 {
     normal_.reset();
     uniform_.reset();
     logpi_ = proportion_.value.array().log();
 }
 
-auto SinglePerMarkerSpikeSlabCoefficientTransition::update(
+auto SinglePerMarkerSpikeSlabTransition::update(
     Eigen::Index marker_index,
     Eigen::Ref<const Eigen::VectorXd> column,
     double xtx_diag_i,
@@ -224,16 +220,15 @@ auto SinglePerMarkerSpikeSlabCoefficientTransition::update(
     proportion_.assignment(marker_index) = component;
 }
 
-auto SinglePerMarkerSpikeSlabCoefficientTransition::finish() -> void
+auto SinglePerMarkerSpikeSlabTransition::finish() -> void
 {
     state_.variance = stats::detail::var(state_.u)(0);
 }
 
-SingleScaledMixtureCoefficientTransition::
-    SingleScaledMixtureCoefficientTransition(
-        const bayes::SingleGeneticPrior& prior,
-        bayes::SingleGeneticBlockState& block,
-        bayes::ResidualState& residual)
+SingleScaledMixtureTransition::SingleScaledMixtureTransition(
+    const bayes::SingleGeneticPrior& prior,
+    bayes::SingleGeneticBlockState& block,
+    bayes::ResidualState& residual)
     : state_(block.state()),
       residual_(residual),
       variance_(block.prior_state()
@@ -252,7 +247,7 @@ SingleScaledMixtureCoefficientTransition::
     logpi_.resize(multiplier_.size());
 }
 
-auto SingleScaledMixtureCoefficientTransition::prepare() -> void
+auto SingleScaledMixtureTransition::prepare() -> void
 {
     normal_.reset();
     uniform_.reset();
@@ -260,7 +255,7 @@ auto SingleScaledMixtureCoefficientTransition::prepare() -> void
     marker_variances_ = variance_ * multiplier_.array();
 }
 
-auto SingleScaledMixtureCoefficientTransition::update(
+auto SingleScaledMixtureTransition::update(
     Eigen::Index marker_index,
     Eigen::Ref<const Eigen::VectorXd> column,
     double xtx_diag_i,
@@ -323,7 +318,7 @@ auto SingleScaledMixtureCoefficientTransition::update(
     proportion_.assignment(marker_index) = component;
 }
 
-auto SingleScaledMixtureCoefficientTransition::finish() -> void
+auto SingleScaledMixtureTransition::finish() -> void
 {
     state_.variance = stats::detail::var(state_.u)(0);
     for (Eigen::Index k = 0;
@@ -334,11 +329,10 @@ auto SingleScaledMixtureCoefficientTransition::finish() -> void
     }
 }
 
-JointGaussianMixtureCoefficientTransition::
-    JointGaussianMixtureCoefficientTransition(
-        const bayes::JointGeneticPrior& /*prior*/,
-        bayes::JointGeneticBlockState& block,
-        bayes::ResidualState& residual)
+JointGaussianMixtureTransition::JointGaussianMixtureTransition(
+    const bayes::JointGeneticPrior& /*prior*/,
+    bayes::JointGeneticBlockState& block,
+    bayes::ResidualState& residual)
     : additive_(block.state(GeneticMode::A)),
       dominance_(block.state(GeneticMode::D)),
       residual_(residual),
@@ -350,14 +344,14 @@ JointGaussianMixtureCoefficientTransition::
 {
 }
 
-auto JointGaussianMixtureCoefficientTransition::prepare() -> void
+auto JointGaussianMixtureTransition::prepare() -> void
 {
     normal_.reset();
     uniform_.reset();
     logpi_ = proportion_.value.array().log();
 }
 
-auto JointGaussianMixtureCoefficientTransition::update(
+auto JointGaussianMixtureTransition::update(
     Eigen::Index marker_index,
     Eigen::Ref<const Eigen::VectorXd> additive_column,
     double additive_xtx_diag_i,
@@ -433,7 +427,7 @@ auto JointGaussianMixtureCoefficientTransition::update(
     proportion_.assignment(marker_index) = component;
 }
 
-auto JointGaussianMixtureCoefficientTransition::finish() -> void
+auto JointGaussianMixtureTransition::finish() -> void
 {
     additive_.variance = stats::detail::var(additive_.u)(0);
     dominance_.variance = stats::detail::var(dominance_.u)(0);

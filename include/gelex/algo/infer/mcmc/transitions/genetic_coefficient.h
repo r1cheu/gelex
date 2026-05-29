@@ -30,10 +30,10 @@ namespace gelex::mcmc
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-class SingleSharedGaussianCoefficientTransition
+class SingleSharedGaussianTransition
 {
    public:
-    SingleSharedGaussianCoefficientTransition(
+    SingleSharedGaussianTransition(
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
         bayes::ResidualState& residual);
@@ -55,10 +55,10 @@ class SingleSharedGaussianCoefficientTransition
     stats::NormalSampler<double> normal_;
 };
 
-class SinglePerMarkerGaussianCoefficientTransition
+class SinglePerMarkerGaussianTransition
 {
    public:
-    SinglePerMarkerGaussianCoefficientTransition(
+    SinglePerMarkerGaussianTransition(
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
         bayes::ResidualState& residual);
@@ -80,10 +80,10 @@ class SinglePerMarkerGaussianCoefficientTransition
     stats::NormalSampler<double> normal_;
 };
 
-class SingleSharedSpikeSlabCoefficientTransition
+class SingleSharedSpikeSlabTransition
 {
    public:
-    SingleSharedSpikeSlabCoefficientTransition(
+    SingleSharedSpikeSlabTransition(
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
         bayes::ResidualState& residual);
@@ -108,10 +108,10 @@ class SingleSharedSpikeSlabCoefficientTransition
     Eigen::VectorXd logpi_;
 };
 
-class SinglePerMarkerSpikeSlabCoefficientTransition
+class SinglePerMarkerSpikeSlabTransition
 {
    public:
-    SinglePerMarkerSpikeSlabCoefficientTransition(
+    SinglePerMarkerSpikeSlabTransition(
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
         bayes::ResidualState& residual);
@@ -136,10 +136,10 @@ class SinglePerMarkerSpikeSlabCoefficientTransition
     Eigen::VectorXd logpi_;
 };
 
-class SingleScaledMixtureCoefficientTransition
+class SingleScaledMixtureTransition
 {
    public:
-    SingleScaledMixtureCoefficientTransition(
+    SingleScaledMixtureTransition(
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
         bayes::ResidualState& residual);
@@ -172,10 +172,10 @@ class SingleScaledMixtureCoefficientTransition
     Eigen::Array<double, kMaxMixtureComponents, 1> scale_log_likelihoods_;
 };
 
-class JointGaussianMixtureCoefficientTransition
+class JointGaussianMixtureTransition
 {
    public:
-    JointGaussianMixtureCoefficientTransition(
+    JointGaussianMixtureTransition(
         const bayes::JointGeneticPrior& prior,
         bayes::JointGeneticBlockState& block,
         bayes::ResidualState& residual);

@@ -32,10 +32,10 @@ namespace gelex::mcmc
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-class SingleSharedGeneticVarianceStep final : public Step
+class SingleSharedVarStep final : public Step
 {
    public:
-    SingleSharedGeneticVarianceStep(
+    SingleSharedVarStep(
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
         std::mt19937_64& rng);
@@ -49,10 +49,10 @@ class SingleSharedGeneticVarianceStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class SingleSharedMixtureGeneticVarianceStep final : public Step
+class SingleSharedMixtureVarStep final : public Step
 {
    public:
-    SingleSharedMixtureGeneticVarianceStep(
+    SingleSharedMixtureVarStep(
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
         std::mt19937_64& rng);
@@ -67,10 +67,10 @@ class SingleSharedMixtureGeneticVarianceStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class SingleSharedScaledMixtureGeneticVarianceStep final : public Step
+class SingleSharedScaledMixtureVarStep final : public Step
 {
    public:
-    SingleSharedScaledMixtureGeneticVarianceStep(
+    SingleSharedScaledMixtureVarStep(
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
         std::mt19937_64& rng);
@@ -86,10 +86,10 @@ class SingleSharedScaledMixtureGeneticVarianceStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class SinglePerMarkerGeneticVarianceStep final : public Step
+class SinglePerMarkerVarStep final : public Step
 {
    public:
-    SinglePerMarkerGeneticVarianceStep(
+    SinglePerMarkerVarStep(
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
         std::mt19937_64& rng);
@@ -103,10 +103,10 @@ class SinglePerMarkerGeneticVarianceStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class SinglePerMarkerMixtureGeneticVarianceStep final : public Step
+class SinglePerMarkerMixtureVarStep final : public Step
 {
    public:
-    SinglePerMarkerMixtureGeneticVarianceStep(
+    SinglePerMarkerMixtureVarStep(
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
         std::mt19937_64& rng);
@@ -121,10 +121,10 @@ class SinglePerMarkerMixtureGeneticVarianceStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class JointSharedMixtureGeneticVarianceStep final : public Step
+class JointSharedMixtureVarStep final : public Step
 {
    public:
-    JointSharedMixtureGeneticVarianceStep(
+    JointSharedMixtureVarStep(
         const bayes::JointGeneticPrior& prior,
         bayes::JointGeneticBlockState& block,
         std::mt19937_64& rng);

@@ -30,10 +30,10 @@ namespace gelex::mcmc
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-class SingleGeneticProportionStep final : public Step
+class SingleProportionStep final : public Step
 {
    public:
-    SingleGeneticProportionStep(
+    SingleProportionStep(
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
         std::mt19937_64& rng);
@@ -46,10 +46,10 @@ class SingleGeneticProportionStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class JointGeneticProportionStep final : public Step
+class JointProportionStep final : public Step
 {
    public:
-    JointGeneticProportionStep(
+    JointProportionStep(
         const bayes::JointGeneticPrior& prior,
         bayes::JointGeneticBlockState& block,
         std::mt19937_64& rng);

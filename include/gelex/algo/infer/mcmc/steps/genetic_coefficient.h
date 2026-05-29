@@ -30,10 +30,10 @@ namespace gelex::mcmc
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
 template <typename Transition>
-class SingleGeneticCoefficientStep final : public Step
+class SingleCoeffStep final : public Step
 {
    public:
-    SingleGeneticCoefficientStep(
+    SingleCoeffStep(
         const bayes::GeneticDesign& design,
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
@@ -52,10 +52,10 @@ class SingleGeneticCoefficientStep final : public Step
 };
 
 template <typename Transition>
-class JointGeneticCoefficientStep final : public Step
+class JointCoeffStep final : public Step
 {
    public:
-    JointGeneticCoefficientStep(
+    JointCoeffStep(
         const bayes::GeneticDesign& additive,
         const bayes::GeneticDesign& dominance,
         const bayes::JointGeneticPrior& prior,

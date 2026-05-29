@@ -98,7 +98,7 @@ TEST_CASE("Single shared variance step samples finite variance", "[mcmc]")
     block.state().coeffs = Eigen::VectorXd{{0.2, -0.3}};
 
     std::mt19937_64 rng{123};
-    gelex::mcmc::SingleSharedGeneticVarianceStep step{prior, block, rng};
+    gelex::mcmc::SingleSharedVarStep step{prior, block, rng};
     step.step();
 
     const double variance
@@ -127,7 +127,7 @@ TEST_CASE("Single scaled mixture variance step uses multiplier capability", "[mc
     proportion.count = Eigen::VectorXi{{0, 2}};
 
     std::mt19937_64 rng{123};
-    gelex::mcmc::SingleSharedScaledMixtureGeneticVarianceStep step{
+    gelex::mcmc::SingleSharedScaledMixtureVarStep step{
         prior, block, rng};
     step.step();
 

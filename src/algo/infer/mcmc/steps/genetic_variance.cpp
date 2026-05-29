@@ -28,7 +28,7 @@
 namespace gelex::mcmc
 {
 
-SingleSharedGeneticVarianceStep::SingleSharedGeneticVarianceStep(
+SingleSharedVarStep::SingleSharedVarStep(
     const bayes::SingleGeneticPrior& prior,
     bayes::SingleGeneticBlockState& block,
     std::mt19937_64& rng)
@@ -51,14 +51,14 @@ SingleSharedGeneticVarianceStep::SingleSharedGeneticVarianceStep(
 {
 }
 
-auto SingleSharedGeneticVarianceStep::step() -> void
+auto SingleSharedVarStep::step() -> void
 {
     sampler_.reset();
     const auto& coeffs = block_.state().coeffs;
     variance_ = sampler_({coeffs.size(), coeffs.squaredNorm()}, rng_);
 }
 
-SingleSharedMixtureGeneticVarianceStep::SingleSharedMixtureGeneticVarianceStep(
+SingleSharedMixtureVarStep::SingleSharedMixtureVarStep(
     const bayes::SingleGeneticPrior& prior,
     bayes::SingleGeneticBlockState& block,
     std::mt19937_64& rng)
@@ -84,7 +84,7 @@ SingleSharedMixtureGeneticVarianceStep::SingleSharedMixtureGeneticVarianceStep(
 {
 }
 
-auto SingleSharedMixtureGeneticVarianceStep::step() -> void
+auto SingleSharedMixtureVarStep::step() -> void
 {
     sampler_.reset();
     const auto& coeffs = block_.state().coeffs;
@@ -104,11 +104,10 @@ auto SingleSharedMixtureGeneticVarianceStep::step() -> void
     variance_ = sampler_({n, sum_squares}, rng_);
 }
 
-SingleSharedScaledMixtureGeneticVarianceStep::
-    SingleSharedScaledMixtureGeneticVarianceStep(
-        const bayes::SingleGeneticPrior& prior,
-        bayes::SingleGeneticBlockState& block,
-        std::mt19937_64& rng)
+SingleSharedScaledMixtureVarStep::SingleSharedScaledMixtureVarStep(
+    const bayes::SingleGeneticPrior& prior,
+    bayes::SingleGeneticBlockState& block,
+    std::mt19937_64& rng)
     : block_(block),
       sampler_(
           prior.get<bayes::SingleSharedMarkerVarianceCap>()
@@ -132,7 +131,7 @@ SingleSharedScaledMixtureGeneticVarianceStep::
 {
 }
 
-auto SingleSharedScaledMixtureGeneticVarianceStep::step() -> void
+auto SingleSharedScaledMixtureVarStep::step() -> void
 {
     sampler_.reset();
     const auto& coeffs = block_.state().coeffs;
@@ -152,7 +151,7 @@ auto SingleSharedScaledMixtureGeneticVarianceStep::step() -> void
     variance_ = sampler_({n, sum_squares}, rng_);
 }
 
-SinglePerMarkerGeneticVarianceStep::SinglePerMarkerGeneticVarianceStep(
+SinglePerMarkerVarStep::SinglePerMarkerVarStep(
     const bayes::SingleGeneticPrior& prior,
     bayes::SingleGeneticBlockState& block,
     std::mt19937_64& rng)
@@ -175,7 +174,7 @@ SinglePerMarkerGeneticVarianceStep::SinglePerMarkerGeneticVarianceStep(
 {
 }
 
-auto SinglePerMarkerGeneticVarianceStep::step() -> void
+auto SinglePerMarkerVarStep::step() -> void
 {
     sampler_.reset();
     const auto& coeffs = block_.state().coeffs;
@@ -187,11 +186,10 @@ auto SinglePerMarkerGeneticVarianceStep::step() -> void
     }
 }
 
-SinglePerMarkerMixtureGeneticVarianceStep::
-    SinglePerMarkerMixtureGeneticVarianceStep(
-        const bayes::SingleGeneticPrior& prior,
-        bayes::SingleGeneticBlockState& block,
-        std::mt19937_64& rng)
+SinglePerMarkerMixtureVarStep::SinglePerMarkerMixtureVarStep(
+    const bayes::SingleGeneticPrior& prior,
+    bayes::SingleGeneticBlockState& block,
+    std::mt19937_64& rng)
     : block_(block),
       sampler_(
           prior.get<bayes::SinglePerMarkerVarianceCap>()
@@ -214,7 +212,7 @@ SinglePerMarkerMixtureGeneticVarianceStep::
 {
 }
 
-auto SinglePerMarkerMixtureGeneticVarianceStep::step() -> void
+auto SinglePerMarkerMixtureVarStep::step() -> void
 {
     sampler_.reset();
     const auto& coeffs = block_.state().coeffs;
@@ -230,7 +228,7 @@ auto SinglePerMarkerMixtureGeneticVarianceStep::step() -> void
     }
 }
 
-JointSharedMixtureGeneticVarianceStep::JointSharedMixtureGeneticVarianceStep(
+JointSharedMixtureVarStep::JointSharedMixtureVarStep(
     const bayes::JointGeneticPrior& prior,
     bayes::JointGeneticBlockState& block,
     std::mt19937_64& rng)
@@ -258,7 +256,7 @@ JointSharedMixtureGeneticVarianceStep::JointSharedMixtureGeneticVarianceStep(
 {
 }
 
-auto JointSharedMixtureGeneticVarianceStep::step() -> void
+auto JointSharedMixtureVarStep::step() -> void
 {
     constexpr std::array modes{GeneticMode::A, GeneticMode::D};
     for (auto mode : modes)
