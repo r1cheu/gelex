@@ -17,7 +17,6 @@
 #ifndef GELEX_MODEL_BAYES_PRIOR_H_
 #define GELEX_MODEL_BAYES_PRIOR_H_
 
-#include <memory>
 #include <span>
 #include <string_view>
 #include <variant>
@@ -83,9 +82,7 @@ class ResidualPrior
     VarianceParameter parameter_;
 };
 
-using GeneticPriorBlock = std::variant<
-    std::unique_ptr<SingleGeneticPrior>,
-    std::unique_ptr<JointGeneticPrior>>;
+using GeneticPrior = std::variant<SingleGeneticPrior, JointGeneticPrior>;
 
 class BayesPrior
 {
@@ -94,7 +91,7 @@ class BayesPrior
 
     BayesPrior(
         RandomPrior random,
-        std::vector<GeneticPriorBlock> genetics,
+        std::vector<GeneticPrior> genetics,
         ResidualPrior residual);
 
     BayesPrior(const BayesPrior&) = delete;
@@ -107,19 +104,16 @@ class BayesPrior
 
     auto random() const -> const RandomPrior& { return random_; }
     auto residual() const -> const ResidualPrior& { return residual_; }
-    auto genetics() const -> std::span<const GeneticPriorBlock>
-    {
-        return genetics_;
-    }
+    auto genetics() const -> std::span<const GeneticPrior> { return genetics_; }
 
     auto visit(infra::FieldVisitor& visitor) -> void;
 
    private:
-    static auto validate_genetics(
-        const std::vector<GeneticPriorBlock>& genetics) -> void;
+    static auto validate_genetics(const std::vector<GeneticPrior>& genetics)
+        -> void;
 
     RandomPrior random_;
-    std::vector<GeneticPriorBlock> genetics_;
+    std::vector<GeneticPrior> genetics_;
     ResidualPrior residual_;
 };
 

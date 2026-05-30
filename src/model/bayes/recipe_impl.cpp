@@ -27,7 +27,6 @@
 #include "gelex/exception.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/recipe_options.h"
 #include "gelex/types/constrained_value.h"
 #include "gelex/types/constrained_vector.h"
@@ -96,18 +95,6 @@ auto BayesRecipeImpl::marker_variance_from_heritability(
     return target;
 }
 
-auto BayesRecipeImpl::make_marker_variance(
-    MarkerVarianceLayout layout,
-    double target_marker_variance) -> MarkerVariance
-{
-    constexpr double df = 4.0;
-    return MarkerVariance{
-        layout,
-        VarianceParameter(
-            target_marker_variance,
-            ScaledInvChiSqPrior{df, (df - 2.0) / df * target_marker_variance})};
-}
-
 auto BayesRecipeImpl::reject_dominance_positive_probability_override() const
     -> void
 {
@@ -127,9 +114,9 @@ IndependentMethod::IndependentMethod(
 }
 
 auto IndependentMethod::make_genetic_prior_blocks(const BayesModel& model) const
-    -> std::vector<GeneticPriorBlock>
+    -> std::vector<GeneticPrior>
 {
-    std::vector<GeneticPriorBlock> priors;
+    std::vector<GeneticPrior> priors;
     for_each_effect(
         [&](GeneticMode mode, const EffectConfig& effect)
         {
@@ -209,9 +196,9 @@ JointMethod::JointMethod(
 }
 
 auto JointMethod::make_genetic_prior_blocks(const BayesModel& model) const
-    -> std::vector<GeneticPriorBlock>
+    -> std::vector<GeneticPrior>
 {
-    std::vector<GeneticPriorBlock> priors;
+    std::vector<GeneticPrior> priors;
     priors.emplace_back(make_joint_prior(options(), model));
     return priors;
 }

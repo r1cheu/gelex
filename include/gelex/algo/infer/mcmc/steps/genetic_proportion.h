@@ -21,7 +21,7 @@
 
 #include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/genetic_prior.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state.h"
 
 namespace gelex::mcmc
@@ -32,8 +32,8 @@ class SingleProportionStep final : public Step
 {
    public:
     SingleProportionStep(
-        const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
+        const bayes::SingleGeneticPrior& prior,
         std::mt19937_64& rng);
 
     auto step() -> void override;
@@ -48,8 +48,8 @@ class JointProportionStep final : public Step
 {
    public:
     JointProportionStep(
-        const bayes::JointGeneticPrior& prior,
         bayes::JointGeneticBlockState& block,
+        const bayes::JointGeneticPrior& prior,
         std::mt19937_64& rng);
 
     auto step() -> void override;

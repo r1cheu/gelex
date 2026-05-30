@@ -16,28 +16,75 @@
 
 #include "gelex/algo/infer/mcmc/steps/genetic_proportion.h"
 #include <random>
+#include <type_traits>
+#include <variant>
 
-#include "gelex/model/bayes/capabilities.h"
-#include "gelex/model/bayes/genetic_prior.h"
+#include "gelex/exception.h"
 #include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state.h"
-#include "gelex/model/bayes/state_capabilities.h"
 
 namespace gelex::mcmc
 {
 
 SingleProportionStep::SingleProportionStep(
-    const bayes::SingleGeneticPrior& prior,
     bayes::SingleGeneticBlockState& block,
+    const bayes::SingleGeneticPrior& prior,
     std::mt19937_64& rng)
-    : proportion_(block.prior_state()
-                      .get<bayes::SingleSampledMixtureProportionStateCap>()
-                      .proportion()),
-      dirichlet_(prior.get<bayes::SingleSampledMixtureProportionCap>()
-                     .proportion()
-                     .parameter()
-                     .prior()
-                     .concentration()),
+    : proportion_(
+          std::visit(
+              [](auto& state) -> bayes::SampledMixtureProportionState&
+              {
+                  using State = std::decay_t<decltype(state)>;
+                  if constexpr (
+                      std::is_same_v<
+                          State,
+                          bayes::SingleSampledSharedSpikeSlabGaussianState>
+                      || std::is_same_v<
+                          State,
+                          bayes::SingleSampledPerMarkerSpikeSlabGaussianState>
+                      || std::is_same_v<
+                          State,
+                          bayes::SingleSampledScaledMixtureGaussianState>)
+                  {
+                      return state.proportion();
+                  }
+                  else
+                  {
+                      throw GelexException(
+                          "SingleProportionStep requires sampled proportion "
+                          "state");
+                  }
+              },
+              block.prior_state())),
+      dirichlet_(
+          std::visit(
+              [](const auto& value) -> const Eigen::VectorXd&
+              {
+                  using Prior = std::decay_t<decltype(value)>;
+                  if constexpr (
+                      std::is_same_v<
+                          Prior,
+                          bayes::SingleSampledSharedSpikeSlabGaussianPrior>
+                      || std::is_same_v<
+                          Prior,
+                          bayes::SingleSampledPerMarkerSpikeSlabGaussianPrior>
+                      || std::is_same_v<
+                          Prior,
+                          bayes::SingleSampledScaledMixtureGaussianPrior>)
+                  {
+                      return value.proportion()
+                          .parameter()
+                          .prior()
+                          .concentration();
+                  }
+                  else
+                  {
+                      throw GelexException(
+                          "SingleProportionStep requires sampled proportion "
+                          "prior");
+                  }
+              },
+              prior)),
       rng_(rng)
 {
 }
@@ -49,17 +96,52 @@ auto SingleProportionStep::step() -> void
 }
 
 JointProportionStep::JointProportionStep(
-    const bayes::JointGeneticPrior& prior,
     bayes::JointGeneticBlockState& block,
+    const bayes::JointGeneticPrior& prior,
     std::mt19937_64& rng)
-    : proportion_(block.prior_state()
-                      .get<bayes::JointSampledMixtureProportionStateCap>()
-                      .proportion()),
-      dirichlet_(prior.get<bayes::JointSampledMixtureProportionCap>()
-                     .proportion()
-                     .parameter()
-                     .prior()
-                     .concentration()),
+    : proportion_(
+          std::visit(
+              [](auto& state) -> bayes::SampledMixtureProportionState&
+              {
+                  using State = std::decay_t<decltype(state)>;
+                  if constexpr (
+                      std::is_same_v<
+                          State,
+                          bayes::JointSampledGaussianMixtureState>)
+                  {
+                      return state.proportion();
+                  }
+                  else
+                  {
+                      throw GelexException(
+                          "JointProportionStep requires sampled proportion "
+                          "state");
+                  }
+              },
+              block.prior_state())),
+      dirichlet_(
+          std::visit(
+              [](const auto& value) -> const Eigen::VectorXd&
+              {
+                  using Prior = std::decay_t<decltype(value)>;
+                  if constexpr (
+                      std::is_same_v<
+                          Prior,
+                          bayes::JointSampledGaussianMixturePrior>)
+                  {
+                      return value.proportion()
+                          .parameter()
+                          .prior()
+                          .concentration();
+                  }
+                  else
+                  {
+                      throw GelexException(
+                          "JointProportionStep requires sampled proportion "
+                          "prior");
+                  }
+              },
+              prior)),
       rng_(rng)
 {
 }

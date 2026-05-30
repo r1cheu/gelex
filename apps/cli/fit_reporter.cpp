@@ -16,7 +16,6 @@
 
 #include "fit_reporter.h"
 
-#include <memory>
 #include <ranges>
 #include <span>
 #include <string_view>
@@ -30,7 +29,6 @@
 #include "gelex/algo/infer/posterior_summary.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
-#include "gelex/model/bayes/capabilities.h"
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_parameters.h"
@@ -93,8 +91,7 @@ auto FitReporter::print_random_prior(const bayes::RandomPrior& prior) -> void
     print_variance_prior(prior.prior(), prior.initial_value());
 }
 
-auto FitReporter::print_genetic_prior(const bayes::GeneticPriorBlock& prior)
-    -> void
+auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) -> void
 {
     auto format_vec = [](const auto& p)
     {
@@ -104,89 +101,64 @@ auto FitReporter::print_genetic_prior(const bayes::GeneticPriorBlock& prior)
         return fmt::join(formatted, ", ");
     };
 
-    std::visit(
-        [&format_vec](const auto& genetic)
+    auto print_proportion = [&format_vec](const auto& proportion)
+    {
+        using Proportion = std::remove_cvref_t<decltype(proportion)>;
+        if constexpr (std::is_same_v<Proportion, bayes::FixedMixtureProportion>)
         {
-            if constexpr (
-                std::is_same_v<
-                    std::decay_t<decltype(genetic)>,
-                    std::unique_ptr<bayes::SingleGeneticPrior>>)
+            cli::printer().line(
+                "    Proportion: [{}]", format_vec(proportion.value()));
+        }
+        else
+        {
+            cli::printer().line(
+                "    Proportion: [{}]",
+                format_vec(proportion.parameter().initial_value()));
+        }
+    };
+
+    std::visit(
+        [&](const auto& genetic_group)
+        {
+            using Group = std::remove_cvref_t<decltype(genetic_group)>;
+            if constexpr (std::is_same_v<Group, bayes::SingleGeneticPrior>)
             {
-                cli::printer().line("   {} effect:", genetic->mode());
-                if (const auto* variance
-                    = genetic
-                          ->template get_if<bayes::SingleSharedMarkerVarCap>())
-                {
-                    const auto& parameter = variance->variance().parameter();
-                    print_variance_prior(
-                        parameter.prior(), parameter.initial_value());
-                }
-                if (const auto* variance
-                    = genetic->template get_if<bayes::SinglePerMarkerVarCap>())
-                {
-                    const auto& parameter = variance->variance().parameter();
-                    print_variance_prior(
-                        parameter.prior(), parameter.initial_value());
-                }
-                if (const auto* proportion
-                    = genetic->template get_if<
-                        bayes::SingleFixedMixtureProportionCap>())
-                {
-                    cli::printer().line(
-                        "    Proportion: [{}]",
-                        format_vec(proportion->proportion().value()));
-                }
-                if (const auto* proportion
-                    = genetic->template get_if<
-                        bayes::SingleSampledMixtureProportionCap>())
-                {
-                    cli::printer().line(
-                        "    Proportion: [{}]",
-                        format_vec(proportion->proportion()
-                                       .parameter()
-                                       .initial_value()));
-                }
-                if (const auto* multiplier
-                    = genetic->template get_if<bayes::SingleMultiplierCap>())
-                {
-                    cli::printer().line(
-                        "    Multiplier: [{}]",
-                        format_vec(multiplier->multiplier()));
-                }
+                std::visit(
+                    [&](const auto& genetic)
+                    {
+                        cli::printer().line("   {} effect:", genetic.mode());
+                        const auto& parameter = genetic.variance().parameter();
+                        print_variance_prior(
+                            parameter.prior(), parameter.initial_value());
+                        if constexpr (requires { genetic.proportion(); })
+                        {
+                            print_proportion(genetic.proportion());
+                        }
+                        if constexpr (requires { genetic.multiplier(); })
+                        {
+                            cli::printer().line(
+                                "    Multiplier: [{}]",
+                                format_vec(genetic.multiplier()));
+                        }
+                    },
+                    genetic_group);
             }
             else
             {
                 cli::printer().line("   A, D effect:");
-                if (const auto* variance
-                    = genetic
-                          ->template get_if<bayes::JointSharedMarkerVarCap>())
-                {
-                    for (const auto mode : {GeneticMode::A, GeneticMode::D})
+                std::visit(
+                    [&](const auto& genetic)
                     {
-                        const auto& parameter
-                            = variance->variance(mode).parameter();
-                        print_variance_prior(
-                            parameter.prior(), parameter.initial_value());
-                    }
-                }
-                if (const auto* proportion
-                    = genetic->template get_if<
-                        bayes::JointFixedMixtureProportionCap>())
-                {
-                    cli::printer().line(
-                        "    Proportion: [{}]",
-                        format_vec(proportion->proportion().value()));
-                }
-                if (const auto* proportion
-                    = genetic->template get_if<
-                        bayes::JointSampledMixtureProportionCap>())
-                {
-                    cli::printer().line(
-                        "    Proportion: [{}]",
-                        format_vec(proportion->proportion()
-                                       .parameter()
-                                       .initial_value()));
-                }
+                        for (const auto mode : {GeneticMode::A, GeneticMode::D})
+                        {
+                            const auto& parameter
+                                = genetic.variance(mode).parameter();
+                            print_variance_prior(
+                                parameter.prior(), parameter.initial_value());
+                        }
+                        print_proportion(genetic.proportion());
+                    },
+                    genetic_group);
             }
         },
         prior);

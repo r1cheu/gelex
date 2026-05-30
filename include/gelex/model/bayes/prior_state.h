@@ -17,185 +17,26 @@
 #ifndef GELEX_MODEL_BAYES_PRIOR_STATE_H_
 #define GELEX_MODEL_BAYES_PRIOR_STATE_H_
 
-#include <string_view>
-#include <vector>
+#include <variant>
 
-#include <fmt/format.h>
-#include <Eigen/Core>
-
-#include "gelex/exception.h"
-#include "gelex/model/bayes/prior_parameters.h"
-
-namespace gelex::infra
-{
-class FieldVisitor;
-}
+#include "gelex/model/bayes/genetic_prior_states/gaussian.h"
+#include "gelex/model/bayes/prior_state_values.h"
 
 namespace gelex::bayes
 {
 
-struct MixtureAssignmentState
-{
-    static constexpr std::string_view name = "mixture_assignment";
+using SingleGeneticPriorState = std::variant<
+    SingleSharedGaussianState,
+    SinglePerMarkerGaussianState,
+    SingleFixedSharedSpikeSlabGaussianState,
+    SingleSampledSharedSpikeSlabGaussianState,
+    SingleFixedPerMarkerSpikeSlabGaussianState,
+    SingleSampledPerMarkerSpikeSlabGaussianState,
+    SingleFixedScaledMixtureGaussianState,
+    SingleSampledScaledMixtureGaussianState>;
 
-    MixtureAssignmentState() = default;
-    MixtureAssignmentState(
-        Eigen::Index num_components,
-        Eigen::Index num_markers);
-
-    auto visit(infra::FieldVisitor& visitor) -> void;
-
-    Eigen::VectorXi assignment;
-    Eigen::VectorXi count;
-};
-
-struct SampledMixtureProportionState
-{
-    static constexpr std::string_view name = "sampled_mixture_proportion";
-
-    SampledMixtureProportionState() = default;
-    SampledMixtureProportionState(
-        const SampledMixtureProportion& proportion,
-        Eigen::Index num_markers);
-
-    auto visit(infra::FieldVisitor& visitor) -> void;
-
-    MixtureAssignmentState assignment;
-    Eigen::VectorXd value;
-};
-
-struct ComponentState
-{
-    static constexpr std::string_view name = "component";
-
-    ComponentState() = default;
-    ComponentState(Eigen::Index num_components, Eigen::Index num_individuals);
-
-    auto visit(infra::FieldVisitor& visitor) -> void;
-
-    std::vector<Eigen::VectorXd> gebv;
-    Eigen::VectorXd gebv_var;
-};
-
-class SingleGeneticPriorState
-{
-   public:
-    static constexpr std::string_view name = "single";
-
-    auto operator=(const SingleGeneticPriorState&)
-        -> SingleGeneticPriorState& = delete;
-    auto operator=(SingleGeneticPriorState&&) noexcept
-        -> SingleGeneticPriorState& = delete;
-
-    virtual ~SingleGeneticPriorState() = default;
-
-    template <typename Capability>
-    auto get_if() -> Capability*
-    {
-        return dynamic_cast<Capability*>(this);
-    }
-
-    template <typename Capability>
-    auto get_if() const -> const Capability*
-    {
-        return dynamic_cast<const Capability*>(this);
-    }
-
-    template <typename Capability>
-    auto get() -> Capability&
-    {
-        auto* capability = get_if<Capability>();
-        if (capability == nullptr)
-        {
-            throw GelexException(
-                fmt::format(
-                    "single genetic prior state lacks required capability: {}",
-                    Capability::name));
-        }
-        return *capability;
-    }
-
-    template <typename Capability>
-    auto get() const -> const Capability&
-    {
-        const auto* capability = get_if<Capability>();
-        if (capability == nullptr)
-        {
-            throw GelexException(
-                fmt::format(
-                    "single genetic prior state lacks required capability: {}",
-                    Capability::name));
-        }
-        return *capability;
-    }
-
-    virtual auto visit(infra::FieldVisitor& visitor) -> void = 0;
-
-   protected:
-    SingleGeneticPriorState() = default;
-    SingleGeneticPriorState(const SingleGeneticPriorState&) = default;
-    SingleGeneticPriorState(SingleGeneticPriorState&&) noexcept = default;
-};
-
-class JointGeneticPriorState
-{
-   public:
-    static constexpr std::string_view name = "joint";
-
-    auto operator=(const JointGeneticPriorState&)
-        -> JointGeneticPriorState& = delete;
-    auto operator=(JointGeneticPriorState&&) noexcept
-        -> JointGeneticPriorState& = delete;
-
-    virtual ~JointGeneticPriorState() = default;
-
-    template <typename Capability>
-    auto get_if() -> Capability*
-    {
-        return dynamic_cast<Capability*>(this);
-    }
-
-    template <typename Capability>
-    auto get_if() const -> const Capability*
-    {
-        return dynamic_cast<const Capability*>(this);
-    }
-
-    template <typename Capability>
-    auto get() -> Capability&
-    {
-        auto* capability = get_if<Capability>();
-        if (capability == nullptr)
-        {
-            throw GelexException(
-                fmt::format(
-                    "joint genetic prior state lacks required capability: {}",
-                    Capability::name));
-        }
-        return *capability;
-    }
-
-    template <typename Capability>
-    auto get() const -> const Capability&
-    {
-        const auto* capability = get_if<Capability>();
-        if (capability == nullptr)
-        {
-            throw GelexException(
-                fmt::format(
-                    "joint genetic prior state lacks required capability: {}",
-                    Capability::name));
-        }
-        return *capability;
-    }
-
-    virtual auto visit(infra::FieldVisitor& visitor) -> void = 0;
-
-   protected:
-    JointGeneticPriorState() = default;
-    JointGeneticPriorState(const JointGeneticPriorState&) = default;
-    JointGeneticPriorState(JointGeneticPriorState&&) noexcept = default;
-};
+using JointGeneticPriorState = std::
+    variant<JointFixedGaussianMixtureState, JointSampledGaussianMixtureState>;
 
 }  // namespace gelex::bayes
 

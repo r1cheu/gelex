@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <memory>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -22,12 +21,11 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/exception.h"
-#include "gelex/model/bayes/capabilities.h"
 #include "gelex/model/bayes/genetic_prior.h"
+#include "gelex/model/bayes/genetic_prior_states/gaussian.h"
 #include "gelex/model/bayes/genetic_priors/gaussian.h"
 #include "gelex/model/bayes/prior.h"
 #include "gelex/model/bayes/prior_parameters.h"
-#include "gelex/model/bayes/state_capabilities.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace
@@ -49,64 +47,42 @@ auto make_residual_prior() -> gelex::bayes::ResidualPrior
     return gelex::bayes::ResidualPrior{make_variance(0.8)};
 }
 
-auto make_shared_prior(gelex::GeneticMode mode)
-    -> std::unique_ptr<gelex::bayes::SingleGeneticPrior>
+auto make_shared_prior(gelex::GeneticMode mode) -> gelex::bayes::GeneticPrior
 {
-    return std::make_unique<gelex::bayes::SingleSharedGaussianPrior>(
-        mode, gelex::bayes::SharedMarkerVariance{make_variance(0.1)});
+    return gelex::bayes::SingleGeneticPrior{
+        gelex::bayes::SingleSharedGaussianPrior{
+            mode, gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}};
 }
 
 }  // namespace
 
 TEST_CASE("BayesPrior owns single and joint genetic blocks", "[bayes_prior]")
 {
-    std::vector<gelex::bayes::GeneticPriorBlock> genetics;
+    std::vector<gelex::bayes::GeneticPrior> genetics;
     genetics.emplace_back(make_shared_prior(gelex::GeneticMode::A));
 
     gelex::bayes::BayesPrior prior{
         make_random_prior(), std::move(genetics), make_residual_prior()};
 
     REQUIRE(prior.genetics().size() == 1);
-    const auto* single
-        = std::get_if<std::unique_ptr<gelex::bayes::SingleGeneticPrior>>(
-            &prior.genetics()[0]);
-    REQUIRE(single != nullptr);
-    REQUIRE((*single)->mode() == gelex::GeneticMode::A);
+    const auto& genetic
+        = std::get<gelex::bayes::SingleGeneticPrior>(prior.genetics()[0]);
+    REQUIRE(gelex::bayes::mode(genetic) == gelex::GeneticMode::A);
 }
 
-TEST_CASE("Genetic prior get and get_if expose capabilities", "[bayes_prior]")
-{
-    gelex::bayes::SingleSharedGaussianPrior prior{
-        gelex::GeneticMode::A,
-        gelex::bayes::SharedMarkerVariance{make_variance(0.1)}};
-
-    REQUIRE(prior.get_if<gelex::bayes::SingleSharedMarkerVarCap>() != nullptr);
-    REQUIRE(
-        prior.get_if<gelex::bayes::SingleFixedMixtureProportionCap>()
-        == nullptr);
-    REQUIRE_THROWS_AS(
-        prior.get<gelex::bayes::SingleFixedMixtureProportionCap>(),
-        gelex::GelexException);
-}
-
-TEST_CASE("Genetic prior states expose capabilities", "[bayes_prior]")
+TEST_CASE("Single shared genetic prior creates concrete state", "[bayes_prior]")
 {
     gelex::bayes::SingleSharedGaussianPrior prior{
         gelex::GeneticMode::A,
         gelex::bayes::SharedMarkerVariance{make_variance(0.1)}};
     auto state = prior.make_state(3, 2);
 
-    auto& variance
-        = state->get<gelex::bayes::SingleSharedVarianceStateCap>().variance();
-    REQUIRE(variance == 0.1);
-    REQUIRE(
-        state->get_if<gelex::bayes::SingleMixtureAssignmentStateCap>()
-        == nullptr);
+    REQUIRE(state.variance() == 0.1);
 }
 
 TEST_CASE("BayesPrior rejects duplicate genetic modes", "[bayes_prior]")
 {
-    std::vector<gelex::bayes::GeneticPriorBlock> genetics;
+    std::vector<gelex::bayes::GeneticPrior> genetics;
     genetics.emplace_back(make_shared_prior(gelex::GeneticMode::A));
     genetics.emplace_back(make_shared_prior(gelex::GeneticMode::A));
 

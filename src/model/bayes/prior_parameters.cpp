@@ -98,13 +98,6 @@ SimplexParameter::SimplexParameter(
     }
 }
 
-MarkerVariance::MarkerVariance(
-    MarkerVarianceLayout layout,
-    VarianceParameter parameter)
-    : layout_(layout), parameter_(parameter)
-{
-}
-
 SharedMarkerVariance::SharedMarkerVariance(VarianceParameter parameter)
     : parameter_(parameter)
 {

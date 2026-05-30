@@ -16,7 +16,54 @@
 
 #include "gelex/model/bayes/genetic_prior.h"
 
+#include <variant>
+
+#include <Eigen/Core>
+
+#include "gelex/infra/field_visitor.h"
+#include "gelex/model/bayes/prior_state.h"
+#include "gelex/types/genetic_effect_type.h"
+
 namespace gelex::bayes
 {
+
+auto mode(const SingleGeneticPrior& prior) -> GeneticMode
+{
+    return std::visit([](const auto& value) { return value.mode(); }, prior);
+}
+
+auto visit(SingleGeneticPrior& prior, infra::FieldVisitor& visitor) -> void
+{
+    std::visit([&visitor](auto& value) { value.visit(visitor); }, prior);
+}
+
+auto visit(JointGeneticPrior& prior, infra::FieldVisitor& visitor) -> void
+{
+    std::visit([&visitor](auto& value) { value.visit(visitor); }, prior);
+}
+
+auto make_state(
+    const SingleGeneticPrior& prior,
+    Eigen::Index num_markers,
+    Eigen::Index num_individuals) -> SingleGeneticPriorState
+{
+    return std::visit(
+        [num_markers,
+         num_individuals](const auto& value) -> SingleGeneticPriorState
+        { return value.make_state(num_markers, num_individuals); },
+        prior);
+}
+
+auto make_state(
+    const JointGeneticPrior& prior,
+    Eigen::Index num_markers,
+    Eigen::Index num_individuals) -> JointGeneticPriorState
+{
+    return std::visit(
+        [num_markers,
+         num_individuals](const auto& value) -> JointGeneticPriorState
+        { return value.make_state(num_markers, num_individuals); },
+        prior);
+}
 
 }  // namespace gelex::bayes

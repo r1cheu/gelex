@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/model/bayes/prior_state.h"
+#include "gelex/model/bayes/prior_state_values.h"
 
 #include <cstddef>
 #include <ranges>

@@ -39,8 +39,7 @@ class BayesRRMethod final : public IndependentMethod
     auto make_single_genetic_prior(
         GeneticMode mode,
         const EffectConfig& effect,
-        const BayesModel& model) const
-        -> std::unique_ptr<SingleGeneticPrior> final;
+        const BayesModel& model) const -> SingleGeneticPrior final;
 };
 
 class BayesAMethod final : public IndependentMethod
@@ -52,8 +51,7 @@ class BayesAMethod final : public IndependentMethod
     auto make_single_genetic_prior(
         GeneticMode mode,
         const EffectConfig& effect,
-        const BayesModel& model) const
-        -> std::unique_ptr<SingleGeneticPrior> final;
+        const BayesModel& model) const -> SingleGeneticPrior final;
 };
 
 class BayesBMethod final : public IndependentMethod
@@ -65,8 +63,7 @@ class BayesBMethod final : public IndependentMethod
     auto make_single_genetic_prior(
         GeneticMode mode,
         const EffectConfig& effect,
-        const BayesModel& model) const
-        -> std::unique_ptr<SingleGeneticPrior> final;
+        const BayesModel& model) const -> SingleGeneticPrior final;
 };
 
 class BayesCMethod final : public IndependentMethod
@@ -78,8 +75,7 @@ class BayesCMethod final : public IndependentMethod
     auto make_single_genetic_prior(
         GeneticMode mode,
         const EffectConfig& effect,
-        const BayesModel& model) const
-        -> std::unique_ptr<SingleGeneticPrior> final;
+        const BayesModel& model) const -> SingleGeneticPrior final;
 };
 
 class BayesRMethod final : public IndependentMethod
@@ -91,8 +87,7 @@ class BayesRMethod final : public IndependentMethod
     auto make_single_genetic_prior(
         GeneticMode mode,
         const EffectConfig& effect,
-        const BayesModel& model) const
-        -> std::unique_ptr<SingleGeneticPrior> final;
+        const BayesModel& model) const -> SingleGeneticPrior final;
 };
 
 }  // namespace gelex::bayes

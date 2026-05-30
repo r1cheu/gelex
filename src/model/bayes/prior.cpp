@@ -16,7 +16,6 @@
 
 #include "gelex/model/bayes/prior.h"
 
-#include <memory>
 #include <ranges>
 #include <set>
 #include <string>
@@ -37,7 +36,7 @@ namespace gelex::bayes
 
 BayesPrior::BayesPrior(
     RandomPrior random,
-    std::vector<GeneticPriorBlock> genetics,
+    std::vector<GeneticPrior> genetics,
     ResidualPrior residual)
     : random_(random), genetics_(std::move(genetics)), residual_(residual)
 {
@@ -54,7 +53,9 @@ auto BayesPrior::visit(infra::FieldVisitor& visitor) -> void
         {
             auto block_scope = visitor.scope(std::to_string(i));
             std::visit(
-                [&visitor](auto& prior) { prior->visit(visitor); }, block);
+                [&visitor](auto& prior)
+                { gelex::bayes::visit(prior, visitor); },
+                block);
         }
     }
     residual_.visit(visitor);
@@ -62,8 +63,8 @@ auto BayesPrior::visit(infra::FieldVisitor& visitor) -> void
     validate_genetics(genetics_);
 }
 
-auto BayesPrior::validate_genetics(
-    const std::vector<GeneticPriorBlock>& genetics) -> void
+auto BayesPrior::validate_genetics(const std::vector<GeneticPrior>& genetics)
+    -> void
 {
     std::set<GeneticMode> seen_modes;
     auto add_mode = [&seen_modes](GeneticMode mode)
@@ -82,18 +83,12 @@ auto BayesPrior::validate_genetics(
             [&add_mode](const auto& prior)
             {
                 using Prior = std::decay_t<decltype(prior)>;
-                if (prior == nullptr)
-                {
-                    throw GelexException("BayesPrior: null genetic block");
-                }
 
-                if constexpr (
-                    std::is_same_v<Prior, std::unique_ptr<SingleGeneticPrior>>)
+                if constexpr (std::is_same_v<Prior, SingleGeneticPrior>)
                 {
-                    add_mode(prior->mode());
+                    add_mode(mode(prior));
                 }
-                else if constexpr (
-                    std::is_same_v<Prior, std::unique_ptr<JointGeneticPrior>>)
+                else if constexpr (std::is_same_v<Prior, JointGeneticPrior>)
                 {
                     // A joint prior owns both genetic modes, so reserve both
                     // slots for duplicate checks.

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <memory>
 #include <random>
 #include <utility>
 #include <vector>
@@ -68,11 +67,12 @@ auto make_model() -> gelex::BayesModel
 
 auto make_prior() -> gelex::bayes::BayesPrior
 {
-    std::vector<gelex::bayes::GeneticPriorBlock> genetics;
+    std::vector<gelex::bayes::GeneticPrior> genetics;
     genetics.emplace_back(
-        std::make_unique<gelex::bayes::SingleSharedGaussianPrior>(
-            gelex::GeneticMode::A,
-            gelex::bayes::SharedMarkerVariance{make_variance(0.1)}));
+        gelex::bayes::SingleGeneticPrior{
+            gelex::bayes::SingleSharedGaussianPrior{
+                gelex::GeneticMode::A,
+                gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
 
     return gelex::bayes::BayesPrior{
         gelex::bayes::RandomPrior{make_variance(0.3)},

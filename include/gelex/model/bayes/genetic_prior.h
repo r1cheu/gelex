@@ -17,107 +17,52 @@
 #ifndef GELEX_MODEL_BAYES_GENETIC_PRIOR_H_
 #define GELEX_MODEL_BAYES_GENETIC_PRIOR_H_
 
-#include <memory>
 #include <string_view>
+#include <variant>
 
-#include <fmt/format.h>
 #include <Eigen/Core>
 
-#include "gelex/exception.h"
-#include "gelex/infra/field_visitor.h"
+#include "gelex/model/bayes/genetic_priors/gaussian.h"
 #include "gelex/model/bayes/prior_state.h"
 #include "gelex/types/genetic_effect_type.h"
+
+namespace gelex::infra
+{
+class FieldVisitor;
+}
 
 namespace gelex::bayes
 {
 
-class SingleGeneticPrior
-{
-   public:
-    static constexpr std::string_view name = "single";
+inline constexpr std::string_view kSingleGeneticPriorName = "single";
+inline constexpr std::string_view kJointGeneticPriorName = "joint";
 
-    auto operator=(const SingleGeneticPrior&) -> SingleGeneticPrior& = delete;
-    auto operator=(SingleGeneticPrior&&) noexcept
-        -> SingleGeneticPrior& = delete;
+using SingleGeneticPrior = std::variant<
+    SingleSharedGaussianPrior,
+    SinglePerMarkerGaussianPrior,
+    SingleFixedSharedSpikeSlabGaussianPrior,
+    SingleSampledSharedSpikeSlabGaussianPrior,
+    SingleFixedPerMarkerSpikeSlabGaussianPrior,
+    SingleSampledPerMarkerSpikeSlabGaussianPrior,
+    SingleFixedScaledMixtureGaussianPrior,
+    SingleSampledScaledMixtureGaussianPrior>;
 
-    virtual ~SingleGeneticPrior() = default;
+using JointGeneticPrior = std::
+    variant<JointFixedGaussianMixturePrior, JointSampledGaussianMixturePrior>;
 
-    virtual auto mode() const -> GeneticMode = 0;
-    virtual auto visit(infra::FieldVisitor& visitor) -> void = 0;
+auto mode(const SingleGeneticPrior& prior) -> GeneticMode;
 
-    virtual auto make_state(
-        Eigen::Index num_markers,
-        Eigen::Index num_individuals) const
-        -> std::unique_ptr<SingleGeneticPriorState> = 0;
+auto visit(SingleGeneticPrior& prior, infra::FieldVisitor& visitor) -> void;
+auto visit(JointGeneticPrior& prior, infra::FieldVisitor& visitor) -> void;
 
-    template <typename Capability>
-    auto get_if() const -> const Capability*
-    {
-        return dynamic_cast<const Capability*>(this);
-    }
-
-    template <typename Capability>
-    auto get() const -> const Capability&
-    {
-        const auto* capability = get_if<Capability>();
-        if (capability == nullptr)
-        {
-            throw GelexException(
-                fmt::format(
-                    "single genetic prior lacks required capability: {}",
-                    Capability::name));
-        }
-        return *capability;
-    }
-
-   protected:
-    SingleGeneticPrior() = default;
-    SingleGeneticPrior(const SingleGeneticPrior&) = default;
-    SingleGeneticPrior(SingleGeneticPrior&&) noexcept = default;
-};
-
-class JointGeneticPrior
-{
-   public:
-    static constexpr std::string_view name = "joint";
-
-    auto operator=(const JointGeneticPrior&) -> JointGeneticPrior& = delete;
-    auto operator=(JointGeneticPrior&&) noexcept -> JointGeneticPrior& = delete;
-
-    virtual ~JointGeneticPrior() = default;
-
-    virtual auto visit(infra::FieldVisitor& visitor) -> void = 0;
-
-    virtual auto make_state(
-        Eigen::Index num_markers,
-        Eigen::Index num_individuals) const
-        -> std::unique_ptr<JointGeneticPriorState> = 0;
-
-    template <typename Capability>
-    auto get_if() const -> const Capability*
-    {
-        return dynamic_cast<const Capability*>(this);
-    }
-
-    template <typename Capability>
-    auto get() const -> const Capability&
-    {
-        const auto* capability = get_if<Capability>();
-        if (capability == nullptr)
-        {
-            throw GelexException(
-                fmt::format(
-                    "joint genetic prior lacks required capability: {}",
-                    Capability::name));
-        }
-        return *capability;
-    }
-
-   protected:
-    JointGeneticPrior() = default;
-    JointGeneticPrior(const JointGeneticPrior&) = default;
-    JointGeneticPrior(JointGeneticPrior&&) noexcept = default;
-};
+auto make_state(
+    const SingleGeneticPrior& prior,
+    Eigen::Index num_markers,
+    Eigen::Index num_individuals) -> SingleGeneticPriorState;
+auto make_state(
+    const JointGeneticPrior& prior,
+    Eigen::Index num_markers,
+    Eigen::Index num_individuals) -> JointGeneticPriorState;
 
 }  // namespace gelex::bayes
 

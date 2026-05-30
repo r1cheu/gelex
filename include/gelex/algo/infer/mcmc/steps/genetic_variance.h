@@ -24,9 +24,9 @@
 
 #include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/genetic_prior.h"
+#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state.h"
-#include "gelex/model/bayes/state_capabilities.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::mcmc
 {
@@ -36,8 +36,8 @@ class SingleSharedVarStep final : public Step
 {
    public:
     SingleSharedVarStep(
-        const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
+        const bayes::SingleGeneticPrior& prior,
         std::mt19937_64& rng);
 
     auto step() -> void override;
@@ -49,12 +49,12 @@ class SingleSharedVarStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class SingleSharedMixtureVarStep final : public Step
+class SingleFixedSharedSpikeSlabVarStep final : public Step
 {
    public:
-    SingleSharedMixtureVarStep(
-        const bayes::SingleGeneticPrior& prior,
+    SingleFixedSharedSpikeSlabVarStep(
         bayes::SingleGeneticBlockState& block,
+        const bayes::SingleGeneticPrior& prior,
         std::mt19937_64& rng);
 
     auto step() -> void override;
@@ -67,12 +67,49 @@ class SingleSharedMixtureVarStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class SingleSharedScaledMixtureVarStep final : public Step
+class SingleSampledSharedSpikeSlabVarStep final : public Step
 {
    public:
-    SingleSharedScaledMixtureVarStep(
-        const bayes::SingleGeneticPrior& prior,
+    SingleSampledSharedSpikeSlabVarStep(
         bayes::SingleGeneticBlockState& block,
+        const bayes::SingleGeneticPrior& prior,
+        std::mt19937_64& rng);
+
+    auto step() -> void override;
+
+   private:
+    bayes::SingleGeneticBlockState& block_;
+    stats::ScaledInvChi2Sampler<double> sampler_;
+    double& variance_;
+    bayes::MixtureAssignmentState& assignment_;
+    std::mt19937_64& rng_;
+};
+
+class SingleFixedScaledMixtureVarStep final : public Step
+{
+   public:
+    SingleFixedScaledMixtureVarStep(
+        bayes::SingleGeneticBlockState& block,
+        const bayes::SingleGeneticPrior& prior,
+        std::mt19937_64& rng);
+
+    auto step() -> void override;
+
+   private:
+    bayes::SingleGeneticBlockState& block_;
+    stats::ScaledInvChi2Sampler<double> sampler_;
+    double& variance_;
+    bayes::MixtureAssignmentState& assignment_;
+    const Eigen::VectorXd& multiplier_;
+    std::mt19937_64& rng_;
+};
+
+class SingleSampledScaledMixtureVarStep final : public Step
+{
+   public:
+    SingleSampledScaledMixtureVarStep(
+        bayes::SingleGeneticBlockState& block,
+        const bayes::SingleGeneticPrior& prior,
         std::mt19937_64& rng);
 
     auto step() -> void override;
@@ -90,8 +127,8 @@ class SinglePerMarkerVarStep final : public Step
 {
    public:
     SinglePerMarkerVarStep(
-        const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
+        const bayes::SingleGeneticPrior& prior,
         std::mt19937_64& rng);
 
     auto step() -> void override;
@@ -103,12 +140,12 @@ class SinglePerMarkerVarStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class SinglePerMarkerMixtureVarStep final : public Step
+class SingleFixedPerMarkerSpikeSlabVarStep final : public Step
 {
    public:
-    SinglePerMarkerMixtureVarStep(
-        const bayes::SingleGeneticPrior& prior,
+    SingleFixedPerMarkerSpikeSlabVarStep(
         bayes::SingleGeneticBlockState& block,
+        const bayes::SingleGeneticPrior& prior,
         std::mt19937_64& rng);
 
     auto step() -> void override;
@@ -121,12 +158,30 @@ class SinglePerMarkerMixtureVarStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class JointSharedMixtureVarStep final : public Step
+class SingleSampledPerMarkerSpikeSlabVarStep final : public Step
 {
    public:
-    JointSharedMixtureVarStep(
-        const bayes::JointGeneticPrior& prior,
+    SingleSampledPerMarkerSpikeSlabVarStep(
+        bayes::SingleGeneticBlockState& block,
+        const bayes::SingleGeneticPrior& prior,
+        std::mt19937_64& rng);
+
+    auto step() -> void override;
+
+   private:
+    bayes::SingleGeneticBlockState& block_;
+    stats::ScaledInvChi2Sampler<double> sampler_;
+    Eigen::VectorXd& variance_;
+    bayes::MixtureAssignmentState& assignment_;
+    std::mt19937_64& rng_;
+};
+
+class JointFixedMixtureVarStep final : public Step
+{
+   public:
+    JointFixedMixtureVarStep(
         bayes::JointGeneticBlockState& block,
+        const bayes::JointGeneticPrior& prior,
         std::mt19937_64& rng);
 
     auto step() -> void override;
@@ -134,7 +189,25 @@ class JointSharedMixtureVarStep final : public Step
    private:
     bayes::JointGeneticBlockState& block_;
     std::array<stats::ScaledInvChi2Sampler<double>, 2> samplers_;
-    bayes::JointSharedVarianceStateCap& variance_;
+    std::array<double*, 2> variance_;
+    bayes::MixtureAssignmentState& assignment_;
+    std::mt19937_64& rng_;
+};
+
+class JointSampledMixtureVarStep final : public Step
+{
+   public:
+    JointSampledMixtureVarStep(
+        bayes::JointGeneticBlockState& block,
+        const bayes::JointGeneticPrior& prior,
+        std::mt19937_64& rng);
+
+    auto step() -> void override;
+
+   private:
+    bayes::JointGeneticBlockState& block_;
+    std::array<stats::ScaledInvChi2Sampler<double>, 2> samplers_;
+    std::array<double*, 2> variance_;
     bayes::MixtureAssignmentState& assignment_;
     std::mt19937_64& rng_;
 };

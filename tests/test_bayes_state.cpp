@@ -15,7 +15,6 @@
  */
 
 #include <array>
-#include <memory>
 #include <utility>
 #include <vector>
 
@@ -70,15 +69,17 @@ auto make_model() -> gelex::BayesModel
 
 auto make_prior() -> gelex::bayes::BayesPrior
 {
-    std::vector<gelex::bayes::GeneticPriorBlock> genetics;
+    std::vector<gelex::bayes::GeneticPrior> genetics;
     genetics.emplace_back(
-        std::make_unique<gelex::bayes::SingleSharedGaussianPrior>(
-            gelex::GeneticMode::A,
-            gelex::bayes::SharedMarkerVariance{make_variance(0.1)}));
+        gelex::bayes::SingleGeneticPrior{
+            gelex::bayes::SingleSharedGaussianPrior{
+                gelex::GeneticMode::A,
+                gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
     genetics.emplace_back(
-        std::make_unique<gelex::bayes::SinglePerMarkerGaussianPrior>(
-            gelex::GeneticMode::D,
-            gelex::bayes::PerMarkerVariance{make_variance(0.2)}));
+        gelex::bayes::SingleGeneticPrior{
+            gelex::bayes::SinglePerMarkerGaussianPrior{
+                gelex::GeneticMode::D,
+                gelex::bayes::PerMarkerVariance{make_variance(0.2)}}});
 
     return gelex::bayes::BayesPrior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
@@ -103,18 +104,20 @@ TEST_CASE("BayesState creates single genetic blocks", "[bayes_state]")
 TEST_CASE("BayesState rejects missing genetic designs", "[bayes_state]")
 {
     auto model = make_model();
-    std::vector<gelex::bayes::GeneticPriorBlock> genetics;
+    std::vector<gelex::bayes::GeneticPrior> genetics;
     genetics.emplace_back(
-        std::make_unique<gelex::bayes::SingleSharedGaussianPrior>(
-            gelex::GeneticMode::A,
-            gelex::bayes::SharedMarkerVariance{make_variance(0.1)}));
+        gelex::bayes::SingleGeneticPrior{
+            gelex::bayes::SingleSharedGaussianPrior{
+                gelex::GeneticMode::A,
+                gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
     genetics.emplace_back(
-        std::make_unique<gelex::bayes::JointFixedGaussianMixturePrior>(
-            gelex::bayes::JointSharedMarkerVariance{std::array{
-                gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
-                gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
-            gelex::bayes::FixedMixtureProportion{
-                Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}}}));
+        gelex::bayes::JointGeneticPrior{
+            gelex::bayes::JointFixedGaussianMixturePrior{
+                gelex::bayes::JointSharedMarkerVariance{std::array{
+                    gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+                    gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
+                gelex::bayes::FixedMixtureProportion{
+                    Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}}}}});
 
     REQUIRE_THROWS_AS(
         gelex::bayes::BayesPrior(

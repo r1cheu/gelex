@@ -17,62 +17,172 @@
 #ifndef GELEX_ALGO_INFER_MCMC_STEPS_GENETIC_COEFFICIENT_H_
 #define GELEX_ALGO_INFER_MCMC_STEPS_GENETIC_COEFFICIENT_H_
 
+#include <array>
 #include <random>
 
+#include <Eigen/Core>
+
 #include "gelex/algo/infer/mcmc/step.h"
-#include "gelex/algo/infer/mcmc/sweeps/genetic_coefficient.h"
+#include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/model/bayes/designs.h"
 #include "gelex/model/bayes/genetic_prior.h"
+#include "gelex/model/bayes/prior_state_values.h"
 #include "gelex/model/bayes/state.h"
 
 namespace gelex::mcmc
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-template <typename Transition>
-class SingleCoeffStep final : public Step
+class SingleSharedGaussianCoeffStep final : public Step
 {
    public:
-    SingleCoeffStep(
+    SingleSharedGaussianCoeffStep(
         const bayes::GeneticDesign& design,
-        const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
+        const bayes::SingleGeneticPrior& prior,
         bayes::ResidualState& residual,
-        std::mt19937_64& rng)
-        : sweep_(design), transition_(prior, block, residual), rng_(rng)
-    {
-    }
+        std::mt19937_64& rng);
 
-    auto step() -> void override { sweep_.run(transition_, rng_); }
+    auto step() -> void override;
 
    private:
-    SingleGeneticMarkerSweep sweep_;
-    Transition transition_;
+    const bayes::GeneticDesign& design_;
+    bayes::GeneticState& state_;
+    bayes::ResidualState& residual_;
+    double& variance_;
+    stats::NormalSampler<double> normal_;
     std::mt19937_64& rng_;
 };
 
-template <typename Transition>
-class JointCoeffStep final : public Step
+class SinglePerMarkerGaussianCoeffStep final : public Step
 {
    public:
-    JointCoeffStep(
-        const bayes::GeneticDesign& additive,
-        const bayes::GeneticDesign& dominance,
-        const bayes::JointGeneticPrior& prior,
-        bayes::JointGeneticBlockState& block,
+    SinglePerMarkerGaussianCoeffStep(
+        const bayes::GeneticDesign& design,
+        bayes::SingleGeneticBlockState& block,
+        const bayes::SingleGeneticPrior& prior,
         bayes::ResidualState& residual,
-        std::mt19937_64& rng)
-        : sweep_(additive, dominance),
-          transition_(prior, block, residual),
-          rng_(rng)
-    {
-    }
+        std::mt19937_64& rng);
 
-    auto step() -> void override { sweep_.run(transition_, rng_); }
+    auto step() -> void override;
 
    private:
-    JointGeneticMarkerSweep sweep_;
-    Transition transition_;
+    const bayes::GeneticDesign& design_;
+    bayes::GeneticState& state_;
+    bayes::ResidualState& residual_;
+    Eigen::VectorXd& variance_;
+    stats::NormalSampler<double> normal_;
+    std::mt19937_64& rng_;
+};
+
+class SingleSharedSpikeSlabCoeffStep final : public Step
+{
+   public:
+    SingleSharedSpikeSlabCoeffStep(
+        const bayes::GeneticDesign& design,
+        bayes::SingleGeneticBlockState& block,
+        const bayes::SingleGeneticPrior& prior,
+        bayes::ResidualState& residual,
+        std::mt19937_64& rng);
+
+    auto step() -> void override;
+
+   private:
+    const bayes::GeneticDesign& design_;
+    bayes::GeneticState& state_;
+    bayes::ResidualState& residual_;
+    double& variance_;
+    bayes::MixtureAssignmentState& assignment_;
+    const Eigen::VectorXd& proportion_;
+    stats::NormalSampler<double> normal_;
+    std::uniform_real_distribution<double> uniform_{0.0, 1.0};
+    Eigen::VectorXd logpi_;
+    std::mt19937_64& rng_;
+};
+
+class SinglePerMarkerSpikeSlabCoeffStep final : public Step
+{
+   public:
+    SinglePerMarkerSpikeSlabCoeffStep(
+        const bayes::GeneticDesign& design,
+        bayes::SingleGeneticBlockState& block,
+        const bayes::SingleGeneticPrior& prior,
+        bayes::ResidualState& residual,
+        std::mt19937_64& rng);
+
+    auto step() -> void override;
+
+   private:
+    const bayes::GeneticDesign& design_;
+    bayes::GeneticState& state_;
+    bayes::ResidualState& residual_;
+    Eigen::VectorXd& variance_;
+    bayes::MixtureAssignmentState& assignment_;
+    const Eigen::VectorXd& proportion_;
+    stats::NormalSampler<double> normal_;
+    std::uniform_real_distribution<double> uniform_{0.0, 1.0};
+    Eigen::VectorXd logpi_;
+    std::mt19937_64& rng_;
+};
+
+class SingleScaledMixtureCoeffStep final : public Step
+{
+   public:
+    SingleScaledMixtureCoeffStep(
+        const bayes::GeneticDesign& design,
+        bayes::SingleGeneticBlockState& block,
+        const bayes::SingleGeneticPrior& prior,
+        bayes::ResidualState& residual,
+        std::mt19937_64& rng);
+
+    auto step() -> void override;
+
+   private:
+    static constexpr int kMaxMixtureComponents = 5;
+
+    const bayes::GeneticDesign& design_;
+    bayes::GeneticState& state_;
+    bayes::ResidualState& residual_;
+    double& variance_;
+    bayes::MixtureAssignmentState& assignment_;
+    const Eigen::VectorXd& proportion_;
+    bayes::ComponentState& component_;
+    Eigen::VectorXd multiplier_;
+    Eigen::VectorXd marker_variances_;
+    Eigen::VectorXd logpi_;
+    stats::NormalSampler<double> normal_;
+    std::uniform_real_distribution<double> uniform_{0.0, 1.0};
+    Eigen::Array<double, kMaxMixtureComponents, 1> scale_means_;
+    Eigen::Array<double, kMaxMixtureComponents, 1> scale_vars_;
+    Eigen::Array<double, kMaxMixtureComponents, 1> scale_log_likelihoods_;
+    std::mt19937_64& rng_;
+};
+
+class JointGaussianMixtureCoeffStep final : public Step
+{
+   public:
+    JointGaussianMixtureCoeffStep(
+        const bayes::GeneticDesign& additive,
+        const bayes::GeneticDesign& dominance,
+        bayes::JointGeneticBlockState& block,
+        const bayes::JointGeneticPrior& prior,
+        bayes::ResidualState& residual,
+        std::mt19937_64& rng);
+
+    auto step() -> void override;
+
+   private:
+    const bayes::GeneticDesign& additive_design_;
+    const bayes::GeneticDesign& dominance_design_;
+    bayes::GeneticState& additive_;
+    bayes::GeneticState& dominance_;
+    bayes::ResidualState& residual_;
+    std::array<double*, 2> variance_;
+    bayes::MixtureAssignmentState& assignment_;
+    const Eigen::VectorXd& proportion_;
+    stats::NormalSampler<double> normal_;
+    std::uniform_real_distribution<double> uniform_{0.0, 1.0};
+    Eigen::VectorXd logpi_;
     std::mt19937_64& rng_;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)

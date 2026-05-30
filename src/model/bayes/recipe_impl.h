@@ -23,7 +23,6 @@
 
 #include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/recipe_options.h"
 
 namespace gelex
@@ -44,7 +43,7 @@ class BayesRecipeImpl
     virtual ~BayesRecipeImpl() = default;
 
     virtual auto make_genetic_prior_blocks(const BayesModel& model) const
-        -> std::vector<GeneticPriorBlock> = 0;
+        -> std::vector<GeneticPrior> = 0;
 
    protected:
     BayesRecipeImpl(std::string_view name, const BayesRecipeConfig& options);
@@ -59,9 +58,6 @@ class BayesRecipeImpl
         GeneticMode mode,
         double heritability,
         double active_marker_weight) -> double;
-    static auto make_marker_variance(
-        MarkerVarianceLayout layout,
-        double target_marker_variance) -> MarkerVariance;
     auto reject_dominance_positive_probability_override() const -> void;
 
    private:
@@ -98,13 +94,12 @@ class IndependentMethod : public BayesRecipeImpl
 
    private:
     auto make_genetic_prior_blocks(const BayesModel& model) const
-        -> std::vector<GeneticPriorBlock> final;
+        -> std::vector<GeneticPrior> final;
 
     virtual auto make_single_genetic_prior(
         GeneticMode mode,
         const EffectConfig& effect,
-        const BayesModel& model) const
-        -> std::unique_ptr<SingleGeneticPrior> = 0;
+        const BayesModel& model) const -> SingleGeneticPrior = 0;
 };
 
 class JointMethod : public BayesRecipeImpl
@@ -118,12 +113,11 @@ class JointMethod : public BayesRecipeImpl
 
    private:
     auto make_genetic_prior_blocks(const BayesModel& model) const
-        -> std::vector<GeneticPriorBlock> final;
+        -> std::vector<GeneticPrior> final;
 
     virtual auto make_joint_prior(
         const BayesRecipeConfig& config,
-        const BayesModel& model) const
-        -> std::unique_ptr<JointGeneticPrior> = 0;
+        const BayesModel& model) const -> JointGeneticPrior = 0;
 };
 
 }  // namespace gelex::bayes

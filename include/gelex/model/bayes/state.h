@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <memory>
 #include <span>
 #include <string_view>
 #include <variant>
@@ -28,6 +27,7 @@
 #include <Eigen/Core>
 
 #include "gelex/model/bayes/designs.h"
+#include "gelex/model/bayes/genetic_prior.h"
 #include "gelex/model/bayes/prior_state.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -46,9 +46,7 @@ namespace bayes
 {
 
 class BayesPrior;
-class JointGeneticPrior;
 class RandomPrior;
-class SingleGeneticPrior;
 
 struct FixedState
 {
@@ -66,9 +64,7 @@ struct RandomState
 {
     static constexpr std::string_view name = "random";
 
-    RandomState(const RandomDesign& design, double variance);
     RandomState(const RandomDesign& design, const RandomPrior& prior);
-    RandomState(Eigen::VectorXd coeffs, double variance);
 
     auto visit(infra::FieldVisitor& visitor) -> void;
 
@@ -112,9 +108,6 @@ class SingleGeneticBlockState
     SingleGeneticBlockState(
         const GeneticDesign& design,
         const SingleGeneticPrior& prior);
-    SingleGeneticBlockState(
-        GeneticState genetic,
-        std::unique_ptr<SingleGeneticPriorState> prior_state);
 
     auto mode() const -> GeneticMode { return state_.type; }
     auto contains(GeneticMode target_mode) const -> bool
@@ -125,17 +118,17 @@ class SingleGeneticBlockState
     auto state() -> GeneticState& { return state_; }
     auto state() const -> const GeneticState& { return state_; }
 
-    auto prior_state() -> SingleGeneticPriorState& { return *prior_state_; }
+    auto prior_state() -> SingleGeneticPriorState& { return prior_state_; }
     auto prior_state() const -> const SingleGeneticPriorState&
     {
-        return *prior_state_;
+        return prior_state_;
     }
 
     auto visit(infra::FieldVisitor& visitor) -> void;
 
    private:
     GeneticState state_;
-    std::unique_ptr<SingleGeneticPriorState> prior_state_;
+    SingleGeneticPriorState prior_state_;
 };
 
 class JointGeneticBlockState
@@ -147,19 +140,15 @@ class JointGeneticBlockState
         const GeneticDesign& additive,
         const GeneticDesign& dominance,
         const JointGeneticPrior& prior);
-    JointGeneticBlockState(
-        GeneticState additive,
-        GeneticState dominance,
-        std::unique_ptr<JointGeneticPriorState> prior_state);
 
     auto contains(GeneticMode mode) const -> bool;
     auto state(GeneticMode mode) -> GeneticState&;
     auto state(GeneticMode mode) const -> const GeneticState&;
 
-    auto prior_state() -> JointGeneticPriorState& { return *prior_state_; }
+    auto prior_state() -> JointGeneticPriorState& { return prior_state_; }
     auto prior_state() const -> const JointGeneticPriorState&
     {
-        return *prior_state_;
+        return prior_state_;
     }
 
     auto visit(infra::FieldVisitor& visitor) -> void;
@@ -167,7 +156,7 @@ class JointGeneticBlockState
    private:
     GeneticState additive_;
     GeneticState dominance_;
-    std::unique_ptr<JointGeneticPriorState> prior_state_;
+    JointGeneticPriorState prior_state_;
 };
 
 using GeneticPriorBlockState

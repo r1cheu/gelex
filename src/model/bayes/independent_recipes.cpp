@@ -17,7 +17,6 @@
 #include "independent_recipes.h"
 
 #include <cstddef>
-#include <memory>
 
 #include <Eigen/Core>
 
@@ -44,16 +43,16 @@ BayesRRMethod::BayesRRMethod(const BayesRecipeConfig& options)
 auto BayesRRMethod::make_single_genetic_prior(
     GeneticMode mode,
     const EffectConfig& effect,
-    const BayesModel& model) const -> std::unique_ptr<SingleGeneticPrior>
+    const BayesModel& model) const -> SingleGeneticPrior
 {
     const double h2
         = effect.heritability().value_or(default_heritability(mode)).value();
     const double target
         = marker_variance_from_heritability(model, mode, h2, 1.0);
-    return std::make_unique<SingleSharedGaussianPrior>(
+    return SingleSharedGaussianPrior{
         mode,
         SharedMarkerVariance{VarianceParameter{
-            target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}});
+            target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}}};
 }
 
 BayesAMethod::BayesAMethod(const BayesRecipeConfig& options)
@@ -67,16 +66,16 @@ BayesAMethod::BayesAMethod(const BayesRecipeConfig& options)
 auto BayesAMethod::make_single_genetic_prior(
     GeneticMode mode,
     const EffectConfig& effect,
-    const BayesModel& model) const -> std::unique_ptr<SingleGeneticPrior>
+    const BayesModel& model) const -> SingleGeneticPrior
 {
     const double h2
         = effect.heritability().value_or(default_heritability(mode)).value();
     const double target
         = marker_variance_from_heritability(model, mode, h2, 1.0);
-    return std::make_unique<SinglePerMarkerGaussianPrior>(
+    return SinglePerMarkerGaussianPrior{
         mode,
         PerMarkerVariance{VarianceParameter{
-            target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}});
+            target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}}};
 }
 
 BayesBMethod::BayesBMethod(const BayesRecipeConfig& options)
@@ -89,7 +88,7 @@ BayesBMethod::BayesBMethod(const BayesRecipeConfig& options)
 auto BayesBMethod::make_single_genetic_prior(
     GeneticMode mode,
     const EffectConfig& effect,
-    const BayesModel& model) const -> std::unique_ptr<SingleGeneticPrior>
+    const BayesModel& model) const -> SingleGeneticPrior
 {
     const Simplex<double> proportion
         = effect.proportion().value_or(Simplex<double>{{0.99, 0.01}});
@@ -101,19 +100,19 @@ auto BayesBMethod::make_single_genetic_prior(
     if (effect.proportion_update().value_or(true))
     {
         const auto n = static_cast<Eigen::Index>(proportion.size());
-        return std::make_unique<SingleSampledPerMarkerSpikeSlabGaussianPrior>(
+        return SingleSampledPerMarkerSpikeSlabGaussianPrior{
             mode,
             PerMarkerVariance{VarianceParameter{
                 target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
             SampledMixtureProportion{SimplexParameter{
                 proportion.to_mat(),
-                DirichletPrior{Eigen::VectorXd::Ones(n)}}});
+                DirichletPrior{Eigen::VectorXd::Ones(n)}}}};
     }
-    return std::make_unique<SingleFixedPerMarkerSpikeSlabGaussianPrior>(
+    return SingleFixedPerMarkerSpikeSlabGaussianPrior{
         mode,
         PerMarkerVariance{VarianceParameter{
             target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
-        FixedMixtureProportion{proportion.to_mat()});
+        FixedMixtureProportion{proportion.to_mat()}};
 }
 
 BayesCMethod::BayesCMethod(const BayesRecipeConfig& options)
@@ -126,7 +125,7 @@ BayesCMethod::BayesCMethod(const BayesRecipeConfig& options)
 auto BayesCMethod::make_single_genetic_prior(
     GeneticMode mode,
     const EffectConfig& effect,
-    const BayesModel& model) const -> std::unique_ptr<SingleGeneticPrior>
+    const BayesModel& model) const -> SingleGeneticPrior
 {
     const Simplex<double> proportion
         = effect.proportion().value_or(Simplex<double>{{0.99, 0.01}});
@@ -138,19 +137,19 @@ auto BayesCMethod::make_single_genetic_prior(
     if (effect.proportion_update().value_or(true))
     {
         const auto n = static_cast<Eigen::Index>(proportion.size());
-        return std::make_unique<SingleSampledSharedSpikeSlabGaussianPrior>(
+        return SingleSampledSharedSpikeSlabGaussianPrior{
             mode,
             SharedMarkerVariance{VarianceParameter{
                 target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
             SampledMixtureProportion{SimplexParameter{
                 proportion.to_mat(),
-                DirichletPrior{Eigen::VectorXd::Ones(n)}}});
+                DirichletPrior{Eigen::VectorXd::Ones(n)}}}};
     }
-    return std::make_unique<SingleFixedSharedSpikeSlabGaussianPrior>(
+    return SingleFixedSharedSpikeSlabGaussianPrior{
         mode,
         SharedMarkerVariance{VarianceParameter{
             target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
-        FixedMixtureProportion{proportion.to_mat()});
+        FixedMixtureProportion{proportion.to_mat()}};
 }
 
 BayesRMethod::BayesRMethod(const BayesRecipeConfig& options)
@@ -163,7 +162,7 @@ BayesRMethod::BayesRMethod(const BayesRecipeConfig& options)
 auto BayesRMethod::make_single_genetic_prior(
     GeneticMode mode,
     const EffectConfig& effect,
-    const BayesModel& model) const -> std::unique_ptr<SingleGeneticPrior>
+    const BayesModel& model) const -> SingleGeneticPrior
 {
     const Simplex<double> proportion = effect.proportion().value_or(
         Simplex<double>{{0.99, 0.005, 0.003, 0.001, 0.001}});
@@ -181,21 +180,21 @@ auto BayesRMethod::make_single_genetic_prior(
     if (effect.proportion_update().value_or(true))
     {
         const auto n = static_cast<Eigen::Index>(proportion.size());
-        return std::make_unique<SingleSampledScaledMixtureGaussianPrior>(
+        return SingleSampledScaledMixtureGaussianPrior{
             mode,
             SharedMarkerVariance{VarianceParameter{
                 target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
             multiplier.to_mat(),
             SampledMixtureProportion{SimplexParameter{
                 proportion.to_mat(),
-                DirichletPrior{Eigen::VectorXd::Ones(n)}}});
+                DirichletPrior{Eigen::VectorXd::Ones(n)}}}};
     }
-    return std::make_unique<SingleFixedScaledMixtureGaussianPrior>(
+    return SingleFixedScaledMixtureGaussianPrior{
         mode,
         SharedMarkerVariance{VarianceParameter{
             target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
         multiplier.to_mat(),
-        FixedMixtureProportion{proportion.to_mat()});
+        FixedMixtureProportion{proportion.to_mat()}};
 }
 
 }  // namespace gelex::bayes

@@ -17,7 +17,6 @@
 #include "joint_recipes.h"
 
 #include <array>
-#include <memory>
 
 #include <Eigen/Core>
 
@@ -50,7 +49,7 @@ BayesCDMethod::BayesCDMethod(const BayesRecipeConfig& options)
 
 auto BayesCDMethod::make_joint_prior(
     const BayesRecipeConfig& config,
-    const BayesModel& model) const -> std::unique_ptr<JointGeneticPrior>
+    const BayesModel& model) const -> JointGeneticPrior
 {
     const Simplex<double> proportion = config.joint_proportion.value_or(
         Simplex<double>{{0.991, 0.003, 0.003, 0.003}});
@@ -73,7 +72,7 @@ auto BayesCDMethod::make_joint_prior(
     if (config.joint_proportion_update.value_or(true))
     {
         const auto n = static_cast<Eigen::Index>(proportion.size());
-        return std::make_unique<JointSampledGaussianMixturePrior>(
+        return JointSampledGaussianMixturePrior{
             JointSharedMarkerVariance{std::array{
                 SharedMarkerVariance{VarianceParameter{
                     target_a,
@@ -83,9 +82,9 @@ auto BayesCDMethod::make_joint_prior(
                     ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target_d}}}}},
             SampledMixtureProportion{SimplexParameter{
                 proportion.to_mat(),
-                DirichletPrior{Eigen::VectorXd::Ones(n)}}});
+                DirichletPrior{Eigen::VectorXd::Ones(n)}}}};
     }
-    return std::make_unique<JointFixedGaussianMixturePrior>(
+    return JointFixedGaussianMixturePrior{
         JointSharedMarkerVariance{std::array{
             SharedMarkerVariance{VarianceParameter{
                 target_a,
@@ -93,7 +92,7 @@ auto BayesCDMethod::make_joint_prior(
             SharedMarkerVariance{VarianceParameter{
                 target_d,
                 ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target_d}}}}},
-        FixedMixtureProportion{proportion.to_mat()});
+        FixedMixtureProportion{proportion.to_mat()}};
 }
 
 }  // namespace gelex::bayes

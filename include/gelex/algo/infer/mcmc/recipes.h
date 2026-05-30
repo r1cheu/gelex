@@ -17,85 +17,21 @@
 #ifndef GELEX_ALGO_INFER_MCMC_RECIPES_H_
 #define GELEX_ALGO_INFER_MCMC_RECIPES_H_
 
-#include "gelex/algo/infer/mcmc/context.h"
-#include "gelex/exception.h"
+#include <random>
+
+#include "gelex/algo/infer/mcmc/chain.h"
+#include "gelex/model/bayes/model.h"
+#include "gelex/model/bayes/prior.h"
+#include "gelex/model/bayes/state.h"
 
 namespace gelex::mcmc
 {
 
-enum class GeneticShape
-{
-    a_only,
-    d_only,
-    ad_independent,
-};
-
-class UnsupportedChain
-{
-   public:
-    auto step() -> void
-    {
-        throw GelexException(
-            "MCMC recipe chain is not implemented after Bayes prior/state "
-            "cleanup");
-    }
-};
-
-template <GeneticShape Shape = GeneticShape::a_only>
-inline auto make_bayes_a_chain(const Context& ctx)
-{
-    static_cast<void>(ctx);
-    static_cast<void>(Shape);
-    return UnsupportedChain{};
-}
-
-template <GeneticShape Shape = GeneticShape::a_only>
-inline auto make_bayes_b_chain(const Context& ctx)
-{
-    static_cast<void>(ctx);
-    static_cast<void>(Shape);
-    return UnsupportedChain{};
-}
-
-template <GeneticShape Shape = GeneticShape::a_only>
-inline auto make_bayes_bpi_chain(const Context& ctx)
-{
-    static_cast<void>(ctx);
-    static_cast<void>(Shape);
-    return UnsupportedChain{};
-}
-
-template <GeneticShape Shape = GeneticShape::a_only>
-inline auto make_bayes_c_chain(const Context& ctx)
-{
-    static_cast<void>(ctx);
-    static_cast<void>(Shape);
-    return UnsupportedChain{};
-}
-
-template <GeneticShape Shape = GeneticShape::a_only>
-inline auto make_bayes_cpi_chain(const Context& ctx)
-{
-    static_cast<void>(ctx);
-    static_cast<void>(Shape);
-    return UnsupportedChain{};
-}
-
-template <GeneticShape Shape = GeneticShape::a_only>
-inline auto make_bayes_r_chain(const Context& ctx)
-{
-    static_cast<void>(ctx);
-    static_cast<void>(Shape);
-    return UnsupportedChain{};
-}
-
-template <GeneticShape Shape = GeneticShape::a_only>
-inline auto make_bayes_rr_chain(const Context& ctx)
-{
-    static_cast<void>(ctx);
-    static_cast<void>(Shape);
-    return UnsupportedChain{};
-}
+auto make_chain(
+    const BayesModel& model,
+    const bayes::BayesPrior& prior,
+    BayesState& state,
+    std::mt19937_64& rng) -> Chain;
 
 }  // namespace gelex::mcmc
 

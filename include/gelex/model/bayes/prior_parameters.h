@@ -18,7 +18,6 @@
 #define GELEX_MODEL_BAYES_PRIOR_PARAMETERS_H_
 
 #include <array>
-#include <cstdint>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -128,44 +127,6 @@ class SimplexParameter
    private:
     Eigen::VectorXd initial_value_;
     DirichletPrior prior_;
-};
-
-enum class MarkerVarianceLayout : std::uint8_t
-{
-    shared,
-    per_marker,
-};
-
-class MarkerVariance
-{
-   public:
-    static constexpr std::string_view name = "marker_variance";
-    MarkerVariance(MarkerVarianceLayout layout, VarianceParameter parameter);
-
-    auto layout() const -> MarkerVarianceLayout { return layout_; }
-    auto parameter() const -> const VarianceParameter& { return parameter_; }
-    auto marker_variance_size(Eigen::Index num_markers) const -> Eigen::Index
-    {
-        switch (layout_)
-        {
-            case MarkerVarianceLayout::shared:
-                return 1;
-            case MarkerVarianceLayout::per_marker:
-                return num_markers;
-        }
-        std::unreachable();
-    }
-    auto visit(infra::FieldVisitor& visitor) -> void
-    {
-        auto scope = visitor.scope(name);
-        visitor.on(
-            "layout", layout_, FieldFlag::checkpoint | FieldFlag::report);
-        parameter_.visit(visitor);
-    }
-
-   private:
-    MarkerVarianceLayout layout_{MarkerVarianceLayout::shared};
-    VarianceParameter parameter_;
 };
 
 class SharedMarkerVariance

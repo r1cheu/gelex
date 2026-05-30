@@ -16,7 +16,6 @@
 
 #include "gelex/model/bayes/state.h"
 
-#include <memory>
 #include <ranges>
 #include <type_traits>
 #include <utility>
@@ -53,18 +52,9 @@ auto FixedState::visit(infra::FieldVisitor& visitor) -> void
     visitor.on("coeffs", coeffs, FieldFlag::checkpoint | FieldFlag::trace);
 }
 
-RandomState::RandomState(const RandomDesign& design, double variance)
-    : coeffs(Eigen::VectorXd::Zero(design.X.cols())), variance{variance}
-{
-}
-
 RandomState::RandomState(const RandomDesign& design, const RandomPrior& prior)
-    : RandomState(design, prior.initial_value())
-{
-}
-
-RandomState::RandomState(Eigen::VectorXd coeffs, double variance)
-    : coeffs(std::move(coeffs)), variance{variance}
+    : coeffs(Eigen::VectorXd::Zero(design.X.cols())),
+      variance{prior.initial_value()}
 {
 }
 
@@ -98,28 +88,16 @@ auto GeneticState::visit(infra::FieldVisitor& visitor) -> void
 SingleGeneticBlockState::SingleGeneticBlockState(
     const GeneticDesign& design,
     const SingleGeneticPrior& prior)
-    : SingleGeneticBlockState(
-          GeneticState{design.type, design.X.cols(), design.X.rows()},
-          prior.make_state(design.X.cols(), design.X.rows()))
+    : state_{design.type, design.X.cols(), design.X.rows()},
+      prior_state_(make_state(prior, design.X.cols(), design.X.rows()))
 {
-    if (design.type != prior.mode())
+    if (design.type != gelex::bayes::mode(prior))
     {
         throw GelexException(
             fmt::format(
                 "SingleGeneticBlockState: design mode {} != prior mode {}",
                 design.type,
-                prior.mode()));
-    }
-}
-
-SingleGeneticBlockState::SingleGeneticBlockState(
-    GeneticState genetic,
-    std::unique_ptr<SingleGeneticPriorState> prior_state)
-    : state_(std::move(genetic)), prior_state_(std::move(prior_state))
-{
-    if (prior_state_ == nullptr)
-    {
-        throw GelexException("SingleGeneticBlockState: null prior state");
+                gelex::bayes::mode(prior)));
     }
 }
 
@@ -128,17 +106,16 @@ auto SingleGeneticBlockState::visit(infra::FieldVisitor& visitor) -> void
     auto scope = visitor.scope(name);
     state_.visit(visitor);
     auto prior_scope = visitor.scope("prior_state");
-    prior_state_->visit(visitor);
+    std::visit([&visitor](auto& state) { state.visit(visitor); }, prior_state_);
 }
 
 JointGeneticBlockState::JointGeneticBlockState(
     const GeneticDesign& additive,
     const GeneticDesign& dominance,
     const JointGeneticPrior& prior)
-    : JointGeneticBlockState(
-          GeneticState{GeneticMode::A, additive.X.cols(), additive.X.rows()},
-          GeneticState{GeneticMode::D, dominance.X.cols(), dominance.X.rows()},
-          prior.make_state(additive.X.cols(), additive.X.rows()))
+    : additive_{GeneticMode::A, additive.X.cols(), additive.X.rows()},
+      dominance_{GeneticMode::D, dominance.X.cols(), dominance.X.rows()},
+      prior_state_(make_state(prior, additive.X.cols(), additive.X.rows()))
 {
     if (additive.type != GeneticMode::A)
     {
@@ -165,34 +142,6 @@ JointGeneticBlockState::JointGeneticBlockState(
                 additive.X.cols(),
                 dominance.X.rows(),
                 dominance.X.cols()));
-    }
-}
-
-JointGeneticBlockState::JointGeneticBlockState(
-    GeneticState additive,
-    GeneticState dominance,
-    std::unique_ptr<JointGeneticPriorState> prior_state)
-    : additive_(std::move(additive)),
-      dominance_(std::move(dominance)),
-      prior_state_(std::move(prior_state))
-{
-    if (additive_.type != GeneticMode::A)
-    {
-        throw GelexException(
-            fmt::format(
-                "JointGeneticBlockState: additive state has mode {}",
-                additive_.type));
-    }
-    if (dominance_.type != GeneticMode::D)
-    {
-        throw GelexException(
-            fmt::format(
-                "JointGeneticBlockState: dominance state has mode {}",
-                dominance_.type));
-    }
-    if (prior_state_ == nullptr)
-    {
-        throw GelexException("JointGeneticBlockState: null prior state");
     }
 }
 
@@ -240,7 +189,7 @@ auto JointGeneticBlockState::visit(infra::FieldVisitor& visitor) -> void
         dominance_.visit(visitor);
     }
     auto prior_scope = visitor.scope("prior_state");
-    prior_state_->visit(visitor);
+    std::visit([&visitor](auto& state) { state.visit(visitor); }, prior_state_);
 }
 
 auto ResidualState::visit(infra::FieldVisitor& visitor) -> void
@@ -277,21 +226,20 @@ BayesState::BayesState(const BayesModel& model, const bayes::BayesPrior& prior)
                 if constexpr (
                     std::is_same_v<
                         std::decay_t<decltype(genetic_prior)>,
-                        std::unique_ptr<bayes::SingleGeneticPrior>>)
+                        bayes::SingleGeneticPrior>)
                 {
-                    const auto mode = genetic_prior->mode();
-                    const auto* design = model.genetic(mode);
+                    const auto prior_mode = bayes::mode(genetic_prior);
+                    const auto* design = model.genetic(prior_mode);
                     if (design == nullptr)
                     {
                         throw GelexException(
                             fmt::format(
                                 "BayesState: missing genetic design for "
                                 "mode {}",
-                                mode));
+                                prior_mode));
                     }
                     genetics_.emplace_back(
-                        bayes::SingleGeneticBlockState{
-                            *design, *genetic_prior});
+                        bayes::SingleGeneticBlockState{*design, genetic_prior});
                 }
                 else
                 {
@@ -311,7 +259,7 @@ BayesState::BayesState(const BayesModel& model, const bayes::BayesPrior& prior)
 
                     genetics_.emplace_back(
                         bayes::JointGeneticBlockState{
-                            *additive, *dominance, *genetic_prior});
+                            *additive, *dominance, genetic_prior});
                 }
             },
             block);
