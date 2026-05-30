@@ -64,7 +64,7 @@ TEST_CASE(
         .minEpochIterations(20);
 
     b.run(
-        "branch_loop",
+        "raw_for_loop_baseline",
         [&]
         {
             Eigen::Index n = 0;

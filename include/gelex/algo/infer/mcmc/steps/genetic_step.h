@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_MCMC_STEPS_GENETIC_COEFFICIENT_H_
-#define GELEX_ALGO_INFER_MCMC_STEPS_GENETIC_COEFFICIENT_H_
+#ifndef GELEX_ALGO_INFER_MCMC_STEPS_GENETIC_STEP_H_
+#define GELEX_ALGO_INFER_MCMC_STEPS_GENETIC_STEP_H_
 
 #include <array>
+#include <optional>
 #include <random>
 
 #include <Eigen/Core>
@@ -33,10 +34,10 @@ namespace gelex::mcmc
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-class SingleSharedGaussianCoeffStep final : public Step
+class SingleSharedGaussianStep final : public Step
 {
    public:
-    SingleSharedGaussianCoeffStep(
+    SingleSharedGaussianStep(
         const bayes::GeneticDesign& design,
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
@@ -48,6 +49,7 @@ class SingleSharedGaussianCoeffStep final : public Step
    private:
     const bayes::GeneticDesign& design_;
 
+    stats::ScaledInvChi2Sampler<double> variance_sampler_;
     double& variance_;
 
     bayes::GeneticState& state_;
@@ -58,10 +60,10 @@ class SingleSharedGaussianCoeffStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class SinglePerMarkerGaussianCoeffStep final : public Step
+class SinglePerMarkerGaussianStep final : public Step
 {
    public:
-    SinglePerMarkerGaussianCoeffStep(
+    SinglePerMarkerGaussianStep(
         const bayes::GeneticDesign& design,
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
@@ -73,6 +75,7 @@ class SinglePerMarkerGaussianCoeffStep final : public Step
    private:
     const bayes::GeneticDesign& design_;
 
+    stats::ScaledInvChi2Sampler<double> variance_sampler_;
     Eigen::VectorXd& variance_;
 
     bayes::GeneticState& state_;
@@ -83,10 +86,10 @@ class SinglePerMarkerGaussianCoeffStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class SingleSharedSpikeSlabCoeffStep final : public Step
+class SingleSharedSpikeSlabStep final : public Step
 {
    public:
-    SingleSharedSpikeSlabCoeffStep(
+    SingleSharedSpikeSlabStep(
         const bayes::GeneticDesign& design,
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
@@ -98,9 +101,11 @@ class SingleSharedSpikeSlabCoeffStep final : public Step
    private:
     const bayes::GeneticDesign& design_;
 
+    stats::ScaledInvChi2Sampler<double> variance_sampler_;
     double& variance_;
     Eigen::VectorXi& assignment_;
-    const Eigen::VectorXd& proportion_;
+    Eigen::VectorXd& proportion_;
+    std::optional<stats::DirichletSampler<double>> proportion_sampler_;
 
     bayes::GeneticState& state_;
     bayes::ResidualState& residual_;
@@ -108,14 +113,15 @@ class SingleSharedSpikeSlabCoeffStep final : public Step
     stats::NormalSampler<double> normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
     Eigen::VectorXd logpi_;
+    Eigen::VectorXi proportion_count_;
 
     std::mt19937_64& rng_;
 };
 
-class SinglePerMarkerSpikeSlabCoeffStep final : public Step
+class SinglePerMarkerSpikeSlabStep final : public Step
 {
    public:
-    SinglePerMarkerSpikeSlabCoeffStep(
+    SinglePerMarkerSpikeSlabStep(
         const bayes::GeneticDesign& design,
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
@@ -127,9 +133,11 @@ class SinglePerMarkerSpikeSlabCoeffStep final : public Step
    private:
     const bayes::GeneticDesign& design_;
 
+    stats::ScaledInvChi2Sampler<double> variance_sampler_;
     Eigen::VectorXd& variance_;
     Eigen::VectorXi& assignment_;
-    const Eigen::VectorXd& proportion_;
+    Eigen::VectorXd& proportion_;
+    std::optional<stats::DirichletSampler<double>> proportion_sampler_;
 
     bayes::GeneticState& state_;
     bayes::ResidualState& residual_;
@@ -137,14 +145,15 @@ class SinglePerMarkerSpikeSlabCoeffStep final : public Step
     stats::NormalSampler<double> normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
     Eigen::VectorXd logpi_;
+    Eigen::VectorXi proportion_count_;
 
     std::mt19937_64& rng_;
 };
 
-class SingleScaledMixtureCoeffStep final : public Step
+class SingleScaledMixtureStep final : public Step
 {
    public:
-    SingleScaledMixtureCoeffStep(
+    SingleScaledMixtureStep(
         const bayes::GeneticDesign& design,
         const bayes::SingleGeneticPrior& prior,
         bayes::SingleGeneticBlockState& block,
@@ -158,9 +167,11 @@ class SingleScaledMixtureCoeffStep final : public Step
 
     const bayes::GeneticDesign& design_;
 
+    stats::ScaledInvChi2Sampler<double> variance_sampler_;
     double& variance_;
     Eigen::VectorXi& assignment_;
-    const Eigen::VectorXd& proportion_;
+    Eigen::VectorXd& proportion_;
+    std::optional<stats::DirichletSampler<double>> proportion_sampler_;
     bayes::ComponentState& component_;
     Eigen::VectorXd multiplier_;
 
@@ -169,6 +180,7 @@ class SingleScaledMixtureCoeffStep final : public Step
 
     Eigen::VectorXd marker_variances_;
     Eigen::VectorXd logpi_;
+    Eigen::VectorXi proportion_count_;
     stats::NormalSampler<double> normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
     Eigen::Array<double, kMaxMixtureComponents, 1> scale_means_;
@@ -178,10 +190,10 @@ class SingleScaledMixtureCoeffStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class JointGaussianMixtureCoeffStep final : public Step
+class JointGaussianMixtureStep final : public Step
 {
    public:
-    JointGaussianMixtureCoeffStep(
+    JointGaussianMixtureStep(
         const bayes::GeneticDesign& additive,
         const bayes::GeneticDesign& dominance,
         const bayes::JointGeneticPrior& prior,
@@ -195,9 +207,11 @@ class JointGaussianMixtureCoeffStep final : public Step
     const bayes::GeneticDesign& additive_design_;
     const bayes::GeneticDesign& dominance_design_;
 
+    std::array<stats::ScaledInvChi2Sampler<double>, 2> variance_samplers_;
     std::array<double*, 2> variance_;
     Eigen::VectorXi& assignment_;
-    const Eigen::VectorXd& proportion_;
+    Eigen::VectorXd& proportion_;
+    std::optional<stats::DirichletSampler<double>> proportion_sampler_;
 
     bayes::GeneticState& additive_;
     bayes::GeneticState& dominance_;
@@ -206,6 +220,7 @@ class JointGaussianMixtureCoeffStep final : public Step
     stats::NormalSampler<double> normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
     Eigen::VectorXd logpi_;
+    Eigen::VectorXi proportion_count_;
 
     std::mt19937_64& rng_;
 };
@@ -213,4 +228,4 @@ class JointGaussianMixtureCoeffStep final : public Step
 
 }  // namespace gelex::mcmc
 
-#endif  // GELEX_ALGO_INFER_MCMC_STEPS_GENETIC_COEFFICIENT_H_
+#endif  // GELEX_ALGO_INFER_MCMC_STEPS_GENETIC_STEP_H_

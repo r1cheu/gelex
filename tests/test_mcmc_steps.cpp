@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <array>
 #include <cmath>
 #include <memory>
 #include <random>
@@ -25,13 +26,11 @@
 
 #include "gelex/algo/infer/mcmc/chain.h"
 #include "gelex/algo/infer/mcmc/step.h"
-#include "gelex/algo/infer/mcmc/steps/genetic_coefficient.h"
-#include "gelex/algo/infer/mcmc/steps/genetic_proportion.h"
-#include "gelex/algo/infer/mcmc/steps/genetic_variance.h"
+#include "gelex/algo/infer/mcmc/steps/genetic_step.h"
 #include "gelex/bayes/design.h"
-#include "gelex/bayes/genetic/parameters.h"
-#include "gelex/bayes/genetic/gaussian_prior_state.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
+#include "gelex/bayes/genetic/gaussian_prior_state.h"
+#include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/state.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "genotype_fixture.h"
@@ -45,22 +44,25 @@ auto make_variance(double value) -> gelex::bayes::VarianceParameter
         value, gelex::bayes::ScaledInvChiSqPrior{4.0, 1.0}};
 }
 
-auto make_design() -> gelex::bayes::GeneticDesign
+auto make_design(gelex::GeneticMode mode = gelex::GeneticMode::A)
+    -> gelex::bayes::GeneticDesign
 {
     Eigen::MatrixXd data{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}};
     auto mean = data.colwise().mean().transpose().eval();
     auto stddev = Eigen::VectorXd::Ones(data.cols());
     return gelex::bayes::GeneticDesign{
-        gelex::GeneticMode::A,
+        mode,
         gelex::test::GenotypeBuilder::build(
             std::move(data), std::move(mean), std::move(stddev))};
 }
 
-auto make_proportion() -> gelex::bayes::MixtureProportion
+auto make_proportion(Eigen::Index size = 2) -> gelex::bayes::MixtureProportion
 {
+    auto initial
+        = Eigen::VectorXd::Constant(size, 1.0 / static_cast<double>(size));
+    auto alpha = Eigen::VectorXd::Ones(size);
     return gelex::bayes::MixtureProportion{gelex::bayes::SimplexParameter{
-        Eigen::VectorXd{{0.5, 0.5}},
-        gelex::bayes::DirichletPrior{Eigen::VectorXd::Ones(2)}}};
+        std::move(initial), gelex::bayes::DirichletPrior{std::move(alpha)}}};
 }
 
 class CountingStep final : public gelex::mcmc::Step
@@ -91,77 +93,7 @@ TEST_CASE("Runtime Chain runs heterogeneous steps in order", "[mcmc][chain]")
     REQUIRE(second == 1);
 }
 
-TEST_CASE("Single shared variance step samples finite variance", "[mcmc]")
-{
-    auto design = make_design();
-    gelex::bayes::SingleGeneticPrior prior{
-        gelex::bayes::SingleSharedGaussianPrior{
-            gelex::GeneticMode::A,
-            gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}};
-    gelex::bayes::SingleGeneticBlockState block{design, prior};
-    block.state().coeffs = Eigen::VectorXd{{0.2, -0.3}};
-    auto& shared_state = std::get<gelex::bayes::SingleSharedGaussianState>(
-        block.prior_state());
-
-    std::mt19937_64 rng{123};
-    gelex::mcmc::SingleSharedVarStep step{block, prior, rng};
-    step.step();
-
-    const double variance = shared_state.variance();
-    REQUIRE(std::isfinite(variance));
-    REQUIRE(variance > 0.0);
-}
-
-TEST_CASE(
-    "Single scaled mixture variance step uses multiplier capability",
-    "[mcmc]")
-{
-    auto design = make_design();
-    gelex::bayes::SingleGeneticPrior prior{
-        gelex::bayes::SingleScaledMixtureGaussianPrior{
-            gelex::GeneticMode::A,
-            gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
-            Eigen::VectorXd{{0.0, 2.0}},
-            make_proportion()}};
-    gelex::bayes::SingleGeneticBlockState block{design, prior};
-    block.state().coeffs = Eigen::VectorXd{{0.2, -0.3}};
-    auto& scaled_state
-        = std::get<gelex::bayes::SingleScaledMixtureGaussianState>(
-            block.prior_state());
-    scaled_state.assignment() = Eigen::VectorXi{{1, 1}};
-
-    std::mt19937_64 rng{123};
-    gelex::mcmc::SingleScaledMixtureVarStep step{block, prior, rng};
-    step.step();
-
-    const double variance = scaled_state.variance();
-    REQUIRE(std::isfinite(variance));
-    REQUIRE(variance > 0.0);
-}
-
-TEST_CASE("Single proportion step accepts prior state variant", "[mcmc]")
-{
-    auto design = make_design();
-    gelex::bayes::SingleGeneticPrior prior{
-        gelex::bayes::SingleSharedSpikeSlabGaussianPrior{
-            gelex::GeneticMode::A,
-            gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
-            make_proportion()}};
-    gelex::bayes::SingleGeneticBlockState block{design, prior};
-    auto& mixture_state
-        = std::get<gelex::bayes::SingleSharedSpikeSlabGaussianState>(
-            block.prior_state());
-    mixture_state.assignment() = Eigen::VectorXi{{0, 1}};
-
-    std::mt19937_64 rng{123};
-    gelex::mcmc::SingleProportionStep step{block, prior, rng};
-    step.step();
-
-    REQUIRE(mixture_state.proportion().allFinite());
-    REQUIRE(std::abs(mixture_state.proportion().sum() - 1.0) < 1e-12);
-}
-
-TEST_CASE("Single coefficient step accepts prior state variant", "[mcmc]")
+TEST_CASE("Single shared Gaussian step updates fused state", "[mcmc]")
 {
     auto design = make_design();
     gelex::bayes::SingleGeneticPrior prior{
@@ -172,12 +104,164 @@ TEST_CASE("Single coefficient step accepts prior state variant", "[mcmc]")
     block.state().coeffs = Eigen::VectorXd::Zero(2);
     gelex::bayes::ResidualState residual{
         .y_adj = Eigen::VectorXd{{1.0, -0.5, 0.25}}, .variance = 1.0};
+    auto& shared_state = std::get<gelex::bayes::SingleSharedGaussianState>(
+        block.prior_state());
 
     std::mt19937_64 rng{123};
-    gelex::mcmc::SingleSharedGaussianCoeffStep step{
+    gelex::mcmc::SingleSharedGaussianStep step{
         design, prior, block, residual, rng};
     step.step();
 
     REQUIRE(block.state().coeffs.allFinite());
     REQUIRE(std::isfinite(block.state().variance));
+    REQUIRE(std::isfinite(shared_state.variance()));
+    REQUIRE(shared_state.variance() > 0.0);
+}
+
+TEST_CASE("Single per-marker Gaussian step updates fused state", "[mcmc]")
+{
+    auto design = make_design();
+    gelex::bayes::SingleGeneticPrior prior{
+        gelex::bayes::SinglePerMarkerGaussianPrior{
+            gelex::GeneticMode::A,
+            gelex::bayes::PerMarkerVariance{make_variance(0.1)}}};
+    gelex::bayes::SingleGeneticBlockState block{design, prior};
+    block.state().coeffs = Eigen::VectorXd::Zero(2);
+    gelex::bayes::ResidualState residual{
+        .y_adj = Eigen::VectorXd{{1.0, -0.5, 0.25}}, .variance = 1.0};
+    auto& per_marker_state
+        = std::get<gelex::bayes::SinglePerMarkerGaussianState>(
+            block.prior_state());
+
+    std::mt19937_64 rng{123};
+    gelex::mcmc::SinglePerMarkerGaussianStep step{
+        design, prior, block, residual, rng};
+    step.step();
+
+    REQUIRE(block.state().coeffs.allFinite());
+    REQUIRE(std::isfinite(block.state().variance));
+    REQUIRE(per_marker_state.variance().allFinite());
+    REQUIRE((per_marker_state.variance().array() > 0.0).all());
+}
+
+TEST_CASE("Single shared spike-slab step updates fused state", "[mcmc]")
+{
+    auto design = make_design();
+    gelex::bayes::SingleGeneticPrior prior{
+        gelex::bayes::SingleSharedSpikeSlabGaussianPrior{
+            gelex::GeneticMode::A,
+            gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+            make_proportion()}};
+    gelex::bayes::SingleGeneticBlockState block{design, prior};
+    gelex::bayes::ResidualState residual{
+        .y_adj = Eigen::VectorXd{{1.0, -0.5, 0.25}}, .variance = 1.0};
+    auto& mixture_state
+        = std::get<gelex::bayes::SingleSharedSpikeSlabGaussianState>(
+            block.prior_state());
+
+    std::mt19937_64 rng{123};
+    gelex::mcmc::SingleSharedSpikeSlabStep step{
+        design, prior, block, residual, rng};
+    step.step();
+
+    REQUIRE(block.state().coeffs.allFinite());
+    REQUIRE(std::isfinite(mixture_state.variance()));
+    REQUIRE(mixture_state.variance() > 0.0);
+    REQUIRE(mixture_state.proportion().allFinite());
+    REQUIRE(std::abs(mixture_state.proportion().sum() - 1.0) < 1e-12);
+    REQUIRE((mixture_state.assignment().array() >= 0).all());
+    REQUIRE((mixture_state.assignment().array() <= 1).all());
+}
+
+TEST_CASE("Single per-marker spike-slab step updates fused state", "[mcmc]")
+{
+    auto design = make_design();
+    gelex::bayes::SingleGeneticPrior prior{
+        gelex::bayes::SinglePerMarkerSpikeSlabGaussianPrior{
+            gelex::GeneticMode::A,
+            gelex::bayes::PerMarkerVariance{make_variance(0.1)},
+            make_proportion()}};
+    gelex::bayes::SingleGeneticBlockState block{design, prior};
+    gelex::bayes::ResidualState residual{
+        .y_adj = Eigen::VectorXd{{1.0, -0.5, 0.25}}, .variance = 1.0};
+    auto& mixture_state
+        = std::get<gelex::bayes::SinglePerMarkerSpikeSlabGaussianState>(
+            block.prior_state());
+
+    std::mt19937_64 rng{123};
+    gelex::mcmc::SinglePerMarkerSpikeSlabStep step{
+        design, prior, block, residual, rng};
+    step.step();
+
+    REQUIRE(block.state().coeffs.allFinite());
+    REQUIRE(mixture_state.variance().allFinite());
+    REQUIRE((mixture_state.variance().array() > 0.0).all());
+    REQUIRE(mixture_state.proportion().allFinite());
+    REQUIRE(std::abs(mixture_state.proportion().sum() - 1.0) < 1e-12);
+    REQUIRE((mixture_state.assignment().array() >= 0).all());
+    REQUIRE((mixture_state.assignment().array() <= 1).all());
+}
+
+TEST_CASE("Single scaled mixture step updates fused state", "[mcmc]")
+{
+    auto design = make_design();
+    gelex::bayes::SingleGeneticPrior prior{
+        gelex::bayes::SingleScaledMixtureGaussianPrior{
+            gelex::GeneticMode::A,
+            gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+            Eigen::VectorXd{{0.0, 2.0}},
+            make_proportion()}};
+    gelex::bayes::SingleGeneticBlockState block{design, prior};
+    gelex::bayes::ResidualState residual{
+        .y_adj = Eigen::VectorXd{{1.0, -0.5, 0.25}}, .variance = 1.0};
+    auto& scaled_state
+        = std::get<gelex::bayes::SingleScaledMixtureGaussianState>(
+            block.prior_state());
+
+    std::mt19937_64 rng{123};
+    gelex::mcmc::SingleScaledMixtureStep step{
+        design, prior, block, residual, rng};
+    step.step();
+
+    REQUIRE(block.state().coeffs.allFinite());
+    REQUIRE(std::isfinite(scaled_state.variance()));
+    REQUIRE(scaled_state.variance() > 0.0);
+    REQUIRE(scaled_state.component().gebv_var.allFinite());
+    REQUIRE(scaled_state.proportion().allFinite());
+    REQUIRE(std::abs(scaled_state.proportion().sum() - 1.0) < 1e-12);
+    REQUIRE((scaled_state.assignment().array() >= 0).all());
+    REQUIRE((scaled_state.assignment().array() <= 1).all());
+}
+
+TEST_CASE("Joint Gaussian mixture step updates fused state", "[mcmc]")
+{
+    auto additive = make_design(gelex::GeneticMode::A);
+    auto dominance = make_design(gelex::GeneticMode::D);
+    gelex::bayes::JointGeneticPrior prior{
+        gelex::bayes::JointGaussianMixturePrior{
+            gelex::bayes::JointSharedMarkerVariance{std::array{
+                gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+                gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
+            make_proportion(4)}};
+    gelex::bayes::JointGeneticBlockState block{additive, dominance, prior};
+    gelex::bayes::ResidualState residual{
+        .y_adj = Eigen::VectorXd{{1.0, -0.5, 0.25}}, .variance = 1.0};
+    auto& mixture_state = std::get<gelex::bayes::JointGaussianMixtureState>(
+        block.prior_state());
+
+    std::mt19937_64 rng{123};
+    gelex::mcmc::JointGaussianMixtureStep step{
+        additive, dominance, prior, block, residual, rng};
+    step.step();
+
+    REQUIRE(block.state(gelex::GeneticMode::A).coeffs.allFinite());
+    REQUIRE(block.state(gelex::GeneticMode::D).coeffs.allFinite());
+    REQUIRE(std::isfinite(mixture_state.variance(gelex::GeneticMode::A)));
+    REQUIRE(std::isfinite(mixture_state.variance(gelex::GeneticMode::D)));
+    REQUIRE(mixture_state.variance(gelex::GeneticMode::A) > 0.0);
+    REQUIRE(mixture_state.variance(gelex::GeneticMode::D) > 0.0);
+    REQUIRE(mixture_state.proportion().allFinite());
+    REQUIRE(std::abs(mixture_state.proportion().sum() - 1.0) < 1e-12);
+    REQUIRE((mixture_state.assignment().array() >= 0).all());
+    REQUIRE((mixture_state.assignment().array() <= 3).all());
 }
