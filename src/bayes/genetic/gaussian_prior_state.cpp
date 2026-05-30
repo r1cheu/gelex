@@ -32,7 +32,7 @@ namespace gelex::bayes
 {
 
 SingleSharedGaussianState::SingleSharedGaussianState(double variance)
-    : Variance<double>(variance)
+    : variance_(variance)
 {
 }
 
@@ -45,7 +45,7 @@ auto SingleSharedGaussianState::visit(infra::FieldVisitor& visitor) -> void
 
 SinglePerMarkerGaussianState::SinglePerMarkerGaussianState(
     Eigen::VectorXd variance)
-    : Variance<Eigen::VectorXd>(std::move(variance))
+    : variance_(std::move(variance))
 {
 }
 
@@ -60,8 +60,7 @@ SingleSharedSpikeSlabGaussianState::SingleSharedSpikeSlabGaussianState(
     double variance,
     const MixtureProportion& proportion,
     Eigen::Index num_markers)
-    : Variance<double>(variance),
-      MixtureField<MixtureState>(MixtureState{proportion, num_markers})
+    : variance_(variance), mixture_(proportion, num_markers)
 {
 }
 
@@ -71,19 +70,14 @@ auto SingleSharedSpikeSlabGaussianState::visit(infra::FieldVisitor& visitor)
     auto scope = visitor.scope(name);
     visitor.on(
         "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
-    auto mixture_scope = visitor.scope(MixtureState::name);
-    visitor.on(
-        "assignment", assignment(), FieldFlag::checkpoint | FieldFlag::trace);
-    visitor.on(
-        "proportion", proportion(), FieldFlag::checkpoint | FieldFlag::trace);
+    mixture_.visit(visitor);
 }
 
 SinglePerMarkerSpikeSlabGaussianState::SinglePerMarkerSpikeSlabGaussianState(
     Eigen::VectorXd variance,
     const MixtureProportion& proportion,
     Eigen::Index num_markers)
-    : Variance<Eigen::VectorXd>(std::move(variance)),
-      MixtureField<MixtureState>(MixtureState{proportion, num_markers})
+    : variance_(std::move(variance)), mixture_(proportion, num_markers)
 {
 }
 
@@ -93,11 +87,7 @@ auto SinglePerMarkerSpikeSlabGaussianState::visit(infra::FieldVisitor& visitor)
     auto scope = visitor.scope(name);
     visitor.on(
         "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
-    auto mixture_scope = visitor.scope(MixtureState::name);
-    visitor.on(
-        "assignment", assignment(), FieldFlag::checkpoint | FieldFlag::trace);
-    visitor.on(
-        "proportion", proportion(), FieldFlag::checkpoint | FieldFlag::trace);
+    mixture_.visit(visitor);
 }
 
 SingleScaledMixtureGaussianState::SingleScaledMixtureGaussianState(
@@ -106,10 +96,9 @@ SingleScaledMixtureGaussianState::SingleScaledMixtureGaussianState(
     const MixtureProportion& proportion,
     Eigen::Index num_markers,
     Eigen::Index num_individuals)
-    : Variance<double>(variance),
-      ComponentField<ComponentState>(
-          ComponentState{multiplier.size() - 1, num_individuals}),
-      MixtureField<MixtureState>(MixtureState{proportion, num_markers})
+    : variance_(variance),
+      component_(multiplier.size() - 1, num_individuals),
+      mixture_(proportion, num_markers)
 {
 }
 
@@ -120,11 +109,7 @@ auto SingleScaledMixtureGaussianState::visit(infra::FieldVisitor& visitor)
     visitor.on(
         "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
     component().visit(visitor);
-    auto mixture_scope = visitor.scope(MixtureState::name);
-    visitor.on(
-        "assignment", assignment(), FieldFlag::checkpoint | FieldFlag::trace);
-    visitor.on(
-        "proportion", proportion(), FieldFlag::checkpoint | FieldFlag::trace);
+    mixture_.visit(visitor);
 }
 
 JointGaussianMixtureState::JointGaussianMixtureState(
@@ -132,10 +117,21 @@ JointGaussianMixtureState::JointGaussianMixtureState(
     const MixtureProportion& proportion,
     Eigen::Index num_markers,
     Eigen::Index num_individuals)
-    : Variances<double>(std::move(variances)),
-      ComponentField<ComponentState>(ComponentState{1, num_individuals}),
-      MixtureField<MixtureState>(MixtureState{proportion, num_markers})
+    : variances_(std::move(variances)),
+      component_(1, num_individuals),
+      mixture_(proportion, num_markers)
 {
+}
+
+auto JointGaussianMixtureState::variance(GeneticMode mode) -> double&
+{
+    return variances_[std::to_underlying(mode)];
+}
+
+auto JointGaussianMixtureState::variance(GeneticMode mode) const -> const
+    double&
+{
+    return variances_[std::to_underlying(mode)];
 }
 
 auto JointGaussianMixtureState::visit(infra::FieldVisitor& visitor) -> void
@@ -151,11 +147,7 @@ auto JointGaussianMixtureState::visit(infra::FieldVisitor& visitor) -> void
             FieldFlag::checkpoint | FieldFlag::trace);
     }
     component().visit(visitor);
-    auto mixture_scope = visitor.scope(MixtureState::name);
-    visitor.on(
-        "assignment", assignment(), FieldFlag::checkpoint | FieldFlag::trace);
-    visitor.on(
-        "proportion", proportion(), FieldFlag::checkpoint | FieldFlag::trace);
+    mixture_.visit(visitor);
 }
 
 }  // namespace gelex::bayes

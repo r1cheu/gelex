@@ -22,36 +22,45 @@
 
 #include <Eigen/Core>
 
-#include "gelex/bayes/genetic/fields.h"
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/genetic/prior_state_values.h"
 
 namespace gelex::bayes
 {
 
-class SingleSharedGaussianState final : public Variance<double>
+class SingleSharedGaussianState final
 {
    public:
     static constexpr std::string_view name = "shared_gaussian";
 
     explicit SingleSharedGaussianState(double variance);
 
+    auto variance() -> double& { return variance_; }
+    auto variance() const -> const double& { return variance_; }
+
     auto visit(infra::FieldVisitor& visitor) -> void;
+
+   private:
+    double variance_;
 };
 
-class SinglePerMarkerGaussianState final : public Variance<Eigen::VectorXd>
+class SinglePerMarkerGaussianState final
 {
    public:
     static constexpr std::string_view name = "per_marker_gaussian";
 
     explicit SinglePerMarkerGaussianState(Eigen::VectorXd variance);
 
+    auto variance() -> Eigen::VectorXd& { return variance_; }
+    auto variance() const -> const Eigen::VectorXd& { return variance_; }
+
     auto visit(infra::FieldVisitor& visitor) -> void;
+
+   private:
+    Eigen::VectorXd variance_;
 };
 
 class SingleSharedSpikeSlabGaussianState final
-    : public Variance<double>
-    , public MixtureField<MixtureState>
 {
    public:
     static constexpr std::string_view name = "shared_spike_slab_gaussian";
@@ -61,12 +70,27 @@ class SingleSharedSpikeSlabGaussianState final
         const MixtureProportion& proportion,
         Eigen::Index num_markers);
 
+    auto variance() -> double& { return variance_; }
+    auto variance() const -> const double& { return variance_; }
+    auto assignment() -> Eigen::VectorXi& { return mixture_.assignment; }
+    auto assignment() const -> const Eigen::VectorXi&
+    {
+        return mixture_.assignment;
+    }
+    auto proportion() -> Eigen::VectorXd& { return mixture_.proportion; }
+    auto proportion() const -> const Eigen::VectorXd&
+    {
+        return mixture_.proportion;
+    }
+
     auto visit(infra::FieldVisitor& visitor) -> void;
+
+   private:
+    double variance_;
+    MixtureState mixture_;
 };
 
 class SinglePerMarkerSpikeSlabGaussianState final
-    : public Variance<Eigen::VectorXd>
-    , public MixtureField<MixtureState>
 {
    public:
     static constexpr std::string_view name = "per_marker_spike_slab_gaussian";
@@ -76,13 +100,27 @@ class SinglePerMarkerSpikeSlabGaussianState final
         const MixtureProportion& proportion,
         Eigen::Index num_markers);
 
+    auto variance() -> Eigen::VectorXd& { return variance_; }
+    auto variance() const -> const Eigen::VectorXd& { return variance_; }
+    auto assignment() -> Eigen::VectorXi& { return mixture_.assignment; }
+    auto assignment() const -> const Eigen::VectorXi&
+    {
+        return mixture_.assignment;
+    }
+    auto proportion() -> Eigen::VectorXd& { return mixture_.proportion; }
+    auto proportion() const -> const Eigen::VectorXd&
+    {
+        return mixture_.proportion;
+    }
+
     auto visit(infra::FieldVisitor& visitor) -> void;
+
+   private:
+    Eigen::VectorXd variance_;
+    MixtureState mixture_;
 };
 
 class SingleScaledMixtureGaussianState final
-    : public Variance<double>
-    , public ComponentField<ComponentState>
-    , public MixtureField<MixtureState>
 {
    public:
     static constexpr std::string_view name = "scaled_mixture_gaussian";
@@ -94,13 +132,30 @@ class SingleScaledMixtureGaussianState final
         Eigen::Index num_markers,
         Eigen::Index num_individuals);
 
+    auto variance() -> double& { return variance_; }
+    auto variance() const -> const double& { return variance_; }
+    auto component() -> ComponentState& { return component_; }
+    auto component() const -> const ComponentState& { return component_; }
+    auto assignment() -> Eigen::VectorXi& { return mixture_.assignment; }
+    auto assignment() const -> const Eigen::VectorXi&
+    {
+        return mixture_.assignment;
+    }
+    auto proportion() -> Eigen::VectorXd& { return mixture_.proportion; }
+    auto proportion() const -> const Eigen::VectorXd&
+    {
+        return mixture_.proportion;
+    }
+
     auto visit(infra::FieldVisitor& visitor) -> void;
+
+   private:
+    double variance_;
+    ComponentState component_;
+    MixtureState mixture_;
 };
 
 class JointGaussianMixtureState final
-    : public Variances<double>
-    , public ComponentField<ComponentState>
-    , public MixtureField<MixtureState>
 {
    public:
     static constexpr std::string_view name = "joint_mixture_gaussian";
@@ -111,7 +166,27 @@ class JointGaussianMixtureState final
         Eigen::Index num_markers,
         Eigen::Index num_individuals);
 
+    auto variance(GeneticMode mode) -> double&;
+    auto variance(GeneticMode mode) const -> const double&;
+    auto component() -> ComponentState& { return component_; }
+    auto component() const -> const ComponentState& { return component_; }
+    auto assignment() -> Eigen::VectorXi& { return mixture_.assignment; }
+    auto assignment() const -> const Eigen::VectorXi&
+    {
+        return mixture_.assignment;
+    }
+    auto proportion() -> Eigen::VectorXd& { return mixture_.proportion; }
+    auto proportion() const -> const Eigen::VectorXd&
+    {
+        return mixture_.proportion;
+    }
+
     auto visit(infra::FieldVisitor& visitor) -> void;
+
+   private:
+    std::array<double, 2> variances_;
+    ComponentState component_;
+    MixtureState mixture_;
 };
 
 }  // namespace gelex::bayes

@@ -21,7 +21,6 @@
 
 #include <Eigen/Core>
 
-#include "gelex/bayes/genetic/fields.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -29,7 +28,7 @@
 namespace gelex::bayes
 {
 
-class SingleSharedGaussianPrior final : public Variance<SharedMarkerVariance>
+class SingleSharedGaussianPrior final
 {
    public:
     static constexpr std::string_view name = "shared_gaussian";
@@ -37,16 +36,19 @@ class SingleSharedGaussianPrior final : public Variance<SharedMarkerVariance>
     SingleSharedGaussianPrior(GeneticMode mode, SharedMarkerVariance variance);
 
     auto mode() const -> GeneticMode { return mode_; }
+    auto variance() -> SharedMarkerVariance& { return variance_; }
+    auto variance() const -> const SharedMarkerVariance& { return variance_; }
 
     auto visit(infra::FieldVisitor& visitor) -> void;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> SingleSharedGaussianState;
 
    private:
+    SharedMarkerVariance variance_;
     GeneticMode mode_;
 };
 
-class SinglePerMarkerGaussianPrior final : public Variance<PerMarkerVariance>
+class SinglePerMarkerGaussianPrior final
 {
    public:
     static constexpr std::string_view name = "per_marker_gaussian";
@@ -54,18 +56,19 @@ class SinglePerMarkerGaussianPrior final : public Variance<PerMarkerVariance>
     SinglePerMarkerGaussianPrior(GeneticMode mode, PerMarkerVariance variance);
 
     auto mode() const -> GeneticMode { return mode_; }
+    auto variance() -> PerMarkerVariance& { return variance_; }
+    auto variance() const -> const PerMarkerVariance& { return variance_; }
 
     auto visit(infra::FieldVisitor& visitor) -> void;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> SinglePerMarkerGaussianState;
 
    private:
+    PerMarkerVariance variance_;
     GeneticMode mode_;
 };
 
 class SingleSharedSpikeSlabGaussianPrior final
-    : public Variance<SharedMarkerVariance>
-    , public Proportion<MixtureProportion>
 {
    public:
     static constexpr std::string_view name = "shared_spike_slab_gaussian";
@@ -76,18 +79,22 @@ class SingleSharedSpikeSlabGaussianPrior final
         MixtureProportion proportion);
 
     auto mode() const -> GeneticMode { return mode_; }
+    auto variance() -> SharedMarkerVariance& { return variance_; }
+    auto variance() const -> const SharedMarkerVariance& { return variance_; }
+    auto proportion() -> MixtureProportion& { return proportion_; }
+    auto proportion() const -> const MixtureProportion& { return proportion_; }
 
     auto visit(infra::FieldVisitor& visitor) -> void;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> SingleSharedSpikeSlabGaussianState;
 
    private:
+    SharedMarkerVariance variance_;
+    MixtureProportion proportion_;
     GeneticMode mode_;
 };
 
 class SinglePerMarkerSpikeSlabGaussianPrior final
-    : public Variance<PerMarkerVariance>
-    , public Proportion<MixtureProportion>
 {
    public:
     static constexpr std::string_view name = "per_marker_spike_slab_gaussian";
@@ -98,19 +105,22 @@ class SinglePerMarkerSpikeSlabGaussianPrior final
         MixtureProportion proportion);
 
     auto mode() const -> GeneticMode { return mode_; }
+    auto variance() -> PerMarkerVariance& { return variance_; }
+    auto variance() const -> const PerMarkerVariance& { return variance_; }
+    auto proportion() -> MixtureProportion& { return proportion_; }
+    auto proportion() const -> const MixtureProportion& { return proportion_; }
 
     auto visit(infra::FieldVisitor& visitor) -> void;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> SinglePerMarkerSpikeSlabGaussianState;
 
    private:
+    PerMarkerVariance variance_;
+    MixtureProportion proportion_;
     GeneticMode mode_;
 };
 
 class SingleScaledMixtureGaussianPrior final
-    : public Variance<SharedMarkerVariance>
-    , public Proportion<MixtureProportion>
-    , public Multiplier<Eigen::VectorXd>
 {
    public:
     static constexpr std::string_view name = "scaled_mixture_gaussian";
@@ -122,18 +132,25 @@ class SingleScaledMixtureGaussianPrior final
         MixtureProportion proportion);
 
     auto mode() const -> GeneticMode { return mode_; }
+    auto variance() -> SharedMarkerVariance& { return variance_; }
+    auto variance() const -> const SharedMarkerVariance& { return variance_; }
+    auto proportion() -> MixtureProportion& { return proportion_; }
+    auto proportion() const -> const MixtureProportion& { return proportion_; }
+    auto multiplier() -> Eigen::VectorXd& { return multiplier_; }
+    auto multiplier() const -> const Eigen::VectorXd& { return multiplier_; }
 
     auto visit(infra::FieldVisitor& visitor) -> void;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> SingleScaledMixtureGaussianState;
 
    private:
+    SharedMarkerVariance variance_;
+    MixtureProportion proportion_;
+    Eigen::VectorXd multiplier_;
     GeneticMode mode_;
 };
 
 class JointGaussianMixturePrior final
-    : public JointVariancesField<JointSharedMarkerVariance>
-    , public Proportion<MixtureProportion>
 {
    public:
     static constexpr std::string_view name = "joint_mixture_gaussian";
@@ -142,9 +159,23 @@ class JointGaussianMixturePrior final
         JointSharedMarkerVariance variance,
         MixtureProportion proportion);
 
+    auto variance(GeneticMode mode) -> SharedMarkerVariance&;
+    auto variance(GeneticMode mode) const -> const SharedMarkerVariance&;
+    auto variances() -> JointSharedMarkerVariance& { return variances_; }
+    auto variances() const -> const JointSharedMarkerVariance&
+    {
+        return variances_;
+    }
+    auto proportion() -> MixtureProportion& { return proportion_; }
+    auto proportion() const -> const MixtureProportion& { return proportion_; }
+
     auto visit(infra::FieldVisitor& visitor) -> void;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> JointGaussianMixtureState;
+
+   private:
+    JointSharedMarkerVariance variances_;
+    MixtureProportion proportion_;
 };
 
 }  // namespace gelex::bayes

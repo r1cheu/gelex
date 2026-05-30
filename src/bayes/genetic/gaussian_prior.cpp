@@ -34,7 +34,7 @@ namespace gelex::bayes
 SingleSharedGaussianPrior::SingleSharedGaussianPrior(
     GeneticMode mode,
     SharedMarkerVariance variance)
-    : Variance<SharedMarkerVariance>(variance), mode_(mode)
+    : variance_(variance), mode_(mode)
 {
 }
 
@@ -55,7 +55,7 @@ auto SingleSharedGaussianPrior::make_state(
 SinglePerMarkerGaussianPrior::SinglePerMarkerGaussianPrior(
     GeneticMode mode,
     PerMarkerVariance variance)
-    : Variance<PerMarkerVariance>(variance), mode_(mode)
+    : variance_(variance), mode_(mode)
 {
 }
 
@@ -78,9 +78,7 @@ SingleSharedSpikeSlabGaussianPrior::SingleSharedSpikeSlabGaussianPrior(
     GeneticMode mode,
     SharedMarkerVariance variance,
     MixtureProportion proportion)
-    : Variance<SharedMarkerVariance>(variance),
-      Proportion<MixtureProportion>(std::move(proportion)),
-      mode_(mode)
+    : variance_(variance), proportion_(std::move(proportion)), mode_(mode)
 {
     if (this->proportion().size() != 2)
     {
@@ -112,9 +110,7 @@ SinglePerMarkerSpikeSlabGaussianPrior::SinglePerMarkerSpikeSlabGaussianPrior(
     GeneticMode mode,
     PerMarkerVariance variance,
     MixtureProportion proportion)
-    : Variance<PerMarkerVariance>(variance),
-      Proportion<MixtureProportion>(std::move(proportion)),
-      mode_(mode)
+    : variance_(variance), proportion_(std::move(proportion)), mode_(mode)
 {
     if (this->proportion().size() != 2)
     {
@@ -150,9 +146,9 @@ SingleScaledMixtureGaussianPrior::SingleScaledMixtureGaussianPrior(
     SharedMarkerVariance variance,
     Eigen::VectorXd multiplier,
     MixtureProportion proportion)
-    : Variance<SharedMarkerVariance>(variance),
-      Proportion<MixtureProportion>(std::move(proportion)),
-      Multiplier<Eigen::VectorXd>(std::move(multiplier)),
+    : variance_(variance),
+      proportion_(std::move(proportion)),
+      multiplier_(std::move(multiplier)),
       mode_(mode)
 {
     if (this->multiplier().size() != this->proportion().size())
@@ -197,9 +193,20 @@ auto SingleScaledMixtureGaussianPrior::make_state(
 JointGaussianMixturePrior::JointGaussianMixturePrior(
     JointSharedMarkerVariance variance,
     MixtureProportion proportion)
-    : JointVariancesField<JointSharedMarkerVariance>(variance),
-      Proportion<MixtureProportion>(std::move(proportion))
+    : variances_(variance), proportion_(std::move(proportion))
 {
+}
+
+auto JointGaussianMixturePrior::variance(GeneticMode mode)
+    -> SharedMarkerVariance&
+{
+    return variances_.variance(mode);
+}
+
+auto JointGaussianMixturePrior::variance(GeneticMode mode) const
+    -> const SharedMarkerVariance&
+{
+    return variances_.variance(mode);
 }
 
 auto JointGaussianMixturePrior::visit(infra::FieldVisitor& visitor) -> void
