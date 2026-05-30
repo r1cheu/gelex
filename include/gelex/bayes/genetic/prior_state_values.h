@@ -32,18 +32,6 @@ class FieldVisitor;
 namespace gelex::bayes
 {
 
-struct AssignmentState
-{
-    static constexpr std::string_view name = "mixture_assignment";
-
-    AssignmentState() = default;
-    explicit AssignmentState(Eigen::Index num_markers);
-
-    auto visit(infra::FieldVisitor& visitor) -> void;
-
-    Eigen::VectorXi assignment;
-};
-
 struct MixtureState
 {
     static constexpr std::string_view name = "mixture";
@@ -53,7 +41,7 @@ struct MixtureState
 
     auto visit(infra::FieldVisitor& visitor) -> void;
 
-    AssignmentState assignment;
+    Eigen::VectorXi assignment;
     Eigen::VectorXd proportion;
 };
 

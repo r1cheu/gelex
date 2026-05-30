@@ -62,7 +62,7 @@ class SingleSharedSpikeSlabVarStep final : public Step
     bayes::SingleGeneticBlockState& block_;
     stats::ScaledInvChi2Sampler<double> sampler_;
     double& variance_;
-    bayes::AssignmentState& assignment_;
+    Eigen::VectorXi& assignment_;
     std::mt19937_64& rng_;
 };
 
@@ -80,7 +80,7 @@ class SingleScaledMixtureVarStep final : public Step
     bayes::SingleGeneticBlockState& block_;
     stats::ScaledInvChi2Sampler<double> sampler_;
     double& variance_;
-    bayes::AssignmentState& assignment_;
+    Eigen::VectorXi& assignment_;
     const Eigen::VectorXd& multiplier_;
     std::mt19937_64& rng_;
 };
@@ -116,7 +116,7 @@ class SinglePerMarkerSpikeSlabVarStep final : public Step
     bayes::SingleGeneticBlockState& block_;
     stats::ScaledInvChi2Sampler<double> sampler_;
     Eigen::VectorXd& variance_;
-    bayes::AssignmentState& assignment_;
+    Eigen::VectorXi& assignment_;
     std::mt19937_64& rng_;
 };
 
@@ -134,7 +134,7 @@ class JointMixtureVarStep final : public Step
     bayes::JointGeneticBlockState& block_;
     std::array<stats::ScaledInvChi2Sampler<double>, 2> samplers_;
     std::array<double*, 2> variance_;
-    bayes::AssignmentState& assignment_;
+    Eigen::VectorXi& assignment_;
     std::mt19937_64& rng_;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)

@@ -71,7 +71,11 @@ auto SingleSharedSpikeSlabGaussianState::visit(infra::FieldVisitor& visitor)
     auto scope = visitor.scope(name);
     visitor.on(
         "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
-    mixture().visit(visitor);
+    auto mixture_scope = visitor.scope(MixtureState::name);
+    visitor.on(
+        "assignment", assignment(), FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on(
+        "proportion", proportion(), FieldFlag::checkpoint | FieldFlag::trace);
 }
 
 SinglePerMarkerSpikeSlabGaussianState::SinglePerMarkerSpikeSlabGaussianState(
@@ -89,7 +93,11 @@ auto SinglePerMarkerSpikeSlabGaussianState::visit(infra::FieldVisitor& visitor)
     auto scope = visitor.scope(name);
     visitor.on(
         "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
-    mixture().visit(visitor);
+    auto mixture_scope = visitor.scope(MixtureState::name);
+    visitor.on(
+        "assignment", assignment(), FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on(
+        "proportion", proportion(), FieldFlag::checkpoint | FieldFlag::trace);
 }
 
 SingleScaledMixtureGaussianState::SingleScaledMixtureGaussianState(
@@ -112,7 +120,11 @@ auto SingleScaledMixtureGaussianState::visit(infra::FieldVisitor& visitor)
     visitor.on(
         "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
     component().visit(visitor);
-    mixture().visit(visitor);
+    auto mixture_scope = visitor.scope(MixtureState::name);
+    visitor.on(
+        "assignment", assignment(), FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on(
+        "proportion", proportion(), FieldFlag::checkpoint | FieldFlag::trace);
 }
 
 JointGaussianMixtureState::JointGaussianMixtureState(
@@ -139,7 +151,11 @@ auto JointGaussianMixtureState::visit(infra::FieldVisitor& visitor) -> void
             FieldFlag::checkpoint | FieldFlag::trace);
     }
     component().visit(visitor);
-    mixture().visit(visitor);
+    auto mixture_scope = visitor.scope(MixtureState::name);
+    visitor.on(
+        "assignment", assignment(), FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on(
+        "proportion", proportion(), FieldFlag::checkpoint | FieldFlag::trace);
 }
 
 }  // namespace gelex::bayes

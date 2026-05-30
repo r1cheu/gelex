@@ -29,29 +29,19 @@
 namespace gelex::bayes
 {
 
-AssignmentState::AssignmentState(Eigen::Index num_markers)
-{
-    assignment = Eigen::VectorXi::Zero(num_markers);
-}
-
-auto AssignmentState::visit(infra::FieldVisitor& visitor) -> void
-{
-    auto scope = visitor.scope(name);
-    visitor.on(
-        "assignment", assignment, FieldFlag::checkpoint | FieldFlag::trace);
-}
-
 MixtureState::MixtureState(
     const MixtureProportion& proportion,
     Eigen::Index num_markers)
-    : assignment(num_markers), proportion(proportion.initial_value())
+    : assignment(Eigen::VectorXi::Zero(num_markers)),
+      proportion(proportion.initial_value())
 {
 }
 
 auto MixtureState::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
-    assignment.visit(visitor);
+    visitor.on(
+        "assignment", assignment, FieldFlag::checkpoint | FieldFlag::trace);
     visitor.on(
         "proportion", proportion, FieldFlag::checkpoint | FieldFlag::trace);
 }

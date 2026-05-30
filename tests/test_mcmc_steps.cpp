@@ -128,7 +128,7 @@ TEST_CASE(
     auto& scaled_state
         = std::get<gelex::bayes::SingleScaledMixtureGaussianState>(
             block.prior_state());
-    scaled_state.assignment().assignment = Eigen::VectorXi{{1, 1}};
+    scaled_state.assignment() = Eigen::VectorXi{{1, 1}};
 
     std::mt19937_64 rng{123};
     gelex::mcmc::SingleScaledMixtureVarStep step{block, prior, rng};
@@ -148,18 +148,17 @@ TEST_CASE("Single proportion step accepts prior state variant", "[mcmc]")
             gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
             make_proportion()}};
     gelex::bayes::SingleGeneticBlockState block{design, prior};
-    auto& mixture
+    auto& mixture_state
         = std::get<gelex::bayes::SingleSharedSpikeSlabGaussianState>(
-              block.prior_state())
-              .mixture();
-    mixture.assignment.assignment = Eigen::VectorXi{{0, 1}};
+            block.prior_state());
+    mixture_state.assignment() = Eigen::VectorXi{{0, 1}};
 
     std::mt19937_64 rng{123};
     gelex::mcmc::SingleProportionStep step{block, prior, rng};
     step.step();
 
-    REQUIRE(mixture.proportion.allFinite());
-    REQUIRE(std::abs(mixture.proportion.sum() - 1.0) < 1e-12);
+    REQUIRE(mixture_state.proportion().allFinite());
+    REQUIRE(std::abs(mixture_state.proportion().sum() - 1.0) < 1e-12);
 }
 
 TEST_CASE("Single coefficient step accepts prior state variant", "[mcmc]")

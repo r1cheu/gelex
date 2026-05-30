@@ -92,7 +92,7 @@ class SingleSharedSpikeSlabCoeffStep final : public Step
     bayes::GeneticState& state_;
     bayes::ResidualState& residual_;
     double& variance_;
-    bayes::AssignmentState& assignment_;
+    Eigen::VectorXi& assignment_;
     const Eigen::VectorXd& proportion_;
     stats::NormalSampler<double> normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
@@ -117,7 +117,7 @@ class SinglePerMarkerSpikeSlabCoeffStep final : public Step
     bayes::GeneticState& state_;
     bayes::ResidualState& residual_;
     Eigen::VectorXd& variance_;
-    bayes::AssignmentState& assignment_;
+    Eigen::VectorXi& assignment_;
     const Eigen::VectorXd& proportion_;
     stats::NormalSampler<double> normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
@@ -144,7 +144,7 @@ class SingleScaledMixtureCoeffStep final : public Step
     bayes::GeneticState& state_;
     bayes::ResidualState& residual_;
     double& variance_;
-    bayes::AssignmentState& assignment_;
+    Eigen::VectorXi& assignment_;
     const Eigen::VectorXd& proportion_;
     bayes::ComponentState& component_;
     Eigen::VectorXd multiplier_;
@@ -178,7 +178,7 @@ class JointGaussianMixtureCoeffStep final : public Step
     bayes::GeneticState& dominance_;
     bayes::ResidualState& residual_;
     std::array<double*, 2> variance_;
-    bayes::AssignmentState& assignment_;
+    Eigen::VectorXi& assignment_;
     const Eigen::VectorXd& proportion_;
     stats::NormalSampler<double> normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};

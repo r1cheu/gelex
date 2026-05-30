@@ -29,9 +29,9 @@ SingleProportionStep::SingleProportionStep(
     bayes::SingleGeneticBlockState& block,
     const bayes::SingleGeneticPrior& prior,
     std::mt19937_64& rng)
-    : mixture_(
+    : assignment_(
           std::visit(
-              [](auto& state) -> bayes::MixtureState&
+              [](auto& state) -> Eigen::VectorXi&
               {
                   using State = std::decay_t<decltype(state)>;
                   if constexpr (
@@ -45,7 +45,33 @@ SingleProportionStep::SingleProportionStep(
                           State,
                           bayes::SingleScaledMixtureGaussianState>)
                   {
-                      return state.mixture();
+                      return state.assignment();
+                  }
+                  else
+                  {
+                      throw GelexException(
+                          "SingleProportionStep requires mixture "
+                          "state");
+                  }
+              },
+              block.prior_state())),
+      proportion_(
+          std::visit(
+              [](auto& state) -> Eigen::VectorXd&
+              {
+                  using State = std::decay_t<decltype(state)>;
+                  if constexpr (
+                      std::is_same_v<
+                          State,
+                          bayes::SingleSharedSpikeSlabGaussianState>
+                      || std::is_same_v<
+                          State,
+                          bayes::SinglePerMarkerSpikeSlabGaussianState>
+                      || std::is_same_v<
+                          State,
+                          bayes::SingleScaledMixtureGaussianState>)
+                  {
+                      return state.proportion();
                   }
                   else
                   {
@@ -94,27 +120,45 @@ SingleProportionStep::SingleProportionStep(
 auto SingleProportionStep::step() -> void
 {
     dirichlet_.reset();
-    Eigen::VectorXi count = Eigen::VectorXi::Zero(mixture_.proportion.size());
-    for (Eigen::Index i = 0; i < mixture_.assignment.assignment.size(); ++i)
+    Eigen::VectorXi count = Eigen::VectorXi::Zero(proportion_.size());
+    for (Eigen::Index i = 0; i < assignment_.size(); ++i)
     {
-        ++count(mixture_.assignment.assignment(i));
+        ++count(assignment_(i));
     }
-    mixture_.proportion = dirichlet_(count, rng_);
+    proportion_ = dirichlet_(count, rng_);
 }
 
 JointProportionStep::JointProportionStep(
     bayes::JointGeneticBlockState& block,
     const bayes::JointGeneticPrior& prior,
     std::mt19937_64& rng)
-    : mixture_(
+    : assignment_(
           std::visit(
-              [](auto& state) -> bayes::MixtureState&
+              [](auto& state) -> Eigen::VectorXi&
               {
                   using State = std::decay_t<decltype(state)>;
                   if constexpr (
                       std::is_same_v<State, bayes::JointGaussianMixtureState>)
                   {
-                      return state.mixture();
+                      return state.assignment();
+                  }
+                  else
+                  {
+                      throw GelexException(
+                          "JointProportionStep requires mixture "
+                          "state");
+                  }
+              },
+              block.prior_state())),
+      proportion_(
+          std::visit(
+              [](auto& state) -> Eigen::VectorXd&
+              {
+                  using State = std::decay_t<decltype(state)>;
+                  if constexpr (
+                      std::is_same_v<State, bayes::JointGaussianMixtureState>)
+                  {
+                      return state.proportion();
                   }
                   else
                   {
@@ -155,12 +199,12 @@ JointProportionStep::JointProportionStep(
 auto JointProportionStep::step() -> void
 {
     dirichlet_.reset();
-    Eigen::VectorXi count = Eigen::VectorXi::Zero(mixture_.proportion.size());
-    for (Eigen::Index i = 0; i < mixture_.assignment.assignment.size(); ++i)
+    Eigen::VectorXi count = Eigen::VectorXi::Zero(proportion_.size());
+    for (Eigen::Index i = 0; i < assignment_.size(); ++i)
     {
-        ++count(mixture_.assignment.assignment(i));
+        ++count(assignment_(i));
     }
-    mixture_.proportion = dirichlet_(count, rng_);
+    proportion_ = dirichlet_(count, rng_);
 }
 
 }  // namespace gelex::mcmc

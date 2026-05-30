@@ -53,27 +53,18 @@ class Proportion
 };
 
 template <typename T>
-class MixtureField : public Proportion<T>
+class MixtureField
 {
    public:
-    explicit MixtureField(T mixture) : Proportion<T>(std::move(mixture)) {}
+    explicit MixtureField(T mixture) : mixture_(std::move(mixture)) {}
 
-    auto mixture() -> T& { return this->proportion(); }
-    auto mixture() const -> const T& { return this->proportion(); }
+    auto assignment() -> decltype(auto) { return (mixture_.assignment); }
+    auto assignment() const -> decltype(auto) { return (mixture_.assignment); }
+    auto proportion() -> decltype(auto) { return (mixture_.proportion); }
+    auto proportion() const -> decltype(auto) { return (mixture_.proportion); }
 
-    auto assignment() -> decltype(auto) { return (this->mixture().assignment); }
-    auto assignment() const -> decltype(auto)
-    {
-        return (this->mixture().assignment);
-    }
-    auto mixture_proportion() -> decltype(auto)
-    {
-        return (this->mixture().proportion);
-    }
-    auto mixture_proportion() const -> decltype(auto)
-    {
-        return (this->mixture().proportion);
-    }
+   private:
+    T mixture_;
 };
 
 template <typename T>
@@ -87,21 +78,6 @@ class Multiplier
 
    private:
     T multiplier_;
-};
-
-template <typename T>
-class AssignmentField
-{
-   public:
-    explicit AssignmentField(T assignment) : assignment_(std::move(assignment))
-    {
-    }
-
-    auto assignment() -> T& { return assignment_; }
-    auto assignment() const -> const T& { return assignment_; }
-
-   private:
-    T assignment_;
 };
 
 template <typename T>

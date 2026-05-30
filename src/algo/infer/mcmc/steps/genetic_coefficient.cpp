@@ -151,7 +151,7 @@ SingleSharedSpikeSlabCoeffStep::SingleSharedSpikeSlabCoeffStep(
       proportion_(
           std::get<bayes::SingleSharedSpikeSlabGaussianState>(
               block.prior_state())
-              .mixture_proportion()),
+              .proportion()),
       normal_(variance_),
       rng_(rng)
 {
@@ -191,7 +191,7 @@ auto SingleSharedSpikeSlabCoeffStep::step() -> void
 
         GeneticAdjustmentGuard guard{column, coeffs(i), residual_, state_};
         coeffs(i) = component == 0 ? 0.0 : normal_.draw(post.params, rng_);
-        assignment_.assignment(i) = component;
+        assignment_(i) = component;
     }
     state_.variance = stats::detail::var(state_.u)(0);
 }
@@ -216,7 +216,7 @@ SinglePerMarkerSpikeSlabCoeffStep::SinglePerMarkerSpikeSlabCoeffStep(
       proportion_(
           std::get<bayes::SinglePerMarkerSpikeSlabGaussianState>(
               block.prior_state())
-              .mixture_proportion()),
+              .proportion()),
       normal_(0.0),
       rng_(rng)
 {
@@ -257,7 +257,7 @@ auto SinglePerMarkerSpikeSlabCoeffStep::step() -> void
 
         GeneticAdjustmentGuard guard{column, coeffs(i), residual_, state_};
         coeffs(i) = component == 0 ? 0.0 : normal_.draw(post.params, rng_);
-        assignment_.assignment(i) = component;
+        assignment_(i) = component;
     }
     state_.variance = stats::detail::var(state_.u)(0);
 }
@@ -279,7 +279,7 @@ SingleScaledMixtureCoeffStep::SingleScaledMixtureCoeffStep(
               .assignment()),
       proportion_(
           std::get<bayes::SingleScaledMixtureGaussianState>(block.prior_state())
-              .mixture_proportion()),
+              .proportion()),
       component_(
           std::get<bayes::SingleScaledMixtureGaussianState>(block.prior_state())
               .component()),
@@ -348,13 +348,7 @@ auto SingleScaledMixtureCoeffStep::step() -> void
         }
 
         GeneticMixtureAdjustmentGuard guard{
-            column,
-            coeffs(i),
-            residual_,
-            state_,
-            component_,
-            assignment_.assignment,
-            i};
+            column, coeffs(i), residual_, state_, component_, assignment_, i};
         coeffs(i) = 0.0;
         if (component > 0)
         {
@@ -363,7 +357,7 @@ auto SingleScaledMixtureCoeffStep::step() -> void
                  .var = scale_vars_(component)},
                 rng_);
         }
-        assignment_.assignment(i) = component;
+        assignment_(i) = component;
     }
     state_.variance = stats::detail::var(state_.u)(0);
     for (Eigen::Index k = 0;
@@ -396,7 +390,7 @@ JointGaussianMixtureCoeffStep::JointGaussianMixtureCoeffStep(
               .assignment()),
       proportion_(
           std::get<bayes::JointGaussianMixtureState>(block.prior_state())
-              .mixture_proportion()),
+              .proportion()),
       normal_(0.0),
       rng_(rng)
 {
@@ -486,7 +480,7 @@ auto JointGaussianMixtureCoeffStep::step() -> void
         dominance_coeffs(i) = (component == 2 || component == 3)
                                   ? normal_.draw(dominance_post.params, rng_)
                                   : 0.0;
-        assignment_.assignment(i) = component;
+        assignment_(i) = component;
     }
     additive_.variance = stats::detail::var(additive_.u)(0);
     dominance_.variance = stats::detail::var(dominance_.u)(0);

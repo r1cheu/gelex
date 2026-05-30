@@ -19,6 +19,8 @@
 
 #include <random>
 
+#include <Eigen/Core>
+
 #include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/bayes/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
@@ -38,7 +40,8 @@ class SingleProportionStep final : public Step
     auto step() -> void override;
 
    private:
-    bayes::MixtureState& mixture_;
+    Eigen::VectorXi& assignment_;
+    Eigen::VectorXd& proportion_;
     stats::DirichletSampler<double> dirichlet_;
     std::mt19937_64& rng_;
 };
@@ -54,7 +57,8 @@ class JointProportionStep final : public Step
     auto step() -> void override;
 
    private:
-    bayes::MixtureState& mixture_;
+    Eigen::VectorXi& assignment_;
+    Eigen::VectorXd& proportion_;
     stats::DirichletSampler<double> dirichlet_;
     std::mt19937_64& rng_;
 };

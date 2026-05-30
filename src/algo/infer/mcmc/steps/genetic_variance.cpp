@@ -83,7 +83,7 @@ auto SingleSharedSpikeSlabVarStep::step() -> void
     double sum_squares = 0.0;
     for (Eigen::Index i = 0; i < coeffs.size(); ++i)
     {
-        const int component = assignment_.assignment(i);
+        const int component = assignment_(i);
         if (component == 0)
         {
             continue;
@@ -126,7 +126,7 @@ auto SingleScaledMixtureVarStep::step() -> void
     double sum_squares = 0.0;
     for (Eigen::Index i = 0; i < coeffs.size(); ++i)
     {
-        const int component = assignment_.assignment(i);
+        const int component = assignment_(i);
         if (component == 0)
         {
             continue;
@@ -195,7 +195,7 @@ auto SinglePerMarkerSpikeSlabVarStep::step() -> void
     const auto& coeffs = block_.state().coeffs;
     for (Eigen::Index i = 0; i < coeffs.size(); ++i)
     {
-        if (assignment_.assignment(i) == 0)
+        if (assignment_(i) == 0)
         {
             continue;
         }
@@ -245,7 +245,7 @@ auto JointMixtureVarStep::step() -> void
         double sum_squares = 0.0;
         for (Eigen::Index i = 0; i < coeffs.size(); ++i)
         {
-            const int component = assignment_.assignment(i);
+            const int component = assignment_(i);
             const bool active = mode == GeneticMode::A
                                     ? (component == 1 || component == 3)
                                     : (component == 2 || component == 3);
