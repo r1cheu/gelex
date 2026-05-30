@@ -18,6 +18,7 @@
 #define GELEX_BAYES_GENETIC_PARAMETERS_H_
 
 #include <array>
+#include <optional>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -99,40 +100,39 @@ class JointSharedMarkerVariance
     std::array<SharedMarkerVariance, 2> variances_;
 };
 
-class FixedProportion
+class MixtureProportion
 {
    public:
-    static constexpr std::string_view name = "fixed_mixture_proportion";
-    explicit FixedProportion(Eigen::VectorXd value);
+    static constexpr std::string_view name = "mixture_proportion";
+    explicit MixtureProportion(Eigen::VectorXd initial_value);
+    explicit MixtureProportion(SimplexParameter parameter);
 
-    auto value() const -> const Eigen::VectorXd& { return value_; }
-    auto size() const -> Eigen::Index { return value_.size(); }
+    auto initial_value() const -> const Eigen::VectorXd&
+    {
+        return initial_value_;
+    }
+    auto is_sampled() const -> bool { return prior_.has_value(); }
+    auto prior() const -> const std::optional<DirichletPrior>&
+    {
+        return prior_;
+    }
+    auto size() const -> Eigen::Index { return initial_value_.size(); }
     auto visit(infra::FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
-        visitor.on("value", value_, FieldFlag::checkpoint | FieldFlag::report);
+        visitor.on(
+            "initial_value",
+            initial_value_,
+            FieldFlag::checkpoint | FieldFlag::report);
+        if (prior_)
+        {
+            prior_->visit(visitor);
+        }
     }
 
    private:
-    Eigen::VectorXd value_;
-};
-
-class SampledProportion
-{
-   public:
-    static constexpr std::string_view name = "sampled_mixture_proportion";
-    explicit SampledProportion(SimplexParameter parameter);
-
-    auto parameter() const -> const SimplexParameter& { return parameter_; }
-    auto size() const -> Eigen::Index { return parameter_.size(); }
-    auto visit(infra::FieldVisitor& visitor) -> void
-    {
-        auto scope = visitor.scope(name);
-        parameter_.visit(visitor);
-    }
-
-   private:
-    SimplexParameter parameter_;
+    Eigen::VectorXd initial_value_;
+    std::optional<DirichletPrior> prior_;
 };
 
 }  // namespace gelex::bayes

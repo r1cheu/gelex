@@ -72,7 +72,7 @@ auto BayesCDMethod::make_joint_prior(
     if (config.joint_proportion_update.value_or(true))
     {
         const auto n = static_cast<Eigen::Index>(proportion.size());
-        return JointSampledGaussianMixturePrior{
+        return JointGaussianMixturePrior{
             JointSharedMarkerVariance{std::array{
                 SharedMarkerVariance{VarianceParameter{
                     target_a,
@@ -80,11 +80,11 @@ auto BayesCDMethod::make_joint_prior(
                 SharedMarkerVariance{VarianceParameter{
                     target_d,
                     ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target_d}}}}},
-            SampledProportion{SimplexParameter{
+            MixtureProportion{SimplexParameter{
                 proportion.to_mat(),
                 DirichletPrior{Eigen::VectorXd::Ones(n)}}}};
     }
-    return JointFixedGaussianMixturePrior{
+    return JointGaussianMixturePrior{
         JointSharedMarkerVariance{std::array{
             SharedMarkerVariance{VarianceParameter{
                 target_a,
@@ -92,7 +92,7 @@ auto BayesCDMethod::make_joint_prior(
             SharedMarkerVariance{VarianceParameter{
                 target_d,
                 ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target_d}}}}},
-        FixedProportion{proportion.to_mat()}};
+        MixtureProportion{proportion.to_mat()}};
 }
 
 }  // namespace gelex::bayes

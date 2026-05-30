@@ -3,6 +3,7 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <optional>
 #include <utility>
 
 #include <Eigen/Core>
@@ -28,35 +29,36 @@ JointSharedMarkerVariance::JointSharedMarkerVariance(
 {
 }
 
-FixedProportion::FixedProportion(Eigen::VectorXd value)
-    : value_(std::move(value))
+MixtureProportion::MixtureProportion(Eigen::VectorXd initial_value)
+    : initial_value_(std::move(initial_value))
 {
-    if (value_.size() < 2)
+    if (initial_value_.size() < 2)
     {
         throw GelexException(
-            "FixedMixtureProportion: value must have at least 2 entries");
+            "MixtureProportion: initial_value must have at least 2 entries");
     }
-    for (Eigen::Index i = 0; i < value_.size(); ++i)
+    for (Eigen::Index i = 0; i < initial_value_.size(); ++i)
     {
-        if (!std::isfinite(value_(i)) || !(value_(i) > 0))
+        if (!std::isfinite(initial_value_(i)) || !(initial_value_(i) > 0))
         {
             throw GelexException(
-                "FixedMixtureProportion: value entries must be finite and "
+                "MixtureProportion: initial_value entries must be finite and "
                 "> 0");
         }
     }
-    const double sum = value_.sum();
+    const double sum = initial_value_.sum();
     const double tol = std::numeric_limits<double>::epsilon()
-                       * static_cast<double>(value_.size()) * 64.0;
+                       * static_cast<double>(initial_value_.size()) * 64.0;
     if (std::abs(sum - 1.0) > tol)
     {
         throw GelexException(
-            "FixedMixtureProportion: value entries must sum to 1");
+            "MixtureProportion: initial_value entries must sum to 1");
     }
 }
 
-SampledProportion::SampledProportion(SimplexParameter parameter)
-    : parameter_(std::move(parameter))
+MixtureProportion::MixtureProportion(SimplexParameter parameter)
+    : initial_value_(parameter.initial_value()),
+      prior_(std::make_optional<DirichletPrior>(parameter.prior()))
 {
 }
 

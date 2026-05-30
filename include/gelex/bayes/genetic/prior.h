@@ -40,15 +40,11 @@ inline constexpr std::string_view kJointGeneticPriorName = "joint";
 using SingleGeneticPrior = std::variant<
     SingleSharedGaussianPrior,
     SinglePerMarkerGaussianPrior,
-    SingleFixedSharedSpikeSlabGaussianPrior,
-    SingleSampledSharedSpikeSlabGaussianPrior,
-    SingleFixedPerMarkerSpikeSlabGaussianPrior,
-    SingleSampledPerMarkerSpikeSlabGaussianPrior,
-    SingleFixedScaledMixtureGaussianPrior,
-    SingleSampledScaledMixtureGaussianPrior>;
+    SingleSharedSpikeSlabGaussianPrior,
+    SinglePerMarkerSpikeSlabGaussianPrior,
+    SingleScaledMixtureGaussianPrior>;
 
-using JointGeneticPrior = std::
-    variant<JointFixedGaussianMixturePrior, JointSampledGaussianMixturePrior>;
+using JointGeneticPrior = std::variant<JointGaussianMixturePrior>;
 
 auto mode(const SingleGeneticPrior& prior) -> GeneticMode;
 

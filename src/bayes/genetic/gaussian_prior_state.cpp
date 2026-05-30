@@ -56,147 +56,77 @@ auto SinglePerMarkerGaussianState::visit(infra::FieldVisitor& visitor) -> void
         "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
 }
 
-SingleFixedSharedSpikeSlabGaussianState::
-    SingleFixedSharedSpikeSlabGaussianState(
-        double variance,
-        Eigen::Index num_components,
-        Eigen::Index num_markers)
+SingleSharedSpikeSlabGaussianState::SingleSharedSpikeSlabGaussianState(
+    double variance,
+    const MixtureProportion& proportion,
+    Eigen::Index num_markers)
     : Variance<double>(variance),
-      AssignmentField<AssignmentState>(
-          AssignmentState{num_components, num_markers})
+      MixtureField<MixtureState>(MixtureState{proportion, num_markers})
 {
 }
 
-auto SingleFixedSharedSpikeSlabGaussianState::visit(
-    infra::FieldVisitor& visitor) -> void
-{
-    auto scope = visitor.scope(name);
-    visitor.on(
-        "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
-    assignment().visit(visitor);
-}
-
-SingleSampledSharedSpikeSlabGaussianState::
-    SingleSampledSharedSpikeSlabGaussianState(
-        double variance,
-        const SampledProportion& proportion,
-        Eigen::Index num_markers)
-    : Variance<double>(variance),
-      SampledProportionField<SampledProportionState>(
-          SampledProportionState{proportion, num_markers})
-{
-}
-
-auto SingleSampledSharedSpikeSlabGaussianState::visit(
-    infra::FieldVisitor& visitor) -> void
+auto SingleSharedSpikeSlabGaussianState::visit(infra::FieldVisitor& visitor)
+    -> void
 {
     auto scope = visitor.scope(name);
     visitor.on(
         "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
-    proportion().visit(visitor);
+    mixture().visit(visitor);
 }
 
-SingleFixedPerMarkerSpikeSlabGaussianState::
-    SingleFixedPerMarkerSpikeSlabGaussianState(
-        Eigen::VectorXd variance,
-        Eigen::Index num_components,
-        Eigen::Index num_markers)
+SinglePerMarkerSpikeSlabGaussianState::SinglePerMarkerSpikeSlabGaussianState(
+    Eigen::VectorXd variance,
+    const MixtureProportion& proportion,
+    Eigen::Index num_markers)
     : Variance<Eigen::VectorXd>(std::move(variance)),
-      AssignmentField<AssignmentState>(
-          AssignmentState{num_components, num_markers})
+      MixtureField<MixtureState>(MixtureState{proportion, num_markers})
 {
 }
 
-auto SingleFixedPerMarkerSpikeSlabGaussianState::visit(
-    infra::FieldVisitor& visitor) -> void
-{
-    auto scope = visitor.scope(name);
-    visitor.on(
-        "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
-    assignment().visit(visitor);
-}
-
-SingleSampledPerMarkerSpikeSlabGaussianState::
-    SingleSampledPerMarkerSpikeSlabGaussianState(
-        Eigen::VectorXd variance,
-        const SampledProportion& proportion,
-        Eigen::Index num_markers)
-    : Variance<Eigen::VectorXd>(std::move(variance)),
-      SampledProportionField<SampledProportionState>(
-          SampledProportionState{proportion, num_markers})
-{
-}
-
-auto SingleSampledPerMarkerSpikeSlabGaussianState::visit(
-    infra::FieldVisitor& visitor) -> void
+auto SinglePerMarkerSpikeSlabGaussianState::visit(infra::FieldVisitor& visitor)
+    -> void
 {
     auto scope = visitor.scope(name);
     visitor.on(
         "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
-    proportion().visit(visitor);
+    mixture().visit(visitor);
 }
 
-SingleFixedScaledMixtureGaussianState::SingleFixedScaledMixtureGaussianState(
+SingleScaledMixtureGaussianState::SingleScaledMixtureGaussianState(
     double variance,
     const Eigen::VectorXd& multiplier,
+    const MixtureProportion& proportion,
     Eigen::Index num_markers,
     Eigen::Index num_individuals)
     : Variance<double>(variance),
       ComponentField<ComponentState>(
           ComponentState{multiplier.size() - 1, num_individuals}),
-      AssignmentField<AssignmentState>(
-          AssignmentState{multiplier.size(), num_markers})
+      MixtureField<MixtureState>(MixtureState{proportion, num_markers})
 {
 }
 
-auto SingleFixedScaledMixtureGaussianState::visit(infra::FieldVisitor& visitor)
+auto SingleScaledMixtureGaussianState::visit(infra::FieldVisitor& visitor)
     -> void
 {
     auto scope = visitor.scope(name);
     visitor.on(
         "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
     component().visit(visitor);
-    assignment().visit(visitor);
+    mixture().visit(visitor);
 }
 
-SingleSampledScaledMixtureGaussianState::
-    SingleSampledScaledMixtureGaussianState(
-        double variance,
-        const Eigen::VectorXd& multiplier,
-        const SampledProportion& proportion,
-        Eigen::Index num_markers,
-        Eigen::Index num_individuals)
-    : Variance<double>(variance),
-      ComponentField<ComponentState>(
-          ComponentState{multiplier.size() - 1, num_individuals}),
-      SampledProportionField<SampledProportionState>(
-          SampledProportionState{proportion, num_markers})
-{
-}
-
-auto SingleSampledScaledMixtureGaussianState::visit(
-    infra::FieldVisitor& visitor) -> void
-{
-    auto scope = visitor.scope(name);
-    visitor.on(
-        "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
-    component().visit(visitor);
-    proportion().visit(visitor);
-}
-
-JointFixedGaussianMixtureState::JointFixedGaussianMixtureState(
+JointGaussianMixtureState::JointGaussianMixtureState(
     std::array<double, 2> variances,
-    Eigen::Index num_components,
+    const MixtureProportion& proportion,
     Eigen::Index num_markers,
     Eigen::Index num_individuals)
     : Variances<double>(std::move(variances)),
       ComponentField<ComponentState>(ComponentState{1, num_individuals}),
-      AssignmentField<AssignmentState>(
-          AssignmentState{num_components, num_markers})
+      MixtureField<MixtureState>(MixtureState{proportion, num_markers})
 {
 }
 
-auto JointFixedGaussianMixtureState::visit(infra::FieldVisitor& visitor) -> void
+auto JointGaussianMixtureState::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     constexpr std::array modes{GeneticMode::A, GeneticMode::D};
@@ -209,36 +139,7 @@ auto JointFixedGaussianMixtureState::visit(infra::FieldVisitor& visitor) -> void
             FieldFlag::checkpoint | FieldFlag::trace);
     }
     component().visit(visitor);
-    assignment().visit(visitor);
-}
-
-JointSampledGaussianMixtureState::JointSampledGaussianMixtureState(
-    std::array<double, 2> variances,
-    const SampledProportion& proportion,
-    Eigen::Index num_markers,
-    Eigen::Index num_individuals)
-    : Variances<double>(std::move(variances)),
-      ComponentField<ComponentState>(ComponentState{1, num_individuals}),
-      SampledProportionField<SampledProportionState>(
-          SampledProportionState{proportion, num_markers})
-{
-}
-
-auto JointSampledGaussianMixtureState::visit(infra::FieldVisitor& visitor)
-    -> void
-{
-    auto scope = visitor.scope(name);
-    constexpr std::array modes{GeneticMode::A, GeneticMode::D};
-    for (const auto mode : modes)
-    {
-        auto mode_scope = visitor.scope(fmt::format("{}", mode));
-        visitor.on(
-            "variance",
-            variance(mode),
-            FieldFlag::checkpoint | FieldFlag::trace);
-    }
-    component().visit(visitor);
-    proportion().visit(visitor);
+    mixture().visit(visitor);
 }
 
 }  // namespace gelex::bayes

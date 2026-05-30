@@ -112,11 +112,11 @@ TEST_CASE("BayesState rejects missing genetic designs", "[bayes_state]")
                 gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
     genetics.emplace_back(
         gelex::bayes::JointGeneticPrior{
-            gelex::bayes::JointFixedGaussianMixturePrior{
+            gelex::bayes::JointGaussianMixturePrior{
                 gelex::bayes::JointSharedMarkerVariance{std::array{
                     gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
                     gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
-                gelex::bayes::FixedProportion{
+                gelex::bayes::MixtureProportion{
                     Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}}}}});
 
     REQUIRE_THROWS_AS(

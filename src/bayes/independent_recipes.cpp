@@ -100,19 +100,19 @@ auto BayesBMethod::make_single_genetic_prior(
     if (effect.proportion_update().value_or(true))
     {
         const auto n = static_cast<Eigen::Index>(proportion.size());
-        return SingleSampledPerMarkerSpikeSlabGaussianPrior{
+        return SinglePerMarkerSpikeSlabGaussianPrior{
             mode,
             PerMarkerVariance{VarianceParameter{
                 target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
-            SampledProportion{SimplexParameter{
+            MixtureProportion{SimplexParameter{
                 proportion.to_mat(),
                 DirichletPrior{Eigen::VectorXd::Ones(n)}}}};
     }
-    return SingleFixedPerMarkerSpikeSlabGaussianPrior{
+    return SinglePerMarkerSpikeSlabGaussianPrior{
         mode,
         PerMarkerVariance{VarianceParameter{
             target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
-        FixedProportion{proportion.to_mat()}};
+        MixtureProportion{proportion.to_mat()}};
 }
 
 BayesCMethod::BayesCMethod(const BayesRecipeConfig& options)
@@ -137,19 +137,19 @@ auto BayesCMethod::make_single_genetic_prior(
     if (effect.proportion_update().value_or(true))
     {
         const auto n = static_cast<Eigen::Index>(proportion.size());
-        return SingleSampledSharedSpikeSlabGaussianPrior{
+        return SingleSharedSpikeSlabGaussianPrior{
             mode,
             SharedMarkerVariance{VarianceParameter{
                 target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
-            SampledProportion{SimplexParameter{
+            MixtureProportion{SimplexParameter{
                 proportion.to_mat(),
                 DirichletPrior{Eigen::VectorXd::Ones(n)}}}};
     }
-    return SingleFixedSharedSpikeSlabGaussianPrior{
+    return SingleSharedSpikeSlabGaussianPrior{
         mode,
         SharedMarkerVariance{VarianceParameter{
             target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
-        FixedProportion{proportion.to_mat()}};
+        MixtureProportion{proportion.to_mat()}};
 }
 
 BayesRMethod::BayesRMethod(const BayesRecipeConfig& options)
@@ -180,21 +180,21 @@ auto BayesRMethod::make_single_genetic_prior(
     if (effect.proportion_update().value_or(true))
     {
         const auto n = static_cast<Eigen::Index>(proportion.size());
-        return SingleSampledScaledMixtureGaussianPrior{
+        return SingleScaledMixtureGaussianPrior{
             mode,
             SharedMarkerVariance{VarianceParameter{
                 target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
             multiplier.to_mat(),
-            SampledProportion{SimplexParameter{
+            MixtureProportion{SimplexParameter{
                 proportion.to_mat(),
                 DirichletPrior{Eigen::VectorXd::Ones(n)}}}};
     }
-    return SingleFixedScaledMixtureGaussianPrior{
+    return SingleScaledMixtureGaussianPrior{
         mode,
         SharedMarkerVariance{VarianceParameter{
             target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
         multiplier.to_mat(),
-        FixedProportion{proportion.to_mat()}};
+        MixtureProportion{proportion.to_mat()}};
 }
 
 }  // namespace gelex::bayes

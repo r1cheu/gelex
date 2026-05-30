@@ -175,42 +175,6 @@ class GeneticMixtureAdjustmentGuard
     int old_class_{0};
 };
 
-class ProportionAssignmentGuard
-{
-   public:
-    ProportionAssignmentGuard(
-        bayes::AssignmentState& assignment,
-        Eigen::Index marker_index)
-        : assignment_(assignment),
-          marker_index_(marker_index),
-          old_class_(assignment.assignment(marker_index))
-    {
-    }
-
-    ProportionAssignmentGuard(const ProportionAssignmentGuard&) = delete;
-    ProportionAssignmentGuard(ProportionAssignmentGuard&&) = delete;
-    auto operator=(const ProportionAssignmentGuard&)
-        -> ProportionAssignmentGuard& = delete;
-    auto operator=(ProportionAssignmentGuard&&)
-        -> ProportionAssignmentGuard& = delete;
-
-    ~ProportionAssignmentGuard()
-    {
-        const int new_class = assignment_.assignment(marker_index_);
-        if (old_class_ == new_class)
-        {
-            return;
-        }
-        --assignment_.count(old_class_);
-        ++assignment_.count(new_class);
-    }
-
-   private:
-    bayes::AssignmentState& assignment_;
-    Eigen::Index marker_index_{};
-    int old_class_{0};
-};
-
 class JointGeneticAdjustmentGuard
 {
    public:

@@ -141,76 +141,22 @@ SingleSharedSpikeSlabCoeffStep::SingleSharedSpikeSlabCoeffStep(
       state_(block.state()),
       residual_(residual),
       variance_(
-          std::visit(
-              [](auto& state_value) -> double&
-              {
-                  using State = std::decay_t<decltype(state_value)>;
-                  if constexpr (
-                      std::is_same_v<
-                          State,
-                          bayes::SingleFixedSharedSpikeSlabGaussianState>
-                      || std::is_same_v<
-                          State,
-                          bayes::SingleSampledSharedSpikeSlabGaussianState>)
-                  {
-                      return state_value.variance();
-                  }
-                  else
-                  {
-                      throw GelexException(
-                          "SingleSharedSpikeSlabCoeffStep requires shared "
-                          "spike-slab state");
-                  }
-              },
-              block.prior_state())),
+          std::get<bayes::SingleSharedSpikeSlabGaussianState>(
+              block.prior_state())
+              .variance()),
       assignment_(
-          std::visit(
-              [](auto& state_value) -> bayes::AssignmentState&
-              {
-                  using State = std::decay_t<decltype(state_value)>;
-                  if constexpr (
-                      std::is_same_v<
-                          State,
-                          bayes::SingleFixedSharedSpikeSlabGaussianState>
-                      || std::is_same_v<
-                          State,
-                          bayes::SingleSampledSharedSpikeSlabGaussianState>)
-                  {
-                      return state_value.assignment();
-                  }
-                  else
-                  {
-                      throw GelexException(
-                          "SingleSharedSpikeSlabCoeffStep requires shared "
-                          "spike-slab state");
-                  }
-              },
-              block.prior_state())),
+          std::get<bayes::SingleSharedSpikeSlabGaussianState>(
+              block.prior_state())
+              .assignment()),
       proportion_(
-          [&block, &prior]() -> const Eigen::VectorXd&
-          {
-              if (const auto* fixed
-                  = std::get_if<bayes::SingleFixedSharedSpikeSlabGaussianPrior>(
-                      &prior))
-              {
-                  return fixed->proportion().value();
-              }
-              if (std::holds_alternative<
-                      bayes::SingleSampledSharedSpikeSlabGaussianPrior>(prior))
-              {
-                  return std::get<
-                             bayes::SingleSampledSharedSpikeSlabGaussianState>(
-                             block.prior_state())
-                      .proportion()
-                      .value;
-              }
-              throw GelexException(
-                  "SingleSharedSpikeSlabCoeffStep requires shared spike-slab "
-                  "prior");
-          }()),
+          std::get<bayes::SingleSharedSpikeSlabGaussianState>(
+              block.prior_state())
+              .mixture_proportion()),
       normal_(variance_),
       rng_(rng)
 {
+    static_cast<void>(
+        std::get<bayes::SingleSharedSpikeSlabGaussianPrior>(prior));
 }
 
 auto SingleSharedSpikeSlabCoeffStep::step() -> void
@@ -243,7 +189,6 @@ auto SingleSharedSpikeSlabCoeffStep::step() -> void
             = 1.0 / (1.0 + std::exp(log_like_1_minus_0));
         const int component = uniform_(rng_) < prob_component_0 ? 0 : 1;
 
-        ProportionAssignmentGuard assignment_guard{assignment_, i};
         GeneticAdjustmentGuard guard{column, coeffs(i), residual_, state_};
         coeffs(i) = component == 0 ? 0.0 : normal_.draw(post.params, rng_);
         assignment_.assignment(i) = component;
@@ -261,77 +206,22 @@ SinglePerMarkerSpikeSlabCoeffStep::SinglePerMarkerSpikeSlabCoeffStep(
       state_(block.state()),
       residual_(residual),
       variance_(
-          std::visit(
-              [](auto& state_value) -> Eigen::VectorXd&
-              {
-                  using State = std::decay_t<decltype(state_value)>;
-                  if constexpr (
-                      std::is_same_v<
-                          State,
-                          bayes::SingleFixedPerMarkerSpikeSlabGaussianState>
-                      || std::is_same_v<
-                          State,
-                          bayes::SingleSampledPerMarkerSpikeSlabGaussianState>)
-                  {
-                      return state_value.variance();
-                  }
-                  else
-                  {
-                      throw GelexException(
-                          "SinglePerMarkerSpikeSlabCoeffStep requires "
-                          "per-marker spike-slab state");
-                  }
-              },
-              block.prior_state())),
+          std::get<bayes::SinglePerMarkerSpikeSlabGaussianState>(
+              block.prior_state())
+              .variance()),
       assignment_(
-          std::visit(
-              [](auto& state_value) -> bayes::AssignmentState&
-              {
-                  using State = std::decay_t<decltype(state_value)>;
-                  if constexpr (
-                      std::is_same_v<
-                          State,
-                          bayes::SingleFixedPerMarkerSpikeSlabGaussianState>
-                      || std::is_same_v<
-                          State,
-                          bayes::SingleSampledPerMarkerSpikeSlabGaussianState>)
-                  {
-                      return state_value.assignment();
-                  }
-                  else
-                  {
-                      throw GelexException(
-                          "SinglePerMarkerSpikeSlabCoeffStep requires "
-                          "per-marker spike-slab state");
-                  }
-              },
-              block.prior_state())),
+          std::get<bayes::SinglePerMarkerSpikeSlabGaussianState>(
+              block.prior_state())
+              .assignment()),
       proportion_(
-          [&block, &prior]() -> const Eigen::VectorXd&
-          {
-              if (const auto* fixed = std::get_if<
-                      bayes::SingleFixedPerMarkerSpikeSlabGaussianPrior>(
-                      &prior))
-              {
-                  return fixed->proportion().value();
-              }
-              if (std::holds_alternative<
-                      bayes::SingleSampledPerMarkerSpikeSlabGaussianPrior>(
-                      prior))
-              {
-                  return std::
-                      get<bayes::SingleSampledPerMarkerSpikeSlabGaussianState>(
-                             block.prior_state())
-                          .proportion()
-                          .value;
-              }
-              throw GelexException(
-                  "SinglePerMarkerSpikeSlabCoeffStep requires per-marker "
-                  "spike-slab prior");
-          }()),
+          std::get<bayes::SinglePerMarkerSpikeSlabGaussianState>(
+              block.prior_state())
+              .mixture_proportion()),
       normal_(0.0),
       rng_(rng)
 {
+    static_cast<void>(
+        std::get<bayes::SinglePerMarkerSpikeSlabGaussianPrior>(prior));
 }
 
 auto SinglePerMarkerSpikeSlabCoeffStep::step() -> void
@@ -365,7 +255,6 @@ auto SinglePerMarkerSpikeSlabCoeffStep::step() -> void
             = 1.0 / (1.0 + std::exp(log_like_1_minus_0));
         const int component = uniform_(rng_) < prob_component_0 ? 0 : 1;
 
-        ProportionAssignmentGuard assignment_guard{assignment_, i};
         GeneticAdjustmentGuard guard{column, coeffs(i), residual_, state_};
         coeffs(i) = component == 0 ? 0.0 : normal_.draw(post.params, rng_);
         assignment_.assignment(i) = component;
@@ -383,118 +272,20 @@ SingleScaledMixtureCoeffStep::SingleScaledMixtureCoeffStep(
       state_(block.state()),
       residual_(residual),
       variance_(
-          std::visit(
-              [](auto& state_value) -> double&
-              {
-                  using State = std::decay_t<decltype(state_value)>;
-                  if constexpr (
-                      std::is_same_v<
-                          State,
-                          bayes::SingleFixedScaledMixtureGaussianState>
-                      || std::is_same_v<
-                          State,
-                          bayes::SingleSampledScaledMixtureGaussianState>)
-                  {
-                      return state_value.variance();
-                  }
-                  else
-                  {
-                      throw GelexException(
-                          "SingleScaledMixtureCoeffStep requires scaled "
-                          "mixture state");
-                  }
-              },
-              block.prior_state())),
+          std::get<bayes::SingleScaledMixtureGaussianState>(block.prior_state())
+              .variance()),
       assignment_(
-          std::visit(
-              [](auto& state_value) -> bayes::AssignmentState&
-              {
-                  using State = std::decay_t<decltype(state_value)>;
-                  if constexpr (
-                      std::is_same_v<
-                          State,
-                          bayes::SingleFixedScaledMixtureGaussianState>
-                      || std::is_same_v<
-                          State,
-                          bayes::SingleSampledScaledMixtureGaussianState>)
-                  {
-                      return state_value.assignment();
-                  }
-                  else
-                  {
-                      throw GelexException(
-                          "SingleScaledMixtureCoeffStep requires scaled "
-                          "mixture state");
-                  }
-              },
-              block.prior_state())),
+          std::get<bayes::SingleScaledMixtureGaussianState>(block.prior_state())
+              .assignment()),
       proportion_(
-          [&block, &prior]() -> const Eigen::VectorXd&
-          {
-              if (const auto* fixed
-                  = std::get_if<bayes::SingleFixedScaledMixtureGaussianPrior>(
-                      &prior))
-              {
-                  return fixed->proportion().value();
-              }
-              if (std::holds_alternative<
-                      bayes::SingleSampledScaledMixtureGaussianPrior>(prior))
-              {
-                  return std::get<
-                             bayes::SingleSampledScaledMixtureGaussianState>(
-                             block.prior_state())
-                      .proportion()
-                      .value;
-              }
-              throw GelexException(
-                  "SingleScaledMixtureCoeffStep requires scaled mixture prior");
-          }()),
+          std::get<bayes::SingleScaledMixtureGaussianState>(block.prior_state())
+              .mixture_proportion()),
       component_(
-          std::visit(
-              [](auto& state_value) -> bayes::ComponentState&
-              {
-                  using State = std::decay_t<decltype(state_value)>;
-                  if constexpr (
-                      std::is_same_v<
-                          State,
-                          bayes::SingleFixedScaledMixtureGaussianState>
-                      || std::is_same_v<
-                          State,
-                          bayes::SingleSampledScaledMixtureGaussianState>)
-                  {
-                      return state_value.component();
-                  }
-                  else
-                  {
-                      throw GelexException(
-                          "SingleScaledMixtureCoeffStep requires scaled "
-                          "mixture state");
-                  }
-              },
-              block.prior_state())),
+          std::get<bayes::SingleScaledMixtureGaussianState>(block.prior_state())
+              .component()),
       multiplier_(
-          std::visit(
-              [](const auto& prior_value) -> const Eigen::VectorXd&
-              {
-                  using Prior = std::decay_t<decltype(prior_value)>;
-                  if constexpr (
-                      std::is_same_v<
-                          Prior,
-                          bayes::SingleFixedScaledMixtureGaussianPrior>
-                      || std::is_same_v<
-                          Prior,
-                          bayes::SingleSampledScaledMixtureGaussianPrior>)
-                  {
-                      return prior_value.multiplier();
-                  }
-                  else
-                  {
-                      throw GelexException(
-                          "SingleScaledMixtureCoeffStep requires scaled "
-                          "mixture prior");
-                  }
-              },
-              prior)),
+          std::get<bayes::SingleScaledMixtureGaussianPrior>(prior)
+              .multiplier()),
       normal_(0.0),
       rng_(rng)
 {
@@ -556,7 +347,6 @@ auto SingleScaledMixtureCoeffStep::step() -> void
             }
         }
 
-        ProportionAssignmentGuard assignment_guard{assignment_, i};
         GeneticMixtureAdjustmentGuard guard{
             column,
             coeffs(i),
@@ -597,95 +387,20 @@ JointGaussianMixtureCoeffStep::JointGaussianMixtureCoeffStep(
       dominance_(block.state(GeneticMode::D)),
       residual_(residual),
       variance_{
-          &std::visit(
-              [](auto& state_value) -> double&
-              {
-                  using State = std::decay_t<decltype(state_value)>;
-                  if constexpr (
-                      std::is_same_v<
-                          State,
-                          bayes::JointFixedGaussianMixtureState>
-                      || std::is_same_v<
-                          State,
-                          bayes::JointSampledGaussianMixtureState>)
-                  {
-                      return state_value.variance(GeneticMode::A);
-                  }
-                  else
-                  {
-                      throw GelexException(
-                          "JointGaussianMixtureCoeffStep requires joint "
-                          "mixture state");
-                  }
-              },
-              block.prior_state()),
-          &std::visit(
-              [](auto& state_value) -> double&
-              {
-                  using State = std::decay_t<decltype(state_value)>;
-                  if constexpr (
-                      std::is_same_v<
-                          State,
-                          bayes::JointFixedGaussianMixtureState>
-                      || std::is_same_v<
-                          State,
-                          bayes::JointSampledGaussianMixtureState>)
-                  {
-                      return state_value.variance(GeneticMode::D);
-                  }
-                  else
-                  {
-                      throw GelexException(
-                          "JointGaussianMixtureCoeffStep requires joint "
-                          "mixture state");
-                  }
-              },
-              block.prior_state())},
+          &std::get<bayes::JointGaussianMixtureState>(block.prior_state())
+               .variance(GeneticMode::A),
+          &std::get<bayes::JointGaussianMixtureState>(block.prior_state())
+               .variance(GeneticMode::D)},
       assignment_(
-          std::visit(
-              [](auto& state_value) -> bayes::AssignmentState&
-              {
-                  using State = std::decay_t<decltype(state_value)>;
-                  if constexpr (
-                      std::is_same_v<
-                          State,
-                          bayes::JointFixedGaussianMixtureState>
-                      || std::is_same_v<
-                          State,
-                          bayes::JointSampledGaussianMixtureState>)
-                  {
-                      return state_value.assignment();
-                  }
-                  else
-                  {
-                      throw GelexException(
-                          "JointGaussianMixtureCoeffStep requires joint "
-                          "mixture state");
-                  }
-              },
-              block.prior_state())),
+          std::get<bayes::JointGaussianMixtureState>(block.prior_state())
+              .assignment()),
       proportion_(
-          [&block, &prior]() -> const Eigen::VectorXd&
-          {
-              if (const auto* fixed
-                  = std::get_if<bayes::JointFixedGaussianMixturePrior>(&prior))
-              {
-                  return fixed->proportion().value();
-              }
-              if (std::holds_alternative<
-                      bayes::JointSampledGaussianMixturePrior>(prior))
-              {
-                  return std::get<bayes::JointSampledGaussianMixtureState>(
-                             block.prior_state())
-                      .proportion()
-                      .value;
-              }
-              throw GelexException(
-                  "JointGaussianMixtureCoeffStep requires joint mixture prior");
-          }()),
+          std::get<bayes::JointGaussianMixtureState>(block.prior_state())
+              .mixture_proportion()),
       normal_(0.0),
       rng_(rng)
 {
+    static_cast<void>(std::get<bayes::JointGaussianMixturePrior>(prior));
 }
 
 auto JointGaussianMixtureCoeffStep::step() -> void
@@ -757,7 +472,6 @@ auto JointGaussianMixtureCoeffStep::step() -> void
             }
         }
 
-        ProportionAssignmentGuard assignment_guard{assignment_, i};
         JointGeneticAdjustmentGuard guard{
             additive_column,
             dominance_column,

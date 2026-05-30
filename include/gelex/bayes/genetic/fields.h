@@ -53,21 +53,26 @@ class Proportion
 };
 
 template <typename T>
-class SampledProportionField : public Proportion<T>
+class MixtureField : public Proportion<T>
 {
    public:
-    explicit SampledProportionField(T proportion)
-        : Proportion<T>(std::move(proportion))
-    {
-    }
+    explicit MixtureField(T mixture) : Proportion<T>(std::move(mixture)) {}
 
-    auto assignment() -> decltype(auto)
-    {
-        return (this->proportion().assignment);
-    }
+    auto mixture() -> T& { return this->proportion(); }
+    auto mixture() const -> const T& { return this->proportion(); }
+
+    auto assignment() -> decltype(auto) { return (this->mixture().assignment); }
     auto assignment() const -> decltype(auto)
     {
-        return (this->proportion().assignment);
+        return (this->mixture().assignment);
+    }
+    auto mixture_proportion() -> decltype(auto)
+    {
+        return (this->mixture().proportion);
+    }
+    auto mixture_proportion() const -> decltype(auto)
+    {
+        return (this->mixture().proportion);
     }
 };
 

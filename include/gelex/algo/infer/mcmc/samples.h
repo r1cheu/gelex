@@ -62,7 +62,7 @@ struct AssignmentSamples
         bool estimate_pi);
 
     void store(const bayes::AssignmentState& state);
-    void store(const bayes::SampledProportionState& state);
+    void store(const bayes::MixtureState& state);
 
     auto n_snps() const -> Eigen::Index { return comp_counts_.rows(); }
     auto n_proportions() const -> Eigen::Index { return comp_counts_.cols(); }
@@ -95,7 +95,7 @@ struct ComponentSamples
         const bayes::AssignmentState& mixture_assignment);
     void store(
         const bayes::ComponentState& component,
-        const bayes::SampledProportionState& proportion);
+        const bayes::MixtureState& mixture);
 
     auto comp_var() const -> RunningStatsResult
     {

@@ -29,12 +29,8 @@
 namespace gelex::bayes
 {
 
-AssignmentState::AssignmentState(
-    Eigen::Index num_components,
-    Eigen::Index num_markers)
+AssignmentState::AssignmentState(Eigen::Index num_markers)
 {
-    count = Eigen::VectorXi::Zero(num_components);
-    count(0) = static_cast<int>(num_markers);
     assignment = Eigen::VectorXi::Zero(num_markers);
 }
 
@@ -43,22 +39,21 @@ auto AssignmentState::visit(infra::FieldVisitor& visitor) -> void
     auto scope = visitor.scope(name);
     visitor.on(
         "assignment", assignment, FieldFlag::checkpoint | FieldFlag::trace);
-    visitor.on("count", count, FieldFlag::checkpoint);
 }
 
-SampledProportionState::SampledProportionState(
-    const SampledProportion& proportion,
+MixtureState::MixtureState(
+    const MixtureProportion& proportion,
     Eigen::Index num_markers)
-    : assignment(proportion.size(), num_markers),
-      value(proportion.parameter().initial_value())
+    : assignment(num_markers), proportion(proportion.initial_value())
 {
 }
 
-auto SampledProportionState::visit(infra::FieldVisitor& visitor) -> void
+auto MixtureState::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     assignment.visit(visitor);
-    visitor.on("value", value, FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on(
+        "proportion", proportion, FieldFlag::checkpoint | FieldFlag::trace);
 }
 
 ComponentState::ComponentState(

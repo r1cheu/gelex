@@ -49,132 +49,65 @@ class SinglePerMarkerGaussianState final : public Variance<Eigen::VectorXd>
     auto visit(infra::FieldVisitor& visitor) -> void;
 };
 
-class SingleFixedSharedSpikeSlabGaussianState final
+class SingleSharedSpikeSlabGaussianState final
     : public Variance<double>
-    , public AssignmentField<AssignmentState>
+    , public MixtureField<MixtureState>
 {
    public:
-    static constexpr std::string_view name = "fixed_shared_spike_slab_gaussian";
+    static constexpr std::string_view name = "shared_spike_slab_gaussian";
 
-    SingleFixedSharedSpikeSlabGaussianState(
+    SingleSharedSpikeSlabGaussianState(
         double variance,
-        Eigen::Index num_components,
+        const MixtureProportion& proportion,
         Eigen::Index num_markers);
 
     auto visit(infra::FieldVisitor& visitor) -> void;
 };
 
-class SingleSampledSharedSpikeSlabGaussianState final
-    : public Variance<double>
-    , public SampledProportionField<SampledProportionState>
-{
-   public:
-    static constexpr std::string_view name
-        = "sampled_shared_spike_slab_gaussian";
-
-    SingleSampledSharedSpikeSlabGaussianState(
-        double variance,
-        const SampledProportion& proportion,
-        Eigen::Index num_markers);
-
-    auto visit(infra::FieldVisitor& visitor) -> void;
-};
-
-class SingleFixedPerMarkerSpikeSlabGaussianState final
+class SinglePerMarkerSpikeSlabGaussianState final
     : public Variance<Eigen::VectorXd>
-    , public AssignmentField<AssignmentState>
+    , public MixtureField<MixtureState>
 {
    public:
-    static constexpr std::string_view name
-        = "fixed_per_marker_spike_slab_gaussian";
+    static constexpr std::string_view name = "per_marker_spike_slab_gaussian";
 
-    SingleFixedPerMarkerSpikeSlabGaussianState(
+    SinglePerMarkerSpikeSlabGaussianState(
         Eigen::VectorXd variance,
-        Eigen::Index num_components,
+        const MixtureProportion& proportion,
         Eigen::Index num_markers);
 
     auto visit(infra::FieldVisitor& visitor) -> void;
 };
 
-class SingleSampledPerMarkerSpikeSlabGaussianState final
-    : public Variance<Eigen::VectorXd>
-    , public SampledProportionField<SampledProportionState>
-{
-   public:
-    static constexpr std::string_view name
-        = "sampled_per_marker_spike_slab_gaussian";
-
-    SingleSampledPerMarkerSpikeSlabGaussianState(
-        Eigen::VectorXd variance,
-        const SampledProportion& proportion,
-        Eigen::Index num_markers);
-
-    auto visit(infra::FieldVisitor& visitor) -> void;
-};
-
-class SingleFixedScaledMixtureGaussianState final
+class SingleScaledMixtureGaussianState final
     : public Variance<double>
     , public ComponentField<ComponentState>
-    , public AssignmentField<AssignmentState>
+    , public MixtureField<MixtureState>
 {
    public:
-    static constexpr std::string_view name = "fixed_scaled_mixture_gaussian";
+    static constexpr std::string_view name = "scaled_mixture_gaussian";
 
-    SingleFixedScaledMixtureGaussianState(
+    SingleScaledMixtureGaussianState(
         double variance,
         const Eigen::VectorXd& multiplier,
+        const MixtureProportion& proportion,
         Eigen::Index num_markers,
         Eigen::Index num_individuals);
 
     auto visit(infra::FieldVisitor& visitor) -> void;
 };
 
-class SingleSampledScaledMixtureGaussianState final
-    : public Variance<double>
-    , public ComponentField<ComponentState>
-    , public SampledProportionField<SampledProportionState>
-{
-   public:
-    static constexpr std::string_view name = "sampled_scaled_mixture_gaussian";
-
-    SingleSampledScaledMixtureGaussianState(
-        double variance,
-        const Eigen::VectorXd& multiplier,
-        const SampledProportion& proportion,
-        Eigen::Index num_markers,
-        Eigen::Index num_individuals);
-
-    auto visit(infra::FieldVisitor& visitor) -> void;
-};
-
-class JointFixedGaussianMixtureState final
+class JointGaussianMixtureState final
     : public Variances<double>
     , public ComponentField<ComponentState>
-    , public AssignmentField<AssignmentState>
+    , public MixtureField<MixtureState>
 {
    public:
-    static constexpr std::string_view name = "joint_fixed_mixture_gaussian";
+    static constexpr std::string_view name = "joint_mixture_gaussian";
 
-    JointFixedGaussianMixtureState(
+    JointGaussianMixtureState(
         std::array<double, 2> variances,
-        Eigen::Index num_components,
-        Eigen::Index num_markers,
-        Eigen::Index num_individuals);
-
-    auto visit(infra::FieldVisitor& visitor) -> void;
-};
-
-class JointSampledGaussianMixtureState final
-    : public Variances<double>
-    , public ComponentField<ComponentState>
-    , public SampledProportionField<SampledProportionState>
-{
-   public:
-    static constexpr std::string_view name = "joint_sampled_mixture_gaussian";
-
-    JointSampledGaussianMixtureState(
-        std::array<double, 2> variances,
-        const SampledProportion& proportion,
+        const MixtureProportion& proportion,
         Eigen::Index num_markers,
         Eigen::Index num_individuals);
 

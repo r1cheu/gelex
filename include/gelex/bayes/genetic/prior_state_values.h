@@ -37,27 +37,24 @@ struct AssignmentState
     static constexpr std::string_view name = "mixture_assignment";
 
     AssignmentState() = default;
-    AssignmentState(Eigen::Index num_components, Eigen::Index num_markers);
+    explicit AssignmentState(Eigen::Index num_markers);
 
     auto visit(infra::FieldVisitor& visitor) -> void;
 
     Eigen::VectorXi assignment;
-    Eigen::VectorXi count;
 };
 
-struct SampledProportionState
+struct MixtureState
 {
-    static constexpr std::string_view name = "sampled_mixture_proportion";
+    static constexpr std::string_view name = "mixture";
 
-    SampledProportionState() = default;
-    SampledProportionState(
-        const SampledProportion& proportion,
-        Eigen::Index num_markers);
+    MixtureState() = default;
+    MixtureState(const MixtureProportion& proportion, Eigen::Index num_markers);
 
     auto visit(infra::FieldVisitor& visitor) -> void;
 
     AssignmentState assignment;
-    Eigen::VectorXd value;
+    Eigen::VectorXd proportion;
 };
 
 struct ComponentState

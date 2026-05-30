@@ -38,7 +38,7 @@ class SingleProportionStep final : public Step
     auto step() -> void override;
 
    private:
-    bayes::SampledProportionState& proportion_;
+    bayes::MixtureState& mixture_;
     stats::DirichletSampler<double> dirichlet_;
     std::mt19937_64& rng_;
 };
@@ -54,7 +54,7 @@ class JointProportionStep final : public Step
     auto step() -> void override;
 
    private:
-    bayes::SampledProportionState& proportion_;
+    bayes::MixtureState& mixture_;
     stats::DirichletSampler<double> dirichlet_;
     std::mt19937_64& rng_;
 };

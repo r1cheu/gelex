@@ -28,15 +28,11 @@ namespace gelex::bayes
 using SingleGeneticPriorState = std::variant<
     SingleSharedGaussianState,
     SinglePerMarkerGaussianState,
-    SingleFixedSharedSpikeSlabGaussianState,
-    SingleSampledSharedSpikeSlabGaussianState,
-    SingleFixedPerMarkerSpikeSlabGaussianState,
-    SingleSampledPerMarkerSpikeSlabGaussianState,
-    SingleFixedScaledMixtureGaussianState,
-    SingleSampledScaledMixtureGaussianState>;
+    SingleSharedSpikeSlabGaussianState,
+    SinglePerMarkerSpikeSlabGaussianState,
+    SingleScaledMixtureGaussianState>;
 
-using JointGeneticPriorState = std::
-    variant<JointFixedGaussianMixtureState, JointSampledGaussianMixtureState>;
+using JointGeneticPriorState = std::variant<JointGaussianMixtureState>;
 
 }  // namespace gelex::bayes
 
