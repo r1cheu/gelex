@@ -39,16 +39,16 @@ namespace gelex::mcmc
 
 SingleSharedGaussianCoeffStep::SingleSharedGaussianCoeffStep(
     const bayes::GeneticDesign& design,
-    bayes::SingleGeneticBlockState& block,
     const bayes::SingleGeneticPrior& prior,
+    bayes::SingleGeneticBlockState& block,
     bayes::ResidualState& residual,
     std::mt19937_64& rng)
     : design_(design),
-      state_(block.state()),
-      residual_(residual),
       variance_(
           std::get<bayes::SingleSharedGaussianState>(block.prior_state())
               .variance()),
+      state_(block.state()),
+      residual_(residual),
       normal_(variance_),
       rng_(rng)
 {
@@ -86,16 +86,16 @@ auto SingleSharedGaussianCoeffStep::step() -> void
 
 SinglePerMarkerGaussianCoeffStep::SinglePerMarkerGaussianCoeffStep(
     const bayes::GeneticDesign& design,
-    bayes::SingleGeneticBlockState& block,
     const bayes::SingleGeneticPrior& prior,
+    bayes::SingleGeneticBlockState& block,
     bayes::ResidualState& residual,
     std::mt19937_64& rng)
     : design_(design),
-      state_(block.state()),
-      residual_(residual),
       variance_(
           std::get<bayes::SinglePerMarkerGaussianState>(block.prior_state())
               .variance()),
+      state_(block.state()),
+      residual_(residual),
       normal_(0.0),
       rng_(rng)
 {
@@ -133,13 +133,11 @@ auto SinglePerMarkerGaussianCoeffStep::step() -> void
 
 SingleSharedSpikeSlabCoeffStep::SingleSharedSpikeSlabCoeffStep(
     const bayes::GeneticDesign& design,
-    bayes::SingleGeneticBlockState& block,
     const bayes::SingleGeneticPrior& prior,
+    bayes::SingleGeneticBlockState& block,
     bayes::ResidualState& residual,
     std::mt19937_64& rng)
     : design_(design),
-      state_(block.state()),
-      residual_(residual),
       variance_(
           std::get<bayes::SingleSharedSpikeSlabGaussianState>(
               block.prior_state())
@@ -152,6 +150,8 @@ SingleSharedSpikeSlabCoeffStep::SingleSharedSpikeSlabCoeffStep(
           std::get<bayes::SingleSharedSpikeSlabGaussianState>(
               block.prior_state())
               .proportion()),
+      state_(block.state()),
+      residual_(residual),
       normal_(variance_),
       rng_(rng)
 {
@@ -198,13 +198,11 @@ auto SingleSharedSpikeSlabCoeffStep::step() -> void
 
 SinglePerMarkerSpikeSlabCoeffStep::SinglePerMarkerSpikeSlabCoeffStep(
     const bayes::GeneticDesign& design,
-    bayes::SingleGeneticBlockState& block,
     const bayes::SingleGeneticPrior& prior,
+    bayes::SingleGeneticBlockState& block,
     bayes::ResidualState& residual,
     std::mt19937_64& rng)
     : design_(design),
-      state_(block.state()),
-      residual_(residual),
       variance_(
           std::get<bayes::SinglePerMarkerSpikeSlabGaussianState>(
               block.prior_state())
@@ -217,6 +215,8 @@ SinglePerMarkerSpikeSlabCoeffStep::SinglePerMarkerSpikeSlabCoeffStep(
           std::get<bayes::SinglePerMarkerSpikeSlabGaussianState>(
               block.prior_state())
               .proportion()),
+      state_(block.state()),
+      residual_(residual),
       normal_(0.0),
       rng_(rng)
 {
@@ -264,13 +264,11 @@ auto SinglePerMarkerSpikeSlabCoeffStep::step() -> void
 
 SingleScaledMixtureCoeffStep::SingleScaledMixtureCoeffStep(
     const bayes::GeneticDesign& design,
-    bayes::SingleGeneticBlockState& block,
     const bayes::SingleGeneticPrior& prior,
+    bayes::SingleGeneticBlockState& block,
     bayes::ResidualState& residual,
     std::mt19937_64& rng)
     : design_(design),
-      state_(block.state()),
-      residual_(residual),
       variance_(
           std::get<bayes::SingleScaledMixtureGaussianState>(block.prior_state())
               .variance()),
@@ -286,6 +284,8 @@ SingleScaledMixtureCoeffStep::SingleScaledMixtureCoeffStep(
       multiplier_(
           std::get<bayes::SingleScaledMixtureGaussianPrior>(prior)
               .multiplier()),
+      state_(block.state()),
+      residual_(residual),
       normal_(0.0),
       rng_(rng)
 {
@@ -371,15 +371,12 @@ auto SingleScaledMixtureCoeffStep::step() -> void
 JointGaussianMixtureCoeffStep::JointGaussianMixtureCoeffStep(
     const bayes::GeneticDesign& additive,
     const bayes::GeneticDesign& dominance,
-    bayes::JointGeneticBlockState& block,
     const bayes::JointGeneticPrior& prior,
+    bayes::JointGeneticBlockState& block,
     bayes::ResidualState& residual,
     std::mt19937_64& rng)
     : additive_design_(additive),
       dominance_design_(dominance),
-      additive_(block.state(GeneticMode::A)),
-      dominance_(block.state(GeneticMode::D)),
-      residual_(residual),
       variance_{
           &std::get<bayes::JointGaussianMixtureState>(block.prior_state())
                .variance(GeneticMode::A),
@@ -391,6 +388,9 @@ JointGaussianMixtureCoeffStep::JointGaussianMixtureCoeffStep(
       proportion_(
           std::get<bayes::JointGaussianMixtureState>(block.prior_state())
               .proportion()),
+      additive_(block.state(GeneticMode::A)),
+      dominance_(block.state(GeneticMode::D)),
+      residual_(residual),
       normal_(0.0),
       rng_(rng)
 {

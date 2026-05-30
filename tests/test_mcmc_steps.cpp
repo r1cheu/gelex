@@ -175,7 +175,7 @@ TEST_CASE("Single coefficient step accepts prior state variant", "[mcmc]")
 
     std::mt19937_64 rng{123};
     gelex::mcmc::SingleSharedGaussianCoeffStep step{
-        design, block, prior, residual, rng};
+        design, prior, block, residual, rng};
     step.step();
 
     REQUIRE(block.state().coeffs.allFinite());
