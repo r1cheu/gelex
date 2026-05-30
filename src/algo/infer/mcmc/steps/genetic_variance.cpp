@@ -22,8 +22,8 @@
 
 #include <Eigen/Core>
 
+#include "gelex/bayes/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/state.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::mcmc

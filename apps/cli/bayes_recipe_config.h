@@ -17,7 +17,7 @@
 #ifndef GELEX_CLI_BAYES_RECIPE_CONFIG_H_
 #define GELEX_CLI_BAYES_RECIPE_CONFIG_H_
 
-#include "gelex/model/bayes/recipe_options.h"
+#include "gelex/bayes/recipe_options.h"
 
 namespace argparse
 {

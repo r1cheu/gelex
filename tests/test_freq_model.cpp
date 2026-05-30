@@ -33,7 +33,7 @@
 #include "gelex/data/reader.h"
 #include "gelex/data/sample_id.h"
 #include "gelex/io/grm/writer.h"
-#include "gelex/model/freq/model.h"
+#include "gelex/freq/model.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "sample_id_fixture.h"
 

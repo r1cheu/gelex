@@ -23,10 +23,10 @@
 #include <span>
 
 #include "gelex/algo/infer/mcmc/invariant.h"
+#include "gelex/bayes/design.h"
+#include "gelex/bayes/state.h"
 #include "gelex/exception.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/designs.h"
-#include "gelex/model/bayes/state.h"
 
 namespace gelex::mcmc
 {

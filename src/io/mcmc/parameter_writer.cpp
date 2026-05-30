@@ -25,8 +25,8 @@
 #include <vector>
 
 #include "gelex/algo/infer/mcmc/result.h"
+#include "gelex/bayes/labels.h"
 #include "gelex/io/detail/text_writer.h"
-#include "gelex/model/bayes/labels.h"
 
 namespace gelex
 {

@@ -34,12 +34,12 @@
 #include "gelex/data/pipe/pheno.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
+#include "gelex/freq/model.h"
 #include "gelex/infra/logging/assoc_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/reml_event.h"
 #include "gelex/io/grm/loco_reader.h"
 #include "gelex/io/gwas/writer.h"
-#include "gelex/model/freq/model.h"
 
 namespace gelex
 {

@@ -18,7 +18,7 @@
 #include <cstddef>
 
 #include "gelex/algo/reml/optimizer_state.h"
-#include "gelex/model/freq/model.h"
+#include "gelex/freq/model.h"
 
 namespace gelex::reml
 {

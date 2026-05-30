@@ -28,13 +28,13 @@
 #include <utility>
 #include <vector>
 
+#include "gelex/bayes/labels.h"
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/data/genotype/genotype_reader.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/io/binary_reader.h"
-#include "gelex/model/bayes/labels.h"
 #include "gelex/post/fixed.h"
 #include "gelex/post/genetic.h"
 #include "gelex/post/genetic_variance.h"

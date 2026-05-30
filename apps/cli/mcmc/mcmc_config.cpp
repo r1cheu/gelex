@@ -23,9 +23,9 @@
 
 #include "cli/bayes_recipe_config.h"
 #include "gelex/algo/infer/params.h"
+#include "gelex/bayes/recipe.h"
+#include "gelex/bayes/recipe_options.h"
 #include "gelex/engine/mcmc.h"
-#include "gelex/model/bayes/recipe.h"
-#include "gelex/model/bayes/recipe_options.h"
 
 namespace gelex::cli
 {

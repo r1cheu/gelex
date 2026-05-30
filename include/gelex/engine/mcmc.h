@@ -23,9 +23,9 @@
 #include <vector>
 
 #include "gelex/algo/infer/params.h"
+#include "gelex/bayes/prior.h"
+#include "gelex/bayes/recipe.h"
 #include "gelex/infra/logging/fit_event.h"
-#include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/recipe.h"
 
 namespace gelex
 {

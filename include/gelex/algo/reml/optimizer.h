@@ -23,8 +23,8 @@
 #include "gelex/algo/reml/convergence_checker.h"
 #include "gelex/algo/reml/optimizer_state.h"
 #include "gelex/algo/reml/variance_calculator.h"
+#include "gelex/freq/model.h"
 #include "gelex/infra/logger.h"
-#include "gelex/model/freq/model.h"
 
 namespace gelex::reml
 {

@@ -25,13 +25,13 @@
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/mcmc/invariant.h"
+#include "gelex/bayes/genetic/gaussian_prior.h"
+#include "gelex/bayes/genetic/gaussian_prior_state.h"
+#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/state.h"
 #include "gelex/exception.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/infra/stats/detail/var.h"
-#include "gelex/model/bayes/genetic_prior.h"
-#include "gelex/model/bayes/genetic_prior_states/gaussian.h"
-#include "gelex/model/bayes/genetic_priors/gaussian.h"
-#include "gelex/model/bayes/state.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::mcmc

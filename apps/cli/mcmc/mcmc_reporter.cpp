@@ -28,12 +28,12 @@
 #include "cli/report_printer.h"
 #include "config.h"
 #include "gelex/algo/infer/mcmc/result.h"
+#include "gelex/bayes/labels.h"
+#include "gelex/bayes/model.h"
+#include "gelex/bayes/state.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/progress_bar.h"
-#include "gelex/model/bayes/labels.h"
-#include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/state.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::cli

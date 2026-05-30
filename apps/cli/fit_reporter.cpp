@@ -27,11 +27,11 @@
 
 #include "cli/report_printer.h"
 #include "gelex/algo/infer/posterior_summary.h"
+#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/parameter/values.h"
+#include "gelex/bayes/prior.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
-#include "gelex/model/bayes/genetic_prior.h"
-#include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::cli

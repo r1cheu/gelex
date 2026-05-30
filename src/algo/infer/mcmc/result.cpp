@@ -25,7 +25,7 @@
 
 #include "gelex/algo/detail/posterior_calculator.h"
 #include "gelex/algo/infer/mcmc/samples.h"
-#include "gelex/model/bayes/model.h"
+#include "gelex/bayes/model.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex

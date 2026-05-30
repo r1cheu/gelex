@@ -19,7 +19,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/state.h"
+#include "gelex/bayes/state.h"
 
 namespace gelex::mcmc
 {

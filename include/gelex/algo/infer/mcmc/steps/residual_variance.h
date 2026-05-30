@@ -22,9 +22,9 @@
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/mcmc/step.h"
+#include "gelex/bayes/prior.h"
+#include "gelex/bayes/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/state.h"
 
 namespace gelex::mcmc
 {

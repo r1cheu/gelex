@@ -25,10 +25,10 @@
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/recipe.h"
-#include "gelex/model/bayes/state.h"
+#include "gelex/bayes/model.h"
+#include "gelex/bayes/prior.h"
+#include "gelex/bayes/recipe.h"
+#include "gelex/bayes/state.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex

@@ -26,9 +26,9 @@
 
 #include "cli/report_printer.h"
 #include "gelex/algo/reml/statistics.h"
+#include "gelex/freq/model.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/reml_event.h"
-#include "gelex/model/freq/model.h"
 
 namespace gelex::cli
 {

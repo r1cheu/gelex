@@ -29,8 +29,8 @@
 #include <fmt/format.h>
 
 #include "cli/cli_helper.h"
+#include "gelex/bayes/recipe_options.h"
 #include "gelex/exception.h"
-#include "gelex/model/bayes/recipe_options.h"
 #include "gelex/types/constrained_value.h"
 #include "gelex/types/constrained_vector.h"
 #include "gelex/types/genetic_effect_type.h"

@@ -19,8 +19,8 @@
 #include <type_traits>
 #include <variant>
 
+#include "gelex/bayes/state.h"
 #include "gelex/exception.h"
-#include "gelex/model/bayes/state.h"
 
 namespace gelex::mcmc
 {

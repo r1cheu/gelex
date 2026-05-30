@@ -21,12 +21,12 @@
 
 #include <Eigen/Core>
 
+#include "gelex/bayes/design.h"
+#include "gelex/bayes/genetic/prior_state.h"
+#include "gelex/bayes/model.h"
+#include "gelex/bayes/prior.h"
 #include "gelex/exception.h"
 #include "gelex/io/mcmc/sample_writer.h"
-#include "gelex/model/bayes/designs.h"
-#include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_state.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::mcmc

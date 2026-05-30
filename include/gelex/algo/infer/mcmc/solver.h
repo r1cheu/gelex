@@ -26,10 +26,10 @@
 
 #include "gelex/algo/infer/mcmc/result.h"
 #include "gelex/algo/infer/params.h"
+#include "gelex/bayes/model.h"
+#include "gelex/bayes/prior.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/fit_event.h"
-#include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior.h"
 
 namespace gelex
 {

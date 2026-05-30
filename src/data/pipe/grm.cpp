@@ -24,10 +24,10 @@
 #include <vector>
 
 #include "gelex/data/dataframe/index.h"
+#include "gelex/freq/design.h"
 #include "gelex/infra/logging/grm_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/grm/detail/reader.h"
-#include "gelex/model/freq/design.h"
 
 namespace gelex
 {

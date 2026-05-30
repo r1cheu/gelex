@@ -28,9 +28,9 @@
 #include "gelex/algo/reml/result.h"
 #include "gelex/algo/reml/statistics.h"
 #include "gelex/algo/reml/variance_calculator.h"
+#include "gelex/freq/model.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/reml_event.h"
-#include "gelex/model/freq/model.h"
 
 namespace gelex::reml
 {

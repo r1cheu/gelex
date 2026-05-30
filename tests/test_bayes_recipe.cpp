@@ -20,8 +20,8 @@
 #include <utility>
 
 #include "gelex/exception.h"
-#include "gelex/model/bayes/recipe.h"
-#include "gelex/model/bayes/recipe_options.h"
+#include "gelex/bayes/recipe.h"
+#include "gelex/bayes/recipe_options.h"
 #include "gelex/types/constrained_value.h"
 #include "gelex/types/constrained_vector.h"
 #include "gelex/types/genetic_effect_type.h"

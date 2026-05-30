@@ -20,9 +20,9 @@
 #include <random>
 
 #include "gelex/algo/infer/mcmc/chain.h"
-#include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/state.h"
+#include "gelex/bayes/model.h"
+#include "gelex/bayes/prior.h"
+#include "gelex/bayes/state.h"
 
 namespace gelex::mcmc
 {

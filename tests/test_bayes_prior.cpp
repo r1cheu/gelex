@@ -21,11 +21,11 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/exception.h"
-#include "gelex/model/bayes/genetic_prior.h"
-#include "gelex/model/bayes/genetic_prior_parameters.h"
-#include "gelex/model/bayes/genetic_prior_states/gaussian.h"
-#include "gelex/model/bayes/genetic_priors/gaussian.h"
-#include "gelex/model/bayes/prior.h"
+#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/parameters.h"
+#include "gelex/bayes/genetic/gaussian_prior_state.h"
+#include "gelex/bayes/genetic/gaussian_prior.h"
+#include "gelex/bayes/prior.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace

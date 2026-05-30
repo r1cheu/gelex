@@ -23,11 +23,11 @@
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/mcmc/step.h"
+#include "gelex/bayes/design.h"
+#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/prior_state_values.h"
+#include "gelex/bayes/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/designs.h"
-#include "gelex/model/bayes/genetic_prior.h"
-#include "gelex/model/bayes/prior_state_values.h"
-#include "gelex/model/bayes/state.h"
 
 namespace gelex::mcmc
 {
