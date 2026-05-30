@@ -29,9 +29,9 @@
 #include "gelex/algo/infer/mcmc/steps/genetic_proportion.h"
 #include "gelex/algo/infer/mcmc/steps/genetic_variance.h"
 #include "gelex/model/bayes/designs.h"
+#include "gelex/model/bayes/genetic_prior_parameters.h"
 #include "gelex/model/bayes/genetic_prior_states/gaussian.h"
 #include "gelex/model/bayes/genetic_priors/gaussian.h"
-#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "genotype_fixture.h"
@@ -56,12 +56,11 @@ auto make_design() -> gelex::bayes::GeneticDesign
             std::move(data), std::move(mean), std::move(stddev))};
 }
 
-auto make_proportion() -> gelex::bayes::SampledMixtureProportion
+auto make_proportion() -> gelex::bayes::SampledProportion
 {
-    return gelex::bayes::SampledMixtureProportion{
-        gelex::bayes::SimplexParameter{
-            Eigen::VectorXd{{0.5, 0.5}},
-            gelex::bayes::DirichletPrior{Eigen::VectorXd::Ones(2)}}};
+    return gelex::bayes::SampledProportion{gelex::bayes::SimplexParameter{
+        Eigen::VectorXd{{0.5, 0.5}},
+        gelex::bayes::DirichletPrior{Eigen::VectorXd::Ones(2)}}};
 }
 
 class CountingStep final : public gelex::mcmc::Step

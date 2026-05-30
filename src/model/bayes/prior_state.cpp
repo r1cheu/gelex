@@ -24,12 +24,12 @@
 
 #include "gelex/infra/field_flag.h"
 #include "gelex/infra/field_visitor.h"
-#include "gelex/model/bayes/prior_parameters.h"
+#include "gelex/model/bayes/genetic_prior_parameters.h"
 
 namespace gelex::bayes
 {
 
-MixtureAssignmentState::MixtureAssignmentState(
+AssignmentState::AssignmentState(
     Eigen::Index num_components,
     Eigen::Index num_markers)
 {
@@ -38,7 +38,7 @@ MixtureAssignmentState::MixtureAssignmentState(
     assignment = Eigen::VectorXi::Zero(num_markers);
 }
 
-auto MixtureAssignmentState::visit(infra::FieldVisitor& visitor) -> void
+auto AssignmentState::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on(
@@ -46,15 +46,15 @@ auto MixtureAssignmentState::visit(infra::FieldVisitor& visitor) -> void
     visitor.on("count", count, FieldFlag::checkpoint);
 }
 
-SampledMixtureProportionState::SampledMixtureProportionState(
-    const SampledMixtureProportion& proportion,
+SampledProportionState::SampledProportionState(
+    const SampledProportion& proportion,
     Eigen::Index num_markers)
     : assignment(proportion.size(), num_markers),
       value(proportion.parameter().initial_value())
 {
 }
 
-auto SampledMixtureProportionState::visit(infra::FieldVisitor& visitor) -> void
+auto SampledProportionState::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     assignment.visit(visitor);

@@ -51,7 +51,7 @@ AssignmentSamples::AssignmentSamples(
 {
 }
 
-void AssignmentSamples::store(const bayes::MixtureAssignmentState& state)
+void AssignmentSamples::store(const bayes::AssignmentState& state)
 {
     ++n_samples_;
     for (Index i = 0; i < state.assignment.size(); ++i)
@@ -60,7 +60,7 @@ void AssignmentSamples::store(const bayes::MixtureAssignmentState& state)
     }
 }
 
-void AssignmentSamples::store(const bayes::SampledMixtureProportionState& state)
+void AssignmentSamples::store(const bayes::SampledProportionState& state)
 {
     if (estimate_pi_)
     {
@@ -83,7 +83,7 @@ ComponentSamples::ComponentSamples(
 
 void ComponentSamples::store(
     const bayes::ComponentState& component,
-    const bayes::MixtureAssignmentState& mixture_assignment)
+    const bayes::AssignmentState& mixture_assignment)
 {
     assignment.store(mixture_assignment);
     comp_var_stats_.update(component.gebv_var);
@@ -91,7 +91,7 @@ void ComponentSamples::store(
 
 void ComponentSamples::store(
     const bayes::ComponentState& component,
-    const bayes::SampledMixtureProportionState& proportion)
+    const bayes::SampledProportionState& proportion)
 {
     assignment.store(proportion);
     comp_var_stats_.update(component.gebv_var);

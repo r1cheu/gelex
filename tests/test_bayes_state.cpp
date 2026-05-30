@@ -24,10 +24,10 @@
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/exception.h"
 #include "gelex/model/bayes/designs.h"
+#include "gelex/model/bayes/genetic_prior_parameters.h"
 #include "gelex/model/bayes/genetic_priors/gaussian.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -116,7 +116,7 @@ TEST_CASE("BayesState rejects missing genetic designs", "[bayes_state]")
                 gelex::bayes::JointSharedMarkerVariance{std::array{
                     gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
                     gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
-                gelex::bayes::FixedMixtureProportion{
+                gelex::bayes::FixedProportion{
                     Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}}}}});
 
     REQUIRE_THROWS_AS(

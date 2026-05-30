@@ -24,9 +24,9 @@
 #include <utility>
 
 #include "gelex/exception.h"
+#include "gelex/model/bayes/genetic_prior_parameters.h"
 #include "gelex/model/bayes/model.h"
 #include "gelex/model/bayes/prior.h"
-#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/recipe_options.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "independent_recipes.h"

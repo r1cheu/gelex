@@ -20,7 +20,7 @@
 #include <array>
 #include <utility>
 
-#include "gelex/model/bayes/prior_parameters.h"
+#include "gelex/model/bayes/genetic_prior_parameters.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes

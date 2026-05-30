@@ -20,7 +20,6 @@
 #include <variant>
 
 #include "gelex/exception.h"
-#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state.h"
 
 namespace gelex::mcmc
@@ -32,7 +31,7 @@ SingleProportionStep::SingleProportionStep(
     std::mt19937_64& rng)
     : proportion_(
           std::visit(
-              [](auto& state) -> bayes::SampledMixtureProportionState&
+              [](auto& state) -> bayes::SampledProportionState&
               {
                   using State = std::decay_t<decltype(state)>;
                   if constexpr (
@@ -101,7 +100,7 @@ JointProportionStep::JointProportionStep(
     std::mt19937_64& rng)
     : proportion_(
           std::visit(
-              [](auto& state) -> bayes::SampledMixtureProportionState&
+              [](auto& state) -> bayes::SampledProportionState&
               {
                   using State = std::decay_t<decltype(state)>;
                   if constexpr (

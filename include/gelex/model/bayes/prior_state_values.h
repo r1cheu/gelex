@@ -22,7 +22,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/model/bayes/prior_parameters.h"
+#include "gelex/model/bayes/genetic_prior_parameters.h"
 
 namespace gelex::infra
 {
@@ -32,14 +32,12 @@ class FieldVisitor;
 namespace gelex::bayes
 {
 
-struct MixtureAssignmentState
+struct AssignmentState
 {
     static constexpr std::string_view name = "mixture_assignment";
 
-    MixtureAssignmentState() = default;
-    MixtureAssignmentState(
-        Eigen::Index num_components,
-        Eigen::Index num_markers);
+    AssignmentState() = default;
+    AssignmentState(Eigen::Index num_components, Eigen::Index num_markers);
 
     auto visit(infra::FieldVisitor& visitor) -> void;
 
@@ -47,18 +45,18 @@ struct MixtureAssignmentState
     Eigen::VectorXi count;
 };
 
-struct SampledMixtureProportionState
+struct SampledProportionState
 {
     static constexpr std::string_view name = "sampled_mixture_proportion";
 
-    SampledMixtureProportionState() = default;
-    SampledMixtureProportionState(
-        const SampledMixtureProportion& proportion,
+    SampledProportionState() = default;
+    SampledProportionState(
+        const SampledProportion& proportion,
         Eigen::Index num_markers);
 
     auto visit(infra::FieldVisitor& visitor) -> void;
 
-    MixtureAssignmentState assignment;
+    AssignmentState assignment;
     Eigen::VectorXd value;
 };
 

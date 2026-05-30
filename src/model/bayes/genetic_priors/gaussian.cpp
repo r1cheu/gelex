@@ -24,8 +24,8 @@
 #include "gelex/exception.h"
 #include "gelex/infra/field_flag.h"
 #include "gelex/infra/field_visitor.h"
+#include "gelex/model/bayes/genetic_prior_parameters.h"
 #include "gelex/model/bayes/genetic_prior_states/gaussian.h"
-#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
@@ -78,9 +78,9 @@ SingleFixedSharedSpikeSlabGaussianPrior::
     SingleFixedSharedSpikeSlabGaussianPrior(
         GeneticMode mode,
         SharedMarkerVariance variance,
-        FixedMixtureProportion proportion)
+        FixedProportion proportion)
     : Variance<SharedMarkerVariance>(variance),
-      Proportion<FixedMixtureProportion>(std::move(proportion)),
+      Proportion<FixedProportion>(std::move(proportion)),
       mode_(mode)
 {
     if (this->proportion().size() != 2)
@@ -115,9 +115,9 @@ SingleSampledSharedSpikeSlabGaussianPrior::
     SingleSampledSharedSpikeSlabGaussianPrior(
         GeneticMode mode,
         SharedMarkerVariance variance,
-        SampledMixtureProportion proportion)
+        SampledProportion proportion)
     : Variance<SharedMarkerVariance>(variance),
-      Proportion<SampledMixtureProportion>(std::move(proportion)),
+      Proportion<SampledProportion>(std::move(proportion)),
       mode_(mode)
 {
     if (this->proportion().size() != 2)
@@ -150,9 +150,9 @@ SingleFixedPerMarkerSpikeSlabGaussianPrior::
     SingleFixedPerMarkerSpikeSlabGaussianPrior(
         GeneticMode mode,
         PerMarkerVariance variance,
-        FixedMixtureProportion proportion)
+        FixedProportion proportion)
     : Variance<PerMarkerVariance>(variance),
-      Proportion<FixedMixtureProportion>(std::move(proportion)),
+      Proportion<FixedProportion>(std::move(proportion)),
       mode_(mode)
 {
     if (this->proportion().size() != 2)
@@ -188,9 +188,9 @@ SingleSampledPerMarkerSpikeSlabGaussianPrior::
     SingleSampledPerMarkerSpikeSlabGaussianPrior(
         GeneticMode mode,
         PerMarkerVariance variance,
-        SampledMixtureProportion proportion)
+        SampledProportion proportion)
     : Variance<PerMarkerVariance>(variance),
-      Proportion<SampledMixtureProportion>(std::move(proportion)),
+      Proportion<SampledProportion>(std::move(proportion)),
       mode_(mode)
 {
     if (this->proportion().size() != 2)
@@ -226,9 +226,9 @@ SingleFixedScaledMixtureGaussianPrior::SingleFixedScaledMixtureGaussianPrior(
     GeneticMode mode,
     SharedMarkerVariance variance,
     Eigen::VectorXd multiplier,
-    FixedMixtureProportion proportion)
+    FixedProportion proportion)
     : Variance<SharedMarkerVariance>(variance),
-      Proportion<FixedMixtureProportion>(std::move(proportion)),
+      Proportion<FixedProportion>(std::move(proportion)),
       Multiplier<Eigen::VectorXd>(std::move(multiplier)),
       mode_(mode)
 {
@@ -275,9 +275,9 @@ SingleSampledScaledMixtureGaussianPrior::
         GeneticMode mode,
         SharedMarkerVariance variance,
         Eigen::VectorXd multiplier,
-        SampledMixtureProportion proportion)
+        SampledProportion proportion)
     : Variance<SharedMarkerVariance>(variance),
-      Proportion<SampledMixtureProportion>(std::move(proportion)),
+      Proportion<SampledProportion>(std::move(proportion)),
       Multiplier<Eigen::VectorXd>(std::move(multiplier)),
       mode_(mode)
 {
@@ -323,9 +323,9 @@ auto SingleSampledScaledMixtureGaussianPrior::make_state(
 
 JointFixedGaussianMixturePrior::JointFixedGaussianMixturePrior(
     JointSharedMarkerVariance variance,
-    FixedMixtureProportion proportion)
+    FixedProportion proportion)
     : JointVariancesField<JointSharedMarkerVariance>(variance),
-      Proportion<FixedMixtureProportion>(std::move(proportion))
+      Proportion<FixedProportion>(std::move(proportion))
 {
 }
 
@@ -351,9 +351,9 @@ auto JointFixedGaussianMixturePrior::make_state(
 
 JointSampledGaussianMixturePrior::JointSampledGaussianMixturePrior(
     JointSharedMarkerVariance variance,
-    SampledMixtureProportion proportion)
+    SampledProportion proportion)
     : JointVariancesField<JointSharedMarkerVariance>(variance),
-      Proportion<SampledMixtureProportion>(std::move(proportion))
+      Proportion<SampledProportion>(std::move(proportion))
 {
 }
 

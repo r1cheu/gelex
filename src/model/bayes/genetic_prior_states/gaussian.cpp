@@ -24,7 +24,7 @@
 
 #include "gelex/infra/field_flag.h"
 #include "gelex/infra/field_visitor.h"
-#include "gelex/model/bayes/prior_parameters.h"
+#include "gelex/model/bayes/genetic_prior_parameters.h"
 #include "gelex/model/bayes/prior_state.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -62,8 +62,8 @@ SingleFixedSharedSpikeSlabGaussianState::
         Eigen::Index num_components,
         Eigen::Index num_markers)
     : Variance<double>(variance),
-      AssignmentField<MixtureAssignmentState>(
-          MixtureAssignmentState{num_components, num_markers})
+      AssignmentField<AssignmentState>(
+          AssignmentState{num_components, num_markers})
 {
 }
 
@@ -79,11 +79,11 @@ auto SingleFixedSharedSpikeSlabGaussianState::visit(
 SingleSampledSharedSpikeSlabGaussianState::
     SingleSampledSharedSpikeSlabGaussianState(
         double variance,
-        const SampledMixtureProportion& proportion,
+        const SampledProportion& proportion,
         Eigen::Index num_markers)
     : Variance<double>(variance),
-      SampledProportionField<SampledMixtureProportionState>(
-          SampledMixtureProportionState{proportion, num_markers})
+      SampledProportionField<SampledProportionState>(
+          SampledProportionState{proportion, num_markers})
 {
 }
 
@@ -102,8 +102,8 @@ SingleFixedPerMarkerSpikeSlabGaussianState::
         Eigen::Index num_components,
         Eigen::Index num_markers)
     : Variance<Eigen::VectorXd>(std::move(variance)),
-      AssignmentField<MixtureAssignmentState>(
-          MixtureAssignmentState{num_components, num_markers})
+      AssignmentField<AssignmentState>(
+          AssignmentState{num_components, num_markers})
 {
 }
 
@@ -119,11 +119,11 @@ auto SingleFixedPerMarkerSpikeSlabGaussianState::visit(
 SingleSampledPerMarkerSpikeSlabGaussianState::
     SingleSampledPerMarkerSpikeSlabGaussianState(
         Eigen::VectorXd variance,
-        const SampledMixtureProportion& proportion,
+        const SampledProportion& proportion,
         Eigen::Index num_markers)
     : Variance<Eigen::VectorXd>(std::move(variance)),
-      SampledProportionField<SampledMixtureProportionState>(
-          SampledMixtureProportionState{proportion, num_markers})
+      SampledProportionField<SampledProportionState>(
+          SampledProportionState{proportion, num_markers})
 {
 }
 
@@ -144,8 +144,8 @@ SingleFixedScaledMixtureGaussianState::SingleFixedScaledMixtureGaussianState(
     : Variance<double>(variance),
       ComponentField<ComponentState>(
           ComponentState{multiplier.size() - 1, num_individuals}),
-      AssignmentField<MixtureAssignmentState>(
-          MixtureAssignmentState{multiplier.size(), num_markers})
+      AssignmentField<AssignmentState>(
+          AssignmentState{multiplier.size(), num_markers})
 {
 }
 
@@ -163,14 +163,14 @@ SingleSampledScaledMixtureGaussianState::
     SingleSampledScaledMixtureGaussianState(
         double variance,
         const Eigen::VectorXd& multiplier,
-        const SampledMixtureProportion& proportion,
+        const SampledProportion& proportion,
         Eigen::Index num_markers,
         Eigen::Index num_individuals)
     : Variance<double>(variance),
       ComponentField<ComponentState>(
           ComponentState{multiplier.size() - 1, num_individuals}),
-      SampledProportionField<SampledMixtureProportionState>(
-          SampledMixtureProportionState{proportion, num_markers})
+      SampledProportionField<SampledProportionState>(
+          SampledProportionState{proportion, num_markers})
 {
 }
 
@@ -191,8 +191,8 @@ JointFixedGaussianMixtureState::JointFixedGaussianMixtureState(
     Eigen::Index num_individuals)
     : Variances<double>(std::move(variances)),
       ComponentField<ComponentState>(ComponentState{1, num_individuals}),
-      AssignmentField<MixtureAssignmentState>(
-          MixtureAssignmentState{num_components, num_markers})
+      AssignmentField<AssignmentState>(
+          AssignmentState{num_components, num_markers})
 {
 }
 
@@ -214,13 +214,13 @@ auto JointFixedGaussianMixtureState::visit(infra::FieldVisitor& visitor) -> void
 
 JointSampledGaussianMixtureState::JointSampledGaussianMixtureState(
     std::array<double, 2> variances,
-    const SampledMixtureProportion& proportion,
+    const SampledProportion& proportion,
     Eigen::Index num_markers,
     Eigen::Index num_individuals)
     : Variances<double>(std::move(variances)),
       ComponentField<ComponentState>(ComponentState{1, num_individuals}),
-      SampledProportionField<SampledMixtureProportionState>(
-          SampledMixtureProportionState{proportion, num_markers})
+      SampledProportionField<SampledProportionState>(
+          SampledProportionState{proportion, num_markers})
 {
 }
 

@@ -104,7 +104,7 @@ auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) -> void
     auto print_proportion = [&format_vec](const auto& proportion)
     {
         using Proportion = std::remove_cvref_t<decltype(proportion)>;
-        if constexpr (std::is_same_v<Proportion, bayes::FixedMixtureProportion>)
+        if constexpr (std::is_same_v<Proportion, bayes::FixedProportion>)
         {
             cli::printer().line(
                 "    Proportion: [{}]", format_vec(proportion.value()));

@@ -23,7 +23,6 @@
 #include <Eigen/Core>
 
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state.h"
 #include "gelex/types/genetic_effect_type.h"
 

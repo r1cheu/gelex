@@ -179,7 +179,7 @@ class ProportionAssignmentGuard
 {
    public:
     ProportionAssignmentGuard(
-        bayes::MixtureAssignmentState& assignment,
+        bayes::AssignmentState& assignment,
         Eigen::Index marker_index)
         : assignment_(assignment),
           marker_index_(marker_index),
@@ -206,7 +206,7 @@ class ProportionAssignmentGuard
     }
 
    private:
-    bayes::MixtureAssignmentState& assignment_;
+    bayes::AssignmentState& assignment_;
     Eigen::Index marker_index_{};
     int old_class_{0};
 };

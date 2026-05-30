@@ -21,7 +21,6 @@
 
 #include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state.h"
 
 namespace gelex::mcmc
@@ -39,7 +38,7 @@ class SingleProportionStep final : public Step
     auto step() -> void override;
 
    private:
-    bayes::SampledMixtureProportionState& proportion_;
+    bayes::SampledProportionState& proportion_;
     stats::DirichletSampler<double> dirichlet_;
     std::mt19937_64& rng_;
 };
@@ -55,7 +54,7 @@ class JointProportionStep final : public Step
     auto step() -> void override;
 
    private:
-    bayes::SampledMixtureProportionState& proportion_;
+    bayes::SampledProportionState& proportion_;
     stats::DirichletSampler<double> dirichlet_;
     std::mt19937_64& rng_;
 };

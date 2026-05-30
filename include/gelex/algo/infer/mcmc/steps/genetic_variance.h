@@ -24,7 +24,6 @@
 
 #include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/state.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -63,7 +62,7 @@ class SingleFixedSharedSpikeSlabVarStep final : public Step
     bayes::SingleGeneticBlockState& block_;
     stats::ScaledInvChi2Sampler<double> sampler_;
     double& variance_;
-    bayes::MixtureAssignmentState& assignment_;
+    bayes::AssignmentState& assignment_;
     std::mt19937_64& rng_;
 };
 
@@ -81,7 +80,7 @@ class SingleSampledSharedSpikeSlabVarStep final : public Step
     bayes::SingleGeneticBlockState& block_;
     stats::ScaledInvChi2Sampler<double> sampler_;
     double& variance_;
-    bayes::MixtureAssignmentState& assignment_;
+    bayes::AssignmentState& assignment_;
     std::mt19937_64& rng_;
 };
 
@@ -99,7 +98,7 @@ class SingleFixedScaledMixtureVarStep final : public Step
     bayes::SingleGeneticBlockState& block_;
     stats::ScaledInvChi2Sampler<double> sampler_;
     double& variance_;
-    bayes::MixtureAssignmentState& assignment_;
+    bayes::AssignmentState& assignment_;
     const Eigen::VectorXd& multiplier_;
     std::mt19937_64& rng_;
 };
@@ -118,7 +117,7 @@ class SingleSampledScaledMixtureVarStep final : public Step
     bayes::SingleGeneticBlockState& block_;
     stats::ScaledInvChi2Sampler<double> sampler_;
     double& variance_;
-    bayes::MixtureAssignmentState& assignment_;
+    bayes::AssignmentState& assignment_;
     const Eigen::VectorXd& multiplier_;
     std::mt19937_64& rng_;
 };
@@ -154,7 +153,7 @@ class SingleFixedPerMarkerSpikeSlabVarStep final : public Step
     bayes::SingleGeneticBlockState& block_;
     stats::ScaledInvChi2Sampler<double> sampler_;
     Eigen::VectorXd& variance_;
-    bayes::MixtureAssignmentState& assignment_;
+    bayes::AssignmentState& assignment_;
     std::mt19937_64& rng_;
 };
 
@@ -172,7 +171,7 @@ class SingleSampledPerMarkerSpikeSlabVarStep final : public Step
     bayes::SingleGeneticBlockState& block_;
     stats::ScaledInvChi2Sampler<double> sampler_;
     Eigen::VectorXd& variance_;
-    bayes::MixtureAssignmentState& assignment_;
+    bayes::AssignmentState& assignment_;
     std::mt19937_64& rng_;
 };
 
@@ -190,7 +189,7 @@ class JointFixedMixtureVarStep final : public Step
     bayes::JointGeneticBlockState& block_;
     std::array<stats::ScaledInvChi2Sampler<double>, 2> samplers_;
     std::array<double*, 2> variance_;
-    bayes::MixtureAssignmentState& assignment_;
+    bayes::AssignmentState& assignment_;
     std::mt19937_64& rng_;
 };
 
@@ -208,7 +207,7 @@ class JointSampledMixtureVarStep final : public Step
     bayes::JointGeneticBlockState& block_;
     std::array<stats::ScaledInvChi2Sampler<double>, 2> samplers_;
     std::array<double*, 2> variance_;
-    bayes::MixtureAssignmentState& assignment_;
+    bayes::AssignmentState& assignment_;
     std::mt19937_64& rng_;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)

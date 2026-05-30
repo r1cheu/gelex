@@ -21,9 +21,9 @@
 #include <Eigen/Core>
 
 #include "gelex/model/bayes/genetic_prior.h"
+#include "gelex/model/bayes/genetic_prior_parameters.h"
 #include "gelex/model/bayes/genetic_priors/gaussian.h"
 #include "gelex/model/bayes/model.h"
-#include "gelex/model/bayes/prior_parameters.h"
 #include "gelex/model/bayes/recipe_options.h"
 #include "gelex/types/constrained_vector.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -104,7 +104,7 @@ auto BayesBMethod::make_single_genetic_prior(
             mode,
             PerMarkerVariance{VarianceParameter{
                 target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
-            SampledMixtureProportion{SimplexParameter{
+            SampledProportion{SimplexParameter{
                 proportion.to_mat(),
                 DirichletPrior{Eigen::VectorXd::Ones(n)}}}};
     }
@@ -112,7 +112,7 @@ auto BayesBMethod::make_single_genetic_prior(
         mode,
         PerMarkerVariance{VarianceParameter{
             target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
-        FixedMixtureProportion{proportion.to_mat()}};
+        FixedProportion{proportion.to_mat()}};
 }
 
 BayesCMethod::BayesCMethod(const BayesRecipeConfig& options)
@@ -141,7 +141,7 @@ auto BayesCMethod::make_single_genetic_prior(
             mode,
             SharedMarkerVariance{VarianceParameter{
                 target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
-            SampledMixtureProportion{SimplexParameter{
+            SampledProportion{SimplexParameter{
                 proportion.to_mat(),
                 DirichletPrior{Eigen::VectorXd::Ones(n)}}}};
     }
@@ -149,7 +149,7 @@ auto BayesCMethod::make_single_genetic_prior(
         mode,
         SharedMarkerVariance{VarianceParameter{
             target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
-        FixedMixtureProportion{proportion.to_mat()}};
+        FixedProportion{proportion.to_mat()}};
 }
 
 BayesRMethod::BayesRMethod(const BayesRecipeConfig& options)
@@ -185,7 +185,7 @@ auto BayesRMethod::make_single_genetic_prior(
             SharedMarkerVariance{VarianceParameter{
                 target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
             multiplier.to_mat(),
-            SampledMixtureProportion{SimplexParameter{
+            SampledProportion{SimplexParameter{
                 proportion.to_mat(),
                 DirichletPrior{Eigen::VectorXd::Ones(n)}}}};
     }
@@ -194,7 +194,7 @@ auto BayesRMethod::make_single_genetic_prior(
         SharedMarkerVariance{VarianceParameter{
             target, ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target}}},
         multiplier.to_mat(),
-        FixedMixtureProportion{proportion.to_mat()}};
+        FixedProportion{proportion.to_mat()}};
 }
 
 }  // namespace gelex::bayes

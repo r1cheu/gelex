@@ -165,7 +165,7 @@ SingleSharedSpikeSlabCoeffStep::SingleSharedSpikeSlabCoeffStep(
               block.prior_state())),
       assignment_(
           std::visit(
-              [](auto& state_value) -> bayes::MixtureAssignmentState&
+              [](auto& state_value) -> bayes::AssignmentState&
               {
                   using State = std::decay_t<decltype(state_value)>;
                   if constexpr (
@@ -285,7 +285,7 @@ SinglePerMarkerSpikeSlabCoeffStep::SinglePerMarkerSpikeSlabCoeffStep(
               block.prior_state())),
       assignment_(
           std::visit(
-              [](auto& state_value) -> bayes::MixtureAssignmentState&
+              [](auto& state_value) -> bayes::AssignmentState&
               {
                   using State = std::decay_t<decltype(state_value)>;
                   if constexpr (
@@ -407,7 +407,7 @@ SingleScaledMixtureCoeffStep::SingleScaledMixtureCoeffStep(
               block.prior_state())),
       assignment_(
           std::visit(
-              [](auto& state_value) -> bayes::MixtureAssignmentState&
+              [](auto& state_value) -> bayes::AssignmentState&
               {
                   using State = std::decay_t<decltype(state_value)>;
                   if constexpr (
@@ -643,7 +643,7 @@ JointGaussianMixtureCoeffStep::JointGaussianMixtureCoeffStep(
               block.prior_state())},
       assignment_(
           std::visit(
-              [](auto& state_value) -> bayes::MixtureAssignmentState&
+              [](auto& state_value) -> bayes::AssignmentState&
               {
                   using State = std::decay_t<decltype(state_value)>;
                   if constexpr (
