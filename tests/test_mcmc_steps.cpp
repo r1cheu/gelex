@@ -26,7 +26,8 @@
 
 #include "gelex/algo/infer/mcmc/chain.h"
 #include "gelex/algo/infer/mcmc/step.h"
-#include "gelex/algo/infer/mcmc/steps/genetic_step.h"
+#include "gelex/algo/infer/mcmc/steps/joint_genetic_step.h"
+#include "gelex/algo/infer/mcmc/steps/single_genetic_step.h"
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
@@ -54,6 +55,31 @@ auto make_design(gelex::GeneticMode mode = gelex::GeneticMode::A)
         mode,
         gelex::test::GenotypeBuilder::build(
             std::move(data), std::move(mean), std::move(stddev))};
+}
+
+auto make_active_only_design(gelex::GeneticMode mode = gelex::GeneticMode::A)
+    -> gelex::bayes::GeneticDesign
+{
+    Eigen::MatrixXd data{{0.0}, {1.0}, {2.0}};
+    auto mean = data.colwise().mean().transpose().eval();
+    auto stddev = Eigen::VectorXd::Ones(data.cols());
+    return gelex::bayes::GeneticDesign{
+        mode,
+        gelex::test::GenotypeBuilder::build(
+            std::move(data), std::move(mean), std::move(stddev))};
+}
+
+auto make_design_with_monomorphic_second_marker(
+    gelex::GeneticMode mode = gelex::GeneticMode::A)
+    -> gelex::bayes::GeneticDesign
+{
+    Eigen::MatrixXd data{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}};
+    auto mean = data.colwise().mean().transpose().eval();
+    auto stddev = Eigen::VectorXd::Ones(data.cols());
+    return gelex::bayes::GeneticDesign{
+        mode,
+        gelex::test::GenotypeBuilder::build(
+            std::move(data), std::move(mean), std::move(stddev), {1})};
 }
 
 auto make_proportion(Eigen::Index size = 2) -> gelex::bayes::MixtureProportion
@@ -231,6 +257,72 @@ TEST_CASE("Single scaled mixture step updates fused state", "[mcmc]")
     REQUIRE(std::abs(scaled_state.proportion().sum() - 1.0) < 1e-12);
     REQUIRE((scaled_state.assignment().array() >= 0).all());
     REQUIRE((scaled_state.assignment().array() <= 1).all());
+}
+
+TEST_CASE(
+    "Single scaled mixture step skips monomorphic markers completely",
+    "[mcmc]")
+{
+    auto with_mono = make_design_with_monomorphic_second_marker();
+    auto active_only = make_active_only_design();
+    gelex::bayes::SingleGeneticPrior with_mono_prior{
+        gelex::bayes::SingleScaledMixtureGaussianPrior{
+            gelex::GeneticMode::A,
+            gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+            Eigen::VectorXd{{0.0, 2.0}},
+            make_proportion()}};
+    gelex::bayes::SingleGeneticPrior active_only_prior{
+        gelex::bayes::SingleScaledMixtureGaussianPrior{
+            gelex::GeneticMode::A,
+            gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+            Eigen::VectorXd{{0.0, 2.0}},
+            make_proportion()}};
+    gelex::bayes::SingleGeneticBlockState with_mono_block{
+        with_mono, with_mono_prior};
+    gelex::bayes::SingleGeneticBlockState active_only_block{
+        active_only, active_only_prior};
+    with_mono_block.state().coeffs = Eigen::VectorXd{{0.0, 50.0}};
+    active_only_block.state().coeffs = Eigen::VectorXd{{0.0}};
+    gelex::bayes::ResidualState with_mono_residual{
+        .y_adj = Eigen::VectorXd{{1.0, -0.5, 0.25}}, .variance = 1.0};
+    gelex::bayes::ResidualState active_only_residual{
+        .y_adj = Eigen::VectorXd{{1.0, -0.5, 0.25}}, .variance = 1.0};
+    auto& with_mono_state
+        = std::get<gelex::bayes::SingleScaledMixtureGaussianState>(
+            with_mono_block.prior_state());
+    auto& active_only_state
+        = std::get<gelex::bayes::SingleScaledMixtureGaussianState>(
+            active_only_block.prior_state());
+    with_mono_state.assignment() = Eigen::VectorXi{{0, 1}};
+    active_only_state.assignment() = Eigen::VectorXi{{0}};
+
+    std::mt19937_64 with_mono_rng{123};
+    std::mt19937_64 active_only_rng{123};
+    gelex::mcmc::SingleScaledMixtureStep with_mono_step{
+        with_mono,
+        with_mono_prior,
+        with_mono_block,
+        with_mono_residual,
+        with_mono_rng};
+    gelex::mcmc::SingleScaledMixtureStep active_only_step{
+        active_only,
+        active_only_prior,
+        active_only_block,
+        active_only_residual,
+        active_only_rng};
+    with_mono_step.step();
+    active_only_step.step();
+
+    REQUIRE(
+        with_mono_block.state().coeffs(0)
+        == active_only_block.state().coeffs(0));
+    REQUIRE(with_mono_block.state().coeffs(1) == 50.0);
+    REQUIRE(
+        with_mono_state.assignment()(0) == active_only_state.assignment()(0));
+    REQUIRE(with_mono_state.assignment()(1) == 1);
+    REQUIRE(with_mono_state.variance() == active_only_state.variance());
+    REQUIRE(
+        with_mono_state.proportion().isApprox(active_only_state.proportion()));
 }
 
 TEST_CASE("Joint Gaussian mixture step updates fused state", "[mcmc]")
