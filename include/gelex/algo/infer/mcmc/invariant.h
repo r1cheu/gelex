@@ -99,15 +99,13 @@ class ComponentGebvAdjustmentGuard
         Eigen::Ref<const Eigen::VectorXd> column,
         double& coeff,
         bayes::ComponentState& component,
-        Eigen::VectorXi& assignment,
-        Eigen::Index marker_index)
+        int& assignment)
         : column_(std::move(column)),
           coeff_(coeff),
           component_(component),
           assignment_(assignment),
-          marker_index_(marker_index),
           old_value_(coeff),
-          old_class_(assignment(marker_index))
+          old_class_(assignment)
     {
     }
 
@@ -121,7 +119,7 @@ class ComponentGebvAdjustmentGuard
     ~ComponentGebvAdjustmentGuard()
     {
         const int old_class = old_class_;
-        const int new_class = assignment_(marker_index_);
+        const int new_class = assignment_;
         if (old_class == new_class)
         {
             if (old_class > 0 && old_value_ != coeff_)
@@ -145,8 +143,7 @@ class ComponentGebvAdjustmentGuard
     Eigen::Ref<const Eigen::VectorXd> column_;
     double& coeff_;
     bayes::ComponentState& component_;
-    Eigen::VectorXi& assignment_;
-    Eigen::Index marker_index_{};
+    int& assignment_;
     double old_value_{0.0};
     int old_class_{0};
 };

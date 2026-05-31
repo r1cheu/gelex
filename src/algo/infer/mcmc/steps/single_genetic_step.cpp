@@ -463,19 +463,19 @@ auto SingleScaledMixtureStep::step() -> void
                 const double old_i = coeffs(i);
                 const double rhs
                     = column.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
+
                 const Eigen::Index num_components = multiplier_.size();
-                scale_log_likelihoods_(0) = logpi_(0);
+                scale_log_likelihoods_(0) = 0.0;
                 for (Eigen::Index cls = 1; cls < num_components; ++cls)
                 {
-                    const auto post
+                    scale_posts_[cls]
                         = normal_.set_prior_var(marker_variances_(cls))
                               .posterior_with_logL(
                                   {.quadratic = XtX_diag(i),
                                    .linear = rhs,
                                    .scale = residual_.variance});
-                    scale_means_(cls) = post.params.mean;
-                    scale_vars_(cls) = post.params.var;
-                    scale_log_likelihoods_(cls) = post.log_likelihood_kernel;
+                    scale_log_likelihoods_(cls)
+                        = scale_posts_[cls].log_likelihood_kernel;
                 }
 
                 Eigen::Array<double, kMaxMixtureComponents, 1> ll;
@@ -504,14 +504,12 @@ auto SingleScaledMixtureStep::step() -> void
                 ResidualAdjustmentGuard residual_guard{
                     column, coeffs(i), residual_};
                 ComponentGebvAdjustmentGuard component_guard{
-                    column, coeffs(i), component_, assignment_, i};
+                    column, coeffs(i), component_, assignment_(i)};
                 coeffs(i) = 0.0;
                 if (component > 0)
                 {
-                    coeffs(i) = normal_.draw(
-                        {.mean = scale_means_(component),
-                         .var = scale_vars_(component)},
-                        rng_);
+                    coeffs(i)
+                        = normal_.draw(scale_posts_[component].params, rng_);
                 }
                 assignment_(i) = component;
 

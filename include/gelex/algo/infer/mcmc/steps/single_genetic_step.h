@@ -17,6 +17,7 @@
 #ifndef GELEX_ALGO_INFER_MCMC_STEPS_SINGLE_GENETIC_STEP_H_
 #define GELEX_ALGO_INFER_MCMC_STEPS_SINGLE_GENETIC_STEP_H_
 
+#include <array>
 #include <optional>
 #include <random>
 
@@ -224,8 +225,8 @@ class SingleScaledMixtureStep final : public Step
     Eigen::VectorXi proportion_count_;
     stats::NormalSampler<double> normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
-    Eigen::Array<double, kMaxMixtureComponents, 1> scale_means_;
-    Eigen::Array<double, kMaxMixtureComponents, 1> scale_vars_;
+    std::array<stats::NormalSampler<double>::Posterior, kMaxMixtureComponents>
+        scale_posts_;
     Eigen::Array<double, kMaxMixtureComponents, 1> scale_log_likelihoods_;
 
     std::mt19937_64& rng_;
