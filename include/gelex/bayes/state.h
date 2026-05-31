@@ -80,6 +80,7 @@ struct ResidualState
 
     Eigen::VectorXd y_adj;
     double variance{0.0};
+    Eigen::VectorXd old_y_adj;
 };
 
 struct GeneticState

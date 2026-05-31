@@ -18,6 +18,7 @@
 #define GELEX_ALGO_INFER_MCMC_INVARIANT_H_
 
 #include <Eigen/Core>
+#include <utility>
 
 #include "gelex/bayes/state.h"
 
@@ -32,7 +33,10 @@ class ResidualAdjustmentGuard
         Eigen::Ref<const Eigen::VectorXd> column,
         double& coeff,
         bayes::ResidualState& residual)
-        : column_(column), coeff_(coeff), residual_(residual), old_value_(coeff)
+        : column_(std::move(column)),
+          coeff_(coeff),
+          residual_(residual),
+          old_value_(coeff)
     {
     }
 
@@ -60,67 +64,45 @@ class ResidualAdjustmentGuard
     double old_value_{0.0};
 };
 
-class GeneticAdjustmentGuard
+class GeneticSweepAdjustmentGuard
 {
    public:
-    GeneticAdjustmentGuard(
-        Eigen::Ref<const Eigen::VectorXd> column,
-        double& coeff,
+    GeneticSweepAdjustmentGuard(
         bayes::ResidualState& residual,
         bayes::GeneticState& state)
-        : column_(column),
-          coeff_(coeff),
-          residual_(residual),
-          state_(state),
-          old_value_(coeff)
+        : residual_(residual), state_(state)
     {
+        residual_.old_y_adj = residual_.y_adj;
     }
 
-    GeneticAdjustmentGuard(const GeneticAdjustmentGuard&) = delete;
-    GeneticAdjustmentGuard(GeneticAdjustmentGuard&&) = delete;
-    auto operator=(const GeneticAdjustmentGuard&)
-        -> GeneticAdjustmentGuard& = delete;
-    auto operator=(GeneticAdjustmentGuard&&)
-        -> GeneticAdjustmentGuard& = delete;
+    GeneticSweepAdjustmentGuard(const GeneticSweepAdjustmentGuard&) = delete;
+    GeneticSweepAdjustmentGuard(GeneticSweepAdjustmentGuard&&) = delete;
+    auto operator=(const GeneticSweepAdjustmentGuard&)
+        -> GeneticSweepAdjustmentGuard& = delete;
+    auto operator=(GeneticSweepAdjustmentGuard&&)
+        -> GeneticSweepAdjustmentGuard& = delete;
 
-    ~GeneticAdjustmentGuard()
+    ~GeneticSweepAdjustmentGuard()
     {
-        const double diff = old_value_ - coeff_;
-        if (diff == 0.0)
-        {
-            return;
-        }
-        for (Eigen::Index i = 0; i < column_.size(); ++i)
-        {
-            const double delta = diff * column_(i);
-            residual_.y_adj(i) += delta;
-            state_.u(i) -= delta;
-        }
+        state_.u.noalias() += residual_.old_y_adj - residual_.y_adj;
     }
 
    private:
-    Eigen::Ref<const Eigen::VectorXd> column_;
-    double& coeff_;
     bayes::ResidualState& residual_;
     bayes::GeneticState& state_;
-    double old_value_{0.0};
 };
 
-class GeneticMixtureAdjustmentGuard
+class ComponentGebvAdjustmentGuard
 {
    public:
-    GeneticMixtureAdjustmentGuard(
+    ComponentGebvAdjustmentGuard(
         Eigen::Ref<const Eigen::VectorXd> column,
         double& coeff,
-        bayes::ResidualState& residual,
-        bayes::GeneticState& state,
         bayes::ComponentState& component,
         Eigen::VectorXi& assignment,
         Eigen::Index marker_index)
-        : column_(column),
+        : column_(std::move(column)),
           coeff_(coeff),
-          residual_(residual),
-          state_(state),
           component_(component),
           assignment_(assignment),
           marker_index_(marker_index),
@@ -129,45 +111,39 @@ class GeneticMixtureAdjustmentGuard
     {
     }
 
-    GeneticMixtureAdjustmentGuard(const GeneticMixtureAdjustmentGuard&)
-        = delete;
-    GeneticMixtureAdjustmentGuard(GeneticMixtureAdjustmentGuard&&) = delete;
-    auto operator=(const GeneticMixtureAdjustmentGuard&)
-        -> GeneticMixtureAdjustmentGuard& = delete;
-    auto operator=(GeneticMixtureAdjustmentGuard&&)
-        -> GeneticMixtureAdjustmentGuard& = delete;
+    ComponentGebvAdjustmentGuard(const ComponentGebvAdjustmentGuard&) = delete;
+    ComponentGebvAdjustmentGuard(ComponentGebvAdjustmentGuard&&) = delete;
+    auto operator=(const ComponentGebvAdjustmentGuard&)
+        -> ComponentGebvAdjustmentGuard& = delete;
+    auto operator=(ComponentGebvAdjustmentGuard&&)
+        -> ComponentGebvAdjustmentGuard& = delete;
 
-    ~GeneticMixtureAdjustmentGuard()
+    ~ComponentGebvAdjustmentGuard()
     {
-        const double diff = old_value_ - coeff_;
         const int old_class = old_class_;
         const int new_class = assignment_(marker_index_);
-        if (diff == 0.0 && old_class == new_class)
+        if (old_class == new_class)
         {
+            if (old_class > 0 && old_value_ != coeff_)
+            {
+                component_.gebv[old_class - 1].noalias()
+                    += (coeff_ - old_value_) * column_;
+            }
             return;
         }
-        for (Eigen::Index i = 0; i < column_.size(); ++i)
+        if (old_class > 0)
         {
-            const double xi = column_(i);
-            const double delta = diff * xi;
-            residual_.y_adj(i) += delta;
-            state_.u(i) -= delta;
-            if (old_class > 0)
-            {
-                component_.gebv[old_class - 1](i) -= old_value_ * xi;
-            }
-            if (new_class > 0)
-            {
-                component_.gebv[new_class - 1](i) += coeff_ * xi;
-            }
+            component_.gebv[old_class - 1].noalias() += (-old_value_) * column_;
+        }
+        if (new_class > 0)
+        {
+            component_.gebv[new_class - 1].noalias() += coeff_ * column_;
         }
     }
 
    private:
     Eigen::Ref<const Eigen::VectorXd> column_;
     double& coeff_;
-    bayes::ResidualState& residual_;
-    bayes::GeneticState& state_;
     bayes::ComponentState& component_;
     Eigen::VectorXi& assignment_;
     Eigen::Index marker_index_{};
@@ -186,8 +162,8 @@ class JointGeneticAdjustmentGuard
         bayes::ResidualState& residual,
         bayes::GeneticState& first_state,
         bayes::GeneticState& second_state)
-        : first_column_(first_column),
-          second_column_(second_column),
+        : first_column_(std::move(first_column)),
+          second_column_(std::move(second_column)),
           first_coeff_(first_coeff),
           second_coeff_(second_coeff),
           residual_(residual),
@@ -213,13 +189,15 @@ class JointGeneticAdjustmentGuard
         {
             return;
         }
-        for (Eigen::Index i = 0; i < first_column_.size(); ++i)
+        if (first_diff != 0.0)
         {
-            const double first_delta = first_diff * first_column_(i);
-            const double second_delta = second_diff * second_column_(i);
-            residual_.y_adj(i) += first_delta + second_delta;
-            first_state_.u(i) -= first_delta;
-            second_state_.u(i) -= second_delta;
+            residual_.y_adj.noalias() += first_diff * first_column_;
+            first_state_.u.noalias() += (-first_diff) * first_column_;
+        }
+        if (second_diff != 0.0)
+        {
+            residual_.y_adj.noalias() += second_diff * second_column_;
+            second_state_.u.noalias() += (-second_diff) * second_column_;
         }
     }
 

@@ -208,7 +208,8 @@ BayesState::BayesState(const BayesModel& model, const bayes::BayesPrior& prior)
     : fixed_(model.fixed()),
       residual_{
           .y_adj = model.phenotype(),
-          .variance = prior.residual().initial_value()}
+          .variance = prior.residual().initial_value(),
+          .old_y_adj = Eigen::VectorXd::Zero(model.phenotype().size())}
 {
     const auto& random_designs = model.random();
     random_.reserve(random_designs.size());

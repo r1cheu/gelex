@@ -79,25 +79,28 @@ auto SingleSharedGaussianStep::step() -> void
 
     Eigen::Index variance_n = 0;
     double sum_squares = 0.0;
-    for (Eigen::Index i = 0; i < X.cols(); ++i)
     {
-        if (!design_.is_monomorphic(i))
+        GeneticSweepAdjustmentGuard sweep{residual_, state_};
+        for (Eigen::Index i = 0; i < X.cols(); ++i)
         {
-            const auto column = X.col(i);
-            const double old_i = coeffs(i);
-            GeneticAdjustmentGuard guard{column, coeffs(i), residual_, state_};
-            const double rhs
-                = column.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
-            coeffs(i) = normal_(
-                stats::NormalSampler<double>::Kernel{
-                    .quadratic = XtX_diag(i),
-                    .linear = rhs,
-                    .scale = residual_.variance,
-                },
-                rng_);
-            ++variance_n;
-            const double coeff = coeffs(i);
-            sum_squares += coeff * coeff;
+            if (!design_.is_monomorphic(i))
+            {
+                const auto column = X.col(i);
+                const double old_i = coeffs(i);
+                ResidualAdjustmentGuard guard{column, coeffs(i), residual_};
+                const double rhs
+                    = column.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
+                coeffs(i) = normal_(
+                    stats::NormalSampler<double>::Kernel{
+                        .quadratic = XtX_diag(i),
+                        .linear = rhs,
+                        .scale = residual_.variance,
+                    },
+                    rng_);
+                ++variance_n;
+                const double coeff = coeffs(i);
+                sum_squares += coeff * coeff;
+            }
         }
     }
     variance_ = variance_sampler_({variance_n, sum_squares}, rng_);
@@ -145,25 +148,28 @@ auto SinglePerMarkerGaussianStep::step() -> void
 
     normal_.reset();
     variance_sampler_.reset();
-    for (Eigen::Index i = 0; i < X.cols(); ++i)
     {
-        if (!design_.is_monomorphic(i))
+        GeneticSweepAdjustmentGuard sweep{residual_, state_};
+        for (Eigen::Index i = 0; i < X.cols(); ++i)
         {
-            const auto column = X.col(i);
-            const double old_i = coeffs(i);
-            GeneticAdjustmentGuard guard{column, coeffs(i), residual_, state_};
-            const double rhs
-                = column.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
-            normal_.set_prior_var(variance_(i));
-            coeffs(i) = normal_(
-                stats::NormalSampler<double>::Kernel{
-                    .quadratic = XtX_diag(i),
-                    .linear = rhs,
-                    .scale = residual_.variance,
-                },
-                rng_);
-            const double coeff = coeffs(i);
-            variance_(i) = variance_sampler_({1, coeff * coeff}, rng_);
+            if (!design_.is_monomorphic(i))
+            {
+                const auto column = X.col(i);
+                const double old_i = coeffs(i);
+                ResidualAdjustmentGuard guard{column, coeffs(i), residual_};
+                const double rhs
+                    = column.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
+                normal_.set_prior_var(variance_(i));
+                coeffs(i) = normal_(
+                    stats::NormalSampler<double>::Kernel{
+                        .quadratic = XtX_diag(i),
+                        .linear = rhs,
+                        .scale = residual_.variance,
+                    },
+                    rng_);
+                const double coeff = coeffs(i);
+                variance_(i) = variance_sampler_({1, coeff * coeff}, rng_);
+            }
         }
     }
     state_.variance = stats::detail::vecvar(state_.u);
@@ -235,36 +241,40 @@ auto SingleSharedSpikeSlabStep::step() -> void
 
     Eigen::Index variance_n = 0;
     double sum_squares = 0.0;
-    for (Eigen::Index i = 0; i < X.cols(); ++i)
     {
-        if (!design_.is_monomorphic(i))
+        GeneticSweepAdjustmentGuard sweep{residual_, state_};
+        for (Eigen::Index i = 0; i < X.cols(); ++i)
         {
-            const auto column = X.col(i);
-            const double old_i = coeffs(i);
-            const double rhs
-                = column.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
-            const auto post = normal_.posterior_with_logL(
-                stats::NormalSampler<double>::Kernel{
-                    .quadratic = XtX_diag(i),
-                    .linear = rhs,
-                    .scale = residual_.variance,
-                });
-            const double log_like_1_minus_0
-                = post.log_likelihood_kernel + logpi_(1) - logpi_(0);
-            const double prob_component_0
-                = 1.0 / (1.0 + std::exp(log_like_1_minus_0));
-            const int component = uniform_(rng_) < prob_component_0 ? 0 : 1;
-
-            GeneticAdjustmentGuard guard{column, coeffs(i), residual_, state_};
-            coeffs(i) = component == 0 ? 0.0 : normal_.draw(post.params, rng_);
-            assignment_(i) = component;
-
-            ++proportion_count_(component);
-            if (component != 0)
+            if (!design_.is_monomorphic(i))
             {
-                ++variance_n;
-                const double coeff = coeffs(i);
-                sum_squares += coeff * coeff;
+                const auto column = X.col(i);
+                const double old_i = coeffs(i);
+                const double rhs
+                    = column.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
+                const auto post = normal_.posterior_with_logL(
+                    stats::NormalSampler<double>::Kernel{
+                        .quadratic = XtX_diag(i),
+                        .linear = rhs,
+                        .scale = residual_.variance,
+                    });
+                const double log_like_1_minus_0
+                    = post.log_likelihood_kernel + logpi_(1) - logpi_(0);
+                const double prob_component_0
+                    = 1.0 / (1.0 + std::exp(log_like_1_minus_0));
+                const int component = uniform_(rng_) < prob_component_0 ? 0 : 1;
+
+                ResidualAdjustmentGuard guard{column, coeffs(i), residual_};
+                coeffs(i)
+                    = component == 0 ? 0.0 : normal_.draw(post.params, rng_);
+                assignment_(i) = component;
+
+                ++proportion_count_(component);
+                if (component != 0)
+                {
+                    ++variance_n;
+                    const double coeff = coeffs(i);
+                    sum_squares += coeff * coeff;
+                }
             }
         }
     }
@@ -340,36 +350,40 @@ auto SinglePerMarkerSpikeSlabStep::step() -> void
     logpi_ = proportion_.array().log();
     proportion_count_.setZero();
 
-    for (Eigen::Index i = 0; i < X.cols(); ++i)
     {
-        if (!design_.is_monomorphic(i))
+        GeneticSweepAdjustmentGuard sweep{residual_, state_};
+        for (Eigen::Index i = 0; i < X.cols(); ++i)
         {
-            const auto column = X.col(i);
-            const double old_i = coeffs(i);
-            const double rhs
-                = column.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
-            const auto post = normal_.set_prior_var(variance_(i))
-                                  .posterior_with_logL(
-                                      stats::NormalSampler<double>::Kernel{
-                                          .quadratic = XtX_diag(i),
-                                          .linear = rhs,
-                                          .scale = residual_.variance,
-                                      });
-            const double log_like_1_minus_0
-                = post.log_likelihood_kernel + logpi_(1) - logpi_(0);
-            const double prob_component_0
-                = 1.0 / (1.0 + std::exp(log_like_1_minus_0));
-            const int component = uniform_(rng_) < prob_component_0 ? 0 : 1;
-
-            GeneticAdjustmentGuard guard{column, coeffs(i), residual_, state_};
-            coeffs(i) = component == 0 ? 0.0 : normal_.draw(post.params, rng_);
-            assignment_(i) = component;
-
-            ++proportion_count_(component);
-            if (component != 0)
+            if (!design_.is_monomorphic(i))
             {
-                const double coeff = coeffs(i);
-                variance_(i) = variance_sampler_({1, coeff * coeff}, rng_);
+                const auto column = X.col(i);
+                const double old_i = coeffs(i);
+                const double rhs
+                    = column.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
+                const auto post = normal_.set_prior_var(variance_(i))
+                                      .posterior_with_logL(
+                                          stats::NormalSampler<double>::Kernel{
+                                              .quadratic = XtX_diag(i),
+                                              .linear = rhs,
+                                              .scale = residual_.variance,
+                                          });
+                const double log_like_1_minus_0
+                    = post.log_likelihood_kernel + logpi_(1) - logpi_(0);
+                const double prob_component_0
+                    = 1.0 / (1.0 + std::exp(log_like_1_minus_0));
+                const int component = uniform_(rng_) < prob_component_0 ? 0 : 1;
+
+                ResidualAdjustmentGuard guard{column, coeffs(i), residual_};
+                coeffs(i)
+                    = component == 0 ? 0.0 : normal_.draw(post.params, rng_);
+                assignment_(i) = component;
+
+                ++proportion_count_(component);
+                if (component != 0)
+                {
+                    const double coeff = coeffs(i);
+                    variance_(i) = variance_sampler_({1, coeff * coeff}, rng_);
+                }
             }
         }
     }
@@ -439,75 +453,75 @@ auto SingleScaledMixtureStep::step() -> void
 
     Eigen::Index variance_n = 0;
     double sum_squares = 0.0;
-    for (Eigen::Index i = 0; i < X.cols(); ++i)
     {
-        if (!design_.is_monomorphic(i))
+        GeneticSweepAdjustmentGuard sweep{residual_, state_};
+        for (Eigen::Index i = 0; i < X.cols(); ++i)
         {
-            const auto column = X.col(i);
-            const double old_i = coeffs(i);
-            const double rhs
-                = column.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
-            const Eigen::Index num_components = multiplier_.size();
-            scale_log_likelihoods_(0) = logpi_(0);
-            for (Eigen::Index cls = 1; cls < num_components; ++cls)
+            if (!design_.is_monomorphic(i))
             {
-                const auto post = normal_.set_prior_var(marker_variances_(cls))
-                                      .posterior_with_logL(
-                                          {.quadratic = XtX_diag(i),
-                                           .linear = rhs,
-                                           .scale = residual_.variance});
-                scale_means_(cls) = post.params.mean;
-                scale_vars_(cls) = post.params.var;
-                scale_log_likelihoods_(cls) = post.log_likelihood_kernel;
-            }
-
-            Eigen::Array<double, kMaxMixtureComponents, 1> ll;
-            Eigen::Array<double, kMaxMixtureComponents, 1> probs;
-            ll.head(num_components)
-                = scale_log_likelihoods_.head(num_components)
-                  + logpi_.head(num_components).array();
-            const double max_ll = ll.head(num_components).maxCoeff();
-            probs.head(num_components)
-                = (ll.head(num_components) - max_ll).exp();
-            const double total = probs.head(num_components).sum();
-
-            const double threshold = uniform_(rng_) * total;
-            int component = static_cast<int>(num_components - 1);
-            double cumsum = 0.0;
-            for (Eigen::Index cls = 0; cls < num_components; ++cls)
-            {
-                cumsum += probs(cls);
-                if (threshold < cumsum)
+                const auto column = X.col(i);
+                const double old_i = coeffs(i);
+                const double rhs
+                    = column.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
+                const Eigen::Index num_components = multiplier_.size();
+                scale_log_likelihoods_(0) = logpi_(0);
+                for (Eigen::Index cls = 1; cls < num_components; ++cls)
                 {
-                    component = static_cast<int>(cls);
-                    break;
+                    const auto post
+                        = normal_.set_prior_var(marker_variances_(cls))
+                              .posterior_with_logL(
+                                  {.quadratic = XtX_diag(i),
+                                   .linear = rhs,
+                                   .scale = residual_.variance});
+                    scale_means_(cls) = post.params.mean;
+                    scale_vars_(cls) = post.params.var;
+                    scale_log_likelihoods_(cls) = post.log_likelihood_kernel;
                 }
-            }
 
-            GeneticMixtureAdjustmentGuard guard{
-                column,
-                coeffs(i),
-                residual_,
-                state_,
-                component_,
-                assignment_,
-                i};
-            coeffs(i) = 0.0;
-            if (component > 0)
-            {
-                coeffs(i) = normal_.draw(
-                    {.mean = scale_means_(component),
-                     .var = scale_vars_(component)},
-                    rng_);
-            }
-            assignment_(i) = component;
+                Eigen::Array<double, kMaxMixtureComponents, 1> ll;
+                Eigen::Array<double, kMaxMixtureComponents, 1> probs;
+                ll.head(num_components)
+                    = scale_log_likelihoods_.head(num_components)
+                      + logpi_.head(num_components).array();
+                const double max_ll = ll.head(num_components).maxCoeff();
+                probs.head(num_components)
+                    = (ll.head(num_components) - max_ll).exp();
+                const double total = probs.head(num_components).sum();
 
-            ++proportion_count_(component);
-            if (component != 0)
-            {
-                ++variance_n;
-                const double coeff = coeffs(i);
-                sum_squares += (coeff * coeff) / multiplier_(component);
+                const double threshold = uniform_(rng_) * total;
+                int component = static_cast<int>(num_components - 1);
+                double cumsum = 0.0;
+                for (Eigen::Index cls = 0; cls < num_components; ++cls)
+                {
+                    cumsum += probs(cls);
+                    if (threshold < cumsum)
+                    {
+                        component = static_cast<int>(cls);
+                        break;
+                    }
+                }
+
+                ResidualAdjustmentGuard residual_guard{
+                    column, coeffs(i), residual_};
+                ComponentGebvAdjustmentGuard component_guard{
+                    column, coeffs(i), component_, assignment_, i};
+                coeffs(i) = 0.0;
+                if (component > 0)
+                {
+                    coeffs(i) = normal_.draw(
+                        {.mean = scale_means_(component),
+                         .var = scale_vars_(component)},
+                        rng_);
+                }
+                assignment_(i) = component;
+
+                ++proportion_count_(component);
+                if (component != 0)
+                {
+                    ++variance_n;
+                    const double coeff = coeffs(i);
+                    sum_squares += (coeff * coeff) / multiplier_(component);
+                }
             }
         }
     }
