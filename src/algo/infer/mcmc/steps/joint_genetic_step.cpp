@@ -228,8 +228,8 @@ auto JointGaussianMixtureStep::step() -> void
     {
         proportion_ = (*proportion_sampler_)(proportion_count_, rng_);
     }
-    additive_.variance = stats::detail::var(additive_.u)(0);
-    dominance_.variance = stats::detail::var(dominance_.u)(0);
+    additive_.variance = stats::detail::vecvar(additive_.u);
+    dominance_.variance = stats::detail::vecvar(dominance_.u);
 }
 
 }  // namespace gelex::mcmc

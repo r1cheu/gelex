@@ -17,43 +17,53 @@
 #ifndef GELEX_INFRA_STATS_DETAIL_VAR_H_
 #define GELEX_INFRA_STATS_DETAIL_VAR_H_
 
+#include <cassert>
+#include <type_traits>
+
 #include <Eigen/Core>
 
 namespace gelex::stats::detail
 {
 
+template <typename Derived>
+auto vecvar(const Eigen::DenseBase<Derived>& values, Eigen::Index norm_type = 1)
+    -> double
+{
+    assert(
+        (values.rows() == 1 || values.cols() == 1)
+        && "vecvar: input must be a vector");
+
+    const Eigen::Index ddof = (norm_type == 0) ? 0 : 1;
+    const double mean = values.mean();
+    return (values.derived().array() - mean).square().sum()
+           / static_cast<double>(values.size() - ddof);
+}
+
 template <Eigen::Index Axis = 0, typename Derived>
-auto var(const Eigen::DenseBase<Derived>& a, Eigen::Index norm_type = 1)
+auto matvar(const Eigen::DenseBase<Derived>& matrix, Eigen::Index norm_type = 1)
     -> std::conditional_t<Axis == 0, Eigen::RowVectorXd, Eigen::VectorXd>
 {
     static_assert(Axis == 0 || Axis == 1);
-    const Eigen::Index ddof = (norm_type == 0) ? 0 : 1;
 
     if constexpr (Axis == 0)
     {
-        const Eigen::Index n = a.cols();
+        const Eigen::Index n = matrix.cols();
         Eigen::RowVectorXd result(n);
-#pragma omp parallel for default(none) shared(n, a, result, ddof)
+#pragma omp parallel for default(none) shared(n, matrix, result, norm_type)
         for (Eigen::Index i = 0; i < n; ++i)
         {
-            auto col = a.col(i);
-            double mean_val = col.mean();
-            double sum_sq = (col.array() - mean_val).square().sum();
-            result(i) = sum_sq / static_cast<double>(col.size() - ddof);
+            result(i) = vecvar(matrix.col(i), norm_type);
         }
         return result;
     }
     else
     {
-        const Eigen::Index n = a.rows();
+        const Eigen::Index n = matrix.rows();
         Eigen::VectorXd result(n);
-#pragma omp parallel for default(none) shared(n, a, result, ddof)
+#pragma omp parallel for default(none) shared(n, matrix, result, norm_type)
         for (Eigen::Index i = 0; i < n; ++i)
         {
-            auto row = a.row(i);
-            double mean_val = row.mean();
-            double sum_sq = (row.array() - mean_val).square().sum();
-            result(i) = sum_sq / static_cast<double>(row.size() - ddof);
+            result(i) = vecvar(matrix.row(i), norm_type);
         }
         return result;
     }

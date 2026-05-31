@@ -156,7 +156,7 @@ auto GeneticVarianceProcessor::process(
     if (n_components_ == 0)
     {
         gebv_chunk_.noalias() = matrix_ * beta_block;
-        last_variances_ = stats::detail::var(gebv_chunk_);
+        last_variances_ = stats::detail::matvar(gebv_chunk_);
         return gebv_chunk_;
     }
 
@@ -175,11 +175,11 @@ auto GeneticVarianceProcessor::process(
         component_gebv_chunk_.noalias() = matrix_ * masked_beta_chunk_;
         component_variance_chains_[chain_idx]
             .middleCols(col_begin, chunk_cols)
-            .row(k - 1) = stats::detail::var(component_gebv_chunk_);
+            .row(k - 1) = stats::detail::matvar(component_gebv_chunk_);
         gebv_chunk_ += component_gebv_chunk_;
     }
 
-    last_variances_ = stats::detail::var(gebv_chunk_);
+    last_variances_ = stats::detail::matvar(gebv_chunk_);
     return gebv_chunk_;
 }
 

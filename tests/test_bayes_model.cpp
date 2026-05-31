@@ -145,7 +145,7 @@ TEST_CASE(
     "[bayes_model]")
 {
     const Eigen::MatrixXd data{{0.0, 1.0}, {1.0, 1.5}, {2.0, 3.0}};
-    const double expected = gelex::stats::detail::var<0>(data).sum();
+    const double expected = gelex::stats::detail::matvar<0>(data).sum();
 
     const auto design = make_genetic_design(GeneticMode::A, data);
 

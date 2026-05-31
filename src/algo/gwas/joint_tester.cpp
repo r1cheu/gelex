@@ -108,17 +108,19 @@ auto JointTester::run(const RemlResult& reml) -> TestResults
     }
 
     // per-effect PVE
-    add_.pve
-        = stats::detail::var(Z_a_ * add_.beta.asDiagonal()).transpose().array()
-          / reml.Vp;
-    dom_.pve
-        = stats::detail::var(Z_d_ * dom_.beta.asDiagonal()).transpose().array()
-          / reml.Vp;
+    add_.pve = stats::detail::matvar(Z_a_ * add_.beta.asDiagonal())
+                   .transpose()
+                   .array()
+               / reml.Vp;
+    dom_.pve = stats::detail::matvar(Z_d_ * dom_.beta.asDiagonal())
+                   .transpose()
+                   .array()
+               / reml.Vp;
 
     // total PVE: var(Z_a * beta_a + Z_d * beta_d) / Vp
     Eigen::MatrixXd pred
         = Z_a_ * add_.beta.asDiagonal() + Z_d_ * dom_.beta.asDiagonal();
-    total_pve_ = stats::detail::var(pred).transpose().array() / reml.Vp;
+    total_pve_ = stats::detail::matvar(pred).transpose().array() / reml.Vp;
 
     const auto n_snps = static_cast<size_t>(n);
     return {

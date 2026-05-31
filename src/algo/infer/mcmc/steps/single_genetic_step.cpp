@@ -101,7 +101,7 @@ auto SingleSharedGaussianStep::step() -> void
         }
     }
     variance_ = variance_sampler_({variance_n, sum_squares}, rng_);
-    state_.variance = stats::detail::var(state_.u)(0);
+    state_.variance = stats::detail::vecvar(state_.u);
 }
 
 SinglePerMarkerGaussianStep::SinglePerMarkerGaussianStep(
@@ -166,7 +166,7 @@ auto SinglePerMarkerGaussianStep::step() -> void
             variance_(i) = variance_sampler_({1, coeff * coeff}, rng_);
         }
     }
-    state_.variance = stats::detail::var(state_.u)(0);
+    state_.variance = stats::detail::vecvar(state_.u);
 }
 
 SingleSharedSpikeSlabStep::SingleSharedSpikeSlabStep(
@@ -274,7 +274,7 @@ auto SingleSharedSpikeSlabStep::step() -> void
     {
         proportion_ = (*proportion_sampler_)(proportion_count_, rng_);
     }
-    state_.variance = stats::detail::var(state_.u)(0);
+    state_.variance = stats::detail::vecvar(state_.u);
 }
 
 SinglePerMarkerSpikeSlabStep::SinglePerMarkerSpikeSlabStep(
@@ -378,7 +378,7 @@ auto SinglePerMarkerSpikeSlabStep::step() -> void
     {
         proportion_ = (*proportion_sampler_)(proportion_count_, rng_);
     }
-    state_.variance = stats::detail::var(state_.u)(0);
+    state_.variance = stats::detail::vecvar(state_.u);
 }
 
 SingleScaledMixtureStep::SingleScaledMixtureStep(
@@ -514,12 +514,12 @@ auto SingleScaledMixtureStep::step() -> void
 
     variance_ = variance_sampler_({variance_n, sum_squares}, rng_);
     proportion_ = proportion_sampler_(proportion_count_, rng_);
-    state_.variance = stats::detail::var(state_.u)(0);
+    state_.variance = stats::detail::vecvar(state_.u);
     for (Eigen::Index k = 0;
          k < static_cast<Eigen::Index>(component_.gebv.size());
          ++k)
     {
-        component_.gebv_var(k) = stats::detail::var(component_.gebv[k])(0);
+        component_.gebv_var(k) = stats::detail::vecvar(component_.gebv[k]);
     }
 }
 

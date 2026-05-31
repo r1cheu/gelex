@@ -31,7 +31,7 @@ FreqModel::FreqModel(
     FixedDesign fixed_design,
     std::vector<freq::GeneticDesign> genetics)
     : phenotype_(std::move(phenotype)),
-      phenotype_variance_(stats::detail::var(phenotype_)[0]),
+      phenotype_variance_(stats::detail::vecvar(phenotype_)),
       fixed_(std::move(fixed_design)),
       genetic_(std::move(genetics))
 {

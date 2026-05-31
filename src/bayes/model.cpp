@@ -42,7 +42,7 @@ BayesModel::BayesModel(
       genetics_(std::move(genetics))
 {
     num_individuals_ = phenotype_.rows();
-    phenotype_var_ = stats::detail::var(phenotype_)(0);
+    phenotype_var_ = stats::detail::vecvar(phenotype_);
 
     if (fixed_.X.rows() != num_individuals_)
     {

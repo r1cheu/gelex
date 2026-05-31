@@ -53,7 +53,8 @@ struct GeneticDesign
         : type(type), X(std::move(X))
     {
         XtX_diag = this->X.matrix().colwise().squaredNorm();
-        design_variance = gelex::stats::detail::var<0>(this->X.matrix()).sum();
+        design_variance
+            = gelex::stats::detail::matvar<0>(this->X.matrix()).sum();
     }
 
     GeneticMode type;

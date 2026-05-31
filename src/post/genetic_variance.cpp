@@ -86,7 +86,7 @@ auto GeneticVariancePosteriorProcessor::process() -> GebvVarianceResult
             }
 
             variance.row(n_variances - 1).segment(col_begin, chunk_cols)
-                = stats::detail::var(gebv_total).head(chunk_cols);
+                = stats::detail::matvar(gebv_total).head(chunk_cols);
         }
     }
 
