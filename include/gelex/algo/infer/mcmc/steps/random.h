@@ -14,38 +14,42 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_MCMC_STEPS_FIXED_COEFFICIENT_H_
-#define GELEX_ALGO_INFER_MCMC_STEPS_FIXED_COEFFICIENT_H_
+#ifndef GELEX_ALGO_INFER_MCMC_STEPS_RANDOM_H_
+#define GELEX_ALGO_INFER_MCMC_STEPS_RANDOM_H_
 
 #include <random>
+#include <span>
 
 #include "gelex/algo/infer/mcmc/step.h"
+#include "gelex/bayes/design.h"
+#include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
-#include "gelex/types/fixed_designs.h"
 
 namespace gelex::mcmc
 {
 
-class FixedCoefficientStep final : public Step
+class RandomStep final : public Step
 {
    public:
-    FixedCoefficientStep(
-        const FixedDesign& design,
-        bayes::FixedState& state,
+    RandomStep(
+        const bayes::RandomPrior& prior,
+        std::span<const bayes::RandomDesign> designs,
+        std::span<bayes::RandomState> states,
         bayes::ResidualState& residual,
         std::mt19937_64& rng);
 
     auto step() -> void override;
 
    private:
-    const FixedDesign& design_;
-    bayes::FixedState& state_;
+    std::span<const bayes::RandomDesign> designs_;
+    std::span<bayes::RandomState> states_;
     bayes::ResidualState& residual_;
     std::mt19937_64& rng_;
     stats::NormalSampler<double> normal_{0.0};
+    stats::ScaledInvChi2Sampler<double> variance_sampler_;
 };
 
 }  // namespace gelex::mcmc
 
-#endif  // GELEX_ALGO_INFER_MCMC_STEPS_FIXED_COEFFICIENT_H_
+#endif  // GELEX_ALGO_INFER_MCMC_STEPS_RANDOM_H_

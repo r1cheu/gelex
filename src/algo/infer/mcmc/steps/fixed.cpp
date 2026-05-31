@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/infer/mcmc/steps/fixed_coefficient.h"
+#include "gelex/algo/infer/mcmc/steps/fixed.h"
 
 #include <Eigen/Core>
 #include <random>
@@ -27,7 +27,7 @@
 namespace gelex::mcmc
 {
 
-FixedCoefficientStep::FixedCoefficientStep(
+FixedStep::FixedStep(
     const FixedDesign& design,
     bayes::FixedState& state,
     bayes::ResidualState& residual,
@@ -36,7 +36,7 @@ FixedCoefficientStep::FixedCoefficientStep(
 {
 }
 
-auto FixedCoefficientStep::step() -> void
+auto FixedStep::step() -> void
 {
     const double residual_variance = residual_.variance;
     auto& coeffs = state_.coeffs;

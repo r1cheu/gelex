@@ -14,36 +14,38 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/infer/mcmc/steps/residual_variance.h"
+#ifndef GELEX_ALGO_INFER_MCMC_STEPS_FIXED_H_
+#define GELEX_ALGO_INFER_MCMC_STEPS_FIXED_H_
 
 #include <random>
 
-#include <Eigen/Core>
-
-#include "gelex/bayes/prior.h"
+#include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/bayes/state.h"
+#include "gelex/infra/stats/conjugate_prior.h"
+#include "gelex/types/fixed_designs.h"
 
 namespace gelex::mcmc
 {
 
-ResidualVarianceStep::ResidualVarianceStep(
-    Eigen::Index num_individuals,
-    const bayes::ResidualPrior& prior,
-    bayes::ResidualState& state,
-    std::mt19937_64& rng)
-    : num_individuals_(num_individuals),
-      state_(state),
-      rng_(rng),
-      sampler_(prior.prior())
+class FixedStep final : public Step
 {
-}
+   public:
+    FixedStep(
+        const FixedDesign& design,
+        bayes::FixedState& state,
+        bayes::ResidualState& residual,
+        std::mt19937_64& rng);
 
-auto ResidualVarianceStep::step() -> void
-{
-    sampler_.reset();
-    state_.variance = sampler_(
-        {.n = num_individuals_, .sum_squares = state_.y_adj.squaredNorm()},
-        rng_);
-}
+    auto step() -> void override;
+
+   private:
+    const FixedDesign& design_;
+    bayes::FixedState& state_;
+    bayes::ResidualState& residual_;
+    std::mt19937_64& rng_;
+    stats::NormalSampler<double> normal_{0.0};
+};
 
 }  // namespace gelex::mcmc
+
+#endif  // GELEX_ALGO_INFER_MCMC_STEPS_FIXED_H_

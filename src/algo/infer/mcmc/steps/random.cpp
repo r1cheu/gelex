@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/infer/mcmc/steps/random_coefficient.h"
+#include "gelex/algo/infer/mcmc/steps/random.h"
 
-#include <fmt/format.h>
-#include <Eigen/Core>
 #include <cstddef>
 #include <random>
 #include <span>
 
+#include <fmt/format.h>
+#include <Eigen/Core>
+
 #include "gelex/algo/infer/mcmc/invariant.h"
 #include "gelex/bayes/design.h"
+#include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/exception.h"
 #include "gelex/infra/stats/conjugate_prior.h"
@@ -31,26 +33,32 @@
 namespace gelex::mcmc
 {
 
-RandomCoefficientStep::RandomCoefficientStep(
+RandomStep::RandomStep(
+    const bayes::RandomPrior& prior,
     std::span<const bayes::RandomDesign> designs,
     std::span<bayes::RandomState> states,
     bayes::ResidualState& residual,
     std::mt19937_64& rng)
-    : designs_(designs), states_(states), residual_(residual), rng_(rng)
+    : designs_(designs),
+      states_(states),
+      residual_(residual),
+      rng_(rng),
+      variance_sampler_(prior.prior())
 {
     if (designs.size() != states.size())
     {
         throw GelexException(
             fmt::format(
-                "RandomCoefficientStep: design/state size mismatch: {} != {}",
+                "RandomStep: design/state size mismatch: {} != {}",
                 designs.size(),
                 states.size()));
     }
 }
 
-auto RandomCoefficientStep::step() -> void
+auto RandomStep::step() -> void
 {
     const double residual_variance = residual_.variance;
+    variance_sampler_.reset();
     for (std::size_t block = 0; block < designs_.size(); ++block)
     {
         const auto& design = designs_[block];
@@ -75,6 +83,8 @@ auto RandomCoefficientStep::step() -> void
                 },
                 rng_);
         }
+        state.variance = variance_sampler_(
+            {.n = coeffs.size(), .sum_squares = coeffs.squaredNorm()}, rng_);
     }
 }
 

@@ -14,35 +14,39 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/infer/mcmc/steps/random_variance.h"
+#ifndef GELEX_ALGO_INFER_MCMC_STEPS_RESIDUAL_H_
+#define GELEX_ALGO_INFER_MCMC_STEPS_RESIDUAL_H_
 
 #include <random>
-#include <span>
 
+#include <Eigen/Core>
+
+#include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
+#include "gelex/infra/stats/conjugate_prior.h"
 
 namespace gelex::mcmc
 {
 
-RandomVarianceStep::RandomVarianceStep(
-    const bayes::RandomPrior& prior,
-    std::span<bayes::RandomState> states,
-    std::mt19937_64& rng)
-    : states_(states), rng_(rng), sampler_(prior.prior())
+class ResidualStep final : public Step
 {
-}
+   public:
+    ResidualStep(
+        Eigen::Index num_individuals,
+        const bayes::ResidualPrior& prior,
+        bayes::ResidualState& state,
+        std::mt19937_64& rng);
 
-auto RandomVarianceStep::step() -> void
-{
-    sampler_.reset();
-    for (auto& state : states_)
-    {
-        state.variance = sampler_(
-            {.n = state.coeffs.size(),
-             .sum_squares = state.coeffs.squaredNorm()},
-            rng_);
-    }
-}
+    auto step() -> void override;
+
+   private:
+    Eigen::Index num_individuals_{};
+    bayes::ResidualState& state_;
+    std::mt19937_64& rng_;
+    stats::ScaledInvChi2Sampler<double> sampler_;
+};
 
 }  // namespace gelex::mcmc
+
+#endif  // GELEX_ALGO_INFER_MCMC_STEPS_RESIDUAL_H_

@@ -27,11 +27,13 @@
 #include "gelex/algo/infer/mcmc/chain.h"
 #include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/algo/infer/mcmc/steps/joint_genetic_step.h"
+#include "gelex/algo/infer/mcmc/steps/random.h"
 #include "gelex/algo/infer/mcmc/steps/single_genetic_step.h"
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
 #include "gelex/bayes/genetic/parameters.h"
+#include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "genotype_fixture.h"
@@ -117,6 +119,29 @@ TEST_CASE("Runtime Chain runs heterogeneous steps in order", "[mcmc][chain]")
 
     REQUIRE(first == 1);
     REQUIRE(second == 1);
+}
+
+TEST_CASE("Random step updates coefficients and variance", "[mcmc]")
+{
+    std::vector<gelex::bayes::RandomDesign> designs;
+    designs.emplace_back(
+        "pen",
+        std::vector<std::string>{"a", "b"},
+        Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}});
+    gelex::bayes::RandomPrior prior{make_variance(0.5)};
+    std::vector<gelex::bayes::RandomState> states;
+    states.emplace_back(designs.front(), prior);
+    gelex::bayes::ResidualState residual{
+        .y_adj = Eigen::VectorXd{{1.0, -0.5, 0.25}}, .variance = 1.0};
+
+    std::mt19937_64 rng{123};
+    gelex::mcmc::RandomStep step{prior, designs, states, residual, rng};
+    step.step();
+
+    REQUIRE(states.front().coeffs.allFinite());
+    REQUIRE(std::isfinite(states.front().variance));
+    REQUIRE(states.front().variance > 0.0);
+    REQUIRE(residual.y_adj.allFinite());
 }
 
 TEST_CASE("Single shared Gaussian step updates fused state", "[mcmc]")
