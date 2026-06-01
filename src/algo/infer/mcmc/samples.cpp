@@ -18,6 +18,8 @@
 
 #include <ranges>
 #include <string_view>
+#include <type_traits>
+#include <variant>
 
 #include <Eigen/Core>
 
@@ -133,13 +135,54 @@ Samples::Samples(
         }
     }
 
+    genetics_.reserve(model.genetics().size());
+    for (const auto& block : prior.genetics())
+    {
+        std::visit(
+            [&](const auto& genetic_prior)
+            {
+                if constexpr (
+                    std::is_same_v<
+                        std::decay_t<decltype(genetic_prior)>,
+                        bayes::SingleGeneticPrior>)
+                {
+                    const auto mode = bayes::mode(genetic_prior);
+                    const auto* design = model.genetic(mode);
+                    if (design == nullptr)
+                    {
+                        throw GelexException(
+                            "Samples: missing single genetic design");
+                    }
+                    genetics_.emplace_back(*design, mode);
+                }
+                else
+                {
+                    const auto* additive = model.genetic(GeneticMode::A);
+                    if (additive == nullptr)
+                    {
+                        throw GelexException(
+                            "Samples: missing additive genetic design");
+                    }
+                    genetics_.emplace_back(*additive, GeneticMode::A);
+
+                    const auto* dominance = model.genetic(GeneticMode::D);
+                    if (dominance == nullptr)
+                    {
+                        throw GelexException(
+                            "Samples: missing dominance genetic design");
+                    }
+                    genetics_.emplace_back(*dominance, GeneticMode::D);
+                }
+            },
+            block);
+    }
+
     if (!sample_prefix.empty())
     {
         throw GelexException(
             "MCMC sample writer is not implemented after Bayes prior/state "
             "cleanup");
     }
-    static_cast<void>(prior);
     static_cast<void>(state);
     static_cast<void>(n_records);
 }
