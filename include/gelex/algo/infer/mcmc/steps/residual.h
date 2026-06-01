@@ -21,7 +21,6 @@
 
 #include <Eigen/Core>
 
-#include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
@@ -29,7 +28,7 @@
 namespace gelex::mcmc
 {
 
-class ResidualStep final : public Step
+class ResidualStep final
 {
    public:
     ResidualStep(
@@ -38,7 +37,7 @@ class ResidualStep final : public Step
         bayes::ResidualState& state,
         std::mt19937_64& rng);
 
-    auto step() -> void override;
+    auto step() -> void;
 
    private:
     Eigen::Index num_individuals_{};

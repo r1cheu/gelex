@@ -19,7 +19,6 @@
 
 #include <random>
 
-#include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/bayes/state.h"
 #include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/types/fixed_designs.h"
@@ -27,7 +26,7 @@
 namespace gelex::mcmc
 {
 
-class FixedStep final : public Step
+class FixedStep final
 {
    public:
     FixedStep(
@@ -36,7 +35,7 @@ class FixedStep final : public Step
         bayes::ResidualState& residual,
         std::mt19937_64& rng);
 
-    auto step() -> void override;
+    auto step() -> void;
 
    private:
     const FixedDesign& design_;

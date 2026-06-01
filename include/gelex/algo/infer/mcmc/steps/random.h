@@ -20,7 +20,6 @@
 #include <random>
 #include <span>
 
-#include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
@@ -29,7 +28,7 @@
 namespace gelex::mcmc
 {
 
-class RandomStep final : public Step
+class RandomStep final
 {
    public:
     RandomStep(
@@ -39,7 +38,7 @@ class RandomStep final : public Step
         bayes::ResidualState& residual,
         std::mt19937_64& rng);
 
-    auto step() -> void override;
+    auto step() -> void;
 
    private:
     std::span<const bayes::RandomDesign> designs_;

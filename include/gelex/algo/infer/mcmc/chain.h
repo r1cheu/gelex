@@ -17,27 +17,57 @@
 #ifndef GELEX_ALGO_INFER_MCMC_CHAIN_H_
 #define GELEX_ALGO_INFER_MCMC_CHAIN_H_
 
-#include <memory>
-#include <utility>
+#include <random>
+#include <variant>
 #include <vector>
 
-#include "gelex/algo/infer/mcmc/step.h"
+#include "gelex/algo/infer/mcmc/steps/fixed.h"
+#include "gelex/algo/infer/mcmc/steps/joint_genetic_step.h"
+#include "gelex/algo/infer/mcmc/steps/random.h"
+#include "gelex/algo/infer/mcmc/steps/residual.h"
+#include "gelex/algo/infer/mcmc/steps/single_genetic_step.h"
+#include "gelex/bayes/model.h"
+#include "gelex/bayes/prior.h"
+#include "gelex/bayes/state.h"
 
 namespace gelex::mcmc
 {
 
+using SingleGeneticStep = std::variant<
+    SingleSharedGaussianStep,
+    SinglePerMarkerGaussianStep,
+    SingleSharedSpikeSlabStep,
+    SinglePerMarkerSpikeSlabStep,
+    SingleScaledMixtureStep>;
+
+using JointGeneticStep = std::variant<JointGaussianMixtureStep>;
+
 class Chain
 {
    public:
-    explicit Chain(std::vector<std::unique_ptr<Step>> steps)
-        : steps_(std::move(steps))
-    {
-    }
+    Chain(
+        FixedStep fixed,
+        RandomStep random,
+        std::vector<SingleGeneticStep> single_genetics,
+        std::vector<JointGeneticStep> joint_genetics,
+        ResidualStep residual,
+        BayesState& state);
 
     auto step() -> void;
 
+    static auto make(
+        const BayesModel& model,
+        const bayes::BayesPrior& prior,
+        BayesState& state,
+        std::mt19937_64& rng) -> Chain;
+
    private:
-    std::vector<std::unique_ptr<Step>> steps_;
+    FixedStep fixed_;
+    RandomStep random_;
+    std::vector<SingleGeneticStep> single_genetics_;
+    std::vector<JointGeneticStep> joint_genetics_;
+    ResidualStep residual_;
+    BayesState& state_;
 };
 
 }  // namespace gelex::mcmc

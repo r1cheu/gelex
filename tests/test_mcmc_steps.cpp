@@ -16,7 +16,6 @@
 
 #include <array>
 #include <cmath>
-#include <memory>
 #include <random>
 #include <utility>
 #include <vector>
@@ -25,7 +24,6 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/algo/infer/mcmc/chain.h"
-#include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/algo/infer/mcmc/steps/joint_genetic_step.h"
 #include "gelex/algo/infer/mcmc/steps/random.h"
 #include "gelex/algo/infer/mcmc/steps/single_genetic_step.h"
@@ -33,8 +31,10 @@
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
 #include "gelex/bayes/genetic/parameters.h"
+#include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
+#include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "genotype_fixture.h"
 
@@ -93,33 +93,7 @@ auto make_proportion(Eigen::Index size = 2) -> gelex::bayes::MixtureProportion
         std::move(initial), gelex::bayes::DirichletPrior{std::move(alpha)}}};
 }
 
-class CountingStep final : public gelex::mcmc::Step
-{
-   public:
-    explicit CountingStep(int& count) : count_(count) {}
-
-    auto step() -> void override { ++count_; }
-
-   private:
-    int& count_;
-};
-
 }  // namespace
-
-TEST_CASE("Runtime Chain runs heterogeneous steps in order", "[mcmc][chain]")
-{
-    int first = 0;
-    int second = 0;
-    std::vector<std::unique_ptr<gelex::mcmc::Step>> steps;
-    steps.push_back(std::make_unique<CountingStep>(first));
-    steps.push_back(std::make_unique<CountingStep>(second));
-
-    gelex::mcmc::Chain chain{std::move(steps)};
-    chain.step();
-
-    REQUIRE(first == 1);
-    REQUIRE(second == 1);
-}
 
 TEST_CASE("Random step updates coefficients and variance", "[mcmc]")
 {
@@ -381,4 +355,204 @@ TEST_CASE("Joint Gaussian mixture step updates fused state", "[mcmc]")
     REQUIRE(std::abs(mixture_state.proportion().sum() - 1.0) < 1e-12);
     REQUIRE((mixture_state.assignment().array() >= 0).all());
     REQUIRE((mixture_state.assignment().array() <= 3).all());
+}
+
+TEST_CASE("Chain::make maps single genetic priors to MCMC steps", "[mcmc][chain]")
+{
+    SECTION("shared Gaussian")
+    {
+        std::vector<gelex::bayes::GeneticDesign> genetics;
+        genetics.push_back(make_design());
+        gelex::BayesModel model{
+            Eigen::VectorXd{{1.0, -0.5, 0.25}},
+            gelex::FixedDesign::build(3),
+            {},
+            std::move(genetics)};
+        std::vector<gelex::bayes::GeneticPrior> priors;
+        priors.emplace_back(
+            gelex::bayes::SingleGeneticPrior{
+                gelex::bayes::SingleSharedGaussianPrior{
+                    gelex::GeneticMode::A,
+                    gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
+        gelex::bayes::BayesPrior prior{
+            gelex::bayes::RandomPrior{make_variance(0.3)},
+            std::move(priors),
+            gelex::bayes::ResidualPrior{make_variance(0.4)}};
+        gelex::BayesState state(model, prior);
+
+        std::mt19937_64 rng{123};
+        auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
+        chain.step();
+
+        REQUIRE(state.genetic(gelex::GeneticMode::A) != nullptr);
+        REQUIRE(state.genetic(gelex::GeneticMode::A)->coeffs.allFinite());
+        REQUIRE(std::isfinite(
+            state.genetic(gelex::GeneticMode::A)->heritability));
+    }
+
+    SECTION("per-marker Gaussian")
+    {
+        std::vector<gelex::bayes::GeneticDesign> genetics;
+        genetics.push_back(make_design());
+        gelex::BayesModel model{
+            Eigen::VectorXd{{1.0, -0.5, 0.25}},
+            gelex::FixedDesign::build(3),
+            {},
+            std::move(genetics)};
+        std::vector<gelex::bayes::GeneticPrior> priors;
+        priors.emplace_back(
+            gelex::bayes::SingleGeneticPrior{
+                gelex::bayes::SinglePerMarkerGaussianPrior{
+                    gelex::GeneticMode::A,
+                    gelex::bayes::PerMarkerVariance{make_variance(0.1)}}});
+        gelex::bayes::BayesPrior prior{
+            gelex::bayes::RandomPrior{make_variance(0.3)},
+            std::move(priors),
+            gelex::bayes::ResidualPrior{make_variance(0.4)}};
+        gelex::BayesState state(model, prior);
+
+        std::mt19937_64 rng{123};
+        auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
+        chain.step();
+
+        REQUIRE(state.genetic(gelex::GeneticMode::A) != nullptr);
+        REQUIRE(state.genetic(gelex::GeneticMode::A)->coeffs.allFinite());
+        REQUIRE(std::isfinite(
+            state.genetic(gelex::GeneticMode::A)->heritability));
+    }
+
+    SECTION("shared spike-slab")
+    {
+        std::vector<gelex::bayes::GeneticDesign> genetics;
+        genetics.push_back(make_design());
+        gelex::BayesModel model{
+            Eigen::VectorXd{{1.0, -0.5, 0.25}},
+            gelex::FixedDesign::build(3),
+            {},
+            std::move(genetics)};
+        std::vector<gelex::bayes::GeneticPrior> priors;
+        priors.emplace_back(
+            gelex::bayes::SingleGeneticPrior{
+                gelex::bayes::SingleSharedSpikeSlabGaussianPrior{
+                    gelex::GeneticMode::A,
+                    gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+                    make_proportion()}});
+        gelex::bayes::BayesPrior prior{
+            gelex::bayes::RandomPrior{make_variance(0.3)},
+            std::move(priors),
+            gelex::bayes::ResidualPrior{make_variance(0.4)}};
+        gelex::BayesState state(model, prior);
+
+        std::mt19937_64 rng{123};
+        auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
+        chain.step();
+
+        REQUIRE(state.genetic(gelex::GeneticMode::A) != nullptr);
+        REQUIRE(state.genetic(gelex::GeneticMode::A)->coeffs.allFinite());
+        REQUIRE(std::isfinite(
+            state.genetic(gelex::GeneticMode::A)->heritability));
+    }
+
+    SECTION("per-marker spike-slab")
+    {
+        std::vector<gelex::bayes::GeneticDesign> genetics;
+        genetics.push_back(make_design());
+        gelex::BayesModel model{
+            Eigen::VectorXd{{1.0, -0.5, 0.25}},
+            gelex::FixedDesign::build(3),
+            {},
+            std::move(genetics)};
+        std::vector<gelex::bayes::GeneticPrior> priors;
+        priors.emplace_back(
+            gelex::bayes::SingleGeneticPrior{
+                gelex::bayes::SinglePerMarkerSpikeSlabGaussianPrior{
+                    gelex::GeneticMode::A,
+                    gelex::bayes::PerMarkerVariance{make_variance(0.1)},
+                    make_proportion()}});
+        gelex::bayes::BayesPrior prior{
+            gelex::bayes::RandomPrior{make_variance(0.3)},
+            std::move(priors),
+            gelex::bayes::ResidualPrior{make_variance(0.4)}};
+        gelex::BayesState state(model, prior);
+
+        std::mt19937_64 rng{123};
+        auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
+        chain.step();
+
+        REQUIRE(state.genetic(gelex::GeneticMode::A) != nullptr);
+        REQUIRE(state.genetic(gelex::GeneticMode::A)->coeffs.allFinite());
+        REQUIRE(std::isfinite(
+            state.genetic(gelex::GeneticMode::A)->heritability));
+    }
+
+    SECTION("scaled mixture")
+    {
+        std::vector<gelex::bayes::GeneticDesign> genetics;
+        genetics.push_back(make_design());
+        gelex::BayesModel model{
+            Eigen::VectorXd{{1.0, -0.5, 0.25}},
+            gelex::FixedDesign::build(3),
+            {},
+            std::move(genetics)};
+        std::vector<gelex::bayes::GeneticPrior> priors;
+        priors.emplace_back(
+            gelex::bayes::SingleGeneticPrior{
+                gelex::bayes::SingleScaledMixtureGaussianPrior{
+                    gelex::GeneticMode::A,
+                    gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+                    Eigen::VectorXd{{0.0, 2.0}},
+                    make_proportion()}});
+        gelex::bayes::BayesPrior prior{
+            gelex::bayes::RandomPrior{make_variance(0.3)},
+            std::move(priors),
+            gelex::bayes::ResidualPrior{make_variance(0.4)}};
+        gelex::BayesState state(model, prior);
+
+        std::mt19937_64 rng{123};
+        auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
+        chain.step();
+
+        REQUIRE(state.genetic(gelex::GeneticMode::A) != nullptr);
+        REQUIRE(state.genetic(gelex::GeneticMode::A)->coeffs.allFinite());
+        REQUIRE(std::isfinite(
+            state.genetic(gelex::GeneticMode::A)->heritability));
+    }
+}
+
+TEST_CASE("Chain::make maps joint genetic priors to MCMC steps", "[mcmc][chain]")
+{
+    std::vector<gelex::bayes::GeneticDesign> genetics;
+    genetics.push_back(make_design(gelex::GeneticMode::A));
+    genetics.push_back(make_design(gelex::GeneticMode::D));
+    gelex::BayesModel model{
+        Eigen::VectorXd{{1.0, -0.5, 0.25}},
+        gelex::FixedDesign::build(3),
+        {},
+        std::move(genetics)};
+    std::vector<gelex::bayes::GeneticPrior> priors;
+    priors.emplace_back(
+        gelex::bayes::JointGeneticPrior{
+            gelex::bayes::JointGaussianMixturePrior{
+                gelex::bayes::JointSharedMarkerVariance{std::array{
+                    gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+                    gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
+                make_proportion(4)}});
+    gelex::bayes::BayesPrior prior{
+        gelex::bayes::RandomPrior{make_variance(0.3)},
+        std::move(priors),
+        gelex::bayes::ResidualPrior{make_variance(0.4)}};
+    gelex::BayesState state(model, prior);
+
+    std::mt19937_64 rng{123};
+    auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
+    chain.step();
+
+    REQUIRE(state.genetic(gelex::GeneticMode::A) != nullptr);
+    REQUIRE(state.genetic(gelex::GeneticMode::D) != nullptr);
+    REQUIRE(state.genetic(gelex::GeneticMode::A)->coeffs.allFinite());
+    REQUIRE(state.genetic(gelex::GeneticMode::D)->coeffs.allFinite());
+    REQUIRE(std::isfinite(
+        state.genetic(gelex::GeneticMode::A)->heritability));
+    REQUIRE(std::isfinite(
+        state.genetic(gelex::GeneticMode::D)->heritability));
 }

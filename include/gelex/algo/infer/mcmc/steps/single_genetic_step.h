@@ -23,7 +23,6 @@
 
 #include <Eigen/Core>
 
-#include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
@@ -36,7 +35,7 @@ namespace gelex::mcmc
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-class SingleSharedGaussianStep final : public Step
+class SingleSharedGaussianStep final
 {
    public:
     SingleSharedGaussianStep(
@@ -46,7 +45,7 @@ class SingleSharedGaussianStep final : public Step
         bayes::ResidualState& residual,
         std::mt19937_64& rng);
 
-    auto step() -> void override;
+    auto step() -> void;
 
    private:
     SingleSharedGaussianStep(
@@ -70,7 +69,7 @@ class SingleSharedGaussianStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class SinglePerMarkerGaussianStep final : public Step
+class SinglePerMarkerGaussianStep final
 {
    public:
     SinglePerMarkerGaussianStep(
@@ -80,7 +79,7 @@ class SinglePerMarkerGaussianStep final : public Step
         bayes::ResidualState& residual,
         std::mt19937_64& rng);
 
-    auto step() -> void override;
+    auto step() -> void;
 
    private:
     SinglePerMarkerGaussianStep(
@@ -104,7 +103,7 @@ class SinglePerMarkerGaussianStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class SingleSharedSpikeSlabStep final : public Step
+class SingleSharedSpikeSlabStep final
 {
    public:
     SingleSharedSpikeSlabStep(
@@ -114,7 +113,7 @@ class SingleSharedSpikeSlabStep final : public Step
         bayes::ResidualState& residual,
         std::mt19937_64& rng);
 
-    auto step() -> void override;
+    auto step() -> void;
 
    private:
     SingleSharedSpikeSlabStep(
@@ -144,7 +143,7 @@ class SingleSharedSpikeSlabStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class SinglePerMarkerSpikeSlabStep final : public Step
+class SinglePerMarkerSpikeSlabStep final
 {
    public:
     SinglePerMarkerSpikeSlabStep(
@@ -154,7 +153,7 @@ class SinglePerMarkerSpikeSlabStep final : public Step
         bayes::ResidualState& residual,
         std::mt19937_64& rng);
 
-    auto step() -> void override;
+    auto step() -> void;
 
    private:
     SinglePerMarkerSpikeSlabStep(
@@ -184,7 +183,7 @@ class SinglePerMarkerSpikeSlabStep final : public Step
     std::mt19937_64& rng_;
 };
 
-class SingleScaledMixtureStep final : public Step
+class SingleScaledMixtureStep final
 {
    public:
     SingleScaledMixtureStep(
@@ -194,7 +193,7 @@ class SingleScaledMixtureStep final : public Step
         bayes::ResidualState& residual,
         std::mt19937_64& rng);
 
-    auto step() -> void override;
+    auto step() -> void;
 
    private:
     static constexpr int MAX_MIXTURE_COMPONENTS = 5;

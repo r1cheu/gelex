@@ -23,7 +23,6 @@
 
 #include <Eigen/Core>
 
-#include "gelex/algo/infer/mcmc/step.h"
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
@@ -35,7 +34,7 @@ namespace gelex::mcmc
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-class JointGaussianMixtureStep final : public Step
+class JointGaussianMixtureStep final
 {
    public:
     JointGaussianMixtureStep(
@@ -46,7 +45,7 @@ class JointGaussianMixtureStep final : public Step
         bayes::ResidualState& residual,
         std::mt19937_64& rng);
 
-    auto step() -> void override;
+    auto step() -> void;
 
    private:
     JointGaussianMixtureStep(

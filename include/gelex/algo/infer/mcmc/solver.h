@@ -43,7 +43,7 @@ class Solver
    public:
     explicit Solver(
         mcmc::Params params,
-        ChainFactory make_chain,
+        ChainFactory chain_factory,
         std::string sample_prefix = {},
         std::optional<std::string> checkpoint_prefix = std::nullopt);
 
@@ -60,7 +60,7 @@ class Solver
         const MCMCObserver& observer = {}) -> mcmc::Result;
 
    private:
-    [[no_unique_address]] ChainFactory make_chain_;
+    [[no_unique_address]] ChainFactory chain_factory_;
     mcmc::Params params_;
     std::string sample_prefix_;
     std::optional<std::string> checkpoint_prefix_;
@@ -69,10 +69,10 @@ class Solver
 template <typename ChainFactory>
 Solver<ChainFactory>::Solver(
     mcmc::Params params,
-    ChainFactory make_chain,
+    ChainFactory chain_factory,
     std::string sample_prefix,
     std::optional<std::string> checkpoint_prefix)
-    : make_chain_(std::move(make_chain)),
+    : chain_factory_(std::move(chain_factory)),
       params_(params),
       sample_prefix_(std::move(sample_prefix)),
       checkpoint_prefix_(std::move(checkpoint_prefix))
