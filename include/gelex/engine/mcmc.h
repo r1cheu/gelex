@@ -41,7 +41,7 @@ class Engine
     struct Config
     {
         std::string bfile_prefix;
-        bayes::BayesRecipePreset preset;
+        bayes::BayesRecipeScheme recipe_scheme;
         bayes::BayesRecipeConfig recipe_config;
 
         int seed;

@@ -23,7 +23,6 @@
 
 #include <fmt/format.h>
 
-#include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe_options.h"
@@ -33,31 +32,34 @@
 namespace gelex::bayes
 {
 
-BayesRecipe::BayesRecipe(BayesRecipePreset preset, BayesRecipeConfig options)
-    : preset_{preset},
+BayesRecipe::BayesRecipe(
+    BayesRecipeScheme recipe_scheme,
+    BayesRecipeConfig options)
+    : recipe_scheme_{recipe_scheme},
       options_{std::move(options)},
       scheme_{
           [this]() -> BayesScheme
           {
               validate_modes(options_.modes);
-              switch (preset_)
+              switch (recipe_scheme_)
               {
-                  case BayesRecipePreset::RR:
+                  case BayesRecipeScheme::RR:
                       return BayesRRScheme{options_};
-                  case BayesRecipePreset::A:
+                  case BayesRecipeScheme::A:
                       return BayesAScheme{options_};
-                  case BayesRecipePreset::B:
+                  case BayesRecipeScheme::B:
                       return BayesBScheme{options_};
-                  case BayesRecipePreset::C:
+                  case BayesRecipeScheme::C:
                       return BayesCScheme{options_};
-                  case BayesRecipePreset::R:
+                  case BayesRecipeScheme::R:
                       return BayesRScheme{options_};
-                  case BayesRecipePreset::CD:
+                  case BayesRecipeScheme::CD:
                       return BayesCDScheme{options_};
                   default:
                       throw GelexException(
                           fmt::format(
-                              "Unsupported BayesRecipePreset: {}", preset_));
+                              "Unsupported BayesRecipeScheme: {}",
+                              recipe_scheme_));
               }
           }()}
 {
@@ -107,16 +109,17 @@ auto BayesRecipe::make_residual_prior(const BayesModel& model) -> ResidualPrior
         ScaledInvChiSqPrior{-2, 0});
 }
 
-auto to_bayes_recipe_preset(std::string_view preset) -> BayesRecipePreset
+auto to_bayes_recipe_scheme(std::string_view recipe_scheme) -> BayesRecipeScheme
 {
-    for (const auto& [value, name] : BAYES_RECIPE_PRESET_NAMES)
+    for (const auto& [value, name] : BAYES_RECIPE_SCHEME_NAMES)
     {
-        if (preset == name)
+        if (recipe_scheme == name)
         {
             return value;
         }
     }
-    throw GelexException(fmt::format("Unknown method preset: {}", preset));
+    throw GelexException(
+        fmt::format("Unknown recipe scheme: {}", recipe_scheme));
 }
 
 }  // namespace gelex::bayes

@@ -19,9 +19,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <utility>
 
-#include "gelex/exception.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/recipe_options.h"
+#include "gelex/exception.h"
 #include "gelex/types/constrained_value.h"
 #include "gelex/types/constrained_vector.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -32,29 +32,29 @@ using gelex::OpenUnitInterval;
 using gelex::Simplex;
 using gelex::bayes::BayesRecipe;
 using gelex::bayes::BayesRecipeConfig;
-using gelex::bayes::BayesRecipePreset;
+using gelex::bayes::BayesRecipeScheme;
 using gelex::bayes::EffectConfig;
-using gelex::bayes::to_bayes_recipe_preset;
+using gelex::bayes::to_bayes_recipe_scheme;
 
-TEST_CASE("BayesRecipe preset parser accepts short names", "[bayes_recipe]")
+TEST_CASE("BayesRecipe scheme parser accepts short names", "[bayes_recipe]")
 {
-    REQUIRE(to_bayes_recipe_preset("RR") == BayesRecipePreset::RR);
-    REQUIRE(to_bayes_recipe_preset("A") == BayesRecipePreset::A);
-    REQUIRE(to_bayes_recipe_preset("B") == BayesRecipePreset::B);
-    REQUIRE(to_bayes_recipe_preset("C") == BayesRecipePreset::C);
-    REQUIRE(to_bayes_recipe_preset("R") == BayesRecipePreset::R);
-    REQUIRE(to_bayes_recipe_preset("CD") == BayesRecipePreset::CD);
+    REQUIRE(to_bayes_recipe_scheme("RR") == BayesRecipeScheme::RR);
+    REQUIRE(to_bayes_recipe_scheme("A") == BayesRecipeScheme::A);
+    REQUIRE(to_bayes_recipe_scheme("B") == BayesRecipeScheme::B);
+    REQUIRE(to_bayes_recipe_scheme("C") == BayesRecipeScheme::C);
+    REQUIRE(to_bayes_recipe_scheme("R") == BayesRecipeScheme::R);
+    REQUIRE(to_bayes_recipe_scheme("CD") == BayesRecipeScheme::CD);
 
-    REQUIRE_THROWS_AS(to_bayes_recipe_preset("BayesRR"), GelexException);
-    REQUIRE_THROWS_AS(to_bayes_recipe_preset("BayesA"), GelexException);
-    REQUIRE_THROWS_AS(to_bayes_recipe_preset("BayesCD"), GelexException);
+    REQUIRE_THROWS_AS(to_bayes_recipe_scheme("BayesRR"), GelexException);
+    REQUIRE_THROWS_AS(to_bayes_recipe_scheme("BayesA"), GelexException);
+    REQUIRE_THROWS_AS(to_bayes_recipe_scheme("BayesCD"), GelexException);
 }
 
 TEST_CASE("BayesR construction succeeds with defaults", "[bayes_recipe]")
 {
     BayesRecipeConfig config;
     config.modes = {GeneticMode::A};
-    REQUIRE_NOTHROW(BayesRecipe(BayesRecipePreset::R, config));
+    REQUIRE_NOTHROW(BayesRecipe(BayesRecipeScheme::R, config));
 }
 
 TEST_CASE("BayesCD rejects joint_proportion of wrong size", "[bayes_recipe]")
@@ -65,7 +65,7 @@ TEST_CASE("BayesCD rejects joint_proportion of wrong size", "[bayes_recipe]")
         config.modes = {GeneticMode::A, GeneticMode::D};
         config.joint_proportion = Simplex<double>{{0.5, 0.5}};
         REQUIRE_THROWS_AS(
-            BayesRecipe(BayesRecipePreset::CD, config), GelexException);
+            BayesRecipe(BayesRecipeScheme::CD, config), GelexException);
     }
     SECTION("3-element simplex rejected")
     {
@@ -73,7 +73,7 @@ TEST_CASE("BayesCD rejects joint_proportion of wrong size", "[bayes_recipe]")
         config.modes = {GeneticMode::A, GeneticMode::D};
         config.joint_proportion = Simplex<double>{{0.8, 0.1, 0.1}};
         REQUIRE_THROWS_AS(
-            BayesRecipe(BayesRecipePreset::CD, config), GelexException);
+            BayesRecipe(BayesRecipeScheme::CD, config), GelexException);
     }
     SECTION("5-element simplex rejected")
     {
@@ -82,14 +82,14 @@ TEST_CASE("BayesCD rejects joint_proportion of wrong size", "[bayes_recipe]")
         config.joint_proportion
             = Simplex<double>{{0.8, 0.05, 0.05, 0.05, 0.05}};
         REQUIRE_THROWS_AS(
-            BayesRecipe(BayesRecipePreset::CD, config), GelexException);
+            BayesRecipe(BayesRecipeScheme::CD, config), GelexException);
     }
     SECTION("4-element simplex accepted")
     {
         BayesRecipeConfig config;
         config.modes = {GeneticMode::A, GeneticMode::D};
         config.joint_proportion = Simplex<double>{{0.9, 0.04, 0.03, 0.03}};
-        REQUIRE_NOTHROW(BayesRecipe(BayesRecipePreset::CD, config));
+        REQUIRE_NOTHROW(BayesRecipe(BayesRecipeScheme::CD, config));
     }
 }
 
@@ -106,7 +106,7 @@ TEST_CASE(
             std::nullopt,
             std::nullopt,
             std::nullopt};
-        REQUIRE_NOTHROW(BayesRecipe(BayesRecipePreset::RR, config));
+        REQUIRE_NOTHROW(BayesRecipe(BayesRecipeScheme::RR, config));
     }
     SECTION("dominance override with mode D present")
     {
@@ -117,7 +117,7 @@ TEST_CASE(
             std::nullopt,
             std::nullopt,
             std::nullopt};
-        REQUIRE_NOTHROW(BayesRecipe(BayesRecipePreset::RR, config));
+        REQUIRE_NOTHROW(BayesRecipe(BayesRecipeScheme::RR, config));
     }
     SECTION("both overrides with modes {A, D}")
     {
@@ -133,6 +133,6 @@ TEST_CASE(
             std::nullopt,
             std::nullopt,
             std::nullopt};
-        REQUIRE_NOTHROW(BayesRecipe(BayesRecipePreset::RR, config));
+        REQUIRE_NOTHROW(BayesRecipe(BayesRecipeScheme::RR, config));
     }
 }

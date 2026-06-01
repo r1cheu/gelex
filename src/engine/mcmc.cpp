@@ -41,7 +41,7 @@ auto ConfigValidator::validate() const -> void
 
 auto ConfigValidator::check_method() const -> void
 {
-    static_cast<void>(config_.preset);
+    static_cast<void>(config_.recipe_scheme);
     static_cast<void>(config_.recipe_config);
 }
 

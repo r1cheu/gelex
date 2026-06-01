@@ -53,7 +53,7 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
     gelex::notify(
         reporter.as_observer(),
         gelex::MCMCConfigEvent{
-            .preset = engine_config.preset,
+            .recipe_scheme = engine_config.recipe_scheme,
             .requested_effects = engine_config.recipe_config.modes,
             .n_iters = engine_config.mcmc_params.n_iters,
             .n_burn_in = engine_config.mcmc_params.n_burn_in,
@@ -75,7 +75,7 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
     geno.load(common);
 
     auto bayes_recipe = gelex::bayes::BayesRecipe(
-        engine_config.preset, engine_config.recipe_config);
+        engine_config.recipe_scheme, engine_config.recipe_config);
 
     auto model = gelex::build_bayes_model(std::move(pheno), std::move(geno));
     auto prior = bayes_recipe.make_prior(model);

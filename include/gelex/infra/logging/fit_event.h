@@ -47,7 +47,7 @@ struct MCMCBannerEvent
 
 struct MCMCConfigEvent
 {
-    gelex::bayes::BayesRecipePreset preset;
+    gelex::bayes::BayesRecipeScheme recipe_scheme;
     std::vector<GeneticMode> requested_effects;
     Eigen::Index n_iters{};
     Eigen::Index n_burn_in{};

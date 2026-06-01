@@ -35,12 +35,12 @@ namespace
 
 auto make_engine_config(
     argparse::ArgumentParser& cmd,
-    bayes::BayesRecipePreset preset,
+    bayes::BayesRecipeScheme recipe_scheme,
     bayes::BayesRecipeConfig recipe_config) -> mcmc::Engine::Config
 {
     mcmc::Engine::Config config{
         .bfile_prefix = cmd.get("--bfile"),
-        .preset = preset,
+        .recipe_scheme = recipe_scheme,
         .recipe_config = std::move(recipe_config),
         .seed = cmd.get<int>("--seed"),
         .mcmc_params = gelex::mcmc::Params{
@@ -69,10 +69,10 @@ auto make_engine_config(
 auto make_mcmc_engine_config(argparse::ArgumentParser& cmd)
     -> mcmc::Engine::Config
 {
-    auto preset = gelex::bayes::to_bayes_recipe_preset(
+    auto recipe_scheme = gelex::bayes::to_bayes_recipe_scheme(
         cmd.get<std::string>("--method"));
     auto recipe_config = make_bayes_recipe_config(cmd);
-    return make_engine_config(cmd, preset, std::move(recipe_config));
+    return make_engine_config(cmd, recipe_scheme, std::move(recipe_config));
 }
 
 }  // namespace gelex::cli

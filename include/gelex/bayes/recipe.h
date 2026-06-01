@@ -37,7 +37,7 @@ class BayesModel;
 namespace gelex::bayes
 {
 
-enum class BayesRecipePreset : std::uint8_t
+enum class BayesRecipeScheme : std::uint8_t
 {
     RR,
     A,
@@ -47,19 +47,21 @@ enum class BayesRecipePreset : std::uint8_t
     CD,
 };
 
-inline constexpr std::array BAYES_RECIPE_PRESET_NAMES{
-    std::pair{BayesRecipePreset::RR, std::string_view{"RR"}},
-    std::pair{BayesRecipePreset::A, std::string_view{"A"}},
-    std::pair{BayesRecipePreset::B, std::string_view{"B"}},
-    std::pair{BayesRecipePreset::C, std::string_view{"C"}},
-    std::pair{BayesRecipePreset::R, std::string_view{"R"}},
-    std::pair{BayesRecipePreset::CD, std::string_view{"CD"}},
+inline constexpr std::array BAYES_RECIPE_SCHEME_NAMES{
+    std::pair{BayesRecipeScheme::RR, std::string_view{"RR"}},
+    std::pair{BayesRecipeScheme::A, std::string_view{"A"}},
+    std::pair{BayesRecipeScheme::B, std::string_view{"B"}},
+    std::pair{BayesRecipeScheme::C, std::string_view{"C"}},
+    std::pair{BayesRecipeScheme::R, std::string_view{"R"}},
+    std::pair{BayesRecipeScheme::CD, std::string_view{"CD"}},
 };
 
 class BayesRecipe
 {
    public:
-    explicit BayesRecipe(BayesRecipePreset preset, BayesRecipeConfig options);
+    explicit BayesRecipe(
+        BayesRecipeScheme recipe_scheme,
+        BayesRecipeConfig options);
     ~BayesRecipe();
 
     BayesRecipe(const BayesRecipe&) = delete;
@@ -75,33 +77,34 @@ class BayesRecipe
     auto make_random_prior(const BayesModel& model) const -> RandomPrior;
     static auto make_residual_prior(const BayesModel& model) -> ResidualPrior;
 
-    BayesRecipePreset preset_;
+    BayesRecipeScheme recipe_scheme_;
     BayesRecipeConfig options_;
     BayesScheme scheme_;
 };
 
-auto to_bayes_recipe_preset(std::string_view preset) -> BayesRecipePreset;
+auto to_bayes_recipe_scheme(std::string_view recipe_scheme)
+    -> BayesRecipeScheme;
 
 }  // namespace gelex::bayes
 
 template <>
-struct fmt::formatter<gelex::bayes::BayesRecipePreset>
+struct fmt::formatter<gelex::bayes::BayesRecipeScheme>
     : fmt::formatter<std::string_view>
 {
-    auto format(gelex::bayes::BayesRecipePreset preset, auto& ctx) const
+    auto format(gelex::bayes::BayesRecipeScheme recipe_scheme, auto& ctx) const
     {
         return fmt::formatter<std::string_view>::format(
-            to_string_view(preset), ctx);
+            to_string_view(recipe_scheme), ctx);
     }
 
    private:
-    static constexpr auto to_string_view(gelex::bayes::BayesRecipePreset preset)
-        -> std::string_view
+    static constexpr auto to_string_view(
+        gelex::bayes::BayesRecipeScheme recipe_scheme) -> std::string_view
     {
         for (const auto& [value, name] :
-             gelex::bayes::BAYES_RECIPE_PRESET_NAMES)
+             gelex::bayes::BAYES_RECIPE_SCHEME_NAMES)
         {
-            if (value == preset)
+            if (value == recipe_scheme)
             {
                 return name;
             }

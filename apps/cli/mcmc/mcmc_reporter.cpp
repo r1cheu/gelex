@@ -54,7 +54,7 @@ auto McmcReporter::on_event(const MCMCConfigEvent& event) -> void
 {
     cli::printer().block(gelex::section("[Config]"));
     cli::printer().line(
-        "  {:<12}: {}", "Method", fmt::format("{}", event.preset));
+        "  {:<12}: {}", "Method", fmt::format("{}", event.recipe_scheme));
     cli::printer().line(
         "  {:<12}: {} iters ({} burn-in, {} sampling)",
         "Chain",
