@@ -18,7 +18,8 @@ pixi r test-catch "[tag]"    # tests by Catch2 tag
 - Types (class/struct/enum): `PascalCase`
 - Functions/variables/files: `snake_case`
 - Private members: trailing underscore (`member_`)
-- Constants: `PrefixName`
+- Constants: `UPPER_SNAKE_CASE`
+- Macros: `UPPER_SNAKE_CASE`
 
 ## Design
 

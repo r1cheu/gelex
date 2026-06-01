@@ -31,7 +31,7 @@ namespace gelex
 {
 
 GrmBinWriter::GrmBinWriter(const std::filesystem::path& file_path)
-    : io_buffer_(kDefaultBufferSize),
+    : io_buffer_(DEFAULT_BUFFER_SIZE),
       file_(file_path, std::ios::binary | std::ios::trunc, io_buffer_)
 {
 }

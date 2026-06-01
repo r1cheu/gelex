@@ -37,17 +37,17 @@ TEST_CASE("sbin round-trip additive only", "[sbin][snpstats]")
     gelex::test::FileFixture fixture;
     const auto& dir = fixture.get_test_dir();
 
-    constexpr int kNumSnps = 200;
-    Eigen::VectorXd mean = Eigen::VectorXd::LinSpaced(kNumSnps, 0.05, 0.95);
-    Eigen::VectorXd stddev = Eigen::VectorXd::LinSpaced(kNumSnps, 0.01, 0.50);
+    constexpr int NUM_SNPS = 200;
+    Eigen::VectorXd mean = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.05, 0.95);
+    Eigen::VectorXd stddev = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.01, 0.50);
     std::vector<int64_t> mono = {3, 42, 101};
 
-    const auto kMethod = gelex::GenotypeProcessMethod::StandardizeHWE();
+    const auto METHOD = gelex::GenotypeProcessMethod::StandardizeHWE();
 
     auto sbin_path = dir / "test.sbin";
     {
         LociStatsWriter writer(sbin_path.string());
-        writer.write(EffectType::add(), kMethod.to_byte(), mean, &stddev, mono);
+        writer.write(EffectType::add(), METHOD.to_byte(), mean, &stddev, mono);
     }
 
     LociStatsReader reader(sbin_path.string());
@@ -57,12 +57,12 @@ TEST_CASE("sbin round-trip additive only", "[sbin][snpstats]")
 
     auto data = reader.read(EffectType::add());
 
-    REQUIRE(data.mean.size() == kNumSnps);
+    REQUIRE(data.mean.size() == NUM_SNPS);
     REQUIRE(data.stddev.has_value());
     REQUIRE(data.mean.isApprox(mean));
     REQUIRE(data.stddev->isApprox(stddev));
     REQUIRE(data.mono_indices == mono);
-    REQUIRE(data.method == kMethod);
+    REQUIRE(data.method == METHOD);
 }
 
 TEST_CASE("sbin round-trip additive and dominance", "[sbin][snpstats]")
@@ -70,30 +70,30 @@ TEST_CASE("sbin round-trip additive and dominance", "[sbin][snpstats]")
     gelex::test::FileFixture fixture;
     const auto& dir = fixture.get_test_dir();
 
-    constexpr int kNumSnps = 150;
-    Eigen::VectorXd add_mean = Eigen::VectorXd::LinSpaced(kNumSnps, 0.1, 0.9);
+    constexpr int NUM_SNPS = 150;
+    Eigen::VectorXd add_mean = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.1, 0.9);
     Eigen::VectorXd add_stddev
-        = Eigen::VectorXd::LinSpaced(kNumSnps, 0.02, 0.30);
+        = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.02, 0.30);
     std::vector<int64_t> add_mono = {7, 88};
 
-    Eigen::VectorXd dom_mean = Eigen::VectorXd::LinSpaced(kNumSnps, 0.2, 0.8);
+    Eigen::VectorXd dom_mean = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.2, 0.8);
     Eigen::VectorXd dom_stddev
-        = Eigen::VectorXd::LinSpaced(kNumSnps, 0.05, 0.25);
+        = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.05, 0.25);
 
-    const auto kAddMethod = gelex::GenotypeProcessMethod::StandardizeHWE();
-    const auto kDomMethod = gelex::GenotypeProcessMethod::OrthStandardizeHWE();
+    const auto ADD_METHOD = gelex::GenotypeProcessMethod::StandardizeHWE();
+    const auto DOM_METHOD = gelex::GenotypeProcessMethod::OrthStandardizeHWE();
 
     auto sbin_path = dir / "test_ad.sbin";
     {
         LociStatsWriter writer(sbin_path.string());
         writer.write(
             EffectType::add(),
-            kAddMethod.to_byte(),
+            ADD_METHOD.to_byte(),
             add_mean,
             &add_stddev,
             add_mono);
         writer.write(
-            EffectType::dom(), kDomMethod.to_byte(), dom_mean, &dom_stddev);
+            EffectType::dom(), DOM_METHOD.to_byte(), dom_mean, &dom_stddev);
     }
 
     LociStatsReader reader(sbin_path.string());
@@ -106,14 +106,14 @@ TEST_CASE("sbin round-trip additive and dominance", "[sbin][snpstats]")
     REQUIRE(add_data.stddev.has_value());
     REQUIRE(add_data.stddev->isApprox(add_stddev));
     REQUIRE(add_data.mono_indices == add_mono);
-    REQUIRE(add_data.method == kAddMethod);
+    REQUIRE(add_data.method == ADD_METHOD);
 
     auto dom_data = reader.read(EffectType::dom());
     REQUIRE(dom_data.mean.isApprox(dom_mean));
     REQUIRE(dom_data.stddev.has_value());
     REQUIRE(dom_data.stddev->isApprox(dom_stddev));
     REQUIRE(dom_data.mono_indices.empty());
-    REQUIRE(dom_data.method == kDomMethod);
+    REQUIRE(dom_data.method == DOM_METHOD);
 }
 
 TEST_CASE("sbin round-trip center only (no stddev)", "[sbin][snpstats]")
@@ -121,8 +121,8 @@ TEST_CASE("sbin round-trip center only (no stddev)", "[sbin][snpstats]")
     gelex::test::FileFixture fixture;
     const auto& dir = fixture.get_test_dir();
 
-    constexpr int kNumSnps = 100;
-    Eigen::VectorXd mean = Eigen::VectorXd::LinSpaced(kNumSnps, 0.1, 0.9);
+    constexpr int NUM_SNPS = 100;
+    Eigen::VectorXd mean = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.1, 0.9);
     std::vector<int64_t> mono = {5, 50};
 
     auto sbin_path = dir / "test_center.sbin";
@@ -137,7 +137,7 @@ TEST_CASE("sbin round-trip center only (no stddev)", "[sbin][snpstats]")
 
     auto data = reader.read(EffectType::add());
 
-    REQUIRE(data.mean.size() == kNumSnps);
+    REQUIRE(data.mean.size() == NUM_SNPS);
     REQUIRE_FALSE(data.stddev.has_value());
     REQUIRE(data.mean.isApprox(mean));
     REQUIRE(data.mono_indices == mono);

@@ -47,7 +47,7 @@ struct GeneticBlockSlot
 
 auto mode_name(GeneticMode mode) -> std::string_view
 {
-    for (const auto& [value, name] : kGeneticModeNames)
+    for (const auto& [value, name] : GENETIC_MODE_NAMES)
     {
         if (value == mode)
         {

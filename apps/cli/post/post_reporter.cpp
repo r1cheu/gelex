@@ -81,7 +81,7 @@ auto PostReporter::on_event(const DiagnosticsReadyEvent& event) const -> void
         [&](const auto& lhs, const auto& rhs)
         { return section_order(lhs.section) < section_order(rhs.section); });
 
-    constexpr int kTableWidth = 92;
+    constexpr int TABLE_WIDTH = 92;
 
     double lo_pct = (1.0 - event.hdpi_prob) / 2.0 * 100.0;
     double hi_pct = (1.0 + event.hdpi_prob) / 2.0 * 100.0;
@@ -99,7 +99,7 @@ auto PostReporter::on_event(const DiagnosticsReadyEvent& event) const -> void
         hpdi_label,
         "ESS",
         "R-hat");
-    p.line(gelex::table_separator(kTableWidth));
+    p.line(gelex::table_separator(TABLE_WIDTH));
 
     std::string current_section;
     for (const auto& d : sorted_diags)
@@ -109,7 +109,7 @@ auto PostReporter::on_event(const DiagnosticsReadyEvent& event) const -> void
             current_section = d.section;
             if (!d.section.empty() && d.section != "Parameter")
             {
-                p.line(gelex::named_section(current_section, kTableWidth, 3));
+                p.line(gelex::named_section(current_section, TABLE_WIDTH, 3));
             }
         }
         p.line(
@@ -123,7 +123,7 @@ auto PostReporter::on_event(const DiagnosticsReadyEvent& event) const -> void
             d.ess,
             d.rhat);
     }
-    p.line(gelex::table_separator(kTableWidth));
+    p.line(gelex::table_separator(TABLE_WIDTH));
 }
 
 }  // namespace gelex::cli

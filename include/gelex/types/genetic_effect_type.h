@@ -16,7 +16,7 @@ enum class GeneticMode : uint8_t
     D,
 };
 
-inline constexpr std::array kGeneticModeNames{
+inline constexpr std::array GENETIC_MODE_NAMES{
     std::pair{GeneticMode::A, std::string_view{"A"}},
     std::pair{GeneticMode::D, std::string_view{"D"}},
 };
@@ -62,7 +62,7 @@ struct EffectType
     }
 };
 
-inline constexpr std::array kAllGeneticModes{GeneticMode::A, GeneticMode::D};
+inline constexpr std::array ALL_GENETIC_MODES{GeneticMode::A, GeneticMode::D};
 
 }  // namespace gelex
 
@@ -79,7 +79,7 @@ struct fmt::formatter<gelex::GeneticMode> : fmt::formatter<std::string_view>
     static constexpr auto to_string_view(gelex::GeneticMode mode)
         -> std::string_view
     {
-        for (const auto& [value, name] : gelex::kGeneticModeNames)
+        for (const auto& [value, name] : gelex::GENETIC_MODE_NAMES)
         {
             if (value == mode)
             {

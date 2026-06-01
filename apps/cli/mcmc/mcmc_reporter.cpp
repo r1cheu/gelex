@@ -41,7 +41,7 @@ namespace gelex::cli
 
 namespace
 {
-const int kTableWidth = 40;
+const int TABLE_WIDTH = 40;
 }  // namespace
 
 auto McmcReporter::on_event(const MCMCBannerEvent& /*event*/) -> void
@@ -158,7 +158,7 @@ auto McmcReporter::print_fixed_summary(
     p.block(gelex::section("[Posterior Summary]"));
     p.line("  Samples collected per parameter: {}", samples_collected);
     p.line("  {:<8} {:>8} {:>8}", "Parameter", "Mean", "SD");
-    p.line(gelex::table_separator(kTableWidth));
+    p.line(gelex::table_separator(TABLE_WIDTH));
 
     fixed.for_each_term([&](const std::string& term, Eigen::Index i)
                         { print_summary_row(term, fixed.coeffs, i); });
@@ -177,7 +177,7 @@ auto McmcReporter::print_genetic_summary(
     std::string h_name{bayes::to_heritability_label(type)};
     auto& p = cli::printer();
 
-    p.line(gelex::named_section(fmt::format("{}", type), kTableWidth, 2));
+    p.line(gelex::named_section(fmt::format("{}", type), TABLE_WIDTH, 2));
     print_summary_row("σ²", summary->variance);
     print_summary_row(h_name, summary->heritability);
 
@@ -208,9 +208,9 @@ auto McmcReporter::print_genetic_summary(
 auto McmcReporter::print_residual_summary(const mcmc::Result& result) -> void
 {
     auto& p = cli::printer();
-    p.line(gelex::named_section("Residual", kTableWidth, 2));
+    p.line(gelex::named_section("Residual", TABLE_WIDTH, 2));
     print_summary_row("σ²", result.residual());
-    p.line(gelex::table_separator(kTableWidth));
+    p.line(gelex::table_separator(TABLE_WIDTH));
 }
 
 }  // namespace gelex::cli

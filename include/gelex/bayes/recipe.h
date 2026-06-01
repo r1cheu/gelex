@@ -49,7 +49,7 @@ enum class BayesRecipePreset : std::uint8_t
     CD,
 };
 
-inline constexpr std::array kBayesRecipePresetNames{
+inline constexpr std::array BAYES_RECIPE_PRESET_NAMES{
     std::pair{BayesRecipePreset::RR, std::string_view{"RR"}},
     std::pair{BayesRecipePreset::A, std::string_view{"A"}},
     std::pair{BayesRecipePreset::B, std::string_view{"B"}},
@@ -103,7 +103,8 @@ struct fmt::formatter<gelex::bayes::BayesRecipePreset>
     static constexpr auto to_string_view(gelex::bayes::BayesRecipePreset preset)
         -> std::string_view
     {
-        for (const auto& [value, name] : gelex::bayes::kBayesRecipePresetNames)
+        for (const auto& [value, name] :
+             gelex::bayes::BAYES_RECIPE_PRESET_NAMES)
         {
             if (value == preset)
             {

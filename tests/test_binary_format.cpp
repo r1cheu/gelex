@@ -326,23 +326,23 @@ TEST_CASE("Reserve round-trip with column-wise writes", "[binary_container]")
     test::FileFixture fixture;
     const auto& dir = fixture.get_test_dir();
 
-    constexpr int kRows = 5;
-    constexpr int kCols = 10;
+    constexpr int ROWS = 5;
+    constexpr int COLS = 10;
 
-    Eigen::MatrixXd expected_double(kRows, kCols);
-    for (int c = 0; c < kCols; ++c)
+    Eigen::MatrixXd expected_double(ROWS, COLS);
+    for (int c = 0; c < COLS; ++c)
     {
-        for (int r = 0; r < kRows; ++r)
+        for (int r = 0; r < ROWS; ++r)
         {
             expected_double(r, c) = c * 100.0 + r;
         }
     }
 
     Eigen::Matrix<int8_t, Eigen::Dynamic, Eigen::Dynamic> expected_int8(
-        kRows, kCols);
-    for (int c = 0; c < kCols; ++c)
+        ROWS, COLS);
+    for (int c = 0; c < COLS; ++c)
     {
-        for (int r = 0; r < kRows; ++r)
+        for (int r = 0; r < ROWS; ++r)
         {
             expected_int8(r, c) = static_cast<int8_t>((c + r) % 3);
         }
@@ -351,11 +351,11 @@ TEST_CASE("Reserve round-trip with column-wise writes", "[binary_container]")
     auto container_path = dir / "reserve.samples";
     {
         BinaryWriter writer(container_path.string());
-        auto h_double = writer.reserve<double>("Additive/coeff", kRows, kCols);
+        auto h_double = writer.reserve<double>("Additive/coeff", ROWS, COLS);
         auto h_int8
-            = writer.reserve<int8_t>("Additive/group/assignment", kRows, kCols);
+            = writer.reserve<int8_t>("Additive/group/assignment", ROWS, COLS);
 
-        for (int c = 0; c < kCols; ++c)
+        for (int c = 0; c < COLS; ++c)
         {
             writer.write(h_double, expected_double.col(c));
             writer.write(h_int8, expected_int8.col(c));
@@ -366,13 +366,13 @@ TEST_CASE("Reserve round-trip with column-wise writes", "[binary_container]")
     REQUIRE(reader.n_sections() == 2);
 
     auto mat_d = reader.to_map<double>("Additive/coeff");
-    REQUIRE(mat_d.rows() == kRows);
-    REQUIRE(mat_d.cols() == kCols);
+    REQUIRE(mat_d.rows() == ROWS);
+    REQUIRE(mat_d.cols() == COLS);
     REQUIRE(mat_d.isApprox(expected_double));
 
     auto mat_i = reader.to_map<int8_t>("Additive/group/assignment");
-    REQUIRE(mat_i.rows() == kRows);
-    REQUIRE(mat_i.cols() == kCols);
+    REQUIRE(mat_i.rows() == ROWS);
+    REQUIRE(mat_i.cols() == COLS);
     REQUIRE(mat_i == expected_int8);
 }
 
@@ -394,15 +394,15 @@ TEST_CASE(
     "GenotypeMapReader vs GenotypeMatReader produce identical results",
     "[genotype_reader][diagnostic]")
 {
-    constexpr Eigen::Index kNumSamples = 50;
-    constexpr Eigen::Index kNumSnps = 200;
-    constexpr uint64_t kSeed = 42;
-    constexpr double kMissingRate = 0.02;
+    constexpr Eigen::Index NUM_SAMPLES = 50;
+    constexpr Eigen::Index NUM_SNPS = 200;
+    constexpr uint64_t SEED = 42;
+    constexpr double MISSING_RATE = 0.02;
 
     // Create BED files (shared by both readers)
     test::BedFixture bed_fixture;
     auto [prefix, raw_genotypes] = bed_fixture.create_bed_files(
-        kNumSamples, kNumSnps, kMissingRate, 0.05, 0.5, kSeed);
+        NUM_SAMPLES, NUM_SNPS, MISSING_RATE, 0.05, 0.5, SEED);
 
     auto sample_index = read_fam(prefix.string() + ".fam").index();
 
@@ -524,17 +524,17 @@ TEST_CASE(
     test::FileFixture fixture;
     const auto& dir = fixture.get_test_dir();
 
-    constexpr int kNumVariants = 100;
-    Eigen::VectorXd means = Eigen::VectorXd::LinSpaced(kNumVariants, 0.1, 0.9);
+    constexpr int NUM_VARIANTS = 100;
+    Eigen::VectorXd means = Eigen::VectorXd::LinSpaced(NUM_VARIANTS, 0.1, 0.9);
     Eigen::VectorXd variances
-        = Eigen::VectorXd::LinSpaced(kNumVariants, 0.01, 0.25);
+        = Eigen::VectorXd::LinSpaced(NUM_VARIANTS, 0.01, 0.25);
 
     auto container_path = dir / "snpstats_test.gbin";
     {
         BinaryWriter writer(container_path.string());
 
         auto stats_handle
-            = writer.reserve<double>("Additive/loci_stats", kNumVariants, 2);
+            = writer.reserve<double>("Additive/loci_stats", NUM_VARIANTS, 2);
         writer.write(stats_handle, means);
         writer.write(stats_handle, variances);
     }
@@ -542,7 +542,7 @@ TEST_CASE(
     BinaryReader reader(container_path.string());
     auto stats_mat = reader.to_mat<double>("Additive/loci_stats");
 
-    REQUIRE(stats_mat.rows() == kNumVariants);
+    REQUIRE(stats_mat.rows() == NUM_VARIANTS);
     REQUIRE(stats_mat.cols() == 2);
 
     SECTION("col(0) matches means")

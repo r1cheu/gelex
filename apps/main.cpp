@@ -43,7 +43,7 @@
 
 namespace
 {
-constexpr std::string_view kErrorMarker = "[\033[31merror\033[0m] ";
+constexpr std::string_view ERROR_MARKER = "[\033[31merror\033[0m] ";
 }  // namespace
 
 struct CommandDescriptor
@@ -81,7 +81,7 @@ auto execute_command(
         }
         else
         {
-            std::cerr << kErrorMarker << e.what() << "\n";
+            std::cerr << ERROR_MARKER << e.what() << "\n";
         }
         return 1;
     }
@@ -94,7 +94,7 @@ auto execute_command(
         }
         else
         {
-            std::cerr << kErrorMarker << "unknown exception\n";
+            std::cerr << ERROR_MARKER << "unknown exception\n";
         }
         return 1;
     }
@@ -139,7 +139,7 @@ auto main(int argc, char* argv[]) -> int
     }
     catch (const std::exception& err)
     {
-        std::cerr << kErrorMarker << err.what() << "\n";
+        std::cerr << ERROR_MARKER << err.what() << "\n";
 
         bool found = false;
         for (const auto& cmd : commands)

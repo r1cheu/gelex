@@ -47,7 +47,7 @@ namespace gelex::predict
 namespace detail
 {
 
-const std::unordered_set<std::string> kSnpStringCols{
+const std::unordered_set<std::string> SNP_STRING_COLS{
     "Chrom",
     "Position",
     "A1",
@@ -75,7 +75,7 @@ auto snp_effects_schema(const std::filesystem::path& path)
         {
             continue;
         }
-        auto type = kSnpStringCols.contains(name)
+        auto type = SNP_STRING_COLS.contains(name)
                         ? dataframe::ColumnType::String
                         : dataframe::ColumnType::Double;
         schema.push_back(type);
@@ -146,7 +146,7 @@ auto read_covariates(
     std::map<std::string, std::vector<std::string>> dcovar_levels;
     for (const auto& name : coefficients.names)
     {
-        auto pos = name.find(dataframe::kSeparator);
+        auto pos = name.find(dataframe::SEPARATOR);
         if (pos != std::string::npos)
         {
             dcovar_levels[name.substr(0, pos)].push_back(name.substr(pos + 1));
@@ -185,7 +185,7 @@ auto read_covariates(
             continue;
         }
 
-        auto sep_pos = term.find(dataframe::kSeparator);
+        auto sep_pos = term.find(dataframe::SEPARATOR);
         if (sep_pos != std::string::npos)
         {
             auto col_name = term.substr(0, sep_pos);

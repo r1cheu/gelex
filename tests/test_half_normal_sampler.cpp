@@ -35,16 +35,16 @@ using stats::NormalSampler;
 namespace
 {
 
-constexpr std::uint64_t kSeed = 0xDEADBEEF42ULL;
-constexpr int kDrawCount = 1'000'000;
+constexpr std::uint64_t SEED = 0xDEADBEEF42ULL;
+constexpr int DRAW_COUNT = 1'000'000;
 
 TEST_CASE(
     "HalfNormalSampler::posterior matches NormalSampler::posterior",
     "[stats][half_normal_sampler]")
 {
-    constexpr double kPriorVar = 2.5;
-    HalfNormalSampler<double> hn{kPriorVar};
-    NormalSampler<double> n{kPriorVar};
+    constexpr double PRIOR_VAR = 2.5;
+    HalfNormalSampler<double> hn{PRIOR_VAR};
+    NormalSampler<double> n{PRIOR_VAR};
 
     const NormalSampler<double>::Kernel kernel{
         .quadratic = 3.0,
@@ -65,9 +65,9 @@ TEST_CASE(
     "HalfNormalSampler log_marginal_kernel equals normal logL + log(2)",
     "[stats][half_normal_sampler]")
 {
-    constexpr double kPriorVar = 3.0;
-    HalfNormalSampler<double> hn{kPriorVar};
-    NormalSampler<double> n{kPriorVar};
+    constexpr double PRIOR_VAR = 3.0;
+    HalfNormalSampler<double> hn{PRIOR_VAR};
+    NormalSampler<double> n{PRIOR_VAR};
 
     const NormalSampler<double>::Kernel kernel{
         .quadratic = 4.0,
@@ -89,14 +89,14 @@ TEST_CASE(
     "asymptotic",
     "[stats][half_normal_sampler]")
 {
-    constexpr double kSqrt2 = std::numbers::sqrt2;
+    constexpr double SQRT_2 = std::numbers::sqrt2;
 
     for (const double sign_val : {1.0, -1.0})
     {
         HalfNormalSampler<double> hn{1.0};
         const NormalSampler<double>::Kernel kernel{
             .quadratic = 1.0,
-            .linear = sign_val * 10.0 * kSqrt2,
+            .linear = sign_val * 10.0 * SQRT_2,
             .scale = 1.0,
         };
         const auto post = hn.posterior_with_logL(kernel);
@@ -165,17 +165,17 @@ TEST_CASE(
     HalfNormalSampler<double> hn{1.0};
     const HalfNormalSampler<double>::Params post{.mean = 0.0, .var = 1.0};
 
-    std::mt19937_64 rng{kSeed};
+    std::mt19937_64 rng{SEED};
     double sum = 0.0;
     double sum2 = 0.0;
-    for (int i = 0; i < kDrawCount; ++i)
+    for (int i = 0; i < DRAW_COUNT; ++i)
     {
         const double x = hn.draw(post, +1, rng);
         sum += x;
         sum2 += x * x;
     }
-    const double mean = sum / kDrawCount;
-    const double var = (sum2 / kDrawCount) - (mean * mean);
+    const double mean = sum / DRAW_COUNT;
+    const double var = (sum2 / DRAW_COUNT) - (mean * mean);
 
     const double expected_mean = std::sqrt(2.0 / std::numbers::pi);
     const double expected_var = 1.0 - (2.0 / std::numbers::pi);
@@ -191,21 +191,21 @@ TEST_CASE(
     HalfNormalSampler<double> hn{1.0};
     const HalfNormalSampler<double>::Params post{.mean = -3.0, .var = 1.0};
 
-    std::mt19937_64 rng{kSeed};
+    std::mt19937_64 rng{SEED};
     double sum = 0.0;
-    for (int i = 0; i < kDrawCount; ++i)
+    for (int i = 0; i < DRAW_COUNT; ++i)
     {
         sum += hn.draw(post, +1, rng);
     }
-    const double sample_mean = sum / kDrawCount;
+    const double sample_mean = sum / DRAW_COUNT;
 
-    constexpr double kMu = -3.0;
-    constexpr double kSigma = 1.0;
-    constexpr double kAlpha = 3.0;  // (0 - kMu) / kSigma
-    const double phi_alpha = std::exp((-0.5 * kAlpha) * kAlpha)
+    constexpr double MU = -3.0;
+    constexpr double SIGMA = 1.0;
+    constexpr double ALPHA = 3.0;  // (0 - MU) / SIGMA
+    const double phi_alpha = std::exp((-0.5 * ALPHA) * ALPHA)
                              / std::sqrt(2.0 * std::numbers::pi);
-    const double Phi_alpha = 0.5 * std::erfc(-kAlpha / std::numbers::sqrt2);
-    const double expected_mean = kMu + (kSigma * phi_alpha / (1.0 - Phi_alpha));
+    const double Phi_alpha = 0.5 * std::erfc(-ALPHA / std::numbers::sqrt2);
+    const double expected_mean = MU + (SIGMA * phi_alpha / (1.0 - Phi_alpha));
 
     REQUIRE_THAT(sample_mean, Catch::Matchers::WithinAbs(expected_mean, 1e-2));
 }

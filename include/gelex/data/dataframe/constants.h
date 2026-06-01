@@ -23,9 +23,9 @@
 namespace gelex::dataframe
 {
 
-inline constexpr char kSeparator = '\x1F';
+inline constexpr char SEPARATOR = '\x1F';
 
-inline constexpr std::array kDefaultNaRep = {
+inline constexpr std::array DEFAULT_NA_REP = {
     std::string_view{""},
     std::string_view{"NA"},
     std::string_view{"NaN"},

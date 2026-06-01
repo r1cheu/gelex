@@ -50,7 +50,7 @@ auto make_level_names(
     names.reserve(levels.size());
     for (const auto& level : levels)
     {
-        names.push_back(fmt::format("{}{}{}", col_name, kSeparator, level));
+        names.push_back(fmt::format("{}{}{}", col_name, SEPARATOR, level));
     }
     return names;
 }

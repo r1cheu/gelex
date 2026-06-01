@@ -58,8 +58,8 @@ inline auto norm_ppf(double p) -> double
            2.445134137142996e+00,
            3.754408661907416e+00};
 
-    static constexpr double kPLow = 0.02425;
-    static constexpr double kPHigh = 1.0 - kPLow;
+    static constexpr double P_LOW = 0.02425;
+    static constexpr double P_HIGH = 1.0 - P_LOW;
 
     if (p <= 0.0 || p >= 1.0)
     {
@@ -70,14 +70,14 @@ inline auto norm_ppf(double p) -> double
     double x = 0;
 
     // NOLINTBEGIN(readability-math-missing-parentheses)
-    if (p < kPLow)
+    if (p < P_LOW)
     {
         r = std::sqrt(-2.0 * std::log(p));
         x = (((((c[0] * r + c[1]) * r + c[2]) * r + c[3]) * r + c[4]) * r
              + c[5])
             / ((((d[0] * r + d[1]) * r + d[2]) * r + d[3]) * r + 1.0);
     }
-    else if (p <= kPHigh)
+    else if (p <= P_HIGH)
     {
         r = p - 0.5;
         double r2 = r * r;

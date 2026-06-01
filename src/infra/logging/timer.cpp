@@ -126,9 +126,9 @@ void SmoothEtaCalculator::reset(size_t new_total)
 auto SmoothEtaCalculator::compute_adaptive_alpha(double instant_rate) const
     -> double
 {
-    constexpr double kEpsilon = 1e-9;
+    constexpr double EPSILON = 1e-9;
     double deviation = std::abs(instant_rate - smooth_rate_)
-                       / std::max(smooth_rate_, kEpsilon);
+                       / std::max(smooth_rate_, EPSILON);
     double clamped = std::clamp(deviation, 0.0, 1.0);
     return alpha_min_ + ((alpha_max_ - alpha_min_) * clamped);
 }

@@ -52,7 +52,7 @@ namespace
 
 auto parse_genetic_mode(std::string_view value) -> GeneticMode
 {
-    for (const auto& [mode, name] : kGeneticModeNames)
+    for (const auto& [mode, name] : GENETIC_MODE_NAMES)
     {
         if (value == name)
         {

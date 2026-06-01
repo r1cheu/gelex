@@ -93,7 +93,7 @@ auto BinaryWriter::reserve_strings(
     uint64_t rows,
     uint64_t bytes) -> size_t
 {
-    return reserve_section(path, detail::kTypeString, rows, 0, bytes);
+    return reserve_section(path, detail::TYPE_STRING, rows, 0, bytes);
 }
 
 auto BinaryWriter::reserve_section(
@@ -103,14 +103,14 @@ auto BinaryWriter::reserve_section(
     uint64_t cols,
     uint64_t bytes) -> size_t
 {
-    if (path.size() > detail::kMaxPathLength)
+    if (path.size() > detail::MAX_PATH_LENGTH)
     {
         throw GelexException(
             fmt::format(
                 "{}: path too long ({} > {}): \"{}\"",
                 file_.final_path().string(),
                 path.size(),
-                detail::kMaxPathLength,
+                detail::MAX_PATH_LENGTH,
                 path));
     }
 
@@ -123,7 +123,7 @@ auto BinaryWriter::reserve_section(
     entry.cols = cols;
     entry.size = bytes;
 
-    const auto aligned_offset = align_up(next_offset_, detail::kPageAlignment);
+    const auto aligned_offset = align_up(next_offset_, detail::PAGE_ALIGNMENT);
     entry.offset = aligned_offset;
     next_offset_ = aligned_offset + bytes;
 
@@ -178,10 +178,10 @@ auto BinaryWriter::align_up(uint64_t value, uint64_t alignment) noexcept
 auto BinaryWriter::write_footer(uint64_t toc_offset, uint64_t n_sections)
     -> void
 {
-    std::array<std::byte, detail::kFooterSize> buf{};
+    std::array<std::byte, detail::FOOTER_SIZE> buf{};
     std::copy(
-        detail::kBinaryFormatMagic.begin(),
-        detail::kBinaryFormatMagic.end(),
+        detail::BINARY_FORMAT_MAGIC.begin(),
+        detail::BINARY_FORMAT_MAGIC.end(),
         buf.begin());
     detail::encode(toc_offset, &buf[8]);
     detail::encode(n_sections, &buf[16]);
@@ -208,7 +208,7 @@ auto BinaryWriter::finalize() -> void
         }
     }
 
-    const auto toc_offset = align_up(next_offset_, detail::kPageAlignment);
+    const auto toc_offset = align_up(next_offset_, detail::PAGE_ALIGNMENT);
     file_.seekp(static_cast<std::streamoff>(toc_offset));
     for (const auto& rs : reserved_)
     {

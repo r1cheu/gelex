@@ -478,8 +478,8 @@ auto SingleScaledMixtureStep::step() -> void
                         = scale_posts_[cls].log_likelihood_kernel;
                 }
 
-                Eigen::Array<double, kMaxMixtureComponents, 1> ll;
-                Eigen::Array<double, kMaxMixtureComponents, 1> probs;
+                Eigen::Array<double, MAX_MIXTURE_COMPONENTS, 1> ll;
+                Eigen::Array<double, MAX_MIXTURE_COMPONENTS, 1> probs;
                 ll.head(num_components)
                     = scale_log_likelihoods_.head(num_components)
                       + logpi_.head(num_components).array();

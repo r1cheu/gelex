@@ -50,20 +50,20 @@ inline auto read_fam(const std::filesystem::path& path)
     -> dataframe::DataFrame<std::string>
 {
     using enum dataframe::ColumnType;
-    constexpr std::array kSchema = {String, String, Int, String};
+    constexpr std::array SCHEMA = {String, String, Int, String};
     dataframe::ReadOptions options;
     options.header = false;
     options.delimiter = detect_delimiter(path);
     options.index_cols = {0, 1};
     options.names = {"father", "mother", "sex", "phenotype"};
-    return dataframe::read_dataframe<std::string>(path, options, kSchema);
+    return dataframe::read_dataframe<std::string>(path, options, SCHEMA);
 }
 
 inline auto read_bim(const std::filesystem::path& path)
     -> dataframe::DataFrame<std::string>
 {
     using enum dataframe::ColumnType;
-    constexpr std::array kSchema = {String, Int, String, String};
+    constexpr std::array SCHEMA = {String, Int, String, String};
     auto file = io::detail::open_file<std::ifstream>(path, std::ios::in);
     dataframe::ReadOptions options;
     options.header = false;
@@ -71,7 +71,7 @@ inline auto read_bim(const std::filesystem::path& path)
     options.index_cols = {1};
     options.select_cols = {0, 3, 4, 5};
     options.names = {"chrom", "pos", "A1", "A2"};
-    return dataframe::read_dataframe<std::string>(path, options, kSchema);
+    return dataframe::read_dataframe<std::string>(path, options, SCHEMA);
 }
 
 inline auto read_pheno(

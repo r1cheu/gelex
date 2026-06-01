@@ -97,12 +97,12 @@ auto reject_effect_flags_without_mode(
     const argparse::ArgumentParser& cmd,
     std::span<const GeneticMode> modes) -> void
 {
-    constexpr std::array kAdditiveFlags
+    constexpr std::array ADDITIVE_FLAGS
         = {std::string_view{"--additive-h2"},
            std::string_view{"--additive-pi"},
            std::string_view{"--additive-multiplier"},
            std::string_view{"--estimate-additive-pi"}};
-    constexpr std::array kDominanceFlags
+    constexpr std::array DOMINANCE_FLAGS
         = {std::string_view{"--dominance-h2"},
            std::string_view{"--dominance-pi"},
            std::string_view{"--dominance-multiplier"},
@@ -110,9 +110,9 @@ auto reject_effect_flags_without_mode(
            std::string_view{"--dominance-positive-prob"}};
 
     reject_effect_flags_without_mode(
-        cmd, modes, GeneticMode::A, kAdditiveFlags);
+        cmd, modes, GeneticMode::A, ADDITIVE_FLAGS);
     reject_effect_flags_without_mode(
-        cmd, modes, GeneticMode::D, kDominanceFlags);
+        cmd, modes, GeneticMode::D, DOMINANCE_FLAGS);
 }
 
 }  // namespace

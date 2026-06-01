@@ -52,9 +52,9 @@ inline auto sample_left_truncated_standard_robert(
 inline auto sample_left_truncated_standard(double alpha, std::mt19937_64& rng)
     -> double
 {
-    constexpr double kThreshold = 3.5;
+    constexpr double THRESHOLD = 3.5;
 
-    if (alpha >= kThreshold)
+    if (alpha >= THRESHOLD)
     {
         return sample_left_truncated_standard_robert(alpha, rng);
     }

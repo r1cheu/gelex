@@ -28,7 +28,7 @@
 namespace gelex::io::detail
 {
 
-inline constexpr std::array<std::byte, 8> kBinaryFormatMagic
+inline constexpr std::array<std::byte, 8> BINARY_FORMAT_MAGIC
     = {std::byte{'G'},
        std::byte{'E'},
        std::byte{'L'},
@@ -37,18 +37,18 @@ inline constexpr std::array<std::byte, 8> kBinaryFormatMagic
        std::byte{'B'},
        std::byte{'F'},
        std::byte{'2'}};
-inline constexpr size_t kFooterSize = 24;
-inline constexpr size_t kTocEntrySize = 104;
-inline constexpr size_t kPageAlignment = 4096;
-inline constexpr size_t kMaxPathLength = 63;
+inline constexpr size_t FOOTER_SIZE = 24;
+inline constexpr size_t TOC_ENTRY_SIZE = 104;
+inline constexpr size_t PAGE_ALIGNMENT = 4096;
+inline constexpr size_t MAX_PATH_LENGTH = 63;
 
 // String dtype: value 0x01 cannot conflict with arithmetic types since
 // the smallest arithmetic dtype encodes as (sizeof(T) << 2) >= 4.
-inline constexpr uint8_t kTypeString = 0x01;
+inline constexpr uint8_t TYPE_STRING = 0x01;
 
 template <typename eT>
     requires std::is_arithmetic_v<eT>
-inline constexpr uint8_t kTypeByte = static_cast<uint8_t>(
+inline constexpr uint8_t TYPE_BYTE = static_cast<uint8_t>(
     (sizeof(eT) << 2U)
     | (static_cast<uint32_t>(std::is_floating_point_v<eT>) << 1U)
     | static_cast<uint32_t>(std::is_signed_v<eT>));
@@ -84,9 +84,9 @@ struct TocEntry
     uint64_t rows{};
     uint64_t cols{};
 
-    auto to_bytes() const -> std::array<std::byte, kTocEntrySize>
+    auto to_bytes() const -> std::array<std::byte, TOC_ENTRY_SIZE>
     {
-        std::array<std::byte, kTocEntrySize> buf{};
+        std::array<std::byte, TOC_ENTRY_SIZE> buf{};
         std::memcpy(buf.data(), path.data(), 64);
         buf[64] = static_cast<std::byte>(dtype);
         // buf[65..71] padding — already zero from aggregate init

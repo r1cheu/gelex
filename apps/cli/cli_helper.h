@@ -47,7 +47,7 @@ inline auto parse_genotype_process_method(std::string_view value)
         [](unsigned char c) { return std::tolower(c); });
 
     static const std::unordered_map<std::string, GenotypeProcessMethod>
-        kMethodMap = {
+        METHOD_MAP = {
             {"standardizehwe", GenotypeProcessMethod::StandardizeHWE()},
             {"sh", GenotypeProcessMethod::StandardizeHWE()},
             {"centerhwe", GenotypeProcessMethod::CenterHWE()},
@@ -70,8 +70,8 @@ inline auto parse_genotype_process_method(std::string_view value)
             {"nc", GenotypeProcessMethod::NOIACenter()},
         };
 
-    auto it = kMethodMap.find(lower);
-    if (it == kMethodMap.end())
+    auto it = METHOD_MAP.find(lower);
+    if (it == METHOD_MAP.end())
     {
         throw gelex::GelexException(
             "Invalid genotype process method: \"" + std::string(value)

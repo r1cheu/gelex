@@ -111,7 +111,7 @@ auto BayesRecipe::make_residual_prior(const BayesModel& model) -> ResidualPrior
 
 auto to_bayes_recipe_preset(std::string_view preset) -> BayesRecipePreset
 {
-    for (const auto& [value, name] : kBayesRecipePresetNames)
+    for (const auto& [value, name] : BAYES_RECIPE_PRESET_NAMES)
     {
         if (preset == name)
         {

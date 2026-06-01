@@ -26,7 +26,7 @@
 namespace gelex::predict
 {
 
-inline constexpr double kMaxSnpMissingRatio = 0.2;
+inline constexpr double MAX_SNP_MISSING_RATIO = 0.2;
 
 struct SnpAlignment
 {

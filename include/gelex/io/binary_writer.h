@@ -72,7 +72,7 @@ class BinaryWriter
     {
         return {reserve(
             path,
-            detail::kTypeByte<T>,
+            detail::TYPE_BYTE<T>,
             static_cast<uint64_t>(rows),
             static_cast<uint64_t>(cols))};
     }

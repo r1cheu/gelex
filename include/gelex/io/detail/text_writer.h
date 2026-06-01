@@ -31,7 +31,7 @@ namespace gelex::io::detail
 class TextWriter
 {
    public:
-    static constexpr std::streamsize kBufSize
+    static constexpr std::streamsize BUF_SIZE
         = static_cast<std::streamsize>(64) * 1024;
 
     explicit TextWriter(const std::filesystem::path& path);
@@ -47,7 +47,7 @@ class TextWriter
     [[nodiscard]] auto path() const noexcept -> const std::filesystem::path&;
 
    private:
-    std::array<char, kBufSize> buf_;
+    std::array<char, BUF_SIZE> buf_;
     AtomicOfstream ofs_;
 };
 

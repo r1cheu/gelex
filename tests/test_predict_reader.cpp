@@ -26,7 +26,7 @@
 #include "gelex/io/predict/input_reader.h"
 #include "gelex/predict/snp_alignment.h"
 
-using gelex::dataframe::kSeparator;
+using gelex::dataframe::SEPARATOR;
 using gelex::test::FileFixture;
 
 TEST_CASE(
@@ -34,13 +34,13 @@ TEST_CASE(
     "[predict][reader]")
 {
     FileFixture files;
-    constexpr std::string_view kContent
+    constexpr std::string_view CONTENT
         = "term\tmean\n"
           "Intercept\t0.5\n"
           "Age\t-0.3\n"
           "Sex_M\t1.2\n";
 
-    auto path = files.create_text_file(kContent, ".tsv");
+    auto path = files.create_text_file(CONTENT, ".tsv");
     auto coefficients = gelex::predict::read_coefficients(path);
 
     REQUIRE(coefficients.names.size() == 3);
@@ -59,7 +59,7 @@ TEST_CASE(
     "[predict][reader]")
 {
     FileFixture files;
-    auto sep = std::string(1, kSeparator);
+    auto sep = std::string(1, SEPARATOR);
 
     // FAM file (space-delimited, no header): FID IID Father Mother Sex Pheno
     auto fam_path = files.create_text_file(
@@ -119,13 +119,13 @@ TEST_CASE(
 {
     FileFixture files;
 
-    constexpr std::string_view kContent
+    constexpr std::string_view CONTENT
         = "Chrom\tID\tPosition\tA1\tA2\tA1Freq\tAdd\tDom\n"
           "1\trs1\t1000\tA\tG\t0.3\t0.5\t0.1\n"
           "1\trs2\t2000\tC\tT\t0.4\t-0.2\t0.0\n"
           "2\trs3\t500\tA\tT\t0.1\t0.8\t-0.3\n";
 
-    auto path = files.create_text_file(kContent, ".snp.eff");
+    auto path = files.create_text_file(CONTENT, ".snp.eff");
     auto df = gelex::predict::read_snp_effects(path);
 
     REQUIRE(df.rows() == 3);

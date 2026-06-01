@@ -66,10 +66,10 @@ consteval std::array<std::array<double, 4>, 256> generate_full_lut()
 }
 
 using LutEntry = std::array<double, 4>;
-static constexpr std::size_t kLutSize = 256;
+static constexpr std::size_t LUT_SIZE = 256;
 
 // Forward lookup table (standard mapping)
-inline const std::array<LutEntry, kLutSize> kDecodeLut
+inline const std::array<LutEntry, LUT_SIZE> DECODE_LUT
     = generate_full_lut<false>();
 
 }  // namespace gelex

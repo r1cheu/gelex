@@ -25,7 +25,7 @@
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/reader.h"
 
-using gelex::dataframe::kSeparator;
+using gelex::dataframe::SEPARATOR;
 using gelex::test::FileFixture;
 
 TEST_CASE(
@@ -33,20 +33,20 @@ TEST_CASE(
     "[data][reader]")
 {
     FileFixture files;
-    constexpr std::string_view kContent
+    constexpr std::string_view CONTENT
         = "FAM1\tIID1\t0\t0\t1\t-9\n"
           "FAM1\tIID2\t0\t0\t2\t-9\n"
           "FAM2\tIID3\t0\t0\t1\t-9\n";
 
-    auto path = files.create_text_file(kContent, ".fam");
+    auto path = files.create_text_file(CONTENT, ".fam");
     auto df = gelex::read_fam(path);
 
     REQUIRE(df.rows() == 3);
     REQUIRE(df.cols() == 4);
 
-    auto key0 = std::string("FAM1") + kSeparator + "IID1";
-    auto key1 = std::string("FAM1") + kSeparator + "IID2";
-    auto key2 = std::string("FAM2") + kSeparator + "IID3";
+    auto key0 = std::string("FAM1") + SEPARATOR + "IID1";
+    auto key1 = std::string("FAM1") + SEPARATOR + "IID2";
+    auto key2 = std::string("FAM2") + SEPARATOR + "IID3";
 
     REQUIRE(df.index().at(key0) == 0);
     REQUIRE(df.index().at(key1) == 1);
@@ -58,12 +58,12 @@ TEST_CASE(
     "[data][reader]")
 {
     FileFixture files;
-    constexpr std::string_view kContent
+    constexpr std::string_view CONTENT
         = "1\trs1\t0.0\t1000\tA\tG\n"
           "1\trs2\t0.0\t2000\tC\tT\n"
           "2\trs3\t0.0\t500\tA\tT\n";
 
-    auto path = files.create_text_file(kContent, ".bim");
+    auto path = files.create_text_file(CONTENT, ".bim");
     auto df = gelex::read_bim(path);
 
     REQUIRE(df.rows() == 3);
@@ -97,12 +97,12 @@ TEST_CASE(
     "[data][reader]")
 {
     FileFixture files;
-    constexpr std::string_view kContent
+    constexpr std::string_view CONTENT
         = "FID\tIID\tPheno1\tPheno2\n"
           "F1\tI1\t1.5\t2.5\n"
           "F1\tI2\t3.0\t4.0\n";
 
-    auto path = files.create_text_file(kContent, ".tsv");
+    auto path = files.create_text_file(CONTENT, ".tsv");
     auto df = gelex::read_pheno(path);
 
     REQUIRE(df.rows() == 2);
@@ -116,12 +116,12 @@ TEST_CASE(
     "[data][reader]")
 {
     FileFixture files;
-    constexpr std::string_view kContent
+    constexpr std::string_view CONTENT
         = "FID\tIID\tPheno1\tPheno2\n"
           "F1\tI1\t1.5\t2.5\n"
           "F1\tI2\t3.0\t4.0\n";
 
-    auto path = files.create_text_file(kContent, ".tsv");
+    auto path = files.create_text_file(CONTENT, ".tsv");
     std::size_t col = 1;
     auto df = gelex::read_pheno(path, &col);
 
@@ -136,12 +136,12 @@ TEST_CASE(
     "[data][reader]")
 {
     FileFixture files;
-    constexpr std::string_view kContent
+    constexpr std::string_view CONTENT
         = "FID\tIID\tAge\tHeight\n"
           "F1\tI1\t25.0\t170.5\n"
           "F1\tI2\t30.0\t165.0\n";
 
-    auto path = files.create_text_file(kContent, ".tsv");
+    auto path = files.create_text_file(CONTENT, ".tsv");
     auto df = gelex::read_qcovar(path);
 
     REQUIRE(df.rows() == 2);
@@ -155,12 +155,12 @@ TEST_CASE(
     "[data][reader]")
 {
     FileFixture files;
-    constexpr std::string_view kContent
+    constexpr std::string_view CONTENT
         = "FID\tIID\tSex\tRegion\n"
           "F1\tI1\tM\tNorth\n"
           "F1\tI2\tF\tSouth\n";
 
-    auto path = files.create_text_file(kContent, ".tsv");
+    auto path = files.create_text_file(CONTENT, ".tsv");
     auto df = gelex::read_dcovar(path);
 
     REQUIRE(df.rows() == 2);

@@ -388,8 +388,8 @@ class HalfNormalSampler
 
     static auto log_phi(T z) -> T
     {
-        constexpr T kSqrt2 = std::numbers::sqrt2_v<T>;
-        const T erfc_val = std::erfc(-z / kSqrt2);
+        constexpr T SQRT_2 = std::numbers::sqrt2_v<T>;
+        const T erfc_val = std::erfc(-z / SQRT_2);
         if (erfc_val > T{0})
         {
             return std::log(T{0.5}) + std::log(erfc_val);
@@ -401,13 +401,13 @@ class HalfNormalSampler
     // underflows
     static auto log_phi_asymptotic(T z) -> T
     {
-        constexpr T kLog2Pi = std::log(T{2} * std::numbers::pi_v<T>);
+        constexpr T LOG_2_PI = std::log(T{2} * std::numbers::pi_v<T>);
         const T z2 = z * z;
         const T z4 = z2 * z2;
         const T z6 = z4 * z2;
         const T correction
             = std::log1p((-T{1} / z2) + (T{3} / z4) - (T{15} / z6));
-        return (-T{0.5} * z2) - (T{0.5} * kLog2Pi) - std::log(-z) + correction;
+        return (-T{0.5} * z2) - (T{0.5} * LOG_2_PI) - std::log(-z) + correction;
     }
 
     auto draw_rejection(

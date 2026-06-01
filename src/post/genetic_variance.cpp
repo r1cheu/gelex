@@ -57,7 +57,7 @@ auto GeneticVariancePosteriorProcessor::process() -> GebvVarianceResult
     const auto n_chains = readers_.size();
     const auto n_records = processors.front().n_records();
 
-    constexpr Eigen::Index kChunkSize = 64;
+    constexpr Eigen::Index CHUNK_SIZE = 64;
 
     const auto n_variances = static_cast<Eigen::Index>(genetics_.size()) + 1;
     stats::Chains genetic_variances(
@@ -68,9 +68,9 @@ auto GeneticVariancePosteriorProcessor::process() -> GebvVarianceResult
         auto& variance = genetic_variances[ci];
 
         for (Eigen::Index col_begin = 0; col_begin < n_records;
-             col_begin += kChunkSize)
+             col_begin += CHUNK_SIZE)
         {
-            const auto col_end = std::min(col_begin + kChunkSize, n_records);
+            const auto col_end = std::min(col_begin + CHUNK_SIZE, n_records);
             const auto chunk_cols = col_end - col_begin;
 
             Eigen::MatrixXd gebv_total

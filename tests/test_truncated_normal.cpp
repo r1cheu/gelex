@@ -33,7 +33,7 @@ namespace
 
 using Catch::Matchers::WithinAbs;
 
-constexpr int kNumSamples = 100000;
+constexpr int NUM_SAMPLES = 100000;
 
 struct TruncConfig
 {
@@ -46,7 +46,7 @@ struct TruncConfig
 };
 
 // scipy.stats.truncnorm reference values
-constexpr std::array<TruncConfig, 9> kScipyConfigs = {{
+constexpr std::array<TruncConfig, 9> SCIPY_CONFIGS = {{
     // TN(0,1,[0,+inf))
     {0.0, 1.0, 0.0, true, 7.978845608028654e-01, 3.633802276324186e-01},
     // TN(0,1,(-inf,0])
@@ -73,7 +73,7 @@ auto draw_samples(const TruncConfig& cfg, std::mt19937_64& rng)
     double sum = 0.0;
     double sum_sq = 0.0;
 
-    for (int i = 0; i < kNumSamples; ++i)
+    for (int i = 0; i < NUM_SAMPLES; ++i)
     {
         double val = cfg.left_truncated
                          ? stats::detail::sample_left_truncated_normal(
@@ -84,8 +84,8 @@ auto draw_samples(const TruncConfig& cfg, std::mt19937_64& rng)
         sum_sq += val * val;
     }
 
-    double mean = sum / kNumSamples;
-    double var = (sum_sq / kNumSamples) - (mean * mean);
+    double mean = sum / NUM_SAMPLES;
+    double var = (sum_sq / NUM_SAMPLES) - (mean * mean);
     return {mean, var};
 }
 
@@ -93,13 +93,13 @@ TEST_CASE("Mean & variance vs scipy reference values", "[truncated_normal]")
 {
     std::mt19937_64 rng(12345);
 
-    for (const auto& cfg : kScipyConfigs)
+    for (const auto& cfg : SCIPY_CONFIGS)
     {
         auto [mean, var] = draw_samples(cfg, rng);
 
         // tolerance: ~4*sigma/sqrt(N) for mean
         double mean_tol
-            = 4.0 * std::sqrt(cfg.expected_var) / std::sqrt(kNumSamples);
+            = 4.0 * std::sqrt(cfg.expected_var) / std::sqrt(NUM_SAMPLES);
         // looser tolerance for variance (CLT on (x-mu)^2)
         double var_tol = (0.1 * cfg.expected_var) + 0.01;
 
@@ -119,7 +119,7 @@ TEST_CASE(
 
     bool all_in_bounds = true;
 
-    for (const auto& cfg : kScipyConfigs)
+    for (const auto& cfg : SCIPY_CONFIGS)
     {
         for (int i = 0; i < 10000; ++i)
         {
@@ -158,14 +158,14 @@ TEST_CASE(
         double a;
     };
 
-    constexpr std::array<SymPair, 4> kPairs = {{
+    constexpr std::array<SymPair, 4> PAIRS = {{
         {0.0, 1.0, 0.0},
         {5.0, 2.0, 3.0},
         {-10.0, 1.0, 0.0},
         {0.0, 1.0, 2.0},
     }};
 
-    for (const auto& [mu, sigma, a] : kPairs)
+    for (const auto& [mu, sigma, a] : PAIRS)
     {
         std::mt19937_64 rng_left(77);
         std::mt19937_64 rng_right(77);
@@ -173,7 +173,7 @@ TEST_CASE(
         double sum_left = 0.0;
         double sum_right = 0.0;
 
-        for (int i = 0; i < kNumSamples; ++i)
+        for (int i = 0; i < NUM_SAMPLES; ++i)
         {
             sum_left += stats::detail::sample_left_truncated_normal(
                 mu, sigma, a, rng_left);
@@ -181,8 +181,8 @@ TEST_CASE(
                 -mu, sigma, -a, rng_right);
         }
 
-        double mean_left = sum_left / kNumSamples;
-        double mean_right = sum_right / kNumSamples;
+        double mean_left = sum_left / NUM_SAMPLES;
+        double mean_right = sum_right / NUM_SAMPLES;
 
         INFO("mu=" << mu << " sigma=" << sigma << " a=" << a);
         // Same seed + symmetry implementation => should be exact
@@ -220,7 +220,7 @@ TEST_CASE("Both algorithm paths produce correct mean/var", "[truncated_normal]")
             {0.0, 1.0, 2.0, true, 2.373215532822840e+00, 1.142791004140833e-01},
             rng);
         double mean_tol
-            = 4.0 * std::sqrt(1.142791004140833e-01) / std::sqrt(kNumSamples);
+            = 4.0 * std::sqrt(1.142791004140833e-01) / std::sqrt(NUM_SAMPLES);
         CHECK_THAT(mean, WithinAbs(2.373215532822840e+00, mean_tol));
     }
 
@@ -231,7 +231,7 @@ TEST_CASE("Both algorithm paths produce correct mean/var", "[truncated_normal]")
             {0.0, 1.0, 3.0, true, 3.283098654930440e+00, 7.055918678525586e-02},
             rng);
         double mean_tol
-            = 4.0 * std::sqrt(7.055918678525586e-02) / std::sqrt(kNumSamples);
+            = 4.0 * std::sqrt(7.055918678525586e-02) / std::sqrt(NUM_SAMPLES);
         CHECK_THAT(mean, WithinAbs(3.283098654930440e+00, mean_tol));
     }
 
@@ -247,7 +247,7 @@ TEST_CASE("Both algorithm paths produce correct mean/var", "[truncated_normal]")
              9.445377825130441e-03},
             rng);
         double mean_tol
-            = 4.0 * std::sqrt(9.445377825130441e-03) / std::sqrt(kNumSamples);
+            = 4.0 * std::sqrt(9.445377825130441e-03) / std::sqrt(NUM_SAMPLES);
         CHECK_THAT(mean, WithinAbs(9.809323396256353e-02, mean_tol));
     }
 }
@@ -259,7 +259,7 @@ TEST_CASE("Extreme tails: mu=-30 left-truncated at 0", "[truncated_normal]")
     double sum_sq = 0.0;
     bool all_valid = true;
 
-    for (int i = 0; i < kNumSamples; ++i)
+    for (int i = 0; i < NUM_SAMPLES; ++i)
     {
         double val
             = stats::detail::sample_left_truncated_normal(-30.0, 1.0, 0.0, rng);
@@ -272,8 +272,8 @@ TEST_CASE("Extreme tails: mu=-30 left-truncated at 0", "[truncated_normal]")
     }
 
     CHECK(all_valid);
-    double mean = sum / kNumSamples;
-    double var = (sum_sq / kNumSamples) - (mean * mean);
+    double mean = sum / NUM_SAMPLES;
+    double var = (sum_sq / NUM_SAMPLES) - (mean * mean);
     CHECK(var > 1e-10);
     CHECK(mean < 1.0);
     CHECK(mean > 0.0);
@@ -286,7 +286,7 @@ TEST_CASE("Extreme tails: mu=30 right-truncated at 0", "[truncated_normal]")
     double sum_sq = 0.0;
     bool all_valid = true;
 
-    for (int i = 0; i < kNumSamples; ++i)
+    for (int i = 0; i < NUM_SAMPLES; ++i)
     {
         double val
             = stats::detail::sample_right_truncated_normal(30.0, 1.0, 0.0, rng);
@@ -299,8 +299,8 @@ TEST_CASE("Extreme tails: mu=30 right-truncated at 0", "[truncated_normal]")
     }
 
     CHECK(all_valid);
-    double mean = sum / kNumSamples;
-    double var = (sum_sq / kNumSamples) - (mean * mean);
+    double mean = sum / NUM_SAMPLES;
+    double var = (sum_sq / NUM_SAMPLES) - (mean * mean);
     CHECK(var > 1e-10);
     CHECK(mean > -1.0);
     CHECK(mean < 0.0);

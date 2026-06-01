@@ -457,7 +457,7 @@ TEST_CASE("GrmBinWriter - Buffer size verification", "[grm_bin_writer][buffer]")
     SECTION("Happy path - verify default buffer size constant")
     {
         REQUIRE(
-            GrmBinWriter::kDefaultBufferSize == static_cast<size_t>(64 * 1024));
+            GrmBinWriter::DEFAULT_BUFFER_SIZE == static_cast<size_t>(64 * 1024));
     }
 
     SECTION("Happy path - write with default buffer should work")

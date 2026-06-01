@@ -56,7 +56,7 @@ void BedVariantDecoder::decode_dense(
     const uint8_t* data_ptr,
     std::span<double> target_buf) const
 {
-    const auto& lut = kDecodeLut;
+    const auto& lut = DECODE_LUT;
     const Eigen::Index num_bytes = bytes_per_variant_;
     const Eigen::Index total_samples = num_raw_samples_;
 
@@ -84,7 +84,7 @@ void BedVariantDecoder::decode_sparse(
     const uint8_t* data_ptr,
     std::span<double> target_buf) const
 {
-    const auto& lut = kDecodeLut;
+    const auto& lut = DECODE_LUT;
     const Eigen::Index num_bytes = bytes_per_variant_;
 
     for (Eigen::Index i = 0; i < num_bytes; ++i)

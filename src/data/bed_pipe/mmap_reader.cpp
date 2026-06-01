@@ -31,15 +31,15 @@ namespace gelex::genotype::detail
 namespace
 {
 
-constexpr size_t kBedHeaderSize = 3;
-constexpr uint8_t kBedMagic0 = 0x6C;
-constexpr uint8_t kBedMagic1 = 0x1B;
-constexpr uint8_t kBedMagic2 = 0x01;
+constexpr size_t BED_HEADER_SIZE = 3;
+constexpr uint8_t BED_MAGIC_0 = 0x6C;
+constexpr uint8_t BED_MAGIC_1 = 0x1B;
+constexpr uint8_t BED_MAGIC_2 = 0x01;
 
 auto has_valid_bed_magic(const mio::mmap_source& mmap) -> bool
 {
-    return mmap[0] == kBedMagic0 && mmap[1] == kBedMagic1
-           && mmap[2] == kBedMagic2;
+    return mmap[0] == BED_MAGIC_0 && mmap[1] == BED_MAGIC_1
+           && mmap[2] == BED_MAGIC_2;
 }
 
 }  // namespace
@@ -64,7 +64,7 @@ BedMmapReader::BedMmapReader(
             fmt::format("{}: failed to mmap bed file", bed_path.string()));
     }
 
-    if (mmap_.size() <= kBedHeaderSize)
+    if (mmap_.size() <= BED_HEADER_SIZE)
     {
         throw GelexException(
             fmt::format("{}: bed file too short", bed_path.string()));
@@ -76,7 +76,7 @@ BedMmapReader::BedMmapReader(
             fmt::format("{}: invalid BED magic number", bed_path.string()));
     }
 
-    const size_t expected_size = kBedHeaderSize
+    const size_t expected_size = BED_HEADER_SIZE
                                  + (static_cast<size_t>(num_raw_snps)
                                     * static_cast<size_t>(bytes_per_variant_));
     if (mmap_.size() < expected_size)
@@ -90,9 +90,9 @@ BedMmapReader::BedMmapReader(
     }
 
     payload_ptr_
-        = reinterpret_cast<const uint8_t*>(mmap_.data()) + kBedHeaderSize;
+        = reinterpret_cast<const uint8_t*>(mmap_.data()) + BED_HEADER_SIZE;
 
-    const size_t payload_size_bytes = mmap_.size() - kBedHeaderSize;
+    const size_t payload_size_bytes = mmap_.size() - BED_HEADER_SIZE;
     payload_num_snps_
         = payload_size_bytes / static_cast<size_t>(bytes_per_variant_);
 }

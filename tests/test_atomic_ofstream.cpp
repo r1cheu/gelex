@@ -157,19 +157,19 @@ TEST_CASE("AtomicOfstream - binary mode roundtrip", "[atomic_ofstream][binary]")
     FileFixture files;
     auto final_path = files.generate_random_file_path(".bin");
 
-    constexpr std::array<char, 4> kData{'\x00', '\x01', '\x02', '\x03'};
+    constexpr std::array<char, 4> DATA{'\x00', '\x01', '\x02', '\x03'};
 
     {
         AtomicOfstream ofs(
             final_path, std::ios::out | std::ios::binary | std::ios::trunc);
-        ofs.write(kData.data(), static_cast<std::streamsize>(kData.size()));
+        ofs.write(DATA.data(), static_cast<std::streamsize>(DATA.size()));
     }
 
     REQUIRE(fs::exists(final_path));
-    REQUIRE(fs::file_size(final_path) == kData.size());
+    REQUIRE(fs::file_size(final_path) == DATA.size());
 
     std::ifstream ifs(final_path, std::ios::binary);
     std::array<char, 4> read_back{};
     ifs.read(read_back.data(), static_cast<std::streamsize>(read_back.size()));
-    REQUIRE(read_back == kData);
+    REQUIRE(read_back == DATA);
 }

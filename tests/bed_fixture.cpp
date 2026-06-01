@@ -69,11 +69,11 @@ bool are_matrices_equal(
 namespace
 {
 
-constexpr std::array<uint8_t, 3> kBedMagicNumber = {0x6C, 0x1B, 0x01};
+constexpr std::array<uint8_t, 3> BED_MAGIC_NUMBER = {0x6C, 0x1B, 0x01};
 
-constexpr std::array<char, 4> kValidNucleotides = {'A', 'C', 'G', 'T'};
+constexpr std::array<char, 4> VALID_NUCLEOTIDES = {'A', 'C', 'G', 'T'};
 
-constexpr std::array<std::string_view, 24> kChromosomeNames
+constexpr std::array<std::string_view, 24> CHROMOSOME_NAMES
     = {"1",  "2",  "3",  "4",  "5",  "6",  "7",  "8",  "9",  "10", "11", "12",
        "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "X",  "Y"};
 
@@ -294,9 +294,9 @@ void BedFixture::write_bed_file(const Eigen::MatrixXd& genotypes)
     std::vector<std::byte> bed_content;
     bed_content.reserve(3 + (num_snps * bytes_per_var));
 
-    bed_content.push_back(std::byte{kBedMagicNumber[0]});
-    bed_content.push_back(std::byte{kBedMagicNumber[1]});
-    bed_content.push_back(std::byte{kBedMagicNumber[2]});
+    bed_content.push_back(std::byte{BED_MAGIC_NUMBER[0]});
+    bed_content.push_back(std::byte{BED_MAGIC_NUMBER[1]});
+    bed_content.push_back(std::byte{BED_MAGIC_NUMBER[2]});
 
     for (Eigen::Index snp_idx = 0; snp_idx < num_snps; ++snp_idx)
     {
@@ -371,14 +371,14 @@ void BedFixture::write_fam_file(
 
 std::pair<char, char> BedFixture::generate_random_alleles(std::mt19937_64& rng)
 {
-    std::uniform_int_distribution<size_t> dist(0, kValidNucleotides.size() - 1);
+    std::uniform_int_distribution<size_t> dist(0, VALID_NUCLEOTIDES.size() - 1);
 
-    char a1 = kValidNucleotides.at(dist(rng));
-    char a2 = kValidNucleotides.at(dist(rng));
+    char a1 = VALID_NUCLEOTIDES.at(dist(rng));
+    char a2 = VALID_NUCLEOTIDES.at(dist(rng));
 
     while (a1 == a2)
     {
-        a2 = kValidNucleotides.at(dist(rng));
+        a2 = VALID_NUCLEOTIDES.at(dist(rng));
     }
 
     return {a1, a2};
@@ -421,11 +421,11 @@ std::vector<std::string> BedFixture::generate_random_chromosomes(
     std::vector<std::string> chromosomes;
     chromosomes.reserve(num_snps);
 
-    std::uniform_int_distribution<size_t> dist(0, kChromosomeNames.size() - 1);
+    std::uniform_int_distribution<size_t> dist(0, CHROMOSOME_NAMES.size() - 1);
 
     for (Eigen::Index i = 0; i < num_snps; ++i)
     {
-        chromosomes.emplace_back(kChromosomeNames.at(dist(rng)));
+        chromosomes.emplace_back(CHROMOSOME_NAMES.at(dist(rng)));
     }
 
     return chromosomes;
