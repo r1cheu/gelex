@@ -20,6 +20,7 @@
 
 #include <argparse.h>
 
+#include "cli/bayes_recipe_options.h"
 #include "cli/cli_helper.h"
 #include "cli/data_pipe_config.h"
 #include "cli/dataset_reporter.h"
@@ -38,6 +39,7 @@
 
 auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
 {
+    auto recipe_options = gelex::cli::make_bayes_recipe_options(cmd);
     auto engine_config = gelex::cli::make_mcmc_engine_config(cmd);
     auto [pheno_config, geno_config]
         = gelex::cli::make_dataset_configs(cmd, cmd.get<bool>("--mmap"));
@@ -53,8 +55,8 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
     gelex::notify(
         reporter.as_observer(),
         gelex::MCMCConfigEvent{
-            .recipe_scheme = engine_config.recipe_scheme,
-            .requested_effects = engine_config.recipe_config.modes,
+            .recipe_scheme = recipe_options.scheme,
+            .requested_effects = recipe_options.modes,
             .n_iters = engine_config.mcmc_params.n_iters,
             .n_burn_in = engine_config.mcmc_params.n_burn_in,
             .seed = engine_config.seed,
@@ -74,8 +76,7 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
     pheno.load(common);
     geno.load(common);
 
-    auto bayes_recipe = gelex::bayes::BayesRecipe(
-        engine_config.recipe_scheme, engine_config.recipe_config);
+    auto bayes_recipe = gelex::bayes::BayesRecipe(std::move(recipe_options));
 
     auto model = gelex::build_bayes_model(std::move(pheno), std::move(geno));
     auto prior = bayes_recipe.make_prior(model);

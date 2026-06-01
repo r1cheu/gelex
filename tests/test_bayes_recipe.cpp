@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <optional>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -30,9 +29,9 @@
 #include "gelex/bayes/recipe_options.h"
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/exception.h"
-#include "gelex/types/fixed_designs.h"
 #include "gelex/types/constrained_value.h"
 #include "gelex/types/constrained_vector.h"
+#include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "genotype_fixture.h"
 
@@ -42,9 +41,8 @@ using gelex::OpenUnitInterval;
 using gelex::ScaleMultiplier;
 using gelex::Simplex;
 using gelex::bayes::BayesRecipe;
-using gelex::bayes::BayesRecipeConfig;
+using gelex::bayes::BayesRecipeOptions;
 using gelex::bayes::BayesRecipeScheme;
-using gelex::bayes::EffectConfig;
 using gelex::bayes::to_bayes_recipe_scheme;
 
 namespace
@@ -93,9 +91,10 @@ TEST_CASE("BayesRecipe scheme parser accepts short names", "[bayes_recipe]")
 
 TEST_CASE("BayesR construction succeeds with defaults", "[bayes_recipe]")
 {
-    BayesRecipeConfig config;
+    BayesRecipeOptions config;
+    config.scheme = BayesRecipeScheme::R;
     config.modes = {GeneticMode::A};
-    REQUIRE_NOTHROW(BayesRecipe(BayesRecipeScheme::R, config));
+    REQUIRE_NOTHROW(BayesRecipe(config));
 }
 
 TEST_CASE(
@@ -104,51 +103,37 @@ TEST_CASE(
 {
     SECTION("joint proportion")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
+        config.scheme = BayesRecipeScheme::B;
         config.modes = {GeneticMode::A};
         config.joint_proportion = Simplex<double>{{0.5, 0.5}};
-        REQUIRE_THROWS_AS(
-            BayesRecipe(BayesRecipeScheme::B, config), GelexException);
+        REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
     }
 
     SECTION("proportion override")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
         config.modes = {GeneticMode::A};
-        config.additive = EffectConfig{
-            std::nullopt,
-            std::optional<Simplex<double>>{Simplex<double>{{0.99, 0.01}}},
-            std::nullopt,
-            std::nullopt};
-        REQUIRE_THROWS_AS(
-            BayesRecipe(BayesRecipeScheme::RR, config), GelexException);
+        config.additive_proportion = Simplex<double>{{0.99, 0.01}};
+        REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
     }
 
     SECTION("multiplier override")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
+        config.scheme = BayesRecipeScheme::B;
         config.modes = {GeneticMode::A};
-        config.additive = EffectConfig{
-            std::nullopt,
-            std::nullopt,
-            std::optional<ScaleMultiplier<double>>{
-                ScaleMultiplier<double>{{0.0, 1.0}}},
-            std::nullopt};
-        REQUIRE_THROWS_AS(
-            BayesRecipe(BayesRecipeScheme::B, config), GelexException);
+        config.additive_multiplier = ScaleMultiplier<double>{{0.0, 1.0}};
+        REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
     }
 
     SECTION("unpaired BayesR proportion and multiplier")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
+        config.scheme = BayesRecipeScheme::R;
         config.modes = {GeneticMode::A};
-        config.additive = EffectConfig{
-            std::nullopt,
-            std::optional<Simplex<double>>{Simplex<double>{{0.99, 0.01}}},
-            std::nullopt,
-            std::nullopt};
-        REQUIRE_THROWS_AS(
-            BayesRecipe(BayesRecipeScheme::R, config), GelexException);
+        config.additive_proportion = Simplex<double>{{0.99, 0.01}};
+        REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
     }
 }
 
@@ -156,35 +141,36 @@ TEST_CASE("BayesCD rejects joint_proportion of wrong size", "[bayes_recipe]")
 {
     SECTION("2-element simplex rejected")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
+        config.scheme = BayesRecipeScheme::CD;
         config.modes = {GeneticMode::A, GeneticMode::D};
         config.joint_proportion = Simplex<double>{{0.5, 0.5}};
-        REQUIRE_THROWS_AS(
-            BayesRecipe(BayesRecipeScheme::CD, config), GelexException);
+        REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
     }
     SECTION("3-element simplex rejected")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
+        config.scheme = BayesRecipeScheme::CD;
         config.modes = {GeneticMode::A, GeneticMode::D};
         config.joint_proportion = Simplex<double>{{0.8, 0.1, 0.1}};
-        REQUIRE_THROWS_AS(
-            BayesRecipe(BayesRecipeScheme::CD, config), GelexException);
+        REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
     }
     SECTION("5-element simplex rejected")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
+        config.scheme = BayesRecipeScheme::CD;
         config.modes = {GeneticMode::A, GeneticMode::D};
         config.joint_proportion
             = Simplex<double>{{0.8, 0.05, 0.05, 0.05, 0.05}};
-        REQUIRE_THROWS_AS(
-            BayesRecipe(BayesRecipeScheme::CD, config), GelexException);
+        REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
     }
     SECTION("4-element simplex accepted")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
+        config.scheme = BayesRecipeScheme::CD;
         config.modes = {GeneticMode::A, GeneticMode::D};
         config.joint_proportion = Simplex<double>{{0.9, 0.04, 0.03, 0.03}};
-        REQUIRE_NOTHROW(BayesRecipe(BayesRecipeScheme::CD, config));
+        REQUIRE_NOTHROW(BayesRecipe(config));
     }
 }
 
@@ -196,10 +182,9 @@ TEST_CASE(
 
     SECTION("RR creates a shared gaussian prior")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
         config.modes = {GeneticMode::A};
-        auto prior = BayesRecipe(BayesRecipeScheme::RR, config).make_prior(
-            model);
+        auto prior = BayesRecipe(config).make_prior(model);
         auto genetics = prior.genetics();
 
         REQUIRE(genetics.size() == 1);
@@ -212,10 +197,10 @@ TEST_CASE(
 
     SECTION("A creates a per-marker gaussian prior")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
+        config.scheme = BayesRecipeScheme::A;
         config.modes = {GeneticMode::A};
-        auto prior = BayesRecipe(BayesRecipeScheme::A, config).make_prior(
-            model);
+        auto prior = BayesRecipe(config).make_prior(model);
         auto genetics = prior.genetics();
 
         REQUIRE(genetics.size() == 1);
@@ -228,10 +213,10 @@ TEST_CASE(
 
     SECTION("B creates a per-marker spike-slab gaussian prior")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
+        config.scheme = BayesRecipeScheme::B;
         config.modes = {GeneticMode::A};
-        auto prior = BayesRecipe(BayesRecipeScheme::B, config).make_prior(
-            model);
+        auto prior = BayesRecipe(config).make_prior(model);
         auto genetics = prior.genetics();
 
         REQUIRE(genetics.size() == 1);
@@ -244,10 +229,10 @@ TEST_CASE(
 
     SECTION("C creates a shared spike-slab gaussian prior")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
+        config.scheme = BayesRecipeScheme::C;
         config.modes = {GeneticMode::A};
-        auto prior = BayesRecipe(BayesRecipeScheme::C, config).make_prior(
-            model);
+        auto prior = BayesRecipe(config).make_prior(model);
         auto genetics = prior.genetics();
 
         REQUIRE(genetics.size() == 1);
@@ -260,10 +245,10 @@ TEST_CASE(
 
     SECTION("R creates a scaled mixture gaussian prior")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
+        config.scheme = BayesRecipeScheme::R;
         config.modes = {GeneticMode::A};
-        auto prior = BayesRecipe(BayesRecipeScheme::R, config).make_prior(
-            model);
+        auto prior = BayesRecipe(config).make_prior(model);
         auto genetics = prior.genetics();
 
         REQUIRE(genetics.size() == 1);
@@ -276,17 +261,18 @@ TEST_CASE(
 
     SECTION("CD creates a joint gaussian mixture prior")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
+        config.scheme = BayesRecipeScheme::CD;
         config.modes = {GeneticMode::A, GeneticMode::D};
-        auto prior = BayesRecipe(BayesRecipeScheme::CD, config).make_prior(
-            model);
+        auto prior = BayesRecipe(config).make_prior(model);
         auto genetics = prior.genetics();
 
         REQUIRE(genetics.size() == 1);
         const auto& joint
             = std::get<gelex::bayes::JointGeneticPrior>(genetics[0]);
-        REQUIRE(std::holds_alternative<gelex::bayes::JointGaussianMixturePrior>(
-            joint));
+        REQUIRE(
+            std::holds_alternative<gelex::bayes::JointGaussianMixturePrior>(
+                joint));
     }
 }
 
@@ -295,10 +281,10 @@ TEST_CASE(
     "[bayes_recipe]")
 {
     auto model = make_model();
-    BayesRecipeConfig config;
+    BayesRecipeOptions config;
     config.modes = {GeneticMode::A, GeneticMode::D};
 
-    auto prior = BayesRecipe(BayesRecipeScheme::RR, config).make_prior(model);
+    auto prior = BayesRecipe(config).make_prior(model);
     auto genetics = prior.genetics();
 
     REQUIRE(genetics.size() == 2);
@@ -316,40 +302,24 @@ TEST_CASE(
 {
     SECTION("additive override with mode A present")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
         config.modes = {GeneticMode::A};
-        config.additive = EffectConfig{
-            std::optional<OpenUnitInterval<double>>{std::in_place, 0.3},
-            std::nullopt,
-            std::nullopt,
-            std::nullopt};
-        REQUIRE_NOTHROW(BayesRecipe(BayesRecipeScheme::RR, config));
+        config.additive_heritability = OpenUnitInterval<double>{0.3};
+        REQUIRE_NOTHROW(BayesRecipe(config));
     }
     SECTION("dominance override with mode D present")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
         config.modes = {GeneticMode::D};
-        config.dominance = EffectConfig{
-            std::optional<OpenUnitInterval<double>>{std::in_place, 0.3},
-            std::nullopt,
-            std::nullopt,
-            std::nullopt};
-        REQUIRE_NOTHROW(BayesRecipe(BayesRecipeScheme::RR, config));
+        config.dominance_heritability = OpenUnitInterval<double>{0.3};
+        REQUIRE_NOTHROW(BayesRecipe(config));
     }
     SECTION("both overrides with modes {A, D}")
     {
-        BayesRecipeConfig config;
+        BayesRecipeOptions config;
         config.modes = {GeneticMode::A, GeneticMode::D};
-        config.additive = EffectConfig{
-            std::optional<OpenUnitInterval<double>>{std::in_place, 0.3},
-            std::nullopt,
-            std::nullopt,
-            std::nullopt};
-        config.dominance = EffectConfig{
-            std::optional<OpenUnitInterval<double>>{std::in_place, 0.2},
-            std::nullopt,
-            std::nullopt,
-            std::nullopt};
-        REQUIRE_NOTHROW(BayesRecipe(BayesRecipeScheme::RR, config));
+        config.additive_heritability = OpenUnitInterval<double>{0.3};
+        config.dominance_heritability = OpenUnitInterval<double>{0.2};
+        REQUIRE_NOTHROW(BayesRecipe(config));
     }
 }

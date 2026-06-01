@@ -17,6 +17,7 @@
 #ifndef GELEX_SRC_BAYES_DETAIL_SCHEME_HELPERS_H_
 #define GELEX_SRC_BAYES_DETAIL_SCHEME_HELPERS_H_
 
+#include <optional>
 #include <string_view>
 
 #include "gelex/bayes/genetic/parameters.h"
@@ -32,10 +33,17 @@ class BayesModel;
 namespace gelex::bayes::detail
 {
 
-auto effect_config(const BayesRecipeConfig& options, GeneticMode mode)
-    -> const EffectConfig&;
+auto heritability(const BayesRecipeOptions& options, GeneticMode mode)
+    -> double;
 
-auto heritability(GeneticMode mode, const EffectConfig& effect) -> double;
+auto proportion(const BayesRecipeOptions& options, GeneticMode mode)
+    -> const std::optional<Simplex<double>>&;
+
+auto multiplier(const BayesRecipeOptions& options, GeneticMode mode)
+    -> const std::optional<ScaleMultiplier<double>>&;
+
+auto proportion_update(const BayesRecipeOptions& options, GeneticMode mode)
+    -> const std::optional<bool>&;
 
 auto target_marker_variance(
     const BayesModel& model,
@@ -53,19 +61,19 @@ auto scaled_active_marker_weight(
     const ScaleMultiplier<double>& multiplier) -> double;
 
 auto reject_joint_options(
-    const BayesRecipeConfig& options,
+    const BayesRecipeOptions& options,
     std::string_view scheme) -> void;
 
 auto reject_proportion_options(
-    const BayesRecipeConfig& options,
+    const BayesRecipeOptions& options,
     std::string_view scheme) -> void;
 
 auto reject_multiplier_options(
-    const BayesRecipeConfig& options,
+    const BayesRecipeOptions& options,
     std::string_view scheme) -> void;
 
 auto reject_unpaired_proportion_multiplier(
-    const BayesRecipeConfig& options,
+    const BayesRecipeOptions& options,
     std::string_view scheme) -> void;
 
 }  // namespace gelex::bayes::detail

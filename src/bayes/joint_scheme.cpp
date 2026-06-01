@@ -15,12 +15,9 @@
  */
 
 #include <array>
-#include <cmath>
 #include <vector>
 
-#include <fmt/format.h>
-#include <Eigen/Core>
-
+#include "bayes/detail/scheme_helpers.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/genetic/prior.h"
@@ -34,32 +31,31 @@
 namespace gelex::bayes
 {
 
-BayesCDScheme::BayesCDScheme(const BayesRecipeConfig& options)
+BayesCDScheme::BayesCDScheme(const BayesRecipeOptions& options)
     : options_{options}
 {
     if (options_.modes.size() != 2)
     {
         throw GelexException("CD requires --mode AD (both effects)");
     }
-    if (options_.additive.proportion() || options_.additive.proportion_update())
+    if (options_.additive_proportion || options_.additive_proportion_update)
     {
         throw GelexException(
             "CD does not accept per-effect proportion override for A; "
             "use --joint-pi instead");
     }
-    if (options_.dominance.proportion()
-        || options_.dominance.proportion_update())
+    if (options_.dominance_proportion || options_.dominance_proportion_update)
     {
         throw GelexException(
             "CD does not accept per-effect proportion override for D; "
             "use --joint-pi instead");
     }
-    if (options_.additive.multiplier())
+    if (options_.additive_multiplier)
     {
         throw GelexException(
             "CD does not accept per-effect multiplier override for A");
     }
-    if (options_.dominance.multiplier())
+    if (options_.dominance_multiplier)
     {
         throw GelexException(
             "CD does not accept per-effect multiplier override for D");
@@ -81,91 +77,24 @@ auto BayesCDScheme::make_prior(const BayesModel& model) const
     const double active_a = proportion[1] + proportion[3];
     const double active_d = proportion[2] + proportion[3];
 
-    const double h2_a = options_.additive.heritability()
-                            ? options_.additive.heritability()->value()
-                            : 0.5;
-    const double h2_d = options_.dominance.heritability()
-                            ? options_.dominance.heritability()->value()
-                            : 0.2;
+    const double target_a = detail::target_marker_variance(
+        model,
+        GeneticMode::A,
+        detail::heritability(options_, GeneticMode::A),
+        active_a);
+    const double target_d = detail::target_marker_variance(
+        model,
+        GeneticMode::D,
+        detail::heritability(options_, GeneticMode::D),
+        active_d);
 
-    const auto* genetic_a = model.genetic(GeneticMode::A);
-    if (genetic_a == nullptr)
-    {
-        throw GelexException("genetic design not found for mode A");
-    }
-    if (genetic_a->design_variance <= 0)
-    {
-        throw GelexException(
-            "genetic design_variance must be positive for mode A");
-    }
-    if (active_a <= 0)
-    {
-        throw GelexException(
-            fmt::format(
-                "active_marker_weight must be positive, got {}", active_a));
-    }
-    const double target_a = model.phenotype_variance() * h2_a
-                            / (active_a * genetic_a->design_variance);
-    if (!std::isfinite(target_a) || target_a <= 0)
-    {
-        throw GelexException(
-            fmt::format(
-                "target_marker_variance must be finite and positive, got {}",
-                target_a));
-    }
-
-    const auto* genetic_d = model.genetic(GeneticMode::D);
-    if (genetic_d == nullptr)
-    {
-        throw GelexException("genetic design not found for mode D");
-    }
-    if (genetic_d->design_variance <= 0)
-    {
-        throw GelexException(
-            "genetic design_variance must be positive for mode D");
-    }
-    if (active_d <= 0)
-    {
-        throw GelexException(
-            fmt::format(
-                "active_marker_weight must be positive, got {}", active_d));
-    }
-    const double target_d = model.phenotype_variance() * h2_d
-                            / (active_d * genetic_d->design_variance);
-    if (!std::isfinite(target_d) || target_d <= 0)
-    {
-        throw GelexException(
-            fmt::format(
-                "target_marker_variance must be finite and positive, got {}",
-                target_d));
-    }
-
-    if (options_.joint_proportion_update.value_or(true))
-    {
-        const auto n = static_cast<Eigen::Index>(proportion.size());
-        return std::vector<
-            GeneticPrior>{JointGeneticPrior{JointGaussianMixturePrior{
-            JointSharedMarkerVariance{std::array{
-                SharedMarkerVariance{VarianceParameter{
-                    target_a,
-                    ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target_a}}},
-                SharedMarkerVariance{VarianceParameter{
-                    target_d,
-                    ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target_d}}}}},
-            MixtureProportion{SimplexParameter{
-                proportion.to_mat(),
-                DirichletPrior{Eigen::VectorXd::Ones(n)}}}}}};
-    }
     return std::vector<GeneticPrior>{
         JointGeneticPrior{JointGaussianMixturePrior{
             JointSharedMarkerVariance{std::array{
-                SharedMarkerVariance{VarianceParameter{
-                    target_a,
-                    ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target_a}}},
-                SharedMarkerVariance{VarianceParameter{
-                    target_d,
-                    ScaledInvChiSqPrior{4.0, (4.0 - 2.0) / 4.0 * target_d}}}}},
-            MixtureProportion{proportion.to_mat()}}}};
+                SharedMarkerVariance{detail::variance_parameter(target_a)},
+                SharedMarkerVariance{detail::variance_parameter(target_d)}}},
+            detail::mixture_proportion(
+                proportion, options_.joint_proportion_update.value_or(true))}}};
 }
 
 }  // namespace gelex::bayes

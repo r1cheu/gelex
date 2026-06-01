@@ -16,32 +16,19 @@
 
 #include "mcmc_config.h"
 
-#include <string>
-#include <utility>
-
 #include <argparse.h>
 
-#include "cli/bayes_recipe_config.h"
 #include "gelex/algo/infer/params.h"
-#include "gelex/bayes/recipe.h"
-#include "gelex/bayes/recipe_options.h"
 #include "gelex/engine/mcmc.h"
 
 namespace gelex::cli
 {
 
-namespace
-{
-
-auto make_engine_config(
-    argparse::ArgumentParser& cmd,
-    bayes::BayesRecipeScheme recipe_scheme,
-    bayes::BayesRecipeConfig recipe_config) -> mcmc::Engine::Config
+auto make_mcmc_engine_config(argparse::ArgumentParser& cmd)
+    -> mcmc::Engine::Config
 {
     mcmc::Engine::Config config{
         .bfile_prefix = cmd.get("--bfile"),
-        .recipe_scheme = recipe_scheme,
-        .recipe_config = std::move(recipe_config),
         .seed = cmd.get<int>("--seed"),
         .mcmc_params = gelex::mcmc::Params{
             .n_iters = cmd.get<int>("--iters"),
@@ -62,17 +49,6 @@ auto make_engine_config(
 
     mcmc::ConfigValidator{config}.validate();
     return config;
-}
-
-}  // namespace
-
-auto make_mcmc_engine_config(argparse::ArgumentParser& cmd)
-    -> mcmc::Engine::Config
-{
-    auto recipe_scheme = gelex::bayes::to_bayes_recipe_scheme(
-        cmd.get<std::string>("--method"));
-    auto recipe_config = make_bayes_recipe_config(cmd);
-    return make_engine_config(cmd, recipe_scheme, std::move(recipe_config));
 }
 
 }  // namespace gelex::cli

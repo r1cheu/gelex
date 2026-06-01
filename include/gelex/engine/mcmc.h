@@ -24,7 +24,6 @@
 
 #include "gelex/algo/infer/params.h"
 #include "gelex/bayes/prior.h"
-#include "gelex/bayes/recipe.h"
 #include "gelex/infra/logging/fit_event.h"
 
 namespace gelex
@@ -41,8 +40,6 @@ class Engine
     struct Config
     {
         std::string bfile_prefix;
-        bayes::BayesRecipeScheme recipe_scheme;
-        bayes::BayesRecipeConfig recipe_config;
 
         int seed;
         mcmc::Params mcmc_params;
@@ -70,7 +67,6 @@ class ConfigValidator
     auto validate() const -> void;
 
    private:
-    auto check_method() const -> void;
     auto check_mcmc_params() const -> void;
 
     const Engine::Config& config_;

@@ -34,61 +34,61 @@ namespace gelex::bayes
 class BayesRRScheme
 {
    public:
-    explicit BayesRRScheme(const BayesRecipeConfig& options);
+    explicit BayesRRScheme(const BayesRecipeOptions& options);
     auto make_prior(const BayesModel& model) const -> std::vector<GeneticPrior>;
 
    private:
-    const BayesRecipeConfig& options_;
+    const BayesRecipeOptions& options_;
 };
 
 class BayesAScheme
 {
    public:
-    explicit BayesAScheme(const BayesRecipeConfig& options);
+    explicit BayesAScheme(const BayesRecipeOptions& options);
     auto make_prior(const BayesModel& model) const -> std::vector<GeneticPrior>;
 
    private:
-    const BayesRecipeConfig& options_;
+    const BayesRecipeOptions& options_;
 };
 
 class BayesBScheme
 {
    public:
-    explicit BayesBScheme(const BayesRecipeConfig& options);
+    explicit BayesBScheme(const BayesRecipeOptions& options);
     auto make_prior(const BayesModel& model) const -> std::vector<GeneticPrior>;
 
    private:
-    const BayesRecipeConfig& options_;
+    const BayesRecipeOptions& options_;
 };
 
 class BayesCScheme
 {
    public:
-    explicit BayesCScheme(const BayesRecipeConfig& options);
+    explicit BayesCScheme(const BayesRecipeOptions& options);
     auto make_prior(const BayesModel& model) const -> std::vector<GeneticPrior>;
 
    private:
-    const BayesRecipeConfig& options_;
+    const BayesRecipeOptions& options_;
 };
 
 class BayesRScheme
 {
    public:
-    explicit BayesRScheme(const BayesRecipeConfig& options);
+    explicit BayesRScheme(const BayesRecipeOptions& options);
     auto make_prior(const BayesModel& model) const -> std::vector<GeneticPrior>;
 
    private:
-    const BayesRecipeConfig& options_;
+    const BayesRecipeOptions& options_;
 };
 
 class BayesCDScheme
 {
    public:
-    explicit BayesCDScheme(const BayesRecipeConfig& options);
+    explicit BayesCDScheme(const BayesRecipeOptions& options);
     auto make_prior(const BayesModel& model) const -> std::vector<GeneticPrior>;
 
    private:
-    const BayesRecipeConfig& options_;
+    const BayesRecipeOptions& options_;
 };
 
 using BayesScheme = std::variant<

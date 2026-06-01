@@ -32,16 +32,13 @@
 namespace gelex::bayes
 {
 
-BayesRecipe::BayesRecipe(
-    BayesRecipeScheme recipe_scheme,
-    BayesRecipeConfig options)
-    : recipe_scheme_{recipe_scheme},
-      options_{std::move(options)},
+BayesRecipe::BayesRecipe(BayesRecipeOptions options)
+    : options_{std::move(options)},
       scheme_{
           [this]() -> BayesScheme
           {
               validate_modes(options_.modes);
-              switch (recipe_scheme_)
+              switch (options_.scheme)
               {
                   case BayesRecipeScheme::RR:
                       return BayesRRScheme{options_};
@@ -59,7 +56,7 @@ BayesRecipe::BayesRecipe(
                       throw GelexException(
                           fmt::format(
                               "Unsupported BayesRecipeScheme: {}",
-                              recipe_scheme_));
+                              options_.scheme));
               }
           }()}
 {
@@ -87,7 +84,7 @@ auto BayesRecipe::validate_modes(std::span<const GeneticMode> modes) -> void
     if (!valid)
     {
         throw GelexException(
-            "BayesRecipeConfig modes must be {A}, {D}, or {A, D}");
+            "BayesRecipeOptions modes must be {A}, {D}, or {A, D}");
     }
 }
 

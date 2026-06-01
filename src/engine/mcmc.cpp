@@ -21,7 +21,6 @@
 #include <fmt/format.h>
 
 #include "gelex/bayes/prior.h"
-#include "gelex/bayes/recipe.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/fit_event.h"
 
@@ -35,14 +34,7 @@ Engine::Engine(Config config) : config_(std::move(config)) {}
 
 auto ConfigValidator::validate() const -> void
 {
-    check_method();
     check_mcmc_params();
-}
-
-auto ConfigValidator::check_method() const -> void
-{
-    static_cast<void>(config_.recipe_scheme);
-    static_cast<void>(config_.recipe_config);
 }
 
 auto ConfigValidator::check_mcmc_params() const -> void

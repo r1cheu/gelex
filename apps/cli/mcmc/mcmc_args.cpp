@@ -120,9 +120,6 @@ auto setup_mcmc_args(argparse::ArgumentParser& cmd) -> void
     cmd.add_argument("--estimate-joint-pi")
         .help("Sample joint allocation proportions (CD)")
         .flag();
-    cmd.add_argument("--dominance-positive-prob")
-        .help("Prior probability of positive dominance sign (asymmetric)")
-        .scan<'g', double>();
 
     cmd.add_group("MCMC");
     cmd.add_argument("--iters")
@@ -163,7 +160,7 @@ auto setup_mcmc_args(argparse::ArgumentParser& cmd) -> void
         gelex::cli::format_epilog(
             "{bg}Example:{rs}\n"
             "  {bc}gelex mcmc{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
-            "{cy}-m{rs} R {cy}--mode AD --asym{rs}\n\n"
+            "{cy}-m{rs} R {cy}--mode AD{rs}\n\n"
             "{bg}Docs:{rs}\n"
             "  https://gelex.readthedocs.io/en/latest/cli/mcmc.html"));
 }

@@ -17,7 +17,11 @@
 #ifndef GELEX_BAYES_RECIPE_OPTIONS_H_
 #define GELEX_BAYES_RECIPE_OPTIONS_H_
 
+#include <array>
+#include <cstdint>
 #include <optional>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 #include "gelex/types/constrained_value.h"
@@ -27,50 +31,43 @@
 namespace gelex::bayes
 {
 
-class EffectConfig
+enum class BayesRecipeScheme : std::uint8_t
 {
-   public:
-    EffectConfig() = default;
-    EffectConfig(
-        std::optional<OpenUnitInterval<double>> heritability,
-        std::optional<Simplex<double>> proportion,
-        std::optional<ScaleMultiplier<double>> multiplier,
-        std::optional<bool> proportion_update);
-
-    auto heritability() const -> const std::optional<OpenUnitInterval<double>>&
-    {
-        return heritability_;
-    }
-    auto proportion() const -> const std::optional<Simplex<double>>&
-    {
-        return proportion_;
-    }
-    auto multiplier() const -> const std::optional<ScaleMultiplier<double>>&
-    {
-        return multiplier_;
-    }
-    auto proportion_update() const -> const std::optional<bool>&
-    {
-        return proportion_update_;
-    }
-
-   private:
-    std::optional<OpenUnitInterval<double>> heritability_;
-    std::optional<Simplex<double>> proportion_;
-    std::optional<ScaleMultiplier<double>> multiplier_;
-    std::optional<bool> proportion_update_;
+    RR,
+    A,
+    B,
+    C,
+    R,
+    CD,
 };
 
-struct BayesRecipeConfig
+inline constexpr std::array BAYES_RECIPE_SCHEME_NAMES{
+    std::pair{BayesRecipeScheme::RR, std::string_view{"RR"}},
+    std::pair{BayesRecipeScheme::A, std::string_view{"A"}},
+    std::pair{BayesRecipeScheme::B, std::string_view{"B"}},
+    std::pair{BayesRecipeScheme::C, std::string_view{"C"}},
+    std::pair{BayesRecipeScheme::R, std::string_view{"R"}},
+    std::pair{BayesRecipeScheme::CD, std::string_view{"CD"}},
+};
+
+struct BayesRecipeOptions
 {
+    BayesRecipeScheme scheme{BayesRecipeScheme::RR};
     std::vector<GeneticMode> modes{GeneticMode::A};
 
-    EffectConfig additive;
-    EffectConfig dominance;
+    std::optional<OpenUnitInterval<double>> additive_heritability;
+    std::optional<Simplex<double>> additive_proportion;
+    std::optional<ScaleMultiplier<double>> additive_multiplier;
+    std::optional<bool> additive_proportion_update;
+
+    std::optional<OpenUnitInterval<double>> dominance_heritability;
+    std::optional<Simplex<double>> dominance_proportion;
+    std::optional<ScaleMultiplier<double>> dominance_multiplier;
+    std::optional<bool> dominance_proportion_update;
+
     std::optional<Simplex<double>> joint_proportion;
     std::optional<bool> joint_proportion_update;
 
-    std::optional<OpenUnitInterval<double>> dominance_positive_probability;
     std::optional<OpenUnitInterval<double>> random_variance_proportion;
 };
 

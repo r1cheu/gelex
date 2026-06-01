@@ -18,6 +18,7 @@
 
 #include <cmath>
 #include <cstddef>
+#include <optional>
 #include <string_view>
 
 #include <fmt/format.h>
@@ -33,20 +34,57 @@
 namespace gelex::bayes::detail
 {
 
-auto effect_config(const BayesRecipeConfig& options, GeneticMode mode)
-    -> const EffectConfig&
-{
-    return mode == GeneticMode::A ? options.additive : options.dominance;
-}
-
-auto heritability(GeneticMode mode, const EffectConfig& effect) -> double
+auto heritability(const BayesRecipeOptions& options, GeneticMode mode) -> double
 {
     switch (mode)
     {
         case GeneticMode::A:
-            return effect.heritability() ? effect.heritability()->value() : 0.5;
+            return options.additive_heritability
+                       ? options.additive_heritability->value()
+                       : 0.5;
         case GeneticMode::D:
-            return effect.heritability() ? effect.heritability()->value() : 0.2;
+            return options.dominance_heritability
+                       ? options.dominance_heritability->value()
+                       : 0.2;
+    }
+    throw GelexException(fmt::format("Unsupported genetic mode: {}", mode));
+}
+
+auto proportion(const BayesRecipeOptions& options, GeneticMode mode)
+    -> const std::optional<Simplex<double>>&
+{
+    switch (mode)
+    {
+        case GeneticMode::A:
+            return options.additive_proportion;
+        case GeneticMode::D:
+            return options.dominance_proportion;
+    }
+    throw GelexException(fmt::format("Unsupported genetic mode: {}", mode));
+}
+
+auto multiplier(const BayesRecipeOptions& options, GeneticMode mode)
+    -> const std::optional<ScaleMultiplier<double>>&
+{
+    switch (mode)
+    {
+        case GeneticMode::A:
+            return options.additive_multiplier;
+        case GeneticMode::D:
+            return options.dominance_multiplier;
+    }
+    throw GelexException(fmt::format("Unsupported genetic mode: {}", mode));
+}
+
+auto proportion_update(const BayesRecipeOptions& options, GeneticMode mode)
+    -> const std::optional<bool>&
+{
+    switch (mode)
+    {
+        case GeneticMode::A:
+            return options.additive_proportion_update;
+        case GeneticMode::D:
+            return options.dominance_proportion_update;
     }
     throw GelexException(fmt::format("Unsupported genetic mode: {}", mode));
 }
@@ -120,7 +158,7 @@ auto scaled_active_marker_weight(
 }
 
 auto reject_joint_options(
-    const BayesRecipeConfig& options,
+    const BayesRecipeOptions& options,
     std::string_view scheme) -> void
 {
     if (options.joint_proportion)
@@ -136,13 +174,12 @@ auto reject_joint_options(
 }
 
 auto reject_proportion_options(
-    const BayesRecipeConfig& options,
+    const BayesRecipeOptions& options,
     std::string_view scheme) -> void
 {
     for (const auto mode : options.modes)
     {
-        const auto& effect = effect_config(options, mode);
-        if (effect.proportion() || effect.proportion_update())
+        if (proportion(options, mode) || proportion_update(options, mode))
         {
             throw GelexException(
                 fmt::format(
@@ -154,13 +191,12 @@ auto reject_proportion_options(
 }
 
 auto reject_multiplier_options(
-    const BayesRecipeConfig& options,
+    const BayesRecipeOptions& options,
     std::string_view scheme) -> void
 {
     for (const auto mode : options.modes)
     {
-        const auto& effect = effect_config(options, mode);
-        if (effect.multiplier())
+        if (multiplier(options, mode))
         {
             throw GelexException(
                 fmt::format(
@@ -172,18 +208,30 @@ auto reject_multiplier_options(
 }
 
 auto reject_unpaired_proportion_multiplier(
-    const BayesRecipeConfig& options,
+    const BayesRecipeOptions& options,
     std::string_view scheme) -> void
 {
     for (const auto mode : options.modes)
     {
-        const auto& effect = effect_config(options, mode);
-        if (effect.proportion().has_value() != effect.multiplier().has_value())
+        const auto& mode_proportion = proportion(options, mode);
+        const auto& mode_multiplier = multiplier(options, mode);
+        if (mode_proportion.has_value() != mode_multiplier.has_value())
         {
             throw GelexException(
                 fmt::format(
                     "{}: proportion and multiplier must be paired for {}",
                     scheme,
+                    mode));
+        }
+        if (mode_proportion && mode_multiplier
+            && mode_proportion->size() != mode_multiplier->size())
+        {
+            throw GelexException(
+                fmt::format(
+                    "{}: proportion size {} != multiplier size {} for {}",
+                    scheme,
+                    mode_proportion->size(),
+                    mode_multiplier->size(),
                     mode));
         }
     }

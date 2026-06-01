@@ -17,11 +17,8 @@
 #ifndef GELEX_BAYES_RECIPE_H_
 #define GELEX_BAYES_RECIPE_H_
 
-#include <array>
-#include <cstdint>
 #include <span>
 #include <string_view>
-#include <utility>
 
 #include <fmt/format.h>
 
@@ -37,31 +34,10 @@ class BayesModel;
 namespace gelex::bayes
 {
 
-enum class BayesRecipeScheme : std::uint8_t
-{
-    RR,
-    A,
-    B,
-    C,
-    R,
-    CD,
-};
-
-inline constexpr std::array BAYES_RECIPE_SCHEME_NAMES{
-    std::pair{BayesRecipeScheme::RR, std::string_view{"RR"}},
-    std::pair{BayesRecipeScheme::A, std::string_view{"A"}},
-    std::pair{BayesRecipeScheme::B, std::string_view{"B"}},
-    std::pair{BayesRecipeScheme::C, std::string_view{"C"}},
-    std::pair{BayesRecipeScheme::R, std::string_view{"R"}},
-    std::pair{BayesRecipeScheme::CD, std::string_view{"CD"}},
-};
-
 class BayesRecipe
 {
    public:
-    explicit BayesRecipe(
-        BayesRecipeScheme recipe_scheme,
-        BayesRecipeConfig options);
+    explicit BayesRecipe(BayesRecipeOptions options);
     ~BayesRecipe();
 
     BayesRecipe(const BayesRecipe&) = delete;
@@ -77,8 +53,7 @@ class BayesRecipe
     auto make_random_prior(const BayesModel& model) const -> RandomPrior;
     static auto make_residual_prior(const BayesModel& model) -> ResidualPrior;
 
-    BayesRecipeScheme recipe_scheme_;
-    BayesRecipeConfig options_;
+    BayesRecipeOptions options_;
     BayesScheme scheme_;
 };
 
