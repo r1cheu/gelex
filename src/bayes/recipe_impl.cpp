@@ -106,14 +106,14 @@ auto BayesRecipeImpl::reject_dominance_positive_probability_override() const
     }
 }
 
-IndependentMethod::IndependentMethod(
+SingleMethod::SingleMethod(
     std::string_view name,
     const BayesRecipeConfig& options)
     : BayesRecipeImpl{name, options}
 {
 }
 
-auto IndependentMethod::make_genetic_prior_blocks(const BayesModel& model) const
+auto SingleMethod::make_genetic_prior_blocks(const BayesModel& model) const
     -> std::vector<GeneticPrior>
 {
     std::vector<GeneticPrior> priors;
@@ -125,7 +125,7 @@ auto IndependentMethod::make_genetic_prior_blocks(const BayesModel& model) const
     return priors;
 }
 
-auto IndependentMethod::reject_joint_overrides() const -> void
+auto SingleMethod::reject_joint_overrides() const -> void
 {
     if (options().joint_proportion)
     {
@@ -139,7 +139,7 @@ auto IndependentMethod::reject_joint_overrides() const -> void
     }
 }
 
-auto IndependentMethod::reject_per_effect_proportion() const -> void
+auto SingleMethod::reject_per_effect_proportion() const -> void
 {
     for_each_effect(
         [&](GeneticMode mode, const EffectConfig& effect)
@@ -155,7 +155,7 @@ auto IndependentMethod::reject_per_effect_proportion() const -> void
         });
 }
 
-auto IndependentMethod::reject_per_effect_multiplier() const -> void
+auto SingleMethod::reject_per_effect_multiplier() const -> void
 {
     for_each_effect(
         [&](GeneticMode mode, const EffectConfig& effect)
@@ -171,7 +171,7 @@ auto IndependentMethod::reject_per_effect_multiplier() const -> void
         });
 }
 
-auto IndependentMethod::require_paired_proportion_and_multiplier() const -> void
+auto SingleMethod::require_paired_proportion_and_multiplier() const -> void
 {
     for_each_effect(
         [&](GeneticMode mode, const EffectConfig& effect)

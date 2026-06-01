@@ -33,7 +33,7 @@ namespace gelex::bayes
 {
 
 BayesRRMethod::BayesRRMethod(const BayesRecipeConfig& options)
-    : IndependentMethod{"RR", options}
+    : SingleMethod{"RR", options}
 {
     reject_joint_overrides();
     reject_per_effect_proportion();
@@ -56,7 +56,7 @@ auto BayesRRMethod::make_single_genetic_prior(
 }
 
 BayesAMethod::BayesAMethod(const BayesRecipeConfig& options)
-    : IndependentMethod{"A", options}
+    : SingleMethod{"A", options}
 {
     reject_joint_overrides();
     reject_per_effect_proportion();
@@ -79,7 +79,7 @@ auto BayesAMethod::make_single_genetic_prior(
 }
 
 BayesBMethod::BayesBMethod(const BayesRecipeConfig& options)
-    : IndependentMethod{"B", options}
+    : SingleMethod{"B", options}
 {
     reject_joint_overrides();
     reject_per_effect_multiplier();
@@ -116,7 +116,7 @@ auto BayesBMethod::make_single_genetic_prior(
 }
 
 BayesCMethod::BayesCMethod(const BayesRecipeConfig& options)
-    : IndependentMethod{"C", options}
+    : SingleMethod{"C", options}
 {
     reject_joint_overrides();
     reject_per_effect_multiplier();
@@ -153,7 +153,7 @@ auto BayesCMethod::make_single_genetic_prior(
 }
 
 BayesRMethod::BayesRMethod(const BayesRecipeConfig& options)
-    : IndependentMethod{"R", options}
+    : SingleMethod{"R", options}
 {
     reject_joint_overrides();
     require_paired_proportion_and_multiplier();

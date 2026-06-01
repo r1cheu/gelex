@@ -30,7 +30,7 @@ class BayesModel;
 namespace gelex::bayes
 {
 
-class BayesRRMethod final : public IndependentMethod
+class BayesRRMethod final : public SingleMethod
 {
    public:
     explicit BayesRRMethod(const BayesRecipeConfig& options);
@@ -42,7 +42,7 @@ class BayesRRMethod final : public IndependentMethod
         const BayesModel& model) const -> SingleGeneticPrior final;
 };
 
-class BayesAMethod final : public IndependentMethod
+class BayesAMethod final : public SingleMethod
 {
    public:
     explicit BayesAMethod(const BayesRecipeConfig& options);
@@ -54,7 +54,7 @@ class BayesAMethod final : public IndependentMethod
         const BayesModel& model) const -> SingleGeneticPrior final;
 };
 
-class BayesBMethod final : public IndependentMethod
+class BayesBMethod final : public SingleMethod
 {
    public:
     explicit BayesBMethod(const BayesRecipeConfig& options);
@@ -66,7 +66,7 @@ class BayesBMethod final : public IndependentMethod
         const BayesModel& model) const -> SingleGeneticPrior final;
 };
 
-class BayesCMethod final : public IndependentMethod
+class BayesCMethod final : public SingleMethod
 {
    public:
     explicit BayesCMethod(const BayesRecipeConfig& options);
@@ -78,7 +78,7 @@ class BayesCMethod final : public IndependentMethod
         const BayesModel& model) const -> SingleGeneticPrior final;
 };
 
-class BayesRMethod final : public IndependentMethod
+class BayesRMethod final : public SingleMethod
 {
    public:
     explicit BayesRMethod(const BayesRecipeConfig& options);

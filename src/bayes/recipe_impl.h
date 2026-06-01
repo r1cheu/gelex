@@ -65,10 +65,10 @@ class BayesRecipeImpl
     const BayesRecipeConfig& options_;
 };
 
-class IndependentMethod : public BayesRecipeImpl
+class SingleMethod : public BayesRecipeImpl
 {
    protected:
-    IndependentMethod(std::string_view name, const BayesRecipeConfig& options);
+    SingleMethod(std::string_view name, const BayesRecipeConfig& options);
 
     template <typename Fn>
     auto for_each_effect(Fn fn) const -> void
