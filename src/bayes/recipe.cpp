@@ -16,12 +16,12 @@
 
 #include "gelex/bayes/recipe.h"
 
-#include <memory>
 #include <span>
 #include <string_view>
+#include <utility>
+#include <variant>
 
 #include <fmt/format.h>
-#include <utility>
 
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/model.h"
@@ -29,18 +29,38 @@
 #include "gelex/bayes/recipe_options.h"
 #include "gelex/exception.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "independent_recipes.h"
-#include "joint_recipes.h"
-#include "recipe_impl.h"
 
 namespace gelex::bayes
 {
 
 BayesRecipe::BayesRecipe(BayesRecipePreset preset, BayesRecipeConfig options)
-    : preset_{preset}, options_{std::move(options)}
+    : preset_{preset},
+      options_{std::move(options)},
+      scheme_{
+          [this]() -> BayesScheme
+          {
+              validate_modes(options_.modes);
+              switch (preset_)
+              {
+                  case BayesRecipePreset::RR:
+                      return BayesRRScheme{options_};
+                  case BayesRecipePreset::A:
+                      return BayesAScheme{options_};
+                  case BayesRecipePreset::B:
+                      return BayesBScheme{options_};
+                  case BayesRecipePreset::C:
+                      return BayesCScheme{options_};
+                  case BayesRecipePreset::R:
+                      return BayesRScheme{options_};
+                  case BayesRecipePreset::CD:
+                      return BayesCDScheme{options_};
+                  default:
+                      throw GelexException(
+                          fmt::format(
+                              "Unsupported BayesRecipePreset: {}", preset_));
+              }
+          }()}
 {
-    validate_modes(options_.modes);
-    impl_ = make_impl(preset_, options_);
 }
 
 BayesRecipe::~BayesRecipe() = default;
@@ -49,32 +69,10 @@ auto BayesRecipe::make_prior(const BayesModel& model) const -> BayesPrior
 {
     return BayesPrior{
         make_random_prior(model),
-        impl_->make_genetic_prior_blocks(model),
+        std::visit(
+            [&model](const auto& recipe) { return recipe.make_prior(model); },
+            scheme_),
         make_residual_prior(model)};
-}
-
-auto BayesRecipe::make_impl(
-    BayesRecipePreset preset,
-    const BayesRecipeConfig& options) -> std::unique_ptr<BayesRecipeImpl>
-{
-    switch (preset)
-    {
-        case BayesRecipePreset::RR:
-            return std::make_unique<BayesRRMethod>(options);
-        case BayesRecipePreset::A:
-            return std::make_unique<BayesAMethod>(options);
-        case BayesRecipePreset::B:
-            return std::make_unique<BayesBMethod>(options);
-        case BayesRecipePreset::C:
-            return std::make_unique<BayesCMethod>(options);
-        case BayesRecipePreset::R:
-            return std::make_unique<BayesRMethod>(options);
-        case BayesRecipePreset::CD:
-            return std::make_unique<BayesCDMethod>(options);
-        default:
-            throw GelexException(
-                fmt::format("Unsupported BayesRecipePreset: {}", preset));
-    }
 }
 
 auto BayesRecipe::validate_modes(std::span<const GeneticMode> modes) -> void

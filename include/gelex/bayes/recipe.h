@@ -19,7 +19,6 @@
 
 #include <array>
 #include <cstdint>
-#include <memory>
 #include <span>
 #include <string_view>
 #include <utility>
@@ -28,6 +27,7 @@
 
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe_options.h"
+#include "gelex/bayes/scheme.h"
 
 namespace gelex
 {
@@ -36,8 +36,6 @@ class BayesModel;
 
 namespace gelex::bayes
 {
-
-class BayesRecipeImpl;
 
 enum class BayesRecipePreset : std::uint8_t
 {
@@ -73,16 +71,13 @@ class BayesRecipe
     auto make_prior(const BayesModel& model) const -> BayesPrior;
 
    private:
-    static auto make_impl(
-        BayesRecipePreset preset,
-        const BayesRecipeConfig& options) -> std::unique_ptr<BayesRecipeImpl>;
     static auto validate_modes(std::span<const GeneticMode> modes) -> void;
     auto make_random_prior(const BayesModel& model) const -> RandomPrior;
     static auto make_residual_prior(const BayesModel& model) -> ResidualPrior;
 
     BayesRecipePreset preset_;
     BayesRecipeConfig options_;
-    std::unique_ptr<BayesRecipeImpl> impl_;
+    BayesScheme scheme_;
 };
 
 auto to_bayes_recipe_preset(std::string_view preset) -> BayesRecipePreset;
