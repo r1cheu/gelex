@@ -26,6 +26,11 @@
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/genetic_effect_type.h"
 
+namespace gelex::infra
+{
+class FieldVisitor;
+}
+
 namespace gelex::bayes
 {
 
@@ -45,6 +50,8 @@ struct RandomDesign
 
     Eigen::MatrixXd X;
     Eigen::VectorXd XtX_diag;
+
+    auto visit(infra::FieldVisitor& visitor) const -> void;
 };
 
 struct GeneticDesign

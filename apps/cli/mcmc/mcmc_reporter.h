@@ -48,12 +48,15 @@ class McmcReporter : public FitReporter
    private:
     auto on_event(const MCMCBannerEvent& event) -> void;
     auto on_event(const MCMCConfigEvent& event) -> void;
+    auto on_event(const FitPriorSetEvent& event) -> void;
     auto on_event(const MCMCCompleteEvent& event) -> void;
+    auto on_event(const FitResultsSavedEvent& event) -> void;
 
     size_t iter_{0};
     ProgressBar bar_;
     bool init_progress_ = false;
     std::string stats_;
+    const bayes::BayesPrior* prior_ = nullptr;
 };
 
 }  // namespace cli

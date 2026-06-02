@@ -17,10 +17,16 @@
 #include "gelex/types/fixed_designs.h"
 
 #include <Eigen/Core>
+#include <cstddef>
 #include <iterator>
 #include <optional>
+#include <span>
+#include <string>
+#include <vector>
 
 #include "gelex/exception.h"
+#include "gelex/infra/field_flag.h"
+#include "gelex/infra/field_visitor.h"
 
 namespace gelex
 {
@@ -136,6 +142,32 @@ auto FixedDesign::build(Eigen::Index n_samples) -> FixedDesign
     fe.X.col(0).setOnes();
     fe.XtX_diag = fe.X.colwise().squaredNorm();
     return fe;
+}
+
+auto FixedDesign::visit(infra::FieldVisitor& visitor) const -> void
+{
+    std::vector<std::string> coeff_names;
+    coeff_names.reserve(static_cast<std::size_t>(X.cols()));
+    for (std::size_t group_idx = 0; group_idx < names.size(); ++group_idx)
+    {
+        const auto& group_levels = levels[group_idx];
+        if (group_levels)
+        {
+            for (const auto& level : *group_levels)
+            {
+                coeff_names.push_back(names[group_idx] + "_" + level);
+            }
+        }
+        else
+        {
+            coeff_names.push_back(names[group_idx]);
+        }
+    }
+
+    visitor.on(
+        "coeffs_names",
+        std::span<const std::string>{coeff_names},
+        FieldFlag::summary);
 }
 
 }  // namespace gelex

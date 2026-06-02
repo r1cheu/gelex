@@ -66,11 +66,9 @@ auto RandomState::visit(infra::FieldVisitor& visitor) -> void
 }
 
 GeneticState::GeneticState(
-    GeneticMode type,
     Eigen::Index num_markers,
     Eigen::Index num_individuals)
-    : type(type),
-      coeffs(Eigen::VectorXd::Zero(num_markers)),
+    : coeffs(Eigen::VectorXd::Zero(num_markers)),
       u(Eigen::VectorXd::Zero(num_individuals))
 {
 }
@@ -88,7 +86,7 @@ auto GeneticState::visit(infra::FieldVisitor& visitor) -> void
 SingleGeneticBlockState::SingleGeneticBlockState(
     const GeneticDesign& design,
     const SingleGeneticPrior& prior)
-    : state_{design.type, design.X.cols(), design.X.rows()},
+    : state_{design.X.cols(), design.X.rows()},
       prior_state_(make_state(prior, design.X.cols(), design.X.rows()))
 {
     if (design.type != gelex::bayes::mode(prior))
@@ -113,8 +111,8 @@ JointGeneticBlockState::JointGeneticBlockState(
     const GeneticDesign& additive,
     const GeneticDesign& dominance,
     const JointGeneticPrior& prior)
-    : additive_{GeneticMode::A, additive.X.cols(), additive.X.rows()},
-      dominance_{GeneticMode::D, dominance.X.cols(), dominance.X.rows()},
+    : additive_{additive.X.cols(), additive.X.rows()},
+      dominance_{dominance.X.cols(), dominance.X.rows()},
       prior_state_(make_state(prior, additive.X.cols(), additive.X.rows()))
 {
     if (additive.type != GeneticMode::A)
@@ -143,11 +141,6 @@ JointGeneticBlockState::JointGeneticBlockState(
                 dominance.X.rows(),
                 dominance.X.cols()));
     }
-}
-
-auto JointGeneticBlockState::contains(GeneticMode mode) const -> bool
-{
-    return mode == GeneticMode::A || mode == GeneticMode::D;
 }
 
 auto JointGeneticBlockState::state(GeneticMode mode) -> GeneticState&
@@ -265,60 +258,6 @@ BayesState::BayesState(const BayesModel& model, const bayes::BayesPrior& prior)
             },
             block);
     }
-}
-
-auto BayesState::genetic(GeneticMode type) -> bayes::GeneticState*
-{
-    for (auto& block : genetics_)
-    {
-        auto* state = std::visit(
-            [type](auto& value) -> bayes::GeneticState*
-            {
-                if constexpr (
-                    std::is_same_v<
-                        std::decay_t<decltype(value)>,
-                        bayes::SingleGeneticBlockState>)
-                {
-                    return value.contains(type) ? &value.state() : nullptr;
-                }
-                else
-                {
-                    return value.contains(type) ? &value.state(type) : nullptr;
-                }
-            },
-            block);
-        if (state != nullptr)
-        {
-            return state;
-        }
-    }
-    return nullptr;
-}
-
-auto BayesState::genetic(GeneticMode type) const -> const bayes::GeneticState*
-{
-    return const_cast<BayesState*>(this)->genetic(type);
-}
-
-auto BayesState::genetic_block_for(GeneticMode type)
-    -> bayes::GeneticPriorBlockState*
-{
-    for (auto& block : genetics_)
-    {
-        if (std::visit(
-                [type](const auto& value) { return value.contains(type); },
-                block))
-        {
-            return &block;
-        }
-    }
-    return nullptr;
-}
-
-auto BayesState::genetic_block_for(GeneticMode type) const
-    -> const bayes::GeneticPriorBlockState*
-{
-    return const_cast<BayesState*>(this)->genetic_block_for(type);
 }
 
 auto BayesState::compute_heritability() -> void

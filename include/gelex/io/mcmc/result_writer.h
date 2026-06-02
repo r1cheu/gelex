@@ -27,19 +27,8 @@ namespace mcmc
 
 class Result;
 
-class ResultWriter
-{
-   public:
-    ResultWriter(
-        const mcmc::Result& result,
-        const std::filesystem::path& bim_file_path);
-
-    auto save(const std::filesystem::path& prefix) const -> void;
-
-   private:
-    const mcmc::Result* result_;
-    std::filesystem::path bim_file_path_;
-};
+auto write_result(const Result& result, const std::filesystem::path& prefix)
+    -> void;
 
 }  // namespace mcmc
 

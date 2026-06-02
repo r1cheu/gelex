@@ -17,7 +17,9 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <filesystem>
 #include <random>
+#include <string>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -42,6 +44,7 @@
 #include "gelex/infra/stats/result.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
+#include "file_fixture.h"
 #include "genotype_fixture.h"
 
 namespace
@@ -390,10 +393,10 @@ TEST_CASE("Chain::make maps single genetic priors to MCMC steps", "[mcmc][chain]
         auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
         chain.step();
 
-        REQUIRE(state.genetic(gelex::GeneticMode::A) != nullptr);
-        REQUIRE(state.genetic(gelex::GeneticMode::A)->coeffs.allFinite());
-        REQUIRE(std::isfinite(
-            state.genetic(gelex::GeneticMode::A)->heritability));
+        const auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
+            state.genetics()[0]);
+        REQUIRE(block.state().coeffs.allFinite());
+        REQUIRE(std::isfinite(block.state().heritability));
     }
 
     SECTION("per-marker Gaussian")
@@ -421,10 +424,10 @@ TEST_CASE("Chain::make maps single genetic priors to MCMC steps", "[mcmc][chain]
         auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
         chain.step();
 
-        REQUIRE(state.genetic(gelex::GeneticMode::A) != nullptr);
-        REQUIRE(state.genetic(gelex::GeneticMode::A)->coeffs.allFinite());
-        REQUIRE(std::isfinite(
-            state.genetic(gelex::GeneticMode::A)->heritability));
+        const auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
+            state.genetics()[0]);
+        REQUIRE(block.state().coeffs.allFinite());
+        REQUIRE(std::isfinite(block.state().heritability));
     }
 
     SECTION("shared spike-slab")
@@ -453,10 +456,10 @@ TEST_CASE("Chain::make maps single genetic priors to MCMC steps", "[mcmc][chain]
         auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
         chain.step();
 
-        REQUIRE(state.genetic(gelex::GeneticMode::A) != nullptr);
-        REQUIRE(state.genetic(gelex::GeneticMode::A)->coeffs.allFinite());
-        REQUIRE(std::isfinite(
-            state.genetic(gelex::GeneticMode::A)->heritability));
+        const auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
+            state.genetics()[0]);
+        REQUIRE(block.state().coeffs.allFinite());
+        REQUIRE(std::isfinite(block.state().heritability));
     }
 
     SECTION("per-marker spike-slab")
@@ -485,10 +488,10 @@ TEST_CASE("Chain::make maps single genetic priors to MCMC steps", "[mcmc][chain]
         auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
         chain.step();
 
-        REQUIRE(state.genetic(gelex::GeneticMode::A) != nullptr);
-        REQUIRE(state.genetic(gelex::GeneticMode::A)->coeffs.allFinite());
-        REQUIRE(std::isfinite(
-            state.genetic(gelex::GeneticMode::A)->heritability));
+        const auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
+            state.genetics()[0]);
+        REQUIRE(block.state().coeffs.allFinite());
+        REQUIRE(std::isfinite(block.state().heritability));
     }
 
     SECTION("scaled mixture")
@@ -518,10 +521,10 @@ TEST_CASE("Chain::make maps single genetic priors to MCMC steps", "[mcmc][chain]
         auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
         chain.step();
 
-        REQUIRE(state.genetic(gelex::GeneticMode::A) != nullptr);
-        REQUIRE(state.genetic(gelex::GeneticMode::A)->coeffs.allFinite());
-        REQUIRE(std::isfinite(
-            state.genetic(gelex::GeneticMode::A)->heritability));
+        const auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
+            state.genetics()[0]);
+        REQUIRE(block.state().coeffs.allFinite());
+        REQUIRE(std::isfinite(block.state().heritability));
     }
 }
 
@@ -553,14 +556,14 @@ TEST_CASE("Chain::make maps joint genetic priors to MCMC steps", "[mcmc][chain]"
     auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
     chain.step();
 
-    REQUIRE(state.genetic(gelex::GeneticMode::A) != nullptr);
-    REQUIRE(state.genetic(gelex::GeneticMode::D) != nullptr);
-    REQUIRE(state.genetic(gelex::GeneticMode::A)->coeffs.allFinite());
-    REQUIRE(state.genetic(gelex::GeneticMode::D)->coeffs.allFinite());
-    REQUIRE(std::isfinite(
-        state.genetic(gelex::GeneticMode::A)->heritability));
-    REQUIRE(std::isfinite(
-        state.genetic(gelex::GeneticMode::D)->heritability));
+    const auto& block = std::get<gelex::bayes::JointGeneticBlockState>(
+        state.genetics()[0]);
+    REQUIRE(block.state(gelex::GeneticMode::A).coeffs.allFinite());
+    REQUIRE(block.state(gelex::GeneticMode::D).coeffs.allFinite());
+    REQUIRE(
+        std::isfinite(block.state(gelex::GeneticMode::A).heritability));
+    REQUIRE(
+        std::isfinite(block.state(gelex::GeneticMode::D).heritability));
 }
 
 TEST_CASE("Solver::run collects single genetic samples", "[mcmc][solver]")
@@ -727,15 +730,19 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
 
     gelex::mcmc::Params params{
         .n_iters = 4, .n_burn_in = 1, .n_thin = 1, .checkpoint_step = 0};
+    gelex::test::FileFixture files;
+    const auto prefix = files.get_test_dir() / "mcmc_engine_test";
     gelex::mcmc::Engine engine{gelex::mcmc::Engine::Config{
         .seed = 123,
         .mcmc_params = params,
-        .out_prefix = "mcmc_engine_test",
+        .out_prefix = prefix.string(),
     }};
 
     bool prior_seen = false;
     bool done = false;
     bool complete = false;
+    bool saved = false;
+    std::string saved_prefix;
     std::ptrdiff_t samples_collected = 0;
     auto observer = [&](const gelex::MCMCEvent& event)
     {
@@ -761,6 +768,12 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
             REQUIRE(complete_event->result != nullptr);
             REQUIRE(complete_event->model == &model);
         }
+        if (const auto* saved_event
+            = std::get_if<gelex::FitResultsSavedEvent>(&event))
+        {
+            saved = true;
+            saved_prefix = saved_event->out_prefix;
+        }
     };
 
     engine.run(model, std::move(prior), observer);
@@ -768,7 +781,12 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
     REQUIRE(prior_seen);
     REQUIRE(done);
     REQUIRE(complete);
+    REQUIRE(saved);
+    REQUIRE(saved_prefix == prefix.string());
     REQUIRE(samples_collected == params.n_records());
+    auto summary_path = prefix;
+    summary_path += ".summary";
+    REQUIRE(std::filesystem::exists(summary_path));
 }
 
 TEST_CASE("Engine::run rejects unsupported MCMC runtime options", "[mcmc][engine]")

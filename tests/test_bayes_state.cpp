@@ -96,8 +96,10 @@ TEST_CASE("BayesState creates single genetic blocks", "[bayes_state]")
     gelex::BayesState state(model, prior);
 
     REQUIRE(state.genetics().size() == 2);
-    REQUIRE(state.genetic(gelex::GeneticMode::A) != nullptr);
-    REQUIRE(state.genetic(gelex::GeneticMode::D) != nullptr);
+    REQUIRE(std::holds_alternative<gelex::bayes::SingleGeneticBlockState>(
+        state.genetics()[0]));
+    REQUIRE(std::holds_alternative<gelex::bayes::SingleGeneticBlockState>(
+        state.genetics()[1]));
     REQUIRE(state.residual().variance == 0.4);
 }
 

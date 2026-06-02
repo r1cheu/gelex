@@ -16,7 +16,6 @@
 
 #include "gelex/bayes/genetic/prior_state_values.h"
 
-#include <cstddef>
 #include <ranges>
 
 #include <fmt/format.h>

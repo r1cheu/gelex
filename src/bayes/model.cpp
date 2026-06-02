@@ -17,6 +17,7 @@
 #include "gelex/bayes/model.h"
 
 #include <algorithm>
+#include <ranges>
 #include <utility>
 #include <vector>
 
@@ -25,6 +26,7 @@
 
 #include "gelex/bayes/design.h"
 #include "gelex/exception.h"
+#include "gelex/infra/field_visitor.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -88,6 +90,20 @@ BayesModel::BayesModel(
                     "BayesModel: duplicate genetic mode {}", genetic.type));
         }
         seen_modes.push_back(genetic.type);
+    }
+}
+
+auto BayesModel::visit(infra::FieldVisitor& visitor) const -> void
+{
+    auto state_scope = visitor.scope("state");
+    {
+        auto fixed_scope = visitor.scope("fixed");
+        fixed_.visit(visitor);
+    }
+    for (auto [i, random] : std::views::enumerate(random_))
+    {
+        auto random_scope = visitor.scope(fmt::format("random_{}", i));
+        random.visit(visitor);
     }
 }
 

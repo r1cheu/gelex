@@ -15,6 +15,10 @@
  */
 
 #include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <variant>
@@ -33,8 +37,10 @@
 #include "gelex/bayes/state.h"
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/exception.h"
+#include "gelex/io/mcmc/result_writer.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
+#include "file_fixture.h"
 #include "genotype_fixture.h"
 
 namespace
@@ -86,7 +92,11 @@ auto make_prior() -> gelex::bayes::BayesPrior
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
 }
 
-auto make_records(gelex::BayesState& state) -> gelex::mcmc::Records
+auto make_records(
+    const gelex::BayesModel& model,
+    const gelex::bayes::BayesPrior& prior,
+    gelex::BayesState& state)
+    -> gelex::mcmc::Records
 {
     gelex::mcmc::Records records;
     auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
@@ -98,12 +108,12 @@ auto make_records(gelex::BayesState& state) -> gelex::mcmc::Records
     state.fixed().coeffs = Eigen::VectorXd{{1.0}};
     state.residual().variance = 5.0;
     prior_state.assignment() = Eigen::VectorXi{{0, 1}};
-    records.store(state);
+    records.store(model, prior, state);
 
     state.fixed().coeffs = Eigen::VectorXd{{3.0}};
     state.residual().variance = 9.0;
     prior_state.assignment() = Eigen::VectorXi{{2, 3}};
-    records.store(state);
+    records.store(model, prior, state);
     return records;
 }
 
@@ -114,12 +124,16 @@ TEST_CASE("Result owns finalized record values", "[mcmc][mcmc_result]")
     auto model = make_model();
     auto prior = make_prior();
     gelex::BayesState state(model, prior);
-    auto records = make_records(state);
+    auto records = make_records(model, prior, state);
 
     gelex::mcmc::Result result{std::move(records), model, 2};
 
     REQUIRE(result.samples_collected() == 2);
     REQUIRE(result.phenotype_variance() == model.phenotype_variance());
+    REQUIRE_FALSE(result.records().empty());
+    REQUIRE(result.records()[0].path == "state/fixed/coeffs");
+    REQUIRE(result.records()[0].names);
+    REQUIRE(*result.records()[0].names == std::vector<std::string>{"Intercept"});
 
     const auto& fixed = std::get<gelex::stats::RunningStatsResult>(
         result.get("state/fixed/coeffs"));
@@ -143,6 +157,17 @@ TEST_CASE("Result owns finalized record values", "[mcmc][mcmc_result]")
         result.get(assignment_path));
     REQUIRE(assignment.value.isApprox(expected_probabilities));
     REQUIRE(assignment_again.value.isApprox(expected_probabilities));
+
+    const gelex::mcmc::RecordEntry* assignment_record = nullptr;
+    for (const auto& record : result.records())
+    {
+        if (record.path == assignment_path)
+        {
+            assignment_record = &record;
+        }
+    }
+    REQUIRE(assignment_record != nullptr);
+    REQUIRE_FALSE(assignment_record->names);
 }
 
 TEST_CASE("Result rejects missing record paths", "[mcmc][mcmc_result]")
@@ -150,8 +175,39 @@ TEST_CASE("Result rejects missing record paths", "[mcmc][mcmc_result]")
     auto model = make_model();
     auto prior = make_prior();
     gelex::BayesState state(model, prior);
-    auto records = make_records(state);
+    auto records = make_records(model, prior, state);
     gelex::mcmc::Result result{std::move(records), model, 2};
 
     REQUIRE_THROWS_AS(result.get("state/missing/path"), gelex::GelexException);
+}
+
+TEST_CASE("write_result writes user-facing summary", "[mcmc][mcmc_result]")
+{
+    auto model = make_model();
+    auto prior = make_prior();
+    gelex::BayesState state(model, prior);
+    auto records = make_records(model, prior, state);
+    gelex::mcmc::Result result{std::move(records), model, 2};
+
+    gelex::test::FileFixture files;
+    auto prefix = files.get_test_dir() / "mcmc_result";
+    gelex::mcmc::write_result(result, prefix);
+
+    auto summary_path = prefix;
+    summary_path += ".summary";
+    REQUIRE(std::filesystem::exists(summary_path));
+
+    std::ifstream input(summary_path);
+    const std::string content{
+        std::istreambuf_iterator<char>{input},
+        std::istreambuf_iterator<char>{}};
+
+    REQUIRE(content.find("term\tmean\tstddev\n") == 0);
+    REQUIRE(content.find("Intercept\t2\t") != std::string::npos);
+    REQUIRE(content.find("σ²_e\t7\t") != std::string::npos);
+    REQUIRE(content.find("σ²_add\t") != std::string::npos);
+    REQUIRE(content.find("π_add[0]\t") != std::string::npos);
+    REQUIRE(content.find("state/") == std::string::npos);
+    REQUIRE(content.find("assignment") == std::string::npos);
+    REQUIRE(content.find("coeffs") == std::string::npos);
 }

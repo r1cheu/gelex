@@ -87,14 +87,10 @@ struct GeneticState
 {
     static constexpr std::string_view name = "genetic";
 
-    GeneticState(
-        GeneticMode type,
-        Eigen::Index num_markers,
-        Eigen::Index num_individuals);
+    GeneticState(Eigen::Index num_markers, Eigen::Index num_individuals);
 
     auto visit(infra::FieldVisitor& visitor) -> void;
 
-    GeneticMode type;
     Eigen::VectorXd coeffs;
     Eigen::VectorXd u;
     double variance{};
@@ -109,12 +105,6 @@ class SingleGeneticBlockState
     SingleGeneticBlockState(
         const GeneticDesign& design,
         const SingleGeneticPrior& prior);
-
-    auto mode() const -> GeneticMode { return state_.type; }
-    auto contains(GeneticMode target_mode) const -> bool
-    {
-        return target_mode == mode();
-    }
 
     auto state() -> GeneticState& { return state_; }
     auto state() const -> const GeneticState& { return state_; }
@@ -142,7 +132,6 @@ class JointGeneticBlockState
         const GeneticDesign& dominance,
         const JointGeneticPrior& prior);
 
-    auto contains(GeneticMode mode) const -> bool;
     auto state(GeneticMode mode) -> GeneticState&;
     auto state(GeneticMode mode) const -> const GeneticState&;
 
@@ -189,13 +178,6 @@ class BayesState
     {
         return genetics_;
     }
-
-    auto genetic(GeneticMode type) -> bayes::GeneticState*;
-    auto genetic(GeneticMode type) const -> const bayes::GeneticState*;
-
-    auto genetic_block_for(GeneticMode type) -> bayes::GeneticPriorBlockState*;
-    auto genetic_block_for(GeneticMode type) const
-        -> const bayes::GeneticPriorBlockState*;
 
     auto residual() -> bayes::ResidualState& { return residual_; }
     auto residual() const -> const bayes::ResidualState& { return residual_; }

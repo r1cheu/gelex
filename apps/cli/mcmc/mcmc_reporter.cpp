@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <iterator>
+#include <ranges>
 #include <type_traits>
 #include <variant>
 
@@ -26,6 +27,7 @@
 
 #include "cli/report_printer.h"
 #include "config.h"
+#include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/labels.h"
 #include "gelex/bayes/state.h"
 #include "gelex/infra/logging/fit_event.h"
@@ -56,6 +58,12 @@ auto McmcReporter::on_event(const MCMCConfigEvent& event) -> void
     cli::printer().line("  {:<12}: {}", "Seed", event.seed);
 }
 
+auto McmcReporter::on_event(const FitPriorSetEvent& event) -> void
+{
+    prior_ = event.prior;
+    FitReporter::on_event(event);
+}
+
 auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
 {
     if (!init_progress_)
@@ -79,38 +87,50 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
 
     const auto* state = event.state;
     stats_.clear();
-    for (const auto& gen : state->genetics())
+    if (prior_ != nullptr)
     {
-        std::visit(
-            [&](const auto& block)
-            {
-                using Block = std::decay_t<decltype(block)>;
-                if constexpr (
-                    std::is_same_v<Block, bayes::SingleGeneticBlockState>)
+        const auto priors = prior_->genetics();
+        for (auto [i, gen] : std::views::enumerate(state->genetics()))
+        {
+            const auto& prior = priors[static_cast<std::size_t>(i)];
+            std::visit(
+                [&](const auto& prior_block, const auto& block)
                 {
-                    const auto& genetic = block.state();
-                    fmt::format_to(
-                        std::back_inserter(stats_),
-                        "{}{}:{:.3f}",
-                        stats_.empty() ? "" : " | ",
-                        bayes::to_heritability_label(genetic.type),
-                        genetic.heritability);
-                }
-                else
-                {
-                    for (const auto mode : {GeneticMode::A, GeneticMode::D})
+                    using Prior = std::decay_t<decltype(prior_block)>;
+                    using Block = std::decay_t<decltype(block)>;
+                    if constexpr (
+                        std::is_same_v<Prior, bayes::SingleGeneticPrior>
+                        && std::
+                            is_same_v<Block, bayes::SingleGeneticBlockState>)
                     {
-                        const auto& genetic = block.state(mode);
+                        const auto mode = bayes::mode(prior_block);
+                        const auto& genetic = block.state();
                         fmt::format_to(
                             std::back_inserter(stats_),
                             "{}{}:{:.3f}",
                             stats_.empty() ? "" : " | ",
-                            bayes::to_heritability_label(genetic.type),
+                            bayes::to_heritability_label(mode),
                             genetic.heritability);
                     }
-                }
-            },
-            gen);
+                    else if constexpr (
+                        std::is_same_v<Prior, bayes::JointGeneticPrior>
+                        && std::is_same_v<Block, bayes::JointGeneticBlockState>)
+                    {
+                        for (const auto mode : {GeneticMode::A, GeneticMode::D})
+                        {
+                            const auto& genetic = block.state(mode);
+                            fmt::format_to(
+                                std::back_inserter(stats_),
+                                "{}{}:{:.3f}",
+                                stats_.empty() ? "" : " | ",
+                                bayes::to_heritability_label(mode),
+                                genetic.heritability);
+                        }
+                    }
+                },
+                prior,
+                gen);
+        }
     }
     fmt::format_to(
         std::back_inserter(stats_),
@@ -128,6 +148,12 @@ auto McmcReporter::on_event(const MCMCCompleteEvent& event) -> void
 {
     cli::printer().block(gelex::section("[MCMC Complete]"));
     cli::printer().line("  {:<12}: {}", "Samples", event.samples_collected);
+}
+
+auto McmcReporter::on_event(const FitResultsSavedEvent& event) -> void
+{
+    cli::printer().block(
+        gelex::success("Results saved to '{}' (.summary)", event.out_prefix));
 }
 
 auto McmcReporter::on_event(const FitCheckpointSavedEvent& /*event*/) -> void

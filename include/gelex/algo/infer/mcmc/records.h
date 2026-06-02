@@ -18,6 +18,8 @@
 #define GELEX_ALGO_INFER_MCMC_RECORDS_H_
 
 #include <cstddef>
+#include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -34,6 +36,12 @@ namespace gelex
 {
 
 class BayesState;
+class BayesModel;
+
+namespace bayes
+{
+class BayesPrior;
+}
 
 namespace mcmc
 {
@@ -45,6 +53,7 @@ struct RecordEntry
 {
     std::string path;
     RecordResult value;
+    std::optional<std::vector<std::string>> names;
 };
 
 class Records : private infra::FieldVisitor
@@ -57,7 +66,10 @@ class Records : private infra::FieldVisitor
     auto operator=(Records&& other) noexcept -> Records&;
     ~Records() override = default;
 
-    auto store(BayesState& state) -> void;
+    auto store(
+        const BayesModel& model,
+        const bayes::BayesPrior& prior,
+        BayesState& state) -> void;
 
     auto take_results() && -> std::vector<RecordEntry>;
 
@@ -102,9 +114,14 @@ class Records : private infra::FieldVisitor
         -> void override;
     auto on(std::string_view name, int& value, FieldFlag flags)
         -> void override;
+    auto on(
+        std::string_view name,
+        std::span<const std::string> value,
+        FieldFlag flags) -> void override;
 
     std::vector<Record> records_;
     std::vector<std::string> paths_;
+    std::vector<std::optional<std::vector<std::string>>> names_;
     std::unordered_map<std::string, std::size_t> indices_;
     std::unordered_map<std::string, Eigen::Index> category_counts_;
 };

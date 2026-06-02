@@ -18,6 +18,7 @@
 #define GELEX_ALGO_INFER_MCMC_RESULT_H_
 
 #include <cstddef>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -44,6 +45,7 @@ class Result
         Eigen::Index samples_collected);
 
     auto get(std::string_view path) const -> const RecordResult&;
+    auto records() const -> std::span<const RecordEntry> { return records_; }
     auto samples_collected() const -> Eigen::Index
     {
         return samples_collected_;

@@ -16,24 +16,55 @@
 
 #include "gelex/io/mcmc/result_writer.h"
 
+#include <cstddef>
 #include <filesystem>
+#include <variant>
 
-#include "gelex/exception.h"
+#include <fmt/format.h>
+#include <Eigen/Core>
+
+#include "gelex/algo/infer/mcmc/result.h"
+#include "gelex/infra/stats/result.h"
+#include "gelex/io/detail/text_writer.h"
 
 namespace gelex
 {
 
-mcmc::ResultWriter::ResultWriter(
-    const mcmc::Result& result,
-    const std::filesystem::path& bim_file_path)
-    : result_(&result), bim_file_path_(bim_file_path)
+auto mcmc::write_result(
+    const Result& result,
+    const std::filesystem::path& prefix) -> void
 {
-}
+    auto output_path = prefix;
+    output_path += ".summary";
 
-auto mcmc::ResultWriter::save(const std::filesystem::path& prefix) const -> void
-{
-    static_cast<void>(prefix);
-    throw GelexException("MCMC result writer is legacy and will be removed");
+    io::detail::TextWriter writer(output_path);
+    writer.write_header({"term", "mean", "stddev"});
+
+    for (const auto& record : result.records())
+    {
+        if (!record.names)
+        {
+            continue;
+        }
+
+        if (!std::holds_alternative<stats::RunningStatsResult>(record.value))
+        {
+            continue;
+        }
+
+        const auto& stats = std::get<stats::RunningStatsResult>(record.value);
+        const auto& names = *record.names;
+        for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(names.size());
+             ++i)
+        {
+            writer.write(
+                fmt::format(
+                    "{}\t{}\t{}",
+                    names[static_cast<std::size_t>(i)],
+                    stats.mean(i),
+                    stats.stddev(i)));
+        }
+    }
 }
 
 }  // namespace gelex

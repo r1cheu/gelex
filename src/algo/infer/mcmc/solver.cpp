@@ -77,7 +77,7 @@ auto Solver::run(
         if (iter >= params_.n_burn_in
             && (iter + 1 - params_.n_burn_in) % params_.n_thin == 0)
         {
-            records.store(state);
+            records.store(model, prior, state);
         }
     }
 
