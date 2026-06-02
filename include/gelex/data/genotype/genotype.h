@@ -42,6 +42,7 @@ struct OwnedStorage
     Eigen::MatrixXd data;
     Eigen::VectorXd mean;
     Eigen::VectorXd stddev;
+    Eigen::VectorXd allele_freq;
     std::vector<int64_t> mono_indices;
 
     OwnedStorage() = default;
@@ -60,6 +61,7 @@ struct MmappedStorage
     MapType view{nullptr, 0, 0};
     Eigen::VectorXd mean;
     Eigen::VectorXd stddev;
+    Eigen::VectorXd allele_freq;
     std::vector<int64_t> mono_indices;
 
     MmappedStorage() = default;
@@ -85,6 +87,8 @@ class Genotype
     [[nodiscard]] auto mean() const noexcept -> const Eigen::VectorXd&;
 
     [[nodiscard]] auto stddev() const noexcept -> const Eigen::VectorXd&;
+
+    [[nodiscard]] auto allele_freq() const noexcept -> const Eigen::VectorXd&;
 
     [[nodiscard]] auto mono_indices() const noexcept
         -> const std::vector<int64_t>&;

@@ -28,6 +28,7 @@ pixi r test-catch "[tag]"    # tests by Catch2 tag
 
 ## Code Style
 
+- Add `noexcept` properly
 - No `using namespace` in headers. Avoid namespace-scope aliases in public headers unless they are part of the API.
 - Trailing return types: `auto f() -> int`
 - Non-owning inputs: `std::span`, `std::string_view`

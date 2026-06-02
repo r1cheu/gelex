@@ -54,6 +54,7 @@ struct ChunkStats
 {
     Eigen::VectorXd means;
     Eigen::VectorXd stddevs;
+    Eigen::VectorXd allele_freqs;
     std::vector<int64_t> mono_indices;
 };
 
@@ -76,6 +77,7 @@ auto process_chunk(
         const Eigen::Index global_idx = global_start + i;
         stats.means[global_idx] = locus.mean;
         stats.stddevs[global_idx] = locus.stddev;
+        stats.allele_freqs[global_idx] = locus.maf;
         is_mono[static_cast<size_t>(i)] = locus.is_monomorphic ? 1 : 0;
     }
 
@@ -106,6 +108,7 @@ auto load_mmapped(
         = mapped.reader->to_mat<double>(fmt::format("{}/loci_stats", effect));
     mapped.mean = stats_mat.col(0);
     mapped.stddev = stats_mat.col(1);
+    mapped.allele_freq = stats_mat.col(2);
 
     if (const auto mono_path = fmt::format("{}/mono_indices", effect);
         mapped.reader->contains(mono_path))
@@ -181,6 +184,7 @@ auto GenotypeReader::read_in_memory(
     ChunkStats stats;
     stats.means.resize(num_variants_);
     stats.stddevs.resize(num_variants_);
+    stats.allele_freqs.resize(num_variants_);
     stats.mono_indices.reserve(num_variants_ / 100);
 
     auto fn = get_genotype_process_method<GT>(method);
@@ -213,6 +217,7 @@ auto GenotypeReader::read_in_memory(
     owned.mono_indices = std::move(stats.mono_indices);
     owned.mean = std::move(stats.means);
     owned.stddev = std::move(stats.stddevs);
+    owned.allele_freq = std::move(stats.allele_freqs);
 
     return Genotype(std::move(owned));
 }
@@ -239,6 +244,7 @@ auto GenotypeReader::read_mmap(
     ChunkStats stats;
     stats.means.resize(num_variants_);
     stats.stddevs.resize(num_variants_);
+    stats.allele_freqs.resize(num_variants_);
     stats.mono_indices.reserve(num_variants_ / 100);
 
     auto fn = get_genotype_process_method<GT>(method);
@@ -274,9 +280,10 @@ auto GenotypeReader::read_mmap(
         std::ranges::sort(stats.mono_indices);
 
         auto stats_handle = writer.reserve<double>(
-            fmt::format("{}/loci_stats", effect), num_variants_, 2);
+            fmt::format("{}/loci_stats", effect), num_variants_, 3);
         writer.write(stats_handle, stats.means);
         writer.write(stats_handle, stats.stddevs);
+        writer.write(stats_handle, stats.allele_freqs);
 
         if (!stats.mono_indices.empty())
         {

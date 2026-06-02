@@ -511,6 +511,33 @@ TEST_CASE(
         REQUIRE(all_equal);
     }
 
+    SECTION("allele frequency vectors match")
+    {
+        const auto& mat_freq = mat_result.allele_freq();
+        const auto& map_freq = map_result.allele_freq();
+        REQUIRE(mat_freq.size() == map_freq.size());
+
+        bool all_equal = true;
+        Eigen::Index first_diff = -1;
+        for (Eigen::Index i = 0; i < mat_freq.size(); ++i)
+        {
+            if (mat_freq(i) != map_freq(i))
+            {
+                all_equal = false;
+                first_diff = i;
+                break;
+            }
+        }
+        if (!all_equal)
+        {
+            UNSCOPED_INFO(
+                "Allele freq diff at index "
+                << first_diff << ": mat=" << mat_freq(first_diff)
+                << " map=" << map_freq(first_diff));
+        }
+        REQUIRE(all_equal);
+    }
+
     SECTION("monomorphic counts match")
     {
         REQUIRE(mat_result.num_mono() == map_result.num_mono());

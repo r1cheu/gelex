@@ -36,12 +36,18 @@ class GenotypeBuilder
         Eigen::MatrixXd data,
         Eigen::VectorXd mean,
         Eigen::VectorXd stddev,
-        std::vector<int64_t> mono_indices = {}) -> genotype::Genotype
+        std::vector<int64_t> mono_indices = {},
+        Eigen::VectorXd allele_freq = {}) -> genotype::Genotype
     {
         genotype::OwnedStorage owned;
         owned.data = std::move(data);
+        if (allele_freq.size() == 0)
+        {
+            allele_freq = (mean.array() / 2.0).matrix();
+        }
         owned.mean = std::move(mean);
         owned.stddev = std::move(stddev);
+        owned.allele_freq = std::move(allele_freq);
         owned.mono_indices = std::move(mono_indices);
         std::ranges::sort(owned.mono_indices);
         return genotype::Genotype{std::move(owned)};

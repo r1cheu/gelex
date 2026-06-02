@@ -59,6 +59,13 @@ auto Genotype::stddev() const noexcept -> const Eigen::VectorXd&
         storage_);
 }
 
+auto Genotype::allele_freq() const noexcept -> const Eigen::VectorXd&
+{
+    return std::visit(
+        [](const auto& s) -> const Eigen::VectorXd& { return s.allele_freq; },
+        storage_);
+}
+
 auto Genotype::mono_indices() const noexcept -> const std::vector<int64_t>&
 {
     return std::visit(
