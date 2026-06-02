@@ -14,21 +14,24 @@
  * limitations under the License.
  */
 
-#include <Eigen/Core>
 #include <cmath>
 #include <limits>
+#include <utility>
 
+#include <Eigen/Core>
 #include <Eigen/Dense>
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/exception.h"
-#include "gelex/infra/stats/running_stats.h"
+#include "gelex/infra/stats/detail/running_stats.h"
+#include "gelex/infra/stats/result.h"
 
 namespace gelex
 {
 
-using gelex::stats::RunningStats;
 using gelex::stats::RunningStatsResult;
+using gelex::stats::detail::CategoricalFrequency;
+using gelex::stats::detail::RunningStats;
 
 namespace
 {
@@ -305,6 +308,48 @@ TEST_CASE(
     require_vector_is_approx(result.mean, compute_row_mean(block), 1e-6);
     require_vector_is_approx(
         result.stddev, compute_row_sample_stddev(block), 1e-9);
+}
+
+TEST_CASE(
+    "CategoricalFrequency default probabilities are zero",
+    "[utils][running_stats]")
+{
+    CategoricalFrequency frequency{3, 4};
+
+    const auto probabilities = frequency.probabilities();
+    REQUIRE(probabilities.isApprox(Eigen::MatrixXd::Zero(3, 4)));
+}
+
+TEST_CASE(
+    "CategoricalFrequency computes category probabilities",
+    "[utils][running_stats]")
+{
+    CategoricalFrequency frequency{3, 4};
+
+    frequency.update(Eigen::VectorXi{{0, 1, 3}});
+    frequency.update(Eigen::VectorXi{{1, 1, 0}});
+    frequency.update(Eigen::VectorXi{{1, 2, 3}});
+
+    const Eigen::MatrixXd expected{
+        {1.0 / 3.0, 2.0 / 3.0, 0.0, 0.0},
+        {0.0, 2.0 / 3.0, 1.0 / 3.0, 0.0},
+        {1.0 / 3.0, 0.0, 0.0, 2.0 / 3.0}};
+    REQUIRE(frequency.probabilities().isApprox(expected));
+}
+
+TEST_CASE(
+    "CategoricalFrequency probabilities can move output",
+    "[utils][running_stats]")
+{
+    CategoricalFrequency frequency{3, 4};
+    frequency.update(Eigen::VectorXi{{0, 1, 3}});
+    frequency.update(Eigen::VectorXi{{1, 1, 0}});
+
+    const Eigen::MatrixXd expected{
+        {0.5, 0.5, 0.0, 0.0},
+        {0.0, 1.0, 0.0, 0.0},
+        {0.5, 0.0, 0.0, 0.5}};
+    REQUIRE(std::move(frequency).probabilities().isApprox(expected));
 }
 
 }  // namespace gelex

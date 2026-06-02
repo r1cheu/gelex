@@ -24,12 +24,10 @@
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/fixed_samples.h"
-#include "gelex/infra/stats/running_stats.h"
+#include "gelex/infra/stats/result.h"
 
 namespace gelex
 {
-
-using stats::RunningStatsResult;
 
 struct PosteriorSummary
 {
@@ -38,7 +36,7 @@ struct PosteriorSummary
           stddev(Eigen::VectorXd::Zero(n_params))
     {
     }
-    explicit PosteriorSummary(RunningStatsResult result);
+    explicit PosteriorSummary(stats::RunningStatsResult result);
     PosteriorSummary() = default;
 
     auto size() const -> Eigen::Index { return mean.size(); }

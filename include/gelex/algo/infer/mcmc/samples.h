@@ -21,6 +21,8 @@
 #include <cstddef>
 #include <memory>
 #include <optional>
+#include <string_view>
+#include <type_traits>
 #include <variant>
 #include <vector>
 
@@ -31,6 +33,8 @@
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
+#include "gelex/infra/stats/detail/running_stats.h"
+#include "gelex/infra/stats/result.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
@@ -49,9 +53,6 @@ class BayesModel;
 namespace mcmc
 {
 
-using stats::RunningStats;
-using stats::RunningStatsResult;
-
 class Writer;
 
 struct AssignmentSamples
@@ -67,7 +68,7 @@ struct AssignmentSamples
     auto n_snps() const -> Eigen::Index { return comp_counts_.rows(); }
     auto n_proportions() const -> Eigen::Index { return comp_counts_.cols(); }
     auto estimate_pi() const -> bool { return estimate_pi_; }
-    auto proportion() const -> RunningStatsResult
+    auto proportion() const -> stats::RunningStatsResult
     {
         return proportion_stats_.result();
     }
@@ -78,7 +79,7 @@ struct AssignmentSamples
 
    private:
     bool estimate_pi_;
-    RunningStats proportion_stats_;
+    stats::detail::RunningStats proportion_stats_;
     Eigen::MatrixXd comp_counts_;
     std::size_t n_samples_{0};
 };
@@ -97,7 +98,7 @@ struct ComponentSamples
         const bayes::ComponentState& component,
         const bayes::MixtureState& mixture);
 
-    auto comp_var() const -> RunningStatsResult
+    auto comp_var() const -> stats::RunningStatsResult
     {
         return comp_var_stats_.result();
     }
@@ -105,7 +106,7 @@ struct ComponentSamples
     AssignmentSamples assignment;
 
    private:
-    RunningStats comp_var_stats_;
+    stats::detail::RunningStats comp_var_stats_;
 };
 
 using MixtureSamples = std::variant<AssignmentSamples, ComponentSamples>;
@@ -133,12 +134,15 @@ struct GeneticSamples
     void store(const BayesState& state);
 
     auto n_coeffs() const -> Eigen::Index { return n_coeffs_; }
-    auto coeffs() const -> RunningStatsResult { return coeffs_stats_.result(); }
-    auto variance() const -> RunningStatsResult
+    auto coeffs() const -> stats::RunningStatsResult
+    {
+        return coeffs_stats_.result();
+    }
+    auto variance() const -> stats::RunningStatsResult
     {
         return variance_stats_.result();
     }
-    auto heritability() const -> RunningStatsResult
+    auto heritability() const -> stats::RunningStatsResult
     {
         return heritability_stats_.result();
     }
@@ -149,9 +153,9 @@ struct GeneticSamples
 
    private:
     Eigen::Index n_coeffs_;
-    RunningStats coeffs_stats_;
-    RunningStats variance_stats_;
-    RunningStats heritability_stats_;
+    stats::detail::RunningStats coeffs_stats_;
+    stats::detail::RunningStats variance_stats_;
+    stats::detail::RunningStats heritability_stats_;
 };
 
 struct ResidualSamples
@@ -159,13 +163,13 @@ struct ResidualSamples
     ResidualSamples() = default;
     void store(const bayes::ResidualState& state);
 
-    auto variance() const -> RunningStatsResult
+    auto variance() const -> stats::RunningStatsResult
     {
         return variance_stats_.result();
     }
 
    private:
-    RunningStats variance_stats_;
+    stats::detail::RunningStats variance_stats_;
 };
 
 class Samples

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_INFRA_STATS_RUNNING_STATS_H_
-#define GELEX_INFRA_STATS_RUNNING_STATS_H_
+#ifndef GELEX_INFRA_STATS_DETAIL_RUNNING_STATS_H_
+#define GELEX_INFRA_STATS_DETAIL_RUNNING_STATS_H_
 
 #include <cmath>
 #include <cstddef>
@@ -24,15 +24,10 @@
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
+#include "gelex/infra/stats/result.h"
 
-namespace gelex::stats
+namespace gelex::stats::detail
 {
-
-struct RunningStatsResult
-{
-    Eigen::VectorXd mean;
-    Eigen::VectorXd stddev;
-};
 
 class RunningStats
 {
@@ -125,6 +120,20 @@ class RunningStats
     Eigen::VectorXd delta2_buffer_;
 };
 
-}  // namespace gelex::stats
+class CategoricalFrequency
+{
+   public:
+    CategoricalFrequency(Eigen::Index n_items, Eigen::Index n_categories);
 
-#endif  // GELEX_INFRA_STATS_RUNNING_STATS_H_
+    auto update(const Eigen::Ref<const Eigen::VectorXi>& categories) -> void;
+    auto probabilities() const& -> const Eigen::MatrixXd&;
+    auto probabilities() && -> Eigen::MatrixXd;
+
+   private:
+    Eigen::MatrixXd probabilities_;
+    std::size_t count_{0};
+};
+
+}  // namespace gelex::stats::detail
+
+#endif  // GELEX_INFRA_STATS_DETAIL_RUNNING_STATS_H_

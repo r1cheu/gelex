@@ -14,28 +14,20 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/infer/posterior_summary.h"
-#include <utility>
+#ifndef GELEX_INFRA_STATS_RESULT_H_
+#define GELEX_INFRA_STATS_RESULT_H_
 
-#include "gelex/algo/infer/fixed_samples.h"
+#include <Eigen/Core>
 
-namespace gelex
+namespace gelex::stats
 {
 
-PosteriorSummary::PosteriorSummary(stats::RunningStatsResult result)
-    : mean(std::move(result.mean)), stddev(std::move(result.stddev))
+struct RunningStatsResult
 {
-}
+    Eigen::VectorXd mean;
+    Eigen::VectorXd stddev;
+};
 
-void FixedSummary::compute(const FixedSamples& sample)
-{
-    coeffs = PosteriorSummary(sample.coeffs());
-}
+}  // namespace gelex::stats
 
-void RandomSummary::compute(const RandomSamples& sample)
-{
-    coeffs = PosteriorSummary(sample.coeffs());
-    variance = PosteriorSummary(sample.variance());
-}
-
-}  // namespace gelex
+#endif  // GELEX_INFRA_STATS_RESULT_H_

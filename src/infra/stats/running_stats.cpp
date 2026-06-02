@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-#include "gelex/infra/stats/running_stats.h"
+#include "gelex/infra/stats/detail/running_stats.h"
 
-namespace gelex::stats
+#include <utility>
+
+namespace gelex::stats::detail
 {
 
 auto RunningStats::result() const -> RunningStatsResult
@@ -42,4 +44,36 @@ auto RunningStats::result() const -> RunningStatsResult
     return output;
 }
 
-}  // namespace gelex::stats
+CategoricalFrequency::CategoricalFrequency(
+    Eigen::Index n_items,
+    Eigen::Index n_categories)
+    : probabilities_(Eigen::MatrixXd::Zero(n_items, n_categories))
+{
+}
+
+auto CategoricalFrequency::update(
+    const Eigen::Ref<const Eigen::VectorXi>& categories) -> void
+{
+    const auto old_count = count_;
+    ++count_;
+    probabilities_
+        *= static_cast<double>(old_count) / static_cast<double>(count_);
+
+    const double increment = 1.0 / static_cast<double>(count_);
+    for (Eigen::Index i = 0; i < categories.size(); ++i)
+    {
+        probabilities_(i, categories(i)) += increment;
+    }
+}
+
+auto CategoricalFrequency::probabilities() const& -> const Eigen::MatrixXd&
+{
+    return probabilities_;
+}
+
+auto CategoricalFrequency::probabilities() && -> Eigen::MatrixXd
+{
+    return std::move(probabilities_);
+}
+
+}  // namespace gelex::stats::detail

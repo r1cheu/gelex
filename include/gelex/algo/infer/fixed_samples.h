@@ -23,7 +23,8 @@
 
 #include <Eigen/Core>
 
-#include "gelex/infra/stats/running_stats.h"
+#include "gelex/infra/stats/detail/running_stats.h"
+#include "gelex/infra/stats/result.h"
 
 namespace gelex
 {
@@ -40,23 +41,23 @@ struct RandomState;
 namespace gelex
 {
 
-using stats::RunningStats;
-using stats::RunningStatsResult;
-
 struct FixedSamples
 {
     explicit FixedSamples(const FixedDesign& design);
     void store(const bayes::FixedState& state);
 
     auto n_coeffs() const -> Eigen::Index { return n_coeffs_; }
-    auto coeffs() const -> RunningStatsResult { return coeffs_stats_.result(); }
+    auto coeffs() const -> stats::RunningStatsResult
+    {
+        return coeffs_stats_.result();
+    }
 
     std::vector<std::string> names;
     std::vector<std::optional<std::vector<std::string>>> levels;
 
    private:
     Eigen::Index n_coeffs_;
-    RunningStats coeffs_stats_;
+    stats::detail::RunningStats coeffs_stats_;
 };
 
 struct RandomSamples
@@ -65,8 +66,11 @@ struct RandomSamples
     void store(const bayes::RandomState& state);
 
     auto n_coeffs() const -> Eigen::Index { return n_coeffs_; }
-    auto coeffs() const -> RunningStatsResult { return coeffs_stats_.result(); }
-    auto variance() const -> RunningStatsResult
+    auto coeffs() const -> stats::RunningStatsResult
+    {
+        return coeffs_stats_.result();
+    }
+    auto variance() const -> stats::RunningStatsResult
     {
         return variance_stats_.result();
     }
@@ -76,8 +80,8 @@ struct RandomSamples
 
    private:
     Eigen::Index n_coeffs_;
-    RunningStats coeffs_stats_;
-    RunningStats variance_stats_;
+    stats::detail::RunningStats coeffs_stats_;
+    stats::detail::RunningStats variance_stats_;
 };
 
 }  // namespace gelex
