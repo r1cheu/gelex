@@ -19,13 +19,13 @@
 
 #include <filesystem>
 
-#include "gelex/algo/infer/mcmc/result.h"
-
 namespace gelex
 {
 
 namespace mcmc
 {
+
+class Result;
 
 class ResultWriter
 {

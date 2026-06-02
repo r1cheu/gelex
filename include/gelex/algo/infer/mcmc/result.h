@@ -17,73 +17,25 @@
 #ifndef GELEX_ALGO_INFER_MCMC_RESULT_H_
 #define GELEX_ALGO_INFER_MCMC_RESULT_H_
 
-#include <algorithm>
-#include <optional>
-#include <variant>
+#include <cstddef>
+#include <string>
+#include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include <Eigen/Core>
 
-#include "gelex/algo/infer/mcmc/samples.h"
-#include "gelex/algo/infer/posterior_summary.h"
+#include "gelex/algo/infer/mcmc/records.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
 
-struct AssignmentSummary
-{
-    explicit AssignmentSummary(const mcmc::AssignmentSamples& samples);
-    void compute(const mcmc::AssignmentSamples& sample);
-
-    PosteriorSummary mixture_proportion;
-    Eigen::VectorXd pip;
-    Eigen::MatrixXd comp_probs;
-};
-
-struct ComponentSummary
-{
-    explicit ComponentSummary(const mcmc::ComponentSamples& samples);
-    void compute(const mcmc::ComponentSamples& sample);
-
-    AssignmentSummary assignment;
-    PosteriorSummary component_variance;
-};
-
-using MixtureSummary = std::variant<AssignmentSummary, ComponentSummary>;
-
-inline auto assignment(const MixtureSummary& s) -> const AssignmentSummary&
-{
-    return std::visit(
-        []<typename T>(const T& v) -> const AssignmentSummary&
-        {
-            if constexpr (std::is_same_v<T, AssignmentSummary>)
-            {
-                return v;
-            }
-            else
-            {
-                return v.assignment;
-            }
-        },
-        s);
-}
-
-struct GeneticSummary
-{
-    explicit GeneticSummary(const mcmc::GeneticSamples& samples);
-
-    void compute(const mcmc::GeneticSamples& sample, double phenotype_var);
-
-    GeneticMode type;
-    PosteriorSummary coeffs;
-    PosteriorSummary variance;
-    PosteriorSummary heritability;
-    PosteriorSummary pve;
-
-    std::optional<MixtureSummary> group;
-    std::optional<AssignmentSummary> sign;
-};
+class BayesModel;
+struct FixedSummary;
+struct GeneticSummary;
+struct PosteriorSummary;
+struct RandomSummary;
 
 namespace mcmc
 {
@@ -91,35 +43,33 @@ namespace mcmc
 class Result
 {
    public:
-    Result(mcmc::Samples&& samples, const BayesModel& model);
+    Result(
+        mcmc::Records&& records,
+        const BayesModel& model,
+        Eigen::Index samples_collected);
 
-    void compute();
-
-    const FixedSummary& fixed() const { return fixed_; }
-    const std::vector<RandomSummary>& random() const { return random_; }
-
-    const std::vector<GeneticSummary>& genetics() const { return genetics_; }
-    const GeneticSummary* genetic(GeneticMode type) const
+    auto get(std::string_view path) const -> const RecordResult&;
+    auto samples_collected() const -> Eigen::Index
     {
-        auto it = std::ranges::find(genetics_, type, &GeneticSummary::type);
-        return it != genetics_.end() ? &*it : nullptr;
+        return samples_collected_;
     }
+    auto phenotype_variance() const -> double { return phenotype_var_; }
+    auto allele_frequency() const -> const Eigen::VectorXd& { return p_freq_; }
 
-    const PosteriorSummary& residual() const { return residual_; }
-
-    const Eigen::VectorXd& allele_freq() const { return p_freq_; }
+    auto fixed() const -> const FixedSummary&;
+    auto random() const -> const std::vector<RandomSummary>&;
+    auto genetics() const -> const std::vector<GeneticSummary>&;
+    auto genetic(GeneticMode type) const -> const GeneticSummary*;
+    auto residual() const -> const PosteriorSummary&;
+    auto allele_freq() const -> const Eigen::VectorXd&;
 
    private:
-    mcmc::Samples samples_;
-
-    FixedSummary fixed_;
-    std::vector<RandomSummary> random_;
-    std::vector<GeneticSummary> genetics_;
-    PosteriorSummary residual_;
-
     double phenotype_var_;
 
     Eigen::VectorXd p_freq_;
+    std::vector<RecordEntry> records_;
+    std::unordered_map<std::string, std::size_t> record_indices_;
+    Eigen::Index samples_collected_{};
 };
 
 }  // namespace mcmc

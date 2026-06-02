@@ -21,7 +21,7 @@
 #include <utility>
 
 #include "gelex/algo/infer/mcmc/chain.h"
-#include "gelex/algo/infer/mcmc/samples.h"
+#include "gelex/algo/infer/mcmc/records.h"
 #include "gelex/bayes/state.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
@@ -51,11 +51,15 @@ auto Solver::run(
             "MCMC checkpoint writer is not implemented after Bayes prior/state "
             "cleanup");
     }
+    if (!sample_prefix_.empty())
+    {
+        throw GelexException(
+            "MCMC sample output is legacy and will be removed");
+    }
 
     auto state = BayesState{model, prior};
     auto rng = std::mt19937_64{static_cast<std::mt19937_64::result_type>(seed)};
-    auto samples = mcmc::Samples{
-        model, prior, state, sample_prefix_, params_.n_records()};
+    auto records = mcmc::Records{};
     auto chain = Chain::make(model, prior, state, rng);
 
     for (Eigen::Index iter = 0; iter < params_.n_iters; ++iter)
@@ -73,11 +77,10 @@ auto Solver::run(
         if (iter >= params_.n_burn_in
             && (iter + 1 - params_.n_burn_in) % params_.n_thin == 0)
         {
-            samples.store(state);
+            records.store(state);
         }
     }
 
-    samples.finalize();
     notify(
         observer,
         MCMCProgressEvent{
@@ -86,8 +89,7 @@ auto Solver::run(
             .done = true,
         });
 
-    auto result = mcmc::Result{std::move(samples), model};
-    result.compute();
+    auto result = mcmc::Result{std::move(records), model, params_.n_records()};
     notify(observer, MCMCCompleteEvent{&result, &model, params_.n_records()});
     return result;
 }

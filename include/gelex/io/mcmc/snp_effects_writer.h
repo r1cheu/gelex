@@ -17,21 +17,12 @@
 #ifndef GELEX_IO_MCMC_SNP_EFFECTS_WRITER_H_
 #define GELEX_IO_MCMC_SNP_EFFECTS_WRITER_H_
 
-#include <cstdint>
 #include <filesystem>
-#include <memory>
-#include <span>
-#include <string>
 
-#include <Eigen/Core>
-
-#include "gelex/algo/infer/mcmc/result.h"
-#include "gelex/data/dataframe/dataframe.h"
-
-namespace gelex::io::detail
+namespace gelex::mcmc
 {
-class TextWriter;
-}
+class Result;
+}  // namespace gelex::mcmc
 
 namespace gelex
 {
@@ -43,38 +34,8 @@ class SnpEffectsWriter
         const mcmc::Result& result,
         const std::filesystem::path& bim_file_path,
         const std::filesystem::path& output_path);
-    ~SnpEffectsWriter();
-    SnpEffectsWriter(const SnpEffectsWriter&) = delete;
-    SnpEffectsWriter& operator=(const SnpEffectsWriter&) = delete;
-    SnpEffectsWriter(SnpEffectsWriter&&) = delete;
-    SnpEffectsWriter& operator=(SnpEffectsWriter&&) = delete;
 
     auto write() -> void;
-
-   private:
-    const mcmc::Result* result_;
-    const GeneticSummary* additive_{};
-    const GeneticSummary* dominant_{};
-    dataframe::DataFrame<std::string> bim_;
-    std::unique_ptr<io::detail::TextWriter> writer_;
-    std::string row_buf_;
-
-    auto write_header() -> void;
-    auto write_snp_row(Eigen::Index snp_index) -> void;
-    auto write_snp_basic_info(Eigen::Index snp_index) -> void;
-    auto write_effects(const GeneticSummary* effect, Eigen::Index snp_index)
-        -> void;
-    auto write_component_probs(
-        const GeneticSummary* effect,
-        Eigen::Index snp_index) -> void;
-    auto write_pip(const GeneticSummary* effect, Eigen::Index snp_index)
-        -> void;
-
-    std::span<const std::string> bim_keys_;
-    std::span<const std::string> bim_chrom_;
-    std::span<const std::int32_t> bim_pos_;
-    std::span<const std::string> bim_a1_;
-    std::span<const std::string> bim_a2_;
 };
 
 }  // namespace gelex

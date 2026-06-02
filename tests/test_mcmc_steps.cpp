@@ -38,6 +38,7 @@
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/exception.h"
+#include "gelex/infra/stats/result.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "genotype_fixture.h"
@@ -621,22 +622,32 @@ TEST_CASE("Solver::run collects single genetic samples", "[mcmc][solver]")
     REQUIRE(done);
     REQUIRE(complete);
     REQUIRE(samples_collected == params.n_records());
-    REQUIRE(result.random().empty());
-    REQUIRE(result.fixed().coeffs.mean.size() == 1);
-    REQUIRE(result.fixed().coeffs.mean.allFinite());
-    REQUIRE(result.residual().mean.size() == 1);
-    REQUIRE(result.residual().mean.allFinite());
+    REQUIRE(result.samples_collected() == params.n_records());
 
-    const auto* summary = result.genetic(gelex::GeneticMode::A);
-    REQUIRE(summary != nullptr);
-    REQUIRE(summary->coeffs.mean.size() == 2);
-    REQUIRE(summary->coeffs.mean.allFinite());
-    REQUIRE(summary->variance.mean.size() == 1);
-    REQUIRE(summary->variance.mean.allFinite());
-    REQUIRE(summary->heritability.mean.size() == 1);
-    REQUIRE(summary->heritability.mean.allFinite());
-    REQUIRE_FALSE(summary->group.has_value());
-    REQUIRE_FALSE(summary->sign.has_value());
+    const auto& fixed = std::get<gelex::stats::RunningStatsResult>(
+        result.get("state/fixed/coeffs"));
+    REQUIRE(fixed.mean.size() == 1);
+    REQUIRE(fixed.mean.allFinite());
+
+    const auto& residual = std::get<gelex::stats::RunningStatsResult>(
+        result.get("state/residual/variance"));
+    REQUIRE(residual.mean.size() == 1);
+    REQUIRE(residual.mean.allFinite());
+
+    const auto& coeffs = std::get<gelex::stats::RunningStatsResult>(
+        result.get("state/genetic_0/single/genetic/coeffs"));
+    REQUIRE(coeffs.mean.size() == 2);
+    REQUIRE(coeffs.mean.allFinite());
+
+    const auto& variance = std::get<gelex::stats::RunningStatsResult>(
+        result.get("state/genetic_0/single/genetic/variance"));
+    REQUIRE(variance.mean.size() == 1);
+    REQUIRE(variance.mean.allFinite());
+
+    const auto& heritability = std::get<gelex::stats::RunningStatsResult>(
+        result.get("state/genetic_0/single/genetic/heritability"));
+    REQUIRE(heritability.mean.size() == 1);
+    REQUIRE(heritability.mean.allFinite());
 }
 
 TEST_CASE("Solver::run collects joint genetic samples", "[mcmc][solver]")
@@ -667,21 +678,30 @@ TEST_CASE("Solver::run collects joint genetic samples", "[mcmc][solver]")
     gelex::mcmc::Solver solver{params};
     auto result = solver.run(model, std::move(prior), 123);
 
-    REQUIRE(result.genetics().size() == 2);
-    const auto* additive = result.genetic(gelex::GeneticMode::A);
-    const auto* dominance = result.genetic(gelex::GeneticMode::D);
-    REQUIRE(additive != nullptr);
-    REQUIRE(dominance != nullptr);
-    REQUIRE(additive->coeffs.mean.size() == 2);
-    REQUIRE(dominance->coeffs.mean.size() == 2);
-    REQUIRE(additive->coeffs.mean.allFinite());
-    REQUIRE(dominance->coeffs.mean.allFinite());
-    REQUIRE(additive->variance.mean.allFinite());
-    REQUIRE(dominance->variance.mean.allFinite());
-    REQUIRE(additive->heritability.mean.allFinite());
-    REQUIRE(dominance->heritability.mean.allFinite());
-    REQUIRE_FALSE(additive->group.has_value());
-    REQUIRE_FALSE(dominance->group.has_value());
+    const auto& additive_coeffs = std::get<gelex::stats::RunningStatsResult>(
+        result.get("state/genetic_0/joint/A/genetic/coeffs"));
+    const auto& dominance_coeffs = std::get<gelex::stats::RunningStatsResult>(
+        result.get("state/genetic_0/joint/D/genetic/coeffs"));
+    REQUIRE(additive_coeffs.mean.size() == 2);
+    REQUIRE(dominance_coeffs.mean.size() == 2);
+    REQUIRE(additive_coeffs.mean.allFinite());
+    REQUIRE(dominance_coeffs.mean.allFinite());
+
+    const auto& additive_variance = std::get<gelex::stats::RunningStatsResult>(
+        result.get("state/genetic_0/joint/A/genetic/variance"));
+    const auto& dominance_variance = std::get<gelex::stats::RunningStatsResult>(
+        result.get("state/genetic_0/joint/D/genetic/variance"));
+    REQUIRE(additive_variance.mean.allFinite());
+    REQUIRE(dominance_variance.mean.allFinite());
+
+    const auto& additive_heritability
+        = std::get<gelex::stats::RunningStatsResult>(
+            result.get("state/genetic_0/joint/A/genetic/heritability"));
+    const auto& dominance_heritability
+        = std::get<gelex::stats::RunningStatsResult>(
+            result.get("state/genetic_0/joint/D/genetic/heritability"));
+    REQUIRE(additive_heritability.mean.allFinite());
+    REQUIRE(dominance_heritability.mean.allFinite());
 }
 
 TEST_CASE("Solver::run rejects checkpoint output", "[mcmc][solver]")

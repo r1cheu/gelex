@@ -18,10 +18,7 @@
 
 #include <filesystem>
 
-#include "gelex/algo/infer/mcmc/result.h"
-#include "gelex/io/infer/covariate_writer.h"
-#include "gelex/io/mcmc/parameter_writer.h"
-#include "gelex/io/mcmc/snp_effects_writer.h"
+#include "gelex/exception.h"
 
 namespace gelex
 {
@@ -35,24 +32,8 @@ mcmc::ResultWriter::ResultWriter(
 
 auto mcmc::ResultWriter::save(const std::filesystem::path& prefix) const -> void
 {
-    auto param_path = prefix;
-    param_path.replace_extension("param");
-    CovariateWriter covar_writer(
-        result_->fixed(), result_->random(), param_path);
-    covar_writer.write();
-
-    auto summary_path = prefix;
-    summary_path.replace_extension("summary");
-    ParameterWriter parameter_writer(*result_, summary_path);
-    parameter_writer.write();
-
-    if (!result_->genetics().empty())
-    {
-        auto snp_path = prefix;
-        snp_path.replace_extension(".snp.eff");
-        SnpEffectsWriter snp_effects_writer(*result_, bim_file_path_, snp_path);
-        snp_effects_writer.write();
-    }
+    static_cast<void>(prefix);
+    throw GelexException("MCMC result writer is legacy and will be removed");
 }
 
 }  // namespace gelex

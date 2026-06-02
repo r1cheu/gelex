@@ -16,7 +16,6 @@
 
 #include "mcmc_reporter.h"
 
-#include <Eigen/Core>
 #include <cstddef>
 #include <iterator>
 #include <type_traits>
@@ -27,10 +26,9 @@
 
 #include "cli/report_printer.h"
 #include "config.h"
-#include "gelex/algo/infer/mcmc/result.h"
 #include "gelex/bayes/labels.h"
-#include "gelex/bayes/model.h"
 #include "gelex/bayes/state.h"
+#include "gelex/exception.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/progress_bar.h"
@@ -38,11 +36,6 @@
 
 namespace gelex::cli
 {
-
-namespace
-{
-const int TABLE_WIDTH = 40;
-}  // namespace
 
 auto McmcReporter::on_event(const MCMCBannerEvent& /*event*/) -> void
 {
@@ -134,83 +127,13 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
 
 auto McmcReporter::on_event(const MCMCCompleteEvent& event) -> void
 {
-    print_fixed_summary(*event.result, event.samples_collected);
-    for (const auto& summary : event.result->genetics())
-    {
-        print_genetic_summary(
-            &summary, event.model->genetic(summary.type), summary.type);
-    }
-    print_residual_summary(*event.result);
+    static_cast<void>(event);
+    throw GelexException("MCMC complete summary is legacy and will be removed");
 }
 
 auto McmcReporter::on_event(const FitCheckpointSavedEvent& /*event*/) -> void
 {
     bar_.before_bar->message(fmt::format(" ckpt saved"));
-}
-
-auto McmcReporter::print_fixed_summary(
-    const mcmc::Result& result,
-    std::ptrdiff_t samples_collected) -> void
-{
-    const auto& fixed = result.fixed();
-    auto& p = cli::printer();
-
-    p.block(gelex::section("[Posterior Summary]"));
-    p.line("  Samples collected per parameter: {}", samples_collected);
-    p.line("  {:<8} {:>8} {:>8}", "Parameter", "Mean", "SD");
-    p.line(gelex::table_separator(TABLE_WIDTH));
-
-    fixed.for_each_term([&](const std::string& term, Eigen::Index i)
-                        { print_summary_row(term, fixed.coeffs, i); });
-}
-
-auto McmcReporter::print_genetic_summary(
-    const GeneticSummary* summary,
-    const bayes::GeneticDesign* /*design*/,
-    GeneticMode type) -> void
-{
-    if (summary == nullptr)
-    {
-        return;
-    }
-
-    std::string h_name{bayes::to_heritability_label(type)};
-    auto& p = cli::printer();
-
-    p.line(gelex::named_section(fmt::format("{}", type), TABLE_WIDTH, 2));
-    print_summary_row("σ²", summary->variance);
-    print_summary_row(h_name, summary->heritability);
-
-    if (summary->group)
-    {
-        const auto& base = assignment(*summary->group);
-        for (Eigen::Index i = 0; i < base.mixture_proportion.size(); ++i)
-        {
-            print_summary_row(
-                fmt::format("π[{}]", i), base.mixture_proportion, i);
-        }
-        if (const auto* comp = std::get_if<ComponentSummary>(&*summary->group))
-        {
-            for (Eigen::Index i = 0; i < comp->component_variance.size(); ++i)
-            {
-                print_summary_row(
-                    fmt::format("σ²[{}]", i + 1), comp->component_variance, i);
-            }
-        }
-    }
-
-    if (summary->sign)
-    {
-        print_summary_row("p(+)", summary->sign->mixture_proportion, 1);
-    }
-}
-
-auto McmcReporter::print_residual_summary(const mcmc::Result& result) -> void
-{
-    auto& p = cli::printer();
-    p.line(gelex::named_section("Residual", TABLE_WIDTH, 2));
-    print_summary_row("σ²", result.residual());
-    p.line(gelex::table_separator(TABLE_WIDTH));
 }
 
 }  // namespace gelex::cli

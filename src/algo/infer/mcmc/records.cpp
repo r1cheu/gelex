@@ -40,6 +40,7 @@ Records::CategoricalRecord::CategoricalRecord(
 
 Records::Records(Records&& other) noexcept
     : records_(std::move(other.records_)),
+      paths_(std::move(other.paths_)),
       indices_(std::move(other.indices_)),
       category_counts_(std::move(other.category_counts_))
 {
@@ -48,6 +49,7 @@ Records::Records(Records&& other) noexcept
 auto Records::operator=(Records&& other) noexcept -> Records&
 {
     records_ = std::move(other.records_);
+    paths_ = std::move(other.paths_);
     indices_ = std::move(other.indices_);
     category_counts_ = std::move(other.category_counts_);
     return *this;
@@ -56,6 +58,22 @@ auto Records::operator=(Records&& other) noexcept -> Records&
 auto Records::store(BayesState& state) -> void
 {
     state.visit(*this);
+}
+
+auto Records::take_results() -> std::vector<RecordEntry>
+{
+    std::vector<RecordEntry> output;
+    output.reserve(paths_.size());
+    for (const auto& path : paths_)
+    {
+        output.push_back(RecordEntry{path, result(path)});
+    }
+
+    records_.clear();
+    paths_.clear();
+    indices_.clear();
+    category_counts_.clear();
+    return output;
 }
 
 auto Records::result(std::string_view path) -> RecordResult
@@ -94,6 +112,7 @@ auto Records::store_record(std::string_view name, Value&& value) -> void
     {
         const auto index = records_.size();
         records_.emplace_back(RecordType{});
+        paths_.push_back(field_key);
         indices_.emplace(std::move(field_key), index);
         std::get<RecordType>(records_[index])
             .draws.store(std::forward<Value>(value));
@@ -170,6 +189,7 @@ auto Records::on(
         const auto index = records_.size();
         records_.emplace_back(
             CategoricalRecord{value.size(), category_it->second});
+        paths_.push_back(field_key);
         indices_.emplace(std::move(field_key), index);
         std::get<CategoricalRecord>(records_[index]).draws.store(value);
         return;

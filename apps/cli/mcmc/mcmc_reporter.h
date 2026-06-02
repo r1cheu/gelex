@@ -26,24 +26,7 @@
 
 namespace gelex
 {
-class BayesModel;
-
-namespace mcmc
-{
-class Result;
-}
-
-struct GeneticSummary;
-
-namespace bayes
-{
-struct GeneticDesign;
-}  // namespace bayes
-
-enum class GeneticMode : uint8_t;
-}  // namespace gelex
-
-namespace gelex::cli
+namespace cli
 {
 
 class McmcReporter : public FitReporter
@@ -67,21 +50,14 @@ class McmcReporter : public FitReporter
     auto on_event(const MCMCConfigEvent& event) -> void;
     auto on_event(const MCMCCompleteEvent& event) -> void;
 
-    static auto print_fixed_summary(
-        const mcmc::Result& result,
-        std::ptrdiff_t samples_collected) -> void;
-    static auto print_genetic_summary(
-        const GeneticSummary* summary,
-        const bayes::GeneticDesign* design,
-        GeneticMode type) -> void;
-    static auto print_residual_summary(const mcmc::Result& result) -> void;
-
     size_t iter_{0};
     ProgressBar bar_;
     bool init_progress_ = false;
     std::string stats_;
 };
 
-}  // namespace gelex::cli
+}  // namespace cli
+
+}  // namespace gelex
 
 #endif  // GELEX_CLI_MCMC_REPORTER_H_

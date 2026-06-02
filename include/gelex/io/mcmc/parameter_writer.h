@@ -18,18 +18,11 @@
 #define GELEX_IO_MCMC_PARAMETER_WRITER_H_
 
 #include <filesystem>
-#include <memory>
-#include <span>
-#include <string>
 
-#include <Eigen/Core>
-
-#include "gelex/algo/infer/mcmc/result.h"
-
-namespace gelex::io::detail
+namespace gelex::mcmc
 {
-class TextWriter;
-}
+class Result;
+}  // namespace gelex::mcmc
 
 namespace gelex
 {
@@ -40,27 +33,8 @@ class ParameterWriter
     ParameterWriter(
         const mcmc::Result& result,
         const std::filesystem::path& output_path);
-    ~ParameterWriter();
-    ParameterWriter(const ParameterWriter&) = delete;
-    ParameterWriter& operator=(const ParameterWriter&) = delete;
-    ParameterWriter(ParameterWriter&&) = delete;
-    ParameterWriter& operator=(ParameterWriter&&) = delete;
 
     auto write() -> void;
-
-   private:
-    const mcmc::Result* result_;
-    std::unique_ptr<io::detail::TextWriter> writer_;
-
-    auto write_fixed_effects() -> void;
-    auto write_random_effects() -> void;
-    auto write_residual_variance() -> void;
-
-    auto write_genetic_effect(const GeneticSummary& effect) -> void;
-
-    auto write_summary_statistics(
-        std::span<const std::string> terms,
-        const PosteriorSummary& stats) -> void;
 };
 
 }  // namespace gelex

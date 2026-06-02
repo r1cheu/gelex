@@ -41,6 +41,12 @@ namespace mcmc
 using RecordResult
     = std::variant<stats::RunningStatsResult, stats::CategoryProbResult>;
 
+struct RecordEntry
+{
+    std::string path;
+    RecordResult value;
+};
+
 class Records : private infra::FieldVisitor
 {
    public:
@@ -53,7 +59,7 @@ class Records : private infra::FieldVisitor
 
     auto store(BayesState& state) -> void;
 
-    auto result(std::string_view path) -> RecordResult;
+    auto take_results() -> std::vector<RecordEntry>;
 
    private:
     struct ScalarRecord
@@ -74,6 +80,8 @@ class Records : private infra::FieldVisitor
     };
 
     using Record = std::variant<ScalarRecord, VectorRecord, CategoricalRecord>;
+
+    auto result(std::string_view path) -> RecordResult;
 
     template <typename RecordType, typename Value>
     auto store_record(std::string_view name, Value&& value) -> void;
@@ -96,6 +104,7 @@ class Records : private infra::FieldVisitor
         -> void override;
 
     std::vector<Record> records_;
+    std::vector<std::string> paths_;
     std::unordered_map<std::string, std::size_t> indices_;
     std::unordered_map<std::string, Eigen::Index> category_counts_;
 };
