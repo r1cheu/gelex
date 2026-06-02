@@ -28,7 +28,6 @@
 #include "config.h"
 #include "gelex/bayes/labels.h"
 #include "gelex/bayes/state.h"
-#include "gelex/exception.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/progress_bar.h"
@@ -127,8 +126,8 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
 
 auto McmcReporter::on_event(const MCMCCompleteEvent& event) -> void
 {
-    static_cast<void>(event);
-    throw GelexException("MCMC complete summary is legacy and will be removed");
+    cli::printer().block(gelex::section("[MCMC Complete]"));
+    cli::printer().line("  {:<12}: {}", "Samples", event.samples_collected);
 }
 
 auto McmcReporter::on_event(const FitCheckpointSavedEvent& /*event*/) -> void

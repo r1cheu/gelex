@@ -37,6 +37,7 @@
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
+#include "gelex/engine/mcmc.h"
 #include "gelex/exception.h"
 #include "gelex/infra/stats/result.h"
 #include "gelex/types/fixed_designs.h"
@@ -702,6 +703,134 @@ TEST_CASE("Solver::run collects joint genetic samples", "[mcmc][solver]")
             result.get("state/genetic_0/joint/D/genetic/heritability"));
     REQUIRE(additive_heritability.mean.allFinite());
     REQUIRE(dominance_heritability.mean.allFinite());
+}
+
+TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
+{
+    std::vector<gelex::bayes::GeneticDesign> genetics;
+    genetics.push_back(make_design());
+    gelex::BayesModel model{
+        Eigen::VectorXd{{1.0, -0.5, 0.25}},
+        gelex::FixedDesign::build(3),
+        {},
+        std::move(genetics)};
+    std::vector<gelex::bayes::GeneticPrior> priors;
+    priors.emplace_back(
+        gelex::bayes::SingleGeneticPrior{
+            gelex::bayes::SingleSharedGaussianPrior{
+                gelex::GeneticMode::A,
+                gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
+    gelex::bayes::BayesPrior prior{
+        gelex::bayes::RandomPrior{make_variance(0.3)},
+        std::move(priors),
+        gelex::bayes::ResidualPrior{make_variance(0.4)}};
+
+    gelex::mcmc::Params params{
+        .n_iters = 4, .n_burn_in = 1, .n_thin = 1, .checkpoint_step = 0};
+    gelex::mcmc::Engine engine{gelex::mcmc::Engine::Config{
+        .seed = 123,
+        .mcmc_params = params,
+        .out_prefix = "mcmc_engine_test",
+    }};
+
+    bool prior_seen = false;
+    bool done = false;
+    bool complete = false;
+    std::ptrdiff_t samples_collected = 0;
+    auto observer = [&](const gelex::MCMCEvent& event)
+    {
+        if (const auto* prior_event
+            = std::get_if<gelex::FitPriorSetEvent>(&event))
+        {
+            prior_seen = true;
+            REQUIRE(prior_event->prior != nullptr);
+        }
+        if (const auto* progress
+            = std::get_if<gelex::MCMCProgressEvent>(&event))
+        {
+            if (progress->done)
+            {
+                done = true;
+            }
+        }
+        if (const auto* complete_event
+            = std::get_if<gelex::MCMCCompleteEvent>(&event))
+        {
+            complete = true;
+            samples_collected = complete_event->samples_collected;
+            REQUIRE(complete_event->result != nullptr);
+            REQUIRE(complete_event->model == &model);
+        }
+    };
+
+    engine.run(model, std::move(prior), observer);
+
+    REQUIRE(prior_seen);
+    REQUIRE(done);
+    REQUIRE(complete);
+    REQUIRE(samples_collected == params.n_records());
+}
+
+TEST_CASE("Engine::run rejects unsupported MCMC runtime options", "[mcmc][engine]")
+{
+    std::vector<gelex::bayes::GeneticDesign> genetics;
+    genetics.push_back(make_design());
+    gelex::BayesModel model{
+        Eigen::VectorXd{{1.0, -0.5, 0.25}},
+        gelex::FixedDesign::build(3),
+        {},
+        std::move(genetics)};
+
+    SECTION("resume")
+    {
+        std::vector<gelex::bayes::GeneticPrior> priors;
+        priors.emplace_back(
+            gelex::bayes::SingleGeneticPrior{
+                gelex::bayes::SingleSharedGaussianPrior{
+                    gelex::GeneticMode::A,
+                    gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
+        gelex::bayes::BayesPrior prior{
+            gelex::bayes::RandomPrior{make_variance(0.3)},
+            std::move(priors),
+            gelex::bayes::ResidualPrior{make_variance(0.4)}};
+        gelex::mcmc::Engine engine{gelex::mcmc::Engine::Config{
+            .seed = 123,
+            .mcmc_params = gelex::mcmc::Params{
+                .n_iters = 4,
+                .n_burn_in = 1,
+                .n_thin = 1,
+                .checkpoint_step = 0},
+            .out_prefix = "mcmc_engine_test",
+            .resume_path = "checkpoint.gelex",
+        }};
+
+        REQUIRE_THROWS_AS(engine.run(model, std::move(prior)), gelex::GelexException);
+    }
+
+    SECTION("checkpoint")
+    {
+        std::vector<gelex::bayes::GeneticPrior> priors;
+        priors.emplace_back(
+            gelex::bayes::SingleGeneticPrior{
+                gelex::bayes::SingleSharedGaussianPrior{
+                    gelex::GeneticMode::A,
+                    gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
+        gelex::bayes::BayesPrior prior{
+            gelex::bayes::RandomPrior{make_variance(0.3)},
+            std::move(priors),
+            gelex::bayes::ResidualPrior{make_variance(0.4)}};
+        gelex::mcmc::Engine engine{gelex::mcmc::Engine::Config{
+            .seed = 123,
+            .mcmc_params = gelex::mcmc::Params{
+                .n_iters = 4,
+                .n_burn_in = 1,
+                .n_thin = 1,
+                .checkpoint_step = 2},
+            .out_prefix = "mcmc_engine_test",
+        }};
+
+        REQUIRE_THROWS_AS(engine.run(model, std::move(prior)), gelex::GelexException);
+    }
 }
 
 TEST_CASE("Solver::run rejects checkpoint output", "[mcmc][solver]")

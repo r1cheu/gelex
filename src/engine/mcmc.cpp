@@ -20,9 +20,11 @@
 
 #include <fmt/format.h>
 
+#include "gelex/algo/infer/mcmc/solver.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/fit_event.h"
+#include "gelex/infra/logging/notify.h"
 
 namespace gelex
 {
@@ -77,13 +79,27 @@ auto ConfigValidator::check_mcmc_params() const -> void
 }
 
 auto Engine::run(
-    const BayesModel&,
+    const BayesModel& model,
     bayes::BayesPrior prior,
-    const MCMCObserver&) -> void
+    const MCMCObserver& observer) -> void
 {
-    static_cast<void>(prior);
-    throw GelexException(
-        "MCMC runtime is not implemented after Bayes prior/state cleanup");
+    if (config_.resume_path)
+    {
+        throw GelexException(
+            "MCMC resume is not implemented after Bayes prior/state cleanup");
+    }
+    if (config_.mcmc_params.checkpoint_step > 0)
+    {
+        throw GelexException(
+            "MCMC checkpoint output is not implemented after Bayes prior/state "
+            "cleanup");
+    }
+
+    notify(observer, FitPriorSetEvent{&prior});
+
+    auto solver = mcmc::Solver{config_.mcmc_params};
+    static_cast<void>(
+        solver.run(model, std::move(prior), config_.seed, observer));
 }
 
 }  // namespace mcmc
