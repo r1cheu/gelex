@@ -32,18 +32,19 @@ namespace gelex::bayes
 MixtureState::MixtureState(
     const MixtureProportion& proportion,
     Eigen::Index num_markers)
-    : assignment(Eigen::VectorXi::Zero(num_markers)),
-      proportion(proportion.initial_value())
+    : proportion(proportion.initial_value()),
+      assignment(Eigen::VectorXi::Zero(num_markers))
 {
 }
 
 auto MixtureState::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
-    visitor.on(
-        "assignment", assignment, FieldFlag::checkpoint | FieldFlag::trace);
+
     visitor.on(
         "proportion", proportion, FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on(
+        "assignment", assignment, FieldFlag::checkpoint | FieldFlag::trace);
 }
 
 ComponentState::ComponentState(

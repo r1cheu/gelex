@@ -41,8 +41,8 @@ struct MixtureState
 
     auto visit(infra::FieldVisitor& visitor) -> void;
 
-    Eigen::VectorXi assignment;
     Eigen::VectorXd proportion;
+    Eigen::VectorXi assignment;
 };
 
 struct ComponentState
