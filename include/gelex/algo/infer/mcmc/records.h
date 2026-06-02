@@ -59,7 +59,7 @@ class Records : private infra::FieldVisitor
 
     auto store(BayesState& state) -> void;
 
-    auto take_results() -> std::vector<RecordEntry>;
+    auto take_results() && -> std::vector<RecordEntry>;
 
    private:
     struct ScalarRecord

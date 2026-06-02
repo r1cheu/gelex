@@ -120,9 +120,6 @@ TEST_CASE("Result owns finalized record values", "[mcmc][mcmc_result]")
 
     REQUIRE(result.samples_collected() == 2);
     REQUIRE(result.phenotype_variance() == model.phenotype_variance());
-    REQUIRE(
-        result.allele_frequency().isApprox(
-            Eigen::VectorXd{{0.5, 1.0 / 3.0}}));
 
     const auto& fixed = std::get<gelex::stats::RunningStatsResult>(
         result.get("state/fixed/coeffs"));

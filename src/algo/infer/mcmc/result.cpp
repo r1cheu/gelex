@@ -22,12 +22,9 @@
 #include <string_view>
 #include <utility>
 
-#include <Eigen/Core>
-
 #include "gelex/algo/infer/mcmc/records.h"
 #include "gelex/bayes/model.h"
 #include "gelex/exception.h"
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -39,12 +36,7 @@ mcmc::Result::Result(
     : phenotype_var_(model.phenotype_variance()),
       samples_collected_(samples_collected)
 {
-    if (const auto* design = model.genetic(GeneticMode::A); design)
-    {
-        p_freq_ = design->X.mean().array() / 2;
-    }
-
-    records_ = records.take_results();
+    records_ = std::move(records).take_results();
     record_indices_.reserve(records_.size());
     for (auto [i, record] : std::views::enumerate(records_))
     {
@@ -61,37 +53,6 @@ auto mcmc::Result::get(std::string_view path) const -> const RecordResult&
         throw GelexException("Result: missing record " + key);
     }
     return records_[it->second].value;
-}
-
-auto mcmc::Result::fixed() const -> const FixedSummary&
-{
-    throw GelexException("Result::fixed is legacy and will be removed");
-}
-
-auto mcmc::Result::random() const -> const std::vector<RandomSummary>&
-{
-    throw GelexException("Result::random is legacy and will be removed");
-}
-
-auto mcmc::Result::genetics() const -> const std::vector<GeneticSummary>&
-{
-    throw GelexException("Result::genetics is legacy and will be removed");
-}
-
-auto mcmc::Result::genetic(GeneticMode type) const -> const GeneticSummary*
-{
-    static_cast<void>(type);
-    throw GelexException("Result::genetic is legacy and will be removed");
-}
-
-auto mcmc::Result::residual() const -> const PosteriorSummary&
-{
-    throw GelexException("Result::residual is legacy and will be removed");
-}
-
-auto mcmc::Result::allele_freq() const -> const Eigen::VectorXd&
-{
-    throw GelexException("Result::allele_freq is legacy and will be removed");
 }
 
 }  // namespace gelex

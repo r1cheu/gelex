@@ -26,16 +26,11 @@
 #include <Eigen/Core>
 
 #include "gelex/algo/infer/mcmc/records.h"
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
 
 class BayesModel;
-struct FixedSummary;
-struct GeneticSummary;
-struct PosteriorSummary;
-struct RandomSummary;
 
 namespace mcmc
 {
@@ -54,19 +49,10 @@ class Result
         return samples_collected_;
     }
     auto phenotype_variance() const -> double { return phenotype_var_; }
-    auto allele_frequency() const -> const Eigen::VectorXd& { return p_freq_; }
-
-    auto fixed() const -> const FixedSummary&;
-    auto random() const -> const std::vector<RandomSummary>&;
-    auto genetics() const -> const std::vector<GeneticSummary>&;
-    auto genetic(GeneticMode type) const -> const GeneticSummary*;
-    auto residual() const -> const PosteriorSummary&;
-    auto allele_freq() const -> const Eigen::VectorXd&;
 
    private:
     double phenotype_var_;
 
-    Eigen::VectorXd p_freq_;
     std::vector<RecordEntry> records_;
     std::unordered_map<std::string, std::size_t> record_indices_;
     Eigen::Index samples_collected_{};

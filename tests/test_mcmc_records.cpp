@@ -132,7 +132,7 @@ TEST_CASE("Records stores traced BayesState fields", "[mcmc][mcmc_records]")
     prior_state.assignment() = Eigen::VectorXi{{2, 3}};
     records.store(state);
 
-    auto entries = records.take_results();
+    auto entries = std::move(records).take_results();
     std::vector<std::string> paths;
     paths.reserve(entries.size());
     for (const auto& entry : entries)
@@ -193,6 +193,6 @@ TEST_CASE("Records handoff consumes stored results", "[mcmc][mcmc_records]")
 
     records.store(state);
 
-    REQUIRE_FALSE(records.take_results().empty());
-    REQUIRE(records.take_results().empty());
+    REQUIRE_FALSE(std::move(records).take_results().empty());
+    REQUIRE(std::move(records).take_results().empty());
 }

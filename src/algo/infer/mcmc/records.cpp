@@ -60,13 +60,14 @@ auto Records::store(BayesState& state) -> void
     state.visit(*this);
 }
 
-auto Records::take_results() -> std::vector<RecordEntry>
+auto Records::take_results() && -> std::vector<RecordEntry>
 {
     std::vector<RecordEntry> output;
     output.reserve(paths_.size());
-    for (const auto& path : paths_)
+    for (auto& path : paths_)
     {
-        output.push_back(RecordEntry{path, result(path)});
+        auto value = result(path);
+        output.push_back(RecordEntry{std::move(path), std::move(value)});
     }
 
     records_.clear();
