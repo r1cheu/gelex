@@ -316,8 +316,8 @@ TEST_CASE(
 {
     CategoricalFrequency frequency{3, 4};
 
-    const auto probabilities = frequency.probabilities();
-    REQUIRE(probabilities.isApprox(Eigen::MatrixXd::Zero(3, 4)));
+    const auto result = std::move(frequency).take_probabilities();
+    REQUIRE(result.value.isApprox(Eigen::MatrixXd::Zero(3, 4)));
 }
 
 TEST_CASE(
@@ -334,7 +334,8 @@ TEST_CASE(
         {1.0 / 3.0, 2.0 / 3.0, 0.0, 0.0},
         {0.0, 2.0 / 3.0, 1.0 / 3.0, 0.0},
         {1.0 / 3.0, 0.0, 0.0, 2.0 / 3.0}};
-    REQUIRE(frequency.probabilities().isApprox(expected));
+    const auto result = std::move(frequency).take_probabilities();
+    REQUIRE(result.value.isApprox(expected));
 }
 
 TEST_CASE(
@@ -349,7 +350,8 @@ TEST_CASE(
         {0.5, 0.5, 0.0, 0.0},
         {0.0, 1.0, 0.0, 0.0},
         {0.5, 0.0, 0.0, 0.5}};
-    REQUIRE(std::move(frequency).probabilities().isApprox(expected));
+    const auto result = std::move(frequency).take_probabilities();
+    REQUIRE(result.value.isApprox(expected));
 }
 
 }  // namespace gelex

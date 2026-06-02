@@ -66,14 +66,9 @@ auto CategoricalFrequency::update(
     }
 }
 
-auto CategoricalFrequency::probabilities() const& -> const Eigen::MatrixXd&
+auto CategoricalFrequency::take_probabilities() && -> CategoryProbResult
 {
-    return probabilities_;
-}
-
-auto CategoricalFrequency::probabilities() && -> Eigen::MatrixXd
-{
-    return std::move(probabilities_);
+    return CategoryProbResult{std::move(probabilities_)};
 }
 
 }  // namespace gelex::stats::detail

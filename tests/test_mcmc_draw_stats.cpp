@@ -66,9 +66,8 @@ TEST_CASE(
         {0.0, 0.5, 0.0, 0.5},
         {1.0, 0.0, 0.0, 0.0},
         {0.5, 0.0, 0.0, 0.5}};
-    REQUIRE(draws.probabilities().isApprox(expected_probabilities));
-
-    REQUIRE(std::move(draws).probabilities().isApprox(expected_probabilities));
+    const auto result = std::move(draws).take_probabilities();
+    REQUIRE(result.value.isApprox(expected_probabilities));
 }
 
 }  // namespace gelex

@@ -126,8 +126,7 @@ class CategoricalFrequency
     CategoricalFrequency(Eigen::Index n_items, Eigen::Index n_categories);
 
     auto update(const Eigen::Ref<const Eigen::VectorXi>& categories) -> void;
-    auto probabilities() const& -> const Eigen::MatrixXd&;
-    auto probabilities() && -> Eigen::MatrixXd;
+    auto take_probabilities() && -> CategoryProbResult;
 
    private:
     Eigen::MatrixXd probabilities_;

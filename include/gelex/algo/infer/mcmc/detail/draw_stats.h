@@ -65,13 +65,9 @@ struct CategoricalDrawStats
     {
         frequency_.update(categories);
     }
-    auto probabilities() const& -> const Eigen::MatrixXd&
+    auto take_probabilities() && -> gelex::stats::CategoryProbResult
     {
-        return frequency_.probabilities();
-    }
-    auto probabilities() && -> Eigen::MatrixXd
-    {
-        return std::move(frequency_).probabilities();
+        return std::move(frequency_).take_probabilities();
     }
 
    private:

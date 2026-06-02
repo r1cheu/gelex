@@ -17,9 +17,12 @@
 #ifndef GELEX_INFRA_FIELD_VISITOR_H_
 #define GELEX_INFRA_FIELD_VISITOR_H_
 
+#include <cstddef>
+#include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include <Eigen/Core>
 
@@ -104,9 +107,38 @@ class FieldVisitor
    protected:
     FieldVisitor() = default;
 
+    [[nodiscard]] auto path() const -> std::string_view { return path_; }
+
+    [[nodiscard]] auto field_path(std::string_view name) const -> std::string
+    {
+        auto result = path_;
+        if (!result.empty())
+        {
+            result.append("/");
+        }
+        result.append(name);
+        return result;
+    }
+
    private:
-    virtual auto enter(std::string_view name) -> void = 0;
-    virtual auto leave() -> void = 0;
+    auto enter(std::string_view name) -> void
+    {
+        scope_sizes_.push_back(path_.size());
+        if (!path_.empty())
+        {
+            path_.append("/");
+        }
+        path_.append(name);
+    }
+
+    auto leave() -> void
+    {
+        path_.resize(scope_sizes_.back());
+        scope_sizes_.pop_back();
+    }
+
+    std::string path_;
+    std::vector<std::size_t> scope_sizes_;
 };
 
 }  // namespace gelex::infra
