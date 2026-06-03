@@ -797,6 +797,9 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
     auto summary_path = prefix;
     summary_path += ".summary";
     REQUIRE(std::filesystem::exists(summary_path));
+    auto params_path = prefix;
+    params_path += ".param";
+    REQUIRE(std::filesystem::exists(params_path));
 }
 
 TEST_CASE("Engine::run rejects unsupported MCMC runtime options", "[mcmc][engine]")

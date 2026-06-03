@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/io/mcmc/result_writer.h"
+#include "gelex/io/mcmc.h"
 
 #include <cstddef>
 #include <filesystem>
@@ -30,6 +30,49 @@
 
 namespace gelex
 {
+
+auto mcmc::write_params(
+    const Result& result,
+    const std::filesystem::path& prefix) -> void
+{
+    auto output_path = prefix;
+    output_path += ".param";
+
+    io::detail::TextWriter writer(output_path);
+    writer.write_header({"term", "mean", "stddev"});
+
+    for (const auto& record : result.records())
+    {
+        const std::string_view path{record.path};
+        if (path != "state/fixed/coeffs"
+            && !(
+                path.starts_with("state/random_") && path.ends_with("/coeffs")))
+        {
+            continue;
+        }
+        if (!record.names)
+        {
+            continue;
+        }
+        if (!std::holds_alternative<stats::RunningStatsResult>(record.value))
+        {
+            continue;
+        }
+
+        const auto& stats = std::get<stats::RunningStatsResult>(record.value);
+        const auto& names = *record.names;
+        for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(names.size());
+             ++i)
+        {
+            writer.write(
+                fmt::format(
+                    "{}\t{:.8e}\t{:.8e}",
+                    names[static_cast<std::size_t>(i)],
+                    stats.mean(i),
+                    stats.stddev(i)));
+        }
+    }
+}
 
 auto mcmc::write_summary(
     const Result& result,

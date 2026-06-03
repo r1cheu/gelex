@@ -37,7 +37,7 @@
 #include "gelex/bayes/state.h"
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/exception.h"
-#include "gelex/io/mcmc/result_writer.h"
+#include "gelex/io/mcmc.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "file_fixture.h"
@@ -62,6 +62,12 @@ auto make_genotype(Eigen::MatrixXd data) -> gelex::genotype::Genotype
 
 auto make_model() -> gelex::BayesModel
 {
+    std::vector<gelex::bayes::RandomDesign> random;
+    random.emplace_back(
+        "batch",
+        std::vector<std::string>{"a", "b"},
+        Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}});
+
     std::vector<gelex::bayes::GeneticDesign> genetics;
     genetics.emplace_back(
         gelex::GeneticMode::A,
@@ -70,7 +76,7 @@ auto make_model() -> gelex::BayesModel
     return gelex::BayesModel{
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
         gelex::FixedDesign::build(3),
-        {},
+        std::move(random),
         std::move(genetics)};
 }
 
@@ -105,11 +111,15 @@ auto make_records(
             block.prior_state());
 
     state.fixed().coeffs = Eigen::VectorXd{{1.0}};
+    state.random()[0].coeffs = Eigen::VectorXd{{10.0, 20.0}};
+    state.random()[0].variance = 2.0;
     state.residual().variance = 5.0;
     prior_state.assignment() = Eigen::VectorXi{{0, 1}};
     records.store(model, state);
 
     state.fixed().coeffs = Eigen::VectorXd{{3.0}};
+    state.random()[0].coeffs = Eigen::VectorXd{{14.0, 28.0}};
+    state.random()[0].variance = 4.0;
     state.residual().variance = 9.0;
     prior_state.assignment() = Eigen::VectorXi{{2, 3}};
     records.store(model, state);
@@ -215,4 +225,36 @@ TEST_CASE("write_summary writes user-facing summary", "[mcmc][mcmc_result]")
     REQUIRE(content.find("state/") == std::string::npos);
     REQUIRE(content.find("assignment") == std::string::npos);
     REQUIRE(content.find("coeffs") == std::string::npos);
+}
+
+TEST_CASE("write_params writes fixed and random effects", "[mcmc][mcmc_result]")
+{
+    auto model = make_model();
+    auto prior = make_prior();
+    gelex::BayesState state(model, prior);
+    auto records = make_records(model, state);
+    gelex::mcmc::Result result{std::move(records), model, 2};
+
+    gelex::test::FileFixture files;
+    auto prefix = files.get_test_dir() / "mcmc_params";
+    gelex::mcmc::write_params(result, prefix);
+
+    auto params_path = prefix;
+    params_path += ".param";
+    REQUIRE(std::filesystem::exists(params_path));
+
+    std::ifstream input(params_path);
+    const std::string content{
+        std::istreambuf_iterator<char>{input},
+        std::istreambuf_iterator<char>{}};
+
+    REQUIRE(content.find("term\tmean\tstddev\n") == 0);
+    REQUIRE(
+        content.find("Intercept\t2.00000000e+00\t") != std::string::npos);
+    REQUIRE(content.find("batch_a\t1.20000000e+01\t") != std::string::npos);
+    REQUIRE(content.find("batch_b\t2.40000000e+01\t") != std::string::npos);
+    REQUIRE(content.find("σ²") == std::string::npos);
+    REQUIRE(content.find("π[") == std::string::npos);
+    REQUIRE(content.find("state/") == std::string::npos);
+    REQUIRE(content.find("assignment") == std::string::npos);
 }

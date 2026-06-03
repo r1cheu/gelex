@@ -25,7 +25,7 @@
 #include "gelex/exception.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/notify.h"
-#include "gelex/io/mcmc/result_writer.h"
+#include "gelex/io/mcmc.h"
 
 namespace gelex
 {
@@ -100,6 +100,7 @@ auto Engine::run(
 
     auto solver = mcmc::Solver{config_.mcmc_params};
     auto result = solver.run(model, prior, config_.seed, observer);
+    mcmc::write_params(result, config_.out_prefix);
     mcmc::write_summary(result, config_.out_prefix);
     notify(observer, FitResultsSavedEvent{config_.out_prefix});
 }

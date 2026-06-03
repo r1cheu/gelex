@@ -14,29 +14,26 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_MCMC_PARAMETER_WRITER_H_
-#define GELEX_IO_MCMC_PARAMETER_WRITER_H_
+#ifndef GELEX_IO_MCMC_H_
+#define GELEX_IO_MCMC_H_
 
 #include <filesystem>
-
-namespace gelex::mcmc
-{
-class Result;
-}  // namespace gelex::mcmc
 
 namespace gelex
 {
 
-class ParameterWriter
+namespace mcmc
 {
-   public:
-    ParameterWriter(
-        const mcmc::Result& result,
-        const std::filesystem::path& output_path);
 
-    auto write() -> void;
-};
+class Result;
+
+auto write_summary(const Result& result, const std::filesystem::path& prefix)
+    -> void;
+auto write_params(const Result& result, const std::filesystem::path& prefix)
+    -> void;
+
+}  // namespace mcmc
 
 }  // namespace gelex
 
-#endif  // GELEX_IO_MCMC_PARAMETER_WRITER_H_
+#endif  // GELEX_IO_MCMC_H_
