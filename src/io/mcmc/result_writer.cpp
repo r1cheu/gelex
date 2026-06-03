@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <filesystem>
+#include <string_view>
 #include <variant>
 
 #include <fmt/format.h>
@@ -30,7 +31,7 @@
 namespace gelex
 {
 
-auto mcmc::write_result(
+auto mcmc::write_summary(
     const Result& result,
     const std::filesystem::path& prefix) -> void
 {
@@ -38,7 +39,7 @@ auto mcmc::write_result(
     output_path += ".summary";
 
     io::detail::TextWriter writer(output_path);
-    writer.write_header({"term", "mean", "stddev"});
+    writer.write_header({"term", "effect", "mean", "stddev"});
 
     for (const auto& record : result.records())
     {
@@ -54,13 +55,34 @@ auto mcmc::write_result(
 
         const auto& stats = std::get<stats::RunningStatsResult>(record.value);
         const auto& names = *record.names;
+        std::string_view effect{"-"};
+        std::string_view path{record.path};
+        std::size_t start{};
+        while (start < path.size())
+        {
+            const auto end = path.find('/', start);
+            const auto segment = end == std::string_view::npos
+                                     ? path.substr(start)
+                                     : path.substr(start, end - start);
+            if (segment == "A" || segment == "D")
+            {
+                effect = segment;
+                break;
+            }
+            if (end == std::string_view::npos)
+            {
+                break;
+            }
+            start = end + 1;
+        }
         for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(names.size());
              ++i)
         {
             writer.write(
                 fmt::format(
-                    "{}\t{}\t{}",
+                    "{}\t{}\t{:.8e}\t{:.8e}",
                     names[static_cast<std::size_t>(i)],
+                    effect,
                     stats.mean(i),
                     stats.stddev(i)));
         }

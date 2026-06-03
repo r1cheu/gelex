@@ -99,8 +99,8 @@ auto Engine::run(
     notify(observer, FitPriorSetEvent{&prior});
 
     auto solver = mcmc::Solver{config_.mcmc_params};
-    auto result = solver.run(model, std::move(prior), config_.seed, observer);
-    mcmc::write_result(result, config_.out_prefix);
+    auto result = solver.run(model, prior, config_.seed, observer);
+    mcmc::write_summary(result, config_.out_prefix);
     notify(observer, FitResultsSavedEvent{config_.out_prefix});
 }
 

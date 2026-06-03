@@ -27,7 +27,7 @@ namespace mcmc
 
 class Result;
 
-auto write_result(const Result& result, const std::filesystem::path& prefix)
+auto write_summary(const Result& result, const std::filesystem::path& prefix)
     -> void;
 
 }  // namespace mcmc

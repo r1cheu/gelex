@@ -45,7 +45,7 @@ class Solver
 
     auto run(
         const BayesModel& model,
-        bayes::BayesPrior prior,
+        const bayes::BayesPrior& prior,
         Eigen::Index seed = 42,
         const MCMCObserver& observer = {}) -> mcmc::Result;
 

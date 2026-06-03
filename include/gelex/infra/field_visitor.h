@@ -101,6 +101,11 @@ class FieldVisitor
         std::span<const std::string> value,
         FieldFlag flags) -> void = 0;
 
+    virtual auto on(
+        std::string_view name,
+        std::string_view value,
+        FieldFlag flags) -> void = 0;
+
     template <typename Enum>
         requires std::is_enum_v<Enum>
     auto on(std::string_view name, Enum& value, FieldFlag flags) -> void

@@ -16,7 +16,6 @@
 
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
 
-#include <array>
 #include <utility>
 
 #include <fmt/format.h>
@@ -41,6 +40,7 @@ auto SingleSharedGaussianState::visit(infra::FieldVisitor& visitor) -> void
     auto scope = visitor.scope(name);
     visitor.on(
         "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on("variance_name", "σ²_marker", FieldFlag::summary);
 }
 
 SinglePerMarkerGaussianState::SinglePerMarkerGaussianState(
@@ -70,6 +70,7 @@ auto SingleSharedSpikeSlabGaussianState::visit(infra::FieldVisitor& visitor)
     auto scope = visitor.scope(name);
     visitor.on(
         "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on("variance_name", "σ²_marker", FieldFlag::summary);
     mixture_.visit(visitor);
 }
 
@@ -108,6 +109,7 @@ auto SingleScaledMixtureGaussianState::visit(infra::FieldVisitor& visitor)
     auto scope = visitor.scope(name);
     visitor.on(
         "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on("variance_name", "σ²_marker", FieldFlag::summary);
     component().visit(visitor);
     mixture_.visit(visitor);
 }
@@ -145,6 +147,7 @@ auto JointGaussianMixtureState::visit(infra::FieldVisitor& visitor) -> void
             "variance",
             variance(mode),
             FieldFlag::checkpoint | FieldFlag::trace);
+        visitor.on("variance_name", "σ²_marker", FieldFlag::summary);
     }
     component().visit(visitor);
     mixture_.visit(visitor);

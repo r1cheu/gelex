@@ -639,17 +639,17 @@ TEST_CASE("Solver::run collects single genetic samples", "[mcmc][solver]")
     REQUIRE(residual.mean.allFinite());
 
     const auto& coeffs = std::get<gelex::stats::RunningStatsResult>(
-        result.get("state/genetic_0/single/genetic/coeffs"));
+        result.get("state/genetic_0/single/A/genetic/coeffs"));
     REQUIRE(coeffs.mean.size() == 2);
     REQUIRE(coeffs.mean.allFinite());
 
     const auto& variance = std::get<gelex::stats::RunningStatsResult>(
-        result.get("state/genetic_0/single/genetic/variance"));
+        result.get("state/genetic_0/single/A/genetic/variance"));
     REQUIRE(variance.mean.size() == 1);
     REQUIRE(variance.mean.allFinite());
 
     const auto& heritability = std::get<gelex::stats::RunningStatsResult>(
-        result.get("state/genetic_0/single/genetic/heritability"));
+        result.get("state/genetic_0/single/A/genetic/heritability"));
     REQUIRE(heritability.mean.size() == 1);
     REQUIRE(heritability.mean.allFinite());
 }
@@ -743,6 +743,7 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
     bool complete = false;
     bool saved = false;
     std::string saved_prefix;
+    const gelex::bayes::BayesPrior* progress_prior = nullptr;
     std::ptrdiff_t samples_collected = 0;
     auto observer = [&](const gelex::MCMCEvent& event)
     {
@@ -751,6 +752,7 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
         {
             prior_seen = true;
             REQUIRE(prior_event->prior != nullptr);
+            progress_prior = prior_event->prior;
         }
         if (const auto* progress
             = std::get_if<gelex::MCMCProgressEvent>(&event))
@@ -758,6 +760,14 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
             if (progress->done)
             {
                 done = true;
+            }
+            else
+            {
+                REQUIRE(progress_prior != nullptr);
+                REQUIRE(progress->state != nullptr);
+                REQUIRE(
+                    progress_prior->genetics().size()
+                    == progress->state->genetics().size());
             }
         }
         if (const auto* complete_event

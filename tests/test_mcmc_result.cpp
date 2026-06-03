@@ -94,7 +94,6 @@ auto make_prior() -> gelex::bayes::BayesPrior
 
 auto make_records(
     const gelex::BayesModel& model,
-    const gelex::bayes::BayesPrior& prior,
     gelex::BayesState& state)
     -> gelex::mcmc::Records
 {
@@ -108,12 +107,12 @@ auto make_records(
     state.fixed().coeffs = Eigen::VectorXd{{1.0}};
     state.residual().variance = 5.0;
     prior_state.assignment() = Eigen::VectorXi{{0, 1}};
-    records.store(model, prior, state);
+    records.store(model, state);
 
     state.fixed().coeffs = Eigen::VectorXd{{3.0}};
     state.residual().variance = 9.0;
     prior_state.assignment() = Eigen::VectorXi{{2, 3}};
-    records.store(model, prior, state);
+    records.store(model, state);
     return records;
 }
 
@@ -124,7 +123,7 @@ TEST_CASE("Result owns finalized record values", "[mcmc][mcmc_result]")
     auto model = make_model();
     auto prior = make_prior();
     gelex::BayesState state(model, prior);
-    auto records = make_records(model, prior, state);
+    auto records = make_records(model, state);
 
     gelex::mcmc::Result result{std::move(records), model, 2};
 
@@ -146,7 +145,7 @@ TEST_CASE("Result owns finalized record values", "[mcmc][mcmc_result]")
     REQUIRE(residual.stddev.isApprox(Eigen::VectorXd{{std::sqrt(8.0)}}));
 
     constexpr std::string_view assignment_path{
-        "state/genetic_0/single/prior_state/"
+        "state/genetic_0/single/A/prior_state/"
         "scaled_mixture_gaussian/mixture/assignment"};
     const Eigen::MatrixXd expected_probabilities{
         {0.5, 0.0, 0.5, 0.0},
@@ -175,23 +174,23 @@ TEST_CASE("Result rejects missing record paths", "[mcmc][mcmc_result]")
     auto model = make_model();
     auto prior = make_prior();
     gelex::BayesState state(model, prior);
-    auto records = make_records(model, prior, state);
+    auto records = make_records(model, state);
     gelex::mcmc::Result result{std::move(records), model, 2};
 
     REQUIRE_THROWS_AS(result.get("state/missing/path"), gelex::GelexException);
 }
 
-TEST_CASE("write_result writes user-facing summary", "[mcmc][mcmc_result]")
+TEST_CASE("write_summary writes user-facing summary", "[mcmc][mcmc_result]")
 {
     auto model = make_model();
     auto prior = make_prior();
     gelex::BayesState state(model, prior);
-    auto records = make_records(model, prior, state);
+    auto records = make_records(model, state);
     gelex::mcmc::Result result{std::move(records), model, 2};
 
     gelex::test::FileFixture files;
     auto prefix = files.get_test_dir() / "mcmc_result";
-    gelex::mcmc::write_result(result, prefix);
+    gelex::mcmc::write_summary(result, prefix);
 
     auto summary_path = prefix;
     summary_path += ".summary";
@@ -202,11 +201,17 @@ TEST_CASE("write_result writes user-facing summary", "[mcmc][mcmc_result]")
         std::istreambuf_iterator<char>{input},
         std::istreambuf_iterator<char>{}};
 
-    REQUIRE(content.find("term\tmean\tstddev\n") == 0);
-    REQUIRE(content.find("Intercept\t2\t") != std::string::npos);
-    REQUIRE(content.find("σ²_e\t7\t") != std::string::npos);
-    REQUIRE(content.find("σ²_add\t") != std::string::npos);
-    REQUIRE(content.find("π_add[0]\t") != std::string::npos);
+    REQUIRE(content.find("term\teffect\tmean\tstddev\n") == 0);
+    REQUIRE(
+        content.find("Intercept\t-\t2.00000000e+00\t")
+        != std::string::npos);
+    REQUIRE(
+        content.find("σ²_e\t-\t7.00000000e+00\t") != std::string::npos);
+    REQUIRE(content.find("σ²\tA\t") != std::string::npos);
+    REQUIRE(content.find("σ²_marker\tA\t") != std::string::npos);
+    REQUIRE(content.find("π[0]\tA\t") != std::string::npos);
+    REQUIRE(content.find("additive") == std::string::npos);
+    REQUIRE(content.find("dominance") == std::string::npos);
     REQUIRE(content.find("state/") == std::string::npos);
     REQUIRE(content.find("assignment") == std::string::npos);
     REQUIRE(content.find("coeffs") == std::string::npos);

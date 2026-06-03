@@ -79,29 +79,33 @@ auto GeneticState::visit(infra::FieldVisitor& visitor) -> void
     visitor.on("coeffs", coeffs, FieldFlag::checkpoint | FieldFlag::trace);
     visitor.on("u", u, FieldFlag::checkpoint);
     visitor.on("variance", variance, FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on("variance_name", "σ²", FieldFlag::summary);
     visitor.on(
         "heritability", heritability, FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on("heritability_name", "h²", FieldFlag::summary);
 }
 
 SingleGeneticBlockState::SingleGeneticBlockState(
     const GeneticDesign& design,
     const SingleGeneticPrior& prior)
-    : state_{design.X.cols(), design.X.rows()},
+    : mode_{gelex::bayes::mode(prior)},
+      state_{design.X.cols(), design.X.rows()},
       prior_state_(make_state(prior, design.X.cols(), design.X.rows()))
 {
-    if (design.type != gelex::bayes::mode(prior))
+    if (design.type != mode_)
     {
         throw GelexException(
             fmt::format(
                 "SingleGeneticBlockState: design mode {} != prior mode {}",
                 design.type,
-                gelex::bayes::mode(prior)));
+                mode_));
     }
 }
 
 auto SingleGeneticBlockState::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
+    auto mode_scope = visitor.scope(fmt::format("{}", mode_));
     state_.visit(visitor);
     auto prior_scope = visitor.scope("prior_state");
     std::visit([&visitor](auto& state) { state.visit(visitor); }, prior_state_);
@@ -190,6 +194,7 @@ auto ResidualState::visit(infra::FieldVisitor& visitor) -> void
     auto scope = visitor.scope(name);
     visitor.on("y_adj", y_adj, FieldFlag::checkpoint);
     visitor.on("variance", variance, FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on("variance_name", "σ²_e", FieldFlag::summary);
 }
 
 }  // namespace gelex::bayes

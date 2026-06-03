@@ -118,6 +118,7 @@ class SingleGeneticBlockState
     auto visit(infra::FieldVisitor& visitor) -> void;
 
    private:
+    GeneticMode mode_{};
     GeneticState state_;
     SingleGeneticPriorState prior_state_;
 };

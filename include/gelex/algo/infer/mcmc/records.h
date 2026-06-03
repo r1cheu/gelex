@@ -38,11 +38,6 @@ namespace gelex
 class BayesState;
 class BayesModel;
 
-namespace bayes
-{
-class BayesPrior;
-}
-
 namespace mcmc
 {
 
@@ -66,10 +61,7 @@ class Records : private infra::FieldVisitor
     auto operator=(Records&& other) noexcept -> Records&;
     ~Records() override = default;
 
-    auto store(
-        const BayesModel& model,
-        const bayes::BayesPrior& prior,
-        BayesState& state) -> void;
+    auto store(const BayesModel& model, BayesState& state) -> void;
 
     auto take_results() && -> std::vector<RecordEntry>;
 
@@ -118,6 +110,8 @@ class Records : private infra::FieldVisitor
         std::string_view name,
         std::span<const std::string> value,
         FieldFlag flags) -> void override;
+    auto on(std::string_view name, std::string_view value, FieldFlag flags)
+        -> void override;
 
     std::vector<Record> records_;
     std::vector<std::string> paths_;

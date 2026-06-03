@@ -16,7 +16,11 @@
 
 #include "gelex/bayes/genetic/prior_state_values.h"
 
+#include <cstddef>
 #include <ranges>
+#include <span>
+#include <string>
+#include <vector>
 
 #include <fmt/format.h>
 #include <Eigen/Core>
@@ -42,6 +46,16 @@ auto MixtureState::visit(infra::FieldVisitor& visitor) -> void
 
     visitor.on(
         "proportion", proportion, FieldFlag::checkpoint | FieldFlag::trace);
+    std::vector<std::string> proportion_names;
+    proportion_names.reserve(static_cast<std::size_t>(proportion.size()));
+    for (Eigen::Index i = 0; i < proportion.size(); ++i)
+    {
+        proportion_names.push_back(fmt::format("π[{}]", i));
+    }
+    visitor.on(
+        "proportion_names",
+        std::span<const std::string>{proportion_names},
+        FieldFlag::summary);
     visitor.on(
         "assignment", assignment, FieldFlag::checkpoint | FieldFlag::trace);
 }
@@ -60,6 +74,16 @@ auto ComponentState::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on("gebv_var", gebv_var, FieldFlag::checkpoint | FieldFlag::trace);
+    std::vector<std::string> gebv_var_names;
+    gebv_var_names.reserve(static_cast<std::size_t>(gebv_var.size()));
+    for (Eigen::Index i = 0; i < gebv_var.size(); ++i)
+    {
+        gebv_var_names.push_back(fmt::format("σ²_component[{}]", i));
+    }
+    visitor.on(
+        "gebv_var_names",
+        std::span<const std::string>{gebv_var_names},
+        FieldFlag::summary);
     for (auto [i, value] : std::views::enumerate(gebv))
     {
         visitor.on(fmt::format("gebv_{}", i), value, FieldFlag::checkpoint);

@@ -16,7 +16,6 @@
 
 #include "gelex/bayes/design.h"
 
-#include <array>
 #include <span>
 #include <string>
 #include <vector>
@@ -43,11 +42,8 @@ auto RandomDesign::visit(infra::FieldVisitor& visitor) const -> void
         std::span<const std::string>{coeff_names},
         FieldFlag::summary);
 
-    const std::array<std::string, 1> variance_names{fmt::format("σ²_{}", name)};
-    visitor.on(
-        "variance_names",
-        std::span<const std::string>{variance_names},
-        FieldFlag::summary);
+    const auto variance_name = fmt::format("σ²_{}", name);
+    visitor.on("variance_name", variance_name, FieldFlag::summary);
 }
 
 }  // namespace gelex::bayes

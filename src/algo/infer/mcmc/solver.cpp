@@ -41,7 +41,7 @@ Solver::Solver(
 
 auto Solver::run(
     const BayesModel& model,
-    bayes::BayesPrior prior,
+    const bayes::BayesPrior& prior,
     Eigen::Index seed,
     const MCMCObserver& observer) -> mcmc::Result
 {
@@ -77,7 +77,7 @@ auto Solver::run(
         if (iter >= params_.n_burn_in
             && (iter + 1 - params_.n_burn_in) % params_.n_thin == 0)
         {
-            records.store(model, prior, state);
+            records.store(model, state);
         }
     }
 
