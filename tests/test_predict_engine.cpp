@@ -144,7 +144,7 @@ auto create_snp_effects_file(
     const std::vector<std::vector<std::string>>& snp_rows) -> void
 {
     std::vector<std::string> headers
-        = {"Chrom", "Position", "ID", "A1", "A2", "A1Freq", "Add", "Dom"};
+        = {"CHR", "SNP", "BP", "A1", "A2", "A1FREQ", "BETA_A", "BETA_D"};
     (void)ff.create_named_text_file(
         std::string(gfile_prefix) + ".snp.eff", make_tsv(headers, snp_rows));
 }
@@ -310,8 +310,8 @@ TEST_CASE(
     auto& ff = bed.get_file_fixture();
 
     const std::vector<std::vector<std::string>> snp_rows
-        = {{"1", "1000", "rs1", "A", "C", "0.30", "0.10", "0.02"},
-           {"1", "2000", "rs2", "T", "G", "0.40", "-0.05", "0.01"}};
+        = {{"1", "rs1", "1000", "A", "C", "0.30", "0.10", "0.02"},
+           {"1", "rs2", "2000", "T", "G", "0.40", "-0.05", "0.01"}};
 
     auto gfile_prefix = (ff.get_test_dir() / "gfile").string();
     create_snp_effects_file(ff, gfile_prefix, snp_rows);

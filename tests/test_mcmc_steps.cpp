@@ -759,7 +759,13 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
         .n_iters = 4, .n_burn_in = 1, .n_thin = 1, .checkpoint_step = 0};
     gelex::test::FileFixture files;
     const auto prefix = files.get_test_dir() / "mcmc_engine_test";
+    const auto bfile_prefix = files.get_test_dir() / "mcmc_engine_geno";
+    (void)files.create_named_text_file(
+        "mcmc_engine_geno.bim",
+        "1\trs1\t0\t100\tA\tG\n"
+        "1\trs2\t0\t200\tC\tT\n");
     gelex::mcmc::Engine engine{gelex::mcmc::Engine::Config{
+        .bfile_prefix = bfile_prefix.string(),
         .seed = 123,
         .mcmc_params = params,
         .out_prefix = prefix.string(),
@@ -827,6 +833,9 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
     auto params_path = prefix;
     params_path += ".param";
     REQUIRE(std::filesystem::exists(params_path));
+    auto snp_path = prefix;
+    snp_path += ".snp.eff";
+    REQUIRE(std::filesystem::exists(snp_path));
 }
 
 TEST_CASE("Engine::run rejects unsupported MCMC runtime options", "[mcmc][engine]")

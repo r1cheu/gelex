@@ -67,18 +67,18 @@ auto PredictEngine::load_params() const -> PredictParams
     bool enable_dom{};
     if (sbin.has_dom)
     {
-        if (!snp_effects.contains("Dom"))
+        if (!snp_effects.contains("BETA_D"))
         {
             throw GelexException(
                 "Sbin file contains dominance effects, but SNP effects file "
-                "does not have 'Dom' column.");
+                "does not have 'BETA_D' column.");
         }
         enable_dom = true;
     }
 
-    Eigen::VectorXd add_effects = snp_effects["Add"].to_map<double>();
+    Eigen::VectorXd add_effects = snp_effects["BETA_A"].to_map<double>();
     auto dom_effects = enable_dom ? std::make_optional<Eigen::VectorXd>(
-                                        snp_effects["Dom"].to_mat<double>())
+                                        snp_effects["BETA_D"].to_mat<double>())
                                   : std::nullopt;
 
     return PredictParams{

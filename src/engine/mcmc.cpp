@@ -102,6 +102,8 @@ auto Engine::run(
     auto result = solver.run(model, prior, config_.seed, observer);
     mcmc::write_params(result, config_.out_prefix);
     mcmc::write_summary(result, config_.out_prefix);
+    mcmc::write_snp_eff(
+        result, model, config_.bfile_prefix + ".bim", config_.out_prefix);
     notify(observer, FitResultsSavedEvent{config_.out_prefix});
 }
 

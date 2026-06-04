@@ -23,6 +23,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
@@ -54,18 +55,24 @@ class Result
     auto phenotype_variance() const -> double { return phenotype_var_; }
 
    private:
-    static auto make_pve_record(
-        const BayesModel& model,
-        const RecordEntry& record,
-        double phenotype_var) -> std::optional<RecordEntry>;
-    static auto make_pip_records(const RecordEntry& record)
-        -> std::vector<RecordEntry>;
+    auto append_derived_records(const BayesModel& model, std::size_t n_records)
+        -> void;
+    auto append_record(std::string path, Eigen::VectorXd&& value) -> void;
+    auto append_pve_record(
+        std::string path,
+        const Eigen::Ref<const Eigen::MatrixXd>& genetic_values) -> void;
+    auto index_records() -> void;
+
+    static auto make_pve(const BayesModel& model, const RecordEntry& record)
+        -> std::optional<std::pair<Eigen::MatrixXd, std::string>>;
+    auto make_pip_records(const RecordEntry& record) -> void;
 
     double phenotype_var_;
 
     std::vector<RecordEntry> records_;
     std::unordered_map<std::string, std::size_t> record_indices_;
     Eigen::Index samples_collected_{};
+    Eigen::MatrixXd pve_buffer_;
 };
 
 }  // namespace mcmc

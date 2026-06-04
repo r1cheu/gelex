@@ -23,6 +23,8 @@
 namespace gelex
 {
 
+class BayesModel;
+
 namespace mcmc
 {
 
@@ -32,6 +34,11 @@ auto write_summary(const Result& result, const std::filesystem::path& prefix)
     -> void;
 auto write_params(const Result& result, const std::filesystem::path& prefix)
     -> void;
+auto write_snp_eff(
+    const Result& result,
+    const BayesModel& model,
+    const std::filesystem::path& bim_path,
+    const std::filesystem::path& prefix) -> void;
 auto write_results(const Result& result, std::string_view prefix) -> void;
 
 }  // namespace mcmc

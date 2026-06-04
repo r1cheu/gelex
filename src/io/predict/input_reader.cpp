@@ -27,7 +27,6 @@
 #include <span>
 #include <sstream>
 #include <string>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -47,12 +46,6 @@ namespace gelex::predict
 namespace detail
 {
 
-const std::unordered_set<std::string> SNP_STRING_COLS{
-    "Chrom",
-    "Position",
-    "A1",
-    "A2"};
-
 auto snp_effects_schema(const std::filesystem::path& path)
     -> std::vector<dataframe::ColumnType>
 {
@@ -71,11 +64,11 @@ auto snp_effects_schema(const std::filesystem::path& path)
     std::vector<dataframe::ColumnType> schema;
     for (const auto& name : tokens)
     {
-        if (name == "ID")
+        if (name == "SNP")
         {
             continue;
         }
-        auto type = SNP_STRING_COLS.contains(name)
+        auto type = (name == "CHR" || name == "A1" || name == "A2")
                         ? dataframe::ColumnType::String
                         : dataframe::ColumnType::Double;
         schema.push_back(type);

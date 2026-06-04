@@ -114,13 +114,13 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "read_snp_effects reads effect file with SNP ID as index",
+    "read_snp_effects reads effect file with SNP as index",
     "[predict][reader]")
 {
     FileFixture files;
 
     constexpr std::string_view CONTENT
-        = "Chrom\tID\tPosition\tA1\tA2\tA1Freq\tAdd\tDom\n"
+        = "CHR\tSNP\tBP\tA1\tA2\tA1FREQ\tBETA_A\tBETA_D\n"
           "1\trs1\t1000\tA\tG\t0.3\t0.5\t0.1\n"
           "1\trs2\t2000\tC\tT\t0.4\t-0.2\t0.0\n"
           "2\trs3\t500\tA\tT\t0.1\t0.8\t-0.3\n";
@@ -134,18 +134,18 @@ TEST_CASE(
     REQUIRE(df.index().at("rs2") == 1);
     REQUIRE(df.index().at("rs3") == 2);
 
-    auto add = df["Add"].as<double>();
+    auto add = df["BETA_A"].as<double>();
     REQUIRE(add[0] == 0.5);
     REQUIRE(add[1] == -0.2);
     REQUIRE(add[2] == 0.8);
 
-    auto freq = df["A1Freq"].as<double>();
+    auto freq = df["A1FREQ"].as<double>();
     REQUIRE(freq[0] == 0.3);
     REQUIRE(freq[1] == 0.4);
     REQUIRE(freq[2] == 0.1);
 
-    REQUIRE(df.contains("Dom"));
-    auto dom = df["Dom"].as<double>();
+    REQUIRE(df.contains("BETA_D"));
+    auto dom = df["BETA_D"].as<double>();
     REQUIRE(dom[0] == 0.1);
     REQUIRE(dom[1] == 0.0);
     REQUIRE(dom[2] == -0.3);
@@ -160,7 +160,7 @@ TEST_CASE(
     SECTION("happy path: all SNPs match")
     {
         auto eff_path = files.create_text_file(
-            "Chrom\tID\tA1\tA2\tAdd\n"
+            "CHR\tSNP\tA1\tA2\tBETA_A\n"
             "1\trs1\tA\tG\t0.5\n"
             "1\trs2\tC\tT\t-0.2\n"
             "2\trs3\tA\tT\t0.8\n",
@@ -187,7 +187,7 @@ TEST_CASE(
     SECTION("partial match: some SNPs missing from bim")
     {
         auto eff_path = files.create_text_file(
-            "Chrom\tID\tA1\tA2\tAdd\n"
+            "CHR\tSNP\tA1\tA2\tBETA_A\n"
             "1\trs1\tA\tG\t0.5\n"
             "1\trs2\tC\tT\t-0.2\n"
             "2\trs3\tA\tT\t0.8\n",
@@ -210,10 +210,10 @@ TEST_CASE(
         REQUIRE(alignment.column_map[2] == 1);
     }
 
-    SECTION("allele mismatch: ID matches but alleles differ")
+    SECTION("allele mismatch: SNP matches but alleles differ")
     {
         auto eff_path = files.create_text_file(
-            "Chrom\tID\tA1\tA2\tAdd\n"
+            "CHR\tSNP\tA1\tA2\tBETA_A\n"
             "1\trs1\tA\tG\t0.5\n"
             "1\trs2\tC\tT\t-0.2\n"
             "2\trs3\tA\tT\t0.8\n",
@@ -240,7 +240,7 @@ TEST_CASE(
     SECTION("no match: all SNPs missing from bim")
     {
         auto eff_path = files.create_text_file(
-            "Chrom\tID\tA1\tA2\tAdd\n"
+            "CHR\tSNP\tA1\tA2\tBETA_A\n"
             "1\trs1\tA\tG\t0.5\n"
             "1\trs2\tC\tT\t-0.2\n",
             ".snp.eff");

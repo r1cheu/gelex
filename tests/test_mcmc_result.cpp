@@ -171,6 +171,8 @@ TEST_CASE("Result owns finalized record values", "[mcmc][mcmc_result]")
     REQUIRE_THROWS_AS(result.get("state/fixed/pve"), gelex::GelexException);
     REQUIRE_THROWS_AS(result.get("state/random_0/pve"), gelex::GelexException);
 
+    REQUIRE_THROWS_AS(result.get("state/genetic/pve"), gelex::GelexException);
+
     constexpr std::string_view assignment_path{
         "state/genetic_0/single/A/prior_state/"
         "scaled_mixture_gaussian/mixture/assignment"};
@@ -260,8 +262,12 @@ TEST_CASE("Result derives joint genetic PIP by effect", "[mcmc][mcmc_result]")
         block.prior_state());
     gelex::mcmc::Records records;
 
+    block.state(gelex::GeneticMode::A).coeffs = Eigen::VectorXd{{0.5, 1.0}};
+    block.state(gelex::GeneticMode::D).coeffs = Eigen::VectorXd{{1.0, 0.5}};
     prior_state.assignment() = Eigen::VectorXi{{0, 1}};
     records.store(model, state);
+    block.state(gelex::GeneticMode::A).coeffs = Eigen::VectorXd{{1.5, 2.0}};
+    block.state(gelex::GeneticMode::D).coeffs = Eigen::VectorXd{{0.5, 1.5}};
     prior_state.assignment() = Eigen::VectorXi{{2, 3}};
     records.store(model, state);
 
@@ -288,11 +294,35 @@ TEST_CASE("Result derives joint genetic PIP by effect", "[mcmc][mcmc_result]")
     REQUIRE(dominance_pip.mean.isApprox(Eigen::VectorXd{{0.5, 0.5}}));
     REQUIRE(additive_pip.stddev.isApprox(Eigen::VectorXd::Zero(2)));
     REQUIRE(dominance_pip.stddev.isApprox(Eigen::VectorXd::Zero(2)));
+    const auto& total_pve = std::get<gelex::stats::RunningStatsResult>(
+        result.get("state/genetic/pve"));
+    REQUIRE(total_pve.mean.isApprox(
+        Eigen::VectorXd{{3.0625, 2.0833333333333335}}));
     REQUIRE_THROWS_AS(
         result.get(
             "state/genetic_0/joint/prior_state/"
             "joint_mixture_gaussian/mixture/pip"),
         gelex::GelexException);
+
+    gelex::test::FileFixture files;
+    auto bim_path = files.create_text_file(
+        "1\trs1\t0\t100\tA\tG\n"
+        "2\trs2\t0\t200\tC\tT\n",
+        ".bim");
+    auto prefix = files.get_test_dir() / "joint_mcmc_snp";
+    gelex::mcmc::write_snp_eff(result, model, bim_path, prefix);
+    auto snp_path = prefix;
+    snp_path += ".snp.eff";
+    REQUIRE(std::filesystem::exists(snp_path));
+    std::ifstream input(snp_path);
+    const std::string content{
+        std::istreambuf_iterator<char>{input},
+        std::istreambuf_iterator<char>{}};
+    REQUIRE(
+        content.find(
+            "CHR\tSNP\tBP\tA1\tA2\tA1FREQ\tBETA_A\tSE_A\tPVE_A\t"
+            "PIP_A\tBETA_D\tSE_D\tPVE_D\tPIP_D\tPVE\n")
+        == 0);
 }
 
 TEST_CASE("write_summary writes user-facing summary", "[mcmc][mcmc_result]")
@@ -364,4 +394,50 @@ TEST_CASE("write_params writes fixed and random effects", "[mcmc][mcmc_result]")
     REQUIRE(content.find("π[") == std::string::npos);
     REQUIRE(content.find("state/") == std::string::npos);
     REQUIRE(content.find("assignment") == std::string::npos);
+}
+
+TEST_CASE("write_snp_eff writes dynamic SNP effect columns", "[mcmc][mcmc_result]")
+{
+    auto model = make_model();
+    auto prior = make_prior();
+    gelex::BayesState state(model, prior);
+    auto records = make_records(model, state);
+    gelex::mcmc::Result result{std::move(records), model, 2};
+
+    gelex::test::FileFixture files;
+    auto bim_path = files.create_text_file(
+        "1\trs1\t0\t100\tA\tG\n"
+        "2\trs2\t0\t200\tC\tT\n",
+        ".bim");
+    auto prefix = files.get_test_dir() / "mcmc_snp";
+    gelex::mcmc::write_snp_eff(result, model, bim_path, prefix);
+
+    auto snp_path = prefix;
+    snp_path += ".snp.eff";
+    REQUIRE(std::filesystem::exists(snp_path));
+
+    std::ifstream input(snp_path);
+    const std::string content{
+        std::istreambuf_iterator<char>{input},
+        std::istreambuf_iterator<char>{}};
+
+    REQUIRE(
+        content.find(
+            "CHR\tSNP\tBP\tA1\tA2\tA1FREQ\tBETA_A\tSE_A\tPVE_A\t"
+            "PIP_A\n")
+        == 0);
+    REQUIRE(
+        content.find(
+            "1\trs1\t100\tA\tG\t5.00000000e-01\t1.00000000e+00\t")
+        != std::string::npos);
+    REQUIRE(
+        content.find("\t1.00000000e+00\t5.00000000e-01\n")
+        != std::string::npos);
+    REQUIRE(
+        content.find(
+            "2\trs2\t200\tC\tT\t3.33333333e-01\t1.50000000e+00\t")
+        != std::string::npos);
+    REQUIRE(content.find("BETA_D") == std::string::npos);
+    REQUIRE(content.find("PIP_D") == std::string::npos);
+    REQUIRE(content.find("PIP_A\tPVE") == std::string::npos);
 }
