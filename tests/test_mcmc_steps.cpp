@@ -643,6 +643,11 @@ TEST_CASE("Solver::run collects single genetic samples", "[mcmc][solver]")
     REQUIRE(coeffs.mean.size() == 2);
     REQUIRE(coeffs.mean.allFinite());
 
+    const auto& pve = std::get<gelex::stats::RunningStatsResult>(
+        result.get("state/genetic_0/single/A/genetic/pve"));
+    REQUIRE(pve.mean.size() == 2);
+    REQUIRE(pve.mean.allFinite());
+
     const auto& variance = std::get<gelex::stats::RunningStatsResult>(
         result.get("state/genetic_0/single/A/genetic/variance"));
     REQUIRE(variance.mean.size() == 1);
@@ -690,6 +695,28 @@ TEST_CASE("Solver::run collects joint genetic samples", "[mcmc][solver]")
     REQUIRE(dominance_coeffs.mean.size() == 2);
     REQUIRE(additive_coeffs.mean.allFinite());
     REQUIRE(dominance_coeffs.mean.allFinite());
+
+    const auto& additive_pve = std::get<gelex::stats::RunningStatsResult>(
+        result.get("state/genetic_0/joint/A/genetic/pve"));
+    const auto& dominance_pve = std::get<gelex::stats::RunningStatsResult>(
+        result.get("state/genetic_0/joint/D/genetic/pve"));
+    REQUIRE(additive_pve.mean.size() == 2);
+    REQUIRE(dominance_pve.mean.size() == 2);
+    REQUIRE(additive_pve.mean.allFinite());
+    REQUIRE(dominance_pve.mean.allFinite());
+
+    const auto& additive_pip = std::get<gelex::stats::RunningStatsResult>(
+        result.get(
+            "state/genetic_0/joint/prior_state/"
+            "joint_mixture_gaussian/mixture/A/pip"));
+    const auto& dominance_pip = std::get<gelex::stats::RunningStatsResult>(
+        result.get(
+            "state/genetic_0/joint/prior_state/"
+            "joint_mixture_gaussian/mixture/D/pip"));
+    REQUIRE(additive_pip.mean.size() == 2);
+    REQUIRE(dominance_pip.mean.size() == 2);
+    REQUIRE(additive_pip.mean.allFinite());
+    REQUIRE(dominance_pip.mean.allFinite());
 
     const auto& additive_variance = std::get<gelex::stats::RunningStatsResult>(
         result.get("state/genetic_0/joint/A/genetic/variance"));

@@ -18,6 +18,7 @@
 #define GELEX_IO_MCMC_H_
 
 #include <filesystem>
+#include <string_view>
 
 namespace gelex
 {
@@ -31,6 +32,7 @@ auto write_summary(const Result& result, const std::filesystem::path& prefix)
     -> void;
 auto write_params(const Result& result, const std::filesystem::path& prefix)
     -> void;
+auto write_results(const Result& result, std::string_view prefix) -> void;
 
 }  // namespace mcmc
 

@@ -28,12 +28,11 @@
 #include "gelex/infra/stats/result.h"
 #include "gelex/io/detail/text_writer.h"
 
-namespace gelex
+namespace gelex::mcmc
 {
 
-auto mcmc::write_params(
-    const Result& result,
-    const std::filesystem::path& prefix) -> void
+auto write_params(const Result& result, const std::filesystem::path& prefix)
+    -> void
 {
     auto output_path = prefix;
     output_path += ".param";
@@ -74,9 +73,8 @@ auto mcmc::write_params(
     }
 }
 
-auto mcmc::write_summary(
-    const Result& result,
-    const std::filesystem::path& prefix) -> void
+auto write_summary(const Result& result, const std::filesystem::path& prefix)
+    -> void
 {
     auto output_path = prefix;
     output_path += ".summary";
@@ -86,6 +84,11 @@ auto mcmc::write_summary(
 
     for (const auto& record : result.records())
     {
+        const std::string_view path{record.path};
+        if (path.ends_with("/pve"))
+        {
+            continue;
+        }
         if (!record.names)
         {
             continue;
@@ -99,7 +102,6 @@ auto mcmc::write_summary(
         const auto& stats = std::get<stats::RunningStatsResult>(record.value);
         const auto& names = *record.names;
         std::string_view effect{"-"};
-        std::string_view path{record.path};
         std::size_t start{};
         while (start < path.size())
         {
@@ -132,4 +134,4 @@ auto mcmc::write_summary(
     }
 }
 
-}  // namespace gelex
+}  // namespace gelex::mcmc

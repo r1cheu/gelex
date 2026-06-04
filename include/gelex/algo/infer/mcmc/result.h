@@ -18,6 +18,7 @@
 #define GELEX_ALGO_INFER_MCMC_RESULT_H_
 
 #include <cstddef>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -53,6 +54,13 @@ class Result
     auto phenotype_variance() const -> double { return phenotype_var_; }
 
    private:
+    static auto make_pve_record(
+        const BayesModel& model,
+        const RecordEntry& record,
+        double phenotype_var) -> std::optional<RecordEntry>;
+    static auto make_pip_records(const RecordEntry& record)
+        -> std::vector<RecordEntry>;
+
     double phenotype_var_;
 
     std::vector<RecordEntry> records_;
