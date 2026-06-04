@@ -40,10 +40,10 @@ auto RandomDesign::visit(infra::FieldVisitor& visitor) const -> void
     visitor.on(
         "coeffs_names",
         std::span<const std::string>{coeff_names},
-        FieldFlag::summary);
+        FieldFlag::report);
 
     const auto variance_name = fmt::format("σ²_{}", name);
-    visitor.on("variance_name", variance_name, FieldFlag::summary);
+    visitor.on("variance_name", variance_name, FieldFlag::report);
 }
 
 }  // namespace gelex::bayes

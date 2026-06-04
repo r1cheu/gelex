@@ -28,7 +28,6 @@ enum class FieldFlag : std::uint8_t
     checkpoint = 1U << 0U,
     trace = 1U << 1U,
     report = 1U << 2U,
-    summary = 1U << 3U,
 };
 
 constexpr auto operator|(FieldFlag lhs, FieldFlag rhs) -> FieldFlag

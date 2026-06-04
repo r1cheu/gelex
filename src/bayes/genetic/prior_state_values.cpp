@@ -55,7 +55,7 @@ auto MixtureState::visit(infra::FieldVisitor& visitor) -> void
     visitor.on(
         "proportion_names",
         std::span<const std::string>{proportion_names},
-        FieldFlag::summary);
+        FieldFlag::report);
     visitor.on(
         "assignment", assignment, FieldFlag::checkpoint | FieldFlag::trace);
 }
@@ -83,7 +83,7 @@ auto ComponentState::visit(infra::FieldVisitor& visitor) -> void
     visitor.on(
         "gebv_var_names",
         std::span<const std::string>{gebv_var_names},
-        FieldFlag::summary);
+        FieldFlag::report);
     for (auto [i, value] : std::views::enumerate(gebv))
     {
         visitor.on(fmt::format("gebv_{}", i), value, FieldFlag::checkpoint);

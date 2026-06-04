@@ -79,10 +79,10 @@ auto GeneticState::visit(infra::FieldVisitor& visitor) -> void
     visitor.on("coeffs", coeffs, FieldFlag::checkpoint | FieldFlag::trace);
     visitor.on("u", u, FieldFlag::checkpoint);
     visitor.on("variance", variance, FieldFlag::checkpoint | FieldFlag::trace);
-    visitor.on("variance_name", "σ²", FieldFlag::summary);
+    visitor.on("variance_name", "σ²", FieldFlag::report);
     visitor.on(
         "heritability", heritability, FieldFlag::checkpoint | FieldFlag::trace);
-    visitor.on("heritability_name", "h²", FieldFlag::summary);
+    visitor.on("heritability_name", "h²", FieldFlag::report);
 }
 
 SingleGeneticBlockState::SingleGeneticBlockState(
@@ -194,7 +194,7 @@ auto ResidualState::visit(infra::FieldVisitor& visitor) -> void
     auto scope = visitor.scope(name);
     visitor.on("y_adj", y_adj, FieldFlag::checkpoint);
     visitor.on("variance", variance, FieldFlag::checkpoint | FieldFlag::trace);
-    visitor.on("variance_name", "σ²_e", FieldFlag::summary);
+    visitor.on("variance_name", "σ²_e", FieldFlag::report);
 }
 
 }  // namespace gelex::bayes

@@ -243,7 +243,7 @@ auto Records::on(
     std::span<const std::string> value,
     FieldFlag flags) -> void
 {
-    if (!has(flags, FieldFlag::summary))
+    if (!has(flags, FieldFlag::report))
     {
         return;
     }
@@ -275,7 +275,7 @@ auto Records::on(
 auto Records::on(std::string_view name, std::string_view value, FieldFlag flags)
     -> void
 {
-    if (!has(flags, FieldFlag::summary))
+    if (!has(flags, FieldFlag::report))
     {
         return;
     }

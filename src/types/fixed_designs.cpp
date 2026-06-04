@@ -167,7 +167,7 @@ auto FixedDesign::visit(infra::FieldVisitor& visitor) const -> void
     visitor.on(
         "coeffs_names",
         std::span<const std::string>{coeff_names},
-        FieldFlag::summary);
+        FieldFlag::report);
 }
 
 }  // namespace gelex

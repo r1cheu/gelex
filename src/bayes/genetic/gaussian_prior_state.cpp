@@ -40,7 +40,7 @@ auto SingleSharedGaussianState::visit(infra::FieldVisitor& visitor) -> void
     auto scope = visitor.scope(name);
     visitor.on(
         "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
-    visitor.on("variance_name", "σ²_marker", FieldFlag::summary);
+    visitor.on("variance_name", "σ²_marker", FieldFlag::report);
 }
 
 SinglePerMarkerGaussianState::SinglePerMarkerGaussianState(
@@ -70,7 +70,7 @@ auto SingleSharedSpikeSlabGaussianState::visit(infra::FieldVisitor& visitor)
     auto scope = visitor.scope(name);
     visitor.on(
         "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
-    visitor.on("variance_name", "σ²_marker", FieldFlag::summary);
+    visitor.on("variance_name", "σ²_marker", FieldFlag::report);
     mixture_.visit(visitor);
 }
 
@@ -109,7 +109,7 @@ auto SingleScaledMixtureGaussianState::visit(infra::FieldVisitor& visitor)
     auto scope = visitor.scope(name);
     visitor.on(
         "variance", variance(), FieldFlag::checkpoint | FieldFlag::trace);
-    visitor.on("variance_name", "σ²_marker", FieldFlag::summary);
+    visitor.on("variance_name", "σ²_marker", FieldFlag::report);
     component().visit(visitor);
     mixture_.visit(visitor);
 }
@@ -147,7 +147,7 @@ auto JointGaussianMixtureState::visit(infra::FieldVisitor& visitor) -> void
             "variance",
             variance(mode),
             FieldFlag::checkpoint | FieldFlag::trace);
-        visitor.on("variance_name", "σ²_marker", FieldFlag::summary);
+        visitor.on("variance_name", "σ²_marker", FieldFlag::report);
     }
     component().visit(visitor);
     mixture_.visit(visitor);
