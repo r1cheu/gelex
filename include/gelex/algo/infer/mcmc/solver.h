@@ -40,7 +40,7 @@ class Solver
    public:
     explicit Solver(
         mcmc::Params params,
-        std::string sample_prefix = {},
+        std::string draws_path = {},
         std::optional<std::string> checkpoint_prefix = std::nullopt);
 
     auto run(
@@ -57,7 +57,7 @@ class Solver
 
    private:
     mcmc::Params params_;
-    std::string sample_prefix_;
+    std::string draws_path_;
     std::optional<std::string> checkpoint_prefix_;
 };
 

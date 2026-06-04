@@ -42,6 +42,7 @@
 #include "gelex/engine/mcmc.h"
 #include "gelex/exception.h"
 #include "gelex/infra/stats/result.h"
+#include "gelex/io/binary_reader.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "file_fixture.h"
@@ -836,6 +837,13 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
     auto snp_path = prefix;
     snp_path += ".snpeff";
     REQUIRE(std::filesystem::exists(snp_path));
+    auto draws_path = prefix;
+    draws_path += ".draws";
+    REQUIRE(std::filesystem::exists(draws_path));
+    gelex::io::BinaryReader draws(draws_path.string());
+    const auto fixed_draws = draws.to_map<double>("state/fixed/coeffs");
+    REQUIRE(fixed_draws.rows() == 1);
+    REQUIRE(fixed_draws.cols() == params.n_records());
 }
 
 TEST_CASE("Engine::run rejects unsupported MCMC runtime options", "[mcmc][engine]")

@@ -65,6 +65,8 @@ class BinaryWriter
     auto operator=(BinaryWriter&&) -> BinaryWriter& = delete;
     ~BinaryWriter() noexcept;
 
+    auto close() -> void;
+
     template <typename T, std::integral Rows, std::integral Cols>
         requires std::is_arithmetic_v<T>
     auto reserve(std::string_view path, Rows rows, Cols cols)
@@ -167,6 +169,7 @@ class BinaryWriter
     detail::AtomicOfstream file_;
     uint64_t next_offset_{0};
     uint64_t file_cursor_{0};
+    bool finalized_{false};
 };
 
 }  // namespace gelex::io

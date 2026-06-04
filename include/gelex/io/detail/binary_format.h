@@ -36,11 +36,17 @@ inline constexpr std::array<std::byte, 8> BINARY_FORMAT_MAGIC
        std::byte{'X'},
        std::byte{'B'},
        std::byte{'F'},
-       std::byte{'2'}};
+       std::byte{'3'}};
 inline constexpr size_t FOOTER_SIZE = 24;
-inline constexpr size_t TOC_ENTRY_SIZE = 104;
+inline constexpr size_t PATH_SIZE = 256;
+inline constexpr size_t DTYPE_OFFSET = PATH_SIZE;
+inline constexpr size_t OFFSET_OFFSET = DTYPE_OFFSET + 8;
+inline constexpr size_t SIZE_OFFSET = OFFSET_OFFSET + 8;
+inline constexpr size_t ROWS_OFFSET = SIZE_OFFSET + 8;
+inline constexpr size_t COLS_OFFSET = ROWS_OFFSET + 8;
+inline constexpr size_t TOC_ENTRY_SIZE = COLS_OFFSET + 8;
 inline constexpr size_t PAGE_ALIGNMENT = 4096;
-inline constexpr size_t MAX_PATH_LENGTH = 63;
+inline constexpr size_t MAX_PATH_LENGTH = PATH_SIZE - 1;
 
 // String dtype: value 0x01 cannot conflict with arithmetic types since
 // the smallest arithmetic dtype encodes as (sizeof(T) << 2) >= 4.
@@ -69,7 +75,8 @@ inline auto encode(T value, std::byte* out) -> void
     std::memcpy(out, &value, sizeof(value));
 }
 
-inline auto path_as_view(const std::array<char, 64>& p) -> std::string_view
+inline auto path_as_view(const std::array<char, PATH_SIZE>& p)
+    -> std::string_view
 {
     auto len = std::find(p.begin(), p.end(), '\0') - p.begin();
     return {p.data(), static_cast<size_t>(len)};
@@ -77,7 +84,7 @@ inline auto path_as_view(const std::array<char, 64>& p) -> std::string_view
 
 struct TocEntry
 {
-    std::array<char, 64> path{};
+    std::array<char, PATH_SIZE> path{};
     uint8_t dtype{};
     uint64_t offset{};
     uint64_t size{};
@@ -87,25 +94,24 @@ struct TocEntry
     auto to_bytes() const -> std::array<std::byte, TOC_ENTRY_SIZE>
     {
         std::array<std::byte, TOC_ENTRY_SIZE> buf{};
-        std::memcpy(buf.data(), path.data(), 64);
-        buf[64] = static_cast<std::byte>(dtype);
-        // buf[65..71] padding — already zero from aggregate init
-        encode(offset, &buf[72]);
-        encode(size, &buf[80]);
-        encode(rows, &buf[88]);
-        encode(cols, &buf[96]);
+        std::memcpy(buf.data(), path.data(), PATH_SIZE);
+        buf[DTYPE_OFFSET] = static_cast<std::byte>(dtype);
+        encode(offset, &buf[OFFSET_OFFSET]);
+        encode(size, &buf[SIZE_OFFSET]);
+        encode(rows, &buf[ROWS_OFFSET]);
+        encode(cols, &buf[COLS_OFFSET]);
         return buf;
     }
 
     static auto from_bytes(const std::byte* buf) -> TocEntry
     {
         TocEntry e;
-        std::memcpy(e.path.data(), buf, 64);
-        e.dtype = static_cast<uint8_t>(buf[64]);
-        e.offset = decode<uint64_t>(buf + 72);
-        e.size = decode<uint64_t>(buf + 80);
-        e.rows = decode<uint64_t>(buf + 88);
-        e.cols = decode<uint64_t>(buf + 96);
+        std::memcpy(e.path.data(), buf, PATH_SIZE);
+        e.dtype = static_cast<uint8_t>(buf[DTYPE_OFFSET]);
+        e.offset = decode<uint64_t>(buf + OFFSET_OFFSET);
+        e.size = decode<uint64_t>(buf + SIZE_OFFSET);
+        e.rows = decode<uint64_t>(buf + ROWS_OFFSET);
+        e.cols = decode<uint64_t>(buf + COLS_OFFSET);
         return e;
     }
 };

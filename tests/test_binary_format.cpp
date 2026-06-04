@@ -390,6 +390,56 @@ TEST_CASE("Reserve write overflow throws", "[binary_container]")
     REQUIRE_THROWS_AS((writer.write(h, too_large)), GelexException);
 }
 
+TEST_CASE("Container accepts long section paths", "[binary_container]")
+{
+    test::FileFixture fixture;
+    const auto& dir = fixture.get_test_dir();
+
+    const std::string long_path
+        = "state/genetic_0/single/A/prior_state/"
+          "scaled_mixture_gaussian/mixture/proportion";
+    const Eigen::MatrixXd expected{
+        {0.1, 0.4}, {0.2, 0.3}, {0.3, 0.2}, {0.4, 0.1}};
+
+    auto container_path = dir / "long_path.draws";
+    {
+        BinaryWriter writer(container_path.string());
+        writer.write(long_path, expected);
+    }
+
+    BinaryReader reader(container_path.string());
+    REQUIRE(reader.contains(long_path));
+    REQUIRE(reader.to_map<double>(long_path).isApprox(expected));
+}
+
+TEST_CASE("BinaryWriter close reports incomplete sections", "[binary_container]")
+{
+    test::FileFixture fixture;
+    const auto& dir = fixture.get_test_dir();
+
+    auto container_path = dir / "incomplete.draws";
+    BinaryWriter writer(container_path.string());
+    writer.reserve<double>("state/fixed/coeffs", 1, 2);
+
+    REQUIRE_THROWS_AS(writer.close(), GelexException);
+}
+
+TEST_CASE("BinaryWriter close commits complete container", "[binary_container]")
+{
+    test::FileFixture fixture;
+    const auto& dir = fixture.get_test_dir();
+
+    auto container_path = dir / "closed.draws";
+    BinaryWriter writer(container_path.string());
+    writer.write("state/fixed/coeffs", Eigen::MatrixXd{{1.0, 2.0}});
+    writer.close();
+
+    BinaryReader reader(container_path.string());
+    REQUIRE(
+        reader.to_map<double>("state/fixed/coeffs")
+            .isApprox(Eigen::MatrixXd{{1.0, 2.0}}));
+}
+
 TEST_CASE(
     "GenotypeMapReader vs GenotypeMatReader produce identical results",
     "[genotype_reader][diagnostic]")

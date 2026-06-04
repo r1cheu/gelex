@@ -43,6 +43,8 @@ class AtomicOfstream : public std::ofstream
 
     ~AtomicOfstream() noexcept override;
 
+    auto commit() -> void;
+
     [[nodiscard]] auto final_path() const noexcept
         -> const std::filesystem::path&
     {
@@ -57,6 +59,7 @@ class AtomicOfstream : public std::ofstream
    private:
     std::filesystem::path final_path_;
     std::filesystem::path tmp_path_;
+    bool committed_{false};
 };
 
 }  // namespace gelex::io::detail

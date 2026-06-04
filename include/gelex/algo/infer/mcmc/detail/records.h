@@ -14,15 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_INFER_MCMC_DETAIL_DRAW_STATS_H_
-#define GELEX_ALGO_INFER_MCMC_DETAIL_DRAW_STATS_H_
+#ifndef GELEX_ALGO_INFER_MCMC_DETAIL_RECORDS_H_
+#define GELEX_ALGO_INFER_MCMC_DETAIL_RECORDS_H_
 
+#include <cstddef>
+#include <optional>
+#include <string_view>
 #include <utility>
 
 #include <Eigen/Core>
 
 #include "gelex/infra/stats/detail/running_stats.h"
 #include "gelex/infra/stats/result.h"
+
+namespace gelex::mcmc
+{
+
+class Records;
+
+}  // namespace gelex::mcmc
 
 namespace gelex::mcmc::detail
 {
@@ -74,6 +84,54 @@ struct CategoricalDrawStats
     gelex::stats::detail::CategoricalFrequency frequency_;
 };
 
+class ScalarRecord
+{
+   public:
+    ScalarRecord(Records& owner, std::string_view path);
+
+    auto store(Records& owner, double value) -> void;
+    auto result() const -> stats::RunningStatsResult;
+
+   private:
+    ScalarDrawStats draws_;
+    std::optional<std::size_t> draw_handle_;
+};
+
+class VectorRecord
+{
+   public:
+    VectorRecord(
+        Records& owner,
+        std::string_view path,
+        const Eigen::Ref<const Eigen::VectorXd>& value);
+
+    auto store(Records& owner, const Eigen::Ref<const Eigen::VectorXd>& value)
+        -> void;
+    auto result() const -> stats::RunningStatsResult;
+
+   private:
+    VectorDrawStats draws_;
+    std::optional<std::size_t> draw_handle_;
+};
+
+class CategoricalRecord
+{
+   public:
+    CategoricalRecord(
+        Records& owner,
+        std::string_view path,
+        const Eigen::Ref<const Eigen::VectorXi>& value,
+        Eigen::Index n_categories);
+
+    auto store(Records& owner, const Eigen::Ref<const Eigen::VectorXi>& value)
+        -> void;
+    auto result() && -> stats::CategoryProbResult;
+
+   private:
+    CategoricalDrawStats draws_;
+    std::optional<std::size_t> draw_handle_;
+};
+
 }  // namespace gelex::mcmc::detail
 
-#endif  // GELEX_ALGO_INFER_MCMC_DETAIL_DRAW_STATS_H_
+#endif  // GELEX_ALGO_INFER_MCMC_DETAIL_RECORDS_H_

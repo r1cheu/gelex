@@ -16,6 +16,7 @@
 
 #include "gelex/algo/infer/mcmc/records.h"
 
+#include <memory>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -29,15 +30,22 @@
 #include "gelex/bayes/state.h"
 #include "gelex/exception.h"
 #include "gelex/infra/field_flag.h"
+#include "gelex/io/binary_writer.h"
 
 namespace gelex::mcmc
 {
 
-Records::CategoricalRecord::CategoricalRecord(
-    Eigen::Index n_items,
-    Eigen::Index n_categories)
-    : draws(n_items, n_categories)
+Records::Records(Eigen::Index n_draws, std::string_view draws_path)
+    : n_draws_(n_draws)
 {
+    if (!draws_path.empty())
+    {
+        if (n_draws_ <= 0)
+        {
+            throw GelexException("Records: n_draws must be positive");
+        }
+        writer_ = std::make_unique<io::BinaryWriter>(draws_path);
+    }
 }
 
 Records::Records(Records&& other) noexcept
@@ -45,7 +53,9 @@ Records::Records(Records&& other) noexcept
       paths_(std::move(other.paths_)),
       names_(std::move(other.names_)),
       indices_(std::move(other.indices_)),
-      category_counts_(std::move(other.category_counts_))
+      category_counts_(std::move(other.category_counts_)),
+      writer_(std::move(other.writer_)),
+      n_draws_(other.n_draws_)
 {
 }
 
@@ -56,8 +66,12 @@ auto Records::operator=(Records&& other) noexcept -> Records&
     names_ = std::move(other.names_);
     indices_ = std::move(other.indices_);
     category_counts_ = std::move(other.category_counts_);
+    writer_ = std::move(other.writer_);
+    n_draws_ = other.n_draws_;
     return *this;
 }
+
+Records::~Records() = default;
 
 auto Records::store(const BayesModel& model, BayesState& state) -> void
 {
@@ -77,6 +91,12 @@ auto Records::take_results() && -> std::vector<RecordEntry>
                 std::move(path),
                 std::move(value),
                 std::move(names_[static_cast<std::size_t>(i)])});
+    }
+
+    if (writer_)
+    {
+        writer_->close();
+        writer_.reset();
     }
 
     records_.clear();
@@ -100,14 +120,14 @@ auto Records::result(std::string_view path) -> RecordResult
         []<typename T>(T& value) -> RecordResult
         {
             if constexpr (
-                std::is_same_v<T, ScalarRecord>
-                || std::is_same_v<T, VectorRecord>)
+                std::is_same_v<T, detail::ScalarRecord>
+                || std::is_same_v<T, detail::VectorRecord>)
             {
-                return value.draws.stats();
+                return value.result();
             }
             else
             {
-                return std::move(value.draws).take_probabilities();
+                return std::move(value).result();
             }
         },
         record);
@@ -122,12 +142,19 @@ auto Records::store_record(std::string_view name, Value&& value) -> void
     if (it == indices_.end())
     {
         const auto index = records_.size();
-        records_.emplace_back(RecordType{});
+        if constexpr (std::is_same_v<RecordType, detail::VectorRecord>)
+        {
+            records_.emplace_back(RecordType{*this, field_key, value});
+        }
+        else
+        {
+            records_.emplace_back(RecordType{*this, field_key});
+        }
         paths_.push_back(field_key);
         names_.emplace_back(std::nullopt);
+        auto& stored = std::get<RecordType>(records_[index]);
         indices_.emplace(std::move(field_key), index);
-        std::get<RecordType>(records_[index])
-            .draws.store(std::forward<Value>(value));
+        stored.store(*this, std::forward<Value>(value));
         return;
     }
 
@@ -136,7 +163,8 @@ auto Records::store_record(std::string_view name, Value&& value) -> void
     {
         throw GelexException("Records: record kind changed for " + field_key);
     }
-    std::get<RecordType>(record).draws.store(std::forward<Value>(value));
+    auto& stored = std::get<RecordType>(record);
+    stored.store(*this, std::forward<Value>(value));
 }
 
 auto Records::on(
@@ -167,7 +195,7 @@ auto Records::on(
     {
         category_counts_[std::string{path()}] = value.size();
     }
-    store_record<VectorRecord>(name, value);
+    store_record<detail::VectorRecord>(name, value);
 }
 
 auto Records::on(
@@ -200,20 +228,23 @@ auto Records::on(
     {
         const auto index = records_.size();
         records_.emplace_back(
-            CategoricalRecord{value.size(), category_it->second});
+            detail::CategoricalRecord{
+                *this, field_key, value, category_it->second});
         paths_.push_back(field_key);
         names_.emplace_back(std::nullopt);
+        auto& stored = std::get<detail::CategoricalRecord>(records_[index]);
         indices_.emplace(std::move(field_key), index);
-        std::get<CategoricalRecord>(records_[index]).draws.store(value);
+        stored.store(*this, value);
         return;
     }
 
     auto& record = records_[it->second];
-    if (!std::holds_alternative<CategoricalRecord>(record))
+    if (!std::holds_alternative<detail::CategoricalRecord>(record))
     {
         throw GelexException("Records: record kind changed for " + field_key);
     }
-    std::get<CategoricalRecord>(record).draws.store(value);
+    auto& stored = std::get<detail::CategoricalRecord>(record);
+    stored.store(*this, value);
 }
 
 auto Records::on(std::string_view name, double& value, FieldFlag flags) -> void
@@ -223,7 +254,7 @@ auto Records::on(std::string_view name, double& value, FieldFlag flags) -> void
         return;
     }
 
-    store_record<ScalarRecord>(name, value);
+    store_record<detail::ScalarRecord>(name, value);
 }
 
 auto Records::on(std::string_view name, int& value, FieldFlag flags) -> void

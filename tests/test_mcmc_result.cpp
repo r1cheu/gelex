@@ -105,7 +105,7 @@ auto make_records(
     gelex::BayesState& state)
     -> gelex::mcmc::Records
 {
-    gelex::mcmc::Records records;
+    gelex::mcmc::Records records{2, ""};
     auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
         state.genetics()[0]);
     auto& prior_state
@@ -260,7 +260,7 @@ TEST_CASE("Result derives joint genetic PIP by effect", "[mcmc][mcmc_result]")
         state.genetics()[0]);
     auto& prior_state = std::get<gelex::bayes::JointGaussianMixtureState>(
         block.prior_state());
-    gelex::mcmc::Records records;
+    gelex::mcmc::Records records{2, ""};
 
     block.state(gelex::GeneticMode::A).coeffs = Eigen::VectorXd{{0.5, 1.0}};
     block.state(gelex::GeneticMode::D).coeffs = Eigen::VectorXd{{1.0, 0.5}};

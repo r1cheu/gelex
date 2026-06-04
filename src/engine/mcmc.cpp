@@ -98,7 +98,8 @@ auto Engine::run(
 
     notify(observer, FitPriorSetEvent{&prior});
 
-    auto solver = mcmc::Solver{config_.mcmc_params};
+    auto solver
+        = mcmc::Solver{config_.mcmc_params, config_.out_prefix + ".draws"};
     auto result = solver.run(model, prior, config_.seed, observer);
     mcmc::write_params(result, config_.out_prefix);
     mcmc::write_summary(result, config_.out_prefix);

@@ -89,6 +89,22 @@ TEST_CASE(
 }
 
 TEST_CASE(
+    "AtomicOfstream - explicit commit makes final file visible",
+    "[atomic_ofstream][commit]")
+{
+    FileFixture files;
+    auto final_path = files.generate_random_file_path(".txt");
+
+    AtomicOfstream ofs(final_path, std::ios::out);
+    ofs << "hello";
+    ofs.commit();
+
+    REQUIRE(fs::exists(final_path));
+    REQUIRE_FALSE(fs::exists(tmp_of(final_path)));
+    REQUIRE(read_file(final_path) == "hello");
+}
+
+TEST_CASE(
     "AtomicOfstream - in-flight exception abandons tmp file",
     "[atomic_ofstream][exception]")
 {

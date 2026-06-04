@@ -75,6 +75,11 @@ AtomicOfstream::AtomicOfstream(
 
 AtomicOfstream::~AtomicOfstream() noexcept
 {
+    if (committed_)
+    {
+        return;
+    }
+
     const bool keep = good() && std::uncaught_exceptions() == 0;
 
     try
@@ -103,6 +108,39 @@ AtomicOfstream::~AtomicOfstream() noexcept
         }
     }
     std::filesystem::remove(tmp_path_, ec);
+}
+
+auto AtomicOfstream::commit() -> void
+{
+    if (committed_)
+    {
+        return;
+    }
+    if (!good())
+    {
+        throw GelexException(
+            fmt::format("{}: stream is not writable", final_path_.string()));
+    }
+
+    close();
+    if (!good())
+    {
+        throw GelexException(
+            fmt::format("{}: failed to close file", tmp_path_.string()));
+    }
+
+    std::error_code ec;
+    std::filesystem::rename(tmp_path_, final_path_, ec);
+    if (ec)
+    {
+        throw GelexException(
+            fmt::format(
+                "{}: failed to rename from \"{}\": {}",
+                final_path_.string(),
+                tmp_path_.string(),
+                ec.message()));
+    }
+    committed_ = true;
 }
 
 }  // namespace gelex::io::detail

@@ -31,10 +31,10 @@ namespace gelex::mcmc
 
 Solver::Solver(
     mcmc::Params params,
-    std::string sample_prefix,
+    std::string draws_path,
     std::optional<std::string> checkpoint_prefix)
     : params_(params),
-      sample_prefix_(std::move(sample_prefix)),
+      draws_path_(std::move(draws_path)),
       checkpoint_prefix_(std::move(checkpoint_prefix))
 {
 }
@@ -51,15 +51,10 @@ auto Solver::run(
             "MCMC checkpoint writer is not implemented after Bayes prior/state "
             "cleanup");
     }
-    if (!sample_prefix_.empty())
-    {
-        throw GelexException(
-            "MCMC sample output is legacy and will be removed");
-    }
 
     auto state = BayesState{model, prior};
     auto rng = std::mt19937_64{static_cast<std::mt19937_64::result_type>(seed)};
-    auto records = mcmc::Records{};
+    auto records = mcmc::Records{params_.n_records(), draws_path_};
     auto chain = Chain::make(model, prior, state, rng);
 
     for (Eigen::Index iter = 0; iter < params_.n_iters; ++iter)

@@ -20,7 +20,7 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/algo/infer/mcmc/detail/draw_stats.h"
+#include "gelex/algo/infer/mcmc/detail/records.h"
 
 namespace gelex
 {

@@ -18,6 +18,7 @@
 #define GELEX_ALGO_INFER_MCMC_RECORDS_H_
 
 #include <cstddef>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -28,7 +29,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/algo/infer/mcmc/detail/draw_stats.h"
+#include "gelex/algo/infer/mcmc/detail/records.h"
 #include "gelex/infra/field_visitor.h"
 #include "gelex/infra/stats/result.h"
 
@@ -37,6 +38,13 @@ namespace gelex
 
 class BayesState;
 class BayesModel;
+
+namespace io
+{
+
+class BinaryWriter;
+
+}  // namespace io
 
 namespace mcmc
 {
@@ -54,36 +62,26 @@ struct RecordEntry
 class Records : private infra::FieldVisitor
 {
    public:
-    Records() = default;
+    Records(Eigen::Index n_draws, std::string_view draws_path);
     Records(const Records&) = delete;
     auto operator=(const Records&) -> Records& = delete;
     Records(Records&& other) noexcept;
     auto operator=(Records&& other) noexcept -> Records&;
-    ~Records() override = default;
+    ~Records() override;
 
     auto store(const BayesModel& model, BayesState& state) -> void;
 
     auto take_results() && -> std::vector<RecordEntry>;
 
    private:
-    struct ScalarRecord
-    {
-        detail::ScalarDrawStats draws;
-    };
+    friend class detail::ScalarRecord;
+    friend class detail::VectorRecord;
+    friend class detail::CategoricalRecord;
 
-    struct VectorRecord
-    {
-        detail::VectorDrawStats draws;
-    };
-
-    struct CategoricalRecord
-    {
-        CategoricalRecord(Eigen::Index n_items, Eigen::Index n_categories);
-
-        detail::CategoricalDrawStats draws;
-    };
-
-    using Record = std::variant<ScalarRecord, VectorRecord, CategoricalRecord>;
+    using Record = std::variant<
+        detail::ScalarRecord,
+        detail::VectorRecord,
+        detail::CategoricalRecord>;
 
     auto result(std::string_view path) -> RecordResult;
 
@@ -118,6 +116,8 @@ class Records : private infra::FieldVisitor
     std::vector<std::optional<std::vector<std::string>>> names_;
     std::unordered_map<std::string, std::size_t> indices_;
     std::unordered_map<std::string, Eigen::Index> category_counts_;
+    std::unique_ptr<io::BinaryWriter> writer_;
+    Eigen::Index n_draws_{};
 };
 
 }  // namespace mcmc

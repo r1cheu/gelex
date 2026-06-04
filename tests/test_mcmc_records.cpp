@@ -33,8 +33,10 @@
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/data/genotype/genotype.h"
+#include "gelex/io/binary_reader.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
+#include "file_fixture.h"
 #include "genotype_fixture.h"
 
 namespace
@@ -111,7 +113,7 @@ TEST_CASE("Records stores traced BayesState fields", "[mcmc][mcmc_records]")
     auto model = make_model();
     auto prior = make_prior();
     gelex::BayesState state(model, prior);
-    gelex::mcmc::Records records;
+    gelex::mcmc::Records records{2, ""};
 
     auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
         state.genetics()[0]);
@@ -269,10 +271,77 @@ TEST_CASE("Records handoff consumes stored results", "[mcmc][mcmc_records]")
     auto model = make_model();
     auto prior = make_prior();
     gelex::BayesState state(model, prior);
-    gelex::mcmc::Records records;
+    gelex::mcmc::Records records{1, ""};
 
     records.store(model, state);
 
     REQUIRE_FALSE(std::move(records).take_results().empty());
     REQUIRE(std::move(records).take_results().empty());
+}
+
+TEST_CASE("Records writes retained draws", "[mcmc][mcmc_records]")
+{
+    auto model = make_model();
+    auto prior = make_prior();
+    gelex::BayesState state(model, prior);
+
+    gelex::test::FileFixture files;
+    const auto draws_path = files.generate_random_file_path(".draws");
+    gelex::mcmc::Records records{2, draws_path.string()};
+
+    auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
+        state.genetics()[0]);
+    auto& prior_state
+        = std::get<gelex::bayes::SingleScaledMixtureGaussianState>(
+            block.prior_state());
+
+    state.fixed().coeffs = Eigen::VectorXd{{1.0}};
+    state.random()[0].variance = 2.0;
+    state.residual().variance = 5.0;
+    prior_state.proportion() = Eigen::VectorXd{{0.1, 0.2, 0.3, 0.4}};
+    prior_state.assignment() = Eigen::VectorXi{{0, 1}};
+    records.store(model, state);
+
+    state.fixed().coeffs = Eigen::VectorXd{{3.0}};
+    state.random()[0].variance = 4.0;
+    state.residual().variance = 9.0;
+    prior_state.proportion() = Eigen::VectorXd{{0.4, 0.3, 0.2, 0.1}};
+    prior_state.assignment() = Eigen::VectorXi{{2, 3}};
+    records.store(model, state);
+
+    const auto entries = std::move(records).take_results();
+    gelex::io::BinaryReader reader(draws_path.string());
+    REQUIRE(reader.n_sections() == entries.size());
+
+    const auto fixed = reader.to_map<double>("state/fixed/coeffs");
+    REQUIRE(fixed.rows() == 1);
+    REQUIRE(fixed.cols() == 2);
+    REQUIRE(fixed.isApprox(Eigen::MatrixXd{{1.0, 3.0}}));
+
+    const auto random_variance
+        = reader.to_map<double>("state/random_0/variance");
+    REQUIRE(random_variance.isApprox(Eigen::MatrixXd{{2.0, 4.0}}));
+
+    const auto residual = reader.to_map<double>("state/residual/variance");
+    REQUIRE(residual.isApprox(Eigen::MatrixXd{{5.0, 9.0}}));
+
+    const auto proportion = reader.to_map<double>(
+        "state/genetic_0/single/A/prior_state/"
+        "scaled_mixture_gaussian/mixture/proportion");
+    REQUIRE(
+        proportion.isApprox(
+            Eigen::MatrixXd{
+                {0.1, 0.4}, {0.2, 0.3}, {0.3, 0.2}, {0.4, 0.1}}));
+
+    const auto assignment = reader.to_map<int>(
+        "state/genetic_0/single/A/prior_state/"
+        "scaled_mixture_gaussian/mixture/assignment");
+    Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> expected_assignment(
+        2, 2);
+    expected_assignment = Eigen::Matrix<int, 2, 2>{{0, 2}, {1, 3}};
+    REQUIRE(assignment == expected_assignment);
+
+    REQUIRE_FALSE(reader.contains("state/fixed/coeffs_names"));
+    REQUIRE_FALSE(
+        reader.contains("state/genetic_0/single/A/genetic/variance_name"));
 }

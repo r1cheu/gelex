@@ -40,6 +40,10 @@ BinaryWriter::BinaryWriter(std::string_view output_path)
 
 BinaryWriter::~BinaryWriter() noexcept
 {
+    if (finalized_)
+    {
+        return;
+    }
     if (std::uncaught_exceptions() > 0)
     {
         return;
@@ -47,7 +51,7 @@ BinaryWriter::~BinaryWriter() noexcept
 
     try
     {
-        finalize();
+        close();
     }
     catch (const std::exception& e)
     {
@@ -60,6 +64,17 @@ BinaryWriter::~BinaryWriter() noexcept
         }
         file_.setstate(std::ios::failbit);
     }
+}
+
+auto BinaryWriter::close() -> void
+{
+    if (finalized_)
+    {
+        return;
+    }
+    finalize();
+    file_.commit();
+    finalized_ = true;
 }
 
 auto BinaryWriter::check_duplicate_path(std::string_view path) const -> void
