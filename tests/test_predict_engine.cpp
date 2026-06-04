@@ -146,7 +146,7 @@ auto create_snp_effects_file(
     std::vector<std::string> headers
         = {"CHR", "SNP", "BP", "A1", "A2", "A1FREQ", "BETA_A", "BETA_D"};
     (void)ff.create_named_text_file(
-        std::string(gfile_prefix) + ".snp.eff", make_tsv(headers, snp_rows));
+        std::string(gfile_prefix) + ".snpeff", make_tsv(headers, snp_rows));
 }
 
 auto create_param_file(

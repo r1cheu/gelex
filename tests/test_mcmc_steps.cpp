@@ -834,7 +834,7 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
     params_path += ".param";
     REQUIRE(std::filesystem::exists(params_path));
     auto snp_path = prefix;
-    snp_path += ".snp.eff";
+    snp_path += ".snpeff";
     REQUIRE(std::filesystem::exists(snp_path));
 }
 

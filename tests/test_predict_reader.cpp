@@ -125,7 +125,7 @@ TEST_CASE(
           "1\trs2\t2000\tC\tT\t0.4\t-0.2\t0.0\n"
           "2\trs3\t500\tA\tT\t0.1\t0.8\t-0.3\n";
 
-    auto path = files.create_text_file(CONTENT, ".snp.eff");
+    auto path = files.create_text_file(CONTENT, ".snpeff");
     auto df = gelex::predict::read_snp_effects(path);
 
     REQUIRE(df.rows() == 3);
@@ -164,7 +164,7 @@ TEST_CASE(
             "1\trs1\tA\tG\t0.5\n"
             "1\trs2\tC\tT\t-0.2\n"
             "2\trs3\tA\tT\t0.8\n",
-            ".snp.eff");
+            ".snpeff");
         auto bim_path = files.create_text_file(
             "1\trs1\t0\t1000\tA\tG\n"
             "1\trs2\t0\t2000\tC\tT\n"
@@ -191,7 +191,7 @@ TEST_CASE(
             "1\trs1\tA\tG\t0.5\n"
             "1\trs2\tC\tT\t-0.2\n"
             "2\trs3\tA\tT\t0.8\n",
-            ".snp.eff");
+            ".snpeff");
         auto bim_path = files.create_text_file(
             "1\trs1\t0\t1000\tA\tG\n"
             "2\trs3\t0\t500\tA\tT\n",
@@ -217,7 +217,7 @@ TEST_CASE(
             "1\trs1\tA\tG\t0.5\n"
             "1\trs2\tC\tT\t-0.2\n"
             "2\trs3\tA\tT\t0.8\n",
-            ".snp.eff");
+            ".snpeff");
         auto bim_path = files.create_text_file(
             "1\trs1\t0\t1000\tA\tG\n"
             "1\trs2\t0\t2000\tT\tC\n"
@@ -243,7 +243,7 @@ TEST_CASE(
             "CHR\tSNP\tA1\tA2\tBETA_A\n"
             "1\trs1\tA\tG\t0.5\n"
             "1\trs2\tC\tT\t-0.2\n",
-            ".snp.eff");
+            ".snpeff");
         auto bim_path = files.create_text_file(
             "1\trs4\t0\t1000\tA\tG\n"
             "1\trs5\t0\t2000\tC\tT\n",

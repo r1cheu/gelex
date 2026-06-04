@@ -31,7 +31,7 @@ auto setup_predict_args(argparse::ArgumentParser& cmd) -> void
         .metavar("<BFILE>")
         .required();
     cmd.add_argument("-g", "--gfile")
-        .help("Fitted model prefix (.snp.eff, .sbin, .param)")
+        .help("Fitted model prefix (.snpeff, .sbin, .param)")
         .metavar("<GFILE>")
         .required();
     cmd.add_argument("--qcovar")

@@ -61,7 +61,7 @@ auto PredictEngine::load_sbin(const std::filesystem::path& path)
 auto PredictEngine::load_params() const -> PredictParams
 {
     auto snp_effects
-        = predict::read_snp_effects(config_.gfile_prefix + ".snp.eff");
+        = predict::read_snp_effects(config_.gfile_prefix + ".snpeff");
     auto sbin = load_sbin(config_.gfile_prefix + ".sbin");
 
     bool enable_dom{};
@@ -124,7 +124,7 @@ auto PredictEngine::align(
                 .num_mismatched = static_cast<size_t>(alignment.num_mismatched),
                 .num_total = n_snps,
                 .bfile_path = config_.bfile_prefix,
-                .snp_effect_path = config_.gfile_prefix + ".snp.eff"});
+                .snp_effect_path = config_.gfile_prefix + ".snpeff"});
     }
 
     return alignment;

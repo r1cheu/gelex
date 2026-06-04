@@ -40,13 +40,9 @@
 namespace gelex::mcmc
 {
 
-auto write_params(const Result& result, const std::filesystem::path& prefix)
-    -> void
+auto write_params(const Result& result, std::string_view prefix) -> void
 {
-    auto output_path = prefix;
-    output_path += ".param";
-
-    io::detail::TextWriter writer(output_path);
+    io::detail::TextWriter writer(fmt::format("{}.param", prefix));
     writer.write_header({"term", "mean", "stddev"});
 
     for (const auto& record : result.records())
@@ -82,13 +78,9 @@ auto write_params(const Result& result, const std::filesystem::path& prefix)
     }
 }
 
-auto write_summary(const Result& result, const std::filesystem::path& prefix)
-    -> void
+auto write_summary(const Result& result, std::string_view prefix) -> void
 {
-    auto output_path = prefix;
-    output_path += ".summary";
-
-    io::detail::TextWriter writer(output_path);
+    io::detail::TextWriter writer(fmt::format("{}.summary", prefix));
     writer.write_header({"term", "effect", "mean", "stddev"});
 
     for (const auto& record : result.records())
@@ -147,7 +139,7 @@ auto write_snp_eff(
     const Result& result,
     const BayesModel& model,
     const std::filesystem::path& bim_path,
-    const std::filesystem::path& prefix) -> void
+    std::string_view prefix) -> void
 {
     std::unordered_map<std::string, std::size_t> column_indices;
     std::vector<const Eigen::VectorXd*> column_values;
@@ -249,9 +241,7 @@ auto write_snp_eff(
         header += column;
     }
 
-    auto output_path = prefix;
-    output_path += ".snp.eff";
-    io::detail::TextWriter writer(output_path);
+    io::detail::TextWriter writer(fmt::format("{}.snpeff", prefix));
     writer.write(header);
 
     std::vector<const Eigen::VectorXd*> ordered_values;

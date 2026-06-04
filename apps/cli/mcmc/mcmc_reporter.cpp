@@ -154,7 +154,8 @@ auto McmcReporter::on_event(const FitResultsSavedEvent& event) -> void
 {
     cli::printer().block(
         gelex::success(
-            "Results saved to '{}' (.param, .summary)", event.out_prefix));
+            "Results saved to '{}' (.param, .summary, .snpeff, .log)",
+            event.out_prefix));
 }
 
 auto McmcReporter::on_event(const FitCheckpointSavedEvent& /*event*/) -> void

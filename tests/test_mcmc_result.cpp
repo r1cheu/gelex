@@ -310,9 +310,9 @@ TEST_CASE("Result derives joint genetic PIP by effect", "[mcmc][mcmc_result]")
         "2\trs2\t0\t200\tC\tT\n",
         ".bim");
     auto prefix = files.get_test_dir() / "joint_mcmc_snp";
-    gelex::mcmc::write_snp_eff(result, model, bim_path, prefix);
+    gelex::mcmc::write_snp_eff(result, model, bim_path, prefix.string());
     auto snp_path = prefix;
-    snp_path += ".snp.eff";
+    snp_path += ".snpeff";
     REQUIRE(std::filesystem::exists(snp_path));
     std::ifstream input(snp_path);
     const std::string content{
@@ -335,7 +335,7 @@ TEST_CASE("write_summary writes user-facing summary", "[mcmc][mcmc_result]")
 
     gelex::test::FileFixture files;
     auto prefix = files.get_test_dir() / "mcmc_result";
-    gelex::mcmc::write_summary(result, prefix);
+    gelex::mcmc::write_summary(result, prefix.string());
 
     auto summary_path = prefix;
     summary_path += ".summary";
@@ -374,7 +374,7 @@ TEST_CASE("write_params writes fixed and random effects", "[mcmc][mcmc_result]")
 
     gelex::test::FileFixture files;
     auto prefix = files.get_test_dir() / "mcmc_params";
-    gelex::mcmc::write_params(result, prefix);
+    gelex::mcmc::write_params(result, prefix.string());
 
     auto params_path = prefix;
     params_path += ".param";
@@ -410,10 +410,10 @@ TEST_CASE("write_snp_eff writes dynamic SNP effect columns", "[mcmc][mcmc_result
         "2\trs2\t0\t200\tC\tT\n",
         ".bim");
     auto prefix = files.get_test_dir() / "mcmc_snp";
-    gelex::mcmc::write_snp_eff(result, model, bim_path, prefix);
+    gelex::mcmc::write_snp_eff(result, model, bim_path, prefix.string());
 
     auto snp_path = prefix;
-    snp_path += ".snp.eff";
+    snp_path += ".snpeff";
     REQUIRE(std::filesystem::exists(snp_path));
 
     std::ifstream input(snp_path);

@@ -58,7 +58,7 @@ auto FitReporter::on_event(const FitResultsSavedEvent& event) const -> void
 {
     cli::printer().block(
         gelex::success(
-            "Results saved to '{}' (.param, .summary, .snp.eff, .log)",
+            "Results saved to '{}' (.param, .summary, .snpeff, .log)",
             event.out_prefix));
 }
 
