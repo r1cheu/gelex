@@ -65,7 +65,7 @@ GwasWriter::GwasWriter(
                 FMT_COMPILE(
                     "CHR\tSNP\tBP\tA1\tA2\tA1FREQ\t"
                     "BETA_A\tSE_A\tP_A\tPVE_A\t"
-                    "BETA_D\tSE_D\tP_D\tPVE_D\tPVE\n"));
+                    "BETA_D\tSE_D\tP_D\tP_AD\tPVE_D\tPVE\n"));
             break;
     }
 
@@ -121,13 +121,15 @@ auto GwasWriter::write(std::size_t start, const TestResults& results) -> void
         if (is_joint)
         {
             const auto& dom = *results.dominance;
+            const auto& joint_p = *results.joint_p;
             const auto& total_pve = *results.total_pve;
             fmt::format_to(
                 std::back_inserter(line_buffer_),
-                FMT_COMPILE("\t{:.6g}\t{:.6g}\t{:.6e}\t{:.6e}\t{:.6e}"),
+                FMT_COMPILE("\t{:.6g}\t{:.6g}\t{:.6e}\t{:.6e}\t{:.6e}\t{:.6e}"),
                 dom.beta[i],
                 dom.se[i],
                 dom.p[i],
+                joint_p[i],
                 dom.pve[i],
                 total_pve[i]);
         }

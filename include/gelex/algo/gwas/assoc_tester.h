@@ -44,6 +44,7 @@ struct TestResults
     std::span<const double> freq;
     TestResult additive;
     std::optional<TestResult> dominance;
+    std::optional<std::span<const double>> joint_p;
     std::optional<std::span<const double>> total_pve;
 };
 

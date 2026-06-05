@@ -48,6 +48,7 @@ auto JointTester::resize(Eigen::Index n_samples, Eigen::Index chunk_size)
     add_.resize(chunk_size);
     dom_.resize(chunk_size);
     zt_a_Pzd_.resize(chunk_size);
+    joint_p_.resize(chunk_size);
     total_pve_.resize(chunk_size);
 }
 
@@ -80,18 +81,24 @@ auto JointTester::run(const RemlResult& reml) -> TestResults
 
     for (Eigen::Index i = 0; i < n; ++i)
     {
-        Eigen::Matrix2d XtPX;
-        XtPX << add_.zt_Pz(i), zt_a_Pzd_(i), zt_a_Pzd_(i), dom_.zt_Pz(i);
+        const double zt_a_Pza = add_.zt_Pz(i);
+        const double zt_a_Pzd = zt_a_Pzd_(i);
+        const double zt_d_Pzd = dom_.zt_Pz(i);
+        const double det = (zt_a_Pza * zt_d_Pzd) - (zt_a_Pzd * zt_a_Pzd);
+        Eigen::Matrix2d XtPX{{zt_a_Pza, zt_a_Pzd}, {zt_a_Pzd, zt_d_Pzd}};
         Eigen::Vector2d XtPy(add_.zt_Pr(i), dom_.zt_Pr(i));
 
-        if (std::abs(XtPX.determinant()) < 1e-30)
+        if (std::abs(det) < 1e-30)
         {
             add_.beta(i) = add_.se(i) = add_.p_value(i) = nan;
             dom_.beta(i) = dom_.se(i) = dom_.p_value(i) = nan;
+            joint_p_(i) = nan;
             continue;
         }
 
-        Eigen::Matrix2d inv = XtPX.inverse();
+        Eigen::Matrix2d inv{
+            {zt_d_Pzd / det, -zt_a_Pzd / det},
+            {-zt_a_Pzd / det, zt_a_Pza / det}};
         Eigen::Vector2d beta = inv * XtPy;
 
         add_.beta(i) = beta(0);
@@ -105,6 +112,9 @@ auto JointTester::run(const RemlResult& reml) -> TestResults
         const double stat_d = (beta(1) * beta(1)) / inv(1, 1);
         add_.p_value(i) = std::erfc(std::sqrt(stat_a * 0.5));
         dom_.p_value(i) = std::erfc(std::sqrt(stat_d * 0.5));
+
+        const double stat_ad = beta.transpose() * XtPX * beta;
+        joint_p_(i) = std::exp(-0.5 * stat_ad);
     }
 
     // per-effect PVE
@@ -137,6 +147,7 @@ auto JointTester::run(const RemlResult& reml) -> TestResults
             .p = {dom_.p_value.data(), n_snps},
             .pve = {dom_.pve.data(), n_snps},
         },
+        .joint_p = std::span{joint_p_.data(), n_snps},
         .total_pve = std::span{total_pve_.data(), n_snps},
     };
 }

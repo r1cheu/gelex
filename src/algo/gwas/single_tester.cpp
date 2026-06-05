@@ -74,6 +74,7 @@ auto SingleTester::run(const RemlResult& reml) -> TestResults
             .pve = {output_.pve.data(), n},
         },
         .dominance = std::nullopt,
+        .joint_p = std::nullopt,
         .total_pve = std::nullopt,
     };
 }

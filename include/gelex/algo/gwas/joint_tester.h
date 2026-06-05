@@ -52,6 +52,7 @@ class JointTester final : public AssocTester
     AssocOutput add_;
     AssocOutput dom_;
     Eigen::VectorXd zt_a_Pzd_;
+    Eigen::VectorXd joint_p_;
     Eigen::VectorXd total_pve_;
 };
 
