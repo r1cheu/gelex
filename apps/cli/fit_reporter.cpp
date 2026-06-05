@@ -18,15 +18,12 @@
 
 #include <ranges>
 #include <span>
-#include <string_view>
 #include <type_traits>
 #include <variant>
 
 #include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "cli/report_printer.h"
-#include "gelex/algo/infer/posterior_summary.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/parameter/values.h"
 #include "gelex/bayes/prior.h"
@@ -71,18 +68,6 @@ auto FitReporter::print_variance_prior(
         prior.degrees_of_freedom(),
         prior.scale(),
         init_variance);
-}
-
-auto FitReporter::print_summary_row(
-    std::string_view name,
-    const PosteriorSummary& summary,
-    Eigen::Index index) -> void
-{
-    cli::printer().line(
-        "  {:<8} {:>10.6f} {:>10.6f}",
-        name,
-        summary.mean(index),
-        summary.stddev(index));
 }
 
 auto FitReporter::print_random_prior(const bayes::RandomPrior& prior) -> void

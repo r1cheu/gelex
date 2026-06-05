@@ -17,16 +17,10 @@
 #ifndef GELEX_CLI_FIT_REPORTER_H_
 #define GELEX_CLI_FIT_REPORTER_H_
 
-#include <string_view>
-
-#include <Eigen/Core>
-
 #include "gelex/infra/logging/fit_event.h"
 
 namespace gelex
 {
-struct PosteriorSummary;
-
 namespace bayes
 {
 class BayesPrior;
@@ -56,10 +50,6 @@ class FitReporter
     static auto print_variance_prior(
         const bayes::ScaledInvChiSqPrior& prior,
         double init_variance) -> void;
-    static auto print_summary_row(
-        std::string_view name,
-        const PosteriorSummary& summary,
-        Eigen::Index index = 0) -> void;
 };
 
 }  // namespace gelex::cli

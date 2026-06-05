@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-#include "gelex/algo/infer/params.h"
+#include "gelex/algo/mcmc/params.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/infra/logging/fit_event.h"
 

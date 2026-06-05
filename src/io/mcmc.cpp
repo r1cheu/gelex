@@ -31,7 +31,7 @@
 #include <fmt/format.h>
 #include <Eigen/Core>
 
-#include "gelex/algo/infer/mcmc/result.h"
+#include "gelex/algo/mcmc/result.h"
 #include "gelex/bayes/model.h"
 #include "gelex/data/reader.h"
 #include "gelex/infra/stats/result.h"

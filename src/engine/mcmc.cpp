@@ -22,7 +22,7 @@
 
 #include <fmt/format.h>
 
-#include "gelex/algo/infer/mcmc/solver.h"
+#include "gelex/algo/mcmc/solver.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/fit_event.h"

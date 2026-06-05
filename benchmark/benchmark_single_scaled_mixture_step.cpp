@@ -26,7 +26,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/algo/infer/mcmc/steps/single_genetic_step.h"
+#include "gelex/algo/mcmc/steps/single_genetic_step.h"
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"

@@ -27,11 +27,11 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/algo/infer/mcmc/chain.h"
-#include "gelex/algo/infer/mcmc/solver.h"
-#include "gelex/algo/infer/mcmc/steps/joint_genetic_step.h"
-#include "gelex/algo/infer/mcmc/steps/random.h"
-#include "gelex/algo/infer/mcmc/steps/single_genetic_step.h"
+#include "gelex/algo/mcmc/chain.h"
+#include "gelex/algo/mcmc/solver.h"
+#include "gelex/algo/mcmc/steps/joint_genetic_step.h"
+#include "gelex/algo/mcmc/steps/random.h"
+#include "gelex/algo/mcmc/steps/single_genetic_step.h"
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"

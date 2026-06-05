@@ -29,8 +29,8 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/algo/infer/mcmc/records.h"
-#include "gelex/algo/infer/mcmc/result.h"
+#include "gelex/algo/mcmc/records.h"
+#include "gelex/algo/mcmc/result.h"
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/parameters.h"

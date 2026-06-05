@@ -18,7 +18,7 @@
 
 #include <argparse.h>
 
-#include "gelex/algo/infer/params.h"
+#include "gelex/algo/mcmc/params.h"
 #include "gelex/engine/mcmc.h"
 
 namespace gelex::cli
