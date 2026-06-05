@@ -36,7 +36,7 @@ inline constexpr std::array<std::byte, 8> BINARY_FORMAT_MAGIC
        std::byte{'X'},
        std::byte{'B'},
        std::byte{'F'},
-       std::byte{'3'}};
+       std::byte{'1'}};
 inline constexpr size_t FOOTER_SIZE = 24;
 inline constexpr size_t PATH_SIZE = 256;
 inline constexpr size_t DTYPE_OFFSET = PATH_SIZE;

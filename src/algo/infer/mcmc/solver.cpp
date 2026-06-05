@@ -23,8 +23,9 @@
 #include "gelex/algo/infer/mcmc/chain.h"
 #include "gelex/algo/infer/mcmc/records.h"
 #include "gelex/bayes/state.h"
-#include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
+#include "gelex/io/mcmc/checkpoint_reader.h"
+#include "gelex/io/mcmc/checkpoint_writer.h"
 
 namespace gelex::mcmc
 {
@@ -45,15 +46,29 @@ auto Solver::run(
     Eigen::Index seed,
     const MCMCObserver& observer) -> mcmc::Result
 {
-    if (checkpoint_prefix_)
-    {
-        throw GelexException(
-            "MCMC checkpoint writer is not implemented after Bayes prior/state "
-            "cleanup");
-    }
-
     auto state = BayesState{model, prior};
     auto rng = std::mt19937_64{static_cast<std::mt19937_64::result_type>(seed)};
+    return run_iterations(model, prior, state, rng, observer);
+}
+
+auto Solver::run_from(
+    const BayesModel& model,
+    bayes::BayesPrior prior,
+    const std::filesystem::path& checkpoint_path,
+    const MCMCObserver& observer) -> mcmc::Result
+{
+    auto state = BayesState{model, prior};
+    auto rng = read_checkpoint(checkpoint_path, state);
+    return run_iterations(model, prior, state, rng, observer);
+}
+
+auto Solver::run_iterations(
+    const BayesModel& model,
+    const bayes::BayesPrior& prior,
+    BayesState& state,
+    std::mt19937_64& rng,
+    const MCMCObserver& observer) -> mcmc::Result
+{
     auto records = mcmc::Records{params_.n_records(), draws_path_};
     auto chain = Chain::make(model, prior, state, rng);
 
@@ -74,6 +89,13 @@ auto Solver::run(
         {
             records.store(model, state);
         }
+
+        if (checkpoint_prefix_ && params_.checkpoint_step > 0
+            && (iter + 1) % params_.checkpoint_step == 0)
+        {
+            write_checkpoint(state, rng, *checkpoint_prefix_);
+            notify(observer, FitCheckpointSavedEvent{});
+        }
     }
 
     notify(
@@ -87,21 +109,6 @@ auto Solver::run(
     auto result = mcmc::Result{std::move(records), model, params_.n_records()};
     notify(observer, MCMCCompleteEvent{&result, &model, params_.n_records()});
     return result;
-}
-
-auto Solver::resume(
-    const BayesModel& model,
-    bayes::BayesPrior prior,
-    const std::filesystem::path& checkpoint_path,
-    const MCMCObserver& observer) -> mcmc::Result
-{
-    static_cast<void>(model);
-    static_cast<void>(prior);
-    static_cast<void>(checkpoint_path);
-    static_cast<void>(observer);
-    throw GelexException(
-        "MCMC solver resume is not implemented after Bayes prior/state "
-        "cleanup");
 }
 
 }  // namespace gelex::mcmc

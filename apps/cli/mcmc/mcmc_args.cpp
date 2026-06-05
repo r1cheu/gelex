@@ -123,7 +123,7 @@ auto setup_mcmc_args(argparse::ArgumentParser& cmd) -> void
 
     cmd.add_group("MCMC");
     cmd.add_argument("--iters")
-        .help("Total MCMC iterations")
+        .help("MCMC iterations to run")
         .default_value(5000)
         .scan<'i', int>();
     cmd.add_argument("--burn-in")
@@ -141,8 +141,8 @@ auto setup_mcmc_args(argparse::ArgumentParser& cmd) -> void
     cmd.add_argument("--checkpoint-step")
         .help("Save checkpoint every N iterations (omit to save only at end)")
         .scan<'i', int>();
-    cmd.add_argument("--resume")
-        .help("Resume from checkpoint")
+    cmd.add_argument("--from-ckpt")
+        .help("Run from checkpoint")
         .metavar("<CKPT>");
 
     cmd.add_group("Performance");

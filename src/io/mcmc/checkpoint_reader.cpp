@@ -18,18 +18,221 @@
 
 #include <filesystem>
 #include <random>
+#include <span>
+#include <sstream>
+#include <string>
+#include <string_view>
 
+#include <fmt/format.h>
+#include <Eigen/Core>
+
+#include "gelex/bayes/state.h"
 #include "gelex/exception.h"
+#include "gelex/infra/field_flag.h"
+#include "gelex/infra/field_visitor.h"
+#include "gelex/io/binary_reader.h"
 
 namespace gelex
 {
 
-auto read_checkpoint(const std::filesystem::path&, BayesState&)
+namespace
+{
+
+class CheckpointReader final : private infra::FieldVisitor
+{
+   public:
+    explicit CheckpointReader(const io::BinaryReader& reader) : reader_(reader)
+    {
+    }
+
+    auto read(BayesState& state) -> void { state.visit(*this); }
+
+   private:
+    auto on(
+        std::string_view name,
+        Eigen::Ref<Eigen::VectorXf> value,
+        FieldFlag flags) -> void override
+    {
+        if (!has(flags, FieldFlag::checkpoint))
+        {
+            return;
+        }
+
+        const auto field = field_path(name);
+        const auto stored = reader_.to_mat<float>(field);
+        if (stored.rows() != value.rows() || stored.cols() != value.cols())
+        {
+            throw GelexException(
+                fmt::format(
+                    "CheckpointReader: field shape mismatch for {}: got {}x{}, "
+                    "expected {}x{}",
+                    field,
+                    stored.rows(),
+                    stored.cols(),
+                    value.rows(),
+                    value.cols()));
+        }
+        value = stored;
+    }
+
+    auto on(
+        std::string_view name,
+        Eigen::Ref<Eigen::VectorXd> value,
+        FieldFlag flags) -> void override
+    {
+        if (!has(flags, FieldFlag::checkpoint))
+        {
+            return;
+        }
+
+        const auto field = field_path(name);
+        const auto stored = reader_.to_mat<double>(field);
+        if (stored.rows() != value.rows() || stored.cols() != value.cols())
+        {
+            throw GelexException(
+                fmt::format(
+                    "CheckpointReader: field shape mismatch for {}: got {}x{}, "
+                    "expected {}x{}",
+                    field,
+                    stored.rows(),
+                    stored.cols(),
+                    value.rows(),
+                    value.cols()));
+        }
+        value = stored;
+    }
+
+    auto on(
+        std::string_view name,
+        Eigen::Ref<Eigen::VectorXi> value,
+        FieldFlag flags) -> void override
+    {
+        if (!has(flags, FieldFlag::checkpoint))
+        {
+            return;
+        }
+
+        const auto field = field_path(name);
+        const auto stored = reader_.to_mat<int>(field);
+        if (stored.rows() != value.rows() || stored.cols() != value.cols())
+        {
+            throw GelexException(
+                fmt::format(
+                    "CheckpointReader: field shape mismatch for {}: got {}x{}, "
+                    "expected {}x{}",
+                    field,
+                    stored.rows(),
+                    stored.cols(),
+                    value.rows(),
+                    value.cols()));
+        }
+        value = stored;
+    }
+
+    auto on(std::string_view name, double& value, FieldFlag flags)
+        -> void override
+    {
+        if (!has(flags, FieldFlag::checkpoint))
+        {
+            return;
+        }
+
+        const auto field = field_path(name);
+        const auto stored = reader_.to_mat<double>(field);
+        if (stored.rows() != 1 || stored.cols() != 1)
+        {
+            throw GelexException(
+                fmt::format(
+                    "CheckpointReader: field shape mismatch for {}: got {}x{}, "
+                    "expected 1x1",
+                    field,
+                    stored.rows(),
+                    stored.cols()));
+        }
+        value = stored(0, 0);
+    }
+
+    auto on(std::string_view name, int& value, FieldFlag flags) -> void override
+    {
+        if (!has(flags, FieldFlag::checkpoint))
+        {
+            return;
+        }
+
+        const auto field = field_path(name);
+        const auto stored = reader_.to_mat<int>(field);
+        if (stored.rows() != 1 || stored.cols() != 1)
+        {
+            throw GelexException(
+                fmt::format(
+                    "CheckpointReader: field shape mismatch for {}: got {}x{}, "
+                    "expected 1x1",
+                    field,
+                    stored.rows(),
+                    stored.cols()));
+        }
+        value = stored(0, 0);
+    }
+
+    auto on(
+        std::string_view name,
+        std::span<const std::string>,
+        FieldFlag flags) -> void override
+    {
+        if (!has(flags, FieldFlag::checkpoint))
+        {
+            return;
+        }
+        throw GelexException(
+            "CheckpointReader: string list checkpoint field is not supported "
+            "for "
+            + field_path(name));
+    }
+
+    auto on(std::string_view name, std::string_view, FieldFlag flags)
+        -> void override
+    {
+        if (!has(flags, FieldFlag::checkpoint))
+        {
+            return;
+        }
+        throw GelexException(
+            "CheckpointReader: string checkpoint field is not supported for "
+            + field_path(name));
+    }
+
+    const io::BinaryReader& reader_;
+};
+
+}  // namespace
+
+auto read_checkpoint(const std::filesystem::path& path, BayesState& state)
     -> std::mt19937_64
 {
-    throw GelexException(
-        "MCMC checkpoint resume is not implemented after Bayes prior/state "
-        "cleanup");
+    io::BinaryReader reader(path.string());
+    CheckpointReader checkpoint_reader{reader};
+    checkpoint_reader.read(state);
+
+    const auto rng_state = reader.to_strings("rng_state");
+    if (rng_state.size() != 1)
+    {
+        throw GelexException(
+            fmt::format(
+                "{}: checkpoint rng_state count mismatch: got {}, expected 1",
+                path.string(),
+                rng_state.size()));
+    }
+
+    std::istringstream iss{std::string{rng_state.front()}};
+    std::mt19937_64 rng{};
+    iss >> rng;
+    if (!iss)
+    {
+        throw GelexException(
+            fmt::format(
+                "{}: failed to decode checkpoint rng_state", path.string()));
+    }
+    return rng;
 }
 
 }  // namespace gelex

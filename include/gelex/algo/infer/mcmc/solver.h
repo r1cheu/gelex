@@ -19,6 +19,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <random>
 #include <string>
 
 #include <Eigen/Core>
@@ -31,6 +32,8 @@
 
 namespace gelex
 {
+
+class BayesState;
 
 namespace mcmc
 {
@@ -49,13 +52,20 @@ class Solver
         Eigen::Index seed = 42,
         const MCMCObserver& observer = {}) -> mcmc::Result;
 
-    auto resume(
+    auto run_from(
         const BayesModel& model,
         bayes::BayesPrior prior,
         const std::filesystem::path& checkpoint_path,
         const MCMCObserver& observer = {}) -> mcmc::Result;
 
    private:
+    auto run_iterations(
+        const BayesModel& model,
+        const bayes::BayesPrior& prior,
+        BayesState& state,
+        std::mt19937_64& rng,
+        const MCMCObserver& observer) -> mcmc::Result;
+
     mcmc::Params params_;
     std::string draws_path_;
     std::optional<std::string> checkpoint_prefix_;

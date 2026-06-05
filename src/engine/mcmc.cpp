@@ -16,6 +16,8 @@
 
 #include "gelex/engine/mcmc.h"
 
+#include <optional>
+#include <string>
 #include <utility>
 
 #include <fmt/format.h>
@@ -84,23 +86,29 @@ auto Engine::run(
     bayes::BayesPrior prior,
     const MCMCObserver& observer) -> void
 {
-    if (config_.resume_path)
-    {
-        throw GelexException(
-            "MCMC resume is not implemented after Bayes prior/state cleanup");
-    }
-    if (config_.mcmc_params.checkpoint_step > 0)
-    {
-        throw GelexException(
-            "MCMC checkpoint output is not implemented after Bayes prior/state "
-            "cleanup");
-    }
-
     notify(observer, FitPriorSetEvent{&prior});
 
-    auto solver
-        = mcmc::Solver{config_.mcmc_params, config_.out_prefix + ".draws"};
-    auto result = solver.run(model, prior, config_.seed, observer);
+    std::optional<std::string> checkpoint_prefix;
+    if (config_.mcmc_params.checkpoint_step > 0)
+    {
+        checkpoint_prefix = config_.out_prefix;
+    }
+    auto solver = mcmc::Solver{
+        config_.mcmc_params,
+        config_.out_prefix + ".draws",
+        std::move(checkpoint_prefix)};
+    auto result = [&]() -> mcmc::Result
+    {
+        if (config_.from_checkpoint_path)
+        {
+            return solver.run_from(
+                model,
+                std::move(prior),
+                *config_.from_checkpoint_path,
+                observer);
+        }
+        return solver.run(model, prior, config_.seed, observer);
+    }();
     mcmc::write_params(result, config_.out_prefix);
     mcmc::write_summary(result, config_.out_prefix);
     mcmc::write_snp_eff(

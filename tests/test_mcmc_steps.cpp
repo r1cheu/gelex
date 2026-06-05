@@ -757,7 +757,7 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
 
     gelex::mcmc::Params params{
-        .n_iters = 4, .n_burn_in = 1, .n_thin = 1, .checkpoint_step = 0};
+        .n_iters = 4, .n_burn_in = 1, .n_thin = 1, .checkpoint_step = 2};
     gelex::test::FileFixture files;
     const auto prefix = files.get_test_dir() / "mcmc_engine_test";
     const auto bfile_prefix = files.get_test_dir() / "mcmc_engine_geno";
@@ -776,6 +776,7 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
     bool done = false;
     bool complete = false;
     bool saved = false;
+    int checkpoint_saved = 0;
     std::string saved_prefix;
     const gelex::bayes::BayesPrior* progress_prior = nullptr;
     std::ptrdiff_t samples_collected = 0;
@@ -818,6 +819,10 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
             saved = true;
             saved_prefix = saved_event->out_prefix;
         }
+        if (std::get_if<gelex::FitCheckpointSavedEvent>(&event) != nullptr)
+        {
+            ++checkpoint_saved;
+        }
     };
 
     engine.run(model, std::move(prior), observer);
@@ -826,6 +831,7 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
     REQUIRE(done);
     REQUIRE(complete);
     REQUIRE(saved);
+    REQUIRE(checkpoint_saved == 2);
     REQUIRE(saved_prefix == prefix.string());
     REQUIRE(samples_collected == params.n_records());
     auto summary_path = prefix;
@@ -840,13 +846,18 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
     auto draws_path = prefix;
     draws_path += ".draws";
     REQUIRE(std::filesystem::exists(draws_path));
+    auto checkpoint_path = prefix;
+    checkpoint_path += ".ckpt";
+    REQUIRE(std::filesystem::exists(checkpoint_path));
     gelex::io::BinaryReader draws(draws_path.string());
     const auto fixed_draws = draws.to_map<double>("state/fixed/coeffs");
     REQUIRE(fixed_draws.rows() == 1);
     REQUIRE(fixed_draws.cols() == params.n_records());
 }
 
-TEST_CASE("Engine::run rejects unsupported MCMC runtime options", "[mcmc][engine]")
+TEST_CASE(
+    "Solver::run_from starts from checkpointed state",
+    "[mcmc][solver][checkpoint]")
 {
     std::vector<gelex::bayes::GeneticDesign> genetics;
     genetics.push_back(make_design());
@@ -855,83 +866,170 @@ TEST_CASE("Engine::run rejects unsupported MCMC runtime options", "[mcmc][engine
         gelex::FixedDesign::build(3),
         {},
         std::move(genetics)};
+    gelex::test::FileFixture files;
+    const auto continuous_prefix
+        = (files.get_test_dir() / "solver_continuous").string();
+    const auto first_prefix = (files.get_test_dir() / "solver_first").string();
+    const auto from_prefix = (files.get_test_dir() / "solver_from").string();
 
-    SECTION("resume")
-    {
-        std::vector<gelex::bayes::GeneticPrior> priors;
-        priors.emplace_back(
-            gelex::bayes::SingleGeneticPrior{
-                gelex::bayes::SingleSharedGaussianPrior{
-                    gelex::GeneticMode::A,
-                    gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
-        gelex::bayes::BayesPrior prior{
-            gelex::bayes::RandomPrior{make_variance(0.3)},
-            std::move(priors),
-            gelex::bayes::ResidualPrior{make_variance(0.4)}};
-        gelex::mcmc::Engine engine{gelex::mcmc::Engine::Config{
-            .seed = 123,
-            .mcmc_params = gelex::mcmc::Params{
-                .n_iters = 4,
-                .n_burn_in = 1,
-                .n_thin = 1,
-                .checkpoint_step = 0},
-            .out_prefix = "mcmc_engine_test",
-            .resume_path = "checkpoint.gelex",
-        }};
-
-        REQUIRE_THROWS_AS(engine.run(model, std::move(prior)), gelex::GelexException);
-    }
-
-    SECTION("checkpoint")
-    {
-        std::vector<gelex::bayes::GeneticPrior> priors;
-        priors.emplace_back(
-            gelex::bayes::SingleGeneticPrior{
-                gelex::bayes::SingleSharedGaussianPrior{
-                    gelex::GeneticMode::A,
-                    gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
-        gelex::bayes::BayesPrior prior{
-            gelex::bayes::RandomPrior{make_variance(0.3)},
-            std::move(priors),
-            gelex::bayes::ResidualPrior{make_variance(0.4)}};
-        gelex::mcmc::Engine engine{gelex::mcmc::Engine::Config{
-            .seed = 123,
-            .mcmc_params = gelex::mcmc::Params{
-                .n_iters = 4,
-                .n_burn_in = 1,
-                .n_thin = 1,
-                .checkpoint_step = 2},
-            .out_prefix = "mcmc_engine_test",
-        }};
-
-        REQUIRE_THROWS_AS(engine.run(model, std::move(prior)), gelex::GelexException);
-    }
-}
-
-TEST_CASE("Solver::run rejects checkpoint output", "[mcmc][solver]")
-{
-    std::vector<gelex::bayes::GeneticDesign> genetics;
-    genetics.push_back(make_design());
-    gelex::BayesModel model{
-        Eigen::VectorXd{{1.0, -0.5, 0.25}},
-        gelex::FixedDesign::build(3),
-        {},
-        std::move(genetics)};
-    std::vector<gelex::bayes::GeneticPrior> priors;
-    priors.emplace_back(
+    std::vector<gelex::bayes::GeneticPrior> continuous_priors;
+    continuous_priors.emplace_back(
         gelex::bayes::SingleGeneticPrior{
             gelex::bayes::SingleSharedGaussianPrior{
                 gelex::GeneticMode::A,
                 gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
-    gelex::bayes::BayesPrior prior{
+    gelex::bayes::BayesPrior continuous_prior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
-        std::move(priors),
+        std::move(continuous_priors),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
+    gelex::mcmc::Params continuous_params{
+        .n_iters = 8, .n_burn_in = 0, .n_thin = 1, .checkpoint_step = 8};
+    gelex::mcmc::Solver continuous_solver{
+        continuous_params, "", continuous_prefix};
+    continuous_solver.run(model, continuous_prior, 123);
 
-    gelex::mcmc::Params params{
-        .n_iters = 4, .n_burn_in = 1, .n_thin = 1, .checkpoint_step = 1};
-    gelex::mcmc::Solver solver{params, "", std::string{"checkpoint"}};
+    std::vector<gelex::bayes::GeneticPrior> first_priors;
+    first_priors.emplace_back(
+        gelex::bayes::SingleGeneticPrior{
+            gelex::bayes::SingleSharedGaussianPrior{
+                gelex::GeneticMode::A,
+                gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
+    gelex::bayes::BayesPrior first_prior{
+        gelex::bayes::RandomPrior{make_variance(0.3)},
+        std::move(first_priors),
+        gelex::bayes::ResidualPrior{make_variance(0.4)}};
+    gelex::mcmc::Params first_params{
+        .n_iters = 4, .n_burn_in = 0, .n_thin = 1, .checkpoint_step = 4};
+    gelex::mcmc::Solver first_solver{first_params, "", first_prefix};
+    first_solver.run(model, first_prior, 123);
 
-    REQUIRE_THROWS_AS(
-        solver.run(model, std::move(prior), 123), gelex::GelexException);
+    std::vector<gelex::bayes::GeneticPrior> from_priors;
+    from_priors.emplace_back(
+        gelex::bayes::SingleGeneticPrior{
+            gelex::bayes::SingleSharedGaussianPrior{
+                gelex::GeneticMode::A,
+                gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
+    gelex::bayes::BayesPrior from_prior{
+        gelex::bayes::RandomPrior{make_variance(0.3)},
+        std::move(from_priors),
+        gelex::bayes::ResidualPrior{make_variance(0.4)}};
+    gelex::mcmc::Params from_params{
+        .n_iters = 4, .n_burn_in = 0, .n_thin = 1, .checkpoint_step = 4};
+    gelex::mcmc::Solver from_solver{from_params, "", from_prefix};
+    const auto from_result = from_solver.run_from(
+        model, std::move(from_prior), first_prefix + ".ckpt");
+
+    REQUIRE(from_result.samples_collected() == from_params.n_records());
+
+    gelex::io::BinaryReader continuous{continuous_prefix + ".ckpt"};
+    gelex::io::BinaryReader from_checkpoint{from_prefix + ".ckpt"};
+    CHECK(continuous.to_map<double>("state/fixed/coeffs")
+              .isApprox(
+                  from_checkpoint.to_map<double>("state/fixed/coeffs"), 0.0));
+    CHECK(continuous.to_map<double>("state/genetic_0/single/A/genetic/coeffs")
+              .isApprox(
+                  from_checkpoint.to_map<double>(
+                      "state/genetic_0/single/A/genetic/coeffs"),
+                  0.0));
+    CHECK(continuous.to_map<double>("state/genetic_0/single/A/genetic/u")
+              .isApprox(
+                  from_checkpoint.to_map<double>(
+                      "state/genetic_0/single/A/genetic/u"),
+                  0.0));
+    CHECK(continuous.to_map<double>("state/genetic_0/single/A/genetic/variance")
+              .isApprox(
+                  from_checkpoint.to_map<double>(
+                      "state/genetic_0/single/A/genetic/variance"),
+                  0.0));
+    CHECK(continuous.to_map<double>(
+                        "state/genetic_0/single/A/prior_state/"
+                        "shared_gaussian/variance")
+              .isApprox(
+                  from_checkpoint.to_map<double>(
+                      "state/genetic_0/single/A/prior_state/"
+                      "shared_gaussian/variance"),
+                  0.0));
+    CHECK(continuous.to_map<double>("state/residual/y_adj")
+              .isApprox(
+                  from_checkpoint.to_map<double>("state/residual/y_adj"),
+                  0.0));
+    CHECK(continuous.to_map<double>("state/residual/variance")
+              .isApprox(
+                  from_checkpoint.to_map<double>("state/residual/variance"),
+                  0.0));
+
+    const auto continuous_rng = continuous.to_strings("rng_state");
+    const auto from_rng = from_checkpoint.to_strings("rng_state");
+    REQUIRE(continuous_rng.size() == 1);
+    REQUIRE(from_rng.size() == 1);
+    CHECK(continuous_rng.front() == from_rng.front());
+}
+
+TEST_CASE("Engine::run starts from checkpoint", "[mcmc][engine][checkpoint]")
+{
+    std::vector<gelex::bayes::GeneticDesign> genetics;
+    genetics.push_back(make_design());
+    gelex::BayesModel model{
+        Eigen::VectorXd{{1.0, -0.5, 0.25}},
+        gelex::FixedDesign::build(3),
+        {},
+        std::move(genetics)};
+    gelex::test::FileFixture files;
+    const auto first_prefix = files.get_test_dir() / "engine_first";
+    const auto from_prefix = files.get_test_dir() / "engine_from";
+    const auto bfile_prefix = files.get_test_dir() / "engine_geno";
+    (void)files.create_named_text_file(
+        "engine_geno.bim",
+        "1\trs1\t0\t100\tA\tG\n"
+        "1\trs2\t0\t200\tC\tT\n");
+
+    std::vector<gelex::bayes::GeneticPrior> first_priors;
+    first_priors.emplace_back(
+        gelex::bayes::SingleGeneticPrior{
+            gelex::bayes::SingleSharedGaussianPrior{
+                gelex::GeneticMode::A,
+                gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
+    gelex::bayes::BayesPrior first_prior{
+        gelex::bayes::RandomPrior{make_variance(0.3)},
+        std::move(first_priors),
+        gelex::bayes::ResidualPrior{make_variance(0.4)}};
+    gelex::mcmc::Engine first_engine{gelex::mcmc::Engine::Config{
+        .bfile_prefix = bfile_prefix.string(),
+        .seed = 123,
+        .mcmc_params = gelex::mcmc::Params{
+            .n_iters = 2, .n_burn_in = 0, .n_thin = 1, .checkpoint_step = 2},
+        .out_prefix = first_prefix.string(),
+    }};
+    first_engine.run(model, std::move(first_prior));
+
+    std::vector<gelex::bayes::GeneticPrior> from_priors;
+    from_priors.emplace_back(
+        gelex::bayes::SingleGeneticPrior{
+            gelex::bayes::SingleSharedGaussianPrior{
+                gelex::GeneticMode::A,
+                gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
+    gelex::bayes::BayesPrior from_prior{
+        gelex::bayes::RandomPrior{make_variance(0.3)},
+        std::move(from_priors),
+        gelex::bayes::ResidualPrior{make_variance(0.4)}};
+    gelex::mcmc::Engine from_engine{gelex::mcmc::Engine::Config{
+        .bfile_prefix = bfile_prefix.string(),
+        .seed = 999,
+        .mcmc_params = gelex::mcmc::Params{
+            .n_iters = 2, .n_burn_in = 0, .n_thin = 1, .checkpoint_step = 2},
+        .out_prefix = from_prefix.string(),
+        .from_checkpoint_path = first_prefix.string() + ".ckpt",
+    }};
+
+    from_engine.run(model, std::move(from_prior));
+
+    auto draws_path = from_prefix;
+    draws_path += ".draws";
+    REQUIRE(std::filesystem::exists(draws_path));
+    auto checkpoint_path = from_prefix;
+    checkpoint_path += ".ckpt";
+    REQUIRE(std::filesystem::exists(checkpoint_path));
+    auto summary_path = from_prefix;
+    summary_path += ".summary";
+    REQUIRE(std::filesystem::exists(summary_path));
 }

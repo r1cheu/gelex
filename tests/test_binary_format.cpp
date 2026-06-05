@@ -134,7 +134,7 @@ TEST_CASE("Container scalar round-trip", "[binary_container]")
     {
         BinaryWriter writer(container_path.string());
         writer.write("Residual/variance", 0.75);
-        writer.write("Format/version", uint32_t{3});
+        writer.write("Run/count", uint32_t{1});
     }
 
     BinaryReader reader(container_path.string());
@@ -145,10 +145,10 @@ TEST_CASE("Container scalar round-trip", "[binary_container]")
     REQUIRE(variance.cols() == 1);
     REQUIRE_THAT(variance(0, 0), Catch::Matchers::WithinRel(0.75));
 
-    const auto version = reader.to_mat<uint32_t>("Format/version");
-    REQUIRE(version.rows() == 1);
-    REQUIRE(version.cols() == 1);
-    REQUIRE(version(0, 0) == 3);
+    const auto count = reader.to_mat<uint32_t>("Run/count");
+    REQUIRE(count.rows() == 1);
+    REQUIRE(count.cols() == 1);
+    REQUIRE(count(0, 0) == 1);
 }
 
 TEST_CASE("Container section_paths", "[binary_container]")

@@ -45,7 +45,7 @@ class Engine
         mcmc::Params mcmc_params;
 
         std::string out_prefix;
-        std::optional<std::filesystem::path> resume_path;
+        std::optional<std::filesystem::path> from_checkpoint_path;
     };
 
     explicit Engine(Config config);
