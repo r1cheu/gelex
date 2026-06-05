@@ -22,7 +22,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/infra/stats/conjugate_prior.h"
+#include "gelex/infra/stats/normal_sampler.h"
 
 namespace
 {

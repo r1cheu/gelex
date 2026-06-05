@@ -24,7 +24,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/infra/stats/conjugate_prior.h"
+#include "gelex/infra/stats/half_normal_sampler.h"
+#include "gelex/infra/stats/normal_sampler.h"
 
 namespace gelex
 {
@@ -62,7 +63,7 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "HalfNormalSampler log_marginal_kernel equals normal logL + log(2)",
+    "HalfNormalSampler log_marginal_kernel includes sign tail mass",
     "[stats][half_normal_sampler]")
 {
     constexpr double PRIOR_VAR = 3.0;
@@ -75,13 +76,35 @@ TEST_CASE(
         .scale = 1.5,
     };
 
-    const auto hn_post = hn.posterior_with_logL(kernel);
+    const auto hn_pos = hn.posterior_with_logL(kernel, +1);
+    const auto hn_neg = hn.posterior_with_logL(kernel, -1);
     const auto n_post = n.posterior_with_logL(kernel);
+    const double z = n_post.params.mean / std::sqrt(n_post.params.var);
+    const double log_tail_pos
+        = std::log(0.5) + std::log(std::erfc(-z / std::numbers::sqrt2));
+    const double log_tail_neg
+        = std::log(0.5) + std::log(std::erfc(z / std::numbers::sqrt2));
+    const double normal_half_log
+        = n_post.log_likelihood_kernel + std::log(2.0);
 
     REQUIRE_THAT(
-        hn_post.log_marginal_kernel,
-        Catch::Matchers::WithinAbs(
-            n_post.log_likelihood_kernel + std::log(2.0), 1e-12));
+        hn_pos.log_marginal_kernel,
+        Catch::Matchers::WithinAbs(normal_half_log + log_tail_pos, 1e-12));
+    REQUIRE(hn_pos.sign == +1);
+
+    REQUIRE_THAT(
+        hn_neg.log_marginal_kernel,
+        Catch::Matchers::WithinAbs(normal_half_log + log_tail_neg, 1e-12));
+    REQUIRE(hn_neg.sign == -1);
+
+    const double big
+        = std::max(hn_pos.log_marginal_kernel, hn_neg.log_marginal_kernel);
+    const double logsumexp
+        = big
+          + std::log(
+              std::exp(hn_pos.log_marginal_kernel - big)
+              + std::exp(hn_neg.log_marginal_kernel - big));
+    REQUIRE_THAT(logsumexp, Catch::Matchers::WithinAbs(normal_half_log, 1e-12));
 }
 
 TEST_CASE(
@@ -94,18 +117,25 @@ TEST_CASE(
     for (const double sign_val : {1.0, -1.0})
     {
         HalfNormalSampler<double> hn{1.0};
+        NormalSampler<double> n{1.0};
         const NormalSampler<double>::Kernel kernel{
             .quadratic = 1.0,
             .linear = sign_val * 10.0 * SQRT_2,
             .scale = 1.0,
         };
-        const auto post = hn.posterior_with_logL(kernel);
-        const double z = post.params.mean / std::sqrt(post.params.var);
+        const auto pos = hn.posterior_with_logL(kernel, +1);
+        const auto neg = hn.posterior_with_logL(kernel, -1);
+        const auto normal_post = n.posterior_with_logL(kernel);
+        const double z = normal_post.params.mean / std::sqrt(normal_post.params.var);
+        const double normal_half_log
+            = normal_post.log_likelihood_kernel + std::log(2.0);
+        const double log_tail_pos = pos.log_marginal_kernel - normal_half_log;
+        const double log_tail_neg = neg.log_marginal_kernel - normal_half_log;
 
-        REQUIRE(std::isfinite(post.log_tail_pos));
-        REQUIRE(std::isfinite(post.log_tail_neg));
-        REQUIRE(!std::isnan(post.log_tail_pos));
-        REQUIRE(!std::isnan(post.log_tail_neg));
+        REQUIRE(std::isfinite(pos.log_marginal_kernel));
+        REQUIRE(std::isfinite(neg.log_marginal_kernel));
+        REQUIRE(!std::isnan(pos.log_marginal_kernel));
+        REQUIRE(!std::isnan(neg.log_marginal_kernel));
 
         auto log_phi_asymp = [](double zv) -> double
         {
@@ -121,23 +151,24 @@ TEST_CASE(
         {
             const double ref = log_phi_asymp(z);
             REQUIRE_THAT(
-                post.log_tail_pos, Catch::Matchers::WithinAbs(ref, 1e-6));
+                log_tail_pos, Catch::Matchers::WithinAbs(ref, 1e-6));
         }
         else
         {
             // z ≈ +10: log_tail_neg ≈ log_phi_asymp(-10)
             const double ref = log_phi_asymp(-z);
             REQUIRE_THAT(
-                post.log_tail_neg, Catch::Matchers::WithinAbs(ref, 1e-6));
+                log_tail_neg, Catch::Matchers::WithinAbs(ref, 1e-6));
         }
     }
 }
 
 TEST_CASE(
-    "HalfNormalSampler log_tail_pos + log_tail_neg logsumexp ≈ 0",
+    "HalfNormalSampler signed log marginal sums to sign-free half-normal mass",
     "[stats][half_normal_sampler]")
 {
     HalfNormalSampler<double> hn{1.0};
+    NormalSampler<double> n{1.0};
 
     for (const double mean_val : {-5.0, -1.0, 0.0, 1.0, 5.0})
     {
@@ -146,15 +177,20 @@ TEST_CASE(
             .linear = mean_val * 2.0,
             .scale = 1.0,
         };
-        const auto post = hn.posterior_with_logL(kernel);
+        const auto pos = hn.posterior_with_logL(kernel, +1);
+        const auto neg = hn.posterior_with_logL(kernel, -1);
+        const auto normal_post = n.posterior_with_logL(kernel);
 
-        const double lp = post.log_tail_pos;
-        const double ln = post.log_tail_neg;
+        const double lp = pos.log_marginal_kernel;
+        const double ln = neg.log_marginal_kernel;
         const double big = std::max(lp, ln);
         const double logsumexp
             = big + std::log(std::exp(lp - big) + std::exp(ln - big));
 
-        REQUIRE_THAT(logsumexp, Catch::Matchers::WithinAbs(0.0, 1e-12));
+        REQUIRE_THAT(
+            logsumexp,
+            Catch::Matchers::WithinAbs(
+                normal_post.log_likelihood_kernel + std::log(2.0), 1e-12));
     }
 }
 
@@ -182,6 +218,45 @@ TEST_CASE(
 
     REQUIRE_THAT(mean, Catch::Matchers::WithinAbs(expected_mean, 1e-2));
     REQUIRE_THAT(var, Catch::Matchers::WithinAbs(expected_var, 1e-2));
+}
+
+TEST_CASE(
+    "HalfNormalSampler reset clears cached distribution state",
+    "[stats][half_normal_sampler]")
+{
+    HalfNormalSampler<double> sampler{1.0};
+    const HalfNormalSampler<double>::Params post{.mean = 0.0, .var = 1.0};
+
+    std::mt19937_64 rng{2};
+    (void)sampler.draw(post, +1, rng);
+    sampler.reset();
+    rng.seed(2);
+    const double after_reset = sampler.draw(post, +1, rng);
+
+    HalfNormalSampler<double> fresh{1.0};
+    std::mt19937_64 fresh_rng{2};
+    const double fresh_first = fresh.draw(post, +1, fresh_rng);
+
+    REQUIRE(after_reset == fresh_first);
+}
+
+TEST_CASE(
+    "HalfNormalSampler draw uses posterior sign",
+    "[stats][half_normal_sampler]")
+{
+    HalfNormalSampler<double> hn{1.0};
+    const NormalSampler<double>::Kernel kernel{
+        .quadratic = 1.0,
+        .linear = 1.0,
+        .scale = 1.0,
+    };
+    const auto post = hn.posterior_with_logL(kernel, -1);
+
+    std::mt19937_64 rng{SEED};
+    for (int i = 0; i < 1000; ++i)
+    {
+        REQUIRE(hn.draw(post, rng) < 0.0);
+    }
 }
 
 TEST_CASE(

@@ -28,8 +28,9 @@
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/state.h"
-#include "gelex/infra/stats/conjugate_prior.h"
 #include "gelex/infra/stats/detail/var.h"
+#include "gelex/infra/stats/dirichlet_sampler.h"
+#include "gelex/infra/stats/normal_sampler.h"
 
 namespace gelex::mcmc
 {

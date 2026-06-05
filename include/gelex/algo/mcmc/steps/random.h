@@ -23,7 +23,8 @@
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
-#include "gelex/infra/stats/conjugate_prior.h"
+#include "gelex/infra/stats/normal_sampler.h"
+#include "gelex/infra/stats/scaled_inv_chi2_sampler.h"
 
 namespace gelex::mcmc
 {

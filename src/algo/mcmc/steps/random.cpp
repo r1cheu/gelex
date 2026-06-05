@@ -28,7 +28,7 @@
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/exception.h"
-#include "gelex/infra/stats/conjugate_prior.h"
+#include "gelex/infra/stats/normal_sampler.h"
 
 namespace gelex::mcmc
 {

@@ -24,7 +24,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/infra/stats/conjugate_prior.h"
+#include "gelex/infra/stats/beta_sampler.h"
+#include "gelex/infra/stats/dirichlet_sampler.h"
+#include "gelex/infra/stats/normal_sampler.h"
+#include "gelex/infra/stats/scaled_inv_chi2_sampler.h"
 
 namespace gelex
 {
