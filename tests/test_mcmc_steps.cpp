@@ -369,6 +369,79 @@ TEST_CASE("Joint Gaussian mixture step updates fused state", "[mcmc]")
     REQUIRE((mixture_state.assignment().values().array() <= 3).all());
 }
 
+TEST_CASE("Joint half normal mixture step updates fused state", "[mcmc]")
+{
+    auto additive = make_design(gelex::GeneticMode::A);
+    auto dominance = make_design(gelex::GeneticMode::D);
+    auto initial = Eigen::VectorXd{{0.001, 0.001, 0.997, 0.001}};
+    auto alpha = Eigen::VectorXd::Ones(4);
+    gelex::bayes::JointGeneticPrior prior{
+        gelex::bayes::JointHalfNormalMixturePrior{
+            gelex::bayes::JointSharedMarkerVariance{std::array{
+            gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+            gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
+            gelex::bayes::MixtureProportion{gelex::bayes::SimplexParameter{
+                std::move(initial),
+                gelex::bayes::DirichletPrior{std::move(alpha)}}},
+            gelex::bayes::ProbabilityParameter{
+                0.8, gelex::bayes::BetaPrior{1.0, 1.0}}}};
+    gelex::bayes::JointGeneticBlockState block{additive, dominance, prior};
+    gelex::bayes::ResidualState residual{
+        .y_adj = Eigen::VectorXd{{1.0, -0.5, 0.25}}, .variance = 1.0};
+    auto& mixture_state = std::get<gelex::bayes::JointHalfNormalMixtureState>(
+        block.prior_state());
+
+    std::mt19937_64 rng{123};
+    gelex::mcmc::JointHalfNormalMixtureStep step{
+        additive, dominance, prior, block, residual, rng};
+    step.step();
+
+    const auto& additive_coeffs = block.state(gelex::GeneticMode::A).coeffs;
+    const auto& dominance_coeffs = block.state(gelex::GeneticMode::D).coeffs;
+    REQUIRE(additive_coeffs.allFinite());
+    REQUIRE(dominance_coeffs.allFinite());
+    REQUIRE(std::isfinite(mixture_state.variance(gelex::GeneticMode::A)));
+    REQUIRE(std::isfinite(mixture_state.variance(gelex::GeneticMode::D)));
+    REQUIRE(mixture_state.variance(gelex::GeneticMode::A) > 0.0);
+    REQUIRE(mixture_state.variance(gelex::GeneticMode::D) > 0.0);
+    REQUIRE(mixture_state.proportion().allFinite());
+    REQUIRE(std::abs(mixture_state.proportion().sum() - 1.0) < 1e-12);
+    REQUIRE((mixture_state.assignment().values().array() >= 0).all());
+    REQUIRE((mixture_state.assignment().values().array() <= 3).all());
+    REQUIRE((mixture_state.dominance_sign().sign.values().array() >= 0).all());
+    REQUIRE((mixture_state.dominance_sign().sign.values().array() <= 1).all());
+    REQUIRE(std::isfinite(mixture_state.dominance_sign().positive_probability));
+    REQUIRE(mixture_state.dominance_sign().positive_probability > 0.0);
+    REQUIRE(mixture_state.dominance_sign().positive_probability < 1.0);
+
+    bool has_dominance_active = false;
+    for (Eigen::Index i = 0; i < mixture_state.assignment().size(); ++i)
+    {
+        const int component = mixture_state.assignment()(i);
+        if (component == 0 || component == 2)
+        {
+            REQUIRE(additive_coeffs(i) == 0.0);
+        }
+        if (component == 0 || component == 1)
+        {
+            REQUIRE(dominance_coeffs(i) == 0.0);
+        }
+        if (component == 2 || component == 3)
+        {
+            has_dominance_active = true;
+            if (mixture_state.dominance_sign().sign(i) == 1)
+            {
+                REQUIRE(dominance_coeffs(i) > 0.0);
+            }
+            else
+            {
+                REQUIRE(dominance_coeffs(i) < 0.0);
+            }
+        }
+    }
+    REQUIRE(has_dominance_active);
+}
+
 TEST_CASE("Chain::make maps single genetic priors to MCMC steps", "[mcmc][chain]")
 {
     SECTION("shared Gaussian")
@@ -569,7 +642,7 @@ TEST_CASE("Chain::make maps joint genetic priors to MCMC steps", "[mcmc][chain]"
         std::isfinite(block.state(gelex::GeneticMode::D).heritability));
 }
 
-TEST_CASE("Chain::make binds half normal mixture placeholder", "[mcmc][chain]")
+TEST_CASE("Chain::make maps half normal mixture step", "[mcmc][chain]")
 {
     std::vector<gelex::bayes::GeneticDesign> genetics;
     genetics.push_back(make_design(gelex::GeneticMode::A));
@@ -597,8 +670,16 @@ TEST_CASE("Chain::make binds half normal mixture placeholder", "[mcmc][chain]")
 
     std::mt19937_64 rng{123};
     auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
+    chain.step();
 
-    REQUIRE_THROWS_AS(chain.step(), gelex::GelexException);
+    const auto& block = std::get<gelex::bayes::JointGeneticBlockState>(
+        state.genetics()[0]);
+    REQUIRE(block.state(gelex::GeneticMode::A).coeffs.allFinite());
+    REQUIRE(block.state(gelex::GeneticMode::D).coeffs.allFinite());
+    REQUIRE(
+        std::isfinite(block.state(gelex::GeneticMode::A).heritability));
+    REQUIRE(
+        std::isfinite(block.state(gelex::GeneticMode::D).heritability));
 }
 
 TEST_CASE("Solver::run collects single genetic samples", "[mcmc][solver]")

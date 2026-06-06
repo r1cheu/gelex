@@ -25,6 +25,8 @@
 #include <fmt/base.h>
 #include <fmt/format.h>
 
+#include <Eigen/Core>
+
 #include "cli/report_printer.h"
 #include "config.h"
 #include "gelex/bayes/genetic/prior.h"
@@ -111,6 +113,44 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
                             stats_.empty() ? "" : " | ",
                             bayes::to_heritability_label(mode),
                             genetic.heritability);
+                        std::visit(
+                            [&](const auto& prior_state)
+                            {
+                                using PriorState
+                                    = std::decay_t<decltype(prior_state)>;
+                                if constexpr (
+                                    std::is_same_v<
+                                        PriorState,
+                                        bayes::
+                                            SingleSharedSpikeSlabGaussianState>
+                                    || std::is_same_v<
+                                        PriorState,
+                                        bayes::
+                                            SinglePerMarkerSpikeSlabGaussianState>
+                                    || std::is_same_v<
+                                        PriorState,
+                                        bayes::
+                                            SingleScaledMixtureGaussianState>)
+                                {
+                                    fmt::format_to(
+                                        std::back_inserter(stats_), " | π:[");
+                                    const auto& proportion
+                                        = prior_state.proportion();
+                                    for (Eigen::Index j = 0;
+                                         j < proportion.size();
+                                         ++j)
+                                    {
+                                        fmt::format_to(
+                                            std::back_inserter(stats_),
+                                            "{}{:.3f}",
+                                            j == 0 ? "" : ",",
+                                            proportion(j));
+                                    }
+                                    fmt::format_to(
+                                        std::back_inserter(stats_), "]");
+                                }
+                            },
+                            block.prior_state());
                     }
                     else if constexpr (
                         std::is_same_v<Prior, bayes::JointGeneticPrior>
@@ -126,6 +166,49 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
                                 bayes::to_heritability_label(mode),
                                 genetic.heritability);
                         }
+                        std::visit(
+                            [&](const auto& prior_state)
+                            {
+                                using PriorState
+                                    = std::decay_t<decltype(prior_state)>;
+                                if constexpr (
+                                    std::is_same_v<
+                                        PriorState,
+                                        bayes::JointGaussianMixtureState>
+                                    || std::is_same_v<
+                                        PriorState,
+                                        bayes::JointHalfNormalMixtureState>)
+                                {
+                                    fmt::format_to(
+                                        std::back_inserter(stats_), " | π:[");
+                                    const auto& proportion
+                                        = prior_state.proportion();
+                                    for (Eigen::Index j = 0;
+                                         j < proportion.size();
+                                         ++j)
+                                    {
+                                        fmt::format_to(
+                                            std::back_inserter(stats_),
+                                            "{}{:.3f}",
+                                            j == 0 ? "" : ",",
+                                            proportion(j));
+                                    }
+                                    fmt::format_to(
+                                        std::back_inserter(stats_), "]");
+                                }
+                                if constexpr (
+                                    std::is_same_v<
+                                        PriorState,
+                                        bayes::JointHalfNormalMixtureState>)
+                                {
+                                    fmt::format_to(
+                                        std::back_inserter(stats_),
+                                        " | p_s:{:.3f}",
+                                        prior_state.dominance_sign()
+                                            .positive_probability);
+                                }
+                            },
+                            block.prior_state());
                     }
                 },
                 prior,
