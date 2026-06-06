@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "grm_command.h"
+#include "command.h"
 
 #include <argparse.h>
 #include <fmt/format.h>
@@ -22,10 +22,10 @@
 #include <utility>
 
 #include "cli/cli_helper.h"
+#include "config.h"
 #include "gelex/engine/grm.h"
 #include "gelex/infra/logging/grm_event.h"
-#include "grm_config.h"
-#include "grm_reporter.h"
+#include "reporter.h"
 
 auto grm_execute(argparse::ArgumentParser& cmd) -> int
 {

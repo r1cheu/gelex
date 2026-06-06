@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#include "simulator_reporter.h"
+#include "reporter.h"
 #include <fmt/format.h>
 #include <string>
 
 #include "cli/report_printer.h"
-#include "config.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/infra/logging/simulate_event.h"
+#include "version.h"
 
 namespace gelex::cli
 {

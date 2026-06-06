@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "post_reporter.h"
+#include "reporter.h"
 
 #include <Eigen/Core>
 #include <algorithm>
@@ -23,9 +23,9 @@
 #include <fmt/format.h>
 
 #include "cli/report_printer.h"
-#include "config.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/post_event.h"
+#include "version.h"
 
 namespace gelex::cli
 {

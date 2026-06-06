@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "predict_config.h"
+#include "config.h"
 
 #include <filesystem>
 #include <optional>

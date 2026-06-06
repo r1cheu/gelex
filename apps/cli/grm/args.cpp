@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "grm_args.h"
+#include "args.h"
 
 #include <thread>
 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_SIMULATOR_REPORTER_H_
-#define GELEX_CLI_SIMULATOR_REPORTER_H_
+#ifndef GELEX_CLI_SIMULATE_REPORTER_H_
+#define GELEX_CLI_SIMULATE_REPORTER_H_
 
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/infra/logging/simulate_event.h"
@@ -46,4 +46,4 @@ class SimulatorReporter
 
 }  // namespace gelex::cli
 
-#endif  // GELEX_CLI_SIMULATOR_REPORTER_H_
+#endif  // GELEX_CLI_SIMULATE_REPORTER_H_

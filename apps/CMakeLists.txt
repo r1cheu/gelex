@@ -1,29 +1,29 @@
 set(CLI_SOURCES
     main.cpp
-    cli/assoc/assoc_args.cpp
-    cli/assoc/assoc_config.cpp
-    cli/assoc/assoc_command.cpp
-    cli/assoc/assoc_reporter.cpp
-    cli/mcmc/mcmc_args.cpp
-    cli/mcmc/mcmc_config.cpp
-    cli/mcmc/mcmc_command.cpp
-    cli/mcmc/mcmc_reporter.cpp
-    cli/grm/grm_args.cpp
-    cli/grm/grm_config.cpp
-    cli/grm/grm_command.cpp
-    cli/grm/grm_reporter.cpp
-    cli/predict/predict_args.cpp
-    cli/predict/predict_config.cpp
-    cli/predict/predict_command.cpp
-    cli/predict/predict_reporter.cpp
-    cli/simulate/simulate_args.cpp
-    cli/simulate/simulate_config.cpp
-    cli/simulate/simulate_command.cpp
-    cli/simulate/simulator_reporter.cpp
-    cli/post/post_args.cpp
-    cli/post/post_config.cpp
-    cli/post/post_command.cpp
-    cli/post/post_reporter.cpp
+    cli/assoc/args.cpp
+    cli/assoc/config.cpp
+    cli/assoc/command.cpp
+    cli/assoc/reporter.cpp
+    cli/mcmc/args.cpp
+    cli/mcmc/config.cpp
+    cli/mcmc/command.cpp
+    cli/mcmc/reporter.cpp
+    cli/grm/args.cpp
+    cli/grm/config.cpp
+    cli/grm/command.cpp
+    cli/grm/reporter.cpp
+    cli/predict/args.cpp
+    cli/predict/config.cpp
+    cli/predict/command.cpp
+    cli/predict/reporter.cpp
+    cli/simulate/args.cpp
+    cli/simulate/config.cpp
+    cli/simulate/command.cpp
+    cli/simulate/reporter.cpp
+    cli/post/args.cpp
+    cli/post/config.cpp
+    cli/post/command.cpp
+    cli/post/reporter.cpp
     cli/report_printer.cpp
     cli/fit_reporter.cpp
     cli/reml_reporter.cpp

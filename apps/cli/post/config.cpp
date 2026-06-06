@@ -14,22 +14,28 @@
  * limitations under the License.
  */
 
-#include "predict_command.h"
+#include "config.h"
 
 #include <argparse.h>
-#include <utility>
+#include <string>
+#include <vector>
 
-#include "gelex/engine/predict.h"
-#include "gelex/infra/logging/predict_event.h"
-#include "predict_config.h"
-#include "predict_reporter.h"
-
-auto predict_execute(argparse::ArgumentParser& predict) -> int
+namespace gelex::cli
 {
-    auto config = gelex::cli::make_predict_config(predict);
-    gelex::cli::PredictReporter reporter;
-    reporter.on_event(gelex::PredictBannerEvent{});
-    gelex::PredictEngine engine(std::move(config));
-    engine.run(reporter.as_observer());
-    return 0;
+
+auto make_post_config(argparse::ArgumentParser& cmd) -> PostConfig
+{
+    auto config = PostConfig{
+        .in_prefixes = cmd.get<std::vector<std::string>>("--in"),
+        .hdpi_width = cmd.get<double>("--hdpi"),
+    };
+
+    if (cmd.is_used("--gfile"))
+    {
+        config.gfile = cmd.get<std::string>("--gfile");
+    }
+
+    return config;
 }
+
+}  // namespace gelex::cli

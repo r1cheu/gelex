@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "mcmc_command.h"
+#include "command.h"
 
 #include <utility>
 
@@ -26,6 +26,7 @@
 #include "cli/dataset_reporter.h"
 #include "cli/geno_reporter.h"
 #include "cli/pheno_reporter.h"
+#include "config.h"
 #include "gelex/bayes/builder.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/data/pipe/geno.h"
@@ -34,8 +35,7 @@
 #include "gelex/infra/logging/dataset_event.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/notify.h"
-#include "mcmc_config.h"
-#include "mcmc_reporter.h"
+#include "reporter.h"
 
 auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
 {

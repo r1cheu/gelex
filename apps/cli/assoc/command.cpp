@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "assoc_command.h"
+#include "command.h"
 
 #include <argparse.h>
 #include <array>
@@ -24,14 +24,13 @@
 #include <utility>
 #include <vector>
 
-#include "assoc_config.h"
-#include "assoc_reporter.h"
 #include "cli/cli_helper.h"
 #include "cli/data_pipe_config.h"
 #include "cli/dataset_reporter.h"
 #include "cli/grm_pipe_reporter.h"
 #include "cli/pheno_reporter.h"
 #include "cli/reml_reporter.h"
+#include "config.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/pipe/grm.h"
 #include "gelex/data/pipe/pheno.h"
@@ -40,6 +39,7 @@
 #include "gelex/infra/logging/assoc_event.h"
 #include "gelex/infra/logging/dataset_event.h"
 #include "gelex/infra/logging/notify.h"
+#include "reporter.h"
 
 auto assoc_execute(argparse::ArgumentParser& cmd) -> int
 {

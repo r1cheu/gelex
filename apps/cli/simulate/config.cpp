@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "simulate_config.h"
+#include "config.h"
 
 #include <argparse.h>
 

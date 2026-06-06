@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "mcmc_args.h"
+#include "args.h"
 
 #include <algorithm>
 #include <string>

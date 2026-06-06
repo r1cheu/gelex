@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-#include "post_command.h"
+#include "command.h"
 
 #include <string_view>
 #include <vector>
 
 #include <argparse.h>
 
+#include "config.h"
 #include "gelex/engine/posterior_analysis.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/post_event.h"
-#include "post_config.h"
-#include "post_reporter.h"
+#include "reporter.h"
 
 auto post_execute(argparse::ArgumentParser& post) -> int
 {

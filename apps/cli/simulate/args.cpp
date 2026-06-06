@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "simulate_args.h"
+#include "args.h"
 
 #include <argparse.h>
 

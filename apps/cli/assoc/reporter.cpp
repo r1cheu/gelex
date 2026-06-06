@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-#include "assoc_reporter.h"
+#include "reporter.h"
 
 #include <fmt/color.h>
 #include <fmt/format.h>
 
 #include "cli/reml_reporter.h"
 #include "cli/report_printer.h"
-#include "config.h"
 #include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/infra/logging/assoc_event.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/progress_bar.h"
+#include "version.h"
 
 namespace gelex::cli
 {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "mcmc_config.h"
+#include "config.h"
 
 #include <argparse.h>
 

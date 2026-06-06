@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-#include "grm_reporter.h"
+#include "reporter.h"
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
 #include "cli/report_printer.h"
-#include "config.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/logging/progress_bar.h"
+#include "version.h"
 
 namespace gelex::cli
 {

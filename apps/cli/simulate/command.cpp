@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-#include "simulate_command.h"
+#include "command.h"
 
 #include <argparse.h>
 
 #include <optional>
 #include <utility>
 
+#include "config.h"
 #include "gelex/engine/simulation.h"
 #include "gelex/infra/logging/simulate_event.h"
-#include "simulate_config.h"
-#include "simulator_reporter.h"
+#include "reporter.h"
 
 auto simulate_execute(argparse::ArgumentParser& sim) -> int
 {

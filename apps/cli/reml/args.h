@@ -14,24 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_ASSOC_CONFIG_H_
-#define GELEX_CLI_ASSOC_CONFIG_H_
+#ifndef GELEX_CLI_REML_ARGS_H_
+#define GELEX_CLI_REML_ARGS_H_
 
-#include "gelex/data/pipe/pheno.h"
-#include "gelex/engine/assoc.h"
-
-namespace argparse
-{
-class ArgumentParser;
-}
-
-namespace gelex::cli
+namespace gelex
 {
 
-auto make_assoc_config(argparse::ArgumentParser& cmd) -> AssocEngine::Config;
+}  // namespace gelex
 
-auto parse_transform_type(std::string_view transform) -> detail::TransformType;
-
-}  // namespace gelex::cli
-
-#endif  // GELEX_CLI_ASSOC_CONFIG_H_
+#endif  // GELEX_CLI_REML_ARGS_H_

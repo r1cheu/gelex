@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "assoc_config.h"
+#include "config.h"
 
 #include <argparse.h>
 #include <string>
@@ -38,17 +38,18 @@ auto parse_test_type(std::string_view test) -> AssocType
     return AssocType::Single;
 }
 
-auto parse_transform_type(std::string_view transform) -> detail::TransformType
+auto parse_transform_type(std::string_view transform)
+    -> gelex::detail::TransformType
 {
     if (transform == "dint")
     {
-        return detail::TransformType::DINT;
+        return gelex::detail::TransformType::DINT;
     }
     if (transform == "iint")
     {
-        return detail::TransformType::IINT;
+        return gelex::detail::TransformType::IINT;
     }
-    return detail::TransformType::None;
+    return gelex::detail::TransformType::None;
 }
 
 auto make_assoc_config(argparse::ArgumentParser& cmd) -> AssocEngine::Config

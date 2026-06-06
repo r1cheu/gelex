@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "grm_config.h"
+#include "config.h"
 
 #include <string>
 #include <utility>

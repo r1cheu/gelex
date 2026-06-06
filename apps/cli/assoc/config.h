@@ -14,28 +14,25 @@
  * limitations under the License.
  */
 
-#include "post_config.h"
+#ifndef GELEX_CLI_ASSOC_CONFIG_H_
+#define GELEX_CLI_ASSOC_CONFIG_H_
 
-#include <argparse.h>
-#include <string>
-#include <vector>
+#include "gelex/data/pipe/pheno.h"
+#include "gelex/engine/assoc.h"
+
+namespace argparse
+{
+class ArgumentParser;
+}
 
 namespace gelex::cli
 {
 
-auto make_post_config(argparse::ArgumentParser& cmd) -> PostConfig
-{
-    auto config = PostConfig{
-        .in_prefixes = cmd.get<std::vector<std::string>>("--in"),
-        .hdpi_width = cmd.get<double>("--hdpi"),
-    };
+auto make_assoc_config(argparse::ArgumentParser& cmd) -> AssocEngine::Config;
 
-    if (cmd.is_used("--gfile"))
-    {
-        config.gfile = cmd.get<std::string>("--gfile");
-    }
-
-    return config;
-}
+auto parse_transform_type(std::string_view transform)
+    -> gelex::detail::TransformType;
 
 }  // namespace gelex::cli
+
+#endif  // GELEX_CLI_ASSOC_CONFIG_H_

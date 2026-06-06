@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#include "predict_reporter.h"
+#include "reporter.h"
 
 #include <fmt/format.h>
 #include <string>
 
 #include "cli/report_printer.h"
-#include "config.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/predict_event.h"
+#include "version.h"
 
 namespace gelex::cli
 {

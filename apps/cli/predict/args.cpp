@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "predict_args.h"
+#include "args.h"
 
 #include <argparse.h>
 
