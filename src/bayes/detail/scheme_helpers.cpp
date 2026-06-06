@@ -163,13 +163,17 @@ auto reject_joint_options(
 {
     if (options.joint_proportion)
     {
-        throw GelexException(
-            fmt::format("{} does not accept --joint-pi", scheme));
+        throw GelexException(fmt::format("{} does not accept --jpi", scheme));
     }
     if (options.joint_proportion_update)
     {
         throw GelexException(
-            fmt::format("{} does not accept --estimate-joint-pi", scheme));
+            fmt::format("{} does not accept --sample-jpi", scheme));
+    }
+    if (options.dominance_positive_probability)
+    {
+        throw GelexException(
+            fmt::format("{} does not accept --dom-pos-prob", scheme));
     }
 }
 

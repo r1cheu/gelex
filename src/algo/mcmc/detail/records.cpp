@@ -79,9 +79,8 @@ auto VectorRecord::result() const -> stats::RunningStatsResult
 CategoricalRecord::CategoricalRecord(
     Records& owner,
     std::string_view path,
-    const Eigen::Ref<const Eigen::VectorXi>& value,
-    Eigen::Index n_categories)
-    : draws_(value.size(), n_categories)
+    const CategoricalVector& value)
+    : draws_(value.size(), value.category_count())
 {
     if (owner.writer_)
     {
@@ -91,9 +90,8 @@ CategoricalRecord::CategoricalRecord(
     }
 }
 
-auto CategoricalRecord::store(
-    Records& owner,
-    const Eigen::Ref<const Eigen::VectorXi>& value) -> void
+auto CategoricalRecord::store(Records& owner, const CategoricalVector& value)
+    -> void
 {
     draws_.store(value);
     if (owner.writer_)

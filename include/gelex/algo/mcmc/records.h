@@ -32,6 +32,7 @@
 #include "gelex/algo/mcmc/detail/records.h"
 #include "gelex/infra/field_visitor.h"
 #include "gelex/infra/stats/result.h"
+#include "gelex/types/categorical_vector.h"
 
 namespace gelex
 {
@@ -96,10 +97,8 @@ class Records : private infra::FieldVisitor
         std::string_view name,
         Eigen::Ref<Eigen::VectorXd> value,
         FieldFlag flags) -> void override;
-    auto on(
-        std::string_view name,
-        Eigen::Ref<Eigen::VectorXi> value,
-        FieldFlag flags) -> void override;
+    auto on(std::string_view name, CategoricalVector& value, FieldFlag flags)
+        -> void override;
     auto on(std::string_view name, double& value, FieldFlag flags)
         -> void override;
     auto on(std::string_view name, int& value, FieldFlag flags)
@@ -115,7 +114,6 @@ class Records : private infra::FieldVisitor
     std::vector<std::string> paths_;
     std::vector<std::optional<std::vector<std::string>>> names_;
     std::unordered_map<std::string, std::size_t> indices_;
-    std::unordered_map<std::string, Eigen::Index> category_counts_;
     std::unique_ptr<io::BinaryWriter> writer_;
     Eigen::Index n_draws_{};
 };

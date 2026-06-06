@@ -28,6 +28,7 @@
 #include <Eigen/Core>
 
 #include "gelex/infra/field_flag.h"
+#include "gelex/types/categorical_vector.h"
 
 namespace gelex::infra
 {
@@ -87,7 +88,7 @@ class FieldVisitor
 
     virtual auto on(
         std::string_view name,
-        Eigen::Ref<Eigen::VectorXi> value,
+        CategoricalVector& value,
         FieldFlag flags) -> void = 0;
 
     virtual auto on(std::string_view name, double& value, FieldFlag flags)

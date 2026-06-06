@@ -23,6 +23,7 @@
 
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
+#include "gelex/bayes/genetic/half_normal_prior.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/recipe.h"
@@ -107,6 +108,16 @@ TEST_CASE(
         config.scheme = BayesRecipeScheme::B;
         config.modes = {GeneticMode::A};
         config.joint_proportion = Simplex<double>{{0.5, 0.5}};
+        REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
+    }
+
+    SECTION("dominance positive probability")
+    {
+        BayesRecipeOptions config;
+        config.scheme = BayesRecipeScheme::B;
+        config.modes = {GeneticMode::D};
+        config.dominance_positive_probability
+            = OpenUnitInterval<double>{0.6};
         REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
     }
 
@@ -259,20 +270,29 @@ TEST_CASE(
                 gelex::bayes::SingleScaledMixtureGaussianPrior>(single));
     }
 
-    SECTION("CD creates a joint gaussian mixture prior")
+    SECTION("CD creates a joint half normal mixture prior")
     {
         BayesRecipeOptions config;
         config.scheme = BayesRecipeScheme::CD;
         config.modes = {GeneticMode::A, GeneticMode::D};
+        config.dominance_positive_probability = OpenUnitInterval<double>{0.7};
         auto prior = BayesRecipe(config).make_prior(model);
         auto genetics = prior.genetics();
 
         REQUIRE(genetics.size() == 1);
         const auto& joint
             = std::get<gelex::bayes::JointGeneticPrior>(genetics[0]);
-        REQUIRE(
-            std::holds_alternative<gelex::bayes::JointGaussianMixturePrior>(
-                joint));
+        const auto& cd
+            = std::get<gelex::bayes::JointHalfNormalMixturePrior>(joint);
+        REQUIRE(cd.proportion().initial_value().isApprox(
+            Eigen::VectorXd{
+                {0.99,
+                 0.003333333333333333,
+                 0.003333333333333333,
+                 0.003333333333333333}}));
+        REQUIRE(cd.dominance_positive_probability().initial_value() == 0.7);
+        REQUIRE(cd.dominance_positive_probability().prior().alpha() == 1.0);
+        REQUIRE(cd.dominance_positive_probability().prior().beta() == 1.0);
     }
 }
 

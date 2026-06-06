@@ -23,6 +23,7 @@
 #include <Eigen/Core>
 
 #include "gelex/bayes/genetic/gaussian_prior.h"
+#include "gelex/bayes/genetic/half_normal_prior.h"
 #include "gelex/bayes/genetic/prior_state.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -44,7 +45,8 @@ using SingleGeneticPrior = std::variant<
     SinglePerMarkerSpikeSlabGaussianPrior,
     SingleScaledMixtureGaussianPrior>;
 
-using JointGeneticPrior = std::variant<JointGaussianMixturePrior>;
+using JointGeneticPrior
+    = std::variant<JointGaussianMixturePrior, JointHalfNormalMixturePrior>;
 
 auto mode(const SingleGeneticPrior& prior) -> GeneticMode;
 

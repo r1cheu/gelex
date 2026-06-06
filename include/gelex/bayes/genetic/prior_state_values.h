@@ -23,6 +23,7 @@
 #include <Eigen/Core>
 
 #include "gelex/bayes/genetic/parameters.h"
+#include "gelex/types/categorical_vector.h"
 
 namespace gelex::infra
 {
@@ -42,7 +43,7 @@ struct MixtureState
     auto visit(infra::FieldVisitor& visitor) -> void;
 
     Eigen::VectorXd proportion;
-    Eigen::VectorXi assignment;
+    CategoricalVector assignment;
 };
 
 struct ComponentState
@@ -56,6 +57,21 @@ struct ComponentState
 
     std::vector<Eigen::VectorXd> gebv;
     Eigen::VectorXd gebv_var;
+};
+
+struct DominanceSignState
+{
+    static constexpr std::string_view name = "dominance_sign";
+
+    DominanceSignState() = default;
+    DominanceSignState(
+        const ProbabilityParameter& probability,
+        Eigen::Index num_markers);
+
+    auto visit(infra::FieldVisitor& visitor) -> void;
+
+    double positive_probability{};
+    CategoricalVector sign;
 };
 
 }  // namespace gelex::bayes

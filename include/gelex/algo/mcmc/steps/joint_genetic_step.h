@@ -26,11 +26,14 @@
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
+#include "gelex/bayes/genetic/half_normal_prior.h"
+#include "gelex/bayes/genetic/half_normal_prior_state.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/infra/stats/dirichlet_sampler.h"
 #include "gelex/infra/stats/normal_sampler.h"
 #include "gelex/infra/stats/scaled_inv_chi2_sampler.h"
+#include "gelex/types/categorical_vector.h"
 
 namespace gelex::mcmc
 {
@@ -64,7 +67,7 @@ class JointGaussianMixtureStep final
 
     std::array<stats::ScaledInvChi2Sampler<double>, 2> variance_samplers_;
     std::array<double*, 2> variance_;
-    Eigen::VectorXi& assignment_;
+    CategoricalVector& assignment_;
     Eigen::VectorXd& proportion_;
     std::optional<stats::DirichletSampler<double>> proportion_sampler_;
 
@@ -80,6 +83,20 @@ class JointGaussianMixtureStep final
     std::mt19937_64& rng_;
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+
+class JointHalfNormalMixtureStep final
+{
+   public:
+    JointHalfNormalMixtureStep(
+        const bayes::GeneticDesign& additive,
+        const bayes::GeneticDesign& dominance,
+        const bayes::JointGeneticPrior& prior,
+        bayes::JointGeneticBlockState& block,
+        bayes::ResidualState& residual,
+        std::mt19937_64& rng);
+
+    auto step() -> void;
+};
 
 }  // namespace gelex::mcmc
 

@@ -21,6 +21,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/algo/mcmc/detail/records.h"
+#include "gelex/types/categorical_vector.h"
 
 namespace gelex
 {
@@ -59,8 +60,8 @@ TEST_CASE(
 {
     mcmc::detail::CategoricalDrawStats draws{3, 4};
 
-    draws.store(Eigen::VectorXi{{1, 0, 3}});
-    draws.store(Eigen::VectorXi{{3, 0, 0}});
+    draws.store(CategoricalVector{Eigen::VectorXi{{1, 0, 3}}, 4});
+    draws.store(CategoricalVector{Eigen::VectorXi{{3, 0, 0}}, 4});
 
     const Eigen::MatrixXd expected_probabilities{
         {0.0, 0.5, 0.0, 0.5},

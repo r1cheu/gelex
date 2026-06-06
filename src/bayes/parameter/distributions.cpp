@@ -49,4 +49,14 @@ DirichletPrior::DirichletPrior(Eigen::VectorXd concentration)
     }
 }
 
+BetaPrior::BetaPrior(double alpha, double beta) : alpha_(alpha), beta_(beta)
+{
+    if (!std::isfinite(alpha_) || !(alpha_ > 0) || !std::isfinite(beta_)
+        || !(beta_ > 0))
+    {
+        throw GelexException(
+            "BetaPrior: alpha and beta must be finite and > 0");
+    }
+}
+
 }  // namespace gelex::bayes

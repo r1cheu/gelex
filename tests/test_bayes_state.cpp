@@ -26,6 +26,8 @@
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
+#include "gelex/bayes/genetic/half_normal_prior.h"
+#include "gelex/bayes/genetic/half_normal_prior_state.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
@@ -101,6 +103,39 @@ TEST_CASE("BayesState creates single genetic blocks", "[bayes_state]")
     REQUIRE(std::holds_alternative<gelex::bayes::SingleGeneticBlockState>(
         state.genetics()[1]));
     REQUIRE(state.residual().variance == 0.4);
+}
+
+TEST_CASE("BayesState creates joint half normal mixture block", "[bayes_state]")
+{
+    auto model = make_model();
+    std::vector<gelex::bayes::GeneticPrior> genetics;
+    genetics.emplace_back(
+        gelex::bayes::JointGeneticPrior{
+            gelex::bayes::JointHalfNormalMixturePrior{
+                gelex::bayes::JointSharedMarkerVariance{std::array{
+                    gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+                    gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
+                gelex::bayes::MixtureProportion{
+                    Eigen::VectorXd{{0.7, 0.1, 0.1, 0.1}}},
+                gelex::bayes::ProbabilityParameter{
+                    0.6, gelex::bayes::BetaPrior{1.0, 1.0}}}});
+    gelex::bayes::BayesPrior prior{
+        gelex::bayes::RandomPrior{make_variance(0.3)},
+        std::move(genetics),
+        gelex::bayes::ResidualPrior{make_variance(0.4)}};
+
+    gelex::BayesState state(model, prior);
+    auto& block = std::get<gelex::bayes::JointGeneticBlockState>(
+        state.genetics()[0]);
+    auto& prior_state
+        = std::get<gelex::bayes::JointHalfNormalMixtureState>(
+            block.prior_state());
+
+    REQUIRE(state.genetics().size() == 1);
+    REQUIRE(prior_state.variance(gelex::GeneticMode::A) == 0.1);
+    REQUIRE(prior_state.variance(gelex::GeneticMode::D) == 0.2);
+    REQUIRE(prior_state.dominance_sign().positive_probability == 0.6);
+    REQUIRE(prior_state.dominance_sign().sign.size() == 2);
 }
 
 TEST_CASE("BayesState rejects missing genetic designs", "[bayes_state]")

@@ -58,4 +58,18 @@ SimplexParameter::SimplexParameter(
     }
 }
 
+ProbabilityParameter::ProbabilityParameter(
+    double initial_value,
+    BetaPrior prior)
+    : initial_value_(initial_value), prior_(prior)
+{
+    if (!std::isfinite(initial_value_) || !(initial_value_ > 0)
+        || !(initial_value_ < 1))
+    {
+        throw GelexException(
+            "ProbabilityParameter: initial_value must be finite and in "
+            "(0, 1)");
+    }
+}
+
 }  // namespace gelex::bayes

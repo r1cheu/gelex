@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <array>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -25,6 +26,8 @@
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
+#include "gelex/bayes/genetic/half_normal_prior.h"
+#include "gelex/bayes/genetic/half_normal_prior_state.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -78,6 +81,61 @@ TEST_CASE("Single shared genetic prior creates concrete state", "[bayes_prior]")
     auto state = prior.make_state(3, 2);
 
     REQUIRE(state.variance() == 0.1);
+}
+
+TEST_CASE("Probability parameter validates beta prior", "[bayes_prior]")
+{
+    REQUIRE_NOTHROW(
+        (gelex::bayes::ProbabilityParameter{
+            0.5, gelex::bayes::BetaPrior{1.0, 1.0}}));
+    REQUIRE_THROWS_AS(
+        (gelex::bayes::BetaPrior{0.0, 1.0}), gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        (gelex::bayes::BetaPrior{1.0, 0.0}), gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        (gelex::bayes::ProbabilityParameter{
+            0.0, gelex::bayes::BetaPrior{1.0, 1.0}}),
+        gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        (gelex::bayes::ProbabilityParameter{
+            1.0, gelex::bayes::BetaPrior{1.0, 1.0}}),
+        gelex::GelexException);
+}
+
+TEST_CASE("Joint half normal mixture prior creates concrete state", "[bayes_prior]")
+{
+    gelex::bayes::JointHalfNormalMixturePrior prior{
+        gelex::bayes::JointSharedMarkerVariance{std::array{
+            gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+            gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
+        gelex::bayes::MixtureProportion{
+            Eigen::VectorXd{{0.7, 0.1, 0.1, 0.1}}},
+        gelex::bayes::ProbabilityParameter{
+            0.6, gelex::bayes::BetaPrior{1.0, 1.0}}};
+    auto state = prior.make_state(3, 2);
+
+    REQUIRE(state.variance(gelex::GeneticMode::A) == 0.1);
+    REQUIRE(state.variance(gelex::GeneticMode::D) == 0.2);
+    REQUIRE(state.proportion().isApprox(
+        Eigen::VectorXd{{0.7, 0.1, 0.1, 0.1}}));
+    REQUIRE((state.assignment().values().array() == 0).all());
+    REQUIRE(state.dominance_sign().positive_probability == 0.6);
+    REQUIRE((state.dominance_sign().sign.values().array() == 0).all());
+}
+
+TEST_CASE(
+    "Joint half normal mixture prior rejects non-four-class proportion",
+    "[bayes_prior]")
+{
+    REQUIRE_THROWS_AS(
+        (gelex::bayes::JointHalfNormalMixturePrior{
+            gelex::bayes::JointSharedMarkerVariance{std::array{
+                gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+                gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
+            gelex::bayes::MixtureProportion{Eigen::VectorXd{{0.5, 0.5}}},
+            gelex::bayes::ProbabilityParameter{
+                0.6, gelex::bayes::BetaPrior{1.0, 1.0}}}),
+        gelex::GelexException);
 }
 
 TEST_CASE("BayesPrior rejects duplicate genetic modes", "[bayes_prior]")

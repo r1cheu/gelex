@@ -83,15 +83,16 @@ auto reject_effect_flags_without_mode(
     std::span<const GeneticMode> modes) -> void
 {
     constexpr std::array ADDITIVE_FLAGS
-        = {std::string_view{"--additive-h2"},
-           std::string_view{"--additive-pi"},
-           std::string_view{"--additive-multiplier"},
-           std::string_view{"--estimate-additive-pi"}};
+        = {std::string_view{"--h2"},
+           std::string_view{"--pi"},
+           std::string_view{"--scale"},
+           std::string_view{"--sample-pi"}};
     constexpr std::array DOMINANCE_FLAGS
-        = {std::string_view{"--dominance-h2"},
-           std::string_view{"--dominance-pi"},
-           std::string_view{"--dominance-multiplier"},
-           std::string_view{"--estimate-dominance-pi"}};
+        = {std::string_view{"--d2"},
+           std::string_view{"--dom-pos-prob"},
+           std::string_view{"--dpi"},
+           std::string_view{"--dscale"},
+           std::string_view{"--sample-dpi"}};
 
     reject_effect_flags_without_mode(
         cmd, modes, GeneticMode::A, ADDITIVE_FLAGS);
@@ -112,35 +113,33 @@ auto make_bayes_recipe_options(const argparse::ArgumentParser& cmd)
         = bayes::to_bayes_recipe_scheme(cmd.get<std::string>("--method")),
         .modes = std::move(modes),
         .additive_heritability
-        = get_optional<gelex::OpenUnitInterval<double>, double>(
-            cmd, "--additive-h2"),
+        = get_optional<gelex::OpenUnitInterval<double>, double>(cmd, "--h2"),
         .additive_proportion
         = get_optional<gelex::Simplex<double>, std::vector<double>>(
-            cmd, "--additive-pi"),
+            cmd, "--pi"),
         .additive_multiplier
         = get_optional<gelex::ScaleMultiplier<double>, std::vector<double>>(
-            cmd, "--additive-multiplier"),
-        .additive_proportion_update
-        = get_optional<bool>(cmd, "--estimate-additive-pi"),
+            cmd, "--scale"),
+        .additive_proportion_update = get_optional<bool>(cmd, "--sample-pi"),
         .dominance_heritability
-        = get_optional<gelex::OpenUnitInterval<double>, double>(
-            cmd, "--dominance-h2"),
+        = get_optional<gelex::OpenUnitInterval<double>, double>(cmd, "--d2"),
         .dominance_proportion
         = get_optional<gelex::Simplex<double>, std::vector<double>>(
-            cmd, "--dominance-pi"),
+            cmd, "--dpi"),
         .dominance_multiplier
         = get_optional<gelex::ScaleMultiplier<double>, std::vector<double>>(
-            cmd, "--dominance-multiplier"),
-        .dominance_proportion_update
-        = get_optional<bool>(cmd, "--estimate-dominance-pi"),
+            cmd, "--dscale"),
+        .dominance_proportion_update = get_optional<bool>(cmd, "--sample-dpi"),
+        .dominance_positive_probability
+        = get_optional<gelex::OpenUnitInterval<double>, double>(
+            cmd, "--dom-pos-prob"),
         .joint_proportion
         = get_optional<gelex::Simplex<double>, std::vector<double>>(
-            cmd, "--joint-pi"),
-        .joint_proportion_update
-        = get_optional<bool>(cmd, "--estimate-joint-pi"),
+            cmd, "--jpi"),
+        .joint_proportion_update = get_optional<bool>(cmd, "--sample-jpi"),
         .random_variance_proportion
         = get_optional<gelex::OpenUnitInterval<double>, double>(
-            cmd, "--random-variance-proportion"),
+            cmd, "--random-pve"),
     };
 }
 

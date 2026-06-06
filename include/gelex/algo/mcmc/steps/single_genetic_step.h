@@ -32,6 +32,7 @@
 #include "gelex/infra/stats/dirichlet_sampler.h"
 #include "gelex/infra/stats/normal_sampler.h"
 #include "gelex/infra/stats/scaled_inv_chi2_sampler.h"
+#include "gelex/types/categorical_vector.h"
 
 namespace gelex::mcmc
 {
@@ -130,7 +131,7 @@ class SingleSharedSpikeSlabStep final
 
     stats::ScaledInvChi2Sampler<double> variance_sampler_;
     double& variance_;
-    Eigen::VectorXi& assignment_;
+    CategoricalVector& assignment_;
     Eigen::VectorXd& proportion_;
     std::optional<stats::DirichletSampler<double>> proportion_sampler_;
 
@@ -170,7 +171,7 @@ class SinglePerMarkerSpikeSlabStep final
 
     stats::ScaledInvChi2Sampler<double> variance_sampler_;
     Eigen::VectorXd& variance_;
-    Eigen::VectorXi& assignment_;
+    CategoricalVector& assignment_;
     Eigen::VectorXd& proportion_;
     std::optional<stats::DirichletSampler<double>> proportion_sampler_;
 
@@ -212,7 +213,7 @@ class SingleScaledMixtureStep final
 
     stats::ScaledInvChi2Sampler<double> variance_sampler_;
     double& variance_;
-    Eigen::VectorXi& assignment_;
+    CategoricalVector& assignment_;
     Eigen::VectorXd& proportion_;
     stats::DirichletSampler<double> proportion_sampler_;
     bayes::ComponentState& component_;

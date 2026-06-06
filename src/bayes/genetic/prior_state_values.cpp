@@ -33,10 +33,10 @@ namespace gelex::bayes
 {
 
 MixtureState::MixtureState(
-    const MixtureProportion& proportion,
+    const MixtureProportion& proportion_parameter,
     Eigen::Index num_markers)
-    : proportion(proportion.initial_value()),
-      assignment(Eigen::VectorXi::Zero(num_markers))
+    : proportion(proportion_parameter.initial_value()),
+      assignment(num_markers, proportion_parameter.initial_value().size())
 {
 }
 
@@ -88,6 +88,24 @@ auto ComponentState::visit(infra::FieldVisitor& visitor) -> void
     {
         visitor.on(fmt::format("gebv_{}", i), value, FieldFlag::checkpoint);
     }
+}
+
+DominanceSignState::DominanceSignState(
+    const ProbabilityParameter& probability,
+    Eigen::Index num_markers)
+    : positive_probability(probability.initial_value()), sign(num_markers, 2)
+{
+}
+
+auto DominanceSignState::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on(
+        "positive_probability",
+        positive_probability,
+        FieldFlag::checkpoint | FieldFlag::trace);
+    visitor.on("positive_probability_name", "p_s", FieldFlag::report);
+    visitor.on("sign", sign, FieldFlag::checkpoint | FieldFlag::trace);
 }
 
 }  // namespace gelex::bayes

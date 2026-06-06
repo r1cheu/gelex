@@ -53,7 +53,6 @@ Records::Records(Records&& other) noexcept
       paths_(std::move(other.paths_)),
       names_(std::move(other.names_)),
       indices_(std::move(other.indices_)),
-      category_counts_(std::move(other.category_counts_)),
       writer_(std::move(other.writer_)),
       n_draws_(other.n_draws_)
 {
@@ -65,7 +64,6 @@ auto Records::operator=(Records&& other) noexcept -> Records&
     paths_ = std::move(other.paths_);
     names_ = std::move(other.names_);
     indices_ = std::move(other.indices_);
-    category_counts_ = std::move(other.category_counts_);
     writer_ = std::move(other.writer_);
     n_draws_ = other.n_draws_;
     return *this;
@@ -103,7 +101,6 @@ auto Records::take_results() && -> std::vector<RecordEntry>
     paths_.clear();
     names_.clear();
     indices_.clear();
-    category_counts_.clear();
     return output;
 }
 
@@ -191,36 +188,23 @@ auto Records::on(
         return;
     }
 
-    if (name == "proportion")
-    {
-        category_counts_[std::string{path()}] = value.size();
-    }
     store_record<detail::VectorRecord>(name, value);
 }
 
 auto Records::on(
     std::string_view name,
-    Eigen::Ref<Eigen::VectorXi> value,
+    CategoricalVector& value,
     FieldFlag flags) -> void
 {
     if (!has(flags, FieldFlag::trace))
     {
         return;
     }
-    if (name != "assignment")
+    if (value.category_count() <= 0)
     {
         throw GelexException(
-            "Records: traced integer vector " + std::string{path()});
+            "Records: category count must be positive for " + field_path(name));
     }
-
-    auto scope_key = std::string{path()};
-    auto category_it = category_counts_.find(scope_key);
-    if (category_it == category_counts_.end())
-    {
-        throw GelexException(
-            "Records: assignment without proportion " + scope_key);
-    }
-
     auto field_key = field_path(name);
 
     auto it = indices_.find(field_key);
@@ -228,8 +212,7 @@ auto Records::on(
     {
         const auto index = records_.size();
         records_.emplace_back(
-            detail::CategoricalRecord{
-                *this, field_key, value, category_it->second});
+            detail::CategoricalRecord{*this, field_key, value});
         paths_.push_back(field_key);
         names_.emplace_back(std::nullopt);
         auto& stored = std::get<detail::CategoricalRecord>(records_[index]);

@@ -40,7 +40,8 @@ using SingleGeneticStep = std::variant<
     SinglePerMarkerSpikeSlabStep,
     SingleScaledMixtureStep>;
 
-using JointGeneticStep = std::variant<JointGaussianMixtureStep>;
+using JointGeneticStep
+    = std::variant<JointGaussianMixtureStep, JointHalfNormalMixtureStep>;
 
 class Chain
 {

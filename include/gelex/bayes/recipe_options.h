@@ -64,6 +64,7 @@ struct BayesRecipeOptions
     std::optional<Simplex<double>> dominance_proportion;
     std::optional<ScaleMultiplier<double>> dominance_multiplier;
     std::optional<bool> dominance_proportion_update;
+    std::optional<OpenUnitInterval<double>> dominance_positive_probability;
 
     std::optional<Simplex<double>> joint_proportion;
     std::optional<bool> joint_proportion_update;

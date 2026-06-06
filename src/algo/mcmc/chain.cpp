@@ -75,6 +75,12 @@ struct step_for_prior<bayes::JointGaussianMixturePrior>
     using type = JointGaussianMixtureStep;
 };
 
+template <>
+struct step_for_prior<bayes::JointHalfNormalMixturePrior>
+{
+    using type = JointHalfNormalMixtureStep;
+};
+
 template <typename Prior>
 using step_for_prior_t = typename step_for_prior<Prior>::type;
 

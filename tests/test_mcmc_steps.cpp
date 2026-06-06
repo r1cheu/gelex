@@ -35,6 +35,8 @@
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
+#include "gelex/bayes/genetic/half_normal_prior.h"
+#include "gelex/bayes/genetic/half_normal_prior_state.h"
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
@@ -204,8 +206,8 @@ TEST_CASE("Single shared spike-slab step updates fused state", "[mcmc]")
     REQUIRE(mixture_state.variance() > 0.0);
     REQUIRE(mixture_state.proportion().allFinite());
     REQUIRE(std::abs(mixture_state.proportion().sum() - 1.0) < 1e-12);
-    REQUIRE((mixture_state.assignment().array() >= 0).all());
-    REQUIRE((mixture_state.assignment().array() <= 1).all());
+    REQUIRE((mixture_state.assignment().values().array() >= 0).all());
+    REQUIRE((mixture_state.assignment().values().array() <= 1).all());
 }
 
 TEST_CASE("Single per-marker spike-slab step updates fused state", "[mcmc]")
@@ -233,8 +235,8 @@ TEST_CASE("Single per-marker spike-slab step updates fused state", "[mcmc]")
     REQUIRE((mixture_state.variance().array() > 0.0).all());
     REQUIRE(mixture_state.proportion().allFinite());
     REQUIRE(std::abs(mixture_state.proportion().sum() - 1.0) < 1e-12);
-    REQUIRE((mixture_state.assignment().array() >= 0).all());
-    REQUIRE((mixture_state.assignment().array() <= 1).all());
+    REQUIRE((mixture_state.assignment().values().array() >= 0).all());
+    REQUIRE((mixture_state.assignment().values().array() <= 1).all());
 }
 
 TEST_CASE("Single scaled mixture step updates fused state", "[mcmc]")
@@ -264,8 +266,8 @@ TEST_CASE("Single scaled mixture step updates fused state", "[mcmc]")
     REQUIRE(scaled_state.component().gebv_var.allFinite());
     REQUIRE(scaled_state.proportion().allFinite());
     REQUIRE(std::abs(scaled_state.proportion().sum() - 1.0) < 1e-12);
-    REQUIRE((scaled_state.assignment().array() >= 0).all());
-    REQUIRE((scaled_state.assignment().array() <= 1).all());
+    REQUIRE((scaled_state.assignment().values().array() >= 0).all());
+    REQUIRE((scaled_state.assignment().values().array() <= 1).all());
 }
 
 TEST_CASE(
@@ -363,8 +365,8 @@ TEST_CASE("Joint Gaussian mixture step updates fused state", "[mcmc]")
     REQUIRE(mixture_state.variance(gelex::GeneticMode::D) > 0.0);
     REQUIRE(mixture_state.proportion().allFinite());
     REQUIRE(std::abs(mixture_state.proportion().sum() - 1.0) < 1e-12);
-    REQUIRE((mixture_state.assignment().array() >= 0).all());
-    REQUIRE((mixture_state.assignment().array() <= 3).all());
+    REQUIRE((mixture_state.assignment().values().array() >= 0).all());
+    REQUIRE((mixture_state.assignment().values().array() <= 3).all());
 }
 
 TEST_CASE("Chain::make maps single genetic priors to MCMC steps", "[mcmc][chain]")
@@ -565,6 +567,38 @@ TEST_CASE("Chain::make maps joint genetic priors to MCMC steps", "[mcmc][chain]"
         std::isfinite(block.state(gelex::GeneticMode::A).heritability));
     REQUIRE(
         std::isfinite(block.state(gelex::GeneticMode::D).heritability));
+}
+
+TEST_CASE("Chain::make binds half normal mixture placeholder", "[mcmc][chain]")
+{
+    std::vector<gelex::bayes::GeneticDesign> genetics;
+    genetics.push_back(make_design(gelex::GeneticMode::A));
+    genetics.push_back(make_design(gelex::GeneticMode::D));
+    gelex::BayesModel model{
+        Eigen::VectorXd{{1.0, -0.5, 0.25}},
+        gelex::FixedDesign::build(3),
+        {},
+        std::move(genetics)};
+    std::vector<gelex::bayes::GeneticPrior> priors;
+    priors.emplace_back(
+        gelex::bayes::JointGeneticPrior{
+            gelex::bayes::JointHalfNormalMixturePrior{
+                gelex::bayes::JointSharedMarkerVariance{std::array{
+                    gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+                    gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
+                make_proportion(4),
+                gelex::bayes::ProbabilityParameter{
+                    0.5, gelex::bayes::BetaPrior{1.0, 1.0}}}});
+    gelex::bayes::BayesPrior prior{
+        gelex::bayes::RandomPrior{make_variance(0.3)},
+        std::move(priors),
+        gelex::bayes::ResidualPrior{make_variance(0.4)}};
+    gelex::BayesState state(model, prior);
+
+    std::mt19937_64 rng{123};
+    auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
+
+    REQUIRE_THROWS_AS(chain.step(), gelex::GelexException);
 }
 
 TEST_CASE("Solver::run collects single genetic samples", "[mcmc][solver]")

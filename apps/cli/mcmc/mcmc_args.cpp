@@ -82,42 +82,45 @@ auto setup_mcmc_args(argparse::ArgumentParser& cmd) -> void
         .default_value(std::string("A"))
         .choices("A", "D", "AD")
         .metavar("<MODE>");
-    cmd.add_argument("--random-variance-proportion")
+    cmd.add_argument("--random-pve")
         .help("Variance fraction for non-SNP random effects (0, 1)")
         .scan<'g', double>();
-    cmd.add_argument("--additive-h2")
+    cmd.add_argument("--h2")
         .help("Additive heritability (0, 1)")
         .scan<'g', double>();
-    cmd.add_argument("--dominance-h2")
+    cmd.add_argument("--d2")
         .help("Dominance heritability (0, 1)")
         .scan<'g', double>();
-    cmd.add_argument("--additive-pi")
+    cmd.add_argument("--dom-pos-prob")
+        .help("Initial probability that an active dominance effect is positive")
+        .scan<'g', double>();
+    cmd.add_argument("--pi")
         .help("Additive mixture proportions (B/C/R)")
         .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
-    cmd.add_argument("--dominance-pi")
+    cmd.add_argument("--dpi")
         .help("Dominance mixture proportions (B/C/R)")
         .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
-    cmd.add_argument("--additive-multiplier")
+    cmd.add_argument("--scale")
         .help("Additive variance multipliers (R)")
         .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
-    cmd.add_argument("--dominance-multiplier")
+    cmd.add_argument("--dscale")
         .help("Dominance variance multipliers (R)")
         .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
-    cmd.add_argument("--joint-pi")
+    cmd.add_argument("--jpi")
         .help("Joint allocation proportions (CD)")
         .nargs(argparse::nargs_pattern::at_least_one)
         .scan<'g', double>();
-    cmd.add_argument("--estimate-additive-pi")
+    cmd.add_argument("--sample-pi")
         .help("Sample additive mixture proportions")
         .flag();
-    cmd.add_argument("--estimate-dominance-pi")
+    cmd.add_argument("--sample-dpi")
         .help("Sample dominance mixture proportions")
         .flag();
-    cmd.add_argument("--estimate-joint-pi")
+    cmd.add_argument("--sample-jpi")
         .help("Sample joint allocation proportions (CD)")
         .flag();
 

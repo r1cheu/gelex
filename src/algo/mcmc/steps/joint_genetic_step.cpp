@@ -27,8 +27,11 @@
 #include "gelex/algo/mcmc/invariant.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
+#include "gelex/bayes/genetic/half_normal_prior.h"
+#include "gelex/bayes/genetic/half_normal_prior_state.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/state.h"
+#include "gelex/exception.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/infra/stats/dirichlet_sampler.h"
 #include "gelex/infra/stats/normal_sampler.h"
@@ -232,6 +235,28 @@ auto JointGaussianMixtureStep::step() -> void
     }
     additive_.variance = stats::detail::vecvar(additive_.u);
     dominance_.variance = stats::detail::vecvar(dominance_.u);
+}
+
+JointHalfNormalMixtureStep::JointHalfNormalMixtureStep(
+    const bayes::GeneticDesign& additive,
+    const bayes::GeneticDesign& dominance,
+    const bayes::JointGeneticPrior& prior,
+    bayes::JointGeneticBlockState& block,
+    bayes::ResidualState& residual,
+    std::mt19937_64& rng)
+{
+    static_cast<void>(additive);
+    static_cast<void>(dominance);
+    static_cast<void>(residual);
+    static_cast<void>(rng);
+    static_cast<void>(std::get<bayes::JointHalfNormalMixturePrior>(prior));
+    static_cast<void>(
+        std::get<bayes::JointHalfNormalMixtureState>(block.prior_state()));
+}
+
+auto JointHalfNormalMixtureStep::step() -> void
+{
+    throw GelexException("JointHalfNormalMixtureStep is not implemented");
 }
 
 }  // namespace gelex::mcmc

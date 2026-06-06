@@ -77,6 +77,29 @@ class SimplexParameter
     DirichletPrior prior_;
 };
 
+class ProbabilityParameter
+{
+   public:
+    static constexpr std::string_view name = "probability_param";
+    ProbabilityParameter(double initial_value, BetaPrior prior);
+
+    auto initial_value() const -> double { return initial_value_; }
+    auto prior() const -> const BetaPrior& { return prior_; }
+    auto visit(infra::FieldVisitor& visitor) -> void
+    {
+        auto scope = visitor.scope(name);
+        visitor.on(
+            "initial_value",
+            initial_value_,
+            FieldFlag::checkpoint | FieldFlag::report);
+        prior_.visit(visitor);
+    }
+
+   private:
+    double initial_value_;
+    BetaPrior prior_;
+};
+
 }  // namespace gelex::bayes
 
 #endif  // GELEX_BAYES_PARAMETER_VALUES_H_

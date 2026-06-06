@@ -24,6 +24,7 @@
 
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/genetic/prior_state_values.h"
+#include "gelex/types/categorical_vector.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::bayes
@@ -73,8 +74,8 @@ class SingleSharedSpikeSlabGaussianState final
 
     auto variance() -> double& { return variance_; }
     auto variance() const -> const double& { return variance_; }
-    auto assignment() -> Eigen::VectorXi& { return mixture_.assignment; }
-    auto assignment() const -> const Eigen::VectorXi&
+    auto assignment() -> CategoricalVector& { return mixture_.assignment; }
+    auto assignment() const -> const CategoricalVector&
     {
         return mixture_.assignment;
     }
@@ -103,8 +104,8 @@ class SinglePerMarkerSpikeSlabGaussianState final
 
     auto variance() -> Eigen::VectorXd& { return variance_; }
     auto variance() const -> const Eigen::VectorXd& { return variance_; }
-    auto assignment() -> Eigen::VectorXi& { return mixture_.assignment; }
-    auto assignment() const -> const Eigen::VectorXi&
+    auto assignment() -> CategoricalVector& { return mixture_.assignment; }
+    auto assignment() const -> const CategoricalVector&
     {
         return mixture_.assignment;
     }
@@ -137,8 +138,8 @@ class SingleScaledMixtureGaussianState final
     auto variance() const -> const double& { return variance_; }
     auto component() -> ComponentState& { return component_; }
     auto component() const -> const ComponentState& { return component_; }
-    auto assignment() -> Eigen::VectorXi& { return mixture_.assignment; }
-    auto assignment() const -> const Eigen::VectorXi&
+    auto assignment() -> CategoricalVector& { return mixture_.assignment; }
+    auto assignment() const -> const CategoricalVector&
     {
         return mixture_.assignment;
     }
@@ -171,8 +172,8 @@ class JointGaussianMixtureState final
     auto variance(GeneticMode mode) const -> const double&;
     auto component() -> ComponentState& { return component_; }
     auto component() const -> const ComponentState& { return component_; }
-    auto assignment() -> Eigen::VectorXi& { return mixture_.assignment; }
-    auto assignment() const -> const Eigen::VectorXi&
+    auto assignment() -> CategoricalVector& { return mixture_.assignment; }
+    auto assignment() const -> const CategoricalVector&
     {
         return mixture_.assignment;
     }

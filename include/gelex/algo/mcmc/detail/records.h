@@ -26,6 +26,7 @@
 
 #include "gelex/infra/stats/detail/running_stats.h"
 #include "gelex/infra/stats/result.h"
+#include "gelex/types/categorical_vector.h"
 
 namespace gelex::mcmc
 {
@@ -71,9 +72,9 @@ struct CategoricalDrawStats
     {
     }
 
-    auto store(const Eigen::Ref<const Eigen::VectorXi>& categories) -> void
+    auto store(const CategoricalVector& categories) -> void
     {
-        frequency_.update(categories);
+        frequency_.update(categories.values());
     }
     auto take_probabilities() && -> gelex::stats::CategoryProbResult
     {
@@ -120,11 +121,9 @@ class CategoricalRecord
     CategoricalRecord(
         Records& owner,
         std::string_view path,
-        const Eigen::Ref<const Eigen::VectorXi>& value,
-        Eigen::Index n_categories);
+        const CategoricalVector& value);
 
-    auto store(Records& owner, const Eigen::Ref<const Eigen::VectorXi>& value)
-        -> void;
+    auto store(Records& owner, const CategoricalVector& value) -> void;
     auto result() && -> stats::CategoryProbResult;
 
    private:

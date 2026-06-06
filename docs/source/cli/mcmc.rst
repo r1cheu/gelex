@@ -49,10 +49,10 @@ Choose a method based on your goal before tuning other parameters.
    * - ``A``
      - You want all SNPs included with SNP-specific shrinkage.
      - More MCMC sampling cost than ``RR``.
-   * - ``Rd``
-     - You want to model dominance effects alongside additive effects.
+   * - ``CD``
+     - You want coupled additive and dominance marker allocation.
      - More parameters and longer runtime.
-   * - ``Bpi`` / ``Cpi`` / ``Rpi``
+   * - ``--sample-pi`` / ``--sample-dpi`` / ``--sample-jpi``
      - You want the model to estimate mixture proportions from the data.
      - More adaptive, but may require longer chains for stable estimates.
 
@@ -97,9 +97,11 @@ Options
 .. rubric:: Model Options
 
 ``-m, --method`` ``RR``
-   BayesAlphabet method. Supported: ``A/B/C/R/RR``; add ``d`` for dominance
-   (for example ``Rd``); add ``pi`` to estimate mixture proportions (for
-   example ``Cpi``).
+   BayesAlphabet method. Supported: ``RR``, ``A``, ``B``, ``C``, ``R``, ``CD``.
+
+``--mode`` ``A``
+   Genetic effect mode: ``A`` (additive), ``D`` (dominance), or ``AD``.
+   ``CD`` requires ``AD``.
 
 ``--geno-method`` ``OrthStandardizeHWE``
    Genotype processing method. Available methods:
@@ -109,6 +111,15 @@ Options
    ``OrthStandardize`` (``OS``), ``OrthCenter`` (``OC``).
    Abbreviations accepted.
    See :ref:`genotype-processor-methods`.
+
+``--h2`` ``0.5``
+   Additive heritability.
+
+``--d2`` ``0.2``
+   Dominance heritability.
+
+``--random-pve``
+   Variance fraction for non-SNP random effects.
 
 ``--scale`` ``0 0.001 0.01 0.1 1``
    Additive variance scales, typically used in BayesR-style models.
@@ -124,12 +135,22 @@ Options
    Dominance mixture proportions. For BayesR dominance models, default is
    ``0.99 0.005 0.003 0.001 0.001``.
 
+``--jpi`` ``0.99 0.0033 0.0033 0.0033``
+   Joint allocation proportions for ``CD``:
+   both-off, additive-only, dominance-only, both-on.
+
+``--sample-pi`` / ``--sample-dpi`` / ``--sample-jpi``
+   Sample additive, dominance, or joint mixture proportions.
+
+``--dom-pos-prob`` ``0.5``
+   Initial probability that an active dominance effect is positive.
+
 .. rubric:: MCMC Options
 
-``--iters`` ``3000``
+``--iters`` ``5000``
    Total MCMC iterations.
 
-``--burn-in`` ``2000``
+``--burn-in`` ``3000``
    Initial iterations discarded before sampling.
 
 ``--thin`` ``1``
@@ -179,7 +200,7 @@ Warnings and Notes
 
 .. note::
 
-   For many datasets, a practical starting point is ``--burn_in`` around
+   For many datasets, a practical starting point is ``--burn-in`` around
    20%-50% of ``--iters``. Increase ``--iters`` when posterior summaries are
    unstable across runs.
 
@@ -247,25 +268,26 @@ Expected outputs: ``model_bayesr.snp.eff``, ``model_bayesr.param``.
       -o model_high_prec
 
 .. code-block:: bash
-   :caption: Additive + Dominance Model (Rd)
+   :caption: Additive + Dominance Model
 
    gelex mcmc \
       -b train_data \
       -p phenotypes.tsv \
-      -m Rd \
-      --dmult 0.0001 0.001 0.01 0.1 1.0 \
+      -m R \
+      --mode AD \
+      --dscale 0.0001 0.001 0.01 0.1 1.0 \
       --dpi 0.95 0.05 \
       -o model_dom
 
 .. code-block:: bash
-   :caption: Estimate Mixture Proportions (Cpi)
+   :caption: Estimate Mixture Proportions
 
    gelex mcmc \
       -b train_data \
       -p phenotypes.tsv \
-      -m Cpi \
+      -m C \
       --pi 0.9 0.1 \
-      --scale 0.01 0.1 \
+      --sample-pi \
       -o model_cpi
 
 See Also

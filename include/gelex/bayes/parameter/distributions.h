@@ -74,6 +74,26 @@ class DirichletPrior
     Eigen::VectorXd concentration_;
 };
 
+class BetaPrior
+{
+   public:
+    static constexpr std::string_view name = "beta";
+    BetaPrior(double alpha, double beta);
+
+    auto alpha() const -> double { return alpha_; }
+    auto beta() const -> double { return beta_; }
+    auto visit(infra::FieldVisitor& visitor) -> void
+    {
+        auto scope = visitor.scope(name);
+        visitor.on("alpha", alpha_, FieldFlag::checkpoint | FieldFlag::report);
+        visitor.on("beta", beta_, FieldFlag::checkpoint | FieldFlag::report);
+    }
+
+   private:
+    double alpha_;
+    double beta_;
+};
+
 }  // namespace gelex::bayes
 
 #endif  // GELEX_BAYES_PARAMETER_DISTRIBUTIONS_H_

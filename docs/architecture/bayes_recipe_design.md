@@ -56,9 +56,8 @@ flowchart LR
 结构，因为这是 sampler/state 的消费合同。
 
 同一份 truth 不能在 CLI、config、recipe 三层重复维护。CLI flag 必须一对一映射到
-config slot；多几个 flag 优先于 context-sensitive flag。`--pi` 这类依赖 preset 才能解释的
-flag 不作为 canonical API。迁移期如需保留旧 flag，只能放在 compatibility translator 中，
-并且必须显式拒绝无法无损映射的组合。
+config slot；短 flag 可以作为 canonical API，但不能依赖 preset 才能解释。例如 `--pi`
+固定映射到 additive proportion，`--dpi` 固定映射到 dominance proportion。
 
 ---
 
@@ -128,25 +127,26 @@ auto recipe = bayes::BayesRecipe{preset, std::move(config)};
 | CLI input | `BayesRecipeConfig` output |
 |---|---|
 | `--mode A/D/AD` | `modes` |
-| `--additive-h2` | `additive.heritability` |
-| `--dominance-h2` | `dominance.heritability` |
-| `--additive-pi` | `additive.proportion` |
-| `--dominance-pi` | `dominance.proportion` |
-| `--additive-multiplier` | `additive.multiplier` |
-| `--dominance-multiplier` | `dominance.multiplier` |
-| `--joint-pi` | `joint_proportion` |
-| `--estimate-additive-pi` | `additive.proportion_update` |
-| `--estimate-dominance-pi` | `dominance.proportion_update` |
-| `--estimate-joint-pi` | `joint_proportion_update` |
-| `--dominance-positive-prob` | `dominance_positive_probability` |
-| `--random-variance-proportion` | `random_variance_proportion` |
+| `--h2` | `additive.heritability` |
+| `--d2` | `dominance.heritability` |
+| `--pi` | `additive.proportion` |
+| `--dpi` | `dominance.proportion` |
+| `--scale` | `additive.multiplier` |
+| `--dscale` | `dominance.multiplier` |
+| `--jpi` | `joint_proportion` |
+| `--sample-pi` | `additive.proportion_update` |
+| `--sample-dpi` | `dominance.proportion_update` |
+| `--sample-jpi` | `joint_proportion_update` |
+| `--dom-pos-prob` | `dominance_positive_probability` |
+| `--random-pve` | `random_variance_proportion` |
 
-`--estimate-*-pi` 可以在没有显式 simplex 时生效，因为它一对一映射到对应
+`--sample-*-pi` 可以在没有显式 simplex 时生效，因为它一对一映射到对应
 `proportion_update` slot；concrete recipe 决定该 update override 是否支持。
 
-effect-specific override 必须与 `--mode` 自洽：未请求 `A` 时拒绝 `--additive-*`，
-未请求 `D` 时拒绝 `--dominance-*` / `--dominance-positive-prob`。这是 CLI shape
-检查，不读取 model，也不判断 recipe topology。
+effect-specific override 必须与 `--mode` 自洽：未请求 `A` 时拒绝 `--h2`、`--pi`、
+`--scale`、`--sample-pi`；未请求 `D` 时拒绝 `--d2`、`--dpi`、`--dscale`、
+`--sample-dpi`、`--dom-pos-prob`。这是 CLI shape 检查，不读取 model，也不判断
+recipe topology。
 
 canonical flag 若已经暴露但无法无损映射到 `BayesRecipeConfig`，必须在 translator
 拒绝，不能 accepted-but-ignored。当前 canonical flags 都有对应 slot；迁移期 legacy

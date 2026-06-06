@@ -15,6 +15,7 @@
  */
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <string>
 #include <string_view>
@@ -28,6 +29,7 @@
 #include "gelex/algo/mcmc/records.h"
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
+#include "gelex/bayes/genetic/half_normal_prior.h"
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
@@ -264,6 +266,61 @@ TEST_CASE("Records stores traced BayesState fields", "[mcmc][mcmc_records]")
             "state/genetic_0/single/A/prior_state/"
             "scaled_mixture_gaussian/mixture/assignment"));
     REQUIRE(assignment.value.isApprox(expected_probabilities));
+}
+
+TEST_CASE("Records stores traced dominance sign categories", "[mcmc][mcmc_records]")
+{
+    std::vector<gelex::bayes::GeneticDesign> genetics;
+    genetics.emplace_back(
+        gelex::GeneticMode::A,
+        make_genotype(Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}}));
+    genetics.emplace_back(
+        gelex::GeneticMode::D,
+        make_genotype(Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}, {1.0, 2.0}}));
+    gelex::BayesModel model{
+        Eigen::VectorXd{{1.0, 2.0, 3.0}},
+        gelex::FixedDesign::build(3),
+        {},
+        std::move(genetics)};
+
+    std::vector<gelex::bayes::GeneticPrior> genetic_priors;
+    genetic_priors.emplace_back(
+        gelex::bayes::JointGeneticPrior{
+            gelex::bayes::JointHalfNormalMixturePrior{
+                gelex::bayes::JointSharedMarkerVariance{std::array{
+                    gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+                    gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
+                gelex::bayes::MixtureProportion{
+                    Eigen::VectorXd{{0.7, 0.1, 0.1, 0.1}}},
+                gelex::bayes::ProbabilityParameter{
+                    0.6, gelex::bayes::BetaPrior{1.0, 1.0}}}});
+    gelex::bayes::BayesPrior prior{
+        gelex::bayes::RandomPrior{make_variance(0.3)},
+        std::move(genetic_priors),
+        gelex::bayes::ResidualPrior{make_variance(0.4)}};
+    gelex::BayesState state(model, prior);
+    gelex::mcmc::Records records{2, ""};
+
+    auto& block = std::get<gelex::bayes::JointGeneticBlockState>(
+        state.genetics()[0]);
+    auto& prior_state
+        = std::get<gelex::bayes::JointHalfNormalMixtureState>(
+            block.prior_state());
+
+    prior_state.dominance_sign().sign = Eigen::VectorXi{{0, 1}};
+    records.store(model, state);
+
+    prior_state.dominance_sign().sign = Eigen::VectorXi{{1, 1}};
+    records.store(model, state);
+
+    auto entries = std::move(records).take_results();
+    const Eigen::MatrixXd expected_probabilities{{0.5, 0.5}, {0.0, 1.0}};
+    const auto sign = std::get<gelex::stats::CategoryProbResult>(
+        require_record(
+            entries,
+            "state/genetic_0/joint/prior_state/"
+            "joint_half_normal_mixture/dominance_sign/sign"));
+    REQUIRE(sign.value.isApprox(expected_probabilities));
 }
 
 TEST_CASE("Records handoff consumes stored results", "[mcmc][mcmc_records]")

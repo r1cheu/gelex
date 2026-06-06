@@ -18,7 +18,7 @@
 #include <vector>
 
 #include "bayes/detail/scheme_helpers.h"
-#include "gelex/bayes/genetic/gaussian_prior.h"
+#include "gelex/bayes/genetic/half_normal_prior.h"
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/model.h"
@@ -42,13 +42,13 @@ BayesCDScheme::BayesCDScheme(const BayesRecipeOptions& options)
     {
         throw GelexException(
             "CD does not accept per-effect proportion override for A; "
-            "use --joint-pi instead");
+            "use --jpi instead");
     }
     if (options_.dominance_proportion || options_.dominance_proportion_update)
     {
         throw GelexException(
             "CD does not accept per-effect proportion override for D; "
-            "use --joint-pi instead");
+            "use --jpi instead");
     }
     if (options_.additive_multiplier)
     {
@@ -72,10 +72,18 @@ auto BayesCDScheme::make_prior(const BayesModel& model) const
     -> std::vector<GeneticPrior>
 {
     const Simplex<double> proportion = options_.joint_proportion.value_or(
-        Simplex<double>{{0.991, 0.003, 0.003, 0.003}});
+        Simplex<double>{
+            {0.99,
+             0.003333333333333333,
+             0.003333333333333333,
+             0.003333333333333333}});
     // proportion layout: [both-off, A-only, D-only, both-on]
     const double active_a = proportion[1] + proportion[3];
     const double active_d = proportion[2] + proportion[3];
+    const double dominance_positive_probability
+        = options_.dominance_positive_probability
+              ? options_.dominance_positive_probability->value()
+              : 0.5;
 
     const double target_a = detail::target_marker_variance(
         model,
@@ -89,12 +97,14 @@ auto BayesCDScheme::make_prior(const BayesModel& model) const
         active_d);
 
     return std::vector<GeneticPrior>{
-        JointGeneticPrior{JointGaussianMixturePrior{
+        JointGeneticPrior{JointHalfNormalMixturePrior{
             JointSharedMarkerVariance{std::array{
                 SharedMarkerVariance{detail::variance_parameter(target_a)},
                 SharedMarkerVariance{detail::variance_parameter(target_d)}}},
             detail::mixture_proportion(
-                proportion, options_.joint_proportion_update.value_or(true))}}};
+                proportion, options_.joint_proportion_update.value_or(true)),
+            ProbabilityParameter{
+                dominance_positive_probability, BetaPrior{1.0, 1.0}}}}};
 }
 
 }  // namespace gelex::bayes

@@ -20,6 +20,7 @@
 #include <variant>
 
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
+#include "gelex/bayes/genetic/half_normal_prior_state.h"
 #include "gelex/bayes/genetic/prior_state_values.h"
 
 namespace gelex::bayes
@@ -32,7 +33,8 @@ using SingleGeneticPriorState = std::variant<
     SinglePerMarkerSpikeSlabGaussianState,
     SingleScaledMixtureGaussianState>;
 
-using JointGeneticPriorState = std::variant<JointGaussianMixtureState>;
+using JointGeneticPriorState
+    = std::variant<JointGaussianMixtureState, JointHalfNormalMixtureState>;
 
 }  // namespace gelex::bayes
 

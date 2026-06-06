@@ -31,6 +31,7 @@
 #include "gelex/infra/field_flag.h"
 #include "gelex/infra/field_visitor.h"
 #include "gelex/io/binary_reader.h"
+#include "gelex/types/categorical_vector.h"
 
 namespace gelex
 {
@@ -102,10 +103,8 @@ class CheckpointReader final : private infra::FieldVisitor
         value = stored;
     }
 
-    auto on(
-        std::string_view name,
-        Eigen::Ref<Eigen::VectorXi> value,
-        FieldFlag flags) -> void override
+    auto on(std::string_view name, CategoricalVector& value, FieldFlag flags)
+        -> void override
     {
         if (!has(flags, FieldFlag::checkpoint))
         {
