@@ -17,6 +17,9 @@
 #ifndef GELEX_DATA_WRITER_H_
 #define GELEX_DATA_WRITER_H_
 
+#include <span>
+#include <string>
+
 #include <Eigen/Dense>
 
 namespace gelex
@@ -26,7 +29,7 @@ auto write_grm_ids(const std::string& prefix, std::span<const std::string> ids)
 
 auto write_grm(
     const std::string& prefix,
-    const Eigen::Ref<Eigen::MatrixXd>& grm,
+    const Eigen::Ref<const Eigen::MatrixXd>& grm,
     std::span<const std::string> ids) -> void;
 
 }  // namespace gelex

@@ -22,8 +22,8 @@
 #include <string>
 
 #include "gelex/data/dataframe/index.h"
+#include "gelex/data/reader.h"
 #include "gelex/exception.h"
-#include "gelex/io/grm/detail/reader.h"
 
 namespace gelex
 {
@@ -32,12 +32,7 @@ LocoReader::LocoReader(
     const std::filesystem::path& whole_grm_prefix,
     const dataframe::Index<std::string>& sample_index)
 {
-    grm::detail::GrmReader whole_reader(whole_grm_prefix);
-    // Load and filter the whole GRM once during construction.
-    // load_unnormalized(sample_index) returns (X_w * X_w') filtered and
-    // reordered.
-    g_whole_ = whole_reader.load_unnormalized(sample_index);
-    // Compute trace after loading and save for LOCO calculation
+    g_whole_ = read_grm(whole_grm_prefix.string(), &sample_index, false);
     trace_whole_ = g_whole_.trace();
     k_whole_ = trace_whole_ / static_cast<double>(g_whole_.rows());
 }
@@ -55,15 +50,11 @@ auto LocoReader::load_loco_grm(
                 "LOCO error: GRM file not found: {}", bin_path.string()));
     }
 
-    grm::detail::GrmReader chr_reader(chr_grm_prefix);
+    Eigen::MatrixXd g_chr
+        = read_grm(chr_grm_prefix.string(), &sample_index, false);
 
-    // Load chromosome GRM filtered by the SAME sample_index to ensure
-    // alignment. Use the mutable buffer to avoid reallocations.
-    chr_reader.load_unnormalized(sample_index, g_chr_buffer_);
-
-    // Compute k_i from the loaded chromosome GRM trace
-    double trace_i = g_chr_buffer_.trace();
-    double k_i = trace_i / static_cast<double>(g_chr_buffer_.rows());
+    double trace_i = g_chr.trace();
+    double k_i = trace_i / static_cast<double>(g_chr.rows());
     double k_loco = k_whole_ - k_i;
     if (k_loco <= 0)
     {
@@ -75,8 +66,7 @@ auto LocoReader::load_loco_grm(
                 k_whole_));
     }
 
-    // Both g_whole_ and g_chr_buffer_ are now unnormalized (X*X') and filtered.
-    target = (g_whole_ - g_chr_buffer_) / k_loco;
+    target = (g_whole_ - g_chr) / k_loco;
 }
 
 auto LocoReader::load_loco_grm(

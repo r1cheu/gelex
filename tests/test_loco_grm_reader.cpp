@@ -26,12 +26,11 @@
 
 #include "file_fixture.h"
 #include "gelex/data/dataframe/index.h"
+#include "gelex/data/writer.h"
 #include "gelex/io/grm/loco_reader.h"
-#include "gelex/io/grm/writer.h"
 #include "sample_id_fixture.h"
 
 namespace fs = std::filesystem;
-using gelex::GrmBinWriter;
 using gelex::test::FileFixture;
 namespace df = gelex::dataframe;
 
@@ -48,11 +47,7 @@ struct GrmFiles
     auto create(const Eigen::MatrixXd& m, const std::vector<std::string>& ids)
         const -> void
     {
-        {
-            GrmBinWriter writer(prefix.string() + ".bin");
-            writer.write(m);
-        }
-        gelex::write_grm_ids(prefix.string() + ".id", ids);
+        gelex::write_grm(prefix.string(), m, ids);
     }
 };
 }  // namespace

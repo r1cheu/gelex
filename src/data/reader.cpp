@@ -251,7 +251,7 @@ auto read_grm(
         }
     }
 
-    if (normalize)
+    if (normalize && target.size() > 0)
     {
         double denominator
             = target.trace() / static_cast<double>(target.rows());

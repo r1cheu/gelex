@@ -62,11 +62,9 @@ class LocoReader
     [[nodiscard]] auto num_samples() const noexcept -> Eigen::Index;
 
    private:
-    Eigen::MatrixXd
-        g_whole_;           // Pre-filtered unnormalized whole matrix (Z * Z')
-    double k_whole_{};      // K_whole (= trace(g_whole_) / n)
-    double trace_whole_{};  // trace(g_whole_), saved for LOCO calculation
-    mutable Eigen::MatrixXd g_chr_buffer_;  // Buffer for chromosome GRM
+    Eigen::MatrixXd g_whole_;
+    double k_whole_{};
+    double trace_whole_{};
 };
 
 }  // namespace gelex

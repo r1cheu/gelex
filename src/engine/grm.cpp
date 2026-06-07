@@ -26,10 +26,10 @@
 
 #include "engine/grm_work_plan.h"
 #include "gelex/data/grm/grm.h"
+#include "gelex/data/writer.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/timer.h"
-#include "gelex/io/grm/writer.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -43,8 +43,7 @@ auto write_grm_files(
     std::span<const std::string> sample_ids,
     const std::string& out_prefix) -> void
 {
-    GrmBinWriter(out_prefix + ".bin").write(result.grm);
-    write_grm_ids(out_prefix + ".id", sample_ids);
+    write_grm(out_prefix, result.grm, sample_ids);
 }
 
 }  // namespace

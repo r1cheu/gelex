@@ -19,10 +19,11 @@
 #include <ios>
 #include <vector>
 
-#include <fmt/compile.h>
+#include <fmt/format.h>
 #include <Eigen/Core>
 
 #include "gelex/data/sample_id.h"
+#include "gelex/exception.h"
 #include "gelex/io/detail/atomic_output_stream.h"
 #include "gelex/io/detail/text_writer.h"
 
@@ -41,7 +42,7 @@ auto write_grm_ids(const std::string& prefix, std::span<const std::string> ids)
 
 auto write_grm(
     const std::string& prefix,
-    const Eigen::Ref<Eigen::MatrixXd>& grm,
+    const Eigen::Ref<const Eigen::MatrixXd>& grm,
     std::span<const std::string> ids) -> void
 {
     io::detail::AtomicOutputStream file(prefix + ".bin", std::ios::binary);

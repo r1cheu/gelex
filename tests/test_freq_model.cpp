@@ -32,7 +32,7 @@
 #include "gelex/data/pipe/pheno.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/sample_id.h"
-#include "gelex/io/grm/writer.h"
+#include "gelex/data/writer.h"
 #include "gelex/freq/model.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "sample_id_fixture.h"
@@ -62,13 +62,7 @@ class GrmFileFixture
         const Eigen::MatrixXd& matrix,
         const std::vector<std::string>& ids) -> void
     {
-        auto bin_path = fs::path(prefix_.string() + ".bin");
-        {
-            gelex::GrmBinWriter writer(bin_path);
-            writer.write(matrix);
-        }
-
-        gelex::write_grm_ids(prefix_.string() + ".id", ids);
+        gelex::write_grm(prefix_.string(), matrix, ids);
     }
 
     [[nodiscard]] auto prefix() const -> const fs::path& { return prefix_; }

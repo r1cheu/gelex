@@ -23,7 +23,7 @@
 #include "file_fixture.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/reader.h"
-#include "gelex/io/grm/writer.h"
+#include "gelex/data/writer.h"
 #include "sample_id_fixture.h"
 
 using gelex::test::FileFixture;
@@ -37,7 +37,7 @@ TEST_CASE("read_grm_ids reads GRM sample IDs", "[data][reader][grm]")
         gelex::make_sample_id("F1", "I2"),
         gelex::make_sample_id("F2", "I3")};
 
-    gelex::write_grm_ids(prefix.string() + ".id", ids);
+    gelex::write_grm_ids(prefix.string(), ids);
 
     auto index = gelex::read_grm_ids(prefix.string());
 
@@ -58,11 +58,7 @@ TEST_CASE("read_grm reads full GRM matrix", "[data][reader][grm]")
     Eigen::MatrixXd matrix{
         {1.0, 0.25, 0.5}, {0.25, 2.0, 0.75}, {0.5, 0.75, 4.0}};
 
-    {
-        gelex::GrmBinWriter writer(prefix.string() + ".bin");
-        writer.write(matrix);
-    }
-    gelex::write_grm_ids(prefix.string() + ".id", ids);
+    gelex::write_grm(prefix.string(), matrix, ids);
 
     auto actual = gelex::read_grm(prefix.string(), nullptr, false);
 
@@ -80,11 +76,7 @@ TEST_CASE("read_grm normalizes by mean diagonal", "[data][reader][grm]")
     Eigen::MatrixXd matrix{
         {1.0, 0.25, 0.5}, {0.25, 2.0, 0.75}, {0.5, 0.75, 3.0}};
 
-    {
-        gelex::GrmBinWriter writer(prefix.string() + ".bin");
-        writer.write(matrix);
-    }
-    gelex::write_grm_ids(prefix.string() + ".id", ids);
+    gelex::write_grm(prefix.string(), matrix, ids);
 
     auto actual = gelex::read_grm(prefix.string());
     Eigen::MatrixXd expected = matrix / 2.0;
@@ -103,11 +95,7 @@ TEST_CASE("read_grm reads reordered GRM subset", "[data][reader][grm]")
     Eigen::MatrixXd matrix{
         {1.0, 0.25, 0.5}, {0.25, 2.0, 0.75}, {0.5, 0.75, 3.0}};
 
-    {
-        gelex::GrmBinWriter writer(prefix.string() + ".bin");
-        writer.write(matrix);
-    }
-    gelex::write_grm_ids(prefix.string() + ".id", ids);
+    gelex::write_grm(prefix.string(), matrix, ids);
 
     gelex::dataframe::Index<std::string> target_index(
         std::vector<std::string>{ids[2], ids[0]});
