@@ -27,7 +27,7 @@
 
 #include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/data/dataframe/dataframe.h"
-#include "gelex/io/detail/atomic_ofstream.h"
+#include "gelex/io/detail/atomic_output_stream.h"
 
 namespace gelex
 {
@@ -63,7 +63,7 @@ class GwasWriter
     std::span<const std::string> a1_;
     std::span<const std::string> a2_;
 
-    io::detail::AtomicOfstream ofs_;
+    io::detail::AtomicOutputStream ofs_;
 };
 
 }  // namespace gelex::gwas

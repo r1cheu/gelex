@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <ios>
 #include <iterator>
 #include <string>
@@ -76,19 +77,23 @@ GwasWriter::GwasWriter(
 
 GwasWriter::~GwasWriter() noexcept
 {
-    if (line_buffer_.size() == 0U)
+    if (std::uncaught_exceptions() > 0)
     {
         return;
     }
     try
     {
-        ofs_.write(
-            line_buffer_.data(),
-            static_cast<std::streamsize>(line_buffer_.size()));
+        if (line_buffer_.size() != 0U)
+        {
+            ofs_.write(
+                line_buffer_.data(),
+                static_cast<std::streamsize>(line_buffer_.size()));
+            line_buffer_.clear();
+        }
+        ofs_.commit();
     }
     catch (...)  // NOLINT(bugprone-empty-catch): dtor must be noexcept
     {
-        ofs_.setstate(std::ios::failbit);
     }
 }
 

@@ -15,6 +15,7 @@
  */
 
 #include "gelex/io/detail/text_writer.h"
+#include <exception>
 #include <filesystem>
 #include <initializer_list>
 #include <ios>
@@ -24,8 +25,23 @@ namespace gelex::io::detail
 {
 
 TextWriter::TextWriter(const std::filesystem::path& path)
-    : buf_{}, ofs_(path, std::ios::out, buf_)
+    : ofs_(path, std::ios::out)
 {
+}
+
+TextWriter::~TextWriter() noexcept
+{
+    if (std::uncaught_exceptions() > 0)
+    {
+        return;
+    }
+    try
+    {
+        ofs_.commit();
+    }
+    catch (...)  // NOLINT(bugprone-empty-catch): dtor must be noexcept
+    {
+    }
 }
 
 auto TextWriter::write_header(std::initializer_list<std::string_view> columns)
@@ -36,23 +52,23 @@ auto TextWriter::write_header(std::initializer_list<std::string_view> columns)
     {
         if (!first)
         {
-            ofs_.put('\t');
+            ofs_.write("\t");
         }
-        ofs_.write(col.data(), static_cast<std::streamsize>(col.size()));
+        ofs_.write(col);
         first = false;
     }
-    ofs_.put('\n');
+    ofs_.write("\n");
 }
 
 auto TextWriter::write(std::string_view line) -> void
 {
-    ofs_.write(line.data(), static_cast<std::streamsize>(line.size()));
-    ofs_.put('\n');
+    ofs_.write(line);
+    ofs_.write("\n");
 }
 
 auto TextWriter::path() const noexcept -> const std::filesystem::path&
 {
-    return ofs_.final_path();
+    return ofs_.path();
 }
 
 }  // namespace gelex::io::detail

@@ -14,19 +14,17 @@
  * limitations under the License.
  */
 
-#include "gelex/io/detail/atomic_ofstream.h"
+#include "gelex/io/detail/atomic_output_stream.h"
 
-#include <exception>
 #include <filesystem>
 #include <ios>
-#include <span>
+#include <string_view>
 #include <system_error>
 #include <utility>
 
 #include <fmt/format.h>
 
 #include "gelex/exception.h"
-#include "gelex/infra/logger.h"
 
 namespace gelex::io::detail
 {
@@ -44,99 +42,94 @@ auto tmp_path_for(const std::filesystem::path& final_path)
 
 }  // namespace
 
-AtomicOfstream::AtomicOfstream(
-    std::filesystem::path final_path,
-    std::ios::openmode mode,
-    std::span<char> custom_buffer)
-    : final_path_(std::move(final_path)), tmp_path_(tmp_path_for(final_path_))
+AtomicOutputStream::AtomicOutputStream(
+    std::filesystem::path path,
+    std::ios::openmode mode)
+    : path_(std::move(path)), tmp_path_(tmp_path_for(path_))
 {
-    if (std::filesystem::is_directory(final_path_))
+    if (std::filesystem::is_directory(path_))
     {
         throw GelexException(
             fmt::format(
-                "{}: is a directory, not a regular file",
-                final_path_.string()));
+                "{}: is a directory, not a regular file", path_.string()));
     }
 
-    if (!custom_buffer.empty())
-    {
-        rdbuf()->pubsetbuf(
-            custom_buffer.data(),
-            static_cast<std::streamsize>(custom_buffer.size()));
-    }
-
-    open(tmp_path_, mode | std::ios::out);
-    if (!is_open())
+    file_.open(tmp_path_, mode | std::ios::out);
+    if (!file_.is_open())
     {
         throw GelexException(
             fmt::format("{}: failed to open file", tmp_path_.string()));
     }
 }
 
-AtomicOfstream::~AtomicOfstream() noexcept
+AtomicOutputStream::~AtomicOutputStream() noexcept
 {
     if (committed_)
     {
         return;
     }
 
-    const bool keep = good() && std::uncaught_exceptions() == 0;
-
     try
     {
-        close();
+        if (file_.is_open())
+        {
+            file_.close();
+        }
     }
     catch (...)  // NOLINT(bugprone-empty-catch): dtor must be noexcept
     {
     }
 
     std::error_code ec;
-    if (keep)
-    {
-        std::filesystem::rename(tmp_path_, final_path_, ec);
-        if (!ec)
-        {
-            return;
-        }
-        if (auto logger = gelex::logging::get())
-        {
-            logger->error(
-                "{}: failed to rename from \"{}\", discarding output: {}",
-                final_path_.string(),
-                tmp_path_.string(),
-                ec.message());
-        }
-    }
     std::filesystem::remove(tmp_path_, ec);
 }
 
-auto AtomicOfstream::commit() -> void
+auto AtomicOutputStream::write(const char* data, std::streamsize size) -> void
+{
+    file_.write(data, size);
+    if (!file_)
+    {
+        throw GelexException(
+            fmt::format("{}: failed to write", path_.string()));
+    }
+}
+
+auto AtomicOutputStream::write(std::string_view text) -> void
+{
+    write(text.data(), static_cast<std::streamsize>(text.size()));
+}
+
+auto AtomicOutputStream::seek(std::streamoff offset) -> void
+{
+    file_.seekp(offset);
+    if (!file_)
+    {
+        throw GelexException(fmt::format("{}: failed to seek", path_.string()));
+    }
+}
+
+auto AtomicOutputStream::commit() -> void
 {
     if (committed_)
     {
         return;
     }
-    if (!good())
-    {
-        throw GelexException(
-            fmt::format("{}: stream is not writable", final_path_.string()));
-    }
 
-    close();
-    if (!good())
+    file_.close();
+    if (!file_)
     {
         throw GelexException(
             fmt::format("{}: failed to close file", tmp_path_.string()));
     }
 
     std::error_code ec;
-    std::filesystem::rename(tmp_path_, final_path_, ec);
+    std::filesystem::rename(tmp_path_, path_, ec);
     if (ec)
     {
         throw GelexException(
             fmt::format(
                 "{}: failed to rename from \"{}\": {}",
-                final_path_.string(),
+                path_.string(),
                 tmp_path_.string(),
                 ec.message()));
     }

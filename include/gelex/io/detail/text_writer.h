@@ -17,13 +17,11 @@
 #ifndef GELEX_IO_DETAIL_TEXT_WRITER_H_
 #define GELEX_IO_DETAIL_TEXT_WRITER_H_
 
-#include <array>
 #include <filesystem>
 #include <initializer_list>
-#include <ios>
 #include <string_view>
 
-#include "gelex/io/detail/atomic_ofstream.h"
+#include "gelex/io/detail/atomic_output_stream.h"
 
 namespace gelex::io::detail
 {
@@ -31,15 +29,12 @@ namespace gelex::io::detail
 class TextWriter
 {
    public:
-    static constexpr std::streamsize BUF_SIZE
-        = static_cast<std::streamsize>(64) * 1024;
-
     explicit TextWriter(const std::filesystem::path& path);
     TextWriter(const TextWriter&) = delete;
     TextWriter(TextWriter&&) = delete;
     auto operator=(const TextWriter&) -> TextWriter& = delete;
     auto operator=(TextWriter&&) -> TextWriter& = delete;
-    ~TextWriter() = default;
+    ~TextWriter() noexcept;
 
     auto write_header(std::initializer_list<std::string_view> columns) -> void;
     auto write(std::string_view line) -> void;
@@ -47,8 +42,7 @@ class TextWriter
     [[nodiscard]] auto path() const noexcept -> const std::filesystem::path&;
 
    private:
-    std::array<char, BUF_SIZE> buf_;
-    AtomicOfstream ofs_;
+    AtomicOutputStream ofs_;
 };
 
 }  // namespace gelex::io::detail

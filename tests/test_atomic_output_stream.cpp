@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/io/detail/atomic_ofstream.h"
+#include "gelex/io/detail/atomic_output_stream.h"
 
 #include <array>
 #include <filesystem>
@@ -32,7 +32,7 @@
 namespace fs = std::filesystem;
 
 using gelex::GelexException;
-using gelex::io::detail::AtomicOfstream;
+using gelex::io::detail::AtomicOutputStream;
 using gelex::test::FileFixture;
 
 namespace
@@ -56,47 +56,45 @@ auto tmp_of(const fs::path& final_path) -> fs::path
 }  // namespace
 
 TEST_CASE(
-    "AtomicOfstream - destructor commits on success",
-    "[atomic_ofstream][commit]")
+    "AtomicOutputStream - destructor discards uncommitted tmp file",
+    "[atomic_output_stream][tmp]")
 {
     FileFixture files;
     auto final_path = files.generate_random_file_path(".txt");
 
     {
-        AtomicOfstream ofs(final_path, std::ios::out);
-        ofs << "hello";
+        AtomicOutputStream ofs(final_path, std::ios::out);
+        ofs.write("hello");
     }
 
-    REQUIRE(fs::exists(final_path));
+    REQUIRE_FALSE(fs::exists(final_path));
     REQUIRE_FALSE(fs::exists(tmp_of(final_path)));
-    REQUIRE(read_file(final_path) == "hello");
 }
 
 TEST_CASE(
-    "AtomicOfstream - tmp file exists before destruction",
-    "[atomic_ofstream][tmp]")
+    "AtomicOutputStream - tmp file exists before destruction",
+    "[atomic_output_stream][tmp]")
 {
     FileFixture files;
     auto final_path = files.generate_random_file_path(".txt");
     const auto tmp = tmp_of(final_path);
 
-    AtomicOfstream ofs(final_path, std::ios::out);
-    ofs << "partial";
-    ofs.flush();
+    AtomicOutputStream ofs(final_path, std::ios::out);
+    ofs.write("partial");
 
     REQUIRE(fs::exists(tmp));
     REQUIRE_FALSE(fs::exists(final_path));
 }
 
 TEST_CASE(
-    "AtomicOfstream - explicit commit makes final file visible",
-    "[atomic_ofstream][commit]")
+    "AtomicOutputStream - explicit commit makes final file visible",
+    "[atomic_output_stream][commit]")
 {
     FileFixture files;
     auto final_path = files.generate_random_file_path(".txt");
 
-    AtomicOfstream ofs(final_path, std::ios::out);
-    ofs << "hello";
+    AtomicOutputStream ofs(final_path, std::ios::out);
+    ofs.write("hello");
     ofs.commit();
 
     REQUIRE(fs::exists(final_path));
@@ -105,8 +103,8 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "AtomicOfstream - in-flight exception abandons tmp file",
-    "[atomic_ofstream][exception]")
+    "AtomicOutputStream - in-flight exception abandons tmp file",
+    "[atomic_output_stream][exception]")
 {
     FileFixture files;
     auto final_path = files.generate_random_file_path(".txt");
@@ -114,8 +112,8 @@ TEST_CASE(
 
     try
     {
-        AtomicOfstream ofs(final_path, std::ios::out);
-        ofs << "will be discarded";
+        AtomicOutputStream ofs(final_path, std::ios::out);
+        ofs.write("will be discarded");
         throw std::runtime_error("simulated failure");
     }
     catch (const std::runtime_error&)  // NOLINT(bugprone-empty-catch)
@@ -127,8 +125,8 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "AtomicOfstream - commit atomically replaces existing file",
-    "[atomic_ofstream][overwrite]")
+    "AtomicOutputStream - commit atomically replaces existing file",
+    "[atomic_output_stream][overwrite]")
 {
     FileFixture files;
     auto final_path
@@ -136,11 +134,12 @@ TEST_CASE(
     REQUIRE(read_file(final_path) == "old content");
 
     {
-        AtomicOfstream ofs(final_path, std::ios::out);
-        ofs << "new content";
+        AtomicOutputStream ofs(final_path, std::ios::out);
+        ofs.write("new content");
         // pre-existing final file remains intact until rename.
         REQUIRE(read_file(final_path) == "old content");
         REQUIRE(fs::exists(tmp_of(final_path)));
+        ofs.commit();
     }
 
     REQUIRE(fs::exists(final_path));
@@ -149,26 +148,26 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "AtomicOfstream - is_directory path throws",
-    "[atomic_ofstream][error]")
+    "AtomicOutputStream - is_directory path throws",
+    "[atomic_output_stream][error]")
 {
     FileFixture files;
     const auto& dir = files.get_test_dir();
-    REQUIRE_THROWS_AS(AtomicOfstream(dir, std::ios::out), GelexException);
+    REQUIRE_THROWS_AS(AtomicOutputStream(dir, std::ios::out), GelexException);
 }
 
 TEST_CASE(
-    "AtomicOfstream - opening in non-existent directory throws",
-    "[atomic_ofstream][error]")
+    "AtomicOutputStream - opening in non-existent directory throws",
+    "[atomic_output_stream][error]")
 {
     FileFixture files;
     auto bad_path = files.get_test_dir() / "no_such_dir" / "file.txt";
-    REQUIRE_THROWS_AS(AtomicOfstream(bad_path, std::ios::out), GelexException);
+    REQUIRE_THROWS_AS(AtomicOutputStream(bad_path, std::ios::out), GelexException);
     REQUIRE_FALSE(fs::exists(bad_path));
     REQUIRE_FALSE(fs::exists(tmp_of(bad_path)));
 }
 
-TEST_CASE("AtomicOfstream - binary mode roundtrip", "[atomic_ofstream][binary]")
+TEST_CASE("AtomicOutputStream - binary mode roundtrip", "[atomic_output_stream][binary]")
 {
     FileFixture files;
     auto final_path = files.generate_random_file_path(".bin");
@@ -176,9 +175,10 @@ TEST_CASE("AtomicOfstream - binary mode roundtrip", "[atomic_ofstream][binary]")
     constexpr std::array<char, 4> DATA{'\x00', '\x01', '\x02', '\x03'};
 
     {
-        AtomicOfstream ofs(
+        AtomicOutputStream ofs(
             final_path, std::ios::out | std::ios::binary | std::ios::trunc);
         ofs.write(DATA.data(), static_cast<std::streamsize>(DATA.size()));
+        ofs.commit();
     }
 
     REQUIRE(fs::exists(final_path));

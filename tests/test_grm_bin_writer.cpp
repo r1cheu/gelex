@@ -447,20 +447,14 @@ TEST_CASE(
 }
 
 // ============================================================================
-// Buffer size verification
+// Writer completion verification
 // ============================================================================
 
-TEST_CASE("GrmBinWriter - Buffer size verification", "[grm_bin_writer][buffer]")
+TEST_CASE("GrmBinWriter - Writer completion", "[grm_bin_writer][commit]")
 {
     FileFixture files;
 
-    SECTION("Happy path - verify default buffer size constant")
-    {
-        REQUIRE(
-            GrmBinWriter::DEFAULT_BUFFER_SIZE == static_cast<size_t>(64 * 1024));
-    }
-
-    SECTION("Happy path - write with default buffer should work")
+    SECTION("Happy path - write makes final file visible")
     {
         auto file_path = files.generate_random_file_path(".grm.bin");
 

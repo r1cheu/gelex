@@ -31,8 +31,7 @@ namespace gelex
 {
 
 GrmBinWriter::GrmBinWriter(const std::filesystem::path& file_path)
-    : io_buffer_(DEFAULT_BUFFER_SIZE),
-      file_(file_path, std::ios::binary | std::ios::trunc, io_buffer_)
+    : file_(file_path, std::ios::binary | std::ios::trunc)
 {
 }
 
@@ -41,6 +40,7 @@ auto GrmBinWriter::write(const Eigen::Ref<const Eigen::MatrixXd>& grm) -> void
     const Eigen::Index n = grm.rows();
     if (n == 0)
     {
+        file_.commit();
         return;
     }
 
@@ -49,7 +49,7 @@ auto GrmBinWriter::write(const Eigen::Ref<const Eigen::MatrixXd>& grm) -> void
         throw GelexException(
             fmt::format(
                 "{}: GRM must be square, got {}x{}",
-                file_.final_path().string(),
+                file_.path().string(),
                 n,
                 grm.cols()));
     }
@@ -65,13 +65,7 @@ auto GrmBinWriter::write(const Eigen::Ref<const Eigen::MatrixXd>& grm) -> void
         }
     }
 
-    if (!file_.good())
-    {
-        throw GelexException(
-            fmt::format(
-                "{}: failed to write GRM data to binary file",
-                file_.final_path().string()));
-    }
+    file_.commit();
 }
 
 auto write_grm_ids(

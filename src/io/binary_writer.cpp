@@ -59,10 +59,9 @@ BinaryWriter::~BinaryWriter() noexcept
         {
             logger->error(
                 "{}: failed to finalize, discarding output: {}",
-                file_.final_path().string(),
+                file_.path().string(),
                 e.what());
         }
-        file_.setstate(std::ios::failbit);
     }
 }
 
@@ -86,7 +85,7 @@ auto BinaryWriter::check_duplicate_path(std::string_view path) const -> void
             throw GelexException(
                 fmt::format(
                     "{}: duplicate section path \"{}\"",
-                    file_.final_path().string(),
+                    file_.path().string(),
                     path));
         }
     }
@@ -123,7 +122,7 @@ auto BinaryWriter::reserve_section(
         throw GelexException(
             fmt::format(
                 "{}: path too long ({} > {}): \"{}\"",
-                file_.final_path().string(),
+                file_.path().string(),
                 path.size(),
                 detail::MAX_PATH_LENGTH,
                 path));
@@ -158,7 +157,7 @@ auto BinaryWriter::write_raw(
         throw GelexException(
             fmt::format(
                 "{}: invalid section handle {}",
-                file_.final_path().string(),
+                file_.path().string(),
                 handle));
     }
 
@@ -169,7 +168,7 @@ auto BinaryWriter::write_raw(
         throw GelexException(
             fmt::format(
                 "{}: write overflow: cursor={}, bytes={}, limit={}",
-                file_.final_path().string(),
+                file_.path().string(),
                 rs.cursor,
                 bytes,
                 end_bound));
@@ -177,7 +176,7 @@ auto BinaryWriter::write_raw(
 
     if (rs.cursor != file_cursor_)
     {
-        file_.seekp(static_cast<std::streamoff>(rs.cursor));
+        file_.seek(static_cast<std::streamoff>(rs.cursor));
     }
     file_.write(data, bytes);
     rs.cursor += static_cast<uint64_t>(bytes);
@@ -217,14 +216,14 @@ auto BinaryWriter::finalize() -> void
                 fmt::format(
                     "{}: section not fully written: cursor={}, "
                     "expected={}",
-                    file_.final_path().string(),
+                    file_.path().string(),
                     rs.cursor,
                     expected));
         }
     }
 
     const auto toc_offset = align_up(next_offset_, detail::PAGE_ALIGNMENT);
-    file_.seekp(static_cast<std::streamoff>(toc_offset));
+    file_.seek(static_cast<std::streamoff>(toc_offset));
     for (const auto& rs : reserved_)
     {
         auto buf = rs.entry.to_bytes();
@@ -234,15 +233,6 @@ auto BinaryWriter::finalize() -> void
     }
 
     write_footer(toc_offset, static_cast<uint64_t>(reserved_.size()));
-
-    file_.flush();
-    if (!file_.good())
-    {
-        throw GelexException(
-            fmt::format(
-                "{}: failed to write binary file",
-                file_.final_path().string()));
-    }
 }
 
 }  // namespace gelex::io

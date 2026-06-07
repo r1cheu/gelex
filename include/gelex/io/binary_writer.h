@@ -27,7 +27,7 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/io/detail/atomic_ofstream.h"
+#include "gelex/io/detail/atomic_output_stream.h"
 #include "gelex/io/detail/binary_format.h"
 
 namespace gelex::io
@@ -166,7 +166,7 @@ class BinaryWriter
 
     std::vector<ReservedSection> reserved_;
 
-    detail::AtomicOfstream file_;
+    detail::AtomicOutputStream file_;
     uint64_t next_offset_{0};
     uint64_t file_cursor_{0};
     bool finalized_{false};

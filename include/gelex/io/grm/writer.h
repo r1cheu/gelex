@@ -17,15 +17,13 @@
 #ifndef GELEX_IO_GRM_WRITER_H_
 #define GELEX_IO_GRM_WRITER_H_
 
-#include <cstddef>
 #include <filesystem>
 #include <span>
 #include <string>
-#include <vector>
 
 #include <Eigen/Core>
 
-#include "gelex/io/detail/atomic_ofstream.h"
+#include "gelex/io/detail/atomic_output_stream.h"
 
 namespace gelex
 {
@@ -33,9 +31,6 @@ namespace gelex
 class GrmBinWriter
 {
    public:
-    static constexpr size_t DEFAULT_BUFFER_SIZE
-        = static_cast<size_t>(64 * 1024);
-
     explicit GrmBinWriter(const std::filesystem::path& file_path);
 
     GrmBinWriter(const GrmBinWriter&) = delete;
@@ -48,12 +43,11 @@ class GrmBinWriter
 
     [[nodiscard]] auto path() const noexcept -> const std::filesystem::path&
     {
-        return file_.final_path();
+        return file_.path();
     }
 
    private:
-    std::vector<char> io_buffer_;
-    io::detail::AtomicOfstream file_;
+    io::detail::AtomicOutputStream file_;
 };
 
 auto write_grm_ids(
