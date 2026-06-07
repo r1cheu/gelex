@@ -52,6 +52,7 @@ namespace gelex::grm::detail
 
 namespace
 {
+// TODO: rlchen - need remove.
 auto read_grm_index(const std::filesystem::path& id_path)
     -> gelex::dataframe::Index<std::string>
 {

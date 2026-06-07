@@ -17,7 +17,6 @@
 #ifndef GELEX_FREQ_DESIGN_H_
 #define GELEX_FREQ_DESIGN_H_
 
-#include <cstdint>
 #include <string>
 #include <vector>
 
