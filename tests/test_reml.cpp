@@ -74,7 +74,7 @@ auto build_model(const RemlProblem& problem) -> std::pair<FreqModel, FreqState>
     std::vector<freq::GeneticDesign> genetics;
     genetics.push_back({.type = GeneticMode::A, .K = problem.K});
 
-    FreqModel model(problem.y, std::move(fixed), std::move(genetics));
+    FreqModel model(problem.y, std::move(fixed), {}, std::move(genetics));
     FreqState state(model);
     state.residual().variance = problem.sigma_e;
     state.genetic()[0].variance = problem.sigma_g;

@@ -20,6 +20,7 @@
 #include <string>
 
 #include "gelex/data/dataframe/dataframe.h"
+#include "gelex/freq/design.h"
 #include "gelex/types/fixed_designs.h"
 
 namespace gelex
@@ -30,6 +31,10 @@ namespace gelex
 
 [[nodiscard]] auto make_discrete_covariate(
     const dataframe::DataFrame<std::string>& frame) -> DiscreteCovariate;
+
+[[nodiscard]] auto make_random_designs(
+    const dataframe::DataFrame<std::string>& frame)
+    -> std::vector<freq::RandomDesign>;
 
 }  // namespace gelex
 

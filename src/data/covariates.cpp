@@ -17,6 +17,7 @@
 #include "gelex/data/covariates.h"
 
 #include <cstddef>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -53,8 +54,10 @@ auto make_discrete_covariate(const dataframe::DataFrame<std::string>& frame)
         }
         names.emplace_back(col.name());
         reference_levels.push_back(all_levels.front());
-        levels.push_back(all_levels);
-        encoded_results.push_back(dataframe::dummy_encode(col));
+        encoded_results.push_back(
+            dataframe::encode(
+                col, std::span<const std::string>(all_levels).subspan(1)));
+        levels.push_back(std::move(all_levels));
     }
 
     Eigen::Index total_cols = 0;
@@ -76,6 +79,24 @@ auto make_discrete_covariate(const dataframe::DataFrame<std::string>& frame)
         .levels = std::move(levels),
         .reference_levels = std::move(reference_levels),
         .X = std::move(X)};
+}
+
+auto make_random_designs(const dataframe::DataFrame<std::string>& frame)
+    -> std::vector<freq::RandomDesign>
+{
+    std::vector<freq::RandomDesign> random_designs;
+    random_designs.reserve(frame.cols());
+    for (std::size_t i = 0; i < frame.cols(); ++i)
+    {
+        const auto& col = frame.col(i);
+        const auto result = dataframe::one_hot_encode(col);
+
+        random_designs.emplace_back(
+            result.name,
+            result.level_names,
+            result.data * result.data.transpose());
+    }
+    return random_designs;
 }
 
 }  // namespace gelex

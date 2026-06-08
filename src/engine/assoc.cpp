@@ -62,7 +62,7 @@ auto AssocEngine::run(
     auto grms = std::move(grm).take_grms();
 
     FreqModel model(
-        std::move(phenotype), std::move(fixed_design), std::move(grms));
+        std::move(phenotype), std::move(fixed_design), {}, std::move(grms));
     FreqState state(model);
 
     auto tester
