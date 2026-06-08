@@ -26,6 +26,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/dataframe/encode.h"
+#include "gelex/data/reader.h"
 
 namespace gelex
 {
@@ -101,4 +102,20 @@ auto make_random_designs(const dataframe::DataFrame<std::string>& frame)
     return random_designs;
 }
 
+auto make_genetic_designs(
+    std::span<const std::string> prefixes,
+    const dataframe::Index<std::string>& index)
+    -> std::vector<freq::RandomDesign>
+{
+    std::vector<freq::RandomDesign> genetic_designs;
+    genetic_designs.reserve(prefixes.size());
+    for (const auto& prefix : prefixes)
+    {
+        auto term_name = prefix;
+        auto K = read_grm(term_name, &index);
+        genetic_designs.emplace_back(
+            term_name, std::nullopt, std::nullopt, std::move(K));
+    }
+    return genetic_designs;
+}
 }  // namespace gelex

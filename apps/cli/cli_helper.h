@@ -74,11 +74,13 @@ inline auto parse_genotype_process_method(std::string_view value)
     if (it == METHOD_MAP.end())
     {
         throw gelex::GelexException(
-            "Invalid genotype process method: \"" + std::string(value)
-            + "\". Valid: StandardizeHWE(SH), CenterHWE(CH),"
-              " OrthStandardizeHWE(OSH), OrthCenterHWE(OCH),"
-              " Standardize(S), Center(C), OrthStandardize(OS),"
-              " OrthCenter(OC), NOIAStandardize(NS), NOIACenter(NC)");
+            fmt::format(
+                "Invalid genotype process method: \"{}\". Valid: "
+                "StandardizeHWE(SH), CenterHWE(CH), "
+                "OrthStandardizeHWE(OSH), OrthCenterHWE(OCH), "
+                "Standardize(S), Center(C), OrthStandardize(OS), "
+                "OrthCenter(OC), NOIAStandardize(NS), NOIACenter(NC)",
+                value));
     }
     return it->second;
 }
@@ -98,7 +100,7 @@ inline auto parse_genetic_modes(std::string_view sv) -> std::vector<GeneticMode>
         return {GeneticMode::A, GeneticMode::D};
     }
     throw gelex::GelexException(
-        "invalid --mode: \"" + std::string(sv) + "\". Valid: A, D, AD");
+        fmt::format("invalid --mode: \"{}\". Valid: A, D, AD", sv));
 }
 
 auto is_tty() -> bool;

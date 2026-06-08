@@ -16,13 +16,14 @@
 
 #include "command.h"
 
-#include <argparse.h>
 #include <array>
 #include <filesystem>
 #include <ranges>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <argparse.h>
 
 #include "cli/cli_helper.h"
 #include "cli/data_pipe_config.h"

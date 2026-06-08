@@ -18,8 +18,10 @@
 #define GELEX_DATA_COVARIATES_H_
 
 #include <string>
+#include <vector>
 
 #include "gelex/data/dataframe/dataframe.h"
+#include "gelex/data/dataframe/index.h"
 #include "gelex/freq/design.h"
 #include "gelex/types/fixed_designs.h"
 
@@ -35,6 +37,10 @@ namespace gelex
 [[nodiscard]] auto make_random_designs(
     const dataframe::DataFrame<std::string>& frame)
     -> std::vector<freq::RandomDesign>;
+
+[[nodiscard]] auto make_genetic_designs(
+    std::span<const std::string> prefixes,
+    const dataframe::Index<std::string>&) -> std::vector<freq::RandomDesign>;
 
 }  // namespace gelex
 

@@ -16,26 +16,20 @@
 
 #include "args.h"
 
-#include <algorithm>
-#include <thread>
-
 #include <argparse.h>
 
 #include "cli/cli_helper.h"
 
-auto setup_assoc_args(argparse::ArgumentParser& cmd) -> void
+auto setup_reml_args(argparse::ArgumentParser& cmd) -> void
 {
     cmd.add_description(
-        "Perform genome-wide association study using mixed linear model");
+        "Perform REML variance component estimation using average information "
+        "algorithm");
 
     cmd.add_group("I/O");
     cmd.add_argument("-p", "--pheno")
         .help("Phenotype file (TSV format: FID, IID, trait1, ...)")
         .metavar("<PHENOTYPE>")
-        .required();
-    cmd.add_argument("-b", "--bfile")
-        .help("PLINK binary file prefix (.bed/.bim/.fam)")
-        .metavar("<BFILE>")
         .required();
     cmd.add_argument("--grm")
         .help("GRM file prefix(es). Can specify multiple GRMs.")
@@ -46,6 +40,8 @@ auto setup_assoc_args(argparse::ArgumentParser& cmd) -> void
         .help("Quantitative covariates (TSV: FID, IID, covar1, ...)");
     cmd.add_argument("--dcovar")
         .help("Discrete covariates (TSV: FID, IID, factor1, ...)");
+    cmd.add_argument("--rand").help(
+        "Random effects (TSV: FID, IID, effect1, ...)");
     cmd.add_argument("-o", "--out")
         .help("Output file prefix")
         .metavar("<OUT>")
@@ -56,33 +52,6 @@ auto setup_assoc_args(argparse::ArgumentParser& cmd) -> void
         .help("Phenotype column index (0-based)")
         .default_value(2)
         .scan<'i', int>();
-    cmd.add_argument("--transform")
-        .help(
-            "Phenotype transformation: none, dint (Direct INT), iint (Indirect "
-            "INT)")
-        .default_value("none")
-        .metavar("<TRANSFORM>")
-        .choices("none", "dint", "iint");
-    cmd.add_argument("--int-offset")
-        .help("INT offset parameter k (Blom offset)")
-        .default_value(3.0 / 8.0)
-        .scan<'g', double>();
-
-    cmd.add_group("Model");
-    cmd.add_argument("--test")
-        .help(
-            "Wald test mode: single (one-effect, df=1), joint (add+dom, df=2)")
-        .default_value("single")
-        .metavar("<TEST>")
-        .choices("single", "joint");
-    cmd.add_argument("--mode")
-        .help(
-            "Association mode: A (additive), D (dominance). "
-            "Ignored when --test=joint (always AD)")
-        .default_value("A")
-        .metavar("<MODE>")
-        .choices("A", "D");
-    cmd.add_argument("--loco").help("Leave-One-Chromosome-Out analysis").flag();
     cmd.add_argument("--geno-method", "--gm")
         .help(
             "Genotype processing: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC "
@@ -101,10 +70,6 @@ auto setup_assoc_args(argparse::ArgumentParser& cmd) -> void
         .scan<'g', double>();
 
     cmd.add_group("Performance");
-    cmd.add_argument("-c", "--chunk-size")
-        .help("SNPs per chunk")
-        .default_value(10000)
-        .scan<'i', int>();
     cmd.add_argument("-t", "--threads")
         .help("CPU threads")
         .default_value(
@@ -115,8 +80,8 @@ auto setup_assoc_args(argparse::ArgumentParser& cmd) -> void
     cmd.add_epilog(
         gelex::cli::format_epilog(
             "{bg}Example:{rs}\n"
-            "  {bc}gelex assoc{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
-            "{cy}--grm{rs} grm_prefix\n\n"
+            "  {bc}gelex reml{rs} {cy}-p{rs} pheno.tsv geno {cy}--grm{rs} "
+            "grm_prefix\n\n"
             "{bg}Docs:{rs}\n"
-            "  https://gelex.readthedocs.io/en/latest/cli/assoc.html"));
+            "  https://gelex.readthedocs.io/en/latest/cli/reml.html"));
 }

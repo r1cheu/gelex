@@ -35,6 +35,8 @@
 #include "cli/post/command.h"
 #include "cli/predict/args.h"
 #include "cli/predict/command.h"
+#include "cli/reml/args.h"
+#include "cli/reml/command.h"
 #include "cli/report_printer.h"
 #include "cli/simulate/args.h"
 #include "cli/simulate/command.h"
@@ -109,6 +111,7 @@ auto main(int argc, char* argv[]) -> int
     argparse::ArgumentParser grm("grm");
     argparse::ArgumentParser assoc("assoc");
     argparse::ArgumentParser post("post");
+    argparse::ArgumentParser reml("reml");
 
     const std::array commands
         = {CommandDescriptor{"mcmc", &mcmc, setup_mcmc_args, mcmc_execute},
@@ -118,7 +121,8 @@ auto main(int argc, char* argv[]) -> int
                "predict", &predict, setup_predict_args, predict_execute},
            CommandDescriptor{"grm", &grm, setup_grm_args, grm_execute},
            CommandDescriptor{"assoc", &assoc, setup_assoc_args, assoc_execute},
-           CommandDescriptor{"post", &post, setup_post_args, post_execute}};
+           CommandDescriptor{"post", &post, setup_post_args, post_execute},
+           CommandDescriptor{"reml", &reml, setup_reml_args, reml_execute}};
 
     for (const auto& cmd : commands)
     {
