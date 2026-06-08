@@ -18,11 +18,11 @@
 
 #include <algorithm>
 #include <cstddef>
-
-#include <Eigen/Core>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <Eigen/Core>
 
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/reml/estimator.h"
@@ -59,10 +59,10 @@ auto AssocEngine::run(
     auto phenotype = std::move(pheno).take_phenotype();
     auto fixed_design = std::move(pheno).take_fixed_design();
     auto grm_paths = grm.grm_paths();
-    auto grms = std::move(grm).take_grms();
+    auto grms = std::move(grm).take_random_designs();
 
     FreqModel model(
-        std::move(phenotype), std::move(fixed_design), {}, std::move(grms));
+        std::move(phenotype), std::move(fixed_design), std::move(grms));
     FreqState state(model);
 
     auto tester
@@ -125,10 +125,10 @@ auto AssocEngine::run(
     }
     else
     {
-        if (model.genetic().size() != grm_paths.size())
+        if (model.random().size() != grm_paths.size())
         {
             throw GelexException(
-                "Number of genetic components in model does not match "
+                "Number of random components in model does not match "
                 "number of GRMs provided.");
         }
 
@@ -157,7 +157,7 @@ auto AssocEngine::run(
                 const auto chr_grm_prefix
                     = grm_paths[i].string() + ".chr" + group.name;
                 loco_readers[i].load_loco_grm(
-                    chr_grm_prefix, sample_index, model.genetic()[i].K);
+                    chr_grm_prefix, sample_index, model.random()[i].K);
             }
 
             notify(
@@ -173,12 +173,13 @@ auto AssocEngine::run(
                 r.loglike = estimator.loglike();
                 r.converged = estimator.is_converged();
                 r.residual_variance = state.residual().variance;
-                for (const auto& g : state.genetic())
+                for (size_t i = 0; i < state.random().size(); ++i)
                 {
-                    r.genetic.push_back(
-                        {.type = g.type,
-                         .variance = g.variance,
-                         .heritability = g.heritability});
+                    const auto& random = state.random()[i];
+                    r.random.push_back(
+                        {.name = model.random()[i].term_name,
+                         .variance = random.variance,
+                         .variance_ratio = random.variance_ratio});
                 }
                 loco_results.push_back(std::move(r));
             }

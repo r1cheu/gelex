@@ -40,23 +40,12 @@ auto compute_random_effects(
     FreqState& state,
     const OptimizerState& opt_state) -> void
 {
-    // random effects: blup = K * Py * σ
     for (size_t i = 0; i < model.random().size(); ++i)
     {
         const auto& effect = model.random()[i];
         auto& effect_state = state.random()[i];
 
         effect_state.blup.noalias()
-            = effect.K * opt_state.Py * effect_state.variance;
-    }
-
-    // genetic effects: ebv = K * Py * σ
-    for (size_t i = 0; i < model.genetic().size(); ++i)
-    {
-        const auto& effect = model.genetic()[i];
-        auto& effect_state = state.genetic()[i];
-
-        effect_state.ebv.noalias()
             = effect.K * opt_state.Py * effect_state.variance;
     }
 }

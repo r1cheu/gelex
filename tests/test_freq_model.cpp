@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <fmt/format.h>
 #include <cstddef>
 #include <filesystem>
 #include <string>
@@ -24,6 +23,7 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <fmt/format.h>
 
 #include "bed_fixture.h"
 #include "file_fixture.h"
@@ -34,7 +34,6 @@
 #include "gelex/data/sample_id.h"
 #include "gelex/data/writer.h"
 #include "gelex/freq/model.h"
-#include "gelex/types/genetic_effect_type.h"
 #include "sample_id_fixture.h"
 
 namespace fs = std::filesystem;
@@ -190,8 +189,7 @@ auto make_freq_model(
     return FreqModel(
         std::move(pheno).take_phenotype(),
         std::move(pheno).take_fixed_design(),
-        {},
-        std::move(grm).take_grms());
+        std::move(grm).take_random_designs());
 }
 
 }  // namespace
@@ -251,11 +249,6 @@ TEST_CASE(
         REQUIRE(model.fixed().X.cols() >= 1);
     }
 
-    SECTION("Verify no genetic effects")
-    {
-        REQUIRE(model.genetic().empty());
-    }
-
     SECTION("Verify no random effects")
     {
         REQUIRE(model.random().empty());
@@ -300,25 +293,25 @@ TEST_CASE(
     auto model
         = make_freq_model(pheno_config, bed_prefix, {grm_fixture.prefix()});
 
-    SECTION("Verify one genetic effect")
+    SECTION("Verify one random component")
     {
-        REQUIRE(model.genetic().size() == 1);
+        REQUIRE(model.random().size() == 1);
     }
 
-    SECTION("Verify genetic effect name is 'Additive'")
+    SECTION("Verify random component name is GRM prefix")
     {
-        REQUIRE(model.genetic()[0].type == gelex::GeneticMode::A);
+        REQUIRE(model.random()[0].term_name == grm_fixture.prefix().string());
     }
 
     SECTION("Verify GRM matrix dimensions")
     {
-        REQUIRE(model.genetic()[0].K.rows() == num_samples);
-        REQUIRE(model.genetic()[0].K.cols() == num_samples);
+        REQUIRE(model.random()[0].K.rows() == num_samples);
+        REQUIRE(model.random()[0].K.cols() == num_samples);
     }
 
     SECTION("Verify GRM matrix is symmetric")
     {
-        const auto& K = model.genetic()[0].K;
+        const auto& K = model.random()[0].K;
         for (Eigen::Index i = 0; i < K.rows(); ++i)
         {
             for (Eigen::Index j = 0; j < i; ++j)
@@ -364,20 +357,20 @@ TEST_CASE(
     auto model
         = make_freq_model(pheno_config, bed_prefix, {grm_fixture.prefix()});
 
-    SECTION("Verify one genetic effect")
+    SECTION("Verify one random component")
     {
-        REQUIRE(model.genetic().size() == 1);
+        REQUIRE(model.random().size() == 1);
     }
 
-    SECTION("Verify genetic effect name is 'Dominance'")
+    SECTION("Verify random component name is GRM prefix")
     {
-        REQUIRE(model.genetic()[0].type == gelex::GeneticMode::D);
+        REQUIRE(model.random()[0].term_name == grm_fixture.prefix().string());
     }
 
     SECTION("Verify GRM matrix dimensions")
     {
-        REQUIRE(model.genetic()[0].K.rows() == num_samples);
-        REQUIRE(model.genetic()[0].K.cols() == num_samples);
+        REQUIRE(model.random()[0].K.rows() == num_samples);
+        REQUIRE(model.random()[0].K.cols() == num_samples);
     }
 }
 
@@ -424,23 +417,25 @@ TEST_CASE(
         bed_prefix,
         {add_grm_fixture.prefix(), dom_grm_fixture.prefix()});
 
-    SECTION("Verify two genetic effects")
+    SECTION("Verify two random components")
     {
-        REQUIRE(model.genetic().size() == 2);
+        REQUIRE(model.random().size() == 2);
     }
 
-    SECTION("Verify genetic effect names")
+    SECTION("Verify random component names")
     {
-        REQUIRE(model.genetic()[0].type == gelex::GeneticMode::A);
-        REQUIRE(model.genetic()[1].type == gelex::GeneticMode::D);
+        REQUIRE(
+            model.random()[0].term_name == add_grm_fixture.prefix().string());
+        REQUIRE(
+            model.random()[1].term_name == dom_grm_fixture.prefix().string());
     }
 
     SECTION("Verify both GRM matrices have correct dimensions")
     {
-        REQUIRE(model.genetic()[0].K.rows() == num_samples);
-        REQUIRE(model.genetic()[0].K.cols() == num_samples);
-        REQUIRE(model.genetic()[1].K.rows() == num_samples);
-        REQUIRE(model.genetic()[1].K.cols() == num_samples);
+        REQUIRE(model.random()[0].K.rows() == num_samples);
+        REQUIRE(model.random()[0].K.cols() == num_samples);
+        REQUIRE(model.random()[1].K.rows() == num_samples);
+        REQUIRE(model.random()[1].K.cols() == num_samples);
     }
 }
 
@@ -502,8 +497,8 @@ TEST_CASE(
 
     SECTION("Verify GRM matrix is filtered")
     {
-        REQUIRE(model.genetic()[0].K.rows() == grm_samples);
-        REQUIRE(model.genetic()[0].K.cols() == grm_samples);
+        REQUIRE(model.random()[0].K.rows() == grm_samples);
+        REQUIRE(model.random()[0].K.cols() == grm_samples);
     }
 
     SECTION("Verify fixed effects matrix is filtered")
@@ -674,7 +669,7 @@ TEST_CASE(
 
     SECTION("Verify GRM values match original (accounting for float precision)")
     {
-        const auto& K = model.genetic()[0].K;
+        const auto& K = model.random()[0].K;
         for (Eigen::Index i = 0; i < num_samples; ++i)
         {
             for (Eigen::Index j = 0; j < num_samples; ++j)

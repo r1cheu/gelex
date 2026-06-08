@@ -24,8 +24,7 @@ namespace gelex::cli
 
 auto GrmPipeReporter::on_event(const GrmLoadedEvent& event) const -> void
 {
-    cli::printer().line(
-        "   GRM        : {} samples ({})", event.num_samples, event.type);
+    cli::printer().line("   GRM        : {} samples", event.num_samples);
 }
 
 }  // namespace gelex::cli

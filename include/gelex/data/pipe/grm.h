@@ -23,7 +23,6 @@
 #include "gelex/data/dataframe/index.h"
 #include "gelex/freq/design.h"
 #include "gelex/infra/logging/grm_pipe_event.h"
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
@@ -45,7 +44,7 @@ class GrmPipe
 
     auto load(const dataframe::Index<std::string>& sample_index) -> void;
 
-    auto take_grms() && -> std::vector<freq::GeneticDesign>
+    auto take_random_designs() && -> std::vector<freq::RandomDesign>
     {
         return std::move(grms_);
     }
@@ -58,8 +57,7 @@ class GrmPipe
    private:
     std::vector<std::filesystem::path> grm_paths_;
     std::vector<dataframe::Index<std::string>> sample_indices_;
-    std::vector<GeneticMode> grm_types_;
-    std::vector<freq::GeneticDesign> grms_;
+    std::vector<freq::RandomDesign> grms_;
     GrmPipeObserver observer_;
 };
 

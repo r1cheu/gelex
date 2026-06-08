@@ -39,10 +39,10 @@ auto compute_bic(const FreqModel& model, double loglike) -> double;
 auto compute_variance_se(FreqState& state, const OptimizerState& opt_state)
     -> void;
 
-// Compute heritability and its standard error using delta method
-// h² = σ_g / Σσ
-// se(h²) = sqrt(g' * (-H⁻¹) * g)
-auto compute_heritability(FreqState& state, const OptimizerState& opt_state)
+// Compute variance ratio and its standard error using delta method
+// ratio = σ_r / Σσ
+// se(ratio) = sqrt(g' * (-H⁻¹) * g)
+auto compute_variance_ratio(FreqState& state, const OptimizerState& opt_state)
     -> void;
 
 }  // namespace gelex::reml

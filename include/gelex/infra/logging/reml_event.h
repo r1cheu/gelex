@@ -23,8 +23,6 @@
 #include <variant>
 #include <vector>
 
-#include "gelex/types/genetic_effect_type.h"
-
 namespace gelex
 {
 
@@ -33,25 +31,25 @@ class FreqState;
 
 struct VarianceComponent
 {
-    GeneticMode type{GeneticMode::A};
+    std::string name;
     double variance{};
-    double heritability{};
+    double variance_ratio{};
 };
 
 struct LocoRemlResult
 {
     std::string chr_name;
     double loglike{};
-    std::vector<VarianceComponent> genetic;
+    std::vector<VarianceComponent> random;
     double residual_variance{};
     bool converged{true};
 
-    auto total_h2() const -> double
+    auto total_ratio() const -> double
     {
         double sum = 0.0;
-        for (const auto& g : genetic)
+        for (const auto& r : random)
         {
-            sum += g.heritability;
+            sum += r.variance_ratio;
         }
         return sum;
     }

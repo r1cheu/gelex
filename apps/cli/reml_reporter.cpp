@@ -16,13 +16,14 @@
 
 #include "reml_reporter.h"
 
+#include <cstddef>
+#include <string>
+#include <vector>
+
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <Eigen/Core>
-#include <cstddef>
-#include <string>
-#include <vector>
 
 #include "cli/report_printer.h"
 #include "gelex/algo/reml/statistics.h"
@@ -38,7 +39,7 @@ auto RemlReporter::on_event(const RemlEmInitEvent& e) -> void
     header_printed_ = false;
     cli::printer().line("   Initializing (EM)...");
     cli::printer().line(
-        "    LogL: {:.2f} | Init Vg: [{}]",
+        "    LogL: {:.2f} | Init variance: [{}]",
         e.loglike,
         rebecca_purple(
             fmt::format("{:.2f}", fmt::join(e.init_variances, ", "))));
@@ -110,40 +111,26 @@ auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
             state.fixed().se(i));
     }
 
-    // variance components
-    p.block("  Variance Components & Heritability:");
+    p.block("  Variance Components:");
     p.line(
         "  {:12} {:>12} {:>12} {:>15} {:>12}",
         "Component",
         "Estimate",
         "SE",
-        "Ratio (h²)",
+        "Ratio",
         "SE");
     p.line(table_separator(69));
-
-    double total_h2 = 0.0;
-    for (const auto& g : state.genetic())
-    {
-        p.line(
-            "  {:12} {:>12.3f} {:>12.3f} {:>15.3f} {:>12.3f}",
-            g.type,
-            g.variance,
-            g.variance_se,
-            g.heritability,
-            g.heritability_se);
-        total_h2 += g.heritability;
-    }
 
     for (size_t i = 0; i < state.random().size(); ++i)
     {
         const auto& r = state.random()[i];
         p.line(
-            "  {:12} {:>12.3f} {:>12.3f} {:>15} {:>12}",
+            "  {:12} {:>12.3f} {:>12.3f} {:>15.3f} {:>12.3f}",
             model.random()[i].term_name,
             r.variance,
             r.variance_se,
-            "-",
-            "-");
+            r.variance_ratio,
+            r.variance_ratio_se);
     }
 
     p.line(
@@ -153,23 +140,6 @@ auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
         state.residual().variance_se,
         "-",
         "-");
-
-    if (state.genetic().size() > 1)
-    {
-        double total_vg = 0.0;
-        for (const auto& g : state.genetic())
-        {
-            total_vg += g.variance;
-        }
-        p.line(table_separator(69));
-        p.line(
-            "  {:12} {:>12.3f} {:>12} {:>15.3f} {:>12}",
-            "Total Vg",
-            total_vg,
-            "-",
-            total_h2,
-            "-");
-    }
 
     p.line(separator(70));
 }
@@ -183,7 +153,7 @@ void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
 
     auto& p = cli::printer();
 
-    size_t num_grm = results[0].genetic.size();
+    size_t num_random = results[0].random.size();
     auto format_variances = [](const auto& values) -> std::string
     {
         std::string row;
@@ -195,9 +165,9 @@ void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
     };
 
     std::string header = fmt::format("  {:>5}  {:>10}", "Chr", "LogL");
-    for (const auto& g : results[0].genetic)
+    for (const auto& r : results[0].random)
     {
-        header += fmt::format("  {:>10}", fmt::format("V({})", g.type));
+        header += fmt::format("  {:>10}", fmt::format("V({})", r.name));
     }
     header += fmt::format("  {:>10}  {:>4}", "V(e)", "Conv");
 
@@ -205,8 +175,8 @@ void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
     p.line("{}", header);
     p.line("{}", table_separator());
 
-    std::vector<double> sum_vg(num_grm, 0.0);
-    std::vector<double> sum_h2(num_grm, 0.0);
+    std::vector<double> sum_random_variance(num_random, 0.0);
+    std::vector<double> sum_random_ratio(num_random, 0.0);
     double sum_ve = 0.0;
 
     for (const auto& r : results)
@@ -215,13 +185,13 @@ void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
             = r.converged ? fmt::format(fmt::fg(fmt::color::light_green), "✓")
                           : fmt::format(fmt::fg(fmt::color::orange_red), "✗");
 
-        std::vector<double> variances(num_grm);
-        for (size_t i = 0; i < num_grm; ++i)
+        std::vector<double> variances(num_random);
+        for (size_t i = 0; i < num_random; ++i)
         {
-            variances[i] = (i < r.genetic.size()) ? r.genetic[i].variance : 0.0;
-            sum_vg[i] += variances[i];
-            sum_h2[i]
-                += (i < r.genetic.size()) ? r.genetic[i].heritability : 0.0;
+            variances[i] = (i < r.random.size()) ? r.random[i].variance : 0.0;
+            sum_random_variance[i] += variances[i];
+            sum_random_ratio[i]
+                += (i < r.random.size()) ? r.random[i].variance_ratio : 0.0;
         }
 
         p.line(
@@ -238,21 +208,22 @@ void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
     p.line("{}", table_separator());
 
     auto n = static_cast<double>(results.size());
-    std::vector<double> mean_vg(num_grm);
-    std::vector<double> mean_h2(num_grm);
-    for (size_t i = 0; i < num_grm; ++i)
+    std::vector<double> mean_random_variance(num_random);
+    std::vector<double> mean_random_ratio(num_random);
+    for (size_t i = 0; i < num_random; ++i)
     {
-        mean_vg[i] = sum_vg[i] / n;
-        mean_h2[i] = sum_h2[i] / n;
+        mean_random_variance[i] = sum_random_variance[i] / n;
+        mean_random_ratio[i] = sum_random_ratio[i] / n;
     }
 
     p.line(
         "  {:>5}  {:>10}{}  {:>10.4f}",
         "Mean",
         "",
-        format_variances(mean_vg),
+        format_variances(mean_random_variance),
         sum_ve / n);
-    p.line("  {:>5}  {:>10}{}", "h²", "", format_variances(mean_h2));
+    p.line(
+        "  {:>5}  {:>10}{}", "Ratio", "", format_variances(mean_random_ratio));
     p.line(separator());
 }
 

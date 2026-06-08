@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <filesystem>
+#include <optional>
 #include <ranges>
 #include <string>
 #include <utility>
@@ -38,25 +39,15 @@ GrmPipe::GrmPipe(
     : grm_paths_(std::move(grm_paths)), observer_(std::move(observer))
 {
     sample_indices_.reserve(grm_paths_.size());
-    grm_types_.reserve(grm_paths_.size());
     for (const auto& grm_path : grm_paths_)
     {
         sample_indices_.push_back(read_grm_ids(grm_path.string()));
-
-        auto type = GeneticMode::A;
-        const auto path = grm_path.string();
-        if (!path.contains("add") && path.contains("dom"))
-        {
-            type = GeneticMode::D;
-        }
-        grm_types_.push_back(type);
 
         notify(
             observer_,
             GrmLoadedEvent{
                 .num_samples
-                = static_cast<size_t>(sample_indices_.back().size()),
-                .type = grm_types_.back()});
+                = static_cast<size_t>(sample_indices_.back().size())});
     }
 }
 
@@ -77,11 +68,13 @@ auto GrmPipe::load(const dataframe::Index<std::string>& sample_index) -> void
 {
     grms_.clear();
     grms_.reserve(grm_paths_.size());
-    for (auto&& [i, grm_path] : std::views::enumerate(grm_paths_))
+    for (const auto& grm_path : grm_paths_)
     {
         grms_.push_back(
-            freq::GeneticDesign(
-                grm_types_[static_cast<size_t>(i)],
+            freq::RandomDesign(
+                grm_path.string(),
+                std::nullopt,
+                std::nullopt,
                 read_grm(grm_path.string(), &sample_index)));
     }
 }

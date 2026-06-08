@@ -33,9 +33,8 @@ OptimizerState::OptimizerState(const FreqModel& model)
     XtViX_inv.resize(n_fixed, n_fixed);
 
     // preallocate for AI policy
-    // n_comp = 1 (residual) + n_random + n_genetic
-    auto n_comp = static_cast<Eigen::Index>(
-        1 + model.random().size() + model.genetic().size());
+    // n_comp = 1 (residual) + n_random
+    auto n_comp = static_cast<Eigen::Index>(1 + model.random().size());
     dvpy.resize(num_individuals_, n_comp);
     first_grad.resize(n_comp);
 }

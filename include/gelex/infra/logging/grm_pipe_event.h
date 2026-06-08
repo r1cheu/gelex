@@ -21,15 +21,12 @@
 #include <functional>
 #include <variant>
 
-#include "gelex/types/genetic_effect_type.h"
-
 namespace gelex
 {
 
 struct GrmLoadedEvent
 {
     size_t num_samples;
-    GeneticMode type;
 };
 
 using GrmPipeEvent = std::variant<GrmLoadedEvent>;

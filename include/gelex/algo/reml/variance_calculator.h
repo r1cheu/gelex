@@ -25,8 +25,7 @@
 namespace gelex::reml
 {
 
-// Compute V = sum(Z_i * K_i * Z_i' * sigma_i) + I * sigma_e
-// For genetic effects without Z, V += K * sigma
+// Compute V = sum(K_i * sigma_i) + I * sigma_e
 auto compute_v(
     const gelex::FreqModel& model,
     const gelex::FreqState& state,

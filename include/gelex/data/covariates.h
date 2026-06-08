@@ -17,6 +17,7 @@
 #ifndef GELEX_DATA_COVARIATES_H_
 #define GELEX_DATA_COVARIATES_H_
 
+#include <span>
 #include <string>
 #include <vector>
 
@@ -38,7 +39,7 @@ namespace gelex
     const dataframe::DataFrame<std::string>& frame)
     -> std::vector<freq::RandomDesign>;
 
-[[nodiscard]] auto make_genetic_designs(
+[[nodiscard]] auto make_grm_designs(
     std::span<const std::string> prefixes,
     const dataframe::Index<std::string>&) -> std::vector<freq::RandomDesign>;
 

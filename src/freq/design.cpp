@@ -68,11 +68,6 @@ auto RandomState::visit(infra::FieldVisitor& visitor) -> void
     visitor.on("var_ratio_se", variance_ratio_se, FieldFlag::report);
 }
 
-GeneticState::GeneticState(const GeneticDesign& design)
-    : type(design.type), ebv(Eigen::VectorXd::Zero(design.K.rows()))
-{
-}
-
 auto ResidualState::visit(infra::FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);

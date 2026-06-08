@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-#include <Eigen/Core>
 #include <utility>
 #include <vector>
+
+#include <Eigen/Core>
 
 #include "gelex/freq/design.h"
 #include "gelex/freq/model.h"
@@ -29,13 +30,11 @@ namespace gelex
 FreqModel::FreqModel(
     Eigen::VectorXd phenotype,
     FixedDesign fixed_design,
-    std::vector<freq::RandomDesign> random,
-    std::vector<freq::GeneticDesign> genetics)
+    std::vector<freq::RandomDesign> random)
     : phenotype_(std::move(phenotype)),
       phenotype_variance_(stats::detail::vecvar(phenotype_)),
       fixed_(std::move(fixed_design)),
-      random_(std::move(random)),
-      genetic_(std::move(genetics))
+      random_(std::move(random))
 {
     num_individuals_ = phenotype_.size();
 }
@@ -47,59 +46,38 @@ FreqState::FreqState(const FreqModel& model)
     {
         random_.emplace_back(r);
     }
-    for (const auto& g : model.genetic())
-    {
-        genetic_.emplace_back(g);
-    }
     init_variance_components(model);
 }
 
-auto FreqState::compute_heritability() -> void
+auto FreqState::compute_variance_ratio() -> void
 {
-    double total_genetic_variance = 0.0;
-    for (const auto& g : genetic_)
-    {
-        total_genetic_variance += g.variance;
-    }
-
     double total_random_variance = 0.0;
     for (const auto& r : random_)
     {
         total_random_variance += r.variance;
     }
 
-    Vp_ = total_genetic_variance + total_random_variance + residual_.variance;
+    Vp_ = total_random_variance + residual_.variance;
 
     if (Vp_ > 0.0)
     {
-        for (auto& g : genetic_)
+        for (auto& r : random_)
         {
-            g.heritability = g.variance / Vp_;
+            r.variance_ratio = r.variance / Vp_;
         }
     }
 }
 
 auto FreqState::init_variance_components(const FreqModel& model) -> void
 {
-    const double heritability = 0.5;
-    const double random_proportion = 0.2;  // exclude genetic random effects
-    const double init_residual_variance = Vp_ * (1.0 - heritability);
-
-    double init_genetic_variance = Vp_ * heritability;
+    const double random_proportion = model.random().empty() ? 0.0 : 0.5;
+    const double init_residual_variance = Vp_ * (1.0 - random_proportion);
     double init_random_variance = Vp_ * random_proportion;
-
-    const auto num_genetic = static_cast<double>(model.genetic().size());
     const auto num_random = static_cast<double>(model.random().size());
 
-    init_genetic_variance
-        = num_genetic < 1 ? 0.0 : init_genetic_variance / num_genetic;
     init_random_variance
         = num_random < 1 ? 0.0 : init_random_variance / num_random;
 
-    for (auto& g : genetic_)
-    {
-        g.variance = init_genetic_variance;
-    }
     for (auto& r : random_)
     {
         r.variance = init_random_variance;

@@ -68,11 +68,6 @@ auto Estimator::fit(
 
         std::vector<std::string> labels;
         std::vector<double> variances;
-        for (const auto& g : state.genetic())
-        {
-            labels.push_back(fmt::format("V({})", g.type));
-            variances.push_back(g.variance);
-        }
         for (size_t i = 0; i < state.random().size(); ++i)
         {
             const auto& r = state.random()[i];
@@ -107,7 +102,7 @@ auto Estimator::fit(
     compute_fixed_effects(model, state, opt_state);
     compute_random_effects(model, state, opt_state);
     compute_variance_se(state, opt_state);
-    compute_heritability(state, opt_state);
+    compute_variance_ratio(state, opt_state);
 
     notify(
         observer_,
@@ -140,10 +135,6 @@ auto Estimator::em_step(
     double loglike = compute_loglike(model, opt_state);
 
     std::vector<double> init_variances;
-    for (const auto& g : state.genetic())
-    {
-        init_variances.push_back(g.variance);
-    }
     for (const auto& r : state.random())
     {
         init_variances.push_back(r.variance);

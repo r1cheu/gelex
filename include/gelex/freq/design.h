@@ -27,7 +27,6 @@
 #include <fmt/base.h>
 
 #include "gelex/types/fixed_designs.h"
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::infra
 {
@@ -36,12 +35,6 @@ class FieldVisitor;
 
 namespace gelex::freq
 {
-
-struct GeneticDesign
-{
-    GeneticMode type;
-    Eigen::MatrixXd K;
-};
 
 struct RandomDesign
 {
@@ -77,17 +70,6 @@ struct FixedState
     Eigen::VectorXd se;
 
     auto visit(infra::FieldVisitor& visitor) -> void;
-};
-
-struct GeneticState
-{
-    explicit GeneticState(const GeneticDesign& design);
-    GeneticMode type;
-    Eigen::VectorXd ebv;
-    double variance{};
-    double variance_se{};
-    double heritability{};
-    double heritability_se{};
 };
 
 struct ResidualState

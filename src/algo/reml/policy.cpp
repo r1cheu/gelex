@@ -57,7 +57,6 @@ auto EMPolicy::apply(
         }
     };
     compute_sigma(model.random());
-    compute_sigma(model.genetic());
     return sigma;
 }
 
@@ -83,7 +82,6 @@ auto AIPolicy::apply(
         }
     };
     compute_dvpy(model.random());
-    compute_dvpy(model.genetic());
 
     // 2. Compute first gradient
     // grad(i) = -0.5 * (tr(P * dV/dsigma_i) - Py' * dV/dsigma_i * Py)
@@ -105,7 +103,6 @@ auto AIPolicy::apply(
         }
     };
     compute_first_grad(model.random());
-    compute_first_grad(model.genetic());
 
     // 3. Compute AI Hessian: H(i,j) = -0.5 * dvpy(:,i)' * P * dvpy(:,j)
     // P * dvpy = V^{-1} * dvpy - ViX * inv_XtViX * (ViX' * dvpy)

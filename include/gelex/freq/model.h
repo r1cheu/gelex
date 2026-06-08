@@ -34,8 +34,7 @@ class FreqModel
     FreqModel(
         Eigen::VectorXd phenotype,
         FixedDesign fixed,
-        std::vector<freq::RandomDesign> random,
-        std::vector<freq::GeneticDesign> genetic);
+        std::vector<freq::RandomDesign> random);
 
     auto fixed() const -> const FixedDesign& { return fixed_; }
     auto fixed() -> FixedDesign& { return fixed_; }
@@ -45,12 +44,6 @@ class FreqModel
         return random_;
     }
     auto random() -> std::vector<freq::RandomDesign>& { return random_; }
-
-    auto genetic() const -> const std::vector<freq::GeneticDesign>&
-    {
-        return genetic_;
-    }
-    auto genetic() -> std::vector<freq::GeneticDesign>& { return genetic_; }
 
     auto phenotype() const -> const Eigen::VectorXd& { return phenotype_; }
     auto phenotype_variance() const -> double { return phenotype_variance_; }
@@ -64,7 +57,6 @@ class FreqModel
 
     FixedDesign fixed_;
     std::vector<freq::RandomDesign> random_;
-    std::vector<freq::GeneticDesign> genetic_;
 };
 
 class FreqState
@@ -78,21 +70,17 @@ class FreqState
     std::vector<freq::RandomState>& random() { return random_; }
     const std::vector<freq::RandomState>& random() const { return random_; }
 
-    std::vector<freq::GeneticState>& genetic() { return genetic_; }
-    const std::vector<freq::GeneticState>& genetic() const { return genetic_; }
-
     freq::ResidualState& residual() { return residual_; }
     const freq::ResidualState& residual() const { return residual_; }
 
     auto Vp() const -> double { return Vp_; }
 
-    void compute_heritability();
+    void compute_variance_ratio();
 
    private:
     double Vp_;  // variance of adjusted phenotype
     freq::FixedState fixed_;
     std::vector<freq::RandomState> random_;
-    std::vector<freq::GeneticState> genetic_;
     freq::ResidualState residual_;
 
     void init_variance_components(const FreqModel& model);

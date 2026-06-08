@@ -120,19 +120,17 @@ auto reml_execute(argparse::ArgumentParser& cmd) -> int
 
     auto random_designs = rand ? gelex::make_random_designs(*rand)
                                : std::vector<gelex::freq::RandomDesign>{};
-    auto genetic_designs
-        = gelex::make_genetic_designs(grm_prefixes, common_index);
+    auto grm_designs = gelex::make_grm_designs(grm_prefixes, common_index);
 
     random_designs.insert(
         random_designs.end(),
-        std::make_move_iterator(genetic_designs.begin()),
-        std::make_move_iterator(genetic_designs.end()));
+        std::make_move_iterator(grm_designs.begin()),
+        std::make_move_iterator(grm_designs.end()));
 
     gelex::FreqModel model(
         phenotype.col(0).to_mat<double>(),
         std::move(*fixed_design),
-        std::move(random_designs),
-        {});
+        std::move(random_designs));
 
     gelex::reml::Estimator estimator(
         cmd.get<int>("--max-iter"),

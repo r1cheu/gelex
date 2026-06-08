@@ -47,7 +47,6 @@ auto compute_v(
         }
     };
     compute_v(model.random(), state.random());
-    compute_v(model.genetic(), state.genetic());
 }
 
 auto v_inv_logdet(Eigen::Ref<Eigen::MatrixXd> v) -> double
