@@ -30,7 +30,7 @@ auto compute_fixed_effects(
 {
     // β = inv_XtViX * ViX' * y = (X'V⁻¹X)⁻¹ * X' * V⁻¹ * y
     // se(β) = sqrt(diag(inv_XtViX))
-    state.fixed().coeff.noalias()
+    state.fixed().coeffs.noalias()
         = opt_state.XtViX_inv * (opt_state.ViX.transpose() * model.phenotype());
     state.fixed().se = opt_state.XtViX_inv.diagonal().array().sqrt();
 }

@@ -96,7 +96,7 @@ auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
     p.block("  Fixed Effects:");
     p.line("  {:12} {:>12} {:>12}", "Effect", "Estimate", "SE");
     p.line(table_separator(40));
-    for (Eigen::Index i = 0; i < state.fixed().coeff.size(); ++i)
+    for (Eigen::Index i = 0; i < state.fixed().coeffs.size(); ++i)
     {
         std::string name = fmt::format("X{}", i);
         if (static_cast<size_t>(i) < model.fixed().names.size())
@@ -106,7 +106,7 @@ auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
         p.line(
             "  {:12} {:>12.3f} {:>12.3f}",
             name,
-            state.fixed().coeff(i),
+            state.fixed().coeffs(i),
             state.fixed().se(i));
     }
 
@@ -134,11 +134,12 @@ auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
         total_h2 += g.heritability;
     }
 
-    for (const auto& r : state.random())
+    for (size_t i = 0; i < state.random().size(); ++i)
     {
+        const auto& r = state.random()[i];
         p.line(
             "  {:12} {:>12.3f} {:>12.3f} {:>15} {:>12}",
-            r.name,
+            model.random()[i].term_name,
             r.variance,
             r.variance_se,
             "-",

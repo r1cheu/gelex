@@ -105,19 +105,23 @@ TEST_CASE(
     auto designs = gelex::make_random_designs(frame);
 
     REQUIRE(designs.size() == 2);
-    REQUIRE(designs[0].name == "sex");
-    REQUIRE(designs[0].levels.size() == 2);
-    REQUIRE(designs[0].levels[0] == std::string{"sex"} + SEPARATOR + "F");
-    REQUIRE(designs[0].levels[1] == std::string{"sex"} + SEPARATOR + "M");
+    REQUIRE(designs[0].term_name == "sex");
+    REQUIRE(designs[0].levels.has_value());
+    const auto& sex_levels = *designs[0].levels;
+    REQUIRE(sex_levels.size() == 2);
+    REQUIRE(sex_levels[0] == std::string{"sex"} + SEPARATOR + "F");
+    REQUIRE(sex_levels[1] == std::string{"sex"} + SEPARATOR + "M");
 
     Eigen::MatrixXd expected_sex{
         {1.0, 0.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 1.0, 1.0}};
     REQUIRE(designs[0].K.isApprox(expected_sex));
 
-    REQUIRE(designs[1].name == "batch");
-    REQUIRE(designs[1].levels.size() == 2);
-    REQUIRE(designs[1].levels[0] == std::string{"batch"} + SEPARATOR + "A");
-    REQUIRE(designs[1].levels[1] == std::string{"batch"} + SEPARATOR + "B");
+    REQUIRE(designs[1].term_name == "batch");
+    REQUIRE(designs[1].levels.has_value());
+    const auto& batch_levels = *designs[1].levels;
+    REQUIRE(batch_levels.size() == 2);
+    REQUIRE(batch_levels[0] == std::string{"batch"} + SEPARATOR + "A");
+    REQUIRE(batch_levels[1] == std::string{"batch"} + SEPARATOR + "B");
 
     Eigen::MatrixXd expected_batch{
         {1.0, 0.0, 1.0}, {0.0, 1.0, 0.0}, {1.0, 0.0, 1.0}};

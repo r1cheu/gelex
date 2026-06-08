@@ -17,7 +17,9 @@
 #ifndef GELEX_FREQ_DESIGN_H_
 #define GELEX_FREQ_DESIGN_H_
 
+#include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <Eigen/Core>
@@ -27,15 +29,13 @@
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 
+namespace gelex::infra
+{
+class FieldVisitor;
+}
+
 namespace gelex::freq
 {
-
-struct RandomDesign
-{
-    std::string name;
-    std::vector<std::string> levels;
-    Eigen::MatrixXd K;
-};
 
 struct GeneticDesign
 {
@@ -43,20 +43,40 @@ struct GeneticDesign
     Eigen::MatrixXd K;
 };
 
-struct FixedState
+struct RandomDesign
 {
-    explicit FixedState(const gelex::FixedDesign& design);
-    Eigen::VectorXd coeff;
-    Eigen::VectorXd se;
+    static constexpr std::string_view name{"random"};
+    std::string term_name;
+    std::optional<std::vector<std::string>> levels;
+    std::optional<Eigen::MatrixXd> Z;  // skip if identity
+    Eigen::MatrixXd K;                 // Kernels
+
+    auto visit(infra::FieldVisitor& visitor) const -> void;
 };
 
 struct RandomState
 {
+    static constexpr std::string_view name{"random"};
     explicit RandomState(const RandomDesign& design);
-    std::string name;
-    Eigen::VectorXd blup;
+    RandomState() = default;
+    Eigen::VectorXd blup;  // sample-level random predictions
     double variance{};
     double variance_se{};
+    double variance_ratio{};
+    double variance_ratio_se{};
+
+    auto visit(infra::FieldVisitor& visitor) -> void;
+};
+
+struct FixedState
+{
+    static constexpr std::string_view name{"fixed"};
+
+    explicit FixedState(const gelex::FixedDesign& design);
+    Eigen::VectorXd coeffs;
+    Eigen::VectorXd se;
+
+    auto visit(infra::FieldVisitor& visitor) -> void;
 };
 
 struct GeneticState
@@ -72,8 +92,11 @@ struct GeneticState
 
 struct ResidualState
 {
+    static constexpr std::string_view name{"residual"};
     double variance{};
     double variance_se{};
+
+    auto visit(infra::FieldVisitor& visitor) -> void;
 };
 
 }  // namespace gelex::freq

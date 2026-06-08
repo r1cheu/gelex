@@ -17,6 +17,7 @@
 #include "gelex/data/covariates.h"
 
 #include <cstddef>
+#include <optional>
 #include <span>
 #include <string>
 #include <utility>
@@ -89,11 +90,12 @@ auto make_random_designs(const dataframe::DataFrame<std::string>& frame)
     for (std::size_t i = 0; i < frame.cols(); ++i)
     {
         const auto& col = frame.col(i);
-        const auto result = dataframe::one_hot_encode(col);
+        auto result = dataframe::one_hot_encode(col);
 
         random_designs.emplace_back(
             result.name,
-            result.level_names,
+            std::move(result.level_names),
+            std::nullopt,
             result.data * result.data.transpose());
     }
     return random_designs;

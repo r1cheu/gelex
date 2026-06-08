@@ -16,28 +16,68 @@
 
 #include "gelex/freq/design.h"
 
+#include <span>
+#include <string_view>
+
 #include <Eigen/Core>
+
+#include "gelex/infra/field_flag.h"
+#include "gelex/infra/field_visitor.h"
 #include "gelex/types/fixed_designs.h"
 
 namespace gelex::freq
 {
 
 FixedState::FixedState(const gelex::FixedDesign& design)
-    : coeff(Eigen::VectorXd::Zero(design.X.cols())),
+    : coeffs(Eigen::VectorXd::Zero(design.X.cols())),
       se(Eigen::VectorXd::Zero(design.X.cols()))
 {
 }
 
-RandomState::RandomState(const RandomDesign& design)
-    : name(design.name),
-      blup(
-          Eigen::VectorXd::Zero(
-              static_cast<Eigen::Index>(design.levels.size())))
+auto FixedState::visit(infra::FieldVisitor& visitor) -> void
 {
+    auto scope = visitor.scope(name);
+    visitor.on("coeffs", coeffs, FieldFlag::report);
+    visitor.on("se", se, FieldFlag::report);
+}
+
+RandomState::RandomState(const RandomDesign& design)
+    : blup(Eigen::VectorXd::Zero(design.K.rows()))
+{
+}
+
+auto RandomDesign::visit(infra::FieldVisitor& visitor) const -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on("name", term_name, FieldFlag::report);
+    if (levels)
+    {
+        visitor.on(
+            "levels",
+            std::span<const std::string>{levels->data(), levels->size()},
+            FieldFlag::report);
+    }
+}
+
+auto RandomState::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on("var", variance, FieldFlag::report);
+    visitor.on("var_se", variance_se, FieldFlag::report);
+    visitor.on("var_ratio", variance_ratio, FieldFlag::report);
+    visitor.on("var_ratio_se", variance_ratio_se, FieldFlag::report);
 }
 
 GeneticState::GeneticState(const GeneticDesign& design)
     : type(design.type), ebv(Eigen::VectorXd::Zero(design.K.rows()))
 {
 }
+
+auto ResidualState::visit(infra::FieldVisitor& visitor) -> void
+{
+    auto scope = visitor.scope(name);
+    visitor.on("var", variance, FieldFlag::report);
+    visitor.on("var_se", variance_se, FieldFlag::report);
+}
+
 }  // namespace gelex::freq

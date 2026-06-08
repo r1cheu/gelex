@@ -73,9 +73,10 @@ auto Estimator::fit(
             labels.push_back(fmt::format("V({})", g.type));
             variances.push_back(g.variance);
         }
-        for (const auto& r : state.random())
+        for (size_t i = 0; i < state.random().size(); ++i)
         {
-            labels.push_back(fmt::format("V({})", r.name));
+            const auto& r = state.random()[i];
+            labels.push_back(fmt::format("V({})", model.random()[i].term_name));
             variances.push_back(r.variance);
         }
         labels.emplace_back("V(e)");
