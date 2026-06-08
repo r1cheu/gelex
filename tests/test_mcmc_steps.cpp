@@ -27,6 +27,7 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
+#include "file_fixture.h"
 #include "gelex/algo/mcmc/chain.h"
 #include "gelex/algo/mcmc/solver.h"
 #include "gelex/algo/mcmc/steps/joint_genetic_step.h"
@@ -47,7 +48,6 @@
 #include "gelex/io/binary_reader.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "file_fixture.h"
 #include "genotype_fixture.h"
 
 namespace
@@ -378,8 +378,8 @@ TEST_CASE("Joint half normal mixture step updates fused state", "[mcmc]")
     gelex::bayes::JointGeneticPrior prior{
         gelex::bayes::JointHalfNormalMixturePrior{
             gelex::bayes::JointSharedMarkerVariance{std::array{
-            gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
-            gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
+                gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+                gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
             gelex::bayes::MixtureProportion{gelex::bayes::SimplexParameter{
                 std::move(initial),
                 gelex::bayes::DirichletPrior{std::move(alpha)}}},
@@ -442,7 +442,9 @@ TEST_CASE("Joint half normal mixture step updates fused state", "[mcmc]")
     REQUIRE(has_dominance_active);
 }
 
-TEST_CASE("Chain::make maps single genetic priors to MCMC steps", "[mcmc][chain]")
+TEST_CASE(
+    "Chain::make maps single genetic priors to MCMC steps",
+    "[mcmc][chain]")
 {
     SECTION("shared Gaussian")
     {
@@ -450,7 +452,7 @@ TEST_CASE("Chain::make maps single genetic priors to MCMC steps", "[mcmc][chain]
         genetics.push_back(make_design());
         gelex::BayesModel model{
             Eigen::VectorXd{{1.0, -0.5, 0.25}},
-            gelex::FixedDesign::build(3),
+            gelex::FixedDesign::make(3),
             {},
             std::move(genetics)};
         std::vector<gelex::bayes::GeneticPrior> priors;
@@ -481,7 +483,7 @@ TEST_CASE("Chain::make maps single genetic priors to MCMC steps", "[mcmc][chain]
         genetics.push_back(make_design());
         gelex::BayesModel model{
             Eigen::VectorXd{{1.0, -0.5, 0.25}},
-            gelex::FixedDesign::build(3),
+            gelex::FixedDesign::make(3),
             {},
             std::move(genetics)};
         std::vector<gelex::bayes::GeneticPrior> priors;
@@ -512,7 +514,7 @@ TEST_CASE("Chain::make maps single genetic priors to MCMC steps", "[mcmc][chain]
         genetics.push_back(make_design());
         gelex::BayesModel model{
             Eigen::VectorXd{{1.0, -0.5, 0.25}},
-            gelex::FixedDesign::build(3),
+            gelex::FixedDesign::make(3),
             {},
             std::move(genetics)};
         std::vector<gelex::bayes::GeneticPrior> priors;
@@ -544,7 +546,7 @@ TEST_CASE("Chain::make maps single genetic priors to MCMC steps", "[mcmc][chain]
         genetics.push_back(make_design());
         gelex::BayesModel model{
             Eigen::VectorXd{{1.0, -0.5, 0.25}},
-            gelex::FixedDesign::build(3),
+            gelex::FixedDesign::make(3),
             {},
             std::move(genetics)};
         std::vector<gelex::bayes::GeneticPrior> priors;
@@ -576,7 +578,7 @@ TEST_CASE("Chain::make maps single genetic priors to MCMC steps", "[mcmc][chain]
         genetics.push_back(make_design());
         gelex::BayesModel model{
             Eigen::VectorXd{{1.0, -0.5, 0.25}},
-            gelex::FixedDesign::build(3),
+            gelex::FixedDesign::make(3),
             {},
             std::move(genetics)};
         std::vector<gelex::bayes::GeneticPrior> priors;
@@ -604,24 +606,25 @@ TEST_CASE("Chain::make maps single genetic priors to MCMC steps", "[mcmc][chain]
     }
 }
 
-TEST_CASE("Chain::make maps joint genetic priors to MCMC steps", "[mcmc][chain]")
+TEST_CASE(
+    "Chain::make maps joint genetic priors to MCMC steps",
+    "[mcmc][chain]")
 {
     std::vector<gelex::bayes::GeneticDesign> genetics;
     genetics.push_back(make_design(gelex::GeneticMode::A));
     genetics.push_back(make_design(gelex::GeneticMode::D));
     gelex::BayesModel model{
         Eigen::VectorXd{{1.0, -0.5, 0.25}},
-        gelex::FixedDesign::build(3),
+        gelex::FixedDesign::make(3),
         {},
         std::move(genetics)};
     std::vector<gelex::bayes::GeneticPrior> priors;
     priors.emplace_back(
-        gelex::bayes::JointGeneticPrior{
-            gelex::bayes::JointGaussianMixturePrior{
-                gelex::bayes::JointSharedMarkerVariance{std::array{
-                    gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
-                    gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
-                make_proportion(4)}});
+        gelex::bayes::JointGeneticPrior{gelex::bayes::JointGaussianMixturePrior{
+            gelex::bayes::JointSharedMarkerVariance{std::array{
+                gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+                gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
+            make_proportion(4)}});
     gelex::bayes::BayesPrior prior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(priors),
@@ -632,14 +635,12 @@ TEST_CASE("Chain::make maps joint genetic priors to MCMC steps", "[mcmc][chain]"
     auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
     chain.step();
 
-    const auto& block = std::get<gelex::bayes::JointGeneticBlockState>(
-        state.genetics()[0]);
+    const auto& block
+        = std::get<gelex::bayes::JointGeneticBlockState>(state.genetics()[0]);
     REQUIRE(block.state(gelex::GeneticMode::A).coeffs.allFinite());
     REQUIRE(block.state(gelex::GeneticMode::D).coeffs.allFinite());
-    REQUIRE(
-        std::isfinite(block.state(gelex::GeneticMode::A).heritability));
-    REQUIRE(
-        std::isfinite(block.state(gelex::GeneticMode::D).heritability));
+    REQUIRE(std::isfinite(block.state(gelex::GeneticMode::A).heritability));
+    REQUIRE(std::isfinite(block.state(gelex::GeneticMode::D).heritability));
 }
 
 TEST_CASE("Chain::make maps half normal mixture step", "[mcmc][chain]")
@@ -649,7 +650,7 @@ TEST_CASE("Chain::make maps half normal mixture step", "[mcmc][chain]")
     genetics.push_back(make_design(gelex::GeneticMode::D));
     gelex::BayesModel model{
         Eigen::VectorXd{{1.0, -0.5, 0.25}},
-        gelex::FixedDesign::build(3),
+        gelex::FixedDesign::make(3),
         {},
         std::move(genetics)};
     std::vector<gelex::bayes::GeneticPrior> priors;
@@ -672,14 +673,12 @@ TEST_CASE("Chain::make maps half normal mixture step", "[mcmc][chain]")
     auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
     chain.step();
 
-    const auto& block = std::get<gelex::bayes::JointGeneticBlockState>(
-        state.genetics()[0]);
+    const auto& block
+        = std::get<gelex::bayes::JointGeneticBlockState>(state.genetics()[0]);
     REQUIRE(block.state(gelex::GeneticMode::A).coeffs.allFinite());
     REQUIRE(block.state(gelex::GeneticMode::D).coeffs.allFinite());
-    REQUIRE(
-        std::isfinite(block.state(gelex::GeneticMode::A).heritability));
-    REQUIRE(
-        std::isfinite(block.state(gelex::GeneticMode::D).heritability));
+    REQUIRE(std::isfinite(block.state(gelex::GeneticMode::A).heritability));
+    REQUIRE(std::isfinite(block.state(gelex::GeneticMode::D).heritability));
 }
 
 TEST_CASE("Solver::run collects single genetic samples", "[mcmc][solver]")
@@ -688,7 +687,7 @@ TEST_CASE("Solver::run collects single genetic samples", "[mcmc][solver]")
     genetics.push_back(make_design());
     gelex::BayesModel model{
         Eigen::VectorXd{{1.0, -0.5, 0.25}},
-        gelex::FixedDesign::build(3),
+        gelex::FixedDesign::make(3),
         {},
         std::move(genetics)};
     std::vector<gelex::bayes::GeneticPrior> priors;
@@ -782,17 +781,16 @@ TEST_CASE("Solver::run collects joint genetic samples", "[mcmc][solver]")
     genetics.push_back(make_design(gelex::GeneticMode::D));
     gelex::BayesModel model{
         Eigen::VectorXd{{1.0, -0.5, 0.25}},
-        gelex::FixedDesign::build(3),
+        gelex::FixedDesign::make(3),
         {},
         std::move(genetics)};
     std::vector<gelex::bayes::GeneticPrior> priors;
     priors.emplace_back(
-        gelex::bayes::JointGeneticPrior{
-            gelex::bayes::JointGaussianMixturePrior{
-                gelex::bayes::JointSharedMarkerVariance{std::array{
-                    gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
-                    gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
-                make_proportion(4)}});
+        gelex::bayes::JointGeneticPrior{gelex::bayes::JointGaussianMixturePrior{
+            gelex::bayes::JointSharedMarkerVariance{std::array{
+                gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+                gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
+            make_proportion(4)}});
     gelex::bayes::BayesPrior prior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(priors),
@@ -821,12 +819,12 @@ TEST_CASE("Solver::run collects joint genetic samples", "[mcmc][solver]")
     REQUIRE(additive_pve.mean.allFinite());
     REQUIRE(dominance_pve.mean.allFinite());
 
-    const auto& additive_pip = std::get<gelex::stats::RunningStatsResult>(
-        result.get(
+    const auto& additive_pip
+        = std::get<gelex::stats::RunningStatsResult>(result.get(
             "state/genetic_0/joint/prior_state/"
             "joint_mixture_gaussian/mixture/A/pip"));
-    const auto& dominance_pip = std::get<gelex::stats::RunningStatsResult>(
-        result.get(
+    const auto& dominance_pip
+        = std::get<gelex::stats::RunningStatsResult>(result.get(
             "state/genetic_0/joint/prior_state/"
             "joint_mixture_gaussian/mixture/D/pip"));
     REQUIRE(additive_pip.mean.size() == 2);
@@ -857,7 +855,7 @@ TEST_CASE("Engine::run dispatches MCMC solver", "[mcmc][engine]")
     genetics.push_back(make_design());
     gelex::BayesModel model{
         Eigen::VectorXd{{1.0, -0.5, 0.25}},
-        gelex::FixedDesign::build(3),
+        gelex::FixedDesign::make(3),
         {},
         std::move(genetics)};
     std::vector<gelex::bayes::GeneticPrior> priors;
@@ -978,7 +976,7 @@ TEST_CASE(
     genetics.push_back(make_design());
     gelex::BayesModel model{
         Eigen::VectorXd{{1.0, -0.5, 0.25}},
-        gelex::FixedDesign::build(3),
+        gelex::FixedDesign::make(3),
         {},
         std::move(genetics)};
     gelex::test::FileFixture files;
@@ -1056,9 +1054,9 @@ TEST_CASE(
                   from_checkpoint.to_map<double>(
                       "state/genetic_0/single/A/genetic/variance"),
                   0.0));
-    CHECK(continuous.to_map<double>(
-                        "state/genetic_0/single/A/prior_state/"
-                        "shared_gaussian/variance")
+    CHECK(continuous
+              .to_map<double>("state/genetic_0/single/A/prior_state/"
+                              "shared_gaussian/variance")
               .isApprox(
                   from_checkpoint.to_map<double>(
                       "state/genetic_0/single/A/prior_state/"
@@ -1066,8 +1064,7 @@ TEST_CASE(
                   0.0));
     CHECK(continuous.to_map<double>("state/residual/y_adj")
               .isApprox(
-                  from_checkpoint.to_map<double>("state/residual/y_adj"),
-                  0.0));
+                  from_checkpoint.to_map<double>("state/residual/y_adj"), 0.0));
     CHECK(continuous.to_map<double>("state/residual/variance")
               .isApprox(
                   from_checkpoint.to_map<double>("state/residual/variance"),
@@ -1086,7 +1083,7 @@ TEST_CASE("Engine::run starts from checkpoint", "[mcmc][engine][checkpoint]")
     genetics.push_back(make_design());
     gelex::BayesModel model{
         Eigen::VectorXd{{1.0, -0.5, 0.25}},
-        gelex::FixedDesign::build(3),
+        gelex::FixedDesign::make(3),
         {},
         std::move(genetics)};
     gelex::test::FileFixture files;
@@ -1111,8 +1108,8 @@ TEST_CASE("Engine::run starts from checkpoint", "[mcmc][engine][checkpoint]")
     gelex::mcmc::Engine first_engine{gelex::mcmc::Engine::Config{
         .bfile_prefix = bfile_prefix.string(),
         .seed = 123,
-        .mcmc_params = gelex::mcmc::Params{
-            .n_iters = 2, .n_burn_in = 0, .n_thin = 1, .checkpoint_step = 2},
+        .mcmc_params = gelex::mcmc::
+            Params{.n_iters = 2, .n_burn_in = 0, .n_thin = 1, .checkpoint_step = 2},
         .out_prefix = first_prefix.string(),
     }};
     first_engine.run(model, std::move(first_prior));
@@ -1130,8 +1127,8 @@ TEST_CASE("Engine::run starts from checkpoint", "[mcmc][engine][checkpoint]")
     gelex::mcmc::Engine from_engine{gelex::mcmc::Engine::Config{
         .bfile_prefix = bfile_prefix.string(),
         .seed = 999,
-        .mcmc_params = gelex::mcmc::Params{
-            .n_iters = 2, .n_burn_in = 0, .n_thin = 1, .checkpoint_step = 2},
+        .mcmc_params = gelex::mcmc::
+            Params{.n_iters = 2, .n_burn_in = 0, .n_thin = 1, .checkpoint_step = 2},
         .out_prefix = from_prefix.string(),
         .from_checkpoint_path = first_prefix.string() + ".ckpt",
     }};

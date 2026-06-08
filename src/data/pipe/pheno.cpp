@@ -24,10 +24,8 @@
 #include <utility>
 #include <vector>
 
-#include <Eigen/Core>
-
+#include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/dataframe.h"
-#include "gelex/data/dataframe/encode.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
@@ -39,54 +37,6 @@
 
 namespace gelex
 {
-
-namespace
-{
-
-auto build_discrete_covariate(const dataframe::DataFrame<std::string>& frame)
-    -> DiscreteCovariate
-{
-    std::vector<std::string> names;
-    std::vector<std::vector<std::string>> levels;
-    std::vector<std::string> reference_levels;
-    std::vector<dataframe::EncodedResult<>> encoded_results;
-
-    for (std::size_t i = 0; i < frame.cols(); ++i)
-    {
-        const auto& col = frame.col(i);
-        auto all_levels = dataframe::collect_levels(col);
-        if (all_levels.size() < 2)
-        {
-            continue;
-        }
-        names.emplace_back(col.name());
-        reference_levels.push_back(all_levels.front());
-        levels.push_back(all_levels);
-        encoded_results.push_back(dataframe::dummy_encode(col));
-    }
-
-    Eigen::Index total_cols = 0;
-    for (const auto& r : encoded_results)
-    {
-        total_cols += r.data.cols();
-    }
-
-    Eigen::MatrixXd X(static_cast<Eigen::Index>(frame.rows()), total_cols);
-    Eigen::Index col_offset = 0;
-    for (const auto& r : encoded_results)
-    {
-        X.middleCols(col_offset, r.data.cols()) = r.data;
-        col_offset += r.data.cols();
-    }
-
-    return DiscreteCovariate{
-        .names = std::move(names),
-        .levels = std::move(levels),
-        .reference_levels = std::move(reference_levels),
-        .X = std::move(X)};
-}
-
-}  // namespace
 
 PhenoPipe::PhenoPipe(const Config& config, PhenoObserver observer)
     : config_(config), observer_(std::move(observer))
@@ -177,25 +127,22 @@ auto PhenoPipe::load(const dataframe::Index<std::string>& common_index) -> void
     if (qcovar_frame_)
     {
         qcovar_frame_->gather(common_index);
-        auto names = qcovar_frame_->names();
-        qcov = QuantitativeCovariate{
-            .names = std::ranges::to<std::vector<std::string>>(names),
-            .X = qcovar_frame_->to_mat<double>()};
+        qcov = make_quantitative_covariate(*qcovar_frame_);
     }
 
     if (dcovar_frame_)
     {
         dcovar_frame_->gather(common_index);
-        dcov = build_discrete_covariate(*dcovar_frame_);
+        dcov = make_discrete_covariate(*dcovar_frame_);
     }
 
     if (!dcov && !qcov)
     {
-        fixed_design_ = FixedDesign::build(phenotype_.size());
+        fixed_design_ = FixedDesign::make(phenotype_.size());
     }
     else
     {
-        fixed_design_ = FixedDesign::build(std::move(qcov), std::move(dcov));
+        fixed_design_ = FixedDesign::make(std::move(qcov), std::move(dcov));
     }
 
     apply_phenotype_transform(config_.transform_type, config_.int_offset);
@@ -222,7 +169,7 @@ auto PhenoPipe::apply_phenotype_transform(
     {
         logger->info("   Method: Indirect INT (IINT), offset (k): {}", offset);
         transformer.apply_iint(phenotype_, fixed_design_.X);
-        fixed_design_ = FixedDesign::build(phenotype_.size());
+        fixed_design_ = FixedDesign::make(phenotype_.size());
     }
 }
 

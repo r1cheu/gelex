@@ -29,6 +29,7 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
+#include "file_fixture.h"
 #include "gelex/algo/mcmc/records.h"
 #include "gelex/algo/mcmc/result.h"
 #include "gelex/bayes/design.h"
@@ -42,7 +43,6 @@
 #include "gelex/io/mcmc.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "file_fixture.h"
 #include "genotype_fixture.h"
 
 namespace
@@ -77,7 +77,7 @@ auto make_model() -> gelex::BayesModel
 
     return gelex::BayesModel{
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
-        gelex::FixedDesign::build(3),
+        gelex::FixedDesign::make(3),
         std::move(random),
         std::move(genetics)};
 }
@@ -100,14 +100,12 @@ auto make_prior() -> gelex::bayes::BayesPrior
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
 }
 
-auto make_records(
-    const gelex::BayesModel& model,
-    gelex::BayesState& state)
+auto make_records(const gelex::BayesModel& model, gelex::BayesState& state)
     -> gelex::mcmc::Records
 {
     gelex::mcmc::Records records{2, ""};
-    auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
-        state.genetics()[0]);
+    auto& block
+        = std::get<gelex::bayes::SingleGeneticBlockState>(state.genetics()[0]);
     auto& prior_state
         = std::get<gelex::bayes::SingleScaledMixtureGaussianState>(
             block.prior_state());
@@ -146,7 +144,8 @@ TEST_CASE("Result owns finalized record values", "[mcmc][mcmc_result]")
     REQUIRE_FALSE(result.records().empty());
     REQUIRE(result.records()[0].path == "state/fixed/coeffs");
     REQUIRE(result.records()[0].names);
-    REQUIRE(*result.records()[0].names == std::vector<std::string>{"Intercept"});
+    REQUIRE(
+        *result.records()[0].names == std::vector<std::string>{"Intercept"});
 
     const auto& fixed = std::get<gelex::stats::RunningStatsResult>(
         result.get("state/fixed/coeffs"));
@@ -177,8 +176,7 @@ TEST_CASE("Result owns finalized record values", "[mcmc][mcmc_result]")
         "state/genetic_0/single/A/prior_state/"
         "scaled_mixture_gaussian/mixture/assignment"};
     const Eigen::MatrixXd expected_probabilities{
-        {0.5, 0.0, 0.5, 0.0},
-        {0.0, 0.5, 0.0, 0.5}};
+        {0.5, 0.0, 0.5, 0.0}, {0.0, 0.5, 0.0, 0.5}};
     const auto& assignment = std::get<gelex::stats::CategoryProbResult>(
         result.get(assignment_path));
     const auto& assignment_again = std::get<gelex::stats::CategoryProbResult>(
@@ -186,17 +184,15 @@ TEST_CASE("Result owns finalized record values", "[mcmc][mcmc_result]")
     REQUIRE(assignment.value.isApprox(expected_probabilities));
     REQUIRE(assignment_again.value.isApprox(expected_probabilities));
 
-    const auto& pip = std::get<gelex::stats::RunningStatsResult>(
-        result.get(
-            "state/genetic_0/single/A/prior_state/"
-            "scaled_mixture_gaussian/mixture/pip"));
+    const auto& pip = std::get<gelex::stats::RunningStatsResult>(result.get(
+        "state/genetic_0/single/A/prior_state/"
+        "scaled_mixture_gaussian/mixture/pip"));
     REQUIRE(pip.mean.isApprox(Eigen::VectorXd{{0.5, 1.0}}));
     REQUIRE(pip.stddev.isApprox(Eigen::VectorXd::Zero(2)));
     const auto pip_record = std::ranges::find(
         result.records(),
-        std::string{
-            "state/genetic_0/single/A/prior_state/"
-            "scaled_mixture_gaussian/mixture/pip"},
+        std::string{"state/genetic_0/single/A/prior_state/"
+                    "scaled_mixture_gaussian/mixture/pip"},
         &gelex::mcmc::RecordEntry::path);
     REQUIRE(pip_record != result.records().end());
     REQUIRE_FALSE(pip_record->names);
@@ -229,35 +225,32 @@ TEST_CASE("Result derives joint genetic PIP by effect", "[mcmc][mcmc_result]")
     std::vector<gelex::bayes::GeneticDesign> genetics;
     genetics.emplace_back(
         gelex::GeneticMode::A,
-        make_genotype(
-            Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}}));
+        make_genotype(Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}}));
     genetics.emplace_back(
         gelex::GeneticMode::D,
-        make_genotype(
-            Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}}));
+        make_genotype(Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}}));
     gelex::BayesModel model{
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
-        gelex::FixedDesign::build(3),
+        gelex::FixedDesign::make(3),
         {},
         std::move(genetics)};
 
     std::vector<gelex::bayes::GeneticPrior> priors;
     priors.emplace_back(
-        gelex::bayes::JointGeneticPrior{
-            gelex::bayes::JointGaussianMixturePrior{
-                gelex::bayes::JointSharedMarkerVariance{std::array{
-                    gelex::bayes::SharedMarkerVariance{make_variance(0.2)},
-                    gelex::bayes::SharedMarkerVariance{make_variance(0.3)}}},
-                gelex::bayes::MixtureProportion{
-                    Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}}}}});
+        gelex::bayes::JointGeneticPrior{gelex::bayes::JointGaussianMixturePrior{
+            gelex::bayes::JointSharedMarkerVariance{std::array{
+                gelex::bayes::SharedMarkerVariance{make_variance(0.2)},
+                gelex::bayes::SharedMarkerVariance{make_variance(0.3)}}},
+            gelex::bayes::MixtureProportion{
+                Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}}}}});
     gelex::bayes::BayesPrior prior{
         gelex::bayes::RandomPrior{make_variance(0.4)},
         std::move(priors),
         gelex::bayes::ResidualPrior{make_variance(0.5)}};
 
     gelex::BayesState state(model, prior);
-    auto& block = std::get<gelex::bayes::JointGeneticBlockState>(
-        state.genetics()[0]);
+    auto& block
+        = std::get<gelex::bayes::JointGeneticBlockState>(state.genetics()[0]);
     auto& prior_state = std::get<gelex::bayes::JointGaussianMixtureState>(
         block.prior_state());
     gelex::mcmc::Records records{2, ""};
@@ -276,18 +269,17 @@ TEST_CASE("Result derives joint genetic PIP by effect", "[mcmc][mcmc_result]")
         "state/genetic_0/joint/prior_state/"
         "joint_mixture_gaussian/mixture/assignment"};
     const Eigen::MatrixXd expected_probabilities{
-        {0.5, 0.0, 0.5, 0.0},
-        {0.0, 0.5, 0.0, 0.5}};
+        {0.5, 0.0, 0.5, 0.0}, {0.0, 0.5, 0.0, 0.5}};
     const auto& assignment = std::get<gelex::stats::CategoryProbResult>(
         result.get(assignment_path));
     REQUIRE(assignment.value.isApprox(expected_probabilities));
 
-    const auto& additive_pip = std::get<gelex::stats::RunningStatsResult>(
-        result.get(
+    const auto& additive_pip
+        = std::get<gelex::stats::RunningStatsResult>(result.get(
             "state/genetic_0/joint/prior_state/"
             "joint_mixture_gaussian/mixture/A/pip"));
-    const auto& dominance_pip = std::get<gelex::stats::RunningStatsResult>(
-        result.get(
+    const auto& dominance_pip
+        = std::get<gelex::stats::RunningStatsResult>(result.get(
             "state/genetic_0/joint/prior_state/"
             "joint_mixture_gaussian/mixture/D/pip"));
     REQUIRE(additive_pip.mean.isApprox(Eigen::VectorXd{{0.0, 1.0}}));
@@ -296,8 +288,8 @@ TEST_CASE("Result derives joint genetic PIP by effect", "[mcmc][mcmc_result]")
     REQUIRE(dominance_pip.stddev.isApprox(Eigen::VectorXd::Zero(2)));
     const auto& total_pve = std::get<gelex::stats::RunningStatsResult>(
         result.get("state/genetic/pve"));
-    REQUIRE(total_pve.mean.isApprox(
-        Eigen::VectorXd{{3.0625, 2.0833333333333335}}));
+    REQUIRE(
+        total_pve.mean.isApprox(Eigen::VectorXd{{3.0625, 2.0833333333333335}}));
     REQUIRE_THROWS_AS(
         result.get(
             "state/genetic_0/joint/prior_state/"
@@ -348,10 +340,8 @@ TEST_CASE("write_summary writes user-facing summary", "[mcmc][mcmc_result]")
 
     REQUIRE(content.find("term\teffect\tmean\tstddev\n") == 0);
     REQUIRE(
-        content.find("Intercept\t-\t2.00000000e+00\t")
-        != std::string::npos);
-    REQUIRE(
-        content.find("σ²_e\t-\t7.00000000e+00\t") != std::string::npos);
+        content.find("Intercept\t-\t2.00000000e+00\t") != std::string::npos);
+    REQUIRE(content.find("σ²_e\t-\t7.00000000e+00\t") != std::string::npos);
     REQUIRE(content.find("σ²\tA\t") != std::string::npos);
     REQUIRE(content.find("σ²_marker\tA\t") != std::string::npos);
     REQUIRE(content.find("π[0]\tA\t") != std::string::npos);
@@ -386,8 +376,7 @@ TEST_CASE("write_params writes fixed and random effects", "[mcmc][mcmc_result]")
         std::istreambuf_iterator<char>{}};
 
     REQUIRE(content.find("term\tmean\tstddev\n") == 0);
-    REQUIRE(
-        content.find("Intercept\t2.00000000e+00\t") != std::string::npos);
+    REQUIRE(content.find("Intercept\t2.00000000e+00\t") != std::string::npos);
     REQUIRE(content.find("batch_a\t1.20000000e+01\t") != std::string::npos);
     REQUIRE(content.find("batch_b\t2.40000000e+01\t") != std::string::npos);
     REQUIRE(content.find("σ²") == std::string::npos);
@@ -396,7 +385,9 @@ TEST_CASE("write_params writes fixed and random effects", "[mcmc][mcmc_result]")
     REQUIRE(content.find("assignment") == std::string::npos);
 }
 
-TEST_CASE("write_snp_eff writes dynamic SNP effect columns", "[mcmc][mcmc_result]")
+TEST_CASE(
+    "write_snp_eff writes dynamic SNP effect columns",
+    "[mcmc][mcmc_result]")
 {
     auto model = make_model();
     auto prior = make_prior();
@@ -427,15 +418,13 @@ TEST_CASE("write_snp_eff writes dynamic SNP effect columns", "[mcmc][mcmc_result
             "PIP_A\n")
         == 0);
     REQUIRE(
-        content.find(
-            "1\trs1\t100\tA\tG\t5.00000000e-01\t1.00000000e+00\t")
+        content.find("1\trs1\t100\tA\tG\t5.00000000e-01\t1.00000000e+00\t")
         != std::string::npos);
     REQUIRE(
         content.find("\t1.00000000e+00\t5.00000000e-01\n")
         != std::string::npos);
     REQUIRE(
-        content.find(
-            "2\trs2\t200\tC\tT\t3.33333333e-01\t1.50000000e+00\t")
+        content.find("2\trs2\t200\tC\tT\t3.33333333e-01\t1.50000000e+00\t")
         != std::string::npos);
     REQUIRE(content.find("BETA_D") == std::string::npos);
     REQUIRE(content.find("PIP_D") == std::string::npos);

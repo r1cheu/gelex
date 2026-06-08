@@ -69,7 +69,7 @@ auto make_model() -> gelex::BayesModel
 
     return gelex::BayesModel{
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
-        gelex::FixedDesign::build(3),
+        gelex::FixedDesign::make(3),
         {},
         std::move(genetics)};
 }
@@ -116,8 +116,7 @@ TEST_CASE(
         BayesRecipeOptions config;
         config.scheme = BayesRecipeScheme::B;
         config.modes = {GeneticMode::D};
-        config.dominance_positive_probability
-            = OpenUnitInterval<double>{0.6};
+        config.dominance_positive_probability = OpenUnitInterval<double>{0.6};
         REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
     }
 

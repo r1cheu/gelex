@@ -21,16 +21,16 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/data/genotype/genotype.h"
-#include "gelex/exception.h"
 #include "gelex/bayes/design.h"
-#include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/half_normal_prior.h"
 #include "gelex/bayes/genetic/half_normal_prior_state.h"
+#include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
+#include "gelex/data/genotype/genotype.h"
+#include "gelex/exception.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "genotype_fixture.h"
@@ -64,7 +64,7 @@ auto make_model() -> gelex::BayesModel
 
     return gelex::BayesModel{
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
-        gelex::FixedDesign::build(3),
+        gelex::FixedDesign::make(3),
         {},
         std::move(genetics)};
 }
@@ -98,10 +98,12 @@ TEST_CASE("BayesState creates single genetic blocks", "[bayes_state]")
     gelex::BayesState state(model, prior);
 
     REQUIRE(state.genetics().size() == 2);
-    REQUIRE(std::holds_alternative<gelex::bayes::SingleGeneticBlockState>(
-        state.genetics()[0]));
-    REQUIRE(std::holds_alternative<gelex::bayes::SingleGeneticBlockState>(
-        state.genetics()[1]));
+    REQUIRE(
+        std::holds_alternative<gelex::bayes::SingleGeneticBlockState>(
+            state.genetics()[0]));
+    REQUIRE(
+        std::holds_alternative<gelex::bayes::SingleGeneticBlockState>(
+            state.genetics()[1]));
     REQUIRE(state.residual().variance == 0.4);
 }
 
@@ -125,11 +127,10 @@ TEST_CASE("BayesState creates joint half normal mixture block", "[bayes_state]")
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
 
     gelex::BayesState state(model, prior);
-    auto& block = std::get<gelex::bayes::JointGeneticBlockState>(
-        state.genetics()[0]);
-    auto& prior_state
-        = std::get<gelex::bayes::JointHalfNormalMixtureState>(
-            block.prior_state());
+    auto& block
+        = std::get<gelex::bayes::JointGeneticBlockState>(state.genetics()[0]);
+    auto& prior_state = std::get<gelex::bayes::JointHalfNormalMixtureState>(
+        block.prior_state());
 
     REQUIRE(state.genetics().size() == 1);
     REQUIRE(prior_state.variance(gelex::GeneticMode::A) == 0.1);
@@ -148,13 +149,12 @@ TEST_CASE("BayesState rejects missing genetic designs", "[bayes_state]")
                 gelex::GeneticMode::A,
                 gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
     genetics.emplace_back(
-        gelex::bayes::JointGeneticPrior{
-            gelex::bayes::JointGaussianMixturePrior{
-                gelex::bayes::JointSharedMarkerVariance{std::array{
-                    gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
-                    gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
-                gelex::bayes::MixtureProportion{
-                    Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}}}}});
+        gelex::bayes::JointGeneticPrior{gelex::bayes::JointGaussianMixturePrior{
+            gelex::bayes::JointSharedMarkerVariance{std::array{
+                gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
+                gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
+            gelex::bayes::MixtureProportion{
+                Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}}}}});
 
     REQUIRE_THROWS_AS(
         gelex::bayes::BayesPrior(

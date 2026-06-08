@@ -22,11 +22,11 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
+#include "gelex/bayes/design.h"
+#include "gelex/bayes/model.h"
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/exception.h"
 #include "gelex/infra/stats/detail/var.h"
-#include "gelex/bayes/design.h"
-#include "gelex/bayes/model.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "genotype_fixture.h"
@@ -83,7 +83,7 @@ TEST_CASE("BayesModel rejects design row mismatches", "[bayes_model]")
         REQUIRE_THROWS_AS(
             BayesModel(
                 make_phenotype(),
-                FixedDesign::build(2),
+                FixedDesign::make(2),
                 {},
                 std::move(genetics)),
             GelexException);
@@ -104,7 +104,7 @@ TEST_CASE("BayesModel rejects design row mismatches", "[bayes_model]")
         REQUIRE_THROWS_AS(
             BayesModel(
                 make_phenotype(),
-                FixedDesign::build(3),
+                FixedDesign::make(3),
                 std::move(random),
                 std::move(genetics)),
             GelexException);
@@ -119,7 +119,7 @@ TEST_CASE("BayesModel rejects design row mismatches", "[bayes_model]")
         REQUIRE_THROWS_AS(
             BayesModel(
                 make_phenotype(),
-                FixedDesign::build(3),
+                FixedDesign::make(3),
                 {},
                 std::move(genetics)),
             GelexException);
@@ -136,7 +136,7 @@ TEST_CASE("BayesModel rejects duplicate genetic modes", "[bayes_model]")
 
     REQUIRE_THROWS_AS(
         BayesModel(
-            make_phenotype(), FixedDesign::build(3), {}, std::move(genetics)),
+            make_phenotype(), FixedDesign::make(3), {}, std::move(genetics)),
         GelexException);
 }
 

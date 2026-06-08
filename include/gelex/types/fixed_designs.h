@@ -72,11 +72,11 @@ struct FixedDesign
             = reference_levels[i] ? *reference_levels[i] : std::string_view{}};
     }
 
-    static auto build(
+    static auto make(
         std::optional<QuantitativeCovariate> qcovariate,
         std::optional<DiscreteCovariate> dcovariate) -> FixedDesign;
 
-    static auto build(Eigen::Index n_samples) -> FixedDesign;
+    static auto make(Eigen::Index n_samples) -> FixedDesign;
 
     auto visit(infra::FieldVisitor& visitor) const -> void;
 };

@@ -60,7 +60,7 @@ auto make_closed_form_problem() -> RemlProblem
 
     return {
         .y = y,
-        .X = FixedDesign::build(y.size()).X,
+        .X = FixedDesign::make(y.size()).X,
         .K = K,
         .sigma_e = 5.0 / 6.0,
         .sigma_g = 11.0 / 6.0};
@@ -68,7 +68,7 @@ auto make_closed_form_problem() -> RemlProblem
 
 auto build_model(const RemlProblem& problem) -> std::pair<FreqModel, FreqState>
 {
-    auto fixed = FixedDesign::build(problem.y.size());
+    auto fixed = FixedDesign::make(problem.y.size());
     fixed.X = problem.X;
 
     std::vector<freq::GeneticDesign> genetics;

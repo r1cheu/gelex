@@ -23,6 +23,7 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
+#include "file_fixture.h"
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
@@ -37,7 +38,6 @@
 #include "gelex/io/mcmc/checkpoint_writer.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "file_fixture.h"
 #include "genotype_fixture.h"
 
 namespace
@@ -65,7 +65,7 @@ auto make_model() -> gelex::BayesModel
 
     return gelex::BayesModel{
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
-        gelex::FixedDesign::build(3),
+        gelex::FixedDesign::make(3),
         {},
         std::move(genetics)};
 }
@@ -94,7 +94,9 @@ auto make_state() -> gelex::BayesState
 
 }  // namespace
 
-TEST_CASE("MCMC checkpoint round-trip preserves BayesState fields", "[checkpoint]")
+TEST_CASE(
+    "MCMC checkpoint round-trip preserves BayesState fields",
+    "[checkpoint]")
 {
     gelex::test::FileFixture files;
     const auto prefix = (files.get_test_dir() / "mcmc_state").string();
@@ -102,8 +104,8 @@ TEST_CASE("MCMC checkpoint round-trip preserves BayesState fields", "[checkpoint
 
     auto state = make_state();
     state.fixed().coeffs = Eigen::VectorXd{{1.25}};
-    auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
-        state.genetics()[0]);
+    auto& block
+        = std::get<gelex::bayes::SingleGeneticBlockState>(state.genetics()[0]);
     block.state().coeffs = Eigen::VectorXd{{0.1, 0.2}};
     block.state().u = Eigen::VectorXd{{-0.5, 0.0, 0.5}};
     block.state().variance = 0.75;

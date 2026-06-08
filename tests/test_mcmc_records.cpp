@@ -26,6 +26,7 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
+#include "file_fixture.h"
 #include "gelex/algo/mcmc/records.h"
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
@@ -38,7 +39,6 @@
 #include "gelex/io/binary_reader.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "file_fixture.h"
 #include "genotype_fixture.h"
 
 namespace
@@ -73,7 +73,7 @@ auto make_model() -> gelex::BayesModel
 
     return gelex::BayesModel{
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
-        gelex::FixedDesign::build(3),
+        gelex::FixedDesign::make(3),
         std::move(random),
         std::move(genetics)};
 }
@@ -101,9 +101,7 @@ auto require_record(
     std::string_view path) -> const gelex::mcmc::RecordResult&
 {
     const auto it = std::ranges::find(
-        entries,
-        std::string{path},
-        &gelex::mcmc::RecordEntry::path);
+        entries, std::string{path}, &gelex::mcmc::RecordEntry::path);
     REQUIRE(it != entries.end());
     return it->value;
 }
@@ -117,8 +115,8 @@ TEST_CASE("Records stores traced BayesState fields", "[mcmc][mcmc_records]")
     gelex::BayesState state(model, prior);
     gelex::mcmc::Records records{2, ""};
 
-    auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
-        state.genetics()[0]);
+    auto& block
+        = std::get<gelex::bayes::SingleGeneticBlockState>(state.genetics()[0]);
     auto& prior_state
         = std::get<gelex::bayes::SingleScaledMixtureGaussianState>(
             block.prior_state());
@@ -198,21 +196,18 @@ TEST_CASE("Records stores traced BayesState fields", "[mcmc][mcmc_records]")
 
     const auto marker_variance_entry = std::ranges::find(
         entries,
-        std::string{
-            "state/genetic_0/single/A/prior_state/"
-            "scaled_mixture_gaussian/variance"},
+        std::string{"state/genetic_0/single/A/prior_state/"
+                    "scaled_mixture_gaussian/variance"},
         &gelex::mcmc::RecordEntry::path);
     REQUIRE(marker_variance_entry != entries.end());
     REQUIRE(marker_variance_entry->names);
     REQUIRE(
-        *marker_variance_entry->names
-        == std::vector<std::string>{"σ²_marker"});
+        *marker_variance_entry->names == std::vector<std::string>{"σ²_marker"});
 
     const auto component_entry = std::ranges::find(
         entries,
-        std::string{
-            "state/genetic_0/single/A/prior_state/"
-            "scaled_mixture_gaussian/component/gebv_var"},
+        std::string{"state/genetic_0/single/A/prior_state/"
+                    "scaled_mixture_gaussian/component/gebv_var"},
         &gelex::mcmc::RecordEntry::path);
     REQUIRE(component_entry != entries.end());
     REQUIRE(component_entry->names);
@@ -223,9 +218,8 @@ TEST_CASE("Records stores traced BayesState fields", "[mcmc][mcmc_records]")
 
     const auto proportion_entry = std::ranges::find(
         entries,
-        std::string{
-            "state/genetic_0/single/A/prior_state/"
-            "scaled_mixture_gaussian/mixture/proportion"},
+        std::string{"state/genetic_0/single/A/prior_state/"
+                    "scaled_mixture_gaussian/mixture/proportion"},
         &gelex::mcmc::RecordEntry::path);
     REQUIRE(proportion_entry != entries.end());
     REQUIRE(proportion_entry->names);
@@ -235,9 +229,8 @@ TEST_CASE("Records stores traced BayesState fields", "[mcmc][mcmc_records]")
 
     const auto assignment_entry = std::ranges::find(
         entries,
-        std::string{
-            "state/genetic_0/single/A/prior_state/"
-            "scaled_mixture_gaussian/mixture/assignment"},
+        std::string{"state/genetic_0/single/A/prior_state/"
+                    "scaled_mixture_gaussian/mixture/assignment"},
         &gelex::mcmc::RecordEntry::path);
     REQUIRE(assignment_entry != entries.end());
     REQUIRE_FALSE(assignment_entry->names);
@@ -258,17 +251,18 @@ TEST_CASE("Records stores traced BayesState fields", "[mcmc][mcmc_records]")
     REQUIRE(residual.stddev.isApprox(Eigen::VectorXd{{std::sqrt(8.0)}}));
 
     const Eigen::MatrixXd expected_probabilities{
-        {0.5, 0.0, 0.5, 0.0},
-        {0.0, 0.5, 0.0, 0.5}};
-    const auto assignment = std::get<gelex::stats::CategoryProbResult>(
-        require_record(
+        {0.5, 0.0, 0.5, 0.0}, {0.0, 0.5, 0.0, 0.5}};
+    const auto assignment
+        = std::get<gelex::stats::CategoryProbResult>(require_record(
             entries,
             "state/genetic_0/single/A/prior_state/"
             "scaled_mixture_gaussian/mixture/assignment"));
     REQUIRE(assignment.value.isApprox(expected_probabilities));
 }
 
-TEST_CASE("Records stores traced dominance sign categories", "[mcmc][mcmc_records]")
+TEST_CASE(
+    "Records stores traced dominance sign categories",
+    "[mcmc][mcmc_records]")
 {
     std::vector<gelex::bayes::GeneticDesign> genetics;
     genetics.emplace_back(
@@ -279,7 +273,7 @@ TEST_CASE("Records stores traced dominance sign categories", "[mcmc][mcmc_record
         make_genotype(Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}, {1.0, 2.0}}));
     gelex::BayesModel model{
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
-        gelex::FixedDesign::build(3),
+        gelex::FixedDesign::make(3),
         {},
         std::move(genetics)};
 
@@ -301,11 +295,10 @@ TEST_CASE("Records stores traced dominance sign categories", "[mcmc][mcmc_record
     gelex::BayesState state(model, prior);
     gelex::mcmc::Records records{2, ""};
 
-    auto& block = std::get<gelex::bayes::JointGeneticBlockState>(
-        state.genetics()[0]);
-    auto& prior_state
-        = std::get<gelex::bayes::JointHalfNormalMixtureState>(
-            block.prior_state());
+    auto& block
+        = std::get<gelex::bayes::JointGeneticBlockState>(state.genetics()[0]);
+    auto& prior_state = std::get<gelex::bayes::JointHalfNormalMixtureState>(
+        block.prior_state());
 
     prior_state.dominance_sign().sign = Eigen::VectorXi{{0, 1}};
     records.store(model, state);
@@ -315,11 +308,10 @@ TEST_CASE("Records stores traced dominance sign categories", "[mcmc][mcmc_record
 
     auto entries = std::move(records).take_results();
     const Eigen::MatrixXd expected_probabilities{{0.5, 0.5}, {0.0, 1.0}};
-    const auto sign = std::get<gelex::stats::CategoryProbResult>(
-        require_record(
-            entries,
-            "state/genetic_0/joint/prior_state/"
-            "joint_half_normal_mixture/dominance_sign/sign"));
+    const auto sign = std::get<gelex::stats::CategoryProbResult>(require_record(
+        entries,
+        "state/genetic_0/joint/prior_state/"
+        "joint_half_normal_mixture/dominance_sign/sign"));
     REQUIRE(sign.value.isApprox(expected_probabilities));
 }
 
@@ -346,8 +338,8 @@ TEST_CASE("Records writes retained draws", "[mcmc][mcmc_records]")
     const auto draws_path = files.generate_random_file_path(".draws");
     gelex::mcmc::Records records{2, draws_path.string()};
 
-    auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
-        state.genetics()[0]);
+    auto& block
+        = std::get<gelex::bayes::SingleGeneticBlockState>(state.genetics()[0]);
     auto& prior_state
         = std::get<gelex::bayes::SingleScaledMixtureGaussianState>(
             block.prior_state());
@@ -385,10 +377,8 @@ TEST_CASE("Records writes retained draws", "[mcmc][mcmc_records]")
     const auto proportion = reader.to_map<double>(
         "state/genetic_0/single/A/prior_state/"
         "scaled_mixture_gaussian/mixture/proportion");
-    REQUIRE(
-        proportion.isApprox(
-            Eigen::MatrixXd{
-                {0.1, 0.4}, {0.2, 0.3}, {0.3, 0.2}, {0.4, 0.1}}));
+    REQUIRE(proportion.isApprox(
+        Eigen::MatrixXd{{0.1, 0.4}, {0.2, 0.3}, {0.3, 0.2}, {0.4, 0.1}}));
 
     const auto assignment = reader.to_map<int>(
         "state/genetic_0/single/A/prior_state/"

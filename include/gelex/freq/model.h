@@ -33,8 +33,10 @@ class FreqModel
    public:
     FreqModel(
         Eigen::VectorXd phenotype,
-        FixedDesign fixed_design,
-        std::vector<freq::GeneticDesign> genetics);
+        FixedDesign fixed,
+        std::vector<freq::RandomDesign> random,
+        std::vector<freq::GeneticDesign> genetic);
+
     auto fixed() const -> const FixedDesign& { return fixed_; }
     auto fixed() -> FixedDesign& { return fixed_; }
 

@@ -31,7 +31,7 @@
 namespace gelex
 {
 
-auto FixedDesign::build(
+auto FixedDesign::make(
     std::optional<QuantitativeCovariate> qcovariate,
     std::optional<DiscreteCovariate> dcovariate) -> FixedDesign
 {
@@ -123,7 +123,7 @@ auto FixedDesign::build(
     return fe;
 }
 
-auto FixedDesign::build(Eigen::Index n_samples) -> FixedDesign
+auto FixedDesign::make(Eigen::Index n_samples) -> FixedDesign
 {
     FixedDesign fe;
 
