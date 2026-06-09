@@ -20,16 +20,67 @@
 #include <optional>
 
 #include "cli/cli_helper.h"
+#include "cli/common_data.h"
 #include "cli/data_pipe_config.h"
 #include "cli/reml_reporter.h"
 #include "gelex/algo/reml/estimator.h"
 #include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/reader.h"
-#include "gelex/exception.h"
 #include "gelex/freq/design.h"
 #include "gelex/freq/model.h"
 #include "gelex/types/fixed_designs.h"
+
+class RemlDataHandler
+{
+   public:
+    auto load_indices(
+        argparse::ArgumentParser& cmd,
+        std::vector<gelex::dataframe::Index<std::string>*>& indices) -> void
+    {
+        rand_ = cmd.is_used("--rand")
+                    ? std::make_optional(gelex::read_dcovar(cmd.get("--rand")))
+                    : std::nullopt;
+        if (rand_)
+        {
+            indices.push_back(&rand_->index());
+        }
+
+        grm_prefixes_ = cmd.get<std::vector<std::string>>("--grm");
+        grm_indices_.reserve(grm_prefixes_.size());
+        for (const auto& path : grm_prefixes_)
+        {
+            grm_indices_.emplace_back(gelex::read_grm_ids(path));
+            indices.push_back(&grm_indices_.back());
+        }
+    }
+
+    auto gather(const gelex::dataframe::Index<std::string>& common_index)
+        -> void
+    {
+        if (rand_)
+        {
+            random_designs_ = gelex::make_random_designs(*rand_);
+        }
+        auto grm_designs = gelex::make_grm_designs(grm_prefixes_, common_index);
+        random_designs_.insert(
+            random_designs_.end(),
+            std::make_move_iterator(grm_designs.begin()),
+            std::make_move_iterator(grm_designs.end()));
+    }
+
+    auto results() && -> std::vector<gelex::freq::RandomDesign>
+    {
+        return std::move(random_designs_);
+    }
+
+   private:
+    std::vector<std::string> grm_prefixes_;
+    std::vector<gelex::dataframe::Index<std::string>> grm_indices_;
+    std::vector<gelex::freq::RandomDesign> random_designs_;
+
+    std::optional<gelex::dataframe::DataFrame<std::string>> rand_;
+};
 
 auto reml_execute(argparse::ArgumentParser& cmd) -> int
 {
@@ -38,99 +89,13 @@ auto reml_execute(argparse::ArgumentParser& cmd) -> int
 
     gelex::cli::RemlReporter reporter;
 
-    std::vector<gelex::dataframe::Index<std::string>*> indices;
-
-    // read dataset
-    auto pheno_col = cmd.get<int>("--pheno-col");
-    if (pheno_col < 2)
-    {
-        throw gelex::GelexException("--pheno-col must be >= 2");
-    }
-    auto pheno_col_offset = static_cast<std::size_t>(pheno_col - 2);
-    auto phenotype = gelex::read_pheno(cmd.get("--pheno"), &pheno_col_offset);
-    std::cout << phenotype.col(0).name() << " is used as the phenotype.\n";
-    indices.push_back(&phenotype.index());
-
-    std::optional<gelex::dataframe::DataFrame<std::string>> qcovar;
-    std::optional<gelex::dataframe::DataFrame<std::string>> dcovar;
-    std::optional<gelex::dataframe::DataFrame<std::string>> rand;
-    if (cmd.is_used("--qcovar"))
-    {
-        qcovar = std::make_optional(gelex::read_qcovar(cmd.get("--qcovar")));
-        indices.push_back(&qcovar->index());
-    }
-    if (cmd.is_used("--dcovar"))
-    {
-        dcovar = std::make_optional(gelex::read_dcovar(cmd.get("--dcovar")));
-        indices.push_back(&dcovar->index());
-    }
-    if (cmd.is_used("--rand"))
-    {
-        rand = std::make_optional(gelex::read_dcovar(cmd.get("--rand")));
-        indices.push_back(&rand->index());
-    }
-
-    auto grm_prefixes = cmd.get<std::vector<std::string>>("--grm");
-    std::vector<gelex::dataframe::Index<std::string>> grm_indices;
-    grm_indices.reserve(grm_prefixes.size());
-    for (const auto& path : grm_prefixes)
-    {
-        grm_indices.emplace_back(gelex::read_grm_ids(path));
-        indices.push_back(&grm_indices.back());
-    }
-
-    auto common_index = gelex::dataframe::intersect<std::string>(indices);
-
-    phenotype.gather(common_index);
-    if (qcovar)
-    {
-        qcovar->gather(common_index);
-    }
-    if (dcovar)
-    {
-        dcovar->gather(common_index);
-    }
-    if (rand)
-    {
-        rand->gather(common_index);
-    }
-    for (auto& idx : grm_indices)
-    {
-        idx.gather(common_index);
-    }
-
-    std::optional<gelex::FixedDesign> fixed_design;
-
-    if (!qcovar && !dcovar)
-    {
-        fixed_design
-            = std::make_optional(gelex::FixedDesign::make(common_index.size()));
-    }
-    else
-    {
-        fixed_design = std::make_optional(
-            gelex::FixedDesign::make(
-                qcovar ? std::make_optional(
-                             gelex::make_quantitative_covariate(*qcovar))
-                       : std::nullopt,
-                dcovar ? std::make_optional(
-                             gelex::make_discrete_covariate(*dcovar))
-                       : std::nullopt));
-    }
-
-    auto random_designs = rand ? gelex::make_random_designs(*rand)
-                               : std::vector<gelex::freq::RandomDesign>{};
-    auto grm_designs = gelex::make_grm_designs(grm_prefixes, common_index);
-
-    random_designs.insert(
-        random_designs.end(),
-        std::make_move_iterator(grm_designs.begin()),
-        std::make_move_iterator(grm_designs.end()));
+    RemlDataHandler handler;
+    cli::BaseData data = cli::load_base_data(handler, cmd);
 
     gelex::FreqModel model(
-        phenotype.col(0).to_mat<double>(),
-        std::move(*fixed_design),
-        std::move(random_designs));
+        std::move(data.phenotype),
+        std::move(data.fixed_design),
+        std::move(handler).results());
 
     gelex::reml::Estimator estimator(
         cmd.get<int>("--max-iter"),
