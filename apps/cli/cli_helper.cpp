@@ -16,20 +16,89 @@
 
 #include "cli_helper.h"
 
-#include <argparse.h>
-#include <fmt/base.h>
-#include <stdio.h>
-#include <unistd.h>
-
-#include <fmt/format.h>
-#include <omp.h>
-#include <Eigen/Core>
 #include <iostream>
 #include <string>
 #include <string_view>
 
+#include <argparse.h>
+#include <fmt/base.h>
+#include <fmt/format.h>
+#include <omp.h>
+#include <Eigen/Core>
+
+#include "gelex/data/genotype/process_method.h"
+#include "gelex/exception.h"
+
 namespace gelex::cli
 {
+
+auto parse_genotype_process_method(std::string_view value)
+    -> GenotypeProcessMethod
+{
+    std::string lower(value);
+    std::transform(
+        lower.begin(),
+        lower.end(),
+        lower.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+
+    static const std::unordered_map<std::string, GenotypeProcessMethod>
+        METHOD_MAP = {
+            {"standardizehwe", GenotypeProcessMethod::StandardizeHWE()},
+            {"sh", GenotypeProcessMethod::StandardizeHWE()},
+            {"centerhwe", GenotypeProcessMethod::CenterHWE()},
+            {"ch", GenotypeProcessMethod::CenterHWE()},
+            {"orthstandardizehwe", GenotypeProcessMethod::OrthStandardizeHWE()},
+            {"osh", GenotypeProcessMethod::OrthStandardizeHWE()},
+            {"orthcenterhwe", GenotypeProcessMethod::OrthCenterHWE()},
+            {"och", GenotypeProcessMethod::OrthCenterHWE()},
+            {"standardize", GenotypeProcessMethod::Standardize()},
+            {"s", GenotypeProcessMethod::Standardize()},
+            {"center", GenotypeProcessMethod::Center()},
+            {"c", GenotypeProcessMethod::Center()},
+            {"orthstandardize", GenotypeProcessMethod::OrthStandardize()},
+            {"os", GenotypeProcessMethod::OrthStandardize()},
+            {"orthcenter", GenotypeProcessMethod::OrthCenter()},
+            {"oc", GenotypeProcessMethod::OrthCenter()},
+            {"noiastandardize", GenotypeProcessMethod::NOIAStandardize()},
+            {"ns", GenotypeProcessMethod::NOIAStandardize()},
+            {"noiacenter", GenotypeProcessMethod::NOIACenter()},
+            {"nc", GenotypeProcessMethod::NOIACenter()},
+        };
+
+    auto it = METHOD_MAP.find(lower);
+    if (it == METHOD_MAP.end())
+    {
+        throw gelex::GelexException(
+            fmt::format(
+                "Invalid genotype process method: \"{}\". Valid: "
+                "StandardizeHWE(SH), CenterHWE(CH), "
+                "OrthStandardizeHWE(OSH), OrthCenterHWE(OCH), "
+                "Standardize(S), Center(C), OrthStandardize(OS), "
+                "OrthCenter(OC), NOIAStandardize(NS), NOIACenter(NC)",
+                value));
+    }
+    return it->second;
+}
+
+auto parse_genetic_modes(std::string_view sv) -> std::vector<GeneticMode>
+{
+    if (sv == "A")
+    {
+        return {GeneticMode::A};
+    }
+    if (sv == "D")
+    {
+        return {GeneticMode::D};
+    }
+    if (sv == "AD")
+    {
+        return {GeneticMode::A, GeneticMode::D};
+    }
+    throw gelex::GelexException(
+        fmt::format("invalid --mode: \"{}\". Valid: A, D, AD", sv));
+}
+
 auto is_tty() -> bool
 {
     return isatty(fileno(stdout)) != 0;
