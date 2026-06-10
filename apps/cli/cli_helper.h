@@ -43,8 +43,6 @@ auto is_tty() -> bool;
 
 auto setup_parallelization(int num_threads) -> void;
 
-auto print_gelex_banner_message(std::string_view version) -> void;
-
 auto execute_cli_command(CLI::App& parser, int (*execute_fn)(CLI::App&)) -> int;
 
 }  // namespace cli

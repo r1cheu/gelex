@@ -81,7 +81,7 @@ class ColorFormatter : public CLI::Formatter
         std::ostringstream out;
         out << '\n';
         auto description = make_description(app);
-        if (app->get_parent() != nullptr && !description.empty())
+        if (!description.empty())
         {
             while (!description.empty() && description.back() == '\n')
             {

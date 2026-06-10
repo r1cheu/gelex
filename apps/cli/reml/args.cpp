@@ -30,46 +30,55 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
     auto* subcommand = program.add_subcommand("reml");
     auto& cmd = *subcommand;
 
-    cmd.description(
-        "Perform REML variance component estimation using average information "
-        "algorithm");
+    cmd.description("Estimate variance components with REML (AI algorithm)");
 
-    cmd.add_option(
-           "-p,--pheno", "Phenotype file (TSV format: FID, IID, trait1, ...)")
+    cmd.add_option("-p,--pheno", "Phenotype TSV with FID, IID, trait columns")
         ->group("I/O")
         ->type_name("<PHENOTYPE>")
         ->required();
-    cmd.add_option("--grm", "GRM file prefix(es). Can specify multiple GRMs.")
+    cmd.add_option(
+           "--pheno-col",
+           "0-based phenotype column after FID/IID; first trait=0")
+        ->group("I/O")
+        ->type_name("<COL>")
+        ->default_val(0);
+    cmd.add_option("--grm", "GRM prefix without suffix; reads <prefix>.bin/.id")
         ->group("I/O")
         ->type_name("<GRM>")
         ->expected(1, -1)
         ->allow_extra_args()
         ->required();
     cmd.add_option(
-           "--qcovar", "Quantitative covariates (TSV: FID, IID, covar1, ...)")
-        ->group("I/O");
+           "--qcovar",
+           "Quantitative fixed-covariate TSV with FID, IID, numeric columns")
+        ->group("I/O")
+        ->type_name("<QCOVAR>");
     cmd.add_option(
-           "--dcovar", "Discrete covariates (TSV: FID, IID, factor1, ...)")
-        ->group("I/O");
-    cmd.add_option("--rand", "Random effects (TSV: FID, IID, effect1, ...)")
-        ->group("I/O");
-    cmd.add_option("-o,--out", "Output file prefix")
+           "--dcovar",
+           "Discrete fixed-covariate TSV with FID, IID, factor columns")
+        ->group("I/O")
+        ->type_name("<DCOVAR>");
+    cmd.add_option(
+           "--rand", "Random-effect factor TSV with FID, IID, factor columns")
+        ->group("I/O")
+        ->type_name("<RAND>");
+    cmd.add_option("-o,--out", "Output prefix for .summary and .effects")
         ->group("I/O")
         ->type_name("<OUT>")
         ->default_val(std::string{"gelex"});
 
-    cmd.add_option("--pheno-col", "Phenotype column index (0-based)")
-        ->group("Model")
-        ->default_val(2);
-
-    cmd.add_option("--max-iter", "Max iterations")
+    cmd.add_option("--max-iter", "Maximum AI-REML iterations")
         ->group("Runtime")
+        ->type_name("<N>")
         ->default_val(100);
-    cmd.add_option("--tol", "Convergence tolerance")
+    cmd.add_option(
+           "--tol", "Relative tolerance for variance-component convergence")
         ->group("Runtime")
+        ->type_name("<TOL>")
         ->default_val(1e-6);
     cmd.add_option("-t,--threads", "CPU threads")
         ->group("Runtime")
+        ->type_name("<N>")
         ->default_val(
             std::max(
                 1, static_cast<int>(std::thread::hardware_concurrency() / 2)));

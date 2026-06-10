@@ -49,7 +49,7 @@ class PhenoPipe
     struct Config
     {
         std::filesystem::path phenotype_path;
-        int phenotype_column = 3;
+        int phenotype_column = 0;
 
         std::optional<std::filesystem::path> quantitative_covariates_path;
         std::optional<std::filesystem::path> discrete_covariates_path;

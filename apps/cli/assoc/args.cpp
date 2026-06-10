@@ -39,6 +39,12 @@ auto setup_assoc_command(CLI::App& program, int& exit_code) -> void
         ->group("I/O")
         ->type_name("<PHENOTYPE>")
         ->required();
+    cmd.add_option(
+           "--pheno-col",
+           "0-based phenotype column after FID/IID; first trait=0")
+        ->group("I/O")
+        ->type_name("<COL>")
+        ->default_val(0);
     cmd.add_option("-b,--bfile", "PLINK binary file prefix (.bed/.bim/.fam)")
         ->group("I/O")
         ->type_name("<BFILE>")
@@ -60,9 +66,6 @@ auto setup_assoc_command(CLI::App& program, int& exit_code) -> void
         ->type_name("<OUT>")
         ->default_val(std::string{"gelex"});
 
-    cmd.add_option("--pheno-col", "Phenotype column index (0-based)")
-        ->group("Model")
-        ->default_val(2);
     cmd.add_option(
            "--transform",
            "Phenotype transformation: none, dint (Direct INT), iint (Indirect "

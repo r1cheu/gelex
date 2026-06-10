@@ -227,7 +227,7 @@ TEST_CASE(
 
     PhenoPipe::Config pheno_config{
         .phenotype_path = pheno_path,
-        .phenotype_column = 2,
+        .phenotype_column = 0,
     };
 
     auto model = make_freq_model(pheno_config, bed_prefix);
@@ -287,7 +287,7 @@ TEST_CASE(
 
     PhenoPipe::Config pheno_config{
         .phenotype_path = pheno_path,
-        .phenotype_column = 2,
+        .phenotype_column = 0,
     };
 
     auto model
@@ -351,7 +351,7 @@ TEST_CASE(
 
     PhenoPipe::Config pheno_config{
         .phenotype_path = pheno_path,
-        .phenotype_column = 2,
+        .phenotype_column = 0,
     };
 
     auto model
@@ -409,7 +409,7 @@ TEST_CASE(
 
     PhenoPipe::Config pheno_config{
         .phenotype_path = pheno_path,
-        .phenotype_column = 2,
+        .phenotype_column = 0,
     };
 
     auto model = make_freq_model(
@@ -478,7 +478,7 @@ TEST_CASE(
 
     PhenoPipe::Config pheno_config{
         .phenotype_path = pheno_path,
-        .phenotype_column = 2,
+        .phenotype_column = 0,
     };
 
     auto model
@@ -548,7 +548,7 @@ TEST_CASE(
 
     PhenoPipe::Config pheno_config{
         .phenotype_path = pheno_path,
-        .phenotype_column = 2,
+        .phenotype_column = 0,
         .quantitative_covariates_path = qcovar_path,
     };
 
@@ -609,7 +609,7 @@ TEST_CASE(
 
     PhenoPipe::Config pheno_config{
         .phenotype_path = pheno_path,
-        .phenotype_column = 2,
+        .phenotype_column = 0,
         .discrete_covariates_path = dcovar_path,
     };
 
@@ -661,7 +661,7 @@ TEST_CASE(
 
     PhenoPipe::Config pheno_config{
         .phenotype_path = pheno_path,
-        .phenotype_column = 2,
+        .phenotype_column = 0,
     };
 
     auto model

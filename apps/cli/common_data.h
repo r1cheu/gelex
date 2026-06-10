@@ -60,11 +60,11 @@ auto load_base_data(Handler& handler, CLI::App& cmd) -> BaseData
 
     // read dataset
     auto pheno_col = cmd.get_option("--pheno-col")->as<int>();
-    if (pheno_col < 2)
+    if (pheno_col < 0)
     {
-        throw gelex::GelexException("--pheno-col must be >= 2");
+        throw gelex::GelexException("--pheno-col must be >= 0");
     }
-    auto pheno_col_offset = static_cast<std::size_t>(pheno_col - 2);
+    auto pheno_col_offset = static_cast<std::size_t>(pheno_col);
     auto phenotype = gelex::read_pheno(
         cmd.get_option("--pheno")->as<std::string>(), &pheno_col_offset);
     indices.push_back(&phenotype.index());

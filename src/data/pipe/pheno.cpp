@@ -68,15 +68,15 @@ auto PhenoPipe::load_phenotypes() -> void
         throw GelexException("Phenotype file path is required.");
     }
 
-    if (config_.phenotype_column < 2)
+    if (config_.phenotype_column < 0)
     {
         throw GelexException(
             fmt::format(
-                "Phenotype column {} is out of range, expected >= 2",
+                "Phenotype column {} is out of range, expected >= 0",
                 config_.phenotype_column));
     }
 
-    auto pheno_col = static_cast<std::size_t>(config_.phenotype_column - 2);
+    auto pheno_col = static_cast<std::size_t>(config_.phenotype_column);
     auto frame = read_pheno(config_.phenotype_path, &pheno_col);
 
     auto trait_name = std::string(frame.col(0).name());

@@ -17,6 +17,7 @@
 #include <iostream>
 #include <string_view>
 
+#include <fmt/format.h>
 #include <CLI/CLI.hpp>
 
 #include "version.h"
@@ -39,8 +40,13 @@ constexpr std::string_view ERROR_MARKER = "[\033[31merror\033[0m] ";
 auto main(int argc, char* argv[]) -> int
 {
     CLI::App program{
-        "High-Performance Genomic Prediction with Bayesian and Frequentist "
-        "Models",
+        fmt::format(
+            R"(Gelex [version {}]
+Genomic prediction, association testing, and variance-component estimation.
+
+Issues and feature requests: https://github.com/r1cheu/gelex/issues
+Docs: https://gelex.readthedocs.io/en/latest/)",
+            PROJECT_VERSION),
         PROJECT_NAME};
     program.formatter(cli::make_cli_formatter());
     program.set_version_flag("-v,--version", PROJECT_VERSION);
@@ -55,13 +61,6 @@ auto main(int argc, char* argv[]) -> int
     setup_post_command(program, exit_code);
     setup_reml_command(program, exit_code);
 
-    if (argc <= 1)
-    {
-        cli::print_gelex_banner_message(PROJECT_VERSION);
-        std::cerr << "\n" << program.help();
-        return 1;
-    }
-
     try
     {
         program.parse(argc, argv);
@@ -70,26 +69,16 @@ auto main(int argc, char* argv[]) -> int
     {
         if (err.get_exit_code() == 0)
         {
-            if (argc > 1
-                && (std::string_view{argv[1]} == "-h"
-                    || std::string_view{argv[1]} == "--help"))
-            {
-                cli::print_gelex_banner_message(PROJECT_VERSION);
-                std::cout << "\n";
-            }
             return program.exit(err);
         }
 
         std::cerr << ERROR_MARKER << err.what() << "\n";
 
-        if (argc > 1)
+        auto subcommands = program.get_subcommands();
+        if (!subcommands.empty())
         {
-            auto* subcommand = program.get_subcommand_no_throw(argv[1]);
-            if (subcommand != nullptr)
-            {
-                std::cerr << subcommand->help();
-                return 1;
-            }
+            std::cerr << subcommands.back()->help();
+            return 1;
         }
         std::cerr << program.help();
         return 1;

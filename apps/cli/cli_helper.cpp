@@ -139,16 +139,6 @@ auto setup_parallelization(int num_threads) -> void
     }
 }
 
-auto print_gelex_banner_message(std::string_view version) -> void
-{
-    std::cout << "Gelex [version " << version << "]\n";
-    std::cout
-        << R"(Genomic prediction, association testing, and variance-component estimation.
-
-Issues and feature requests: https://github.com/r1cheu/gelex/issues
-Docs: https://gelex.readthedocs.io/en/latest/)";
-}
-
 auto execute_cli_command(CLI::App& parser, int (*execute_fn)(CLI::App&)) -> int
 {
     try
