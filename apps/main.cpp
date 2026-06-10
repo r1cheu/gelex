@@ -23,6 +23,7 @@
 
 #include "cli/assoc/args.h"
 #include "cli/cli_helper.h"
+#include "cli/color_formatter.h"
 #include "cli/grm/args.h"
 #include "cli/mcmc/args.h"
 #include "cli/post/args.h"

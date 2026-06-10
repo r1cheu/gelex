@@ -31,7 +31,6 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
     auto* subcommand = program.add_subcommand("mcmc");
     auto& cmd = *subcommand;
 
-    cmd.formatter(cli::make_cli_formatter());
     cmd.description(
         "Fit genomic prediction models using MCMC (Gibbs sampling)");
 

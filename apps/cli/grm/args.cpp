@@ -29,7 +29,6 @@ auto setup_grm_command(CLI::App& program, int& exit_code) -> void
     auto* subcommand = program.add_subcommand("grm");
     auto& cmd = *subcommand;
 
-    cmd.formatter(cli::make_cli_formatter());
     cmd.description(
         "Compute genomic relationship matrix (GRM) from PLINK "
         "binary files and output in GCTA format");

@@ -28,7 +28,6 @@ auto setup_simulate_command(CLI::App& program, int& exit_code) -> void
     auto* subcommand = program.add_subcommand("simulate");
     auto& cmd = *subcommand;
 
-    cmd.formatter(cli::make_cli_formatter());
     cmd.description(
         "Simulate phenotypes based on genetic data and specified parameters");
 

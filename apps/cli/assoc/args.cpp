@@ -31,7 +31,6 @@ auto setup_assoc_command(CLI::App& program, int& exit_code) -> void
     auto* subcommand = program.add_subcommand("assoc");
     auto& cmd = *subcommand;
 
-    cmd.formatter(cli::make_cli_formatter());
     cmd.description(
         "Perform genome-wide association study using mixed linear model");
 

@@ -22,8 +22,6 @@
 #include <cstdio>
 #include <exception>
 #include <iostream>
-#include <memory>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -53,70 +51,7 @@ namespace cli
 namespace
 {
 
-constexpr std::string_view RESET = "\033[0m";
-constexpr std::string_view BOLD = "\033[1m";
-constexpr std::string_view GREEN = "\033[32m";
-constexpr std::string_view CYAN = "\033[36m";
-constexpr std::string_view YELLOW = "\033[33m";
 constexpr std::string_view ERROR_MARKER = "[\033[31merror\033[0m] ";
-
-auto colored(std::string text, std::string_view color) -> std::string
-{
-    if (text.empty() || !is_tty())
-    {
-        return text;
-    }
-    return std::string{color} + text + std::string{RESET};
-}
-
-class ColorFormatter : public CLI::Formatter
-{
-   public:
-    auto make_group(
-        std::string group,
-        bool is_positional,
-        std::vector<const CLI::Option*> options) const -> std::string override
-    {
-        return CLI::Formatter::make_group(
-            colored(std::move(group), std::string{BOLD} + std::string{GREEN}),
-            is_positional,
-            std::move(options));
-    }
-
-    auto make_option_name(const CLI::Option* option, bool is_positional) const
-        -> std::string override
-    {
-        return colored(
-            CLI::Formatter::make_option_name(option, is_positional), CYAN);
-    }
-
-    auto make_option_opts(const CLI::Option* option) const
-        -> std::string override
-    {
-        return colored(CLI::Formatter::make_option_opts(option), YELLOW);
-    }
-
-    auto make_footer(const CLI::App* app) const -> std::string override
-    {
-        std::istringstream lines(app->get_footer());
-        std::ostringstream out;
-        std::string line;
-        while (std::getline(lines, line))
-        {
-            if (line.ends_with(':'))
-            {
-                out << colored(
-                    std::move(line), std::string{BOLD} + std::string{GREEN});
-            }
-            else
-            {
-                out << line;
-            }
-            out << '\n';
-        }
-        return out.str();
-    }
-};
 
 }  // namespace
 
@@ -226,13 +161,6 @@ Found a Bug or Have a Feature Request?
 
 For more information, see the documentation at: https://github.com/r1cheu/gelex
 )";
-}
-
-auto make_cli_formatter() -> std::shared_ptr<CLI::FormatterBase>
-{
-    auto formatter = std::make_shared<ColorFormatter>();
-    formatter->enable_footer_formatting(false);
-    return formatter;
 }
 
 auto execute_cli_command(CLI::App& parser, int (*execute_fn)(CLI::App&)) -> int

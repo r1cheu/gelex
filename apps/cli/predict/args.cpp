@@ -26,7 +26,6 @@ auto setup_predict_command(CLI::App& program, int& exit_code) -> void
     auto* subcommand = program.add_subcommand("predict");
     auto& cmd = *subcommand;
 
-    cmd.formatter(cli::make_cli_formatter());
     cmd.description("Generate genomic predictions using fitted SNP effects");
 
     cmd.add_option("-b,--bfile", "PLINK binary prefix (.bed/.bim/.fam)")

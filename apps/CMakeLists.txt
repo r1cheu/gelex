@@ -36,6 +36,7 @@ set(CLI_SOURCES
     cli/grm_pipe_reporter.cpp
     cli/data_pipe_config.cpp
     cli/cli_helper.cpp
+    cli/color_formatter.cpp
     cli/bayes_recipe_options.cpp)
 
 add_executable(gelex_cli ${CLI_SOURCES})

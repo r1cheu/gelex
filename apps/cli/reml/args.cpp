@@ -30,7 +30,6 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
     auto* subcommand = program.add_subcommand("reml");
     auto& cmd = *subcommand;
 
-    cmd.formatter(cli::make_cli_formatter());
     cmd.description(
         "Perform REML variance component estimation using average information "
         "algorithm");

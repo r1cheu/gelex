@@ -17,7 +17,6 @@
 #ifndef APPS_CLI_CLI_HELPER_H_
 #define APPS_CLI_CLI_HELPER_H_
 
-#include <memory>
 #include <string_view>
 #include <vector>
 
@@ -30,7 +29,6 @@
 namespace CLI
 {
 class App;
-class FormatterBase;
 }  // namespace CLI
 
 namespace cli
@@ -46,8 +44,6 @@ auto is_tty() -> bool;
 auto setup_parallelization(int num_threads) -> void;
 
 auto print_gelex_banner_message(std::string_view version) -> void;
-
-auto make_cli_formatter() -> std::shared_ptr<CLI::FormatterBase>;
 
 auto execute_cli_command(CLI::App& parser, int (*execute_fn)(CLI::App&)) -> int;
 

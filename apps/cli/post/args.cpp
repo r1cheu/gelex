@@ -28,7 +28,6 @@ auto setup_post_command(CLI::App& program, int& exit_code) -> void
     auto* subcommand = program.add_subcommand("post");
     auto& cmd = *subcommand;
 
-    cmd.formatter(cli::make_cli_formatter());
     cmd.description(
         "MCMC posterior analysis: diagnostics (ESS, R-hat, HPDI) from mcmc "
         "output");
