@@ -177,7 +177,7 @@ auto AssocEngine::run(
                 {
                     const auto& random = state.random()[i];
                     r.random.push_back(
-                        {.name = model.random()[i].term_name,
+                        {.name = model.random()[i].name,
                          .variance = random.variance,
                          .variance_ratio = random.variance_ratio});
                 }

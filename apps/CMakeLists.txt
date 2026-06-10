@@ -26,6 +26,7 @@ set(CLI_SOURCES
     cli/post/reporter.cpp
     cli/reml/args.cpp
     cli/reml/command.cpp
+    cli/reml/reporter.cpp
     cli/report_printer.cpp
     cli/fit_reporter.cpp
     cli/reml_reporter.cpp

@@ -52,12 +52,6 @@ auto setup_reml_args(argparse::ArgumentParser& cmd) -> void
         .help("Phenotype column index (0-based)")
         .default_value(2)
         .scan<'i', int>();
-    cmd.add_argument("--geno-method", "--gm")
-        .help(
-            "Genotype processing: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC "
-            "(prefix: O=orth, N=NOIA; suffix: H=HWE-based)")
-        .default_value(std::string("OCH"))
-        .metavar("<STR>");
 
     cmd.add_group("REML");
     cmd.add_argument("--max-iter")

@@ -111,10 +111,10 @@ auto make_grm_designs(
     grm_designs.reserve(prefixes.size());
     for (const auto& prefix : prefixes)
     {
-        auto term_name = prefix;
-        auto K = read_grm(term_name, &index);
+        auto name = prefix;
+        auto K = read_grm(name, &index);
         grm_designs.emplace_back(
-            term_name, std::nullopt, std::nullopt, std::move(K));
+            name, std::nullopt, std::nullopt, std::move(K));
     }
     return grm_designs;
 }

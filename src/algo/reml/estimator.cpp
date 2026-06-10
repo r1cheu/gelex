@@ -71,7 +71,7 @@ auto Estimator::fit(
         for (size_t i = 0; i < state.random().size(); ++i)
         {
             const auto& r = state.random()[i];
-            labels.push_back(fmt::format("V({})", model.random()[i].term_name));
+            labels.push_back(fmt::format("V({})", model.random()[i].name));
             variances.push_back(r.variance);
         }
         labels.emplace_back("V(e)");

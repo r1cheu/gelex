@@ -105,7 +105,7 @@ TEST_CASE(
     auto designs = gelex::make_random_designs(frame);
 
     REQUIRE(designs.size() == 2);
-    REQUIRE(designs[0].term_name == "sex");
+    REQUIRE(designs[0].name == "sex");
     REQUIRE(designs[0].levels.has_value());
     const auto& sex_levels = *designs[0].levels;
     REQUIRE(sex_levels.size() == 2);
@@ -116,7 +116,7 @@ TEST_CASE(
         {1.0, 0.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 1.0, 1.0}};
     REQUIRE(designs[0].K.isApprox(expected_sex));
 
-    REQUIRE(designs[1].term_name == "batch");
+    REQUIRE(designs[1].name == "batch");
     REQUIRE(designs[1].levels.has_value());
     const auto& batch_levels = *designs[1].levels;
     REQUIRE(batch_levels.size() == 2);

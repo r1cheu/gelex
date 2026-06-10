@@ -14,24 +14,35 @@
  * limitations under the License.
  */
 
-#include "gelex/freq/design.h"
+#ifndef GELEX_IO_REML_H_
+#define GELEX_IO_REML_H_
 
-#include <Eigen/Core>
+#include <span>
+#include <string>
+#include <string_view>
 
-#include "gelex/types/fixed_designs.h"
-
-namespace gelex::freq
+namespace gelex
 {
 
-FixedState::FixedState(const gelex::FixedDesign& design)
-    : coeffs(Eigen::VectorXd::Zero(design.X.cols())),
-      se(Eigen::VectorXd::Zero(design.X.cols()))
-{
-}
+class FreqModel;
+class FreqState;
 
-RandomState::RandomState(const RandomDesign& design)
-    : blup(Eigen::VectorXd::Zero(design.K.rows()))
+namespace reml
 {
-}
 
-}  // namespace gelex::freq
+auto write_summary(
+    const FreqModel& model,
+    const FreqState& state,
+    std::string_view prefix) -> void;
+
+auto write_effects(
+    const FreqModel& model,
+    const FreqState& state,
+    std::span<const std::string> sample_ids,
+    std::string_view prefix) -> void;
+
+}  // namespace reml
+
+}  // namespace gelex
+
+#endif  // GELEX_IO_REML_H_

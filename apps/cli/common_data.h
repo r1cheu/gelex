@@ -39,6 +39,7 @@ struct BaseData
 {
     Eigen::VectorXd phenotype;
     gelex::FixedDesign fixed_design;
+    std::vector<std::string> sample_ids;
 };
 
 template <typename T>
@@ -99,8 +100,9 @@ auto load_base_data(Handler& handler, argparse::ArgumentParser& cmd) -> BaseData
 
     if (!qcovar && !dcovar)
     {
-        fixed_design
-            = std::make_optional(gelex::FixedDesign::make(common_index.size()));
+        fixed_design = std::make_optional(
+            gelex::FixedDesign::make(
+                static_cast<Eigen::Index>(common_index.size())));
     }
     else
     {
@@ -116,6 +118,7 @@ auto load_base_data(Handler& handler, argparse::ArgumentParser& cmd) -> BaseData
     return BaseData{
         .phenotype = phenotype.col(0).to_mat<double>(),
         .fixed_design = std::move(*fixed_design),
+        .sample_ids = std::move(common_index).take_keys(),
     };
 }
 

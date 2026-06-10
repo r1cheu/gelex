@@ -16,20 +16,26 @@
 
 #include "command.h"
 
-#include <argparse.h>
+#include <iterator>
 #include <optional>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include <argparse.h>
 
 #include "cli/cli_helper.h"
 #include "cli/common_data.h"
 #include "cli/data_pipe_config.h"
-#include "cli/reml_reporter.h"
 #include "gelex/algo/reml/estimator.h"
 #include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/reader.h"
 #include "gelex/freq/design.h"
 #include "gelex/freq/model.h"
+#include "gelex/io/reml.h"
 #include "gelex/types/fixed_designs.h"
+#include "reporter.h"
 
 class RemlDataHandler
 {
@@ -87,7 +93,20 @@ auto reml_execute(argparse::ArgumentParser& cmd) -> int
     int threads = cmd.get<int>("--threads");
     gelex::cli::setup_parallelization(threads);
 
-    gelex::cli::RemlReporter reporter;
+    cli::RemlCommandReporter reporter;
+    reporter.show_banner();
+    reporter.show_config(
+        cli::RemlConfigSummary{
+            .pheno_path = cmd.get<std::string>("--pheno"),
+            .pheno_col = cmd.get<int>("--pheno-col"),
+            .grm_prefixes = cmd.get<std::vector<std::string>>("--grm"),
+            .has_qcovar = cmd.is_used("--qcovar"),
+            .has_dcovar = cmd.is_used("--dcovar"),
+            .has_rand = cmd.is_used("--rand"),
+            .max_iter = cmd.get<int>("--max-iter"),
+            .tol = cmd.get<double>("--tol"),
+            .threads = threads,
+        });
 
     RemlDataHandler handler;
     cli::BaseData data = cli::load_base_data(handler, cmd);
@@ -104,6 +123,10 @@ auto reml_execute(argparse::ArgumentParser& cmd) -> int
 
     gelex::FreqState state(model);
     estimator.fit(model, state);
+
+    const auto out_prefix = cmd.get<std::string>("--out");
+    gelex::reml::write_summary(model, state, out_prefix);
+    gelex::reml::write_effects(model, state, data.sample_ids, out_prefix);
 
     return 0;
 }

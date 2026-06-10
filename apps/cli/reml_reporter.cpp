@@ -126,7 +126,7 @@ auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
         const auto& r = state.random()[i];
         p.line(
             "  {:12} {:>12.3f} {:>12.3f} {:>15.3f} {:>12.3f}",
-            model.random()[i].term_name,
+            model.random()[i].name,
             r.variance,
             r.variance_se,
             r.variance_ratio,

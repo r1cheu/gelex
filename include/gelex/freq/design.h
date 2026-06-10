@@ -19,37 +19,25 @@
 
 #include <optional>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include <Eigen/Core>
 
-#include <fmt/base.h>
-
 #include "gelex/types/fixed_designs.h"
-
-namespace gelex::infra
-{
-class FieldVisitor;
-}
 
 namespace gelex::freq
 {
 
 struct RandomDesign
 {
-    static constexpr std::string_view name{"random"};
-    std::string term_name;
+    std::string name;
     std::optional<std::vector<std::string>> levels;
     std::optional<Eigen::MatrixXd> Z;  // skip if identity
     Eigen::MatrixXd K;                 // Kernels
-
-    auto visit(infra::FieldVisitor& visitor) const -> void;
 };
 
 struct RandomState
 {
-    static constexpr std::string_view name{"random"};
     explicit RandomState(const RandomDesign& design);
     RandomState() = default;
     Eigen::VectorXd blup;  // sample-level random predictions
@@ -57,28 +45,19 @@ struct RandomState
     double variance_se{};
     double variance_ratio{};
     double variance_ratio_se{};
-
-    auto visit(infra::FieldVisitor& visitor) -> void;
 };
 
 struct FixedState
 {
-    static constexpr std::string_view name{"fixed"};
-
     explicit FixedState(const gelex::FixedDesign& design);
     Eigen::VectorXd coeffs;
     Eigen::VectorXd se;
-
-    auto visit(infra::FieldVisitor& visitor) -> void;
 };
 
 struct ResidualState
 {
-    static constexpr std::string_view name{"residual"};
     double variance{};
     double variance_se{};
-
-    auto visit(infra::FieldVisitor& visitor) -> void;
 };
 
 }  // namespace gelex::freq

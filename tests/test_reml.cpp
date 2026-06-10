@@ -71,7 +71,7 @@ auto build_model(const RemlProblem& problem) -> std::pair<FreqModel, FreqState>
     fixed.X = problem.X;
 
     std::vector<freq::RandomDesign> random;
-    random.push_back({.term_name = "grm", .K = problem.K});
+    random.push_back({.name = "grm", .K = problem.K});
 
     FreqModel model(problem.y, std::move(fixed), std::move(random));
     FreqState state(model);
