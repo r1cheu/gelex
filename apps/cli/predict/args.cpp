@@ -54,8 +54,6 @@ auto setup_predict_command(CLI::App& program, int& exit_code) -> void
         ->default_val(10000);
 
     cmd.footer(
-        "Example:\n"
-        "  gelex predict -b geno -g model -o pred.tsv\n\n"
         "Docs:\n"
         "  https://gelex.readthedocs.io/en/latest/cli/predict.html");
 

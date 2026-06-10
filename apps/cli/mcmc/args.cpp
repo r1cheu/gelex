@@ -155,8 +155,6 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
         ->group("Runtime");
 
     cmd.footer(
-        "Example:\n"
-        "  gelex mcmc -p pheno.tsv -b geno -m R --mode AD\n\n"
         "Docs:\n"
         "  https://gelex.readthedocs.io/en/latest/cli/mcmc.html");
 

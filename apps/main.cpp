@@ -70,6 +70,13 @@ auto main(int argc, char* argv[]) -> int
     {
         if (err.get_exit_code() == 0)
         {
+            if (argc > 1
+                && (std::string_view{argv[1]} == "-h"
+                    || std::string_view{argv[1]} == "--help"))
+            {
+                cli::print_gelex_banner_message(PROJECT_VERSION);
+                std::cout << "\n";
+            }
             return program.exit(err);
         }
 

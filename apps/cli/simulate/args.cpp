@@ -88,8 +88,6 @@ auto setup_simulate_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option("--seed", "Random seed")->group("Runtime")->default_val(42);
 
     cmd.footer(
-        "Example:\n"
-        "  gelex simulate -b geno\n\n"
         "Docs:\n"
         "  https://gelex.readthedocs.io/en/latest/cli/simulate.html");
 

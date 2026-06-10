@@ -67,8 +67,6 @@ auto setup_grm_command(CLI::App& program, int& exit_code) -> void
             static_cast<int>(std::thread::hardware_concurrency() / 2));
 
     cmd.footer(
-        "Example:\n"
-        "  gelex grm -b geno --add\n\n"
         "Docs:\n"
         "  https://gelex.readthedocs.io/en/latest/cli/grm.html");
 

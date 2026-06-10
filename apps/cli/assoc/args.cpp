@@ -116,8 +116,6 @@ auto setup_assoc_command(CLI::App& program, int& exit_code) -> void
                 1, static_cast<int>(std::thread::hardware_concurrency() / 2)));
 
     cmd.footer(
-        "Example:\n"
-        "  gelex assoc -p pheno.tsv -b geno --grm grm_prefix\n\n"
         "Docs:\n"
         "  https://gelex.readthedocs.io/en/latest/cli/assoc.html");
 
