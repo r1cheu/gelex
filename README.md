@@ -95,5 +95,5 @@ Gelex utilizes several libraries:
 
 - **[Eigen](https://eigen.tuxfamily.org/)**: Eigen is a C++ template library for linear algebra: matrices, vectors, numerical solvers, and related algorithms.
 - **[barkeep](https://github.com/proclab/barkeep)**: Small, single C++ header to display async animations, counters, and progress bars.
-- **[argparse](https://github.com/p-ranav/argparse)**: Argument parser for modern C++.
+- **[CLI11](https://github.com/CLIUtils/CLI11)**: Command line parser for modern C++.
 - **[mio](https://github.com/mandreyel/mio)**: An easy to use header-only cross-platform C++11 memory mapping library with an MIT license.

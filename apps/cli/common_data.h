@@ -23,7 +23,7 @@
 #include <utility>
 #include <vector>
 
-#include <argparse.h>
+#include <CLI/CLI.hpp>
 #include <Eigen/Core>
 
 #include "gelex/data/covariates.h"
@@ -45,7 +45,7 @@ struct BaseData
 template <typename T>
 concept SubcommandDataHandler = requires(
     T& handler,
-    argparse::ArgumentParser& cmd,
+    CLI::App& cmd,
     std::vector<gelex::dataframe::Index<std::string>*>& indices,
     const gelex::dataframe::Index<std::string>& common_index) {
     handler.load_indices(cmd, indices);
@@ -54,31 +54,34 @@ concept SubcommandDataHandler = requires(
 };
 
 template <SubcommandDataHandler Handler>
-auto load_base_data(Handler& handler, argparse::ArgumentParser& cmd) -> BaseData
+auto load_base_data(Handler& handler, CLI::App& cmd) -> BaseData
 {
     std::vector<gelex::dataframe::Index<std::string>*> indices;
 
     // read dataset
-    auto pheno_col = cmd.get<int>("--pheno-col");
+    auto pheno_col = cmd.get_option("--pheno-col")->as<int>();
     if (pheno_col < 2)
     {
         throw gelex::GelexException("--pheno-col must be >= 2");
     }
     auto pheno_col_offset = static_cast<std::size_t>(pheno_col - 2);
-    auto phenotype = gelex::read_pheno(cmd.get("--pheno"), &pheno_col_offset);
+    auto phenotype = gelex::read_pheno(
+        cmd.get_option("--pheno")->as<std::string>(), &pheno_col_offset);
     indices.push_back(&phenotype.index());
 
     std::optional<gelex::dataframe::DataFrame<std::string>> qcovar;
     std::optional<gelex::dataframe::DataFrame<std::string>> dcovar;
     std::optional<gelex::dataframe::DataFrame<std::string>> rand;
-    if (cmd.is_used("--qcovar"))
+    if (cmd.get_option("--qcovar")->count() > 0)
     {
-        qcovar = std::make_optional(gelex::read_qcovar(cmd.get("--qcovar")));
+        qcovar = std::make_optional(
+            gelex::read_qcovar(cmd.get_option("--qcovar")->as<std::string>()));
         indices.push_back(&qcovar->index());
     }
-    if (cmd.is_used("--dcovar"))
+    if (cmd.get_option("--dcovar")->count() > 0)
     {
-        dcovar = std::make_optional(gelex::read_dcovar(cmd.get("--dcovar")));
+        dcovar = std::make_optional(
+            gelex::read_dcovar(cmd.get_option("--dcovar")->as<std::string>()));
         indices.push_back(&dcovar->index());
     }
     handler.load_indices(cmd, indices);

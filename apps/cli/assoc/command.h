@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_ASSOC_COMMAND_H_
-#define GELEX_CLI_ASSOC_COMMAND_H_
+#ifndef APPS_CLI_ASSOC_COMMAND_H_
+#define APPS_CLI_ASSOC_COMMAND_H_
 
-namespace argparse
+namespace CLI
 {
-class ArgumentParser;
+class App;
 }
 
-auto assoc_execute(argparse::ArgumentParser& cmd) -> int;
+auto assoc_execute(CLI::App& cmd) -> int;
 
-#endif  // GELEX_CLI_ASSOC_COMMAND_H_
+#endif  // APPS_CLI_ASSOC_COMMAND_H_

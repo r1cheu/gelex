@@ -14,162 +14,78 @@
  * limitations under the License.
  */
 
-#include <array>
-#include <chrono>
-#include <exception>
 #include <iostream>
 #include <string_view>
 
-#include <argparse.h>
+#include <CLI/CLI.hpp>
 
 #include "version.h"
 
 #include "cli/assoc/args.h"
-#include "cli/assoc/command.h"
 #include "cli/cli_helper.h"
 #include "cli/grm/args.h"
-#include "cli/grm/command.h"
 #include "cli/mcmc/args.h"
-#include "cli/mcmc/command.h"
 #include "cli/post/args.h"
-#include "cli/post/command.h"
 #include "cli/predict/args.h"
-#include "cli/predict/command.h"
 #include "cli/reml/args.h"
-#include "cli/reml/command.h"
-#include "cli/report_printer.h"
 #include "cli/simulate/args.h"
-#include "cli/simulate/command.h"
-#include "gelex/infra/logger.h"
-#include "gelex/infra/logging/formatter.h"
 
 namespace
 {
 constexpr std::string_view ERROR_MARKER = "[\033[31merror\033[0m] ";
 }  // namespace
 
-struct CommandDescriptor
-{
-    std::string_view name;
-    argparse::ArgumentParser* parser;
-    void (*setup_fn)(argparse::ArgumentParser&);
-    int (*execute_fn)(argparse::ArgumentParser&);
-};
-
-auto execute_command(
-    argparse::ArgumentParser& parser,
-    int (*execute_fn)(argparse::ArgumentParser&)) -> int
-{
-    try
-    {
-        gelex::logging::initialize(parser.get("--out"));
-        auto start = std::chrono::steady_clock::now();
-        auto result = execute_fn(parser);
-        auto elapsed = std::chrono::duration<double>(
-                           std::chrono::steady_clock::now() - start)
-                           .count();
-        if (gelex::logging::get())
-        {
-            gelex::cli::printer().block(gelex::done_message(elapsed));
-        }
-        return result;
-    }
-    catch (const std::exception& e)
-    {
-        auto logger = gelex::logging::get();
-        if (logger)
-        {
-            logger->error("{}", e.what());
-        }
-        else
-        {
-            std::cerr << ERROR_MARKER << e.what() << "\n";
-        }
-        return 1;
-    }
-    catch (...)
-    {
-        auto logger = gelex::logging::get();
-        if (logger)
-        {
-            logger->error("unknown exception");
-        }
-        else
-        {
-            std::cerr << ERROR_MARKER << "unknown exception\n";
-        }
-        return 1;
-    }
-}
-
 auto main(int argc, char* argv[]) -> int
 {
-    argparse::ArgumentParser program(PROJECT_NAME, PROJECT_VERSION);
-    argparse::ArgumentParser mcmc("mcmc");
-    argparse::ArgumentParser simulate("simulate");
-    argparse::ArgumentParser predict("predict");
-    argparse::ArgumentParser grm("grm");
-    argparse::ArgumentParser assoc("assoc");
-    argparse::ArgumentParser post("post");
-    argparse::ArgumentParser reml("reml");
+    CLI::App program{
+        "High-Performance Genomic Prediction with Bayesian and Frequentist "
+        "Models",
+        PROJECT_NAME};
+    program.formatter(cli::make_cli_formatter());
+    program.set_version_flag("-v,--version", PROJECT_VERSION);
+    program.require_subcommand(1);
 
-    const std::array commands
-        = {CommandDescriptor{"mcmc", &mcmc, setup_mcmc_args, mcmc_execute},
-           CommandDescriptor{
-               "simulate", &simulate, setup_simulate_args, simulate_execute},
-           CommandDescriptor{
-               "predict", &predict, setup_predict_args, predict_execute},
-           CommandDescriptor{"grm", &grm, setup_grm_args, grm_execute},
-           CommandDescriptor{"assoc", &assoc, setup_assoc_args, assoc_execute},
-           CommandDescriptor{"post", &post, setup_post_args, post_execute},
-           CommandDescriptor{"reml", &reml, setup_reml_args, reml_execute}};
-
-    for (const auto& cmd : commands)
-    {
-        cmd.setup_fn(*cmd.parser);
-        program.add_subparser(*cmd.parser);
-    }
+    int exit_code = 0;
+    setup_mcmc_command(program, exit_code);
+    setup_simulate_command(program, exit_code);
+    setup_predict_command(program, exit_code);
+    setup_grm_command(program, exit_code);
+    setup_assoc_command(program, exit_code);
+    setup_post_command(program, exit_code);
+    setup_reml_command(program, exit_code);
 
     if (argc <= 1)
     {
-        gelex::cli::print_gelex_banner_message(PROJECT_VERSION);
-        std::cerr << "\n" << program;
+        cli::print_gelex_banner_message(PROJECT_VERSION);
+        std::cerr << "\n" << program.help();
         return 1;
     }
 
     try
     {
-        program.parse_args(argc, argv);
+        program.parse(argc, argv);
     }
-    catch (const std::exception& err)
+    catch (const CLI::ParseError& err)
     {
+        if (err.get_exit_code() == 0)
+        {
+            return program.exit(err);
+        }
+
         std::cerr << ERROR_MARKER << err.what() << "\n";
 
-        bool found = false;
-        for (const auto& cmd : commands)
+        if (argc > 1)
         {
-            if (program.is_subcommand_used(cmd.name))
+            auto* subcommand = program.get_subcommand_no_throw(argv[1]);
+            if (subcommand != nullptr)
             {
-                std::cerr << *cmd.parser;
-                found = true;
-                break;
+                std::cerr << subcommand->help();
+                return 1;
             }
         }
-        if (!found)
-        {
-            std::cerr << program;
-        }
+        std::cerr << program.help();
         return 1;
     }
 
-    for (const auto& cmd : commands)
-    {
-        if (program.is_subcommand_used(cmd.name))
-        {
-            return execute_command(*cmd.parser, cmd.execute_fn);
-        }
-    }
-
-    std::cerr << program;
-    return 1;
+    return exit_code;
 }

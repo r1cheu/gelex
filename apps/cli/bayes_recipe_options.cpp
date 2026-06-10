@@ -25,8 +25,8 @@
 #include <utility>
 #include <vector>
 
-#include <argparse.h>
 #include <fmt/format.h>
+#include <CLI/CLI.hpp>
 
 #include "cli/cli_helper.h"
 #include "gelex/bayes/recipe.h"
@@ -35,33 +35,36 @@
 #include "gelex/types/constrained_vector.h"
 #include "gelex/types/genetic_effect_type.h"
 
-namespace gelex::cli
+namespace cli
 {
 
 namespace
 {
 
-auto has_mode(std::span<const GeneticMode> modes, GeneticMode mode) -> bool
+auto has_mode(
+    std::span<const gelex::GeneticMode> modes,
+    gelex::GeneticMode mode) -> bool
 {
     return std::ranges::any_of(
-        modes, [mode](GeneticMode candidate) { return candidate == mode; });
+        modes,
+        [mode](gelex::GeneticMode candidate) { return candidate == mode; });
 }
 
 template <typename T, typename Raw = T>
-auto get_optional(const argparse::ArgumentParser& cmd, std::string_view arg)
-    -> std::optional<T>
+auto get_optional(const CLI::App& cmd, std::string_view arg) -> std::optional<T>
 {
-    if (!cmd.is_used(arg))
+    auto* option = cmd.get_option(std::string{arg});
+    if (option->count() == 0)
     {
         return std::nullopt;
     }
-    return T{cmd.get<Raw>(arg)};
+    return T{option->as<Raw>()};
 }
 
 auto reject_effect_flags_without_mode(
-    const argparse::ArgumentParser& cmd,
-    std::span<const GeneticMode> modes,
-    GeneticMode mode,
+    const CLI::App& cmd,
+    std::span<const gelex::GeneticMode> modes,
+    gelex::GeneticMode mode,
     std::span<const std::string_view> flags) -> void
 {
     if (has_mode(modes, mode))
@@ -70,17 +73,17 @@ auto reject_effect_flags_without_mode(
     }
     for (const auto flag : flags)
     {
-        if (cmd.is_used(flag))
+        if (cmd.get_option(std::string{flag})->count() > 0)
         {
-            throw GelexException(
+            throw gelex::GelexException(
                 fmt::format("{} requires --mode to include {}", flag, mode));
         }
     }
 }
 
 auto reject_effect_flags_without_mode(
-    const argparse::ArgumentParser& cmd,
-    std::span<const GeneticMode> modes) -> void
+    const CLI::App& cmd,
+    std::span<const gelex::GeneticMode> modes) -> void
 {
     constexpr std::array ADDITIVE_FLAGS
         = {std::string_view{"--h2"},
@@ -95,22 +98,23 @@ auto reject_effect_flags_without_mode(
            std::string_view{"--sample-dpi"}};
 
     reject_effect_flags_without_mode(
-        cmd, modes, GeneticMode::A, ADDITIVE_FLAGS);
+        cmd, modes, gelex::GeneticMode::A, ADDITIVE_FLAGS);
     reject_effect_flags_without_mode(
-        cmd, modes, GeneticMode::D, DOMINANCE_FLAGS);
+        cmd, modes, gelex::GeneticMode::D, DOMINANCE_FLAGS);
 }
 
 }  // namespace
 
-auto make_bayes_recipe_options(const argparse::ArgumentParser& cmd)
-    -> bayes::BayesRecipeOptions
+auto make_bayes_recipe_options(const CLI::App& cmd)
+    -> gelex::bayes::BayesRecipeOptions
 {
-    auto modes = parse_genetic_modes(cmd.get<std::string>("--mode"));
+    auto modes
+        = parse_genetic_modes(cmd.get_option("--mode")->as<std::string>());
     reject_effect_flags_without_mode(cmd, modes);
 
-    return bayes::BayesRecipeOptions{
-        .scheme
-        = bayes::to_bayes_recipe_scheme(cmd.get<std::string>("--method")),
+    return gelex::bayes::BayesRecipeOptions{
+        .scheme = gelex::bayes::to_bayes_recipe_scheme(
+            cmd.get_option("--method")->as<std::string>()),
         .modes = std::move(modes),
         .additive_heritability
         = get_optional<gelex::OpenUnitInterval<double>, double>(cmd, "--h2"),
@@ -143,4 +147,4 @@ auto make_bayes_recipe_options(const argparse::ArgumentParser& cmd)
     };
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

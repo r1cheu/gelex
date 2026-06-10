@@ -27,16 +27,17 @@
 #include "gelex/infra/logging/post_event.h"
 #include "version.h"
 
-namespace gelex::cli
+namespace cli
 {
 
-auto PostReporter::on_event(const PostBannerEvent& /*event*/) const -> void
+auto PostReporter::on_event(const gelex::PostBannerEvent& /*event*/) const
+    -> void
 {
     cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "MCMC Posterior Analysis"));
 }
 
-auto PostReporter::on_event(const PostStartEvent& event) const -> void
+auto PostReporter::on_event(const gelex::PostStartEvent& event) const -> void
 {
     const auto n_chains = static_cast<Eigen::Index>(event.in_prefixes.size());
     std::string input_str
@@ -48,7 +49,8 @@ auto PostReporter::on_event(const PostStartEvent& event) const -> void
     cli::printer().line("  {:<12}: {}", "Input", input_str);
 }
 
-auto PostReporter::on_event(const DiagnosticsReadyEvent& event) const -> void
+auto PostReporter::on_event(const gelex::DiagnosticsReadyEvent& event) const
+    -> void
 {
     auto section_order = [](const std::string& section) -> int
     {
@@ -126,4 +128,4 @@ auto PostReporter::on_event(const DiagnosticsReadyEvent& event) const -> void
     p.line(gelex::table_separator(TABLE_WIDTH));
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

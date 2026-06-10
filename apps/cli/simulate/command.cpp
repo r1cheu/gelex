@@ -16,20 +16,20 @@
 
 #include "command.h"
 
-#include <argparse.h>
-
 #include <optional>
 #include <utility>
+
+#include <CLI/CLI.hpp>
 
 #include "config.h"
 #include "gelex/engine/simulation.h"
 #include "gelex/infra/logging/simulate_event.h"
 #include "reporter.h"
 
-auto simulate_execute(argparse::ArgumentParser& sim) -> int
+auto simulate_execute(CLI::App& sim) -> int
 {
-    auto config = gelex::cli::make_simulate_config(sim);
-    gelex::cli::SimulatorReporter reporter;
+    auto config = cli::make_simulate_config(sim);
+    cli::SimulatorReporter reporter;
 
     reporter.on_event(gelex::SimulateBannerEvent{});
     reporter.on_event(

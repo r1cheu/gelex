@@ -14,29 +14,29 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_PHENO_REPORTER_H_
-#define GELEX_CLI_PHENO_REPORTER_H_
+#ifndef APPS_CLI_PHENO_REPORTER_H_
+#define APPS_CLI_PHENO_REPORTER_H_
 
 #include <variant>
 
 #include "gelex/infra/logging/pheno_event.h"
 
-namespace gelex::cli
+namespace cli
 {
 
 class PhenoReporter
 {
    public:
-    auto on_event(const PhenotypeLoadedEvent& event) const -> void;
-    auto on_event(const CovariatesLoadedEvent& event) const -> void;
+    auto on_event(const gelex::PhenotypeLoadedEvent& event) const -> void;
+    auto on_event(const gelex::CovariatesLoadedEvent& event) const -> void;
 
-    auto as_observer() -> PhenoObserver
+    auto as_observer() -> gelex::PhenoObserver
     {
-        return [this](const PhenoEvent& e)
+        return [this](const gelex::PhenoEvent& e)
         { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
     }
 };
 
-}  // namespace gelex::cli
+}  // namespace cli
 
-#endif  // GELEX_CLI_PHENO_REPORTER_H_
+#endif  // APPS_CLI_PHENO_REPORTER_H_

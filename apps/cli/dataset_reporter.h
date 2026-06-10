@@ -14,29 +14,29 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_DATASET_REPORTER_H_
-#define GELEX_CLI_DATASET_REPORTER_H_
+#ifndef APPS_CLI_DATASET_REPORTER_H_
+#define APPS_CLI_DATASET_REPORTER_H_
 
 #include <variant>
 
 #include "gelex/infra/logging/dataset_event.h"
 
-namespace gelex::cli
+namespace cli
 {
 
 class DatasetReporter
 {
    public:
-    auto on_event(const DatasetSectionEvent& event) const -> void;
-    auto on_event(const IntersectionEvent& event) const -> void;
+    auto on_event(const gelex::DatasetSectionEvent& event) const -> void;
+    auto on_event(const gelex::IntersectionEvent& event) const -> void;
 
-    auto as_observer() -> DatasetObserver
+    auto as_observer() -> gelex::DatasetObserver
     {
-        return [this](const DatasetEvent& e)
+        return [this](const gelex::DatasetEvent& e)
         { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
     }
 };
 
-}  // namespace gelex::cli
+}  // namespace cli
 
-#endif  // GELEX_CLI_DATASET_REPORTER_H_
+#endif  // APPS_CLI_DATASET_REPORTER_H_

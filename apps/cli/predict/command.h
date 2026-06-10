@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_PREDICT_COMMAND_H_
-#define GELEX_CLI_PREDICT_COMMAND_H_
+#ifndef APPS_CLI_PREDICT_COMMAND_H_
+#define APPS_CLI_PREDICT_COMMAND_H_
 
-namespace argparse
+namespace CLI
 {
-class ArgumentParser;
+class App;
 }
 
-int predict_execute(argparse::ArgumentParser& predict);
+auto predict_execute(CLI::App& predict) -> int;
 
-#endif  // GELEX_CLI_PREDICT_COMMAND_H_
+#endif  // APPS_CLI_PREDICT_COMMAND_H_

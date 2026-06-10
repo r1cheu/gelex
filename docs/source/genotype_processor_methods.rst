@@ -11,7 +11,8 @@ What ``--geno-method`` Changes
 
 - The way genotype values are transformed before GRM calculation.
 - Whether values are only centered or also standardized.
-- Whether summary statistics come from sample data or HWE assumptions.
+- Whether summary statistics come from sample data, genotype frequencies, or
+  HWE assumptions.
 
 In practice, this affects:
 
@@ -43,6 +44,8 @@ If you are unsure, use ``OrthStandardizeHWE`` (default for GRM and fit). You can
 - Use orthogonal methods (``OrthStandardizeHWE``, ``OrthCenterHWE``, ``OrthStandardize``, ``OrthCenter``) when orthogonal dominance coding is required.
 - Use HWE methods (``StandardizeHWE``, ``CenterHWE``, ``OrthStandardizeHWE``, ``OrthCenterHWE``) when you prefer population-genetics expectations.
 - Use sample methods (``Standardize``, ``Center``, ``OrthStandardize``, ``OrthCenter``) for data-driven moments.
+- Use NOIA methods (``NOIAStandardize``, ``NOIACenter``) when additive and
+  dominance columns should be empirically orthogonal in structured samples.
 
 Method Families
 ---------------
@@ -56,6 +59,8 @@ Encoding family:
 
 - non-``orth``: dominant coding ``[0, 1, 0]``
 - ``orth``: dominant coding ``[0, 2p, 4p-2]``
+- ``NOIA``: sample-frequency coding that empirically orthogonalizes additive
+  and dominance columns
 
 Orthogonal vs Non-orthogonal Dominance
 --------------------------------------
@@ -72,6 +77,8 @@ Moment family:
 
 - HWE methods: ``StandardizeHWE``, ``CenterHWE``, ``OrthStandardizeHWE``, ``OrthCenterHWE`` (alias: ``SH``, ``CH``, ``OSH``, ``OCH``): HWE-based expected moments
 - Sample methods: ``Standardize``, ``Center``, ``OrthStandardize``, ``OrthCenter`` (alias: ``S``, ``C``, ``OS``, ``OC``): moments estimated directly from your sample
+- NOIA methods: ``NOIAStandardize``, ``NOIACenter`` (alias: ``NS``, ``NC``):
+  genotype-frequency moments estimated from your sample
 
 Method Matrix (User View)
 -------------------------
@@ -116,6 +123,14 @@ Method Matrix (User View)
      - Orthogonal dominance + sample centering
      - Sample
      - Center
+   * - ``NOIAStandardize`` (``NS``)
+     - Empirical additive-dominance orthogonality + standardization
+     - Sample
+     - Standardize
+   * - ``NOIACenter`` (``NC``)
+     - Empirical additive-dominance orthogonality + centering
+     - Sample
+     - Center
 
 Practical Recommendations
 -------------------------
@@ -128,6 +143,8 @@ Practical Recommendations
 - If comparing with older centered pipelines, use ``CenterHWE`` (alias: ``CH``).
 - Use sample methods (``Standardize``, ``Center``, ``OrthStandardize``, ``OrthCenter``)
   only when you intentionally want sample-dependent centering and variance.
+- Use NOIA methods (``NOIAStandardize``, ``NOIACenter``) when empirical
+  additive-dominance orthogonality matters more than HWE-based moments.
 - Keep method choice fixed across comparable runs to avoid scale mismatch.
 
 Minimal Technical Notes

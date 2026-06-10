@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_REPORT_PRINTER_H_
-#define GELEX_CLI_REPORT_PRINTER_H_
+#ifndef APPS_CLI_REPORT_PRINTER_H_
+#define APPS_CLI_REPORT_PRINTER_H_
 
 #include <string>
 #include <string_view>
@@ -23,7 +23,7 @@
 
 #include <fmt/format.h>
 
-namespace gelex::cli
+namespace cli
 {
 
 // Owns the rule "every block-level output is preceded by exactly one blank
@@ -73,6 +73,6 @@ class ReportPrinter
 
 auto printer() -> ReportPrinter&;
 
-}  // namespace gelex::cli
+}  // namespace cli
 
-#endif  // GELEX_CLI_REPORT_PRINTER_H_
+#endif  // APPS_CLI_REPORT_PRINTER_H_

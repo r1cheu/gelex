@@ -31,10 +31,10 @@
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/types/genetic_effect_type.h"
 
-namespace gelex::cli
+namespace cli
 {
 
-auto FitReporter::on_event(const FitPriorSetEvent& event) const -> void
+auto FitReporter::on_event(const gelex::FitPriorSetEvent& event) const -> void
 {
     cli::printer().block(gelex::section("[Prior Configuration]"));
 
@@ -51,7 +51,8 @@ auto FitReporter::on_event(const FitPriorSetEvent& event) const -> void
     print_residual_prior(prior.residual());
 }
 
-auto FitReporter::on_event(const FitResultsSavedEvent& event) const -> void
+auto FitReporter::on_event(const gelex::FitResultsSavedEvent& event) const
+    -> void
 {
     cli::printer().block(
         gelex::success(
@@ -60,7 +61,7 @@ auto FitReporter::on_event(const FitResultsSavedEvent& event) const -> void
 }
 
 auto FitReporter::print_variance_prior(
-    const bayes::ScaledInvChiSqPrior& prior,
+    const gelex::bayes::ScaledInvChiSqPrior& prior,
     double init_variance) -> void
 {
     cli::printer().line(
@@ -70,13 +71,15 @@ auto FitReporter::print_variance_prior(
         init_variance);
 }
 
-auto FitReporter::print_random_prior(const bayes::RandomPrior& prior) -> void
+auto FitReporter::print_random_prior(const gelex::bayes::RandomPrior& prior)
+    -> void
 {
     cli::printer().line("   Random effect:");
     print_variance_prior(prior.prior(), prior.initial_value());
 }
 
-auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) -> void
+auto FitReporter::print_genetic_prior(const gelex::bayes::GeneticPrior& prior)
+    -> void
 {
     auto format_vec = [](const auto& p)
     {
@@ -99,7 +102,8 @@ auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) -> void
         [&](const auto& genetic_group)
         {
             using Group = std::remove_cvref_t<decltype(genetic_group)>;
-            if constexpr (std::is_same_v<Group, bayes::SingleGeneticPrior>)
+            if constexpr (
+                std::is_same_v<Group, gelex::bayes::SingleGeneticPrior>)
             {
                 std::visit(
                     [&](const auto& genetic)
@@ -127,7 +131,8 @@ auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) -> void
                 std::visit(
                     [&](const auto& genetic)
                     {
-                        for (const auto mode : {GeneticMode::A, GeneticMode::D})
+                        for (const auto mode :
+                             {gelex::GeneticMode::A, gelex::GeneticMode::D})
                         {
                             const auto& parameter
                                 = genetic.variance(mode).parameter();
@@ -142,11 +147,11 @@ auto FitReporter::print_genetic_prior(const bayes::GeneticPrior& prior) -> void
         prior);
 }
 
-auto FitReporter::print_residual_prior(const bayes::ResidualPrior& prior)
+auto FitReporter::print_residual_prior(const gelex::bayes::ResidualPrior& prior)
     -> void
 {
     cli::printer().line("   Residual:");
     print_variance_prior(prior.prior(), prior.initial_value());
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

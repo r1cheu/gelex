@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_FIT_REPORTER_H_
-#define GELEX_CLI_FIT_REPORTER_H_
+#ifndef APPS_CLI_FIT_REPORTER_H_
+#define APPS_CLI_FIT_REPORTER_H_
 
 #include "gelex/infra/logging/fit_event.h"
 
@@ -32,26 +32,29 @@ class ScaledInvChiSqPrior;
 enum class GeneticMode : uint8_t;
 }  // namespace gelex
 
-namespace gelex::cli
+namespace cli
 {
 
 class FitReporter
 {
    public:
-    auto on_event(const FitPriorSetEvent& event) const -> void;
-    auto on_event(const FitResultsSavedEvent& event) const -> void;
+    auto on_event(const gelex::FitPriorSetEvent& event) const -> void;
+    auto on_event(const gelex::FitResultsSavedEvent& event) const -> void;
 
    protected:
     FitReporter() = default;
 
-    static auto print_random_prior(const bayes::RandomPrior& prior) -> void;
-    static auto print_genetic_prior(const bayes::GeneticPrior& prior) -> void;
-    static auto print_residual_prior(const bayes::ResidualPrior& prior) -> void;
+    static auto print_random_prior(const gelex::bayes::RandomPrior& prior)
+        -> void;
+    static auto print_genetic_prior(const gelex::bayes::GeneticPrior& prior)
+        -> void;
+    static auto print_residual_prior(const gelex::bayes::ResidualPrior& prior)
+        -> void;
     static auto print_variance_prior(
-        const bayes::ScaledInvChiSqPrior& prior,
+        const gelex::bayes::ScaledInvChiSqPrior& prior,
         double init_variance) -> void;
 };
 
-}  // namespace gelex::cli
+}  // namespace cli
 
-#endif  // GELEX_CLI_FIT_REPORTER_H_
+#endif  // APPS_CLI_FIT_REPORTER_H_

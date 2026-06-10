@@ -28,16 +28,17 @@
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/types/genetic_effect_type.h"
 
-namespace gelex::cli
+namespace cli
 {
 
-GenoReporter::GenoReporter() : progress_info_(create_progress_info()) {}
+GenoReporter::GenoReporter() : progress_info_(gelex::create_progress_info()) {}
 
-auto GenoReporter::on_event(const GenotypeLoadedEvent& event) const -> void
+auto GenoReporter::on_event(const gelex::GenotypeLoadedEvent& event) const
+    -> void
 {
     const auto effective_snps = event.num_snps - event.monomorphic_snps;
     const std::string label
-        = (event.mode == GeneticMode::D) ? "Dominance" : "Additive";
+        = (event.mode == gelex::GeneticMode::D) ? "Dominance" : "Additive";
     const std::string msg = fmt::format(
         "   {:<13}: {} SNPs ({} monomorphic excluded)",
         label,
@@ -54,12 +55,12 @@ auto GenoReporter::on_event(const GenotypeLoadedEvent& event) const -> void
     }
 }
 
-auto GenoReporter::on_event(const GenotypeProgressEvent& event) -> void
+auto GenoReporter::on_event(const gelex::GenotypeProgressEvent& event) -> void
 {
     if (!init_progress_)
     {
         init_progress_ = true;
-        progress_info_ = create_progress_info();
+        progress_info_ = gelex::create_progress_info();
         progress_info_.display->show();
     }
 
@@ -77,4 +78,4 @@ auto GenoReporter::on_event(const GenotypeProgressEvent& event) -> void
     }
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

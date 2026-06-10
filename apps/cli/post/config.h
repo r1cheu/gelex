@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_POST_CONFIG_H_
-#define GELEX_CLI_POST_CONFIG_H_
+#ifndef APPS_CLI_POST_CONFIG_H_
+#define APPS_CLI_POST_CONFIG_H_
 
 #include <optional>
 #include <string>
 #include <vector>
 
-namespace argparse
+namespace CLI
 {
-class ArgumentParser;
+class App;
 }
 
-namespace gelex::cli
+namespace cli
 {
 
 struct PostConfig
@@ -36,8 +36,8 @@ struct PostConfig
     double hdpi_width;
 };
 
-auto make_post_config(argparse::ArgumentParser& cmd) -> PostConfig;
+auto make_post_config(CLI::App& cmd) -> PostConfig;
 
-}  // namespace gelex::cli
+}  // namespace cli
 
-#endif  // GELEX_CLI_POST_CONFIG_H_
+#endif  // APPS_CLI_POST_CONFIG_H_

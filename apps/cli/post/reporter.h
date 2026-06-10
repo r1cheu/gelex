@@ -14,28 +14,28 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_POST_REPORTER_H_
-#define GELEX_CLI_POST_REPORTER_H_
+#ifndef APPS_CLI_POST_REPORTER_H_
+#define APPS_CLI_POST_REPORTER_H_
 
 #include "gelex/infra/logging/post_event.h"
 
-namespace gelex::cli
+namespace cli
 {
 
 class PostReporter
 {
    public:
-    auto on_event(const PostBannerEvent& event) const -> void;
-    auto on_event(const PostStartEvent& event) const -> void;
-    auto on_event(const DiagnosticsReadyEvent& event) const -> void;
+    auto on_event(const gelex::PostBannerEvent& event) const -> void;
+    auto on_event(const gelex::PostStartEvent& event) const -> void;
+    auto on_event(const gelex::DiagnosticsReadyEvent& event) const -> void;
 
-    auto as_observer() -> PostObserver
+    auto as_observer() -> gelex::PostObserver
     {
-        return [this](const PostEvent& e)
+        return [this](const gelex::PostEvent& e)
         { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
     }
 };
 
-}  // namespace gelex::cli
+}  // namespace cli
 
-#endif  // GELEX_CLI_POST_REPORTER_H_
+#endif  // APPS_CLI_POST_REPORTER_H_

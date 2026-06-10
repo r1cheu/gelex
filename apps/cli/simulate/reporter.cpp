@@ -24,20 +24,20 @@
 #include "gelex/infra/logging/simulate_event.h"
 #include "version.h"
 
-namespace gelex::cli
+namespace cli
 {
 
-SimulatorReporter::SimulatorReporter() : info_(create_progress_info()) {}
+SimulatorReporter::SimulatorReporter() : info_(gelex::create_progress_info()) {}
 
-auto SimulatorReporter::on_event(const SimulateBannerEvent& /*event*/) const
-    -> void
+auto SimulatorReporter::on_event(
+    const gelex::SimulateBannerEvent& /*event*/) const -> void
 {
     cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "Phenotype Simulation"));
 }
 
-auto SimulatorReporter::on_event(const SimulateConfigLoadedEvent& event) const
-    -> void
+auto SimulatorReporter::on_event(
+    const gelex::SimulateConfigLoadedEvent& event) const -> void
 {
     std::string mode_str;
     if (event.add_heritability && event.dom_heritability)
@@ -67,7 +67,7 @@ auto SimulatorReporter::on_event(const SimulateConfigLoadedEvent& event) const
 }
 
 auto SimulatorReporter::on_event(
-    const SimulateVarianceSummaryEvent& event) const -> void
+    const gelex::SimulateVarianceSummaryEvent& event) const -> void
 {
     cli::printer().block(gelex::section("[Realized]"));
     if (event.realized_h2)
@@ -80,7 +80,8 @@ auto SimulatorReporter::on_event(
     }
 }
 
-auto SimulatorReporter::on_event(const SimulateProgressEvent& event) -> void
+auto SimulatorReporter::on_event(const gelex::SimulateProgressEvent& event)
+    -> void
 {
     if (!init_progress_)
     {
@@ -100,4 +101,4 @@ auto SimulatorReporter::on_event(const SimulateProgressEvent& event) -> void
     }
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

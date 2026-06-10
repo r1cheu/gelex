@@ -16,26 +16,26 @@
 
 #include "config.h"
 
-#include <argparse.h>
+#include <CLI/CLI.hpp>
 #include <string>
 #include <vector>
 
-namespace gelex::cli
+namespace cli
 {
 
-auto make_post_config(argparse::ArgumentParser& cmd) -> PostConfig
+auto make_post_config(CLI::App& cmd) -> PostConfig
 {
     auto config = PostConfig{
-        .in_prefixes = cmd.get<std::vector<std::string>>("--in"),
-        .hdpi_width = cmd.get<double>("--hdpi"),
+        .in_prefixes = cmd.get_option("--in")->as<std::vector<std::string>>(),
+        .hdpi_width = cmd.get_option("--hdpi")->as<double>(),
     };
 
-    if (cmd.is_used("--gfile"))
+    if (cmd.get_option("--gfile")->count() > 0)
     {
-        config.gfile = cmd.get<std::string>("--gfile");
+        config.gfile = cmd.get_option("--gfile")->as<std::string>();
     }
 
     return config;
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

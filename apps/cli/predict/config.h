@@ -14,22 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_PREDICT_CONFIG_H_
-#define GELEX_CLI_PREDICT_CONFIG_H_
+#ifndef APPS_CLI_PREDICT_CONFIG_H_
+#define APPS_CLI_PREDICT_CONFIG_H_
 
 #include "gelex/engine/predict.h"
 
-namespace argparse
+namespace CLI
 {
-class ArgumentParser;
+class App;
 }
 
-namespace gelex::cli
+namespace cli
 {
 
-auto make_predict_config(argparse::ArgumentParser& cmd)
-    -> PredictEngine::Config;
+auto make_predict_config(CLI::App& cmd) -> gelex::PredictEngine::Config;
 
-}  // namespace gelex::cli
+}  // namespace cli
 
-#endif  // GELEX_CLI_PREDICT_CONFIG_H_
+#endif  // APPS_CLI_PREDICT_CONFIG_H_

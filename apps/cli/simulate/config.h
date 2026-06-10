@@ -14,22 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_SIMULATE_CONFIG_H_
-#define GELEX_CLI_SIMULATE_CONFIG_H_
+#ifndef APPS_CLI_SIMULATE_CONFIG_H_
+#define APPS_CLI_SIMULATE_CONFIG_H_
 
 #include "gelex/engine/simulation.h"
 
-namespace argparse
+namespace CLI
 {
-class ArgumentParser;
+class App;
 }
 
-namespace gelex::cli
+namespace cli
 {
 
-auto make_simulate_config(argparse::ArgumentParser& cmd)
-    -> SimulationEngine::Config;
+auto make_simulate_config(CLI::App& cmd) -> gelex::SimulationEngine::Config;
 
-}  // namespace gelex::cli
+}  // namespace cli
 
-#endif  // GELEX_CLI_SIMULATE_CONFIG_H_
+#endif  // APPS_CLI_SIMULATE_CONFIG_H_

@@ -24,18 +24,18 @@
 #include "gelex/infra/logging/predict_event.h"
 #include "version.h"
 
-namespace gelex::cli
+namespace cli
 {
 
-auto PredictReporter::on_event(const PredictBannerEvent& /*event*/) const
+auto PredictReporter::on_event(const gelex::PredictBannerEvent& /*event*/) const
     -> void
 {
     cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "Genomic Prediction"));
 }
 
-auto PredictReporter::on_event(const PredictParamsLoadedEvent& event) const
-    -> void
+auto PredictReporter::on_event(
+    const gelex::PredictParamsLoadedEvent& event) const -> void
 {
     cli::printer().block(gelex::section("[Config]"));
     cli::printer().line("  {:<12}: {}", "bfile", event.bfile_prefix);
@@ -44,8 +44,8 @@ auto PredictReporter::on_event(const PredictParamsLoadedEvent& event) const
         "  {:<12}: {}", "Geno method", fmt::format("{}", event.geno_method));
 }
 
-auto PredictReporter::on_event(const PredictSnpSelectionEvent& event) const
-    -> void
+auto PredictReporter::on_event(
+    const gelex::PredictSnpSelectionEvent& event) const -> void
 {
     cli::printer().block(gelex::section("[SNP Alignment]"));
     cli::printer().line(
@@ -68,7 +68,7 @@ auto PredictReporter::on_event(const PredictSnpSelectionEvent& event) const
     }
 }
 
-auto PredictReporter::on_event(const PredictDataLoadedEvent& event) const
+auto PredictReporter::on_event(const gelex::PredictDataLoadedEvent& event) const
     -> void
 {
     cli::printer().block(gelex::section("[Dataset Summary]"));
@@ -77,8 +77,8 @@ auto PredictReporter::on_event(const PredictDataLoadedEvent& event) const
     cli::printer().line("   {:<13}: {}", "Covariates", event.num_covar_terms);
 }
 
-auto PredictReporter::on_event(const PredictResultsWrittenEvent& event) const
-    -> void
+auto PredictReporter::on_event(
+    const gelex::PredictResultsWrittenEvent& event) const -> void
 {
     cli::printer().block(
         gelex::success(
@@ -87,4 +87,4 @@ auto PredictReporter::on_event(const PredictResultsWrittenEvent& event) const
             event.num_samples));
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

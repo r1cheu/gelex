@@ -18,7 +18,7 @@
 
 #include <utility>
 
-#include <argparse.h>
+#include <CLI/CLI.hpp>
 
 #include "cli/bayes_recipe_options.h"
 #include "cli/cli_helper.h"
@@ -37,19 +37,19 @@
 #include "gelex/infra/logging/notify.h"
 #include "reporter.h"
 
-auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
+auto mcmc_execute(CLI::App& cmd) -> int
 {
-    auto recipe_options = gelex::cli::make_bayes_recipe_options(cmd);
-    auto engine_config = gelex::cli::make_mcmc_engine_config(cmd);
+    auto recipe_options = cli::make_bayes_recipe_options(cmd);
+    auto engine_config = cli::make_mcmc_engine_config(cmd);
     auto [pheno_config, geno_config]
-        = gelex::cli::make_dataset_configs(cmd, cmd.get<bool>("--mmap"));
+        = cli::make_dataset_configs(cmd, cmd.get_option("--mmap")->count() > 0);
 
-    int threads = cmd.get<int>("--threads");
-    gelex::cli::McmcReporter reporter;
-    gelex::cli::DatasetReporter dataset_reporter;
-    gelex::cli::PhenoReporter pheno_reporter;
-    gelex::cli::GenoReporter geno_reporter;
-    gelex::cli::setup_parallelization(threads);
+    int threads = cmd.get_option("--threads")->as<int>();
+    cli::McmcReporter reporter;
+    cli::DatasetReporter dataset_reporter;
+    cli::PhenoReporter pheno_reporter;
+    cli::GenoReporter geno_reporter;
+    cli::setup_parallelization(threads);
 
     gelex::notify(reporter.as_observer(), gelex::MCMCBannerEvent{});
     gelex::notify(
@@ -67,7 +67,7 @@ auto mcmc_execute(argparse::ArgumentParser& cmd) -> int
     gelex::PhenoPipe pheno(pheno_config, pheno_reporter.as_observer());
     gelex::GenoPipe geno(geno_config, geno_reporter.as_observer());
 
-    auto common = gelex::cli::intersect_or_throw(
+    auto common = cli::intersect_or_throw(
         dataset_reporter.as_observer(),
         "phenotype, genotype (.fam), and covariates",
         geno.sample_indices(),

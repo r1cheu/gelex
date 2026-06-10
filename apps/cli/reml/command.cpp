@@ -22,7 +22,7 @@
 #include <utility>
 #include <vector>
 
-#include <argparse.h>
+#include <CLI/CLI.hpp>
 
 #include "cli/cli_helper.h"
 #include "cli/common_data.h"
@@ -41,18 +41,20 @@ class RemlDataHandler
 {
    public:
     auto load_indices(
-        argparse::ArgumentParser& cmd,
+        CLI::App& cmd,
         std::vector<gelex::dataframe::Index<std::string>*>& indices) -> void
     {
-        rand_ = cmd.is_used("--rand")
-                    ? std::make_optional(gelex::read_dcovar(cmd.get("--rand")))
+        rand_ = cmd.get_option("--rand")->count() > 0
+                    ? std::make_optional(
+                          gelex::read_dcovar(
+                              cmd.get_option("--rand")->as<std::string>()))
                     : std::nullopt;
         if (rand_)
         {
             indices.push_back(&rand_->index());
         }
 
-        grm_prefixes_ = cmd.get<std::vector<std::string>>("--grm");
+        grm_prefixes_ = cmd.get_option("--grm")->as<std::vector<std::string>>();
         grm_indices_.reserve(grm_prefixes_.size());
         for (const auto& path : grm_prefixes_)
         {
@@ -88,25 +90,14 @@ class RemlDataHandler
     std::optional<gelex::dataframe::DataFrame<std::string>> rand_;
 };
 
-auto reml_execute(argparse::ArgumentParser& cmd) -> int
+auto reml_execute(CLI::App& cmd) -> int
 {
-    int threads = cmd.get<int>("--threads");
-    gelex::cli::setup_parallelization(threads);
+    int threads = cmd.get_option("--threads")->as<int>();
+    cli::setup_parallelization(threads);
 
     cli::RemlCommandReporter reporter;
     reporter.show_banner();
-    reporter.show_config(
-        cli::RemlConfigSummary{
-            .pheno_path = cmd.get<std::string>("--pheno"),
-            .pheno_col = cmd.get<int>("--pheno-col"),
-            .grm_prefixes = cmd.get<std::vector<std::string>>("--grm"),
-            .has_qcovar = cmd.is_used("--qcovar"),
-            .has_dcovar = cmd.is_used("--dcovar"),
-            .has_rand = cmd.is_used("--rand"),
-            .max_iter = cmd.get<int>("--max-iter"),
-            .tol = cmd.get<double>("--tol"),
-            .threads = threads,
-        });
+    reporter.show_config(cmd);
 
     RemlDataHandler handler;
     cli::BaseData data = cli::load_base_data(handler, cmd);
@@ -117,14 +108,14 @@ auto reml_execute(argparse::ArgumentParser& cmd) -> int
         std::move(handler).results());
 
     gelex::reml::Estimator estimator(
-        cmd.get<int>("--max-iter"),
-        cmd.get<double>("--tol"),
+        cmd.get_option("--max-iter")->as<int>(),
+        cmd.get_option("--tol")->as<double>(),
         reporter.as_observer());
 
     gelex::FreqState state(model);
     estimator.fit(model, state);
 
-    const auto out_prefix = cmd.get<std::string>("--out");
+    const auto out_prefix = cmd.get_option("--out")->as<std::string>();
     gelex::reml::write_summary(model, state, out_prefix);
     gelex::reml::write_effects(model, state, data.sample_ids, out_prefix);
 

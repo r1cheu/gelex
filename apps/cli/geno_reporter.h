@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_GENO_REPORTER_H_
-#define GELEX_CLI_GENO_REPORTER_H_
+#ifndef APPS_CLI_GENO_REPORTER_H_
+#define APPS_CLI_GENO_REPORTER_H_
 
 #include <variant>
 
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/infra/logging/progress_bar.h"
 
-namespace gelex::cli
+namespace cli
 {
 
 class GenoReporter
@@ -30,20 +30,20 @@ class GenoReporter
    public:
     GenoReporter();
 
-    auto on_event(const GenotypeLoadedEvent& event) const -> void;
-    auto on_event(const GenotypeProgressEvent& event) -> void;
+    auto on_event(const gelex::GenotypeLoadedEvent& event) const -> void;
+    auto on_event(const gelex::GenotypeProgressEvent& event) -> void;
 
-    auto as_observer() -> GenoObserver
+    auto as_observer() -> gelex::GenoObserver
     {
-        return [this](const GenoEvent& e)
+        return [this](const gelex::GenoEvent& e)
         { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
     }
 
    private:
-    ProgressInfo progress_info_;
+    gelex::ProgressInfo progress_info_;
     bool init_progress_ = false;
 };
 
-}  // namespace gelex::cli
+}  // namespace cli
 
-#endif  // GELEX_CLI_GENO_REPORTER_H_
+#endif  // APPS_CLI_GENO_REPORTER_H_

@@ -23,7 +23,7 @@
 #include <utility>
 #include <vector>
 
-#include <argparse.h>
+#include <CLI/CLI.hpp>
 
 #include "cli/cli_helper.h"
 #include "cli/data_pipe_config.h"
@@ -42,22 +42,22 @@
 #include "gelex/infra/logging/notify.h"
 #include "reporter.h"
 
-auto assoc_execute(argparse::ArgumentParser& cmd) -> int
+auto assoc_execute(CLI::App& cmd) -> int
 {
-    int threads = cmd.get<int>("--threads");
-    gelex::cli::setup_parallelization(threads);
+    int threads = cmd.get_option("--threads")->as<int>();
+    cli::setup_parallelization(threads);
 
-    auto pheno_config = gelex::cli::make_pheno_config(cmd);
-    pheno_config.transform_type
-        = gelex::cli::parse_transform_type(cmd.get("--transform"));
-    pheno_config.int_offset = cmd.get<double>("--int-offset");
+    auto pheno_config = cli::make_pheno_config(cmd);
+    pheno_config.transform_type = cli::parse_transform_type(
+        cmd.get_option("--transform")->as<std::string>());
+    pheno_config.int_offset = cmd.get_option("--int-offset")->as<double>();
 
-    gelex::cli::AssocReporter reporter;
-    gelex::cli::DatasetReporter dataset_reporter;
-    gelex::cli::PhenoReporter pheno_reporter;
-    gelex::cli::GrmPipeReporter grm_reporter;
+    cli::AssocReporter reporter;
+    cli::DatasetReporter dataset_reporter;
+    cli::PhenoReporter pheno_reporter;
+    cli::GrmPipeReporter grm_reporter;
 
-    auto config = gelex::cli::make_assoc_config(cmd);
+    auto config = cli::make_assoc_config(cmd);
 
     reporter.on_event(gelex::AssocBannerEvent{});
     reporter.on_event(
@@ -77,11 +77,11 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     gelex::PhenoPipe pheno(pheno_config, pheno_reporter.as_observer());
 
     auto grm_paths = std::ranges::to<std::vector<std::filesystem::path>>(
-        cmd.get<std::vector<std::string>>("--grm"));
+        cmd.get_option("--grm")->as<std::vector<std::string>>());
 
     gelex::GrmPipe grm(grm_paths, grm_reporter.as_observer());
 
-    auto common = gelex::cli::intersect_or_throw(
+    auto common = cli::intersect_or_throw(
         dataset_reporter.as_observer(),
         "phenotype, genotype (.fam), GRM, and covariates",
         std::array{&fam_index},
@@ -91,7 +91,7 @@ auto assoc_execute(argparse::ArgumentParser& cmd) -> int
     pheno.load(common);
     grm.load(common);
 
-    gelex::cli::RemlReporter reml_reporter;
+    cli::RemlReporter reml_reporter;
     gelex::AssocEngine engine(std::move(config));
     engine.run(
         pheno,

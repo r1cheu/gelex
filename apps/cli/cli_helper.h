@@ -14,26 +14,32 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_CLI_HELPER_H_
-#define GELEX_CLI_CLI_HELPER_H_
+#ifndef APPS_CLI_CLI_HELPER_H_
+#define APPS_CLI_CLI_HELPER_H_
 
-#include <string>
+#include <memory>
 #include <string_view>
 #include <vector>
 
-#include <argparse.h>
 #include <barkeep.h>
 #include <Eigen/Core>
 
 #include "gelex/data/genotype/method.h"
 #include "gelex/types/genetic_effect_type.h"
 
-namespace gelex::cli
+namespace CLI
+{
+class App;
+class FormatterBase;
+}  // namespace CLI
+
+namespace cli
 {
 
-auto parse_genotype_method(std::string_view value) -> GenotypeMethod;
+auto parse_genotype_method(std::string_view value) -> gelex::GenotypeMethod;
 
-auto parse_genetic_modes(std::string_view sv) -> std::vector<GeneticMode>;
+auto parse_genetic_modes(std::string_view sv)
+    -> std::vector<gelex::GeneticMode>;
 
 auto is_tty() -> bool;
 
@@ -41,8 +47,10 @@ auto setup_parallelization(int num_threads) -> void;
 
 auto print_gelex_banner_message(std::string_view version) -> void;
 
-auto format_epilog(std::string_view text) -> std::string;
+auto make_cli_formatter() -> std::shared_ptr<CLI::FormatterBase>;
 
-}  // namespace gelex::cli
+auto execute_cli_command(CLI::App& parser, int (*execute_fn)(CLI::App&)) -> int;
 
-#endif  // GELEX_CLI_CLI_HELPER_H_
+}  // namespace cli
+
+#endif  // APPS_CLI_CLI_HELPER_H_

@@ -16,18 +16,19 @@
 
 #include "command.h"
 
-#include <argparse.h>
 #include <utility>
+
+#include <CLI/CLI.hpp>
 
 #include "config.h"
 #include "gelex/engine/predict.h"
 #include "gelex/infra/logging/predict_event.h"
 #include "reporter.h"
 
-auto predict_execute(argparse::ArgumentParser& predict) -> int
+auto predict_execute(CLI::App& predict) -> int
 {
-    auto config = gelex::cli::make_predict_config(predict);
-    gelex::cli::PredictReporter reporter;
+    auto config = cli::make_predict_config(predict);
+    cli::PredictReporter reporter;
     reporter.on_event(gelex::PredictBannerEvent{});
     gelex::PredictEngine engine(std::move(config));
     engine.run(reporter.as_observer());

@@ -44,6 +44,6 @@ set_target_properties(gelex_cli PROPERTIES OUTPUT_NAME "gelex")
 target_include_directories(gelex_cli PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                              ${PROJECT_SOURCE_DIR}/src)
 
-target_link_libraries(gelex_cli PRIVATE gelex::core)
+target_link_libraries(gelex_cli PRIVATE gelex::core CLI11::CLI11)
 
 install(TARGETS gelex_cli RUNTIME DESTINATION bin)

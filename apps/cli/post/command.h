@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_POST_COMMAND_H_
-#define GELEX_CLI_POST_COMMAND_H_
+#ifndef APPS_CLI_POST_COMMAND_H_
+#define APPS_CLI_POST_COMMAND_H_
 
-namespace argparse
+namespace CLI
 {
-class ArgumentParser;
+class App;
 }
 
-auto post_execute(argparse::ArgumentParser& post) -> int;
+auto post_execute(CLI::App& post) -> int;
 
-#endif  // GELEX_CLI_POST_COMMAND_H_
+#endif  // APPS_CLI_POST_COMMAND_H_

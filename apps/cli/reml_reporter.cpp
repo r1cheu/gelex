@@ -31,21 +31,21 @@
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/reml_event.h"
 
-namespace gelex::cli
+namespace cli
 {
 
-auto RemlReporter::on_event(const RemlEmInitEvent& e) -> void
+auto RemlReporter::on_event(const gelex::RemlEmInitEvent& e) -> void
 {
     header_printed_ = false;
     cli::printer().line("   Initializing (EM)...");
     cli::printer().line(
         "    LogL: {:.2f} | Init variance: [{}]",
         e.loglike,
-        rebecca_purple(
+        gelex::rebecca_purple(
             fmt::format("{:.2f}", fmt::join(e.init_variances, ", "))));
 }
 
-auto RemlReporter::on_event(const RemlIterationEvent& e) -> void
+auto RemlReporter::on_event(const gelex::RemlIterationEvent& e) -> void
 {
     if (!header_printed_)
     {
@@ -67,19 +67,20 @@ auto RemlReporter::on_event(const RemlIterationEvent& e) -> void
     cli::printer().line("  {:<4} {:>12.2f}{}", e.iter, e.loglike, var_str);
 }
 
-auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
+auto RemlReporter::on_event(const gelex::RemlCompleteEvent& e) const -> void
 {
     const auto& model = *e.model;
     const auto& state = *e.state;
     auto& p = cli::printer();
 
     p.line(gelex::table_separator(55));
-    p.block(named_section("REML Results", 70));
+    p.block(gelex::named_section("REML Results", 70));
 
     if (e.converged)
     {
         p.line(
-            success("Converged successfully in {} iterations", e.iter_count));
+            gelex::success(
+                "Converged successfully in {} iterations", e.iter_count));
     }
     else
     {
@@ -90,13 +91,13 @@ auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
 
     // model fit
     p.block("  Model Fit:");
-    p.line("  - AIC : {:.2f}", reml::compute_aic(model, e.loglike));
-    p.line("  - BIC : {:.2f}", reml::compute_bic(model, e.loglike));
+    p.line("  - AIC : {:.2f}", gelex::reml::compute_aic(model, e.loglike));
+    p.line("  - BIC : {:.2f}", gelex::reml::compute_bic(model, e.loglike));
 
     // fixed effects
     p.block("  Fixed Effects:");
     p.line("  {:12} {:>12} {:>12}", "Effect", "Estimate", "SE");
-    p.line(table_separator(40));
+    p.line(gelex::table_separator(40));
     for (Eigen::Index i = 0; i < state.fixed().coeffs.size(); ++i)
     {
         std::string name = fmt::format("X{}", i);
@@ -119,7 +120,7 @@ auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
         "SE",
         "Ratio",
         "SE");
-    p.line(table_separator(69));
+    p.line(gelex::table_separator(69));
 
     for (size_t i = 0; i < state.random().size(); ++i)
     {
@@ -141,10 +142,10 @@ auto RemlReporter::on_event(const RemlCompleteEvent& e) const -> void
         "-",
         "-");
 
-    p.line(separator(70));
+    p.line(gelex::separator(70));
 }
 
-void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
+void print_loco_reml_summary(const std::vector<gelex::LocoRemlResult>& results)
 {
     if (results.empty())
     {
@@ -171,9 +172,9 @@ void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
     }
     header += fmt::format("  {:>10}  {:>4}", "V(e)", "Conv");
 
-    p.block(named_section("LOCO REML Summary", 70));
+    p.block(gelex::named_section("LOCO REML Summary", 70));
     p.line("{}", header);
-    p.line("{}", table_separator());
+    p.line("{}", gelex::table_separator());
 
     std::vector<double> sum_random_variance(num_random, 0.0);
     std::vector<double> sum_random_ratio(num_random, 0.0);
@@ -205,7 +206,7 @@ void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
         sum_ve += r.residual_variance;
     }
 
-    p.line("{}", table_separator());
+    p.line("{}", gelex::table_separator());
 
     auto n = static_cast<double>(results.size());
     std::vector<double> mean_random_variance(num_random);
@@ -224,7 +225,7 @@ void print_loco_reml_summary(const std::vector<LocoRemlResult>& results)
         sum_ve / n);
     p.line(
         "  {:>5}  {:>10}{}", "Ratio", "", format_variances(mean_random_ratio));
-    p.line(separator());
+    p.line(gelex::separator());
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

@@ -27,18 +27,20 @@
 #include "gelex/infra/logging/progress_bar.h"
 #include "version.h"
 
-namespace gelex::cli
+namespace cli
 {
 
 AssocReporter::AssocReporter() : eta_(1) {}
 
-auto AssocReporter::on_event(const AssocBannerEvent& /*event*/) const -> void
+auto AssocReporter::on_event(const gelex::AssocBannerEvent& /*event*/) const
+    -> void
 {
     cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "GWAS Analysis"));
 }
 
-auto AssocReporter::on_event(const AssocConfigLoadedEvent& event) const -> void
+auto AssocReporter::on_event(const gelex::AssocConfigLoadedEvent& event) const
+    -> void
 {
     cli::printer().block(gelex::section("[Config]"));
     cli::printer().line("  {:<12}: {}", "Mode", event.mode);
@@ -52,7 +54,8 @@ auto AssocReporter::on_event(const AssocConfigLoadedEvent& event) const -> void
     cli::printer().line("  {:<12}: {}", "Tolerance", event.tol);
 }
 
-auto AssocReporter::on_event(const AssocRemlStartedEvent& event) const -> void
+auto AssocReporter::on_event(const gelex::AssocRemlStartedEvent& event) const
+    -> void
 {
     if (event.chr_name.empty())
     {
@@ -66,7 +69,7 @@ auto AssocReporter::on_event(const AssocRemlStartedEvent& event) const -> void
     }
 }
 
-auto AssocReporter::on_event(const AssocScanSummaryEvent& event) -> void
+auto AssocReporter::on_event(const gelex::AssocScanSummaryEvent& event) -> void
 {
     eta_.reset(event.total_snps);
 
@@ -78,12 +81,12 @@ auto AssocReporter::on_event(const AssocScanSummaryEvent& event) -> void
         cli::printer().line("   Mode         : LOCO");
     }
 
-    bar_ = create_progress_bar(progress_, event.total_snps);
+    bar_ = gelex::create_progress_bar(progress_, event.total_snps);
     bar_.display->show();
     bar_active_ = true;
 }
 
-auto AssocReporter::on_event(const AssocScanProgressEvent& event) -> void
+auto AssocReporter::on_event(const gelex::AssocScanProgressEvent& event) -> void
 {
     progress_ = event.current;
     if (bar_.after_bar)
@@ -93,13 +96,13 @@ auto AssocReporter::on_event(const AssocScanProgressEvent& event) -> void
                 "{:.1f}% ({}/{}) | ETA: {}",
                 static_cast<double>(event.current)
                     / static_cast<double>(event.total) * 100.0,
-                AbbrNumber(event.current),
-                AbbrNumber(event.total),
+                gelex::AbbrNumber(event.current),
+                gelex::AbbrNumber(event.total),
                 eta_.get_eta(event.current)));
     }
 }
 
-auto AssocReporter::on_event(const AssocLocoPhaseEvent& event) -> void
+auto AssocReporter::on_event(const gelex::AssocLocoPhaseEvent& event) -> void
 {
     if (bar_.before_bar)
     {
@@ -113,7 +116,8 @@ auto AssocReporter::on_event(const AssocLocoPhaseEvent& event) -> void
     }
 }
 
-auto AssocReporter::on_event(const AssocLocoRemlSummaryEvent& event) -> void
+auto AssocReporter::on_event(const gelex::AssocLocoRemlSummaryEvent& event)
+    -> void
 {
     if (bar_active_)
     {
@@ -124,7 +128,7 @@ auto AssocReporter::on_event(const AssocLocoRemlSummaryEvent& event) -> void
     cli::print_loco_reml_summary(event.results);
 }
 
-auto AssocReporter::on_event(const AssocCompleteEvent& event) -> void
+auto AssocReporter::on_event(const gelex::AssocCompleteEvent& event) -> void
 {
     if (bar_active_)
     {
@@ -136,4 +140,4 @@ auto AssocReporter::on_event(const AssocCompleteEvent& event) -> void
         gelex::success("Results saved to : {}.gwas.tsv", event.out_prefix));
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

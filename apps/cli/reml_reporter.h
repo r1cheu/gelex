@@ -14,26 +14,26 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_REML_REPORTER_H_
-#define GELEX_CLI_REML_REPORTER_H_
+#ifndef APPS_CLI_REML_REPORTER_H_
+#define APPS_CLI_REML_REPORTER_H_
 
 #include <vector>
 
 #include "gelex/infra/logging/reml_event.h"
 
-namespace gelex::cli
+namespace cli
 {
 
 class RemlReporter
 {
    public:
-    auto on_event(const RemlEmInitEvent& e) -> void;
-    auto on_event(const RemlIterationEvent& e) -> void;
-    auto on_event(const RemlCompleteEvent& e) const -> void;
+    auto on_event(const gelex::RemlEmInitEvent& e) -> void;
+    auto on_event(const gelex::RemlIterationEvent& e) -> void;
+    auto on_event(const gelex::RemlCompleteEvent& e) const -> void;
 
-    auto as_observer() -> RemlObserver
+    auto as_observer() -> gelex::RemlObserver
     {
-        return [this](const RemlEvent& e)
+        return [this](const gelex::RemlEvent& e)
         { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
     }
 
@@ -41,8 +41,8 @@ class RemlReporter
     bool header_printed_ = false;
 };
 
-void print_loco_reml_summary(const std::vector<LocoRemlResult>& results);
+void print_loco_reml_summary(const std::vector<gelex::LocoRemlResult>& results);
 
-}  // namespace gelex::cli
+}  // namespace cli
 
-#endif  // GELEX_CLI_REML_REPORTER_H_
+#endif  // APPS_CLI_REML_REPORTER_H_

@@ -16,66 +16,72 @@
 
 #include "args.h"
 
-#include <argparse.h>
+#include <algorithm>
+#include <string>
+#include <thread>
+
+#include <CLI/CLI.hpp>
 
 #include "cli/cli_helper.h"
+#include "command.h"
 
-auto setup_reml_args(argparse::ArgumentParser& cmd) -> void
+auto setup_reml_command(CLI::App& program, int& exit_code) -> void
 {
-    cmd.add_description(
+    auto* subcommand = program.add_subcommand("reml");
+    auto& cmd = *subcommand;
+
+    cmd.formatter(cli::make_cli_formatter());
+    cmd.description(
         "Perform REML variance component estimation using average information "
         "algorithm");
 
-    cmd.add_group("I/O");
-    cmd.add_argument("-p", "--pheno")
-        .help("Phenotype file (TSV format: FID, IID, trait1, ...)")
-        .metavar("<PHENOTYPE>")
-        .required();
-    cmd.add_argument("--grm")
-        .help("GRM file prefix(es). Can specify multiple GRMs.")
-        .metavar("<GRM>")
-        .nargs(argparse::nargs_pattern::at_least_one)
-        .required();
-    cmd.add_argument("--qcovar")
-        .help("Quantitative covariates (TSV: FID, IID, covar1, ...)");
-    cmd.add_argument("--dcovar")
-        .help("Discrete covariates (TSV: FID, IID, factor1, ...)");
-    cmd.add_argument("--rand").help(
-        "Random effects (TSV: FID, IID, effect1, ...)");
-    cmd.add_argument("-o", "--out")
-        .help("Output file prefix")
-        .metavar("<OUT>")
-        .default_value("gelex");
+    cmd.add_option(
+           "-p,--pheno", "Phenotype file (TSV format: FID, IID, trait1, ...)")
+        ->group("I/O")
+        ->type_name("<PHENOTYPE>")
+        ->required();
+    cmd.add_option("--grm", "GRM file prefix(es). Can specify multiple GRMs.")
+        ->group("I/O")
+        ->type_name("<GRM>")
+        ->expected(1, -1)
+        ->allow_extra_args()
+        ->required();
+    cmd.add_option(
+           "--qcovar", "Quantitative covariates (TSV: FID, IID, covar1, ...)")
+        ->group("I/O");
+    cmd.add_option(
+           "--dcovar", "Discrete covariates (TSV: FID, IID, factor1, ...)")
+        ->group("I/O");
+    cmd.add_option("--rand", "Random effects (TSV: FID, IID, effect1, ...)")
+        ->group("I/O");
+    cmd.add_option("-o,--out", "Output file prefix")
+        ->group("I/O")
+        ->type_name("<OUT>")
+        ->default_val(std::string{"gelex"});
 
-    cmd.add_group("Phenotype");
-    cmd.add_argument("--pheno-col")
-        .help("Phenotype column index (0-based)")
-        .default_value(2)
-        .scan<'i', int>();
+    cmd.add_option("--pheno-col", "Phenotype column index (0-based)")
+        ->group("Model")
+        ->default_val(2);
 
-    cmd.add_group("REML");
-    cmd.add_argument("--max-iter")
-        .help("Max iterations")
-        .default_value(100)
-        .scan<'i', int>();
-    cmd.add_argument("--tol")
-        .help("Convergence tolerance")
-        .default_value(1e-6)
-        .scan<'g', double>();
-
-    cmd.add_group("Performance");
-    cmd.add_argument("-t", "--threads")
-        .help("CPU threads")
-        .default_value(
+    cmd.add_option("--max-iter", "Max iterations")
+        ->group("Runtime")
+        ->default_val(100);
+    cmd.add_option("--tol", "Convergence tolerance")
+        ->group("Runtime")
+        ->default_val(1e-6);
+    cmd.add_option("-t,--threads", "CPU threads")
+        ->group("Runtime")
+        ->default_val(
             std::max(
-                1, static_cast<int>(std::thread::hardware_concurrency() / 2)))
-        .scan<'i', int>();
+                1, static_cast<int>(std::thread::hardware_concurrency() / 2)));
 
-    cmd.add_epilog(
-        gelex::cli::format_epilog(
-            "{bg}Example:{rs}\n"
-            "  {bc}gelex reml{rs} {cy}-p{rs} pheno.tsv geno {cy}--grm{rs} "
-            "grm_prefix\n\n"
-            "{bg}Docs:{rs}\n"
-            "  https://gelex.readthedocs.io/en/latest/cli/reml.html"));
+    cmd.footer(
+        "Example:\n"
+        "  gelex reml -p pheno.tsv --grm grm_prefix\n\n"
+        "Docs:\n"
+        "  https://gelex.readthedocs.io/en/latest/cli/reml.html");
+
+    cmd.callback(
+        [subcommand, &exit_code]()
+        { exit_code = cli::execute_cli_command(*subcommand, reml_execute); });
 }

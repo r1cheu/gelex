@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_GRM_REPORTER_H_
-#define GELEX_CLI_GRM_REPORTER_H_
+#ifndef APPS_CLI_GRM_REPORTER_H_
+#define APPS_CLI_GRM_REPORTER_H_
 
 #include <cstddef>
 
@@ -23,7 +23,7 @@
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/infra/logging/timer.h"
 
-namespace gelex::cli
+namespace cli
 {
 
 class GrmReporter
@@ -31,28 +31,28 @@ class GrmReporter
    public:
     GrmReporter();
 
-    static auto on_event(const GrmBannerEvent& event) -> void;
-    static auto on_event(const GrmConfigLoadedEvent& event) -> void;
-    static auto on_event(const GrmDataLoadedEvent& event) -> void;
-    auto on_event(const GrmComputeStartedEvent& event) -> void;
-    auto on_event(const GrmProgressEvent& event) -> void;
-    static auto on_event(const GrmFilesWrittenEvent& event) -> void;
+    static auto on_event(const gelex::GrmBannerEvent& event) -> void;
+    static auto on_event(const gelex::GrmConfigLoadedEvent& event) -> void;
+    static auto on_event(const gelex::GrmDataLoadedEvent& event) -> void;
+    auto on_event(const gelex::GrmComputeStartedEvent& event) -> void;
+    auto on_event(const gelex::GrmProgressEvent& event) -> void;
+    static auto on_event(const gelex::GrmFilesWrittenEvent& event) -> void;
 
-    auto as_observer() -> GrmObserver
+    auto as_observer() -> gelex::GrmObserver
     {
-        return [this](const GrmEvent& e)
+        return [this](const gelex::GrmEvent& e)
         { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
     }
 
    private:
     size_t progress_{0};
-    ProgressBar bar_;
+    gelex::ProgressBar bar_;
     bool bar_active_ = false;
-    SmoothEtaCalculator eta_;
+    gelex::SmoothEtaCalculator eta_;
     size_t global_total_ = 0;
     size_t accumulated_base_ = 0;
 };
 
-}  // namespace gelex::cli
+}  // namespace cli
 
-#endif  // GELEX_CLI_GRM_REPORTER_H_
+#endif  // APPS_CLI_GRM_REPORTER_H_

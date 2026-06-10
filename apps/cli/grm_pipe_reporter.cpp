@@ -19,12 +19,12 @@
 #include "cli/report_printer.h"
 #include "gelex/infra/logging/grm_pipe_event.h"
 
-namespace gelex::cli
+namespace cli
 {
 
-auto GrmPipeReporter::on_event(const GrmLoadedEvent& event) const -> void
+auto GrmPipeReporter::on_event(const gelex::GrmLoadedEvent& event) const -> void
 {
     cli::printer().line("   GRM        : {} samples", event.num_samples);
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

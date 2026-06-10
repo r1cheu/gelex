@@ -16,81 +16,87 @@
 
 #include "args.h"
 
-#include <argparse.h>
+#include <string>
+
+#include <CLI/CLI.hpp>
 
 #include "cli/cli_helper.h"
+#include "command.h"
 
-auto setup_simulate_args(argparse::ArgumentParser& cmd) -> void
+auto setup_simulate_command(CLI::App& program, int& exit_code) -> void
 {
-    cmd.add_description(
+    auto* subcommand = program.add_subcommand("simulate");
+    auto& cmd = *subcommand;
+
+    cmd.formatter(cli::make_cli_formatter());
+    cmd.description(
         "Simulate phenotypes based on genetic data and specified parameters");
 
-    cmd.add_group("I/O");
-    cmd.add_argument("-b", "--bfile")
-        .help("PLINK binary file prefix (.bed/.bim/.fam)")
-        .metavar("<BFILE>")
-        .required();
-    cmd.add_argument("-o", "--out")
-        .help("Output file prefix")
-        .metavar("<OUT>")
-        .default_value("sim.phen");
+    cmd.add_option("-b,--bfile", "PLINK binary file prefix (.bed/.bim/.fam)")
+        ->group("I/O")
+        ->type_name("<BFILE>")
+        ->required();
+    cmd.add_option("-o,--out", "Output file prefix")
+        ->group("I/O")
+        ->type_name("<OUT>")
+        ->default_val(std::string{"sim.phen"});
 
-    cmd.add_group("Additive");
-    cmd.add_argument("--h2")
-        .help("Narrow-sense heritability (0, 1); omit to disable additive")
-        .scan<'g', double>();
-    cmd.add_argument("--add-var")
-        .help("Variances for additive effect classes")
-        .metavar("<VARIANCES>")
-        .nargs(argparse::nargs_pattern::at_least_one)
-        .scan<'g', double>();
-    cmd.add_argument("--add-n")
-        .help(
-            "SNP counts for additive effect classes (must match --add-var "
-            "length)")
-        .metavar("<COUNTS>")
-        .nargs(argparse::nargs_pattern::at_least_one)
-        .scan<'i', int>();
+    cmd.add_option(
+           "--h2", "Narrow-sense heritability (0, 1); omit to disable additive")
+        ->group("Model");
+    cmd.add_option("--add-var", "Variances for additive effect classes")
+        ->group("Model")
+        ->type_name("<VARIANCES>")
+        ->expected(1, -1)
+        ->allow_extra_args();
+    cmd.add_option(
+           "--add-n",
+           "SNP counts for additive effect classes (must match --add-var "
+           "length)")
+        ->group("Model")
+        ->type_name("<COUNTS>")
+        ->expected(1, -1)
+        ->allow_extra_args();
+    cmd.add_option(
+           "--d2", "Dominance variance proportion (0, 1); h2+d2<1 in AD mode")
+        ->group("Model");
+    cmd.add_option("--dom-var", "Variances for dominance effect classes")
+        ->group("Model")
+        ->type_name("<VARIANCES>")
+        ->expected(1, -1)
+        ->allow_extra_args();
+    cmd.add_option(
+           "--dom-n",
+           "SNP counts for dominance effect classes (must match --dom-var "
+           "length)")
+        ->group("Model")
+        ->type_name("<COUNTS>")
+        ->expected(1, -1)
+        ->allow_extra_args();
+    cmd.add_option(
+           "--dom-pos-prob",
+           "Probability of positive dominance effects; enables "
+           "truncated-normal sampling [0, 1]")
+        ->group("Model")
+        ->type_name("<PROB>");
+    cmd.add_option(
+           "--geno-method,--gm",
+           "Genotype processing: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC "
+           "(prefix: O=orth, N=NOIA; suffix: H=HWE-based)")
+        ->group("Model")
+        ->type_name("<STR>")
+        ->default_val(std::string{"OS"});
+    cmd.add_option("--seed", "Random seed")->group("Runtime")->default_val(42);
 
-    cmd.add_group("Dominance");
-    cmd.add_argument("--d2")
-        .help("Dominance variance proportion (0, 1); h2+d2<1 in AD mode")
-        .scan<'g', double>();
-    cmd.add_argument("--dom-var")
-        .help("Variances for dominance effect classes")
-        .metavar("<VARIANCES>")
-        .nargs(argparse::nargs_pattern::at_least_one)
-        .scan<'g', double>();
-    cmd.add_argument("--dom-n")
-        .help(
-            "SNP counts for dominance effect classes (must match --dom-var "
-            "length)")
-        .metavar("<COUNTS>")
-        .nargs(argparse::nargs_pattern::at_least_one)
-        .scan<'i', int>();
-    cmd.add_argument("--dom-pos-prob")
-        .help(
-            "Probability of positive dominance effects; enables "
-            "truncated-normal sampling [0, 1]")
-        .metavar("<PROB>")
-        .scan<'g', double>();
+    cmd.footer(
+        "Example:\n"
+        "  gelex simulate -b geno\n\n"
+        "Docs:\n"
+        "  https://gelex.readthedocs.io/en/latest/cli/simulate.html");
 
-    cmd.add_group("Model");
-    cmd.add_argument("--geno-method", "--gm")
-        .help(
-            "Genotype processing: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC "
-            "(prefix: O=orth, N=NOIA; suffix: H=HWE-based)")
-        .default_value(std::string("OS"))
-        .metavar("<STR>");
-    cmd.add_argument("--seed")
-        .help("Random seed")
-        .default_value(42)
-        .scan<'i', int>();
-
-    cmd.add_epilog(
-        gelex::cli::format_epilog(
-            "{bg}Example:{rs}\n"
-            "  {bc}gelex simulate{rs} {cy}-b{rs} geno\n\n"
-            "{bg}Docs:{rs}\n"
-            "  https://gelex.readthedocs.io/en/latest/cli/simulate.html"));
+    cmd.callback(
+        [subcommand, &exit_code]()
+        {
+            exit_code = cli::execute_cli_command(*subcommand, simulate_execute);
+        });
 }

@@ -14,25 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_ASSOC_CONFIG_H_
-#define GELEX_CLI_ASSOC_CONFIG_H_
+#ifndef APPS_CLI_ASSOC_CONFIG_H_
+#define APPS_CLI_ASSOC_CONFIG_H_
 
 #include "gelex/data/pipe/pheno.h"
 #include "gelex/engine/assoc.h"
 
-namespace argparse
+namespace CLI
 {
-class ArgumentParser;
+class App;
 }
 
-namespace gelex::cli
+namespace cli
 {
 
-auto make_assoc_config(argparse::ArgumentParser& cmd) -> AssocEngine::Config;
+auto make_assoc_config(CLI::App& cmd) -> gelex::AssocEngine::Config;
 
 auto parse_transform_type(std::string_view transform)
     -> gelex::detail::TransformType;
 
-}  // namespace gelex::cli
+}  // namespace cli
 
-#endif  // GELEX_CLI_ASSOC_CONFIG_H_
+#endif  // APPS_CLI_ASSOC_CONFIG_H_

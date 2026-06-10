@@ -20,19 +20,20 @@
 #include "gelex/infra/logging/dataset_event.h"
 #include "gelex/infra/logging/formatter.h"
 
-namespace gelex::cli
+namespace cli
 {
 
-auto DatasetReporter::on_event(const DatasetSectionEvent& /*event*/) const
-    -> void
+auto DatasetReporter::on_event(
+    const gelex::DatasetSectionEvent& /*event*/) const -> void
 {
     cli::printer().block(gelex::section("[Dataset Summary]"));
 }
 
-auto DatasetReporter::on_event(const IntersectionEvent& event) const -> void
+auto DatasetReporter::on_event(const gelex::IntersectionEvent& event) const
+    -> void
 {
     cli::printer().line(
         "   Intersection : {} common samples", event.common_samples);
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

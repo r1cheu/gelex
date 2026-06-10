@@ -16,46 +16,53 @@
 
 #include "args.h"
 
-#include <argparse.h>
+#include <CLI/CLI.hpp>
 
 #include "cli/cli_helper.h"
+#include "command.h"
 
-auto setup_predict_args(argparse::ArgumentParser& cmd) -> void
+auto setup_predict_command(CLI::App& program, int& exit_code) -> void
 {
-    cmd.add_description(
-        "Generate genomic predictions using fitted SNP effects");
+    auto* subcommand = program.add_subcommand("predict");
+    auto& cmd = *subcommand;
 
-    cmd.add_group("I/O");
-    cmd.add_argument("-b", "--bfile")
-        .help("PLINK binary prefix (.bed/.bim/.fam)")
-        .metavar("<BFILE>")
-        .required();
-    cmd.add_argument("-g", "--gfile")
-        .help("Fitted model prefix (.snpeff, .sbin, .param)")
-        .metavar("<GFILE>")
-        .required();
-    cmd.add_argument("--qcovar")
-        .help("Quantitative covariates (TSV: FID, IID, covar1, ...)")
-        .metavar("<QCOVAR>");
-    cmd.add_argument("--dcovar")
-        .help("Discrete covariates (TSV: FID, IID, factor1, ...)")
-        .metavar("<DCOVAR>");
-    cmd.add_argument("-o", "--out")
-        .help("Output file prefix")
-        .metavar("<OUT>")
-        .required();
+    cmd.formatter(cli::make_cli_formatter());
+    cmd.description("Generate genomic predictions using fitted SNP effects");
 
-    cmd.add_group("Performance");
-    cmd.add_argument("-c", "--chunk-size")
-        .help("SNPs per chunk")
-        .default_value(10000)
-        .scan<'i', int>();
+    cmd.add_option("-b,--bfile", "PLINK binary prefix (.bed/.bim/.fam)")
+        ->group("I/O")
+        ->type_name("<BFILE>")
+        ->required();
+    cmd.add_option("-g,--gfile", "Fitted model prefix (.snpeff, .sbin, .param)")
+        ->group("I/O")
+        ->type_name("<GFILE>")
+        ->required();
+    cmd.add_option(
+           "--qcovar", "Quantitative covariates (TSV: FID, IID, covar1, ...)")
+        ->group("I/O")
+        ->type_name("<QCOVAR>");
+    cmd.add_option(
+           "--dcovar", "Discrete covariates (TSV: FID, IID, factor1, ...)")
+        ->group("I/O")
+        ->type_name("<DCOVAR>");
+    cmd.add_option("-o,--out", "Output file prefix")
+        ->group("I/O")
+        ->type_name("<OUT>")
+        ->required();
 
-    cmd.add_epilog(
-        gelex::cli::format_epilog(
-            "{bg}Example:{rs}\n"
-            "  {bc}gelex predict{rs} {cy}-b{rs} geno {cy}-g{rs} model "
-            "{cy}-o{rs} pred.tsv\n\n"
-            "{bg}Docs:{rs}\n"
-            "  https://gelex.readthedocs.io/en/latest/cli/predict.html"));
+    cmd.add_option("-c,--chunk-size", "SNPs per chunk")
+        ->group("Runtime")
+        ->default_val(10000);
+
+    cmd.footer(
+        "Example:\n"
+        "  gelex predict -b geno -g model -o pred.tsv\n\n"
+        "Docs:\n"
+        "  https://gelex.readthedocs.io/en/latest/cli/predict.html");
+
+    cmd.callback(
+        [subcommand, &exit_code]()
+        {
+            exit_code = cli::execute_cli_command(*subcommand, predict_execute);
+        });
 }

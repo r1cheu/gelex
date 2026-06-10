@@ -53,6 +53,8 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 find_package(OpenMP REQUIRED)
 find_package(spdlog REQUIRED)
 
+add_subdirectory(ext/CLI11)
+
 # BLAS/LAPACK Selection
 if(GELEX_USE_MKL)
   set(BLA_VENDOR Intel10_64lp)

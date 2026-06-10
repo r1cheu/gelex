@@ -37,16 +37,16 @@
 #include "gelex/types/genetic_effect_type.h"
 #include "version.h"
 
-namespace gelex::cli
+namespace cli
 {
 
-auto McmcReporter::on_event(const MCMCBannerEvent& /*event*/) -> void
+auto McmcReporter::on_event(const gelex::MCMCBannerEvent& /*event*/) -> void
 {
     cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "Model Fitting (MCMC)"));
 }
 
-auto McmcReporter::on_event(const MCMCConfigEvent& event) -> void
+auto McmcReporter::on_event(const gelex::MCMCConfigEvent& event) -> void
 {
     cli::printer().block(gelex::section("[Config]"));
     cli::printer().line(
@@ -60,19 +60,19 @@ auto McmcReporter::on_event(const MCMCConfigEvent& event) -> void
     cli::printer().line("  {:<12}: {}", "Seed", event.seed);
 }
 
-auto McmcReporter::on_event(const FitPriorSetEvent& event) -> void
+auto McmcReporter::on_event(const gelex::FitPriorSetEvent& event) -> void
 {
     prior_ = event.prior;
     FitReporter::on_event(event);
 }
 
-auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
+auto McmcReporter::on_event(const gelex::MCMCProgressEvent& event) -> void
 {
     if (!init_progress_)
     {
         init_progress_ = true;
         cli::printer().block(gelex::section("[MCMC Sampling]"));
-        bar_ = create_progress_bar(
+        bar_ = gelex::create_progress_bar(
             iter_, event.total, "{bar} {value}/{total} [{speed:.1f}/s]");
         bar_.display->show();
     }
@@ -101,17 +101,18 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
                     using Prior = std::decay_t<decltype(prior_block)>;
                     using Block = std::decay_t<decltype(block)>;
                     if constexpr (
-                        std::is_same_v<Prior, bayes::SingleGeneticPrior>
-                        && std::
-                            is_same_v<Block, bayes::SingleGeneticBlockState>)
+                        std::is_same_v<Prior, gelex::bayes::SingleGeneticPrior>
+                        && std::is_same_v<
+                            Block,
+                            gelex::bayes::SingleGeneticBlockState>)
                     {
-                        const auto mode = bayes::mode(prior_block);
+                        const auto mode = gelex::bayes::mode(prior_block);
                         const auto& genetic = block.state();
                         fmt::format_to(
                             std::back_inserter(stats_),
                             "{}{}:{:.3f}",
                             stats_.empty() ? "" : " | ",
-                            bayes::to_heritability_label(mode),
+                            gelex::bayes::to_heritability_label(mode),
                             genetic.heritability);
                         std::visit(
                             [&](const auto& prior_state)
@@ -121,15 +122,15 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
                                 if constexpr (
                                     std::is_same_v<
                                         PriorState,
-                                        bayes::
+                                        gelex::bayes::
                                             SingleSharedSpikeSlabGaussianState>
                                     || std::is_same_v<
                                         PriorState,
-                                        bayes::
+                                        gelex::bayes::
                                             SinglePerMarkerSpikeSlabGaussianState>
                                     || std::is_same_v<
                                         PriorState,
-                                        bayes::
+                                        gelex::bayes::
                                             SingleScaledMixtureGaussianState>)
                                 {
                                     fmt::format_to(
@@ -153,17 +154,20 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
                             block.prior_state());
                     }
                     else if constexpr (
-                        std::is_same_v<Prior, bayes::JointGeneticPrior>
-                        && std::is_same_v<Block, bayes::JointGeneticBlockState>)
+                        std::is_same_v<Prior, gelex::bayes::JointGeneticPrior>
+                        && std::is_same_v<
+                            Block,
+                            gelex::bayes::JointGeneticBlockState>)
                     {
-                        for (const auto mode : {GeneticMode::A, GeneticMode::D})
+                        for (const auto mode :
+                             {gelex::GeneticMode::A, gelex::GeneticMode::D})
                         {
                             const auto& genetic = block.state(mode);
                             fmt::format_to(
                                 std::back_inserter(stats_),
                                 "{}{}:{:.3f}",
                                 stats_.empty() ? "" : " | ",
-                                bayes::to_heritability_label(mode),
+                                gelex::bayes::to_heritability_label(mode),
                                 genetic.heritability);
                         }
                         std::visit(
@@ -174,10 +178,11 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
                                 if constexpr (
                                     std::is_same_v<
                                         PriorState,
-                                        bayes::JointGaussianMixtureState>
+                                        gelex::bayes::JointGaussianMixtureState>
                                     || std::is_same_v<
                                         PriorState,
-                                        bayes::JointHalfNormalMixtureState>)
+                                        gelex::bayes::
+                                            JointHalfNormalMixtureState>)
                                 {
                                     fmt::format_to(
                                         std::back_inserter(stats_), " | π:[");
@@ -199,7 +204,8 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
                                 if constexpr (
                                     std::is_same_v<
                                         PriorState,
-                                        bayes::JointHalfNormalMixtureState>)
+                                        gelex::bayes::
+                                            JointHalfNormalMixtureState>)
                                 {
                                     fmt::format_to(
                                         std::back_inserter(stats_),
@@ -227,13 +233,13 @@ auto McmcReporter::on_event(const MCMCProgressEvent& event) -> void
     }
 }
 
-auto McmcReporter::on_event(const MCMCCompleteEvent& event) -> void
+auto McmcReporter::on_event(const gelex::MCMCCompleteEvent& event) -> void
 {
     cli::printer().block(gelex::section("[MCMC Complete]"));
     cli::printer().line("  {:<12}: {}", "Samples", event.samples_collected);
 }
 
-auto McmcReporter::on_event(const FitResultsSavedEvent& event) -> void
+auto McmcReporter::on_event(const gelex::FitResultsSavedEvent& event) -> void
 {
     cli::printer().block(
         gelex::success(
@@ -241,9 +247,10 @@ auto McmcReporter::on_event(const FitResultsSavedEvent& event) -> void
             event.out_prefix));
 }
 
-auto McmcReporter::on_event(const FitCheckpointSavedEvent& /*event*/) -> void
+auto McmcReporter::on_event(const gelex::FitCheckpointSavedEvent& /*event*/)
+    -> void
 {
     bar_.before_bar->message(fmt::format(" ckpt saved"));
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

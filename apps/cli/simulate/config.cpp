@@ -16,7 +16,7 @@
 
 #include "config.h"
 
-#include <argparse.h>
+#include <CLI/CLI.hpp>
 
 #include <fmt/format.h>
 #include <Eigen/Core>
@@ -102,16 +102,15 @@ struct SchemeFlags
     std::string label;
 };
 
-auto build_scheme(
-    argparse::ArgumentParser& cmd,
-    const SchemeFlags& flags,
-    double heritability) -> gelex::SimulationEngine::SimulateScheme
+auto build_scheme(CLI::App& cmd, const SchemeFlags& flags, double heritability)
+    -> gelex::SimulationEngine::SimulateScheme
 {
-    auto variances = cmd.is_used(flags.var_flag)
-                         ? cmd.get<std::vector<double>>(flags.var_flag)
-                         : std::vector<double>{};
-    auto counts = cmd.is_used(flags.n_flag)
-                      ? cmd.get<std::vector<int>>(flags.n_flag)
+    auto variances
+        = cmd.get_option(flags.var_flag)->count() > 0
+              ? cmd.get_option(flags.var_flag)->as<std::vector<double>>()
+              : std::vector<double>{};
+    auto counts = cmd.get_option(flags.n_flag)->count() > 0
+                      ? cmd.get_option(flags.n_flag)->as<std::vector<int>>()
                       : std::vector<int>{};
     validate_effect_classes(variances, counts, flags.label);
     return {
@@ -122,27 +121,29 @@ auto build_scheme(
 
 }  // namespace
 
-namespace gelex::cli
+namespace cli
 {
 
-auto make_simulate_config(argparse::ArgumentParser& cmd)
-    -> SimulationEngine::Config
+auto make_simulate_config(CLI::App& cmd) -> gelex::SimulationEngine::Config
 {
-    auto add_heritability = cmd.is_used("--h2")
-                                ? std::make_optional(cmd.get<double>("--h2"))
-                                : std::nullopt;
-    auto dom_heritability = cmd.is_used("--d2")
-                                ? std::make_optional(cmd.get<double>("--d2"))
-                                : std::nullopt;
+    auto add_heritability
+        = cmd.get_option("--h2")->count() > 0
+              ? std::make_optional(cmd.get_option("--h2")->as<double>())
+              : std::nullopt;
+    auto dom_heritability
+        = cmd.get_option("--d2")->count() > 0
+              ? std::make_optional(cmd.get_option("--d2")->as<double>())
+              : std::nullopt;
     auto dom_positive_prob
-        = cmd.is_used("--dom-pos-prob")
-              ? std::make_optional(cmd.get<double>("--dom-pos-prob"))
+        = cmd.get_option("--dom-pos-prob")->count() > 0
+              ? std::make_optional(
+                    cmd.get_option("--dom-pos-prob")->as<double>())
               : std::nullopt;
 
     validate_heritabilities(
         add_heritability, dom_heritability, dom_positive_prob);
 
-    std::optional<SimulationEngine::SimulateScheme> additive;
+    std::optional<gelex::SimulationEngine::SimulateScheme> additive;
     if (add_heritability)
     {
         additive = build_scheme(
@@ -151,7 +152,7 @@ auto make_simulate_config(argparse::ArgumentParser& cmd)
             *add_heritability);
     }
 
-    std::optional<SimulationEngine::SimulateScheme> dominance;
+    std::optional<gelex::SimulationEngine::SimulateScheme> dominance;
     if (dom_heritability)
     {
         dominance = build_scheme(
@@ -160,16 +161,16 @@ auto make_simulate_config(argparse::ArgumentParser& cmd)
             *dom_heritability);
     }
 
-    return SimulationEngine::Config{
-        .seed = cmd.get<int>("--seed"),
-        .bfile_prefix = cmd.get("--bfile"),
-        .output_prefix = cmd.get("--out"),
-        .geno_method
-        = parse_genotype_method(cmd.get<std::string>("--geno-method")),
+    return gelex::SimulationEngine::Config{
+        .seed = cmd.get_option("--seed")->as<int>(),
+        .bfile_prefix = cmd.get_option("--bfile")->as<std::string>(),
+        .output_prefix = cmd.get_option("--out")->as<std::string>(),
+        .geno_method = parse_genotype_method(
+            cmd.get_option("--geno-method")->as<std::string>()),
         .additive = std::move(additive),
         .dominance = std::move(dominance),
         .dom_positive_prob = dom_positive_prob,
     };
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

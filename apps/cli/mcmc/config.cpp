@@ -16,40 +16,42 @@
 
 #include "config.h"
 
-#include <argparse.h>
+#include <string>
+
+#include <CLI/CLI.hpp>
 
 #include "gelex/algo/mcmc/params.h"
 #include "gelex/engine/mcmc.h"
 
-namespace gelex::cli
+namespace cli
 {
 
-auto make_mcmc_engine_config(argparse::ArgumentParser& cmd)
-    -> mcmc::Engine::Config
+auto make_mcmc_engine_config(CLI::App& cmd) -> gelex::mcmc::Engine::Config
 {
-    const auto n_iters = cmd.get<int>("--iters");
-    mcmc::Engine::Config config{
-        .bfile_prefix = cmd.get("--bfile"),
-        .seed = cmd.get<int>("--seed"),
+    const auto n_iters = cmd.get_option("--iters")->as<int>();
+    gelex::mcmc::Engine::Config config{
+        .bfile_prefix = cmd.get_option("--bfile")->as<std::string>(),
+        .seed = cmd.get_option("--seed")->as<int>(),
         .mcmc_params = gelex::mcmc::Params{
             .n_iters = n_iters,
-            .n_burn_in = cmd.get<int>("--burn-in"),
-            .n_thin = cmd.get<int>("--thin"),
+            .n_burn_in = cmd.get_option("--burn-in")->as<int>(),
+            .n_thin = cmd.get_option("--thin")->as<int>(),
             .checkpoint_step
-            = cmd.is_used("--checkpoint-step")
-                  ? cmd.get<int>("--checkpoint-step")
+            = cmd.get_option("--checkpoint-step")->count() > 0
+                  ? cmd.get_option("--checkpoint-step")->as<int>()
                   : n_iters,
         },
-        .out_prefix = cmd.get("--out"),
+        .out_prefix = cmd.get_option("--out")->as<std::string>(),
     };
 
-    if (cmd.is_used("--from-ckpt"))
+    if (cmd.get_option("--from-ckpt")->count() > 0)
     {
-        config.from_checkpoint_path = cmd.get("--from-ckpt");
+        config.from_checkpoint_path
+            = cmd.get_option("--from-ckpt")->as<std::string>();
     }
 
-    mcmc::ConfigValidator{config}.validate();
+    gelex::mcmc::ConfigValidator{config}.validate();
     return config;
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

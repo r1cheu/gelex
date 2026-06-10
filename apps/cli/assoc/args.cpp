@@ -17,106 +17,112 @@
 #include "args.h"
 
 #include <algorithm>
+#include <string>
 #include <thread>
+#include <vector>
 
-#include <argparse.h>
+#include <CLI/CLI.hpp>
 
 #include "cli/cli_helper.h"
+#include "command.h"
 
-auto setup_assoc_args(argparse::ArgumentParser& cmd) -> void
+auto setup_assoc_command(CLI::App& program, int& exit_code) -> void
 {
-    cmd.add_description(
+    auto* subcommand = program.add_subcommand("assoc");
+    auto& cmd = *subcommand;
+
+    cmd.formatter(cli::make_cli_formatter());
+    cmd.description(
         "Perform genome-wide association study using mixed linear model");
 
-    cmd.add_group("I/O");
-    cmd.add_argument("-p", "--pheno")
-        .help("Phenotype file (TSV format: FID, IID, trait1, ...)")
-        .metavar("<PHENOTYPE>")
-        .required();
-    cmd.add_argument("-b", "--bfile")
-        .help("PLINK binary file prefix (.bed/.bim/.fam)")
-        .metavar("<BFILE>")
-        .required();
-    cmd.add_argument("--grm")
-        .help("GRM file prefix(es). Can specify multiple GRMs.")
-        .metavar("<GRM>")
-        .nargs(argparse::nargs_pattern::at_least_one)
-        .required();
-    cmd.add_argument("--qcovar")
-        .help("Quantitative covariates (TSV: FID, IID, covar1, ...)");
-    cmd.add_argument("--dcovar")
-        .help("Discrete covariates (TSV: FID, IID, factor1, ...)");
-    cmd.add_argument("-o", "--out")
-        .help("Output file prefix")
-        .metavar("<OUT>")
-        .default_value("gelex");
+    cmd.add_option(
+           "-p,--pheno", "Phenotype file (TSV format: FID, IID, trait1, ...)")
+        ->group("I/O")
+        ->type_name("<PHENOTYPE>")
+        ->required();
+    cmd.add_option("-b,--bfile", "PLINK binary file prefix (.bed/.bim/.fam)")
+        ->group("I/O")
+        ->type_name("<BFILE>")
+        ->required();
+    cmd.add_option("--grm", "GRM file prefix(es). Can specify multiple GRMs.")
+        ->group("I/O")
+        ->type_name("<GRM>")
+        ->expected(1, -1)
+        ->allow_extra_args()
+        ->required();
+    cmd.add_option(
+           "--qcovar", "Quantitative covariates (TSV: FID, IID, covar1, ...)")
+        ->group("I/O");
+    cmd.add_option(
+           "--dcovar", "Discrete covariates (TSV: FID, IID, factor1, ...)")
+        ->group("I/O");
+    cmd.add_option("-o,--out", "Output file prefix")
+        ->group("I/O")
+        ->type_name("<OUT>")
+        ->default_val(std::string{"gelex"});
 
-    cmd.add_group("Phenotype");
-    cmd.add_argument("--pheno-col")
-        .help("Phenotype column index (0-based)")
-        .default_value(2)
-        .scan<'i', int>();
-    cmd.add_argument("--transform")
-        .help(
-            "Phenotype transformation: none, dint (Direct INT), iint (Indirect "
-            "INT)")
-        .default_value("none")
-        .metavar("<TRANSFORM>")
-        .choices("none", "dint", "iint");
-    cmd.add_argument("--int-offset")
-        .help("INT offset parameter k (Blom offset)")
-        .default_value(3.0 / 8.0)
-        .scan<'g', double>();
+    cmd.add_option("--pheno-col", "Phenotype column index (0-based)")
+        ->group("Model")
+        ->default_val(2);
+    cmd.add_option(
+           "--transform",
+           "Phenotype transformation: none, dint (Direct INT), iint (Indirect "
+           "INT)")
+        ->group("Model")
+        ->type_name("<TRANSFORM>")
+        ->default_val(std::string{"none"})
+        ->check(
+            CLI::IsMember(std::vector<std::string>{"none", "dint", "iint"}));
+    cmd.add_option("--int-offset", "INT offset parameter k (Blom offset)")
+        ->group("Model")
+        ->default_val(3.0 / 8.0);
 
-    cmd.add_group("Model");
-    cmd.add_argument("--test")
-        .help(
-            "Wald test mode: single (one-effect, df=1), joint (add+dom, df=2)")
-        .default_value("single")
-        .metavar("<TEST>")
-        .choices("single", "joint");
-    cmd.add_argument("--mode")
-        .help(
-            "Association mode: A (additive), D (dominance). "
-            "Ignored when --test=joint (always AD)")
-        .default_value("A")
-        .metavar("<MODE>")
-        .choices("A", "D");
-    cmd.add_argument("--loco").help("Leave-One-Chromosome-Out analysis").flag();
-    cmd.add_argument("--geno-method", "--gm")
-        .help(
-            "Genotype processing: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC "
-            "(prefix: O=orth, N=NOIA; suffix: H=HWE-based)")
-        .default_value(std::string("OCH"))
-        .metavar("<STR>");
+    cmd.add_option(
+           "--test",
+           "Wald test mode: single (one-effect, df=1), joint (add+dom, df=2)")
+        ->group("Model")
+        ->type_name("<TEST>")
+        ->default_val(std::string{"single"})
+        ->check(CLI::IsMember(std::vector<std::string>{"single", "joint"}));
+    cmd.add_option(
+           "--mode",
+           "Association mode: A (additive), D (dominance). "
+           "Ignored when --test=joint (always AD)")
+        ->group("Model")
+        ->type_name("<MODE>")
+        ->default_val(std::string{"A"})
+        ->check(CLI::IsMember(std::vector<std::string>{"A", "D"}));
+    cmd.add_flag("--loco", "Leave-One-Chromosome-Out analysis")->group("Model");
+    cmd.add_option(
+           "--geno-method,--gm",
+           "Genotype processing: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC "
+           "(prefix: O=orth, N=NOIA; suffix: H=HWE-based)")
+        ->group("Model")
+        ->type_name("<STR>")
+        ->default_val(std::string{"OCH"});
 
-    cmd.add_group("REML");
-    cmd.add_argument("--max-iter")
-        .help("Max iterations")
-        .default_value(100)
-        .scan<'i', int>();
-    cmd.add_argument("--tol")
-        .help("Convergence tolerance")
-        .default_value(1e-6)
-        .scan<'g', double>();
-
-    cmd.add_group("Performance");
-    cmd.add_argument("-c", "--chunk-size")
-        .help("SNPs per chunk")
-        .default_value(10000)
-        .scan<'i', int>();
-    cmd.add_argument("-t", "--threads")
-        .help("CPU threads")
-        .default_value(
+    cmd.add_option("--max-iter", "Max iterations")
+        ->group("Runtime")
+        ->default_val(100);
+    cmd.add_option("--tol", "Convergence tolerance")
+        ->group("Runtime")
+        ->default_val(1e-6);
+    cmd.add_option("-c,--chunk-size", "SNPs per chunk")
+        ->group("Runtime")
+        ->default_val(10000);
+    cmd.add_option("-t,--threads", "CPU threads")
+        ->group("Runtime")
+        ->default_val(
             std::max(
-                1, static_cast<int>(std::thread::hardware_concurrency() / 2)))
-        .scan<'i', int>();
+                1, static_cast<int>(std::thread::hardware_concurrency() / 2)));
 
-    cmd.add_epilog(
-        gelex::cli::format_epilog(
-            "{bg}Example:{rs}\n"
-            "  {bc}gelex assoc{rs} {cy}-p{rs} pheno.tsv {cy}-b{rs} geno "
-            "{cy}--grm{rs} grm_prefix\n\n"
-            "{bg}Docs:{rs}\n"
-            "  https://gelex.readthedocs.io/en/latest/cli/assoc.html"));
+    cmd.footer(
+        "Example:\n"
+        "  gelex assoc -p pheno.tsv -b geno --grm grm_prefix\n\n"
+        "Docs:\n"
+        "  https://gelex.readthedocs.io/en/latest/cli/assoc.html");
+
+    cmd.callback(
+        [subcommand, &exit_code]()
+        { exit_code = cli::execute_cli_command(*subcommand, assoc_execute); });
 }

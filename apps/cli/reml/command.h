@@ -17,11 +17,11 @@
 #ifndef APPS_CLI_REML_COMMAND_H_
 #define APPS_CLI_REML_COMMAND_H_
 
-namespace argparse
+namespace CLI
 {
-class ArgumentParser;
+class App;
 }
 
-auto reml_execute(argparse::ArgumentParser& cmd) -> int;
+auto reml_execute(CLI::App& cmd) -> int;
 
 #endif  // APPS_CLI_REML_COMMAND_H_

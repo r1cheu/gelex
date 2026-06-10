@@ -16,11 +16,14 @@
 
 #include "reporter.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <string>
+#include <vector>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <CLI/CLI.hpp>
 #include <Eigen/Core>
 
 #include "cli/report_printer.h"
@@ -35,35 +38,70 @@ namespace cli
 
 auto RemlCommandReporter::show_banner() const -> void
 {
-    gelex::cli::printer().block(
+    cli::printer().block(
         gelex::command_banner(
             PROJECT_VERSION, "REML Variance Component Estimation"));
 }
 
-auto RemlCommandReporter::show_config(const RemlConfigSummary& config) const
-    -> void
+auto RemlCommandReporter::show_config(const CLI::App& cmd) const -> void
 {
-    auto& p = gelex::cli::printer();
-    p.block(gelex::section("[Config]"));
-    p.line("  {:<12}: {}", "Phenotype", config.pheno_path);
-    p.line("  {:<12}: {}", "Pheno Col", config.pheno_col);
-    p.line("  {:<12}: {}", "GRM", fmt::join(config.grm_prefixes, ", "));
-    p.line(
-        "  {:<12}: qcovar={}, dcovar={}, rand={}",
-        "Covariates",
-        config.has_qcovar ? "yes" : "no",
-        config.has_dcovar ? "yes" : "no",
-        config.has_rand ? "yes" : "no");
-    p.line("  {:<12}: {}", "Max Iter", config.max_iter);
-    p.line("  {:<12}: {:.2g}", "Tolerance", config.tol);
-    p.line("  {:<12}: {}", "Threads", config.threads);
+    auto& p = cli::printer();
+    p.block(gelex::section("Options in effect:"));
+
+    std::vector<const CLI::Option*> printed;
+    for (const auto* option : cmd.parse_order())
+    {
+        if (option->count() == 0)
+        {
+            continue;
+        }
+        if (std::ranges::find(printed, option) != printed.end())
+        {
+            continue;
+        }
+        printed.push_back(option);
+
+        std::string name;
+        const auto& long_names = option->get_lnames();
+        const auto& short_names = option->get_snames();
+        if (!long_names.empty())
+        {
+            name = "--" + long_names.front();
+        }
+        else if (!short_names.empty())
+        {
+            name = "-" + short_names.front();
+        }
+        if (name.empty())
+        {
+            continue;
+        }
+
+        std::vector<std::string> values;
+        for (const auto& value : option->results())
+        {
+            if (!value.empty() && value != "true")
+            {
+                values.push_back(value);
+            }
+        }
+        if (values.empty())
+        {
+            p.line("  {}", gelex::rebecca_purple(name));
+        }
+        else
+        {
+            p.line(
+                "  {} {}", gelex::rebecca_purple(name), fmt::join(values, " "));
+        }
+    }
 }
 
 auto RemlCommandReporter::on_event(const gelex::RemlEmInitEvent& e) -> void
 {
     header_printed_ = false;
-    gelex::cli::printer().line("   Initializing (EM)...");
-    gelex::cli::printer().line(
+    cli::printer().line("   Initializing (EM)...");
+    cli::printer().line(
         "    LogL: {:.2f} | Init variance: [{}]",
         e.loglike,
         gelex::rebecca_purple(
@@ -79,9 +117,8 @@ auto RemlCommandReporter::on_event(const gelex::RemlIterationEvent& e) -> void
         {
             var_header += fmt::format("{:>12}", label);
         }
-        gelex::cli::printer().block(
-            "  {:<4} {:>12} {}", "Iter", "LogL", var_header);
-        gelex::cli::printer().line(gelex::table_separator(55));
+        cli::printer().block("  {:<4} {:>12} {}", "Iter", "LogL", var_header);
+        cli::printer().line(gelex::table_separator(55));
         header_printed_ = true;
     }
 
@@ -90,8 +127,7 @@ auto RemlCommandReporter::on_event(const gelex::RemlIterationEvent& e) -> void
     {
         var_str += fmt::format("{:>12.2f}", v);
     }
-    gelex::cli::printer().line(
-        "  {:<4} {:>12.2f}{}", e.iter, e.loglike, var_str);
+    cli::printer().line("  {:<4} {:>12.2f}{}", e.iter, e.loglike, var_str);
 }
 
 auto RemlCommandReporter::on_event(const gelex::RemlCompleteEvent& e) const
@@ -99,7 +135,7 @@ auto RemlCommandReporter::on_event(const gelex::RemlCompleteEvent& e) const
 {
     const auto& model = *e.model;
     const auto& state = *e.state;
-    auto& p = gelex::cli::printer();
+    auto& p = cli::printer();
 
     p.line(gelex::table_separator(55));
     p.block(gelex::named_section("REML Results", 70));

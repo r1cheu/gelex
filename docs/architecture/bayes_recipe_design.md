@@ -92,9 +92,9 @@ CD 由 `BayesCDMethod` 编译为 `JointMixtureGaussianPrior`，共享 A / D allo
 接口：
 
 ```cpp
-namespace gelex::cli
+namespace cli
 {
-auto make_bayes_recipe_config(const argparse::ArgumentParser& cmd)
+auto make_bayes_recipe_config(const CLI::App& cmd)
     -> bayes::BayesRecipeConfig;
 }
 ```
@@ -102,7 +102,8 @@ auto make_bayes_recipe_config(const argparse::ArgumentParser& cmd)
 调用点：
 
 ```cpp
-auto preset = bayes::parse_bayes_recipe_preset(cmd.get("-m"));
+auto preset = bayes::parse_bayes_recipe_preset(
+    cmd.get_option("-m")->as<std::string>());
 auto config = cli::make_bayes_recipe_config(cmd);
 auto recipe = bayes::BayesRecipe{preset, std::move(config)};
 ```
@@ -116,7 +117,7 @@ auto recipe = bayes::BayesRecipe{preset, std::move(config)};
    不构造 `BayesPrior`，不做 method topology / compatibility check。
 
 放在 `apps/cli`，不放进 `include/gelex/` 或 `src/model/bayes/`。原因是 translator
-依赖 `argparse::ArgumentParser`、flag 名称、alias、`cmd.is_used(...)` 和 CLI
+依赖 `CLI::App`、flag 名称、alias、`Option::count()` 和 CLI
 错误文案；这些是 ingress 语法，不是 Bayes public API。
 
 不需要 `BayesRecipeConfigBuilder` class。当前没有生命周期、共享状态或多阶段不变量；

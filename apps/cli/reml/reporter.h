@@ -17,33 +17,23 @@
 #ifndef APPS_CLI_REML_COMMAND_REPORTER_H_
 #define APPS_CLI_REML_COMMAND_REPORTER_H_
 
-#include <string>
 #include <variant>
-#include <vector>
 
 #include "gelex/infra/logging/reml_event.h"
 
+namespace CLI
+{
+class App;
+}
+
 namespace cli
 {
-
-struct RemlConfigSummary
-{
-    std::string pheno_path;
-    int pheno_col{};
-    std::vector<std::string> grm_prefixes;
-    bool has_qcovar{};
-    bool has_dcovar{};
-    bool has_rand{};
-    int max_iter{};
-    double tol{};
-    int threads{};
-};
 
 class RemlCommandReporter
 {
    public:
     auto show_banner() const -> void;
-    auto show_config(const RemlConfigSummary& config) const -> void;
+    auto show_config(const CLI::App& cmd) const -> void;
 
     auto as_observer() -> gelex::RemlObserver
     {

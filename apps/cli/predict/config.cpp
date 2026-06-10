@@ -21,33 +21,37 @@
 #include <string>
 #include "gelex/engine/predict.h"
 
-#include <argparse.h>
+#include <CLI/CLI.hpp>
 
-namespace gelex::cli
+namespace cli
 {
 
-auto make_predict_config(argparse::ArgumentParser& cmd) -> PredictEngine::Config
+auto make_predict_config(CLI::App& cmd) -> gelex::PredictEngine::Config
 {
     using std::filesystem::path;
 
-    PredictEngine::Config config;
+    gelex::PredictEngine::Config config;
 
-    auto gfile = cmd.get<std::string>("--gfile");
-    auto bfile = cmd.get<std::string>("--bfile");
+    auto gfile = cmd.get_option("--gfile")->as<std::string>();
+    auto bfile = cmd.get_option("--bfile")->as<std::string>();
 
     config.bfile_prefix = bfile;
     config.gfile_prefix = gfile;
 
-    config.qcovar_path = cmd.is_used("--qcovar")
-                             ? std::make_optional<path>(cmd.get("--qcovar"))
-                             : std::nullopt;
-    config.dcovar_path = cmd.is_used("--dcovar")
-                             ? std::make_optional<path>(cmd.get("--dcovar"))
-                             : std::nullopt;
+    config.qcovar_path
+        = cmd.get_option("--qcovar")->count() > 0
+              ? std::make_optional<path>(
+                    cmd.get_option("--qcovar")->as<std::string>())
+              : std::nullopt;
+    config.dcovar_path
+        = cmd.get_option("--dcovar")->count() > 0
+              ? std::make_optional<path>(
+                    cmd.get_option("--dcovar")->as<std::string>())
+              : std::nullopt;
 
-    config.output_path = cmd.get("--out");
+    config.output_path = cmd.get_option("--out")->as<std::string>();
 
     return config;
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

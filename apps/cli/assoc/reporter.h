@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_ASSOC_REPORTER_H_
-#define GELEX_CLI_ASSOC_REPORTER_H_
+#ifndef APPS_CLI_ASSOC_REPORTER_H_
+#define APPS_CLI_ASSOC_REPORTER_H_
 
 #include <cstddef>
 
@@ -23,7 +23,7 @@
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/infra/logging/timer.h"
 
-namespace gelex::cli
+namespace cli
 {
 
 class AssocReporter
@@ -31,28 +31,28 @@ class AssocReporter
    public:
     AssocReporter();
 
-    auto on_event(const AssocBannerEvent& event) const -> void;
-    auto on_event(const AssocConfigLoadedEvent& event) const -> void;
-    auto on_event(const AssocRemlStartedEvent& event) const -> void;
-    auto on_event(const AssocScanSummaryEvent& event) -> void;
-    auto on_event(const AssocScanProgressEvent& event) -> void;
-    auto on_event(const AssocLocoPhaseEvent& event) -> void;
-    auto on_event(const AssocLocoRemlSummaryEvent& event) -> void;
-    auto on_event(const AssocCompleteEvent& event) -> void;
+    auto on_event(const gelex::AssocBannerEvent& event) const -> void;
+    auto on_event(const gelex::AssocConfigLoadedEvent& event) const -> void;
+    auto on_event(const gelex::AssocRemlStartedEvent& event) const -> void;
+    auto on_event(const gelex::AssocScanSummaryEvent& event) -> void;
+    auto on_event(const gelex::AssocScanProgressEvent& event) -> void;
+    auto on_event(const gelex::AssocLocoPhaseEvent& event) -> void;
+    auto on_event(const gelex::AssocLocoRemlSummaryEvent& event) -> void;
+    auto on_event(const gelex::AssocCompleteEvent& event) -> void;
 
-    auto as_observer() -> AssocObserver
+    auto as_observer() -> gelex::AssocObserver
     {
-        return [this](const AssocEvent& e)
+        return [this](const gelex::AssocEvent& e)
         { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
     }
 
    private:
     size_t progress_{0};
-    ProgressBar bar_;
+    gelex::ProgressBar bar_;
     bool bar_active_ = false;
-    SmoothEtaCalculator eta_;
+    gelex::SmoothEtaCalculator eta_;
 };
 
-}  // namespace gelex::cli
+}  // namespace cli
 
-#endif  // GELEX_CLI_ASSOC_REPORTER_H_
+#endif  // APPS_CLI_ASSOC_REPORTER_H_

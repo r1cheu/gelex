@@ -21,7 +21,7 @@
 
 #include "gelex/infra/logger.h"
 
-namespace gelex::cli
+namespace cli
 {
 
 auto ReportPrinter::ensure_blank() -> void
@@ -51,4 +51,4 @@ auto printer() -> ReportPrinter&
     return instance;
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

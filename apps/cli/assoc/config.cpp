@@ -16,7 +16,7 @@
 
 #include "config.h"
 
-#include <argparse.h>
+#include <CLI/CLI.hpp>
 #include <string>
 #include <string_view>
 
@@ -26,16 +26,16 @@
 #include "gelex/engine/assoc.h"
 #include "gelex/types/genetic_effect_type.h"
 
-namespace gelex::cli
+namespace cli
 {
 
-auto parse_test_type(std::string_view test) -> AssocType
+auto parse_test_type(std::string_view test) -> gelex::AssocType
 {
     if (test == "joint")
     {
-        return AssocType::Joint;
+        return gelex::AssocType::Joint;
     }
-    return AssocType::Single;
+    return gelex::AssocType::Single;
 }
 
 auto parse_transform_type(std::string_view transform)
@@ -52,30 +52,32 @@ auto parse_transform_type(std::string_view transform)
     return gelex::detail::TransformType::None;
 }
 
-auto make_assoc_config(argparse::ArgumentParser& cmd) -> AssocEngine::Config
+auto make_assoc_config(CLI::App& cmd) -> gelex::AssocEngine::Config
 {
-    auto test_type = parse_test_type(cmd.get("--test"));
+    auto test_type
+        = parse_test_type(cmd.get_option("--test")->as<std::string>());
     // Joint tester ignores mode; default to A for single when not specified
-    GeneticMode mode = GeneticMode::A;
-    if (test_type == AssocType::Single)
+    gelex::GeneticMode mode = gelex::GeneticMode::A;
+    if (test_type == gelex::AssocType::Single)
     {
-        auto sv = cmd.get("--mode");
+        auto sv = cmd.get_option("--mode")->as<std::string>();
         if (sv == "D")
         {
-            mode = GeneticMode::D;
+            mode = gelex::GeneticMode::D;
         }
     }
 
-    return AssocEngine::Config{
+    return gelex::AssocEngine::Config{
         .mode = mode,
-        .method = parse_genotype_method(cmd.get<std::string>("--geno-method")),
-        .chunk_size = cmd.get<int>("--chunk-size"),
-        .max_iter = cmd.get<int>("--max-iter"),
-        .tol = cmd.get<double>("--tol"),
-        .bfile_prefix = cmd.get("--bfile"),
-        .out_prefix = cmd.get("--out"),
-        .loco = cmd.get<bool>("--loco"),
+        .method = parse_genotype_method(
+            cmd.get_option("--geno-method")->as<std::string>()),
+        .chunk_size = cmd.get_option("--chunk-size")->as<int>(),
+        .max_iter = cmd.get_option("--max-iter")->as<int>(),
+        .tol = cmd.get_option("--tol")->as<double>(),
+        .bfile_prefix = cmd.get_option("--bfile")->as<std::string>(),
+        .out_prefix = cmd.get_option("--out")->as<std::string>(),
+        .loco = cmd.get_option("--loco")->count() > 0,
         .test_type = test_type};
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

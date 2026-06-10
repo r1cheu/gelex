@@ -19,7 +19,7 @@
 #include <string_view>
 #include <vector>
 
-#include <argparse.h>
+#include <CLI/CLI.hpp>
 
 #include "config.h"
 #include "gelex/engine/posterior_analysis.h"
@@ -27,12 +27,12 @@
 #include "gelex/infra/logging/post_event.h"
 #include "reporter.h"
 
-auto post_execute(argparse::ArgumentParser& post) -> int
+auto post_execute(CLI::App& post) -> int
 {
-    auto config = gelex::cli::make_post_config(post);
+    auto config = cli::make_post_config(post);
     auto logger = gelex::logging::get();
 
-    gelex::cli::PostReporter reporter;
+    cli::PostReporter reporter;
     reporter.on_event(gelex::PostBannerEvent{});
     reporter.on_event(gelex::PostStartEvent{.in_prefixes = config.in_prefixes});
 

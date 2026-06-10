@@ -14,22 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_MCMC_CONFIG_H_
-#define GELEX_CLI_MCMC_CONFIG_H_
+#ifndef APPS_CLI_MCMC_CONFIG_H_
+#define APPS_CLI_MCMC_CONFIG_H_
 
 #include "gelex/engine/mcmc.h"
 
-namespace argparse
+namespace CLI
 {
-class ArgumentParser;
+class App;
 }
 
-namespace gelex::cli
+namespace cli
 {
 
-auto make_mcmc_engine_config(argparse::ArgumentParser& cmd)
-    -> mcmc::Engine::Config;
+auto make_mcmc_engine_config(CLI::App& cmd) -> gelex::mcmc::Engine::Config;
 
-}  // namespace gelex::cli
+}  // namespace cli
 
-#endif  // GELEX_CLI_MCMC_CONFIG_H_
+#endif  // APPS_CLI_MCMC_CONFIG_H_

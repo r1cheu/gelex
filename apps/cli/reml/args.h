@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_REML_ARGS_H_
-#define GELEX_CLI_REML_ARGS_H_
+#ifndef APPS_CLI_REML_ARGS_H_
+#define APPS_CLI_REML_ARGS_H_
 
-namespace argparse
+namespace CLI
 {
-class ArgumentParser;
+class App;
 }
 
-auto setup_reml_args(argparse::ArgumentParser& cmd) -> void;
+auto setup_reml_command(CLI::App& program, int& exit_code) -> void;
 
-#endif  // GELEX_CLI_REML_ARGS_H_
+#endif  // APPS_CLI_REML_ARGS_H_

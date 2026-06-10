@@ -25,18 +25,18 @@
 #include "gelex/infra/logging/progress_bar.h"
 #include "version.h"
 
-namespace gelex::cli
+namespace cli
 {
 
 GrmReporter::GrmReporter() : eta_(1) {}
 
-auto GrmReporter::on_event(const GrmBannerEvent& /*event*/) -> void
+auto GrmReporter::on_event(const gelex::GrmBannerEvent& /*event*/) -> void
 {
     cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "GRM Computation"));
 }
 
-auto GrmReporter::on_event(const GrmConfigLoadedEvent& event) -> void
+auto GrmReporter::on_event(const gelex::GrmConfigLoadedEvent& event) -> void
 {
     cli::printer().block(gelex::section("[Config]"));
     cli::printer().line("  {:<12}: {}", "Method", event.method);
@@ -47,26 +47,26 @@ auto GrmReporter::on_event(const GrmConfigLoadedEvent& event) -> void
     cli::printer().line("  {:<12}: {}", "LOCO", event.do_loco ? "yes" : "no");
 }
 
-auto GrmReporter::on_event(const GrmDataLoadedEvent& event) -> void
+auto GrmReporter::on_event(const gelex::GrmDataLoadedEvent& event) -> void
 {
     cli::printer().block(gelex::section("[Dataset Summary]"));
     cli::printer().line("   Samples    : {} samples", event.num_samples);
     cli::printer().line("   SNPs       : {} markers", event.num_snps);
 }
 
-auto GrmReporter::on_event(const GrmComputeStartedEvent& event) -> void
+auto GrmReporter::on_event(const gelex::GrmComputeStartedEvent& event) -> void
 {
     global_total_ = event.total_snps;
     accumulated_base_ = 0;
     progress_ = 0;
     eta_.reset(global_total_);
 
-    bar_ = create_progress_bar(progress_, global_total_);
+    bar_ = gelex::create_progress_bar(progress_, global_total_);
     bar_.display->show();
     bar_active_ = true;
 }
 
-auto GrmReporter::on_event(const GrmProgressEvent& event) -> void
+auto GrmReporter::on_event(const gelex::GrmProgressEvent& event) -> void
 {
     if (event.done)
     {
@@ -83,8 +83,8 @@ auto GrmReporter::on_event(const GrmProgressEvent& event) -> void
                 "{:.1f}% ({}/{}) | ETA: {}",
                 static_cast<double>(progress_)
                     / static_cast<double>(global_total_) * 100.0,
-                AbbrNumber(progress_),
-                AbbrNumber(global_total_),
+                gelex::AbbrNumber(progress_),
+                gelex::AbbrNumber(global_total_),
                 eta_.get_eta(progress_)));
     }
     if (event.current == event.total)
@@ -93,7 +93,7 @@ auto GrmReporter::on_event(const GrmProgressEvent& event) -> void
     }
 }
 
-auto GrmReporter::on_event(const GrmFilesWrittenEvent& event) -> void
+auto GrmReporter::on_event(const gelex::GrmFilesWrittenEvent& event) -> void
 {
     cli::printer().block(gelex::section("[File Summary]"));
     cli::printer().line("  Num Files : {}", event.num_files);
@@ -101,4 +101,4 @@ auto GrmReporter::on_event(const GrmFilesWrittenEvent& event) -> void
     cli::printer().line("  Pattern     : {}", event.file_pattern);
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

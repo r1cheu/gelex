@@ -3,3 +3,6 @@
     path = ext/eigen
     url = https://gitlab.com/libeigen/eigen.git
     branch = master
+[submodule "ext/CLI11"]
+    path = ext/CLI11
+    url = https://github.com/CLIUtils/CLI11.git

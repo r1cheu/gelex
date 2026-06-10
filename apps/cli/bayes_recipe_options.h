@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_BAYES_RECIPE_OPTIONS_H_
-#define GELEX_CLI_BAYES_RECIPE_OPTIONS_H_
+#ifndef APPS_CLI_BAYES_RECIPE_OPTIONS_H_
+#define APPS_CLI_BAYES_RECIPE_OPTIONS_H_
 
 #include "gelex/bayes/recipe_options.h"
 
-namespace argparse
+namespace CLI
 {
-class ArgumentParser;
+class App;
 }
 
-namespace gelex::cli
+namespace cli
 {
 
-auto make_bayes_recipe_options(const argparse::ArgumentParser& cmd)
-    -> bayes::BayesRecipeOptions;
+auto make_bayes_recipe_options(const CLI::App& cmd)
+    -> gelex::bayes::BayesRecipeOptions;
 
-}  // namespace gelex::cli
+}  // namespace cli
 
-#endif  // GELEX_CLI_BAYES_RECIPE_OPTIONS_H_
+#endif  // APPS_CLI_BAYES_RECIPE_OPTIONS_H_

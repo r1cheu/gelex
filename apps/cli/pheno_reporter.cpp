@@ -23,10 +23,11 @@
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/pheno_event.h"
 
-namespace gelex::cli
+namespace cli
 {
 
-auto PhenoReporter::on_event(const PhenotypeLoadedEvent& event) const -> void
+auto PhenoReporter::on_event(const gelex::PhenotypeLoadedEvent& event) const
+    -> void
 {
     cli::printer().line(
         "   Phenotypes : {} samples ('{}')",
@@ -34,7 +35,8 @@ auto PhenoReporter::on_event(const PhenotypeLoadedEvent& event) const -> void
         event.trait_name);
 }
 
-auto PhenoReporter::on_event(const CovariatesLoadedEvent& event) const -> void
+auto PhenoReporter::on_event(const gelex::CovariatesLoadedEvent& event) const
+    -> void
 {
     std::string parts;
     if (event.num_quantitative_covariates)
@@ -58,4 +60,4 @@ auto PhenoReporter::on_event(const CovariatesLoadedEvent& event) const -> void
     cli::printer().line("   Covariates : {}", parts);
 }
 
-}  // namespace gelex::cli
+}  // namespace cli

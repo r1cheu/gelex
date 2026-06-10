@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_CLI_SIMULATE_REPORTER_H_
-#define GELEX_CLI_SIMULATE_REPORTER_H_
+#ifndef APPS_CLI_SIMULATE_REPORTER_H_
+#define APPS_CLI_SIMULATE_REPORTER_H_
 
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/infra/logging/simulate_event.h"
 
-namespace gelex::cli
+namespace cli
 {
 
 class SimulatorReporter
@@ -28,22 +28,23 @@ class SimulatorReporter
    public:
     SimulatorReporter();
 
-    auto on_event(const SimulateBannerEvent& event) const -> void;
-    auto on_event(const SimulateConfigLoadedEvent& event) const -> void;
-    auto on_event(const SimulateProgressEvent& event) -> void;
-    auto on_event(const SimulateVarianceSummaryEvent& event) const -> void;
+    auto on_event(const gelex::SimulateBannerEvent& event) const -> void;
+    auto on_event(const gelex::SimulateConfigLoadedEvent& event) const -> void;
+    auto on_event(const gelex::SimulateProgressEvent& event) -> void;
+    auto on_event(const gelex::SimulateVarianceSummaryEvent& event) const
+        -> void;
 
-    auto as_observer() -> SimulateObserver
+    auto as_observer() -> gelex::SimulateObserver
     {
-        return [this](const SimulateEvent& e)
+        return [this](const gelex::SimulateEvent& e)
         { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
     }
 
    private:
-    ProgressInfo info_;
+    gelex::ProgressInfo info_;
     bool init_progress_ = false;
 };
 
-}  // namespace gelex::cli
+}  // namespace cli
 
-#endif  // GELEX_CLI_SIMULATE_REPORTER_H_
+#endif  // APPS_CLI_SIMULATE_REPORTER_H_
