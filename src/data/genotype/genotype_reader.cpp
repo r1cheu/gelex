@@ -34,7 +34,7 @@
 
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/genotype.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/data/genotype/processor.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logger.h"
@@ -138,7 +138,7 @@ GenotypeReader::GenotypeReader(
 
 template <gelex::GeneticMode GT>
 auto GenotypeReader::read(
-    gelex::GenotypeProcessMethod method,
+    gelex::GenotypeMethod method,
     typename Sink::Variant sink,
     std::size_t chunk_size) -> Genotype
 {
@@ -160,7 +160,7 @@ auto GenotypeReader::read(
 
 template <gelex::GeneticMode GT>
 auto GenotypeReader::read_in_memory(
-    gelex::GenotypeProcessMethod method,
+    gelex::GenotypeMethod method,
     std::size_t chunk_size) -> Genotype
 {
     OwnedStorage owned;
@@ -224,7 +224,7 @@ auto GenotypeReader::read_in_memory(
 
 template <gelex::GeneticMode GT>
 auto GenotypeReader::read_mmap(
-    gelex::GenotypeProcessMethod method,
+    gelex::GenotypeMethod method,
     const std::filesystem::path& output_prefix,
     std::size_t chunk_size) -> Genotype
 {
@@ -307,11 +307,11 @@ auto GenotypeReader::read(
 }
 
 template auto GenotypeReader::read<gelex::GeneticMode::A>(
-    gelex::GenotypeProcessMethod,
+    gelex::GenotypeMethod,
     typename Sink::Variant,
     std::size_t) -> Genotype;
 template auto GenotypeReader::read<gelex::GeneticMode::D>(
-    gelex::GenotypeProcessMethod,
+    gelex::GenotypeMethod,
     typename Sink::Variant,
     std::size_t) -> Genotype;
 

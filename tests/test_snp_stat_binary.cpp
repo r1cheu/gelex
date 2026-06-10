@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
+#include <array>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
+#include "gelex/exception.h"
 #include "gelex/io/locistats/reader.h"
 #include "gelex/io/locistats/writer.h"
 
@@ -29,8 +32,41 @@
 #include "gelex/types/genetic_effect_type.h"
 
 using gelex::EffectType;
+using gelex::GenotypeMethod;
 using gelex::LociStatsReader;
 using gelex::LociStatsWriter;
+using gelex::GelexException;
+using gelex::genotype_method_from_byte;
+
+TEST_CASE("genotype method byte round-trip", "[sbin][snpstats]")
+{
+    constexpr std::array METHODS{
+        GenotypeMethod::StandardizeHWE,
+        GenotypeMethod::CenterHWE,
+        GenotypeMethod::Standardize,
+        GenotypeMethod::Center,
+        GenotypeMethod::OrthStandardizeHWE,
+        GenotypeMethod::OrthCenterHWE,
+        GenotypeMethod::OrthStandardize,
+        GenotypeMethod::OrthCenter,
+        GenotypeMethod::NOIAStandardize,
+        GenotypeMethod::NOIACenter};
+
+    for (auto method : METHODS)
+    {
+        REQUIRE(genotype_method_from_byte(std::to_underlying(method)) == method);
+    }
+}
+
+TEST_CASE("invalid genotype method byte throws", "[sbin][snpstats]")
+{
+    constexpr std::array<uint8_t, 6> INVALID_BYTES{10, 11, 12, 13, 14, 15};
+
+    for (uint8_t byte : INVALID_BYTES)
+    {
+        REQUIRE_THROWS_AS(genotype_method_from_byte(byte), GelexException);
+    }
+}
 
 TEST_CASE("sbin round-trip additive only", "[sbin][snpstats]")
 {
@@ -42,12 +78,17 @@ TEST_CASE("sbin round-trip additive only", "[sbin][snpstats]")
     Eigen::VectorXd stddev = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.01, 0.50);
     std::vector<int64_t> mono = {3, 42, 101};
 
-    const auto METHOD = gelex::GenotypeProcessMethod::StandardizeHWE();
+    const auto METHOD = GenotypeMethod::StandardizeHWE;
 
     auto sbin_path = dir / "test.sbin";
     {
         LociStatsWriter writer(sbin_path.string());
-        writer.write(EffectType::add(), METHOD.to_byte(), mean, &stddev, mono);
+        writer.write(
+            EffectType::add(),
+            std::to_underlying(METHOD),
+            mean,
+            &stddev,
+            mono);
     }
 
     LociStatsReader reader(sbin_path.string());
@@ -80,20 +121,23 @@ TEST_CASE("sbin round-trip additive and dominance", "[sbin][snpstats]")
     Eigen::VectorXd dom_stddev
         = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.05, 0.25);
 
-    const auto ADD_METHOD = gelex::GenotypeProcessMethod::StandardizeHWE();
-    const auto DOM_METHOD = gelex::GenotypeProcessMethod::OrthStandardizeHWE();
+    const auto ADD_METHOD = GenotypeMethod::StandardizeHWE;
+    const auto DOM_METHOD = GenotypeMethod::OrthStandardizeHWE;
 
     auto sbin_path = dir / "test_ad.sbin";
     {
         LociStatsWriter writer(sbin_path.string());
         writer.write(
             EffectType::add(),
-            ADD_METHOD.to_byte(),
+            std::to_underlying(ADD_METHOD),
             add_mean,
             &add_stddev,
             add_mono);
         writer.write(
-            EffectType::dom(), DOM_METHOD.to_byte(), dom_mean, &dom_stddev);
+            EffectType::dom(),
+            std::to_underlying(DOM_METHOD),
+            dom_mean,
+            &dom_stddev);
     }
 
     LociStatsReader reader(sbin_path.string());
@@ -128,7 +172,12 @@ TEST_CASE("sbin round-trip center only (no stddev)", "[sbin][snpstats]")
     auto sbin_path = dir / "test_center.sbin";
     {
         LociStatsWriter writer(sbin_path.string());
-        writer.write(EffectType::add(), 0, mean, nullptr, mono);
+        writer.write(
+            EffectType::add(),
+            std::to_underlying(GenotypeMethod::CenterHWE),
+            mean,
+            nullptr,
+            mono);
     }
 
     LociStatsReader reader(sbin_path.string());
@@ -141,4 +190,5 @@ TEST_CASE("sbin round-trip center only (no stddev)", "[sbin][snpstats]")
     REQUIRE_FALSE(data.stddev.has_value());
     REQUIRE(data.mean.isApprox(mean));
     REQUIRE(data.mono_indices == mono);
+    REQUIRE(data.method == GenotypeMethod::CenterHWE);
 }

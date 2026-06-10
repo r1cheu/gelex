@@ -165,7 +165,7 @@ auto make_simulate_config(argparse::ArgumentParser& cmd)
         .bfile_prefix = cmd.get("--bfile"),
         .output_prefix = cmd.get("--out"),
         .geno_method
-        = parse_genotype_process_method(cmd.get<std::string>("--geno-method")),
+        = parse_genotype_method(cmd.get<std::string>("--geno-method")),
         .additive = std::move(additive),
         .dominance = std::move(dominance),
         .dom_positive_prob = dom_positive_prob,

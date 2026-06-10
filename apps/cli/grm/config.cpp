@@ -58,7 +58,7 @@ auto make_grm_config(argparse::ArgumentParser& cmd) -> gelex::GrmEngine::Config
     return gelex::GrmEngine::Config{
         .bfile_prefix = cmd.get("--bfile"),
         .requested_effects = std::move(requested),
-        .method = gelex::cli::parse_genotype_process_method(
+        .method = gelex::cli::parse_genotype_method(
             cmd.get<std::string>("--geno-method")),
         .do_loco = cmd.get<bool>("--loco"),
         .out_prefix = cmd.get("--out"),

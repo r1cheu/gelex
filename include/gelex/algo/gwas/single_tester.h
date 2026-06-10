@@ -22,7 +22,7 @@
 #include "gelex/algo/gwas/assoc_output.h"
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/reml/result.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 
 namespace gelex
 {
@@ -30,7 +30,7 @@ namespace gelex
 class SingleTester final : public AssocTester
 {
    public:
-    SingleTester(GeneticMode mode, GenotypeProcessMethod method);
+    SingleTester(GeneticMode mode, GenotypeMethod method);
 
     auto resize(Eigen::Index n_samples, Eigen::Index chunk_size)
         -> void override;
@@ -48,7 +48,7 @@ class SingleTester final : public AssocTester
         AssocOutput& output) -> void;
 
     GeneticMode mode_;
-    GenotypeProcessMethod method_;
+    GenotypeMethod method_;
 
     Eigen::MatrixXd Z_;
     Eigen::MatrixXd W_;

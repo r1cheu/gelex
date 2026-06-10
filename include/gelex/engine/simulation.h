@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/infra/logging/simulate_event.h"
 #include "gelex/simulate/sim_types.h"
 
@@ -43,7 +43,7 @@ class SimulationEngine
         std::string bfile_prefix;
         std::string output_prefix;
 
-        GenotypeProcessMethod geno_method;
+        GenotypeMethod geno_method;
 
         std::optional<SimulateScheme> additive;
         std::optional<SimulateScheme> dominance;

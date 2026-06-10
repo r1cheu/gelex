@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 
+#include "gelex/data/genotype/method.h"
 #include "gelex/data/genotype/processor.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -35,7 +36,7 @@ class GrmEngine
         std::string bfile_prefix;
 
         std::vector<GeneticMode> requested_effects;
-        GenotypeProcessMethod method;
+        GenotypeMethod method;
         bool do_loco;
 
         std::string out_prefix;

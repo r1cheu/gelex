@@ -19,7 +19,7 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/data/genotype/processor.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -41,7 +41,7 @@ TEST_CASE(
     Eigen::MatrixXd expected(5, 1);
     expected << -0.8, 0.2, 1.2, 0.2, -0.8;
 
-    process_matrix<GeneticMode::A>(GenotypeProcessMethod::Center(), geno);
+    process_matrix<GeneticMode::A>(GenotypeMethod::Center, geno);
 
     REQUIRE(geno.isApprox(expected));
 }
@@ -59,7 +59,7 @@ TEST_CASE(
     Eigen::MatrixXd expected(4, 3);
     expected << -1, 1, 0, 0, 0, 0, 1, -1, 0, 0, 0, 0;
 
-    process_matrix<GeneticMode::A>(GenotypeProcessMethod::Center(), geno);
+    process_matrix<GeneticMode::A>(GenotypeMethod::Center, geno);
 
     REQUIRE(geno.isApprox(expected));
 }
@@ -73,7 +73,7 @@ TEST_CASE(
 
     Eigen::MatrixXd expected = geno;
 
-    process_matrix<GeneticMode::A>(GenotypeProcessMethod::Center(), geno);
+    process_matrix<GeneticMode::A>(GenotypeMethod::Center, geno);
 
     REQUIRE(geno.isApprox(expected));
 }
@@ -93,7 +93,7 @@ TEST_CASE("Center additive mode", "[grm][Center]")
         Eigen::MatrixXd expected(5, 1);
         expected << -0.8, 0.2, 1.2, 0.2, -0.8;
 
-        process_matrix<GeneticMode::A>(GenotypeProcessMethod::Center(), geno);
+        process_matrix<GeneticMode::A>(GenotypeMethod::Center, geno);
 
         REQUIRE(geno.isApprox(expected));
     }
@@ -107,7 +107,7 @@ TEST_CASE("Center additive mode", "[grm][Center]")
         Eigen::MatrixXd expected(4, 2);
         expected << -1, 1, 0, 0, 1, -1, 0, 0;
 
-        process_matrix<GeneticMode::A>(GenotypeProcessMethod::Center(), geno);
+        process_matrix<GeneticMode::A>(GenotypeMethod::Center, geno);
 
         REQUIRE(geno.isApprox(expected));
     }
@@ -129,7 +129,7 @@ TEST_CASE("Center dominance mode", "[grm][Center]")
         Eigen::MatrixXd expected(5, 1);
         expected << -0.4, 0.6, -0.4, 0.6, -0.4;
 
-        process_matrix<GeneticMode::D>(GenotypeProcessMethod::Center(), geno);
+        process_matrix<GeneticMode::D>(GenotypeMethod::Center, geno);
 
         REQUIRE(geno.isApprox(expected, 1e-10));
     }
@@ -143,7 +143,7 @@ TEST_CASE("Center dominance mode", "[grm][Center]")
         Eigen::MatrixXd expected(4, 1);
         expected << 0, 0, 0, 0;
 
-        process_matrix<GeneticMode::D>(GenotypeProcessMethod::Center(), geno);
+        process_matrix<GeneticMode::D>(GenotypeMethod::Center, geno);
 
         REQUIRE(geno.isApprox(expected, 1e-10));
     }
@@ -165,7 +165,7 @@ TEST_CASE("OrthCenter additive mode", "[grm][OrthCenter]")
         expected << -0.8, 0.2, 1.2, 0.2, -0.8;
 
         process_matrix<GeneticMode::A>(
-            GenotypeProcessMethod::OrthCenter(), geno);
+            GenotypeMethod::OrthCenter, geno);
 
         REQUIRE(geno.isApprox(expected));
     }
@@ -193,7 +193,7 @@ TEST_CASE("OrthCenter dominance mode", "[grm][OrthCenter]")
         expected << -0.24, 0.56, -0.64, 0.56, -0.24;
 
         process_matrix<GeneticMode::D>(
-            GenotypeProcessMethod::OrthCenter(), geno);
+            GenotypeMethod::OrthCenter, geno);
 
         REQUIRE(geno.isApprox(expected, 1e-10));
     }
@@ -211,7 +211,7 @@ TEST_CASE("OrthCenter dominance mode", "[grm][OrthCenter]")
         expected << 0, 0, 0, 0;
 
         process_matrix<GeneticMode::D>(
-            GenotypeProcessMethod::OrthCenter(), geno);
+            GenotypeMethod::OrthCenter, geno);
 
         REQUIRE(geno.isApprox(expected, 1e-10));
     }
@@ -229,7 +229,7 @@ TEST_CASE("OrthCenter dominance mode", "[grm][OrthCenter]")
         expected << 0, 0, 0, 0;
 
         process_matrix<GeneticMode::D>(
-            GenotypeProcessMethod::OrthCenter(), geno);
+            GenotypeMethod::OrthCenter, geno);
 
         REQUIRE(geno.isApprox(expected));
     }
@@ -256,7 +256,7 @@ TEST_CASE("OrthCenterHWE dominance mode", "[grm][OrthCenterHWE]")
         expected << -0.32, 0.48, -0.72, 0.48, -0.32;
 
         process_matrix<GeneticMode::D>(
-            GenotypeProcessMethod::OrthCenterHWE(), geno);
+            GenotypeMethod::OrthCenterHWE, geno);
 
         REQUIRE(geno.isApprox(expected, 1e-10));
     }
@@ -286,7 +286,7 @@ TEST_CASE("OrthStandardize additive mode", "[grm][OrthStandardize]")
             (2 - mean) / stddev, (1 - mean) / stddev, (0 - mean) / stddev;
 
         process_matrix<GeneticMode::A>(
-            GenotypeProcessMethod::OrthStandardize(), geno);
+            GenotypeMethod::OrthStandardize, geno);
 
         REQUIRE(geno.isApprox(expected));
     }
@@ -297,7 +297,7 @@ TEST_CASE("OrthStandardize additive mode", "[grm][OrthStandardize]")
         geno << 0, 0, 0, 0;
 
         process_matrix<GeneticMode::A>(
-            GenotypeProcessMethod::OrthStandardize(), geno);
+            GenotypeMethod::OrthStandardize, geno);
 
         REQUIRE(geno.isApproxToConstant(0.0));
     }
@@ -308,7 +308,7 @@ TEST_CASE("OrthStandardize additive mode", "[grm][OrthStandardize]")
         geno << 2, 2, 2, 2;
 
         process_matrix<GeneticMode::A>(
-            GenotypeProcessMethod::OrthStandardize(), geno);
+            GenotypeMethod::OrthStandardize, geno);
 
         REQUIRE(geno.isApproxToConstant(0.0));
     }
@@ -339,7 +339,7 @@ TEST_CASE("OrthStandardize dominance mode", "[grm][OrthStandardize]")
             0.56 / stddev, -0.24 / stddev;
 
         process_matrix<GeneticMode::D>(
-            GenotypeProcessMethod::OrthStandardize(), geno);
+            GenotypeMethod::OrthStandardize, geno);
 
         REQUIRE(geno.isApprox(expected));
     }
@@ -350,7 +350,7 @@ TEST_CASE("OrthStandardize dominance mode", "[grm][OrthStandardize]")
         geno << 0, 0, 0, 0;
 
         process_matrix<GeneticMode::D>(
-            GenotypeProcessMethod::OrthStandardize(), geno);
+            GenotypeMethod::OrthStandardize, geno);
 
         REQUIRE(geno.isApproxToConstant(0.0));
     }
@@ -366,7 +366,7 @@ TEST_CASE("OrthStandardize dominance mode", "[grm][OrthStandardize]")
         geno << 1, 1, 1, 1;
 
         process_matrix<GeneticMode::D>(
-            GenotypeProcessMethod::OrthStandardize(), geno);
+            GenotypeMethod::OrthStandardize, geno);
 
         REQUIRE(geno.isApproxToConstant(0.0));
     }
@@ -397,7 +397,7 @@ TEST_CASE("OrthStandardizeHWE dominance mode", "[grm][OrthStandardizeHWE]")
             0.48 / stddev, -0.32 / stddev;
 
         process_matrix<GeneticMode::D>(
-            GenotypeProcessMethod::OrthStandardizeHWE(), geno);
+            GenotypeMethod::OrthStandardizeHWE, geno);
 
         REQUIRE(geno.isApprox(expected));
     }
@@ -415,7 +415,7 @@ TEST_CASE("All policies handle multiple columns", "[grm]")
     SECTION("Center additive")
     {
         Eigen::MatrixXd g = geno;
-        process_matrix<GeneticMode::A>(GenotypeProcessMethod::Center(), g);
+        process_matrix<GeneticMode::A>(GenotypeMethod::Center, g);
         // verify each column is mean-centered
         for (Eigen::Index i = 0; i < g.cols(); ++i)
         {
@@ -426,7 +426,7 @@ TEST_CASE("All policies handle multiple columns", "[grm]")
     SECTION("OrthCenter additive")
     {
         Eigen::MatrixXd g = geno;
-        process_matrix<GeneticMode::A>(GenotypeProcessMethod::OrthCenter(), g);
+        process_matrix<GeneticMode::A>(GenotypeMethod::OrthCenter, g);
         for (Eigen::Index i = 0; i < g.cols(); ++i)
         {
             REQUIRE(std::abs(g.col(i).mean()) < 1e-10);
@@ -437,7 +437,7 @@ TEST_CASE("All policies handle multiple columns", "[grm]")
     {
         Eigen::MatrixXd g = geno;
         process_matrix<GeneticMode::A>(
-            GenotypeProcessMethod::OrthStandardize(), g);
+            GenotypeMethod::OrthStandardize, g);
         // each column should have mean ~ 0
         for (Eigen::Index i = 0; i < g.cols(); ++i)
         {

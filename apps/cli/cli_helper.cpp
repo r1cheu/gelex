@@ -26,14 +26,13 @@
 #include <omp.h>
 #include <Eigen/Core>
 
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/exception.h"
 
 namespace gelex::cli
 {
 
-auto parse_genotype_process_method(std::string_view value)
-    -> GenotypeProcessMethod
+auto parse_genotype_method(std::string_view value) -> GenotypeMethod
 {
     std::string lower(value);
     std::transform(
@@ -42,29 +41,28 @@ auto parse_genotype_process_method(std::string_view value)
         lower.begin(),
         [](unsigned char c) { return std::tolower(c); });
 
-    static const std::unordered_map<std::string, GenotypeProcessMethod>
-        METHOD_MAP = {
-            {"standardizehwe", GenotypeProcessMethod::StandardizeHWE()},
-            {"sh", GenotypeProcessMethod::StandardizeHWE()},
-            {"centerhwe", GenotypeProcessMethod::CenterHWE()},
-            {"ch", GenotypeProcessMethod::CenterHWE()},
-            {"orthstandardizehwe", GenotypeProcessMethod::OrthStandardizeHWE()},
-            {"osh", GenotypeProcessMethod::OrthStandardizeHWE()},
-            {"orthcenterhwe", GenotypeProcessMethod::OrthCenterHWE()},
-            {"och", GenotypeProcessMethod::OrthCenterHWE()},
-            {"standardize", GenotypeProcessMethod::Standardize()},
-            {"s", GenotypeProcessMethod::Standardize()},
-            {"center", GenotypeProcessMethod::Center()},
-            {"c", GenotypeProcessMethod::Center()},
-            {"orthstandardize", GenotypeProcessMethod::OrthStandardize()},
-            {"os", GenotypeProcessMethod::OrthStandardize()},
-            {"orthcenter", GenotypeProcessMethod::OrthCenter()},
-            {"oc", GenotypeProcessMethod::OrthCenter()},
-            {"noiastandardize", GenotypeProcessMethod::NOIAStandardize()},
-            {"ns", GenotypeProcessMethod::NOIAStandardize()},
-            {"noiacenter", GenotypeProcessMethod::NOIACenter()},
-            {"nc", GenotypeProcessMethod::NOIACenter()},
-        };
+    static const std::unordered_map<std::string, GenotypeMethod> METHOD_MAP = {
+        {"standardizehwe", GenotypeMethod::StandardizeHWE},
+        {"sh", GenotypeMethod::StandardizeHWE},
+        {"centerhwe", GenotypeMethod::CenterHWE},
+        {"ch", GenotypeMethod::CenterHWE},
+        {"orthstandardizehwe", GenotypeMethod::OrthStandardizeHWE},
+        {"osh", GenotypeMethod::OrthStandardizeHWE},
+        {"orthcenterhwe", GenotypeMethod::OrthCenterHWE},
+        {"och", GenotypeMethod::OrthCenterHWE},
+        {"standardize", GenotypeMethod::Standardize},
+        {"s", GenotypeMethod::Standardize},
+        {"center", GenotypeMethod::Center},
+        {"c", GenotypeMethod::Center},
+        {"orthstandardize", GenotypeMethod::OrthStandardize},
+        {"os", GenotypeMethod::OrthStandardize},
+        {"orthcenter", GenotypeMethod::OrthCenter},
+        {"oc", GenotypeMethod::OrthCenter},
+        {"noiastandardize", GenotypeMethod::NOIAStandardize},
+        {"ns", GenotypeMethod::NOIAStandardize},
+        {"noiacenter", GenotypeMethod::NOIACenter},
+        {"nc", GenotypeMethod::NOIACenter},
+    };
 
     auto it = METHOD_MAP.find(lower);
     if (it == METHOD_MAP.end())

@@ -26,7 +26,7 @@
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/bed_pipe.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/infra/logging/simulate_event.h"
 #include "gelex/simulate/sim_types.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -45,7 +45,7 @@ class GeneticValueCalculator
     template <GeneticMode Mode>
     auto calculate(
         GeneticValues& genetic_values,
-        GenotypeProcessMethod geno_method,
+        GenotypeMethod geno_method,
         const SimulateObserver& observer = {}) const -> Eigen::VectorXd;
 
     [[nodiscard]] auto sample_ids() const -> std::span<const std::string>;

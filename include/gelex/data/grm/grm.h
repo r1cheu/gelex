@@ -25,6 +25,7 @@
 
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/bed_pipe.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/data/genotype/processor.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/logging/notify.h"
@@ -51,13 +52,13 @@ class GRM
 
     template <GeneticMode GT>
     auto compute(
-        GenotypeProcessMethod method,
+        GenotypeMethod method,
         Eigen::Index chunk_size,
         const GrmObserver& observer = {}) -> GrmResult;
 
     template <GeneticMode GT>
     auto compute(
-        GenotypeProcessMethod method,
+        GenotypeMethod method,
         const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
         Eigen::Index chunk_size,
         const GrmObserver& observer = {}) -> GrmResult;
@@ -83,7 +84,7 @@ class GRM
 
 template <GeneticMode GT>
 auto GRM::compute(
-    GenotypeProcessMethod method,
+    GenotypeMethod method,
     Eigen::Index chunk_size,
     const GrmObserver& observer) -> GrmResult
 {
@@ -92,7 +93,7 @@ auto GRM::compute(
 
 template <GeneticMode GT>
 auto GRM::compute(
-    GenotypeProcessMethod method,
+    GenotypeMethod method,
     const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
     Eigen::Index chunk_size,
     const GrmObserver& observer) -> GrmResult

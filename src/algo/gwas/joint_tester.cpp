@@ -26,7 +26,7 @@
 
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/reml/result.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/data/genotype/processor.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -34,7 +34,7 @@
 namespace gelex
 {
 
-JointTester::JointTester(GenotypeProcessMethod method) : method_(method) {}
+JointTester::JointTester(GenotypeMethod method) : method_(method) {}
 
 auto JointTester::resize(Eigen::Index n_samples, Eigen::Index chunk_size)
     -> void

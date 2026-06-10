@@ -20,7 +20,7 @@
 #include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/algo/gwas/joint_tester.h"
 #include "gelex/algo/gwas/single_tester.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/exception.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -30,9 +30,9 @@ namespace gelex
 auto AssocTester::make(
     AssocType type,
     GeneticMode mode,
-    GenotypeProcessMethod geno_method) -> std::unique_ptr<AssocTester>
+    GenotypeMethod geno_method) -> std::unique_ptr<AssocTester>
 {
-    if (!geno_method.is_center())
+    if (!is_center(geno_method))
     {
         throw GelexException(
             "assoc --geno-method supports only center-family methods: "

@@ -24,7 +24,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -33,7 +33,7 @@ namespace gelex
 
 struct LociStats
 {
-    GenotypeProcessMethod method{};
+    GenotypeMethod method{};
     Eigen::VectorXd mean;
     std::optional<Eigen::VectorXd> stddev;
     std::vector<int64_t> mono_indices;

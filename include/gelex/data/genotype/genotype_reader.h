@@ -27,7 +27,7 @@
 
 #include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/genotype/genotype.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -64,7 +64,7 @@ class GenotypeReader
 
     template <gelex::GeneticMode GT>
     auto read(
-        gelex::GenotypeProcessMethod method,
+        gelex::GenotypeMethod method,
         typename Sink::Variant sink,
         std::size_t chunk_size = 10000) -> Genotype;
 
@@ -84,13 +84,12 @@ class GenotypeReader
 
    private:
     template <gelex::GeneticMode GT>
-    auto read_in_memory(
-        gelex::GenotypeProcessMethod method,
-        std::size_t chunk_size) -> Genotype;
+    auto read_in_memory(gelex::GenotypeMethod method, std::size_t chunk_size)
+        -> Genotype;
 
     template <gelex::GeneticMode GT>
     auto read_mmap(
-        gelex::GenotypeProcessMethod method,
+        gelex::GenotypeMethod method,
         const std::filesystem::path& output_prefix,
         std::size_t chunk_size) -> Genotype;
 

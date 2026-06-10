@@ -23,7 +23,7 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/io/locistats/reader.h"
 #include "gelex/io/predict/input_reader.h"
 #include "gelex/predict/types.h"
@@ -41,7 +41,7 @@ namespace
 {
 
 auto make_loci_stats(
-    gelex::GenotypeProcessMethod method,
+    gelex::GenotypeMethod method,
     Eigen::VectorXd mean,
     std::optional<Eigen::VectorXd> stddev = std::nullopt) -> LociStats
 {
@@ -68,7 +68,7 @@ TEST_CASE(
 
     SbinData sbin;
     sbin.add = make_loci_stats(
-        gelex::GenotypeProcessMethod::StandardizeHWE(),
+        gelex::GenotypeMethod::StandardizeHWE,
         Eigen::VectorXd{{0.5, 1.5}},
         Eigen::VectorXd{{0.5, 0.5}});
     sbin.has_dom = false;
@@ -91,7 +91,7 @@ TEST_CASE(
 
     SbinData sbin;
     sbin.add = make_loci_stats(
-        gelex::GenotypeProcessMethod::CenterHWE(), Eigen::VectorXd{{0.5, 1.5}});
+        gelex::GenotypeMethod::CenterHWE, Eigen::VectorXd{{0.5, 1.5}});
     sbin.has_dom = false;
 
     standardize_genotypes(geno, sbin);
@@ -123,11 +123,11 @@ TEST_CASE(
 
     SbinData sbin;
     sbin.add = make_loci_stats(
-        gelex::GenotypeProcessMethod::StandardizeHWE(),
+        gelex::GenotypeMethod::StandardizeHWE,
         Eigen::VectorXd{{0.5, 1.0}},
         Eigen::VectorXd{{0.5, 1.0}});
     sbin.dom = make_loci_stats(
-        gelex::GenotypeProcessMethod::StandardizeHWE(),
+        gelex::GenotypeMethod::StandardizeHWE,
         Eigen::VectorXd{{0.5, 0.5}},
         Eigen::VectorXd{{0.5, 0.5}});
     sbin.has_dom = true;
@@ -174,11 +174,11 @@ TEST_CASE(
 
     SbinData sbin;
     sbin.add = make_loci_stats(
-        gelex::GenotypeProcessMethod::OrthStandardizeHWE(),
+        gelex::GenotypeMethod::OrthStandardizeHWE,
         Eigen::VectorXd{{0.5, 1.5}},
         Eigen::VectorXd{{0.5, 0.5}});
     sbin.dom = make_loci_stats(
-        gelex::GenotypeProcessMethod::OrthStandardizeHWE(),
+        gelex::GenotypeMethod::OrthStandardizeHWE,
         Eigen::VectorXd{{0.25, 0.75}},
         Eigen::VectorXd{{0.25, 0.75}});
     sbin.has_dom = true;

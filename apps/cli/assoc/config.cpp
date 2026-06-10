@@ -68,8 +68,7 @@ auto make_assoc_config(argparse::ArgumentParser& cmd) -> AssocEngine::Config
 
     return AssocEngine::Config{
         .mode = mode,
-        .method
-        = parse_genotype_process_method(cmd.get<std::string>("--geno-method")),
+        .method = parse_genotype_method(cmd.get<std::string>("--geno-method")),
         .chunk_size = cmd.get<int>("--chunk-size"),
         .max_iter = cmd.get<int>("--max-iter"),
         .tol = cmd.get<double>("--tol"),

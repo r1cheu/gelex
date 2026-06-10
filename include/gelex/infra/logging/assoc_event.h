@@ -24,7 +24,7 @@
 #include <vector>
 
 #include "gelex/algo/gwas/assoc_type.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/infra/logging/reml_event.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -41,7 +41,7 @@ struct AssocConfigLoadedEvent
     AssocType test_type;
     bool loco;
 
-    GenotypeProcessMethod geno_method;
+    GenotypeMethod geno_method;
 
     int max_iter;
     double tol;

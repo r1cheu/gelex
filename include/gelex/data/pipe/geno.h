@@ -24,7 +24,7 @@
 
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/genotype.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -39,7 +39,7 @@ class GenoPipe
         std::string bfile_prefix;
 
         std::vector<GeneticMode> requested_effects;
-        GenotypeProcessMethod genotype_method;
+        GenotypeMethod genotype_method;
         bool use_mmap = false;
         int chunk_size = 10000;
 
@@ -86,7 +86,7 @@ class GenoPipe
     auto load_genotype_impl(
         const dataframe::Index<std::string>& sample_index,
         const std::string& suffix,
-        GenotypeProcessMethod method,
+        GenotypeMethod method,
         std::optional<genotype::Genotype>& target) -> void;
 
     auto load_additive_matrix(const dataframe::Index<std::string>& sample_index)

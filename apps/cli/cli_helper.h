@@ -25,14 +25,13 @@
 #include <barkeep.h>
 #include <Eigen/Core>
 
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::cli
 {
 
-auto parse_genotype_process_method(std::string_view value)
-    -> GenotypeProcessMethod;
+auto parse_genotype_method(std::string_view value) -> GenotypeMethod;
 
 auto parse_genetic_modes(std::string_view sv) -> std::vector<GeneticMode>;
 

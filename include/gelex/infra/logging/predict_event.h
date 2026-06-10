@@ -22,7 +22,7 @@
 #include <string>
 #include <variant>
 
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 
 namespace gelex
 {
@@ -35,7 +35,7 @@ struct PredictParamsLoadedEvent
 {
     std::string_view bfile_prefix;
     std::string_view gfile_prefix;
-    GenotypeProcessMethod geno_method{};
+    GenotypeMethod geno_method{};
 };
 
 struct PredictSnpSelectionEvent

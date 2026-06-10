@@ -31,11 +31,11 @@
 #include "gelex/algo/reml/result.h"
 #include "gelex/data/dataframe/column.h"
 #include "gelex/data/dataframe/reader.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/io/gwas/writer.h"
 
 using gelex::AssocType;
-using gelex::GenotypeProcessMethod;
+using gelex::GenotypeMethod;
 using gelex::JointTester;
 using gelex::RemlResult;
 using gelex::TestResult;
@@ -48,7 +48,7 @@ using gelex::test::FileFixture;
 
 TEST_CASE("JointTester reports df=2 additive-dominance Wald p", "[gwas]")
 {
-    JointTester tester(GenotypeProcessMethod::Center());
+    JointTester tester(GenotypeMethod::Center);
     tester.resize(4, 1);
 
     auto raw = tester.genotype_buffer();

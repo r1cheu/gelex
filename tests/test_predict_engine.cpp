@@ -28,7 +28,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "file_fixture.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/data/genotype/processor.h"
 #include "gelex/engine/predict.h"
 #include "gelex/io/locistats/writer.h"
@@ -97,7 +97,7 @@ auto create_sbin(
 {
     using gelex::EffectType;
     using gelex::GeneticMode;
-    using gelex::GenotypeProcessMethod;
+    using gelex::GenotypeMethod;
     using gelex::LociStatsWriter;
     using gelex::genotype::StandardizeHWE;
 
@@ -128,12 +128,12 @@ auto create_sbin(
     LociStatsWriter writer(sbin_path.string());
     writer.write(
         EffectType::add(),
-        GenotypeProcessMethod::StandardizeHWE().to_byte(),
+        std::to_underlying(GenotypeMethod::StandardizeHWE),
         add_mean,
         &add_stddev);
     writer.write(
         EffectType::dom(),
-        GenotypeProcessMethod::StandardizeHWE().to_byte(),
+        std::to_underlying(GenotypeMethod::StandardizeHWE),
         dom_mean,
         &dom_stddev);
 }

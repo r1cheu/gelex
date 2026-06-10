@@ -19,7 +19,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/genotype/detail/encode_policy.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/predict/types.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -44,7 +44,7 @@ auto standardize_genotypes(GenotypeData& geno, const SbinData& sbin) -> void
 
     if (geno.dom.has_value())
     {
-        const bool use_orthogonal = sbin.add.method.is_orthogonal();
+        const bool use_orthogonal = is_orthogonal(sbin.add.method);
         const bool dom_has_stddev = sbin.dom.stddev.has_value();
 
         for (Eigen::Index j = 0; j < n_snps; ++j)

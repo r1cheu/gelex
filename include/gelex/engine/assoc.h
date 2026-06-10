@@ -21,7 +21,7 @@
 
 #include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/infra/logging/assoc_event.h"
 #include "gelex/infra/logging/reml_event.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -39,7 +39,7 @@ class AssocEngine
     {
         GeneticMode mode;
 
-        GenotypeProcessMethod method;
+        GenotypeMethod method;
         int chunk_size;
 
         int max_iter;

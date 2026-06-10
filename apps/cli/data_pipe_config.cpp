@@ -71,7 +71,7 @@ auto make_dataset_configs(argparse::ArgumentParser& cmd, bool use_mmap)
         .bfile_prefix = cmd.get<std::string>("--bfile"),
         .requested_effects = parse_genetic_modes(cmd.get("--mode")),
         .genotype_method
-        = parse_genotype_process_method(cmd.get<std::string>("--geno-method")),
+        = parse_genotype_method(cmd.get<std::string>("--geno-method")),
         .use_mmap = use_mmap,
         .chunk_size = cmd.get<int>("--chunk-size"),
         .output_prefix = cmd.get("--out"),

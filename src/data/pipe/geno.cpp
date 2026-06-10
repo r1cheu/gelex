@@ -26,7 +26,7 @@
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/data/genotype/genotype_reader.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/data/reader.h"
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/infra/logging/notify.h"
@@ -60,7 +60,7 @@ template <GeneticMode GT>
 auto GenoPipe::load_genotype_impl(
     const dataframe::Index<std::string>& sample_index,
     const std::string& suffix,
-    GenotypeProcessMethod method,
+    GenotypeMethod method,
     std::optional<genotype::Genotype>& target) -> void
 {
     genotype::GenotypeReader reader(
@@ -111,8 +111,8 @@ auto GenoPipe::load_dominance_matrix(
 auto GenoPipe::write_sbin() -> void
 {
     LociStatsWriter writer(config_.output_prefix + ".sbin");
-    auto method_code = config_.genotype_method.to_byte();
-    const bool is_center = config_.genotype_method.is_center();
+    auto method_code = std::to_underlying(config_.genotype_method);
+    const bool method_is_center = is_center(config_.genotype_method);
 
     if (additive_matrix_)
     {
@@ -120,8 +120,8 @@ auto GenoPipe::write_sbin() -> void
             EffectType::add(),
             method_code,
             additive_matrix_->mean(),
-            is_center ? static_cast<const Eigen::VectorXd*>(nullptr)
-                      : &additive_matrix_->stddev(),
+            method_is_center ? static_cast<const Eigen::VectorXd*>(nullptr)
+                             : &additive_matrix_->stddev(),
             additive_matrix_->mono_indices());
     }
 
@@ -131,8 +131,8 @@ auto GenoPipe::write_sbin() -> void
             EffectType::dom(),
             method_code,
             dominance_matrix_->mean(),
-            is_center ? static_cast<const Eigen::VectorXd*>(nullptr)
-                      : &dominance_matrix_->stddev(),
+            method_is_center ? static_cast<const Eigen::VectorXd*>(nullptr)
+                             : &dominance_matrix_->stddev(),
             dominance_matrix_->mono_indices());
     }
 }

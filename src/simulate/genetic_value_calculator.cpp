@@ -26,7 +26,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/dataframe/dataframe.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/data/genotype/processor.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/simulate_event.h"
@@ -49,7 +49,7 @@ GeneticValueCalculator::GeneticValueCalculator(
 template <GeneticMode Mode>
 auto GeneticValueCalculator::calculate(
     GeneticValues& genetic_values,
-    GenotypeProcessMethod geno_method,
+    GenotypeMethod geno_method,
     const SimulateObserver& observer) const -> Eigen::VectorXd
 {
     const auto& causal_snps = genetic_values.causal_snps;
@@ -102,12 +102,12 @@ auto GeneticValueCalculator::calculate(
 
 template auto GeneticValueCalculator::calculate<GeneticMode::A>(
     GeneticValues&,
-    GenotypeProcessMethod,
+    GenotypeMethod,
     const SimulateObserver&) const -> Eigen::VectorXd;
 
 template auto GeneticValueCalculator::calculate<GeneticMode::D>(
     GeneticValues&,
-    GenotypeProcessMethod,
+    GenotypeMethod,
     const SimulateObserver&) const -> Eigen::VectorXd;
 
 auto GeneticValueCalculator::sample_ids() const -> std::span<const std::string>

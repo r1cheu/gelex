@@ -33,7 +33,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "gelex/data/genotype/genotype_reader.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/io/binary_reader.h"
@@ -459,7 +459,7 @@ TEST_CASE(
     // Load via in-memory sink
     GenotypeReader mat_reader(prefix.string(), sample_index);
     auto mat_result = mat_reader.read<GeneticMode::A>(
-        GenotypeProcessMethod::StandardizeHWE(),
+        GenotypeMethod::StandardizeHWE,
         GenotypeReader::Sink::InMemory{});
 
     // Load via mmap sink
@@ -467,7 +467,7 @@ TEST_CASE(
         = bed_fixture.get_file_fixture().get_test_dir() / "mmap_out";
     GenotypeReader map_reader(prefix.string(), sample_index);
     auto map_result = map_reader.read<GeneticMode::A>(
-        GenotypeProcessMethod::StandardizeHWE(),
+        GenotypeMethod::StandardizeHWE,
         GenotypeReader::Sink::Mmap{output_prefix});
 
     SECTION("matrix dimensions match")

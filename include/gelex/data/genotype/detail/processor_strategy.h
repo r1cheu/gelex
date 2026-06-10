@@ -21,7 +21,7 @@
 
 #include "gelex/data/genotype/detail/encode_policy.h"
 #include "gelex/data/genotype/detail/statistic_policy.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 
 namespace gelex::genotype::detail
 {

@@ -24,7 +24,7 @@
 #include <Eigen/Dense>
 
 #include "gelex/data/genotype/detail/processor_strategy.h"
-#include "gelex/data/genotype/process_method.h"
+#include "gelex/data/genotype/method.h"
 #include "gelex/exception.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -83,38 +83,37 @@ constexpr bool is_center_method_v
       || std::is_same_v<T, NOIACenter<GT>>;
 
 template <gelex::GeneticMode GT>
-auto get_genotype_process_method(gelex::GenotypeProcessMethod method)
+auto get_genotype_process_method(gelex::GenotypeMethod method)
     -> gelex::LocusStatistic (*)(Eigen::Ref<Eigen::VectorXd>)
 {
-    if (method.is_noia())
+    if (is_noia(method))
     {
-        return method.is_center() ? &NOIACenter<GT>::process
-                                  : &NOIAStandardize<GT>::process;
+        return is_center(method) ? &NOIACenter<GT>::process
+                                 : &NOIAStandardize<GT>::process;
     }
-    if (method.is_orthogonal())
+    if (is_orthogonal(method))
     {
-        if (method.is_hwe())
+        if (is_hwe(method))
         {
-            return method.is_center() ? &OrthCenterHWE<GT>::process
-                                      : &OrthStandardizeHWE<GT>::process;
+            return is_center(method) ? &OrthCenterHWE<GT>::process
+                                     : &OrthStandardizeHWE<GT>::process;
         }
-        return method.is_center() ? &OrthCenter<GT>::process
-                                  : &OrthStandardize<GT>::process;
+        return is_center(method) ? &OrthCenter<GT>::process
+                                 : &OrthStandardize<GT>::process;
     }
-    if (method.is_hwe())
+    if (is_hwe(method))
     {
-        return method.is_center() ? &CenterHWE<GT>::process
-                                  : &StandardizeHWE<GT>::process;
+        return is_center(method) ? &CenterHWE<GT>::process
+                                 : &StandardizeHWE<GT>::process;
     }
-    return method.is_center() ? &Center<GT>::process
-                              : &Standardize<GT>::process;
+    return is_center(method) ? &Center<GT>::process : &Standardize<GT>::process;
 }
 
 template <gelex::GeneticMode GT>
-auto get_center_genotype_method(gelex::GenotypeProcessMethod method)
+auto get_center_genotype_method(gelex::GenotypeMethod method)
     -> gelex::LocusStatistic (*)(Eigen::Ref<Eigen::VectorXd>)
 {
-    if (!method.is_center())
+    if (!is_center(method))
     {
         throw gelex::GelexException(
             "assoc --geno-method supports only center-family methods: "
@@ -126,7 +125,7 @@ auto get_center_genotype_method(gelex::GenotypeProcessMethod method)
 
 template <gelex::GeneticMode GT>
 auto process_matrix(
-    gelex::GenotypeProcessMethod method,
+    gelex::GenotypeMethod method,
     Eigen::Ref<Eigen::MatrixXd> genotype,
     Eigen::VectorXd* freqs = nullptr) -> void
 {
