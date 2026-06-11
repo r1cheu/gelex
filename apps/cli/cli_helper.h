@@ -43,6 +43,8 @@ auto is_tty() -> bool;
 
 auto setup_parallelization(int num_threads) -> void;
 
+auto add_common_io_options(CLI::App& cmd) -> void;
+
 auto execute_cli_command(CLI::App& parser, int (*execute_fn)(CLI::App&)) -> int;
 
 }  // namespace cli

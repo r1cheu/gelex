@@ -139,6 +139,29 @@ auto setup_parallelization(int num_threads) -> void
     }
 }
 
+auto add_common_io_options(CLI::App& cmd) -> void
+{
+    cmd.add_option("-p,--pheno", "Phenotype TSV with FID, IID, trait columns")
+        ->group("I/O")
+        ->type_name("<PHENOTYPE>")
+        ->required();
+    cmd.add_option(
+           "--pheno-col",
+           "0-based phenotype column after FID/IID; first trait=0")
+        ->group("I/O")
+        ->type_name("<COL>")
+        ->default_val(0);
+    cmd.add_option(
+           "--qcovar",
+           "Quantitative covariate TSV with FID, IID, numeric columns")
+        ->group("I/O")
+        ->type_name("<QCOVAR>");
+    cmd.add_option(
+           "--dcovar", "Discrete covariate TSV with FID, IID, factor columns")
+        ->group("I/O")
+        ->type_name("<DCOVAR>");
+}
+
 auto execute_cli_command(CLI::App& parser, int (*execute_fn)(CLI::App&)) -> int
 {
     try

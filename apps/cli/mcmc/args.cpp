@@ -31,92 +31,75 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
     auto* subcommand = program.add_subcommand("mcmc");
     auto& cmd = *subcommand;
 
-    cmd.description(
-        "Fit genomic prediction models using MCMC (Gibbs sampling)");
+    cmd.description("Fit genomic prediction models with MCMC");
 
-    cmd.add_option(
-           "-p,--pheno", "Phenotype file (TSV format: FID, IID, trait1, ...)")
+    cli::add_common_io_options(cmd);
+    cmd.add_option("-b,--bfile", "PLINK prefix; reads <prefix>.bed/.bim/.fam")
         ->group("I/O")
-        ->type_name("<PHENOTYPE>")
+        ->type_name("<BFILE>")
         ->required();
-    cmd.add_option(
-           "--pheno-col",
-           "0-based phenotype column after FID/IID; first trait=0")
-        ->group("I/O")
-        ->type_name("<COL>")
-        ->default_val(0);
-    auto* bfile = cmd.add_option(
-        "-b,--bfile", "PLINK binary file prefix (.bed/.bim/.fam)");
-    bfile->group("I/O")->type_name("<BFILE>");
-    auto* gfile
-        = cmd.add_option("-g,--gfile", "Gelex binary genotype file prefix");
-    gfile->group("I/O")->type_name("<GFILE>");
-    bfile->excludes(gfile);
-    gfile->excludes(bfile);
-    cmd.add_option(
-           "--qcovar", "Quantitative covariates (TSV: FID, IID, covar1, ...)")
-        ->group("I/O");
-    cmd.add_option(
-           "--dcovar", "Discrete covariates (TSV: FID, IID, factor1, ...)")
-        ->group("I/O");
-    cmd.add_option("-o,--out", "Output file prefix")
+    cmd.add_option("-o,--out", "Output prefix for model files")
         ->group("I/O")
         ->type_name("<OUT>")
         ->default_val(std::string{"gelex"});
 
     cmd.add_option(
            "--geno-method,--gm",
-           "Genotype method: StandardizeHWE(SH), CenterHWE(CH),"
-           " OrthStandardizeHWE(OSH), OrthCenterHWE(OCH),"
-           " Standardize(S), Center(C), OrthStandardize(OS), OrthCenter(OC),"
-           " NOIAStandardize(NS), NOIACenter(NC)")
+           "Genotype coding: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC")
         ->group("Model")
-        ->type_name("<STR>")
+        ->type_name("<CODING>")
         ->default_val(std::string{"OSH"});
-    cmd.add_option("-m,--method", "Bayesian method: RR, A, B, C, R, CD")
+    cmd.add_option("-m,--method", "Bayesian model: RR, A, B, C, R, CD")
         ->group("Model")
-        ->type_name("<METHOD>")
+        ->type_name("<MODEL>")
         ->default_val(std::string{"RR"})
         ->check(
             CLI::IsMember(
                 std::vector<std::string>{"A", "B", "C", "R", "RR", "CD"}))
         ->required();
-    cmd.add_option(
-           "--mode",
-           "Genetic effect mode: A (additive only), D (dominance only), "
-           "AD (additive + dominance)")
+    cmd.add_option("--mode", "Effect mode: A, D, AD")
         ->group("Model")
         ->type_name("<MODE>")
         ->default_val(std::string{"A"})
         ->check(CLI::IsMember(std::vector<std::string>{"A", "D", "AD"}));
     cmd.add_option(
-           "--random-pve",
-           "Variance fraction for non-SNP random effects (0, 1)")
-        ->group("Model");
-    cmd.add_option("--h2", "Additive heritability (0, 1)")->group("Model");
-    cmd.add_option("--d2", "Dominance heritability (0, 1)")->group("Model");
+           "--random-pve", "Non-SNP random-effect variance fraction (0,1)")
+        ->group("Model")
+        ->type_name("<P>");
+    cmd.add_option("--h2", "Additive heritability (0,1)")
+        ->group("Model")
+        ->type_name("<P>");
+    cmd.add_option("--d2", "Dominance heritability (0,1)")
+        ->group("Model")
+        ->type_name("<P>");
     cmd.add_option(
            "--dom-pos-prob",
-           "Initial probability that an active dominance effect is positive")
-        ->group("Model");
+           "Initial probability dominance effects are positive")
+        ->group("Model")
+        ->type_name("<P>");
     cmd.add_option("--pi", "Additive mixture proportions (B/C/R)")
         ->group("Model")
+        ->type_name("<P>")
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option("--dpi", "Dominance mixture proportions (B/C/R)")
         ->group("Model")
+        ->type_name("<P>")
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option("--scale", "Additive variance multipliers (R)")
         ->group("Model")
+        ->type_name("<SCALE>")
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option("--dscale", "Dominance variance multipliers (R)")
         ->group("Model")
+        ->type_name("<SCALE>")
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option("--jpi", "Joint allocation proportions (CD)")
         ->group("Model")
+        ->type_name("<P>")
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_flag("--sample-pi", "Sample additive mixture proportions")
@@ -126,35 +109,40 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
     cmd.add_flag("--sample-jpi", "Sample joint allocation proportions (CD)")
         ->group("Model");
 
-    cmd.add_option("--iters", "MCMC iterations to run")
+    cmd.add_option("--iters", "MCMC iterations")
         ->group("Runtime")
+        ->type_name("<N>")
         ->default_val(5000);
-    cmd.add_option("--burn-in", "Burn-in iterations to discard")
+    cmd.add_option("--burn-in", "Burn-in iterations")
         ->group("Runtime")
+        ->type_name("<N>")
         ->default_val(3000);
-    cmd.add_option("--thin", "Thinning interval for samples")
+    cmd.add_option("--thin", "Sample every N iterations")
         ->group("Runtime")
+        ->type_name("<N>")
         ->default_val(1);
-    cmd.add_option("--seed", "Random seed for MCMC")
+    cmd.add_option("--seed", "Random seed")
         ->group("Runtime")
+        ->type_name("<N>")
         ->default_val(42);
     cmd.add_option(
-           "--checkpoint-step",
-           "Save checkpoint every N iterations (omit to save only at end)")
-        ->group("Runtime");
-    cmd.add_option("--from-ckpt", "Run from checkpoint")
+           "--checkpoint-step", "Checkpoint every N iterations; omit for final")
+        ->group("Runtime")
+        ->type_name("<N>");
+    cmd.add_option("--from-ckpt", "Resume from checkpoint file")
         ->group("Runtime")
         ->type_name("<CKPT>");
-    cmd.add_option("-c,--chunk-size", "SNPs per chunk (controls memory usage)")
+    cmd.add_option("-c,--chunk-size", "SNPs per chunk")
         ->group("Runtime")
+        ->type_name("<N>")
         ->default_val(10000);
     cmd.add_option("-t,--threads", "CPU threads")
         ->group("Runtime")
+        ->type_name("<N>")
         ->default_val(
             std::max(
                 1, static_cast<int>(std::thread::hardware_concurrency() / 2)));
-    cmd.add_flag(
-           "--mmap", "Memory-mapped genotype I/O (lower RAM, may be slower)")
+    cmd.add_flag("--mmap", "Store genotype chunks as mmap files")
         ->group("Runtime");
 
     cmd.footer(

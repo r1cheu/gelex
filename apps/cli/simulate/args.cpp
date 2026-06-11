@@ -28,64 +28,57 @@ auto setup_simulate_command(CLI::App& program, int& exit_code) -> void
     auto* subcommand = program.add_subcommand("simulate");
     auto& cmd = *subcommand;
 
-    cmd.description(
-        "Simulate phenotypes based on genetic data and specified parameters");
+    cmd.description("Simulate phenotypes from PLINK genotypes");
 
-    cmd.add_option("-b,--bfile", "PLINK binary file prefix (.bed/.bim/.fam)")
+    cmd.add_option("-b,--bfile", "PLINK prefix; reads <prefix>.bed/.bim/.fam")
         ->group("I/O")
         ->type_name("<BFILE>")
         ->required();
-    cmd.add_option("-o,--out", "Output file prefix")
+    cmd.add_option("-o,--out", "Output prefix for .phen and .causal")
         ->group("I/O")
         ->type_name("<OUT>")
         ->default_val(std::string{"sim.phen"});
 
-    cmd.add_option(
-           "--h2", "Narrow-sense heritability (0, 1); omit to disable additive")
-        ->group("Model");
+    cmd.add_option("--h2", "Additive heritability (0,1)")
+        ->group("Model")
+        ->type_name("<P>");
     cmd.add_option("--add-var", "Variances for additive effect classes")
         ->group("Model")
-        ->type_name("<VARIANCES>")
+        ->type_name("<VAR>")
         ->expected(1, -1)
         ->allow_extra_args();
-    cmd.add_option(
-           "--add-n",
-           "SNP counts for additive effect classes (must match --add-var "
-           "length)")
+    cmd.add_option("--add-n", "SNP counts for additive effect classes")
         ->group("Model")
-        ->type_name("<COUNTS>")
+        ->type_name("<N>")
         ->expected(1, -1)
         ->allow_extra_args();
-    cmd.add_option(
-           "--d2", "Dominance variance proportion (0, 1); h2+d2<1 in AD mode")
-        ->group("Model");
+    cmd.add_option("--d2", "Dominance heritability (0,1)")
+        ->group("Model")
+        ->type_name("<P>");
     cmd.add_option("--dom-var", "Variances for dominance effect classes")
         ->group("Model")
-        ->type_name("<VARIANCES>")
+        ->type_name("<VAR>")
+        ->expected(1, -1)
+        ->allow_extra_args();
+    cmd.add_option("--dom-n", "SNP counts for dominance effect classes")
+        ->group("Model")
+        ->type_name("<N>")
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option(
-           "--dom-n",
-           "SNP counts for dominance effect classes (must match --dom-var "
-           "length)")
+           "--dom-pos-prob", "Probability dominance effects are positive")
         ->group("Model")
-        ->type_name("<COUNTS>")
-        ->expected(1, -1)
-        ->allow_extra_args();
-    cmd.add_option(
-           "--dom-pos-prob",
-           "Probability of positive dominance effects; enables "
-           "truncated-normal sampling [0, 1]")
-        ->group("Model")
-        ->type_name("<PROB>");
+        ->type_name("<P>");
     cmd.add_option(
            "--geno-method,--gm",
-           "Genotype processing: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC "
-           "(prefix: O=orth, N=NOIA; suffix: H=HWE-based)")
+           "Genotype coding: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC")
         ->group("Model")
-        ->type_name("<STR>")
+        ->type_name("<CODING>")
         ->default_val(std::string{"OS"});
-    cmd.add_option("--seed", "Random seed")->group("Runtime")->default_val(42);
+    cmd.add_option("--seed", "Random seed")
+        ->group("Runtime")
+        ->type_name("<N>")
+        ->default_val(42);
 
     cmd.footer(
         "Docs:\n"

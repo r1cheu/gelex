@@ -31,89 +31,69 @@ auto setup_assoc_command(CLI::App& program, int& exit_code) -> void
     auto* subcommand = program.add_subcommand("assoc");
     auto& cmd = *subcommand;
 
-    cmd.description(
-        "Perform genome-wide association study using mixed linear model");
+    cmd.description("Run mixed-model association testing");
 
-    cmd.add_option(
-           "-p,--pheno", "Phenotype file (TSV format: FID, IID, trait1, ...)")
-        ->group("I/O")
-        ->type_name("<PHENOTYPE>")
-        ->required();
-    cmd.add_option(
-           "--pheno-col",
-           "0-based phenotype column after FID/IID; first trait=0")
-        ->group("I/O")
-        ->type_name("<COL>")
-        ->default_val(0);
-    cmd.add_option("-b,--bfile", "PLINK binary file prefix (.bed/.bim/.fam)")
+    cli::add_common_io_options(cmd);
+    cmd.add_option("-b,--bfile", "PLINK prefix; reads <prefix>.bed/.bim/.fam")
         ->group("I/O")
         ->type_name("<BFILE>")
         ->required();
-    cmd.add_option("--grm", "GRM file prefix(es). Can specify multiple GRMs.")
+    cmd.add_option(
+           "--grm", "GRM prefix(es) without suffix; reads <prefix>.bin/.id")
         ->group("I/O")
         ->type_name("<GRM>")
         ->expected(1, -1)
         ->allow_extra_args()
         ->required();
-    cmd.add_option(
-           "--qcovar", "Quantitative covariates (TSV: FID, IID, covar1, ...)")
-        ->group("I/O");
-    cmd.add_option(
-           "--dcovar", "Discrete covariates (TSV: FID, IID, factor1, ...)")
-        ->group("I/O");
-    cmd.add_option("-o,--out", "Output file prefix")
+    cmd.add_option("-o,--out", "Output prefix for .gwas.tsv")
         ->group("I/O")
         ->type_name("<OUT>")
         ->default_val(std::string{"gelex"});
 
-    cmd.add_option(
-           "--transform",
-           "Phenotype transformation: none, dint (Direct INT), iint (Indirect "
-           "INT)")
+    cmd.add_option("--transform", "Phenotype transform: none, dint, iint")
         ->group("Model")
         ->type_name("<TRANSFORM>")
         ->default_val(std::string{"none"})
         ->check(
             CLI::IsMember(std::vector<std::string>{"none", "dint", "iint"}));
-    cmd.add_option("--int-offset", "INT offset parameter k (Blom offset)")
+    cmd.add_option("--int-offset", "Rank-INT offset k")
         ->group("Model")
+        ->type_name("<K>")
         ->default_val(3.0 / 8.0);
 
-    cmd.add_option(
-           "--test",
-           "Wald test mode: single (one-effect, df=1), joint (add+dom, df=2)")
+    cmd.add_option("--test", "Wald test: single (df=1), joint (add+dom, df=2)")
         ->group("Model")
         ->type_name("<TEST>")
         ->default_val(std::string{"single"})
         ->check(CLI::IsMember(std::vector<std::string>{"single", "joint"}));
-    cmd.add_option(
-           "--mode",
-           "Association mode: A (additive), D (dominance). "
-           "Ignored when --test=joint (always AD)")
+    cmd.add_option("--mode", "Effect mode for --test=single: A or D")
         ->group("Model")
         ->type_name("<MODE>")
         ->default_val(std::string{"A"})
         ->check(CLI::IsMember(std::vector<std::string>{"A", "D"}));
-    cmd.add_flag("--loco", "Leave-One-Chromosome-Out analysis")->group("Model");
+    cmd.add_flag("--loco", "Use leave-one-chromosome-out GRMs")->group("Model");
     cmd.add_option(
            "--geno-method,--gm",
-           "Genotype processing: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC "
-           "(prefix: O=orth, N=NOIA; suffix: H=HWE-based)")
+           "Genotype coding: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC")
         ->group("Model")
-        ->type_name("<STR>")
+        ->type_name("<CODING>")
         ->default_val(std::string{"OCH"});
 
-    cmd.add_option("--max-iter", "Max iterations")
+    cmd.add_option("--max-iter", "Maximum model-fit iterations")
         ->group("Runtime")
+        ->type_name("<N>")
         ->default_val(100);
     cmd.add_option("--tol", "Convergence tolerance")
         ->group("Runtime")
+        ->type_name("<TOL>")
         ->default_val(1e-6);
     cmd.add_option("-c,--chunk-size", "SNPs per chunk")
         ->group("Runtime")
+        ->type_name("<N>")
         ->default_val(10000);
     cmd.add_option("-t,--threads", "CPU threads")
         ->group("Runtime")
+        ->type_name("<N>")
         ->default_val(
             std::max(
                 1, static_cast<int>(std::thread::hardware_concurrency() / 2)));

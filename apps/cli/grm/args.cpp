@@ -29,38 +29,33 @@ auto setup_grm_command(CLI::App& program, int& exit_code) -> void
     auto* subcommand = program.add_subcommand("grm");
     auto& cmd = *subcommand;
 
-    cmd.description(
-        "Compute genomic relationship matrix (GRM) from PLINK "
-        "binary files and output in GCTA format");
+    cmd.description("Build genomic relationship matrices from PLINK data");
 
-    cmd.add_option("-b,--bfile", "PLINK binary file prefix (.bed/.bim/.fam)")
+    cmd.add_option("-b,--bfile", "PLINK prefix; reads <prefix>.bed/.bim/.fam")
         ->group("I/O")
         ->type_name("<BFILE>")
         ->required();
-    cmd.add_option("-o,--out", "Output file prefix")
+    cmd.add_option(
+           "-o,--out", "Output prefix; writes <prefix>.<effect>.bin/.id")
         ->group("I/O")
         ->type_name("<OUT>")
         ->default_val(std::string{"grm"});
 
     cmd.add_option(
            "--geno-method,--gm",
-           "Genotype coding: StandardizeHWE(SH), CenterHWE(CH),"
-           " OrthStandardizeHWE(OSH), OrthCenterHWE(OCH),"
-           " Standardize(S), Center(C), OrthStandardize(OS), OrthCenter(OC),"
-           " NOIAStandardize(NS), NOIACenter(NC)")
+           "Genotype coding: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC")
         ->group("Model")
-        ->type_name("<STR>")
+        ->type_name("<CODING>")
         ->default_val(std::string{"OSH"});
-    cmd.add_flag("--add", "Additive GRM")->group("Model");
-    cmd.add_flag("--dom", "Dominance GRM")->group("Model");
-    cmd.add_flag("--loco", "GRM per chromosome")->group("Model");
+    cmd.add_flag("--add", "Write additive GRM")->group("Model");
+    cmd.add_flag("--dom", "Write dominance GRM")->group("Model");
+    cmd.add_flag("--loco", "Write one GRM per chromosome")->group("Model");
 
-    cmd.add_option(
-           "-c,--chunk-size", "SNPs per chunk for memory-efficient computation")
+    cmd.add_option("-c,--chunk-size", "SNPs per chunk")
         ->group("Runtime")
-        ->type_name("<SIZE>")
+        ->type_name("<N>")
         ->default_val(10000);
-    cmd.add_option("-t,--threads", "Threads (-1 for all cores)")
+    cmd.add_option("-t,--threads", "CPU threads")
         ->group("Runtime")
         ->type_name("<N>")
         ->default_val(

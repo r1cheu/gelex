@@ -32,32 +32,13 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
 
     cmd.description("Estimate variance components with REML (AI algorithm)");
 
-    cmd.add_option("-p,--pheno", "Phenotype TSV with FID, IID, trait columns")
-        ->group("I/O")
-        ->type_name("<PHENOTYPE>")
-        ->required();
-    cmd.add_option(
-           "--pheno-col",
-           "0-based phenotype column after FID/IID; first trait=0")
-        ->group("I/O")
-        ->type_name("<COL>")
-        ->default_val(0);
+    cli::add_common_io_options(cmd);
     cmd.add_option("--grm", "GRM prefix without suffix; reads <prefix>.bin/.id")
         ->group("I/O")
         ->type_name("<GRM>")
         ->expected(1, -1)
         ->allow_extra_args()
         ->required();
-    cmd.add_option(
-           "--qcovar",
-           "Quantitative fixed-covariate TSV with FID, IID, numeric columns")
-        ->group("I/O")
-        ->type_name("<QCOVAR>");
-    cmd.add_option(
-           "--dcovar",
-           "Discrete fixed-covariate TSV with FID, IID, factor columns")
-        ->group("I/O")
-        ->type_name("<DCOVAR>");
     cmd.add_option(
            "--rand", "Random-effect factor TSV with FID, IID, factor columns")
         ->group("I/O")
