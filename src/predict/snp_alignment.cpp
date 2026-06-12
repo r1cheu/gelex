@@ -50,7 +50,7 @@ auto build_snp_alignment(
         auto bim_row = bim_index.at(key);
         if (eff_a1[i] == bim_a1[bim_row] && eff_a2[i] == bim_a2[bim_row])
         {
-            result.column_map.push_back(static_cast<std::ptrdiff_t>(bim_row));
+            result.column_map.push_back(static_cast<Eigen::Index>(bim_row));
         }
         else
         {

@@ -42,7 +42,7 @@ GeneticValueCalculator::GeneticValueCalculator(
     const dataframe::DataFrame<std::string>& fam)
     : sample_index_(&fam.index()),
       snp_index_(&bim.index()),
-      bed_pipe_(bed_path, *sample_index_)
+      bed_(open_bed(bed_path.string(), *sample_index_))
 {
 }
 
@@ -53,7 +53,7 @@ auto GeneticValueCalculator::calculate(
     const SimulateObserver& observer) const -> Eigen::VectorXd
 {
     const auto& causal_snps = genetic_values.causal_snps;
-    const Eigen::Index n_individuals = bed_pipe_.num_samples();
+    const Eigen::Index n_individuals = bed_.num_samples();
     const auto n_causal = static_cast<Eigen::Index>(causal_snps.size());
 
     if (n_causal == 0)
@@ -77,7 +77,7 @@ auto GeneticValueCalculator::calculate(
             .done = false,
         });
 
-    Eigen::MatrixXd genotype = bed_pipe_.select(col_indices);
+    Eigen::MatrixXd genotype = bed_.read_snps<double>(col_indices);
     genotype::process_matrix<Mode>(geno_method, genotype);
 
     genetic_values.coeff.resize(n_causal);

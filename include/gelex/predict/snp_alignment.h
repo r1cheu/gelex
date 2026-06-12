@@ -17,9 +17,10 @@
 #ifndef GELEX_PREDICT_SNP_ALIGNMENT_H_
 #define GELEX_PREDICT_SNP_ALIGNMENT_H_
 
-#include <cstddef>
 #include <string>
 #include <vector>
+
+#include <Eigen/Core>
 
 #include "gelex/data/dataframe/dataframe.h"
 
@@ -30,7 +31,7 @@ inline constexpr double MAX_SNP_MISSING_RATIO = 0.2;
 
 struct SnpAlignment
 {
-    std::vector<std::ptrdiff_t> column_map;  // -1 = missing or mismatched
+    std::vector<Eigen::Index> column_map;  // -1 = missing or mismatched
     Eigen::Index num_missing{};
     Eigen::Index num_mismatched{};
 };

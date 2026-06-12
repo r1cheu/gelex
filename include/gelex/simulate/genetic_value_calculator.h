@@ -23,9 +23,9 @@
 
 #include <Eigen/Core>
 
+#include "gelex/data/bed.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/genotype/method.h"
 #include "gelex/infra/logging/simulate_event.h"
 #include "gelex/simulate/sim_types.h"
@@ -53,7 +53,7 @@ class GeneticValueCalculator
    private:
     const dataframe::Index<std::string>* sample_index_;
     const dataframe::Index<std::string>* snp_index_;
-    genotype::BedPipe bed_pipe_;
+    Bed bed_;
 };
 
 }  // namespace gelex

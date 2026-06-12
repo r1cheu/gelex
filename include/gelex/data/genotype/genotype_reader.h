@@ -25,7 +25,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/genotype/bed_pipe.h"
+#include "gelex/data/bed.h"
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/data/genotype/method.h"
 #include "gelex/infra/logging/geno_event.h"
@@ -93,7 +93,7 @@ class GenotypeReader
         const std::filesystem::path& output_prefix,
         std::size_t chunk_size) -> Genotype;
 
-    BedPipe bed_pipe_;
+    gelex::Bed bed_;
     gelex::GenoObserver observer_;
     int64_t sample_size_{};
     int64_t num_variants_{};

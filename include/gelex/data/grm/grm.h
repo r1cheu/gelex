@@ -23,8 +23,8 @@
 
 #include <Eigen/Core>
 
+#include "gelex/data/bed.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/genotype/method.h"
 #include "gelex/data/genotype/processor.h"
 #include "gelex/infra/logging/grm_event.h"
@@ -75,7 +75,7 @@ class GRM
 
    private:
     dataframe::Index<std::string> sample_index_;
-    genotype::BedPipe bed_;
+    Bed bed_;
 
     static auto update_grm(
         Eigen::Ref<Eigen::MatrixXd> grm,
@@ -116,7 +116,7 @@ auto GRM::compute(
             const Eigen::Index end_col
                 = std::min(start_col + chunk_size, range_end);
             Eigen::MatrixXd genotype_chunk
-                = bed_.load_chunk(start_col, end_col);
+                = bed_.read<double>(start_col, end_col);
 
             genotype::process_matrix<GT>(method, genotype_chunk);
             update_grm(grm, genotype_chunk);

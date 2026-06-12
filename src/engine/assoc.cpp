@@ -27,9 +27,9 @@
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/reml/estimator.h"
 #include "gelex/algo/reml/result.h"
+#include "gelex/data/bed.h"
 #include "gelex/data/chr_group.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/genotype/bed_pipe.h"
 #include "gelex/data/pipe/grm.h"
 #include "gelex/data/pipe/pheno.h"
 #include "gelex/data/reader.h"
@@ -53,7 +53,7 @@ auto AssocEngine::run(
     const AssocObserver& observer,
     const RemlObserver& reml_observer) -> void
 {
-    genotype::BedPipe bed_pipe(config_.bfile_prefix, sample_index);
+    auto bed = open_bed(config_.bfile_prefix, sample_index);
     auto bim = read_bim(config_.bfile_prefix + ".bim");
 
     auto phenotype = std::move(pheno).take_phenotype();
@@ -89,7 +89,7 @@ auto AssocEngine::run(
                     const auto current_chunk_size = end - start;
 
                     tester->resize(n_samples, current_chunk_size);
-                    bed_pipe.load_chunk(tester->genotype_buffer(), start, end);
+                    bed.read_into<double>(tester->genotype_buffer(), start);
 
                     auto results = tester->run(reml);
                     writer.write(static_cast<size_t>(start), results);

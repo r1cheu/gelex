@@ -23,9 +23,10 @@
 #include <utility>
 #include <vector>
 
+#include <fmt/format.h>
 #include <Eigen/Core>
 
-#include "gelex/data/genotype/bed_pipe.h"
+#include "gelex/data/bed.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
@@ -135,8 +136,20 @@ auto PredictEngine::select(
     const predict::SnpAlignment& alignment,
     bool has_dom) const -> predict::GenotypeData
 {
-    genotype::BedPipe bed_pipe(config_.bfile_prefix, data.fam_df.index());
-    auto genotype = bed_pipe.select(alignment.column_map);
+    if (alignment.num_missing > 0 || alignment.num_mismatched > 0)
+    {
+        throw GelexException(
+            fmt::format(
+                "{}.snpeff does not match {}.bim: {} missing SNPs, {} "
+                "allele mismatches",
+                config_.gfile_prefix,
+                config_.bfile_prefix,
+                alignment.num_missing,
+                alignment.num_mismatched));
+    }
+
+    auto bed = open_bed(config_.bfile_prefix, data.fam_df.index());
+    auto genotype = bed.read_snps<double>(alignment.column_map);
 
     predict::GenotypeData geno;
     if (has_dom)

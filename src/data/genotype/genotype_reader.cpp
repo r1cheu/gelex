@@ -129,10 +129,10 @@ GenotypeReader::GenotypeReader(
     const std::string& bfile_prefix,
     const dataframe::Index<std::string>& sample_index,
     gelex::GenoObserver observer)
-    : bed_pipe_(bfile_prefix, sample_index),
+    : bed_(gelex::open_bed(bfile_prefix, sample_index)),
       observer_(std::move(observer)),
-      sample_size_(bed_pipe_.num_samples()),
-      num_variants_(bed_pipe_.num_snps())
+      sample_size_(bed_.num_samples()),
+      num_variants_(bed_.num_snps())
 {
 }
 
@@ -195,7 +195,7 @@ auto GenotypeReader::read_in_memory(
         const int64_t end
             = std::min(static_cast<int64_t>(start + chunk_size), num_variants_);
         auto target = owned.data.middleCols(start, end - start);
-        bed_pipe_.load_chunk(target, start, end);
+        bed_.read_into<double>(target, start);
         process_chunk(target, start, fn, stats);
         processed += (end - start);
         gelex::notify(
@@ -258,7 +258,7 @@ auto GenotypeReader::read_mmap(
         {
             const int64_t end = std::min(
                 static_cast<int64_t>(start + chunk_size), num_variants_);
-            auto chunk = bed_pipe_.load_chunk(start, end);
+            auto chunk = bed_.read<double>(start, end);
             process_chunk(chunk, start, fn, stats);
             writer.write(genotype_handle, chunk);
             processed += (end - start);

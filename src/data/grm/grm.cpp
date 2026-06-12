@@ -25,7 +25,7 @@
 #include <cblas.h>
 #endif
 
-#include "gelex/data/genotype/bed_pipe.h"
+#include "gelex/data/bed.h"
 #include "gelex/data/reader.h"
 
 namespace gelex
@@ -34,7 +34,7 @@ using Eigen::Index;
 
 GRM::GRM(const std::string& bfile_prefix)
     : sample_index_(read_fam(bfile_prefix + ".fam").index()),
-      bed_(bfile_prefix, sample_index_)
+      bed_(open_bed(bfile_prefix, sample_index_))
 {
 }
 

@@ -31,6 +31,7 @@
 #include "gelex/data/genotype/method.h"
 #include "gelex/data/genotype/processor.h"
 #include "gelex/engine/predict.h"
+#include "gelex/exception.h"
 #include "gelex/io/locistats/writer.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -341,4 +342,46 @@ TEST_CASE(
     auto out = read_prediction_output(output_path);
     REQUIRE(out.row_count == 3);
     REQUIRE(out.has_dominant);
+}
+
+TEST_CASE(
+    "PredictEngine rejects missing SNPs",
+    "[predict][predict_engine]")
+{
+    BedFixture bed;
+
+    Eigen::MatrixXd genotypes(3, 2);
+    genotypes << 0.0, 2.0, 1.0, 1.0, 2.0, 0.0;
+
+    const std::vector<std::string> iids = {"s1", "s2", "s3"};
+    const std::vector<std::string> snp_ids = {"rs1", "rs2"};
+    const std::vector<std::pair<char, char>> alleles = {{'A', 'C'}, {'T', 'G'}};
+
+    auto [bed_prefix, _] = bed.create_deterministic_bed_files(
+        genotypes,
+        iids,
+        snp_ids,
+        std::vector<std::string>(snp_ids.size(), "1"),
+        alleles);
+
+    auto& ff = bed.get_file_fixture();
+
+    const std::vector<std::vector<std::string>> snp_rows
+        = {{"1", "rs1", "1000", "A", "C", "0.30", "0.10", "0.02"},
+           {"1", "rs3", "3000", "A", "G", "0.40", "-0.05", "0.01"}};
+
+    auto gfile_prefix = (ff.get_test_dir() / "missing_snp").string();
+    create_snp_effects_file(ff, gfile_prefix, snp_rows);
+    create_param_file(ff, gfile_prefix, 1.0, {}, {});
+    create_sbin(gfile_prefix + ".sbin", genotypes);
+
+    auto output_path = ff.get_test_dir() / "missing.predictions";
+
+    PredictEngine::Config config{
+        .bfile_prefix = bed_prefix.string(),
+        .gfile_prefix = gfile_prefix,
+        .output_path = output_path};
+
+    PredictEngine engine(config);
+    REQUIRE_THROWS_AS(engine.run(), gelex::GelexException);
 }
