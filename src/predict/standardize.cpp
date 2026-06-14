@@ -18,10 +18,8 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/genotype/detail/encode_policy.h"
 #include "gelex/data/genotype/method.h"
 #include "gelex/predict/types.h"
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex::predict::detail
 {
@@ -54,13 +52,31 @@ auto standardize_genotypes(GenotypeData& geno, const SbinData& sbin) -> void
 
             if (use_orthogonal)
             {
-                gelex::genotype::detail::OrthogonalPolicy<
-                    GeneticMode::D>::encode(col, maf);
+                col = col.unaryExpr(
+                    [maf](double genotype) -> double
+                    {
+                        if (genotype == 2.0)
+                        {
+                            return (4.0 * maf) - 2.0;
+                        }
+                        if (genotype == 1.0)
+                        {
+                            return 2.0 * maf;
+                        }
+                        return genotype;
+                    });
             }
             else
             {
-                gelex::genotype::detail::RawPolicy<GeneticMode::D>::encode(
-                    col, maf);
+                col = col.unaryExpr(
+                    [](double genotype) -> double
+                    {
+                        if (genotype == 2.0)
+                        {
+                            return 0.0;
+                        }
+                        return genotype;
+                    });
             }
 
             col.array() -= sbin.dom.mean(j);

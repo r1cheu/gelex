@@ -47,7 +47,8 @@ std::pair<VectorXd, VectorXd> compute_chain_variance_stats(const Chains& x)
     for (Index c = 0; c < n_chains; ++c)
     {
         chain_means.col(c) = x[c].rowwise().mean();
-        chain_vars.col(c) = stats::detail::matvar<1>(x[c]);
+        chain_vars.col(c) = stats::detail::matvar<1>(
+            x[c], stats::detail::VarNormType::Sample);
     }
 
     VectorXd var_within = chain_vars.rowwise().mean();
@@ -55,7 +56,8 @@ std::pair<VectorXd, VectorXd> compute_chain_variance_stats(const Chains& x)
 
     if (n_chains > 1)
     {
-        MatrixXd var_between = stats::detail::matvar<1>(chain_means);
+        MatrixXd var_between = stats::detail::matvar<1>(
+            chain_means, stats::detail::VarNormType::Sample);
         var_estimator += var_between;
     }
     else
@@ -183,7 +185,8 @@ Chains autocovariance(const Chains& x, bool bias)
 
     for (Index i = 0; i < n_chains; i++)
     {
-        x_var.col(i) = stats::detail::matvar<1>(x[i], 0);
+        x_var.col(i) = stats::detail::matvar<1>(
+            x[i], stats::detail::VarNormType::Population);
     }
 
     for (Index i = 0; i < n_chains; ++i)

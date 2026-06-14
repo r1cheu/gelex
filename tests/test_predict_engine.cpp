@@ -29,7 +29,7 @@
 
 #include "file_fixture.h"
 #include "gelex/data/genotype/method.h"
-#include "gelex/data/genotype/processor.h"
+#include "gelex/data/locus_encoding.h"
 #include "gelex/engine/predict.h"
 #include "gelex/exception.h"
 #include "gelex/io/locistats/writer.h"
@@ -100,30 +100,35 @@ auto create_sbin(
     using gelex::GeneticMode;
     using gelex::GenotypeMethod;
     using gelex::LociStatsWriter;
-    using gelex::genotype::StandardizeHWE;
 
     const auto n_snps = genotypes.cols();
 
-    Eigen::MatrixXd add_geno = genotypes;
+    const gelex::EncodingSpec add_spec{
+        gelex::encoding_spec_from_method(
+            GeneticMode::A,
+            GenotypeMethod::StandardizeHWE)};
+    const gelex::LociEncoding add_encoding{
+        gelex::detail::make_loci_encoding<double>(genotypes, add_spec)};
     Eigen::VectorXd add_mean(n_snps);
     Eigen::VectorXd add_stddev(n_snps);
-    for (Eigen::Index j = 0; j < n_snps; ++j)
+    for (const gelex::LocusEncoding& locus : add_encoding.loci)
     {
-        auto col = add_geno.col(j);
-        auto stats = StandardizeHWE<GeneticMode::A>::process(col);
-        add_mean(j) = stats.mean;
-        add_stddev(j) = stats.stddev;
+        add_mean(locus.marker_index) = locus.mean;
+        add_stddev(locus.marker_index) = locus.sd;
     }
 
-    Eigen::MatrixXd dom_geno = genotypes;
+    const gelex::EncodingSpec dom_spec{
+        gelex::encoding_spec_from_method(
+            GeneticMode::D,
+            GenotypeMethod::StandardizeHWE)};
+    const gelex::LociEncoding dom_encoding{
+        gelex::detail::make_loci_encoding<double>(genotypes, dom_spec)};
     Eigen::VectorXd dom_mean(n_snps);
     Eigen::VectorXd dom_stddev(n_snps);
-    for (Eigen::Index j = 0; j < n_snps; ++j)
+    for (const gelex::LocusEncoding& locus : dom_encoding.loci)
     {
-        auto col = dom_geno.col(j);
-        auto stats = StandardizeHWE<GeneticMode::D>::process(col);
-        dom_mean(j) = stats.mean;
-        dom_stddev(j) = stats.stddev;
+        dom_mean(locus.marker_index) = locus.mean;
+        dom_stddev(locus.marker_index) = locus.sd;
     }
 
     LociStatsWriter writer(sbin_path.string());

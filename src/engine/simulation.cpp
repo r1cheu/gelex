@@ -105,15 +105,22 @@ auto SimulationEngine::run(const SimulateObserver& observer) -> void
     }
     phenotypes += residual;
 
-    const double var_phen = stats::detail::vecvar(phenotypes);
+    const double var_phen = stats::detail::vecvar(
+        phenotypes, stats::detail::VarNormType::Population);
     SimulateVarianceSummaryEvent summary;
     if (additive && var_phen > 0.0)
     {
-        summary.realized_h2 = stats::detail::vecvar(additive->gebv) / var_phen;
+        summary.realized_h2
+            = stats::detail::vecvar(
+                  additive->gebv, stats::detail::VarNormType::Population)
+              / var_phen;
     }
     if (dominance && var_phen > 0.0)
     {
-        summary.realized_d2 = stats::detail::vecvar(dominance->gebv) / var_phen;
+        summary.realized_d2
+            = stats::detail::vecvar(
+                  dominance->gebv, stats::detail::VarNormType::Population)
+              / var_phen;
     }
     notify(observer, summary);
 

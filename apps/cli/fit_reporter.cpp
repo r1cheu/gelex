@@ -65,7 +65,7 @@ auto FitReporter::print_variance_prior(
     double init_variance) -> void
 {
     cli::printer().line(
-        "    Variance: Scaled Inv-χ²(ν={:.4f}, S²={:.4f}), init: {:.4f}",
+        "    Variance: Scaled Inv-χ²(ν={:.4f}, S²={:.4g}), init: {:.4g}",
         prior.degrees_of_freedom(),
         prior.scale(),
         init_variance);

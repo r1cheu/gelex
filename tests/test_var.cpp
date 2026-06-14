@@ -26,8 +26,12 @@ TEST_CASE("vecvar computes vector variance", "[stats][var]")
 {
     const Eigen::VectorXd values{{1.0, 2.0, 4.0, 7.0}};
 
-    REQUIRE(stats::detail::vecvar(values) == 7.0);
-    REQUIRE(stats::detail::vecvar(values, 0) == 5.25);
+    REQUIRE(
+        stats::detail::vecvar(values, stats::detail::VarNormType::Sample)
+        == 7.0);
+    REQUIRE(
+        stats::detail::vecvar(values, stats::detail::VarNormType::Population)
+        == 5.25);
 }
 
 TEST_CASE("matvar computes axis-wise matrix variance", "[stats][var]")
@@ -40,8 +44,14 @@ TEST_CASE("matvar computes axis-wise matrix variance", "[stats][var]")
     const Eigen::RowVectorXd expected_colwise{{4.0, 28.0 / 3.0}};
     const Eigen::VectorXd expected_rowwise{{0.5, 0.5, 4.5}};
 
-    REQUIRE(stats::detail::matvar<0>(values).isApprox(expected_colwise));
-    REQUIRE(stats::detail::matvar<1>(values).isApprox(expected_rowwise));
+    REQUIRE(
+        stats::detail::matvar<0>(
+            values, stats::detail::VarNormType::Sample)
+            .isApprox(expected_colwise));
+    REQUIRE(
+        stats::detail::matvar<1>(
+            values, stats::detail::VarNormType::Sample)
+            .isApprox(expected_rowwise));
 }
 
 }  // namespace gelex

@@ -32,7 +32,10 @@ FreqModel::FreqModel(
     FixedDesign fixed_design,
     std::vector<freq::RandomDesign> random)
     : phenotype_(std::move(phenotype)),
-      phenotype_variance_(stats::detail::vecvar(phenotype_)),
+      phenotype_variance_(
+          stats::detail::vecvar(
+              phenotype_,
+              stats::detail::VarNormType::Population)),
       fixed_(std::move(fixed_design)),
       random_(std::move(random))
 {

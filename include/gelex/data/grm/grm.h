@@ -26,7 +26,7 @@
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/method.h"
-#include "gelex/data/genotype/processor.h"
+#include "gelex/data/locus_encoding.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/logging/notify.h"
 
@@ -118,7 +118,7 @@ auto GRM::compute(
             Eigen::MatrixXd genotype_chunk
                 = bed_.read<double>(start_col, end_col);
 
-            genotype::process_matrix<GT>(method, genotype_chunk);
+            encode_inplace<double>(genotype_chunk, GT, method);
             update_grm(grm, genotype_chunk);
 
             processed_snps += (end_col - start_col);

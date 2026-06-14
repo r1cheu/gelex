@@ -27,7 +27,7 @@
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/reml/result.h"
 #include "gelex/data/genotype/method.h"
-#include "gelex/data/genotype/processor.h"
+#include "gelex/data/locus_encoding.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -59,10 +59,15 @@ auto JointTester::genotype_buffer() -> Eigen::Ref<Eigen::MatrixXd>
 
 auto JointTester::run(const RemlResult& reml) -> TestResults
 {
-    Z_a_ = raw_;
-    Z_d_ = raw_;
-    gelex::genotype::process_matrix<GeneticMode::A>(method_, Z_a_, &freqs_);
-    gelex::genotype::process_matrix<GeneticMode::D>(method_, Z_d_);
+    const LociEncoding additive_encoding{
+        encode_into<double, double>(raw_, Z_a_, GeneticMode::A, method_)};
+    for (const LocusEncoding& locus : additive_encoding.loci)
+    {
+        freqs_(locus.column_index)
+            = locus.stats.has_nonmissing() ? locus.stats.A1freq() : 0.0;
+    }
+
+    encode_into<double, double>(raw_, Z_d_, GeneticMode::D, method_);
 
     // W = P * Z_a  →  cross-products involving Z_a
     W_.noalias() = reml.P * Z_a_;
@@ -118,11 +123,15 @@ auto JointTester::run(const RemlResult& reml) -> TestResults
     }
 
     // per-effect PVE
-    add_.pve = stats::detail::matvar(Z_a_ * add_.beta.asDiagonal())
+    add_.pve = stats::detail::matvar(
+                   Z_a_ * add_.beta.asDiagonal(),
+                   stats::detail::VarNormType::Population)
                    .transpose()
                    .array()
                / reml.Vp;
-    dom_.pve = stats::detail::matvar(Z_d_ * dom_.beta.asDiagonal())
+    dom_.pve = stats::detail::matvar(
+                   Z_d_ * dom_.beta.asDiagonal(),
+                   stats::detail::VarNormType::Population)
                    .transpose()
                    .array()
                / reml.Vp;
@@ -130,7 +139,11 @@ auto JointTester::run(const RemlResult& reml) -> TestResults
     // total PVE: var(Z_a * beta_a + Z_d * beta_d) / Vp
     Eigen::MatrixXd pred
         = Z_a_ * add_.beta.asDiagonal() + Z_d_ * dom_.beta.asDiagonal();
-    total_pve_ = stats::detail::matvar(pred).transpose().array() / reml.Vp;
+    total_pve_
+        = stats::detail::matvar(pred, stats::detail::VarNormType::Population)
+              .transpose()
+              .array()
+          / reml.Vp;
 
     const auto n_snps = static_cast<size_t>(n);
     return {

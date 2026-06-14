@@ -236,8 +236,10 @@ auto JointGaussianMixtureStep::step() -> void
     {
         proportion_ = (*proportion_sampler_)(proportion_count_, rng_);
     }
-    additive_.variance = stats::detail::vecvar(additive_.u);
-    dominance_.variance = stats::detail::vecvar(dominance_.u);
+    additive_.variance = stats::detail::vecvar(
+        additive_.u, stats::detail::VarNormType::Population);
+    dominance_.variance = stats::detail::vecvar(
+        dominance_.u, stats::detail::VarNormType::Population);
 }
 
 JointHalfNormalMixtureStep::JointHalfNormalMixtureStep(
@@ -488,8 +490,10 @@ auto JointHalfNormalMixtureStep::step() -> void
         proportion_ = (*proportion_sampler_)(proportion_count_, rng_);
     }
     dominance_sign_.positive_probability = sign_sampler_(sign_likelihood, rng_);
-    additive_.variance = stats::detail::vecvar(additive_.u);
-    dominance_.variance = stats::detail::vecvar(dominance_.u);
+    additive_.variance = stats::detail::vecvar(
+        additive_.u, stats::detail::VarNormType::Population);
+    dominance_.variance = stats::detail::vecvar(
+        dominance_.u, stats::detail::VarNormType::Population);
 }
 
 }  // namespace gelex::mcmc

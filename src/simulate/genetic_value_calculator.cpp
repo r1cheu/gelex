@@ -27,7 +27,7 @@
 
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/genotype/method.h"
-#include "gelex/data/genotype/processor.h"
+#include "gelex/data/locus_encoding.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/simulate_event.h"
 #include "gelex/simulate/sim_types.h"
@@ -78,7 +78,7 @@ auto GeneticValueCalculator::calculate(
         });
 
     Eigen::MatrixXd genotype = bed_.read_snps<double>(col_indices);
-    genotype::process_matrix<Mode>(geno_method, genotype);
+    encode_inplace<double>(genotype, Mode, geno_method);
 
     genetic_values.coeff.resize(n_causal);
     for (Eigen::Index i = 0; i < n_causal; ++i)

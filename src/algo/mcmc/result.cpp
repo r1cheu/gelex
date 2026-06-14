@@ -96,9 +96,10 @@ auto mcmc::Result::append_pve_record(
     std::string path,
     const Eigen::Ref<const Eigen::MatrixXd>& genetic_values) -> void
 {
-    auto pve
-        = (stats::detail::matvar(genetic_values).transpose() /= phenotype_var_)
-              .eval();
+    auto pve = (stats::detail::matvar(
+                    genetic_values, stats::detail::VarNormType::Population)
+                    .transpose() /= phenotype_var_)
+                   .eval();
     append_record(std::move(path), std::move(pve));
 }
 

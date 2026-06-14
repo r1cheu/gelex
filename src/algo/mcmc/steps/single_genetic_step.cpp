@@ -105,7 +105,8 @@ auto SingleSharedGaussianStep::step() -> void
         }
     }
     variance_ = variance_sampler_({variance_n, sum_squares}, rng_);
-    state_.variance = stats::detail::vecvar(state_.u);
+    state_.variance = stats::detail::vecvar(
+        state_.u, stats::detail::VarNormType::Population);
 }
 
 SinglePerMarkerGaussianStep::SinglePerMarkerGaussianStep(
@@ -173,7 +174,8 @@ auto SinglePerMarkerGaussianStep::step() -> void
             }
         }
     }
-    state_.variance = stats::detail::vecvar(state_.u);
+    state_.variance = stats::detail::vecvar(
+        state_.u, stats::detail::VarNormType::Population);
 }
 
 SingleSharedSpikeSlabStep::SingleSharedSpikeSlabStep(
@@ -285,7 +287,8 @@ auto SingleSharedSpikeSlabStep::step() -> void
     {
         proportion_ = (*proportion_sampler_)(proportion_count_, rng_);
     }
-    state_.variance = stats::detail::vecvar(state_.u);
+    state_.variance = stats::detail::vecvar(
+        state_.u, stats::detail::VarNormType::Population);
 }
 
 SinglePerMarkerSpikeSlabStep::SinglePerMarkerSpikeSlabStep(
@@ -393,7 +396,8 @@ auto SinglePerMarkerSpikeSlabStep::step() -> void
     {
         proportion_ = (*proportion_sampler_)(proportion_count_, rng_);
     }
-    state_.variance = stats::detail::vecvar(state_.u);
+    state_.variance = stats::detail::vecvar(
+        state_.u, stats::detail::VarNormType::Population);
 }
 
 SingleScaledMixtureStep::SingleScaledMixtureStep(
@@ -527,12 +531,14 @@ auto SingleScaledMixtureStep::step() -> void
 
     variance_ = variance_sampler_({variance_n, sum_squares}, rng_);
     proportion_ = proportion_sampler_(proportion_count_, rng_);
-    state_.variance = stats::detail::vecvar(state_.u);
+    state_.variance = stats::detail::vecvar(
+        state_.u, stats::detail::VarNormType::Population);
     for (Eigen::Index k = 0;
          k < static_cast<Eigen::Index>(component_.gebv.size());
          ++k)
     {
-        component_.gebv_var(k) = stats::detail::vecvar(component_.gebv[k]);
+        component_.gebv_var(k) = stats::detail::vecvar(
+            component_.gebv[k], stats::detail::VarNormType::Population);
     }
 }
 

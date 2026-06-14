@@ -204,8 +204,8 @@ auto write_snp_eff(
 
     const auto* allele_design = has_additive ? model.genetic(GeneticMode::A)
                                              : model.genetic(GeneticMode::D);
-    const auto& allele_freq = allele_design->X.allele_freq();
-    const auto n_snps = allele_freq.size();
+    const auto& A1freq = allele_design->X.A1freq();
+    const auto n_snps = A1freq.size();
 
     auto bim = read_bim(bim_path);
 
@@ -270,7 +270,7 @@ auto write_snp_eff(
             pos[row],
             a1[row],
             a2[row],
-            allele_freq(i));
+            A1freq(i));
 
         for (const auto* value : ordered_values)
         {

@@ -116,23 +116,27 @@ auto GenoPipe::write_sbin() -> void
 
     if (additive_matrix_)
     {
+        const Eigen::VectorXd additive_stddev{
+            additive_matrix_->var().array().sqrt()};
         writer.write(
             EffectType::add(),
             method_code,
             additive_matrix_->mean(),
             method_is_center ? static_cast<const Eigen::VectorXd*>(nullptr)
-                             : &additive_matrix_->stddev(),
+                             : &additive_stddev,
             additive_matrix_->mono_indices());
     }
 
     if (dominance_matrix_)
     {
+        const Eigen::VectorXd dominance_stddev{
+            dominance_matrix_->var().array().sqrt()};
         writer.write(
             EffectType::dom(),
             method_code,
             dominance_matrix_->mean(),
             method_is_center ? static_cast<const Eigen::VectorXd*>(nullptr)
-                             : &dominance_matrix_->stddev(),
+                             : &dominance_stddev,
             dominance_matrix_->mono_indices());
     }
 }

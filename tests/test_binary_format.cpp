@@ -534,17 +534,17 @@ TEST_CASE(
         REQUIRE(all_equal);
     }
 
-    SECTION("stddev vectors match")
+    SECTION("var vectors match")
     {
-        const auto& mat_sd = mat_result.stddev();
-        const auto& map_sd = map_result.stddev();
-        REQUIRE(mat_sd.size() == map_sd.size());
+        const auto& mat_var = mat_result.var();
+        const auto& map_var = map_result.var();
+        REQUIRE(mat_var.size() == map_var.size());
 
         bool all_equal = true;
         Eigen::Index first_diff = -1;
-        for (Eigen::Index i = 0; i < mat_sd.size(); ++i)
+        for (Eigen::Index i = 0; i < mat_var.size(); ++i)
         {
-            if (mat_sd(i) != map_sd(i))
+            if (mat_var(i) != map_var(i))
             {
                 all_equal = false;
                 first_diff = i;
@@ -554,17 +554,17 @@ TEST_CASE(
         if (!all_equal)
         {
             UNSCOPED_INFO(
-                "Stddev diff at index " << first_diff
-                                        << ": mat=" << mat_sd(first_diff)
-                                        << " map=" << map_sd(first_diff));
+                "Var diff at index " << first_diff
+                                      << ": mat=" << mat_var(first_diff)
+                                      << " map=" << map_var(first_diff));
         }
         REQUIRE(all_equal);
     }
 
-    SECTION("allele frequency vectors match")
+    SECTION("A1 frequency vectors match")
     {
-        const auto& mat_freq = mat_result.allele_freq();
-        const auto& map_freq = map_result.allele_freq();
+        const auto& mat_freq = mat_result.A1freq();
+        const auto& map_freq = map_result.A1freq();
         REQUIRE(mat_freq.size() == map_freq.size());
 
         bool all_equal = true;
@@ -581,7 +581,7 @@ TEST_CASE(
         if (!all_equal)
         {
             UNSCOPED_INFO(
-                "Allele freq diff at index "
+                "A1 freq diff at index "
                 << first_diff << ": mat=" << mat_freq(first_diff)
                 << " map=" << map_freq(first_diff));
         }

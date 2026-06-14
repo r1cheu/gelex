@@ -35,7 +35,7 @@
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype/genotype.h"
 #include "gelex/data/genotype/method.h"
-#include "gelex/data/genotype/processor.h"
+#include "gelex/data/locus_encoding.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/geno_event.h"
@@ -53,41 +53,32 @@ namespace
 struct ChunkStats
 {
     Eigen::VectorXd means;
-    Eigen::VectorXd stddevs;
-    Eigen::VectorXd allele_freqs;
+    Eigen::VectorXd vars;
+    Eigen::VectorXd A1freqs;
     std::vector<int64_t> mono_indices;
 };
 
+template <gelex::GeneticMode GT>
 auto process_chunk(
     Eigen::Ref<Eigen::MatrixXd> chunk,
     Eigen::Index global_start,
-    gelex::LocusStatistic (*fn)(Eigen::Ref<Eigen::VectorXd>),
+    gelex::GenotypeMethod method,
     ChunkStats& stats) -> void
 {
-    const Eigen::Index num_variants_in_chunk = chunk.cols();
-    std::vector<uint8_t> is_mono(static_cast<size_t>(num_variants_in_chunk), 0);
+    const gelex::LociEncoding encoding{
+        gelex::encode_inplace<double>(chunk, GT, method, 1e-12, global_start)};
 
-#pragma omp parallel for schedule(static) default(none) \
-    shared(chunk, stats, fn, global_start, num_variants_in_chunk, is_mono)
-    for (Eigen::Index i = 0; i < num_variants_in_chunk; ++i)
+    for (const gelex::LocusEncoding& locus : encoding.loci)
     {
-        auto variant = chunk.col(i);
-        gelex::LocusStatistic locus = fn(variant);
-
-        const Eigen::Index global_idx = global_start + i;
-        stats.means[global_idx] = locus.mean;
-        stats.stddevs[global_idx] = locus.stddev;
-        stats.allele_freqs[global_idx] = locus.maf;
-        is_mono[static_cast<size_t>(i)] = locus.is_monomorphic ? 1 : 0;
+        stats.means[locus.marker_index] = locus.mean;
+        stats.vars[locus.marker_index] = locus.var;
+        stats.A1freqs[locus.marker_index]
+            = locus.stats.has_nonmissing() ? locus.stats.A1freq() : 0.0;
     }
 
-    for (Eigen::Index i = 0; i < num_variants_in_chunk; ++i)
+    for (Eigen::Index marker_index : encoding.skipped_indices)
     {
-        if (is_mono[static_cast<size_t>(i)] != 0)
-        {
-            stats.mono_indices.push_back(
-                static_cast<int64_t>(global_start + i));
-        }
+        stats.mono_indices.push_back(static_cast<int64_t>(marker_index));
     }
 }
 
@@ -107,8 +98,8 @@ auto load_mmapped(
     auto stats_mat
         = mapped.reader->to_mat<double>(fmt::format("{}/loci_stats", effect));
     mapped.mean = stats_mat.col(0);
-    mapped.stddev = stats_mat.col(1);
-    mapped.allele_freq = stats_mat.col(2);
+    mapped.var = stats_mat.col(1);
+    mapped.A1freq = stats_mat.col(2);
 
     if (const auto mono_path = fmt::format("{}/mono_indices", effect);
         mapped.reader->contains(mono_path))
@@ -183,11 +174,9 @@ auto GenotypeReader::read_in_memory(
 
     ChunkStats stats;
     stats.means.resize(num_variants_);
-    stats.stddevs.resize(num_variants_);
-    stats.allele_freqs.resize(num_variants_);
+    stats.vars.resize(num_variants_);
+    stats.A1freqs.resize(num_variants_);
     stats.mono_indices.reserve(num_variants_ / 100);
-
-    auto fn = get_genotype_process_method<GT>(method);
 
     int64_t processed = 0;
     for (int64_t start = 0; start < num_variants_;)
@@ -196,7 +185,7 @@ auto GenotypeReader::read_in_memory(
             = std::min(static_cast<int64_t>(start + chunk_size), num_variants_);
         auto target = owned.data.middleCols(start, end - start);
         bed_.read_into<double>(target, start);
-        process_chunk(target, start, fn, stats);
+        process_chunk<GT>(target, start, method, stats);
         processed += (end - start);
         gelex::notify(
             observer_,
@@ -216,8 +205,8 @@ auto GenotypeReader::read_in_memory(
     std::ranges::sort(stats.mono_indices);
     owned.mono_indices = std::move(stats.mono_indices);
     owned.mean = std::move(stats.means);
-    owned.stddev = std::move(stats.stddevs);
-    owned.allele_freq = std::move(stats.allele_freqs);
+    owned.var = std::move(stats.vars);
+    owned.A1freq = std::move(stats.A1freqs);
 
     return Genotype(std::move(owned));
 }
@@ -243,11 +232,10 @@ auto GenotypeReader::read_mmap(
 
     ChunkStats stats;
     stats.means.resize(num_variants_);
-    stats.stddevs.resize(num_variants_);
-    stats.allele_freqs.resize(num_variants_);
+    stats.vars.resize(num_variants_);
+    stats.A1freqs.resize(num_variants_);
     stats.mono_indices.reserve(num_variants_ / 100);
 
-    auto fn = get_genotype_process_method<GT>(method);
     {
         gelex::io::BinaryWriter writer(gbin_path.string());
         auto genotype_handle = writer.reserve<double>(
@@ -259,7 +247,7 @@ auto GenotypeReader::read_mmap(
             const int64_t end = std::min(
                 static_cast<int64_t>(start + chunk_size), num_variants_);
             auto chunk = bed_.read<double>(start, end);
-            process_chunk(chunk, start, fn, stats);
+            process_chunk<GT>(chunk, start, method, stats);
             writer.write(genotype_handle, chunk);
             processed += (end - start);
             gelex::notify(
@@ -282,8 +270,8 @@ auto GenotypeReader::read_mmap(
         auto stats_handle = writer.reserve<double>(
             fmt::format("{}/loci_stats", effect), num_variants_, 3);
         writer.write(stats_handle, stats.means);
-        writer.write(stats_handle, stats.stddevs);
-        writer.write(stats_handle, stats.allele_freqs);
+        writer.write(stats_handle, stats.vars);
+        writer.write(stats_handle, stats.A1freqs);
 
         if (!stats.mono_indices.empty())
         {

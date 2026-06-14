@@ -127,14 +127,6 @@ inline auto genotype_method_from_byte(uint8_t b) -> GenotypeMethod
     }
 }
 
-struct LocusStatistic
-{
-    double mean{0};
-    double stddev{0};
-    double maf{0};
-    bool is_monomorphic{false};
-};
-
 }  // namespace gelex
 
 namespace fmt

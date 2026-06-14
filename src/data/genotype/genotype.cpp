@@ -52,17 +52,17 @@ auto Genotype::mean() const noexcept -> const Eigen::VectorXd&
         storage_);
 }
 
-auto Genotype::stddev() const noexcept -> const Eigen::VectorXd&
+auto Genotype::var() const noexcept -> const Eigen::VectorXd&
 {
     return std::visit(
-        [](const auto& s) -> const Eigen::VectorXd& { return s.stddev; },
+        [](const auto& s) -> const Eigen::VectorXd& { return s.var; },
         storage_);
 }
 
-auto Genotype::allele_freq() const noexcept -> const Eigen::VectorXd&
+auto Genotype::A1freq() const noexcept -> const Eigen::VectorXd&
 {
     return std::visit(
-        [](const auto& s) -> const Eigen::VectorXd& { return s.allele_freq; },
+        [](const auto& s) -> const Eigen::VectorXd& { return s.A1freq; },
         storage_);
 }
 

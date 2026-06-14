@@ -18,29 +18,38 @@
 #define GELEX_INFRA_STATS_DETAIL_VAR_H_
 
 #include <cassert>
+#include <cstdint>
 #include <type_traits>
 
 #include <Eigen/Core>
 
 namespace gelex::stats::detail
 {
+enum class VarNormType : std::uint8_t
+{
+    Population,
+    Sample
+};
 
 template <typename Derived>
-auto vecvar(const Eigen::DenseBase<Derived>& values, Eigen::Index norm_type = 1)
-    -> double
+auto vecvar(
+    const Eigen::DenseBase<Derived>& values,
+    VarNormType norm_type = VarNormType::Sample) -> double
 {
     assert(
         (values.rows() == 1 || values.cols() == 1)
         && "vecvar: input must be a vector");
 
-    const Eigen::Index ddof = (norm_type == 0) ? 0 : 1;
+    const Eigen::Index ddof = (norm_type == VarNormType::Population) ? 0 : 1;
     const double mean = values.mean();
     return (values.derived().array() - mean).square().sum()
            / static_cast<double>(values.size() - ddof);
 }
 
 template <Eigen::Index Axis = 0, typename Derived>
-auto matvar(const Eigen::DenseBase<Derived>& matrix, Eigen::Index norm_type = 1)
+auto matvar(
+    const Eigen::DenseBase<Derived>& matrix,
+    VarNormType norm_type = VarNormType::Sample)
     -> std::conditional_t<Axis == 0, Eigen::RowVectorXd, Eigen::VectorXd>
 {
     static_assert(Axis == 0 || Axis == 1);

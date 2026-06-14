@@ -300,7 +300,7 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
             double mean = Z.col(j).mean();
             Z.col(j).array() -= mean;
             double var = Z.col(j).squaredNorm()
-                         / (static_cast<double>(Z.rows()) - 1.0);
+                         / static_cast<double>(Z.rows());
             double denom = std::sqrt(var);
             if (denom > 1e-10)
             {

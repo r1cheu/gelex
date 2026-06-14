@@ -25,7 +25,7 @@
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/reml/result.h"
 #include "gelex/data/genotype/method.h"
-#include "gelex/data/genotype/processor.h"
+#include "gelex/data/locus_encoding.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -55,11 +55,23 @@ auto SingleTester::run(const RemlResult& reml) -> TestResults
 {
     if (mode_ == GeneticMode::A)
     {
-        gelex::genotype::process_matrix<GeneticMode::A>(method_, Z_, &freqs_);
+        const LociEncoding encoding{
+            encode_inplace<double>(Z_, GeneticMode::A, method_)};
+        for (const LocusEncoding& locus : encoding.loci)
+        {
+            freqs_(locus.column_index)
+                = locus.stats.has_nonmissing() ? locus.stats.A1freq() : 0.0;
+        }
     }
     else
     {
-        gelex::genotype::process_matrix<GeneticMode::D>(method_, Z_, &freqs_);
+        const LociEncoding encoding{
+            encode_inplace<double>(Z_, GeneticMode::D, method_)};
+        for (const LocusEncoding& locus : encoding.loci)
+        {
+            freqs_(locus.column_index)
+                = locus.stats.has_nonmissing() ? locus.stats.A1freq() : 0.0;
+        }
     }
 
     wald_test(Z_, W_, reml, output_);
@@ -90,8 +102,11 @@ auto SingleTester::wald_test(
     output.zt_Pz = (Z.transpose() * W).diagonal();
 
     output.beta = (output.zt_Pr.array() / output.zt_Pz.array());
-    output.pve
-        = stats::detail::matvar(Z * output.beta.asDiagonal()).array() / reml.Vp;
+    output.pve = stats::detail::matvar(
+                     Z * output.beta.asDiagonal(),
+                     stats::detail::VarNormType::Population)
+                     .array()
+                 / reml.Vp;
     output.se = (1.0 / output.zt_Pz.array()).sqrt();
     output.stats = (output.beta.array() / output.se.array()).square();
     output.p_value = (output.stats.array() * 0.5).sqrt().erfc();
