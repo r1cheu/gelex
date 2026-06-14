@@ -225,10 +225,16 @@ TEST_CASE("Result derives joint genetic PIP by effect", "[mcmc][mcmc_result]")
     std::vector<gelex::bayes::GeneticDesign> genetics;
     genetics.emplace_back(
         gelex::GeneticMode::A,
-        make_genotype(Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}}));
+        make_genotype(
+            Eigen::MatrixXd{{-1.0, 1.0 / 3.0},
+                            {0.0, -2.0 / 3.0},
+                            {1.0, 1.0 / 3.0}}));
     genetics.emplace_back(
         gelex::GeneticMode::D,
-        make_genotype(Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}}));
+        make_genotype(
+            Eigen::MatrixXd{{-1.0, 1.0 / 3.0},
+                            {0.0, -2.0 / 3.0},
+                            {1.0, 1.0 / 3.0}}));
     gelex::BayesModel model{
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
         gelex::FixedDesign::make(3),

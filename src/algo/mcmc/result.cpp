@@ -17,7 +17,6 @@
 #include "gelex/algo/mcmc/result.h"
 
 #include <cstddef>
-#include <optional>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -27,10 +26,11 @@
 
 #include <Eigen/Core>
 
+#include "algo/mcmc/detail/pip_computer.h"
+#include "algo/mcmc/detail/pve_computer.h"
 #include "gelex/algo/mcmc/records.h"
 #include "gelex/bayes/model.h"
 #include "gelex/exception.h"
-#include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
@@ -53,30 +53,70 @@ auto mcmc::Result::append_derived_records(
     const BayesModel& model,
     std::size_t n_records) -> void
 {
-    bool has_total{};
+    append_pve_records(model, n_records);
+    append_pip_records(n_records);
+}
+
+auto mcmc::Result::append_pve_records(
+    const BayesModel& model,
+    std::size_t n_records) -> void
+{
+    if (phenotype_var_ <= 0.0)
+    {
+        return;
+    }
+
+    Eigen::VectorXd additive_beta;
+    Eigen::VectorXd dominance_beta;
+    const auto pve_computer = mcmc::detail::PveComputer{model, phenotype_var_};
     for (std::size_t i = 0; i < n_records; ++i)
     {
-        auto pve_data = make_pve(model, records_[i]);
-        if (pve_data && phenotype_var_ > 0.0)
+        const auto& record = records_[i];
+        const std::string_view path{record.path};
+        if (!std::holds_alternative<stats::RunningStatsResult>(record.value)
+            || !path.ends_with("/genetic/coeffs"))
         {
-            auto [genetic_values, pve_path] = std::move(*pve_data);
-            append_pve_record(std::move(pve_path), genetic_values);
-
-            if (pve_buffer_.size() == 0)
-            {
-                pve_buffer_ = std::move(genetic_values);
-            }
-            else
-            {
-                has_total = true;
-                pve_buffer_ += genetic_values;
-            }
+            continue;
         }
-        make_pip_records(records_[i]);
+
+        bool is_additive{};
+        if (path.contains("/A/"))
+        {
+            is_additive = true;
+        }
+        else if (!path.contains("/D/"))
+        {
+            continue;
+        }
+
+        const auto mode = is_additive ? GeneticMode::A : GeneticMode::D;
+        const auto& coeffs = std::get<stats::RunningStatsResult>(record.value);
+        auto pve = pve_computer.single(mode, coeffs.mean);
+        if (mode == GeneticMode::A)
+        {
+            additive_beta = coeffs.mean;
+        }
+        else
+        {
+            dominance_beta = coeffs.mean;
+        }
+
+        auto pve_path = std::string{path.substr(0, path.size() - 7)};
+        pve_path += "/pve";
+        append_record(std::move(pve_path), std::move(pve));
     }
-    if (has_total)
+    if (additive_beta.size() != 0 && dominance_beta.size() != 0)
     {
-        append_pve_record("state/genetic/pve", pve_buffer_);
+        auto total_pve = pve_computer.total(additive_beta, dominance_beta);
+        append_record("state/genetic/pve", std::move(total_pve));
+    }
+}
+
+auto mcmc::Result::append_pip_records(std::size_t n_records) -> void
+{
+    for (std::size_t i = 0; i < n_records; ++i)
+    {
+        make_pip_records(records_[i]);
     }
 }
 
@@ -92,15 +132,34 @@ auto mcmc::Result::append_record(std::string path, Eigen::VectorXd&& value)
             std::nullopt});
 }
 
-auto mcmc::Result::append_pve_record(
+auto mcmc::Result::append_single_pip_record(
     std::string path,
-    const Eigen::Ref<const Eigen::MatrixXd>& genetic_values) -> void
+    const stats::CategoryProbResult& probabilities) -> void
 {
-    auto pve = (stats::detail::matvar(
-                    genetic_values, stats::detail::VarNormType::Population)
-                    .transpose() /= phenotype_var_)
-                   .eval();
-    append_record(std::move(path), std::move(pve));
+    const auto pip_computer = mcmc::detail::PipComputer{};
+    auto pip = pip_computer.single(probabilities.value);
+    path += "/pip";
+    append_record(std::move(path), std::move(pip));
+}
+
+auto mcmc::Result::append_joint_pip_records(
+    std::string path,
+    const stats::CategoryProbResult& probabilities) -> void
+{
+    if (probabilities.value.cols() < 4)
+    {
+        return;
+    }
+
+    const auto pip_computer = mcmc::detail::PipComputer{};
+    auto [additive_pip, dominance_pip]
+        = pip_computer.joint(probabilities.value);
+    auto additive_pip_path = path;
+    additive_pip_path += "/A/pip";
+    path += "/D/pip";
+
+    append_record(std::move(additive_pip_path), std::move(additive_pip));
+    append_record(std::move(path), std::move(dominance_pip));
 }
 
 auto mcmc::Result::index_records() -> void
@@ -110,49 +169,6 @@ auto mcmc::Result::index_records() -> void
     {
         record_indices_.emplace(record.path, static_cast<std::size_t>(i));
     }
-}
-
-auto mcmc::Result::make_pve(const BayesModel& model, const RecordEntry& record)
-    -> std::optional<std::pair<Eigen::MatrixXd, std::string>>
-{
-    if (!std::holds_alternative<stats::RunningStatsResult>(record.value))
-    {
-        return std::nullopt;
-    }
-
-    const std::string_view path{record.path};
-    if (!path.ends_with("/genetic/coeffs"))
-    {
-        return std::nullopt;
-    }
-
-    const bayes::GeneticDesign* design{};
-    if (path.contains("/A/"))
-    {
-        design = model.genetic(GeneticMode::A);
-    }
-    else if (path.contains("/D/"))
-    {
-        design = model.genetic(GeneticMode::D);
-    }
-    if (design == nullptr)
-    {
-        return std::nullopt;
-    }
-
-    const auto& coeffs = std::get<stats::RunningStatsResult>(record.value);
-    if (design->X.cols() != coeffs.mean.size())
-    {
-        throw GelexException(
-            "Result: genetic coefficient size does not match design");
-    }
-
-    // Drop the trailing "/coeffs" segment.
-    auto pve_path = std::string{path.substr(0, path.size() - 7)};
-    pve_path += "/pve";
-    return std::pair{
-        (design->X.matrix() * coeffs.mean.asDiagonal()).eval(),
-        std::move(pve_path)};
 }
 
 auto mcmc::Result::make_pip_records(const RecordEntry& record) -> void
@@ -180,28 +196,11 @@ auto mcmc::Result::make_pip_records(const RecordEntry& record) -> void
         = std::string{path.substr(0, path.size() - assignment_suffix.size())};
     if (path.contains("/joint/"))
     {
-        if (probabilities.value.cols() < 4)
-        {
-            return;
-        }
-        auto additive_pip
-            = (probabilities.value.col(1) + probabilities.value.col(3)).eval();
-        auto dominance_pip
-            = (probabilities.value.col(2) + probabilities.value.col(3)).eval();
-        auto additive_pip_path = pip_path;
-        additive_pip_path += "/A/pip";
-        pip_path += "/D/pip";
-
-        append_record(std::move(additive_pip_path), std::move(additive_pip));
-        append_record(std::move(pip_path), std::move(dominance_pip));
+        append_joint_pip_records(std::move(pip_path), probabilities);
         return;
     }
 
-    auto pip = (Eigen::VectorXd::Ones(probabilities.value.rows())
-                - probabilities.value.col(0))
-                   .eval();
-    pip_path += "/pip";
-    append_record(std::move(pip_path), std::move(pip));
+    append_single_pip_record(std::move(pip_path), probabilities);
 }
 
 auto mcmc::Result::get(std::string_view path) const -> const RecordResult&

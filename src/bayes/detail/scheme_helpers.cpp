@@ -101,11 +101,12 @@ auto target_marker_variance(
         throw GelexException(
             fmt::format("genetic design not found for mode {}", mode));
     }
-    if (genetic->design_variance <= 0)
+    const double design_variance = genetic->col_var.sum();
+    if (design_variance <= 0)
     {
         throw GelexException(
             fmt::format(
-                "genetic design_variance must be positive for mode {}", mode));
+                "genetic col_var sum must be positive for mode {}", mode));
     }
     if (active_marker_weight <= 0)
     {
@@ -116,7 +117,7 @@ auto target_marker_variance(
     }
 
     const double target = model.phenotype_variance() * h2
-                          / (active_marker_weight * genetic->design_variance);
+                          / (active_marker_weight * design_variance);
     if (!std::isfinite(target) || target <= 0)
     {
         throw GelexException(

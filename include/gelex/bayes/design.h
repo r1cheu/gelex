@@ -60,16 +60,14 @@ struct GeneticDesign
         : type(type), X(std::move(X))
     {
         XtX_diag = this->X.matrix().colwise().squaredNorm();
-        design_variance = gelex::stats::detail::matvar<0>(
-                              this->X.matrix(),
-                              gelex::stats::detail::VarNormType::Population)
-                              .sum();
+        col_var = gelex::stats::detail::matvar<0>(
+            this->X.matrix(), gelex::stats::detail::VarNormType::Population);
     }
 
     GeneticMode type;
     gelex::genotype::Genotype X;
     Eigen::VectorXd XtX_diag;
-    double design_variance{};
+    Eigen::RowVectorXd col_var;
 
     auto is_monomorphic(Eigen::Index snp_index) const -> bool
     {

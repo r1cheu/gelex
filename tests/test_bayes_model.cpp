@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <cmath>
 #include <string>
 #include <utility>
 #include <vector>
@@ -141,16 +140,15 @@ TEST_CASE("BayesModel rejects duplicate genetic modes", "[bayes_model]")
 }
 
 TEST_CASE(
-    "GeneticDesign caches design_variance from design matrix",
+    "GeneticDesign caches column variance from design matrix",
     "[bayes_model]")
 {
     const Eigen::MatrixXd data{{0.0, 1.0}, {1.0, 1.5}, {2.0, 3.0}};
-    const double expected = gelex::stats::detail::matvar<0>(
-                                data,
-                                gelex::stats::detail::VarNormType::Population)
-                                .sum();
+    const Eigen::RowVectorXd expected_var{
+        gelex::stats::detail::matvar<0>(
+            data, gelex::stats::detail::VarNormType::Population)};
 
     const auto design = make_genetic_design(GeneticMode::A, data);
 
-    REQUIRE(std::abs(design.design_variance - expected) < 1e-12);
+    REQUIRE(design.col_var.isApprox(expected_var));
 }

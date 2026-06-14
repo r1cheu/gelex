@@ -18,12 +18,10 @@
 #define GELEX_ALGO_MCMC_RESULT_H_
 
 #include <cstddef>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
@@ -57,14 +55,18 @@ class Result
    private:
     auto append_derived_records(const BayesModel& model, std::size_t n_records)
         -> void;
+    auto append_pve_records(const BayesModel& model, std::size_t n_records)
+        -> void;
+    auto append_pip_records(std::size_t n_records) -> void;
     auto append_record(std::string path, Eigen::VectorXd&& value) -> void;
-    auto append_pve_record(
+    auto append_single_pip_record(
         std::string path,
-        const Eigen::Ref<const Eigen::MatrixXd>& genetic_values) -> void;
+        const stats::CategoryProbResult& probabilities) -> void;
+    auto append_joint_pip_records(
+        std::string path,
+        const stats::CategoryProbResult& probabilities) -> void;
     auto index_records() -> void;
 
-    static auto make_pve(const BayesModel& model, const RecordEntry& record)
-        -> std::optional<std::pair<Eigen::MatrixXd, std::string>>;
     auto make_pip_records(const RecordEntry& record) -> void;
 
     double phenotype_var_;
@@ -72,7 +74,6 @@ class Result
     std::vector<RecordEntry> records_;
     std::unordered_map<std::string, std::size_t> record_indices_;
     Eigen::Index samples_collected_{};
-    Eigen::MatrixXd pve_buffer_;
 };
 
 }  // namespace mcmc
