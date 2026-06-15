@@ -42,7 +42,6 @@ pixi r test-catch "[tag]"    # tests by Catch2 tag
 - Exceptions from `include/gelex/exception.h`
 - Simple getters/setters stay in headers
 - Prefer constructor member initializer lists.
-- Class-private static methods over anonymous-namespace free functions
 - Prefer `std::views::enumerate` over manual index loops when both index and value are needed
 - Preserve existing license headers
 - Reusable test fixtures in `tests/*_fixture.{h,cpp}`
