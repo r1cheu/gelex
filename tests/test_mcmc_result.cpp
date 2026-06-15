@@ -38,7 +38,7 @@
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
-#include "gelex/data/genotype/genotype.h"
+#include "gelex/data/genotype.h"
 #include "gelex/exception.h"
 #include "gelex/io/mcmc.h"
 #include "gelex/types/fixed_designs.h"
@@ -54,7 +54,7 @@ auto make_variance(double value) -> gelex::bayes::VarianceParameter
         value, gelex::bayes::ScaledInvChiSqPrior{4.0, 1.0}};
 }
 
-auto make_genotype(Eigen::MatrixXd data) -> gelex::genotype::Genotype
+auto make_genotype(Eigen::MatrixXd data) -> gelex::Genotype
 {
     auto mean = data.colwise().mean().transpose().eval();
     auto stddev = Eigen::VectorXd::Ones(data.cols());

@@ -24,7 +24,7 @@
 #include <utility>
 
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/genotype/genotype.h"
+#include "gelex/data/genotype.h"
 #include "gelex/data/genotype/genotype_reader.h"
 #include "gelex/data/genotype/method.h"
 #include "gelex/data/reader.h"
@@ -61,7 +61,7 @@ auto GenoPipe::load_genotype_impl(
     const dataframe::Index<std::string>& sample_index,
     const std::string& suffix,
     GenotypeMethod method,
-    std::optional<genotype::Genotype>& target) -> void
+    std::optional<Genotype>& target) -> void
 {
     genotype::GenotypeReader reader(
         config_.bfile_prefix, sample_index, observer_);

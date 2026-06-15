@@ -22,7 +22,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/genotype/genotype.h"
+#include "gelex/data/genotype.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -56,7 +56,7 @@ struct RandomDesign
 
 struct GeneticDesign
 {
-    GeneticDesign(GeneticMode type, gelex::genotype::Genotype&& X)
+    GeneticDesign(GeneticMode type, gelex::Genotype&& X)
         : type(type), X(std::move(X))
     {
         XtX_diag = this->X.matrix().colwise().squaredNorm();
@@ -65,7 +65,7 @@ struct GeneticDesign
     }
 
     GeneticMode type;
-    gelex::genotype::Genotype X;
+    gelex::Genotype X;
     Eigen::VectorXd XtX_diag;
     Eigen::RowVectorXd col_var;
 

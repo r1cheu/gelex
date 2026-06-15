@@ -24,7 +24,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/genotype/genotype.h"
+#include "gelex/data/genotype.h"
 
 namespace gelex::test
 {
@@ -37,7 +37,7 @@ class GenotypeBuilder
         Eigen::VectorXd mean,
         Eigen::VectorXd var,
         std::vector<int64_t> mono_indices = {},
-        Eigen::VectorXd A1freq = {}) -> genotype::Genotype
+        Eigen::VectorXd A1freq = {}) -> Genotype
     {
         genotype::OwnedStorage owned;
         owned.data = std::move(data);
@@ -50,7 +50,7 @@ class GenotypeBuilder
         owned.A1freq = std::move(A1freq);
         owned.mono_indices = std::move(mono_indices);
         std::ranges::sort(owned.mono_indices);
-        return genotype::Genotype{std::move(owned)};
+        return Genotype{std::move(owned)};
     }
 };
 

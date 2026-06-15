@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_GENOTYPE_GENOTYPE_H_
-#define GELEX_DATA_GENOTYPE_GENOTYPE_H_
+#ifndef GELEX_DATA_GENOTYPE_H_
+#define GELEX_DATA_GENOTYPE_H_
 
 #include <cstdint>
 #include <memory>
@@ -72,6 +72,11 @@ struct MmappedStorage
     ~MmappedStorage() = default;
 };
 
+}  // namespace gelex::genotype
+
+namespace gelex
+{
+
 class Genotype
 {
    public:
@@ -103,22 +108,22 @@ class Genotype
         -> bool;
 
    private:
-    friend class GenotypeReader;
+    friend class genotype::GenotypeReader;
     friend class ::gelex::test::GenotypeBuilder;
 
-    explicit Genotype(OwnedStorage&& owned) noexcept
+    explicit Genotype(genotype::OwnedStorage&& owned) noexcept
         : storage_(std::move(owned))
     {
     }
 
-    explicit Genotype(MmappedStorage&& mapped) noexcept
+    explicit Genotype(genotype::MmappedStorage&& mapped) noexcept
         : storage_(std::move(mapped))
     {
     }
 
-    std::variant<OwnedStorage, MmappedStorage> storage_;
+    std::variant<genotype::OwnedStorage, genotype::MmappedStorage> storage_;
 };
 
-}  // namespace gelex::genotype
+}  // namespace gelex
 
-#endif  // GELEX_DATA_GENOTYPE_GENOTYPE_H_
+#endif  // GELEX_DATA_GENOTYPE_H_

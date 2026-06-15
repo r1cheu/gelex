@@ -22,7 +22,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/genotype/genotype.h"
+#include "gelex/data/genotype.h"
 #include "gelex/infra/logging/post_event.h"
 #include "gelex/infra/stats/diagnostics.h"
 #include "gelex/io/binary_reader.h"
@@ -33,7 +33,7 @@ namespace gelex
 
 struct GeneticInput
 {
-    const gelex::genotype::Genotype* genotype;
+    const gelex::Genotype* genotype;
     GeneticMode kind;
 };
 

@@ -29,7 +29,7 @@
 #include <vector>
 
 #include "gelex/bayes/labels.h"
-#include "gelex/data/genotype/genotype.h"
+#include "gelex/data/genotype.h"
 #include "gelex/data/genotype/genotype_reader.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
@@ -138,7 +138,7 @@ auto PosteriorAnalysisEngine::process_gebv_variance()
 
     std::vector<ParameterDiag> diags;
 
-    std::vector<gelex::genotype::Genotype> genotype_storages;
+    std::vector<gelex::Genotype> genotype_storages;
     std::vector<GeneticInput> genetic_inputs;
     const auto& ref = readers_.front();
     if (!ref.contains("genetic/modes"))

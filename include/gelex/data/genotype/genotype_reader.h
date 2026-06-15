@@ -26,7 +26,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/bed.h"
-#include "gelex/data/genotype/genotype.h"
+#include "gelex/data/genotype.h"
 #include "gelex/data/genotype/method.h"
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/types/genetic_effect_type.h"

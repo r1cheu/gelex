@@ -28,7 +28,7 @@
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/recipe_options.h"
-#include "gelex/data/genotype/genotype.h"
+#include "gelex/data/genotype.h"
 #include "gelex/exception.h"
 #include "gelex/types/constrained_value.h"
 #include "gelex/types/constrained_vector.h"
@@ -49,7 +49,7 @@ using gelex::bayes::to_bayes_recipe_scheme;
 namespace
 {
 
-auto make_genotype(Eigen::MatrixXd data) -> gelex::genotype::Genotype
+auto make_genotype(Eigen::MatrixXd data) -> gelex::Genotype
 {
     auto mean = data.colwise().mean().transpose().eval();
     auto stddev = Eigen::VectorXd::Ones(data.cols());

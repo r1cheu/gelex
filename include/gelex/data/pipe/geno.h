@@ -23,7 +23,7 @@
 #include <vector>
 
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/genotype/genotype.h"
+#include "gelex/data/genotype.h"
 #include "gelex/data/genotype/method.h"
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -55,12 +55,12 @@ class GenoPipe
 
     auto load(const dataframe::Index<std::string>& sample_index) -> void;
 
-    auto take_additive_matrix() && -> genotype::Genotype
+    auto take_additive_matrix() && -> Genotype
     {
         return std::move(*additive_matrix_);
     }
 
-    auto take_dominance_matrix() && -> genotype::Genotype
+    auto take_dominance_matrix() && -> Genotype
     {
         return std::move(*dominance_matrix_);
     }
@@ -87,7 +87,7 @@ class GenoPipe
         const dataframe::Index<std::string>& sample_index,
         const std::string& suffix,
         GenotypeMethod method,
-        std::optional<genotype::Genotype>& target) -> void;
+        std::optional<Genotype>& target) -> void;
 
     auto load_additive_matrix(const dataframe::Index<std::string>& sample_index)
         -> void;
@@ -97,8 +97,8 @@ class GenoPipe
 
     Config config_;
     dataframe::Index<std::string> fam_index_;
-    std::optional<genotype::Genotype> additive_matrix_;
-    std::optional<genotype::Genotype> dominance_matrix_;
+    std::optional<Genotype> additive_matrix_;
+    std::optional<Genotype> dominance_matrix_;
     GenoObserver observer_;
 };
 

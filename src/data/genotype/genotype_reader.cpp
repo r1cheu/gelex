@@ -33,7 +33,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/genotype/genotype.h"
+#include "gelex/data/genotype.h"
 #include "gelex/data/genotype/method.h"
 #include "gelex/data/locus_encoding.h"
 #include "gelex/exception.h"

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/data/genotype/genotype.h"
+#include "gelex/data/genotype.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -24,7 +24,7 @@
 #include <Eigen/Core>
 #include <vector>
 
-namespace gelex::genotype
+namespace gelex
 {
 
 auto Genotype::matrix() const noexcept -> Eigen::Ref<const Eigen::MatrixXd>
@@ -33,7 +33,7 @@ auto Genotype::matrix() const noexcept -> Eigen::Ref<const Eigen::MatrixXd>
         [](const auto& s) -> Eigen::Ref<const Eigen::MatrixXd>
         {
             using S = std::decay_t<decltype(s)>;
-            if constexpr (std::is_same_v<S, OwnedStorage>)
+            if constexpr (std::is_same_v<S, genotype::OwnedStorage>)
             {
                 return s.data;
             }
@@ -95,4 +95,4 @@ auto Genotype::is_monomorphic(Eigen::Index marker_idx) const noexcept -> bool
     return std::ranges::binary_search(v, static_cast<int64_t>(marker_idx));
 }
 
-}  // namespace gelex::genotype
+}  // namespace gelex

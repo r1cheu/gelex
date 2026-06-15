@@ -23,7 +23,7 @@
 
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/model.h"
-#include "gelex/data/genotype/genotype.h"
+#include "gelex/data/genotype.h"
 #include "gelex/exception.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/fixed_designs.h"
@@ -38,7 +38,7 @@ using gelex::GeneticMode;
 namespace
 {
 
-auto make_genotype(Eigen::MatrixXd data) -> gelex::genotype::Genotype
+auto make_genotype(Eigen::MatrixXd data) -> gelex::Genotype
 {
     const Eigen::Index cols = data.cols();
     auto mean = data.colwise().mean().transpose().eval();
