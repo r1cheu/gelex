@@ -397,7 +397,6 @@ TEST_CASE("locus encoding skips monomorphic and invalid loci", "[data][encoding]
         detail::transform_inplace<double>(genotypes, encoding);
 
         REQUIRE_FALSE(encoding.loci.front().valid);
-        REQUIRE(encoding.skipped_indices == std::vector<Eigen::Index>{0});
         REQUIRE(genotypes.isZero(TOLERANCE));
     }
 
@@ -412,7 +411,6 @@ TEST_CASE("locus encoding skips monomorphic and invalid loci", "[data][encoding]
         detail::transform_inplace<double>(genotypes, encoding);
 
         REQUIRE_FALSE(encoding.loci.front().valid);
-        REQUIRE(encoding.skipped_indices == std::vector<Eigen::Index>{0});
         REQUIRE(genotypes.isZero(TOLERANCE));
     }
 
@@ -452,10 +450,9 @@ TEST_CASE(
         gelex::detail::make_loci_encoding<double>(genotypes, spec)};
 
     REQUIRE(encoding.loci.size() == 3);
-    REQUIRE(encoding.kept_indices == std::vector<Eigen::Index>{0});
-    REQUIRE(encoding.skipped_indices == std::vector<Eigen::Index>{1, 2});
     REQUIRE(encoding.loci.front().column_index == 0);
     REQUIRE(encoding.loci.front().marker_index == 0);
+    REQUIRE(encoding.loci.front().valid);
     REQUIRE(encoding.loci[1].column_index == 1);
     REQUIRE(encoding.loci[1].marker_index == 1);
     REQUIRE_FALSE(encoding.loci[1].valid);
@@ -482,12 +479,15 @@ TEST_CASE(
     const gelex::LociEncoding encoding{
         gelex::detail::make_loci_encoding<double>(genotypes, spec, 1e-12, 10)};
 
-    REQUIRE(encoding.kept_indices == std::vector<Eigen::Index>{10});
-    REQUIRE(encoding.skipped_indices == std::vector<Eigen::Index>{11, 12});
     REQUIRE(encoding.loci.front().column_index == 0);
     REQUIRE(encoding.loci.front().marker_index == 10);
+    REQUIRE(encoding.loci.front().valid);
     REQUIRE(encoding.loci[1].column_index == 1);
     REQUIRE(encoding.loci[1].marker_index == 11);
+    REQUIRE_FALSE(encoding.loci[1].valid);
+    REQUIRE(encoding.loci[2].column_index == 2);
+    REQUIRE(encoding.loci[2].marker_index == 12);
+    REQUIRE_FALSE(encoding.loci[2].valid);
 
     gelex::detail::transform_inplace<double>(genotypes, encoding);
 
@@ -541,10 +541,10 @@ TEST_CASE("encode APIs fit and transform genotype matrices", "[data][encoding]")
     const gelex::LociEncoding into_encoding{gelex::encode_into<double, double>(
         raw, encoded, gelex::GeneticMode::A, gelex::GenotypeMethod::Standardize)};
 
-    REQUIRE(inplace_encoding.kept_indices == std::vector<Eigen::Index>{0});
-    REQUIRE(inplace_encoding.skipped_indices == std::vector<Eigen::Index>{1});
-    REQUIRE(into_encoding.kept_indices == std::vector<Eigen::Index>{0});
-    REQUIRE(into_encoding.skipped_indices == std::vector<Eigen::Index>{1});
+    REQUIRE(inplace_encoding.loci.front().valid);
+    REQUIRE_FALSE(inplace_encoding.loci[1].valid);
+    REQUIRE(into_encoding.loci.front().valid);
+    REQUIRE_FALSE(into_encoding.loci[1].valid);
     REQUIRE(inplace_genotypes.isApprox(encoded, TOLERANCE));
     REQUIRE(raw(0, 0) == 0.0);
     REQUIRE(raw(0, 1) == 2.0);

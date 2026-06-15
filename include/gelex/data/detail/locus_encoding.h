@@ -79,8 +79,6 @@ auto make_loci_encoding(
 
     const Eigen::Index num_markers{genotypes.cols()};
     out.loci.reserve(static_cast<std::size_t>(num_markers));
-    out.kept_indices.reserve(static_cast<std::size_t>(num_markers));
-    out.skipped_indices.reserve(static_cast<std::size_t>(num_markers));
 
     for (Eigen::Index marker_index{0}; marker_index < num_markers;
          ++marker_index)
@@ -92,15 +90,6 @@ auto make_loci_encoding(
             stats,
             spec,
             static_cast<double>(tol))};
-
-        if (encoding.valid)
-        {
-            out.kept_indices.push_back(encoding.marker_index);
-        }
-        else
-        {
-            out.skipped_indices.push_back(encoding.marker_index);
-        }
 
         out.loci.push_back(encoding);
         out.loci.back().column_index = marker_index;

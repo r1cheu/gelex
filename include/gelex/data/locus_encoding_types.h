@@ -82,9 +82,6 @@ struct LociEncoding
 {
     EncodingSpec spec;
     std::vector<LocusEncoding> loci;
-
-    std::vector<Eigen::Index> kept_indices;
-    std::vector<Eigen::Index> skipped_indices;
 };
 
 }  // namespace gelex

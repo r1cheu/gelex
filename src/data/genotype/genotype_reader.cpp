@@ -68,17 +68,18 @@ auto process_chunk(
     const gelex::LociEncoding encoding{
         gelex::encode_inplace<double>(chunk, GT, method, 1e-12, global_start)};
 
-    for (const gelex::LocusEncoding& locus : encoding.loci)
+    for (const auto& locus : encoding.loci)
     {
         stats.means[locus.marker_index] = locus.mean;
         stats.vars[locus.marker_index] = locus.var;
         stats.A1freqs[locus.marker_index]
             = locus.stats.has_nonmissing() ? locus.stats.A1freq() : 0.0;
-    }
 
-    for (Eigen::Index marker_index : encoding.skipped_indices)
-    {
-        stats.mono_indices.push_back(static_cast<int64_t>(marker_index));
+        if (!locus.valid)
+        {
+            stats.mono_indices.push_back(
+                static_cast<int64_t>(locus.marker_index));
+        }
     }
 }
 
