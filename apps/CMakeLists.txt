@@ -8,7 +8,6 @@ set(CLI_SOURCES
     cli/mcmc/command.cpp
     cli/mcmc/reporter.cpp
     cli/grm/args.cpp
-    cli/grm/config.cpp
     cli/grm/command.cpp
     cli/grm/reporter.cpp
     cli/predict/args.cpp

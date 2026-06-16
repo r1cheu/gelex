@@ -16,39 +16,228 @@
 
 #include "command.h"
 
+#include <cstddef>
+#include <filesystem>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 #include <CLI/CLI.hpp>
+#include <Eigen/Core>
 
 #include "cli/cli_helper.h"
-#include "config.h"
-#include "gelex/engine/grm.h"
+#include "gelex/data/grm/grm.h"
+#include "gelex/data/reader.h"
+#include "gelex/data/writer.h"
+#include "gelex/exception.h"
 #include "gelex/infra/logging/grm_event.h"
+#include "gelex/infra/logging/notify.h"
+#include "gelex/types/genetic_effect_type.h"
 #include "reporter.h"
+
+namespace
+{
+
+struct GrmTask
+{
+    std::string name;
+    bool is_additive;
+};
+
+struct GrmWorkItem
+{
+    std::vector<std::pair<Eigen::Index, Eigen::Index>> ranges;
+    bool is_additive;
+    std::string output_name;
+};
+
+}  // namespace
 
 auto grm_execute(CLI::App& cmd) -> int
 {
-    auto config = cli::make_grm_config(cmd);
     cli::GrmReporter reporter;
-
-    const auto method_name = fmt::format("{}", config.method);
 
     auto threads = cmd.get_option("--threads")->as<int>();
     cli::setup_parallelization(threads);
 
+    std::vector<gelex::GeneticMode> requested_effects;
+    if (cmd.get_option("--add")->count() > 0)
+    {
+        requested_effects.push_back(gelex::GeneticMode::A);
+    }
+    if (cmd.get_option("--dom")->count() > 0)
+    {
+        requested_effects.push_back(gelex::GeneticMode::D);
+    }
+    if (requested_effects.empty())
+    {
+        requested_effects.push_back(gelex::GeneticMode::A);
+    }
+
+    auto method = cli::parse_genotype_method(
+        cmd.get_option("--geno-method")->as<std::string>());
+    auto chunk_size = cmd.get_option("--chunk-size")->as<int>();
+    if (chunk_size <= 0)
+    {
+        throw gelex::GelexException("chunk_size must be positive");
+    }
+
     cli::GrmReporter::on_event(gelex::GrmBannerEvent{});
     cli::GrmReporter::on_event(
         gelex::GrmConfigLoadedEvent{
-            .method = std::string(method_name),
-            .requested_effects = config.requested_effects,
-            .do_loco = config.do_loco,
+            .method = fmt::format("{}", method),
+            .requested_effects = requested_effects,
+            .do_loco = cmd.get_option("--loco")->count() > 0,
         });
 
-    gelex::GrmEngine engine(std::move(config));
+    gelex::GRM grm(cmd.get_option("--bfile")->as<std::string>());
+    const auto& sample_ids = grm.sample_ids();
+    const auto observer = reporter.as_observer();
 
-    engine.compute(reporter.as_observer());
+    gelex::notify(
+        observer,
+        gelex::GrmDataLoadedEvent{
+            .num_samples = sample_ids.size(),
+            .num_snps = static_cast<size_t>(grm.num_snps()),
+        });
+
+    std::vector<GrmTask> tasks;
+    for (auto effect : requested_effects)
+    {
+        if (effect == gelex::GeneticMode::A)
+        {
+            tasks.push_back({.name = "add", .is_additive = true});
+        }
+        if (effect == gelex::GeneticMode::D)
+        {
+            tasks.push_back({.name = "dom", .is_additive = false});
+        }
+    }
+
+    std::vector<GrmWorkItem> items;
+    Eigen::Index total_work = 0;
+    const auto bfile_prefix = cmd.get_option("--bfile")->as<std::string>();
+    auto bim = gelex::read_bim(bfile_prefix + ".bim");
+    const auto num_snps = static_cast<Eigen::Index>(bim.rows());
+
+    std::string task_pattern
+        = tasks.size() == 1 ? tasks[0].name : std::string("{add|dom}");
+
+    if (cmd.get_option("--loco")->count() > 0)
+    {
+        struct ChrRange
+        {
+            std::string name;
+            std::vector<std::pair<Eigen::Index, Eigen::Index>> ranges;
+            Eigen::Index total_snps;
+        };
+
+        std::vector<ChrRange> groups;
+        auto chrom = bim["chrom"].as<std::string>();
+        std::string current_chr;
+        Eigen::Index range_start = 0;
+
+        for (Eigen::Index i = 0; i < num_snps; ++i)
+        {
+            if (chrom[static_cast<std::size_t>(i)] != current_chr)
+            {
+                if (!current_chr.empty())
+                {
+                    groups.push_back(
+                        {current_chr, {{range_start, i}}, i - range_start});
+                }
+                current_chr = chrom[static_cast<std::size_t>(i)];
+                range_start = i;
+            }
+        }
+        if (!current_chr.empty())
+        {
+            groups.push_back(
+                {current_chr,
+                 {{range_start, num_snps}},
+                 num_snps - range_start});
+        }
+
+        items.reserve(groups.size() * tasks.size());
+        for (const auto& group : groups)
+        {
+            for (const auto& task : tasks)
+            {
+                items.push_back(
+                    {.ranges = group.ranges,
+                     .is_additive = task.is_additive,
+                     .output_name
+                     = fmt::format("{}.chr{}", task.name, group.name)});
+                total_work += group.total_snps;
+            }
+        }
+    }
+    else
+    {
+        items.reserve(tasks.size());
+        for (const auto& task : tasks)
+        {
+            items.push_back(
+                {.ranges = {{0, num_snps}},
+                 .is_additive = task.is_additive,
+                 .output_name = task.name});
+            total_work += num_snps;
+        }
+    }
+
+    gelex::notify(
+        observer,
+        gelex::GrmComputeStartedEvent{
+            .total_snps = static_cast<size_t>(total_work)});
+
+    for (const auto& item : items)
+    {
+        gelex::GrmResult result
+            = item.is_additive ? grm.compute<gelex::GeneticMode::A>(
+                                     method, item.ranges, chunk_size, observer)
+                               : grm.compute<gelex::GeneticMode::D>(
+                                     method, item.ranges, chunk_size, observer);
+
+        gelex::write_grm(
+            fmt::format(
+                "{}.{}",
+                cmd.get_option("--out")->as<std::string>(),
+                item.output_name),
+            result.grm,
+            sample_ids);
+    }
+
+    gelex::notify(
+        observer,
+        gelex::GrmProgressEvent{
+            .current = static_cast<size_t>(total_work),
+            .total = static_cast<size_t>(total_work),
+            .done = true,
+        });
+
+    auto output_pattern = cmd.get_option("--loco")->count() > 0
+                              ? fmt::format(
+                                    "{}.{}.chr{{1..{}}}.{{bin|id}}",
+                                    cmd.get_option("--out")->as<std::string>(),
+                                    task_pattern,
+                                    items.size() / tasks.size())
+                              : fmt::format(
+                                    "{}.{}.{{bin|id}}",
+                                    cmd.get_option("--out")->as<std::string>(),
+                                    task_pattern);
+
+    gelex::notify(
+        observer,
+        gelex::GrmFilesWrittenEvent{
+            .num_files = items.size() * 2,
+            .output_dir = std::filesystem::absolute(
+                              std::filesystem::path(
+                                  cmd.get_option("--out")->as<std::string>()))
+                              .parent_path()
+                              .string(),
+            .file_pattern = output_pattern,
+        });
 
     return 0;
 }
