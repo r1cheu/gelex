@@ -65,56 +65,48 @@ class MCMCDataHandler
         CLI::App& cmd,
         std::vector<gelex::dataframe::Index<std::string>*>& indices) -> void
     {
-        fam_index_ = gelex::read_fam(
-                         cmd.get_option("--bfile")->as<std::string>() + ".fam")
-                         .index();
+        bfile_prefix_ = cmd.get_option("--bfile")->as<std::string>();
+        out_prefix_ = cmd.get_option("--out")->as<std::string>();
+        chunk_size_ = cmd.get_option("--chunk-size")->as<int>();
+        if (chunk_size_ <= 0)
+        {
+            throw gelex::GelexException("--chunk-size must be positive");
+        }
+        genotype_method_ = cli::parse_genotype_method(
+            cmd.get_option("--geno-method")->as<std::string>());
+        use_mmap_ = cmd.get_option("--mmap")->count() > 0;
+
+        fam_index_ = gelex::read_fam(bfile_prefix_ + ".fam").index();
         indices.push_back(&fam_index_);
     }
 
     auto gather(const gelex::dataframe::Index<std::string>& common_index)
         -> void
     {
-        sample_index_ = common_index;
-    }
-
-    auto load_genotypes(CLI::App& cmd) -> void
-    {
-        if (cmd.get_option("--chunk-size")->as<int>() <= 0)
-        {
-            throw gelex::GelexException("--chunk-size must be positive");
-        }
-
-        const auto genotype_method = cli::parse_genotype_method(
-            cmd.get_option("--geno-method")->as<std::string>());
         auto reader = gelex::genotype::GenotypeReader(
-            cmd.get_option("--bfile")->as<std::string>(),
-            sample_index_,
-            observer_);
+            bfile_prefix_, common_index, observer_);
 
-        gelex::LociStatsWriter writer(
-            cmd.get_option("--out")->as<std::string>() + ".sbin");
+        gelex::LociStatsWriter writer(out_prefix_ + ".sbin");
         const auto method_code
-            = static_cast<std::uint8_t>(std::to_underlying(genotype_method));
-        const bool method_is_center = gelex::is_center(genotype_method);
+            = static_cast<std::uint8_t>(std::to_underlying(genotype_method_));
+        const bool method_is_center = gelex::is_center(genotype_method_);
 
         for (const auto mode : requested_effects_)
         {
             auto genotype
-                = cmd.get_option("--mmap")->count() > 0
+                = use_mmap_
                       ? reader.read_mmap(
                             mode,
-                            genotype_method,
+                            genotype_method_,
                             std::filesystem::path{
-                                cmd.get_option("--out")->as<std::string>()
+                                out_prefix_
                                 + (mode == gelex::GeneticMode::A ? ".add"
                                                                  : ".dom")},
-                            static_cast<std::size_t>(
-                                cmd.get_option("--chunk-size")->as<int>()))
+                            static_cast<std::size_t>(chunk_size_))
                       : reader.read_in_memory(
                             mode,
-                            genotype_method,
-                            static_cast<std::size_t>(
-                                cmd.get_option("--chunk-size")->as<int>()));
+                            genotype_method_,
+                            static_cast<std::size_t>(chunk_size_));
 
             gelex::notify(
                 observer_,
@@ -142,8 +134,12 @@ class MCMCDataHandler
 
    private:
     std::vector<gelex::GeneticMode> requested_effects_;
+    std::string bfile_prefix_;
+    std::string out_prefix_;
+    gelex::GenotypeMethod genotype_method_;
+    int chunk_size_;
+    bool use_mmap_;
     gelex::dataframe::Index<std::string> fam_index_;
-    gelex::dataframe::Index<std::string> sample_index_;
     std::vector<gelex::bayes::GeneticDesign> genetics_;
     gelex::GenoObserver observer_;
 };
@@ -198,8 +194,6 @@ auto mcmc_execute(CLI::App& cmd) -> int
             "No common samples across phenotype, genotype (.fam), and "
             "covariates. Check that sample IDs match across input files.");
     }
-    handler.load_genotypes(cmd);
-
     auto bayes_recipe = gelex::bayes::BayesRecipe(std::move(recipe_options));
 
     auto model = gelex::BayesModel(

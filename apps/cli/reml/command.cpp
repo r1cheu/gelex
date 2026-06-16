@@ -67,6 +67,7 @@ class RemlDataHandler
     {
         if (rand_)
         {
+            rand_->gather(common_index);
             random_designs_ = gelex::make_random_designs(*rand_);
         }
         auto grm_designs = gelex::make_grm_designs(grm_prefixes_, common_index);
