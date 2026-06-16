@@ -20,9 +20,12 @@
 #include <random>
 #include <utility>
 
+#include <fmt/format.h>
+
 #include "gelex/algo/mcmc/chain.h"
 #include "gelex/algo/mcmc/records.h"
 #include "gelex/bayes/state.h"
+#include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/mcmc/checkpoint_reader.h"
 #include "gelex/io/mcmc/checkpoint_writer.h"
@@ -38,6 +41,40 @@ Solver::Solver(
       draws_path_(std::move(draws_path)),
       checkpoint_prefix_(std::move(checkpoint_prefix))
 {
+    if (params_.n_iters <= 0)
+    {
+        throw GelexException(
+            fmt::format("n_iters must be positive, got {}", params_.n_iters));
+    }
+    if (params_.n_burn_in < 0 || params_.n_burn_in >= params_.n_iters)
+    {
+        throw GelexException(
+            fmt::format(
+                "n_burn_in must satisfy 0 <= n_burn_in < n_iters, got {} "
+                "(n_iters={})",
+                params_.n_burn_in,
+                params_.n_iters));
+    }
+    if (params_.n_thin <= 0)
+    {
+        throw GelexException(
+            fmt::format("n_thin must be positive, got {}", params_.n_thin));
+    }
+    if ((params_.n_iters - params_.n_burn_in) % params_.n_thin != 0)
+    {
+        throw GelexException(
+            fmt::format(
+                "n_thin ({}) must divide n_iters - n_burn_in ({})",
+                params_.n_thin,
+                params_.n_iters - params_.n_burn_in));
+    }
+    if (params_.checkpoint_step < 0)
+    {
+        throw GelexException(
+            fmt::format(
+                "checkpoint_step must be non-negative, got {}",
+                params_.checkpoint_step));
+    }
 }
 
 auto Solver::run(
@@ -53,7 +90,7 @@ auto Solver::run(
 
 auto Solver::run_from(
     const BayesModel& model,
-    bayes::BayesPrior prior,
+    const bayes::BayesPrior& prior,
     const std::filesystem::path& checkpoint_path,
     const MCMCObserver& observer) -> mcmc::Result
 {

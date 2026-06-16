@@ -26,7 +26,6 @@
 
 #include "cli/cli_helper.h"
 #include "cli/common_data.h"
-#include "cli/data_pipe_config.h"
 #include "gelex/algo/reml/estimator.h"
 #include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/index.h"

@@ -4,7 +4,6 @@ set(CLI_SOURCES
     cli/assoc/command.cpp
     cli/assoc/reporter.cpp
     cli/mcmc/args.cpp
-    cli/mcmc/config.cpp
     cli/mcmc/command.cpp
     cli/mcmc/reporter.cpp
     cli/grm/args.cpp
@@ -29,10 +28,8 @@ set(CLI_SOURCES
     cli/fit_reporter.cpp
     cli/reml_reporter.cpp
     cli/dataset_reporter.cpp
-    cli/pheno_reporter.cpp
     cli/geno_reporter.cpp
     cli/grm_pipe_reporter.cpp
-    cli/data_pipe_config.cpp
     cli/cli_helper.cpp
     cli/color_formatter.cpp
     cli/bayes_recipe_options.cpp)

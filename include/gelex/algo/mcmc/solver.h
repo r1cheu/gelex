@@ -54,7 +54,7 @@ class Solver
 
     auto run_from(
         const BayesModel& model,
-        bayes::BayesPrior prior,
+        const bayes::BayesPrior& prior,
         const std::filesystem::path& checkpoint_path,
         const MCMCObserver& observer = {}) -> mcmc::Result;
 
