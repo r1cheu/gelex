@@ -17,7 +17,10 @@
 #ifndef APPS_CLI_POST_REPORTER_H_
 #define APPS_CLI_POST_REPORTER_H_
 
-#include "gelex/infra/logging/post_event.h"
+#include <string>
+#include <vector>
+
+#include "gelex/post/diagnostic.h"
 
 namespace cli
 {
@@ -25,15 +28,11 @@ namespace cli
 class PostReporter
 {
    public:
-    auto on_event(const gelex::PostBannerEvent& event) const -> void;
-    auto on_event(const gelex::PostStartEvent& event) const -> void;
-    auto on_event(const gelex::DiagnosticsReadyEvent& event) const -> void;
-
-    auto as_observer() -> gelex::PostObserver
-    {
-        return [this](const gelex::PostEvent& e)
-        { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
-    }
+    auto show_banner() const -> void;
+    auto show_start(const std::vector<std::string>& in_prefixes) const -> void;
+    auto show_diagnostics(
+        const std::vector<gelex::ParameterDiag>& diags,
+        double hdpi_prob) const -> void;
 };
 
 }  // namespace cli

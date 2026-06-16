@@ -30,8 +30,6 @@
 #include "gelex/data/bed.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
-#include "gelex/infra/logging/notify.h"
-#include "gelex/infra/logging/predict_event.h"
 #include "gelex/io/locistats/reader.h"
 #include "gelex/io/predict/input_reader.h"
 #include "gelex/predict/snp_alignment.h"
@@ -63,8 +61,7 @@ auto load_sbin(const std::filesystem::path& path) -> gelex::predict::SbinData
 auto predict_execute(CLI::App& predict) -> int
 {
     cli::PredictReporter reporter;
-    auto observer = reporter.as_observer();
-    gelex::notify(observer, gelex::PredictBannerEvent{});
+    reporter.show_banner();
 
     const auto bfile_prefix = predict.get_option("--bfile")->as<std::string>();
     const auto gfile_prefix = predict.get_option("--gfile")->as<std::string>();
@@ -92,12 +89,7 @@ auto predict_execute(CLI::App& predict) -> int
     auto coefficients
         = gelex::predict::read_coefficients(gfile_prefix + ".param");
 
-    gelex::notify(
-        observer,
-        gelex::PredictParamsLoadedEvent{
-            .bfile_prefix = bfile_prefix,
-            .gfile_prefix = gfile_prefix,
-            .geno_method = sbin.add.method});
+    reporter.show_params_loaded(bfile_prefix, gfile_prefix, sbin.add.method);
 
     auto fam_df = gelex::read_fam(bfile_prefix + ".fam");
     auto bim_df = gelex::read_bim(bfile_prefix + ".bim");
@@ -118,18 +110,14 @@ auto predict_execute(CLI::App& predict) -> int
     const auto n_snps = static_cast<std::size_t>(snp_effects.rows());
     if (alignment.num_missing > 0 || alignment.num_mismatched > 0)
     {
-        gelex::notify(
-            observer,
-            gelex::PredictSnpSelectionEvent{
-                .num_matched
-                = n_snps - static_cast<std::size_t>(alignment.num_missing)
-                  - static_cast<std::size_t>(alignment.num_mismatched),
-                .num_missing = static_cast<std::size_t>(alignment.num_missing),
-                .num_mismatched
-                = static_cast<std::size_t>(alignment.num_mismatched),
-                .num_total = n_snps,
-                .bfile_path = bfile_prefix,
-                .snp_effect_path = gfile_prefix + ".snpeff"});
+        reporter.show_snp_selection(
+            n_snps - static_cast<std::size_t>(alignment.num_missing)
+                - static_cast<std::size_t>(alignment.num_mismatched),
+            static_cast<std::size_t>(alignment.num_missing),
+            static_cast<std::size_t>(alignment.num_mismatched),
+            n_snps,
+            bfile_prefix,
+            gfile_prefix + ".snpeff");
 
         throw gelex::GelexException(
             fmt::format(
@@ -151,12 +139,10 @@ auto predict_execute(CLI::App& predict) -> int
     }
     geno.add = std::move(genotype);
 
-    gelex::notify(
-        observer,
-        gelex::PredictDataLoadedEvent{
-            .num_samples = static_cast<std::size_t>(fam_df.rows()),
-            .num_snps = static_cast<std::size_t>(snp_effects.rows()),
-            .num_covar_terms = coefficients.names.size()});
+    reporter.show_data_loaded(
+        static_cast<std::size_t>(fam_df.rows()),
+        static_cast<std::size_t>(snp_effects.rows()),
+        coefficients.names.size());
 
     gelex::predict::detail::standardize_genotypes(geno, sbin);
 
@@ -182,11 +168,9 @@ auto predict_execute(CLI::App& predict) -> int
         predict.get_option("--out")->as<std::string>());
     writer.write(result);
 
-    gelex::notify(
-        observer,
-        gelex::PredictResultsWrittenEvent{
-            .output_path = predict.get_option("--out")->as<std::string>(),
-            .num_samples = result.sample_ids.size()});
+    reporter.show_results_written(
+        predict.get_option("--out")->as<std::string>(),
+        result.sample_ids.size());
 
     return 0;
 }

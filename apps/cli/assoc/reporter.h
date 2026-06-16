@@ -18,10 +18,15 @@
 #define APPS_CLI_ASSOC_REPORTER_H_
 
 #include <cstddef>
+#include <string_view>
+#include <vector>
 
-#include "gelex/infra/logging/assoc_event.h"
+#include "gelex/algo/gwas/assoc_type.h"
+#include "gelex/algo/reml/loco_result.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/infra/logging/timer.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace cli
 {
@@ -31,20 +36,22 @@ class AssocReporter
    public:
     AssocReporter();
 
-    auto on_event(const gelex::AssocBannerEvent& event) const -> void;
-    auto on_event(const gelex::AssocConfigLoadedEvent& event) const -> void;
-    auto on_event(const gelex::AssocRemlStartedEvent& event) const -> void;
-    auto on_event(const gelex::AssocScanSummaryEvent& event) -> void;
-    auto on_event(const gelex::AssocScanProgressEvent& event) -> void;
-    auto on_event(const gelex::AssocLocoPhaseEvent& event) -> void;
-    auto on_event(const gelex::AssocLocoRemlSummaryEvent& event) -> void;
-    auto on_event(const gelex::AssocCompleteEvent& event) -> void;
-
-    auto as_observer() -> gelex::AssocObserver
-    {
-        return [this](const gelex::AssocEvent& e)
-        { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
-    }
+    auto show_banner() const -> void;
+    auto show_config(
+        gelex::GeneticMode mode,
+        gelex::AssocType test_type,
+        bool loco,
+        gelex::GenotypeMethod geno_method,
+        int max_iter,
+        double tol) const -> void;
+    auto show_reml_started(std::string_view chr_name) const -> void;
+    auto start_scan(size_t total_snps, int chunk_size, bool loco) -> void;
+    auto update_scan_progress(size_t current, size_t total) -> void;
+    auto show_loco_phase(std::string_view chr_name, std::string_view phase)
+        -> void;
+    auto show_loco_reml_summary(
+        const std::vector<gelex::LocoRemlResult>& results) -> void;
+    auto show_complete(std::string_view out_prefix) -> void;
 
    private:
     size_t progress_{0};

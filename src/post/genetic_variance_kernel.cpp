@@ -27,10 +27,10 @@
 #include <fmt/format.h>
 
 #include "gelex/exception.h"
-#include "gelex/infra/logging/post_event.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/post/detail/utils.h"
+#include "gelex/post/diagnostic.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace gelex

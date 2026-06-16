@@ -40,30 +40,34 @@
 namespace cli
 {
 
-auto McmcReporter::on_event(const gelex::MCMCBannerEvent& /*event*/) -> void
+auto McmcReporter::show_banner() -> void
 {
     cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "Model Fitting (MCMC)"));
 }
 
-auto McmcReporter::on_event(const gelex::MCMCConfigEvent& event) -> void
+auto McmcReporter::show_config(
+    gelex::bayes::BayesRecipeScheme recipe_scheme,
+    Eigen::Index n_iters,
+    Eigen::Index n_burn_in,
+    int seed) -> void
 {
     cli::printer().block(gelex::section("[Config]"));
     cli::printer().line(
-        "  {:<12}: {}", "Method", fmt::format("{}", event.recipe_scheme));
+        "  {:<12}: {}", "Method", fmt::format("{}", recipe_scheme));
     cli::printer().line(
         "  {:<12}: {} iters ({} burn-in, {} sampling)",
         "Chain",
-        event.n_iters,
-        event.n_burn_in,
-        event.n_iters - event.n_burn_in);
-    cli::printer().line("  {:<12}: {}", "Seed", event.seed);
+        n_iters,
+        n_burn_in,
+        n_iters - n_burn_in);
+    cli::printer().line("  {:<12}: {}", "Seed", seed);
 }
 
-auto McmcReporter::on_event(const gelex::FitPriorSetEvent& event) -> void
+auto McmcReporter::show_prior(const gelex::bayes::BayesPrior& prior) -> void
 {
-    prior_ = event.prior;
-    FitReporter::on_event(event);
+    prior_ = &prior;
+    FitReporter::show_prior(prior);
 }
 
 auto McmcReporter::on_event(const gelex::MCMCProgressEvent& event) -> void
@@ -233,21 +237,13 @@ auto McmcReporter::on_event(const gelex::MCMCProgressEvent& event) -> void
     }
 }
 
-auto McmcReporter::on_event(const gelex::MCMCCompleteEvent& event) -> void
+auto McmcReporter::show_complete(std::ptrdiff_t samples_collected) -> void
 {
     cli::printer().block(gelex::section("[MCMC Complete]"));
-    cli::printer().line("  {:<12}: {}", "Samples", event.samples_collected);
+    cli::printer().line("  {:<12}: {}", "Samples", samples_collected);
 }
 
-auto McmcReporter::on_event(const gelex::FitResultsSavedEvent& event) -> void
-{
-    cli::printer().block(
-        gelex::success(
-            "Results saved to '{}' (.param, .summary, .snpeff, .log)",
-            event.out_prefix));
-}
-
-auto McmcReporter::on_event(const gelex::FitCheckpointSavedEvent& /*event*/)
+auto McmcReporter::on_event(const gelex::MCMCCheckpointSavedEvent& /*event*/)
     -> void
 {
     bar_.before_bar->message(fmt::format(" ckpt saved"));

@@ -104,16 +104,6 @@ auto Estimator::fit(
     compute_variance_se(state, opt_state);
     compute_variance_ratio(state, opt_state);
 
-    notify(
-        observer_,
-        RemlCompleteEvent{
-            .model = &model,
-            .state = &state,
-            .converged = converged_,
-            .iter_count = iter_count_,
-            .max_iter = max_iter_,
-            .loglike = loglike_});
-
     // Materialize P = V^{-1} - ViX * XtViX_inv * ViX' in opt_state.V's memory
     // so downstream GWAS can use a single dense GEMM per SNP chunk.
     opt_state.V.noalias()

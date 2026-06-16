@@ -18,36 +18,9 @@
 #define GELEX_INFRA_LOGGING_GRM_EVENT_H_
 
 #include <functional>
-#include <string>
-#include <variant>
-#include <vector>
-
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
-
-struct GrmBannerEvent
-{
-};
-
-struct GrmConfigLoadedEvent
-{
-    std::string method;
-    std::vector<GeneticMode> requested_effects;
-    bool do_loco;
-};
-
-struct GrmDataLoadedEvent
-{
-    size_t num_samples;
-    size_t num_snps;
-};
-
-struct GrmComputeStartedEvent
-{
-    size_t total_snps;
-};
 
 struct GrmProgressEvent
 {
@@ -56,22 +29,7 @@ struct GrmProgressEvent
     bool done;
 };
 
-struct GrmFilesWrittenEvent
-{
-    size_t num_files;
-    std::string output_dir;
-    std::string file_pattern;
-};
-
-using GrmEvent = std::variant<
-    GrmBannerEvent,
-    GrmConfigLoadedEvent,
-    GrmDataLoadedEvent,
-    GrmComputeStartedEvent,
-    GrmProgressEvent,
-    GrmFilesWrittenEvent>;
-
-using GrmObserver = std::function<void(const GrmEvent&)>;
+using GrmObserver = std::function<void(const GrmProgressEvent&)>;
 
 }  // namespace gelex
 

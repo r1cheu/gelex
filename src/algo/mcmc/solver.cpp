@@ -131,7 +131,7 @@ auto Solver::run_iterations(
             && (iter + 1) % params_.checkpoint_step == 0)
         {
             write_checkpoint(state, rng, *checkpoint_prefix_);
-            notify(observer, FitCheckpointSavedEvent{});
+            notify(observer, MCMCCheckpointSavedEvent{});
         }
     }
 
@@ -143,9 +143,7 @@ auto Solver::run_iterations(
             .done = true,
         });
 
-    auto result = mcmc::Result{std::move(records), model, params_.n_records()};
-    notify(observer, MCMCCompleteEvent{&result, &model, params_.n_records()});
-    return result;
+    return mcmc::Result{std::move(records), model, params_.n_records()};
 }
 
 }  // namespace gelex::mcmc

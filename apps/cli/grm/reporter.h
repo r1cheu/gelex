@@ -18,10 +18,13 @@
 #define APPS_CLI_GRM_REPORTER_H_
 
 #include <cstddef>
+#include <string_view>
+#include <vector>
 
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/infra/logging/timer.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace cli
 {
@@ -31,17 +34,23 @@ class GrmReporter
    public:
     GrmReporter();
 
-    static auto on_event(const gelex::GrmBannerEvent& event) -> void;
-    static auto on_event(const gelex::GrmConfigLoadedEvent& event) -> void;
-    static auto on_event(const gelex::GrmDataLoadedEvent& event) -> void;
-    auto on_event(const gelex::GrmComputeStartedEvent& event) -> void;
+    static auto show_banner() -> void;
+    static auto show_config(
+        std::string_view method,
+        const std::vector<gelex::GeneticMode>& requested_effects,
+        bool do_loco) -> void;
+    static auto show_data_loaded(size_t num_samples, size_t num_snps) -> void;
+    auto start_compute(size_t total_snps) -> void;
     auto on_event(const gelex::GrmProgressEvent& event) -> void;
-    static auto on_event(const gelex::GrmFilesWrittenEvent& event) -> void;
+    auto finish_progress() -> void;
+    static auto show_files_written(
+        size_t num_files,
+        std::string_view output_dir,
+        std::string_view file_pattern) -> void;
 
     auto as_observer() -> gelex::GrmObserver
     {
-        return [this](const gelex::GrmEvent& e)
-        { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
+        return [this](const gelex::GrmProgressEvent& e) { this->on_event(e); };
     }
 
    private:

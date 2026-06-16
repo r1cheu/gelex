@@ -16,6 +16,10 @@
 
 #include "reporter.h"
 
+#include <cstddef>
+#include <string_view>
+#include <vector>
+
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
@@ -30,33 +34,36 @@ namespace cli
 
 GrmReporter::GrmReporter() : eta_(1) {}
 
-auto GrmReporter::on_event(const gelex::GrmBannerEvent& /*event*/) -> void
+auto GrmReporter::show_banner() -> void
 {
     cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "GRM Computation"));
 }
 
-auto GrmReporter::on_event(const gelex::GrmConfigLoadedEvent& event) -> void
+auto GrmReporter::show_config(
+    std::string_view method,
+    const std::vector<gelex::GeneticMode>& requested_effects,
+    bool do_loco) -> void
 {
     cli::printer().block(gelex::section("[Config]"));
-    cli::printer().line("  {:<12}: {}", "Method", event.method);
+    cli::printer().line("  {:<12}: {}", "Method", method);
     cli::printer().line(
         "  {:<12}: {}",
         "Mode",
-        fmt::format("{}", fmt::join(event.requested_effects, "+")));
-    cli::printer().line("  {:<12}: {}", "LOCO", event.do_loco ? "yes" : "no");
+        fmt::format("{}", fmt::join(requested_effects, "+")));
+    cli::printer().line("  {:<12}: {}", "LOCO", do_loco ? "yes" : "no");
 }
 
-auto GrmReporter::on_event(const gelex::GrmDataLoadedEvent& event) -> void
+auto GrmReporter::show_data_loaded(size_t num_samples, size_t num_snps) -> void
 {
     cli::printer().block(gelex::section("[Dataset Summary]"));
-    cli::printer().line("   Samples    : {} samples", event.num_samples);
-    cli::printer().line("   SNPs       : {} markers", event.num_snps);
+    cli::printer().line("   Samples    : {} samples", num_samples);
+    cli::printer().line("   SNPs       : {} markers", num_snps);
 }
 
-auto GrmReporter::on_event(const gelex::GrmComputeStartedEvent& event) -> void
+auto GrmReporter::start_compute(size_t total_snps) -> void
 {
-    global_total_ = event.total_snps;
+    global_total_ = total_snps;
     accumulated_base_ = 0;
     progress_ = 0;
     eta_.reset(global_total_);
@@ -93,12 +100,26 @@ auto GrmReporter::on_event(const gelex::GrmProgressEvent& event) -> void
     }
 }
 
-auto GrmReporter::on_event(const gelex::GrmFilesWrittenEvent& event) -> void
+auto GrmReporter::finish_progress() -> void
+{
+    if (!bar_active_)
+    {
+        return;
+    }
+    bar_.display->done();
+    bar_active_ = false;
+    cli::printer().on_progress_finished();
+}
+
+auto GrmReporter::show_files_written(
+    size_t num_files,
+    std::string_view output_dir,
+    std::string_view file_pattern) -> void
 {
     cli::printer().block(gelex::section("[File Summary]"));
-    cli::printer().line("  Num Files : {}", event.num_files);
-    cli::printer().line("  Output Dir  : {}", event.output_dir);
-    cli::printer().line("  Pattern     : {}", event.file_pattern);
+    cli::printer().line("  Num Files : {}", num_files);
+    cli::printer().line("  Output Dir  : {}", output_dir);
+    cli::printer().line("  Pattern     : {}", file_pattern);
 }
 
 }  // namespace cli

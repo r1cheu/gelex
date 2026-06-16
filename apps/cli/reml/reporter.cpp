@@ -130,32 +130,35 @@ auto RemlCommandReporter::on_event(const gelex::RemlIterationEvent& e) -> void
     cli::printer().line("  {:<4} {:>12.2f}{}", e.iter, e.loglike, var_str);
 }
 
-auto RemlCommandReporter::on_event(const gelex::RemlCompleteEvent& e) const
-    -> void
+auto RemlCommandReporter::show_result(
+    const gelex::FreqModel& model,
+    const gelex::FreqState& state,
+    bool converged,
+    size_t iter_count,
+    size_t max_iter,
+    double loglike) const -> void
 {
-    const auto& model = *e.model;
-    const auto& state = *e.state;
     auto& p = cli::printer();
 
     p.line(gelex::table_separator(55));
     p.block(gelex::named_section("REML Results", 70));
 
-    if (e.converged)
+    if (converged)
     {
         p.line(
             gelex::success(
-                "Converged successfully in {} iterations", e.iter_count));
+                "Converged successfully in {} iterations", iter_count));
     }
     else
     {
-        p.warn("  ! REML did not converge ({} iterations)", e.max_iter);
+        p.warn("  ! REML did not converge ({} iterations)", max_iter);
         p.warn(
             "    Try to increase max_iter or check the model specification.");
     }
 
     p.block("  Model Fit:");
-    p.line("  - AIC : {:.2f}", gelex::reml::compute_aic(model, e.loglike));
-    p.line("  - BIC : {:.2f}", gelex::reml::compute_bic(model, e.loglike));
+    p.line("  - AIC : {:.2f}", gelex::reml::compute_aic(model, loglike));
+    p.line("  - BIC : {:.2f}", gelex::reml::compute_bic(model, loglike));
 
     p.block("  Variance Components:");
     p.line(

@@ -114,6 +114,13 @@ auto reml_execute(CLI::App& cmd) -> int
 
     gelex::FreqState state(model);
     estimator.fit(model, state);
+    reporter.show_result(
+        model,
+        state,
+        estimator.is_converged(),
+        estimator.iter_count(),
+        cmd.get_option("--max-iter")->as<int>(),
+        estimator.loglike());
 
     const auto out_prefix = cmd.get_option("--out")->as<std::string>();
     gelex::reml::write_summary(model, state, out_prefix);

@@ -18,21 +18,10 @@
 #define GELEX_INFRA_LOGGING_GENO_EVENT_H_
 
 #include <cstddef>
-#include <cstdint>
 #include <functional>
-#include <variant>
-
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
-
-struct GenotypeLoadedEvent
-{
-    GeneticMode mode;  // A or D (per-matrix event)
-    int64_t num_snps;
-    int64_t monomorphic_snps;
-};
 
 struct GenotypeProgressEvent
 {
@@ -41,8 +30,7 @@ struct GenotypeProgressEvent
     bool done;
 };
 
-using GenoEvent = std::variant<GenotypeLoadedEvent, GenotypeProgressEvent>;
-using GenoObserver = std::function<void(const GenoEvent&)>;
+using GenoObserver = std::function<void(const GenotypeProgressEvent&)>;
 
 }  // namespace gelex
 

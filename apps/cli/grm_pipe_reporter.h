@@ -17,8 +17,6 @@
 #ifndef APPS_CLI_GRM_PIPE_REPORTER_H_
 #define APPS_CLI_GRM_PIPE_REPORTER_H_
 
-#include <variant>
-
 #include "gelex/infra/logging/grm_pipe_event.h"
 
 namespace cli
@@ -31,8 +29,7 @@ class GrmPipeReporter
 
     auto as_observer() -> gelex::GrmPipeObserver
     {
-        return [this](const gelex::GrmPipeEvent& e)
-        { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
+        return [this](const gelex::GrmLoadedEvent& e) { this->on_event(e); };
     }
 };
 

@@ -17,7 +17,10 @@
 #ifndef APPS_CLI_PREDICT_REPORTER_H_
 #define APPS_CLI_PREDICT_REPORTER_H_
 
-#include "gelex/infra/logging/predict_event.h"
+#include <cstddef>
+#include <string_view>
+
+#include "gelex/data/genotype_method.h"
 
 namespace cli
 {
@@ -25,17 +28,24 @@ namespace cli
 class PredictReporter
 {
    public:
-    auto on_event(const gelex::PredictBannerEvent& event) const -> void;
-    auto on_event(const gelex::PredictParamsLoadedEvent& event) const -> void;
-    auto on_event(const gelex::PredictSnpSelectionEvent& event) const -> void;
-    auto on_event(const gelex::PredictDataLoadedEvent& event) const -> void;
-    auto on_event(const gelex::PredictResultsWrittenEvent& event) const -> void;
-
-    auto as_observer() -> gelex::PredictObserver
-    {
-        return [this](const gelex::PredictEvent& e)
-        { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
-    }
+    auto show_banner() const -> void;
+    auto show_params_loaded(
+        std::string_view bfile_prefix,
+        std::string_view gfile_prefix,
+        gelex::GenotypeMethod geno_method) const -> void;
+    auto show_snp_selection(
+        size_t num_matched,
+        size_t num_missing,
+        size_t num_mismatched,
+        size_t num_total,
+        std::string_view bfile_path,
+        std::string_view snp_effect_path) const -> void;
+    auto show_data_loaded(
+        size_t num_samples,
+        size_t num_snps,
+        size_t num_covar_terms) const -> void;
+    auto show_results_written(std::string_view output_path, size_t num_samples)
+        const -> void;
 };
 
 }  // namespace cli

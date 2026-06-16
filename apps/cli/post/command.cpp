@@ -33,9 +33,8 @@
 #include "gelex/data/genotype.h"
 #include "gelex/data/genotype_reader.h"
 #include "gelex/exception.h"
-#include "gelex/infra/logging/notify.h"
-#include "gelex/infra/logging/post_event.h"
 #include "gelex/io/binary_reader.h"
+#include "gelex/post/diagnostic.h"
 #include "gelex/post/fixed.h"
 #include "gelex/post/genetic.h"
 #include "gelex/post/genetic_variance.h"
@@ -143,11 +142,10 @@ auto process_gebv_variance(
 auto post_execute(CLI::App& post) -> int
 {
     cli::PostReporter reporter;
-    auto observer = reporter.as_observer();
     auto in_prefixes = post.get_option("--in")->as<std::vector<std::string>>();
 
-    reporter.on_event(gelex::PostBannerEvent{});
-    reporter.on_event(gelex::PostStartEvent{.in_prefixes = in_prefixes});
+    reporter.show_banner();
+    reporter.show_start(in_prefixes);
 
     std::vector<gelex::io::BinaryReader> readers;
     readers.reserve(in_prefixes.size());
@@ -191,14 +189,7 @@ auto post_execute(CLI::App& post) -> int
     diags.append_range(std::move(genetic_diags));
     diags.append_range(std::move(residual_diags));
 
-    gelex::notify(
-        observer,
-        gelex::DiagnosticsReadyEvent{
-            .diags = std::move(diags),
-            .n_chains = static_cast<Eigen::Index>(readers.size()),
-            .n_records
-            = readers.front().to_map<double>("residual/0/variance").cols(),
-            .hdpi_prob = hdpi_threshold});
+    reporter.show_diagnostics(diags, hdpi_threshold);
 
     return 0;
 }

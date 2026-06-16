@@ -20,9 +20,9 @@
 #include <string_view>
 #include <vector>
 
-#include "gelex/infra/logging/post_event.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/post/detail/utils.h"
+#include "gelex/post/diagnostic.h"
 
 namespace gelex
 {

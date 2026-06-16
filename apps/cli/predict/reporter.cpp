@@ -17,74 +17,82 @@
 #include "reporter.h"
 
 #include <fmt/format.h>
+#include <cstddef>
 #include <string>
+#include <string_view>
 
 #include "cli/report_printer.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/infra/logging/formatter.h"
-#include "gelex/infra/logging/predict_event.h"
 #include "version.h"
 
 namespace cli
 {
 
-auto PredictReporter::on_event(const gelex::PredictBannerEvent& /*event*/) const
-    -> void
+auto PredictReporter::show_banner() const -> void
 {
     cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "Genomic Prediction"));
 }
 
-auto PredictReporter::on_event(
-    const gelex::PredictParamsLoadedEvent& event) const -> void
+auto PredictReporter::show_params_loaded(
+    std::string_view bfile_prefix,
+    std::string_view gfile_prefix,
+    gelex::GenotypeMethod geno_method) const -> void
 {
     cli::printer().block(gelex::section("[Config]"));
-    cli::printer().line("  {:<12}: {}", "bfile", event.bfile_prefix);
-    cli::printer().line("  {:<12}: {}", "gfile", event.gfile_prefix);
+    cli::printer().line("  {:<12}: {}", "bfile", bfile_prefix);
+    cli::printer().line("  {:<12}: {}", "gfile", gfile_prefix);
     cli::printer().line(
-        "  {:<12}: {}", "Geno method", fmt::format("{}", event.geno_method));
+        "  {:<12}: {}", "Geno method", fmt::format("{}", geno_method));
 }
 
-auto PredictReporter::on_event(
-    const gelex::PredictSnpSelectionEvent& event) const -> void
+auto PredictReporter::show_snp_selection(
+    size_t num_matched,
+    size_t num_missing,
+    size_t num_mismatched,
+    size_t num_total,
+    std::string_view bfile_path,
+    std::string_view snp_effect_path) const -> void
 {
     cli::printer().block(gelex::section("[SNP Alignment]"));
-    cli::printer().line(
-        "   {:<13}: {}/{}", "Matched", event.num_matched, event.num_total);
-    cli::printer().line("   {:<13}: {}", "Missing", event.num_missing);
-    cli::printer().line("   {:<13}: {}", "Mismatched", event.num_mismatched);
+    cli::printer().line("   {:<13}: {}/{}", "Matched", num_matched, num_total);
+    cli::printer().line("   {:<13}: {}", "Missing", num_missing);
+    cli::printer().line("   {:<13}: {}", "Mismatched", num_mismatched);
 
-    if (event.num_mismatched > 0)
+    if (num_mismatched > 0)
     {
         std::string plink_hint = fmt::format(
             "plink2 --bfile {} --alt1-allele {} 4 1 1 --make-bed --out "
             "<output>",
-            event.bfile_path,
-            event.snp_effect_path);
+            bfile_path,
+            snp_effect_path);
         cli::printer().warn(
             "Allele mismatch detected for {} SNPs. "
             "To fix, run:\n  {}",
-            event.num_mismatched,
+            num_mismatched,
             plink_hint);
     }
 }
 
-auto PredictReporter::on_event(const gelex::PredictDataLoadedEvent& event) const
-    -> void
+auto PredictReporter::show_data_loaded(
+    size_t num_samples,
+    size_t num_snps,
+    size_t num_covar_terms) const -> void
 {
     cli::printer().block(gelex::section("[Dataset Summary]"));
-    cli::printer().line("   {:<13}: {} samples", "Samples", event.num_samples);
-    cli::printer().line("   {:<13}: {} markers", "SNPs", event.num_snps);
-    cli::printer().line("   {:<13}: {}", "Covariates", event.num_covar_terms);
+    cli::printer().line("   {:<13}: {} samples", "Samples", num_samples);
+    cli::printer().line("   {:<13}: {} markers", "SNPs", num_snps);
+    cli::printer().line("   {:<13}: {}", "Covariates", num_covar_terms);
 }
 
-auto PredictReporter::on_event(
-    const gelex::PredictResultsWrittenEvent& event) const -> void
+auto PredictReporter::show_results_written(
+    std::string_view output_path,
+    size_t num_samples) const -> void
 {
     cli::printer().block(
         gelex::success(
-            "Results saved to '{}' ({} samples)",
-            event.output_path,
-            event.num_samples));
+            "Results saved to '{}' ({} samples)", output_path, num_samples));
 }
 
 }  // namespace cli

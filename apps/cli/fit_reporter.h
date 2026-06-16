@@ -17,13 +17,15 @@
 #ifndef APPS_CLI_FIT_REPORTER_H_
 #define APPS_CLI_FIT_REPORTER_H_
 
-#include "gelex/infra/logging/fit_event.h"
+#include <cstdint>
+#include <string_view>
+
+#include "gelex/bayes/prior.h"
 
 namespace gelex
 {
 namespace bayes
 {
-class BayesPrior;
 class RandomPrior;
 class ResidualPrior;
 class ScaledInvChiSqPrior;
@@ -38,8 +40,8 @@ namespace cli
 class FitReporter
 {
    public:
-    auto on_event(const gelex::FitPriorSetEvent& event) const -> void;
-    auto on_event(const gelex::FitResultsSavedEvent& event) const -> void;
+    auto show_prior(const gelex::bayes::BayesPrior& prior) const -> void;
+    auto show_results_saved(std::string_view out_prefix) const -> void;
 
    protected:
     FitReporter() = default;

@@ -20,9 +20,9 @@
 #include <span>
 #include <vector>
 
-#include "gelex/infra/logging/post_event.h"
 #include "gelex/infra/stats/diagnostics.h"
 #include "gelex/io/binary_reader.h"
+#include "gelex/post/diagnostic.h"
 #include "gelex/post/genetic_variance_kernel.h"
 
 namespace gelex

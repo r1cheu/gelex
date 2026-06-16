@@ -16,32 +16,32 @@
 
 #include "reporter.h"
 
-#include <Eigen/Core>
 #include <algorithm>
 #include <string>
+#include <vector>
 
 #include <fmt/format.h>
 
 #include "cli/report_printer.h"
 #include "gelex/infra/logging/formatter.h"
-#include "gelex/infra/logging/post_event.h"
+#include "gelex/post/diagnostic.h"
 #include "version.h"
 
 namespace cli
 {
 
-auto PostReporter::on_event(const gelex::PostBannerEvent& /*event*/) const
-    -> void
+auto PostReporter::show_banner() const -> void
 {
     cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "MCMC Posterior Analysis"));
 }
 
-auto PostReporter::on_event(const gelex::PostStartEvent& event) const -> void
+auto PostReporter::show_start(const std::vector<std::string>& in_prefixes) const
+    -> void
 {
-    const auto n_chains = static_cast<Eigen::Index>(event.in_prefixes.size());
+    const auto n_chains = in_prefixes.size();
     std::string input_str
-        = event.in_prefixes[0]
+        = in_prefixes[0]
           + (n_chains > 1 ? fmt::format(" (+{} more)", n_chains - 1) : "");
 
     cli::printer().block(gelex::section("[Config]"));
@@ -49,8 +49,9 @@ auto PostReporter::on_event(const gelex::PostStartEvent& event) const -> void
     cli::printer().line("  {:<12}: {}", "Input", input_str);
 }
 
-auto PostReporter::on_event(const gelex::DiagnosticsReadyEvent& event) const
-    -> void
+auto PostReporter::show_diagnostics(
+    const std::vector<gelex::ParameterDiag>& diags,
+    double hdpi_prob) const -> void
 {
     auto section_order = [](const std::string& section) -> int
     {
@@ -77,7 +78,7 @@ auto PostReporter::on_event(const gelex::DiagnosticsReadyEvent& event) const
         return 5;
     };
 
-    auto sorted_diags = event.diags;
+    auto sorted_diags = diags;
     std::ranges::stable_sort(
         sorted_diags,
         [&](const auto& lhs, const auto& rhs)
@@ -85,8 +86,8 @@ auto PostReporter::on_event(const gelex::DiagnosticsReadyEvent& event) const
 
     constexpr int TABLE_WIDTH = 92;
 
-    double lo_pct = (1.0 - event.hdpi_prob) / 2.0 * 100.0;
-    double hi_pct = (1.0 + event.hdpi_prob) / 2.0 * 100.0;
+    double lo_pct = (1.0 - hdpi_prob) / 2.0 * 100.0;
+    double hi_pct = (1.0 + hdpi_prob) / 2.0 * 100.0;
     auto hpdi_label = fmt::format("[{:g}%, {:g}%]", lo_pct, hi_pct);
 
     auto& p = cli::printer();

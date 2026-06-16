@@ -15,13 +15,15 @@
  */
 
 #include "reporter.h"
+
+#include <optional>
+
 #include <fmt/format.h>
 #include <string>
 
 #include "cli/report_printer.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/progress_bar.h"
-#include "gelex/infra/logging/simulate_event.h"
 #include "version.h"
 
 namespace cli
@@ -29,22 +31,23 @@ namespace cli
 
 SimulatorReporter::SimulatorReporter() : info_(gelex::create_progress_info()) {}
 
-auto SimulatorReporter::on_event(
-    const gelex::SimulateBannerEvent& /*event*/) const -> void
+auto SimulatorReporter::show_banner() const -> void
 {
     cli::printer().block(
         gelex::command_banner(PROJECT_VERSION, "Phenotype Simulation"));
 }
 
-auto SimulatorReporter::on_event(
-    const gelex::SimulateConfigLoadedEvent& event) const -> void
+auto SimulatorReporter::show_config(
+    std::optional<double> add_heritability,
+    std::optional<double> dom_heritability,
+    int seed) const -> void
 {
     std::string mode_str;
-    if (event.add_heritability && event.dom_heritability)
+    if (add_heritability && dom_heritability)
     {
         mode_str = "AD";
     }
-    else if (event.add_heritability)
+    else if (add_heritability)
     {
         mode_str = "A";
     }
@@ -55,28 +58,29 @@ auto SimulatorReporter::on_event(
 
     cli::printer().block(gelex::section("[Config]"));
     cli::printer().line("  {:<12}: {}", "Mode", mode_str);
-    if (event.add_heritability)
+    if (add_heritability)
     {
-        cli::printer().line("  {:<12}: {:.4f}", "h²", *event.add_heritability);
+        cli::printer().line("  {:<12}: {:.4f}", "h²", *add_heritability);
     }
-    if (event.dom_heritability)
+    if (dom_heritability)
     {
-        cli::printer().line("  {:<12}: {:.4f}", "d²", *event.dom_heritability);
+        cli::printer().line("  {:<12}: {:.4f}", "d²", *dom_heritability);
     }
-    cli::printer().line("  {:<12}: {}", "Seed", event.seed);
+    cli::printer().line("  {:<12}: {}", "Seed", seed);
 }
 
-auto SimulatorReporter::on_event(
-    const gelex::SimulateVarianceSummaryEvent& event) const -> void
+auto SimulatorReporter::show_variance_summary(
+    std::optional<double> realized_h2,
+    std::optional<double> realized_d2) const -> void
 {
     cli::printer().block(gelex::section("[Realized]"));
-    if (event.realized_h2)
+    if (realized_h2)
     {
-        cli::printer().line("  {:<12}: {:.4f}", "h²", *event.realized_h2);
+        cli::printer().line("  {:<12}: {:.4f}", "h²", *realized_h2);
     }
-    if (event.realized_d2)
+    if (realized_d2)
     {
-        cli::printer().line("  {:<12}: {:.4f}", "d²", *event.realized_d2);
+        cli::printer().line("  {:<12}: {:.4f}", "d²", *realized_d2);
     }
 }
 

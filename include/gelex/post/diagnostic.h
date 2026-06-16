@@ -14,28 +14,28 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_INFRA_LOGGING_DATASET_EVENT_H_
-#define GELEX_INFRA_LOGGING_DATASET_EVENT_H_
+#ifndef GELEX_POST_DIAGNOSTIC_H_
+#define GELEX_POST_DIAGNOSTIC_H_
 
-#include <cstddef>
-#include <functional>
-#include <variant>
+#include <string>
+#include <vector>
 
 namespace gelex
 {
 
-struct DatasetSectionEvent
+struct ParameterDiag
 {
+    std::string section;
+    std::string name;
+    double mean{};
+    double median{};
+    double sd{};
+    double hpdi_lo{};
+    double hpdi_hi{};
+    double ess{};
+    double rhat{};
 };
-
-struct IntersectionEvent
-{
-    size_t common_samples;
-};
-
-using DatasetEvent = std::variant<DatasetSectionEvent, IntersectionEvent>;
-using DatasetObserver = std::function<void(const DatasetEvent&)>;
 
 }  // namespace gelex
 
-#endif  // GELEX_INFRA_LOGGING_DATASET_EVENT_H_
+#endif  // GELEX_POST_DIAGNOSTIC_H_

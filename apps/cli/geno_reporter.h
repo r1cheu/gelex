@@ -17,10 +17,11 @@
 #ifndef APPS_CLI_GENO_REPORTER_H_
 #define APPS_CLI_GENO_REPORTER_H_
 
-#include <variant>
+#include <cstdint>
 
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/infra/logging/progress_bar.h"
+#include "gelex/types/genetic_effect_type.h"
 
 namespace cli
 {
@@ -30,13 +31,16 @@ class GenoReporter
    public:
     GenoReporter();
 
-    auto on_event(const gelex::GenotypeLoadedEvent& event) const -> void;
+    auto show_loaded(
+        gelex::GeneticMode mode,
+        int64_t num_snps,
+        int64_t monomorphic_snps) const -> void;
     auto on_event(const gelex::GenotypeProgressEvent& event) -> void;
 
     auto as_observer() -> gelex::GenoObserver
     {
-        return [this](const gelex::GenoEvent& e)
-        { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
+        return [this](const gelex::GenotypeProgressEvent& e)
+        { this->on_event(e); };
     }
 
    private:

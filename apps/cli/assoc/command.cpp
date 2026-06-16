@@ -33,6 +33,7 @@
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/algo/reml/estimator.h"
+#include "gelex/algo/reml/loco_result.h"
 #include "gelex/algo/reml/result.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/chr_group.h"
@@ -42,8 +43,6 @@
 #include "gelex/exception.h"
 #include "gelex/freq/model.h"
 #include "gelex/infra/logger.h"
-#include "gelex/infra/logging/assoc_event.h"
-#include "gelex/infra/logging/dataset_event.h"
 #include "gelex/infra/logging/grm_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
@@ -122,34 +121,28 @@ auto assoc_execute(CLI::App& cmd) -> int
     cli::DatasetReporter dataset_reporter;
     cli::GrmPipeReporter grm_reporter;
 
-    reporter.on_event(gelex::AssocBannerEvent{});
-    reporter.on_event(
-        gelex::AssocConfigLoadedEvent{
-            .mode
-            = cmd.get_option("--test")->as<std::string>() == "single"
-                      && cmd.get_option("--mode")->as<std::string>() == "D"
-                  ? gelex::GeneticMode::D
-                  : gelex::GeneticMode::A,
-            .test_type = cmd.get_option("--test")->as<std::string>() == "joint"
-                             ? gelex::AssocType::Joint
-                             : gelex::AssocType::Single,
-            .loco = cmd.get_option("--loco")->count() > 0,
-            .geno_method = cli::parse_genotype_method(
-                cmd.get_option("--geno-method")->as<std::string>()),
-            .max_iter = cmd.get_option("--max-iter")->as<int>(),
-            .tol = cmd.get_option("--tol")->as<double>(),
-        });
+    reporter.show_banner();
+    reporter.show_config(
+        cmd.get_option("--test")->as<std::string>() == "single"
+                && cmd.get_option("--mode")->as<std::string>() == "D"
+            ? gelex::GeneticMode::D
+            : gelex::GeneticMode::A,
+        cmd.get_option("--test")->as<std::string>() == "joint"
+            ? gelex::AssocType::Joint
+            : gelex::AssocType::Single,
+        cmd.get_option("--loco")->count() > 0,
+        cli::parse_genotype_method(
+            cmd.get_option("--geno-method")->as<std::string>()),
+        cmd.get_option("--max-iter")->as<int>(),
+        cmd.get_option("--tol")->as<double>());
 
-    gelex::notify(dataset_reporter.as_observer(), gelex::DatasetSectionEvent{});
+    dataset_reporter.show_section();
 
     AssocDataHandler handler(grm_reporter.as_observer());
     cli::BaseData data = cli::load_base_data(handler, cmd);
     auto assoc_data = std::move(handler).results();
 
-    gelex::notify(
-        dataset_reporter.as_observer(),
-        gelex::IntersectionEvent{
-            .common_samples = assoc_data.sample_index.size()});
+    dataset_reporter.show_intersection(assoc_data.sample_index.size());
     if (assoc_data.sample_index.size() == 0)
     {
         throw gelex::GelexException(
@@ -238,10 +231,7 @@ auto assoc_execute(CLI::App& cmd) -> int
                     writer.write(static_cast<std::size_t>(start), results);
 
                     progress += static_cast<std::size_t>(current_chunk_size);
-                    gelex::notify(
-                        reporter.as_observer(),
-                        gelex::AssocScanProgressEvent{
-                            .current = progress, .total = total_snps});
+                    reporter.update_scan_progress(progress, total_snps);
                 }
             }
         }
@@ -256,20 +246,21 @@ auto assoc_execute(CLI::App& cmd) -> int
             cmd.get_option("--tol")->as<double>(),
             reml_reporter.as_observer());
 
-        gelex::notify(
-            reporter.as_observer(),
-            gelex::AssocRemlStartedEvent{.chr_name = ""});
+        reporter.show_reml_started("");
 
         auto reml = estimator.fit(model, state);
+        reml_reporter.show_result(
+            model,
+            state,
+            estimator.is_converged(),
+            estimator.iter_count(),
+            cmd.get_option("--max-iter")->as<int>(),
+            estimator.loglike());
 
         auto chr_groups = gelex::build_chr_groups(false, bim);
 
-        gelex::notify(
-            reporter.as_observer(),
-            gelex::AssocScanSummaryEvent{
-                .total_snps = total_snps,
-                .chunk_size = cmd.get_option("--chunk-size")->as<int>(),
-                .loco = false});
+        reporter.start_scan(
+            total_snps, cmd.get_option("--chunk-size")->as<int>(), false);
 
         scan_groups(chr_groups, reml);
     }
@@ -291,12 +282,8 @@ auto assoc_execute(CLI::App& cmd) -> int
 
         auto chr_groups = gelex::build_chr_groups(true, bim);
 
-        gelex::notify(
-            reporter.as_observer(),
-            gelex::AssocScanSummaryEvent{
-                .total_snps = total_snps,
-                .chunk_size = cmd.get_option("--chunk-size")->as<int>(),
-                .loco = true});
+        reporter.start_scan(
+            total_snps, cmd.get_option("--chunk-size")->as<int>(), true);
 
         std::vector<gelex::LocoRemlResult> loco_results;
 
@@ -312,10 +299,7 @@ auto assoc_execute(CLI::App& cmd) -> int
                     model.random()[i].K);
             }
 
-            gelex::notify(
-                reporter.as_observer(),
-                gelex::AssocLocoPhaseEvent{
-                    .chr_name = group.name, .phase = "REML"});
+            reporter.show_loco_phase(group.name, "REML");
 
             gelex::reml::Estimator estimator(
                 cmd.get_option("--max-iter")->as<int>(),
@@ -339,23 +323,15 @@ auto assoc_execute(CLI::App& cmd) -> int
                 loco_results.push_back(std::move(r));
             }
 
-            gelex::notify(
-                reporter.as_observer(),
-                gelex::AssocLocoPhaseEvent{
-                    .chr_name = group.name, .phase = "SCAN"});
+            reporter.show_loco_phase(group.name, "SCAN");
 
             scan_groups({group}, reml);
         }
 
-        gelex::notify(
-            reporter.as_observer(),
-            gelex::AssocLocoRemlSummaryEvent{.results = loco_results});
+        reporter.show_loco_reml_summary(loco_results);
     }
 
-    gelex::notify(
-        reporter.as_observer(),
-        gelex::AssocCompleteEvent{
-            .out_prefix = cmd.get_option("--out")->as<std::string>()});
+    reporter.show_complete(cmd.get_option("--out")->as<std::string>());
 
     return 0;
 }

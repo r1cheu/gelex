@@ -19,7 +19,6 @@
 
 #include <cstddef>
 #include <functional>
-#include <variant>
 
 namespace gelex
 {
@@ -29,8 +28,7 @@ struct GrmLoadedEvent
     size_t num_samples;
 };
 
-using GrmPipeEvent = std::variant<GrmLoadedEvent>;
-using GrmPipeObserver = std::function<void(const GrmPipeEvent&)>;
+using GrmPipeObserver = std::function<void(const GrmLoadedEvent&)>;
 
 }  // namespace gelex
 

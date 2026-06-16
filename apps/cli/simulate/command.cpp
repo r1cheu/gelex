@@ -34,8 +34,6 @@
 #include "gelex/data/reader.h"
 #include "gelex/data/sample_id.h"
 #include "gelex/exception.h"
-#include "gelex/infra/logging/notify.h"
-#include "gelex/infra/logging/simulate_event.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/io/detail/text_writer.h"
 #include "gelex/simulate/effect_sampler.h"
@@ -179,14 +177,11 @@ auto simulate_execute(CLI::App& sim) -> int
     cli::SimulatorReporter reporter;
     auto observer = reporter.as_observer();
 
-    gelex::notify(observer, gelex::SimulateBannerEvent{});
-    gelex::notify(
-        observer,
-        gelex::SimulateConfigLoadedEvent{
-            .add_heritability = add_heritability,
-            .dom_heritability = dom_heritability,
-            .seed = sim.get_option("--seed")->as<int>(),
-        });
+    reporter.show_banner();
+    reporter.show_config(
+        add_heritability,
+        dom_heritability,
+        sim.get_option("--seed")->as<int>());
 
     std::mt19937_64 rng(sim.get_option("--seed")->as<int>());
 
@@ -250,22 +245,23 @@ auto simulate_execute(CLI::App& sim) -> int
 
     const double var_phen = gelex::stats::detail::vecvar(
         phenotypes, gelex::stats::detail::VarNormType::Population);
-    gelex::SimulateVarianceSummaryEvent summary;
+    std::optional<double> realized_h2;
+    std::optional<double> realized_d2;
     if (additive && var_phen > 0.0)
     {
-        summary.realized_h2
+        realized_h2
             = gelex::stats::detail::vecvar(
                   additive->gebv, gelex::stats::detail::VarNormType::Population)
               / var_phen;
     }
     if (dominance && var_phen > 0.0)
     {
-        summary.realized_d2 = gelex::stats::detail::vecvar(
-                                  dominance->gebv,
-                                  gelex::stats::detail::VarNormType::Population)
-                              / var_phen;
+        realized_d2 = gelex::stats::detail::vecvar(
+                          dominance->gebv,
+                          gelex::stats::detail::VarNormType::Population)
+                      / var_phen;
     }
-    gelex::notify(observer, summary);
+    reporter.show_variance_summary(realized_h2, realized_d2);
 
     const auto out_prefix = sim.get_option("--out")->as<std::string>();
     gelex::io::detail::TextWriter writer(out_prefix + ".phen");

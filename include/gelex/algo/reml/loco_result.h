@@ -13,25 +13,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef GELEX_INFRA_LOGGING_SIMULATE_EVENT_H_
-#define GELEX_INFRA_LOGGING_SIMULATE_EVENT_H_
 
-#include <cstddef>
-#include <functional>
+#ifndef GELEX_ALGO_REML_LOCO_RESULT_H_
+#define GELEX_ALGO_REML_LOCO_RESULT_H_
+
+#include <string>
+#include <vector>
 
 namespace gelex
 {
 
-struct SimulateProgressEvent
+struct VarianceComponent
 {
-    std::size_t total;
-    std::size_t current;
-    bool done;
+    std::string name;
+    double variance{};
+    double variance_ratio{};
 };
 
-using SimulateObserver
-    = std::function<void(const SimulateProgressEvent& event)>;
+struct LocoRemlResult
+{
+    std::string chr_name;
+    double loglike{};
+    std::vector<VarianceComponent> random;
+    double residual_variance{};
+    bool converged{true};
+
+    auto total_ratio() const -> double
+    {
+        double sum = 0.0;
+        for (const auto& r : random)
+        {
+            sum += r.variance_ratio;
+        }
+        return sum;
+    }
+};
 
 }  // namespace gelex
 
-#endif  // GELEX_INFRA_LOGGING_SIMULATE_EVENT_H_
+#endif  // GELEX_ALGO_REML_LOCO_RESULT_H_

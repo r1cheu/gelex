@@ -26,35 +26,6 @@
 namespace gelex
 {
 
-class FreqModel;
-class FreqState;
-
-struct VarianceComponent
-{
-    std::string name;
-    double variance{};
-    double variance_ratio{};
-};
-
-struct LocoRemlResult
-{
-    std::string chr_name;
-    double loglike{};
-    std::vector<VarianceComponent> random;
-    double residual_variance{};
-    bool converged{true};
-
-    auto total_ratio() const -> double
-    {
-        double sum = 0.0;
-        for (const auto& r : random)
-        {
-            sum += r.variance_ratio;
-        }
-        return sum;
-    }
-};
-
 struct RemlEmInitEvent
 {
     double loglike;
@@ -69,19 +40,7 @@ struct RemlIterationEvent
     std::vector<double> variances;
 };
 
-struct RemlCompleteEvent
-{
-    const FreqModel* model;
-    const FreqState* state;
-    bool converged;
-    size_t iter_count;
-    size_t max_iter;
-    double loglike;
-};
-
-using RemlEvent
-    = std::variant<RemlEmInitEvent, RemlIterationEvent, RemlCompleteEvent>;
-
+using RemlEvent = std::variant<RemlEmInitEvent, RemlIterationEvent>;
 using RemlObserver = std::function<void(const RemlEvent&)>;
 
 }  // namespace gelex

@@ -18,6 +18,7 @@
 
 #include <ranges>
 #include <span>
+#include <string_view>
 #include <type_traits>
 #include <variant>
 
@@ -27,22 +28,17 @@
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/parameter/values.h"
 #include "gelex/bayes/prior.h"
-#include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace cli
 {
 
-auto FitReporter::on_event(const gelex::FitPriorSetEvent& event) const -> void
+auto FitReporter::show_prior(const gelex::bayes::BayesPrior& prior) const
+    -> void
 {
     cli::printer().block(gelex::section("[Prior Configuration]"));
 
-    if (event.prior == nullptr)
-    {
-        return;
-    }
-    const auto& prior = *event.prior;
     print_random_prior(prior.random());
     for (const auto& genetic : prior.genetics())
     {
@@ -51,13 +47,12 @@ auto FitReporter::on_event(const gelex::FitPriorSetEvent& event) const -> void
     print_residual_prior(prior.residual());
 }
 
-auto FitReporter::on_event(const gelex::FitResultsSavedEvent& event) const
-    -> void
+auto FitReporter::show_results_saved(std::string_view out_prefix) const -> void
 {
     cli::printer().block(
         gelex::success(
             "Results saved to '{}' (.param, .summary, .snpeff, .log)",
-            event.out_prefix));
+            out_prefix));
 }
 
 auto FitReporter::print_variance_prior(

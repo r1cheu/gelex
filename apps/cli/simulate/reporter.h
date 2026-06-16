@@ -17,6 +17,8 @@
 #ifndef APPS_CLI_SIMULATE_REPORTER_H_
 #define APPS_CLI_SIMULATE_REPORTER_H_
 
+#include <optional>
+
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/infra/logging/simulate_event.h"
 
@@ -28,16 +30,20 @@ class SimulatorReporter
    public:
     SimulatorReporter();
 
-    auto on_event(const gelex::SimulateBannerEvent& event) const -> void;
-    auto on_event(const gelex::SimulateConfigLoadedEvent& event) const -> void;
+    auto show_banner() const -> void;
+    auto show_config(
+        std::optional<double> add_heritability,
+        std::optional<double> dom_heritability,
+        int seed) const -> void;
     auto on_event(const gelex::SimulateProgressEvent& event) -> void;
-    auto on_event(const gelex::SimulateVarianceSummaryEvent& event) const
-        -> void;
+    auto show_variance_summary(
+        std::optional<double> realized_h2,
+        std::optional<double> realized_d2) const -> void;
 
     auto as_observer() -> gelex::SimulateObserver
     {
-        return [this](const gelex::SimulateEvent& e)
-        { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
+        return [this](const gelex::SimulateProgressEvent& e)
+        { this->on_event(e); };
     }
 
    private:

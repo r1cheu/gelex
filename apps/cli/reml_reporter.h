@@ -17,9 +17,18 @@
 #ifndef APPS_CLI_REML_REPORTER_H_
 #define APPS_CLI_REML_REPORTER_H_
 
+#include <cstddef>
+#include <variant>
 #include <vector>
 
+#include "gelex/algo/reml/loco_result.h"
 #include "gelex/infra/logging/reml_event.h"
+
+namespace gelex
+{
+class FreqModel;
+class FreqState;
+}  // namespace gelex
 
 namespace cli
 {
@@ -29,7 +38,13 @@ class RemlReporter
    public:
     auto on_event(const gelex::RemlEmInitEvent& e) -> void;
     auto on_event(const gelex::RemlIterationEvent& e) -> void;
-    auto on_event(const gelex::RemlCompleteEvent& e) const -> void;
+    auto show_result(
+        const gelex::FreqModel& model,
+        const gelex::FreqState& state,
+        bool converged,
+        size_t iter_count,
+        size_t max_iter,
+        double loglike) const -> void;
 
     auto as_observer() -> gelex::RemlObserver
     {

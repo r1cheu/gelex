@@ -708,8 +708,6 @@ TEST_CASE("Solver::run collects single genetic samples", "[mcmc][solver]")
 
     int progress_count = 0;
     bool done = false;
-    bool complete = false;
-    std::ptrdiff_t samples_collected = 0;
     gelex::MCMCObserver observer = [&](const gelex::MCMCEvent& event)
     {
         if (const auto* progress
@@ -726,22 +724,12 @@ TEST_CASE("Solver::run collects single genetic samples", "[mcmc][solver]")
                 REQUIRE(progress->state != nullptr);
             }
         }
-        if (const auto* event_complete
-            = std::get_if<gelex::MCMCCompleteEvent>(&event))
-        {
-            complete = true;
-            samples_collected = event_complete->samples_collected;
-            REQUIRE(event_complete->result != nullptr);
-            REQUIRE(event_complete->model == &model);
-        }
     };
 
     auto result = solver.run(model, std::move(prior), 123, observer);
 
     REQUIRE(progress_count == params.n_iters);
     REQUIRE(done);
-    REQUIRE(complete);
-    REQUIRE(samples_collected == params.n_records());
     REQUIRE(result.samples_collected() == params.n_records());
 
     const auto& fixed = std::get<gelex::stats::RunningStatsResult>(
@@ -882,23 +870,10 @@ TEST_CASE("MCMC command dataflow writes solver outputs", "[mcmc][solver]")
     gelex::mcmc::Solver solver{
         params, prefix.string() + ".draws", prefix.string()};
 
-    bool prior_seen = false;
     bool done = false;
-    bool complete = false;
-    bool saved = false;
     int checkpoint_saved = 0;
-    std::string saved_prefix;
-    const gelex::bayes::BayesPrior* progress_prior = nullptr;
-    std::ptrdiff_t samples_collected = 0;
     gelex::MCMCObserver observer = [&](const gelex::MCMCEvent& event)
     {
-        if (const auto* prior_event
-            = std::get_if<gelex::FitPriorSetEvent>(&event))
-        {
-            prior_seen = true;
-            REQUIRE(prior_event->prior != nullptr);
-            progress_prior = prior_event->prior;
-        }
         if (const auto* progress
             = std::get_if<gelex::MCMCProgressEvent>(&event))
         {
@@ -908,48 +883,27 @@ TEST_CASE("MCMC command dataflow writes solver outputs", "[mcmc][solver]")
             }
             else
             {
-                REQUIRE(progress_prior != nullptr);
                 REQUIRE(progress->state != nullptr);
                 REQUIRE(
-                    progress_prior->genetics().size()
+                    prior.genetics().size()
                     == progress->state->genetics().size());
             }
         }
-        if (const auto* complete_event
-            = std::get_if<gelex::MCMCCompleteEvent>(&event))
-        {
-            complete = true;
-            samples_collected = complete_event->samples_collected;
-            REQUIRE(complete_event->result != nullptr);
-            REQUIRE(complete_event->model == &model);
-        }
-        if (const auto* saved_event
-            = std::get_if<gelex::FitResultsSavedEvent>(&event))
-        {
-            saved = true;
-            saved_prefix = saved_event->out_prefix;
-        }
-        if (std::get_if<gelex::FitCheckpointSavedEvent>(&event) != nullptr)
+        if (std::get_if<gelex::MCMCCheckpointSavedEvent>(&event) != nullptr)
         {
             ++checkpoint_saved;
         }
     };
 
-    gelex::notify(observer, gelex::FitPriorSetEvent{&prior});
     auto result = solver.run(model, prior, 123, observer);
     gelex::mcmc::write_params(result, prefix.string());
     gelex::mcmc::write_summary(result, prefix.string());
     gelex::mcmc::write_snp_eff(
         result, model, bfile_prefix.string() + ".bim", prefix.string());
-    gelex::notify(observer, gelex::FitResultsSavedEvent{prefix.string()});
 
-    REQUIRE(prior_seen);
     REQUIRE(done);
-    REQUIRE(complete);
-    REQUIRE(saved);
     REQUIRE(checkpoint_saved == 2);
-    REQUIRE(saved_prefix == prefix.string());
-    REQUIRE(samples_collected == params.n_records());
+    REQUIRE(result.samples_collected() == params.n_records());
     auto summary_path = prefix;
     summary_path += ".summary";
     REQUIRE(std::filesystem::exists(summary_path));

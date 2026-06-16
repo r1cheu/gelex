@@ -18,13 +18,13 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <cstdint>
 
 #include <fmt/format.h>
 #include <string>
 
 #include "cli/report_printer.h"
 #include "gelex/infra/logging/formatter.h"
-#include "gelex/infra/logging/geno_event.h"
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -33,17 +33,19 @@ namespace cli
 
 GenoReporter::GenoReporter() : progress_info_(gelex::create_progress_info()) {}
 
-auto GenoReporter::on_event(const gelex::GenotypeLoadedEvent& event) const
-    -> void
+auto GenoReporter::show_loaded(
+    gelex::GeneticMode mode,
+    int64_t num_snps,
+    int64_t monomorphic_snps) const -> void
 {
-    const auto effective_snps = event.num_snps - event.monomorphic_snps;
+    const auto effective_snps = num_snps - monomorphic_snps;
     const std::string label
-        = (event.mode == gelex::GeneticMode::D) ? "Dominance" : "Additive";
+        = (mode == gelex::GeneticMode::D) ? "Dominance" : "Additive";
     const std::string msg = fmt::format(
         "   {:<13}: {} SNPs ({} monomorphic excluded)",
         label,
         gelex::AbbrNumber(effective_snps),
-        gelex::AbbrNumber(event.monomorphic_snps));
+        gelex::AbbrNumber(monomorphic_snps));
 
     if (isatty(fileno(stdout)) != 0)
     {

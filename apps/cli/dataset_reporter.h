@@ -17,9 +17,7 @@
 #ifndef APPS_CLI_DATASET_REPORTER_H_
 #define APPS_CLI_DATASET_REPORTER_H_
 
-#include <variant>
-
-#include "gelex/infra/logging/dataset_event.h"
+#include <cstddef>
 
 namespace cli
 {
@@ -27,14 +25,8 @@ namespace cli
 class DatasetReporter
 {
    public:
-    auto on_event(const gelex::DatasetSectionEvent& event) const -> void;
-    auto on_event(const gelex::IntersectionEvent& event) const -> void;
-
-    auto as_observer() -> gelex::DatasetObserver
-    {
-        return [this](const gelex::DatasetEvent& e)
-        { std::visit([this](const auto& ev) { this->on_event(ev); }, e); };
-    }
+    auto show_section() const -> void;
+    auto show_intersection(size_t common_samples) const -> void;
 };
 
 }  // namespace cli

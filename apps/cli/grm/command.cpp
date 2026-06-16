@@ -31,8 +31,6 @@
 #include "gelex/data/reader.h"
 #include "gelex/data/writer.h"
 #include "gelex/exception.h"
-#include "gelex/infra/logging/grm_event.h"
-#include "gelex/infra/logging/notify.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "reporter.h"
 
@@ -83,24 +81,18 @@ auto grm_execute(CLI::App& cmd) -> int
         throw gelex::GelexException("chunk_size must be positive");
     }
 
-    cli::GrmReporter::on_event(gelex::GrmBannerEvent{});
-    cli::GrmReporter::on_event(
-        gelex::GrmConfigLoadedEvent{
-            .method = fmt::format("{}", method),
-            .requested_effects = requested_effects,
-            .do_loco = cmd.get_option("--loco")->count() > 0,
-        });
+    cli::GrmReporter::show_banner();
+    cli::GrmReporter::show_config(
+        fmt::format("{}", method),
+        requested_effects,
+        cmd.get_option("--loco")->count() > 0);
 
     gelex::GRM grm(cmd.get_option("--bfile")->as<std::string>());
     const auto& sample_ids = grm.sample_ids();
     const auto observer = reporter.as_observer();
 
-    gelex::notify(
-        observer,
-        gelex::GrmDataLoadedEvent{
-            .num_samples = sample_ids.size(),
-            .num_snps = static_cast<size_t>(grm.num_snps()),
-        });
+    cli::GrmReporter::show_data_loaded(
+        sample_ids.size(), static_cast<size_t>(grm.num_snps()));
 
     std::vector<GrmTask> tasks;
     for (auto effect : requested_effects)
@@ -186,10 +178,7 @@ auto grm_execute(CLI::App& cmd) -> int
         }
     }
 
-    gelex::notify(
-        observer,
-        gelex::GrmComputeStartedEvent{
-            .total_snps = static_cast<size_t>(total_work)});
+    reporter.start_compute(static_cast<size_t>(total_work));
 
     for (const auto& item : items)
     {
@@ -208,13 +197,7 @@ auto grm_execute(CLI::App& cmd) -> int
             sample_ids);
     }
 
-    gelex::notify(
-        observer,
-        gelex::GrmProgressEvent{
-            .current = static_cast<size_t>(total_work),
-            .total = static_cast<size_t>(total_work),
-            .done = true,
-        });
+    reporter.finish_progress();
 
     auto output_pattern = cmd.get_option("--loco")->count() > 0
                               ? fmt::format(
@@ -227,17 +210,13 @@ auto grm_execute(CLI::App& cmd) -> int
                                     cmd.get_option("--out")->as<std::string>(),
                                     task_pattern);
 
-    gelex::notify(
-        observer,
-        gelex::GrmFilesWrittenEvent{
-            .num_files = items.size() * 2,
-            .output_dir = std::filesystem::absolute(
-                              std::filesystem::path(
-                                  cmd.get_option("--out")->as<std::string>()))
-                              .parent_path()
-                              .string(),
-            .file_pattern = output_pattern,
-        });
+    cli::GrmReporter::show_files_written(
+        items.size() * 2,
+        std::filesystem::absolute(
+            std::filesystem::path(cmd.get_option("--out")->as<std::string>()))
+            .parent_path()
+            .string(),
+        output_pattern);
 
     return 0;
 }

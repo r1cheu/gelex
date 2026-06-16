@@ -19,40 +19,12 @@
 
 #include <cstddef>
 #include <functional>
-#include <string>
 #include <variant>
-#include <vector>
-
-#include <Eigen/Core>
-
-#include "gelex/bayes/model.h"
-#include "gelex/bayes/prior.h"
-#include "gelex/bayes/recipe.h"
-#include "gelex/bayes/state.h"
-#include "gelex/types/genetic_effect_type.h"
 
 namespace gelex
 {
 
-namespace mcmc
-{
-class Result;
-}  // namespace mcmc
-
-// --- MCMC-specific events ---
-
-struct MCMCBannerEvent
-{
-};
-
-struct MCMCConfigEvent
-{
-    gelex::bayes::BayesRecipeScheme recipe_scheme;
-    std::vector<GeneticMode> requested_effects;
-    Eigen::Index n_iters{};
-    Eigen::Index n_burn_in{};
-    int seed{};
-};
+class BayesState;
 
 struct MCMCProgressEvent
 {
@@ -62,37 +34,11 @@ struct MCMCProgressEvent
     const BayesState* state{};
 };
 
-struct MCMCCompleteEvent
-{
-    const mcmc::Result* result;
-    const BayesModel* model;
-    std::ptrdiff_t samples_collected;
-};
-
-// --- Shared fit protocol events ---
-
-struct FitPriorSetEvent
-{
-    const bayes::BayesPrior* prior{};
-};
-
-struct FitResultsSavedEvent
-{
-    std::string out_prefix;
-};
-
-struct FitCheckpointSavedEvent
+struct MCMCCheckpointSavedEvent
 {
 };
 
-using MCMCEvent = std::variant<
-    MCMCBannerEvent,
-    MCMCConfigEvent,
-    FitPriorSetEvent,
-    MCMCProgressEvent,
-    MCMCCompleteEvent,
-    FitResultsSavedEvent,
-    FitCheckpointSavedEvent>;
+using MCMCEvent = std::variant<MCMCProgressEvent, MCMCCheckpointSavedEvent>;
 
 using MCMCObserver = std::function<void(const MCMCEvent&)>;
 

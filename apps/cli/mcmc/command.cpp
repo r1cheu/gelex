@@ -41,10 +41,6 @@
 #include "gelex/data/genotype_reader.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
-#include "gelex/infra/logging/dataset_event.h"
-#include "gelex/infra/logging/fit_event.h"
-#include "gelex/infra/logging/geno_event.h"
-#include "gelex/infra/logging/notify.h"
 #include "gelex/io/locistats/writer.h"
 #include "gelex/io/mcmc.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -55,9 +51,8 @@ class MCMCDataHandler
    public:
     MCMCDataHandler(
         std::vector<gelex::GeneticMode> requested_effects,
-        gelex::GenoObserver observer)
-        : requested_effects_(std::move(requested_effects)),
-          observer_(std::move(observer))
+        cli::GenoReporter& reporter)
+        : requested_effects_(std::move(requested_effects)), reporter_(reporter)
     {
     }
 
@@ -84,7 +79,7 @@ class MCMCDataHandler
         -> void
     {
         auto reader = gelex::genotype::GenotypeReader(
-            bfile_prefix_, common_index, observer_);
+            bfile_prefix_, common_index, reporter_.as_observer());
 
         gelex::LociStatsWriter writer(out_prefix_ + ".sbin");
         const auto method_code
@@ -108,12 +103,7 @@ class MCMCDataHandler
                             genotype_method_,
                             static_cast<std::size_t>(chunk_size_));
 
-            gelex::notify(
-                observer_,
-                gelex::GenotypeLoadedEvent{
-                    .mode = mode,
-                    .num_snps = genotype.cols(),
-                    .monomorphic_snps = genotype.num_mono()});
+            reporter_.show_loaded(mode, genotype.cols(), genotype.num_mono());
 
             const Eigen::VectorXd stddev{genotype.var().array().sqrt()};
             writer.write(
@@ -141,7 +131,7 @@ class MCMCDataHandler
     bool use_mmap_;
     gelex::dataframe::Index<std::string> fam_index_;
     std::vector<gelex::bayes::GeneticDesign> genetics_;
-    gelex::GenoObserver observer_;
+    cli::GenoReporter& reporter_;
 };
 
 auto mcmc_execute(CLI::App& cmd) -> int
@@ -170,24 +160,18 @@ auto mcmc_execute(CLI::App& cmd) -> int
     cli::GenoReporter geno_reporter;
     cli::setup_parallelization(threads);
 
-    gelex::notify(reporter.as_observer(), gelex::MCMCBannerEvent{});
-    gelex::notify(
-        reporter.as_observer(),
-        gelex::MCMCConfigEvent{
-            .recipe_scheme = recipe_options.scheme,
-            .requested_effects = recipe_options.modes,
-            .n_iters = params.n_iters,
-            .n_burn_in = params.n_burn_in,
-            .seed = cmd.get_option("--seed")->as<int>(),
-        });
+    reporter.show_banner();
+    reporter.show_config(
+        recipe_options.scheme,
+        params.n_iters,
+        params.n_burn_in,
+        cmd.get_option("--seed")->as<int>());
 
-    gelex::notify(dataset_reporter.as_observer(), gelex::DatasetSectionEvent{});
+    dataset_reporter.show_section();
 
-    MCMCDataHandler handler(recipe_options.modes, geno_reporter.as_observer());
+    MCMCDataHandler handler(recipe_options.modes, geno_reporter);
     cli::BaseData data = cli::load_base_data(handler, cmd);
-    gelex::notify(
-        dataset_reporter.as_observer(),
-        gelex::IntersectionEvent{.common_samples = data.sample_ids.size()});
+    dataset_reporter.show_intersection(data.sample_ids.size());
     if (data.sample_ids.empty())
     {
         throw gelex::GelexException(
@@ -203,7 +187,7 @@ auto mcmc_execute(CLI::App& cmd) -> int
         std::move(handler).results());
     auto prior = bayes_recipe.make_prior(model);
 
-    gelex::notify(reporter.as_observer(), gelex::FitPriorSetEvent{&prior});
+    reporter.show_prior(prior);
     auto result = [&]() -> gelex::mcmc::Result
     {
         if (cmd.get_option("--from-ckpt")->count() > 0)
@@ -220,6 +204,7 @@ auto mcmc_execute(CLI::App& cmd) -> int
             cmd.get_option("--seed")->as<int>(),
             reporter.as_observer());
     }();
+    reporter.show_complete(result.samples_collected());
     gelex::mcmc::write_params(
         result, cmd.get_option("--out")->as<std::string>());
     gelex::mcmc::write_summary(
@@ -229,10 +214,7 @@ auto mcmc_execute(CLI::App& cmd) -> int
         model,
         cmd.get_option("--bfile")->as<std::string>() + ".bim",
         cmd.get_option("--out")->as<std::string>());
-    gelex::notify(
-        reporter.as_observer(),
-        gelex::FitResultsSavedEvent{
-            .out_prefix = cmd.get_option("--out")->as<std::string>()});
+    reporter.show_results_saved(cmd.get_option("--out")->as<std::string>());
 
     return 0;
 }
