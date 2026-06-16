@@ -16,89 +16,346 @@
 
 #include "command.h"
 
-#include <array>
-#include <filesystem>
-#include <ranges>
+#include <algorithm>
+#include <cstddef>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include <CLI/CLI.hpp>
+#include <Eigen/Core>
 
 #include "cli/cli_helper.h"
-#include "cli/data_pipe_config.h"
+#include "cli/common_data.h"
 #include "cli/dataset_reporter.h"
 #include "cli/grm_pipe_reporter.h"
-#include "cli/pheno_reporter.h"
 #include "cli/reml_reporter.h"
-#include "config.h"
+#include "gelex/algo/gwas/assoc_tester.h"
+#include "gelex/algo/gwas/assoc_type.h"
+#include "gelex/algo/reml/estimator.h"
+#include "gelex/algo/reml/result.h"
+#include "gelex/data/bed.h"
+#include "gelex/data/chr_group.h"
+#include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/pipe/grm.h"
-#include "gelex/data/pipe/pheno.h"
 #include "gelex/data/reader.h"
-#include "gelex/engine/assoc.h"
+#include "gelex/exception.h"
+#include "gelex/freq/model.h"
+#include "gelex/infra/logger.h"
 #include "gelex/infra/logging/assoc_event.h"
 #include "gelex/infra/logging/dataset_event.h"
+#include "gelex/infra/logging/grm_pipe_event.h"
 #include "gelex/infra/logging/notify.h"
+#include "gelex/infra/stats/rank_inverse_norm_transform.h"
+#include "gelex/io/grm/loco_reader.h"
+#include "gelex/io/gwas/writer.h"
+#include "gelex/types/fixed_designs.h"
 #include "reporter.h"
+
+struct AssocData
+{
+    gelex::dataframe::Index<std::string> sample_index;
+    std::vector<std::string> grm_prefixes;
+    std::vector<gelex::freq::RandomDesign> random_designs;
+};
+
+class AssocDataHandler
+{
+   public:
+    explicit AssocDataHandler(gelex::GrmPipeObserver observer)
+        : observer_(std::move(observer))
+    {
+    }
+
+    auto load_indices(
+        CLI::App& cmd,
+        std::vector<gelex::dataframe::Index<std::string>*>& indices) -> void
+    {
+        fam_index_ = gelex::read_fam(
+                         cmd.get_option("--bfile")->as<std::string>() + ".fam")
+                         .index();
+        indices.push_back(&fam_index_);
+
+        grm_prefixes_ = cmd.get_option("--grm")->as<std::vector<std::string>>();
+        grm_indices_.reserve(grm_prefixes_.size());
+        for (const auto& path : grm_prefixes_)
+        {
+            grm_indices_.emplace_back(gelex::read_grm_ids(path));
+            gelex::notify(
+                observer_,
+                gelex::GrmLoadedEvent{
+                    .num_samples
+                    = static_cast<std::size_t>(grm_indices_.back().size())});
+            indices.push_back(&grm_indices_.back());
+        }
+    }
+
+    auto gather(const gelex::dataframe::Index<std::string>& common_index)
+        -> void
+    {
+        sample_index_ = common_index;
+        random_designs_ = gelex::make_grm_designs(grm_prefixes_, common_index);
+    }
+
+    auto results() && -> AssocData
+    {
+        return AssocData{
+            .sample_index = std::move(sample_index_),
+            .grm_prefixes = std::move(grm_prefixes_),
+            .random_designs = std::move(random_designs_)};
+    }
+
+   private:
+    gelex::dataframe::Index<std::string> fam_index_;
+    gelex::dataframe::Index<std::string> sample_index_;
+    std::vector<std::string> grm_prefixes_;
+    std::vector<gelex::dataframe::Index<std::string>> grm_indices_;
+    std::vector<gelex::freq::RandomDesign> random_designs_;
+    gelex::GrmPipeObserver observer_;
+};
 
 auto assoc_execute(CLI::App& cmd) -> int
 {
-    int threads = cmd.get_option("--threads")->as<int>();
-    cli::setup_parallelization(threads);
-
-    auto pheno_config = cli::make_pheno_config(cmd);
-    pheno_config.transform_type = cli::parse_transform_type(
-        cmd.get_option("--transform")->as<std::string>());
-    pheno_config.int_offset = cmd.get_option("--int-offset")->as<double>();
+    cli::setup_parallelization(cmd.get_option("--threads")->as<int>());
 
     cli::AssocReporter reporter;
     cli::DatasetReporter dataset_reporter;
-    cli::PhenoReporter pheno_reporter;
     cli::GrmPipeReporter grm_reporter;
-
-    auto config = cli::make_assoc_config(cmd);
 
     reporter.on_event(gelex::AssocBannerEvent{});
     reporter.on_event(
         gelex::AssocConfigLoadedEvent{
-            .mode = config.mode,
-            .test_type = config.test_type,
-            .loco = config.loco,
-            .geno_method = config.method,
-            .max_iter = config.max_iter,
-            .tol = config.tol,
+            .mode
+            = cmd.get_option("--test")->as<std::string>() == "single"
+                      && cmd.get_option("--mode")->as<std::string>() == "D"
+                  ? gelex::GeneticMode::D
+                  : gelex::GeneticMode::A,
+            .test_type = cmd.get_option("--test")->as<std::string>() == "joint"
+                             ? gelex::AssocType::Joint
+                             : gelex::AssocType::Single,
+            .loco = cmd.get_option("--loco")->count() > 0,
+            .geno_method = cli::parse_genotype_method(
+                cmd.get_option("--geno-method")->as<std::string>()),
+            .max_iter = cmd.get_option("--max-iter")->as<int>(),
+            .tol = cmd.get_option("--tol")->as<double>(),
         });
 
     gelex::notify(dataset_reporter.as_observer(), gelex::DatasetSectionEvent{});
 
-    auto fam_index = gelex::read_fam(config.bfile_prefix + ".fam").index();
+    AssocDataHandler handler(grm_reporter.as_observer());
+    cli::BaseData data = cli::load_base_data(handler, cmd);
+    auto assoc_data = std::move(handler).results();
 
-    gelex::PhenoPipe pheno(pheno_config, pheno_reporter.as_observer());
-
-    auto grm_paths = std::ranges::to<std::vector<std::filesystem::path>>(
-        cmd.get_option("--grm")->as<std::vector<std::string>>());
-
-    gelex::GrmPipe grm(grm_paths, grm_reporter.as_observer());
-
-    auto common = cli::intersect_or_throw(
+    gelex::notify(
         dataset_reporter.as_observer(),
-        "phenotype, genotype (.fam), GRM, and covariates",
-        std::array{&fam_index},
-        pheno.sample_indices(),
-        grm.sample_indices());
+        gelex::IntersectionEvent{
+            .common_samples = assoc_data.sample_index.size()});
+    if (assoc_data.sample_index.size() == 0)
+    {
+        throw gelex::GelexException(
+            "No common samples across phenotype, genotype (.fam), GRM, and "
+            "covariates. Check that sample IDs match across input files.");
+    }
 
-    pheno.load(common);
-    grm.load(common);
+    if (cmd.get_option("--transform")->as<std::string>() != "none")
+    {
+        gelex::stats::RankInverseNormTransform transformer(
+            cmd.get_option("--int-offset")->as<double>());
+        auto logger = gelex::logging::get();
+
+        if (cmd.get_option("--transform")->as<std::string>() == "dint")
+        {
+            logger->info(
+                "   Method: Direct INT (DINT), offset (k): {}",
+                cmd.get_option("--int-offset")->as<double>());
+            transformer.apply_dint(data.phenotype);
+        }
+        else if (cmd.get_option("--transform")->as<std::string>() == "iint")
+        {
+            logger->info(
+                "   Method: Indirect INT (IINT), offset (k): {}",
+                cmd.get_option("--int-offset")->as<double>());
+            transformer.apply_iint(data.phenotype, data.fixed_design.X);
+            data.fixed_design = gelex::FixedDesign::make(data.phenotype.size());
+        }
+    }
+
+    auto bed = gelex::open_bed(
+        cmd.get_option("--bfile")->as<std::string>(), assoc_data.sample_index);
+    auto bim = gelex::read_bim(
+        cmd.get_option("--bfile")->as<std::string>() + ".bim");
+
+    gelex::FreqModel model(
+        std::move(data.phenotype),
+        std::move(data.fixed_design),
+        std::move(assoc_data.random_designs));
+    gelex::FreqState state(model);
+
+    auto tester = gelex::AssocTester::make(
+        cmd.get_option("--test")->as<std::string>() == "joint"
+            ? gelex::AssocType::Joint
+            : gelex::AssocType::Single,
+        cmd.get_option("--test")->as<std::string>() == "single"
+                && cmd.get_option("--mode")->as<std::string>() == "D"
+            ? gelex::GeneticMode::D
+            : gelex::GeneticMode::A,
+        cli::parse_genotype_method(
+            cmd.get_option("--geno-method")->as<std::string>()));
+    gelex::gwas::GwasWriter writer(
+        cmd.get_option("--out")->as<std::string>(),
+        bim,
+        cmd.get_option("--test")->as<std::string>() == "joint"
+            ? gelex::AssocType::Joint
+            : gelex::AssocType::Single);
+
+    const auto total_snps = static_cast<std::size_t>(bim.rows());
+    std::size_t progress = 0;
+
+    const auto scan_groups = [&](const std::vector<gelex::ChrGroup>& groups,
+                                 const gelex::RemlResult& reml)
+    {
+        const auto n_samples = reml.n_samples();
+
+        for (const auto& group : groups)
+        {
+            for (const auto& [range_start, range_end] : group.ranges)
+            {
+                for (auto start = range_start; start < range_end;
+                     start += static_cast<Eigen::Index>(
+                         cmd.get_option("--chunk-size")->as<int>()))
+                {
+                    const auto end = std::min(
+                        start
+                            + static_cast<Eigen::Index>(
+                                cmd.get_option("--chunk-size")->as<int>()),
+                        range_end);
+                    const auto current_chunk_size = end - start;
+
+                    tester->resize(n_samples, current_chunk_size);
+                    bed.read_into<double>(tester->genotype_buffer(), start);
+
+                    auto results = tester->run(reml);
+                    writer.write(static_cast<std::size_t>(start), results);
+
+                    progress += static_cast<std::size_t>(current_chunk_size);
+                    gelex::notify(
+                        reporter.as_observer(),
+                        gelex::AssocScanProgressEvent{
+                            .current = progress, .total = total_snps});
+                }
+            }
+        }
+    };
 
     cli::RemlReporter reml_reporter;
-    gelex::AssocEngine engine(std::move(config));
-    engine.run(
-        pheno,
-        grm,
-        common,
+
+    if (cmd.get_option("--loco")->count() == 0)
+    {
+        gelex::reml::Estimator estimator(
+            cmd.get_option("--max-iter")->as<int>(),
+            cmd.get_option("--tol")->as<double>(),
+            reml_reporter.as_observer());
+
+        gelex::notify(
+            reporter.as_observer(),
+            gelex::AssocRemlStartedEvent{.chr_name = ""});
+
+        auto reml = estimator.fit(model, state);
+
+        auto chr_groups = gelex::build_chr_groups(false, bim);
+
+        gelex::notify(
+            reporter.as_observer(),
+            gelex::AssocScanSummaryEvent{
+                .total_snps = total_snps,
+                .chunk_size = cmd.get_option("--chunk-size")->as<int>(),
+                .loco = false});
+
+        scan_groups(chr_groups, reml);
+    }
+    else
+    {
+        if (model.random().size() != assoc_data.grm_prefixes.size())
+        {
+            throw gelex::GelexException(
+                "Number of random components in model does not match "
+                "number of GRMs provided.");
+        }
+
+        std::vector<gelex::LocoReader> loco_readers;
+        loco_readers.reserve(assoc_data.grm_prefixes.size());
+        for (const auto& path : assoc_data.grm_prefixes)
+        {
+            loco_readers.emplace_back(path, assoc_data.sample_index);
+        }
+
+        auto chr_groups = gelex::build_chr_groups(true, bim);
+
+        gelex::notify(
+            reporter.as_observer(),
+            gelex::AssocScanSummaryEvent{
+                .total_snps = total_snps,
+                .chunk_size = cmd.get_option("--chunk-size")->as<int>(),
+                .loco = true});
+
+        std::vector<gelex::LocoRemlResult> loco_results;
+
+        for (const auto& group : chr_groups)
+        {
+            for (std::size_t i = 0; i < loco_readers.size(); ++i)
+            {
+                const auto chr_grm_prefix
+                    = assoc_data.grm_prefixes[i] + ".chr" + group.name;
+                loco_readers[i].load_loco_grm(
+                    chr_grm_prefix,
+                    assoc_data.sample_index,
+                    model.random()[i].K);
+            }
+
+            gelex::notify(
+                reporter.as_observer(),
+                gelex::AssocLocoPhaseEvent{
+                    .chr_name = group.name, .phase = "REML"});
+
+            gelex::reml::Estimator estimator(
+                cmd.get_option("--max-iter")->as<int>(),
+                cmd.get_option("--tol")->as<double>());
+            auto reml = estimator.fit(model, state);
+
+            {
+                gelex::LocoRemlResult r;
+                r.chr_name = group.name;
+                r.loglike = estimator.loglike();
+                r.converged = estimator.is_converged();
+                r.residual_variance = state.residual().variance;
+                for (std::size_t i = 0; i < state.random().size(); ++i)
+                {
+                    const auto& random = state.random()[i];
+                    r.random.push_back(
+                        {.name = model.random()[i].name,
+                         .variance = random.variance,
+                         .variance_ratio = random.variance_ratio});
+                }
+                loco_results.push_back(std::move(r));
+            }
+
+            gelex::notify(
+                reporter.as_observer(),
+                gelex::AssocLocoPhaseEvent{
+                    .chr_name = group.name, .phase = "SCAN"});
+
+            scan_groups({group}, reml);
+        }
+
+        gelex::notify(
+            reporter.as_observer(),
+            gelex::AssocLocoRemlSummaryEvent{.results = loco_results});
+    }
+
+    gelex::notify(
         reporter.as_observer(),
-        reml_reporter.as_observer());
+        gelex::AssocCompleteEvent{
+            .out_prefix = cmd.get_option("--out")->as<std::string>()});
 
     return 0;
 }

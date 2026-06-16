@@ -1,7 +1,6 @@
 set(CLI_SOURCES
     main.cpp
     cli/assoc/args.cpp
-    cli/assoc/config.cpp
     cli/assoc/command.cpp
     cli/assoc/reporter.cpp
     cli/mcmc/args.cpp
