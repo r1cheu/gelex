@@ -34,7 +34,7 @@
 #include "gelex/bayes/parameter/distributions.h"
 #include "gelex/bayes/parameter/values.h"
 #include "gelex/bayes/state.h"
-#include "gelex/data/genotype/genotype_reader.h"
+#include "gelex/data/genotype_reader.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace

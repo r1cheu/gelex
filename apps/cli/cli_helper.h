@@ -23,7 +23,7 @@
 #include <barkeep.h>
 #include <Eigen/Core>
 
-#include "gelex/data/genotype/method.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace CLI

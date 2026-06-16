@@ -30,7 +30,7 @@
 
 #include "gelex/bayes/labels.h"
 #include "gelex/data/genotype.h"
-#include "gelex/data/genotype/genotype_reader.h"
+#include "gelex/data/genotype_reader.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/post_event.h"

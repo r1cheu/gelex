@@ -26,7 +26,7 @@
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/genotype/method.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/infra/logging/simulate_event.h"
 #include "gelex/simulate/sim_types.h"
 #include "gelex/types/genetic_effect_type.h"

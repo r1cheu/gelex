@@ -24,7 +24,7 @@
 
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype.h"
-#include "gelex/data/genotype/method.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -82,9 +82,9 @@ class GenoPipe
     }
 
    private:
-    template <GeneticMode GT>
     auto load_genotype_impl(
         const dataframe::Index<std::string>& sample_index,
+        GeneticMode mode,
         const std::string& suffix,
         GenotypeMethod method,
         std::optional<Genotype>& target) -> void;

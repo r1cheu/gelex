@@ -26,7 +26,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/dataframe/dataframe.h"
-#include "gelex/data/genotype/method.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/data/locus_encoding.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/simulate_event.h"

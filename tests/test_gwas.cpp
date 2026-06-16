@@ -31,7 +31,7 @@
 #include "gelex/algo/reml/result.h"
 #include "gelex/data/dataframe/column.h"
 #include "gelex/data/dataframe/reader.h"
-#include "gelex/data/genotype/method.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/io/gwas/writer.h"
 
 using gelex::AssocType;

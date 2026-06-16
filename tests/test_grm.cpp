@@ -25,7 +25,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "bed_fixture.h"
-#include "gelex/data/genotype/method.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/data/grm/grm.h"
 #include "gelex/types/genetic_effect_type.h"
 

@@ -24,7 +24,7 @@
 #include <vector>
 
 #include "gelex/algo/gwas/assoc_type.h"
-#include "gelex/data/genotype/method.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/infra/logging/reml_event.h"
 #include "gelex/types/genetic_effect_type.h"
 

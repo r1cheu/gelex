@@ -22,7 +22,7 @@
 #include <string>
 #include <variant>
 
-#include "gelex/data/genotype/method.h"
+#include "gelex/data/genotype_method.h"
 
 namespace gelex
 {

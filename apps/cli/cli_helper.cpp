@@ -39,7 +39,7 @@
 #include <unistd.h>
 #endif
 
-#include "gelex/data/genotype/method.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logger.h"
 #include "gelex/infra/logging/formatter.h"

@@ -25,8 +25,8 @@
 
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype.h"
-#include "gelex/data/genotype/genotype_reader.h"
-#include "gelex/data/genotype/method.h"
+#include "gelex/data/genotype_method.h"
+#include "gelex/data/genotype_reader.h"
 #include "gelex/data/reader.h"
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/infra/logging/notify.h"
@@ -56,9 +56,9 @@ auto GenoPipe::load(const dataframe::Index<std::string>& sample_index) -> void
     write_sbin();
 }
 
-template <GeneticMode GT>
 auto GenoPipe::load_genotype_impl(
     const dataframe::Index<std::string>& sample_index,
+    GeneticMode mode,
     const std::string& suffix,
     GenotypeMethod method,
     std::optional<Genotype>& target) -> void
@@ -68,25 +68,24 @@ auto GenoPipe::load_genotype_impl(
     if (config_.use_mmap)
     {
         std::filesystem::path prefix = config_.output_prefix + suffix;
-        target.emplace(reader.template read<GT>(
-            method,
-            genotype::GenotypeReader::Sink::Mmap{std::move(prefix)},
-            config_.chunk_size));
+        target.emplace(
+            reader.read_mmap(mode, method, prefix, config_.chunk_size));
     }
     else
     {
-        target.emplace(reader.template read<GT>(
-            method,
-            genotype::GenotypeReader::Sink::InMemory{},
-            config_.chunk_size));
+        target.emplace(reader.read_in_memory(mode, method, config_.chunk_size));
     }
 }
 
 auto GenoPipe::load_additive_matrix(
     const dataframe::Index<std::string>& sample_index) -> void
 {
-    load_genotype_impl<GeneticMode::A>(
-        sample_index, ".add", config_.genotype_method, additive_matrix_);
+    load_genotype_impl(
+        sample_index,
+        GeneticMode::A,
+        ".add",
+        config_.genotype_method,
+        additive_matrix_);
     notify(
         observer_,
         GenotypeLoadedEvent{
@@ -98,8 +97,12 @@ auto GenoPipe::load_additive_matrix(
 auto GenoPipe::load_dominance_matrix(
     const dataframe::Index<std::string>& sample_index) -> void
 {
-    load_genotype_impl<GeneticMode::D>(
-        sample_index, ".dom", config_.genotype_method, dominance_matrix_);
+    load_genotype_impl(
+        sample_index,
+        GeneticMode::D,
+        ".dom",
+        config_.genotype_method,
+        dominance_matrix_);
     notify(
         observer_,
         GenotypeLoadedEvent{

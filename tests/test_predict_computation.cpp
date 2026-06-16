@@ -23,7 +23,7 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/data/genotype/method.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/io/locistats/reader.h"
 #include "gelex/io/predict/input_reader.h"
 #include "gelex/predict/types.h"

@@ -22,7 +22,7 @@
 #include "gelex/algo/gwas/assoc_output.h"
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/reml/result.h"
-#include "gelex/data/genotype/method.h"
+#include "gelex/data/genotype_method.h"
 
 namespace gelex
 {

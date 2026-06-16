@@ -25,7 +25,7 @@
 
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/genotype/method.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/data/locus_encoding.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/logging/notify.h"

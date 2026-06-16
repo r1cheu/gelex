@@ -14,20 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_GENOTYPE_GENOTYPE_READER_H_
-#define GELEX_DATA_GENOTYPE_GENOTYPE_READER_H_
+#ifndef GELEX_DATA_GENOTYPE_READER_H_
+#define GELEX_DATA_GENOTYPE_READER_H_
 
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <string>
-#include <variant>
 
 #include <Eigen/Core>
 
 #include "gelex/data/bed.h"
 #include "gelex/data/genotype.h"
-#include "gelex/data/genotype/method.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/types/genetic_effect_type.h"
 
@@ -37,20 +36,6 @@ namespace gelex::genotype
 class GenotypeReader
 {
    public:
-    struct Sink
-    {
-        struct InMemory
-        {
-        };
-
-        struct Mmap
-        {
-            std::filesystem::path prefix;
-        };
-
-        using Variant = std::variant<InMemory, Mmap>;
-    };
-
     GenotypeReader(
         const std::string& bfile_prefix,
         const dataframe::Index<std::string>& sample_index,
@@ -62,36 +47,29 @@ class GenotypeReader
     auto operator=(GenotypeReader&&) noexcept -> GenotypeReader& = default;
     ~GenotypeReader() = default;
 
-    template <gelex::GeneticMode GT>
-    auto read(
+    auto read_in_memory(
+        gelex::GeneticMode mode,
         gelex::GenotypeMethod method,
-        typename Sink::Variant sink,
+        std::size_t chunk_size = 10000) -> Genotype;
+
+    auto read_mmap(
+        gelex::GeneticMode mode,
+        gelex::GenotypeMethod method,
+        const std::filesystem::path& output_prefix,
         std::size_t chunk_size = 10000) -> Genotype;
 
     static auto read(
         const std::filesystem::path& gbin_path,
         gelex::GeneticMode mode) -> Genotype;
 
-    [[nodiscard]] auto num_samples() const noexcept -> Eigen::Index
-    {
-        return sample_size_;
-    }
-
-    [[nodiscard]] auto num_variants() const noexcept -> Eigen::Index
-    {
-        return num_variants_;
-    }
-
    private:
-    template <gelex::GeneticMode GT>
-    auto read_in_memory(gelex::GenotypeMethod method, std::size_t chunk_size)
-        -> Genotype;
+    struct EncodedChunkOutput;
 
-    template <gelex::GeneticMode GT>
-    auto read_mmap(
+    auto read_encoded_chunks(
+        EncodedChunkOutput& output,
+        gelex::GeneticMode mode,
         gelex::GenotypeMethod method,
-        const std::filesystem::path& output_prefix,
-        std::size_t chunk_size) -> Genotype;
+        std::size_t chunk_size) -> void;
 
     gelex::Bed bed_;
     gelex::GenoObserver observer_;
@@ -101,4 +79,4 @@ class GenotypeReader
 
 }  // namespace gelex::genotype
 
-#endif  // GELEX_DATA_GENOTYPE_GENOTYPE_READER_H_
+#endif  // GELEX_DATA_GENOTYPE_READER_H_

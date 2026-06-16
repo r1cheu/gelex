@@ -32,8 +32,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/data/genotype/genotype_reader.h"
-#include "gelex/data/genotype/method.h"
+#include "gelex/data/genotype_reader.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/io/binary_reader.h"
@@ -441,7 +441,7 @@ TEST_CASE("BinaryWriter close commits complete container", "[binary_container]")
 }
 
 TEST_CASE(
-    "GenotypeMapReader vs GenotypeMatReader produce identical results",
+    "GenotypeReader memory and mmap reads produce identical results",
     "[genotype_reader][diagnostic]")
 {
     constexpr Eigen::Index NUM_SAMPLES = 50;
@@ -449,26 +449,21 @@ TEST_CASE(
     constexpr uint64_t SEED = 42;
     constexpr double MISSING_RATE = 0.02;
 
-    // Create BED files (shared by both readers)
     test::BedFixture bed_fixture;
     auto [prefix, raw_genotypes] = bed_fixture.create_bed_files(
         NUM_SAMPLES, NUM_SNPS, MISSING_RATE, 0.05, 0.5, SEED);
 
     auto sample_index = read_fam(prefix.string() + ".fam").index();
 
-    // Load via in-memory sink
     GenotypeReader mat_reader(prefix.string(), sample_index);
-    auto mat_result = mat_reader.read<GeneticMode::A>(
-        GenotypeMethod::StandardizeHWE,
-        GenotypeReader::Sink::InMemory{});
+    auto mat_result = mat_reader.read_in_memory(
+        GeneticMode::A, GenotypeMethod::StandardizeHWE);
 
-    // Load via mmap sink
     auto output_prefix
         = bed_fixture.get_file_fixture().get_test_dir() / "mmap_out";
     GenotypeReader map_reader(prefix.string(), sample_index);
-    auto map_result = map_reader.read<GeneticMode::A>(
-        GenotypeMethod::StandardizeHWE,
-        GenotypeReader::Sink::Mmap{output_prefix});
+    auto map_result = map_reader.read_mmap(
+        GeneticMode::A, GenotypeMethod::StandardizeHWE, output_prefix);
 
     SECTION("matrix dimensions match")
     {

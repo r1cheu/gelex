@@ -26,7 +26,7 @@
 
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/reml/result.h"
-#include "gelex/data/genotype/method.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/data/locus_encoding.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/genetic_effect_type.h"
