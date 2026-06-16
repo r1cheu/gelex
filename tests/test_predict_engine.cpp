@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -28,16 +29,24 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "file_fixture.h"
+#include "gelex/data/bed.h"
+#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/locus_encoding.h"
-#include "gelex/engine/predict.h"
+#include "gelex/data/reader.h"
 #include "gelex/exception.h"
+#include "gelex/io/locistats/reader.h"
 #include "gelex/io/locistats/writer.h"
+#include "gelex/io/predict/input_reader.h"
+#include "gelex/predict/snp_alignment.h"
+#include "gelex/predict/types.h"
 #include "gelex/types/genetic_effect_type.h"
+#include "io/predict/writer.h"
+#include "predict/compute.h"
+#include "predict/standardize.h"
 
 #include "bed_fixture.h"
 
-using gelex::PredictEngine;
 using gelex::test::BedFixture;
 
 namespace
@@ -288,11 +297,106 @@ auto read_prediction_output(const std::filesystem::path& path)
     return out;
 }
 
+auto load_sbin(const std::filesystem::path& path) -> gelex::predict::SbinData
+{
+    gelex::LociStatsReader reader(path.string());
+    gelex::predict::SbinData data;
+    data.add = reader.read(gelex::EffectType::add());
+    if (reader.has(gelex::EffectType::dom()))
+    {
+        data.dom = reader.read(gelex::EffectType::dom());
+        data.has_dom = true;
+    }
+    return data;
+}
+
+auto run_predict_dataflow(
+    const std::string& bfile_prefix,
+    const std::string& gfile_prefix,
+    const std::optional<std::filesystem::path>& qcovar_path,
+    const std::optional<std::filesystem::path>& dcovar_path,
+    const std::filesystem::path& output_path) -> void
+{
+    auto snp_effects
+        = gelex::predict::read_snp_effects(gfile_prefix + ".snpeff");
+    auto sbin = load_sbin(gfile_prefix + ".sbin");
+
+    bool enable_dom{};
+    if (sbin.has_dom)
+    {
+        if (!snp_effects.contains("BETA_D"))
+        {
+            throw gelex::GelexException(
+                "Sbin file contains dominance effects, but SNP effects file "
+                "does not have 'BETA_D' column.");
+        }
+        enable_dom = true;
+    }
+
+    Eigen::VectorXd add_effects = snp_effects["BETA_A"].to_map<double>();
+    auto dom_effects = enable_dom ? std::make_optional<Eigen::VectorXd>(
+                                        snp_effects["BETA_D"].to_mat<double>())
+                                  : std::nullopt;
+    auto coefficients
+        = gelex::predict::read_coefficients(gfile_prefix + ".param");
+
+    auto fam_df = gelex::read_fam(bfile_prefix + ".fam");
+    auto bim_df = gelex::read_bim(bfile_prefix + ".bim");
+    auto covariates = gelex::predict::read_covariates(
+        qcovar_path, dcovar_path, coefficients, fam_df);
+
+    auto alignment = gelex::predict::build_snp_alignment(snp_effects, bim_df);
+    if (alignment.num_missing > 0 || alignment.num_mismatched > 0)
+    {
+        throw gelex::GelexException(
+            fmt::format(
+                "{}.snpeff does not match {}.bim: {} missing SNPs, {} "
+                "allele mismatches",
+                gfile_prefix,
+                bfile_prefix,
+                alignment.num_missing,
+                alignment.num_mismatched));
+    }
+
+    auto bed = gelex::open_bed(bfile_prefix, fam_df.index());
+    auto genotype = bed.read_snps<double>(alignment.column_map);
+
+    gelex::predict::GenotypeData geno;
+    if (sbin.has_dom)
+    {
+        geno.dom = genotype;
+    }
+    geno.add = std::move(genotype);
+
+    gelex::predict::detail::standardize_genotypes(geno, sbin);
+
+    gelex::predict::SnpEffects effects{
+        .add = std::move(add_effects), .dom = std::move(dom_effects)};
+    auto gebv = gelex::predict::detail::compute_gebv(geno, effects);
+    auto covar = gelex::predict::detail::compute_covariate_effects(
+        covariates, coefficients);
+
+    auto sample_keys = fam_df.index().keys();
+    std::vector<std::string> sample_ids(sample_keys.begin(), sample_keys.end());
+
+    gelex::predict::PredictResult result{
+        .sample_ids = std::move(sample_ids),
+        .predictions = gebv.total + covar.total,
+        .snp_predictions = std::move(gebv.total),
+        .add_predictions = std::move(gebv.add_predictions),
+        .dom_predictions = std::move(gebv.dom_predictions),
+        .covar_predictions = std::move(covar.per_covariate),
+        .covar_names = std::move(covar.covar_names)};
+
+    gelex::predict::detail::PredictWriter writer(output_path);
+    writer.write(result);
+}
+
 }  // namespace
 
 TEST_CASE(
-    "PredictEngine smoke test - full model",
-    "[predict][predict_engine][smoke]")
+    "Predict command dataflow writes full model predictions",
+    "[predict][dataflow][smoke]")
 {
     // 3 samples, 2 SNPs, add + dom + qcovar(Age) + dcovar(Sex)
     BedFixture bed;
@@ -332,15 +436,13 @@ TEST_CASE(
 
     auto output_path = ff.get_test_dir() / "test.predictions";
 
-    PredictEngine::Config config{
-        .bfile_prefix = bed_prefix.string(),
-        .gfile_prefix = gfile_prefix,
-        .qcovar_path = qcovar_path,
-        .dcovar_path = dcovar_path,
-        .output_path = output_path};
-
-    PredictEngine engine(config);
-    REQUIRE_NOTHROW(engine.run());
+    REQUIRE_NOTHROW(
+        run_predict_dataflow(
+            bed_prefix.string(),
+            gfile_prefix,
+            qcovar_path,
+            dcovar_path,
+            output_path));
 
     REQUIRE(std::filesystem::exists(output_path));
 
@@ -350,8 +452,8 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "PredictEngine rejects missing SNPs",
-    "[predict][predict_engine]")
+    "Predict command dataflow rejects missing SNPs",
+    "[predict][dataflow]")
 {
     BedFixture bed;
 
@@ -382,11 +484,12 @@ TEST_CASE(
 
     auto output_path = ff.get_test_dir() / "missing.predictions";
 
-    PredictEngine::Config config{
-        .bfile_prefix = bed_prefix.string(),
-        .gfile_prefix = gfile_prefix,
-        .output_path = output_path};
-
-    PredictEngine engine(config);
-    REQUIRE_THROWS_AS(engine.run(), gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        run_predict_dataflow(
+            bed_prefix.string(),
+            gfile_prefix,
+            std::nullopt,
+            std::nullopt,
+            output_path),
+        gelex::GelexException);
 }

@@ -10,15 +10,12 @@ set(CLI_SOURCES
     cli/grm/command.cpp
     cli/grm/reporter.cpp
     cli/predict/args.cpp
-    cli/predict/config.cpp
     cli/predict/command.cpp
     cli/predict/reporter.cpp
     cli/simulate/args.cpp
-    cli/simulate/config.cpp
     cli/simulate/command.cpp
     cli/simulate/reporter.cpp
     cli/post/args.cpp
-    cli/post/config.cpp
     cli/post/command.cpp
     cli/post/reporter.cpp
     cli/reml/args.cpp
