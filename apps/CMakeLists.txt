@@ -24,9 +24,7 @@ set(CLI_SOURCES
     cli/report_printer.cpp
     cli/fit_reporter.cpp
     cli/reml_reporter.cpp
-    cli/dataset_reporter.cpp
     cli/geno_reporter.cpp
-    cli/grm_pipe_reporter.cpp
     cli/cli_helper.cpp
     cli/color_formatter.cpp
     cli/bayes_recipe_options.cpp)

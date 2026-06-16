@@ -27,9 +27,8 @@
 
 #include "cli/cli_helper.h"
 #include "cli/common_data.h"
-#include "cli/dataset_reporter.h"
-#include "cli/grm_pipe_reporter.h"
 #include "cli/reml_reporter.h"
+#include "cli/report_printer.h"
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/algo/reml/estimator.h"
@@ -43,8 +42,7 @@
 #include "gelex/exception.h"
 #include "gelex/freq/model.h"
 #include "gelex/infra/logger.h"
-#include "gelex/infra/logging/grm_pipe_event.h"
-#include "gelex/infra/logging/notify.h"
+#include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
 #include "gelex/io/grm/loco_reader.h"
 #include "gelex/io/gwas/writer.h"
@@ -61,11 +59,6 @@ struct AssocData
 class AssocDataHandler
 {
    public:
-    explicit AssocDataHandler(gelex::GrmPipeObserver observer)
-        : observer_(std::move(observer))
-    {
-    }
-
     auto load_indices(
         CLI::App& cmd,
         std::vector<gelex::dataframe::Index<std::string>*>& indices) -> void
@@ -80,11 +73,8 @@ class AssocDataHandler
         for (const auto& path : grm_prefixes_)
         {
             grm_indices_.emplace_back(gelex::read_grm_ids(path));
-            gelex::notify(
-                observer_,
-                gelex::GrmLoadedEvent{
-                    .num_samples
-                    = static_cast<std::size_t>(grm_indices_.back().size())});
+            cli::printer().line(
+                "   GRM        : {} samples", grm_indices_.back().size());
             indices.push_back(&grm_indices_.back());
         }
     }
@@ -110,7 +100,6 @@ class AssocDataHandler
     std::vector<std::string> grm_prefixes_;
     std::vector<gelex::dataframe::Index<std::string>> grm_indices_;
     std::vector<gelex::freq::RandomDesign> random_designs_;
-    gelex::GrmPipeObserver observer_;
 };
 
 auto assoc_execute(CLI::App& cmd) -> int
@@ -118,8 +107,6 @@ auto assoc_execute(CLI::App& cmd) -> int
     cli::setup_parallelization(cmd.get_option("--threads")->as<int>());
 
     cli::AssocReporter reporter;
-    cli::DatasetReporter dataset_reporter;
-    cli::GrmPipeReporter grm_reporter;
 
     reporter.show_banner();
     reporter.show_config(
@@ -136,13 +123,14 @@ auto assoc_execute(CLI::App& cmd) -> int
         cmd.get_option("--max-iter")->as<int>(),
         cmd.get_option("--tol")->as<double>());
 
-    dataset_reporter.show_section();
+    cli::printer().block(gelex::section("[Dataset Summary]"));
 
-    AssocDataHandler handler(grm_reporter.as_observer());
+    AssocDataHandler handler;
     cli::BaseData data = cli::load_base_data(handler, cmd);
     auto assoc_data = std::move(handler).results();
 
-    dataset_reporter.show_intersection(assoc_data.sample_index.size());
+    cli::printer().line(
+        "   Intersection : {} common samples", assoc_data.sample_index.size());
     if (assoc_data.sample_index.size() == 0)
     {
         throw gelex::GelexException(

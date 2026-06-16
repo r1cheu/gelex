@@ -26,6 +26,7 @@
 
 #include "cli/cli_helper.h"
 #include "cli/common_data.h"
+#include "cli/reml_reporter.h"
 #include "gelex/algo/reml/estimator.h"
 #include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/index.h"
@@ -95,9 +96,9 @@ auto reml_execute(CLI::App& cmd) -> int
     int threads = cmd.get_option("--threads")->as<int>();
     cli::setup_parallelization(threads);
 
-    cli::RemlCommandReporter reporter;
-    reporter.show_banner();
-    reporter.show_config(cmd);
+    cli::RemlCommandReporter command_reporter;
+    command_reporter.show_banner();
+    command_reporter.show_config(cmd);
 
     RemlDataHandler handler;
     cli::BaseData data = cli::load_base_data(handler, cmd);
@@ -107,14 +108,15 @@ auto reml_execute(CLI::App& cmd) -> int
         std::move(data.fixed_design),
         std::move(handler).results());
 
+    cli::RemlReporter reml_reporter;
     gelex::reml::Estimator estimator(
         cmd.get_option("--max-iter")->as<int>(),
         cmd.get_option("--tol")->as<double>(),
-        reporter.as_observer());
+        reml_reporter.as_observer());
 
     gelex::FreqState state(model);
     estimator.fit(model, state);
-    reporter.show_result(
+    reml_reporter.show_result(
         model,
         state,
         estimator.is_converged(),

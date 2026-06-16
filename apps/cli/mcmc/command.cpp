@@ -29,8 +29,8 @@
 #include "cli/bayes_recipe_options.h"
 #include "cli/cli_helper.h"
 #include "cli/common_data.h"
-#include "cli/dataset_reporter.h"
 #include "cli/geno_reporter.h"
+#include "cli/report_printer.h"
 #include "gelex/algo/mcmc/params.h"
 #include "gelex/algo/mcmc/solver.h"
 #include "gelex/bayes/design.h"
@@ -41,6 +41,7 @@
 #include "gelex/data/genotype_reader.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
+#include "gelex/infra/logging/formatter.h"
 #include "gelex/io/locistats/writer.h"
 #include "gelex/io/mcmc.h"
 #include "gelex/types/genetic_effect_type.h"
@@ -156,7 +157,6 @@ auto mcmc_execute(CLI::App& cmd) -> int
 
     const int threads = cmd.get_option("--threads")->as<int>();
     cli::McmcReporter reporter;
-    cli::DatasetReporter dataset_reporter;
     cli::GenoReporter geno_reporter;
     cli::setup_parallelization(threads);
 
@@ -167,11 +167,12 @@ auto mcmc_execute(CLI::App& cmd) -> int
         params.n_burn_in,
         cmd.get_option("--seed")->as<int>());
 
-    dataset_reporter.show_section();
+    cli::printer().block(gelex::section("[Dataset Summary]"));
 
     MCMCDataHandler handler(recipe_options.modes, geno_reporter);
     cli::BaseData data = cli::load_base_data(handler, cmd);
-    dataset_reporter.show_intersection(data.sample_ids.size());
+    cli::printer().line(
+        "   Intersection : {} common samples", data.sample_ids.size());
     if (data.sample_ids.empty())
     {
         throw gelex::GelexException(
