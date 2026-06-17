@@ -50,6 +50,9 @@ auto JointTester::resize(Eigen::Index n_samples, Eigen::Index chunk_size)
     zt_a_Pzd_.resize(chunk_size);
     joint_p_.resize(chunk_size);
     total_pve_.resize(chunk_size);
+    var_a_.resize(chunk_size);
+    var_d_.resize(chunk_size);
+    cov_ad_.resize(chunk_size);
 }
 
 auto JointTester::genotype_buffer() -> Eigen::Ref<Eigen::MatrixXd>
@@ -98,6 +101,9 @@ auto JointTester::run(const RemlResult& reml) -> TestResults
             add_.beta(i) = add_.se(i) = add_.p_value(i) = nan;
             dom_.beta(i) = dom_.se(i) = dom_.p_value(i) = nan;
             joint_p_(i) = nan;
+            var_a_(i) = nan;
+            var_d_(i) = nan;
+            cov_ad_(i) = nan;
             continue;
         }
 
@@ -108,6 +114,9 @@ auto JointTester::run(const RemlResult& reml) -> TestResults
 
         add_.beta(i) = beta(0);
         dom_.beta(i) = beta(1);
+        var_a_(i) = inv(0, 0);
+        var_d_(i) = inv(1, 1);
+        cov_ad_(i) = inv(0, 1);
 
         add_.se(i) = std::sqrt(inv(0, 0));
         dom_.se(i) = std::sqrt(inv(1, 1));
@@ -162,6 +171,11 @@ auto JointTester::run(const RemlResult& reml) -> TestResults
         },
         .joint_p = std::span{joint_p_.data(), n_snps},
         .total_pve = std::span{total_pve_.data(), n_snps},
+        .joint_covariance = JointCovarianceResult{
+            .var_a = {var_a_.data(), n_snps},
+            .var_d = {var_d_.data(), n_snps},
+            .cov_ad = {cov_ad_.data(), n_snps},
+        },
     };
 }
 

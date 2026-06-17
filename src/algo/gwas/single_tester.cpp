@@ -88,6 +88,7 @@ auto SingleTester::run(const RemlResult& reml) -> TestResults
         .dominance = std::nullopt,
         .joint_p = std::nullopt,
         .total_pve = std::nullopt,
+        .joint_covariance = std::nullopt,
     };
 }
 

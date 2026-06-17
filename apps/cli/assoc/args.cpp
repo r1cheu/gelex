@@ -49,6 +49,10 @@ auto setup_assoc_command(CLI::App& program, int& exit_code) -> void
         ->group("I/O")
         ->type_name("<OUT>")
         ->default_val(std::string{"gelex"});
+    cmd.add_flag(
+           "--write-cov",
+           "Write <out>.cov with beta covariance for joint C-coded tests")
+        ->group("I/O");
 
     cmd.add_option("--transform", "Phenotype transform: none, dint, iint")
         ->group("Model")

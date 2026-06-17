@@ -74,6 +74,10 @@ Options
 ``-o, --out`` ``gelex``
    Output prefix for GWAS results.
 
+``--write-cov`` ``false``
+   Write ``<out>.cov`` with per-SNP beta covariance terms.
+   Requires ``--test joint --geno-method C``.
+
 .. rubric:: Input and Covariate Options
 
 ``--pheno-col`` ``2``
@@ -137,6 +141,9 @@ After a successful run, GWAS summary statistics are written to:
    * - ``<out>.gwas.tsv``
      - SNP-wise test statistics (effect size, SE, P-value, allele fields)
      - :ref:`gwas-output-format`
+   * - ``<out>.cov``
+     - Optional beta covariance output for joint C-coded association tests
+     - :ref:`gwas-joint-cov-format`
 
 Warnings and Notes
 ------------------

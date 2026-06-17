@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -45,6 +46,7 @@
 #include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
 #include "gelex/io/grm/loco_reader.h"
+#include "gelex/io/gwas/joint_cov_writer.h"
 #include "gelex/io/gwas/writer.h"
 #include "gelex/types/fixed_designs.h"
 #include "reporter.h"
@@ -106,20 +108,35 @@ auto assoc_execute(CLI::App& cmd) -> int
 {
     cli::setup_parallelization(cmd.get_option("--threads")->as<int>());
 
+    const gelex::AssocType test_type
+        = cmd.get_option("--test")->as<std::string>() == "joint"
+              ? gelex::AssocType::Joint
+              : gelex::AssocType::Single;
+    const gelex::GeneticMode mode
+        = test_type == gelex::AssocType::Single
+                  && cmd.get_option("--mode")->as<std::string>() == "D"
+              ? gelex::GeneticMode::D
+              : gelex::GeneticMode::A;
+    const gelex::GenotypeMethod geno_method{cli::parse_genotype_method(
+        cmd.get_option("--geno-method")->as<std::string>())};
+    const bool write_cov{cmd.get_option("--write-cov")->count() > 0};
+
+    if (write_cov
+        && (test_type != gelex::AssocType::Joint
+            || geno_method != gelex::GenotypeMethod::Center))
+    {
+        throw gelex::GelexException(
+            "assoc --write-cov requires --test joint --geno-method C");
+    }
+
     cli::AssocReporter reporter;
 
     reporter.show_banner();
     reporter.show_config(
-        cmd.get_option("--test")->as<std::string>() == "single"
-                && cmd.get_option("--mode")->as<std::string>() == "D"
-            ? gelex::GeneticMode::D
-            : gelex::GeneticMode::A,
-        cmd.get_option("--test")->as<std::string>() == "joint"
-            ? gelex::AssocType::Joint
-            : gelex::AssocType::Single,
+        mode,
+        test_type,
         cmd.get_option("--loco")->count() > 0,
-        cli::parse_genotype_method(
-            cmd.get_option("--geno-method")->as<std::string>()),
+        geno_method,
         cmd.get_option("--max-iter")->as<int>(),
         cmd.get_option("--tol")->as<double>());
 
@@ -172,22 +189,15 @@ auto assoc_execute(CLI::App& cmd) -> int
         std::move(assoc_data.random_designs));
     gelex::FreqState state(model);
 
-    auto tester = gelex::AssocTester::make(
-        cmd.get_option("--test")->as<std::string>() == "joint"
-            ? gelex::AssocType::Joint
-            : gelex::AssocType::Single,
-        cmd.get_option("--test")->as<std::string>() == "single"
-                && cmd.get_option("--mode")->as<std::string>() == "D"
-            ? gelex::GeneticMode::D
-            : gelex::GeneticMode::A,
-        cli::parse_genotype_method(
-            cmd.get_option("--geno-method")->as<std::string>()));
+    auto tester = gelex::AssocTester::make(test_type, mode, geno_method);
     gelex::gwas::GwasWriter writer(
-        cmd.get_option("--out")->as<std::string>(),
-        bim,
-        cmd.get_option("--test")->as<std::string>() == "joint"
-            ? gelex::AssocType::Joint
-            : gelex::AssocType::Single);
+        cmd.get_option("--out")->as<std::string>(), bim, test_type);
+    std::optional<gelex::gwas::JointCovWriter> joint_cov_writer;
+    if (write_cov)
+    {
+        joint_cov_writer.emplace(
+            cmd.get_option("--out")->as<std::string>(), bim);
+    }
 
     const auto total_snps = static_cast<std::size_t>(bim.rows());
     std::size_t progress = 0;
@@ -217,6 +227,11 @@ auto assoc_execute(CLI::App& cmd) -> int
 
                     auto results = tester->run(reml);
                     writer.write(static_cast<std::size_t>(start), results);
+                    if (joint_cov_writer)
+                    {
+                        joint_cov_writer->write(
+                            static_cast<std::size_t>(start), results);
+                    }
 
                     progress += static_cast<std::size_t>(current_chunk_size);
                     reporter.update_scan_progress(progress, total_snps);
