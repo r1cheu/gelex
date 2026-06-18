@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/infra/logging/formatter.h"
+#include "cli/formatter.h"
 
 #include <fmt/base.h>
 #include <fmt/color.h>

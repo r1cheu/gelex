@@ -25,10 +25,10 @@
 #include <fmt/ranges.h>
 #include <Eigen/Core>
 
+#include "cli/formatter.h"
 #include "cli/report_printer.h"
 #include "gelex/algo/reml/statistics.h"
 #include "gelex/freq/model.h"
-#include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/reml_event.h"
 
 namespace cli
@@ -97,24 +97,6 @@ auto RemlReporter::show_result(
     p.block("  Model Fit:");
     p.line("  - AIC : {:.2f}", gelex::reml::compute_aic(model, loglike));
     p.line("  - BIC : {:.2f}", gelex::reml::compute_bic(model, loglike));
-
-    // fixed effects
-    p.block("  Fixed Effects:");
-    p.line("  {:12} {:>12} {:>12}", "Effect", "Estimate", "SE");
-    p.line(gelex::table_separator(40));
-    for (Eigen::Index i = 0; i < state.fixed().coeffs.size(); ++i)
-    {
-        std::string name = fmt::format("X{}", i);
-        if (static_cast<size_t>(i) < model.fixed().names.size())
-        {
-            name = model.fixed().names[i];
-        }
-        p.line(
-            "  {:12} {:>12.3f} {:>12.3f}",
-            name,
-            state.fixed().coeffs(i),
-            state.fixed().se(i));
-    }
 
     p.block("  Variance Components:");
     p.line(

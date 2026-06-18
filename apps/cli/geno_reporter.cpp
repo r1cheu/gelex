@@ -23,8 +23,8 @@
 #include <fmt/format.h>
 #include <string>
 
+#include "cli/formatter.h"
 #include "cli/report_printer.h"
-#include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/types/genetic_effect_type.h"
 

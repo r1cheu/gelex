@@ -24,8 +24,8 @@
 #include <fmt/ranges.h>
 #include <CLI/CLI.hpp>
 
+#include "cli/formatter.h"
 #include "cli/report_printer.h"
-#include "gelex/infra/logging/formatter.h"
 #include "version.h"
 
 namespace cli
@@ -82,12 +82,11 @@ auto RemlCommandReporter::show_config(const CLI::App& cmd) const -> void
         }
         if (values.empty())
         {
-            p.line("  {}", gelex::rebecca_purple(name));
+            p.line("  {}", name);
         }
         else
         {
-            p.line(
-                "  {} {}", gelex::rebecca_purple(name), fmt::join(values, " "));
+            p.line("  {} {}", name, fmt::join(values, " "));
         }
     }
 }

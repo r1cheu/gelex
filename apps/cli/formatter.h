@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_INFRA_LOGGING_FORMATTER_H_
-#define GELEX_INFRA_LOGGING_FORMATTER_H_
+#ifndef GELEX_APPS_CLI_FORMATTER_H_
+#define GELEX_APPS_CLI_FORMATTER_H_
 
 #include <Eigen/Core>
 #include <cstddef>
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include <fmt/base.h>
 #include <fmt/color.h>
@@ -91,4 +92,4 @@ struct formatter<gelex::AbbrNumber> : formatter<double>
 };
 }  // namespace fmt
 
-#endif  // GELEX_INFRA_LOGGING_FORMATTER_H_
+#endif  // GELEX_APPS_CLI_FORMATTER_H_

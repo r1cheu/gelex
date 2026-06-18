@@ -23,10 +23,10 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 
+#include "cli/formatter.h"
 #include "cli/reml_reporter.h"
 #include "cli/report_printer.h"
 #include "gelex/algo/gwas/assoc_type.h"
-#include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/progress_bar.h"
 #include "version.h"
 

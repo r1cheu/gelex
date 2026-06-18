@@ -23,8 +23,8 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
+#include "cli/formatter.h"
 #include "cli/report_printer.h"
-#include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/logging/progress_bar.h"
 #include "version.h"

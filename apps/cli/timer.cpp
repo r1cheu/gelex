@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/infra/logging/timer.h"
+#include "cli/timer.h"
 
 #include <algorithm>
 #include <chrono>
@@ -22,7 +22,25 @@
 #include <cstddef>
 #include <string>
 
-#include "gelex/infra/logging/formatter.h"
+#include <fmt/format.h>
+
+namespace
+{
+
+std::string format_eta(double seconds)
+{
+    if (seconds < 0 || seconds > 3600 * 60 * 99)
+    {
+        return "--:--:--";
+    }
+    int total_seconds = static_cast<int>(seconds);
+    int h = total_seconds / 3600;
+    int m = total_seconds / 60;
+    int s = total_seconds % 60;
+    return fmt::format("{:02d}:{:02d}:{:02d}", h, m, s);
+}
+
+}  // namespace
 
 namespace gelex
 {
@@ -61,8 +79,7 @@ std::string SmoothEtaCalculator::get_eta(size_t current_items)
 
     if (elapsed_since_last < min_update_interval_.count() && !is_first_update_)
     {
-        return gelex::format_eta(
-            calculate_eta_from_rate(current_items, smooth_rate_));
+        return format_eta(calculate_eta_from_rate(current_items, smooth_rate_));
     }
 
     std::chrono::duration<double> delta_time = now - last_time_;
@@ -71,8 +88,7 @@ std::string SmoothEtaCalculator::get_eta(size_t current_items)
     if (current_items < last_items_)
     {
         last_items_ = current_items;
-        return gelex::format_eta(
-            calculate_eta_from_rate(current_items, smooth_rate_));
+        return format_eta(calculate_eta_from_rate(current_items, smooth_rate_));
     }
 
     size_t delta_items = current_items - last_items_;
@@ -101,7 +117,7 @@ std::string SmoothEtaCalculator::get_eta(size_t current_items)
     last_items_ = current_items;
 
     cached_eta_seconds_ = calculate_eta_from_rate(current_items, smooth_rate_);
-    return gelex::format_eta(cached_eta_seconds_);
+    return format_eta(cached_eta_seconds_);
 }
 std::string SmoothEtaCalculator::total_time_consumed() const
 {
@@ -109,7 +125,7 @@ std::string SmoothEtaCalculator::total_time_consumed() const
     double duration = std::chrono::duration_cast<std::chrono::duration<double>>(
                           now - start_time_)
                           .count();
-    return gelex::format_eta(duration);
+    return format_eta(duration);
 }
 
 void SmoothEtaCalculator::reset(size_t new_total)

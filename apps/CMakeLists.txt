@@ -22,6 +22,8 @@ set(CLI_SOURCES
     cli/reml/command.cpp
     cli/reml/reporter.cpp
     cli/report_printer.cpp
+    cli/formatter.cpp
+    cli/timer.cpp
     cli/fit_reporter.cpp
     cli/reml_reporter.cpp
     cli/geno_reporter.cpp

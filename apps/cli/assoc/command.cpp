@@ -28,6 +28,7 @@
 
 #include "cli/cli_helper.h"
 #include "cli/common_data.h"
+#include "cli/formatter.h"
 #include "cli/reml_reporter.h"
 #include "cli/report_printer.h"
 #include "gelex/algo/gwas/assoc_tester.h"
@@ -43,7 +44,6 @@
 #include "gelex/exception.h"
 #include "gelex/freq/model.h"
 #include "gelex/infra/logger.h"
-#include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
 #include "gelex/io/grm/loco_reader.h"
 #include "gelex/io/gwas/joint_cov_writer.h"

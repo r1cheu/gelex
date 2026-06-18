@@ -27,12 +27,12 @@
 
 #include <Eigen/Core>
 
+#include "cli/formatter.h"
 #include "cli/report_printer.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/labels.h"
 #include "gelex/bayes/state.h"
 #include "gelex/infra/logging/fit_event.h"
-#include "gelex/infra/logging/formatter.h"
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "version.h"

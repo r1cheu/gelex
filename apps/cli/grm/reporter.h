@@ -21,9 +21,9 @@
 #include <string_view>
 #include <vector>
 
+#include "cli/timer.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/logging/progress_bar.h"
-#include "gelex/infra/logging/timer.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace cli

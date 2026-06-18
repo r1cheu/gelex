@@ -22,8 +22,8 @@
 
 #include <fmt/format.h>
 
+#include "cli/formatter.h"
 #include "cli/report_printer.h"
-#include "gelex/infra/logging/formatter.h"
 #include "gelex/post/diagnostic.h"
 #include "version.h"
 

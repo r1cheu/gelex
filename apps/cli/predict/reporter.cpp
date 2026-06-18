@@ -21,9 +21,9 @@
 #include <string>
 #include <string_view>
 
+#include "cli/formatter.h"
 #include "cli/report_printer.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/infra/logging/formatter.h"
 #include "version.h"
 
 namespace cli
