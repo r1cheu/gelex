@@ -46,7 +46,8 @@ auto setup_grm_command(CLI::App& program, int& exit_code) -> void
            "Genotype coding: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC")
         ->group("Model")
         ->type_name("<CODING>")
-        ->default_val(std::string{"OSH"});
+        ->default_val(std::string{"OSH"})
+        ->check(cli::genotype_method_validator());
     cmd.add_flag("--add", "Write additive GRM")->group("Model");
     cmd.add_flag("--dom", "Write dominance GRM")->group("Model");
     cmd.add_flag("--loco", "Write one GRM per chromosome")->group("Model");
@@ -54,10 +55,12 @@ auto setup_grm_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option("-c,--chunk-size", "SNPs per chunk")
         ->group("Runtime")
         ->type_name("<N>")
+        ->check(CLI::PositiveNumber)
         ->default_val(10000);
     cmd.add_option("-t,--threads", "CPU threads")
         ->group("Runtime")
         ->type_name("<N>")
+        ->check(CLI::NonNegativeNumber)
         ->default_val(
             static_cast<int>(std::thread::hardware_concurrency() / 2));
 

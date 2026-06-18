@@ -42,7 +42,8 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option(
            "--rand", "Random-effect factor TSV with FID, IID, factor columns")
         ->group("I/O")
-        ->type_name("<RAND>");
+        ->type_name("<RAND>")
+        ->check(CLI::ExistingFile);
     cmd.add_option("-o,--out", "Output prefix for .summary and .effects")
         ->group("I/O")
         ->type_name("<OUT>")
@@ -51,15 +52,18 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option("--max-iter", "Maximum AI-REML iterations")
         ->group("Runtime")
         ->type_name("<N>")
+        ->check(CLI::PositiveNumber)
         ->default_val(100);
     cmd.add_option(
            "--tol", "Relative tolerance for variance-component convergence")
         ->group("Runtime")
         ->type_name("<TOL>")
+        ->check(CLI::PositiveNumber)
         ->default_val(1e-6);
     cmd.add_option("-t,--threads", "CPU threads")
         ->group("Runtime")
         ->type_name("<N>")
+        ->check(CLI::NonNegativeNumber)
         ->default_val(
             std::max(
                 1, static_cast<int>(std::thread::hardware_concurrency() / 2)));

@@ -42,11 +42,13 @@ auto setup_predict_command(CLI::App& program, int& exit_code) -> void
            "--qcovar",
            "Quantitative covariate TSV with FID, IID, numeric columns")
         ->group("I/O")
-        ->type_name("<QCOVAR>");
+        ->type_name("<QCOVAR>")
+        ->check(CLI::ExistingFile);
     cmd.add_option(
            "--dcovar", "Discrete covariate TSV with FID, IID, factor columns")
         ->group("I/O")
-        ->type_name("<DCOVAR>");
+        ->type_name("<DCOVAR>")
+        ->check(CLI::ExistingFile);
     cmd.add_option("-o,--out", "Output prediction TSV path")
         ->group("I/O")
         ->type_name("<OUT>")
@@ -55,6 +57,7 @@ auto setup_predict_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option("-c,--chunk-size", "SNPs per chunk")
         ->group("Runtime")
         ->type_name("<N>")
+        ->check(CLI::PositiveNumber)
         ->default_val(10000);
 
     cmd.footer(

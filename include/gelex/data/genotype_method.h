@@ -17,7 +17,9 @@
 #ifndef GELEX_DATA_GENOTYPE_METHOD_H_
 #define GELEX_DATA_GENOTYPE_METHOD_H_
 
+#include <array>
 #include <cstdint>
+#include <string_view>
 #include <utility>
 
 #include <fmt/base.h>
@@ -41,6 +43,19 @@ enum class GenotypeMethod : uint8_t
     NOIAStandardize = 8,
     NOIACenter = 9
 };
+
+inline constexpr std::array<std::pair<std::string_view, GenotypeMethod>, 10>
+    GENOTYPE_METHOD_CODES{
+        {{"SH", GenotypeMethod::StandardizeHWE},
+         {"CH", GenotypeMethod::CenterHWE},
+         {"OSH", GenotypeMethod::OrthStandardizeHWE},
+         {"OCH", GenotypeMethod::OrthCenterHWE},
+         {"S", GenotypeMethod::Standardize},
+         {"C", GenotypeMethod::Center},
+         {"OS", GenotypeMethod::OrthStandardize},
+         {"OC", GenotypeMethod::OrthCenter},
+         {"NS", GenotypeMethod::NOIAStandardize},
+         {"NC", GenotypeMethod::NOIACenter}}};
 
 constexpr auto is_center(GenotypeMethod method) -> bool
 {

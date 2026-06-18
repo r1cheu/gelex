@@ -41,40 +41,48 @@ auto setup_simulate_command(CLI::App& program, int& exit_code) -> void
 
     cmd.add_option("--h2", "Additive heritability (0,1)")
         ->group("Model")
-        ->type_name("<P>");
+        ->type_name("<P>")
+        ->check(cli::open_unit_interval());
     cmd.add_option("--add-var", "Variances for additive effect classes")
         ->group("Model")
         ->type_name("<VAR>")
+        ->check(CLI::NonNegativeNumber)
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option("--add-n", "SNP counts for additive effect classes")
         ->group("Model")
         ->type_name("<N>")
+        ->check(CLI::NonNegativeNumber)
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option("--d2", "Dominance heritability (0,1)")
         ->group("Model")
-        ->type_name("<P>");
+        ->type_name("<P>")
+        ->check(cli::open_unit_interval());
     cmd.add_option("--dom-var", "Variances for dominance effect classes")
         ->group("Model")
         ->type_name("<VAR>")
+        ->check(CLI::NonNegativeNumber)
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option("--dom-n", "SNP counts for dominance effect classes")
         ->group("Model")
         ->type_name("<N>")
+        ->check(CLI::NonNegativeNumber)
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option(
            "--dom-pos-prob", "Probability dominance effects are positive")
         ->group("Model")
-        ->type_name("<P>");
+        ->type_name("<P>")
+        ->check(cli::open_unit_interval());
     cmd.add_option(
            "--geno-method,--gm",
            "Genotype coding: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC")
         ->group("Model")
         ->type_name("<CODING>")
-        ->default_val(std::string{"OS"});
+        ->default_val(std::string{"OS"})
+        ->check(cli::genotype_method_validator());
     cmd.add_option("--seed", "Random seed")
         ->group("Runtime")
         ->type_name("<N>")

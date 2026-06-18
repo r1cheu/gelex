@@ -30,7 +30,6 @@
 #include "gelex/data/grm/grm.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/writer.h"
-#include "gelex/exception.h"
 #include "gelex/types/genetic_effect_type.h"
 #include "reporter.h"
 
@@ -76,10 +75,6 @@ auto grm_execute(CLI::App& cmd) -> int
     auto method = cli::parse_genotype_method(
         cmd.get_option("--geno-method")->as<std::string>());
     auto chunk_size = cmd.get_option("--chunk-size")->as<int>();
-    if (chunk_size <= 0)
-    {
-        throw gelex::GelexException("chunk_size must be positive");
-    }
 
     cli::GrmReporter::show_banner();
     cli::GrmReporter::show_config(

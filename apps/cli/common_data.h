@@ -30,7 +30,6 @@
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/reader.h"
-#include "gelex/exception.h"
 #include "gelex/types/fixed_designs.h"
 
 namespace cli
@@ -60,10 +59,6 @@ auto load_base_data(Handler& handler, CLI::App& cmd) -> BaseData
 
     // read dataset
     auto pheno_col = cmd.get_option("--pheno-col")->as<int>();
-    if (pheno_col < 0)
-    {
-        throw gelex::GelexException("--pheno-col must be >= 0");
-    }
     auto pheno_col_offset = static_cast<std::size_t>(pheno_col);
     auto phenotype = gelex::read_pheno(
         cmd.get_option("--pheno")->as<std::string>(), &pheno_col_offset);

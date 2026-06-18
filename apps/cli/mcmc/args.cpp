@@ -48,7 +48,8 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
            "Genotype coding: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC")
         ->group("Model")
         ->type_name("<CODING>")
-        ->default_val(std::string{"OSH"});
+        ->default_val(std::string{"OSH"})
+        ->check(cli::genotype_method_validator());
     cmd.add_option("-m,--method", "Bayesian model: RR, A, B, C, R, CD")
         ->group("Model")
         ->type_name("<MODEL>")
@@ -65,41 +66,50 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option(
            "--random-pve", "Non-SNP random-effect variance fraction (0,1)")
         ->group("Model")
-        ->type_name("<P>");
+        ->type_name("<P>")
+        ->check(cli::open_unit_interval());
     cmd.add_option("--h2", "Additive heritability (0,1)")
         ->group("Model")
-        ->type_name("<P>");
+        ->type_name("<P>")
+        ->check(cli::open_unit_interval());
     cmd.add_option("--d2", "Dominance heritability (0,1)")
         ->group("Model")
-        ->type_name("<P>");
+        ->type_name("<P>")
+        ->check(cli::open_unit_interval());
     cmd.add_option(
            "--dom-pos-prob",
            "Initial probability dominance effects are positive")
         ->group("Model")
-        ->type_name("<P>");
+        ->type_name("<P>")
+        ->check(cli::open_unit_interval());
     cmd.add_option("--pi", "Additive mixture proportions (B/C/R)")
         ->group("Model")
         ->type_name("<P>")
+        ->check(CLI::PositiveNumber)
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option("--dpi", "Dominance mixture proportions (B/C/R)")
         ->group("Model")
         ->type_name("<P>")
+        ->check(CLI::PositiveNumber)
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option("--scale", "Additive variance multipliers (R)")
         ->group("Model")
         ->type_name("<SCALE>")
+        ->check(CLI::NonNegativeNumber)
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option("--dscale", "Dominance variance multipliers (R)")
         ->group("Model")
         ->type_name("<SCALE>")
+        ->check(CLI::NonNegativeNumber)
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option("--jpi", "Joint allocation proportions (CD)")
         ->group("Model")
         ->type_name("<P>")
+        ->check(CLI::PositiveNumber)
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_flag("--sample-pi", "Sample additive mixture proportions")
@@ -112,14 +122,17 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option("--iters", "MCMC iterations")
         ->group("Runtime")
         ->type_name("<N>")
+        ->check(CLI::PositiveNumber)
         ->default_val(5000);
     cmd.add_option("--burn-in", "Burn-in iterations")
         ->group("Runtime")
         ->type_name("<N>")
+        ->check(CLI::NonNegativeNumber)
         ->default_val(3000);
     cmd.add_option("--thin", "Sample every N iterations")
         ->group("Runtime")
         ->type_name("<N>")
+        ->check(CLI::PositiveNumber)
         ->default_val(1);
     cmd.add_option("--seed", "Random seed")
         ->group("Runtime")
@@ -128,17 +141,21 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option(
            "--checkpoint-step", "Checkpoint every N iterations; omit for final")
         ->group("Runtime")
-        ->type_name("<N>");
+        ->type_name("<N>")
+        ->check(CLI::NonNegativeNumber);
     cmd.add_option("--from-ckpt", "Resume from checkpoint file")
         ->group("Runtime")
-        ->type_name("<CKPT>");
+        ->type_name("<CKPT>")
+        ->check(CLI::ExistingFile);
     cmd.add_option("-c,--chunk-size", "SNPs per chunk")
         ->group("Runtime")
         ->type_name("<N>")
+        ->check(CLI::PositiveNumber)
         ->default_val(10000);
     cmd.add_option("-t,--threads", "CPU threads")
         ->group("Runtime")
         ->type_name("<N>")
+        ->check(CLI::NonNegativeNumber)
         ->default_val(
             std::max(
                 1, static_cast<int>(std::thread::hardware_concurrency() / 2)));

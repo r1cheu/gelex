@@ -81,23 +81,28 @@ auto setup_assoc_command(CLI::App& program, int& exit_code) -> void
            "Genotype coding: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC")
         ->group("Model")
         ->type_name("<CODING>")
-        ->default_val(std::string{"OCH"});
+        ->default_val(std::string{"OCH"})
+        ->check(cli::genotype_method_validator());
 
     cmd.add_option("--max-iter", "Maximum model-fit iterations")
         ->group("Runtime")
         ->type_name("<N>")
+        ->check(CLI::PositiveNumber)
         ->default_val(100);
     cmd.add_option("--tol", "Convergence tolerance")
         ->group("Runtime")
         ->type_name("<TOL>")
+        ->check(CLI::PositiveNumber)
         ->default_val(1e-6);
     cmd.add_option("-c,--chunk-size", "SNPs per chunk")
         ->group("Runtime")
         ->type_name("<N>")
+        ->check(CLI::PositiveNumber)
         ->default_val(10000);
     cmd.add_option("-t,--threads", "CPU threads")
         ->group("Runtime")
         ->type_name("<N>")
+        ->check(CLI::NonNegativeNumber)
         ->default_val(
             std::max(
                 1, static_cast<int>(std::thread::hardware_concurrency() / 2)));

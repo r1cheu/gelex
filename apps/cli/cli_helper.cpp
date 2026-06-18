@@ -24,7 +24,6 @@
 #include <iostream>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 #include <fmt/base.h>
@@ -57,50 +56,29 @@ constexpr std::string_view ERROR_MARKER = "[\033[31merror\033[0m] ";
 
 auto parse_genotype_method(std::string_view value) -> gelex::GenotypeMethod
 {
-    std::string lower(value);
-    std::transform(
-        lower.begin(),
-        lower.end(),
-        lower.begin(),
-        [](unsigned char c) { return std::tolower(c); });
-
-    static const std::unordered_map<std::string, gelex::GenotypeMethod>
-        METHOD_MAP = {
-            {"standardizehwe", gelex::GenotypeMethod::StandardizeHWE},
-            {"sh", gelex::GenotypeMethod::StandardizeHWE},
-            {"centerhwe", gelex::GenotypeMethod::CenterHWE},
-            {"ch", gelex::GenotypeMethod::CenterHWE},
-            {"orthstandardizehwe", gelex::GenotypeMethod::OrthStandardizeHWE},
-            {"osh", gelex::GenotypeMethod::OrthStandardizeHWE},
-            {"orthcenterhwe", gelex::GenotypeMethod::OrthCenterHWE},
-            {"och", gelex::GenotypeMethod::OrthCenterHWE},
-            {"standardize", gelex::GenotypeMethod::Standardize},
-            {"s", gelex::GenotypeMethod::Standardize},
-            {"center", gelex::GenotypeMethod::Center},
-            {"c", gelex::GenotypeMethod::Center},
-            {"orthstandardize", gelex::GenotypeMethod::OrthStandardize},
-            {"os", gelex::GenotypeMethod::OrthStandardize},
-            {"orthcenter", gelex::GenotypeMethod::OrthCenter},
-            {"oc", gelex::GenotypeMethod::OrthCenter},
-            {"noiastandardize", gelex::GenotypeMethod::NOIAStandardize},
-            {"ns", gelex::GenotypeMethod::NOIAStandardize},
-            {"noiacenter", gelex::GenotypeMethod::NOIACenter},
-            {"nc", gelex::GenotypeMethod::NOIACenter},
-        };
-
-    auto it = METHOD_MAP.find(lower);
-    if (it == METHOD_MAP.end())
+    for (const auto& [code, method] : gelex::GENOTYPE_METHOD_CODES)
     {
-        throw gelex::GelexException(
-            fmt::format(
-                "Invalid genotype process method: \"{}\". Valid: "
-                "StandardizeHWE(SH), CenterHWE(CH), "
-                "OrthStandardizeHWE(OSH), OrthCenterHWE(OCH), "
-                "Standardize(S), Center(C), OrthStandardize(OS), "
-                "OrthCenter(OC), NOIAStandardize(NS), NOIACenter(NC)",
-                value));
+        if (value.size() != code.size())
+        {
+            continue;
+        }
+        const bool matches = std::equal(
+            code.begin(),
+            code.end(),
+            value.begin(),
+            [](unsigned char expected, unsigned char actual)
+            { return std::tolower(expected) == std::tolower(actual); });
+        if (matches)
+        {
+            return method;
+        }
     }
-    return it->second;
+
+    throw gelex::GelexException(
+        fmt::format(
+            "Invalid genotype process method: \"{}\". Valid: "
+            "SH, CH, OSH, OCH, S, C, OS, OC, NS, NC",
+            value));
 }
 
 auto parse_genetic_modes(std::string_view sv) -> std::vector<gelex::GeneticMode>
@@ -144,22 +122,54 @@ auto add_common_io_options(CLI::App& cmd) -> void
     cmd.add_option("-p,--pheno", "Phenotype TSV with FID, IID, trait columns")
         ->group("I/O")
         ->type_name("<PHENOTYPE>")
+        ->check(CLI::ExistingFile)
         ->required();
     cmd.add_option(
            "--pheno-col",
            "0-based phenotype column after FID/IID; first trait=0")
         ->group("I/O")
         ->type_name("<COL>")
+        ->check(CLI::NonNegativeNumber)
         ->default_val(0);
     cmd.add_option(
            "--qcovar",
            "Quantitative covariate TSV with FID, IID, numeric columns")
         ->group("I/O")
-        ->type_name("<QCOVAR>");
+        ->type_name("<QCOVAR>")
+        ->check(CLI::ExistingFile);
     cmd.add_option(
            "--dcovar", "Discrete covariate TSV with FID, IID, factor columns")
         ->group("I/O")
-        ->type_name("<DCOVAR>");
+        ->type_name("<DCOVAR>")
+        ->check(CLI::ExistingFile);
+}
+
+auto open_unit_interval() -> CLI::Validator
+{
+    return CLI::Validator{
+        [](std::string& input)
+        {
+            double value{};
+            if (!CLI::detail::lexical_cast(input, value)
+                || !(value > 0.0 && value < 1.0))
+            {
+                return "Value " + input + " not in range (0 - 1)";
+            }
+            return std::string{};
+        },
+        "FLOAT in (0 - 1)",
+        "PROB"};
+}
+
+auto genotype_method_validator() -> CLI::Validator
+{
+    std::vector<std::string> names;
+    names.reserve(gelex::GENOTYPE_METHOD_CODES.size());
+    for (const auto& entry : gelex::GENOTYPE_METHOD_CODES)
+    {
+        names.emplace_back(entry.first);
+    }
+    return CLI::IsMember(names, CLI::ignore_case);
 }
 
 auto execute_cli_command(CLI::App& parser, int (*execute_fn)(CLI::App&)) -> int

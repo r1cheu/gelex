@@ -47,6 +47,7 @@ auto setup_post_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option("--hdpi", "HPDI mass")
         ->group("Model")
         ->type_name("<P>")
+        ->check(cli::open_unit_interval())
         ->default_val(0.94);
 
     cmd.footer(

@@ -64,10 +64,6 @@ class MCMCDataHandler
         bfile_prefix_ = cmd.get_option("--bfile")->as<std::string>();
         out_prefix_ = cmd.get_option("--out")->as<std::string>();
         chunk_size_ = cmd.get_option("--chunk-size")->as<int>();
-        if (chunk_size_ <= 0)
-        {
-            throw gelex::GelexException("--chunk-size must be positive");
-        }
         genotype_method_ = cli::parse_genotype_method(
             cmd.get_option("--geno-method")->as<std::string>());
         use_mmap_ = cmd.get_option("--mmap")->count() > 0;
