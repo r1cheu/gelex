@@ -48,6 +48,8 @@ auto add_common_io_options(CLI::App& cmd) -> void;
 
 auto open_unit_interval() -> CLI::Validator;
 
+auto non_negative_number() -> CLI::Validator;
+
 auto genotype_method_validator() -> CLI::Validator;
 
 auto execute_cli_command(CLI::App& parser, int (*execute_fn)(CLI::App&)) -> int;

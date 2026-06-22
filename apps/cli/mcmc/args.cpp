@@ -97,13 +97,13 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option("--scale", "Additive variance multipliers (R)")
         ->group("Model")
         ->type_name("<SCALE>")
-        ->check(CLI::NonNegativeNumber)
+        ->check(cli::non_negative_number())
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option("--dscale", "Dominance variance multipliers (R)")
         ->group("Model")
         ->type_name("<SCALE>")
-        ->check(CLI::NonNegativeNumber)
+        ->check(cli::non_negative_number())
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option("--jpi", "Joint allocation proportions (CD)")
@@ -127,7 +127,7 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option("--burn-in", "Burn-in iterations")
         ->group("Runtime")
         ->type_name("<N>")
-        ->check(CLI::NonNegativeNumber)
+        ->check(cli::non_negative_number())
         ->default_val(3000);
     cmd.add_option("--thin", "Sample every N iterations")
         ->group("Runtime")
@@ -142,7 +142,7 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
            "--checkpoint-step", "Checkpoint every N iterations; omit for final")
         ->group("Runtime")
         ->type_name("<N>")
-        ->check(CLI::NonNegativeNumber);
+        ->check(cli::non_negative_number());
     cmd.add_option("--from-ckpt", "Resume from checkpoint file")
         ->group("Runtime")
         ->type_name("<CKPT>")
@@ -155,7 +155,7 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option("-t,--threads", "CPU threads")
         ->group("Runtime")
         ->type_name("<N>")
-        ->check(CLI::NonNegativeNumber)
+        ->check(cli::non_negative_number())
         ->default_val(
             std::max(
                 1, static_cast<int>(std::thread::hardware_concurrency() / 2)));

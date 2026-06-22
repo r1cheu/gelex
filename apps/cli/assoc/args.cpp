@@ -102,7 +102,7 @@ auto setup_assoc_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option("-t,--threads", "CPU threads")
         ->group("Runtime")
         ->type_name("<N>")
-        ->check(CLI::NonNegativeNumber)
+        ->check(cli::non_negative_number())
         ->default_val(
             std::max(
                 1, static_cast<int>(std::thread::hardware_concurrency() / 2)));

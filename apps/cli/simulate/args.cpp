@@ -46,13 +46,13 @@ auto setup_simulate_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option("--add-var", "Variances for additive effect classes")
         ->group("Model")
         ->type_name("<VAR>")
-        ->check(CLI::NonNegativeNumber)
+        ->check(cli::non_negative_number())
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option("--add-n", "SNP counts for additive effect classes")
         ->group("Model")
         ->type_name("<N>")
-        ->check(CLI::NonNegativeNumber)
+        ->check(cli::non_negative_number())
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option("--d2", "Dominance heritability (0,1)")
@@ -62,13 +62,13 @@ auto setup_simulate_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option("--dom-var", "Variances for dominance effect classes")
         ->group("Model")
         ->type_name("<VAR>")
-        ->check(CLI::NonNegativeNumber)
+        ->check(cli::non_negative_number())
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option("--dom-n", "SNP counts for dominance effect classes")
         ->group("Model")
         ->type_name("<N>")
-        ->check(CLI::NonNegativeNumber)
+        ->check(cli::non_negative_number())
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option(

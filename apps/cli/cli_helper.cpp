@@ -76,7 +76,7 @@ auto parse_genotype_method(std::string_view value) -> gelex::GenotypeMethod
 
     throw gelex::GelexException(
         fmt::format(
-            "Invalid genotype process method: \"{}\". Valid: "
+            "invalid genotype process method: \"{}\". Valid: "
             "SH, CH, OSH, OCH, S, C, OS, OC, NS, NC",
             value));
 }
@@ -129,7 +129,7 @@ auto add_common_io_options(CLI::App& cmd) -> void
            "0-based phenotype column after FID/IID; first trait=0")
         ->group("I/O")
         ->type_name("<COL>")
-        ->check(CLI::NonNegativeNumber)
+        ->check(cli::non_negative_number())
         ->default_val(0);
     cmd.add_option(
            "--qcovar",
@@ -150,15 +150,32 @@ auto open_unit_interval() -> CLI::Validator
         [](std::string& input)
         {
             double value{};
-            if (!CLI::detail::lexical_cast(input, value)
-                || !(value > 0.0 && value < 1.0))
+            if (!CLI::detail::lexical_cast(input, value) || value <= 0.0
+                || value >= 1.0)
             {
-                return "Value " + input + " not in range (0 - 1)";
+                return std::string{
+                    "expected a value in the open interval (0, 1)"};
             }
             return std::string{};
         },
         "FLOAT in (0 - 1)",
         "PROB"};
+}
+
+auto non_negative_number() -> CLI::Validator
+{
+    return CLI::Validator{
+        [](std::string& input)
+        {
+            double value{};
+            if (!CLI::detail::lexical_cast(input, value) || !(value >= 0.0))
+            {
+                return std::string{"expected a non-negative value"};
+            }
+            return std::string{};
+        },
+        "NONNEGATIVE",
+        "NONNEGATIVE"};
 }
 
 auto genotype_method_validator() -> CLI::Validator
