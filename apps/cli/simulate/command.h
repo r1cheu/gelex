@@ -17,11 +17,8 @@
 #ifndef APPS_CLI_SIMULATE_COMMAND_H_
 #define APPS_CLI_SIMULATE_COMMAND_H_
 
-namespace CLI
-{
-class App;
-}
+#include "config.h"
 
-auto simulate_execute(CLI::App& sim) -> int;
+auto simulate_execute(const cli::SimulateConfig& config) -> int;
 
 #endif  // APPS_CLI_SIMULATE_COMMAND_H_

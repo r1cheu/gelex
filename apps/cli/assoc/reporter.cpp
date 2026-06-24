@@ -26,40 +26,12 @@
 #include "cli/formatter.h"
 #include "cli/reml_reporter.h"
 #include "cli/report_printer.h"
-#include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/infra/logging/progress_bar.h"
-#include "version.h"
 
 namespace cli
 {
 
 AssocReporter::AssocReporter() : eta_(1) {}
-
-auto AssocReporter::show_banner() const -> void
-{
-    cli::printer().block(
-        gelex::command_banner(PROJECT_VERSION, "GWAS Analysis"));
-}
-
-auto AssocReporter::show_config(
-    gelex::GeneticMode mode,
-    gelex::AssocType test_type,
-    bool loco,
-    gelex::GenotypeMethod geno_method,
-    int max_iter,
-    double tol) const -> void
-{
-    cli::printer().block(gelex::section("[Config]"));
-    cli::printer().line("  {:<12}: {}", "Mode", mode);
-    cli::printer().line(
-        "  {:<12}: {}",
-        "Test",
-        test_type == gelex::AssocType::Single ? "Single" : "Joint");
-    cli::printer().line("  {:<12}: {}", "LOCO", loco ? "Yes" : "No");
-    cli::printer().line("  {:<12}: {}", "Geno Method", geno_method);
-    cli::printer().line("  {:<12}: {}", "Max Iter", max_iter);
-    cli::printer().line("  {:<12}: {}", "Tolerance", tol);
-}
 
 auto AssocReporter::show_reml_started(std::string_view chr_name) const -> void
 {

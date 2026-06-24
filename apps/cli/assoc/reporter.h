@@ -22,11 +22,8 @@
 #include <vector>
 
 #include "cli/timer.h"
-#include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/algo/reml/loco_result.h"
-#include "gelex/data/genotype_method.h"
 #include "gelex/infra/logging/progress_bar.h"
-#include "gelex/types/genetic_effect_type.h"
 
 namespace cli
 {
@@ -36,14 +33,6 @@ class AssocReporter
    public:
     AssocReporter();
 
-    auto show_banner() const -> void;
-    auto show_config(
-        gelex::GeneticMode mode,
-        gelex::AssocType test_type,
-        bool loco,
-        gelex::GenotypeMethod geno_method,
-        int max_iter,
-        double tol) const -> void;
     auto show_reml_started(std::string_view chr_name) const -> void;
     auto start_scan(size_t total_snps, int chunk_size, bool loco) -> void;
     auto update_scan_progress(size_t current, size_t total) -> void;

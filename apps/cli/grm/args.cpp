@@ -16,59 +16,71 @@
 
 #include "args.h"
 
-#include <string>
-#include <thread>
+#include <memory>
 
 #include <CLI/CLI.hpp>
 
 #include "cli/cli_helper.h"
 #include "command.h"
+#include "config.h"
 
 auto setup_grm_command(CLI::App& program, int& exit_code) -> void
 {
+    auto config = std::make_shared<cli::GrmConfig>();
     auto* subcommand = program.add_subcommand("grm");
     auto& cmd = *subcommand;
 
     cmd.description("Build genomic relationship matrices from PLINK data");
 
-    cmd.add_option("-b,--bfile", "PLINK prefix; reads <prefix>.bed/.bim/.fam")
+    cmd.add_option(
+           "-b,--bfile",
+           config->bfile,
+           "PLINK prefix; reads <prefix>.bed/.bim/.fam")
         ->group("I/O")
         ->type_name("<BFILE>")
         ->required();
     cmd.add_option(
-           "-o,--out", "Output prefix; writes <prefix>.<effect>.bin/.id")
+           "-o,--out",
+           config->out,
+           "Output prefix; writes <prefix>.<effect>.bin/.id")
         ->group("I/O")
         ->type_name("<OUT>")
-        ->default_val(std::string{"grm"});
+        ->capture_default_str();
 
     cmd.add_option(
            "--geno-method,--gm",
+           config->geno_method,
            "Genotype coding: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC")
         ->group("Model")
         ->type_name("<CODING>")
-        ->default_val(std::string{"OSH"})
+        ->capture_default_str()
         ->check(cli::genotype_method_validator());
-    cmd.add_flag("--add", "Write additive GRM")->group("Model");
-    cmd.add_flag("--dom", "Write dominance GRM")->group("Model");
-    cmd.add_flag("--loco", "Write one GRM per chromosome")->group("Model");
+    cmd.add_flag("--add", config->add, "Write additive GRM")->group("Model");
+    cmd.add_flag("--dom", config->dom, "Write dominance GRM")->group("Model");
+    cmd.add_flag("--loco", config->loco, "Write one GRM per chromosome")
+        ->group("Model");
 
-    cmd.add_option("-c,--chunk-size", "SNPs per chunk")
+    cmd.add_option("-c,--chunk-size", config->chunk_size, "SNPs per chunk")
         ->group("Runtime")
         ->type_name("<N>")
         ->check(CLI::PositiveNumber)
-        ->default_val(10000);
-    cmd.add_option("-t,--threads", "CPU threads")
+        ->capture_default_str();
+    cmd.add_option("-t,--threads", config->threads, "CPU threads")
         ->group("Runtime")
         ->type_name("<N>")
         ->check(cli::non_negative_number())
-        ->default_val(
-            static_cast<int>(std::thread::hardware_concurrency() / 2));
+        ->capture_default_str();
 
     cmd.footer(
         "Docs:\n"
         "  https://gelex.readthedocs.io/en/latest/cli/grm.html");
 
     cmd.callback(
-        [subcommand, &exit_code]()
-        { exit_code = cli::execute_cli_command(*subcommand, grm_execute); });
+        [&cmd, &exit_code, config]()
+        {
+            exit_code = cli::execute_cli_command(
+                cmd,
+                "GRM Computation",
+                [config]() { return grm_execute(*config); });
+        });
 }

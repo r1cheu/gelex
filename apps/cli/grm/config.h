@@ -14,11 +14,27 @@
  * limitations under the License.
  */
 
-#ifndef APPS_CLI_GRM_COMMAND_H_
-#define APPS_CLI_GRM_COMMAND_H_
+#ifndef APPS_CLI_GRM_CONFIG_H_
+#define APPS_CLI_GRM_CONFIG_H_
 
-#include "config.h"
+#include <string>
+#include <thread>
 
-auto grm_execute(const cli::GrmConfig& config) -> int;
+namespace cli
+{
 
-#endif  // APPS_CLI_GRM_COMMAND_H_
+struct GrmConfig
+{
+    std::string bfile;
+    std::string out{"grm"};
+    std::string geno_method{"OSH"};
+    bool add{false};
+    bool dom{false};
+    bool loco{false};
+    int chunk_size{10000};
+    int threads{static_cast<int>(std::thread::hardware_concurrency() / 2)};
+};
+
+}  // namespace cli
+
+#endif  // APPS_CLI_GRM_CONFIG_H_

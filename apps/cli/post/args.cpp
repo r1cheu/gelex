@@ -16,45 +16,56 @@
 
 #include "args.h"
 
-#include <string>
+#include <memory>
 
 #include <CLI/CLI.hpp>
 
 #include "cli/cli_helper.h"
 #include "command.h"
+#include "config.h"
 
 auto setup_post_command(CLI::App& program, int& exit_code) -> void
 {
+    auto config = std::make_shared<cli::PostConfig>();
     auto* subcommand = program.add_subcommand("post");
     auto& cmd = *subcommand;
 
     cmd.description("Summarize posterior diagnostics from MCMC samples");
 
-    cmd.add_option("--in", "MCMC output prefix(es); reads <prefix>.samples")
+    cmd.add_option(
+           "--in", config->in, "MCMC output prefix(es); reads <prefix>.samples")
         ->group("I/O")
         ->type_name("<PREFIX>")
         ->expected(1, -1)
         ->allow_extra_args()
         ->required();
-    cmd.add_option("-g,--gfile", "Genotype binary prefix for SNP diagnostics")
+    cmd.add_option(
+           "-g,--gfile",
+           config->gfile,
+           "Genotype binary prefix for SNP diagnostics")
         ->group("I/O")
         ->type_name("<GFILE>");
-    cmd.add_option("-o,--out", "Output prefix for logs")
+    cmd.add_option("-o,--out", config->out, "Output prefix for logs")
         ->group("I/O")
         ->type_name("<PREFIX>")
-        ->default_val(std::string{"gelex_post"});
+        ->capture_default_str();
 
-    cmd.add_option("--hdpi", "HPDI mass")
+    cmd.add_option("--hdpi", config->hdpi, "HPDI mass")
         ->group("Model")
         ->type_name("<P>")
         ->check(cli::open_unit_interval())
-        ->default_val(0.94);
+        ->capture_default_str();
 
     cmd.footer(
         "Docs:\n"
         "  https://gelex.readthedocs.io/en/latest/");
 
     cmd.callback(
-        [subcommand, &exit_code]()
-        { exit_code = cli::execute_cli_command(*subcommand, post_execute); });
+        [&cmd, &exit_code, config]()
+        {
+            exit_code = cli::execute_cli_command(
+                cmd,
+                "MCMC Posterior Analysis",
+                [config]() { return post_execute(*config); });
+        });
 }

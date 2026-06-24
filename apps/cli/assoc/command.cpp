@@ -23,7 +23,6 @@
 #include <utility>
 #include <vector>
 
-#include <CLI/CLI.hpp>
 #include <Eigen/Core>
 
 #include "cli/cli_helper.h"
@@ -54,25 +53,25 @@
 struct AssocData
 {
     gelex::dataframe::Index<std::string> sample_index;
-    std::vector<std::string> grm_prefixes;
     std::vector<gelex::freq::RandomDesign> random_designs;
 };
 
 class AssocDataHandler
 {
    public:
+    explicit AssocDataHandler(const cli::AssocConfig& config) noexcept
+        : config_(config)
+    {
+    }
+
     auto load_indices(
-        CLI::App& cmd,
         std::vector<gelex::dataframe::Index<std::string>*>& indices) -> void
     {
-        fam_index_ = gelex::read_fam(
-                         cmd.get_option("--bfile")->as<std::string>() + ".fam")
-                         .index();
+        fam_index_ = gelex::read_fam(config_.bfile + ".fam").index();
         indices.push_back(&fam_index_);
 
-        grm_prefixes_ = cmd.get_option("--grm")->as<std::vector<std::string>>();
-        grm_indices_.reserve(grm_prefixes_.size());
-        for (const auto& path : grm_prefixes_)
+        grm_indices_.reserve(config_.grm.size());
+        for (const auto& path : config_.grm)
         {
             grm_indices_.emplace_back(gelex::read_grm_ids(path));
             cli::printer().line(
@@ -85,41 +84,38 @@ class AssocDataHandler
         -> void
     {
         sample_index_ = common_index;
-        random_designs_ = gelex::make_grm_designs(grm_prefixes_, common_index);
+        random_designs_ = gelex::make_grm_designs(config_.grm, common_index);
     }
 
     auto results() && -> AssocData
     {
         return AssocData{
             .sample_index = std::move(sample_index_),
-            .grm_prefixes = std::move(grm_prefixes_),
             .random_designs = std::move(random_designs_)};
     }
 
    private:
+    const cli::AssocConfig& config_;
     gelex::dataframe::Index<std::string> fam_index_;
     gelex::dataframe::Index<std::string> sample_index_;
-    std::vector<std::string> grm_prefixes_;
     std::vector<gelex::dataframe::Index<std::string>> grm_indices_;
     std::vector<gelex::freq::RandomDesign> random_designs_;
 };
 
-auto assoc_execute(CLI::App& cmd) -> int
+auto assoc_execute(const cli::AssocConfig& config) -> int
 {
-    cli::setup_parallelization(cmd.get_option("--threads")->as<int>());
+    cli::setup_parallelization(config.threads);
 
-    const gelex::AssocType test_type
-        = cmd.get_option("--test")->as<std::string>() == "joint"
-              ? gelex::AssocType::Joint
-              : gelex::AssocType::Single;
+    const gelex::AssocType test_type = config.test == "joint"
+                                           ? gelex::AssocType::Joint
+                                           : gelex::AssocType::Single;
     const gelex::GeneticMode mode
-        = test_type == gelex::AssocType::Single
-                  && cmd.get_option("--mode")->as<std::string>() == "D"
+        = test_type == gelex::AssocType::Single && config.mode == "D"
               ? gelex::GeneticMode::D
               : gelex::GeneticMode::A;
-    const gelex::GenotypeMethod geno_method{cli::parse_genotype_method(
-        cmd.get_option("--geno-method")->as<std::string>())};
-    const bool write_cov{cmd.get_option("--write-cov")->count() > 0};
+    const gelex::GenotypeMethod geno_method{
+        cli::parse_genotype_method(config.geno_method)};
+    const bool write_cov{config.write_cov};
 
     if (write_cov
         && (test_type != gelex::AssocType::Joint
@@ -131,19 +127,10 @@ auto assoc_execute(CLI::App& cmd) -> int
 
     cli::AssocReporter reporter;
 
-    reporter.show_banner();
-    reporter.show_config(
-        mode,
-        test_type,
-        cmd.get_option("--loco")->count() > 0,
-        geno_method,
-        cmd.get_option("--max-iter")->as<int>(),
-        cmd.get_option("--tol")->as<double>());
-
     cli::printer().block(gelex::section("[Dataset Summary]"));
 
-    AssocDataHandler handler;
-    cli::BaseData data = cli::load_base_data(handler, cmd);
+    AssocDataHandler handler(config);
+    cli::BaseData data = cli::load_base_data(handler, config.base_data);
     auto assoc_data = std::move(handler).results();
 
     cli::printer().line(
@@ -155,33 +142,30 @@ auto assoc_execute(CLI::App& cmd) -> int
             "covariates. Check that sample IDs match across input files.");
     }
 
-    if (cmd.get_option("--transform")->as<std::string>() != "none")
+    if (config.transform != "none")
     {
-        gelex::stats::RankInverseNormTransform transformer(
-            cmd.get_option("--int-offset")->as<double>());
+        gelex::stats::RankInverseNormTransform transformer(config.int_offset);
         auto logger = gelex::logging::get();
 
-        if (cmd.get_option("--transform")->as<std::string>() == "dint")
+        if (config.transform == "dint")
         {
             logger->info(
                 "   Method: Direct INT (DINT), offset (k): {}",
-                cmd.get_option("--int-offset")->as<double>());
+                config.int_offset);
             transformer.apply_dint(data.phenotype);
         }
-        else if (cmd.get_option("--transform")->as<std::string>() == "iint")
+        else if (config.transform == "iint")
         {
             logger->info(
                 "   Method: Indirect INT (IINT), offset (k): {}",
-                cmd.get_option("--int-offset")->as<double>());
+                config.int_offset);
             transformer.apply_iint(data.phenotype, data.fixed_design.X);
             data.fixed_design = gelex::FixedDesign::make(data.phenotype.size());
         }
     }
 
-    auto bed = gelex::open_bed(
-        cmd.get_option("--bfile")->as<std::string>(), assoc_data.sample_index);
-    auto bim = gelex::read_bim(
-        cmd.get_option("--bfile")->as<std::string>() + ".bim");
+    auto bed = gelex::open_bed(config.bfile, assoc_data.sample_index);
+    auto bim = gelex::read_bim(config.bfile + ".bim");
 
     gelex::FreqModel model(
         std::move(data.phenotype),
@@ -190,13 +174,11 @@ auto assoc_execute(CLI::App& cmd) -> int
     gelex::FreqState state(model);
 
     auto tester = gelex::AssocTester::make(test_type, mode, geno_method);
-    gelex::gwas::GwasWriter writer(
-        cmd.get_option("--out")->as<std::string>(), bim, test_type);
+    gelex::gwas::GwasWriter writer(config.out, bim, test_type);
     std::optional<gelex::gwas::JointCovWriter> joint_cov_writer;
     if (write_cov)
     {
-        joint_cov_writer.emplace(
-            cmd.get_option("--out")->as<std::string>(), bim);
+        joint_cov_writer.emplace(config.out, bim);
     }
 
     const auto total_snps = static_cast<std::size_t>(bim.rows());
@@ -212,13 +194,10 @@ auto assoc_execute(CLI::App& cmd) -> int
             for (const auto& [range_start, range_end] : group.ranges)
             {
                 for (auto start = range_start; start < range_end;
-                     start += static_cast<Eigen::Index>(
-                         cmd.get_option("--chunk-size")->as<int>()))
+                     start += static_cast<Eigen::Index>(config.chunk_size))
                 {
                     const auto end = std::min(
-                        start
-                            + static_cast<Eigen::Index>(
-                                cmd.get_option("--chunk-size")->as<int>()),
+                        start + static_cast<Eigen::Index>(config.chunk_size),
                         range_end);
                     const auto current_chunk_size = end - start;
 
@@ -242,12 +221,10 @@ auto assoc_execute(CLI::App& cmd) -> int
 
     cli::RemlReporter reml_reporter;
 
-    if (cmd.get_option("--loco")->count() == 0)
+    if (!config.loco)
     {
         gelex::reml::Estimator estimator(
-            cmd.get_option("--max-iter")->as<int>(),
-            cmd.get_option("--tol")->as<double>(),
-            reml_reporter.as_observer());
+            config.max_iter, config.tolerance, reml_reporter.as_observer());
 
         reporter.show_reml_started("");
 
@@ -257,19 +234,18 @@ auto assoc_execute(CLI::App& cmd) -> int
             state,
             estimator.is_converged(),
             estimator.iter_count(),
-            cmd.get_option("--max-iter")->as<int>(),
+            config.max_iter,
             estimator.loglike());
 
         auto chr_groups = gelex::build_chr_groups(false, bim);
 
-        reporter.start_scan(
-            total_snps, cmd.get_option("--chunk-size")->as<int>(), false);
+        reporter.start_scan(total_snps, config.chunk_size, false);
 
         scan_groups(chr_groups, reml);
     }
     else
     {
-        if (model.random().size() != assoc_data.grm_prefixes.size())
+        if (model.random().size() != config.grm.size())
         {
             throw gelex::GelexException(
                 "Number of random components in model does not match "
@@ -277,16 +253,15 @@ auto assoc_execute(CLI::App& cmd) -> int
         }
 
         std::vector<gelex::LocoReader> loco_readers;
-        loco_readers.reserve(assoc_data.grm_prefixes.size());
-        for (const auto& path : assoc_data.grm_prefixes)
+        loco_readers.reserve(config.grm.size());
+        for (const auto& path : config.grm)
         {
             loco_readers.emplace_back(path, assoc_data.sample_index);
         }
 
         auto chr_groups = gelex::build_chr_groups(true, bim);
 
-        reporter.start_scan(
-            total_snps, cmd.get_option("--chunk-size")->as<int>(), true);
+        reporter.start_scan(total_snps, config.chunk_size, true);
 
         std::vector<gelex::LocoRemlResult> loco_results;
 
@@ -294,8 +269,7 @@ auto assoc_execute(CLI::App& cmd) -> int
         {
             for (std::size_t i = 0; i < loco_readers.size(); ++i)
             {
-                const auto chr_grm_prefix
-                    = assoc_data.grm_prefixes[i] + ".chr" + group.name;
+                const auto chr_grm_prefix = config.grm[i] + ".chr" + group.name;
                 loco_readers[i].load_loco_grm(
                     chr_grm_prefix,
                     assoc_data.sample_index,
@@ -304,9 +278,7 @@ auto assoc_execute(CLI::App& cmd) -> int
 
             reporter.show_loco_phase(group.name, "REML");
 
-            gelex::reml::Estimator estimator(
-                cmd.get_option("--max-iter")->as<int>(),
-                cmd.get_option("--tol")->as<double>());
+            gelex::reml::Estimator estimator(config.max_iter, config.tolerance);
             auto reml = estimator.fit(model, state);
 
             {
@@ -334,7 +306,7 @@ auto assoc_execute(CLI::App& cmd) -> int
         reporter.show_loco_reml_summary(loco_results);
     }
 
-    reporter.show_complete(cmd.get_option("--out")->as<std::string>());
+    reporter.show_complete(config.out);
 
     return 0;
 }

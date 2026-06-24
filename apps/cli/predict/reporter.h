@@ -28,11 +28,6 @@ namespace cli
 class PredictReporter
 {
    public:
-    auto show_banner() const -> void;
-    auto show_params_loaded(
-        std::string_view bfile_prefix,
-        std::string_view gfile_prefix,
-        gelex::GenotypeMethod geno_method) const -> void;
     auto show_snp_selection(
         size_t num_matched,
         size_t num_missing,
@@ -43,7 +38,8 @@ class PredictReporter
     auto show_data_loaded(
         size_t num_samples,
         size_t num_snps,
-        size_t num_covar_terms) const -> void;
+        size_t num_covar_terms,
+        gelex::GenotypeMethod geno_method) const -> void;
     auto show_results_written(std::string_view output_path, size_t num_samples)
         const -> void;
 };

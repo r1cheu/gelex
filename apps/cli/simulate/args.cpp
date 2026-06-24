@@ -16,85 +16,105 @@
 
 #include "args.h"
 
-#include <string>
+#include <memory>
 
 #include <CLI/CLI.hpp>
 
 #include "cli/cli_helper.h"
 #include "command.h"
+#include "config.h"
 
 auto setup_simulate_command(CLI::App& program, int& exit_code) -> void
 {
+    auto config = std::make_shared<cli::SimulateConfig>();
     auto* subcommand = program.add_subcommand("simulate");
     auto& cmd = *subcommand;
 
     cmd.description("Simulate phenotypes from PLINK genotypes");
 
-    cmd.add_option("-b,--bfile", "PLINK prefix; reads <prefix>.bed/.bim/.fam")
+    cmd.add_option(
+           "-b,--bfile",
+           config->bfile,
+           "PLINK prefix; reads <prefix>.bed/.bim/.fam")
         ->group("I/O")
         ->type_name("<BFILE>")
         ->required();
-    cmd.add_option("-o,--out", "Output prefix for .phen and .causal")
+    cmd.add_option(
+           "-o,--out", config->out, "Output prefix for .phen and .causal")
         ->group("I/O")
         ->type_name("<OUT>")
-        ->default_val(std::string{"sim.phen"});
+        ->capture_default_str();
 
-    cmd.add_option("--h2", "Additive heritability (0,1)")
+    cmd.add_option("--h2", config->h2, "Additive heritability (0,1)")
         ->group("Model")
         ->type_name("<P>")
         ->check(cli::open_unit_interval());
-    cmd.add_option("--add-var", "Variances for additive effect classes")
+    cmd.add_option(
+           "--add-var",
+           config->add_var,
+           "Variances for additive effect classes")
         ->group("Model")
         ->type_name("<VAR>")
         ->check(cli::non_negative_number())
         ->expected(1, -1)
         ->allow_extra_args();
-    cmd.add_option("--add-n", "SNP counts for additive effect classes")
+    cmd.add_option(
+           "--add-n", config->add_n, "SNP counts for additive effect classes")
         ->group("Model")
         ->type_name("<N>")
         ->check(cli::non_negative_number())
         ->expected(1, -1)
         ->allow_extra_args();
-    cmd.add_option("--d2", "Dominance heritability (0,1)")
+    cmd.add_option("--d2", config->d2, "Dominance heritability (0,1)")
         ->group("Model")
         ->type_name("<P>")
         ->check(cli::open_unit_interval());
-    cmd.add_option("--dom-var", "Variances for dominance effect classes")
+    cmd.add_option(
+           "--dom-var",
+           config->dom_var,
+           "Variances for dominance effect classes")
         ->group("Model")
         ->type_name("<VAR>")
         ->check(cli::non_negative_number())
         ->expected(1, -1)
         ->allow_extra_args();
-    cmd.add_option("--dom-n", "SNP counts for dominance effect classes")
+    cmd.add_option(
+           "--dom-n", config->dom_n, "SNP counts for dominance effect classes")
         ->group("Model")
         ->type_name("<N>")
         ->check(cli::non_negative_number())
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option(
-           "--dom-pos-prob", "Probability dominance effects are positive")
+           "--dom-pos-prob",
+           config->dom_pos_prob,
+           "Probability dominance effects are positive")
         ->group("Model")
         ->type_name("<P>")
         ->check(cli::open_unit_interval());
     cmd.add_option(
            "--geno-method,--gm",
+           config->geno_method,
            "Genotype coding: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC")
         ->group("Model")
         ->type_name("<CODING>")
-        ->default_val(std::string{"OS"})
+        ->capture_default_str()
         ->check(cli::genotype_method_validator());
-    cmd.add_option("--seed", "Random seed")
+    cmd.add_option("--seed", config->seed, "Random seed")
         ->group("Runtime")
         ->type_name("<N>")
-        ->default_val(42);
+        ->capture_default_str();
 
     cmd.footer(
         "Docs:\n"
         "  https://gelex.readthedocs.io/en/latest/cli/simulate.html");
 
     cmd.callback(
-        [subcommand, &exit_code]()
+        [&cmd, &exit_code, config]()
         {
-            exit_code = cli::execute_cli_command(*subcommand, simulate_execute);
+            exit_code = cli::execute_cli_command(
+                cmd,
+                "Phenotype Simulation",
+                [config]() { return simulate_execute(*config); });
         });
 }

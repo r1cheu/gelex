@@ -19,12 +19,10 @@
 
 #include <cstddef>
 #include <string_view>
-#include <vector>
 
 #include "cli/timer.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/logging/progress_bar.h"
-#include "gelex/types/genetic_effect_type.h"
 
 namespace cli
 {
@@ -34,11 +32,6 @@ class GrmReporter
    public:
     GrmReporter();
 
-    static auto show_banner() -> void;
-    static auto show_config(
-        std::string_view method,
-        const std::vector<gelex::GeneticMode>& requested_effects,
-        bool do_loco) -> void;
     static auto show_data_loaded(size_t num_samples, size_t num_snps) -> void;
     auto start_compute(size_t total_snps) -> void;
     auto on_event(const gelex::GrmProgressEvent& event) -> void;

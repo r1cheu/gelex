@@ -14,11 +14,32 @@
  * limitations under the License.
  */
 
-#ifndef APPS_CLI_GRM_COMMAND_H_
-#define APPS_CLI_GRM_COMMAND_H_
+#ifndef APPS_CLI_REML_CONFIG_H_
+#define APPS_CLI_REML_CONFIG_H_
 
-#include "config.h"
+#include <algorithm>
+#include <optional>
+#include <string>
+#include <thread>
+#include <vector>
 
-auto grm_execute(const cli::GrmConfig& config) -> int;
+#include "cli/common_data.h"
 
-#endif  // APPS_CLI_GRM_COMMAND_H_
+namespace cli
+{
+
+struct RemlConfig
+{
+    BaseDataConfig base_data;
+    std::vector<std::string> grm_prefixes;
+    std::optional<std::string> rand_path;
+    std::string out_prefix{"gelex"};
+    int max_iter{100};
+    double tolerance{1e-6};
+    int threads{
+        std::max(1, static_cast<int>(std::thread::hardware_concurrency() / 2))};
+};
+
+}  // namespace cli
+
+#endif  // APPS_CLI_REML_CONFIG_H_

@@ -23,11 +23,9 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 #include <fmt/format.h>
-#include <CLI/CLI.hpp>
 #include <Eigen/Core>
 
 #include "cli/cli_helper.h"
@@ -111,24 +109,13 @@ auto validate_heritabilities(
     }
 }
 
-struct SchemeFlags
+auto build_scheme(
+    std::span<const double> variances,
+    std::span<const int> counts,
+    std::string_view label,
+    double heritability) -> SimulateScheme
 {
-    std::string var_flag;
-    std::string n_flag;
-    std::string label;
-};
-
-auto build_scheme(CLI::App& cmd, const SchemeFlags& flags, double heritability)
-    -> SimulateScheme
-{
-    auto variances
-        = cmd.get_option(flags.var_flag)->count() > 0
-              ? cmd.get_option(flags.var_flag)->as<std::vector<double>>()
-              : std::vector<double>{};
-    auto counts = cmd.get_option(flags.n_flag)->count() > 0
-                      ? cmd.get_option(flags.n_flag)->as<std::vector<int>>()
-                      : std::vector<int>{};
-    validate_effect_classes(variances, counts, flags.label);
+    validate_effect_classes(variances, counts, label);
     return {
         .heritability = heritability,
         .effect_sizes = create_effectsize_vec(variances, counts),
@@ -137,21 +124,11 @@ auto build_scheme(CLI::App& cmd, const SchemeFlags& flags, double heritability)
 
 }  // namespace
 
-auto simulate_execute(CLI::App& sim) -> int
+auto simulate_execute(const cli::SimulateConfig& config) -> int
 {
-    auto add_heritability
-        = sim.get_option("--h2")->count() > 0
-              ? std::make_optional(sim.get_option("--h2")->as<double>())
-              : std::nullopt;
-    auto dom_heritability
-        = sim.get_option("--d2")->count() > 0
-              ? std::make_optional(sim.get_option("--d2")->as<double>())
-              : std::nullopt;
-    auto dom_positive_prob
-        = sim.get_option("--dom-pos-prob")->count() > 0
-              ? std::make_optional(
-                    sim.get_option("--dom-pos-prob")->as<double>())
-              : std::nullopt;
+    auto add_heritability = config.h2;
+    auto dom_heritability = config.d2;
+    auto dom_positive_prob = config.dom_pos_prob;
 
     validate_heritabilities(
         add_heritability, dom_heritability, dom_positive_prob);
@@ -160,8 +137,9 @@ auto simulate_execute(CLI::App& sim) -> int
     if (add_heritability)
     {
         additive_scheme = build_scheme(
-            sim,
-            {"--add-var", "--add-n", "Additive effect class"},
+            config.add_var,
+            config.add_n,
+            "Additive effect class",
             *add_heritability);
     }
 
@@ -169,23 +147,18 @@ auto simulate_execute(CLI::App& sim) -> int
     if (dom_heritability)
     {
         dominance_scheme = build_scheme(
-            sim,
-            {"--dom-var", "--dom-n", "Dominance effect class"},
+            config.dom_var,
+            config.dom_n,
+            "Dominance effect class",
             *dom_heritability);
     }
 
     cli::SimulatorReporter reporter;
     auto observer = reporter.as_observer();
 
-    reporter.show_banner();
-    reporter.show_config(
-        add_heritability,
-        dom_heritability,
-        sim.get_option("--seed")->as<int>());
+    std::mt19937_64 rng(config.seed);
 
-    std::mt19937_64 rng(sim.get_option("--seed")->as<int>());
-
-    const auto bfile_prefix = sim.get_option("--bfile")->as<std::string>();
+    const auto& bfile_prefix = config.bfile;
     auto bim = gelex::read_bim(bfile_prefix + ".bim");
     auto fam = gelex::read_fam(bfile_prefix + ".fam");
 
@@ -195,8 +168,7 @@ auto simulate_execute(CLI::App& sim) -> int
     std::vector<std::string_view> shuffled_ids(all_ids.begin(), all_ids.end());
     std::ranges::shuffle(shuffled_ids, rng);
 
-    const auto geno_method = cli::parse_genotype_method(
-        sim.get_option("--geno-method")->as<std::string>());
+    const auto geno_method = cli::parse_genotype_method(config.geno_method);
 
     std::optional<gelex::GeneticValues> additive;
     if (additive_scheme)
@@ -263,7 +235,7 @@ auto simulate_execute(CLI::App& sim) -> int
     }
     reporter.show_variance_summary(realized_h2, realized_d2);
 
-    const auto out_prefix = sim.get_option("--out")->as<std::string>();
+    const auto& out_prefix = config.out;
     gelex::io::detail::TextWriter writer(out_prefix + ".phen");
     writer.write_header({"FID", "IID", "Phenotype"});
     for (Eigen::Index i = 0; i < n_samples; ++i)

@@ -30,11 +30,6 @@ class SimulatorReporter
    public:
     SimulatorReporter();
 
-    auto show_banner() const -> void;
-    auto show_config(
-        std::optional<double> add_heritability,
-        std::optional<double> dom_heritability,
-        int seed) const -> void;
     auto on_event(const gelex::SimulateProgressEvent& event) -> void;
     auto show_variance_summary(
         std::optional<double> realized_h2,

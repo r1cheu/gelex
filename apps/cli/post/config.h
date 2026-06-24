@@ -14,11 +14,24 @@
  * limitations under the License.
  */
 
-#ifndef APPS_CLI_GRM_COMMAND_H_
-#define APPS_CLI_GRM_COMMAND_H_
+#ifndef APPS_CLI_POST_CONFIG_H_
+#define APPS_CLI_POST_CONFIG_H_
 
-#include "config.h"
+#include <optional>
+#include <string>
+#include <vector>
 
-auto grm_execute(const cli::GrmConfig& config) -> int;
+namespace cli
+{
 
-#endif  // APPS_CLI_GRM_COMMAND_H_
+struct PostConfig
+{
+    std::vector<std::string> in;
+    std::optional<std::string> gfile;
+    std::string out{"gelex_post"};
+    double hdpi{0.94};
+};
+
+}  // namespace cli
+
+#endif  // APPS_CLI_POST_CONFIG_H_

@@ -17,11 +17,8 @@
 #ifndef APPS_CLI_REML_COMMAND_H_
 #define APPS_CLI_REML_COMMAND_H_
 
-namespace CLI
-{
-class App;
-}
+#include "config.h"
 
-auto reml_execute(CLI::App& cmd) -> int;
+auto reml_execute(const cli::RemlConfig& config) -> int;
 
 #endif  // APPS_CLI_REML_COMMAND_H_

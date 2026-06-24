@@ -23,7 +23,6 @@
 #include <vector>
 
 #include <fmt/format.h>
-#include <CLI/CLI.hpp>
 #include <Eigen/Core>
 
 #include "cli/cli_helper.h"
@@ -51,19 +50,18 @@ struct GrmWorkItem
 
 }  // namespace
 
-auto grm_execute(CLI::App& cmd) -> int
+auto grm_execute(const cli::GrmConfig& config) -> int
 {
     cli::GrmReporter reporter;
 
-    auto threads = cmd.get_option("--threads")->as<int>();
-    cli::setup_parallelization(threads);
+    cli::setup_parallelization(config.threads);
 
     std::vector<gelex::GeneticMode> requested_effects;
-    if (cmd.get_option("--add")->count() > 0)
+    if (config.add)
     {
         requested_effects.push_back(gelex::GeneticMode::A);
     }
-    if (cmd.get_option("--dom")->count() > 0)
+    if (config.dom)
     {
         requested_effects.push_back(gelex::GeneticMode::D);
     }
@@ -72,17 +70,10 @@ auto grm_execute(CLI::App& cmd) -> int
         requested_effects.push_back(gelex::GeneticMode::A);
     }
 
-    auto method = cli::parse_genotype_method(
-        cmd.get_option("--geno-method")->as<std::string>());
-    auto chunk_size = cmd.get_option("--chunk-size")->as<int>();
+    auto method = cli::parse_genotype_method(config.geno_method);
+    auto chunk_size = config.chunk_size;
 
-    cli::GrmReporter::show_banner();
-    cli::GrmReporter::show_config(
-        fmt::format("{}", method),
-        requested_effects,
-        cmd.get_option("--loco")->count() > 0);
-
-    gelex::GRM grm(cmd.get_option("--bfile")->as<std::string>());
+    gelex::GRM grm(config.bfile);
     const auto& sample_ids = grm.sample_ids();
     const auto observer = reporter.as_observer();
 
@@ -104,14 +95,14 @@ auto grm_execute(CLI::App& cmd) -> int
 
     std::vector<GrmWorkItem> items;
     Eigen::Index total_work = 0;
-    const auto bfile_prefix = cmd.get_option("--bfile")->as<std::string>();
+    const auto& bfile_prefix = config.bfile;
     auto bim = gelex::read_bim(bfile_prefix + ".bim");
     const auto num_snps = static_cast<Eigen::Index>(bim.rows());
 
     std::string task_pattern
         = tasks.size() == 1 ? tasks[0].name : std::string("{add|dom}");
 
-    if (cmd.get_option("--loco")->count() > 0)
+    if (config.loco)
     {
         struct ChrRange
         {
@@ -184,31 +175,25 @@ auto grm_execute(CLI::App& cmd) -> int
                                      method, item.ranges, chunk_size, observer);
 
         gelex::write_grm(
-            fmt::format(
-                "{}.{}",
-                cmd.get_option("--out")->as<std::string>(),
-                item.output_name),
+            fmt::format("{}.{}", config.out, item.output_name),
             result.grm,
             sample_ids);
     }
 
     reporter.finish_progress();
 
-    auto output_pattern = cmd.get_option("--loco")->count() > 0
-                              ? fmt::format(
-                                    "{}.{}.chr{{1..{}}}.{{bin|id}}",
-                                    cmd.get_option("--out")->as<std::string>(),
-                                    task_pattern,
-                                    items.size() / tasks.size())
-                              : fmt::format(
-                                    "{}.{}.{{bin|id}}",
-                                    cmd.get_option("--out")->as<std::string>(),
-                                    task_pattern);
+    auto output_pattern
+        = config.loco
+              ? fmt::format(
+                    "{}.{}.chr{{1..{}}}.{{bin|id}}",
+                    config.out,
+                    task_pattern,
+                    items.size() / tasks.size())
+              : fmt::format("{}.{}.{{bin|id}}", config.out, task_pattern);
 
     cli::GrmReporter::show_files_written(
         items.size() * 2,
-        std::filesystem::absolute(
-            std::filesystem::path(cmd.get_option("--out")->as<std::string>()))
+        std::filesystem::absolute(std::filesystem::path(config.out))
             .parent_path()
             .string(),
         output_pattern);

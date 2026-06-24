@@ -17,11 +17,8 @@
 #ifndef APPS_CLI_PREDICT_COMMAND_H_
 #define APPS_CLI_PREDICT_COMMAND_H_
 
-namespace CLI
-{
-class App;
-}
+#include "config.h"
 
-auto predict_execute(CLI::App& predict) -> int;
+auto predict_execute(const cli::PredictConfig& config) -> int;
 
 #endif  // APPS_CLI_PREDICT_COMMAND_H_

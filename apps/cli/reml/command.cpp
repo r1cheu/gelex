@@ -22,8 +22,6 @@
 #include <utility>
 #include <vector>
 
-#include <CLI/CLI.hpp>
-
 #include "cli/cli_helper.h"
 #include "cli/common_data.h"
 #include "cli/reml_reporter.h"
@@ -35,28 +33,28 @@
 #include "gelex/freq/model.h"
 #include "gelex/io/reml.h"
 #include "gelex/types/fixed_designs.h"
-#include "reporter.h"
 
 class RemlDataHandler
 {
    public:
+    explicit RemlDataHandler(const cli::RemlConfig& config) noexcept
+        : config_(config)
+    {
+    }
+
     auto load_indices(
-        CLI::App& cmd,
         std::vector<gelex::dataframe::Index<std::string>*>& indices) -> void
     {
-        rand_ = cmd.get_option("--rand")->count() > 0
-                    ? std::make_optional(
-                          gelex::read_dcovar(
-                              cmd.get_option("--rand")->as<std::string>()))
+        rand_ = config_.rand_path
+                    ? std::make_optional(gelex::read_dcovar(*config_.rand_path))
                     : std::nullopt;
         if (rand_)
         {
             indices.push_back(&rand_->index());
         }
 
-        grm_prefixes_ = cmd.get_option("--grm")->as<std::vector<std::string>>();
-        grm_indices_.reserve(grm_prefixes_.size());
-        for (const auto& path : grm_prefixes_)
+        grm_indices_.reserve(config_.grm_prefixes.size());
+        for (const auto& path : config_.grm_prefixes)
         {
             grm_indices_.emplace_back(gelex::read_grm_ids(path));
             indices.push_back(&grm_indices_.back());
@@ -71,7 +69,8 @@ class RemlDataHandler
             rand_->gather(common_index);
             random_designs_ = gelex::make_random_designs(*rand_);
         }
-        auto grm_designs = gelex::make_grm_designs(grm_prefixes_, common_index);
+        auto grm_designs
+            = gelex::make_grm_designs(config_.grm_prefixes, common_index);
         random_designs_.insert(
             random_designs_.end(),
             std::make_move_iterator(grm_designs.begin()),
@@ -84,24 +83,19 @@ class RemlDataHandler
     }
 
    private:
-    std::vector<std::string> grm_prefixes_;
+    const cli::RemlConfig& config_;
     std::vector<gelex::dataframe::Index<std::string>> grm_indices_;
     std::vector<gelex::freq::RandomDesign> random_designs_;
 
     std::optional<gelex::dataframe::DataFrame<std::string>> rand_;
 };
 
-auto reml_execute(CLI::App& cmd) -> int
+auto reml_execute(const cli::RemlConfig& config) -> int
 {
-    int threads = cmd.get_option("--threads")->as<int>();
-    cli::setup_parallelization(threads);
+    cli::setup_parallelization(config.threads);
 
-    cli::RemlCommandReporter command_reporter;
-    command_reporter.show_banner();
-    command_reporter.show_config(cmd);
-
-    RemlDataHandler handler;
-    cli::BaseData data = cli::load_base_data(handler, cmd);
+    RemlDataHandler handler(config);
+    cli::BaseData data = cli::load_base_data(handler, config.base_data);
 
     gelex::FreqModel model(
         std::move(data.phenotype),
@@ -110,9 +104,7 @@ auto reml_execute(CLI::App& cmd) -> int
 
     cli::RemlReporter reml_reporter;
     gelex::reml::Estimator estimator(
-        cmd.get_option("--max-iter")->as<int>(),
-        cmd.get_option("--tol")->as<double>(),
-        reml_reporter.as_observer());
+        config.max_iter, config.tolerance, reml_reporter.as_observer());
 
     gelex::FreqState state(model);
     estimator.fit(model, state);
@@ -121,12 +113,12 @@ auto reml_execute(CLI::App& cmd) -> int
         state,
         estimator.is_converged(),
         estimator.iter_count(),
-        cmd.get_option("--max-iter")->as<int>(),
+        config.max_iter,
         estimator.loglike());
 
-    const auto out_prefix = cmd.get_option("--out")->as<std::string>();
-    gelex::reml::write_summary(model, state, out_prefix);
-    gelex::reml::write_effects(model, state, data.sample_ids, out_prefix);
+    gelex::reml::write_summary(model, state, config.out_prefix);
+    gelex::reml::write_effects(
+        model, state, data.sample_ids, config.out_prefix);
 
     return 0;
 }

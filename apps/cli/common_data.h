@@ -34,6 +34,14 @@
 
 namespace cli
 {
+struct BaseDataConfig
+{
+    std::string pheno_path;
+    int pheno_col{0};
+    std::optional<std::string> qcovar_path;
+    std::optional<std::string> dcovar_path;
+};
+
 struct BaseData
 {
     Eigen::VectorXd phenotype;
@@ -42,44 +50,37 @@ struct BaseData
 };
 
 template <typename T>
-concept SubcommandDataHandler = requires(
+concept BaseDataHandler = requires(
     T& handler,
-    CLI::App& cmd,
     std::vector<gelex::dataframe::Index<std::string>*>& indices,
     const gelex::dataframe::Index<std::string>& common_index) {
-    handler.load_indices(cmd, indices);
+    handler.load_indices(indices);
     handler.gather(common_index);
     std::move(handler).results();
 };
 
-template <SubcommandDataHandler Handler>
-auto load_base_data(Handler& handler, CLI::App& cmd) -> BaseData
+template <BaseDataHandler Handler>
+auto load_base_data(Handler& handler, const BaseDataConfig& config) -> BaseData
 {
     std::vector<gelex::dataframe::Index<std::string>*> indices;
 
-    // read dataset
-    auto pheno_col = cmd.get_option("--pheno-col")->as<int>();
-    auto pheno_col_offset = static_cast<std::size_t>(pheno_col);
-    auto phenotype = gelex::read_pheno(
-        cmd.get_option("--pheno")->as<std::string>(), &pheno_col_offset);
+    auto pheno_col_offset = static_cast<std::size_t>(config.pheno_col);
+    auto phenotype = gelex::read_pheno(config.pheno_path, &pheno_col_offset);
     indices.push_back(&phenotype.index());
 
     std::optional<gelex::dataframe::DataFrame<std::string>> qcovar;
     std::optional<gelex::dataframe::DataFrame<std::string>> dcovar;
-    std::optional<gelex::dataframe::DataFrame<std::string>> rand;
-    if (cmd.get_option("--qcovar")->count() > 0)
+    if (config.qcovar_path)
     {
-        qcovar = std::make_optional(
-            gelex::read_qcovar(cmd.get_option("--qcovar")->as<std::string>()));
+        qcovar = std::make_optional(gelex::read_qcovar(*config.qcovar_path));
         indices.push_back(&qcovar->index());
     }
-    if (cmd.get_option("--dcovar")->count() > 0)
+    if (config.dcovar_path)
     {
-        dcovar = std::make_optional(
-            gelex::read_dcovar(cmd.get_option("--dcovar")->as<std::string>()));
+        dcovar = std::make_optional(gelex::read_dcovar(*config.dcovar_path));
         indices.push_back(&dcovar->index());
     }
-    handler.load_indices(cmd, indices);
+    handler.load_indices(indices);
 
     auto common_index = gelex::dataframe::intersect<std::string>(indices);
 
@@ -118,6 +119,24 @@ auto load_base_data(Handler& handler, CLI::App& cmd) -> BaseData
         .fixed_design = std::move(*fixed_design),
         .sample_ids = std::move(common_index).take_keys(),
     };
+}
+
+template <BaseDataHandler Handler>
+auto load_base_data(Handler& handler, CLI::App& cmd) -> BaseData
+{
+    BaseDataConfig config{
+        .pheno_path = cmd.get_option("--pheno")->as<std::string>(),
+        .pheno_col = cmd.get_option("--pheno-col")->as<int>(),
+        .qcovar_path = cmd.get_option("--qcovar")->count() > 0
+                           ? std::make_optional(
+                                 cmd.get_option("--qcovar")->as<std::string>())
+                           : std::nullopt,
+        .dcovar_path = cmd.get_option("--dcovar")->count() > 0
+                           ? std::make_optional(
+                                 cmd.get_option("--dcovar")->as<std::string>())
+                           : std::nullopt,
+    };
+    return load_base_data(handler, config);
 }
 
 }  // namespace cli

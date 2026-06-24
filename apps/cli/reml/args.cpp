@@ -16,63 +16,76 @@
 
 #include "args.h"
 
-#include <algorithm>
-#include <string>
-#include <thread>
+#include <memory>
 
 #include <CLI/CLI.hpp>
 
 #include "cli/cli_helper.h"
 #include "command.h"
+#include "config.h"
 
 auto setup_reml_command(CLI::App& program, int& exit_code) -> void
 {
+    auto config = std::make_shared<cli::RemlConfig>();
     auto* subcommand = program.add_subcommand("reml");
     auto& cmd = *subcommand;
 
     cmd.description("Estimate variance components with REML (AI algorithm)");
 
-    cli::add_common_io_options(cmd);
-    cmd.add_option("--grm", "GRM prefix without suffix; reads <prefix>.bin/.id")
+    cli::add_common_io_options(cmd, config->base_data);
+    cmd.add_option(
+           "--grm",
+           config->grm_prefixes,
+           "GRM prefix without suffix; reads <prefix>.bin/.id")
         ->group("I/O")
         ->type_name("<GRM>")
         ->expected(1, -1)
         ->allow_extra_args()
         ->required();
     cmd.add_option(
-           "--rand", "Random-effect factor TSV with FID, IID, factor columns")
+           "--rand",
+           config->rand_path,
+           "Random-effect factor TSV with FID, IID, factor columns")
         ->group("I/O")
         ->type_name("<RAND>")
         ->check(CLI::ExistingFile);
-    cmd.add_option("-o,--out", "Output prefix for .summary and .effects")
+    cmd.add_option(
+           "-o,--out",
+           config->out_prefix,
+           "Output prefix for .summary and .effects")
         ->group("I/O")
         ->type_name("<OUT>")
-        ->default_val(std::string{"gelex"});
+        ->capture_default_str();
 
-    cmd.add_option("--max-iter", "Maximum AI-REML iterations")
+    cmd.add_option("--max-iter", config->max_iter, "Maximum AI-REML iterations")
         ->group("Runtime")
         ->type_name("<N>")
         ->check(CLI::PositiveNumber)
-        ->default_val(100);
+        ->capture_default_str();
     cmd.add_option(
-           "--tol", "Relative tolerance for variance-component convergence")
+           "--tol",
+           config->tolerance,
+           "Relative tolerance for variance-component convergence")
         ->group("Runtime")
         ->type_name("<TOL>")
         ->check(CLI::PositiveNumber)
-        ->default_val(1e-6);
-    cmd.add_option("-t,--threads", "CPU threads")
+        ->capture_default_str();
+    cmd.add_option("-t,--threads", config->threads, "CPU threads")
         ->group("Runtime")
         ->type_name("<N>")
         ->check(cli::non_negative_number())
-        ->default_val(
-            std::max(
-                1, static_cast<int>(std::thread::hardware_concurrency() / 2)));
+        ->capture_default_str();
 
     cmd.footer(
         "Docs:\n"
         "  https://gelex.readthedocs.io/en/latest/cli/reml.html");
 
     cmd.callback(
-        [subcommand, &exit_code]()
-        { exit_code = cli::execute_cli_command(*subcommand, reml_execute); });
+        [&cmd, &exit_code, config]()
+        {
+            exit_code = cli::execute_cli_command(
+                cmd,
+                "REML Variance Component Estimation",
+                [config]() { return reml_execute(*config); });
+        });
 }

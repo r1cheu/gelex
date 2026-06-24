@@ -21,6 +21,7 @@
 #include <chrono>
 #include <cstdio>
 #include <exception>
+#include <functional>
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -38,11 +39,13 @@
 #include <unistd.h>
 #endif
 
+#include "cli/common_data.h"
 #include "cli/formatter.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logger.h"
 #include "report_printer.h"
+#include "version.h"
 
 namespace cli
 {
@@ -144,6 +147,40 @@ auto add_common_io_options(CLI::App& cmd) -> void
         ->check(CLI::ExistingFile);
 }
 
+auto add_common_io_options(CLI::App& cmd, BaseDataConfig& config) -> void
+{
+    cmd.add_option(
+           "-p,--pheno",
+           config.pheno_path,
+           "Phenotype TSV with FID, IID, trait columns")
+        ->group("I/O")
+        ->type_name("<PHENOTYPE>")
+        ->check(CLI::ExistingFile)
+        ->required();
+    cmd.add_option(
+           "--pheno-col",
+           config.pheno_col,
+           "0-based phenotype column after FID/IID; first trait=0")
+        ->group("I/O")
+        ->type_name("<COL>")
+        ->check(cli::non_negative_number())
+        ->capture_default_str();
+    cmd.add_option(
+           "--qcovar",
+           config.qcovar_path,
+           "Quantitative covariate TSV with FID, IID, numeric columns")
+        ->group("I/O")
+        ->type_name("<QCOVAR>")
+        ->check(CLI::ExistingFile);
+    cmd.add_option(
+           "--dcovar",
+           config.dcovar_path,
+           "Discrete covariate TSV with FID, IID, factor columns")
+        ->group("I/O")
+        ->type_name("<DCOVAR>")
+        ->check(CLI::ExistingFile);
+}
+
 auto open_unit_interval() -> CLI::Validator
 {
     return CLI::Validator{
@@ -189,6 +226,59 @@ auto genotype_method_validator() -> CLI::Validator
     return CLI::IsMember(names, CLI::ignore_case);
 }
 
+auto report_options_in_effect(const CLI::App& cmd) -> void
+{
+    auto& p = cli::printer();
+    p.block(gelex::section("Options in effect:"));
+
+    std::vector<const CLI::Option*> printed;
+    for (const auto* option : cmd.parse_order())
+    {
+        if (option->count() == 0)
+        {
+            continue;
+        }
+        if (std::ranges::find(printed, option) != printed.end())
+        {
+            continue;
+        }
+        printed.push_back(option);
+
+        std::string name;
+        const auto& long_names = option->get_lnames();
+        const auto& short_names = option->get_snames();
+        if (!long_names.empty())
+        {
+            name = "--" + long_names.front();
+        }
+        else if (!short_names.empty())
+        {
+            name = "-" + short_names.front();
+        }
+        if (name.empty())
+        {
+            continue;
+        }
+
+        std::vector<std::string> values;
+        for (const auto& value : option->results())
+        {
+            if (!value.empty() && value != "true")
+            {
+                values.push_back(value);
+            }
+        }
+        if (values.empty())
+        {
+            p.line("  {}", name);
+        }
+        else
+        {
+            p.line("  {} {}", name, fmt::join(values, " "));
+        }
+    }
+}
+
 auto execute_cli_command(CLI::App& parser, int (*execute_fn)(CLI::App&)) -> int
 {
     try
@@ -197,6 +287,56 @@ auto execute_cli_command(CLI::App& parser, int (*execute_fn)(CLI::App&)) -> int
             parser.get_option("--out")->as<std::string>());
         auto start = std::chrono::steady_clock::now();
         auto result = execute_fn(parser);
+        auto elapsed = std::chrono::duration<double>(
+                           std::chrono::steady_clock::now() - start)
+                           .count();
+        if (gelex::logging::get())
+        {
+            cli::printer().block(gelex::done_message(elapsed));
+        }
+        return result;
+    }
+    catch (const std::exception& e)
+    {
+        auto logger = gelex::logging::get();
+        if (logger)
+        {
+            logger->error("{}", e.what());
+        }
+        else
+        {
+            std::cerr << ERROR_MARKER << e.what() << "\n";
+        }
+        return 1;
+    }
+    catch (...)
+    {
+        auto logger = gelex::logging::get();
+        if (logger)
+        {
+            logger->error("unknown exception");
+        }
+        else
+        {
+            std::cerr << ERROR_MARKER << "unknown exception\n";
+        }
+        return 1;
+    }
+}
+
+auto execute_cli_command(
+    const CLI::App& cmd,
+    std::string_view banner_title,
+    const std::function<int()>& execute_fn) -> int
+{
+    try
+    {
+        gelex::logging::initialize(cmd.get_option("--out")->as<std::string>());
+        cli::printer().block(
+            gelex::command_banner(PROJECT_VERSION, banner_title));
+        report_options_in_effect(cmd);
+        auto start = std::chrono::steady_clock::now();
+        auto result = execute_fn();
         auto elapsed = std::chrono::duration<double>(
                            std::chrono::steady_clock::now() - start)
                            .count();

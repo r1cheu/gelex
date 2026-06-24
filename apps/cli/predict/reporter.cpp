@@ -24,28 +24,9 @@
 #include "cli/formatter.h"
 #include "cli/report_printer.h"
 #include "gelex/data/genotype_method.h"
-#include "version.h"
 
 namespace cli
 {
-
-auto PredictReporter::show_banner() const -> void
-{
-    cli::printer().block(
-        gelex::command_banner(PROJECT_VERSION, "Genomic Prediction"));
-}
-
-auto PredictReporter::show_params_loaded(
-    std::string_view bfile_prefix,
-    std::string_view gfile_prefix,
-    gelex::GenotypeMethod geno_method) const -> void
-{
-    cli::printer().block(gelex::section("[Config]"));
-    cli::printer().line("  {:<12}: {}", "bfile", bfile_prefix);
-    cli::printer().line("  {:<12}: {}", "gfile", gfile_prefix);
-    cli::printer().line(
-        "  {:<12}: {}", "Geno method", fmt::format("{}", geno_method));
-}
 
 auto PredictReporter::show_snp_selection(
     size_t num_matched,
@@ -78,12 +59,15 @@ auto PredictReporter::show_snp_selection(
 auto PredictReporter::show_data_loaded(
     size_t num_samples,
     size_t num_snps,
-    size_t num_covar_terms) const -> void
+    size_t num_covar_terms,
+    gelex::GenotypeMethod geno_method) const -> void
 {
     cli::printer().block(gelex::section("[Dataset Summary]"));
     cli::printer().line("   {:<13}: {} samples", "Samples", num_samples);
     cli::printer().line("   {:<13}: {} markers", "SNPs", num_snps);
     cli::printer().line("   {:<13}: {}", "Covariates", num_covar_terms);
+    cli::printer().line(
+        "   {:<13}: {}", "Geno method", fmt::format("{}", geno_method));
 }
 
 auto PredictReporter::show_results_written(

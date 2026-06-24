@@ -16,102 +16,122 @@
 
 #include "args.h"
 
-#include <algorithm>
+#include <memory>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include <CLI/CLI.hpp>
 
 #include "cli/cli_helper.h"
 #include "command.h"
+#include "config.h"
 
 auto setup_assoc_command(CLI::App& program, int& exit_code) -> void
 {
+    auto config = std::make_shared<cli::AssocConfig>();
     auto* subcommand = program.add_subcommand("assoc");
     auto& cmd = *subcommand;
 
     cmd.description("Run mixed-model association testing");
 
-    cli::add_common_io_options(cmd);
-    cmd.add_option("-b,--bfile", "PLINK prefix; reads <prefix>.bed/.bim/.fam")
+    cli::add_common_io_options(cmd, config->base_data);
+    cmd.add_option(
+           "-b,--bfile",
+           config->bfile,
+           "PLINK prefix; reads <prefix>.bed/.bim/.fam")
         ->group("I/O")
         ->type_name("<BFILE>")
         ->required();
     cmd.add_option(
-           "--grm", "GRM prefix(es) without suffix; reads <prefix>.bin/.id")
+           "--grm",
+           config->grm,
+           "GRM prefix(es) without suffix; reads <prefix>.bin/.id")
         ->group("I/O")
         ->type_name("<GRM>")
         ->expected(1, -1)
         ->allow_extra_args()
         ->required();
-    cmd.add_option("-o,--out", "Output prefix for .gwas.tsv")
+    cmd.add_option("-o,--out", config->out, "Output prefix for .gwas.tsv")
         ->group("I/O")
         ->type_name("<OUT>")
-        ->default_val(std::string{"gelex"});
+        ->capture_default_str();
     cmd.add_flag(
            "--write-cov",
+           config->write_cov,
            "Write <out>.cov with beta covariance for joint C-coded tests")
         ->group("I/O");
 
-    cmd.add_option("--transform", "Phenotype transform: none, dint, iint")
+    cmd.add_option(
+           "--transform",
+           config->transform,
+           "Phenotype transform: none, dint, iint")
         ->group("Model")
         ->type_name("<TRANSFORM>")
-        ->default_val(std::string{"none"})
+        ->capture_default_str()
         ->check(
             CLI::IsMember(std::vector<std::string>{"none", "dint", "iint"}));
-    cmd.add_option("--int-offset", "Rank-INT offset k")
+    cmd.add_option("--int-offset", config->int_offset, "Rank-INT offset k")
         ->group("Model")
         ->type_name("<K>")
-        ->default_val(3.0 / 8.0);
+        ->capture_default_str();
 
-    cmd.add_option("--test", "Wald test: single (df=1), joint (add+dom, df=2)")
+    cmd.add_option(
+           "--test",
+           config->test,
+           "Wald test: single (df=1), joint (add+dom, df=2)")
         ->group("Model")
         ->type_name("<TEST>")
-        ->default_val(std::string{"single"})
+        ->capture_default_str()
         ->check(CLI::IsMember(std::vector<std::string>{"single", "joint"}));
-    cmd.add_option("--mode", "Effect mode for --test=single: A or D")
+    cmd.add_option(
+           "--mode", config->mode, "Effect mode for --test=single: A or D")
         ->group("Model")
         ->type_name("<MODE>")
-        ->default_val(std::string{"A"})
+        ->capture_default_str()
         ->check(CLI::IsMember(std::vector<std::string>{"A", "D"}));
-    cmd.add_flag("--loco", "Use leave-one-chromosome-out GRMs")->group("Model");
+    cmd.add_flag("--loco", config->loco, "Use leave-one-chromosome-out GRMs")
+        ->group("Model");
     cmd.add_option(
            "--geno-method,--gm",
+           config->geno_method,
            "Genotype coding: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC")
         ->group("Model")
         ->type_name("<CODING>")
-        ->default_val(std::string{"OCH"})
+        ->capture_default_str()
         ->check(cli::genotype_method_validator());
 
-    cmd.add_option("--max-iter", "Maximum model-fit iterations")
+    cmd.add_option(
+           "--max-iter", config->max_iter, "Maximum model-fit iterations")
         ->group("Runtime")
         ->type_name("<N>")
         ->check(CLI::PositiveNumber)
-        ->default_val(100);
-    cmd.add_option("--tol", "Convergence tolerance")
+        ->capture_default_str();
+    cmd.add_option("--tol", config->tolerance, "Convergence tolerance")
         ->group("Runtime")
         ->type_name("<TOL>")
         ->check(CLI::PositiveNumber)
-        ->default_val(1e-6);
-    cmd.add_option("-c,--chunk-size", "SNPs per chunk")
+        ->capture_default_str();
+    cmd.add_option("-c,--chunk-size", config->chunk_size, "SNPs per chunk")
         ->group("Runtime")
         ->type_name("<N>")
         ->check(CLI::PositiveNumber)
-        ->default_val(10000);
-    cmd.add_option("-t,--threads", "CPU threads")
+        ->capture_default_str();
+    cmd.add_option("-t,--threads", config->threads, "CPU threads")
         ->group("Runtime")
         ->type_name("<N>")
         ->check(cli::non_negative_number())
-        ->default_val(
-            std::max(
-                1, static_cast<int>(std::thread::hardware_concurrency() / 2)));
+        ->capture_default_str();
 
     cmd.footer(
         "Docs:\n"
         "  https://gelex.readthedocs.io/en/latest/cli/assoc.html");
 
     cmd.callback(
-        [subcommand, &exit_code]()
-        { exit_code = cli::execute_cli_command(*subcommand, assoc_execute); });
+        [&cmd, &exit_code, config]()
+        {
+            exit_code = cli::execute_cli_command(
+                cmd,
+                "GWAS Analysis",
+                [config]() { return assoc_execute(*config); });
+        });
 }

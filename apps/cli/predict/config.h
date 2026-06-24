@@ -14,11 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef APPS_CLI_GRM_COMMAND_H_
-#define APPS_CLI_GRM_COMMAND_H_
+#ifndef APPS_CLI_PREDICT_CONFIG_H_
+#define APPS_CLI_PREDICT_CONFIG_H_
 
-#include "config.h"
+#include <optional>
+#include <string>
 
-auto grm_execute(const cli::GrmConfig& config) -> int;
+namespace cli
+{
 
-#endif  // APPS_CLI_GRM_COMMAND_H_
+struct PredictConfig
+{
+    std::string bfile;
+    std::string gfile;
+    std::optional<std::string> qcovar;
+    std::optional<std::string> dcovar;
+    std::string out;
+    int chunk_size{10000};
+};
+
+}  // namespace cli
+
+#endif  // APPS_CLI_PREDICT_CONFIG_H_

@@ -51,22 +51,24 @@ class MCMCDataHandler
 {
    public:
     MCMCDataHandler(
+        CLI::App& cmd,
         std::vector<gelex::GeneticMode> requested_effects,
         cli::GenoReporter& reporter)
-        : requested_effects_(std::move(requested_effects)), reporter_(reporter)
+        : cmd_(cmd),
+          requested_effects_(std::move(requested_effects)),
+          reporter_(reporter)
     {
     }
 
     auto load_indices(
-        CLI::App& cmd,
         std::vector<gelex::dataframe::Index<std::string>*>& indices) -> void
     {
-        bfile_prefix_ = cmd.get_option("--bfile")->as<std::string>();
-        out_prefix_ = cmd.get_option("--out")->as<std::string>();
-        chunk_size_ = cmd.get_option("--chunk-size")->as<int>();
+        bfile_prefix_ = cmd_.get_option("--bfile")->as<std::string>();
+        out_prefix_ = cmd_.get_option("--out")->as<std::string>();
+        chunk_size_ = cmd_.get_option("--chunk-size")->as<int>();
         genotype_method_ = cli::parse_genotype_method(
-            cmd.get_option("--geno-method")->as<std::string>());
-        use_mmap_ = cmd.get_option("--mmap")->count() > 0;
+            cmd_.get_option("--geno-method")->as<std::string>());
+        use_mmap_ = cmd_.get_option("--mmap")->count() > 0;
 
         fam_index_ = gelex::read_fam(bfile_prefix_ + ".fam").index();
         indices.push_back(&fam_index_);
@@ -120,6 +122,7 @@ class MCMCDataHandler
     }
 
    private:
+    CLI::App& cmd_;
     std::vector<gelex::GeneticMode> requested_effects_;
     std::string bfile_prefix_;
     std::string out_prefix_;
@@ -165,7 +168,7 @@ auto mcmc_execute(CLI::App& cmd) -> int
 
     cli::printer().block(gelex::section("[Dataset Summary]"));
 
-    MCMCDataHandler handler(recipe_options.modes, geno_reporter);
+    MCMCDataHandler handler(cmd, recipe_options.modes, geno_reporter);
     cli::BaseData data = cli::load_base_data(handler, cmd);
     cli::printer().line(
         "   Intersection : {} common samples", data.sample_ids.size());

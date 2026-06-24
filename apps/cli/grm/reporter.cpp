@@ -18,41 +18,18 @@
 
 #include <cstddef>
 #include <string_view>
-#include <vector>
 
 #include <fmt/format.h>
-#include <fmt/ranges.h>
 
 #include "cli/formatter.h"
 #include "cli/report_printer.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/infra/logging/progress_bar.h"
-#include "version.h"
 
 namespace cli
 {
 
 GrmReporter::GrmReporter() : eta_(1) {}
-
-auto GrmReporter::show_banner() -> void
-{
-    cli::printer().block(
-        gelex::command_banner(PROJECT_VERSION, "GRM Computation"));
-}
-
-auto GrmReporter::show_config(
-    std::string_view method,
-    const std::vector<gelex::GeneticMode>& requested_effects,
-    bool do_loco) -> void
-{
-    cli::printer().block(gelex::section("[Config]"));
-    cli::printer().line("  {:<12}: {}", "Method", method);
-    cli::printer().line(
-        "  {:<12}: {}",
-        "Mode",
-        fmt::format("{}", fmt::join(requested_effects, "+")));
-    cli::printer().line("  {:<12}: {}", "LOCO", do_loco ? "yes" : "no");
-}
 
 auto GrmReporter::show_data_loaded(size_t num_samples, size_t num_snps) -> void
 {

@@ -24,7 +24,6 @@
 #include <vector>
 
 #include <fmt/format.h>
-#include <CLI/CLI.hpp>
 #include <Eigen/Core>
 
 #include "gelex/data/bed.h"
@@ -58,13 +57,12 @@ auto load_sbin(const std::filesystem::path& path) -> gelex::predict::SbinData
 
 }  // namespace
 
-auto predict_execute(CLI::App& predict) -> int
+auto predict_execute(const cli::PredictConfig& config) -> int
 {
     cli::PredictReporter reporter;
-    reporter.show_banner();
 
-    const auto bfile_prefix = predict.get_option("--bfile")->as<std::string>();
-    const auto gfile_prefix = predict.get_option("--gfile")->as<std::string>();
+    const auto& bfile_prefix = config.bfile;
+    const auto& gfile_prefix = config.gfile;
 
     auto snp_effects
         = gelex::predict::read_snp_effects(gfile_prefix + ".snpeff");
@@ -89,19 +87,15 @@ auto predict_execute(CLI::App& predict) -> int
     auto coefficients
         = gelex::predict::read_coefficients(gfile_prefix + ".param");
 
-    reporter.show_params_loaded(bfile_prefix, gfile_prefix, sbin.add.method);
-
     auto fam_df = gelex::read_fam(bfile_prefix + ".fam");
     auto bim_df = gelex::read_bim(bfile_prefix + ".bim");
     auto qcovar_path
-        = predict.get_option("--qcovar")->count() > 0
-              ? std::make_optional<std::filesystem::path>(
-                    predict.get_option("--qcovar")->as<std::string>())
+        = config.qcovar
+              ? std::make_optional<std::filesystem::path>(*config.qcovar)
               : std::nullopt;
     auto dcovar_path
-        = predict.get_option("--dcovar")->count() > 0
-              ? std::make_optional<std::filesystem::path>(
-                    predict.get_option("--dcovar")->as<std::string>())
+        = config.dcovar
+              ? std::make_optional<std::filesystem::path>(*config.dcovar)
               : std::nullopt;
     auto covariates = gelex::predict::read_covariates(
         qcovar_path, dcovar_path, coefficients, fam_df);
@@ -142,7 +136,8 @@ auto predict_execute(CLI::App& predict) -> int
     reporter.show_data_loaded(
         static_cast<std::size_t>(fam_df.rows()),
         static_cast<std::size_t>(snp_effects.rows()),
-        coefficients.names.size());
+        coefficients.names.size(),
+        sbin.add.method);
 
     gelex::predict::detail::standardize_genotypes(geno, sbin);
 
@@ -164,13 +159,10 @@ auto predict_execute(CLI::App& predict) -> int
         .covar_predictions = std::move(covar.per_covariate),
         .covar_names = std::move(covar.covar_names)};
 
-    gelex::predict::detail::PredictWriter writer(
-        predict.get_option("--out")->as<std::string>());
+    gelex::predict::detail::PredictWriter writer(config.out);
     writer.write(result);
 
-    reporter.show_results_written(
-        predict.get_option("--out")->as<std::string>(),
-        result.sample_ids.size());
+    reporter.show_results_written(config.out, result.sample_ids.size());
 
     return 0;
 }

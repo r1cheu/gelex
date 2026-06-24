@@ -25,29 +25,9 @@
 #include "cli/formatter.h"
 #include "cli/report_printer.h"
 #include "gelex/post/diagnostic.h"
-#include "version.h"
 
 namespace cli
 {
-
-auto PostReporter::show_banner() const -> void
-{
-    cli::printer().block(
-        gelex::command_banner(PROJECT_VERSION, "MCMC Posterior Analysis"));
-}
-
-auto PostReporter::show_start(const std::vector<std::string>& in_prefixes) const
-    -> void
-{
-    const auto n_chains = in_prefixes.size();
-    std::string input_str
-        = in_prefixes[0]
-          + (n_chains > 1 ? fmt::format(" (+{} more)", n_chains - 1) : "");
-
-    cli::printer().block(gelex::section("[Config]"));
-    cli::printer().line("  {:<12}: {}", "Chains", n_chains);
-    cli::printer().line("  {:<12}: {}", "Input", input_str);
-}
 
 auto PostReporter::show_diagnostics(
     const std::vector<gelex::ParameterDiag>& diags,

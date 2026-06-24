@@ -17,7 +17,6 @@
 #ifndef APPS_CLI_POST_REPORTER_H_
 #define APPS_CLI_POST_REPORTER_H_
 
-#include <string>
 #include <vector>
 
 #include "gelex/post/diagnostic.h"
@@ -28,8 +27,6 @@ namespace cli
 class PostReporter
 {
    public:
-    auto show_banner() const -> void;
-    auto show_start(const std::vector<std::string>& in_prefixes) const -> void;
     auto show_diagnostics(
         const std::vector<gelex::ParameterDiag>& diags,
         double hdpi_prob) const -> void;

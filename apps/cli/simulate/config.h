@@ -14,24 +14,31 @@
  * limitations under the License.
  */
 
-#ifndef APPS_CLI_REML_COMMAND_REPORTER_H_
-#define APPS_CLI_REML_COMMAND_REPORTER_H_
+#ifndef APPS_CLI_SIMULATE_CONFIG_H_
+#define APPS_CLI_SIMULATE_CONFIG_H_
 
-namespace CLI
-{
-class App;
-}
+#include <optional>
+#include <string>
+#include <vector>
 
 namespace cli
 {
 
-class RemlCommandReporter
+struct SimulateConfig
 {
-   public:
-    auto show_banner() const -> void;
-    auto show_config(const CLI::App& cmd) const -> void;
+    std::string bfile;
+    std::string out{"sim.phen"};
+    std::optional<double> h2;
+    std::vector<double> add_var;
+    std::vector<int> add_n;
+    std::optional<double> d2;
+    std::vector<double> dom_var;
+    std::vector<int> dom_n;
+    std::optional<double> dom_pos_prob;
+    std::string geno_method{"OS"};
+    int seed{42};
 };
 
 }  // namespace cli
 
-#endif  // APPS_CLI_REML_COMMAND_REPORTER_H_
+#endif  // APPS_CLI_SIMULATE_CONFIG_H_

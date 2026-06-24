@@ -26,7 +26,6 @@
 #include <vector>
 
 #include <fmt/format.h>
-#include <CLI/CLI.hpp>
 #include <Eigen/Core>
 
 #include "gelex/bayes/labels.h"
@@ -139,13 +138,10 @@ auto process_gebv_variance(
 
 }  // namespace
 
-auto post_execute(CLI::App& post) -> int
+auto post_execute(const cli::PostConfig& config) -> int
 {
     cli::PostReporter reporter;
-    auto in_prefixes = post.get_option("--in")->as<std::vector<std::string>>();
-
-    reporter.show_banner();
-    reporter.show_start(in_prefixes);
+    const auto& in_prefixes = config.in;
 
     std::vector<gelex::io::BinaryReader> readers;
     readers.reserve(in_prefixes.size());
@@ -160,7 +156,7 @@ auto post_execute(CLI::App& post) -> int
             "Inconsistent section paths across sample files");
     }
 
-    const auto hdpi_threshold = post.get_option("--hdpi")->as<double>();
+    const auto hdpi_threshold = config.hdpi;
     std::span<const gelex::io::BinaryReader> reader_span{readers};
 
     auto fixed_diags
@@ -175,12 +171,8 @@ auto post_execute(CLI::App& post) -> int
         = gelex::ResidualPosteriorProcessor{reader_span, hdpi_threshold}
               .process();
 
-    std::optional<std::string> gfile
-        = post.get_option("--gfile")->count() > 0
-              ? std::make_optional(
-                    post.get_option("--gfile")->as<std::string>())
-              : std::nullopt;
-    auto gebv_diags = process_gebv_variance(readers, gfile, hdpi_threshold);
+    auto gebv_diags
+        = process_gebv_variance(readers, config.gfile, hdpi_threshold);
 
     std::vector<gelex::ParameterDiag> diags;
     diags.append_range(std::move(fixed_diags));

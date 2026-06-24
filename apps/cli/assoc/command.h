@@ -17,11 +17,8 @@
 #ifndef APPS_CLI_ASSOC_COMMAND_H_
 #define APPS_CLI_ASSOC_COMMAND_H_
 
-namespace CLI
-{
-class App;
-}
+#include "config.h"
 
-auto assoc_execute(CLI::App& cmd) -> int;
+auto assoc_execute(const cli::AssocConfig& config) -> int;
 
 #endif  // APPS_CLI_ASSOC_COMMAND_H_

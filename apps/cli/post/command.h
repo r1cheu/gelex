@@ -17,11 +17,8 @@
 #ifndef APPS_CLI_POST_COMMAND_H_
 #define APPS_CLI_POST_COMMAND_H_
 
-namespace CLI
-{
-class App;
-}
+#include "config.h"
 
-auto post_execute(CLI::App& post) -> int;
+auto post_execute(const cli::PostConfig& config) -> int;
 
 #endif  // APPS_CLI_POST_COMMAND_H_
