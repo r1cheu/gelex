@@ -34,6 +34,7 @@ struct RemlConfig
     std::vector<std::string> grm_prefixes;
     std::optional<std::string> rand_path;
     std::string out_prefix{"gelex"};
+    bool loco{false};
     int max_iter{100};
     double tolerance{1e-6};
     int threads{

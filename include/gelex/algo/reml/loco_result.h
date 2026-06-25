@@ -27,7 +27,9 @@ struct VarianceComponent
 {
     std::string name;
     double variance{};
+    double variance_se{};
     double variance_ratio{};
+    double variance_ratio_se{};
 };
 
 struct LocoRemlResult
@@ -36,6 +38,7 @@ struct LocoRemlResult
     double loglike{};
     std::vector<VarianceComponent> random;
     double residual_variance{};
+    double residual_variance_se{};
     bool converged{true};
 
     auto total_ratio() const -> double

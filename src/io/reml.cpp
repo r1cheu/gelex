@@ -186,4 +186,45 @@ auto write_effects(
     }
 }
 
+auto write_loco_summary(
+    const std::vector<LocoRemlResult>& results,
+    std::string_view prefix) -> void
+{
+    io::detail::TextWriter writer(fmt::format("{}.loco.summary", prefix));
+    writer.write_header(
+        {"chr",
+         "term",
+         "type",
+         "estimate",
+         "se",
+         "ratio",
+         "ratio_se",
+         "converged"});
+
+    for (const auto& result : results)
+    {
+        const int converged = result.converged ? 1 : 0;
+        for (const auto& component : result.random)
+        {
+            writer.write(
+                fmt::format(
+                    "{}\t{}\tvariance\t{:.8e}\t{:.8e}\t{:.8e}\t{:.8e}\t{}",
+                    result.chr_name,
+                    component.name,
+                    component.variance,
+                    component.variance_se,
+                    component.variance_ratio,
+                    component.variance_ratio_se,
+                    converged));
+        }
+        writer.write(
+            fmt::format(
+                "{}\tResidual\tvariance\t{:.8e}\t{:.8e}\t-\t-\t{}",
+                result.chr_name,
+                result.residual_variance,
+                result.residual_variance_se,
+                converged));
+    }
+}
+
 }  // namespace gelex::reml

@@ -73,6 +73,8 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
         ->group("Model")
         ->type_name("<K>")
         ->capture_default_str();
+    cmd.add_flag("--loco", config->loco, "Use leave-one-chromosome-out GRMs")
+        ->group("Model");
 
     cmd.add_option("--max-iter", config->max_iter, "Maximum AI-REML iterations")
         ->group("Runtime")

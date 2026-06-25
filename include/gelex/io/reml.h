@@ -20,6 +20,9 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
+
+#include "gelex/algo/reml/loco_result.h"
 
 namespace gelex
 {
@@ -39,6 +42,10 @@ auto write_effects(
     const FreqModel& model,
     const FreqState& state,
     std::span<const std::string> sample_ids,
+    std::string_view prefix) -> void;
+
+auto write_loco_summary(
+    const std::vector<LocoRemlResult>& results,
     std::string_view prefix) -> void;
 
 }  // namespace reml
