@@ -63,14 +63,15 @@ auto setup_assoc_command(CLI::App& program, int& exit_code) -> void
 
     cmd.add_option(
            "--transform",
-           config->transform,
+           config->base_data.transform,
            "Phenotype transform: none, dint, iint")
         ->group("Model")
         ->type_name("<TRANSFORM>")
         ->capture_default_str()
         ->check(
             CLI::IsMember(std::vector<std::string>{"none", "dint", "iint"}));
-    cmd.add_option("--int-offset", config->int_offset, "Rank-INT offset k")
+    cmd.add_option(
+           "--int-offset", config->base_data.int_offset, "Rank-INT offset k")
         ->group("Model")
         ->type_name("<K>")
         ->capture_default_str();

@@ -30,6 +30,8 @@
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/reader.h"
+#include "gelex/infra/logger.h"
+#include "gelex/infra/stats/rank_inverse_norm_transform.h"
 #include "gelex/types/fixed_designs.h"
 
 namespace cli
@@ -40,6 +42,8 @@ struct BaseDataConfig
     int pheno_col{0};
     std::optional<std::string> qcovar_path;
     std::optional<std::string> dcovar_path;
+    std::string transform{"none"};
+    double int_offset{3.0 / 8.0};
 };
 
 struct BaseData
@@ -114,8 +118,32 @@ auto load_base_data(Handler& handler, const BaseDataConfig& config) -> BaseData
                              gelex::make_discrete_covariate(*dcovar))
                        : std::nullopt));
     }
+    auto pheno_vec = phenotype.col(0).to_mat<double>();
+
+    if (config.transform != "none")
+    {
+        gelex::stats::RankInverseNormTransform transformer(config.int_offset);
+        auto logger = gelex::logging::get();
+
+        if (config.transform == "dint")
+        {
+            logger->info(
+                "   Method: Direct INT (DINT), offset (k): {}",
+                config.int_offset);
+            transformer.apply_dint(pheno_vec);
+        }
+        else if (config.transform == "iint")
+        {
+            logger->info(
+                "   Method: Indirect INT (IINT), offset (k): {}",
+                config.int_offset);
+            transformer.apply_iint(pheno_vec, fixed_design->X);
+            fixed_design = gelex::FixedDesign::make(pheno_vec.size());
+        }
+    }
+
     return BaseData{
-        .phenotype = phenotype.col(0).to_mat<double>(),
+        .phenotype = std::move(pheno_vec),
         .fixed_design = std::move(*fixed_design),
         .sample_ids = std::move(common_index).take_keys(),
     };

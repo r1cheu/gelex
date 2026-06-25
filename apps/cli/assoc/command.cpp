@@ -42,8 +42,6 @@
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/freq/model.h"
-#include "gelex/infra/logger.h"
-#include "gelex/infra/stats/rank_inverse_norm_transform.h"
 #include "gelex/io/grm/loco_reader.h"
 #include "gelex/io/gwas/joint_cov_writer.h"
 #include "gelex/io/gwas/writer.h"
@@ -140,28 +138,6 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
         throw gelex::GelexException(
             "No common samples across phenotype, genotype (.fam), GRM, and "
             "covariates. Check that sample IDs match across input files.");
-    }
-
-    if (config.transform != "none")
-    {
-        gelex::stats::RankInverseNormTransform transformer(config.int_offset);
-        auto logger = gelex::logging::get();
-
-        if (config.transform == "dint")
-        {
-            logger->info(
-                "   Method: Direct INT (DINT), offset (k): {}",
-                config.int_offset);
-            transformer.apply_dint(data.phenotype);
-        }
-        else if (config.transform == "iint")
-        {
-            logger->info(
-                "   Method: Indirect INT (IINT), offset (k): {}",
-                config.int_offset);
-            transformer.apply_iint(data.phenotype, data.fixed_design.X);
-            data.fixed_design = gelex::FixedDesign::make(data.phenotype.size());
-        }
     }
 
     auto bed = gelex::open_bed(config.bfile, assoc_data.sample_index);

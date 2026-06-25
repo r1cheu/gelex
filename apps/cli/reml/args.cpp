@@ -17,6 +17,8 @@
 #include "args.h"
 
 #include <memory>
+#include <string>
+#include <vector>
 
 #include <CLI/CLI.hpp>
 
@@ -55,6 +57,21 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
            "Output prefix for .summary and .effects")
         ->group("I/O")
         ->type_name("<OUT>")
+        ->capture_default_str();
+
+    cmd.add_option(
+           "--transform",
+           config->base_data.transform,
+           "Phenotype transform: none, dint, iint")
+        ->group("Model")
+        ->type_name("<TRANSFORM>")
+        ->capture_default_str()
+        ->check(
+            CLI::IsMember(std::vector<std::string>{"none", "dint", "iint"}));
+    cmd.add_option(
+           "--int-offset", config->base_data.int_offset, "Rank-INT offset k")
+        ->group("Model")
+        ->type_name("<K>")
         ->capture_default_str();
 
     cmd.add_option("--max-iter", config->max_iter, "Maximum AI-REML iterations")

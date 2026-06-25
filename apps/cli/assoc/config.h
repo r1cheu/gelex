@@ -34,8 +34,6 @@ struct AssocConfig
     std::vector<std::string> grm;
     std::string out{"gelex"};
     bool write_cov{false};
-    std::string transform{"none"};
-    double int_offset{3.0 / 8.0};
     std::string test{"single"};
     std::string mode{"A"};
     bool loco{false};
