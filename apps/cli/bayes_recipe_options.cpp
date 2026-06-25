@@ -17,16 +17,12 @@
 #include "bayes_recipe_options.h"
 
 #include <algorithm>
-#include <array>
 #include <optional>
 #include <span>
-#include <string>
 #include <string_view>
 #include <utility>
-#include <vector>
 
 #include <fmt/format.h>
-#include <CLI/CLI.hpp>
 
 #include "cli/cli_helper.h"
 #include "gelex/bayes/recipe.h"
@@ -50,100 +46,82 @@ auto has_mode(
         [mode](gelex::GeneticMode candidate) { return candidate == mode; });
 }
 
-template <typename T, typename Raw = T>
-auto get_optional(const CLI::App& cmd, std::string_view arg) -> std::optional<T>
-{
-    auto* option = cmd.get_option(std::string{arg});
-    if (option->count() == 0)
-    {
-        return std::nullopt;
-    }
-    return T{option->as<Raw>()};
-}
-
 auto reject_effect_flags_without_mode(
-    const CLI::App& cmd,
-    std::span<const gelex::GeneticMode> modes,
-    gelex::GeneticMode mode,
-    std::span<const std::string_view> flags) -> void
+    const McmcConfig& config,
+    std::span<const gelex::GeneticMode> modes) -> void
 {
-    if (has_mode(modes, mode))
+    const auto require_mode
+        = [&](bool present, std::string_view flag, gelex::GeneticMode mode)
     {
-        return;
-    }
-    for (const auto flag : flags)
-    {
-        if (cmd.get_option(std::string{flag})->count() > 0)
+        if (present && !has_mode(modes, mode))
         {
             throw gelex::GelexException(
                 fmt::format("{} requires --mode to include {}", flag, mode));
         }
-    }
-}
-
-auto reject_effect_flags_without_mode(
-    const CLI::App& cmd,
-    std::span<const gelex::GeneticMode> modes) -> void
-{
-    constexpr std::array ADDITIVE_FLAGS
-        = {std::string_view{"--h2"},
-           std::string_view{"--pi"},
-           std::string_view{"--scale"},
-           std::string_view{"--sample-pi"}};
-    constexpr std::array DOMINANCE_FLAGS
-        = {std::string_view{"--d2"},
-           std::string_view{"--dom-pos-prob"},
-           std::string_view{"--dpi"},
-           std::string_view{"--dscale"},
-           std::string_view{"--sample-dpi"}};
-
-    reject_effect_flags_without_mode(
-        cmd, modes, gelex::GeneticMode::A, ADDITIVE_FLAGS);
-    reject_effect_flags_without_mode(
-        cmd, modes, gelex::GeneticMode::D, DOMINANCE_FLAGS);
+    };
+    require_mode(config.h2.has_value(), "--h2", gelex::GeneticMode::A);
+    require_mode(!config.pi.empty(), "--pi", gelex::GeneticMode::A);
+    require_mode(!config.scale.empty(), "--scale", gelex::GeneticMode::A);
+    require_mode(
+        config.sample_pi.has_value(), "--sample-pi", gelex::GeneticMode::A);
+    require_mode(config.d2.has_value(), "--d2", gelex::GeneticMode::D);
+    require_mode(
+        config.dom_pos_prob.has_value(),
+        "--dom-pos-prob",
+        gelex::GeneticMode::D);
+    require_mode(!config.dpi.empty(), "--dpi", gelex::GeneticMode::D);
+    require_mode(!config.dscale.empty(), "--dscale", gelex::GeneticMode::D);
+    require_mode(
+        config.sample_dpi.has_value(), "--sample-dpi", gelex::GeneticMode::D);
 }
 
 }  // namespace
 
-auto make_bayes_recipe_options(const CLI::App& cmd)
+auto make_bayes_recipe_options(const McmcConfig& config)
     -> gelex::bayes::BayesRecipeOptions
 {
-    auto modes
-        = parse_genetic_modes(cmd.get_option("--mode")->as<std::string>());
-    reject_effect_flags_without_mode(cmd, modes);
+    auto modes = parse_genetic_modes(config.mode);
+    reject_effect_flags_without_mode(config, modes);
 
     return gelex::bayes::BayesRecipeOptions{
-        .scheme = gelex::bayes::to_bayes_recipe_scheme(
-            cmd.get_option("--method")->as<std::string>()),
+        .scheme = gelex::bayes::to_bayes_recipe_scheme(config.method),
         .modes = std::move(modes),
         .additive_heritability
-        = get_optional<gelex::OpenUnitInterval<double>, double>(cmd, "--h2"),
+        = config.h2 ? std::optional{gelex::OpenUnitInterval<double>{*config.h2}}
+                    : std::nullopt,
         .additive_proportion
-        = get_optional<gelex::Simplex<double>, std::vector<double>>(
-            cmd, "--pi"),
+        = config.pi.empty() ? std::nullopt
+                            : std::optional{gelex::Simplex<double>{config.pi}},
         .additive_multiplier
-        = get_optional<gelex::ScaleMultiplier<double>, std::vector<double>>(
-            cmd, "--scale"),
-        .additive_proportion_update = get_optional<bool>(cmd, "--sample-pi"),
+        = config.scale.empty()
+              ? std::nullopt
+              : std::optional{gelex::ScaleMultiplier<double>{config.scale}},
+        .additive_proportion_update = config.sample_pi,
         .dominance_heritability
-        = get_optional<gelex::OpenUnitInterval<double>, double>(cmd, "--d2"),
+        = config.d2 ? std::optional{gelex::OpenUnitInterval<double>{*config.d2}}
+                    : std::nullopt,
         .dominance_proportion
-        = get_optional<gelex::Simplex<double>, std::vector<double>>(
-            cmd, "--dpi"),
+        = config.dpi.empty()
+              ? std::nullopt
+              : std::optional{gelex::Simplex<double>{config.dpi}},
         .dominance_multiplier
-        = get_optional<gelex::ScaleMultiplier<double>, std::vector<double>>(
-            cmd, "--dscale"),
-        .dominance_proportion_update = get_optional<bool>(cmd, "--sample-dpi"),
+        = config.dscale.empty()
+              ? std::nullopt
+              : std::optional{gelex::ScaleMultiplier<double>{config.dscale}},
+        .dominance_proportion_update = config.sample_dpi,
         .dominance_positive_probability
-        = get_optional<gelex::OpenUnitInterval<double>, double>(
-            cmd, "--dom-pos-prob"),
+        = config.dom_pos_prob ? std::optional{gelex::OpenUnitInterval<double>{
+                                    *config.dom_pos_prob}}
+                              : std::nullopt,
         .joint_proportion
-        = get_optional<gelex::Simplex<double>, std::vector<double>>(
-            cmd, "--jpi"),
-        .joint_proportion_update = get_optional<bool>(cmd, "--sample-jpi"),
+        = config.jpi.empty()
+              ? std::nullopt
+              : std::optional{gelex::Simplex<double>{config.jpi}},
+        .joint_proportion_update = config.sample_jpi,
         .random_variance_proportion
-        = get_optional<gelex::OpenUnitInterval<double>, double>(
-            cmd, "--random-pve"),
+        = config.random_pve ? std::optional{gelex::OpenUnitInterval<double>{
+                                  *config.random_pve}}
+                            : std::nullopt,
     };
 }
 

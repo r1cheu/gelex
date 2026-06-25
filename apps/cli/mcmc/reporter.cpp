@@ -35,34 +35,9 @@
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/progress_bar.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "version.h"
 
 namespace cli
 {
-
-auto McmcReporter::show_banner() -> void
-{
-    cli::printer().block(
-        gelex::command_banner(PROJECT_VERSION, "Model Fitting (MCMC)"));
-}
-
-auto McmcReporter::show_config(
-    gelex::bayes::BayesRecipeScheme recipe_scheme,
-    Eigen::Index n_iters,
-    Eigen::Index n_burn_in,
-    int seed) -> void
-{
-    cli::printer().block(gelex::section("[Config]"));
-    cli::printer().line(
-        "  {:<12}: {}", "Method", fmt::format("{}", recipe_scheme));
-    cli::printer().line(
-        "  {:<12}: {} iters ({} burn-in, {} sampling)",
-        "Chain",
-        n_iters,
-        n_burn_in,
-        n_iters - n_burn_in);
-    cli::printer().line("  {:<12}: {}", "Seed", seed);
-}
 
 auto McmcReporter::show_prior(const gelex::bayes::BayesPrior& prior) -> void
 {

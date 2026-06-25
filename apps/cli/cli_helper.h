@@ -46,7 +46,6 @@ auto is_tty() -> bool;
 
 auto setup_parallelization(int num_threads) -> void;
 
-auto add_common_io_options(CLI::App& cmd) -> void;
 auto add_common_io_options(CLI::App& cmd, BaseDataConfig& config) -> void;
 
 auto open_unit_interval() -> CLI::Validator;
@@ -55,9 +54,8 @@ auto non_negative_number() -> CLI::Validator;
 
 auto genotype_method_validator() -> CLI::Validator;
 
-auto report_options_in_effect(const CLI::App& cmd) -> void;
+auto report_command_line(const CLI::App& cmd) -> void;
 
-auto execute_cli_command(CLI::App& parser, int (*execute_fn)(CLI::App&)) -> int;
 auto execute_cli_command(
     const CLI::App& cmd,
     std::string_view banner_title,

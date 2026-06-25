@@ -23,7 +23,6 @@
 #include <utility>
 #include <vector>
 
-#include <CLI/CLI.hpp>
 #include <Eigen/Core>
 
 #include "gelex/data/covariates.h"
@@ -147,24 +146,6 @@ auto load_base_data(Handler& handler, const BaseDataConfig& config) -> BaseData
         .fixed_design = std::move(*fixed_design),
         .sample_ids = std::move(common_index).take_keys(),
     };
-}
-
-template <BaseDataHandler Handler>
-auto load_base_data(Handler& handler, CLI::App& cmd) -> BaseData
-{
-    BaseDataConfig config{
-        .pheno_path = cmd.get_option("--pheno")->as<std::string>(),
-        .pheno_col = cmd.get_option("--pheno-col")->as<int>(),
-        .qcovar_path = cmd.get_option("--qcovar")->count() > 0
-                           ? std::make_optional(
-                                 cmd.get_option("--qcovar")->as<std::string>())
-                           : std::nullopt,
-        .dcovar_path = cmd.get_option("--dcovar")->count() > 0
-                           ? std::make_optional(
-                                 cmd.get_option("--dcovar")->as<std::string>())
-                           : std::nullopt,
-    };
-    return load_base_data(handler, config);
 }
 
 }  // namespace cli

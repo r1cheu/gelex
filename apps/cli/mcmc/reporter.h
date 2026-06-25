@@ -20,10 +20,7 @@
 #include <cstddef>
 #include <string>
 
-#include <Eigen/Core>
-
 #include "cli/fit_reporter.h"
-#include "gelex/bayes/recipe.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/progress_bar.h"
 
@@ -40,12 +37,6 @@ class McmcReporter : public FitReporter
    public:
     McmcReporter() = default;
 
-    auto show_banner() -> void;
-    auto show_config(
-        gelex::bayes::BayesRecipeScheme recipe_scheme,
-        Eigen::Index n_iters,
-        Eigen::Index n_burn_in,
-        int seed) -> void;
     auto show_prior(const gelex::bayes::BayesPrior& prior) -> void;
     auto show_complete(std::ptrdiff_t samples_collected) -> void;
     auto on_event(const gelex::MCMCProgressEvent& event) -> void;

@@ -17,17 +17,13 @@
 #ifndef APPS_CLI_BAYES_RECIPE_OPTIONS_H_
 #define APPS_CLI_BAYES_RECIPE_OPTIONS_H_
 
+#include "cli/mcmc/config.h"
 #include "gelex/bayes/recipe_options.h"
-
-namespace CLI
-{
-class App;
-}
 
 namespace cli
 {
 
-auto make_bayes_recipe_options(const CLI::App& cmd)
+auto make_bayes_recipe_options(const McmcConfig& config)
     -> gelex::bayes::BayesRecipeOptions;
 
 }  // namespace cli

@@ -17,11 +17,8 @@
 #ifndef APPS_CLI_MCMC_COMMAND_H_
 #define APPS_CLI_MCMC_COMMAND_H_
 
-namespace CLI
-{
-class App;
-}
+#include "config.h"
 
-auto mcmc_execute(CLI::App& cmd) -> int;
+auto mcmc_execute(const cli::McmcConfig& config) -> int;
 
 #endif  // APPS_CLI_MCMC_COMMAND_H_
