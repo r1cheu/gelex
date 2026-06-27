@@ -38,6 +38,7 @@ class RemlReporter
    public:
     auto on_event(const gelex::RemlEmInitEvent& e) -> void;
     auto on_event(const gelex::RemlIterationEvent& e) -> void;
+    auto on_event(const gelex::RemlConstrainedEvent& e) -> void;
     auto show_result(
         const gelex::FreqModel& model,
         const gelex::FreqState& state,

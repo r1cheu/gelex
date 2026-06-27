@@ -19,7 +19,6 @@
 
 #include <fmt/format.h>
 #include <filesystem>
-#include "gelex/infra/logger.h"
 
 #include <unistd.h>
 
@@ -28,11 +27,7 @@ namespace test_utils
 
 struct TestInitializer
 {
-    TestInitializer()
-    {
-        gelex::logging::initialize(log_prefix());
-        clean_test_files();
-    }
+    TestInitializer() { clean_test_files(); }
 
     ~TestInitializer() { clean_test_files(); }
 

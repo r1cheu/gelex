@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/infra/logger.h"
+#include "logging.h"
 
 #include <cstddef>
 #include <memory>
@@ -32,6 +32,8 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
+
+#include "gelex/infra/log.h"
 
 namespace
 {
@@ -135,7 +137,7 @@ class StripAnsiFormatter : public spdlog::formatter
 };
 }  // namespace
 
-namespace gelex::logging
+namespace cli::logging
 {
 
 void initialize(std::string_view output_prefix)
@@ -167,6 +169,27 @@ void initialize(std::string_view output_prefix)
             g_logger->flush_on(spdlog::level::err);
 
             spdlog::register_logger(g_logger);
+
+            gelex::log::set_sink(
+                [](gelex::log::Level level, std::string_view msg)
+                {
+                    if (g_logger == nullptr)
+                    {
+                        return;
+                    }
+                    switch (level)
+                    {
+                        case gelex::log::Level::Info:
+                            g_logger->info("{}", msg);
+                            break;
+                        case gelex::log::Level::Warn:
+                            g_logger->warn("{}", msg);
+                            break;
+                        case gelex::log::Level::Error:
+                            g_logger->error("{}", msg);
+                            break;
+                    }
+                });
         });
 }
 
@@ -175,4 +198,4 @@ std::shared_ptr<spdlog::logger>& get()
     return g_logger;
 }
 
-}  // namespace gelex::logging
+}  // namespace cli::logging

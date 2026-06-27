@@ -14,18 +14,31 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_REML_CONSTRAIN_H_
-#define GELEX_ALGO_REML_CONSTRAIN_H_
+#ifndef GELEX_INFRA_LOG_H_
+#define GELEX_INFRA_LOG_H_
 
-#include <Eigen/Dense>
+#include <cstdint>
+#include <functional>
+#include <string_view>
 
-namespace gelex::reml
+namespace gelex::log
 {
-// Clamps negative variance components to a small positive limit, redistributing
-// the borrowed mass across the unconstrained ones. Returns how many components
-// were constrained so the caller can judge the estimate's reliability.
-auto constrain(Eigen::Ref<Eigen::VectorXd> varcmp, double y_variance)
-    -> Eigen::Index;
-}  // namespace gelex::reml
 
-#endif  // GELEX_ALGO_REML_CONSTRAIN_H_
+enum class Level : std::uint8_t
+{
+    Info,
+    Warn,
+    Error
+};
+
+using Sink = std::function<void(Level, std::string_view)>;
+
+void set_sink(Sink sink);
+
+void info(std::string_view message);
+void warn(std::string_view message);
+void error(std::string_view message);
+
+}  // namespace gelex::log
+
+#endif  // GELEX_INFRA_LOG_H_

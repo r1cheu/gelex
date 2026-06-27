@@ -19,7 +19,7 @@
 #include <string>
 #include <utility>
 
-#include "gelex/infra/logger.h"
+#include "cli/logging.h"
 
 namespace cli
 {
@@ -28,20 +28,20 @@ auto ReportPrinter::ensure_blank() -> void
 {
     if (!has_blank_)
     {
-        gelex::logging::get()->info("");
+        cli::logging::get()->info("");
         has_blank_ = true;
     }
 }
 
 auto ReportPrinter::emit_info(std::string msg) -> void
 {
-    gelex::logging::get()->info("{}", std::move(msg));
+    cli::logging::get()->info("{}", std::move(msg));
     has_blank_ = false;
 }
 
 auto ReportPrinter::emit_warn(std::string msg) -> void
 {
-    gelex::logging::get()->warn("{}", std::move(msg));
+    cli::logging::get()->warn("{}", std::move(msg));
     has_blank_ = false;
 }
 

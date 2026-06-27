@@ -27,7 +27,7 @@
 #include <string_view>
 
 #include "gelex/exception.h"
-#include "gelex/infra/logger.h"
+#include "gelex/infra/log.h"
 #include "gelex/io/detail/binary_format.h"
 
 namespace gelex::io
@@ -55,13 +55,11 @@ BinaryWriter::~BinaryWriter() noexcept
     }
     catch (const std::exception& e)
     {
-        if (auto logger = gelex::logging::get())
-        {
-            logger->error(
+        gelex::log::error(
+            fmt::format(
                 "{}: failed to finalize, discarding output: {}",
                 file_.path().string(),
-                e.what());
-        }
+                e.what()));
     }
 }
 

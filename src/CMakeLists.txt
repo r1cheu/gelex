@@ -14,9 +14,7 @@ target_include_directories(
   PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
          $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}> $<INSTALL_INTERFACE:include>
   PRIVATE "${PROJECT_SOURCE_DIR}/src")
-target_include_directories(
-  gelex_core SYSTEM PUBLIC ${PROJECT_SOURCE_DIR}/ext
-                           ${PROJECT_SOURCE_DIR}/ext/eigen)
+target_include_directories(gelex_core SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/ext)
 
 target_compile_definitions(gelex_core
                            PUBLIC $<$<CONFIG:Release>:EIGEN_NO_DEBUG>)
@@ -32,7 +30,7 @@ target_compile_options(
                      $<$<BOOL:${GELEX_NATIVE_OPTIMIZATION}>:-march=native -O3>)
 
 target_link_libraries(
-  gelex_core PUBLIC OpenMP::OpenMP_CXX BLAS::BLAS spdlog::spdlog
+  gelex_core PUBLIC OpenMP::OpenMP_CXX BLAS::BLAS fmt::fmt Eigen3::Eigen
                     $<$<BOOL:${MINGW}>:ws2_32>)
 
 if(GELEX_ENABLE_SANITIZERS AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")

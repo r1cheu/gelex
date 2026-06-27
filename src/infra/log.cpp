@@ -14,19 +14,52 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_LOGGER_H_
-#define GELEX_LOGGER_H_
+#include "gelex/infra/log.h"
 
-#include <memory>
 #include <string_view>
+#include <utility>
 
-#include <spdlog/logger.h>
-
-namespace gelex::logging
+namespace gelex::log
 {
-void initialize(std::string_view output_prefix = "output");
 
-std::shared_ptr<spdlog::logger>& get();
-}  // namespace gelex::logging
+namespace
+{
 
-#endif  // GELEX_LOGGER_H_
+auto sink() -> Sink&
+{
+    static Sink instance;
+    return instance;
+}
+
+}  // namespace
+
+void set_sink(Sink s)
+{
+    sink() = std::move(s);
+}
+
+void info(std::string_view message)
+{
+    if (auto& s = sink())
+    {
+        s(Level::Info, message);
+    }
+}
+
+void warn(std::string_view message)
+{
+    if (auto& s = sink())
+    {
+        s(Level::Warn, message);
+    }
+}
+
+void error(std::string_view message)
+{
+    if (auto& s = sink())
+    {
+        s(Level::Error, message);
+    }
+}
+
+}  // namespace gelex::log

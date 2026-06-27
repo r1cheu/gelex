@@ -98,6 +98,17 @@ auto Estimator::fit(
         iter_count_ = max_iter_;
     }
 
+    const auto num_total = static_cast<Eigen::Index>(state.random().size()) + 1;
+    if (2 * optimizer_.num_constrained() > num_total)
+    {
+        notify(
+            observer_,
+            RemlConstrainedEvent{
+                .num_constrained
+                = static_cast<size_t>(optimizer_.num_constrained()),
+                .num_total = static_cast<size_t>(num_total)});
+    }
+
     // compute final results
     compute_fixed_effects(model, state, opt_state);
     compute_random_effects(model, state, opt_state);

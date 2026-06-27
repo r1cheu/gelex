@@ -37,7 +37,6 @@
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/locus_encoding.h"
 #include "gelex/exception.h"
-#include "gelex/infra/logger.h"
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/binary_reader.h"
@@ -254,10 +253,9 @@ auto GenotypeReader::read_mmap(
 
     if (std::filesystem::exists(gbin_path))
     {
-        auto logger = gelex::logging::get();
-        logger->error("Output file already exists: [{}]", gbin_path.string());
         throw gelex::GelexException(
-            fmt::format("{}: existing file", gbin_path.string()));
+            fmt::format(
+                "Output file already exists: [{}]", gbin_path.string()));
     }
 
     {

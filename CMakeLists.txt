@@ -52,6 +52,8 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 find_package(OpenMP REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 add_subdirectory(ext/CLI11)
 

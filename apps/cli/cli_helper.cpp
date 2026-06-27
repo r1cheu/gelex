@@ -41,9 +41,9 @@
 
 #include "cli/common_data.h"
 #include "cli/formatter.h"
+#include "cli/logging.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/exception.h"
-#include "gelex/infra/logger.h"
 #include "report_printer.h"
 #include "version.h"
 
@@ -259,7 +259,7 @@ auto execute_cli_command(
 {
     try
     {
-        gelex::logging::initialize(cmd.get_option("--out")->as<std::string>());
+        cli::logging::initialize(cmd.get_option("--out")->as<std::string>());
         cli::printer().block(
             gelex::command_banner(PROJECT_VERSION, banner_title));
         report_command_line(cmd);
@@ -268,7 +268,7 @@ auto execute_cli_command(
         auto elapsed = std::chrono::duration<double>(
                            std::chrono::steady_clock::now() - start)
                            .count();
-        if (gelex::logging::get())
+        if (cli::logging::get())
         {
             cli::printer().block(gelex::done_message(elapsed));
         }
@@ -276,7 +276,7 @@ auto execute_cli_command(
     }
     catch (const std::exception& e)
     {
-        auto logger = gelex::logging::get();
+        auto logger = cli::logging::get();
         if (logger)
         {
             logger->error("{}", e.what());
@@ -289,7 +289,7 @@ auto execute_cli_command(
     }
     catch (...)
     {
-        auto logger = gelex::logging::get();
+        auto logger = cli::logging::get();
         if (logger)
         {
             logger->error("unknown exception");

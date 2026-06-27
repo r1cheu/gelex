@@ -24,7 +24,6 @@
 #include "gelex/algo/reml/optimizer_state.h"
 #include "gelex/algo/reml/variance_calculator.h"
 #include "gelex/freq/model.h"
-#include "gelex/infra/logger.h"
 
 namespace gelex::reml
 {
@@ -32,10 +31,7 @@ namespace gelex::reml
 class Optimizer
 {
    public:
-    explicit Optimizer(double tol = 1e-8)
-        : convergence_checker_(tol), logger_(logging::get())
-    {
-    }
+    explicit Optimizer(double tol = 1e-8) : convergence_checker_(tol) {}
 
     template <typename Policy>
     auto step(
@@ -44,16 +40,18 @@ class Optimizer
         OptimizerState& opt_state) -> bool;
 
     auto is_converged() const -> bool { return converged_; }
+    auto num_constrained() const -> Eigen::Index { return num_constrained_; }
     auto reset() -> void
     {
         convergence_checker_.clear();
         converged_ = false;
+        num_constrained_ = 0;
     }
 
    private:
     ConvergenceChecker convergence_checker_;
     bool converged_{false};
-    std::shared_ptr<spdlog::logger> logger_;
+    Eigen::Index num_constrained_{0};
 };
 
 // helper to collect variance components from FreqState into a vector
@@ -85,7 +83,7 @@ auto Optimizer::step(
     Eigen::VectorXd sigma = Policy::apply(model, state, opt_state);
 
     // 5. constrain variance components to be positive
-    constrain(sigma, opt_state.phenotype_variance());
+    num_constrained_ = constrain(sigma, opt_state.phenotype_variance());
 
     // 6. distribute back to state
     distribute_variance_components(state, sigma);

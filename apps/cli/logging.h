@@ -14,22 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_INFRA_LOGGING_GRM_PIPE_EVENT_H_
-#define GELEX_INFRA_LOGGING_GRM_PIPE_EVENT_H_
+#ifndef APPS_CLI_LOGGING_H_
+#define APPS_CLI_LOGGING_H_
 
-#include <cstddef>
-#include <functional>
+#include <memory>
+#include <string_view>
 
-namespace gelex
+#include <spdlog/logger.h>
+
+namespace cli::logging
 {
+void initialize(std::string_view output_prefix = "output");
 
-struct GrmLoadedEvent
-{
-    size_t num_samples;
-};
+std::shared_ptr<spdlog::logger>& get();
+}  // namespace cli::logging
 
-using GrmPipeObserver = std::function<void(const GrmLoadedEvent&)>;
-
-}  // namespace gelex
-
-#endif  // GELEX_INFRA_LOGGING_GRM_PIPE_EVENT_H_
+#endif  // APPS_CLI_LOGGING_H_

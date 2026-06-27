@@ -67,6 +67,26 @@ auto RemlReporter::on_event(const gelex::RemlIterationEvent& e) -> void
     cli::printer().line("  {:<4} {:>12.2f}{}", e.iter, e.loglike, var_str);
 }
 
+auto RemlReporter::on_event(const gelex::RemlConstrainedEvent& e) -> void
+{
+    auto& p = cli::printer();
+    if (e.num_constrained == e.num_total)
+    {
+        p.warn(
+            "  ! All {} variance components were constrained; the estimate is "
+            "not reliable.",
+            e.num_total);
+    }
+    else
+    {
+        p.warn(
+            "  ! {} of {} variance components were constrained; the estimate "
+            "may be unreliable.",
+            e.num_constrained,
+            e.num_total);
+    }
+}
+
 auto RemlReporter::show_result(
     const gelex::FreqModel& model,
     const gelex::FreqState& state,

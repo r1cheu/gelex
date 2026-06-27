@@ -13,6 +13,7 @@ target_compile_definitions(
 target_include_directories(
   gelex_tests PRIVATE "${PROJECT_SOURCE_DIR}/apps"
                       "${PROJECT_SOURCE_DIR}/src")
+target_include_directories(gelex_tests SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/ext")
 
 target_link_libraries(
   gelex_tests PRIVATE -Wl,--whole-archive gelex::core -Wl,--no-whole-archive

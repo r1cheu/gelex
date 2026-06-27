@@ -40,7 +40,14 @@ struct RemlIterationEvent
     std::vector<double> variances;
 };
 
-using RemlEvent = std::variant<RemlEmInitEvent, RemlIterationEvent>;
+struct RemlConstrainedEvent
+{
+    size_t num_constrained;
+    size_t num_total;
+};
+
+using RemlEvent
+    = std::variant<RemlEmInitEvent, RemlIterationEvent, RemlConstrainedEvent>;
 using RemlObserver = std::function<void(const RemlEvent&)>;
 
 }  // namespace gelex

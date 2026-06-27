@@ -25,11 +25,11 @@
 
 #include <Eigen/Core>
 
+#include "cli/logging.h"
 #include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/reader.h"
-#include "gelex/infra/logger.h"
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
 #include "gelex/types/fixed_designs.h"
 
@@ -122,7 +122,7 @@ auto load_base_data(Handler& handler, const BaseDataConfig& config) -> BaseData
     if (config.transform != "none")
     {
         gelex::stats::RankInverseNormTransform transformer(config.int_offset);
-        auto logger = gelex::logging::get();
+        auto logger = cli::logging::get();
 
         if (config.transform == "dint")
         {

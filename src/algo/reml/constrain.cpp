@@ -18,14 +18,12 @@
 
 #include <Eigen/Core>
 
-#include "gelex/infra/logger.h"
-
 namespace gelex::reml
 {
 
-void constrain(Eigen::Ref<Eigen::VectorXd> varcmp, double y_variance)
+auto constrain(Eigen::Ref<Eigen::VectorXd> varcmp, double y_variance)
+    -> Eigen::Index
 {
-    auto logger = logging::get();
     constexpr double constr_scale = 1e-6;
     const double limit = y_variance * constr_scale;
 
@@ -35,22 +33,12 @@ void constrain(Eigen::Ref<Eigen::VectorXd> varcmp, double y_variance)
 
     if (num_constrained == 0)
     {
-        return;
+        return 0;
     }
     if (num_constrained == varcmp.size())
     {
-        logger->warn(
-            "All variance components are constrained! The estimate is not "
-            "reliable.");
         varcmp.fill(limit);
-        return;
-    }
-
-    if (num_constrained > num_varcmp / 2)
-    {
-        logger->warn(
-            "Half of the variance components are constrained! The estimate is "
-            "not reliable.");
+        return num_constrained;
     }
 
     double delta = 0.0;
@@ -71,5 +59,6 @@ void constrain(Eigen::Ref<Eigen::VectorXd> varcmp, double y_variance)
             varcmp[i] -= delta;
         }
     }
+    return num_constrained;
 }
 }  // namespace gelex::reml
