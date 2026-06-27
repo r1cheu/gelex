@@ -73,8 +73,8 @@ BedSource::BedSource(
             fmt::format("{}: bed file too short", bed_path.string()));
     }
 
-    if (mmap_[0] != BED_MAGIC_0 || mmap_[1] != BED_MAGIC_1
-        || mmap_[2] != BED_MAGIC_2)
+    const auto* raw = reinterpret_cast<const std::uint8_t*>(mmap_.data());
+    if (raw[0] != BED_MAGIC_0 || raw[1] != BED_MAGIC_1 || raw[2] != BED_MAGIC_2)
     {
         throw GelexException(
             fmt::format("{}: invalid BED magic number", bed_path.string()));
@@ -92,8 +92,7 @@ BedSource::BedSource(
                 mmap_.size()));
     }
 
-    payload_
-        = reinterpret_cast<const std::uint8_t*>(mmap_.data()) + BED_HEADER_SIZE;
+    payload_ = raw + BED_HEADER_SIZE;
 }
 
 auto open_bed_source(const std::string& bfile_prefix) -> BedSource

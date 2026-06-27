@@ -26,13 +26,13 @@
 #include <vector>
 
 #include <fmt/format.h>
-#include <mio.h>
 #include <Eigen/Core>
 
 #include "gelex/data/dataframe/reader.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/io/detail/parser.h"
+#include "gelex/io/mapped_file.h"
 
 namespace
 {
@@ -43,10 +43,11 @@ auto lower_triangle_index(size_t i, size_t j) -> size_t
 }
 
 auto mmap_and_check_size(const std::string& path, size_t expected_size)
-    -> mio::mmap_source
+    -> gelex::io::MappedFile
 {
     std::error_code ec;
-    mio::mmap_source mmap = mio::make_mmap_source(path, ec);
+    gelex::io::MappedFile mmap;
+    mmap.map(path, ec);
     if (ec)
     {
         throw gelex::GelexException(

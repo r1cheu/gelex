@@ -24,9 +24,9 @@
 #include <string>
 
 #include <fmt/format.h>
-#include <mio.h>
 
 #include "gelex/exception.h"
+#include "gelex/io/mapped_file.h"
 
 namespace gelex::detail
 {
@@ -129,7 +129,7 @@ class BedSource
     }
 
    private:
-    mio::mmap_source mmap_;
+    io::MappedFile mmap_;
     const std::uint8_t* payload_ = nullptr;
     size_type num_variants_ = 0;
     size_type num_samples_ = 0;

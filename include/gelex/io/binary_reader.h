@@ -30,13 +30,12 @@
 #include <unordered_map>
 #include <vector>
 
-#include <mio.h>
-
 #include <Eigen/Core>
 
 #include "gelex/exception.h"
 #include "gelex/infra/string_hash.h"
 #include "gelex/io/detail/binary_format.h"
+#include "gelex/io/mapped_file.h"
 
 namespace gelex::io
 {
@@ -98,7 +97,7 @@ class BinaryReader
         -> const detail::TocEntry&;
 
     std::filesystem::path path_;
-    mio::mmap_source mmap_;
+    MappedFile mmap_;
     std::unordered_map<
         std::string,
         detail::TocEntry,
@@ -138,7 +137,7 @@ inline BinaryReader::BinaryReader(std::string_view file_path)
 inline auto BinaryReader::parse_footer_and_toc() -> void
 {
     const auto file_size = mmap_.size();
-    const auto* data = reinterpret_cast<const std::byte*>(mmap_.data());
+    const auto* data = mmap_.data();
     const auto path_str = path_.string();
 
     const auto* footer = data + file_size - detail::FOOTER_SIZE;
