@@ -48,25 +48,18 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 # --------------------------------------------------
 # ------------ Dependencies ------------------------
 # --------------------------------------------------
-# list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-
 find_package(OpenMP REQUIRED)
-find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(Eigen3 REQUIRED)
-
-add_subdirectory(ext/CLI11)
 
 # BLAS/LAPACK Selection
 if(GELEX_USE_MKL)
   set(BLA_VENDOR Intel10_64lp)
-  find_package(BLAS REQUIRED)
-  find_package(LAPACK REQUIRED)
 else()
   set(BLA_VENDOR OpenBLAS)
-  find_package(BLAS REQUIRED)
-  find_package(LAPACK REQUIRED)
 endif()
+find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
 
 # --------------------------------------------------
 # ------------ Build Targets -----------------------
@@ -85,3 +78,37 @@ endif()
 if(GELEX_BUILD_BENCHMARKS)
   add_subdirectory(benchmark)
 endif()
+
+# --------------------------------------------------
+# ------------ Install / Export --------------------
+# --------------------------------------------------
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+install(
+  TARGETS gelex_core
+  EXPORT gelexTargets
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/gelex
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+install(
+  EXPORT gelexTargets
+  NAMESPACE gelex::
+  FILE gelexTargets.cmake
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/gelex)
+
+configure_package_config_file(
+  cmake/gelexConfig.cmake.in "${PROJECT_BINARY_DIR}/gelexConfig.cmake"
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/gelex)
+
+write_basic_package_version_file(
+  "${PROJECT_BINARY_DIR}/gelexConfigVersion.cmake"
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion)
+
+install(FILES "${PROJECT_BINARY_DIR}/gelexConfig.cmake"
+              "${PROJECT_BINARY_DIR}/gelexConfigVersion.cmake"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/gelex)

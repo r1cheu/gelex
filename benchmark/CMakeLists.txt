@@ -1,8 +1,8 @@
 find_package(Catch2 3 REQUIRED)
 
 add_library(nanobench STATIC nanobench.cpp)
-target_include_directories(nanobench PUBLIC ${PROJECT_SOURCE_DIR}/ext
-                                            ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(nanobench SYSTEM
+                           PUBLIC ${PROJECT_SOURCE_DIR}/ext/nanobench)
 target_link_libraries(nanobench PUBLIC Eigen3::Eigen)
 
 file(GLOB BENCHMARK_SOURCES CONFIGURE_DEPENDS "benchmark_*.cpp")

@@ -7,14 +7,16 @@ file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS "*.cpp")
 add_library(gelex_core ${CORE_SOURCES})
 add_library(gelex::core ALIAS gelex_core)
 
-set_target_properties(gelex_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(gelex_core PROPERTIES POSITION_INDEPENDENT_CODE ON
+                                            EXPORT_NAME core)
 
 target_include_directories(
   gelex_core
   PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
          $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}> $<INSTALL_INTERFACE:include>
   PRIVATE "${PROJECT_SOURCE_DIR}/src")
-target_include_directories(gelex_core SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/ext)
+target_include_directories(gelex_core SYSTEM
+                           PRIVATE ${PROJECT_SOURCE_DIR}/ext/mio)
 
 target_compile_definitions(gelex_core
                            PUBLIC $<$<CONFIG:Release>:EIGEN_NO_DEBUG>)

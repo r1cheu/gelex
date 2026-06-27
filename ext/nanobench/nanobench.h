@@ -3664,8 +3664,7 @@ Config::Config() = default;
 Config::~Config() = default;
 Config& Config::operator=(Config const&) = default;
 Config& Config::operator=(Config&&) noexcept(
-    ANKERL_NANOBENCH(NOEXCEPT_STRING_MOVE))
-    = default;
+    ANKERL_NANOBENCH(NOEXCEPT_STRING_MOVE)) = default;
 Config::Config(Config const&) = default;
 Config::Config(Config&&) noexcept = default;
 
@@ -3673,8 +3672,7 @@ Config::Config(Config&&) noexcept = default;
 Result::~Result() = default;
 Result& Result::operator=(Result const&) = default;
 Result& Result::operator=(Result&&) noexcept(
-    ANKERL_NANOBENCH(NOEXCEPT_STRING_MOVE))
-    = default;
+    ANKERL_NANOBENCH(NOEXCEPT_STRING_MOVE)) = default;
 Result::Result(Result const&) = default;
 Result::Result(Result&&) noexcept = default;
 
@@ -3951,8 +3949,7 @@ Bench::Bench()
 
 Bench::Bench(Bench&&) noexcept = default;
 Bench& Bench::operator=(Bench&&) noexcept(
-    ANKERL_NANOBENCH(NOEXCEPT_STRING_MOVE))
-    = default;
+    ANKERL_NANOBENCH(NOEXCEPT_STRING_MOVE)) = default;
 Bench::Bench(Bench const&) = default;
 Bench& Bench::operator=(Bench const&) = default;
 Bench::~Bench() noexcept = default;

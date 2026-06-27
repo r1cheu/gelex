@@ -1,3 +1,6 @@
+find_package(spdlog REQUIRED)
+find_package(CLI11 CONFIG REQUIRED)
+
 set(CLI_SOURCES
     main.cpp
     cli/assoc/args.cpp
@@ -37,7 +40,8 @@ set_target_properties(gelex_cli PROPERTIES OUTPUT_NAME "gelex")
 
 target_include_directories(gelex_cli PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                              ${PROJECT_SOURCE_DIR}/src)
-target_include_directories(gelex_cli SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/ext)
+target_include_directories(gelex_cli SYSTEM
+                           PRIVATE ${PROJECT_SOURCE_DIR}/ext/barkeep)
 
 target_compile_definitions(gelex_cli PRIVATE BARKEEP_ENABLE_FMT_FORMAT)
 

@@ -1,4 +1,5 @@
 find_package(Catch2 3 REQUIRED)
+find_package(CLI11 CONFIG REQUIRED)
 
 file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS "*.cpp")
 
@@ -13,7 +14,8 @@ target_compile_definitions(
 target_include_directories(
   gelex_tests PRIVATE "${PROJECT_SOURCE_DIR}/apps"
                       "${PROJECT_SOURCE_DIR}/src")
-target_include_directories(gelex_tests SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/ext")
+target_include_directories(gelex_tests SYSTEM PRIVATE
+                           "${PROJECT_SOURCE_DIR}/ext/barkeep")
 
 target_link_libraries(
   gelex_tests PRIVATE -Wl,--whole-archive gelex::core -Wl,--no-whole-archive
