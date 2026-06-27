@@ -19,8 +19,8 @@
 
 #include <cstdint>
 
+#include "cli/progress_bar.h"
 #include "gelex/infra/logging/geno_event.h"
-#include "gelex/infra/logging/progress_bar.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace cli
@@ -44,7 +44,7 @@ class GenoReporter
     }
 
    private:
-    gelex::ProgressInfo progress_info_;
+    cli::ProgressInfo progress_info_;
     bool init_progress_ = false;
 };
 

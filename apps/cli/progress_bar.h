@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_INFRA_LOGGING_PROGRESS_BAR_H_
-#define GELEX_INFRA_LOGGING_PROGRESS_BAR_H_
+#ifndef APPS_CLI_PROGRESS_BAR_H_
+#define APPS_CLI_PROGRESS_BAR_H_
 
 #include <cstddef>
 #include <memory>
@@ -23,7 +23,7 @@
 
 #include "barkeep.h"
 
-namespace gelex
+namespace cli
 {
 
 inline const barkeep::BarParts BAR_STYLE{
@@ -64,6 +64,6 @@ auto create_progress_bar(
 
 auto create_progress_info() -> ProgressInfo;
 
-}  // namespace gelex
+}  // namespace cli
 
-#endif  // GELEX_INFRA_LOGGING_PROGRESS_BAR_H_
+#endif  // APPS_CLI_PROGRESS_BAR_H_

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/infra/logging/progress_bar.h"
+#include "progress_bar.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -27,7 +27,7 @@
 
 #include <barkeep.h>
 
-namespace gelex
+namespace cli
 {
 namespace bk = barkeep;
 
@@ -56,7 +56,7 @@ auto create_progress_bar(size_t& counter, size_t total, std::string_view format)
     {
         elements.push_back((bk::Animation(
             {.message = " ",
-             .style = gelex::GREEN_SPINNER,
+             .style = GREEN_SPINNER,
              .interval = 0.08,
              .no_tty = false,
              .show = false})));
@@ -70,7 +70,7 @@ auto create_progress_bar(size_t& counter, size_t total, std::string_view format)
             {.total = total,
              .format = std::string(format),
              .speed = 0.1,
-             .style = gelex::BAR_STYLE,
+             .style = BAR_STYLE,
              .no_tty = no_tty,
              .show = false}));
     auto after = bk::Status(
@@ -110,4 +110,4 @@ auto create_progress_info() -> ProgressInfo
         .display = barkeep::Composite(elements, ""), .progress_info = status};
 }
 
-}  // namespace gelex
+}  // namespace cli

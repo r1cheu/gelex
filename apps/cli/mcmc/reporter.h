@@ -21,8 +21,8 @@
 #include <string>
 
 #include "cli/fit_reporter.h"
+#include "cli/progress_bar.h"
 #include "gelex/infra/logging/fit_event.h"
-#include "gelex/infra/logging/progress_bar.h"
 
 namespace gelex::bayes
 {
@@ -50,7 +50,7 @@ class McmcReporter : public FitReporter
 
    private:
     size_t iter_{0};
-    gelex::ProgressBar bar_;
+    cli::ProgressBar bar_;
     bool init_progress_ = false;
     std::string stats_;
     const gelex::bayes::BayesPrior* prior_ = nullptr;

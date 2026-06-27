@@ -21,13 +21,13 @@
 #include <fmt/format.h>
 
 #include "cli/formatter.h"
+#include "cli/progress_bar.h"
 #include "cli/report_printer.h"
-#include "gelex/infra/logging/progress_bar.h"
 
 namespace cli
 {
 
-SimulatorReporter::SimulatorReporter() : info_(gelex::create_progress_info()) {}
+SimulatorReporter::SimulatorReporter() : info_(cli::create_progress_info()) {}
 
 auto SimulatorReporter::show_variance_summary(
     std::optional<double> realized_h2,

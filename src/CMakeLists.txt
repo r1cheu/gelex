@@ -18,9 +18,8 @@ target_include_directories(
   gelex_core SYSTEM PUBLIC ${PROJECT_SOURCE_DIR}/ext
                            ${PROJECT_SOURCE_DIR}/ext/eigen)
 
-target_compile_definitions(
-  gelex_core PUBLIC BARKEEP_ENABLE_FMT_FORMAT
-                    $<$<CONFIG:Release>:EIGEN_NO_DEBUG>)
+target_compile_definitions(gelex_core
+                           PUBLIC $<$<CONFIG:Release>:EIGEN_NO_DEBUG>)
 
 if(GELEX_USE_MKL)
   target_compile_definitions(gelex_core PUBLIC EIGEN_USE_MKL_ALL USE_MKL)

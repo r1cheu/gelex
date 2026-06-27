@@ -28,12 +28,12 @@
 #include <Eigen/Core>
 
 #include "cli/formatter.h"
+#include "cli/progress_bar.h"
 #include "cli/report_printer.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/labels.h"
 #include "gelex/bayes/state.h"
 #include "gelex/infra/logging/fit_event.h"
-#include "gelex/infra/logging/progress_bar.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace cli
@@ -51,7 +51,7 @@ auto McmcReporter::on_event(const gelex::MCMCProgressEvent& event) -> void
     {
         init_progress_ = true;
         cli::printer().block(gelex::section("[MCMC Sampling]"));
-        bar_ = gelex::create_progress_bar(
+        bar_ = cli::create_progress_bar(
             iter_, event.total, "{bar} {value}/{total} [{speed:.1f}/s]");
         bar_.display->show();
     }

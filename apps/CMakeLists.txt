@@ -28,6 +28,7 @@ set(CLI_SOURCES
     cli/geno_reporter.cpp
     cli/cli_helper.cpp
     cli/color_formatter.cpp
+    cli/progress_bar.cpp
     cli/bayes_recipe_options.cpp)
 
 add_executable(gelex_cli ${CLI_SOURCES})
@@ -35,6 +36,9 @@ set_target_properties(gelex_cli PROPERTIES OUTPUT_NAME "gelex")
 
 target_include_directories(gelex_cli PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                              ${PROJECT_SOURCE_DIR}/src)
+target_include_directories(gelex_cli SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/ext)
+
+target_compile_definitions(gelex_cli PRIVATE BARKEEP_ENABLE_FMT_FORMAT)
 
 target_link_libraries(gelex_cli PRIVATE gelex::core CLI11::CLI11)
 

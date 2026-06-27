@@ -19,7 +19,7 @@
 
 #include <optional>
 
-#include "gelex/infra/logging/progress_bar.h"
+#include "cli/progress_bar.h"
 #include "gelex/infra/logging/simulate_event.h"
 
 namespace cli
@@ -42,7 +42,7 @@ class SimulatorReporter
     }
 
    private:
-    gelex::ProgressInfo info_;
+    cli::ProgressInfo info_;
     bool init_progress_ = false;
 };
 

@@ -22,9 +22,9 @@
 #include <fmt/format.h>
 
 #include "cli/formatter.h"
+#include "cli/progress_bar.h"
 #include "cli/report_printer.h"
 #include "gelex/infra/logging/grm_event.h"
-#include "gelex/infra/logging/progress_bar.h"
 
 namespace cli
 {
@@ -45,7 +45,7 @@ auto GrmReporter::start_compute(size_t total_snps) -> void
     progress_ = 0;
     eta_.reset(global_total_);
 
-    bar_ = gelex::create_progress_bar(progress_, global_total_);
+    bar_ = cli::create_progress_bar(progress_, global_total_);
     bar_.display->show();
     bar_active_ = true;
 }

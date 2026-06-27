@@ -24,9 +24,9 @@
 #include <fmt/format.h>
 
 #include "cli/formatter.h"
+#include "cli/progress_bar.h"
 #include "cli/reml_reporter.h"
 #include "cli/report_printer.h"
-#include "gelex/infra/logging/progress_bar.h"
 
 namespace cli
 {
@@ -60,7 +60,7 @@ auto AssocReporter::start_scan(size_t total_snps, int chunk_size, bool loco)
         cli::printer().line("   Mode         : LOCO");
     }
 
-    bar_ = gelex::create_progress_bar(progress_, total_snps);
+    bar_ = cli::create_progress_bar(progress_, total_snps);
     bar_.display->show();
     bar_active_ = true;
 }

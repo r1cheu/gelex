@@ -21,9 +21,9 @@
 #include <string_view>
 #include <vector>
 
+#include "cli/progress_bar.h"
 #include "cli/timer.h"
 #include "gelex/algo/reml/loco_result.h"
-#include "gelex/infra/logging/progress_bar.h"
 
 namespace cli
 {
@@ -44,7 +44,7 @@ class AssocReporter
 
    private:
     size_t progress_{0};
-    gelex::ProgressBar bar_;
+    cli::ProgressBar bar_;
     bool bar_active_ = false;
     gelex::SmoothEtaCalculator eta_;
 };

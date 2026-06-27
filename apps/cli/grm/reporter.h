@@ -20,9 +20,9 @@
 #include <cstddef>
 #include <string_view>
 
+#include "cli/progress_bar.h"
 #include "cli/timer.h"
 #include "gelex/infra/logging/grm_event.h"
-#include "gelex/infra/logging/progress_bar.h"
 
 namespace cli
 {
@@ -48,7 +48,7 @@ class GrmReporter
 
    private:
     size_t progress_{0};
-    gelex::ProgressBar bar_;
+    cli::ProgressBar bar_;
     bool bar_active_ = false;
     gelex::SmoothEtaCalculator eta_;
     size_t global_total_ = 0;

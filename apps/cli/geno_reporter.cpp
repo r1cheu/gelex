@@ -24,14 +24,14 @@
 #include <string>
 
 #include "cli/formatter.h"
+#include "cli/progress_bar.h"
 #include "cli/report_printer.h"
-#include "gelex/infra/logging/progress_bar.h"
 #include "gelex/types/genetic_effect_type.h"
 
 namespace cli
 {
 
-GenoReporter::GenoReporter() : progress_info_(gelex::create_progress_info()) {}
+GenoReporter::GenoReporter() : progress_info_(cli::create_progress_info()) {}
 
 auto GenoReporter::show_loaded(
     gelex::GeneticMode mode,
@@ -62,7 +62,7 @@ auto GenoReporter::on_event(const gelex::GenotypeProgressEvent& event) -> void
     if (!init_progress_)
     {
         init_progress_ = true;
-        progress_info_ = gelex::create_progress_info();
+        progress_info_ = cli::create_progress_info();
         progress_info_.display->show();
     }
 
