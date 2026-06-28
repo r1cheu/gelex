@@ -41,9 +41,9 @@
 #include "gelex/predict/snp_alignment.h"
 #include "gelex/predict/types.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "io/predict/writer.h"
-#include "predict/compute.h"
-#include "predict/standardize.h"
+#include "gelex/io/predict/writer.h"
+#include "gelex/predict/compute.h"
+#include "gelex/predict/standardize.h"
 
 #include "bed_fixture.h"
 
@@ -368,12 +368,12 @@ auto run_predict_dataflow(
     }
     geno.add = std::move(genotype);
 
-    gelex::predict::detail::standardize_genotypes(geno, sbin);
+    gelex::predict::standardize_genotypes(geno, sbin);
 
     gelex::predict::SnpEffects effects{
         .add = std::move(add_effects), .dom = std::move(dom_effects)};
-    auto gebv = gelex::predict::detail::compute_gebv(geno, effects);
-    auto covar = gelex::predict::detail::compute_covariate_effects(
+    auto gebv = gelex::predict::compute_gebv(geno, effects);
+    auto covar = gelex::predict::compute_covariate_effects(
         covariates, coefficients);
 
     auto sample_keys = fam_df.index().keys();
@@ -388,7 +388,7 @@ auto run_predict_dataflow(
         .covar_predictions = std::move(covar.per_covariate),
         .covar_names = std::move(covar.covar_names)};
 
-    gelex::predict::detail::PredictWriter writer(output_path);
+    gelex::predict::PredictWriter writer(output_path);
     writer.write(result);
 }
 

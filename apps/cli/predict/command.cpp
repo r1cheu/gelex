@@ -31,12 +31,12 @@
 #include "gelex/exception.h"
 #include "gelex/io/locistats/reader.h"
 #include "gelex/io/predict/input_reader.h"
+#include "gelex/io/predict/writer.h"
+#include "gelex/predict/compute.h"
 #include "gelex/predict/snp_alignment.h"
+#include "gelex/predict/standardize.h"
 #include "gelex/predict/types.h"
 #include "gelex/types/genetic_effect_type.h"
-#include "io/predict/writer.h"
-#include "predict/compute.h"
-#include "predict/standardize.h"
 #include "reporter.h"
 
 namespace
@@ -139,13 +139,13 @@ auto predict_execute(const cli::PredictConfig& config) -> int
         coefficients.names.size(),
         sbin.add.method);
 
-    gelex::predict::detail::standardize_genotypes(geno, sbin);
+    gelex::predict::standardize_genotypes(geno, sbin);
 
     gelex::predict::SnpEffects effects{
         .add = std::move(add_effects), .dom = std::move(dom_effects)};
-    auto gebv = gelex::predict::detail::compute_gebv(geno, effects);
-    auto covar = gelex::predict::detail::compute_covariate_effects(
-        covariates, coefficients);
+    auto gebv = gelex::predict::compute_gebv(geno, effects);
+    auto covar
+        = gelex::predict::compute_covariate_effects(covariates, coefficients);
 
     auto sample_keys = fam_df.index().keys();
     std::vector<std::string> sample_ids(sample_keys.begin(), sample_keys.end());
@@ -159,7 +159,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
         .covar_predictions = std::move(covar.per_covariate),
         .covar_names = std::move(covar.covar_names)};
 
-    gelex::predict::detail::PredictWriter writer(config.out);
+    gelex::predict::PredictWriter writer(config.out);
     writer.write(result);
 
     reporter.show_results_written(config.out, result.sample_ids.size());

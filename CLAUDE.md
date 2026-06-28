@@ -12,7 +12,7 @@ pixi r test-catch "[tag]"    # tests by Catch2 tag
 ```
 
 - **Never** use `ctest` directly — always `pixi r test` or `pixi r test-catch`.
-- Use `GLOB_RECURSE CONFIGURE_DEPENDS` for library sources, but not for `apps/`
+- Use `GLOB_RECURSE CONFIGURE_DEPENDS` to collect sources for both the library and `apps/`
 
 ## Naming
 

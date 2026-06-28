@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#include "standardize.h"
+#include "gelex/predict/standardize.h"
 
 #include <Eigen/Core>
 
 #include "gelex/data/genotype_method.h"
 #include "gelex/predict/types.h"
 
-namespace gelex::predict::detail
+namespace gelex::predict
 {
 
 auto standardize_genotypes(GenotypeData& geno, const SbinData& sbin) -> void
@@ -89,4 +89,4 @@ auto standardize_genotypes(GenotypeData& geno, const SbinData& sbin) -> void
     }
 }
 
-}  // namespace gelex::predict::detail
+}  // namespace gelex::predict

@@ -22,6 +22,13 @@
 
 #include "cli/color_formatter.h"
 
+extern "C" const char* __lsan_default_suppressions()
+{
+    return "leak:___kmp_allocate_align\n"
+           "leak:libomp\n"
+           "leak:libiomp5";
+}
+
 namespace cli
 {
 
@@ -49,8 +56,8 @@ auto make_test_program() -> std::unique_ptr<CLI::App>
         ->group("I/O")
         ->type_name("<PHENOTYPE>")
         ->required();
-    command.add_option(
-               "--grm", "GRM file prefix(es). Can specify multiple GRMs.")
+    command
+        .add_option("--grm", "GRM file prefix(es). Can specify multiple GRMs.")
         ->group("I/O")
         ->type_name("<GRM>")
         ->expected(1, -1)
@@ -77,9 +84,7 @@ TEST_CASE("CLI color formatter preserves root help layout", "[cli][formatter]")
 {
     auto program = make_test_program();
 
-    REQUIRE(
-        program->help()
-        == R"(
+    REQUIRE(program->help() == R"(
 Root description
 
 Usage:
@@ -100,9 +105,7 @@ TEST_CASE(
 {
     auto program = make_test_program();
 
-    REQUIRE(
-        program->get_subcommand("run")->help()
-        == R"(
+    REQUIRE(program->get_subcommand("run")->help() == R"(
 Run the model
 
 Usage:

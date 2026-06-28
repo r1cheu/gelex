@@ -1,0 +1,51 @@
+[workspace]
+name = "gelex-cli"
+channels = ["https://prefix.dev/conda-forge"]
+platforms = ["linux-64"]
+preview = ["pixi-build"]
+
+[activation]
+env = { CXX = "g++" }
+
+# Development environment (default): plain-cmake build/test/run against the
+# libgelex conda package. pixi rebuilds libgelex automatically when ../ changes.
+[dependencies]
+libgelex = { path = ".." }
+fmt = ">=12,<12.2"
+cli11 = ">=2.6,<3"
+spdlog = ">=1.17.0,<2"
+catch2 = ">=3.15.1,<4"
+cmake = ">=4.2.3,<5"
+ninja = ">=1.13.2,<2"
+gxx = ">=15.2.0,<15.3"
+gcc = ">=15.2.0,<15.3"
+
+[tasks.build]
+cmd = "cmake -S . -B build -DGELEX_CLI_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH=$CONDA_PREFIX && cmake --build build -j$(nproc)"
+
+[tasks.test]
+cmd = "ctest --test-dir build --output-on-failure"
+depends-on = ["build"]
+
+[tasks.run]
+cmd = "./build/gelex"
+depends-on = ["build"]
+
+[package]
+name = "gelex-cli"
+version = "0.18.0"
+
+[package.build]
+backend = { name = "pixi-build-cmake", version = "*" }
+
+[package.host-dependencies]
+libgelex = { path = ".." }
+fmt = ">=12,<12.2"
+cli11 = ">=2.6,<3"
+spdlog = ">=1.17.0,<2"
+cmake = ">=4.2.3,<5"
+ninja = ">=1.13.2,<2"
+
+[package.run-dependencies]
+libgelex = { path = ".." }
+spdlog = ">=1.17.0,<2"

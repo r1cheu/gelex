@@ -1,50 +1,54 @@
+cmake_minimum_required(VERSION 3.20)
+project(gelex_cli LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+find_package(gelex CONFIG REQUIRED)
+find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(CLI11 CONFIG REQUIRED)
 
-set(CLI_SOURCES
-    main.cpp
-    cli/assoc/args.cpp
-    cli/assoc/command.cpp
-    cli/assoc/reporter.cpp
-    cli/mcmc/args.cpp
-    cli/mcmc/command.cpp
-    cli/mcmc/reporter.cpp
-    cli/grm/args.cpp
-    cli/grm/command.cpp
-    cli/grm/reporter.cpp
-    cli/predict/args.cpp
-    cli/predict/command.cpp
-    cli/predict/reporter.cpp
-    cli/simulate/args.cpp
-    cli/simulate/command.cpp
-    cli/simulate/reporter.cpp
-    cli/post/args.cpp
-    cli/post/command.cpp
-    cli/post/reporter.cpp
-    cli/reml/args.cpp
-    cli/reml/command.cpp
-    cli/report_printer.cpp
-    cli/formatter.cpp
-    cli/timer.cpp
-    cli/fit_reporter.cpp
-    cli/reml_reporter.cpp
-    cli/geno_reporter.cpp
-    cli/cli_helper.cpp
-    cli/color_formatter.cpp
-    cli/progress_bar.cpp
-    cli/logging.cpp
-    cli/bayes_recipe_options.cpp)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
+               "${CMAKE_CURRENT_BINARY_DIR}/version.h")
+
+file(GLOB_RECURSE CLI_SOURCES CONFIGURE_DEPENDS cli/*.cpp)
+list(APPEND CLI_SOURCES main.cpp)
 
 add_executable(gelex_cli ${CLI_SOURCES})
 set_target_properties(gelex_cli PROPERTIES OUTPUT_NAME "gelex")
 
 target_include_directories(gelex_cli PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-                                             ${PROJECT_SOURCE_DIR}/src)
+                                             ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(gelex_cli SYSTEM
-                           PRIVATE ${PROJECT_SOURCE_DIR}/ext/barkeep)
+                           PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ext/barkeep)
 
 target_compile_definitions(gelex_cli PRIVATE BARKEEP_ENABLE_FMT_FORMAT)
 
-target_link_libraries(gelex_cli PRIVATE gelex::core CLI11::CLI11 spdlog::spdlog)
+target_link_libraries(gelex_cli PRIVATE gelex::gelex fmt::fmt CLI11::CLI11
+                                        spdlog::spdlog)
 
 install(TARGETS gelex_cli RUNTIME DESTINATION bin)
+
+option(GELEX_CLI_BUILD_TESTS "Build CLI tests" OFF)
+
+if(GELEX_CLI_BUILD_TESTS)
+  enable_testing()
+  find_package(Catch2 3 REQUIRED)
+
+  add_executable(gelex_cli_tests tests/test_color_formatter.cpp
+                                 cli/color_formatter.cpp)
+  target_include_directories(gelex_cli_tests
+                             PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  target_include_directories(gelex_cli_tests SYSTEM
+                             PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ext/barkeep)
+  target_compile_definitions(gelex_cli_tests PRIVATE BARKEEP_ENABLE_FMT_FORMAT)
+  target_link_libraries(
+    gelex_cli_tests PRIVATE gelex::gelex fmt::fmt CLI11::CLI11
+                            Catch2::Catch2WithMain)
+
+  include(Catch)
+  catch_discover_tests(gelex_cli_tests)
+endif()

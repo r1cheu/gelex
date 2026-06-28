@@ -27,15 +27,15 @@
 #include "gelex/io/locistats/reader.h"
 #include "gelex/io/predict/input_reader.h"
 #include "gelex/predict/types.h"
-#include "predict/compute.h"
-#include "predict/standardize.h"
+#include "gelex/predict/compute.h"
+#include "gelex/predict/standardize.h"
 
 using gelex::LociStats;
 using gelex::predict::Coefficients;
 using gelex::predict::GenotypeData;
 using gelex::predict::SbinData;
 using gelex::predict::SnpEffects;
-using gelex::predict::detail::standardize_genotypes;
+using gelex::predict::standardize_genotypes;
 
 namespace
 {
@@ -209,7 +209,7 @@ TEST_CASE("compute_gebv: additive only", "[predict][compute]")
     SnpEffects effects;
     effects.add = Eigen::VectorXd{{0.5, -0.5}};
 
-    const auto result = gelex::predict::detail::compute_gebv(geno, effects);
+    const auto result = gelex::predict::compute_gebv(geno, effects);
 
     Eigen::VectorXd expected_add{{-0.5, -0.5}};
     REQUIRE(result.add_predictions.isApprox(expected_add));
@@ -234,7 +234,7 @@ TEST_CASE("compute_gebv: additive + dominance", "[predict][compute]")
     effects.add = Eigen::VectorXd{{1.0, 2.0}};
     effects.dom = Eigen::VectorXd{{0.1, 0.2}};
 
-    const auto result = gelex::predict::detail::compute_gebv(geno, effects);
+    const auto result = gelex::predict::compute_gebv(geno, effects);
 
     Eigen::VectorXd expected_add{{1.0, 2.0}};
     Eigen::VectorXd expected_dom{{0.15, 0.15}};
@@ -259,7 +259,7 @@ TEST_CASE("compute_covariate_effects: intercept only", "[predict][compute]")
     coefficients.names = {"Intercept"};
     coefficients.values = Eigen::VectorXd{{2.5}};
 
-    const auto result = gelex::predict::detail::compute_covariate_effects(
+    const auto result = gelex::predict::compute_covariate_effects(
         covariates, coefficients);
 
     Eigen::VectorXd expected_total{{2.5, 2.5, 2.5}};
@@ -283,7 +283,7 @@ TEST_CASE(
     coefficients.names = {"Intercept", "Age", "Sex_M"};
     coefficients.values = Eigen::VectorXd{{1.0, 0.2, -0.3}};
 
-    const auto result = gelex::predict::detail::compute_covariate_effects(
+    const auto result = gelex::predict::compute_covariate_effects(
         covariates, coefficients);
 
     Eigen::VectorXd expected_total{{5.7, 7.0}};

@@ -64,11 +64,7 @@ find_package(LAPACK REQUIRED)
 # --------------------------------------------------
 # ------------ Build Targets -----------------------
 # --------------------------------------------------
-configure_file("${PROJECT_SOURCE_DIR}/version.h.in"
-               "${PROJECT_BINARY_DIR}/version.h")
-
 add_subdirectory(src)
-add_subdirectory(apps)
 
 if(GELEX_BUILD_TESTS)
   enable_testing()
@@ -86,7 +82,7 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
 install(
-  TARGETS gelex_core
+  TARGETS gelex
   EXPORT gelexTargets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})

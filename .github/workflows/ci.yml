@@ -83,7 +83,9 @@ jobs:
     env:
       SCCACHE_GHA_ENABLED: "true"
     needs: build-test
-    if: github.event_name == 'push' && github.ref_name == 'main'
+    # Disabled: monolith recipe.yaml retired in favor of pixi-build double package
+    # (libgelex + gelex-cli). Rewire to `pixi build` before re-enabling.
+    if: false
     steps:
       - uses: actions/checkout@v4
         with:

@@ -28,7 +28,7 @@ namespace gelex::io::detail
 class TextWriter;
 }
 
-namespace gelex::predict::detail
+namespace gelex::predict
 {
 
 class PredictWriter
@@ -59,6 +59,6 @@ class PredictWriter
     std::string row_buf_;
 };
 
-}  // namespace gelex::predict::detail
+}  // namespace gelex::predict
 
 #endif  // GELEX_PREDICT_WRITER_H_

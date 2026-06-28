@@ -2,6 +2,7 @@
 name = "gelex"
 channels = ["https://prefix.dev/conda-forge"]
 platforms = ["linux-64"]
+preview = ["pixi-build"]
 
 [activation]
 env = { CXX = "g++" }
@@ -9,75 +10,51 @@ env = { CXX = "g++" }
 [dependencies]
 cmake = ">=4.2.3,<5"
 ninja = ">=1.13.2,<2"
-openblas = { version = ">=0.3.31,<0.4", build = "*openmp*" }
-eigen = ">=5,<6"
-spdlog = ">=1.17.0,<2"
-catch2 = ">=3.12.0,<4"
-cli11 = ">=2.6,<3"
-mkl-devel = ">=2025.3.0,<2026"
-rattler-build = ">=0.55.1,<0.56"
 gxx = ">=15.2.0,<15.3"
 gcc = ">=15.2.0,<15.3"
+eigen = ">=5,<6"
+fmt = ">=12,<12.2"
+openblas = { version = ">=0.3.31,<0.4", build = "*openmp*" }
+catch2 = ">=3.12.0,<4"
+
+[package]
+name = "libgelex"
+version = "0.18.0"
+
+[package.build]
+backend = { name = "pixi-build-cmake", version = "*" }
+
+[package.build.config]
+extra-args = [
+    "-DGELEX_USE_MKL=OFF",
+    "-DGELEX_BUILD_TESTS=OFF",
+    "-DGELEX_BUILD_BENCHMARKS=OFF",
+]
+
+[package.host-dependencies]
+cmake = ">=4.2.3,<5"
+ninja = ">=1.13.2,<2"
+eigen = ">=5,<6"
+fmt = ">=12,<12.2"
+openblas = { version = ">=0.3.31,<0.4", build = "*openmp*" }
+
+[package.run-dependencies]
+fmt = ">=12,<12.2"
+eigen = ">=5,<6"
+openblas = { version = ">=0.3.31,<0.4", build = "*openmp*" }
 
 # ---------------------------------------------------------
-# Configure Tasks
+# Build (configure folded in; reconfigure is cheap & idempotent)
 # ---------------------------------------------------------
-[tasks.config-debug]
-cmd = "cmake --preset debug"
-
-[tasks.config-release]
-cmd = "cmake --preset release"
-
-[tasks.config-native]
-cmd = "cmake --preset release-native"
-
-[tasks.config-coverage]
-cmd = "cmake --preset coverage"
-
-[tasks.config-benchmark]
-cmd = "cmake --preset benchmark"
-
-[tasks.config-reldeb]
-cmd = "cmake --preset reldeb"
-
-
-# ---------------------------------------------------------
-# Build Tasks
-# ---------------------------------------------------------
-
-[tasks.build]
-cmd = "cmake --build --preset debug -j$(nproc)"
-depends-on = ["config-debug"]
-
 [tasks.build-debug]
-cmd = "cmake --build --preset debug -j$(nproc)"
-depends-on = ["config-debug"]
+cmd = "cmake --preset debug && cmake --build --preset debug -j$(nproc)"
 
 [tasks.build-release]
-cmd = "cmake --build --preset release -j$(nproc)"
-depends-on = ["config-release"]
-
-[tasks.build-native]
-cmd = "cmake --build --preset release-native -j$(nproc)"
-depends-on = ["config-native"]
-
-[tasks.build-benchmark]
-cmd = "cmake --build --preset benchmark -j$(nproc)"
-depends-on = ["config-benchmark"]
-
-[tasks.build-reldeb]
-cmd = "cmake --build --preset reldeb -j$(nproc)"
-depends-on = ["config-reldeb"]
-
-
-[tasks.coverage]
-cmd = "cmake --build --preset coverage --target coverage"
-depends-on = ["build-coverage-bin"]
+cmd = "cmake --preset release && cmake --build --preset release -j$(nproc)"
 
 # ---------------------------------------------------------
-# Test Tasks
+# Test
 # ---------------------------------------------------------
-
 [tasks.test]
 cmd = "ctest --preset test-debug"
 depends-on = ["build-debug"]
@@ -85,28 +62,14 @@ depends-on = ["build-debug"]
 [tasks.test-catch]
 cmd = "./build/debug/tests/gelex_tests"
 
-[tasks.build-coverage-bin]
-cmd = "cmake --build --preset coverage -j$(nproc)"
-depends-on = ["config-coverage"]
-
 # ---------------------------------------------------------
-# Install & Utils
+# Coverage / Benchmark
 # ---------------------------------------------------------
-[tasks.install-debug]
-cmd = "cmake --install build/debug --prefix $HOME/.local"
-depends-on = ["build-debug"]
-
-[tasks.install-release]
-cmd = "cmake --install build/release --prefix $HOME/.local"
-depends-on = ["build-release"]
-
-[tasks.install-reldeb]
-cmd = "cmake --install build/reldeb --prefix $HOME/.local"
-depends-on = ["build-reldeb"]
+[tasks.coverage]
+cmd = "cmake --preset coverage && cmake --build --preset coverage -j$(nproc) && cmake --build --preset coverage --target coverage"
 
 [tasks.benchmark]
-cmd = "build/benchmark/benchmark/gelex_benchmarks \"[!benchmark]\""
-depends-on = ["build-benchmark"]
+cmd = "cmake --preset benchmark && cmake --build --preset benchmark -j$(nproc) && build/benchmark/benchmark/gelex_benchmarks \"[!benchmark]\""
 
 [environments]
 docs = { features = ["docs"], no-default-feature = true }
