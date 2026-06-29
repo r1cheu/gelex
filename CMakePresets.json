@@ -119,6 +119,21 @@
                 "CMAKE_BUILD_TYPE": "Release",
                 "GELEX_BUILD_PYTHON": "ON"
             }
+        },
+        {
+            "name": "dev",
+            "displayName": "Dev (all components)",
+            "description":
+                "Debug core + CLI + Python + tests + benchmarks; one configure yields a project-wide compile_commands.json for clangd",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "GELEX_BUILD_TESTS": "ON",
+                "GELEX_BUILD_BENCHMARKS": "ON",
+                "GELEX_BUILD_CLI": "ON",
+                "GELEX_CLI_BUILD_TESTS": "ON",
+                "GELEX_BUILD_PYTHON": "ON"
+            }
         }
     ],
     "buildPresets": [
@@ -157,6 +172,10 @@
         {
             "name": "python",
             "configurePreset": "python"
+        },
+        {
+            "name": "dev",
+            "configurePreset": "dev"
         }
     ],
     "testPresets": [

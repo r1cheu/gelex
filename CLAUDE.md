@@ -5,6 +5,7 @@ C++23 · Catch2 v3 · Beta (breaking changes OK)
 ## Build
 
 ```bash
+pixi r init                  # configure the full tree -> project-wide compile_commands.json (clangd)
 pixi r build [preset]        # core: any configure preset (default debug; e.g. `build release`)
 pixi r test                  # all tests (via ctest)
 pixi r test-catch "[tag]"    # tests by Catch2 tag
@@ -15,9 +16,7 @@ pixi r test-python           # build-python then pytest the bindings
 ```
 
 - **Never** use `ctest` directly — always `pixi r test` or `pixi r test-catch`.
-- Build configs live in `CMakePresets.json` (the declarative source of truth: build type × component × compiler); pixi tasks only forward a preset name and orchestrate the configure→build→test→run pipeline. Keep `-D` flags in presets, not in tasks.
-- Single CMake tree: the root builds the core lib; `apps/` (CLI) and `bindings/` (Python) are opt-in subdirectories via `-DGELEX_BUILD_CLI=ON` / `-DGELEX_BUILD_PYTHON=ON` (default OFF), each gated behind its own pixi feature/environment. No conda round-trip — everything builds locally.
-- Use `GLOB_RECURSE CONFIGURE_DEPENDS` to collect sources for both the library and `apps/`
+- `-D` flags belong in `CMakePresets.json` (the source of truth), not in pixi tasks; the preset decides which components build. `apps/` (CLI) and `bindings/` (Python) are opt-in via `-DGELEX_BUILD_CLI`/`GELEX_BUILD_PYTHON` (default OFF).
 
 ## Naming
 

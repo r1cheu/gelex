@@ -5,7 +5,7 @@
     [
         {
             "label": "Debug gelex assoc",
-            "program": "$ZED_WORKTREE_ROOT/build/debug/src/gelex",
+            "program": "$ZED_WORKTREE_ROOT/build/cli-debug/apps/gelex",
             "args": [
                 "assoc",
                 "--pheno",
@@ -35,7 +35,7 @@
                 "command": "pixi",
                 "args": [
                     "r",
-                    "build-debug"
+                    "build-cli"
                 ],
                 "cwd": "$ZED_WORKTREE_ROOT",
             },

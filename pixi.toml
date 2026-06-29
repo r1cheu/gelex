@@ -6,6 +6,7 @@ platforms = ["linux-64"]
 [activation]
 env = { CXX = "g++" }
 
+# Single environment supplies every dependency; CMake presets decide what builds.
 [dependencies]
 cmake = ">=4.2.3,<5"
 ninja = ">=1.13.2,<2"
@@ -15,73 +16,58 @@ eigen = ">=5,<6"
 fmt = ">=12,<12.2"
 openblas = { version = ">=0.3.31,<0.4", build = "*openmp*" }
 catch2 = ">=3.12.0,<4"
-
-# ---------------------------------------------------------
-# Core: build any preset (configure folded in; reconfigure is cheap).
-# e.g. `pixi r build`, `pixi r build release`, `pixi r build reldeb`
-# ---------------------------------------------------------
-[tasks.build]
-args = [{ arg = "preset", default = "debug" }]
-cmd = "cmake --preset {{ preset }} && cmake --build --preset {{ preset }}"
-
-# ---------------------------------------------------------
-# Core: test / coverage / benchmark (each builds its preset first)
-# ---------------------------------------------------------
-[tasks.test]
-cmd = "ctest --preset test-debug"
-depends-on = [{ task = "build", args = ["debug"] }]
-
-[tasks.test-catch]
-cmd = "./build/debug/tests/gelex_tests"
-
-[tasks.coverage]
-cmd = "cmake --build --preset coverage --target coverage"
-depends-on = [{ task = "build", args = ["coverage"] }]
-
-[tasks.benchmark]
-cmd = "build/benchmark/benchmark/gelex_benchmarks \"[!benchmark]\""
-depends-on = [{ task = "build", args = ["benchmark"] }]
-
-# ---------------------------------------------------------
-# CLI (opt-in env): core + gelex_cli in build/cli-{debug,release}.
-# e.g. `pixi r build-cli`, `pixi r build-cli release`, `pixi r run release`
-# ---------------------------------------------------------
-[feature.cli.dependencies]
 cli11 = ">=2.6,<3"
 spdlog = ">=1.17.0,<2"
-
-[feature.cli.tasks.build-cli]
-args = [{ arg = "mode", default = "debug" }]
-cmd = "cmake --preset cli-{{ mode }} && cmake --build --preset cli-{{ mode }}"
-
-[feature.cli.tasks.run]
-args = [{ arg = "mode", default = "debug" }]
-cmd = "./build/cli-{{ mode }}/apps/gelex"
-depends-on = [{ task = "build-cli", args = ["{{ mode }}"] }]
-
-# ---------------------------------------------------------
-# Python bindings (opt-in feature): builds the core + _gelex in build/python
-# ---------------------------------------------------------
-[feature.python.dependencies]
 nanobind = ">=2.13,<3"
 python = ">=3.14,<3.15"
 numpy = ">=2,<3"
 pytest = ">=8,<9"
 
-[feature.python.tasks.build-python]
-cmd = "cmake --preset python && cmake --build --preset python"
+[tasks]
+# Configure the full tree once -> project-wide compile_commands.json for clangd.
+init = "cmake --preset dev && ln -sf build/dev/compile_commands.json compile_commands.json"
 
-[feature.python.tasks.test-python]
-cmd = "python -m pytest bindings/tests -q"
-depends-on = ["build-python"]
-env = { PYTHONPATH = "bindings/python" }
+# Core: `pixi r build`, `build release`, `build reldeb`, ...
+build = { cmd = "cmake --preset {{ preset }} && cmake --build --preset {{ preset }}", args = [
+    { arg = "preset", default = "debug" },
+] }
+test = { cmd = "ctest --preset test-debug", depends-on = [
+    { task = "build", args = [
+        "debug",
+    ] },
+] }
+test-catch = "./build/debug/tests/gelex_tests"
+coverage = { cmd = "cmake --build --preset coverage --target coverage", depends-on = [
+    { task = "build", args = [
+        "coverage",
+    ] },
+] }
+benchmark = { cmd = "build/benchmark/benchmark/gelex_benchmarks \"[!benchmark]\"", depends-on = [
+    { task = "build", args = [
+        "benchmark",
+    ] },
+] }
 
-# ---------------------------------------------------------
-# Environments
-# ---------------------------------------------------------
+# CLI: `pixi r build-cli`, `build-cli release`, `run`, `run release`.
+build-cli = { cmd = "cmake --preset cli-{{ mode }} && cmake --build --preset cli-{{ mode }}", args = [
+    { arg = "mode", default = "debug" },
+] }
+run = { cmd = "./build/cli-{{ mode }}/apps/gelex", args = [
+    { arg = "mode", default = "debug" },
+], depends-on = [
+    { task = "build-cli", args = [
+        "{{ mode }}",
+    ] },
+] }
+
+# Python bindings.
+build-python = "cmake --preset python && cmake --build --preset python"
+test-python = { cmd = "python -m pytest bindings/tests -q", depends-on = [
+    "build-python",
+], env = { PYTHONPATH = "bindings/python" } }
+
+# Docs: isolated environment (Sphinx pypi stack, no C++ toolchain).
 [environments]
-cli = { features = ["cli"] }
-python = { features = ["python"] }
 docs = { features = ["docs"], no-default-feature = true }
 
 [feature.docs.dependencies]
@@ -95,22 +81,9 @@ sphinx-copybutton = ">=0.5.2, <0.6"
 sphinxcontrib-svg2pdfconverter = ">=2.0.0, <3"
 sphinx-autobuild = ">=2025.8.25, <2026"
 
-[feature.docs.tasks.build-doc]
-cmd = ["sphinx-build", "-b", "html", "docs/source", "docs/build/html"]
-
-[feature.docs.tasks.serve-doc]
-cmd = ["python", "-m", "http.server", "3030", "-d", "docs/build/html"]
-depends-on = ["build-doc"]
-
-[feature.docs.tasks.watch-doc]
-cmd = [
-    "sphinx-autobuild",
-    "-b",
-    "html",
-    "docs/source",
-    "docs/build/html",
-    "--host",
-    "0.0.0.0",
-    "--port",
-    "3030",
-]
+[feature.docs.tasks]
+build-doc = "sphinx-build -b html docs/source docs/build/html"
+serve-doc = { cmd = "python -m http.server 3030 -d docs/build/html", depends-on = [
+    "build-doc",
+] }
+watch-doc = "sphinx-autobuild -b html docs/source docs/build/html --host 0.0.0.0 --port 3030"
