@@ -32,9 +32,9 @@ struct RemlConfig
 {
     BaseDataConfig base_data;
     std::vector<std::string> grm_prefixes;
-    std::optional<std::string> rand_path;
+    std::optional<std::string> drand_path;
+    std::vector<std::string> qrand_paths;
     std::string out_prefix{"gelex"};
-    bool loco{false};
     int max_iter{100};
     double tolerance{1e-6};
     int threads{

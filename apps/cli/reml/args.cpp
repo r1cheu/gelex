@@ -45,11 +45,22 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
         ->allow_extra_args()
         ->required();
     cmd.add_option(
-           "--rand",
-           config->rand_path,
-           "Random-effect factor TSV with FID, IID, factor columns")
+           "--drand",
+           config->drand_path,
+           "Discrete random-effect TSV (FID, IID, factor columns); each factor "
+           "column becomes a variance component via one-hot ZZ^T")
         ->group("I/O")
-        ->type_name("<RAND>")
+        ->type_name("<DRAND>")
+        ->check(CLI::ExistingFile);
+    cmd.add_option(
+           "--qrand",
+           config->qrand_paths,
+           "Quantitative random-effect matrix TSV (FID, IID, value columns); "
+           "each file forms one linear-kernel component ZZ^T")
+        ->group("I/O")
+        ->type_name("<QRAND>")
+        ->expected(1, -1)
+        ->allow_extra_args()
         ->check(CLI::ExistingFile);
     cmd.add_option(
            "-o,--out",
@@ -73,8 +84,6 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
         ->group("Model")
         ->type_name("<K>")
         ->capture_default_str();
-    cmd.add_flag("--loco", config->loco, "Use leave-one-chromosome-out GRMs")
-        ->group("Model");
 
     cmd.add_option("--max-iter", config->max_iter, "Maximum AI-REML iterations")
         ->group("Runtime")

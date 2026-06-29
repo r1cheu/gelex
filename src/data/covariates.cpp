@@ -102,6 +102,18 @@ auto make_random_designs(const dataframe::DataFrame<std::string>& frame)
     return random_designs;
 }
 
+auto make_quantitative_random_design(
+    const dataframe::DataFrame<std::string>& frame,
+    std::string name) -> freq::RandomDesign
+{
+    Eigen::MatrixXd Z = frame.to_mat<double>();
+    return freq::RandomDesign{
+        .name = std::move(name),
+        .levels = std::nullopt,
+        .Z = std::nullopt,
+        .K = Z * Z.transpose()};
+}
+
 auto make_grm_designs(
     std::span<const std::string> prefixes,
     const dataframe::Index<std::string>& index)

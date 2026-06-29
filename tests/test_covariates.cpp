@@ -24,6 +24,7 @@
 #include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/dataframe/reader.h"
+#include "gelex/data/reader.h"
 #include "gelex/exception.h"
 
 using gelex::dataframe::read_dataframe;
@@ -126,6 +127,30 @@ TEST_CASE(
     Eigen::MatrixXd expected_batch{
         {1.0, 0.0, 1.0}, {0.0, 1.0, 0.0}, {1.0, 0.0, 1.0}};
     REQUIRE(designs[1].K.isApprox(expected_batch));
+}
+
+TEST_CASE(
+    "make_quantitative_random_design builds linear kernel ZZ^T",
+    "[covariates]")
+{
+    FileFixture files;
+    constexpr std::string_view CONTENT
+        = "FID\tIID\tx1\tx2\n"
+          "F1\ts1\t1.0\t0.0\n"
+          "F1\ts2\t0.0\t2.0\n"
+          "F1\ts3\t1.0\t1.0\n";
+
+    auto path = files.create_text_file(CONTENT, ".tsv");
+    auto frame = gelex::read_qcovar(path);
+
+    auto design = gelex::make_quantitative_random_design(frame, "qrand");
+
+    REQUIRE(design.name == "qrand");
+    REQUIRE_FALSE(design.levels.has_value());
+    REQUIRE_FALSE(design.Z.has_value());
+
+    Eigen::MatrixXd expected{{1.0, 0.0, 1.0}, {0.0, 4.0, 2.0}, {1.0, 2.0, 2.0}};
+    REQUIRE(design.K.isApprox(expected));
 }
 
 TEST_CASE("make_random_designs rejects single-level columns", "[covariates]")

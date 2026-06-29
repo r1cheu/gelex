@@ -39,6 +39,10 @@ namespace gelex
     const dataframe::DataFrame<std::string>& frame)
     -> std::vector<freq::RandomDesign>;
 
+[[nodiscard]] auto make_quantitative_random_design(
+    const dataframe::DataFrame<std::string>& frame,
+    std::string name) -> freq::RandomDesign;
+
 [[nodiscard]] auto make_grm_designs(
     std::span<const std::string> prefixes,
     const dataframe::Index<std::string>&) -> std::vector<freq::RandomDesign>;
