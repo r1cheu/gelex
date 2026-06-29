@@ -88,6 +88,37 @@
                 "GELEX_BUILD_TESTS": "OFF",
                 "GELEX_NATIVE_OPTIMIZATION": "OFF"
             }
+        },
+        {
+            "name": "cli-debug",
+            "displayName": "CLI (Debug)",
+            "description": "Debug core plus the command-line application",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "GELEX_BUILD_CLI": "ON",
+                "GELEX_CLI_BUILD_TESTS": "ON"
+            }
+        },
+        {
+            "name": "cli-release",
+            "displayName": "CLI (Release)",
+            "description": "Release core plus the command-line application",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "GELEX_BUILD_CLI": "ON"
+            }
+        },
+        {
+            "name": "python",
+            "displayName": "Python Bindings",
+            "description": "Release core plus the nanobind Python bindings",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "GELEX_BUILD_PYTHON": "ON"
+            }
         }
     ],
     "buildPresets": [
@@ -114,6 +145,18 @@
         {
             "name": "benchmark",
             "configurePreset": "benchmark"
+        },
+        {
+            "name": "cli-debug",
+            "configurePreset": "cli-debug"
+        },
+        {
+            "name": "cli-release",
+            "configurePreset": "cli-release"
+        },
+        {
+            "name": "python",
+            "configurePreset": "python"
         }
     ],
     "testPresets": [

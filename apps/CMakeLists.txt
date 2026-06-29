@@ -1,12 +1,16 @@
 cmake_minimum_required(VERSION 3.20)
-project(gelex_cli LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  project(gelex_cli LANGUAGES CXX)
+  set(CMAKE_CXX_STANDARD 23)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  set(CMAKE_CXX_EXTENSIONS OFF)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+endif()
 
-find_package(gelex CONFIG REQUIRED)
+if(NOT TARGET gelex::gelex)
+  find_package(gelex CONFIG REQUIRED)
+endif()
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(CLI11 CONFIG REQUIRED)
@@ -34,7 +38,7 @@ install(TARGETS gelex_cli RUNTIME DESTINATION bin)
 
 option(GELEX_CLI_BUILD_TESTS "Build CLI tests" OFF)
 
-if(GELEX_CLI_BUILD_TESTS)
+if(GELEX_CLI_BUILD_TESTS OR GELEX_BUILD_TESTS)
   enable_testing()
   find_package(Catch2 3 REQUIRED)
 

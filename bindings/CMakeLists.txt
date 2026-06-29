@@ -1,12 +1,16 @@
 cmake_minimum_required(VERSION 3.20)
-project(gelex_python LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  project(gelex_python LANGUAGES CXX)
+  set(CMAKE_CXX_STANDARD 23)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  set(CMAKE_CXX_EXTENSIONS OFF)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+endif()
 
-find_package(gelex CONFIG REQUIRED)
+if(NOT TARGET gelex::gelex)
+  find_package(gelex CONFIG REQUIRED)
+endif()
 find_package(
   Python 3.12
   COMPONENTS Interpreter Development.Module

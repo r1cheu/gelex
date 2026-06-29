@@ -31,6 +31,8 @@ endif()
 option(GELEX_USE_MKL "Use Intel MKL for Linear Algebra" OFF)
 option(GELEX_BUILD_TESTS "Build unit tests" OFF)
 option(GELEX_BUILD_BENCHMARKS "Build benchmarks" OFF)
+option(GELEX_BUILD_CLI "Build the command-line application" OFF)
+option(GELEX_BUILD_PYTHON "Build the Python bindings" OFF)
 option(GELEX_ENABLE_COVERAGE "Enable Clang source-based code coverage" OFF)
 option(GELEX_NATIVE_OPTIMIZATION "Use -march=native" OFF)
 option(GELEX_ENABLE_SANITIZERS "Enable ASAN/UBSAN" OFF)
@@ -73,6 +75,14 @@ endif()
 
 if(GELEX_BUILD_BENCHMARKS)
   add_subdirectory(benchmark)
+endif()
+
+if(GELEX_BUILD_CLI)
+  add_subdirectory(apps)
+endif()
+
+if(GELEX_BUILD_PYTHON)
+  add_subdirectory(bindings)
 endif()
 
 # --------------------------------------------------
