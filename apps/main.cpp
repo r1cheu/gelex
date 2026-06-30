@@ -15,7 +15,7 @@
  */
 
 #include <iostream>
-#include <string_view>
+#include <string>
 
 #include <fmt/format.h>
 #include <CLI/CLI.hpp>
@@ -32,11 +32,6 @@
 #include "cli/reml/args.h"
 #include "cli/simulate/args.h"
 
-namespace
-{
-constexpr std::string_view ERROR_MARKER = "[\033[31merror\033[0m] ";
-}  // namespace
-
 auto main(int argc, char* argv[]) -> int
 {
     CLI::App program{
@@ -49,6 +44,7 @@ Docs: https://gelex.readthedocs.io/en/latest/)",
             PROJECT_VERSION),
         PROJECT_NAME};
     program.formatter(cli::make_cli_formatter());
+    program.failure_message(cli::format_parse_error);
     program.set_version_flag("-v,--version", PROJECT_VERSION);
     program.require_subcommand(1);
 
@@ -67,21 +63,34 @@ Docs: https://gelex.readthedocs.io/en/latest/)",
     }
     catch (const CLI::ParseError& err)
     {
-        if (err.get_exit_code() == 0)
+        const CLI::App* active = &program;
+        if (const auto entered = program.get_subcommands(); !entered.empty())
         {
-            return program.exit(err);
+            active = entered.back();
         }
 
-        std::cerr << ERROR_MARKER << err.what() << "\n";
-
-        auto subcommands = program.get_subcommands();
-        if (!subcommands.empty())
+        const auto& name = err.get_name();
+        if (name == "CallForAllHelp")
         {
-            std::cerr << subcommands.back()->help();
-            return 1;
+            std::cout << active->help("", CLI::AppFormatMode::All);
+            return 0;
         }
-        std::cerr << program.help();
-        return 1;
+
+        int command_tokens = 0;
+        for (const auto* current = active; current != nullptr;
+             current = current->get_parent())
+        {
+            command_tokens += 1;
+        }
+        // clap-style arg_required_else_help: a (sub)command invoked with no
+        // arguments shows its full help instead of a missing-required error.
+        if (name == "CallForHelp" || argc <= command_tokens)
+        {
+            std::cout << active->help();
+            return 0;
+        }
+
+        return program.exit(err);
     }
 
     return exit_code;

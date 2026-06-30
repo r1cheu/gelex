@@ -20,10 +20,12 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 #include <fmt/color.h>
+#include <fmt/format.h>
 #include <CLI/CLI.hpp>
 
 #include "cli_helper.h"
@@ -33,6 +35,8 @@ namespace cli
 
 namespace
 {
+
+constexpr std::string_view ERROR_MARKER = "[\033[31merror\033[0m] ";
 
 constexpr fmt::rgb CATPPUCCIN_SKY{0x89DCEB};
 constexpr fmt::rgb CATPPUCCIN_GREEN{0xA6E3A1};
@@ -547,6 +551,24 @@ auto make_cli_formatter() -> std::shared_ptr<CLI::FormatterBase>
     formatter->right_column_width(80);
     formatter->enable_footer_formatting(false);
     return formatter;
+}
+
+auto format_parse_error(const CLI::App* app, const CLI::Error& err)
+    -> std::string
+{
+    const CLI::App* active = app;
+    if (const auto entered = app->get_subcommands(); !entered.empty())
+    {
+        active = entered.back();
+    }
+    const auto formatter
+        = std::dynamic_pointer_cast<CLI::Formatter>(app->get_formatter());
+    return fmt::format(
+        "{}{}\n{}For more information, try '{}'\n",
+        ERROR_MARKER,
+        err.what(),
+        formatter->make_usage(active, ""),
+        option_name_text("--help"));
 }
 
 }  // namespace cli
