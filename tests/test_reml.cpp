@@ -15,6 +15,7 @@
  */
 
 #include <cmath>
+#include <numbers>
 #include <utility>
 #include <vector>
 
@@ -115,11 +116,16 @@ TEST_CASE(
         REQUIRE(opt.Py.isApprox(Py_ref, 1e-10));
     }
 
-    SECTION("compute_loglike: -0.5*(log|V| + log|X'V^{-1}X| + y'Py)")
+    SECTION(
+        "compute_loglike: -0.5*((n-p)*log(2pi) + log|V| + log|X'V^{-1}X| + "
+        "y'Py)")
     {
+        const auto dof = static_cast<double>(
+            model.num_individuals() - model.fixed().X.cols());
         const double expected
             = -0.5
-              * (std::log(V_ref.determinant())
+              * (dof * std::log(2.0 * std::numbers::pi)
+                 + std::log(V_ref.determinant())
                  + std::log(XtVinvX_ref.determinant()) + problem.y.dot(Py_ref));
         REQUIRE(
             std::abs(reml::compute_loglike(model, opt) - expected) <= 1e-10);

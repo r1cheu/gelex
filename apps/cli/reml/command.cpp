@@ -136,7 +136,8 @@ auto reml_execute(const cli::RemlConfig& config) -> int
         config.max_iter,
         estimator.loglike());
 
-    gelex::reml::write_summary(model, state, config.out_prefix);
+    gelex::reml::write_summary(
+        model, state, estimator.loglike(), config.out_prefix);
     gelex::reml::write_effects(
         model, state, data.sample_ids, config.out_prefix);
 

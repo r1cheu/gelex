@@ -17,6 +17,8 @@
 #include "gelex/algo/reml/variance_calculator.h"
 
 #include <Eigen/Core>
+#include <cmath>
+#include <numbers>
 #include <ranges>
 #include <stdexcept>
 
@@ -119,9 +121,12 @@ auto compute_proj(const gelex::FreqModel& model, OptimizerState& state) -> void
 auto compute_loglike(const gelex::FreqModel& model, const OptimizerState& state)
     -> double
 {
-    // logL = -0.5 * (log|V| + log|X'V^{-1}X| + y'Py)
+    // logL = -0.5 * ((n-p)*log(2π) + log|V| + log|X'V^{-1}X| + y'Py)
     double ypy = model.phenotype().dot(state.Py);
-    return -0.5 * (state.logdet_v + state.logdet_xvx + ypy);
+    auto dof
+        = static_cast<double>(model.num_individuals() - model.fixed().X.cols());
+    double constant = dof * std::log(2.0 * std::numbers::pi);
+    return -0.5 * (constant + state.logdet_v + state.logdet_xvx + ypy);
 }
 
 }  // namespace gelex::reml

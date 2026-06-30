@@ -62,7 +62,7 @@ TEST_CASE("REML writers write result files", "[reml][io]")
     {
         gelex::test::FileFixture files;
         const auto prefix = files.get_test_dir() / "reml_result";
-        gelex::reml::write_summary(model, state, prefix.string());
+        gelex::reml::write_summary(model, state, -123.456, prefix.string());
 
         auto summary_path = prefix;
         summary_path += ".summary";
@@ -85,6 +85,9 @@ TEST_CASE("REML writers write result files", "[reml][io]")
         REQUIRE(
             content.find(
                 "Residual\tvariance\t3.00000000e+00\t4.00000000e-01\t-\t-")
+            != std::string::npos);
+        REQUIRE(
+            content.find("logL\tmodelfit\t-1.23456000e+02\t-\t-\t-")
             != std::string::npos);
     }
 
@@ -155,13 +158,10 @@ TEST_CASE("REML writers write result files", "[reml][io]")
         gelex::FixedDesign fixed{
             .names = {"Intercept", "age", "batch"},
             .levels
-            = {std::nullopt,
-               std::nullopt,
-               std::vector<std::string>{"A", "B"}},
+            = {std::nullopt, std::nullopt, std::vector<std::string>{"A", "B"}},
             .reference_levels
             = {std::nullopt, std::nullopt, std::string{"base"}},
-            .X = Eigen::MatrixXd{
-                {1.0, 2.0, 1.0, 0.0}, {1.0, 4.0, 0.0, 1.0}},
+            .X = Eigen::MatrixXd{{1.0, 2.0, 1.0, 0.0}, {1.0, 4.0, 0.0, 1.0}},
             .XtX_diag = Eigen::VectorXd{{2.0, 20.0, 1.0, 1.0}}};
         gelex::FreqModel fixed_model{
             Eigen::VectorXd{{1.0, 2.0}}, std::move(fixed), {}};
@@ -182,8 +182,7 @@ TEST_CASE("REML writers write result files", "[reml][io]")
             std::istreambuf_iterator<char>{}};
 
         REQUIRE(
-            content.find(
-                "FID\tIID\tIntercept\tage\tbatch_A\tbatch_B\tTOTAL\n")
+            content.find("FID\tIID\tIntercept\tage\tbatch_A\tbatch_B\tTOTAL\n")
             == 0);
         REQUIRE(
             content.find(

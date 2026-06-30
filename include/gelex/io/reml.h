@@ -36,6 +36,7 @@ namespace reml
 auto write_summary(
     const FreqModel& model,
     const FreqState& state,
+    double loglike,
     std::string_view prefix) -> void;
 
 auto write_effects(

@@ -39,6 +39,7 @@ namespace gelex::reml
 auto write_summary(
     const FreqModel& model,
     const FreqState& state,
+    double loglike,
     std::string_view prefix) -> void
 {
     io::detail::TextWriter writer(fmt::format("{}.summary", prefix));
@@ -94,6 +95,8 @@ auto write_summary(
             "Residual",
             state.residual().variance,
             state.residual().variance_se));
+
+    writer.write(fmt::format("logL\tmodelfit\t{:.8e}\t-\t-\t-", loglike));
 }
 
 auto write_effects(
@@ -199,6 +202,7 @@ auto write_loco_summary(
          "se",
          "ratio",
          "ratio_se",
+         "loglike",
          "converged"});
 
     for (const auto& result : results)
@@ -208,21 +212,24 @@ auto write_loco_summary(
         {
             writer.write(
                 fmt::format(
-                    "{}\t{}\tvariance\t{:.8e}\t{:.8e}\t{:.8e}\t{:.8e}\t{}",
+                    "{}\t{}\tvariance\t{:.8e}\t{:.8e}\t{:.8e}\t{:.8e}\t{:.8e}"
+                    "\t{}",
                     result.chr_name,
                     component.name,
                     component.variance,
                     component.variance_se,
                     component.variance_ratio,
                     component.variance_ratio_se,
+                    result.loglike,
                     converged));
         }
         writer.write(
             fmt::format(
-                "{}\tResidual\tvariance\t{:.8e}\t{:.8e}\t-\t-\t{}",
+                "{}\tResidual\tvariance\t{:.8e}\t{:.8e}\t-\t-\t{:.8e}\t{}",
                 result.chr_name,
                 result.residual_variance,
                 result.residual_variance_se,
+                result.loglike,
                 converged));
     }
 }
