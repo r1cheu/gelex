@@ -21,6 +21,8 @@
 #include <string>
 #include <vector>
 
+#include "gelex/data/genotype_method.h"
+
 namespace cli
 {
 
@@ -35,7 +37,7 @@ struct SimulateConfig
     std::vector<double> dom_var;
     std::vector<int> dom_n;
     std::optional<double> dom_pos_prob;
-    std::string geno_method{"OS"};
+    gelex::GenotypeMethod geno_method{gelex::GenotypeMethod::OrthStandardize};
     int seed{42};
 };
 

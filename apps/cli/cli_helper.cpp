@@ -43,9 +43,65 @@
 #include "cli/formatter.h"
 #include "cli/logging.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/exception.h"
 #include "report_printer.h"
 #include "version.h"
+
+namespace gelex
+{
+
+auto lexical_cast(const std::string& input, GenotypeMethod& output) -> bool
+{
+    for (const auto& [code, method] : GENOTYPE_METHOD_CODES)
+    {
+        if (input.size() == code.size()
+            && std::equal(
+                code.begin(),
+                code.end(),
+                input.begin(),
+                [](unsigned char expected, unsigned char actual)
+                { return std::tolower(expected) == std::tolower(actual); }))
+        {
+            output = method;
+            return true;
+        }
+    }
+    return false;
+}
+
+auto lexical_cast(const std::string& input, GeneticMode& output) -> bool
+{
+    for (const auto& [mode, name] : GENETIC_MODE_NAMES)
+    {
+        if (input == name)
+        {
+            output = mode;
+            return true;
+        }
+    }
+    return false;
+}
+
+auto lexical_cast(const std::string& input, GeneticModeSet& output) -> bool
+{
+    if (input == "A")
+    {
+        output = GeneticModeSet{GeneticMode::A};
+        return true;
+    }
+    if (input == "D")
+    {
+        output = GeneticModeSet{GeneticMode::D};
+        return true;
+    }
+    if (input == "AD")
+    {
+        output = GeneticMode::A | GeneticMode::D;
+        return true;
+    }
+    return false;
+}
+
+}  // namespace gelex
 
 namespace cli
 {
@@ -56,51 +112,6 @@ namespace
 constexpr std::string_view ERROR_MARKER = "[\033[31merror\033[0m] ";
 
 }  // namespace
-
-auto parse_genotype_method(std::string_view value) -> gelex::GenotypeMethod
-{
-    for (const auto& [code, method] : gelex::GENOTYPE_METHOD_CODES)
-    {
-        if (value.size() != code.size())
-        {
-            continue;
-        }
-        const bool matches = std::equal(
-            code.begin(),
-            code.end(),
-            value.begin(),
-            [](unsigned char expected, unsigned char actual)
-            { return std::tolower(expected) == std::tolower(actual); });
-        if (matches)
-        {
-            return method;
-        }
-    }
-
-    throw gelex::GelexException(
-        fmt::format(
-            "invalid genotype process method: \"{}\". Valid: "
-            "SH, CH, OSH, OCH, S, C, OS, OC, NS, NC",
-            value));
-}
-
-auto parse_genetic_modes(std::string_view sv) -> gelex::GeneticModeSet
-{
-    if (sv == "A")
-    {
-        return gelex::GeneticModeSet{gelex::GeneticMode::A};
-    }
-    if (sv == "D")
-    {
-        return gelex::GeneticModeSet{gelex::GeneticMode::D};
-    }
-    if (sv == "AD")
-    {
-        return gelex::GeneticMode::A | gelex::GeneticMode::D;
-    }
-    throw gelex::GelexException(
-        fmt::format("invalid --mode: \"{}\". Valid: A, D, AD", sv));
-}
 
 auto is_tty() -> bool
 {

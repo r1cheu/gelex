@@ -24,6 +24,8 @@
 #include <vector>
 
 #include "cli/common_data.h"
+#include "gelex/data/genotype_method.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace cli
 {
@@ -33,9 +35,10 @@ struct McmcConfig
     BaseDataConfig base_data;
     std::string bfile;
     std::string out{"gelex"};
-    std::string geno_method{"OSH"};
+    gelex::GenotypeMethod geno_method{
+        gelex::GenotypeMethod::OrthStandardizeHWE};
     std::string method{"RR"};
-    std::string mode{"A"};
+    gelex::GeneticModeSet mode{gelex::GeneticMode::A};
     std::optional<double> h2;
     std::optional<double> d2;
     std::optional<double> dom_pos_prob;

@@ -53,7 +53,7 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
            "Genotype coding: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC")
         ->group("Model")
         ->type_name("<CODING>")
-        ->capture_default_str()
+        ->default_str("OSH")
         ->check(cli::genotype_method_validator());
     cmd.add_option(
            "-m,--method", config->method, "Bayesian model: RR, A, B, C, R, CD")
@@ -67,7 +67,7 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option("--mode", config->mode, "Effect mode: A, D, AD")
         ->group("Model")
         ->type_name("<MODE>")
-        ->capture_default_str()
+        ->default_str("A")
         ->check(CLI::IsMember(std::vector<std::string>{"A", "D", "AD"}));
     cmd.add_option(
            "--random-pve",

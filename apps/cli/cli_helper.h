@@ -18,6 +18,7 @@
 #define APPS_CLI_CLI_HELPER_H_
 
 #include <functional>
+#include <string>
 #include <string_view>
 
 #include <barkeep.h>
@@ -32,13 +33,19 @@ class App;
 class Validator;
 }  // namespace CLI
 
+// Found by CLI11 via ADL, so add_option can bind enum targets directly.
+namespace gelex
+{
+auto lexical_cast(const std::string& input, GenotypeMethod& output) -> bool;
+
+auto lexical_cast(const std::string& input, GeneticMode& output) -> bool;
+
+auto lexical_cast(const std::string& input, GeneticModeSet& output) -> bool;
+}  // namespace gelex
+
 namespace cli
 {
 struct BaseDataConfig;
-
-auto parse_genotype_method(std::string_view value) -> gelex::GenotypeMethod;
-
-auto parse_genetic_modes(std::string_view sv) -> gelex::GeneticModeSet;
 
 auto is_tty() -> bool;
 

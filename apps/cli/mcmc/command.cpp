@@ -62,7 +62,7 @@ class MCMCDataHandler
     auto load_indices(
         std::vector<gelex::dataframe::Index<std::string>*>& indices) -> void
     {
-        genotype_method_ = cli::parse_genotype_method(config_.geno_method);
+        genotype_method_ = config_.geno_method;
 
         fam_index_ = gelex::read_fam(config_.bfile + ".fam").index();
         indices.push_back(&fam_index_);

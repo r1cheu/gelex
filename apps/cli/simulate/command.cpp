@@ -28,7 +28,6 @@
 #include <fmt/format.h>
 #include <Eigen/Core>
 
-#include "cli/cli_helper.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/sample_id.h"
 #include "gelex/exception.h"
@@ -168,7 +167,7 @@ auto simulate_execute(const cli::SimulateConfig& config) -> int
     std::vector<std::string_view> shuffled_ids(all_ids.begin(), all_ids.end());
     std::ranges::shuffle(shuffled_ids, rng);
 
-    const auto geno_method = cli::parse_genotype_method(config.geno_method);
+    const auto geno_method = config.geno_method;
 
     std::optional<gelex::GeneticValues> additive;
     if (additive_scheme)

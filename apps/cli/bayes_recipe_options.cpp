@@ -18,11 +18,9 @@
 
 #include <optional>
 #include <string_view>
-#include <utility>
 
 #include <fmt/format.h>
 
-#include "cli/cli_helper.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/exception.h"
 #include "gelex/types/constrained_value.h"
@@ -69,12 +67,11 @@ auto reject_effect_flags_without_mode(
 auto make_bayes_recipe_options(const McmcConfig& config)
     -> gelex::bayes::BayesRecipeOptions
 {
-    auto modes = parse_genetic_modes(config.mode);
-    reject_effect_flags_without_mode(config, modes);
+    reject_effect_flags_without_mode(config, config.mode);
 
     return gelex::bayes::BayesRecipeOptions{
         .scheme = gelex::bayes::to_bayes_recipe_scheme(config.method),
-        .modes = std::move(modes),
+        .modes = config.mode,
         .additive_heritability
         = config.h2 ? std::optional{gelex::OpenUnitInterval<double>{*config.h2}}
                     : std::nullopt,

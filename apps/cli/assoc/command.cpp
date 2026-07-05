@@ -107,12 +107,10 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
     const gelex::AssocType test_type = config.test == "joint"
                                            ? gelex::AssocType::Joint
                                            : gelex::AssocType::Single;
-    const gelex::GeneticMode mode
-        = test_type == gelex::AssocType::Single && config.mode == "D"
-              ? gelex::GeneticMode::D
-              : gelex::GeneticMode::A;
-    const gelex::GenotypeMethod geno_method{
-        cli::parse_genotype_method(config.geno_method)};
+    const gelex::GeneticMode mode = test_type == gelex::AssocType::Single
+                                        ? config.mode
+                                        : gelex::GeneticMode::A;
+    const gelex::GenotypeMethod geno_method{config.geno_method};
     const bool write_cov{config.write_cov};
 
     if (write_cov

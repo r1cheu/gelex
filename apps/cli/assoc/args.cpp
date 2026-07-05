@@ -88,7 +88,7 @@ auto setup_assoc_command(CLI::App& program, int& exit_code) -> void
            "--mode", config->mode, "Effect mode for --test=single: A or D")
         ->group("Model")
         ->type_name("<MODE>")
-        ->capture_default_str()
+        ->default_str("A")
         ->check(CLI::IsMember(std::vector<std::string>{"A", "D"}));
     cmd.add_flag("--loco", config->loco, "Use leave-one-chromosome-out GRMs")
         ->group("Model");
@@ -98,7 +98,7 @@ auto setup_assoc_command(CLI::App& program, int& exit_code) -> void
            "Genotype coding: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC")
         ->group("Model")
         ->type_name("<CODING>")
-        ->capture_default_str()
+        ->default_str("OCH")
         ->check(cli::genotype_method_validator());
 
     cmd.add_option(

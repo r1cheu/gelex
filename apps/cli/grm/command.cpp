@@ -49,8 +49,8 @@ auto grm_execute(const cli::GrmConfig& config) -> int
 
     cli::setup_parallelization(config.threads);
 
-    const auto modes = cli::parse_genetic_modes(config.mode);
-    const auto method = cli::parse_genotype_method(config.geno_method);
+    const auto modes = config.mode;
+    const auto method = config.geno_method;
     const auto chunk_size = config.chunk_size;
 
     auto bed = gelex::open_bed(config.bfile);

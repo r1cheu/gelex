@@ -20,6 +20,9 @@
 #include <string>
 #include <thread>
 
+#include "gelex/data/genotype_method.h"
+#include "gelex/types/genetic_mode.h"
+
 namespace cli
 {
 
@@ -27,8 +30,9 @@ struct GrmConfig
 {
     std::string bfile;
     std::string out{"grm"};
-    std::string geno_method{"OSH"};
-    std::string mode{"A"};
+    gelex::GenotypeMethod geno_method{
+        gelex::GenotypeMethod::OrthStandardizeHWE};
+    gelex::GeneticModeSet mode{gelex::GeneticMode::A};
     bool loco{false};
     int chunk_size{10000};
     int threads{static_cast<int>(std::thread::hardware_concurrency() / 2)};

@@ -98,7 +98,7 @@ auto setup_simulate_command(CLI::App& program, int& exit_code) -> void
            "Genotype coding: SH, CH, OSH, OCH, S, C, OS, OC, NS, NC")
         ->group("Model")
         ->type_name("<CODING>")
-        ->capture_default_str()
+        ->default_str("OS")
         ->check(cli::genotype_method_validator());
     cmd.add_option("--seed", config->seed, "Random seed")
         ->group("Runtime")

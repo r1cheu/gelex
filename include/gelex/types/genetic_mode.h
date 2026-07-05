@@ -26,11 +26,13 @@ inline constexpr std::array GENETIC_MODE_NAMES{
 
 inline constexpr std::array ALL_GENETIC_MODES{GeneticMode::A, GeneticMode::D};
 
-// A non-empty subset of GeneticMode, backed by std::bitset so {A}, {D}, {A, D}
-// are the only representable values. each() yields its members in enum order.
+// A subset of GeneticMode, backed by std::bitset so {A}, {D}, {A, D} are the
+// only meaningful values. each() yields its members in enum order.
 class GeneticModeSet
 {
    public:
+    GeneticModeSet() = default;
+
     explicit GeneticModeSet(GeneticMode mode)
     {
         bits_.set(std::to_underlying(mode));

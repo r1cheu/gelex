@@ -23,6 +23,8 @@
 #include <vector>
 
 #include "cli/common_data.h"
+#include "gelex/data/genotype_method.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace cli
 {
@@ -35,9 +37,9 @@ struct AssocConfig
     std::string out{"gelex"};
     bool write_cov{false};
     std::string test{"single"};
-    std::string mode{"A"};
+    gelex::GeneticMode mode{gelex::GeneticMode::A};
     bool loco{false};
-    std::string geno_method{"OCH"};
+    gelex::GenotypeMethod geno_method{gelex::GenotypeMethod::OrthCenterHWE};
     int max_iter{100};
     double tolerance{1e-6};
     int chunk_size{10000};
