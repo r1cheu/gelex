@@ -104,12 +104,11 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
 {
     cli::setup_parallelization(config.threads);
 
-    const gelex::AssocType test_type = config.test == "joint"
-                                           ? gelex::AssocType::Joint
-                                           : gelex::AssocType::Single;
-    const gelex::GeneticMode mode = test_type == gelex::AssocType::Single
-                                        ? config.mode
-                                        : gelex::GeneticMode::A;
+    const bool is_joint = config.mode.size() > 1;
+    const gelex::AssocType test_type
+        = is_joint ? gelex::AssocType::Joint : gelex::AssocType::Single;
+    const gelex::GeneticMode mode
+        = is_joint ? gelex::GeneticMode::A : *config.mode.each().begin();
     const gelex::GenotypeMethod geno_method{config.geno_method};
     const bool write_cov{config.write_cov};
 

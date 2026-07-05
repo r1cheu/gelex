@@ -77,19 +77,13 @@ auto setup_assoc_command(CLI::App& program, int& exit_code) -> void
         ->capture_default_str();
 
     cmd.add_option(
-           "--test",
-           config->test,
-           "Wald test: single (df=1), joint (add+dom, df=2)")
-        ->group("Model")
-        ->type_name("<TEST>")
-        ->capture_default_str()
-        ->check(CLI::IsMember(std::vector<std::string>{"single", "joint"}));
-    cmd.add_option(
-           "--mode", config->mode, "Effect mode for --test=single: A or D")
+           "--mode",
+           config->mode,
+           "Wald test: A, D (single, df=1); AD (joint add+dom, df=2)")
         ->group("Model")
         ->type_name("<MODE>")
         ->default_str("A")
-        ->check(CLI::IsMember(std::vector<std::string>{"A", "D"}));
+        ->check(CLI::IsMember(std::vector<std::string>{"A", "D", "AD"}));
     cmd.add_flag("--loco", config->loco, "Use leave-one-chromosome-out GRMs")
         ->group("Model");
     cmd.add_option(

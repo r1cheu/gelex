@@ -36,8 +36,7 @@ struct AssocConfig
     std::vector<std::string> grm;
     std::string out{"gelex"};
     bool write_cov{false};
-    std::string test{"single"};
-    gelex::GeneticMode mode{gelex::GeneticMode::A};
+    gelex::GeneticModeSet mode{gelex::GeneticMode::A};
     bool loco{false};
     gelex::GenotypeMethod geno_method{gelex::GenotypeMethod::OrthCenterHWE};
     int max_iter{100};
