@@ -27,7 +27,7 @@
 #include "bed_fixture.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/grm/grm.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace fs = std::filesystem;
 

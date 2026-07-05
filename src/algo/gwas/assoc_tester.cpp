@@ -22,7 +22,7 @@
 #include "gelex/algo/gwas/single_tester.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/exception.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {

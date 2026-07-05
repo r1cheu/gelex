@@ -4,7 +4,7 @@
 
 #include "gelex/data/locus_encoding_types.h"
 #include "gelex/data/locus_stats.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 #include "gelex_py/register.h"
 

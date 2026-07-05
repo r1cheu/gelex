@@ -41,7 +41,7 @@
 #include "gelex/post/heritability.h"
 #include "gelex/post/random.h"
 #include "gelex/post/residual.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 #include "reporter.h"
 
 namespace

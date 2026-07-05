@@ -40,7 +40,7 @@
 #include "gelex/simulate/genetic_value_calculator.h"
 #include "gelex/simulate/genetic_value_scaler.h"
 #include "gelex/simulate/sim_types.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace fs = std::filesystem;
 

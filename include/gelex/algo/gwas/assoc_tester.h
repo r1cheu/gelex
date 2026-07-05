@@ -26,7 +26,7 @@
 #include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/algo/reml/result.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {

@@ -29,7 +29,7 @@
 #include "gelex/data/genotype_method.h"
 #include "gelex/infra/logging/simulate_event.h"
 #include "gelex/simulate/sim_types.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {

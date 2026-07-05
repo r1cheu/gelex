@@ -23,7 +23,7 @@
 
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/locus_encoding_types.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 #include "gelex/data/detail/locus_encoding.h"
 

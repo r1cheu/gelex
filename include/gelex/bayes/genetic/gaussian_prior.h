@@ -23,7 +23,7 @@
 
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
 #include "gelex/bayes/genetic/parameters.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex::bayes
 {

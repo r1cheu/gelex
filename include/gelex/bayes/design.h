@@ -24,7 +24,7 @@
 
 #include "gelex/data/genotype.h"
 #include "gelex/infra/stats/detail/var.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex::infra
 {

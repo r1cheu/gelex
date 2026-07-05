@@ -26,7 +26,7 @@
 
 #include "gelex/data/genotype_method.h"
 #include "gelex/io/binary_reader.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
@@ -44,8 +44,8 @@ class LociStatsReader
    public:
     explicit LociStatsReader(std::string_view file_path);
 
-    [[nodiscard]] auto read(EffectType effect) const -> LociStats;
-    [[nodiscard]] auto has(EffectType effect) const -> bool;
+    [[nodiscard]] auto read(GeneticMode mode) const -> LociStats;
+    [[nodiscard]] auto has(GeneticMode mode) const -> bool;
 
    private:
     io::BinaryReader reader_;

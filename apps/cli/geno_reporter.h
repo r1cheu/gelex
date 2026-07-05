@@ -21,7 +21,7 @@
 
 #include "cli/progress_bar.h"
 #include "gelex/infra/logging/geno_event.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace cli
 {

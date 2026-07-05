@@ -23,7 +23,7 @@
 #include <string_view>
 
 #include "gelex/exception.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
@@ -34,7 +34,7 @@ LociStatsWriter::LociStatsWriter(std::string_view output_path)
 }
 
 auto LociStatsWriter::write(
-    EffectType effect,
+    GeneticMode mode,
     uint8_t method,
     const Eigen::VectorXd& mean,
     const Eigen::VectorXd* stddev,
@@ -53,11 +53,11 @@ auto LociStatsWriter::write(
     const Eigen::Index n_cols = (stddev != nullptr) ? 2 : 1;
 
     auto handle
-        = writer_.reserve<uint8_t>(fmt::format("{}/geno_method", effect), 1, 1);
+        = writer_.reserve<uint8_t>(fmt::format("{}/geno_method", mode), 1, 1);
     writer_.write(handle, method);
 
     auto stats_handle = writer_.reserve<double>(
-        fmt::format("{}/loci_stats", effect), n_snps, n_cols);
+        fmt::format("{}/loci_stats", mode), n_snps, n_cols);
 
     writer_.write(stats_handle, mean);
 
@@ -69,7 +69,7 @@ auto LociStatsWriter::write(
     if (!mono_indices.empty())
     {
         auto mono_handle = writer_.reserve<int64_t>(
-            fmt::format("{}/mono_indices", effect), mono_indices.size(), 1);
+            fmt::format("{}/mono_indices", mode), mono_indices.size(), 1);
         writer_.write(mono_handle, mono_indices);
     }
 }

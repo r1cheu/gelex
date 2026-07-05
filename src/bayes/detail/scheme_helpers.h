@@ -23,7 +23,7 @@
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/recipe_options.h"
 #include "gelex/types/constrained_vector.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {

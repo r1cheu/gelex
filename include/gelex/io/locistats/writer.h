@@ -24,7 +24,7 @@
 #include <Eigen/Core>
 
 #include "gelex/io/binary_writer.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
@@ -35,7 +35,7 @@ class LociStatsWriter
     explicit LociStatsWriter(std::string_view output_path);
 
     auto write(
-        EffectType effect,
+        GeneticMode mode,
         uint8_t method,
         const Eigen::VectorXd& mean,
         const Eigen::VectorXd* stddev = nullptr,

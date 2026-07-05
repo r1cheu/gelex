@@ -26,7 +26,7 @@
 #include "cli/formatter.h"
 #include "cli/progress_bar.h"
 #include "cli/report_printer.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace cli
 {

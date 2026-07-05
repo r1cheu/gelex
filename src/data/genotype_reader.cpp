@@ -41,7 +41,7 @@
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/io/binary_writer.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex::genotype
 {
@@ -84,24 +84,24 @@ auto process_chunk(
 
 auto load_mmapped(
     const std::filesystem::path& gbin_path,
-    gelex::EffectType effect) -> MmappedStorage
+    gelex::GeneticMode mode) -> MmappedStorage
 {
     MmappedStorage mapped;
     mapped.reader
         = std::make_unique<gelex::io::BinaryReader>(gbin_path.string());
 
     auto geno_map
-        = mapped.reader->to_map<double>(fmt::format("{}/genotype", effect));
+        = mapped.reader->to_map<double>(fmt::format("{}/genotype", mode));
     new (&mapped.view) MmappedStorage::MapType(
         geno_map.data(), geno_map.rows(), geno_map.cols());
 
     auto stats_mat
-        = mapped.reader->to_mat<double>(fmt::format("{}/loci_stats", effect));
+        = mapped.reader->to_mat<double>(fmt::format("{}/loci_stats", mode));
     mapped.mean = stats_mat.col(0);
     mapped.var = stats_mat.col(1);
     mapped.A1freq = stats_mat.col(2);
 
-    if (const auto mono_path = fmt::format("{}/mono_indices", effect);
+    if (const auto mono_path = fmt::format("{}/mono_indices", mode);
         mapped.reader->contains(mono_path))
     {
         auto mono_mat = mapped.reader->to_mat<int64_t>(mono_path);
@@ -246,8 +246,6 @@ auto GenotypeReader::read_mmap(
     const std::filesystem::path& output_prefix,
     std::size_t chunk_size) -> Genotype
 {
-    const auto effect = gelex::EffectType::from_genetic(mode);
-
     auto gbin_path = output_prefix;
     gbin_path += ".gbin";
 
@@ -261,13 +259,13 @@ auto GenotypeReader::read_mmap(
     {
         gelex::io::BinaryWriter writer(gbin_path.string());
         auto genotype_handle = writer.reserve<double>(
-            fmt::format("{}/genotype", effect), sample_size_, num_variants_);
+            fmt::format("{}/genotype", mode), sample_size_, num_variants_);
 
         EncodedChunkOutput output{writer, genotype_handle};
         read_encoded_chunks(output, mode, method, chunk_size);
 
         auto stats_handle = writer.reserve<double>(
-            fmt::format("{}/loci_stats", effect), num_variants_, 3);
+            fmt::format("{}/loci_stats", mode), num_variants_, 3);
         writer.write(stats_handle, output.stats.means);
         writer.write(stats_handle, output.stats.vars);
         writer.write(stats_handle, output.stats.A1freqs);
@@ -275,22 +273,21 @@ auto GenotypeReader::read_mmap(
         if (!output.stats.mono_indices.empty())
         {
             auto mono_handle = writer.reserve<int64_t>(
-                fmt::format("{}/mono_indices", effect),
+                fmt::format("{}/mono_indices", mode),
                 output.stats.mono_indices.size(),
                 1);
             writer.write(mono_handle, output.stats.mono_indices);
         }
     }
 
-    return Genotype(load_mmapped(gbin_path, effect));
+    return Genotype(load_mmapped(gbin_path, mode));
 }
 
 auto GenotypeReader::read(
     const std::filesystem::path& gbin_path,
     gelex::GeneticMode mode) -> Genotype
 {
-    return Genotype(
-        load_mmapped(gbin_path, gelex::EffectType::from_genetic(mode)));
+    return Genotype(load_mmapped(gbin_path, mode));
 }
 
 }  // namespace gelex::genotype

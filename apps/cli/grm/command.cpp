@@ -29,7 +29,7 @@
 #include "gelex/data/grm/grm.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/writer.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 #include "reporter.h"
 
 namespace

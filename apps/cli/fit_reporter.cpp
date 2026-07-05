@@ -29,7 +29,7 @@
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/parameter/values.h"
 #include "gelex/bayes/prior.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace cli
 {

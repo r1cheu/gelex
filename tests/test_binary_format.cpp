@@ -41,7 +41,7 @@
 
 #include "bed_fixture.h"
 #include "file_fixture.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace
 {

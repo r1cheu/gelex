@@ -25,7 +25,7 @@
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/genetic/prior_state_values.h"
 #include "gelex/types/categorical_vector.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex::bayes
 {

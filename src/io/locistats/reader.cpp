@@ -20,7 +20,7 @@
 #include <cstdint>
 #include <string_view>
 
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
@@ -30,20 +30,19 @@ LociStatsReader::LociStatsReader(std::string_view file_path)
 {
 }
 
-auto LociStatsReader::has(EffectType effect) const -> bool
+auto LociStatsReader::has(GeneticMode mode) const -> bool
 {
-    return reader_.contains(fmt::format("{}/loci_stats", effect));
+    return reader_.contains(fmt::format("{}/loci_stats", mode));
 }
 
-auto LociStatsReader::read(EffectType effect) const -> LociStats
+auto LociStatsReader::read(GeneticMode mode) const -> LociStats
 {
-    auto stats_map
-        = reader_.to_map<double>(fmt::format("{}/loci_stats", effect));
+    auto stats_map = reader_.to_map<double>(fmt::format("{}/loci_stats", mode));
 
     LociStats data;
     data.mean = stats_map.col(0);
 
-    if (const auto path = fmt::format("{}/geno_method", effect);
+    if (const auto path = fmt::format("{}/geno_method", mode);
         reader_.contains(path))
     {
         auto method_map = reader_.to_map<uint8_t>(path);
@@ -55,7 +54,7 @@ auto LociStatsReader::read(EffectType effect) const -> LociStats
         data.stddev = Eigen::VectorXd(stats_map.col(1));
     }
 
-    if (const auto path = fmt::format("{}/mono_indices", effect);
+    if (const auto path = fmt::format("{}/mono_indices", mode);
         reader_.contains(path))
     {
         auto mono_mat = reader_.to_map<int64_t>(path);

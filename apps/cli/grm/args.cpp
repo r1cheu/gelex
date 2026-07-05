@@ -55,6 +55,7 @@ auto setup_grm_command(CLI::App& program, int& exit_code) -> void
         ->type_name("<CODING>")
         ->capture_default_str()
         ->check(cli::genotype_method_validator());
+
     cmd.add_flag("--add", config->add, "Write additive GRM")->group("Model");
     cmd.add_flag("--dom", config->dom, "Write dominance GRM")->group("Model");
     cmd.add_flag("--loco", config->loco, "Write one GRM per chromosome")

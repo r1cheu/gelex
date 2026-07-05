@@ -39,7 +39,7 @@
 #include "gelex/infra/stats/half_normal_sampler.h"
 #include "gelex/infra/stats/normal_sampler.h"
 #include "gelex/infra/stats/scaled_inv_chi2_sampler.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex::mcmc
 {

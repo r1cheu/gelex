@@ -25,7 +25,7 @@
 #include "gelex/data/locus_encoding.h"
 #include "gelex/data/locus_stats.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;

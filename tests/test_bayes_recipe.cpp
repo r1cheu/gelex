@@ -33,7 +33,7 @@
 #include "gelex/types/constrained_value.h"
 #include "gelex/types/constrained_vector.h"
 #include "gelex/types/fixed_designs.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 #include "genotype_fixture.h"
 
 using gelex::GelexException;

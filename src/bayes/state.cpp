@@ -34,7 +34,7 @@
 #include "gelex/infra/field_flag.h"
 #include "gelex/infra/field_visitor.h"
 #include "gelex/types/fixed_designs.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex::bayes
 {

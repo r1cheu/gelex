@@ -32,7 +32,7 @@
 #include "gelex/data/genotype.h"
 #include "gelex/exception.h"
 #include "gelex/types/fixed_designs.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 #include "genotype_fixture.h"
 
 namespace

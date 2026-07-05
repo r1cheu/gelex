@@ -26,7 +26,7 @@
 #include "gelex/bayes/scheme.h"
 #include "gelex/exception.h"
 #include "gelex/types/constrained_vector.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex::bayes
 {

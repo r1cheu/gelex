@@ -43,7 +43,7 @@
 #include "gelex/exception.h"
 #include "gelex/io/locistats/writer.h"
 #include "gelex/io/mcmc.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 #include "reporter.h"
 
 class MCMCDataHandler
@@ -100,7 +100,7 @@ class MCMCDataHandler
 
             const Eigen::VectorXd stddev{genotype.var().array().sqrt()};
             writer.write(
-                gelex::EffectType::from_genetic(mode),
+                mode,
                 method_code,
                 genotype.mean(),
                 method_is_center ? static_cast<const Eigen::VectorXd*>(nullptr)

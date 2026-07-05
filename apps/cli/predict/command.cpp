@@ -36,7 +36,7 @@
 #include "gelex/predict/snp_alignment.h"
 #include "gelex/predict/standardize.h"
 #include "gelex/predict/types.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 #include "reporter.h"
 
 namespace
@@ -46,10 +46,10 @@ auto load_sbin(const std::filesystem::path& path) -> gelex::predict::SbinData
 {
     gelex::LociStatsReader reader(path.string());
     gelex::predict::SbinData data;
-    data.add = reader.read(gelex::EffectType::add());
-    if (reader.has(gelex::EffectType::dom()))
+    data.add = reader.read(gelex::GeneticMode::A);
+    if (reader.has(gelex::GeneticMode::D))
     {
-        data.dom = reader.read(gelex::EffectType::dom());
+        data.dom = reader.read(gelex::GeneticMode::D);
         data.has_dom = true;
     }
     return data;

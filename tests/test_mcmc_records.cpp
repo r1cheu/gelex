@@ -38,7 +38,7 @@
 #include "gelex/data/genotype.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/types/fixed_designs.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 #include "genotype_fixture.h"
 
 namespace

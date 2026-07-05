@@ -29,9 +29,9 @@
 #include "gelex/io/locistats/writer.h"
 
 #include "file_fixture.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
-using gelex::EffectType;
+using gelex::GeneticMode;
 using gelex::GenotypeMethod;
 using gelex::LociStatsReader;
 using gelex::LociStatsWriter;
@@ -84,7 +84,7 @@ TEST_CASE("sbin round-trip additive only", "[sbin][snpstats]")
     {
         LociStatsWriter writer(sbin_path.string());
         writer.write(
-            EffectType::add(),
+            GeneticMode::A,
             std::to_underlying(METHOD),
             mean,
             &stddev,
@@ -93,10 +93,10 @@ TEST_CASE("sbin round-trip additive only", "[sbin][snpstats]")
 
     LociStatsReader reader(sbin_path.string());
 
-    REQUIRE(reader.has(EffectType::add()));
-    REQUIRE_FALSE(reader.has(EffectType::dom()));
+    REQUIRE(reader.has(GeneticMode::A));
+    REQUIRE_FALSE(reader.has(GeneticMode::D));
 
-    auto data = reader.read(EffectType::add());
+    auto data = reader.read(GeneticMode::A);
 
     REQUIRE(data.mean.size() == NUM_SNPS);
     REQUIRE(data.stddev.has_value());
@@ -128,13 +128,13 @@ TEST_CASE("sbin round-trip additive and dominance", "[sbin][snpstats]")
     {
         LociStatsWriter writer(sbin_path.string());
         writer.write(
-            EffectType::add(),
+            GeneticMode::A,
             std::to_underlying(ADD_METHOD),
             add_mean,
             &add_stddev,
             add_mono);
         writer.write(
-            EffectType::dom(),
+            GeneticMode::D,
             std::to_underlying(DOM_METHOD),
             dom_mean,
             &dom_stddev);
@@ -142,17 +142,17 @@ TEST_CASE("sbin round-trip additive and dominance", "[sbin][snpstats]")
 
     LociStatsReader reader(sbin_path.string());
 
-    REQUIRE(reader.has(EffectType::add()));
-    REQUIRE(reader.has(EffectType::dom()));
+    REQUIRE(reader.has(GeneticMode::A));
+    REQUIRE(reader.has(GeneticMode::D));
 
-    auto add_data = reader.read(EffectType::add());
+    auto add_data = reader.read(GeneticMode::A);
     REQUIRE(add_data.mean.isApprox(add_mean));
     REQUIRE(add_data.stddev.has_value());
     REQUIRE(add_data.stddev->isApprox(add_stddev));
     REQUIRE(add_data.mono_indices == add_mono);
     REQUIRE(add_data.method == ADD_METHOD);
 
-    auto dom_data = reader.read(EffectType::dom());
+    auto dom_data = reader.read(GeneticMode::D);
     REQUIRE(dom_data.mean.isApprox(dom_mean));
     REQUIRE(dom_data.stddev.has_value());
     REQUIRE(dom_data.stddev->isApprox(dom_stddev));
@@ -173,7 +173,7 @@ TEST_CASE("sbin round-trip center only (no stddev)", "[sbin][snpstats]")
     {
         LociStatsWriter writer(sbin_path.string());
         writer.write(
-            EffectType::add(),
+            GeneticMode::A,
             std::to_underlying(GenotypeMethod::CenterHWE),
             mean,
             nullptr,
@@ -182,9 +182,9 @@ TEST_CASE("sbin round-trip center only (no stddev)", "[sbin][snpstats]")
 
     LociStatsReader reader(sbin_path.string());
 
-    REQUIRE(reader.has(EffectType::add()));
+    REQUIRE(reader.has(GeneticMode::A));
 
-    auto data = reader.read(EffectType::add());
+    auto data = reader.read(GeneticMode::A);
 
     REQUIRE(data.mean.size() == NUM_SNPS);
     REQUIRE_FALSE(data.stddev.has_value());

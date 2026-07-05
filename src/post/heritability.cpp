@@ -29,7 +29,7 @@
 #include "gelex/io/binary_reader.h"
 #include "gelex/post/detail/utils.h"
 #include "gelex/post/diagnostic.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {

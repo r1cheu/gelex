@@ -40,7 +40,7 @@
 #include "gelex/io/predict/input_reader.h"
 #include "gelex/predict/snp_alignment.h"
 #include "gelex/predict/types.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 #include "gelex/io/predict/writer.h"
 #include "gelex/predict/compute.h"
 #include "gelex/predict/standardize.h"
@@ -105,7 +105,6 @@ auto create_sbin(
     const std::filesystem::path& sbin_path,
     const Eigen::MatrixXd& genotypes) -> void
 {
-    using gelex::EffectType;
     using gelex::GeneticMode;
     using gelex::GenotypeMethod;
     using gelex::LociStatsWriter;
@@ -142,12 +141,12 @@ auto create_sbin(
 
     LociStatsWriter writer(sbin_path.string());
     writer.write(
-        EffectType::add(),
+        GeneticMode::A,
         std::to_underlying(GenotypeMethod::StandardizeHWE),
         add_mean,
         &add_stddev);
     writer.write(
-        EffectType::dom(),
+        GeneticMode::D,
         std::to_underlying(GenotypeMethod::StandardizeHWE),
         dom_mean,
         &dom_stddev);
@@ -301,10 +300,10 @@ auto load_sbin(const std::filesystem::path& path) -> gelex::predict::SbinData
 {
     gelex::LociStatsReader reader(path.string());
     gelex::predict::SbinData data;
-    data.add = reader.read(gelex::EffectType::add());
-    if (reader.has(gelex::EffectType::dom()))
+    data.add = reader.read(gelex::GeneticMode::A);
+    if (reader.has(gelex::GeneticMode::D))
     {
-        data.dom = reader.read(gelex::EffectType::dom());
+        data.dom = reader.read(gelex::GeneticMode::D);
         data.has_dom = true;
     }
     return data;

@@ -25,7 +25,7 @@
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/half_normal_prior.h"
 #include "gelex/bayes/genetic/prior_state.h"
-#include "gelex/types/genetic_effect_type.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex::infra
 {
