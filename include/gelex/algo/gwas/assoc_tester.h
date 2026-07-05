@@ -39,13 +39,6 @@ struct TestResult
     std::span<const double> pve;
 };
 
-struct JointCovarianceResult
-{
-    std::span<const double> var_a;
-    std::span<const double> var_d;
-    std::span<const double> cov_ad;
-};
-
 struct TestResults
 {
     std::span<const double> freq;
@@ -53,7 +46,6 @@ struct TestResults
     std::optional<TestResult> dominance;
     std::optional<std::span<const double>> joint_p;
     std::optional<std::span<const double>> total_pve;
-    std::optional<JointCovarianceResult> joint_covariance;
 };
 
 class AssocTester

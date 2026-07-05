@@ -55,11 +55,6 @@ auto setup_assoc_command(CLI::App& program, int& exit_code) -> void
         ->group("I/O")
         ->type_name("<OUT>")
         ->capture_default_str();
-    cmd.add_flag(
-           "--write-cov",
-           config->write_cov,
-           "Write <out>.cov with beta covariance for joint C-coded tests")
-        ->group("I/O");
 
     cmd.add_option(
            "--transform",

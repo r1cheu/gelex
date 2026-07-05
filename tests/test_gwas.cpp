@@ -32,7 +32,6 @@
 #include "gelex/data/dataframe/column.h"
 #include "gelex/data/dataframe/reader.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/io/gwas/joint_cov_writer.h"
 #include "gelex/io/gwas/writer.h"
 
 using gelex::AssocType;
@@ -45,7 +44,6 @@ using gelex::dataframe::ColumnType;
 using gelex::dataframe::read_dataframe;
 using gelex::dataframe::ReadOptions;
 using gelex::gwas::GwasWriter;
-using gelex::gwas::JointCovWriter;
 using gelex::test::FileFixture;
 
 TEST_CASE("JointTester reports df=2 additive-dominance Wald p", "[gwas]")
@@ -77,17 +75,7 @@ TEST_CASE("JointTester reports df=2 additive-dominance Wald p", "[gwas]")
     const double expected_p = std::exp(-0.5 * stat_ad);
 
     REQUIRE(results.joint_p.has_value());
-    REQUIRE(results.joint_covariance.has_value());
     REQUIRE(std::abs((*results.joint_p)[0] - expected_p) < 1e-12);
-    REQUIRE(
-        std::abs(results.joint_covariance->var_a[0] - inv(0, 0))
-        < 1e-12);
-    REQUIRE(
-        std::abs(results.joint_covariance->var_d[0] - inv(1, 1))
-        < 1e-12);
-    REQUIRE(
-        std::abs(results.joint_covariance->cov_ad[0] - inv(0, 1))
-        < 1e-12);
 }
 
 TEST_CASE("GwasWriter writes joint P_AD between P_D and PVE_D", "[gwas]")
@@ -139,7 +127,6 @@ TEST_CASE("GwasWriter writes joint P_AD between P_D and PVE_D", "[gwas]")
             std::span<const double>{p_ad}},
         .total_pve
         = std::optional<std::span<const double>>{std::span<const double>{pve}},
-        .joint_covariance = std::nullopt,
     };
 
     {
@@ -160,76 +147,4 @@ TEST_CASE("GwasWriter writes joint P_AD between P_D and PVE_D", "[gwas]")
            "1.1\t0.2\t3.000000e-02\t4.000000e-02\t"
            "5.5\t0.6\t7.000000e-02\t8.000000e-02\t"
            "9.000000e-02\t1.000000e-01\n");
-}
-
-TEST_CASE("JointCovWriter writes inv XtPX sidecar", "[gwas]")
-{
-    FileFixture files;
-    const auto bim_path = files.create_text_file(
-        "SNP\tchrom\tpos\tA1\tA2\n"
-        "rs1\t1\t123\tA\tG\n",
-        ".tsv");
-
-    ReadOptions options;
-    options.index_cols = {0};
-    constexpr std::array schema{
-        ColumnType::String,
-        ColumnType::Int,
-        ColumnType::String,
-        ColumnType::String};
-    auto bim = read_dataframe<std::string>(bim_path, options, schema);
-
-    const auto out_prefix = files.generate_random_file_path().string();
-
-    std::array<double, 1> freq{0.25};
-    std::array<double, 1> beta_a{1.1};
-    std::array<double, 1> se_a{0.2};
-    std::array<double, 1> p_a{0.03};
-    std::array<double, 1> pve_a{0.04};
-    std::array<double, 1> beta_d{5.5};
-    std::array<double, 1> se_d{0.6};
-    std::array<double, 1> p_d{0.07};
-    std::array<double, 1> pve_d{0.09};
-    std::array<double, 1> var_a{0.01};
-    std::array<double, 1> var_d{0.03};
-    std::array<double, 1> cov_ad{-0.02};
-
-    TestResults results{
-        .freq = std::span<const double>{freq},
-        .additive = TestResult{
-            .beta = std::span<const double>{beta_a},
-            .se = std::span<const double>{se_a},
-            .p = std::span<const double>{p_a},
-            .pve = std::span<const double>{pve_a},
-        },
-        .dominance = TestResult{
-            .beta = std::span<const double>{beta_d},
-            .se = std::span<const double>{se_d},
-            .p = std::span<const double>{p_d},
-            .pve = std::span<const double>{pve_d},
-        },
-        .joint_p = std::nullopt,
-        .total_pve = std::nullopt,
-        .joint_covariance = gelex::JointCovarianceResult{
-            .var_a = std::span<const double>{var_a},
-            .var_d = std::span<const double>{var_d},
-            .cov_ad = std::span<const double>{cov_ad},
-        },
-    };
-
-    {
-        JointCovWriter writer(out_prefix, bim);
-        writer.write(0, results);
-    }
-
-    std::ifstream ifs(out_prefix + ".cov");
-    std::ostringstream oss;
-    oss << ifs.rdbuf();
-
-    REQUIRE(
-        oss.str()
-        == "CHR\tSNP\tBP\tA1\tA2\tA1FREQ\tBETA_A\tBETA_D\t"
-           "VAR_A\tVAR_D\tCOV_AD\n"
-           "1\trs1\t123\tA\tG\t0.25\t1.1\t5.5\t"
-           "1.000000e-02\t3.000000e-02\t-2.000000e-02\n");
 }

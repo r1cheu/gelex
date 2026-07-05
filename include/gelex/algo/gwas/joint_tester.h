@@ -54,9 +54,6 @@ class JointTester final : public AssocTester
     Eigen::VectorXd zt_a_Pzd_;
     Eigen::VectorXd joint_p_;
     Eigen::VectorXd total_pve_;
-    Eigen::VectorXd var_a_;
-    Eigen::VectorXd var_d_;
-    Eigen::VectorXd cov_ad_;
 };
 
 }  // namespace gelex

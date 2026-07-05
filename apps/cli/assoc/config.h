@@ -35,7 +35,6 @@ struct AssocConfig
     std::string bfile;
     std::vector<std::string> grm;
     std::string out{"gelex"};
-    bool write_cov{false};
     gelex::GeneticModeSet mode{gelex::GeneticMode::A};
     bool loco{false};
     gelex::GenotypeMethod geno_method{gelex::GenotypeMethod::OrthCenterHWE};

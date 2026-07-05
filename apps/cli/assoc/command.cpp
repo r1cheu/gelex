@@ -18,7 +18,6 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -43,16 +42,9 @@
 #include "gelex/exception.h"
 #include "gelex/freq/model.h"
 #include "gelex/io/grm/loco_reader.h"
-#include "gelex/io/gwas/joint_cov_writer.h"
 #include "gelex/io/gwas/writer.h"
 #include "gelex/types/fixed_designs.h"
 #include "reporter.h"
-
-struct AssocData
-{
-    gelex::dataframe::Index<std::string> sample_index;
-    std::vector<gelex::freq::RandomDesign> random_designs;
-};
 
 class AssocDataHandler
 {
@@ -85,11 +77,11 @@ class AssocDataHandler
         random_designs_ = gelex::make_grm_designs(config_.grm, common_index);
     }
 
-    auto results() && -> AssocData
+    auto results() && -> std::pair<
+        gelex::dataframe::Index<std::string>,
+        std::vector<gelex::freq::RandomDesign>>
     {
-        return AssocData{
-            .sample_index = std::move(sample_index_),
-            .random_designs = std::move(random_designs_)};
+        return {std::move(sample_index_), std::move(random_designs_)};
     }
 
    private:
@@ -110,15 +102,6 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
     const gelex::GeneticMode mode
         = is_joint ? gelex::GeneticMode::A : *config.mode.each().begin();
     const gelex::GenotypeMethod geno_method{config.geno_method};
-    const bool write_cov{config.write_cov};
-
-    if (write_cov
-        && (test_type != gelex::AssocType::Joint
-            || geno_method != gelex::GenotypeMethod::Center))
-    {
-        throw gelex::GelexException(
-            "assoc --write-cov requires --test joint --geno-method C");
-    }
 
     cli::AssocReporter reporter;
 
@@ -126,33 +109,28 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
 
     AssocDataHandler handler(config);
     cli::BaseData data = cli::load_base_data(handler, config.base_data);
-    auto assoc_data = std::move(handler).results();
+    auto [sample_index, random_designs] = std::move(handler).results();
 
     cli::printer().line(
-        "   Intersection : {} common samples", assoc_data.sample_index.size());
-    if (assoc_data.sample_index.size() == 0)
+        "   Intersection : {} common samples", sample_index.size());
+    if (sample_index.size() == 0)
     {
         throw gelex::GelexException(
             "No common samples across phenotype, genotype (.fam), GRM, and "
             "covariates. Check that sample IDs match across input files.");
     }
 
-    auto bed = gelex::open_bed(config.bfile, assoc_data.sample_index);
+    auto bed = gelex::open_bed(config.bfile, sample_index);
     auto bim = gelex::read_bim(config.bfile + ".bim");
 
     gelex::FreqModel model(
         std::move(data.phenotype),
         std::move(data.fixed_design),
-        std::move(assoc_data.random_designs));
+        std::move(random_designs));
     gelex::FreqState state(model);
 
     auto tester = gelex::AssocTester::make(test_type, mode, geno_method);
     gelex::gwas::GwasWriter writer(config.out, bim, test_type);
-    std::optional<gelex::gwas::JointCovWriter> joint_cov_writer;
-    if (write_cov)
-    {
-        joint_cov_writer.emplace(config.out, bim);
-    }
 
     const auto total_snps = static_cast<std::size_t>(bim.rows());
     std::size_t progress = 0;
@@ -179,11 +157,6 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
 
                     auto results = tester->run(reml);
                     writer.write(static_cast<std::size_t>(start), results);
-                    if (joint_cov_writer)
-                    {
-                        joint_cov_writer->write(
-                            static_cast<std::size_t>(start), results);
-                    }
 
                     progress += static_cast<std::size_t>(current_chunk_size);
                     reporter.update_scan_progress(progress, total_snps);
@@ -229,7 +202,7 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
         loco_readers.reserve(config.grm.size());
         for (const auto& path : config.grm)
         {
-            loco_readers.emplace_back(path, assoc_data.sample_index);
+            loco_readers.emplace_back(path, sample_index);
         }
 
         auto chr_groups = gelex::build_chr_groups(true, bim);
@@ -244,9 +217,7 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
             {
                 const auto chr_grm_prefix = config.grm[i] + ".chr" + group.name;
                 loco_readers[i].load_loco_grm(
-                    chr_grm_prefix,
-                    assoc_data.sample_index,
-                    model.random()[i].K);
+                    chr_grm_prefix, sample_index, model.random()[i].K);
             }
 
             reporter.show_loco_phase(group.name, "REML");
