@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include <fmt/format.h>
 #include <Eigen/Core>
 
 #include "cli/cli_helper.h"
@@ -41,8 +42,8 @@
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/freq/model.h"
-#include "gelex/io/grm/loco_reader.h"
 #include "gelex/io/gwas/writer.h"
+#include "gelex/io/loco_reader.h"
 #include "gelex/types/fixed_designs.h"
 #include "reporter.h"
 
@@ -191,13 +192,6 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
     }
     else
     {
-        if (model.random().size() != config.grm.size())
-        {
-            throw gelex::GelexException(
-                "Number of random components in model does not match "
-                "number of GRMs provided.");
-        }
-
         std::vector<gelex::LocoReader> loco_readers;
         loco_readers.reserve(config.grm.size());
         for (const auto& path : config.grm)
@@ -215,8 +209,9 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
         {
             for (std::size_t i = 0; i < loco_readers.size(); ++i)
             {
-                const auto chr_grm_prefix = config.grm[i] + ".chr" + group.name;
-                loco_readers[i].load_loco_grm(
+                const auto chr_grm_prefix = fmt::format(
+                    "{}.chr{:02d}", config.grm[i], std::stoi(group.name));
+                loco_readers[i].load_into(
                     chr_grm_prefix, sample_index, model.random()[i].K);
             }
 

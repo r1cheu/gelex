@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/io/grm/loco_reader.h"
+#include "gelex/io/loco_reader.h"
 
 #include <fmt/format.h>
 #include <Eigen/Core>
@@ -37,7 +37,7 @@ LocoReader::LocoReader(
     k_whole_ = trace_whole_ / static_cast<double>(g_whole_.rows());
 }
 
-auto LocoReader::load_loco_grm(
+auto LocoReader::load_into(
     const std::filesystem::path& chr_grm_prefix,
     const dataframe::Index<std::string>& sample_index,
     Eigen::MatrixXd& target) const -> void
@@ -67,20 +67,6 @@ auto LocoReader::load_loco_grm(
     }
 
     target = (g_whole_ - g_chr) / k_loco;
-}
-
-auto LocoReader::load_loco_grm(
-    const std::filesystem::path& chr_grm_prefix,
-    const dataframe::Index<std::string>& sample_index) const -> Eigen::MatrixXd
-{
-    Eigen::MatrixXd target;
-    load_loco_grm(chr_grm_prefix, sample_index, target);
-    return target;
-}
-
-auto LocoReader::num_samples() const noexcept -> Eigen::Index
-{
-    return g_whole_.rows();
 }
 
 }  // namespace gelex

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_GRM_LOCO_READER_H_
-#define GELEX_IO_GRM_LOCO_READER_H_
+#ifndef GELEX_IO_LOCO_READER_H_
+#define GELEX_IO_LOCO_READER_H_
 
 #include <filesystem>
 #include <string>
@@ -34,32 +34,10 @@ class LocoReader
         const std::filesystem::path& whole_grm_prefix,
         const dataframe::Index<std::string>& sample_index);
 
-    ~LocoReader() = default;
-    LocoReader(const LocoReader&) = delete;
-    LocoReader& operator=(const LocoReader&) = delete;
-    LocoReader(LocoReader&&) noexcept = default;
-    LocoReader& operator=(LocoReader&&) noexcept = default;
-
-    /**
-     * @brief Load the LOCO GRM for a specific chromosome.
-     *
-     * Formula: G_loco = (G_whole - G_i) / (K_whole - K_i)
-     *
-     * @param chr_grm_prefix Path prefix for the chromosome-specific GRM files.
-     * @param id_map Map for sample IDs to matrix indices.
-     * @param target Output matrix to store the calculated LOCO GRM.
-     */
-    auto load_loco_grm(
+    auto load_into(
         const std::filesystem::path& chr_grm_prefix,
         const dataframe::Index<std::string>& sample_index,
         Eigen::MatrixXd& target) const -> void;
-
-    [[nodiscard]] auto load_loco_grm(
-        const std::filesystem::path& chr_grm_prefix,
-        const dataframe::Index<std::string>& sample_index) const
-        -> Eigen::MatrixXd;
-
-    [[nodiscard]] auto num_samples() const noexcept -> Eigen::Index;
 
    private:
     Eigen::MatrixXd g_whole_;
@@ -69,4 +47,4 @@ class LocoReader
 
 }  // namespace gelex
 
-#endif  // GELEX_IO_GRM_LOCO_READER_H_
+#endif  // GELEX_IO_LOCO_READER_H_
