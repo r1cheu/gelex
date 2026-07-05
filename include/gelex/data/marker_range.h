@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_CHR_GROUP_H_
-#define GELEX_DATA_CHR_GROUP_H_
+#ifndef GELEX_DATA_MARKER_RANGE_H_
+#define GELEX_DATA_MARKER_RANGE_H_
 
 #include <string>
-#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
@@ -28,17 +27,17 @@
 namespace gelex
 {
 
-struct ChrGroup
+struct MarkerRange
 {
-    std::string name;
-    std::vector<std::pair<Eigen::Index, Eigen::Index>> ranges;
-    Eigen::Index total_snps;
+    std::string label;  // empty for whole-genome; chromosome name for per-chr
+    Eigen::Index start;
+    Eigen::Index end;
 };
 
-auto build_chr_groups(
-    bool do_loco,
-    const dataframe::DataFrame<std::string>& bim) -> std::vector<ChrGroup>;
+// Contiguous marker runs per chromosome, in bim order.
+auto chromosome_ranges(const dataframe::DataFrame<std::string>& bim)
+    -> std::vector<MarkerRange>;
 
 }  // namespace gelex
 
-#endif  // GELEX_DATA_CHR_GROUP_H_
+#endif  // GELEX_DATA_MARKER_RANGE_H_

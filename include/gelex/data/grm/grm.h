@@ -25,8 +25,8 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/genotype_method.h"
+#include "gelex/data/marker_range.h"
 #include "gelex/infra/logging/grm_event.h"
 #include "gelex/types/genetic_mode.h"
 
@@ -42,17 +42,6 @@ struct GrmMatrix
     Eigen::MatrixXd grm;
     double denominator;
 };
-
-struct GrmRange
-{
-    std::string label;  // empty for whole-genome; chromosome name for per-chr
-    Eigen::Index start;
-    Eigen::Index end;
-};
-
-// Contiguous marker runs per chromosome, in bim order.
-auto chromosome_ranges(const dataframe::DataFrame<std::string>& bim)
-    -> std::vector<GrmRange>;
 
 // Builds one GRM per (range, mode). Each chunk is read (bit-decoded and sample
 // projected) once and shared across modes via encode_into. Every finished GRM
@@ -70,7 +59,7 @@ class GrmBuilder
         Eigen::Index chunk_size,
         GrmObserver observer = {});
 
-    auto build(std::span<const GrmRange> ranges, const Sink& sink) -> void;
+    auto build(std::span<const MarkerRange> ranges, const Sink& sink) -> void;
 
    private:
     auto accumulate(

@@ -27,6 +27,7 @@
 #include "gelex/data/bed.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/grm/grm.h"
+#include "gelex/data/marker_range.h"
 #include "gelex/data/reader.h"
 #include "gelex/types/genetic_mode.h"
 
@@ -56,7 +57,8 @@ TEST_CASE("GRM - additive GRM", "[grm][compute]")
             GeneticModeSet{GeneticMode::A},
             GenotypeMethod::OrthStandardize,
             10);
-        const std::vector<GrmRange> ranges{{std::string{}, 0, bed.num_snps()}};
+        const std::vector<MarkerRange> ranges{
+            {std::string{}, 0, bed.num_snps()}};
         std::vector<GrmMatrix> out;
         builder.build(ranges, [&](const GrmMatrix& m) { out.push_back(m); });
         const GrmMatrix& result = out.at(0);
@@ -118,7 +120,8 @@ TEST_CASE("GRM - dominance GRM", "[grm][compute]")
             GeneticModeSet{GeneticMode::D},
             GenotypeMethod::OrthStandardize,
             10);
-        const std::vector<GrmRange> ranges{{std::string{}, 0, bed.num_snps()}};
+        const std::vector<MarkerRange> ranges{
+            {std::string{}, 0, bed.num_snps()}};
         std::vector<GrmMatrix> out;
         builder.build(ranges, [&](const GrmMatrix& m) { out.push_back(m); });
         const GrmMatrix& result = out.at(0);
@@ -175,7 +178,8 @@ TEST_CASE("GRM - chunk size consistency", "[grm][compute][chunk]")
 
         auto bed = open_bed(bed_prefix);
         const auto method = GenotypeMethod::OrthStandardize;
-        const std::vector<GrmRange> ranges{{std::string{}, 0, bed.num_snps()}};
+        const std::vector<MarkerRange> ranges{
+            {std::string{}, 0, bed.num_snps()}};
 
         std::vector<GrmMatrix> out;
         auto collect = [&](const GrmMatrix& m) { out.push_back(m); };
@@ -275,7 +279,8 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
             GeneticModeSet{GeneticMode::A},
             GenotypeMethod::OrthStandardize,
             10);
-        const std::vector<GrmRange> ranges{{std::string{}, 0, bed.num_snps()}};
+        const std::vector<MarkerRange> ranges{
+            {std::string{}, 0, bed.num_snps()}};
         std::vector<GrmMatrix> out;
         builder.build(ranges, [&](const GrmMatrix& m) { out.push_back(m); });
         const GrmMatrix& result = out.at(0);
@@ -346,7 +351,8 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
         auto bed = open_bed(bed_prefix);
         GrmBuilder builder(
             bed, GeneticModeSet{GeneticMode::A}, GenotypeMethod::Center, 10);
-        const std::vector<GrmRange> ranges{{std::string{}, 0, bed.num_snps()}};
+        const std::vector<MarkerRange> ranges{
+            {std::string{}, 0, bed.num_snps()}};
         std::vector<GrmMatrix> out;
         builder.build(ranges, [&](const GrmMatrix& m) { out.push_back(m); });
         const GrmMatrix& result = out.at(0);

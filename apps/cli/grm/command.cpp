@@ -28,6 +28,7 @@
 #include "cli/cli_helper.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/grm/grm.h"
+#include "gelex/data/marker_range.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/writer.h"
 #include "gelex/types/genetic_mode.h"
@@ -60,7 +61,7 @@ auto grm_execute(const cli::GrmConfig& config) -> int
     cli::GrmReporter::show_data_loaded(
         sample_ids.size(), static_cast<size_t>(bed.num_snps()));
 
-    std::vector<gelex::GrmRange> ranges;
+    std::vector<gelex::MarkerRange> ranges;
     if (config.loco)
     {
         auto bim = gelex::read_bim(config.bfile + ".bim");

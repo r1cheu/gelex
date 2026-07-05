@@ -33,8 +33,8 @@
 #endif
 
 #include "gelex/data/bed.h"
-#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/locus_encoding.h"
+#include "gelex/data/marker_range.h"
 #include "gelex/infra/logging/notify.h"
 
 namespace gelex
@@ -67,34 +67,6 @@ auto update_grm(
 }
 
 }  // namespace
-
-auto chromosome_ranges(const dataframe::DataFrame<std::string>& bim)
-    -> std::vector<GrmRange>
-{
-    const auto num_snps = static_cast<Index>(bim.rows());
-    auto chrom = bim["chrom"].as<std::string>();
-
-    std::vector<GrmRange> ranges;
-    std::string current;
-    Index range_start = 0;
-    for (Index i = 0; i < num_snps; ++i)
-    {
-        if (chrom[static_cast<std::size_t>(i)] != current)
-        {
-            if (!current.empty())
-            {
-                ranges.push_back({current, range_start, i});
-            }
-            current = chrom[static_cast<std::size_t>(i)];
-            range_start = i;
-        }
-    }
-    if (!current.empty())
-    {
-        ranges.push_back({current, range_start, num_snps});
-    }
-    return ranges;
-}
 
 GrmBuilder::GrmBuilder(
     const Bed& bed,
@@ -153,7 +125,7 @@ auto GrmBuilder::accumulate(std::string_view label, Index start, Index end)
     return results;
 }
 
-auto GrmBuilder::build(std::span<const GrmRange> ranges, const Sink& sink)
+auto GrmBuilder::build(std::span<const MarkerRange> ranges, const Sink& sink)
     -> void
 {
     total_ = 0;
