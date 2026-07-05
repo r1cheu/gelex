@@ -28,8 +28,7 @@ struct GrmConfig
     std::string bfile;
     std::string out{"grm"};
     std::string geno_method{"OSH"};
-    bool add{false};
-    bool dom{false};
+    std::string mode{"A"};
     bool loco{false};
     int chunk_size{10000};
     int threads{static_cast<int>(std::thread::hardware_concurrency() / 2)};

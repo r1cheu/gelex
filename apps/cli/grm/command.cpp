@@ -18,7 +18,6 @@
 
 #include <cstddef>
 #include <filesystem>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -50,21 +49,7 @@ auto grm_execute(const cli::GrmConfig& config) -> int
 
     cli::setup_parallelization(config.threads);
 
-    std::optional<gelex::GeneticModeSet> modes;
-    if (config.add)
-    {
-        modes = gelex::GeneticModeSet{gelex::GeneticMode::A};
-    }
-    if (config.dom)
-    {
-        modes = modes ? (*modes | gelex::GeneticModeSet{gelex::GeneticMode::D})
-                      : gelex::GeneticModeSet{gelex::GeneticMode::D};
-    }
-    if (!modes)
-    {
-        modes = gelex::GeneticModeSet{gelex::GeneticMode::A};
-    }
-
+    const auto modes = cli::parse_genetic_modes(config.mode);
     const auto method = cli::parse_genotype_method(config.geno_method);
     const auto chunk_size = config.chunk_size;
 
@@ -86,7 +71,7 @@ auto grm_execute(const cli::GrmConfig& config) -> int
         ranges.push_back({std::string{}, 0, bed.num_snps()});
     }
 
-    gelex::GrmBuilder builder(bed, *modes, method, chunk_size, observer);
+    gelex::GrmBuilder builder(bed, modes, method, chunk_size, observer);
     builder.build(
         ranges,
         [&](const gelex::GrmMatrix& matrix)
@@ -104,11 +89,11 @@ auto grm_execute(const cli::GrmConfig& config) -> int
     reporter.finish_progress();
 
     const std::string task_pattern
-        = modes->size() == 1 ? std::string{mode_tag(
-                                   modes->contains(gelex::GeneticMode::A)
-                                       ? gelex::GeneticMode::A
-                                       : gelex::GeneticMode::D)}
-                             : std::string{"{add|dom}"};
+        = modes.size() == 1 ? std::string{mode_tag(
+                                  modes.contains(gelex::GeneticMode::A)
+                                      ? gelex::GeneticMode::A
+                                      : gelex::GeneticMode::D)}
+                            : std::string{"{add|dom}"};
 
     auto output_pattern
         = config.loco
@@ -120,7 +105,7 @@ auto grm_execute(const cli::GrmConfig& config) -> int
               : fmt::format("{}.{}.{{bin|id}}", config.out, task_pattern);
 
     cli::GrmReporter::show_files_written(
-        ranges.size() * modes->size() * 2,
+        ranges.size() * modes.size() * 2,
         std::filesystem::absolute(std::filesystem::path(config.out))
             .parent_path()
             .string(),

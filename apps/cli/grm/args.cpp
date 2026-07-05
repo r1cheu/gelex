@@ -17,6 +17,8 @@
 #include "args.h"
 
 #include <memory>
+#include <string>
+#include <vector>
 
 #include <CLI/CLI.hpp>
 
@@ -56,8 +58,11 @@ auto setup_grm_command(CLI::App& program, int& exit_code) -> void
         ->capture_default_str()
         ->check(cli::genotype_method_validator());
 
-    cmd.add_flag("--add", config->add, "Write additive GRM")->group("Model");
-    cmd.add_flag("--dom", config->dom, "Write dominance GRM")->group("Model");
+    cmd.add_option("--mode", config->mode, "Effect mode: A, D, AD")
+        ->group("Model")
+        ->type_name("<MODE>")
+        ->capture_default_str()
+        ->check(CLI::IsMember(std::vector<std::string>{"A", "D", "AD"}));
     cmd.add_flag("--loco", config->loco, "Write one GRM per chromosome")
         ->group("Model");
 
