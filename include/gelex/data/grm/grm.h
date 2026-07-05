@@ -17,124 +17,76 @@
 #ifndef GELEX_DATA_GRM_H_
 #define GELEX_DATA_GRM_H_
 
+#include <functional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <Eigen/Core>
 
-#include "gelex/data/bed.h"
-#include "gelex/data/dataframe/index.h"
+#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/data/locus_encoding.h"
 #include "gelex/infra/logging/grm_event.h"
-#include "gelex/infra/logging/notify.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
 
-struct GrmResult
+class Bed;
+
+struct GrmMatrix
 {
+    std::string label;  // empty for whole-genome; chromosome name for per-chr
+    GeneticMode mode;
     Eigen::MatrixXd grm;
     double denominator;
 };
 
-class GRM
+struct GrmRange
 {
-   public:
-    explicit GRM(const std::string& bfile_prefix);
-    GRM(const GRM&) = delete;
-    GRM(GRM&&) noexcept = default;
-    GRM& operator=(const GRM&) = delete;
-    GRM& operator=(GRM&&) noexcept = default;
-
-    ~GRM() = default;
-
-    template <GeneticMode GT>
-    auto compute(
-        GenotypeMethod method,
-        Eigen::Index chunk_size,
-        const GrmObserver& observer = {}) -> GrmResult;
-
-    template <GeneticMode GT>
-    auto compute(
-        GenotypeMethod method,
-        const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
-        Eigen::Index chunk_size,
-        const GrmObserver& observer = {}) -> GrmResult;
-
-    [[nodiscard]] auto sample_ids() const -> std::span<const std::string>
-    {
-        return sample_index_.keys();
-    }
-
-    [[nodiscard]] auto num_snps() const -> Eigen::Index
-    {
-        return bed_.num_snps();
-    }
-
-   private:
-    dataframe::Index<std::string> sample_index_;
-    Bed bed_;
-
-    static auto update_grm(
-        Eigen::Ref<Eigen::MatrixXd> grm,
-        const Eigen::Ref<const Eigen::MatrixXd>& genotype) -> void;
+    std::string label;  // empty for whole-genome; chromosome name for per-chr
+    Eigen::Index start;
+    Eigen::Index end;
 };
 
-template <GeneticMode GT>
-auto GRM::compute(
-    GenotypeMethod method,
-    Eigen::Index chunk_size,
-    const GrmObserver& observer) -> GrmResult
+// Contiguous marker runs per chromosome, in bim order.
+auto chromosome_ranges(const dataframe::DataFrame<std::string>& bim)
+    -> std::vector<GrmRange>;
+
+// Builds one GRM per (range, mode). Each chunk is read (bit-decoded and sample
+// projected) once and shared across modes via encode_into. Every finished GRM
+// is streamed to a sink, so the whole set is never held in memory at once;
+// only the modes of the range in flight are resident.
+class GrmBuilder
 {
-    return compute<GT>(method, {{0, bed_.num_snps()}}, chunk_size, observer);
-}
+   public:
+    using Sink = std::function<void(const GrmMatrix&)>;
 
-template <GeneticMode GT>
-auto GRM::compute(
-    GenotypeMethod method,
-    const std::vector<std::pair<Eigen::Index, Eigen::Index>>& ranges,
-    Eigen::Index chunk_size,
-    const GrmObserver& observer) -> GrmResult
-{
-    const Eigen::Index n = bed_.num_samples();
-    Eigen::MatrixXd grm = Eigen::MatrixXd::Zero(n, n);
+    GrmBuilder(
+        const Bed& bed,
+        GeneticModeSet modes,
+        GenotypeMethod method,
+        Eigen::Index chunk_size,
+        GrmObserver observer = {});
 
-    Eigen::Index total_snps_to_process = 0;
-    for (const auto& [start, end] : ranges)
-    {
-        total_snps_to_process += (end - start);
-    }
+    auto build(std::span<const GrmRange> ranges, const Sink& sink) -> void;
 
-    Eigen::Index processed_snps = 0;
-    for (const auto& [range_start, range_end] : ranges)
-    {
-        for (Eigen::Index start_col = range_start; start_col < range_end;
-             start_col += chunk_size)
-        {
-            const Eigen::Index end_col
-                = std::min(start_col + chunk_size, range_end);
-            Eigen::MatrixXd genotype_chunk
-                = bed_.read<double>(start_col, end_col);
+   private:
+    auto accumulate(
+        std::string_view label,
+        Eigen::Index start,
+        Eigen::Index end) -> std::vector<GrmMatrix>;
 
-            encode_inplace<double>(genotype_chunk, GT, method);
-            update_grm(grm, genotype_chunk);
+    const Bed& bed_;
+    GeneticModeSet modes_;
+    GenotypeMethod method_;
+    Eigen::Index chunk_size_;
+    GrmObserver observer_;
+    Eigen::Index processed_ = 0;
+    Eigen::Index total_ = 0;
+};
 
-            processed_snps += (end_col - start_col);
-            notify(
-                observer,
-                GrmProgressEvent{
-                    static_cast<size_t>(processed_snps),
-                    static_cast<size_t>(total_snps_to_process),
-                    false});
-        }
-    }
-
-    double denominator = grm.trace() / static_cast<double>(n);
-
-    return {grm, denominator};
-}
 }  // namespace gelex
 
 #endif  // GELEX_DATA_GRM_H_

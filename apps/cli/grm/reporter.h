@@ -33,7 +33,6 @@ class GrmReporter
     GrmReporter();
 
     static auto show_data_loaded(size_t num_samples, size_t num_snps) -> void;
-    auto start_compute(size_t total_snps) -> void;
     auto on_event(const gelex::GrmProgressEvent& event) -> void;
     auto finish_progress() -> void;
     static auto show_files_written(
@@ -52,7 +51,6 @@ class GrmReporter
     bool bar_active_ = false;
     gelex::SmoothEtaCalculator eta_;
     size_t global_total_ = 0;
-    size_t accumulated_base_ = 0;
 };
 
 }  // namespace cli

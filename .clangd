@@ -1,0 +1,8 @@
+CompileFlags:
+  # fmt/spdlog/CLI11 headers live in the pixi env's default include dir, which is
+  # NOT emitted as -isystem in compile_commands.json (only reachable via the conda
+  # g++ default search path). clangd doesn't query that driver, so add it here.
+  # Relative paths resolve against each entry's `directory` (build/<preset>).
+  Add:
+    - -isystem
+    - ../../.pixi/envs/dev/include

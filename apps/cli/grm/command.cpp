@@ -18,14 +18,16 @@
 
 #include <cstddef>
 #include <filesystem>
+#include <optional>
 #include <string>
-#include <utility>
+#include <string_view>
 #include <vector>
 
 #include <fmt/format.h>
 #include <Eigen/Core>
 
 #include "cli/cli_helper.h"
+#include "gelex/data/bed.h"
 #include "gelex/data/grm/grm.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/writer.h"
@@ -35,18 +37,10 @@
 namespace
 {
 
-struct GrmTask
+auto mode_tag(gelex::GeneticMode mode) -> std::string_view
 {
-    std::string name;
-    bool is_additive;
-};
-
-struct GrmWorkItem
-{
-    std::vector<std::pair<Eigen::Index, Eigen::Index>> ranges;
-    bool is_additive;
-    std::string output_name;
-};
+    return mode == gelex::GeneticMode::A ? "add" : "dom";
+}
 
 }  // namespace
 
@@ -56,143 +50,77 @@ auto grm_execute(const cli::GrmConfig& config) -> int
 
     cli::setup_parallelization(config.threads);
 
-    std::vector<gelex::GeneticMode> requested_effects;
+    std::optional<gelex::GeneticModeSet> modes;
     if (config.add)
     {
-        requested_effects.push_back(gelex::GeneticMode::A);
+        modes = gelex::GeneticModeSet{gelex::GeneticMode::A};
     }
     if (config.dom)
     {
-        requested_effects.push_back(gelex::GeneticMode::D);
+        modes = modes ? (*modes | gelex::GeneticModeSet{gelex::GeneticMode::D})
+                      : gelex::GeneticModeSet{gelex::GeneticMode::D};
     }
-    if (requested_effects.empty())
+    if (!modes)
     {
-        requested_effects.push_back(gelex::GeneticMode::A);
+        modes = gelex::GeneticModeSet{gelex::GeneticMode::A};
     }
 
-    auto method = cli::parse_genotype_method(config.geno_method);
-    auto chunk_size = config.chunk_size;
+    const auto method = cli::parse_genotype_method(config.geno_method);
+    const auto chunk_size = config.chunk_size;
 
-    gelex::GRM grm(config.bfile);
-    const auto& sample_ids = grm.sample_ids();
+    auto bed = gelex::open_bed(config.bfile);
+    const auto sample_ids = bed.sample_index().keys();
     const auto observer = reporter.as_observer();
 
     cli::GrmReporter::show_data_loaded(
-        sample_ids.size(), static_cast<size_t>(grm.num_snps()));
+        sample_ids.size(), static_cast<size_t>(bed.num_snps()));
 
-    std::vector<GrmTask> tasks;
-    for (auto effect : requested_effects)
-    {
-        if (effect == gelex::GeneticMode::A)
-        {
-            tasks.push_back({.name = "add", .is_additive = true});
-        }
-        if (effect == gelex::GeneticMode::D)
-        {
-            tasks.push_back({.name = "dom", .is_additive = false});
-        }
-    }
-
-    std::vector<GrmWorkItem> items;
-    Eigen::Index total_work = 0;
-    const auto& bfile_prefix = config.bfile;
-    auto bim = gelex::read_bim(bfile_prefix + ".bim");
-    const auto num_snps = static_cast<Eigen::Index>(bim.rows());
-
-    std::string task_pattern
-        = tasks.size() == 1 ? tasks[0].name : std::string("{add|dom}");
-
+    std::vector<gelex::GrmRange> ranges;
     if (config.loco)
     {
-        struct ChrRange
-        {
-            std::string name;
-            std::vector<std::pair<Eigen::Index, Eigen::Index>> ranges;
-            Eigen::Index total_snps;
-        };
-
-        std::vector<ChrRange> groups;
-        auto chrom = bim["chrom"].as<std::string>();
-        std::string current_chr;
-        Eigen::Index range_start = 0;
-
-        for (Eigen::Index i = 0; i < num_snps; ++i)
-        {
-            if (chrom[static_cast<std::size_t>(i)] != current_chr)
-            {
-                if (!current_chr.empty())
-                {
-                    groups.push_back(
-                        {current_chr, {{range_start, i}}, i - range_start});
-                }
-                current_chr = chrom[static_cast<std::size_t>(i)];
-                range_start = i;
-            }
-        }
-        if (!current_chr.empty())
-        {
-            groups.push_back(
-                {current_chr,
-                 {{range_start, num_snps}},
-                 num_snps - range_start});
-        }
-
-        items.reserve(groups.size() * tasks.size());
-        for (const auto& group : groups)
-        {
-            for (const auto& task : tasks)
-            {
-                items.push_back(
-                    {.ranges = group.ranges,
-                     .is_additive = task.is_additive,
-                     .output_name
-                     = fmt::format("{}.chr{}", task.name, group.name)});
-                total_work += group.total_snps;
-            }
-        }
+        auto bim = gelex::read_bim(config.bfile + ".bim");
+        ranges = gelex::chromosome_ranges(bim);
     }
     else
     {
-        items.reserve(tasks.size());
-        for (const auto& task : tasks)
+        ranges.push_back({std::string{}, 0, bed.num_snps()});
+    }
+
+    gelex::GrmBuilder builder(bed, *modes, method, chunk_size, observer);
+    builder.build(
+        ranges,
+        [&](const gelex::GrmMatrix& matrix)
         {
-            items.push_back(
-                {.ranges = {{0, num_snps}},
-                 .is_additive = task.is_additive,
-                 .output_name = task.name});
-            total_work += num_snps;
-        }
-    }
-
-    reporter.start_compute(static_cast<size_t>(total_work));
-
-    for (const auto& item : items)
-    {
-        gelex::GrmResult result
-            = item.is_additive ? grm.compute<gelex::GeneticMode::A>(
-                                     method, item.ranges, chunk_size, observer)
-                               : grm.compute<gelex::GeneticMode::D>(
-                                     method, item.ranges, chunk_size, observer);
-
-        gelex::write_grm(
-            fmt::format("{}.{}", config.out, item.output_name),
-            result.grm,
-            sample_ids);
-    }
+            const std::string name = matrix.label.empty()
+                                         ? std::string{mode_tag(matrix.mode)}
+                                         : fmt::format(
+                                               "{}.chr{:02d}",
+                                               mode_tag(matrix.mode),
+                                               std::stoi(matrix.label));
+            gelex::write_grm(
+                fmt::format("{}.{}", config.out, name), matrix.grm, sample_ids);
+        });
 
     reporter.finish_progress();
+
+    const std::string task_pattern
+        = modes->size() == 1 ? std::string{mode_tag(
+                                   modes->contains(gelex::GeneticMode::A)
+                                       ? gelex::GeneticMode::A
+                                       : gelex::GeneticMode::D)}
+                             : std::string{"{add|dom}"};
 
     auto output_pattern
         = config.loco
               ? fmt::format(
-                    "{}.{}.chr{{1..{}}}.{{bin|id}}",
+                    "{}.{}.chr{{01..{:02d}}}.{{bin|id}}",
                     config.out,
                     task_pattern,
-                    items.size() / tasks.size())
+                    ranges.size())
               : fmt::format("{}.{}.{{bin|id}}", config.out, task_pattern);
 
     cli::GrmReporter::show_files_written(
-        items.size() * 2,
+        ranges.size() * modes->size() * 2,
         std::filesystem::absolute(std::filesystem::path(config.out))
             .parent_path()
             .string(),

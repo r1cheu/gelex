@@ -16,20 +16,19 @@
 
 #include <catch2/matchers/catch_matchers.hpp>
 #include <cmath>
-#include <cstddef>
-#include <filesystem>
 #include <string>
+#include <vector>
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "bed_fixture.h"
+#include "gelex/data/bed.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/grm/grm.h"
+#include "gelex/data/reader.h"
 #include "gelex/types/genetic_mode.h"
-
-namespace fs = std::filesystem;
 
 using namespace gelex;  // NOLINT
 using Catch::Matchers::WithinAbs;
@@ -37,46 +36,10 @@ using gelex::test::are_matrices_equal;
 using gelex::test::BedFixture;
 
 // ============================================================================
-// Construction tests
+// GrmBuilder core tests
 // ============================================================================
 
-TEST_CASE("GRM - Construction with valid BED files", "[grm][construction]")
-{
-    BedFixture fixture;
-
-    SECTION("Happy path - construct from valid BED prefix")
-    {
-        const Eigen::Index num_samples = 10;
-        const Eigen::Index num_snps = 20;
-        auto [bed_prefix, genotypes]
-            = fixture.create_bed_files(num_samples, num_snps, 0.0);
-
-        REQUIRE_NOTHROW(
-            [&]()
-            {
-                GRM grm(bed_prefix);
-                REQUIRE(grm.num_snps() == num_snps);
-                REQUIRE(
-                    grm.sample_ids().size()
-                    == static_cast<size_t>(num_samples));
-            }());
-    }
-
-    SECTION("Exception - file not found")
-    {
-        fs::path non_existent_path = "/tmp/non_existent_file_12345";
-
-        // GRM constructor first creates SampleManager from FAM file,
-        // so exception is thrown for missing FAM file
-        REQUIRE_THROWS(GRM(non_existent_path));
-    }
-}
-
-// ============================================================================
-// compute() core tests
-// ============================================================================
-
-TEST_CASE("GRM - compute() additive GRM", "[grm][compute]")
+TEST_CASE("GRM - additive GRM", "[grm][compute]")
 {
     BedFixture fixture;
 
@@ -87,9 +50,16 @@ TEST_CASE("GRM - compute() additive GRM", "[grm][compute]")
         auto [bed_prefix, genotypes]
             = fixture.create_bed_files(num_samples, num_snps, 0.0);
 
-        GRM grm(bed_prefix);
-        GrmResult result = grm.compute<GeneticMode::A>(
-            GenotypeMethod::OrthStandardize, 10);
+        auto bed = open_bed(bed_prefix);
+        GrmBuilder builder(
+            bed,
+            GeneticModeSet{GeneticMode::A},
+            GenotypeMethod::OrthStandardize,
+            10);
+        const std::vector<GrmRange> ranges{{std::string{}, 0, bed.num_snps()}};
+        std::vector<GrmMatrix> out;
+        builder.build(ranges, [&](const GrmMatrix& m) { out.push_back(m); });
+        const GrmMatrix& result = out.at(0);
 
         // verify dimensions
         REQUIRE(result.grm.rows() == num_samples);
@@ -131,7 +101,7 @@ TEST_CASE("GRM - compute() additive GRM", "[grm][compute]")
     }
 }
 
-TEST_CASE("GRM - compute() dominance GRM", "[grm][compute]")
+TEST_CASE("GRM - dominance GRM", "[grm][compute]")
 {
     BedFixture fixture;
 
@@ -142,9 +112,16 @@ TEST_CASE("GRM - compute() dominance GRM", "[grm][compute]")
         auto [bed_prefix, genotypes]
             = fixture.create_bed_files(num_samples, num_snps, 0.0);
 
-        GRM grm(bed_prefix);
-        GrmResult result = grm.compute<GeneticMode::D>(
-            GenotypeMethod::OrthStandardize, 10);
+        auto bed = open_bed(bed_prefix);
+        GrmBuilder builder(
+            bed,
+            GeneticModeSet{GeneticMode::D},
+            GenotypeMethod::OrthStandardize,
+            10);
+        const std::vector<GrmRange> ranges{{std::string{}, 0, bed.num_snps()}};
+        std::vector<GrmMatrix> out;
+        builder.build(ranges, [&](const GrmMatrix& m) { out.push_back(m); });
+        const GrmMatrix& result = out.at(0);
 
         // verify dimensions
         REQUIRE(result.grm.rows() == num_samples);
@@ -185,7 +162,7 @@ TEST_CASE("GRM - compute() dominance GRM", "[grm][compute]")
 // Chunk consistency tests
 // ============================================================================
 
-TEST_CASE("GRM - compute() chunk size consistency", "[grm][compute][chunk]")
+TEST_CASE("GRM - chunk size consistency", "[grm][compute][chunk]")
 {
     BedFixture fixture;
 
@@ -196,22 +173,27 @@ TEST_CASE("GRM - compute() chunk size consistency", "[grm][compute][chunk]")
         auto [bed_prefix, genotypes] = fixture.create_bed_files(
             num_samples, num_snps, 0.0, 0.05, 0.5, 42);
 
-        // compute with different chunk sizes using same data
-        GRM grm1(bed_prefix);
-        GrmResult result1 = grm1.compute<GeneticMode::A>(
-            GenotypeMethod::OrthStandardize, 1);
+        auto bed = open_bed(bed_prefix);
+        const auto method = GenotypeMethod::OrthStandardize;
+        const std::vector<GrmRange> ranges{{std::string{}, 0, bed.num_snps()}};
 
-        GRM grm2(bed_prefix);
-        GrmResult result2 = grm2.compute<GeneticMode::A>(
-            GenotypeMethod::OrthStandardize, 7);
+        std::vector<GrmMatrix> out;
+        auto collect = [&](const GrmMatrix& m) { out.push_back(m); };
 
-        GRM grm3(bed_prefix);
-        GrmResult result3 = grm3.compute<GeneticMode::A>(
-            GenotypeMethod::OrthStandardize, num_snps);
+        GrmBuilder{bed, GeneticModeSet{GeneticMode::A}, method, 1}.build(
+            ranges, collect);
+        GrmBuilder{bed, GeneticModeSet{GeneticMode::A}, method, 7}.build(
+            ranges, collect);
+        GrmBuilder{bed, GeneticModeSet{GeneticMode::A}, method, num_snps}.build(
+            ranges, collect);
+        GrmBuilder{bed, GeneticModeSet{GeneticMode::A}, method, num_snps + 100}
+            .build(ranges, collect);
 
-        GRM grm4(bed_prefix);
-        GrmResult result4 = grm4.compute<GeneticMode::A>(
-            GenotypeMethod::OrthStandardize, num_snps + 100);
+        REQUIRE(out.size() == 4);
+        GrmMatrix& result1 = out.at(0);
+        GrmMatrix& result2 = out.at(1);
+        GrmMatrix& result3 = out.at(2);
+        GrmMatrix& result4 = out.at(3);
 
         // all should be equal
         REQUIRE(are_matrices_equal(result1.grm, result2.grm, 1e-10));
@@ -226,42 +208,41 @@ TEST_CASE("GRM - compute() chunk size consistency", "[grm][compute][chunk]")
 }
 
 // ============================================================================
-// Accessor tests
+// Per-chromosome tests
 // ============================================================================
 
-TEST_CASE("GRM - accessor methods", "[grm][accessor]")
+TEST_CASE("GRM - per-chromosome GRMs are labelled and split", "[grm][loco]")
 {
     BedFixture fixture;
 
-    SECTION("sample_ids() returns correct sample IDs")
+    SECTION("Two chromosomes yield two labelled GRMs")
     {
-        const Eigen::Index num_samples = 5;
-        const Eigen::Index num_snps = 10;
-        auto [bed_prefix, genotypes]
-            = fixture.create_bed_files(num_samples, num_snps, 0.0);
+        Eigen::MatrixXd genotypes(4, 4);
+        // clang-format off
+        genotypes << 0, 1, 2, 1,
+                     1, 1, 1, 0,
+                     2, 1, 0, 2,
+                     1, 0, 1, 1;
+        // clang-format on
 
-        GRM grm(bed_prefix);
+        // two markers on chr1, two on chr2
+        auto [bed_prefix, _] = fixture.create_deterministic_bed_files(
+            genotypes, {}, {}, {"1", "1", "2", "2"});
 
-        const auto& ids = grm.sample_ids();
-        REQUIRE(ids.size() == static_cast<size_t>(num_samples));
+        auto bed = open_bed(bed_prefix);
+        auto bim = read_bim(bed_prefix.string() + ".bim");
+        auto ranges = chromosome_ranges(bim);
+        REQUIRE(ranges.size() == 2);
 
-        // IDs should not be empty
-        for (const auto& id : ids)
-        {
-            REQUIRE_FALSE(id.empty());
-        }
-    }
+        GrmBuilder builder(
+            bed, GeneticModeSet{GeneticMode::A}, GenotypeMethod::Center, 10);
+        std::vector<GrmMatrix> out;
+        builder.build(ranges, [&](const GrmMatrix& m) { out.push_back(m); });
 
-    SECTION("num_snps() returns correct count")
-    {
-        const Eigen::Index num_samples = 8;
-        const Eigen::Index num_snps = 25;
-        auto [bed_prefix, genotypes]
-            = fixture.create_bed_files(num_samples, num_snps, 0.0);
-
-        GRM grm(bed_prefix);
-
-        REQUIRE(grm.num_snps() == num_snps);
+        REQUIRE(out.size() == 2);
+        REQUIRE(out.at(0).label == "1");
+        REQUIRE(out.at(1).label == "2");
+        REQUIRE(out.at(0).mode == GeneticMode::A);
     }
 }
 
@@ -288,9 +269,16 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
         auto [bed_prefix, _]
             = fixture.create_deterministic_bed_files(genotypes);
 
-        GRM grm(bed_prefix);
-        GrmResult result = grm.compute<GeneticMode::A>(
-            GenotypeMethod::OrthStandardize, 10);
+        auto bed = open_bed(bed_prefix);
+        GrmBuilder builder(
+            bed,
+            GeneticModeSet{GeneticMode::A},
+            GenotypeMethod::OrthStandardize,
+            10);
+        const std::vector<GrmRange> ranges{{std::string{}, 0, bed.num_snps()}};
+        std::vector<GrmMatrix> out;
+        builder.build(ranges, [&](const GrmMatrix& m) { out.push_back(m); });
+        const GrmMatrix& result = out.at(0);
 
         // manually compute expected GRM using OrthStandardize additive method
         // OrthStandardizeMethod = CenterMethod + divide by sample stddev
@@ -299,8 +287,7 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
         {
             double mean = Z.col(j).mean();
             Z.col(j).array() -= mean;
-            double var = Z.col(j).squaredNorm()
-                         / static_cast<double>(Z.rows());
+            double var = Z.col(j).squaredNorm() / static_cast<double>(Z.rows());
             double denom = std::sqrt(var);
             if (denom > 1e-10)
             {
@@ -356,9 +343,13 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
         auto [bed_prefix, _]
             = fixture.create_deterministic_bed_files(genotypes);
 
-        GRM grm(bed_prefix);
-        GrmResult result
-            = grm.compute<GeneticMode::A>(GenotypeMethod::Center, 10);
+        auto bed = open_bed(bed_prefix);
+        GrmBuilder builder(
+            bed, GeneticModeSet{GeneticMode::A}, GenotypeMethod::Center, 10);
+        const std::vector<GrmRange> ranges{{std::string{}, 0, bed.num_snps()}};
+        std::vector<GrmMatrix> out;
+        builder.build(ranges, [&](const GrmMatrix& m) { out.push_back(m); });
+        const GrmMatrix& result = out.at(0);
 
         // Center additive: mean centering
         Eigen::MatrixXd Z = genotypes;

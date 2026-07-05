@@ -38,28 +38,25 @@ auto GrmReporter::show_data_loaded(size_t num_samples, size_t num_snps) -> void
     cli::printer().line("   SNPs       : {} markers", num_snps);
 }
 
-auto GrmReporter::start_compute(size_t total_snps) -> void
-{
-    global_total_ = total_snps;
-    accumulated_base_ = 0;
-    progress_ = 0;
-    eta_.reset(global_total_);
-
-    bar_ = cli::create_progress_bar(progress_, global_total_);
-    bar_.display->show();
-    bar_active_ = true;
-}
-
 auto GrmReporter::on_event(const gelex::GrmProgressEvent& event) -> void
 {
     if (event.done)
     {
-        bar_.display->done();
-        bar_active_ = false;
-        cli::printer().on_progress_finished();
+        finish_progress();
         return;
     }
-    progress_ = accumulated_base_ + event.current;
+
+    if (!bar_active_)
+    {
+        global_total_ = event.total;
+        progress_ = 0;
+        eta_.reset(global_total_);
+        bar_ = cli::create_progress_bar(progress_, global_total_);
+        bar_.display->show();
+        bar_active_ = true;
+    }
+
+    progress_ = event.current;
     if (bar_.after_bar)
     {
         bar_.after_bar->message(
@@ -70,10 +67,6 @@ auto GrmReporter::on_event(const gelex::GrmProgressEvent& event) -> void
                 gelex::AbbrNumber(progress_),
                 gelex::AbbrNumber(global_total_),
                 eta_.get_eta(progress_)));
-    }
-    if (event.current == event.total)
-    {
-        accumulated_base_ += event.total;
     }
 }
 
