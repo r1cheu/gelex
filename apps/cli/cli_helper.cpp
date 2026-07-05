@@ -84,19 +84,19 @@ auto parse_genotype_method(std::string_view value) -> gelex::GenotypeMethod
             value));
 }
 
-auto parse_genetic_modes(std::string_view sv) -> std::vector<gelex::GeneticMode>
+auto parse_genetic_modes(std::string_view sv) -> gelex::GeneticModeSet
 {
     if (sv == "A")
     {
-        return {gelex::GeneticMode::A};
+        return gelex::GeneticModeSet{gelex::GeneticMode::A};
     }
     if (sv == "D")
     {
-        return {gelex::GeneticMode::D};
+        return gelex::GeneticModeSet{gelex::GeneticMode::D};
     }
     if (sv == "AD")
     {
-        return {gelex::GeneticMode::A, gelex::GeneticMode::D};
+        return gelex::GeneticMode::A | gelex::GeneticMode::D;
     }
     throw gelex::GelexException(
         fmt::format("invalid --mode: \"{}\". Valid: A, D, AD", sv));

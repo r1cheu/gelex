@@ -19,7 +19,6 @@
 
 #include <functional>
 #include <string_view>
-#include <vector>
 
 #include <barkeep.h>
 #include <Eigen/Core>
@@ -39,8 +38,7 @@ struct BaseDataConfig;
 
 auto parse_genotype_method(std::string_view value) -> gelex::GenotypeMethod;
 
-auto parse_genetic_modes(std::string_view sv)
-    -> std::vector<gelex::GeneticMode>;
+auto parse_genetic_modes(std::string_view sv) -> gelex::GeneticModeSet;
 
 auto is_tty() -> bool;
 

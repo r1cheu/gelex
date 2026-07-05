@@ -38,6 +38,7 @@
 
 using gelex::GelexException;
 using gelex::GeneticMode;
+using gelex::GeneticModeSet;
 using gelex::OpenUnitInterval;
 using gelex::ScaleMultiplier;
 using gelex::Simplex;
@@ -94,7 +95,7 @@ TEST_CASE("BayesR construction succeeds with defaults", "[bayes_recipe]")
 {
     BayesRecipeOptions config;
     config.scheme = BayesRecipeScheme::R;
-    config.modes = {GeneticMode::A};
+    config.modes = GeneticModeSet{GeneticMode::A};
     REQUIRE_NOTHROW(BayesRecipe(config));
 }
 
@@ -106,7 +107,7 @@ TEST_CASE(
     {
         BayesRecipeOptions config;
         config.scheme = BayesRecipeScheme::B;
-        config.modes = {GeneticMode::A};
+        config.modes = GeneticModeSet{GeneticMode::A};
         config.joint_proportion = Simplex<double>{{0.5, 0.5}};
         REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
     }
@@ -115,7 +116,7 @@ TEST_CASE(
     {
         BayesRecipeOptions config;
         config.scheme = BayesRecipeScheme::B;
-        config.modes = {GeneticMode::D};
+        config.modes = GeneticModeSet{GeneticMode::D};
         config.dominance_positive_probability = OpenUnitInterval<double>{0.6};
         REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
     }
@@ -123,7 +124,7 @@ TEST_CASE(
     SECTION("proportion override")
     {
         BayesRecipeOptions config;
-        config.modes = {GeneticMode::A};
+        config.modes = GeneticModeSet{GeneticMode::A};
         config.additive_proportion = Simplex<double>{{0.99, 0.01}};
         REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
     }
@@ -132,7 +133,7 @@ TEST_CASE(
     {
         BayesRecipeOptions config;
         config.scheme = BayesRecipeScheme::B;
-        config.modes = {GeneticMode::A};
+        config.modes = GeneticModeSet{GeneticMode::A};
         config.additive_multiplier = ScaleMultiplier<double>{{0.0, 1.0}};
         REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
     }
@@ -141,7 +142,7 @@ TEST_CASE(
     {
         BayesRecipeOptions config;
         config.scheme = BayesRecipeScheme::R;
-        config.modes = {GeneticMode::A};
+        config.modes = GeneticModeSet{GeneticMode::A};
         config.additive_proportion = Simplex<double>{{0.99, 0.01}};
         REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
     }
@@ -153,7 +154,7 @@ TEST_CASE("BayesCD rejects joint_proportion of wrong size", "[bayes_recipe]")
     {
         BayesRecipeOptions config;
         config.scheme = BayesRecipeScheme::CD;
-        config.modes = {GeneticMode::A, GeneticMode::D};
+        config.modes = GeneticMode::A | GeneticMode::D;
         config.joint_proportion = Simplex<double>{{0.5, 0.5}};
         REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
     }
@@ -161,7 +162,7 @@ TEST_CASE("BayesCD rejects joint_proportion of wrong size", "[bayes_recipe]")
     {
         BayesRecipeOptions config;
         config.scheme = BayesRecipeScheme::CD;
-        config.modes = {GeneticMode::A, GeneticMode::D};
+        config.modes = GeneticMode::A | GeneticMode::D;
         config.joint_proportion = Simplex<double>{{0.8, 0.1, 0.1}};
         REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
     }
@@ -169,7 +170,7 @@ TEST_CASE("BayesCD rejects joint_proportion of wrong size", "[bayes_recipe]")
     {
         BayesRecipeOptions config;
         config.scheme = BayesRecipeScheme::CD;
-        config.modes = {GeneticMode::A, GeneticMode::D};
+        config.modes = GeneticMode::A | GeneticMode::D;
         config.joint_proportion
             = Simplex<double>{{0.8, 0.05, 0.05, 0.05, 0.05}};
         REQUIRE_THROWS_AS(BayesRecipe(config), GelexException);
@@ -178,7 +179,7 @@ TEST_CASE("BayesCD rejects joint_proportion of wrong size", "[bayes_recipe]")
     {
         BayesRecipeOptions config;
         config.scheme = BayesRecipeScheme::CD;
-        config.modes = {GeneticMode::A, GeneticMode::D};
+        config.modes = GeneticMode::A | GeneticMode::D;
         config.joint_proportion = Simplex<double>{{0.9, 0.04, 0.03, 0.03}};
         REQUIRE_NOTHROW(BayesRecipe(config));
     }
@@ -193,7 +194,7 @@ TEST_CASE(
     SECTION("RR creates a shared gaussian prior")
     {
         BayesRecipeOptions config;
-        config.modes = {GeneticMode::A};
+        config.modes = GeneticModeSet{GeneticMode::A};
         auto prior = BayesRecipe(config).make_prior(model);
         auto genetics = prior.genetics();
 
@@ -209,7 +210,7 @@ TEST_CASE(
     {
         BayesRecipeOptions config;
         config.scheme = BayesRecipeScheme::A;
-        config.modes = {GeneticMode::A};
+        config.modes = GeneticModeSet{GeneticMode::A};
         auto prior = BayesRecipe(config).make_prior(model);
         auto genetics = prior.genetics();
 
@@ -225,7 +226,7 @@ TEST_CASE(
     {
         BayesRecipeOptions config;
         config.scheme = BayesRecipeScheme::B;
-        config.modes = {GeneticMode::A};
+        config.modes = GeneticModeSet{GeneticMode::A};
         auto prior = BayesRecipe(config).make_prior(model);
         auto genetics = prior.genetics();
 
@@ -241,7 +242,7 @@ TEST_CASE(
     {
         BayesRecipeOptions config;
         config.scheme = BayesRecipeScheme::C;
-        config.modes = {GeneticMode::A};
+        config.modes = GeneticModeSet{GeneticMode::A};
         auto prior = BayesRecipe(config).make_prior(model);
         auto genetics = prior.genetics();
 
@@ -257,7 +258,7 @@ TEST_CASE(
     {
         BayesRecipeOptions config;
         config.scheme = BayesRecipeScheme::R;
-        config.modes = {GeneticMode::A};
+        config.modes = GeneticModeSet{GeneticMode::A};
         auto prior = BayesRecipe(config).make_prior(model);
         auto genetics = prior.genetics();
 
@@ -273,7 +274,7 @@ TEST_CASE(
     {
         BayesRecipeOptions config;
         config.scheme = BayesRecipeScheme::CD;
-        config.modes = {GeneticMode::A, GeneticMode::D};
+        config.modes = GeneticMode::A | GeneticMode::D;
         config.dominance_positive_probability = OpenUnitInterval<double>{0.7};
         auto prior = BayesRecipe(config).make_prior(model);
         auto genetics = prior.genetics();
@@ -301,7 +302,7 @@ TEST_CASE(
 {
     auto model = make_model();
     BayesRecipeOptions config;
-    config.modes = {GeneticMode::A, GeneticMode::D};
+    config.modes = GeneticMode::A | GeneticMode::D;
 
     auto prior = BayesRecipe(config).make_prior(model);
     auto genetics = prior.genetics();
@@ -322,21 +323,21 @@ TEST_CASE(
     SECTION("additive override with mode A present")
     {
         BayesRecipeOptions config;
-        config.modes = {GeneticMode::A};
+        config.modes = GeneticModeSet{GeneticMode::A};
         config.additive_heritability = OpenUnitInterval<double>{0.3};
         REQUIRE_NOTHROW(BayesRecipe(config));
     }
     SECTION("dominance override with mode D present")
     {
         BayesRecipeOptions config;
-        config.modes = {GeneticMode::D};
+        config.modes = GeneticModeSet{GeneticMode::D};
         config.dominance_heritability = OpenUnitInterval<double>{0.3};
         REQUIRE_NOTHROW(BayesRecipe(config));
     }
     SECTION("both overrides with modes {A, D}")
     {
         BayesRecipeOptions config;
-        config.modes = {GeneticMode::A, GeneticMode::D};
+        config.modes = GeneticMode::A | GeneticMode::D;
         config.additive_heritability = OpenUnitInterval<double>{0.3};
         config.dominance_heritability = OpenUnitInterval<double>{0.2};
         REQUIRE_NOTHROW(BayesRecipe(config));

@@ -16,7 +16,6 @@
 
 #include "gelex/bayes/recipe.h"
 
-#include <span>
 #include <string_view>
 #include <utility>
 #include <variant>
@@ -27,7 +26,6 @@
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe_options.h"
 #include "gelex/exception.h"
-#include "gelex/types/genetic_mode.h"
 
 namespace gelex::bayes
 {
@@ -37,7 +35,6 @@ BayesRecipe::BayesRecipe(BayesRecipeOptions options)
       scheme_{
           [this]() -> BayesScheme
           {
-              validate_modes(options_.modes);
               switch (options_.scheme)
               {
                   case BayesRecipeScheme::RR:
@@ -72,20 +69,6 @@ auto BayesRecipe::make_prior(const BayesModel& model) const -> BayesPrior
             [&model](const auto& recipe) { return recipe.make_prior(model); },
             scheme_),
         make_residual_prior(model)};
-}
-
-auto BayesRecipe::validate_modes(std::span<const GeneticMode> modes) -> void
-{
-    const bool valid
-        = (modes.size() == 1
-           && (modes[0] == GeneticMode::A || modes[0] == GeneticMode::D))
-          || (modes.size() == 2 && modes[0] == GeneticMode::A
-              && modes[1] == GeneticMode::D);
-    if (!valid)
-    {
-        throw GelexException(
-            "BayesRecipeOptions modes must be {A}, {D}, or {A, D}");
-    }
 }
 
 auto BayesRecipe::make_random_prior(const BayesModel& model) const

@@ -39,7 +39,7 @@ auto BayesRRScheme::make_prior(const BayesModel& model) const
     -> std::vector<GeneticPrior>
 {
     std::vector<GeneticPrior> priors;
-    for (const auto mode : options_.modes)
+    for (const auto mode : options_.modes.each())
     {
         const double target = detail::target_marker_variance(
             model, mode, detail::heritability(options_, mode), 1.0);
@@ -64,7 +64,7 @@ auto BayesAScheme::make_prior(const BayesModel& model) const
     -> std::vector<GeneticPrior>
 {
     std::vector<GeneticPrior> priors;
-    for (const auto mode : options_.modes)
+    for (const auto mode : options_.modes.each())
     {
         const double target = detail::target_marker_variance(
             model, mode, detail::heritability(options_, mode), 1.0);
@@ -87,7 +87,7 @@ auto BayesBScheme::make_prior(const BayesModel& model) const
     -> std::vector<GeneticPrior>
 {
     std::vector<GeneticPrior> priors;
-    for (const auto mode : options_.modes)
+    for (const auto mode : options_.modes.each())
     {
         const Simplex<double> proportion
             = detail::proportion(options_, mode)
@@ -121,7 +121,7 @@ auto BayesCScheme::make_prior(const BayesModel& model) const
     -> std::vector<GeneticPrior>
 {
     std::vector<GeneticPrior> priors;
-    for (const auto mode : options_.modes)
+    for (const auto mode : options_.modes.each())
     {
         const Simplex<double> proportion
             = detail::proportion(options_, mode)
@@ -155,7 +155,7 @@ auto BayesRScheme::make_prior(const BayesModel& model) const
     -> std::vector<GeneticPrior>
 {
     std::vector<GeneticPrior> priors;
-    for (const auto mode : options_.modes)
+    for (const auto mode : options_.modes.each())
     {
         const Simplex<double> proportion
             = detail::proportion(options_, mode)

@@ -17,7 +17,6 @@
 #ifndef GELEX_BAYES_RECIPE_H_
 #define GELEX_BAYES_RECIPE_H_
 
-#include <span>
 #include <string_view>
 
 #include <fmt/format.h>
@@ -49,7 +48,6 @@ class BayesRecipe
     auto make_prior(const BayesModel& model) const -> BayesPrior;
 
    private:
-    static auto validate_modes(std::span<const GeneticMode> modes) -> void;
     auto make_random_prior(const BayesModel& model) const -> RandomPrior;
     static auto make_residual_prior(const BayesModel& model) -> ResidualPrior;
 

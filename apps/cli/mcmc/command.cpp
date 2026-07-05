@@ -51,10 +51,10 @@ class MCMCDataHandler
    public:
     MCMCDataHandler(
         const cli::McmcConfig& config,
-        std::vector<gelex::GeneticMode> requested_effects,
+        gelex::GeneticModeSet requested_effects,
         cli::GenoReporter& reporter)
         : config_(config),
-          requested_effects_(std::move(requested_effects)),
+          requested_effects_(requested_effects),
           reporter_(reporter)
     {
     }
@@ -79,7 +79,7 @@ class MCMCDataHandler
             = static_cast<std::uint8_t>(std::to_underlying(genotype_method_));
         const bool method_is_center = gelex::is_center(genotype_method_);
 
-        for (const auto mode : requested_effects_)
+        for (const auto mode : requested_effects_.each())
         {
             auto genotype
                 = config_.mmap
@@ -117,7 +117,7 @@ class MCMCDataHandler
 
    private:
     const cli::McmcConfig& config_;
-    std::vector<gelex::GeneticMode> requested_effects_;
+    gelex::GeneticModeSet requested_effects_;
     gelex::GenotypeMethod genotype_method_;
     gelex::dataframe::Index<std::string> fam_index_;
     std::vector<gelex::bayes::GeneticDesign> genetics_;

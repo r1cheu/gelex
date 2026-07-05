@@ -22,7 +22,6 @@
 #include <optional>
 #include <string_view>
 #include <utility>
-#include <vector>
 
 #include "gelex/types/constrained_value.h"
 #include "gelex/types/constrained_vector.h"
@@ -53,7 +52,7 @@ inline constexpr std::array BAYES_RECIPE_SCHEME_NAMES{
 struct BayesRecipeOptions
 {
     BayesRecipeScheme scheme{BayesRecipeScheme::RR};
-    std::vector<GeneticMode> modes{GeneticMode::A};
+    GeneticModeSet modes{GeneticMode::A};
 
     std::optional<OpenUnitInterval<double>> additive_heritability;
     std::optional<Simplex<double>> additive_proportion;

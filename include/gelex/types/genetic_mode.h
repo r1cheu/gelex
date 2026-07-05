@@ -1,8 +1,12 @@
 #ifndef GELEX_TYPES_GENETIC_MODE_H_
 #define GELEX_TYPES_GENETIC_MODE_H_
 #include <array>
+#include <bitset>
+#include <cstddef>
 #include <cstdint>
+#include <ranges>
 #include <string_view>
+#include <utility>
 
 #include <fmt/format.h>
 
@@ -21,6 +25,56 @@ inline constexpr std::array GENETIC_MODE_NAMES{
 };
 
 inline constexpr std::array ALL_GENETIC_MODES{GeneticMode::A, GeneticMode::D};
+
+// A non-empty subset of GeneticMode, backed by std::bitset so {A}, {D}, {A, D}
+// are the only representable values. each() yields its members in enum order.
+class GeneticModeSet
+{
+   public:
+    explicit GeneticModeSet(GeneticMode mode)
+    {
+        bits_.set(std::to_underlying(mode));
+    }
+
+    [[nodiscard]] auto contains(GeneticMode mode) const -> bool
+    {
+        return bits_.test(std::to_underlying(mode));
+    }
+
+    [[nodiscard]] auto size() const -> std::size_t { return bits_.count(); }
+
+    auto operator|=(GeneticModeSet other) -> GeneticModeSet&
+    {
+        bits_ |= other.bits_;
+        return *this;
+    }
+
+    [[nodiscard]] friend auto operator|(GeneticModeSet lhs, GeneticModeSet rhs)
+        -> GeneticModeSet
+    {
+        lhs |= rhs;
+        return lhs;
+    }
+
+    auto operator==(const GeneticModeSet&) const -> bool = default;
+
+    [[nodiscard]] auto each() const
+    {
+        return ALL_GENETIC_MODES
+               | std::views::filter(
+                   [bits = bits_](GeneticMode mode)
+                   { return bits.test(std::to_underlying(mode)); });
+    }
+
+   private:
+    std::bitset<ALL_GENETIC_MODES.size()> bits_;
+};
+
+[[nodiscard]] inline auto operator|(GeneticMode lhs, GeneticMode rhs)
+    -> GeneticModeSet
+{
+    return GeneticModeSet{lhs} | GeneticModeSet{rhs};
+}
 
 }  // namespace gelex
 

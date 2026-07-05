@@ -182,7 +182,7 @@ auto reject_proportion_options(
     const BayesRecipeOptions& options,
     std::string_view scheme) -> void
 {
-    for (const auto mode : options.modes)
+    for (const auto mode : options.modes.each())
     {
         if (proportion(options, mode) || proportion_update(options, mode))
         {
@@ -199,7 +199,7 @@ auto reject_multiplier_options(
     const BayesRecipeOptions& options,
     std::string_view scheme) -> void
 {
-    for (const auto mode : options.modes)
+    for (const auto mode : options.modes.each())
     {
         if (multiplier(options, mode))
         {
@@ -216,7 +216,7 @@ auto reject_unpaired_proportion_multiplier(
     const BayesRecipeOptions& options,
     std::string_view scheme) -> void
 {
-    for (const auto mode : options.modes)
+    for (const auto mode : options.modes.each())
     {
         const auto& mode_proportion = proportion(options, mode);
         const auto& mode_multiplier = multiplier(options, mode);

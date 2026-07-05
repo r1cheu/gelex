@@ -16,9 +16,7 @@
 
 #include "bayes_recipe_options.h"
 
-#include <algorithm>
 #include <optional>
-#include <span>
 #include <string_view>
 #include <utility>
 
@@ -37,23 +35,14 @@ namespace cli
 namespace
 {
 
-auto has_mode(
-    std::span<const gelex::GeneticMode> modes,
-    gelex::GeneticMode mode) -> bool
-{
-    return std::ranges::any_of(
-        modes,
-        [mode](gelex::GeneticMode candidate) { return candidate == mode; });
-}
-
 auto reject_effect_flags_without_mode(
     const McmcConfig& config,
-    std::span<const gelex::GeneticMode> modes) -> void
+    gelex::GeneticModeSet modes) -> void
 {
     const auto require_mode
         = [&](bool present, std::string_view flag, gelex::GeneticMode mode)
     {
-        if (present && !has_mode(modes, mode))
+        if (present && !modes.contains(mode))
         {
             throw gelex::GelexException(
                 fmt::format("{} requires --mode to include {}", flag, mode));
