@@ -55,8 +55,8 @@ class AssocDataHandler
     {
     }
 
-    auto load_indices(
-        std::vector<gelex::dataframe::Index<std::string>*>& indices) -> void
+    auto load_indices(std::vector<gelex::DataFrameIndex<std::string>*>& indices)
+        -> void
     {
         fam_index_ = gelex::read_fam(config_.bfile + ".fam").index();
         indices.push_back(&fam_index_);
@@ -71,15 +71,14 @@ class AssocDataHandler
         }
     }
 
-    auto gather(const gelex::dataframe::Index<std::string>& common_index)
-        -> void
+    auto gather(const gelex::DataFrameIndex<std::string>& common_index) -> void
     {
         sample_index_ = common_index;
         random_designs_ = gelex::make_grm_designs(config_.grm, common_index);
     }
 
     auto results() && -> std::pair<
-        gelex::dataframe::Index<std::string>,
+        gelex::DataFrameIndex<std::string>,
         std::vector<gelex::freq::RandomDesign>>
     {
         return {std::move(sample_index_), std::move(random_designs_)};
@@ -87,9 +86,9 @@ class AssocDataHandler
 
    private:
     const cli::AssocConfig& config_;
-    gelex::dataframe::Index<std::string> fam_index_;
-    gelex::dataframe::Index<std::string> sample_index_;
-    std::vector<gelex::dataframe::Index<std::string>> grm_indices_;
+    gelex::DataFrameIndex<std::string> fam_index_;
+    gelex::DataFrameIndex<std::string> sample_index_;
+    std::vector<gelex::DataFrameIndex<std::string>> grm_indices_;
     std::vector<gelex::freq::RandomDesign> random_designs_;
 };
 
@@ -131,7 +130,7 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
     gelex::FreqState state(model);
 
     auto tester = gelex::AssocTester::make(test_type, mode, geno_method);
-    gelex::gwas::GwasWriter writer(config.out, bim, test_type);
+    gelex::GwasWriter writer(config.out, bim, test_type);
 
     const auto total_snps = static_cast<std::size_t>(bim.rows());
     std::size_t progress = 0;
@@ -164,7 +163,7 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
 
     if (!config.loco)
     {
-        gelex::reml::Estimator estimator(
+        gelex::Estimator estimator(
             config.max_iter, config.tolerance, reml_reporter.as_observer());
 
         reporter.show_reml_started("");
@@ -209,7 +208,7 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
 
             reporter.show_loco_phase(range.label, "REML");
 
-            gelex::reml::Estimator estimator(config.max_iter, config.tolerance);
+            gelex::Estimator estimator(config.max_iter, config.tolerance);
             auto reml = estimator.fit(model, state);
 
             {

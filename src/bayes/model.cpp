@@ -44,8 +44,8 @@ BayesModel::BayesModel(
       genetics_(std::move(genetics))
 {
     num_individuals_ = phenotype_.rows();
-    phenotype_var_ = stats::detail::vecvar(
-        phenotype_, stats::detail::VarNormType::Population);
+    phenotype_var_
+        = detail::vecvar(phenotype_, detail::VarNormType::Population);
 
     if (fixed_.X.rows() != num_individuals_)
     {
@@ -94,7 +94,7 @@ BayesModel::BayesModel(
     }
 }
 
-auto BayesModel::visit(infra::FieldVisitor& visitor) const -> void
+auto BayesModel::visit(FieldVisitor& visitor) const -> void
 {
     auto state_scope = visitor.scope("state");
     {

@@ -40,7 +40,7 @@ class SingleSharedGaussianState final
     auto variance() -> double& { return variance_; }
     auto variance() const -> const double& { return variance_; }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
    private:
     double variance_;
@@ -56,7 +56,7 @@ class SinglePerMarkerGaussianState final
     auto variance() -> Eigen::VectorXd& { return variance_; }
     auto variance() const -> const Eigen::VectorXd& { return variance_; }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
    private:
     Eigen::VectorXd variance_;
@@ -85,7 +85,7 @@ class SingleSharedSpikeSlabGaussianState final
         return mixture_.proportion;
     }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
    private:
     double variance_;
@@ -115,7 +115,7 @@ class SinglePerMarkerSpikeSlabGaussianState final
         return mixture_.proportion;
     }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
    private:
     Eigen::VectorXd variance_;
@@ -149,7 +149,7 @@ class SingleScaledMixtureGaussianState final
         return mixture_.proportion;
     }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
    private:
     double variance_;
@@ -183,7 +183,7 @@ class JointGaussianMixtureState final
         return mixture_.proportion;
     }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
    private:
     std::array<double, 2> variances_;

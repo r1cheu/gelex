@@ -35,9 +35,9 @@ namespace gelex
 {
 
 HeritabilityPosteriorProcessor::HeritabilityPosteriorProcessor(
-    std::span<const io::BinaryReader> readers,
+    std::span<const BinaryReader> readers,
     double hdpi_threshold,
-    const stats::Chains& genetic_variances,
+    const Chains& genetic_variances,
     std::span<const GeneticMode> kinds)
     : readers_{readers},
       hdpi_threshold_{hdpi_threshold},
@@ -59,7 +59,7 @@ auto HeritabilityPosteriorProcessor::process() -> std::vector<ParameterDiag>
     auto phenotypic_var = assemble_phenotypic_variance();
 
     const auto n_rows = genetic_variances_.front().rows();
-    stats::Chains h2_chains(
+    Chains h2_chains(
         n_chains, Eigen::MatrixXd(n_rows, phenotypic_var[0].cols()));
     for (size_t ci = 0; ci < n_chains; ++ci)
     {
@@ -69,7 +69,7 @@ auto HeritabilityPosteriorProcessor::process() -> std::vector<ParameterDiag>
     }
 
     auto diags
-        = post::detail::compute_posterior_summaries(h2_chains, hdpi_threshold_);
+        = detail::compute_posterior_summaries(h2_chains, hdpi_threshold_);
 
     for (Eigen::Index ki = 0; ki < n_kinds; ++ki)
     {
@@ -85,12 +85,12 @@ auto HeritabilityPosteriorProcessor::process() -> std::vector<ParameterDiag>
 }
 
 auto HeritabilityPosteriorProcessor::assemble_phenotypic_variance() const
-    -> stats::Chains
+    -> Chains
 {
     const auto n_chains = readers_.size();
     const auto total_row = genetic_variances_.front().rows() - 1;
 
-    stats::Chains pheno_var;
+    Chains pheno_var;
     pheno_var.reserve(n_chains);
     for (size_t ci = 0; ci < n_chains; ++ci)
     {

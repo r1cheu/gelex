@@ -39,7 +39,7 @@
 #include "gelex/infra/string_hash.h"
 #include "gelex/io/detail/parser.h"
 
-namespace gelex::dataframe
+namespace gelex
 {
 enum class NaAction : std::uint8_t
 {
@@ -54,7 +54,7 @@ struct ReadOptions
     std::vector<std::size_t> index_cols;
     std::vector<std::size_t> select_cols;
     std::vector<std::string> names;
-    infra::StringSet na_rep = {DEFAULT_NA_REP.begin(), DEFAULT_NA_REP.end()};
+    StringSet na_rep = {DEFAULT_NA_REP.begin(), DEFAULT_NA_REP.end()};
     NaAction na_action = NaAction::Throw;
 };
 
@@ -75,7 +75,7 @@ class DataFrameReader
     template <ValueType Val>
     auto read() -> DataFrame<Key>;
     auto read(std::span<const ColumnType> schema) -> DataFrame<Key>;
-    auto read_index() -> Index<Key>;
+    auto read_index() -> DataFrameIndex<Key>;
 
    private:
     auto prepare(bool index_only = false) -> std::ifstream;
@@ -84,7 +84,8 @@ class DataFrameReader
     auto scan_lines(std::ifstream& file, const ParseFn& parse)
         -> std::vector<Key>;
 
-    auto build_index(std::vector<Key> keys, std::size_t n_rows) -> Index<Key>;
+    auto build_index(std::vector<Key> keys, std::size_t n_rows)
+        -> DataFrameIndex<Key>;
     auto build_header(std::ifstream& file) -> void;
     auto check_col_range(std::size_t idx) -> void;
     auto tokenize(std::string_view line) -> void;
@@ -119,10 +120,10 @@ auto read_dataframe(
     const ReadOptions& options,
     std::span<const ColumnType> schema) -> DataFrame<Key>;
 
-// index-only: returns Index directly
+// index-only: returns DataFrameIndex directly
 template <KeyType Key>
 auto read_index(const std::filesystem::path& path, const ReadOptions& options)
-    -> Index<Key>;
+    -> DataFrameIndex<Key>;
 
 // --- Implementation ---
 
@@ -265,8 +266,7 @@ auto detail::DataFrameReader<Key>::parse_arithmetic(std::string_view token) -> T
 template <KeyType Key>
 auto detail::DataFrameReader<Key>::prepare(bool index_only) -> std::ifstream
 {
-    auto file
-        = ::gelex::io::detail::open_file<std::ifstream>(path_, std::ios::in);
+    auto file = ::gelex::detail::open_file<std::ifstream>(path_, std::ios::in);
     build_header(file);
     // resolve index
     for (auto idx : options_->index_cols)
@@ -345,11 +345,11 @@ auto detail::DataFrameReader<Key>::scan_lines(
 template <KeyType Key>
 auto detail::DataFrameReader<Key>::build_index(
     std::vector<Key> keys,
-    std::size_t n_rows) -> Index<Key>
+    std::size_t n_rows) -> DataFrameIndex<Key>
 {
     if (!options_->index_cols.empty())
     {
-        return Index<Key>(std::move(keys));
+        return DataFrameIndex<Key>(std::move(keys));
     }
     if constexpr (std::is_same_v<Key, std::string>)
     {
@@ -357,7 +357,7 @@ auto detail::DataFrameReader<Key>::build_index(
     }
     else
     {
-        return Index<Key>(
+        return DataFrameIndex<Key>(
             std::views::iota(Key{0}, static_cast<Key>(n_rows))
             | std::ranges::to<std::vector>());
     }
@@ -459,7 +459,7 @@ auto detail::DataFrameReader<Key>::read(std::span<const ColumnType> schema)
 }
 
 template <KeyType Key>
-auto detail::DataFrameReader<Key>::read_index() -> Index<Key>
+auto detail::DataFrameReader<Key>::read_index() -> DataFrameIndex<Key>
 {
     if (options_->index_cols.empty())
     {
@@ -467,7 +467,7 @@ auto detail::DataFrameReader<Key>::read_index() -> Index<Key>
     }
     auto file = prepare(/*index_only=*/true);
     auto keys = scan_lines(file, [](std::size_t) {});
-    return Index<Key>(std::move(keys));
+    return DataFrameIndex<Key>(std::move(keys));
 }
 
 // ================================================================
@@ -493,11 +493,11 @@ auto read_dataframe(
 
 template <KeyType Key>
 auto read_index(const std::filesystem::path& path, const ReadOptions& options)
-    -> Index<Key>
+    -> DataFrameIndex<Key>
 {
     return detail::DataFrameReader<Key>(path, options).read_index();
 }
 
-}  // namespace gelex::dataframe
+}  // namespace gelex
 
 #endif  // GELEX_DATA_DATAFRAME_READER_H

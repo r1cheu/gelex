@@ -129,7 +129,7 @@ class BedSource
     }
 
    private:
-    io::MappedFile mmap_;
+    MappedFile mmap_;
     const std::uint8_t* payload_ = nullptr;
     size_type num_variants_ = 0;
     size_type num_samples_ = 0;

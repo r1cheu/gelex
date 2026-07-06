@@ -32,19 +32,19 @@ class HeritabilityPosteriorProcessor
 {
    public:
     explicit HeritabilityPosteriorProcessor(
-        std::span<const io::BinaryReader> readers,
+        std::span<const BinaryReader> readers,
         double hdpi_threshold,
-        const stats::Chains& genetic_variances,
+        const Chains& genetic_variances,
         std::span<const GeneticMode> kinds);
 
     [[nodiscard]] auto process() -> std::vector<ParameterDiag>;
 
    private:
-    auto assemble_phenotypic_variance() const -> stats::Chains;
+    auto assemble_phenotypic_variance() const -> Chains;
 
-    std::span<const io::BinaryReader> readers_;
+    std::span<const BinaryReader> readers_;
     double hdpi_threshold_;
-    const stats::Chains& genetic_variances_;
+    const Chains& genetic_variances_;
     std::span<const GeneticMode> kinds_;
 };
 

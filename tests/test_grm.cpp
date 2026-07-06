@@ -221,13 +221,8 @@ TEST_CASE("GRM - per-chromosome GRMs are labelled and split", "[grm][loco]")
 
     SECTION("Two chromosomes yield two labelled GRMs")
     {
-        Eigen::MatrixXd genotypes(4, 4);
-        // clang-format off
-        genotypes << 0, 1, 2, 1,
-                     1, 1, 1, 0,
-                     2, 1, 0, 2,
-                     1, 0, 1, 1;
-        // clang-format on
+        Eigen::MatrixXd genotypes{
+            {0, 1, 2, 1}, {1, 1, 1, 0}, {2, 1, 0, 2}, {1, 0, 1, 1}};
 
         // two markers on chr1, two on chr2
         auto [bed_prefix, _] = fixture.create_deterministic_bed_files(
@@ -262,13 +257,7 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
     {
         // create a simple deterministic genotype matrix
         // 4 samples, 3 SNPs
-        Eigen::MatrixXd genotypes(4, 3);
-        // clang-format off
-        genotypes << 0, 1, 2,
-                     1, 1, 1,
-                     2, 1, 0,
-                     1, 1, 1;
-        // clang-format on
+        Eigen::MatrixXd genotypes{{0, 1, 2}, {1, 1, 1}, {2, 1, 0}, {1, 1, 1}};
 
         auto [bed_prefix, _]
             = fixture.create_deterministic_bed_files(genotypes);
@@ -338,12 +327,7 @@ TEST_CASE("GRM - numerical correctness", "[grm][compute][numerical]")
     SECTION("Center additive GRM with deterministic genotype")
     {
         // 3 samples, 2 SNPs
-        Eigen::MatrixXd genotypes(3, 2);
-        // clang-format off
-        genotypes << 0, 2,
-                     1, 1,
-                     2, 0;
-        // clang-format on
+        Eigen::MatrixXd genotypes{{0, 2}, {1, 1}, {2, 0}};
 
         auto [bed_prefix, _]
             = fixture.create_deterministic_bed_files(genotypes);

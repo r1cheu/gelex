@@ -27,7 +27,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace gelex::gwas;
+using namespace gelex;
 
 TEST_CASE("GWAS writer output", "[!benchmark][io][gwas]")
 {

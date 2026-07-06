@@ -170,8 +170,8 @@ void initialize(std::string_view output_prefix)
 
             spdlog::register_logger(g_logger);
 
-            gelex::log::set_sink(
-                [](gelex::log::Level level, std::string_view msg)
+            gelex::set_sink(
+                [](gelex::Level level, std::string_view msg)
                 {
                     if (g_logger == nullptr)
                     {
@@ -179,13 +179,13 @@ void initialize(std::string_view output_prefix)
                     }
                     switch (level)
                     {
-                        case gelex::log::Level::Info:
+                        case gelex::Level::Info:
                             g_logger->info("{}", msg);
                             break;
-                        case gelex::log::Level::Warn:
+                        case gelex::Level::Warn:
                             g_logger->warn("{}", msg);
                             break;
-                        case gelex::log::Level::Error:
+                        case gelex::Level::Error:
                             g_logger->error("{}", msg);
                             break;
                     }

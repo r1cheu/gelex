@@ -27,8 +27,8 @@
 #include "gelex/data/dataframe/index.h"
 #include "gelex/exception.h"
 
+using gelex::DataFrameIndex;
 using gelex::GelexException;
-using gelex::dataframe::Index;
 using gelex::test::are_matrices_equal;
 using gelex::test::BedFixture;
 
@@ -138,7 +138,7 @@ TEST_CASE("Bed reads selected SNP IDs in target order", "[data][bed]")
     const auto bed_prefix
         = fixture.create_deterministic_bed_files(genotypes, {}, snp_ids).first;
     auto bed = gelex::open_bed(bed_prefix.string());
-    Index<std::string> target_snps{
+    DataFrameIndex<std::string> target_snps{
         std::vector<std::string>{"rs_d", "rs_b", "rs_c"}};
 
     const auto loaded = bed.read_snps<double>(target_snps);
@@ -177,7 +177,7 @@ TEST_CASE("Bed projects samples to target index order", "[data][bed]")
         source_keys[1],
         source_keys[0],
     };
-    Index<std::string> target_index{target_keys};
+    DataFrameIndex<std::string> target_index{target_keys};
 
     auto projected_bed = gelex::open_bed(bed_prefix.string(), target_index);
     const auto loaded = projected_bed.read<double>(1, 4);
@@ -218,10 +218,11 @@ TEST_CASE("Bed rejects invalid ranges, SNPs, and target indices", "[data][bed]")
     REQUIRE_THROWS_AS(
         bed.read_snps_into<double>(wrong_cols, two_snps), GelexException);
 
-    Index<std::string> missing_snps{std::vector<std::string>{"missing_snp"}};
+    DataFrameIndex<std::string> missing_snps{
+        std::vector<std::string>{"missing_snp"}};
     REQUIRE_THROWS_AS(bed.read_snps<double>(missing_snps), GelexException);
 
-    Index<std::string> missing_target{
+    DataFrameIndex<std::string> missing_target{
         std::vector<std::string>{"missing_family_missing_sample"}};
     REQUIRE_THROWS_AS(
         gelex::open_bed(bed_prefix.string(), missing_target), GelexException);

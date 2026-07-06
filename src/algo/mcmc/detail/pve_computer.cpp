@@ -22,7 +22,7 @@
 #include "gelex/exception.h"
 #include "gelex/types/genetic_mode.h"
 
-namespace gelex::mcmc::detail
+namespace gelex::detail
 {
 
 PveComputer::PveComputer(const BayesModel& model, double phenotype_var)
@@ -103,4 +103,4 @@ auto PveComputer::total(
            / phenotype_var_;
 }
 
-}  // namespace gelex::mcmc::detail
+}  // namespace gelex::detail

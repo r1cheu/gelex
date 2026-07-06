@@ -28,7 +28,7 @@
 namespace gelex::bayes
 {
 
-auto RandomDesign::visit(infra::FieldVisitor& visitor) const -> void
+auto RandomDesign::visit(FieldVisitor& visitor) const -> void
 {
     std::vector<std::string> coeff_names;
     coeff_names.reserve(levels.size());

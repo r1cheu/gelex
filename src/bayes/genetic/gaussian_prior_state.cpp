@@ -35,7 +35,7 @@ SingleSharedGaussianState::SingleSharedGaussianState(double variance)
 {
 }
 
-auto SingleSharedGaussianState::visit(infra::FieldVisitor& visitor) -> void
+auto SingleSharedGaussianState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on(
@@ -49,7 +49,7 @@ SinglePerMarkerGaussianState::SinglePerMarkerGaussianState(
 {
 }
 
-auto SinglePerMarkerGaussianState::visit(infra::FieldVisitor& visitor) -> void
+auto SinglePerMarkerGaussianState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on(
@@ -64,8 +64,7 @@ SingleSharedSpikeSlabGaussianState::SingleSharedSpikeSlabGaussianState(
 {
 }
 
-auto SingleSharedSpikeSlabGaussianState::visit(infra::FieldVisitor& visitor)
-    -> void
+auto SingleSharedSpikeSlabGaussianState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on(
@@ -82,8 +81,7 @@ SinglePerMarkerSpikeSlabGaussianState::SinglePerMarkerSpikeSlabGaussianState(
 {
 }
 
-auto SinglePerMarkerSpikeSlabGaussianState::visit(infra::FieldVisitor& visitor)
-    -> void
+auto SinglePerMarkerSpikeSlabGaussianState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on(
@@ -103,8 +101,7 @@ SingleScaledMixtureGaussianState::SingleScaledMixtureGaussianState(
 {
 }
 
-auto SingleScaledMixtureGaussianState::visit(infra::FieldVisitor& visitor)
-    -> void
+auto SingleScaledMixtureGaussianState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on(
@@ -136,7 +133,7 @@ auto JointGaussianMixtureState::variance(GeneticMode mode) const -> const
     return variances_[std::to_underlying(mode)];
 }
 
-auto JointGaussianMixtureState::visit(infra::FieldVisitor& visitor) -> void
+auto JointGaussianMixtureState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     constexpr std::array modes{GeneticMode::A, GeneticMode::D};

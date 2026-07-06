@@ -33,7 +33,7 @@
 #include "gelex/io/detail/text_writer.h"
 #include "gelex/types/fixed_designs.h"
 
-namespace gelex::reml
+namespace gelex
 {
 
 auto write_summary(
@@ -42,7 +42,7 @@ auto write_summary(
     double loglike,
     std::string_view prefix) -> void
 {
-    io::detail::TextWriter writer(fmt::format("{}.summary", prefix));
+    detail::TextWriter writer(fmt::format("{}.summary", prefix));
     writer.write_header(
         {"term", "type", "estimate", "se", "ratio", "ratio_se"});
 
@@ -159,7 +159,7 @@ auto write_effects(
     }
     header += "\tTOTAL";
 
-    io::detail::TextWriter writer(fmt::format("{}.effects", prefix));
+    detail::TextWriter writer(fmt::format("{}.effects", prefix));
     writer.write(header);
 
     std::string line;
@@ -193,7 +193,7 @@ auto write_loco_summary(
     const std::vector<LocoRemlResult>& results,
     std::string_view prefix) -> void
 {
-    io::detail::TextWriter writer(fmt::format("{}.loco.summary", prefix));
+    detail::TextWriter writer(fmt::format("{}.loco.summary", prefix));
     writer.write_header(
         {"chr",
          "term",
@@ -234,4 +234,4 @@ auto write_loco_summary(
     }
 }
 
-}  // namespace gelex::reml
+}  // namespace gelex

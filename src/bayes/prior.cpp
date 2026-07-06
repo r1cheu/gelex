@@ -43,7 +43,7 @@ BayesPrior::BayesPrior(
     validate_genetics(genetics_);
 }
 
-auto BayesPrior::visit(infra::FieldVisitor& visitor) -> void
+auto BayesPrior::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     random_.visit(visitor);

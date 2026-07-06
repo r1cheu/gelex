@@ -28,7 +28,7 @@ namespace
 {
 
 constexpr std::size_t kCount = 131'072;
-using Sampler = gelex::stats::NormalSampler<double>;
+using Sampler = gelex::NormalSampler<double>;
 
 struct Inputs
 {

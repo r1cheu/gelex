@@ -30,7 +30,7 @@
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/types/genetic_mode.h"
 
-namespace gelex::genotype
+namespace gelex
 {
 
 class GenotypeReader
@@ -38,7 +38,7 @@ class GenotypeReader
    public:
     GenotypeReader(
         const std::string& bfile_prefix,
-        const dataframe::Index<std::string>& sample_index,
+        const DataFrameIndex<std::string>& sample_index,
         gelex::GenoObserver observer = {});
 
     GenotypeReader(const GenotypeReader&) = delete;
@@ -77,6 +77,6 @@ class GenotypeReader
     int64_t num_variants_{};
 };
 
-}  // namespace gelex::genotype
+}  // namespace gelex
 
 #endif  // GELEX_DATA_GENOTYPE_READER_H_

@@ -26,7 +26,7 @@
 #include "gelex/infra/stats/normal_sampler.h"
 #include "gelex/infra/stats/scaled_inv_chi2_sampler.h"
 
-namespace gelex::mcmc
+namespace gelex
 {
 
 class RandomStep final
@@ -46,10 +46,10 @@ class RandomStep final
     std::span<bayes::RandomState> states_;
     bayes::ResidualState& residual_;
     std::mt19937_64& rng_;
-    stats::NormalSampler<double> normal_{0.0};
-    stats::ScaledInvChi2Sampler<double> variance_sampler_;
+    NormalSampler<double> normal_{0.0};
+    ScaledInvChi2Sampler<double> variance_sampler_;
 };
 
-}  // namespace gelex::mcmc
+}  // namespace gelex
 
 #endif  // GELEX_ALGO_MCMC_STEPS_RANDOM_H_

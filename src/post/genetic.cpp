@@ -34,7 +34,7 @@ namespace gelex
 namespace
 {
 
-auto block_section_name(const io::BinaryReader& reader, std::size_t block_index)
+auto block_section_name(const BinaryReader& reader, std::size_t block_index)
     -> std::string
 {
     const auto modes_path = fmt::format("genetic_block/{}/modes", block_index);
@@ -63,7 +63,7 @@ auto block_section_name(const io::BinaryReader& reader, std::size_t block_index)
 }  // namespace
 
 GeneticPosteriorProcessor::GeneticPosteriorProcessor(
-    std::span<const io::BinaryReader> readers,
+    std::span<const BinaryReader> readers,
     double hdpi_threshold)
     : readers_{readers}, hdpi_threshold_{hdpi_threshold}
 {
@@ -108,7 +108,7 @@ auto GeneticPosteriorProcessor::process() -> std::vector<ParameterDiag>
                     pi_names.push_back(fmt::format("π[{}]", i));
                 }
                 diags.append_range(
-                    post::detail::summarize_section(
+                    detail::summarize_section(
                         readers_,
                         prop_path,
                         hdpi_threshold_,

@@ -102,11 +102,11 @@ auto SingleTester::wald_test(
     output.zt_Pz = (Z.transpose() * W).diagonal();
 
     output.beta = (output.zt_Pr.array() / output.zt_Pz.array());
-    output.pve = stats::detail::matvar(
-                     Z * output.beta.asDiagonal(),
-                     stats::detail::VarNormType::Population)
-                     .array()
-                 / reml.Vp;
+    output.pve
+        = detail::matvar(
+              Z * output.beta.asDiagonal(), detail::VarNormType::Population)
+              .array()
+          / reml.Vp;
     output.se = (1.0 / output.zt_Pz.array()).sqrt();
     output.stats = (output.beta.array() / output.se.array()).square();
     output.p_value = (output.stats.array() * 0.5).sqrt().erfc();

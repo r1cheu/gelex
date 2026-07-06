@@ -25,7 +25,7 @@
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/types/categorical_vector.h"
 
-namespace gelex::infra
+namespace gelex
 {
 class FieldVisitor;
 }
@@ -40,7 +40,7 @@ struct MixtureState
     MixtureState() = default;
     MixtureState(const MixtureProportion& proportion, Eigen::Index num_markers);
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
     Eigen::VectorXd proportion;
     CategoricalVector assignment;
@@ -53,7 +53,7 @@ struct ComponentState
     ComponentState() = default;
     ComponentState(Eigen::Index num_components, Eigen::Index num_individuals);
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
     std::vector<Eigen::VectorXd> gebv;
     Eigen::VectorXd gebv_var;
@@ -68,7 +68,7 @@ struct DominanceSignState
         const ProbabilityParameter& probability,
         Eigen::Index num_markers);
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
     double positive_probability{};
     CategoricalVector sign;

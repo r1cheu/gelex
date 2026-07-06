@@ -21,7 +21,7 @@
 #include "gelex/data/genotype_method.h"
 #include "gelex/predict/types.h"
 
-namespace gelex::predict
+namespace gelex
 {
 
 auto standardize_genotypes(GenotypeData& geno, const SbinData& sbin) -> void
@@ -89,4 +89,4 @@ auto standardize_genotypes(GenotypeData& geno, const SbinData& sbin) -> void
     }
 }
 
-}  // namespace gelex::predict
+}  // namespace gelex

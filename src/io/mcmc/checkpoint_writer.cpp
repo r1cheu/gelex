@@ -39,10 +39,10 @@ namespace gelex
 namespace
 {
 
-class CheckpointWriter final : private infra::FieldVisitor
+class CheckpointWriter final : private FieldVisitor
 {
    public:
-    explicit CheckpointWriter(io::BinaryWriter& writer) : writer_(writer) {}
+    explicit CheckpointWriter(BinaryWriter& writer) : writer_(writer) {}
 
     auto write(BayesState& state) -> void { state.visit(*this); }
 
@@ -127,7 +127,7 @@ class CheckpointWriter final : private infra::FieldVisitor
             + field_path(name));
     }
 
-    io::BinaryWriter& writer_;
+    BinaryWriter& writer_;
 };
 
 }  // namespace
@@ -137,7 +137,7 @@ auto write_checkpoint(
     const std::mt19937_64& rng,
     std::string_view prefix) -> void
 {
-    io::BinaryWriter writer(fmt::format("{}.ckpt", prefix));
+    BinaryWriter writer(fmt::format("{}.ckpt", prefix));
 
     CheckpointWriter checkpoint_writer{writer};
     checkpoint_writer.write(state);

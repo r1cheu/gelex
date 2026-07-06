@@ -21,7 +21,7 @@
 
 #include "gelex/freq/model.h"
 
-namespace gelex::reml
+namespace gelex
 {
 
 class OptimizerState
@@ -58,6 +58,6 @@ class OptimizerState
     double phenotype_variance_{};
 };
 
-}  // namespace gelex::reml
+}  // namespace gelex
 
 #endif  // GELEX_ALGO_REML_OPTIMIZER_STATE_H_

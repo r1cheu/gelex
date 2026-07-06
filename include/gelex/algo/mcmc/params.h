@@ -22,9 +22,6 @@
 namespace gelex
 {
 
-namespace mcmc
-{
-
 struct Params
 {
     Eigen::Index n_iters{};
@@ -37,8 +34,6 @@ struct Params
         return (n_iters - n_burn_in) / n_thin;
     }
 };
-
-}  // namespace mcmc
 
 }  // namespace gelex
 

@@ -34,8 +34,8 @@ class IndexProjection
     static constexpr index_type npos = -1;
 
     IndexProjection(
-        const dataframe::Index<std::string>& source_index,
-        const dataframe::Index<std::string>& target_index);
+        const DataFrameIndex<std::string>& source_index,
+        const DataFrameIndex<std::string>& target_index);
 
     IndexProjection(const IndexProjection&) = delete;
     IndexProjection& operator=(const IndexProjection&) = delete;

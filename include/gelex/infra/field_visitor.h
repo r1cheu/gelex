@@ -30,7 +30,7 @@
 #include "gelex/infra/field_flag.h"
 #include "gelex/types/categorical_vector.h"
 
-namespace gelex::infra
+namespace gelex
 {
 
 class FieldVisitor
@@ -153,6 +153,6 @@ class FieldVisitor
     std::vector<std::size_t> scope_sizes_;
 };
 
-}  // namespace gelex::infra
+}  // namespace gelex
 
 #endif  // GELEX_INFRA_FIELD_VISITOR_H_

@@ -18,7 +18,7 @@
 #include <Eigen/Core>
 #include "gelex/freq/model.h"
 
-namespace gelex::reml
+namespace gelex
 {
 
 auto collect_variance_components(const gelex::FreqState& state)
@@ -57,4 +57,4 @@ auto distribute_variance_components(
     }
 }
 
-}  // namespace gelex::reml
+}  // namespace gelex

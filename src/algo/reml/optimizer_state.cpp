@@ -19,7 +19,7 @@
 
 #include "gelex/freq/model.h"
 
-namespace gelex::reml
+namespace gelex
 {
 
 OptimizerState::OptimizerState(const FreqModel& model)
@@ -51,4 +51,4 @@ auto OptimizerState::trace_proj_k(
            - XtViX_inv.cwiseProduct(ViX.transpose() * K * ViX).sum();
 }
 
-}  // namespace gelex::reml
+}  // namespace gelex

@@ -21,7 +21,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex::mcmc::detail
+namespace gelex::detail
 {
 
 class PipComputer
@@ -33,6 +33,6 @@ class PipComputer
         -> std::pair<Eigen::VectorXd, Eigen::VectorXd>;
 };
 
-}  // namespace gelex::mcmc::detail
+}  // namespace gelex::detail
 
 #endif  // GELEX_SRC_ALGO_MCMC_DETAIL_PIP_COMPUTER_H_

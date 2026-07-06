@@ -39,7 +39,7 @@ class SingleSharedGaussianPrior final
     auto variance() -> SharedMarkerVariance& { return variance_; }
     auto variance() const -> const SharedMarkerVariance& { return variance_; }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> SingleSharedGaussianState;
 
@@ -59,7 +59,7 @@ class SinglePerMarkerGaussianPrior final
     auto variance() -> PerMarkerVariance& { return variance_; }
     auto variance() const -> const PerMarkerVariance& { return variance_; }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> SinglePerMarkerGaussianState;
 
@@ -84,7 +84,7 @@ class SingleSharedSpikeSlabGaussianPrior final
     auto proportion() -> MixtureProportion& { return proportion_; }
     auto proportion() const -> const MixtureProportion& { return proportion_; }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> SingleSharedSpikeSlabGaussianState;
 
@@ -110,7 +110,7 @@ class SinglePerMarkerSpikeSlabGaussianPrior final
     auto proportion() -> MixtureProportion& { return proportion_; }
     auto proportion() const -> const MixtureProportion& { return proportion_; }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> SinglePerMarkerSpikeSlabGaussianState;
 
@@ -139,7 +139,7 @@ class SingleScaledMixtureGaussianPrior final
     auto multiplier() -> Eigen::VectorXd& { return multiplier_; }
     auto multiplier() const -> const Eigen::VectorXd& { return multiplier_; }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> SingleScaledMixtureGaussianState;
 
@@ -169,7 +169,7 @@ class JointGaussianMixturePrior final
     auto proportion() -> MixtureProportion& { return proportion_; }
     auto proportion() const -> const MixtureProportion& { return proportion_; }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> JointGaussianMixtureState;
 

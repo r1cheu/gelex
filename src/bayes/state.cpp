@@ -46,7 +46,7 @@ FixedState::FixedState(const FixedDesign& design)
 
 FixedState::FixedState(Eigen::VectorXd coeffs) : coeffs(std::move(coeffs)) {}
 
-auto FixedState::visit(infra::FieldVisitor& visitor) -> void
+auto FixedState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on("coeffs", coeffs, FieldFlag::checkpoint | FieldFlag::trace);
@@ -58,7 +58,7 @@ RandomState::RandomState(const RandomDesign& design, const RandomPrior& prior)
 {
 }
 
-auto RandomState::visit(infra::FieldVisitor& visitor) -> void
+auto RandomState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on("coeffs", coeffs, FieldFlag::checkpoint | FieldFlag::trace);
@@ -73,7 +73,7 @@ GeneticState::GeneticState(
 {
 }
 
-auto GeneticState::visit(infra::FieldVisitor& visitor) -> void
+auto GeneticState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on("coeffs", coeffs, FieldFlag::checkpoint | FieldFlag::trace);
@@ -102,7 +102,7 @@ SingleGeneticBlockState::SingleGeneticBlockState(
     }
 }
 
-auto SingleGeneticBlockState::visit(infra::FieldVisitor& visitor) -> void
+auto SingleGeneticBlockState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     auto mode_scope = visitor.scope(fmt::format("{}", mode_));
@@ -174,7 +174,7 @@ auto JointGeneticBlockState::state(GeneticMode mode) const
         fmt::format("JointGeneticBlockState: missing genetic mode {}", mode));
 }
 
-auto JointGeneticBlockState::visit(infra::FieldVisitor& visitor) -> void
+auto JointGeneticBlockState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     {
@@ -189,7 +189,7 @@ auto JointGeneticBlockState::visit(infra::FieldVisitor& visitor) -> void
     std::visit([&visitor](auto& state) { state.visit(visitor); }, prior_state_);
 }
 
-auto ResidualState::visit(infra::FieldVisitor& visitor) -> void
+auto ResidualState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on("y_adj", y_adj, FieldFlag::checkpoint);
@@ -319,7 +319,7 @@ auto BayesState::compute_heritability() -> void
     }
 }
 
-auto BayesState::visit(infra::FieldVisitor& visitor) -> void
+auto BayesState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     fixed_.visit(visitor);

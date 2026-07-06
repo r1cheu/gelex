@@ -32,11 +32,11 @@ class LocoReader
    public:
     LocoReader(
         const std::filesystem::path& whole_grm_prefix,
-        const dataframe::Index<std::string>& sample_index);
+        const DataFrameIndex<std::string>& sample_index);
 
     auto load_into(
         const std::filesystem::path& chr_grm_prefix,
-        const dataframe::Index<std::string>& sample_index,
+        const DataFrameIndex<std::string>& sample_index,
         Eigen::MatrixXd& target) const -> void;
 
    private:

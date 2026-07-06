@@ -28,7 +28,7 @@ namespace gelex
 
 TEST_CASE("ScalarDrawStats accumulates scalar draws", "[mcmc][draw_stats]")
 {
-    mcmc::detail::ScalarDrawStats draws;
+    detail::ScalarDrawStats draws;
 
     draws.store(2.0);
     draws.store(4.0);
@@ -40,7 +40,7 @@ TEST_CASE("ScalarDrawStats accumulates scalar draws", "[mcmc][draw_stats]")
 
 TEST_CASE("VectorDrawStats accumulates vector draws", "[mcmc][draw_stats]")
 {
-    mcmc::detail::VectorDrawStats draws;
+    detail::VectorDrawStats draws;
 
     const Eigen::VectorXd first{{1.0, 3.0}};
     const Eigen::VectorXd second{{3.0, 7.0}};
@@ -49,24 +49,21 @@ TEST_CASE("VectorDrawStats accumulates vector draws", "[mcmc][draw_stats]")
 
     const auto result = draws.stats();
     REQUIRE(result.mean.isApprox(Eigen::VectorXd{{2.0, 5.0}}));
-    REQUIRE(
-        result.stddev.isApprox(
-            Eigen::VectorXd{{std::sqrt(2.0), std::sqrt(8.0)}}));
+    REQUIRE(result.stddev.isApprox(
+        Eigen::VectorXd{{std::sqrt(2.0), std::sqrt(8.0)}}));
 }
 
 TEST_CASE(
     "CategoricalDrawStats accumulates categorical draws",
     "[mcmc][draw_stats]")
 {
-    mcmc::detail::CategoricalDrawStats draws{3, 4};
+    detail::CategoricalDrawStats draws{3, 4};
 
     draws.store(CategoricalVector{Eigen::VectorXi{{1, 0, 3}}, 4});
     draws.store(CategoricalVector{Eigen::VectorXi{{3, 0, 0}}, 4});
 
     const Eigen::MatrixXd expected_probabilities{
-        {0.0, 0.5, 0.0, 0.5},
-        {1.0, 0.0, 0.0, 0.0},
-        {0.5, 0.0, 0.0, 0.5}};
+        {0.0, 0.5, 0.0, 0.5}, {1.0, 0.0, 0.0, 0.0}, {0.5, 0.0, 0.0, 0.5}};
     const auto result = std::move(draws).take_probabilities();
     REQUIRE(result.value.isApprox(expected_probabilities));
 }

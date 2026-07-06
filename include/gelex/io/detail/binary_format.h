@@ -25,7 +25,7 @@
 #include <string_view>
 #include <type_traits>
 
-namespace gelex::io::detail
+namespace gelex::detail
 {
 
 inline constexpr std::array<std::byte, 8> BINARY_FORMAT_MAGIC
@@ -116,6 +116,6 @@ struct TocEntry
     }
 };
 
-}  // namespace gelex::io::detail
+}  // namespace gelex::detail
 
 #endif  // GELEX_IO_DETAIL_BINARY_FORMAT_H_

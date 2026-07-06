@@ -42,7 +42,7 @@ class LociStatsWriter
         std::span<const int64_t> mono_indices = {}) -> void;
 
    private:
-    io::BinaryWriter writer_;
+    BinaryWriter writer_;
 };
 
 }  // namespace gelex

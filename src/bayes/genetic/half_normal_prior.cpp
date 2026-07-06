@@ -57,7 +57,7 @@ auto JointHalfNormalMixturePrior::variance(GeneticMode mode) const
     return variances_.variance(mode);
 }
 
-auto JointHalfNormalMixturePrior::visit(infra::FieldVisitor& visitor) -> void
+auto JointHalfNormalMixturePrior::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     variances().visit(visitor);

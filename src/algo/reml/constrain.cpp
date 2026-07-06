@@ -18,7 +18,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex::reml
+namespace gelex
 {
 
 auto constrain(Eigen::Ref<Eigen::VectorXd> varcmp, double y_variance)
@@ -61,4 +61,4 @@ auto constrain(Eigen::Ref<Eigen::VectorXd> varcmp, double y_variance)
     }
     return num_constrained;
 }
-}  // namespace gelex::reml
+}  // namespace gelex

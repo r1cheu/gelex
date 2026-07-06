@@ -19,7 +19,7 @@
 #include <string_view>
 #include <utility>
 
-namespace gelex::log
+namespace gelex
 {
 
 namespace
@@ -62,4 +62,4 @@ void error(std::string_view message)
     }
 }
 
-}  // namespace gelex::log
+}  // namespace gelex

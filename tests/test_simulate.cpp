@@ -142,7 +142,7 @@ auto run_simulation(const SimulateConfig& config) -> void
     {
         additive.emplace();
         additive->causal_snps
-            = NormalSampler(shuffled_ids, config.additive->effect_sizes)(rng);
+            = NormalGenerator(shuffled_ids, config.additive->effect_sizes)(rng);
         additive->gebv = calculator.calculate<GeneticMode::A>(
             *additive, config.geno_method);
     }
@@ -151,8 +151,8 @@ auto run_simulation(const SimulateConfig& config) -> void
     if (config.dominance)
     {
         dominance.emplace();
-        dominance->causal_snps
-            = NormalSampler(shuffled_ids, config.dominance->effect_sizes)(rng);
+        dominance->causal_snps = NormalGenerator(
+            shuffled_ids, config.dominance->effect_sizes)(rng);
         dominance->gebv = calculator.calculate<GeneticMode::D>(
             *dominance, config.geno_method);
     }
@@ -181,7 +181,7 @@ auto run_simulation(const SimulateConfig& config) -> void
     }
     phenotypes += residual;
 
-    io::detail::TextWriter writer(config.output_prefix + ".phen");
+    detail::TextWriter writer(config.output_prefix + ".phen");
     writer.write_header({"FID", "IID", "Phenotype"});
     for (Eigen::Index i = 0; i < n_samples; ++i)
     {
@@ -189,7 +189,7 @@ auto run_simulation(const SimulateConfig& config) -> void
         writer.write(fmt::format("{}\t{}\t{}", fid, iid, phenotypes(i)));
     }
 
-    io::detail::TextWriter effect_writer(config.output_prefix + ".causal");
+    detail::TextWriter effect_writer(config.output_prefix + ".causal");
     auto write_single
         = [&](std::string_view column, const std::vector<CausalSnp>& snps)
     {
@@ -226,7 +226,9 @@ auto run_simulation(const SimulateConfig& config) -> void
 
 }  // namespace
 
-TEST_CASE("Simulation command dataflow writes output files per mode", "[simulate]")
+TEST_CASE(
+    "Simulation command dataflow writes output files per mode",
+    "[simulate]")
 {
     BedFixture fixture;
     constexpr Eigen::Index N_SAMPLES = 50;

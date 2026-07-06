@@ -32,12 +32,12 @@ auto mode(const SingleGeneticPrior& prior) -> GeneticMode
     return std::visit([](const auto& value) { return value.mode(); }, prior);
 }
 
-auto visit(SingleGeneticPrior& prior, infra::FieldVisitor& visitor) -> void
+auto visit(SingleGeneticPrior& prior, FieldVisitor& visitor) -> void
 {
     std::visit([&visitor](auto& value) { value.visit(visitor); }, prior);
 }
 
-auto visit(JointGeneticPrior& prior, infra::FieldVisitor& visitor) -> void
+auto visit(JointGeneticPrior& prior, FieldVisitor& visitor) -> void
 {
     std::visit([&visitor](auto& value) { value.visit(visitor); }, prior);
 }

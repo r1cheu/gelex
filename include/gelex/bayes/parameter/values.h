@@ -35,7 +35,7 @@ class VarianceParameter
 
     auto initial_value() const -> double { return initial_value_; }
     auto prior() const -> const ScaledInvChiSqPrior& { return prior_; }
-    auto visit(infra::FieldVisitor& visitor) -> void
+    auto visit(FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         visitor.on(
@@ -62,7 +62,7 @@ class SimplexParameter
     }
     auto prior() const -> const DirichletPrior& { return prior_; }
     auto size() const -> Eigen::Index { return initial_value_.size(); }
-    auto visit(infra::FieldVisitor& visitor) -> void
+    auto visit(FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         visitor.on(
@@ -85,7 +85,7 @@ class ProbabilityParameter
 
     auto initial_value() const -> double { return initial_value_; }
     auto prior() const -> const BetaPrior& { return prior_; }
-    auto visit(infra::FieldVisitor& visitor) -> void
+    auto visit(FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         visitor.on(

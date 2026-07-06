@@ -25,7 +25,7 @@
 #include "gelex/algo/reml/optimizer_state.h"
 #include "gelex/freq/model.h"
 
-namespace gelex::reml
+namespace gelex
 {
 
 auto compute_aic(const FreqModel& model, double loglike) -> double
@@ -89,8 +89,8 @@ auto compute_variance_ratio(FreqState& state, const OptimizerState& opt_state)
         r.variance_ratio = r.variance / sum_var;
 
         // gradient for delta method:
-        // ∂ratio/∂σ_i = -σ_r / (Σσ)²           for i ≠ r
-        // ∂ratio/∂σ_r = (Σσ - σ_r) / (Σσ)²     for i == r
+        // ∂ratio/∂σ_i = -σ_r / (Σσ)² for i ≠ r
+        // ∂ratio/∂σ_r = (Σσ - σ_r) / (Σσ)² for i == r
         Eigen::VectorXd grad(n_comp);
         for (Eigen::Index i = 0; i < n_comp; ++i)
         {
@@ -109,4 +109,4 @@ auto compute_variance_ratio(FreqState& state, const OptimizerState& opt_state)
     }
 }
 
-}  // namespace gelex::reml
+}  // namespace gelex

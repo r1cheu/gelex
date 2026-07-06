@@ -56,7 +56,7 @@ class JointHalfNormalMixturePrior final
         return dominance_positive_probability_;
     }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
     auto make_state(Eigen::Index num_markers, Eigen::Index num_individuals)
         const -> JointHalfNormalMixtureState;
 

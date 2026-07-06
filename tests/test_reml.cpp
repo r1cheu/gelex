@@ -48,15 +48,12 @@ struct RemlProblem
 
 auto make_closed_form_problem() -> RemlProblem
 {
-    Eigen::VectorXd y(3);
-    y << 4.0, 1.0, -1.0;
+    Eigen::VectorXd y{{4.0, 1.0, -1.0}};
 
-    Eigen::MatrixXd K(3, 3);
-    // clang-format off
-    K <<  8.0 / 3.0,  2.0 / 3.0, -1.0 / 3.0,
-          2.0 / 3.0,  8.0 / 3.0, -1.0 / 3.0,
-         -1.0 / 3.0, -1.0 / 3.0, 11.0 / 3.0;
-    // clang-format on
+    Eigen::MatrixXd K{
+        {8.0 / 3.0, 2.0 / 3.0, -1.0 / 3.0},
+        {2.0 / 3.0, 8.0 / 3.0, -1.0 / 3.0},
+        {-1.0 / 3.0, -1.0 / 3.0, 11.0 / 3.0}};
 
     return {
         .y = y,
@@ -103,10 +100,10 @@ TEST_CASE(
                                         * problem.X.transpose() * Vinv_ref;
     const Eigen::VectorXd Py_ref = P_ref * problem.y;
 
-    reml::OptimizerState opt(model);
-    reml::compute_v(model, state, opt.V);
-    opt.logdet_v = reml::v_inv_logdet(opt.V);
-    reml::compute_proj(model, opt);
+    OptimizerState opt(model);
+    compute_v(model, state, opt.V);
+    opt.logdet_v = v_inv_logdet(opt.V);
+    compute_proj(model, opt);
 
     SECTION("in-place materialized P matches closed form")
     {
@@ -127,8 +124,7 @@ TEST_CASE(
               * (dof * std::log(2.0 * std::numbers::pi)
                  + std::log(V_ref.determinant())
                  + std::log(XtVinvX_ref.determinant()) + problem.y.dot(Py_ref));
-        REQUIRE(
-            std::abs(reml::compute_loglike(model, opt) - expected) <= 1e-10);
+        REQUIRE(std::abs(compute_loglike(model, opt) - expected) <= 1e-10);
     }
 }
 
@@ -137,16 +133,16 @@ TEST_CASE(
     "[reml][canary]")
 {
     // n=3, intercept-only X (p=1), single genetic component. K is built as
-    //   K = 3*v0 v0' + 2*u1 u1' + 4*u2 u2',
-    //   v0 = [1,1,1]/sqrt(3), u1 = [1,-1,0]/sqrt(2), u2 = [1,1,-2]/sqrt(6)
+    // K = 3*v0 v0' + 2*u1 u1' + 4*u2 u2',
+    // v0 = [1,1,1]/sqrt(3), u1 = [1,-1,0]/sqrt(2), u2 = [1,1,-2]/sqrt(6)
     // so K_tilde = X_perp' K X_perp = diag(2, 4). With y = [4, 1, -1]' the
-    // saturated REML MLE solves  sigma_e + sigma_r*lambda_i = z_i^2  giving
-    //   sigma_e = 5/6,  sigma_r = 11/6
+    // saturated REML MLE solves sigma_e + sigma_r*lambda_i = z_i^2 giving
+    // sigma_e = 5/6, sigma_r = 11/6
     // (cross-checked against HIBLUP --single-trait).
     const auto problem = make_closed_form_problem();
     auto [model, state] = build_model(problem);
 
-    reml::Estimator estimator(/*max_iter=*/500, /*tol=*/1e-12);
+    Estimator estimator(/*max_iter=*/500, /*tol=*/1e-12);
     estimator.fit(model, state);
 
     REQUIRE(estimator.is_converged());
@@ -161,7 +157,7 @@ TEST_CASE(
 TEST_CASE("Estimator::fit resets convergence state between runs", "[reml]")
 {
     const auto problem = make_closed_form_problem();
-    reml::Estimator estimator(/*max_iter=*/500, /*tol=*/1e-12);
+    Estimator estimator(/*max_iter=*/500, /*tol=*/1e-12);
 
     auto [first_model, first_state] = build_model(problem);
     estimator.fit(first_model, first_state);

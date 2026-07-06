@@ -148,7 +148,7 @@ TEST_CASE("MCMC checkpoint reader rejects field shape mismatch", "[checkpoint]")
 {
     gelex::test::FileFixture files;
     const auto checkpoint_path = files.generate_random_file_path(".ckpt");
-    gelex::io::BinaryWriter writer(checkpoint_path.string());
+    gelex::BinaryWriter writer(checkpoint_path.string());
     const Eigen::MatrixXd fixed_coeffs{{1.0}, {2.0}};
     writer.write("state/fixed/coeffs", fixed_coeffs);
     writer.close();

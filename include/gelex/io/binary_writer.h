@@ -30,7 +30,7 @@
 #include "gelex/io/detail/atomic_output_stream.h"
 #include "gelex/io/detail/binary_format.h"
 
-namespace gelex::io
+namespace gelex
 {
 
 template <typename C>
@@ -172,6 +172,6 @@ class BinaryWriter
     bool finalized_{false};
 };
 
-}  // namespace gelex::io
+}  // namespace gelex
 
 #endif  // GELEX_IO_BINARY_WRITER_H_

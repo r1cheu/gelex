@@ -20,7 +20,7 @@
 #include "gelex/algo/reml/optimizer_state.h"
 #include "gelex/freq/model.h"
 
-namespace gelex::reml
+namespace gelex
 {
 
 auto compute_fixed_effects(
@@ -50,4 +50,4 @@ auto compute_random_effects(
     }
 }
 
-}  // namespace gelex::reml
+}  // namespace gelex

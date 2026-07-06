@@ -27,7 +27,7 @@
 #include "gelex/data/dataframe/column.h"
 #include "gelex/data/dataframe/constants.h"
 
-namespace gelex::dataframe
+namespace gelex
 {
 
 namespace detail
@@ -106,4 +106,4 @@ auto check_levels(const Column& col, std::span<const std::string> levels)
     return mismatch;
 }
 
-}  // namespace gelex::dataframe
+}  // namespace gelex

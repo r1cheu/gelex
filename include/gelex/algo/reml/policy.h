@@ -22,7 +22,7 @@
 #include "gelex/algo/reml/optimizer_state.h"
 #include "gelex/freq/model.h"
 
-namespace gelex::reml
+namespace gelex
 {
 
 struct EMPolicy
@@ -41,6 +41,6 @@ struct AIPolicy
         OptimizerState& opt_state) -> Eigen::VectorXd;
 };
 
-}  // namespace gelex::reml
+}  // namespace gelex
 
 #endif  // GELEX_ALGO_REML_POLICY_H_

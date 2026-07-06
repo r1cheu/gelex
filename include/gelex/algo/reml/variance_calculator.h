@@ -22,7 +22,7 @@
 #include "gelex/algo/reml/optimizer_state.h"
 #include "gelex/freq/model.h"
 
-namespace gelex::reml
+namespace gelex
 {
 
 // Compute V = sum(K_i * sigma_i) + I * sigma_e
@@ -46,6 +46,6 @@ auto compute_proj(const gelex::FreqModel& model, OptimizerState& state) -> void;
 auto compute_loglike(const gelex::FreqModel& model, const OptimizerState& state)
     -> double;
 
-}  // namespace gelex::reml
+}  // namespace gelex
 
 #endif  // GELEX_ALGO_REML_VARIANCE_CALCULATOR_H_

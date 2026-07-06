@@ -34,7 +34,7 @@
 #include "gelex/infra/stats/scaled_inv_chi2_sampler.h"
 #include "gelex/types/categorical_vector.h"
 
-namespace gelex::mcmc
+namespace gelex
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -61,13 +61,13 @@ class SingleSharedGaussianStep final
 
     const bayes::GeneticDesign& design_;
 
-    stats::ScaledInvChi2Sampler<double> variance_sampler_;
+    ScaledInvChi2Sampler<double> variance_sampler_;
     double& variance_;
 
     bayes::GeneticState& state_;
     bayes::ResidualState& residual_;
 
-    stats::NormalSampler<double> normal_;
+    NormalSampler<double> normal_;
 
     std::mt19937_64& rng_;
 };
@@ -95,13 +95,13 @@ class SinglePerMarkerGaussianStep final
 
     const bayes::GeneticDesign& design_;
 
-    stats::ScaledInvChi2Sampler<double> variance_sampler_;
+    ScaledInvChi2Sampler<double> variance_sampler_;
     Eigen::VectorXd& variance_;
 
     bayes::GeneticState& state_;
     bayes::ResidualState& residual_;
 
-    stats::NormalSampler<double> normal_;
+    NormalSampler<double> normal_;
 
     std::mt19937_64& rng_;
 };
@@ -129,16 +129,16 @@ class SingleSharedSpikeSlabStep final
 
     const bayes::GeneticDesign& design_;
 
-    stats::ScaledInvChi2Sampler<double> variance_sampler_;
+    ScaledInvChi2Sampler<double> variance_sampler_;
     double& variance_;
     CategoricalVector& assignment_;
     Eigen::VectorXd& proportion_;
-    std::optional<stats::DirichletSampler<double>> proportion_sampler_;
+    std::optional<DirichletSampler<double>> proportion_sampler_;
 
     bayes::GeneticState& state_;
     bayes::ResidualState& residual_;
 
-    stats::NormalSampler<double> normal_;
+    NormalSampler<double> normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
     Eigen::VectorXd logpi_;
     Eigen::VectorXi proportion_count_;
@@ -169,16 +169,16 @@ class SinglePerMarkerSpikeSlabStep final
 
     const bayes::GeneticDesign& design_;
 
-    stats::ScaledInvChi2Sampler<double> variance_sampler_;
+    ScaledInvChi2Sampler<double> variance_sampler_;
     Eigen::VectorXd& variance_;
     CategoricalVector& assignment_;
     Eigen::VectorXd& proportion_;
-    std::optional<stats::DirichletSampler<double>> proportion_sampler_;
+    std::optional<DirichletSampler<double>> proportion_sampler_;
 
     bayes::GeneticState& state_;
     bayes::ResidualState& residual_;
 
-    stats::NormalSampler<double> normal_;
+    NormalSampler<double> normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
     Eigen::VectorXd logpi_;
     Eigen::VectorXi proportion_count_;
@@ -211,11 +211,11 @@ class SingleScaledMixtureStep final
 
     const bayes::GeneticDesign& design_;
 
-    stats::ScaledInvChi2Sampler<double> variance_sampler_;
+    ScaledInvChi2Sampler<double> variance_sampler_;
     double& variance_;
     CategoricalVector& assignment_;
     Eigen::VectorXd& proportion_;
-    stats::DirichletSampler<double> proportion_sampler_;
+    DirichletSampler<double> proportion_sampler_;
     bayes::ComponentState& component_;
     Eigen::VectorXd multiplier_;
 
@@ -225,9 +225,9 @@ class SingleScaledMixtureStep final
     Eigen::VectorXd marker_variances_;
     Eigen::VectorXd logpi_;
     Eigen::VectorXi proportion_count_;
-    stats::NormalSampler<double> normal_;
+    NormalSampler<double> normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
-    std::array<stats::NormalSampler<double>::Posterior, MAX_MIXTURE_COMPONENTS>
+    std::array<NormalSampler<double>::Posterior, MAX_MIXTURE_COMPONENTS>
         scale_posts_;
     Eigen::Array<double, MAX_MIXTURE_COMPONENTS, 1> scale_log_likelihoods_;
 
@@ -236,6 +236,6 @@ class SingleScaledMixtureStep final
 
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-}  // namespace gelex::mcmc
+}  // namespace gelex
 
 #endif  // GELEX_ALGO_MCMC_STEPS_SINGLE_GENETIC_STEP_H_

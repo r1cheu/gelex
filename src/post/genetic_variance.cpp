@@ -37,7 +37,7 @@ namespace gelex
 {
 
 GeneticVariancePosteriorProcessor::GeneticVariancePosteriorProcessor(
-    std::span<const io::BinaryReader> readers,
+    std::span<const BinaryReader> readers,
     std::span<const GeneticInput> genetics,
     double hdpi_threshold)
     : readers_{readers}, genetics_{genetics}, hdpi_threshold_{hdpi_threshold}
@@ -60,8 +60,7 @@ auto GeneticVariancePosteriorProcessor::process() -> GebvVarianceResult
     constexpr Eigen::Index CHUNK_SIZE = 64;
 
     const auto n_variances = static_cast<Eigen::Index>(genetics_.size()) + 1;
-    stats::Chains genetic_variances(
-        n_chains, Eigen::MatrixXd(n_variances, n_records));
+    Chains genetic_variances(n_chains, Eigen::MatrixXd(n_variances, n_records));
 
     for (std::size_t ci = 0; ci < n_chains; ++ci)
     {
@@ -86,8 +85,7 @@ auto GeneticVariancePosteriorProcessor::process() -> GebvVarianceResult
             }
 
             variance.row(n_variances - 1).segment(col_begin, chunk_cols)
-                = stats::detail::matvar(
-                      gebv_total, stats::detail::VarNormType::Population)
+                = detail::matvar(gebv_total, detail::VarNormType::Population)
                       .head(chunk_cols);
         }
     }
@@ -99,7 +97,7 @@ auto GeneticVariancePosteriorProcessor::process() -> GebvVarianceResult
         diags.append_range(processor.build_diagnostics(hdpi_threshold_));
     }
 
-    auto total_diags = post::detail::compute_posterior_summaries(
+    auto total_diags = detail::compute_posterior_summaries(
         genetic_variances, hdpi_threshold_);
 
     for (auto&& [kind_idx, input] : std::views::enumerate(genetics_))

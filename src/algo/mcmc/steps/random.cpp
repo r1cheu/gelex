@@ -30,7 +30,7 @@
 #include "gelex/exception.h"
 #include "gelex/infra/stats/normal_sampler.h"
 
-namespace gelex::mcmc
+namespace gelex
 {
 
 RandomStep::RandomStep(
@@ -76,7 +76,7 @@ auto RandomStep::step() -> void
             ResidualAdjustmentGuard guard{col, coeffs(i), residual_};
             const double rhs = col.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
             coeffs(i) = normal_(
-                stats::NormalSampler<double>::Kernel{
+                NormalSampler<double>::Kernel{
                     .quadratic = XtX_diag(i),
                     .linear = rhs,
                     .scale = residual_variance,
@@ -88,4 +88,4 @@ auto RandomStep::step() -> void
     }
 }
 
-}  // namespace gelex::mcmc
+}  // namespace gelex

@@ -32,7 +32,7 @@ namespace gelex
 auto write_grm_ids(const std::string& prefix, std::span<const std::string> ids)
     -> void
 {
-    io::detail::TextWriter writer(prefix + ".id");
+    detail::TextWriter writer(prefix + ".id");
     for (const auto& id : ids)
     {
         auto [fid, iid] = split_sample_id(id);
@@ -45,7 +45,7 @@ auto write_grm(
     const Eigen::Ref<const Eigen::MatrixXd>& grm,
     std::span<const std::string> ids) -> void
 {
-    io::detail::AtomicOutputStream file(prefix + ".bin", std::ios::binary);
+    detail::AtomicOutputStream file(prefix + ".bin", std::ios::binary);
 
     auto n = grm.rows();
     auto m = grm.cols();

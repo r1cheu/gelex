@@ -29,9 +29,9 @@
 namespace gelex
 {
 
-using gelex::stats::RunningStatsResult;
-using gelex::stats::detail::CategoricalFrequency;
-using gelex::stats::detail::RunningStats;
+using gelex::RunningStatsResult;
+using gelex::detail::CategoricalFrequency;
+using gelex::detail::RunningStats;
 
 namespace
 {
@@ -347,9 +347,7 @@ TEST_CASE(
     frequency.update(Eigen::VectorXi{{1, 1, 0}});
 
     const Eigen::MatrixXd expected{
-        {0.5, 0.5, 0.0, 0.0},
-        {0.0, 1.0, 0.0, 0.0},
-        {0.5, 0.0, 0.0, 0.5}};
+        {0.5, 0.5, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.5, 0.0, 0.0, 0.5}};
     const auto result = std::move(frequency).take_probabilities();
     REQUIRE(result.value.isApprox(expected));
 }

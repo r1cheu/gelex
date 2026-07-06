@@ -34,7 +34,7 @@ namespace gelex
 struct TestResults;
 }
 
-namespace gelex::gwas
+namespace gelex
 {
 
 class GwasWriter
@@ -42,7 +42,7 @@ class GwasWriter
    public:
     GwasWriter(
         std::string_view out_prefix,
-        const dataframe::DataFrame<std::string>& bim,
+        const DataFrame<std::string>& bim,
         AssocType test_type = AssocType::Single);
     GwasWriter(const GwasWriter&) = delete;
     GwasWriter(GwasWriter&&) = delete;
@@ -63,9 +63,9 @@ class GwasWriter
     std::span<const std::string> a1_;
     std::span<const std::string> a2_;
 
-    io::detail::AtomicOutputStream ofs_;
+    detail::AtomicOutputStream ofs_;
 };
 
-}  // namespace gelex::gwas
+}  // namespace gelex
 
 #endif  // GELEX_IO_GWAS_WRITER_H_

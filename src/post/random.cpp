@@ -33,7 +33,7 @@ namespace gelex
 {
 
 RandomPosteriorProcessor::RandomPosteriorProcessor(
-    std::span<const io::BinaryReader> readers,
+    std::span<const BinaryReader> readers,
     double hdpi_threshold)
     : readers_{readers}, hdpi_threshold_{hdpi_threshold}
 {
@@ -61,7 +61,7 @@ auto RandomPosteriorProcessor::process() -> std::vector<ParameterDiag>
         }
 
         diags.append_range(
-            post::detail::summarize_section(
+            detail::summarize_section(
                 readers_,
                 coeff_path,
                 hdpi_threshold_,
@@ -70,7 +70,7 @@ auto RandomPosteriorProcessor::process() -> std::vector<ParameterDiag>
 
         const auto var_path = fmt::format("random/{}/variance", index);
         diags.push_back(
-            post::detail::summarize_section(
+            detail::summarize_section(
                 readers_,
                 var_path,
                 hdpi_threshold_,

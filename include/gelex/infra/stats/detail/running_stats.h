@@ -26,7 +26,7 @@
 #include "gelex/exception.h"
 #include "gelex/infra/stats/result.h"
 
-namespace gelex::stats::detail
+namespace gelex::detail
 {
 
 class RunningStats
@@ -133,6 +133,6 @@ class CategoricalFrequency
     std::size_t count_{0};
 };
 
-}  // namespace gelex::stats::detail
+}  // namespace gelex::detail
 
 #endif  // GELEX_INFRA_STATS_DETAIL_RUNNING_STATS_H_

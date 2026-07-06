@@ -39,8 +39,8 @@ class GeneticValueCalculator
    public:
     GeneticValueCalculator(
         const std::filesystem::path& bed_path,
-        const dataframe::DataFrame<std::string>& bim,
-        const dataframe::DataFrame<std::string>& fam);
+        const DataFrame<std::string>& bim,
+        const DataFrame<std::string>& fam);
 
     template <GeneticMode Mode>
     auto calculate(
@@ -51,8 +51,8 @@ class GeneticValueCalculator
     [[nodiscard]] auto sample_ids() const -> std::span<const std::string>;
 
    private:
-    const dataframe::Index<std::string>* sample_index_;
-    const dataframe::Index<std::string>* snp_index_;
+    const DataFrameIndex<std::string>* sample_index_;
+    const DataFrameIndex<std::string>* snp_index_;
     Bed bed_;
 };
 

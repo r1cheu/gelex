@@ -32,7 +32,7 @@
 #include "gelex/infra/field_flag.h"
 #include "gelex/io/binary_writer.h"
 
-namespace gelex::mcmc
+namespace gelex
 {
 
 Records::Records(Eigen::Index n_draws, std::string_view draws_path)
@@ -44,7 +44,7 @@ Records::Records(Eigen::Index n_draws, std::string_view draws_path)
         {
             throw GelexException("Records: n_draws must be positive");
         }
-        writer_ = std::make_unique<io::BinaryWriter>(draws_path);
+        writer_ = std::make_unique<BinaryWriter>(draws_path);
     }
 }
 
@@ -318,4 +318,4 @@ auto Records::on(std::string_view name, std::string_view value, FieldFlag flags)
     names_[it->second].emplace(1, std::string{value});
 }
 
-}  // namespace gelex::mcmc
+}  // namespace gelex

@@ -36,7 +36,7 @@ auto open_bed(const std::string& bfile_prefix) -> Bed
 
 auto open_bed(
     const std::string& bfile_prefix,
-    const dataframe::Index<std::string>& target_index) -> Bed
+    const DataFrameIndex<std::string>& target_index) -> Bed
 {
     auto source_index
         = read_fam(std::filesystem::path{bfile_prefix + ".fam"}).index();

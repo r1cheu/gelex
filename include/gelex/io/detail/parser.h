@@ -27,7 +27,7 @@
 
 #include "gelex/exception.h"
 
-namespace gelex::io::detail
+namespace gelex::detail
 {
 
 template <typename T>
@@ -84,6 +84,6 @@ template <FileStream StreamType>
 
 size_t count_total_lines(const std::filesystem::path& path);
 
-}  // namespace gelex::io::detail
+}  // namespace gelex::detail
 
 #endif  // GELEX_IO_DETAIL_PARSER_H_

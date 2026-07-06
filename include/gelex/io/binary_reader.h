@@ -37,7 +37,7 @@
 #include "gelex/io/detail/binary_format.h"
 #include "gelex/io/mapped_file.h"
 
-namespace gelex::io
+namespace gelex
 {
 
 class BinaryReader
@@ -101,8 +101,8 @@ class BinaryReader
     std::unordered_map<
         std::string,
         detail::TocEntry,
-        infra::TransparentHash<std::string>,
-        infra::TransparentEqual<std::string>>
+        TransparentHash<std::string>,
+        TransparentEqual<std::string>>
         toc_;
 };
 
@@ -334,6 +334,6 @@ auto BinaryReader::to_mat(std::string_view path) const
     }
 }
 
-}  // namespace gelex::io
+}  // namespace gelex
 
 #endif  // GELEX_IO_BINARY_READER_H_

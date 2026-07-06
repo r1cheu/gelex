@@ -37,10 +37,7 @@ namespace gelex
 
 class BayesModel;
 
-namespace infra
-{
 class FieldVisitor;
-}
 
 namespace bayes
 {
@@ -55,7 +52,7 @@ struct FixedState
     explicit FixedState(const FixedDesign& design);
     explicit FixedState(Eigen::VectorXd coeffs);
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
     Eigen::VectorXd coeffs;
 };
@@ -66,7 +63,7 @@ struct RandomState
 
     RandomState(const RandomDesign& design, const RandomPrior& prior);
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
     Eigen::VectorXd coeffs;
     double variance{0.0};
@@ -76,7 +73,7 @@ struct ResidualState
 {
     static constexpr std::string_view name = "residual";
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
     Eigen::VectorXd y_adj;
     double variance{0.0};
@@ -89,7 +86,7 @@ struct GeneticState
 
     GeneticState(Eigen::Index num_markers, Eigen::Index num_individuals);
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
     Eigen::VectorXd coeffs;
     Eigen::VectorXd u;
@@ -115,7 +112,7 @@ class SingleGeneticBlockState
         return prior_state_;
     }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
    private:
     GeneticMode mode_{};
@@ -142,7 +139,7 @@ class JointGeneticBlockState
         return prior_state_;
     }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
    private:
     GeneticState additive_;
@@ -184,7 +181,7 @@ class BayesState
     auto residual() const -> const bayes::ResidualState& { return residual_; }
 
     auto compute_heritability() -> void;
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
    private:
     bayes::FixedState fixed_;

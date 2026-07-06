@@ -54,4 +54,4 @@ repos:
     hooks:
       - id: clang-format
 
-exclude: "migrations/.*|tests/.*|noxfile.py|docs/.*"
+exclude: "migrations/.*|noxfile.py|docs/.*"

@@ -30,9 +30,6 @@ namespace gelex
 class FreqModel;
 class FreqState;
 
-namespace reml
-{
-
 auto write_summary(
     const FreqModel& model,
     const FreqState& state,
@@ -48,8 +45,6 @@ auto write_effects(
 auto write_loco_summary(
     const std::vector<LocoRemlResult>& results,
     std::string_view prefix) -> void;
-
-}  // namespace reml
 
 }  // namespace gelex
 

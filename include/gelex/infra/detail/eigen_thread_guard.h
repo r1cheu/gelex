@@ -19,7 +19,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex::infra::detail
+namespace gelex::detail
 {
 
 class EigenThreadGuard
@@ -41,6 +41,6 @@ class EigenThreadGuard
     int old_thread_count_;
 };
 
-}  // namespace gelex::infra::detail
+}  // namespace gelex::detail
 
 #endif  // GELEX_INFRA_DETAIL_EIGEN_THREAD_GUARD_H_

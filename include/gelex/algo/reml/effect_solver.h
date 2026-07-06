@@ -23,7 +23,7 @@ class FreqModel;
 class FreqState;
 }  // namespace gelex
 
-namespace gelex::reml
+namespace gelex
 {
 class OptimizerState;
 
@@ -42,6 +42,6 @@ auto compute_random_effects(
     FreqState& state,
     const OptimizerState& opt_state) -> void;
 
-}  // namespace gelex::reml
+}  // namespace gelex
 
 #endif  // GELEX_ALGO_REML_EFFECT_SOLVER_H_

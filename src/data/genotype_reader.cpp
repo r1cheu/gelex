@@ -43,7 +43,7 @@
 #include "gelex/io/binary_writer.h"
 #include "gelex/types/genetic_mode.h"
 
-namespace gelex::genotype
+namespace gelex
 {
 
 namespace
@@ -87,8 +87,7 @@ auto load_mmapped(
     gelex::GeneticMode mode) -> MmappedStorage
 {
     MmappedStorage mapped;
-    mapped.reader
-        = std::make_unique<gelex::io::BinaryReader>(gbin_path.string());
+    mapped.reader = std::make_unique<gelex::BinaryReader>(gbin_path.string());
 
     auto geno_map
         = mapped.reader->to_map<double>(fmt::format("{}/genotype", mode));
@@ -125,15 +124,15 @@ struct GenotypeReader::EncodedChunkOutput
 
     struct Mmap
     {
-        gelex::io::BinaryWriter& writer;
-        gelex::io::SectionHandle<double> genotype_handle;
+        gelex::BinaryWriter& writer;
+        gelex::SectionHandle<double> genotype_handle;
     };
 
     explicit EncodedChunkOutput(Eigen::MatrixXd& data) : target{Memory{data}} {}
 
     EncodedChunkOutput(
-        gelex::io::BinaryWriter& writer,
-        gelex::io::SectionHandle<double> genotype_handle)
+        gelex::BinaryWriter& writer,
+        gelex::SectionHandle<double> genotype_handle)
         : target{Mmap{writer, genotype_handle}}
     {
     }
@@ -144,7 +143,7 @@ struct GenotypeReader::EncodedChunkOutput
 
 GenotypeReader::GenotypeReader(
     const std::string& bfile_prefix,
-    const dataframe::Index<std::string>& sample_index,
+    const DataFrameIndex<std::string>& sample_index,
     gelex::GenoObserver observer)
     : bed_(gelex::open_bed(bfile_prefix, sample_index)),
       observer_(std::move(observer)),
@@ -257,7 +256,7 @@ auto GenotypeReader::read_mmap(
     }
 
     {
-        gelex::io::BinaryWriter writer(gbin_path.string());
+        gelex::BinaryWriter writer(gbin_path.string());
         auto genotype_handle = writer.reserve<double>(
             fmt::format("{}/genotype", mode), sample_size_, num_variants_);
 
@@ -290,4 +289,4 @@ auto GenotypeReader::read(
     return Genotype(load_mmapped(gbin_path, mode));
 }
 
-}  // namespace gelex::genotype
+}  // namespace gelex

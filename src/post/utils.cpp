@@ -27,14 +27,14 @@
 #include "gelex/io/binary_reader.h"
 #include "gelex/post/diagnostic.h"
 
-namespace gelex::post::detail
+namespace gelex::detail
 {
 
 auto assemble_chains(
-    std::span<const ::gelex::io::BinaryReader> readers,
-    std::string_view section_path) -> stats::Chains
+    std::span<const ::gelex::BinaryReader> readers,
+    std::string_view section_path) -> Chains
 {
-    stats::Chains chains;
+    Chains chains;
     chains.reserve(readers.size());
     for (const auto& reader : readers)
     {
@@ -43,13 +43,12 @@ auto assemble_chains(
     return chains;
 }
 
-auto compute_posterior_summaries(
-    const stats::Chains& samples,
-    double hdpi_threshold) -> std::vector<ParameterDiag>
+auto compute_posterior_summaries(const Chains& samples, double hdpi_threshold)
+    -> std::vector<ParameterDiag>
 {
-    auto ess = stats::effect_sample_size(samples);
-    auto r_hat = stats::split_gelman_rubin(samples);
-    auto [intervals, medians] = stats::hpdi(samples, hdpi_threshold);
+    auto ess = effect_sample_size(samples);
+    auto r_hat = split_gelman_rubin(samples);
+    auto [intervals, medians] = hpdi(samples, hdpi_threshold);
 
     Eigen::Index n_params = samples[0].rows();
     Eigen::Index total = 0;
@@ -83,7 +82,7 @@ auto compute_posterior_summaries(
 }
 
 auto summarize_section(
-    std::span<const ::gelex::io::BinaryReader> readers,
+    std::span<const ::gelex::BinaryReader> readers,
     std::string_view section_path,
     double hdpi_threshold,
     std::string_view section,
@@ -97,7 +96,7 @@ auto summarize_section(
 }
 
 auto summarize_section(
-    std::span<const ::gelex::io::BinaryReader> readers,
+    std::span<const ::gelex::BinaryReader> readers,
     std::string_view section_path,
     double hdpi_threshold,
     std::string_view section,
@@ -113,4 +112,4 @@ auto summarize_section(
     return diags;
 }
 
-}  // namespace gelex::post::detail
+}  // namespace gelex::detail

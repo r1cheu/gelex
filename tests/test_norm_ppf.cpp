@@ -23,8 +23,8 @@
 
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
-using gelex::stats::detail::norm_cdf;
-using gelex::stats::detail::norm_ppf;
+using gelex::detail::norm_cdf;
+using gelex::detail::norm_ppf;
 
 // Reference values from scipy.stats.norm.ppf
 TEST_CASE("norm_ppf known values", "[math_utils]")

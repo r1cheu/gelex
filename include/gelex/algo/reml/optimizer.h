@@ -25,7 +25,7 @@
 #include "gelex/algo/reml/variance_calculator.h"
 #include "gelex/freq/model.h"
 
-namespace gelex::reml
+namespace gelex
 {
 
 class Optimizer
@@ -95,6 +95,6 @@ auto Optimizer::step(
     return converged_;
 }
 
-}  // namespace gelex::reml
+}  // namespace gelex
 
 #endif  // GELEX_ALGO_REML_OPTIMIZER_H_

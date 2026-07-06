@@ -144,7 +144,7 @@ auto FixedDesign::make(Eigen::Index n_samples) -> FixedDesign
     return fe;
 }
 
-auto FixedDesign::visit(infra::FieldVisitor& visitor) const -> void
+auto FixedDesign::visit(FieldVisitor& visitor) const -> void
 {
     std::vector<std::string> coeff_names;
     coeff_names.reserve(static_cast<std::size_t>(X.cols()));

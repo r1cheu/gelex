@@ -57,7 +57,7 @@ auto mode_name(GeneticMode mode) -> std::string_view
     return "unknown";
 }
 
-auto find_genetic_index(const io::BinaryReader& reader, GeneticMode kind)
+auto find_genetic_index(const BinaryReader& reader, GeneticMode kind)
     -> std::size_t
 {
     constexpr std::string_view modes_path = "genetic/modes";
@@ -80,7 +80,7 @@ auto find_genetic_index(const io::BinaryReader& reader, GeneticMode kind)
         fmt::format("samples do not contain genetic mode {}", kind));
 }
 
-auto find_genetic_block_slot(const io::BinaryReader& reader, GeneticMode kind)
+auto find_genetic_block_slot(const BinaryReader& reader, GeneticMode kind)
     -> GeneticBlockSlot
 {
     const auto target = mode_name(kind);
@@ -113,7 +113,7 @@ auto find_genetic_block_slot(const io::BinaryReader& reader, GeneticMode kind)
 
 GeneticVarianceProcessor::GeneticVarianceProcessor(
     const GeneticInput& input,
-    std::span<const io::BinaryReader> readers)
+    std::span<const BinaryReader> readers)
     : matrix_{input.genotype->matrix()}, kind_{input.kind}, n_components_{0}
 {
     const auto& ref = readers.front();
@@ -156,8 +156,8 @@ auto GeneticVarianceProcessor::process(
     if (n_components_ == 0)
     {
         gebv_chunk_.noalias() = matrix_ * beta_block;
-        last_variances_ = stats::detail::matvar(
-            gebv_chunk_, stats::detail::VarNormType::Population);
+        last_variances_
+            = detail::matvar(gebv_chunk_, detail::VarNormType::Population);
         return gebv_chunk_;
     }
 
@@ -176,13 +176,13 @@ auto GeneticVarianceProcessor::process(
         component_gebv_chunk_.noalias() = matrix_ * masked_beta_chunk_;
         auto variance_block = component_variance_chains_[chain_idx].middleCols(
             col_begin, chunk_cols);
-        variance_block.row(k - 1) = stats::detail::matvar(
-            component_gebv_chunk_, stats::detail::VarNormType::Population);
+        variance_block.row(k - 1) = detail::matvar(
+            component_gebv_chunk_, detail::VarNormType::Population);
         gebv_chunk_ += component_gebv_chunk_;
     }
 
-    last_variances_ = stats::detail::matvar(
-        gebv_chunk_, stats::detail::VarNormType::Population);
+    last_variances_
+        = detail::matvar(gebv_chunk_, detail::VarNormType::Population);
     return gebv_chunk_;
 }
 
@@ -194,7 +194,7 @@ auto GeneticVarianceProcessor::build_diagnostics(double hdpi_threshold) const
         return {};
     }
 
-    auto diags = post::detail::compute_posterior_summaries(
+    auto diags = detail::compute_posterior_summaries(
         component_variance_chains_, hdpi_threshold);
 
     for (Eigen::Index k = 0; k < n_components_; ++k)

@@ -101,8 +101,8 @@ auto open_bed_source(const std::string& bfile_prefix) -> BedSource
     const std::filesystem::path bim_path = bfile_prefix + ".bim";
     const std::filesystem::path bed_path = bfile_prefix + ".bed";
 
-    const auto num_samples = io::detail::count_total_lines(fam_path);
-    const auto num_variants = io::detail::count_total_lines(bim_path);
+    const auto num_samples = detail::count_total_lines(fam_path);
+    const auto num_variants = detail::count_total_lines(bim_path);
 
     return BedSource{bed_path, num_variants, num_samples};
 }

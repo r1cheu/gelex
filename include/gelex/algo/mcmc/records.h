@@ -40,18 +40,9 @@ namespace gelex
 class BayesState;
 class BayesModel;
 
-namespace io
-{
-
 class BinaryWriter;
 
-}  // namespace io
-
-namespace mcmc
-{
-
-using RecordResult
-    = std::variant<stats::RunningStatsResult, stats::CategoryProbResult>;
+using RecordResult = std::variant<RunningStatsResult, CategoryProbResult>;
 
 struct RecordEntry
 {
@@ -60,7 +51,7 @@ struct RecordEntry
     std::optional<std::vector<std::string>> names;
 };
 
-class Records : private infra::FieldVisitor
+class Records : private FieldVisitor
 {
    public:
     Records(Eigen::Index n_draws, std::string_view draws_path);
@@ -114,11 +105,9 @@ class Records : private infra::FieldVisitor
     std::vector<std::string> paths_;
     std::vector<std::optional<std::vector<std::string>>> names_;
     std::unordered_map<std::string, std::size_t> indices_;
-    std::unique_ptr<io::BinaryWriter> writer_;
+    std::unique_ptr<BinaryWriter> writer_;
     Eigen::Index n_draws_{};
 };
-
-}  // namespace mcmc
 
 }  // namespace gelex
 

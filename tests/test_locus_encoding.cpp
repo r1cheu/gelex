@@ -22,9 +22,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include "gelex/data/genotype_method.h"
 #include "gelex/data/locus_encoding.h"
 #include "gelex/data/locus_stats.h"
-#include "gelex/data/genotype_method.h"
 #include "gelex/types/genetic_mode.h"
 
 using Catch::Matchers::WithinAbs;
@@ -40,10 +40,8 @@ TEST_CASE("encoding_spec_from_method maps genotype methods", "[data][encoding]")
 {
     SECTION("standardize uses empirical raw coding")
     {
-        const gelex::EncodingSpec spec{
-            gelex::encoding_spec_from_method(
-                gelex::GeneticMode::D,
-                gelex::GenotypeMethod::Standardize)};
+        const gelex::EncodingSpec spec{gelex::encoding_spec_from_method(
+            gelex::GeneticMode::D, gelex::GenotypeMethod::Standardize)};
 
         REQUIRE(spec.effect == gelex::GeneticMode::D);
         REQUIRE(spec.dominance_code == gelex::DominanceCode::Het);
@@ -53,10 +51,8 @@ TEST_CASE("encoding_spec_from_method maps genotype methods", "[data][encoding]")
 
     SECTION("center hwe uses theoretical raw coding")
     {
-        const gelex::EncodingSpec spec{
-            gelex::encoding_spec_from_method(
-                gelex::GeneticMode::D,
-                gelex::GenotypeMethod::CenterHWE)};
+        const gelex::EncodingSpec spec{gelex::encoding_spec_from_method(
+            gelex::GeneticMode::D, gelex::GenotypeMethod::CenterHWE)};
 
         REQUIRE(spec.effect == gelex::GeneticMode::D);
         REQUIRE(spec.dominance_code == gelex::DominanceCode::Het);
@@ -66,10 +62,8 @@ TEST_CASE("encoding_spec_from_method maps genotype methods", "[data][encoding]")
 
     SECTION("orthogonal standardize uses HWE dominance code")
     {
-        const gelex::EncodingSpec spec{
-            gelex::encoding_spec_from_method(
-                gelex::GeneticMode::D,
-                gelex::GenotypeMethod::OrthStandardize)};
+        const gelex::EncodingSpec spec{gelex::encoding_spec_from_method(
+            gelex::GeneticMode::D, gelex::GenotypeMethod::OrthStandardize)};
 
         REQUIRE(spec.effect == gelex::GeneticMode::D);
         REQUIRE(spec.dominance_code == gelex::DominanceCode::HWE);
@@ -79,10 +73,8 @@ TEST_CASE("encoding_spec_from_method maps genotype methods", "[data][encoding]")
 
     SECTION("noia center uses NOIA dominance code")
     {
-        const gelex::EncodingSpec spec{
-            gelex::encoding_spec_from_method(
-                gelex::GeneticMode::D,
-                gelex::GenotypeMethod::NOIACenter)};
+        const gelex::EncodingSpec spec{gelex::encoding_spec_from_method(
+            gelex::GeneticMode::D, gelex::GenotypeMethod::NOIACenter)};
 
         REQUIRE(spec.effect == gelex::GeneticMode::D);
         REQUIRE(spec.dominance_code == gelex::DominanceCode::NOIA);
@@ -91,13 +83,14 @@ TEST_CASE("encoding_spec_from_method maps genotype methods", "[data][encoding]")
     }
 }
 
-TEST_CASE("compute_locus_stats counts PLINK genotype classes", "[data][encoding]")
+TEST_CASE(
+    "compute_locus_stats counts PLINK genotype classes",
+    "[data][encoding]")
 {
     const Eigen::VectorXd locus{
         {0.0, 1.0, 2.0, 1.0, std::numeric_limits<double>::quiet_NaN()}};
 
-    const gelex::LocusStats stats{
-        gelex::compute_locus_stats<double>(locus)};
+    const gelex::LocusStats stats{gelex::compute_locus_stats<double>(locus)};
 
     REQUIRE(stats.nA2A2 == 1);
     REQUIRE(stats.nA1A2 == 2);
@@ -111,13 +104,12 @@ TEST_CASE("compute_locus_stats counts PLINK genotype classes", "[data][encoding]
     REQUIRE_THAT(stats.A1freq(), WithinRel(0.5, TOLERANCE));
 }
 
-TEST_CASE("make_locus_encoding fits additive center-scale code", "[data][encoding]")
+TEST_CASE(
+    "make_locus_encoding fits additive center-scale code",
+    "[data][encoding]")
 {
     const gelex::LocusStats stats{
-        .nA2A2 = 1,
-        .nA1A2 = 2,
-        .nA1A1 = 1,
-        .n_missing = 1};
+        .nA2A2 = 1, .nA1A2 = 2, .nA1A1 = 1, .n_missing = 1};
     const gelex::EncodingSpec spec{
         .effect = gelex::GeneticMode::A,
         .dominance_code = gelex::DominanceCode::NOIA,
@@ -139,14 +131,17 @@ TEST_CASE("make_locus_encoding fits additive center-scale code", "[data][encodin
     REQUIRE_THAT(encoding.missing_encoded_value, WithinAbs(0.0, TOLERANCE));
 }
 
-TEST_CASE("locus encoding additive modes match genotype processor values", "[data][encoding]")
+TEST_CASE(
+    "locus encoding additive modes match genotype processor values",
+    "[data][encoding]")
 {
     SECTION("empirical center-scale")
     {
         Eigen::MatrixXd genotypes{{0.0}, {1.0}, {2.0}, {1.0}, {0.0}};
-        const EncodingSpec spec{
-            encoding_spec_from_method(GeneticMode::A, GenotypeMethod::Standardize)};
-        const LociEncoding encoding{detail::make_loci_encoding<double>(genotypes, spec)};
+        const EncodingSpec spec{encoding_spec_from_method(
+            GeneticMode::A, GenotypeMethod::Standardize)};
+        const LociEncoding encoding{
+            detail::make_loci_encoding<double>(genotypes, spec)};
         const double sd{std::sqrt(0.56)};
         const Eigen::MatrixXd expected{
             {-0.8 / sd}, {0.2 / sd}, {1.2 / sd}, {0.2 / sd}, {-0.8 / sd}};
@@ -165,7 +160,8 @@ TEST_CASE("locus encoding additive modes match genotype processor values", "[dat
         Eigen::MatrixXd genotypes{{0.0}, {1.0}, {2.0}, {1.0}, {0.0}};
         const EncodingSpec spec{
             encoding_spec_from_method(GeneticMode::A, GenotypeMethod::Center)};
-        const LociEncoding encoding{detail::make_loci_encoding<double>(genotypes, spec)};
+        const LociEncoding encoding{
+            detail::make_loci_encoding<double>(genotypes, spec)};
         const Eigen::MatrixXd expected{{-0.8}, {0.2}, {1.2}, {0.2}, {-0.8}};
 
         detail::transform_inplace<double>(genotypes, encoding);
@@ -179,9 +175,9 @@ TEST_CASE("locus encoding additive modes match genotype processor values", "[dat
     {
         Eigen::MatrixXd genotypes{{0.0}, {1.0}, {2.0}, {1.0}, {0.0}};
         const EncodingSpec spec{encoding_spec_from_method(
-            GeneticMode::A,
-            GenotypeMethod::StandardizeHWE)};
-        const LociEncoding encoding{detail::make_loci_encoding<double>(genotypes, spec)};
+            GeneticMode::A, GenotypeMethod::StandardizeHWE)};
+        const LociEncoding encoding{
+            detail::make_loci_encoding<double>(genotypes, spec)};
         const double sd{std::sqrt(2.0 * 0.4 * 0.6)};
         const Eigen::MatrixXd expected{
             {-0.8 / sd}, {0.2 / sd}, {1.2 / sd}, {0.2 / sd}, {-0.8 / sd}};
@@ -195,14 +191,17 @@ TEST_CASE("locus encoding additive modes match genotype processor values", "[dat
     }
 }
 
-TEST_CASE("locus encoding dominance modes match genotype processor values", "[data][encoding]")
+TEST_CASE(
+    "locus encoding dominance modes match genotype processor values",
+    "[data][encoding]")
 {
     SECTION("heterozygote empirical center-scale")
     {
         Eigen::MatrixXd genotypes{{0.0}, {1.0}, {2.0}, {1.0}, {0.0}, {2.0}};
-        const EncodingSpec spec{
-            encoding_spec_from_method(GeneticMode::D, GenotypeMethod::Standardize)};
-        const LociEncoding encoding{detail::make_loci_encoding<double>(genotypes, spec)};
+        const EncodingSpec spec{encoding_spec_from_method(
+            GeneticMode::D, GenotypeMethod::Standardize)};
+        const LociEncoding encoding{
+            detail::make_loci_encoding<double>(genotypes, spec)};
         const double mean{1.0 / 3.0};
         const double sd{std::sqrt(2.0 / 9.0)};
         const Eigen::MatrixXd expected{
@@ -225,12 +224,12 @@ TEST_CASE("locus encoding dominance modes match genotype processor values", "[da
     {
         Eigen::MatrixXd genotypes{{0.0}, {1.0}, {2.0}, {1.0}, {0.0}};
         const EncodingSpec spec{encoding_spec_from_method(
-            GeneticMode::D,
-            GenotypeMethod::StandardizeHWE)};
-        const LociEncoding encoding{detail::make_loci_encoding<double>(genotypes, spec)};
+            GeneticMode::D, GenotypeMethod::StandardizeHWE)};
+        const LociEncoding encoding{
+            detail::make_loci_encoding<double>(genotypes, spec)};
         const double mean{2.0 * 0.4 * 0.6};
-        const double sd{std::sqrt(
-            2.0 * 0.4 * 0.6 * ((0.4 * 0.4) + (0.6 * 0.6)))};
+        const double sd{
+            std::sqrt(2.0 * 0.4 * 0.6 * ((0.4 * 0.4) + (0.6 * 0.6)))};
         const Eigen::MatrixXd expected{
             {-mean / sd},
             {(1.0 - mean) / sd},
@@ -249,10 +248,12 @@ TEST_CASE("locus encoding dominance modes match genotype processor values", "[da
     SECTION("orthogonal empirical center")
     {
         Eigen::MatrixXd genotypes{{0.0}, {1.0}, {2.0}, {1.0}, {0.0}};
-        const EncodingSpec spec{
-            encoding_spec_from_method(GeneticMode::D, GenotypeMethod::OrthCenter)};
-        const LociEncoding encoding{detail::make_loci_encoding<double>(genotypes, spec)};
-        const Eigen::MatrixXd expected{{-0.24}, {0.56}, {-0.64}, {0.56}, {-0.24}};
+        const EncodingSpec spec{encoding_spec_from_method(
+            GeneticMode::D, GenotypeMethod::OrthCenter)};
+        const LociEncoding encoding{
+            detail::make_loci_encoding<double>(genotypes, spec)};
+        const Eigen::MatrixXd expected{
+            {-0.24}, {0.56}, {-0.64}, {0.56}, {-0.24}};
 
         detail::transform_inplace<double>(genotypes, encoding);
 
@@ -265,9 +266,9 @@ TEST_CASE("locus encoding dominance modes match genotype processor values", "[da
     {
         Eigen::MatrixXd genotypes{{0.0}, {1.0}, {2.0}, {1.0}, {0.0}};
         const EncodingSpec spec{encoding_spec_from_method(
-            GeneticMode::D,
-            GenotypeMethod::OrthStandardize)};
-        const LociEncoding encoding{detail::make_loci_encoding<double>(genotypes, spec)};
+            GeneticMode::D, GenotypeMethod::OrthStandardize)};
+        const LociEncoding encoding{
+            detail::make_loci_encoding<double>(genotypes, spec)};
         const double sd{std::sqrt(0.2304)};
         const Eigen::MatrixXd expected{
             {-0.24 / sd}, {0.56 / sd}, {-0.64 / sd}, {0.56 / sd}, {-0.24 / sd}};
@@ -284,9 +285,9 @@ TEST_CASE("locus encoding dominance modes match genotype processor values", "[da
     {
         Eigen::MatrixXd genotypes{{0.0}, {1.0}, {2.0}, {1.0}, {0.0}};
         const EncodingSpec spec{encoding_spec_from_method(
-            GeneticMode::D,
-            GenotypeMethod::OrthStandardizeHWE)};
-        const LociEncoding encoding{detail::make_loci_encoding<double>(genotypes, spec)};
+            GeneticMode::D, GenotypeMethod::OrthStandardizeHWE)};
+        const LociEncoding encoding{
+            detail::make_loci_encoding<double>(genotypes, spec)};
         const double sd{2.0 * 0.4 * 0.6};
         const Eigen::MatrixXd expected{
             {-0.32 / sd}, {0.48 / sd}, {-0.72 / sd}, {0.48 / sd}, {-0.32 / sd}};
@@ -300,15 +301,17 @@ TEST_CASE("locus encoding dominance modes match genotype processor values", "[da
     }
 }
 
-TEST_CASE("locus encoding NOIA modes match genotype processor values", "[data][encoding]")
+TEST_CASE(
+    "locus encoding NOIA modes match genotype processor values",
+    "[data][encoding]")
 {
     SECTION("additive center-scale")
     {
         Eigen::MatrixXd genotypes{{0.0}, {1.0}, {2.0}, {1.0}, {0.0}};
         const EncodingSpec spec{encoding_spec_from_method(
-            GeneticMode::A,
-            GenotypeMethod::NOIAStandardize)};
-        const LociEncoding encoding{detail::make_loci_encoding<double>(genotypes, spec)};
+            GeneticMode::A, GenotypeMethod::NOIAStandardize)};
+        const LociEncoding encoding{
+            detail::make_loci_encoding<double>(genotypes, spec)};
         const double sd{std::sqrt(0.56)};
         const Eigen::MatrixXd expected{
             {-0.8 / sd}, {0.2 / sd}, {1.2 / sd}, {0.2 / sd}, {-0.8 / sd}};
@@ -324,13 +327,15 @@ TEST_CASE("locus encoding NOIA modes match genotype processor values", "[data][e
     SECTION("dominance center")
     {
         Eigen::MatrixXd genotypes{{0.0}, {1.0}, {2.0}, {1.0}, {0.0}};
-        const EncodingSpec spec{
-            encoding_spec_from_method(GeneticMode::D, GenotypeMethod::NOIACenter)};
-        const LociEncoding encoding{detail::make_loci_encoding<double>(genotypes, spec)};
+        const EncodingSpec spec{encoding_spec_from_method(
+            GeneticMode::D, GenotypeMethod::NOIACenter)};
+        const LociEncoding encoding{
+            detail::make_loci_encoding<double>(genotypes, spec)};
         const double cA1A1{-0.32 / 0.56};
         const double cA1A2{0.32 / 0.56};
         const double cA2A2{-0.16 / 0.56};
-        const Eigen::MatrixXd expected{{cA2A2}, {cA1A2}, {cA1A1}, {cA1A2}, {cA2A2}};
+        const Eigen::MatrixXd expected{
+            {cA2A2}, {cA1A2}, {cA1A1}, {cA1A2}, {cA2A2}};
 
         detail::transform_inplace<double>(genotypes, encoding);
 
@@ -343,18 +348,21 @@ TEST_CASE("locus encoding NOIA modes match genotype processor values", "[data][e
     {
         Eigen::MatrixXd genotypes{{0.0}, {1.0}, {2.0}, {1.0}, {0.0}};
         const EncodingSpec spec{encoding_spec_from_method(
-            GeneticMode::D,
-            GenotypeMethod::NOIAStandardize)};
-        const LociEncoding encoding{detail::make_loci_encoding<double>(genotypes, spec)};
+            GeneticMode::D, GenotypeMethod::NOIAStandardize)};
+        const LociEncoding encoding{
+            detail::make_loci_encoding<double>(genotypes, spec)};
         const double cA1A1{-0.32 / 0.56};
         const double cA1A2{0.32 / 0.56};
         const double cA2A2{-0.16 / 0.56};
         const double sd{std::sqrt(
-            ((2.0 * cA2A2 * cA2A2) + (2.0 * cA1A2 * cA1A2)
-             + (cA1A1 * cA1A1))
+            ((2.0 * cA2A2 * cA2A2) + (2.0 * cA1A2 * cA1A2) + (cA1A1 * cA1A1))
             / 5.0)};
         const Eigen::MatrixXd expected{
-            {cA2A2 / sd}, {cA1A2 / sd}, {cA1A1 / sd}, {cA1A2 / sd}, {cA2A2 / sd}};
+            {cA2A2 / sd},
+            {cA1A2 / sd},
+            {cA1A1 / sd},
+            {cA1A2 / sd},
+            {cA2A2 / sd}};
 
         detail::transform_inplace<double>(genotypes, encoding);
 
@@ -365,13 +373,22 @@ TEST_CASE("locus encoding NOIA modes match genotype processor values", "[data][e
 
     SECTION("additive and dominance center codes are sample-orthogonal")
     {
-        Eigen::MatrixXd additive{{2.0}, {2.0}, {2.0}, {1.0}, {0.0},
-                                 {0.0}, {0.0}, {0.0}, {0.0}, {0.0}};
+        Eigen::MatrixXd additive{
+            {2.0},
+            {2.0},
+            {2.0},
+            {1.0},
+            {0.0},
+            {0.0},
+            {0.0},
+            {0.0},
+            {0.0},
+            {0.0}};
         Eigen::MatrixXd dominance{additive};
-        const EncodingSpec additive_spec{
-            encoding_spec_from_method(GeneticMode::A, GenotypeMethod::NOIACenter)};
-        const EncodingSpec dominance_spec{
-            encoding_spec_from_method(GeneticMode::D, GenotypeMethod::NOIACenter)};
+        const EncodingSpec additive_spec{encoding_spec_from_method(
+            GeneticMode::A, GenotypeMethod::NOIACenter)};
+        const EncodingSpec dominance_spec{encoding_spec_from_method(
+            GeneticMode::D, GenotypeMethod::NOIACenter)};
         const LociEncoding additive_encoding{
             detail::make_loci_encoding<double>(additive, additive_spec)};
         const LociEncoding dominance_encoding{
@@ -380,19 +397,22 @@ TEST_CASE("locus encoding NOIA modes match genotype processor values", "[data][e
         detail::transform_inplace<double>(additive, additive_encoding);
         detail::transform_inplace<double>(dominance, dominance_encoding);
 
-        REQUIRE_THAT(additive.col(0).dot(dominance.col(0)), WithinAbs(0.0, TOLERANCE));
+        REQUIRE_THAT(
+            additive.col(0).dot(dominance.col(0)), WithinAbs(0.0, TOLERANCE));
     }
 }
 
-TEST_CASE("locus encoding skips monomorphic and invalid loci", "[data][encoding]")
+TEST_CASE(
+    "locus encoding skips monomorphic and invalid loci",
+    "[data][encoding]")
 {
     SECTION("additive monomorphic")
     {
         Eigen::MatrixXd genotypes{{2.0}, {2.0}, {2.0}, {2.0}, {2.0}};
         const EncodingSpec spec{encoding_spec_from_method(
-            GeneticMode::A,
-            GenotypeMethod::Standardize)};
-        const LociEncoding encoding{detail::make_loci_encoding<double>(genotypes, spec)};
+            GeneticMode::A, GenotypeMethod::Standardize)};
+        const LociEncoding encoding{
+            detail::make_loci_encoding<double>(genotypes, spec)};
 
         detail::transform_inplace<double>(genotypes, encoding);
 
@@ -404,9 +424,9 @@ TEST_CASE("locus encoding skips monomorphic and invalid loci", "[data][encoding]
     {
         Eigen::MatrixXd genotypes{{0.0}, {2.0}, {0.0}, {2.0}};
         const EncodingSpec spec{encoding_spec_from_method(
-            GeneticMode::D,
-            GenotypeMethod::NOIAStandardize)};
-        const LociEncoding encoding{detail::make_loci_encoding<double>(genotypes, spec)};
+            GeneticMode::D, GenotypeMethod::NOIAStandardize)};
+        const LociEncoding encoding{
+            detail::make_loci_encoding<double>(genotypes, spec)};
 
         detail::transform_inplace<double>(genotypes, encoding);
 
@@ -419,9 +439,9 @@ TEST_CASE("locus encoding skips monomorphic and invalid loci", "[data][encoding]
         const double nan_value{std::numeric_limits<double>::quiet_NaN()};
         Eigen::MatrixXd genotypes{{0.0}, {1.0}, {nan_value}, {2.0}, {1.0}};
         const EncodingSpec spec{encoding_spec_from_method(
-            GeneticMode::A,
-            GenotypeMethod::NOIAStandardize)};
-        const LociEncoding encoding{detail::make_loci_encoding<double>(genotypes, spec)};
+            GeneticMode::A, GenotypeMethod::NOIAStandardize)};
+        const LociEncoding encoding{
+            detail::make_loci_encoding<double>(genotypes, spec)};
 
         detail::transform_inplace<double>(genotypes, encoding);
 
@@ -495,9 +515,7 @@ TEST_CASE(
     REQUIRE(genotypes.col(2).isZero(TOLERANCE));
 }
 
-TEST_CASE(
-    "transform_inplace zeroes skipped columns",
-    "[data][encoding]")
+TEST_CASE("transform_inplace zeroes skipped columns", "[data][encoding]")
 {
     Eigen::MatrixXd genotypes{
         {0.0, 2.0, 0.0},
@@ -537,9 +555,14 @@ TEST_CASE("encode APIs fit and transform genotype matrices", "[data][encoding]")
     Eigen::MatrixXd encoded{Eigen::MatrixXd::Zero(raw.rows(), raw.cols())};
 
     const gelex::LociEncoding inplace_encoding{gelex::encode_inplace<double>(
-        inplace_genotypes, gelex::GeneticMode::A, gelex::GenotypeMethod::Standardize)};
+        inplace_genotypes,
+        gelex::GeneticMode::A,
+        gelex::GenotypeMethod::Standardize)};
     const gelex::LociEncoding into_encoding{gelex::encode_into<double, double>(
-        raw, encoded, gelex::GeneticMode::A, gelex::GenotypeMethod::Standardize)};
+        raw,
+        encoded,
+        gelex::GeneticMode::A,
+        gelex::GenotypeMethod::Standardize)};
 
     REQUIRE(inplace_encoding.loci.front().valid);
     REQUIRE_FALSE(inplace_encoding.loci[1].valid);

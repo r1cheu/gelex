@@ -26,7 +26,7 @@ namespace gelex
 
 class BayesModel;
 
-namespace mcmc::detail
+namespace detail
 {
 
 class PveComputer
@@ -47,7 +47,7 @@ class PveComputer
     Eigen::RowVectorXd cov_ad_;
 };
 
-}  // namespace mcmc::detail
+}  // namespace detail
 
 }  // namespace gelex
 

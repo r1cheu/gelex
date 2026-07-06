@@ -27,10 +27,7 @@
 namespace gelex
 {
 
-namespace infra
-{
 class FieldVisitor;
-}
 
 struct QuantitativeCovariate
 {
@@ -78,7 +75,7 @@ struct FixedDesign
 
     static auto make(Eigen::Index n_samples) -> FixedDesign;
 
-    auto visit(infra::FieldVisitor& visitor) const -> void;
+    auto visit(FieldVisitor& visitor) const -> void;
 };
 
 }  // namespace gelex

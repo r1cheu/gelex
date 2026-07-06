@@ -32,8 +32,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gelex/data/genotype_reader.h"
 #include "gelex/data/genotype_method.h"
+#include "gelex/data/genotype_reader.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/io/binary_reader.h"
@@ -48,8 +48,8 @@ namespace
 
 namespace fs = std::filesystem;
 using namespace gelex;
-using namespace gelex::io;
-using namespace gelex::genotype;
+using namespace gelex;
+using namespace gelex;
 
 }  // namespace
 
@@ -412,7 +412,9 @@ TEST_CASE("Container accepts long section paths", "[binary_container]")
     REQUIRE(reader.to_map<double>(long_path).isApprox(expected));
 }
 
-TEST_CASE("BinaryWriter close reports incomplete sections", "[binary_container]")
+TEST_CASE(
+    "BinaryWriter close reports incomplete sections",
+    "[binary_container]")
 {
     test::FileFixture fixture;
     const auto& dir = fixture.get_test_dir();
@@ -435,9 +437,8 @@ TEST_CASE("BinaryWriter close commits complete container", "[binary_container]")
     writer.close();
 
     BinaryReader reader(container_path.string());
-    REQUIRE(
-        reader.to_map<double>("state/fixed/coeffs")
-            .isApprox(Eigen::MatrixXd{{1.0, 2.0}}));
+    REQUIRE(reader.to_map<double>("state/fixed/coeffs")
+                .isApprox(Eigen::MatrixXd{{1.0, 2.0}}));
 }
 
 TEST_CASE(
@@ -550,8 +551,8 @@ TEST_CASE(
         {
             UNSCOPED_INFO(
                 "Var diff at index " << first_diff
-                                      << ": mat=" << mat_var(first_diff)
-                                      << " map=" << map_var(first_diff));
+                                     << ": mat=" << mat_var(first_diff)
+                                     << " map=" << map_var(first_diff));
         }
         REQUIRE(all_equal);
     }
@@ -576,9 +577,9 @@ TEST_CASE(
         if (!all_equal)
         {
             UNSCOPED_INFO(
-                "A1 freq diff at index "
-                << first_diff << ": mat=" << mat_freq(first_diff)
-                << " map=" << map_freq(first_diff));
+                "A1 freq diff at index " << first_diff
+                                         << ": mat=" << mat_freq(first_diff)
+                                         << " map=" << map_freq(first_diff));
         }
         REQUIRE(all_equal);
     }

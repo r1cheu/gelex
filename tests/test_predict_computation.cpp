@@ -26,16 +26,16 @@
 #include "gelex/data/genotype_method.h"
 #include "gelex/io/locistats/reader.h"
 #include "gelex/io/predict/input_reader.h"
-#include "gelex/predict/types.h"
 #include "gelex/predict/compute.h"
 #include "gelex/predict/standardize.h"
+#include "gelex/predict/types.h"
 
+using gelex::Coefficients;
+using gelex::GenotypeData;
 using gelex::LociStats;
-using gelex::predict::Coefficients;
-using gelex::predict::GenotypeData;
-using gelex::predict::SbinData;
-using gelex::predict::SnpEffects;
-using gelex::predict::standardize_genotypes;
+using gelex::SbinData;
+using gelex::SnpEffects;
+using gelex::standardize_genotypes;
 
 namespace
 {
@@ -108,7 +108,7 @@ TEST_CASE(
     // RawPolicy for Dom: 2 -> 0, others unchanged
     // add input: [[0, 2], [1, 1], [NaN, 0]]
     // add mean=[0.5, 1.0], stddev=[0.5, 1.0]
-    // add expected: [[-1,1],[1,0],[0,-1]]  (NaN -> 0 after center/scale)
+    // add expected: [[-1,1],[1,0],[0,-1]] (NaN -> 0 after center/scale)
     //
     // dom input same matrix; after RawPolicy: [[0, 0], [1, 1], [NaN, 0]]
     // dom mean=[0.5, 0.5], stddev=[0.5, 0.5]
@@ -149,9 +149,9 @@ TEST_CASE(
     "[predict][standardize]")
 {
     // OrthogonalPolicy for Dom:
-    //   2 -> 4*maf - 2
-    //   1 -> 2*maf
-    //   0 -> 0
+    // 2 -> 4*maf - 2
+    // 1 -> 2*maf
+    // 0 -> 0
     // maf = add_mean / 2
     //
     // add input: [[0, 2], [1, 1]]
@@ -160,8 +160,8 @@ TEST_CASE(
     //
     // dom input: [[1, 0], [0, 1]]
     // maf0 = 0.5/2 = 0.25, maf1 = 1.5/2 = 0.75
-    // OrthEncode col0: 1 -> 2*0.25=0.5, 0 -> 0.0  => [0.5, 0.0]
-    // OrthEncode col1: 0 -> 0.0, 1 -> 2*0.75=1.5  => [0.0, 1.5]
+    // OrthEncode col0: 1 -> 2*0.25=0.5, 0 -> 0.0 => [0.5, 0.0]
+    // OrthEncode col1: 0 -> 0.0, 1 -> 2*0.75=1.5 => [0.0, 1.5]
     // dom mean=[0.25, 0.75], stddev=[0.25, 0.75]
     // dom expected col0: (0.5-0.25)/0.25=1.0, (0.0-0.25)/0.25=-1.0
     // dom expected col1: (0.0-0.75)/0.75=-1.0, (1.5-0.75)/0.75=1.0
@@ -209,7 +209,7 @@ TEST_CASE("compute_gebv: additive only", "[predict][compute]")
     SnpEffects effects;
     effects.add = Eigen::VectorXd{{0.5, -0.5}};
 
-    const auto result = gelex::predict::compute_gebv(geno, effects);
+    const auto result = gelex::compute_gebv(geno, effects);
 
     Eigen::VectorXd expected_add{{-0.5, -0.5}};
     REQUIRE(result.add_predictions.isApprox(expected_add));
@@ -234,7 +234,7 @@ TEST_CASE("compute_gebv: additive + dominance", "[predict][compute]")
     effects.add = Eigen::VectorXd{{1.0, 2.0}};
     effects.dom = Eigen::VectorXd{{0.1, 0.2}};
 
-    const auto result = gelex::predict::compute_gebv(geno, effects);
+    const auto result = gelex::compute_gebv(geno, effects);
 
     Eigen::VectorXd expected_add{{1.0, 2.0}};
     Eigen::VectorXd expected_dom{{0.15, 0.15}};
@@ -259,8 +259,8 @@ TEST_CASE("compute_covariate_effects: intercept only", "[predict][compute]")
     coefficients.names = {"Intercept"};
     coefficients.values = Eigen::VectorXd{{2.5}};
 
-    const auto result = gelex::predict::compute_covariate_effects(
-        covariates, coefficients);
+    const auto result
+        = gelex::compute_covariate_effects(covariates, coefficients);
 
     Eigen::VectorXd expected_total{{2.5, 2.5, 2.5}};
     REQUIRE(result.total.isApprox(expected_total));
@@ -283,8 +283,8 @@ TEST_CASE(
     coefficients.names = {"Intercept", "Age", "Sex_M"};
     coefficients.values = Eigen::VectorXd{{1.0, 0.2, -0.3}};
 
-    const auto result = gelex::predict::compute_covariate_effects(
-        covariates, coefficients);
+    const auto result
+        = gelex::compute_covariate_effects(covariates, coefficients);
 
     Eigen::VectorXd expected_total{{5.7, 7.0}};
     REQUIRE(result.total.isApprox(expected_total));

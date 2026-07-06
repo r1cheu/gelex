@@ -23,7 +23,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex::stats
+namespace gelex
 {
 
 template <std::floating_point T>
@@ -91,6 +91,6 @@ class ScaledInvChi2Sampler
     std::chi_squared_distribution<T> chisq_{T{1}};
 };
 
-}  // namespace gelex::stats
+}  // namespace gelex
 
 #endif  // GELEX_INFRA_STATS_SCALED_INV_CHI2_SAMPLER_H_

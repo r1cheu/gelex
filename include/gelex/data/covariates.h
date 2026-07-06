@@ -30,22 +30,21 @@ namespace gelex
 {
 
 [[nodiscard]] auto make_quantitative_covariate(
-    const dataframe::DataFrame<std::string>& frame) -> QuantitativeCovariate;
+    const DataFrame<std::string>& frame) -> QuantitativeCovariate;
 
-[[nodiscard]] auto make_discrete_covariate(
-    const dataframe::DataFrame<std::string>& frame) -> DiscreteCovariate;
+[[nodiscard]] auto make_discrete_covariate(const DataFrame<std::string>& frame)
+    -> DiscreteCovariate;
 
-[[nodiscard]] auto make_random_designs(
-    const dataframe::DataFrame<std::string>& frame)
+[[nodiscard]] auto make_random_designs(const DataFrame<std::string>& frame)
     -> std::vector<freq::RandomDesign>;
 
 [[nodiscard]] auto make_quantitative_random_design(
-    const dataframe::DataFrame<std::string>& frame,
+    const DataFrame<std::string>& frame,
     std::string name) -> freq::RandomDesign;
 
 [[nodiscard]] auto make_grm_designs(
     std::span<const std::string> prefixes,
-    const dataframe::Index<std::string>&) -> std::vector<freq::RandomDesign>;
+    const DataFrameIndex<std::string>&) -> std::vector<freq::RandomDesign>;
 
 }  // namespace gelex
 

@@ -69,13 +69,13 @@ auto JointTester::run(const RemlResult& reml) -> TestResults
 
     encode_into<double, double>(raw_, Z_d_, GeneticMode::D, method_);
 
-    // W = P * Z_a  →  cross-products involving Z_a
+    // W = P * Z_a → cross-products involving Z_a
     W_.noalias() = reml.P * Z_a_;
     add_.zt_Pr.noalias() = Z_a_.transpose() * reml.Py;
     add_.zt_Pz = (Z_a_.transpose() * W_).diagonal();
     zt_a_Pzd_ = (Z_d_.transpose() * W_).diagonal();
 
-    // W = P * Z_d  →  cross-products involving Z_d
+    // W = P * Z_d → cross-products involving Z_d
     W_.noalias() = reml.P * Z_d_;
     dom_.zt_Pr.noalias() = Z_d_.transpose() * reml.Py;
     dom_.zt_Pz = (Z_d_.transpose() * W_).diagonal();
@@ -123,27 +123,26 @@ auto JointTester::run(const RemlResult& reml) -> TestResults
     }
 
     // per-effect PVE
-    add_.pve = stats::detail::matvar(
-                   Z_a_ * add_.beta.asDiagonal(),
-                   stats::detail::VarNormType::Population)
-                   .transpose()
-                   .array()
-               / reml.Vp;
-    dom_.pve = stats::detail::matvar(
-                   Z_d_ * dom_.beta.asDiagonal(),
-                   stats::detail::VarNormType::Population)
-                   .transpose()
-                   .array()
-               / reml.Vp;
+    add_.pve
+        = detail::matvar(
+              Z_a_ * add_.beta.asDiagonal(), detail::VarNormType::Population)
+              .transpose()
+              .array()
+          / reml.Vp;
+    dom_.pve
+        = detail::matvar(
+              Z_d_ * dom_.beta.asDiagonal(), detail::VarNormType::Population)
+              .transpose()
+              .array()
+          / reml.Vp;
 
     // total PVE: var(Z_a * beta_a + Z_d * beta_d) / Vp
     Eigen::MatrixXd pred
         = Z_a_ * add_.beta.asDiagonal() + Z_d_ * dom_.beta.asDiagonal();
-    total_pve_
-        = stats::detail::matvar(pred, stats::detail::VarNormType::Population)
-              .transpose()
-              .array()
-          / reml.Vp;
+    total_pve_ = detail::matvar(pred, detail::VarNormType::Population)
+                     .transpose()
+                     .array()
+                 / reml.Vp;
 
     const auto n_snps = static_cast<size_t>(n);
     return {

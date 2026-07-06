@@ -26,31 +26,31 @@
 #include "gelex/io/binary_reader.h"
 #include "gelex/post/diagnostic.h"
 
-namespace gelex::post::detail
+namespace gelex::detail
 {
 
 [[nodiscard]] auto assemble_chains(
-    std::span<const ::gelex::io::BinaryReader> readers,
-    std::string_view section_path) -> stats::Chains;
+    std::span<const BinaryReader> readers,
+    std::string_view section_path) -> Chains;
 
 [[nodiscard]] auto compute_posterior_summaries(
-    const stats::Chains& samples,
+    const Chains& samples,
     double hdpi_threshold) -> std::vector<ParameterDiag>;
 
 [[nodiscard]] auto summarize_section(
-    std::span<const ::gelex::io::BinaryReader> readers,
+    std::span<const BinaryReader> readers,
     std::string_view section_path,
     double hdpi_threshold,
     std::string_view section,
     std::string_view name) -> ParameterDiag;
 
 [[nodiscard]] auto summarize_section(
-    std::span<const ::gelex::io::BinaryReader> readers,
+    std::span<const BinaryReader> readers,
     std::string_view section_path,
     double hdpi_threshold,
     std::string_view section,
     std::span<const std::string> names) -> std::vector<ParameterDiag>;
 
-}  // namespace gelex::post::detail
+}  // namespace gelex::detail
 
 #endif  // GELEX_POST_DETAIL_UTILS_H_

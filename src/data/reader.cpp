@@ -43,10 +43,10 @@ auto lower_triangle_index(size_t i, size_t j) -> size_t
 }
 
 auto mmap_and_check_size(const std::string& path, size_t expected_size)
-    -> gelex::io::MappedFile
+    -> gelex::MappedFile
 {
     std::error_code ec;
-    gelex::io::MappedFile mmap;
+    gelex::MappedFile mmap;
     mmap.map(path, ec);
     if (ec)
     {
@@ -67,8 +67,8 @@ auto mmap_and_check_size(const std::string& path, size_t expected_size)
 }
 
 auto create_index_mapping(
-    const gelex::dataframe::Index<std::string>& source_indices,
-    const gelex::dataframe::Index<std::string>& target_indices)
+    const gelex::DataFrameIndex<std::string>& source_indices,
+    const gelex::DataFrameIndex<std::string>& target_indices)
     -> std::vector<std::pair<Eigen::Index, Eigen::Index>>
 {
     std::vector<std::pair<Eigen::Index, Eigen::Index>> idx_mapping;
@@ -92,7 +92,7 @@ auto create_index_mapping(
 
 auto detect_delimiter(const std::filesystem::path& path) -> char
 {
-    auto file = gelex::io::detail::open_file<std::ifstream>(path, std::ios::in);
+    auto file = gelex::detail::open_file<std::ifstream>(path, std::ios::in);
     std::string line;
     std::getline(file, line);
     if (line.contains('\t'))
@@ -114,71 +114,67 @@ auto detect_delimiter(const std::filesystem::path& path) -> char
 namespace gelex
 {
 
-auto read_fam(const std::filesystem::path& path)
-    -> dataframe::DataFrame<std::string>
+auto read_fam(const std::filesystem::path& path) -> DataFrame<std::string>
 {
-    using enum dataframe::ColumnType;
+    using enum ColumnType;
     constexpr std::array SCHEMA = {String, String, Int, String};
-    dataframe::ReadOptions options;
+    ReadOptions options;
     options.header = false;
     options.delimiter = detect_delimiter(path);
     options.index_cols = {0, 1};
     options.names = {"father", "mother", "sex", "phenotype"};
-    return dataframe::read_dataframe<std::string>(path, options, SCHEMA);
+    return read_dataframe<std::string>(path, options, SCHEMA);
 }
 
-auto read_bim(const std::filesystem::path& path)
-    -> dataframe::DataFrame<std::string>
+auto read_bim(const std::filesystem::path& path) -> DataFrame<std::string>
 {
-    using enum dataframe::ColumnType;
+    using enum ColumnType;
     constexpr std::array SCHEMA = {String, Int, String, String};
-    dataframe::ReadOptions options;
+    ReadOptions options;
     options.header = false;
     options.delimiter = detect_delimiter(path);
     options.index_cols = {1};
     options.select_cols = {0, 3, 4, 5};
     options.names = {"chrom", "pos", "A1", "A2"};
-    return dataframe::read_dataframe<std::string>(path, options, SCHEMA);
+    return read_dataframe<std::string>(path, options, SCHEMA);
 }
 
 auto read_pheno(const std::filesystem::path& path, const std::size_t* pheno_col)
-    -> dataframe::DataFrame<std::string>
+    -> DataFrame<std::string>
 {
-    dataframe::ReadOptions options;
+    ReadOptions options;
     options.index_cols = {0, 1};
-    options.na_action = dataframe::NaAction::Exclude;
+    options.na_action = NaAction::Exclude;
     if (pheno_col != nullptr)
     {
         options.select_cols = {*pheno_col + 2};
     }
-    return dataframe::read_dataframe<std::string, double>(path, options);
+    return read_dataframe<std::string, double>(path, options);
 }
 
-auto read_qcovar(const std::filesystem::path& path)
-    -> dataframe::DataFrame<std::string>
+auto read_qcovar(const std::filesystem::path& path) -> DataFrame<std::string>
 {
-    dataframe::ReadOptions options;
+    ReadOptions options;
     options.index_cols = {0, 1};
-    return dataframe::read_dataframe<std::string, double>(path, options);
+    return read_dataframe<std::string, double>(path, options);
 }
 
-auto read_dcovar(const std::filesystem::path& path)
-    -> dataframe::DataFrame<std::string>
+auto read_dcovar(const std::filesystem::path& path) -> DataFrame<std::string>
 {
-    dataframe::ReadOptions options;
+    ReadOptions options;
     options.index_cols = {0, 1};
-    return dataframe::read_dataframe<std::string, std::string>(path, options);
+    return read_dataframe<std::string, std::string>(path, options);
 }
 
 auto read_grm_ids(const std::string& prefix)
-    -> gelex::dataframe::Index<std::string>
+    -> gelex::DataFrameIndex<std::string>
 {
     std::string path = prefix + ".id";
-    dataframe::ReadOptions options;
+    ReadOptions options;
     options.delimiter = '\t';
     options.header = false;
     options.index_cols = {0, 1};
-    auto index = dataframe::read_index<std::string>(path, options);
+    auto index = read_index<std::string>(path, options);
     if (index.size() == 0)
     {
         throw GelexException(fmt::format("{}: no sample IDs found", path));
@@ -188,7 +184,7 @@ auto read_grm_ids(const std::string& prefix)
 
 auto read_grm(
     const std::string& prefix,
-    const dataframe::Index<std::string>* index,
+    const DataFrameIndex<std::string>* index,
     bool normalize) -> Eigen::MatrixXd
 {
     auto source_index = gelex::read_grm_ids(prefix);

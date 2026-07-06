@@ -23,7 +23,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex::stats::detail
+namespace gelex::detail
 {
 enum class VarNormType : std::uint8_t
 {
@@ -78,6 +78,6 @@ auto matvar(
     }
 }
 
-}  // namespace gelex::stats::detail
+}  // namespace gelex::detail
 
 #endif  // GELEX_INFRA_STATS_DETAIL_VAR_H_

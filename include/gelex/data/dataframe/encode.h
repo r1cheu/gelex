@@ -29,7 +29,7 @@
 #include "gelex/data/dataframe/column.h"
 #include "gelex/exception.h"
 
-namespace gelex::dataframe
+namespace gelex
 {
 
 template <typename Scalar = double>
@@ -169,6 +169,6 @@ template <typename Scalar = double>
     return encode<Scalar>(col, std::span<const std::string>(levels).subspan(1));
 }
 
-}  // namespace gelex::dataframe
+}  // namespace gelex
 
 #endif  // GELEX_DATA_DATAFRAME_ENCODE_H_

@@ -22,7 +22,7 @@
 #include <ios>
 #include <string_view>
 
-namespace gelex::io::detail
+namespace gelex::detail
 {
 
 class AtomicOutputStream
@@ -54,6 +54,6 @@ class AtomicOutputStream
     bool committed_{false};
 };
 
-}  // namespace gelex::io::detail
+}  // namespace gelex::detail
 
 #endif  // GELEX_IO_DETAIL_ATOMIC_OUTPUT_STREAM_H_

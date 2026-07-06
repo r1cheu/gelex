@@ -26,7 +26,7 @@
 #include "gelex/io/predict/input_reader.h"
 #include "gelex/predict/snp_alignment.h"
 
-using gelex::dataframe::SEPARATOR;
+using gelex::SEPARATOR;
 using gelex::test::FileFixture;
 
 TEST_CASE(
@@ -41,7 +41,7 @@ TEST_CASE(
           "Sex_M\t1.2\n";
 
     auto path = files.create_text_file(CONTENT, ".tsv");
-    auto coefficients = gelex::predict::read_coefficients(path);
+    auto coefficients = gelex::read_coefficients(path);
 
     REQUIRE(coefficients.names.size() == 3);
     REQUIRE(coefficients.names[0] == "Intercept");
@@ -86,12 +86,12 @@ TEST_CASE(
 
     auto sample_df = gelex::read_fam(fam_path);
 
-    gelex::predict::Coefficients coefficients{
+    gelex::Coefficients coefficients{
         .names = {"Intercept", "Age", "Sex" + sep + "M"},
         .values = Eigen::Vector3d{0.5, -0.3, 1.2},
     };
 
-    auto covariates = gelex::predict::read_covariates(
+    auto covariates = gelex::read_covariates(
         qcovar_path, dcovar_path, coefficients, sample_df);
 
     REQUIRE(covariates.rows() == 3);
@@ -126,7 +126,7 @@ TEST_CASE(
           "2\trs3\t500\tA\tT\t0.1\t0.8\t-0.3\n";
 
     auto path = files.create_text_file(CONTENT, ".snpeff");
-    auto df = gelex::predict::read_snp_effects(path);
+    auto df = gelex::read_snp_effects(path);
 
     REQUIRE(df.rows() == 3);
 
@@ -171,10 +171,9 @@ TEST_CASE(
             "2\trs3\t0\t500\tA\tT\n",
             ".bim");
 
-        auto snp_effects = gelex::predict::read_snp_effects(eff_path);
+        auto snp_effects = gelex::read_snp_effects(eff_path);
         auto bim_df = gelex::read_bim(bim_path);
-        auto alignment
-            = gelex::predict::build_snp_alignment(snp_effects, bim_df);
+        auto alignment = gelex::build_snp_alignment(snp_effects, bim_df);
 
         REQUIRE(alignment.num_missing == 0);
         REQUIRE(alignment.num_mismatched == 0);
@@ -197,10 +196,9 @@ TEST_CASE(
             "2\trs3\t0\t500\tA\tT\n",
             ".bim");
 
-        auto snp_effects = gelex::predict::read_snp_effects(eff_path);
+        auto snp_effects = gelex::read_snp_effects(eff_path);
         auto bim_df = gelex::read_bim(bim_path);
-        auto alignment
-            = gelex::predict::build_snp_alignment(snp_effects, bim_df);
+        auto alignment = gelex::build_snp_alignment(snp_effects, bim_df);
 
         REQUIRE(alignment.num_missing == 1);
         REQUIRE(alignment.num_mismatched == 0);
@@ -224,10 +222,9 @@ TEST_CASE(
             "2\trs3\t0\t500\tG\tT\n",
             ".bim");
 
-        auto snp_effects = gelex::predict::read_snp_effects(eff_path);
+        auto snp_effects = gelex::read_snp_effects(eff_path);
         auto bim_df = gelex::read_bim(bim_path);
-        auto alignment
-            = gelex::predict::build_snp_alignment(snp_effects, bim_df);
+        auto alignment = gelex::build_snp_alignment(snp_effects, bim_df);
 
         REQUIRE(alignment.num_missing == 0);
         REQUIRE(alignment.num_mismatched == 2);
@@ -249,10 +246,9 @@ TEST_CASE(
             "1\trs5\t0\t2000\tC\tT\n",
             ".bim");
 
-        auto snp_effects = gelex::predict::read_snp_effects(eff_path);
+        auto snp_effects = gelex::read_snp_effects(eff_path);
         auto bim_df = gelex::read_bim(bim_path);
-        auto alignment
-            = gelex::predict::build_snp_alignment(snp_effects, bim_df);
+        auto alignment = gelex::build_snp_alignment(snp_effects, bim_df);
 
         REQUIRE(alignment.num_missing == 2);
         REQUIRE(alignment.num_mismatched == 0);

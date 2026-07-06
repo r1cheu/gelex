@@ -44,7 +44,7 @@ class RandomPrior
     {
         return parameter_.prior();
     }
-    auto visit(infra::FieldVisitor& visitor) -> void
+    auto visit(FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         parameter_.visit(visitor);
@@ -72,7 +72,7 @@ class ResidualPrior
     {
         return parameter_.prior();
     }
-    auto visit(infra::FieldVisitor& visitor) -> void
+    auto visit(FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         parameter_.visit(visitor);
@@ -106,7 +106,7 @@ class BayesPrior
     auto residual() const -> const ResidualPrior& { return residual_; }
     auto genetics() const -> std::span<const GeneticPrior> { return genetics_; }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
    private:
     static auto validate_genetics(const std::vector<GeneticPrior>& genetics)

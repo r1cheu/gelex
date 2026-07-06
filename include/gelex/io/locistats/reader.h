@@ -48,7 +48,7 @@ class LociStatsReader
     [[nodiscard]] auto has(GeneticMode mode) const -> bool;
 
    private:
-    io::BinaryReader reader_;
+    BinaryReader reader_;
 };
 
 }  // namespace gelex

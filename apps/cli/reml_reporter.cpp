@@ -116,8 +116,8 @@ auto RemlReporter::show_result(
     // model fit
     p.block("  Model Fit:");
     p.line("  - LogL : {:.4f}", loglike);
-    p.line("  - AIC : {:.2f}", gelex::reml::compute_aic(model, loglike));
-    p.line("  - BIC : {:.2f}", gelex::reml::compute_bic(model, loglike));
+    p.line("  - AIC : {:.2f}", gelex::compute_aic(model, loglike));
+    p.line("  - BIC : {:.2f}", gelex::compute_bic(model, loglike));
 
     p.block("  Variance Components:");
     p.line(

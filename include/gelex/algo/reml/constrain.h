@@ -19,13 +19,13 @@
 
 #include <Eigen/Dense>
 
-namespace gelex::reml
+namespace gelex
 {
 // Clamps negative variance components to a small positive limit, redistributing
 // the borrowed mass across the unconstrained ones. Returns how many components
 // were constrained so the caller can judge the estimate's reliability.
 auto constrain(Eigen::Ref<Eigen::VectorXd> varcmp, double y_variance)
     -> Eigen::Index;
-}  // namespace gelex::reml
+}  // namespace gelex
 
 #endif  // GELEX_ALGO_REML_CONSTRAIN_H_

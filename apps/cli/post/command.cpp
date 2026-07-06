@@ -60,8 +60,7 @@ auto parse_genetic_mode(std::string_view value) -> gelex::GeneticMode
         fmt::format("unknown genetic mode in samples: {}", value));
 }
 
-auto check_consistency(const std::vector<gelex::io::BinaryReader>& readers)
-    -> bool
+auto check_consistency(const std::vector<gelex::BinaryReader>& readers) -> bool
 {
     if (readers.size() <= 1)
     {
@@ -71,12 +70,12 @@ auto check_consistency(const std::vector<gelex::io::BinaryReader>& readers)
     const auto reference = readers.front().section_paths();
     return std::ranges::all_of(
         readers | std::views::drop(1),
-        [&](const gelex::io::BinaryReader& reader)
+        [&](const gelex::BinaryReader& reader)
         { return reader.section_paths() == reference; });
 }
 
 auto process_gebv_variance(
-    std::vector<gelex::io::BinaryReader>& readers,
+    std::vector<gelex::BinaryReader>& readers,
     const std::optional<std::string>& gfile,
     double hdpi_threshold) -> std::vector<gelex::ParameterDiag>
 {
@@ -109,7 +108,7 @@ auto process_gebv_variance(
             "{}.{}.gbin", *gfile, gelex::bayes::to_file_suffix(kind));
 
         genotype_storages.emplace_back(
-            gelex::genotype::GenotypeReader::read(gbin_path, kind));
+            gelex::GenotypeReader::read(gbin_path, kind));
         genetic_inputs.push_back({&genotype_storages.back(), kind});
     }
 
@@ -143,7 +142,7 @@ auto post_execute(const cli::PostConfig& config) -> int
     cli::PostReporter reporter;
     const auto& in_prefixes = config.in;
 
-    std::vector<gelex::io::BinaryReader> readers;
+    std::vector<gelex::BinaryReader> readers;
     readers.reserve(in_prefixes.size());
     for (const auto& prefix : in_prefixes)
     {
@@ -157,7 +156,7 @@ auto post_execute(const cli::PostConfig& config) -> int
     }
 
     const auto hdpi_threshold = config.hdpi;
-    std::span<const gelex::io::BinaryReader> reader_span{readers};
+    std::span<const gelex::BinaryReader> reader_span{readers};
 
     auto fixed_diags
         = gelex::FixedPosteriorProcessor{reader_span, hdpi_threshold}.process();

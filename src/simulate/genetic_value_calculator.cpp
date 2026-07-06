@@ -38,8 +38,8 @@ namespace gelex
 
 GeneticValueCalculator::GeneticValueCalculator(
     const std::filesystem::path& bed_path,
-    const dataframe::DataFrame<std::string>& bim,
-    const dataframe::DataFrame<std::string>& fam)
+    const DataFrame<std::string>& bim,
+    const DataFrame<std::string>& fam)
     : sample_index_(&fam.index()),
       snp_index_(&bim.index()),
       bed_(open_bed(bed_path.string(), *sample_index_))

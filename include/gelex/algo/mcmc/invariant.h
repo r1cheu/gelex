@@ -22,7 +22,7 @@
 
 #include "gelex/bayes/state.h"
 
-namespace gelex::mcmc
+namespace gelex
 {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -211,6 +211,6 @@ class JointGeneticAdjustmentGuard
 };
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-}  // namespace gelex::mcmc
+}  // namespace gelex
 
 #endif  // GELEX_ALGO_MCMC_INVARIANT_H_

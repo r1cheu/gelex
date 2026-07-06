@@ -23,7 +23,7 @@ class FreqModel;
 class FreqState;
 }  // namespace gelex
 
-namespace gelex::reml
+namespace gelex
 {
 class OptimizerState;
 
@@ -45,6 +45,6 @@ auto compute_variance_se(FreqState& state, const OptimizerState& opt_state)
 auto compute_variance_ratio(FreqState& state, const OptimizerState& opt_state)
     -> void;
 
-}  // namespace gelex::reml
+}  // namespace gelex
 
 #endif  // GELEX_ALGO_REML_STATISTICS_H_

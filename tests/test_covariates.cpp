@@ -27,9 +27,9 @@
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 
-using gelex::dataframe::read_dataframe;
-using gelex::dataframe::ReadOptions;
-using gelex::dataframe::SEPARATOR;
+using gelex::read_dataframe;
+using gelex::ReadOptions;
+using gelex::SEPARATOR;
 using gelex::test::FileFixture;
 
 TEST_CASE(

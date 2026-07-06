@@ -44,8 +44,8 @@ class RemlDataHandler
     {
     }
 
-    auto load_indices(
-        std::vector<gelex::dataframe::Index<std::string>*>& indices) -> void
+    auto load_indices(std::vector<gelex::DataFrameIndex<std::string>*>& indices)
+        -> void
     {
         drand_
             = config_.drand_path
@@ -71,8 +71,7 @@ class RemlDataHandler
         }
     }
 
-    auto gather(const gelex::dataframe::Index<std::string>& common_index)
-        -> void
+    auto gather(const gelex::DataFrameIndex<std::string>& common_index) -> void
     {
         if (drand_)
         {
@@ -101,11 +100,11 @@ class RemlDataHandler
 
    private:
     const cli::RemlConfig& config_;
-    std::vector<gelex::dataframe::Index<std::string>> grm_indices_;
+    std::vector<gelex::DataFrameIndex<std::string>> grm_indices_;
     std::vector<gelex::freq::RandomDesign> random_designs_;
 
-    std::optional<gelex::dataframe::DataFrame<std::string>> drand_;
-    std::vector<gelex::dataframe::DataFrame<std::string>> qrand_;
+    std::optional<gelex::DataFrame<std::string>> drand_;
+    std::vector<gelex::DataFrame<std::string>> qrand_;
 };
 
 auto reml_execute(const cli::RemlConfig& config) -> int
@@ -124,7 +123,7 @@ auto reml_execute(const cli::RemlConfig& config) -> int
     gelex::FreqState state(model);
 
     cli::RemlReporter reml_reporter;
-    gelex::reml::Estimator estimator(
+    gelex::Estimator estimator(
         config.max_iter, config.tolerance, reml_reporter.as_observer());
 
     estimator.fit(model, state);
@@ -136,10 +135,8 @@ auto reml_execute(const cli::RemlConfig& config) -> int
         config.max_iter,
         estimator.loglike());
 
-    gelex::reml::write_summary(
-        model, state, estimator.loglike(), config.out_prefix);
-    gelex::reml::write_effects(
-        model, state, data.sample_ids, config.out_prefix);
+    gelex::write_summary(model, state, estimator.loglike(), config.out_prefix);
+    gelex::write_effects(model, state, data.sample_ids, config.out_prefix);
 
     return 0;
 }

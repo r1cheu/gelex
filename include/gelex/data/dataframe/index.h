@@ -31,15 +31,15 @@
 #include "gelex/exception.h"
 #include "gelex/infra/string_hash.h"
 
-namespace gelex::dataframe
+namespace gelex
 {
 
 template <KeyType Key>
-class Index
+class DataFrameIndex
 {
    public:
-    Index() = default;
-    explicit Index(std::vector<Key> keys);
+    DataFrameIndex() = default;
+    explicit DataFrameIndex(std::vector<Key> keys);
 
     template <typename K>
         requires std::convertible_to<K, Key>
@@ -55,30 +55,32 @@ class Index
     auto keys() const -> std::span<const Key> { return keys_; }
     auto take_keys() && -> std::vector<Key> { return std::move(keys_); }
 
-    auto gather(const Index<Key>& target) -> void;
+    auto gather(const DataFrameIndex<Key>& target) -> void;
     auto gather(std::span<const std::size_t> indices) -> void;
 
    private:
     auto rebuild_lookup() -> void;
 
     template <KeyType K>
-    friend auto intersect(std::span<const Index<K>* const> indices) -> Index<K>;
+    friend auto intersect(std::span<const DataFrameIndex<K>* const> indices)
+        -> DataFrameIndex<K>;
 
     std::vector<Key> keys_;
     std::unordered_map<
         Key,
         std::size_t,
-        infra::TransparentHash<Key>,
-        infra::TransparentEqual<Key>>
+        TransparentHash<Key>,
+        TransparentEqual<Key>>
         lookup_;
 };
 
 template <KeyType Key>
-auto intersect(std::span<const Index<Key>* const> indices) -> Index<Key>;
+auto intersect(std::span<const DataFrameIndex<Key>* const> indices)
+    -> DataFrameIndex<Key>;
 
 template <KeyType Key>
-auto intersect(std::initializer_list<const Index<Key>* const> indices)
-    -> Index<Key>
+auto intersect(std::initializer_list<const DataFrameIndex<Key>* const> indices)
+    -> DataFrameIndex<Key>
 {
     return intersect(std::span{indices.begin(), indices.size()});
 }
@@ -86,7 +88,8 @@ auto intersect(std::initializer_list<const Index<Key>* const> indices)
 // --- Implementation ---
 
 template <KeyType Key>
-Index<Key>::Index(std::vector<Key> keys) : keys_(std::move(keys))
+DataFrameIndex<Key>::DataFrameIndex(std::vector<Key> keys)
+    : keys_(std::move(keys))
 {
     for (std::size_t i = 0; i < keys_.size(); ++i)
     {
@@ -102,7 +105,7 @@ Index<Key>::Index(std::vector<Key> keys) : keys_(std::move(keys))
 template <KeyType Key>
 template <typename K>
     requires std::convertible_to<K, Key>
-auto Index<Key>::push_back(K&& key) -> void
+auto DataFrameIndex<Key>::push_back(K&& key) -> void
 {
     if (lookup_.contains(key))
     {
@@ -113,7 +116,7 @@ auto Index<Key>::push_back(K&& key) -> void
 }
 
 template <KeyType Key>
-auto Index<Key>::at(const Key& key) const -> std::size_t
+auto DataFrameIndex<Key>::at(const Key& key) const -> std::size_t
 {
     auto it = lookup_.find(key);
     if (it == lookup_.end())
@@ -124,7 +127,7 @@ auto Index<Key>::at(const Key& key) const -> std::size_t
 }
 
 template <KeyType Key>
-auto Index<Key>::gather(const Index<Key>& target) -> void
+auto DataFrameIndex<Key>::gather(const DataFrameIndex<Key>& target) -> void
 {
     auto pos = target.keys()
                | std::views::transform([this](const auto& k) { return at(k); })
@@ -133,7 +136,7 @@ auto Index<Key>::gather(const Index<Key>& target) -> void
 }
 
 template <KeyType Key>
-auto Index<Key>::gather(std::span<const std::size_t> indices) -> void
+auto DataFrameIndex<Key>::gather(std::span<const std::size_t> indices) -> void
 {
     std::vector<Key> buf;
     buf.reserve(indices.size());
@@ -146,7 +149,7 @@ auto Index<Key>::gather(std::span<const std::size_t> indices) -> void
 }
 
 template <KeyType Key>
-auto Index<Key>::rebuild_lookup() -> void
+auto DataFrameIndex<Key>::rebuild_lookup() -> void
 {
     lookup_.clear();
     lookup_.reserve(keys_.size());
@@ -157,11 +160,12 @@ auto Index<Key>::rebuild_lookup() -> void
 }
 
 template <KeyType Key>
-auto intersect(std::span<const Index<Key>* const> indices) -> Index<Key>
+auto intersect(std::span<const DataFrameIndex<Key>* const> indices)
+    -> DataFrameIndex<Key>
 {
     if (indices.empty())
     {
-        return Index<Key>{};
+        return DataFrameIndex<Key>{};
     }
 
     const auto* smallest = *std::ranges::min_element(
@@ -182,9 +186,9 @@ auto intersect(std::span<const Index<Key>* const> indices) -> Index<Key>
         }
     }
     std::ranges::sort(common);
-    return Index<Key>(std::move(common));
+    return DataFrameIndex<Key>(std::move(common));
 }
 
-}  // namespace gelex::dataframe
+}  // namespace gelex
 
 #endif  // GELEX_DATA_DATAFRAME_INDEX_H

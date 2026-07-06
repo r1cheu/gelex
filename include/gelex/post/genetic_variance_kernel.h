@@ -42,7 +42,7 @@ class GeneticVarianceProcessor
    public:
     GeneticVarianceProcessor(
         const GeneticInput& input,
-        std::span<const io::BinaryReader> readers);
+        std::span<const BinaryReader> readers);
 
     auto process(
         std::size_t chain_idx,
@@ -73,7 +73,7 @@ class GeneticVarianceProcessor
     Eigen::Index n_components_;
     std::vector<Eigen::Map<const Eigen::MatrixXd>> coeff_maps_;
     std::vector<Eigen::Map<const Eigen::MatrixXi>> tracker_maps_;
-    stats::Chains component_variance_chains_;
+    Chains component_variance_chains_;
     Eigen::MatrixXd gebv_chunk_;
     Eigen::MatrixXd component_gebv_chunk_;
     Eigen::MatrixXd masked_beta_chunk_;

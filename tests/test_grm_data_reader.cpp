@@ -97,7 +97,7 @@ TEST_CASE("read_grm reads reordered GRM subset", "[data][reader][grm]")
 
     gelex::write_grm(prefix.string(), matrix, ids);
 
-    gelex::dataframe::Index<std::string> target_index(
+    gelex::DataFrameIndex<std::string> target_index(
         std::vector<std::string>{ids[2], ids[0]});
 
     auto actual = gelex::read_grm(prefix.string(), &target_index, false);

@@ -19,7 +19,7 @@
 
 #include <Eigen/Dense>
 
-namespace gelex::reml
+namespace gelex
 {
 class ConvergenceChecker
 {
@@ -53,6 +53,6 @@ class ConvergenceChecker
         const Eigen::Ref<const Eigen::VectorXd>& new_sigma) const;
     double compute_loglike_diff(double new_loglike) const;
 };
-}  // namespace gelex::reml
+}  // namespace gelex
 
 #endif  // GELEX_ALGO_REML_CONVERGENCE_CHECKER_H_

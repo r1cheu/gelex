@@ -31,12 +31,12 @@
 #include "file_fixture.h"
 #include "gelex/types/genetic_mode.h"
 
+using gelex::GelexException;
 using gelex::GeneticMode;
+using gelex::genotype_method_from_byte;
 using gelex::GenotypeMethod;
 using gelex::LociStatsReader;
 using gelex::LociStatsWriter;
-using gelex::GelexException;
-using gelex::genotype_method_from_byte;
 
 TEST_CASE("genotype method byte round-trip", "[sbin][snpstats]")
 {
@@ -54,7 +54,8 @@ TEST_CASE("genotype method byte round-trip", "[sbin][snpstats]")
 
     for (auto method : METHODS)
     {
-        REQUIRE(genotype_method_from_byte(std::to_underlying(method)) == method);
+        REQUIRE(
+            genotype_method_from_byte(std::to_underlying(method)) == method);
     }
 }
 
@@ -84,11 +85,7 @@ TEST_CASE("sbin round-trip additive only", "[sbin][snpstats]")
     {
         LociStatsWriter writer(sbin_path.string());
         writer.write(
-            GeneticMode::A,
-            std::to_underlying(METHOD),
-            mean,
-            &stddev,
-            mono);
+            GeneticMode::A, std::to_underlying(METHOD), mean, &stddev, mono);
     }
 
     LociStatsReader reader(sbin_path.string());

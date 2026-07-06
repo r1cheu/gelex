@@ -30,13 +30,13 @@ class ResidualPosteriorProcessor
 {
    public:
     explicit ResidualPosteriorProcessor(
-        std::span<const io::BinaryReader> readers,
+        std::span<const BinaryReader> readers,
         double hdpi_threshold);
 
     [[nodiscard]] auto process() -> std::vector<ParameterDiag>;
 
    private:
-    std::span<const io::BinaryReader> readers_;
+    std::span<const BinaryReader> readers_;
     double hdpi_threshold_;
 };
 

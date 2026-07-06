@@ -33,7 +33,7 @@ auto Genotype::matrix() const noexcept -> Eigen::Ref<const Eigen::MatrixXd>
         [](const auto& s) -> Eigen::Ref<const Eigen::MatrixXd>
         {
             using S = std::decay_t<decltype(s)>;
-            if constexpr (std::is_same_v<S, genotype::OwnedStorage>)
+            if constexpr (std::is_same_v<S, OwnedStorage>)
             {
                 return s.data;
             }

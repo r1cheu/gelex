@@ -40,14 +40,14 @@
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 
-namespace gelex::predict
+namespace gelex
 {
 
 namespace detail
 {
 
 auto snp_effects_schema(const std::filesystem::path& path)
-    -> std::vector<dataframe::ColumnType>
+    -> std::vector<ColumnType>
 {
     std::ifstream file(path);
     std::string header_line;
@@ -61,7 +61,7 @@ auto snp_effects_schema(const std::filesystem::path& path)
         tokens.push_back(tok);
     }
 
-    std::vector<dataframe::ColumnType> schema;
+    std::vector<ColumnType> schema;
     for (const auto& name : tokens)
     {
         if (name == "SNP")
@@ -69,8 +69,8 @@ auto snp_effects_schema(const std::filesystem::path& path)
             continue;
         }
         auto type = (name == "CHR" || name == "A1" || name == "A2")
-                        ? dataframe::ColumnType::String
-                        : dataframe::ColumnType::Double;
+                        ? ColumnType::String
+                        : ColumnType::Double;
         schema.push_back(type);
     }
     return schema;
@@ -80,11 +80,11 @@ auto snp_effects_schema(const std::filesystem::path& path)
 
 auto read_coefficients(const std::filesystem::path& path) -> Coefficients
 {
-    dataframe::ReadOptions options;
+    ReadOptions options;
     options.index_cols = {0};
     options.select_cols = {1};
 
-    auto df = dataframe::read_dataframe<std::string, double>(path, options);
+    auto df = read_dataframe<std::string, double>(path, options);
     return Coefficients{
         .names = std::move(df).index().take_keys(),
         .values = df["mean"].to_map<double>(),
@@ -92,11 +92,11 @@ auto read_coefficients(const std::filesystem::path& path) -> Coefficients
 }
 
 auto read_snp_effects(const std::filesystem::path& path)
-    -> dataframe::DataFrame<std::string>
+    -> DataFrame<std::string>
 {
-    dataframe::ReadOptions options;
+    ReadOptions options;
     options.index_cols = {1};
-    return dataframe::read_dataframe<std::string>(
+    return read_dataframe<std::string>(
         path, options, detail::snp_effects_schema(path));
 }
 
@@ -104,11 +104,11 @@ auto read_covariates(
     const std::optional<std::filesystem::path>& qcovar_path,
     const std::optional<std::filesystem::path>& dcovar_path,
     const Coefficients& coefficients,
-    dataframe::DataFrame<std::string>& sample_df) -> Eigen::MatrixXd
+    DataFrame<std::string>& sample_df) -> Eigen::MatrixXd
 {
     // 1. read files
-    std::optional<dataframe::DataFrame<std::string>> qcovar_df;
-    std::optional<dataframe::DataFrame<std::string>> dcovar_df;
+    std::optional<DataFrame<std::string>> qcovar_df;
+    std::optional<DataFrame<std::string>> dcovar_df;
 
     if (qcovar_path)
     {
@@ -121,7 +121,7 @@ auto read_covariates(
     }
 
     // 2. intersect all DataFrames
-    std::vector<dataframe::DataFrame<std::string>*> dfs;
+    std::vector<DataFrame<std::string>*> dfs;
     dfs.push_back(&sample_df);
     if (qcovar_df)
     {
@@ -131,15 +131,14 @@ auto read_covariates(
     {
         dfs.push_back(&*dcovar_df);
     }
-    dataframe::intersect_inplace(
-        std::span<dataframe::DataFrame<std::string>* const>{dfs});
+    intersect_inplace(std::span<DataFrame<std::string>* const>{dfs});
 
     // 3. group dcovar terms by column name
-    //    "Sex\x1FM" → col="Sex", level="M"
+    // "Sex\x1FM" → col="Sex", level="M"
     std::map<std::string, std::vector<std::string>> dcovar_levels;
     for (const auto& name : coefficients.names)
     {
-        auto pos = name.find(dataframe::SEPARATOR);
+        auto pos = name.find(SEPARATOR);
         if (pos != std::string::npos)
         {
             dcovar_levels[name.substr(0, pos)].push_back(name.substr(pos + 1));
@@ -147,7 +146,7 @@ auto read_covariates(
     }
 
     // 4. encode dcovar columns and check levels
-    std::map<std::string, dataframe::EncodedResult<>> encoded;
+    std::map<std::string, EncodedResult<>> encoded;
     for (const auto& [col_name, levels] : dcovar_levels)
     {
         if (!dcovar_df)
@@ -159,8 +158,8 @@ auto read_covariates(
         }
         auto& col = (*dcovar_df)[col_name];
         // TODO(rlchen): report level mismatch via observer
-        [[maybe_unused]] auto mismatch = dataframe::check_levels(col, levels);
-        encoded[col_name] = dataframe::encode(col, levels);
+        [[maybe_unused]] auto mismatch = check_levels(col, levels);
+        encoded[col_name] = encode(col, levels);
     }
 
     // 5. build design matrix in coefficients.names order
@@ -178,7 +177,7 @@ auto read_covariates(
             continue;
         }
 
-        auto sep_pos = term.find(dataframe::SEPARATOR);
+        auto sep_pos = term.find(SEPARATOR);
         if (sep_pos != std::string::npos)
         {
             auto col_name = term.substr(0, sep_pos);
@@ -202,4 +201,4 @@ auto read_covariates(
     return X;
 }
 
-}  // namespace gelex::predict
+}  // namespace gelex

@@ -31,21 +31,21 @@ namespace gelex
 struct GebvVarianceResult
 {
     std::vector<ParameterDiag> diags;
-    stats::Chains genetic_variances;
+    Chains genetic_variances;
 };
 
 class GeneticVariancePosteriorProcessor
 {
    public:
     GeneticVariancePosteriorProcessor(
-        std::span<const io::BinaryReader> readers,
+        std::span<const BinaryReader> readers,
         std::span<const GeneticInput> genetics,
         double hdpi_threshold);
 
     [[nodiscard]] auto process() -> GebvVarianceResult;
 
    private:
-    std::span<const io::BinaryReader> readers_;
+    std::span<const BinaryReader> readers_;
     std::span<const GeneticInput> genetics_;
     double hdpi_threshold_;
 };

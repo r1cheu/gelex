@@ -21,7 +21,7 @@
 #include <string>
 #include <type_traits>
 
-namespace gelex::dataframe
+namespace gelex
 {
 template <typename T>
 concept KeyType = std::is_arithmetic_v<T> || std::is_same_v<T, std::string>;
@@ -31,6 +31,6 @@ concept ValueType
     = std::is_same_v<T, std::int32_t> || std::is_same_v<T, float>
       || std::is_same_v<T, double> || std::is_same_v<T, std::string>;
 
-}  // namespace gelex::dataframe
+}  // namespace gelex
 
 #endif  // GELEX_DATA_DATAFRAME_KEY_TYPE_H

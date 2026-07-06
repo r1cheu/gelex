@@ -33,15 +33,15 @@
 #include "gelex/data/dataframe/reader.h"
 #include "gelex/exception.h"
 
+using gelex::ColumnType;
+using gelex::DataFrame;
+using gelex::DataFrameIndex;
 using gelex::GelexException;
-using gelex::dataframe::ColumnType;
-using gelex::dataframe::DataFrame;
-using gelex::dataframe::Index;
-using gelex::dataframe::intersect_inplace;
-using gelex::dataframe::SEPARATOR;
-using gelex::dataframe::NaAction;
-using gelex::dataframe::read_dataframe;
-using gelex::dataframe::ReadOptions;
+using gelex::intersect_inplace;
+using gelex::NaAction;
+using gelex::read_dataframe;
+using gelex::ReadOptions;
+using gelex::SEPARATOR;
 using gelex::test::FileFixture;
 
 namespace
@@ -397,7 +397,8 @@ TEST_CASE(
     auto df = make_basic_df(files);
 
     // Reorder to {s2, s1}
-    auto target = Index<std::string>(std::vector<std::string>{"s2", "s1"});
+    auto target
+        = DataFrameIndex<std::string>(std::vector<std::string>{"s2", "s1"});
     df.gather(target);
 
     REQUIRE(df.rows() == 2);
@@ -412,7 +413,8 @@ TEST_CASE(
     FileFixture files;
     auto df = make_basic_df(files);
 
-    auto target = Index<std::string>(std::vector<std::string>{"s2", "s1"});
+    auto target
+        = DataFrameIndex<std::string>(std::vector<std::string>{"s2", "s1"});
     df.gather(target);
 
     auto x = df["x"].as<double>();

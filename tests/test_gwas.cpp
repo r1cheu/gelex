@@ -35,15 +35,15 @@
 #include "gelex/io/gwas/writer.h"
 
 using gelex::AssocType;
+using gelex::ColumnType;
 using gelex::GenotypeMethod;
+using gelex::GwasWriter;
 using gelex::JointTester;
+using gelex::read_dataframe;
+using gelex::ReadOptions;
 using gelex::RemlResult;
 using gelex::TestResult;
 using gelex::TestResults;
-using gelex::dataframe::ColumnType;
-using gelex::dataframe::read_dataframe;
-using gelex::dataframe::ReadOptions;
-using gelex::gwas::GwasWriter;
 using gelex::test::FileFixture;
 
 TEST_CASE("JointTester reports df=2 additive-dominance Wald p", "[gwas]")

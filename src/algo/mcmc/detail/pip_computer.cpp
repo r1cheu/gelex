@@ -20,7 +20,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex::mcmc::detail
+namespace gelex::detail
 {
 
 auto PipComputer::single(const Eigen::Ref<const Eigen::MatrixXd>& probabilities)
@@ -38,4 +38,4 @@ auto PipComputer::joint(const Eigen::Ref<const Eigen::MatrixXd>& probabilities)
     return {std::move(additive), std::move(dominance)};
 }
 
-}  // namespace gelex::mcmc::detail
+}  // namespace gelex::detail

@@ -37,12 +37,12 @@
 #include "gelex/infra/stats/result.h"
 #include "gelex/io/detail/text_writer.h"
 
-namespace gelex::mcmc
+namespace gelex
 {
 
 auto write_params(const Result& result, std::string_view prefix) -> void
 {
-    io::detail::TextWriter writer(fmt::format("{}.param", prefix));
+    detail::TextWriter writer(fmt::format("{}.param", prefix));
     writer.write_header({"term", "mean", "stddev"});
 
     for (const auto& record : result.records())
@@ -58,12 +58,12 @@ auto write_params(const Result& result, std::string_view prefix) -> void
         {
             continue;
         }
-        if (!std::holds_alternative<stats::RunningStatsResult>(record.value))
+        if (!std::holds_alternative<RunningStatsResult>(record.value))
         {
             continue;
         }
 
-        const auto& stats = std::get<stats::RunningStatsResult>(record.value);
+        const auto& stats = std::get<RunningStatsResult>(record.value);
         const auto& names = *record.names;
         for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(names.size());
              ++i)
@@ -80,7 +80,7 @@ auto write_params(const Result& result, std::string_view prefix) -> void
 
 auto write_summary(const Result& result, std::string_view prefix) -> void
 {
-    io::detail::TextWriter writer(fmt::format("{}.summary", prefix));
+    detail::TextWriter writer(fmt::format("{}.summary", prefix));
     writer.write_header({"term", "effect", "mean", "stddev"});
 
     for (const auto& record : result.records())
@@ -95,12 +95,12 @@ auto write_summary(const Result& result, std::string_view prefix) -> void
             continue;
         }
 
-        if (!std::holds_alternative<stats::RunningStatsResult>(record.value))
+        if (!std::holds_alternative<RunningStatsResult>(record.value))
         {
             continue;
         }
 
-        const auto& stats = std::get<stats::RunningStatsResult>(record.value);
+        const auto& stats = std::get<RunningStatsResult>(record.value);
         const auto& names = *record.names;
         std::string_view effect{"-"};
         std::size_t start{};
@@ -159,13 +159,13 @@ auto write_snp_eff(
 
     for (const auto& record : result.records())
     {
-        if (!std::holds_alternative<stats::RunningStatsResult>(record.value))
+        if (!std::holds_alternative<RunningStatsResult>(record.value))
         {
             continue;
         }
 
         const std::string_view path{record.path};
-        const auto& stats = std::get<stats::RunningStatsResult>(record.value);
+        const auto& stats = std::get<RunningStatsResult>(record.value);
         if (path == "state/genetic/pve")
         {
             register_column("PVE", stats.mean);
@@ -241,7 +241,7 @@ auto write_snp_eff(
         header += column;
     }
 
-    io::detail::TextWriter writer(fmt::format("{}.snpeff", prefix));
+    detail::TextWriter writer(fmt::format("{}.snpeff", prefix));
     writer.write(header);
 
     std::vector<const Eigen::VectorXd*> ordered_values;
@@ -280,4 +280,4 @@ auto write_snp_eff(
     }
 }
 
-}  // namespace gelex::mcmc
+}  // namespace gelex

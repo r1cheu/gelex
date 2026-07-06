@@ -29,10 +29,7 @@
 namespace gelex
 {
 
-namespace infra
-{
 class FieldVisitor;
-}
 
 class BayesModel
 {
@@ -64,7 +61,7 @@ class BayesModel
     double phenotype_variance() const { return phenotype_var_; }
     Eigen::Index num_individuals() const { return num_individuals_; }
 
-    auto visit(infra::FieldVisitor& visitor) const -> void;
+    auto visit(FieldVisitor& visitor) const -> void;
 
    private:
     Eigen::Index num_individuals_{};

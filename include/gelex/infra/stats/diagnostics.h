@@ -26,7 +26,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex::stats
+namespace gelex
 {
 
 // Each MatrixXd in Chains has shape (n_params, n_draws); vector length =
@@ -100,6 +100,6 @@ std::pair<double, double> hpdi(
 
 auto hpdi(const Chains& chains, double prob)
     -> std::pair<Eigen::MatrixXd, Eigen::VectorXd>;
-}  // namespace gelex::stats
+}  // namespace gelex
 
 #endif  // GELEX_INFRA_STATS_DIAGNOSTICS_H_

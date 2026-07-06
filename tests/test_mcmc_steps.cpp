@@ -122,7 +122,7 @@ TEST_CASE("Random step updates coefficients and variance", "[mcmc]")
         .y_adj = Eigen::VectorXd{{1.0, -0.5, 0.25}}, .variance = 1.0};
 
     std::mt19937_64 rng{123};
-    gelex::mcmc::RandomStep step{prior, designs, states, residual, rng};
+    gelex::RandomStep step{prior, designs, states, residual, rng};
     step.step();
 
     REQUIRE(states.front().coeffs.allFinite());
@@ -146,8 +146,7 @@ TEST_CASE("Single shared Gaussian step updates fused state", "[mcmc]")
         block.prior_state());
 
     std::mt19937_64 rng{123};
-    gelex::mcmc::SingleSharedGaussianStep step{
-        design, prior, block, residual, rng};
+    gelex::SingleSharedGaussianStep step{design, prior, block, residual, rng};
     step.step();
 
     REQUIRE(block.state().coeffs.allFinite());
@@ -172,7 +171,7 @@ TEST_CASE("Single per-marker Gaussian step updates fused state", "[mcmc]")
             block.prior_state());
 
     std::mt19937_64 rng{123};
-    gelex::mcmc::SinglePerMarkerGaussianStep step{
+    gelex::SinglePerMarkerGaussianStep step{
         design, prior, block, residual, rng};
     step.step();
 
@@ -198,8 +197,7 @@ TEST_CASE("Single shared spike-slab step updates fused state", "[mcmc]")
             block.prior_state());
 
     std::mt19937_64 rng{123};
-    gelex::mcmc::SingleSharedSpikeSlabStep step{
-        design, prior, block, residual, rng};
+    gelex::SingleSharedSpikeSlabStep step{design, prior, block, residual, rng};
     step.step();
 
     REQUIRE(block.state().coeffs.allFinite());
@@ -227,7 +225,7 @@ TEST_CASE("Single per-marker spike-slab step updates fused state", "[mcmc]")
             block.prior_state());
 
     std::mt19937_64 rng{123};
-    gelex::mcmc::SinglePerMarkerSpikeSlabStep step{
+    gelex::SinglePerMarkerSpikeSlabStep step{
         design, prior, block, residual, rng};
     step.step();
 
@@ -257,8 +255,7 @@ TEST_CASE("Single scaled mixture step updates fused state", "[mcmc]")
             block.prior_state());
 
     std::mt19937_64 rng{123};
-    gelex::mcmc::SingleScaledMixtureStep step{
-        design, prior, block, residual, rng};
+    gelex::SingleScaledMixtureStep step{design, prior, block, residual, rng};
     step.step();
 
     REQUIRE(block.state().coeffs.allFinite());
@@ -310,13 +307,13 @@ TEST_CASE(
 
     std::mt19937_64 with_mono_rng{123};
     std::mt19937_64 active_only_rng{123};
-    gelex::mcmc::SingleScaledMixtureStep with_mono_step{
+    gelex::SingleScaledMixtureStep with_mono_step{
         with_mono,
         with_mono_prior,
         with_mono_block,
         with_mono_residual,
         with_mono_rng};
-    gelex::mcmc::SingleScaledMixtureStep active_only_step{
+    gelex::SingleScaledMixtureStep active_only_step{
         active_only,
         active_only_prior,
         active_only_block,
@@ -354,7 +351,7 @@ TEST_CASE("Joint Gaussian mixture step updates fused state", "[mcmc]")
         block.prior_state());
 
     std::mt19937_64 rng{123};
-    gelex::mcmc::JointGaussianMixtureStep step{
+    gelex::JointGaussianMixtureStep step{
         additive, dominance, prior, block, residual, rng};
     step.step();
 
@@ -393,7 +390,7 @@ TEST_CASE("Joint half normal mixture step updates fused state", "[mcmc]")
         block.prior_state());
 
     std::mt19937_64 rng{123};
-    gelex::mcmc::JointHalfNormalMixtureStep step{
+    gelex::JointHalfNormalMixtureStep step{
         additive, dominance, prior, block, residual, rng};
     step.step();
 
@@ -469,7 +466,7 @@ TEST_CASE(
         gelex::BayesState state(model, prior);
 
         std::mt19937_64 rng{123};
-        auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
+        auto chain = gelex::Chain::make(model, prior, state, rng);
         chain.step();
 
         const auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
@@ -500,7 +497,7 @@ TEST_CASE(
         gelex::BayesState state(model, prior);
 
         std::mt19937_64 rng{123};
-        auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
+        auto chain = gelex::Chain::make(model, prior, state, rng);
         chain.step();
 
         const auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
@@ -532,7 +529,7 @@ TEST_CASE(
         gelex::BayesState state(model, prior);
 
         std::mt19937_64 rng{123};
-        auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
+        auto chain = gelex::Chain::make(model, prior, state, rng);
         chain.step();
 
         const auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
@@ -564,7 +561,7 @@ TEST_CASE(
         gelex::BayesState state(model, prior);
 
         std::mt19937_64 rng{123};
-        auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
+        auto chain = gelex::Chain::make(model, prior, state, rng);
         chain.step();
 
         const auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
@@ -597,7 +594,7 @@ TEST_CASE(
         gelex::BayesState state(model, prior);
 
         std::mt19937_64 rng{123};
-        auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
+        auto chain = gelex::Chain::make(model, prior, state, rng);
         chain.step();
 
         const auto& block = std::get<gelex::bayes::SingleGeneticBlockState>(
@@ -633,7 +630,7 @@ TEST_CASE(
     gelex::BayesState state(model, prior);
 
     std::mt19937_64 rng{123};
-    auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
+    auto chain = gelex::Chain::make(model, prior, state, rng);
     chain.step();
 
     const auto& block
@@ -671,7 +668,7 @@ TEST_CASE("Chain::make maps half normal mixture step", "[mcmc][chain]")
     gelex::BayesState state(model, prior);
 
     std::mt19937_64 rng{123};
-    auto chain = gelex::mcmc::Chain::make(model, prior, state, rng);
+    auto chain = gelex::Chain::make(model, prior, state, rng);
     chain.step();
 
     const auto& block
@@ -702,9 +699,9 @@ TEST_CASE("Solver::run collects single genetic samples", "[mcmc][solver]")
         std::move(priors),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
 
-    gelex::mcmc::Params params{
+    gelex::Params params{
         .n_iters = 4, .n_burn_in = 1, .n_thin = 1, .checkpoint_step = 0};
-    gelex::mcmc::Solver solver{params};
+    gelex::Solver solver{params};
 
     int progress_count = 0;
     bool done = false;
@@ -732,32 +729,32 @@ TEST_CASE("Solver::run collects single genetic samples", "[mcmc][solver]")
     REQUIRE(done);
     REQUIRE(result.samples_collected() == params.n_records());
 
-    const auto& fixed = std::get<gelex::stats::RunningStatsResult>(
-        result.get("state/fixed/coeffs"));
+    const auto& fixed
+        = std::get<gelex::RunningStatsResult>(result.get("state/fixed/coeffs"));
     REQUIRE(fixed.mean.size() == 1);
     REQUIRE(fixed.mean.allFinite());
 
-    const auto& residual = std::get<gelex::stats::RunningStatsResult>(
+    const auto& residual = std::get<gelex::RunningStatsResult>(
         result.get("state/residual/variance"));
     REQUIRE(residual.mean.size() == 1);
     REQUIRE(residual.mean.allFinite());
 
-    const auto& coeffs = std::get<gelex::stats::RunningStatsResult>(
+    const auto& coeffs = std::get<gelex::RunningStatsResult>(
         result.get("state/genetic_0/single/A/genetic/coeffs"));
     REQUIRE(coeffs.mean.size() == 2);
     REQUIRE(coeffs.mean.allFinite());
 
-    const auto& pve = std::get<gelex::stats::RunningStatsResult>(
+    const auto& pve = std::get<gelex::RunningStatsResult>(
         result.get("state/genetic_0/single/A/genetic/pve"));
     REQUIRE(pve.mean.size() == 2);
     REQUIRE(pve.mean.allFinite());
 
-    const auto& variance = std::get<gelex::stats::RunningStatsResult>(
+    const auto& variance = std::get<gelex::RunningStatsResult>(
         result.get("state/genetic_0/single/A/genetic/variance"));
     REQUIRE(variance.mean.size() == 1);
     REQUIRE(variance.mean.allFinite());
 
-    const auto& heritability = std::get<gelex::stats::RunningStatsResult>(
+    const auto& heritability = std::get<gelex::RunningStatsResult>(
         result.get("state/genetic_0/single/A/genetic/heritability"));
     REQUIRE(heritability.mean.size() == 1);
     REQUIRE(heritability.mean.allFinite());
@@ -785,55 +782,51 @@ TEST_CASE("Solver::run collects joint genetic samples", "[mcmc][solver]")
         std::move(priors),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
 
-    gelex::mcmc::Params params{
+    gelex::Params params{
         .n_iters = 4, .n_burn_in = 1, .n_thin = 1, .checkpoint_step = 0};
-    gelex::mcmc::Solver solver{params};
+    gelex::Solver solver{params};
     auto result = solver.run(model, std::move(prior), 123);
 
-    const auto& additive_coeffs = std::get<gelex::stats::RunningStatsResult>(
+    const auto& additive_coeffs = std::get<gelex::RunningStatsResult>(
         result.get("state/genetic_0/joint/A/genetic/coeffs"));
-    const auto& dominance_coeffs = std::get<gelex::stats::RunningStatsResult>(
+    const auto& dominance_coeffs = std::get<gelex::RunningStatsResult>(
         result.get("state/genetic_0/joint/D/genetic/coeffs"));
     REQUIRE(additive_coeffs.mean.size() == 2);
     REQUIRE(dominance_coeffs.mean.size() == 2);
     REQUIRE(additive_coeffs.mean.allFinite());
     REQUIRE(dominance_coeffs.mean.allFinite());
 
-    const auto& additive_pve = std::get<gelex::stats::RunningStatsResult>(
+    const auto& additive_pve = std::get<gelex::RunningStatsResult>(
         result.get("state/genetic_0/joint/A/genetic/pve"));
-    const auto& dominance_pve = std::get<gelex::stats::RunningStatsResult>(
+    const auto& dominance_pve = std::get<gelex::RunningStatsResult>(
         result.get("state/genetic_0/joint/D/genetic/pve"));
     REQUIRE(additive_pve.mean.size() == 2);
     REQUIRE(dominance_pve.mean.size() == 2);
     REQUIRE(additive_pve.mean.allFinite());
     REQUIRE(dominance_pve.mean.allFinite());
 
-    const auto& additive_pip
-        = std::get<gelex::stats::RunningStatsResult>(result.get(
-            "state/genetic_0/joint/prior_state/"
-            "joint_mixture_gaussian/mixture/A/pip"));
-    const auto& dominance_pip
-        = std::get<gelex::stats::RunningStatsResult>(result.get(
-            "state/genetic_0/joint/prior_state/"
-            "joint_mixture_gaussian/mixture/D/pip"));
+    const auto& additive_pip = std::get<gelex::RunningStatsResult>(result.get(
+        "state/genetic_0/joint/prior_state/"
+        "joint_mixture_gaussian/mixture/A/pip"));
+    const auto& dominance_pip = std::get<gelex::RunningStatsResult>(result.get(
+        "state/genetic_0/joint/prior_state/"
+        "joint_mixture_gaussian/mixture/D/pip"));
     REQUIRE(additive_pip.mean.size() == 2);
     REQUIRE(dominance_pip.mean.size() == 2);
     REQUIRE(additive_pip.mean.allFinite());
     REQUIRE(dominance_pip.mean.allFinite());
 
-    const auto& additive_variance = std::get<gelex::stats::RunningStatsResult>(
+    const auto& additive_variance = std::get<gelex::RunningStatsResult>(
         result.get("state/genetic_0/joint/A/genetic/variance"));
-    const auto& dominance_variance = std::get<gelex::stats::RunningStatsResult>(
+    const auto& dominance_variance = std::get<gelex::RunningStatsResult>(
         result.get("state/genetic_0/joint/D/genetic/variance"));
     REQUIRE(additive_variance.mean.allFinite());
     REQUIRE(dominance_variance.mean.allFinite());
 
-    const auto& additive_heritability
-        = std::get<gelex::stats::RunningStatsResult>(
-            result.get("state/genetic_0/joint/A/genetic/heritability"));
-    const auto& dominance_heritability
-        = std::get<gelex::stats::RunningStatsResult>(
-            result.get("state/genetic_0/joint/D/genetic/heritability"));
+    const auto& additive_heritability = std::get<gelex::RunningStatsResult>(
+        result.get("state/genetic_0/joint/A/genetic/heritability"));
+    const auto& dominance_heritability = std::get<gelex::RunningStatsResult>(
+        result.get("state/genetic_0/joint/D/genetic/heritability"));
     REQUIRE(additive_heritability.mean.allFinite());
     REQUIRE(dominance_heritability.mean.allFinite());
 }
@@ -858,7 +851,7 @@ TEST_CASE("MCMC command dataflow writes solver outputs", "[mcmc][solver]")
         std::move(priors),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
 
-    gelex::mcmc::Params params{
+    gelex::Params params{
         .n_iters = 4, .n_burn_in = 1, .n_thin = 1, .checkpoint_step = 2};
     gelex::test::FileFixture files;
     const auto prefix = files.get_test_dir() / "mcmc_solver_output_test";
@@ -867,8 +860,7 @@ TEST_CASE("MCMC command dataflow writes solver outputs", "[mcmc][solver]")
         "mcmc_solver_output_geno.bim",
         "1\trs1\t0\t100\tA\tG\n"
         "1\trs2\t0\t200\tC\tT\n");
-    gelex::mcmc::Solver solver{
-        params, prefix.string() + ".draws", prefix.string()};
+    gelex::Solver solver{params, prefix.string() + ".draws", prefix.string()};
 
     bool done = false;
     int checkpoint_saved = 0;
@@ -896,9 +888,9 @@ TEST_CASE("MCMC command dataflow writes solver outputs", "[mcmc][solver]")
     };
 
     auto result = solver.run(model, prior, 123, observer);
-    gelex::mcmc::write_params(result, prefix.string());
-    gelex::mcmc::write_summary(result, prefix.string());
-    gelex::mcmc::write_snp_eff(
+    gelex::write_params(result, prefix.string());
+    gelex::write_summary(result, prefix.string());
+    gelex::write_snp_eff(
         result, model, bfile_prefix.string() + ".bim", prefix.string());
 
     REQUIRE(done);
@@ -919,7 +911,7 @@ TEST_CASE("MCMC command dataflow writes solver outputs", "[mcmc][solver]")
     auto checkpoint_path = prefix;
     checkpoint_path += ".ckpt";
     REQUIRE(std::filesystem::exists(checkpoint_path));
-    gelex::io::BinaryReader draws(draws_path.string());
+    gelex::BinaryReader draws(draws_path.string());
     const auto fixed_draws = draws.to_map<double>("state/fixed/coeffs");
     REQUIRE(fixed_draws.rows() == 1);
     REQUIRE(fixed_draws.cols() == params.n_records());
@@ -930,8 +922,8 @@ TEST_CASE("Solver rejects invalid MCMC params", "[mcmc][solver]")
     SECTION("n_iters must be positive")
     {
         REQUIRE_THROWS_AS(
-            gelex::mcmc::Solver(
-                gelex::mcmc::Params{
+            gelex::Solver(
+                gelex::Params{
                     .n_iters = 0,
                     .n_burn_in = 0,
                     .n_thin = 1,
@@ -942,8 +934,8 @@ TEST_CASE("Solver rejects invalid MCMC params", "[mcmc][solver]")
     SECTION("burn-in must be in range")
     {
         REQUIRE_THROWS_AS(
-            gelex::mcmc::Solver(
-                gelex::mcmc::Params{
+            gelex::Solver(
+                gelex::Params{
                     .n_iters = 4,
                     .n_burn_in = 4,
                     .n_thin = 1,
@@ -954,8 +946,8 @@ TEST_CASE("Solver rejects invalid MCMC params", "[mcmc][solver]")
     SECTION("thin must be positive")
     {
         REQUIRE_THROWS_AS(
-            gelex::mcmc::Solver(
-                gelex::mcmc::Params{
+            gelex::Solver(
+                gelex::Params{
                     .n_iters = 4,
                     .n_burn_in = 1,
                     .n_thin = 0,
@@ -966,8 +958,8 @@ TEST_CASE("Solver rejects invalid MCMC params", "[mcmc][solver]")
     SECTION("thin must divide retained iterations")
     {
         REQUIRE_THROWS_AS(
-            gelex::mcmc::Solver(
-                gelex::mcmc::Params{
+            gelex::Solver(
+                gelex::Params{
                     .n_iters = 5,
                     .n_burn_in = 1,
                     .n_thin = 3,
@@ -978,8 +970,8 @@ TEST_CASE("Solver rejects invalid MCMC params", "[mcmc][solver]")
     SECTION("checkpoint step must be non-negative")
     {
         REQUIRE_THROWS_AS(
-            gelex::mcmc::Solver(
-                gelex::mcmc::Params{
+            gelex::Solver(
+                gelex::Params{
                     .n_iters = 4,
                     .n_burn_in = 1,
                     .n_thin = 1,
@@ -1015,10 +1007,9 @@ TEST_CASE(
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(continuous_priors),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
-    gelex::mcmc::Params continuous_params{
+    gelex::Params continuous_params{
         .n_iters = 8, .n_burn_in = 0, .n_thin = 1, .checkpoint_step = 8};
-    gelex::mcmc::Solver continuous_solver{
-        continuous_params, "", continuous_prefix};
+    gelex::Solver continuous_solver{continuous_params, "", continuous_prefix};
     continuous_solver.run(model, continuous_prior, 123);
 
     std::vector<gelex::bayes::GeneticPrior> first_priors;
@@ -1031,9 +1022,9 @@ TEST_CASE(
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(first_priors),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
-    gelex::mcmc::Params first_params{
+    gelex::Params first_params{
         .n_iters = 4, .n_burn_in = 0, .n_thin = 1, .checkpoint_step = 4};
-    gelex::mcmc::Solver first_solver{first_params, "", first_prefix};
+    gelex::Solver first_solver{first_params, "", first_prefix};
     first_solver.run(model, first_prior, 123);
 
     std::vector<gelex::bayes::GeneticPrior> from_priors;
@@ -1046,16 +1037,16 @@ TEST_CASE(
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(from_priors),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
-    gelex::mcmc::Params from_params{
+    gelex::Params from_params{
         .n_iters = 4, .n_burn_in = 0, .n_thin = 1, .checkpoint_step = 4};
-    gelex::mcmc::Solver from_solver{from_params, "", from_prefix};
-    const auto from_result = from_solver.run_from(
-        model, from_prior, first_prefix + ".ckpt");
+    gelex::Solver from_solver{from_params, "", from_prefix};
+    const auto from_result
+        = from_solver.run_from(model, from_prior, first_prefix + ".ckpt");
 
     REQUIRE(from_result.samples_collected() == from_params.n_records());
 
-    gelex::io::BinaryReader continuous{continuous_prefix + ".ckpt"};
-    gelex::io::BinaryReader from_checkpoint{from_prefix + ".ckpt"};
+    gelex::BinaryReader continuous{continuous_prefix + ".ckpt"};
+    gelex::BinaryReader from_checkpoint{from_prefix + ".ckpt"};
     CHECK(continuous.to_map<double>("state/fixed/coeffs")
               .isApprox(
                   from_checkpoint.to_map<double>("state/fixed/coeffs"), 0.0));

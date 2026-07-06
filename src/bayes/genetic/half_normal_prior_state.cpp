@@ -52,7 +52,7 @@ auto JointHalfNormalMixtureState::variance(GeneticMode mode) const -> const
     return variances_[std::to_underlying(mode)];
 }
 
-auto JointHalfNormalMixtureState::visit(infra::FieldVisitor& visitor) -> void
+auto JointHalfNormalMixtureState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     constexpr std::array modes{GeneticMode::A, GeneticMode::D};

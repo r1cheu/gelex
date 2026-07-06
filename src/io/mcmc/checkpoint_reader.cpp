@@ -39,12 +39,10 @@ namespace gelex
 namespace
 {
 
-class CheckpointReader final : private infra::FieldVisitor
+class CheckpointReader final : private FieldVisitor
 {
    public:
-    explicit CheckpointReader(const io::BinaryReader& reader) : reader_(reader)
-    {
-    }
+    explicit CheckpointReader(const BinaryReader& reader) : reader_(reader) {}
 
     auto read(BayesState& state) -> void { state.visit(*this); }
 
@@ -200,7 +198,7 @@ class CheckpointReader final : private infra::FieldVisitor
             + field_path(name));
     }
 
-    const io::BinaryReader& reader_;
+    const BinaryReader& reader_;
 };
 
 }  // namespace
@@ -208,7 +206,7 @@ class CheckpointReader final : private infra::FieldVisitor
 auto read_checkpoint(const std::filesystem::path& path, BayesState& state)
     -> std::mt19937_64
 {
-    io::BinaryReader reader(path.string());
+    BinaryReader reader(path.string());
     CheckpointReader checkpoint_reader{reader};
     checkpoint_reader.read(state);
 

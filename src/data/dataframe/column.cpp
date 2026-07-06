@@ -22,7 +22,7 @@
 #include <type_traits>
 #include <variant>
 
-namespace gelex::dataframe
+namespace gelex
 {
 
 auto Column::size() const -> std::size_t
@@ -65,4 +65,4 @@ auto Column::gather(std::span<const std::size_t> indices) -> void
         storage_);
 }
 
-}  // namespace gelex::dataframe
+}  // namespace gelex

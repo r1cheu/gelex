@@ -21,7 +21,7 @@
 #include <ios>
 #include <string_view>
 
-namespace gelex::io::detail
+namespace gelex::detail
 {
 
 TextWriter::TextWriter(const std::filesystem::path& path)
@@ -71,4 +71,4 @@ auto TextWriter::path() const noexcept -> const std::filesystem::path&
     return ofs_.path();
 }
 
-}  // namespace gelex::io::detail
+}  // namespace gelex::detail

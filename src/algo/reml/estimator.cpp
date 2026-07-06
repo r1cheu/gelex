@@ -32,7 +32,7 @@
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/reml_event.h"
 
-namespace gelex::reml
+namespace gelex
 {
 
 Estimator::Estimator(size_t max_iter, double tol, RemlObserver observer)
@@ -148,4 +148,4 @@ auto Estimator::em_step(
             .loglike = loglike, .init_variances = std::move(init_variances)});
 }
 
-}  // namespace gelex::reml
+}  // namespace gelex

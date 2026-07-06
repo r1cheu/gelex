@@ -21,7 +21,7 @@
 #include <functional>
 #include <string_view>
 
-namespace gelex::log
+namespace gelex
 {
 
 enum class Level : std::uint8_t
@@ -39,6 +39,6 @@ void info(std::string_view message);
 void warn(std::string_view message);
 void error(std::string_view message);
 
-}  // namespace gelex::log
+}  // namespace gelex
 
 #endif  // GELEX_INFRA_LOG_H_

@@ -24,7 +24,7 @@
 #include "gelex/infra/stats/normal_sampler.h"
 #include "gelex/types/fixed_designs.h"
 
-namespace gelex::mcmc
+namespace gelex
 {
 
 FixedStep::FixedStep(
@@ -57,4 +57,4 @@ auto FixedStep::step() -> void
     }
 }
 
-}  // namespace gelex::mcmc
+}  // namespace gelex

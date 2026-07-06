@@ -23,7 +23,7 @@
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 
-namespace gelex::mcmc
+namespace gelex
 {
 
 ResidualStep::ResidualStep(
@@ -46,4 +46,4 @@ auto ResidualStep::step() -> void
         rng_);
 }
 
-}  // namespace gelex::mcmc
+}  // namespace gelex

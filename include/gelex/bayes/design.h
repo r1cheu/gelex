@@ -26,7 +26,7 @@
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/genetic_mode.h"
 
-namespace gelex::infra
+namespace gelex
 {
 class FieldVisitor;
 }
@@ -51,7 +51,7 @@ struct RandomDesign
     Eigen::MatrixXd X;
     Eigen::VectorXd XtX_diag;
 
-    auto visit(infra::FieldVisitor& visitor) const -> void;
+    auto visit(FieldVisitor& visitor) const -> void;
 };
 
 struct GeneticDesign
@@ -60,8 +60,8 @@ struct GeneticDesign
         : type(type), X(std::move(X))
     {
         XtX_diag = this->X.matrix().colwise().squaredNorm();
-        col_var = gelex::stats::detail::matvar<0>(
-            this->X.matrix(), gelex::stats::detail::VarNormType::Population);
+        col_var = gelex::detail::matvar<0>(
+            this->X.matrix(), gelex::detail::VarNormType::Population);
     }
 
     GeneticMode type;

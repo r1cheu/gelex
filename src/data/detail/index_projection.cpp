@@ -25,8 +25,8 @@
 namespace gelex::detail
 {
 IndexProjection::IndexProjection(
-    const dataframe::Index<std::string>& source_index,
-    const dataframe::Index<std::string>& target_index)
+    const DataFrameIndex<std::string>& source_index,
+    const DataFrameIndex<std::string>& target_index)
     : source_size_{static_cast<index_type>(source_index.size())},
       source_to_target_(static_cast<std::size_t>(source_size_), npos),
       is_identity_{source_index.size() == target_index.size()}

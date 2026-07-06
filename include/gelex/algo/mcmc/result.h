@@ -33,14 +33,11 @@ namespace gelex
 
 class BayesModel;
 
-namespace mcmc
-{
-
 class Result
 {
    public:
     Result(
-        mcmc::Records&& records,
+        Records&& records,
         const BayesModel& model,
         Eigen::Index samples_collected);
 
@@ -61,10 +58,10 @@ class Result
     auto append_record(std::string path, Eigen::VectorXd&& value) -> void;
     auto append_single_pip_record(
         std::string path,
-        const stats::CategoryProbResult& probabilities) -> void;
+        const CategoryProbResult& probabilities) -> void;
     auto append_joint_pip_records(
         std::string path,
-        const stats::CategoryProbResult& probabilities) -> void;
+        const CategoryProbResult& probabilities) -> void;
     auto index_records() -> void;
 
     auto make_pip_records(const RecordEntry& record) -> void;
@@ -75,8 +72,6 @@ class Result
     std::unordered_map<std::string, std::size_t> record_indices_;
     Eigen::Index samples_collected_{};
 };
-
-}  // namespace mcmc
 
 }  // namespace gelex
 

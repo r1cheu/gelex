@@ -183,8 +183,8 @@ auto make_freq_model(
     std::size_t pheno_col = 0;
     auto phenotype = read_pheno(pheno_path, &pheno_col);
 
-    std::optional<dataframe::DataFrame<std::string>> qcovar;
-    std::optional<dataframe::DataFrame<std::string>> dcovar;
+    std::optional<DataFrame<std::string>> qcovar;
+    std::optional<DataFrame<std::string>> dcovar;
     if (qcovar_path)
     {
         qcovar = read_qcovar(*qcovar_path);
@@ -195,7 +195,7 @@ auto make_freq_model(
     }
 
     std::vector<std::string> grm_prefixes;
-    std::vector<dataframe::Index<std::string>> grm_indices;
+    std::vector<DataFrameIndex<std::string>> grm_indices;
     grm_prefixes.reserve(grm_paths.size());
     grm_indices.reserve(grm_paths.size());
     for (const auto& path : grm_paths)
@@ -204,7 +204,7 @@ auto make_freq_model(
         grm_indices.push_back(read_grm_ids(path.string()));
     }
 
-    std::vector<const dataframe::Index<std::string>*> all_indices{
+    std::vector<const DataFrameIndex<std::string>*> all_indices{
         &fam_index, &phenotype.index()};
     if (qcovar)
     {
@@ -218,7 +218,7 @@ auto make_freq_model(
     {
         all_indices.push_back(&idx);
     }
-    auto common = dataframe::intersect<std::string>(all_indices);
+    auto common = intersect<std::string>(all_indices);
 
     phenotype.gather(common);
     if (qcovar)
@@ -484,7 +484,7 @@ TEST_CASE(
     auto& files = bed_fixture.get_file_fixture();
 
     // BED file has samples: fam1_sample1, fam2_sample2, ..., fam5_sample5,
-    //                       fam1_sample6, fam2_sample7, ...
+    // fam1_sample6, fam2_sample7, ...
     std::vector<std::string> bed_sample_ids;
     bed_sample_ids.reserve(bed_samples);
     for (Eigen::Index i = 0; i < bed_samples; ++i)
@@ -667,13 +667,11 @@ TEST_CASE(
     auto pheno_path = files.create_text_file(pheno_content, ".phen");
 
     // create known GRM matrix
-    Eigen::MatrixXd original_grm(num_samples, num_samples);
-    // clang-format off
-    original_grm << 1.0, 0.5, 0.3, 0.2,
-                    0.5, 1.0, 0.4, 0.1,
-                    0.3, 0.4, 1.0, 0.6,
-                    0.2, 0.1, 0.6, 1.0;
-    // clang-format on
+    Eigen::MatrixXd original_grm{
+        {1.0, 0.5, 0.3, 0.2},
+        {0.5, 1.0, 0.4, 0.1},
+        {0.3, 0.4, 1.0, 0.6},
+        {0.2, 0.1, 0.6, 1.0}};
 
     GrmFileFixture grm_fixture(files);
     grm_fixture.create(original_grm, sample_ids);

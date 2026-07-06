@@ -35,7 +35,7 @@ struct MarkerRange
 };
 
 // Contiguous marker runs per chromosome, in bim order.
-auto chromosome_ranges(const dataframe::DataFrame<std::string>& bim)
+auto chromosome_ranges(const DataFrame<std::string>& bim)
     -> std::vector<MarkerRange>;
 
 }  // namespace gelex

@@ -62,7 +62,7 @@ TEST_CASE("REML writers write result files", "[reml][io]")
     {
         gelex::test::FileFixture files;
         const auto prefix = files.get_test_dir() / "reml_result";
-        gelex::reml::write_summary(model, state, -123.456, prefix.string());
+        gelex::write_summary(model, state, -123.456, prefix.string());
 
         auto summary_path = prefix;
         summary_path += ".summary";
@@ -95,7 +95,7 @@ TEST_CASE("REML writers write result files", "[reml][io]")
     {
         gelex::test::FileFixture files;
         const auto prefix = files.get_test_dir() / "reml_effects";
-        gelex::reml::write_effects(model, state, sample_ids, prefix.string());
+        gelex::write_effects(model, state, sample_ids, prefix.string());
 
         auto effects_path = prefix;
         effects_path += ".effects";
@@ -123,7 +123,7 @@ TEST_CASE("REML writers write result files", "[reml][io]")
         const auto prefix = files.get_test_dir() / "reml_bad_effects";
 
         REQUIRE_THROWS_AS(
-            gelex::reml::write_effects(model, state, mismatch, prefix.string()),
+            gelex::write_effects(model, state, mismatch, prefix.string()),
             gelex::GelexException);
     }
 
@@ -137,7 +137,7 @@ TEST_CASE("REML writers write result files", "[reml][io]")
 
         gelex::test::FileFixture files;
         const auto prefix = files.get_test_dir() / "reml_fixed_only";
-        gelex::reml::write_effects(
+        gelex::write_effects(
             fixed_only_model, fixed_only_state, sample_ids, prefix.string());
 
         auto effects_path = prefix;
@@ -171,7 +171,7 @@ TEST_CASE("REML writers write result files", "[reml][io]")
 
         gelex::test::FileFixture files;
         const auto prefix = files.get_test_dir() / "reml_fixed_columns";
-        gelex::reml::write_effects(
+        gelex::write_effects(
             fixed_model, fixed_state, sample_ids, prefix.string());
 
         auto effects_path = prefix;

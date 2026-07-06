@@ -27,7 +27,7 @@
 #include "gelex/infra/stats/detail/normal.h"
 #include "gelex/infra/stats/normal_sampler.h"
 
-namespace gelex::stats
+namespace gelex
 {
 
 template <std::floating_point T>
@@ -177,6 +177,6 @@ class HalfNormalSampler
     }
 };
 
-}  // namespace gelex::stats
+}  // namespace gelex
 
 #endif  // GELEX_INFRA_STATS_HALF_NORMAL_SAMPLER_H_

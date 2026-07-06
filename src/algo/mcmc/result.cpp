@@ -36,8 +36,8 @@
 namespace gelex
 {
 
-mcmc::Result::Result(
-    mcmc::Records&& records,
+Result::Result(
+    Records&& records,
     const BayesModel& model,
     Eigen::Index samples_collected)
     : phenotype_var_(model.phenotype_variance()),
@@ -49,7 +49,7 @@ mcmc::Result::Result(
     index_records();
 }
 
-auto mcmc::Result::append_derived_records(
+auto Result::append_derived_records(
     const BayesModel& model,
     std::size_t n_records) -> void
 {
@@ -57,9 +57,8 @@ auto mcmc::Result::append_derived_records(
     append_pip_records(n_records);
 }
 
-auto mcmc::Result::append_pve_records(
-    const BayesModel& model,
-    std::size_t n_records) -> void
+auto Result::append_pve_records(const BayesModel& model, std::size_t n_records)
+    -> void
 {
     if (phenotype_var_ <= 0.0)
     {
@@ -68,12 +67,12 @@ auto mcmc::Result::append_pve_records(
 
     Eigen::VectorXd additive_beta;
     Eigen::VectorXd dominance_beta;
-    const auto pve_computer = mcmc::detail::PveComputer{model, phenotype_var_};
+    const auto pve_computer = detail::PveComputer{model, phenotype_var_};
     for (std::size_t i = 0; i < n_records; ++i)
     {
         const auto& record = records_[i];
         const std::string_view path{record.path};
-        if (!std::holds_alternative<stats::RunningStatsResult>(record.value)
+        if (!std::holds_alternative<RunningStatsResult>(record.value)
             || !path.ends_with("/genetic/coeffs"))
         {
             continue;
@@ -90,7 +89,7 @@ auto mcmc::Result::append_pve_records(
         }
 
         const auto mode = is_additive ? GeneticMode::A : GeneticMode::D;
-        const auto& coeffs = std::get<stats::RunningStatsResult>(record.value);
+        const auto& coeffs = std::get<RunningStatsResult>(record.value);
         auto pve = pve_computer.single(mode, coeffs.mean);
         if (mode == GeneticMode::A)
         {
@@ -112,7 +111,7 @@ auto mcmc::Result::append_pve_records(
     }
 }
 
-auto mcmc::Result::append_pip_records(std::size_t n_records) -> void
+auto Result::append_pip_records(std::size_t n_records) -> void
 {
     for (std::size_t i = 0; i < n_records; ++i)
     {
@@ -120,38 +119,36 @@ auto mcmc::Result::append_pip_records(std::size_t n_records) -> void
     }
 }
 
-auto mcmc::Result::append_record(std::string path, Eigen::VectorXd&& value)
-    -> void
+auto Result::append_record(std::string path, Eigen::VectorXd&& value) -> void
 {
     auto size = value.size();
     records_.push_back(
         RecordEntry{
             std::move(path),
-            stats::RunningStatsResult{
-                std::move(value), Eigen::VectorXd::Zero(size)},
+            RunningStatsResult{std::move(value), Eigen::VectorXd::Zero(size)},
             std::nullopt});
 }
 
-auto mcmc::Result::append_single_pip_record(
+auto Result::append_single_pip_record(
     std::string path,
-    const stats::CategoryProbResult& probabilities) -> void
+    const CategoryProbResult& probabilities) -> void
 {
-    const auto pip_computer = mcmc::detail::PipComputer{};
+    const auto pip_computer = detail::PipComputer{};
     auto pip = pip_computer.single(probabilities.value);
     path += "/pip";
     append_record(std::move(path), std::move(pip));
 }
 
-auto mcmc::Result::append_joint_pip_records(
+auto Result::append_joint_pip_records(
     std::string path,
-    const stats::CategoryProbResult& probabilities) -> void
+    const CategoryProbResult& probabilities) -> void
 {
     if (probabilities.value.cols() < 4)
     {
         return;
     }
 
-    const auto pip_computer = mcmc::detail::PipComputer{};
+    const auto pip_computer = detail::PipComputer{};
     auto [additive_pip, dominance_pip]
         = pip_computer.joint(probabilities.value);
     auto additive_pip_path = path;
@@ -162,7 +159,7 @@ auto mcmc::Result::append_joint_pip_records(
     append_record(std::move(path), std::move(dominance_pip));
 }
 
-auto mcmc::Result::index_records() -> void
+auto Result::index_records() -> void
 {
     record_indices_.reserve(records_.size());
     for (auto [i, record] : std::views::enumerate(records_))
@@ -171,9 +168,9 @@ auto mcmc::Result::index_records() -> void
     }
 }
 
-auto mcmc::Result::make_pip_records(const RecordEntry& record) -> void
+auto Result::make_pip_records(const RecordEntry& record) -> void
 {
-    if (!std::holds_alternative<stats::CategoryProbResult>(record.value))
+    if (!std::holds_alternative<CategoryProbResult>(record.value))
     {
         return;
     }
@@ -185,8 +182,7 @@ auto mcmc::Result::make_pip_records(const RecordEntry& record) -> void
         return;
     }
 
-    const auto& probabilities
-        = std::get<stats::CategoryProbResult>(record.value);
+    const auto& probabilities = std::get<CategoryProbResult>(record.value);
     if (probabilities.value.cols() == 0)
     {
         return;
@@ -203,7 +199,7 @@ auto mcmc::Result::make_pip_records(const RecordEntry& record) -> void
     append_single_pip_record(std::move(pip_path), probabilities);
 }
 
-auto mcmc::Result::get(std::string_view path) const -> const RecordResult&
+auto Result::get(std::string_view path) const -> const RecordResult&
 {
     auto key = std::string{path};
     const auto it = record_indices_.find(key);

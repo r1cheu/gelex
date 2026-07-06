@@ -23,7 +23,7 @@
 
 namespace gelex
 {
-using reml::constrain;
+using gelex::constrain;
 }
 
 namespace gelex

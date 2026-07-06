@@ -32,7 +32,7 @@
 namespace fs = std::filesystem;
 
 using gelex::GelexException;
-using gelex::io::detail::AtomicOutputStream;
+using gelex::detail::AtomicOutputStream;
 using gelex::test::FileFixture;
 
 namespace
@@ -162,12 +162,15 @@ TEST_CASE(
 {
     FileFixture files;
     auto bad_path = files.get_test_dir() / "no_such_dir" / "file.txt";
-    REQUIRE_THROWS_AS(AtomicOutputStream(bad_path, std::ios::out), GelexException);
+    REQUIRE_THROWS_AS(
+        AtomicOutputStream(bad_path, std::ios::out), GelexException);
     REQUIRE_FALSE(fs::exists(bad_path));
     REQUIRE_FALSE(fs::exists(tmp_of(bad_path)));
 }
 
-TEST_CASE("AtomicOutputStream - binary mode roundtrip", "[atomic_output_stream][binary]")
+TEST_CASE(
+    "AtomicOutputStream - binary mode roundtrip",
+    "[atomic_output_stream][binary]")
 {
     FileFixture files;
     auto final_path = files.generate_random_file_path(".bin");

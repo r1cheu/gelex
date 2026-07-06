@@ -28,7 +28,7 @@ namespace gelex
 {
 
 ResidualPosteriorProcessor::ResidualPosteriorProcessor(
-    std::span<const io::BinaryReader> readers,
+    std::span<const BinaryReader> readers,
     double hdpi_threshold)
     : readers_{readers}, hdpi_threshold_{hdpi_threshold}
 {
@@ -37,7 +37,7 @@ ResidualPosteriorProcessor::ResidualPosteriorProcessor(
 auto ResidualPosteriorProcessor::process() -> std::vector<ParameterDiag>
 {
     constexpr std::string_view resid_path = "residual/0/variance";
-    return {post::detail::summarize_section(
+    return {detail::summarize_section(
         readers_, resid_path, hdpi_threshold_, "Residual", "σ²_e")};
 }
 

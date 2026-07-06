@@ -30,11 +30,11 @@
 #include "gelex/io/mcmc/checkpoint_reader.h"
 #include "gelex/io/mcmc/checkpoint_writer.h"
 
-namespace gelex::mcmc
+namespace gelex
 {
 
 Solver::Solver(
-    mcmc::Params params,
+    Params params,
     std::string draws_path,
     std::optional<std::string> checkpoint_prefix)
     : params_(params),
@@ -81,7 +81,7 @@ auto Solver::run(
     const BayesModel& model,
     const bayes::BayesPrior& prior,
     Eigen::Index seed,
-    const MCMCObserver& observer) -> mcmc::Result
+    const MCMCObserver& observer) -> Result
 {
     auto state = BayesState{model, prior};
     auto rng = std::mt19937_64{static_cast<std::mt19937_64::result_type>(seed)};
@@ -92,7 +92,7 @@ auto Solver::run_from(
     const BayesModel& model,
     const bayes::BayesPrior& prior,
     const std::filesystem::path& checkpoint_path,
-    const MCMCObserver& observer) -> mcmc::Result
+    const MCMCObserver& observer) -> Result
 {
     auto state = BayesState{model, prior};
     auto rng = read_checkpoint(checkpoint_path, state);
@@ -104,9 +104,9 @@ auto Solver::run_iterations(
     const bayes::BayesPrior& prior,
     BayesState& state,
     std::mt19937_64& rng,
-    const MCMCObserver& observer) -> mcmc::Result
+    const MCMCObserver& observer) -> Result
 {
-    auto records = mcmc::Records{params_.n_records(), draws_path_};
+    auto records = Records{params_.n_records(), draws_path_};
     auto chain = Chain::make(model, prior, state, rng);
 
     for (Eigen::Index iter = 0; iter < params_.n_iters; ++iter)
@@ -143,7 +143,7 @@ auto Solver::run_iterations(
             .done = true,
         });
 
-    return mcmc::Result{std::move(records), model, params_.n_records()};
+    return Result{std::move(records), model, params_.n_records()};
 }
 
-}  // namespace gelex::mcmc
+}  // namespace gelex

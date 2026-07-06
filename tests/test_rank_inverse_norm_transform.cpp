@@ -25,7 +25,7 @@
 
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
 
-using gelex::stats::RankInverseNormTransform;
+using gelex::RankInverseNormTransform;
 
 TEST_CASE(
     "RankInverseNormTransform - DINT produces approximately standard normal",

@@ -26,7 +26,7 @@
 
 #include "gelex/exception.h"
 
-namespace gelex::io::detail
+namespace gelex::detail
 {
 
 namespace
@@ -136,4 +136,4 @@ auto AtomicOutputStream::commit() -> void
     committed_ = true;
 }
 
-}  // namespace gelex::io::detail
+}  // namespace gelex::detail

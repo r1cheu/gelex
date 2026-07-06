@@ -51,7 +51,7 @@ TEST_CASE(
 {
     REQUIRE(std::filesystem::exists(kGbinPath));
 
-    auto genotype = gelex::genotype::GenotypeReader::read(
+    auto genotype = gelex::GenotypeReader::read(
         std::filesystem::path{kGbinPath}, gelex::GeneticMode::A);
     gelex::bayes::GeneticDesign design{
         gelex::GeneticMode::A, std::move(genotype)};
@@ -73,8 +73,7 @@ TEST_CASE(
         block.prior_state());
 
     std::mt19937_64 rng{42};
-    gelex::mcmc::SingleSharedGaussianStep step{
-        design, prior, block, residual, rng};
+    gelex::SingleSharedGaussianStep step{design, prior, block, residual, rng};
 
     ankerl::nanobench::Bench b;
     b.title("SingleSharedGaussianStep")

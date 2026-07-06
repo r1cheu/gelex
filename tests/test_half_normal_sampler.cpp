@@ -30,8 +30,8 @@
 namespace gelex
 {
 
-using stats::HalfNormalSampler;
-using stats::NormalSampler;
+using gelex::HalfNormalSampler;
+using gelex::NormalSampler;
 
 namespace
 {
@@ -84,8 +84,7 @@ TEST_CASE(
         = std::log(0.5) + std::log(std::erfc(-z / std::numbers::sqrt2));
     const double log_tail_neg
         = std::log(0.5) + std::log(std::erfc(z / std::numbers::sqrt2));
-    const double normal_half_log
-        = n_post.log_likelihood_kernel + std::log(2.0);
+    const double normal_half_log = n_post.log_likelihood_kernel + std::log(2.0);
 
     REQUIRE_THAT(
         hn_pos.log_marginal_kernel,
@@ -99,11 +98,10 @@ TEST_CASE(
 
     const double big
         = std::max(hn_pos.log_marginal_kernel, hn_neg.log_marginal_kernel);
-    const double logsumexp
-        = big
-          + std::log(
-              std::exp(hn_pos.log_marginal_kernel - big)
-              + std::exp(hn_neg.log_marginal_kernel - big));
+    const double logsumexp = big
+                             + std::log(
+                                 std::exp(hn_pos.log_marginal_kernel - big)
+                                 + std::exp(hn_neg.log_marginal_kernel - big));
     REQUIRE_THAT(logsumexp, Catch::Matchers::WithinAbs(normal_half_log, 1e-12));
 }
 
@@ -126,7 +124,8 @@ TEST_CASE(
         const auto pos = hn.posterior_with_logL(kernel, +1);
         const auto neg = hn.posterior_with_logL(kernel, -1);
         const auto normal_post = n.posterior_with_logL(kernel);
-        const double z = normal_post.params.mean / std::sqrt(normal_post.params.var);
+        const double z
+            = normal_post.params.mean / std::sqrt(normal_post.params.var);
         const double normal_half_log
             = normal_post.log_likelihood_kernel + std::log(2.0);
         const double log_tail_pos = pos.log_marginal_kernel - normal_half_log;
@@ -150,15 +149,13 @@ TEST_CASE(
         if (sign_val < 0)
         {
             const double ref = log_phi_asymp(z);
-            REQUIRE_THAT(
-                log_tail_pos, Catch::Matchers::WithinAbs(ref, 1e-6));
+            REQUIRE_THAT(log_tail_pos, Catch::Matchers::WithinAbs(ref, 1e-6));
         }
         else
         {
             // z ≈ +10: log_tail_neg ≈ log_phi_asymp(-10)
             const double ref = log_phi_asymp(-z);
-            REQUIRE_THAT(
-                log_tail_neg, Catch::Matchers::WithinAbs(ref, 1e-6));
+            REQUIRE_THAT(log_tail_neg, Catch::Matchers::WithinAbs(ref, 1e-6));
         }
     }
 }
@@ -277,8 +274,8 @@ TEST_CASE(
     constexpr double MU = -3.0;
     constexpr double SIGMA = 1.0;
     constexpr double ALPHA = 3.0;  // (0 - MU) / SIGMA
-    const double phi_alpha = std::exp((-0.5 * ALPHA) * ALPHA)
-                             / std::sqrt(2.0 * std::numbers::pi);
+    const double phi_alpha
+        = std::exp((-0.5 * ALPHA) * ALPHA) / std::sqrt(2.0 * std::numbers::pi);
     const double Phi_alpha = 0.5 * std::erfc(-ALPHA / std::numbers::sqrt2);
     const double expected_mean = MU + (SIGMA * phi_alpha / (1.0 - Phi_alpha));
 

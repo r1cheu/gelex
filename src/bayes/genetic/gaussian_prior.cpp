@@ -38,7 +38,7 @@ SingleSharedGaussianPrior::SingleSharedGaussianPrior(
 {
 }
 
-auto SingleSharedGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
+auto SingleSharedGaussianPrior::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on("mode", mode_, FieldFlag::checkpoint | FieldFlag::report);
@@ -59,7 +59,7 @@ SinglePerMarkerGaussianPrior::SinglePerMarkerGaussianPrior(
 {
 }
 
-auto SinglePerMarkerGaussianPrior::visit(infra::FieldVisitor& visitor) -> void
+auto SinglePerMarkerGaussianPrior::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on("mode", mode_, FieldFlag::checkpoint | FieldFlag::report);
@@ -88,8 +88,7 @@ SingleSharedSpikeSlabGaussianPrior::SingleSharedSpikeSlabGaussianPrior(
     }
 }
 
-auto SingleSharedSpikeSlabGaussianPrior::visit(infra::FieldVisitor& visitor)
-    -> void
+auto SingleSharedSpikeSlabGaussianPrior::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on("mode", mode_, FieldFlag::checkpoint | FieldFlag::report);
@@ -120,8 +119,7 @@ SinglePerMarkerSpikeSlabGaussianPrior::SinglePerMarkerSpikeSlabGaussianPrior(
     }
 }
 
-auto SinglePerMarkerSpikeSlabGaussianPrior::visit(infra::FieldVisitor& visitor)
-    -> void
+auto SinglePerMarkerSpikeSlabGaussianPrior::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on("mode", mode_, FieldFlag::checkpoint | FieldFlag::report);
@@ -165,8 +163,7 @@ SingleScaledMixtureGaussianPrior::SingleScaledMixtureGaussianPrior(
     }
 }
 
-auto SingleScaledMixtureGaussianPrior::visit(infra::FieldVisitor& visitor)
-    -> void
+auto SingleScaledMixtureGaussianPrior::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on("mode", mode_, FieldFlag::checkpoint | FieldFlag::report);
@@ -209,7 +206,7 @@ auto JointGaussianMixturePrior::variance(GeneticMode mode) const
     return variances_.variance(mode);
 }
 
-auto JointGaussianMixturePrior::visit(infra::FieldVisitor& visitor) -> void
+auto JointGaussianMixturePrior::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     variances().visit(visitor);

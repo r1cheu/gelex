@@ -32,7 +32,7 @@ namespace gelex::test
 class GenotypeBuilder;
 }  // namespace gelex::test
 
-namespace gelex::genotype
+namespace gelex
 {
 
 class GenotypeReader;
@@ -57,7 +57,7 @@ struct MmappedStorage
 {
     using MapType = Eigen::Map<const Eigen::MatrixXd, Eigen::Unaligned>;
 
-    std::unique_ptr<gelex::io::BinaryReader> reader;
+    std::unique_ptr<gelex::BinaryReader> reader;
     MapType view{nullptr, 0, 0};
     Eigen::VectorXd mean;
     Eigen::VectorXd var;
@@ -72,7 +72,7 @@ struct MmappedStorage
     ~MmappedStorage() = default;
 };
 
-}  // namespace gelex::genotype
+}  // namespace gelex
 
 namespace gelex
 {
@@ -108,20 +108,20 @@ class Genotype
         -> bool;
 
    private:
-    friend class genotype::GenotypeReader;
+    friend class GenotypeReader;
     friend class ::gelex::test::GenotypeBuilder;
 
-    explicit Genotype(genotype::OwnedStorage&& owned) noexcept
+    explicit Genotype(OwnedStorage&& owned) noexcept
         : storage_(std::move(owned))
     {
     }
 
-    explicit Genotype(genotype::MmappedStorage&& mapped) noexcept
+    explicit Genotype(MmappedStorage&& mapped) noexcept
         : storage_(std::move(mapped))
     {
     }
 
-    std::variant<genotype::OwnedStorage, genotype::MmappedStorage> storage_;
+    std::variant<OwnedStorage, MmappedStorage> storage_;
 };
 
 }  // namespace gelex

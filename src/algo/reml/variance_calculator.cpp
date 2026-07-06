@@ -28,7 +28,7 @@
 #include "gelex/algo/reml/optimizer_state.h"
 #include "gelex/freq/model.h"
 
-namespace gelex::reml
+namespace gelex
 {
 
 auto compute_v(
@@ -89,10 +89,10 @@ auto compute_proj(const gelex::FreqModel& model, OptimizerState& state) -> void
     const auto& x = model.fixed().X;
     const auto& y = model.phenotype();
 
-    // ViX = V^{-1} X  (v holds V^{-1} after v_inv_logdet)
+    // ViX = V^{-1} X (v holds V^{-1} after v_inv_logdet)
     state.ViX.noalias() = state.V * x;
 
-    // XtViX = X' V^{-1} X = X' ViX  (local only; stored form is its inverse)
+    // XtViX = X' V^{-1} X = X' ViX (local only; stored form is its inverse)
     Eigen::MatrixXd XtViX = x.transpose() * state.ViX;
 
     Eigen::LLT<Eigen::MatrixXd> llt(XtViX);
@@ -129,4 +129,4 @@ auto compute_loglike(const gelex::FreqModel& model, const OptimizerState& state)
     return -0.5 * (constant + state.logdet_v + state.logdet_xvx + ypy);
 }
 
-}  // namespace gelex::reml
+}  // namespace gelex

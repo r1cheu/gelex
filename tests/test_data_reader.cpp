@@ -25,7 +25,7 @@
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/reader.h"
 
-using gelex::dataframe::SEPARATOR;
+using gelex::SEPARATOR;
 using gelex::test::FileFixture;
 
 TEST_CASE(

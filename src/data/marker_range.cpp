@@ -27,7 +27,7 @@
 namespace gelex
 {
 
-auto chromosome_ranges(const dataframe::DataFrame<std::string>& bim)
+auto chromosome_ranges(const DataFrame<std::string>& bim)
     -> std::vector<MarkerRange>
 {
     const auto num_snps = static_cast<Eigen::Index>(bim.rows());

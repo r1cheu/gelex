@@ -22,7 +22,7 @@
 #include <string>
 #include <system_error>
 
-namespace gelex::io
+namespace gelex
 {
 
 class MappedFile
@@ -45,6 +45,6 @@ class MappedFile
     std::unique_ptr<Impl> impl_;
 };
 
-}  // namespace gelex::io
+}  // namespace gelex
 
 #endif  // GELEX_IO_MAPPED_FILE_H_

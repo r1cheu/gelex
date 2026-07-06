@@ -27,10 +27,10 @@
 namespace gelex
 {
 
-class NormalSampler
+class NormalGenerator
 {
    public:
-    NormalSampler(
+    NormalGenerator(
         std::span<const std::string_view> ids,
         std::span<const EffectSize> effect_sizes)
         : ids_(ids), effect_sizes_(effect_sizes)

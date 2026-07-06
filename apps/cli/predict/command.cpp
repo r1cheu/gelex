@@ -42,10 +42,10 @@
 namespace
 {
 
-auto load_sbin(const std::filesystem::path& path) -> gelex::predict::SbinData
+auto load_sbin(const std::filesystem::path& path) -> gelex::SbinData
 {
     gelex::LociStatsReader reader(path.string());
-    gelex::predict::SbinData data;
+    gelex::SbinData data;
     data.add = reader.read(gelex::GeneticMode::A);
     if (reader.has(gelex::GeneticMode::D))
     {
@@ -64,8 +64,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
     const auto& bfile_prefix = config.bfile;
     const auto& gfile_prefix = config.gfile;
 
-    auto snp_effects
-        = gelex::predict::read_snp_effects(gfile_prefix + ".snpeff");
+    auto snp_effects = gelex::read_snp_effects(gfile_prefix + ".snpeff");
     auto sbin = load_sbin(gfile_prefix + ".sbin");
 
     bool enable_dom{};
@@ -84,8 +83,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
     auto dom_effects = enable_dom ? std::make_optional<Eigen::VectorXd>(
                                         snp_effects["BETA_D"].to_mat<double>())
                                   : std::nullopt;
-    auto coefficients
-        = gelex::predict::read_coefficients(gfile_prefix + ".param");
+    auto coefficients = gelex::read_coefficients(gfile_prefix + ".param");
 
     auto fam_df = gelex::read_fam(bfile_prefix + ".fam");
     auto bim_df = gelex::read_bim(bfile_prefix + ".bim");
@@ -97,10 +95,10 @@ auto predict_execute(const cli::PredictConfig& config) -> int
         = config.dcovar
               ? std::make_optional<std::filesystem::path>(*config.dcovar)
               : std::nullopt;
-    auto covariates = gelex::predict::read_covariates(
+    auto covariates = gelex::read_covariates(
         qcovar_path, dcovar_path, coefficients, fam_df);
 
-    auto alignment = gelex::predict::build_snp_alignment(snp_effects, bim_df);
+    auto alignment = gelex::build_snp_alignment(snp_effects, bim_df);
     const auto n_snps = static_cast<std::size_t>(snp_effects.rows());
     if (alignment.num_missing > 0 || alignment.num_mismatched > 0)
     {
@@ -126,7 +124,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
     auto bed = gelex::open_bed(bfile_prefix, fam_df.index());
     auto genotype = bed.read_snps<double>(alignment.column_map);
 
-    gelex::predict::GenotypeData geno;
+    gelex::GenotypeData geno;
     if (sbin.has_dom)
     {
         geno.dom = genotype;
@@ -139,18 +137,17 @@ auto predict_execute(const cli::PredictConfig& config) -> int
         coefficients.names.size(),
         sbin.add.method);
 
-    gelex::predict::standardize_genotypes(geno, sbin);
+    gelex::standardize_genotypes(geno, sbin);
 
-    gelex::predict::SnpEffects effects{
+    gelex::SnpEffects effects{
         .add = std::move(add_effects), .dom = std::move(dom_effects)};
-    auto gebv = gelex::predict::compute_gebv(geno, effects);
-    auto covar
-        = gelex::predict::compute_covariate_effects(covariates, coefficients);
+    auto gebv = gelex::compute_gebv(geno, effects);
+    auto covar = gelex::compute_covariate_effects(covariates, coefficients);
 
     auto sample_keys = fam_df.index().keys();
     std::vector<std::string> sample_ids(sample_keys.begin(), sample_keys.end());
 
-    gelex::predict::PredictResult result{
+    gelex::PredictResult result{
         .sample_ids = std::move(sample_ids),
         .predictions = gebv.total + covar.total,
         .snp_predictions = std::move(gebv.total),
@@ -159,7 +156,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
         .covar_predictions = std::move(covar.per_covariate),
         .covar_names = std::move(covar.covar_names)};
 
-    gelex::predict::PredictWriter writer(config.out);
+    gelex::PredictWriter writer(config.out);
     writer.write(result);
 
     reporter.show_results_written(config.out, result.sample_ids.size());

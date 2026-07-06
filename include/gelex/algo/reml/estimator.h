@@ -25,7 +25,7 @@
 #include "gelex/freq/model.h"
 #include "gelex/infra/logging/reml_event.h"
 
-namespace gelex::reml
+namespace gelex
 {
 
 class Estimator
@@ -60,6 +60,6 @@ class Estimator
     RemlObserver observer_;
 };
 
-}  // namespace gelex::reml
+}  // namespace gelex
 
 #endif  // GELEX_ALGO_REML_ESTIMATOR_H_

@@ -30,7 +30,7 @@
 #include "gelex/io/detail/text_writer.h"
 #include "gelex/predict/types.h"
 
-namespace gelex::predict
+namespace gelex
 {
 
 PredictWriter::PredictWriter(const std::filesystem::path& output_path)
@@ -39,7 +39,7 @@ PredictWriter::PredictWriter(const std::filesystem::path& output_path)
     {
         throw GelexException("Output path must be provided");
     }
-    writer_ = std::make_unique<io::detail::TextWriter>(output_path);
+    writer_ = std::make_unique<detail::TextWriter>(output_path);
 }
 
 PredictWriter::~PredictWriter() = default;
@@ -120,4 +120,4 @@ auto PredictWriter::write(const PredictResult& result) -> void
     }
 }
 
-}  // namespace gelex::predict
+}  // namespace gelex

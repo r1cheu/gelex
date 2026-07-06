@@ -25,7 +25,7 @@
 #include "gelex/bayes/state.h"
 #include "gelex/infra/stats/scaled_inv_chi2_sampler.h"
 
-namespace gelex::mcmc
+namespace gelex
 {
 
 class ResidualStep final
@@ -43,9 +43,9 @@ class ResidualStep final
     Eigen::Index num_individuals_{};
     bayes::ResidualState& state_;
     std::mt19937_64& rng_;
-    stats::ScaledInvChi2Sampler<double> sampler_;
+    ScaledInvChi2Sampler<double> sampler_;
 };
 
-}  // namespace gelex::mcmc
+}  // namespace gelex
 
 #endif  // GELEX_ALGO_MCMC_STEPS_RESIDUAL_H_

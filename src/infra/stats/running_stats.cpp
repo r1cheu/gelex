@@ -18,7 +18,7 @@
 
 #include <utility>
 
-namespace gelex::stats::detail
+namespace gelex::detail
 {
 
 auto RunningStats::result() const -> RunningStatsResult
@@ -71,4 +71,4 @@ auto CategoricalFrequency::take_probabilities() && -> CategoryProbResult
     return CategoryProbResult{std::move(probabilities_)};
 }
 
-}  // namespace gelex::stats::detail
+}  // namespace gelex::detail

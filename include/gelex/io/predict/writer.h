@@ -23,12 +23,12 @@
 
 #include "gelex/predict/types.h"
 
-namespace gelex::io::detail
+namespace gelex::detail
 {
 class TextWriter;
 }
 
-namespace gelex::predict
+namespace gelex
 {
 
 class PredictWriter
@@ -55,10 +55,10 @@ class PredictWriter
         bool has_dom,
         double dom_pred) -> void;
 
-    std::unique_ptr<io::detail::TextWriter> writer_;
+    std::unique_ptr<detail::TextWriter> writer_;
     std::string row_buf_;
 };
 
-}  // namespace gelex::predict
+}  // namespace gelex
 
 #endif  // GELEX_PREDICT_WRITER_H_

@@ -25,7 +25,7 @@
 
 #include "gelex/io/locistats/reader.h"
 
-namespace gelex::predict
+namespace gelex
 {
 
 struct SbinData
@@ -72,6 +72,6 @@ struct PredictResult
     std::vector<std::string> covar_names;
 };
 
-}  // namespace gelex::predict
+}  // namespace gelex
 
 #endif  // GELEX_PREDICT_TYPES_H_

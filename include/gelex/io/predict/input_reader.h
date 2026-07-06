@@ -26,7 +26,7 @@
 
 #include "gelex/data/dataframe/dataframe.h"
 
-namespace gelex::predict
+namespace gelex
 {
 
 struct Coefficients
@@ -39,14 +39,14 @@ struct Coefficients
     -> Coefficients;
 
 [[nodiscard]] auto read_snp_effects(const std::filesystem::path& path)
-    -> dataframe::DataFrame<std::string>;
+    -> DataFrame<std::string>;
 
 [[nodiscard]] auto read_covariates(
     const std::optional<std::filesystem::path>& qcovar_path,
     const std::optional<std::filesystem::path>& dcovar_path,
     const Coefficients& coefficients,
-    dataframe::DataFrame<std::string>& sample_df) -> Eigen::MatrixXd;
+    DataFrame<std::string>& sample_df) -> Eigen::MatrixXd;
 
-}  // namespace gelex::predict
+}  // namespace gelex
 
 #endif  // GELEX_IO_PREDICT_INPUT_READER_H_

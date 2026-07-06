@@ -24,7 +24,7 @@
 
 #include "gelex/exception.h"
 
-namespace gelex::stats::detail
+namespace gelex::detail
 {
 template <std::floating_point T>
 auto log_norm_cdf_asymptotic(T z) -> T
@@ -128,6 +128,6 @@ inline auto norm_ppf(double p) -> double
     return x;
 }
 
-}  // namespace gelex::stats::detail
+}  // namespace gelex::detail
 
 #endif  // GELEX_INFRA_STATS_DETAIL_NORMAL_H_

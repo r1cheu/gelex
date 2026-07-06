@@ -35,7 +35,7 @@ class ScaledInvChiSqPrior
 
     auto degrees_of_freedom() const -> double { return degrees_of_freedom_; }
     auto scale() const -> double { return scale_; }
-    auto visit(infra::FieldVisitor& visitor) -> void
+    auto visit(FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         visitor.on(
@@ -61,7 +61,7 @@ class DirichletPrior
         return concentration_;
     }
     auto size() const -> Eigen::Index { return concentration_.size(); }
-    auto visit(infra::FieldVisitor& visitor) -> void
+    auto visit(FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         visitor.on(
@@ -82,7 +82,7 @@ class BetaPrior
 
     auto alpha() const -> double { return alpha_; }
     auto beta() const -> double { return beta_; }
-    auto visit(infra::FieldVisitor& visitor) -> void
+    auto visit(FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         visitor.on("alpha", alpha_, FieldFlag::checkpoint | FieldFlag::report);

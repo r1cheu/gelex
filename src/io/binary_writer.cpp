@@ -30,7 +30,7 @@
 #include "gelex/infra/log.h"
 #include "gelex/io/detail/binary_format.h"
 
-namespace gelex::io
+namespace gelex
 {
 
 BinaryWriter::BinaryWriter(std::string_view output_path)
@@ -55,7 +55,7 @@ BinaryWriter::~BinaryWriter() noexcept
     }
     catch (const std::exception& e)
     {
-        gelex::log::error(
+        gelex::error(
             fmt::format(
                 "{}: failed to finalize, discarding output: {}",
                 file_.path().string(),
@@ -233,4 +233,4 @@ auto BinaryWriter::finalize() -> void
     write_footer(toc_offset, static_cast<uint64_t>(reserved_.size()));
 }
 
-}  // namespace gelex::io
+}  // namespace gelex

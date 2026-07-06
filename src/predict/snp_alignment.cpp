@@ -21,12 +21,12 @@
 
 #include "gelex/data/dataframe/dataframe.h"
 
-namespace gelex::predict
+namespace gelex
 {
 
 auto build_snp_alignment(
-    const dataframe::DataFrame<std::string>& snp_effects,
-    const dataframe::DataFrame<std::string>& bim_df) -> SnpAlignment
+    const DataFrame<std::string>& snp_effects,
+    const DataFrame<std::string>& bim_df) -> SnpAlignment
 {
     const auto& eff_index = snp_effects.index();
     const auto& bim_index = bim_df.index();
@@ -61,4 +61,4 @@ auto build_snp_alignment(
     return result;
 }
 
-}  // namespace gelex::predict
+}  // namespace gelex

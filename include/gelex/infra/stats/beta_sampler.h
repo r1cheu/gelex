@@ -23,7 +23,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex::stats
+namespace gelex
 {
 
 template <std::floating_point T>
@@ -72,6 +72,6 @@ class BetaSampler
     std::gamma_distribution<T> gamma_{T{1}, T{1}};
 };
 
-}  // namespace gelex::stats
+}  // namespace gelex
 
 #endif  // GELEX_INFRA_STATS_BETA_SAMPLER_H_

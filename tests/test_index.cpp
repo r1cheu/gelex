@@ -25,24 +25,26 @@
 #include "gelex/data/dataframe/index.h"
 #include "gelex/exception.h"
 
+using gelex::DataFrameIndex;
 using gelex::GelexException;
-using gelex::dataframe::Index;
-using gelex::dataframe::intersect;
+using gelex::intersect;
 
 // ----------------------------------------------------------------
-// Helper: build an Index<string> from a brace-list
+// Helper: build an DataFrameIndex<string> from a brace-list
 // ----------------------------------------------------------------
 namespace
 {
 
-auto make_str_index(std::vector<std::string> keys) -> Index<std::string>
+auto make_str_index(std::vector<std::string> keys)
+    -> DataFrameIndex<std::string>
 {
-    return Index<std::string>(std::move(keys));
+    return DataFrameIndex<std::string>(std::move(keys));
 }
 
-auto make_int_index(std::vector<std::int32_t> keys) -> Index<std::int32_t>
+auto make_int_index(std::vector<std::int32_t> keys)
+    -> DataFrameIndex<std::int32_t>
 {
-    return Index<std::int32_t>(std::move(keys));
+    return DataFrameIndex<std::int32_t>(std::move(keys));
 }
 
 }  // namespace
@@ -51,7 +53,7 @@ auto make_int_index(std::vector<std::int32_t> keys) -> Index<std::int32_t>
 // Construction
 // ================================================================
 
-TEST_CASE("Index<string> construction from vector", "[dataframe]")
+TEST_CASE("DataFrameIndex<string> construction from vector", "[dataframe]")
 {
     auto idx = make_str_index({"a", "b", "c"});
 
@@ -64,7 +66,7 @@ TEST_CASE("Index<string> construction from vector", "[dataframe]")
     REQUIRE(idx.at("c") == 2);
 }
 
-TEST_CASE("Index<int32_t> construction from vector", "[dataframe]")
+TEST_CASE("DataFrameIndex<int32_t> construction from vector", "[dataframe]")
 {
     auto idx = make_int_index({10, 20, 30});
 
@@ -78,20 +80,24 @@ TEST_CASE("Index<int32_t> construction from vector", "[dataframe]")
 }
 
 TEST_CASE(
-    "Index construction from empty vector yields size zero",
+    "DataFrameIndex construction from empty vector yields size zero",
     "[dataframe]")
 {
-    REQUIRE(Index<std::string>(std::vector<std::string>{}).size() == 0);
-    REQUIRE(Index<std::int32_t>(std::vector<std::int32_t>{}).size() == 0);
+    REQUIRE(
+        DataFrameIndex<std::string>(std::vector<std::string>{}).size() == 0);
+    REQUIRE(
+        DataFrameIndex<std::int32_t>(std::vector<std::int32_t>{}).size() == 0);
 }
 
-TEST_CASE("Index<string> construction with duplicate key throws", "[dataframe]")
+TEST_CASE(
+    "DataFrameIndex<string> construction with duplicate key throws",
+    "[dataframe]")
 {
     REQUIRE_THROWS_AS(make_str_index({"a", "b", "a"}), GelexException);
 }
 
 TEST_CASE(
-    "Index<int32_t> construction with duplicate key throws",
+    "DataFrameIndex<int32_t> construction with duplicate key throws",
     "[dataframe]")
 {
     REQUIRE_THROWS_AS(make_int_index({10, 20, 10}), GelexException);
@@ -102,10 +108,10 @@ TEST_CASE(
 // ================================================================
 
 TEST_CASE(
-    "Index<string> push_back increases size and assigns positions",
+    "DataFrameIndex<string> push_back increases size and assigns positions",
     "[dataframe]")
 {
-    Index<std::string> idx;
+    DataFrameIndex<std::string> idx;
 
     idx.push_back("x");
     REQUIRE(idx.size() == 1);
@@ -121,10 +127,10 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "Index<int32_t> push_back increases size and assigns positions",
+    "DataFrameIndex<int32_t> push_back increases size and assigns positions",
     "[dataframe]")
 {
-    Index<std::int32_t> idx;
+    DataFrameIndex<std::int32_t> idx;
 
     idx.push_back(100);
     REQUIRE(idx.size() == 1);
@@ -139,13 +145,17 @@ TEST_CASE(
     REQUIRE(idx.at(300) == 2);
 }
 
-TEST_CASE("Index<string> push_back of existing key throws", "[dataframe]")
+TEST_CASE(
+    "DataFrameIndex<string> push_back of existing key throws",
+    "[dataframe]")
 {
     auto idx = make_str_index({"a", "b"});
     REQUIRE_THROWS_AS(idx.push_back("a"), GelexException);
 }
 
-TEST_CASE("Index<int32_t> push_back of existing key throws", "[dataframe]")
+TEST_CASE(
+    "DataFrameIndex<int32_t> push_back of existing key throws",
+    "[dataframe]")
 {
     auto idx = make_int_index({10, 20});
     REQUIRE_THROWS_AS(idx.push_back(10), GelexException);
@@ -155,7 +165,9 @@ TEST_CASE("Index<int32_t> push_back of existing key throws", "[dataframe]")
 // operator[] and contains
 // ================================================================
 
-TEST_CASE("Index<string> operator[] returns correct position", "[dataframe]")
+TEST_CASE(
+    "DataFrameIndex<string> operator[] returns correct position",
+    "[dataframe]")
 {
     auto idx = make_str_index({"foo", "bar", "baz"});
     REQUIRE(idx.at("foo") == 0);
@@ -163,20 +175,24 @@ TEST_CASE("Index<string> operator[] returns correct position", "[dataframe]")
     REQUIRE(idx.at("baz") == 2);
 }
 
-TEST_CASE("Index<string> operator[] for missing key throws", "[dataframe]")
+TEST_CASE(
+    "DataFrameIndex<string> operator[] for missing key throws",
+    "[dataframe]")
 {
     auto idx = make_str_index({"a", "b"});
     REQUIRE_THROWS_AS(idx.at("missing"), GelexException);
 }
 
-TEST_CASE("Index<int32_t> operator[] for missing key throws", "[dataframe]")
+TEST_CASE(
+    "DataFrameIndex<int32_t> operator[] for missing key throws",
+    "[dataframe]")
 {
     auto idx = make_int_index({1, 2, 3});
     REQUIRE_THROWS_AS(idx.at(99), GelexException);
 }
 
 TEST_CASE(
-    "Index<string> contains returns true and false correctly",
+    "DataFrameIndex<string> contains returns true and false correctly",
     "[dataframe]")
 {
     auto idx = make_str_index({"p", "q"});
@@ -186,7 +202,7 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "Index<int32_t> contains returns true and false correctly",
+    "DataFrameIndex<int32_t> contains returns true and false correctly",
     "[dataframe]")
 {
     auto idx = make_int_index({7, 42});
@@ -199,7 +215,9 @@ TEST_CASE(
 // keys
 // ================================================================
 
-TEST_CASE("Index<string> data returns span over stored keys", "[dataframe]")
+TEST_CASE(
+    "DataFrameIndex<string> data returns span over stored keys",
+    "[dataframe]")
 {
     auto idx = make_str_index({"a", "b", "c"});
 
@@ -211,7 +229,9 @@ TEST_CASE("Index<string> data returns span over stored keys", "[dataframe]")
     REQUIRE(k[2] == "c");
 }
 
-TEST_CASE("Index<int32_t> data returns span over stored keys", "[dataframe]")
+TEST_CASE(
+    "DataFrameIndex<int32_t> data returns span over stored keys",
+    "[dataframe]")
 {
     auto idx = make_int_index({10, 20, 30});
 
@@ -223,9 +243,11 @@ TEST_CASE("Index<int32_t> data returns span over stored keys", "[dataframe]")
     REQUIRE(k[2] == 30);
 }
 
-TEST_CASE("Index<string> data on empty index returns empty span", "[dataframe]")
+TEST_CASE(
+    "DataFrameIndex<string> data on empty index returns empty span",
+    "[dataframe]")
 {
-    Index<std::string> idx;
+    DataFrameIndex<std::string> idx;
     REQUIRE(idx.keys().empty());
 }
 
@@ -233,7 +255,9 @@ TEST_CASE("Index<string> data on empty index returns empty span", "[dataframe]")
 // take_keys
 // ================================================================
 
-TEST_CASE("Index<string> take_data moves out underlying vector", "[dataframe]")
+TEST_CASE(
+    "DataFrameIndex<string> take_data moves out underlying vector",
+    "[dataframe]")
 {
     auto idx = make_str_index({"x", "y", "z"});
 
@@ -245,7 +269,9 @@ TEST_CASE("Index<string> take_data moves out underlying vector", "[dataframe]")
     REQUIRE(taken[2] == "z");
 }
 
-TEST_CASE("Index<int32_t> take_data moves out underlying vector", "[dataframe]")
+TEST_CASE(
+    "DataFrameIndex<int32_t> take_data moves out underlying vector",
+    "[dataframe]")
 {
     auto idx = make_int_index({100, 200, 300});
 
@@ -258,10 +284,10 @@ TEST_CASE("Index<int32_t> take_data moves out underlying vector", "[dataframe]")
 }
 
 TEST_CASE(
-    "Index<string> take_data on empty index returns empty vector",
+    "DataFrameIndex<string> take_data on empty index returns empty vector",
     "[dataframe]")
 {
-    Index<std::string> idx;
+    DataFrameIndex<std::string> idx;
     auto taken = std::move(idx).take_keys();
     REQUIRE(taken.empty());
 }
@@ -271,7 +297,7 @@ TEST_CASE(
 // ================================================================
 
 TEST_CASE(
-    "Index<string> gather reorders keys and rebuilds positions",
+    "DataFrameIndex<string> gather reorders keys and rebuilds positions",
     "[dataframe]")
 {
     auto idx = make_str_index({"a", "b", "c", "d"});
@@ -287,7 +313,7 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "Index<int32_t> gather reorders keys and rebuilds positions",
+    "DataFrameIndex<int32_t> gather reorders keys and rebuilds positions",
     "[dataframe]")
 {
     auto idx = make_int_index({10, 20, 30, 40});
@@ -303,11 +329,11 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "Index<string> gather with empty index yields size zero",
+    "DataFrameIndex<string> gather with empty index yields size zero",
     "[dataframe]")
 {
     auto idx = make_str_index({"a", "b", "c"});
-    idx.gather(Index<std::string>{});
+    idx.gather(DataFrameIndex<std::string>{});
     REQUIRE(idx.size() == 0);
 }
 
@@ -316,7 +342,8 @@ TEST_CASE(
 // ================================================================
 
 TEST_CASE(
-    "Index<string> intersect of two overlapping sets returns common keys",
+    "DataFrameIndex<string> intersect of two overlapping sets returns common "
+    "keys",
     "[dataframe]")
 {
     auto idx0 = make_str_index({"a", "b", "c"});
@@ -330,7 +357,8 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "Index<string> intersect of three overlapping sets returns common keys",
+    "DataFrameIndex<string> intersect of three overlapping sets returns common "
+    "keys",
     "[dataframe]")
 {
     auto idx0 = make_str_index({"a", "b", "c"});
@@ -344,7 +372,8 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "Index<string> intersect of disjoint sets returns empty Index",
+    "DataFrameIndex<string> intersect of disjoint sets returns empty "
+    "DataFrameIndex",
     "[dataframe]")
 {
     auto idx0 = make_str_index({"a", "b"});
@@ -356,16 +385,18 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "Index<string> intersect with empty span returns empty Index",
+    "DataFrameIndex<string> intersect with empty span returns empty "
+    "DataFrameIndex",
     "[dataframe]")
 {
-    std::span<const Index<std::string>* const> empty_span;
+    std::span<const DataFrameIndex<std::string>* const> empty_span;
     auto common = intersect(empty_span);
     REQUIRE(common.size() == 0);
 }
 
 TEST_CASE(
-    "Index<int32_t> intersect of two overlapping sets returns common keys",
+    "DataFrameIndex<int32_t> intersect of two overlapping sets returns common "
+    "keys",
     "[dataframe]")
 {
     auto idx0 = make_int_index({10, 20, 30});

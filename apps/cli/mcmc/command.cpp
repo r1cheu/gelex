@@ -59,8 +59,8 @@ class MCMCDataHandler
     {
     }
 
-    auto load_indices(
-        std::vector<gelex::dataframe::Index<std::string>*>& indices) -> void
+    auto load_indices(std::vector<gelex::DataFrameIndex<std::string>*>& indices)
+        -> void
     {
         genotype_method_ = config_.geno_method;
 
@@ -68,10 +68,9 @@ class MCMCDataHandler
         indices.push_back(&fam_index_);
     }
 
-    auto gather(const gelex::dataframe::Index<std::string>& common_index)
-        -> void
+    auto gather(const gelex::DataFrameIndex<std::string>& common_index) -> void
     {
-        auto reader = gelex::genotype::GenotypeReader(
+        auto reader = gelex::GenotypeReader(
             config_.bfile, common_index, reporter_.as_observer());
 
         gelex::LociStatsWriter writer(config_.out + ".sbin");
@@ -119,7 +118,7 @@ class MCMCDataHandler
     const cli::McmcConfig& config_;
     gelex::GeneticModeSet requested_effects_;
     gelex::GenotypeMethod genotype_method_;
-    gelex::dataframe::Index<std::string> fam_index_;
+    gelex::DataFrameIndex<std::string> fam_index_;
     std::vector<gelex::bayes::GeneticDesign> genetics_;
     cli::GenoReporter& reporter_;
 };
@@ -127,14 +126,14 @@ class MCMCDataHandler
 auto mcmc_execute(const cli::McmcConfig& config) -> int
 {
     auto recipe_options = cli::make_bayes_recipe_options(config);
-    gelex::mcmc::Params params{
+    gelex::Params params{
         .n_iters = config.iters,
         .n_burn_in = config.burn_in,
         .n_thin = config.thin,
         .checkpoint_step = config.checkpoint_step.value_or(config.iters),
     };
 
-    gelex::mcmc::Solver solver{
+    gelex::Solver solver{
         params,
         config.out + ".draws",
         params.checkpoint_step > 0 ? std::make_optional(config.out)
@@ -166,7 +165,7 @@ auto mcmc_execute(const cli::McmcConfig& config) -> int
     auto prior = bayes_recipe.make_prior(model);
 
     reporter.show_prior(prior);
-    auto result = [&]() -> gelex::mcmc::Result
+    auto result = [&]() -> gelex::Result
     {
         if (config.from_ckpt)
         {
@@ -176,10 +175,9 @@ auto mcmc_execute(const cli::McmcConfig& config) -> int
         return solver.run(model, prior, config.seed, reporter.as_observer());
     }();
     reporter.show_complete(result.samples_collected());
-    gelex::mcmc::write_params(result, config.out);
-    gelex::mcmc::write_summary(result, config.out);
-    gelex::mcmc::write_snp_eff(
-        result, model, config.bfile + ".bim", config.out);
+    gelex::write_params(result, config.out);
+    gelex::write_summary(result, config.out);
+    gelex::write_snp_eff(result, model, config.bfile + ".bim", config.out);
     reporter.show_results_saved(config.out);
 
     return 0;

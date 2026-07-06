@@ -22,7 +22,7 @@
 #include <concepts>
 #include <random>
 
-namespace gelex::stats
+namespace gelex
 {
 
 template <std::floating_point T>
@@ -83,8 +83,7 @@ class NormalSampler
             && "NormalSampler: prior variance must be non-negative");
         assert(
             (likelihood.quadratic >= T{0})
-            && "NormalSampler: likelihood quadratic term must be "
-               "non-negative");
+            && "NormalSampler: likelihood quadratic term must be non-negative");
         assert(
             (likelihood.scale > T{0})
             && "NormalSampler: likelihood scale must be positive");
@@ -142,6 +141,6 @@ class NormalSampler
     std::normal_distribution<T> normal_{T{0}, T{1}};
 };
 
-}  // namespace gelex::stats
+}  // namespace gelex
 
 #endif  // GELEX_INFRA_STATS_NORMAL_SAMPLER_H_

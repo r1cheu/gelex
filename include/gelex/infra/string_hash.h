@@ -23,7 +23,7 @@
 #include <string_view>
 #include <unordered_set>
 
-namespace gelex::infra
+namespace gelex
 {
 
 template <typename Key>
@@ -68,6 +68,6 @@ using StringSet = std::unordered_set<
     TransparentHash<std::string>,
     TransparentEqual<std::string>>;
 
-}  // namespace gelex::infra
+}  // namespace gelex
 
 #endif  // GELEX_INFRA_STRING_HASH_H_

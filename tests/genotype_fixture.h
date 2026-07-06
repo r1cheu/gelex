@@ -39,7 +39,7 @@ class GenotypeBuilder
         std::vector<int64_t> mono_indices = {},
         Eigen::VectorXd A1freq = {}) -> Genotype
     {
-        genotype::OwnedStorage owned;
+        OwnedStorage owned;
         owned.data = std::move(data);
         if (A1freq.size() == 0)
         {

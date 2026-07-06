@@ -101,9 +101,9 @@ auto make_prior() -> gelex::bayes::BayesPrior
 }
 
 auto make_records(const gelex::BayesModel& model, gelex::BayesState& state)
-    -> gelex::mcmc::Records
+    -> gelex::Records
 {
-    gelex::mcmc::Records records{2, ""};
+    gelex::Records records{2, ""};
     auto& block
         = std::get<gelex::bayes::SingleGeneticBlockState>(state.genetics()[0]);
     auto& prior_state
@@ -137,7 +137,7 @@ TEST_CASE("Result owns finalized record values", "[mcmc][mcmc_result]")
     gelex::BayesState state(model, prior);
     auto records = make_records(model, state);
 
-    gelex::mcmc::Result result{std::move(records), model, 2};
+    gelex::Result result{std::move(records), model, 2};
 
     REQUIRE(result.samples_collected() == 2);
     REQUIRE(result.phenotype_variance() == model.phenotype_variance());
@@ -147,24 +147,24 @@ TEST_CASE("Result owns finalized record values", "[mcmc][mcmc_result]")
     REQUIRE(
         *result.records()[0].names == std::vector<std::string>{"Intercept"});
 
-    const auto& fixed = std::get<gelex::stats::RunningStatsResult>(
-        result.get("state/fixed/coeffs"));
+    const auto& fixed
+        = std::get<gelex::RunningStatsResult>(result.get("state/fixed/coeffs"));
     REQUIRE(fixed.mean.isApprox(Eigen::VectorXd{{2.0}}));
     REQUIRE(fixed.stddev.isApprox(Eigen::VectorXd{{std::sqrt(2.0)}}));
 
-    const auto& residual = std::get<gelex::stats::RunningStatsResult>(
+    const auto& residual = std::get<gelex::RunningStatsResult>(
         result.get("state/residual/variance"));
     REQUIRE(residual.mean.isApprox(Eigen::VectorXd{{7.0}}));
     REQUIRE(residual.stddev.isApprox(Eigen::VectorXd{{std::sqrt(8.0)}}));
 
-    const auto& pve = std::get<gelex::stats::RunningStatsResult>(
+    const auto& pve = std::get<gelex::RunningStatsResult>(
         result.get("state/genetic_0/single/A/genetic/pve"));
     REQUIRE(pve.mean.isApprox(Eigen::VectorXd{{1.0, 0.75}}));
     REQUIRE(pve.stddev.isApprox(Eigen::VectorXd::Zero(2)));
     const auto pve_record = std::ranges::find(
         result.records(),
         std::string{"state/genetic_0/single/A/genetic/pve"},
-        &gelex::mcmc::RecordEntry::path);
+        &gelex::RecordEntry::path);
     REQUIRE(pve_record != result.records().end());
     REQUIRE_FALSE(pve_record->names);
     REQUIRE_THROWS_AS(result.get("state/fixed/pve"), gelex::GelexException);
@@ -177,14 +177,14 @@ TEST_CASE("Result owns finalized record values", "[mcmc][mcmc_result]")
         "scaled_mixture_gaussian/mixture/assignment"};
     const Eigen::MatrixXd expected_probabilities{
         {0.5, 0.0, 0.5, 0.0}, {0.0, 0.5, 0.0, 0.5}};
-    const auto& assignment = std::get<gelex::stats::CategoryProbResult>(
-        result.get(assignment_path));
-    const auto& assignment_again = std::get<gelex::stats::CategoryProbResult>(
-        result.get(assignment_path));
+    const auto& assignment
+        = std::get<gelex::CategoryProbResult>(result.get(assignment_path));
+    const auto& assignment_again
+        = std::get<gelex::CategoryProbResult>(result.get(assignment_path));
     REQUIRE(assignment.value.isApprox(expected_probabilities));
     REQUIRE(assignment_again.value.isApprox(expected_probabilities));
 
-    const auto& pip = std::get<gelex::stats::RunningStatsResult>(result.get(
+    const auto& pip = std::get<gelex::RunningStatsResult>(result.get(
         "state/genetic_0/single/A/prior_state/"
         "scaled_mixture_gaussian/mixture/pip"));
     REQUIRE(pip.mean.isApprox(Eigen::VectorXd{{0.5, 1.0}}));
@@ -193,11 +193,11 @@ TEST_CASE("Result owns finalized record values", "[mcmc][mcmc_result]")
         result.records(),
         std::string{"state/genetic_0/single/A/prior_state/"
                     "scaled_mixture_gaussian/mixture/pip"},
-        &gelex::mcmc::RecordEntry::path);
+        &gelex::RecordEntry::path);
     REQUIRE(pip_record != result.records().end());
     REQUIRE_FALSE(pip_record->names);
 
-    const gelex::mcmc::RecordEntry* assignment_record = nullptr;
+    const gelex::RecordEntry* assignment_record = nullptr;
     for (const auto& record : result.records())
     {
         if (record.path == assignment_path)
@@ -215,7 +215,7 @@ TEST_CASE("Result rejects missing record paths", "[mcmc][mcmc_result]")
     auto prior = make_prior();
     gelex::BayesState state(model, prior);
     auto records = make_records(model, state);
-    gelex::mcmc::Result result{std::move(records), model, 2};
+    gelex::Result result{std::move(records), model, 2};
 
     REQUIRE_THROWS_AS(result.get("state/missing/path"), gelex::GelexException);
 }
@@ -226,15 +226,13 @@ TEST_CASE("Result derives joint genetic PIP by effect", "[mcmc][mcmc_result]")
     genetics.emplace_back(
         gelex::GeneticMode::A,
         make_genotype(
-            Eigen::MatrixXd{{-1.0, 1.0 / 3.0},
-                            {0.0, -2.0 / 3.0},
-                            {1.0, 1.0 / 3.0}}));
+            Eigen::MatrixXd{
+                {-1.0, 1.0 / 3.0}, {0.0, -2.0 / 3.0}, {1.0, 1.0 / 3.0}}));
     genetics.emplace_back(
         gelex::GeneticMode::D,
         make_genotype(
-            Eigen::MatrixXd{{-1.0, 1.0 / 3.0},
-                            {0.0, -2.0 / 3.0},
-                            {1.0, 1.0 / 3.0}}));
+            Eigen::MatrixXd{
+                {-1.0, 1.0 / 3.0}, {0.0, -2.0 / 3.0}, {1.0, 1.0 / 3.0}}));
     gelex::BayesModel model{
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
         gelex::FixedDesign::make(3),
@@ -259,7 +257,7 @@ TEST_CASE("Result derives joint genetic PIP by effect", "[mcmc][mcmc_result]")
         = std::get<gelex::bayes::JointGeneticBlockState>(state.genetics()[0]);
     auto& prior_state = std::get<gelex::bayes::JointGaussianMixtureState>(
         block.prior_state());
-    gelex::mcmc::Records records{2, ""};
+    gelex::Records records{2, ""};
 
     block.state(gelex::GeneticMode::A).coeffs = Eigen::VectorXd{{0.5, 1.0}};
     block.state(gelex::GeneticMode::D).coeffs = Eigen::VectorXd{{1.0, 0.5}};
@@ -270,30 +268,28 @@ TEST_CASE("Result derives joint genetic PIP by effect", "[mcmc][mcmc_result]")
     prior_state.assignment() = Eigen::VectorXi{{2, 3}};
     records.store(model, state);
 
-    gelex::mcmc::Result result{std::move(records), model, 2};
+    gelex::Result result{std::move(records), model, 2};
     constexpr std::string_view assignment_path{
         "state/genetic_0/joint/prior_state/"
         "joint_mixture_gaussian/mixture/assignment"};
     const Eigen::MatrixXd expected_probabilities{
         {0.5, 0.0, 0.5, 0.0}, {0.0, 0.5, 0.0, 0.5}};
-    const auto& assignment = std::get<gelex::stats::CategoryProbResult>(
-        result.get(assignment_path));
+    const auto& assignment
+        = std::get<gelex::CategoryProbResult>(result.get(assignment_path));
     REQUIRE(assignment.value.isApprox(expected_probabilities));
 
-    const auto& additive_pip
-        = std::get<gelex::stats::RunningStatsResult>(result.get(
-            "state/genetic_0/joint/prior_state/"
-            "joint_mixture_gaussian/mixture/A/pip"));
-    const auto& dominance_pip
-        = std::get<gelex::stats::RunningStatsResult>(result.get(
-            "state/genetic_0/joint/prior_state/"
-            "joint_mixture_gaussian/mixture/D/pip"));
+    const auto& additive_pip = std::get<gelex::RunningStatsResult>(result.get(
+        "state/genetic_0/joint/prior_state/"
+        "joint_mixture_gaussian/mixture/A/pip"));
+    const auto& dominance_pip = std::get<gelex::RunningStatsResult>(result.get(
+        "state/genetic_0/joint/prior_state/"
+        "joint_mixture_gaussian/mixture/D/pip"));
     REQUIRE(additive_pip.mean.isApprox(Eigen::VectorXd{{0.0, 1.0}}));
     REQUIRE(dominance_pip.mean.isApprox(Eigen::VectorXd{{0.5, 0.5}}));
     REQUIRE(additive_pip.stddev.isApprox(Eigen::VectorXd::Zero(2)));
     REQUIRE(dominance_pip.stddev.isApprox(Eigen::VectorXd::Zero(2)));
-    const auto& total_pve = std::get<gelex::stats::RunningStatsResult>(
-        result.get("state/genetic/pve"));
+    const auto& total_pve
+        = std::get<gelex::RunningStatsResult>(result.get("state/genetic/pve"));
     REQUIRE(
         total_pve.mean.isApprox(Eigen::VectorXd{{3.0625, 2.0833333333333335}}));
     REQUIRE_THROWS_AS(
@@ -308,7 +304,7 @@ TEST_CASE("Result derives joint genetic PIP by effect", "[mcmc][mcmc_result]")
         "2\trs2\t0\t200\tC\tT\n",
         ".bim");
     auto prefix = files.get_test_dir() / "joint_mcmc_snp";
-    gelex::mcmc::write_snp_eff(result, model, bim_path, prefix.string());
+    gelex::write_snp_eff(result, model, bim_path, prefix.string());
     auto snp_path = prefix;
     snp_path += ".snpeff";
     REQUIRE(std::filesystem::exists(snp_path));
@@ -329,11 +325,11 @@ TEST_CASE("write_summary writes user-facing summary", "[mcmc][mcmc_result]")
     auto prior = make_prior();
     gelex::BayesState state(model, prior);
     auto records = make_records(model, state);
-    gelex::mcmc::Result result{std::move(records), model, 2};
+    gelex::Result result{std::move(records), model, 2};
 
     gelex::test::FileFixture files;
     auto prefix = files.get_test_dir() / "mcmc_result";
-    gelex::mcmc::write_summary(result, prefix.string());
+    gelex::write_summary(result, prefix.string());
 
     auto summary_path = prefix;
     summary_path += ".summary";
@@ -366,11 +362,11 @@ TEST_CASE("write_params writes fixed and random effects", "[mcmc][mcmc_result]")
     auto prior = make_prior();
     gelex::BayesState state(model, prior);
     auto records = make_records(model, state);
-    gelex::mcmc::Result result{std::move(records), model, 2};
+    gelex::Result result{std::move(records), model, 2};
 
     gelex::test::FileFixture files;
     auto prefix = files.get_test_dir() / "mcmc_params";
-    gelex::mcmc::write_params(result, prefix.string());
+    gelex::write_params(result, prefix.string());
 
     auto params_path = prefix;
     params_path += ".param";
@@ -399,7 +395,7 @@ TEST_CASE(
     auto prior = make_prior();
     gelex::BayesState state(model, prior);
     auto records = make_records(model, state);
-    gelex::mcmc::Result result{std::move(records), model, 2};
+    gelex::Result result{std::move(records), model, 2};
 
     gelex::test::FileFixture files;
     auto bim_path = files.create_text_file(
@@ -407,7 +403,7 @@ TEST_CASE(
         "2\trs2\t0\t200\tC\tT\n",
         ".bim");
     auto prefix = files.get_test_dir() / "mcmc_snp";
-    gelex::mcmc::write_snp_eff(result, model, bim_path, prefix.string());
+    gelex::write_snp_eff(result, model, bim_path, prefix.string());
 
     auto snp_path = prefix;
     snp_path += ".snpeff";

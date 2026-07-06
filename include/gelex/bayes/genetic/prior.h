@@ -27,7 +27,7 @@
 #include "gelex/bayes/genetic/prior_state.h"
 #include "gelex/types/genetic_mode.h"
 
-namespace gelex::infra
+namespace gelex
 {
 class FieldVisitor;
 }
@@ -50,8 +50,8 @@ using JointGeneticPrior
 
 auto mode(const SingleGeneticPrior& prior) -> GeneticMode;
 
-auto visit(SingleGeneticPrior& prior, infra::FieldVisitor& visitor) -> void;
-auto visit(JointGeneticPrior& prior, infra::FieldVisitor& visitor) -> void;
+auto visit(SingleGeneticPrior& prior, FieldVisitor& visitor) -> void;
+auto visit(JointGeneticPrior& prior, FieldVisitor& visitor) -> void;
 
 auto make_state(
     const SingleGeneticPrior& prior,

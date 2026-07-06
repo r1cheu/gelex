@@ -34,7 +34,7 @@
 #include "gelex/exception.h"
 #include "gelex/infra/string_hash.h"
 
-namespace gelex::dataframe
+namespace gelex
 {
 
 namespace detail
@@ -86,7 +86,7 @@ class DataFrame
 
     auto clone() const -> DataFrame;
 
-    auto gather(const Index<Key>& target) -> void;
+    auto gather(const DataFrameIndex<Key>& target) -> void;
     auto gather(std::span<const std::size_t> indices) -> void;
 
     template <ValueType T = double>
@@ -111,13 +111,13 @@ class DataFrame
     auto update_lookup(std::size_t index, std::string_view new_name) -> void;
     auto set_name(std::size_t index, std::string_view new_name) -> void;
 
-    Index<Key> index_;
+    DataFrameIndex<Key> index_;
     std::vector<Column> columns_;
     std::unordered_map<
         std::string,
         std::size_t,
-        infra::TransparentHash<std::string>,
-        infra::TransparentEqual<std::string>>
+        TransparentHash<std::string>,
+        TransparentEqual<std::string>>
         col_lookup_;
 };
 
@@ -195,7 +195,7 @@ auto DataFrame<Key>::clone() const -> DataFrame
 }
 
 template <KeyType Key>
-auto DataFrame<Key>::gather(const Index<Key>& target) -> void
+auto DataFrame<Key>::gather(const DataFrameIndex<Key>& target) -> void
 {
     auto pos = target.keys()
                | std::views::transform([this](const auto& k)
@@ -303,19 +303,20 @@ auto intersect_inplace(std::span<DataFrame<Key>* const> dfs) -> void
         return;
     }
 
-    std::vector<const Index<Key>*> idx_ptrs;
+    std::vector<const DataFrameIndex<Key>*> idx_ptrs;
     idx_ptrs.reserve(dfs.size());
     for (const auto* df : dfs)
     {
         idx_ptrs.push_back(&df->index());
     }
-    auto common = intersect(std::span<const Index<Key>* const>{idx_ptrs});
+    auto common
+        = intersect(std::span<const DataFrameIndex<Key>* const>{idx_ptrs});
     for (auto* df : dfs)
     {
         df->gather(common);
     }
 }
 
-}  // namespace gelex::dataframe
+}  // namespace gelex
 
 #endif  // GELEX_DATA_DATAFRAME_DATAFRAME_H

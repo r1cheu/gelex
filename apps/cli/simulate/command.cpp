@@ -173,7 +173,7 @@ auto simulate_execute(const cli::SimulateConfig& config) -> int
     if (additive_scheme)
     {
         additive.emplace();
-        additive->causal_snps = gelex::NormalSampler(
+        additive->causal_snps = gelex::NormalGenerator(
             shuffled_ids, additive_scheme->effect_sizes)(rng);
         additive->gebv = calculator.calculate<gelex::GeneticMode::A>(
             *additive, geno_method, observer);
@@ -183,7 +183,7 @@ auto simulate_execute(const cli::SimulateConfig& config) -> int
     if (dominance_scheme)
     {
         dominance.emplace();
-        dominance->causal_snps = gelex::NormalSampler(
+        dominance->causal_snps = gelex::NormalGenerator(
             shuffled_ids, dominance_scheme->effect_sizes)(rng);
         dominance->gebv = calculator.calculate<gelex::GeneticMode::D>(
             *dominance, geno_method, observer);
@@ -214,28 +214,28 @@ auto simulate_execute(const cli::SimulateConfig& config) -> int
     }
     phenotypes += residual;
 
-    const double var_phen = gelex::stats::detail::vecvar(
-        phenotypes, gelex::stats::detail::VarNormType::Population);
+    const double var_phen = gelex::detail::vecvar(
+        phenotypes, gelex::detail::VarNormType::Population);
     std::optional<double> realized_h2;
     std::optional<double> realized_d2;
     if (additive && var_phen > 0.0)
     {
         realized_h2
-            = gelex::stats::detail::vecvar(
-                  additive->gebv, gelex::stats::detail::VarNormType::Population)
+            = gelex::detail::vecvar(
+                  additive->gebv, gelex::detail::VarNormType::Population)
               / var_phen;
     }
     if (dominance && var_phen > 0.0)
     {
-        realized_d2 = gelex::stats::detail::vecvar(
-                          dominance->gebv,
-                          gelex::stats::detail::VarNormType::Population)
-                      / var_phen;
+        realized_d2
+            = gelex::detail::vecvar(
+                  dominance->gebv, gelex::detail::VarNormType::Population)
+              / var_phen;
     }
     reporter.show_variance_summary(realized_h2, realized_d2);
 
     const auto& out_prefix = config.out;
-    gelex::io::detail::TextWriter writer(out_prefix + ".phen");
+    gelex::detail::TextWriter writer(out_prefix + ".phen");
     writer.write_header({"FID", "IID", "Phenotype"});
     for (Eigen::Index i = 0; i < n_samples; ++i)
     {
@@ -243,7 +243,7 @@ auto simulate_execute(const cli::SimulateConfig& config) -> int
         writer.write(fmt::format("{}\t{}\t{}", fid, iid, phenotypes(i)));
     }
 
-    gelex::io::detail::TextWriter effect_writer(out_prefix + ".causal");
+    gelex::detail::TextWriter effect_writer(out_prefix + ".causal");
     auto write_single =
         [&](std::string_view column, const std::vector<gelex::CausalSnp>& snps)
     {

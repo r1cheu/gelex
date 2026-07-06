@@ -33,7 +33,7 @@ namespace gelex
 {
 
 FixedPosteriorProcessor::FixedPosteriorProcessor(
-    std::span<const io::BinaryReader> readers,
+    std::span<const BinaryReader> readers,
     double hdpi_threshold)
     : readers_{readers}, hdpi_threshold_{hdpi_threshold}
 {
@@ -56,7 +56,7 @@ auto FixedPosteriorProcessor::process() -> std::vector<ParameterDiag>
         row_names.push_back(fmt::format("fixed[{}]", i));
     }
 
-    return post::detail::summarize_section(
+    return detail::summarize_section(
         readers_, coeff_path, hdpi_threshold_, "Parameter", row_names);
 }
 

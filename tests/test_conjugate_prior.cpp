@@ -32,10 +32,10 @@
 namespace gelex
 {
 
-using stats::BetaSampler;
-using stats::DirichletSampler;
-using stats::NormalSampler;
-using stats::ScaledInvChi2Sampler;
+using gelex::BetaSampler;
+using gelex::DirichletSampler;
+using gelex::NormalSampler;
+using gelex::ScaledInvChi2Sampler;
 
 namespace
 {

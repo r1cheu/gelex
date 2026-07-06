@@ -32,7 +32,7 @@
 #include "gelex/infra/stats/dirichlet_sampler.h"
 #include "gelex/infra/stats/normal_sampler.h"
 
-namespace gelex::mcmc
+namespace gelex
 {
 
 SingleSharedGaussianStep::SingleSharedGaussianStep(
@@ -92,7 +92,7 @@ auto SingleSharedGaussianStep::step() -> void
                 const double rhs
                     = column.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
                 coeffs(i) = normal_(
-                    stats::NormalSampler<double>::Kernel{
+                    NormalSampler<double>::Kernel{
                         .quadratic = XtX_diag(i),
                         .linear = rhs,
                         .scale = residual_.variance,
@@ -105,8 +105,7 @@ auto SingleSharedGaussianStep::step() -> void
         }
     }
     variance_ = variance_sampler_({variance_n, sum_squares}, rng_);
-    state_.variance = stats::detail::vecvar(
-        state_.u, stats::detail::VarNormType::Population);
+    state_.variance = detail::vecvar(state_.u, detail::VarNormType::Population);
 }
 
 SinglePerMarkerGaussianStep::SinglePerMarkerGaussianStep(
@@ -163,7 +162,7 @@ auto SinglePerMarkerGaussianStep::step() -> void
                     = column.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
                 normal_.set_prior_var(variance_(i));
                 coeffs(i) = normal_(
-                    stats::NormalSampler<double>::Kernel{
+                    NormalSampler<double>::Kernel{
                         .quadratic = XtX_diag(i),
                         .linear = rhs,
                         .scale = residual_.variance,
@@ -174,8 +173,7 @@ auto SinglePerMarkerGaussianStep::step() -> void
             }
         }
     }
-    state_.variance = stats::detail::vecvar(
-        state_.u, stats::detail::VarNormType::Population);
+    state_.variance = detail::vecvar(state_.u, detail::VarNormType::Population);
 }
 
 SingleSharedSpikeSlabStep::SingleSharedSpikeSlabStep(
@@ -208,13 +206,13 @@ SingleSharedSpikeSlabStep::SingleSharedSpikeSlabStep(
       assignment_(prior_state.assignment()),
       proportion_(prior_state.proportion()),
       proportion_sampler_(
-          [&prior] -> std::optional<stats::DirichletSampler<double>>
+          [&prior] -> std::optional<DirichletSampler<double>>
           {
               if (!prior.proportion().prior())
               {
                   return std::nullopt;
               }
-              return stats::DirichletSampler<double>{
+              return DirichletSampler<double>{
                   prior.proportion().prior()->concentration()};
           }()),
       state_(state),
@@ -255,7 +253,7 @@ auto SingleSharedSpikeSlabStep::step() -> void
                 const double rhs
                     = column.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
                 const auto post = normal_.posterior_with_logL(
-                    stats::NormalSampler<double>::Kernel{
+                    NormalSampler<double>::Kernel{
                         .quadratic = XtX_diag(i),
                         .linear = rhs,
                         .scale = residual_.variance,
@@ -287,8 +285,7 @@ auto SingleSharedSpikeSlabStep::step() -> void
     {
         proportion_ = (*proportion_sampler_)(proportion_count_, rng_);
     }
-    state_.variance = stats::detail::vecvar(
-        state_.u, stats::detail::VarNormType::Population);
+    state_.variance = detail::vecvar(state_.u, detail::VarNormType::Population);
 }
 
 SinglePerMarkerSpikeSlabStep::SinglePerMarkerSpikeSlabStep(
@@ -321,13 +318,13 @@ SinglePerMarkerSpikeSlabStep::SinglePerMarkerSpikeSlabStep(
       assignment_(prior_state.assignment()),
       proportion_(prior_state.proportion()),
       proportion_sampler_(
-          [&prior] -> std::optional<stats::DirichletSampler<double>>
+          [&prior] -> std::optional<DirichletSampler<double>>
           {
               if (!prior.proportion().prior())
               {
                   return std::nullopt;
               }
-              return stats::DirichletSampler<double>{
+              return DirichletSampler<double>{
                   prior.proportion().prior()->concentration()};
           }()),
       state_(state),
@@ -366,7 +363,7 @@ auto SinglePerMarkerSpikeSlabStep::step() -> void
                     = column.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
                 const auto post = normal_.set_prior_var(variance_(i))
                                       .posterior_with_logL(
-                                          stats::NormalSampler<double>::Kernel{
+                                          NormalSampler<double>::Kernel{
                                               .quadratic = XtX_diag(i),
                                               .linear = rhs,
                                               .scale = residual_.variance,
@@ -396,8 +393,7 @@ auto SinglePerMarkerSpikeSlabStep::step() -> void
     {
         proportion_ = (*proportion_sampler_)(proportion_count_, rng_);
     }
-    state_.variance = stats::detail::vecvar(
-        state_.u, stats::detail::VarNormType::Population);
+    state_.variance = detail::vecvar(state_.u, detail::VarNormType::Population);
 }
 
 SingleScaledMixtureStep::SingleScaledMixtureStep(
@@ -531,15 +527,14 @@ auto SingleScaledMixtureStep::step() -> void
 
     variance_ = variance_sampler_({variance_n, sum_squares}, rng_);
     proportion_ = proportion_sampler_(proportion_count_, rng_);
-    state_.variance = stats::detail::vecvar(
-        state_.u, stats::detail::VarNormType::Population);
+    state_.variance = detail::vecvar(state_.u, detail::VarNormType::Population);
     for (Eigen::Index k = 0;
          k < static_cast<Eigen::Index>(component_.gebv.size());
          ++k)
     {
-        component_.gebv_var(k) = stats::detail::vecvar(
-            component_.gebv[k], stats::detail::VarNormType::Population);
+        component_.gebv_var(k) = detail::vecvar(
+            component_.gebv[k], detail::VarNormType::Population);
     }
 }
 
-}  // namespace gelex::mcmc
+}  // namespace gelex

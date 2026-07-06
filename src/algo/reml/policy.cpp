@@ -23,7 +23,7 @@
 #include "gelex/algo/reml/optimizer_state.h"
 #include "gelex/freq/model.h"
 
-namespace gelex::reml
+namespace gelex
 {
 
 auto EMPolicy::apply(
@@ -85,7 +85,7 @@ auto AIPolicy::apply(
 
     // 2. Compute first gradient
     // grad(i) = -0.5 * (tr(P * dV/dsigma_i) - Py' * dV/dsigma_i * Py)
-    //         = -0.5 * (tr(P * K_i) - Py' * K_i * Py)
+    // = -0.5 * (tr(P * K_i) - Py' * K_i * Py)
     // residual: K_0 = I
     opt_state.first_grad(0)
         = -0.5
@@ -131,4 +131,4 @@ auto AIPolicy::apply(
     return sigma + delta;
 }
 
-}  // namespace gelex::reml
+}  // namespace gelex

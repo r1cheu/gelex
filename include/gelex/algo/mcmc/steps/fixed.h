@@ -23,7 +23,7 @@
 #include "gelex/infra/stats/normal_sampler.h"
 #include "gelex/types/fixed_designs.h"
 
-namespace gelex::mcmc
+namespace gelex
 {
 
 class FixedStep final
@@ -42,9 +42,9 @@ class FixedStep final
     bayes::FixedState& state_;
     bayes::ResidualState& residual_;
     std::mt19937_64& rng_;
-    stats::NormalSampler<double> normal_{0.0};
+    NormalSampler<double> normal_{0.0};
 };
 
-}  // namespace gelex::mcmc
+}  // namespace gelex
 
 #endif  // GELEX_ALGO_MCMC_STEPS_FIXED_H_

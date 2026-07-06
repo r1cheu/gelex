@@ -19,7 +19,7 @@
 
 #include <Eigen/Core>
 
-namespace gelex::stats
+namespace gelex
 {
 
 struct RunningStatsResult
@@ -33,6 +33,6 @@ struct CategoryProbResult
     Eigen::MatrixXd value;
 };
 
-}  // namespace gelex::stats
+}  // namespace gelex
 
 #endif  // GELEX_INFRA_STATS_RESULT_H_

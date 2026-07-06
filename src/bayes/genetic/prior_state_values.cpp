@@ -40,7 +40,7 @@ MixtureState::MixtureState(
 {
 }
 
-auto MixtureState::visit(infra::FieldVisitor& visitor) -> void
+auto MixtureState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
 
@@ -70,7 +70,7 @@ ComponentState::ComponentState(
     gebv_var = Eigen::VectorXd::Zero(num_components);
 }
 
-auto ComponentState::visit(infra::FieldVisitor& visitor) -> void
+auto ComponentState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on("gebv_var", gebv_var, FieldFlag::checkpoint | FieldFlag::trace);
@@ -97,7 +97,7 @@ DominanceSignState::DominanceSignState(
 {
 }
 
-auto DominanceSignState::visit(infra::FieldVisitor& visitor) -> void
+auto DominanceSignState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     visitor.on(

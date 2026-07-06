@@ -29,15 +29,15 @@
 #include "gelex/data/dataframe/encode.h"
 #include "gelex/exception.h"
 
-using gelex::dataframe::check_levels;
-using gelex::dataframe::collect_levels;
-using gelex::dataframe::Column;
-using gelex::dataframe::dummy_encode;
-using gelex::dataframe::encode;
-using gelex::dataframe::EncodedResult;
-using gelex::dataframe::SEPARATOR;
-using gelex::dataframe::LevelMismatch;
-using gelex::dataframe::one_hot_encode;
+using gelex::check_levels;
+using gelex::collect_levels;
+using gelex::Column;
+using gelex::dummy_encode;
+using gelex::encode;
+using gelex::EncodedResult;
+using gelex::LevelMismatch;
+using gelex::one_hot_encode;
+using gelex::SEPARATOR;
 
 namespace
 {
@@ -82,13 +82,7 @@ TEST_CASE("one_hot_encode matrix has correct values", "[encode][dataframe]")
     auto col = make_col("g", {"A", "B", "A", "C"});
     auto result = one_hot_encode(col);
 
-    Eigen::MatrixXd expected(4, 3);
-    // clang-format off
-    expected << 1, 0, 0,
-                0, 1, 0,
-                1, 0, 0,
-                0, 0, 1;
-    // clang-format on
+    Eigen::MatrixXd expected{{1, 0, 0}, {0, 1, 0}, {1, 0, 0}, {0, 0, 1}};
     REQUIRE(result.data.isApprox(expected));
 }
 
@@ -108,11 +102,7 @@ TEST_CASE(
     using MatType = decltype(result.data);
     static_assert(std::is_same_v<MatType::Scalar, float>);
 
-    Eigen::MatrixXf expected(2, 2);
-    // clang-format off
-    expected << 1, 0,
-                0, 1;
-    // clang-format on
+    Eigen::MatrixXf expected{{1, 0}, {0, 1}};
     REQUIRE(result.data.isApprox(expected));
 }
 
@@ -151,13 +141,7 @@ TEST_CASE("dummy_encode matrix has correct values", "[encode][dataframe]")
     auto col = make_col("g", {"A", "B", "C", "A"});
     auto result = dummy_encode(col);
 
-    Eigen::MatrixXd expected(4, 2);
-    // clang-format off
-    expected << 0, 0,
-                1, 0,
-                0, 1,
-                0, 0;
-    // clang-format on
+    Eigen::MatrixXd expected{{0, 0}, {1, 0}, {0, 1}, {0, 0}};
     REQUIRE(result.data.isApprox(expected));
 }
 
@@ -195,12 +179,7 @@ TEST_CASE(
     REQUIRE(result.data.cols() == 3);
     REQUIRE(result.name == "g");
 
-    Eigen::MatrixXd expected(3, 3);
-    // clang-format off
-    expected << 1, 0, 0,
-                0, 1, 0,
-                0, 0, 1;
-    // clang-format on
+    Eigen::MatrixXd expected{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
     REQUIRE(result.data.isApprox(expected));
 }
 
@@ -217,12 +196,7 @@ TEST_CASE(
     REQUIRE(result.level_names[1] == fmt::format("g{}A", SEPARATOR));
     REQUIRE(result.level_names[2] == fmt::format("g{}B", SEPARATOR));
 
-    Eigen::MatrixXd expected(3, 3);
-    // clang-format off
-    expected << 0, 1, 0,
-                0, 0, 1,
-                1, 0, 0;
-    // clang-format on
+    Eigen::MatrixXd expected{{0, 1, 0}, {0, 0, 1}, {1, 0, 0}};
     REQUIRE(result.data.isApprox(expected));
 }
 
@@ -235,12 +209,7 @@ TEST_CASE(
     std::vector<std::string> levels = {"A", "B"};
     auto result = encode(col, levels);
 
-    Eigen::MatrixXd expected(3, 2);
-    // clang-format off
-    expected << 1, 0,
-                0, 0,
-                0, 1;
-    // clang-format on
+    Eigen::MatrixXd expected{{1, 0}, {0, 0}, {0, 1}};
     REQUIRE(result.data.isApprox(expected));
 }
 
@@ -255,11 +224,7 @@ TEST_CASE(
 
     REQUIRE(result.data.cols() == 3);
 
-    Eigen::MatrixXd expected(2, 3);
-    // clang-format off
-    expected << 1, 0, 0,
-                0, 0, 1;
-    // clang-format on
+    Eigen::MatrixXd expected{{1, 0, 0}, {0, 0, 1}};
     REQUIRE(result.data.isApprox(expected));
 }
 

@@ -55,8 +55,8 @@ struct BaseData
 template <typename T>
 concept BaseDataHandler = requires(
     T& handler,
-    std::vector<gelex::dataframe::Index<std::string>*>& indices,
-    const gelex::dataframe::Index<std::string>& common_index) {
+    std::vector<gelex::DataFrameIndex<std::string>*>& indices,
+    const gelex::DataFrameIndex<std::string>& common_index) {
     handler.load_indices(indices);
     handler.gather(common_index);
     std::move(handler).results();
@@ -65,14 +65,14 @@ concept BaseDataHandler = requires(
 template <BaseDataHandler Handler>
 auto load_base_data(Handler& handler, const BaseDataConfig& config) -> BaseData
 {
-    std::vector<gelex::dataframe::Index<std::string>*> indices;
+    std::vector<gelex::DataFrameIndex<std::string>*> indices;
 
     auto pheno_col_offset = static_cast<std::size_t>(config.pheno_col);
     auto phenotype = gelex::read_pheno(config.pheno_path, &pheno_col_offset);
     indices.push_back(&phenotype.index());
 
-    std::optional<gelex::dataframe::DataFrame<std::string>> qcovar;
-    std::optional<gelex::dataframe::DataFrame<std::string>> dcovar;
+    std::optional<gelex::DataFrame<std::string>> qcovar;
+    std::optional<gelex::DataFrame<std::string>> dcovar;
     if (config.qcovar_path)
     {
         qcovar = std::make_optional(gelex::read_qcovar(*config.qcovar_path));
@@ -85,7 +85,7 @@ auto load_base_data(Handler& handler, const BaseDataConfig& config) -> BaseData
     }
     handler.load_indices(indices);
 
-    auto common_index = gelex::dataframe::intersect<std::string>(indices);
+    auto common_index = gelex::intersect<std::string>(indices);
 
     phenotype.gather(common_index);
     if (qcovar)
@@ -121,7 +121,7 @@ auto load_base_data(Handler& handler, const BaseDataConfig& config) -> BaseData
 
     if (config.transform != "none")
     {
-        gelex::stats::RankInverseNormTransform transformer(config.int_offset);
+        gelex::RankInverseNormTransform transformer(config.int_offset);
         auto logger = cli::logging::get();
 
         if (config.transform == "dint")

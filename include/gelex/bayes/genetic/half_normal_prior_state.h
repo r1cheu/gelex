@@ -59,7 +59,7 @@ class JointHalfNormalMixtureState final
         return dominance_sign_;
     }
 
-    auto visit(infra::FieldVisitor& visitor) -> void;
+    auto visit(FieldVisitor& visitor) -> void;
 
    private:
     std::array<double, 2> variances_;

@@ -23,7 +23,7 @@
 #include <ios>
 #include <vector>
 
-namespace gelex::io::detail
+namespace gelex::detail
 {
 
 size_t count_total_lines(const std::filesystem::path& path)
@@ -59,4 +59,4 @@ size_t count_total_lines(const std::filesystem::path& path)
     return line_count;
 }
 
-}  // namespace gelex::io::detail
+}  // namespace gelex::detail

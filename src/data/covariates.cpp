@@ -31,25 +31,25 @@
 namespace gelex
 {
 
-auto make_quantitative_covariate(const dataframe::DataFrame<std::string>& frame)
+auto make_quantitative_covariate(const DataFrame<std::string>& frame)
     -> QuantitativeCovariate
 {
     return QuantitativeCovariate{
         .names = frame.names(), .X = frame.to_mat<double>()};
 }
 
-auto make_discrete_covariate(const dataframe::DataFrame<std::string>& frame)
+auto make_discrete_covariate(const DataFrame<std::string>& frame)
     -> DiscreteCovariate
 {
     std::vector<std::string> names;
     std::vector<std::vector<std::string>> levels;
     std::vector<std::string> reference_levels;
-    std::vector<dataframe::EncodedResult<>> encoded_results;
+    std::vector<EncodedResult<>> encoded_results;
 
     for (std::size_t i = 0; i < frame.cols(); ++i)
     {
         const auto& col = frame.col(i);
-        auto all_levels = dataframe::collect_levels(col);
+        auto all_levels = collect_levels(col);
         if (all_levels.size() < 2)
         {
             continue;
@@ -57,8 +57,7 @@ auto make_discrete_covariate(const dataframe::DataFrame<std::string>& frame)
         names.emplace_back(col.name());
         reference_levels.push_back(all_levels.front());
         encoded_results.push_back(
-            dataframe::encode(
-                col, std::span<const std::string>(all_levels).subspan(1)));
+            encode(col, std::span<const std::string>(all_levels).subspan(1)));
         levels.push_back(std::move(all_levels));
     }
 
@@ -83,7 +82,7 @@ auto make_discrete_covariate(const dataframe::DataFrame<std::string>& frame)
         .X = std::move(X)};
 }
 
-auto make_random_designs(const dataframe::DataFrame<std::string>& frame)
+auto make_random_designs(const DataFrame<std::string>& frame)
     -> std::vector<freq::RandomDesign>
 {
     std::vector<freq::RandomDesign> random_designs;
@@ -91,7 +90,7 @@ auto make_random_designs(const dataframe::DataFrame<std::string>& frame)
     for (std::size_t i = 0; i < frame.cols(); ++i)
     {
         const auto& col = frame.col(i);
-        auto result = dataframe::one_hot_encode(col);
+        auto result = one_hot_encode(col);
 
         random_designs.emplace_back(
             result.name,
@@ -103,7 +102,7 @@ auto make_random_designs(const dataframe::DataFrame<std::string>& frame)
 }
 
 auto make_quantitative_random_design(
-    const dataframe::DataFrame<std::string>& frame,
+    const DataFrame<std::string>& frame,
     std::string name) -> freq::RandomDesign
 {
     Eigen::MatrixXd Z = frame.to_mat<double>();
@@ -116,8 +115,7 @@ auto make_quantitative_random_design(
 
 auto make_grm_designs(
     std::span<const std::string> prefixes,
-    const dataframe::Index<std::string>& index)
-    -> std::vector<freq::RandomDesign>
+    const DataFrameIndex<std::string>& index) -> std::vector<freq::RandomDesign>
 {
     std::vector<freq::RandomDesign> grm_designs;
     grm_designs.reserve(prefixes.size());

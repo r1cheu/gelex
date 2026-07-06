@@ -23,7 +23,7 @@
 
 #include <mio.h>
 
-namespace gelex::io
+namespace gelex
 {
 
 struct MappedFile::Impl
@@ -59,4 +59,4 @@ auto MappedFile::size() const noexcept -> std::size_t
     return impl_ ? impl_->mmap.size() : 0;
 }
 
-}  // namespace gelex::io
+}  // namespace gelex

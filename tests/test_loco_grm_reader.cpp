@@ -32,7 +32,7 @@
 
 namespace fs = std::filesystem;
 using gelex::test::FileFixture;
-namespace df = gelex::dataframe;
+namespace df = gelex;
 
 namespace
 {
@@ -81,7 +81,7 @@ TEST_CASE("LocoReader - Basic Calculation", "[data][grm][loco]")
     GrmFiles chr_files{tmp_dir / "chr1"};
     chr_files.create(raw_g_i, ids);
 
-    df::Index<std::string> sample_index(ids);
+    df::DataFrameIndex<std::string> sample_index(ids);
 
     gelex::LocoReader loco_reader(whole_files.prefix, sample_index);
     Eigen::MatrixXd loco_grm;
@@ -123,7 +123,7 @@ TEST_CASE("LocoReader - Filtered Loading", "[data][grm][loco]")
     chr_files.create(raw_g_i, ids);
 
     // Test with subset of IDs and reordering
-    df::Index<std::string> sample_index(
+    df::DataFrameIndex<std::string> sample_index(
         std::vector<std::string>{sid("F1", "I3"), sid("F1", "I1")});
 
     gelex::LocoReader loco_reader(whole_files.prefix, sample_index);

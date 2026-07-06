@@ -27,29 +27,24 @@
 
 namespace gelex
 {
-auto read_fam(const std::filesystem::path& path)
-    -> dataframe::DataFrame<std::string>;
+auto read_fam(const std::filesystem::path& path) -> DataFrame<std::string>;
 
-auto read_bim(const std::filesystem::path& path)
-    -> dataframe::DataFrame<std::string>;
+auto read_bim(const std::filesystem::path& path) -> DataFrame<std::string>;
 
 auto read_pheno(
     const std::filesystem::path& path,
-    const std::size_t* pheno_col = nullptr)
-    -> dataframe::DataFrame<std::string>;
+    const std::size_t* pheno_col = nullptr) -> DataFrame<std::string>;
 
-auto read_qcovar(const std::filesystem::path& path)
-    -> dataframe::DataFrame<std::string>;
+auto read_qcovar(const std::filesystem::path& path) -> DataFrame<std::string>;
 
-auto read_dcovar(const std::filesystem::path& path)
-    -> dataframe::DataFrame<std::string>;
+auto read_dcovar(const std::filesystem::path& path) -> DataFrame<std::string>;
 
 auto read_grm_ids(const std::string& prefix)
-    -> gelex::dataframe::Index<std::string>;
+    -> gelex::DataFrameIndex<std::string>;
 
 auto read_grm(
     const std::string& prefix,
-    const dataframe::Index<std::string>* index = nullptr,
+    const DataFrameIndex<std::string>* index = nullptr,
     bool normalize = true) -> Eigen::MatrixXd;
 
 };  // namespace gelex

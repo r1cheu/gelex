@@ -73,14 +73,13 @@ class Bed
         std::span<const Eigen::Index> snp_indices) const -> void;
 
     template <std::floating_point T>
-    [[nodiscard]] auto read_snps(
-        const dataframe::Index<std::string>& target_snps) const
-        -> Eigen::MatrixX<T>;
+    [[nodiscard]] auto read_snps(const DataFrameIndex<std::string>& target_snps)
+        const -> Eigen::MatrixX<T>;
 
     template <std::floating_point T>
     auto read_snps_into(
         Eigen::Ref<Eigen::MatrixX<T>> out,
-        const dataframe::Index<std::string>& target_snps) const -> void;
+        const DataFrameIndex<std::string>& target_snps) const -> void;
 
     [[nodiscard]] auto num_samples() const noexcept -> Eigen::Index
     {
@@ -93,13 +92,13 @@ class Bed
     }
 
     [[nodiscard]] auto sample_index() const noexcept
-        -> const dataframe::Index<std::string>&
+        -> const DataFrameIndex<std::string>&
     {
         return sample_index_;
     }
 
     [[nodiscard]] auto snp_index() const noexcept
-        -> const dataframe::Index<std::string>&
+        -> const DataFrameIndex<std::string>&
     {
         return snp_index_;
     }
@@ -107,8 +106,8 @@ class Bed
    private:
     Bed(detail::BedSource bed_source,
         detail::IndexProjection index_projection,
-        dataframe::Index<std::string> sample_index,
-        dataframe::Index<std::string> snp_index)
+        DataFrameIndex<std::string> sample_index,
+        DataFrameIndex<std::string> snp_index)
         : bed_source_{std::move(bed_source)},
           index_projection_{std::move(index_projection)},
           sample_index_{std::move(sample_index)},
@@ -118,8 +117,8 @@ class Bed
 
     detail::BedSource bed_source_;
     detail::IndexProjection index_projection_;
-    dataframe::Index<std::string> sample_index_;
-    dataframe::Index<std::string> snp_index_;
+    DataFrameIndex<std::string> sample_index_;
+    DataFrameIndex<std::string> snp_index_;
 
     static constexpr std::size_t BED_LUT_SIZE = 256;
 
@@ -145,14 +144,14 @@ class Bed
 
     friend auto open_bed(
         const std::string& bfile_prefix,
-        const dataframe::Index<std::string>& target_index) -> Bed;
+        const DataFrameIndex<std::string>& target_index) -> Bed;
 };
 
 [[nodiscard]] auto open_bed(const std::string& bfile_prefix) -> Bed;
 
 [[nodiscard]] auto open_bed(
     const std::string& bfile_prefix,
-    const dataframe::Index<std::string>& target_index) -> Bed;
+    const DataFrameIndex<std::string>& target_index) -> Bed;
 
 template <std::floating_point T>
 consteval auto Bed::make_bed_lut_entry(std::uint8_t byte) -> BedLutEntry<T>
@@ -365,7 +364,7 @@ auto Bed::read_snps_into(
 }
 
 template <std::floating_point T>
-auto Bed::read_snps(const dataframe::Index<std::string>& target_snps) const
+auto Bed::read_snps(const DataFrameIndex<std::string>& target_snps) const
     -> Eigen::MatrixX<T>
 {
     Eigen::MatrixX<T> out(
@@ -377,7 +376,7 @@ auto Bed::read_snps(const dataframe::Index<std::string>& target_snps) const
 template <std::floating_point T>
 auto Bed::read_snps_into(
     Eigen::Ref<Eigen::MatrixX<T>> out,
-    const dataframe::Index<std::string>& target_snps) const -> void
+    const DataFrameIndex<std::string>& target_snps) const -> void
 {
     if (out.cols() != static_cast<Eigen::Index>(target_snps.size()))
     {

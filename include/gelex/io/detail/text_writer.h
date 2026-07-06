@@ -23,7 +23,7 @@
 
 #include "gelex/io/detail/atomic_output_stream.h"
 
-namespace gelex::io::detail
+namespace gelex::detail
 {
 
 class TextWriter
@@ -45,6 +45,6 @@ class TextWriter
     AtomicOutputStream ofs_;
 };
 
-}  // namespace gelex::io::detail
+}  // namespace gelex::detail
 
 #endif  // GELEX_IO_DETAIL_TEXT_WRITER_H_

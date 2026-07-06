@@ -31,14 +31,14 @@
 #include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/data/dataframe/dataframe.h"
 
-namespace gelex::gwas
+namespace gelex
 {
 
 constexpr size_t BUFFER_FLUSH_THRESHOLD = static_cast<size_t>(64 * 1024);
 
 GwasWriter::GwasWriter(
     std::string_view out_prefix,
-    const dataframe::DataFrame<std::string>& bim,
+    const DataFrame<std::string>& bim,
     AssocType test_type)
     : test_type_(test_type),
       keys_(bim.index().keys()),
@@ -151,4 +151,4 @@ auto GwasWriter::write(std::size_t start, const TestResults& results) -> void
     }
 }
 
-}  // namespace gelex::gwas
+}  // namespace gelex

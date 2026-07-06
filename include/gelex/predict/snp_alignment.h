@@ -24,7 +24,7 @@
 
 #include "gelex/data/dataframe/dataframe.h"
 
-namespace gelex::predict
+namespace gelex
 {
 
 inline constexpr double MAX_SNP_MISSING_RATIO = 0.2;
@@ -37,9 +37,9 @@ struct SnpAlignment
 };
 
 [[nodiscard]] auto build_snp_alignment(
-    const dataframe::DataFrame<std::string>& snp_effects,
-    const dataframe::DataFrame<std::string>& bim_df) -> SnpAlignment;
+    const DataFrame<std::string>& snp_effects,
+    const DataFrame<std::string>& bim_df) -> SnpAlignment;
 
-}  // namespace gelex::predict
+}  // namespace gelex
 
 #endif  // GELEX_PREDICT_SNP_ALIGNMENT_H_

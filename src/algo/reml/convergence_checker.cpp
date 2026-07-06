@@ -20,7 +20,7 @@
 #include <cmath>
 #include <limits>
 
-namespace gelex::reml
+namespace gelex
 {
 bool ConvergenceChecker::is_converged(
     const Eigen::Ref<const Eigen::VectorXd>& new_sigma,
@@ -56,4 +56,4 @@ double ConvergenceChecker::compute_loglike_diff(double new_loglike) const
 {
     return new_loglike - old_loglike_;
 }
-}  // namespace gelex::reml
+}  // namespace gelex

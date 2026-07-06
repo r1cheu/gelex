@@ -29,7 +29,7 @@
 namespace gelex
 {
 
-auto NormalSampler::operator()(std::mt19937_64& rng) const
+auto NormalGenerator::operator()(std::mt19937_64& rng) const
     -> std::vector<CausalSnp>
 {
     std::vector<CausalSnp> causals;

@@ -21,7 +21,7 @@
 #include "gelex/algo/mcmc/records.h"
 #include "gelex/io/binary_writer.h"
 
-namespace gelex::mcmc::detail
+namespace gelex::detail
 {
 
 ScalarRecord::ScalarRecord(Records& owner, std::string_view path)
@@ -38,11 +38,11 @@ auto ScalarRecord::store(Records& owner, double value) -> void
     draws_.store(value);
     if (owner.writer_)
     {
-        owner.writer_->write(io::SectionHandle<double>{*draw_handle_}, value);
+        owner.writer_->write(SectionHandle<double>{*draw_handle_}, value);
     }
 }
 
-auto ScalarRecord::result() const -> stats::RunningStatsResult
+auto ScalarRecord::result() const -> RunningStatsResult
 {
     return draws_.stats();
 }
@@ -67,11 +67,11 @@ auto VectorRecord::store(
     draws_.store(value);
     if (owner.writer_)
     {
-        owner.writer_->write(io::SectionHandle<double>{*draw_handle_}, value);
+        owner.writer_->write(SectionHandle<double>{*draw_handle_}, value);
     }
 }
 
-auto VectorRecord::result() const -> stats::RunningStatsResult
+auto VectorRecord::result() const -> RunningStatsResult
 {
     return draws_.stats();
 }
@@ -96,13 +96,13 @@ auto CategoricalRecord::store(Records& owner, const CategoricalVector& value)
     draws_.store(value);
     if (owner.writer_)
     {
-        owner.writer_->write(io::SectionHandle<int>{*draw_handle_}, value);
+        owner.writer_->write(SectionHandle<int>{*draw_handle_}, value);
     }
 }
 
-auto CategoricalRecord::result() && -> stats::CategoryProbResult
+auto CategoricalRecord::result() && -> CategoryProbResult
 {
     return std::move(draws_).take_probabilities();
 }
 
-}  // namespace gelex::mcmc::detail
+}  // namespace gelex::detail

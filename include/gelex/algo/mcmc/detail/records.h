@@ -28,26 +28,23 @@
 #include "gelex/infra/stats/result.h"
 #include "gelex/types/categorical_vector.h"
 
-namespace gelex::mcmc
+namespace gelex
 {
 
 class Records;
 
-}  // namespace gelex::mcmc
+}  // namespace gelex
 
-namespace gelex::mcmc::detail
+namespace gelex::detail
 {
 
 struct ScalarDrawStats
 {
     auto store(double value) -> void { stats_.update(value); }
-    auto stats() const -> gelex::stats::RunningStatsResult
-    {
-        return stats_.result();
-    }
+    auto stats() const -> gelex::RunningStatsResult { return stats_.result(); }
 
    private:
-    gelex::stats::detail::RunningStats stats_;
+    gelex::detail::RunningStats stats_;
 };
 
 struct VectorDrawStats
@@ -56,13 +53,10 @@ struct VectorDrawStats
     {
         stats_.update(value);
     }
-    auto stats() const -> gelex::stats::RunningStatsResult
-    {
-        return stats_.result();
-    }
+    auto stats() const -> gelex::RunningStatsResult { return stats_.result(); }
 
    private:
-    gelex::stats::detail::RunningStats stats_;
+    gelex::detail::RunningStats stats_;
 };
 
 struct CategoricalDrawStats
@@ -76,13 +70,13 @@ struct CategoricalDrawStats
     {
         frequency_.update(categories.values());
     }
-    auto take_probabilities() && -> gelex::stats::CategoryProbResult
+    auto take_probabilities() && -> gelex::CategoryProbResult
     {
         return std::move(frequency_).take_probabilities();
     }
 
    private:
-    gelex::stats::detail::CategoricalFrequency frequency_;
+    gelex::detail::CategoricalFrequency frequency_;
 };
 
 class ScalarRecord
@@ -91,7 +85,7 @@ class ScalarRecord
     ScalarRecord(Records& owner, std::string_view path);
 
     auto store(Records& owner, double value) -> void;
-    auto result() const -> stats::RunningStatsResult;
+    auto result() const -> RunningStatsResult;
 
    private:
     ScalarDrawStats draws_;
@@ -108,7 +102,7 @@ class VectorRecord
 
     auto store(Records& owner, const Eigen::Ref<const Eigen::VectorXd>& value)
         -> void;
-    auto result() const -> stats::RunningStatsResult;
+    auto result() const -> RunningStatsResult;
 
    private:
     VectorDrawStats draws_;
@@ -124,13 +118,13 @@ class CategoricalRecord
         const CategoricalVector& value);
 
     auto store(Records& owner, const CategoricalVector& value) -> void;
-    auto result() && -> stats::CategoryProbResult;
+    auto result() && -> CategoryProbResult;
 
    private:
     CategoricalDrawStats draws_;
     std::optional<std::size_t> draw_handle_;
 };
 
-}  // namespace gelex::mcmc::detail
+}  // namespace gelex::detail
 
 #endif  // GELEX_ALGO_MCMC_DETAIL_RECORDS_H_

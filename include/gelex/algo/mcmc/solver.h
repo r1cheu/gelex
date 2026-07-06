@@ -35,14 +35,11 @@ namespace gelex
 
 class BayesState;
 
-namespace mcmc
-{
-
 class Solver
 {
    public:
     explicit Solver(
-        mcmc::Params params,
+        Params params,
         std::string draws_path = {},
         std::optional<std::string> checkpoint_prefix = std::nullopt);
 
@@ -50,13 +47,13 @@ class Solver
         const BayesModel& model,
         const bayes::BayesPrior& prior,
         Eigen::Index seed = 42,
-        const MCMCObserver& observer = {}) -> mcmc::Result;
+        const MCMCObserver& observer = {}) -> Result;
 
     auto run_from(
         const BayesModel& model,
         const bayes::BayesPrior& prior,
         const std::filesystem::path& checkpoint_path,
-        const MCMCObserver& observer = {}) -> mcmc::Result;
+        const MCMCObserver& observer = {}) -> Result;
 
    private:
     auto run_iterations(
@@ -64,14 +61,12 @@ class Solver
         const bayes::BayesPrior& prior,
         BayesState& state,
         std::mt19937_64& rng,
-        const MCMCObserver& observer) -> mcmc::Result;
+        const MCMCObserver& observer) -> Result;
 
-    mcmc::Params params_;
+    Params params_;
     std::string draws_path_;
     std::optional<std::string> checkpoint_prefix_;
 };
-
-}  // namespace mcmc
 
 }  // namespace gelex
 

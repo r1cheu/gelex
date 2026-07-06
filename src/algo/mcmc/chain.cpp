@@ -33,7 +33,7 @@
 #include "gelex/exception.h"
 #include "gelex/types/genetic_mode.h"
 
-namespace gelex::mcmc
+namespace gelex
 {
 
 template <typename Prior>
@@ -230,4 +230,4 @@ auto Chain::make(
         state};
 }
 
-}  // namespace gelex::mcmc
+}  // namespace gelex

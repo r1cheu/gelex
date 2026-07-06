@@ -23,7 +23,7 @@
 
 #include "gelex/infra/stats/detail/normal.h"
 
-namespace gelex::stats
+namespace gelex
 {
 
 RankInverseNormTransform::RankInverseNormTransform(double offset)
@@ -103,4 +103,4 @@ auto RankInverseNormTransform::compute_residuals(
     return y - X * (X.transpose() * X).ldlt().solve(X.transpose() * y);
 }
 
-}  // namespace gelex::stats
+}  // namespace gelex

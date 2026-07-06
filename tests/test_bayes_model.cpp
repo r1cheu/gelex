@@ -145,8 +145,7 @@ TEST_CASE(
 {
     const Eigen::MatrixXd data{{0.0, 1.0}, {1.0, 1.5}, {2.0, 3.0}};
     const Eigen::RowVectorXd expected_var{
-        gelex::stats::detail::matvar<0>(
-            data, gelex::stats::detail::VarNormType::Population)};
+        gelex::detail::matvar<0>(data, gelex::detail::VarNormType::Population)};
 
     const auto design = make_genetic_design(GeneticMode::A, data);
 

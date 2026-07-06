@@ -30,7 +30,7 @@
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 
-namespace gelex::mcmc
+namespace gelex
 {
 
 using SingleGeneticStep = std::variant<
@@ -71,6 +71,6 @@ class Chain
     BayesState& state_;
 };
 
-}  // namespace gelex::mcmc
+}  // namespace gelex
 
 #endif  // GELEX_ALGO_MCMC_CHAIN_H_

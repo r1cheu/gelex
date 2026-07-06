@@ -79,7 +79,7 @@ TEST_CASE("read_bim - Invalid position data", "[reader][bim]")
     }
 }
 
-TEST_CASE("read_bim - Index lookup", "[reader][bim]")
+TEST_CASE("read_bim - DataFrameIndex lookup", "[reader][bim]")
 {
     FileFixture files;
 

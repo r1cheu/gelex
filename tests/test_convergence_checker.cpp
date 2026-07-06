@@ -21,7 +21,7 @@
 
 namespace gelex
 {
-using reml::ConvergenceChecker;
+using gelex::ConvergenceChecker;
 }  // namespace gelex
 
 namespace gelex

@@ -40,7 +40,7 @@ class SharedMarkerVariance
 
     auto parameter() -> VarianceParameter& { return parameter_; }
     auto parameter() const -> const VarianceParameter& { return parameter_; }
-    auto visit(infra::FieldVisitor& visitor) -> void
+    auto visit(FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         parameter_.visit(visitor);
@@ -58,7 +58,7 @@ class PerMarkerVariance
 
     auto parameter() -> VarianceParameter& { return parameter_; }
     auto parameter() const -> const VarianceParameter& { return parameter_; }
-    auto visit(infra::FieldVisitor& visitor) -> void
+    auto visit(FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         parameter_.visit(visitor);
@@ -83,7 +83,7 @@ class JointSharedMarkerVariance
     {
         return variances_[std::to_underlying(mode)];
     }
-    auto visit(infra::FieldVisitor& visitor) -> void
+    auto visit(FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         constexpr std::array modes{GeneticMode::A, GeneticMode::D};
@@ -117,7 +117,7 @@ class MixtureProportion
         return prior_;
     }
     auto size() const -> Eigen::Index { return initial_value_.size(); }
-    auto visit(infra::FieldVisitor& visitor) -> void
+    auto visit(FieldVisitor& visitor) -> void
     {
         auto scope = visitor.scope(name);
         visitor.on(

@@ -30,7 +30,7 @@ namespace gelex
 
 LocoReader::LocoReader(
     const std::filesystem::path& whole_grm_prefix,
-    const dataframe::Index<std::string>& sample_index)
+    const DataFrameIndex<std::string>& sample_index)
 {
     g_whole_ = read_grm(whole_grm_prefix.string(), &sample_index, false);
     trace_whole_ = g_whole_.trace();
@@ -39,7 +39,7 @@ LocoReader::LocoReader(
 
 auto LocoReader::load_into(
     const std::filesystem::path& chr_grm_prefix,
-    const dataframe::Index<std::string>& sample_index,
+    const DataFrameIndex<std::string>& sample_index,
     Eigen::MatrixXd& target) const -> void
 {
     std::filesystem::path bin_path = chr_grm_prefix.string() + ".bin";
