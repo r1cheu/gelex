@@ -503,56 +503,35 @@ TEST_CASE(
         REQUIRE(all_equal);
     }
 
-    SECTION("mean vectors match")
+    SECTION("code matrices match")
     {
-        const auto& mat_mean = mat_result.mean();
-        const auto& map_mean = map_result.mean();
-        REQUIRE(mat_mean.size() == map_mean.size());
+        const auto& mat_code = mat_result.stats().code;
+        const auto& map_code = map_result.stats().code;
+        REQUIRE(mat_code.rows() == map_code.rows());
+        REQUIRE(mat_code.cols() == map_code.cols());
 
         bool all_equal = true;
-        Eigen::Index first_diff = -1;
-        for (Eigen::Index i = 0; i < mat_mean.size(); ++i)
+        Eigen::Index first_diff_row = -1;
+        Eigen::Index first_diff_col = -1;
+        for (Eigen::Index c = 0; c < mat_code.cols() && all_equal; ++c)
         {
-            if (mat_mean(i) != map_mean(i))
+            for (Eigen::Index r = 0; r < mat_code.rows() && all_equal; ++r)
             {
-                all_equal = false;
-                first_diff = i;
-                break;
+                if (mat_code(r, c) != map_code(r, c))
+                {
+                    all_equal = false;
+                    first_diff_row = r;
+                    first_diff_col = c;
+                }
             }
         }
         if (!all_equal)
         {
             UNSCOPED_INFO(
-                "Mean diff at index " << first_diff
-                                      << ": mat=" << mat_mean(first_diff)
-                                      << " map=" << map_mean(first_diff));
-        }
-        REQUIRE(all_equal);
-    }
-
-    SECTION("var vectors match")
-    {
-        const auto& mat_var = mat_result.var();
-        const auto& map_var = map_result.var();
-        REQUIRE(mat_var.size() == map_var.size());
-
-        bool all_equal = true;
-        Eigen::Index first_diff = -1;
-        for (Eigen::Index i = 0; i < mat_var.size(); ++i)
-        {
-            if (mat_var(i) != map_var(i))
-            {
-                all_equal = false;
-                first_diff = i;
-                break;
-            }
-        }
-        if (!all_equal)
-        {
-            UNSCOPED_INFO(
-                "Var diff at index " << first_diff
-                                     << ": mat=" << mat_var(first_diff)
-                                     << " map=" << map_var(first_diff));
+                "Code diff at ("
+                << first_diff_row << ", " << first_diff_col
+                << "): mat=" << mat_code(first_diff_row, first_diff_col)
+                << " map=" << map_code(first_diff_row, first_diff_col));
         }
         REQUIRE(all_equal);
     }

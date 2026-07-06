@@ -146,7 +146,7 @@ TEST_CASE(
         const Eigen::MatrixXd expected{
             {-0.8 / sd}, {0.2 / sd}, {1.2 / sd}, {0.2 / sd}, {-0.8 / sd}};
 
-        detail::transform_inplace<double>(genotypes, encoding);
+        transform_inplace<double>(genotypes, encoding);
 
         REQUIRE(encoding.loci.size() == 1);
         REQUIRE(encoding.loci.front().valid);
@@ -164,7 +164,7 @@ TEST_CASE(
             detail::make_loci_encoding<double>(genotypes, spec)};
         const Eigen::MatrixXd expected{{-0.8}, {0.2}, {1.2}, {0.2}, {-0.8}};
 
-        detail::transform_inplace<double>(genotypes, encoding);
+        transform_inplace<double>(genotypes, encoding);
 
         REQUIRE(encoding.loci.front().valid);
         REQUIRE_THAT(encoding.loci.front().mean, WithinRel(0.8, TOLERANCE));
@@ -182,7 +182,7 @@ TEST_CASE(
         const Eigen::MatrixXd expected{
             {-0.8 / sd}, {0.2 / sd}, {1.2 / sd}, {0.2 / sd}, {-0.8 / sd}};
 
-        detail::transform_inplace<double>(genotypes, encoding);
+        transform_inplace<double>(genotypes, encoding);
 
         REQUIRE(encoding.loci.front().valid);
         REQUIRE_THAT(encoding.loci.front().mean, WithinRel(0.8, TOLERANCE));
@@ -212,7 +212,7 @@ TEST_CASE(
             {-mean / sd},
             {-mean / sd}};
 
-        detail::transform_inplace<double>(genotypes, encoding);
+        transform_inplace<double>(genotypes, encoding);
 
         REQUIRE(encoding.loci.front().valid);
         REQUIRE_THAT(encoding.loci.front().mean, WithinRel(mean, TOLERANCE));
@@ -237,7 +237,7 @@ TEST_CASE(
             {(1.0 - mean) / sd},
             {-mean / sd}};
 
-        detail::transform_inplace<double>(genotypes, encoding);
+        transform_inplace<double>(genotypes, encoding);
 
         REQUIRE(encoding.loci.front().valid);
         REQUIRE_THAT(encoding.loci.front().mean, WithinRel(mean, TOLERANCE));
@@ -255,7 +255,7 @@ TEST_CASE(
         const Eigen::MatrixXd expected{
             {-0.24}, {0.56}, {-0.64}, {0.56}, {-0.24}};
 
-        detail::transform_inplace<double>(genotypes, encoding);
+        transform_inplace<double>(genotypes, encoding);
 
         REQUIRE(encoding.loci.front().valid);
         REQUIRE_THAT(encoding.loci.front().mean, WithinRel(0.24, TOLERANCE));
@@ -273,7 +273,7 @@ TEST_CASE(
         const Eigen::MatrixXd expected{
             {-0.24 / sd}, {0.56 / sd}, {-0.64 / sd}, {0.56 / sd}, {-0.24 / sd}};
 
-        detail::transform_inplace<double>(genotypes, encoding);
+        transform_inplace<double>(genotypes, encoding);
 
         REQUIRE(encoding.loci.front().valid);
         REQUIRE_THAT(encoding.loci.front().mean, WithinRel(0.24, TOLERANCE));
@@ -292,7 +292,7 @@ TEST_CASE(
         const Eigen::MatrixXd expected{
             {-0.32 / sd}, {0.48 / sd}, {-0.72 / sd}, {0.48 / sd}, {-0.32 / sd}};
 
-        detail::transform_inplace<double>(genotypes, encoding);
+        transform_inplace<double>(genotypes, encoding);
 
         REQUIRE(encoding.loci.front().valid);
         REQUIRE_THAT(encoding.loci.front().mean, WithinRel(0.32, TOLERANCE));
@@ -316,7 +316,7 @@ TEST_CASE(
         const Eigen::MatrixXd expected{
             {-0.8 / sd}, {0.2 / sd}, {1.2 / sd}, {0.2 / sd}, {-0.8 / sd}};
 
-        detail::transform_inplace<double>(genotypes, encoding);
+        transform_inplace<double>(genotypes, encoding);
 
         REQUIRE(encoding.loci.front().valid);
         REQUIRE_THAT(encoding.loci.front().mean, WithinRel(0.8, TOLERANCE));
@@ -337,7 +337,7 @@ TEST_CASE(
         const Eigen::MatrixXd expected{
             {cA2A2}, {cA1A2}, {cA1A1}, {cA1A2}, {cA2A2}};
 
-        detail::transform_inplace<double>(genotypes, encoding);
+        transform_inplace<double>(genotypes, encoding);
 
         REQUIRE(encoding.loci.front().valid);
         REQUIRE_THAT(encoding.loci.front().mean, WithinAbs(0.0, TOLERANCE));
@@ -364,7 +364,7 @@ TEST_CASE(
             {cA1A2 / sd},
             {cA2A2 / sd}};
 
-        detail::transform_inplace<double>(genotypes, encoding);
+        transform_inplace<double>(genotypes, encoding);
 
         REQUIRE(encoding.loci.front().valid);
         REQUIRE_THAT(encoding.loci.front().sd, WithinRel(sd, TOLERANCE));
@@ -394,8 +394,8 @@ TEST_CASE(
         const LociEncoding dominance_encoding{
             detail::make_loci_encoding<double>(dominance, dominance_spec)};
 
-        detail::transform_inplace<double>(additive, additive_encoding);
-        detail::transform_inplace<double>(dominance, dominance_encoding);
+        transform_inplace<double>(additive, additive_encoding);
+        transform_inplace<double>(dominance, dominance_encoding);
 
         REQUIRE_THAT(
             additive.col(0).dot(dominance.col(0)), WithinAbs(0.0, TOLERANCE));
@@ -414,7 +414,7 @@ TEST_CASE(
         const LociEncoding encoding{
             detail::make_loci_encoding<double>(genotypes, spec)};
 
-        detail::transform_inplace<double>(genotypes, encoding);
+        transform_inplace<double>(genotypes, encoding);
 
         REQUIRE_FALSE(encoding.loci.front().valid);
         REQUIRE(genotypes.isZero(TOLERANCE));
@@ -428,7 +428,7 @@ TEST_CASE(
         const LociEncoding encoding{
             detail::make_loci_encoding<double>(genotypes, spec)};
 
-        detail::transform_inplace<double>(genotypes, encoding);
+        transform_inplace<double>(genotypes, encoding);
 
         REQUIRE_FALSE(encoding.loci.front().valid);
         REQUIRE(genotypes.isZero(TOLERANCE));
@@ -443,7 +443,7 @@ TEST_CASE(
         const LociEncoding encoding{
             detail::make_loci_encoding<double>(genotypes, spec)};
 
-        detail::transform_inplace<double>(genotypes, encoding);
+        transform_inplace<double>(genotypes, encoding);
 
         REQUIRE(encoding.loci.front().valid);
         REQUIRE_THAT(genotypes(2, 0), WithinAbs(0.0, TOLERANCE));
@@ -509,7 +509,7 @@ TEST_CASE(
     REQUIRE(encoding.loci[2].marker_index == 12);
     REQUIRE_FALSE(encoding.loci[2].valid);
 
-    gelex::detail::transform_inplace<double>(genotypes, encoding);
+    gelex::transform_inplace<double>(genotypes, encoding);
 
     REQUIRE(genotypes.col(1).isZero(TOLERANCE));
     REQUIRE(genotypes.col(2).isZero(TOLERANCE));
@@ -538,7 +538,7 @@ TEST_CASE("transform_inplace zeroes skipped columns", "[data][encoding]")
         {0.0, 0.0, 0.0},
         {0.0, 0.0, 0.0}};
 
-    gelex::detail::transform_inplace<double>(genotypes, encoding);
+    gelex::transform_inplace<double>(genotypes, encoding);
 
     REQUIRE(genotypes.isApprox(expected, TOLERANCE));
 }

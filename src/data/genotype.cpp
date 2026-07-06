@@ -50,16 +50,6 @@ auto Genotype::stats() const noexcept -> const SnpStats&
         [](const auto& s) -> const SnpStats& { return s.stats; }, storage_);
 }
 
-auto Genotype::mean() const noexcept -> const Eigen::VectorXd&
-{
-    return stats().mean;
-}
-
-auto Genotype::var() const noexcept -> const Eigen::VectorXd&
-{
-    return stats().var;
-}
-
 auto Genotype::A1freq() const noexcept -> const Eigen::VectorXd&
 {
     return stats().A1freq;

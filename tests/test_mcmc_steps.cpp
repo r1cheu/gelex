@@ -64,24 +64,16 @@ auto make_design(gelex::GeneticMode mode = gelex::GeneticMode::A)
     -> gelex::bayes::GeneticDesign
 {
     Eigen::MatrixXd data{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}};
-    auto mean = data.colwise().mean().transpose().eval();
-    auto stddev = Eigen::VectorXd::Ones(data.cols());
     return gelex::bayes::GeneticDesign{
-        mode,
-        gelex::test::GenotypeBuilder::build(
-            std::move(data), std::move(mean), std::move(stddev))};
+        mode, gelex::test::GenotypeBuilder::build(std::move(data))};
 }
 
 auto make_active_only_design(gelex::GeneticMode mode = gelex::GeneticMode::A)
     -> gelex::bayes::GeneticDesign
 {
     Eigen::MatrixXd data{{0.0}, {1.0}, {2.0}};
-    auto mean = data.colwise().mean().transpose().eval();
-    auto stddev = Eigen::VectorXd::Ones(data.cols());
     return gelex::bayes::GeneticDesign{
-        mode,
-        gelex::test::GenotypeBuilder::build(
-            std::move(data), std::move(mean), std::move(stddev))};
+        mode, gelex::test::GenotypeBuilder::build(std::move(data))};
 }
 
 auto make_design_with_monomorphic_second_marker(
@@ -89,15 +81,10 @@ auto make_design_with_monomorphic_second_marker(
     -> gelex::bayes::GeneticDesign
 {
     Eigen::MatrixXd data{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}};
-    auto mean = data.colwise().mean().transpose().eval();
-    auto stddev = Eigen::VectorXd::Ones(data.cols());
     return gelex::bayes::GeneticDesign{
         mode,
         gelex::test::GenotypeBuilder::build(
-            std::move(data),
-            std::move(mean),
-            std::move(stddev),
-            std::vector<int64_t>{0})};
+            std::move(data), std::vector<int64_t>{0})};
 }
 
 auto make_proportion(Eigen::Index size = 2) -> gelex::bayes::MixtureProportion

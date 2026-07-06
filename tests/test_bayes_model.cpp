@@ -40,11 +40,7 @@ namespace
 
 auto make_genotype(Eigen::MatrixXd data) -> gelex::Genotype
 {
-    const Eigen::Index cols = data.cols();
-    auto mean = data.colwise().mean().transpose().eval();
-    auto stddev = Eigen::VectorXd::Ones(cols);
-    return gelex::test::GenotypeBuilder::build(
-        std::move(data), std::move(mean), std::move(stddev));
+    return gelex::test::GenotypeBuilder::build(std::move(data));
 }
 
 auto make_genetic_design(GeneticMode mode, Eigen::MatrixXd data)

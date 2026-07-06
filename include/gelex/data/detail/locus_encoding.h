@@ -18,7 +18,6 @@
 #define GELEX_DATA_DETAIL_LOCUS_ENCODING_H_
 
 #include <array>
-#include <cassert>
 #include <concepts>
 #include <cstddef>
 
@@ -96,94 +95,6 @@ auto make_loci_encoding(
     }
 
     return out;
-}
-
-template <std::floating_point InputT, std::floating_point OutputT>
-auto transform_into(
-    const Eigen::Ref<const Eigen::MatrixX<InputT>>& genotypes,
-    Eigen::Ref<Eigen::MatrixX<OutputT>> output,
-    const LociEncoding& encoding) -> void
-{
-    assert(genotypes.rows() == output.rows());
-    assert(genotypes.cols() == output.cols());
-
-    for (const auto& locus_encoding : encoding.loci)
-    {
-        const Eigen::Index column_index{locus_encoding.column_index};
-        assert(column_index >= 0);
-        assert(column_index < genotypes.cols());
-
-        if (!locus_encoding.valid)
-        {
-            output.col(column_index).setZero();
-            continue;
-        }
-
-        for (Eigen::Index sample_index{0}; sample_index < genotypes.rows();
-             ++sample_index)
-        {
-            const InputT genotype{genotypes(sample_index, column_index)};
-            auto encoded_value{
-                static_cast<OutputT>(locus_encoding.missing_encoded_value)};
-
-            if (genotype == InputT{0})
-            {
-                encoded_value = static_cast<OutputT>(locus_encoding.code[0]);
-            }
-            else if (genotype == InputT{1})
-            {
-                encoded_value = static_cast<OutputT>(locus_encoding.code[1]);
-            }
-            else if (genotype == InputT{2})
-            {
-                encoded_value = static_cast<OutputT>(locus_encoding.code[2]);
-            }
-
-            output(sample_index, column_index) = encoded_value;
-        }
-    }
-}
-
-template <std::floating_point T>
-auto transform_inplace(
-    Eigen::Ref<Eigen::MatrixX<T>> genotypes,
-    const LociEncoding& encoding) -> void
-{
-    for (const auto& locus_encoding : encoding.loci)
-    {
-        const Eigen::Index column_index{locus_encoding.column_index};
-        assert(column_index >= 0);
-        assert(column_index < genotypes.cols());
-
-        if (!locus_encoding.valid)
-        {
-            genotypes.col(column_index).setZero();
-            continue;
-        }
-
-        for (Eigen::Index sample_index{0}; sample_index < genotypes.rows();
-             ++sample_index)
-        {
-            const T genotype{genotypes(sample_index, column_index)};
-            auto encoded_value{
-                static_cast<T>(locus_encoding.missing_encoded_value)};
-
-            if (genotype == T{0})
-            {
-                encoded_value = static_cast<T>(locus_encoding.code[0]);
-            }
-            else if (genotype == T{1})
-            {
-                encoded_value = static_cast<T>(locus_encoding.code[1]);
-            }
-            else if (genotype == T{2})
-            {
-                encoded_value = static_cast<T>(locus_encoding.code[2]);
-            }
-
-            genotypes(sample_index, column_index) = encoded_value;
-        }
-    }
 }
 
 }  // namespace gelex::detail

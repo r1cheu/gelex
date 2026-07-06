@@ -30,27 +30,26 @@ namespace gelex
 
 struct SnpStatsData
 {
-    SnpStats add;
-    SnpStats dom;
-    bool has_dom{false};
+    std::optional<SnpStats> add;
+    std::optional<SnpStats> dom;
 };
 
 struct GenotypeData
 {
-    Eigen::MatrixXd add;
+    std::optional<Eigen::MatrixXd> add;
     std::optional<Eigen::MatrixXd> dom;
 };
 
 struct SnpEffects
 {
-    Eigen::VectorXd add;
+    std::optional<Eigen::VectorXd> add;
     std::optional<Eigen::VectorXd> dom;
 };
 
 struct GEBVResult
 {
     Eigen::VectorXd total;
-    Eigen::VectorXd add_predictions;
+    std::optional<Eigen::VectorXd> add_predictions;
     std::optional<Eigen::VectorXd> dom_predictions;
 };
 
@@ -66,7 +65,7 @@ struct PredictResult
     std::vector<std::string> sample_ids;
     Eigen::VectorXd predictions;
     Eigen::VectorXd snp_predictions;
-    Eigen::VectorXd add_predictions;
+    std::optional<Eigen::VectorXd> add_predictions;
     std::optional<Eigen::VectorXd> dom_predictions;
     Eigen::MatrixXd covar_predictions;
     std::vector<std::string> covar_names;

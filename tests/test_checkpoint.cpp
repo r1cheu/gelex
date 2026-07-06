@@ -51,10 +51,7 @@ auto make_variance(double value) -> gelex::bayes::VarianceParameter
 auto make_genotype() -> gelex::Genotype
 {
     Eigen::MatrixXd data{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}};
-    auto mean = data.colwise().mean().transpose().eval();
-    auto stddev = Eigen::VectorXd::Ones(data.cols());
-    return gelex::test::GenotypeBuilder::build(
-        std::move(data), std::move(mean), std::move(stddev));
+    return gelex::test::GenotypeBuilder::build(std::move(data));
 }
 
 auto make_model() -> gelex::BayesModel

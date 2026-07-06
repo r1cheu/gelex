@@ -15,6 +15,7 @@
  */
 
 #include <fmt/format.h>
+#include <algorithm>
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
@@ -41,7 +42,6 @@
 #include "gelex/io/snpstats.h"
 #include "gelex/predict/compute.h"
 #include "gelex/predict/snp_alignment.h"
-#include "gelex/predict/standardize.h"
 #include "gelex/predict/types.h"
 #include "gelex/types/genetic_mode.h"
 
@@ -100,10 +100,12 @@ auto read_fam(const std::filesystem::path& fam_path)
     return {std::move(fids), std::move(iids)};
 }
 
-// snpstats 写入并返回标准化后基因型矩阵（add + dom）
+// snpstats 写入训练侧编码查找表；write_add/write_dom 选择写入的模式
 auto create_snpstats(
     const std::filesystem::path& snpstats_path,
-    const Eigen::MatrixXd& genotypes) -> void
+    const Eigen::MatrixXd& genotypes,
+    bool write_add = true,
+    bool write_dom = true) -> void
 {
     using gelex::BinaryWriter;
     using gelex::GeneticMode;
@@ -122,13 +124,13 @@ auto create_snpstats(
 
         SnpStats stats;
         stats.method = GenotypeMethod::StandardizeHWE;
-        stats.mean = Eigen::VectorXd(n_snps);
-        stats.var = Eigen::VectorXd(n_snps);
+        stats.code = Eigen::MatrixXd(3, n_snps);
         stats.A1freq = Eigen::VectorXd(n_snps);
         for (const gelex::LocusEncoding& locus : encoding.loci)
         {
-            stats.mean(locus.marker_index) = locus.mean;
-            stats.var(locus.marker_index) = locus.var;
+            stats.code(0, locus.marker_index) = locus.code[0];
+            stats.code(1, locus.marker_index) = locus.code[1];
+            stats.code(2, locus.marker_index) = locus.code[2];
             stats.A1freq(locus.marker_index)
                 = locus.stats.has_nonmissing() ? locus.stats.A1freq() : 0.0;
         }
@@ -136,8 +138,14 @@ auto create_snpstats(
     };
 
     BinaryWriter writer(snpstats_path.string());
-    write_snp_stats(writer, GeneticMode::A, fill(GeneticMode::A));
-    write_snp_stats(writer, GeneticMode::D, fill(GeneticMode::D));
+    if (write_add)
+    {
+        write_snp_stats(writer, GeneticMode::A, fill(GeneticMode::A));
+    }
+    if (write_dom)
+    {
+        write_snp_stats(writer, GeneticMode::D, fill(GeneticMode::D));
+    }
 }
 
 auto create_snp_effects_file(
@@ -256,6 +264,7 @@ struct PredictionOutput
 {
     std::vector<std::string> headers;
     size_t row_count{};
+    bool has_additive{false};
     bool has_dominant{false};
 };
 
@@ -275,7 +284,10 @@ auto read_prediction_output(const std::filesystem::path& path)
             out.headers.push_back(tok);
         }
     }
-    out.has_dominant = !out.headers.empty() && out.headers.back() == "dominant";
+    out.has_additive
+        = std::ranges::find(out.headers, "additive") != out.headers.end();
+    out.has_dominant
+        = std::ranges::find(out.headers, "dominant") != out.headers.end();
 
     while (std::getline(ifs, line))
     {
@@ -288,13 +300,32 @@ auto load_snpstats(const std::filesystem::path& path) -> gelex::SnpStatsData
 {
     gelex::BinaryReader reader(path.string());
     gelex::SnpStatsData data;
-    data.add = gelex::read_snp_stats(reader, gelex::GeneticMode::A);
+    if (gelex::has_snp_stats(reader, gelex::GeneticMode::A))
+    {
+        data.add = gelex::read_snp_stats(reader, gelex::GeneticMode::A);
+    }
     if (gelex::has_snp_stats(reader, gelex::GeneticMode::D))
     {
         data.dom = gelex::read_snp_stats(reader, gelex::GeneticMode::D);
-        data.has_dom = true;
     }
     return data;
+}
+
+auto build_loci_encoding(const gelex::SnpStats& stats) -> gelex::LociEncoding
+{
+    gelex::LociEncoding encoding;
+    const Eigen::Index n_snps = stats.code.cols();
+    encoding.loci.reserve(static_cast<std::size_t>(n_snps));
+    for (Eigen::Index j = 0; j < n_snps; ++j)
+    {
+        gelex::LocusEncoding locus;
+        locus.column_index = j;
+        locus.code = {stats.code(0, j), stats.code(1, j), stats.code(2, j)};
+        locus.missing_encoded_value = 0.0;
+        locus.valid = true;
+        encoding.loci.push_back(locus);
+    }
+    return encoding;
 }
 
 auto run_predict_dataflow(
@@ -307,22 +338,31 @@ auto run_predict_dataflow(
     auto snp_effects = gelex::read_snp_effects(gfile_prefix + ".snpeff");
     auto snpstats = load_snpstats(gfile_prefix + ".snpstats");
 
-    bool enable_dom{};
-    if (snpstats.has_dom)
+    const bool enable_add = snpstats.add.has_value();
+    const bool enable_dom = snpstats.dom.has_value();
+    if (!enable_add && !enable_dom)
     {
-        if (!snp_effects.contains("BETA_D"))
-        {
-            throw gelex::GelexException(
-                ".snpstats file contains dominance effects, but SNP effects "
-                "file "
-                "does not have 'BETA_D' column.");
-        }
-        enable_dom = true;
+        throw gelex::GelexException(
+            ".snpstats file contains neither additive nor dominance stats.");
+    }
+    if (enable_add && !snp_effects.contains("BETA_A"))
+    {
+        throw gelex::GelexException(
+            ".snpstats file contains additive stats, but SNP effects file "
+            "does not have 'BETA_A' column.");
+    }
+    if (enable_dom && !snp_effects.contains("BETA_D"))
+    {
+        throw gelex::GelexException(
+            ".snpstats file contains dominance stats, but SNP effects file "
+            "does not have 'BETA_D' column.");
     }
 
-    Eigen::VectorXd add_effects = snp_effects["BETA_A"].to_map<double>();
+    auto add_effects = enable_add ? std::make_optional<Eigen::VectorXd>(
+                                        snp_effects["BETA_A"].to_map<double>())
+                                  : std::nullopt;
     auto dom_effects = enable_dom ? std::make_optional<Eigen::VectorXd>(
-                                        snp_effects["BETA_D"].to_mat<double>())
+                                        snp_effects["BETA_D"].to_map<double>())
                                   : std::nullopt;
     auto coefficients = gelex::read_coefficients(gfile_prefix + ".param");
 
@@ -351,13 +391,30 @@ auto run_predict_dataflow(
     auto genotype = gelex::load_aligned_genotypes(bed, alignment);
 
     gelex::GenotypeData geno;
-    if (snpstats.has_dom)
+    if (enable_add && enable_dom)
     {
         geno.dom = genotype;
+        geno.add = std::move(genotype);
     }
-    geno.add = std::move(genotype);
+    else if (enable_add)
+    {
+        geno.add = std::move(genotype);
+    }
+    else
+    {
+        geno.dom = std::move(genotype);
+    }
 
-    gelex::standardize_genotypes(geno, snpstats);
+    if (geno.add)
+    {
+        const auto encoding = build_loci_encoding(*snpstats.add);
+        gelex::transform_inplace<double>(*geno.add, encoding);
+    }
+    if (geno.dom)
+    {
+        const auto encoding = build_loci_encoding(*snpstats.dom);
+        gelex::transform_inplace<double>(*geno.dom, encoding);
+    }
 
     gelex::SnpEffects effects{
         .add = std::move(add_effects), .dom = std::move(dom_effects)};
@@ -435,6 +492,99 @@ TEST_CASE(
 
     auto out = read_prediction_output(output_path);
     REQUIRE(out.row_count == 3);
+    REQUIRE(out.has_additive);
+    REQUIRE(out.has_dominant);
+}
+
+TEST_CASE(
+    "Predict command dataflow writes additive-only predictions",
+    "[predict][dataflow]")
+{
+    BedFixture bed;
+
+    Eigen::MatrixXd genotypes(3, 2);
+    genotypes << 0.0, 2.0, 1.0, 1.0, 2.0, 0.0;
+
+    const std::vector<std::string> iids = {"s1", "s2", "s3"};
+    const std::vector<std::string> snp_ids = {"rs1", "rs2"};
+    const std::vector<std::pair<char, char>> alleles = {{'A', 'C'}, {'T', 'G'}};
+
+    auto [bed_prefix, _] = bed.create_deterministic_bed_files(
+        genotypes,
+        iids,
+        snp_ids,
+        std::vector<std::string>(snp_ids.size(), "1"),
+        alleles);
+
+    auto& ff = bed.get_file_fixture();
+
+    const std::vector<std::vector<std::string>> snp_rows
+        = {{"1", "rs1", "1000", "A", "C", "0.30", "0.10", "0.02"},
+           {"1", "rs2", "2000", "T", "G", "0.40", "-0.05", "0.01"}};
+
+    auto gfile_prefix = (ff.get_test_dir() / "add_only").string();
+    create_snp_effects_file(ff, gfile_prefix, snp_rows);
+    create_param_file(ff, gfile_prefix, 1.0, {}, {});
+    create_snpstats(gfile_prefix + ".snpstats", genotypes, true, false);
+
+    auto output_path = ff.get_test_dir() / "add_only.predictions";
+
+    REQUIRE_NOTHROW(run_predict_dataflow(
+        bed_prefix.string(),
+        gfile_prefix,
+        std::nullopt,
+        std::nullopt,
+        output_path));
+
+    auto out = read_prediction_output(output_path);
+    REQUIRE(out.row_count == 3);
+    REQUIRE(out.has_additive);
+    REQUIRE_FALSE(out.has_dominant);
+}
+
+TEST_CASE(
+    "Predict command dataflow writes dominance-only predictions",
+    "[predict][dataflow]")
+{
+    BedFixture bed;
+
+    Eigen::MatrixXd genotypes(3, 2);
+    genotypes << 0.0, 2.0, 1.0, 1.0, 2.0, 0.0;
+
+    const std::vector<std::string> iids = {"s1", "s2", "s3"};
+    const std::vector<std::string> snp_ids = {"rs1", "rs2"};
+    const std::vector<std::pair<char, char>> alleles = {{'A', 'C'}, {'T', 'G'}};
+
+    auto [bed_prefix, _] = bed.create_deterministic_bed_files(
+        genotypes,
+        iids,
+        snp_ids,
+        std::vector<std::string>(snp_ids.size(), "1"),
+        alleles);
+
+    auto& ff = bed.get_file_fixture();
+
+    const std::vector<std::vector<std::string>> snp_rows
+        = {{"1", "rs1", "1000", "A", "C", "0.30", "0.10", "0.02"},
+           {"1", "rs2", "2000", "T", "G", "0.40", "-0.05", "0.01"}};
+
+    auto gfile_prefix = (ff.get_test_dir() / "dom_only").string();
+    create_snp_effects_file(ff, gfile_prefix, snp_rows);
+    create_param_file(ff, gfile_prefix, 1.0, {}, {});
+    create_snpstats(gfile_prefix + ".snpstats", genotypes, false, true);
+
+    auto output_path = ff.get_test_dir() / "dom_only.predictions";
+
+    REQUIRE_NOTHROW(run_predict_dataflow(
+        bed_prefix.string(),
+        gfile_prefix,
+        std::nullopt,
+        std::nullopt,
+        output_path));
+
+    auto out = read_prediction_output(output_path);
+    REQUIRE(out.row_count == 3);
+    REQUIRE_FALSE(out.has_additive);
     REQUIRE(out.has_dominant);
 }
 

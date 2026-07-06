@@ -46,6 +46,7 @@ PredictWriter::~PredictWriter() = default;
 
 auto PredictWriter::write_header(
     const std::vector<std::string>& covar_names,
+    bool has_add,
     bool has_dom) -> void
 {
     std::string h = "FID\tIID\tprediction";
@@ -56,7 +57,10 @@ auto PredictWriter::write_header(
         h += name;
     }
 
-    h += "\tadditive";
+    if (has_add)
+    {
+        h += "\tadditive";
+    }
     if (has_dom)
     {
         h += "\tdominant";
@@ -69,6 +73,7 @@ auto PredictWriter::write_row(
     std::string_view sample_id,
     double total_prediction,
     const Eigen::Ref<const Eigen::RowVectorXd>& covar_pred,
+    bool has_add,
     double add_pred,
     bool has_dom,
     double dom_pred) -> void
@@ -83,7 +88,10 @@ auto PredictWriter::write_row(
         row_buf_ += fmt::format("\t{:.6f}", covar_pred(j));
     }
 
-    row_buf_ += fmt::format("\t{:.6f}", add_pred);
+    if (has_add)
+    {
+        row_buf_ += fmt::format("\t{:.6f}", add_pred);
+    }
     if (has_dom)
     {
         row_buf_ += fmt::format("\t{:.6f}", dom_pred);
@@ -104,17 +112,20 @@ auto PredictWriter::write(const PredictResult& result) -> void
                 result.predictions.size()));
     }
 
+    const bool has_add = result.add_predictions.has_value();
     const bool has_dom = result.dom_predictions.has_value();
-    write_header(result.covar_names, has_dom);
+    write_header(result.covar_names, has_add, has_dom);
 
     for (Eigen::Index i = 0; i < n_samples; ++i)
     {
+        const double add_value = has_add ? (*result.add_predictions)[i] : 0.0;
         const double dom_value = has_dom ? (*result.dom_predictions)[i] : 0.0;
         write_row(
             result.sample_ids[static_cast<size_t>(i)],
             result.predictions[i],
             result.covar_predictions.row(i),
-            result.add_predictions[i],
+            has_add,
+            add_value,
             has_dom,
             dom_value);
     }

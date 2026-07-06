@@ -62,8 +62,8 @@ auto process_chunk(
 
     for (const auto& locus : encoding.loci)
     {
-        stats.mean[locus.marker_index] = locus.mean;
-        stats.var[locus.marker_index] = locus.var;
+        stats.code.col(locus.marker_index)
+            = Eigen::Map<const Eigen::Vector3d>(locus.code.data());
         stats.A1freq[locus.marker_index]
             = locus.stats.has_nonmissing() ? locus.stats.A1freq() : 0.0;
 
@@ -137,8 +137,7 @@ auto GenotypeReader::read_encoded_chunks(
     std::size_t chunk_size) -> void
 {
     output.stats.method = method;
-    output.stats.mean.resize(num_variants_);
-    output.stats.var.resize(num_variants_);
+    output.stats.code.resize(3, num_variants_);
     output.stats.A1freq.resize(num_variants_);
     output.stats.valid_indices.reserve(num_variants_);
 

@@ -79,11 +79,11 @@ TEST_CASE("snpstats round-trip additive only", "[snpstats]")
     gelex::test::FileFixture fixture;
     const auto& dir = fixture.get_test_dir();
 
-    constexpr int NUM_SNPS = 200;
+    constexpr Eigen::Index NUM_SNPS = 200;
     SnpStats stats;
     stats.method = GenotypeMethod::StandardizeHWE;
-    stats.mean = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.05, 0.95);
-    stats.var = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.01, 0.50);
+    stats.code = Eigen::VectorXd::LinSpaced(3 * NUM_SNPS, 0.05, 0.95)
+                     .reshaped(3, NUM_SNPS);
     stats.A1freq = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.03, 0.48);
     stats.valid_indices = {0, 1, 2, 99, 199};
 
@@ -100,9 +100,9 @@ TEST_CASE("snpstats round-trip additive only", "[snpstats]")
 
     auto data = read_snp_stats(reader, GeneticMode::A);
 
-    REQUIRE(data.mean.size() == NUM_SNPS);
-    REQUIRE(data.mean.isApprox(stats.mean));
-    REQUIRE(data.var.isApprox(stats.var));
+    REQUIRE(data.code.rows() == 3);
+    REQUIRE(data.code.cols() == NUM_SNPS);
+    REQUIRE(data.code.isApprox(stats.code));
     REQUIRE(data.A1freq.isApprox(stats.A1freq));
     REQUIRE(data.valid_indices == stats.valid_indices);
     REQUIRE(data.method == stats.method);
@@ -113,18 +113,18 @@ TEST_CASE("snpstats round-trip additive and dominance", "[snpstats]")
     gelex::test::FileFixture fixture;
     const auto& dir = fixture.get_test_dir();
 
-    constexpr int NUM_SNPS = 150;
+    constexpr Eigen::Index NUM_SNPS = 150;
     SnpStats add;
     add.method = GenotypeMethod::StandardizeHWE;
-    add.mean = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.1, 0.9);
-    add.var = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.02, 0.30);
+    add.code = Eigen::VectorXd::LinSpaced(3 * NUM_SNPS, 0.1, 0.9)
+                   .reshaped(3, NUM_SNPS);
     add.A1freq = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.05, 0.45);
     add.valid_indices = {7, 88};
 
     SnpStats dom;
     dom.method = GenotypeMethod::OrthStandardizeHWE;
-    dom.mean = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.2, 0.8);
-    dom.var = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.05, 0.25);
+    dom.code = Eigen::VectorXd::LinSpaced(3 * NUM_SNPS, 0.2, 0.8)
+                   .reshaped(3, NUM_SNPS);
     dom.A1freq = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.10, 0.40);
 
     auto snpstats_path = dir / "test_ad.snpstats";
@@ -140,15 +140,14 @@ TEST_CASE("snpstats round-trip additive and dominance", "[snpstats]")
     REQUIRE(has_snp_stats(reader, GeneticMode::D));
 
     auto add_data = read_snp_stats(reader, GeneticMode::A);
-    REQUIRE(add_data.mean.isApprox(add.mean));
-    REQUIRE(add_data.var.isApprox(add.var));
+    REQUIRE(add_data.code.isApprox(add.code));
     REQUIRE(add_data.A1freq.isApprox(add.A1freq));
     REQUIRE(add_data.valid_indices == add.valid_indices);
     REQUIRE(add_data.method == add.method);
 
     auto dom_data = read_snp_stats(reader, GeneticMode::D);
-    REQUIRE(dom_data.mean.isApprox(dom.mean));
-    REQUIRE(dom_data.var.isApprox(dom.var));
+    REQUIRE(dom_data.code.isApprox(dom.code));
+    REQUIRE(dom_data.A1freq.isApprox(dom.A1freq));
     REQUIRE(dom_data.valid_indices.empty());
     REQUIRE(dom_data.method == dom.method);
 }
@@ -158,11 +157,11 @@ TEST_CASE("snpstats round-trip empty valid_indices", "[snpstats]")
     gelex::test::FileFixture fixture;
     const auto& dir = fixture.get_test_dir();
 
-    constexpr int NUM_SNPS = 100;
+    constexpr Eigen::Index NUM_SNPS = 100;
     SnpStats stats;
     stats.method = GenotypeMethod::CenterHWE;
-    stats.mean = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.1, 0.9);
-    stats.var = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.2, 0.6);
+    stats.code = Eigen::VectorXd::LinSpaced(3 * NUM_SNPS, 0.1, 0.9)
+                     .reshaped(3, NUM_SNPS);
     stats.A1freq = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.05, 0.45);
 
     auto snpstats_path = dir / "test_center.snpstats";
@@ -177,9 +176,9 @@ TEST_CASE("snpstats round-trip empty valid_indices", "[snpstats]")
 
     auto data = read_snp_stats(reader, GeneticMode::A);
 
-    REQUIRE(data.mean.size() == NUM_SNPS);
-    REQUIRE(data.mean.isApprox(stats.mean));
-    REQUIRE(data.var.isApprox(stats.var));
+    REQUIRE(data.code.cols() == NUM_SNPS);
+    REQUIRE(data.code.isApprox(stats.code));
+    REQUIRE(data.A1freq.isApprox(stats.A1freq));
     REQUIRE(data.valid_indices.empty());
     REQUIRE(data.method == GenotypeMethod::CenterHWE);
 }

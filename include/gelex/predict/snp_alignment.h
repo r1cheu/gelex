@@ -58,7 +58,7 @@ struct AlignmentPlan
 // Executes an AlignmentPlan against opened genotypes: reads the planned bim
 // columns, orients flipped SNPs (2 - x), and scatters them onto a
 // plan.train_count-wide matrix in training order. Columns for missing_pos stay
-// NaN, which standardize_genotypes later centers to a zero contribution.
+// NaN, which the encoding lookup later maps to a zero contribution.
 [[nodiscard]] auto load_aligned_genotypes(
     const Bed& bed,
     const AlignmentPlan& plan) -> Eigen::MatrixXd;

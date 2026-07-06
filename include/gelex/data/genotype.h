@@ -86,10 +86,6 @@ class Genotype
 
     [[nodiscard]] auto stats() const noexcept -> const SnpStats&;
 
-    [[nodiscard]] auto mean() const noexcept -> const Eigen::VectorXd&;
-
-    [[nodiscard]] auto var() const noexcept -> const Eigen::VectorXd&;
-
     [[nodiscard]] auto A1freq() const noexcept -> const Eigen::VectorXd&;
 
     [[nodiscard]] auto valid_indices() const noexcept

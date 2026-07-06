@@ -37,21 +37,18 @@ class GenotypeBuilder
    public:
     static auto build(
         Eigen::MatrixXd data,
-        Eigen::VectorXd mean,
-        Eigen::VectorXd var,
         std::optional<std::vector<int64_t>> valid_indices = std::nullopt,
         Eigen::VectorXd A1freq = {}) -> Genotype
     {
         OwnedStorage owned;
         owned.data = std::move(data);
-        if (A1freq.size() == 0)
-        {
-            A1freq = (mean.array() / 2.0).matrix();
-        }
 
         SnpStats stats;
-        stats.mean = std::move(mean);
-        stats.var = std::move(var);
+        if (A1freq.size() == 0)
+        {
+            A1freq = (owned.data.colwise().mean().transpose().array() / 2.0)
+                         .matrix();
+        }
         stats.A1freq = std::move(A1freq);
         if (valid_indices)
         {

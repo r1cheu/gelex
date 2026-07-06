@@ -30,8 +30,7 @@ namespace gelex
 struct SnpStats
 {
     GenotypeMethod method{};
-    Eigen::VectorXd mean;
-    Eigen::VectorXd var;
+    Eigen::MatrixXd code;
     Eigen::VectorXd A1freq;
     std::vector<int64_t> valid_indices;
 };

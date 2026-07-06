@@ -44,13 +44,16 @@ class PredictWriter
     auto write(const PredictResult& result) -> void;
 
    private:
-    auto write_header(const std::vector<std::string>& covar_names, bool has_dom)
-        -> void;
+    auto write_header(
+        const std::vector<std::string>& covar_names,
+        bool has_add,
+        bool has_dom) -> void;
 
     auto write_row(
         std::string_view sample_id,
         double total_prediction,
         const Eigen::Ref<const Eigen::RowVectorXd>& covar_pred,
+        bool has_add,
         double add_pred,
         bool has_dom,
         double dom_pred) -> void;

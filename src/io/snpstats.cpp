@@ -37,9 +37,8 @@ auto read_snp_stats(const BinaryReader& reader, GeneticMode mode) -> SnpStats
     auto stats_map = reader.to_map<double>(fmt::format("{}/snp_stats", mode));
 
     SnpStats data;
-    data.mean = stats_map.col(0);
-    data.var = stats_map.col(1);
-    data.A1freq = stats_map.col(2);
+    data.code = stats_map.leftCols(3).transpose();
+    data.A1freq = stats_map.col(3);
 
     if (const auto path = fmt::format("{}/geno_method", mode);
         reader.contains(path))
@@ -64,14 +63,13 @@ auto write_snp_stats(
     GeneticMode mode,
     const SnpStats& stats) -> void
 {
-    const auto n_snps = stats.mean.size();
-    if (stats.var.size() != n_snps || stats.A1freq.size() != n_snps)
+    const auto n_snps = stats.code.cols();
+    if (stats.A1freq.size() != n_snps)
     {
         throw GelexException(
             fmt::format(
-                "write_snp_stats: mismatched sizes mean={}, var={}, A1freq={}",
+                "write_snp_stats: mismatched sizes code={}, A1freq={}",
                 n_snps,
-                stats.var.size(),
                 stats.A1freq.size()));
     }
 
@@ -79,10 +77,10 @@ auto write_snp_stats(
         fmt::format("{}/geno_method", mode),
         static_cast<uint8_t>(std::to_underlying(stats.method)));
 
+    const Eigen::MatrixXd code_t = stats.code.transpose();
     auto stats_handle
-        = writer.reserve<double>(fmt::format("{}/snp_stats", mode), n_snps, 3);
-    writer.write(stats_handle, stats.mean);
-    writer.write(stats_handle, stats.var);
+        = writer.reserve<double>(fmt::format("{}/snp_stats", mode), n_snps, 4);
+    writer.write(stats_handle, code_t);
     writer.write(stats_handle, stats.A1freq);
 
     if (!stats.valid_indices.empty())
