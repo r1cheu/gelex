@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <utility>
 #include <vector>
@@ -49,13 +50,12 @@ auto load_snpstats(const std::filesystem::path& path) -> gelex::SnpStatsData
 {
     gelex::BinaryReader reader(path.string());
     gelex::SnpStatsData data;
-    if (gelex::has_snp_stats(reader, gelex::GeneticMode::A))
+    for (const auto mode : gelex::ALL_GENETIC_MODES)
     {
-        data.add = gelex::read_snp_stats(reader, gelex::GeneticMode::A);
-    }
-    if (gelex::has_snp_stats(reader, gelex::GeneticMode::D))
-    {
-        data.dom = gelex::read_snp_stats(reader, gelex::GeneticMode::D);
+        if (gelex::has_snp_stats(reader, mode))
+        {
+            data.emplace(mode, gelex::read_snp_stats(reader, mode));
+        }
     }
     return data;
 }
@@ -89,32 +89,27 @@ auto predict_execute(const cli::PredictConfig& config) -> int
     auto snp_effects = gelex::read_snp_effects(gfile_prefix + ".snpeff");
     auto snpstats = load_snpstats(gfile_prefix + ".snpstats");
 
-    const bool enable_add = snpstats.add.has_value();
-    const bool enable_dom = snpstats.dom.has_value();
-    if (!enable_add && !enable_dom)
+    if (snpstats.empty())
     {
         throw gelex::GelexException(
             ".snpstats file contains neither additive nor dominance stats.");
     }
-    if (enable_add && !snp_effects.contains("BETA_A"))
-    {
-        throw gelex::GelexException(
-            ".snpstats file contains additive stats, but SNP effects file "
-            "does not have 'BETA_A' column.");
-    }
-    if (enable_dom && !snp_effects.contains("BETA_D"))
-    {
-        throw gelex::GelexException(
-            ".snpstats file contains dominance stats, but SNP effects file "
-            "does not have 'BETA_D' column.");
-    }
 
-    auto add_effects = enable_add ? std::make_optional<Eigen::VectorXd>(
-                                        snp_effects["BETA_A"].to_map<double>())
-                                  : std::nullopt;
-    auto dom_effects = enable_dom ? std::make_optional<Eigen::VectorXd>(
-                                        snp_effects["BETA_D"].to_map<double>())
-                                  : std::nullopt;
+    gelex::SnpEffects effects;
+    for (const auto mode : std::views::keys(snpstats))
+    {
+        const auto column = fmt::format("BETA_{}", mode);
+        if (!snp_effects.contains(column))
+        {
+            throw gelex::GelexException(
+                fmt::format(
+                    ".snpstats file contains {} stats, but SNP effects file "
+                    "does not have '{}' column.",
+                    mode,
+                    column));
+        }
+        effects.emplace(mode, snp_effects[column].to_map<double>());
+    }
     auto coefficients = gelex::read_coefficients(gfile_prefix + ".param");
 
     auto fam_df = gelex::read_fam(bfile_prefix + ".fam");
@@ -158,42 +153,22 @@ auto predict_execute(const cli::PredictConfig& config) -> int
     }
 
     auto bed = gelex::open_bed(bfile_prefix, fam_df.index());
-    auto genotype = gelex::load_aligned_genotypes(bed, alignment);
+    const auto dosage = gelex::load_aligned_genotypes(bed, alignment);
 
     gelex::GenotypeData geno;
-    if (enable_add && enable_dom)
+    for (const auto& [mode, stats] : snpstats)
     {
-        geno.dom = genotype;
-        geno.add = std::move(genotype);
-    }
-    else if (enable_add)
-    {
-        geno.add = std::move(genotype);
-    }
-    else
-    {
-        geno.dom = std::move(genotype);
+        Eigen::MatrixXd encoded = dosage;
+        gelex::transform_inplace<double>(encoded, build_loci_encoding(stats));
+        geno.emplace(mode, std::move(encoded));
     }
 
     reporter.show_data_loaded(
         static_cast<std::size_t>(fam_df.rows()),
         static_cast<std::size_t>(snp_effects.rows()),
         coefficients.names.size(),
-        (enable_add ? snpstats.add : snpstats.dom)->method);
+        snpstats.begin()->second.method);
 
-    if (geno.add)
-    {
-        const auto encoding = build_loci_encoding(*snpstats.add);
-        gelex::transform_inplace<double>(*geno.add, encoding);
-    }
-    if (geno.dom)
-    {
-        const auto encoding = build_loci_encoding(*snpstats.dom);
-        gelex::transform_inplace<double>(*geno.dom, encoding);
-    }
-
-    gelex::SnpEffects effects{
-        .add = std::move(add_effects), .dom = std::move(dom_effects)};
     auto gebv = gelex::compute_gebv(geno, effects);
     auto covar = gelex::compute_covariate_effects(covariates, coefficients);
 
@@ -204,8 +179,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
         .sample_ids = std::move(sample_ids),
         .predictions = gebv.total + covar.total,
         .snp_predictions = std::move(gebv.total),
-        .add_predictions = std::move(gebv.add_predictions),
-        .dom_predictions = std::move(gebv.dom_predictions),
+        .snp_components = std::move(gebv.components),
         .covar_predictions = std::move(covar.per_covariate),
         .covar_names = std::move(covar.covar_names)};
 

@@ -23,8 +23,10 @@
 #include "gelex/io/predict_reader.h"
 #include "gelex/predict/compute.h"
 #include "gelex/predict/types.h"
+#include "gelex/types/genetic_mode.h"
 
 using gelex::Coefficients;
+using gelex::GeneticMode;
 using gelex::GenotypeData;
 using gelex::SnpEffects;
 
@@ -37,17 +39,17 @@ TEST_CASE("compute_gebv: additive only", "[predict][compute]")
     // add = [[1,2],[3,4]], effects.add = [0.5, -0.5]
     // add_predictions = [1*0.5 + 2*(-0.5), 3*0.5 + 4*(-0.5)] = [-0.5, -0.5]
     GenotypeData geno;
-    geno.add = Eigen::MatrixXd{{1.0, 2.0}, {3.0, 4.0}};
+    geno[GeneticMode::A] = Eigen::MatrixXd{{1.0, 2.0}, {3.0, 4.0}};
 
     SnpEffects effects;
-    effects.add = Eigen::VectorXd{{0.5, -0.5}};
+    effects[GeneticMode::A] = Eigen::VectorXd{{0.5, -0.5}};
 
     const auto result = gelex::compute_gebv(geno, effects);
 
     Eigen::VectorXd expected_add{{-0.5, -0.5}};
-    REQUIRE(result.add_predictions->isApprox(expected_add));
+    REQUIRE(result.components.at(GeneticMode::A).isApprox(expected_add));
     REQUIRE(result.total.isApprox(expected_add));
-    REQUIRE_FALSE(result.dom_predictions.has_value());
+    REQUIRE_FALSE(result.components.contains(GeneticMode::D));
 }
 
 TEST_CASE("compute_gebv: dominance only", "[predict][compute]")
@@ -55,16 +57,16 @@ TEST_CASE("compute_gebv: dominance only", "[predict][compute]")
     // dom = [[1,0],[0,1]], effects.dom = [1.0, 2.0]
     // dom_predictions = [1.0, 2.0]; no additive component
     GenotypeData geno;
-    geno.dom = Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}};
+    geno[GeneticMode::D] = Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}};
 
     SnpEffects effects;
-    effects.dom = Eigen::VectorXd{{1.0, 2.0}};
+    effects[GeneticMode::D] = Eigen::VectorXd{{1.0, 2.0}};
 
     const auto result = gelex::compute_gebv(geno, effects);
 
     Eigen::VectorXd expected_dom{{1.0, 2.0}};
-    REQUIRE_FALSE(result.add_predictions.has_value());
-    REQUIRE(result.dom_predictions->isApprox(expected_dom));
+    REQUIRE_FALSE(result.components.contains(GeneticMode::A));
+    REQUIRE(result.components.at(GeneticMode::D).isApprox(expected_dom));
     REQUIRE(result.total.isApprox(expected_dom));
 }
 
@@ -76,20 +78,20 @@ TEST_CASE("compute_gebv: additive + dominance", "[predict][compute]")
     // dom_pred = [0.5*0.1+0.5*0.2, 0.5*0.1+0.5*0.2] = [0.15, 0.15]
     // total = [1.15, 2.15]
     GenotypeData geno;
-    geno.add = Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}};
-    geno.dom = Eigen::MatrixXd{{0.5, 0.5}, {0.5, 0.5}};
+    geno[GeneticMode::A] = Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}};
+    geno[GeneticMode::D] = Eigen::MatrixXd{{0.5, 0.5}, {0.5, 0.5}};
 
     SnpEffects effects;
-    effects.add = Eigen::VectorXd{{1.0, 2.0}};
-    effects.dom = Eigen::VectorXd{{0.1, 0.2}};
+    effects[GeneticMode::A] = Eigen::VectorXd{{1.0, 2.0}};
+    effects[GeneticMode::D] = Eigen::VectorXd{{0.1, 0.2}};
 
     const auto result = gelex::compute_gebv(geno, effects);
 
     Eigen::VectorXd expected_add{{1.0, 2.0}};
     Eigen::VectorXd expected_dom{{0.15, 0.15}};
     Eigen::VectorXd expected_total{{1.15, 2.15}};
-    REQUIRE(result.add_predictions->isApprox(expected_add));
-    REQUIRE(result.dom_predictions->isApprox(expected_dom));
+    REQUIRE(result.components.at(GeneticMode::A).isApprox(expected_add));
+    REQUIRE(result.components.at(GeneticMode::D).isApprox(expected_dom));
     REQUIRE(result.total.isApprox(expected_total));
 }
 

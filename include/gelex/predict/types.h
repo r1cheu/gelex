@@ -17,40 +17,29 @@
 #ifndef GELEX_PREDICT_TYPES_H_
 #define GELEX_PREDICT_TYPES_H_
 
-#include <optional>
+#include <map>
 #include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
 #include "gelex/data/snp_stats.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
 
-struct SnpStatsData
-{
-    std::optional<SnpStats> add;
-    std::optional<SnpStats> dom;
-};
+template <typename T>
+using ModeMap = std::map<GeneticMode, T>;
 
-struct GenotypeData
-{
-    std::optional<Eigen::MatrixXd> add;
-    std::optional<Eigen::MatrixXd> dom;
-};
-
-struct SnpEffects
-{
-    std::optional<Eigen::VectorXd> add;
-    std::optional<Eigen::VectorXd> dom;
-};
+using SnpStatsData = ModeMap<SnpStats>;
+using GenotypeData = ModeMap<Eigen::MatrixXd>;
+using SnpEffects = ModeMap<Eigen::VectorXd>;
 
 struct GEBVResult
 {
     Eigen::VectorXd total;
-    std::optional<Eigen::VectorXd> add_predictions;
-    std::optional<Eigen::VectorXd> dom_predictions;
+    ModeMap<Eigen::VectorXd> components;
 };
 
 struct CovariateResult
@@ -65,8 +54,7 @@ struct PredictResult
     std::vector<std::string> sample_ids;
     Eigen::VectorXd predictions;
     Eigen::VectorXd snp_predictions;
-    std::optional<Eigen::VectorXd> add_predictions;
-    std::optional<Eigen::VectorXd> dom_predictions;
+    ModeMap<Eigen::VectorXd> snp_components;
     Eigen::MatrixXd covar_predictions;
     std::vector<std::string> covar_names;
 };

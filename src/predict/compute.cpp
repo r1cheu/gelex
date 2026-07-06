@@ -16,7 +16,6 @@
 
 #include "gelex/predict/compute.h"
 
-#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -31,36 +30,26 @@ namespace gelex
 auto compute_gebv(const GenotypeData& geno, const SnpEffects& effects)
     -> GEBVResult
 {
-    std::optional<Eigen::VectorXd> add_predictions;
-    if (geno.add && effects.add)
+    GEBVResult result;
+    for (const auto& [mode, effect] : effects)
     {
-        add_predictions = (*geno.add) * (*effects.add);
+        const auto geno_it = geno.find(mode);
+        if (geno_it == geno.end())
+        {
+            continue;
+        }
+        Eigen::VectorXd component = geno_it->second * effect;
+        if (result.total.size() == 0)
+        {
+            result.total = component;
+        }
+        else
+        {
+            result.total += component;
+        }
+        result.components.emplace(mode, std::move(component));
     }
-
-    std::optional<Eigen::VectorXd> dom_predictions;
-    if (geno.dom && effects.dom)
-    {
-        dom_predictions = (*geno.dom) * (*effects.dom);
-    }
-
-    Eigen::VectorXd total;
-    if (add_predictions && dom_predictions)
-    {
-        total = *add_predictions + *dom_predictions;
-    }
-    else if (add_predictions)
-    {
-        total = *add_predictions;
-    }
-    else if (dom_predictions)
-    {
-        total = *dom_predictions;
-    }
-
-    return GEBVResult{
-        .total = std::move(total),
-        .add_predictions = std::move(add_predictions),
-        .dom_predictions = std::move(dom_predictions)};
+    return result;
 }
 
 auto compute_covariate_effects(

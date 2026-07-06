@@ -21,14 +21,14 @@
 #include <cstddef>
 #include <filesystem>
 #include <memory>
+#include <ranges>
 #include <string>
-#include <string_view>
-#include <vector>
 
 #include "gelex/data/sample_id.h"
 #include "gelex/exception.h"
 #include "gelex/io/detail/text_writer.h"
 #include "gelex/predict/types.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
@@ -44,62 +44,6 @@ PredictWriter::PredictWriter(const std::filesystem::path& output_path)
 
 PredictWriter::~PredictWriter() = default;
 
-auto PredictWriter::write_header(
-    const std::vector<std::string>& covar_names,
-    bool has_add,
-    bool has_dom) -> void
-{
-    std::string h = "FID\tIID\tprediction";
-
-    for (const auto& name : covar_names)
-    {
-        h += '\t';
-        h += name;
-    }
-
-    if (has_add)
-    {
-        h += "\tadditive";
-    }
-    if (has_dom)
-    {
-        h += "\tdominant";
-    }
-
-    writer_->write(h);
-}
-
-auto PredictWriter::write_row(
-    std::string_view sample_id,
-    double total_prediction,
-    const Eigen::Ref<const Eigen::RowVectorXd>& covar_pred,
-    bool has_add,
-    double add_pred,
-    bool has_dom,
-    double dom_pred) -> void
-{
-    row_buf_.clear();
-    auto [fid, iid] = split_sample_id(sample_id);
-    row_buf_ += fmt::format("{}\t{}", fid, iid);
-    row_buf_ += fmt::format("\t{:.6f}", total_prediction);
-
-    for (Eigen::Index j = 0; j < covar_pred.cols(); ++j)
-    {
-        row_buf_ += fmt::format("\t{:.6f}", covar_pred(j));
-    }
-
-    if (has_add)
-    {
-        row_buf_ += fmt::format("\t{:.6f}", add_pred);
-    }
-    if (has_dom)
-    {
-        row_buf_ += fmt::format("\t{:.6f}", dom_pred);
-    }
-
-    writer_->write(row_buf_);
-}
-
 auto PredictWriter::write(const PredictResult& result) -> void
 {
     const auto n_samples = static_cast<Eigen::Index>(result.sample_ids.size());
@@ -112,22 +56,35 @@ auto PredictWriter::write(const PredictResult& result) -> void
                 result.predictions.size()));
     }
 
-    const bool has_add = result.add_predictions.has_value();
-    const bool has_dom = result.dom_predictions.has_value();
-    write_header(result.covar_names, has_add, has_dom);
+    std::string header = "FID\tIID\tprediction";
+    for (const auto& name : result.covar_names)
+    {
+        header += '\t';
+        header += name;
+    }
+    for (const auto& mode : std::views::keys(result.snp_components))
+    {
+        header += fmt::format("\t{}", mode);
+    }
+    writer_->write(header);
 
     for (Eigen::Index i = 0; i < n_samples; ++i)
     {
-        const double add_value = has_add ? (*result.add_predictions)[i] : 0.0;
-        const double dom_value = has_dom ? (*result.dom_predictions)[i] : 0.0;
-        write_row(
-            result.sample_ids[static_cast<size_t>(i)],
-            result.predictions[i],
-            result.covar_predictions.row(i),
-            has_add,
-            add_value,
-            has_dom,
-            dom_value);
+        row_buf_.clear();
+        auto [fid, iid]
+            = split_sample_id(result.sample_ids[static_cast<size_t>(i)]);
+        row_buf_ += fmt::format("{}\t{}", fid, iid);
+        row_buf_ += fmt::format("\t{:.6f}", result.predictions[i]);
+
+        for (Eigen::Index j = 0; j < result.covar_predictions.cols(); ++j)
+        {
+            row_buf_ += fmt::format("\t{:.6f}", result.covar_predictions(i, j));
+        }
+        for (const auto& component : std::views::values(result.snp_components))
+        {
+            row_buf_ += fmt::format("\t{:.6f}", component[i]);
+        }
+        writer_->write(row_buf_);
     }
 }
 
