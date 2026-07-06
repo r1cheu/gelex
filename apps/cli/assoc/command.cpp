@@ -42,7 +42,7 @@
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/freq/model.h"
-#include "gelex/io/gwas/writer.h"
+#include "gelex/io/gwas_writer.h"
 #include "gelex/io/loco_reader.h"
 #include "gelex/types/fixed_designs.h"
 #include "reporter.h"

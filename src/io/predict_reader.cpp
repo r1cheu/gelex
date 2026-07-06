@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/io/predict/input_reader.h"
+#include "gelex/io/predict_reader.h"
 
 #include <fmt/format.h>
 #include <algorithm>

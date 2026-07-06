@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_SNPSTATS_READER_H_
-#define GELEX_IO_SNPSTATS_READER_H_
+#ifndef GELEX_IO_SNPSTATS_H_
+#define GELEX_IO_SNPSTATS_H_
 
 #include "gelex/data/snp_stats.h"
 #include "gelex/io/binary_reader.h"
+#include "gelex/io/binary_writer.h"
 #include "gelex/types/genetic_mode.h"
 
 namespace gelex
@@ -30,6 +31,11 @@ namespace gelex
 [[nodiscard]] auto read_snp_stats(const BinaryReader& reader, GeneticMode mode)
     -> SnpStats;
 
+auto write_snp_stats(
+    BinaryWriter& writer,
+    GeneticMode mode,
+    const SnpStats& stats) -> void;
+
 }  // namespace gelex
 
-#endif  // GELEX_IO_SNPSTATS_READER_H_
+#endif  // GELEX_IO_SNPSTATS_H_

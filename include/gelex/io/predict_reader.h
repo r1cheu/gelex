@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_PREDICT_INPUT_READER_H_
-#define GELEX_IO_PREDICT_INPUT_READER_H_
+#ifndef GELEX_IO_PREDICT_READER_H_
+#define GELEX_IO_PREDICT_READER_H_
 
 #include <filesystem>
 #include <optional>
@@ -49,4 +49,4 @@ struct Coefficients
 
 }  // namespace gelex
 
-#endif  // GELEX_IO_PREDICT_INPUT_READER_H_
+#endif  // GELEX_IO_PREDICT_READER_H_

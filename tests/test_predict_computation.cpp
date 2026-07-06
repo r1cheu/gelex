@@ -24,8 +24,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/data/genotype_method.h"
-#include "gelex/io/predict/input_reader.h"
-#include "gelex/io/snpstats/reader.h"
+#include "gelex/io/predict_reader.h"
+#include "gelex/io/snpstats.h"
 #include "gelex/predict/compute.h"
 #include "gelex/predict/standardize.h"
 #include "gelex/predict/types.h"

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/io/snpstats/writer.h"
+#include "gelex/io/snpstats.h"
 
 #include <fmt/format.h>
 #include <Eigen/Core>
@@ -26,6 +26,38 @@
 
 namespace gelex
 {
+
+auto has_snp_stats(const BinaryReader& reader, GeneticMode mode) -> bool
+{
+    return reader.contains(fmt::format("{}/snp_stats", mode));
+}
+
+auto read_snp_stats(const BinaryReader& reader, GeneticMode mode) -> SnpStats
+{
+    auto stats_map = reader.to_map<double>(fmt::format("{}/snp_stats", mode));
+
+    SnpStats data;
+    data.mean = stats_map.col(0);
+    data.var = stats_map.col(1);
+    data.A1freq = stats_map.col(2);
+
+    if (const auto path = fmt::format("{}/geno_method", mode);
+        reader.contains(path))
+    {
+        auto method_map = reader.to_map<uint8_t>(path);
+        data.method = genotype_method_from_byte(method_map(0, 0));
+    }
+
+    if (const auto path = fmt::format("{}/valid_indices", mode);
+        reader.contains(path))
+    {
+        auto valid_map = reader.to_map<int64_t>(path);
+        const auto* src = valid_map.col(0).data();
+        data.valid_indices.assign(src, src + valid_map.rows());
+    }
+
+    return data;
+}
 
 auto write_snp_stats(
     BinaryWriter& writer,

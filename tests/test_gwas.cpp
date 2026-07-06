@@ -32,7 +32,7 @@
 #include "gelex/data/dataframe/column.h"
 #include "gelex/data/dataframe/reader.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/io/gwas/writer.h"
+#include "gelex/io/gwas_writer.h"
 
 using gelex::AssocType;
 using gelex::ColumnType;

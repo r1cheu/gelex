@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/io/predict/writer.h"
+#include "gelex/io/predict_writer.h"
 
 #include <fmt/format.h>
 #include <Eigen/Core>

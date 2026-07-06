@@ -27,8 +27,7 @@
 #include "gelex/bayes/state.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
-#include "gelex/io/mcmc/checkpoint_reader.h"
-#include "gelex/io/mcmc/checkpoint_writer.h"
+#include "gelex/io/mcmc_checkpoint.h"
 
 namespace gelex
 {

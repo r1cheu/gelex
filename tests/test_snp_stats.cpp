@@ -27,8 +27,7 @@
 #include "gelex/data/snp_stats.h"
 #include "gelex/exception.h"
 #include "gelex/io/binary_reader.h"
-#include "gelex/io/snpstats/reader.h"
-#include "gelex/io/snpstats/writer.h"
+#include "gelex/io/snpstats.h"
 
 #include "file_fixture.h"
 #include "gelex/types/genetic_mode.h"

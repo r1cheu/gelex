@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_PREDICT_WRITER_H_
-#define GELEX_PREDICT_WRITER_H_
+#ifndef GELEX_IO_PREDICT_WRITER_H_
+#define GELEX_IO_PREDICT_WRITER_H_
 
 #include <filesystem>
 #include <memory>
@@ -61,4 +61,4 @@ class PredictWriter
 
 }  // namespace gelex
 
-#endif  // GELEX_PREDICT_WRITER_H_
+#endif  // GELEX_IO_PREDICT_WRITER_H_

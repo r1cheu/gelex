@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/io/gwas/writer.h"
+#include "gelex/io/gwas_writer.h"
 
 #include <cstddef>
 #include <cstdint>

@@ -42,7 +42,7 @@
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/io/mcmc.h"
-#include "gelex/io/snpstats/writer.h"
+#include "gelex/io/snpstats.h"
 #include "gelex/types/genetic_mode.h"
 #include "reporter.h"
 

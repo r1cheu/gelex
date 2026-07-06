@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-#include "gelex/io/mcmc/checkpoint_reader.h"
+#include "gelex/io/mcmc_checkpoint.h"
 
+#include <array>
 #include <filesystem>
 #include <random>
 #include <span>
@@ -31,6 +32,7 @@
 #include "gelex/infra/field_flag.h"
 #include "gelex/infra/field_visitor.h"
 #include "gelex/io/binary_reader.h"
+#include "gelex/io/binary_writer.h"
 #include "gelex/types/categorical_vector.h"
 
 namespace gelex
@@ -201,6 +203,97 @@ class CheckpointReader final : private FieldVisitor
     const BinaryReader& reader_;
 };
 
+class CheckpointWriter final : private FieldVisitor
+{
+   public:
+    explicit CheckpointWriter(BinaryWriter& writer) : writer_(writer) {}
+
+    auto write(BayesState& state) -> void { state.visit(*this); }
+
+   private:
+    auto on(
+        std::string_view name,
+        Eigen::Ref<Eigen::VectorXf> value,
+        FieldFlag flags) -> void override
+    {
+        if (!has(flags, FieldFlag::checkpoint))
+        {
+            return;
+        }
+        writer_.write(field_path(name), value);
+    }
+
+    auto on(
+        std::string_view name,
+        Eigen::Ref<Eigen::VectorXd> value,
+        FieldFlag flags) -> void override
+    {
+        if (!has(flags, FieldFlag::checkpoint))
+        {
+            return;
+        }
+        writer_.write(field_path(name), value);
+    }
+
+    auto on(std::string_view name, CategoricalVector& value, FieldFlag flags)
+        -> void override
+    {
+        if (!has(flags, FieldFlag::checkpoint))
+        {
+            return;
+        }
+        writer_.write(field_path(name), value);
+    }
+
+    auto on(std::string_view name, double& value, FieldFlag flags)
+        -> void override
+    {
+        if (!has(flags, FieldFlag::checkpoint))
+        {
+            return;
+        }
+        writer_.write(field_path(name), value);
+    }
+
+    auto on(std::string_view name, int& value, FieldFlag flags) -> void override
+    {
+        if (!has(flags, FieldFlag::checkpoint))
+        {
+            return;
+        }
+        writer_.write(field_path(name), value);
+    }
+
+    auto on(
+        std::string_view name,
+        std::span<const std::string>,
+        FieldFlag flags) -> void override
+    {
+        if (!has(flags, FieldFlag::checkpoint))
+        {
+            return;
+        }
+        throw GelexException(
+            "CheckpointWriter: string list checkpoint field is not supported "
+            "for "
+            + field_path(name));
+    }
+
+    auto on(std::string_view name, std::string_view, FieldFlag flags)
+        -> void override
+    {
+        if (!has(flags, FieldFlag::checkpoint))
+        {
+            return;
+        }
+        throw GelexException(
+            "CheckpointWriter: string checkpoint field is not supported for "
+            + field_path(name));
+    }
+
+    BinaryWriter& writer_;
+};
+
 }  // namespace
 
 auto read_checkpoint(const std::filesystem::path& path, BayesState& state)
@@ -230,6 +323,25 @@ auto read_checkpoint(const std::filesystem::path& path, BayesState& state)
                 "{}: failed to decode checkpoint rng_state", path.string()));
     }
     return rng;
+}
+
+auto write_checkpoint(
+    BayesState& state,
+    const std::mt19937_64& rng,
+    std::string_view prefix) -> void
+{
+    BinaryWriter writer(fmt::format("{}.ckpt", prefix));
+
+    CheckpointWriter checkpoint_writer{writer};
+    checkpoint_writer.write(state);
+
+    std::ostringstream oss;
+    oss << rng;
+    const auto rng_state = oss.str();
+    writer.write_strings(
+        "rng_state",
+        std::array<std::string_view, 1>{std::string_view{rng_state}});
+    writer.close();
 }
 
 }  // namespace gelex

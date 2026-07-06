@@ -41,8 +41,7 @@
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/io/binary_writer.h"
-#include "gelex/io/snpstats/reader.h"
-#include "gelex/io/snpstats/writer.h"
+#include "gelex/io/snpstats.h"
 #include "gelex/types/genetic_mode.h"
 
 namespace gelex

@@ -23,7 +23,7 @@
 #include "file_fixture.h"
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/reader.h"
-#include "gelex/io/predict/input_reader.h"
+#include "gelex/io/predict_reader.h"
 #include "gelex/predict/snp_alignment.h"
 
 using gelex::SEPARATOR;

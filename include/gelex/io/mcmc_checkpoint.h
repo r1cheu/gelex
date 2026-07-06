@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_MCMC_CHECKPOINT_WRITER_H_
-#define GELEX_IO_MCMC_CHECKPOINT_WRITER_H_
+#ifndef GELEX_IO_MCMC_CHECKPOINT_H_
+#define GELEX_IO_MCMC_CHECKPOINT_H_
 
+#include <filesystem>
 #include <random>
 #include <string_view>
 
@@ -25,6 +26,10 @@ namespace gelex
 
 class BayesState;
 
+[[nodiscard]] auto read_checkpoint(
+    const std::filesystem::path& path,
+    BayesState& state) -> std::mt19937_64;
+
 auto write_checkpoint(
     BayesState& state,
     const std::mt19937_64& rng,
@@ -32,4 +37,4 @@ auto write_checkpoint(
 
 }  // namespace gelex
 
-#endif  // GELEX_IO_MCMC_CHECKPOINT_WRITER_H_
+#endif  // GELEX_IO_MCMC_CHECKPOINT_H_
