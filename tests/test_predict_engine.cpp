@@ -301,7 +301,7 @@ auto run_predict_dataflow(
     const std::filesystem::path& output_path) -> void
 {
     auto snp_effects = gelex::read_snp_effects(gfile_prefix + ".snpeff");
-    auto snpstats = gelex::load_snpstats(gfile_prefix + ".snpstats");
+    auto snpstats = gelex::load_snp_stats(gfile_prefix + ".snpstats");
 
     if (snpstats.empty())
     {

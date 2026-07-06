@@ -33,7 +33,7 @@ namespace gelex
 [[nodiscard]] auto read_snp_stats(const BinaryReader& reader, GeneticMode mode)
     -> SnpStats;
 
-[[nodiscard]] auto load_snpstats(const std::filesystem::path& path)
+[[nodiscard]] auto load_snp_stats(const std::filesystem::path& path)
     -> SnpStatsData;
 
 auto write_snp_stats(

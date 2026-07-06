@@ -47,7 +47,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
     const auto& gfile_prefix = config.gfile;
 
     auto snp_effects = gelex::read_snp_effects(gfile_prefix + ".snpeff");
-    auto snpstats = gelex::load_snpstats(gfile_prefix + ".snpstats");
+    auto snpstats = gelex::load_snp_stats(gfile_prefix + ".snpstats");
 
     if (snpstats.empty())
     {
