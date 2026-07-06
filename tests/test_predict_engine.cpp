@@ -37,7 +37,6 @@
 #include "gelex/data/locus_encoding.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
-#include "gelex/io/binary_reader.h"
 #include "gelex/io/predict_io.h"
 #include "gelex/io/snpstats.h"
 #include "gelex/predict/compute.h"
@@ -294,37 +293,6 @@ auto read_prediction_output(const std::filesystem::path& path)
     return out;
 }
 
-auto load_snpstats(const std::filesystem::path& path) -> gelex::SnpStatsData
-{
-    gelex::BinaryReader reader(path.string());
-    gelex::SnpStatsData data;
-    for (const auto mode : gelex::ALL_GENETIC_MODES)
-    {
-        if (gelex::has_snp_stats(reader, mode))
-        {
-            data.emplace(mode, gelex::read_snp_stats(reader, mode));
-        }
-    }
-    return data;
-}
-
-auto build_loci_encoding(const gelex::SnpStats& stats) -> gelex::LociEncoding
-{
-    gelex::LociEncoding encoding;
-    const Eigen::Index n_snps = stats.code.cols();
-    encoding.loci.reserve(static_cast<std::size_t>(n_snps));
-    for (Eigen::Index j = 0; j < n_snps; ++j)
-    {
-        gelex::LocusEncoding locus;
-        locus.column_index = j;
-        locus.code = {stats.code(0, j), stats.code(1, j), stats.code(2, j)};
-        locus.missing_encoded_value = 0.0;
-        locus.valid = true;
-        encoding.loci.push_back(locus);
-    }
-    return encoding;
-}
-
 auto run_predict_dataflow(
     const std::string& bfile_prefix,
     const std::string& gfile_prefix,
@@ -333,7 +301,7 @@ auto run_predict_dataflow(
     const std::filesystem::path& output_path) -> void
 {
     auto snp_effects = gelex::read_snp_effects(gfile_prefix + ".snpeff");
-    auto snpstats = load_snpstats(gfile_prefix + ".snpstats");
+    auto snpstats = gelex::load_snpstats(gfile_prefix + ".snpstats");
 
     if (snpstats.empty())
     {
@@ -386,7 +354,8 @@ auto run_predict_dataflow(
     for (const auto& [mode, stats] : snpstats)
     {
         Eigen::MatrixXd encoded = dosage;
-        gelex::transform_inplace<double>(encoded, build_loci_encoding(stats));
+        gelex::transform_inplace<double>(
+            encoded, gelex::build_loci_encoding(stats));
         geno.emplace(mode, std::move(encoded));
     }
 

@@ -62,8 +62,7 @@ auto process_chunk(
 
     for (const auto& locus : encoding.loci)
     {
-        stats.code.col(locus.marker_index)
-            = Eigen::Map<const Eigen::Vector3d>(locus.code.data());
+        stats.code.col(locus.marker_index) = locus.code.matrix();
         stats.A1freq[locus.marker_index]
             = locus.stats.has_nonmissing() ? locus.stats.A1freq() : 0.0;
 

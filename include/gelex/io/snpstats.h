@@ -17,6 +17,8 @@
 #ifndef GELEX_IO_SNPSTATS_H_
 #define GELEX_IO_SNPSTATS_H_
 
+#include <filesystem>
+
 #include "gelex/data/snp_stats.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/io/binary_writer.h"
@@ -30,6 +32,9 @@ namespace gelex
 
 [[nodiscard]] auto read_snp_stats(const BinaryReader& reader, GeneticMode mode)
     -> SnpStats;
+
+[[nodiscard]] auto load_snpstats(const std::filesystem::path& path)
+    -> SnpStatsData;
 
 auto write_snp_stats(
     BinaryWriter& writer,

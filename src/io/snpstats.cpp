@@ -19,6 +19,7 @@
 #include <fmt/format.h>
 #include <Eigen/Core>
 #include <cstdint>
+#include <filesystem>
 #include <utility>
 
 #include "gelex/exception.h"
@@ -55,6 +56,20 @@ auto read_snp_stats(const BinaryReader& reader, GeneticMode mode) -> SnpStats
         data.valid_indices.assign(src, src + valid_map.rows());
     }
 
+    return data;
+}
+
+auto load_snpstats(const std::filesystem::path& path) -> SnpStatsData
+{
+    BinaryReader reader(path.string());
+    SnpStatsData data;
+    for (const auto mode : ALL_GENETIC_MODES)
+    {
+        if (has_snp_stats(reader, mode))
+        {
+            data.emplace(mode, read_snp_stats(reader, mode));
+        }
+    }
     return data;
 }
 

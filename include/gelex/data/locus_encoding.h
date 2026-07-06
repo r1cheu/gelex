@@ -24,6 +24,7 @@
 
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/locus_encoding_types.h"
+#include "gelex/data/snp_stats.h"
 #include "gelex/types/genetic_mode.h"
 
 #include "gelex/data/detail/locus_encoding.h"
@@ -34,6 +35,8 @@ namespace gelex
 [[nodiscard]] auto encoding_spec_from_method(
     GeneticMode effect,
     GenotypeMethod method) -> EncodingSpec;
+
+[[nodiscard]] auto build_loci_encoding(const SnpStats& stats) -> LociEncoding;
 
 template <std::floating_point InputT, std::floating_point OutputT>
 auto transform_into(

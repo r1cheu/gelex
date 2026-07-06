@@ -4,6 +4,7 @@
 #include <bitset>
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <ranges>
 #include <string_view>
 #include <utility>
@@ -25,6 +26,9 @@ inline constexpr std::array GENETIC_MODE_NAMES{
 };
 
 inline constexpr std::array ALL_GENETIC_MODES{GeneticMode::A, GeneticMode::D};
+
+template <typename T>
+using ModeMap = std::map<GeneticMode, T>;
 
 // A subset of GeneticMode, backed by std::bitset so {A}, {D}, {A, D} are the
 // only meaningful values. each() yields its members in enum order.

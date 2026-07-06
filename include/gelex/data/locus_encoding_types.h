@@ -17,7 +17,6 @@
 #ifndef GELEX_DATA_LOCUS_ENCODING_TYPES_H_
 #define GELEX_DATA_LOCUS_ENCODING_TYPES_H_
 
-#include <array>
 #include <cstdint>
 #include <vector>
 
@@ -67,7 +66,7 @@ struct LocusEncoding
 
     LocusStats stats;
 
-    std::array<double, 3> code{0.0, 0.0, 0.0};
+    Eigen::Array3d code{0.0, 0.0, 0.0};
 
     double mean{0};
     double var{0};

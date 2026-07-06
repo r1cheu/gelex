@@ -16,11 +16,28 @@
 
 #include "gelex/data/locus_encoding.h"
 
-#include <array>
 #include <cmath>
+#include <cstddef>
 
 namespace gelex
 {
+
+auto build_loci_encoding(const SnpStats& stats) -> LociEncoding
+{
+    LociEncoding encoding;
+    const Eigen::Index n_snps = stats.code.cols();
+    encoding.loci.reserve(static_cast<std::size_t>(n_snps));
+    for (Eigen::Index j = 0; j < n_snps; ++j)
+    {
+        LocusEncoding locus;
+        locus.column_index = j;
+        locus.code = stats.code.col(j).array();
+        locus.missing_encoded_value = 0.0;
+        locus.valid = true;
+        encoding.loci.push_back(locus);
+    }
+    return encoding;
+}
 
 auto encoding_spec_from_method(GeneticMode effect, GenotypeMethod method)
     -> EncodingSpec
@@ -88,16 +105,15 @@ auto make_moment_weights(const LocusStats& stats, MomentBasis basis)
     return {.A2A2 = q * q, .A1A2 = 2.0 * p * q, .A1A1 = p * p};
 }
 
-auto weighted_mean(
-    const std::array<double, 3>& values,
-    const MomentWeights& weights) -> double
+auto weighted_mean(const Eigen::Array3d& values, const MomentWeights& weights)
+    -> double
 {
     return (weights.A2A2 * values[0]) + (weights.A1A2 * values[1])
            + (weights.A1A1 * values[2]);
 }
 
 auto weighted_var(
-    const std::array<double, 3>& values,
+    const Eigen::Array3d& values,
     const MomentWeights& weights,
     double mean) -> double
 {
@@ -212,18 +228,12 @@ auto make_locus_encoding(
     if (spec.normalization == Normalization::Center
         || spec.normalization == Normalization::CenterScale)
     {
-        for (double& value : out.code)
-        {
-            value -= out.mean;
-        }
+        out.code -= out.mean;
     }
 
     if (spec.normalization == Normalization::CenterScale)
     {
-        for (double& value : out.code)
-        {
-            value /= out.sd;
-        }
+        out.code /= out.sd;
     }
 
     if (spec.normalization == Normalization::None)

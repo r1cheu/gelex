@@ -17,22 +17,16 @@
 #ifndef GELEX_PREDICT_TYPES_H_
 #define GELEX_PREDICT_TYPES_H_
 
-#include <map>
 #include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
-#include "gelex/data/snp_stats.h"
 #include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
 
-template <typename T>
-using ModeMap = std::map<GeneticMode, T>;
-
-using SnpStatsData = ModeMap<SnpStats>;
 using GenotypeData = ModeMap<Eigen::MatrixXd>;
 using SnpEffects = ModeMap<Eigen::VectorXd>;
 

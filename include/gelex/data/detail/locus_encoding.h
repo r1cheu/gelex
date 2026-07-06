@@ -17,7 +17,6 @@
 #ifndef GELEX_DATA_DETAIL_LOCUS_ENCODING_H_
 #define GELEX_DATA_DETAIL_LOCUS_ENCODING_H_
 
-#include <array>
 #include <concepts>
 #include <cstddef>
 
@@ -37,7 +36,7 @@ struct MomentWeights
 
 struct CodeMap
 {
-    std::array<double, 3> value{0.0, 0.0, 0.0};
+    Eigen::Array3d value{0.0, 0.0, 0.0};
     bool valid{true};
 };
 
@@ -46,11 +45,11 @@ struct CodeMap
     MomentBasis basis) -> MomentWeights;
 
 [[nodiscard]] auto weighted_mean(
-    const std::array<double, 3>& values,
+    const Eigen::Array3d& values,
     const MomentWeights& weights) -> double;
 
 [[nodiscard]] auto weighted_var(
-    const std::array<double, 3>& values,
+    const Eigen::Array3d& values,
     const MomentWeights& weights,
     double mean) -> double;
 
