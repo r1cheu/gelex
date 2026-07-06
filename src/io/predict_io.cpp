@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-#include "gelex/io/predict_reader.h"
+#include "gelex/io/predict_io.h"
 
 #include <fmt/format.h>
+#include <Eigen/Core>
 #include <algorithm>
 #include <cstddef>
 #include <filesystem>
@@ -24,13 +25,12 @@
 #include <iterator>
 #include <map>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/data/dataframe/column.h"
 #include "gelex/data/dataframe/constants.h"
@@ -38,7 +38,10 @@
 #include "gelex/data/dataframe/encode.h"
 #include "gelex/data/dataframe/reader.h"
 #include "gelex/data/reader.h"
+#include "gelex/data/sample_id.h"
 #include "gelex/exception.h"
+#include "gelex/io/detail/text_writer.h"
+#include "gelex/predict/types.h"
 
 namespace gelex
 {
@@ -199,6 +202,60 @@ auto read_covariates(
         }
     }
     return X;
+}
+
+auto write_predictions(
+    const std::filesystem::path& output_path,
+    const PredictResult& result) -> void
+{
+    if (output_path.empty())
+    {
+        throw GelexException("Output path must be provided");
+    }
+
+    const auto n_samples = static_cast<Eigen::Index>(result.sample_ids.size());
+    if (n_samples != result.predictions.size())
+    {
+        throw GelexException(
+            fmt::format(
+                "Dimension mismatch: {} sample IDs but {} predictions",
+                result.sample_ids.size(),
+                result.predictions.size()));
+    }
+
+    detail::TextWriter writer(output_path);
+
+    std::string header = "FID\tIID\tprediction";
+    for (const auto& name : result.covar_names)
+    {
+        header += '\t';
+        header += name;
+    }
+    for (const auto& mode : std::views::keys(result.snp_components))
+    {
+        header += fmt::format("\t{}", mode);
+    }
+    writer.write(header);
+
+    std::string row_buf;
+    for (Eigen::Index i = 0; i < n_samples; ++i)
+    {
+        row_buf.clear();
+        auto [fid, iid]
+            = split_sample_id(result.sample_ids[static_cast<std::size_t>(i)]);
+        row_buf += fmt::format("{}\t{}", fid, iid);
+        row_buf += fmt::format("\t{:.6f}", result.predictions[i]);
+
+        for (Eigen::Index j = 0; j < result.covar_predictions.cols(); ++j)
+        {
+            row_buf += fmt::format("\t{:.6f}", result.covar_predictions(i, j));
+        }
+        for (const auto& component : std::views::values(result.snp_components))
+        {
+            row_buf += fmt::format("\t{:.6f}", component[i]);
+        }
+        writer.write(row_buf);
+    }
 }
 
 }  // namespace gelex

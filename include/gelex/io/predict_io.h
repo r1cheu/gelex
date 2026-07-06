@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_PREDICT_READER_H_
-#define GELEX_IO_PREDICT_READER_H_
+#ifndef GELEX_IO_PREDICT_IO_H_
+#define GELEX_IO_PREDICT_IO_H_
 
 #include <filesystem>
 #include <optional>
@@ -25,6 +25,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/dataframe/dataframe.h"
+#include "gelex/predict/types.h"
 
 namespace gelex
 {
@@ -47,6 +48,10 @@ struct Coefficients
     const Coefficients& coefficients,
     DataFrame<std::string>& sample_df) -> Eigen::MatrixXd;
 
+auto write_predictions(
+    const std::filesystem::path& output_path,
+    const PredictResult& result) -> void;
+
 }  // namespace gelex
 
-#endif  // GELEX_IO_PREDICT_READER_H_
+#endif  // GELEX_IO_PREDICT_IO_H_

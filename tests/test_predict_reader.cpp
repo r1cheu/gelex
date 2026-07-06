@@ -23,7 +23,7 @@
 #include "file_fixture.h"
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/reader.h"
-#include "gelex/io/predict_reader.h"
+#include "gelex/io/predict_io.h"
 
 using gelex::SEPARATOR;
 using gelex::test::FileFixture;

@@ -20,7 +20,7 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/io/predict_reader.h"
+#include "gelex/io/predict_io.h"
 #include "gelex/predict/compute.h"
 #include "gelex/predict/types.h"
 #include "gelex/types/genetic_mode.h"

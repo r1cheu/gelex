@@ -34,8 +34,7 @@
 #include "gelex/data/snp_stats.h"
 #include "gelex/exception.h"
 #include "gelex/io/binary_reader.h"
-#include "gelex/io/predict_reader.h"
-#include "gelex/io/predict_writer.h"
+#include "gelex/io/predict_io.h"
 #include "gelex/io/snpstats.h"
 #include "gelex/predict/compute.h"
 #include "gelex/predict/snp_alignment.h"
@@ -183,8 +182,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
         .covar_predictions = std::move(covar.per_covariate),
         .covar_names = std::move(covar.covar_names)};
 
-    gelex::PredictWriter writer(config.out);
-    writer.write(result);
+    gelex::write_predictions(config.out, result);
 
     reporter.show_results_written(config.out, result.sample_ids.size());
 

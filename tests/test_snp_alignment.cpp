@@ -24,7 +24,7 @@
 #include "file_fixture.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/reader.h"
-#include "gelex/io/predict_reader.h"
+#include "gelex/io/predict_io.h"
 #include "gelex/predict/snp_alignment.h"
 
 using gelex::test::BedFixture;
