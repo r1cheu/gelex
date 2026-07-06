@@ -50,6 +50,11 @@ class DataFrameIndex
     {
         return lookup_.contains(key);
     }
+    auto find(const Key& key) const -> const std::size_t*
+    {
+        auto it = lookup_.find(key);
+        return it == lookup_.end() ? nullptr : &it->second;
+    }
     auto size() const -> std::size_t { return keys_.size(); }
 
     auto keys() const -> std::span<const Key> { return keys_; }
