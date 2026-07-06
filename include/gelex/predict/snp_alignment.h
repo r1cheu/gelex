@@ -27,18 +27,28 @@
 namespace gelex
 {
 
-inline constexpr double MAX_SNP_MISSING_RATIO = 0.2;
-
-struct SnpAlignment
+// Maps training SNP effects (canonical axis) onto the columns of a prediction
+// .bim by SNP id, orienting each match to the training A1. Three outcomes per
+// training SNP: same orientation, allele-swapped (dosage needs 2 - x), or
+// missing (id absent, or alleles neither match nor swap). Pure over allele
+// tables: no genotype I/O, no imputation.
+struct AlignmentPlan
 {
-    std::vector<Eigen::Index> column_map;  // -1 = missing or mismatched
-    Eigen::Index num_missing{};
-    Eigen::Index num_mismatched{};
+    std::vector<Eigen::Index> source_col;  // bim columns to read (dense)
+    std::vector<Eigen::Index> train_pos;   // parallel: training-length target
+    std::vector<char> flip;                // parallel: apply 2 - x when nonzero
+    std::vector<Eigen::Index> missing_pos;  // training positions with no source
+
+    Eigen::Index num_same{};
+    Eigen::Index num_flip{};
+    Eigen::Index num_absent{};  // id not present in bim
+    Eigen::Index
+        num_incompatible{};  // id present but alleles neither match nor swap
 };
 
 [[nodiscard]] auto build_snp_alignment(
     const DataFrame<std::string>& snp_effects,
-    const DataFrame<std::string>& bim_df) -> SnpAlignment;
+    const DataFrame<std::string>& bim_df) -> AlignmentPlan;
 
 }  // namespace gelex
 

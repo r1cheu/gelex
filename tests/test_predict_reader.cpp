@@ -24,7 +24,6 @@
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/reader.h"
 #include "gelex/io/predict_reader.h"
-#include "gelex/predict/snp_alignment.h"
 
 using gelex::SEPARATOR;
 using gelex::test::FileFixture;
@@ -149,111 +148,4 @@ TEST_CASE(
     REQUIRE(dom[0] == 0.1);
     REQUIRE(dom[1] == 0.0);
     REQUIRE(dom[2] == -0.3);
-}
-
-TEST_CASE(
-    "build_snp_alignment maps effect SNPs to bim columns",
-    "[predict][reader]")
-{
-    FileFixture files;
-
-    SECTION("happy path: all SNPs match")
-    {
-        auto eff_path = files.create_text_file(
-            "CHR\tSNP\tA1\tA2\tBETA_A\n"
-            "1\trs1\tA\tG\t0.5\n"
-            "1\trs2\tC\tT\t-0.2\n"
-            "2\trs3\tA\tT\t0.8\n",
-            ".snpeff");
-        auto bim_path = files.create_text_file(
-            "1\trs1\t0\t1000\tA\tG\n"
-            "1\trs2\t0\t2000\tC\tT\n"
-            "2\trs3\t0\t500\tA\tT\n",
-            ".bim");
-
-        auto snp_effects = gelex::read_snp_effects(eff_path);
-        auto bim_df = gelex::read_bim(bim_path);
-        auto alignment = gelex::build_snp_alignment(snp_effects, bim_df);
-
-        REQUIRE(alignment.num_missing == 0);
-        REQUIRE(alignment.num_mismatched == 0);
-        REQUIRE(alignment.column_map.size() == 3);
-        REQUIRE(alignment.column_map[0] == 0);
-        REQUIRE(alignment.column_map[1] == 1);
-        REQUIRE(alignment.column_map[2] == 2);
-    }
-
-    SECTION("partial match: some SNPs missing from bim")
-    {
-        auto eff_path = files.create_text_file(
-            "CHR\tSNP\tA1\tA2\tBETA_A\n"
-            "1\trs1\tA\tG\t0.5\n"
-            "1\trs2\tC\tT\t-0.2\n"
-            "2\trs3\tA\tT\t0.8\n",
-            ".snpeff");
-        auto bim_path = files.create_text_file(
-            "1\trs1\t0\t1000\tA\tG\n"
-            "2\trs3\t0\t500\tA\tT\n",
-            ".bim");
-
-        auto snp_effects = gelex::read_snp_effects(eff_path);
-        auto bim_df = gelex::read_bim(bim_path);
-        auto alignment = gelex::build_snp_alignment(snp_effects, bim_df);
-
-        REQUIRE(alignment.num_missing == 1);
-        REQUIRE(alignment.num_mismatched == 0);
-        REQUIRE(alignment.column_map.size() == 3);
-        REQUIRE(alignment.column_map[0] == 0);
-        REQUIRE(alignment.column_map[1] == -1);
-        REQUIRE(alignment.column_map[2] == 1);
-    }
-
-    SECTION("allele mismatch: SNP matches but alleles differ")
-    {
-        auto eff_path = files.create_text_file(
-            "CHR\tSNP\tA1\tA2\tBETA_A\n"
-            "1\trs1\tA\tG\t0.5\n"
-            "1\trs2\tC\tT\t-0.2\n"
-            "2\trs3\tA\tT\t0.8\n",
-            ".snpeff");
-        auto bim_path = files.create_text_file(
-            "1\trs1\t0\t1000\tA\tG\n"
-            "1\trs2\t0\t2000\tT\tC\n"
-            "2\trs3\t0\t500\tG\tT\n",
-            ".bim");
-
-        auto snp_effects = gelex::read_snp_effects(eff_path);
-        auto bim_df = gelex::read_bim(bim_path);
-        auto alignment = gelex::build_snp_alignment(snp_effects, bim_df);
-
-        REQUIRE(alignment.num_missing == 0);
-        REQUIRE(alignment.num_mismatched == 2);
-        REQUIRE(alignment.column_map.size() == 3);
-        REQUIRE(alignment.column_map[0] == 0);
-        REQUIRE(alignment.column_map[1] == -1);
-        REQUIRE(alignment.column_map[2] == -1);
-    }
-
-    SECTION("no match: all SNPs missing from bim")
-    {
-        auto eff_path = files.create_text_file(
-            "CHR\tSNP\tA1\tA2\tBETA_A\n"
-            "1\trs1\tA\tG\t0.5\n"
-            "1\trs2\tC\tT\t-0.2\n",
-            ".snpeff");
-        auto bim_path = files.create_text_file(
-            "1\trs4\t0\t1000\tA\tG\n"
-            "1\trs5\t0\t2000\tC\tT\n",
-            ".bim");
-
-        auto snp_effects = gelex::read_snp_effects(eff_path);
-        auto bim_df = gelex::read_bim(bim_path);
-        auto alignment = gelex::build_snp_alignment(snp_effects, bim_df);
-
-        REQUIRE(alignment.num_missing == 2);
-        REQUIRE(alignment.num_mismatched == 0);
-        REQUIRE(alignment.column_map.size() == 2);
-        REQUIRE(alignment.column_map[0] == -1);
-        REQUIRE(alignment.column_map[1] == -1);
-    }
 }

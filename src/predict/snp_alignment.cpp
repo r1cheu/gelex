@@ -19,6 +19,8 @@
 #include <cstddef>
 #include <string>
 
+#include <Eigen/Core>
+
 #include "gelex/data/dataframe/dataframe.h"
 
 namespace gelex
@@ -26,39 +28,53 @@ namespace gelex
 
 auto build_snp_alignment(
     const DataFrame<std::string>& snp_effects,
-    const DataFrame<std::string>& bim_df) -> SnpAlignment
+    const DataFrame<std::string>& bim_df) -> AlignmentPlan
 {
     const auto& eff_index = snp_effects.index();
     const auto& bim_index = bim_df.index();
-    auto eff_a1 = snp_effects["A1"].as<std::string>();
-    auto eff_a2 = snp_effects["A2"].as<std::string>();
-    auto bim_a1 = bim_df["A1"].as<std::string>();
-    auto bim_a2 = bim_df["A2"].as<std::string>();
+    const auto eff_a1 = snp_effects["A1"].as<std::string>();
+    const auto eff_a2 = snp_effects["A2"].as<std::string>();
+    const auto bim_a1 = bim_df["A1"].as<std::string>();
+    const auto bim_a2 = bim_df["A2"].as<std::string>();
 
-    SnpAlignment result;
-    result.column_map.reserve(eff_index.size());
+    AlignmentPlan plan;
+    plan.source_col.reserve(eff_index.size());
+    plan.train_pos.reserve(eff_index.size());
+    plan.flip.reserve(eff_index.size());
 
     for (std::size_t i = 0; i < eff_index.size(); ++i)
     {
         const auto& key = eff_index.keys()[i];
-        if (!bim_index.contains(key))
+        const auto* row = bim_index.find(key);
+        if (row == nullptr)
         {
-            result.column_map.push_back(-1);
-            result.num_missing++;
+            plan.missing_pos.push_back(static_cast<Eigen::Index>(i));
+            ++plan.num_absent;
             continue;
         }
-        auto bim_row = bim_index.at(key);
-        if (eff_a1[i] == bim_a1[bim_row] && eff_a2[i] == bim_a2[bim_row])
+
+        if (eff_a1[i] == bim_a1[*row] && eff_a2[i] == bim_a2[*row])
         {
-            result.column_map.push_back(static_cast<Eigen::Index>(bim_row));
+            plan.source_col.push_back(static_cast<Eigen::Index>(*row));
+            plan.train_pos.push_back(static_cast<Eigen::Index>(i));
+            plan.flip.push_back(0);
+            ++plan.num_same;
+        }
+        else if (eff_a1[i] == bim_a2[*row] && eff_a2[i] == bim_a1[*row])
+        {
+            plan.source_col.push_back(static_cast<Eigen::Index>(*row));
+            plan.train_pos.push_back(static_cast<Eigen::Index>(i));
+            plan.flip.push_back(1);
+            ++plan.num_flip;
         }
         else
         {
-            result.column_map.push_back(-1);
-            result.num_mismatched++;
+            plan.missing_pos.push_back(static_cast<Eigen::Index>(i));
+            ++plan.num_incompatible;
         }
     }
-    return result;
+
+    return plan;
 }
 
 }  // namespace gelex

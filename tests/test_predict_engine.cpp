@@ -19,6 +19,7 @@
 #include <filesystem>
 #include <fstream>
 #include <optional>
+#include <ranges>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -332,7 +333,7 @@ auto run_predict_dataflow(
         qcovar_path, dcovar_path, coefficients, fam_df);
 
     auto alignment = gelex::build_snp_alignment(snp_effects, bim_df);
-    if (alignment.num_missing > 0 || alignment.num_mismatched > 0)
+    if (!alignment.missing_pos.empty())
     {
         throw gelex::GelexException(
             fmt::format(
@@ -340,12 +341,20 @@ auto run_predict_dataflow(
                 "allele mismatches",
                 gfile_prefix,
                 bfile_prefix,
-                alignment.num_missing,
-                alignment.num_mismatched));
+                alignment.num_absent,
+                alignment.num_incompatible));
     }
 
     auto bed = gelex::open_bed(bfile_prefix, fam_df.index());
-    auto genotype = bed.read_snps<double>(alignment.column_map);
+    auto genotype = bed.read_snps<double>(alignment.source_col);
+    for (const auto [col, do_flip] : std::views::enumerate(alignment.flip))
+    {
+        if (do_flip != 0)
+        {
+            genotype.col(static_cast<Eigen::Index>(col))
+                = 2.0 - genotype.col(static_cast<Eigen::Index>(col)).array();
+        }
+    }
 
     gelex::GenotypeData geno;
     if (snpstats.has_dom)

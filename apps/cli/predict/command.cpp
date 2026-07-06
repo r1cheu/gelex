@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <utility>
 #include <vector>
@@ -102,13 +103,12 @@ auto predict_execute(const cli::PredictConfig& config) -> int
 
     auto alignment = gelex::build_snp_alignment(snp_effects, bim_df);
     const auto n_snps = static_cast<std::size_t>(snp_effects.rows());
-    if (alignment.num_missing > 0 || alignment.num_mismatched > 0)
+    if (!alignment.missing_pos.empty())
     {
         reporter.show_snp_selection(
-            n_snps - static_cast<std::size_t>(alignment.num_missing)
-                - static_cast<std::size_t>(alignment.num_mismatched),
-            static_cast<std::size_t>(alignment.num_missing),
-            static_cast<std::size_t>(alignment.num_mismatched),
+            static_cast<std::size_t>(alignment.num_same + alignment.num_flip),
+            static_cast<std::size_t>(alignment.num_absent),
+            static_cast<std::size_t>(alignment.num_incompatible),
             n_snps,
             bfile_prefix,
             gfile_prefix + ".snpeff");
@@ -119,12 +119,20 @@ auto predict_execute(const cli::PredictConfig& config) -> int
                 "allele mismatches",
                 gfile_prefix,
                 bfile_prefix,
-                alignment.num_missing,
-                alignment.num_mismatched));
+                alignment.num_absent,
+                alignment.num_incompatible));
     }
 
     auto bed = gelex::open_bed(bfile_prefix, fam_df.index());
-    auto genotype = bed.read_snps<double>(alignment.column_map);
+    auto genotype = bed.read_snps<double>(alignment.source_col);
+    for (const auto [col, do_flip] : std::views::enumerate(alignment.flip))
+    {
+        if (do_flip != 0)
+        {
+            genotype.col(static_cast<Eigen::Index>(col))
+                = 2.0 - genotype.col(static_cast<Eigen::Index>(col)).array();
+        }
+    }
 
     gelex::GenotypeData geno;
     if (snpstats.has_dom)
