@@ -17,6 +17,7 @@
 #ifndef GELEX_BAYES_DESIGN_H_
 #define GELEX_BAYES_DESIGN_H_
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -69,12 +70,12 @@ struct GeneticDesign
     Eigen::VectorXd XtX_diag;
     Eigen::RowVectorXd col_var;
 
-    auto is_monomorphic(Eigen::Index snp_index) const -> bool
+    auto valid_indices() const -> const std::vector<int64_t>&
     {
-        return X.is_monomorphic(snp_index);
+        return X.valid_indices();
     }
 
-    auto num_mono() const -> Eigen::Index { return X.num_mono(); }
+    auto num_invalid() const -> Eigen::Index { return X.num_invalid(); }
 };
 
 }  // namespace gelex::bayes

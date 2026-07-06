@@ -42,7 +42,7 @@ auto setup_predict_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option(
            "-g,--gfile",
            config->gfile,
-           "Fitted model prefix; reads <prefix>.snpeff/.sbin/.param")
+           "Fitted model prefix; reads <prefix>.snpeff/.snpstats/.param")
         ->group("I/O")
         ->type_name("<GFILE>")
         ->required();

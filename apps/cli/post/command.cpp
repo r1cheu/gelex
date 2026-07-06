@@ -104,11 +104,11 @@ auto process_gebv_variance(
         {
             continue;
         }
-        auto gbin_path = fmt::format(
-            "{}.{}.gbin", *gfile, gelex::bayes::to_file_suffix(kind));
+        auto geno_path = fmt::format(
+            "{}.{}.geno", *gfile, gelex::bayes::to_file_suffix(kind));
 
         genotype_storages.emplace_back(
-            gelex::GenotypeReader::read(gbin_path, kind));
+            gelex::GenotypeReader::read(geno_path, kind));
         genetic_inputs.push_back({&genotype_storages.back(), kind});
     }
 

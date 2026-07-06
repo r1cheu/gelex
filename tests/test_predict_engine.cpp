@@ -35,10 +35,11 @@
 #include "gelex/data/locus_encoding.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
-#include "gelex/io/locistats/reader.h"
-#include "gelex/io/locistats/writer.h"
+#include "gelex/io/binary_reader.h"
 #include "gelex/io/predict/input_reader.h"
 #include "gelex/io/predict/writer.h"
+#include "gelex/io/snpstats/reader.h"
+#include "gelex/io/snpstats/writer.h"
 #include "gelex/predict/compute.h"
 #include "gelex/predict/snp_alignment.h"
 #include "gelex/predict/standardize.h"
@@ -100,52 +101,44 @@ auto read_fam(const std::filesystem::path& fam_path)
     return {std::move(fids), std::move(iids)};
 }
 
-// sbin 写入并返回标准化后基因型矩阵（add + dom）
-auto create_sbin(
-    const std::filesystem::path& sbin_path,
+// snpstats 写入并返回标准化后基因型矩阵（add + dom）
+auto create_snpstats(
+    const std::filesystem::path& snpstats_path,
     const Eigen::MatrixXd& genotypes) -> void
 {
+    using gelex::BinaryWriter;
     using gelex::GeneticMode;
     using gelex::GenotypeMethod;
-    using gelex::LociStatsWriter;
+    using gelex::SnpStats;
+    using gelex::write_snp_stats;
 
     const auto n_snps = genotypes.cols();
 
-    const gelex::EncodingSpec add_spec{gelex::encoding_spec_from_method(
-        GeneticMode::A, GenotypeMethod::StandardizeHWE)};
-    const gelex::LociEncoding add_encoding{
-        gelex::detail::make_loci_encoding<double>(genotypes, add_spec)};
-    Eigen::VectorXd add_mean(n_snps);
-    Eigen::VectorXd add_stddev(n_snps);
-    for (const gelex::LocusEncoding& locus : add_encoding.loci)
+    const auto fill = [&genotypes, n_snps](GeneticMode mode) -> SnpStats
     {
-        add_mean(locus.marker_index) = locus.mean;
-        add_stddev(locus.marker_index) = locus.sd;
-    }
+        const gelex::EncodingSpec spec{gelex::encoding_spec_from_method(
+            mode, GenotypeMethod::StandardizeHWE)};
+        const gelex::LociEncoding encoding{
+            gelex::detail::make_loci_encoding<double>(genotypes, spec)};
 
-    const gelex::EncodingSpec dom_spec{gelex::encoding_spec_from_method(
-        GeneticMode::D, GenotypeMethod::StandardizeHWE)};
-    const gelex::LociEncoding dom_encoding{
-        gelex::detail::make_loci_encoding<double>(genotypes, dom_spec)};
-    Eigen::VectorXd dom_mean(n_snps);
-    Eigen::VectorXd dom_stddev(n_snps);
-    for (const gelex::LocusEncoding& locus : dom_encoding.loci)
-    {
-        dom_mean(locus.marker_index) = locus.mean;
-        dom_stddev(locus.marker_index) = locus.sd;
-    }
+        SnpStats stats;
+        stats.method = GenotypeMethod::StandardizeHWE;
+        stats.mean = Eigen::VectorXd(n_snps);
+        stats.var = Eigen::VectorXd(n_snps);
+        stats.A1freq = Eigen::VectorXd(n_snps);
+        for (const gelex::LocusEncoding& locus : encoding.loci)
+        {
+            stats.mean(locus.marker_index) = locus.mean;
+            stats.var(locus.marker_index) = locus.var;
+            stats.A1freq(locus.marker_index)
+                = locus.stats.has_nonmissing() ? locus.stats.A1freq() : 0.0;
+        }
+        return stats;
+    };
 
-    LociStatsWriter writer(sbin_path.string());
-    writer.write(
-        GeneticMode::A,
-        std::to_underlying(GenotypeMethod::StandardizeHWE),
-        add_mean,
-        &add_stddev);
-    writer.write(
-        GeneticMode::D,
-        std::to_underlying(GenotypeMethod::StandardizeHWE),
-        dom_mean,
-        &dom_stddev);
+    BinaryWriter writer(snpstats_path.string());
+    write_snp_stats(writer, GeneticMode::A, fill(GeneticMode::A));
+    write_snp_stats(writer, GeneticMode::D, fill(GeneticMode::D));
 }
 
 auto create_snp_effects_file(
@@ -292,14 +285,14 @@ auto read_prediction_output(const std::filesystem::path& path)
     return out;
 }
 
-auto load_sbin(const std::filesystem::path& path) -> gelex::SbinData
+auto load_snpstats(const std::filesystem::path& path) -> gelex::SnpStatsData
 {
-    gelex::LociStatsReader reader(path.string());
-    gelex::SbinData data;
-    data.add = reader.read(gelex::GeneticMode::A);
-    if (reader.has(gelex::GeneticMode::D))
+    gelex::BinaryReader reader(path.string());
+    gelex::SnpStatsData data;
+    data.add = gelex::read_snp_stats(reader, gelex::GeneticMode::A);
+    if (gelex::has_snp_stats(reader, gelex::GeneticMode::D))
     {
-        data.dom = reader.read(gelex::GeneticMode::D);
+        data.dom = gelex::read_snp_stats(reader, gelex::GeneticMode::D);
         data.has_dom = true;
     }
     return data;
@@ -313,15 +306,16 @@ auto run_predict_dataflow(
     const std::filesystem::path& output_path) -> void
 {
     auto snp_effects = gelex::read_snp_effects(gfile_prefix + ".snpeff");
-    auto sbin = load_sbin(gfile_prefix + ".sbin");
+    auto snpstats = load_snpstats(gfile_prefix + ".snpstats");
 
     bool enable_dom{};
-    if (sbin.has_dom)
+    if (snpstats.has_dom)
     {
         if (!snp_effects.contains("BETA_D"))
         {
             throw gelex::GelexException(
-                "Sbin file contains dominance effects, but SNP effects file "
+                ".snpstats file contains dominance effects, but SNP effects "
+                "file "
                 "does not have 'BETA_D' column.");
         }
         enable_dom = true;
@@ -355,13 +349,13 @@ auto run_predict_dataflow(
     auto genotype = bed.read_snps<double>(alignment.column_map);
 
     gelex::GenotypeData geno;
-    if (sbin.has_dom)
+    if (snpstats.has_dom)
     {
         geno.dom = genotype;
     }
     geno.add = std::move(genotype);
 
-    gelex::standardize_genotypes(geno, sbin);
+    gelex::standardize_genotypes(geno, snpstats);
 
     gelex::SnpEffects effects{
         .add = std::move(add_effects), .dom = std::move(dom_effects)};
@@ -419,7 +413,7 @@ TEST_CASE(
     create_snp_effects_file(ff, gfile_prefix, snp_rows);
     create_param_file(
         ff, gfile_prefix, 1.0, {{"Age", 0.2}}, {{"Sex\x1FM", -0.3}});
-    create_sbin(gfile_prefix + ".sbin", genotypes);
+    create_snpstats(gfile_prefix + ".snpstats", genotypes);
 
     auto qcovar_path = create_qcovar_file(
         ff, fids, loaded_iids, {{"Age", {25.0, 30.0, 35.0}}});
@@ -471,7 +465,7 @@ TEST_CASE(
     auto gfile_prefix = (ff.get_test_dir() / "missing_snp").string();
     create_snp_effects_file(ff, gfile_prefix, snp_rows);
     create_param_file(ff, gfile_prefix, 1.0, {}, {});
-    create_sbin(gfile_prefix + ".sbin", genotypes);
+    create_snpstats(gfile_prefix + ".snpstats", genotypes);
 
     auto output_path = ff.get_test_dir() / "missing.predictions";
 

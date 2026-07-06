@@ -584,9 +584,9 @@ TEST_CASE(
         REQUIRE(all_equal);
     }
 
-    SECTION("monomorphic counts match")
+    SECTION("invalid counts match")
     {
-        REQUIRE(mat_result.num_mono() == map_result.num_mono());
+        REQUIRE(mat_result.num_invalid() == map_result.num_invalid());
     }
 }
 
@@ -602,18 +602,18 @@ TEST_CASE(
     Eigen::VectorXd variances
         = Eigen::VectorXd::LinSpaced(NUM_VARIANTS, 0.01, 0.25);
 
-    auto container_path = dir / "snpstats_test.gbin";
+    auto container_path = dir / "snpstats_test.geno";
     {
         BinaryWriter writer(container_path.string());
 
         auto stats_handle
-            = writer.reserve<double>("Additive/loci_stats", NUM_VARIANTS, 2);
+            = writer.reserve<double>("Additive/snp_stats", NUM_VARIANTS, 2);
         writer.write(stats_handle, means);
         writer.write(stats_handle, variances);
     }
 
     BinaryReader reader(container_path.string());
-    auto stats_mat = reader.to_mat<double>("Additive/loci_stats");
+    auto stats_mat = reader.to_mat<double>("Additive/snp_stats");
 
     REQUIRE(stats_mat.rows() == NUM_VARIANTS);
     REQUIRE(stats_mat.cols() == 2);

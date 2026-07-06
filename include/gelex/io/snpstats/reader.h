@@ -14,43 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_LOCISTATS_READER_H_
-#define GELEX_IO_LOCISTATS_READER_H_
+#ifndef GELEX_IO_SNPSTATS_READER_H_
+#define GELEX_IO_SNPSTATS_READER_H_
 
-#include <cstdint>
-#include <optional>
-#include <string_view>
-#include <vector>
-
-#include <Eigen/Core>
-
-#include "gelex/data/genotype_method.h"
+#include "gelex/data/snp_stats.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
 
-struct LociStats
-{
-    GenotypeMethod method{};
-    Eigen::VectorXd mean;
-    std::optional<Eigen::VectorXd> stddev;
-    std::vector<int64_t> mono_indices;
-};
+[[nodiscard]] auto has_snp_stats(const BinaryReader& reader, GeneticMode mode)
+    -> bool;
 
-class LociStatsReader
-{
-   public:
-    explicit LociStatsReader(std::string_view file_path);
-
-    [[nodiscard]] auto read(GeneticMode mode) const -> LociStats;
-    [[nodiscard]] auto has(GeneticMode mode) const -> bool;
-
-   private:
-    BinaryReader reader_;
-};
+[[nodiscard]] auto read_snp_stats(const BinaryReader& reader, GeneticMode mode)
+    -> SnpStats;
 
 }  // namespace gelex
 
-#endif  // GELEX_IO_LOCISTATS_READER_H_
+#endif  // GELEX_IO_SNPSTATS_READER_H_

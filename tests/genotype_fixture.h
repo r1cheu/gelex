@@ -19,12 +19,15 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <numeric>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include <Eigen/Core>
 
 #include "gelex/data/genotype.h"
+#include "gelex/data/snp_stats.h"
 
 namespace gelex::test
 {
@@ -36,7 +39,7 @@ class GenotypeBuilder
         Eigen::MatrixXd data,
         Eigen::VectorXd mean,
         Eigen::VectorXd var,
-        std::vector<int64_t> mono_indices = {},
+        std::optional<std::vector<int64_t>> valid_indices = std::nullopt,
         Eigen::VectorXd A1freq = {}) -> Genotype
     {
         OwnedStorage owned;
@@ -45,11 +48,24 @@ class GenotypeBuilder
         {
             A1freq = (mean.array() / 2.0).matrix();
         }
-        owned.mean = std::move(mean);
-        owned.var = std::move(var);
-        owned.A1freq = std::move(A1freq);
-        owned.mono_indices = std::move(mono_indices);
-        std::ranges::sort(owned.mono_indices);
+
+        SnpStats stats;
+        stats.mean = std::move(mean);
+        stats.var = std::move(var);
+        stats.A1freq = std::move(A1freq);
+        if (valid_indices)
+        {
+            stats.valid_indices = std::move(*valid_indices);
+        }
+        else
+        {
+            stats.valid_indices.resize(static_cast<size_t>(owned.data.cols()));
+            std::iota(
+                stats.valid_indices.begin(), stats.valid_indices.end(), 0);
+        }
+        std::ranges::sort(stats.valid_indices);
+
+        owned.stats = std::move(stats);
         return Genotype{std::move(owned)};
     }
 };

@@ -59,7 +59,7 @@ class GenotypeReader
         std::size_t chunk_size = 10000) -> Genotype;
 
     static auto read(
-        const std::filesystem::path& gbin_path,
+        const std::filesystem::path& geno_path,
         gelex::GeneticMode mode) -> Genotype;
 
    private:

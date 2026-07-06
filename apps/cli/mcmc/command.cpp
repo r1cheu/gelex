@@ -41,8 +41,8 @@
 #include "gelex/data/genotype_reader.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
-#include "gelex/io/locistats/writer.h"
 #include "gelex/io/mcmc.h"
+#include "gelex/io/snpstats/writer.h"
 #include "gelex/types/genetic_mode.h"
 #include "reporter.h"
 
@@ -73,10 +73,7 @@ class MCMCDataHandler
         auto reader = gelex::GenotypeReader(
             config_.bfile, common_index, reporter_.as_observer());
 
-        gelex::LociStatsWriter writer(config_.out + ".sbin");
-        const auto method_code
-            = static_cast<std::uint8_t>(std::to_underlying(genotype_method_));
-        const bool method_is_center = gelex::is_center(genotype_method_);
+        gelex::BinaryWriter writer(config_.out + ".snpstats");
 
         for (const auto mode : requested_effects_.each())
         {
@@ -95,16 +92,10 @@ class MCMCDataHandler
                             genotype_method_,
                             static_cast<std::size_t>(config_.chunk_size));
 
-            reporter_.show_loaded(mode, genotype.cols(), genotype.num_mono());
+            reporter_.show_loaded(
+                mode, genotype.cols(), genotype.num_invalid());
 
-            const Eigen::VectorXd stddev{genotype.var().array().sqrt()};
-            writer.write(
-                mode,
-                method_code,
-                genotype.mean(),
-                method_is_center ? static_cast<const Eigen::VectorXd*>(nullptr)
-                                 : &stddev,
-                genotype.mono_indices());
+            gelex::write_snp_stats(writer, mode, genotype.stats());
             genetics_.emplace_back(mode, std::move(genotype));
         }
     }

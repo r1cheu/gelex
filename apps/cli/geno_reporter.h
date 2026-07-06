@@ -34,7 +34,7 @@ class GenoReporter
     auto show_loaded(
         gelex::GeneticMode mode,
         int64_t num_snps,
-        int64_t monomorphic_snps) const -> void;
+        int64_t invalid_snps) const -> void;
     auto on_event(const gelex::GenotypeProgressEvent& event) -> void;
 
     auto as_observer() -> gelex::GenoObserver

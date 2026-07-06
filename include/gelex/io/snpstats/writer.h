@@ -14,17 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_PREDICT_STANDARDIZE_H_
-#define GELEX_PREDICT_STANDARDIZE_H_
+#ifndef GELEX_IO_SNPSTATS_WRITER_H_
+#define GELEX_IO_SNPSTATS_WRITER_H_
 
-#include "gelex/predict/types.h"
+#include "gelex/data/snp_stats.h"
+#include "gelex/io/binary_writer.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
 
-auto standardize_genotypes(GenotypeData& geno, const SnpStatsData& snpstats)
-    -> void;
+auto write_snp_stats(
+    BinaryWriter& writer,
+    GeneticMode mode,
+    const SnpStats& stats) -> void;
 
 }  // namespace gelex
 
-#endif  // GELEX_PREDICT_STANDARDIZE_H_
+#endif  // GELEX_IO_SNPSTATS_WRITER_H_

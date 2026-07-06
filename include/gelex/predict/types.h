@@ -23,15 +23,15 @@
 
 #include <Eigen/Core>
 
-#include "gelex/io/locistats/reader.h"
+#include "gelex/data/snp_stats.h"
 
 namespace gelex
 {
 
-struct SbinData
+struct SnpStatsData
 {
-    LociStats add;
-    LociStats dom;
+    SnpStats add;
+    SnpStats dom;
     bool has_dom{false};
 };
 

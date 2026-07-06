@@ -36,16 +36,16 @@ GenoReporter::GenoReporter() : progress_info_(cli::create_progress_info()) {}
 auto GenoReporter::show_loaded(
     gelex::GeneticMode mode,
     int64_t num_snps,
-    int64_t monomorphic_snps) const -> void
+    int64_t invalid_snps) const -> void
 {
-    const auto effective_snps = num_snps - monomorphic_snps;
+    const auto effective_snps = num_snps - invalid_snps;
     const std::string label
         = (mode == gelex::GeneticMode::D) ? "Dominance" : "Additive";
     const std::string msg = fmt::format(
-        "   {:<13}: {} SNPs ({} monomorphic excluded)",
+        "   {:<13}: {} SNPs ({} invalid excluded)",
         label,
         gelex::AbbrNumber(effective_snps),
-        gelex::AbbrNumber(monomorphic_snps));
+        gelex::AbbrNumber(invalid_snps));
 
     if (isatty(fileno(stdout)) != 0)
     {

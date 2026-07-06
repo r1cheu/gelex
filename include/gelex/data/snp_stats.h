@@ -14,37 +14,28 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_LOCISTATS_WRITER_H_
-#define GELEX_IO_LOCISTATS_WRITER_H_
+#ifndef GELEX_DATA_SNP_STATS_H_
+#define GELEX_DATA_SNP_STATS_H_
 
 #include <cstdint>
-#include <span>
-#include <string_view>
+#include <vector>
 
 #include <Eigen/Core>
 
-#include "gelex/io/binary_writer.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/data/genotype_method.h"
 
 namespace gelex
 {
 
-class LociStatsWriter
+struct SnpStats
 {
-   public:
-    explicit LociStatsWriter(std::string_view output_path);
-
-    auto write(
-        GeneticMode mode,
-        uint8_t method,
-        const Eigen::VectorXd& mean,
-        const Eigen::VectorXd* stddev = nullptr,
-        std::span<const int64_t> mono_indices = {}) -> void;
-
-   private:
-    BinaryWriter writer_;
+    GenotypeMethod method{};
+    Eigen::VectorXd mean;
+    Eigen::VectorXd var;
+    Eigen::VectorXd A1freq;
+    std::vector<int64_t> valid_indices;
 };
 
 }  // namespace gelex
 
-#endif  // GELEX_IO_LOCISTATS_WRITER_H_
+#endif  // GELEX_DATA_SNP_STATS_H_

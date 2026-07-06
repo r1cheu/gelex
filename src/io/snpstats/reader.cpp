@@ -14,52 +14,43 @@
  * limitations under the License.
  */
 
-#include "gelex/io/locistats/reader.h"
+#include "gelex/io/snpstats/reader.h"
 
 #include <fmt/format.h>
 #include <cstdint>
-#include <string_view>
 
 #include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
 
-LociStatsReader::LociStatsReader(std::string_view file_path)
-    : reader_(file_path)
+auto has_snp_stats(const BinaryReader& reader, GeneticMode mode) -> bool
 {
+    return reader.contains(fmt::format("{}/snp_stats", mode));
 }
 
-auto LociStatsReader::has(GeneticMode mode) const -> bool
+auto read_snp_stats(const BinaryReader& reader, GeneticMode mode) -> SnpStats
 {
-    return reader_.contains(fmt::format("{}/loci_stats", mode));
-}
+    auto stats_map = reader.to_map<double>(fmt::format("{}/snp_stats", mode));
 
-auto LociStatsReader::read(GeneticMode mode) const -> LociStats
-{
-    auto stats_map = reader_.to_map<double>(fmt::format("{}/loci_stats", mode));
-
-    LociStats data;
+    SnpStats data;
     data.mean = stats_map.col(0);
+    data.var = stats_map.col(1);
+    data.A1freq = stats_map.col(2);
 
     if (const auto path = fmt::format("{}/geno_method", mode);
-        reader_.contains(path))
+        reader.contains(path))
     {
-        auto method_map = reader_.to_map<uint8_t>(path);
+        auto method_map = reader.to_map<uint8_t>(path);
         data.method = genotype_method_from_byte(method_map(0, 0));
     }
 
-    if (stats_map.cols() == 2)
+    if (const auto path = fmt::format("{}/valid_indices", mode);
+        reader.contains(path))
     {
-        data.stddev = Eigen::VectorXd(stats_map.col(1));
-    }
-
-    if (const auto path = fmt::format("{}/mono_indices", mode);
-        reader_.contains(path))
-    {
-        auto mono_mat = reader_.to_map<int64_t>(path);
-        const auto* src = mono_mat.col(0).data();
-        data.mono_indices.assign(src, src + mono_mat.rows());
+        auto valid_map = reader.to_map<int64_t>(path);
+        const auto* src = valid_map.col(0).data();
+        data.valid_indices.assign(src, src + valid_map.rows());
     }
 
     return data;

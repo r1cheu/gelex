@@ -24,29 +24,35 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/data/genotype_method.h"
-#include "gelex/io/locistats/reader.h"
 #include "gelex/io/predict/input_reader.h"
+#include "gelex/io/snpstats/reader.h"
 #include "gelex/predict/compute.h"
 #include "gelex/predict/standardize.h"
 #include "gelex/predict/types.h"
 
 using gelex::Coefficients;
 using gelex::GenotypeData;
-using gelex::LociStats;
-using gelex::SbinData;
 using gelex::SnpEffects;
+using gelex::SnpStats;
+using gelex::SnpStatsData;
 using gelex::standardize_genotypes;
 
 namespace
 {
 
-auto make_loci_stats(
+auto make_snp_stats(
     gelex::GenotypeMethod method,
     Eigen::VectorXd mean,
-    std::optional<Eigen::VectorXd> stddev = std::nullopt) -> LociStats
+    std::optional<Eigen::VectorXd> stddev = std::nullopt) -> SnpStats
 {
-    return LociStats{
-        .method = method, .mean = std::move(mean), .stddev = std::move(stddev)};
+    SnpStats stats;
+    stats.method = method;
+    stats.mean = std::move(mean);
+    if (stddev)
+    {
+        stats.var = stddev->array().square();
+    }
+    return stats;
 }
 
 }  // namespace
@@ -66,14 +72,14 @@ TEST_CASE(
     geno.add.resize(2, 2);
     geno.add << 0.0, 2.0, 1.0, 1.0;
 
-    SbinData sbin;
-    sbin.add = make_loci_stats(
+    SnpStatsData snpstats;
+    snpstats.add = make_snp_stats(
         gelex::GenotypeMethod::StandardizeHWE,
         Eigen::VectorXd{{0.5, 1.5}},
         Eigen::VectorXd{{0.5, 0.5}});
-    sbin.has_dom = false;
+    snpstats.has_dom = false;
 
-    standardize_genotypes(geno, sbin);
+    standardize_genotypes(geno, snpstats);
 
     Eigen::MatrixXd expected(2, 2);
     expected << -1.0, 1.0, 1.0, -1.0;
@@ -89,12 +95,12 @@ TEST_CASE(
     geno.add.resize(2, 2);
     geno.add << 0.0, 2.0, 1.0, 1.0;
 
-    SbinData sbin;
-    sbin.add = make_loci_stats(
+    SnpStatsData snpstats;
+    snpstats.add = make_snp_stats(
         gelex::GenotypeMethod::CenterHWE, Eigen::VectorXd{{0.5, 1.5}});
-    sbin.has_dom = false;
+    snpstats.has_dom = false;
 
-    standardize_genotypes(geno, sbin);
+    standardize_genotypes(geno, snpstats);
 
     Eigen::MatrixXd expected(2, 2);
     expected << -0.5, 0.5, 0.5, -0.5;
@@ -121,18 +127,18 @@ TEST_CASE(
     geno.dom = Eigen::MatrixXd(3, 2);
     (*geno.dom) << 0.0, 2.0, 1.0, 1.0, nan, 0.0;
 
-    SbinData sbin;
-    sbin.add = make_loci_stats(
+    SnpStatsData snpstats;
+    snpstats.add = make_snp_stats(
         gelex::GenotypeMethod::StandardizeHWE,
         Eigen::VectorXd{{0.5, 1.0}},
         Eigen::VectorXd{{0.5, 1.0}});
-    sbin.dom = make_loci_stats(
+    snpstats.dom = make_snp_stats(
         gelex::GenotypeMethod::StandardizeHWE,
         Eigen::VectorXd{{0.5, 0.5}},
         Eigen::VectorXd{{0.5, 0.5}});
-    sbin.has_dom = true;
+    snpstats.has_dom = true;
 
-    standardize_genotypes(geno, sbin);
+    standardize_genotypes(geno, snpstats);
 
     Eigen::MatrixXd expected_add(3, 2);
     expected_add << -1.0, 1.0, 1.0, 0.0, 0.0, -1.0;
@@ -172,18 +178,18 @@ TEST_CASE(
     geno.dom = Eigen::MatrixXd(2, 2);
     (*geno.dom) << 1.0, 0.0, 0.0, 1.0;
 
-    SbinData sbin;
-    sbin.add = make_loci_stats(
+    SnpStatsData snpstats;
+    snpstats.add = make_snp_stats(
         gelex::GenotypeMethod::OrthStandardizeHWE,
         Eigen::VectorXd{{0.5, 1.5}},
         Eigen::VectorXd{{0.5, 0.5}});
-    sbin.dom = make_loci_stats(
+    snpstats.dom = make_snp_stats(
         gelex::GenotypeMethod::OrthStandardizeHWE,
         Eigen::VectorXd{{0.25, 0.75}},
         Eigen::VectorXd{{0.25, 0.75}});
-    sbin.has_dom = true;
+    snpstats.has_dom = true;
 
-    standardize_genotypes(geno, sbin);
+    standardize_genotypes(geno, snpstats);
 
     Eigen::MatrixXd expected_add(2, 2);
     expected_add << -1.0, 1.0, 1.0, -1.0;

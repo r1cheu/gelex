@@ -25,6 +25,7 @@
 
 #include <Eigen/Core>
 
+#include "gelex/data/snp_stats.h"
 #include "gelex/io/binary_reader.h"
 
 namespace gelex::test
@@ -40,10 +41,7 @@ class GenotypeReader;
 struct OwnedStorage
 {
     Eigen::MatrixXd data;
-    Eigen::VectorXd mean;
-    Eigen::VectorXd var;
-    Eigen::VectorXd A1freq;
-    std::vector<int64_t> mono_indices;
+    SnpStats stats;
 
     OwnedStorage() = default;
     OwnedStorage(const OwnedStorage&) = delete;
@@ -59,10 +57,7 @@ struct MmappedStorage
 
     std::unique_ptr<gelex::BinaryReader> reader;
     MapType view{nullptr, 0, 0};
-    Eigen::VectorXd mean;
-    Eigen::VectorXd var;
-    Eigen::VectorXd A1freq;
-    std::vector<int64_t> mono_indices;
+    SnpStats stats;
 
     MmappedStorage() = default;
     MmappedStorage(const MmappedStorage&) = delete;
@@ -89,23 +84,22 @@ class Genotype
     [[nodiscard]] auto matrix() const noexcept
         -> Eigen::Ref<const Eigen::MatrixXd>;
 
+    [[nodiscard]] auto stats() const noexcept -> const SnpStats&;
+
     [[nodiscard]] auto mean() const noexcept -> const Eigen::VectorXd&;
 
     [[nodiscard]] auto var() const noexcept -> const Eigen::VectorXd&;
 
     [[nodiscard]] auto A1freq() const noexcept -> const Eigen::VectorXd&;
 
-    [[nodiscard]] auto mono_indices() const noexcept
+    [[nodiscard]] auto valid_indices() const noexcept
         -> const std::vector<int64_t>&;
 
-    [[nodiscard]] auto num_mono() const noexcept -> int64_t;
+    [[nodiscard]] auto num_invalid() const noexcept -> int64_t;
 
     [[nodiscard]] auto rows() const noexcept -> int64_t;
 
     [[nodiscard]] auto cols() const noexcept -> int64_t;
-
-    [[nodiscard]] auto is_monomorphic(Eigen::Index marker_idx) const noexcept
-        -> bool;
 
    private:
     friend class GenotypeReader;

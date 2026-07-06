@@ -18,8 +18,10 @@
 #define GELEX_ALGO_MCMC_STEPS_JOINT_GENETIC_STEP_H_
 
 #include <array>
+#include <cstdint>
 #include <optional>
 #include <random>
+#include <vector>
 
 #include <Eigen/Core>
 
@@ -66,6 +68,7 @@ class JointGaussianMixtureStep final
 
     const bayes::GeneticDesign& additive_design_;
     const bayes::GeneticDesign& dominance_design_;
+    std::vector<int64_t> valid_indices_;
 
     std::array<ScaledInvChi2Sampler<double>, 2> variance_samplers_;
     std::array<double*, 2> variance_;
@@ -110,6 +113,7 @@ class JointHalfNormalMixtureStep final
 
     const bayes::GeneticDesign& additive_design_;
     const bayes::GeneticDesign& dominance_design_;
+    std::vector<int64_t> valid_indices_;
 
     std::array<ScaledInvChi2Sampler<double>, 2> variance_samplers_;
     std::array<double*, 2> variance_;

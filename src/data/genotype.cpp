@@ -16,7 +16,6 @@
 
 #include "gelex/data/genotype.h"
 
-#include <algorithm>
 #include <cstdint>
 #include <type_traits>
 #include <variant>
@@ -45,38 +44,35 @@ auto Genotype::matrix() const noexcept -> Eigen::Ref<const Eigen::MatrixXd>
         storage_);
 }
 
-auto Genotype::mean() const noexcept -> const Eigen::VectorXd&
+auto Genotype::stats() const noexcept -> const SnpStats&
 {
     return std::visit(
-        [](const auto& s) -> const Eigen::VectorXd& { return s.mean; },
-        storage_);
+        [](const auto& s) -> const SnpStats& { return s.stats; }, storage_);
+}
+
+auto Genotype::mean() const noexcept -> const Eigen::VectorXd&
+{
+    return stats().mean;
 }
 
 auto Genotype::var() const noexcept -> const Eigen::VectorXd&
 {
-    return std::visit(
-        [](const auto& s) -> const Eigen::VectorXd& { return s.var; },
-        storage_);
+    return stats().var;
 }
 
 auto Genotype::A1freq() const noexcept -> const Eigen::VectorXd&
 {
-    return std::visit(
-        [](const auto& s) -> const Eigen::VectorXd& { return s.A1freq; },
-        storage_);
+    return stats().A1freq;
 }
 
-auto Genotype::mono_indices() const noexcept -> const std::vector<int64_t>&
+auto Genotype::valid_indices() const noexcept -> const std::vector<int64_t>&
 {
-    return std::visit(
-        [](const auto& s) -> const std::vector<int64_t>&
-        { return s.mono_indices; },
-        storage_);
+    return stats().valid_indices;
 }
 
-auto Genotype::num_mono() const noexcept -> int64_t
+auto Genotype::num_invalid() const noexcept -> int64_t
 {
-    return static_cast<int64_t>(mono_indices().size());
+    return cols() - static_cast<int64_t>(valid_indices().size());
 }
 
 auto Genotype::rows() const noexcept -> int64_t
@@ -87,12 +83,6 @@ auto Genotype::rows() const noexcept -> int64_t
 auto Genotype::cols() const noexcept -> int64_t
 {
     return static_cast<int64_t>(matrix().cols());
-}
-
-auto Genotype::is_monomorphic(Eigen::Index marker_idx) const noexcept -> bool
-{
-    const auto& v = mono_indices();
-    return std::ranges::binary_search(v, static_cast<int64_t>(marker_idx));
 }
 
 }  // namespace gelex

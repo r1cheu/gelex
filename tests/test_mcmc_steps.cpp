@@ -94,7 +94,10 @@ auto make_design_with_monomorphic_second_marker(
     return gelex::bayes::GeneticDesign{
         mode,
         gelex::test::GenotypeBuilder::build(
-            std::move(data), std::move(mean), std::move(stddev), {1})};
+            std::move(data),
+            std::move(mean),
+            std::move(stddev),
+            std::vector<int64_t>{0})};
 }
 
 auto make_proportion(Eigen::Index size = 2) -> gelex::bayes::MixtureProportion

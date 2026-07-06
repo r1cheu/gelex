@@ -16,6 +16,8 @@
 
 #include "gelex/predict/standardize.h"
 
+#include <cmath>
+
 #include <Eigen/Core>
 
 #include "gelex/data/genotype_method.h"
@@ -24,31 +26,32 @@
 namespace gelex
 {
 
-auto standardize_genotypes(GenotypeData& geno, const SbinData& sbin) -> void
+auto standardize_genotypes(GenotypeData& geno, const SnpStatsData& snpstats)
+    -> void
 {
     const auto n_snps = geno.add.cols();
-    const bool has_stddev = sbin.add.stddev.has_value();
+    const bool add_scale = !is_center(snpstats.add.method);
 
     for (Eigen::Index j = 0; j < n_snps; ++j)
     {
         auto col = geno.add.col(j);
-        col.array() -= sbin.add.mean(j);
-        if (has_stddev)
+        col.array() -= snpstats.add.mean(j);
+        if (add_scale)
         {
-            col.array() /= (*sbin.add.stddev)(j);
+            col.array() /= std::sqrt(snpstats.add.var(j));
         }
         col = col.array().isNaN().select(0.0, col.array());
     }
 
     if (geno.dom.has_value())
     {
-        const bool use_orthogonal = is_orthogonal(sbin.add.method);
-        const bool dom_has_stddev = sbin.dom.stddev.has_value();
+        const bool use_orthogonal = is_orthogonal(snpstats.add.method);
+        const bool dom_scale = !is_center(snpstats.dom.method);
 
         for (Eigen::Index j = 0; j < n_snps; ++j)
         {
             auto col = geno.dom->col(j);
-            const double maf = sbin.add.mean(j) / 2.0;
+            const double maf = snpstats.add.mean(j) / 2.0;
 
             if (use_orthogonal)
             {
@@ -79,10 +82,10 @@ auto standardize_genotypes(GenotypeData& geno, const SbinData& sbin) -> void
                     });
             }
 
-            col.array() -= sbin.dom.mean(j);
-            if (dom_has_stddev)
+            col.array() -= snpstats.dom.mean(j);
+            if (dom_scale)
             {
-                col.array() /= (*sbin.dom.stddev)(j);
+                col.array() /= std::sqrt(snpstats.dom.var(j));
             }
             col = col.array().isNaN().select(0.0, col.array());
         }

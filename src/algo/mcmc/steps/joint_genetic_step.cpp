@@ -16,9 +16,11 @@
 
 #include "gelex/algo/mcmc/steps/joint_genetic_step.h"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <iterator>
 #include <optional>
 #include <random>
 #include <utility>
@@ -103,6 +105,10 @@ JointGaussianMixtureStep::JointGaussianMixtureStep(
       proportion_count_(Eigen::VectorXi::Zero(proportion_.size())),
       rng_(rng)
 {
+    std::ranges::set_intersection(
+        additive_design_.valid_indices(),
+        dominance_design_.valid_indices(),
+        std::back_inserter(valid_indices_));
 }
 
 auto JointGaussianMixtureStep::step() -> void
@@ -127,101 +133,88 @@ auto JointGaussianMixtureStep::step() -> void
 
     std::array<Eigen::Index, 2> variance_n{0, 0};
     std::array<double, 2> sum_squares{0.0, 0.0};
-    for (Eigen::Index i = 0; i < additive_x.cols(); ++i)
+    for (const Eigen::Index i : valid_indices_)
     {
-        if (!additive_design_.is_monomorphic(i)
-            && !dominance_design_.is_monomorphic(i))
+        const auto additive_column = additive_x.col(i);
+        const auto dominance_column = dominance_x.col(i);
+        const double old_additive_i = additive_coeffs(i);
+        const double old_dominance_i = dominance_coeffs(i);
+        const double additive_rhs
+            = additive_column.dot(residual_.y_adj)
+              + (additive_design_.XtX_diag(i) * old_additive_i);
+        const double dominance_rhs
+            = dominance_column.dot(residual_.y_adj)
+              + (dominance_design_.XtX_diag(i) * old_dominance_i);
+        const auto additive_post
+            = normal_
+                  .set_prior_var(*variance_[std::to_underlying(GeneticMode::A)])
+                  .posterior_with_logL(
+                      NormalSampler<double>::Kernel{
+                          .quadratic = additive_design_.XtX_diag(i),
+                          .linear = additive_rhs,
+                          .scale = residual_.variance,
+                      });
+        const auto dominance_post
+            = normal_
+                  .set_prior_var(*variance_[std::to_underlying(GeneticMode::D)])
+                  .posterior_with_logL(
+                      NormalSampler<double>::Kernel{
+                          .quadratic = dominance_design_.XtX_diag(i),
+                          .linear = dominance_rhs,
+                          .scale = residual_.variance,
+                      });
+
+        Eigen::Array<double, 4, 1> log_likelihoods;
+        log_likelihoods(0) = logpi_(0);
+        log_likelihoods(1) = additive_post.log_likelihood_kernel + logpi_(1);
+        log_likelihoods(2) = dominance_post.log_likelihood_kernel + logpi_(2);
+        log_likelihoods(3) = additive_post.log_likelihood_kernel
+                             + dominance_post.log_likelihood_kernel + logpi_(3);
+        const double max_log_likelihood = log_likelihoods.maxCoeff();
+        const auto probabilities = (log_likelihoods - max_log_likelihood).exp();
+        const double total = probabilities.sum();
+        const double threshold = uniform_(rng_) * total;
+
+        int component = 3;
+        double cumsum = 0.0;
+        for (Eigen::Index cls = 0; cls < probabilities.size(); ++cls)
         {
-            const auto additive_column = additive_x.col(i);
-            const auto dominance_column = dominance_x.col(i);
-            const double old_additive_i = additive_coeffs(i);
-            const double old_dominance_i = dominance_coeffs(i);
-            const double additive_rhs
-                = additive_column.dot(residual_.y_adj)
-                  + (additive_design_.XtX_diag(i) * old_additive_i);
-            const double dominance_rhs
-                = dominance_column.dot(residual_.y_adj)
-                  + (dominance_design_.XtX_diag(i) * old_dominance_i);
-            const auto additive_post
-                = normal_
-                      .set_prior_var(
-                          *variance_[std::to_underlying(GeneticMode::A)])
-                      .posterior_with_logL(
-                          NormalSampler<double>::Kernel{
-                              .quadratic = additive_design_.XtX_diag(i),
-                              .linear = additive_rhs,
-                              .scale = residual_.variance,
-                          });
-            const auto dominance_post
-                = normal_
-                      .set_prior_var(
-                          *variance_[std::to_underlying(GeneticMode::D)])
-                      .posterior_with_logL(
-                          NormalSampler<double>::Kernel{
-                              .quadratic = dominance_design_.XtX_diag(i),
-                              .linear = dominance_rhs,
-                              .scale = residual_.variance,
-                          });
-
-            Eigen::Array<double, 4, 1> log_likelihoods;
-            log_likelihoods(0) = logpi_(0);
-            log_likelihoods(1)
-                = additive_post.log_likelihood_kernel + logpi_(1);
-            log_likelihoods(2)
-                = dominance_post.log_likelihood_kernel + logpi_(2);
-            log_likelihoods(3) = additive_post.log_likelihood_kernel
-                                 + dominance_post.log_likelihood_kernel
-                                 + logpi_(3);
-            const double max_log_likelihood = log_likelihoods.maxCoeff();
-            const auto probabilities
-                = (log_likelihoods - max_log_likelihood).exp();
-            const double total = probabilities.sum();
-            const double threshold = uniform_(rng_) * total;
-
-            int component = 3;
-            double cumsum = 0.0;
-            for (Eigen::Index cls = 0; cls < probabilities.size(); ++cls)
+            cumsum += probabilities(cls);
+            if (threshold < cumsum)
             {
-                cumsum += probabilities(cls);
-                if (threshold < cumsum)
-                {
-                    component = static_cast<int>(cls);
-                    break;
-                }
+                component = static_cast<int>(cls);
+                break;
             }
+        }
 
-            JointGeneticAdjustmentGuard guard{
-                additive_column,
-                dominance_column,
-                additive_coeffs(i),
-                dominance_coeffs(i),
-                residual_,
-                additive_,
-                dominance_};
-            additive_coeffs(i) = (component == 1 || component == 3)
-                                     ? normal_.draw(additive_post.params, rng_)
-                                     : 0.0;
-            dominance_coeffs(i)
-                = (component == 2 || component == 3)
-                      ? normal_.draw(dominance_post.params, rng_)
-                      : 0.0;
-            assignment_(i) = component;
+        JointGeneticAdjustmentGuard guard{
+            additive_column,
+            dominance_column,
+            additive_coeffs(i),
+            dominance_coeffs(i),
+            residual_,
+            additive_,
+            dominance_};
+        additive_coeffs(i) = (component == 1 || component == 3)
+                                 ? normal_.draw(additive_post.params, rng_)
+                                 : 0.0;
+        dominance_coeffs(i) = (component == 2 || component == 3)
+                                  ? normal_.draw(dominance_post.params, rng_)
+                                  : 0.0;
+        assignment_(i) = component;
 
-            ++proportion_count_(component);
-            if (component == 1 || component == 3)
-            {
-                ++variance_n[std::to_underlying(GeneticMode::A)];
-                const double coeff = additive_coeffs(i);
-                sum_squares[std::to_underlying(GeneticMode::A)]
-                    += coeff * coeff;
-            }
-            if (component == 2 || component == 3)
-            {
-                ++variance_n[std::to_underlying(GeneticMode::D)];
-                const double coeff = dominance_coeffs(i);
-                sum_squares[std::to_underlying(GeneticMode::D)]
-                    += coeff * coeff;
-            }
+        ++proportion_count_(component);
+        if (component == 1 || component == 3)
+        {
+            ++variance_n[std::to_underlying(GeneticMode::A)];
+            const double coeff = additive_coeffs(i);
+            sum_squares[std::to_underlying(GeneticMode::A)] += coeff * coeff;
+        }
+        if (component == 2 || component == 3)
+        {
+            ++variance_n[std::to_underlying(GeneticMode::D)];
+            const double coeff = dominance_coeffs(i);
+            sum_squares[std::to_underlying(GeneticMode::D)] += coeff * coeff;
         }
     }
 
@@ -306,6 +299,10 @@ JointHalfNormalMixtureStep::JointHalfNormalMixtureStep(
       proportion_count_(Eigen::VectorXi::Zero(proportion_.size())),
       rng_(rng)
 {
+    std::ranges::set_intersection(
+        additive_design_.valid_indices(),
+        dominance_design_.valid_indices(),
+        std::back_inserter(valid_indices_));
 }
 
 auto JointHalfNormalMixtureStep::step() -> void
@@ -333,148 +330,134 @@ auto JointHalfNormalMixtureStep::step() -> void
     std::array<Eigen::Index, 2> variance_n{0, 0};
     std::array<double, 2> sum_squares{0.0, 0.0};
     BetaSampler<double>::Likelihood sign_likelihood{};
-    for (Eigen::Index i = 0; i < additive_x.cols(); ++i)
+    for (const Eigen::Index i : valid_indices_)
     {
-        if (!additive_design_.is_monomorphic(i)
-            && !dominance_design_.is_monomorphic(i))
+        const auto additive_column = additive_x.col(i);
+        const auto dominance_column = dominance_x.col(i);
+        const double old_additive_i = additive_coeffs(i);
+        const double old_dominance_i = dominance_coeffs(i);
+        const double additive_rhs
+            = additive_column.dot(residual_.y_adj)
+              + (additive_design_.XtX_diag(i) * old_additive_i);
+        const double dominance_rhs
+            = dominance_column.dot(residual_.y_adj)
+              + (dominance_design_.XtX_diag(i) * old_dominance_i);
+        const auto additive_post
+            = normal_
+                  .set_prior_var(*variance_[std::to_underlying(GeneticMode::A)])
+                  .posterior_with_logL(
+                      NormalSampler<double>::Kernel{
+                          .quadratic = additive_design_.XtX_diag(i),
+                          .linear = additive_rhs,
+                          .scale = residual_.variance,
+                      });
+        const auto dominance_positive_post
+            = half_normal_
+                  .set_prior_var(*variance_[std::to_underlying(GeneticMode::D)])
+                  .posterior_with_logL(
+                      HalfNormalSampler<double>::Kernel{
+                          .quadratic = dominance_design_.XtX_diag(i),
+                          .linear = dominance_rhs,
+                          .scale = residual_.variance,
+                      },
+                      static_cast<std::int8_t>(1));
+        const auto dominance_negative_post = half_normal_.posterior_with_logL(
+            HalfNormalSampler<double>::Kernel{
+                .quadratic = dominance_design_.XtX_diag(i),
+                .linear = dominance_rhs,
+                .scale = residual_.variance,
+            },
+            static_cast<std::int8_t>(-1));
+
+        const double positive_sign_log_weight
+            = std::log(dominance_sign_.positive_probability)
+              + dominance_positive_post.log_marginal_kernel;
+        const double negative_sign_log_weight
+            = std::log(1.0 - dominance_sign_.positive_probability)
+              + dominance_negative_post.log_marginal_kernel;
+        const double max_sign_log_weight
+            = positive_sign_log_weight > negative_sign_log_weight
+                  ? positive_sign_log_weight
+                  : negative_sign_log_weight;
+        const double dominance_log_likelihood
+            = max_sign_log_weight
+              + std::log(
+                  std::exp(positive_sign_log_weight - max_sign_log_weight)
+                  + std::exp(negative_sign_log_weight - max_sign_log_weight));
+
+        Eigen::Array<double, 4, 1> log_likelihoods;
+        log_likelihoods(0) = logpi_(0);
+        log_likelihoods(1) = additive_post.log_likelihood_kernel + logpi_(1);
+        log_likelihoods(2) = dominance_log_likelihood + logpi_(2);
+        log_likelihoods(3) = additive_post.log_likelihood_kernel
+                             + dominance_log_likelihood + logpi_(3);
+        const double max_log_likelihood = log_likelihoods.maxCoeff();
+        const auto probabilities = (log_likelihoods - max_log_likelihood).exp();
+        const double total = probabilities.sum();
+        const double threshold = uniform_(rng_) * total;
+
+        int component = 3;
+        double cumsum = 0.0;
+        for (Eigen::Index cls = 0; cls < probabilities.size(); ++cls)
         {
-            const auto additive_column = additive_x.col(i);
-            const auto dominance_column = dominance_x.col(i);
-            const double old_additive_i = additive_coeffs(i);
-            const double old_dominance_i = dominance_coeffs(i);
-            const double additive_rhs
-                = additive_column.dot(residual_.y_adj)
-                  + (additive_design_.XtX_diag(i) * old_additive_i);
-            const double dominance_rhs
-                = dominance_column.dot(residual_.y_adj)
-                  + (dominance_design_.XtX_diag(i) * old_dominance_i);
-            const auto additive_post
-                = normal_
-                      .set_prior_var(
-                          *variance_[std::to_underlying(GeneticMode::A)])
-                      .posterior_with_logL(
-                          NormalSampler<double>::Kernel{
-                              .quadratic = additive_design_.XtX_diag(i),
-                              .linear = additive_rhs,
-                              .scale = residual_.variance,
-                          });
-            const auto dominance_positive_post
-                = half_normal_
-                      .set_prior_var(
-                          *variance_[std::to_underlying(GeneticMode::D)])
-                      .posterior_with_logL(
-                          HalfNormalSampler<double>::Kernel{
-                              .quadratic = dominance_design_.XtX_diag(i),
-                              .linear = dominance_rhs,
-                              .scale = residual_.variance,
-                          },
-                          static_cast<std::int8_t>(1));
-            const auto dominance_negative_post
-                = half_normal_.posterior_with_logL(
-                    HalfNormalSampler<double>::Kernel{
-                        .quadratic = dominance_design_.XtX_diag(i),
-                        .linear = dominance_rhs,
-                        .scale = residual_.variance,
-                    },
-                    static_cast<std::int8_t>(-1));
-
-            const double positive_sign_log_weight
-                = std::log(dominance_sign_.positive_probability)
-                  + dominance_positive_post.log_marginal_kernel;
-            const double negative_sign_log_weight
-                = std::log(1.0 - dominance_sign_.positive_probability)
-                  + dominance_negative_post.log_marginal_kernel;
-            const double max_sign_log_weight
-                = positive_sign_log_weight > negative_sign_log_weight
-                      ? positive_sign_log_weight
-                      : negative_sign_log_weight;
-            const double dominance_log_likelihood
-                = max_sign_log_weight
-                  + std::log(
-                      std::exp(positive_sign_log_weight - max_sign_log_weight)
-                      + std::exp(
-                          negative_sign_log_weight - max_sign_log_weight));
-
-            Eigen::Array<double, 4, 1> log_likelihoods;
-            log_likelihoods(0) = logpi_(0);
-            log_likelihoods(1)
-                = additive_post.log_likelihood_kernel + logpi_(1);
-            log_likelihoods(2) = dominance_log_likelihood + logpi_(2);
-            log_likelihoods(3) = additive_post.log_likelihood_kernel
-                                 + dominance_log_likelihood + logpi_(3);
-            const double max_log_likelihood = log_likelihoods.maxCoeff();
-            const auto probabilities
-                = (log_likelihoods - max_log_likelihood).exp();
-            const double total = probabilities.sum();
-            const double threshold = uniform_(rng_) * total;
-
-            int component = 3;
-            double cumsum = 0.0;
-            for (Eigen::Index cls = 0; cls < probabilities.size(); ++cls)
+            cumsum += probabilities(cls);
+            if (threshold < cumsum)
             {
-                cumsum += probabilities(cls);
-                if (threshold < cumsum)
-                {
-                    component = static_cast<int>(cls);
-                    break;
-                }
+                component = static_cast<int>(cls);
+                break;
             }
+        }
 
-            const bool dominance_active = component == 2 || component == 3;
-            const auto* dominance_post = &dominance_negative_post;
-            if (dominance_active)
+        const bool dominance_active = component == 2 || component == 3;
+        const auto* dominance_post = &dominance_negative_post;
+        if (dominance_active)
+        {
+            const double sign_total
+                = std::exp(positive_sign_log_weight - max_sign_log_weight)
+                  + std::exp(negative_sign_log_weight - max_sign_log_weight);
+            const double sign_threshold = uniform_(rng_) * sign_total;
+            const double positive_sign_probability
+                = std::exp(positive_sign_log_weight - max_sign_log_weight);
+            if (sign_threshold < positive_sign_probability)
             {
-                const double sign_total
-                    = std::exp(positive_sign_log_weight - max_sign_log_weight)
-                      + std::exp(
-                          negative_sign_log_weight - max_sign_log_weight);
-                const double sign_threshold = uniform_(rng_) * sign_total;
-                const double positive_sign_probability
-                    = std::exp(positive_sign_log_weight - max_sign_log_weight);
-                if (sign_threshold < positive_sign_probability)
-                {
-                    dominance_sign_.sign(i) = 1;
-                    dominance_post = &dominance_positive_post;
-                    ++sign_likelihood.n_success;
-                }
-                else
-                {
-                    dominance_sign_.sign(i) = 0;
-                    ++sign_likelihood.n_fail;
-                }
+                dominance_sign_.sign(i) = 1;
+                dominance_post = &dominance_positive_post;
+                ++sign_likelihood.n_success;
             }
+            else
+            {
+                dominance_sign_.sign(i) = 0;
+                ++sign_likelihood.n_fail;
+            }
+        }
 
-            JointGeneticAdjustmentGuard guard{
-                additive_column,
-                dominance_column,
-                additive_coeffs(i),
-                dominance_coeffs(i),
-                residual_,
-                additive_,
-                dominance_};
-            additive_coeffs(i) = (component == 1 || component == 3)
-                                     ? normal_.draw(additive_post.params, rng_)
-                                     : 0.0;
-            dominance_coeffs(i) = dominance_active
-                                      ? half_normal_.draw(*dominance_post, rng_)
-                                      : 0.0;
-            assignment_(i) = component;
+        JointGeneticAdjustmentGuard guard{
+            additive_column,
+            dominance_column,
+            additive_coeffs(i),
+            dominance_coeffs(i),
+            residual_,
+            additive_,
+            dominance_};
+        additive_coeffs(i) = (component == 1 || component == 3)
+                                 ? normal_.draw(additive_post.params, rng_)
+                                 : 0.0;
+        dominance_coeffs(i)
+            = dominance_active ? half_normal_.draw(*dominance_post, rng_) : 0.0;
+        assignment_(i) = component;
 
-            ++proportion_count_(component);
-            if (component == 1 || component == 3)
-            {
-                ++variance_n[std::to_underlying(GeneticMode::A)];
-                const double coeff = additive_coeffs(i);
-                sum_squares[std::to_underlying(GeneticMode::A)]
-                    += coeff * coeff;
-            }
-            if (dominance_active)
-            {
-                ++variance_n[std::to_underlying(GeneticMode::D)];
-                const double coeff = dominance_coeffs(i);
-                sum_squares[std::to_underlying(GeneticMode::D)]
-                    += coeff * coeff;
-            }
+        ++proportion_count_(component);
+        if (component == 1 || component == 3)
+        {
+            ++variance_n[std::to_underlying(GeneticMode::A)];
+            const double coeff = additive_coeffs(i);
+            sum_squares[std::to_underlying(GeneticMode::A)] += coeff * coeff;
+        }
+        if (dominance_active)
+        {
+            ++variance_n[std::to_underlying(GeneticMode::D)];
+            const double coeff = dominance_coeffs(i);
+            sum_squares[std::to_underlying(GeneticMode::D)] += coeff * coeff;
         }
     }
 

@@ -29,9 +29,10 @@
 #include "gelex/data/bed.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
-#include "gelex/io/locistats/reader.h"
+#include "gelex/io/binary_reader.h"
 #include "gelex/io/predict/input_reader.h"
 #include "gelex/io/predict/writer.h"
+#include "gelex/io/snpstats/reader.h"
 #include "gelex/predict/compute.h"
 #include "gelex/predict/snp_alignment.h"
 #include "gelex/predict/standardize.h"
@@ -42,14 +43,14 @@
 namespace
 {
 
-auto load_sbin(const std::filesystem::path& path) -> gelex::SbinData
+auto load_snpstats(const std::filesystem::path& path) -> gelex::SnpStatsData
 {
-    gelex::LociStatsReader reader(path.string());
-    gelex::SbinData data;
-    data.add = reader.read(gelex::GeneticMode::A);
-    if (reader.has(gelex::GeneticMode::D))
+    gelex::BinaryReader reader(path.string());
+    gelex::SnpStatsData data;
+    data.add = gelex::read_snp_stats(reader, gelex::GeneticMode::A);
+    if (gelex::has_snp_stats(reader, gelex::GeneticMode::D))
     {
-        data.dom = reader.read(gelex::GeneticMode::D);
+        data.dom = gelex::read_snp_stats(reader, gelex::GeneticMode::D);
         data.has_dom = true;
     }
     return data;
@@ -65,15 +66,16 @@ auto predict_execute(const cli::PredictConfig& config) -> int
     const auto& gfile_prefix = config.gfile;
 
     auto snp_effects = gelex::read_snp_effects(gfile_prefix + ".snpeff");
-    auto sbin = load_sbin(gfile_prefix + ".sbin");
+    auto snpstats = load_snpstats(gfile_prefix + ".snpstats");
 
     bool enable_dom{};
-    if (sbin.has_dom)
+    if (snpstats.has_dom)
     {
         if (!snp_effects.contains("BETA_D"))
         {
             throw gelex::GelexException(
-                "Sbin file contains dominance effects, but SNP effects file "
+                ".snpstats file contains dominance effects, but SNP effects "
+                "file "
                 "does not have 'BETA_D' column.");
         }
         enable_dom = true;
@@ -125,7 +127,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
     auto genotype = bed.read_snps<double>(alignment.column_map);
 
     gelex::GenotypeData geno;
-    if (sbin.has_dom)
+    if (snpstats.has_dom)
     {
         geno.dom = genotype;
     }
@@ -135,9 +137,9 @@ auto predict_execute(const cli::PredictConfig& config) -> int
         static_cast<std::size_t>(fam_df.rows()),
         static_cast<std::size_t>(snp_effects.rows()),
         coefficients.names.size(),
-        sbin.add.method);
+        snpstats.add.method);
 
-    gelex::standardize_genotypes(geno, sbin);
+    gelex::standardize_genotypes(geno, snpstats);
 
     gelex::SnpEffects effects{
         .add = std::move(add_effects), .dom = std::move(dom_effects)};
