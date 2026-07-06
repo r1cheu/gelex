@@ -19,7 +19,6 @@
 #include <cstddef>
 #include <filesystem>
 #include <optional>
-#include <ranges>
 #include <string>
 #include <utility>
 #include <vector>
@@ -103,36 +102,33 @@ auto predict_execute(const cli::PredictConfig& config) -> int
 
     auto alignment = gelex::build_snp_alignment(snp_effects, bim_df);
     const auto n_snps = static_cast<std::size_t>(snp_effects.rows());
-    if (!alignment.missing_pos.empty())
-    {
-        reporter.show_snp_selection(
-            static_cast<std::size_t>(alignment.num_same + alignment.num_flip),
-            static_cast<std::size_t>(alignment.num_absent),
-            static_cast<std::size_t>(alignment.num_incompatible),
-            n_snps,
-            bfile_prefix,
-            gfile_prefix + ".snpeff");
+    reporter.show_snp_selection(
+        static_cast<std::size_t>(alignment.num_same + alignment.num_flip),
+        static_cast<std::size_t>(alignment.num_absent),
+        static_cast<std::size_t>(alignment.num_incompatible),
+        n_snps,
+        bfile_prefix,
+        gfile_prefix + ".snpeff");
 
+    const double missing_ratio
+        = static_cast<double>(alignment.missing_pos.size())
+          / static_cast<double>(n_snps);
+    if (missing_ratio > gelex::MAX_SNP_MISSING_RATIO)
+    {
         throw gelex::GelexException(
             fmt::format(
-                "{}.snpeff does not match {}.bim: {} missing SNPs, {} "
-                "allele mismatches",
+                "{}.snpeff too poorly matched to {}.bim: {} of {} SNPs "
+                "missing ({:.1f}%), exceeds {:.0f}% limit",
                 gfile_prefix,
                 bfile_prefix,
-                alignment.num_absent,
-                alignment.num_incompatible));
+                alignment.missing_pos.size(),
+                n_snps,
+                missing_ratio * 100.0,
+                gelex::MAX_SNP_MISSING_RATIO * 100.0));
     }
 
     auto bed = gelex::open_bed(bfile_prefix, fam_df.index());
-    auto genotype = bed.read_snps<double>(alignment.source_col);
-    for (const auto [col, do_flip] : std::views::enumerate(alignment.flip))
-    {
-        if (do_flip != 0)
-        {
-            genotype.col(static_cast<Eigen::Index>(col))
-                = 2.0 - genotype.col(static_cast<Eigen::Index>(col)).array();
-        }
-    }
+    auto genotype = gelex::load_aligned_genotypes(bed, alignment);
 
     gelex::GenotypeData geno;
     if (snpstats.has_dom)

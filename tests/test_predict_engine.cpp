@@ -19,7 +19,6 @@
 #include <filesystem>
 #include <fstream>
 #include <optional>
-#include <ranges>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -333,28 +332,23 @@ auto run_predict_dataflow(
         qcovar_path, dcovar_path, coefficients, fam_df);
 
     auto alignment = gelex::build_snp_alignment(snp_effects, bim_df);
-    if (!alignment.missing_pos.empty())
+    const double missing_ratio
+        = static_cast<double>(alignment.missing_pos.size())
+          / static_cast<double>(snp_effects.rows());
+    if (missing_ratio > gelex::MAX_SNP_MISSING_RATIO)
     {
         throw gelex::GelexException(
             fmt::format(
-                "{}.snpeff does not match {}.bim: {} missing SNPs, {} "
-                "allele mismatches",
+                "{}.snpeff too poorly matched to {}.bim: {} of {} SNPs "
+                "missing",
                 gfile_prefix,
                 bfile_prefix,
-                alignment.num_absent,
-                alignment.num_incompatible));
+                alignment.missing_pos.size(),
+                snp_effects.rows()));
     }
 
     auto bed = gelex::open_bed(bfile_prefix, fam_df.index());
-    auto genotype = bed.read_snps<double>(alignment.source_col);
-    for (const auto [col, do_flip] : std::views::enumerate(alignment.flip))
-    {
-        if (do_flip != 0)
-        {
-            genotype.col(static_cast<Eigen::Index>(col))
-                = 2.0 - genotype.col(static_cast<Eigen::Index>(col)).array();
-        }
-    }
+    auto genotype = gelex::load_aligned_genotypes(bed, alignment);
 
     gelex::GenotypeData geno;
     if (snpstats.has_dom)

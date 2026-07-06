@@ -14,13 +14,20 @@
  * limitations under the License.
  */
 
+#include <limits>
+#include <vector>
+
+#include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
+#include "bed_fixture.h"
 #include "file_fixture.h"
+#include "gelex/data/bed.h"
 #include "gelex/data/reader.h"
 #include "gelex/io/predict_reader.h"
 #include "gelex/predict/snp_alignment.h"
 
+using gelex::test::BedFixture;
 using gelex::test::FileFixture;
 
 TEST_CASE("build_snp_alignment orients training SNPs onto bim", "[predict]")
@@ -123,4 +130,43 @@ TEST_CASE("build_snp_alignment orients training SNPs onto bim", "[predict]")
         CHECK(plan.train_pos.empty());
         CHECK(plan.missing_pos == std::vector<Eigen::Index>{0, 1});
     }
+}
+
+TEST_CASE(
+    "load_aligned_genotypes orients and scatters onto the training axis",
+    "[predict]")
+{
+    FileFixture files;
+    BedFixture bed_files;
+
+    // predict bfile: 2 samples x 3 SNPs, dosage counts bim A1
+    Eigen::MatrixXd dosage{{2, 0, 1}, {1, 2, 0}};
+    auto [prefix, _] = bed_files.create_deterministic_bed_files(
+        dosage,
+        {},
+        {"rs1", "rs2", "rs3"},
+        {},
+        {{'A', 'G'}, {'C', 'T'}, {'A', 'T'}});
+
+    // training axis: rs2 (same), rs4 (absent), rs1 (flipped G/A), rs3 (same)
+    auto eff_path = files.create_text_file(
+        "CHR\tSNP\tA1\tA2\tBETA_A\n"
+        "1\trs2\tC\tT\t0.5\n"
+        "1\trs4\tG\tA\t0.5\n"
+        "1\trs1\tG\tA\t0.5\n"
+        "2\trs3\tA\tT\t0.5\n",
+        ".snpeff");
+
+    auto plan = gelex::build_snp_alignment(
+        gelex::read_snp_effects(eff_path),
+        gelex::read_bim(prefix.string() + ".bim"));
+
+    auto bed = gelex::open_bed(prefix.string());
+    CHECK(plan.train_count == 4);
+    auto genotype = gelex::load_aligned_genotypes(bed, plan);
+
+    constexpr double NAN_VALUE = std::numeric_limits<double>::quiet_NaN();
+    Eigen::MatrixXd expected{{0, NAN_VALUE, 0, 1}, {2, NAN_VALUE, 1, 0}};
+
+    CHECK(gelex::test::are_matrices_equal(genotype, expected));
 }

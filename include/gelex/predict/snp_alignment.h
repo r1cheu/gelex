@@ -27,6 +27,10 @@
 namespace gelex
 {
 
+class Bed;
+
+inline constexpr double MAX_SNP_MISSING_RATIO = 0.2;
+
 // Maps training SNP effects (canonical axis) onto the columns of a prediction
 // .bim by SNP id, orienting each match to the training A1. Three outcomes per
 // training SNP: same orientation, allele-swapped (dosage needs 2 - x), or
@@ -39,6 +43,7 @@ struct AlignmentPlan
     std::vector<char> flip;                // parallel: apply 2 - x when nonzero
     std::vector<Eigen::Index> missing_pos;  // training positions with no source
 
+    Eigen::Index train_count{};  // width of the training axis (output columns)
     Eigen::Index num_same{};
     Eigen::Index num_flip{};
     Eigen::Index num_absent{};  // id not present in bim
@@ -49,6 +54,14 @@ struct AlignmentPlan
 [[nodiscard]] auto build_snp_alignment(
     const DataFrame<std::string>& snp_effects,
     const DataFrame<std::string>& bim_df) -> AlignmentPlan;
+
+// Executes an AlignmentPlan against opened genotypes: reads the planned bim
+// columns, orients flipped SNPs (2 - x), and scatters them onto a
+// plan.train_count-wide matrix in training order. Columns for missing_pos stay
+// NaN, which standardize_genotypes later centers to a zero contribution.
+[[nodiscard]] auto load_aligned_genotypes(
+    const Bed& bed,
+    const AlignmentPlan& plan) -> Eigen::MatrixXd;
 
 }  // namespace gelex
 

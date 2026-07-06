@@ -17,10 +17,13 @@
 #include "gelex/predict/snp_alignment.h"
 
 #include <cstddef>
+#include <limits>
+#include <ranges>
 #include <string>
 
 #include <Eigen/Core>
 
+#include "gelex/data/bed.h"
 #include "gelex/data/dataframe/dataframe.h"
 
 namespace gelex
@@ -38,6 +41,7 @@ auto build_snp_alignment(
     const auto bim_a2 = bim_df["A2"].as<std::string>();
 
     AlignmentPlan plan;
+    plan.train_count = static_cast<Eigen::Index>(eff_index.size());
     plan.source_col.reserve(eff_index.size());
     plan.train_pos.reserve(eff_index.size());
     plan.flip.reserve(eff_index.size());
@@ -75,6 +79,32 @@ auto build_snp_alignment(
     }
 
     return plan;
+}
+
+auto load_aligned_genotypes(const Bed& bed, const AlignmentPlan& plan)
+    -> Eigen::MatrixXd
+{
+    auto dense = bed.read_snps<double>(plan.source_col);
+
+    Eigen::MatrixXd out = Eigen::MatrixXd::Constant(
+        bed.num_samples(),
+        plan.train_count,
+        std::numeric_limits<double>::quiet_NaN());
+
+    for (const auto [k, train_col] : std::views::enumerate(plan.train_pos))
+    {
+        auto source = dense.col(static_cast<Eigen::Index>(k));
+        if (plan.flip[static_cast<std::size_t>(k)] != 0)
+        {
+            out.col(train_col) = 2.0 - source.array();
+        }
+        else
+        {
+            out.col(train_col) = source;
+        }
+    }
+
+    return out;
 }
 
 }  // namespace gelex
