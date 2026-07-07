@@ -29,7 +29,6 @@
 #include "gelex/data/bed.h"
 #include "gelex/data/grm/grm.h"
 #include "gelex/data/marker_range.h"
-#include "gelex/data/reader.h"
 #include "gelex/data/writer.h"
 #include "gelex/types/genetic_mode.h"
 #include "reporter.h"
@@ -64,8 +63,7 @@ auto grm_execute(const cli::GrmConfig& config) -> int
     std::vector<gelex::MarkerRange> ranges;
     if (config.loco)
     {
-        auto bim = gelex::read_bim(config.bfile + ".bim");
-        ranges = gelex::chromosome_ranges(bim);
+        ranges = gelex::chromosome_ranges(bed.bim());
     }
     else
     {

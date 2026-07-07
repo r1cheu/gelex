@@ -50,16 +50,15 @@
 class AssocDataHandler
 {
    public:
-    explicit AssocDataHandler(const cli::AssocConfig& config) noexcept
-        : config_(config)
+    AssocDataHandler(const cli::AssocConfig& config, gelex::Bed& bed) noexcept
+        : config_(config), bed_(bed)
     {
     }
 
-    auto load_indices(std::vector<gelex::DataFrameIndex<std::string>*>& indices)
-        -> void
+    auto load_indices(
+        std::vector<const gelex::DataFrameIndex<std::string>*>& indices) -> void
     {
-        fam_index_ = gelex::read_fam(config_.bfile + ".fam").index();
-        indices.push_back(&fam_index_);
+        indices.push_back(&bed_.sample_index());
 
         grm_indices_.reserve(config_.grm.size());
         for (const auto& path : config_.grm)
@@ -73,21 +72,18 @@ class AssocDataHandler
 
     auto gather(const gelex::DataFrameIndex<std::string>& common_index) -> void
     {
-        sample_index_ = common_index;
+        bed_.gather(common_index);
         random_designs_ = gelex::make_grm_designs(config_.grm, common_index);
     }
 
-    auto results() && -> std::pair<
-        gelex::DataFrameIndex<std::string>,
-        std::vector<gelex::freq::RandomDesign>>
+    auto results() && -> std::vector<gelex::freq::RandomDesign>
     {
-        return {std::move(sample_index_), std::move(random_designs_)};
+        return std::move(random_designs_);
     }
 
    private:
     const cli::AssocConfig& config_;
-    gelex::DataFrameIndex<std::string> fam_index_;
-    gelex::DataFrameIndex<std::string> sample_index_;
+    gelex::Bed& bed_;
     std::vector<gelex::DataFrameIndex<std::string>> grm_indices_;
     std::vector<gelex::freq::RandomDesign> random_designs_;
 };
@@ -107,10 +103,12 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
 
     cli::printer().block(gelex::section("[Dataset Summary]"));
 
-    AssocDataHandler handler(config);
+    auto bed = gelex::open_bed(config.bfile);
+    AssocDataHandler handler(config, bed);
     cli::BaseData data = cli::load_base_data(handler, config.base_data);
-    auto [sample_index, random_designs] = std::move(handler).results();
+    auto random_designs = std::move(handler).results();
 
+    const auto& sample_index = bed.sample_index();
     cli::printer().line(
         "   Intersection : {} common samples", sample_index.size());
     if (sample_index.size() == 0)
@@ -120,8 +118,7 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
             "covariates. Check that sample IDs match across input files.");
     }
 
-    auto bed = gelex::open_bed(config.bfile, sample_index);
-    auto bim = gelex::read_bim(config.bfile + ".bim");
+    const auto& bim = bed.bim();
 
     gelex::FreqModel model(
         std::move(data.phenotype),

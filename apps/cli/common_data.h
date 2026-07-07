@@ -55,7 +55,7 @@ struct BaseData
 template <typename T>
 concept BaseDataHandler = requires(
     T& handler,
-    std::vector<gelex::DataFrameIndex<std::string>*>& indices,
+    std::vector<const gelex::DataFrameIndex<std::string>*>& indices,
     const gelex::DataFrameIndex<std::string>& common_index) {
     handler.load_indices(indices);
     handler.gather(common_index);
@@ -65,7 +65,7 @@ concept BaseDataHandler = requires(
 template <BaseDataHandler Handler>
 auto load_base_data(Handler& handler, const BaseDataConfig& config) -> BaseData
 {
-    std::vector<gelex::DataFrameIndex<std::string>*> indices;
+    std::vector<const gelex::DataFrameIndex<std::string>*> indices;
 
     auto pheno_col_offset = static_cast<std::size_t>(config.pheno_col);
     auto phenotype = gelex::read_pheno(config.pheno_path, &pheno_col_offset);

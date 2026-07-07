@@ -33,7 +33,6 @@
 
 #include "bed_fixture.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/data/reader.h"
 #include "gelex/data/sample_id.h"
 #include "gelex/io/detail/text_writer.h"
 #include "gelex/simulate/effect_sampler.h"
@@ -128,12 +127,9 @@ auto run_simulation(const SimulateConfig& config) -> void
 {
     std::mt19937_64 rng(config.seed);
 
-    auto bim = read_bim(config.bfile_prefix + ".bim");
-    auto fam = read_fam(config.bfile_prefix + ".fam");
+    GeneticValueCalculator calculator(config.bfile_prefix);
 
-    GeneticValueCalculator calculator(config.bfile_prefix, bim, fam);
-
-    auto all_ids = bim.index().keys();
+    auto all_ids = calculator.snp_ids();
     std::vector<std::string_view> shuffled_ids(all_ids.begin(), all_ids.end());
     std::ranges::shuffle(shuffled_ids, rng);
 
@@ -185,7 +181,7 @@ auto run_simulation(const SimulateConfig& config) -> void
     writer.write_header({"FID", "IID", "Phenotype"});
     for (Eigen::Index i = 0; i < n_samples; ++i)
     {
-        auto [fid, iid] = split_sample_id(fam.index().keys()[i]);
+        auto [fid, iid] = split_sample_id(calculator.sample_ids()[i]);
         writer.write(fmt::format("{}\t{}\t{}", fid, iid, phenotypes(i)));
     }
 

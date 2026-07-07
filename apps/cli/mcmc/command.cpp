@@ -36,10 +36,10 @@
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/recipe.h"
+#include "gelex/data/bed.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/genotype_reader.h"
-#include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/io/mcmc.h"
 #include "gelex/io/snpstats.h"
@@ -52,26 +52,26 @@ class MCMCDataHandler
     MCMCDataHandler(
         const cli::McmcConfig& config,
         gelex::GeneticModeSet requested_effects,
-        cli::GenoReporter& reporter)
+        cli::GenoReporter& reporter,
+        gelex::Bed& bed)
         : config_(config),
           requested_effects_(requested_effects),
-          reporter_(reporter)
+          reporter_(reporter),
+          bed_(bed)
     {
     }
 
-    auto load_indices(std::vector<gelex::DataFrameIndex<std::string>*>& indices)
-        -> void
+    auto load_indices(
+        std::vector<const gelex::DataFrameIndex<std::string>*>& indices) -> void
     {
         genotype_method_ = config_.geno_method;
-
-        fam_index_ = gelex::read_fam(config_.bfile + ".fam").index();
-        indices.push_back(&fam_index_);
+        indices.push_back(&bed_.sample_index());
     }
 
     auto gather(const gelex::DataFrameIndex<std::string>& common_index) -> void
     {
-        auto reader = gelex::GenotypeReader(
-            config_.bfile, common_index, reporter_.as_observer());
+        bed_.gather(common_index);
+        auto reader = gelex::GenotypeReader(bed_, reporter_.as_observer());
 
         gelex::BinaryWriter writer(config_.out + ".snpstats");
 
@@ -109,9 +109,9 @@ class MCMCDataHandler
     const cli::McmcConfig& config_;
     gelex::GeneticModeSet requested_effects_;
     gelex::GenotypeMethod genotype_method_;
-    gelex::DataFrameIndex<std::string> fam_index_;
     std::vector<gelex::bayes::GeneticDesign> genetics_;
     cli::GenoReporter& reporter_;
+    gelex::Bed& bed_;
 };
 
 auto mcmc_execute(const cli::McmcConfig& config) -> int
@@ -136,7 +136,8 @@ auto mcmc_execute(const cli::McmcConfig& config) -> int
 
     cli::printer().block(gelex::section("[Dataset Summary]"));
 
-    MCMCDataHandler handler(config, recipe_options.modes, geno_reporter);
+    auto bed = gelex::open_bed(config.bfile);
+    MCMCDataHandler handler(config, recipe_options.modes, geno_reporter, bed);
     cli::BaseData data = cli::load_base_data(handler, config.base_data);
     cli::printer().line(
         "   Intersection : {} common samples", data.sample_ids.size());

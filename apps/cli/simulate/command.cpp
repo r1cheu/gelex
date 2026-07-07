@@ -28,7 +28,6 @@
 #include <fmt/format.h>
 #include <Eigen/Core>
 
-#include "gelex/data/reader.h"
 #include "gelex/data/sample_id.h"
 #include "gelex/exception.h"
 #include "gelex/infra/stats/detail/var.h"
@@ -157,13 +156,9 @@ auto simulate_execute(const cli::SimulateConfig& config) -> int
 
     std::mt19937_64 rng(config.seed);
 
-    const auto& bfile_prefix = config.bfile;
-    auto bim = gelex::read_bim(bfile_prefix + ".bim");
-    auto fam = gelex::read_fam(bfile_prefix + ".fam");
+    gelex::GeneticValueCalculator calculator(config.bfile);
 
-    gelex::GeneticValueCalculator calculator(bfile_prefix, bim, fam);
-
-    auto all_ids = bim.index().keys();
+    auto all_ids = calculator.snp_ids();
     std::vector<std::string_view> shuffled_ids(all_ids.begin(), all_ids.end());
     std::ranges::shuffle(shuffled_ids, rng);
 
@@ -239,7 +234,7 @@ auto simulate_execute(const cli::SimulateConfig& config) -> int
     writer.write_header({"FID", "IID", "Phenotype"});
     for (Eigen::Index i = 0; i < n_samples; ++i)
     {
-        auto [fid, iid] = gelex::split_sample_id(fam.index().keys()[i]);
+        auto [fid, iid] = gelex::split_sample_id(calculator.sample_ids()[i]);
         writer.write(fmt::format("{}\t{}\t{}", fid, iid, phenotypes(i)));
     }
 

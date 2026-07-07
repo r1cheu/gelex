@@ -44,8 +44,8 @@ class RemlDataHandler
     {
     }
 
-    auto load_indices(std::vector<gelex::DataFrameIndex<std::string>*>& indices)
-        -> void
+    auto load_indices(
+        std::vector<const gelex::DataFrameIndex<std::string>*>& indices) -> void
     {
         drand_
             = config_.drand_path
