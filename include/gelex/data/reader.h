@@ -31,6 +31,9 @@ auto read_fam(const std::filesystem::path& path) -> DataFrame<std::string>;
 
 auto read_bim(const std::filesystem::path& path) -> DataFrame<std::string>;
 
+auto read_snp_effects(const std::filesystem::path& path)
+    -> DataFrame<std::string>;
+
 auto read_pheno(
     const std::filesystem::path& path,
     const std::size_t* pheno_col = nullptr) -> DataFrame<std::string>;

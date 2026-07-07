@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_PREDICT_TYPES_H_
-#define GELEX_PREDICT_TYPES_H_
+#ifndef APPS_CLI_PREDICT_TYPES_H_
+#define APPS_CLI_PREDICT_TYPES_H_
 
 #include <string>
 #include <vector>
@@ -24,16 +24,22 @@
 
 #include "gelex/types/genetic_mode.h"
 
-namespace gelex
+namespace cli
 {
 
-using GenotypeData = ModeMap<Eigen::MatrixXd>;
-using SnpEffects = ModeMap<Eigen::VectorXd>;
+using GenotypeData = gelex::ModeMap<Eigen::MatrixXd>;
+using SnpEffects = gelex::ModeMap<Eigen::VectorXd>;
+
+struct Coefficients
+{
+    std::vector<std::string> names;
+    Eigen::VectorXd values;
+};
 
 struct GEBVResult
 {
     Eigen::VectorXd total;
-    ModeMap<Eigen::VectorXd> components;
+    gelex::ModeMap<Eigen::VectorXd> components;
 };
 
 struct CovariateResult
@@ -48,11 +54,11 @@ struct PredictResult
     std::vector<std::string> sample_ids;
     Eigen::VectorXd predictions;
     Eigen::VectorXd snp_predictions;
-    ModeMap<Eigen::VectorXd> snp_components;
+    gelex::ModeMap<Eigen::VectorXd> snp_components;
     Eigen::MatrixXd covar_predictions;
     std::vector<std::string> covar_names;
 };
 
-}  // namespace gelex
+}  // namespace cli
 
-#endif  // GELEX_PREDICT_TYPES_H_
+#endif  // APPS_CLI_PREDICT_TYPES_H_

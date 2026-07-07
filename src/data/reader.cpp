@@ -20,6 +20,7 @@
 #include <filesystem>
 #include <fstream>
 #include <ranges>
+#include <sstream>
 #include <string>
 #include <system_error>
 #include <utility>
@@ -109,6 +110,36 @@ auto detect_delimiter(const std::filesystem::path& path) -> char
     }
     return '\t';
 }
+
+auto snp_effects_schema(const std::filesystem::path& path)
+    -> std::vector<gelex::ColumnType>
+{
+    std::ifstream file(path);
+    std::string header_line;
+    std::getline(file, header_line);
+
+    std::vector<std::string> tokens;
+    std::istringstream ss(header_line);
+    std::string tok;
+    while (std::getline(ss, tok, '\t'))
+    {
+        tokens.push_back(tok);
+    }
+
+    std::vector<gelex::ColumnType> schema;
+    for (const auto& name : tokens)
+    {
+        if (name == "SNP")
+        {
+            continue;
+        }
+        auto type = (name == "CHR" || name == "A1" || name == "A2")
+                        ? gelex::ColumnType::String
+                        : gelex::ColumnType::Double;
+        schema.push_back(type);
+    }
+    return schema;
+}
 }  // namespace
 
 namespace gelex
@@ -137,6 +168,14 @@ auto read_bim(const std::filesystem::path& path) -> DataFrame<std::string>
     options.select_cols = {0, 3, 4, 5};
     options.names = {"chrom", "pos", "A1", "A2"};
     return read_dataframe<std::string>(path, options, SCHEMA);
+}
+
+auto read_snp_effects(const std::filesystem::path& path)
+    -> DataFrame<std::string>
+{
+    ReadOptions options;
+    options.index_cols = {1};
+    return read_dataframe<std::string>(path, options, snp_effects_schema(path));
 }
 
 auto read_pheno(const std::filesystem::path& path, const std::size_t* pheno_col)

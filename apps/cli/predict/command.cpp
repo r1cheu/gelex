@@ -30,14 +30,14 @@
 #include "gelex/data/bed.h"
 #include "gelex/data/locus_encoding.h"
 #include "gelex/data/reader.h"
+#include "gelex/data/snp_alignment.h"
 #include "gelex/exception.h"
-#include "gelex/io/predict_io.h"
 #include "gelex/io/snpstats.h"
-#include "gelex/predict/compute.h"
-#include "gelex/predict/snp_alignment.h"
-#include "gelex/predict/types.h"
-#include "gelex/types/genetic_mode.h"
+
+#include "compute.h"
+#include "io.h"
 #include "reporter.h"
+#include "types.h"
 
 auto predict_execute(const cli::PredictConfig& config) -> int
 {
@@ -55,7 +55,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
             ".snpstats file contains neither additive nor dominance stats.");
     }
 
-    gelex::SnpEffects effects;
+    cli::SnpEffects effects;
     for (const auto mode : std::views::keys(snpstats))
     {
         const auto column = fmt::format("BETA_{}", mode);
@@ -68,9 +68,9 @@ auto predict_execute(const cli::PredictConfig& config) -> int
                     mode,
                     column));
         }
-        effects.emplace(mode, snp_effects[column].to_map<double>());
+        effects.emplace(mode, snp_effects[column].to_mat<double>());
     }
-    auto coefficients = gelex::read_coefficients(gfile_prefix + ".param");
+    auto coefficients = cli::read_coefficients(gfile_prefix + ".param");
 
     auto fam_df = gelex::read_fam(bfile_prefix + ".fam");
     auto bim_df = gelex::read_bim(bfile_prefix + ".bim");
@@ -82,8 +82,8 @@ auto predict_execute(const cli::PredictConfig& config) -> int
         = config.dcovar
               ? std::make_optional<std::filesystem::path>(*config.dcovar)
               : std::nullopt;
-    auto covariates = gelex::read_covariates(
-        qcovar_path, dcovar_path, coefficients, fam_df);
+    auto covariates
+        = cli::read_covariates(qcovar_path, dcovar_path, coefficients, fam_df);
 
     auto alignment = gelex::build_snp_alignment(snp_effects, bim_df);
     const auto n_snps = static_cast<std::size_t>(snp_effects.rows());
@@ -115,7 +115,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
     auto bed = gelex::open_bed(bfile_prefix, fam_df.index());
     const auto dosage = gelex::load_aligned_genotypes(bed, alignment);
 
-    gelex::GenotypeData geno;
+    cli::GenotypeData geno;
     for (const auto& [mode, stats] : snpstats)
     {
         Eigen::MatrixXd encoded = dosage;
@@ -130,13 +130,13 @@ auto predict_execute(const cli::PredictConfig& config) -> int
         coefficients.names.size(),
         snpstats.begin()->second.method);
 
-    auto gebv = gelex::compute_gebv(geno, effects);
-    auto covar = gelex::compute_covariate_effects(covariates, coefficients);
+    auto gebv = cli::compute_gebv(geno, effects);
+    auto covar = cli::compute_covariate_effects(covariates, coefficients);
 
     auto sample_keys = fam_df.index().keys();
     std::vector<std::string> sample_ids(sample_keys.begin(), sample_keys.end());
 
-    gelex::PredictResult result{
+    cli::PredictResult result{
         .sample_ids = std::move(sample_ids),
         .predictions = gebv.total + covar.total,
         .snp_predictions = std::move(gebv.total),
@@ -144,7 +144,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
         .covar_predictions = std::move(covar.per_covariate),
         .covar_names = std::move(covar.covar_names)};
 
-    gelex::write_predictions(config.out, result);
+    cli::write_predictions(config.out, result);
 
     reporter.show_results_written(config.out, result.sample_ids.size());
 

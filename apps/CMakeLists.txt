@@ -42,10 +42,20 @@ if(GELEX_CLI_BUILD_TESTS OR GELEX_BUILD_TESTS)
   enable_testing()
   find_package(Catch2 3 REQUIRED)
 
-  add_executable(gelex_cli_tests tests/test_color_formatter.cpp
-                                 cli/color_formatter.cpp)
-  target_include_directories(gelex_cli_tests
-                             PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  add_executable(
+    gelex_cli_tests
+    tests/test_color_formatter.cpp
+    tests/test_predict_computation.cpp
+    tests/test_predict_io.cpp
+    tests/test_predict_engine.cpp
+    cli/color_formatter.cpp
+    cli/predict/compute.cpp
+    cli/predict/io.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../tests/bed_fixture.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../tests/file_fixture.cpp)
+  target_include_directories(
+    gelex_cli_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+                            ${CMAKE_CURRENT_SOURCE_DIR}/../tests)
   target_include_directories(gelex_cli_tests SYSTEM
                              PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ext/barkeep)
   target_compile_definitions(gelex_cli_tests PRIVATE BARKEEP_ENABLE_FMT_FORMAT)

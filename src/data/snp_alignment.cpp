@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/predict/snp_alignment.h"
+#include "gelex/data/snp_alignment.h"
 
 #include <cstddef>
 #include <limits>

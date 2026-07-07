@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_PREDICT_SNP_ALIGNMENT_H_
-#define GELEX_PREDICT_SNP_ALIGNMENT_H_
+#ifndef GELEX_DATA_SNP_ALIGNMENT_H_
+#define GELEX_DATA_SNP_ALIGNMENT_H_
 
 #include <string>
 #include <vector>
@@ -65,4 +65,4 @@ struct AlignmentPlan
 
 }  // namespace gelex
 
-#endif  // GELEX_PREDICT_SNP_ALIGNMENT_H_
+#endif  // GELEX_DATA_SNP_ALIGNMENT_H_

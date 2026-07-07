@@ -14,17 +14,15 @@
  * limitations under the License.
  */
 
-#include "gelex/predict/compute.h"
+#include "compute.h"
 
 #include <string>
 #include <utility>
 #include <vector>
 
 #include <Eigen/Core>
-#include "gelex/io/predict_io.h"
-#include "gelex/predict/types.h"
 
-namespace gelex
+namespace cli
 {
 
 auto compute_gebv(const GenotypeData& geno, const SnpEffects& effects)
@@ -79,4 +77,4 @@ auto compute_covariate_effects(
         .covar_names = std::move(covar_names)};
 }
 
-}  // namespace gelex
+}  // namespace cli

@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_PREDICT_COMPUTE_H_
-#define GELEX_PREDICT_COMPUTE_H_
+#ifndef APPS_CLI_PREDICT_COMPUTE_H_
+#define APPS_CLI_PREDICT_COMPUTE_H_
 
 #include <Eigen/Core>
 
-#include "gelex/io/predict_io.h"
-#include "gelex/predict/types.h"
+#include "types.h"
 
-namespace gelex
+namespace cli
 {
 
 [[nodiscard]] auto compute_gebv(
@@ -33,6 +32,6 @@ namespace gelex
     const Eigen::MatrixXd& covariates,
     const Coefficients& coefficients) -> CovariateResult;
 
-}  // namespace gelex
+}  // namespace cli
 
-#endif  // GELEX_PREDICT_COMPUTE_H_
+#endif  // APPS_CLI_PREDICT_COMPUTE_H_

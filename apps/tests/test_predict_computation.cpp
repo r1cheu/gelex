@@ -20,15 +20,14 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 
-#include "gelex/io/predict_io.h"
-#include "gelex/predict/compute.h"
-#include "gelex/predict/types.h"
+#include "cli/predict/compute.h"
+#include "cli/predict/types.h"
 #include "gelex/types/genetic_mode.h"
 
-using gelex::Coefficients;
+using cli::Coefficients;
+using cli::GenotypeData;
+using cli::SnpEffects;
 using gelex::GeneticMode;
-using gelex::GenotypeData;
-using gelex::SnpEffects;
 
 // ---------------------------------------------------------------------------
 // compute_gebv tests
@@ -44,7 +43,7 @@ TEST_CASE("compute_gebv: additive only", "[predict][compute]")
     SnpEffects effects;
     effects[GeneticMode::A] = Eigen::VectorXd{{0.5, -0.5}};
 
-    const auto result = gelex::compute_gebv(geno, effects);
+    const auto result = cli::compute_gebv(geno, effects);
 
     Eigen::VectorXd expected_add{{-0.5, -0.5}};
     REQUIRE(result.components.at(GeneticMode::A).isApprox(expected_add));
@@ -62,7 +61,7 @@ TEST_CASE("compute_gebv: dominance only", "[predict][compute]")
     SnpEffects effects;
     effects[GeneticMode::D] = Eigen::VectorXd{{1.0, 2.0}};
 
-    const auto result = gelex::compute_gebv(geno, effects);
+    const auto result = cli::compute_gebv(geno, effects);
 
     Eigen::VectorXd expected_dom{{1.0, 2.0}};
     REQUIRE_FALSE(result.components.contains(GeneticMode::A));
@@ -85,7 +84,7 @@ TEST_CASE("compute_gebv: additive + dominance", "[predict][compute]")
     effects[GeneticMode::A] = Eigen::VectorXd{{1.0, 2.0}};
     effects[GeneticMode::D] = Eigen::VectorXd{{0.1, 0.2}};
 
-    const auto result = gelex::compute_gebv(geno, effects);
+    const auto result = cli::compute_gebv(geno, effects);
 
     Eigen::VectorXd expected_add{{1.0, 2.0}};
     Eigen::VectorXd expected_dom{{0.15, 0.15}};
@@ -111,7 +110,7 @@ TEST_CASE("compute_covariate_effects: intercept only", "[predict][compute]")
     coefficients.values = Eigen::VectorXd{{2.5}};
 
     const auto result
-        = gelex::compute_covariate_effects(covariates, coefficients);
+        = cli::compute_covariate_effects(covariates, coefficients);
 
     Eigen::VectorXd expected_total{{2.5, 2.5, 2.5}};
     REQUIRE(result.total.isApprox(expected_total));
@@ -135,7 +134,7 @@ TEST_CASE(
     coefficients.values = Eigen::VectorXd{{1.0, 0.2, -0.3}};
 
     const auto result
-        = gelex::compute_covariate_effects(covariates, coefficients);
+        = cli::compute_covariate_effects(covariates, coefficients);
 
     Eigen::VectorXd expected_total{{5.7, 7.0}};
     REQUIRE(result.total.isApprox(expected_total));

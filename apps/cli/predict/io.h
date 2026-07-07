@@ -14,44 +14,33 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_PREDICT_IO_H_
-#define GELEX_IO_PREDICT_IO_H_
+#ifndef APPS_CLI_PREDICT_IO_H_
+#define APPS_CLI_PREDICT_IO_H_
 
 #include <filesystem>
 #include <optional>
-#include <string>
-#include <vector>
 
 #include <Eigen/Core>
 
 #include "gelex/data/dataframe/dataframe.h"
-#include "gelex/predict/types.h"
+#include "types.h"
 
-namespace gelex
+namespace cli
 {
-
-struct Coefficients
-{
-    std::vector<std::string> names;
-    Eigen::VectorXd values;
-};
 
 [[nodiscard]] auto read_coefficients(const std::filesystem::path& path)
     -> Coefficients;
-
-[[nodiscard]] auto read_snp_effects(const std::filesystem::path& path)
-    -> DataFrame<std::string>;
 
 [[nodiscard]] auto read_covariates(
     const std::optional<std::filesystem::path>& qcovar_path,
     const std::optional<std::filesystem::path>& dcovar_path,
     const Coefficients& coefficients,
-    DataFrame<std::string>& sample_df) -> Eigen::MatrixXd;
+    gelex::DataFrame<std::string>& sample_df) -> Eigen::MatrixXd;
 
 auto write_predictions(
     const std::filesystem::path& output_path,
     const PredictResult& result) -> void;
 
-}  // namespace gelex
+}  // namespace cli
 
-#endif  // GELEX_IO_PREDICT_IO_H_
+#endif  // APPS_CLI_PREDICT_IO_H_
