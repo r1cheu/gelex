@@ -26,44 +26,11 @@
 namespace gelex
 {
 
-RankInverseNormTransform::RankInverseNormTransform(double offset)
-    : offset_(offset)
+namespace
 {
-}
 
-auto RankInverseNormTransform::apply_dint(
-    Eigen::Ref<Eigen::VectorXd> phenotype) const -> void
-{
-    int_transform(phenotype);
-}
-
-auto RankInverseNormTransform::apply_iint(
-    Eigen::Ref<Eigen::VectorXd> phenotype,
-    const Eigen::Ref<const Eigen::MatrixXd>& covariates) const -> void
-{
-    auto residuals = compute_residuals(phenotype, covariates);
-
-    int_transform(residuals);
-    phenotype = residuals;
-}
-
-auto RankInverseNormTransform::int_transform(
-    Eigen::Ref<Eigen::VectorXd> values) const -> void
-{
-    auto ranks = compute_ranks(values);
-    double n = static_cast<double>(values.size());
-    double denominator = n - 2.0 * offset_ + 1.0;
-
-    for (auto&& [rank, value] : std::views::zip(ranks, values))
-    {
-        double quantile
-            = std::clamp((rank - offset_) / denominator, 1e-10, 1.0 - 1e-10);
-        value = detail::norm_ppf(quantile);
-    }
-}
-
-auto RankInverseNormTransform::compute_ranks(
-    const Eigen::Ref<const Eigen::VectorXd>& values) -> Eigen::VectorXd
+auto compute_ranks(const Eigen::Ref<const Eigen::VectorXd>& values)
+    -> Eigen::VectorXd
 {
     Eigen::Index n = values.size();
 
@@ -96,11 +63,37 @@ auto RankInverseNormTransform::compute_ranks(
     return ranks;
 }
 
-auto RankInverseNormTransform::compute_residuals(
+auto compute_residuals(
     const Eigen::Ref<const Eigen::VectorXd>& y,
     const Eigen::Ref<const Eigen::MatrixXd>& X) -> Eigen::VectorXd
 {
     return y - X * (X.transpose() * X).ldlt().solve(X.transpose() * y);
+}
+
+}  // namespace
+
+auto direct_int(Eigen::Ref<Eigen::VectorXd> phenotype, double offset) -> void
+{
+    auto ranks = compute_ranks(phenotype);
+    auto n = static_cast<double>(phenotype.size());
+    double denominator = n - (2.0 * offset) + 1.0;
+
+    for (auto&& [rank, value] : std::views::zip(ranks, phenotype))
+    {
+        double quantile
+            = std::clamp((rank - offset) / denominator, 1e-10, 1.0 - 1e-10);
+        value = detail::norm_ppf(quantile);
+    }
+}
+
+auto indirect_int(
+    Eigen::Ref<Eigen::VectorXd> phenotype,
+    const Eigen::Ref<const Eigen::MatrixXd>& covariates,
+    double offset) -> void
+{
+    auto residuals = compute_residuals(phenotype, covariates);
+    direct_int(residuals, offset);
+    phenotype = residuals;
 }
 
 }  // namespace gelex

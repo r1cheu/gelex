@@ -101,6 +101,26 @@ auto lexical_cast(const std::string& input, GeneticModeSet& output) -> bool
     return false;
 }
 
+auto lexical_cast(const std::string& input, RintType& output) -> bool
+{
+    if (input == "none")
+    {
+        output = RintType::None;
+        return true;
+    }
+    if (input == "dint")
+    {
+        output = RintType::Direct;
+        return true;
+    }
+    if (input == "iint")
+    {
+        output = RintType::Indirect;
+        return true;
+    }
+    return false;
+}
+
 }  // namespace gelex
 
 namespace cli

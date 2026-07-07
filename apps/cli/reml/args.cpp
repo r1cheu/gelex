@@ -76,7 +76,7 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
            "Phenotype transform: none, dint, iint")
         ->group("Model")
         ->type_name("<TRANSFORM>")
-        ->capture_default_str()
+        ->default_str("none")
         ->check(
             CLI::IsMember(std::vector<std::string>{"none", "dint", "iint"}));
     cmd.add_option(

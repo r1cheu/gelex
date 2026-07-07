@@ -25,7 +25,8 @@
 
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
 
-using gelex::RankInverseNormTransform;
+using gelex::direct_int;
+using gelex::indirect_int;
 
 TEST_CASE(
     "RankInverseNormTransform - DINT produces approximately standard normal",
@@ -40,8 +41,7 @@ TEST_CASE(
         phenotype[i] = dist(gen);
     }
 
-    RankInverseNormTransform transformer;
-    transformer.apply_dint(phenotype);
+    direct_int(phenotype);
 
     auto mean = phenotype.mean();
     auto variance = (phenotype.array() - mean).square().mean();
@@ -57,8 +57,7 @@ TEST_CASE(
 {
     Eigen::VectorXd phenotype{{1.0, 2.0, 2.0, 2.0, 3.0, 3.0, 4.0, 5.0}};
 
-    RankInverseNormTransform transformer;
-    transformer.apply_dint(phenotype);
+    direct_int(phenotype);
 
     REQUIRE(std::abs(phenotype[1] - phenotype[2]) < 1e-10);
     REQUIRE(std::abs(phenotype[2] - phenotype[3]) < 1e-10);
@@ -96,8 +95,7 @@ TEST_CASE(
         phenotype[i] = covariates.row(i).dot(beta) + lognormal_dist(gen);
     }
 
-    RankInverseNormTransform transformer;
-    transformer.apply_iint(phenotype, covariates);
+    indirect_int(phenotype, covariates);
 
     auto mean = phenotype.mean();
     auto variance = (phenotype.array() - mean).square().mean();
@@ -120,11 +118,8 @@ TEST_CASE(
     auto phenotype_default = phenotype;
     auto phenotype_custom = phenotype;
 
-    RankInverseNormTransform transformer_default(3.0 / 8.0);
-    RankInverseNormTransform transformer_custom(0.5);
-
-    transformer_default.apply_dint(phenotype_default);
-    transformer_custom.apply_dint(phenotype_custom);
+    direct_int(phenotype_default, 3.0 / 8.0);
+    direct_int(phenotype_custom, 0.5);
 
     REQUIRE((phenotype_default - phenotype_custom).norm() > 0.1);
 }
@@ -135,9 +130,7 @@ TEST_CASE(
 {
     Eigen::VectorXd phenotype{{1.0, 2.0, 3.0, 4.0, 5.0}};
 
-    RankInverseNormTransform transformer;
-
-    REQUIRE_NOTHROW(transformer.apply_dint(phenotype));
+    REQUIRE_NOTHROW(direct_int(phenotype));
 
     for (int i = 0; i < 4; ++i)
     {
@@ -155,8 +148,7 @@ TEST_CASE(
         phenotype[i] = std::pow(10.0, static_cast<double>(i) / 10.0);
     }
 
-    RankInverseNormTransform transformer;
-    transformer.apply_dint(phenotype);
+    direct_int(phenotype);
 
     REQUIRE(phenotype.allFinite());
 

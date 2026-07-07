@@ -41,7 +41,7 @@ struct BaseDataConfig
     int pheno_col{0};
     std::optional<std::string> qcovar_path;
     std::optional<std::string> dcovar_path;
-    std::string transform{"none"};
+    gelex::RintType transform{gelex::RintType::None};
     double int_offset{3.0 / 8.0};
 };
 
@@ -119,26 +119,23 @@ auto load_base_data(Handler& handler, const BaseDataConfig& config) -> BaseData
     }
     auto pheno_vec = phenotype.col(0).to_mat<double>();
 
-    if (config.transform != "none")
+    switch (config.transform)
     {
-        gelex::RankInverseNormTransform transformer(config.int_offset);
-        auto logger = cli::logging::get();
-
-        if (config.transform == "dint")
-        {
-            logger->info(
+        case gelex::RintType::None:
+            break;
+        case gelex::RintType::Direct:
+            cli::logging::get()->info(
                 "   Method: Direct INT (DINT), offset (k): {}",
                 config.int_offset);
-            transformer.apply_dint(pheno_vec);
-        }
-        else if (config.transform == "iint")
-        {
-            logger->info(
+            gelex::direct_int(pheno_vec, config.int_offset);
+            break;
+        case gelex::RintType::Indirect:
+            cli::logging::get()->info(
                 "   Method: Indirect INT (IINT), offset (k): {}",
                 config.int_offset);
-            transformer.apply_iint(pheno_vec, fixed_design->X);
+            gelex::indirect_int(pheno_vec, fixed_design->X, config.int_offset);
             fixed_design = gelex::FixedDesign::make(pheno_vec.size());
-        }
+            break;
     }
 
     return BaseData{

@@ -25,6 +25,7 @@
 #include <Eigen/Core>
 
 #include "gelex/data/genotype_method.h"
+#include "gelex/infra/stats/rank_inverse_norm_transform.h"
 #include "gelex/types/genetic_mode.h"
 
 namespace CLI
@@ -41,6 +42,8 @@ auto lexical_cast(const std::string& input, GenotypeMethod& output) -> bool;
 auto lexical_cast(const std::string& input, GeneticMode& output) -> bool;
 
 auto lexical_cast(const std::string& input, GeneticModeSet& output) -> bool;
+
+auto lexical_cast(const std::string& input, RintType& output) -> bool;
 }  // namespace gelex
 
 namespace cli

@@ -16,31 +16,27 @@
 #ifndef GELEX_INFRA_STATS_RANK_INVERSE_NORM_TRANSFORM_H_
 #define GELEX_INFRA_STATS_RANK_INVERSE_NORM_TRANSFORM_H_
 
+#include <cstdint>
+
 #include <Eigen/Dense>
 
 namespace gelex
 {
-
-class RankInverseNormTransform
+enum class RintType : std::uint8_t
 {
-   public:
-    explicit RankInverseNormTransform(double offset = 3.0 / 8.0);
-
-    auto apply_dint(Eigen::Ref<Eigen::VectorXd> phenotype) const -> void;
-    auto apply_iint(
-        Eigen::Ref<Eigen::VectorXd> phenotype,
-        const Eigen::Ref<const Eigen::MatrixXd>& covariates) const -> void;
-
-   private:
-    double offset_;
-
-    auto int_transform(Eigen::Ref<Eigen::VectorXd> values) const -> void;
-    static auto compute_ranks(const Eigen::Ref<const Eigen::VectorXd>& values)
-        -> Eigen::VectorXd;
-    static auto compute_residuals(
-        const Eigen::Ref<const Eigen::VectorXd>& y,
-        const Eigen::Ref<const Eigen::MatrixXd>& X) -> Eigen::VectorXd;
+    None,
+    Direct,
+    Indirect
 };
+
+auto direct_int(
+    Eigen::Ref<Eigen::VectorXd> phenotype,
+    double offset = 3.0 / 8.0) -> void;
+
+auto indirect_int(
+    Eigen::Ref<Eigen::VectorXd> phenotype,
+    const Eigen::Ref<const Eigen::MatrixXd>& covariates,
+    double offset = 3.0 / 8.0) -> void;
 
 }  // namespace gelex
 
