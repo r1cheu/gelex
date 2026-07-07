@@ -27,7 +27,6 @@
 #include "cli/formatter.h"
 #include "cli/report_printer.h"
 #include "gelex/data/dataframe/encode.h"
-#include "gelex/data/genotype_method.h"
 #include "gelex/data/snp_alignment.h"
 
 namespace cli
@@ -93,15 +92,12 @@ auto PredictReporter::show_covariate_level_mismatches(
 auto PredictReporter::show_data_loaded(
     size_t num_samples,
     size_t num_snps,
-    size_t num_covar_terms,
-    gelex::GenotypeMethod geno_method) const -> void
+    size_t num_covar_terms) const -> void
 {
     cli::printer().block(gelex::section("Dataset Summary:"));
     cli::printer().line("   {:<13}: {} samples", "Samples", num_samples);
     cli::printer().line("   {:<13}: {} markers", "SNPs", num_snps);
     cli::printer().line("   {:<13}: {}", "Covariates", num_covar_terms);
-    cli::printer().line(
-        "   {:<13}: {}", "Geno method", fmt::format("{}", geno_method));
 }
 
 auto PredictReporter::show_results_written(

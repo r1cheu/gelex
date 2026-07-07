@@ -22,14 +22,11 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/genotype_method.h"
-
 namespace gelex
 {
 
 struct SnpStats
 {
-    GenotypeMethod method{};
     Eigen::MatrixXd code;
     Eigen::VectorXd A1freq;
     std::vector<int64_t> valid_indices;

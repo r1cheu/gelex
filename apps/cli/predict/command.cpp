@@ -148,8 +148,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
     reporter.show_data_loaded(
         static_cast<std::size_t>(common_index.size()),
         n_snps,
-        term_names.size(),
-        snp_stats.begin()->second.method);
+        term_names.size());
 
     // Compute predictions.
     auto gebvs = cli::compute_gebv(geno, effects);

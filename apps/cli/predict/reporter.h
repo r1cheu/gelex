@@ -24,7 +24,6 @@
 #include <vector>
 
 #include "gelex/data/dataframe/encode.h"
-#include "gelex/data/genotype_method.h"
 
 namespace gelex
 {
@@ -47,8 +46,7 @@ class PredictReporter
     auto show_data_loaded(
         size_t num_samples,
         size_t num_snps,
-        size_t num_covar_terms,
-        gelex::GenotypeMethod geno_method) const -> void;
+        size_t num_covar_terms) const -> void;
     auto show_results_written(std::string_view output_path, size_t num_samples)
         const -> void;
 };

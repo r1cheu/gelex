@@ -122,7 +122,6 @@ auto create_snpstats(
             gelex::detail::make_loci_encoding<double>(genotypes, spec)};
 
         SnpStats stats;
-        stats.method = GenotypeMethod::StandardizeHWE;
         stats.code = Eigen::MatrixXd(3, n_snps);
         stats.A1freq = Eigen::VectorXd(n_snps);
         for (const gelex::LocusEncoding& locus : encoding.loci)

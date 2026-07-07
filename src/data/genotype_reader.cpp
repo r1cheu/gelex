@@ -132,7 +132,6 @@ auto GenotypeReader::read_encoded_chunks(
     gelex::GenotypeMethod method,
     std::size_t chunk_size) -> void
 {
-    output.stats.method = method;
     output.stats.code.resize(3, num_variants_);
     output.stats.A1freq.resize(num_variants_);
     output.stats.valid_indices.reserve(num_variants_);

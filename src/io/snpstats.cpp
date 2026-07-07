@@ -20,7 +20,6 @@
 #include <Eigen/Core>
 #include <cstdint>
 #include <filesystem>
-#include <utility>
 
 #include "gelex/exception.h"
 #include "gelex/types/genetic_mode.h"
@@ -40,13 +39,6 @@ auto read_snp_stats(const BinaryReader& reader, GeneticMode mode) -> SnpStats
     SnpStats data;
     data.code = stats_map.leftCols(3).transpose();
     data.A1freq = stats_map.col(3);
-
-    if (const auto path = fmt::format("{}/geno_method", mode);
-        reader.contains(path))
-    {
-        auto method_map = reader.to_map<uint8_t>(path);
-        data.method = genotype_method_from_byte(method_map(0, 0));
-    }
 
     if (const auto path = fmt::format("{}/valid_indices", mode);
         reader.contains(path))
@@ -87,10 +79,6 @@ auto write_snp_stats(
                 n_snps,
                 stats.A1freq.size()));
     }
-
-    writer.write(
-        fmt::format("{}/geno_method", mode),
-        static_cast<uint8_t>(std::to_underlying(stats.method)));
 
     const Eigen::MatrixXd code_t = stats.code.transpose();
     auto stats_handle

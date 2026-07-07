@@ -81,7 +81,6 @@ TEST_CASE("snpstats round-trip additive only", "[snpstats]")
 
     constexpr Eigen::Index NUM_SNPS = 200;
     SnpStats stats;
-    stats.method = GenotypeMethod::StandardizeHWE;
     stats.code = Eigen::VectorXd::LinSpaced(3 * NUM_SNPS, 0.05, 0.95)
                      .reshaped(3, NUM_SNPS);
     stats.A1freq = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.03, 0.48);
@@ -105,7 +104,6 @@ TEST_CASE("snpstats round-trip additive only", "[snpstats]")
     REQUIRE(data.code.isApprox(stats.code));
     REQUIRE(data.A1freq.isApprox(stats.A1freq));
     REQUIRE(data.valid_indices == stats.valid_indices);
-    REQUIRE(data.method == stats.method);
 }
 
 TEST_CASE("snpstats round-trip additive and dominance", "[snpstats]")
@@ -115,14 +113,12 @@ TEST_CASE("snpstats round-trip additive and dominance", "[snpstats]")
 
     constexpr Eigen::Index NUM_SNPS = 150;
     SnpStats add;
-    add.method = GenotypeMethod::StandardizeHWE;
     add.code = Eigen::VectorXd::LinSpaced(3 * NUM_SNPS, 0.1, 0.9)
                    .reshaped(3, NUM_SNPS);
     add.A1freq = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.05, 0.45);
     add.valid_indices = {7, 88};
 
     SnpStats dom;
-    dom.method = GenotypeMethod::OrthStandardizeHWE;
     dom.code = Eigen::VectorXd::LinSpaced(3 * NUM_SNPS, 0.2, 0.8)
                    .reshaped(3, NUM_SNPS);
     dom.A1freq = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.10, 0.40);
@@ -143,13 +139,11 @@ TEST_CASE("snpstats round-trip additive and dominance", "[snpstats]")
     REQUIRE(add_data.code.isApprox(add.code));
     REQUIRE(add_data.A1freq.isApprox(add.A1freq));
     REQUIRE(add_data.valid_indices == add.valid_indices);
-    REQUIRE(add_data.method == add.method);
 
     auto dom_data = read_snp_stats(reader, GeneticMode::D);
     REQUIRE(dom_data.code.isApprox(dom.code));
     REQUIRE(dom_data.A1freq.isApprox(dom.A1freq));
     REQUIRE(dom_data.valid_indices.empty());
-    REQUIRE(dom_data.method == dom.method);
 }
 
 TEST_CASE("snpstats round-trip empty valid_indices", "[snpstats]")
@@ -159,7 +153,6 @@ TEST_CASE("snpstats round-trip empty valid_indices", "[snpstats]")
 
     constexpr Eigen::Index NUM_SNPS = 100;
     SnpStats stats;
-    stats.method = GenotypeMethod::CenterHWE;
     stats.code = Eigen::VectorXd::LinSpaced(3 * NUM_SNPS, 0.1, 0.9)
                      .reshaped(3, NUM_SNPS);
     stats.A1freq = Eigen::VectorXd::LinSpaced(NUM_SNPS, 0.05, 0.45);
@@ -180,5 +173,4 @@ TEST_CASE("snpstats round-trip empty valid_indices", "[snpstats]")
     REQUIRE(data.code.isApprox(stats.code));
     REQUIRE(data.A1freq.isApprox(stats.A1freq));
     REQUIRE(data.valid_indices.empty());
-    REQUIRE(data.method == GenotypeMethod::CenterHWE);
 }
