@@ -16,7 +16,6 @@
 
 #include "reporter.h"
 
-#include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <cstddef>
 #include <string>
@@ -33,9 +32,7 @@ namespace cli
 {
 
 auto PredictReporter::show_snp_selection(
-    const gelex::AlignmentPlan& alignment,
-    std::string_view bfile_path,
-    std::string_view snp_effect_path) const -> void
+    const gelex::AlignmentPlan& alignment) const -> void
 {
     const auto num_matched
         = static_cast<size_t>(alignment.num_same + alignment.num_flip);
@@ -47,20 +44,6 @@ auto PredictReporter::show_snp_selection(
     cli::printer().line("   {:<13}: {}/{}", "Matched", num_matched, num_total);
     cli::printer().line("   {:<13}: {}", "Missing", num_missing);
     cli::printer().line("   {:<13}: {}", "Mismatched", num_mismatched);
-
-    if (num_mismatched > 0)
-    {
-        std::string plink_hint = fmt::format(
-            "plink2 --bfile {} --alt1-allele {} 4 1 1 --make-bed --out "
-            "<output>",
-            bfile_path,
-            snp_effect_path);
-        cli::printer().warn(
-            "Allele mismatch detected for {} SNPs. "
-            "To fix, run:\n  {}",
-            num_mismatched,
-            plink_hint);
-    }
 }
 
 auto PredictReporter::show_covariate_level_mismatches(

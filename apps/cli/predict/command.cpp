@@ -113,8 +113,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
 
     // Align SNPs to the model, then load the aligned dosage.
     auto alignment = gelex::build_snp_alignment(snp_effects, bed.bim());
-    reporter.show_snp_selection(
-        alignment, bfile_prefix, gfile_prefix + ".snpeff");
+    reporter.show_snp_selection(alignment);
 
     const auto n_snps = static_cast<std::size_t>(snp_effects.rows());
     const double missing_ratio

@@ -36,10 +36,8 @@ namespace cli
 class PredictReporter
 {
    public:
-    auto show_snp_selection(
-        const gelex::AlignmentPlan& alignment,
-        std::string_view bfile_path,
-        std::string_view snp_effect_path) const -> void;
+    auto show_snp_selection(const gelex::AlignmentPlan& alignment) const
+        -> void;
     auto show_covariate_level_mismatches(
         const std::vector<std::pair<std::string, gelex::LevelMismatch>>&
             mismatches) const -> void;
