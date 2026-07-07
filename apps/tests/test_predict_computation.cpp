@@ -21,12 +21,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "cli/predict/compute.h"
-#include "cli/predict/types.h"
 #include "gelex/types/genetic_mode.h"
 
-using cli::Coefficients;
-using cli::GenotypeData;
-using cli::SnpEffects;
 using gelex::GeneticMode;
 
 // ---------------------------------------------------------------------------
@@ -37,36 +33,34 @@ TEST_CASE("compute_gebv: additive only", "[predict][compute]")
 {
     // add = [[1,2],[3,4]], effects.add = [0.5, -0.5]
     // add_predictions = [1*0.5 + 2*(-0.5), 3*0.5 + 4*(-0.5)] = [-0.5, -0.5]
-    GenotypeData geno;
+    gelex::ModeMap<Eigen::MatrixXd> geno;
     geno[GeneticMode::A] = Eigen::MatrixXd{{1.0, 2.0}, {3.0, 4.0}};
 
-    SnpEffects effects;
+    gelex::ModeMap<Eigen::VectorXd> effects;
     effects[GeneticMode::A] = Eigen::VectorXd{{0.5, -0.5}};
 
     const auto result = cli::compute_gebv(geno, effects);
 
     Eigen::VectorXd expected_add{{-0.5, -0.5}};
-    REQUIRE(result.components.at(GeneticMode::A).isApprox(expected_add));
-    REQUIRE(result.total.isApprox(expected_add));
-    REQUIRE_FALSE(result.components.contains(GeneticMode::D));
+    REQUIRE(result.at(GeneticMode::A).isApprox(expected_add));
+    REQUIRE_FALSE(result.contains(GeneticMode::D));
 }
 
 TEST_CASE("compute_gebv: dominance only", "[predict][compute]")
 {
     // dom = [[1,0],[0,1]], effects.dom = [1.0, 2.0]
     // dom_predictions = [1.0, 2.0]; no additive component
-    GenotypeData geno;
+    gelex::ModeMap<Eigen::MatrixXd> geno;
     geno[GeneticMode::D] = Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}};
 
-    SnpEffects effects;
+    gelex::ModeMap<Eigen::VectorXd> effects;
     effects[GeneticMode::D] = Eigen::VectorXd{{1.0, 2.0}};
 
     const auto result = cli::compute_gebv(geno, effects);
 
     Eigen::VectorXd expected_dom{{1.0, 2.0}};
-    REQUIRE_FALSE(result.components.contains(GeneticMode::A));
-    REQUIRE(result.components.at(GeneticMode::D).isApprox(expected_dom));
-    REQUIRE(result.total.isApprox(expected_dom));
+    REQUIRE_FALSE(result.contains(GeneticMode::A));
+    REQUIRE(result.at(GeneticMode::D).isApprox(expected_dom));
 }
 
 TEST_CASE("compute_gebv: additive + dominance", "[predict][compute]")
@@ -76,11 +70,11 @@ TEST_CASE("compute_gebv: additive + dominance", "[predict][compute]")
     // add_pred = [1*1.0+0*2.0, 0*1.0+1*2.0] = [1.0, 2.0]
     // dom_pred = [0.5*0.1+0.5*0.2, 0.5*0.1+0.5*0.2] = [0.15, 0.15]
     // total = [1.15, 2.15]
-    GenotypeData geno;
+    gelex::ModeMap<Eigen::MatrixXd> geno;
     geno[GeneticMode::A] = Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}};
     geno[GeneticMode::D] = Eigen::MatrixXd{{0.5, 0.5}, {0.5, 0.5}};
 
-    SnpEffects effects;
+    gelex::ModeMap<Eigen::VectorXd> effects;
     effects[GeneticMode::A] = Eigen::VectorXd{{1.0, 2.0}};
     effects[GeneticMode::D] = Eigen::VectorXd{{0.1, 0.2}};
 
@@ -88,10 +82,8 @@ TEST_CASE("compute_gebv: additive + dominance", "[predict][compute]")
 
     Eigen::VectorXd expected_add{{1.0, 2.0}};
     Eigen::VectorXd expected_dom{{0.15, 0.15}};
-    Eigen::VectorXd expected_total{{1.15, 2.15}};
-    REQUIRE(result.components.at(GeneticMode::A).isApprox(expected_add));
-    REQUIRE(result.components.at(GeneticMode::D).isApprox(expected_dom));
-    REQUIRE(result.total.isApprox(expected_total));
+    REQUIRE(result.at(GeneticMode::A).isApprox(expected_add));
+    REQUIRE(result.at(GeneticMode::D).isApprox(expected_dom));
 }
 
 // ---------------------------------------------------------------------------
@@ -101,19 +93,16 @@ TEST_CASE("compute_gebv: additive + dominance", "[predict][compute]")
 TEST_CASE("compute_covariate_effects: intercept only", "[predict][compute]")
 {
     // covariates = [[1],[1],[1]], coefficients = {["Intercept"], [2.5]}
-    // total = [2.5, 2.5, 2.5], per_covariate has 0 cols, covar_names empty
+    // intercept is excluded: per_covariate has 0 cols, covar_names empty
     Eigen::MatrixXd covariates(3, 1);
     covariates << 1.0, 1.0, 1.0;
 
-    Coefficients coefficients;
-    coefficients.names = {"Intercept"};
-    coefficients.values = Eigen::VectorXd{{2.5}};
+    std::vector<std::string> term_names{"Intercept"};
+    Eigen::VectorXd coefficients{{2.5}};
 
     const auto result
-        = cli::compute_covariate_effects(covariates, coefficients);
+        = cli::compute_covariate_effects(covariates, term_names, coefficients);
 
-    Eigen::VectorXd expected_total{{2.5, 2.5, 2.5}};
-    REQUIRE(result.total.isApprox(expected_total));
     REQUIRE(result.per_covariate.cols() == 0);
     REQUIRE(result.covar_names.empty());
 }
@@ -124,20 +113,15 @@ TEST_CASE(
 {
     // covariates = [[1, 25, 1], [1, 30, 0]]
     // coefficients = {["Intercept","Age","Sex_M"], [1.0, 0.2, -0.3]}
-    // total = [1+5+(-0.3), 1+6+0] = [5.7, 7.0]
     // per_covariate: Age=[5.0, 6.0], Sex_M=[-0.3, 0.0]
     Eigen::MatrixXd covariates(2, 3);
     covariates << 1.0, 25.0, 1.0, 1.0, 30.0, 0.0;
 
-    Coefficients coefficients;
-    coefficients.names = {"Intercept", "Age", "Sex_M"};
-    coefficients.values = Eigen::VectorXd{{1.0, 0.2, -0.3}};
+    std::vector<std::string> term_names{"Intercept", "Age", "Sex_M"};
+    Eigen::VectorXd coefficients{{1.0, 0.2, -0.3}};
 
     const auto result
-        = cli::compute_covariate_effects(covariates, coefficients);
-
-    Eigen::VectorXd expected_total{{5.7, 7.0}};
-    REQUIRE(result.total.isApprox(expected_total));
+        = cli::compute_covariate_effects(covariates, term_names, coefficients);
 
     REQUIRE(result.covar_names == std::vector<std::string>{"Age", "Sex_M"});
     REQUIRE(result.per_covariate.cols() == 2);

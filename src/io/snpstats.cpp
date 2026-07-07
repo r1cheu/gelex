@@ -59,10 +59,10 @@ auto read_snp_stats(const BinaryReader& reader, GeneticMode mode) -> SnpStats
     return data;
 }
 
-auto load_snp_stats(const std::filesystem::path& path) -> SnpStatsData
+auto load_snp_stats(const std::filesystem::path& path) -> ModeMap<SnpStats>
 {
     BinaryReader reader(path.string());
-    SnpStatsData data;
+    ModeMap<SnpStats> data;
     for (const auto mode : ALL_GENETIC_MODES)
     {
         if (has_snp_stats(reader, mode))

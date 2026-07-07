@@ -23,7 +23,6 @@
 #include <Eigen/Core>
 
 #include "gelex/data/genotype_method.h"
-#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
@@ -35,8 +34,6 @@ struct SnpStats
     Eigen::VectorXd A1freq;
     std::vector<int64_t> valid_indices;
 };
-
-using SnpStatsData = ModeMap<SnpStats>;
 
 }  // namespace gelex
 

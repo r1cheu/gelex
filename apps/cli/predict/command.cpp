@@ -17,7 +17,6 @@
 #include "command.h"
 
 #include <cstddef>
-#include <filesystem>
 #include <optional>
 #include <ranges>
 #include <string>
@@ -28,6 +27,8 @@
 #include <Eigen/Core>
 
 #include "gelex/data/bed.h"
+#include "gelex/data/dataframe/dataframe.h"
+#include "gelex/data/dataframe/index.h"
 #include "gelex/data/locus_encoding.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/snp_alignment.h"
@@ -37,7 +38,6 @@
 #include "compute.h"
 #include "io.h"
 #include "reporter.h"
-#include "types.h"
 
 auto predict_execute(const cli::PredictConfig& config) -> int
 {
@@ -55,7 +55,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
             ".snpstats file contains neither additive nor dominance stats.");
     }
 
-    cli::SnpEffects effects;
+    gelex::ModeMap<Eigen::VectorXd> effects;
     for (const auto mode : std::views::keys(snpstats))
     {
         const auto column = fmt::format("BETA_{}", mode);
@@ -70,30 +70,43 @@ auto predict_execute(const cli::PredictConfig& config) -> int
         }
         effects.emplace(mode, snp_effects[column].to_mat<double>());
     }
-    auto coefficients = cli::read_coefficients(gfile_prefix + ".param");
+    auto param = gelex::read_param(gfile_prefix + ".param");
+    auto term_names = param.index().keys();
+    const Eigen::VectorXd coefficients = param["mean"].to_map<double>();
 
-    auto fam_df = gelex::read_fam(bfile_prefix + ".fam");
-    auto bim_df = gelex::read_bim(bfile_prefix + ".bim");
-    auto qcovar_path
-        = config.qcovar
-              ? std::make_optional<std::filesystem::path>(*config.qcovar)
-              : std::nullopt;
-    auto dcovar_path
-        = config.dcovar
-              ? std::make_optional<std::filesystem::path>(*config.dcovar)
-              : std::nullopt;
-    auto covariates
-        = cli::read_covariates(qcovar_path, dcovar_path, coefficients, fam_df);
+    auto bed = gelex::open_bed(bfile_prefix);
 
-    auto alignment = gelex::build_snp_alignment(snp_effects, bim_df);
+    // load all sample-keyed frames, then intersect to a common sample index
+    std::optional<gelex::DataFrame<std::string>> qcovar_df;
+    std::optional<gelex::DataFrame<std::string>> dcovar_df;
+    std::vector<const gelex::DataFrameIndex<std::string>*> indices{
+        &bed.sample_index()};
+    if (config.qcovar)
+    {
+        qcovar_df = gelex::read_qcovar(*config.qcovar);
+        indices.push_back(&qcovar_df->index());
+    }
+    if (config.dcovar)
+    {
+        dcovar_df = gelex::read_dcovar(*config.dcovar);
+        indices.push_back(&dcovar_df->index());
+    }
+
+    auto common_index = gelex::intersect<std::string>(indices);
+    bed.gather(common_index);
+    if (qcovar_df)
+    {
+        qcovar_df->gather(common_index);
+    }
+    if (dcovar_df)
+    {
+        dcovar_df->gather(common_index);
+    }
+
+    auto alignment = gelex::build_snp_alignment(snp_effects, bed.bim());
     const auto n_snps = static_cast<std::size_t>(snp_effects.rows());
     reporter.show_snp_selection(
-        static_cast<std::size_t>(alignment.num_same + alignment.num_flip),
-        static_cast<std::size_t>(alignment.num_absent),
-        static_cast<std::size_t>(alignment.num_incompatible),
-        n_snps,
-        bfile_prefix,
-        gfile_prefix + ".snpeff");
+        alignment, bfile_prefix, gfile_prefix + ".snpeff");
 
     const double missing_ratio
         = static_cast<double>(alignment.missing_pos.size())
@@ -112,10 +125,9 @@ auto predict_execute(const cli::PredictConfig& config) -> int
                 gelex::MAX_SNP_MISSING_RATIO * 100.0));
     }
 
-    auto bed = gelex::open_bed(bfile_prefix, fam_df.index());
     const auto dosage = gelex::load_aligned_genotypes(bed, alignment);
 
-    cli::GenotypeData geno;
+    gelex::ModeMap<Eigen::MatrixXd> geno;
     for (const auto& [mode, stats] : snpstats)
     {
         Eigen::MatrixXd encoded = dosage;
@@ -125,28 +137,31 @@ auto predict_execute(const cli::PredictConfig& config) -> int
     }
 
     reporter.show_data_loaded(
-        static_cast<std::size_t>(fam_df.rows()),
+        static_cast<std::size_t>(common_index.size()),
         static_cast<std::size_t>(snp_effects.rows()),
-        coefficients.names.size(),
+        term_names.size(),
         snpstats.begin()->second.method);
 
-    auto gebv = cli::compute_gebv(geno, effects);
-    auto covar = cli::compute_covariate_effects(covariates, coefficients);
+    auto covariates = cli::build_covariate_design(
+        term_names,
+        qcovar_df,
+        dcovar_df,
+        static_cast<Eigen::Index>(common_index.size()));
 
-    auto sample_keys = fam_df.index().keys();
-    std::vector<std::string> sample_ids(sample_keys.begin(), sample_keys.end());
+    auto gebvs = cli::compute_gebv(geno, effects);
+    auto covar
+        = cli::compute_covariate_effects(covariates, term_names, coefficients);
 
-    cli::PredictResult result{
-        .sample_ids = std::move(sample_ids),
-        .predictions = gebv.total + covar.total,
-        .snp_predictions = std::move(gebv.total),
-        .snp_components = std::move(gebv.components),
-        .covar_predictions = std::move(covar.per_covariate),
-        .covar_names = std::move(covar.covar_names)};
+    Eigen::VectorXd prediction = covariates * coefficients;
+    for (const auto& gebv : std::views::values(gebvs))
+    {
+        prediction += gebv;
+    }
 
-    cli::write_predictions(config.out, result);
+    auto sample_ids = common_index.keys();
+    cli::write_predictions(config.out, sample_ids, prediction, covar, gebvs);
 
-    reporter.show_results_written(config.out, result.sample_ids.size());
+    reporter.show_results_written(config.out, sample_ids.size());
 
     return 0;
 }

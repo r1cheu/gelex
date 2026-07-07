@@ -14,22 +14,25 @@
  * limitations under the License.
  */
 
+#include <optional>
 #include <string>
+#include <vector>
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 #include <string_view>
 
-#include "cli/predict/io.h"
+#include "cli/predict/compute.h"
 #include "file_fixture.h"
 #include "gelex/data/dataframe/constants.h"
+#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/reader.h"
 
 using gelex::SEPARATOR;
 using gelex::test::FileFixture;
 
 TEST_CASE(
-    "read_coefficients reads term names and coefficients from TSV",
+    "read_param reads term names and coefficients from TSV",
     "[predict][io]")
 {
     FileFixture files;
@@ -40,32 +43,27 @@ TEST_CASE(
           "Sex_M\t1.2\n";
 
     auto path = files.create_text_file(CONTENT, ".tsv");
-    auto coefficients = cli::read_coefficients(path);
+    auto param = gelex::read_param(path);
 
-    REQUIRE(coefficients.names.size() == 3);
-    REQUIRE(coefficients.names[0] == "Intercept");
-    REQUIRE(coefficients.names[1] == "Age");
-    REQUIRE(coefficients.names[2] == "Sex_M");
+    auto names = param.index().keys();
+    REQUIRE(names.size() == 3);
+    REQUIRE(names[0] == "Intercept");
+    REQUIRE(names[1] == "Age");
+    REQUIRE(names[2] == "Sex_M");
 
-    REQUIRE(coefficients.values.size() == 3);
-    REQUIRE(coefficients.values[0] == 0.5);
-    REQUIRE(coefficients.values[1] == -0.3);
-    REQUIRE(coefficients.values[2] == 1.2);
+    Eigen::VectorXd values = param["mean"].to_map<double>();
+    REQUIRE(values.size() == 3);
+    REQUIRE(values[0] == 0.5);
+    REQUIRE(values[1] == -0.3);
+    REQUIRE(values[2] == 1.2);
 }
 
 TEST_CASE(
-    "read_covariates builds design matrix with intercept, qcovar, and dcovar",
+    "build_covariate_design builds design matrix from qcovar and dcovar",
     "[predict][io]")
 {
     FileFixture files;
     auto sep = std::string(1, SEPARATOR);
-
-    // FAM file (space-delimited, no header): FID IID Father Mother Sex Pheno
-    auto fam_path = files.create_text_file(
-        "F1\tI1\t0\t0\t1\t-9\n"
-        "F1\tI2\t0\t0\t2\t-9\n"
-        "F2\tI1\t0\t0\t1\t-9\n",
-        ".fam");
 
     // qcovar file (tab-delimited, header)
     auto qcovar_path = files.create_text_file(
@@ -83,15 +81,15 @@ TEST_CASE(
         "F2\tI1\tM\n",
         ".tsv");
 
-    auto sample_df = gelex::read_fam(fam_path);
+    std::optional<gelex::DataFrame<std::string>> qcovar_df
+        = gelex::read_qcovar(qcovar_path);
+    std::optional<gelex::DataFrame<std::string>> dcovar_df
+        = gelex::read_dcovar(dcovar_path);
 
-    cli::Coefficients coefficients{
-        .names = {"Intercept", "Age", "Sex" + sep + "M"},
-        .values = Eigen::Vector3d{0.5, -0.3, 1.2},
-    };
+    std::vector<std::string> term_names{"Intercept", "Age", "Sex" + sep + "M"};
 
-    auto covariates = cli::read_covariates(
-        qcovar_path, dcovar_path, coefficients, sample_df);
+    auto covariates
+        = cli::build_covariate_design(term_names, qcovar_df, dcovar_df, 3);
 
     REQUIRE(covariates.rows() == 3);
     REQUIRE(covariates.cols() == 3);

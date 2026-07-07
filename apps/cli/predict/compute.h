@@ -17,20 +17,40 @@
 #ifndef APPS_CLI_PREDICT_COMPUTE_H_
 #define APPS_CLI_PREDICT_COMPUTE_H_
 
+#include <optional>
+#include <span>
+#include <string>
+#include <vector>
+
 #include <Eigen/Core>
 
-#include "types.h"
+#include "gelex/data/dataframe/dataframe.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace cli
 {
 
+struct CovariateResult
+{
+    Eigen::MatrixXd per_covariate;
+    std::vector<std::string> covar_names;
+};
+
 [[nodiscard]] auto compute_gebv(
-    const GenotypeData& geno,
-    const SnpEffects& effects) -> GEBVResult;
+    const gelex::ModeMap<Eigen::MatrixXd>& geno,
+    const gelex::ModeMap<Eigen::VectorXd>& effects)
+    -> gelex::ModeMap<Eigen::VectorXd>;
+
+[[nodiscard]] auto build_covariate_design(
+    std::span<const std::string> term_names,
+    const std::optional<gelex::DataFrame<std::string>>& qcovar_df,
+    const std::optional<gelex::DataFrame<std::string>>& dcovar_df,
+    Eigen::Index n_samples) -> Eigen::MatrixXd;
 
 [[nodiscard]] auto compute_covariate_effects(
     const Eigen::MatrixXd& covariates,
-    const Coefficients& coefficients) -> CovariateResult;
+    std::span<const std::string> term_names,
+    const Eigen::Ref<const Eigen::VectorXd>& coefficients) -> CovariateResult;
 
 }  // namespace cli
 

@@ -24,18 +24,22 @@
 #include "cli/formatter.h"
 #include "cli/report_printer.h"
 #include "gelex/data/genotype_method.h"
+#include "gelex/data/snp_alignment.h"
 
 namespace cli
 {
 
 auto PredictReporter::show_snp_selection(
-    size_t num_matched,
-    size_t num_missing,
-    size_t num_mismatched,
-    size_t num_total,
+    const gelex::AlignmentPlan& alignment,
     std::string_view bfile_path,
     std::string_view snp_effect_path) const -> void
 {
+    const auto num_matched
+        = static_cast<size_t>(alignment.num_same + alignment.num_flip);
+    const auto num_missing = static_cast<size_t>(alignment.num_absent);
+    const auto num_mismatched = static_cast<size_t>(alignment.num_incompatible);
+    const auto num_total = static_cast<size_t>(alignment.train_count);
+
     cli::printer().block(gelex::section("[SNP Alignment]"));
     cli::printer().line("   {:<13}: {}/{}", "Matched", num_matched, num_total);
     cli::printer().line("   {:<13}: {}", "Missing", num_missing);

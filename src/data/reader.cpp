@@ -178,6 +178,14 @@ auto read_snp_effects(const std::filesystem::path& path)
     return read_dataframe<std::string>(path, options, snp_effects_schema(path));
 }
 
+auto read_param(const std::filesystem::path& path) -> DataFrame<std::string>
+{
+    ReadOptions options;
+    options.index_cols = {0};
+    options.select_cols = {1};
+    return read_dataframe<std::string, double>(path, options);
+}
+
 auto read_pheno(const std::filesystem::path& path, const std::size_t* pheno_col)
     -> DataFrame<std::string>
 {

@@ -34,7 +34,7 @@ namespace gelex
     -> SnpStats;
 
 [[nodiscard]] auto load_snp_stats(const std::filesystem::path& path)
-    -> SnpStatsData;
+    -> ModeMap<SnpStats>;
 
 auto write_snp_stats(
     BinaryWriter& writer,

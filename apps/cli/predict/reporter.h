@@ -22,6 +22,11 @@
 
 #include "gelex/data/genotype_method.h"
 
+namespace gelex
+{
+struct AlignmentPlan;
+}
+
 namespace cli
 {
 
@@ -29,10 +34,7 @@ class PredictReporter
 {
    public:
     auto show_snp_selection(
-        size_t num_matched,
-        size_t num_missing,
-        size_t num_mismatched,
-        size_t num_total,
+        const gelex::AlignmentPlan& alignment,
         std::string_view bfile_path,
         std::string_view snp_effect_path) const -> void;
     auto show_data_loaded(

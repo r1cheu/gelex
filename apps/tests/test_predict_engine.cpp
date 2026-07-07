@@ -32,10 +32,10 @@
 
 #include "cli/predict/compute.h"
 #include "cli/predict/io.h"
-#include "cli/predict/types.h"
 #include "file_fixture.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/dataframe.h"
+#include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/locus_encoding.h"
 #include "gelex/data/reader.h"
@@ -309,7 +309,7 @@ auto run_predict_dataflow(
             ".snpstats file contains neither additive nor dominance stats.");
     }
 
-    cli::SnpEffects effects;
+    gelex::ModeMap<Eigen::VectorXd> effects;
     for (const auto mode : std::views::keys(snpstats))
     {
         const auto column = fmt::format("BETA_{}", mode);
@@ -324,14 +324,39 @@ auto run_predict_dataflow(
         }
         effects.emplace(mode, snp_effects[column].to_mat<double>());
     }
-    auto coefficients = cli::read_coefficients(gfile_prefix + ".param");
+    auto param = gelex::read_param(gfile_prefix + ".param");
+    auto term_names = param.index().keys();
+    const Eigen::VectorXd coefficients = param["mean"].to_map<double>();
 
-    auto fam_df = gelex::read_fam(bfile_prefix + ".fam");
-    auto bim_df = gelex::read_bim(bfile_prefix + ".bim");
-    auto covariates
-        = cli::read_covariates(qcovar_path, dcovar_path, coefficients, fam_df);
+    auto bed = gelex::open_bed(bfile_prefix);
 
-    auto alignment = gelex::build_snp_alignment(snp_effects, bim_df);
+    std::optional<gelex::DataFrame<std::string>> qcovar_df;
+    std::optional<gelex::DataFrame<std::string>> dcovar_df;
+    std::vector<const gelex::DataFrameIndex<std::string>*> indices{
+        &bed.sample_index()};
+    if (qcovar_path)
+    {
+        qcovar_df = gelex::read_qcovar(*qcovar_path);
+        indices.push_back(&qcovar_df->index());
+    }
+    if (dcovar_path)
+    {
+        dcovar_df = gelex::read_dcovar(*dcovar_path);
+        indices.push_back(&dcovar_df->index());
+    }
+
+    auto common_index = gelex::intersect<std::string>(indices);
+    bed.gather(common_index);
+    if (qcovar_df)
+    {
+        qcovar_df->gather(common_index);
+    }
+    if (dcovar_df)
+    {
+        dcovar_df->gather(common_index);
+    }
+
+    auto alignment = gelex::build_snp_alignment(snp_effects, bed.bim());
     const double missing_ratio
         = static_cast<double>(alignment.missing_pos.size())
           / static_cast<double>(snp_effects.rows());
@@ -347,10 +372,9 @@ auto run_predict_dataflow(
                 snp_effects.rows()));
     }
 
-    auto bed = gelex::open_bed(bfile_prefix, fam_df.index());
     const auto dosage = gelex::load_aligned_genotypes(bed, alignment);
 
-    cli::GenotypeData geno;
+    gelex::ModeMap<Eigen::MatrixXd> geno;
     for (const auto& [mode, stats] : snpstats)
     {
         Eigen::MatrixXd encoded = dosage;
@@ -359,21 +383,24 @@ auto run_predict_dataflow(
         geno.emplace(mode, std::move(encoded));
     }
 
-    auto gebv = cli::compute_gebv(geno, effects);
-    auto covar = cli::compute_covariate_effects(covariates, coefficients);
+    auto covariates = cli::build_covariate_design(
+        term_names,
+        qcovar_df,
+        dcovar_df,
+        static_cast<Eigen::Index>(common_index.size()));
 
-    auto sample_keys = fam_df.index().keys();
-    std::vector<std::string> sample_ids(sample_keys.begin(), sample_keys.end());
+    auto snp_components = cli::compute_gebv(geno, effects);
+    auto covar
+        = cli::compute_covariate_effects(covariates, term_names, coefficients);
 
-    cli::PredictResult result{
-        .sample_ids = std::move(sample_ids),
-        .predictions = gebv.total + covar.total,
-        .snp_predictions = std::move(gebv.total),
-        .snp_components = std::move(gebv.components),
-        .covar_predictions = std::move(covar.per_covariate),
-        .covar_names = std::move(covar.covar_names)};
+    Eigen::VectorXd prediction = covariates * coefficients;
+    for (const auto& component : std::views::values(snp_components))
+    {
+        prediction += component;
+    }
 
-    cli::write_predictions(output_path, result);
+    cli::write_predictions(
+        output_path, common_index.keys(), prediction, covar, snp_components);
 }
 
 }  // namespace

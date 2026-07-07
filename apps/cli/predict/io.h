@@ -18,28 +18,23 @@
 #define APPS_CLI_PREDICT_IO_H_
 
 #include <filesystem>
-#include <optional>
+#include <span>
+#include <string>
 
 #include <Eigen/Core>
 
-#include "gelex/data/dataframe/dataframe.h"
-#include "types.h"
+#include "compute.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace cli
 {
 
-[[nodiscard]] auto read_coefficients(const std::filesystem::path& path)
-    -> Coefficients;
-
-[[nodiscard]] auto read_covariates(
-    const std::optional<std::filesystem::path>& qcovar_path,
-    const std::optional<std::filesystem::path>& dcovar_path,
-    const Coefficients& coefficients,
-    gelex::DataFrame<std::string>& sample_df) -> Eigen::MatrixXd;
-
 auto write_predictions(
     const std::filesystem::path& output_path,
-    const PredictResult& result) -> void;
+    std::span<const std::string> sample_ids,
+    const Eigen::Ref<const Eigen::VectorXd>& prediction,
+    const CovariateResult& covar,
+    const gelex::ModeMap<Eigen::VectorXd>& gebvs) -> void;
 
 }  // namespace cli
 
