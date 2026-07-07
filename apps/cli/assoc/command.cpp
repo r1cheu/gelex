@@ -101,7 +101,7 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
 
     cli::AssocReporter reporter;
 
-    cli::printer().block(gelex::section("[Dataset Summary]"));
+    cli::printer().block(gelex::section("Dataset Summary:"));
 
     auto bed = gelex::open_bed(config.bfile);
     AssocDataHandler handler(config, bed);

@@ -50,7 +50,7 @@ auto McmcReporter::on_event(const gelex::MCMCProgressEvent& event) -> void
     if (!init_progress_)
     {
         init_progress_ = true;
-        cli::printer().block(gelex::section("[MCMC Sampling]"));
+        cli::printer().block(gelex::section("MCMC Sampling:"));
         bar_ = cli::create_progress_bar(
             iter_, event.total, "{bar} {value}/{total} [{speed:.1f}/s]");
         bar_.display->show();
@@ -214,7 +214,7 @@ auto McmcReporter::on_event(const gelex::MCMCProgressEvent& event) -> void
 
 auto McmcReporter::show_complete(std::ptrdiff_t samples_collected) -> void
 {
-    cli::printer().block(gelex::section("[MCMC Complete]"));
+    cli::printer().block(gelex::section("MCMC Complete:"));
     cli::printer().line("  {:<12}: {}", "Samples", samples_collected);
 }
 

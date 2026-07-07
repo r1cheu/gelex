@@ -37,13 +37,13 @@ auto AssocReporter::show_reml_started(std::string_view chr_name) const -> void
 {
     if (chr_name.empty())
     {
-        cli::printer().block(gelex::section("[Variance Component Estimation]"));
+        cli::printer().block(gelex::section("Variance Component Estimation:"));
     }
     else
     {
         cli::printer().block(
             gelex::section(
-                "[Variance Component Estimation — Chr {}]", chr_name));
+                "Variance Component Estimation — Chr {}:", chr_name));
     }
 }
 
@@ -52,7 +52,7 @@ auto AssocReporter::start_scan(size_t total_snps, int chunk_size, bool loco)
 {
     eta_.reset(total_snps);
 
-    cli::printer().block(gelex::section("[Association Scan]"));
+    cli::printer().block(gelex::section("Association Scan:"));
     cli::printer().line("   SNPs to test : {}", total_snps);
     cli::printer().line("   Chunk size   : {}", chunk_size);
     if (loco)

@@ -72,7 +72,7 @@ auto PostReporter::show_diagnostics(
 
     auto& p = cli::printer();
 
-    p.block(gelex::section("[MCMC Summary]"));
+    p.block(gelex::section("MCMC Summary:"));
     p.line(
         "   {:<12}  {:>8}  {:>8}  {:>8}  {:>21}  {:>8}  {:>8}",
         "Parameter",

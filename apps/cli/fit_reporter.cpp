@@ -37,7 +37,7 @@ namespace cli
 auto FitReporter::show_prior(const gelex::bayes::BayesPrior& prior) const
     -> void
 {
-    cli::printer().block(gelex::section("[Prior Configuration]"));
+    cli::printer().block(gelex::section("Prior Configuration:"));
 
     print_random_prior(prior.random());
     for (const auto& genetic : prior.genetics())

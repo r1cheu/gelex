@@ -33,7 +33,7 @@ GrmReporter::GrmReporter() : eta_(1) {}
 
 auto GrmReporter::show_data_loaded(size_t num_samples, size_t num_snps) -> void
 {
-    cli::printer().block(gelex::section("[Dataset Summary]"));
+    cli::printer().block(gelex::section("Dataset Summary:"));
     cli::printer().line("   Samples    : {} samples", num_samples);
     cli::printer().line("   SNPs       : {} markers", num_snps);
 }
@@ -86,7 +86,7 @@ auto GrmReporter::show_files_written(
     std::string_view output_dir,
     std::string_view file_pattern) -> void
 {
-    cli::printer().block(gelex::section("[File Summary]"));
+    cli::printer().block(gelex::section("File Summary:"));
     cli::printer().line("  Num Files : {}", num_files);
     cli::printer().line("  Output Dir  : {}", output_dir);
     cli::printer().line("  Pattern     : {}", file_pattern);

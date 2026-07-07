@@ -33,7 +33,7 @@ auto SimulatorReporter::show_variance_summary(
     std::optional<double> realized_h2,
     std::optional<double> realized_d2) const -> void
 {
-    cli::printer().block(gelex::section("[Realized]"));
+    cli::printer().block(gelex::section("Realized:"));
     if (realized_h2)
     {
         cli::printer().line("  {:<12}: {:.4f}", "h²", *realized_h2);

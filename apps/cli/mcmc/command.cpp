@@ -134,7 +134,7 @@ auto mcmc_execute(const cli::McmcConfig& config) -> int
     cli::GenoReporter geno_reporter;
     cli::setup_parallelization(config.threads);
 
-    cli::printer().block(gelex::section("[Dataset Summary]"));
+    cli::printer().block(gelex::section("Dataset Summary:"));
 
     auto bed = gelex::open_bed(config.bfile);
     MCMCDataHandler handler(config, recipe_options.modes, geno_reporter, bed);

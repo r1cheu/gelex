@@ -44,7 +44,7 @@ auto PredictReporter::show_snp_selection(
     const auto num_mismatched = static_cast<size_t>(alignment.num_incompatible);
     const auto num_total = static_cast<size_t>(alignment.train_count);
 
-    cli::printer().block(gelex::section("[SNP Alignment]"));
+    cli::printer().block(gelex::section("SNP Alignment:"));
     cli::printer().line("   {:<13}: {}/{}", "Matched", num_matched, num_total);
     cli::printer().line("   {:<13}: {}", "Missing", num_missing);
     cli::printer().line("   {:<13}: {}", "Mismatched", num_mismatched);
@@ -96,7 +96,7 @@ auto PredictReporter::show_data_loaded(
     size_t num_covar_terms,
     gelex::GenotypeMethod geno_method) const -> void
 {
-    cli::printer().block(gelex::section("[Dataset Summary]"));
+    cli::printer().block(gelex::section("Dataset Summary:"));
     cli::printer().line("   {:<13}: {} samples", "Samples", num_samples);
     cli::printer().line("   {:<13}: {} markers", "SNPs", num_snps);
     cli::printer().line("   {:<13}: {}", "Covariates", num_covar_terms);
