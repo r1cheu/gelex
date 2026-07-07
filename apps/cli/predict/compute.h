@@ -20,15 +20,23 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
 
 #include "gelex/data/dataframe/dataframe.h"
+#include "gelex/data/dataframe/encode.h"
 #include "gelex/types/genetic_mode.h"
 
 namespace cli
 {
+
+struct CovariateDesign
+{
+    Eigen::MatrixXd matrix;
+    std::vector<std::pair<std::string, gelex::LevelMismatch>> level_mismatches;
+};
 
 struct CovariateResult
 {
@@ -45,7 +53,7 @@ struct CovariateResult
     std::span<const std::string> term_names,
     const std::optional<gelex::DataFrame<std::string>>& qcovar_df,
     const std::optional<gelex::DataFrame<std::string>>& dcovar_df,
-    Eigen::Index n_samples) -> Eigen::MatrixXd;
+    Eigen::Index n_samples) -> CovariateDesign;
 
 [[nodiscard]] auto compute_covariate_effects(
     const Eigen::MatrixXd& covariates,

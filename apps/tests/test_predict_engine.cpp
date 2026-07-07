@@ -384,10 +384,11 @@ auto run_predict_dataflow(
     }
 
     auto covariates = cli::build_covariate_design(
-        term_names,
-        qcovar_df,
-        dcovar_df,
-        static_cast<Eigen::Index>(common_index.size()));
+                          term_names,
+                          qcovar_df,
+                          dcovar_df,
+                          static_cast<Eigen::Index>(common_index.size()))
+                          .matrix;
 
     auto snp_components = cli::compute_gebv(geno, effects);
     auto covar

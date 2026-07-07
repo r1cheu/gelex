@@ -18,8 +18,12 @@
 #define APPS_CLI_PREDICT_REPORTER_H_
 
 #include <cstddef>
+#include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
+#include "gelex/data/dataframe/encode.h"
 #include "gelex/data/genotype_method.h"
 
 namespace gelex
@@ -37,6 +41,9 @@ class PredictReporter
         const gelex::AlignmentPlan& alignment,
         std::string_view bfile_path,
         std::string_view snp_effect_path) const -> void;
+    auto show_covariate_level_mismatches(
+        const std::vector<std::pair<std::string, gelex::LevelMismatch>>&
+            mismatches) const -> void;
     auto show_data_loaded(
         size_t num_samples,
         size_t num_snps,

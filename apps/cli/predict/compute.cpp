@@ -59,7 +59,7 @@ auto build_covariate_design(
     std::span<const std::string> term_names,
     const std::optional<gelex::DataFrame<std::string>>& qcovar_df,
     const std::optional<gelex::DataFrame<std::string>>& dcovar_df,
-    Eigen::Index n_samples) -> Eigen::MatrixXd
+    Eigen::Index n_samples) -> CovariateDesign
 {
     // group dcovar terms by column name: "Sex\x1FM" -> col="Sex", level="M"
     std::map<std::string, std::vector<std::string>> dcovar_levels;
@@ -74,6 +74,7 @@ auto build_covariate_design(
 
     // encode dcovar columns and check levels against the fitted terms
     std::map<std::string, gelex::EncodedResult<>> encoded;
+    std::vector<std::pair<std::string, gelex::LevelMismatch>> level_mismatches;
     for (const auto& [col_name, levels] : dcovar_levels)
     {
         if (!dcovar_df)
@@ -84,8 +85,11 @@ auto build_covariate_design(
                     col_name));
         }
         const auto& col = (*dcovar_df)[col_name];
-        // TODO(rlchen): report level mismatch via observer
-        [[maybe_unused]] auto mismatch = gelex::check_levels(col, levels);
+        auto mismatch = gelex::check_levels(col, levels);
+        if (!mismatch.ok())
+        {
+            level_mismatches.emplace_back(col_name, std::move(mismatch));
+        }
         encoded[col_name] = gelex::encode(col, levels);
     }
 
@@ -97,7 +101,7 @@ auto build_covariate_design(
     {
         const auto& term = term_names[static_cast<std::size_t>(i)];
 
-        if (term == "Intercept")
+        if (term == gelex::INTERCEPT_NAME)
         {
             X.col(i).setOnes();
             continue;
@@ -124,7 +128,9 @@ auto build_covariate_design(
             X.col(i) = (*qcovar_df)[term].to_map<double>();
         }
     }
-    return X;
+    return CovariateDesign{
+        .matrix = std::move(X),
+        .level_mismatches = std::move(level_mismatches)};
 }
 
 auto compute_covariate_effects(
@@ -132,7 +138,14 @@ auto compute_covariate_effects(
     std::span<const std::string> term_names,
     const Eigen::Ref<const Eigen::VectorXd>& coefficients) -> CovariateResult
 {
-    // Intercept is always the first entry; covariates start at index 1
+    // Contract: the fitted terms always lead with the Intercept, so covariates
+    // start at index 1. Enforce it rather than trust the .param file layout.
+    if (term_names.empty() || term_names.front() != gelex::INTERCEPT_NAME)
+    {
+        throw gelex::GelexException(
+            "fixed-effect terms must lead with the Intercept");
+    }
+
     const auto n_samples = covariates.rows();
     const auto n_covars = static_cast<Eigen::Index>(term_names.size()) - 1;
 

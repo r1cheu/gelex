@@ -89,7 +89,8 @@ TEST_CASE(
     std::vector<std::string> term_names{"Intercept", "Age", "Sex" + sep + "M"};
 
     auto covariates
-        = cli::build_covariate_design(term_names, qcovar_df, dcovar_df, 3);
+        = cli::build_covariate_design(term_names, qcovar_df, dcovar_df, 3)
+              .matrix;
 
     REQUIRE(covariates.rows() == 3);
     REQUIRE(covariates.cols() == 3);
@@ -108,4 +109,40 @@ TEST_CASE(
     REQUIRE(covariates(0, 2) == 1.0);
     REQUIRE(covariates(1, 2) == 0.0);
     REQUIRE(covariates(2, 2) == 1.0);
+}
+
+TEST_CASE(
+    "build_covariate_design reports data levels absent from the model",
+    "[predict][io]")
+{
+    FileFixture files;
+    auto sep = std::string(1, SEPARATOR);
+
+    // Data has an "X" level the model was never fitted on.
+    auto dcovar_path = files.create_text_file(
+        "FID\tIID\tSex\n"
+        "F1\tI1\tM\n"
+        "F1\tI2\tF\n"
+        "F2\tI1\tX\n",
+        ".tsv");
+
+    std::optional<gelex::DataFrame<std::string>> qcovar_df;
+    std::optional<gelex::DataFrame<std::string>> dcovar_df
+        = gelex::read_dcovar(dcovar_path);
+
+    std::vector<std::string> term_names{
+        "Intercept", "Sex" + sep + "M", "Sex" + sep + "F"};
+
+    auto design
+        = cli::build_covariate_design(term_names, qcovar_df, dcovar_df, 3);
+
+    REQUIRE(design.level_mismatches.size() == 1);
+    const auto& [col_name, mismatch] = design.level_mismatches.front();
+    REQUIRE(col_name == "Sex");
+    REQUIRE(mismatch.missing_in_levels == std::vector<std::string>{"X"});
+    REQUIRE(mismatch.missing_in_data.empty());
+
+    // The unknown "X" sample encodes as all-zero (reference) for both columns.
+    REQUIRE(design.matrix(2, 1) == 0.0);
+    REQUIRE(design.matrix(2, 2) == 0.0);
 }

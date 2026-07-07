@@ -17,12 +17,16 @@
 #include "reporter.h"
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <cstddef>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 #include "cli/formatter.h"
 #include "cli/report_printer.h"
+#include "gelex/data/dataframe/encode.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/snp_alignment.h"
 
@@ -57,6 +61,32 @@ auto PredictReporter::show_snp_selection(
             "To fix, run:\n  {}",
             num_mismatched,
             plink_hint);
+    }
+}
+
+auto PredictReporter::show_covariate_level_mismatches(
+    const std::vector<std::pair<std::string, gelex::LevelMismatch>>& mismatches)
+    const -> void
+{
+    for (const auto& [col_name, mismatch] : mismatches)
+    {
+        if (!mismatch.missing_in_levels.empty())
+        {
+            cli::printer().warn(
+                "Covariate '{}': level(s) [{}] in the data have no fitted "
+                "coefficient; affected samples are treated as the reference "
+                "level (zero contribution).",
+                col_name,
+                fmt::join(mismatch.missing_in_levels, ", "));
+        }
+        if (!mismatch.missing_in_data.empty())
+        {
+            cli::printer().warn(
+                "Covariate '{}': fitted level(s) [{}] are absent from the "
+                "data; their columns are zero for all samples.",
+                col_name,
+                fmt::join(mismatch.missing_in_data, ", "));
+        }
     }
 }
 

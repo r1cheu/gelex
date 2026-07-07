@@ -21,6 +21,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "cli/predict/compute.h"
+#include "gelex/exception.h"
 #include "gelex/types/genetic_mode.h"
 
 using gelex::GeneticMode;
@@ -94,8 +95,7 @@ TEST_CASE("compute_covariate_effects: intercept only", "[predict][compute]")
 {
     // covariates = [[1],[1],[1]], coefficients = {["Intercept"], [2.5]}
     // intercept is excluded: per_covariate has 0 cols, covar_names empty
-    Eigen::MatrixXd covariates(3, 1);
-    covariates << 1.0, 1.0, 1.0;
+    Eigen::MatrixXd covariates{{1.0}, {1.0}, {1.0}};
 
     std::vector<std::string> term_names{"Intercept"};
     Eigen::VectorXd coefficients{{2.5}};
@@ -114,8 +114,7 @@ TEST_CASE(
     // covariates = [[1, 25, 1], [1, 30, 0]]
     // coefficients = {["Intercept","Age","Sex_M"], [1.0, 0.2, -0.3]}
     // per_covariate: Age=[5.0, 6.0], Sex_M=[-0.3, 0.0]
-    Eigen::MatrixXd covariates(2, 3);
-    covariates << 1.0, 25.0, 1.0, 1.0, 30.0, 0.0;
+    Eigen::MatrixXd covariates{{1.0, 25.0, 1.0}, {1.0, 30.0, 0.0}};
 
     std::vector<std::string> term_names{"Intercept", "Age", "Sex_M"};
     Eigen::VectorXd coefficients{{1.0, 0.2, -0.3}};
@@ -130,4 +129,18 @@ TEST_CASE(
     Eigen::VectorXd expected_sex{{-0.3, 0.0}};
     REQUIRE(result.per_covariate.col(0).isApprox(expected_age));
     REQUIRE(result.per_covariate.col(1).isApprox(expected_sex));
+}
+
+TEST_CASE(
+    "compute_covariate_effects: rejects terms not led by Intercept",
+    "[predict][compute]")
+{
+    Eigen::MatrixXd covariates{{25.0, 1.0}, {30.0, 1.0}};
+
+    std::vector<std::string> term_names{"Age", "Intercept"};
+    Eigen::VectorXd coefficients{{0.2, 1.0}};
+
+    REQUIRE_THROWS_AS(
+        cli::compute_covariate_effects(covariates, term_names, coefficients),
+        gelex::GelexException);
 }
