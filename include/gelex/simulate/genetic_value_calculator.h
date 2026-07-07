@@ -24,8 +24,6 @@
 #include <Eigen/Core>
 
 #include "gelex/data/bed.h"
-#include "gelex/data/dataframe/dataframe.h"
-#include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/infra/logging/simulate_event.h"
 #include "gelex/simulate/sim_types.h"
@@ -37,10 +35,7 @@ namespace gelex
 class GeneticValueCalculator
 {
    public:
-    GeneticValueCalculator(
-        const std::filesystem::path& bed_path,
-        const DataFrame<std::string>& bim,
-        const DataFrame<std::string>& fam);
+    explicit GeneticValueCalculator(const std::filesystem::path& bed_path);
 
     template <GeneticMode Mode>
     auto calculate(
@@ -50,9 +45,9 @@ class GeneticValueCalculator
 
     [[nodiscard]] auto sample_ids() const -> std::span<const std::string>;
 
+    [[nodiscard]] auto snp_ids() const -> std::span<const std::string>;
+
    private:
-    const DataFrameIndex<std::string>* sample_index_;
-    const DataFrameIndex<std::string>* snp_index_;
     Bed bed_;
 };
 

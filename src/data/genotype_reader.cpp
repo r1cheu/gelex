@@ -23,7 +23,6 @@
 #include <memory>
 #include <new>
 #include <stdexcept>
-#include <string>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -32,7 +31,6 @@
 #include <fmt/format.h>
 #include <Eigen/Core>
 
-#include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/locus_encoding.h"
@@ -119,10 +117,9 @@ struct GenotypeReader::EncodedChunkOutput
 };
 
 GenotypeReader::GenotypeReader(
-    const std::string& bfile_prefix,
-    const DataFrameIndex<std::string>& sample_index,
+    const gelex::Bed& bed,
     gelex::GenoObserver observer)
-    : bed_(gelex::open_bed(bfile_prefix, sample_index)),
+    : bed_(bed),
       observer_(std::move(observer)),
       sample_size_(bed_.num_samples()),
       num_variants_(bed_.num_snps())

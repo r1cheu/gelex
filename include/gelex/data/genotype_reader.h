@@ -20,7 +20,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <string>
 
 #include <Eigen/Core>
 
@@ -36,15 +35,14 @@ namespace gelex
 class GenotypeReader
 {
    public:
-    GenotypeReader(
-        const std::string& bfile_prefix,
-        const DataFrameIndex<std::string>& sample_index,
+    explicit GenotypeReader(
+        const gelex::Bed& bed,
         gelex::GenoObserver observer = {});
 
     GenotypeReader(const GenotypeReader&) = delete;
     auto operator=(const GenotypeReader&) -> GenotypeReader& = delete;
-    GenotypeReader(GenotypeReader&&) noexcept = default;
-    auto operator=(GenotypeReader&&) noexcept -> GenotypeReader& = default;
+    GenotypeReader(GenotypeReader&&) = delete;
+    auto operator=(GenotypeReader&&) -> GenotypeReader& = delete;
     ~GenotypeReader() = default;
 
     auto read_in_memory(
@@ -71,7 +69,7 @@ class GenotypeReader
         gelex::GenotypeMethod method,
         std::size_t chunk_size) -> void;
 
-    gelex::Bed bed_;
+    const gelex::Bed& bed_;
     gelex::GenoObserver observer_;
     int64_t sample_size_{};
     int64_t num_variants_{};

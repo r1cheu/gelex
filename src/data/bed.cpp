@@ -21,7 +21,6 @@
 #include <utility>
 
 #include "gelex/data/detail/bed_source.h"
-#include "gelex/data/detail/index_projection.h"
 #include "gelex/data/reader.h"
 
 namespace gelex
@@ -29,27 +28,12 @@ namespace gelex
 
 auto open_bed(const std::string& bfile_prefix) -> Bed
 {
-    auto sample_index
-        = read_fam(std::filesystem::path{bfile_prefix + ".fam"}).index();
-    return open_bed(bfile_prefix, sample_index);
-}
-
-auto open_bed(
-    const std::string& bfile_prefix,
-    const DataFrameIndex<std::string>& target_index) -> Bed
-{
     auto source_index
         = read_fam(std::filesystem::path{bfile_prefix + ".fam"}).index();
-    auto snp_index
-        = read_bim(std::filesystem::path{bfile_prefix + ".bim"}).index();
+    auto bim = read_bim(std::filesystem::path{bfile_prefix + ".bim"});
     auto bed_source = detail::open_bed_source(bfile_prefix);
-    auto index_projection = detail::IndexProjection{source_index, target_index};
 
-    return Bed{
-        std::move(bed_source),
-        std::move(index_projection),
-        target_index,
-        std::move(snp_index)};
+    return Bed{std::move(bed_source), std::move(source_index), std::move(bim)};
 }
 
 }  // namespace gelex

@@ -32,6 +32,7 @@
 #include <fmt/format.h>
 #include <Eigen/Core>
 
+#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/detail/bed_source.h"
 #include "gelex/data/detail/index_projection.h"
@@ -100,25 +101,39 @@ class Bed
     [[nodiscard]] auto snp_index() const noexcept
         -> const DataFrameIndex<std::string>&
     {
-        return snp_index_;
+        return bim_.index();
+    }
+
+    [[nodiscard]] auto bim() const noexcept -> const DataFrame<std::string>&
+    {
+        return bim_;
+    }
+
+    // Narrows the sample view to target, rebuilding the source->target
+    // projection. target must be a subset of the source .fam samples.
+    auto gather(const DataFrameIndex<std::string>& target) -> void
+    {
+        index_projection_ = detail::IndexProjection{source_index_, target};
+        sample_index_ = target;
     }
 
    private:
     Bed(detail::BedSource bed_source,
-        detail::IndexProjection index_projection,
-        DataFrameIndex<std::string> sample_index,
-        DataFrameIndex<std::string> snp_index)
+        DataFrameIndex<std::string> source_index,
+        DataFrame<std::string> bim)
         : bed_source_{std::move(bed_source)},
-          index_projection_{std::move(index_projection)},
-          sample_index_{std::move(sample_index)},
-          snp_index_{std::move(snp_index)}
+          source_index_{std::move(source_index)},
+          index_projection_{source_index_, source_index_},
+          sample_index_{source_index_},
+          bim_{std::move(bim)}
     {
     }
 
     detail::BedSource bed_source_;
+    DataFrameIndex<std::string> source_index_;
     detail::IndexProjection index_projection_;
     DataFrameIndex<std::string> sample_index_;
-    DataFrameIndex<std::string> snp_index_;
+    DataFrame<std::string> bim_;
 
     static constexpr std::size_t BED_LUT_SIZE = 256;
 
@@ -141,17 +156,9 @@ class Bed
         -> void;
 
     friend auto open_bed(const std::string& bfile_prefix) -> Bed;
-
-    friend auto open_bed(
-        const std::string& bfile_prefix,
-        const DataFrameIndex<std::string>& target_index) -> Bed;
 };
 
 [[nodiscard]] auto open_bed(const std::string& bfile_prefix) -> Bed;
-
-[[nodiscard]] auto open_bed(
-    const std::string& bfile_prefix,
-    const DataFrameIndex<std::string>& target_index) -> Bed;
 
 template <std::floating_point T>
 consteval auto Bed::make_bed_lut_entry(std::uint8_t byte) -> BedLutEntry<T>
@@ -392,7 +399,7 @@ auto Bed::read_snps_into(
 
     for (const auto& snp : target_snps.keys())
     {
-        snp_indices.push_back(static_cast<Eigen::Index>(snp_index_.at(snp)));
+        snp_indices.push_back(static_cast<Eigen::Index>(bim_.index().at(snp)));
     }
 
     read_snps_into<T>(out, snp_indices);

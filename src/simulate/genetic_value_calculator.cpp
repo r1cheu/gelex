@@ -25,7 +25,6 @@
 
 #include <Eigen/Core>
 
-#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/locus_encoding.h"
 #include "gelex/infra/logging/notify.h"
@@ -37,12 +36,8 @@ namespace gelex
 {
 
 GeneticValueCalculator::GeneticValueCalculator(
-    const std::filesystem::path& bed_path,
-    const DataFrame<std::string>& bim,
-    const DataFrame<std::string>& fam)
-    : sample_index_(&fam.index()),
-      snp_index_(&bim.index()),
-      bed_(open_bed(bed_path.string(), *sample_index_))
+    const std::filesystem::path& bed_path)
+    : bed_(open_bed(bed_path.string()))
 {
 }
 
@@ -66,7 +61,9 @@ auto GeneticValueCalculator::calculate(
         = causal_snps
           | std::views::transform(
               [this](const auto& snp)
-              { return static_cast<Eigen::Index>(snp_index_->at(snp.id)); })
+              {
+                  return static_cast<Eigen::Index>(bed_.snp_index().at(snp.id));
+              })
           | std::ranges::to<std::vector>();
 
     notify(
@@ -112,7 +109,12 @@ template auto GeneticValueCalculator::calculate<GeneticMode::D>(
 
 auto GeneticValueCalculator::sample_ids() const -> std::span<const std::string>
 {
-    return sample_index_->keys();
+    return bed_.sample_index().keys();
+}
+
+auto GeneticValueCalculator::snp_ids() const -> std::span<const std::string>
+{
+    return bed_.snp_index().keys();
 }
 
 }  // namespace gelex

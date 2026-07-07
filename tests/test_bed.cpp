@@ -179,7 +179,8 @@ TEST_CASE("Bed projects samples to target index order", "[data][bed]")
     };
     DataFrameIndex<std::string> target_index{target_keys};
 
-    auto projected_bed = gelex::open_bed(bed_prefix.string(), target_index);
+    auto projected_bed = gelex::open_bed(bed_prefix.string());
+    projected_bed.gather(target_index);
     const auto loaded = projected_bed.read<double>(1, 4);
     const Eigen::MatrixXd expected{
         {genotypes(3, 1), genotypes(3, 2), genotypes(3, 3)},
@@ -224,6 +225,5 @@ TEST_CASE("Bed rejects invalid ranges, SNPs, and target indices", "[data][bed]")
 
     DataFrameIndex<std::string> missing_target{
         std::vector<std::string>{"missing_family_missing_sample"}};
-    REQUIRE_THROWS_AS(
-        gelex::open_bed(bed_prefix.string(), missing_target), GelexException);
+    REQUIRE_THROWS_AS(bed.gather(missing_target), GelexException);
 }

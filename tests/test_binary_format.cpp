@@ -454,15 +454,15 @@ TEST_CASE(
     auto [prefix, raw_genotypes] = bed_fixture.create_bed_files(
         NUM_SAMPLES, NUM_SNPS, MISSING_RATE, 0.05, 0.5, SEED);
 
-    auto sample_index = read_fam(prefix.string() + ".fam").index();
+    auto bed = open_bed(prefix.string());
 
-    GenotypeReader mat_reader(prefix.string(), sample_index);
+    GenotypeReader mat_reader(bed);
     auto mat_result = mat_reader.read_in_memory(
         GeneticMode::A, GenotypeMethod::StandardizeHWE);
 
     auto output_prefix
         = bed_fixture.get_file_fixture().get_test_dir() / "mmap_out";
-    GenotypeReader map_reader(prefix.string(), sample_index);
+    GenotypeReader map_reader(bed);
     auto map_result = map_reader.read_mmap(
         GeneticMode::A, GenotypeMethod::StandardizeHWE, output_prefix);
 
