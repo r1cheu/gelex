@@ -229,7 +229,6 @@ class SingleScaledMixtureStep final
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
     std::array<NormalSampler<double>::Posterior, MAX_MIXTURE_COMPONENTS>
         scale_posts_;
-    Eigen::Array<double, MAX_MIXTURE_COMPONENTS, 1> scale_log_likelihoods_;
 
     std::mt19937_64& rng_;
 };

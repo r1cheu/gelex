@@ -16,6 +16,8 @@
 
 #include "gelex/algo/mcmc/steps/single_genetic_step.h"
 
+#include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <optional>
 #include <random>
@@ -419,6 +421,10 @@ SingleScaledMixtureStep::SingleScaledMixtureStep(
       normal_(0.0),
       rng_(rng)
 {
+    assert(
+        multiplier_.size() <= MAX_MIXTURE_COMPONENTS
+        && "SingleScaledMixtureStep: mixture components exceed "
+           "MAX_MIXTURE_COMPONENTS");
     marker_variances_.resize(multiplier_.size());
     logpi_.resize(multiplier_.size());
     proportion_count_ = Eigen::VectorXi::Zero(proportion_.size());
@@ -450,7 +456,9 @@ auto SingleScaledMixtureStep::step() -> void
                 = column.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
 
             const Eigen::Index num_components = multiplier_.size();
-            scale_log_likelihoods_(0) = 0.0;
+            Eigen::Array<double, MAX_MIXTURE_COMPONENTS, 1> ll;
+            ll(0) = logpi_(0);
+            double max_ll = ll(0);
             for (Eigen::Index cls = 1; cls < num_components; ++cls)
             {
                 scale_posts_[cls]
@@ -459,19 +467,17 @@ auto SingleScaledMixtureStep::step() -> void
                               {.quadratic = XtX_diag(i),
                                .linear = rhs,
                                .scale = residual_.variance});
-                scale_log_likelihoods_(cls)
-                    = scale_posts_[cls].log_likelihood_kernel;
+                ll(cls) = scale_posts_[cls].log_likelihood_kernel + logpi_(cls);
+                max_ll = std::max(max_ll, ll(cls));
             }
 
-            Eigen::Array<double, MAX_MIXTURE_COMPONENTS, 1> ll;
             Eigen::Array<double, MAX_MIXTURE_COMPONENTS, 1> probs;
-            ll.head(num_components)
-                = scale_log_likelihoods_.head(num_components)
-                  + logpi_.head(num_components).array();
-            const double max_ll = ll.head(num_components).maxCoeff();
-            probs.head(num_components)
-                = (ll.head(num_components) - max_ll).exp();
-            const double total = probs.head(num_components).sum();
+            double total = 0.0;
+            for (Eigen::Index cls = 0; cls < num_components; ++cls)
+            {
+                probs(cls) = std::exp(ll(cls) - max_ll);
+                total += probs(cls);
+            }
 
             const double threshold = uniform_(rng_) * total;
             int component = static_cast<int>(num_components - 1);
