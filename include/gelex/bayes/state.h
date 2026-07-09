@@ -161,8 +161,8 @@ class BayesState
     auto fixed() -> bayes::FixedState& { return fixed_; }
     auto fixed() const -> const bayes::FixedState& { return fixed_; }
 
-    auto random() -> std::vector<bayes::RandomState>& { return random_; }
-    auto random() const -> const std::vector<bayes::RandomState>&
+    auto random() -> std::span<bayes::RandomState> { return random_; }
+    auto random() const -> std::span<const bayes::RandomState>
     {
         return random_;
     }

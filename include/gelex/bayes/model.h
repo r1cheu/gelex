@@ -19,6 +19,7 @@
 
 #include <Eigen/Core>
 #include <algorithm>
+#include <span>
 #include <vector>
 
 #include "gelex/bayes/design.h"
@@ -41,7 +42,7 @@ class BayesModel
 
     const FixedDesign& fixed() const { return fixed_; }
 
-    const std::vector<bayes::RandomDesign>& random() const { return random_; }
+    std::span<const bayes::RandomDesign> random() const { return random_; }
 
     const std::vector<bayes::GeneticDesign>& genetics() const
     {

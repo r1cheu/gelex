@@ -19,6 +19,7 @@
 
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
+#include <span>
 #include <vector>
 
 #include "gelex/freq/design.h"
@@ -38,11 +39,11 @@ class FreqModel
     auto fixed() const -> const FixedDesign& { return fixed_; }
     auto fixed() -> FixedDesign& { return fixed_; }
 
-    auto random() const -> const std::vector<freq::RandomDesign>&
+    auto random() const -> std::span<const freq::RandomDesign>
     {
         return random_;
     }
-    auto random() -> std::vector<freq::RandomDesign>& { return random_; }
+    auto random() -> std::span<freq::RandomDesign> { return random_; }
 
     auto phenotype() const -> const Eigen::VectorXd& { return phenotype_; }
     auto phenotype_variance() const -> double { return phenotype_variance_; }
@@ -66,8 +67,8 @@ class FreqState
     freq::FixedState& fixed() { return fixed_; }
     const freq::FixedState& fixed() const { return fixed_; }
 
-    std::vector<freq::RandomState>& random() { return random_; }
-    const std::vector<freq::RandomState>& random() const { return random_; }
+    std::span<freq::RandomState> random() { return random_; }
+    std::span<const freq::RandomState> random() const { return random_; }
 
     freq::ResidualState& residual() { return residual_; }
     const freq::ResidualState& residual() const { return residual_; }

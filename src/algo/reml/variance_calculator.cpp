@@ -40,7 +40,7 @@ auto compute_v(
     // residual: I * sigma_e
     v.diagonal().array() += state.residual().variance;
 
-    auto compute_v = [&](auto& effects, auto& states)
+    auto compute_v = [&](auto&& effects, auto&& states)
     {
         for (auto&& [effect, state] : std::views::zip(effects, states))
         {
