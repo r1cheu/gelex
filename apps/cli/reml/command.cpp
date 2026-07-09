@@ -16,104 +16,23 @@
 
 #include "command.h"
 
-#include <cstddef>
-#include <iterator>
-#include <optional>
-#include <ranges>
-#include <string>
 #include <utility>
-#include <vector>
 
 #include "cli/cli_helper.h"
 #include "cli/common_data.h"
+#include "cli/reml_data.h"
 #include "cli/reml_reporter.h"
 #include "gelex/algo/reml/estimator.h"
-#include "gelex/data/covariates.h"
-#include "gelex/data/dataframe/index.h"
-#include "gelex/data/reader.h"
-#include "gelex/freq/design.h"
 #include "gelex/freq/model.h"
 #include "gelex/io/reml.h"
-#include "gelex/types/fixed_designs.h"
-
-class RemlDataHandler
-{
-   public:
-    explicit RemlDataHandler(const cli::RemlConfig& config) noexcept
-        : config_(config)
-    {
-    }
-
-    auto load_indices(
-        std::vector<const gelex::DataFrameIndex<std::string>*>& indices) -> void
-    {
-        drand_
-            = config_.drand_path
-                  ? std::make_optional(gelex::read_dcovar(*config_.drand_path))
-                  : std::nullopt;
-        if (drand_)
-        {
-            indices.push_back(&drand_->index());
-        }
-
-        qrand_.reserve(config_.qrand_paths.size());
-        for (const auto& path : config_.qrand_paths)
-        {
-            qrand_.emplace_back(gelex::read_qcovar(path));
-            indices.push_back(&qrand_.back().index());
-        }
-
-        grm_indices_.reserve(config_.grm_prefixes.size());
-        for (const auto& path : config_.grm_prefixes)
-        {
-            grm_indices_.emplace_back(gelex::read_grm_ids(path));
-            indices.push_back(&grm_indices_.back());
-        }
-    }
-
-    auto gather(const gelex::DataFrameIndex<std::string>& common_index) -> void
-    {
-        if (drand_)
-        {
-            drand_->gather(common_index);
-            random_designs_ = gelex::make_random_designs(*drand_);
-        }
-        for (auto&& [i, frame] : std::views::enumerate(qrand_))
-        {
-            frame.gather(common_index);
-            random_designs_.push_back(
-                gelex::make_quantitative_random_design(
-                    frame, config_.qrand_paths[static_cast<std::size_t>(i)]));
-        }
-        auto grm_designs
-            = gelex::make_grm_designs(config_.grm_prefixes, common_index);
-        random_designs_.insert(
-            random_designs_.end(),
-            std::make_move_iterator(grm_designs.begin()),
-            std::make_move_iterator(grm_designs.end()));
-    }
-
-    auto results() && -> std::vector<gelex::freq::RandomDesign>
-    {
-        return std::move(random_designs_);
-    }
-
-   private:
-    const cli::RemlConfig& config_;
-    std::vector<gelex::DataFrameIndex<std::string>> grm_indices_;
-    std::vector<gelex::freq::RandomDesign> random_designs_;
-
-    std::optional<gelex::DataFrame<std::string>> drand_;
-    std::vector<gelex::DataFrame<std::string>> qrand_;
-};
 
 auto reml_execute(const cli::RemlConfig& config) -> int
 {
     cli::setup_parallelization(config.threads);
 
-    RemlDataHandler handler(config);
-    cli::BaseData data = cli::load_base_data(handler, config.base_data);
-    auto random_designs = std::move(handler).results();
+    cli::RemlDataLoader loader(config.random);
+    cli::BaseData data = cli::load_base_data(loader, config.base_data);
+    auto random_designs = std::move(loader).results();
 
     gelex::FreqModel model(
         std::move(data.phenotype),

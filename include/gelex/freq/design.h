@@ -17,6 +17,7 @@
 #ifndef GELEX_FREQ_DESIGN_H_
 #define GELEX_FREQ_DESIGN_H_
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -28,12 +29,20 @@
 namespace gelex::freq
 {
 
+enum class RandomKind : std::uint8_t
+{
+    Discrete,      // one-hot ZZ^T from a discrete factor
+    Quantitative,  // linear kernel ZZ^T from a quantitative matrix
+    Grm,           // genomic relationship matrix; chromosome-partitionable
+};
+
 struct RandomDesign
 {
     std::string name;
     std::optional<std::vector<std::string>> levels;
     std::optional<Eigen::MatrixXd> Z;  // skip if identity
     Eigen::MatrixXd K;                 // Kernels
+    RandomKind kind = RandomKind::Discrete;
 };
 
 struct RandomState

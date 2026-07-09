@@ -18,12 +18,11 @@
 #define APPS_CLI_REML_CONFIG_H_
 
 #include <algorithm>
-#include <optional>
 #include <string>
 #include <thread>
-#include <vector>
 
 #include "cli/common_data.h"
+#include "cli/reml_data.h"
 
 namespace cli
 {
@@ -31,9 +30,7 @@ namespace cli
 struct RemlConfig
 {
     BaseDataConfig base_data;
-    std::vector<std::string> grm_prefixes;
-    std::optional<std::string> drand_path;
-    std::vector<std::string> qrand_paths;
+    RemlDataConfig random;
     std::string out_prefix{"gelex"};
     int max_iter{100};
     double tolerance{1e-6};

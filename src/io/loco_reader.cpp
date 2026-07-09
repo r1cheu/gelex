@@ -28,13 +28,10 @@
 namespace gelex
 {
 
-LocoReader::LocoReader(
-    const std::filesystem::path& whole_grm_prefix,
-    const DataFrameIndex<std::string>& sample_index)
+LocoReader::LocoReader(const Eigen::MatrixXd& whole_grm)
+    : g_whole_(&whole_grm),
+      k_whole_(whole_grm.trace() / static_cast<double>(whole_grm.rows()))
 {
-    g_whole_ = read_grm(whole_grm_prefix.string(), &sample_index, false);
-    trace_whole_ = g_whole_.trace();
-    k_whole_ = trace_whole_ / static_cast<double>(g_whole_.rows());
 }
 
 auto LocoReader::load_into(
@@ -66,7 +63,7 @@ auto LocoReader::load_into(
                 k_whole_));
     }
 
-    target = (g_whole_ - g_chr) / k_loco;
+    target = (*g_whole_ - g_chr) / k_loco;
 }
 
 }  // namespace gelex

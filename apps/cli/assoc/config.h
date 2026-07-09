@@ -20,9 +20,9 @@
 #include <algorithm>
 #include <string>
 #include <thread>
-#include <vector>
 
 #include "cli/common_data.h"
+#include "cli/reml_data.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/types/genetic_mode.h"
 
@@ -32,8 +32,8 @@ namespace cli
 struct AssocConfig
 {
     BaseDataConfig base_data;
+    RemlDataConfig random;
     std::string bfile;
-    std::vector<std::string> grm;
     std::string out{"gelex"};
     gelex::GeneticModeSet mode{gelex::GeneticMode::A};
     bool loco{false};

@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <ranges>
 #include <string>
 #include <utility>
 #include <vector>
@@ -28,6 +29,7 @@
 #include "cli/cli_helper.h"
 #include "cli/common_data.h"
 #include "cli/formatter.h"
+#include "cli/reml_data.h"
 #include "cli/reml_reporter.h"
 #include "cli/report_printer.h"
 #include "gelex/algo/gwas/assoc_tester.h"
@@ -36,11 +38,11 @@
 #include "gelex/algo/reml/loco_result.h"
 #include "gelex/algo/reml/result.h"
 #include "gelex/data/bed.h"
-#include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/marker_range.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
+#include "gelex/freq/design.h"
 #include "gelex/freq/model.h"
 #include "gelex/io/gwas_writer.h"
 #include "gelex/io/loco_reader.h"
@@ -51,7 +53,7 @@ class AssocDataHandler
 {
    public:
     AssocDataHandler(const cli::AssocConfig& config, gelex::Bed& bed) noexcept
-        : config_(config), bed_(bed)
+        : bed_(bed), loader_(config.random)
     {
     }
 
@@ -59,33 +61,27 @@ class AssocDataHandler
         std::vector<const gelex::DataFrameIndex<std::string>*>& indices) -> void
     {
         indices.push_back(&bed_.sample_index());
-
-        grm_indices_.reserve(config_.grm.size());
-        for (const auto& path : config_.grm)
+        loader_.load_indices(indices);
+        for (const auto& grm_index : loader_.grm_indices())
         {
-            grm_indices_.emplace_back(gelex::read_grm_ids(path));
-            cli::printer().line(
-                "   GRM        : {} samples", grm_indices_.back().size());
-            indices.push_back(&grm_indices_.back());
+            cli::printer().line("   GRM        : {} samples", grm_index.size());
         }
     }
 
     auto gather(const gelex::DataFrameIndex<std::string>& common_index) -> void
     {
         bed_.gather(common_index);
-        random_designs_ = gelex::make_grm_designs(config_.grm, common_index);
+        loader_.gather(common_index);
     }
 
     auto results() && -> std::vector<gelex::freq::RandomDesign>
     {
-        return std::move(random_designs_);
+        return std::move(loader_).results();
     }
 
    private:
-    const cli::AssocConfig& config_;
     gelex::Bed& bed_;
-    std::vector<gelex::DataFrameIndex<std::string>> grm_indices_;
-    std::vector<gelex::freq::RandomDesign> random_designs_;
+    cli::RemlDataLoader loader_;
 };
 
 auto assoc_execute(const cli::AssocConfig& config) -> int
@@ -180,11 +176,23 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
     }
     else
     {
+        std::vector<Eigen::MatrixXd> whole_grms;
+        whole_grms.reserve(config.random.grm.size());
         std::vector<gelex::LocoReader> loco_readers;
-        loco_readers.reserve(config.grm.size());
-        for (const auto& path : config.grm)
+        loco_readers.reserve(config.random.grm.size());
+        for (const auto& path : config.random.grm)
         {
-            loco_readers.emplace_back(path, sample_index);
+            whole_grms.push_back(gelex::read_grm(path, &sample_index, false));
+            loco_readers.emplace_back(whole_grms.back());
+        }
+
+        std::vector<Eigen::Index> grm_slots;
+        for (auto&& [idx, design] : std::views::enumerate(model.random()))
+        {
+            if (design.kind == gelex::freq::RandomKind::Grm)
+            {
+                grm_slots.push_back(static_cast<Eigen::Index>(idx));
+            }
         }
 
         auto ranges = gelex::chromosome_ranges(bim);
@@ -198,9 +206,13 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
             for (std::size_t i = 0; i < loco_readers.size(); ++i)
             {
                 const auto chr_grm_prefix = fmt::format(
-                    "{}.chr{:02d}", config.grm[i], std::stoi(range.label));
+                    "{}.chr{:02d}",
+                    config.random.grm[i],
+                    std::stoi(range.label));
                 loco_readers[i].load_into(
-                    chr_grm_prefix, sample_index, model.random()[i].K);
+                    chr_grm_prefix,
+                    sample_index,
+                    model.random()[grm_slots[i]].K);
             }
 
             reporter.show_loco_phase(range.label, "REML");

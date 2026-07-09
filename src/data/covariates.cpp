@@ -96,7 +96,8 @@ auto make_random_designs(const DataFrame<std::string>& frame)
             result.name,
             std::move(result.level_names),
             std::nullopt,
-            result.data * result.data.transpose());
+            result.data * result.data.transpose(),
+            freq::RandomKind::Discrete);
     }
     return random_designs;
 }
@@ -110,7 +111,8 @@ auto make_quantitative_random_design(
         .name = std::move(name),
         .levels = std::nullopt,
         .Z = std::nullopt,
-        .K = Z * Z.transpose()};
+        .K = Z * Z.transpose(),
+        .kind = freq::RandomKind::Quantitative};
 }
 
 auto make_grm_designs(
@@ -124,7 +126,11 @@ auto make_grm_designs(
         auto name = prefix;
         auto K = read_grm(name, &index);
         grm_designs.emplace_back(
-            name, std::nullopt, std::nullopt, std::move(K));
+            name,
+            std::nullopt,
+            std::nullopt,
+            std::move(K),
+            freq::RandomKind::Grm);
     }
     return grm_designs;
 }

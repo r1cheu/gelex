@@ -37,7 +37,7 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
     cli::add_common_io_options(cmd, config->base_data);
     cmd.add_option(
            "--grm",
-           config->grm_prefixes,
+           config->random.grm,
            "GRM prefix without suffix; reads <prefix>.bin/.id")
         ->group("I/O")
         ->type_name("<GRM>")
@@ -46,7 +46,7 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
         ->required();
     cmd.add_option(
            "--drand",
-           config->drand_path,
+           config->random.drand_path,
            "Discrete random-effect TSV (FID, IID, factor columns); each factor "
            "column becomes a variance component via one-hot ZZ^T")
         ->group("I/O")
@@ -54,7 +54,7 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
         ->check(CLI::ExistingFile);
     cmd.add_option(
            "--qrand",
-           config->qrand_paths,
+           config->random.qrand_paths,
            "Quantitative random-effect matrix TSV (FID, IID, value columns); "
            "each file forms one linear-kernel component ZZ^T")
         ->group("I/O")

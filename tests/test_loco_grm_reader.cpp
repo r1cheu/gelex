@@ -26,6 +26,7 @@
 
 #include "file_fixture.h"
 #include "gelex/data/dataframe/index.h"
+#include "gelex/data/reader.h"
 #include "gelex/data/writer.h"
 #include "gelex/io/loco_reader.h"
 #include "sample_id_fixture.h"
@@ -83,7 +84,9 @@ TEST_CASE("LocoReader - Basic Calculation", "[data][grm][loco]")
 
     df::DataFrameIndex<std::string> sample_index(ids);
 
-    gelex::LocoReader loco_reader(whole_files.prefix, sample_index);
+    Eigen::MatrixXd g_whole
+        = gelex::read_grm(whole_files.prefix.string(), &sample_index, false);
+    gelex::LocoReader loco_reader(g_whole);
     Eigen::MatrixXd loco_grm;
     loco_reader.load_into(chr_files.prefix, sample_index, loco_grm);
 
@@ -126,7 +129,9 @@ TEST_CASE("LocoReader - Filtered Loading", "[data][grm][loco]")
     df::DataFrameIndex<std::string> sample_index(
         std::vector<std::string>{sid("F1", "I3"), sid("F1", "I1")});
 
-    gelex::LocoReader loco_reader(whole_files.prefix, sample_index);
+    Eigen::MatrixXd g_whole
+        = gelex::read_grm(whole_files.prefix.string(), &sample_index, false);
+    gelex::LocoReader loco_reader(g_whole);
 
     Eigen::MatrixXd loco_grm;
     loco_reader.load_into(chr_files.prefix, sample_index, loco_grm);

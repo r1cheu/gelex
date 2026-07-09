@@ -30,9 +30,7 @@ namespace gelex
 class LocoReader
 {
    public:
-    LocoReader(
-        const std::filesystem::path& whole_grm_prefix,
-        const DataFrameIndex<std::string>& sample_index);
+    explicit LocoReader(const Eigen::MatrixXd& whole_grm);
 
     auto load_into(
         const std::filesystem::path& chr_grm_prefix,
@@ -40,9 +38,9 @@ class LocoReader
         Eigen::MatrixXd& target) const -> void;
 
    private:
-    Eigen::MatrixXd g_whole_;
-    double k_whole_{};
-    double trace_whole_{};
+    // Borrowed; the whole-genome GRM must outlive this reader.
+    const Eigen::MatrixXd* g_whole_;
+    double k_whole_;
 };
 
 }  // namespace gelex
