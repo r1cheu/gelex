@@ -23,3 +23,12 @@ IndentCaseLabels: "true"
 AllowAllParametersOfDeclarationOnNextLine: "false"
 DerivePointerAlignment: "false"
 PointerAlignment: Left
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex:    '^<'          # STL + third-party (all angle-bracket)
+    Priority: 2
+  - Regex:    '^"gelex/'    # gelex library
+    Priority: 3
+  - Regex:    '.*'          # app-local headers (apps/: "cli/...", "config.h", fixtures)
+    Priority: 4
