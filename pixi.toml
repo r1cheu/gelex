@@ -24,13 +24,14 @@ numpy = ">=2,<3"
 pytest = ">=8,<9"
 
 [tasks]
-# Configure the full tree once -> project-wide compile_commands.json for clangd.
+# Configure the full tree -> project-wide compile_commands.json for clangd.
+# Every build depends on this, so the DB stays in sync (incremental reconfigure is ~0.1s).
 init = "cmake --preset dev && ln -sf build/dev/compile_commands.json compile_commands.json"
 
 # Core: `pixi r build`, `build release`, `build reldeb`, ...
 build = { cmd = "cmake --preset {{ preset }} && cmake --build --preset {{ preset }}", args = [
     { arg = "preset", default = "debug" },
-] }
+], depends-on = ["init"] }
 test = { cmd = "ctest --preset test-debug", depends-on = [
     { task = "build", args = [
         "debug",
@@ -51,7 +52,7 @@ benchmark = { cmd = "build/benchmark/benchmark/gelex_benchmarks \"[!benchmark]\"
 # CLI: `pixi r build-cli`, `build-cli release`, `run`, `run release`.
 build-cli = { cmd = "cmake --preset cli-{{ mode }} && cmake --build --preset cli-{{ mode }}", args = [
     { arg = "mode", default = "debug" },
-] }
+], depends-on = ["init"] }
 run = { cmd = "./build/cli-{{ mode }}/apps/gelex", args = [
     { arg = "mode", default = "debug" },
 ], depends-on = [
@@ -61,7 +62,9 @@ run = { cmd = "./build/cli-{{ mode }}/apps/gelex", args = [
 ] }
 
 # Python bindings.
-build-python = "cmake --preset python && cmake --build --preset python"
+build-python = { cmd = "cmake --preset python && cmake --build --preset python", depends-on = [
+    "init",
+] }
 test-python = { cmd = "python -m pytest bindings/tests -q", depends-on = [
     "build-python",
 ], env = { PYTHONPATH = "bindings/python" } }
