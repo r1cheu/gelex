@@ -25,6 +25,7 @@
 #include <string_view>
 #include <vector>
 
+#include "gelex/algo/reml/summary.h"
 #include "gelex/data/sample_id.h"
 #include "gelex/exception.h"
 #include "gelex/freq/design.h"
@@ -206,8 +207,9 @@ auto write_loco_summary(
 
     for (const auto& result : results)
     {
-        const int converged = result.converged ? 1 : 0;
-        for (const auto& component : result.random)
+        const auto& s = result.summary;
+        const int converged = s.converged ? 1 : 0;
+        for (const auto& component : s.random)
         {
             writer.write(
                 fmt::format(
@@ -219,16 +221,16 @@ auto write_loco_summary(
                     component.variance_se,
                     component.variance_ratio,
                     component.variance_ratio_se,
-                    result.loglike,
+                    s.loglike,
                     converged));
         }
         writer.write(
             fmt::format(
                 "{}\tResidual\tvariance\t{:.8e}\t{:.8e}\t-\t-\t{:.8e}\t{}",
                 result.chr_name,
-                result.residual_variance,
-                result.residual_variance_se,
-                result.loglike,
+                s.residual_variance,
+                s.residual_variance_se,
+                s.loglike,
                 converged));
     }
 }

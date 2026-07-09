@@ -14,18 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_REML_RESULT_H_
-#define GELEX_ALGO_REML_RESULT_H_
+#ifndef GELEX_ALGO_REML_OPERATORS_H_
+#define GELEX_ALGO_REML_OPERATORS_H_
 
 #include <Eigen/Core>
 
 namespace gelex
 {
 
-// REML result used by downstream GWAS. P is materialized (n x n) by reusing
-// the V^{-1} buffer at the end of Estimator::fit, so per-chunk scans reduce
-// to a single dense GEMM.
-struct RemlResult
+// REML projection operators consumed by the association scan. P is the mixed
+// -model projection matrix, materialized (n x n) by reusing the V^{-1} buffer
+// at the end of Estimator::fit so per-chunk scans reduce to a single dense
+// GEMM; Py is P applied to the phenotype, Vp the phenotypic variance.
+struct GwasOperators
 {
     Eigen::MatrixXd P;
     Eigen::VectorXd Py;
@@ -36,4 +37,4 @@ struct RemlResult
 
 }  // namespace gelex
 
-#endif  // GELEX_ALGO_REML_RESULT_H_
+#endif  // GELEX_ALGO_REML_OPERATORS_H_

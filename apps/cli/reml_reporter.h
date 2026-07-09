@@ -21,13 +21,12 @@
 #include <variant>
 #include <vector>
 
-#include "gelex/algo/reml/loco_result.h"
+#include "gelex/algo/reml/summary.h"
 #include "gelex/infra/logging/reml_event.h"
 
 namespace gelex
 {
 class FreqModel;
-class FreqState;
 }  // namespace gelex
 
 namespace cli
@@ -41,11 +40,8 @@ class RemlReporter
     auto on_event(const gelex::RemlConstrainedEvent& e) -> void;
     auto show_result(
         const gelex::FreqModel& model,
-        const gelex::FreqState& state,
-        bool converged,
-        size_t iter_count,
-        size_t max_iter,
-        double loglike) const -> void;
+        const gelex::RemlSummary& summary,
+        size_t max_iter) const -> void;
 
     auto as_observer() -> gelex::RemlObserver
     {

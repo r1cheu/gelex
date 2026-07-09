@@ -23,7 +23,7 @@
 #include <span>
 
 #include "gelex/algo/gwas/assoc_type.h"
-#include "gelex/algo/reml/result.h"
+#include "gelex/algo/reml/operators.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/types/genetic_mode.h"
 
@@ -63,7 +63,8 @@ class AssocTester
     [[nodiscard]] virtual auto genotype_buffer()
         -> Eigen::Ref<Eigen::MatrixXd> = 0;
 
-    [[nodiscard]] virtual auto run(const RemlResult& reml) -> TestResults = 0;
+    [[nodiscard]] virtual auto run(const GwasOperators& reml) -> TestResults
+        = 0;
 
     [[nodiscard]] static auto make(
         AssocType type,

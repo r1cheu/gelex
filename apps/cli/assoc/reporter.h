@@ -21,7 +21,7 @@
 #include <string_view>
 #include <vector>
 
-#include "gelex/algo/reml/loco_result.h"
+#include "gelex/algo/reml/summary.h"
 
 #include "cli/progress_bar.h"
 #include "cli/timer.h"

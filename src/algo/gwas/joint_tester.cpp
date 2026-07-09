@@ -24,7 +24,7 @@
 #include <span>
 
 #include "gelex/algo/gwas/assoc_tester.h"
-#include "gelex/algo/reml/result.h"
+#include "gelex/algo/reml/operators.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/locus_encoding.h"
 #include "gelex/infra/stats/detail/var.h"
@@ -56,7 +56,7 @@ auto JointTester::genotype_buffer() -> Eigen::Ref<Eigen::MatrixXd>
     return raw_;
 }
 
-auto JointTester::run(const RemlResult& reml) -> TestResults
+auto JointTester::run(const GwasOperators& reml) -> TestResults
 {
     const LociEncoding additive_encoding{
         encode_into<double, double>(raw_, Z_a_, GeneticMode::A, method_)};

@@ -22,7 +22,7 @@
 #include <string_view>
 #include <vector>
 
-#include "gelex/algo/reml/loco_result.h"
+#include "gelex/algo/reml/summary.h"
 
 namespace gelex
 {

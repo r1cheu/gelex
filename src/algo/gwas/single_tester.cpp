@@ -23,7 +23,7 @@
 #include <unsupported/Eigen/SpecialFunctions>
 
 #include "gelex/algo/gwas/assoc_tester.h"
-#include "gelex/algo/reml/result.h"
+#include "gelex/algo/reml/operators.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/locus_encoding.h"
 #include "gelex/infra/stats/detail/var.h"
@@ -51,7 +51,7 @@ auto SingleTester::genotype_buffer() -> Eigen::Ref<Eigen::MatrixXd>
     return Z_;
 }
 
-auto SingleTester::run(const RemlResult& reml) -> TestResults
+auto SingleTester::run(const GwasOperators& reml) -> TestResults
 {
     if (mode_ == GeneticMode::A)
     {
@@ -94,7 +94,7 @@ auto SingleTester::run(const RemlResult& reml) -> TestResults
 auto SingleTester::wald_test(
     Eigen::Ref<Eigen::MatrixXd> Z,
     Eigen::Ref<Eigen::MatrixXd> W,
-    const RemlResult& reml,
+    const GwasOperators& reml,
     AssocOutput& output) -> void
 {
     output.zt_Pr.noalias() = Z.transpose() * reml.Py;

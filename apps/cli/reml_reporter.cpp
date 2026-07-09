@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "gelex/algo/reml/statistics.h"
+#include "gelex/algo/reml/summary.h"
 #include "gelex/freq/model.h"
 #include "gelex/infra/logging/reml_event.h"
 
@@ -89,22 +90,19 @@ auto RemlReporter::on_event(const gelex::RemlConstrainedEvent& e) -> void
 
 auto RemlReporter::show_result(
     const gelex::FreqModel& model,
-    const gelex::FreqState& state,
-    bool converged,
-    size_t iter_count,
-    size_t max_iter,
-    double loglike) const -> void
+    const gelex::RemlSummary& summary,
+    size_t max_iter) const -> void
 {
     auto& p = cli::printer();
 
     p.line(gelex::table_separator(55));
     p.block(gelex::named_section("REML Results", 70));
 
-    if (converged)
+    if (summary.converged)
     {
         p.line(
             gelex::success(
-                "Converged successfully in {} iterations", iter_count));
+                "Converged successfully in {} iterations", summary.iter_count));
     }
     else
     {
@@ -115,9 +113,9 @@ auto RemlReporter::show_result(
 
     // model fit
     p.block("  Model Fit:");
-    p.line("  - LogL : {:.4f}", loglike);
-    p.line("  - AIC : {:.2f}", gelex::compute_aic(model, loglike));
-    p.line("  - BIC : {:.2f}", gelex::compute_bic(model, loglike));
+    p.line("  - LogL : {:.4f}", summary.loglike);
+    p.line("  - AIC : {:.2f}", gelex::compute_aic(model, summary.loglike));
+    p.line("  - BIC : {:.2f}", gelex::compute_bic(model, summary.loglike));
 
     p.block("  Variance Components:");
     p.line(
@@ -129,12 +127,11 @@ auto RemlReporter::show_result(
         "SE");
     p.line(gelex::table_separator(69));
 
-    for (size_t i = 0; i < state.random().size(); ++i)
+    for (const auto& r : summary.random)
     {
-        const auto& r = state.random()[i];
         p.line(
             "  {:12} {:>12.3f} {:>12.3f} {:>15.3f} {:>12.3f}",
-            model.random()[i].name,
+            r.name,
             r.variance,
             r.variance_se,
             r.variance_ratio,
@@ -144,8 +141,8 @@ auto RemlReporter::show_result(
     p.line(
         "  {:12} {:>12.3f} {:>12.3f} {:>15} {:>12}",
         "Residual",
-        state.residual().variance,
-        state.residual().variance_se,
+        summary.residual_variance,
+        summary.residual_variance_se,
         "-",
         "-");
 
@@ -161,7 +158,7 @@ void print_loco_reml_summary(const std::vector<gelex::LocoRemlResult>& results)
 
     auto& p = cli::printer();
 
-    size_t num_random = results[0].random.size();
+    size_t num_random = results[0].summary.random.size();
     auto format_variances = [](const auto& values) -> std::string
     {
         std::string row;
@@ -173,7 +170,7 @@ void print_loco_reml_summary(const std::vector<gelex::LocoRemlResult>& results)
     };
 
     std::string header = fmt::format("  {:>5}  {:>10}", "Chr", "LogL");
-    for (const auto& r : results[0].random)
+    for (const auto& r : results[0].summary.random)
     {
         header += fmt::format("  {:>10}", fmt::format("V({})", r.name));
     }
@@ -187,30 +184,31 @@ void print_loco_reml_summary(const std::vector<gelex::LocoRemlResult>& results)
     std::vector<double> sum_random_ratio(num_random, 0.0);
     double sum_ve = 0.0;
 
-    for (const auto& r : results)
+    for (const auto& result : results)
     {
+        const auto& s = result.summary;
         std::string conv_mark
-            = r.converged ? fmt::format(fmt::fg(fmt::color::light_green), "✓")
+            = s.converged ? fmt::format(fmt::fg(fmt::color::light_green), "✓")
                           : fmt::format(fmt::fg(fmt::color::orange_red), "✗");
 
         std::vector<double> variances(num_random);
         for (size_t i = 0; i < num_random; ++i)
         {
-            variances[i] = (i < r.random.size()) ? r.random[i].variance : 0.0;
+            variances[i] = (i < s.random.size()) ? s.random[i].variance : 0.0;
             sum_random_variance[i] += variances[i];
             sum_random_ratio[i]
-                += (i < r.random.size()) ? r.random[i].variance_ratio : 0.0;
+                += (i < s.random.size()) ? s.random[i].variance_ratio : 0.0;
         }
 
         p.line(
             "  {:>5}  {:>10.2f}{}  {:>10.4f}    {}",
-            r.chr_name,
-            r.loglike,
+            result.chr_name,
+            s.loglike,
             format_variances(variances),
-            r.residual_variance,
+            s.residual_variance,
             conv_mark);
 
-        sum_ve += r.residual_variance;
+        sum_ve += s.residual_variance;
     }
 
     p.line("{}", gelex::table_separator());

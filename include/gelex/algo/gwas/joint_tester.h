@@ -21,7 +21,7 @@
 
 #include "gelex/algo/gwas/assoc_output.h"
 #include "gelex/algo/gwas/assoc_tester.h"
-#include "gelex/algo/reml/result.h"
+#include "gelex/algo/reml/operators.h"
 #include "gelex/data/genotype_method.h"
 
 namespace gelex
@@ -38,7 +38,7 @@ class JointTester final : public AssocTester
     [[nodiscard]] auto genotype_buffer()
         -> Eigen::Ref<Eigen::MatrixXd> override;
 
-    [[nodiscard]] auto run(const RemlResult& reml) -> TestResults override;
+    [[nodiscard]] auto run(const GwasOperators& reml) -> TestResults override;
 
    private:
     GenotypeMethod method_;

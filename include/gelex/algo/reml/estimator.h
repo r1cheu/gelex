@@ -19,14 +19,23 @@
 
 #include <cstddef>
 
+#include "gelex/algo/reml/operators.h"
 #include "gelex/algo/reml/optimizer.h"
 #include "gelex/algo/reml/optimizer_state.h"
-#include "gelex/algo/reml/result.h"
+#include "gelex/algo/reml/summary.h"
 #include "gelex/freq/model.h"
 #include "gelex/infra/logging/reml_event.h"
 
 namespace gelex
 {
+
+// Self-contained outcome of one fit: the reportable scalar summary plus the
+// heavy GWAS projection operators. Callers take whichever part they need.
+struct RemlFit
+{
+    RemlSummary summary;
+    GwasOperators operators;
+};
 
 class Estimator
 {
@@ -39,11 +48,7 @@ class Estimator
     auto fit(
         const gelex::FreqModel& model,
         gelex::FreqState& state,
-        bool em_init = true) -> RemlResult;
-
-    auto is_converged() const -> bool { return converged_; }
-    auto iter_count() const -> size_t { return iter_count_; }
-    auto loglike() const -> double { return loglike_; }
+        bool em_init = true) -> RemlFit;
 
    private:
     auto em_step(
@@ -53,10 +58,6 @@ class Estimator
 
     Optimizer optimizer_;
     size_t max_iter_{100};
-    size_t iter_count_{};
-    double loglike_{};
-    bool converged_{false};
-
     RemlObserver observer_;
 };
 

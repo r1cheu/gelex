@@ -28,8 +28,8 @@
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/algo/reml/estimator.h"
-#include "gelex/algo/reml/loco_result.h"
-#include "gelex/algo/reml/result.h"
+#include "gelex/algo/reml/operators.h"
+#include "gelex/algo/reml/summary.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/marker_range.h"
@@ -129,9 +129,9 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
     std::size_t progress = 0;
 
     const auto scan_range
-        = [&](const gelex::MarkerRange& range, const gelex::RemlResult& reml)
+        = [&](const gelex::MarkerRange& range, const gelex::GwasOperators& ops)
     {
-        const auto n_samples = reml.n_samples();
+        const auto n_samples = ops.n_samples();
 
         for (auto start = range.start; start < range.end;
              start += static_cast<Eigen::Index>(config.chunk_size))
@@ -144,7 +144,7 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
             tester->resize(n_samples, current_chunk_size);
             bed.read_into<double>(tester->genotype_buffer(), start);
 
-            auto results = tester->run(reml);
+            auto results = tester->run(ops);
             writer.write(static_cast<std::size_t>(start), results);
 
             progress += static_cast<std::size_t>(current_chunk_size);
@@ -161,18 +161,13 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
 
         reporter.show_reml_started("");
 
-        auto reml = estimator.fit(model, state);
-        reml_reporter.show_result(
-            model,
-            state,
-            estimator.is_converged(),
-            estimator.iter_count(),
-            config.max_iter,
-            estimator.loglike());
+        auto fit = estimator.fit(model, state);
+        reml_reporter.show_result(model, fit.summary, config.max_iter);
 
         reporter.start_scan(total_snps, config.chunk_size, false);
 
-        scan_range({"all", 0, static_cast<Eigen::Index>(bim.rows())}, reml);
+        scan_range(
+            {"all", 0, static_cast<Eigen::Index>(bim.rows())}, fit.operators);
     }
     else
     {
@@ -201,6 +196,7 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
 
         std::vector<gelex::LocoRemlResult> loco_results;
 
+        gelex::Estimator estimator(config.max_iter, config.tolerance);
         for (const auto& range : ranges)
         {
             for (std::size_t i = 0; i < loco_readers.size(); ++i)
@@ -217,29 +213,13 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
 
             reporter.show_loco_phase(range.label, "REML");
 
-            gelex::Estimator estimator(config.max_iter, config.tolerance);
-            auto reml = estimator.fit(model, state);
+            auto fit = estimator.fit(model, state);
 
-            {
-                gelex::LocoRemlResult r;
-                r.chr_name = range.label;
-                r.loglike = estimator.loglike();
-                r.converged = estimator.is_converged();
-                r.residual_variance = state.residual().variance;
-                for (std::size_t i = 0; i < state.random().size(); ++i)
-                {
-                    const auto& random = state.random()[i];
-                    r.random.push_back(
-                        {.name = model.random()[i].name,
-                         .variance = random.variance,
-                         .variance_ratio = random.variance_ratio});
-                }
-                loco_results.push_back(std::move(r));
-            }
+            loco_results.push_back({range.label, std::move(fit.summary)});
 
             reporter.show_loco_phase(range.label, "SCAN");
 
-            scan_range(range, reml);
+            scan_range(range, fit.operators);
         }
 
         reporter.show_loco_reml_summary(loco_results);

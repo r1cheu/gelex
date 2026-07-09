@@ -26,7 +26,7 @@
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/algo/gwas/joint_tester.h"
-#include "gelex/algo/reml/result.h"
+#include "gelex/algo/reml/operators.h"
 #include "gelex/data/dataframe/column.h"
 #include "gelex/data/dataframe/reader.h"
 #include "gelex/data/genotype_method.h"
@@ -37,11 +37,11 @@
 using gelex::AssocType;
 using gelex::ColumnType;
 using gelex::GenotypeMethod;
+using gelex::GwasOperators;
 using gelex::GwasWriter;
 using gelex::JointTester;
 using gelex::read_dataframe;
 using gelex::ReadOptions;
-using gelex::RemlResult;
 using gelex::TestResult;
 using gelex::TestResults;
 using gelex::test::FileFixture;
@@ -54,7 +54,7 @@ TEST_CASE("JointTester reports df=2 additive-dominance Wald p", "[gwas]")
     auto raw = tester.genotype_buffer();
     raw = Eigen::MatrixXd{{0.0}, {1.0}, {1.0}, {2.0}};
 
-    RemlResult reml;
+    GwasOperators reml;
     reml.P = Eigen::MatrixXd::Identity(4, 4);
     reml.Py = Eigen::VectorXd{{1.0, 4.0, 2.0, 3.0}};
     reml.Vp = 10.0;

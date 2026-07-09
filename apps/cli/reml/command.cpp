@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "gelex/algo/reml/estimator.h"
+#include "gelex/algo/reml/summary.h"
 #include "gelex/freq/model.h"
 #include "gelex/io/reml.h"
 
@@ -46,16 +47,10 @@ auto reml_execute(const cli::RemlConfig& config) -> int
     gelex::Estimator estimator(
         config.max_iter, config.tolerance, reml_reporter.as_observer());
 
-    estimator.fit(model, state);
-    reml_reporter.show_result(
-        model,
-        state,
-        estimator.is_converged(),
-        estimator.iter_count(),
-        config.max_iter,
-        estimator.loglike());
+    auto fit = estimator.fit(model, state);
+    reml_reporter.show_result(model, fit.summary, config.max_iter);
 
-    gelex::write_summary(model, state, estimator.loglike(), config.out_prefix);
+    gelex::write_summary(model, state, fit.summary.loglike, config.out_prefix);
     gelex::write_effects(model, state, data.sample_ids, config.out_prefix);
 
     return 0;

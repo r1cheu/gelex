@@ -142,9 +142,9 @@ TEST_CASE(
     auto [model, state] = build_model(problem);
 
     Estimator estimator(/*max_iter=*/500, /*tol=*/1e-12);
-    estimator.fit(model, state);
+    auto fit = estimator.fit(model, state);
 
-    REQUIRE(estimator.is_converged());
+    REQUIRE(fit.summary.converged);
     REQUIRE_THAT(
         state.residual().variance,
         Catch::Matchers::WithinAbs(problem.sigma_e, 1e-8));
@@ -153,21 +153,20 @@ TEST_CASE(
         Catch::Matchers::WithinAbs(problem.sigma_random, 1e-8));
 }
 
-TEST_CASE("Estimator::fit resets convergence state between runs", "[reml]")
+TEST_CASE("Estimator::fit is deterministic across reuse", "[reml]")
 {
     const auto problem = make_closed_form_problem();
     Estimator estimator(/*max_iter=*/500, /*tol=*/1e-12);
 
     auto [first_model, first_state] = build_model(problem);
-    estimator.fit(first_model, first_state);
-    const auto first_iter_count = estimator.iter_count();
+    const auto first = estimator.fit(first_model, first_state);
 
     auto [second_model, second_state] = build_model(problem);
-    estimator.fit(second_model, second_state);
+    const auto second = estimator.fit(second_model, second_state);
 
-    REQUIRE(estimator.is_converged());
-    REQUIRE(first_iter_count > 1);
-    REQUIRE(estimator.iter_count() == first_iter_count);
+    REQUIRE(second.summary.converged);
+    REQUIRE(first.summary.iter_count > 1);
+    REQUIRE(second.summary.iter_count == first.summary.iter_count);
 }
 
 }  // namespace gelex

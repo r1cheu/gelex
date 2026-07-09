@@ -24,9 +24,10 @@
 #include <vector>
 
 #include "gelex/algo/reml/effect_solver.h"
+#include "gelex/algo/reml/operators.h"
 #include "gelex/algo/reml/policy.h"
-#include "gelex/algo/reml/result.h"
 #include "gelex/algo/reml/statistics.h"
+#include "gelex/algo/reml/summary.h"
 #include "gelex/algo/reml/variance_calculator.h"
 #include "gelex/freq/model.h"
 #include "gelex/infra/logging/notify.h"
@@ -43,14 +44,15 @@ Estimator::Estimator(size_t max_iter, double tol, RemlObserver observer)
 auto Estimator::fit(
     const gelex::FreqModel& model,
     gelex::FreqState& state,
-    bool em_init) -> RemlResult
+    bool em_init) -> RemlFit
 {
     optimizer_.reset();
-    iter_count_ = 0;
-    loglike_ = 0.0;
-    converged_ = false;
 
     OptimizerState opt_state(model);
+
+    double loglike = 0.0;
+    bool converged = false;
+    size_t iter_count = max_iter_;
 
     // EM initialization
     if (em_init)
@@ -64,7 +66,7 @@ auto Estimator::fit(
     {
         optimizer_.step<AIPolicy>(model, state, opt_state);
 
-        loglike_ = compute_loglike(model, opt_state);
+        loglike = compute_loglike(model, opt_state);
 
         std::vector<std::string> labels;
         std::vector<double> variances;
@@ -81,21 +83,16 @@ auto Estimator::fit(
             observer_,
             RemlIterationEvent{
                 .iter = iter,
-                .loglike = loglike_,
+                .loglike = loglike,
                 .labels = std::move(labels),
                 .variances = std::move(variances)});
 
         if (optimizer_.is_converged())
         {
-            converged_ = true;
-            iter_count_ = iter;
+            converged = true;
+            iter_count = iter;
             break;
         }
-    }
-
-    if (!converged_)
-    {
-        iter_count_ = max_iter_;
     }
 
     const auto num_total = static_cast<Eigen::Index>(state.random().size()) + 1;
@@ -115,15 +112,38 @@ auto Estimator::fit(
     compute_variance_se(state, opt_state);
     compute_variance_ratio(state, opt_state);
 
+    std::vector<VarianceComponent> components;
+    components.reserve(state.random().size());
+    for (size_t i = 0; i < state.random().size(); ++i)
+    {
+        const auto& r = state.random()[i];
+        components.push_back(
+            {.name = model.random()[i].name,
+             .variance = r.variance,
+             .variance_se = r.variance_se,
+             .variance_ratio = r.variance_ratio,
+             .variance_ratio_se = r.variance_ratio_se});
+    }
+
+    RemlSummary summary{
+        .loglike = loglike,
+        .converged = converged,
+        .iter_count = iter_count,
+        .random = std::move(components),
+        .residual_variance = state.residual().variance,
+        .residual_variance_se = state.residual().variance_se};
+
     // Materialize P = V^{-1} - ViX * XtViX_inv * ViX' in opt_state.V's memory
     // so downstream GWAS can use a single dense GEMM per SNP chunk.
     opt_state.V.noalias()
         -= opt_state.ViX * opt_state.XtViX_inv * opt_state.ViX.transpose();
 
-    return RemlResult{
-        .P = std::move(opt_state.V),
-        .Py = std::move(opt_state.Py),
-        .Vp = state.Vp()};
+    return RemlFit{
+        .summary = std::move(summary),
+        .operators = GwasOperators{
+            .P = std::move(opt_state.V),
+            .Py = std::move(opt_state.Py),
+            .Vp = state.Vp()}};
 }
 
 auto Estimator::em_step(

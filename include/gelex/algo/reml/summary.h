@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_REML_LOCO_RESULT_H_
-#define GELEX_ALGO_REML_LOCO_RESULT_H_
+#ifndef GELEX_ALGO_REML_SUMMARY_H_
+#define GELEX_ALGO_REML_SUMMARY_H_
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -32,26 +33,26 @@ struct VarianceComponent
     double variance_ratio_se{};
 };
 
-struct LocoRemlResult
+// Reportable scalar outcome of a single REML fit. Copyable and decoupled from
+// the live FreqState so callers (e.g. per-chromosome LOCO) can snapshot it.
+struct RemlSummary
 {
-    std::string chr_name;
     double loglike{};
+    bool converged{};
+    std::size_t iter_count{};
     std::vector<VarianceComponent> random;
     double residual_variance{};
     double residual_variance_se{};
-    bool converged{true};
+};
 
-    auto total_ratio() const -> double
-    {
-        double sum = 0.0;
-        for (const auto& r : random)
-        {
-            sum += r.variance_ratio;
-        }
-        return sum;
-    }
+// One chromosome's REML fit summary in a LOCO scan: the leave-one-chromosome
+// -out variance components tagged with the held-out chromosome.
+struct LocoRemlResult
+{
+    std::string chr_name;
+    RemlSummary summary;
 };
 
 }  // namespace gelex
 
-#endif  // GELEX_ALGO_REML_LOCO_RESULT_H_
+#endif  // GELEX_ALGO_REML_SUMMARY_H_
