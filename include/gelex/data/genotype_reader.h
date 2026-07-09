@@ -17,11 +17,10 @@
 #ifndef GELEX_DATA_GENOTYPE_READER_H_
 #define GELEX_DATA_GENOTYPE_READER_H_
 
+#include <Eigen/Core>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-
-#include <Eigen/Core>
 
 #include "gelex/data/bed.h"
 #include "gelex/data/genotype.h"

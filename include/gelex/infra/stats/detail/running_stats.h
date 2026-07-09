@@ -17,11 +17,10 @@
 #ifndef GELEX_INFRA_STATS_DETAIL_RUNNING_STATS_H_
 #define GELEX_INFRA_STATS_DETAIL_RUNNING_STATS_H_
 
+#include <Eigen/Core>
 #include <cmath>
 #include <cstddef>
 #include <type_traits>
-
-#include <Eigen/Core>
 
 #include "gelex/exception.h"
 #include "gelex/infra/stats/result.h"

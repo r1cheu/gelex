@@ -17,11 +17,10 @@
 #ifndef APPS_CLI_REPORT_PRINTER_H_
 #define APPS_CLI_REPORT_PRINTER_H_
 
+#include <fmt/format.h>
 #include <string>
 #include <string_view>
 #include <utility>
-
-#include <fmt/format.h>
 
 namespace cli
 {

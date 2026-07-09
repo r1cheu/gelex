@@ -16,18 +16,17 @@
 
 #include "file_fixture.h"
 
-#include <fmt/format.h>
 #include <atomic>
 #include <cstddef>
 #include <filesystem>
+#include <fmt/format.h>
 #include <fstream>
 #include <ios>
 #include <span>
 #include <string_view>
 #include <system_error>
-#include <utility>
-
 #include <unistd.h>
+#include <utility>
 
 #include "gelex/exception.h"
 

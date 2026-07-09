@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-#include <optional>
-#include <string>
-#include <vector>
-
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
+#include <optional>
+#include <string>
 #include <string_view>
+#include <vector>
 
-#include "cli/predict/compute.h"
-#include "file_fixture.h"
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/reader.h"
+
+#include "cli/predict/compute.h"
+#include "file_fixture.h"
 
 using gelex::SEPARATOR;
 using gelex::test::FileFixture;

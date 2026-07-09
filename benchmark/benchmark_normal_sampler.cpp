@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
+#include <catch2/catch_test_macros.hpp>
 #include <cmath>
 #include <cstddef>
-#include <vector>
-
 #include <nanobench.h>
-
-#include <catch2/catch_test_macros.hpp>
+#include <vector>
 
 #include "gelex/infra/stats/normal_sampler.h"
 

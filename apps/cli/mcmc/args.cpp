@@ -16,11 +16,10 @@
 
 #include "args.h"
 
+#include <CLI/CLI.hpp>
 #include <memory>
 #include <string>
 #include <vector>
-
-#include <CLI/CLI.hpp>
 
 #include "cli/cli_helper.h"
 #include "command.h"

@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-#include <cmath>
-#include <utility>
-
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
+#include <cmath>
+#include <utility>
 
 #include "gelex/algo/mcmc/detail/records.h"
 #include "gelex/types/categorical_vector.h"

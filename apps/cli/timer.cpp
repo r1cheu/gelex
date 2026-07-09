@@ -20,9 +20,8 @@
 #include <chrono>
 #include <cmath>
 #include <cstddef>
-#include <string>
-
 #include <fmt/format.h>
+#include <string>
 
 namespace
 {

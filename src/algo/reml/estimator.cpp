@@ -16,9 +16,9 @@
 
 #include "gelex/algo/reml/estimator.h"
 
-#include <fmt/format.h>
 #include <Eigen/Core>
 #include <cstddef>
+#include <fmt/format.h>
 #include <string>
 #include <utility>
 #include <vector>

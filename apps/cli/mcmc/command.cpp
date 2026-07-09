@@ -16,6 +16,7 @@
 
 #include "command.h"
 
+#include <Eigen/Core>
 #include <cstdint>
 #include <filesystem>
 #include <optional>
@@ -23,14 +24,6 @@
 #include <utility>
 #include <vector>
 
-#include <Eigen/Core>
-
-#include "cli/bayes_recipe_options.h"
-#include "cli/cli_helper.h"
-#include "cli/common_data.h"
-#include "cli/formatter.h"
-#include "cli/geno_reporter.h"
-#include "cli/report_printer.h"
 #include "gelex/algo/mcmc/params.h"
 #include "gelex/algo/mcmc/solver.h"
 #include "gelex/bayes/design.h"
@@ -44,6 +37,13 @@
 #include "gelex/io/mcmc.h"
 #include "gelex/io/snpstats.h"
 #include "gelex/types/genetic_mode.h"
+
+#include "cli/bayes_recipe_options.h"
+#include "cli/cli_helper.h"
+#include "cli/common_data.h"
+#include "cli/formatter.h"
+#include "cli/geno_reporter.h"
+#include "cli/report_printer.h"
 #include "reporter.h"
 
 class MCMCDataHandler

@@ -18,9 +18,8 @@
 #define APPS_CLI_LOGGING_H_
 
 #include <memory>
-#include <string_view>
-
 #include <spdlog/logger.h>
+#include <string_view>
 
 namespace cli::logging
 {

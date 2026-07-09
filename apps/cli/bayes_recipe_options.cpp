@@ -16,10 +16,9 @@
 
 #include "bayes_recipe_options.h"
 
+#include <fmt/format.h>
 #include <optional>
 #include <string_view>
-
-#include <fmt/format.h>
 
 #include "gelex/bayes/recipe.h"
 #include "gelex/exception.h"

@@ -16,10 +16,9 @@
 
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
 
-#include <utility>
-
-#include <fmt/format.h>
 #include <Eigen/Core>
+#include <fmt/format.h>
+#include <utility>
 
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/genetic/prior_state.h"

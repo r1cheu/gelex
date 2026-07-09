@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
+#include <catch2/catch_test_macros.hpp>
 #include <fmt/format.h>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-#include <Eigen/Core>
-#include <catch2/catch_test_macros.hpp>
 
 #include "gelex/data/dataframe/column.h"
 #include "gelex/data/dataframe/constants.h"

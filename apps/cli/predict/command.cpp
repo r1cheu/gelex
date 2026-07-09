@@ -16,15 +16,14 @@
 
 #include "command.h"
 
+#include <Eigen/Core>
 #include <cstddef>
+#include <fmt/format.h>
 #include <optional>
 #include <ranges>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/dataframe.h"

@@ -17,12 +17,11 @@
 #ifndef GELEX_TYPES_FIXED_DESIGNS_H_
 #define GELEX_TYPES_FIXED_DESIGNS_H_
 
+#include <Eigen/Core>
 #include <optional>
 #include <span>
 #include <string>
 #include <vector>
-
-#include <Eigen/Core>
 
 namespace gelex
 {

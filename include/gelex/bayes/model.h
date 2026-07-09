@@ -17,10 +17,9 @@
 #ifndef GELEX_BAYES_MODEL_H_
 #define GELEX_BAYES_MODEL_H_
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/bayes/design.h"
 #include "gelex/types/fixed_designs.h"

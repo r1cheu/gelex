@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
+#include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_exception.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include <filesystem>
 #include <fstream>
 #include <ios>
@@ -22,13 +25,10 @@
 #include <string>
 #include <vector>
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_exception.hpp>
-#include <catch2/matchers/catch_matchers_string.hpp>
-
-#include "file_fixture.h"
 #include "gelex/exception.h"
 #include "gelex/io/detail/parser.h"
+
+#include "file_fixture.h"
 
 namespace fs = std::filesystem;
 

@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-#include <cmath>
-#include <numbers>
-#include <utility>
-#include <vector>
-
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <cmath>
+#include <numbers>
+#include <utility>
+#include <vector>
 
 #include "gelex/algo/reml/estimator.h"
 #include "gelex/algo/reml/optimizer_state.h"

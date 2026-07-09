@@ -17,10 +17,9 @@
 #ifndef GELEX_DATA_LOCUS_STATS_H_
 #define GELEX_DATA_LOCUS_STATS_H_
 
+#include <Eigen/Core>
 #include <cmath>
 #include <concepts>
-
-#include <Eigen/Core>
 
 namespace gelex
 {

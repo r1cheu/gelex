@@ -16,14 +16,13 @@
 
 #include "gelex/data/covariates.h"
 
+#include <Eigen/Core>
 #include <cstddef>
 #include <optional>
 #include <span>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/data/dataframe/encode.h"
 #include "gelex/data/reader.h"

@@ -16,17 +16,16 @@
 
 #include "command.h"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <cstddef>
+#include <fmt/format.h>
 #include <optional>
 #include <random>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/data/sample_id.h"
 #include "gelex/exception.h"
@@ -37,6 +36,7 @@
 #include "gelex/simulate/genetic_value_scaler.h"
 #include "gelex/simulate/sim_types.h"
 #include "gelex/types/genetic_mode.h"
+
 #include "reporter.h"
 
 namespace

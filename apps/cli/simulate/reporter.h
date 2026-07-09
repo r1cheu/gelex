@@ -19,8 +19,9 @@
 
 #include <optional>
 
-#include "cli/progress_bar.h"
 #include "gelex/infra/logging/simulate_event.h"
+
+#include "cli/progress_bar.h"
 
 namespace cli
 {

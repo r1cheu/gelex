@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
 #include <algorithm>
+#include <catch2/catch_test_macros.hpp>
 #include <limits>
 #include <string>
 #include <vector>
 
-#include <Eigen/Core>
-#include <catch2/catch_test_macros.hpp>
-
-#include "bed_fixture.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/exception.h"
+
+#include "bed_fixture.h"
 
 using gelex::DataFrameIndex;
 using gelex::GelexException;

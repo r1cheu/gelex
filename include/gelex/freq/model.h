@@ -17,10 +17,9 @@
 #ifndef GELEX_FREQ_MODEL_H_
 #define GELEX_FREQ_MODEL_H_
 
-#include <vector>
-
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
+#include <vector>
 
 #include "gelex/freq/design.h"
 #include "gelex/types/fixed_designs.h"

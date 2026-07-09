@@ -17,9 +17,8 @@
 #ifndef GELEX_BAYES_PARAMETER_VALUES_H_
 #define GELEX_BAYES_PARAMETER_VALUES_H_
 
-#include <string_view>
-
 #include <Eigen/Core>
+#include <string_view>
 
 #include "gelex/bayes/parameter/distributions.h"
 #include "gelex/infra/field_visitor.h"

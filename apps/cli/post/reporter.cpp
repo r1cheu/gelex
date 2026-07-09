@@ -17,14 +17,14 @@
 #include "reporter.h"
 
 #include <algorithm>
+#include <fmt/format.h>
 #include <string>
 #include <vector>
 
-#include <fmt/format.h>
+#include "gelex/post/diagnostic.h"
 
 #include "cli/formatter.h"
 #include "cli/report_printer.h"
-#include "gelex/post/diagnostic.h"
 
 namespace cli
 {

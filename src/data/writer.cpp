@@ -16,11 +16,10 @@
 
 #include "gelex/data/writer.h"
 
+#include <Eigen/Core>
+#include <fmt/format.h>
 #include <ios>
 #include <vector>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/data/sample_id.h"
 #include "gelex/exception.h"

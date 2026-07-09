@@ -16,21 +16,21 @@
 
 #include "command.h"
 
+#include <Eigen/Core>
 #include <cstddef>
 #include <filesystem>
+#include <fmt/format.h>
 #include <string>
 #include <string_view>
 #include <vector>
 
-#include <fmt/format.h>
-#include <Eigen/Core>
-
-#include "cli/cli_helper.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/grm/grm.h"
 #include "gelex/data/marker_range.h"
 #include "gelex/data/writer.h"
 #include "gelex/types/genetic_mode.h"
+
+#include "cli/cli_helper.h"
 #include "reporter.h"
 
 namespace

@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
+#include <catch2/catch_test_macros.hpp>
 #include <filesystem>
+#include <nanobench.h>
 #include <random>
 #include <string_view>
 #include <utility>
 #include <variant>
-
-#include <Eigen/Core>
-
-#include <nanobench.h>
-
-#include <catch2/catch_test_macros.hpp>
 
 #include "gelex/algo/mcmc/steps/single_genetic_step.h"
 #include "gelex/bayes/design.h"

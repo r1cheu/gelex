@@ -16,9 +16,9 @@
 
 #include "gelex/io/loco_reader.h"
 
-#include <fmt/format.h>
 #include <Eigen/Core>
 #include <filesystem>
+#include <fmt/format.h>
 #include <string>
 
 #include "gelex/data/dataframe/index.h"

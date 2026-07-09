@@ -17,11 +17,10 @@
 #ifndef GELEX_DATA_READER_H_
 #define GELEX_DATA_READER_H_
 
+#include <Eigen/Core>
 #include <cstddef>
 #include <filesystem>
 #include <string>
-
-#include <Eigen/Core>
 
 #include "gelex/data/dataframe/dataframe.h"
 

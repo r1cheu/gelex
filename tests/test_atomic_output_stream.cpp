@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-#include "gelex/io/detail/atomic_output_stream.h"
-
 #include <array>
+#include <catch2/catch_test_macros.hpp>
 #include <filesystem>
 #include <fstream>
 #include <ios>
@@ -24,10 +23,10 @@
 #include <stdexcept>
 #include <string>
 
-#include <catch2/catch_test_macros.hpp>
+#include "gelex/exception.h"
+#include "gelex/io/detail/atomic_output_stream.h"
 
 #include "file_fixture.h"
-#include "gelex/exception.h"
 
 namespace fs = std::filesystem;
 

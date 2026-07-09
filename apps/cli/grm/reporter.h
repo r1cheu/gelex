@@ -20,9 +20,10 @@
 #include <cstddef>
 #include <string_view>
 
+#include "gelex/infra/logging/grm_event.h"
+
 #include "cli/progress_bar.h"
 #include "cli/timer.h"
-#include "gelex/infra/logging/grm_event.h"
 
 namespace cli
 {

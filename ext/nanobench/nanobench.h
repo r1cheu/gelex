@@ -1586,9 +1586,8 @@ void doNotOptimizeAway(T const& val)
 #include <unistd.h>  //sysconf
 #endif
 #if ANKERL_NANOBENCH(PERF_COUNTERS)
-#include <map>  // map
-
 #include <linux/perf_event.h>
+#include <map>  // map
 #include <sys/ioctl.h>
 #include <sys/syscall.h>
 #endif

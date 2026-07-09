@@ -17,9 +17,8 @@
 #include "gelex/bayes/genetic/half_normal_prior_state.h"
 
 #include <array>
-#include <utility>
-
 #include <fmt/format.h>
+#include <utility>
 
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/genetic/prior_state_values.h"

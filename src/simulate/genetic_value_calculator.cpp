@@ -16,14 +16,13 @@
 
 #include "gelex/simulate/genetic_value_calculator.h"
 
+#include <Eigen/Core>
 #include <cstddef>
 #include <filesystem>
 #include <ranges>
 #include <span>
 #include <string>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/locus_encoding.h"

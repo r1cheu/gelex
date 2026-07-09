@@ -1,9 +1,8 @@
 #include "gelex/bayes/parameter/distributions.h"
 
+#include <Eigen/Core>
 #include <cmath>
 #include <utility>
-
-#include <Eigen/Core>
 
 #include "gelex/exception.h"
 

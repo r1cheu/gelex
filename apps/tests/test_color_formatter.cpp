@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-#include <memory>
-#include <string>
-
 #include <CLI/CLI.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <memory>
+#include <string>
 
 #include "cli/color_formatter.h"
 

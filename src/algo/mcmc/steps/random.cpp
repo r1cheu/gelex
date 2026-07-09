@@ -16,12 +16,11 @@
 
 #include "gelex/algo/mcmc/steps/random.h"
 
+#include <Eigen/Core>
 #include <cstddef>
+#include <fmt/format.h>
 #include <random>
 #include <span>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/algo/mcmc/invariant.h"
 #include "gelex/bayes/design.h"

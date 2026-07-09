@@ -17,11 +17,10 @@
 #ifndef GELEX_BAYES_DESIGN_H_
 #define GELEX_BAYES_DESIGN_H_
 
+#include <Eigen/Core>
 #include <cstdint>
 #include <string>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/data/genotype.h"
 #include "gelex/infra/stats/detail/var.h"

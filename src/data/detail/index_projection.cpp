@@ -17,7 +17,6 @@
 #include "gelex/data/detail/index_projection.h"
 
 #include <cstddef>
-
 #include <fmt/format.h>
 
 #include "gelex/exception.h"

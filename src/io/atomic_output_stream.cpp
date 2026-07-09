@@ -17,12 +17,11 @@
 #include "gelex/io/detail/atomic_output_stream.h"
 
 #include <filesystem>
+#include <fmt/format.h>
 #include <ios>
 #include <string_view>
 #include <system_error>
 #include <utility>
-
-#include <fmt/format.h>
 
 #include "gelex/exception.h"
 

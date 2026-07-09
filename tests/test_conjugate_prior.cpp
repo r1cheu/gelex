@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-#include <catch2/matchers/catch_matchers.hpp>
-#include <cmath>
-#include <cstdint>
-#include <random>
-
 #include <Eigen/Core>
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <cmath>
+#include <cstdint>
+#include <random>
 
 #include "gelex/infra/stats/beta_sampler.h"
 #include "gelex/infra/stats/dirichlet_sampler.h"

@@ -17,6 +17,7 @@
 #ifndef GELEX_INFRA_FIELD_VISITOR_H_
 #define GELEX_INFRA_FIELD_VISITOR_H_
 
+#include <Eigen/Core>
 #include <cstddef>
 #include <span>
 #include <string>
@@ -24,8 +25,6 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/infra/field_flag.h"
 #include "gelex/types/categorical_vector.h"

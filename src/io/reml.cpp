@@ -16,15 +16,14 @@
 
 #include "gelex/io/reml.h"
 
+#include <Eigen/Core>
 #include <cstddef>
+#include <fmt/format.h>
 #include <iterator>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/data/sample_id.h"
 #include "gelex/exception.h"

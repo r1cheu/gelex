@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
+#include <catch2/catch_test_macros.hpp>
 #include <cstdint>
 #include <string>
 
-#include <catch2/catch_test_macros.hpp>
-
-#include "file_fixture.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
+
+#include "file_fixture.h"
 
 using gelex::test::FileFixture;
 

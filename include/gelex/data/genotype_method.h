@@ -19,11 +19,10 @@
 
 #include <array>
 #include <cstdint>
-#include <string_view>
-#include <utility>
-
 #include <fmt/base.h>
 #include <fmt/format.h>
+#include <string_view>
+#include <utility>
 
 #include "gelex/exception.h"
 

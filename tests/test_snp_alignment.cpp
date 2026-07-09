@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
+#include <catch2/catch_test_macros.hpp>
 #include <limits>
 #include <vector>
 
-#include <Eigen/Core>
-#include <catch2/catch_test_macros.hpp>
-
-#include "bed_fixture.h"
-#include "file_fixture.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/snp_alignment.h"
+
+#include "bed_fixture.h"
+#include "file_fixture.h"
 
 using gelex::test::BedFixture;
 using gelex::test::FileFixture;

@@ -17,12 +17,11 @@
 #ifndef GELEX_ALGO_MCMC_DETAIL_RECORDS_H_
 #define GELEX_ALGO_MCMC_DETAIL_RECORDS_H_
 
+#include <Eigen/Core>
 #include <cstddef>
 #include <optional>
 #include <string_view>
 #include <utility>
-
-#include <Eigen/Core>
 
 #include "gelex/infra/stats/detail/running_stats.h"
 #include "gelex/infra/stats/result.h"

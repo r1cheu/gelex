@@ -16,8 +16,10 @@
 
 #include "compute.h"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <cstddef>
+#include <fmt/format.h>
 #include <iterator>
 #include <map>
 #include <optional>
@@ -25,9 +27,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/dataframe/dataframe.h"

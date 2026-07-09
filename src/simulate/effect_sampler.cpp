@@ -16,13 +16,12 @@
 
 #include "gelex/simulate/effect_sampler.h"
 
+#include <Eigen/Core>
 #include <cmath>
 #include <cstddef>
 #include <random>
 #include <string>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/simulate/sim_types.h"
 

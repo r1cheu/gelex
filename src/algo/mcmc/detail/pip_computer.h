@@ -17,9 +17,8 @@
 #ifndef GELEX_SRC_ALGO_MCMC_DETAIL_PIP_COMPUTER_H_
 #define GELEX_SRC_ALGO_MCMC_DETAIL_PIP_COMPUTER_H_
 
-#include <utility>
-
 #include <Eigen/Core>
+#include <utility>
 
 namespace gelex::detail
 {

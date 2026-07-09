@@ -16,6 +16,7 @@
 
 #include "gelex/bayes/prior.h"
 
+#include <fmt/format.h>
 #include <ranges>
 #include <set>
 #include <string>
@@ -23,8 +24,6 @@
 #include <utility>
 #include <variant>
 #include <vector>
-
-#include <fmt/format.h>
 
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/exception.h"

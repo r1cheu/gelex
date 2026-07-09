@@ -17,10 +17,9 @@
 #include "gelex/algo/mcmc/solver.h"
 
 #include <cstddef>
+#include <fmt/format.h>
 #include <random>
 #include <utility>
-
-#include <fmt/format.h>
 
 #include "gelex/algo/mcmc/chain.h"
 #include "gelex/algo/mcmc/records.h"

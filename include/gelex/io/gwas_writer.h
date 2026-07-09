@@ -19,11 +19,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <fmt/format.h>
 #include <span>
 #include <string>
 #include <string_view>
-
-#include <fmt/format.h>
 
 #include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/data/dataframe/dataframe.h"

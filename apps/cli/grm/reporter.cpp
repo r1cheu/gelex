@@ -17,14 +17,14 @@
 #include "reporter.h"
 
 #include <cstddef>
+#include <fmt/format.h>
 #include <string_view>
 
-#include <fmt/format.h>
+#include "gelex/infra/logging/grm_event.h"
 
 #include "cli/formatter.h"
 #include "cli/progress_bar.h"
 #include "cli/report_printer.h"
-#include "gelex/infra/logging/grm_event.h"
 
 namespace cli
 {

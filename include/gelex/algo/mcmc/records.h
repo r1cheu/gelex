@@ -17,6 +17,7 @@
 #ifndef GELEX_ALGO_MCMC_RECORDS_H_
 #define GELEX_ALGO_MCMC_RECORDS_H_
 
+#include <Eigen/Core>
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -26,8 +27,6 @@
 #include <unordered_map>
 #include <variant>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/algo/mcmc/detail/records.h"
 #include "gelex/infra/field_visitor.h"

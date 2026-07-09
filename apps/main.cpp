@@ -14,13 +14,10 @@
  * limitations under the License.
  */
 
+#include <CLI/CLI.hpp>
+#include <fmt/format.h>
 #include <iostream>
 #include <string>
-
-#include <fmt/format.h>
-#include <CLI/CLI.hpp>
-
-#include "version.h"
 
 #include "cli/assoc/args.h"
 #include "cli/cli_helper.h"
@@ -31,6 +28,7 @@
 #include "cli/predict/args.h"
 #include "cli/reml/args.h"
 #include "cli/simulate/args.h"
+#include "version.h"
 
 auto main(int argc, char* argv[]) -> int
 {

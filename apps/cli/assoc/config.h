@@ -21,10 +21,11 @@
 #include <string>
 #include <thread>
 
-#include "cli/common_data.h"
-#include "cli/reml_data.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/types/genetic_mode.h"
+
+#include "cli/common_data.h"
+#include "cli/reml_data.h"
 
 namespace cli
 {

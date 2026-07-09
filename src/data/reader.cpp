@@ -14,10 +14,14 @@
  * limitations under the License.
  */
 
+#include "gelex/data/dataframe/reader.h"
+
+#include <Eigen/Core>
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <filesystem>
+#include <fmt/format.h>
 #include <fstream>
 #include <ranges>
 #include <sstream>
@@ -26,10 +30,6 @@
 #include <utility>
 #include <vector>
 
-#include <fmt/format.h>
-#include <Eigen/Core>
-
-#include "gelex/data/dataframe/reader.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/io/detail/parser.h"

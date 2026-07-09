@@ -17,14 +17,13 @@
 #ifndef GELEX_DATA_DATAFRAME_ENCODE_H_
 #define GELEX_DATA_DATAFRAME_ENCODE_H_
 
+#include <Eigen/Core>
 #include <fmt/format.h>
 #include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/data/dataframe/column.h"
 #include "gelex/exception.h"

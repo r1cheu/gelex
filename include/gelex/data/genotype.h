@@ -17,13 +17,12 @@
 #ifndef GELEX_DATA_GENOTYPE_H_
 #define GELEX_DATA_GENOTYPE_H_
 
+#include <Eigen/Core>
 #include <cstdint>
 #include <memory>
 #include <utility>
 #include <variant>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/data/snp_stats.h"
 #include "gelex/io/binary_reader.h"

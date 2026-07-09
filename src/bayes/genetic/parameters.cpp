@@ -1,12 +1,11 @@
 #include "gelex/bayes/genetic/parameters.h"
 
+#include <Eigen/Core>
 #include <array>
 #include <cmath>
 #include <limits>
 #include <optional>
 #include <utility>
-
-#include <Eigen/Core>
 
 #include "gelex/exception.h"
 

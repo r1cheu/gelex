@@ -16,12 +16,11 @@
 
 #include "gelex/data/snp_alignment.h"
 
+#include <Eigen/Core>
 #include <cstddef>
 #include <limits>
 #include <ranges>
 #include <string>
-
-#include <Eigen/Core>
 
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/dataframe.h"

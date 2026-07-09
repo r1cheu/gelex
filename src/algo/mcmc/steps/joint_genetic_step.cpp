@@ -16,6 +16,7 @@
 
 #include "gelex/algo/mcmc/steps/joint_genetic_step.h"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -25,8 +26,6 @@
 #include <random>
 #include <utility>
 #include <variant>
-
-#include <Eigen/Core>
 
 #include "gelex/algo/mcmc/invariant.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"

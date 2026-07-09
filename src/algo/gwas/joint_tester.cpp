@@ -17,11 +17,10 @@
 #include "gelex/algo/gwas/joint_tester.h"
 
 #include <Eigen/Core>
+#include <Eigen/Dense>
 #include <cmath>
 #include <cstddef>
 #include <limits>
-
-#include <Eigen/Dense>
 #include <span>
 
 #include "gelex/algo/gwas/assoc_tester.h"

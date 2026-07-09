@@ -16,11 +16,10 @@
 
 #include "gelex/data/marker_range.h"
 
+#include <Eigen/Core>
 #include <cstddef>
 #include <string>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/data/dataframe/dataframe.h"
 

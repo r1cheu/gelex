@@ -18,10 +18,9 @@
 
 #include <cstddef>
 #include <memory>
+#include <mio.h>
 #include <string>
 #include <system_error>
-
-#include <mio.h>
 
 namespace gelex
 {

@@ -16,9 +16,8 @@
 
 #include "algo/mcmc/detail/pip_computer.h"
 
-#include <utility>
-
 #include <Eigen/Core>
+#include <utility>
 
 namespace gelex::detail
 {

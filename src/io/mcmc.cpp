@@ -16,9 +16,11 @@
 
 #include "gelex/io/mcmc.h"
 
+#include <Eigen/Core>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <fmt/format.h>
 #include <iterator>
 #include <ranges>
 #include <string>
@@ -27,9 +29,6 @@
 #include <utility>
 #include <variant>
 #include <vector>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/algo/mcmc/result.h"
 #include "gelex/bayes/model.h"

@@ -16,10 +16,12 @@
 
 #include "gelex/data/genotype_reader.h"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <fmt/format.h>
 #include <memory>
 #include <new>
 #include <stdexcept>
@@ -27,9 +29,6 @@
 #include <utility>
 #include <variant>
 #include <vector>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/data/genotype.h"
 #include "gelex/data/genotype_method.h"

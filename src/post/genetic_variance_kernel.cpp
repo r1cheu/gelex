@@ -18,13 +18,12 @@
 
 #include <Eigen/Core>
 #include <cstddef>
+#include <fmt/format.h>
 #include <ranges>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include <fmt/format.h>
 
 #include "gelex/exception.h"
 #include "gelex/infra/stats/detail/var.h"

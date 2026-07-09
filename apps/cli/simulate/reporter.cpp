@@ -16,9 +16,8 @@
 
 #include "reporter.h"
 
-#include <optional>
-
 #include <fmt/format.h>
+#include <optional>
 
 #include "cli/formatter.h"
 #include "cli/progress_bar.h"

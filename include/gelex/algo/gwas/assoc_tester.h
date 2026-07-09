@@ -17,11 +17,10 @@
 #ifndef GELEX_ALGO_GWAS_ASSOC_TESTER_H_
 #define GELEX_ALGO_GWAS_ASSOC_TESTER_H_
 
+#include <Eigen/Core>
 #include <memory>
 #include <optional>
 #include <span>
-
-#include <Eigen/Core>
 
 #include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/algo/reml/result.h"

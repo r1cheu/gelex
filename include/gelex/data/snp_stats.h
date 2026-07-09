@@ -17,10 +17,9 @@
 #ifndef GELEX_DATA_SNP_STATS_H_
 #define GELEX_DATA_SNP_STATS_H_
 
+#include <Eigen/Core>
 #include <cstdint>
 #include <vector>
-
-#include <Eigen/Core>
 
 namespace gelex
 {

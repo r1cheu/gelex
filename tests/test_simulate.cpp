@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
 #include <algorithm>
+#include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <filesystem>
+#include <fmt/format.h>
 #include <fstream>
 #include <iterator>
 #include <optional>
@@ -27,11 +30,6 @@
 #include <utility>
 #include <vector>
 
-#include <fmt/format.h>
-#include <Eigen/Core>
-#include <catch2/catch_test_macros.hpp>
-
-#include "bed_fixture.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/sample_id.h"
 #include "gelex/io/detail/text_writer.h"
@@ -40,6 +38,8 @@
 #include "gelex/simulate/genetic_value_scaler.h"
 #include "gelex/simulate/sim_types.h"
 #include "gelex/types/genetic_mode.h"
+
+#include "bed_fixture.h"
 
 namespace fs = std::filesystem;
 

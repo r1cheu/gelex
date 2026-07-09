@@ -17,10 +17,9 @@
 #ifndef GELEX_IO_LOCO_READER_H_
 #define GELEX_IO_LOCO_READER_H_
 
+#include <Eigen/Core>
 #include <filesystem>
 #include <string>
-
-#include <Eigen/Core>
 
 #include "gelex/data/dataframe/index.h"
 

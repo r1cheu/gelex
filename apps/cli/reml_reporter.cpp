@@ -16,20 +16,20 @@
 
 #include "reml_reporter.h"
 
+#include <Eigen/Core>
 #include <cstddef>
-#include <string>
-#include <vector>
-
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <Eigen/Core>
+#include <string>
+#include <vector>
 
-#include "cli/formatter.h"
-#include "cli/report_printer.h"
 #include "gelex/algo/reml/statistics.h"
 #include "gelex/freq/model.h"
 #include "gelex/infra/logging/reml_event.h"
+
+#include "cli/formatter.h"
+#include "cli/report_printer.h"
 
 namespace cli
 {

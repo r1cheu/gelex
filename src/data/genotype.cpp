@@ -16,11 +16,10 @@
 
 #include "gelex/data/genotype.h"
 
+#include <Eigen/Core>
 #include <cstdint>
 #include <type_traits>
 #include <variant>
-
-#include <Eigen/Core>
 #include <vector>
 
 namespace gelex

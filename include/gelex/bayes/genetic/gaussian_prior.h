@@ -17,9 +17,8 @@
 #ifndef GELEX_BAYES_GENETIC_GAUSSIAN_PRIOR_H_
 #define GELEX_BAYES_GENETIC_GAUSSIAN_PRIOR_H_
 
-#include <string_view>
-
 #include <Eigen/Core>
+#include <string_view>
 
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
 #include "gelex/bayes/genetic/parameters.h"

@@ -17,17 +17,15 @@
 #ifndef GELEX_DATA_LOCUS_ENCODING_H_
 #define GELEX_DATA_LOCUS_ENCODING_H_
 
+#include <Eigen/Core>
 #include <cassert>
 #include <concepts>
 
-#include <Eigen/Core>
-
+#include "gelex/data/detail/locus_encoding.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/locus_encoding_types.h"
 #include "gelex/data/snp_stats.h"
 #include "gelex/types/genetic_mode.h"
-
-#include "gelex/data/detail/locus_encoding.h"
 
 namespace gelex
 {

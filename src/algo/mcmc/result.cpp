@@ -16,6 +16,7 @@
 
 #include "gelex/algo/mcmc/result.h"
 
+#include <Eigen/Core>
 #include <cstddef>
 #include <ranges>
 #include <string>
@@ -24,14 +25,13 @@
 #include <variant>
 #include <vector>
 
-#include <Eigen/Core>
-
-#include "algo/mcmc/detail/pip_computer.h"
-#include "algo/mcmc/detail/pve_computer.h"
 #include "gelex/algo/mcmc/records.h"
 #include "gelex/bayes/model.h"
 #include "gelex/exception.h"
 #include "gelex/types/genetic_mode.h"
+
+#include "algo/mcmc/detail/pip_computer.h"
+#include "algo/mcmc/detail/pve_computer.h"
 
 namespace gelex
 {

@@ -17,21 +17,21 @@
 #ifndef APPS_CLI_COMMON_DATA_H_
 #define APPS_CLI_COMMON_DATA_H_
 
+#include <Eigen/Core>
 #include <cstddef>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include <Eigen/Core>
-
-#include "cli/logging.h"
 #include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/reader.h"
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
 #include "gelex/types/fixed_designs.h"
+
+#include "cli/logging.h"
 
 namespace cli
 {

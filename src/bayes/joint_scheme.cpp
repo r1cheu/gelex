@@ -17,7 +17,6 @@
 #include <array>
 #include <vector>
 
-#include "bayes/detail/scheme_helpers.h"
 #include "gelex/bayes/genetic/half_normal_prior.h"
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/genetic/prior.h"
@@ -27,6 +26,8 @@
 #include "gelex/exception.h"
 #include "gelex/types/constrained_vector.h"
 #include "gelex/types/genetic_mode.h"
+
+#include "bayes/detail/scheme_helpers.h"
 
 namespace gelex::bayes
 {

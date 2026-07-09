@@ -17,14 +17,13 @@
 #ifndef GELEX_ALGO_MCMC_RESULT_H_
 #define GELEX_ALGO_MCMC_RESULT_H_
 
+#include <Eigen/Core>
 #include <cstddef>
 #include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/algo/mcmc/records.h"
 

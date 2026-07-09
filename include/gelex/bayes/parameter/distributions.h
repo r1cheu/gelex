@@ -17,9 +17,8 @@
 #ifndef GELEX_BAYES_PARAMETER_DISTRIBUTIONS_H_
 #define GELEX_BAYES_PARAMETER_DISTRIBUTIONS_H_
 
-#include <string_view>
-
 #include <Eigen/Core>
+#include <string_view>
 
 #include "gelex/infra/field_visitor.h"
 

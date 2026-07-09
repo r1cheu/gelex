@@ -17,10 +17,9 @@
 #ifndef GELEX_DATA_LOCUS_ENCODING_TYPES_H_
 #define GELEX_DATA_LOCUS_ENCODING_TYPES_H_
 
+#include <Eigen/Core>
 #include <cstdint>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/locus_stats.h"

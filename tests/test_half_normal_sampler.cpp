@@ -15,14 +15,13 @@
  */
 
 #include <algorithm>
+#include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cmath>
 #include <cstdint>
 #include <numbers>
 #include <random>
-
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "gelex/infra/stats/half_normal_sampler.h"
 #include "gelex/infra/stats/normal_sampler.h"

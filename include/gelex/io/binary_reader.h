@@ -17,20 +17,19 @@
 #ifndef GELEX_IO_BINARY_READER_H_
 #define GELEX_IO_BINARY_READER_H_
 
-#include <fmt/format.h>
+#include <Eigen/Core>
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
+#include <fmt/format.h>
 #include <string>
 #include <string_view>
 #include <system_error>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/exception.h"
 #include "gelex/infra/string_hash.h"

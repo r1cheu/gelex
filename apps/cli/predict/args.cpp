@@ -16,9 +16,8 @@
 
 #include "args.h"
 
-#include <memory>
-
 #include <CLI/CLI.hpp>
+#include <memory>
 
 #include "cli/cli_helper.h"
 #include "command.h"

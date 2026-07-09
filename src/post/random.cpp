@@ -16,14 +16,13 @@
 
 #include "gelex/post/random.h"
 
+#include <Eigen/Core>
 #include <cstddef>
+#include <fmt/format.h>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/io/binary_reader.h"
 #include "gelex/post/detail/utils.h"

@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
+#include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cmath>
 #include <string>
 #include <vector>
 
-#include <Eigen/Core>
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
-
-#include "bed_fixture.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/grm/grm.h"
 #include "gelex/data/marker_range.h"
 #include "gelex/data/reader.h"
 #include "gelex/types/genetic_mode.h"
+
+#include "bed_fixture.h"
 
 using namespace gelex;  // NOLINT
 using Catch::Matchers::WithinAbs;

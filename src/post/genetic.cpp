@@ -16,13 +16,12 @@
 
 #include "gelex/post/genetic.h"
 
+#include <Eigen/Core>
 #include <cstddef>
+#include <fmt/format.h>
 #include <span>
 #include <string>
 #include <vector>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/io/binary_reader.h"
 #include "gelex/post/detail/utils.h"

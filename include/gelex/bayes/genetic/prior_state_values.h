@@ -17,10 +17,9 @@
 #ifndef GELEX_BAYES_GENETIC_PRIOR_STATE_VALUES_H_
 #define GELEX_BAYES_GENETIC_PRIOR_STATE_VALUES_H_
 
+#include <Eigen/Core>
 #include <string_view>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/types/categorical_vector.h"

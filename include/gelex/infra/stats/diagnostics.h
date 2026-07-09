@@ -22,9 +22,8 @@
 
 #ifndef GELEX_INFRA_STATS_DIAGNOSTICS_H_
 #define GELEX_INFRA_STATS_DIAGNOSTICS_H_
-#include <vector>
-
 #include <Eigen/Core>
+#include <vector>
 
 namespace gelex
 {

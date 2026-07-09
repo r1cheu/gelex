@@ -17,9 +17,8 @@
 #ifndef GELEX_TYPES_CATEGORICAL_VECTOR_H_
 #define GELEX_TYPES_CATEGORICAL_VECTOR_H_
 
-#include <utility>
-
 #include <Eigen/Core>
+#include <utility>
 
 #include "gelex/exception.h"
 

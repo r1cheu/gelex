@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
+#include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <ios>
 #include <type_traits>
 
-#include <Eigen/Core>
-#include <catch2/catch_test_macros.hpp>
-
-#include "bed_fixture.h"
 #include "gelex/data/detail/bed_source.h"
 #include "gelex/data/detail/index_projection.h"
 #include "gelex/exception.h"
+
+#include "bed_fixture.h"
 
 namespace fs = std::filesystem;
 

@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-#include <nanobench.h>
-
 #include <array>
+#include <catch2/catch_test_macros.hpp>
 #include <cstdio>
 #include <fstream>
+#include <nanobench.h>
 #include <string>
 
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/data/reader.h"
 #include "gelex/io/gwas_writer.h"
-
-#include <catch2/catch_test_macros.hpp>
 
 using namespace gelex;
 

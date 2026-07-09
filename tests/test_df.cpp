@@ -14,24 +14,24 @@
  * limitations under the License.
  */
 
-#include <fmt/format.h>
+#include <Eigen/Core>
+#include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <cstdint>
+#include <fmt/format.h>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
 
-#include <Eigen/Core>
-#include <catch2/catch_test_macros.hpp>
-
-#include "file_fixture.h"
 #include "gelex/data/dataframe/column.h"
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/dataframe/reader.h"
 #include "gelex/exception.h"
+
+#include "file_fixture.h"
 
 using gelex::ColumnType;
 using gelex::DataFrame;

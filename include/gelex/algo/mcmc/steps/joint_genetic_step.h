@@ -17,13 +17,12 @@
 #ifndef GELEX_ALGO_MCMC_STEPS_JOINT_GENETIC_STEP_H_
 #define GELEX_ALGO_MCMC_STEPS_JOINT_GENETIC_STEP_H_
 
+#include <Eigen/Core>
 #include <array>
 #include <cstdint>
 #include <optional>
 #include <random>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"

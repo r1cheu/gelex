@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
+#include <catch2/catch_test_macros.hpp>
 #include <string>
 #include <vector>
 
-#include <Eigen/Core>
-#include <catch2/catch_test_macros.hpp>
-
-#include "file_fixture.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/writer.h"
+
+#include "file_fixture.h"
 #include "sample_id_fixture.h"
 
 using gelex::test::FileFixture;

@@ -16,11 +16,10 @@
 
 #include "gelex/post/genetic_variance.h"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <cstddef>
 #include <ranges>
-
-#include <Eigen/Core>
 #include <span>
 #include <utility>
 #include <vector>

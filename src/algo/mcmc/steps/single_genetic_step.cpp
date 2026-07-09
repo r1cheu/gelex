@@ -16,14 +16,13 @@
 
 #include "gelex/algo/mcmc/steps/single_genetic_step.h"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <optional>
 #include <random>
 #include <variant>
-
-#include <Eigen/Core>
 
 #include "gelex/algo/mcmc/invariant.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"

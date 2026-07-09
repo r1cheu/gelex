@@ -18,17 +18,17 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-
 #include <filesystem>
 #include <string>
 #include <string_view>
 #include <vector>
 
-#include "file_fixture.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/writer.h"
 #include "gelex/io/loco_reader.h"
+
+#include "file_fixture.h"
 #include "sample_id_fixture.h"
 
 namespace fs = std::filesystem;

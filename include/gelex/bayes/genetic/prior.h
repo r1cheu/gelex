@@ -17,10 +17,9 @@
 #ifndef GELEX_BAYES_GENETIC_PRIOR_H_
 #define GELEX_BAYES_GENETIC_PRIOR_H_
 
+#include <Eigen/Core>
 #include <string_view>
 #include <variant>
-
-#include <Eigen/Core>
 
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/half_normal_prior.h"

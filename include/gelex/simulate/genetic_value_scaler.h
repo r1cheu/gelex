@@ -17,9 +17,8 @@
 #ifndef GELEX_SIMULATE_GENETIC_VALUE_SCALER_H_
 #define GELEX_SIMULATE_GENETIC_VALUE_SCALER_H_
 
-#include <optional>
-
 #include <Eigen/Core>
+#include <optional>
 
 #include "gelex/simulate/sim_types.h"
 

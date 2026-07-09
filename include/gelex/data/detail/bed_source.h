@@ -20,10 +20,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <fmt/format.h>
 #include <span>
 #include <string>
-
-#include <fmt/format.h>
 
 #include "gelex/exception.h"
 #include "gelex/io/mapped_file.h"

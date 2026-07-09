@@ -23,9 +23,10 @@
 #include <thread>
 #include <vector>
 
-#include "cli/common_data.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/types/genetic_mode.h"
+
+#include "cli/common_data.h"
 
 namespace cli
 {

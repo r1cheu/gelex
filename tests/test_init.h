@@ -17,9 +17,8 @@
 #ifndef TESTS_TEST_INIT_H_
 #define TESTS_TEST_INIT_H_
 
-#include <fmt/format.h>
 #include <filesystem>
-
+#include <fmt/format.h>
 #include <unistd.h>
 
 namespace test_utils

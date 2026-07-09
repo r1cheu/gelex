@@ -21,9 +21,10 @@
 #include <string_view>
 #include <vector>
 
+#include "gelex/algo/reml/loco_result.h"
+
 #include "cli/progress_bar.h"
 #include "cli/timer.h"
-#include "gelex/algo/reml/loco_result.h"
 
 namespace cli
 {

@@ -16,14 +16,13 @@
 
 #include "gelex/algo/reml/variance_calculator.h"
 
+#include <Eigen/Cholesky>
 #include <Eigen/Core>
+#include <Eigen/src/misc/lapacke.h>
 #include <cmath>
 #include <numbers>
 #include <ranges>
 #include <stdexcept>
-
-#include <Eigen/src/misc/lapacke.h>
-#include <Eigen/Cholesky>
 
 #include "gelex/algo/reml/optimizer_state.h"
 #include "gelex/freq/model.h"

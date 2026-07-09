@@ -14,23 +14,21 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
 #include <array>
+#include <catch2/catch_test_macros.hpp>
 #include <cstdint>
 #include <utility>
 #include <vector>
-
-#include <Eigen/Core>
-
-#include <catch2/catch_test_macros.hpp>
 
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/snp_stats.h"
 #include "gelex/exception.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/io/snpstats.h"
+#include "gelex/types/genetic_mode.h"
 
 #include "file_fixture.h"
-#include "gelex/types/genetic_mode.h"
 
 using gelex::BinaryReader;
 using gelex::BinaryWriter;

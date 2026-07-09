@@ -17,17 +17,16 @@
 #ifndef GELEX_TYPES_CONSTRAINED_VECTOR_H_
 #define GELEX_TYPES_CONSTRAINED_VECTOR_H_
 
+#include <Eigen/Core>
 #include <cmath>
 #include <concepts>
 #include <cstddef>
+#include <fmt/format.h>
 #include <initializer_list>
 #include <limits>
 #include <span>
 #include <string_view>
 #include <vector>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/exception.h"
 

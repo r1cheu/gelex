@@ -16,17 +16,18 @@
 
 #include "reporter.h"
 
-#include <fmt/ranges.h>
 #include <cstddef>
+#include <fmt/ranges.h>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
-#include "cli/formatter.h"
-#include "cli/report_printer.h"
 #include "gelex/data/dataframe/encode.h"
 #include "gelex/data/snp_alignment.h"
+
+#include "cli/formatter.h"
+#include "cli/report_printer.h"
 
 namespace cli
 {

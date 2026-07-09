@@ -16,12 +16,12 @@
 
 #include "gelex/io/binary_writer.h"
 
-#include <fmt/format.h>
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
+#include <fmt/format.h>
 #include <ios>
 #include <string>
 #include <string_view>

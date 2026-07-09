@@ -16,14 +16,13 @@
 
 #include "gelex/bayes/genetic/prior_state_values.h"
 
+#include <Eigen/Core>
 #include <cstddef>
+#include <fmt/format.h>
 #include <ranges>
 #include <span>
 #include <string>
 #include <vector>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/infra/field_flag.h"

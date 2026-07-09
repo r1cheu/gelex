@@ -16,9 +16,8 @@
 
 #include "gelex/algo/mcmc/steps/residual.h"
 
-#include <random>
-
 #include <Eigen/Core>
+#include <random>
 
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"

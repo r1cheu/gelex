@@ -17,10 +17,10 @@
 #ifndef GELEX_IO_DETAIL_PARSER_H_
 #define GELEX_IO_DETAIL_PARSER_H_
 
-#include <fmt/format.h>
 #include <concepts>
 #include <cstddef>
 #include <filesystem>
+#include <fmt/format.h>
 #include <ios>
 #include <span>
 #include <system_error>

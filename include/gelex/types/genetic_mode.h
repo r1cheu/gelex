@@ -4,12 +4,11 @@
 #include <bitset>
 #include <cstddef>
 #include <cstdint>
+#include <fmt/format.h>
 #include <map>
 #include <ranges>
 #include <string_view>
 #include <utility>
-
-#include <fmt/format.h>
 
 namespace gelex
 {

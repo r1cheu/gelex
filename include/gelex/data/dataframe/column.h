@@ -17,16 +17,15 @@
 #ifndef GELEX_DATA_DATAFRAME_COLUMN_H
 #define GELEX_DATA_DATAFRAME_COLUMN_H
 
-#include <fmt/format.h>
+#include <Eigen/Core>
 #include <cstddef>
 #include <cstdint>
+#include <fmt/format.h>
 #include <span>
 #include <string>
 #include <string_view>
 #include <variant>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/data/dataframe/key_type.h"
 #include "gelex/exception.h"

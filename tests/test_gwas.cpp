@@ -14,17 +14,15 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
 #include <array>
+#include <catch2/catch_test_macros.hpp>
 #include <cmath>
 #include <fstream>
 #include <optional>
 #include <sstream>
 #include <string>
 
-#include <Eigen/Core>
-#include <catch2/catch_test_macros.hpp>
-
-#include "file_fixture.h"
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/algo/gwas/joint_tester.h"
@@ -33,6 +31,8 @@
 #include "gelex/data/dataframe/reader.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/io/gwas_writer.h"
+
+#include "file_fixture.h"
 
 using gelex::AssocType;
 using gelex::ColumnType;

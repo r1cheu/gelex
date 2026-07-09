@@ -17,10 +17,9 @@
 #ifndef GELEX_POST_GENETIC_VARIANCE_KERNEL_H_
 #define GELEX_POST_GENETIC_VARIANCE_KERNEL_H_
 
+#include <Eigen/Core>
 #include <span>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/data/genotype.h"
 #include "gelex/infra/stats/diagnostics.h"

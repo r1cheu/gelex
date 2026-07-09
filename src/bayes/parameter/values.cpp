@@ -1,10 +1,9 @@
 #include "gelex/bayes/parameter/values.h"
 
+#include <Eigen/Core>
 #include <cmath>
 #include <limits>
 #include <utility>
-
-#include <Eigen/Core>
 
 #include "gelex/exception.h"
 

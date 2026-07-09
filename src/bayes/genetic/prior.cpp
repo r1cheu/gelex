@@ -16,9 +16,8 @@
 
 #include "gelex/bayes/genetic/prior.h"
 
-#include <variant>
-
 #include <Eigen/Core>
+#include <variant>
 
 #include "gelex/bayes/genetic/prior_state.h"
 #include "gelex/infra/field_visitor.h"

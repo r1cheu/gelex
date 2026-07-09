@@ -16,7 +16,6 @@
 
 #include <vector>
 
-#include "bayes/detail/scheme_helpers.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/genetic/prior.h"
@@ -24,6 +23,8 @@
 #include "gelex/bayes/recipe_options.h"
 #include "gelex/bayes/scheme.h"
 #include "gelex/types/constrained_vector.h"
+
+#include "bayes/detail/scheme_helpers.h"
 
 namespace gelex::bayes
 {

@@ -19,9 +19,10 @@
 
 #include <cstdint>
 
-#include "cli/progress_bar.h"
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/types/genetic_mode.h"
+
+#include "cli/progress_bar.h"
 
 namespace cli
 {

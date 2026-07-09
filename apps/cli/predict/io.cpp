@@ -16,10 +16,10 @@
 
 #include "io.h"
 
-#include <fmt/format.h>
 #include <Eigen/Core>
 #include <cstddef>
 #include <filesystem>
+#include <fmt/format.h>
 #include <ranges>
 #include <string>
 

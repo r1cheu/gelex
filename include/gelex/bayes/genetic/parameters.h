@@ -17,13 +17,12 @@
 #ifndef GELEX_BAYES_GENETIC_PARAMETERS_H_
 #define GELEX_BAYES_GENETIC_PARAMETERS_H_
 
+#include <Eigen/Core>
 #include <array>
 #include <optional>
 #include <ranges>
 #include <string>
 #include <string_view>
-
-#include <Eigen/Core>
 
 #include "gelex/bayes/parameter/values.h"
 #include "gelex/infra/field_visitor.h"

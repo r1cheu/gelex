@@ -17,12 +17,11 @@
 #ifndef GELEX_ALGO_MCMC_SOLVER_H_
 #define GELEX_ALGO_MCMC_SOLVER_H_
 
+#include <Eigen/Core>
 #include <filesystem>
 #include <optional>
 #include <random>
 #include <string>
-
-#include <Eigen/Core>
 
 #include "gelex/algo/mcmc/params.h"
 #include "gelex/algo/mcmc/result.h"

@@ -14,20 +14,17 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cstddef>
 #include <filesystem>
+#include <fmt/format.h>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include <fmt/format.h>
-#include <Eigen/Core>
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
-
-#include "bed_fixture.h"
-#include "file_fixture.h"
 #include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
@@ -36,6 +33,9 @@
 #include "gelex/data/writer.h"
 #include "gelex/freq/model.h"
 #include "gelex/types/fixed_designs.h"
+
+#include "bed_fixture.h"
+#include "file_fixture.h"
 #include "sample_id_fixture.h"
 
 namespace fs = std::filesystem;

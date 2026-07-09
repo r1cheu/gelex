@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
+#include <catch2/catch_test_macros.hpp>
 #include <cstdint>
 #include <span>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include <catch2/catch_test_macros.hpp>
 
 #include "gelex/data/dataframe/index.h"
 #include "gelex/exception.h"

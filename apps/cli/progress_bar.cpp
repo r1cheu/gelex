@@ -16,16 +16,14 @@
 
 #include "progress_bar.h"
 
-#include <stdio.h>
-#include <unistd.h>
+#include <barkeep.h>
 #include <cstdio>
 #include <cstdlib>
 #include <memory>
 #include <string>
 #include <string_view>
+#include <unistd.h>
 #include <vector>
-
-#include <barkeep.h>
 
 namespace cli
 {

@@ -17,13 +17,12 @@
 #ifndef GELEX_DATA_GRM_H_
 #define GELEX_DATA_GRM_H_
 
+#include <Eigen/Core>
 #include <functional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/marker_range.h"

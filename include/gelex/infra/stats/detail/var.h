@@ -17,11 +17,10 @@
 #ifndef GELEX_INFRA_STATS_DETAIL_VAR_H_
 #define GELEX_INFRA_STATS_DETAIL_VAR_H_
 
+#include <Eigen/Core>
 #include <cassert>
 #include <cstdint>
 #include <type_traits>
-
-#include <Eigen/Core>
 
 namespace gelex::detail
 {

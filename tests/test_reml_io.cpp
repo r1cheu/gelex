@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
+#include <catch2/catch_test_macros.hpp>
 #include <fstream>
 #include <iterator>
 #include <optional>
@@ -21,15 +23,13 @@
 #include <utility>
 #include <vector>
 
-#include <Eigen/Core>
-#include <catch2/catch_test_macros.hpp>
-
-#include "file_fixture.h"
 #include "gelex/exception.h"
 #include "gelex/freq/design.h"
 #include "gelex/freq/model.h"
 #include "gelex/io/reml.h"
 #include "gelex/types/fixed_designs.h"
+
+#include "file_fixture.h"
 #include "sample_id_fixture.h"
 
 TEST_CASE("REML writers write result files", "[reml][io]")

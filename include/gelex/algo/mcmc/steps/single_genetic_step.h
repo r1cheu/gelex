@@ -17,11 +17,10 @@
 #ifndef GELEX_ALGO_MCMC_STEPS_SINGLE_GENETIC_STEP_H_
 #define GELEX_ALGO_MCMC_STEPS_SINGLE_GENETIC_STEP_H_
 
+#include <Eigen/Core>
 #include <array>
 #include <optional>
 #include <random>
-
-#include <Eigen/Core>
 
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"

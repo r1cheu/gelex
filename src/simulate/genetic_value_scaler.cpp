@@ -16,9 +16,8 @@
 
 #include "gelex/simulate/genetic_value_scaler.h"
 
-#include <cmath>
-
 #include <Eigen/Core>
+#include <cmath>
 
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/simulate/sim_types.h"

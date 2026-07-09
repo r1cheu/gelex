@@ -15,11 +15,10 @@
  */
 
 #include <array>
+#include <catch2/catch_test_macros.hpp>
 #include <utility>
 #include <variant>
 #include <vector>
-
-#include <catch2/catch_test_macros.hpp>
 
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"

@@ -16,6 +16,7 @@
 
 #include "gelex/algo/mcmc/records.h"
 
+#include <Eigen/Core>
 #include <memory>
 #include <ranges>
 #include <string>
@@ -23,8 +24,6 @@
 #include <type_traits>
 #include <utility>
 #include <variant>
-
-#include <Eigen/Core>
 
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/state.h"

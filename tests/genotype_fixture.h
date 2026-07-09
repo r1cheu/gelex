@@ -17,14 +17,13 @@
 #ifndef GELEX_TESTS_GENOTYPE_FIXTURE_H_
 #define GELEX_TESTS_GENOTYPE_FIXTURE_H_
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <cstdint>
 #include <numeric>
 #include <optional>
 #include <utility>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/data/genotype.h"
 #include "gelex/data/snp_stats.h"

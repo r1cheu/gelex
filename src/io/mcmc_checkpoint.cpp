@@ -16,16 +16,15 @@
 
 #include "gelex/io/mcmc_checkpoint.h"
 
+#include <Eigen/Core>
 #include <array>
 #include <filesystem>
+#include <fmt/format.h>
 #include <random>
 #include <span>
 #include <sstream>
 #include <string>
 #include <string_view>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/bayes/state.h"
 #include "gelex/exception.h"

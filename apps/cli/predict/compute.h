@@ -17,13 +17,12 @@
 #ifndef APPS_CLI_PREDICT_COMPUTE_H_
 #define APPS_CLI_PREDICT_COMPUTE_H_
 
+#include <Eigen/Core>
 #include <optional>
 #include <span>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/encode.h"

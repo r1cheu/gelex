@@ -18,6 +18,7 @@
 #define GELEX_DATA_DATAFRAME_DATAFRAME_H
 
 #include <cstddef>
+#include <fmt/format.h>
 #include <initializer_list>
 #include <ranges>
 #include <span>
@@ -25,8 +26,6 @@
 #include <string_view>
 #include <unordered_map>
 #include <vector>
-
-#include <fmt/format.h>
 
 #include "gelex/data/dataframe/column.h"
 #include "gelex/data/dataframe/index.h"

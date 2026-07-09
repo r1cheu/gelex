@@ -17,14 +17,14 @@
 #ifndef APPS_CLI_PREDICT_IO_H_
 #define APPS_CLI_PREDICT_IO_H_
 
+#include <Eigen/Core>
 #include <filesystem>
 #include <span>
 #include <string>
 
-#include <Eigen/Core>
+#include "gelex/types/genetic_mode.h"
 
 #include "compute.h"
-#include "gelex/types/genetic_mode.h"
 
 namespace cli
 {

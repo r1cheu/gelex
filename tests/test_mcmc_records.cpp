@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <array>
+#include <catch2/catch_test_macros.hpp>
 #include <cmath>
 #include <string>
 #include <string_view>
@@ -23,10 +25,6 @@
 #include <variant>
 #include <vector>
 
-#include <Eigen/Core>
-#include <catch2/catch_test_macros.hpp>
-
-#include "file_fixture.h"
 #include "gelex/algo/mcmc/records.h"
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
@@ -39,6 +37,8 @@
 #include "gelex/io/binary_reader.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_mode.h"
+
+#include "file_fixture.h"
 #include "genotype_fixture.h"
 
 namespace

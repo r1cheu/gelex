@@ -17,14 +17,13 @@
 #ifndef GELEX_BAYES_STATE_H_
 #define GELEX_BAYES_STATE_H_
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <cstddef>
 #include <span>
 #include <string_view>
 #include <variant>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/prior.h"

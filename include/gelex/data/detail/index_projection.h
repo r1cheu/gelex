@@ -17,11 +17,10 @@
 #ifndef GELEX_DATA_DETAIL_INDEX_PROJECTION_H_
 #define GELEX_DATA_DETAIL_INDEX_PROJECTION_H_
 
+#include <Eigen/Core>
 #include <span>
 #include <string>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/data/dataframe/index.h"
 

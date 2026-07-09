@@ -19,9 +19,8 @@
 
 #include <cmath>
 #include <concepts>
-#include <string_view>
-
 #include <fmt/format.h>
+#include <string_view>
 
 #include "gelex/exception.h"
 

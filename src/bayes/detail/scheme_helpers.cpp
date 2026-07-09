@@ -16,13 +16,12 @@
 
 #include "bayes/detail/scheme_helpers.h"
 
+#include <Eigen/Core>
 #include <cmath>
 #include <cstddef>
+#include <fmt/format.h>
 #include <optional>
 #include <string_view>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/model.h"

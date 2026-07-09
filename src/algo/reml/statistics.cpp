@@ -16,11 +16,10 @@
 
 #include "gelex/algo/reml/statistics.h"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-
-#include <Eigen/Core>
 
 #include "gelex/algo/reml/optimizer_state.h"
 #include "gelex/freq/model.h"

@@ -16,9 +16,8 @@
 #ifndef GELEX_INFRA_STATS_RANK_INVERSE_NORM_TRANSFORM_H_
 #define GELEX_INFRA_STATS_RANK_INVERSE_NORM_TRANSFORM_H_
 
-#include <cstdint>
-
 #include <Eigen/Dense>
+#include <cstdint>
 
 namespace gelex
 {

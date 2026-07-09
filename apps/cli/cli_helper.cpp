@@ -16,22 +16,21 @@
 
 #include "cli_helper.h"
 
+#include <CLI/CLI.hpp>
+#include <Eigen/Core>
 #include <algorithm>
 #include <cctype>
 #include <chrono>
 #include <cstdio>
 #include <exception>
+#include <fmt/base.h>
+#include <fmt/format.h>
 #include <functional>
 #include <iostream>
+#include <omp.h>
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include <fmt/base.h>
-#include <fmt/format.h>
-#include <omp.h>
-#include <CLI/CLI.hpp>
-#include <Eigen/Core>
 
 #ifdef _WIN32
 #include <io.h>
@@ -39,10 +38,11 @@
 #include <unistd.h>
 #endif
 
+#include "gelex/data/genotype_method.h"
+
 #include "cli/common_data.h"
 #include "cli/formatter.h"
 #include "cli/logging.h"
-#include "gelex/data/genotype_method.h"
 #include "report_printer.h"
 #include "version.h"
 

@@ -16,6 +16,7 @@
 
 #include "gelex/data/grm/grm.h"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <cstddef>
 #include <span>
@@ -23,8 +24,6 @@
 #include <string_view>
 #include <utility>
 #include <vector>
-
-#include <Eigen/Core>
 #ifdef USE_MKL
 #include <mkl.h>
 #include <mkl_cblas.h>

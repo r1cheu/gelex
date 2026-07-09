@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
+#include <catch2/catch_test_macros.hpp>
 #include <string>
 #include <vector>
 
-#include <Eigen/Core>
-#include <catch2/catch_test_macros.hpp>
-
-#include "cli/predict/compute.h"
 #include "gelex/exception.h"
 #include "gelex/types/genetic_mode.h"
+
+#include "cli/predict/compute.h"
 
 using gelex::GeneticMode;
 

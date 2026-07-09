@@ -17,20 +17,19 @@
 #ifndef GELEX_DATA_BED_H_
 #define GELEX_DATA_BED_H_
 
+#include <Eigen/Core>
 #include <array>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <fmt/format.h>
 #include <limits>
 #include <ranges>
 #include <span>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"

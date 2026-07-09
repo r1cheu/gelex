@@ -16,10 +16,9 @@
 
 #include "gelex/infra/stats/diagnostics.h"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <cstddef>
-
-#include <Eigen/Core>
 #include <stdexcept>
 #include <unsupported/Eigen/FFT>
 #include <utility>

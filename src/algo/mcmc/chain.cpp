@@ -17,12 +17,11 @@
 #include "gelex/algo/mcmc/chain.h"
 
 #include <cstddef>
+#include <fmt/format.h>
 #include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
-
-#include <fmt/format.h>
 
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"

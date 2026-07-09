@@ -16,14 +16,13 @@
 
 #include "gelex/bayes/state.h"
 
+#include <Eigen/Core>
+#include <fmt/format.h>
 #include <ranges>
 #include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/prior.h"

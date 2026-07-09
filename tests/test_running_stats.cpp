@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-#include <cmath>
-#include <limits>
-#include <utility>
-
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <catch2/catch_test_macros.hpp>
+#include <cmath>
+#include <limits>
+#include <utility>
 
 #include "gelex/exception.h"
 #include "gelex/infra/stats/detail/running_stats.h"

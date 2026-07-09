@@ -19,14 +19,13 @@
 
 #include <Eigen/Core>
 #include <cstddef>
+#include <fmt/base.h>
+#include <fmt/color.h>
+#include <fmt/ranges.h>
 #include <span>
 #include <string>
 #include <string_view>
 #include <utility>
-
-#include <fmt/base.h>
-#include <fmt/color.h>
-#include <fmt/ranges.h>
 
 namespace gelex
 {

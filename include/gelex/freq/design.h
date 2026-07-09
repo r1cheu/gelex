@@ -17,12 +17,11 @@
 #ifndef GELEX_FREQ_DESIGN_H_
 #define GELEX_FREQ_DESIGN_H_
 
+#include <Eigen/Core>
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/types/fixed_designs.h"
 

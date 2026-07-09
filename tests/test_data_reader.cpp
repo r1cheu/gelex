@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
+#include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <cstdint>
-
-#include <catch2/catch_test_macros.hpp>
 #include <string>
 #include <string_view>
 
-#include "file_fixture.h"
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/reader.h"
+
+#include "file_fixture.h"
 
 using gelex::SEPARATOR;
 using gelex::test::FileFixture;

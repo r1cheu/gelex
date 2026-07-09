@@ -15,13 +15,12 @@
  */
 
 #include <Eigen/Core>
-#include <catch2/matchers/catch_matchers.hpp>
-#include <cmath>
-#include <random>
-
 #include <Eigen/Dense>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <cmath>
+#include <random>
 
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
 

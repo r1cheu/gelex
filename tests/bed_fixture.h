@@ -17,15 +17,14 @@
 #ifndef GELEX_TEST_BED_FIXTURE_H
 #define GELEX_TEST_BED_FIXTURE_H
 
+#include <Eigen/Core>
 #include <cstddef>
 #include <filesystem>
 #include <random>
 #include <span>
 #include <string>
-#include <vector>
-
-#include <Eigen/Core>
 #include <utility>
+#include <vector>
 
 #include "file_fixture.h"
 

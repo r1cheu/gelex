@@ -16,10 +16,10 @@
 
 #include "gelex/io/snpstats.h"
 
-#include <fmt/format.h>
 #include <Eigen/Core>
 #include <cstdint>
 #include <filesystem>
+#include <fmt/format.h>
 
 #include "gelex/exception.h"
 #include "gelex/types/genetic_mode.h"

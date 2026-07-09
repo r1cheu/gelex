@@ -17,10 +17,9 @@
 #ifndef GELEX_DATA_DETAIL_LOCUS_ENCODING_H_
 #define GELEX_DATA_DETAIL_LOCUS_ENCODING_H_
 
+#include <Eigen/Core>
 #include <concepts>
 #include <cstddef>
-
-#include <Eigen/Core>
 
 #include "gelex/data/locus_encoding_types.h"
 

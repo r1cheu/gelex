@@ -16,17 +16,16 @@
 
 #include "color_formatter.h"
 
+#include <CLI/CLI.hpp>
 #include <algorithm>
+#include <fmt/color.h>
+#include <fmt/format.h>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
-
-#include <fmt/color.h>
-#include <fmt/format.h>
-#include <CLI/CLI.hpp>
 
 #include "cli_helper.h"
 

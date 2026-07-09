@@ -16,8 +16,8 @@
 
 #include "gelex/data/dataframe/encode.h"
 
-#include <fmt/format.h>
 #include <algorithm>
+#include <fmt/format.h>
 #include <span>
 #include <string>
 #include <string_view>

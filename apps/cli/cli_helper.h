@@ -17,12 +17,11 @@
 #ifndef APPS_CLI_CLI_HELPER_H_
 #define APPS_CLI_CLI_HELPER_H_
 
+#include <Eigen/Core>
+#include <barkeep.h>
 #include <functional>
 #include <string>
 #include <string_view>
-
-#include <barkeep.h>
-#include <Eigen/Core>
 
 #include "gelex/data/genotype_method.h"
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"

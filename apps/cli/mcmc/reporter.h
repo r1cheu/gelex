@@ -20,9 +20,10 @@
 #include <cstddef>
 #include <string>
 
+#include "gelex/infra/logging/fit_event.h"
+
 #include "cli/fit_reporter.h"
 #include "cli/progress_bar.h"
-#include "gelex/infra/logging/fit_event.h"
 
 namespace gelex::bayes
 {

@@ -19,10 +19,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <fmt/format.h>
 #include <string>
 #include <system_error>
-
-#include <fmt/format.h>
 
 #include "gelex/io/detail/parser.h"
 

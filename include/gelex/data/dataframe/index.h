@@ -17,10 +17,10 @@
 #ifndef GELEX_DATA_DATAFRAME_INDEX_H
 #define GELEX_DATA_DATAFRAME_INDEX_H
 
-#include <fmt/format.h>
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
+#include <fmt/format.h>
 #include <initializer_list>
 #include <ranges>
 #include <span>

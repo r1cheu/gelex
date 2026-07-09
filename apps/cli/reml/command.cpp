@@ -18,13 +18,14 @@
 
 #include <utility>
 
+#include "gelex/algo/reml/estimator.h"
+#include "gelex/freq/model.h"
+#include "gelex/io/reml.h"
+
 #include "cli/cli_helper.h"
 #include "cli/common_data.h"
 #include "cli/reml_data.h"
 #include "cli/reml_reporter.h"
-#include "gelex/algo/reml/estimator.h"
-#include "gelex/freq/model.h"
-#include "gelex/io/reml.h"
 
 auto reml_execute(const cli::RemlConfig& config) -> int
 {

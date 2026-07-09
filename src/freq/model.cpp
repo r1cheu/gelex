@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
+#include "gelex/freq/model.h"
+
+#include <Eigen/Core>
 #include <utility>
 #include <vector>
 
-#include <Eigen/Core>
-
 #include "gelex/freq/design.h"
-#include "gelex/freq/model.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/fixed_designs.h"
 

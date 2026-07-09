@@ -17,9 +17,8 @@
 #ifndef GELEX_ALGO_MCMC_STEPS_RESIDUAL_H_
 #define GELEX_ALGO_MCMC_STEPS_RESIDUAL_H_
 
-#include <random>
-
 #include <Eigen/Core>
+#include <random>
 
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"

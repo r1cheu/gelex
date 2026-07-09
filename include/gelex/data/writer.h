@@ -17,10 +17,9 @@
 #ifndef GELEX_DATA_WRITER_H_
 #define GELEX_DATA_WRITER_H_
 
+#include <Eigen/Dense>
 #include <span>
 #include <string>
-
-#include <Eigen/Dense>
 
 namespace gelex
 {

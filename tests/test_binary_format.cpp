@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <array>
 #include <catch2/catch_message.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -27,21 +30,16 @@
 #include <string_view>
 #include <vector>
 
-#include <Eigen/Core>
-
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
-
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/genotype_reader.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/io/binary_writer.h"
+#include "gelex/types/genetic_mode.h"
 
 #include "bed_fixture.h"
 #include "file_fixture.h"
-#include "gelex/types/genetic_mode.h"
 
 namespace
 {

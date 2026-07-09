@@ -15,7 +15,9 @@
  */
 
 #include "gelex/algo/reml/optimizer.h"
+
 #include <Eigen/Core>
+
 #include "gelex/freq/model.h"
 
 namespace gelex

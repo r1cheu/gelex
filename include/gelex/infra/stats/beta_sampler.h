@@ -17,11 +17,10 @@
 #ifndef GELEX_INFRA_STATS_BETA_SAMPLER_H_
 #define GELEX_INFRA_STATS_BETA_SAMPLER_H_
 
+#include <Eigen/Core>
 #include <cassert>
 #include <concepts>
 #include <random>
-
-#include <Eigen/Core>
 
 namespace gelex
 {

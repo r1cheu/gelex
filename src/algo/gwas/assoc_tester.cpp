@@ -15,6 +15,7 @@
  */
 
 #include "gelex/algo/gwas/assoc_tester.h"
+
 #include <memory>
 
 #include "gelex/algo/gwas/assoc_type.h"

@@ -16,11 +16,10 @@
 
 #include "gelex/bayes/design.h"
 
+#include <fmt/format.h>
 #include <span>
 #include <string>
 #include <vector>
-
-#include <fmt/format.h>
 
 #include "gelex/infra/field_flag.h"
 #include "gelex/infra/field_visitor.h"

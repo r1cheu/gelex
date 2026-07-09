@@ -22,15 +22,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <fstream>
 #include <ranges>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include <fmt/format.h>
-#include <fmt/ranges.h>
 
 #include "gelex/data/dataframe/column.h"
 #include "gelex/data/dataframe/constants.h"

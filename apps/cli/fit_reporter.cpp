@@ -16,20 +16,20 @@
 
 #include "fit_reporter.h"
 
+#include <fmt/format.h>
 #include <ranges>
 #include <span>
 #include <string_view>
 #include <type_traits>
 #include <variant>
 
-#include <fmt/format.h>
-
-#include "cli/formatter.h"
-#include "cli/report_printer.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/parameter/values.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/types/genetic_mode.h"
+
+#include "cli/formatter.h"
+#include "cli/report_printer.h"
 
 namespace cli
 {

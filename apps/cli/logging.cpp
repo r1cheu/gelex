@@ -17,13 +17,9 @@
 #include "logging.h"
 
 #include <cstddef>
+#include <fmt/format.h>
 #include <memory>
 #include <mutex>
-#include <string>
-#include <string_view>
-#include <utility>
-
-#include <fmt/format.h>
 #include <spdlog/common.h>
 #include <spdlog/details/log_msg.h>
 #include <spdlog/formatter.h>
@@ -32,6 +28,9 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
+#include <string>
+#include <string_view>
+#include <utility>
 
 #include "gelex/infra/log.h"
 

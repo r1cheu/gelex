@@ -17,11 +17,10 @@
 #include "reporter.h"
 
 #include <cstddef>
-#include <string_view>
-#include <vector>
-
 #include <fmt/color.h>
 #include <fmt/format.h>
+#include <string_view>
+#include <vector>
 
 #include "cli/formatter.h"
 #include "cli/progress_bar.h"

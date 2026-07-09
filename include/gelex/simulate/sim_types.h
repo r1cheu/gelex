@@ -17,10 +17,9 @@
 #ifndef GELEX_SIMULATE_SIM_TYPES_H_
 #define GELEX_SIMULATE_SIM_TYPES_H_
 
+#include <Eigen/Core>
 #include <string>
 #include <vector>
-
-#include <Eigen/Core>
 
 namespace gelex
 {

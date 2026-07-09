@@ -15,6 +15,7 @@
  */
 
 #include "gelex/io/detail/text_writer.h"
+
 #include <exception>
 #include <filesystem>
 #include <initializer_list>

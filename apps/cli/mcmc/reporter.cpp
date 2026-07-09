@@ -16,25 +16,24 @@
 
 #include "reporter.h"
 
+#include <Eigen/Core>
 #include <cstddef>
+#include <fmt/base.h>
+#include <fmt/format.h>
 #include <iterator>
 #include <ranges>
 #include <type_traits>
 #include <variant>
 
-#include <fmt/base.h>
-#include <fmt/format.h>
-
-#include <Eigen/Core>
-
-#include "cli/formatter.h"
-#include "cli/progress_bar.h"
-#include "cli/report_printer.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/labels.h"
 #include "gelex/bayes/state.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/types/genetic_mode.h"
+
+#include "cli/formatter.h"
+#include "cli/progress_bar.h"
+#include "cli/report_printer.h"
 
 namespace cli
 {

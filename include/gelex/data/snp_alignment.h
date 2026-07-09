@@ -17,10 +17,9 @@
 #ifndef GELEX_DATA_SNP_ALIGNMENT_H_
 #define GELEX_DATA_SNP_ALIGNMENT_H_
 
+#include <Eigen/Core>
 #include <string>
 #include <vector>
-
-#include <Eigen/Core>
 
 #include "gelex/data/dataframe/dataframe.h"
 

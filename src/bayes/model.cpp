@@ -16,13 +16,12 @@
 
 #include "gelex/bayes/model.h"
 
+#include <Eigen/Core>
 #include <algorithm>
+#include <fmt/format.h>
 #include <ranges>
 #include <utility>
 #include <vector>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/bayes/design.h"
 #include "gelex/exception.h"

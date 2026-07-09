@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
+#include <catch2/catch_test_macros.hpp>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include <Eigen/Core>
-#include <catch2/catch_test_macros.hpp>
 
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/model.h"
@@ -28,6 +27,7 @@
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_mode.h"
+
 #include "genotype_fixture.h"
 
 using gelex::BayesModel;

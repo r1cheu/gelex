@@ -16,22 +16,15 @@
 
 #include "command.h"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <cstddef>
+#include <fmt/format.h>
 #include <ranges>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include <fmt/format.h>
-#include <Eigen/Core>
-
-#include "cli/cli_helper.h"
-#include "cli/common_data.h"
-#include "cli/formatter.h"
-#include "cli/reml_data.h"
-#include "cli/reml_reporter.h"
-#include "cli/report_printer.h"
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/algo/reml/estimator.h"
@@ -47,6 +40,13 @@
 #include "gelex/io/gwas_writer.h"
 #include "gelex/io/loco_reader.h"
 #include "gelex/types/fixed_designs.h"
+
+#include "cli/cli_helper.h"
+#include "cli/common_data.h"
+#include "cli/formatter.h"
+#include "cli/reml_data.h"
+#include "cli/reml_reporter.h"
+#include "cli/report_printer.h"
 #include "reporter.h"
 
 class AssocDataHandler

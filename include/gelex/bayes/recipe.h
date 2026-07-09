@@ -17,9 +17,8 @@
 #ifndef GELEX_BAYES_RECIPE_H_
 #define GELEX_BAYES_RECIPE_H_
 
-#include <string_view>
-
 #include <fmt/format.h>
+#include <string_view>
 
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe_options.h"

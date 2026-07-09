@@ -16,7 +16,9 @@
 
 #include "command.h"
 
+#include <Eigen/Core>
 #include <algorithm>
+#include <fmt/format.h>
 #include <optional>
 #include <ranges>
 #include <span>
@@ -24,9 +26,6 @@
 #include <string_view>
 #include <utility>
 #include <vector>
-
-#include <fmt/format.h>
-#include <Eigen/Core>
 
 #include "gelex/bayes/labels.h"
 #include "gelex/data/genotype.h"
@@ -42,6 +41,7 @@
 #include "gelex/post/random.h"
 #include "gelex/post/residual.h"
 #include "gelex/types/genetic_mode.h"
+
 #include "reporter.h"
 
 namespace

@@ -17,11 +17,10 @@
 #ifndef GELEX_SIMULATE_GENETIC_VALUE_CALCULATOR_H_
 #define GELEX_SIMULATE_GENETIC_VALUE_CALCULATOR_H_
 
+#include <Eigen/Core>
 #include <filesystem>
 #include <span>
 #include <string>
-
-#include <Eigen/Core>
 
 #include "gelex/data/bed.h"
 #include "gelex/data/genotype_method.h"

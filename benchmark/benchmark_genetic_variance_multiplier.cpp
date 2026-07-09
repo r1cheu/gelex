@@ -14,13 +14,10 @@
  * limitations under the License.
  */
 
-#include <random>
-
 #include <Eigen/Core>
-
-#include <nanobench.h>
-
 #include <catch2/catch_test_macros.hpp>
+#include <nanobench.h>
+#include <random>
 
 namespace
 {
