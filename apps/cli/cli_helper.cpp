@@ -40,7 +40,10 @@
 #include <unistd.h>
 #endif
 
+#include "gelex/bayes/recipe_options.h"
 #include "gelex/data/genotype_method.h"
+#include "gelex/infra/stats/rank_inverse_norm_transform.h"
+#include "gelex/types/genetic_mode.h"
 
 #include "cli/common_data.h"
 #include "cli/formatter.h"
@@ -85,40 +88,26 @@ auto lexical_cast(const std::string& input, GeneticMode& output) -> bool
 
 auto lexical_cast(const std::string& input, GeneticModeSet& output) -> bool
 {
-    if (input == "A")
+    for (const auto& [set, name] : GENETIC_MODE_SET_NAMES)
     {
-        output = GeneticModeSet{GeneticMode::A};
-        return true;
-    }
-    if (input == "D")
-    {
-        output = GeneticModeSet{GeneticMode::D};
-        return true;
-    }
-    if (input == "AD")
-    {
-        output = GeneticMode::A | GeneticMode::D;
-        return true;
+        if (input == name)
+        {
+            output = set;
+            return true;
+        }
     }
     return false;
 }
 
 auto lexical_cast(const std::string& input, RintType& output) -> bool
 {
-    if (input == "none")
+    for (const auto& [type, name] : RINT_TYPE_NAMES)
     {
-        output = RintType::None;
-        return true;
-    }
-    if (input == "dint")
-    {
-        output = RintType::Direct;
-        return true;
-    }
-    if (input == "iint")
-    {
-        output = RintType::Indirect;
-        return true;
+        if (input == name)
+        {
+            output = type;
+            return true;
+        }
     }
     return false;
 }
@@ -230,6 +219,39 @@ auto genotype_method_validator() -> CLI::Validator
         names.emplace_back(entry.first);
     }
     return CLI::IsMember(names, CLI::ignore_case);
+}
+
+auto bayes_recipe_scheme_validator() -> CLI::Validator
+{
+    std::vector<std::string> names;
+    names.reserve(gelex::bayes::BAYES_RECIPE_SCHEME_NAMES.size());
+    for (const auto& [scheme, name] : gelex::bayes::BAYES_RECIPE_SCHEME_NAMES)
+    {
+        names.emplace_back(name);
+    }
+    return CLI::IsMember(names);
+}
+
+auto genetic_mode_set_validator() -> CLI::Validator
+{
+    std::vector<std::string> names;
+    names.reserve(gelex::GENETIC_MODE_SET_NAMES.size());
+    for (const auto& [set, name] : gelex::GENETIC_MODE_SET_NAMES)
+    {
+        names.emplace_back(name);
+    }
+    return CLI::IsMember(names);
+}
+
+auto rint_type_validator() -> CLI::Validator
+{
+    std::vector<std::string> names;
+    names.reserve(gelex::RINT_TYPE_NAMES.size());
+    for (const auto& [type, name] : gelex::RINT_TYPE_NAMES)
+    {
+        names.emplace_back(name);
+    }
+    return CLI::IsMember(names);
 }
 
 auto report_command_line(const CLI::App& cmd) -> void

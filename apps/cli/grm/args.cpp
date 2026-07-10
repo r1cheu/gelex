@@ -19,7 +19,6 @@
 #include <CLI/CLI.hpp>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "cli/cli_helper.h"
 #include "command.h"
@@ -61,7 +60,7 @@ auto setup_grm_command(CLI::App& program, int& exit_code) -> void
         ->group("Model")
         ->type_name("<MODE>")
         ->default_str("A")
-        ->check(CLI::IsMember(std::vector<std::string>{"A", "D", "AD"}));
+        ->check(cli::genetic_mode_set_validator());
     cmd.add_flag("--loco", config->loco, "Write one GRM per chromosome")
         ->group("Model");
 

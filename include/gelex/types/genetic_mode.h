@@ -36,7 +36,7 @@ class GeneticModeSet
    public:
     GeneticModeSet() = default;
 
-    explicit GeneticModeSet(GeneticMode mode)
+    explicit constexpr GeneticModeSet(GeneticMode mode)
     {
         bits_.set(std::to_underlying(mode));
     }
@@ -48,14 +48,15 @@ class GeneticModeSet
 
     [[nodiscard]] auto size() const -> std::size_t { return bits_.count(); }
 
-    auto operator|=(GeneticModeSet other) -> GeneticModeSet&
+    constexpr auto operator|=(GeneticModeSet other) -> GeneticModeSet&
     {
         bits_ |= other.bits_;
         return *this;
     }
 
-    [[nodiscard]] friend auto operator|(GeneticModeSet lhs, GeneticModeSet rhs)
-        -> GeneticModeSet
+    [[nodiscard]] friend constexpr auto operator|(
+        GeneticModeSet lhs,
+        GeneticModeSet rhs) -> GeneticModeSet
     {
         lhs |= rhs;
         return lhs;
@@ -75,11 +76,19 @@ class GeneticModeSet
     std::bitset<ALL_GENETIC_MODES.size()> bits_;
 };
 
-[[nodiscard]] inline auto operator|(GeneticMode lhs, GeneticMode rhs)
+[[nodiscard]] constexpr auto operator|(GeneticMode lhs, GeneticMode rhs)
     -> GeneticModeSet
 {
     return GeneticModeSet{lhs} | GeneticModeSet{rhs};
 }
+
+// Canonical string tokens for a GeneticModeSet, including the composite "AD".
+// Single source for both parsing (lexical_cast) and CLI validation.
+inline constexpr std::array GENETIC_MODE_SET_NAMES{
+    std::pair{GeneticModeSet{GeneticMode::A}, std::string_view{"A"}},
+    std::pair{GeneticModeSet{GeneticMode::D}, std::string_view{"D"}},
+    std::pair{GeneticMode::A | GeneticMode::D, std::string_view{"AD"}},
+};
 
 }  // namespace gelex
 

@@ -19,7 +19,6 @@
 #include <CLI/CLI.hpp>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "cli/cli_helper.h"
 #include "command.h"
@@ -76,8 +75,7 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
         ->group("Model")
         ->type_name("<TRANSFORM>")
         ->default_str("none")
-        ->check(
-            CLI::IsMember(std::vector<std::string>{"none", "dint", "iint"}));
+        ->check(cli::rint_type_validator());
     cmd.add_option(
            "--int-offset", config->base_data.int_offset, "Rank-INT offset k")
         ->group("Model")

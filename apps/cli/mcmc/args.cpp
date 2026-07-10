@@ -19,7 +19,6 @@
 #include <CLI/CLI.hpp>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "cli/cli_helper.h"
 #include "command.h"
@@ -59,15 +58,13 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
         ->group("Model")
         ->type_name("<MODEL>")
         ->capture_default_str()
-        ->check(
-            CLI::IsMember(
-                std::vector<std::string>{"A", "B", "C", "R", "RR", "CD"}))
+        ->check(cli::bayes_recipe_scheme_validator())
         ->required();
     cmd.add_option("--mode", config->mode, "Effect mode: A, D, AD")
         ->group("Model")
         ->type_name("<MODE>")
         ->default_str("A")
-        ->check(CLI::IsMember(std::vector<std::string>{"A", "D", "AD"}));
+        ->check(cli::genetic_mode_set_validator());
     cmd.add_option(
            "--random-pve",
            config->random_pve,

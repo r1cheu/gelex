@@ -17,7 +17,10 @@
 #define GELEX_INFRA_STATS_RANK_INVERSE_NORM_TRANSFORM_H_
 
 #include <Eigen/Dense>
+#include <array>
 #include <cstdint>
+#include <string_view>
+#include <utility>
 
 namespace gelex
 {
@@ -26,6 +29,12 @@ enum class RintType : std::uint8_t
     None,
     Direct,
     Indirect
+};
+
+inline constexpr std::array RINT_TYPE_NAMES{
+    std::pair{RintType::None, std::string_view{"none"}},
+    std::pair{RintType::Direct, std::string_view{"dint"}},
+    std::pair{RintType::Indirect, std::string_view{"iint"}},
 };
 
 auto direct_int(

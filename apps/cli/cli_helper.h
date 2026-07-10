@@ -61,6 +61,12 @@ auto non_negative_number() -> CLI::Validator;
 
 auto genotype_method_validator() -> CLI::Validator;
 
+auto bayes_recipe_scheme_validator() -> CLI::Validator;
+
+auto genetic_mode_set_validator() -> CLI::Validator;
+
+auto rint_type_validator() -> CLI::Validator;
+
 auto report_command_line(const CLI::App& cmd) -> void;
 
 auto execute_cli_command(
