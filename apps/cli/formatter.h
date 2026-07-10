@@ -39,6 +39,11 @@ std::string table_separator(size_t width = 70);
 std::string
 named_section(std::string_view name, size_t width = 32, size_t indent = 0);
 
+// If s[pos..] begins an ANSI CSI escape (ESC '[' ... final byte 0x40-0x7e),
+// returns the index just past it; otherwise returns pos unchanged. pos must be
+// a valid index into s.
+size_t skip_ansi_escape(std::string_view s, size_t pos) noexcept;
+
 std::string format_eta(double seconds);
 std::string done_message(double elapsed_seconds);
 

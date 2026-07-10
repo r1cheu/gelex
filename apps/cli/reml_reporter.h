@@ -24,6 +24,8 @@
 #include "gelex/algo/reml/summary.h"
 #include "gelex/infra/logging/reml_event.h"
 
+#include "cli/table.h"
+
 namespace gelex
 {
 class FreqModel;
@@ -35,7 +37,7 @@ namespace cli
 class RemlReporter
 {
    public:
-    auto on_event(const gelex::RemlEmInitEvent& e) -> void;
+    auto show_dataset_summary(const gelex::FreqModel& model) const -> void;
     auto on_event(const gelex::RemlIterationEvent& e) -> void;
     auto on_event(const gelex::RemlConstrainedEvent& e) -> void;
     auto show_result(
@@ -50,6 +52,7 @@ class RemlReporter
     }
 
    private:
+    Table iter_table_;
     bool header_printed_ = false;
 };
 

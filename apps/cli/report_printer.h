@@ -18,7 +18,6 @@
 #define APPS_CLI_REPORT_PRINTER_H_
 
 #include <fmt/format.h>
-#include <string>
 #include <string_view>
 #include <utility>
 
@@ -39,14 +38,14 @@ class ReportPrinter
     {
         emit_info(fmt::format(fmt_str, std::forward<Args>(args)...));
     }
-    auto line(std::string_view msg) -> void { emit_info(std::string(msg)); }
+    auto line(std::string_view msg) -> void { emit_info(msg); }
 
     template <typename... Args>
     auto warn(fmt::format_string<Args...> fmt_str, Args&&... args) -> void
     {
         emit_warn(fmt::format(fmt_str, std::forward<Args>(args)...));
     }
-    auto warn(std::string_view msg) -> void { emit_warn(std::string(msg)); }
+    auto warn(std::string_view msg) -> void { emit_warn(msg); }
 
     template <typename... Args>
     auto block(fmt::format_string<Args...> fmt_str, Args&&... args) -> void
@@ -64,8 +63,8 @@ class ReportPrinter
     auto on_progress_finished() -> void { has_blank_ = false; }
 
    private:
-    auto emit_info(std::string msg) -> void;
-    auto emit_warn(std::string msg) -> void;
+    auto emit_info(std::string_view msg) -> void;
+    auto emit_warn(std::string_view msg) -> void;
 
     bool has_blank_ = true;
 };

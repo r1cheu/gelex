@@ -17,6 +17,7 @@
 #include "reml_data.h"
 
 #include <cstddef>
+#include <filesystem>
 #include <iterator>
 #include <optional>
 #include <ranges>
@@ -73,7 +74,11 @@ auto RemlDataLoader::gather(
         frame.gather(common_index);
         random_designs_.push_back(
             gelex::make_quantitative_random_design(
-                frame, config_.qrand_paths[static_cast<std::size_t>(i)]));
+                frame,
+                std::filesystem::path(
+                    config_.qrand_paths[static_cast<std::size_t>(i)])
+                    .stem()
+                    .string()));
     }
     auto grm_designs = gelex::make_grm_designs(config_.grm, common_index);
     random_designs_.insert(

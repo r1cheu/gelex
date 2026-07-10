@@ -25,8 +25,10 @@
 
 #include "cli/cli_helper.h"
 #include "cli/common_data.h"
+#include "cli/formatter.h"
 #include "cli/reml_data.h"
 #include "cli/reml_reporter.h"
+#include "cli/report_printer.h"
 
 auto reml_execute(const cli::RemlConfig& config) -> int
 {
@@ -41,9 +43,10 @@ auto reml_execute(const cli::RemlConfig& config) -> int
         std::move(data.fixed_design),
         std::move(random_designs));
 
-    gelex::FreqState state(model);
-
     cli::RemlReporter reml_reporter;
+    reml_reporter.show_dataset_summary(model);
+
+    gelex::FreqState state(model);
     gelex::Estimator estimator(
         config.max_iter, config.tolerance, reml_reporter.as_observer());
 
@@ -52,6 +55,10 @@ auto reml_execute(const cli::RemlConfig& config) -> int
 
     gelex::write_summary(model, state, fit.summary.loglike, config.out_prefix);
     gelex::write_effects(model, state, data.sample_ids, config.out_prefix);
+    cli::printer().block(
+        gelex::success(
+            "Results saved to '{}' (.summary, .effects, .log)",
+            config.out_prefix));
 
     return 0;
 }

@@ -48,7 +48,10 @@ if(GELEX_CLI_BUILD_TESTS OR GELEX_BUILD_TESTS)
     tests/test_predict_computation.cpp
     tests/test_predict_io.cpp
     tests/test_predict_engine.cpp
+    tests/test_table.cpp
     cli/color_formatter.cpp
+    cli/formatter.cpp
+    cli/table.cpp
     cli/predict/compute.cpp
     cli/predict/io.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests/bed_fixture.cpp

@@ -56,6 +56,23 @@ command_banner(std::string_view version, std::string_view task, size_t width)
     return badge + ver_str + sep_task;
 }
 
+size_t skip_ansi_escape(std::string_view s, size_t pos) noexcept
+{
+    if (static_cast<unsigned char>(s[pos]) != 0x1b || pos + 1 >= s.size()
+        || s[pos + 1] != '[')
+    {
+        return pos;
+    }
+    size_t i = pos + 2;
+    while (i < s.size()
+           && (static_cast<unsigned char>(s[i]) < 0x40
+               || static_cast<unsigned char>(s[i]) > 0x7e))
+    {
+        ++i;
+    }
+    return i < s.size() ? i + 1 : i;  // consume the final byte
+}
+
 std::string separator(size_t width, const std::string& c)
 {
     std::string result;

@@ -26,12 +26,6 @@
 namespace gelex
 {
 
-struct RemlEmInitEvent
-{
-    double loglike;
-    std::vector<double> init_variances;
-};
-
 struct RemlIterationEvent
 {
     size_t iter;
@@ -46,8 +40,7 @@ struct RemlConstrainedEvent
     size_t num_total;
 };
 
-using RemlEvent
-    = std::variant<RemlEmInitEvent, RemlIterationEvent, RemlConstrainedEvent>;
+using RemlEvent = std::variant<RemlIterationEvent, RemlConstrainedEvent>;
 using RemlObserver = std::function<void(const RemlEvent&)>;
 
 }  // namespace gelex

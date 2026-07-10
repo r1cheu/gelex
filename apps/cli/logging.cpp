@@ -34,6 +34,8 @@
 
 #include "gelex/infra/log.h"
 
+#include "cli/formatter.h"
+
 namespace
 {
 std::shared_ptr<spdlog::logger> g_logger = nullptr;
@@ -90,33 +92,23 @@ class StripAnsiFormatter : public spdlog::formatter
     void format(const spdlog::details::log_msg& msg, spdlog::memory_buf_t& dest)
         override
     {
+        std::string_view payload(msg.payload.data(), msg.payload.size());
         std::string clean;
-        clean.reserve(msg.payload.size());
-        for (std::size_t i = 0; i < msg.payload.size();)
+        clean.reserve(payload.size());
+        for (std::size_t i = 0; i < payload.size();)
         {
-            // ESC + '[' marks the start of a CSI sequence; skip until final
-            // byte (0x40–0x7E per ECMA-48)
-            if (msg.payload[i] == '\x1b' && i + 1 < msg.payload.size()
-                && msg.payload[i + 1] == '[')
+            std::size_t skip = gelex::skip_ansi_escape(payload, i);
+            if (skip != i)  // dropped an ANSI CSI escape
             {
-                i += 2;
-                while (i < msg.payload.size()
-                       && (msg.payload[i] < 0x40 || msg.payload[i] > 0x7e))
-                {
-                    ++i;
-                }
-                if (i < msg.payload.size())
-                {
-                    ++i;
-                }
+                i = skip;
             }
-            else if (msg.payload[i] == '\r')
+            else if (payload[i] == '\r')
             {
                 ++i;
             }
             else
             {
-                clean.push_back(msg.payload[i++]);
+                clean.push_back(payload[i++]);
             }
         }
 

@@ -21,7 +21,9 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <ranges>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "gelex/algo/reml/statistics.h"
@@ -35,37 +37,44 @@
 namespace cli
 {
 
-auto RemlReporter::on_event(const gelex::RemlEmInitEvent& e) -> void
+auto RemlReporter::show_dataset_summary(const gelex::FreqModel& model) const
+    -> void
 {
-    header_printed_ = false;
-    cli::printer().line("   Initializing (EM)...");
-    cli::printer().line(
-        "    LogL: {:.2f} | Init variance: [{}]",
-        e.loglike,
-        gelex::rebecca_purple(
-            fmt::format("{:.2f}", fmt::join(e.init_variances, ", "))));
+    auto& p = cli::printer();
+    p.block(gelex::section("Dataset Summary:"));
+    p.line("   {:<15}: {}", "Samples", model.num_individuals());
+    p.line("   {:<15}: {}", "Fixed effects", model.fixed().X.cols());
+
+    auto names = model.random()
+                 | std::views::transform([](const auto& d)
+                                         { return std::string_view(d.name); });
+    p.line("   {:<15}: {}", "Random effects", fmt::join(names, ", "));
 }
 
 auto RemlReporter::on_event(const gelex::RemlIterationEvent& e) -> void
 {
     if (!header_printed_)
     {
-        std::string var_header;
+        cli::printer().block(gelex::section("REML Iterations:"));
+        iter_table_.column("Iter", Align::right, 4);
+        iter_table_.column("LogL", Align::right, 10);
         for (const auto& label : e.labels)
         {
-            var_header += fmt::format("{:>12}", label);
+            iter_table_.column(label, Align::right, 10);
         }
-        cli::printer().block("  {:<4} {:>12} {}", "Iter", "LogL", var_header);
-        cli::printer().line(gelex::table_separator(55));
+        cli::printer().line(iter_table_.stream_header());
         header_printed_ = true;
     }
 
-    std::string var_str;
+    std::vector<std::string> cells;
+    cells.reserve(2 + e.variances.size());
+    cells.push_back(fmt::format("{}", e.iter));
+    cells.push_back(fmt::format("{:.2f}", e.loglike));
     for (const auto& v : e.variances)
     {
-        var_str += fmt::format("{:>12.2f}", v);
+        cells.push_back(fmt::format("{:.2f}", v));
     }
-    cli::printer().line("  {:<4} {:>12.2f}{}", e.iter, e.loglike, var_str);
+    cli::printer().line(iter_table_.stream_row(cells));
 }
 
 auto RemlReporter::on_event(const gelex::RemlConstrainedEvent& e) -> void
@@ -95,8 +104,7 @@ auto RemlReporter::show_result(
 {
     auto& p = cli::printer();
 
-    p.line(gelex::table_separator(55));
-    p.block(gelex::named_section("REML Results", 70));
+    p.block(gelex::section("REML Summary:"));
 
     if (summary.converged)
     {
@@ -118,35 +126,29 @@ auto RemlReporter::show_result(
     p.line("  - BIC : {:.2f}", gelex::compute_bic(model, summary.loglike));
 
     p.block("  Variance Components:");
-    p.line(
-        "  {:12} {:>12} {:>12} {:>15} {:>12}",
-        "Component",
-        "Estimate",
-        "SE",
-        "Ratio",
-        "SE");
-    p.line(gelex::table_separator(69));
 
+    Table t;
+    t.column("Component", Align::left);
+    t.column("Estimate", Align::right);
+    t.column("Est.SE", Align::right);
+    t.column("Ratio", Align::right);
+    t.column("Ratio.SE", Align::right);
     for (const auto& r : summary.random)
     {
-        p.line(
-            "  {:12} {:>12.3f} {:>12.3f} {:>15.3f} {:>12.3f}",
-            r.name,
-            r.variance,
-            r.variance_se,
-            r.variance_ratio,
-            r.variance_ratio_se);
+        t.row(
+            {r.name,
+             fmt::format("{:.3f}", r.variance),
+             fmt::format("{:.3f}", r.variance_se),
+             fmt::format("{:.3f}", r.variance_ratio),
+             fmt::format("{:.3f}", r.variance_ratio_se)});
     }
-
-    p.line(
-        "  {:12} {:>12.3f} {:>12.3f} {:>15} {:>12}",
-        "Residual",
-        summary.residual_variance,
-        summary.residual_variance_se,
-        "-",
-        "-");
-
-    p.line(gelex::separator(70));
+    t.row(
+        {"Residual",
+         fmt::format("{:.3f}", summary.residual_variance),
+         fmt::format("{:.3f}", summary.residual_variance_se),
+         "-",
+         "-"});
+    p.line(t.render());
 }
 
 void print_loco_reml_summary(const std::vector<gelex::LocoRemlResult>& results)
@@ -159,26 +161,16 @@ void print_loco_reml_summary(const std::vector<gelex::LocoRemlResult>& results)
     auto& p = cli::printer();
 
     size_t num_random = results[0].summary.random.size();
-    auto format_variances = [](const auto& values) -> std::string
-    {
-        std::string row;
-        for (const auto& v : values)
-        {
-            row += fmt::format("  {:>10.4f}", v);
-        }
-        return row;
-    };
 
-    std::string header = fmt::format("  {:>5}  {:>10}", "Chr", "LogL");
+    Table t;
+    t.column("Chr", Align::right);
+    t.column("LogL", Align::right);
     for (const auto& r : results[0].summary.random)
     {
-        header += fmt::format("  {:>10}", fmt::format("V({})", r.name));
+        t.column(fmt::format("V({})", r.name), Align::right);
     }
-    header += fmt::format("  {:>10}  {:>4}", "V(e)", "Conv");
-
-    p.block(gelex::named_section("LOCO REML Summary", 70));
-    p.line("{}", header);
-    p.line("{}", gelex::table_separator());
+    t.column("V(e)", Align::right);
+    t.column("Conv", Align::right);
 
     std::vector<double> sum_random_variance(num_random, 0.0);
     std::vector<double> sum_random_ratio(num_random, 0.0);
@@ -191,46 +183,43 @@ void print_loco_reml_summary(const std::vector<gelex::LocoRemlResult>& results)
             = s.converged ? fmt::format(fmt::fg(fmt::color::light_green), "✓")
                           : fmt::format(fmt::fg(fmt::color::orange_red), "✗");
 
-        std::vector<double> variances(num_random);
+        std::vector<std::string> cells;
+        cells.reserve(num_random + 4);
+        cells.push_back(result.chr_name);
+        cells.push_back(fmt::format("{:.2f}", s.loglike));
         for (size_t i = 0; i < num_random; ++i)
         {
-            variances[i] = (i < s.random.size()) ? s.random[i].variance : 0.0;
-            sum_random_variance[i] += variances[i];
+            double v = (i < s.random.size()) ? s.random[i].variance : 0.0;
+            cells.push_back(fmt::format("{:.4f}", v));
+            sum_random_variance[i] += v;
             sum_random_ratio[i]
                 += (i < s.random.size()) ? s.random[i].variance_ratio : 0.0;
         }
-
-        p.line(
-            "  {:>5}  {:>10.2f}{}  {:>10.4f}    {}",
-            result.chr_name,
-            s.loglike,
-            format_variances(variances),
-            s.residual_variance,
-            conv_mark);
+        cells.push_back(fmt::format("{:.4f}", s.residual_variance));
+        cells.push_back(std::move(conv_mark));
+        t.row(std::move(cells));
 
         sum_ve += s.residual_variance;
     }
 
-    p.line("{}", gelex::table_separator());
+    t.rule();
 
     auto n = static_cast<double>(results.size());
-    std::vector<double> mean_random_variance(num_random);
-    std::vector<double> mean_random_ratio(num_random);
+    std::vector<std::string> mean_cells{"Mean", ""};
+    std::vector<std::string> ratio_cells{"Ratio", ""};
+    mean_cells.reserve(num_random + 4);
+    ratio_cells.reserve(num_random + 2);
     for (size_t i = 0; i < num_random; ++i)
     {
-        mean_random_variance[i] = sum_random_variance[i] / n;
-        mean_random_ratio[i] = sum_random_ratio[i] / n;
+        mean_cells.push_back(fmt::format("{:.4f}", sum_random_variance[i] / n));
+        ratio_cells.push_back(fmt::format("{:.4f}", sum_random_ratio[i] / n));
     }
+    mean_cells.push_back(fmt::format("{:.4f}", sum_ve / n));
+    t.row(std::move(mean_cells));
+    t.row(std::move(ratio_cells));
 
-    p.line(
-        "  {:>5}  {:>10}{}  {:>10.4f}",
-        "Mean",
-        "",
-        format_variances(mean_random_variance),
-        sum_ve / n);
-    p.line(
-        "  {:>5}  {:>10}{}", "Ratio", "", format_variances(mean_random_ratio));
-    p.line(gelex::separator());
+    p.block(gelex::section("LOCO REML Summary:"));
+    p.line(t.render());
 }
 
 }  // namespace cli

@@ -152,20 +152,6 @@ auto Estimator::em_step(
     OptimizerState& opt_state) -> void
 {
     optimizer_.step<EMPolicy>(model, state, opt_state);
-
-    double loglike = compute_loglike(model, opt_state);
-
-    std::vector<double> init_variances;
-    for (const auto& r : state.random())
-    {
-        init_variances.push_back(r.variance);
-    }
-    init_variances.push_back(state.residual().variance);
-
-    notify(
-        observer_,
-        RemlEmInitEvent{
-            .loglike = loglike, .init_variances = std::move(init_variances)});
 }
 
 }  // namespace gelex

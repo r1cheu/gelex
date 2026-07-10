@@ -18,6 +18,7 @@
 
 #include <Eigen/Core>
 #include <cstddef>
+#include <filesystem>
 #include <optional>
 #include <span>
 #include <string>
@@ -122,8 +123,8 @@ auto make_grm_designs(
     grm_designs.reserve(prefixes.size());
     for (const auto& prefix : prefixes)
     {
-        auto name = prefix;
-        auto K = read_grm(name, &index);
+        auto name = std::filesystem::path(prefix).filename().string();
+        auto K = read_grm(prefix, &index);
         grm_designs.emplace_back(
             name,
             std::nullopt,
