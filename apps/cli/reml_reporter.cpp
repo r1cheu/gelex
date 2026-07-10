@@ -41,21 +41,21 @@ auto RemlReporter::show_dataset_summary(const gelex::FreqModel& model) const
     -> void
 {
     auto& p = cli::printer();
-    p.block(gelex::section("Dataset Summary:"));
-    p.line("   {:<15}: {}", "Samples", model.num_individuals());
-    p.line("   {:<15}: {}", "Fixed effects", model.fixed().X.cols());
+    p.block(cli::section("Dataset Summary:"));
+    p.line(cli::field("Analyzed Samples", "{}", model.num_individuals()));
+    p.line(cli::field("Covariates", "{}", model.fixed().X.cols()));
 
     auto names = model.random()
                  | std::views::transform([](const auto& d)
                                          { return std::string_view(d.name); });
-    p.line("   {:<15}: {}", "Random effects", fmt::join(names, ", "));
+    p.line(cli::field("Random effects", "{}", fmt::join(names, ", ")));
 }
 
 auto RemlReporter::on_event(const gelex::RemlIterationEvent& e) -> void
 {
     if (!header_printed_)
     {
-        cli::printer().block(gelex::section("REML Iterations:"));
+        cli::printer().block(cli::section("REML Iterations:"));
         iter_table_.column("Iter", Align::right, 4);
         iter_table_.column("LogL", Align::right, 10);
         for (const auto& label : e.labels)
@@ -104,12 +104,12 @@ auto RemlReporter::show_result(
 {
     auto& p = cli::printer();
 
-    p.block(gelex::section("REML Summary:"));
+    p.block(cli::section("REML Summary:"));
 
     if (summary.converged)
     {
         p.line(
-            gelex::success(
+            cli::success(
                 "Converged successfully in {} iterations", summary.iter_count));
     }
     else
@@ -119,13 +119,7 @@ auto RemlReporter::show_result(
             "    Try to increase max_iter or check the model specification.");
     }
 
-    // model fit
-    p.block("  Model Fit:");
-    p.line("  - LogL : {:.4f}", summary.loglike);
-    p.line("  - AIC : {:.2f}", gelex::compute_aic(model, summary.loglike));
-    p.line("  - BIC : {:.2f}", gelex::compute_bic(model, summary.loglike));
-
-    p.block("  Variance Components:");
+    p.ensure_blank();
 
     Table t;
     t.column("Component", Align::left);
@@ -149,6 +143,13 @@ auto RemlReporter::show_result(
          "-",
          "-"});
     p.line(t.render());
+
+    p.ensure_blank();
+    p.line(
+        "  logL {:.2f}      AIC {:.2f}      BIC {:.2f}",
+        summary.loglike,
+        gelex::compute_aic(model, summary.loglike),
+        gelex::compute_bic(model, summary.loglike));
 }
 
 void print_loco_reml_summary(const std::vector<gelex::LocoRemlResult>& results)
@@ -218,7 +219,7 @@ void print_loco_reml_summary(const std::vector<gelex::LocoRemlResult>& results)
     t.row(std::move(mean_cells));
     t.row(std::move(ratio_cells));
 
-    p.block(gelex::section("LOCO REML Summary:"));
+    p.block(cli::section("LOCO REML Summary:"));
     p.line(t.render());
 }
 

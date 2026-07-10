@@ -18,6 +18,8 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <fmt/color.h>
+#include <fmt/format.h>
 #include <span>
 #include <string>
 #include <string_view>
@@ -40,7 +42,7 @@ auto display_width(std::string_view s) -> size_t
     size_t width = 0;
     for (size_t i = 0; i < s.size();)
     {
-        size_t skip = gelex::skip_ansi_escape(s, i);
+        size_t skip = cli::skip_ansi_escape(s, i);
         if (skip != i)  // consumed an ANSI CSI escape, contributes no width
         {
             i = skip;
@@ -78,6 +80,33 @@ auto rstrip(std::string s) -> std::string
 }
 
 }  // namespace
+
+std::string separator(size_t width, const std::string& c)
+{
+    std::string result;
+    for (size_t i = 0; i < width; ++i)
+    {
+        result += c;
+    }
+    return result;
+}
+
+std::string table_separator(size_t width)
+{
+    return "  " + separator(width - 2);
+}
+
+std::string named_section(std::string_view name, size_t width, size_t indent)
+{
+    std::string result(indent, ' ');
+    result += "── ";
+    result += name;
+    result += " ";
+    size_t used = indent + 3 + name.size() + 1;
+    size_t remaining = used < width ? width - used : 0;
+    result += separator(remaining);
+    return fmt::format(fmt::emphasis::bold, "{}", result);
+}
 
 auto Table::column(std::string_view header, Align align, size_t min_width)
     -> Table&
@@ -148,7 +177,7 @@ auto Table::rule_line(std::span<const size_t> widths) -> std::string
     {
         inner += w;
     }
-    return std::string(INDENT) + gelex::separator(inner);
+    return std::string(INDENT) + cli::separator(inner);
 }
 
 auto Table::header_block(std::span<const size_t> widths) const -> std::string

@@ -27,6 +27,7 @@
 
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/labels.h"
+#include "gelex/bayes/model.h"
 #include "gelex/bayes/state.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/types/genetic_mode.h"
@@ -37,6 +38,14 @@
 
 namespace cli
 {
+
+auto McmcReporter::show_dataset_summary(const gelex::BayesModel& model) -> void
+{
+    auto& p = cli::printer();
+    p.block(cli::section("Dataset Summary:"));
+    p.line(cli::field("Analyzed Samples", "{}", model.num_individuals()));
+    p.line(cli::field("Covariates", "{}", model.fixed().X.cols()));
+}
 
 auto McmcReporter::show_prior(const gelex::bayes::BayesPrior& prior) -> void
 {
@@ -49,7 +58,7 @@ auto McmcReporter::on_event(const gelex::MCMCProgressEvent& event) -> void
     if (!init_progress_)
     {
         init_progress_ = true;
-        cli::printer().block(gelex::section("MCMC Sampling:"));
+        cli::printer().block(cli::section("MCMC Sampling:"));
         bar_ = cli::create_progress_bar(
             iter_, event.total, "{bar} {value}/{total} [{speed:.1f}/s]");
         bar_.display->show();
@@ -213,7 +222,7 @@ auto McmcReporter::on_event(const gelex::MCMCProgressEvent& event) -> void
 
 auto McmcReporter::show_complete(std::ptrdiff_t samples_collected) -> void
 {
-    cli::printer().block(gelex::section("MCMC Complete:"));
+    cli::printer().block(cli::section("MCMC Complete:"));
     cli::printer().line("  {:<12}: {}", "Samples", samples_collected);
 }
 

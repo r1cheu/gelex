@@ -46,6 +46,7 @@ pixi r benchmark             # run benchmarks
 
 ## Code Style
 
+- Only comment when the logic is not obvious; names and signatures should carry the intent
 - Add `noexcept` properly
 - No `using namespace` in headers. Avoid namespace-scope aliases in public headers unless they are part of the API.
 - Trailing return types: `auto f() -> int`

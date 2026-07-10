@@ -25,6 +25,7 @@
 
 #include "cli/formatter.h"
 #include "cli/report_printer.h"
+#include "cli/table.h"
 
 namespace cli
 {
@@ -72,7 +73,7 @@ auto PostReporter::show_diagnostics(
 
     auto& p = cli::printer();
 
-    p.block(gelex::section("MCMC Summary:"));
+    p.block(cli::section("MCMC Summary:"));
     p.line(
         "   {:<12}  {:>8}  {:>8}  {:>8}  {:>21}  {:>8}  {:>8}",
         "Parameter",
@@ -82,7 +83,7 @@ auto PostReporter::show_diagnostics(
         hpdi_label,
         "ESS",
         "R-hat");
-    p.line(gelex::table_separator(TABLE_WIDTH));
+    p.line(cli::table_separator(TABLE_WIDTH));
 
     std::string current_section;
     for (const auto& d : sorted_diags)
@@ -92,7 +93,7 @@ auto PostReporter::show_diagnostics(
             current_section = d.section;
             if (!d.section.empty() && d.section != "Parameter")
             {
-                p.line(gelex::named_section(current_section, TABLE_WIDTH, 3));
+                p.line(cli::named_section(current_section, TABLE_WIDTH, 3));
             }
         }
         p.line(
@@ -106,7 +107,7 @@ auto PostReporter::show_diagnostics(
             d.ess,
             d.rhat);
     }
-    p.line(gelex::table_separator(TABLE_WIDTH));
+    p.line(cli::table_separator(TABLE_WIDTH));
 }
 
 }  // namespace cli

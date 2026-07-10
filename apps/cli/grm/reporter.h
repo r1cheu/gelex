@@ -18,7 +18,6 @@
 #define APPS_CLI_GRM_REPORTER_H_
 
 #include <cstddef>
-#include <string_view>
 
 #include "gelex/infra/logging/grm_event.h"
 
@@ -36,10 +35,6 @@ class GrmReporter
     static auto show_data_loaded(size_t num_samples, size_t num_snps) -> void;
     auto on_event(const gelex::GrmProgressEvent& event) -> void;
     auto finish_progress() -> void;
-    static auto show_files_written(
-        size_t num_files,
-        std::string_view output_dir,
-        std::string_view file_pattern) -> void;
 
     auto as_observer() -> gelex::GrmObserver
     {

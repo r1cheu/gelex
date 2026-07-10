@@ -59,7 +59,7 @@ auto setup_predict_command(CLI::App& program, int& exit_code) -> void
         ->group("I/O")
         ->type_name("<DCOVAR>")
         ->check(CLI::ExistingFile);
-    cmd.add_option("-o,--out", config->out, "Output prediction TSV path")
+    cmd.add_option("-o,--out", config->out, "Output prefix for .pred.tsv")
         ->group("I/O")
         ->type_name("<OUT>")
         ->required();

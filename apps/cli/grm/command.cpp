@@ -18,7 +18,6 @@
 
 #include <Eigen/Core>
 #include <cstddef>
-#include <filesystem>
 #include <fmt/format.h>
 #include <string>
 #include <string_view>
@@ -31,6 +30,8 @@
 #include "gelex/types/genetic_mode.h"
 
 #include "cli/cli_helper.h"
+#include "cli/formatter.h"
+#include "cli/report_printer.h"
 #include "reporter.h"
 
 namespace
@@ -70,6 +71,7 @@ auto grm_execute(const cli::GrmConfig& config) -> int
         ranges.push_back({std::string{}, 0, bed.num_snps()});
     }
 
+    cli::printer().block(cli::section("GRM Computation:"));
     gelex::GrmBuilder builder(bed, modes, method, chunk_size, observer);
     builder.build(
         ranges,
@@ -92,23 +94,18 @@ auto grm_execute(const cli::GrmConfig& config) -> int
                                   modes.contains(gelex::GeneticMode::A)
                                       ? gelex::GeneticMode::A
                                       : gelex::GeneticMode::D)}
-                            : std::string{"{add|dom}"};
+                            : std::string{"{add,dom}"};
 
-    auto output_pattern
-        = config.loco
-              ? fmt::format(
-                    "{}.{}.chr{{01..{:02d}}}.{{bin|id}}",
-                    config.out,
-                    task_pattern,
-                    ranges.size())
-              : fmt::format("{}.{}.{{bin|id}}", config.out, task_pattern);
+    auto suffix_pattern = config.loco
+                              ? fmt::format(
+                                    ".{}.chr{{01..{:02d}}}.{{bin,id}}",
+                                    task_pattern,
+                                    ranges.size())
+                              : fmt::format(".{}.{{bin,id}}", task_pattern);
 
-    cli::GrmReporter::show_files_written(
-        ranges.size() * modes.size() * 2,
-        std::filesystem::absolute(std::filesystem::path(config.out))
-            .parent_path()
-            .string(),
-        output_pattern);
+    cli::printer().block(
+        cli::results_saved(
+            config.out, fmt::format("{}, .log", suffix_pattern)));
 
     return 0;
 }

@@ -41,7 +41,7 @@ auto PredictReporter::show_snp_selection(
     const auto num_mismatched = static_cast<size_t>(alignment.num_incompatible);
     const auto num_total = static_cast<size_t>(alignment.train_count);
 
-    cli::printer().block(gelex::section("SNP Alignment:"));
+    cli::printer().block(cli::section("SNP Alignment:"));
     cli::printer().line("   {:<13}: {}/{}", "Matched", num_matched, num_total);
     cli::printer().line("   {:<13}: {}", "Missing", num_missing);
     cli::printer().line("   {:<13}: {}", "Mismatched", num_mismatched);
@@ -78,19 +78,11 @@ auto PredictReporter::show_data_loaded(
     size_t num_snps,
     size_t num_covar_terms) const -> void
 {
-    cli::printer().block(gelex::section("Dataset Summary:"));
-    cli::printer().line("   {:<13}: {} samples", "Samples", num_samples);
-    cli::printer().line("   {:<13}: {} markers", "SNPs", num_snps);
-    cli::printer().line("   {:<13}: {}", "Covariates", num_covar_terms);
-}
-
-auto PredictReporter::show_results_written(
-    std::string_view output_path,
-    size_t num_samples) const -> void
-{
-    cli::printer().block(
-        gelex::success(
-            "Results saved to '{}' ({} samples)", output_path, num_samples));
+    cli::printer().block(cli::section("Dataset Summary:"));
+    cli::printer().line(
+        cli::field("Analyzed Samples", "{} samples", num_samples));
+    cli::printer().line(cli::field("SNPs", "{} markers", num_snps));
+    cli::printer().line(cli::field("Covariates", "{}", num_covar_terms));
 }
 
 }  // namespace cli

@@ -33,6 +33,11 @@ enum class Align : std::uint8_t
     right
 };
 
+std::string separator(size_t width = 70, const std::string& c = "─");
+std::string table_separator(size_t width = 70);
+std::string
+named_section(std::string_view name, size_t width = 32, size_t indent = 0);
+
 // Fixed-gap column layout that sizes columns to their visible content and draws
 // separators matching the real table width. Cells may carry ANSI styling and
 // multi-byte UTF-8: width is measured by display columns, not bytes, so styled

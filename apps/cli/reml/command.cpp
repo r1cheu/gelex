@@ -56,9 +56,7 @@ auto reml_execute(const cli::RemlConfig& config) -> int
     gelex::write_summary(model, state, fit.summary.loglike, config.out_prefix);
     gelex::write_effects(model, state, data.sample_ids, config.out_prefix);
     cli::printer().block(
-        gelex::success(
-            "Results saved to '{}' (.summary, .effects, .log)",
-            config.out_prefix));
+        cli::results_saved(config.out_prefix, ".summary, .effects, .log"));
 
     return 0;
 }

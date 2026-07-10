@@ -97,7 +97,7 @@ class StripAnsiFormatter : public spdlog::formatter
         clean.reserve(payload.size());
         for (std::size_t i = 0; i < payload.size();)
         {
-            std::size_t skip = gelex::skip_ansi_escape(payload, i);
+            std::size_t skip = cli::skip_ansi_escape(payload, i);
             if (skip != i)  // dropped an ANSI CSI escape
             {
                 i = skip;

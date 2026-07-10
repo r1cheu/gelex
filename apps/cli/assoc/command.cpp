@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <fmt/format.h>
-#include <ranges>
 #include <string>
 #include <utility>
 #include <vector>
@@ -62,10 +61,6 @@ class AssocDataHandler
     {
         indices.push_back(&bed_.sample_index());
         loader_.load_indices(indices);
-        for (const auto& grm_index : loader_.grm_indices())
-        {
-            cli::printer().line("   GRM        : {} samples", grm_index.size());
-        }
     }
 
     auto gather(const gelex::DataFrameIndex<std::string>& common_index) -> void
@@ -97,16 +92,12 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
 
     cli::AssocReporter reporter;
 
-    cli::printer().block(gelex::section("Dataset Summary:"));
-
     auto bed = gelex::open_bed(config.bfile);
     AssocDataHandler handler(config, bed);
     cli::BaseData data = cli::load_base_data(handler, config.base_data);
     auto random_designs = std::move(handler).results();
 
     const auto& sample_index = bed.sample_index();
-    cli::printer().line(
-        "   Intersection : {} common samples", sample_index.size());
     if (sample_index.size() == 0)
     {
         throw gelex::GelexException(
@@ -120,6 +111,8 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
         std::move(data.phenotype),
         std::move(data.fixed_design),
         std::move(random_designs));
+
+    reporter.show_dataset_summary(model, bed.num_snps());
     gelex::FreqState state(model);
 
     auto tester = gelex::AssocTester::make(test_type, mode, geno_method);
@@ -158,8 +151,6 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
     {
         gelex::Estimator estimator(
             config.max_iter, config.tolerance, reml_reporter.as_observer());
-
-        reporter.show_reml_started("");
 
         auto fit = estimator.fit(model, state);
         reml_reporter.show_result(model, fit.summary, config.max_iter);
@@ -225,7 +216,8 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
         reporter.show_loco_reml_summary(loco_results);
     }
 
-    reporter.show_complete(config.out);
+    reporter.finish_scan();
+    cli::printer().block(cli::results_saved(config.out, ".gwas.tsv, .log"));
 
     return 0;
 }

@@ -134,13 +134,11 @@ auto mcmc_execute(const cli::McmcConfig& config) -> int
     cli::GenoReporter geno_reporter;
     cli::setup_parallelization(config.threads);
 
-    cli::printer().block(gelex::section("Dataset Summary:"));
-
     auto bed = gelex::open_bed(config.bfile);
     MCMCDataHandler handler(config, recipe_options.modes, geno_reporter, bed);
+
+    cli::printer().block(cli::section("Genotype Processing:"));
     cli::BaseData data = cli::load_base_data(handler, config.base_data);
-    cli::printer().line(
-        "   Intersection : {} common samples", data.sample_ids.size());
     if (data.sample_ids.empty())
     {
         throw gelex::GelexException(
@@ -154,6 +152,8 @@ auto mcmc_execute(const cli::McmcConfig& config) -> int
         std::move(data.fixed_design),
         {},
         std::move(handler).results());
+
+    reporter.show_dataset_summary(model);
     auto prior = bayes_recipe.make_prior(model);
 
     reporter.show_prior(prior);
@@ -170,7 +170,8 @@ auto mcmc_execute(const cli::McmcConfig& config) -> int
     gelex::write_params(result, config.out);
     gelex::write_summary(result, config.out);
     gelex::write_snp_eff(result, model, config.bfile + ".bim", config.out);
-    reporter.show_results_saved(config.out);
+    cli::printer().block(
+        cli::results_saved(config.out, ".param, .summary, .snpeff, .log"));
 
     return 0;
 }

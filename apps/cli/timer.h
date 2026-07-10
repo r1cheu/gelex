@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_APPS_CLI_TIMER_H_
-#define GELEX_APPS_CLI_TIMER_H_
+#ifndef APPS_CLI_TIMER_H_
+#define APPS_CLI_TIMER_H_
 
 #include <chrono>
 #include <cstddef>
@@ -73,4 +73,4 @@ class SmoothEtaCalculator
 
 }  // namespace gelex
 
-#endif  // GELEX_APPS_CLI_TIMER_H_
+#endif  // APPS_CLI_TIMER_H_

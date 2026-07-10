@@ -14,30 +14,26 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_APPS_CLI_FORMATTER_H_
-#define GELEX_APPS_CLI_FORMATTER_H_
+#ifndef APPS_CLI_FORMATTER_H_
+#define APPS_CLI_FORMATTER_H_
 
 #include <Eigen/Core>
 #include <cstddef>
 #include <fmt/base.h>
 #include <fmt/color.h>
+#include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
 
-namespace gelex
+namespace cli
 {
 
 std::string command_banner(
     std::string_view version,
     std::string_view task,
     size_t width = 70);
-std::string separator(size_t width = 70, const std::string& c = "─");
-std::string table_separator(size_t width = 70);
-std::string
-named_section(std::string_view name, size_t width = 32, size_t indent = 0);
 
 // If s[pos..] begins an ANSI CSI escape (ESC '[' ... final byte 0x40-0x7e),
 // returns the index just past it; otherwise returns pos unchanged. pos must be
@@ -52,7 +48,7 @@ std::string section(fmt::format_string<Args...> fmt_str, Args&&... args)
 {
     return " "
            + fmt::format(
-               fmt::emphasis::bold | fmt::fg(fmt::color::light_cyan),
+               fmt::emphasis::bold | fmt::fg(fmt::rgb(0x94e2d5)),
                fmt_str,
                std::forward<Args>(args)...);
 }
@@ -64,14 +60,32 @@ std::string success(fmt::format_string<Args...> fmt_str, Args&&... args)
     return check_mark + fmt::format(fmt_str, std::forward<Args>(args)...);
 }
 
-std::string format_names(
-    std::span<const std::string> names,
-    std::ptrdiff_t limit = 3);
-
-template <typename T>
-auto rebecca_purple(const T& value)
+// Unified completion line shared by every command: "✓ Results saved:
+// <prefix>*  (<artifacts>)". prefix is the output path stem (the trailing '*'
+// makes it directly glob-able across shells); artifacts lists the produced
+// suffixes, always including .log.
+inline std::string results_saved(
+    std::string_view prefix,
+    std::string_view artifacts)
 {
-    return fmt::styled(value, fmt::fg(fmt::color::rebecca_purple));
+    return success("Results saved: {}*  ({})", prefix, artifacts);
+}
+
+inline constexpr size_t FIELD_LABEL_WIDTH = 16;
+
+// Aligned "   <label>: <value>" line for summary sections; single source of the
+// label column width so the alignment stays consistent across reporters.
+template <typename... Args>
+std::string field(
+    std::string_view label,
+    fmt::format_string<Args...> fmt_str,
+    Args&&... args)
+{
+    return fmt::format(
+        "   {:<{}}: {}",
+        label,
+        FIELD_LABEL_WIDTH,
+        fmt::format(fmt_str, std::forward<Args>(args)...));
 }
 
 struct AbbrNumber
@@ -84,16 +98,16 @@ struct AbbrNumber
     double value;
 };
 
-}  // namespace gelex
+}  // namespace cli
 
 namespace fmt
 {
 template <>
-struct formatter<gelex::AbbrNumber> : formatter<double>
+struct formatter<cli::AbbrNumber> : formatter<double>
 {
-    auto format(gelex::AbbrNumber hr, format_context& ctx) const
+    auto format(cli::AbbrNumber hr, format_context& ctx) const
         -> format_context::iterator;
 };
 }  // namespace fmt
 
-#endif  // GELEX_APPS_CLI_FORMATTER_H_
+#endif  // APPS_CLI_FORMATTER_H_

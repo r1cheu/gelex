@@ -18,7 +18,6 @@
 
 #include <cstddef>
 #include <fmt/format.h>
-#include <string_view>
 
 #include "gelex/infra/logging/grm_event.h"
 
@@ -33,9 +32,10 @@ GrmReporter::GrmReporter() : eta_(1) {}
 
 auto GrmReporter::show_data_loaded(size_t num_samples, size_t num_snps) -> void
 {
-    cli::printer().block(gelex::section("Dataset Summary:"));
-    cli::printer().line("   Samples    : {} samples", num_samples);
-    cli::printer().line("   SNPs       : {} markers", num_snps);
+    cli::printer().block(cli::section("Dataset Summary:"));
+    cli::printer().line(
+        cli::field("Analyzed Samples", "{} samples", num_samples));
+    cli::printer().line(cli::field("SNPs", "{} markers", num_snps));
 }
 
 auto GrmReporter::on_event(const gelex::GrmProgressEvent& event) -> void
@@ -64,8 +64,8 @@ auto GrmReporter::on_event(const gelex::GrmProgressEvent& event) -> void
                 "{:.1f}% ({}/{}) | ETA: {}",
                 static_cast<double>(progress_)
                     / static_cast<double>(global_total_) * 100.0,
-                gelex::AbbrNumber(progress_),
-                gelex::AbbrNumber(global_total_),
+                cli::AbbrNumber(progress_),
+                cli::AbbrNumber(global_total_),
                 eta_.get_eta(progress_)));
     }
 }
@@ -79,17 +79,6 @@ auto GrmReporter::finish_progress() -> void
     bar_.display->done();
     bar_active_ = false;
     cli::printer().on_progress_finished();
-}
-
-auto GrmReporter::show_files_written(
-    size_t num_files,
-    std::string_view output_dir,
-    std::string_view file_pattern) -> void
-{
-    cli::printer().block(gelex::section("File Summary:"));
-    cli::printer().line("  Num Files : {}", num_files);
-    cli::printer().line("  Output Dir  : {}", output_dir);
-    cli::printer().line("  Pattern     : {}", file_pattern);
 }
 
 }  // namespace cli

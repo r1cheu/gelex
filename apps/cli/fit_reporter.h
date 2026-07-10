@@ -18,7 +18,6 @@
 #define APPS_CLI_FIT_REPORTER_H_
 
 #include <cstdint>
-#include <string_view>
 
 #include "gelex/bayes/prior.h"
 
@@ -41,7 +40,6 @@ class FitReporter
 {
    public:
     auto show_prior(const gelex::bayes::BayesPrior& prior) const -> void;
-    auto show_results_saved(std::string_view out_prefix) const -> void;
 
    protected:
     FitReporter() = default;

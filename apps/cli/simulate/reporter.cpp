@@ -32,7 +32,7 @@ auto SimulatorReporter::show_variance_summary(
     std::optional<double> realized_h2,
     std::optional<double> realized_d2) const -> void
 {
-    cli::printer().block(gelex::section("Realized:"));
+    cli::printer().block(cli::section("Realized:"));
     if (realized_h2)
     {
         cli::printer().line("  {:<12}: {:.4f}", "h²", *realized_h2);
@@ -55,8 +55,8 @@ auto SimulatorReporter::on_event(const gelex::SimulateProgressEvent& event)
     info_.progress_info->message(
         fmt::format(
             " Simulating {}/{} SNPs...",
-            gelex::AbbrNumber(event.current),
-            gelex::AbbrNumber(event.total)));
+            cli::AbbrNumber(event.current),
+            cli::AbbrNumber(event.total)));
     if (event.done)
     {
         info_.display->done();

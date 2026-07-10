@@ -344,7 +344,8 @@ TEST_CASE(
 
     SECTION("Verify random component name is GRM prefix")
     {
-        REQUIRE(model.random()[0].name == grm_fixture.prefix().string());
+        REQUIRE(
+            model.random()[0].name == grm_fixture.prefix().filename().string());
     }
 
     SECTION("Verify GRM matrix dimensions")
@@ -403,7 +404,8 @@ TEST_CASE(
 
     SECTION("Verify random component name is GRM prefix")
     {
-        REQUIRE(model.random()[0].name == grm_fixture.prefix().string());
+        REQUIRE(
+            model.random()[0].name == grm_fixture.prefix().filename().string());
     }
 
     SECTION("Verify GRM matrix dimensions")
@@ -458,8 +460,12 @@ TEST_CASE(
 
     SECTION("Verify random component names")
     {
-        REQUIRE(model.random()[0].name == add_grm_fixture.prefix().string());
-        REQUIRE(model.random()[1].name == dom_grm_fixture.prefix().string());
+        REQUIRE(
+            model.random()[0].name
+            == add_grm_fixture.prefix().filename().string());
+        REQUIRE(
+            model.random()[1].name
+            == dom_grm_fixture.prefix().filename().string());
     }
 
     SECTION("Verify both GRM matrices have correct dimensions")

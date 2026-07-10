@@ -19,7 +19,6 @@
 
 #include <cstddef>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -45,8 +44,6 @@ class PredictReporter
         size_t num_samples,
         size_t num_snps,
         size_t num_covar_terms) const -> void;
-    auto show_results_written(std::string_view output_path, size_t num_samples)
-        const -> void;
 };
 
 }  // namespace cli

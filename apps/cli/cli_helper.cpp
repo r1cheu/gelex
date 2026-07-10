@@ -22,7 +22,9 @@
 #include <cctype>
 #include <chrono>
 #include <cstdio>
+#include <cstdlib>
 #include <exception>
+#include <filesystem>
 #include <fmt/base.h>
 #include <fmt/format.h>
 #include <functional>
@@ -233,7 +235,14 @@ auto genotype_method_validator() -> CLI::Validator
 auto report_command_line(const CLI::App& cmd) -> void
 {
     auto& p = cli::printer();
-    p.block(gelex::section("Command line:"));
+
+    auto cwd = std::filesystem::current_path().string();
+    if (const char* home = std::getenv("HOME");
+        home != nullptr && cwd.starts_with(home))
+    {
+        cwd.replace(0, std::string_view{home}.size(), "~");
+    }
+    p.block(cli::section("Command line  ({})", cwd));
 
     std::vector<const CLI::Option*> printed;
     for (const auto* option : cmd.parse_order())
@@ -292,7 +301,7 @@ auto execute_cli_command(
     {
         cli::logging::initialize(cmd.get_option("--out")->as<std::string>());
         cli::printer().block(
-            gelex::command_banner(PROJECT_VERSION, banner_title));
+            cli::command_banner(PROJECT_VERSION, banner_title));
         report_command_line(cmd);
         auto start = std::chrono::steady_clock::now();
         auto result = execute_fn();
@@ -301,7 +310,7 @@ auto execute_cli_command(
                            .count();
         if (cli::logging::get())
         {
-            cli::printer().block(gelex::done_message(elapsed));
+            cli::printer().block(cli::done_message(elapsed));
         }
         return result;
     }

@@ -41,11 +41,11 @@ auto GenoReporter::show_loaded(
     const auto effective_snps = num_snps - invalid_snps;
     const std::string label
         = (mode == gelex::GeneticMode::D) ? "Dominance" : "Additive";
-    const std::string msg = fmt::format(
-        "   {:<13}: {} SNPs ({} invalid excluded)",
+    const std::string msg = cli::field(
         label,
-        gelex::AbbrNumber(effective_snps),
-        gelex::AbbrNumber(invalid_snps));
+        "{} SNPs ({} invalid excluded)",
+        cli::AbbrNumber(effective_snps),
+        cli::AbbrNumber(invalid_snps));
 
     if (isatty(fileno(stdout)) != 0)
     {
@@ -69,8 +69,8 @@ auto GenoReporter::on_event(const gelex::GenotypeProgressEvent& event) -> void
     progress_info_.progress_info->message(
         fmt::format(
             "  {}/{} SNPs",
-            gelex::AbbrNumber(event.current),
-            gelex::AbbrNumber(event.total)));
+            cli::AbbrNumber(event.current),
+            cli::AbbrNumber(event.total)));
 
     if (event.done)
     {

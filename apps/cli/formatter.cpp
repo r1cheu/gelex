@@ -22,20 +22,18 @@
 #include <fmt/base.h>
 #include <fmt/color.h>
 #include <fmt/format.h>
-#include <fmt/ranges.h>
-#include <span>
 #include <string>
 #include <string_view>
 
-namespace gelex
+namespace cli
 {
 
 std::string
 command_banner(std::string_view version, std::string_view task, size_t width)
 {
-    // ▐ GELEX ▌  (9 visible chars, bold + light_cyan)
+    // ▐ GELEX ▌  (9 visible chars, bold + teal #94e2d5)
     std::string badge = fmt::format(
-        fmt::emphasis::bold | fmt::fg(fmt::color::light_cyan),
+        fmt::emphasis::bold | fmt::fg(fmt::rgb(0x94e2d5)),
         "\u258c GELEX \u2590");
 
     // "  v{version}  " plain text; visible = version.size() + 5
@@ -73,33 +71,6 @@ size_t skip_ansi_escape(std::string_view s, size_t pos) noexcept
     return i < s.size() ? i + 1 : i;  // consume the final byte
 }
 
-std::string separator(size_t width, const std::string& c)
-{
-    std::string result;
-    for (size_t i = 0; i < width; ++i)
-    {
-        result += c;
-    }
-    return result;
-}
-
-std::string table_separator(size_t width)
-{
-    return "  " + separator(width - 2);
-}
-
-std::string named_section(std::string_view name, size_t width, size_t indent)
-{
-    std::string result(indent, ' ');
-    result += "── ";
-    result += name;
-    result += " ";
-    size_t used = indent + 3 + name.size() + 1;
-    size_t remaining = used < width ? width - used : 0;
-    result += separator(remaining);
-    return fmt::format(fmt::emphasis::bold, "{}", result);
-}
-
 std::string format_eta(double seconds)
 {
     if (seconds < 0 || seconds > 3600 * 60 * 99)
@@ -119,30 +90,12 @@ std::string done_message(double elapsed_seconds)
     return fmt::format("╰── {} Done in {:.2f}s", sparkle, elapsed_seconds);
 }
 
-std::string format_names(
-    std::span<const std::string> names,
-    std::ptrdiff_t limit)
-{
-    if (names.empty())
-    {
-        return "";
-    }
-    if (names.size() <= static_cast<size_t>(limit))
-    {
-        return fmt::format("{}", fmt::join(names, ", "));
-    }
-    std::span<const std::string> displayed = names.first(limit);
-    std::ptrdiff_t remaining
-        = static_cast<std::ptrdiff_t>(names.size()) - limit;
-    return fmt::format(
-        "{}, ... and {} more", fmt::join(displayed, ", "), remaining);
-}
-}  // namespace gelex
+}  // namespace cli
 
 namespace fmt
 {
-auto fmt::formatter<gelex::AbbrNumber>::format(
-    gelex::AbbrNumber hr,
+auto fmt::formatter<cli::AbbrNumber>::format(
+    cli::AbbrNumber hr,
     format_context& ctx) const -> format_context::iterator
 {
     double v = hr.value;

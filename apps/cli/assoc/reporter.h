@@ -17,6 +17,7 @@
 #ifndef APPS_CLI_ASSOC_REPORTER_H_
 #define APPS_CLI_ASSOC_REPORTER_H_
 
+#include <Eigen/Core>
 #include <cstddef>
 #include <string_view>
 #include <vector>
@@ -26,6 +27,11 @@
 #include "cli/progress_bar.h"
 #include "cli/timer.h"
 
+namespace gelex
+{
+class FreqModel;
+}  // namespace gelex
+
 namespace cli
 {
 
@@ -34,14 +40,16 @@ class AssocReporter
    public:
     AssocReporter();
 
-    auto show_reml_started(std::string_view chr_name) const -> void;
+    auto show_dataset_summary(
+        const gelex::FreqModel& model,
+        Eigen::Index n_snps) -> void;
     auto start_scan(size_t total_snps, int chunk_size, bool loco) -> void;
     auto update_scan_progress(size_t current, size_t total) -> void;
     auto show_loco_phase(std::string_view chr_name, std::string_view phase)
         -> void;
     auto show_loco_reml_summary(
         const std::vector<gelex::LocoRemlResult>& results) -> void;
-    auto show_complete(std::string_view out_prefix) -> void;
+    auto finish_scan() -> void;
 
    private:
     size_t progress_{0};

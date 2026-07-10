@@ -34,6 +34,8 @@
 #include "gelex/exception.h"
 #include "gelex/io/snpstats.h"
 
+#include "cli/formatter.h"
+#include "cli/report_printer.h"
 #include "compute.h"
 #include "io.h"
 #include "reporter.h"
@@ -110,11 +112,16 @@ auto predict_execute(const cli::PredictConfig& config) -> int
         static_cast<Eigen::Index>(common_index.size()));
     reporter.show_covariate_level_mismatches(level_mismatches);
 
+    const auto n_snps = static_cast<std::size_t>(snp_effects.rows());
+    reporter.show_data_loaded(
+        static_cast<std::size_t>(common_index.size()),
+        n_snps,
+        term_names.size());
+
     // Align SNPs to the model, then load the aligned dosage.
     auto alignment = gelex::build_snp_alignment(snp_effects, bed.bim());
     reporter.show_snp_selection(alignment);
 
-    const auto n_snps = static_cast<std::size_t>(snp_effects.rows());
     const double missing_ratio
         = static_cast<double>(alignment.missing_pos.size())
           / static_cast<double>(n_snps);
@@ -143,11 +150,6 @@ auto predict_execute(const cli::PredictConfig& config) -> int
         geno.emplace(mode, std::move(encoded));
     }
 
-    reporter.show_data_loaded(
-        static_cast<std::size_t>(common_index.size()),
-        n_snps,
-        term_names.size());
-
     // Compute predictions.
     auto gebvs = cli::compute_gebv(geno, effects);
     auto covar
@@ -161,9 +163,10 @@ auto predict_execute(const cli::PredictConfig& config) -> int
 
     // Write results.
     auto sample_ids = common_index.keys();
-    cli::write_predictions(config.out, sample_ids, prediction, covar, gebvs);
+    cli::write_predictions(
+        config.out + ".pred.tsv", sample_ids, prediction, covar, gebvs);
 
-    reporter.show_results_written(config.out, sample_ids.size());
+    cli::printer().block(cli::results_saved(config.out, ".pred.tsv, .log"));
 
     return 0;
 }

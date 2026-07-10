@@ -30,6 +30,11 @@ namespace gelex::bayes
 class BayesPrior;
 }
 
+namespace gelex
+{
+class BayesModel;
+}
+
 namespace cli
 {
 
@@ -38,6 +43,7 @@ class McmcReporter : public FitReporter
    public:
     McmcReporter() = default;
 
+    auto show_dataset_summary(const gelex::BayesModel& model) -> void;
     auto show_prior(const gelex::bayes::BayesPrior& prior) -> void;
     auto show_complete(std::ptrdiff_t samples_collected) -> void;
     auto on_event(const gelex::MCMCProgressEvent& event) -> void;

@@ -19,7 +19,6 @@
 #include <fmt/format.h>
 #include <ranges>
 #include <span>
-#include <string_view>
 #include <type_traits>
 #include <variant>
 
@@ -37,7 +36,7 @@ namespace cli
 auto FitReporter::show_prior(const gelex::bayes::BayesPrior& prior) const
     -> void
 {
-    cli::printer().block(gelex::section("Prior Configuration:"));
+    cli::printer().block(cli::section("Prior Configuration:"));
 
     print_random_prior(prior.random());
     for (const auto& genetic : prior.genetics())
@@ -45,14 +44,6 @@ auto FitReporter::show_prior(const gelex::bayes::BayesPrior& prior) const
         print_genetic_prior(genetic);
     }
     print_residual_prior(prior.residual());
-}
-
-auto FitReporter::show_results_saved(std::string_view out_prefix) const -> void
-{
-    cli::printer().block(
-        gelex::success(
-            "Results saved to '{}' (.param, .summary, .snpeff, .log)",
-            out_prefix));
 }
 
 auto FitReporter::print_variance_prior(
