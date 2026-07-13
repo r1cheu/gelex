@@ -49,7 +49,10 @@ if(GELEX_CLI_BUILD_TESTS OR GELEX_BUILD_TESTS)
     tests/test_predict_io.cpp
     tests/test_predict_engine.cpp
     tests/test_table.cpp
+    tests/test_completion_generator.cpp
     cli/color_formatter.cpp
+    cli/completion/completion_generator.cpp
+    cli/completion/choice_descriptions.cpp
     cli/formatter.cpp
     cli/table.cpp
     cli/predict/compute.cpp

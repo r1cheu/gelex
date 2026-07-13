@@ -369,7 +369,9 @@ class ColorFormatter : public CLI::Formatter
 
     static auto should_show_subcommand(const CLI::App* subcommand) -> bool
     {
-        return !subcommand->get_disabled() && !subcommand->get_name().empty();
+        // An empty group hides a subcommand, mirroring option-group semantics.
+        return !subcommand->get_disabled() && !subcommand->get_name().empty()
+               && !subcommand->get_group().empty();
     }
 
     auto make_positional_option(const CLI::Option* option) const -> std::string

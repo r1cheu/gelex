@@ -22,6 +22,7 @@
 #include "cli/assoc/args.h"
 #include "cli/cli_helper.h"
 #include "cli/color_formatter.h"
+#include "cli/completion/args.h"
 #include "cli/grm/args.h"
 #include "cli/mcmc/args.h"
 #include "cli/post/args.h"
@@ -54,6 +55,7 @@ Docs: https://gelex.readthedocs.io/en/latest/)",
     setup_assoc_command(program, exit_code);
     setup_post_command(program, exit_code);
     setup_reml_command(program, exit_code);
+    setup_completion_command(program, exit_code);
 
     try
     {
