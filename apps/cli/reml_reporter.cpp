@@ -18,7 +18,6 @@
 
 #include <Eigen/Core>
 #include <cstddef>
-#include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <ranges>
@@ -33,6 +32,7 @@
 
 #include "cli/formatter.h"
 #include "cli/report_printer.h"
+#include "theme.h"
 
 namespace cli
 {
@@ -180,9 +180,8 @@ void print_loco_reml_summary(const std::vector<gelex::LocoRemlResult>& results)
     for (const auto& result : results)
     {
         const auto& s = result.summary;
-        std::string conv_mark
-            = s.converged ? fmt::format(fmt::fg(fmt::color::light_green), "✓")
-                          : fmt::format(fmt::fg(fmt::color::orange_red), "✗");
+        std::string conv_mark = s.converged ? colorize(ColorRole::success, "✓")
+                                            : colorize(ColorRole::error, "✗");
 
         std::vector<std::string> cells;
         cells.reserve(num_random + 4);

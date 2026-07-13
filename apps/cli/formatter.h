@@ -27,6 +27,8 @@
 #include <string_view>
 #include <utility>
 
+#include "theme.h"
+
 namespace cli
 {
 
@@ -47,17 +49,16 @@ template <typename... Args>
 std::string section(fmt::format_string<Args...> fmt_str, Args&&... args)
 {
     return " "
-           + fmt::format(
-               fmt::emphasis::bold | fmt::fg(fmt::rgb(0x94e2d5)),
-               fmt_str,
-               std::forward<Args>(args)...);
+           + colorize(
+               style_for(ColorRole::accent) | fmt::emphasis::bold,
+               fmt::format(fmt_str, std::forward<Args>(args)...));
 }
 
 template <typename... Args>
 std::string success(fmt::format_string<Args...> fmt_str, Args&&... args)
 {
-    auto check_mark = fmt::format(fmt::fg(fmt::color::light_green), "  ✓ ");
-    return check_mark + fmt::format(fmt_str, std::forward<Args>(args)...);
+    return colorize(ColorRole::success, "  ✓ ")
+           + fmt::format(fmt_str, std::forward<Args>(args)...);
 }
 
 // Unified completion line shared by every command: "✓ Results saved:

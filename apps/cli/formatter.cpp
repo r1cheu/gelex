@@ -25,15 +25,17 @@
 #include <string>
 #include <string_view>
 
+#include "theme.h"
+
 namespace cli
 {
 
 std::string
 command_banner(std::string_view version, std::string_view task, size_t width)
 {
-    // ▐ GELEX ▌  (9 visible chars, bold + teal #94e2d5)
-    std::string badge = fmt::format(
-        fmt::emphasis::bold | fmt::fg(fmt::rgb(0x94e2d5)),
+    // ▐ GELEX ▌  (9 visible chars, bold accent that follows the terminal theme)
+    std::string badge = colorize(
+        style_for(ColorRole::accent) | fmt::emphasis::bold,
         "\u258c GELEX \u2590");
 
     // "  v{version}  " plain text; visible = version.size() + 5
@@ -48,8 +50,9 @@ command_banner(std::string_view version, std::string_view task, size_t width)
     {
         fill += "\u2500";
     }
-    std::string sep_task = fmt::format(
-        fmt::emphasis::bold, "\u2500\u2500  {} {}\u256e", task, fill);
+    std::string sep_task = colorize(
+        fmt::emphasis::bold,
+        fmt::format("\u2500\u2500  {} {}\u256e", task, fill));
 
     return badge + ver_str + sep_task;
 }
@@ -86,7 +89,7 @@ std::string format_eta(double seconds)
 
 std::string done_message(double elapsed_seconds)
 {
-    auto sparkle = fmt::format(fmt::fg(fmt::color::yellow), "✨");
+    auto sparkle = colorize(ColorRole::accent, "✨");
     return fmt::format("╰── {} Done in {:.2f}s", sparkle, elapsed_seconds);
 }
 

@@ -49,6 +49,7 @@
 #include "cli/formatter.h"
 #include "cli/logging.h"
 #include "report_printer.h"
+#include "theme.h"
 #include "version.h"
 
 namespace gelex
@@ -116,13 +117,6 @@ auto lexical_cast(const std::string& input, RintType& output) -> bool
 
 namespace cli
 {
-
-namespace
-{
-
-constexpr std::string_view ERROR_MARKER = "[\033[31merror\033[0m] ";
-
-}  // namespace
 
 auto is_tty() -> bool
 {
@@ -345,7 +339,7 @@ auto execute_cli_command(
         }
         else
         {
-            std::cerr << ERROR_MARKER << e.what() << "\n";
+            std::cerr << error_marker() << e.what() << "\n";
         }
         return 1;
     }
@@ -358,7 +352,7 @@ auto execute_cli_command(
         }
         else
         {
-            std::cerr << ERROR_MARKER << "unknown exception\n";
+            std::cerr << error_marker() << "unknown exception\n";
         }
         return 1;
     }

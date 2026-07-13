@@ -51,6 +51,7 @@ if(GELEX_CLI_BUILD_TESTS OR GELEX_BUILD_TESTS)
     tests/test_table.cpp
     tests/test_completion_generator.cpp
     cli/color_formatter.cpp
+    cli/theme.cpp
     cli/completion/completion_generator.cpp
     cli/completion/choice_descriptions.cpp
     cli/formatter.cpp

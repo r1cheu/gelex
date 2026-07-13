@@ -17,10 +17,10 @@
 #include "reporter.h"
 
 #include <cstddef>
-#include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <ranges>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -30,6 +30,7 @@
 #include "cli/progress_bar.h"
 #include "cli/reml_reporter.h"
 #include "cli/report_printer.h"
+#include "cli/theme.h"
 
 namespace cli
 {
@@ -91,13 +92,10 @@ auto AssocReporter::show_loco_phase(
 {
     if (bar_.before_bar)
     {
-        auto color
-            = phase == "REML" ? fmt::color::yellow : fmt::color::light_green;
+        auto role = phase == "REML" ? ColorRole::warning : ColorRole::success;
         bar_.before_bar->message(
             fmt::format(
-                " {} [Chr {}]",
-                fmt::format(fmt::fg(color), "{}", phase),
-                chr_name));
+                " {} [Chr {}]", colorize(role, std::string{phase}), chr_name));
     }
 }
 

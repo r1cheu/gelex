@@ -18,16 +18,14 @@
 
 #include <CLI/CLI.hpp>
 #include <algorithm>
-#include <fmt/color.h>
 #include <fmt/format.h>
 #include <memory>
 #include <sstream>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
-#include "cli_helper.h"
+#include "theme.h"
 
 namespace cli
 {
@@ -35,37 +33,19 @@ namespace cli
 namespace
 {
 
-constexpr std::string_view ERROR_MARKER = "[\033[31merror\033[0m] ";
-
-constexpr fmt::rgb CATPPUCCIN_SKY{0x89DCEB};
-constexpr fmt::rgb CATPPUCCIN_GREEN{0xA6E3A1};
-constexpr fmt::rgb CATPPUCCIN_YELLOW{0xF9E2AF};
-
-auto colored(std::string text, fmt::text_style style) -> std::string
-{
-    if (text.empty() || !is_tty())
-    {
-        return text;
-    }
-    return fmt::format(style, "{}", text);
-}
-
 auto section_heading(std::string text) -> std::string
 {
-    return colored(
-        std::move(text),
-        fmt::emphasis::bold | fmt::emphasis::underline
-            | fmt::fg(CATPPUCCIN_GREEN));
+    return colorize(ColorRole::heading, std::move(text));
 }
 
 auto option_name_text(std::string text) -> std::string
 {
-    return colored(std::move(text), fmt::fg(CATPPUCCIN_SKY));
+    return colorize(ColorRole::option_name, std::move(text));
 }
 
 auto option_value_text(std::string text) -> std::string
 {
-    return colored(std::move(text), fmt::fg(CATPPUCCIN_YELLOW));
+    return colorize(ColorRole::option_value, std::move(text));
 }
 
 class ColorFormatter : public CLI::Formatter
@@ -572,7 +552,7 @@ auto format_parse_error(const CLI::App* app, const CLI::Error& err)
         = std::dynamic_pointer_cast<CLI::Formatter>(app->get_formatter());
     return fmt::format(
         "{}{}\n{}For more information, try '{}'\n",
-        ERROR_MARKER,
+        error_marker(),
         err.what(),
         formatter->make_usage(active, ""),
         option_name_text("--help"));
