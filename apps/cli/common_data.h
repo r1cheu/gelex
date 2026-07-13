@@ -28,6 +28,7 @@
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/reader.h"
+#include "gelex/exception.h"
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
 #include "gelex/types/fixed_designs.h"
 
@@ -86,6 +87,12 @@ auto load_base_data(Handler& handler, const BaseDataConfig& config) -> BaseData
     handler.load_indices(indices);
 
     auto common_index = gelex::intersect<std::string>(indices);
+    if (common_index.size() == 0)
+    {
+        throw gelex::GelexException(
+            "No samples remain after intersecting phenotype, covariate, and "
+            "GRM IDs; check that FID/IID match across all input files");
+    }
 
     phenotype.gather(common_index);
     if (qcovar)

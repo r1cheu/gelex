@@ -16,19 +16,42 @@
 
 #include "reml_data.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <filesystem>
+#include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <iterator>
-#include <optional>
 #include <ranges>
+#include <set>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "gelex/data/covariates.h"
 #include "gelex/data/reader.h"
+#include "gelex/exception.h"
 
 namespace cli
 {
+
+namespace
+{
+
+auto split_interaction(const std::string& spec)
+    -> std::pair<std::string, std::string>
+{
+    auto sep = spec.find(':');
+    if (sep == std::string::npos || sep == 0 || sep + 1 == spec.size())
+    {
+        throw gelex::GelexException(
+            fmt::format(
+                "--interaction expects '<name_a>:<name_b>', got '{}'", spec));
+    }
+    return {spec.substr(0, sep), spec.substr(sep + 1)};
+}
+
+}  // namespace
 
 RemlDataLoader::RemlDataLoader(const RemlDataConfig& config) noexcept
     : config_(config)
@@ -38,12 +61,18 @@ RemlDataLoader::RemlDataLoader(const RemlDataConfig& config) noexcept
 auto RemlDataLoader::load_indices(
     std::vector<const gelex::DataFrameIndex<std::string>*>& indices) -> void
 {
-    drand_ = config_.drand_path
-                 ? std::make_optional(gelex::read_dcovar(*config_.drand_path))
-                 : std::nullopt;
-    if (drand_)
+    // Names of effects loaded as main components; an interaction operand
+    // matching one reuses it instead of reading its GRM from a path.
+    std::set<std::string> known_names;
+
+    if (config_.drand_path)
     {
+        drand_ = gelex::read_dcovar(*config_.drand_path);
         indices.push_back(&drand_->index());
+        for (auto& name : drand_->names())
+        {
+            known_names.insert(std::move(name));
+        }
     }
 
     qrand_.reserve(config_.qrand_paths.size());
@@ -51,6 +80,7 @@ auto RemlDataLoader::load_indices(
     {
         qrand_.emplace_back(gelex::read_qcovar(path));
         indices.push_back(&qrand_.back().index());
+        known_names.insert(std::filesystem::path(path).stem().string());
     }
 
     grm_indices_.reserve(config_.grm.size());
@@ -58,6 +88,32 @@ auto RemlDataLoader::load_indices(
     {
         grm_indices_.emplace_back(gelex::read_grm_ids(path));
         indices.push_back(&grm_indices_.back());
+        known_names.insert(std::filesystem::path(path).filename().string());
+    }
+
+    // Load an interaction operand's GRM on first sight. Operands naming an
+    // already-loaded effect or an already-registered path GRM are skipped (both
+    // are resolved by name in gather); any other operand is treated as a GRM
+    // prefix whose ids are read here so it joins the sample intersection, with
+    // its matrix read later in gather.
+    auto load_operand_grm = [&](const std::string& operand)
+    {
+        if (known_names.contains(operand)
+            || interaction_grms_.contains(operand))
+        {
+            return;
+        }
+        auto [it, _] = interaction_grms_.emplace(
+            operand,
+            InteractionGrm{.index = gelex::read_grm_ids(operand), .K = {}});
+        indices.push_back(&it->second.index);
+    };
+
+    for (const auto& spec : config_.interactions)
+    {
+        auto [lhs, rhs] = split_interaction(spec);
+        load_operand_grm(lhs);
+        load_operand_grm(rhs);
     }
 }
 
@@ -85,6 +141,44 @@ auto RemlDataLoader::gather(
         random_designs_.end(),
         std::make_move_iterator(grm_designs.begin()),
         std::make_move_iterator(grm_designs.end()));
+
+    for (auto& [prefix, grm] : interaction_grms_)
+    {
+        grm.K = gelex::read_grm(prefix, &common_index);
+    }
+
+    // Both kernels are read fully before push_back, so the references
+    // resolve_operand returns never outlive the make_interaction_design call.
+    for (const auto& spec : config_.interactions)
+    {
+        auto [lhs, rhs] = split_interaction(spec);
+        random_designs_.push_back(
+            gelex::make_interaction_design(
+                spec, resolve_operand(lhs), resolve_operand(rhs)));
+    }
+}
+
+auto RemlDataLoader::resolve_operand(const std::string& name) const
+    -> const Eigen::MatrixXd&
+{
+    if (auto it = interaction_grms_.find(name); it != interaction_grms_.end())
+    {
+        return it->second.K;
+    }
+    auto it = std::ranges::find(
+        random_designs_, name, &gelex::freq::RandomDesign::name);
+    if (it == random_designs_.end())
+    {
+        auto names = random_designs_
+                     | std::views::transform(&gelex::freq::RandomDesign::name);
+        throw gelex::GelexException(
+            fmt::format(
+                "--interaction references unknown effect '{}'; loaded effects "
+                "are [{}]",
+                name,
+                fmt::join(names, ", ")));
+    }
+    return it->K;
 }
 
 auto RemlDataLoader::results() && -> std::vector<gelex::freq::RandomDesign>

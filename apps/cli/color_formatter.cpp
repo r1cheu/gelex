@@ -486,7 +486,13 @@ class ColorFormatter : public CLI::Formatter
     static auto make_option_type_name(const CLI::Option* option) -> std::string
     {
         auto type_name = option->get_type_name();
-        if (const auto pos = type_name.find(':'); pos != std::string::npos)
+        // CLI11 appends validator descriptions as ":<desc>" after the "<...>"
+        // placeholder; strip them while preserving any ':' inside the
+        // placeholder itself (e.g. "<A:B>").
+        const auto base_end = type_name.find('>');
+        const auto from = base_end == std::string::npos ? 0 : base_end + 1;
+        if (const auto pos = type_name.find(':', from);
+            pos != std::string::npos)
         {
             type_name.erase(pos);
         }

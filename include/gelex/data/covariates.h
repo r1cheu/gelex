@@ -17,6 +17,7 @@
 #ifndef GELEX_DATA_COVARIATES_H_
 #define GELEX_DATA_COVARIATES_H_
 
+#include <Eigen/Core>
 #include <span>
 #include <string>
 #include <vector>
@@ -45,6 +46,13 @@ namespace gelex
 [[nodiscard]] auto make_grm_designs(
     std::span<const std::string> prefixes,
     const DataFrameIndex<std::string>&) -> std::vector<freq::RandomDesign>;
+
+// Hadamard product of two aligned kernels, rescaled to unit mean diagonal so
+// the interaction variance component shares the scale of its base components.
+[[nodiscard]] auto make_interaction_design(
+    std::string name,
+    const Eigen::Ref<const Eigen::MatrixXd>& lhs,
+    const Eigen::Ref<const Eigen::MatrixXd>& rhs) -> freq::RandomDesign;
 
 }  // namespace gelex
 

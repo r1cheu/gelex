@@ -33,6 +33,7 @@ enum class RandomKind : std::uint8_t
     Discrete,      // one-hot ZZ^T from a discrete factor
     Quantitative,  // linear kernel ZZ^T from a quantitative matrix
     Grm,           // genomic relationship matrix; chromosome-partitionable
+    Interaction,   // Hadamard product of two base kernels, rescaled
 };
 
 struct RandomDesign

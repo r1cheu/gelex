@@ -40,12 +40,11 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
         ->group("I/O")
         ->type_name("<GRM>")
         ->expected(1, -1)
-        ->allow_extra_args()
-        ->required();
+        ->allow_extra_args();
     cmd.add_option(
            "--drand",
            config->random.drand_path,
-           "Discrete random-effect TSV (FID, IID, factor columns); each factor "
+           "Discrete random-effect TSV (FID\tIID\tFactor\t...); each factor "
            "column becomes a variance component via one-hot ZZ^T")
         ->group("I/O")
         ->type_name("<DRAND>")
@@ -53,7 +52,7 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option(
            "--qrand",
            config->random.qrand_paths,
-           "Quantitative random-effect matrix TSV (FID, IID, value columns); "
+           "Quantitative random-effect matrix TSV (FID\tIID\tValue\t...); "
            "each file forms one linear-kernel component ZZ^T")
         ->group("I/O")
         ->type_name("<QRAND>")
@@ -61,9 +60,16 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
         ->allow_extra_args()
         ->check(CLI::ExistingFile);
     cmd.add_option(
-           "-o,--out",
-           config->out_prefix,
-           "Output prefix for .summary and .effects")
+           "--interaction",
+           config->random.interactions,
+           "Interaction random effect '<a>:<b>', the rescaled Hadamard product "
+           "of two kernels. Each operand is a loaded effect name or a GRM "
+           "prefix")
+        ->group("I/O")
+        ->type_name("<A:B>")
+        ->expected(1, -1)
+        ->allow_extra_args();
+    cmd.add_option("-o,--out", config->out_prefix, "Output prefix")
         ->group("I/O")
         ->type_name("<OUT>")
         ->capture_default_str();
@@ -71,7 +77,8 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
     cmd.add_option(
            "--transform",
            config->base_data.transform,
-           "Phenotype transform: none, dint, iint")
+           "Apply rank-based Inverse-Normal Transform(INT) to phenotype: none, "
+           "dint(direct INT), iint(indirect INT)")
         ->group("Model")
         ->type_name("<TRANSFORM>")
         ->default_str("none")

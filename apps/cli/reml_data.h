@@ -17,6 +17,8 @@
 #ifndef APPS_CLI_REML_DATA_H_
 #define APPS_CLI_REML_DATA_H_
 
+#include <Eigen/Core>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -33,6 +35,7 @@ struct RemlDataConfig
     std::vector<std::string> grm;
     std::optional<std::string> drand_path;
     std::vector<std::string> qrand_paths;
+    std::vector<std::string> interactions;  // "<name_a>:<name_b>" pairs
 };
 
 // Loads the random-effect data a REML fit consumes (discrete/quantitative/GRM)
@@ -56,11 +59,27 @@ class RemlDataLoader
     }
 
    private:
+    // GRM referenced only by an interaction operand: it joins the sample-index
+    // intersection like --grm but is consumed by the interaction rather than
+    // emitted as a standalone variance component. Keyed by GRM prefix.
+    struct InteractionGrm
+    {
+        gelex::DataFrameIndex<std::string> index;
+        Eigen::MatrixXd K;
+    };
+
+    // Resolves an interaction operand to its kernel: a path operand from
+    // interaction_grms_, otherwise a loaded effect matched by name in
+    // random_designs_. Throws listing loaded effects when neither matches.
+    auto resolve_operand(const std::string& name) const
+        -> const Eigen::MatrixXd&;
+
     const RemlDataConfig& config_;
     std::vector<gelex::DataFrameIndex<std::string>> grm_indices_;
     std::vector<gelex::freq::RandomDesign> random_designs_;
     std::optional<gelex::DataFrame<std::string>> drand_;
     std::vector<gelex::DataFrame<std::string>> qrand_;
+    std::map<std::string, InteractionGrm> interaction_grms_;
 };
 
 }  // namespace cli

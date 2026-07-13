@@ -153,6 +153,24 @@ TEST_CASE(
     REQUIRE(design.K.isApprox(expected));
 }
 
+TEST_CASE(
+    "make_interaction_design forms rescaled Hadamard product",
+    "[covariates]")
+{
+    Eigen::MatrixXd lhs{{2.0, 1.0}, {1.0, 4.0}};
+    Eigen::MatrixXd rhs{{1.0, 0.5}, {0.5, 3.0}};
+
+    auto design = gelex::make_interaction_design("A:B", lhs, rhs);
+
+    REQUIRE(design.name == "A:B");
+    REQUIRE(design.kind == gelex::freq::RandomKind::Interaction);
+    REQUIRE_FALSE(design.Z.has_value());
+
+    Eigen::MatrixXd hadamard = lhs.cwiseProduct(rhs);
+    Eigen::MatrixXd expected = hadamard / hadamard.diagonal().mean();
+    REQUIRE(design.K.isApprox(expected));
+}
+
 TEST_CASE("make_random_designs rejects single-level columns", "[covariates]")
 {
     FileFixture files;

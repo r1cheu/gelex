@@ -20,6 +20,7 @@
 
 #include "gelex/algo/reml/estimator.h"
 #include "gelex/algo/reml/summary.h"
+#include "gelex/exception.h"
 #include "gelex/freq/model.h"
 #include "gelex/io/reml.h"
 
@@ -32,6 +33,15 @@
 
 auto reml_execute(const cli::RemlConfig& config) -> int
 {
+    if (config.random.grm.empty() && !config.random.drand_path
+        && config.random.qrand_paths.empty()
+        && config.random.interactions.empty())
+    {
+        throw gelex::GelexException(
+            "REML needs at least one random effect; provide --grm, --drand, "
+            "--qrand, or --interaction");
+    }
+
     cli::setup_parallelization(config.threads);
 
     cli::RemlDataLoader loader(config.random);

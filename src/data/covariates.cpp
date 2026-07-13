@@ -134,4 +134,19 @@ auto make_grm_designs(
     }
     return grm_designs;
 }
+
+auto make_interaction_design(
+    std::string name,
+    const Eigen::Ref<const Eigen::MatrixXd>& lhs,
+    const Eigen::Ref<const Eigen::MatrixXd>& rhs) -> freq::RandomDesign
+{
+    Eigen::MatrixXd K = lhs.cwiseProduct(rhs);
+    K /= K.diagonal().mean();
+    return freq::RandomDesign{
+        .name = std::move(name),
+        .levels = std::nullopt,
+        .Z = std::nullopt,
+        .K = std::move(K),
+        .kind = freq::RandomKind::Interaction};
+}
 }  // namespace gelex
