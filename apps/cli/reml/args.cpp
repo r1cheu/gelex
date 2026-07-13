@@ -33,42 +33,7 @@ auto setup_reml_command(CLI::App& program, int& exit_code) -> void
     cmd.description("Estimate variance components with REML (AI algorithm)");
 
     cli::add_common_io_options(cmd, config->base_data);
-    cmd.add_option(
-           "--grm",
-           config->random.grm,
-           "GRM prefix without suffix; reads <prefix>.bin/.id")
-        ->group("I/O")
-        ->type_name("<GRM>")
-        ->expected(1, -1)
-        ->allow_extra_args();
-    cmd.add_option(
-           "--drand",
-           config->random.drand_path,
-           "Discrete random-effect TSV (FID\tIID\tFactor\t...); each factor "
-           "column becomes a variance component via one-hot ZZ^T")
-        ->group("I/O")
-        ->type_name("<DRAND>")
-        ->check(CLI::ExistingFile);
-    cmd.add_option(
-           "--qrand",
-           config->random.qrand_paths,
-           "Quantitative random-effect matrix TSV (FID\tIID\tValue\t...); "
-           "each file forms one linear-kernel component ZZ^T")
-        ->group("I/O")
-        ->type_name("<QRAND>")
-        ->expected(1, -1)
-        ->allow_extra_args()
-        ->check(CLI::ExistingFile);
-    cmd.add_option(
-           "--interaction",
-           config->random.interactions,
-           "Interaction random effect '<a>:<b>', the rescaled Hadamard product "
-           "of two kernels. Each operand is a loaded effect name or a GRM "
-           "prefix")
-        ->group("I/O")
-        ->type_name("<A:B>")
-        ->expected(1, -1)
-        ->allow_extra_args();
+    cli::add_random_effect_options(cmd, config->random);
     cmd.add_option("-o,--out", config->out_prefix, "Output prefix")
         ->group("I/O")
         ->type_name("<OUT>")

@@ -36,6 +36,12 @@ struct RemlDataConfig
     std::optional<std::string> drand_path;
     std::vector<std::string> qrand_paths;
     std::vector<std::string> interactions;  // "<name_a>:<name_b>" pairs
+
+    auto has_random_effect() const noexcept -> bool
+    {
+        return !grm.empty() || drand_path.has_value() || !qrand_paths.empty()
+               || !interactions.empty();
+    }
 };
 
 // Loads the random-effect data a REML fit consumes (discrete/quantitative/GRM)

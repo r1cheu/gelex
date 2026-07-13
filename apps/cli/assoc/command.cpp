@@ -81,6 +81,19 @@ class AssocDataHandler
 
 auto assoc_execute(const cli::AssocConfig& config) -> int
 {
+    if (!config.random.has_random_effect())
+    {
+        throw gelex::GelexException(
+            "association testing needs at least one random effect; provide "
+            "--grm, --drand, --qrand, or --interaction");
+    }
+    if (config.loco && !config.random.interactions.empty())
+    {
+        throw gelex::GelexException(
+            "--loco does not support --interaction: an interaction kernel "
+            "stays whole-genome and cannot be left-one-chromosome-out");
+    }
+
     cli::setup_parallelization(config.threads);
 
     const bool is_joint = config.mode.size() > 1;

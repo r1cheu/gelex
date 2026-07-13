@@ -48,12 +48,15 @@ auto lexical_cast(const std::string& input, RintType& output) -> bool;
 namespace cli
 {
 struct BaseDataConfig;
+struct RemlDataConfig;
 
 auto is_tty() -> bool;
 
 auto setup_parallelization(int num_threads) -> void;
 
 auto add_common_io_options(CLI::App& cmd, BaseDataConfig& config) -> void;
+
+auto add_random_effect_options(CLI::App& cmd, RemlDataConfig& config) -> void;
 
 auto open_unit_interval() -> CLI::Validator;
 

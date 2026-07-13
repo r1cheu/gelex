@@ -33,9 +33,7 @@
 
 auto reml_execute(const cli::RemlConfig& config) -> int
 {
-    if (config.random.grm.empty() && !config.random.drand_path
-        && config.random.qrand_paths.empty()
-        && config.random.interactions.empty())
+    if (!config.random.has_random_effect())
     {
         throw gelex::GelexException(
             "REML needs at least one random effect; provide --grm, --drand, "
