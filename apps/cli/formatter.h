@@ -35,7 +35,7 @@ namespace cli
 std::string command_banner(
     std::string_view version,
     std::string_view task,
-    size_t width = 70);
+    size_t width = 80);
 
 // If s[pos..] begins an ANSI CSI escape (ESC '[' ... final byte 0x40-0x7e),
 // returns the index just past it; otherwise returns pos unchanged. pos must be

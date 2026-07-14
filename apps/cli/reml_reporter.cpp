@@ -17,12 +17,12 @@
 #include "reml_reporter.h"
 
 #include <Eigen/Core>
+#include <array>
 #include <cstddef>
 #include <fmt/format.h>
-#include <fmt/ranges.h>
-#include <ranges>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "gelex/algo/reml/statistics.h"
@@ -47,10 +47,7 @@ auto RemlReporter::show_dataset_summary(
     p.line(cli::field("Analyzed Samples", "{}", model.num_individuals()));
     p.line(cli::field("Covariates", "{}", model.fixed().X.cols()));
 
-    auto names = model.random()
-                 | std::views::transform([](const auto& d)
-                                         { return std::string_view(d.name); });
-    p.line(cli::field("Random effects", "{}", fmt::join(names, ", ")));
+    p.line(cli::field("Random effects", "{}", model.random().size()));
 }
 
 auto RemlReporter::on_event(const gelex::RemlIterationEvent& e) -> void
@@ -59,24 +56,42 @@ auto RemlReporter::on_event(const gelex::RemlIterationEvent& e) -> void
     {
         cli::printer().block(cli::section("REML Iterations:"));
         iter_table_.column("Iter", Align::right, 4);
-        iter_table_.column("LogL", Align::right, 10);
-        for (const auto& label : e.labels)
-        {
-            iter_table_.column(label, Align::right, 10);
-        }
+        iter_table_.column("LogL", Align::right, 12);
+        iter_table_.column("ΔLogL", Align::right, 12);
+        iter_table_.column("RelΔσ²", Align::right, 12);
+        iter_table_.column("V(e)", Align::right, 10);
         cli::printer().line(iter_table_.stream_header());
         header_printed_ = true;
     }
 
-    std::vector<std::string> cells;
-    cells.reserve(2 + e.variances.size());
-    cells.push_back(fmt::format("{}", e.iter));
-    cells.push_back(fmt::format("{:.2f}", e.loglike));
-    for (const auto& v : e.variances)
+    const double ve = e.variances.empty() ? 0.0 : e.variances.back();
+
+    std::string delta_loglike = "-";
+    std::string rel_sigma = "-";
+    if (has_prev_)
     {
-        cells.push_back(fmt::format("{:.2f}", v));
+        delta_loglike = fmt::format("{:.3g}", e.loglike - prev_loglike_);
+        Eigen::Map<const Eigen::VectorXd> cur(
+            e.variances.data(), static_cast<Eigen::Index>(e.variances.size()));
+        Eigen::Map<const Eigen::VectorXd> prev(
+            prev_variances_.data(),
+            static_cast<Eigen::Index>(prev_variances_.size()));
+        const double denom = cur.norm();
+        rel_sigma = fmt::format(
+            "{:.2e}", denom > 0.0 ? (cur - prev).norm() / denom : 0.0);
     }
+
+    std::array<std::string, 5> cells{
+        fmt::format("{}", e.iter),
+        fmt::format("{:.2f}", e.loglike),
+        std::move(delta_loglike),
+        std::move(rel_sigma),
+        fmt::format("{:.2f}", ve)};
     cli::printer().line(iter_table_.stream_row(cells));
+
+    prev_loglike_ = e.loglike;
+    prev_variances_ = e.variances;
+    has_prev_ = true;
 }
 
 auto RemlReporter::on_event(const gelex::RemlConstrainedEvent& e) -> void

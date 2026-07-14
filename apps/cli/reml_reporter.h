@@ -57,6 +57,9 @@ class RemlReporter
    private:
     Table iter_table_;
     bool header_printed_ = false;
+    bool has_prev_ = false;
+    double prev_loglike_ = 0.0;
+    std::vector<double> prev_variances_;
 };
 
 void print_loco_reml_summary(const std::vector<gelex::LocoRemlResult>& results);

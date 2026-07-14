@@ -344,7 +344,25 @@ auto report_command_line(const CLI::App& cmd) -> void
         }
         else
         {
-            p.line("  {} {}", name, fmt::join(values, " "));
+            constexpr size_t WRAP_WIDTH = 80;
+            constexpr std::string_view CONT_INDENT = "    ";
+            std::string line = fmt::format("  {}", name);
+            bool has_value = false;
+            for (const auto& value : values)
+            {
+                if (has_value && line.size() + 1 + value.size() > WRAP_WIDTH)
+                {
+                    p.line("{}", line);
+                    line = fmt::format("{}{}", CONT_INDENT, value);
+                }
+                else
+                {
+                    line += ' ';
+                    line += value;
+                }
+                has_value = true;
+            }
+            p.line("{}", line);
         }
     }
 }

@@ -32,8 +32,6 @@
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
 #include "gelex/types/fixed_designs.h"
 
-#include "cli/logging.h"
-
 namespace cli
 {
 struct BaseDataConfig
@@ -133,15 +131,9 @@ auto load_base_data(Handler& handler, const BaseDataConfig& config) -> BaseData
         case gelex::RintType::None:
             break;
         case gelex::RintType::Direct:
-            cli::logging::get()->info(
-                "   Method: Direct INT (DINT), offset (k): {}",
-                config.int_offset);
             gelex::direct_int(pheno_vec, config.int_offset);
             break;
         case gelex::RintType::Indirect:
-            cli::logging::get()->info(
-                "   Method: Indirect INT (IINT), offset (k): {}",
-                config.int_offset);
             gelex::indirect_int(pheno_vec, fixed_design->X, config.int_offset);
             fixed_design = gelex::FixedDesign::make(pheno_vec.size());
             break;
