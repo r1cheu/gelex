@@ -22,6 +22,7 @@
 #include <fmt/format.h>
 #include <iterator>
 #include <ranges>
+#include <string_view>
 #include <type_traits>
 #include <variant>
 
@@ -39,10 +40,13 @@
 namespace cli
 {
 
-auto McmcReporter::show_dataset_summary(const gelex::BayesModel& model) -> void
+auto McmcReporter::show_dataset_summary(
+    const gelex::BayesModel& model,
+    std::string_view pheno_name) -> void
 {
     auto& p = cli::printer();
     p.block(cli::section("Dataset Summary:"));
+    p.line(cli::field("Trait", "{}", pheno_name));
     p.line(cli::field("Analyzed Samples", "{}", model.num_individuals()));
     p.line(cli::field("Covariates", "{}", model.fixed().X.cols()));
 }

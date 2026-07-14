@@ -52,7 +52,7 @@ auto reml_execute(const cli::RemlConfig& config) -> int
         std::move(random_designs));
 
     cli::RemlReporter reml_reporter;
-    reml_reporter.show_dataset_summary(model);
+    reml_reporter.show_dataset_summary(model, data.pheno_name);
 
     gelex::FreqState state(model);
     gelex::Estimator estimator(

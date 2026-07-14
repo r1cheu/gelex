@@ -153,7 +153,7 @@ auto mcmc_execute(const cli::McmcConfig& config) -> int
         {},
         std::move(handler).results());
 
-    reporter.show_dataset_summary(model);
+    reporter.show_dataset_summary(model, data.pheno_name);
     auto prior = bayes_recipe.make_prior(model);
 
     reporter.show_prior(prior);

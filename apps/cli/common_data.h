@@ -51,6 +51,7 @@ struct BaseData
     Eigen::VectorXd phenotype;
     gelex::FixedDesign fixed_design;
     std::vector<std::string> sample_ids;
+    std::string pheno_name;
 };
 
 template <typename T>
@@ -124,6 +125,7 @@ auto load_base_data(Handler& handler, const BaseDataConfig& config) -> BaseData
                              gelex::make_discrete_covariate(*dcovar))
                        : std::nullopt));
     }
+    auto pheno_name = std::string(phenotype.col(0).name());
     auto pheno_vec = phenotype.col(0).to_mat<double>();
 
     switch (config.transform)
@@ -149,6 +151,7 @@ auto load_base_data(Handler& handler, const BaseDataConfig& config) -> BaseData
         .phenotype = std::move(pheno_vec),
         .fixed_design = std::move(*fixed_design),
         .sample_ids = std::move(common_index).take_keys(),
+        .pheno_name = std::move(pheno_name),
     };
 }
 

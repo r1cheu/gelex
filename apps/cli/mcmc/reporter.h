@@ -19,6 +19,7 @@
 
 #include <cstddef>
 #include <string>
+#include <string_view>
 
 #include "gelex/infra/logging/fit_event.h"
 
@@ -43,7 +44,9 @@ class McmcReporter : public FitReporter
    public:
     McmcReporter() = default;
 
-    auto show_dataset_summary(const gelex::BayesModel& model) -> void;
+    auto show_dataset_summary(
+        const gelex::BayesModel& model,
+        std::string_view pheno_name) -> void;
     auto show_prior(const gelex::bayes::BayesPrior& prior) -> void;
     auto show_complete(std::ptrdiff_t samples_collected) -> void;
     auto on_event(const gelex::MCMCProgressEvent& event) -> void;
