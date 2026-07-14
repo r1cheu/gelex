@@ -24,12 +24,12 @@
 #include "gelex/freq/model.h"
 #include "gelex/io/reml.h"
 
-#include "cli/cli_helper.h"
 #include "cli/common_data.h"
 #include "cli/formatter.h"
 #include "cli/reml_data.h"
 #include "cli/reml_reporter.h"
 #include "cli/report_printer.h"
+#include "cli/runtime.h"
 
 auto reml_execute(const cli::RemlConfig& config) -> int
 {

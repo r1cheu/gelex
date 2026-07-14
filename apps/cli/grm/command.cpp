@@ -29,9 +29,9 @@
 #include "gelex/data/writer.h"
 #include "gelex/types/genetic_mode.h"
 
-#include "cli/cli_helper.h"
 #include "cli/formatter.h"
 #include "cli/report_printer.h"
+#include "cli/runtime.h"
 #include "reporter.h"
 
 namespace

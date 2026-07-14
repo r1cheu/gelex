@@ -20,7 +20,6 @@
 #include <string>
 
 #include "cli/assoc/args.h"
-#include "cli/cli_helper.h"
 #include "cli/color_formatter.h"
 #include "cli/completion/args.h"
 #include "cli/grm/args.h"

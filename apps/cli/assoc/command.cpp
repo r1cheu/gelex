@@ -40,12 +40,12 @@
 #include "gelex/io/loco_reader.h"
 #include "gelex/types/fixed_designs.h"
 
-#include "cli/cli_helper.h"
 #include "cli/common_data.h"
 #include "cli/formatter.h"
 #include "cli/reml_data.h"
 #include "cli/reml_reporter.h"
 #include "cli/report_printer.h"
+#include "cli/runtime.h"
 #include "reporter.h"
 
 class AssocDataHandler

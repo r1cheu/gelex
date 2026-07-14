@@ -14,24 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef APPS_CLI_CLI_HELPER_H_
-#define APPS_CLI_CLI_HELPER_H_
+#ifndef APPS_CLI_LEXICAL_CAST_H_
+#define APPS_CLI_LEXICAL_CAST_H_
 
-#include <Eigen/Core>
-#include <barkeep.h>
-#include <functional>
 #include <string>
-#include <string_view>
 
 #include "gelex/data/genotype_method.h"
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
 #include "gelex/types/genetic_mode.h"
-
-namespace CLI
-{
-class App;
-class Validator;
-}  // namespace CLI
 
 // Found by CLI11 via ADL, so add_option can bind enum targets directly.
 namespace gelex
@@ -45,38 +35,4 @@ auto lexical_cast(const std::string& input, GeneticModeSet& output) -> bool;
 auto lexical_cast(const std::string& input, RintType& output) -> bool;
 }  // namespace gelex
 
-namespace cli
-{
-struct BaseDataConfig;
-struct RemlDataConfig;
-
-auto is_tty() -> bool;
-
-auto setup_parallelization(int num_threads) -> void;
-
-auto add_common_io_options(CLI::App& cmd, BaseDataConfig& config) -> void;
-
-auto add_random_effect_options(CLI::App& cmd, RemlDataConfig& config) -> void;
-
-auto open_unit_interval() -> CLI::Validator;
-
-auto non_negative_number() -> CLI::Validator;
-
-auto genotype_method_validator() -> CLI::Validator;
-
-auto bayes_recipe_scheme_validator() -> CLI::Validator;
-
-auto genetic_mode_set_validator() -> CLI::Validator;
-
-auto rint_type_validator() -> CLI::Validator;
-
-auto report_command_line(const CLI::App& cmd) -> void;
-
-auto execute_cli_command(
-    const CLI::App& cmd,
-    std::string_view banner_title,
-    const std::function<int()>& execute_fn) -> int;
-
-}  // namespace cli
-
-#endif  // APPS_CLI_CLI_HELPER_H_
+#endif  // APPS_CLI_LEXICAL_CAST_H_

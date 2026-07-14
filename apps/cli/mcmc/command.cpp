@@ -39,11 +39,11 @@
 #include "gelex/types/genetic_mode.h"
 
 #include "cli/bayes_recipe_options.h"
-#include "cli/cli_helper.h"
 #include "cli/common_data.h"
 #include "cli/formatter.h"
 #include "cli/geno_reporter.h"
 #include "cli/report_printer.h"
+#include "cli/runtime.h"
 #include "reporter.h"
 
 class MCMCDataHandler

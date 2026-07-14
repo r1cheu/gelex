@@ -19,7 +19,9 @@
 #include <CLI/CLI.hpp>
 #include <memory>
 
-#include "cli/cli_helper.h"
+#include "cli/command_harness.h"
+#include "cli/lexical_cast.h"
+#include "cli/validators.h"
 #include "command.h"
 #include "config.h"
 
