@@ -21,6 +21,16 @@
 
 namespace gelex
 {
+constexpr double CONSTRAINT_SCALE = 1e-6;
+
+// Lower limit that variance components are clamped to. A component at or below
+// this floor is statistically indistinguishable from zero, so its Wald SE has
+// no meaning.
+inline auto constraint_floor(double y_variance) noexcept -> double
+{
+    return y_variance * CONSTRAINT_SCALE;
+}
+
 // Clamps negative variance components to a small positive limit, redistributing
 // the borrowed mass across the unconstrained ones. Returns how many components
 // were constrained so the caller can judge the estimate's reliability.

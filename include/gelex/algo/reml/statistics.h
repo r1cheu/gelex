@@ -38,6 +38,14 @@ auto compute_aic(const FreqModel& model, double loglike) -> double;
 // BIC = -2*logL + k*log(n)
 auto compute_bic(const FreqModel& model, double loglike) -> double;
 
+// One-sided Wald p-value P(Z > z) for a boundary parameter (variance
+// components: H0 sigma^2 = 0 against sigma^2 > 0). NaN propagates unchanged.
+auto wald_p_onesided(double z) noexcept -> double;
+
+// Two-sided Wald p-value 2*P(Z > |z|) for an interior parameter (fixed
+// effects). NaN propagates unchanged.
+auto wald_p_twosided(double z) noexcept -> double;
+
 // Compute variance component standard errors from AI Hessian inverse
 // se(σ) = sqrt(diag(-H⁻¹))
 auto compute_variance_se(FreqState& state, const RemlBuffer& buffer) -> void;

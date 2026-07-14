@@ -127,6 +127,7 @@ auto RemlReporter::show_result(
     t.column("Est.SE", Align::right);
     t.column("Ratio", Align::right);
     t.column("Ratio.SE", Align::right);
+    t.column("Pval", Align::right);
     for (const auto& r : summary.random)
     {
         t.row(
@@ -134,12 +135,16 @@ auto RemlReporter::show_result(
              fmt::format("{:.3f}", r.variance),
              fmt::format("{:.3f}", r.variance_se),
              fmt::format("{:.3f}", r.variance_ratio),
-             fmt::format("{:.3f}", r.variance_ratio_se)});
+             fmt::format("{:.3f}", r.variance_ratio_se),
+             fmt::format(
+                 "{:.3g}",
+                 gelex::wald_p_onesided(r.variance / r.variance_se))});
     }
     t.row(
         {"Residual",
          fmt::format("{:.3f}", summary.residual_variance),
          fmt::format("{:.3f}", summary.residual_variance_se),
+         "-",
          "-",
          "-"});
     p.line(t.render());

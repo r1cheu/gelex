@@ -299,7 +299,7 @@ auto report_command_line(const CLI::App& cmd) -> void
     {
         cwd.replace(0, std::string_view{home}.size(), "~");
     }
-    p.block(cli::section("Command line  ({})", cwd));
+    p.block(cli::section("Command line ({})", cwd));
 
     std::vector<const CLI::Option*> printed;
     for (const auto* option : cmd.parse_order())

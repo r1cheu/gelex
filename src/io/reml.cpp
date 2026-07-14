@@ -25,6 +25,7 @@
 #include <string_view>
 #include <vector>
 
+#include "gelex/algo/reml/statistics.h"
 #include "gelex/algo/reml/summary.h"
 #include "gelex/data/sample_id.h"
 #include "gelex/exception.h"
@@ -44,7 +45,7 @@ auto write_summary(
 {
     detail::TextWriter writer(fmt::format("{}.summary", prefix));
     writer.write_header(
-        {"term", "type", "estimate", "se", "ratio", "ratio_se"});
+        {"term", "type", "estimate", "se", "ratio", "ratio_se", "pvalue"});
 
     std::vector<std::string> fixed_names;
     fixed_names.reserve(static_cast<std::size_t>(model.fixed().X.cols()));
@@ -70,10 +71,12 @@ auto write_summary(
                                                    : fmt::format("X{}", i);
         writer.write(
             fmt::format(
-                "{}\tfixed\t{:.8e}\t{:.8e}\t-\t-",
+                "{}\tfixed\t{:.8e}\t{:.8e}\t-\t-\t{:.8e}",
                 term,
                 state.fixed().coeffs(i),
-                state.fixed().se(i)));
+                state.fixed().se(i),
+                wald_p_twosided(
+                    state.fixed().coeffs(i) / state.fixed().se(i))));
     }
 
     for (std::size_t i = 0; i < state.random().size(); ++i)
@@ -81,22 +84,23 @@ auto write_summary(
         const auto& random = state.random()[i];
         writer.write(
             fmt::format(
-                "{}\tvariance\t{:.8e}\t{:.8e}\t{:.8e}\t{:.8e}",
+                "{}\tvariance\t{:.8e}\t{:.8e}\t{:.8e}\t{:.8e}\t{:.8e}",
                 model.random()[i].name,
                 random.variance,
                 random.variance_se,
                 random.variance_ratio,
-                random.variance_ratio_se));
+                random.variance_ratio_se,
+                wald_p_onesided(random.variance / random.variance_se)));
     }
 
     writer.write(
         fmt::format(
-            "{}\tvariance\t{:.8e}\t{:.8e}\t-\t-",
+            "{}\tvariance\t{:.8e}\t{:.8e}\t-\t-\t-",
             "Residual",
             state.residual().variance,
             state.residual().variance_se));
 
-    writer.write(fmt::format("logL\tmodelfit\t{:.8e}\t-\t-\t-", loglike));
+    writer.write(fmt::format("logL\tmodelfit\t{:.8e}\t-\t-\t-\t-", loglike));
 }
 
 auto write_effects(

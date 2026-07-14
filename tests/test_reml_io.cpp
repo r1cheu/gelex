@@ -72,7 +72,8 @@ TEST_CASE("REML writers write result files", "[reml][io]")
             std::istreambuf_iterator<char>{}};
 
         REQUIRE(
-            content.find("term\ttype\testimate\tse\tratio\tratio_se\n") == 0);
+            content.find("term\ttype\testimate\tse\tratio\tratio_se\tpvalue\n")
+            == 0);
         REQUIRE(
             content.find(
                 "Intercept\tfixed\t1.50000000e+00\t2.50000000e-01\t-\t-")

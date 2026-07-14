@@ -24,8 +24,7 @@ namespace gelex
 auto constrain(Eigen::Ref<Eigen::VectorXd> varcmp, double y_variance)
     -> Eigen::Index
 {
-    constexpr double constr_scale = 1e-6;
-    const double limit = y_variance * constr_scale;
+    const double limit = constraint_floor(y_variance);
 
     Eigen::ArrayX<bool> mask = varcmp.array() < 0;
     auto num_constrained = mask.count();
