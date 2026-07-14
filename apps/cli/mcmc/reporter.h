@@ -18,28 +18,55 @@
 #define APPS_CLI_MCMC_REPORTER_H_
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <string_view>
 
+#include "gelex/bayes/prior.h"
 #include "gelex/infra/logging/fit_event.h"
+#include "gelex/infra/logging/geno_event.h"
+#include "gelex/types/genetic_mode.h"
 
-#include "cli/fit_reporter.h"
 #include "cli/progress_bar.h"
-
-namespace gelex::bayes
-{
-class BayesPrior;
-}
 
 namespace gelex
 {
+namespace bayes
+{
+class RandomPrior;
+class ResidualPrior;
+class ScaledInvChiSqPrior;
+}  // namespace bayes
+
 class BayesModel;
-}
+}  // namespace gelex
 
 namespace cli
 {
 
-class McmcReporter : public FitReporter
+class GenoReporter
+{
+   public:
+    GenoReporter();
+
+    auto show_loaded(
+        gelex::GeneticMode mode,
+        int64_t num_snps,
+        int64_t invalid_snps) const -> void;
+    auto on_event(const gelex::GenotypeProgressEvent& event) -> void;
+
+    auto as_observer() -> gelex::GenoObserver
+    {
+        return [this](const gelex::GenotypeProgressEvent& e)
+        { this->on_event(e); };
+    }
+
+   private:
+    cli::ProgressInfo progress_info_;
+    bool init_progress_ = false;
+};
+
+class McmcReporter
 {
    public:
     McmcReporter() = default;
@@ -59,6 +86,16 @@ class McmcReporter : public FitReporter
     }
 
    private:
+    static auto print_random_prior(const gelex::bayes::RandomPrior& prior)
+        -> void;
+    static auto print_genetic_prior(const gelex::bayes::GeneticPrior& prior)
+        -> void;
+    static auto print_residual_prior(const gelex::bayes::ResidualPrior& prior)
+        -> void;
+    static auto print_variance_prior(
+        const gelex::bayes::ScaledInvChiSqPrior& prior,
+        double init_variance) -> void;
+
     size_t iter_{0};
     cli::ProgressBar bar_;
     bool init_progress_ = false;

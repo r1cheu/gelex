@@ -18,17 +18,24 @@
 
 #include <Eigen/Core>
 #include <cstddef>
+#include <cstdint>
+#include <cstdio>
 #include <fmt/base.h>
 #include <fmt/format.h>
 #include <iterator>
 #include <ranges>
+#include <span>
+#include <string>
 #include <string_view>
 #include <type_traits>
+#include <unistd.h>
 #include <variant>
 
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/labels.h"
 #include "gelex/bayes/model.h"
+#include "gelex/bayes/parameter/values.h"
+#include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/types/genetic_mode.h"
@@ -39,6 +46,55 @@
 
 namespace cli
 {
+
+GenoReporter::GenoReporter() : progress_info_(cli::create_progress_info()) {}
+
+auto GenoReporter::show_loaded(
+    gelex::GeneticMode mode,
+    int64_t num_snps,
+    int64_t invalid_snps) const -> void
+{
+    const auto effective_snps = num_snps - invalid_snps;
+    const std::string label
+        = (mode == gelex::GeneticMode::D) ? "Dominance" : "Additive";
+    const std::string msg = cli::field(
+        label,
+        "{} SNPs ({} invalid excluded)",
+        cli::AbbrNumber(effective_snps),
+        cli::AbbrNumber(invalid_snps));
+
+    if (isatty(fileno(stdout)) != 0)
+    {
+        cli::printer().line("{}", "\033[A\r" + msg + "\033[K");
+    }
+    else
+    {
+        cli::printer().line("{}", msg);
+    }
+}
+
+auto GenoReporter::on_event(const gelex::GenotypeProgressEvent& event) -> void
+{
+    if (!init_progress_)
+    {
+        init_progress_ = true;
+        progress_info_ = cli::create_progress_info();
+        progress_info_.display->show();
+    }
+
+    progress_info_.progress_info->message(
+        fmt::format(
+            "  {}/{} SNPs",
+            cli::AbbrNumber(event.current),
+            cli::AbbrNumber(event.total)));
+
+    if (event.done)
+    {
+        progress_info_.display->done();
+        cli::printer().on_progress_finished();
+        init_progress_ = false;
+    }
+}
 
 auto McmcReporter::show_dataset_summary(
     const gelex::BayesModel& model,
@@ -54,7 +110,108 @@ auto McmcReporter::show_dataset_summary(
 auto McmcReporter::show_prior(const gelex::bayes::BayesPrior& prior) -> void
 {
     prior_ = &prior;
-    FitReporter::show_prior(prior);
+
+    cli::printer().block(cli::section("Prior Configuration:"));
+    print_random_prior(prior.random());
+    for (const auto& genetic : prior.genetics())
+    {
+        print_genetic_prior(genetic);
+    }
+    print_residual_prior(prior.residual());
+}
+
+auto McmcReporter::print_variance_prior(
+    const gelex::bayes::ScaledInvChiSqPrior& prior,
+    double init_variance) -> void
+{
+    cli::printer().line(
+        "    Variance: Scaled Inv-χ²(ν={:.4f}, S²={:.4g}), init: {:.4g}",
+        prior.degrees_of_freedom(),
+        prior.scale(),
+        init_variance);
+}
+
+auto McmcReporter::print_random_prior(const gelex::bayes::RandomPrior& prior)
+    -> void
+{
+    cli::printer().line("   Random effect:");
+    print_variance_prior(prior.prior(), prior.initial_value());
+}
+
+auto McmcReporter::print_genetic_prior(const gelex::bayes::GeneticPrior& prior)
+    -> void
+{
+    auto format_vec = [](const auto& p)
+    {
+        auto formatted = std::span(p.data(), p.size())
+                         | std::views::transform(
+                             [](double v) { return fmt::format("{:.3f}", v); });
+        return fmt::join(formatted, ", ");
+    };
+
+    auto print_proportion = [&format_vec](const auto& proportion)
+    {
+        cli::printer().line(
+            "    Proportion: [{}]", format_vec(proportion.initial_value()));
+        cli::printer().line(
+            "    Proportion update: {}",
+            proportion.is_sampled() ? "yes" : "no");
+    };
+
+    std::visit(
+        [&](const auto& genetic_group)
+        {
+            using Group = std::remove_cvref_t<decltype(genetic_group)>;
+            if constexpr (
+                std::is_same_v<Group, gelex::bayes::SingleGeneticPrior>)
+            {
+                std::visit(
+                    [&](const auto& genetic)
+                    {
+                        cli::printer().line("   {} effect:", genetic.mode());
+                        const auto& parameter = genetic.variance().parameter();
+                        print_variance_prior(
+                            parameter.prior(), parameter.initial_value());
+                        if constexpr (requires { genetic.proportion(); })
+                        {
+                            print_proportion(genetic.proportion());
+                        }
+                        if constexpr (requires { genetic.multiplier(); })
+                        {
+                            cli::printer().line(
+                                "    Multiplier: [{}]",
+                                format_vec(genetic.multiplier()));
+                        }
+                    },
+                    genetic_group);
+            }
+            else
+            {
+                cli::printer().line("   A, D effect:");
+                std::visit(
+                    [&](const auto& genetic)
+                    {
+                        for (const auto mode :
+                             {gelex::GeneticMode::A, gelex::GeneticMode::D})
+                        {
+                            const auto& parameter
+                                = genetic.variance(mode).parameter();
+                            print_variance_prior(
+                                parameter.prior(), parameter.initial_value());
+                        }
+                        print_proportion(genetic.proportion());
+                    },
+                    genetic_group);
+            }
+        },
+        prior);
+}
+
+auto McmcReporter::print_residual_prior(
+    const gelex::bayes::ResidualPrior& prior) -> void
+{
+    cli::printer().line("   Residual:");
+    print_variance_prior(prior.prior(), prior.initial_value());
 }
 
 auto McmcReporter::on_event(const gelex::MCMCProgressEvent& event) -> void
