@@ -31,4 +31,4 @@ exclude_patterns = []
 
 html_theme = "furo"
 htmlhelp_basename = f"{project}_doc"
-html_static_path = ["_static"]
+html_static_path = []

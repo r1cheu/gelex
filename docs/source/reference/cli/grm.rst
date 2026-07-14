@@ -18,7 +18,7 @@ Basic Syntax
 .. code-block:: bash
    :caption: Full Syntax Template
 
-   gelex grm --bfile <genotype_prefix> [--add] [--dom] [--loco] [OPTIONS]
+   gelex grm --bfile <genotype_prefix> [--mode <A|D|AD>] [--loco] [OPTIONS]
 
 Required input is PLINK genotype prefix (``--bfile``).
 
@@ -33,26 +33,26 @@ Detailed formulas and method definitions: :ref:`genotype-processor-methods`.
    :header-rows: 1
    :widths: 24 43 33
 
-   * - Method (alias)
+   * - Code (long name)
      - Use when
      - Notes
-   * - ``OrthStandardizeHWE`` (``OSH``), default
+   * - ``OSH`` (``OrthStandardizeHWE``), default
      - You want the default orthogonal HWE-standardized GRM.
      - Orthogonal dominance, HWE moments. Best for most workflows.
-   * - ``StandardizeHWE`` (``SH``)
+   * - ``SH`` (``StandardizeHWE``)
      - You want HWE standardization without orthogonal dominance.
      - Simpler encoding, HWE moments.
-   * - ``CenterHWE`` (``CH``)
+   * - ``CH`` (``CenterHWE``)
      - You prefer HWE centering without variance scaling.
      - Preserves original scale, HWE moments.
-   * - ``OrthCenterHWE`` (``OCH``)
+   * - ``OCH`` (``OrthCenterHWE``)
      - You need orthogonal HWE centering (no scaling).
      - Matches assoc default; HWE moments.
-   * - ``Standardize``, ``Center``, ``OrthStandardize``, ``OrthCenter``
+   * - ``S``, ``C``, ``OS``, ``OC``, ``NS``, ``NC``
      - You want sample-based statistics instead of HWE-based.
      - More data-dependent estimates.
 
-If unsure, use the default (``OrthStandardizeHWE``).
+If unsure, use the default (``OSH``).
 
 Options
 -------
@@ -65,22 +65,16 @@ Options
 ``-o, --out`` ``grm``
    Output prefix for GRM files.
 
-``--geno-method`` ``OrthStandardizeHWE``
-   GRM method. Available methods:
-   ``StandardizeHWE`` (``SH``), ``CenterHWE`` (``CH``),
-   ``OrthStandardizeHWE`` (``OSH``), ``OrthCenterHWE`` (``OCH``),
-   ``Standardize`` (``S``), ``Center`` (``C``),
-   ``OrthStandardize`` (``OS``), ``OrthCenter`` (``OC``).
-   Abbreviations (e.g. ``OSH``) are also accepted.
-   See :ref:`genotype-processor-methods`.
+``--geno-method`` ``OSH``
+   GRM coding method. Accepts codes ``SH``, ``CH``, ``OSH``, ``OCH``,
+   ``S``, ``C``, ``OS``, ``OC``, ``NS``, ``NC``. See
+   :ref:`genotype-processor-methods` for what each code means.
 
 .. rubric:: Matrix Selection
 
-``--add`` ``false``
-   Compute additive GRM.
-
-``--dom`` ``false``
-   Compute dominance GRM.
+``--mode`` ``A``
+   Effect mode(s) to compute: ``A`` (additive), ``D`` (dominance), or
+   ``AD`` (both additive and dominance).
 
 ``--loco`` ``false``
    Compute chromosome-wise LOCO GRMs.
@@ -91,7 +85,8 @@ Options
    Number of SNPs per chunk. Lower values reduce memory usage.
 
 ``-t, --threads`` ``half of available CPU cores``
-   Number of CPU threads (use ``-1`` for all cores).
+   Number of CPU threads. Must be non-negative; ``0`` leaves the thread
+   count to the runtime default.
 
 Output Files
 ------------
@@ -105,15 +100,16 @@ Output naming depends on whether you request one or multiple matrices.
    * - Scenario
      - File pattern
      - Notes
-   * - Single matrix (additive or dominance), no LOCO
-     - ``<out>.bin`` and ``<out>.id``
-     - No ``.add``/``.dom`` suffix in this mode.
-   * - Additive + dominance, no LOCO
+   * - Single mode (``--mode A`` or ``--mode D``), no LOCO
+     - ``<out>.add.bin/.id`` or ``<out>.dom.bin/.id``
+     - The effect suffix (``.add``/``.dom``) is always written.
+   * - ``--mode AD``, no LOCO
      - ``<out>.add.bin/.id`` and ``<out>.dom.bin/.id``
-     - One file pair per matrix type.
+     - One file pair per effect mode.
    * - LOCO enabled
-     - ``<out>.<add|dom>.chrN.bin/.id``
-     - One file pair per chromosome (and matrix type).
+     - ``<out>.<add|dom>.chrNN.bin/.id``
+     - One file pair per chromosome (and effect mode); ``NN`` is the
+       zero-padded chromosome number (``chr01``, ``chr02``, ...).
 
 File structure follows :ref:`grm-format`.
 
@@ -122,7 +118,7 @@ Warnings and Notes
 
 .. note::
 
-   If neither ``--add`` nor ``--dom`` is set, Gelex defaults to additive GRM.
+   If ``--mode`` is not set, Gelex defaults to the additive GRM (``--mode A``).
 
 .. warning::
 
@@ -144,7 +140,7 @@ Examples
 
    gelex grm \
       -b genotypes \
-      --dom \
+      --mode D \
       --geno-method OCH \
       -o my_grm_dom
 
@@ -153,8 +149,7 @@ Examples
 
    gelex grm \
       -b genotypes \
-      --add \
-      --dom \
+      --mode AD \
       --geno-method OSH \
       -o my_grm_both
 
@@ -163,7 +158,7 @@ Examples
 
    gelex grm \
       -b genotypes \
-      --add \
+      --mode A \
       --loco \
       --geno-method S \
       -o my_grm_loco

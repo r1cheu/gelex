@@ -18,7 +18,7 @@ Install Gelex globally using pixi:
 
 .. code-block:: bash
 
-   pixi g install -c conda-forge -c https://prefix.dev/gelex gelex
+   pixi global install -c conda-forge -c https://prefix.dev/gelex gelex
 
 Using Conda
 ~~~~~~~~~~~
@@ -38,7 +38,7 @@ Prerequisites
 ~~~~~~~~~~~~~
 
 - **Pixi**: We use Pixi to manage dependencies and build environments. Install it from `pixi.sh <https://pixi.sh>`_.
-- **C++ Compiler**: A compiler with C++23 support (e.g., GCC 13+, Clang 16+).
+- **C++ Compiler**: A compiler with C++23 support. Pixi provisions the toolchain (GCC 15) as part of the environment, so no separate system compiler is required.
 
 Build Steps
 ~~~~~~~~~~~
@@ -50,25 +50,30 @@ Build Steps
       git clone https://github.com/r1cheu/gelex.git
       cd gelex
 
-2. Install dependencies and build:
+2. Install dependencies:
 
    .. code-block:: bash
 
       # Install all dependencies via pixi
       pixi install
 
-      # Build the debug version (includes tests)
-      pixi run build-debug
-
-      # Build the release version (optimized)
-      pixi run build-release
-
-3. Install to your local system:
+3. Build the CLI. The ``build-cli`` task builds the core library together with
+   the ``gelex`` command-line binary:
 
    .. code-block:: bash
 
-      # Install the release binary to ~/.local/bin
-      pixi run install-release
+      # Debug build (includes tests) -> build/cli-debug/apps/gelex
+      pixi run build-cli
+
+      # Optimized release build -> build/cli-release/apps/gelex
+      pixi run build-cli release
+
+4. Make the binary available on your ``PATH``. There is no dedicated install
+   task; copy or symlink the built binary into a directory on your ``PATH``:
+
+   .. code-block:: bash
+
+      ln -s "$(pwd)/build/cli-release/apps/gelex" ~/.local/bin/gelex
 
 Verification
 ------------

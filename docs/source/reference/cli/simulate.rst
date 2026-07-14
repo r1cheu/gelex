@@ -13,14 +13,15 @@ Basic Syntax
 .. code-block:: bash
    :caption: Minimum Working Command
 
-   gelex simulate -b genotypes -o sim_data
+   gelex simulate -b genotypes --h2 0.5 --add-var 0.01 --add-n 1000 -o sim_data
 
 .. code-block:: bash
    :caption: Full Syntax Template
 
-   gelex simulate --bfile <genotype_prefix> [OPTIONS]
+   gelex simulate --bfile <genotype_prefix> --h2 <heritability> [OPTIONS]
 
-Required input is genotype prefix (``--bfile``).
+Required input is the genotype prefix (``--bfile``); you must also set at
+least one of ``--h2`` or ``--d2``.
 
 Options
 -------
@@ -33,37 +34,37 @@ Options
 ``-o, --out`` ``sim.phen``
    Output prefix/path root for simulation outputs.
 
-``--h2`` ``0.5``
-   Additive heritability proportion.
+``--h2``
+   Additive heritability proportion in (0, 1). No default; set at least one
+   of ``--h2`` or ``--d2``.
 
-``--d2`` ``0.0``
-   Dominance heritability proportion.
+``--d2``
+   Dominance heritability proportion in (0, 1). No default.
 
 .. rubric:: Effect Architecture
 
-``--add-var`` ``0.01``
-   Additive effect-class variances (one or more values).
+``--add-var``
+   Additive effect-class variances (one or more non-negative values).
 
 ``--add-n``
    SNP counts for additive effect classes; must match ``--add-var`` length.
 
-``--dom-var`` ``0.01``
-   Dominance effect-class variances.
+``--dom-var``
+   Dominance effect-class variances (one or more non-negative values).
 
 ``--dom-n``
    SNP counts for dominance effect classes; must match ``--dom-var`` length.
 
+``--dom-pos-prob``
+   Probability that dominance effects are positive, in (0, 1). Requires
+   ``--d2``.
+
 .. rubric:: Model
 
-``--geno-method`` ``OrthStandardize``
-   Genotype processing method. Available methods:
-   ``StandardizeHWE`` (``SH``), ``CenterHWE`` (``CH``),
-   ``OrthStandardizeHWE`` (``OSH``), ``OrthCenterHWE`` (``OCH``),
-   ``Standardize`` (``S``), ``Center`` (``C``),
-   ``OrthStandardize`` (``OS``), ``OrthCenter`` (``OC``),
-   ``NOIAStandardize`` (``NS``), ``NOIACenter`` (``NC``).
-   Abbreviations accepted.
-   See :ref:`genotype-processor-methods`.
+``--geno-method`` ``OS``
+   Genotype coding method. Accepts codes ``SH``, ``CH``, ``OSH``, ``OCH``,
+   ``S``, ``C``, ``OS``, ``OC``, ``NS``, ``NC``. See
+   :ref:`genotype-processor-methods` for what each code means.
 
 .. rubric:: Randomness
 
@@ -113,6 +114,9 @@ Examples
 
    gelex simulate \
       -b genotypes \
+      --h2 0.5 \
+      --add-var 0.01 \
+      --add-n 1000 \
       -o sim_basic
 
 Expected outputs: ``sim_basic.phen``, ``sim_basic.causal``.
@@ -123,7 +127,11 @@ Expected outputs: ``sim_basic.phen``, ``sim_basic.causal``.
    gelex simulate \
       -b genotypes \
       --h2 0.3 \
+      --add-var 0.01 \
+      --add-n 1000 \
       --d2 0.1 \
+      --dom-var 0.01 \
+      --dom-n 500 \
       --seed 2026 \
       -o sim_dom
 

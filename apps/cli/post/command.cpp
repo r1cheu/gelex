@@ -146,7 +146,7 @@ auto post_execute(const cli::PostConfig& config) -> int
     readers.reserve(in_prefixes.size());
     for (const auto& prefix : in_prefixes)
     {
-        readers.emplace_back(fmt::format("{}.samples", prefix));
+        readers.emplace_back(fmt::format("{}.draws", prefix));
     }
 
     if (!check_consistency(readers))

@@ -32,7 +32,7 @@ auto setup_post_command(CLI::App& program, int& exit_code) -> void
     cmd.description("Summarize posterior diagnostics from MCMC samples");
 
     cmd.add_option(
-           "--in", config->in, "MCMC output prefix(es); reads <prefix>.samples")
+           "--in", config->in, "MCMC output prefix(es); reads <prefix>.draws")
         ->group("I/O")
         ->type_name("<PREFIX>")
         ->expected(1, -1)

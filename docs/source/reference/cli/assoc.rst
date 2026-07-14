@@ -20,8 +20,11 @@ Basic Syntax
 
    gelex assoc --pheno <pheno_file> --bfile <genotype_prefix> --grm <grm_prefix...> [OPTIONS]
 
-Required inputs are phenotype file (``--pheno``), genotype prefix (``--bfile``),
-and at least one GRM prefix (``--grm``).
+Required inputs are the phenotype file (``--pheno``), the genotype prefix
+(``--bfile``), and at least one random effect. A random effect can be a GRM
+(``--grm``), a discrete random effect (``--drand``), a quantitative random
+effect (``--qrand``), or an interaction (``--interaction``). ``--grm`` is the
+most common choice and is no longer mandatory.
 
 Method Selection
 ----------------
@@ -35,25 +38,28 @@ Pick model and preprocessing strategy before tuning runtime options.
    * - Option
      - Use when
      - Trade-off
-   * - ``--model a``
-      - You are running a standard additive-effect GWAS.
-      - Fast and robust default for most analyses.
-   * - ``--model d``
-      - You want to test dominance effects in addition to additive effects.
-      - Requires compatible GRMs and often larger sample sizes.
+   * - ``--mode A``
+     - You are running a standard additive-effect GWAS (Wald test, df=1).
+     - Fast and robust default for most analyses.
+   * - ``--mode D``
+     - You want to test dominance effects (single Wald test, df=1).
+     - Requires compatible GRMs and often larger sample sizes.
+   * - ``--mode AD``
+     - You want a joint additive + dominance test (df=2).
+     - Tests additive and dominance signals together.
    * - ``--transform none``
-      - The phenotype is already approximately normal.
-      - Keeps interpretation on the original trait scale.
+     - The phenotype is already approximately normal.
+     - Keeps interpretation on the original trait scale.
    * - ``--transform dint`` / ``iint``
-      - The phenotype distribution is skewed or heavy-tailed.
-      - Often improves calibration, but effect sizes are on transformed scale.
-   * - ``--geno-method OrthCenterHWE`` (``OCH``)
-      - You want the default genotype preprocessing pipeline.
-      - Orthogonal HWE centering. Good default for stability and comparability.
+     - The phenotype distribution is skewed or heavy-tailed.
+     - Often improves calibration, but effect sizes are on transformed scale.
+   * - ``--geno-method OCH``
+     - You want the default genotype preprocessing pipeline.
+     - Orthogonal HWE centering. Good default for stability and comparability.
 
 .. warning::
 
-   If you use ``--transform`` with ``--model d``, dominance signals may be
+   If you use ``--transform`` with ``--mode D``, dominance signals may be
    attenuated, which can reduce power to detect dominance effects.
 
 
@@ -68,63 +74,73 @@ Options
 ``-b, --bfile`` ``required``
    PLINK binary prefix (``.bed/.bim/.fam``).
 
-``--grm`` ``required``
-   One or more GRM prefixes.
-
 ``-o, --out`` ``gelex``
    Output prefix for GWAS results.
 
-``--write-cov`` ``false``
-   Write ``<out>.cov`` with per-SNP beta covariance terms.
-   Requires ``--test joint --geno-method C``.
+.. rubric:: Random Effect Inputs
+
+At least one random effect is required; ``--grm`` is the usual choice.
+
+``--grm``
+   One or more GRM prefixes (``<prefix>.bin/.id``). Each prefix contributes one
+   variance component.
+
+``--drand``
+   Discrete random-effect TSV (``FID IID factor1 ...``); each factor column
+   becomes a variance component via a one-hot ``ZZ^T`` kernel.
+
+``--qrand``
+   One or more quantitative random-effect matrix TSVs (``FID IID value1 ...``);
+   each file forms one linear-kernel ``ZZ^T`` component.
+
+``--interaction``
+   Interaction random effect ``<a>:<b>``, the rescaled Hadamard product of two
+   kernels. Each operand is a loaded effect name or a GRM prefix.
 
 .. rubric:: Input and Covariate Options
 
-``--pheno-col`` ``2``
-   0-based trait column index in phenotype file.
+``--pheno-col`` ``0``
+   0-based trait column index after ``FID``/``IID`` (first trait = 0).
 
 ``--qcovar``
    Quantitative covariate TSV in format ``FID IID covar1 ...``.
 
 ``--dcovar``
-   Categorical covariate TSV in format ``FID IID factor1 ...``.
+   Discrete covariate TSV in format ``FID IID factor1 ...``.
 
 .. rubric:: Model Configuration
 
-``--model`` ``a``
-   Association model: ``a`` (additive) or ``d`` (dominance).
+``--mode`` ``A``
+   Wald test mode: ``A`` (additive, single, df=1), ``D`` (dominance, single,
+   df=1), or ``AD`` (joint additive + dominance, df=2).
 
-``--geno-method`` ``OrthCenterHWE``
-   Genotype processing method. Available methods:
-   ``StandardizeHWE`` (``SH``), ``CenterHWE`` (``CH``),
-   ``OrthStandardizeHWE`` (``OSH``), ``OrthCenterHWE`` (``OCH``),
-   ``Standardize`` (``S``), ``Center`` (``C``),
-   ``OrthStandardize`` (``OS``), ``OrthCenter`` (``OC``).
-   Abbreviations accepted.
-   See :ref:`genotype-processor-methods`.
+``--geno-method, --gm`` ``OCH``
+   Genotype coding method. Accepts codes ``SH``, ``CH``, ``OSH``, ``OCH``,
+   ``S``, ``C``, ``OS``, ``OC``, ``NS``, ``NC``. See
+   :ref:`genotype-processor-methods` for what each code means.
 
 ``--transform`` ``none``
    Phenotype transform: ``none``, ``dint`` (Direct INT), ``iint`` (Indirect INT).
 
 ``--int-offset`` ``0.375``
-   INT offset parameter ``k``.
+   Rank-INT offset parameter ``k``.
+
+``--loco`` ``false``
+   Use leave-one-chromosome-out GRMs. Cannot be combined with ``--interaction``.
 
 .. rubric:: REML and Performance
 
 ``--max-iter`` ``100``
-   Maximum REML iterations.
+   Maximum model-fit (REML) iterations.
 
 ``--tol`` ``1e-06``
-   REML convergence tolerance.
+   Convergence tolerance.
 
 ``-c, --chunk-size`` ``10000``
    Number of SNPs per association-testing chunk.
 
 ``-t, --threads`` ``half of available CPU cores``
    Number of CPU threads to use.
-
-``--loco`` ``false``
-   Enable leave-one-chromosome-out analysis.
 
 Output Files
 ------------
@@ -141,9 +157,9 @@ After a successful run, GWAS summary statistics are written to:
    * - ``<out>.gwas.tsv``
      - SNP-wise test statistics (effect size, SE, P-value, allele fields)
      - :ref:`gwas-output-format`
-   * - ``<out>.cov``
-     - Optional beta covariance output for joint C-coded association tests
-     - :ref:`gwas-joint-cov-format`
+   * - ``<out>.log``
+     - Run log with configuration, dataset summary, and timing.
+     -
 
 Warnings and Notes
 ------------------
@@ -151,12 +167,13 @@ Warnings and Notes
 .. warning::
 
    ``--loco`` requires chromosome-wise GRM inputs generated from
-   ``gelex grm --loco``. Use the matching GRM prefix in ``--grm``.
+   ``gelex grm --loco``. Use the matching GRM prefix in ``--grm``. ``--loco``
+   cannot be combined with ``--interaction``.
 
 .. note::
 
-   For ``--model d``, provide GRM inputs consistent with the dominance model
-   setup (typically additive + dominance GRMs).
+   For ``--mode D`` or ``--mode AD``, provide GRM inputs consistent with the
+   dominance model setup (typically additive + dominance GRMs).
 
 Examples
 --------
@@ -198,7 +215,7 @@ Examples
       -b genotypes_qc \
       -p phenotypes.tsv \
       --grm my_grm.add my_grm.dom \
-      --model d \
+      --mode D \
       --transform iint \
       -o dom_gwas
 
