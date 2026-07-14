@@ -19,7 +19,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/algo/reml/optimizer_state.h"
+#include "gelex/algo/reml/reml_buffer.h"
 #include "gelex/freq/model.h"
 
 namespace gelex
@@ -30,15 +30,16 @@ struct EMPolicy
     static auto apply(
         const gelex::FreqModel& model,
         const gelex::FreqState& state,
-        OptimizerState& opt_state) -> Eigen::VectorXd;
+        RemlBuffer& buffer) -> Eigen::VectorXd;
 };
 
 struct AIPolicy
 {
-    static auto apply(
-        const gelex::FreqModel& model,
-        const gelex::FreqState& state,
-        OptimizerState& opt_state) -> Eigen::VectorXd;
+    // AI-REML search direction delta = -H^{-1} * grad, evaluated at the point
+    // whose V^{-1}/P/Py are currently held in buffer. The caller owns the
+    // step length (see the Armijo backtracking in Estimator::fit).
+    static auto direction(const gelex::FreqModel& model, RemlBuffer& buffer)
+        -> Eigen::VectorXd;
 };
 
 }  // namespace gelex

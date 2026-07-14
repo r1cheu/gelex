@@ -25,7 +25,7 @@
 #include <vector>
 
 #include "gelex/algo/reml/estimator.h"
-#include "gelex/algo/reml/optimizer_state.h"
+#include "gelex/algo/reml/reml_buffer.h"
 #include "gelex/algo/reml/variance_calculator.h"  // IWYU pragma: keep
 #include "gelex/freq/design.h"
 #include "gelex/freq/model.h"
@@ -99,17 +99,18 @@ TEST_CASE(
                                         * problem.X.transpose() * Vinv_ref;
     const Eigen::VectorXd Py_ref = P_ref * problem.y;
 
-    OptimizerState opt(model);
-    compute_v(model, state, opt.V);
-    opt.logdet_v = v_inv_logdet(opt.V);
-    compute_proj(model, opt);
+    RemlBuffer buffer(model);
+    compute_v(model, state, buffer.V);
+    buffer.logdet_v = v_inv_logdet(buffer.V);
+    compute_proj(model, buffer);
 
     SECTION("in-place materialized P matches closed form")
     {
-        Eigen::MatrixXd P_mat = opt.V;
-        P_mat.noalias() -= opt.ViX * opt.XtViX_inv * opt.ViX.transpose();
+        Eigen::MatrixXd P_mat = buffer.V;
+        P_mat.noalias()
+            -= buffer.ViX * buffer.XtViX_inv * buffer.ViX.transpose();
         REQUIRE(P_mat.isApprox(P_ref, 1e-10));
-        REQUIRE(opt.Py.isApprox(Py_ref, 1e-10));
+        REQUIRE(buffer.Py.isApprox(Py_ref, 1e-10));
     }
 
     SECTION(
@@ -123,7 +124,7 @@ TEST_CASE(
               * (dof * std::log(2.0 * std::numbers::pi)
                  + std::log(V_ref.determinant())
                  + std::log(XtVinvX_ref.determinant()) + problem.y.dot(Py_ref));
-        REQUIRE(std::abs(compute_loglike(model, opt) - expected) <= 1e-10);
+        REQUIRE(std::abs(compute_loglike(model, buffer) - expected) <= 1e-10);
     }
 }
 

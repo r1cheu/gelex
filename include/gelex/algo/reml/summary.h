@@ -21,6 +21,8 @@
 #include <string>
 #include <vector>
 
+#include "gelex/algo/reml/operators.h"
+
 namespace gelex
 {
 
@@ -43,6 +45,14 @@ struct RemlSummary
     std::vector<VarianceComponent> random;
     double residual_variance{};
     double residual_variance_se{};
+};
+
+// Self-contained outcome of one fit: the reportable scalar summary plus the
+// heavy GWAS projection operators. Callers take whichever part they need.
+struct RemlFit
+{
+    RemlSummary summary;
+    GwasOperators operators;
 };
 
 // One chromosome's REML fit summary in a LOCO scan: the leave-one-chromosome

@@ -20,8 +20,13 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <utility>
+#include <vector>
 
-#include "gelex/algo/reml/optimizer_state.h"
+#include "gelex/algo/reml/effect_solver.h"
+#include "gelex/algo/reml/operators.h"
+#include "gelex/algo/reml/reml_buffer.h"
+#include "gelex/algo/reml/summary.h"
 #include "gelex/freq/model.h"
 
 namespace gelex
@@ -43,12 +48,11 @@ auto compute_bic(const FreqModel& model, double loglike) -> double
     return -2.0 * loglike + k * std::log(n);
 }
 
-auto compute_variance_se(FreqState& state, const OptimizerState& opt_state)
-    -> void
+auto compute_variance_se(FreqState& state, const RemlBuffer& buffer) -> void
 {
     // se(σ) = sqrt(diag(-H⁻¹))
     // variance component order: residual, random[0..]
-    Eigen::VectorXd se = (-opt_state.hess_inv.diagonal()).array().sqrt();
+    Eigen::VectorXd se = (-buffer.hess_inv.diagonal()).array().sqrt();
 
     Eigen::Index idx = 0;
 
@@ -62,8 +66,7 @@ auto compute_variance_se(FreqState& state, const OptimizerState& opt_state)
     }
 }
 
-auto compute_variance_ratio(FreqState& state, const OptimizerState& opt_state)
-    -> void
+auto compute_variance_ratio(FreqState& state, const RemlBuffer& buffer) -> void
 {
     // total phenotypic variance
     double sum_var = state.residual().variance;
@@ -78,7 +81,7 @@ auto compute_variance_ratio(FreqState& state, const OptimizerState& opt_state)
     }
 
     double sum_var_sq = sum_var * sum_var;
-    auto n_comp = opt_state.hess_inv.rows();
+    auto n_comp = buffer.hess_inv.rows();
 
     for (size_t ri = 0; ri < state.random().size(); ++ri)
     {
@@ -103,9 +106,56 @@ auto compute_variance_ratio(FreqState& state, const OptimizerState& opt_state)
             }
         }
 
-        double var_ratio = grad.dot(-opt_state.hess_inv * grad);
+        double var_ratio = grad.dot(-buffer.hess_inv * grad);
         r.variance_ratio_se = std::sqrt(std::max(0.0, var_ratio));
     }
+}
+
+auto assemble_reml_fit(
+    const FreqModel& model,
+    FreqState& state,
+    RemlBuffer& buffer,
+    double loglike,
+    bool converged,
+    size_t iter_count) -> RemlFit
+{
+    compute_fixed_effects(model, state, buffer);
+    compute_random_effects(model, state, buffer);
+    compute_variance_se(state, buffer);
+    compute_variance_ratio(state, buffer);
+
+    std::vector<VarianceComponent> components;
+    components.reserve(state.random().size());
+    for (size_t i = 0; i < state.random().size(); ++i)
+    {
+        const auto& r = state.random()[i];
+        components.push_back(
+            {.name = model.random()[i].name,
+             .variance = r.variance,
+             .variance_se = r.variance_se,
+             .variance_ratio = r.variance_ratio,
+             .variance_ratio_se = r.variance_ratio_se});
+    }
+
+    RemlSummary summary{
+        .loglike = loglike,
+        .converged = converged,
+        .iter_count = iter_count,
+        .random = std::move(components),
+        .residual_variance = state.residual().variance,
+        .residual_variance_se = state.residual().variance_se};
+
+    // Materialize P = V^{-1} - ViX * XtViX_inv * ViX' in buffer.V's memory
+    // so downstream GWAS can use a single dense GEMM per SNP chunk.
+    buffer.V.noalias()
+        -= buffer.ViX * buffer.XtViX_inv * buffer.ViX.transpose();
+
+    return RemlFit{
+        .summary = std::move(summary),
+        .operators = GwasOperators{
+            .P = std::move(buffer.V),
+            .Py = std::move(buffer.Py),
+            .Vp = state.Vp()}};
 }
 
 }  // namespace gelex

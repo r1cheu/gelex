@@ -18,7 +18,7 @@
 
 #include <cstddef>
 
-#include "gelex/algo/reml/optimizer_state.h"
+#include "gelex/algo/reml/reml_buffer.h"
 #include "gelex/freq/model.h"
 
 namespace gelex
@@ -27,19 +27,19 @@ namespace gelex
 auto compute_fixed_effects(
     const FreqModel& model,
     FreqState& state,
-    const OptimizerState& opt_state) -> void
+    const RemlBuffer& buffer) -> void
 {
     // β = inv_XtViX * ViX' * y = (X'V⁻¹X)⁻¹ * X' * V⁻¹ * y
     // se(β) = sqrt(diag(inv_XtViX))
     state.fixed().coeffs.noalias()
-        = opt_state.XtViX_inv * (opt_state.ViX.transpose() * model.phenotype());
-    state.fixed().se = opt_state.XtViX_inv.diagonal().array().sqrt();
+        = buffer.XtViX_inv * (buffer.ViX.transpose() * model.phenotype());
+    state.fixed().se = buffer.XtViX_inv.diagonal().array().sqrt();
 }
 
 auto compute_random_effects(
     const FreqModel& model,
     FreqState& state,
-    const OptimizerState& opt_state) -> void
+    const RemlBuffer& buffer) -> void
 {
     for (size_t i = 0; i < model.random().size(); ++i)
     {
@@ -47,7 +47,7 @@ auto compute_random_effects(
         auto& effect_state = state.random()[i];
 
         effect_state.blup.noalias()
-            = effect.K * opt_state.Py * effect_state.variance;
+            = effect.K * buffer.Py * effect_state.variance;
     }
 }
 

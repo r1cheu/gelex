@@ -23,8 +23,7 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/algo/reml/effect_solver.h"
-#include "gelex/algo/reml/operators.h"
+#include "gelex/algo/reml/constrain.h"
 #include "gelex/algo/reml/policy.h"
 #include "gelex/algo/reml/statistics.h"
 #include "gelex/algo/reml/summary.h"
@@ -36,8 +35,17 @@
 namespace gelex
 {
 
+// Backtracking gives up below this step length, treating the anchor as
+// stationary.
+constexpr double LINE_SEARCH_MIN_STEP = 1e-4;
+
+// Armijo sufficient-decrease constant c1 (Nocedal & Wright eq. 3.4).
+constexpr double ARMIJO_C1 = 1e-4;
+
 Estimator::Estimator(size_t max_iter, double tol, RemlObserver observer)
-    : optimizer_(tol), max_iter_(max_iter), observer_(std::move(observer))
+    : convergence_checker_(tol),
+      max_iter_(max_iter),
+      observer_(std::move(observer))
 {
 }
 
@@ -46,27 +54,72 @@ auto Estimator::fit(
     gelex::FreqState& state,
     bool em_init) -> RemlFit
 {
-    optimizer_.reset();
+    convergence_checker_.clear();
 
-    OptimizerState opt_state(model);
+    RemlBuffer buffer(model);
 
-    double loglike = 0.0;
+    Eigen::Index num_constrained = 0;
+
+    // EM initialization: one fixed-point step to seed good AI priors.
+    if (em_init)
+    {
+        evaluate_point(model, state, buffer);
+        Eigen::VectorXd sigma = EMPolicy::apply(model, state, buffer);
+        num_constrained = constrain(sigma, buffer.phenotype_variance());
+        distribute_variance_components(state, sigma);
+    }
+
+    // AI-REML with Armijo backtracking: backtrack the step from 1 along the AI
+    // direction p until the sufficient-increase condition holds,
+    //   logL(anchor + step*p) >= logL(anchor) + c1 * step * gradᵀp,
+    // so overshoot on the ill-conditioned likelihood ridge of collinear GRMs
+    // cannot spiral into a limit cycle.
+    Eigen::VectorXd anchor_sigma = collect_variance_components(state);
+    double anchor_loglike = evaluate_point(model, state, buffer);
+
+    double loglike = anchor_loglike;
     bool converged = false;
     size_t iter_count = max_iter_;
 
-    // EM initialization
-    if (em_init)
-    {
-        em_step(model, state, opt_state);
-        optimizer_.reset();
-    }
-
-    // AI iterations
     for (size_t iter = 1; iter <= max_iter_; ++iter)
     {
-        optimizer_.step<AIPolicy>(model, state, opt_state);
+        const Eigen::VectorXd direction = AIPolicy::direction(model, buffer);
+        const double directional_derivative = buffer.first_grad.dot(direction);
 
-        loglike = compute_loglike(model, opt_state);
+        double step = 1.0;
+        Eigen::VectorXd sigma;
+        bool improved = false;
+        while (true)
+        {
+            sigma = anchor_sigma + step * direction;
+            num_constrained = constrain(sigma, buffer.phenotype_variance());
+            distribute_variance_components(state, sigma);
+            loglike = evaluate_point(model, state, buffer);
+            if (loglike
+                >= anchor_loglike + (ARMIJO_C1 * step * directional_derivative))
+            {
+                improved = true;
+                break;
+            }
+            if (step < LINE_SEARCH_MIN_STEP)
+            {
+                break;
+            }
+            step *= 0.5;
+        }
+
+        // No sufficient increase even at the smallest step: the anchor is
+        // stationary. Restore it (refilling buffer for the final effect/SE
+        // pass) and stop.
+        if (!improved)
+        {
+            sigma = anchor_sigma;
+            loglike = anchor_loglike;
+            num_constrained = constrain(sigma, buffer.phenotype_variance());
+            distribute_variance_components(state, sigma);
+            evaluate_point(model, state, buffer);
+            converged = true;
+        }
 
         std::vector<std::string> labels;
         std::vector<double> variances;
@@ -87,71 +140,35 @@ auto Estimator::fit(
                 .labels = std::move(labels),
                 .variances = std::move(variances)});
 
-        if (optimizer_.is_converged())
+        if (!improved)
+        {
+            iter_count = iter;
+            break;
+        }
+
+        if (convergence_checker_.is_converged(sigma, loglike))
         {
             converged = true;
             iter_count = iter;
             break;
         }
+
+        anchor_sigma = sigma;
+        anchor_loglike = loglike;
     }
 
     const auto num_total = static_cast<Eigen::Index>(state.random().size()) + 1;
-    if (2 * optimizer_.num_constrained() > num_total)
+    if (2 * num_constrained > num_total)
     {
         notify(
             observer_,
             RemlConstrainedEvent{
-                .num_constrained
-                = static_cast<size_t>(optimizer_.num_constrained()),
+                .num_constrained = static_cast<size_t>(num_constrained),
                 .num_total = static_cast<size_t>(num_total)});
     }
 
-    // compute final results
-    compute_fixed_effects(model, state, opt_state);
-    compute_random_effects(model, state, opt_state);
-    compute_variance_se(state, opt_state);
-    compute_variance_ratio(state, opt_state);
-
-    std::vector<VarianceComponent> components;
-    components.reserve(state.random().size());
-    for (size_t i = 0; i < state.random().size(); ++i)
-    {
-        const auto& r = state.random()[i];
-        components.push_back(
-            {.name = model.random()[i].name,
-             .variance = r.variance,
-             .variance_se = r.variance_se,
-             .variance_ratio = r.variance_ratio,
-             .variance_ratio_se = r.variance_ratio_se});
-    }
-
-    RemlSummary summary{
-        .loglike = loglike,
-        .converged = converged,
-        .iter_count = iter_count,
-        .random = std::move(components),
-        .residual_variance = state.residual().variance,
-        .residual_variance_se = state.residual().variance_se};
-
-    // Materialize P = V^{-1} - ViX * XtViX_inv * ViX' in opt_state.V's memory
-    // so downstream GWAS can use a single dense GEMM per SNP chunk.
-    opt_state.V.noalias()
-        -= opt_state.ViX * opt_state.XtViX_inv * opt_state.ViX.transpose();
-
-    return RemlFit{
-        .summary = std::move(summary),
-        .operators = GwasOperators{
-            .P = std::move(opt_state.V),
-            .Py = std::move(opt_state.Py),
-            .Vp = state.Vp()}};
-}
-
-auto Estimator::em_step(
-    const gelex::FreqModel& model,
-    gelex::FreqState& state,
-    OptimizerState& opt_state) -> void
-{
-    optimizer_.step<EMPolicy>(model, state, opt_state);
+    return assemble_reml_fit(
+        model, state, buffer, loglike, converged, iter_count);
 }
 
 }  // namespace gelex

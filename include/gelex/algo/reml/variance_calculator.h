@@ -19,7 +19,7 @@
 
 #include <Eigen/Core>
 
-#include "gelex/algo/reml/optimizer_state.h"
+#include "gelex/algo/reml/reml_buffer.h"
 #include "gelex/freq/model.h"
 
 namespace gelex
@@ -39,12 +39,28 @@ auto v_inv_logdet(Eigen::Ref<Eigen::MatrixXd> v) -> double;
 // Fills ViX = V^{-1}*X, inv_XtViX = (X'*V^{-1}*X)^{-1}, logdet_xvx.
 // P is represented lazily as V^{-1} - ViX*inv_XtViX*ViX' and never
 // materialized. Requires v to already contain V^{-1}.
-auto compute_proj(const gelex::FreqModel& model, OptimizerState& state) -> void;
+auto compute_proj(const gelex::FreqModel& model, RemlBuffer& buffer) -> void;
 
 // Compute REML log-likelihood:
 // logL = -0.5 * (log|V| + log|X'V^{-1}X| + y'Py)
-auto compute_loglike(const gelex::FreqModel& model, const OptimizerState& state)
+auto compute_loglike(const gelex::FreqModel& model, const RemlBuffer& buffer)
     -> double;
+
+// One O(n^3) evaluation at the variance components currently in `state`: fills
+// V^{-1}, P, Py in buffer and returns the REML log-likelihood.
+auto evaluate_point(
+    const gelex::FreqModel& model,
+    const gelex::FreqState& state,
+    RemlBuffer& buffer) -> double;
+
+// Pack variance components from FreqState into a vector (residual first).
+auto collect_variance_components(const gelex::FreqState& state)
+    -> Eigen::VectorXd;
+
+// Unpack a variance-component vector back into FreqState (residual first).
+auto distribute_variance_components(
+    gelex::FreqState& state,
+    const Eigen::Ref<const Eigen::VectorXd>& sigma) -> void;
 
 }  // namespace gelex
 

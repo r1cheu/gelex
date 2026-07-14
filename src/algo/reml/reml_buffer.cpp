@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/reml/optimizer_state.h"
+#include "gelex/algo/reml/reml_buffer.h"
 
 #include <Eigen/Core>
 
@@ -23,7 +23,7 @@
 namespace gelex
 {
 
-OptimizerState::OptimizerState(const FreqModel& model)
+RemlBuffer::RemlBuffer(const FreqModel& model)
     : num_individuals_(model.num_individuals()),
       phenotype_variance_(model.phenotype_variance())
 {
@@ -40,13 +40,13 @@ OptimizerState::OptimizerState(const FreqModel& model)
     first_grad.resize(n_comp);
 }
 
-auto OptimizerState::trace_proj() const -> double
+auto RemlBuffer::trace_proj() const -> double
 {
     return V.trace() - XtViX_inv.cwiseProduct(ViX.transpose() * ViX).sum();
 }
 
-auto OptimizerState::trace_proj_k(
-    const Eigen::Ref<const Eigen::MatrixXd>& K) const -> double
+auto RemlBuffer::trace_proj_k(const Eigen::Ref<const Eigen::MatrixXd>& K) const
+    -> double
 {
     return V.cwiseProduct(K).sum()
            - XtViX_inv.cwiseProduct(ViX.transpose() * K * ViX).sum();

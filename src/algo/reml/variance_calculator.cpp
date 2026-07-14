@@ -24,7 +24,7 @@
 #include <ranges>
 #include <stdexcept>
 
-#include "gelex/algo/reml/optimizer_state.h"
+#include "gelex/algo/reml/reml_buffer.h"
 #include "gelex/freq/model.h"
 
 namespace gelex
@@ -83,16 +83,16 @@ auto v_inv_logdet(Eigen::Ref<Eigen::MatrixXd> v) -> double
     return logdet;
 }
 
-auto compute_proj(const gelex::FreqModel& model, OptimizerState& state) -> void
+auto compute_proj(const gelex::FreqModel& model, RemlBuffer& buffer) -> void
 {
     const auto& x = model.fixed().X;
     const auto& y = model.phenotype();
 
     // ViX = V^{-1} X (v holds V^{-1} after v_inv_logdet)
-    state.ViX.noalias() = state.V * x;
+    buffer.ViX.noalias() = buffer.V * x;
 
     // XtViX = X' V^{-1} X = X' ViX (local only; stored form is its inverse)
-    Eigen::MatrixXd XtViX = x.transpose() * state.ViX;
+    Eigen::MatrixXd XtViX = x.transpose() * buffer.ViX;
 
     Eigen::LLT<Eigen::MatrixXd> llt(XtViX);
     if (llt.info() != Eigen::Success)
@@ -104,28 +104,70 @@ auto compute_proj(const gelex::FreqModel& model, OptimizerState& state) -> void
     Eigen::MatrixXd L = llt.matrixL();
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-    state.logdet_xvx = 2.0 * L.diagonal().array().log().sum();
+    buffer.logdet_xvx = 2.0 * L.diagonal().array().log().sum();
 #pragma GCC diagnostic pop
 
     // inv_XtViX = (X' V^{-1} X)^{-1}
-    state.XtViX_inv
+    buffer.XtViX_inv
         = llt.solve(Eigen::MatrixXd::Identity(XtViX.rows(), XtViX.cols()));
 
     // Py = V^{-1} y - ViX inv_XtViX (ViX' y)
-    state.Py.noalias() = state.V * y;
-    state.Py.noalias()
-        -= state.ViX * (state.XtViX_inv * (state.ViX.transpose() * y));
+    buffer.Py.noalias() = buffer.V * y;
+    buffer.Py.noalias()
+        -= buffer.ViX * (buffer.XtViX_inv * (buffer.ViX.transpose() * y));
 }
 
-auto compute_loglike(const gelex::FreqModel& model, const OptimizerState& state)
+auto compute_loglike(const gelex::FreqModel& model, const RemlBuffer& buffer)
     -> double
 {
     // logL = -0.5 * ((n-p)*log(2π) + log|V| + log|X'V^{-1}X| + y'Py)
-    double ypy = model.phenotype().dot(state.Py);
+    double ypy = model.phenotype().dot(buffer.Py);
     auto dof
         = static_cast<double>(model.num_individuals() - model.fixed().X.cols());
     double constant = dof * std::log(2.0 * std::numbers::pi);
-    return -0.5 * (constant + state.logdet_v + state.logdet_xvx + ypy);
+    return -0.5 * (constant + buffer.logdet_v + buffer.logdet_xvx + ypy);
+}
+
+auto evaluate_point(
+    const gelex::FreqModel& model,
+    const gelex::FreqState& state,
+    RemlBuffer& buffer) -> double
+{
+    compute_v(model, state, buffer.V);
+    buffer.logdet_v = v_inv_logdet(buffer.V);
+    compute_proj(model, buffer);
+    return compute_loglike(model, buffer);
+}
+
+auto collect_variance_components(const gelex::FreqState& state)
+    -> Eigen::VectorXd
+{
+    auto n_random = static_cast<Eigen::Index>(state.random().size());
+    Eigen::Index n_total = 1 + n_random;  // residual + random
+
+    Eigen::VectorXd sigma(n_total);
+    sigma(0) = state.residual().variance;
+
+    Eigen::Index idx = 1;
+    for (const auto& r : state.random())
+    {
+        sigma(idx++) = r.variance;
+    }
+
+    return sigma;
+}
+
+auto distribute_variance_components(
+    gelex::FreqState& state,
+    const Eigen::Ref<const Eigen::VectorXd>& sigma) -> void
+{
+    state.residual().variance = sigma(0);
+
+    Eigen::Index idx = 1;
+    for (auto& r : state.random())
+    {
+        r.variance = sigma(idx++);
+    }
 }
 
 }  // namespace gelex

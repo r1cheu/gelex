@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_ALGO_REML_OPTIMIZER_STATE_H_
-#define GELEX_ALGO_REML_OPTIMIZER_STATE_H_
+#ifndef GELEX_ALGO_REML_REML_BUFFER_H_
+#define GELEX_ALGO_REML_REML_BUFFER_H_
 
 #include <Eigen/Core>
 
@@ -24,10 +24,10 @@
 namespace gelex
 {
 
-class OptimizerState
+class RemlBuffer
 {
    public:
-    explicit OptimizerState(const gelex::FreqModel& model);
+    explicit RemlBuffer(const gelex::FreqModel& model);
 
     auto phenotype_variance() const -> double { return phenotype_variance_; }
     auto num_individuals() const -> Eigen::Index { return num_individuals_; }
@@ -60,4 +60,4 @@ class OptimizerState
 
 }  // namespace gelex
 
-#endif  // GELEX_ALGO_REML_OPTIMIZER_STATE_H_
+#endif  // GELEX_ALGO_REML_REML_BUFFER_H_

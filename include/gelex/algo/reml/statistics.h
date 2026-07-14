@@ -17,6 +17,10 @@
 #ifndef GELEX_ALGO_REML_STATISTICS_H_
 #define GELEX_ALGO_REML_STATISTICS_H_
 
+#include <cstddef>
+
+#include "gelex/algo/reml/summary.h"
+
 namespace gelex
 {
 class FreqModel;
@@ -25,7 +29,7 @@ class FreqState;
 
 namespace gelex
 {
-class OptimizerState;
+class RemlBuffer;
 
 // AIC = -2*logL + 2*k
 // k = number of variance components + number of fixed effects
@@ -36,14 +40,22 @@ auto compute_bic(const FreqModel& model, double loglike) -> double;
 
 // Compute variance component standard errors from AI Hessian inverse
 // se(σ) = sqrt(diag(-H⁻¹))
-auto compute_variance_se(FreqState& state, const OptimizerState& opt_state)
-    -> void;
+auto compute_variance_se(FreqState& state, const RemlBuffer& buffer) -> void;
 
 // Compute variance ratio and its standard error using delta method
 // ratio = σ_r / Σσ
 // se(ratio) = sqrt(g' * (-H⁻¹) * g)
-auto compute_variance_ratio(FreqState& state, const OptimizerState& opt_state)
-    -> void;
+auto compute_variance_ratio(FreqState& state, const RemlBuffer& buffer) -> void;
+
+// Post-estimation: solve fixed/random effects, fill SEs and ratios, pack the
+// reportable summary, and materialize P into buffer for the GWAS operators.
+auto assemble_reml_fit(
+    const FreqModel& model,
+    FreqState& state,
+    RemlBuffer& buffer,
+    double loglike,
+    bool converged,
+    size_t iter_count) -> RemlFit;
 
 }  // namespace gelex
 

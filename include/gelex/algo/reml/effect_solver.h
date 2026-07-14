@@ -25,7 +25,7 @@ class FreqState;
 
 namespace gelex
 {
-class OptimizerState;
+class RemlBuffer;
 
 // Compute fixed effects coefficients (BLUE) and standard errors
 // β = (X'V⁻¹X)⁻¹ X'V⁻¹y
@@ -33,14 +33,14 @@ class OptimizerState;
 auto compute_fixed_effects(
     const FreqModel& model,
     FreqState& state,
-    const OptimizerState& opt_state) -> void;
+    const RemlBuffer& buffer) -> void;
 
 // Compute random effects (BLUP)
 // u = K * Py * σ
 auto compute_random_effects(
     const FreqModel& model,
     FreqState& state,
-    const OptimizerState& opt_state) -> void;
+    const RemlBuffer& buffer) -> void;
 
 }  // namespace gelex
 
