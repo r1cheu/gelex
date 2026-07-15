@@ -57,18 +57,9 @@ class IndexProjection
         return target_to_source_;
     }
 
-    [[nodiscard]] auto source_to_target() const -> std::span<const index_type>
-    {
-        return source_to_target_;
-    }
-
-    [[nodiscard]] auto is_identity() const -> bool { return is_identity_; }
-
    private:
     index_type source_size_ = 0;
     std::vector<index_type> target_to_source_;
-    std::vector<index_type> source_to_target_;
-    bool is_identity_ = true;
 };
 
 }  // namespace gelex::detail

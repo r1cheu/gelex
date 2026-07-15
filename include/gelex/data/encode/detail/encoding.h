@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_DETAIL_LOCUS_ENCODING_H_
-#define GELEX_DATA_DETAIL_LOCUS_ENCODING_H_
+#ifndef GELEX_DATA_ENCODE_DETAIL_ENCODING_H_
+#define GELEX_DATA_ENCODE_DETAIL_ENCODING_H_
 
 #include <Eigen/Core>
-#include <concepts>
-#include <cstddef>
 
-#include "gelex/data/locus_encoding_types.h"
+#include "gelex/data/encode/types.h"
 
 namespace gelex::detail
 {
@@ -64,37 +62,6 @@ struct CodeMap
     const EncodingSpec& spec,
     double tol = 1e-12) -> LocusEncoding;
 
-template <std::floating_point T>
-auto make_loci_encoding(
-    const Eigen::Ref<const Eigen::MatrixX<T>>& genotypes,
-    const EncodingSpec& spec,
-    T tol = static_cast<T>(1e-12),
-    Eigen::Index marker_offset = 0) -> LociEncoding
-{
-    LociEncoding out;
-    out.spec = spec;
-
-    const Eigen::Index num_markers{genotypes.cols()};
-    out.loci.reserve(static_cast<std::size_t>(num_markers));
-
-    for (Eigen::Index marker_index{0}; marker_index < num_markers;
-         ++marker_index)
-    {
-        const auto locus = genotypes.col(marker_index);
-        const LocusStats stats{compute_locus_stats<T>(locus)};
-        const LocusEncoding encoding{make_locus_encoding(
-            marker_offset + marker_index,
-            stats,
-            spec,
-            static_cast<double>(tol))};
-
-        out.loci.push_back(encoding);
-        out.loci.back().column_index = marker_index;
-    }
-
-    return out;
-}
-
 }  // namespace gelex::detail
 
-#endif  // GELEX_DATA_DETAIL_LOCUS_ENCODING_H_
+#endif  // GELEX_DATA_ENCODE_DETAIL_ENCODING_H_

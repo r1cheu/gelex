@@ -14,78 +14,15 @@
  * limitations under the License.
  */
 
-#include "gelex/data/locus_encoding.h"
+#include "gelex/data/encode/detail/encoding.h"
 
 #include <cmath>
-#include <cstddef>
 
-namespace gelex
-{
+#include "gelex/data/encode/stats.h"
+#include "gelex/data/encode/types.h"
+#include "gelex/types/genetic_mode.h"
 
-auto build_loci_encoding(const SnpStats& stats) -> LociEncoding
-{
-    LociEncoding encoding;
-    const Eigen::Index n_snps = stats.code.cols();
-    encoding.loci.reserve(static_cast<std::size_t>(n_snps));
-    for (Eigen::Index j = 0; j < n_snps; ++j)
-    {
-        LocusEncoding locus;
-        locus.column_index = j;
-        locus.code = stats.code.col(j).array();
-        locus.missing_encoded_value = 0.0;
-        locus.valid = true;
-        encoding.loci.push_back(locus);
-    }
-    return encoding;
-}
-
-auto encoding_spec_from_method(GeneticMode effect, GenotypeMethod method)
-    -> EncodingSpec
-{
-    EncodingSpec spec;
-    spec.effect = effect;
-    spec.normalization = is_center(method) ? Normalization::Center
-                                           : Normalization::CenterScale;
-    spec.moment_basis
-        = is_hwe(method) ? MomentBasis::Theoretical : MomentBasis::Empirical;
-
-    if (is_noia(method))
-    {
-        spec.dominance_code = DominanceCode::NOIA;
-    }
-    else if (is_orthogonal(method))
-    {
-        spec.dominance_code = DominanceCode::HWE;
-    }
-    else
-    {
-        spec.dominance_code = DominanceCode::Het;
-    }
-
-    return spec;
-}
-
-auto LocusStats::pA2A2() const -> double
-{
-    return static_cast<double>(nA2A2) / static_cast<double>(n_nonmissing());
-}
-
-auto LocusStats::pA1A2() const -> double
-{
-    return static_cast<double>(nA1A2) / static_cast<double>(n_nonmissing());
-}
-
-auto LocusStats::pA1A1() const -> double
-{
-    return static_cast<double>(nA1A1) / static_cast<double>(n_nonmissing());
-}
-
-auto LocusStats::A1freq() const -> double
-{
-    return pA1A1() + (0.5 * pA1A2());
-}
-
-namespace detail
+namespace gelex::detail
 {
 
 auto make_moment_weights(const LocusStats& stats, MomentBasis basis)
@@ -225,30 +162,26 @@ auto make_locus_encoding(
     out.sd = std::sqrt(out.var);
     out.code = code.value;
 
-    if (spec.normalization == Normalization::Center
-        || spec.normalization == Normalization::CenterScale)
+    switch (spec.normalization)
     {
-        out.code -= out.mean;
+        case Normalization::Center:
+            out.code -= out.mean;
+            out.missing_encoded_value = 0.0;
+            break;
+        case Normalization::CenterScale:
+            out.code -= out.mean;
+            out.code /= out.sd;
+            out.missing_encoded_value = 0.0;
+            break;
+        case Normalization::None:
+            out.missing_encoded_value = out.mean;
+            break;
+        default:
+            out.missing_encoded_value = 0.0;
+            break;
     }
-
-    if (spec.normalization == Normalization::CenterScale)
-    {
-        out.code /= out.sd;
-    }
-
-    if (spec.normalization == Normalization::None)
-    {
-        out.missing_encoded_value = out.mean;
-    }
-    else
-    {
-        out.missing_encoded_value = 0.0;
-    }
-
     out.valid = true;
     return out;
 }
 
-}  // namespace detail
-
-}  // namespace gelex
+}  // namespace gelex::detail

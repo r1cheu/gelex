@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_LOCUS_ENCODING_TYPES_H_
-#define GELEX_DATA_LOCUS_ENCODING_TYPES_H_
+#ifndef GELEX_DATA_ENCODE_TYPES_H_
+#define GELEX_DATA_ENCODE_TYPES_H_
 
 #include <Eigen/Core>
 #include <cstdint>
-#include <vector>
 
+#include "gelex/data/encode/stats.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/data/locus_stats.h"
 #include "gelex/types/genetic_mode.h"
 
 namespace gelex
@@ -76,12 +75,6 @@ struct LocusEncoding
     bool valid{false};
 };
 
-struct LociEncoding
-{
-    EncodingSpec spec;
-    std::vector<LocusEncoding> loci;
-};
-
 }  // namespace gelex
 
-#endif  // GELEX_DATA_LOCUS_ENCODING_TYPES_H_
+#endif  // GELEX_DATA_ENCODE_TYPES_H_

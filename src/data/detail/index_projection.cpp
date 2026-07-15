@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <fmt/format.h>
+#include <vector>
 
 #include "gelex/exception.h"
 
@@ -26,35 +27,25 @@ namespace gelex::detail
 IndexProjection::IndexProjection(
     const DataFrameIndex<std::string>& source_index,
     const DataFrameIndex<std::string>& target_index)
-    : source_size_{static_cast<index_type>(source_index.size())},
-      source_to_target_(static_cast<std::size_t>(source_size_), npos),
-      is_identity_{source_index.size() == target_index.size()}
+    : source_size_{static_cast<index_type>(source_index.size())}
 {
     target_to_source_.reserve(target_index.size());
 
-    for (std::size_t target_pos = 0; target_pos < target_index.size();
-         ++target_pos)
-    {
-        const auto& sample_id = target_index.keys()[target_pos];
+    std::vector<bool> projected(static_cast<std::size_t>(source_size_), false);
 
+    for (const auto& sample_id : target_index.keys())
+    {
         const auto source_pos
             = static_cast<index_type>(source_index.at(sample_id));
 
-        target_to_source_.push_back(source_pos);
-
-        if (source_to_target_[static_cast<std::size_t>(source_pos)] != npos)
+        if (projected[static_cast<std::size_t>(source_pos)])
         {
             throw GelexException{
                 fmt::format("duplicated projected sample: {}", sample_id)};
         }
+        projected[static_cast<std::size_t>(source_pos)] = true;
 
-        source_to_target_[static_cast<std::size_t>(source_pos)]
-            = static_cast<index_type>(target_pos);
-
-        if (static_cast<std::size_t>(source_pos) != target_pos)
-        {
-            is_identity_ = false;
-        }
+        target_to_source_.push_back(source_pos);
     }
 }
 

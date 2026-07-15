@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_LOCUS_STATS_H_
-#define GELEX_DATA_LOCUS_STATS_H_
+#ifndef GELEX_DATA_ENCODE_STATS_H_
+#define GELEX_DATA_ENCODE_STATS_H_
 
 #include <Eigen/Core>
-#include <cmath>
-#include <concepts>
 
 namespace gelex
 {
@@ -41,45 +39,27 @@ struct LocusStats
         return n_nonmissing() > 0;
     }
 
-    [[nodiscard]] auto pA2A2() const -> double;
-    [[nodiscard]] auto pA1A2() const -> double;
-    [[nodiscard]] auto pA1A1() const -> double;
-    [[nodiscard]] auto A1freq() const -> double;
-};
-
-template <std::floating_point T>
-auto compute_locus_stats(const Eigen::Ref<const Eigen::VectorX<T>>& locus)
-    -> LocusStats
-{
-    LocusStats stats;
-
-    for (Eigen::Index i = 0; i < locus.size(); ++i)
+    [[nodiscard]] auto pA2A2() const -> double
     {
-        const T genotype = locus[i];
-
-        if (std::isnan(genotype))
-        {
-            ++stats.n_missing;
-            continue;
-        }
-
-        if (genotype == T{0})
-        {
-            ++stats.nA2A2;
-        }
-        else if (genotype == T{1})
-        {
-            ++stats.nA1A2;
-        }
-        else if (genotype == T{2})
-        {
-            ++stats.nA1A1;
-        }
+        return static_cast<double>(nA2A2) / static_cast<double>(n_nonmissing());
     }
 
-    return stats;
-}
+    [[nodiscard]] auto pA1A2() const -> double
+    {
+        return static_cast<double>(nA1A2) / static_cast<double>(n_nonmissing());
+    }
+
+    [[nodiscard]] auto pA1A1() const -> double
+    {
+        return static_cast<double>(nA1A1) / static_cast<double>(n_nonmissing());
+    }
+
+    [[nodiscard]] auto A1freq() const -> double
+    {
+        return pA1A1() + (0.5 * pA1A2());
+    }
+};
 
 }  // namespace gelex
 
-#endif  // GELEX_DATA_LOCUS_STATS_H_
+#endif  // GELEX_DATA_ENCODE_STATS_H_
