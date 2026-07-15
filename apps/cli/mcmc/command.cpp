@@ -85,6 +85,7 @@ class MCMCDataHandler
                                  genotype_method_,
                                  static_cast<std::size_t>(config_.chunk_size));
 
+        reporter_.show_total(bed_.num_snps());
         for (auto& [mode, genotype] : genotypes)
         {
             reporter_.show_loaded(

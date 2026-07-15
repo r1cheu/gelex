@@ -45,45 +45,70 @@
 namespace cli
 {
 
-GenoReporter::GenoReporter() : progress_info_(cli::create_progress_info()) {}
+GenoReporter::GenoReporter() : eta_(1) {}
+
+auto GenoReporter::show_total(int64_t num_variants) const -> void
+{
+    cli::printer().line(
+        "{}", cli::field("Variants", "{}", cli::AbbrNumber(num_variants)));
+}
 
 auto GenoReporter::show_loaded(
     gelex::GeneticMode mode,
     int64_t num_snps,
     int64_t invalid_snps) const -> void
 {
-    const auto effective_snps = num_snps - invalid_snps;
     const std::string label
         = (mode == gelex::GeneticMode::D) ? "Dominance" : "Additive";
+    if (invalid_snps == 0)
+    {
+        cli::printer().line("{}", cli::field(label, "all valid"));
+        return;
+    }
     cli::printer().line(
         "{}",
         cli::field(
             label,
-            "{} SNPs ({} invalid excluded)",
-            cli::AbbrNumber(effective_snps),
+            "{} valid ({} excluded)",
+            cli::AbbrNumber(num_snps - invalid_snps),
             cli::AbbrNumber(invalid_snps)));
 }
 
 auto GenoReporter::on_event(const gelex::GenotypeProgressEvent& event) -> void
 {
-    if (!init_progress_)
-    {
-        init_progress_ = true;
-        progress_info_ = cli::create_progress_info();
-        progress_info_.display->show();
-    }
-
-    progress_info_.progress_info->message(
-        fmt::format(
-            "  {}/{} SNPs",
-            cli::AbbrNumber(event.current),
-            cli::AbbrNumber(event.total)));
-
     if (event.done)
     {
-        progress_info_.display->done();
-        cli::printer().on_progress_finished();
-        init_progress_ = false;
+        if (bar_active_)
+        {
+            bar_.display->done();
+            bar_active_ = false;
+            cli::clear_finished_line();
+            cli::printer().on_progress_finished();
+        }
+        return;
+    }
+
+    if (!bar_active_)
+    {
+        total_ = event.total;
+        progress_ = 0;
+        eta_.reset(total_);
+        bar_ = cli::create_progress_bar(progress_, total_);
+        bar_.display->show();
+        bar_active_ = true;
+    }
+
+    progress_ = event.current;
+    if (bar_.after_bar)
+    {
+        bar_.after_bar->message(
+            fmt::format(
+                "{:.1f}% ({}/{} SNPs) | ETA: {}",
+                static_cast<double>(progress_) / static_cast<double>(total_)
+                    * 100.0,
+                cli::AbbrNumber(progress_),
+                cli::AbbrNumber(total_),
+                eta_.get_eta(progress_)));
     }
 }
 

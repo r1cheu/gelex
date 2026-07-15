@@ -26,12 +26,6 @@
 namespace cli
 {
 
-inline const barkeep::BarParts BAR_STYLE{
-    .left = "[",
-    .right = "]",
-    .fill = {"\033[1;36m━\033[0m"},
-    .empty = {"-"}};
-
 inline const barkeep::Strings GREEN_SPINNER{
     "\033[32m⠁\033[0m", "\033[32m⠁\033[0m", "\033[32m⠉\033[0m",
     "\033[32m⠙\033[0m", "\033[32m⠚\033[0m", "\033[32m⠒\033[0m",
@@ -63,6 +57,11 @@ auto create_progress_bar(
     std::string_view format = "{bar}") -> ProgressBar;
 
 auto create_progress_info() -> ProgressInfo;
+
+// Erases the just-finished bar line (the one barkeep left with a trailing
+// newline) so a persistent summary can take its place. No-op when output is not
+// a tty.
+auto clear_finished_line() -> void;
 
 }  // namespace cli
 

@@ -19,11 +19,14 @@
 #include <barkeep.h>
 #include <cstdio>
 #include <cstdlib>
+#include <fmt/color.h>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <unistd.h>
 #include <vector>
+
+#include "theme.h"
 
 namespace cli
 {
@@ -62,13 +65,19 @@ auto create_progress_bar(size_t& counter, size_t total, std::string_view format)
     auto before = bk::Status(
         {.style = bk::Strings{" "}, .no_tty = no_tty, .show = false});
     elements.push_back(before);
+    const bk::BarParts bar_style{
+        .left = "[",
+        .right = "]",
+        .fill = {cli::colorize(
+            style_for(ColorRole::accent) | fmt::emphasis::bold, "━")},
+        .empty = {"-"}};
     elements.push_back(
         bk::ProgressBar(
             &counter,
             {.total = total,
              .format = std::string(format),
              .speed = 0.1,
-             .style = BAR_STYLE,
+             .style = bar_style,
              .no_tty = no_tty,
              .show = false}));
     auto after = bk::Status(
@@ -79,6 +88,17 @@ auto create_progress_bar(size_t& counter, size_t total, std::string_view format)
         .display = bk::Composite(elements, ""),
         .before_bar = before,
         .after_bar = after};
+}
+
+auto clear_finished_line() -> void
+{
+    if (should_use_no_tty())
+    {
+        return;
+    }
+    // barkeep ends a finished bar with a newline; step back up and wipe it.
+    std::fputs("\033[A\r\033[K", stdout);
+    std::fflush(stdout);
 }
 
 auto create_progress_info() -> ProgressInfo

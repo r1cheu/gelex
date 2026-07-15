@@ -34,7 +34,7 @@ std::string format_eta(double seconds)
     }
     int total_seconds = static_cast<int>(seconds);
     int h = total_seconds / 3600;
-    int m = total_seconds / 60;
+    int m = (total_seconds % 3600) / 60;
     int s = total_seconds % 60;
     return fmt::format("{:02d}:{:02d}:{:02d}", h, m, s);
 }
@@ -71,12 +71,22 @@ std::string SmoothEtaCalculator::get_eta(size_t current_items)
 {
     auto now = std::chrono::steady_clock::now();
 
+    if (is_first_update_)
+    {
+        // A rate needs two timestamps; the first report only anchors the
+        // baseline and leaves the ETA unknown until the next one arrives.
+        last_time_ = now;
+        last_items_ = current_items;
+        is_first_update_ = false;
+        return format_eta(calculate_eta_from_rate(current_items, smooth_rate_));
+    }
+
     auto elapsed_since_last
         = std::chrono::duration_cast<std::chrono::milliseconds>(
               now - last_time_)
               .count();
 
-    if (elapsed_since_last < min_update_interval_.count() && !is_first_update_)
+    if (elapsed_since_last < min_update_interval_.count())
     {
         return format_eta(calculate_eta_from_rate(current_items, smooth_rate_));
     }
@@ -98,13 +108,10 @@ std::string SmoothEtaCalculator::get_eta(size_t current_items)
         instant_rate = static_cast<double>(delta_items) / delta_sec;
     }
 
-    if (is_first_update_)
+    if (smooth_rate_ <= 0.0)
     {
-        if (delta_sec > 0)
-        {
-            smooth_rate_ = instant_rate;
-        }
-        is_first_update_ = false;
+        // First measurement over a real interval seeds the rate directly.
+        smooth_rate_ = instant_rate;
     }
     else
     {
@@ -153,7 +160,7 @@ double SmoothEtaCalculator::calculate_eta_from_rate(size_t current, double rate)
 {
     if (rate <= 1e-6)
     {
-        return 999999.0;
+        return -1.0;  // unknown; format_eta renders this as "--:--:--"
     }
     if (current >= total_items_)
     {

@@ -28,6 +28,7 @@
 #include "gelex/types/genetic_mode.h"
 
 #include "cli/progress_bar.h"
+#include "cli/timer.h"
 
 namespace gelex
 {
@@ -49,6 +50,7 @@ class GenoReporter
    public:
     GenoReporter();
 
+    auto show_total(int64_t num_variants) const -> void;
     auto show_loaded(
         gelex::GeneticMode mode,
         int64_t num_snps,
@@ -62,8 +64,11 @@ class GenoReporter
     }
 
    private:
-    cli::ProgressInfo progress_info_;
-    bool init_progress_ = false;
+    size_t progress_{0};
+    size_t total_{0};
+    cli::ProgressBar bar_;
+    bool bar_active_ = false;
+    gelex::SmoothEtaCalculator eta_;
 };
 
 class McmcReporter
