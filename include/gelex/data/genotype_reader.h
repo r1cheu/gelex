@@ -20,8 +20,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <utility>
-#include <vector>
 
 #include "gelex/data/bed.h"
 #include "gelex/data/genotype.h"
@@ -35,8 +33,6 @@ namespace gelex
 class GenotypeReader
 {
    public:
-    using ModeGenotype = std::pair<gelex::GeneticMode, Genotype>;
-
     explicit GenotypeReader(
         const gelex::Bed& bed,
         gelex::GenoObserver observer = {});
@@ -53,7 +49,7 @@ class GenotypeReader
     auto read_in_memory(
         gelex::GeneticModeSet modes,
         gelex::GenotypeMethod method,
-        std::size_t chunk_size = 10000) -> std::vector<ModeGenotype>;
+        std::size_t chunk_size = 10000) -> gelex::ModeMap<gelex::Genotype>;
 
     // Writes one <output_prefix>.<mode>.geno file per mode, then maps each
     // back.
@@ -61,7 +57,7 @@ class GenotypeReader
         gelex::GeneticModeSet modes,
         gelex::GenotypeMethod method,
         const std::filesystem::path& output_prefix,
-        std::size_t chunk_size = 10000) -> std::vector<ModeGenotype>;
+        std::size_t chunk_size = 10000) -> gelex::ModeMap<gelex::Genotype>;
 
     static auto read(
         const std::filesystem::path& geno_path,

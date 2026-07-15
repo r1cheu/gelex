@@ -19,6 +19,7 @@
 
 #include <Eigen/Core>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <utility>
 #include <variant>
@@ -26,6 +27,7 @@
 
 #include "gelex/data/snp_stats.h"
 #include "gelex/io/binary_reader.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex::test
 {
@@ -35,7 +37,12 @@ class GenotypeBuilder;
 namespace gelex
 {
 
-class GenotypeReader;
+class Genotype;
+class InMemorySink;
+
+auto load_genotype(
+    const std::filesystem::path& geno_path,
+    gelex::GeneticMode mode) -> Genotype;
 
 struct OwnedStorage
 {
@@ -97,7 +104,10 @@ class Genotype
     [[nodiscard]] auto cols() const noexcept -> int64_t;
 
    private:
-    friend class GenotypeReader;
+    friend class InMemorySink;
+    friend auto load_genotype(
+        const std::filesystem::path& geno_path,
+        gelex::GeneticMode mode) -> Genotype;
     friend class ::gelex::test::GenotypeBuilder;
 
     explicit Genotype(OwnedStorage&& owned) noexcept
