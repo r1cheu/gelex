@@ -20,7 +20,6 @@
 #include <cstddef>
 #include <fmt/format.h>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include "gelex/data/bed.h"
@@ -33,16 +32,6 @@
 #include "cli/report_printer.h"
 #include "cli/runtime.h"
 #include "reporter.h"
-
-namespace
-{
-
-auto mode_tag(gelex::GeneticMode mode) -> std::string_view
-{
-    return mode == gelex::GeneticMode::A ? "add" : "dom";
-}
-
-}  // namespace
 
 auto grm_execute(const cli::GrmConfig& config) -> int
 {
@@ -78,10 +67,10 @@ auto grm_execute(const cli::GrmConfig& config) -> int
         [&](const gelex::GrmMatrix& matrix)
         {
             const std::string name = matrix.label.empty()
-                                         ? std::string{mode_tag(matrix.mode)}
+                                         ? fmt::format("{}", matrix.mode)
                                          : fmt::format(
                                                "{}.chr{:02d}",
-                                               mode_tag(matrix.mode),
+                                               matrix.mode,
                                                std::stoi(matrix.label));
             gelex::write_grm(
                 fmt::format("{}.{}", config.out, name), matrix.grm, sample_ids);
@@ -90,11 +79,12 @@ auto grm_execute(const cli::GrmConfig& config) -> int
     reporter.finish_progress();
 
     const std::string task_pattern
-        = modes.size() == 1 ? std::string{mode_tag(
+        = modes.size() == 1 ? fmt::format(
+                                  "{}",
                                   modes.contains(gelex::GeneticMode::A)
                                       ? gelex::GeneticMode::A
-                                      : gelex::GeneticMode::D)}
-                            : std::string{"{add,dom}"};
+                                      : gelex::GeneticMode::D)
+                            : std::string{"{A,D}"};
 
     auto suffix_pattern = config.loco
                               ? fmt::format(

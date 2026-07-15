@@ -37,7 +37,7 @@ GWAS
       gelex assoc \
         -b genotypes_qc \
         -p phenotypes.tsv \
-        --grm my_grm.add \
+        --grm my_grm.A \
         --qcovar population_pcs.eigenvec \
         --transform iint \
         -o final_gwas_results
@@ -111,9 +111,9 @@ Basic Usage
 .. note::
    The effect mode is selected with ``--mode`` (``A`` additive, ``D`` dominance,
    ``AD`` both). The output is written as ``<out>.<effect>.bin``/``.id``, so
-   ``-o my_grm --mode A`` produces ``my_grm.add.bin`` and ``my_grm.add.id``.
+   ``-o my_grm --mode A`` produces ``my_grm.A.bin`` and ``my_grm.A.id``.
    When passing the GRM to ``assoc``, use the prefix **including** the effect
-   tag, e.g. ``--grm my_grm.add``.
+   tag, e.g. ``--grm my_grm.A``.
 
 Step 2: Association Analysis
 ----------------------------
@@ -143,7 +143,7 @@ This performs a standard mixed model association test.
    gelex assoc \
      -b genotypes_qc \
      -p phenotypes.tsv \
-     --grm my_grm.add \
+     --grm my_grm.A \
      --qcovar population_pcs.eigenvec \
      -o basic_gwas
 
@@ -152,12 +152,12 @@ This performs a standard mixed model association test.
 LOCO analysis requires pre-computing both global and chromosome-specific GRMs.
 
 .. code-block:: bash
-   :caption: Compute Global GRM (Result: my_grm.add.bin)
+   :caption: Compute Global GRM (Result: my_grm.A.bin)
 
    gelex grm -b genotypes_pruned --mode A -o my_grm
 
 .. code-block:: bash
-   :caption: Compute Chromosome GRMs (Result: my_grm.add.chr*.bin)
+   :caption: Compute Chromosome GRMs (Result: my_grm.A.chr*.bin)
 
    gelex grm -b genotypes_pruned --mode A --loco -o my_grm
 
@@ -167,7 +167,7 @@ LOCO analysis requires pre-computing both global and chromosome-specific GRMs.
    gelex assoc \
      -b genotypes_qc \
      -p phenotypes.tsv \
-     --grm my_grm.add \
+     --grm my_grm.A \
      --qcovar population_pcs.eigenvec \
      --loco \
      -o loco_gwas
@@ -182,7 +182,7 @@ Include discrete/quantitative covariates and apply Inverse Normal Transformation
    gelex assoc \
      -b genotypes_qc \
      -p phenotypes.tsv \
-     --grm my_grm.add \
+     --grm my_grm.A \
      --qcovar population_pcs.eigenvec \
      --dcovar sex.tsv \
      --transform iint \
@@ -203,7 +203,7 @@ Test for dominance effects using both additive and dominance GRMs.
    gelex assoc \
      -b genotypes_qc \
      -p phenotypes.tsv \
-     --grm my_background.add my_background.dom \
+     --grm my_background.A my_background.D \
      --mode D \
      --transform iint \
      -o dom_gwas
@@ -218,7 +218,7 @@ For large datasets, you can increase the number of threads.
 .. code-block:: bash
    :caption: Multi-threaded Analysis (e.g., for a 10-core CPU)
 
-   gelex assoc -b genotypes_qc -p phenotypes.tsv --grm my_grm.add --threads 10 -o fast_gwas
+   gelex assoc -b genotypes_qc -p phenotypes.tsv --grm my_grm.A --threads 10 -o fast_gwas
 
 Output Format
 -------------

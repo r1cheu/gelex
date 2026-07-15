@@ -204,7 +204,7 @@ Examples
    gelex assoc \
       -b genotypes_qc \
       -p phenotypes.tsv \
-      --grm my_grm.add \
+      --grm my_grm.A \
       --loco \
       -o loco_gwas
 
@@ -214,7 +214,7 @@ Examples
    gelex assoc \
       -b genotypes_qc \
       -p phenotypes.tsv \
-      --grm my_grm.add my_grm.dom \
+      --grm my_grm.A my_grm.D \
       --mode D \
       --transform iint \
       -o dom_gwas

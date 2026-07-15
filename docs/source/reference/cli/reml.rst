@@ -127,7 +127,7 @@ Examples
 
    gelex reml \
       -p phenotypes.tsv \
-      --grm my_grm.add my_grm.dom \
+      --grm my_grm.A my_grm.D \
       -o reml_ad
 
 .. code-block:: bash

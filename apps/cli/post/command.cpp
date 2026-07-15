@@ -27,7 +27,6 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/labels.h"
 #include "gelex/data/genotype.h"
 #include "gelex/data/genotype_reader.h"
 #include "gelex/exception.h"
@@ -104,8 +103,7 @@ auto process_gebv_variance(
         {
             continue;
         }
-        auto geno_path = fmt::format(
-            "{}.{}.geno", *gfile, gelex::bayes::to_file_suffix(kind));
+        auto geno_path = fmt::format("{}.{}.geno", *gfile, kind);
 
         genotype_storages.emplace_back(
             gelex::GenotypeReader::read(geno_path, kind));

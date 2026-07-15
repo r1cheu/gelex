@@ -101,10 +101,10 @@ Output naming depends on whether you request one or multiple matrices.
      - File pattern
      - Notes
    * - Single mode (``--mode A`` or ``--mode D``), no LOCO
-     - ``<out>.add.bin/.id`` or ``<out>.dom.bin/.id``
-     - The effect suffix (``.add``/``.dom``) is always written.
+     - ``<out>.A.bin/.id`` or ``<out>.D.bin/.id``
+     - The effect suffix (``.A``/``.D``) is always written.
    * - ``--mode AD``, no LOCO
-     - ``<out>.add.bin/.id`` and ``<out>.dom.bin/.id``
+     - ``<out>.A.bin/.id`` and ``<out>.D.bin/.id``
      - One file pair per effect mode.
    * - LOCO enabled
      - ``<out>.<add|dom>.chrNN.bin/.id``

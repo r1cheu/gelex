@@ -48,18 +48,6 @@ inline auto to_heritability_label(GeneticMode mode) -> std::string_view
     return "unknown";
 }
 
-inline auto to_file_suffix(GeneticMode mode) -> std::string_view
-{
-    switch (mode)
-    {
-        case GeneticMode::A:
-            return "add";
-        case GeneticMode::D:
-            return "dom";
-    }
-    return "unknown";
-}
-
 }  // namespace gelex::bayes
 
 #endif  // GELEX_BAYES_LABELS_H_
